@@ -1162,13 +1162,10 @@ static void http_redirect(struct http_async *ha, gchar *url)
 	 */
 
 	g_assert(ha->io_opaque);
-	g_assert(ha->bio);
+	g_assert(ha->bio == NULL);		/* Have not started to read data */
 
 	io_free(ha->io_opaque);
 	ha->io_opaque = NULL;
-
-	bsched_source_remove(ha->bio);
-	ha->bio = NULL;
 }
 
 /*
