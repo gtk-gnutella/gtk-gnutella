@@ -24,6 +24,8 @@
 #ifndef __filter_cb_h__
 #define __filter_cb_h__
 
+void filter_cb_close();
+
 /*
  * Filter dialog
  */

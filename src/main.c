@@ -48,6 +48,7 @@
 #include "ban.h"
 #include "atoms.h"
 #include "dmesh.h"
+#include "filter_cb.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 #define EXIT_GRACE				30	/* Seconds to wait before exiting */
@@ -88,6 +89,7 @@ void gtk_gnutella_exit(gint n)
 	node_bye_all();
 	upload_close();		/* Done before config_close() for stats update */
 	download_close();
+    filter_cb_close();
 
 	/*
 	 * Make sure the gui writes config variabes it owns but that can't 

@@ -34,6 +34,12 @@
  */
 rule_t *rule_clipboard = NULL;
 
+void filter_cb_close()
+{
+    if (rule_clipboard != NULL)
+        filter_free_rule(rule_clipboard);
+}
+
 /*
  * on_checkbutton_filter_enabled_toggled:
  *
