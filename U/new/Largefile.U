@@ -16,9 +16,10 @@ $cat >try.c <<'EOC'
 #ifdef I_UNISTD
 #include <unistd.h>
 #endif
-main()
+int main(void)
 {
-	printf("%d\n", sizeof(off_t));
+	switch (0) { case 0: case (sizeof(off_t) >= 8): break };
+	return 0;
 }
 EOC
 flags=''
@@ -27,22 +28,14 @@ case "$i_unistd" in
 "$define") flags='-DI_UNISTD';;
 esac
 if $cc $ccflags $flags $ldflags -o try try.c >/dev/null 2>&1; then
-	case `./try 2>&1` in
-	4)
-		echo "You're not natively compiling for large file, fixing..." >&4
-		if $cc $ccflags $flags $large $ldflags -o try try.c >/dev/null 2>&1
-		then
-			case `./try 2>&1` in
-			4) echo "I can't fix it, we'll be compiling for 32-bit files";;
-			8) echo "(Adding $large)"; ccflags="$ccflags $large";;
-			esac
-		else
-			echo "(Could not compile the test program, using 32-bit files)" >&4
-		fi
-		;;
-	8) echo "Selected C flags already provide 64-bit file support.";;
-	esac
+	echo "Selected C flags already provide 64-bit file support."
 else
-	echo "(Could not compile the test program, cross fingers)" >&4
+	echo "You're not natively compiling for large file, fixing..." >&4
+	if $cc $ccflags $flags $large $ldflags -o try try.c >/dev/null 2>&1
+	then
+		echo "(Adding $large)"; ccflags="$ccflags $large"
+	else
+		echo "(Could not compile the test program, using 32-bit files)" >&4
+	fi
 fi
 
