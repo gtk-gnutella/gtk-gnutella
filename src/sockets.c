@@ -909,8 +909,10 @@ struct gnutella_socket *socket_connect_by_name(
 	s = socket_connect_prepare(port, type);
 	g_return_val_if_fail(NULL != s, NULL);
 	s->adns |= SOCK_ADNS_PENDING;
-	if ((!adns_resolve(host, &socket_connect_by_name_helper, s))
-		&& (s->adns & SOCK_ADNS_FAILED)) {
+	if (
+		!adns_resolve(host, &socket_connect_by_name_helper, s)
+		&& (s->adns & SOCK_ADNS_FAILED)
+	) {
 		/*	socket_connect_by_name_helper() was already invoked! */
 		if (dbg > 0)
 			g_warning("socket_connect_by_name: "
