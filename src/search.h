@@ -21,10 +21,11 @@ struct results_set {
  * Flags for the `status' field above.
  */
 
-#define ST_KNOWN_VENDOR			0x80
-#define ST_UPLOADED				0x04
-#define ST_BUSY					0x02
-#define ST_FIREWALL				0x01
+#define ST_KNOWN_VENDOR			0x8000		/* Found known vendor code */
+#define ST_PARSED_TRAILER		0x4000		/* Was able to parse trailer */
+#define ST_UPLOADED				0x0004
+#define ST_BUSY					0x0002
+#define ST_FIREWALL				0x0001
 
 struct record {
 	struct results_set *results_set;
