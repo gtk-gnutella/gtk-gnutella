@@ -2781,7 +2781,7 @@
 	      <border_width>2</border_width>
 	      <handle_size>8</handle_size>
 	      <gutter_size>8</gutter_size>
-	      <position>168</position>
+	      <position>230</position>
 
 	      <widget>
 		<class>GtkVBox</class>
@@ -2948,221 +2948,279 @@
 		      </child>
 
 		      <widget>
-			<class>GtkTable</class>
-			<name>table60</name>
-			<border_width>2</border_width>
-			<rows>3</rows>
-			<columns>4</columns>
+			<class>GtkVBox</class>
+			<name>vbox112</name>
 			<homogeneous>False</homogeneous>
-			<row_spacing>2</row_spacing>
-			<column_spacing>4</column_spacing>
+			<spacing>0</spacing>
 
 			<widget>
-			  <class>GtkLabel</class>
-			  <name>label64</name>
-			  <label>Maximum simultaneous downloads</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0.5</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
+			  <class>GtkTable</class>
+			  <name>table60</name>
+			  <border_width>2</border_width>
+			  <rows>2</rows>
+			  <columns>4</columns>
+			  <homogeneous>False</homogeneous>
+			  <row_spacing>2</row_spacing>
+			  <column_spacing>4</column_spacing>
 			  <child>
-			    <left_attach>0</left_attach>
-			    <right_attach>1</right_attach>
-			    <top_attach>0</top_attach>
-			    <bottom_attach>1</bottom_attach>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>False</fill>
+			  </child>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <name>label64</name>
+			    <label>Maximum simultaneous downloads</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
 			    <xpad>0</xpad>
 			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
+			    <child>
+			      <left_attach>0</left_attach>
+			      <right_attach>1</right_attach>
+			      <top_attach>0</top_attach>
+			      <bottom_attach>1</bottom_attach>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			      <xexpand>False</xexpand>
+			      <yexpand>False</yexpand>
+			      <xshrink>False</xshrink>
+			      <yshrink>False</yshrink>
+			      <xfill>True</xfill>
+			      <yfill>False</yfill>
+			    </child>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <name>label80</name>
+			    <label>Max downloads from single host</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <child>
+			      <left_attach>2</left_attach>
+			      <right_attach>3</right_attach>
+			      <top_attach>0</top_attach>
+			      <bottom_attach>1</bottom_attach>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			      <xexpand>False</xexpand>
+			      <yexpand>False</yexpand>
+			      <xshrink>False</xshrink>
+			      <yshrink>False</yshrink>
+			      <xfill>True</xfill>
+			      <yfill>False</yfill>
+			    </child>
+			  </widget>
+
+			  <widget>
+			    <class>GtkSpinButton</class>
+			    <name>spinbutton_max_downloads</name>
+			    <can_focus>True</can_focus>
+			    <climb_rate>1</climb_rate>
+			    <digits>0</digits>
+			    <numeric>True</numeric>
+			    <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+			    <snap>False</snap>
+			    <wrap>False</wrap>
+			    <value>1</value>
+			    <lower>0</lower>
+			    <upper>100</upper>
+			    <step>1</step>
+			    <page>10</page>
+			    <page_size>10</page_size>
+			    <child>
+			      <left_attach>1</left_attach>
+			      <right_attach>2</right_attach>
+			      <top_attach>0</top_attach>
+			      <bottom_attach>1</bottom_attach>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			      <xexpand>False</xexpand>
+			      <yexpand>False</yexpand>
+			      <xshrink>False</xshrink>
+			      <yshrink>False</yshrink>
+			      <xfill>True</xfill>
+			      <yfill>False</yfill>
+			    </child>
+			  </widget>
+
+			  <widget>
+			    <class>GtkSpinButton</class>
+			    <name>spinbutton_max_host_downloads</name>
+			    <can_focus>True</can_focus>
+			    <climb_rate>1</climb_rate>
+			    <digits>0</digits>
+			    <numeric>True</numeric>
+			    <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+			    <snap>False</snap>
+			    <wrap>False</wrap>
+			    <value>1</value>
+			    <lower>1</lower>
+			    <upper>100</upper>
+			    <step>1</step>
+			    <page>10</page>
+			    <page_size>10</page_size>
+			    <child>
+			      <left_attach>3</left_attach>
+			      <right_attach>4</right_attach>
+			      <top_attach>0</top_attach>
+			      <bottom_attach>1</bottom_attach>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			      <xexpand>False</xexpand>
+			      <yexpand>False</yexpand>
+			      <xshrink>False</xshrink>
+			      <yshrink>False</yshrink>
+			      <xfill>True</xfill>
+			      <yfill>False</yfill>
+			    </child>
+			  </widget>
+
+			  <widget>
+			    <class>GtkCheckButton</class>
+			    <name>checkbutton_download_delete_aborted</name>
+			    <can_focus>True</can_focus>
+			    <label>Delete file on abort</label>
+			    <active>False</active>
+			    <draw_indicator>True</draw_indicator>
+			    <child>
+			      <left_attach>2</left_attach>
+			      <right_attach>4</right_attach>
+			      <top_attach>1</top_attach>
+			      <bottom_attach>2</bottom_attach>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			      <xexpand>False</xexpand>
+			      <yexpand>False</yexpand>
+			      <xshrink>False</xshrink>
+			      <yshrink>False</yshrink>
+			      <xfill>True</xfill>
+			      <yfill>False</yfill>
+			    </child>
+			  </widget>
+
+			  <widget>
+			    <class>GtkCheckButton</class>
+			    <name>checkbutton_downloads_never_push</name>
+			    <can_focus>True</can_focus>
+			    <label>Never send a push request</label>
+			    <active>False</active>
+			    <draw_indicator>True</draw_indicator>
+			    <child>
+			      <left_attach>0</left_attach>
+			      <right_attach>2</right_attach>
+			      <top_attach>1</top_attach>
+			      <bottom_attach>2</bottom_attach>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			      <xexpand>False</xexpand>
+			      <yexpand>False</yexpand>
+			      <xshrink>False</xshrink>
+			      <yshrink>False</yshrink>
+			      <xfill>True</xfill>
+			      <yfill>False</yfill>
+			    </child>
+			  </widget>
 			</widget>
 
 			<widget>
-			  <class>GtkLabel</class>
-			  <name>label80</name>
-			  <label>Max downloads from single host</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0.5</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
+			  <class>GtkFrame</class>
+			  <name>frame_dl_autoclear</name>
+			  <label>Auto clear stopped downloads</label>
+			  <label_xalign>0</label_xalign>
+			  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 			  <child>
-			    <left_attach>2</left_attach>
-			    <right_attach>3</right_attach>
-			    <top_attach>0</top_attach>
-			    <bottom_attach>1</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>True</fill>
 			  </child>
-			</widget>
 
-			<widget>
-			  <class>GtkCheckButton</class>
-			  <name>checkbutton_dl_clear_complete</name>
-			  <can_focus>True</can_focus>
-			  <label>Auto clear completed downloads</label>
-			  <active>False</active>
-			  <draw_indicator>True</draw_indicator>
-			  <child>
-			    <left_attach>0</left_attach>
-			    <right_attach>2</right_attach>
-			    <top_attach>1</top_attach>
-			    <bottom_attach>2</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
+			  <widget>
+			    <class>GtkTable</class>
+			    <name>table64</name>
+			    <rows>1</rows>
+			    <columns>3</columns>
+			    <homogeneous>False</homogeneous>
+			    <row_spacing>0</row_spacing>
+			    <column_spacing>0</column_spacing>
 
-			<widget>
-			  <class>GtkCheckButton</class>
-			  <name>checkbutton_downloads_never_push</name>
-			  <can_focus>True</can_focus>
-			  <label>Never send a push request</label>
-			  <active>False</active>
-			  <draw_indicator>True</draw_indicator>
-			  <child>
-			    <left_attach>0</left_attach>
-			    <right_attach>2</right_attach>
-			    <top_attach>2</top_attach>
-			    <bottom_attach>3</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
+			    <widget>
+			      <class>GtkCheckButton</class>
+			      <name>checkbutton_dl_clear_complete</name>
+			      <can_focus>True</can_focus>
+			      <label>Completed</label>
+			      <active>False</active>
+			      <draw_indicator>True</draw_indicator>
+			      <child>
+				<left_attach>0</left_attach>
+				<right_attach>1</right_attach>
+				<top_attach>0</top_attach>
+				<bottom_attach>1</bottom_attach>
+				<xpad>0</xpad>
+				<ypad>0</ypad>
+				<xexpand>False</xexpand>
+				<yexpand>False</yexpand>
+				<xshrink>False</xshrink>
+				<yshrink>False</yshrink>
+				<xfill>True</xfill>
+				<yfill>False</yfill>
+			      </child>
+			    </widget>
 
-			<widget>
-			  <class>GtkCheckButton</class>
-			  <name>checkbutton_dl_clear_failed</name>
-			  <can_focus>True</can_focus>
-			  <label>Auto clear failed downloads</label>
-			  <active>False</active>
-			  <draw_indicator>True</draw_indicator>
-			  <child>
-			    <left_attach>2</left_attach>
-			    <right_attach>4</right_attach>
-			    <top_attach>1</top_attach>
-			    <bottom_attach>2</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
+			    <widget>
+			      <class>GtkCheckButton</class>
+			      <name>checkbutton_dl_clear_failed</name>
+			      <can_focus>True</can_focus>
+			      <label>Failed</label>
+			      <active>False</active>
+			      <draw_indicator>True</draw_indicator>
+			      <child>
+				<left_attach>1</left_attach>
+				<right_attach>2</right_attach>
+				<top_attach>0</top_attach>
+				<bottom_attach>1</bottom_attach>
+				<xpad>0</xpad>
+				<ypad>0</ypad>
+				<xexpand>False</xexpand>
+				<yexpand>False</yexpand>
+				<xshrink>False</xshrink>
+				<yshrink>False</yshrink>
+				<xfill>True</xfill>
+				<yfill>False</yfill>
+			      </child>
+			    </widget>
 
-			<widget>
-			  <class>GtkCheckButton</class>
-			  <name>checkbutton_download_delete_aborted</name>
-			  <can_focus>True</can_focus>
-			  <label>Delete file on abort</label>
-			  <active>False</active>
-			  <draw_indicator>True</draw_indicator>
-			  <child>
-			    <left_attach>2</left_attach>
-			    <right_attach>4</right_attach>
-			    <top_attach>2</top_attach>
-			    <bottom_attach>3</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkSpinButton</class>
-			  <name>spinbutton_max_downloads</name>
-			  <can_focus>True</can_focus>
-			  <climb_rate>1</climb_rate>
-			  <digits>0</digits>
-			  <numeric>True</numeric>
-			  <update_policy>GTK_UPDATE_ALWAYS</update_policy>
-			  <snap>False</snap>
-			  <wrap>False</wrap>
-			  <value>1</value>
-			  <lower>0</lower>
-			  <upper>100</upper>
-			  <step>1</step>
-			  <page>10</page>
-			  <page_size>10</page_size>
-			  <child>
-			    <left_attach>1</left_attach>
-			    <right_attach>2</right_attach>
-			    <top_attach>0</top_attach>
-			    <bottom_attach>1</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkSpinButton</class>
-			  <name>spinbutton_max_host_downloads</name>
-			  <can_focus>True</can_focus>
-			  <climb_rate>1</climb_rate>
-			  <digits>0</digits>
-			  <numeric>True</numeric>
-			  <update_policy>GTK_UPDATE_ALWAYS</update_policy>
-			  <snap>False</snap>
-			  <wrap>False</wrap>
-			  <value>1</value>
-			  <lower>1</lower>
-			  <upper>100</upper>
-			  <step>1</step>
-			  <page>10</page>
-			  <page_size>10</page_size>
-			  <child>
-			    <left_attach>3</left_attach>
-			    <right_attach>4</right_attach>
-			    <top_attach>0</top_attach>
-			    <bottom_attach>1</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
+			    <widget>
+			      <class>GtkCheckButton</class>
+			      <name>checkbutton_dl_clear_unavailable</name>
+			      <can_focus>True</can_focus>
+			      <label>Unavailable</label>
+			      <active>False</active>
+			      <draw_indicator>True</draw_indicator>
+			      <child>
+				<left_attach>2</left_attach>
+				<right_attach>3</right_attach>
+				<top_attach>0</top_attach>
+				<bottom_attach>1</bottom_attach>
+				<xpad>0</xpad>
+				<ypad>0</ypad>
+				<xexpand>False</xexpand>
+				<yexpand>False</yexpand>
+				<xshrink>False</xshrink>
+				<yshrink>False</yshrink>
+				<xfill>True</xfill>
+				<yfill>False</yfill>
+			      </child>
+			    </widget>
+			  </widget>
 			</widget>
 		      </widget>
 		    </widget>
@@ -3220,16 +3278,16 @@
 
 		      <widget>
 			<class>GtkButton</class>
-			<name>button_downloads_clear_completed</name>
+			<name>button_downloads_clear_stopped</name>
 			<sensitive>False</sensitive>
-			<tooltip>Remove completed downloads from list</tooltip>
+			<tooltip>Clear completed, failed and unavailable downloads from list</tooltip>
 			<can_focus>True</can_focus>
 			<signal>
 			  <name>clicked</name>
-			  <handler>on_button_downloads_clear_completed_clicked</handler>
-			  <last_modification_time>Fri, 29 Mar 2002 18:50:33 GMT</last_modification_time>
+			  <handler>on_button_downloads_clear_stopped_clicked</handler>
+			  <last_modification_time>Sat, 16 Aug 2003 15:21:26 GMT</last_modification_time>
 			</signal>
-			<label>Clear completed</label>
+			<label>Clear stopped</label>
 			<relief>GTK_RELIEF_NORMAL</relief>
 			<child>
 			  <padding>0</padding>

@@ -221,21 +221,25 @@ create_main_window (void)
   GtkWidget *label_dl_server;
   GtkWidget *label115;
   GtkWidget *frame_dl_settings;
+  GtkWidget *vbox112;
   GtkWidget *table60;
   GtkWidget *label64;
   GtkWidget *label80;
-  GtkWidget *checkbutton_dl_clear_complete;
-  GtkWidget *checkbutton_downloads_never_push;
-  GtkWidget *checkbutton_dl_clear_failed;
-  GtkWidget *checkbutton_download_delete_aborted;
   GtkObject *spinbutton_max_downloads_adj;
   GtkWidget *spinbutton_max_downloads;
   GtkObject *spinbutton_max_host_downloads_adj;
   GtkWidget *spinbutton_max_host_downloads;
+  GtkWidget *checkbutton_download_delete_aborted;
+  GtkWidget *checkbutton_downloads_never_push;
+  GtkWidget *frame_dl_autoclear;
+  GtkWidget *table64;
+  GtkWidget *checkbutton_dl_clear_complete;
+  GtkWidget *checkbutton_dl_clear_failed;
+  GtkWidget *checkbutton_dl_clear_unavailable;
   GtkWidget *hbox41;
   GtkWidget *button_downloads_abort;
   GtkWidget *button_downloads_resume;
-  GtkWidget *button_downloads_clear_completed;
+  GtkWidget *button_downloads_clear_stopped;
   GtkWidget *scrolledwindow41;
   GtkWidget *viewport11;
   GtkWidget *hbox166;
@@ -2563,7 +2567,7 @@ create_main_window (void)
   gtk_container_set_border_width (GTK_CONTAINER (vpaned_downloads), 2);
   gtk_paned_set_handle_size (GTK_PANED (vpaned_downloads), 8);
   gtk_paned_set_gutter_size (GTK_PANED (vpaned_downloads), 8);
-  gtk_paned_set_position (GTK_PANED (vpaned_downloads), 168);
+  gtk_paned_set_position (GTK_PANED (vpaned_downloads), 230);
 
   vbox36 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox36, "vbox36");
@@ -2671,13 +2675,21 @@ create_main_window (void)
   gtk_widget_show (frame_dl_settings);
   gtk_box_pack_start (GTK_BOX (vbox16), frame_dl_settings, FALSE, TRUE, 0);
 
-  table60 = gtk_table_new (3, 4, FALSE);
+  vbox112 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox112, "vbox112");
+  gtk_widget_ref (vbox112);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox112", vbox112,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox112);
+  gtk_container_add (GTK_CONTAINER (frame_dl_settings), vbox112);
+
+  table60 = gtk_table_new (2, 4, FALSE);
   gtk_widget_set_name (table60, "table60");
   gtk_widget_ref (table60);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table60", table60,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (table60);
-  gtk_container_add (GTK_CONTAINER (frame_dl_settings), table60);
+  gtk_box_pack_start (GTK_BOX (vbox112), table60, FALSE, FALSE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (table60), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table60), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table60), 4);
@@ -2699,46 +2711,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label80);
   gtk_table_attach (GTK_TABLE (table60), label80, 2, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_dl_clear_complete = gtk_check_button_new_with_label (_("Auto clear completed downloads"));
-  gtk_widget_set_name (checkbutton_dl_clear_complete, "checkbutton_dl_clear_complete");
-  gtk_widget_ref (checkbutton_dl_clear_complete);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_clear_complete", checkbutton_dl_clear_complete,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_dl_clear_complete);
-  gtk_table_attach (GTK_TABLE (table60), checkbutton_dl_clear_complete, 0, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_downloads_never_push = gtk_check_button_new_with_label (_("Never send a push request"));
-  gtk_widget_set_name (checkbutton_downloads_never_push, "checkbutton_downloads_never_push");
-  gtk_widget_ref (checkbutton_downloads_never_push);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_never_push", checkbutton_downloads_never_push,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_downloads_never_push);
-  gtk_table_attach (GTK_TABLE (table60), checkbutton_downloads_never_push, 0, 2, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_dl_clear_failed = gtk_check_button_new_with_label (_("Auto clear failed downloads"));
-  gtk_widget_set_name (checkbutton_dl_clear_failed, "checkbutton_dl_clear_failed");
-  gtk_widget_ref (checkbutton_dl_clear_failed);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_clear_failed", checkbutton_dl_clear_failed,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_dl_clear_failed);
-  gtk_table_attach (GTK_TABLE (table60), checkbutton_dl_clear_failed, 2, 4, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_download_delete_aborted = gtk_check_button_new_with_label (_("Delete file on abort"));
-  gtk_widget_set_name (checkbutton_download_delete_aborted, "checkbutton_download_delete_aborted");
-  gtk_widget_ref (checkbutton_download_delete_aborted);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_download_delete_aborted", checkbutton_download_delete_aborted,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_download_delete_aborted);
-  gtk_table_attach (GTK_TABLE (table60), checkbutton_download_delete_aborted, 2, 4, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -2765,6 +2737,72 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_host_downloads), TRUE);
+
+  checkbutton_download_delete_aborted = gtk_check_button_new_with_label (_("Delete file on abort"));
+  gtk_widget_set_name (checkbutton_download_delete_aborted, "checkbutton_download_delete_aborted");
+  gtk_widget_ref (checkbutton_download_delete_aborted);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_download_delete_aborted", checkbutton_download_delete_aborted,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_download_delete_aborted);
+  gtk_table_attach (GTK_TABLE (table60), checkbutton_download_delete_aborted, 2, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_downloads_never_push = gtk_check_button_new_with_label (_("Never send a push request"));
+  gtk_widget_set_name (checkbutton_downloads_never_push, "checkbutton_downloads_never_push");
+  gtk_widget_ref (checkbutton_downloads_never_push);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_never_push", checkbutton_downloads_never_push,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_downloads_never_push);
+  gtk_table_attach (GTK_TABLE (table60), checkbutton_downloads_never_push, 0, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  frame_dl_autoclear = gtk_frame_new (_("Auto clear stopped downloads"));
+  gtk_widget_set_name (frame_dl_autoclear, "frame_dl_autoclear");
+  gtk_widget_ref (frame_dl_autoclear);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_dl_autoclear", frame_dl_autoclear,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame_dl_autoclear);
+  gtk_box_pack_start (GTK_BOX (vbox112), frame_dl_autoclear, FALSE, TRUE, 0);
+
+  table64 = gtk_table_new (1, 3, FALSE);
+  gtk_widget_set_name (table64, "table64");
+  gtk_widget_ref (table64);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "table64", table64,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table64);
+  gtk_container_add (GTK_CONTAINER (frame_dl_autoclear), table64);
+
+  checkbutton_dl_clear_complete = gtk_check_button_new_with_label (_("Completed"));
+  gtk_widget_set_name (checkbutton_dl_clear_complete, "checkbutton_dl_clear_complete");
+  gtk_widget_ref (checkbutton_dl_clear_complete);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_clear_complete", checkbutton_dl_clear_complete,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_dl_clear_complete);
+  gtk_table_attach (GTK_TABLE (table64), checkbutton_dl_clear_complete, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_dl_clear_failed = gtk_check_button_new_with_label (_("Failed"));
+  gtk_widget_set_name (checkbutton_dl_clear_failed, "checkbutton_dl_clear_failed");
+  gtk_widget_ref (checkbutton_dl_clear_failed);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_clear_failed", checkbutton_dl_clear_failed,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_dl_clear_failed);
+  gtk_table_attach (GTK_TABLE (table64), checkbutton_dl_clear_failed, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_dl_clear_unavailable = gtk_check_button_new_with_label (_("Unavailable"));
+  gtk_widget_set_name (checkbutton_dl_clear_unavailable, "checkbutton_dl_clear_unavailable");
+  gtk_widget_ref (checkbutton_dl_clear_unavailable);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_clear_unavailable", checkbutton_dl_clear_unavailable,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_dl_clear_unavailable);
+  gtk_table_attach (GTK_TABLE (table64), checkbutton_dl_clear_unavailable, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   hbox41 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox41, "hbox41");
@@ -2794,15 +2832,15 @@ create_main_window (void)
   gtk_widget_set_sensitive (button_downloads_resume, FALSE);
   gtk_tooltips_set_tip (tooltips, button_downloads_resume, _("Resume all selected downloads"), NULL);
 
-  button_downloads_clear_completed = gtk_button_new_with_label (_("Clear completed"));
-  gtk_widget_set_name (button_downloads_clear_completed, "button_downloads_clear_completed");
-  gtk_widget_ref (button_downloads_clear_completed);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_downloads_clear_completed", button_downloads_clear_completed,
+  button_downloads_clear_stopped = gtk_button_new_with_label (_("Clear stopped"));
+  gtk_widget_set_name (button_downloads_clear_stopped, "button_downloads_clear_stopped");
+  gtk_widget_ref (button_downloads_clear_stopped);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_downloads_clear_stopped", button_downloads_clear_stopped,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_downloads_clear_completed);
-  gtk_box_pack_start (GTK_BOX (hbox41), button_downloads_clear_completed, FALSE, FALSE, 0);
-  gtk_widget_set_sensitive (button_downloads_clear_completed, FALSE);
-  gtk_tooltips_set_tip (tooltips, button_downloads_clear_completed, _("Remove completed downloads from list"), NULL);
+  gtk_widget_show (button_downloads_clear_stopped);
+  gtk_box_pack_start (GTK_BOX (hbox41), button_downloads_clear_stopped, FALSE, FALSE, 0);
+  gtk_widget_set_sensitive (button_downloads_clear_stopped, FALSE);
+  gtk_tooltips_set_tip (tooltips, button_downloads_clear_stopped, _("Clear completed, failed and unavailable downloads from list"), NULL);
 
   scrolledwindow41 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow41, "scrolledwindow41");
@@ -8233,8 +8271,8 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (button_downloads_resume), "clicked",
                       GTK_SIGNAL_FUNC (on_button_downloads_resume_clicked),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (button_downloads_clear_completed), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_downloads_clear_completed_clicked),
+  gtk_signal_connect (GTK_OBJECT (button_downloads_clear_stopped), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_downloads_clear_stopped_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_downloads_queue_select_row),
