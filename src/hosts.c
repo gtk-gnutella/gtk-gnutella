@@ -156,6 +156,8 @@ gboolean find_host(guint32 ip, guint16 port)
 
 	for (l = sl_nodes; l; l = l->next) {
 		struct gnutella_node *node = (struct gnutella_node *) l->data;
+		if (NODE_IS_REMOVING(node))
+			continue;
 		if (!node->gnet_ip)
 			continue;
 		if (node->gnet_ip == ip && node->gnet_port == port)

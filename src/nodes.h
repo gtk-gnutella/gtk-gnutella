@@ -26,6 +26,7 @@ struct gnutella_node {
 	struct gnutella_socket *socket;		/* Socket of the node */
 	gint proto_major;			/* Protocol major number */
 	gint proto_minor;			/* Protocol minor number */
+	gpointer io_opaque;			/* Opaque I/O callback information */
 
 	struct gnutella_header header;		/* Header of the current message */
 
@@ -145,6 +146,9 @@ struct gnutella_node {
 
 #define NODE_IS_INCOMING(n)	\
 	((n)->flags & (NODE_F_TMP|NODE_F_INCOMING))
+
+#define NODE_IS_REMOVING(n) \
+	((n)->status == GTA_NODE_REMOVING)
 
 /*
  * Global Data

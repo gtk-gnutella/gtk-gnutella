@@ -97,6 +97,28 @@ void network_init(void)
 }
 
 /*
+ * io_free
+ *
+ * Free the opaque I/O data.
+ */
+static void io_free(gpointer opaque)
+{
+	struct io_header *ih = (struct io_header *) opaque;
+
+	g_assert(ih);
+	g_assert(ih->node->io_opaque == opaque);
+
+	ih->node->io_opaque = NULL;
+
+	if (ih->header)
+		header_free(ih->header);
+	if (ih->getline)
+		getline_free(ih->getline);
+
+	g_free(ih);
+}
+
+/*
  * Nodes
  */
 
@@ -175,6 +197,14 @@ void node_real_remove(struct gnutella_node *n)
 	if (n->gnet_ip && (n->flags & NODE_F_VALID))
 		host_save_valid(n->gnet_ip, n->gnet_port);
 
+	/*
+	 * The io_opaque structure is not freed by node_remove(), so that code
+	 * can still peruse the headers after node_remove() has been called.
+	 */
+
+	if (n->io_opaque)				/* I/O data */
+		io_free(n->io_opaque);
+
 	g_free(n);
 }
 
@@ -184,6 +214,20 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 
 	if (n->status == GTA_NODE_REMOVING)
 		return;
+
+	if (reason) {
+		va_list args;
+		va_start(args, reason);
+		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, args);
+		n->error_str[sizeof(n->error_str) - 1] = '\0';	/* May be truncated */
+		va_end(args);
+		n->remove_msg = n->error_str;
+	} else
+		n->remove_msg = NULL;
+
+	if (dbg > 3)
+		printf("Node %s removed: %s\n", node_ip(n),
+			n->remove_msg ? n->remove_msg : "<no reason>");
 
 	if (n->status == GTA_NODE_CONNECTED) {
 		if (n->routing_data)
@@ -204,6 +248,7 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 		socket_free(n->socket);
 		n->socket = NULL;
 	}
+	/* n->io_opaque will be freed by node_real_remove() */
 
 	if (n->gdk_tag)
 		gdk_input_remove(n->gdk_tag);
@@ -218,20 +263,6 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 
 	n->status = GTA_NODE_REMOVING;
 	n->last_update = time((time_t *) NULL);
-
-	if (reason) {
-		va_list args;
-		va_start(args, reason);
-		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, args);
-		n->error_str[sizeof(n->error_str) - 1] = '\0';	/* May be truncated */
-		va_end(args);
-		n->remove_msg = n->error_str;
-	} else
-		n->remove_msg = NULL;
-
-	if (dbg > 3)
-		printf("Node %s removed: %s\n", node_ip(n),
-			n->remove_msg ? n->remove_msg : "<no reason>");
 
 	if (dbg > 4) {
 		printf("NODE [%d.%d] %s TX=%d RX=%d Drop=%d Bad=%d\n",
@@ -503,6 +534,13 @@ static void node_is_now_connected(struct gnutella_node *n)
 	 * Update state, and mark node as valid.
 	 */
 
+	if (n->io_opaque)				/* None for outgoing 0.4 connections */
+		io_free(n->io_opaque);
+	if (n->socket->getline) {
+		getline_free(n->socket->getline);
+		n->socket->getline = NULL;
+	}
+
 	n->status = GTA_NODE_CONNECTED;
 	n->flags |= NODE_F_VALID;
 	n->last_update = n->connect_date = time((time_t *) NULL);
@@ -593,10 +631,14 @@ static void downgrade_handshaking(struct gnutella_node *n)
 
 	g_assert(n->status == GTA_NODE_REMOVING);
 	g_assert(!(n->flags & NODE_F_INCOMING));
+	g_assert(n->socket == NULL);
 
 	if (dbg > 4)
 		printf("handshaking with %s failed, retrying at 0.4\n",
 			node_ip(n));
+
+	if (n->io_opaque)				/* I/O data */
+		io_free(n->io_opaque);
 
 	s = socket_connect(n->ip, n->port, GTA_TYPE_CONTROL);
 	n->flags &= ~NODE_F_RETRY_04;
@@ -817,14 +859,6 @@ static void node_process_handshake_ack(struct io_header *ih)
 
 	ack_ok = analyse_status(n, NULL);
 
-	/*
-	 * We can now dispose of the io_header structure.
-	 */
-
-	header_free(ih->header);
-	getline_free(ih->getline);
-	g_free(ih);
-
 	if (!ack_ok)
 		return;			/* s->getline will have been freed by node removal */
 
@@ -1014,7 +1048,7 @@ static void node_process_handshake_header(struct io_header *ih)
 			else
 				extract_header_pongs(ih->header, n);
 
-			goto final_cleanup;		/* node_remove() has freed s->getline */
+			return;				/* node_remove() has freed s->getline */
 		}
 
 		/*
@@ -1052,12 +1086,12 @@ static void node_process_handshake_header(struct io_header *ih)
 			what, ip_to_gchar(n->ip), g_strerror(errcode));
 		node_remove(n, "Failed (Cannot send %s: %s)",
 			what, g_strerror(errcode));
-		goto final_cleanup;
+		return;
 	} else if (sent < rw) {
 		g_warning("Could only send %d out of %d bytes of %s to node %s",
 			sent, rw, what, ip_to_gchar(n->ip));
 		node_remove(n, "Failed (Cannot send %s atomically)", what);
-		goto final_cleanup;
+		return;
 	} else if (dbg > 4) {
 		printf("----Sent OK %s to %s:\n%.*s----\n",
 			what, ip_to_gchar(n->ip), rw, gnet_response);
@@ -1096,19 +1130,7 @@ static void node_process_handshake_header(struct io_header *ih)
 		s->gdk_tag = 0;
 
 		node_is_now_connected(n);
-
-		/* FALL THROUGH */
 	}
-
-	/*
-	 * When we come here, we're done with the parsing structures, we can
-	 * free them.
-	 */
-
-final_cleanup:
-	header_free(ih->header);
-	getline_free(ih->getline);
-	g_free(ih);
 }
 
 /*
@@ -1139,7 +1161,7 @@ nextline:
 			ip_to_gchar(s->ip));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
 		node_remove(n, "Failed (Header line too long)");
-		goto final_cleanup;
+		return;
 		/* NOTREACHED */
 	case READ_DONE:
 		if (s->pos != parsed)
@@ -1196,7 +1218,7 @@ nextline:
 		dump_hex(stderr, "Header Line", getline_str(getline),
 			MIN(getline_length(getline), 128));
 		node_remove(n, "Failed (%s)", header_strerror(error));
-		goto final_cleanup;
+		return;
 		/* NOTREACHED */
 	default:					/* Error, but try to continue */
 		g_warning("node_header_parse: %s, from %s",
@@ -1223,7 +1245,7 @@ nextline:
 		header_dump(ih->header, stderr);
 		fprintf(stderr, "\n------\n");
 		node_remove(n, "Failed (Extra HELLO data)");
-		goto final_cleanup;
+		return;
 	}
 
 	/*
@@ -1237,7 +1259,7 @@ nextline:
 		gdk_input_remove(s->gdk_tag);
 		s->gdk_tag = 0;
 		node_is_now_connected(n);
-		goto final_cleanup;
+		return;
 	}
 
 	/*
@@ -1261,16 +1283,6 @@ nextline:
 	getline_reset(ih->getline);		/* Ensure it's empty, ready for reuse */
 	ih->process_header(ih);
 	return;
-
-	/*
-	 * When we come here, we're done with the parsing structures, we can
-	 * free them.
-	 */
-
-final_cleanup:
-	header_free(ih->header);
-	getline_free(ih->getline);
-	g_free(ih);
 }
 
 
@@ -1325,11 +1337,6 @@ static void node_header_read(
 	node_header_parse(ih);
 	return;
 
-	/*
-	 * When we come here, we're done with the parsing structures, we can
-	 * free them.
-	 */
-
 final_cleanup:
 
 	/*
@@ -1339,10 +1346,6 @@ final_cleanup:
 
 	if ((n->flags & (NODE_F_INCOMING|NODE_F_RETRY_04)) == NODE_F_RETRY_04)
 		downgrade_handshaking(n);
-
-	header_free(ih->header);
-	getline_free(ih->getline);
-	g_free(ih);
 }
 
 void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
@@ -1521,6 +1524,7 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 		ih->getline = getline_make();
 		ih->process_header = node_process_handshake_header;
 		ih->flags = 0;
+		n->io_opaque = (gpointer) ih;
 
 		g_assert(s->gdk_tag == 0);
 
@@ -1787,6 +1791,7 @@ void node_init_outgoing(struct gnutella_node *n)
 		ih->getline = getline_make();
 		ih->process_header = node_process_handshake_header;
 		ih->flags = IO_STATUS_LINE;
+		n->io_opaque = (gpointer) ih;
 
 		g_assert(s->gdk_tag == 0);
 
@@ -2163,8 +2168,11 @@ void node_close(void)
 {
 	while (sl_nodes) {
 		struct gnutella_node *n = sl_nodes->data;
-		if (n->socket)
+		if (n->socket) {
+			if (n->socket->getline)
+				getline_free(n->socket->getline);
 			g_free(n->socket);
+		}
 		if (n->sendq)
 			g_free(n->sendq);
 		if (n->allocated)

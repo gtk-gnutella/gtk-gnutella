@@ -41,6 +41,28 @@ struct io_header {
 static void upload_request(struct upload *u, header_t *header);
 
 /*
+ * io_free
+ *
+ * Free the opaque I/O data.
+ */
+static void io_free(gpointer opaque)
+{
+	struct io_header *ih = (struct io_header *) opaque;
+
+	g_assert(ih);
+	g_assert(ih->upload->io_opaque == opaque);
+
+	ih->upload->io_opaque = NULL;
+
+	if (ih->header)
+		header_free(ih->header);
+	if (ih->getline)
+		getline_free(ih->getline);
+
+	g_free(ih);
+}
+
+/*
  * upload_create
  *
  * Create a new upload structure, linked to a socket.
@@ -177,6 +199,8 @@ static void upload_free_resources(struct upload *u)
 		g_free(u->buffer);
 		u->buffer = NULL;
 	}
+	if (u->io_opaque)				/* I/O data */
+		io_free(u->io_opaque);
 }
 
 /*
@@ -333,7 +357,7 @@ nextline:
 			ip_to_gchar(s->ip));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
 		upload_remove(u, "Failed (Header too large)");
-		goto final_cleanup;
+		return;
 		/* NOTREACHED */
 	case READ_DONE:
 		if (s->pos != parsed)
@@ -396,7 +420,7 @@ nextline:
 		dump_hex(stderr, "Header Line", getline_str(getline),
 			MIN(getline_length(getline), 128));
 		upload_remove(u, "Failed (%s)", header_strerror(error));
-		goto final_cleanup;
+		return;
 		/* NOTREACHED */
 	default:					/* Error, but try to continue */
 		g_warning("upload_header_parse: %s, from %s",
@@ -416,7 +440,7 @@ nextline:
 			ip_to_gchar(s->ip));
 		dump_hex(stderr, "Extra Data", s->buffer, MIN(s->pos, 256));
 		upload_remove(u, "Failed (Extra HTTP header data)");
-		goto final_cleanup;
+		return;
 	}
 
 	/*
@@ -431,18 +455,6 @@ nextline:
 	s->gdk_tag = 0;
 
 	ih->process_header(ih);
-
-	/* FALL THROUGH */
-
-	/*
-	 * When we come here, we're done with the parsing structures, we can
-	 * free them.
-	 */
-
-final_cleanup:
-	header_free(ih->header);
-	getline_free(ih->getline);
-	g_free(ih);
 }
 
 /*
@@ -462,7 +474,7 @@ static void upload_header_read(
 
 	if (cond & GDK_INPUT_EXCEPTION) {
 		upload_remove(u, "Failed (Input Exception)");
-		goto final_cleanup;
+		return;
 	}
 
 	count = sizeof(s->buffer) - s->pos - 1;		/* -1 to allow trailing NUL */
@@ -471,18 +483,18 @@ static void upload_header_read(
 			"disconnecting from %s", ip_to_gchar(s->ip));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
 		upload_remove(u, "Failed (Input buffer full)");
-		goto final_cleanup;
+		return;
 	}
 
 	r = read(s->file_desc, s->buffer + s->pos, count);
 	if (r == 0) {
 		upload_remove(u, "Failed (EOF)");
-		goto final_cleanup;
+		return;
 	} else if (r < 0 && errno == EAGAIN)
 		return;
 	else if (r < 0) {
 		upload_remove(u, "Failed (Input error: %s)", g_strerror(errno));
-		goto final_cleanup;
+		return;
 	}
 
 	/*
@@ -494,17 +506,6 @@ static void upload_header_read(
 	s->pos += r;
 
 	upload_header_parse(ih);
-	return;
-
-	/*
-	 * When we come here, we're done with the parsing structures, we can
-	 * free them.
-	 */
-
-final_cleanup:
-	header_free(ih->header);
-	getline_free(ih->getline);
-	g_free(ih);
 }
 
 /*
@@ -531,6 +532,7 @@ void upload_add(struct gnutella_socket *s)
 	ih->getline = getline_make();
 	ih->flags = 0;
 	ih->process_header = call_upload_request;
+	u->io_opaque = (gpointer) ih;
 
 	g_assert(s->gdk_tag == 0);
 
@@ -605,6 +607,7 @@ void upload_push_conf(struct upload *u)
 	ih->getline = getline_make();
 	ih->flags = IO_STATUS_LINE;		/* XXX will be really the HTTP request */
 	ih->process_header = call_upload_request;
+	u->io_opaque = (gpointer) ih;
 
 	g_assert(s->gdk_tag == 0);
 
@@ -907,6 +910,8 @@ static void upload_request(struct upload *u, header_t *header)
 		/*
 		 * Install the output callback.
 		 */
+
+		io_free(u->io_opaque);
 
 		g_assert(s->gdk_tag == 0);
 		s->gdk_tag = gdk_input_add(s->file_desc,

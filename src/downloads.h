@@ -4,6 +4,7 @@
 struct download {
 	gchar error_str[256];	/* Used to sprintf() error strings with vars */
 	guint32 status;			/* Current status of the download */
+	gpointer io_opaque;		/* Opaque I/O callback information */
 
 	gchar *path;			/* Path of the created output file */
 	gchar *output_name;		/* Basename of the created output file */
@@ -35,7 +36,8 @@ struct download {
 	guint16 port;
 
 	gboolean visible;		/* The download is visible in the GUI */
-	gboolean push;			/* Always use the push method for this download */
+	gboolean push;			/* Currently in push mode */
+	gboolean always_push;	/* Always use the push method for this download */
 };
 
 /*

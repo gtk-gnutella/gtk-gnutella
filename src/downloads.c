@@ -70,6 +70,28 @@ void download_init(void)
 	download_retrieve();
 }
 
+/*
+ * io_free
+ *
+ * Free the opaque I/O data.
+ */
+static void io_free(gpointer opaque)
+{
+	struct io_header *ih = (struct io_header *) opaque;
+
+	g_assert(ih);
+	g_assert(ih->download->io_opaque == opaque);
+
+	ih->download->io_opaque = NULL;
+
+	if (ih->header)
+		header_free(ih->header);
+	if (ih->getline)
+		getline_free(ih->getline);
+
+	g_free(ih);
+}
+
 /* ----------------------------------------- */
 
 /* Return the current number of running downloads */
@@ -351,19 +373,16 @@ void download_stop(struct download *d, guint32 new_status,
 		return;
 	}
 
-	/* Close output file */
-
-	if (d->file_desc != -1) {
+	if (d->file_desc != -1) {		/* Close output file */
 		close(d->file_desc);
 		d->file_desc = -1;
 	}
-
-	/* Close socket */
-
-	if (d->socket) {
+	if (d->socket) {				/* Close socket */
 		socket_free(d->socket);
 		d->socket = NULL;
 	}
+	if (d->io_opaque)				/* I/O data */
+		io_free(d->io_opaque);
 
 	/* Register the new status, and update the GUI if needed */
 
@@ -827,6 +846,7 @@ static void create_download(
 	d->file_desc = -1;
 	memcpy(d->guid, guid, 16);
 	d->restart_timer_id = 0;
+	d->always_push = push;
 	if (push)
 		download_push_insert(d);
 	else
@@ -1033,6 +1053,8 @@ void download_free(struct download *d)
 
 	if (DOWNLOAD_IS_RUNNING(d))
 		download_stop(d, GTA_DL_ABORTED, NULL);
+
+	g_assert(d->io_opaque == NULL);
 
 	sl_downloads = g_slist_remove(sl_downloads, (gpointer) d);
 
@@ -1331,7 +1353,7 @@ nextline:
 			ip_to_gchar(s->ip));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
 		download_stop(d, GTA_DL_ERROR, "Failed (Header too large)");
-		goto final_cleanup;
+		return;
 		/* NOTREACHED */
 	case READ_DONE:
 		if (s->pos != parsed)
@@ -1375,7 +1397,8 @@ nextline:
 		s->gdk_tag = 0;
 
 		ih->process_header(ih);
-		goto final_cleanup;
+		io_free(d->io_opaque);
+		return;
 	}
 
 	error = header_append(header,
@@ -1399,7 +1422,7 @@ nextline:
 		dump_hex(stderr, "Header Line", getline_str(getline),
 			MIN(getline_length(getline), 128));
 		download_stop(d, GTA_DL_ERROR, "Failed (%s)", header_strerror(error));
-		goto final_cleanup;
+		return;
 		/* NOTREACHED */
 	default:					/* Error, but try to continue */
 		g_warning("download_header_parse: %s, from %s",
@@ -1420,18 +1443,8 @@ nextline:
 
 	ih->process_header(ih);
 
-	/* FALL THROUGH */
-
-	/*
-	 * When we come here, we're done with the parsing structures, we can
-	 * free them.
-	 */
-
-final_cleanup:
-	if (ih->header)
-		header_free(ih->header);
-	getline_free(ih->getline);
-	g_free(ih);
+	if (d->io_opaque)			/* Could be NULL if we stopped download */
+		io_free(d->io_opaque);
 }
 
 /*
@@ -1451,7 +1464,7 @@ static void download_header_read(
 
 	if (cond & GDK_INPUT_EXCEPTION) {
 		download_stop(d, GTA_DL_ERROR, "Failed (Input Exception)");
-		goto final_cleanup;
+		return;
 	}
 
 	/*
@@ -1469,13 +1482,13 @@ static void download_header_read(
 			"disconnecting from %s", ip_to_gchar(s->ip));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
 		download_stop(d, GTA_DL_ERROR, "Failed (Input buffer full)");
-		goto final_cleanup;
+		return;
 	}
 
 	r = read(s->file_desc, s->buffer + s->pos, count);
 	if (r == 0) {
 		download_stop(d, GTA_DL_STOPPED, "Stopped (EOF)");
-		goto final_cleanup;
+		return;
 	} else if (r < 0 && errno == EAGAIN)
 		return;
 	else if (r < 0) {
@@ -1485,7 +1498,7 @@ static void download_header_read(
 		else
 			download_stop(d, GTA_DL_ERROR, "Failed (Read error: %s)",
 				g_strerror(errno));
-		goto final_cleanup;
+		return;
 	}
 
 	/*
@@ -1498,16 +1511,6 @@ static void download_header_read(
 
 	download_header_parse(ih);
 	return;
-
-	/*
-	 * When we come here, we're done with the parsing structures, we can
-	 * free them.
-	 */
-
-final_cleanup:
-	header_free(ih->header);
-	getline_free(ih->getline);
-	g_free(ih);
 }
 
 /*
@@ -2003,6 +2006,7 @@ gboolean download_send_request(struct download *d)
 	ih->getline = getline_make();
 	ih->flags = IO_STATUS_LINE;		/* First line will be a status line */
 	ih->process_header = call_download_request;
+	d->io_opaque = (gpointer) ih;
 
 	g_assert(s->gdk_tag == 0);
 
@@ -2140,6 +2144,7 @@ void download_push_ack(struct gnutella_socket *s)
 	ih->getline = getline_make();
 	ih->flags = IO_ONE_LINE;		/* Process one line (will be empty) */
 	ih->process_header = call_download_push_ready;
+	d->io_opaque = ih;
 
 	g_assert(s->gdk_tag == 0);
 
@@ -2225,9 +2230,9 @@ static void download_store(void)
 		struct download *d = (struct download *) l->data;
 		gchar *escaped;
 
-		if (DOWNLOAD_IS_STOPPED(d))
+		if (d->status == GTA_DL_COMPLETED)
 			continue;
-		if (DOWNLOAD_IS_IN_PUSH_MODE(d))
+		if (d->always_push)
 			continue;
 
 		escaped = url_escape_cntrl(d->file_name);	/* Protect against "\n" */
@@ -2374,10 +2379,15 @@ void download_close(void)
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
-		if (d->socket)
+		if (d->socket) {
+			if (d->socket->getline)
+				getline_free(d->socket->getline);
 			g_free(d->socket);
+		}
 		if (d->push)
 			download_push_remove(d);
+		if (d->io_opaque)
+			io_free(d->io_opaque);
 		g_free(d->path);
 		g_free(d->file_name);
 		if (d->output_name != d->file_name)

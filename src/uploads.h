@@ -7,6 +7,7 @@ struct upload {
 	guint32 status;
 	struct gnutella_socket *socket;
 	gint error_sent;				/* HTTP error code sent back */
+	gpointer io_opaque;				/* Opaque I/O callback information */
 
 	gint file_desc;
 
