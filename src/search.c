@@ -1,4 +1,6 @@
 /*
+ * $Id$
+ *
  * Copyright (c) 2001-2002, Raphael Manfredi
  *
  *----------------------------------------------------------------------
@@ -128,6 +130,19 @@ static gboolean search_retrieve_old(void);
 #endif /* USE_SEARCH_XML */
 
 static void search_dispose_results(struct results_set *rs);
+
+/*
+ * Human readable translation of servent trailer open flags.
+ * Decompiled flags are listed in the order of the table.
+ */
+static struct {
+	guint32 flag;
+	gchar *status;
+} open_flags[] = {
+	{ ST_BUSY,		"busy" },
+	{ ST_UPLOADED,	"stable" },		/* Allows uploads -> stable */
+	{ ST_FIREWALL,	"push" },
+};
 
 /* ----------------------------------------- */
 
@@ -1026,17 +1041,18 @@ static gchar *extract_vendor_name(struct results_set * rs)
 	case T_XTLA: vendor = "Xtella";			break;
 	case T_ZIGA: vendor = "Ziga";			break;
 	default:
-		/* Unknown type, look whether we have all alphanum */
+		/* Unknown type, look whether we have all printable ASCII */
 		rs->status &= ~ST_KNOWN_VENDOR;
 		for (i = 0; i < sizeof(rs->vendor); i++) {
-			if (isalpha(rs->vendor[i]))
-				temp[i] = rs->vendor[i];
+			guchar c = rs->vendor[i];
+			if (isascii(c) && isprint(c))
+				temp[i] = c;
 			else {
-				temp[0] = 0;
+				temp[0] = '\0';
 				break;
 			}
 		}
-		temp[4] = 0;
+		temp[4] = '\0';
 		vendor = temp[0] ? temp : NULL;
 		break;
 	}
@@ -1533,6 +1549,7 @@ void search_matched(search_t *sch, struct results_set *rs)
     extern gboolean is_firewalled;
     GSList *l;
     gboolean list_frozen = FALSE;
+	gint i;
 
     g_assert(sch != NULL);
     g_assert(rs != NULL);
@@ -1548,14 +1565,18 @@ void search_matched(search_t *sch, struct results_set *rs)
    	if (vendor)
 		g_string_append(vinfo, vendor);
 
-	if (rs->status & ST_BUSY)
-		g_string_append(vinfo, ", busy");
-	if (rs->status & ST_UPLOADED)
-		g_string_append(vinfo, ", stable");	/* Allows uploads -> stable */
-	if (rs->status & ST_FIREWALL)
-		g_string_append(vinfo, ", push");
+	for (i = 0; i < sizeof(open_flags) / sizeof(open_flags[0]); i++) {
+		if (rs->status & open_flags[i].flag) {
+			if (vinfo->len)
+				g_string_append(vinfo, ", ");
+			g_string_append(vinfo, open_flags[i].status);
+		}
+	}
+
 	if (vendor && !(rs->status & ST_PARSED_TRAILER)) {
-		g_string_append(vinfo, ", <unparsed>");
+		if (vinfo->len)
+			g_string_append(vinfo, ", ");
+		g_string_append(vinfo, "<unparsed>");
 	}
 
 	/*
