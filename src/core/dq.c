@@ -58,9 +58,9 @@ RCSID("$Id$");
 #include "lib/override.h"		/* Must be the last header included */
 
 #define DQ_MAX_LIFETIME		300000	/* 5 minutes, in ms */
-#define DQ_PROBE_TIMEOUT  	1000	/* 1 s extra per connection */
-#define DQ_PENDING_TIMEOUT 	1000	/* 1 s extra per pending message */
-#define DQ_QUERY_TIMEOUT	3400	/* 3.4 s */
+#define DQ_PROBE_TIMEOUT  	1500	/* 1.5 s extra per connection */
+#define DQ_PENDING_TIMEOUT 	1200	/* 1.2 s extra per pending message */
+#define DQ_QUERY_TIMEOUT	3700	/* 3.7 s */
 #define DQ_TIMEOUT_ADJUST	100		/* 100 ms at each connection */
 #define DQ_MIN_TIMEOUT		1500	/* 1.5 s at least between queries */
 #define DQ_LINGER_TIMEOUT	120000	/* 2 minutes, in ms */
