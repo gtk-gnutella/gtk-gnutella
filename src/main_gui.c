@@ -563,14 +563,26 @@ void main_gui_run(void)
 #ifdef USE_GTK2
     if (coord[2] != 0 && coord[3] != 0) {
 		gint x, y, dx, dy;
-        gtk_window_move(GTK_WINDOW(main_window), coord[0], coord[1]);
+		gint i;
+
+		/* First, move the window to the supposed location. Next make the
+		 * window visible by gtk_window_get_position()... */
+
+       	gtk_window_move(GTK_WINDOW(main_window), coord[0], coord[1]);
+
+		/* The first call to gtk_window_get_position() makes the window
+		 * visible but x and y are always set to zero. The second call
+		 * yields the *real* values. */
+
+		for (i = 0; i < 2; i++)
+			gtk_window_get_position(GTK_WINDOW(main_window), &x, &y);
+
 		gtk_window_resize(GTK_WINDOW(main_window), coord[2], coord[3]);
 
 		/* (At least) FVWM2 doesn't take the window decoration into account
 		 * when handling positions requests. Readjust the window position
 		 * if we detect that the window manager added an offset. */
 
-		gtk_window_get_position(GTK_WINDOW(main_window), &x, &y);
 		dx = (gint) coord[0] - x;
 		dy = (gint) coord[1] - y;
 		if (dx || dy) {
