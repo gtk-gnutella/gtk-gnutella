@@ -647,6 +647,8 @@ static void pproxy_request(struct pproxy *pp, header_t *header)
 	 * Sorry.
 	 */
 
+	gnet_stats_count_general(NULL, GNR_PUSH_PROXY_FAILED, 1);
+
 	pproxy_error_remove(pp, 410, "Push proxy: no route to servent GUID %s",
 		guid_hex_str(pp->guid));
 }

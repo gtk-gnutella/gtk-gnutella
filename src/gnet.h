@@ -479,6 +479,7 @@ typedef enum {
 	GNR_BROADCASTED_PUSHES,
 	GNR_PUSH_PROXY_RELAYED,
 	GNR_PUSH_PROXY_BROADCASTED,
+	GNR_PUSH_PROXY_FAILED,
 	GNR_TYPE_COUNT /* number of general stats */
 } gnr_stats_t;
 
