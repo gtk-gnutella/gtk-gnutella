@@ -422,6 +422,6 @@ void uploads_gui_clear_completed(void)
 	if (!uploads_remove_lock) {
 		uploads_remove_lock = TRUE;
 		uploads_rows_done = 0;
-		gtk_timeout_add(100, (gpointer) (uploads_clear_helper), NULL);
+		gtk_timeout_add(100, (GtkFunction) uploads_clear_helper, NULL);
 	}
 }
