@@ -1,5 +1,16 @@
 # since last version
 
+- (2004.06.05 - RAM)
+ * Don't parse incoming X-Node headers for PARQ if requestor did not advertise
+   support for PARQ, since X-Node is not necessarily PARQ-specific.
+
+- (2004.06.03 - RAM)
+ * Append a trailing '-' in the download range size indication when the server
+   is answering us with less data than we requested.  The amount shown then
+   reflects what the server is giving.
+ * Don't store downloads to disk every time we abort/stop one.  This should
+   improve speed noticeably when aborting by SHA1 or by server!
+
 - (2003.06.02 - Richard)
  * Applied symlink patch from Angelo Cano
 
