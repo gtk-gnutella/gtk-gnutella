@@ -1654,7 +1654,7 @@ void alloc_dump(FILE *f, gboolean total)
 		return;
 
 	now = time(NULL);
-	fprintf(f, "--- distinct allocation spots found: %d after %s\n",
+	fprintf(f, "--- distinct allocation spots found: %d at %s\n",
 		count, short_time(now - init_time));
 
 	filler.stats = (struct stats **) malloc(sizeof(struct stats *) * count);
@@ -1674,8 +1674,8 @@ void alloc_dump(FILE *f, gboolean total)
 	 * Dump the allocation based on allocation sizes.
 	 */
 
-	fprintf(f, "--- summary by decreasing %s allocation size after %s:\n",
-		total ? "total" : "incremental",
+	fprintf(f, "--- summary by decreasing %s allocation size %s %s:\n",
+		total ? "total" : "incremental", total ? "at" : "after",
 		short_time(now - (total ? init_time : reset_time)));
 	stats_array_dump(f, &filler);
 
@@ -1689,8 +1689,8 @@ void alloc_dump(FILE *f, gboolean total)
 	qsort(filler.stats, count, sizeof(struct stats *),
 		total ? stats_total_residual_cmp : stats_residual_cmp);
 
-	fprintf(f, "--- summary by decreasing %s residual memory size after %s:\n",
-		total ? "total" : "incremental",
+	fprintf(f, "--- summary by decreasing %s residual memory size %s %s:\n",
+		total ? "total" : "incremental", total ? "at" : "after",
 		short_time(now - (total ? init_time : reset_time)));
 	stats_array_dump(f, &filler);
 
@@ -1715,12 +1715,15 @@ static void stats_reset(gpointer key, gpointer value, gpointer user)
  */
 void alloc_reset(FILE *f, gboolean total)
 {
+	time_t now = time(NULL);
+
 	alloc_dump(f, total);
 	g_hash_table_foreach(stats, stats_reset, NULL);
-	reset_time = time(NULL);
 
 	fprintf(f, "--- incremental allocation stats reset after %s.\n",
-		short_time(reset_time - init_time));
+		short_time(now - reset_time));
+
+	reset_time = now;
 }
 
 #endif /* MALLOC_STATS */
