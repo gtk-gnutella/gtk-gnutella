@@ -40,6 +40,7 @@
 #include "mq.h"
 #include "routing.h"
 #include "extensions.h"
+#include "vmsg.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -662,6 +663,77 @@ gmsg_cmp(gpointer pdu1, gpointer pdu2)
  * Returns formatted static string:
  *
  *     msg_type (payload length) [hops=x, TTL=x]
+ *
+ * that can also decompile vendor messages given a pointer on the whole
+ * message that contains the leading header immediately followed by the
+ * payload of that message.
+ */
+gchar *
+gmsg_infostr_full(gpointer message)
+{
+	static gchar a[160];
+	struct gnutella_header *h = (struct gnutella_header *) message;
+	guint32 size;
+	gpointer data;
+
+	READ_GUINT32_LE(h->size, size);
+	data = message + sizeof(*h);
+
+	switch (h->function) {
+	case GTA_MSG_VENDOR:
+	case GTA_MSG_STANDARD:
+		gm_snprintf(a, sizeof(a), "%s %s (%u byte%s) [hops=%d, TTL=%d]",
+			gmsg_name(h->function), vmsg_infostr(data, size),
+			size, size == 1 ? "" : "s", h->hops, h->ttl);
+		break;
+	default:
+		gm_snprintf(a, sizeof(a), "%s (%u byte%s) [hops=%d, TTL=%d]",
+			gmsg_name(h->function),
+			size, size == 1 ? "" : "s", h->hops, h->ttl);
+		break;
+	}
+
+	return a;
+}
+
+/**
+ * Returns formatted static string:
+ *
+ *     msg_type (payload length) [hops=x, TTL=x]
+ *
+ * that can also decompile vendor messages given a pointer on the header
+ * and on the data of the message (which may not be consecutive in memory).
+ */
+gchar *
+gmsg_infostr_full_split(gpointer head, gpointer data)
+{
+	static gchar a[160];
+	struct gnutella_header *h = (struct gnutella_header *) head;
+	guint32 size;
+
+	READ_GUINT32_LE(h->size, size);
+
+	switch (h->function) {
+	case GTA_MSG_VENDOR:
+	case GTA_MSG_STANDARD:
+		gm_snprintf(a, sizeof(a), "%s %s (%u byte%s) [hops=%d, TTL=%d]",
+			gmsg_name(h->function), vmsg_infostr(data, size),
+			size, size == 1 ? "" : "s", h->hops, h->ttl);
+		break;
+	default:
+		gm_snprintf(a, sizeof(a), "%s (%u byte%s) [hops=%d, TTL=%d]",
+			gmsg_name(h->function),
+			size, size == 1 ? "" : "s", h->hops, h->ttl);
+		break;
+	}
+
+	return a;
+}
+
+/**
+ * Returns formatted static string:
+ *
+ *     msg_type (payload length) [hops=x, TTL=x]
  */
 gchar *
 gmsg_infostr(gpointer head)
@@ -724,8 +796,7 @@ gmsg_log_bad(struct gnutella_node *n, gchar *reason, ...)
 {
 	printf("BAD <%s> ", node_vendor(n));
 
-	/* Allows gmsg_infostr() in arglist */
-	fputs(gmsg_infostr2(&n->header), stdout);
+	fputs(gmsg_infostr_full_split(&n->header, n->data), stdout);
 
 	if (reason) {
 		va_list args;
@@ -750,7 +821,7 @@ gmsg_dump(FILE *out, gpointer data, guint32 size)
 {
 	g_assert(size >= HEADER_SIZE);
 
-	dump_hex(out, gmsg_infostr(data),
+	dump_hex(out, gmsg_infostr_full(data),
 		(gchar *) data + HEADER_SIZE, size - HEADER_SIZE);
 }
 
@@ -763,7 +834,8 @@ gmsg_split_dump(FILE *out, gpointer head, gpointer data,
 {
 	g_assert(size >= HEADER_SIZE);
 
-	dump_hex(out, gmsg_infostr(head), data, size - HEADER_SIZE);
+	dump_hex(out, gmsg_infostr_full_split(head, data),
+		data, size - HEADER_SIZE);
 }
 
 /**

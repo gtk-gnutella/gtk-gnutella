@@ -66,6 +66,9 @@ void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt);
 gboolean gmsg_can_drop(gpointer pdu, gint size);
 gint gmsg_cmp(gpointer pdu1, gpointer pdu2);
 gchar *gmsg_infostr(gpointer head);
+gchar *gmsg_infostr_full(gpointer message);
+gchar *gmsg_infostr_full_split(gpointer head, gpointer data);
+
 void gmsg_log_dropped(gpointer head,
 	gchar *reason, ...) G_GNUC_PRINTF(2, 3);
 void gmsg_log_bad(struct gnutella_node *n,
