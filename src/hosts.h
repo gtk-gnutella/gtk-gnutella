@@ -28,11 +28,6 @@
 
 #include <glib.h>
 
-struct gnutella_host {
-	guint32 ip;
-	guint16 port;
-};
-
 /*
  * Global Data
  */
