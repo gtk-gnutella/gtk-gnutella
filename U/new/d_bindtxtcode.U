@@ -9,7 +9,7 @@
 ?S:	which indicates to the C program that the bind_textdomain_codeset()
 ?S:	routine is available.
 ?S:.
-?C:HAS_BIND_TEXTDOMAIN_CODESET :
+?C:HAS_BIND_TEXTDOMAIN_CODESET:
 ?C:	This symbol, if defined, indicates that the bind_textdomain_codeset routine
 ?C:	is available.
 ?C:.

@@ -8,7 +8,7 @@
 ?S:	This variable conditionally defines the HAS_RANDOM symbol, which
 ?S:	indicates to the C program that the random() routine is available.
 ?S:.
-?C:HAS_RANDOM :
+?C:HAS_RANDOM:
 ?C:	This symbol, if defined, indicates that the random routine is
 ?C:	available.
 ?C:.

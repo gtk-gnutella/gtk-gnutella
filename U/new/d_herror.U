@@ -8,7 +8,7 @@
 ?S:	This variable conditionally defines the HAS_HERROR symbol, which
 ?S:	indicates to the C program that the herror() routine is available.
 ?S:.
-?C:HAS_HERROR :
+?C:HAS_HERROR:
 ?C:	This symbol, if defined, indicates that the herror routine is
 ?C:	available.
 ?C:.

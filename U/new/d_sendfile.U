@@ -8,7 +8,7 @@
 ?S:	This variable conditionally defines the HAS_SENDFILE symbol, which
 ?S:	indicates to the C program that the sendfile() routine is available.
 ?S:.
-?C:HAS_SENDFILE :
+?C:HAS_SENDFILE:
 ?C:	This symbol, if defined, indicates that the sendfile routine is
 ?C:	available.
 ?C:.

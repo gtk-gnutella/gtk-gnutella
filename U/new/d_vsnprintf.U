@@ -8,7 +8,7 @@
 ?S:	This variable conditionally defines the HAS_VSNPRINTF symbol, which
 ?S:	indicates to the C program that the vsnprintf() routine is available.
 ?S:.
-?C:HAS_VSNPRINTF :
+?C:HAS_VSNPRINTF:
 ?C:	This symbol, if defined, indicates that the vsnprintf routine is
 ?C:	available.
 ?C:.

@@ -8,7 +8,7 @@
 ?S:	This variable conditionally defines the HAS_HSTRERROR symbol, which
 ?S:	indicates to the C program that the hstrerror() routine is available.
 ?S:.
-?C:HAS_HSTRERROR :
+?C:HAS_HSTRERROR:
 ?C:	This symbol, if defined, indicates that the hstrerror routine is
 ?C:	available.
 ?C:.

@@ -8,7 +8,7 @@
 ?S:	This variable conditionally defines the HAS_STRCASESTR symbol, which
 ?S:	indicates to the C program that the strcasestr() routine is available.
 ?S:.
-?C:HAS_STRCASESTR :
+?C:HAS_STRCASESTR:
 ?C:	This symbol, if defined, indicates that the strcasestr routine is
 ?C:	available.
 ?C:.

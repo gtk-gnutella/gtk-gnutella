@@ -8,7 +8,7 @@
 ?S:	This variable conditionally defines the HAS_SYSCTL symbol, which
 ?S:	indicates to the C program that the sysctl() routine is available.
 ?S:.
-?C:HAS_SYSCTL :
+?C:HAS_SYSCTL:
 ?C:	This symbol, if defined, indicates that the sysctl routine is
 ?C:	available.
 ?C:.
