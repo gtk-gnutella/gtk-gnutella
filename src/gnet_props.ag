@@ -133,7 +133,7 @@ prop = {
 		   "Others will remain in the queue waiting for a download slot.";
     type = guint32;
     data = {
-        default = 50;
+        default = 100;
         min     = 0;
         max     = 999;
     };
@@ -359,7 +359,7 @@ prop = {
            "counting HTTP busy indications";
     type = guint32;
     data = {
-        default = 256;
+        default = 50;
         min     = 1;
         max     = 100000;
     };
@@ -462,7 +462,7 @@ prop = {
 		   "the Gnutella network.  A delay of half an hour is fine.";
     type = guint32;
     data = {
-        default = 1800;
+        default = 3600;
         min     = 600;
         max     = 9999;
     };
@@ -1933,4 +1933,3 @@ prop = {
         default = FALSE;
     };
 };
-
