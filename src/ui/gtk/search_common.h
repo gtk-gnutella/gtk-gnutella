@@ -135,9 +135,6 @@ void search_gui_retrieve_searches(void);
 void search_gui_restart_search(search_t *sch);
 void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set);
 void search_gui_flush(time_t);
-gboolean search_gui_autoselect_cmp(record_t *rc, record_t *rc2,
-    gboolean search_autoselect, gboolean search_autoselect_ident,
-    gboolean search_autoselect_fuzzy, guint32 fuzzy_threshold);
 gchar *search_gui_extract_ext(gchar *filename);
 
 struct filter;

@@ -1023,56 +1023,6 @@ search_gui_update_items(struct search *sch)
 	gtk_label_set(label_items_found, tmpstr);
 }
 
-/**
- * Determines wether two records are equal enough to warrant
- * autoselection. fuzzy_threshold (etc) is an argument to avoid
- * fetching the property too often.
- */
-gboolean
-search_gui_autoselect_cmp(record_t *rc, record_t *rc2, 
-    gboolean search_autoselect,
-    gboolean search_autoselect_ident,
-    gboolean search_autoselect_fuzzy,
-    guint32 fuzzy_threshold)
-{
-    gboolean size_match;
-    
-    if (NULL == rc || NULL == rc2)
-        return FALSE;
-
-    /* Ok, this should be obvious, right? */
-    if (rc == rc2)
-        return TRUE;
-
-    /* Records with the same SHA1 (if available) always match. Since the
-	 * sha1 member is an atom, comparing the addresses is sufficient. */
-    if (rc->sha1 != NULL && rc->sha1 == rc2->sha1)
-        return TRUE;
-
-    if (!search_autoselect)
-        return FALSE;
-
-    /* Check whether sizes match */;
-    size_match = (search_autoselect_ident) ?
-        (rc->size == rc2->size) :
-        (rc2->size >= rc->size);
-    
-    if (!size_match)
-        return FALSE;
-
-	/* ``name'' is an atom */
-	if (rc2->name == rc->name)
-		return TRUE;
-
-	if (!search_autoselect_fuzzy)
-		return FALSE;
-
-    /* Check whether the names match more or less */
-    return fuzzy_compare(rc2->name, rc->name) * 100
-				>= (fuzzy_threshold << FUZZY_SHIFT);
-}
-
-
 /***
  *** Callbacks
  ***/
