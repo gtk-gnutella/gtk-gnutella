@@ -100,6 +100,8 @@ static pmsg_t *gmsg_split_to_pmsg(guchar *head, guchar *data, guint32 size)
  */
 void gmsg_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
 {
+	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+
 	mq_putq(n->outq, gmsg_to_pmsg(msg, size));
 }
 
@@ -111,6 +113,8 @@ void gmsg_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
 void gmsg_split_sendto_one(struct gnutella_node *n,
 	guchar *head, guchar *data, guint32 size)
 {
+	g_assert(((struct gnutella_header *) head)->ttl > 0);
+
 	mq_putq(n->outq, gmsg_split_to_pmsg(head, data, size));
 }
 
@@ -122,6 +126,8 @@ void gmsg_split_sendto_one(struct gnutella_node *n,
 void gmsg_sendto_all(GSList *l, guchar *msg, guint32 size)
 {
 	pmsg_t *mb = gmsg_to_pmsg(msg, size);
+
+	g_assert(((struct gnutella_header *) msg)->ttl > 0);
 
 	for (/* empty */; l; l = l->next) {
 		struct gnutella_node *dn = (struct gnutella_node *) l->data;
@@ -143,6 +149,8 @@ void gmsg_split_sendto_all_but_one(GSList *l, struct gnutella_node *n,
 	guchar *head, guchar *data, guint32 size)
 {
 	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
+
+	g_assert(((struct gnutella_header *) head)->ttl > 0);
 
 	for (/* empty */; l; l = l->next) {
 		struct gnutella_node *dn = (struct gnutella_node *) l->data;

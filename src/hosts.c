@@ -736,7 +736,7 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
 	message_set_muid(&(m.header), TRUE);
 
 	m.header.function = GTA_MSG_INIT;
-	m.header.ttl = MIN(1, ttl);
+	m.header.ttl = ttl;
 	m.header.hops = 0;
 
 	WRITE_GUINT32_LE(0, m.header.size);
@@ -1688,7 +1688,7 @@ void pcache_pong_received(struct gnutella_node *n)
 	 */
 
 	pong_all_neighbours_but_one(n,
-		cp, CACHE_HOP_IDX(n->header.hops), n->header.ttl);
+		cp, CACHE_HOP_IDX(n->header.hops), MAX(1, n->header.ttl));
 }
 
 /*
