@@ -600,8 +600,8 @@ void search_request(struct gnutella_node *n)
 
 		pos = FOUND_SIZE;
 		FOUND_GROW(16 + 6);
-		memcpy(&FOUND_BUF[pos], &trailer, 6);	/* Store trailer */
-		memcpy(&FOUND_BUF[pos+6], &guid, 16);	/* Store the GUID */
+		memcpy(&FOUND_BUF[pos], trailer, 6);	/* Store trailer */
+		memcpy(&FOUND_BUF[pos+6], guid, 16);	/* Store the GUID */
 
 		/* Payload size including the search results header, actual results */
 		pl = FOUND_SIZE - sizeof(struct gnutella_header);
