@@ -630,6 +630,7 @@ static guint download_selection_of_clist(GtkCList * c, guint *selected)
     gboolean remove_downloaded;
 	guint created = 0;
 	guint count = 0;
+	search_t *current_search = search_gui_get_current_search();
 
     gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
 		&remove_downloaded);
@@ -707,6 +708,7 @@ void search_gui_download_files(void)
     GtkWidget *notebook_main;
     GtkWidget *ctree_menu;
 	GtkCTreeNode *ctree_node;
+    search_t *current_search = search_gui_get_current_search();
 	
     notebook_main = lookup_widget(main_window, "notebook_main");
     ctree_menu = lookup_widget(main_window, "ctree_menu");
@@ -768,6 +770,7 @@ gboolean search_gui_search_results_col_widths_changed(property_t prop)
 {
     guint32 *val;
     GtkCList *clist;
+    search_t *current_search = search_gui_get_current_search();
 
     if ((current_search == NULL) && (default_search_clist == NULL))
         return FALSE;
@@ -799,6 +802,7 @@ gboolean search_gui_search_results_col_visible_changed(property_t prop)
 {
     guint32 *val;
     GtkCList *clist;
+    search_t *current_search = search_gui_get_current_search();
 
     if ((current_search == NULL) && (default_search_clist == NULL))
         return FALSE;
@@ -868,6 +872,7 @@ void search_gui_init(void)
     {
         gint i;
         GtkCList *clist;
+		search_t *current_search = search_gui_get_current_search();
 
         clist = (current_search != NULL) ? 
                 GTK_CLIST(current_search->clist) : 
@@ -886,6 +891,7 @@ void search_gui_shutdown(void)
 {
 	GtkCList *clist;
 	gint i;
+    search_t *current_search = search_gui_get_current_search();
 
     search_remove_got_results_listener(search_gui_got_results);
 	search_gui_store_searches();
@@ -917,6 +923,7 @@ void search_gui_remove_search(search_t * sch)
     gint row;
     GList *glist;
     gboolean sensitive;
+    search_t *current_search;
     GtkCList *clist_search = GTK_CLIST
         (lookup_widget(main_window, "clist_search"));
     GtkNotebook *notebook_search_results = GTK_NOTEBOOK
@@ -955,7 +962,8 @@ void search_gui_remove_search(search_t * sch)
 		default_search_clist = sch->clist;
 		default_scrolled_window = sch->scrolled_window;
 
-        search_selected = current_search = NULL;
+        search_selected = NULL;
+		search_gui_forget_current_search();
 
 		gui_search_update_items(NULL);
 
@@ -974,6 +982,7 @@ void search_gui_remove_search(search_t * sch)
         lookup_widget(main_window, "button_search_close"), searches != NULL);
 
     sensitive = searches != NULL;
+    current_search = search_gui_get_current_search();
 
 	if (current_search != NULL)
 		sensitive = sensitive &&
@@ -985,7 +994,7 @@ void search_gui_remove_search(search_t * sch)
 
 void search_gui_set_current_search(search_t *sch) 
 {
-	search_t *old_sch = current_search;
+    search_t *old_sch = search_gui_get_current_search();
     GtkCTreeNode * node;
     GtkWidget *spinbutton_reissue_timeout;
     GtkCList *clist_search;
@@ -993,6 +1002,7 @@ void search_gui_set_current_search(search_t *sch)
     gboolean passive;
     gboolean frozen;
     guint32 reissue_timeout;
+	search_t *current_search = old_sch;
 
 	g_assert(sch != NULL);
 
@@ -1026,7 +1036,7 @@ void search_gui_set_current_search(search_t *sch)
         }
     }
 
-	current_search = sch;
+	search_gui_current_search(sch);
 	sch->unseen_items = 0;
 
     spinbutton_reissue_timeout= lookup_widget
@@ -1110,11 +1120,6 @@ void search_gui_set_current_search(search_t *sch)
     }
 
     locked = FALSE;
-}
-
-search_t *search_gui_get_current_search(void)
-{
-    return current_search;
 }
 
 /* Create a new GtkCList for search results */
@@ -1238,9 +1243,7 @@ void gui_search_force_update_tab_label(struct search *sch)
         (lookup_widget(main_window, "notebook_search_results"));
     GtkCList *clist_search = GTK_CLIST
         (lookup_widget(main_window, "clist_search"));
-    search_t *current_search;
-
-    current_search = search_gui_get_current_search();
+	search_t *current_search = search_gui_get_current_search();
 
 	if (sch == current_search || sch->unseen_items == 0)
 		gm_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d)", sch->query,
@@ -1288,9 +1291,8 @@ gboolean gui_search_update_tab_label(struct search *sch)
 
 void gui_search_clear_results(void)
 {
-    search_t *current_search;
+	search_t *current_search = search_gui_get_current_search();
 
-    current_search = search_gui_get_current_search();
 	gtk_clist_clear(GTK_CLIST(current_search->clist));
 	search_gui_clear_search(current_search);
 	gui_search_force_update_tab_label(current_search);

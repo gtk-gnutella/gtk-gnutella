@@ -41,7 +41,7 @@
 
 RCSID("$Id$");
 
-search_t *current_search  = NULL;	/* The search currently displayed */
+static search_t *current_search  = NULL; /* The search currently displayed */
 
 static zone_t *rs_zone;		/* Allocation of results_set */
 static zone_t *rc_zone;		/* Allocation of record */
@@ -62,6 +62,10 @@ static struct {
 	{ ST_UPLOADED,	N_("stable") },		/* Allows uploads -> stable */
 	{ ST_FIREWALL,	N_("push") },
 };
+
+search_t *search_gui_get_current_search(void)	{ return current_search; }
+void search_gui_forget_current_search(void)		{ current_search = NULL; }
+void search_gui_current_search(search_t *sch)	{ current_search = sch; }
 
 /*
  * search_gui_free_alt_locs

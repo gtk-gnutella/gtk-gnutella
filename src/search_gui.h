@@ -91,9 +91,6 @@ void search_gui_remove_search(search_t * sch);
 void search_gui_restart_search(search_t *sch);
 void search_gui_download_files(void);
 
-void search_gui_set_current_search(search_t *sch);
-search_t *search_gui_get_current_search(void);
-
 void search_gui_sort_column(search_t *search, gint column);
 
 gint search_gui_compare_records(

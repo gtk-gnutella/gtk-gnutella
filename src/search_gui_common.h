@@ -102,8 +102,6 @@ typedef struct record {
     flag_t  flags;              /* same flags as in gnet_record_t */
 } record_t;
 
-extern struct search *current_search;
-
 /*
  * Global Functions
  */
@@ -114,6 +112,11 @@ void search_matched(search_t *sch, results_set_t *rs);
 
 void search_gui_common_init(void);
 void search_gui_common_shutdown(void);
+
+search_t *search_gui_get_current_search(void);
+void search_gui_set_current_search(search_t *sch);
+void search_gui_forget_current_search();
+void search_gui_current_search(search_t *sch);
 
 void search_gui_free_alt_locs(record_t *rc);
 void search_gui_free_proxies(results_set_t *rs);
