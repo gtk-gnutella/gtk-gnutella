@@ -29,6 +29,7 @@
 
 #include <sys/types.h>
 
+// XXX this is rather bad, it must be metaconfigured
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) 
 #include <sys/param.h>
 #include <sys/sysctl.h>
@@ -175,6 +176,7 @@ G_INLINE_FUNC glong settings_getpagesize(void)
  */
 G_INLINE_FUNC gulong settings_getphysmemsize(void)
 {
+// XXX must be metaconfigured
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 /* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM };
@@ -185,17 +187,15 @@ G_INLINE_FUNC gulong settings_getphysmemsize(void)
 		g_warning("%s: sysctl() for HW_USERMEM failed: %s", __FUNCTION__,
 			g_strerror(errno));
 	return physmem / 1024;
-#else
-
-	#ifdef _SC_PHYS_PAGES
+#else	/* !(defined(__FreeBSD__) || ...) */
+#ifdef _SC_PHYS_PAGES
 	guint32 pagesize = settings_getpagesize();
 	return (pagesize >> 10) * sysconf(_SC_PHYS_PAGES);
-	#else
+#else
 	g_warning("Unable to determine amount of physical RAM");
 	return 0;
-	#endif
-
-#endif 
+#endif	/* _SC_PHYS_PAGES */
+#endif 	/* defined(__FreeBSD__) || ... */
 }
 
 void settings_init(void)
@@ -205,6 +205,7 @@ void settings_init(void)
 	guint32 physmem = (guint32) settings_getphysmemsize();
 
 	g_warning("Detected amount of physical RAM: %lu KB", (gulong) physmem);
+
     properties = gnet_prop_init();
 
 	gnet_prop_set_guint32_val(PROP_SYS_NOFILE, maxfd);
