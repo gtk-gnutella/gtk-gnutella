@@ -46,6 +46,8 @@ bsched_t *bsched_make(gchar *name,
 	g_assert((mode & (BS_F_READ|BS_F_WRITE)) != (BS_F_READ|BS_F_WRITE));
 	g_assert(!(mode & ~(BS_F_READ|BS_F_WRITE)));
 
+	g_assert(bandwidth >= 0);
+	g_assert(period > 0);
 	g_assert(type == BS_T_STREAM);		/* XXX only mode supported for now */
 	g_assert(bandwidth < BS_BW_MAX);	/* Signed, and multiplied by 1000 */
 
@@ -55,6 +57,8 @@ bsched_t *bsched_make(gchar *name,
 	bs->flags = mode;
 	bs->type = type;
 	bs->period = period;
+	bs->min_period = period - (period >> 2);	/* 75% of nominal period */
+	bs->max_period = period + (period >> 1);	/* 150% of nominal period */
 	bs->period_ema = period;
 	bs->bw_per_second = bandwidth;
 	bs->bw_max = bandwidth * period / 1000;
@@ -657,12 +661,34 @@ static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
 	delay = (gint) ((tv->tv_sec - bs->last_period.tv_sec) * 1000 +
 		(tv->tv_usec - bs->last_period.tv_usec) / 1000);
 
-	g_assert(delay >= 0);
-
-	if (delay == 0)
-		delay++;
-
 	bs->last_period = *tv;		/* struct copy */
+
+	/*
+	 * It is possible to get a negative delay (i.e. have the current time
+	 * be less than the previous time) when the machine runs a time
+	 * synchronization daemon.
+	 *
+	 * In general, this is deemed to happen when the actual delay is less
+	 * than min_period (75% of nominal).  We then force the fixed scheduling
+	 * period delay and proceed as usual.
+	 *
+	 * Likewise, it is possible for the time to go forward.  This is a little
+	 * more difficult to detect, because we can be delayed due to a high CPU
+	 * load.  That's why the max_period is at 150% of the nominal period, and
+	 * not at 125%.
+	 */
+
+	if (delay < bs->min_period) {
+		g_warning("periodic timer noticed time jumped backwards (~%d ms)",
+			bs->period - delay);
+		delay = bs->period;
+	} else if (delay > bs->max_period) {
+		g_warning("periodic timer noticed time jumped forwards (~%d ms)",
+			delay - bs->period);
+		delay = bs->period;
+	}
+
+	g_assert(delay > 0);
 
 	/*
 	 * Exponential Moving Average (EMA) with smoothing factor sm=1/4.

@@ -41,6 +41,8 @@ typedef struct bsched {
 	gint type;							/* Scheduling type */
 	gint flags;							/* Processing flags */
 	gint period;						/* Fixed scheduling period, in ms */
+	gint min_period;					/* Minimal period without correction */
+	gint max_period;					/* Maximal period without correction */
 	gint period_ema;					/* EMA of period, in ms */
 	gint bw_per_second;					/* Configure bandwidth in bytes/sec */
 	gint bw_max;						/* Max bandwidth per period */
