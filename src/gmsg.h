@@ -26,6 +26,8 @@
 #ifndef __gmsg_h__
 #define __gmsg_h__
 
+#include "gnutella.h"
+
 struct gnutella_node;
 struct route_dest;
 
