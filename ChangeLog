@@ -1,9 +1,23 @@
 # since last version
 
+- (2003.05.10 - RAM)
+ * Fixed "memory leak" in fileinfo_gui.c.
+ * New -DTRACK_ZALLOC compilation switch that will track down the allocation
+   points of all the zalloc blocks to display leaks at the end.
+ * New properties "host_runs_ntp" and "clock_skew".
+ * Will now try to automatically figure out the clock skew relative to GMT.
+ * Use the Date: HTTP header as a source for clock skew computation.
+ * Use token timestamps as another source for clock skew computation.
+ * Trace Ultrapeer selection criteria for debugging.
+ * Made sort order in the search pane persistent (fixes bug #557696) [From
+   Emile le Vivre].
+ * Was not using the forced 95% threshold for flow-control limits in leaf mode.
+
 - (2003.05.09 - RAM)
  * Accidentally inverted condition for hostile checks on pongs: was dropping
    all the non-hostile pongs as being hostile!
  * Integrated PARQ patch #19 [From Jeroen Asselman].
+ * Integrated PARQ patch #20 [From Jeroen Asselman].
 
 - (2003.05.08 - RAM)
  * Added monitoring of average outgoing bandwidth.
