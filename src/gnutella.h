@@ -26,7 +26,8 @@
 #ifndef __gnutella_h__
 #define __gnutella_h__
 
-#include "common.h"
+#include "gnet.h"
+#include "gnet_property_priv.h"
 
 /*
  * Macros
@@ -157,14 +158,6 @@ extern struct gnutella_socket *s_listen;
 extern gchar *version_string;
 extern time_t start_time;
 extern gchar *start_rfc822_date;
-
-/*
- * Functions
- */
-
-/* main.c */
-
-void gtk_gnutella_exit(gint);
 
 #endif							/* __gnutella_h__ */
 
