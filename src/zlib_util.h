@@ -24,11 +24,33 @@
 #ifndef __zlib_util_h__
 #define __zlib_util_h__
 
+#include <glib.h>
+
+/*
+ * Incremental deflater stream.
+ */
+typedef struct  {
+	gpointer in;			/* Buffer being compressed */
+	gint inlen;				/* Length of input buffer */
+	gpointer out;			/* Compressed data */
+	gint outlen;			/* Length of ouput buffer */
+	gpointer opaque;		/* Internal data structures */
+} zlib_deflater_t;
+
+#define zlib_deflater_out(z)	((z)->out)
+#define zlib_deflater_outlen(z)	((z)->outlen)
+
 /*
  * Public interaface.
  */
 
 gchar *zlib_strerror(gint errnum);
+
+zlib_deflater_t *zlib_deflater_make(gpointer data, gint len, gint level);
+gint zlib_deflate(zlib_deflater_t *zd, gint amount);
+void zlib_deflater_free(zlib_deflater_t *zd, gboolean output);
+
+guchar *zlib_uncompress(guchar *data, gint len, gint uncompressed_len);
 
 #endif	/* __zlib_util_h__ */
 
