@@ -681,20 +681,9 @@ void auto_download_new(gchar * file, guint32 size, guint32 record_index,
 	gchar *file_name = g_strdup(file);
 	struct stat buf;
 	char *reason;
+	int tmplen;
 
 	escape_filename(file_name);
-
-	/*
-	 * Make sure we have not got a bigger file in the "completed dir".
-	 */
-
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", move_file_path, file_name);
-	dl_tmp[sizeof(dl_tmp)-1] = '\0';
-
-	if (-1 != stat(dl_tmp, &buf) && buf.st_size >= size) {
-		reason = "complete file bigger";
-		goto abort_download;
-	}
 
 	/*
 	 * Make sure we have not got a bigger file in the "download dir".
@@ -706,6 +695,46 @@ void auto_download_new(gchar * file, guint32 size, guint32 record_index,
 	if (-1 != stat(dl_tmp, &buf) && buf.st_size >= size) {
 		reason = "downloaded file bigger";
 		goto abort_download;
+	}
+
+	/*
+	 * Make sure we have not got a bigger file in the "completed dir".
+	 *
+	 * We must also check for bigger files bearing our renaming exts,
+	 * i.e. .01, .02, etc... and keep going while files exist.
+	 */
+
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", move_file_path, file_name);
+	dl_tmp[sizeof(dl_tmp)-1] = '\0';
+
+	if (-1 != stat(dl_tmp, &buf) && buf.st_size >= size) {
+		reason = "complete file bigger";
+		goto abort_download;
+	}
+
+	tmplen = strlen(dl_tmp);
+	if (tmplen >= sizeof(dl_tmp) - 4) {
+		g_warning("'%s' in completed dir is too long for further checks",
+			file_name);
+	} else {
+		int i;
+		for (i = 1; i < 100; i++) {
+			gchar ext[4];
+
+			g_snprintf(ext, 4, ".%02d", i);
+			dl_tmp[tmplen] = '\0';				/* Ignore prior attempt */
+			strncat(dl_tmp+tmplen, ext, 3);		/* Append .01, .02, ...*/
+
+			if (-1 == stat(dl_tmp, &buf))
+				break;							/* No file, stop scanning */
+
+			if (buf.st_size >= size) {
+				g_snprintf(dl_tmp, sizeof(dl_tmp),
+					"alternate complete file #%d bigger", i);
+				reason = dl_tmp;
+				goto abort_download;
+			}
+		}
 	}
 
 	create_download(file_name, size, record_index, ip, port, guid, FALSE);
