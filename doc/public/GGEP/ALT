@@ -8,6 +8,7 @@ Date: Mon Jul 14 20:05:36 MEST 2003
 Format: Array of <ip> <port>
 COBS-Encoding: Maybe
 Deflate: Maybe
+Revision: $Id$
 
 [Those specs written by Raphael Manfredi after a proposal from BearShare]
 
