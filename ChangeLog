@@ -1,5 +1,19 @@
 # since last version
 
+- (2002.06.16 - Richard)
+  * Added ability to filter by urn:sha1 and by flags (push, stable, busy)
+    (urn:sha1 filter is not editable yet)
+  * Added "Don't show results with urn:sha1" to search popup
+  * Added "Edit filter" back to search popup
+  * Changed header of urn column in search results to "urn:sha1" and
+    centered it
+
+- (2002.06.15 - Richard)
+  * Added URN column to the search results (hidden by default)
+  * Made gui and backend use same code for comparing records
+    (search_compare). 
+  * Made passive searches persistant
+
 - (2002.06.15 - RAM)
   * Propagate SHA1 from query hits to download requests.
   * Now recognizes old base32 encoding, translated into new one.
