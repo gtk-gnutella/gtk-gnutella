@@ -677,6 +677,40 @@ guid_hex_str(const gchar *guid)
 }
 
 /**
+ * Returns hexadecimal string representation of "small" binary buffer.
+ * Buffer must be less than 40 chars, or only the first 40 chars are
+ * represented with a trailing "..." added to show it is incomplete.
+ */
+gchar *
+data_hex_str(const gchar *data, gint len)
+{
+	static gchar buf[84];
+	gint maxlen = sizeof(buf) - 3 - 1;	/* 3 chars for "more" and NUL */
+	const guchar *p = (guchar *) data;
+	gint hmax;
+	gint i;
+
+	hmax = 2 * len;
+	hmax = MIN(hmax, maxlen);
+	
+	for (i = 0; i < hmax; p++) {
+		buf[i++] = hex_alphabet_lower[*p >> 4];
+		buf[i++] = hex_alphabet_lower[*p & 0x0f];
+	}
+
+	if (2 * len > hmax) {
+		buf[i++] = '.';
+		buf[i++] = '.';
+		buf[i++] = '.';
+	}
+
+	g_assert(i < sizeof(buf));
+
+	buf[i] = '\0';
+	return buf;
+}
+
+/**
  * Convert an hexadecimal char (0-9, A-F, a-f) into decimal.
  */
 inline gint
