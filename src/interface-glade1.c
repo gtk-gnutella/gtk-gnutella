@@ -612,8 +612,9 @@ create_main_window (void)
   GtkWidget *hbox89;
   GtkWidget *eventbox_image_lib;
   GtkWidget *image_lib;
-  GtkWidget *eventbox3;
+  GtkWidget *eventbox_image_firewall;
   GtkWidget *image_firewall;
+  GtkWidget *eventbox_image_no_firewall;
   GtkWidget *image_no_firewall;
   GtkWidget *label_statusbar_uptime;
   GtkAccelGroup *accel_group;
@@ -5679,7 +5680,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_lib);
   gtk_box_pack_start (GTK_BOX (hbox89), eventbox_image_lib, FALSE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_image_lib, "Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results.", NULL);
 
   image_lib = create_pixmap (main_window, "booklib.xpm");
   gtk_widget_set_name (image_lib, "image_lib");
@@ -5690,14 +5690,14 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_image_lib), image_lib);
   gtk_misc_set_padding (GTK_MISC (image_lib), 1, 0);
 
-  eventbox3 = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox3, "eventbox3");
-  gtk_widget_ref (eventbox3);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox3", eventbox3,
+  eventbox_image_firewall = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_firewall, "eventbox_image_firewall");
+  gtk_widget_ref (eventbox_image_firewall);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_firewall", eventbox_image_firewall,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (eventbox3);
-  gtk_box_pack_start (GTK_BOX (hbox89), eventbox3, FALSE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox3, "People can connect to you. Push should work.", NULL);
+  gtk_widget_show (eventbox_image_firewall);
+  gtk_box_pack_start (GTK_BOX (hbox89), eventbox_image_firewall, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_firewall, "Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results.", NULL);
 
   image_firewall = create_pixmap (main_window, "firewall.xpm");
   gtk_widget_set_name (image_firewall, "image_firewall");
@@ -5705,9 +5705,18 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "image_firewall", image_firewall,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_firewall);
-  gtk_container_add (GTK_CONTAINER (eventbox3), image_firewall);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_firewall), image_firewall);
   gtk_misc_set_padding (GTK_MISC (image_firewall), 1, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_firewall), FALSE);
+
+  eventbox_image_no_firewall = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_no_firewall, "eventbox_image_no_firewall");
+  gtk_widget_ref (eventbox_image_no_firewall);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_no_firewall", eventbox_image_no_firewall,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_no_firewall);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_no_firewall, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_no_firewall, "People can connect to you. Push should work.", NULL);
 
   image_no_firewall = create_pixmap (main_window, "no_firewall.xpm");
   gtk_widget_set_name (image_no_firewall, "image_no_firewall");
@@ -5715,7 +5724,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "image_no_firewall", image_no_firewall,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (image_no_firewall);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), image_no_firewall, FALSE, FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_no_firewall), image_no_firewall);
   gtk_misc_set_padding (GTK_MISC (image_no_firewall), 1, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_no_firewall), FALSE);
 
