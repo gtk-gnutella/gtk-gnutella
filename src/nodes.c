@@ -5298,7 +5298,8 @@ static void node_send_patch_step(struct gnutella_node *n)
 	if (!ok) {
 		qrt_unref(n->sent_query_table);
 		n->sent_query_table = NULL;			/* Table was not successfuly sent */
-	}
+	} else
+		n->flags |= NODE_F_QRP_SENT;
 
 	qrt_update_free(n->qrt_update);
 	n->qrt_update = NULL;
@@ -5724,14 +5725,14 @@ void node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
 			else if (node->recv_query_table != NULL)
 				flags->qrt_state = QRT_S_RECEIVED;
 			if (node->qrt_update != NULL)
-				flags->uqrt_state = node->sent_query_table != NULL ?
+				flags->uqrt_state = (node->flags & NODE_F_QRP_SENT) ?
 					QRT_S_PATCHING : QRT_S_SENDING;
 			else if (node->sent_query_table != NULL)
 				flags->uqrt_state = QRT_S_SENT;
 		} else {
 			/* Ultranode connected to us, leaf node */
 			if (node->qrt_update != NULL)
-				flags->qrt_state = node->sent_query_table != NULL ?
+				flags->qrt_state = (node->flags & NODE_F_QRP_SENT) ?
 					QRT_S_PATCHING : QRT_S_SENDING;
 			else if (node->sent_query_table != NULL)
 				flags->qrt_state = QRT_S_SENT;

@@ -243,6 +243,7 @@ typedef struct gnutella_node {
 #define NODE_F_CRAWLER		0x00008000	/* Is a Gnutella Crawler */
 #define NODE_F_FAKE_NAME	0x00010000	/* Was unable to validate GTKG name */
 #define NODE_F_PROXY		0x00020000	/* Sent a push-proxy request */
+#define NODE_F_QRP_SENT		0x00040000	/* Undergone one complete QRP sending */
 
 /*
  * Node attributes.
