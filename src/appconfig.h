@@ -102,6 +102,7 @@ extern gchar *socksv5_pass;
 void config_init(void);
 void config_shutdown();
 void config_ip_changed(guint32 new_ip);
+guint32 config_max_msg_size(void);
 void config_close(void);
 
 #endif /* __appconfig_h__ */

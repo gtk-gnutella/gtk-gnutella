@@ -447,8 +447,18 @@ void config_init(void)
 		scan_extensions = g_strdup(file_extensions);
 	/* watch for filter_file defaults */
 
-	if (hard_ttl_limit < max_ttl)
+	if (hard_ttl_limit < max_ttl) {
 		hard_ttl_limit = max_ttl;
+		g_warning("hard_ttl_limit was too small, adjusted to %u",
+			hard_ttl_limit);
+	}
+
+	/* Flow control depends on this being not too small */
+	if (node_sendqueue_size < 1.5 * config_max_msg_size()) {
+		node_sendqueue_size = (guint32) (1.5 * config_max_msg_size());
+		g_warning("node_sendqueue_size was too small, adjusted to %u",
+			node_sendqueue_size);
+	}
 
 	/* Okay, update the GUI with values loaded */
 
@@ -1357,8 +1367,11 @@ static void config_save(void)
 		"(minimum 100)\n%s = %u\n\n",
 			keywords[k_max_hosts_cached], max_hosts_cached);
 
-	fprintf(config, "# Maximum size of the sendqueue "
-		"for the nodes (in bytes)\n%s = %u\n\n",
+	fprintf(config, "# Maximum size of the sendqueue for the nodes (in bytes)\n"
+		"# Must be at least 150%% of max message size (currently %u bytes),\n"
+		"# which means minimal allowed value is %u bytes.\n"
+		"%s = %u\n\n",
+			config_max_msg_size(), (guint32) (1.5 * config_max_msg_size()),
 			keywords[k_node_sendqueue_size], node_sendqueue_size);
 
 	fprintf(config, "# Random factor for the hops field "
@@ -1559,6 +1572,27 @@ void config_ip_changed(guint32 new_ip)
 
 	forced_local_ip = new_ip;
 	gui_update_config_force_ip();
+}
+
+/*
+ * config_max_msg_size
+ *
+ * Maximum message payload size we are configured to handle.
+ */
+guint32 config_max_msg_size(void)
+{
+	/*
+	 * Today, they are fixed at config time, but they will be set via
+	 * GUI tomorrow, so the max size is not fixed in time.
+	 *				--RAM, 15/09/2001
+	 */
+
+	guint32 maxsize;
+
+	maxsize = MAX(search_queries_kick_size, search_answers_kick_size);
+	maxsize = MAX(maxsize, other_messages_kick_size);
+
+	return maxsize;
 }
 
 void config_shutdown(void)

@@ -199,23 +199,6 @@ gint32 node_count(void)
 	return nodes_in_list - ponging_nodes - shutdown_nodes;
 }
 
-static guint32 max_msg_size(void)
-{
-	/*
-	 * Maximum message payload size we are configured to handle.
-	 * Today, they are fixed at config time, but they will be set via
-	 * GUI tomorrow, so the max size is not fixed in time.
-	 *				--RAM, 15/09/2001
-	 */
-
-	guint32 maxsize;
-
-	maxsize = MAX(search_queries_kick_size, search_answers_kick_size);
-	maxsize = MAX(maxsize, other_messages_kick_size);
-
-	return maxsize;
-}
-
 /*
  * get_protocol_version
  *
@@ -2730,9 +2713,10 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 		if (n->size > n->allocated) {
 			/*
 			 * We need to grow the allocated data buffer
+			 * Since could change dynamically one day, so compute it.
 			 */
 
-			guint32 maxsize = max_msg_size();	/* Can change dynamically */
+			guint32 maxsize = config_max_msg_size();
 
 			if (maxsize < n->size) {
 				g_warning("got %u byte %s message, should have kicked node\n",
