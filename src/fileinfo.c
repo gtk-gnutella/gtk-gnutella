@@ -1191,6 +1191,7 @@ void file_info_recreate(struct download *d)
 	new_fi = file_info_create(fi->file_name, fi->path, d->size,  fi->sha1);
 	file_info_free(fi, FALSE);
 	d->file_info = new_fi;
+    file_info_hash_insert(new_fi);
 }
 
 /*
@@ -1232,7 +1233,7 @@ struct dl_file_info *file_info_get(
 				return fi;
 			}
 			
-			/* In strick mode, we require the SHA1s to be identical. */
+			/* In strict mode, we require the SHA1s to be identical. */
 			if (strict_sha1_matching)
 				continue;
 		}
@@ -1241,6 +1242,7 @@ struct dl_file_info *file_info_get(
 			/* Grab the sha1 if we don't have it. */
 			if (sha1 && !fi->sha1) {
 				fi->sha1 = atom_sha1_get(sha1);
+                g_hash_table_insert(file_info_sha1_hash, sha1, fi);
 				fi->dirty = TRUE;
 			}
 			fi->refcount++;
@@ -1298,7 +1300,11 @@ static gboolean file_info_has_identical(gchar *file, guint32 size, gchar *sha1)
         
 		fi = p->data;
 
-		if (fi->size != size) continue;
+		if (fi->size != size) {
+            g_warning("file_info_has_identical(): size mismatch!? (%u vs %u)",
+                    fi->size, size);
+            continue;
+        }
 
 		/*
 		 * No referencess means file isn't in queue anymore,
