@@ -1,5 +1,38 @@
 # since last version
 
+- (2004.01.11 - RAM)
+ * Fixed "fi->lifecount > 0" assertion failure when backing out data after a
+   resuming mismatch.
+ * When we run out of socket descriptors, try to close a banned fd, if any
+   (both when making out a new connection or accepting one).
+ * Made ban_reclaim_fd() a public function, that can be used when we run out
+   of file descriptors.
+ * Make sure pixmaps and other regular files are installed without
+   the 'x' bit set.
+ * Generalized call to ban_reclaim_fd() when opening files on out-of-fd
+   condition by introducing the file_open() and file_create() calls.
+ * Decreased node unstable cleanup timer from 1 day to 0.5 day.
+ * New node info display configuration: show library size / # of files shared.
+ * New properties: "show_gnet_info_shared_size", "show_gnet_info_shared_files".
+ * When applying a patch message, make sure they did not already fill the
+   QRP table before processing (should fix bug #762121).
+ * Don't blindly assume pong information with hops=0 comes from the node,
+   as LimeWire suffers from a bug breaking this assertion.
+ * For prettyness, don't show a library size of 8K when the # of files shared
+   is 0 (all UP will advertise 8K sharing so that this amount is a power of 2).
+ * Remove -licuuc from the list of libs when it is present but does not
+   contain the functions we want (fixes bug #859761).
+ * Don't force bit 0 of amount of Kbytes shared to 1 if they share nothing.
+ * Don't consider pongs with less than 8 kbytes shared as being ultra pongs.
+
+- (2004.01.10 - RAM)
+ * Fixed assert failure when all the entries from the cache are deleted.
+ * When GTKG thinks it is offline, don't even try to do GWebCache updates.
+ * [GTK1] Fixed titles[] array sizing using enum constants, avoiding too
+   small sizing causing memory corruption [Patch from Thomas Schuerger].
+ * [GTK2] Don't abort a download entry if it is a pseudo-header [Patch
+   from Russell Francis] (fixes #874596).
+
 - (2004.01.10 - Richard)
  * [Gtk1] [Gtk2] Reverted changes to hostcount display from 2004.01.08
  * Moved generation of hostname for downloads pane to downloads_gui_common.c.
