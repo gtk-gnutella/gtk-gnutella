@@ -823,8 +823,8 @@
 		      <handler>on_clist_nodes_resize_column</handler>
 		      <last_modification_time>Tue, 09 May 2000 19:18:06 GMT</last_modification_time>
 		    </signal>
-		    <columns>5</columns>
-		    <column_widths>80,80,80,69,69</column_widths>
+		    <columns>7</columns>
+		    <column_widths>80,80,80,80,80,80,80</column_widths>
 		    <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 		    <show_titles>True</show_titles>
 		    <shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -884,11 +884,37 @@
 		    <widget>
 		      <class>GtkLabel</class>
 		      <child_name>CList:title</child_name>
-		      <name>label15</name>
-		      <label>Info</label>
+		      <name>label_node_connected</name>
+		      <label>Connected</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <child_name>CList:title</child_name>
+		      <name>label_node_uptime</name>
+		      <label>Uptime</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <child_name>CList:title</child_name>
+		      <name>label_node_info</name>
+		      <label>Info</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>7.45058e-09</xalign>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
@@ -6482,7 +6508,6 @@ options</label>
 		      <widget>
 			<class>GtkEntry</class>
 			<name>entry_config_save_path</name>
-			<sensitive>False</sensitive>
 			<can_focus>True</can_focus>
 			<editable>False</editable>
 			<text_visible>True</text_visible>
@@ -6537,7 +6562,6 @@ options</label>
 		      <widget>
 			<class>GtkEntry</class>
 			<name>entry_config_move_path</name>
-			<sensitive>False</sensitive>
 			<can_focus>True</can_focus>
 			<editable>False</editable>
 			<text_visible>True</text_visible>
@@ -6558,6 +6582,60 @@ options</label>
 			  <name>clicked</name>
 			  <handler>on_button_config_move_path_clicked</handler>
 			  <last_modification_time>Mon, 01 May 2000 15:08:31 GMT</last_modification_time>
+			</signal>
+			<label>Browse</label>
+			<relief>GTK_RELIEF_NORMAL</relief>
+			<child>
+			  <padding>0</padding>
+			  <expand>False</expand>
+			  <fill>False</fill>
+			</child>
+		      </widget>
+		    </widget>
+		  </widget>
+
+		  <widget>
+		    <class>GtkFrame</class>
+		    <name>frame66</name>
+		    <label>Move corrupted downloaded files to</label>
+		    <label_xalign>0</label_xalign>
+		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>True</fill>
+		    </child>
+
+		    <widget>
+		      <class>GtkHBox</class>
+		      <name>hbox158</name>
+		      <border_width>2</border_width>
+		      <homogeneous>False</homogeneous>
+		      <spacing>4</spacing>
+
+		      <widget>
+			<class>GtkEntry</class>
+			<name>entry_config_bad_path</name>
+			<can_focus>True</can_focus>
+			<editable>False</editable>
+			<text_visible>True</text_visible>
+			<text_max_length>0</text_max_length>
+			<text></text>
+			<child>
+			  <padding>0</padding>
+			  <expand>True</expand>
+			  <fill>True</fill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkButton</class>
+			<name>button_config_bad_path</name>
+			<can_focus>True</can_focus>
+			<signal>
+			  <name>clicked</name>
+			  <handler>on_button_config_bad_path_clicked</handler>
+			  <last_modification_time>Sat, 09 Nov 2002 17:04:05 GMT</last_modification_time>
 			</signal>
 			<label>Browse</label>
 			<relief>GTK_RELIEF_NORMAL</relief>
@@ -7327,7 +7405,7 @@ options</label>
 		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		    <child>
 		      <padding>0</padding>
-		      <expand>False</expand>
+		      <expand>True</expand>
 		      <fill>True</fill>
 		    </child>
 
@@ -9002,20 +9080,24 @@ interface</label>
       </widget>
 
       <widget>
-	<class>GtkPixmap</class>
-	<name>image_save</name>
-	<visible>False</visible>
-	<filename>save.xpm</filename>
-	<xalign>0.5</xalign>
-	<yalign>0.5</yalign>
-	<xpad>1</xpad>
-	<ypad>0</ypad>
-	<build_insensitive>False</build_insensitive>
+	<class>GtkEventBox</class>
+	<name>eventbox_image_save</name>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
 	  <fill>True</fill>
 	</child>
+
+	<widget>
+	  <class>GtkPixmap</class>
+	  <name>image_save</name>
+	  <filename>save.xpm</filename>
+	  <xalign>0.5</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>1</xpad>
+	  <ypad>0</ypad>
+	  <build_insensitive>True</build_insensitive>
+	</widget>
       </widget>
 
       <widget>
