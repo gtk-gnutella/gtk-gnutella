@@ -72,8 +72,9 @@ RCSID("$Id$");
 
 #define RQST_LINE_LENGTH	256		/* Reasonable estimate for request line */
 
-#define SOCK_ADNS_PENDING	1	/* Prevents free()ing the socket too early */
-#define SOCK_ADNS_FAILED	2	/* Indicates an error in the ADNS callback */
+#define SOCK_ADNS_PENDING	0x01	/* Don't free() the socket too early */
+#define SOCK_ADNS_FAILED	0x02	/* Signals error in the ADNS callback */
+#define SOCK_ADNS_BADNAME	0x04	/* Signals bad host name */
 
 static gboolean ip_computed = FALSE;
 
@@ -1112,6 +1113,18 @@ struct gnutella_socket *socket_connect(
 }
 
 /*
+ * socket_bad_hostname
+ *
+ * Returns whether bad hostname was reported after a DNS lookup.
+ */
+gboolean socket_bad_hostname(struct gnutella_socket *s)
+{
+	g_assert(NULL != s);
+
+	return (s->adns & SOCK_ADNS_BADNAME) ? TRUE : FALSE;
+}
+
+/*
  * socket_connect_by_name_helper
  *
  * Called when we got a reply from the ADNS process.
@@ -1124,7 +1137,7 @@ static void socket_connect_by_name_helper(guint32 ip_addr, gpointer user_data)
 
 	if (0 == ip_addr || s->type == SOCK_TYPE_DESTROYING) {
 		s->adns &= ~SOCK_ADNS_PENDING;
-		s->adns |= SOCK_ADNS_FAILED;
+		s->adns |= SOCK_ADNS_FAILED | SOCK_ADNS_BADNAME;
 		s->adns_msg = "Could not resolve address";
 		return; 
 	}
