@@ -1,0 +1,28 @@
+The server SHOULD offer compact direct-connect and Push Alt Locs in 
+the new header "X-ALT:"
+
+        X-ALT:  ( <DALT> | <PALT> )
+
+        DALT:   ( <IP>[:<PORT>] )
+
+        PALT:   ( <GUID>(;<DALT>)+ )
+
+        IP:     ( standard string representation of an IP Address.
+                  i.e. Typical dotted IP Address a.b.c.d )
+
+        PORT:   ( text number representing the port.
+                  If 6346, you MAY omit it )
+
+        GUID:   ( Base32 encoded version of the proxied hosts'
+                  16-byte Gnutella GUID )
+
+        Example:
+
+                X-ALT: a.b.c.d:e
+                X-ALT: f.g.h.i:j
+                X-ALT: <GUID>;k.l.m.n:o;p.q.r.s:t
+
+                =
+
+                X-ALT: a.b.c.d:e,f.g.h.i:j,<GUID>;k.l.m.n:o;p.q.r.s:t
+

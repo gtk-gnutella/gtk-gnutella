@@ -1,0 +1,52 @@
+                  * Proposal *
+ New Interpretation of the MinSpeed field in Queries
+
+**************************************************
+Min Speed - 2 bytes - bits are numbered 15 - 0 as such:
+15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+
+A Gnutella Query message has two bytes devoted to the Minimum Speed.  
+Legacy use of these two bytes was hardly ever respected, so we now use 
+these two bytes to support recent advancements in Gnutella.  The two 
+bytes are read from left to right, as are the bits.  Note that the
+field is written in big-endian format - as most computing platforms
+are little-endian, be sure to carefully write out this field.
+
+GUIDELINES FOR QUERIERS
+-----------------------
+
+1. To specify interpretation of the Min Speed bytes as specified
+below, set bit 15.
+
+2. To indicate that the query source is a firewalled servent, set bit
+14.
+
+3. To indicate the desire to receive LimeWire-style XML metadata in
+your replies, please set bit 13 (if you don't care about it, lets save
+everyone trouble - we won't send it).
+
+The interpretation of the other bits is not yet specified and bits reserved
+for future use (any other useful suggestions for their use are
+welcomed).  The latest use of the bits can be viewed at:
+http://groups.yahoo.com/group/the_gdf/database?method=reportRows&tbl=14
+
+GUIDELINES FOR SERVENTS RESPONDING TO QUERIES
+---------------------------------------------
+
+If a query has bit 15 of its Min Speed bytes set, please regard the
+following guidelines:
+
+1. If the firewall bit (bit 14) of a query is set and you are also
+firewalled, please refrain from returning any results.
+
+2. If the xml bit (bit 13) of a query is cleared AND you support
+LimeWire-style XML metadata, please do not send any metadata with your
+responses.
+
+Again, please note the latest use of the bits at:
+http://groups.yahoo.com/group/the_gdf/database?method=reportRows&tbl=14
+
+-----------------------
+**************************************************
+
+
