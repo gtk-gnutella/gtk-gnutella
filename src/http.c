@@ -588,7 +588,7 @@ gboolean http_url_parse(
 	}
 
 	if (dbg > 4)
-		printf("URL \"%s\" -> host=%s, path=%s\n", url, hostname, p);
+		printf("URL \"%s\" -> host=%s, path=%s\n", url - 7, hostname, p);
 
 	http_url_errno = HTTP_URL_OK;
 
