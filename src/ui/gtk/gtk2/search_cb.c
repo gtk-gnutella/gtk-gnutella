@@ -412,8 +412,8 @@ void on_tree_view_search_results_select_row(
 			gtk_entry_set_text(GTK_ENTRY(
 				lookup_widget(main_window, "entry_result_info_source")),
 				ip_port_to_gchar(rc->results_set->ip, rc->results_set->port));
-		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%lu bytes)"),
-			short_size(rc->size), (gulong) rc->size);
+		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%" PRIu64 " bytes)"),
+			short_size(rc->size), (guint64) rc->size);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_size")),
 			tmpstr);

@@ -198,8 +198,8 @@ search_gui_set_details(record_t *rc)
 		iso3166_country_name(rc->results_set->country),
 		iso3166_country_cc(rc->results_set->country));
 	gtk_entry_set_text(info_country, tmpstr);
-	gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%lu bytes)"),
-		short_size(rc->size), (gulong) rc->size);
+	gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%" PRIu64 " bytes)"),
+		short_size(rc->size), (guint64) rc->size);
 	gtk_entry_set_text(info_size, tmpstr);
 	gtk_entry_set_text(info_guid, guid_hex_str(rc->results_set->guid));
 	g_strlcpy(tmpstr, ctime(&rc->results_set->stamp),
