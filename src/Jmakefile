@@ -83,8 +83,8 @@ CORE = \
 	base32.c \
 	base64.c \
 	bg.c \
-	bsched.c \
 	bitzi.c \
+	bsched.c \
 	clock.c \
 	cobs.c \
 	common.c \
