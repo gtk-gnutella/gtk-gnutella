@@ -34,6 +34,7 @@ extern guint scid_hostsfile;
 extern guint scid_search_autoselected;
 extern guint scid_queue_freezed;
 extern guint scid_queue_remove_regex;
+extern guint scid_warn;
 
 /*
  * Macros for accessing the statusbar
@@ -41,6 +42,8 @@ extern guint scid_queue_remove_regex;
 #define gui_statusbar_push(scid, msg)   (gtk_statusbar_push(GTK_STATUSBAR(statusbar), (scid), (msg)))
 #define gui_statusbar_pop(scid)         (gtk_statusbar_pop(GTK_STATUSBAR(statusbar), (scid)))
 #define gui_statusbar_remove(scid, mid) (gtk_statusbar_remove(GTK_STATUSBAR(statusbar), (scid), (mid)))
+
+              
 
 /*
  * Public interface.
@@ -63,8 +66,8 @@ void gui_update_guid(void);
 void gui_update_c_downloads(gint, gint);
 void gui_update_c_gnutellanet(void);
 void gui_update_c_uploads(void);
-void gui_update_config_force_ip(void);
-void gui_update_config_port(void);
+void gui_update_config_force_ip(gboolean force);
+void gui_update_config_port(gboolean force);
 void gui_update_connection_speed(void);
 void gui_update_count_downloads(void);
 void gui_update_count_uploads(void);
@@ -110,8 +113,10 @@ void gui_update_proxy_ip();
 void gui_update_socks_pass();
 void gui_update_proxy_port();
 void gui_update_socks_user();
-void gui_update_input_bandwidth();
-void gui_update_output_bandwidth();
+void gui_update_bandwidth_input();
+void gui_update_bandwidth_output();
+void gui_update_bandwidth_ginput();
+void gui_update_bandwidth_goutput();
 void gui_update_stats(void);
 void gui_update_proxy_auth();
 void gui_update_proxy_connections();
@@ -119,8 +124,10 @@ void gui_update_up_connections(void);
 void gui_update_upload(struct upload *);
 void gui_update_upload_kill(void);
 void gui_update_config_netmasks();
-void gui_update_bps_in_enabled();
-void gui_update_bps_out_enabled();
+void gui_update_bws_in_enabled();
+void gui_update_bws_out_enabled();
+void gui_update_bws_gin_enabled();
+void gui_update_bws_gout_enabled();
 void gui_update_queue_regex_case();
 void gui_update_search_remove_downloaded();
 void gui_update_download_delete_aborted();
@@ -146,5 +153,7 @@ void gui_update_node_connected_timeout();
 void gui_update_upload_connecting_timeout();
 void gui_update_upload_connected_timeout();
 void gui_update_max_hosts_cached();
+void gui_update_hosts_in_catcher();
+void gui_update_stats_frames();
 
 #endif /* __gui_h__ */
