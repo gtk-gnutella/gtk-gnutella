@@ -636,6 +636,7 @@ static struct file_sha1 *get_next_file_from_list(void)
 			if (-1 == stat(l->file_name, &buf)) {
 				g_warning("ignoring SHA1 recomputation request for \"%s\": %s",
 					l->file_name, g_strerror(errno));
+				free_cell(l);
 				continue;
 			}
 
@@ -643,6 +644,7 @@ static struct file_sha1 *get_next_file_from_list(void)
 				if (dbg > 1)
 					printf("ignoring duplicate SHA1 work for \"%s\"\n",
 						l->file_name);
+				free_cell(l);
 				continue;
 			}
 		}
