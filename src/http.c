@@ -1125,25 +1125,35 @@ static void http_redirect(struct http_async *ha, gchar *url)
 	/*
 	 * Close connection of parent request.
 	 *
-	 * Free useless I/O opaque structure (a new one will be created when the
-	 * subrequest has its socket connected).
 	 */
 
 	g_assert(ha->socket);
-	g_assert(ha->io_opaque);
 
 	socket_free(ha->socket);
 	ha->socket = NULL;
-
-	io_free(ha->io_opaque);
-	ha->io_opaque = NULL;
 
 	/*
 	 * Create sub-request to handle the redirection.
 	 */
 
-	if (!http_async_subrequest(ha, url, ha->type))
+	if (!http_async_subrequest(ha, url, ha->type)) {
 		http_async_error(ha, http_async_errno);
+		return;
+	}
+
+	/*
+	 * Free useless I/O opaque structure (a new one will be created when the
+	 * subrequest has its socket connected).
+	 *
+	 * NB: We have to do this after http_async_subrequest(), since `url' is
+	 * actually pointing inside the header data in the io_opaque structure: it
+	 * is extracted from the Location: header.
+	 */
+
+	g_assert(ha->io_opaque);
+
+	io_free(ha->io_opaque);
+	ha->io_opaque = NULL;
 }
 
 /*
