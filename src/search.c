@@ -45,6 +45,7 @@
 #include "atoms.h"
 #include "extensions.h"
 #include "base32.h"
+#include "sq.h"
 
 #ifdef USE_SEARCH_XML
 # include "search_xml.h"
@@ -385,6 +386,24 @@ void search_clear(search_t *sch)
 	sch->items = sch->unseen_items = 0;
 }
 
+/*
+ * search_dequeue_all_nodes
+ *
+ * Signal to all search queues that search for `qtext' was closed.
+ */
+static void search_dequeue_all_nodes(gchar *qtext)
+{
+	GSList *l;
+
+	for (l = sl_nodes; l; l = l->next) {
+		struct gnutella_node *n = (struct gnutella_node *) l->data;
+		squeue_t *sq = NODE_SQUEUE(n);
+
+		if (sq)
+			sq_search_closed(sq, qtext);
+	}
+}
+
 /* 
  * search_close:
  *
@@ -423,6 +442,7 @@ void search_close(search_t *sch)
 
 		g_slist_free(sch->muids);
 		search_free_sent_nodes(sch);
+		search_dequeue_all_nodes(sch->query);
 	} else {
 		search_passive--;
 	}

@@ -228,3 +228,51 @@ static void cap_queue(squeue_t *sq)
     }
 }
 
+/*
+ * sq_search_closed
+ *
+ * Signals the search queue that a search for `qtext' was closed.
+ * Any query for that search still in the queue is dropped.
+ */
+void sq_search_closed(squeue_t *sq, gchar *qtext)
+{
+	GList *l;
+	gboolean is_urn_search = (0 == strncmp(qtext, "urn:sha1:", 9));
+	GList *next;
+
+	for (l = sq->searches; l; l = next) {
+		pmsg_t *mb = (pmsg_t *) l->data;
+		gchar *text = QUERY_TEXT(pmsg_start(mb));
+		gboolean match;
+
+		next = l->next;
+
+		/*
+		 * We know our URN queries are NUL terminated, and are well-formed
+		 * urn:sha1: strings, so we can use strcasecmp() to test for
+		 * equivalence.
+		 */
+
+		if (is_urn_search) {
+			text++;				/* Skip leading first NUL */
+			match = (0 == strcasecmp(qtext, text));
+		} else
+			match = (0 == strcmp(qtext, text));
+
+		if (!match)
+			continue;
+
+		sq->count--;
+		sq->searches = g_list_remove_link(sq->searches, l);
+
+		if (dbg > 4)
+			printf("sq for node %s, dropped \"%s\" on search close (%d left)\n",
+				node_ip(sq->node), text, sq->count);
+
+		pmsg_free(mb);
+		g_list_free_1(l);
+	}
+
+	g_assert(sq->searches || sq->count == 0);
+}
+

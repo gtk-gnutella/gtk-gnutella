@@ -61,6 +61,7 @@ void sq_clear(squeue_t *sq);
 void sq_free(squeue_t *sq);
 void sq_putq(squeue_t *sq, pmsg_t *mb);
 void sq_process(squeue_t *sq, time_t now);
+void sq_search_closed(squeue_t *sq, gchar *qtext);
 
 #endif /* __sq_h__ */
 

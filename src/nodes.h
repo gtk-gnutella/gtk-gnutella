@@ -213,6 +213,8 @@ struct gnutella_node {
 #define NODE_MQUEUE_PERCENT_USED(n) \
 	((n)->outq ? mq_size((n)->outq) * 100 / mq_maxsize((n)->outq) : 0)
 
+#define NODE_SQUEUE(n) ((n)->searchq)
+
 #define NODE_MQUEUE_COUNT(n) \
 	((n)->outq ? mq_count((n)->outq) : 0)
 
