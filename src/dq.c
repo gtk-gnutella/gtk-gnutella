@@ -752,10 +752,9 @@ dq_results_expired(cqueue_t *cq, gpointer obj)
 
 	/*
 	 * If host does not support leaf-guided queries, proceed to next ultra.
-	 * Likewise if we haven't got any new results.
 	 */
 
-	if (!(dq->flags & DQ_F_LEAF_GUIDED) || dq->new_results == 0) {
+	if (!(dq->flags & DQ_F_LEAF_GUIDED)) {
 		dq_send_next(dq);
 		return;
 	}
@@ -1267,8 +1266,10 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		dq->flags |= DQ_F_LEAF_GUIDED;
 
 	if (dq_debug > 19)
-		printf("DQ node #%d %s <%s> queries \"%s\"\n",
-			n->id, node_ip(n), node_vendor(n), QUERY_TEXT(pmsg_start(dq->mb)));
+		printf("DQ node #%d %s <%s> (%s leaf-guidance) queries \"%s\"\n",
+			n->id, node_ip(n), node_vendor(n),
+			(dq->flags & DQ_F_LEAF_GUIDED) ? "with" : "no",
+			QUERY_TEXT(pmsg_start(dq->mb)));
 
 	gnet_stats_count_general(NULL, GNR_LEAF_DYN_QUERIES, 1);
 
@@ -1382,7 +1383,7 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 				dq->qid, (gint) (time(NULL) - dq->start),
 				(gint) (time(NULL) - dq->stop), dq->kept_results);
 		else
-			printf("DQ[%d] (%d secs) kept_results%d\n",
+			printf("DQ[%d] (%d secs) kept_results=%d\n",
 				dq->qid, (gint) (time(NULL) - dq->start), dq->kept_results);
 	}
 
