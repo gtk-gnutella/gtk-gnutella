@@ -30,6 +30,9 @@
 #include <ctype.h>
 
 #include "qrp.h"
+#include "routing.h"				/* For message_set_muid() */
+#include "gmsg.h"
+#include "nodes.h"					/* For NODE_IS_WRITABLE() */
 
 #define MIN_SPARSE_RATIO	20		/* At most 20% of slots used */
 #define MAX_CONFLICT_RATIO	75		/* At most 75% of insertion conflicts */
@@ -37,6 +40,8 @@
 #define LOCAL_INFINITY		2		/* We're one hop away, so 2 is infinity */
 #define MIN_TABLE_BITS		14		/* 16 KB */
 #define MAX_TABLE_BITS		21		/* 2 MB */
+
+#define QRP_ROUTE_MAGIC		0x30011ab1
 
 /*
  * A routing table.
@@ -46,6 +51,7 @@
  * with the current table in case our library is regenerated.
  */
 struct routing_table {
+	gint magic;
 	gint refcnt;			/* Amount of references */
 	gint generation;		/* Generation number */
 	guchar *arena;			/* Where table starts */
@@ -57,6 +63,8 @@ struct routing_table {
 static char_map_t qrp_map;
 static struct routing_table *routing_table = NULL;	/* Our table */
 static gint generation = 0;
+
+static gchar qrp_tmp[4096];
 
 extern void node_qrt_changed(void);		/* Notify that QRT changed */
 
@@ -184,7 +192,7 @@ static void qrt_compact(struct routing_table *rt)
 
 	for (mask = 0, i = rt->slots - 1, p = &rt->arena[i]; i >= 0; i--, p--) {
 		if (*p != rt->infinity)
-			mask |= 0x80;
+			mask |= 0x80;				/* Bit set to indicates presence */
 		if (0 == (i & 0x7)) {			/* Reached "bit 0" */
 			*q-- = mask;
 			mask = 0;
@@ -324,11 +332,22 @@ static void qrt_apply_patch_4(struct routing_table *rt, guchar *patch, gint len)
  */
 struct routing_patch {
 	guchar *arena;
-	gint size;						/* Number of quartets */
+	gint size;						/* Number of entries in table */
 	gint len;						/* Length of arena in bytes */
 	gint entry_bits;
 	gboolean compressed;
 };
+
+/*
+ * qrt_patch_free
+ *
+ * Free routing table patch.
+ */
+static void qrt_patch_free(struct routing_patch *rp)
+{
+	g_free(rp->arena);
+	wfree(rp, sizeof(*rp));
+}
 
 /*
  * qrt_diff_4
@@ -354,7 +373,7 @@ static struct routing_patch *qrt_diff_4(
 	g_assert(new->compacted);
 	g_assert(old == NULL || new->slots == old->slots);
 
-	rp = g_malloc(sizeof(*rp));
+	rp = walloc(sizeof(*rp));
 	rp->size = new->slots;
 	rp->len = rp->size / 2;			/* Each entry stored on 4 bits */
 	rp->entry_bits = 4;
@@ -371,7 +390,7 @@ static struct routing_patch *qrt_diff_4(
 		guint8 v;
 
 		/*
-		 * In an uncompressed table, cleared bits would be infinity.
+		 * In our compacted table, set bits indicate presence.
 		 * Thus, we need to build the patch quartets as:
          *
          *     old bit      new bit      patch
@@ -407,7 +426,6 @@ static struct routing_patch *qrt_diff_4(
 
 #define QRT_COMPRESS_MAGIC	0x45afbb01
 #define QRT_TICK_CHUNK		256			/* Chunk size per tick */
-#define QRT_HALF_LIFE		50000		/* In useconds, MUST be << 1 sec */
 
 struct qrt_compress_context {
 	gint magic;						/* Magic number */
@@ -424,7 +442,7 @@ static GSList *sl_compress_tasks = NULL;
  */
 static void qrt_compress_free(gpointer u)
 {
-	struct qrt_compress_context *ctx = ( struct qrt_compress_context *) u;
+	struct qrt_compress_context *ctx = (struct qrt_compress_context *) u;
 
 	g_assert(ctx->magic == QRT_COMPRESS_MAGIC);
 
@@ -508,8 +526,10 @@ done:
  *
  * Compress routing patch inplace (asynchronously).
  * When it's done, invoke callback with specified argument.
+ *
+ * Returns handle of the compressing task.
  */
-static void qrt_patch_compress(
+static gpointer qrt_patch_compress(
 	struct routing_patch *rp,
 	bgdone_cb_t done_callback, gpointer arg)
 {
@@ -522,7 +542,7 @@ static void qrt_patch_compress(
 
 	if (zd == NULL) {
 		(*done_callback)(NULL, NULL, BGS_ERROR, arg);
-		return;
+		return NULL;
 	}
 
 	/*
@@ -540,6 +560,8 @@ static void qrt_patch_compress(
 		&step, 1, ctx, qrt_compress_free, done_callback, arg);
 
 	sl_compress_tasks = g_slist_prepend(sl_compress_tasks, task);
+
+	return task;
 }
 
 /*
@@ -568,8 +590,9 @@ static struct routing_table *qrt_create(guchar *arena, gint slots, gint max)
 {
 	struct routing_table *rt;
 
-	rt = g_malloc(sizeof(*rt));
+	rt = walloc(sizeof(*rt));
 
+	rt->magic = QRP_ROUTE_MAGIC;
 	rt->arena = arena;
 	rt->slots = slots;
 	rt->generation = generation++;
@@ -591,8 +614,36 @@ static void qrt_free(struct routing_table *rt)
 {
 	g_assert(rt->refcnt == 0);
 
+	rt->magic = 0;				/* Prevent accidental reuse */
+
 	g_free(rt->arena);
-	g_free(rt);
+	wfree(rt, sizeof(*rt));
+}
+
+/*
+ * qrt_get_table
+ *
+ * Returns the query routing table, NULL if not computed yet.
+ */
+gpointer qrt_get_table(void)
+{
+	return routing_table;
+}
+
+/*
+ * qrt_ref
+ *
+ * Get a new reference on the query routing table.
+ * Returns its argument.
+ */
+gpointer qrt_ref(gpointer obj)
+{
+	struct routing_table *rt = (struct routing_table *) obj;
+
+	g_assert(rt->magic == QRP_ROUTE_MAGIC);
+
+	rt->refcnt++;
+	return obj;
 }
 
 /*
@@ -601,8 +652,11 @@ static void qrt_free(struct routing_table *rt)
  * Remove one reference to query routing table.
  * When the last reference is removed, the table is freed.
  */
-static void qrt_unref(struct routing_table *rt)
+void qrt_unref(gpointer obj)
 {
+	struct routing_table *rt = (struct routing_table *) obj;
+
+	g_assert(rt->magic == QRP_ROUTE_MAGIC);
 	g_assert(rt->refcnt > 0);
 
 	if (--rt->refcnt == 0)
@@ -757,9 +811,13 @@ void qrp_add_file(struct shared_file *sf)
 	 */
 
 	if (sha1_hash_available(sf)) {
-		g_hash_table_insert(ht_seen_words,
-			g_strdup_printf("urn:sha1:%s", sha1_base32(sf->sha1_digest)),
-			(gpointer) 1);
+		gchar *key = g_strdup_printf("urn:sha1:%s",
+			sha1_base32(sf->sha1_digest));
+
+		if (NULL == g_hash_table_lookup(ht_seen_words, key))
+			g_hash_table_insert(ht_seen_words, key, GINT_TO_POINTER(1));
+		else
+			g_free(key);
 	}
 }
 
@@ -1049,17 +1107,6 @@ static bgret_t qrp_step_compute(gpointer h, gpointer u, gint ticks)
 	return BGR_MORE;			/* More work required */
 }
 
-// XXX
-static void compressed(gpointer h, gpointer u, bgstatus_t status, gpointer arg)
-{
-	struct routing_patch *rp = (struct routing_patch *) arg;
-
-	printf("GOT QRP COMPRESSED CALLBACK (status = %d)!\n", status);
-
-	g_free(rp->arena);
-	g_free(rp);
-}
-
 /*
  * qrp_step_install
  *
@@ -1068,11 +1115,10 @@ static void compressed(gpointer h, gpointer u, bgstatus_t status, gpointer arg)
 static bgret_t qrp_step_install(gpointer h, gpointer u, gint ticks)
 {
 	struct qrp_context *ctx = (struct qrp_context *) u;
+	struct routing_table *old = routing_table;
 
 	g_assert(ctx->magic == QRP_MAGIC);
 
-	if (routing_table)
-		qrt_unref(routing_table);
 
 	/*
 	 * Install new routing table and notify the nodes that it has changed.
@@ -1080,13 +1126,11 @@ static bgret_t qrp_step_install(gpointer h, gpointer u, gint ticks)
 
 	routing_table = qrt_create(ctx->table, ctx->slots, LOCAL_INFINITY);
 	ctx->table = NULL;		/* Don't free table when freeing context */
+
 	node_qrt_changed();
 
-// XXX
-	{
-		struct routing_patch *rp = qrt_diff_4(NULL, routing_table);
-		qrt_patch_compress(rp, compressed, rp);
-	}
+	if (old)
+		qrt_unref(old);
 
 	return BGR_DONE;		/* Done! */
 }
@@ -1125,6 +1169,318 @@ void qrp_finalize_computation(void)
 		ctx,
 		qrp_context_free,
 		NULL, NULL);
+}
+
+/***
+ *** Sending of the QRP messages.
+ ***/
+
+/*
+ * qrp_send_reset
+ *
+ * Send the RESET message, which must be sent before the PATCH sequence
+ * to size the table.
+ */
+static void qrp_send_reset(struct gnutella_node *n, gint slots, gint infinity)
+{
+	struct gnutella_msg_qrp_reset m;
+
+	g_assert(is_pow2(slots));
+	g_assert(infinity > 0 && infinity < 256);
+
+	message_set_muid(&m.header, GTA_MSG_QRP);
+
+	m.header.function = GTA_MSG_QRP;
+	m.header.ttl = 1;
+	m.header.hops = 0;
+	WRITE_GUINT32_LE(sizeof(m.data), m.header.size);
+
+	m.data.variant = GTA_MSGV_QRP_RESET;
+	WRITE_GUINT32_LE(slots, m.data.table_length);
+	m.data.infinity = (guchar) infinity;
+
+	gmsg_sendto_one(n, (guchar *) &m, sizeof(m));
+
+	if (dbg > 4)
+		printf("QRP sent RESET slots=%d, infinity=%d to %s\n",
+			slots, infinity, node_ip(n));
+}
+
+/*
+ * qrp_send_patch
+ *
+ * Send the PATCH message.  The patch payload data is made of the `len' bytes
+ * starting at `buf'.
+ */
+static void qrp_send_patch(struct gnutella_node *n,
+	gint seqno, gint seqsize, gboolean compressed, gint bits,
+	gchar *buf, gint len)
+{
+	struct gnutella_msg_qrp_patch *m;
+	gint msglen;
+
+	g_assert(seqsize >= 1 && seqsize <= 255);
+	g_assert(seqno >= 1 && seqno <= seqsize);
+
+	/*
+	 * Compute the overall message length.
+	 *
+	 * If the size is small enough, we'll be able to use a static buffer
+	 * to create the message.
+	 */
+
+	msglen = sizeof(*m) + len;
+
+	if (msglen <= sizeof(qrp_tmp))
+		m = (struct gnutella_msg_qrp_patch *) qrp_tmp;
+	else
+		m = g_malloc(msglen);
+
+	message_set_muid(&m->header, GTA_MSG_QRP);
+
+	m->header.function = GTA_MSG_QRP;
+	m->header.ttl = 1;
+	m->header.hops = 0;
+	WRITE_GUINT32_LE(msglen, m->header.size);
+
+	m->data.variant = GTA_MSGV_QRP_PATCH;
+	m->data.seq_no = seqno;
+	m->data.seq_size = seqsize;
+	m->data.compressor = compressed ? 0x1 : 0x0;
+	m->data.entry_bits = bits;
+
+	memcpy((gchar *) m + sizeof(*m), buf, len);
+
+	gmsg_sendto_one(n, (guchar *) m, msglen);
+
+	if ((gchar *) m != qrp_tmp)
+		g_free(qrp_tmp);
+
+	if (dbg > 4)
+		printf("QRP sent PATCH #%d/%d (%d bytes) to %s\n",
+			seqno, seqsize, len, node_ip(n));
+}
+
+
+/***
+ *** Management of the updating sequence.
+ ***/
+
+#define QRT_UPDATE_MAGIC	0x15afcc05
+#define QRT_PATCH_LEN		512		/* Send 512 bytes at a time, if we can */
+#define QRT_MAX_SEQSIZE		255		/* Maximum: 255 messages */
+#define QRT_MAX_BANDWIDTH	1024	/* Try to send at most 1 KB/sec */
+
+struct qrt_update {
+	guint32 magic;
+	struct gnutella_node *node;		/* Node for which we're sending */
+	struct routing_patch *patch;	/* The patch to send */
+	gint seqno;						/* Sequence number of next message (1..n) */
+	gint seqsize;					/* Total amount of messages to send */
+	gint offset;					/* Offset within patch */
+	gpointer compress;				/* Compressing task (NULL = done) */
+	gint chunksize;					/* Amount to send within each PATCH */
+	time_t last;					/* Time at which we sent the last batch */
+};
+
+/*
+ * qrt_compressed
+ *
+ * Callback invoked when the patch has been compressed.
+ */
+static void qrt_compressed(
+	gpointer h, gpointer u, bgstatus_t status, gpointer arg)
+{
+	struct qrt_update *qup = (struct qrt_update *) arg;
+	struct routing_patch *rp;
+	gint msgcount;
+
+	g_assert(qup->magic == QRT_UPDATE_MAGIC);
+
+	qup->compress = NULL;
+
+	if (status != BGS_OK) {			/* Error during processing */
+		g_warning("could not compress query routing patch to send to %s",
+			node_ip(qup->node));
+		goto error;
+	}
+
+	if (!NODE_IS_WRITABLE(qup->node))
+		goto error;
+
+	/*
+	 * Now that we know the final length of the (hopefully) compressed patch,
+	 * determine how many messages we'll have to send.
+	 *
+	 * We have only 8 bits to store the sequence number, so we can't send more
+	 * than 255 messages (numbering starts at 1).
+	 */
+
+	rp = qup->patch;
+	qup->chunksize = 1 + rp->len / QRT_MAX_SEQSIZE;
+
+	if (qup->chunksize < QRT_PATCH_LEN)
+		qup->chunksize = QRT_PATCH_LEN;
+
+	msgcount = rp->len / qup->chunksize;
+
+	if (msgcount * qup->chunksize != rp->len)
+		msgcount++;
+
+	g_assert(msgcount <= QRT_MAX_SEQSIZE);
+
+	/*
+	 * Initialize sequence, then send a RESET message.
+	 */
+
+	qup->seqno = 1;					/* Numbering starts at 1 */
+	qup->seqsize = msgcount;
+
+	qrp_send_reset(qup->node, routing_table->slots, routing_table->infinity);
+
+	return;
+
+error:
+	qrt_patch_free(qup->patch);
+	qup->patch = NULL;			/* Signal error to qrt_update_send_next() */
+	return;
+}
+
+/*
+ * qrt_update_create
+ *
+ * Create structure keeping track of the table update.
+ * Call qrt_update_send_next() to send the next patching message.
+ *
+ * `query_table' is the table that was fully propagated to that node already.
+ * It can be NULL if no table was fully propagated yet.
+ *
+ * NB: we become owner of the routing_patch, and it will be freed when the
+ * created handle is destroyed.
+ *
+ * Return opaque handle.
+ */
+gpointer qrt_update_create(struct gnutella_node *n, gpointer query_table)
+{
+	struct qrt_update *qup;
+
+	g_assert(routing_table != NULL);
+
+	qup = walloc0(sizeof(*qup));
+
+	qup->magic = QRT_UPDATE_MAGIC;
+	qup->node = n;
+	qup->patch = qrt_diff_4(query_table, routing_table);
+
+	/*
+	 * The following call may take a while, in the background.
+	 * When compression is done, `qup->compress' will be set to NULL.
+	 */
+
+	qup->compress = qrt_patch_compress(qup->patch, qrt_compressed, qup);
+
+	return qup;
+}
+
+/*
+ * qrt_update_free
+ *
+ * Free query routing update tracker.
+ */
+void qrt_update_free(gpointer handle)
+{
+	struct qrt_update *qup = (struct qrt_update *) handle;
+
+	g_assert(qup->magic == QRT_UPDATE_MAGIC);
+
+	if (qup->compress != NULL) {
+		bg_task_cancel(qup->compress);
+		// XXX the following should really be in a task signal handler
+		sl_compress_tasks = g_slist_remove(sl_compress_tasks, qup->compress);
+	}
+
+	g_assert(qup->compress == NULL);	/* Reset by qrt_compressed() */
+
+	qup->magic = 0;						/* Prevent accidental reuse */
+	if (qup->patch)
+		qrt_patch_free(qup->patch);
+
+	wfree(qup, sizeof(*qup));
+}
+
+/*
+ * qrt_update_send_next
+ *
+ * Send the next batch of data.
+ * Returns whether the routing should still be called.
+ */
+gboolean qrt_update_send_next(gpointer handle)
+{
+	struct qrt_update *qup = (struct qrt_update *) handle;
+	time_t now;
+	time_t elapsed;
+	gint len;
+
+	g_assert(qup->magic == QRT_UPDATE_MAGIC);
+
+	if (qup->compress != NULL)		/* Still compressing */
+		return TRUE;
+
+	if (qup->patch == NULL)			/* An error occurred */
+		return FALSE;
+
+	/*
+	 * Make sure we don't exceed the maximum bandwidth allocated for
+	 * the QRP messages.
+	 */
+
+	now = time(NULL);
+	elapsed = now - qup->last;
+
+	if (elapsed == 0)				/* We're called once every second */
+		elapsed = 1;				/* So adjust */
+
+	if (qup->chunksize / elapsed > QRT_MAX_BANDWIDTH)
+		return TRUE;
+
+	/*
+	 * We have to send another message.
+	 */
+
+	qup->last = now;
+
+	len = qup->chunksize;
+	if (qup->offset + len >= qup->patch->len) {
+		len = qup->patch->len - qup->offset;
+		g_assert(qup->seqno == qup->seqsize);	/* Last message */
+		g_assert(len > 0);
+		g_assert(len <= qup->chunksize);
+	}
+
+	qrp_send_patch(qup->node, qup->seqno++, qup->seqsize,
+		qup->patch->compressed, qup->patch->entry_bits,
+		qup->patch->arena + qup->offset, len);
+
+	qup->offset += len;
+
+	g_assert(qup->seqno < qup->seqsize || qup->offset == qup->patch->len);
+
+	return qup->seqno < qup->seqsize;
+}
+
+/*
+ * qrt_update_was_ok
+ *
+ * Check whether sending was successful.
+ * Should be called when qrt_update_send_next() returned FALSE.
+ */
+gboolean qrt_update_was_ok(gpointer handle)
+{
+	struct qrt_update *qup = (struct qrt_update *) handle;
+
+	g_assert(qup->magic == QRT_UPDATE_MAGIC);
+
+	return qup->patch != NULL && qup->seqno == qup->seqsize;
 }
 
 /*

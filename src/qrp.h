@@ -45,6 +45,15 @@ void qrp_prepare_computation(void);
 void qrp_add_file(struct shared_file *sf);
 void qrp_finalize_computation(void);
 
+gpointer qrt_update_create(struct gnutella_node *n, gpointer query_table);
+void qrt_update_free(gpointer handle);
+gboolean qrt_update_send_next(gpointer handle);
+gboolean qrt_update_was_ok(gpointer handle);
+
+gpointer qrt_get_table(void);
+gpointer qrt_ref(gpointer obj);
+void qrt_unref(gpointer obj);
+
 #endif	/* __qrp_h__ */
 
 /* vi: set ts=4: */
