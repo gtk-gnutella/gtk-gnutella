@@ -266,17 +266,16 @@ static void remove_one_message_reference(GSList * cur)
 
 	g_assert(rd);
 
-	if (rd->node && rd->node != fake_node) {
-		rd->saved_messages--;
-
+	if (rd->node != fake_node) {
 		g_assert(rd->saved_messages >= 0);
 
 		/* if we have no more messages from this node, and our
 		   node has already died, wipe its routing data */
-		if (rd->node == NULL && rd->saved_messages == 0) {
+		if (rd->node == NULL && rd->saved_messages == 1) {
 			g_free(rd);
-			cur->data = NULL;	/* Mark: is freed, don't try again --RAM */
-		}
+			cur->data = NULL;	/* Mark as freed, don't try again --RAM */
+		} else if (rd->saved_messages > 0)
+			rd->saved_messages--;
 	}
 }
 
