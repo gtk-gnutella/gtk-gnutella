@@ -1,4 +1,4 @@
-               The "Connect Back" Vendor-specific Messages
+             The "Connect Back" Vendor-specific Messages
                               Version 1
 
                           Raphael Manfredi
@@ -55,23 +55,23 @@ it will know it is not firewalled.
     TTL: 1
     Payload:
         unsigned short: port number (little-endian)
+        16 byte guid: should be used as the GUID of the ping sent
 
 This message is similar to "BEAR/7v1", but handles UDP connections
 instead of TCP ones.
 
 The "UDP Connect Back" message is meant to be sent by servents that still
 think they are firewalled, UDP-wise, right after a connection to a remote
- servent has been established (but after the initial handshaking ping).
+servent has been established (but after the initial handshaking ping).
 
-This message carries a single 16-bit unsigned integer representing the
-port to which the receiver of the message should try to connect to via UDP.
-The target IP address for the connection is based on the IP address
+This message carries a 16-bit unsigned integer representing the
+port to which the receiver of the message should try to send a Gnutella Ping
+to via UDP. The target IP address for the connection is based on the IP address
 determined from the connection endpoint from which the message is
-received.
+received.  Moreover, the message carries a 16-byte guid value that should be
+used as the GUID of the ping sent via UDP.
 
-The connection is made by sending a GUESS ping to the specified port.
-If the remote servent is able to receive that GUESS ping on the port it
-specified (usually its listening UDP Gnutella port), it will know it is
-not UDP firewalled.
-
-Raphael
+The connection is made by sending a Gnutella Ping with the specified
+guid to the specified port. If the remote servent is able to receive that
+Gnutella ping on the port it specified (its listening UDP Gnutella port) with
+the guid it specified, it will know it is not UDP firewalled.
