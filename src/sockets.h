@@ -89,7 +89,7 @@ void socket_free(struct gnutella_socket *);
 struct gnutella_socket *socket_connect(guint32, guint16, gint);
 struct gnutella_socket *socket_listen(guint32, guint16, gint);
 void socket_http_error(struct gnutella_socket *s,
-	gint code, gchar *extra, gchar *reason);
+	gint code, gchar *extra, gchar *reason, ...);
 
 void sock_cork(struct gnutella_socket *s, gboolean on);
 void sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink);

@@ -46,6 +46,7 @@
 #include "getline.h"
 #include "bsched.h"
 #include "gui.h"			/* For gui_update_config_port() */
+#include "ban.h"
 
 #if !defined(SOL_TCP) && defined(IPPROTO_TCP)
 #define SOL_TCP IPPROTO_TCP
@@ -54,6 +55,8 @@
 #ifndef SHUT_WR
 #define SHUT_WR 1		/* Shutdown TX side */
 #endif
+
+#define RQST_LINE_LENGTH	256		/* Reasonable estimate for request line */
 
 gboolean is_firewalled = TRUE;		/* Assume the worst --RAM, 20/12/2001 */
 static gboolean ip_computed = FALSE;
@@ -165,6 +168,15 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 		return;
 	}
 
+	/*
+	 * Don't read too much data.  We're solely interested in getting
+	 * the leading line.  If we don't read the whole line, we'll come
+	 * back later on to read the remaining data.
+	 *		--RAM, 23/05/2002
+	 */
+
+	count = MIN(count, RQST_LINE_LENGTH);
+
 	r = bws_read(bws.in, s->file_desc, s->buffer + s->pos, count);
 
 	if (r == 0) {
@@ -223,10 +235,41 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 	s->last_update = 0;
 
 	/*
-	 * Dispatch request.
+	 * Always authorize replies for our PUSH requests!
 	 */
 
 	first = getline_str(s->getline);
+
+	if (0 == strncmp(first, "GIV ", 4)) {
+		download_push_ack(s);
+		return;
+	}
+
+	/*
+	 * Check for banning.
+	 */
+
+	switch (ban_allow(s->ip)) {
+	case BAN_OK:				/* Connection authorized */
+		break;
+	case BAN_FORCE:				/* Connection refused, no ack */
+		ban_force(s);
+		goto cleanup;
+	case BAN_FIRST:				/* Connection refused, negative ack */
+		if (0 == strncmp(first, gnutella_hello, gnutella_hello_length))
+			send_node_error(s, 550, "Banned for %s",
+				short_time(ban_delay(s->ip)));
+		else
+			socket_http_error(s, 550, NULL, "Banned for %s",
+				short_time(ban_delay(s->ip)));
+		goto cleanup;
+	default:
+		g_assert(0);			/* Not reached */
+	}
+
+	/*
+	 * Dispatch request.
+	 */
 
 	if (0 == strncmp(first, gnutella_hello, gnutella_hello_length))
 		node_add(s, s->ip, s->port);	/* Incoming control connection */
@@ -234,15 +277,18 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 		upload_add(s);
 	else if (0 == strncmp(first, "HEAD ", 5))
 		upload_add(s);
-	else if (0 == strncmp(first, "GIV ", 4))
-		download_push_ack(s);
 	else {
 		gint len = getline_length(s->getline);
 		g_warning("socket_read(): Got an unknown incoming connection, "
 			"dropping it.");
 		dump_hex(stderr, "First Line", first, MIN(len, 160));
-		socket_destroy(s);
+		goto cleanup;
 	}
+
+	return;
+
+cleanup:
+	socket_destroy(s);
 }
 
 /*
@@ -504,10 +550,7 @@ static void socket_accept(gpointer data, gint source,
 
 	switch (s->type) {
 	case GTA_TYPE_CONTROL:
-	case GTA_TYPE_DOWNLOAD:
-		/* No listening socket ever created for uploads --RAM */
 		break;
-
 	default:
 		g_warning("socket_accept(): Unknown listning socket type %d !\n",
 				  s->type);
@@ -763,11 +806,17 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
  * The connection is NOT closed.
  */
 void socket_http_error(
-	struct gnutella_socket *s, gint code, gchar *extra, gchar *reason)
+	struct gnutella_socket *s, gint code, gchar *extra, gchar *reason, ...)
 {
 	gchar http_response[1024];
+	gchar status_msg[512];
 	gint rw;
 	gint sent;
+	va_list args;
+
+	va_start(args, reason);
+	g_vsnprintf(status_msg, sizeof(status_msg)-1,  reason, args);
+	va_end(args);
 
 	rw = g_snprintf(http_response, sizeof(http_response),
 		"HTTP/1.0 %d %s\r\n"
@@ -776,7 +825,7 @@ void socket_http_error(
 		"X-Live-Since: %s\r\n"
 		"%s"
 		"\r\n",
-		code, reason, version_string, start_rfc822_date,
+		code, status_msg, version_string, start_rfc822_date,
 		extra == NULL ? "" : extra);
 
 	if (rw == sizeof(http_response) && extra) {
