@@ -1,5 +1,11 @@
 # since last version
 
+# v 0.93.1   2003.12.28  [stable -- 2nd version]
+
+- (2003.12.29 - RAM)
+ * Restored "hu" support -- did not see the hu.po there.
+ * Added po/hu.po and src/downloads_cb2.h to MANIFESTs.
+
 # v 0.93.1   2003.12.28  [stable]
 
 - Simplified the GUI for non-experts.  Beginners will now see less
