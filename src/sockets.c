@@ -890,7 +890,7 @@ int proxy_connect(int __fd, const struct sockaddr *__addr, guint __len)
 		/* Construct the addr for the socks server */
 		server.sin_family = AF_INET;	/* host byte order */
 		server.sin_port = htons(proxy_port);
-		bzero(&(server.sin_zero), 8);	/* zero the rest of the struct */
+		memset(&(server.sin_zero), 0, 8);	/* zero the rest of the struct */
 	}
 
 
