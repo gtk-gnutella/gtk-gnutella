@@ -3675,12 +3675,11 @@ void file_info_timer(void)
  */
 void fi_purge_by_handle_list(GSList *list)
 {
-	GSList *sl;
-
-	for (sl = list; sl; sl = g_slist_next(sl)) {
-		gnet_fi_t fih = (gnet_fi_t) sl->data;
-		fi_purge(fih);
-	}
+    GSList *sl;
+    
+    for (sl = list; sl != NULL; sl = g_slist_next(sl)) {
+        fi_purge((gnet_fi_t) GPOINTER_TO_UINT(sl->data));
+    }
 }
 
 /*

@@ -29,7 +29,6 @@
 
 #ifdef USE_GTK1
 
-#include "fileinfo.h"
 #include "statusbar_gui.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -406,8 +405,17 @@ void on_clist_fileinfo_unselect_row(GtkCList *clist, gint row, gint column,
 
 void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
 {
-    if (last_shown_valid)
-        fi_purge(last_shown);
+    GSList *sl = NULL;
+    GtkCList *clist = GTK_CLIST(
+        lookup_widget(main_window, "clist_fileinfo"));
+		
+    sl = clist_collect_data(clist, TRUE, NULL);
+		    
+    if (sl) {
+        fi_purge_by_handle_list(sl);
+    }
+				    
+    g_slist_free(sl);
 }
 
 void on_entry_fi_regex_activate(GtkEditable *editable, gpointer user_data)

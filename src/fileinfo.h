@@ -146,8 +146,5 @@ gboolean file_info_restrict_range(
 struct dl_file_info *file_info_has_identical(
 	gchar *file, guint32 size, gchar *sha1);
 
-void fi_purge_by_handle_list(GSList *list);
-gboolean fi_purge(gnet_fi_t fih);
-
 #endif /* _fileinfo_h_ */
 

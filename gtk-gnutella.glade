@@ -4314,7 +4314,7 @@
 			</signal>
 			<columns>5</columns>
 			<column_widths>80,80,80,80,80</column_widths>
-			<selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+			<selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 			<show_titles>True</show_titles>
 			<shadow_type>GTK_SHADOW_IN</shadow_type>
 
@@ -4384,40 +4384,265 @@
 			</widget>
 		      </widget>
 		    </widget>
+		  </widget>
+
+		  <widget>
+		    <class>GtkFrame</class>
+		    <name>frame78</name>
+		    <label>Detail information</label>
+		    <label_xalign>0</label_xalign>
+		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		    <child>
+		      <shrink>True</shrink>
+		      <resize>True</resize>
+		    </child>
 
 		    <widget>
-		      <class>GtkViewport</class>
-		      <name>viewport43</name>
-		      <shadow_type>GTK_SHADOW_IN</shadow_type>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>True</fill>
-		      </child>
+		      <class>GtkVBox</class>
+		      <name>vbox110</name>
+		      <border_width>2</border_width>
+		      <homogeneous>False</homogeneous>
+		      <spacing>2</spacing>
+
+		      <widget>
+			<class>GtkTable</class>
+			<name>table59</name>
+			<border_width>2</border_width>
+			<rows>2</rows>
+			<columns>2</columns>
+			<homogeneous>False</homogeneous>
+			<row_spacing>2</row_spacing>
+			<column_spacing>4</column_spacing>
+			<child>
+			  <padding>0</padding>
+			  <expand>False</expand>
+			  <fill>True</fill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label523</name>
+			  <label>Filename:</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <left_attach>0</left_attach>
+			    <right_attach>1</right_attach>
+			    <top_attach>0</top_attach>
+			    <bottom_attach>1</bottom_attach>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <xexpand>False</xexpand>
+			    <yexpand>False</yexpand>
+			    <xshrink>False</xshrink>
+			    <yshrink>False</yshrink>
+			    <xfill>True</xfill>
+			    <yfill>False</yfill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label524</name>
+			  <label>Size:</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <left_attach>0</left_attach>
+			    <right_attach>1</right_attach>
+			    <top_attach>1</top_attach>
+			    <bottom_attach>2</bottom_attach>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <xexpand>False</xexpand>
+			    <yexpand>False</yexpand>
+			    <xshrink>False</xshrink>
+			    <yshrink>False</yshrink>
+			    <xfill>True</xfill>
+			    <yfill>False</yfill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkFrame</class>
+			  <name>frame118</name>
+			  <label_xalign>0</label_xalign>
+			  <shadow_type>GTK_SHADOW_IN</shadow_type>
+			  <child>
+			    <left_attach>1</left_attach>
+			    <right_attach>2</right_attach>
+			    <top_attach>0</top_attach>
+			    <bottom_attach>1</bottom_attach>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <xexpand>True</xexpand>
+			    <yexpand>False</yexpand>
+			    <xshrink>False</xshrink>
+			    <yshrink>False</yshrink>
+			    <xfill>True</xfill>
+			    <yfill>True</yfill>
+			  </child>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <name>label_fi_filename</name>
+			    <label></label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+			</widget>
+
+			<widget>
+			  <class>GtkFrame</class>
+			  <name>frame119</name>
+			  <label_xalign>0</label_xalign>
+			  <shadow_type>GTK_SHADOW_IN</shadow_type>
+			  <child>
+			    <left_attach>1</left_attach>
+			    <right_attach>2</right_attach>
+			    <top_attach>1</top_attach>
+			    <bottom_attach>2</bottom_attach>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <xexpand>False</xexpand>
+			    <yexpand>False</yexpand>
+			    <xshrink>False</xshrink>
+			    <yshrink>False</yshrink>
+			    <xfill>True</xfill>
+			    <yfill>True</yfill>
+			  </child>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <name>label_fi_size</name>
+			    <label></label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkFrame</class>
+			<name>frame79</name>
+			<label>Alternate filenames</label>
+			<label_xalign>0</label_xalign>
+			<shadow_type>GTK_SHADOW_OUT</shadow_type>
+			<child>
+			  <padding>0</padding>
+			  <expand>True</expand>
+			  <fill>True</fill>
+			</child>
+
+			<widget>
+			  <class>GtkScrolledWindow</class>
+			  <name>scrolledwindow44</name>
+			  <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+			  <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+			  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+			  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+
+			  <widget>
+			    <class>GtkCList</class>
+			    <name>clist_fi_aliases</name>
+			    <can_focus>True</can_focus>
+			    <columns>1</columns>
+			    <column_widths>80</column_widths>
+			    <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
+			    <show_titles>False</show_titles>
+			    <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+			    <widget>
+			      <class>GtkLabel</class>
+			      <child_name>CList:title</child_name>
+			      <name>label526</name>
+			      <label>label526</label>
+			      <justify>GTK_JUSTIFY_CENTER</justify>
+			      <wrap>False</wrap>
+			      <xalign>0.5</xalign>
+			      <yalign>0.5</yalign>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			    </widget>
+			  </widget>
+			</widget>
+		      </widget>
+		    </widget>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkHBox</class>
+		  <name>hbox197a</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>4</spacing>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>True</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button_fi_purge</name>
+		    <sensitive>False</sensitive>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_fi_purge_clicked</handler>
+		      <last_modification_time>Wed, 07 May 2003 09:48:30 GMT</last_modification_time>
+		    </signal>
+		    <label>Purge selected</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkViewport</class>
+		    <name>viewport43</name>
+		    <shadow_type>GTK_SHADOW_IN</shadow_type>
+		    <child>
+		      <padding>0</padding>
+		      <expand>True</expand>
+		      <fill>True</fill>
+		    </child>
+
+		    <widget>
+		      <class>GtkHBox</class>
+		      <name>hbox197</name>
+		      <homogeneous>False</homogeneous>
+		      <spacing>0</spacing>
 
 		      <widget>
 			<class>GtkHBox</class>
 			<name>hbox175</name>
 			<homogeneous>False</homogeneous>
 			<spacing>0</spacing>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <name>label546</name>
-			  <width>5</width>
-			  <label></label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0.5</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <child>
-			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>True</fill>
-			  </child>
-			</widget>
+			<child>
+			  <padding>3</padding>
+			  <expand>True</expand>
+			  <fill>True</fill>
+			</child>
 
 			<widget>
 			  <class>GtkLabel</class>
@@ -4486,252 +4711,6 @@
 			    <expand>False</expand>
 			    <fill>False</fill>
 			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <name>label655</name>
-			  <width>5</width>
-			  <label></label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0.5</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <child>
-			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
-			  </child>
-			</widget>
-		      </widget>
-		    </widget>
-		  </widget>
-
-		  <widget>
-		    <class>GtkFrame</class>
-		    <name>frame78</name>
-		    <label>Detail information</label>
-		    <label_xalign>0</label_xalign>
-		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-		    <child>
-		      <shrink>True</shrink>
-		      <resize>True</resize>
-		    </child>
-
-		    <widget>
-		      <class>GtkVBox</class>
-		      <name>vbox110</name>
-		      <border_width>2</border_width>
-		      <homogeneous>False</homogeneous>
-		      <spacing>2</spacing>
-
-		      <widget>
-			<class>GtkTable</class>
-			<name>table59</name>
-			<border_width>2</border_width>
-			<rows>2</rows>
-			<columns>3</columns>
-			<homogeneous>False</homogeneous>
-			<row_spacing>2</row_spacing>
-			<column_spacing>4</column_spacing>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>True</fill>
-			</child>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <name>label523</name>
-			  <label>Filename:</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <child>
-			    <left_attach>1</left_attach>
-			    <right_attach>2</right_attach>
-			    <top_attach>0</top_attach>
-			    <bottom_attach>1</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <name>label524</name>
-			  <label>Size:</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <child>
-			    <left_attach>1</left_attach>
-			    <right_attach>2</right_attach>
-			    <top_attach>1</top_attach>
-			    <bottom_attach>2</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkFrame</class>
-			  <name>frame118</name>
-			  <label_xalign>0</label_xalign>
-			  <shadow_type>GTK_SHADOW_IN</shadow_type>
-			  <child>
-			    <left_attach>2</left_attach>
-			    <right_attach>3</right_attach>
-			    <top_attach>0</top_attach>
-			    <bottom_attach>1</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>True</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>True</yfill>
-			  </child>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <name>label_fi_filename</name>
-			    <label></label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-			</widget>
-
-			<widget>
-			  <class>GtkFrame</class>
-			  <name>frame119</name>
-			  <label_xalign>0</label_xalign>
-			  <shadow_type>GTK_SHADOW_IN</shadow_type>
-			  <child>
-			    <left_attach>2</left_attach>
-			    <right_attach>3</right_attach>
-			    <top_attach>1</top_attach>
-			    <bottom_attach>2</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>True</yfill>
-			  </child>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <name>label_fi_size</name>
-			    <label></label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-			</widget>
-
-			<widget>
-			  <class>GtkButton</class>
-			  <name>button_fi_purge</name>
-			  <sensitive>False</sensitive>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>clicked</name>
-			    <handler>on_button_fi_purge_clicked</handler>
-			    <last_modification_time>Wed, 07 May 2003 09:48:30 GMT</last_modification_time>
-			  </signal>
-			  <label>Purge</label>
-			  <relief>GTK_RELIEF_NORMAL</relief>
-			  <child>
-			    <left_attach>0</left_attach>
-			    <right_attach>1</right_attach>
-			    <top_attach>0</top_attach>
-			    <bottom_attach>2</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-		      </widget>
-
-		      <widget>
-			<class>GtkFrame</class>
-			<name>frame79</name>
-			<label>Alternate filenames</label>
-			<label_xalign>0</label_xalign>
-			<shadow_type>GTK_SHADOW_OUT</shadow_type>
-			<child>
-			  <padding>0</padding>
-			  <expand>True</expand>
-			  <fill>True</fill>
-			</child>
-
-			<widget>
-			  <class>GtkScrolledWindow</class>
-			  <name>scrolledwindow44</name>
-			  <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-			  <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-			  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-			  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-
-			  <widget>
-			    <class>GtkCList</class>
-			    <name>clist_fi_aliases</name>
-			    <can_focus>True</can_focus>
-			    <columns>1</columns>
-			    <column_widths>80</column_widths>
-			    <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
-			    <show_titles>False</show_titles>
-			    <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-			    <widget>
-			      <class>GtkLabel</class>
-			      <child_name>CList:title</child_name>
-			      <name>label526</name>
-			      <label>label526</label>
-			      <justify>GTK_JUSTIFY_CENTER</justify>
-			      <wrap>False</wrap>
-			      <xalign>0.5</xalign>
-			      <yalign>0.5</yalign>
-			      <xpad>0</xpad>
-			      <ypad>0</ypad>
-			    </widget>
-			  </widget>
 			</widget>
 		      </widget>
 		    </widget>
