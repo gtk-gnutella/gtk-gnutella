@@ -32,12 +32,13 @@
 #include <netinet/in.h> 
 #include <arpa/inet.h>
 
-
 #include "gnutella.h"
 #include "filter_gui.h"
 #include "misc.h"
 #include "gtk-missing.h"
 
+#include "gui_property_priv.h"
+#include "gui_property.h"
 
 #define DEFAULT_TARGET (filter_get_drop_target())   
 
@@ -128,7 +129,7 @@ void filter_gui_init(void)
     gtk_clist_set_reorderable(clist_filter_rules, TRUE);
     for (i = 0; i < 4; i++)
         gtk_clist_set_column_width(GTK_CLIST(clist_filter_rules), i,
-            filter_table_col_widths[i]);
+            filter_rules_col_widths[i]);
 
     for (i = 0; i < 3; i++)
         gtk_clist_set_column_width(GTK_CLIST(ctree_filter_filters), i,
@@ -259,11 +260,15 @@ void filter_gui_init(void)
  */
 void filter_gui_show_dialog(void)
 {
+    guint32 coord[4] = { 0, 0, 0, 0 };
+
     if (filter_dialog == NULL)
         return;
 
+    gui_prop_get_guint32(PROP_FILTER_DLG_COORDS, coord, 0, 4);
+
   	gtk_window_set_default_size(GTK_WINDOW(filter_dialog), 
-        flt_dlg_w, flt_dlg_h);
+        coord[2], coord[3]);
 
     gtk_paned_set_position(
         GTK_PANED(lookup_widget(filter_dialog, "hpaned_filter_main")),
@@ -524,7 +529,7 @@ void filter_gui_filter_set
 
         filter_gui_filter_set_enabled(f, active);
 
-        if (dbg >= 5)
+        if (gui_debug >= 5)
             printf("showing ruleset for filter: %s\n", f->name);
         filter_gui_set_ruleset(ruleset);
 
@@ -1381,7 +1386,7 @@ void filter_gui_set_ruleset(GList *ruleset)
         lookup_widget(filter_dialog, "button_filter_clear"), 
         count != 0);
 
-    if (dbg >= 5)
+    if (gui_debug >= 5)
         printf("updated %d items\n", count);
 }
 
@@ -1431,7 +1436,7 @@ rule_t *filter_gui_get_rule()
         r = NULL;
     };
 
-    if ((r != NULL) && (dbg >= 5))
+    if ((r != NULL) && (gui_debug >= 5))
         printf("got rule: %s\n", filter_rule_to_gchar(r));
 
     return r;
@@ -1580,11 +1585,11 @@ static rule_t *filter_gui_get_size_rule()
     if (filter_dialog == NULL)
         return NULL;
 
-    lower = gtk_spin_button_get_value_as_int
+    lower = gtk_spin_button_get_value
         (GTK_SPIN_BUTTON
             (lookup_widget(filter_dialog, "spinbutton_filter_size_min")));
 
-    upper = gtk_spin_button_get_value_as_int
+    upper = gtk_spin_button_get_value
         (GTK_SPIN_BUTTON
             (lookup_widget(filter_dialog, "spinbutton_filter_size_max")));
 
