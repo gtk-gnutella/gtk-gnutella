@@ -56,7 +56,7 @@ struct term_counts {
 	guint32 periods;
 };
 
-static guint32 stat_count;
+static guint stat_count;
 
 static GHashTable *stat_hash = NULL;
 
