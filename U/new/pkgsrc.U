@@ -2,7 +2,7 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:pkgsrc: src rsrc sh
+?MAKE:pkgsrc: src rsrc
 ?MAKE:	-pick add $@ %<
 ?S:pkgsrc:
 ?S:	This variable holds the absolute path of the package source.
