@@ -1019,7 +1019,6 @@ static gboolean configured_peermode_changed(property_t prop)
 	GtkWidget *qrp_frame1;
 	GtkWidget *qrp_frame2;
 	GtkWidget *qrp_frame3;
-	gboolean tcp_firewalled;
 
 	qrp_frame1 = lookup_widget(dlg_prefs, "frame_qrp_statistics");
 	qrp_frame2 = lookup_widget(dlg_prefs, "frame_qrp_table_info");
@@ -1027,24 +1026,6 @@ static gboolean configured_peermode_changed(property_t prop)
 
 	ret = update_multichoice(prop);
     gnet_prop_get_guint32_val(prop, &mode);
-
-	/*
-	 * A TCP-firewalled node can only run as a leaf node.
-	 */
-
-	switch (mode) {
-	case NODE_P_NORMAL:
-	case NODE_P_ULTRA:
-		gnet_prop_get_boolean_val(PROP_IS_FIREWALLED, &tcp_firewalled);
-		if (tcp_firewalled) {
-			statusbar_gui_warning(15,
-				_("Can only run as a leaf node when firewalled"));
-			mode = NODE_P_AUTO;
-		}
-		break;
-	default:
-		break;
-	}
 
 	if (mode == NODE_P_AUTO)
 		gtk_widget_show(frame);
