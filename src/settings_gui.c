@@ -27,6 +27,8 @@
 
 #include "gui.h"
 
+#include "downloads.h" // FIXME: remove this dependency
+
 #include "settings_gui.h"
 
 #include <pwd.h>
@@ -178,7 +180,9 @@ static gboolean is_inet_connected_changed(property_t prop);
 static gboolean show_search_results_settings_changed(property_t prop);
 static gboolean local_address_changed(property_t prop);
 static gboolean force_local_ip_changed(property_t prop);
-//static gboolean queue_frozen_changed(property_t prop);
+static gboolean use_netmasks_changed(property_t prop);
+static gboolean guid_changed(property_t prop);
+static gboolean show_tooltips_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
 //        description. 
@@ -231,6 +235,13 @@ static prop_map_t property_map[] = {
         update_split_pane,
         TRUE,
         "hpaned_main"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_DIVIDER_POS,
+        update_split_pane,
+        TRUE,
+        "hpaned_gnet_stats"
     },
     {
         get_main_window,
@@ -322,6 +333,20 @@ static prop_map_t property_map[] = {
         update_clist_col_widths,
         TRUE,
         "clist_search"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_COL_WIDTHS,
+        update_clist_col_widths,
+        TRUE,
+        "clist_gnet_stats"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
+        update_clist_col_widths,
+        TRUE,
+        "clist_gnet_stats_drop_reasons"
     },
     {
         get_filter_dialog,
@@ -865,7 +890,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_USE_NETMASKS,
-        update_togglebutton,
+        use_netmasks_changed,
         TRUE,
         "checkbutton_config_use_netmasks"
     },
@@ -1094,11 +1119,11 @@ static prop_map_t property_map[] = {
         NULL
     },
     {
-        NULL,
+        get_main_window,
         PROP_GUID,
-        IGNORE,
-        FALSE,
-        NULL
+        guid_changed,
+        TRUE,
+        "entry_nodes_guid"
     },
     {
         NULL,
@@ -1141,6 +1166,20 @@ static prop_map_t property_map[] = {
         show_search_results_settings_changed,
         TRUE,
         "checkbutton_search_results_show_settings"
+    },
+    {
+        get_main_window,
+        PROP_CONFIRM_QUIT,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_confirm_quit"
+    },
+    {
+        get_main_window,
+        PROP_SHOW_TOOLTIPS,
+        show_tooltips_changed,
+        TRUE,
+        "checkbutton_config_show_tooltips"
     }
 };
 
@@ -2017,6 +2056,56 @@ gboolean force_local_ip_changed(property_t prop)
     return FALSE;
 }
 
+gboolean use_netmasks_changed(property_t prop)
+{
+    gboolean b;
+    
+    gnet_prop_get_boolean(prop, &b, 0, 1);
+    update_togglebutton(prop);
+
+    gtk_widget_set_sensitive(
+        lookup_widget(main_window, "entry_config_netmasks"), b);
+
+    return FALSE;
+}
+
+gboolean guid_changed(property_t prop)
+{
+    guint8 guid_buf[16];
+   
+    gnet_prop_get_storage(prop, guid_buf, sizeof(guid_buf));
+
+    gtk_entry_set_text(
+        GTK_ENTRY(lookup_widget(main_window, "entry_nodes_guid")),
+        guid_hex_str(guid_buf));
+
+    return FALSE;
+}
+
+gboolean show_tooltips_changed(property_t prop)
+{
+    gboolean b;
+
+    update_togglebutton(prop);
+
+    gui_prop_get_boolean(prop, &b, 0, 1);
+
+    if (b) {
+        gtk_tooltips_enable(tooltips);
+        gtk_tooltips_enable(
+            GTK_TOOLTIPS(gtk_object_get_data(
+                GTK_OBJECT(main_window), "tooltips")));
+    } else {
+        gtk_tooltips_disable(tooltips);
+        gtk_tooltips_disable(
+            GTK_TOOLTIPS(gtk_object_get_data(
+                GTK_OBJECT(main_window), "tooltips")));
+    }
+
+    return FALSE;
+}
+
+
 /***
  *** V.  Control functions.
  ***/
@@ -2424,6 +2513,9 @@ void settings_gui_shutdown(void)
     side_divider_pos = 
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_sidebar")));
+    gnet_stats_divider_pos = 
+        gtk_paned_get_position(GTK_PANED
+            (lookup_widget(main_window, "hpaned_gnet_stats")));
 
     clist = (current_search != NULL) ? 
         GTK_CLIST(current_search->clist) : 
