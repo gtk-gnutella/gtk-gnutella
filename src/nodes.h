@@ -272,8 +272,6 @@ extern const gchar *gnutella_hello;
 extern guint32 gnutella_hello_length;
 
 extern GSList *sl_nodes;
-extern guint32 global_messages, global_searches, routing_errors,
-	dropped_messages;
 
 extern GHookList node_added_hook_list;
 extern struct gnutella_node *node_added;

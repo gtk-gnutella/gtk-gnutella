@@ -61,6 +61,7 @@
 #include "alive.h"
 #include "uploads.h" /* for handle_push_request() */
 #include "whitelist.h"
+#include "gnet_stats.h"
 
 #include "settings.h"
 
@@ -96,11 +97,6 @@ static guint32 nodes_in_list = 0;
 static guint32 ponging_nodes = 0;
 static guint32 shutdown_nodes = 0;
 static guint32 node_id = 0;
-
-guint32 global_messages = 0;
-guint32 global_searches = 0;
-guint32 routing_errors = 0;
-guint32 dropped_messages = 0;
 
 const gchar *gnutella_hello = "GNUTELLA CONNECT/";
 guint32 gnutella_hello_length = 0;
@@ -179,16 +175,19 @@ void node_remove_node_changed_listener(node_changed_listener_t l)
     LISTENER_REMOVE(node_changed, l);
 }
 
-static void node_emit_node_added(gnutella_node_t *n, const gchar *type)
+static void node_emit_node_added(
+    gnutella_node_t *n, const gchar *type)
 {
     n->last_update = time((time_t *)NULL);
-    LISTENER_EMIT(node_added, n->node_handle, type);
+    LISTENER_EMIT(node_added, n->node_handle, type, 
+        connected_nodes(), node_count());;
 }
 
 static void node_emit_node_removed(gnutella_node_t *n)
 {
     n->last_update = time((time_t *)NULL);
-    LISTENER_EMIT(node_removed, n->node_handle);
+    LISTENER_EMIT(node_removed, n->node_handle, 
+        connected_nodes(), node_count());
 }
 
 static void node_emit_node_changed
@@ -200,7 +199,8 @@ static void node_emit_node_changed
         return;
 
     n->last_update = time((time_t *)NULL);
-    LISTENER_EMIT(node_changed, n->node_handle, force);
+    LISTENER_EMIT(node_changed, n->node_handle, force, 
+        connected_nodes(), node_count());
 }
 
 /***
@@ -2449,12 +2449,16 @@ static void node_parse(struct gnutella_node *node)
 
 	switch (n->header.function) {
 	case GTA_MSG_INIT:
-		if (n->size)
+        if (n->size) {
 			drop = TRUE;
+			gnet_stats_count_dropped(n, MSG_DROP_INIT_BAD_SIZE);
+        }
 		break;
 	case GTA_MSG_INIT_RESPONSE:
-		if (n->size != sizeof(struct gnutella_init_response))
+        if (n->size != sizeof(struct gnutella_init_response)) {
 			drop = TRUE;
+            gnet_stats_count_dropped(n,MSG_DROP_INIT_RESPONSE_BAD_SIZE);
+        }
 		break;
 	case GTA_MSG_BYE:
 		if (n->header.hops != 0 || n->header.ttl != 1) {
@@ -2462,17 +2466,24 @@ static void node_parse(struct gnutella_node *node)
 				gmsg_log_bad(n, "bye message with improper hops/ttl");
 			n->n_bad++;
 			drop = TRUE;
+            gnet_stats_count_dropped(n, MSG_DROP_BYE_BAD_SIZE);
 		}
 		break;
 	case GTA_MSG_PUSH_REQUEST:
-		if (n->size != sizeof(struct gnutella_push_request))
+        if (n->size != sizeof(struct gnutella_push_request)) {
 			drop = TRUE;
+            gnet_stats_count_dropped(n, MSG_DROP_PUSH_BAD_SIZE);
+        }
 		break;
 	case GTA_MSG_SEARCH:
-		if (n->size <= 3)	/* At least speed(2) + NUL(1) */
+		if (n->size <= 3) {	/* At least speed(2) + NUL(1) */
 			drop = TRUE;
-		else if (n->size > search_queries_forward_size)
+            gnet_stats_count_dropped(n, MSG_DROP_SEARCH_TOO_SMALL);
+        }
+		else if (n->size > search_queries_forward_size) {
 			drop = TRUE;
+            gnet_stats_count_dropped(n, MSG_DROP_SEARCH_TOO_LARGE);
+        }
 
 		/*
 		 * TODO
@@ -2484,12 +2495,15 @@ static void node_parse(struct gnutella_node *node)
 		 */
 		break;
 	case GTA_MSG_SEARCH_RESULTS:
-		if (n->size > search_answers_forward_size)
-			drop = TRUE;
+        if (n->size > search_answers_forward_size) {
+            drop = TRUE;
+            gnet_stats_count_dropped(n, MSG_DROP_RESULT_TOO_LARGE);
+        }
 		break;
 
 	default:					/* Unknown message type - we drop it */
 		drop = TRUE;
+        gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
 		if (dbg)
 			gmsg_log_bad(n, "unknown message type");
 		n->n_bad++;
@@ -2509,7 +2523,6 @@ static void node_parse(struct gnutella_node *node)
 				return;				/* Node was kicked out */
 		} else {
 			n->rx_dropped++;
-			dropped_messages++;
 		}
 		goto reset_header;
 	}
@@ -2556,9 +2569,17 @@ static void node_parse(struct gnutella_node *node)
 			handle_push_request(n);
 			break;
 		case GTA_MSG_SEARCH:
+            /*
+             * search_request takes care of telling the stats that
+             * the message was dropped.
+             */
 			drop = search_request(n);
 			break;
 		case GTA_MSG_SEARCH_RESULTS:
+            /*
+             * search_results takes care of telling the stats that
+             * the message was dropped.
+             */
 			drop = search_results(n);
 			break;
 		default:
@@ -2577,7 +2598,6 @@ static void node_parse(struct gnutella_node *node)
 			gmsg_log_dropped(&n->header, "from %s", node_ip(n));
 
 		n->rx_dropped++;
-		dropped_messages++;
 	}
 
 reset_header:
@@ -2790,8 +2810,7 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 
 		n->have_header = TRUE;
 
-		n->received++;
-		global_messages++;
+        gnet_stats_count_recieved(n);
 
 		node_emit_node_changed(n, FALSE);
 
@@ -3010,7 +3029,7 @@ gboolean node_sent_ttl0(struct gnutella_node *n)
 {
 	g_assert(n->header.ttl == 0);
 
-	dropped_messages++;
+	gnet_stats_count_dropped(n, MSG_DROP_TTL0);
 
 	if (connected_nodes() > MAX(2, up_connections)) {
 		node_bye(n, 408, "%s %s message with TTL=0",
@@ -3309,11 +3328,11 @@ void node_free_info(gnet_node_info_t *info)
  * Disconnect from the given list of node hanles. The list may not contain
  * NULL elements or duplicate elements.
  */
-void node_remove_nodes_by_handle(GList *node_list)
+void node_remove_nodes_by_handle(GSList *node_list)
 {
-    GList *l;
+    GSList *l;
 
-    for (l = node_list; l != NULL; l = g_list_next(l)) {
+    for (l = node_list; l != NULL; l = g_slist_next(l)) {
         gnet_node_t node;
 
         node = (gnet_node_t) l->data;
