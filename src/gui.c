@@ -29,6 +29,7 @@ guint scid_bottom              = -1;
 guint scid_hostsfile           = -1;
 guint scid_search_autoselected = -1;
 guint scid_queue_freezed       = -1;
+guint scid_queue_remove_regex  = -1;
 
 /* List with timeout entries for statusbar messages */
 static GSList *sl_statusbar_timeouts = NULL;
@@ -58,6 +59,10 @@ void gui_init(void)
 	scid_queue_freezed = 
 		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), 
                                      "queue freezed");	
+
+   	scid_queue_remove_regex = 
+		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), 
+                                     "queue remove regex");	
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", GTA_WEBSITE);
 	gui_statusbar_push(scid_bottom, gui_tmp);
