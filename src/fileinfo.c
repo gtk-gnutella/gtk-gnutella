@@ -211,6 +211,17 @@ static struct {
 		WRITE_STR(c, len);				\
 } while(0)
 
+/*
+ * The trailer fields of the fileinfo trailer.
+ */
+
+struct trailer {
+	guint32 filesize;		/* Real file size */
+	guint32 generation;		/* Generation number */
+	guint32 length;			/* Total trailer length */
+	guint32 checksum;		/* Trailer checksum */
+	guint32 magic;			/* Magic number */
+};
 
 /*
  * tbuf_extend
@@ -430,6 +441,97 @@ static void fi_free(struct dl_file_info *fi)
 }
 
 /*
+ * file_info_get_trailer
+ *
+ * Extract fixed trailer at the end of the file `name', already opened as `fd'.
+ * The supplied trailer buffer `tb' is filled.
+ *
+ * Returns TRUE if the trailer is "validated", FALSE otherwise.
+ */
+static gboolean file_info_get_trailer(gint fd, struct trailer *tb, gchar *name)
+{
+	guint32 tr[5];
+	struct stat buf;
+
+	g_assert(fd >= 0);
+	g_assert(tb);
+
+	if (-1 == fstat(fd, &buf)) {
+		g_warning("error fstat()ing \"%s\": %s", name, g_strerror(errno));
+		return FALSE;
+	}
+
+	if (buf.st_size < sizeof(tr))
+		return FALSE;
+
+	if (lseek(fd, -sizeof(tr), SEEK_END) == -1) {
+		g_warning("file_info_get_trailer(): "
+			"error seek()ing in file \"%s\": %s", name, g_strerror(errno));
+		return FALSE;
+	}
+
+	if (-1 == read(fd, tr, sizeof(tr))) {
+		g_warning("file_info_get_trailer(): "
+			"error reading trailer in  \"%s\": %s", name, g_strerror(errno));
+		return FALSE;
+	}
+
+	tb->filesize	= ntohl(tr[0]);
+	tb->generation	= ntohl(tr[1]);
+	tb->length		= ntohl(tr[2]);
+	tb->checksum	= ntohl(tr[3]);
+	tb->magic		= ntohl(tr[4]);
+
+	/*
+	 * Now, sanity checks...  We must make sure this is a valid trailer.
+	 */
+
+	if (tb->magic != FILE_INFO_MAGIC)
+		return FALSE;
+
+	if (buf.st_size != tb->filesize + tb->length)
+		return FALSE;
+
+	return TRUE;
+}
+
+/*
+ * file_info_filesize
+ *
+ * Computes the real size of a file: if it has no trailer, it is its real size.
+ * If it has a trailer, then fetch the filesize within.
+ */
+off_t file_info_filesize(gchar *path)
+{
+	gint fd;
+	struct stat buf;
+	struct trailer trailer;
+	gboolean valid;
+
+	fd = open(path, O_RDONLY);
+	if (fd < 0) {
+		if (errno != ENOENT)
+			g_warning("can't open \"%s\" for reading: %s",
+				path, g_strerror(errno));
+		goto plainsize;
+	}
+
+	valid = file_info_get_trailer(fd, &trailer, path);
+	close(fd);
+
+	if (valid)
+		return trailer.filesize;
+
+	/* FALL THROUGH */
+
+plainsize:
+	if (-1 == stat(path, &buf))
+		return 0;
+
+	return buf.st_size;
+}
+
+/*
  * file_info_retrieve_binary
  *
  * Reads the file metainfo from the trailer of a file, if it exists.
@@ -437,7 +539,6 @@ static void fi_free(struct dl_file_info *fi)
  */
 static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 {
-	guint32 tr[5];
 	guint32 tmpchunk[3];
 	guint32 tmpguint;
 	guint32 checksum = 0;
@@ -446,16 +547,9 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 	enum dl_file_info_field field;
 	gchar tmp[1024];
 	gchar *reason;
-	int fd;
-	struct stat buf;
+	gint fd;
 	guint32 version;
-	struct {
-		guint32 filesize;
-		guint32 generation;
-		guint32 length;
-		guint32 checksum;
-		guint32 magic;
-	} trailer;
+	struct trailer trailer;
 
 	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", path, file);
 	
@@ -467,43 +561,9 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 		return NULL;
 	}
 
-	if (lseek(fd, -sizeof(tr), SEEK_END) == -1) {
-		g_warning("file_info_retrieve_binary(): "
-			"error seek()ing in file \"%s\": %s", fi_tmp, g_strerror(errno));
-		goto eof;
-	}
-
-	if (-1 == read(fd, tr, sizeof(tr))) {
-		g_warning("file_info_retrieve_binary(): "
-			"error reading trailer in  \"%s\": %s", fi_tmp, g_strerror(errno));
-		goto eof;
-	}
-
-	trailer.filesize	= ntohl(tr[0]);
-	trailer.generation	= ntohl(tr[1]);
-	trailer.length		= ntohl(tr[2]);
-	trailer.checksum	= ntohl(tr[3]);
-	trailer.magic		= ntohl(tr[4]);
-
-	/*
-	 * Now, sanity checks...  We must make sure this is a valid trailer.
-	 */
-
-	if (trailer.magic != FILE_INFO_MAGIC) {
-		g_warning("file_info_retrieve_binary(): no magic found in \"%s\". "
-			"Bailing out.", fi_tmp);
-		goto eof;
-	}
-
-	if (-1 == fstat(fd, &buf)) {
-		g_warning("error fstat()ing \"%s\": %s", fi_tmp, g_strerror(errno));
-		goto eof;
-	}
-
-	if (buf.st_size != trailer.filesize + trailer.length) {
-		g_warning("file_info_retrieve_binary(): "
-			"trailer size mismatch in \"%s\". Bailing out.", fi_tmp);
-		goto eof;
+	if (!file_info_get_trailer(fd, &trailer, fi_tmp)) {
+		reason = "could not find trailer";
+		goto bailout;
 	}
 
 	if (-1 == lseek(fd, trailer.filesize, SEEK_SET)) {

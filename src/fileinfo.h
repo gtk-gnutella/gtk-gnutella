@@ -59,6 +59,7 @@ struct dl_file_info {
 };
 
 void file_info_init(void);
+off_t file_info_filesize(gchar *path);
 void file_info_retrieve(void);
 void file_info_store(void);
 void file_info_store_if_dirty(void);

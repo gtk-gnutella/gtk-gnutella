@@ -628,7 +628,8 @@ static void queue_remove_identical(
 
 		if (dbg > 3)
 			printf("queue_remove_identical: removing \"%s\" (%s) %d bytes\n",
-				d->file_name, d->sha1 ? sha1_base32(d->sha1) : "", d->file_info->size);
+				d->file_name, d->sha1 ? sha1_base32(d->sha1) : "",
+				d->file_info->size);
 
 		download_free(d);
 	}
@@ -1885,7 +1886,7 @@ attempt_retry:
 	 * Tell them so. -- RAM, 18/08/2002.
 	 */
 
-	if (on_timeout && (d->flags & DL_F_PUSH_IGN))
+	if (on_timeout && d->always_push && (d->flags & DL_F_PUSH_IGN))
 		download_stop(d, GTA_DL_ERROR, "Can't reach host (Push or Direct)");
 	else if (++d->retries <= download_max_retries) {
 		if (on_timeout)
@@ -2037,6 +2038,10 @@ static void create_download(
 
 	file_info = file_info_get(output, save_file_path, size, sha1);
 
+	if (output != file_name)
+		g_free(output);
+	output = NULL;				/* No longer used */
+
 	/*
 	 * Initialize download, creating new server if needed.
 	 */
@@ -2057,9 +2062,6 @@ static void create_download(
 
 	if (d->server->attrs & DLS_A_PUSH_IGN)
 		push = FALSE;
-
-	//d->path = atom_str_get(save_file_path);
-	//d->output_name = file_info->file_name;
 
 	d->file_name = file_name;
 	/* Note: size and skip will be filled by file_info_find_hole() later */
@@ -2119,12 +2121,17 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 
 	/*
 	 * Make sure we have not got a bigger file in the "download dir".
+	 *
+	 * Because of swarming, we could have a trailer in the file, hence
+	 * we cannot blindly stat() it.  Call a specialized routine that will
+	 * figure this out.
+	 *		--RAM, 18/08/2002
 	 */
 
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", save_file_path, output_name);
 	dl_tmp[sizeof(dl_tmp)-1] = '\0';
 
-	if (-1 != stat(dl_tmp, &buf) && buf.st_size >= size) {
+	if (file_info_filesize(dl_tmp) >= size) {
 		reason = "downloaded file bigger";
 		goto abort_download;
 	}
