@@ -1897,12 +1897,8 @@ gboolean gui_search_update_tab_label(struct search *sch)
 
 void gui_search_clear_results(void)
 {
-    /*
-     * FIXME: this is a memory leak (sort of). Actually we'd
-     * need to decrease the refcounts on the removed records.
-     */
 	gtk_clist_clear(GTK_CLIST(current_search->clist));
-	current_search->items = current_search->unseen_items = 0;
+	search_clear(current_search);
 	gui_search_force_update_tab_label(current_search);
 }
 

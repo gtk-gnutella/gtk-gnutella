@@ -152,7 +152,8 @@ void search_download_files(void);
 void search_clear_clicked(void);
 void search_update_reissue_timeout(guint32);
 void search_shutdown(void);
-void search_close(search_t* sch);
+void search_clear(search_t *sch);
+void search_close(search_t *sch);
 gint search_compare(gint sort_col, record_t *r1, record_t *r2);
 
 #endif							/* __search_h__ */

@@ -120,6 +120,7 @@ static gboolean search_retrieve_old(void);
     static void search_store_old(void);
 #endif /* USE_SEARCH_XML */
 
+static void search_dispose_results(struct results_set *rs);
 
 /* ----------------------------------------- */
 
@@ -180,6 +181,44 @@ static void search_free_record(struct record *rc)
 	if (rc->sha1)
 		atom_sha1_free(rc->sha1);
 	g_free(rc);
+}
+
+/*
+ * search_unref_record
+ *
+ * Remove one reference to a file record.
+ *
+ * If the record has no more references, remove it from its parent result
+ * set and free the record physically.
+ */
+static void search_unref_record(struct record *rc)
+{
+	struct results_set *rs;
+
+	g_assert(rc->refcount > 0);
+
+	if (--(rc->refcount) > 0)
+		return;
+
+	/*
+	 * Free record, and remove it from the parent's list.
+	 */
+
+	rs = rc->results_set;
+	search_free_record(rc);
+
+	rs->records = g_slist_remove(rs->records, rc);
+	rs->num_recs--;
+
+	g_assert(rs->num_recs || rs->records == NULL);
+
+	/*
+	 * We can't free the results_set structure right now if it does not
+	 * hold anything because we don't know which searches reference it.
+	 */
+
+	if (rs->num_recs == 0)
+		search_dispose_results(rs);
 }
 
 /*
@@ -250,6 +289,45 @@ static void search_free_r_set(struct results_set *rs)
 	g_free(rs);
 }
 
+/*
+ * search_dispose_results
+ *
+ * Dispose of an empty search results, whose records have all been
+ * unreferenced by the searches.  The results_set is therefore an
+ * empty shell, useless.
+ */
+static void search_dispose_results(struct results_set *rs)
+{
+	gint refs = 0;
+	GList *l;
+
+	g_assert(rs->num_recs == 0);
+	g_assert(rs->refcount > 0);
+
+	/*
+	 * A results_set does not point back to the searches that still
+	 * reference it, so we have to do that manually.
+	 */
+
+	for (l = searches; l; l = l->next) {
+		GSList *link;
+		search_t *sch = (search_t *) l->data;
+
+		link = g_slist_find(sch->r_sets, rs);
+		if (link == NULL)
+			continue;
+
+		refs++;			/* Found one more reference to this search */
+
+		sch->r_sets = g_slist_remove_link(sch->r_sets, link);
+	}
+
+	g_assert(rs->refcount == refs);		/* Found all the searches */
+
+	rs->refcount = 1;
+	search_free_r_set(rs);
+}
+
 /* Free all the results_set's of a search */
 
 static void search_free_r_sets(search_t *sch)
@@ -257,7 +335,8 @@ static void search_free_r_sets(search_t *sch)
 	GSList *l;
 
 	g_return_if_fail(sch);
-	g_assert(sch->dups == NULL);	/* All records were cleaned */
+	g_assert(sch->dups);
+	g_assert(g_hash_table_size(sch->dups) == 0); /* All records were cleaned */
 
 	for (l = sch->r_sets; l; l = l->next)
 		search_free_r_set((struct results_set *) l->data);
@@ -271,13 +350,39 @@ static void search_free_r_sets(search_t *sch)
  *
  * Decrement refcount of hash table key entry.
  */
-static void dec_records_refcount(gpointer key, gpointer value, gpointer udata)
+static gboolean dec_records_refcount(gpointer key, gpointer value, gpointer x)
 {
 	struct record *rc = (struct record *) key;
 
 	g_assert(rc->refcount > 0);
 
 	rc->refcount--;
+	return TRUE;
+}
+
+/*
+ * search_clear
+ *
+ * Clear all results from search.
+ */
+void search_clear(search_t *sch)
+{
+	g_assert(sch);
+	g_assert(sch->dups);
+
+	/*
+	 * Before invoking search_free_r_sets(), we must iterate on the
+	 * hash table where we store records and decrement the refcount of
+	 * each record, and remove them from the hash table.
+	 *
+	 * Otherwise, we will violate the pre-condition of search_free_record(),
+	 * which is there precisely for that reason!
+	 */
+
+	g_hash_table_foreach_remove(sch->dups, dec_records_refcount, NULL);
+	search_free_r_sets(sch);
+
+	sch->items = sch->unseen_items = 0;
 }
 
 /* 
@@ -286,7 +391,7 @@ static void dec_records_refcount(gpointer key, gpointer value, gpointer udata)
  * Remove the search from the list of searches and free all 
  * associated ressources (including filter and gui stuff).
  */
-void search_close(search_t* sch)
+void search_close(search_t *sch)
 {
 	GSList *m;
 
@@ -322,18 +427,9 @@ void search_close(search_t* sch)
 		search_passive--;
 	}
 
-	/*
-	 * Before invoking search_free_r_sets(), we must iterate on the
-	 * hash table where we store records and decrement the refcount of
-	 * each record.  Otherwise, we will violate the pre-condition of
-	 * search_free_record(), which is there precisely for that reason!
-	 */
-
-	g_hash_table_foreach(sch->dups, dec_records_refcount, NULL);
+	search_clear(sch);
 	g_hash_table_destroy(sch->dups);
 	sch->dups = NULL;
-
-	search_free_r_sets(sch);
 
 	atom_str_free(sch->query);
 	g_free(sch);
@@ -1382,6 +1478,12 @@ void search_matched(search_t *sch, struct results_set *rs)
 		!check_valid_host(rs->ip, rs->port);
 	skip_records = (!send_pushes || is_firewalled) && need_push;
 
+	if (dbg > 6)
+		printf("search_matched: [%s] got hit with %d record%s (from %s) "
+			"need_push=%d, skipping=%d\n",
+			sch->query, rs->num_recs, rs->num_recs == 1 ? "" : "s",
+			ip_port_to_gchar(rs->ip, rs->port), need_push, skip_records);
+
     if (rs->records != NULL)
         gtk_clist_freeze(GTK_CLIST(sch->clist));
 
@@ -1776,8 +1878,15 @@ static void download_selection_of_clist(GtkCList * c)
 
         if (search_remove_downloaded) {
             gtk_clist_remove(c, row);
-            // FIXME: should unref the record bound to this row.
-            current_search->items --;
+            current_search->items--;
+
+			/*
+			 * Remove one reference to this record.
+			 */
+
+			g_hash_table_remove(current_search->dups, rc);
+			search_unref_record(rc);
+
         } else
             gtk_clist_unselect_row(c, row, 0);
 	}
