@@ -50,6 +50,8 @@ GtkWidget *default_scrolled_window = NULL;
 
 struct search *current_search = NULL;	/*	The search currently displayed */
 gboolean search_results_show_tabs = TRUE;	/* Display the notebook tabs? */
+guint32 search_max_results = 5000;		/* Max items allowed in GUI results */
+guint32 search_passive = 0;				/* Amount of passive searches */
 
 static void search_free_r_sets(struct search *);
 static void search_send_packet(struct search *);
@@ -61,9 +63,45 @@ static void search_free_sent_nodes(struct search *sch);
 static gboolean search_reissue_timeout_callback(gpointer data);
 static void update_one_reissue_timeout(struct search *sch);
 
-guint32 search_passive = 0;
-gint select_all_lock = 0;
+static gint select_all_lock = 0;
 
+/* ----------------------------------------- */
+
+static gint search_results_compare_size(GtkCList * clist, gconstpointer ptr1,
+								 gconstpointer ptr2)
+{
+	guint32 s1 = ((struct record *) ((GtkCListRow *) ptr1)->data)->size;
+	guint32 s2 = ((struct record *) ((GtkCListRow *) ptr2)->data)->size;
+
+	return (s1 == s2) ? 0 :
+		(s1 > s2) ? +1 : -1;
+}
+
+static gint search_results_compare_speed(GtkCList * clist, gconstpointer ptr1,
+								  gconstpointer ptr2)
+{
+	struct results_set *rs1 =
+		((struct record *) ((GtkCListRow *) ptr1)->data)->results_set;
+	struct results_set *rs2 =
+		((struct record *) ((GtkCListRow *) ptr2)->data)->results_set;
+
+	return (rs1->speed == rs2->speed) ? 0 :
+		(rs1->speed > rs2->speed) ? +1 : -1;
+}
+
+static gint search_results_compare_host(GtkCList * clist, gconstpointer ptr1,
+							   gconstpointer ptr2)
+{
+	struct results_set *rs1 =
+		((struct record *) ((GtkCListRow *) ptr1)->data)->results_set;
+	struct results_set *rs2 =
+		((struct record *) ((GtkCListRow *) ptr2)->data)->results_set;
+
+	if (rs1->ip == rs2->ip)
+		return (gint) rs1->port - (gint) rs2->port;
+	else
+		return (rs1->ip > rs2->ip) ? +1 : -1;
+}
 
 /* ----------------------------------------- */
 
@@ -127,25 +165,18 @@ void on_clist_search_results_click_column(GtkCList * clist, gint column,
 	if (current_search == NULL)
 		return;
 
-	/* No sorting for those columns */
-
-	if (column == 3)
-		return;
-	if (column == 4)
-		return;
-
 	switch (column) {
-	case 1:
+	case 1:		/* Size */
 		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist),
 								   search_results_compare_size);
 		break;
-	case 2:
+	case 2:		/* Speed */
 		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist),
 								   search_results_compare_speed);
 		break;
-	case 3:
+	case 3:		/* Host */
 		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist),
-								   search_results_compare_ip);
+								   search_results_compare_host);
 		break;
 	default:
 		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist), NULL);
@@ -717,6 +748,7 @@ void __search_send_packet(struct search *sch, struct gnutella_node *n)
 
 static void search_send_packet(struct search *sch)
 {
+	autodownload_init();			/* Reload patterns, if necessary */
 	__search_send_packet(sch, NULL);
 }
 
@@ -802,6 +834,7 @@ void search_stop(struct search *sch)
 
 void search_resume(struct search *sch)
 {
+	autodownload_init();			/* Reload patterns, if necessary */
 	if (sch->passive) {
 		g_assert(sch->frozen);
 		sch->frozen = FALSE;
@@ -911,15 +944,10 @@ struct search *_new_search(guint16 speed, gchar * query, guint flags)
 	sch->query = g_strdup(query);
 	sch->speed = minimum_speed;
 
-	/*
-	 * If using autodownload, use this as an opportunity to reload the
-	 * autodownload file.
-	 */
-	autodownload_init();
-
 	if (flags & SEARCH_PASSIVE) {
 		sch->passive = 1;
 		search_passive++;
+		autodownload_init();		/* Reload patterns, if necessary */
 	} else {
 		search_add_new_muid(sch);
 		sch->sent_nodes =
@@ -1017,15 +1045,29 @@ struct search *_new_search(guint16 speed, gchar * query, guint flags)
 
 gint search_compare(gint sort_col, struct record * r1, struct record * r2)
 {
+	struct results_set *rs1 = r1->results_set;
+	struct results_set *rs2 = r2->results_set;
+
 	switch (sort_col) {
-	case 0:
+	case 0:		/* File */
 		return strcmp(r1->name, r2->name);
-	case 1:
-		return r1->size - r2->size;
-	case 2:
-		return r1->results_set->speed - r2->results_set->speed;
-	case 3:
-		return r1->results_set->ip - r2->results_set->ip;
+	case 1:		/* Size */
+		return
+			(r1->size == r2->size) ? 0 :
+			(r1->size > r2->size) ? +1 : -1;
+	case 2:		/* Speed */
+		return
+			(rs1->speed == rs2->speed) ? 0 :
+			(rs1->speed > rs2->speed) ? +1 : -1;
+	case 3:		/* Host */
+		return
+			(rs1->ip == rs2->ip) ?  (gint) rs1->port - (gint) rs2->port :
+			(rs1->ip > rs2->ip) ? +1 : -1;
+	case 4:		/* Info */
+		return
+			(rs1->trailer && rs2->trailer) ?
+				strcmp(rs1->trailer, rs2->trailer) :
+				rs1->trailer ? +1 : -1;
 	}
 	return 0;
 }
@@ -1208,13 +1250,24 @@ static void search_gui_update(struct search * sch, struct results_set * rs,
             printf("%s(): adding %s (%s)\n", __FUNCTION__,
                    rc->name, vinfo->str);
 
-		if (search_result_is_dup(sch, rc) || !filter_record(sch, rc)) {
+		/*
+		 * If we have too many results in this search already,
+		 * or if this is a duplicate search result,
+		 * or if we are filtering this result, throw the record away.
+		 */
+
+		if (
+			sch->items >= search_max_results ||
+			search_result_is_dup(sch, rc) ||
+			!filter_record(sch, rc)
+		) {
 			rs->records = g_slist_remove(rs->records, rc);
 			rs->num_recs--;
 			search_free_record(rc);
 			continue;
 		}
 
+		sch->items++;
 		g_hash_table_insert(sch->dups, rc, (void *) 1);
 
 		titles[0] = rc->name;
@@ -1296,6 +1349,7 @@ void search_matched(struct search *sch, struct results_set *rs)
 {
 	GString *vinfo = g_string_sized_new(40);
 	GString *info = g_string_sized_new(80);
+	guint32 old_items = sch->items;
 
 	/* Compute status bits, decompile trailer info, if present */
 
@@ -1393,7 +1447,10 @@ void search_matched(struct search *sch, struct results_set *rs)
 	if (use_autodownload) {
 		GSList *l;
 
-		if ((rs->status & ST_UPLOADED) && !(rs->status & ST_FIREWALL)) {
+		if (
+			send_pushes ||
+			!((rs->status & ST_FIREWALL) || is_private_ip(rs->ip))
+		) {
 			for (l = rs->records; l; l = l->next) {
 				struct record *rc = (struct record *) l->data;
 
@@ -1403,6 +1460,17 @@ void search_matched(struct search *sch, struct results_set *rs)
 			}
 		}
 	}
+
+	/*
+	 * If we have more entries than the configured maximum, don't even
+	 * bother updating the GUI.
+	 */
+
+	if (sch->items >= search_max_results) {
+		search_free_r_set(rs);
+		return;
+	}
+
 	search_gui_update(sch, rs, info, vinfo);
 
 	g_string_free(info, TRUE);
@@ -1423,11 +1491,9 @@ void search_matched(struct search *sch, struct results_set *rs)
 	}
 
 	if (sch == current_search) {
-		sch->items += rs->num_recs;
 		search_update_items(sch);
 	} else {
-		sch->items += rs->num_recs;
-		sch->unseen_items += rs->num_recs;
+		sch->unseen_items += sch->items - old_items;
 	}
 
 	if (time(NULL) - sch->last_update_time < tab_update_time)
@@ -1569,32 +1635,6 @@ void search_download_files(void)
 	} else {
 		g_warning("search_download_files(): no possible search!\n");
 	}
-}
-
-/* ----------------------------------------- */
-
-gint search_results_compare_size(GtkCList * clist, gconstpointer ptr1,
-								 gconstpointer ptr2)
-{
-	return
-		((struct record *) ((GtkCListRow *) ptr1)->data)->size -
-		((struct record *) ((GtkCListRow *) ptr2)->data)->size;
-}
-
-gint search_results_compare_speed(GtkCList * clist, gconstpointer ptr1,
-								  gconstpointer ptr2)
-{
-	return
-		((struct record *) ((GtkCListRow *) ptr1)->data)->results_set->speed -
-		((struct record *) ((GtkCListRow *) ptr2)->data)->results_set->speed;
-}
-
-gint search_results_compare_ip(GtkCList * clist, gconstpointer ptr1,
-							   gconstpointer ptr2)
-{
-	return
-		((struct record *) ((GtkCListRow *) ptr1)->data)->results_set->ip -
-		((struct record *) ((GtkCListRow *) ptr2)->data)->results_set->ip;
 }
 
 /* vi: set ts=4: */

@@ -212,7 +212,8 @@ your files. Set this to an integer between -1 and 255. Setting this to
 This can not be set through the GUI.
 This limits how many results are accumulated when performing
 searches. The default value is 5000, which is much more than you'll be
-able to browse through. The max allowed value is 65535.
+able to browse through. The min allowed value is 1, and there is no
+maximum, as long as you have RAM and CPU.
 .TP
 .BI force_local_ip
 This is on the config tab.
@@ -229,7 +230,7 @@ or a relative one (as the default), in which case it is taken relative
 to the launch directory.  The file can use "#" comments, but any other line
 is taken as a verbatim pattern to match anywhere in the file name.  This file
 is automatically reloaded when it has changed.  This variable cannot be set
-through the GUI yet.
+through the GUI yet.  (EXPERIMENTAL, may change without notice)
 .TP
 .BI download_connecting_timeout
 This can not be set through the GUI.
@@ -357,7 +358,7 @@ If this is "true", then
 .I gtk-gnutella
 will read the \fIauto_download_file\fR for file strings to match, and will
 automatically issue a download for each search that matches one of those
-strings.
+strings.  (EXPERIMENTAL, may change without notice)
 .TP
 .BI max_connections
 This is in the gnutellaNet tab.

@@ -114,7 +114,8 @@ enum {
 	k_old_save_file_path, k_scan_extensions,
 	k_listen_port, k_max_ttl, k_my_ttl, k_shared_dirs, k_forced_local_ip,
 	k_connection_speed,
-	k_search_max_items, k_force_local_ip, k_hosts_catched,
+	k_search_max_items, k_search_max_results,
+	k_force_local_ip, k_hosts_catched,
 	k_download_connecting_timeout,
 	k_download_push_sent_timeout, k_download_connected_timeout,
 	k_node_connected_timeout,
@@ -159,6 +160,7 @@ gchar *keywords[] = {
 	"forced_local_ip",			/* k_forced_local_ip */
 	"connection_speed",			/* k_connection_speed */
 	"limit_search_results",		/* k_search_max_items */
+	"search_max_results",		/* k_search_max_results */
 	"force_local_ip",			/* k_force_local_ip */
 	"hc",						/* k_hosts_catched */
 	"download_connecting_timeout",		/* k_download_connecting_timeout */
@@ -338,6 +340,7 @@ void config_init(void)
 	gui_update_connection_speed();
 
 	gui_update_search_max_items();
+	/* PLACEHOLDER: gui_update_search_max_results(); */
 
 	gui_update_search_reissue_timeout();
 
@@ -532,6 +535,10 @@ void config_set_param(guint32 keyword, gchar *value)
 
 	case k_search_max_items:
 		if (i >= -1 && i < 256) search_max_items = i;
+		return;
+
+	case k_search_max_results:
+		if (i > 0) search_max_results = i;
 		return;
 
 	case k_connection_speed:
@@ -985,6 +992,11 @@ void config_save(void)
 		"(relative is taken from launch dir)\n%s = %s\n\n",
 			keywords[k_auto_download_file],
 			auto_download_file);
+
+	fprintf(config, "# Max search results to show "
+		"(avoids running out of memory in passive searches)\n%s = %u\n\n",
+			keywords[k_search_max_results],
+			search_max_results);
 
 	fprintf(config, "# Number of seconds before timeout "
 		"for a connecting download\n%s = %u\n\n",

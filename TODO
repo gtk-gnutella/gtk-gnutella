@@ -1,12 +1,14 @@
 RAM's TODO list:
 
-* Kick node after too many TTL=0 messages (like dups)
-* URL-decode incoming URLs
+* URL-decode incoming URLs (%20 -> space, etc...)
 * Avoid kick on send queue limit: flow control, drop packets.
 * Separate drop-in / drop-out stats then.
 * Add reverse engineering notes.
-* Send back pongs at MaxTTL, like query hits.
-* Show node's in/out bandwidth (EMA)
+* Show node's in/out bandwidth (Exp. Moving Average)
+* Implement the Bye packet.
+* Implement modular HTTP parsing code as coroutine.
+* Add a regression test suite for the protocol.
+* Add "safer" resume: read a few bytes we already got, and compare.
 
 TODO List :
 

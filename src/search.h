@@ -99,7 +99,8 @@ extern GtkWidget *dialog_filters;
 extern gboolean search_results_show_tabs;
 extern guint32 search_passive;
 extern guint32 search_reissue_timeout;
-extern GSList *searches;		/* List of search structs */
+extern GSList *searches;			/* List of search structs */
+extern guint32 search_max_results;	/* Max items allowed in GUI results */
 
 /* flags for _new_search() */
 #define SEARCH_PASSIVE	 0x01 /* start a passive search */
@@ -116,10 +117,6 @@ void search_resume(struct search *sch);
 void search_results(struct gnutella_node *n);
 void search_download_files(void);
 void search_close_current(void);
-gint search_results_compare_size(GtkCList *, gconstpointer, gconstpointer);
-gint search_results_compare_speed(GtkCList *, gconstpointer,
-								  gconstpointer);
-gint search_results_compare_ip(GtkCList *, gconstpointer, gconstpointer);
 void search_clear_clicked(void);
 void search_update_reissue_timeout(guint32);
 void search_shutdown(void);

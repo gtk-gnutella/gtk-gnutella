@@ -1,5 +1,8 @@
 # since last release
 
+- Integrated search results limiting patch, from Brian St. Pierre
+- Fixed incremental sort logic, which was not accurate for big values
+- Made search results sortable by Host and by Info
 - Integrated new manpage from Brian St. Pierre (in debian directory)
 - Never overwrite files in "completed dir"; rename target file if needed
 - Missed "return" statements in error path for "download resuming" checks
