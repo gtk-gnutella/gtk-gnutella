@@ -85,6 +85,7 @@ cqueue_t *callout_queue;
 static guint main_slow_update = 0;
 static gboolean exiting = FALSE;
 static gboolean from_atexit = FALSE;
+static gint signal_received = 0;
 
 /*
  * gtk_gnutella_atexit
@@ -208,7 +209,7 @@ void gtk_gnutella_exit(gint n)
 
 static void sig_terminate(int n)
 {
-	gtk_gnutella_exit(1);
+	signal_received = n;		/* Terminate asynchronously in main_timer() */
 }
 
 /*
@@ -282,6 +283,11 @@ static gboolean main_timer(gpointer p)
 {
 	void icon_timer(void);
 	time_t now = time((time_t *) NULL);
+
+	if (signal_received) {
+		g_warning("caught signal #%d, exiting...", signal_received);
+		gtk_gnutella_exit(1);
+	}
 
 	bsched_timer();					/* Scheduling update */
 	host_timer();					/* Host connection */
