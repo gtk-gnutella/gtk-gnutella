@@ -248,7 +248,7 @@ gboolean upload_should_remove(time_t now, const upload_row_data_t *ul)
 			gui_prop_get_boolean_val(PROP_AUTOCLEAR_COMPLETED_UPLOADS, &val);
 			gnet_prop_get_guint32_val(PROP_ENTRY_REMOVAL_TIMEOUT, &grace);
 
-			if (now - ul->last_update <= grace)
+			if (delta_time(now, ul->last_update) <= grace)
 				return FALSE;
 
 			return val;
@@ -262,7 +262,7 @@ gboolean upload_should_remove(time_t now, const upload_row_data_t *ul)
 			gui_prop_get_boolean_val(PROP_AUTOCLEAR_FAILED_UPLOADS, &val);
 			gnet_prop_get_guint32_val(PROP_ENTRY_REMOVAL_TIMEOUT, &grace);
 
-			if (now - ul->last_update <= grace)
+			if (delta_time(now, ul->last_update) <= grace)
 				return FALSE;
 
 			return val;
