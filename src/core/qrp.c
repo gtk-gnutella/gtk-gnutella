@@ -703,7 +703,7 @@ qrt_create(gchar *name, gchar *arena, gint slots, gint max)
 static struct routing_table *
 qrt_empty_table(gchar *name)
 {
-	guchar *arena;
+	gchar *arena;
 
 	arena = g_malloc(EMPTY_TABLE_SIZE);
 	memset(arena, LOCAL_INFINITY, EMPTY_TABLE_SIZE);
