@@ -753,7 +753,11 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 					   (void *) &option, &size);
 
 		if (res == -1 || option) {
-			if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download)
+			if (
+				s->type == SOCK_TYPE_DOWNLOAD &&
+				s->resource.download &&
+				!(is_firewalled || !send_pushes)
+			)
 				download_fallback_to_push(s->resource.download, FALSE, FALSE);
 			else
 				socket_destroy(s, "Connection failed");

@@ -3379,7 +3379,7 @@ static gboolean is_firewalled_changed(property_t prop)
 {
 	GtkWidget *icon_firewall;
 	GtkWidget *icon_open;
-	gboolean val;
+	gboolean val, send_pushes;
 
     icon_firewall = lookup_widget(main_window, "eventbox_image_firewall");
 	icon_open = lookup_widget(main_window, "eventbox_image_no_firewall");
@@ -3392,6 +3392,11 @@ static gboolean is_firewalled_changed(property_t prop)
 		gtk_widget_hide(icon_firewall);
 		gtk_widget_show(icon_open);
 	}
+
+    gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
+  	gtk_widget_set_sensitive
+        (lookup_widget(popup_downloads, "popup_downloads_push"),
+		!val && send_pushes);
 
 	return FALSE;
 }
@@ -3800,7 +3805,8 @@ static gboolean send_pushes_changed(property_t prop)
         (lookup_widget(top, map_entry->wid)), !val);
 
   	gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_push"), val);
+        (lookup_widget(popup_downloads, "popup_downloads_push"),
+		val && !is_firewalled);
 
     return FALSE;
 }

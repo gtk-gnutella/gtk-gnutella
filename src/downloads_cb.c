@@ -157,6 +157,11 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads_queue"));
+	gboolean send_pushes;
+
+    gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
+	if (is_firewalled || !send_pushes)
+		return;
 
     gtk_clist_freeze(GTK_CLIST(ctree_downloads_queue));
     gtk_clist_freeze(GTK_CLIST(ctree_downloads));
@@ -1097,5 +1102,5 @@ void on_popup_queue_collapse_all_activate(GtkMenuItem *menuitem,
     downloads_gui_collapse_all(ctree_downloads_queue);
 }
 
-
+/* vi: set ts=4: */
 #endif	/* USE_GTK1 */
