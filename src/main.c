@@ -122,9 +122,9 @@ void gtk_gnutella_exit(gint n)
 	routing_close();
 	bsched_close();
 	dmesh_close();
-	settings_close();
 	host_close();
-	hcache_close();
+	hcache_close();		/* After host_close() */
+	settings_close();	/* Must come after hcache_close() */
 	ban_close();
     whitelist_close();
 	cq_free(callout_queue);
