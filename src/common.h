@@ -165,9 +165,9 @@ do {				\
 #define GTA_VERSION 0
 #define GTA_SUBVERSION 94
 #define GTA_PATCHLEVEL 0
-#define GTA_REVISION "unstable"
-#define GTA_REVCHAR "u"
-#define GTA_RELEASE "2004-06-21"	/* ISO format YYYY-MM-DD */
+#define GTA_REVISION "stable"
+#define GTA_REVCHAR ""
+#define GTA_RELEASE "2004-07-10"	/* ISO format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)

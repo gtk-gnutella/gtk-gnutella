@@ -1,5 +1,30 @@
 # since last version
 
+# v 0.94	2004.07.10	[stable]
+- GUI updates:
+ * File info pane renamed to downloads
+ * Downloads pane renamed to sources
+ * Progress of a download can now visually be showed. This will show which
+   fragment of a file was downloaded, which fragment gtkg currently is
+   downloading and which fragments are availalbe on the gnutella network.
+ * Uploads and download sources pane now contain a visual progressbar.
+ * GTK2 can now be resized smaller then 933 pixels width.
+ * Search results now include an extension column so you can sort by
+   extension if needed.
+- HSEP included, this will give you an estimation of the horizon size. This
+  includes the number of files and the total size of all files on the network.
+- If no default port was specified, gtkg will now bind to a random port and
+  will use that port from that point.
+  If you are behind a firewall and routed a port to gtk-gnutella, please check
+  gtk-gnutella still runs at the port you want it to run!
+- Will parse up to 150 hosts in a gwebcache reply to bootstrap from.
+- New hostcache to make gtk-gutella faster connect to the network.
+- Dutch translation updated.
+- German translation updated.
+- Spanish translation updated.
+- French translation updated.
+- Hungarian translation updated.
+
 - (2004-06-25 - Richard)
  * Reverted changes in hcache.c from last commit. Instead made those changes:
  * No longer call hcache_remove_all() from hcache_free().
