@@ -10,10 +10,10 @@
 
 #include "interface.h"
 
-GSList *sl_catched_hosts = (GSList *) NULL;
-GHashTable *ht_catched_hosts = (GHashTable *) NULL;		/* Same, as H table */
+GList *sl_catched_hosts = NULL;
+GHashTable *ht_catched_hosts = NULL;	/* Same, as H table */
 
-GSList *ping_reqs = (GSList *) NULL;
+GSList *ping_reqs = NULL;
 guint32 n_ping_reqs = 0;
 struct ping_req *pr_ref = (struct ping_req *) NULL;
 
@@ -21,7 +21,8 @@ gchar h_tmp[4096];
 
 gint hosts_idle_func = 0;
 
-#define MAX_PING_REQS 64		/* How many ping requests we have to remember */
+#define MAX_PING_REQS 	64		/* How many ping requests we have to remember */
+#define HOST_READ_CNT	20		/* Amount of hosts to read each idle tick */
 
 static void ping_reqs_clear(void);
 
@@ -112,13 +113,12 @@ void host_remove(struct gnutella_host *h, gboolean from_clist_too)
 	gint row;
 
 	if (from_clist_too) {
-		row =
-			gtk_clist_find_row_from_data(GTK_CLIST(clist_host_catcher),
-										 (gpointer) h);
+		row = gtk_clist_find_row_from_data(
+			GTK_CLIST(clist_host_catcher), (gpointer) h);
 		gtk_clist_remove(GTK_CLIST(clist_host_catcher), row);
 	}
 
-	sl_catched_hosts = g_slist_remove(sl_catched_hosts, h);
+	sl_catched_hosts = g_list_remove(sl_catched_hosts, h);
 	host_ht_remove(h);
 
 	if (!sl_catched_hosts)
@@ -156,6 +156,7 @@ void host_add(struct gnutella_node *n, guint32 t_ip, guint16 t_port,
 	gint row;
 	guint32 ip;
 	guint16 port;
+	gint extra;
 
 	if (n) {
 		READ_GUINT32_BE(n->data + 2, ip);
@@ -199,9 +200,8 @@ void host_add(struct gnutella_node *n, guint32 t_ip, guint16 t_port,
 	 *				--RAM, 20/09/2001
 	 */
 
-	if (connect &&
-		nodes_in_list < max_connections &&
-		connected_nodes() < up_connections)
+	if (connect && nodes_in_list < max_connections &&
+			connected_nodes() < up_connections)
 		node_add(NULL, host->ip, host->port);
 
 	/* Add the host to the hosts catcher list */
@@ -213,8 +213,16 @@ void host_add(struct gnutella_node *n, guint32 t_ip, guint16 t_port,
 	if (!sl_catched_hosts)
 		gtk_widget_set_sensitive(button_host_catcher_clear, TRUE);
 
-	sl_catched_hosts = g_slist_prepend(sl_catched_hosts, host);
+	sl_catched_hosts = g_list_append(sl_catched_hosts, host);
 	host_ht_add(host);
+
+	/*
+	 * Prune cache if we reached our limit.
+	 */
+
+	extra = g_hash_table_size(ht_catched_hosts) - max_hosts_cached;
+	while (extra-- > 0)
+		host_remove(g_list_first(sl_catched_hosts)->data, TRUE);
 }
 
 /*
@@ -227,26 +235,34 @@ gint hosts_reading_func(gpointer data)
 {
 	gchar *s;
 	guint16 port;
+	gint max_read = max_hosts_cached - g_hash_table_size(ht_catched_hosts);
+	gint count = MIN(max_read, HOST_READ_CNT);
+	gint i;
 
-	if (fgets(h_tmp, sizeof(h_tmp) - 1, hosts_r_file)) {	/* \0 appended */
-		s = h_tmp;
-		while (*s && *s != ':')
-			s++;
-		port = (*s) ? atoi(s + 1) : 6346;
-		*s++ = 0;
-		host_add(NULL, gchar_to_ip(h_tmp), port, FALSE);
-
-		return TRUE;
+	for (i = 0; i < count; i++) {
+		if (fgets(h_tmp, sizeof(h_tmp) - 1, hosts_r_file)) { /* NUL appended */
+			s = h_tmp;
+			while (*s && *s != ':')
+				s++;
+			port = (*s) ? atoi(s + 1) : 6346;
+			*s++ = 0;
+			host_add(NULL, gchar_to_ip(h_tmp), port, FALSE);
+		} else
+			goto done;
 	}
 
+	if (count < max_read)
+		return TRUE;			/* Host cache not full, need to read more */
+
+	/* Fall through */
+
+done:
 	fclose(hosts_r_file);
 
 	hosts_r_file = (FILE *) NULL;
-
 	hosts_idle_func = 0;
 
 	gtk_clist_thaw(GTK_CLIST(clist_host_catcher));
-
 	gui_set_status(NULL);
 
 	return FALSE;
@@ -269,7 +285,7 @@ void hosts_read_from_file(gchar * path, gboolean quiet)
 
 	hosts_idle_func = gtk_idle_add(hosts_reading_func, (gpointer) NULL);
 
-	gui_set_status("Reading catched hosts file...");
+	gui_set_status("Reading caught host file...");
 }
 
 void hosts_write_to_file(gchar * path)
@@ -277,7 +293,7 @@ void hosts_write_to_file(gchar * path)
 	/* Saves the currently catched hosts to a file */
 
 	FILE *f;
-	GSList *l;
+	GList *l;
 
 	f = fopen(path, "w");
 
@@ -290,8 +306,7 @@ void hosts_write_to_file(gchar * path)
 	for (l = sl_catched_hosts; l; l = l->next)
 		fprintf(f, "%s\n",
 				ip_port_to_gchar(((struct gnutella_host *) l->data)->ip,
-								 ((struct gnutella_host *) l->data)->
-								 port));
+								 ((struct gnutella_host *) l->data)->port));
 
 	fclose(f);
 }
@@ -481,7 +496,7 @@ void host_close(void)
 	g_hash_table_destroy(ht_catched_hosts);
 
 	ping_reqs_clear();
-	g_slist_free(sl_catched_hosts);
+	g_list_free(sl_catched_hosts);
 }
 
 /* vi: set ts=4: */
