@@ -39,20 +39,17 @@
 
 #include "sockets.h"
 #include "share.h"
-#include "uploads_gui.h"
+#include "uploads_gui.h" // FIXME: remove this dependency
 #include "getline.h"
 #include "header.h"
 #include "hosts.h"		/* for check_valid_host() */
-#include "url.h"
 #include "bsched.h"
 #include "upload_stats.h"
 #include "dmesh.h"
 #include "http.h"
-#include "cq.h"
 #include "version.h"
 #include "nodes.h"
 
-#include "gnet_property_priv.h"
 #include "settings.h"
 
 GSList *uploads = NULL;
@@ -2268,6 +2265,19 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 }
 
 /*
+ * upload_kill:
+ *
+ * Kill a running upload.
+ */
+void upload_kill(struct upload *u)
+{
+    g_assert(u != NULL);
+
+    if (UPLOAD_IS_COMPLETE(u))
+        socket_destroy(u->socket);
+}
+
+/*
  * upload_init
  *
  * Initialize uploads.
@@ -2295,15 +2305,3 @@ void upload_close(void)
 	g_hash_table_destroy(mesh_info);
 
 }
-
-
-/* 
- * Emacs stuff:
- * Local Variables: ***
- * c-indentation-style: "bsd" ***
- * fill-column: 80 ***
- * tab-width: 4 ***
- * indent-tabs-mode: nil ***
- * End: ***
- */
-/* vi: set ts=4: */
