@@ -1091,17 +1091,11 @@ FOCUS_TO_ACTIVATE(entry_max_host_downloads)
 void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton, 
 										  gpointer user_data) 
 {
-	if (gtk_toggle_button_get_active(togglebutton)) {
-		gtk_label_set_text(GTK_LABEL(GTK_BIN(togglebutton)->child),
-						   "Unfreeze queue");
-		gui_statusbar_push(scid_queue_freezed, "QUEUE FROZEN");
+    if (gtk_toggle_button_get_active(togglebutton)) {
+        download_freeze_queue();
     } else {
-		gtk_label_set_text(GTK_LABEL(GTK_BIN(togglebutton)->child),
-						   "Freeze queue");
-		gui_statusbar_pop(scid_queue_freezed);
-	}
-
-	download_freeze_queue(gtk_toggle_button_get_active(togglebutton));
+        download_thaw_queue();
+    }
 }
 
 
@@ -1254,16 +1248,14 @@ void on_clist_downloads_queue_drag_begin(GtkWidget *widget,
                                          GdkDragContext *drag_context, 
                                          gpointer user_data)
 {
-    g_message("drag starts");
-    download_freeze_queue(TRUE);
+    download_freeze_queue();
 }
 
 void on_clist_downloads_queue_drag_end(GtkWidget *widget, 
                                        GdkDragContext *drag_context, 
                                        gpointer user_data)
 {
-    g_message("drag ends");
-    download_freeze_queue(FALSE);
+    download_thaw_queue();
 }
 
 
@@ -1336,10 +1328,6 @@ void on_button_search_download_clicked(GtkButton * button, gpointer user_data)
     search_download_files();
 }
 
-void on_button_search_stream_clicked(GtkButton * button, gpointer user_data)
-{
-	// FIXME
-}
 
 
 /***
