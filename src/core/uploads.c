@@ -241,6 +241,7 @@ void upload_timer(time_t now)
 					g_warning("frequent stalling detected, using workarounds");
 				last_stalled = now;
 				u->flags |= UPLOAD_F_STALLED;
+				gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, TRUE);
 				g_warning("connection to %s (%s) stalled after %u bytes sent,"
 					" stall counter at %d",
 					ip_to_gchar(u->ip), upload_vendor_str(u), u->sent, stalled);
@@ -307,8 +308,10 @@ void upload_timer(time_t now)
 			last_stalled = now;
 			if (dbg)
 				g_warning("stall counter downgraded to %d", stalled);
-			if (stalled == 0)
+			if (stalled == 0) {
 				g_warning("frequent stalling condition cleared");
+				gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, FALSE);
+			}
 		}
 	}
 
