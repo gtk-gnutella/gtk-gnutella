@@ -444,23 +444,36 @@ drag_begin(GtkWidget *widget, GdkDragContext *drag_ctx, gpointer udata)
 
 		/* Allow partials but not unstarted files */
 		if (fis.done > 0) {
+			const gchar *path;
+			gchar *save_path = NULL;
+			
 			fi = guc_fi_get_info(fih);
 			g_assert(fi != NULL);
+			if (fis.done < fis.size) {
+				path = fi->path;
+			} else {
+				/* XXX: This is a hack since the final destination might
+				 *		might be different e.g., due to a filename clash
+				 *		or because the PROP_MOVE_FILE_PATH changed in the
+				 *		meantime. */
+				save_path = gnet_prop_get_string(PROP_MOVE_FILE_PATH, NULL, 0);
+				path = save_path;
+			}
 
-			if (fi->path && fi->file_name) {
+			if (path && fi->file_name) {
 				gchar *escaped;
 				gchar *pathname;
 
-				pathname = make_pathname(fi->path, fi->file_name);
+				pathname = make_pathname(path, fi->file_name);
 				escaped = url_escape(pathname);
 				if (escaped != pathname)
 					G_FREE_NULL(pathname);
 
 				*url_ptr = g_strdup_printf("file://%s", escaped);
-				gtk_drag_set_icon_stock(drag_ctx, "gtk-file", 0, 0);
 
 				G_FREE_NULL(escaped);
 			}
+			G_FREE_NULL(save_path);
 			
     		guc_fi_free_info(fi);
 		}
@@ -597,11 +610,6 @@ fi_gui_init(void)
 	gtk_tree_view_enable_model_drag_source(treeview_fileinfo, 
 		GTK_DEST_DEFAULT_ALL, targets, G_N_ELEMENTS(targets),
 		GDK_ACTION_COPY | GDK_ACTION_ASK);
-	gtk_drag_source_set(GTK_WIDGET(treeview_fileinfo),
-		GTK_DEST_DEFAULT_ALL, targets, G_N_ELEMENTS(targets),
-		GDK_ACTION_COPY | GDK_ACTION_ASK);
-	gtk_drag_source_set_target_list(GTK_WIDGET(treeview_fileinfo),
-		gtk_target_list_new(targets, G_N_ELEMENTS(targets)));
 	
     g_signal_connect(G_OBJECT(treeview_fileinfo), "drag-data-get",
         G_CALLBACK(drag_data_get), &dnd_url);
