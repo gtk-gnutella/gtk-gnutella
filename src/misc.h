@@ -52,8 +52,6 @@
 #define RCSID(x) static const char rcsid[] = "@(#) " x
 #endif
 
-RCSID("$Id$");
-
 #define SIZE_FIELD_MAX 64		/* Max size of sprintf-ed size quantity */
 
 
