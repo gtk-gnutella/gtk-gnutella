@@ -106,7 +106,6 @@ typedef struct search_ctrl {
 	gchar  *query;				/* The search query */
 	time_t  time;				/* Time when this search was started */
 	GSList *muids;				/* Message UIDs of this search */
-	GHashTable *h_muids;		/* All known message UIDs of this search */
 
 	gboolean passive;			/* Is this a passive search? */
 	gboolean frozen;			/* True => don't update window */
@@ -127,9 +126,18 @@ typedef struct search_ctrl {
 } search_ctrl_t;
 
 /*
- * List of searches.
+ * List of all searches, and of passive searches only.
  */
-static GSList *sl_search_ctrl = NULL;
+static GSList *sl_search_ctrl = NULL;		/* All searches */
+static GSList *sl_passive_ctrl = NULL;		/* Only passive searches */
+
+/*
+ * Table holding all the active MUIDs for all the searches, pointing back
+ * to the searches directly (i.e. it maps MUID -> search_ctrl_t).
+ * The keys are not atoms but directly the MUID objects allocated and held
+ * in the search's set of MUIDs.
+ */
+static GHashTable *search_by_muid = NULL;
 
 static zone_t *rs_zone = NULL;		/* Allocation of results_set */
 static zone_t *rc_zone = NULL;		/* Allocation of record */
@@ -302,18 +310,6 @@ search_already_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
 	sd.ip = n->ip;
 	sd.port = n->port;
 	return NULL != g_hash_table_lookup(sch->sent_nodes, &sd);
-}
-
-/**
- * Return TRUE if the muid list of the given search contains the
- * given muid.
- */
-static gboolean
-search_has_muid(search_ctrl_t *sch, const gchar *muid)
-{
-	g_assert(sch->h_muids);
-
-	return NULL != g_hash_table_lookup(sch->h_muids, muid);
 }
 
 /**
@@ -1474,11 +1470,15 @@ node_added_callback(gpointer data)
 
 /**
  * Create a new muid and add it to the search's list of muids.
+ * Also record the direct mapping between this muid and the search into
+ * the `search_by_muid' table.
  */
 static void
 search_add_new_muid(search_ctrl_t *sch, gchar *muid)
 {
 	guint count;
+
+	g_assert(NULL == g_hash_table_lookup(search_by_muid, muid));
 
 	if (sch->muids) {		/* If this isn't the first muid -- requerying */
 		search_reset_sent_nodes(sch);
@@ -1486,7 +1486,7 @@ search_add_new_muid(search_ctrl_t *sch, gchar *muid)
 	}
 
 	sch->muids = g_slist_prepend(sch->muids, (gpointer) muid);
-	g_hash_table_insert(sch->h_muids, muid, muid);
+	g_hash_table_insert(search_by_muid, muid, sch);
 
 	/*
 	 * If we got more than MUID_MAX entries in the list, chop last items.
@@ -1496,7 +1496,7 @@ search_add_new_muid(search_ctrl_t *sch, gchar *muid)
 
 	while (count-- > MUID_MAX) {
 		GSList *last = g_slist_last(sch->muids);
-		g_hash_table_remove(sch->h_muids, last->data);
+		g_hash_table_remove(search_by_muid, last->data);
 		wfree(last->data, MUID_SIZE);
 		sch->muids = g_slist_remove_link(sch->muids, last);
 		g_slist_free_1(last);
@@ -1713,10 +1713,14 @@ search_dequeue_all_nodes(gnet_search_t sh)
 void
 search_init(void)
 {
+	extern guint guid_hash(gconstpointer key);		/* from lib/atoms.c */
+	extern gint guid_eq(gconstpointer a, gconstpointer b);
+
 	rs_zone = zget(sizeof(gnet_results_set_t), 1024);
 	rc_zone = zget(sizeof(gnet_record_t), 1024);
     
 	searches = g_hash_table_new(g_direct_hash, 0);
+	search_by_muid = g_hash_table_new(guid_hash, guid_eq);
     search_handle_map = idtable_new(32,32);
 	query_hashvec = qhvec_alloc(128);	/* Max: 128 unique words / URNs! */
 }
@@ -1733,6 +1737,7 @@ search_shutdown(void)
     g_assert(idtable_ids(search_handle_map) == 0);
 
 	g_hash_table_destroy(searches);
+	g_hash_table_destroy(search_by_muid);
     idtable_destroy(search_handle_map);
     search_handle_map = NULL;
 	qhvec_free(query_hashvec);
@@ -1753,35 +1758,33 @@ gboolean
 search_results(gnutella_node_t *n, gint *results)
 {
 	gnet_results_set_t *rs;
-	GSList *selected_searches = NULL;
 	GSList *sl;
 	gboolean drop_it = FALSE;
 	gboolean forward_it = TRUE;
+	GSList *selected_searches = NULL;
+	search_ctrl_t *active_sch;
 
 	g_assert(results != NULL);
 
 	/*
-	 * Look for all the searches, and put the ones we need to possibly
-	 * dispatch the results to into the selected_searches list.
+	 * We'll dispatch to non-frozen passive searches, and to the active search
+	 * matching the MUID, if any and not frozen as well.
 	 */
 
-	for (sl = sl_search_ctrl; sl != NULL; sl = g_slist_next(sl)) {
+	for (sl = sl_passive_ctrl; sl != NULL; sl = g_slist_next(sl)) {
 		search_ctrl_t *sch = (search_ctrl_t *) sl->data;
 
-		/*
-		 * Candidates are all non-frozen searches that are either
-         * passive or for which we sent a query bearing the message 
-         * ID of the reply.
-		 */
-
-		if (
-            !sch->frozen && 
-			(sch->passive || search_has_muid(sch, n->header.muid))
-        ) {
-			selected_searches = g_slist_prepend
-                (selected_searches, GUINT_TO_POINTER(sch->search_handle));
-        }
+		if (!sch->frozen)
+			selected_searches = g_slist_prepend(selected_searches,
+				GUINT_TO_POINTER(sch->search_handle));
 	}
+
+	active_sch = (search_ctrl_t *)
+		g_hash_table_lookup(search_by_muid, n->header.muid);
+
+	if (active_sch != NULL && !active_sch->frozen)
+		selected_searches = g_slist_prepend(selected_searches,
+			GUINT_TO_POINTER(active_sch->search_handle));
 
 	/*
 	 * Parse the packet.
@@ -1791,9 +1794,9 @@ search_results(gnutella_node_t *n, gint *results)
 	 */
 
 	rs = get_results_set(n,
-		selected_searches == NULL
-		&& !auto_download_identical
-		&& !auto_feed_download_mesh);
+		   selected_searches != NULL &&
+		   !auto_download_identical &&
+		   !auto_feed_download_mesh);
 
 	if (rs == NULL) {
         /*
@@ -1891,8 +1894,8 @@ search_results(gnutella_node_t *n, gint *results)
 	 * Dispatch the results to the selected searches.
 	 */
 
-     if (selected_searches != NULL)
-        search_fire_got_results(selected_searches, rs);
+	if (selected_searches != NULL)
+		search_fire_got_results(selected_searches, rs);
 
     search_free_r_set(rs);
 
@@ -2082,6 +2085,9 @@ search_close(gnet_search_t sh)
      */
 
 	sl_search_ctrl = g_slist_remove(sl_search_ctrl, (gpointer) sch);
+	if (sch->passive)
+		sl_passive_ctrl = g_slist_remove(sl_passive_ctrl, (gpointer) sch);
+
     search_drop_handle(sch->search_handle);
 	g_hash_table_remove(searches, sch);
 
@@ -2093,11 +2099,12 @@ search_close(gnet_search_t sh)
 		if (sch->reissue_timeout_id)
 			g_source_remove(sch->reissue_timeout_id);
 
-		for (m = sch->muids; m; m = m->next)
+		for (m = sch->muids; m; m = m->next) {
+			g_hash_table_remove(search_by_muid, m->data);
 			wfree(m->data, MUID_SIZE);
+		}
 
 		g_slist_free(sch->muids);
-		g_hash_table_destroy(sch->h_muids);
 
 		search_free_sent_nodes(sch);
 		search_free_sent_node_ids(sch);
@@ -2121,6 +2128,7 @@ search_new_muid(gboolean initial)
 {
 	gchar *muid;
 	guint32 ip;
+	gint i;
 
 	muid = walloc(MUID_SIZE);
 
@@ -2137,12 +2145,19 @@ search_new_muid(gboolean initial)
 
 	ip = listen_ip();
 
-	if (enable_udp && ip_is_valid(ip))
-		guid_query_oob_muid(muid, ip, listen_port, initial);
-	else
-		guid_query_muid(muid, initial);
+	for (i = 0; i < 100; i++) {
+		if (enable_udp && ip_is_valid(ip))
+			guid_query_oob_muid(muid, ip, listen_port, initial);
+		else
+			guid_query_muid(muid, initial);
 
-	return muid;
+		if (NULL == g_hash_table_lookup(search_by_muid, muid))
+			return muid;
+	}
+
+	g_error("random number generator not random enough");	/* Sorry */
+
+	return NULL;
 }
 
 /**
@@ -2254,9 +2269,6 @@ search_new(
 		sch->passive = TRUE;
 		search_passive++;
 	} else {
-		extern guint guid_hash(gconstpointer key);
-		extern gint guid_eq(gconstpointer a, gconstpointer b);
-
 		sch->new_node_hook = g_hook_alloc(&node_added_hook_list);
 		sch->new_node_hook->data = (gpointer) sch;
 		sch->new_node_hook->func = (gpointer) node_added_callback;
@@ -2264,14 +2276,15 @@ search_new(
 
 		sch->reissue_timeout = reissue_timeout;
 
-		sch->h_muids = g_hash_table_new(guid_hash, guid_eq);
-
 		sch->sent_nodes =
 			g_hash_table_new(sent_node_hash_func, sent_node_compare);
 		sch->sent_node_ids = g_hash_table_new(g_int_hash, g_int_equal);
 	}
 
 	sl_search_ctrl = g_slist_prepend(sl_search_ctrl, (gpointer) sch);
+
+	if (sch->passive)
+		sl_passive_ctrl = g_slist_prepend(sl_passive_ctrl, (gpointer) sch);
 
 	return sch->search_handle;
 }
@@ -2373,19 +2386,15 @@ search_stop(gnet_search_t sh)
 gboolean
 search_get_kept_results(gchar *muid, guint32 *kept)
 {
-	GSList *sl;
 	search_ctrl_t *sch;
 
-	for (sl = sl_search_ctrl; sl; sl = g_slist_next(sl)) {
-		sch = (search_ctrl_t *) sl->data;
+	sch = (search_ctrl_t *) g_hash_table_lookup(search_by_muid, muid);
 
-		if (!sch->passive && search_has_muid(sch, muid))
-			goto found;
-	}
+	g_assert(sch == NULL || !sch->passive);		/* No MUID if passive */
 
-	return FALSE;
+	if (sch == NULL)
+		return FALSE;
 
-found:
 	if (search_debug > 1)
 		printf("SCH reporting %u kept results for \"%s\"\n",
 			sch->kept_results, sch->query);
