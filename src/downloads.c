@@ -598,7 +598,7 @@ void download_info_change_all(
 			break;
 		}
 
-		file_info_free(old_fi);
+		old_fi->refcount--;
 		d->file_info = new_fi;
 		new_fi->refcount++;
 
