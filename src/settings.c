@@ -67,8 +67,8 @@ RCSID("$Id$");
 
 #define debug dbg
 
-static const gchar *config_file = "config_gnet";
-static const gchar *ul_stats_file = "upload_stats";
+static const gchar config_file[] = "config_gnet";
+static const gchar ul_stats_file[] = "upload_stats";
 
 #define CONFIG_DIR_MODE	/* 0755 */ \
 	(S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
@@ -92,8 +92,7 @@ static prop_set_t *properties = NULL;
  * progressbar_bps_out_avg     0.90u 15/05/2002 progressbar_bws_out_avg
  */
 
-static gchar cfg_tmp[4096];
-static const gchar *pidfile = "gtk-gnutella.pid";
+static const gchar pidfile[] = "gtk-gnutella.pid";
 
 static void settings_callbacks_init(void);
 static void settings_callbacks_shutdown(void);
@@ -111,23 +110,26 @@ extern cqueue_t *callout_queue;
  */
 static void ensure_unicity(const gchar *file)
 {
-	FILE *fd;
+	FILE *f;
 	pid_t pid;
-	glong  pid_value = 0; 
+	gulong pid_value; 
+	gint error;
 	gchar buf[16];
 
-	fd = file_fopen_missing(file, "r");
-	if (fd == NULL)
+	f = file_fopen_missing(file, "r");
+	if (f == NULL)
 		return;				/* Assume it's missing if can't be opened */
 
 	buf[0] = '\0';
-	fgets(buf, sizeof(buf) - 1, fd);
-	sscanf(buf, "%ld", &pid_value);
-	pid = pid_value; 
-	fclose(fd);
+	if (NULL == fgets(buf, sizeof(buf), f))
+		return;
+	fclose(f);
 
-	if (pid == 0)
+	pid_value = gm_atoul(buf, NULL, &error);
+	if (error)
 		return;				/* Can't read it back correctly */
+
+	pid = pid_value;
 
 	/*
 	 * Existence check relies on the existence of signal 0. The kernel
@@ -154,16 +156,15 @@ static void ensure_unicity(const gchar *file)
  */
 static void save_pid(const gchar *file)
 {
-	FILE *fd;
+	FILE *f;
 
-	fd = file_fopen(file, "w");
-
-	if (fd == NULL)
+	f = file_fopen(file, "w");
+	if (f == NULL)
 		return;
 
-	fprintf(fd, "%d\n", (gint) getpid());
+	fprintf(f, "%lu\n", (gulong) getpid());
 
-	if (0 != fclose(fd))
+	if (0 != fclose(f))
 		g_warning("could not flush pidfile \"%s\": %s",
 			file, g_strerror(errno));
 }
@@ -261,9 +262,7 @@ void settings_init(void)
 
 	if (!config_dir) {
 		if (home_dir) {
-			gm_snprintf(cfg_tmp, sizeof(cfg_tmp),
-				"%s/.gtk-gnutella", home_dir);
-			config_dir = g_strdup(cfg_tmp);
+			config_dir = make_pathname(home_dir, ".gtk-gnutella");
 		} else
 			g_warning(_("No home directory: prefs will not be saved!"));
 	}
@@ -289,7 +288,7 @@ void settings_init(void)
 	g_assert(NULL != config_dir);
 	/* Ensure we're the only instance running */
 
-	path = g_strdup_printf("%s/%s", config_dir, pidfile);
+	path = make_pathname(config_dir, pidfile);
 	ensure_unicity(path);
 	save_pid(path);
 	G_FREE_NULL(path);
@@ -300,7 +299,7 @@ void settings_init(void)
 	hcache_retrieve(HCACHE_ANY);
 	hcache_retrieve(HCACHE_ULTRA);
 
-	path = g_strdup_printf("%s/%s", config_dir, ul_stats_file);
+	path = make_pathname(config_dir, ul_stats_file);
 	upload_stats_load_history(path);	/* Loads the upload statistics */
 	G_FREE_NULL(path);
 	
@@ -411,7 +410,7 @@ static void settings_remove_pidfile(void)
 {
 	char *path;
 
-	path = g_strdup_printf("%s/%s", config_dir, pidfile);
+	path = make_pathname(config_dir, pidfile);
 	g_return_if_fail(NULL != path);
 	if (-1 == unlink(path))
 		g_warning("could not remove pidfile \"%s\": %s",
