@@ -2052,12 +2052,14 @@ cleanup:
 	 *		--RAM, 11/05/2003
 	 */
 
-	buf = header_get(header, "X-Node");
-	if (buf == NULL)
-		buf = header_get(header, "X-Listen-Ip");	/* Case normalized */
+	if (parq_ul->major >= 1) {					/* Only if PARQ advertised */
+		buf = header_get(header, "X-Node");
+		if (buf == NULL)
+			buf = header_get(header, "X-Listen-Ip");	/* Case normalized */
 
-	if (buf != NULL && gchar_to_ip_port(buf, &parq_ul->ip, &parq_ul->port))
-		parq_ul->flags &= ~PARQ_UL_NOQUEUE;
+		if (buf != NULL && gchar_to_ip_port(buf, &parq_ul->ip, &parq_ul->port))
+			parq_ul->flags &= ~PARQ_UL_NOQUEUE;
+	}
 	
 	return parq_ul;
 }
