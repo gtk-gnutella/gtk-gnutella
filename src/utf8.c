@@ -509,12 +509,19 @@ static const char *codesets[] = {
  * Returns a string representing the current locale as an alias which is
  * understood by GNU iconv. The returned pointer points to a static buffer.
  */
-const char *locale_charset(const char *cs)
+const char *locale_charset(void)
 {
 	int i = 0;
+	const char *cs;
 	const char *start = codesets[0]; 
 	const char *first_end = NULL;
-	size_t cs_len = strlen(cs);
+	size_t cs_len;
+
+	cs = nl_langinfo(CODESET);
+	if (NULL == cs || '\0' != *cs)
+		return NULL;
+
+	cs_len = strlen(cs);
 
 	while (NULL != codesets[i]) {
 		static char buf[64];
@@ -560,9 +567,7 @@ void locale_init(void)
 
 #else
 
-	codeset = nl_langinfo(CODESET);
-	if (NULL != codeset && '\0' != *codeset)
-		codeset = locale_charset(codeset);
+	codeset = locale_charset();
 	if (codeset == NULL) {
 		codeset = "ISO-8859-1";		/* Default locale codeset */
 		g_warning("locale_init: Using default codeset %s as fallback.",
