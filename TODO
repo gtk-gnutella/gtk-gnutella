@@ -1,26 +1,31 @@
 This documents describes briefly the things we want to have in gtk-gnutella 
 
 0.94 (1.0)
-	* Tigertree 						(started)
-	* Smaller memory footprint by using Berkeley DB for:
+	* Tigertree 						(JA: started)
+	* Smaller memory footprint by using sqlite for:
 	 - PARQ
 	 - Host cache
 	* Faster connecting to the gnutella network by connecting to good /
 	  stable ultrapeers first.
+	* High outdegree support
+	* Inter-up QRP
 	* Dynamic query
 	* Browse host support
-	* Implementation of Horizon Estimation (HEP 0.2)
+	* Implementation of Horizon Estimation (HEP 0.2)	(TS: started)
 	* Meta data
 	* magnet links
 	* Download proxy
 	* GUI: Add / remove of gwebcaches
+	* PARQ: Update to 1.1 (to be specified)
 	* PARQ: PFS aware
 	* PARQ: Tigertree aware
 	* PARQ: 'Rotating' queue by filename
 	* IP / hostname White list
+	* Area-specific logging.
 
 After this release we should start with the gui <-> core/lib seperation.
 Therefore 0.94.x will probably be renamed to 1.0 as soon as it is completly
 stable
 
 - Jeroen
+
