@@ -40,6 +40,7 @@
 #include "huge.h"
 #include "http.h"
 #include "hostiles.h"
+#include "guid.h"
 
 #include "settings.h"
 
@@ -1845,7 +1846,6 @@ void dmesh_multiple_downloads(
 	dmesh_urlinfo_t buffer[DMESH_MAX];
 	dmesh_urlinfo_t *p;
 	gint n;
-	static gchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 	time_t now;
 
 	n = dmesh_alt_loc_fill(sha1, buffer, DMESH_MAX);

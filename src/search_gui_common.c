@@ -27,6 +27,7 @@
 
 #include "gui.h"
 #include "gnet.h"
+#include "guid.h"			/* For blank_guid[] */
 
 /* GUI includes  */
 #include "search_gui_common.h"
@@ -491,7 +492,6 @@ void search_gui_check_alt_locs(record_t *rc, time_t stamp)
 {
 	gint i;
 	alt_locs_t *alt = rc->alt_locs;
-	static gchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
 	g_assert(alt != NULL);
 

@@ -34,6 +34,8 @@
  * Public interface.
  */
 
+extern gchar blank_guid[16];
+
 void guid_init(void);
 gboolean guid_is_gtkg(
 	const gchar *xuid, guint8 *majp, guint8 *minp, gboolean *relp);

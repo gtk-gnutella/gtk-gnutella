@@ -50,6 +50,7 @@
 #include "clock.h"
 #include "uploads.h"
 #include "ban.h"
+#include "guid.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -143,8 +144,6 @@ static gint dl_active = 0;				/* Active downloads */
 
 #define count_running_downloads()	(dl_establishing + dl_active)
 #define count_running_on_server(s)	(s->count[DL_LIST_RUNNING])
-
-static gchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
 extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
