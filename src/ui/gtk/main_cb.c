@@ -45,7 +45,6 @@ static void quit(gboolean force)
     gboolean confirm;
 
     gui_prop_get_boolean(PROP_CONFIRM_QUIT, &confirm, 0, 1);
-
     if (force || !confirm)
        	guc_gtk_gnutella_exit(0);
     else
@@ -56,15 +55,24 @@ static void quit(gboolean force)
  *** Main window
  ***/
 
-gboolean on_main_window_delete_event
-    (GtkWidget *widget, GdkEvent *event, gpointer user_data)
+gboolean
+on_main_window_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
+		gpointer unused_udata)
 {
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+	
     quit(FALSE);
 	return TRUE;
 }
 
-void on_button_quit_clicked(GtkButton * button, gpointer user_data)
+void
+on_button_quit_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
+	
     quit(FALSE);
 }
 
@@ -74,13 +82,21 @@ void on_button_quit_clicked(GtkButton * button, gpointer user_data)
  *** menu bar
  ***/ 
 
-void on_menu_about_activate(GtkMenuItem *menuitem, gpointer user_data)
+void
+on_menu_about_activate(GtkMenuItem *unused_menuitem, gpointer unused_udata)
 {
+	(void) unused_menuitem;
+	(void) unused_udata;
+	
     gtk_widget_show(dlg_about);
 }
 
-void on_menu_prefs_activate(GtkMenuItem *menuitem, gpointer user_data)
+void
+on_menu_prefs_activate(GtkMenuItem *unused_menuitem, gpointer unused_udata)
 {
+	(void) unused_menuitem;
+	(void) unused_udata;
+	
     gtk_widget_show(dlg_prefs);
 }
 
@@ -90,14 +106,23 @@ void on_menu_prefs_activate(GtkMenuItem *menuitem, gpointer user_data)
  *** about dialog
  ***/
 
-void on_button_about_close_clicked(GtkButton *button, gpointer user_data)
+void
+on_button_about_close_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
+	
     gtk_widget_hide(dlg_about);
 }
 
-gboolean on_dlg_about_delete_event
-    (GtkWidget *widget, GdkEvent *event, gpointer user_data)
+gboolean
+on_dlg_about_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
+	gpointer unused_udata)
 {
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+	
 	gtk_widget_hide(dlg_about);
 	return TRUE;
 }
@@ -106,14 +131,23 @@ gboolean on_dlg_about_delete_event
  *** prefs dialog
  ***/
 
-void on_button_prefs_close_clicked(GtkButton *button, gpointer user_data)
+void
+on_button_prefs_close_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
+	
     gtk_widget_hide(dlg_prefs);
 }
 
-gboolean on_dlg_prefs_delete_event
-    (GtkWidget *widget, GdkEvent *event, gpointer user_data)
+gboolean
+on_dlg_prefs_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
+	gpointer unused_udata)
 {
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+	
 	gtk_widget_hide(dlg_prefs);
 	return TRUE;
 }
@@ -122,67 +156,93 @@ gboolean on_dlg_prefs_delete_event
 /***
  *** Quit dialog
  ***/
-void on_button_really_quit_clicked(GtkButton *button,gpointer user_data)
+
+void
+on_button_really_quit_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
+	
     gtk_widget_hide(dlg_quit);
 	quit(TRUE);
 }
 
-
-void on_button_abort_quit_clicked(GtkButton *button, gpointer user_data)
+void
+on_button_abort_quit_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
+	(void) unused_button;
+	(void) unused_udata;
+	
     gtk_widget_hide(dlg_quit);
 }
 
-gboolean on_dlg_quit_delete_event(
-    GtkWidget *widget, GdkEvent *event, gpointer user_data)
+gboolean
+on_dlg_quit_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
+	gpointer unused_udata)
 {
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+	
     gtk_widget_hide(dlg_quit);
     return TRUE;
 }
 
 #ifdef USE_GTK2
-void on_main_gui_treeview_menu_cursor_changed(
-    GtkTreeView *treeview, gpointer user_data)
+void
+on_main_gui_treeview_menu_cursor_changed(GtkTreeView *treeview,
+	gpointer unused_udata)
 {   
     GtkTreeSelection *selection;
     GtkTreeModel *model = NULL;
     GtkTreeIter iter; 
     gint tab = 0;
     
+	(void) unused_udata;
     g_assert(treeview != NULL);
+
     selection = gtk_tree_view_get_selection(treeview);
     if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-        gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 1, &tab, -1);
+        gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 1, &tab, (-1));
         gtk_notebook_set_page
             (GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")), tab);
     }
 }
 
-void on_main_gui_treeview_menu_row_collapsed(
-	GtkTreeView *tree, GtkTreeIter *iter, GtkTreePath *path, gpointer data)
+void
+on_main_gui_treeview_menu_row_collapsed(GtkTreeView *tree, GtkTreeIter *iter,
+		GtkTreePath *unused_path, gpointer unused_data)
 {
 	GtkTreeModel *model;
     gint id = 0;
 	guint32 expanded = FALSE;
 
+	(void) unused_path;
+	(void) unused_data;
+	
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree));
-	gtk_tree_model_get(GTK_TREE_MODEL(model), iter, 2, &id, -1);
+	gtk_tree_model_get(GTK_TREE_MODEL(model), iter, 2, &id, (-1));
 	g_assert(id >= 0 && id < TREEMENU_NODES);
 	gui_prop_set_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
 }
 
-void on_main_gui_treeview_menu_row_expanded(
-	GtkTreeView *tree, GtkTreeIter *iter, GtkTreePath *path, gpointer data)
+void
+on_main_gui_treeview_menu_row_expanded(GtkTreeView *tree, GtkTreeIter *iter,
+	GtkTreePath *unused_path, gpointer unused_data)
 {
 	GtkTreeModel *model;
     gint id = 0;
 	guint32 expanded = TRUE;
 
+	(void) unused_path;
+	(void) unused_data;
+	
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree));
-	gtk_tree_model_get(GTK_TREE_MODEL(model), iter, 2, &id, -1);
+	gtk_tree_model_get(GTK_TREE_MODEL(model), iter, 2, &id, (-1));
 	g_assert(id >= 0 && id < TREEMENU_NODES);
 	gui_prop_set_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
 }
 
-#endif
+#endif /* USE_GTK2 */
+
+/* vi: set ts=4 sw=4 cindent: */
