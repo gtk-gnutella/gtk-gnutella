@@ -14,7 +14,7 @@ AC_PROG_YACC
 AC_C_INLINE
 AC_C_CONST
 
-ALL_LINGUAS="es nl"
+ALL_LINGUAS="es fr nl"
 AM_GNU_GETTEXT([external])
 
 dnl ---------------------------------------------------------------------------

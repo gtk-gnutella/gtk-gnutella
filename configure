@@ -1513,7 +1513,7 @@ EOF
 fi
 
 
-ALL_LINGUAS="es nl"
+ALL_LINGUAS="es fr nl"
 
 # Make sure we can run config.sub.
 if ${CONFIG_SHELL-/bin/sh} $ac_config_sub sun4 >/dev/null 2>&1; then :
