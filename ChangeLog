@@ -1,5 +1,15 @@
 # since last version
 
+- (2002.05.18 - RAM)
+  * Improved shutdown code to avoid segfaults in grace period and deny all
+	pending Gnet connections cleanly.
+  * Moved pong-caching code to pcache.c.
+  * Reorganized the way we detect that BYE was sent, and added support for
+	probing the size of the TX stack.
+  * Pay attention to GUI settings for bandwidth limitation before enabling
+	the corresponding schedulers: only do so when they explicitly wish
+	to limit traffic (provided allocated bandwidth is >0).
+
 - (2002.05.17 - Richard)
   * Fixed bug: drag in queue while queue is freezed unfreezes queue.
   * Reflect freezeing of queue in the gui (as would explicit freezing).
