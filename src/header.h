@@ -96,8 +96,8 @@ typedef struct {
  * Our sanity limits
  */
 
-#define HEAD_MAX_LINES		64		/* Maximum amount of header lines */
-#define HEAD_MAX_SIZE		4096	/* Maximum size of header data */
+#define HEAD_MAX_LINES		128		/* Maximum amount of header lines */
+#define HEAD_MAX_SIZE		8192	/* Maximum size of header data */
 
 /*
  * Public interaface.

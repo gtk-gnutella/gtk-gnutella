@@ -28,7 +28,7 @@
 
 #include <glib.h>
 
-#define MAX_LINE_SIZE	1024	/* Maximum length for any line */
+#define MAX_LINE_SIZE	2048	/* Maximum length for any line */
 
 /*
  * getline() return codes.
