@@ -233,8 +233,12 @@ gboolean on_clist_search_results_button_press_event(GtkWidget *widget, GdkEventB
 	{
 		gtk_clist_unselect_all(GTK_CLIST(current_search->clist));
 		gtk_widget_set_sensitive(popup_search_stop_sorting, current_search->sort);
-		gtk_widget_set_sensitive(popup_search_stop, current_search->reissue_timeout);
-		gtk_widget_set_sensitive(popup_search_resume, !current_search->reissue_timeout);
+		gtk_widget_set_sensitive(popup_search_stop, current_search->passive ?
+			!current_search->frozen : current_search->reissue_timeout);
+		gtk_widget_set_sensitive(popup_search_resume, current_search->passive ?
+				current_search->frozen : !current_search->reissue_timeout);
+		if (current_search->passive)
+			gtk_widget_set_sensitive(popup_search_restart, FALSE);
 		g_snprintf(stmp_1, sizeof(stmp_1), "%s", current_search->query);
 	}
 	else
@@ -386,8 +390,10 @@ void on_search_switch(struct search *sch)
 
 	gtk_widget_set_sensitive(popup_search_restart, !sch->passive);
 	gtk_widget_set_sensitive(popup_search_duplicate, !sch->passive);
-	gtk_widget_set_sensitive(popup_search_stop, sch->reissue_timeout);
-	gtk_widget_set_sensitive(popup_search_resume, !sch->reissue_timeout);
+	gtk_widget_set_sensitive(popup_search_stop, sch->passive ?
+		!sch->frozen : sch->reissue_timeout);
+	gtk_widget_set_sensitive(popup_search_resume, sch->passive ?
+		sch->frozen : sch->reissue_timeout);
 }
 
 void on_search_popdown_switch(GtkWidget *w, gpointer data)
@@ -676,22 +682,32 @@ struct search *new_search(guint16 speed, gchar *query) {
 
 void search_stop(struct search *sch)
 {
-	g_assert(sch->reissue_timeout_id);
-	g_assert(sch->reissue_timeout);		/* not already stopped */
+	if (sch->passive) {
+		g_assert(!sch->frozen);
+		sch->frozen = TRUE;
+	} else {
+		g_assert(sch->reissue_timeout_id);
+		g_assert(sch->reissue_timeout);		/* not already stopped */
 
-	sch->reissue_timeout = 0;
-	update_one_reissue_timeout(sch);
+		sch->reissue_timeout = 0;
+		update_one_reissue_timeout(sch);
 
-	g_assert(sch->reissue_timeout_id == 0);
+		g_assert(sch->reissue_timeout_id == 0);
+	}
 }
 
 void search_resume(struct search *sch)
 {
-	g_assert(sch->reissue_timeout == 0);	/* already stopped */
+	if (sch->passive) {
+		g_assert(sch->frozen);
+		sch->frozen = FALSE;
+	} else {
+		g_assert(sch->reissue_timeout == 0);	/* already stopped */
 
-	sch->reissue_timeout = search_reissue_timeout;
-	sch->reissue_timeout_id = g_timeout_add(sch->reissue_timeout * 1000,
-		search_reissue_timeout_callback, sch);
+		sch->reissue_timeout = search_reissue_timeout;
+		sch->reissue_timeout_id = g_timeout_add(sch->reissue_timeout * 1000,
+			search_reissue_timeout_callback, sch);
+	}
 }
 
 static gboolean search_already_sent_to_node(struct search *sch, struct gnutella_node *n) {
@@ -754,9 +770,11 @@ void search_update_reissue_timeout(guint32 timeout) {
 
   for(l = searches; l; l = l->next) {
 	struct search *sch = (struct search *)l->data;
+	if (sch->passive)
+		continue;
 	if (sch->reissue_timeout > 0)		/* Not stopped */
 		sch->reissue_timeout = timeout;
-	if(sch->reissue_timeout_id)
+	if (sch->reissue_timeout_id)
 	  update_one_reissue_timeout(sch);
   }
 }
@@ -1257,7 +1275,10 @@ void search_results(struct gnutella_node *n)
 	for (l = searches; l; l = l->next)
 	{
 		sch = (struct search *) l->data;
-		if (sch->passive || search_has_muid(sch, n->header.muid)) {
+		if (
+			(sch->passive && !sch->frozen) ||
+			search_has_muid(sch, n->header.muid)
+		) {
 			/* This should eventually be replaced with some sort of
                copy_results_set so that we don't have to repeatedly parse
                the packet. */
