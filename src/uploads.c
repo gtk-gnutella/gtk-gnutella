@@ -1547,19 +1547,6 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 	head_only = (request[0] == 'H');
 
-	/*
-	 * Make sure there is the HTTP/x.x tag at the end of the request,
-	 * thereby ruling out the HTTP/0.9 requests.
-	 *
-	 * This has to be done early, and before calling get_file_to_upload()
-	 * or the getline_length() call will no longer represent the length of
-	 * the string, since URL-unescaping happens inplace and can "shrink"
-	 * the request.
-	 */
-
-	if (!upload_request_is_ok(u, header, request, getline_length(s->getline)))
-		return;
-
 	/* 
 	 * Extract User-Agent.
 	 */
@@ -1577,6 +1564,19 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 	if (!is_followup && user_agent)
 		u->user_agent = atom_str_get(user_agent);
+
+	/*
+	 * Make sure there is the HTTP/x.x tag at the end of the request,
+	 * thereby ruling out the HTTP/0.9 requests.
+	 *
+	 * This has to be done early, and before calling get_file_to_upload()
+	 * or the getline_length() call will no longer represent the length of
+	 * the string, since URL-unescaping happens inplace and can "shrink"
+	 * the request.
+	 */
+
+	if (!upload_request_is_ok(u, header, request, getline_length(s->getline)))
+		return;
 
 	/*
 	 * IDEA
