@@ -36,7 +36,10 @@ Ladies and gentleman, here's the
      style guidelines:
      
         indent -i4 -ts4 -cdb -sc -br -ce -npcs -ci4 -cli0
-                
+
+1.7  Avoid unnecessary trailing whitespace at line endings.
+
+
 2. COMMENTS ************************************************************
 
 2.1  Every file must start with a comment block like this:
