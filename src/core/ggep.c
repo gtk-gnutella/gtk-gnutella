@@ -52,15 +52,29 @@ RCSID("$Id$");
  * @param len		length of supplied buffer
  */
 void
-ggep_stream_init(ggep_stream_t *gs, gpointer data, gint len)
+ggep_stream_init(ggep_stream_t *gs, gpointer data, size_t len)
 {
+	g_assert(len <= INT_MAX);
 	gs->outbuf = data;
-	gs->end = gs->outbuf + len;
+	gs->size = len;
+	gs->end = &gs->outbuf[len];
 	gs->o = data;
 	gs->last_fp = gs->fp = gs->lp = NULL;
 	gs->magic_emitted = FALSE;
 	gs->begun = FALSE;
 	gs->zd = NULL;
+}
+
+/**
+ * @return	the number of bytes that can still be written to the stream
+ *			at maximum.
+ */
+static inline size_t
+ggep_stream_avail(ggep_stream_t *gs)
+{
+	size_t avail = gs->end - gs->o;
+	g_assert(avail <= gs->size);
+	return avail; 
 }
 
 /**
@@ -89,7 +103,7 @@ ggep_stream_cleanup(ggep_stream_t *gs)
 static gboolean
 ggep_stream_appendc(ggep_stream_t *gs, gchar c)
 {
-	if (gs->o >= gs->end)
+	if (0 == ggep_stream_avail(gs))
 		return FALSE;
 
 	*(gs->o++) = c;
@@ -103,9 +117,9 @@ ggep_stream_appendc(ggep_stream_t *gs, gchar c)
  * @return FALSE if there's not enough room in the output.
  */
 static gboolean
-ggep_stream_append(ggep_stream_t *gs, gpointer data, gint len)
+ggep_stream_append(ggep_stream_t *gs, gpointer data, size_t len)
 {
-	if (gs->o + len > gs->end)
+	if (len > ggep_stream_avail(gs))
 		return FALSE;
 
 	memcpy(gs->o, data, len);
@@ -210,7 +224,7 @@ ggep_stream_begin(ggep_stream_t *gs, gchar *id, guint32 wflags)
 			gs->zd = zlib_deflater_make(NULL, 0, Z_DEFAULT_COMPRESSION);
 		else
 			gs->zd = zlib_deflater_make_into(NULL, 0,
-				gs->o, gs->end - gs->o, Z_DEFAULT_COMPRESSION);
+				gs->o, ggep_stream_avail(gs), Z_DEFAULT_COMPRESSION);
 	}
 
 	/*
@@ -219,7 +233,7 @@ ggep_stream_begin(ggep_stream_t *gs, gchar *id, guint32 wflags)
 	 */
 
 	if (wflags & GGEP_W_COBS)
-		cobs_stream_init(&gs->cs, gs->o, gs->end - gs->o);
+		cobs_stream_init(&gs->cs, gs->o, ggep_stream_avail(gs));
 
 	/*
 	 * We successfully begun the extension.
@@ -247,6 +261,7 @@ ggep_stream_writev(ggep_stream_t *gs, struct iovec *iov, gint iovcnt)
 	struct iovec *xiov;
 
 	g_assert(gs->begun);
+	g_assert(iovcnt >= 0);
 
 	/*
 	 * If deflation is configured, pass all the data to the deflater.
@@ -298,10 +313,11 @@ cleanup:
  * @return TRUE if OK.  On error, the stream is brought back to a clean state.
  */
 gboolean
-ggep_stream_write(ggep_stream_t *gs, gpointer data, gint len)
+ggep_stream_write(ggep_stream_t *gs, gpointer data, size_t len)
 {
 	struct iovec iov;
 
+	g_assert(len <= INT_MAX);
 	iov.iov_base = data;
 	iov.iov_len = len;
 
@@ -373,8 +389,10 @@ ggep_stream_end(ggep_stream_t *gs)
 			 */
 
 			gs->o = gs->lp + 1;		/* Rewind after NUL "length" byte */
+			/* No overwriting */
+			g_assert((size_t) (gs->end - gs->o) <= gs->size);
 			ok = ggep_stream_write(gs, data, ilen);
-			g_free(data);
+			G_FREE_NULL(data);
 
 			if (!ok)
 				goto cleanup;
@@ -443,7 +461,9 @@ ggep_stream_end(ggep_stream_t *gs)
 			 * Adjust stream pointer to point right after the data.
 			 */
 
-			gs->o = gs->lp + (1 + plen);	/* +1 to skip NUL "length" byte */
+			gs->o = &gs->lp[1 + plen];	/* +1 to skip NUL "length" byte */
+			/* No overwriting */
+			g_assert((size_t) (gs->end - gs->o) <= gs->size);
 		} else if (ggep_debug > 1)
 			g_message("GGEP \"%.*s\" COBS-ed into %d bytes",
 				*gs->fp & GGEP_F_IDLEN, gs->fp + 1, plen);
@@ -456,6 +476,7 @@ ggep_stream_end(ggep_stream_t *gs)
 
 	if (!(gs->flags & (GGEP_F_COBS|GGEP_F_DEFLATE)))
 		plen = (gs->o - gs->lp) - 1;		/* -1 to skip NUL "length" byte */
+		g_assert(plen >= 0 && (size_t) plen <= gs->size);
 
 	/*
 	 * Now that we have the final payload data in the buffer, we may have
@@ -491,11 +512,12 @@ ggep_stream_end(ggep_stream_t *gs)
 	 */
 
 	gs->o = gs->lp + (plen + 1);		/* Ensure it is correct before move */
+	g_assert((size_t) (gs->end - gs->o) <= gs->size);	/* No overwriting */
 
 	if (slen > 1) {
 		gchar *start = gs->lp + 1;
 
-		if (gs->o + (slen - 1) >= gs->end)
+		if (gs->end - gs->o < (slen - 1))
 			goto cleanup;
 
 		memmove(start + (slen - 1), start, plen);
@@ -512,11 +534,12 @@ ggep_stream_end(ggep_stream_t *gs)
 	gs->fp = gs->lp = NULL;
 	gs->begun = FALSE;
 
-	g_assert(gs->o <= gs->end);			/* No overwriting */
+	g_assert((size_t) (gs->end - gs->o) <= gs->size);	/* No overwriting */
 
 	return TRUE;
 
 cleanup:
+	g_assert((size_t) (gs->end - gs->o) <= gs->size);	/* No overwriting */
 	ggep_stream_cleanup(gs);
 	return FALSE;
 }
@@ -526,10 +549,10 @@ cleanup:
  *
  * @return the length of the writen data in the whole stream.
  */
-gint
+size_t
 ggep_stream_close(ggep_stream_t *gs)
 {
-	gint len;
+	size_t len;
 
 	g_assert(!gs->begun);			/* Not in the middle of an extension! */
 	g_assert(gs->outbuf != NULL);	/* Not closed already */
@@ -539,15 +562,16 @@ ggep_stream_close(ggep_stream_t *gs)
 	 * extension in the block.
 	 */
 
-	if (gs->last_fp == NULL)
+	if (gs->last_fp == NULL) {
 		len = 0;
-	else {
+	} else {
 		*gs->last_fp |= GGEP_F_LAST;
 		len = gs->o - gs->outbuf;
 	}
 
 	gs->outbuf = NULL;				/* Mark stream as closed */
 
+	g_assert(len <= gs->size);
 	return len;
 }
 
@@ -560,6 +584,8 @@ gboolean
 ggep_stream_packv(ggep_stream_t *gs,
 	gchar *id, struct iovec *iov, gint iovcnt, guint32 wflags)
 {
+	g_assert(iovcnt >= 0);
+	
 	if (!ggep_stream_begin(gs, id, wflags))
 		return FALSE;
 
@@ -590,10 +616,11 @@ ggep_stream_packv(ggep_stream_t *gs,
  */
 gboolean
 ggep_stream_pack(ggep_stream_t *gs,
-	gchar *id, gchar *payload, gint plen, guint32 wflags)
+	gchar *id, gchar *payload, size_t plen, guint32 wflags)
 {
 	struct iovec iov;
 
+	g_assert(plen <= INT_MAX);
 	iov.iov_base = payload;
 	iov.iov_len = plen;
 

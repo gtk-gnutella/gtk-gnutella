@@ -86,6 +86,7 @@ typedef struct ggep_stream {
 	gchar *fp;					/* Where flags for current extension are */
 	gchar *lp;					/* Where length should be written when known */
 	gchar *last_fp;				/* Flags of last successfully written ext. */
+	size_t size;				/* Size of the outbuf buffer */
 	guint8 flags;				/* Extension flags (COBS / DEFLATE) */
 	gboolean magic_emitted;		/* Whether leading magic was emitted */
 	gboolean begun;				/* Whether extension was correctly begun */
@@ -99,20 +100,20 @@ typedef struct ggep_stream {
 
 struct iovec;
 
-gint ggep_decode_into(extvec_t *exv, gchar *buf, gint len);
+gint ggep_decode_into(extvec_t *exv, gchar *buf, size_t len);
 
-void ggep_stream_init(ggep_stream_t *gs, gpointer data, gint len);
+void ggep_stream_init(ggep_stream_t *gs, gpointer data, size_t len);
 gboolean ggep_stream_begin(ggep_stream_t *gs, gchar *id, guint32 wflags);
 gboolean ggep_stream_writev(ggep_stream_t *gs, struct iovec *iov, gint iovcnt);
-gboolean ggep_stream_write(ggep_stream_t *gs, gpointer data, gint len);
+gboolean ggep_stream_write(ggep_stream_t *gs, gpointer data, size_t len);
 gboolean ggep_stream_end(ggep_stream_t *gs);
-gint ggep_stream_close(ggep_stream_t *gs);
+size_t ggep_stream_close(ggep_stream_t *gs);
 gboolean ggep_stream_packv(ggep_stream_t *gs,
 	gchar *id, struct iovec *iov, gint iovcnt, guint32 wflags);
 gboolean ggep_stream_pack(ggep_stream_t *gs,
-	gchar *id, gchar *payload, gint plen, guint32 wflags);
+	gchar *id, gchar *payload, size_t plen, guint32 wflags);
 
 #endif	/* _core_ggep_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 
