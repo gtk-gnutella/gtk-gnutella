@@ -145,3 +145,27 @@ gpointer option_menu_get_selected_data(GtkWidget *m)
     return (menu != NULL) ? 
         gtk_object_get_user_data(GTK_OBJECT(menu)) : NULL;
 }
+
+
+/*
+ * radiobutton__get_active_in_group:
+ * 
+ * Given a radio button it returns a pointer to the active radio
+ * button in the group the given button is in. 
+ * Returns NULL if there is no active button.
+ */
+GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb)
+{
+    GSList *i;
+
+    g_assert(rb != NULL);
+
+    for (i = gtk_radio_button_group(rb); i != NULL; i = i->next) {
+        GtkToggleButton *rb = GTK_TOGGLE_BUTTON(i->data);
+
+        if (gtk_toggle_button_get_active(rb))
+            return GTK_WIDGET(rb);
+    }
+
+    return NULL;
+}

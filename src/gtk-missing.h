@@ -33,5 +33,6 @@ gint gtk_main_flush();
 void option_menu_select_item_by_data(GtkWidget *m, gpointer *d);
 gpointer option_menu_get_selected_data(GtkWidget *m);
 GtkWidget *menu_new_item_with_data(GtkMenu *m, gchar *l, gpointer d );
+GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb);
 
 #endif	/* __gtk_missing_h__ */
