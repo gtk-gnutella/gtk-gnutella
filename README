@@ -21,17 +21,16 @@
 ------------------------------------------------------------------------
 
 [This software is now maintained by Raphael_Manfredi@pobox.com]
-[This README is out of date and needs to be reworked before the 1.0 release]
 
-[If you have problems, your best bet is to subscribe to the gtk-gnutella-users
- list on www.sf.net, and more precisely here:
+If you have problems, your best bet is to subscribe to the gtk-gnutella-users
+list on www.sf.net, and more precisely here:
 
-	http://lists.sourceforge.net/lists/listinfo/gtk-gnutella-users
+http://lists.sourceforge.net/lists/listinfo/gtk-gnutella-users
 
- Also visit the main website for news and updates, at:
+Also visit the main website for news, updates, FAQ, and more at:
 
-	http://gtk-gnutella.sf.net/
-]
+http://gtk-gnutella.sf.net/
+
 
 Gtk-Gnutella README
 
@@ -56,13 +55,17 @@ the user wishes to share.  Gtk-gnutella implements compressed gnutella net
 connections, ultrapeer and leaf nodes and uses Passive/Active Remote 
 Queueing (PARQ).  
 
-It's a Unix clone, and can be built with either a GTK+ (1.2 or above) 
-or GTK2 GUI. Gnome is not needed. It is currently developed and tested 
-under Linux. It is known to run at least on Linux and FreeBSD (on 80x86 
-machines). It is released under the GNU Public License (GPL).
+It's a Unix clone, and can be built with either a GTK+ (1.2 or above) or GTK2 
+GUI.  Gnome is not needed but libxml should be available for best performance. 
+Gtk-gnutella is currently developed and tested under Linux (Debian 2.2) and is 
+known to run at least on Linux, FreeBSD, NetBSD, OpenBSD, Darwin/PowerPC, 
+Solaris 8/SPARC, Tru64 Unix/Alpha, SGI IRIX 6.2/mips.  It is released under 
+the GNU Public License (GPL).  
 
 For further information on Gnutella, try:
 http://gnutella.wego.com
+http://www.infoanarchy.org/wiki/wiki.pl?Gnutella
+http://rfc-gnutella.sourceforge.net/
 
 The Gtk-Gnutella Home Page is:
 http://gtk-gnutella.sourceforge.net
@@ -73,13 +76,32 @@ http://sourceforge.net/projects/gtk-gnutella/
 Open Discussion Forums, try:
 http://www.gnutellaforums.com/
 
+There is an IRC channel for Gtk-gnutella on http://www.freenode.net:
+irc.freenode.net #gtk-gnutella
+
 
 Installation
 ------------
 
-You may need to obtain the latest version of Glade to compile this
-without warning messages. See freshmeat.net or other Linux sites for
-updates.
+To install one of the precompiled packages, consult your distribution's 
+documentation.  
+
+To compile gtk-gnutella:  
+
+./configure [--options]
+make
+make install
+
+For a full listing of available ./configure options:
+./configure --help
+
+Of particular interest:
+--prefix=PREFIX (default /usr/local)
+--enable-gtk2 (default=off) Build a GTK2 version instead of the GTK1 gui.
+--enable-xml-store (default=on) Save searches and filters in XML (requires 
+    libxml2) Without this, filters will not be saved across restarts.  
+--enable-tos (default=on) Use IP Type of Service.  Routers can use this 
+    information to better route the IP datagrams.
 
 See the file "INSTALL" for further information.
 
@@ -87,71 +109,79 @@ See the file "INSTALL" for further information.
 Quick Start
 -----------
 
-Operation is fairly straight forward. Default values are set for getting
-started, unless you are behind a firewall. This section should get you
-started quickly.
+Operation is fairly straightforward.  Default values are set for getting 
+started, unless you are behind a firewall. This section should get you started 
+quickly.
 
-You should have two directories created to store your files, "downloads"
-and "done".
+You should have three directories created to store your files, "downloading,"
+"done," and "corrupt."
 
-If you don't get a connection, quit the program and restart it to get a
-few more hosts from the server. If you still don't get connected, you
-may need to check your Internet connection and DNS (etc/resolv.conf)
-list. If your Netscape or Konqueror web browser isn't working, you
-have a problem. In normal operations you should be connected within
-30 or so seconds.
+Click on "Config" in the upper left hand box to get the configuration screen, 
+then select your downloading, done, and corrupt directories in the "Download 
+settings" tab. 
 
-Click on "Config" in the upper left hand box to get the Configuration
-Screen, then select your downloads and done directories. Select the
-"done" directory as "Paths to Files" also.
+In the "Upload settings" pane, "Path(s) to files" are your shared directories. 
+They are the files you will share to the network.  It's easy and convenient to 
+share your "done" directory.  When downloaded files are complete, they are 
+moved to the done directory and then can be uploaded by others.  Once you have 
+selected your shared directories, click the "Rescan" button.  Sharing is the 
+whole point of the Gnutella network.  Those who don't share are called 
+"leechers" and some people will refuse to share with them.  Gtk-gnutella 
+offers fine-tuned bandwith control so even if you only have a dialup 
+connection, you should devote some bandwith to sharing.  
 
-Once you are connected to a few hosts (2 or 3 is good) you can perform
-a search. Click on "Search" in the upper left hand box to get the Search
-Screen, then type in a keyword or two. Gnutella uses "AND" for keyword
-searches, so if you type two words both will have to be in the file name
-to get a return. In most situations it takes 60 seconds for search
-results to be returned. Be patient! You are searching about 20,000 hosts.
+Click on "gnutellaNet" in the upper left hand box to see how your connections 
+are going.  If you see many connection attempts failing, don't worry, this is 
+normal.  In extreme cases, it could take 10-30 minutes to get stable 
+connections the first time you use gtk-gnutella.  If you don't get a 
+connection, quit the program and restart it to get a few more hosts from the 
+GWebCache server. If you still don't get connected, you may need to check your 
+Internet connection and DNS (etc/resolv.conf) list. If your Netscape or 
+Konqueror web browser isn't working, you have a problem. In normal operations 
+you should be connected within 30 or so seconds.
 
-Once you see a file name you like, click on it and press the button at
-the bottom "Downloads Selected Files" and the file will be queued for
-download. Click on "Downloads" in the upper left hand box to see what's
-going on.
+Once you are connected to a few hosts (2 or 3 is good) you can perform a 
+search. Click on "Search" in the upper left hand box to get the Search pane, 
+then type in a keyword or two. Gnutella uses "AND" for keyword searches, so if 
+you type two words both will have to be in the file name to get a return. In 
+most situations it takes 60 seconds for search results to be returned. Be 
+patient! You are searching about 20,000 hosts.
 
-In the Config Screen, "Paths to Files" is the shared directory, they
-are the files you will share to the network. You should always share
-your done directory. When downloaded files are complete, they are
-moved to the done directory and then can be uploaded by others. Sharing
-is the whole point of the Gnutella network.
+Once you see a file name you like, click on it and press the button at the 
+bottom "Download Selected Files" ("Download selected" in the GTK2 version) and 
+the file will be queued for download.  Click on "Downloads" in the upper left 
+hand box to see what's going on.
 
-The client is pretty smart and won't "hammer" a host, even if you select
-all the files a host has, if the host is busy it will only try that host
-every so often. Select as many files as you like.
+The client is pretty smart and won't "hammer" a host, even if you select all 
+the files a host has, if the host is busy it will only try that host every so 
+often. Select as many files as you like.
 
-The default search selection option is "pick all", so when you click
-on a file that several other hosts have, it will automatically select
-any file in the list that is the same size or larger. This gives you
-a better chance of completing a file if a host drops off the
-network. Duplicate names are handled in the download manager, so
-don't worry about that. It's better to wait a little bit for all the
-search results to come in, then click on file names you like.
+The default search selection option is "Autoselect identical", so when you 
+click on a file that several other hosts have, it will automatically select 
+any file in the list that is identical. This gives you a better chance of 
+completing a file if a host drops off the network. Duplicate names are handled 
+in the download manager, so don't worry about that. It's better to wait a 
+little bit for all the search results to come in, then click on file names you 
+like.
 
-Once a file is in the "done" directory, unless you pick a larger file,
-the download manager will not download that file again.
+Once a file is in the "done" directory, the download manager will not download 
+the identical file again.
 
-There are more features, click around and get used to the program. Most
-things make sense. Visit Gnutella web sites for more information on
-Gnutella, the protocol and network etiquette.
+There are more features, click around and get used to the program. Most things 
+make sense. Visit Gnutella web sites for more information on Gnutella, the 
+protocol and network etiquette.
 
 
 Bug Reports
 -----------
 
-This software will always be in a state of development, improvements
-being added all the time. Stable version will be posted from time
-to time, but your feedback is needed by developers in order to
-make a great program!
+This software will always be in a state of development, improvements being 
+added all the time. Stable version will be posted from time to time, but your 
+feedback is needed by developers in order to make a great program!
 
-Please post any Bug Reports to the Bug Manager on the sourceforge
+There is a Bug Report HOWTO on the gtk-gnutella home page.
+
+Please post any Bug Reports to the Bug Tracker on the SourceForge
 project page.
 
 
@@ -162,95 +192,59 @@ The following information is for Developers only.
 
 * Run multiple copies on the same computer:
 
-If you simply do a "make" rather than a "make install" a version
-of Gtk-Gnutella will appear in your "src" directory. Create a new
-directory called "test1", make a copy of the config file found in
-home dir/.gtk-gnutella called "config" and place it into the "test1"
-directory.
+If you simply do a "make" rather than a "make install" a version of 
+gtk-gnutella will appear in your "src" directory. Create a new directory 
+called "test1", and copy at least config_gnet and config_gui from 
+$HOME/.gtk-gnutella, if you want to use the same settings.
 
-Place the compiled version of Gtk-Gnutella into that directory,
-add a "download" and "done" directory if you like, and from a shell prompt
-type "./gtk-gnutella". The program will check for the local config file
-first and use it. The hosts file will now be read and saved to the local
-directory. If you change the port number in the config file, you can
-run as many copies as you want from different directories. You can also
-have them connect to each other by using IP 127.0.0.1:6346 (or whatever
-port).
+Place the compiled version of gtk-gnutella into that directory, add a 
+"download" and "done" directory if you like, and from a shell prompt type 
+"GTK_GNUTELLA_DIR=path/to/test1 ./gtk-gnutella". The program will use the 
+local config file.  The hosts file will now be read and saved to the local 
+directory. If you change the port number in the config file, you can run as 
+many copies as you want from different directories. You can also have them 
+connect to each other by using IP 127.0.0.1:6346 (or whatever port).
 
-If you set the config variable "stop_host_get" the client will
-not try to connect to any outside hosts, thus you can manually connect to
-your local IP:port of the other client you have running for testing. It
-won't timeout the host because of inactivity like it normally would.
+If you set the config variable "stop_host_get" the client will not try to 
+connect to any outside hosts, thus you can manually connect to your local 
+IP:port of the other client you have running for testing. It won't timeout the 
+host because of inactivity like it normally would.
 
 * Debug variable use:
 
-A config variable called "dbg" is used to print debug information to
-the terminal window. It has 10 levels, the higher the level, the more
-information is printed. Don't set it to 10 unless you like to see way
-too much information! Data such as raw search packets are shown at level 7.
-Small warnings and other stuff is found at level 1 or 2.
+A config variable called "dbg" is used to print debug information to the 
+terminal window. It has 10 levels, the higher the level, the more information 
+is printed. Don't set it to 10 unless you like to see way too much 
+information! Data such as raw search packets are shown at level 7.  Small 
+warnings and other stuff is found at level 1 or 2.
 
 * Developer info:
 
-Feel free to sign up and participate in the mail list. To get up to
-speed, you might want to read some of the past messages in the archives
-and see what we have been up to lately.
+Feel free to sign up and participate in the mail list. To get up to speed, you 
+might want to read some of the past messages in the archives and see what we 
+have been up to lately.
 
-Watch out when modifying code that you un-allocate any allocated
-memory. The function "strdup()" will allocate memory that needs to be
-"free()" in some cases. malloc() is used a lot.
+If you want contribute code, please follow the style guide in the CVS version:
+gtk-gnutella-current/doc/devguide/STYLE
 
-When editing the code, please turn off any options in your editor that
-replaces tabs with spaces. We use tabs that create 4 spaces in our source
-files. And turn off line wrapping!
+Read the "Development" and "Developers Howto" pages on the gtk-gnutella home 
+page. 
 
-Some common inline mode settings for editors are:
-
-	/* vi: set ts=4 */
-
-for vi and its relations, and
-
-	/* -*- mode: cc-mode; tab-width:4 ;-*- */
-
-for emacsen and its cousins.
-
-Consider src/header.c and src/header.h good examples of that style.
-
-Please, use the patch manager found on the main development page to post
+Please, use the patch tracking system found on the main development page to post
 any patches you may have come up with. It allows you to upload the patch
 file as a binary. Posting to a mailing list usually wraps lines and messes
-up a patch file. You should let everyone on the mail list know that
-you posted a patch to the patch manager.
+up a patch file, although you can attach files. You should let everyone on the 
+mail list know that you posted a patch to the patch tracker.
 
-If you find bugs, please use the bug manager on sourceforge (or fix them!).
-Once you get a copy from anon CVS (see the CVS page for instructions),
-and you make some modifications, from a shell make sure you cd into the
-"gtk-gnutella-current" directory, type "cvs diff -u > output-diff.txt"
-and a patch file will be created, referencing the current CVS version.
-You can then upload this file so others can patch their version with
-your changes. We use the "unified" format for patches, thus the "-u".
-If your patch requires other patches, you should include them also.
-Before starting a big project, you may want to ask the list if anyone
-else is working on that fix so you don't duplicate work.
+If you find bugs, please use the bug tracker on sourceforge (or fix them!).  
+Once you get a copy from anon CVS (see the CVS page for instructions), and you 
+make some modifications, from a shell make sure you cd into the 
+"gtk-gnutella-current" directory, type "cvs diff -u > output-diff.txt" and a 
+patch file will be created, referencing the current CVS version.  You can then 
+upload this file so others can patch their version with your changes. We use 
+the "unified" format for patches, thus the "-u".  If your patch requires other 
+patches, you should include them also.  Before starting a big project, you may 
+want to ask the list if anyone else is working on that fix so you don't 
+duplicate work.
 
-
-Original Message from Olrick
-----------------------------
-(this was the original README message from the original author)
-
-This is gtk-gnutella, a screen-shots-only-made clone of window$ gnutella.
-
-Why 'screen-shots-only' ? because I have ONLY linux installed on my box :)
-So I have never used or even seen a working window$ gnutella -
-only screenshots...  (screenshots of gnutella version 0.50c)
-
-I have used Glade 0.5.7 to create the interface.
-
-This soft is awfully written, I know... but I spent no more than a few
-days on it :)
-So if you feel like improving it... there's no problem at all :)
-
-gnutella official "unofficial" web site is at http://gnutella.wego.com/
-
-Olrick <olrick@users.sourceforge.NOSPAMnet>
 
