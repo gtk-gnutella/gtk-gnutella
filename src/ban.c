@@ -410,6 +410,8 @@ void ban_close(void)
  *** Vendor-specific banning.
  ***/
 
+static gchar *harmful = "Harmful version banned, upgrade required";
+
 /*
  * ban_vendor
  *
@@ -438,11 +440,25 @@ gchar *ban_vendor(gchar *vendor)
 			0 == strncmp(vendor + GTKG_LEN, "0.90", 4) ||
 			0 == strncmp(vendor + GTKG_LEN, "0.91u", 5)
 		)
-			return "Harmful version banned, upgrade required";
+			return harmful;
 	}
 
 #undef GTKG_NAME
 #undef GTKG_LEN
+
+#define GNUC_NAME	"Gnucleus"
+#define GNUC_LEN	(sizeof(GNUC_NAME) - 1)
+
+	if (
+		vendor[0] == 'G' &&
+		0 == strncmp(vendor, GNUC_NAME, GNUC_LEN)
+	) {
+		if (0 == strncmp(vendor + GNUC_LEN, "1.6.0.0", 7))
+			return harmful;
+	}
+
+#undef GNUC_NAME
+#undef GNUC_LEN
 
 	return NULL;
 }
