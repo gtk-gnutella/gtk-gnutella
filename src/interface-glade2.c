@@ -7254,13 +7254,14 @@ create_main_window_downloads_tab (void)
   GtkWidget *checkbutton_dl_clear_failed;
   GtkWidget *checkbutton_dl_clear_complete;
   GtkWidget *label64;
+  GtkWidget *checkbutton_download_delete_aborted;
+  GtkWidget *checkbutton_downloads_never_push;
   GtkWidget *button25;
   GtkWidget *alignment78;
   GtkWidget *hbox217;
   GtkWidget *image211;
   GtkWidget *label684;
-  GtkWidget *checkbutton_download_delete_aborted;
-  GtkWidget *checkbutton_downloads_never_push;
+  GtkWidget *checkbutton_dl_remove_file_on_mismatch;
   GtkWidget *label681;
   GtkWidget *table57;
   GtkWidget *button_downloads_abort;
@@ -7497,11 +7498,25 @@ create_main_window_downloads_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label64), 0, 0.5);
 
+  checkbutton_download_delete_aborted = gtk_check_button_new_with_mnemonic (_("Delete file on abort"));
+  gtk_widget_set_name (checkbutton_download_delete_aborted, "checkbutton_download_delete_aborted");
+  gtk_widget_show (checkbutton_download_delete_aborted);
+  gtk_table_attach (GTK_TABLE (table68), checkbutton_download_delete_aborted, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK), 0, 0);
+
+  checkbutton_downloads_never_push = gtk_check_button_new_with_mnemonic (_("Never send a push request"));
+  gtk_widget_set_name (checkbutton_downloads_never_push, "checkbutton_downloads_never_push");
+  gtk_widget_show (checkbutton_downloads_never_push);
+  gtk_table_attach (GTK_TABLE (table68), checkbutton_downloads_never_push, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK), 0, 0);
+
   button25 = gtk_button_new ();
   gtk_widget_set_name (button25, "button25");
   gtk_widget_show (button25);
-  gtk_table_attach (GTK_TABLE (table68), button25, 2, 5, 2, 3,
-                    (GtkAttachOptions) (GTK_SHRINK),
+  gtk_table_attach (GTK_TABLE (table68), button25, 3, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   alignment78 = gtk_alignment_new (0.5, 0.5, 0, 0);
@@ -7525,19 +7540,12 @@ create_main_window_downloads_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox217), label684, FALSE, FALSE, 0);
   gtk_label_set_justify (GTK_LABEL (label684), GTK_JUSTIFY_LEFT);
 
-  checkbutton_download_delete_aborted = gtk_check_button_new_with_mnemonic (_("Delete file on abort"));
-  gtk_widget_set_name (checkbutton_download_delete_aborted, "checkbutton_download_delete_aborted");
-  gtk_widget_show (checkbutton_download_delete_aborted);
-  gtk_table_attach (GTK_TABLE (table68), checkbutton_download_delete_aborted, 1, 2, 2, 3,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (GTK_SHRINK), 0, 0);
-
-  checkbutton_downloads_never_push = gtk_check_button_new_with_mnemonic (_("Never send a push request"));
-  gtk_widget_set_name (checkbutton_downloads_never_push, "checkbutton_downloads_never_push");
-  gtk_widget_show (checkbutton_downloads_never_push);
-  gtk_table_attach (GTK_TABLE (table68), checkbutton_downloads_never_push, 0, 1, 2, 3,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (GTK_SHRINK), 0, 0);
+  checkbutton_dl_remove_file_on_mismatch = gtk_check_button_new_with_mnemonic (_("Remove file on mismatch"));
+  gtk_widget_set_name (checkbutton_dl_remove_file_on_mismatch, "checkbutton_dl_remove_file_on_mismatch");
+  gtk_widget_show (checkbutton_dl_remove_file_on_mismatch);
+  gtk_table_attach (GTK_TABLE (table68), checkbutton_dl_remove_file_on_mismatch, 2, 5, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label681 = gtk_label_new (_("Download settings"));
   gtk_widget_set_name (label681, "label681");
@@ -8139,13 +8147,14 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_clear_failed, "checkbutton_dl_clear_failed");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_clear_complete, "checkbutton_dl_clear_complete");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label64, "label64");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_download_delete_aborted, "checkbutton_download_delete_aborted");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_downloads_never_push, "checkbutton_downloads_never_push");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, button25, "button25");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, alignment78, "alignment78");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox217, "hbox217");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image211, "image211");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label684, "label684");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_download_delete_aborted, "checkbutton_download_delete_aborted");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_downloads_never_push, "checkbutton_downloads_never_push");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_remove_file_on_mismatch, "checkbutton_dl_remove_file_on_mismatch");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label681, "label681");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table57, "table57");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, button_downloads_abort, "button_downloads_abort");
