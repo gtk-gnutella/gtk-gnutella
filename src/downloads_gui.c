@@ -674,8 +674,7 @@ void download_gui_add(struct download *d)
 	 *		--RAM, 22/10/2002
 	 */
 
-	file_name = d->record_index == URN_INDEX ?
-		d->file_info->file_name : d->file_name;
+	file_name = file_info_readable_filename(d->file_info);
 
 #ifdef USE_GTK2
 	file_name = lazy_locale_to_utf8(file_name, 0);
