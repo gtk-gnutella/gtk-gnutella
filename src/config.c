@@ -48,12 +48,18 @@ guint32 download_push_sent_timeout = 60;
 guint32 download_connected_timeout = 60;
 guint32 download_retry_timeout_min = 20;
 guint32 download_retry_timeout_max = 120;
-guint32 download_max_retries = 5;
+guint32 download_max_retries = 256;
+guint32 download_retry_timeout_delay = 1200;
+guint32 download_retry_busy_delay = 10;
+guint32 download_retry_refused_delay = 1800;
+guint32 download_retry_stopped = 15;
+guint32 download_overlap_range = 512;
 guint32 upload_connecting_timeout = 60;		/* Receiving headers */
 guint32 upload_connected_timeout = 180;		/* Sending data */
 guint32 node_connected_timeout = 45;
 guint32 node_connecting_timeout = 5;
 guint32 node_sendqueue_size = 20480;	/* was 10240 */
+guint32 node_tx_flowc_timeout = 300;
 guint32 search_queries_forward_size = 256;
 guint32 search_queries_kick_size = 1024;
 guint32 search_answers_forward_size = 65536;
@@ -120,9 +126,13 @@ enum {
 	k_force_local_ip, k_hosts_catched,
 	k_download_connecting_timeout,
 	k_download_push_sent_timeout, k_download_connected_timeout,
+	k_download_retry_timeout_min, k_download_retry_timeout_max,
+	k_download_retry_timeout_delay, k_download_retry_busy_delay,
+	k_download_max_retries, k_download_overlap_range,
+	k_download_retry_refused_delay, k_download_retry_stopped,
 	k_upload_connecting_timeout, k_upload_connected_timeout,
 	k_node_connected_timeout,
-	k_node_connecting_timeout, k_node_sendqueue_size,
+	k_node_connecting_timeout, k_node_sendqueue_size, k_node_tx_flowc_timeout,
 	k_search_queries_forward_size,
 	k_search_queries_kick_size, k_search_answers_forward_size,
 	k_search_answers_kick_size,
@@ -169,11 +179,20 @@ gchar *keywords[] = {
 	"download_connecting_timeout",		/* k_download_connecting_timeout */
 	"download_push_sent_timeout",		/* k_download_push_sent_timeout */
 	"download_connected_timeout",		/* k_download_connected_timeout */
+	"download_retry_timeout_min",		/* k_download_retry_timeout_min */
+	"download_retry_timeout_max",		/* k_download_retry_timeout_max */
+	"download_retry_timeout_delay",		/* k_download_retry_timeout_delay */
+	"download_retry_busy_delay",		/* k_download_retry_busy_delay */
+	"download_max_retries",				/* k_download_max_retries */
+	"download_overlap_range",			/* k_download_overlap_range */
+	"download_retry_refused_delay",		/* k_download_retry_refused_delay */
+	"download_retry_stopped",			/* k_download_retry_stopped */
 	"upload_connecting_timeout",		/* k_upload_connecting_timeout */
 	"upload_connected_timeout",			/* k_upload_connected_timeout */
 	"node_connected_timeout",	/* k_node_connected_timeout */
 	"node_connecting_timeout",	/* k_node_connecting_timeout */
 	"node_sendqueue_size",		/* k_node_sendqueue_size */
+	"node_tx_flowc_timeout",	/* k_node_tx_flowc_timeout */
 	"search_queries_forward_size",		/* k_search_queries_forward_size */
 	"search_queries_kick_size", /* k_search_queries_kick_size */
 	"search_answers_forward_size",		/* k_search_answers_forward_size */
@@ -583,6 +602,10 @@ void config_set_param(guint32 keyword, gchar *value)
 		if (i > 4096 && i < 1048576) node_sendqueue_size = i;
 		return;
 
+	case k_node_tx_flowc_timeout:
+		node_tx_flowc_timeout = i;
+		return;
+
 	case k_node_connecting_timeout:
 		if (i > 1 && i < 3600) node_connecting_timeout = i;
 		return;
@@ -601,6 +624,38 @@ void config_set_param(guint32 keyword, gchar *value)
 
 	case k_download_connected_timeout:
 		if (i > 1 && i < 3600) download_connected_timeout = i;
+		return;
+
+	case k_download_retry_timeout_min:
+		if (i >= 0) download_retry_timeout_min = i;
+		return;
+
+	case k_download_retry_timeout_max:
+		if (i >= 0) download_retry_timeout_max = i;
+		return;
+
+	case k_download_retry_timeout_delay:
+		if (i >= 0) download_retry_timeout_delay = i;
+		return;
+
+	case k_download_retry_busy_delay:
+		if (i >= 0) download_retry_busy_delay = i;
+		return;
+
+	case k_download_max_retries:
+		if (i >= 0) download_max_retries = i;
+		return;
+
+	case k_download_overlap_range:
+		if (i >= 0) download_overlap_range = i;
+		return;
+
+	case k_download_retry_refused_delay:
+		if (i >= 0) download_retry_refused_delay = i;
+		return;
+
+	case k_download_retry_stopped:
+		if (i >= 0) download_retry_stopped = i;
 		return;
 
 	case k_upload_connecting_timeout:
@@ -1044,6 +1099,34 @@ void config_save(void)
 	fprintf(config, "# Number of seconds before timeout "
 		"for a connected node\n%s = %u\n\n",
 			keywords[k_node_connected_timeout], node_connected_timeout);
+	fprintf(config, "# Maximum seconds node can remain in transmit "
+		"flow control\n%s = %u\n\n",
+			keywords[k_node_tx_flowc_timeout], node_tx_flowc_timeout);
+
+	fprintf(config, "# Minimum seconds to wait on auto-retry timeouts"
+		"\n%s = %u\n\n",
+		keywords[k_download_retry_timeout_min], download_retry_timeout_min);
+	fprintf(config, "# Maximum seconds to wait on auto-retry timeouts"
+		"\n%s = %u\n\n",
+		keywords[k_download_retry_timeout_max], download_retry_timeout_max);
+	fprintf(config, "# Delay in seconds to wait after connection failure"
+		"\n%s = %u\n\n",
+		keywords[k_download_retry_timeout_delay], download_retry_timeout_delay);
+	fprintf(config, "# Delay in seconds to wait after HTTP busy indication"
+		"\n%s = %u\n\n",
+		keywords[k_download_retry_busy_delay], download_retry_busy_delay);
+	fprintf(config, "# Delay in seconds to wait if connection is refused "
+		"\n%s = %u\n\n",
+		keywords[k_download_retry_refused_delay], download_retry_refused_delay);
+	fprintf(config, "# Delay in seconds to wait when running download stops"
+		"\n%s = %u\n\n",
+		keywords[k_download_retry_stopped], download_retry_stopped);
+	fprintf(config, "# Maximum attempts to make, not counting HTTP busy "
+		"indications\n%s = %u\n\n",
+		keywords[k_download_max_retries], download_max_retries);
+	fprintf(config, "# Amount of bytes to overlap when resuming download"
+		"\n%s = %u\n\n",
+		keywords[k_download_overlap_range], download_overlap_range);
 
 	fprintf(config, "# Max hard TTL limit (hop+ttl) on message (minimum 5)\n");
 	fprintf(config, "%s = %u\n\n", keywords[k_hard_ttl_limit],

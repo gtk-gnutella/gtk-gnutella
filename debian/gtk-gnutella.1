@@ -244,6 +244,45 @@ The number of seconds before timing out for a 'push sent' download.
 This can not be set through the GUI.
 The number of seconds before timing out for a connected download.
 .TP
+.BI download_retry_timeout_min
+This can not be set through the GUI.
+The minimum amout of seconds to wait on auto-retry when a push times out.
+.TP
+.BI download_retry_timeout_max
+This can not be set through the GUI.
+The maximum amout of seconds to wait on auto-retry when a push times out.
+.TP
+.BI download_max_retries
+This can not be set through the GUI.
+The maximum attempts to make, not counting HTTP busy indications.  Only
+timeouts and refused connections are counted.
+.TP
+.BI download_retry_timeout_delay
+This can not be set through the GUI.
+Delay in seconds to wait after a download connection timeout before retrying.
+.TP
+.BI download_retry_busy_delay
+This can not be set through the GUI.
+Delay in seconds to wait after an HTTP busy indication before retrying
+download.
+.TP
+.BI download_retry_refused_delay
+This can not be set through the GUI.
+Delay in seconds to wait after a download connection was unable to complete,
+probably refused due to no listening port opened on the remote side.
+.TP
+.BI download_retry_stopped
+This can not be set through the GUI.
+Delay in seconds to wait before re-issuing a stopped download.  A download
+stops when it hits an unexpected EOF condition, or a remote connection reset.
+.TP
+.BI download_overlap_range
+This can not be set through the GUI.
+Amount of bytes to request prior the resuming point, to ensure that the
+file is the same as the one we partially got, and that we're resuming at
+the proper offset.  If the file on disk is smaller than that value, the
+whole file is requested again.
+.TP
 .BI upload_connecting_timeout
 This can not be set through the GUI.
 The number of seconds before timing out for a connecting upload,
@@ -267,6 +306,11 @@ The number of seconds before timing out for a connecting node.
 .BI node_sendqueue_size
 This can not be set through the GUI.
 The maximum size of the sendqueue for the nodes (in bytes).
+.TP
+.BI node_tx_flowc_timeout
+This is the maximum amout of time, in seconds, that a node can remain
+in a transmit flow-control condition.  As soon as the flow-control condition
+disappears withing that amount of time, the connection is kept.
 .TP
 .BI search_queries_forward_size
 This can not be set through the GUI.
