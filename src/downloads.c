@@ -7358,7 +7358,12 @@ static void download_retrieve(void)
 		switch (recline) {
 		case 1:						/* The file name */
 			(void) str_chomp(dl_tmp, 0);
-			(void) url_unescape(dl_tmp, TRUE);	/* Un-escape in place */
+			/* Un-escape in place */
+			if (!url_unescape(dl_tmp, TRUE)) {
+				g_warning("download_retrieve: "
+					"Invalid escaping in line #%d, aborting", line);
+				goto out;
+			}
 			d_name = atom_str_get(dl_tmp);
 
 			/*
