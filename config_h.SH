@@ -98,6 +98,10 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
 #define const
 #endif
 
+#if defined(HAS_GNULIBC) && !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
+
 /* HAS_INET_ATON:
  *	This symbol, if defined, indicates to the C program that the
  *	inet_aton() function is available to parse IP address "dotted-quad"

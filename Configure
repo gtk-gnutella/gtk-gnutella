@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Sat Aug 16 11:17:52 MEST 2003 [metaconfig 3.0 PL70]
+# Generated on Tue Aug 19 23:51:50 MEST 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -137,8 +137,13 @@ esac
 : Configure runs within the UU subdirectory
 test -d UU || mkdir UU
 CDPATH=''
-cd UU && rm -f ./*
+cd UU && rm -f *
 
+from=''
+run=''
+targetarch=''
+to=''
+usecrosscompile=''
 d_bsd=''
 d_eunice=''
 d_xenix=''
@@ -187,6 +192,7 @@ more=''
 msgfmt=''
 msgmerge=''
 mv=''
+nm=''
 nroff=''
 perl=''
 pg=''
@@ -262,6 +268,7 @@ d_const=''
 d_deflate=''
 d_gettext=''
 d_gnulibc=''
+gnulibc_version=''
 d_herror=''
 d_hstrerror=''
 d_inetaton=''
@@ -398,6 +405,14 @@ _exe=''
 : Extra object files, if any, needed on this platform.
 archobjs=''
 gccversion=''
+: Possible local include directories to search.
+: Set locincpth to "" in a hint file to defeat local include searches.
+locincpth="/usr/local/include /opt/local/include /usr/gnu/include"
+locincpth="$locincpth /opt/gnu/include /usr/GNU/include /opt/GNU/include"
+:
+: no include file wanted by default
+inclwanted=''
+
 : change the next line if compiling for Xenix/286 on Xenix/386
 xlibpth='/usr/lib/386 /lib/386'
 
@@ -416,19 +431,11 @@ glibpth="$glibpth /usr/ccs/lib /usr/ucblib /usr/local/lib"
 : machines, like the mips.  Usually, it should be empty.
 plibpth=''
 
+: default library list
+libswanted=''
 : full support for void wanted by default
 defvoidused=15
 
-: Possible local include directories to search.
-: Set locincpth to "" in a hint file to defeat local include searches.
-locincpth="/usr/local/include /opt/local/include /usr/gnu/include"
-locincpth="$locincpth /opt/gnu/include /usr/GNU/include /opt/GNU/include"
-:
-: no include file wanted by default
-inclwanted=''
-
-: default library list
-libswanted=''
 libswanted='sendfile z icuuc intl resolv'
 
 : Find the basic shell for Bourne shell scripts
@@ -1189,6 +1196,7 @@ cat
 chgrp
 chmod
 chown
+cp
 echo
 expr
 grep
@@ -1213,6 +1221,7 @@ gmsgfmt
 ln
 msgfmt
 msgmerge
+nm
 nroff
 test
 uname
@@ -1323,6 +1332,12 @@ xgettext)
 			grep usage >/dev/null; then exit 0; else exit 1; fi)
 	then
 		echo "Your $xgettext is not GNU xgettext; ignoring it."
+		xgettext=":"
+		_xgettext=":"
+	elif $xgettext --from-code=UTF-8 /dev/null >/dev/null 2>&1; then
+		: ok
+	else
+		echo "Your $xgettext does not support --from-code; ignoring it."
 		xgettext=":"
 		_xgettext=":"
 	fi
@@ -1476,6 +1491,29 @@ for file in $loclist $trylist; do
 	eval $file="\$_$file"
 done
 
+cat << EOM
+
+Configure uses the operating system name and version to set some defaults.
+The default value is probably right if the name rings a bell. Otherwise,
+since spelling matters for me, either accept the default or answer "none"
+to leave it blank.
+
+EOM
+case "$osname" in
+	''|' ')
+		case "$hintfile" in
+		''|' '|none) dflt=none ;;
+		*)  dflt=`echo $hintfile | $sed -e 's/\.sh$//' -e 's/_.*$//'` ;;
+		esac
+		;;
+	*) dflt="$osname" ;;
+esac
+rp="Operating system name?"
+. ./myread
+case "$ans" in
+none)  osname='' ;;
+*) osname=`echo "$ans" | $sed -e 's/[ 	][	]*/_/g' | ./tr '[A-Z]' '[a-z]'`;;
+esac
 : who configured the system
 LC_ALL=C; export LC_ALL
 cf_time=`$date 2>&1`
@@ -2128,7 +2166,7 @@ fi
 case "$models" in
 '')
 	$cat >pdp11.c <<'EOP'
-main() {
+int main() {
 #ifdef pdp11
 	exit(0);
 #else
@@ -2304,7 +2342,10 @@ elif $contains SIGTSTP foo >/dev/null 2>&1 ; then
 	echo "Looks kind of like a BSD system, but we'll see..."
 	d_bsd="$define"
 	echo exit 0 >bsd
-elif $tr --help 2>/dev/null | $contains gnu\\.org >/dev/null; then
+elif
+	$rm --version 2>/dev/null >foo;
+	$contains "Free Software Foundation" foo >/dev/null
+then
 	xxx=`uname`
 	echo exit 0 >gnu
 	echo "Looks kind of like a GNU/$xxx system, but we'll see..."
@@ -2931,7 +2972,7 @@ and I got the following output:
 EOM
 $cat > try.c <<'EOF'
 #include <stdio.h>
-main() { exit(0); }
+int main() { exit(0); }
 EOF
 dflt=y
 if sh -c "$cc $optimize $ccflags $ldflags -o try try.c" >>try.msg 2>&1; then
@@ -3075,36 +3116,100 @@ none) libs=' ';;
 esac
 $rm -f lt.c lt
 
+: define a shorthand compile call
+compile='
+mc_file=$1;
+shift;
+$cc -o ${mc_file} $optimize $ccflags $ldflags $* ${mc_file}.c $libs > /dev/null 2>&1;'
+: define a shorthand compile call for compilations that should be ok.
+compile_ok='
+mc_file=$1;
+shift;
+$cc -o ${mc_file} $optimize $ccflags $ldflags $* ${mc_file}.c $libs;'
+
+: setup for possible cross-compilation
+run=''
+to=:
+from=:
+usecrosscompile='undef'
+targetarch=''
+case "$usecrosscompile" in
+$define|true|[yY]*)
+	echo "Cross-compilation is not supported for this package." >&4
+	exit 1
+	;;
+esac
+
 echo " "
 echo "Checking for GNU C Library..." >&4
-cat >gnulibc.c <<EOM
-int
-main()
+cat >try.c <<'EOCP'
+/* Find out version of GNU C library.  __GLIBC__ and __GLIBC_MINOR__
+   alone are insufficient to distinguish different versions, such as
+   2.0.6 and 2.0.7.  The function gnu_get_libc_version() appeared in
+   libc version 2.1.0.      A. Dougherty,  June 3, 2002.
+*/
+#include <stdio.h>
+int main(void)
 {
-	return __libc_main();
+#ifdef __GLIBC__
+#   ifdef __GLIBC_MINOR__
+#       if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1
+#           include <gnu/libc-version.h>
+	    printf("%s\n",  gnu_get_libc_version());
+#       else
+	    printf("%d.%d\n",  __GLIBC__, __GLIBC_MINOR__);
+#       endif
+#   else
+	printf("%d\n",  __GLIBC__);
+#   endif
+    return 0;
+#else
+    return 1;
+#endif
 }
-EOM
-if $cc $ccflags $ldflags -o gnulibc gnulibc.c $libs >/dev/null 2>&1 && \
-  ./gnulibc | $contains '^GNU C Library' >/dev/null 2>&1; then
+EOCP
+set try
+if eval $compile_ok && $run ./try > glibc.ver; then
 	val="$define"
-	echo "You are using the GNU C Library"
+	gnulibc_version=`$cat glibc.ver`
+	echo "You are using the GNU C Library version $gnulibc_version"
 else
 	val="$undef"
+	gnulibc_version=''
 	echo "You are not using the GNU C Library"
 fi
-$rm -f gnulibc*
+$rm -f try try.* glibc.ver
 set d_gnulibc
 eval $setvar
 
 : see if nm is to be used to determine whether a symbol is defined or not
 case "$usenm" in
 '')
+	dflt=''
 	case "$d_gnulibc" in
 	$define)
+		echo " "
+		echo "nm probably won't work on the GNU C Library." >&4
 		dflt=n
 		;;
-	*)
+	esac
+	case "$dflt" in
+	'')
+		if $test "$osname" = aix -a "X$PASE" != "Xdefine" \
+			-a ! -f /lib/syscalls.exp
+		then
+			echo " "
+			echo "Whoops!  This is an AIX system without /lib/syscalls.exp!" >&4
+			echo "'nm' won't be sufficient on this system." >&4
+			dflt=n
+		fi
+		;;
+	esac
+	case "$dflt" in
+	'')
 		if ./gnu; then
+			echo " "
+			echo "Hmm...  A GNU system without a GNU C Library?  Weird..." >&4
 			dflt=n
 		else
 			dflt=`$egrep 'inlibc|csym' $rsrc/Configure | wc -l 2>/dev/null`
@@ -3119,26 +3224,26 @@ case "$usenm" in
 	;;
 *)
 	case "$usenm" in
-	true) dflt=y;;
+	true|$define) dflt=y;;
 	*) dflt=n;;
 	esac
 	;;
 esac
 $cat <<EOM
 
-I can use 'nm' to extract the symbols from your C libraries. This is a time
-consuming task which may generate huge output on the disk (up to 3 megabytes)
-but that should make the symbols extraction faster. The alternative is to skip
-the 'nm' extraction part and to compile a small test program instead to
-determine whether each symbol is present. If you have a fast C compiler and/or
-if your 'nm' output cannot be parsed, this may be the best solution.
-You shouldn't let me use 'nm' if you have the GNU C Library.
+I can use 'nm' to extract the symbols from your C libraries. This is a
+time consuming task which may generate huge output on the disk (up to
+3 megabytes) but that should make the symbols extraction faster. The
+alternative is to skip the 'nm' extraction part and to compile a small
+test program instead to determine whether each symbol is present. If
+you have a fast C compiler and/or if your 'nm' output cannot be parsed,
+this may be the best solution.
 
 EOM
 rp='Shall I use nm to extract C symbols from the libraries?'
 . ./myread
 case "$ans" in
-n|N) usenm=false;;
+[Nn]*) usenm=false;;
 *) usenm=true;;
 esac
 
@@ -3150,11 +3255,13 @@ esac
 : nm options which may be necessary
 case "$nm_opt" in
 '') if $test -f /mach_boot; then
-		nm_opt=''
+		nm_opt=''		# Mach
 	elif $test -d /usr/ccs/lib; then
-		nm_opt='-p'
+		nm_opt='-p'		# Solaris (and SunOS?)
 	elif $test -f /dgux; then
-		nm_opt='-p'
+		nm_opt='-p'		# DG-UX
+	elif $test -f /lib64/rld; then
+		nm_opt='-p'		# 64-bit Irix
 	else
 		nm_opt=''
 	fi;;
@@ -3165,7 +3272,7 @@ esac
 case "$nm_so_opt" in
 '')	case "$myuname" in
 	*linux*)
-		if nm --help | $grep 'dynamic' > /dev/null 2>&1; then
+		if $nm --help | $grep 'dynamic' > /dev/null 2>&1; then
 			nm_so_opt='--dynamic'
 		fi
 		;;
@@ -3434,7 +3541,7 @@ csym='tlook=$1;
 case "$3" in
 -v) tf=libc.tmp; tc=""; tdc="";;
 -a) tf=libc.tmp; tc="[0]"; tdc="[]";;
-*) tlook="^$1\$"; tf=libc.list; tc="()"; tdc="()";;
+*) tlook="^$1\$"; tf=libc.list; tc=""; tdc="()";;
 esac;
 tx=yes;
 case "$reuseval-$4" in
@@ -3450,7 +3557,7 @@ yes)
 		else tval=false;
 		fi;;
 	*)
-		echo "extern char $1$tdc; int main() { $1$tc; return 0; }" > t.c;
+		echo "extern char $1$tdc; int main() { return &$1$tc == 0; }" > t.c;
 		if $cc $ccflags $ldflags -o t t.c $libs >/dev/null 2>&1;
 		then tval=true;
 		else tval=false;
@@ -3712,7 +3819,7 @@ echo " "
 echo 'Checking to see if your C compiler knows about "const"...' >&4
 $cat >const.c <<'EOCP'
 typedef struct spug { int drokk; } spug;
-main()
+int main()
 {
 	const char *foo;
 	const spug y;
@@ -3797,7 +3904,7 @@ echo " "
 $cat >isascii.c <<'EOCP'
 #include <stdio.h>
 #include <ctype.h>
-main() {
+int main() {
 	int c = 'A';
 	if (isascii(c))
 		exit(0);
@@ -3874,7 +3981,7 @@ $cat >open3.c <<'EOCP'
 #ifdef I_SYS_FILE
 #include <sys/file.h>
 #endif
-main() {
+int main() {
 	if(O_RDONLY);
 #ifdef O_TRUNC
 	exit(0);
@@ -3997,7 +4104,7 @@ eval $inlibc
 echo " "
 echo 'Checking to see if your C compiler knows about "volatile"...' >&4
 $cat >try.c <<'EOCP'
-main()
+int main()
 {
 	typedef struct _goo_struct goo_struct;
 	goo_struct * volatile goo = ((goo_struct *)0);
@@ -4178,7 +4285,7 @@ case "$install" in
 		done
 	done
 	$cat >try.c <<EOC
-main()
+int main()
 {
 	printf("OK\n");
 	exit(0);
@@ -4563,7 +4670,7 @@ sub() {
 #endif
 	exit(0);
 }
-main() { sub(); }
+int main() { sub(); }
 EOCP
 	if $cc $ccflags -c -DTRY=$defvoidused try.c >.out 2>&1 ; then
 		voidflags=$defvoidused
@@ -4947,6 +5054,7 @@ expr='$expr'
 find='$find'
 firstmakefile='$firstmakefile'
 flex='$flex'
+from='$from'
 gcc='$gcc'
 gccversion='$gccversion'
 glade='$glade'
@@ -4955,6 +5063,7 @@ gladeobj='$gladeobj'
 gladesrc='$gladesrc'
 glibpth='$glibpth'
 gmsgfmt='$gmsgfmt'
+gnulibc_version='$gnulibc_version'
 grep='$grep'
 gtkcflags='$gtkcflags'
 gtkconfig='$gtkconfig'
@@ -5025,6 +5134,7 @@ msgmerge='$msgmerge'
 mv='$mv'
 myuname='$myuname'
 n='$n'
+nm='$nm'
 nm_opt='$nm_opt'
 nm_so_opt='$nm_so_opt'
 nroff='$nroff'
@@ -5047,6 +5157,7 @@ prototype='$prototype'
 remotectrl='$remotectrl'
 rm='$rm'
 rmail='$rmail'
+run='$run'
 runnm='$runnm'
 sed='$sed'
 sendmail='$sendmail'
@@ -5069,13 +5180,16 @@ submit='$submit'
 sysman='$sysman'
 tail='$tail'
 tar='$tar'
+targetarch='$targetarch'
 tbl='$tbl'
 test='$test'
+to='$to'
 touch='$touch'
 tr='$tr'
 troff='$troff'
 uname='$uname'
 uniq='$uniq'
+usecrosscompile='$usecrosscompile'
 usenm='$usenm'
 usrinc='$usrinc'
 uuname='$uuname'
