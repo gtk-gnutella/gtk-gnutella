@@ -1200,7 +1200,7 @@ static void bsched_stealbeat(bsched_t *bs)
 	GSList *l;
 	GSList *all_used = NULL;		/* List of bsched_t that used all b/w */
 	gint all_used_count = 0;		/* Amount of bsched_t that used all b/w */
-	gint all_bw_count = 0;			/* Sum of configured bandwidth */
+	guint all_bw_count = 0;			/* Sum of configured bandwidth */
 	gint steal_count = 0;
 	gint underused;
 
@@ -1239,6 +1239,8 @@ static void bsched_stealbeat(bsched_t *bs)
 		}
 	}
 
+	g_assert(steal_count > 0);
+
 	/*
 	 * Distribute our available bandwidth proportionally to all the
 	 * schedulers that saturated their bandwidth, or evenly to all the
@@ -1259,8 +1261,15 @@ static void bsched_stealbeat(bsched_t *bs)
 			bsched_t *xbs = (bsched_t *) l->data;
 			gdouble amount;
 
+			if (xbs->bw_max == 0)
+				continue;
+
 			amount = (gdouble) underused * all_bw_count / (gdouble) xbs->bw_max;
-			xbs->bw_stolen += (gint) amount;
+
+			if ((gdouble) xbs->bw_stolen + amount > (gdouble) BS_BW_MAX)
+				xbs->bw_stolen = BS_BW_MAX;
+			else
+				xbs->bw_stolen += (gint) amount;
 
 			if (dbg > 4)
 				printf("b/w sched \"%s\" giving %d bytes to \"%s\"\n",
