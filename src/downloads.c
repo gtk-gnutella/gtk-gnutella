@@ -45,6 +45,7 @@
 #include "settings.h"
 #include "nodes.h"
 #include "parq.h"
+#include "token.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -5045,6 +5046,10 @@ picked:
 		ip_port_to_gchar(download_ip(d), download_port(d)),
 		(d->server->attrs & DLS_A_BANNING) ?
 			download_vendor_str(d) : version_string);
+
+	if (!(d->server->attrs & DLS_A_BANNING))
+		rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			"X-Token: %s\r\n", tok_version());
 	
 	/*
 	 * Add X-Queue / X-Queued information into the header
