@@ -330,10 +330,10 @@ static void filter_rebuild_target_combos()
         optionmenu_filter_size_target,
         optionmenu_filter_jump_target,
         NULL };
+    gpointer bufptr;
     gint i;
     
     /*
-
      * Prepare a list of unbound filters and also leave
      * out the global and builtin filters.
      */
@@ -366,6 +366,8 @@ static void filter_rebuild_target_combos()
      * The following is in the main window and should always be
      * updateable.
      */
+    bufptr = option_menu_get_selected_data(optionmenu_search_filter);
+
     m = GTK_MENU(gtk_menu_new());
 
     menu_new_item_with_data(m, "no default filter", NULL);
@@ -381,6 +383,8 @@ static void filter_rebuild_target_combos()
 
     gtk_option_menu_set_menu
         (GTK_OPTION_MENU(optionmenu_search_filter), GTK_WIDGET(m));
+
+    option_menu_select_item_by_data(optionmenu_search_filter, bufptr);
 
     g_list_free(buf);
 }
@@ -398,7 +402,7 @@ void filter_open_dialog() {
             (GTK_NOTEBOOK(notebook_filter_detail), FALSE);
 
        	gtk_clist_set_reorderable(GTK_CLIST(clist_filter_rules), TRUE);
-        for (i = 0; i < 3; i++)
+        for (i = 0; i < 4; i++)
             gtk_clist_set_column_width(GTK_CLIST(clist_filter_rules), i,
                 filter_table_col_widths[i]);
    
@@ -428,7 +432,8 @@ void filter_open_dialog() {
             (GTK_OPTION_MENU(optionmenu_filter_default_policy), GTK_WIDGET(m));
     }
 
-  	gtk_window_set_position(GTK_WINDOW(filter_dialog), GTK_WIN_POS_CENTER);
+  	gtk_window_set_default_size(GTK_WINDOW(filter_dialog), 
+        flt_dlg_w, flt_dlg_h);
 
     if (current_search != NULL) {
         filter_set(current_search->filter);
@@ -464,6 +469,12 @@ void filter_close_dialog(gboolean commit)
     if (filter_dialog != NULL) {
         //gtk_object_destroy(GTK_OBJECT(filter_dialog));
         //filter_dialog = NULL;
+
+        gdk_window_get_root_origin
+            (filter_dialog->window, &flt_dlg_x, &flt_dlg_y);
+        gdk_window_get_size
+            (filter_dialog->window, &flt_dlg_w, &flt_dlg_h);
+        
         gtk_widget_hide(filter_dialog);
     }
 }
@@ -528,6 +539,10 @@ void filter_edit_text_rule(rule_t *r)
             (gpointer) DEFAULT_TARGET);
         gtk_toggle_button_set_active
             (GTK_TOGGLE_BUTTON(checkbutton_filter_text_invert_cond), FALSE);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_text_active), FALSE);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_text_soft), FALSE);
     } else {
         gtk_entry_set_text(
             GTK_ENTRY(entry_filter_text_pattern),
@@ -542,7 +557,13 @@ void filter_edit_text_rule(rule_t *r)
             (gpointer) r->target);
         gtk_toggle_button_set_active
             (GTK_TOGGLE_BUTTON(checkbutton_filter_text_invert_cond),
-            r->negate);
+            RULE_IS_NEGATED(r));
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_text_active),
+            RULE_IS_ACTIVE(r));
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_text_soft),
+            RULE_IS_SOFT(r));
     }
 
     gtk_notebook_set_page(
@@ -566,6 +587,10 @@ void filter_edit_ip_rule(rule_t *r)
             (gpointer) DEFAULT_TARGET);
         gtk_toggle_button_set_active
             (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_invert_cond), FALSE);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_active), FALSE);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_soft), FALSE);
     } else {
         gtk_entry_set_text(
             GTK_ENTRY(entry_filter_ip_address), 
@@ -577,7 +602,13 @@ void filter_edit_ip_rule(rule_t *r)
             (gpointer) r->target);
         gtk_toggle_button_set_active
             (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_invert_cond),
-            r->negate);
+            RULE_IS_NEGATED(r));
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_active),
+            RULE_IS_ACTIVE(r));
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_soft),
+            RULE_IS_SOFT(r));
     }
 
     gtk_notebook_set_page(
@@ -605,6 +636,10 @@ void filter_edit_size_rule(rule_t *r)
             (gpointer) DEFAULT_TARGET);
         gtk_toggle_button_set_active
             (GTK_TOGGLE_BUTTON(checkbutton_filter_size_invert_cond), FALSE);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_size_active), FALSE);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_size_soft), FALSE);
     } else {
         gtk_spin_button_set_value(
             GTK_SPIN_BUTTON(spinbutton_filter_size_min), 
@@ -616,7 +651,13 @@ void filter_edit_size_rule(rule_t *r)
             (gpointer) r->target);
         gtk_toggle_button_set_active
             (GTK_TOGGLE_BUTTON(checkbutton_filter_size_invert_cond),
-            r->negate);
+            RULE_IS_NEGATED(r));
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_size_active),
+            RULE_IS_ACTIVE(r));
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_size_soft),
+            RULE_IS_SOFT(r));
     }
 
     gtk_notebook_set_page(
@@ -636,9 +677,14 @@ void filter_edit_jump_rule(rule_t *r)
     if (r == NULL) {
         option_menu_select_item_by_data(optionmenu_filter_jump_target,
             (gpointer) DEFAULT_TARGET);
-    } else {
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_jump_active), FALSE);
+   } else {
         option_menu_select_item_by_data(optionmenu_filter_jump_target,
             (gpointer) r->target);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_jump_active),
+            RULE_IS_ACTIVE(r));
     }
 
     gtk_notebook_set_page(
@@ -698,7 +744,7 @@ rule_t *filter_get_rule()
 
 
 rule_t *filter_new_text_rule(gchar * match, gint type, 
-    gboolean case_sensitive, filter_t *target, gboolean negate)
+    gboolean case_sensitive, filter_t *target, guint16 flags)
 {
   	rule_t *r;
     gchar *buf;
@@ -709,12 +755,12 @@ rule_t *filter_new_text_rule(gchar * match, gint type,
   	r = g_new0(rule_t, 1);
 
    	r->type                  = RULE_TEXT;
-    r->negate                = negate;
+    r->flags                 = flags;
     r->target                = target;
     r->u.text.case_sensitive = case_sensitive;
     r->u.text.type           = type;
     r->u.text.match          = g_strdup(match);
-    r->valid                 = TRUE;
+    rule_set_flags(r, RULE_FLAG_VALID);
 
     if (!r->u.text.case_sensitive)
         strlower(r->u.text.match, r->u.text.match);
@@ -765,7 +811,7 @@ rule_t *filter_new_text_rule(gchar * match, gint type,
 
 
 rule_t *filter_new_ip_rule
-    (guint32 addr, guint32 mask, filter_t *target, gboolean negate)
+    (guint32 addr, guint32 mask, filter_t *target, guint16 flags)
 {
 	rule_t *r;
 
@@ -779,8 +825,8 @@ rule_t *filter_new_ip_rule
 	r->u.ip.mask  = mask;
 	r->u.ip.addr &= r->u.ip.mask;
     r->target     = target;
-    r->negate     = negate;
-    r->valid      = TRUE;
+    r->flags      = flags;
+    rule_set_flags(r, RULE_FLAG_VALID);
 
     return r;
 }
@@ -788,7 +834,7 @@ rule_t *filter_new_ip_rule
 
 
 rule_t *filter_new_size_rule
-    (size_t lower, size_t upper, filter_t *target, gboolean negate)
+    (size_t lower, size_t upper, filter_t *target, guint16 flags)
 {
    	rule_t *f;
 
@@ -806,9 +852,9 @@ rule_t *filter_new_size_rule
         f->u.size.upper = upper;
     }
 
-  	f->target       = target;
-    f->negate       = negate;
-    f->valid        = TRUE;
+  	f->target = target;
+    f->flags  = flags;
+    rule_set_flags(f, RULE_FLAG_VALID);
 
     return f;
 }
@@ -816,7 +862,7 @@ rule_t *filter_new_size_rule
 
 
 
-rule_t *filter_new_jump_rule(filter_t *target)
+rule_t *filter_new_jump_rule(filter_t *target, guint16 flags)
 {
    	rule_t *f;
 
@@ -826,9 +872,9 @@ rule_t *filter_new_jump_rule(filter_t *target)
 
     f->type = RULE_JUMP;
 
-  	f->target       = target;
-    f->negate       = FALSE;
-    f->valid        = TRUE;
+  	f->target = target;
+    f->flags  = flags;
+    rule_set_flags(f, RULE_FLAG_VALID);
 
     return f;
 }
@@ -848,6 +894,9 @@ static rule_t *filter_get_text_rule()
     gboolean case_sensitive;
     filter_t *target;
     gboolean negate;
+    gboolean active;
+    gboolean soft;
+    guint16 flags;
 
     g_return_val_if_fail(filter_dialog != NULL, NULL);
 
@@ -863,11 +912,21 @@ static rule_t *filter_get_text_rule()
 	negate = gtk_toggle_button_get_active
         (GTK_TOGGLE_BUTTON(checkbutton_filter_text_invert_cond));
 
+	active = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_text_active));
+
+   	soft = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_text_soft));
+
     target = (filter_t *)option_menu_get_selected_data
         (optionmenu_filter_text_target);
 
-    r = filter_new_text_rule
-        (match, type, case_sensitive, target, negate);
+    flags =
+        (negate ? RULE_FLAG_NEGATE : 0) |
+        (active ? RULE_FLAG_ACTIVE : 0) |
+        (soft   ? RULE_FLAG_SOFT   : 0);
+
+    r = filter_new_text_rule(match, type, case_sensitive, target, flags);
 
     g_free(match);
     
@@ -887,6 +946,9 @@ static rule_t *filter_get_ip_rule()
     guint32 mask;
     filter_t *target;
     gboolean negate;
+    gboolean active;
+    gboolean soft;
+    guint16 flags;
 
     g_return_val_if_fail(filter_dialog != NULL, NULL);
 
@@ -901,10 +963,21 @@ static rule_t *filter_get_ip_rule()
     negate = gtk_toggle_button_get_active
         (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_invert_cond));
 
+    active = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_active));
+
+    soft = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_soft));
+
     target = (filter_t *)option_menu_get_selected_data
         (optionmenu_filter_ip_target);
 
-    return filter_new_ip_rule(addr, mask, target, negate);
+    flags =
+        (negate ? RULE_FLAG_NEGATE : 0) |
+        (active ? RULE_FLAG_ACTIVE : 0) |
+        (soft   ? RULE_FLAG_SOFT   : 0);
+
+    return filter_new_ip_rule(addr, mask, target, flags);
 }
 
 
@@ -921,6 +994,9 @@ static rule_t *filter_get_size_rule()
     size_t upper;
     filter_t *target;
     gboolean negate;
+    gboolean active;
+    gboolean soft;
+    guint16 flags;
 
     if (filter_dialog == NULL)
         return NULL;
@@ -934,10 +1010,21 @@ static rule_t *filter_get_size_rule()
     negate = gtk_toggle_button_get_active
         (GTK_TOGGLE_BUTTON(checkbutton_filter_size_invert_cond));
 
+    active = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_size_active));
+
+    soft = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_size_soft));
+
     target = (filter_t *)option_menu_get_selected_data
         (optionmenu_filter_size_target);
 
-    return filter_new_size_rule(lower, upper, target, negate);
+    flags =
+        (negate ? RULE_FLAG_NEGATE : 0) |
+        (active ? RULE_FLAG_ACTIVE : 0) |
+        (soft   ? RULE_FLAG_SOFT   : 0);
+
+   return filter_new_size_rule(lower, upper, target, flags);
 }
 
 
@@ -951,6 +1038,8 @@ static rule_t *filter_get_size_rule()
 static rule_t *filter_get_jump_rule()
 {
     filter_t *target;
+    gboolean active;
+    guint16 flags;
 
     if (filter_dialog == NULL)
         return NULL;
@@ -958,7 +1047,12 @@ static rule_t *filter_get_jump_rule()
     target = (filter_t *)option_menu_get_selected_data
         (optionmenu_filter_jump_target);
 
-    return filter_new_jump_rule(target);
+    active = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_jump_active));
+
+    flags = (active ? RULE_FLAG_ACTIVE : 0);
+
+    return filter_new_jump_rule(target, flags);
 }
 
 
@@ -1160,24 +1254,41 @@ static void filter_set_ruleset(GList *ruleset)
 {
     GList *l;
     gint count = 0;
+    GdkColor *color;
 
     if (filter_dialog == NULL)
         return;
 
     gtk_clist_freeze(GTK_CLIST(clist_filter_rules));
     gtk_clist_clear(GTK_CLIST(clist_filter_rules));
+
+    color = &(gtk_widget_get_style(GTK_WIDGET(clist_filter_rules))
+                ->bg[GTK_STATE_INSENSITIVE]);
         
     for (l = ruleset; l != NULL; l = l->next) {
         rule_t *r = (rule_t *)l->data;
-        gchar *titles[3];
+        gchar *titles[4];
         gint row;
+        guint buf;
 
         g_assert(r != NULL);
         count ++;
-        titles[0] = r->negate ? "X" : "";
+        titles[0] = RULE_IS_NEGATED(r) ? "X" : "";
         titles[1] = rule_condition_to_gchar(r);
         titles[2] = r->target->name;
+        
+        buf = r->match_count+r->fail_count;
+        if (buf != 0) {
+            g_snprintf(f_tmp, sizeof(f_tmp), "%d (%d%%)",
+                r->match_count, (gint)((float)r->match_count/buf*100));
+            titles[3] = f_tmp;
+        } else {
+            titles[3] = "none yet";
+        }
         row = gtk_clist_append(GTK_CLIST(clist_filter_rules), titles);
+        if (!RULE_IS_ACTIVE(r))
+             gtk_clist_set_foreground(GTK_CLIST(clist_filter_rules), row,
+                color);
         gtk_clist_set_row_data
             (GTK_CLIST(clist_filter_rules), row, (gpointer) r);
     }
@@ -1260,11 +1371,20 @@ static gchar *rule_condition_to_gchar(rule_t *r)
 			g_snprintf(tmp, sizeof(tmp),
 				"If filesize is exactly %d (%s)",
 				r->u.size.upper, short_size(r->u.size.upper));
-		else
+        else {
+            gchar *s1;
+            gchar *s2;
+
+            s1 = g_strdup(short_size(r->u.size.lower));
+            s2 = g_strdup(short_size(r->u.size.upper));
+    
 			g_snprintf(tmp, sizeof(tmp),
 				"If filesize is between %d and %d (%s - %s)",
-				r->u.size.lower, r->u.size.upper,
-				short_size(r->u.size.lower), short_size(r->u.size.upper));
+				r->u.size.lower, r->u.size.upper, s1, s2);
+
+            g_free(s1);
+            g_free(s2);
+        }
         break;
     case RULE_JUMP:
        	g_snprintf(
@@ -1294,9 +1414,11 @@ gchar *rule_to_gchar(rule_t *r)
 
     cond = g_strdup(rule_condition_to_gchar(r));
 
-	g_snprintf(f_tmp, sizeof(f_tmp), "%s %s jump to \"%s\"", 
-        r->negate ? "(Negate) " : "", cond, 
-        r->valid ? r->target->name : "(invalid)");
+	g_snprintf(f_tmp, sizeof(f_tmp), "%s%s %s jump to \"%s\"", 
+        RULE_IS_NEGATED(r) ? "(Negated) " : "",
+        RULE_IS_ACTIVE(r) ? "" : "(deactivated)",
+        cond,
+        RULE_IS_VALID(r) ? r->target->name : "(invalid)");
 
     g_free(cond);
   
@@ -1736,7 +1858,8 @@ void filter_adapt_order(void)
 /*
  * filter_apply:
  *
- * returns 0 for hide, 1 for display, -1 for undecided 
+ * returns 0 for hide, 1 for display, -1 for undecided, 
+ * 2 for display marked
  */
 static int filter_apply(filter_t *filter, struct record *rec)
 {
@@ -1748,19 +1871,9 @@ static int filter_apply(filter_t *filter, struct record *rec)
     g_assert(rec != NULL);
 
     /*
-     * If we reached one of the builtin targets, we bail out.
-     */
-    if (filter == filter_show) {
-        return 1;
-    }
-    if (filter == filter_drop) {
-        return 0;
-    }
-  
-    /*
      * We only try to prevent circles.
      */
-    if (filter->visited == TRUE) {
+    if ((filter->visited == TRUE)) {
         return -1;
     }
 
@@ -1783,85 +1896,95 @@ static int filter_apply(filter_t *filter, struct record *rec)
         if (dbg >= 6)
             printf("trying to match against: %s\n", rule_to_gchar(r));
 
-		switch (r->type) {
-        case RULE_JUMP:
-            match = TRUE;
-            break;
-		case RULE_TEXT:
-			switch (r->u.text.type) {
-			case RULE_TEXT_PREFIX:
-				if (strncmp(r->u.text.case_sensitive ? rec->name : l_name,
-					    r->u.text.match, strlen(r->u.text.match)) == 0)
-					match = TRUE;
-				break;
-			case RULE_TEXT_WORDS:
-                {
-                    GList *l;
-    
-                    for (
-                        l = g_list_first(r->u.text.u.words);
-                        l && !match; 
-                        l = g_list_next(l)
-                    ) {
-                        if (pattern_qsearch
-                            ((cpattern_t *)l->data,
-                             r->u.text.case_sensitive
-                             ? rec->name : l_name, 0, 0, qs_any)
-                            != NULL)
-                            match = TRUE;
+        if (RULE_IS_ACTIVE(r)) {
+            switch (r->type) {
+            case RULE_JUMP:
+                match = TRUE;
+                break;
+            case RULE_TEXT:
+                switch (r->u.text.type) {
+                case RULE_TEXT_PREFIX:
+                    if (strncmp(r->u.text.case_sensitive ? rec->name : l_name,
+                            r->u.text.match, strlen(r->u.text.match)) == 0)
+                        match = TRUE;
+                    break;
+                case RULE_TEXT_WORDS:
+                    {
+                        GList *l;
+        
+                        for (
+                            l = g_list_first(r->u.text.u.words);
+                            l && !match; 
+                            l = g_list_next(l)
+                        ) {
+                            if (pattern_qsearch
+                                ((cpattern_t *)l->data,
+                                 r->u.text.case_sensitive
+                                 ? rec->name : l_name, 0, 0, qs_any)
+                                != NULL)
+                                match = TRUE;
+                        }
                     }
+                    break;
+                case RULE_TEXT_SUFFIX:
+                    n = strlen(r->u.text.match);
+                    if (namelen > n
+                        && strcmp((r->u.text.case_sensitive
+                               ? rec->name : l_name) + namelen
+                              - n, r->u.text.match) == 0)
+                        match = TRUE;
+                    break;
+                case RULE_TEXT_SUBSTR: 
+                    if (pattern_qsearch(r->u.text.u.pattern,
+                                r->u.text.case_sensitive
+                                ? rec->name : l_name, 0, 0,
+                                qs_any) != NULL)
+                        match = TRUE;
+                    break;
+                case RULE_TEXT_REGEXP:
+                    if ((i = regexec(r->u.text.u.re, rec->name,
+                             0, NULL, 0)) == 0)
+                        match = TRUE;
+                    if (i == REG_ESPACE)
+                        g_warning("regexp memory overflow");
+                    break;
+                default:
+                    g_error("Unknown text rule type: %d",
+                        r->u.text.type);
                 }
-				break;
-			case RULE_TEXT_SUFFIX:
-				n = strlen(r->u.text.match);
-				if (namelen > n
-				    && strcmp((r->u.text.case_sensitive
-					       ? rec->name : l_name) + namelen
-					      - n, r->u.text.match) == 0)
-				    match = TRUE;
-				break;
-			case RULE_TEXT_SUBSTR: 
-				if (pattern_qsearch(r->u.text.u.pattern,
-						    r->u.text.case_sensitive
-						    ? rec->name : l_name, 0, 0,
-						    qs_any) != NULL)
-					match = TRUE;
-				break;
-			case RULE_TEXT_REGEXP:
-				if ((i = regexec(r->u.text.u.re, rec->name,
-						 0, NULL, 0)) == 0)
-					match = TRUE;
-				if (i == REG_ESPACE)
-					g_warning("regexp memory overflow");
-				break;
-			default:
-				g_error("Unknown text rule type: %d",
-					r->u.text.type);
-			}
-			break;
-		case RULE_IP:
-			if ((rec->results_set->ip & r->u.ip.mask) == r->u.ip.addr)
-				match = TRUE;
-			break;
-		case RULE_SIZE:
-			if (rec->size >= r->u.size.lower && rec->size <= r->u.size.upper)
-				match = TRUE;
-			break;
-		default:
-			g_error("Unknown rule type: %d", r->type);
-			break;
-		}
-    
+                break;
+            case RULE_IP:
+                if ((rec->results_set->ip & r->u.ip.mask) == r->u.ip.addr)
+                    match = TRUE;
+                break;
+            case RULE_SIZE:
+                if (rec->size >= r->u.size.lower && 
+                    rec->size <= r->u.size.upper)
+                    match = TRUE;
+                break;
+            default:
+                g_error("Unknown rule type: %d", r->type);
+                break;
+            }
+        }
         /*
          * If negate is set, we invert the meaning of match.
          */
 
-		if (r->negate)
+		if (RULE_IS_NEGATED(r) && RULE_IS_ACTIVE(r))
 			match = !match;
 
         if (match) {
             gint val;                                                
-            val = filter_apply(r->target, rec);                      
+            
+            r->match_count ++;
+    
+            if (r->target == filter_show) {
+                val = 1;
+            } else if (r->target == filter_drop) {
+                val = RULE_IS_SOFT(r) ? 2 : 0;
+            } else
+                val = filter_apply(r->target, rec);
 
             /*
              * If a decision could be reached, we return.
@@ -1874,6 +1997,8 @@ static int filter_apply(filter_t *filter, struct record *rec)
                 filter->visited = FALSE; 
                 return val;    
             }
+        } else {
+            r->fail_count ++;
         }
 
 		list = g_list_next(list);
