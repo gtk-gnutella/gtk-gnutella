@@ -1,5 +1,15 @@
 # since last version
 
+- (2002.05.17 - RAM)
+  * Applied enum/macro cleanup patch #555837 [From Uros Bizjak].
+  * Display download queue status entries.
+  * Fixed guess_local_ip() to never replace a previous non-private IP with
+	a private one.
+  * Added exit grace period to make sure final BYE messages get a reasonable
+	chance of being sent.
+  * Added extended copyright notices, per FSF recommendations.
+  * Added copy of the GPL in the LICENSE file.
+
 - (2002.05.15 - Richard)
   * Fixed bug with spinbuttons: manually entering a value did require
     to hit enter two times or did not work at all. Had to use
