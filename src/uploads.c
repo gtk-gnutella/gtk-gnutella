@@ -2251,6 +2251,19 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	}
 
 	/*
+	 * PARQ ID, emitted if needed.
+	 *
+	 * We do that before calling upload_http_status() to avoid lacking
+	 * room in the headers, should there by any alternate location present.
+	 */
+
+	cb_parq_arg.u = u;
+
+	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+	hev[hevcnt].he_cb = parq_upload_add_header_id;
+	hev[hevcnt++].he_arg = &cb_parq_arg;
+
+	/*
 	 * Date, Content-Length, etc...
 	 */
 
@@ -2262,16 +2275,6 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 	hev[hevcnt].he_cb = upload_http_status;
 	hev[hevcnt++].he_arg = &cb_arg;
-
-	/*
-	 * PARQ ID, emitted if needed.
-	 */
-
-	cb_parq_arg.u = u;
-
-	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-	hev[hevcnt].he_cb = parq_upload_add_header_id;
-	hev[hevcnt++].he_arg = &cb_parq_arg;
 
 	if (!http_send_status(u->socket, http_code, FALSE, hev, hevcnt, http_msg)) {
 		upload_remove(u, "Cannot send whole HTTP status");
