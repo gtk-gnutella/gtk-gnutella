@@ -2306,11 +2306,6 @@ void parq_upload_remove(gnutella_upload_t *u)
 			u->name, (gint) (parq_ul->disc_timeout - now));
 		parq_upload_free(parq_ul);
 	} else {
-		/* Disconnected upload is allowed to reconnect immediatly */
-		parq_ul->has_slot = FALSE;
-		parq_ul->retry = now;
-		parq_ul->expire = now + MIN_LIFE_TIME;
-
 		/*
 		 * A client is not allowed to disconnect over and over again
 		 * (ie data write error). Set the time for which a client
@@ -2318,6 +2313,11 @@ void parq_upload_remove(gnutella_upload_t *u)
 		 */
 		if (parq_ul->has_slot)
 			parq_ul->disc_timeout = now + parq_upload_ban_window;
+
+		/* Disconnected upload is allowed to reconnect immediatly */
+		parq_ul->has_slot = FALSE;
+		parq_ul->retry = now;
+		parq_ul->expire = now + MIN_LIFE_TIME;
 	}
 }
 
