@@ -1157,12 +1157,20 @@ void gui_update_download(struct download *d, gboolean force)
     gint current_page;
 	static GtkNotebook *notebook = NULL;
 	static GtkNotebook *dl_notebook = NULL;
+	gboolean looking = TRUE;
 
     if (d->last_gui_update == now && !force)
 		return;
+
+	if (DL_GUI_IS_HEADER == (guint32) d)
+		return;			/* A header was sent here by mistake */ 		
 	
 	/*
 	 * Why update if no one's looking?
+	 *
+	 * We must update some of the download entries even if nobody is
+	 * looking because we don't periodically update the GUI for all the
+	 * states...
 	 */
 
 	if (notebook == NULL)
@@ -1174,14 +1182,32 @@ void gui_update_download(struct download *d, gboolean force)
 
     current_page = gtk_notebook_get_current_page(notebook);
     if (current_page != nb_main_page_downloads)
-        return;
+        looking = FALSE;
 	
-    current_page = gtk_notebook_get_current_page(dl_notebook);
-    if (current_page != nb_downloads_page_downloads)
-		return;
+	if (looking) {
+		current_page = gtk_notebook_get_current_page(dl_notebook);
+		if (current_page != nb_downloads_page_downloads)
+			looking = FALSE;
+	}
 
-	if (DL_GUI_IS_HEADER == (guint32) d)
-		return;			/*A header was sent here by mistake */ 		
+	if (!looking) {
+		switch (d->status) {
+		case GTA_DL_ACTIVE_QUEUED:
+		case GTA_DL_RECEIVING:
+		case GTA_DL_HEADERS:
+		case GTA_DL_PUSH_SENT:
+		case GTA_DL_CONNECTING:
+		case GTA_DL_REQ_SENT:
+		case GTA_DL_FALLBACK:
+		case GTA_DL_SINKING:
+		case GTA_DL_TIMEOUT_WAIT:
+		case GTA_DL_VERIFYING:
+		case GTA_DL_MOVING:
+			return;			/* This will be updated when they look */
+		default:
+			break;			/* Other states must always be updated */
+		}
+	}
 	
 	d->last_gui_update = now;
 	fi = d->file_info;
