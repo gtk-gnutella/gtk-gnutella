@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2004, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,6 +23,12 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ * Host management.
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -37,6 +43,7 @@ RCSID("$Id$");
 #include "whitelist.h"
 #include "gwcache.h"
 #include "settings.h"
+#include "bogons.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -54,7 +61,8 @@ static gboolean in_shutdown = FALSE;
 /**
  * Hash function for use in g_hash_table_new.
  */
-guint host_hash(gconstpointer key)
+guint
+host_hash(gconstpointer key)
 {
 	const gnet_host_t *host = (const gnet_host_t *) key;
 
@@ -66,7 +74,8 @@ guint host_hash(gconstpointer key)
  *
  * @note For use in g_hash_table_new
  */
-gint host_eq(gconstpointer v1, gconstpointer v2)
+gint
+host_eq(gconstpointer v1, gconstpointer v2)
 {
 	const gnet_host_t *h1 = (const gnet_host_t *) v1;
 	const gnet_host_t *h2 = (const gnet_host_t *) v2;
@@ -79,7 +88,8 @@ gint host_eq(gconstpointer v1, gconstpointer v2)
  *
  * @note For use in g_list_find_custom
  */
-gint host_cmp(gconstpointer v1, gconstpointer v2)
+gint
+host_cmp(gconstpointer v1, gconstpointer v2)
 {
 	return host_eq(v1, v2) ? 0 : 1;
 }
@@ -89,12 +99,11 @@ gint host_cmp(gconstpointer v1, gconstpointer v2)
  *** Host periodic timer.
  ***/
 
-/*
- * host_timer
- *
+/**
  * Periodic host heartbeat timer.
  */
-void host_timer(void)
+void
+host_timer(void)
 {
 	static gint called = 0;
     guint count;
@@ -220,13 +229,31 @@ void host_init(void)
 	pcache_init();
 }
 
-/*
- * host_add
- *
+/**
+ * Check whether host is connectible, i.e. that it has a valid port and that
+ * its IP address is not private not bogus.
+ */
+gboolean
+host_is_valid(guint32 ip, guint16 port)
+{
+	if (!port_is_valid(port))
+		return FALSE;
+
+	if (!ip_is_valid(ip))
+		return FALSE;
+
+	if (bogons_check(ip))
+		return FALSE;
+
+	return TRUE;
+}
+
+/**
  * Add a new host to our pong reserve.
  * When `connect' is true, attempt to connect if we are low in Gnet links.
  */
-void host_add(guint32 ip, guint16 port, gboolean do_connect)
+void
+host_add(guint32 ip, guint16 port, gboolean do_connect)
 {
 	if (!hcache_add_caught(HOST_ANY, ip, port, "pong"))
 		return;
@@ -258,14 +285,13 @@ void host_add(guint32 ip, guint16 port, gboolean do_connect)
 	}
 }
 
-/*
- * host_add_semi_pong
- *
+/**
  * Add a new host to our pong reserve, although the information here
  * does not come from a pong but from a Query Hit packet, hence the port
  * may be unsuitable for Gnet connections.
  */
-void host_add_semi_pong(guint32 ip, guint16 port)
+void
+host_add_semi_pong(guint32 ip, guint16 port)
 {
 	g_assert(host_low_on_pongs);	/* Only used when low on pongs */
 
@@ -282,24 +308,22 @@ struct network_pair
 struct network_pair *local_networks = NULL;
 guint32 number_local_networks;
 
-/*
- * free_networks()
- *
+/**
  * frees the local networks array
  */
-static void free_networks(void)
+static
+void free_networks(void)
 {
 	if (local_networks)
 		G_FREE_NULL(local_networks);
 }
 
-/* 
- * parse_netmasks
- *
+/**
  * Break the netmaks string and convert them into network_pair elements in 
  * the local_networks array. IP's are in network order.
  */
-void parse_netmasks(gchar * str)
+void
+parse_netmasks(gchar * str)
 {
 	gchar **masks = g_strsplit(str, ";", 0);
 	gchar *p;
@@ -359,12 +383,11 @@ void parse_netmasks(gchar * str)
 	g_strfreev(masks);
 }
 
-/* 
- * host_is_nearby
- * 
+/**
  * Returns true if the ip is inside one of the local networks  
  */
-gboolean host_is_nearby(guint32 ip)
+gboolean
+host_is_nearby(guint32 ip)
 {
 	guint i;
 
@@ -378,18 +401,18 @@ gboolean host_is_nearby(guint32 ip)
 
 /* -------------------------- */
 
-/*
- * host_shutdown
- *
- * Warn that we're shutdowning and entering a grace period, during which
+/**
+ * Signals that we're shutdowning and entering a grace period, during which
  * we don't need to make any new connection.
  */
-void host_shutdown(void)
+void
+host_shutdown(void)
 {
 	in_shutdown = TRUE;
 }
 
-void host_close(void)
+void
+host_close(void)
 {
 	pcache_close();
 	free_networks();
