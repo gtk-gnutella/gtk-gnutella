@@ -42,7 +42,7 @@ gint gtk_paned_get_position(GtkPaned *paned);
 #endif
 
 void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t);
-gint gtk_main_flush();
+gint gtk_main_flush(void);
 void option_menu_select_item_by_data(GtkWidget *m, gpointer *d);
 gpointer option_menu_get_selected_data(GtkWidget *m);
 GtkWidget *menu_new_item_with_data(GtkMenu *m, gchar *l, gpointer d );

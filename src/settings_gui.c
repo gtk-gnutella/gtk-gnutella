@@ -27,7 +27,7 @@
 
 #include "gui.h"
 
-#include "downloads.h" // FIXME: remove this dependency
+#include "downloads.h" /* FIXME: remove this dependency */
 
 #include "settings_gui.h"
 
@@ -45,7 +45,7 @@
 RCSID("$Id$");
 
 /* Uncomment to override debug level for this file. */
-//#define gui_debug 10
+/* #define gui_debug 10 */
 
 /* 
  * This file has five parts:
@@ -100,15 +100,15 @@ static prop_set_t *properties = NULL;
  * stock-callbacks to work. Even if you use no stock callback, they
  * are needed for setting the tooltip.
  */
-GtkWidget *get_main_window(void) {
+static GtkWidget *get_main_window(void) {
     return main_window;
 }
 
-GtkWidget *get_filter_dialog(void) {
+static GtkWidget *get_filter_dialog(void) {
     return filter_dialog;
 }
 
-GtkWidget *get_search_popup(void) {
+static GtkWidget *get_search_popup(void) {
     return popup_search;
 }
 
@@ -207,8 +207,9 @@ static gboolean gnet_connections_changed(property_t prop);
 static gboolean uploads_count_changed(property_t prop);
 static gboolean downloads_count_changed(property_t prop);
 
-// FIXME: move to separate file and autogenerate from high-level
-//        description.
+/* FIXME:
+ * move to separate file and autogenerate from high-level description.
+ */
 static prop_map_t property_map[] = {
     {
         get_main_window,
@@ -298,6 +299,16 @@ static prop_map_t property_map[] = {
         "hpaned_filter_main",
         FREQ_UPDATES, 0
     },
+#ifdef USE_GTK2
+    {
+        get_main_window,
+        PROP_RESULTS_DIVIDER_POS,
+        update_split_pane,
+        TRUE,
+        "vpaned_results",
+        FREQ_UPDATES, 0
+    },
+#endif
     {
         get_main_window,
         PROP_STATUSBAR_VISIBLE,
@@ -2215,11 +2226,11 @@ static gboolean update_multichoice(property_t prop)
 
     l = GTK_LIST(GTK_COMBO(w)->list)->children;
     while (l) {
-        guint32 cur;
+        gpointer cur;
 
-        cur = GPOINTER_TO_UINT(gtk_object_get_user_data(GTK_OBJECT(l->data)));
+        cur = gtk_object_get_user_data(GTK_OBJECT(l->data));
 
-        if (cur == val) {
+        if (GPOINTER_TO_UINT(cur) == val) {
             gtk_list_item_select(GTK_LIST_ITEM(l->data));
             break;
         }
@@ -2358,7 +2369,7 @@ static gboolean update_treeview_col_widths(property_t prop)
     g_free(val);
     return FALSE;
 }
-#endif // USE_GTK2
+#endif /* USE_GTK2 */
 static gboolean update_window_geometry(property_t prop)
 {
     GtkWidget *w;
@@ -3493,7 +3504,7 @@ static gboolean downloads_count_changed(property_t prop)
  * the property_map changed. It reacts to the "value_changed" signal of 
  * the GtkAdjustement associated with the GtkSpinbutton.
  */
-void spinbutton_adjustment_value_changed
+static void spinbutton_adjustment_value_changed
     (GtkAdjustment *adj, gpointer user_data)
 {
     prop_map_t *map_entry = (prop_map_t *) user_data;
@@ -3562,7 +3573,7 @@ void spinbutton_adjustment_value_changed
  * GtkToggleButtons are normally bound directly to thier associated
  * properties. Special cases are handled here.
  */
-void togglebutton_state_changed(
+static void togglebutton_state_changed(
     GtkToggleButton *tb, gpointer user_data)
 {
     prop_map_t *map_entry = (prop_map_t *) user_data;
@@ -3584,7 +3595,7 @@ void togglebutton_state_changed(
     stub->boolean.set(map_entry->prop, &val, 0, 1);
 }
 
-void multichoice_item_selected(GtkItem *i, gpointer data)
+static void multichoice_item_selected(GtkItem *i, gpointer data)
 {
     prop_map_t *map_entry = (prop_map_t *) data;
     prop_set_stub_t *stub = map_entry->stub;
@@ -3595,7 +3606,7 @@ void multichoice_item_selected(GtkItem *i, gpointer data)
 
 /*
  * settings_gui_config_widget:
-     *
+ *
  * Set up tooltip and constraints where applicable.
  */
 static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
@@ -3926,16 +3937,20 @@ void settings_gui_shutdown(void)
     side_divider_pos = 
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_sidebar")));
-#ifndef USE_GTK2
     gnet_stats_divider_pos = 
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_gnet_stats")));
+#ifndef USE_GTK2
     clist = (current_search != NULL) ? 
         GTK_CLIST(current_search->clist) : 
         GTK_CLIST(default_search_clist);
 
     for (n = 0; n < clist->columns; n ++)
         search_results_col_visible[n] =  clist->column[n].visible;
+#else
+    results_divider_pos = 
+        gtk_paned_get_position(GTK_PANED
+            (lookup_widget(main_window, "vpaned_results")));
 #endif 
     /*
      * Save properties to file
@@ -3947,8 +3962,8 @@ void settings_gui_shutdown(void)
      */
     gui_prop_shutdown();
 
-    g_free(home_dir);
-    g_free(gui_config_dir);
-    g_free(gui_prop_set_stub);
-    g_free(gnet_prop_set_stub);
+    G_FREE_NULL(home_dir);
+    G_FREE_NULL(gui_config_dir);
+    G_FREE_NULL(gui_prop_set_stub);
+    G_FREE_NULL(gnet_prop_set_stub);
 }

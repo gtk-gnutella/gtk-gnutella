@@ -50,13 +50,13 @@ struct atom {
 #define ARENA_OFFSET	G_STRUCT_OFFSET(struct atom, arena)
 
 typedef gint (*len_func_t)(gconstpointer v);
-typedef gchar *(*str_func_t)(gconstpointer v);
+typedef const gchar *(*str_func_t)(gconstpointer v);
 
 /*
  * Description of atom types.
  */
 struct table_desc {
-	gchar *type;				/* Type of atoms */
+	const gchar *type;			/* Type of atoms */
 	GHashTable *table;			/* Table of atoms: "atom value" => 1 */
 	GHashFunc hash_func;		/* Hashing function for atoms */
 	GCompareFunc eq_func;		/* Atom equality function */
@@ -67,17 +67,17 @@ struct table_desc {
 #define public
 
 static gint str_len(gconstpointer v);
-static gchar *str_str(gconstpointer v);
+static const gchar *str_str(gconstpointer v);
 public guint guid_hash(gconstpointer key);
 public gint guid_eq(gconstpointer a, gconstpointer b);
 static gint guid_len(gconstpointer v);
-static gchar *guid_str(gconstpointer v);
+static const gchar *guid_str(gconstpointer v);
 public guint sha1_hash(gconstpointer key);
 public gint sha1_eq(gconstpointer a, gconstpointer b);
 static gint sha1_len(gconstpointer v);
-static gchar *sha1_str(gconstpointer v);
+static const gchar *sha1_str(gconstpointer v);
 static gint int_len(gconstpointer v);
-static gchar *int_str(gconstpointer v);
+static const gchar *int_str(gconstpointer v);
 
 #undef public
 
@@ -91,7 +91,7 @@ struct table_desc atoms[] = {
 	{ "int",	NULL,	g_int_hash,	g_int_equal, int_len,	int_str},	/* 3 */
 };
 
-#define COUNT(x)	(sizeof(x) / sizeof(x[0]))
+#define COUNT(x)	G_N_ELEMENTS(x)
 
 /*
  * str_len
@@ -100,12 +100,12 @@ struct table_desc atoms[] = {
  */
 static gint str_len(gconstpointer v)
 {
-	gchar *p = (gchar *) v;
+	const gchar *p = (const gchar *) v;
 
 	while (*p++)
 		/* empty */;
 
-	return p - (gchar *) v;
+	return p - (const gchar *) v;
 }
 
 /*
@@ -113,9 +113,9 @@ static gint str_len(gconstpointer v)
  *
  * Returns printable form of a string, i.e. self.
  */
-static gchar *str_str(gconstpointer v)
+static const gchar *str_str(gconstpointer v)
 {
-	return (gchar *) v;
+	return (const gchar *) v;
 }
 
 /*
@@ -125,7 +125,7 @@ static gchar *str_str(gconstpointer v)
  */
 static guint binary_hash(gconstpointer key, gint len)
 {
-	guchar *buf = (guchar *) key;
+	const guchar *buf = (const guchar *) key;
 	gint i;
 	guint hash = 0;
 
@@ -161,8 +161,8 @@ guint guid_hash(gconstpointer key)
  */
 gint guid_eq(gconstpointer a, gconstpointer b)
 {
-	guint32 *ax = (guint32 *) a;
-	guint32 *bx = (guint32 *) b;
+	const guint32 *ax = (const guint32 *) a;
+	const guint32 *bx = (const guint32 *) b;
 
 	return
 		ax[0] == bx[0] &&
@@ -186,9 +186,9 @@ static gint guid_len(gconstpointer v)
  *
  * Returns printable form of a GUID, as pointer to static data.
  */
-static gchar *guid_str(gconstpointer v)
+static const gchar *guid_str(gconstpointer v)
 {
-	return guid_hex_str((guchar *) v);
+	return guid_hex_str((const guchar *) v);
 }
 
 /*
@@ -212,8 +212,8 @@ guint sha1_hash(gconstpointer key)
  */
 gint sha1_eq(gconstpointer a, gconstpointer b)
 {
-	guint32 *ax = (guint32 *) a;
-	guint32 *bx = (guint32 *) b;
+	const guint32 *ax = (const guint32 *) a;
+	const guint32 *bx = (const guint32 *) b;
 
 	return
 		ax[0] == bx[0] &&
@@ -238,9 +238,9 @@ static gint sha1_len(gconstpointer v)
  *
  * Returns printable form of a SHA1, as pointer to static data.
  */
-static gchar *sha1_str(gconstpointer v)
+static const gchar *sha1_str(gconstpointer v)
 {
-	return sha1_base32((guchar *) v);
+	return sha1_base32((const guchar *) v);
 }
 
 /*
@@ -258,12 +258,12 @@ static gint int_len(gconstpointer v)
  *
  * Returns printable form of an int, as pointer to static data.
  */
-static gchar *int_str(gconstpointer v)
+static const gchar *int_str(gconstpointer v)
 {
 	static gchar fmt[32];
 
-	gm_snprintf(fmt, sizeof(fmt), "%d/%u", *(gint *) v, *(guint *) v);
-	fmt[sizeof(fmt)-1] = '\0';
+	gm_snprintf(fmt, sizeof(fmt), "%d/%u",
+		*(const gint *) v, *(const guint *) v);
 
 	return fmt;
 }
@@ -313,7 +313,7 @@ gpointer atom_get(gint type, gconstpointer key)
 	found = g_hash_table_lookup_extended(td->table, key, &value, &x);
 
 	if (found) {
-		a = (struct atom *) (value - ARENA_OFFSET);
+		a = (struct atom *) ((gchar *) value - ARENA_OFFSET);
 
 		g_assert(a->refcnt > 0);
 
@@ -364,7 +364,7 @@ void atom_free(gint type, gconstpointer key)
 	g_assert(found);
 	g_assert(value == key);
 
-	a = (struct atom *) (key - ARENA_OFFSET);
+	a = (struct atom *) ((gchar *) key - ARENA_OFFSET);
 
 	g_assert(a->refcnt > 0);
 
@@ -385,7 +385,7 @@ void atom_free(gint type, gconstpointer key)
  */
 static gboolean atom_warn_free(gpointer key, gpointer value, gpointer udata)
 {
-	struct atom *a = (struct atom *) (key - ARENA_OFFSET);
+	struct atom *a = (struct atom *) ((gchar *) key - ARENA_OFFSET);
 	struct table_desc *td = (struct table_desc *) udata;
 
 	g_warning("found remaining %s atom 0x%lx, refcnt=%d: \"%s\"",

@@ -28,7 +28,7 @@
 #include "downloads_gui.h"
 #include "statusbar_gui.h"
 
-#include "downloads.h" // FIXME: remove this dependency
+#include "downloads.h" /* FIXME: remove this dependency */
 
 RCSID("$Id$");
 
@@ -104,7 +104,7 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
     gtk_clist_freeze(clist_downloads);
 
 	for (l = clist_downloads->selection; l; l = clist_downloads->selection ) {
-        // FIXME: SLOW O(n*n)
+        /* FIXME: SLOW O(n*n) */
 		d = (struct download *) 
             gtk_clist_get_row_data(clist_downloads, GPOINTER_TO_INT(l->data));
         gtk_clist_unselect_row(clist_downloads, GPOINTER_TO_INT(l->data), 0);
@@ -136,7 +136,7 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
     gtk_clist_freeze(clist_downloads_queue);
 
 	for (l = clist_downloads->selection; l; l = clist_downloads->selection ) {
-        // FIXME: SLOW O(n*n)
+        /* FIXME: SLOW O(n*n) */
 		d = (struct download *) 
 			gtk_clist_get_row_data(clist_downloads, GPOINTER_TO_INT(l->data));
 		gtk_clist_unselect_row(clist_downloads, GPOINTER_TO_INT(l->data), 0);
@@ -351,7 +351,7 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
 
 void on_popup_downloads_selection_get(GtkWidget * widget,
                                       GtkSelectionData * data, 
-                                      guint info, guint time,
+                                      guint info, guint eventtime,
                                       gpointer user_data) 
 {
     g_return_if_fail(selected_url);

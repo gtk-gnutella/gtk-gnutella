@@ -335,14 +335,14 @@ static struct recent recent_pongs[HCACHE_MAX];
 
 static guint cached_pong_hash(gconstpointer key)
 {
-	struct cached_pong *cp = (struct cached_pong *) key;
+	const struct cached_pong *cp = (const struct cached_pong *) key;
 
 	return (guint) (cp->ip ^ ((cp->port << 16) | cp->port));
 }
 static gint cached_pong_eq(gconstpointer v1, gconstpointer v2)
 {
-	struct cached_pong *h1 = (struct cached_pong *) v1;
-	struct cached_pong *h2 = (struct cached_pong *) v2;
+	const struct cached_pong *h1 = (const struct cached_pong *) v1;
+	const struct cached_pong *h2 = (const struct cached_pong *) v2;
 
 	return h1->ip == h2->ip && h1->port == h2->port;
 }
@@ -476,17 +476,17 @@ static void add_recent_pong(hcache_type_t type, struct cached_pong *cp)
 		return;
 
 	if (rec->recent_pong_count == RECENT_PING_SIZE) {		/* Full */
-		GList *link = g_list_last(rec->recent_pongs);
-		struct cached_pong *cp = (struct cached_pong *) link->data;
+		GList *lnk = g_list_last(rec->recent_pongs);
+		struct cached_pong *cp = (struct cached_pong *) lnk->data;
 
-		rec->recent_pongs = g_list_remove_link(rec->recent_pongs, link);
+		rec->recent_pongs = g_list_remove_link(rec->recent_pongs, lnk);
 		g_hash_table_remove(rec->ht_recent_pongs, cp);
 
-		if (link == rec->last_returned_pong)
+		if (lnk == rec->last_returned_pong)
 			rec->last_returned_pong = rec->last_returned_pong->prev;
 
 		free_cached_pong(cp);
-		g_list_free_1(link);
+		g_list_free_1(lnk);
 	} else
 		rec->recent_pong_count++;
 	

@@ -105,7 +105,7 @@ GHashTable *ht_banned_push = NULL;
  * Log function
  */
 
-void routing_log(gchar * fmt, ...)
+static void routing_log(gchar * fmt, ...)
 {
 	va_list va;
 
@@ -127,7 +127,7 @@ static struct route_data * get_routing_data(struct gnutella_node *n)
 
 /* if a node doesn't currently have routing data attached, this
    creates and attaches some */
-void init_routing_data(struct gnutella_node *node)
+static void init_routing_data(struct gnutella_node *node)
 {
 	struct route_data *route;
 
@@ -172,32 +172,32 @@ static gboolean node_sent_message(struct gnutella_node *n, struct message *m)
 }
 
 /* compares two message structures */
-gint message_compare_func(gconstpointer a, gconstpointer b)
+static gint message_compare_func(gconstpointer a, gconstpointer b)
 {
 	return
-		0 == memcmp(((struct message *) a)->muid,
-			((struct message *) b)->muid, 16)
-		&& ((struct message *) a)->function ==
-			((struct message *) b)->function;
+		0 == memcmp(((const struct message *) a)->muid,
+			((const struct message *) b)->muid, 16)
+		&& ((const struct message *) a)->function ==
+			((const struct message *) b)->function;
 }
 
 /* hashes message structures for storage in a hash table */
-guint message_hash_func(gconstpointer key)
+static guint message_hash_func(gconstpointer key)
 {
 	int count;
 	guint hash = 0;
 	
 	for (count = 0; count <= 12; count += 4) {
 		guint hashadd =
-			( (struct message *) key)->muid[count]            |
-			(((struct message *) key)->muid[count + 1] << 8)  |
-			(((struct message *) key)->muid[count + 2] << 16) |
-			(((struct message *) key)->muid[count + 3] << 24);
+			( (const struct message *) key)->muid[count]            |
+			(((const struct message *) key)->muid[count + 1] << 8)  |
+			(((const struct message *) key)->muid[count + 2] << 16) |
+			(((const struct message *) key)->muid[count + 3] << 24);
 
 		hash ^= hashadd;
 	}
 
-	hash ^= (guint) ((struct message *) key)->function;
+	hash ^= (guint) ((const struct message *) key)->function;
 
 	return hash;
 }

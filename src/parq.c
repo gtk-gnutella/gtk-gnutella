@@ -42,7 +42,7 @@ RCSID("$Id$");
  * X-Queue: 1.0
  * major=1 minor=0
  */
-gboolean get_header_version(gchar const *const header, 
+static gboolean get_header_version(gchar const *const header, 
 								gint *major, gint *minor)
 {
 	return sscanf(header, ": %d.%d", major, minor) != 0;
@@ -54,7 +54,7 @@ gboolean get_header_version(gchar const *const header,
  * Retreives a value from a header line. If possible the length (in gchars)
  * is returned for that value.
  */
-gchar *get_header_value(
+static gchar *get_header_value(
 	gchar *const s, gchar const *const attribute, gint *length)
 {
 	gchar *lowercase_header = s;
@@ -224,11 +224,12 @@ static gint get_integer(gchar *buf)
 	glong val;
 	gchar *end;
 
-	// XXX This needs to get more parameters, so that we can log the
-	// XXX problem if we cannot parse, or if the value does not fit.
-	// XXX We probably need the download structure, and the name of
-	// XXX the field being parsed, with the header line as well.
-	// XXX	--RAM, 02/02/2003.
+	/* XXX This needs to get more parameters, so that we can log the
+	 * XXX problem if we cannot parse, or if the value does not fit.
+	 * XXX We probably need the download structure, and the name of
+	 * XXX the field being parsed, with the header line as well.
+	 * XXX	--RAM, 02/02/2003.
+	 */
 
 	val = strtoul(buf, &end, 10);
 	if (end == buf)

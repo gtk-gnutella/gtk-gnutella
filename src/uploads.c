@@ -190,7 +190,7 @@ static void upload_fire_upload_info_changed
 void upload_timer(time_t now)
 {
 	GSList *l;
-	GSList *remove = NULL;
+	GSList *to_remove = NULL;
 	guint32 t;
 
 	for (l = uploads; l; l = l->next) {
@@ -213,10 +213,10 @@ void upload_timer(time_t now)
 		 */
 
 		if (now - u->last_update > t)
-			remove = g_slist_prepend(remove, u);
+			to_remove = g_slist_prepend(to_remove, u);
 	}
 
-	for (l = remove; l; l = l->next) {
+	for (l = to_remove; l; l = l->next) {
 		gnutella_upload_t *u = (gnutella_upload_t *) l->data;
 		if (UPLOAD_IS_CONNECTING(u)) {
 			if (u->status == GTA_UL_PUSH_RECEIVED)
@@ -226,7 +226,7 @@ void upload_timer(time_t now)
 		} else
 			upload_remove(u, "Data timeout");
 	}
-	g_slist_free(remove);
+	g_slist_free(to_remove);
 }
 
 /*
@@ -392,10 +392,11 @@ void handle_push_request(struct gnutella_node *n)
 
 void upload_real_remove(void)
 {
-	// XXX UNUSED
-	// XXX Currently, we remove failed uploads from the list, but we should
-	// XXX do as we do for downloads, and have an extra option to remove
-	// XXX failed uploads immediately.	--RAM, 24/12/2001
+	/* XXX UNUSED
+	 * XXX Currently, we remove failed uploads from the list, but we should
+	 * XXX do as we do for downloads, and have an extra option to remove
+	 * XXX failed uploads immediately.	--RAM, 24/12/2001
+	 */
 }
 
 static void upload_free_resources(gnutella_upload_t *u)
@@ -840,7 +841,7 @@ static void mi_key_free(struct mesh_info_key *mik)
 
 static guint mi_key_hash(gconstpointer key)
 {
-	struct mesh_info_key *mik = (struct mesh_info_key *) key;
+	const struct mesh_info_key *mik = (const struct mesh_info_key *) key;
 	extern guint sha1_hash(gconstpointer key);
 
 	return sha1_hash((gconstpointer) mik->sha1) ^ mik->ip;
@@ -848,8 +849,8 @@ static guint mi_key_hash(gconstpointer key)
 
 static gint mi_key_eq(gconstpointer a, gconstpointer b)
 {
-	struct mesh_info_key *mika = (struct mesh_info_key *) a;
-	struct mesh_info_key *mikb = (struct mesh_info_key *) b;
+	const struct mesh_info_key *mika = (const struct mesh_info_key *) a;
+	const struct mesh_info_key *mikb = (const struct mesh_info_key *) b;
 	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 	return mika->ip == mikb->ip &&
@@ -1134,7 +1135,7 @@ static struct shared_file *get_file_to_upload_from_index(
 	gnutella_upload_t *u,
 	header_t *header,
 	gchar *uri,
-	guint index)
+	guint idx)
 {
 	struct shared_file *sf;
 	guchar c;
@@ -1155,7 +1156,7 @@ static struct shared_file *get_file_to_upload_from_index(
 	 *		--RAM, 16/01/2002
 	 */
 
-	sf = shared_file(index);
+	sf = shared_file(idx);
 
 	if (sf == SHARE_REBUILDING) {
 		/* Retry-able by user, hence 503 */
@@ -1279,7 +1280,7 @@ static struct shared_file *get_file_to_upload_from_index(
 				if (dbg > 4) {
 					printf("INDEX FIXED (push, SHA1 = %s): "
 						"requested %u, serving %u: %s\n",
-						sha1_base32(digest), index,
+						sha1_base32(digest), idx,
 						sfn->file_index, sfn->file_path);
 				}
 				sf = sfn;
@@ -1327,10 +1328,10 @@ static struct shared_file *get_file_to_upload_from_index(
 		if (dbg > 4) {
 			if (sf)
 				printf("BAD INDEX FIXED: requested %u, serving %u: %s\n",
-					index, sf->file_index, sf->file_path);
+					idx, sf->file_index, sf->file_path);
 			else
 				printf("BAD INDEX NOT FIXED: requested %u: %s\n",
-					index, basename);
+					idx, basename);
 		}
 
 	} else if (0 != strncmp(basename, sf->file_name, sf->file_name_len)) {
@@ -1341,10 +1342,10 @@ static struct shared_file *get_file_to_upload_from_index(
 		if (dbg > 4) {
 			if (sfn)
 				printf("INDEX FIXED: requested %u, serving %u: %s\n",
-					index, sfn->file_index, sfn->file_path);
+					idx, sfn->file_index, sfn->file_path);
 			else
 				printf("INDEX MISMATCH: requested %u: %s (has %s)\n",
-					index, basename, sf->file_name);
+					idx, basename, sf->file_name);
 		}
 
 		if (sfn == NULL) {
@@ -1455,7 +1456,7 @@ malformed:
 static struct shared_file *get_file_to_upload(
 	gnutella_upload_t *u, header_t *header, gchar *request)
 {
-	guint index = 0;
+	guint idx = 0;
 	gchar *uri;
 	gchar s;
 
@@ -1476,8 +1477,8 @@ static struct shared_file *get_file_to_upload(
 	 * since sscanf() will ignore whatever lies afterwards.
 	 */
 
-	if (2 == sscanf(uri, "/get/%u%c", &index, &s) && s == '/')
-		return get_file_to_upload_from_index(u, header, uri, index);
+	if (2 == sscanf(uri, "/get/%u%c", &idx, &s) && s == '/')
+		return get_file_to_upload_from_index(u, header, uri, idx);
 	else if (0 == strncmp(uri, n2r_query, N2R_QUERY_LENGTH))
 		return get_file_to_upload_from_urn(u, header, uri);
 
@@ -1645,7 +1646,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 {
 	struct gnutella_socket *s = u->socket;
 	struct shared_file *reqfile = NULL;
-    guint index = 0, skip = 0, end = 0, upcount = 0;
+    guint idx = 0, skip = 0, end = 0, upcount = 0;
 	gchar *fpath = NULL;
 	gchar *user_agent = 0;
 	gchar *buf;
@@ -1785,7 +1786,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		}
 	}
 
-	index = reqfile->file_index;
+	idx = reqfile->file_index;
 	sha1 = sha1_hash_available(reqfile) ? reqfile->sha1_digest : NULL;
 
 	/*
@@ -1794,9 +1795,9 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 *		--RAM, 31/12/2001
 	 */
 
-	if (u->push && index != u->index)
+	if (u->push && idx != u->index)
 		g_warning("Host %s sent PUSH for %u (%s), now requesting %u (%s)",
-			ip_to_gchar(u->ip), u->index, u->name, index, reqfile->file_name);
+			ip_to_gchar(u->ip), u->index, u->name, idx, reqfile->file_name);
 
 	/*
 	 * We already have a non-NULL u->name in the structure, because we
@@ -1805,7 +1806,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 *		--Richard, 20/11/2002
 	 */
 
-	u->index = index;
+	u->index = idx;
 	if (!u->sha1 && sha1)
 		u->sha1 = atom_sha1_get(sha1);	/* Identify file for followup reqs */
 
@@ -1948,12 +1949,12 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 	if (
 		is_followup &&
-		!(sha1 && u->sha1 && sha1_eq(sha1, u->sha1)) && index != u->index
+		!(sha1 && u->sha1 && sha1_eq(sha1, u->sha1)) && idx != u->index
 	) {
 		g_warning("Host %s sent initial request for %u (%s), "
 			"now requesting %u (%s)",
 			ip_to_gchar(s->ip),
-			u->index, u->name, index, reqfile->file_name);
+			u->index, u->name, idx, reqfile->file_name);
 		upload_error_remove(u, NULL, 400, "Change of Resource Forbidden");
 		return;
 	}
@@ -1981,7 +1982,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 				continue;
 			if (
 				up->socket->ip == s->ip &&
-				(up->index == index || (u->sha1 && up->sha1 == u->sha1))
+				(up->index == idx || (u->sha1 && up->sha1 == u->sha1))
 			) {
 				upload_error_remove(u, NULL, 503,
 					"Already downloading that file");

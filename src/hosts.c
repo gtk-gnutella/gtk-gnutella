@@ -226,7 +226,7 @@ void host_add_ultra(guint32 ip, guint16 port)
  * Add a new host to our pong reserve.
  * When `connect' is true, attempt to connect if we are low in Gnet links.
  */
-void host_add(guint32 ip, guint16 port, gboolean connect)
+void host_add(guint32 ip, guint16 port, gboolean do_connect)
 {
 	if (!add_host_to_cache(HCACHE_ANY, ip, port, "pong"))
 		return;
@@ -244,7 +244,7 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 	 */
 
 
-	if (connect) {
+	if (do_connect) {
 		if (node_keep_missing() > 0)
 				node_add(ip, port);
 		else {
@@ -293,10 +293,10 @@ guint32 number_local_networks;
  *
  * frees the local networks array
  */
-void free_networks()
+static void free_networks(void)
 {
 	if (local_networks)
-		g_free(local_networks);
+		G_FREE_NULL(local_networks);
 }
 
 /* 

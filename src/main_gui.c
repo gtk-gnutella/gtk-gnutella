@@ -47,7 +47,7 @@
 #include "filter_cb.h"
 #include "filter.h"
 #include "oldconfig.h"
-#include "callbacks.h" // FIXME: remove this dependency (compare_ul_norm)
+#include "callbacks.h" /* FIXME: remove this dependency (compare_ul_norm) */
 
 #ifndef USE_GTK2
 #include "fileinfo_gui.h"
@@ -83,7 +83,7 @@ GtkWidget *popup_queue = NULL;
  * to read in the old config file.
  * FIXME: This should be removed as soon as possible, probably for 1.0.
  */
-void load_legacy_settings(void)
+static void load_legacy_settings(void)
 {
     struct passwd *pwd = getpwuid(getuid());
     gchar *config_dir;
@@ -327,7 +327,7 @@ static void gui_init_menu(void)
     GtkCTree *ctree_menu =
         GTK_CTREE(lookup_widget(main_window, "ctree_menu"));
 
-     // gNet
+     /* gNet */
     title = (gchar *) &"gnutellaNet";
     parent_node = gtk_ctree_insert_node(
 		ctree_menu, NULL, NULL, &title,
@@ -336,7 +336,7 @@ static void gui_init_menu(void)
 		ctree_menu, parent_node, 
         GINT_TO_POINTER(nb_main_page_gnet));
 
-    // gNet -> Stats
+    /* gNet -> Stats */
     title = (gchar *) &"Stats";
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
@@ -345,7 +345,7 @@ static void gui_init_menu(void)
 		GTK_CTREE(ctree_menu), last_node, 
         GINT_TO_POINTER(nb_main_page_gnet_stats));
 
-    // Uploads
+    /* Uploads */
     title = (gchar *) &"Uploads";
     parent_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), NULL, NULL, &title,
@@ -354,7 +354,7 @@ static void gui_init_menu(void)
 		GTK_CTREE(ctree_menu), parent_node, 
         GINT_TO_POINTER(nb_main_page_uploads));
 
-    // Uploads -> Stats
+    /* Uploads -> Stats */
     title = (gchar *) &"Stats";
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
@@ -363,7 +363,7 @@ static void gui_init_menu(void)
 		GTK_CTREE(ctree_menu), last_node, 
         GINT_TO_POINTER(nb_main_page_uploads_stats));
 
-    // Downloads
+    /* Downloads */
     title = (gchar *) &"Downloads";
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), NULL, NULL, &title,
@@ -372,7 +372,7 @@ static void gui_init_menu(void)
 		GTK_CTREE(ctree_menu), last_node, 
         GINT_TO_POINTER(nb_main_page_downloads));
 
-    // Search
+    /* Search */
     title = (gchar *) &"Search";
     parent_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), NULL, NULL, &title,
@@ -381,7 +381,7 @@ static void gui_init_menu(void)
 		GTK_CTREE(ctree_menu), parent_node, 
         GINT_TO_POINTER(nb_main_page_search));
 
-    // Search -> Monitor
+    /* Search -> Monitor */
     title = (gchar *) &"Monitor";
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
@@ -390,7 +390,7 @@ static void gui_init_menu(void)
 		GTK_CTREE(ctree_menu), last_node, 
         GINT_TO_POINTER(nb_main_page_monitor));
 
-    // Search -> search stats
+    /* Search -> search stats */
     title = (gchar *) &"Stats";
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
@@ -399,7 +399,7 @@ static void gui_init_menu(void)
 		GTK_CTREE(ctree_menu), last_node, 
         GINT_TO_POINTER(nb_main_page_search_stats));
 
-    // Config
+    /* Config */
     title = (gchar *) &"Config";
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), NULL, NULL, &title,
@@ -505,8 +505,9 @@ void main_gui_init(void)
         gtk_clist_set_use_drag_icons(clist, FALSE);
     }  
 
-    // FIXME: those gtk_widget_set_sensitive should become obsolete when
-    // all property-change callbacks are set up properly
+    /* FIXME: those gtk_widget_set_sensitive should become obsolete when
+     * all property-change callbacks are set up properly
+     */
 	gtk_widget_set_sensitive
         (lookup_widget(popup_downloads, "popup_downloads_remove_file"), FALSE);
     gtk_widget_set_sensitive

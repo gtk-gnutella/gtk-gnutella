@@ -485,7 +485,7 @@ static gint deflate_add(txdrv_t *tx, gpointer data, gint len)
 		outz->next_out = b->wptr;
 		outz->avail_out = old_avail = b->end - b->wptr;
 
-		outz->next_in = data + added;
+		outz->next_in = (gchar *) data + added;
 		outz->avail_in = len - added;
 
 		g_assert(outz->avail_out > 0);
@@ -512,7 +512,7 @@ static gint deflate_add(txdrv_t *tx, gpointer data, gint len)
 		 */
 
 		b->wptr = outz->next_out;
-		added = (gpointer) outz->next_in - data;
+		added = (gchar *) outz->next_in - (gchar *) data;
 
 		g_assert(added >= old_added);
 

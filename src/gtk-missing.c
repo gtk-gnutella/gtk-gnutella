@@ -73,7 +73,7 @@ void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t)
  * for the innermost mainloop. Aborts flush if
  * gtk_main_quit has been called.
  */
-gint gtk_main_flush() 
+gint gtk_main_flush(void) 
 {
     gint val = FALSE;
 
@@ -166,10 +166,10 @@ GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb)
     g_assert(rb != NULL);
 
     for (i = gtk_radio_button_group(rb); i != NULL; i = i->next) {
-        GtkToggleButton *rb = GTK_TOGGLE_BUTTON(i->data);
+        GtkToggleButton *tb = GTK_TOGGLE_BUTTON(i->data);
 
-        if (gtk_toggle_button_get_active(rb))
-            return GTK_WIDGET(rb);
+        if (gtk_toggle_button_get_active(tb))
+            return GTK_WIDGET(tb);
     }
 
     return NULL;
@@ -322,7 +322,7 @@ struct collect_data_struct_t {
 	const gchar *name; /* name of the treeview widget (for debugging) */
 };
 
-void tree_selection_collect_data_helper(GtkTreeModel *model,
+static void tree_selection_collect_data_helper(GtkTreeModel *model,
 	GtkTreePath *path, GtkTreeIter *iter, gpointer user_data)
 {
 	struct collect_data_struct_t *cdata = user_data;
@@ -351,7 +351,7 @@ void tree_selection_collect_data_helper(GtkTreeModel *model,
     }
 }
 
-void tree_selection_unselect_helper(gpointer data, gpointer user_data)
+static void tree_selection_unselect_helper(gpointer data, gpointer user_data)
 {
 	gtk_tree_selection_unselect_path(GTK_TREE_SELECTION(user_data),
 		(GtkTreePath *) data);
@@ -391,7 +391,7 @@ GSList *tree_selection_collect_data(GtkTreeSelection *selection,
      * Browse selected rows and gather data.
      */
 	gtk_tree_selection_selected_foreach(selection,
-		(gpointer) &tree_selection_collect_data_helper, (gpointer) &cdata);
+		tree_selection_collect_data_helper, (gpointer) &cdata);
 
     /*
      * Now unselect the rows from which we got data.

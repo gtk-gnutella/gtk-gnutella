@@ -68,8 +68,10 @@ static void monitor_gui_append_to_monitor(
 
 	/* If the query is empty and we have a SHA1 extension,
 	 * we print a urn:sha1-query instead. */
-	len = gm_snprintf(tmpstr, sizeof(tmpstr),
-		type == QUERY_SHA1 ? "urn:sha1:%s" : "%s", item);
+	if (type == QUERY_SHA1)
+		len = gm_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", item);
+	else
+		len = g_strlcpy(tmpstr, item, sizeof(tmpstr));
 
 	str = locale_to_utf8(tmpstr, len);
    	gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, str, -1);
@@ -114,11 +116,12 @@ void monitor_gui_init(void)
     gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
 }
 
-void monitor_gui_shutdown()
+void monitor_gui_shutdown(void)
 {
     monitor_gui_enable_monitor(FALSE);
 }
 
+#if 0
 /*
  * share_gui_trim_monitor:
  *
@@ -129,6 +132,7 @@ void share_gui_clear_monitor(void)
     gtk_list_store_clear(monitor_model);
 	monitor_items = 0;
 }
+#endif
 
 /*
  * share_gui_enable_monitor:
@@ -138,17 +142,13 @@ void share_gui_clear_monitor(void)
 void monitor_gui_enable_monitor(const gboolean val)
 {
     static gboolean registered = FALSE;
-//    gtk_widget_set_sensitive
-//        (lookup_widget(main_window, "treeview_monitor"), !val);
 
     if (val != registered) {
-        if (val) {
-            share_add_search_request_listener
-                (monitor_gui_append_to_monitor);
-        } else {
-            share_remove_search_request_listener
-                (monitor_gui_append_to_monitor);
-        }
+        if (val)
+            share_add_search_request_listener(monitor_gui_append_to_monitor);
+        else
+            share_remove_search_request_listener(
+				monitor_gui_append_to_monitor);
         registered = val;
     }
 }

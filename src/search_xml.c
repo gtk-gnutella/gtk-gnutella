@@ -677,7 +677,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
     gchar *buf;
     gchar *query;
     gint32 speed;
-    guint32 reissue_timeout = search_reissue_timeout;
+    guint32 reissue_timeout;
     xmlNodePtr node;
     search_t * search;
     gboolean passive = FALSE;
@@ -687,7 +687,8 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
     g_assert(xmlnode->name != NULL);
     g_assert(g_ascii_strcasecmp(xmlnode->name, NODE_SEARCH) == 0);
 
-    gui_prop_get_guint32(PROP_DEFAULT_MINIMUM_SPEED, &speed, 0, 1);
+    gui_prop_get_guint32_val(PROP_DEFAULT_MINIMUM_SPEED, &speed);
+    gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &reissue_timeout);
 
 	buf = xmlGetProp(xmlnode, TAG_SEARCH_QUERY);
     if (!buf) {

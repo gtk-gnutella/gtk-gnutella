@@ -49,8 +49,8 @@ static gchar tmpstr[4096];
 static gint search_results_compare_func
     (GtkCList * clist, gconstpointer ptr1, gconstpointer ptr2)
 {
-    record_t *s1 = (record_t *) ((GtkCListRow *) ptr1)->data;
-	record_t *s2 = (record_t *) ((GtkCListRow *) ptr2)->data;
+    const record_t *s1 = (const record_t *) ((const GtkCListRow *) ptr1)->data;
+	const record_t *s2 = (const record_t *) ((const GtkCListRow *) ptr2)->data;
 
     return search_gui_compare_records(clist->sort_column, s1, s2);
 }
@@ -58,12 +58,12 @@ static gint search_results_compare_func
 static void refresh_popup(void)
 {
 	gboolean sensitive;
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
+    search = search_gui_get_current_search();
 
-	sensitive = current_search && 
-        (gboolean) GPOINTER_TO_INT(GTK_CLIST(current_search->clist)->selection);
+	sensitive = search && 
+        (gboolean) GPOINTER_TO_INT(GTK_CLIST(search->clist)->selection);
 	gtk_widget_set_sensitive
         (lookup_widget(main_window, "button_search_download"), sensitive);
     gtk_widget_set_sensitive
@@ -92,20 +92,18 @@ static void refresh_popup(void)
         sensitive);   
 
     gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_restart"), 
-        NULL != current_search);
+        lookup_widget(popup_search, "popup_search_restart"), NULL != search);
     gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_duplicate"), 
-        NULL != current_search);
+        lookup_widget(popup_search, "popup_search_duplicate"), NULL != search);
 
-    if (current_search) {
+    if (search) {
         gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_stop"), 
-			!search_is_frozen(current_search->search_handle));
+			!search_is_frozen(search->search_handle));
 		gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_resume"),
-			search_is_frozen(current_search->search_handle));
-		if (current_search->passive)
+			search_is_frozen(search->search_handle));
+		if (search->passive)
             gtk_widget_set_sensitive(
                 lookup_widget(popup_search, "popup_search_restart"), 
                 FALSE);
@@ -123,7 +121,7 @@ static void refresh_popup(void)
 void on_combo_entry_searches_activate
     (GtkEditable *editable, gpointer user_data)
 {
-    // FIXME
+    /* FIXME */
 }
 
 
@@ -258,12 +256,12 @@ void on_button_search_clear_clicked(GtkButton * button, gpointer user_data)
 
 void on_button_search_close_clicked(GtkButton * button, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
+    search = search_gui_get_current_search();
 
-    if (current_search != NULL)
-        search_gui_close_search(current_search);
+    if (search != NULL)
+        search_gui_close_search(search);
 }
 
 void on_button_search_download_clicked(GtkButton * button, gpointer user_data)
@@ -291,9 +289,9 @@ gboolean on_clist_search_results_button_press_event
 	gint row = 0;
 	gint column = 0;
 	static guint click_time = 0;
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
+    search = search_gui_get_current_search();
 
 	switch (event->button) {
 	case 1:
@@ -371,54 +369,54 @@ void on_clist_search_results_click_column(
     GtkCList *clist, gint column, gpointer user_data)
 {
     GtkWidget * cw = NULL;
-    search_t *current_search;
+    search_t *search;
 
     g_assert(clist != NULL);
 
-    current_search = search_gui_get_current_search();
+    search = search_gui_get_current_search();
 
-	if (current_search == NULL)
+	if (search == NULL)
 		return;
 
     /* destroy existing arrow */
-    if (current_search->arrow != NULL) { 
-        gtk_widget_destroy(current_search->arrow);
-        current_search->arrow = NULL;
+    if (search->arrow != NULL) { 
+        gtk_widget_destroy(search->arrow);
+        search->arrow = NULL;
     }     
 
     /* set compare function */
 	gtk_clist_set_compare_func
-        (GTK_CLIST(current_search->clist), search_results_compare_func);
+        (GTK_CLIST(search->clist), search_results_compare_func);
 
     /* rotate or initialize search order */
-	if (column == current_search->sort_col) {
-        switch(current_search->sort_order) {
+	if (column == search->sort_col) {
+        switch (search->sort_order) {
         case SORT_ASC:
-            current_search->sort_order = SORT_DESC;
+            search->sort_order = SORT_DESC;
            	break;
         case SORT_DESC:
-            current_search->sort_order = SORT_NONE;
+            search->sort_order = SORT_NONE;
             break;
         case SORT_NONE:
-            current_search->sort_order = SORT_ASC;
+            search->sort_order = SORT_ASC;
         }
 	} else {
-		current_search->sort_col = column;
-		current_search->sort_order = SORT_ASC;
+		search->sort_col = column;
+		search->sort_order = SORT_ASC;
 	}
 
     /* set sort type and create arrow */
-    switch(current_search->sort_order) {
+    switch (search->sort_order) {
     case SORT_ASC:
-        current_search->arrow = create_pixmap(main_window, "arrow_up.xpm");
+        search->arrow = create_pixmap(main_window, "arrow_up.xpm");
         gtk_clist_set_sort_type(
-            GTK_CLIST(current_search->clist),
+            GTK_CLIST(search->clist),
             GTK_SORT_ASCENDING);
         break;  
     case SORT_DESC:
-        current_search->arrow = create_pixmap(main_window, "arrow_down.xpm");
+        search->arrow = create_pixmap(main_window, "arrow_down.xpm");
         gtk_clist_set_sort_type(
-            GTK_CLIST(current_search->clist),
+            GTK_CLIST(search->clist),
             GTK_SORT_DESCENDING);
         break;
     case SORT_NONE:
@@ -428,20 +426,20 @@ void on_clist_search_results_click_column(
     }
 
     /* display arrow if necessary and set sorting parameters*/
-    if (current_search->sort_order != SORT_NONE) {
+    if (search->sort_order != SORT_NONE) {
         cw = gtk_clist_get_column_widget
-                 (GTK_CLIST(current_search->clist), column);
+                 (GTK_CLIST(search->clist), column);
         if (cw != NULL) {
-            gtk_box_pack_start(GTK_BOX(cw), current_search->arrow, 
+            gtk_box_pack_start(GTK_BOX(cw), search->arrow, 
                                FALSE, FALSE, 0);
-            gtk_box_reorder_child(GTK_BOX(cw), current_search->arrow, 0);
-            gtk_widget_show(current_search->arrow);
+            gtk_box_reorder_child(GTK_BOX(cw), search->arrow, 0);
+            gtk_widget_show(search->arrow);
         }
-        gtk_clist_set_sort_column(GTK_CLIST(current_search->clist), column);
-        gtk_clist_sort(GTK_CLIST(current_search->clist));
-        current_search->sort = TRUE;
+        gtk_clist_set_sort_column(GTK_CLIST(search->clist), column);
+        gtk_clist_sort(GTK_CLIST(search->clist));
+        search->sort = TRUE;
     } else {
-        current_search->sort = FALSE;
+        search->sort = FALSE;
     }
 }
 
@@ -639,84 +637,83 @@ void on_popup_search_drop_name_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
     GSList *sl = NULL;
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
+    search = search_gui_get_current_search();
 
-    g_assert(current_search != NULL);
+    g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(current_search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->clist));
 
-    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+    sl = clist_collect_data(GTK_CLIST(search->clist), 
         FALSE, gui_record_name_eq);
 
     g_slist_foreach(sl, 
-        (GFunc) filter_add_drop_name_rule, current_search->filter);
+        (GFunc) filter_add_drop_name_rule, search->filter);
 
     g_slist_free(sl);
 
-    gtk_clist_thaw(GTK_CLIST(current_search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->clist));
 }
 
 void on_popup_search_drop_sha1_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
     GSList *sl = NULL;
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
+    search = search_gui_get_current_search();
 
-    g_assert(current_search != NULL);
+    g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(current_search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->clist));
 
-    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+    sl = clist_collect_data(GTK_CLIST(search->clist), 
         FALSE, gui_record_sha1_eq);
 
     g_slist_foreach(sl, 
-        (GFunc) filter_add_drop_sha1_rule, current_search->filter);
+        (GFunc) filter_add_drop_sha1_rule, search->filter);
 
     g_slist_free(sl);
 
-    gtk_clist_thaw(GTK_CLIST(current_search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->clist));
 }
 
 void on_popup_search_drop_host_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
     GSList *sl = NULL;
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
+    search = search_gui_get_current_search();
 
-    g_assert(current_search != NULL);
+    g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(current_search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->clist));
 
-    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+    sl = clist_collect_data(GTK_CLIST(search->clist), 
         FALSE, gui_record_sha1_eq);
 
-    g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule, 
-        current_search->filter);
+    g_slist_foreach(sl, (GFunc) filter_add_drop_host_rule, search->filter);
 
     g_slist_free(sl);
 
-    gtk_clist_thaw(GTK_CLIST(current_search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->clist));
 }
 
 void on_popup_search_drop_name_global_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
     GSList *sl = NULL;
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
+    search = search_gui_get_current_search();
 
-    g_assert(current_search != NULL);
+    g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(current_search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->clist));
 
-    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+    sl = clist_collect_data(GTK_CLIST(search->clist), 
         FALSE, gui_record_name_eq);
 
     g_slist_foreach(sl, (GFunc) filter_add_drop_name_rule, 
@@ -724,22 +721,22 @@ void on_popup_search_drop_name_global_activate(
 
     g_slist_free(sl);
 
-    gtk_clist_thaw(GTK_CLIST(current_search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->clist));
 }
 
 void on_popup_search_drop_sha1_global_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
     GSList *sl = NULL;
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
+    search = search_gui_get_current_search();
 
-    g_assert(current_search != NULL);
+    g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(current_search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->clist));
 
-    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+    sl = clist_collect_data(GTK_CLIST(search->clist), 
         FALSE, gui_record_sha1_eq);
 
     g_slist_foreach(sl, (GFunc) filter_add_drop_sha1_rule, 
@@ -747,22 +744,22 @@ void on_popup_search_drop_sha1_global_activate(
 
     g_slist_free(sl);
 
-    gtk_clist_thaw(GTK_CLIST(current_search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->clist));
 }
 
 void on_popup_search_drop_host_global_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
     GSList *sl = NULL;
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
+    search = search_gui_get_current_search();
 
-    g_assert(current_search != NULL);
+    g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(current_search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->clist));
 
-    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+    sl = clist_collect_data(GTK_CLIST(search->clist), 
         FALSE, gui_record_sha1_eq);
 
     g_slist_foreach(sl,(GFunc) filter_add_drop_host_rule, 
@@ -770,77 +767,74 @@ void on_popup_search_drop_host_global_activate(
 
     g_slist_free(sl);
 
-    gtk_clist_thaw(GTK_CLIST(current_search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->clist));
 }
 
 void on_popup_search_autodownload_name_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
     GSList *sl = NULL;
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
+    search = search_gui_get_current_search();
 
-    g_assert(current_search != NULL);
+    g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(current_search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->clist));
 
-    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+    sl = clist_collect_data(GTK_CLIST(search->clist), 
         FALSE, gui_record_name_eq);
 
-    g_slist_foreach(sl, (GFunc) filter_add_download_name_rule, 
-        current_search->filter);
+    g_slist_foreach(sl, (GFunc) filter_add_download_name_rule, search->filter);
 
     g_slist_free(sl);
 
-    gtk_clist_thaw(GTK_CLIST(current_search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->clist));
 }
 
 void on_popup_search_autodownload_sha1_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
     GSList *sl = NULL;
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
+    search = search_gui_get_current_search();
 
-    g_assert(current_search != NULL);
+    g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(current_search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->clist));
 
-    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+    sl = clist_collect_data(GTK_CLIST(search->clist), 
         FALSE, gui_record_sha1_eq);
 
-    g_slist_foreach(sl, (GFunc) filter_add_download_sha1_rule, 
-        current_search->filter);
+    g_slist_foreach(sl, (GFunc) filter_add_download_sha1_rule, search->filter);
 
     g_slist_free(sl);
 
-    gtk_clist_thaw(GTK_CLIST(current_search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->clist));
 }
 
 void on_popup_search_new_from_selected_activate(
     GtkMenuItem *menuitem, gpointer user_data)
 {
     GSList *sl = NULL;
-    search_t *current_search;
+    search_t *search;
 
     /* grab current search pointer to extract selected items */
-    current_search = search_gui_get_current_search();
+    search = search_gui_get_current_search();
 
-    g_assert(current_search != NULL);
+    g_assert(search != NULL);
 
-    gtk_clist_freeze(GTK_CLIST(current_search->clist));
+    gtk_clist_freeze(GTK_CLIST(search->clist));
 
-    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+    sl = clist_collect_data(GTK_CLIST(search->clist), 
         FALSE, gui_record_sha1_eq);
 
-    g_slist_foreach(sl, (GFunc) gui_add_targetted_search, 
-        current_search->filter);
+    g_slist_foreach(sl, (GFunc) gui_add_targetted_search, search->filter);
 
     g_slist_free(sl);
 
-    gtk_clist_thaw(GTK_CLIST(current_search->clist));
+    gtk_clist_thaw(GTK_CLIST(search->clist));
 }
 
 void on_popup_search_edit_filter_activate(GtkMenuItem * menuitem,
@@ -852,42 +846,39 @@ void on_popup_search_edit_filter_activate(GtkMenuItem * menuitem,
 void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,
 										gpointer user_data)
 {
-    search_t *current_search;
-    guint32 search_reissue_timeout;
+    search_t *search;
+    guint32 timeout;
 
-    gnet_prop_get_guint32(
-        PROP_SEARCH_REISSUE_TIMEOUT,
-        &search_reissue_timeout, 0, 1);
+    gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
-    current_search = search_gui_get_current_search();
-    // FIXME: should also duplicate filters!
-    // FIXME: should call search_duplicate which has to be written.
-    // FIXME: should properly duplicate passive searches.
-	if (current_search)
-		search_gui_new_search_full(current_search->query, 
-            search_get_minimum_speed(current_search->search_handle), 
-            search_reissue_timeout,
-            0, NULL);
+    search = search_gui_get_current_search();
+    /* FIXME: should also duplicate filters! */
+    /* FIXME: should call search_duplicate which has to be written. */
+    /* FIXME: should properly duplicate passive searches. */
+	if (search)
+		search_gui_new_search_full(search->query, 
+            search_get_minimum_speed(search->search_handle), 
+            timeout, 0, NULL);
 }
 
 void on_popup_search_restart_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
-	if (current_search)
-		search_gui_restart_search(current_search);
+    search = search_gui_get_current_search();
+	if (search)
+		search_gui_restart_search(search);
 }
 
 void on_popup_search_resume_activate(GtkMenuItem * menuitem,
 									 gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
-	if (current_search) {
-		search_start(current_search->search_handle);
+    search = search_gui_get_current_search();
+	if (search) {
+		search_start(search->search_handle);
 
         gtk_clist_set_foreground(
             GTK_CLIST(lookup_widget(main_window, "clist_search")),
@@ -901,14 +892,14 @@ void on_popup_search_resume_activate(GtkMenuItem * menuitem,
 void on_popup_search_stop_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
-	if (current_search) {
+    search = search_gui_get_current_search();
+	if (search) {
         GtkCList * clist_search = GTK_CLIST
             (lookup_widget(main_window, "clist_search"));
 
-		search_stop(current_search->search_handle);
+		search_stop(search->search_handle);
         gtk_clist_set_foreground(
             clist_search,
             gtk_notebook_get_current_page
@@ -922,21 +913,21 @@ void on_popup_search_stop_activate
 void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
 										  gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
-    g_return_if_fail(current_search != NULL);
-    g_assert(current_search->clist != NULL);
+    search = search_gui_get_current_search();
+    g_return_if_fail(search != NULL);
+    g_assert(search->clist != NULL);
 
 #ifndef USE_GTK2
     {
         GtkWidget * cc;
 
-        // FIXME: needs to work also in Gtk2 or be replaced.
-        cc = gtk_column_chooser_new(GTK_CLIST(current_search->clist));
+        /* FIXME: needs to work also in Gtk2 or be replaced. */
+        cc = gtk_column_chooser_new(GTK_CLIST(search->clist));
         gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 
-        /* GtkColumnChooser takes care of cleaing up itself */
+        /* GtkColumnChooser takes care of cleaning up itself */
     }
 #endif
 }

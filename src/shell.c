@@ -30,7 +30,7 @@
 #include "sockets.h"
 #include "settings.h"
 
-#include "search_gui.h" // FIXME: remove this dependency
+#include "search_gui.h" /* FIXME: remove this dependency */
 
 #include <sys/stat.h>
 
@@ -623,7 +623,7 @@ static gboolean shell_auth(const gchar *str)
  *
  * Create a new gnutella_shell object.
  */
-gnutella_shell_t *shell_new(struct gnutella_socket *s)
+static gnutella_shell_t *shell_new(struct gnutella_socket *s)
 {
     gnutella_shell_t *sh;
 
@@ -644,7 +644,7 @@ gnutella_shell_t *shell_new(struct gnutella_socket *s)
  *
  * Free gnutella_shell object.
  */
-void shell_free(gnutella_shell_t *sh)
+static void shell_free(gnutella_shell_t *sh)
 {
     g_assert(sh->socket == NULL); /* must have called shell_destroy before */
 
@@ -740,21 +740,21 @@ static void shell_dump_cookie()
 
 void shell_timer(time_t now)
 {
-    GSList *remove = NULL;
+    GSList *to_remove = NULL;
     GSList *sl;
 
     for (sl = sl_shells; sl != NULL; sl = g_slist_next(sl)) {
         gnutella_shell_t *sh = (gnutella_shell_t *) sl->data;
         
         if (now - sh->last_update > SHELL_TIMEOUT)
-            g_slist_prepend(remove, sh);
+            g_slist_prepend(to_remove, sh);
     }
 
-    for (sl = remove; sl != NULL; sl = g_slist_next(sl)) 
+    for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) 
         shell_destroy((gnutella_shell_t *) sl->data);
 }
 
-void shell_init()
+void shell_init(void)
 {
     gint n;
 
@@ -764,7 +764,7 @@ void shell_init()
     shell_dump_cookie();
 }
 
-void shell_close()
+void shell_close(void)
 {
     GSList *sl;
 

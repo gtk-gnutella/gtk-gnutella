@@ -55,8 +55,9 @@ typedef guint32 gnet_node_t;
 typedef struct gnet_node_status {
 	guchar status;			    /* See possible values below */
 
-	// FIXME: the two below should go to gnet_node_info since they
-	//        only change very seldom
+	/* FIXME: the two below should go to gnet_node_info since they
+	 *        only change very seldom
+     */
 	time_t connect_date;		/* When we got connected (after handshake) */
 	time_t up_date;				/* When remote server started (0 if unknown) */
 
@@ -489,9 +490,10 @@ void gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *stats);
 /***
  *** Downloads
  ***/
-// FIXME: dl_file_info must not be used here and download_index_changed
-//        actually needs to be in downloads.h and should be called from
-//        search.h and not from search_gui.h.
+/* FIXME: dl_file_info must not be used here and download_index_changed
+ *        actually needs to be in downloads.h and should be called from
+ *       search.h and not from search_gui.h.
+ */
 struct dl_file_info;
 void download_new(gchar *,
 	guint32, guint32, guint32, guint16, gchar *, guchar *, time_t,
@@ -605,7 +607,7 @@ void upload_kill(gnet_upload_t);
 
 
 
-// FIXME: temporaily located here:
+/* FIXME: temporarily located here: */
 
 struct ul_stats {
 	gchar  *filename;
@@ -614,7 +616,7 @@ struct ul_stats {
 	guint32 complete;
 	guint64 bytes_sent;
 	gfloat  norm;		/* bytes sent / file size */
-};
+} ul_stats_t;
 
 
 

@@ -27,7 +27,7 @@
 
 #include "gui.h"
 
-#include "hosts.h" // FIXME: remove this dependency
+#include "hosts.h" /* FIXME: remove this dependency */
 
 /* GUI includes  */
 #include "search_gui.h"
@@ -239,21 +239,22 @@ static void search_dispose_results(results_set_t *rs)
 	 */
 
 	for (l = searches; l; l = l->next) {
-		GSList *link;
+		GSList *lnk;
 		search_t *sch = (search_t *) l->data;
 
-		link = g_slist_find(sch->r_sets, rs);
-		if (link == NULL)
+		lnk = g_slist_find(sch->r_sets, rs);
+		if (lnk == NULL)
 			continue;
 
 		refs++;			/* Found one more reference to this search */
 
-		sch->r_sets = g_slist_remove_link(sch->r_sets, link);
+		sch->r_sets = g_slist_remove_link(sch->r_sets, lnk);
     
-        // FIXME: I have the strong impression that there is a memory leak
-        //        here. We find the link and unlink it from r_sets, but
-        //        then it does become a self-contained list and it is not
-        //        freed anywhere, does it?
+        /* FIXME: I have the strong impression that there is a memory leak
+         *        here. We find the link and unlink it from r_sets, but
+         *        then it does become a self-contained list and it is not
+         *        freed anywhere, does it?
+		 */
 	}
 
 	g_assert(rs->refcount == refs);		/* Found all the searches */
@@ -390,7 +391,7 @@ void search_gui_close_search(search_t *sch)
 
 static guint search_hash_func(gconstpointer key)
 {
-	struct record *rc = (struct record *) key;
+	const struct record *rc = (const struct record *) key;
 	/* Must use same fields as search_hash_key_compare() --RAM */
 	return
 		g_str_hash(rc->name) ^
@@ -405,8 +406,8 @@ static guint search_hash_func(gconstpointer key)
 
 static gint search_hash_key_compare(gconstpointer a, gconstpointer b)
 {
-	struct record *rc1 = (struct record *) a;
-	struct record *rc2 = (struct record *) b;
+	const struct record *rc1 = (const struct record *) a;
+	const struct record *rc2 = (const struct record *) b;
 
 	/* Must compare same fields as search_hash_func() --RAM */
 	return rc1->size == rc2->size
@@ -436,19 +437,13 @@ static void search_remove_r_set(search_t *sch, results_set_t *rs)
 gboolean search_gui_new_search(
 	const gchar *query, flag_t flags, search_t **search)
 {
-    guint32 search_reissue_timeout;
-    guint32 minimum_speed;
+    guint32 timeout;
+    guint32 speed;
 
-    gui_prop_get_guint32(
-        PROP_DEFAULT_MINIMUM_SPEED,
-        &minimum_speed, 0, 1);
-    
-    gnet_prop_get_guint32(
-        PROP_SEARCH_REISSUE_TIMEOUT,
-        &search_reissue_timeout, 0, 1);
+    gui_prop_get_guint32_val(PROP_DEFAULT_MINIMUM_SPEED, &speed);
+    gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
-	return search_gui_new_search_full
-        (query, minimum_speed, search_reissue_timeout, flags, search);
+	return search_gui_new_search_full(query, speed, timeout, flags, search);
 }
 
 /* 
@@ -628,7 +623,8 @@ gboolean search_gui_new_search_full(
 
 /* Searches results */
 
-gint search_gui_compare_records(gint sort_col, record_t *r1, record_t *r2)
+gint search_gui_compare_records(
+	gint sort_col, const record_t *r1, const record_t *r2)
 {
     results_set_t *rs1;
 	results_set_t *rs2;
@@ -700,7 +696,7 @@ gint search_gui_compare_records(gint sort_col, record_t *r1, record_t *r2)
  *
  * Returns true if the record is a duplicate.
  */
-gboolean search_result_is_dup(search_t * sch, struct record * rc)
+static gboolean search_result_is_dup(search_t * sch, struct record * rc)
 {
 	struct record *old_rc;
 	gpointer dummy;
@@ -839,7 +835,7 @@ static void search_gui_add_record(
 	g_string_free(info, TRUE);
 }
 
-void search_matched(search_t *sch, results_set_t *rs)
+static void search_matched(search_t *sch, results_set_t *rs)
 {
 	guint32 old_items = sch->items;
    	gboolean need_push;			/* Would need a push to get this file? */
@@ -999,7 +995,7 @@ void search_matched(search_t *sch, results_set_t *rs)
     /*
      * A result set may not be added more then once to a search!
      */
-    // FIXME: expensive assert
+    /* FIXME: expensive assert */
     g_assert(g_slist_find(sch->r_sets, rs) == NULL);
 
 	/* Adds the set to the list */
@@ -1099,11 +1095,10 @@ static void download_selection_of_clist(GtkCList * c)
 	gboolean need_push;
 	GList *l;
     gint row;
-    gboolean search_remove_downloaded;
+    gboolean remove_downloaded;
 
-    gnet_prop_get_boolean(
-        PROP_SEARCH_REMOVE_DOWNLOADED,
-        &search_remove_downloaded, 0, 1);
+    gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
+		&remove_downloaded);
 
     gtk_clist_freeze(c);
 
@@ -1137,7 +1132,7 @@ static void download_selection_of_clist(GtkCList * c)
          */
         row = gtk_clist_find_row_from_data(c, rc);
 
-        if (search_remove_downloaded) {
+        if (remove_downloaded) {
             gtk_clist_remove(c, row);
             current_search->items--;
 
@@ -1173,9 +1168,10 @@ void search_gui_download_files(void)
 	if (jump_to_downloads) {
 		gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main),
             nb_main_page_downloads);
-        // FIXME: should convert to ctree here. Expand nodes if necessary.
-//		gtk_clist_select_row(GTK_CLIST(ctree_menu),
-//            nb_main_page_downloads, 0);
+        /* FIXME: should convert to ctree here. Expand nodes if necessary. */
+#if 0
+		gtk_clist_select_row(GTK_CLIST(ctree_menu), nb_main_page_downloads, 0);
+#endif
 	}
 
 	if (current_search) {
@@ -1192,7 +1188,8 @@ void search_gui_download_files(void)
  *** Callbacks
  ***/
 
-void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
+static void search_gui_got_results(
+	GSList *schl, const gnet_results_set_t *r_set)
 {
     GSList *l;
     results_set_t *rs;

@@ -234,7 +234,7 @@ struct download {
 #define DOWNLOAD_IS_WAITING(d)			\
 	(  (d)->status == GTA_DL_TIMEOUT_WAIT)
 
-// JA, 31 jan 2003 GTA_DL_ACTIVE_QUEUED
+/* JA, 31 jan 2003 GTA_DL_ACTIVE_QUEUED */
 #define DOWNLOAD_IS_ESTABLISHING(d)		\
 	(  (d)->status == GTA_DL_CONNECTING \
 	|| (d)->status == GTA_DL_PUSH_SENT	\
@@ -273,9 +273,9 @@ void download_info_change_all(
 void download_orphan_new(
 	gchar *file, guint32 size, guchar *sha1, struct dl_file_info *fi);
 void download_queue(struct download *d, const gchar *fmt, ...);
-void download_freeze_queue();
-void download_thaw_queue();
-gint download_queue_is_frozen();
+void download_freeze_queue(void);
+void download_thaw_queue(void);
+gint download_queue_is_frozen(void);
 void download_stop(struct download *, guint32, const gchar *, ...);
 void download_free(struct download *);
 void download_push_ack(struct gnutella_socket *);

@@ -32,7 +32,7 @@
 
 RCSID("$Id$");
 
-//FIXME: remove this dependency
+/* FIXME: remove this dependency */
 extern guint32 dbg;
 
 #define WOVEC_DFLT	10				/* Default size of word-vectors */

@@ -210,7 +210,7 @@ static gchar *pkt_stat_str(
 }
 
 
-const gchar *byte_stat_str(
+static const gchar *byte_stat_str(
 	gchar *strbuf, gulong n, const guint32 *val_tbl, gint type, gboolean perc)
 {
     if (val_tbl[type] == 0)
@@ -224,7 +224,7 @@ const gchar *byte_stat_str(
 	return strbuf;
 }
 
-const gchar *drop_stat_str(
+static const gchar *drop_stat_str(
 	gchar *str,
 	gulong n,
 	const gnet_stats_t *stats,

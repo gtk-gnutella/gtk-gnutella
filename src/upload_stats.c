@@ -123,7 +123,7 @@ void upload_stats_load_history(const gchar *ul_history_file_name)
 		else if (
 			3 == sscanf(name_end, "%lu\t%lu\t%lu\n", &size, &attempt, &complete)
 		)
-			ulbytes = size * complete;		// fake reasonable count
+			ulbytes = size * complete;		/* fake reasonable count */
 		else
 			goto corrupted;
 

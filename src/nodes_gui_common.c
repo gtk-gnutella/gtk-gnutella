@@ -41,7 +41,7 @@ static gchar gui_tmp[4096];
 const gchar *nodes_gui_common_status_str(
 	const gnet_node_status_t *n, time_t now)
 {
-	gchar *a;
+	const gchar *a;
 
 	switch (n->status) {
 	case GTA_NODE_CONNECTING:
@@ -101,7 +101,7 @@ const gchar *nodes_gui_common_status_str(
 		break;
 
 	case GTA_NODE_REMOVING:
-		a = (gchar *) ((*n->message) ? n->message : "Removing");
+		a =  *n->message ? n->message : "Removing";
 		break;
 
 	case GTA_NODE_RECEIVING_HELLO:

@@ -25,8 +25,8 @@
 
 #include "downloads_gui.h"
 
-#include "downloads.h" // FIXME: remove this dependency
-#include "dmesh.h" // FIXME: remove this dependency
+#include "downloads.h" /* FIXME: remove this dependency */
+#include "dmesh.h" /* FIXME: remove this dependency */
 #include "statusbar_gui.h"
 #include "downloads_cb.h"
 #include "parq.h"
@@ -63,7 +63,7 @@ void gui_update_download_clear(void)
 
 void gui_update_download(struct download *d, gboolean force)
 {
-	gchar *a = NULL;
+	const gchar *a = NULL;
 	gint row;
 	time_t now = time((time_t *) NULL);
     GdkColor *color;
@@ -85,7 +85,7 @@ void gui_update_download(struct download *d, gboolean force)
 	fi = d->file_info;
 
 	switch (d->status) {
-	case GTA_DL_ACTIVE_QUEUED:	// JA, 31 jan 2003 Active queueing
+	case GTA_DL_ACTIVE_QUEUED:	/* JA, 31 jan 2003 Active queueing */
 		{
 			time_t elapsed = now - d->last_update;
 
@@ -118,7 +118,7 @@ void gui_update_download(struct download *d, gboolean force)
 		a = tmpstr;
 		break;
 	case GTA_DL_QUEUED:
-		a = (gchar *) ((d->remove_msg) ? d->remove_msg : "");
+		a = d->remove_msg ? d->remove_msg : "";
 		break;
 
 	case GTA_DL_CONNECTING:
@@ -309,7 +309,7 @@ void gui_update_download(struct download *d, gboolean force)
 		break;
 
 	case GTA_DL_ERROR:
-		a = (gchar *) ((d->remove_msg) ? d->remove_msg : "Unknown Error");
+		a = d->remove_msg ? d->remove_msg : "Unknown Error";
 		break;
 
 	case GTA_DL_TIMEOUT_WAIT:
@@ -403,10 +403,10 @@ void gui_update_download_abort_resume(void)
 	struct download *d;
 	GList *l;
     GtkCList *clist_downloads;
-	gboolean abort  = FALSE;
-    gboolean resume = FALSE;
-    gboolean remove = FALSE;
-    gboolean queue  = FALSE;
+	gboolean do_abort  = FALSE;
+    gboolean do_resume = FALSE;
+    gboolean do_remove = FALSE;
+    gboolean do_queue  = FALSE;
     gboolean abort_sha1 = FALSE;
 
     clist_downloads = GTK_CLIST(lookup_widget(main_window, "clist_downloads"));
@@ -432,7 +432,7 @@ void gui_update_download_abort_resume(void)
 		case GTA_DL_VERIFIED:
 			break;
 		default:
-			queue = TRUE;
+			do_queue = TRUE;
 			break;
 		}
 
@@ -452,46 +452,49 @@ void gui_update_download_abort_resume(void)
 		case GTA_DL_HEADERS:
 		case GTA_DL_RECEIVING:
 		case GTA_DL_ACTIVE_QUEUED:
-			abort = TRUE;
+			do_abort = TRUE;
 			break;
 		case GTA_DL_ERROR:
 		case GTA_DL_ABORTED:
-			resume = TRUE;
+			do_resume = TRUE;
             /* only check if file exists if really necessary */
-            if (!remove && download_file_exists(d))
-                remove = TRUE;
+            if (!do_remove && download_file_exists(d))
+                do_remove = TRUE;
 			break;
 		case GTA_DL_TIMEOUT_WAIT:
-			abort = resume = TRUE;
+			do_abort = do_resume = TRUE;
 			break;
 		}
 
-		if (abort & resume & remove)
+		if (do_abort & do_resume & do_remove)
 			break;
 	}
 
 	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_downloads_abort"), abort);
+        (lookup_widget(main_window, "button_downloads_abort"), do_abort);
 	gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_abort"), abort);
+        (lookup_widget(popup_downloads, "popup_downloads_abort"), do_abort);
     gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_abort_named"), abort);
+        (lookup_widget(popup_downloads, "popup_downloads_abort_named"),
+		do_abort);
     gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_abort_host"), abort);
+        (lookup_widget(popup_downloads, "popup_downloads_abort_host"),
+		do_abort);
     gtk_widget_set_sensitive(
         lookup_widget(popup_downloads, "popup_downloads_abort_sha1"), 
         abort_sha1);
 	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_downloads_resume"), resume);
+        (lookup_widget(main_window, "button_downloads_resume"), do_resume);
 	gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_resume"), resume);
+        (lookup_widget(popup_downloads, "popup_downloads_resume"), do_resume);
     gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_remove_file"), remove);
+        (lookup_widget(popup_downloads, "popup_downloads_remove_file"),
+		do_remove);
     gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_queue"), queue);
+        (lookup_widget(popup_downloads, "popup_downloads_queue"), do_queue);
 }
 
-void gui_update_queue_frozen()
+void gui_update_queue_frozen(void)
 {
     static gboolean msg_displayed = FALSE;
     static statusbar_msgid_t id = {0, 0};

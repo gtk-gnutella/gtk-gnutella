@@ -35,13 +35,6 @@
 
 extern gchar *gui_config_dir;
 
-prop_def_t *gui_prop_get_def(gui_property_t);
-
-void gui_prop_add_prop_changed_listener
-    (property_t, prop_changed_listener_t, gboolean);
-void gui_prop_remove_prop_changed_listener
-    (property_t, prop_changed_listener_t);
-
 void settings_gui_init(void);
 void settings_gui_shutdown(void);
 

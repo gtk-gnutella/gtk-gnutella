@@ -61,7 +61,7 @@ static gchar *statbar_botstr = NULL;
 static gchar *statbar_botstr_new = NULL;
 
 static void statusbar_gui_free_timeout(struct statusbar_timeout * t);
-static void statusbar_gui_free_timeout_list();
+static void statusbar_gui_free_timeout_list(void);
 static void statusbar_gui_add_timeout(statusbar_msgid_t, guint timeout);
 
 void statusbar_gui_init(void)
@@ -183,7 +183,7 @@ statusbar_msgid_t statusbar_gui_push
     return id;
 }
 
-void statusbar_gui_pop(guint scid)
+static void statusbar_gui_pop(guint scid)
 {
     GtkStatusbar *statusbar;
 
@@ -279,7 +279,7 @@ void statusbar_gui_clear_timeouts(time_t now)
  *
  * Clear the whole timeout list and free allocated memory.
  */
-static void statusbar_gui_free_timeout_list() 
+static void statusbar_gui_free_timeout_list(void) 
 {
 	GSList *l;
 

@@ -145,7 +145,7 @@ void inputevt_init(void)
  *
  * Performs module cleanup.
  */
-void inputevt_cleanup(void)
+void inputevt_close(void)
 {
 	/* no cleanup required */
 }

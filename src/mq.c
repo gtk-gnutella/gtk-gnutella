@@ -215,8 +215,8 @@ void mq_shutdown(mqueue_t *q)
  */
 static gint qlink_cmp(const void *lp1, const void *lp2)
 {
-	pmsg_t *m1 = (pmsg_t *) (*(GList **) lp1)->data;
-	pmsg_t *m2 = (pmsg_t *) (*(GList **) lp2)->data;
+	const pmsg_t *m1 = (const pmsg_t *) (*(const GList * const *) lp1)->data;
+	const pmsg_t *m2 = (const pmsg_t *) (*(const GList * const *) lp2)->data;
 
 	if (pmsg_prio(m1) == pmsg_prio(m2))
 		return gmsg_cmp(pmsg_start(m1), pmsg_start(m2));

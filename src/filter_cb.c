@@ -25,7 +25,6 @@
  *----------------------------------------------------------------------
  */
 
-//#include "gnutella.h"
 #include "filter.h"
 #include "filter_cb.h"
 #include "filter_gui.h"
@@ -41,7 +40,7 @@ static rule_t *rule_clipboard = NULL;
  * Private functions
  */
 
-void clear_clipboard(void)
+static void clear_clipboard(void)
 {
     if (rule_clipboard != NULL) {
         filter_free_rule(rule_clipboard);

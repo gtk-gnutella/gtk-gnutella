@@ -616,7 +616,7 @@ static void bg_task_sendsig(struct bgtask *bt, bgsig_t sig, bgsig_cb_t handler)
  * Send a signal to the given task.
  * Returns -1 if the task could not be signalled.
  */
-gint bg_task_kill(gpointer h, bgsig_t sig)
+static gint bg_task_kill(gpointer h, bgsig_t sig)
 {
 	struct bgtask *bt = TASK(h);
 	bgsig_cb_t sighandler;
@@ -678,7 +678,7 @@ gint bg_task_kill(gpointer h, bgsig_t sig)
  * Install user-level signal handler for a task signal.
  * Returns previously installed signal handler.
  */
-bgsig_cb_t bg_task_signal(gpointer h, bgsig_t sig, bgsig_cb_t handler)
+static bgsig_cb_t bg_task_signal(gpointer h, bgsig_t sig, bgsig_cb_t handler)
 {
 	struct bgtask *bt = TASK(h);
 	bgsig_cb_t oldhandler;
@@ -710,8 +710,8 @@ static void bg_task_deliver_signals(struct bgtask *bt)
 	 */
 
 	while (bt->signals != NULL) {
-		GSList *link = bt->signals;
-		bgsig_t sig = (bgsig_t) link->data;
+		GSList *lnk = bt->signals;
+		bgsig_t sig = (bgsig_t) lnk->data;
 
 		/*
 		 * If signal kills the thread (it calls bg_task_exit() from the
@@ -720,8 +720,8 @@ static void bg_task_deliver_signals(struct bgtask *bt)
 
 		bg_task_kill(bt, sig);
 
-		bt->signals = g_slist_remove_link(bt->signals, link);
-		g_slist_free_1(link);
+		bt->signals = g_slist_remove_link(bt->signals, lnk);
+		g_slist_free_1(lnk);
 	}
 }
 
@@ -1058,8 +1058,8 @@ void bg_close(void)
 	bg_reclaim_dead();				/* Free dead tasks */
 }
 
-// bg_task_goto
-// bg_task_gosub
-// bg_task_get_exitcode
-// bg_task_get_signal
+/* bg_task_goto */
+/* bg_task_gosub */
+/* bg_task_get_exitcode */
+/* bg_task_get_signal */
 

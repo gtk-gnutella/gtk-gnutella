@@ -66,6 +66,11 @@ static shadow_t *shadow_find(filter_t *s);
 static int filter_apply(filter_t *, record_t *, filter_result_t *);
 static void filter_remove_rule(filter_t *f, rule_t *r);
 static void filter_free(filter_t *filter);
+static void filter_refresh_display(GList *filter_list);
+
+void dump_ruleset(GList *ruleset);
+void dump_filter(filter_t *filter);
+void dump_shadow(shadow_t *shadow);
 
 /*
  * Public variables
@@ -345,13 +350,13 @@ static void shadow_commit(shadow_t *shadow)
  *
  * Regenerates the filter tree and rules display from after a apply/revert.
  */
-void filter_refresh_display(GList *filters)
+static void filter_refresh_display(GList *filter_list)
 {
     GList *l;
 
     filter_gui_freeze_filters();
     filter_gui_filter_clear_list();
-    for (l = filters; l != NULL; l = l->next) {
+    for (l = filter_list; l != NULL; l = l->next) {
         filter_t *filter = (filter_t *)l->data;
         shadow_t *shadow;
         GList *ruleset;
@@ -376,7 +381,7 @@ void filter_refresh_display(GList *filters)
  *
  * Open and initialize the filter dialog.
  */
-void filter_open_dialog() {
+void filter_open_dialog(void) {
     search_t *current_search;
 
     current_search = search_gui_get_current_search();
@@ -523,8 +528,8 @@ rule_t *filter_new_text_rule(gchar *match, gint type,
 			REG_EXTENDED|REG_NOSUB|(r->u.text.case_sensitive ? 0 : REG_ICASE));
 
 		if (err) {
-			char buf[1000];
-			regerror(err, re, buf, 1000);
+			gchar regbuf[1000];
+			regerror(err, re, regbuf, sizeof(regbuf));
 
 			g_warning(
                 "problem in regular expression: %s"
@@ -790,7 +795,7 @@ void filter_close_search(search_t *s)
  * Then shadow->current will be set as the new filter for that
  * search.
  */
-void filter_apply_changes() 
+void filter_apply_changes(void) 
 {
     GList *s;
 
@@ -833,7 +838,7 @@ void filter_apply_changes()
  * Free the ressources for all added filters and forget all shadows.
  * A running session will not be ended by this.
  */
-void filter_revert_changes()
+void filter_revert_changes(void)
 {
     GList *s;
     gint n;
@@ -1956,7 +1961,7 @@ static int filter_apply
 	char *l_name;
     GList *list;
     gint prop_count = 0;
-    gboolean abort = FALSE;
+    gboolean do_abort = FALSE;
 
     g_assert(filter != NULL);
     g_assert(rec != NULL);
@@ -1978,7 +1983,7 @@ static int filter_apply
 	strlower(l_name, rec->name);
 
 	list = g_list_first(list);
-	while ((list != NULL) && (res->props_set < MAX_FILTER_PROP) && !abort) {
+	while ((list != NULL) && (res->props_set < MAX_FILTER_PROP) && !do_abort) {
 		size_t n;
 		int i;
 		rule_t *r; 
@@ -2136,7 +2141,7 @@ static int filter_apply
          */
         if (match) {
             if (r->target == filter_return) {
-                abort = TRUE;
+                do_abort = TRUE;
                 r->match_count ++;
                 r->target->match_count ++;
             } else

@@ -115,7 +115,7 @@ void on_clist_search_resize_column(GtkCList * clist, gint column, gint width, gp
 
 
 
-// FIXME: temporaily relocated
+/* FIXME: temporarily relocated */
 gint compare_ul_norm(GtkCList *clist, gconstpointer ptr1, gconstpointer ptr2);
 
 

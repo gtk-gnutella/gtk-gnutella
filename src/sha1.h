@@ -28,8 +28,9 @@
 #ifndef _SHA1_H_
 #define _SHA1_H_
 
-// Not needed in gtk-gnutella, we use <glib.h> instead
-// #include <stdint.h>
+/* Not needed in gtk-gnutella, we use <glib.h> instead
+ * #include <stdint.h>
+ */
 
 #include <glib.h>
 

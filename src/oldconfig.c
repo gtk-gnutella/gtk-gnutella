@@ -44,6 +44,7 @@
 #include <unistd.h>
 #include <netdb.h>
 
+#include "oldconfig.h"
 #include "settings_gui.h"
 #include "search_stats_gui.h"
 
@@ -401,7 +402,7 @@ static guint32 *config_parse_array(gchar * str, guint32 n)
 	return r;
 }
 
-void config_set_param(keyword_t keyword, gchar *value)
+static void config_set_param(keyword_t keyword, gchar *value)
 {
 	gint32 i = atol(value);
 
@@ -789,7 +790,7 @@ void config_set_param(keyword_t keyword, gchar *value)
     }
 
     case k_min_dup_ratio: {
-        guint32 v = atof(value)*100;
+        guint32 v = atof(value) * 100;
         gnet_prop_set_guint32(PROP_MIN_DUP_RATIO, &v, 0, 1);
 		return;
     }

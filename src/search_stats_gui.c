@@ -183,7 +183,7 @@ static gboolean stats_hash_to_clist(
 
 	/* update the display */
 
-    // FIXME: make %8.8d %d and set up custom sort function
+    /* FIXME: make %8.8d %d and set up custom sort function */
 	gm_snprintf(period_tmp, sizeof(period_tmp), "%8.8d", (int) val->period_cnt);
 	gm_snprintf(total_tmp, sizeof(total_tmp), "%8.8d", (int) val->total_cnt);
 

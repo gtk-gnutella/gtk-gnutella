@@ -26,6 +26,7 @@
  */
 
 #include "gui.h"
+#include "fileinfo.h"
 
 RCSID("$Id$");
 
@@ -188,14 +189,14 @@ static void fi_gui_fi_status_changed(gnet_fi_t fih)
     fi_gui_update(fih, FALSE);
 }
 
-void fi_gui_init() 
+void fi_gui_init(void) 
 {
     fi_add_fi_added_listener(fi_gui_fi_added);
     fi_add_fi_removed_listener(fi_gui_fi_removed);
     fi_add_fi_status_changed_listener(fi_gui_fi_status_changed);
 }
 
-void fi_gui_shutdown()
+void fi_gui_shutdown(void)
 {
     fi_remove_fi_removed_listener(fi_gui_fi_removed);
     fi_remove_fi_added_listener(fi_gui_fi_added);
@@ -208,12 +209,12 @@ void fi_gui_shutdown()
  * Update all the fileinfo at the same time.
  */
 
-// FIXME: we should remember for every node when it was last
-//        updated and only refresh every node at most once every
-//        second. This information should be kept in a struct pointed
-//        to by the row user_data and should be automatically freed
-//        when removing the row (see upload stats code).
-
+/* FIXME: we should remember for every node when it was last
+ *        updated and only refresh every node at most once every
+ *        second. This information should be kept in a struct pointed
+ *        to by the row user_data and should be automatically freed
+ *        when removing the row (see upload stats code).
+ */
 void fi_gui_update_display(time_t now)
 {
     static time_t last_update = 0;

@@ -28,8 +28,8 @@
 
 #include <time.h>
 
-void shell_init();
-void shell_close();
+void shell_init(void);
+void shell_close(void);
 
 void shell_add(struct gnutella_socket *s);
 void shell_timer(time_t now);

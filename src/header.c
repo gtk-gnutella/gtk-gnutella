@@ -204,7 +204,7 @@ header_t *header_make(void)
  */
 static gboolean free_header_data(gpointer key, gpointer value, gpointer udata)
 {
-	g_free(key);		// XXX if shared, don't do that
+	g_free(key);		/* XXX if shared, don't do that */
 	g_string_free((GString *) value, TRUE);
 	return TRUE;
 }

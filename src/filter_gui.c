@@ -78,12 +78,12 @@ static GtkCTreeNode *fl_node_builtin = NULL;
 /*
  * Private functions prototypes
  */
-static rule_t *filter_gui_get_text_rule();
-static rule_t *filter_gui_get_ip_rule();
-static rule_t *filter_gui_get_size_rule();
-static rule_t *filter_gui_get_jump_rule();
-static rule_t *filter_gui_get_flag_rule();
-static rule_t *filter_gui_get_state_rule();
+static rule_t *filter_gui_get_text_rule(void);
+static rule_t *filter_gui_get_ip_rule(void);
+static rule_t *filter_gui_get_size_rule(void);
+static rule_t *filter_gui_get_jump_rule(void);
+static rule_t *filter_gui_get_flag_rule(void);
+static rule_t *filter_gui_get_state_rule(void);
 static GtkCTreeNode *getFilterRoot(filter_t *f);
 
 

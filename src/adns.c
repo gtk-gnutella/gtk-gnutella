@@ -182,7 +182,7 @@ static gboolean adns_cache_lookup(
  * has been transferred or if an unrecoverable error occurs. This function
  * should only be used with a blocking `fd'.
  */
-G_INLINE_FUNC gboolean adns_do_transfer(
+static gboolean adns_do_transfer(
 	gint fd, gpointer buf, size_t len, gboolean do_write)
 {
 	ssize_t ret;
@@ -213,7 +213,7 @@ G_INLINE_FUNC gboolean adns_do_transfer(
 			return FALSE;
 		} else {
 			n -= ret;
-			buf = (gchar *)buf + transferred;
+			buf = (gchar *) buf + transferred;
 		}
 	}
 
@@ -500,7 +500,7 @@ prefork_failure:
  * synchronous i.e., the callback was called BEFORE adns_resolve()
  * returned, adns_resolve() returns FALSE.
  */
- gboolean adns_resolve(
+gboolean adns_resolve(
 	const gchar *hostname, adns_callback_t user_callback, gpointer user_data)
 {
 	static struct adns_query_t query;
@@ -518,16 +518,16 @@ prefork_failure:
 	}
 
 	if (adns_helper_alive && 0 == adns_query_event_id) {	
-		static struct adns_query_t query;
+		static struct adns_query_t q;
 
-		query.user_callback = user_callback;
-		query.user_data = user_data;
-		g_strlcpy(query.hostname, hostname, sizeof(query.hostname));
+		q.user_callback = user_callback;
+		q.user_data = user_data;
+		g_strlcpy(q.hostname, hostname, sizeof(q.hostname));
 		g_assert(0 == adns_query_event_id);
 		adns_query_event_id = inputevt_add(adns_query_fd,
 			INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
-			 adns_query_callback, &query);
-		return TRUE; /* asyncronous */ 
+			adns_query_callback, &q);
+		return TRUE; /* asynchronous */ 
 	}
 	/* FALL THROUGH */
 	g_strlcpy(query.hostname, hostname, sizeof(query.hostname));

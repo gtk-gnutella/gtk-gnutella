@@ -216,12 +216,12 @@ void nodes_gui_init()
         G_TYPE_UINT);    /* COL_NODE_HANDLE */
 
     /* Get the monitor widget */
-    tree = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
-    gtk_tree_view_set_model(tree, GTK_TREE_MODEL(nodes_model));
+   tree = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+   gtk_tree_view_set_model(tree, GTK_TREE_MODEL(nodes_model));
 
     /* The view now holds a reference.  We can get rid of our own
      * reference */
-    g_object_unref(G_OBJECT(nodes_model));
+   g_object_unref(G_OBJECT(nodes_model));
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree),
 		GTK_SELECTION_MULTIPLE);
 
@@ -312,11 +312,12 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
  * Update all the nodes at the same time.
  */
 
-// FIXME: we should remember for every node when it was last
-//        updated and only refresh every node at most once every
-//        second. This information should be kept in a struct pointed
-//        to by the row user_data and should be automatically freed
-//        when removing the row (see upload stats code).
+/* FIXME: we should remember for every node when it was last
+ *       updated and only refresh every node at most once every
+ *       second. This information should be kept in a struct pointed
+ *       to by the row user_data and should be automatically freed
+ *       when removing the row (see upload stats code).
+ */
 
 void nodes_gui_update_nodes_display(time_t now)
 {

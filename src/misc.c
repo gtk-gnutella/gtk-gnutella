@@ -76,20 +76,22 @@ gboolean file_exists(gchar *f)
 
 gchar *ip_to_gchar(guint32 ip)
 {
-	static gchar a[32];
 	struct in_addr ia;
 	ia.s_addr = g_htonl(ip);
-	gm_snprintf(a, sizeof(a), "%s", inet_ntoa(ia));
-	return a;
+	return inet_ntoa(ia);
 }
 
 
 gchar *ip_port_to_gchar(guint32 ip, guint16 port)
 {
 	static gchar a[32];
+	size_t len;
 	struct in_addr ia;
+
 	ia.s_addr = g_htonl(ip);
-	gm_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), port);
+	len = g_strlcpy(a, inet_ntoa(ia), sizeof(a));
+	if (len < sizeof(a) - 1)
+		gm_snprintf(a + len, sizeof(a) - len, ":%u", port);
 	return a;
 }
 
@@ -688,13 +690,13 @@ void dump_hex(FILE *out, gchar *title, gchar *s, gint b)
 
 	i = x = end = 0;
 	while (1) {
-		if ((x & 0xff) == 0) {					// i%256 == 0
+		if ((x & 0xff) == 0) {					/* i%256 == 0 */
 			if (x > 0)
-				fputc('\n', out);				// break after 256 byte chunk
+				fputc('\n', out);				/* break after 256 byte chunk */
 			dump_hex_header(out);
 		}
 		if (i == 0)
-			fprintf(out, "%5d  ", x & 0xffff);	// offset, lowest 16 bits
+			fprintf(out, "%5d  ", x & 0xffff);	/* offset, lowest 16 bits */
 		if (end) {
 			fputs("   ", out);
 			temp[i] = ' ';
@@ -702,12 +704,12 @@ void dump_hex(FILE *out, gchar *title, gchar *s, gint b)
 			z = s[x] & 0xff;
 			fprintf(out, "%.2X ", z);
 			if (!(isalnum(z) || ispunct(z)))
-				z = '.';		// no non printables
-			temp[i] = z;		// save it for later ASCII print
+				z = '.';		/* no non printables */
+			temp[i] = z;		/* save it for later ASCII print */
 		}
 		if (++i >= 16) {
 			fputc(' ', out);
-			for (y = 0; y < 16; y++) {	//do 16 bytes ASCII
+			for (y = 0; y < 16; y++) {	/* do 16 bytes ASCII */
 				fputc(temp[y], out);
 			}
 			fputc('\n', out);
@@ -725,10 +727,10 @@ done:
 }
 
 /* copies str to dst, converting all upper-case characters to lower-case */
-void strlower(gchar *dst, gchar *src)
+void strlower(gchar *dst, const gchar *src)
 {
 	do {
-		*dst++ = tolower((guchar) *src);
+		*dst++ = tolower((const guchar) *src);
 	} while (*src++);
 }
 
@@ -768,7 +770,7 @@ guchar *strcasestr(const guchar *haystack, const guchar *needle)
 	guint32 nlen = strlen(needle);
 	guint32 *pd = delta;
 	gint i;
-	guchar *n;
+	const guchar *n;
 	guint32 haylen = strlen(haystack);
 	const guchar *end = haystack + haylen;
 	guchar *tp;
@@ -784,7 +786,7 @@ guchar *strcasestr(const guchar *haystack, const guchar *needle)
 
 	nlen--;		/* Restore original pattern length */
 
-	for (n = (guchar *) needle, i =0; i < nlen; i++) {
+	for (n = needle, i =0; i < nlen; i++) {
 		guchar c = *n++;
 		delta[(guint) tolower(c)] = nlen - i;
 	}
@@ -793,11 +795,11 @@ guchar *strcasestr(const guchar *haystack, const guchar *needle)
 	 * Now run Sunday's algorithm.
 	 */
 
-	for (tp = (guchar *) haystack; tp + nlen <= end; /* empty */) {
-		guchar *t;
+	for (tp = *(guchar **) &haystack; tp + nlen <= end; /* empty */) {
+		const guchar *t;
 		guchar c;
 
-		for (n = (guchar *) needle, t = tp, i = 0; i < nlen; n++, t++, i++)
+		for (n = needle, t = tp, i = 0; i < nlen; n++, t++, i++)
 			if (tolower(*n) != tolower(*t))
 				break;
 
@@ -990,14 +992,13 @@ gchar *unique_filename(gchar *path, gchar *file, gchar *ext)
 #define ESCAPE_CHAR		'\\'
 
 /*
- * char_is_safe 
+ * CHAR_IS_SAFE 
  *
  * Nearly the same as isprint() but allows additional safe chars if !strict.
  */
-G_INLINE_FUNC gboolean char_is_safe(guchar c, gboolean strict)
-{
-	return isprint(c) || (!strict && (c == ' ' || c == '\t' || c == '\n'));
-}
+#define CHAR_IS_SAFE(c, strict) \
+	(isprint((c)) || (!(strict) && ((c) == ' ' || (c) == '\t' || (c) == '\n')))
+
 
 /*
  * hex_escape
@@ -1014,7 +1015,7 @@ guchar *hex_escape(const guchar *name, gboolean strict)
 	guchar *new;
 
 	for (p = name, c = *p++; c; c = *p++)
-		if (!char_is_safe(c, strict))
+		if (!CHAR_IS_SAFE(c, strict))
 			need_escape++;
 
 	if (need_escape == 0)
@@ -1023,7 +1024,7 @@ guchar *hex_escape(const guchar *name, gboolean strict)
 	new = g_malloc(p - name + 3 * need_escape);
 
 	for (p = name, q = new, c = *p++; c; c = *p++) {
-		if (char_is_safe(c, strict))
+		if (CHAR_IS_SAFE(c, strict))
 			*q++ = c;
 		else {
 			*q++ = ESCAPE_CHAR;

@@ -75,7 +75,7 @@ struct work {
  *
  * Allocate work queue entry.
  */
-struct work *we_alloc(struct download *d, gchar *dest, gchar *ext)
+static struct work *we_alloc(struct download *d, gchar *dest, gchar *ext)
 {
 	struct work *we;
 

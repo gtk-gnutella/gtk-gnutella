@@ -30,8 +30,8 @@
 
 #include "gui.h"
 
-void fi_gui_init();
-void fi_gui_shutdown();
+void fi_gui_init(void);
+void fi_gui_shutdown(void);
 void fi_gui_update_display(time_t now);
 
 void on_clist_fileinfo_resize_column(GtkCList *, gint, gint, gpointer);

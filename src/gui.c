@@ -89,7 +89,7 @@ void gui_update_global(void)
 
     gtk_label_printf(
         GTK_LABEL(lookup_widget(main_window, "label_statusbar_uptime")),
-        "Uptime: %s", short_uptime((guint32) difftime(now, start_stamp)));
+        "Uptime: %s", short_uptime(difftime(now, start_stamp)));
 
     /*
      * Update the different parts of the GUI.
@@ -125,7 +125,7 @@ static void update_stat(guint32 *max, GtkProgressBar *pg,
     gtk_progress_bar_set_fraction(pg, frac);
 }
 
-// FIXME: stats that are turned off need not be calculated!
+/* FIXME: stats that are turned off need not be calculated! */
 void gui_update_traffic_stats() {
     static guint32 http_in_max = 0;
     static guint32 http_out_max = 0;
@@ -176,7 +176,7 @@ void gui_update_traffic_stats() {
     update_stat(&leaf_out_max, pg_leaf_out, &s, progressbar_bws_glout_avg, 0);
 }
 
-void gui_update_stats_frames()
+void gui_update_stats_frames(void)
 {
     GtkWidget *frame_bws_inout = 
         lookup_widget(main_window, "frame_bws_inout");
@@ -332,13 +332,14 @@ typedef struct steal_dict_params {
  * itself on each child.
  *
  */
-void gui_steal_widget_dict_recursive(GtkWidget *widget, gpointer data)
+static void gui_steal_widget_dict_recursive(
+	GtkWidget *widget, gpointer user_data)
 {
 	const gchar *name;
-	steal_dict_params_t *params = (steal_dict_params_t *) data;
+	steal_dict_params_t *params = (steal_dict_params_t *) user_data;
 	
 	g_assert(widget != NULL);
-	g_assert(data != NULL);
+	g_assert(user_data != NULL);
 
 	name = gtk_widget_get_name(widget);
 	if (name != NULL) {
@@ -350,7 +351,7 @@ void gui_steal_widget_dict_recursive(GtkWidget *widget, gpointer data)
 
 	if (GTK_IS_CONTAINER(widget))
 		gtk_container_foreach(GTK_CONTAINER(widget),
-			gui_steal_widget_dict_recursive, data);
+			gui_steal_widget_dict_recursive, user_data);
 }
 
 /*

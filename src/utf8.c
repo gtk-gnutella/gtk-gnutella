@@ -64,7 +64,7 @@ static guint8 utf8len[256] = {
 	7,7										/* 254-255: special */
 };
 
-#define UTF8_SKIP(s)	utf8len[*((guchar *) s)]
+#define UTF8_SKIP(s)	utf8len[*((const guchar *) s)]
 
 /*
  * The following table is from Unicode 3.1.
@@ -119,9 +119,9 @@ static guint8 utf8len[256] = {
  * Are the first bytes of string `s' forming a valid UTF-8 character?
  * Returns amount of bytes used to encode that character, or 0 if invalid.
  */
-gint utf8_is_valid_char(guchar *s)
+gint utf8_is_valid_char(const guchar *s)
 {
-	guchar u = *s;
+	const guchar u = *s;
 	gint len;
 	gint slen;
 	guint32 v;
@@ -160,17 +160,17 @@ gint utf8_is_valid_char(guchar *s)
  *
  * If `len' is 0, the length is computed with strlen().
  */
-gint utf8_is_valid_string(guchar *s, gint len)
+gint utf8_is_valid_string(const guchar *s, gint len)
 {
-	guchar *x = s;
-	guchar *send;
+	const guchar *x = s;
+	const guchar *s_end;
 	gint n = 0;
 
 	if (!len)
 		len = strlen(s);
-	send = s + len;
+	s_end = s + len;
 
-	while (x < send) {
+	while (x < s_end) {
 		gint clen = utf8_is_valid_char(x);
 		if (clen == 0)
 			return 0;
@@ -178,7 +178,7 @@ gint utf8_is_valid_string(guchar *s, gint len)
 		n++;
 	}
 
-	if (x != send)
+	if (x != s_end)
 		return 0;
 
 	return n;
@@ -367,13 +367,13 @@ gint utf8_to_iso8859(guchar *s, gint len, gboolean space)
 {
 	guchar *x = s;
 	guchar *xw = s;			/* Where we write back ISO-8859 chars */
-	guchar *send;
+	guchar *s_end;
 
 	if (!len)
 		len = strlen(s);
-	send = s + len;
+	s_end = s + len;
 
-	while (x < send) {
+	while (x < s_end) {
 		gint clen;
 		guint32 v = utf8_decode_char(x, len, &clen, FALSE);
 

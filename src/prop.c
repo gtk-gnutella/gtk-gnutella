@@ -60,7 +60,7 @@ static gchar prop_tmp[4096];
  *
  * Parse comma delimited numeric vector.
  */
-void prop_parse_ip_vector(const gchar *str, gsize size, guint32 *t)
+static void prop_parse_ip_vector(const gchar *str, gsize size, guint32 *t)
 {
 	/* Parse comma delimited settings */
 

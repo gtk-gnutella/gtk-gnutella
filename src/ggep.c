@@ -533,7 +533,7 @@ gint ggep_ext_write(
  *
  * Mark extension starting at `start' as being the last one.
  */
-void ggep_ext_mark_last(guchar *start)
+static void ggep_ext_mark_last(guchar *start)
 {
 	g_assert(start);
 	g_assert(0 == (*start & GGEP_F_MBZ));		/* Sanity checks */
@@ -572,7 +572,7 @@ ggept_status_t ggept_h_sha1_extract(extvec_t *exv, guchar *buf, gint len)
 
 	tlen = ggep_decode_into(exv, tmp, sizeof(tmp));
 
-#define TIGER_RAW_SIZE	24		// XXX temporary, until we implement tiger
+#define TIGER_RAW_SIZE	24		/* XXX temporary, until we implement tiger */
 
 	if (tlen == -1)
 		return GGEP_NOT_FOUND;			/* Don't know what this is */

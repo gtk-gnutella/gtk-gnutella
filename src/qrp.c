@@ -133,14 +133,12 @@ G_INLINE_FUNC guint32 qrp_hashcode(guchar *x)
 }
 
 /*
- * qrp_hash_restrict
+ * QRP_HASH_RESTRICT
  *
  * Restrict given hashcode to be a suitable index on `bits' bits.
  */
-G_INLINE_FUNC guint32 qrp_hash_restrict(guint32 hashcode, gint bits)
-{
-	return hashcode >> (32 - bits);
-}
+#define QRP_HASH_RESTRICT(hashcode, bits) \
+	((guint32) (hashcode) >> (32 - (gint) (bits)))
 
 /*
  * qrp_hash		-- for tests only
@@ -2827,7 +2825,7 @@ GSList *qrt_build_query_target(
 		can_route = TRUE;
 
 		for (i = qhvec->count, qh = qhvec->vec; i > 0; i--, qh++) {
-			guint32 idx = qrp_hash_restrict(qh->hashcode, rt->bits);
+			guint32 idx = QRP_HASH_RESTRICT(qh->hashcode, rt->bits);
 
 			/* 
 			 * If there is an entry in the table and the source is an URN,
@@ -2947,7 +2945,7 @@ void test_hash(void)
 	CHECK(hash("ndflal", 16)==36910);
 	CHECK(hash("ndflale", 16)==34586);
 	CHECK(hash("ndflalem", 16)==37658);
-	CHECK(hash("FAIL", 16)==37458);	// WILL FAIL
+	CHECK(hash("FAIL", 16)==37458);	/* WILL FAIL */
 	CHECK(hash("ndflaleme", 16)==45559);
 	CHECK(hash("ol2j34lj", 10)==318);
 	CHECK(hash("asdfas23", 10)==503);

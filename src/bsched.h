@@ -182,11 +182,11 @@ void bsched_set_bandwidth(bsched_t *bs, gint bandwidth);
 void bio_add_callback(bio_source_t *bio,
 	inputevt_handler_t callback, gpointer arg);
 void bio_remove_callback(bio_source_t *bio);
-gint bio_write(bio_source_t *bio, gpointer data, gint len);
+gint bio_write(bio_source_t *bio, gconstpointer data, gint len);
 gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt);
 gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len);
 gint bio_read(bio_source_t *bio, gpointer data, gint len);
-gint bws_write(bsched_t *bs, gint fd, gpointer data, gint len);
+gint bws_write(bsched_t *bs, gint fd, gconstpointer data, gint len);
 gint bws_read(bsched_t *bs, gint fd, gpointer data, gint len);
 void bsched_timer(void);
 

@@ -28,6 +28,7 @@
 #include <gdk/gdk.h>
 #include "gnutella.h"
 #include "gui.h"
+#include "icon.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -93,7 +94,7 @@ static guint get_width(const GdkRectangle * rect,
  * This function and on_icon_unmap_event are needed to keep
  * track of when main_window is iconified.
  */
-gboolean
+static gboolean
 on_icon_map_event(GtkWidget * widget, GdkEvent * event, gpointer user_data)
 {
     icon_just_mapped_fg = icon_visible_fg = TRUE;
@@ -105,7 +106,7 @@ on_icon_map_event(GtkWidget * widget, GdkEvent * event, gpointer user_data)
  *
  * Callback when icon recieves an unmap event.
  */
-gboolean
+static gboolean
 on_icon_unmap_event(GtkWidget * widget,
                     GdkEvent * event, gpointer user_data)
 {
@@ -118,7 +119,7 @@ on_icon_unmap_event(GtkWidget * widget,
  *
  * Callback when canvas recieves an expose event.
  */
-gboolean
+static gboolean
 on_canvas_expose_event(GtkWidget * widget,
                        GdkEventExpose * event, gpointer user_data)
 {
@@ -216,7 +217,9 @@ static void create_icon(void)
 void icon_timer(void)
 {
     GdkRectangle rect;
+#ifndef USE_GTK2
     GdkEvent event;
+#endif /* USE_GTK2 */
 
     /* Don't do anything if icon isn't even visible */
     if (!icon_visible_fg)

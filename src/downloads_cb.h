@@ -64,8 +64,8 @@ void on_popup_downloads_search_again_activate(GtkMenuItem *menuitem, gpointer us
 void on_popup_downloads_queue_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_copy_url_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_connect_activate(GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_selection_get(GtkWidget * widget, GtkSelectionData * data, 
-                                      guint info, guint time, gpointer user_data);
+void on_popup_downloads_selection_get(GtkWidget * widget,
+	GtkSelectionData * data, guint info, guint eventtime, gpointer user_data);
 gint on_popup_downloads_selection_clear_event(GtkWidget * widget, GdkEventSelection *event);
 
 

@@ -28,7 +28,7 @@
 
 #include <gtk/gtk.h>
 
-void filter_cb_close();
+void filter_cb_close(void);
 
 /*
  * Filter dialog

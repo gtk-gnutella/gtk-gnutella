@@ -25,7 +25,7 @@
 
 #include "uploads_cb.h"
 #include "uploads_gui.h"
-#include "upload_stats.h" // FIXME: remove this dependency
+#include "upload_stats.h" /* FIXME: remove this dependency */
 
 RCSID("$Id$");
 
@@ -71,7 +71,7 @@ void on_clist_uploads_unselect_row(GtkCList * clist,
 void on_clist_uploads_resize_column(GtkCList * clist, 
     gint column, gint width, gpointer user_data)
 {
-    // FIXME: use properties
+    /* FIXME: use properties */
 	uploads_col_widths[column] = width;
 }
 
@@ -150,7 +150,7 @@ gboolean on_clist_uploads_button_press_event
 
 void on_popup_uploads_title_activate (GtkMenuItem *menuitem, gpointer user_data) 
 {
-	// FIXME
+	/* FIXME */
 }
 
 
@@ -159,11 +159,14 @@ void on_popup_uploads_title_activate (GtkMenuItem *menuitem, gpointer user_data)
  *** Upload Stats pane
  ***/
 
-gint compare_ul_size(GtkCList *clist, gconstpointer ptr1,
+static gint compare_ul_size(GtkCList *clist, gconstpointer ptr1,
 						 gconstpointer ptr2)
 {
-	guint32 s1 = ((struct ul_stats *) ((GtkCListRow *) ptr1)->data)->size;
-	guint32 s2 = ((struct ul_stats *) ((GtkCListRow *) ptr2)->data)->size;
+	guint32 s1;
+	guint32 s2;
+	
+	s1 = ((const struct ul_stats *) ((const GtkCListRow *) ptr1)->data)->size;
+	s2 = ((const struct ul_stats *) ((const GtkCListRow *) ptr2)->data)->size;
 
 	return (s1 == s2) ? 0 : (s1 > s2) ? 1 : -1;
 }
@@ -171,13 +174,17 @@ gint compare_ul_size(GtkCList *clist, gconstpointer ptr1,
 /*
  * first by complete, then by attempts
  */
-gint compare_ul_complete(GtkCList *clist,
+static gint compare_ul_complete(GtkCList *clist,
 	gconstpointer ptr1, gconstpointer ptr2)
 {
-	guint32 a1 = ((struct ul_stats *) ((GtkCListRow *) ptr1)->data)->attempts;
-	guint32 a2 = ((struct ul_stats *) ((GtkCListRow *) ptr2)->data)->attempts;
-	guint32 c1 = ((struct ul_stats *) ((GtkCListRow *) ptr1)->data)->complete;
-	guint32 c2 = ((struct ul_stats *) ((GtkCListRow *) ptr2)->data)->complete;
+	guint32 a1 = ((const struct ul_stats *)
+		((const GtkCListRow *) ptr1)->data)->attempts;
+	guint32 a2 = ((const struct ul_stats *)
+		((const GtkCListRow *) ptr2)->data)->attempts;
+	guint32 c1 = ((const struct ul_stats *)
+		((const GtkCListRow *) ptr1)->data)->complete;
+	guint32 c2 = ((const struct ul_stats *)
+		((const GtkCListRow *) ptr2)->data)->complete;
 
 	return (c1 != c2) ? ((c1 > c2) ? 1 : -1) : 
 		(a1 == a2) ? 0 : (a1 > a2) ? 1 : -1;
@@ -189,8 +196,11 @@ gint compare_ul_complete(GtkCList *clist,
 gint compare_ul_norm(GtkCList *clist, gconstpointer ptr1,
 						 gconstpointer ptr2)
 {
-	gfloat n1 = ((struct ul_stats *) ((GtkCListRow *) ptr1)->data)->norm;
-	gfloat n2 = ((struct ul_stats *) ((GtkCListRow *) ptr2)->data)->norm;
+	gfloat n1;
+	gfloat n2;
+
+	n1 = ((const struct ul_stats *) ((const GtkCListRow *) ptr1)->data)->norm;
+	n2 = ((const struct ul_stats *) ((const GtkCListRow *) ptr2)->data)->norm;
 
 	return (n1 != n2) ? ((n1 > n2) ? 1 : -1) : 
 		compare_ul_complete(clist, ptr1, ptr2);
@@ -199,13 +209,17 @@ gint compare_ul_norm(GtkCList *clist, gconstpointer ptr1,
 /*
  * first by attempts, then by complete
  */
-gint compare_ul_attempts(GtkCList *clist, gconstpointer ptr1,
+static gint compare_ul_attempts(GtkCList *clist, gconstpointer ptr1,
 						 gconstpointer ptr2)
 {
-	guint32 a1 = ((struct ul_stats *) ((GtkCListRow *) ptr1)->data)->attempts;
-	guint32 a2 = ((struct ul_stats *) ((GtkCListRow *) ptr2)->data)->attempts;
-	guint32 c1 = ((struct ul_stats *) ((GtkCListRow *) ptr1)->data)->complete;
-	guint32 c2 = ((struct ul_stats *) ((GtkCListRow *) ptr2)->data)->complete;
+	guint32 a1 = ((const struct ul_stats *)
+		((const GtkCListRow *) ptr1)->data)->attempts;
+	guint32 a2 = ((const struct ul_stats *)
+		((const GtkCListRow *) ptr2)->data)->attempts;
+	guint32 c1 = ((const struct ul_stats *)
+		((const GtkCListRow *) ptr1)->data)->complete;
+	guint32 c2 = ((const struct ul_stats *)
+		((const GtkCListRow *) ptr2)->data)->complete;
 
 	return (a1 != a2) ? ((a1 > a2) ? 1 : -1) : 
 		(c1 == c2) ? 0 : (c1 > c2) ? 1 : -1;
@@ -251,7 +265,7 @@ void on_clist_ul_stats_click_column
 void on_clist_ul_stats_resize_column(GtkCList *clist, 
     gint column, gint width, gpointer user_data)
 {
-    // FIXME: use properties
+    /* FIXME: use properties */
 	ul_stats_col_widths[column] = width;
 }
 

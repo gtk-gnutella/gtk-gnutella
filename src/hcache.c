@@ -135,15 +135,15 @@ static void end_mass_update(struct hostcache *hc)
 
 static guint host_hash(gconstpointer key)
 {
-	struct gnutella_host *host = (struct gnutella_host *) key;
+	const struct gnutella_host *host = (const struct gnutella_host *) key;
 
 	return (guint) (host->ip ^ ((host->port << 16) | host->port));
 }
 
 static gint host_eq(gconstpointer v1, gconstpointer v2)
 {
-	struct gnutella_host *h1 = (struct gnutella_host *) v1;
-	struct gnutella_host *h2 = (struct gnutella_host *) v2;
+	const struct gnutella_host *h1 = (const struct gnutella_host *) v1;
+	const struct gnutella_host *h2 = (const struct gnutella_host *) v2;
 
 	return h1->ip == h2->ip && h1->port == h2->port;
 }
@@ -563,7 +563,7 @@ gboolean hcache_find_nearby(hcache_type_t type, guint32 *ip, guint16 *port)
 	guint32 first_ip;
 	guint16 first_port;
 	gboolean got_recent;
-	GList *link;
+	GList *lnk;
 	struct hostcache *hc;
 	gboolean reading;
 
@@ -587,16 +587,16 @@ gboolean hcache_find_nearby(hcache_type_t type, guint32 *ip, guint16 *port)
 
 	/* iterate through whole list */
 	for (
-		link = reading ?  g_list_first(hc->sl_caught_hosts) :
+		lnk = reading ?  g_list_first(hc->sl_caught_hosts) :
 			g_list_last(hc->sl_caught_hosts);
-		link; link = link->prev
+		lnk; lnk = lnk->prev
 	) {
 
-		h = (struct gnutella_host *) link->data;
+		h = (struct gnutella_host *) lnk->data;
 		if (host_is_nearby(h->ip)) {
 
-			hc->sl_caught_hosts = g_list_remove_link(hc->sl_caught_hosts, link);
-			g_list_free_1(link);
+			hc->sl_caught_hosts = g_list_remove_link(hc->sl_caught_hosts, lnk);
+			g_list_free_1(lnk);
 			hcache_ht_remove(hc, h);
 
 			*ip = h->ip;
@@ -626,7 +626,7 @@ void hcache_get_caught(hcache_type_t type, guint32 *ip, guint16 *port)
 {
 	static guint alternate = 0;
 	struct gnutella_host *h;
-	GList *link;
+	GList *lnk;
 	struct hostcache *hc;
 	gboolean reading;
 	extern guint32 number_local_networks;
@@ -668,12 +668,12 @@ void hcache_get_caught(hcache_type_t type, guint32 *ip, guint16 *port)
 	 * tail of the list.  Otherwise, get the first host in that list.
 	 */
 
-	link = reading ?
+	lnk = reading ?
 		g_list_first(hc->sl_caught_hosts) : g_list_last(hc->sl_caught_hosts);
 
-	h = (struct gnutella_host *) link->data;
-	hc->sl_caught_hosts = g_list_remove_link(hc->sl_caught_hosts, link);
-	g_list_free_1(link);
+	h = (struct gnutella_host *) lnk->data;
+	hc->sl_caught_hosts = g_list_remove_link(hc->sl_caught_hosts, lnk);
+	g_list_free_1(lnk);
 	hcache_ht_remove(hc, h);
 
 	*ip = h->ip;

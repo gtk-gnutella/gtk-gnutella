@@ -119,7 +119,7 @@ void upload_stats_gui_add(struct ul_stats *stat)
 
 	gtk_clist_set_row_data_full(clist, row, stat, NULL);
 
-    // FIXME: should use auto_sort?
+    /* FIXME: should use auto_sort? */
 	gtk_clist_sort(clist);
 }
 
@@ -149,7 +149,7 @@ void upload_stats_gui_update(const gchar *name, guint64 size)
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%.3f", stat->norm);
 	gtk_clist_set_text(clist, row, c_us_norm, tmpstr);
         
-	// FIXME: use auto-sort?
+	/* FIXME: use auto-sort? */
 	gtk_clist_sort(clist);
 }
 

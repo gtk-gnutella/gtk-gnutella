@@ -142,7 +142,7 @@ static void upload_stats_cell_render_norm_func(
 	g_object_set(cell, "text", tmpstr, NULL);
 }
 
-void upload_stats_gui_column_resized(
+static void upload_stats_gui_column_resized(
 	GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
 {
 	gint column_id = GPOINTER_TO_INT(data);

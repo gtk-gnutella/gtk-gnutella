@@ -38,9 +38,9 @@
  * Public interface.
  */
 
-GSList *gm_slist_insert_after(GSList *list, GSList *link, gpointer data);
+GSList *gm_slist_insert_after(GSList *list, GSList *lnk, gpointer data);
 
-GList *gm_list_insert_after(GList *list, GList *link, gpointer data);
+GList *gm_list_insert_after(GList *list, GList *lnk, gpointer data);
 
 size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args);
 size_t gm_snprintf(gchar *str, size_t n, gchar const *fmt, ...)

@@ -36,6 +36,7 @@
 #include "ggep.h"
 #include "version.h"
 #include "qrp.h"
+#include "search.h"
 
 #include <ctype.h>
 
@@ -102,7 +103,7 @@ guint32   search_passive  = 0;		/* Amount of passive searches */
  * doesn't know about the struct results_set. --vidar, 20020802 
  * FIXME: this is declared in fileinfo.c, but not in fileinfo.h!
  */
-gboolean file_info_check_results_set(gnet_results_set_t *rs);
+extern gboolean file_info_check_results_set(gnet_results_set_t *rs);
 
 
 /***
@@ -150,7 +151,7 @@ static void search_fire_got_results
 
 static guint sent_node_hash_func(gconstpointer key)
 {
-	struct sent_node_data *sd = (struct sent_node_data *) key;
+	const struct sent_node_data *sd = (const struct sent_node_data *) key;
 
 	/* ensure that we've got sizeof(gint) bytes of deterministic data */
 	gint ip = sd->ip;
@@ -161,8 +162,8 @@ static guint sent_node_hash_func(gconstpointer key)
 
 static gint sent_node_compare(gconstpointer a, gconstpointer b)
 {
-	struct sent_node_data *sa = (struct sent_node_data *) a;
-	struct sent_node_data *sb = (struct sent_node_data *) b;
+	const struct sent_node_data *sa = (const struct sent_node_data *) a;
+	const struct sent_node_data *sb = (const struct sent_node_data *) b;
 
 	return sa->ip == sb->ip && sa->port == sb->port;
 }
@@ -189,7 +190,7 @@ static void mark_search_sent_to_node(
 	g_hash_table_insert(sch->sent_nodes, sd, (void *) 1);
 }
 
-void mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
+static void mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
 {
 	GSList *l;
 	struct gnutella_node *n;
@@ -286,7 +287,7 @@ static gnet_results_set_t *get_results_set(
 	gnet_results_set_t *rs;
 	gnet_record_t *rc = NULL;
 	gchar *e, *s, *fname, *tag;
-	guint32 nr, size, index, taglen;
+	guint32 nr, size, idx, taglen;
 	struct gnutella_search_results *r;
 	GString *info = NULL;
 	gint sha1_errors = 0;
@@ -333,7 +334,7 @@ static gnet_results_set_t *get_results_set(
 		dump_hex(stdout, "Query Hit Data", n->data, n->size);
 
 	while (s < e && nr < rs->num_recs) {
-		READ_GUINT32_LE(s, index);
+		READ_GUINT32_LE(s, idx);
 		s += 4;					/* File Index */
 		READ_GUINT32_LE(s, size);
 		s += 4;					/* File Size */
@@ -397,7 +398,7 @@ static gnet_results_set_t *get_results_set(
 			rc = (gnet_record_t *) zalloc(rc_zone);
 
 			rc->sha1  = rc->tag = NULL;
-			rc->index = index;
+			rc->index = idx;
 			rc->size  = size;
 			rc->name  = atom_str_get(fname);
             rc->flags = 0;
@@ -995,7 +996,7 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	 *		--RAM, 19/01/2003
 	 */
 
-	speed = sch->speed;					// XXX until version 0.93
+	speed = sch->speed;					/* XXX until version 0.93 */
 
 	WRITE_GUINT16_LE(speed, m->search.speed);
 

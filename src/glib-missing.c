@@ -39,25 +39,25 @@ RCSID("$Id$");
 /*
  * gm_slist_insert_after
  *
- * Insert `item' after `link' in list `list'.
- * If `link' is NULL, insertion happens at the head.
+ * Insert `item' after `lnk' in list `list'.
+ * If `lnk' is NULL, insertion happens at the head.
  *
  * Returns new list head.
  */
-GSList *gm_slist_insert_after(GSList *list, GSList *link, gpointer data)
+GSList *gm_slist_insert_after(GSList *list, GSList *lnk, gpointer data)
 {
 	GSList *new;
 
-	g_assert(list != NULL || link == NULL);	/* (list = NULL) => (link = NULL) */
+	g_assert(list != NULL || lnk == NULL);	/* (list = NULL) => (lnk = NULL) */
 
-	if (link == NULL)
+	if (lnk == NULL)
 		return g_slist_prepend(list, data);
 
 	new = g_slist_alloc();
 	new->data = data;
 
-	new->next = link->next;
-	link->next = new;
+	new->next = lnk->next;
+	lnk->next = new;
 
 	return list;
 }
@@ -65,30 +65,30 @@ GSList *gm_slist_insert_after(GSList *list, GSList *link, gpointer data)
 /*
  * gm_list_insert_after
  *
- * Insert `item' after `link' in list `list'.
- * If `link' is NULL, insertion happens at the head.
+ * Insert `item' after `lnk' in list `list'.
+ * If `lnk' is NULL, insertion happens at the head.
  *
  * Returns new list head.
  */
-GList *gm_list_insert_after(GList *list, GList *link, gpointer data)
+GList *gm_list_insert_after(GList *list, GList *lnk, gpointer data)
 {
 	GList *new;
 
-	g_assert(list != NULL || link == NULL);	/* (list = NULL) => (link = NULL) */
+	g_assert(list != NULL || lnk == NULL);	/* (list = NULL) => (lnk = NULL) */
 
-	if (link == NULL)
+	if (lnk == NULL)
 		return g_list_prepend(list, data);
 
 	new = g_list_alloc();
 	new->data = data;
 
-	new->prev = link;
-	new->next = link->next;
+	new->prev = lnk;
+	new->next = lnk->next;
 
-	if (link->next)
-		link->next->prev = new;
+	if (lnk->next)
+		lnk->next->prev = new;
 
-	link->next = new;
+	lnk->next = new;
 
 	return list;
 }

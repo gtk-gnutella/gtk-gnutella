@@ -96,9 +96,10 @@ void on_spinbutton_minimum_speed_changed
         gtk_spin_button_get_value(GTK_SPIN_BUTTON(editable)));
 }
 
-void on_entry_config_proxy_ip_activate_helper(guint32 ip, gpointer user_data)
+static void on_entry_config_proxy_ip_activate_helper(
+	guint32 ip, gpointer user_data)
 {
-    gnet_prop_set_guint32(PROP_PROXY_IP, &ip, 0, 1);
+    gnet_prop_set_guint32_val(PROP_PROXY_IP, ip);
 }
 
 void on_entry_config_proxy_ip_activate

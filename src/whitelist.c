@@ -47,7 +47,7 @@ static gchar wl_tmp[1024];
  *
  * Loads the whitelist into memory.
  */
-void whitelist_retrieve(void)
+static void whitelist_retrieve(void)
 {
     gchar line[1024];
     gchar *p, *sport, *snetmask;

@@ -2777,7 +2777,9 @@ enum dl_chunk_status file_info_find_hole(
 	 * XXX		--RAM, 17/10/2002
 	 */
 
-	//g_assert(fi->size >= d->file_size);
+#if 0
+	g_assert(fi->size >= d->file_size);
+#endif /* 0 */
 
 	if (fi->size < d->file_size) {
 		g_warning("fi->size=%u < d->file_size=%u for \"%s\"",
@@ -2802,8 +2804,10 @@ enum dl_chunk_status file_info_find_hole(
 
 		*from = fc->from;
 		*to = fc->to;
-		//if (*from && ((*to - *from) > (chunksize * 2)))
-		//	*from = (*from + *to) / 2;
+#if 0
+		if (*from && ((*to - *from) > (chunksize * 2)))
+			*from = (*from + *to) / 2;
+#endif /* 0 */
 		if ((*to - *from) > chunksize)
 			*to = *from + chunksize;
 

@@ -497,14 +497,14 @@ void uploads_gui_update_display(time_t now)
 
     if (clear_uploads)
 		for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
-        	GtkTreeIter *iter = sl->data;
+        	GtkTreeIter *i = sl->data;
 			gpointer p;
 
-			gtk_tree_model_get(model, iter, c_ul_data, &p, -1);
+			gtk_tree_model_get(model, i, c_ul_data, &p, -1);
 			g_assert(NULL != p);
 			G_FREE_NULL(p);
-        	gtk_list_store_remove(GTK_LIST_STORE(model), iter);
-        	gtk_tree_iter_free(iter);
+        	gtk_list_store_remove(GTK_LIST_STORE(model), i);
+        	gtk_tree_iter_free(i);
     	}
 
 	if (all_removed)
@@ -539,10 +539,10 @@ static gboolean uploads_clear_helper(gpointer user_data) {
     }
 
     for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
-		GtkTreeIter *iter = sl->data;
+		GtkTreeIter *i = sl->data;
 
-        gtk_list_store_remove(GTK_LIST_STORE(model), iter);
-		gtk_tree_iter_free(iter);
+        gtk_list_store_remove(GTK_LIST_STORE(model), i);
+		gtk_tree_iter_free(i);
 	}
     
     if (NULL != to_remove)

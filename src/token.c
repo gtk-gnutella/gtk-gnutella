@@ -316,7 +316,7 @@ tok_error_t tok_version_valid(gchar *version, guchar *tokenb64, gint len)
 	 * Versions before 24/02/2003 did not use network order for timestamp.
 	 */
 
-	if (ABS(stamp - now) > TOKEN_CLOCK_SKEW)	// XXX temporary
+	if (ABS(stamp - now) > TOKEN_CLOCK_SKEW)	/* XXX temporary */
 		stamp = (time_t) stamp32;
 
 	if (ABS(stamp - now) > TOKEN_CLOCK_SKEW)

@@ -121,7 +121,6 @@ typedef struct search {
  */
 extern GtkWidget *dialog_filters;
 extern guint32 search_passive;
-extern guint32 search_reissue_timeout;
 extern GList *searches;			/* List of search structs */
 #ifdef USE_GTK2
 extern GtkWidget *default_search_tree_view;
@@ -152,7 +151,6 @@ void search_gui_close_search(search_t *sch);
 void search_gui_clear_search(search_t *sch);
 void search_gui_remove_search(search_t * sch);
 void search_gui_restart_search(search_t *sch);
-void search_gui_clear_search(search_t *sch);
 void search_gui_download_files(void);
 
 void search_gui_set_current_search(search_t *sch);
@@ -160,7 +158,8 @@ search_t *search_gui_get_current_search(void);
 
 void search_gui_store_searches(void);
 
-gint search_gui_compare_records(gint sort_col, record_t *r1, record_t *r2);
+gint search_gui_compare_records(
+	gint sort_col, const record_t *r1, const record_t *r2);
 
 gboolean gui_search_update_tab_label(struct search *);
 void gui_search_clear_results(void);

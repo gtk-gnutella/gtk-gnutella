@@ -119,7 +119,7 @@ static gchar *dmesh_urlinfo_to_gchar(dmesh_urlinfo_t *info);
  */
 static guint urlinfo_hash(gconstpointer key)
 {
-	dmesh_urlinfo_t *info = (dmesh_urlinfo_t *) key;
+	const dmesh_urlinfo_t *info = (const dmesh_urlinfo_t *) key;
 	guint hash = 0;
 
 	WRITE_GUINT32_LE(info->ip, &hash);	/* Reverse IP, 192.x.y.z -> z.y.x.192 */
@@ -137,8 +137,8 @@ static guint urlinfo_hash(gconstpointer key)
  */
 static gint urlinfo_eq(gconstpointer a, gconstpointer b)
 {
-	dmesh_urlinfo_t *ia = (dmesh_urlinfo_t *) a;
-	dmesh_urlinfo_t *ib = (dmesh_urlinfo_t *) b;
+	const dmesh_urlinfo_t *ia = (const dmesh_urlinfo_t *) a;
+	const dmesh_urlinfo_t *ib = (const dmesh_urlinfo_t *) b;
 
 	return ia->ip == ib->ip		&&
 		ia->port == ib->port	&&
@@ -167,8 +167,8 @@ void dmesh_init(void)
  */
 static gint dmesh_entry_cmp(gconstpointer a, gconstpointer b)
 {
-	struct dmesh_entry *ae = (struct dmesh_entry *) a;
-	struct dmesh_entry *be = (struct dmesh_entry *) b;
+	const struct dmesh_entry *ae = (const struct dmesh_entry *) a;
+	const struct dmesh_entry *be = (const struct dmesh_entry *) b;
 
 	if (ae->stamp == be->stamp)
 		return 0;
@@ -296,7 +296,7 @@ static gchar *parse_errstr[] = {
 	"No filename after /get/index",			/* DMESH_URL_NO_FILENAME */
 };
 
-#define MAX_PARSE_ERRNUM (sizeof(parse_errstr) / sizeof(parse_errstr[0]) - 1)
+#define MAX_PARSE_ERRNUM (G_N_ELEMENTS(parse_errstr) - 1)
 
 /*
  * dmesh_url_strerror
@@ -500,7 +500,7 @@ static void dm_expire(struct dmesh *dm, guint32 agemax, guchar *sha1)
  * Returns TRUE if entry was removed or not found, FALSE otherwise.
  */
 static gboolean dm_remove(struct dmesh *dm,
-	guint32 ip, guint16 port, guint idx, gchar *name, guint32 stamp)
+	guint32 ip, guint16 port, guint idx, const gchar *name, guint32 stamp)
 {
 	GSList *l;
 
@@ -1088,7 +1088,9 @@ gint dmesh_alternate_location(guchar *sha1,
 	if (nurl)
 		len += gm_snprintf(&buf[len], size - len, "\r\n");
 
-	// g_assert(len < size);
+#if 0
+	g_assert(len < size);
+#endif /* 0 */
 	if (len >= size) {
 		g_error("BUG: dmesh_alternate_location: filled buffer completely "
 			"(size=%d, len=%d, nurl=%d)", size, len, nurl);
@@ -1775,7 +1777,7 @@ static void dmesh_store_kv(gpointer key, gpointer value, gpointer udata)
 	fputs("\n", out);
 }
 
-// XXX add dmesh_store_if_dirty() and export that only
+/* XXX add dmesh_store_if_dirty() and export that only */
 
 typedef void (*header_func_t)(FILE *out);
 
@@ -1786,7 +1788,7 @@ typedef void (*header_func_t)(FILE *out);
  * The file header is emitted by `header_cb'.
  * The storing callback for each item is `store_cb'.
  */
-void dmesh_store_hash(
+static void dmesh_store_hash(
 	gchar *what,
 	GHashTable *hash, gchar *file, header_func_t header_cb, GHFunc store_cb)
 {

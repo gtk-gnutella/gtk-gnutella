@@ -197,7 +197,8 @@ void node_add_node_flags_changed_listener(node_flags_changed_listener_t l)
     LISTENER_ADD(node_flags_changed, l);
 }
 
-void node_remove_node_flags_changed_listener(node_flags_changed_listener_t l)
+static void node_remove_node_flags_changed_listener(
+	node_flags_changed_listener_t l)
 {
     LISTENER_REMOVE(node_flags_changed, l);
 }
@@ -237,9 +238,9 @@ static void node_fire_node_flags_changed
  *
  * Dumps a gnutella message (debug) 
  */
-void message_dump(struct gnutella_node *n)
+static void message_dump(const struct gnutella_node *n)
 {
-	gint32 size, ip, index, count, total;
+	gint32 size, ip, idx, count, total;
 	gint16 port, speed;
 
 	printf("Node %s: ", node_ip(n));
@@ -264,10 +265,10 @@ void message_dump(struct gnutella_node *n)
 			   ip_to_gchar(ip), port, count, total);
 	} else if (n->header.function == GTA_MSG_PUSH_REQUEST) {
 		READ_GUINT32_BE(n->data + 20, ip);
-		READ_GUINT32_LE(n->data + 16, index);
+		READ_GUINT32_LE(n->data + 16, idx);
 		READ_GUINT32_LE(n->data + 24, port);
 
-		printf(" Index = %d Host = %s Port = %d ", index, ip_to_gchar(ip),
+		printf(" Index = %d Host = %s Port = %d ", idx, ip_to_gchar(ip),
 			   port);
 	}
 
@@ -279,12 +280,13 @@ void message_dump(struct gnutella_node *n)
  *
  * Extract IP/port information out of the Query Hit into `ip' and `port'.
  */
-void node_extract_host(struct gnutella_node *n, guint32 *ip, guint16 *port)
+static void node_extract_host(
+	const struct gnutella_node *n, guint32 *ip, guint16 *port)
 {
 	guint32 hip;
 	guint16 hport;
-	struct gnutella_search_results *r =
-		(struct gnutella_search_results *) n->data;
+	const struct gnutella_search_results *r =
+		(const struct gnutella_search_results *) n->data;
 
 	/* Read Query Hit info */
 
@@ -1028,7 +1030,7 @@ static void node_bye_v(
 	len = gm_snprintf(reason_base, sizeof(reason_fmt) - 3,
 		"%s", n->error_str);
 
-	// XXX Add X-Try and X-Try-Ultrapeers
+	/* XXX Add X-Try and X-Try-Ultrapeers */
 
 	if (code != 200) {
 		len += gm_snprintf(reason_base + len, sizeof(reason_fmt) - len - 3,
@@ -1187,7 +1189,7 @@ static gboolean send_welcome(
 
 	if (
 		-1 == (sent = bws_write(bws.gout, s->file_desc,
-			(gpointer) gnutella_welcome, gnutella_welcome_length))
+			gnutella_welcome, gnutella_welcome_length))
 	) {
 		node_remove(n, "Write of 0.4 HELLO acknowledge failed: %s",
 			g_strerror(errno));
@@ -1438,8 +1440,8 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 		"Remote-IP: %s\r\n"
 		"X-Token: %s\r\n"
 		"X-Live-Since: %s\r\n"
-		"%s"		// X-Ultrapeer
-		"%s",		// X-Try
+		"%s"		/* X-Ultrapeer */
+		"%s",		/* X-Try */
 		code, msg_tmp, version_string, ip_to_gchar(s->ip),
 		tok_version(), start_rfc822_date,
 		current_peermode == NODE_P_NORMAL ? "" :
@@ -1449,7 +1451,7 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 			formatted_connection_pongs("X-Try", HCACHE_ANY) : "");
 
 	rw += gm_snprintf(&gnet_response[rw], sizeof(gnet_response)-rw,
-		"%s"		// X-Try-Ultrapeers
+		"%s"		/* X-Try-Ultrapeers */
 		"\r\n",
 		(current_peermode != NODE_P_NORMAL &&
 				(code == 503 || code == 403 || code == 204)) ?
@@ -1752,7 +1754,7 @@ static void node_got_bye(struct gnutella_node *n)
 	}
 
 	if (!is_plain_message) {
-		// XXX parse header
+		/* XXX parse header */
 		if (dbg)
 			printf("----Bye Message from %s:\n%.*s----\n",
 				node_ip(n), (gint) n->size - 2, message);
@@ -2316,7 +2318,7 @@ static gboolean node_can_accept_protocol(
 		if (
 			current_peermode != NODE_P_LEAF &&
 			!(n->flags & NODE_F_LEAF) &&
-			strstr(field, "application/x-gnutella2")	// XXX parse the ","
+			strstr(field, "application/x-gnutella2") /* XXX parse the "," */
 		) {
 			gchar *msg = "Protocol not acceptable";
 
@@ -2372,7 +2374,7 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 	field = header_get(head, "Content-Encoding");
 	if (field) {
-		if (strstr(field, "deflate"))		// XXX needs more rigourous parsing
+		if (strstr(field, "deflate"))	/* XXX needs more rigourous parsing */
 			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
 	}
 
@@ -2694,7 +2696,7 @@ static void node_process_handshake_header(
 
 	field = header_get(head, "Accept-Encoding");
 	if (field) {
-		if (strstr(field, "deflate")) {		// XXX needs more rigourous parsing
+		if (strstr(field, "deflate")) {	/* XXX needs more rigourous parsing */
 			n->attrs |= NODE_A_CAN_INFLATE;
 			n->attrs |= NODE_A_TX_DEFLATE;	/* We accept! */
 		}
@@ -2706,7 +2708,7 @@ static void node_process_handshake_header(
 
 	field = header_get(head, "Content-Encoding");
 	if (field) {
-		if (strstr(field, "deflate"))		// XXX needs more rigourous parsing
+		if (strstr(field, "deflate"))	/* XXX needs more rigourous parsing */
 			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
 	}
 
@@ -2865,7 +2867,7 @@ static void node_process_handshake_header(
 			 * maybe we should start thinking about promoting ourselves?
 			 */
 
-			// XXX
+			/* XXX */
 		}
 
 		if (field && !(n->attrs & NODE_A_ULTRA))
@@ -2881,9 +2883,9 @@ static void node_process_handshake_header(
 
 		rw = gm_snprintf(gnet_response, sizeof(gnet_response),
 			"GNUTELLA/0.6 200 OK\r\n"
-			"%s"			// Content-Encoding
-			"%s"			// X-Ultrapeer
-			"%s"			// X-Query-Routing (tells version we'll use)
+			"%s"			/* Content-Encoding */
+			"%s"			/* X-Ultrapeer */
+			"%s"			/* X-Query-Routing (tells version we'll use) */
 			"\r\n",
 			(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
 			mode_changed ? "X-Ultrapeer: False\r\n" : "",
@@ -2905,7 +2907,7 @@ static void node_process_handshake_header(
 			rw = gm_snprintf(gnet_response, sizeof(gnet_response),
 				"GNUTELLA/0.6 200 OK\r\n"
 				"User-Agent: %s\r\n"
-				"%s"		// Peers & Leaves
+				"%s"		/* Peers & Leaves */
 				"X-Live-Since: %s\r\n"
 				"\r\n",
 				version_string, node_crawler_headers(n), start_rfc822_date);
@@ -2919,10 +2921,10 @@ static void node_process_handshake_header(
 				"Vendor-Message: 0.1\r\n"
 				"Remote-IP: %s\r\n"
 				"Accept-Encoding: deflate\r\n"
-				"%s"		// Content-Encoding
-				"%s"		// X-Ultrapeer
-				"%s"		// X-Ultrapeer-Needed
-				"%s"		// X-Query-Routing
+				"%s"		/* Content-Encoding */
+				"%s"		/* X-Ultrapeer */
+				"%s"		/* X-Ultrapeer-Needed */
+				"%s"		/* X-Query-Routing */
 				"X-Token: %s\r\n"
 				"X-Live-Since: %s\r\n"
 				"\r\n",
@@ -3717,8 +3719,8 @@ void node_init_outgoing(struct gnutella_node *n)
 			"Accept-Encoding: deflate\r\n"
 			"X-Token: %s\r\n"
 			"X-Live-Since: %s\r\n"
-			"%s"		// X-Ultrapeer
-			"%s"		// X-Query-Routing
+			"%s"		/* X-Ultrapeer */
+			"%s"		/* X-Query-Routing */
 			"\r\n",
 			n->proto_major, n->proto_minor,
 			ip_port_to_gchar(listen_ip(), listen_port),
@@ -4500,12 +4502,12 @@ void node_close(void)
 	rxbuf_close();
 }
 
-// XXX
-// XXX Those used to be declared inline, via G_INLINE_FUNC
-// XXX However, inlined functions seem to be statically defined only
-// XXX Removing the G_INLINE_FUNC attribute.
-// XXX		--RAM, 01/01/2003
-// XXX
+/* XXX
+ * XXX Those used to be declared inline, via G_INLINE_FUNC
+ * XXX However, inlined functions seem to be statically defined only
+ * XXX Removing the G_INLINE_FUNC attribute.
+ * XXX		--RAM, 01/01/2003
+ */ 
 
 void node_add_sent(gnutella_node_t *n, gint x)
 {
@@ -4791,8 +4793,8 @@ void node_remove_nodes_by_handle(GSList *node_list)
  *
  * Returns the ip:port of a node 
  */
-// FIXME: should be called node_ip_to_gchar
-gchar *node_ip(gnutella_node_t *n)
+/* FIXME: should be called node_ip_to_gchar */
+gchar *node_ip(const gnutella_node_t *n)
 {
 	/* Same as ip_port_to_gchar(), but need another static buffer to be able
 	   to use both in same printf() line */
@@ -4813,7 +4815,7 @@ gchar *node_ip(gnutella_node_t *n)
  * is received.  This scheme is used by servents to detect whether they
  * are firewalled.
  */
-void node_connect_back(gnutella_node_t *n, guint16 port)
+void node_connect_back(const gnutella_node_t *n, guint16 port)
 {
 	struct gnutella_socket *s;
 

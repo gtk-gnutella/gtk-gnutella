@@ -69,15 +69,15 @@ void filter_gui_set_ruleset(GList *ruleset);
 void filter_gui_update_filter_stats(void);
 void filter_gui_update_rule_stats(void);
 void filter_gui_show_dialog(void);
-rule_t *filter_gui_get_rule();
+rule_t *filter_gui_get_rule(void);
 void filter_gui_update_rule_count(filter_t *f, GList *ruleset);
-void filter_gui_freeze_rules();
-void filter_gui_thaw_rules();
-void filter_gui_freeze_filters();
-void filter_gui_thaw_filters();
+void filter_gui_freeze_rules(void);
+void filter_gui_thaw_rules(void);
+void filter_gui_freeze_filters(void);
+void filter_gui_thaw_filters(void);
 
 #ifdef USE_GTK2
-GtkWidget *filter_gui_create_dlg_filters();
+GtkWidget *filter_gui_create_dlg_filters(void);
 #else
 #define filter_gui_create_dlg_filters() create_dlg_filters()
 #endif

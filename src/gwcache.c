@@ -179,18 +179,18 @@ static void gwc_add(gchar *url)
 static gchar *gwc_pick(void)
 {
 	gint count = g_hash_table_size(gwc_known_url);
-	gint index;
+	gint idx;
 
 	g_assert(count > 0);
 	g_assert(count <= MAX_GWC_URLS);
 	g_assert(count == MAX_GWC_URLS || gwc_url_slot < count);
 
-	index = random_value(count - 1);
+	idx = random_value(count - 1);
 
 	if (dbg)
-		g_warning("picked webcache %s", gwc_url[index]);
+		g_warning("picked webcache %s", gwc_url[idx]);
 
-	return gwc_url[index];
+	return gwc_url[idx];
 }
 
 /*
@@ -604,7 +604,7 @@ static gboolean gwc_url_line(struct parse_context *ctx, gchar *buf, gint len)
 		return FALSE;
 	}
 
-	// XXX -- Ignore "chunked" output
+	/* XXX -- Ignore "chunked" output */
 	if (len && !(*buf == 'h' || *buf == 'H'))
 		return TRUE;
 

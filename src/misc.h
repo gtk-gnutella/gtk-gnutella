@@ -148,7 +148,7 @@ gchar *guid_hex_str(const guchar *guid);
 gint hex2dec(gchar c);
 void hex_to_guid(gchar *hexguid, guchar *guid);
 void dump_hex(FILE *, gchar *, gchar *, gint);
-void strlower(gchar *, gchar *);
+void strlower(gchar *, const gchar *);
 gchar *unique_filename(gchar *path, gchar *file, gchar *ext);
 guchar *hex_escape(const guchar *name, gboolean strict);
 gint highest_bit_set(guint32 n);
@@ -157,10 +157,6 @@ gint highest_bit_set(guint32 n);
 char *strcasestr(const char *haystack, const char *needle);
 #else
 guchar *strcasestr(const guchar *haystack, const guchar *needle);
-#endif
-
-#ifndef USE_GTK2
-gsize g_strlcpy(gchar *dest, const gchar *src, gsize dest_size);
 #endif
 
 #endif /* _misc_h_ */

@@ -214,7 +214,7 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	guint parsed;
 	guchar *first;
 
-	//s->type = 0;
+	/* s->type = 0; */
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		socket_destroy(s, "Input exception");
@@ -574,7 +574,7 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 #ifdef USE_REMOTE_SHELL
         case SOCK_TYPE_SHELL:
-            g_assert_not_reached(); // FIXME: add code here?
+            g_assert_not_reached(); /* FIXME: add code here? */
             break;
 #endif
 
@@ -872,7 +872,7 @@ struct gnutella_socket *socket_connect(
  *
  * Called when we got a reply from the ADNS process.
  */
-void socket_connect_by_name_helper(guint32 ip_addr, gpointer user_data)
+static void socket_connect_by_name_helper(guint32 ip_addr, gpointer user_data)
 {
 	struct gnutella_socket *s = user_data;
 
@@ -1058,7 +1058,7 @@ static void _sock_set(gint fd, gint option, gint size,
 		g_warning("cannot read old %s buffer length on fd #%d: %s",
 			type, fd, g_strerror(errno));
 
-// XXX needs to add metaconfig test
+/* XXX needs to add metaconfig test */
 #if linux
 	old_len >>= 1;		/* Linux returns twice the real amount */
 #endif

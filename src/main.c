@@ -191,8 +191,9 @@ static void init_constants(void)
 	gnet_prop_set_guint32_val(PROP_START_STAMP, (guint32) now);
 }
 
-// FIXME: this is declared in search_gui.c and should be called in the
-//        main timer loop of the gui.
+/* FIXME: this is declared in search_gui.c and should be called in the
+ *        main timer loop of the gui.
+ */
 void search_gui_store_searches(void);
 static void slow_main_timer(time_t now)
 {
@@ -365,6 +366,22 @@ static void log_init(void)
 gint main(gint argc, gchar **argv, gchar **env)
 {
 	gint i;
+	gchar buf[8];
+
+	memcpy(buf, "01234567", sizeof(buf));
+	g_assert(0 == memcmp(buf, "01234567", sizeof(buf)));
+	g_assert(1 == g_strlcpy(buf, "x", 0));
+	g_assert(0 == memcmp(buf, "01234567", sizeof(buf)));
+	g_assert(3 == g_strlcpy(buf, "bla", 0));
+	g_assert(0 == memcmp(buf, "01234567", sizeof(buf)));
+	g_assert(3 == g_strlcpy(buf, "bla", 1));
+	g_assert(0 == memcmp(buf, "\0001234567", sizeof(buf)));
+	g_assert(0 == strlcpy(buf, "\000", 3));
+	g_assert(0 == memcmp(buf, "\0001234567", sizeof(buf)));
+	g_assert(3 == g_strlcpy(buf, "bla", 7));
+	g_assert(0 == memcmp(buf, "bla\0004567", sizeof(buf)));
+	g_assert(0 == strlcpy(buf, "", 2));
+	g_assert(0 == memcmp(buf, "\000la\0004567", sizeof(buf)));
 
 	for (i = 3; i < 256; i++)
 		close(i);				/* Just in case */

@@ -727,7 +727,7 @@ static void share_free(void)
 	shared_files = NULL;
 }
 
-static void reinit_sha1_table();
+static void reinit_sha1_table(void);
 
 void share_scan(void)
 {
@@ -1760,7 +1760,7 @@ static int compare_share_sha1(const gchar *s1, const gchar *s2)
  * Reset sha1_to_share
  */
 
-static void reinit_sha1_table()
+static void reinit_sha1_table(void)
 {
 	if (sha1_to_share)
 		g_tree_destroy(sha1_to_share);
@@ -1865,7 +1865,7 @@ struct shared_file *shared_file_by_sha1(const gchar *sha1_digest)
 	if (sha1_to_share == NULL)			/* Not even begun share_scan() yet */
 		return SHARE_REBUILDING;
 
-	f = g_tree_lookup(sha1_to_share, (gpointer) sha1_digest);
+	f = g_tree_lookup(sha1_to_share, sha1_digest);
 
 	if (!f || !sha1_hash_available(f)) {
 		/*

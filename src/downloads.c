@@ -85,7 +85,7 @@ static void download_retrieve(void);
 static void download_resume_bg_tasks(void);
 static void download_free_removed(void);
 static void download_incomplete_header(struct download *d);
-static gboolean has_blank_guid(struct download *d);
+static gboolean has_blank_guid(const struct download *d);
 static void download_verify_sha1(struct download *d);
 
 /*
@@ -145,14 +145,7 @@ extern gint sha1_eq(gconstpointer a, gconstpointer b);
 /* ----------------------------------------- */
 
 #ifdef USE_GTK2
-G_INLINE_FUNC gchar *g_strdown(gchar *string) {
-	gint i;
-
-	g_assert(NULL != string);
-	for (i = 0; string[i] != '\0'; i++)
-		string[i] = g_ascii_tolower(string[i]); 
-	return string;
-}
+#define g_strdown(s) strlower((s), (s))
 #endif
 
 /*
@@ -162,7 +155,7 @@ G_INLINE_FUNC gchar *g_strdown(gchar *string) {
  */
 static guint dl_key_hash(gconstpointer key)
 {
-	struct dl_key *k = (struct dl_key *) key;
+	const struct dl_key *k = (const struct dl_key *) key;
 	guint hash;
 	extern guint guid_hash(gconstpointer key);
 
@@ -180,8 +173,8 @@ static guint dl_key_hash(gconstpointer key)
  */
 static gint dl_key_eq(gconstpointer a, gconstpointer b)
 {
-	struct dl_key *ak = (struct dl_key *) a;
-	struct dl_key *bk = (struct dl_key *) b;
+	const struct dl_key *ak = (const struct dl_key *) a;
+	const struct dl_key *bk = (const struct dl_key *) b;
 	extern gint guid_eq(gconstpointer a, gconstpointer b);
 
 	return ak->ip == bk->ip &&
@@ -196,7 +189,7 @@ static gint dl_key_eq(gconstpointer a, gconstpointer b)
  */
 static guint dl_ip_hash(gconstpointer key)
 {
-	struct dl_ip *k = (struct dl_ip *) key;
+	const struct dl_ip *k = (const struct dl_ip *) key;
 	guint32 hash;
 
 	WRITE_GUINT32_LE(k->ip, &hash); /* Reverse IP, 192.x.y.z -> z.y.x.192 */
@@ -212,8 +205,8 @@ static guint dl_ip_hash(gconstpointer key)
  */
 static gint dl_ip_eq(gconstpointer a, gconstpointer b)
 {
-	struct dl_ip *ak = (struct dl_ip *) a;
-	struct dl_ip *bk = (struct dl_ip *) b;
+	const struct dl_ip *ak = (const struct dl_ip *) a;
+	const struct dl_ip *bk = (const struct dl_ip *) b;
 
 	return ak->ip == bk->ip && ak->port == bk->port;
 }
@@ -226,8 +219,8 @@ static gint dl_ip_eq(gconstpointer a, gconstpointer b)
  */
 static gint dl_server_retry_cmp(gconstpointer a, gconstpointer b)
 {
-	struct dl_server *as = (struct dl_server *) a;
-	struct dl_server *bs = (struct dl_server *) b;
+	const struct dl_server *as = (const struct dl_server *) a;
+	const struct dl_server *bs = (const struct dl_server *) b;
 
 	if (as->retry_after == bs->retry_after)
 		return 0;
@@ -240,9 +233,9 @@ static gint dl_server_retry_cmp(gconstpointer a, gconstpointer b)
  *
  * Returns whether download has a blank (fake) GUID.
  */
-static gboolean has_blank_guid(struct download *d)
+static gboolean has_blank_guid(const struct download *d)
 {
-	guchar *g = download_guid(d);
+	const guchar *g = download_guid(d);
 	gint i;
 
 	for (i = 0; i < 16; i++)
@@ -547,7 +540,8 @@ static void free_server(struct dl_server *server)
  * Fetch server entry identified by IP:port first, then GUID+IP:port.
  * Returns NULL if not found.
  */
-static struct dl_server *get_server(guchar *guid, guint32 ip, guint16 port)
+static struct dl_server *get_server(
+	guchar *guid, guint32 ip, guint16 port)
 {
 	struct dl_ip ikey;
 	struct dl_key key;
@@ -627,8 +621,7 @@ static void downloads_with_name_dec(const gchar *name)
 	g_assert(val);		/* Cannot decrement something not present */
 
 	if (val > 1)
-		g_hash_table_insert(dl_count_by_name,
-			(gchar *) name, GUINT_TO_POINTER(val - 1));
+		g_hash_table_insert(dl_count_by_name, name, GUINT_TO_POINTER(val - 1));
 	else
 		g_hash_table_remove(dl_count_by_name, name);
 }
@@ -936,7 +929,7 @@ gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 	 *		--RAM, 15/10/2002.
 	 */
 
-	server[0] = get_server((guchar *) guid, ip, port);
+	server[0] = get_server((const guchar *) guid, ip, port);
 	server[1] = get_server(blank_guid, ip, port);
 
 	if (server[1] == server[0])
@@ -1548,7 +1541,7 @@ void download_queue(struct download *d, const gchar *fmt, ...)
  * Freeze the scheduling queue. Multiple freezing requires
  * multiple thawing.
  */
-void download_freeze_queue()
+void download_freeze_queue(void)
 {
 	queue_frozen++;
 	gui_update_queue_frozen();
@@ -6102,7 +6095,7 @@ void download_close(void)
 
 	download_store();			/* Save latest copy */
 	file_info_store();
-	download_freeze_queue(TRUE);
+	download_freeze_queue();
 
 	download_free_removed();
 
@@ -6131,8 +6124,9 @@ void download_close(void)
 	g_slist_free(sl_unqueued);
 	g_hash_table_destroy(pushed_downloads);
 
-	// XXX free & check other hash tables as well.
-	// dl_by_ip, dl_by_host
+	/* XXX free & check other hash tables as well.
+	 * dl_by_ip, dl_by_host
+     */
 }
 
 /* 

@@ -30,8 +30,8 @@
 
 #include <glib.h>
 
-gint utf8_is_valid_char(guchar *s);
-gint utf8_is_valid_string(guchar *s, gint len);
+gint utf8_is_valid_char(const guchar *s);
+gint utf8_is_valid_string(const guchar *s, gint len);
 guint32 utf8_decode_char(guchar *s, gint len, gint *retlen, gboolean warn);
 gint utf8_to_iso8859(guchar *s, gint len, gboolean space);
 

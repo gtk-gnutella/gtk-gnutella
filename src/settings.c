@@ -30,7 +30,7 @@
 #include <sys/types.h>
 #include <sys/resource.h>
 
-// XXX this is rather bad, it must be metaconfigured
+/* XXX this is rather bad, it must be metaconfigured */
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 
 #ifndef __FreeBSD__
@@ -167,34 +167,31 @@ static void save_pid(gchar *file)
 #define _SC_PAGE_SIZE _SC_PAGESIZE
 #endif
 
-G_INLINE_FUNC glong settings_getpagesize(void)
-{
 #ifdef _SC_PAGE_SIZE
-	return sysconf(_SC_PAGE_SIZE);
+#define settings_getpagesize() ((glong) sysconf(_SC_PAGE_SIZE))
 #else
-	return getpagesize(); 
+#define settings_getpagesize() ((glong) getpagesize())
 #endif
-}
 
 /* 
  * settings_getphysmemsize:
  *
  * returns the amount of physical RAM in KB, or zero in case of failure
  */
-G_INLINE_FUNC gulong settings_getphysmemsize(void)
+static gulong settings_getphysmemsize(void)
 {
-// XXX must be metaconfigured
+/* XXX must be metaconfigured */
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 /* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM };
-	int physmem = 0;
-	size_t len = sizeof(physmem);
+	int amount = 0;
+	size_t len = sizeof(amount);
 
-	if (-1 == sysctl(mib, 2, &physmem, &len, NULL, 0))
+	if (-1 == sysctl(mib, 2, &amount, &len, NULL, 0))
 		g_warning(
 			"settings_getphysmemsize: sysctl() for HW_USERMEM failed: %s",
 			g_strerror(errno));
-	return physmem / 1024;
+	return amount / 1024;
 #else	/* !(defined(__FreeBSD__) || ...) */
 #ifdef _SC_PHYS_PAGES
 	guint32 pagesize = settings_getpagesize();
@@ -210,20 +207,20 @@ void settings_init(void)
 {
     struct passwd *pwd = NULL;
 	guint32 maxfd = (guint32) sysconf(_SC_OPEN_MAX);
-	guint32 physmem = (guint32) settings_getphysmemsize();
+	guint32 amount = (guint32) settings_getphysmemsize();
 	struct rlimit lim;
 
-	g_warning("Detected amount of physical RAM: %lu KB", (gulong) physmem);
+	g_warning("Detected amount of physical RAM: %lu KB", (gulong) amount);
 
 	if (-1 != getrlimit(RLIMIT_DATA, &lim)) {
 		guint32 maxdata = lim.rlim_cur >> 10;
-		physmem = MIN(physmem, maxdata);		/* For our purposes */
+		amount = MIN(amount, maxdata);		/* For our purposes */
 	}
 
     properties = gnet_prop_init();
 
 	gnet_prop_set_guint32_val(PROP_SYS_NOFILE, maxfd);
-	gnet_prop_set_guint32_val(PROP_SYS_PHYSMEM, physmem);
+	gnet_prop_set_guint32_val(PROP_SYS_PHYSMEM, amount);
 
 	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
 	memset(guid, 0, sizeof(guid));
@@ -294,7 +291,7 @@ void settings_init(void)
     settings_callbacks_init();
 }
 
-guint32 *settings_parse_array(gchar * str, guint32 n)
+static guint32 *settings_parse_array(gchar * str, guint32 n)
 {
 	/* Parse comma delimited settings */
 
@@ -315,7 +312,7 @@ guint32 *settings_parse_array(gchar * str, guint32 n)
 	return r;
 }
 
-void settings_hostcache_save(void)
+static void settings_hostcache_save(void)
 {
 	gboolean reading;
 

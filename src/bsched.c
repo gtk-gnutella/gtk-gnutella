@@ -290,8 +290,8 @@ void bsched_set_peermode(node_peer_t mode)
 	case NODE_P_ULTRA:
 		bsched_set_bandwidth(bws.glin, bw_gnet_lin);
 		bsched_set_bandwidth(bws.glout, bw_gnet_lout);
-		// XXX take leaf bandwidth OUT of HTTP, up to the maximum.
-		// XXX if no more bandwidth OUT, disable sharing.
+		/* XXX take leaf bandwidth OUT of HTTP, up to the maximum. */
+		/* XXX if no more bandwidth OUT, disable sharing. */
 		bsched_set_bandwidth(bws.in, bw_http_in);
 		bsched_set_bandwidth(bws.out, bw_http_out);
 		if (bws.glin->bw_per_second && bws_glin_enabled)
@@ -919,7 +919,7 @@ static void bsched_bw_update(bsched_t *bs, gint used, gint requested)
  * If we cannot write anything due to bandwidth constraints, return -1 with
  * errno set to EAGAIN.
  */
-gint bio_write(bio_source_t *bio, gpointer data, gint len)
+gint bio_write(bio_source_t *bio, gconstpointer data, gint len)
 {
 	gint available;
 	gint amount;
@@ -1218,7 +1218,7 @@ gint bio_read(bio_source_t *bio, gpointer data, gint len)
  * bandwidth used.  Any overused bandwidth will be tracked, so that on
  * average, we stick to the requested bandwidth rate.
  */
-gint bws_write(bsched_t *bs, gint fd, gpointer data, gint len)
+gint bws_write(bsched_t *bs, gint fd, gconstpointer data, gint len)
 {
 	gint r;
 
