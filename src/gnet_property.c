@@ -169,6 +169,7 @@ guint32  proxy_port_def = 0x0000;
 guint32  proxy_protocol     = 0x0000;
 guint32  proxy_protocol_def = 0x0000;
 prop_def_choice_t proxy_protocol_choices[] = { 
+    {"None", PROXY_NONE},
     {"HTTP", PROXY_HTTP},
     {"SOCKS v4", PROXY_SOCKSV4},
     {"SOCKS v5", PROXY_SOCKSV5},
@@ -281,10 +282,8 @@ guint32  max_ultrapeers     = 3;
 guint32  max_ultrapeers_def = 3;
 guint32  max_leaves     = 100;
 guint32  max_leaves_def = 100;
-gboolean enable_ultrapeer     = FALSE;
-gboolean enable_ultrapeer_def = FALSE;
-gboolean current_peermode     = FALSE;
-gboolean current_peermode_def = FALSE;
+guint32  current_peermode     = 100;
+guint32  current_peermode_def = 100;
 prop_def_choice_t current_peermode_choices[] = { 
     {"normal node", 1},
     {"leaf node", 0},
@@ -1431,7 +1430,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[58].name = "proxy_connections";
-    gnet_property->props[58].desc = "Use a proxy to connect to the internet";
+    gnet_property->props[58].desc = "DEPRECATED and automatically set to TRUE. Use a proxy to connect to the internet";
     gnet_property->props[58].prop_changed_listeners = NULL;
     gnet_property->props[58].save = TRUE;
     gnet_property->props[58].vector_size = 1;
@@ -2582,40 +2581,23 @@ prop_set_t *gnet_prop_init(void) {
 
 
     /*
-     * PROP_ENABLE_ULTRAPEER:
+     * PROP_CURRENT_PEERMODE:
      *
      * General data:
      */
-    gnet_property->props[119].name = "enable_ultrapeer";
-    gnet_property->props[119].desc = "Enable the ultrapeer features.";
+    gnet_property->props[119].name = "current_peermode";
+    gnet_property->props[119].desc = "Current peer mode for gtk-gnutella";
     gnet_property->props[119].prop_changed_listeners = NULL;
     gnet_property->props[119].save = TRUE;
     gnet_property->props[119].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[119].type               = PROP_TYPE_BOOLEAN;
-    gnet_property->props[119].data.boolean.def   = &enable_ultrapeer_def;
-    gnet_property->props[119].data.boolean.value = &enable_ultrapeer;
-
-
-    /*
-     * PROP_CURRENT_PEERMODE:
-     *
-     * General data:
-     */
-    gnet_property->props[120].name = "current_peermode";
-    gnet_property->props[120].desc = "Current peer mode for gtk-gnutella";
-    gnet_property->props[120].prop_changed_listeners = NULL;
-    gnet_property->props[120].save = TRUE;
-    gnet_property->props[120].vector_size = 1;
-
-    /* Type specific data: */
-    gnet_property->props[120].type               = PROP_TYPE_MULTICHOICE;
-    gnet_property->props[120].data.guint32.def   = &current_peermode_def;
-    gnet_property->props[120].data.guint32.value = &current_peermode;
-    gnet_property->props[120].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[120].data.guint32.min   = 0x00000000;
-    gnet_property->props[120].data.guint32.choices = current_peermode_choices;
+    gnet_property->props[119].type               = PROP_TYPE_MULTICHOICE;
+    gnet_property->props[119].data.guint32.def   = &current_peermode_def;
+    gnet_property->props[119].data.guint32.value = &current_peermode;
+    gnet_property->props[119].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[119].data.guint32.min   = 0x00000000;
+    gnet_property->props[119].data.guint32.choices = current_peermode_choices;
 
 
     /*
@@ -2623,19 +2605,19 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[121].name = "sys_nofile";
-    gnet_property->props[121].desc = "How many file descriptors a process can open.";
-    gnet_property->props[121].prop_changed_listeners = NULL;
-    gnet_property->props[121].save = FALSE;
-    gnet_property->props[121].vector_size = 1;
+    gnet_property->props[120].name = "sys_nofile";
+    gnet_property->props[120].desc = "How many file descriptors a process can open.";
+    gnet_property->props[120].prop_changed_listeners = NULL;
+    gnet_property->props[120].save = FALSE;
+    gnet_property->props[120].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[121].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[121].data.guint32.def   = &sys_nofile_def;
-    gnet_property->props[121].data.guint32.value = &sys_nofile;
-    gnet_property->props[121].data.guint32.choices = NULL;
-    gnet_property->props[121].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[121].data.guint32.min   = 0x00000000;
+    gnet_property->props[120].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[120].data.guint32.def   = &sys_nofile_def;
+    gnet_property->props[120].data.guint32.value = &sys_nofile;
+    gnet_property->props[120].data.guint32.choices = NULL;
+    gnet_property->props[120].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[120].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -2643,19 +2625,19 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[122].name = "sys_physmem";
-    gnet_property->props[122].desc = "How many KB of physical memory is available.";
-    gnet_property->props[122].prop_changed_listeners = NULL;
-    gnet_property->props[122].save = FALSE;
-    gnet_property->props[122].vector_size = 1;
+    gnet_property->props[121].name = "sys_physmem";
+    gnet_property->props[121].desc = "How many KB of physical memory is available.";
+    gnet_property->props[121].prop_changed_listeners = NULL;
+    gnet_property->props[121].save = FALSE;
+    gnet_property->props[121].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[122].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[122].data.guint32.def   = &sys_physmem_def;
-    gnet_property->props[122].data.guint32.value = &sys_physmem;
-    gnet_property->props[122].data.guint32.choices = NULL;
-    gnet_property->props[122].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[122].data.guint32.min   = 0x00000000;
+    gnet_property->props[121].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[121].data.guint32.def   = &sys_physmem_def;
+    gnet_property->props[121].data.guint32.value = &sys_physmem;
+    gnet_property->props[121].data.guint32.choices = NULL;
+    gnet_property->props[121].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[121].data.guint32.min   = 0x00000000;
     return gnet_property;
 }
 

@@ -42,6 +42,7 @@
 
 #include "settings_cb.h"
 
+RCSID("$Id$");
 
 /* Uncomment to override debug level for this file. */
 //#define gui_debug 10
@@ -245,7 +246,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "hpaned_main"
     },
-#ifndef USE_GTK2
     {
         get_main_window,
         PROP_GNET_STATS_DIVIDER_POS,
@@ -253,7 +253,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "hpaned_gnet_stats"
     },
-#endif
     {
         get_main_window,
         PROP_SIDE_DIVIDER_POS,
@@ -908,13 +907,6 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_PROXY_CONNECTIONS,
-        update_togglebutton,
-        TRUE,
-        "checkbutton_config_proxy_connections"
-    },
-    {
-        get_main_window,
         PROP_PROXY_AUTH,
         update_togglebutton,
         TRUE,
@@ -1270,78 +1262,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_expert_mode"
     },
-#ifdef USE_GTK2
-    {
-        get_main_window,
-        PROP_GNET_STATS_MODE_FC_HEADERS,
-        update_togglebutton,
-        TRUE,
-        "checkbutton_gnet_stats_fc_headers"
-    },
-    {
-        get_main_window,
-        PROP_GNET_STATS_MODE_FC_ABSOLUTE,
-        update_togglebutton,
-        TRUE,
-        "radio_gnet_stats_fc_absolute"
-    },
-    {
-        get_main_window,
-        PROP_GNET_STATS_MODE_FC_PACKETS,
-        update_togglebutton,
-        TRUE,
-        "radio_gnet_stats_fc_packets"
-    },
-    {
-        get_main_window,
-        PROP_GNET_STATS_MODE_FC_TTL,
-        update_togglebutton,
-        TRUE,
-        "radio_gnet_stats_fc_ttl"
-    },
-    {
-        get_main_window,
-        PROP_GNET_STATS_MODE_MSGS_ABSOLUTE,
-        update_togglebutton,
-        TRUE,
-        "radio_gnet_stats_msgs_absolute"
-    },
-    {
-        get_main_window,
-        PROP_GNET_STATS_MODE_MSGS_PACKETS,
-        update_togglebutton,
-        TRUE,
-        "radio_gnet_stats_msgs_packets"
-    },
-    {
-        get_main_window,
-        PROP_GNET_STATS_MODE_RECV_HEADERS,
-        update_togglebutton,
-        TRUE,
-        "checkbutton_gnet_stats_recv_headers"
-    },
-    {
-        get_main_window,
-        PROP_GNET_STATS_MODE_RECV_ABSOLUTE,
-        update_togglebutton,
-        TRUE,
-        "radio_gnet_stats_recv_absolute"
-    },
-    {
-        get_main_window,
-        PROP_GNET_STATS_MODE_RECV_PACKETS,
-        update_togglebutton,
-        TRUE,
-        "radio_gnet_stats_recv_packets"
-    },
-    {
-        get_main_window,
-        PROP_GNET_STATS_MODE_RECV_TTL,
-        update_togglebutton,
-        TRUE,
-        "radio_gnet_stats_recv_ttl"
-    },
-#else
     {
         get_main_window,
         PROP_GNET_STATS_BYTES,
@@ -1355,6 +1275,21 @@ static prop_map_t property_map[] = {
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_stats_perc"
+    },
+#ifdef USE_GTK2
+    {
+        get_main_window,
+        PROP_GNET_STATS_HOPS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_stats_hops"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_WITH_HEADERS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_stats_with_headers"
     },
 #endif
     {
@@ -1443,13 +1378,6 @@ static prop_map_t property_map[] = {
         update_togglebutton,
         TRUE,
         "checkbutton_config_req_srv_name"
-    },
-    {
-        get_main_window,
-        PROP_ENABLE_ULTRAPEER,
-        update_togglebutton,
-        TRUE,
-        "checkbutton_config_enable_ultrapeer"
     },
     {
         get_main_window,
@@ -1636,8 +1564,8 @@ static gboolean update_togglebutton(property_t prop)
 
     if (w == NULL) {
 		if (gui_debug)
-			g_warning("%s - widget not found: [%s]", 
-				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+			g_warning("update_togglebutton - widget not found: [%s]", 
+				 map_entry->wid);
         return FALSE;
     }
    
@@ -1647,7 +1575,7 @@ static gboolean update_togglebutton(property_t prop)
             break;
         default:
             val = 0;
-            g_error("update_togglenbutton: incompatible type %s", 
+            g_error("update_togglebutton: incompatible type %s", 
                 prop_type_str[map_entry->type]);
     }
 

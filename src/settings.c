@@ -31,10 +31,14 @@
 #include <sys/resource.h>
 
 // XXX this is rather bad, it must be metaconfigured
-#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) 
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+
+#ifndef __FreeBSD__
 #include <sys/param.h>
+#endif /* __FreeBSD__ */
+
 #include <sys/sysctl.h>
-#endif
+#endif /* defined(__FreeBSD__) || ... */
 
 #include <sys/stat.h>
 #include <signal.h>
@@ -52,6 +56,8 @@
 #include "sockets.h"
 #include "inet.h"
 #include "hcache.h"
+
+RCSID("$Id$");
 
 #define debug dbg
 
@@ -919,40 +925,36 @@ static gboolean local_ip_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean enable_ultrapeer_changed(property_t prop)
+static gboolean current_peermode_changed(property_t prop)
 {
-    gboolean val;
+    guint32 val;
 
-    gnet_prop_get_boolean_val(prop, &val);
-
-	if (!val)
-		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_NORMAL);
-	else
-		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
+    gnet_prop_get_guint32_val(prop, &val);
+	node_set_current_peermode(val);
 
     return FALSE;
 }
 
-static gboolean current_peermode_changed(property_t prop)
+/* This is a quirk to translate the old property PROP_PROXY_CONNECTIONS */
+static gboolean proxy_protocol_changed(property_t prop)
 {
-    guint32 val;
-    gboolean enable;
-	gboolean changed = FALSE;
+	gboolean use_proxy;
 
-    gnet_prop_get_guint32_val(prop, &val);
-	gnet_prop_get_boolean_val(PROP_ENABLE_ULTRAPEER, &enable);
-	
-	if (!enable && val != NODE_P_NORMAL) {
-		val = NODE_P_NORMAL;
-		gnet_prop_set_guint32_val(prop, val);
-		changed = TRUE;
+	gnet_prop_get_boolean_val(PROP_PROXY_CONNECTIONS, &use_proxy);
+	if (!use_proxy) {
+    	guint32 val = PROXY_NONE;
+
+    	gnet_prop_set_guint32_val(prop, val);
+		/*
+		 * set the deprecated property to TRUE, otherwise we could not enable
+		 * the proxy because after the next start, PROP_PROXY_PROTOCOL would
+		 * be resetted to PROXY_NONE again.
+		 */
+		gnet_prop_set_boolean_val(PROP_PROXY_CONNECTIONS, TRUE);
 	}
 
-	node_set_current_peermode(val);
-
-    return changed;
+    return TRUE;
 }
-
 
 /***
  *** Property-to-callback map
@@ -1103,15 +1105,19 @@ static prop_map_t property_map[] = {
 		TRUE,
 	},
 	{
-		PROP_ENABLE_ULTRAPEER,
-		enable_ultrapeer_changed,
-		TRUE,
-	},
-	{
 		PROP_CURRENT_PEERMODE,
 		current_peermode_changed,
 		TRUE,
 	},
+	{
+		/*
+		 * This is used for a quirk which relies on the order of PROP_PROXY_CONNECTIONS
+		 * and PROP_PROXY_PROTOCOL.
+		 */
+		PROP_PROXY_PROTOCOL,
+		proxy_protocol_changed,
+		TRUE
+	}
 };
 
 /***

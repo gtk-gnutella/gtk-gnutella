@@ -87,21 +87,13 @@ extern gboolean show_tooltips;
 extern gboolean expert_mode;
 extern gboolean gnet_stats_perc;
 extern gboolean gnet_stats_bytes;
+extern gboolean gnet_stats_hops;
+extern gboolean gnet_stats_with_headers;
 extern gboolean gnet_stats_drop_perc;
 extern guint32  gnet_stats_general_col_widths[2];
 extern gboolean clear_uploads;
 extern guint32  gnet_stats_pkg_col_widths[6];
 extern guint32  gnet_stats_byte_col_widths[6];
-extern gboolean gnet_stats_mode_fc_absolute;
-extern gboolean gnet_stats_mode_fc_headers;
-extern gboolean gnet_stats_mode_fc_packets;
-extern gboolean gnet_stats_mode_fc_ttl;
-extern gboolean gnet_stats_mode_msgs_absolute;
-extern gboolean gnet_stats_mode_msgs_packets;
-extern gboolean gnet_stats_mode_recv_absolute;
-extern gboolean gnet_stats_mode_recv_headers;
-extern gboolean gnet_stats_mode_recv_packets;
-extern gboolean gnet_stats_mode_recv_ttl;
 
 
 prop_set_t *gui_prop_init(void);

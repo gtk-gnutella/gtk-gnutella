@@ -47,6 +47,8 @@
 #include "settings_gui.h"
 #include "search_stats_gui.h"
 
+RCSID("$Id$");
+
 #define CONFIG_SET_BOOL(v,pref,prop)                 \
     case k_##v: {                                    \
         gboolean b = !g_ascii_strcasecmp(value, "true");   \
@@ -808,14 +810,10 @@ void config_set_param(keyword_t keyword, gchar *value)
         gui_prop_set_boolean(PROP_JUMP_TO_DOWNLOADS, &b, 0, 1);
 		return;
     }
-
 	case k_proxy_connections: {
-        gboolean b = (gboolean) i;
-        
-        gnet_prop_set_boolean(PROP_PROXY_CONNECTIONS, &b, 0, 1);
+		/* PROP_PROXY_CONNECTIONS is deprecated */
 		return;
     }
-    
 	case k_dbg:
 		gnet_prop_set_guint32(PROP_DBG, &i, 0, 1);
         gui_prop_set_guint32(PROP_GUI_DEBUG, &i, 0, 1);

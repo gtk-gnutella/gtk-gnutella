@@ -603,6 +603,24 @@ prop = {
 };
 
 prop = {
+    name = "gnet_stats_hops";
+    desc = "Show stats per hops instead of per TTL";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_with_headers";
+    desc = "Add the headers to the volume";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
     name = "gnet_stats_drop_perc";
     desc = "Show percentages instead of absolute values in the gnet stats "
            "(drop reasons)";
@@ -639,6 +657,29 @@ prop = {
  * GTK2 specific properties
  */
 
+/*
+prop = {
+    name = "gnet_stats_fc_view_mode";
+    desc = "Whether the columns show hops or TTL";
+    type = multichoice;
+    data = {
+        default = 0;
+    };
+    choice = {
+        name = "Packets";
+        value = 0;
+    };
+    choice = {
+        name = "Bytes";
+        value = 1;
+    };
+    choice = {
+        name = "Bytes including headers";
+        value = 2;
+    };
+};
+*/
+
 prop = {
     name = "gnet_stats_pkg_col_widths";
     cfgvar = "widths_gnet_stats_pkg";
@@ -654,102 +695,10 @@ prop = {
 prop = {
     name = "gnet_stats_byte_col_widths";
     cfgvar = "widths_gnet_stats_byte";
-    desc = "Widths of the columns in the gnet packet stats table (byte)."
-           "[GTK2]";
+    desc = "Widths of the columns in the gnet packet stats table (byte) [GTK2]";
     type = guint32;
     vector_size = 6;
     data = {
         default = "{ 60, 20, 20, 20, 20, 20 }";
     };
 };
-
-prop = {
-    name = "gnet_stats_mode_fc_absolute";
-    desc = "";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "gnet_stats_mode_fc_headers";
-    desc = "";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "gnet_stats_mode_fc_packets";
-    desc = "";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "gnet_stats_mode_fc_ttl";
-    desc = "";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "gnet_stats_mode_msgs_absolute";
-    desc = "";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "gnet_stats_mode_msgs_packets";
-    desc = "";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "gnet_stats_mode_recv_absolute";
-    desc = "";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "gnet_stats_mode_recv_headers";
-    desc = "";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "gnet_stats_mode_recv_packets";
-    desc = "";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "gnet_stats_mode_recv_ttl";
-    desc = "";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-

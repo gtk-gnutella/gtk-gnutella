@@ -689,8 +689,9 @@ prop = {
 };
 
 prop = {
+	/* FIXME: This property is deprecated. Remove it after the next release */
     name = "proxy_connections";
-    desc = "Use a proxy to connect to the internet";
+    desc = "DEPRECATED and automatically set to TRUE. Use a proxy to connect to the internet";
     type = boolean;
     data = {
         default = FALSE;
@@ -749,7 +750,11 @@ prop = {
     desc = "Protocol the proxy uses";
     type = multichoice;
     data = {
-        default = PROXY_SOCKSV4;
+        default = PROXY_NONE;
+    };
+    choice = {
+        name = "None";
+        value = PROXY_NONE;
     };
     choice = {
         name = "HTTP";
@@ -1393,15 +1398,6 @@ prop = {
         default = 100;
         min = 50;
         max = 1000;
-    };
-};
-
-prop = {
-    name = "enable_ultrapeer";
-    desc = "Enable the ultrapeer features.";
-    type = boolean;
-    data = {
-        default = FALSE;
     };
 };
 

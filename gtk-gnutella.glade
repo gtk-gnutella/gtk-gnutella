@@ -12,13 +12,9 @@
   <gettext_support>False</gettext_support>
   <use_widget_names>True</use_widget_names>
   <output_main_file>False</output_main_file>
-  <output_support_files>True</output_support_files>
   <output_build_files>False</output_build_files>
-  <backup_source_files>True</backup_source_files>
   <main_source_file>interface-glade1.c</main_source_file>
   <main_header_file>interface-glade1.h</main_header_file>
-  <handler_source_file>callbacks.c</handler_source_file>
-  <handler_header_file>callbacks.h</handler_header_file>
   <support_source_file>support-glade1.c</support_source_file>
   <support_header_file>support-glade1.h</support_header_file>
 </project>
@@ -967,6 +963,7 @@
 		      <last_modification_time>Wed, 22 Mar 2000 07:11:42 GMT</last_modification_time>
 		    </signal>
 		    <label>Remove</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -986,6 +983,7 @@
 		      <last_modification_time>Wed, 22 Mar 2000 07:11:12 GMT</last_modification_time>
 		    </signal>
 		    <label>Add</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -1425,6 +1423,7 @@
 			<last_modification_time>Wed, 22 Mar 2000 07:10:32 GMT</last_modification_time>
 		      </signal>
 		      <label>Clear</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
 		      <child>
 			<left_attach>2</left_attach>
 			<right_attach>3</right_attach>
@@ -1846,6 +1845,7 @@
 		    <last_modification_time>Fri, 29 Mar 2002 18:52:21 GMT</last_modification_time>
 		  </signal>
 		  <label> Kill selected </label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
@@ -1865,6 +1865,7 @@
 		    <last_modification_time>Fri, 29 Mar 2002 19:41:54 GMT</last_modification_time>
 		  </signal>
 		  <label> Clear completed </label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
@@ -2132,6 +2133,7 @@
 		    <last_modification_time>Thu, 07 Mar 2002 22:10:52 GMT</last_modification_time>
 		  </signal>
 		  <label>Clear nonexistant files</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
@@ -2149,6 +2151,7 @@
 		    <last_modification_time>Thu, 07 Mar 2002 22:10:59 GMT</last_modification_time>
 		  </signal>
 		  <label>Clear all</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
@@ -2355,6 +2358,7 @@
 			<last_modification_time>Fri, 29 Mar 2002 18:49:20 GMT</last_modification_time>
 		      </signal>
 		      <label>Abort selected</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
 		      <child>
 			<padding>0</padding>
 			<expand>False</expand>
@@ -2374,6 +2378,7 @@
 			<last_modification_time>Fri, 29 Mar 2002 19:25:57 GMT</last_modification_time>
 		      </signal>
 		      <label>Resume selected</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
 		      <child>
 			<padding>0</padding>
 			<expand>False</expand>
@@ -2393,6 +2398,7 @@
 			<last_modification_time>Fri, 29 Mar 2002 18:50:33 GMT</last_modification_time>
 		      </signal>
 		      <label>Clear completed</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
 		      <child>
 			<padding>0</padding>
 			<expand>False</expand>
@@ -2732,6 +2738,7 @@
 			    <handler>on_togglebutton_queue_freeze_toggled</handler>
 			    <last_modification_time>Thu, 14 Nov 2002 12:23:14 GMT</last_modification_time>
 			  </signal>
+			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <active>False</active>
 			  <child>
 			    <padding>0</padding>
@@ -3017,6 +3024,7 @@
 			<last_modification_time>Sun, 26 Mar 2000 17:38:58 GMT</last_modification_time>
 		      </signal>
 		      <label>New search</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
 		    </widget>
 		  </widget>
 
@@ -3049,6 +3057,7 @@
 			<last_modification_time>Tue, 30 May 2000 06:59:17 GMT</last_modification_time>
 		      </signal>
 		      <label>New passive search</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
 		    </widget>
 		  </widget>
 		</widget>
@@ -3127,6 +3136,7 @@
 		  <last_modification_time>Sat, 06 May 2000 20:41:36 GMT</last_modification_time>
 		</signal>
 		<label>Close this search</label>
+		<relief>GTK_RELIEF_NORMAL</relief>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
@@ -3522,6 +3532,7 @@
 		  <last_modification_time>Sun, 26 Mar 2000 17:39:53 GMT</last_modification_time>
 		</signal>
 		<label>Download selected files</label>
+		<relief>GTK_RELIEF_NORMAL</relief>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
@@ -3545,6 +3556,7 @@
 		  <last_modification_time>Sat, 30 Sep 2000 06:49:15 GMT</last_modification_time>
 		</signal>
 		<label>Clear results</label>
+		<relief>GTK_RELIEF_NORMAL</relief>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
@@ -3578,6 +3590,7 @@
 		  <last_modification_time>Tue, 12 Nov 2002 22:52:01 GMT</last_modification_time>
 		</signal>
 		<label>Edit filters</label>
+		<relief>GTK_RELIEF_NORMAL</relief>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
@@ -4013,6 +4026,7 @@
 		    <last_modification_time>Fri, 29 Mar 2002 18:11:39 GMT</last_modification_time>
 		  </signal>
 		  <label>Reset stats</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
@@ -4305,7 +4319,7 @@
 			  <update_policy>GTK_UPDATE_ALWAYS</update_policy>
 			  <snap>False</snap>
 			  <wrap>False</wrap>
-			  <value>6347</value>
+			  <value>6346</value>
 			  <lower>0</lower>
 			  <upper>65535</upper>
 			  <step>1</step>
@@ -4348,32 +4362,6 @@
 		      <border_width>2</border_width>
 		      <homogeneous>False</homogeneous>
 		      <spacing>2</spacing>
-
-		      <widget>
-			<class>GtkHBox</class>
-			<name>hbox87</name>
-			<homogeneous>False</homogeneous>
-			<spacing>0</spacing>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-
-			<widget>
-			  <class>GtkCheckButton</class>
-			  <name>checkbutton_config_proxy_connections</name>
-			  <can_focus>True</can_focus>
-			  <label>Use proxy to connect to the internet</label>
-			  <active>False</active>
-			  <draw_indicator>True</draw_indicator>
-			  <child>
-			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
-			  </child>
-			</widget>
-		      </widget>
 
 		      <widget>
 			<class>GtkHBox</class>
@@ -6635,11 +6623,34 @@ control</label>
 		      <class>GtkTable</class>
 		      <name>table33</name>
 		      <border_width>2</border_width>
-		      <rows>4</rows>
-		      <columns>2</columns>
+		      <rows>2</rows>
+		      <columns>3</columns>
 		      <homogeneous>False</homogeneous>
 		      <row_spacing>2</row_spacing>
 		      <column_spacing>4</column_spacing>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_gnet_compact_query</name>
+			<can_focus>True</can_focus>
+			<label>Clean up queries before processing</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <left_attach>2</left_attach>
+			  <right_attach>3</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
 
 		      <widget>
 			<class>GtkLabel</class>
@@ -6660,7 +6671,33 @@ control</label>
 			  <ypad>0</ypad>
 			  <xexpand>False</xexpand>
 			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
+			  <xshrink>True</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label439</name>
+			<label>Current peermode</label>
+			<justify>GTK_JUSTIFY_LEFT</justify>
+			<wrap>False</wrap>
+			<xalign>0</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>True</xshrink>
 			  <yshrink>False</yshrink>
 			  <xfill>True</xfill>
 			  <yfill>False</yfill>
@@ -6692,81 +6729,9 @@ control</label>
 			  <ypad>0</ypad>
 			  <xexpand>False</xexpand>
 			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
+			  <xshrink>True</xshrink>
 			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkCheckButton</class>
-			<name>checkbutton_gnet_compact_query</name>
-			<can_focus>True</can_focus>
-			<label>Clean up queries before processing</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<child>
-			  <left_attach>0</left_attach>
-			  <right_attach>2</right_attach>
-			  <top_attach>1</top_attach>
-			  <bottom_attach>2</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkCheckButton</class>
-			<name>checkbutton_config_enable_ultrapeer</name>
-			<can_focus>True</can_focus>
-			<label>Ultrapeer support (experimental)</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<child>
-			  <left_attach>0</left_attach>
-			  <right_attach>2</right_attach>
-			  <top_attach>2</top_attach>
-			  <bottom_attach>3</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
-			  <yfill>False</yfill>
-			</child>
-		      </widget>
-
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label439</name>
-			<label>Current peermode</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<child>
-			  <left_attach>0</left_attach>
-			  <right_attach>1</right_attach>
-			  <top_attach>3</top_attach>
-			  <bottom_attach>4</bottom_attach>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <xexpand>False</xexpand>
-			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
-			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
+			  <xfill>False</xfill>
 			  <yfill>False</yfill>
 			</child>
 		      </widget>
@@ -6783,15 +6748,15 @@ control</label>
 			<child>
 			  <left_attach>1</left_attach>
 			  <right_attach>2</right_attach>
-			  <top_attach>3</top_attach>
-			  <bottom_attach>4</bottom_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
 			  <xexpand>False</xexpand>
 			  <yexpand>False</yexpand>
-			  <xshrink>False</xshrink>
+			  <xshrink>True</xshrink>
 			  <yshrink>False</yshrink>
-			  <xfill>True</xfill>
+			  <xfill>False</xfill>
 			  <yfill>False</yfill>
 			</child>
 
@@ -6890,6 +6855,7 @@ options</label>
 			  <last_modification_time>Mon, 27 Mar 2000 06:18:49 GMT</last_modification_time>
 			</signal>
 			<label>Browse</label>
+			<relief>GTK_RELIEF_NORMAL</relief>
 			<child>
 			  <padding>0</padding>
 			  <expand>False</expand>
@@ -6943,6 +6909,7 @@ options</label>
 			  <last_modification_time>Mon, 01 May 2000 15:08:31 GMT</last_modification_time>
 			</signal>
 			<label>Browse</label>
+			<relief>GTK_RELIEF_NORMAL</relief>
 			<child>
 			  <padding>0</padding>
 			  <expand>False</expand>
@@ -6996,6 +6963,7 @@ options</label>
 			  <last_modification_time>Sat, 09 Nov 2002 17:04:05 GMT</last_modification_time>
 			</signal>
 			<label>Browse</label>
+			<relief>GTK_RELIEF_NORMAL</relief>
 			<child>
 			  <padding>0</padding>
 			  <expand>False</expand>
@@ -8240,6 +8208,7 @@ settings</label>
 			    <last_modification_time>Sun, 26 Mar 2000 17:41:01 GMT</last_modification_time>
 			  </signal>
 			  <label> Add directory </label>
+			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
 			    <expand>False</expand>
@@ -8274,6 +8243,7 @@ settings</label>
 			    <last_modification_time>Sun, 26 Mar 2000 17:41:22 GMT</last_modification_time>
 			  </signal>
 			  <label> Rescan </label>
+			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <padding>0</padding>
 			    <expand>False</expand>
@@ -9746,6 +9716,7 @@ interface</label>
 	<class>GtkToggleButton</class>
 	<name>togglebutton_online</name>
 	<can_focus>True</can_focus>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<active>False</active>
 	<child>
 	  <padding>0</padding>
@@ -10617,6 +10588,7 @@ interface</label>
 	      <last_modification_time>Sun, 02 Jun 2002 11:29:41 GMT</last_modification_time>
 	    </signal>
 	    <label>Create filter</label>
+	    <relief>GTK_RELIEF_NORMAL</relief>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
@@ -10785,6 +10757,7 @@ interface</label>
 	      <last_modification_time>Tue, 28 May 2002 22:37:26 GMT</last_modification_time>
 	    </signal>
 	    <label>Remove filter</label>
+	    <relief>GTK_RELIEF_NORMAL</relief>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
@@ -10919,6 +10892,7 @@ interface</label>
 	    </signal>
 	    <label>Remove all rules
 from this filter</label>
+	    <relief>GTK_RELIEF_NORMAL</relief>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
@@ -10937,6 +10911,7 @@ from this filter</label>
 	    </signal>
 	    <label>Reset all rule stats
 in this fiter</label>
+	    <relief>GTK_RELIEF_NORMAL</relief>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
@@ -10955,6 +10930,7 @@ in this fiter</label>
 	    </signal>
 	    <label>Reset filter stats
 for this filter</label>
+	    <relief>GTK_RELIEF_NORMAL</relief>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
@@ -10973,6 +10949,7 @@ for this filter</label>
 	    </signal>
 	    <label>Reset filter stats
 for all filters</label>
+	    <relief>GTK_RELIEF_NORMAL</relief>
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
@@ -11051,6 +11028,7 @@ for all filters</label>
 		    <last_modification_time>Wed, 29 May 2002 14:09:00 GMT</last_modification_time>
 		  </signal>
 		  <label>Add jump rule</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <left_attach>1</left_attach>
 		    <right_attach>2</right_attach>
@@ -11077,6 +11055,7 @@ for all filters</label>
 		    <last_modification_time>Tue, 28 May 2002 22:36:34 GMT</last_modification_time>
 		  </signal>
 		  <label>Add size rule</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -11103,6 +11082,7 @@ for all filters</label>
 		    <last_modification_time>Tue, 28 May 2002 22:36:21 GMT</last_modification_time>
 		  </signal>
 		  <label>Add IP rule</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <left_attach>1</left_attach>
 		    <right_attach>2</right_attach>
@@ -11129,6 +11109,7 @@ for all filters</label>
 		    <last_modification_time>Tue, 28 May 2002 22:36:28 GMT</last_modification_time>
 		  </signal>
 		  <label>Add name rule</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -11155,6 +11136,7 @@ for all filters</label>
 		    <last_modification_time>Sat, 15 Jun 2002 21:21:00 GMT</last_modification_time>
 		  </signal>
 		  <label>Add flag rule</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -11181,6 +11163,7 @@ for all filters</label>
 		    <last_modification_time>Sat, 22 Jun 2002 23:36:23 GMT</last_modification_time>
 		  </signal>
 		  <label>Add state rule</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <left_attach>1</left_attach>
 		    <right_attach>2</right_attach>
@@ -11465,6 +11448,7 @@ for all filters</label>
 		    <last_modification_time>Sat, 08 Jun 2002 00:49:23 GMT</last_modification_time>
 		  </signal>
 		  <label>Reset stats</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
@@ -11493,6 +11477,7 @@ for all filters</label>
 		      <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
 		    </signal>
 		    <label>Add/Replace</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -11510,6 +11495,7 @@ for all filters</label>
 		      <last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
 		    </signal>
 		    <label>Remove</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -11527,6 +11513,7 @@ for all filters</label>
 		      <last_modification_time>Tue, 02 Jul 2002 11:04:25 GMT</last_modification_time>
 		    </signal>
 		    <label>Abort</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -11834,6 +11821,7 @@ for all filters</label>
 		    <last_modification_time>Sat, 08 Jun 2002 00:49:37 GMT</last_modification_time>
 		  </signal>
 		  <label>Reset stats</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
@@ -11862,6 +11850,7 @@ for all filters</label>
 		      <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
 		    </signal>
 		    <label>Add/Replace</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -11879,6 +11868,7 @@ for all filters</label>
 		      <last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
 		    </signal>
 		    <label>Remove</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -11896,6 +11886,7 @@ for all filters</label>
 		      <last_modification_time>Tue, 02 Jul 2002 11:04:25 GMT</last_modification_time>
 		    </signal>
 		    <label>Abort</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -12255,6 +12246,7 @@ for all filters</label>
 		    <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
 		  </signal>
 		  <label>Reset stats</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
@@ -12283,6 +12275,7 @@ for all filters</label>
 		      <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
 		    </signal>
 		    <label>Add/Replace</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -12300,6 +12293,7 @@ for all filters</label>
 		      <last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
 		    </signal>
 		    <label>Remove</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -12317,6 +12311,7 @@ for all filters</label>
 		      <last_modification_time>Tue, 02 Jul 2002 11:04:25 GMT</last_modification_time>
 		    </signal>
 		    <label>Abort</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -12506,6 +12501,7 @@ for all filters</label>
 		      <last_modification_time>Sat, 08 Jun 2002 00:48:53 GMT</last_modification_time>
 		    </signal>
 		    <label>Reset stats</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -12534,6 +12530,7 @@ for all filters</label>
 			<last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
 		      </signal>
 		      <label>Add/Replace</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
 		      <child>
 			<padding>0</padding>
 			<expand>False</expand>
@@ -12551,6 +12548,7 @@ for all filters</label>
 			<last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
 		      </signal>
 		      <label>Remove</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
 		      <child>
 			<padding>0</padding>
 			<expand>False</expand>
@@ -12568,6 +12566,7 @@ for all filters</label>
 			<last_modification_time>Tue, 02 Jul 2002 11:04:25 GMT</last_modification_time>
 		      </signal>
 		      <label>Abort</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
 		      <child>
 			<padding>0</padding>
 			<expand>False</expand>
@@ -12883,6 +12882,7 @@ for all filters</label>
 		    <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
 		  </signal>
 		  <label>Reset stats</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
@@ -12911,6 +12911,7 @@ for all filters</label>
 		      <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
 		    </signal>
 		    <label>Add/Replace</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -12928,6 +12929,7 @@ for all filters</label>
 		      <last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
 		    </signal>
 		    <label>Remove</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -12945,6 +12947,7 @@ for all filters</label>
 		      <last_modification_time>Tue, 02 Jul 2002 11:04:25 GMT</last_modification_time>
 		    </signal>
 		    <label>Abort</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -13531,6 +13534,7 @@ for all filters</label>
 		    <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
 		  </signal>
 		  <label>Reset stats</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
@@ -13559,6 +13563,7 @@ for all filters</label>
 		      <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
 		    </signal>
 		    <label>Add/Replace</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -13576,6 +13581,7 @@ for all filters</label>
 		      <last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
 		    </signal>
 		    <label>Remove</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -13593,6 +13599,7 @@ for all filters</label>
 		      <last_modification_time>Tue, 02 Jul 2002 11:04:25 GMT</last_modification_time>
 		    </signal>
 		    <label>Abort</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -14129,6 +14136,7 @@ for all filters</label>
 		    <last_modification_time>Sat, 08 Jun 2002 00:49:04 GMT</last_modification_time>
 		  </signal>
 		  <label>Reset stats</label>
+		  <relief>GTK_RELIEF_NORMAL</relief>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
@@ -14157,6 +14165,7 @@ for all filters</label>
 		      <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
 		    </signal>
 		    <label>Add/Replace</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -14174,6 +14183,7 @@ for all filters</label>
 		      <last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
 		    </signal>
 		    <label>Remove</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -14191,6 +14201,7 @@ for all filters</label>
 		      <last_modification_time>Tue, 02 Jul 2002 11:04:25 GMT</last_modification_time>
 		    </signal>
 		    <label>Abort</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
@@ -14250,6 +14261,7 @@ for all filters</label>
 	  <last_modification_time>Sun, 30 Jun 2002 19:32:18 GMT</last_modification_time>
 	</signal>
 	<label>Apply</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>True</expand>
@@ -14268,6 +14280,7 @@ for all filters</label>
 	  <last_modification_time>Sun, 30 Jun 2002 19:32:23 GMT</last_modification_time>
 	</signal>
 	<label>Revert</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>True</expand>
@@ -14287,6 +14300,7 @@ for all filters</label>
 	  <last_modification_time>Fri, 24 May 2002 19:38:04 GMT</last_modification_time>
 	</signal>
 	<label>Ok</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>True</expand>
@@ -14305,6 +14319,7 @@ for all filters</label>
 	  <last_modification_time>Fri, 24 May 2002 19:37:59 GMT</last_modification_time>
 	</signal>
 	<label>Cancel</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>True</expand>
@@ -14838,6 +14853,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 	<last_modification_time>Sun, 23 Jun 2002 11:00:43 GMT</last_modification_time>
       </signal>
       <label>Close</label>
+      <relief>GTK_RELIEF_NORMAL</relief>
       <child>
 	<padding>0</padding>
 	<expand>False</expand>
@@ -14900,32 +14916,6 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
     <spacing>0</spacing>
 
     <widget>
-      <class>GtkFrame</class>
-      <name>frame51</name>
-      <border_width>10</border_width>
-      <label>Please confirm:</label>
-      <label_xalign>0</label_xalign>
-      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-      <child>
-	<padding>0</padding>
-	<expand>True</expand>
-	<fill>True</fill>
-      </child>
-
-      <widget>
-	<class>GtkLabel</class>
-	<name>label295</name>
-	<label>Do you really want to quit?</label>
-	<justify>GTK_JUSTIFY_CENTER</justify>
-	<wrap>False</wrap>
-	<xalign>0.5</xalign>
-	<yalign>0.5</yalign>
-	<xpad>10</xpad>
-	<ypad>10</ypad>
-      </widget>
-    </widget>
-
-    <widget>
       <class>GtkHBox</class>
       <child_name>Dialog:action_area</child_name>
       <name>dialog-action_area1</name>
@@ -14950,6 +14940,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 	  <last_modification_time>Fri, 06 Sep 2002 21:49:47 GMT</last_modification_time>
 	</signal>
 	<label>Yes</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>True</expand>
@@ -14969,11 +14960,38 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 	  <last_modification_time>Fri, 06 Sep 2002 21:49:52 GMT</last_modification_time>
 	</signal>
 	<label>No, take me back!</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
 	<child>
 	  <padding>0</padding>
 	  <expand>True</expand>
 	  <fill>True</fill>
 	</child>
+      </widget>
+    </widget>
+
+    <widget>
+      <class>GtkFrame</class>
+      <name>frame51</name>
+      <border_width>10</border_width>
+      <label>Please confirm:</label>
+      <label_xalign>0</label_xalign>
+      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+      <child>
+	<padding>0</padding>
+	<expand>True</expand>
+	<fill>True</fill>
+      </child>
+
+      <widget>
+	<class>GtkLabel</class>
+	<name>label295</name>
+	<label>Do you really want to quit?</label>
+	<justify>GTK_JUSTIFY_CENTER</justify>
+	<wrap>False</wrap>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>10</xpad>
+	<ypad>10</ypad>
       </widget>
     </widget>
   </widget>
