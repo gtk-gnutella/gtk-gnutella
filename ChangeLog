@@ -1,5 +1,15 @@
 # since last version
 
+- (2004-10-18 - RAM)
+ * Fixed small memory leak in core/uploads.c.
+ * Remember IP of stalling uploads for a while, via the new "aging" table,
+   so that we don't increase our stalling counter too rapidly when uploads
+   to the same host keep stalling.
+
+- (2004-10-17 - RAM)
+ * When running out of leaf slots, kick non-sharing leaves or leaves preventing
+   querying via hops-flow.
+
 - (2004-10-16 - RAM)
  * Added bogons.txt and geo-ip.txt databases.
  * Fixed inverted logic test, causing spurious "got metainfo in filecache"
