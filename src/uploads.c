@@ -25,7 +25,6 @@
 
 #include "gnutella.h"
 #include "interface.h"
-#include "atoms.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -49,6 +48,9 @@
 #include "bsched.h"
 #include "upload_stats.h"
 #include "base32.h"
+#include "dmesh.h"
+#include "atoms.h"
+#include "http.h"
 
 GSList *uploads = NULL;
 gint running_uploads = 0;
@@ -68,6 +70,16 @@ struct io_header {
 	gint flags;
 };
 
+/*
+ * This structure is used for HTTP status printing callbacks.
+ */
+struct upload_http_cb {
+	struct upload *u;				/* Upload being ACK'ed */
+	time_t now;						/* Current time */
+	time_t mtime;					/* File modification time */
+	struct shared_file *sf;
+};
+
 #define IO_STATUS_LINE		0x00000002	/* First line is a status line */
 
 static void upload_request(struct upload *u, header_t *header);
@@ -75,6 +87,7 @@ static void upload_error_remove(struct upload *u, struct shared_file *sf,
 	int code, guchar *msg, ...);
 static void upload_error_remove_ext(struct upload *u, struct shared_file *sf,
 	gchar *extended, int code, guchar *msg, ...);
+static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg);
 
 /*
  * upload_timer
@@ -377,6 +390,9 @@ static void send_upload_error_v(
 	gchar reason[1024];
 	gchar extra[1024];
 	gint slen = 0;
+	http_extra_desc_t hev[2];
+	gint hevcnt = 0;
+	struct upload_http_cb cb_arg;
 
 	if (msg) {
 		g_vsnprintf(reason, sizeof(reason), msg, ap);
@@ -396,20 +412,31 @@ static void send_upload_error_v(
 	 * If `ext' is not null, we have extra header information to propagate.
 	 */
 
-	if (ext)
+	if (ext) {
 		slen = g_snprintf(extra, sizeof(extra), "%s", ext);
+		
+		if (slen != sizeof(extra)) {
+			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
+			hev[hevcnt++].he_msg = extra;
+		}
+	}
 
 	/*
-	 * If `sf' is not null, propagate the SHA1 for the file if we have it.
+	 * If `sf' is not null, propagate the SHA1 for the file if we have it,
+	 * as well as the download mesh.
 	 */
 
 	if (sf && sha1_hash_available(sf)) {
-		g_snprintf(&extra[slen], sizeof(extra)-slen,
-			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
-			sha1_base32(sf->sha1_digest));
+		cb_arg.u = u;
+		cb_arg.sf = sf;
+
+		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+		hev[hevcnt].he_cb = upload_http_sha1_add;
+		hev[hevcnt++].he_arg = &cb_arg;
 	}
 
-	socket_http_error(u->socket, code, extra[0] ? extra : NULL, reason);
+	http_send_status(u->socket, code, hevcnt ? hev : NULL, hevcnt, reason);
+
 	u->error_sent = code;
 }
 
@@ -950,7 +977,6 @@ static gboolean upload_request_is_ok(
  * index.
  * Return the shared_file if found, NULL otherwise.
  */
-
 static struct shared_file *get_file_to_upload_from_index(
 	struct upload *u,
 	header_t *header,
@@ -1042,6 +1068,18 @@ static struct shared_file *get_file_to_upload_from_index(
 
 	if (sha1) {
 		struct shared_file *sfn;
+
+		/*
+		 * If they sent a SHA1, maybe they have a download mesh as well?
+		 *
+		 * We ignore any mesh information when the SHA1 is not present
+		 * because we cannot be sure that they are exact replicate of the
+		 * file requested here.
+		 *
+		 *		--RAM, 19/06/2002
+		 */
+
+		huge_alternate_location(digest, header);
 
 		/*
 		 * They can share serveral clones of the same files, i.e. bearing
@@ -1159,9 +1197,12 @@ static const char n2r_query[] = "/uri-res/N2R?";
  * Get the shared_file to upload from a given URN.
  * Return the shared_file if we have it, NULL otherwise
  */
-static struct shared_file *get_file_to_upload_from_urn(const gchar *uri)
+static struct shared_file *get_file_to_upload_from_urn(
+	const gchar *uri,
+	header_t *header)
 {
-	char hash[SHA1_BASE32_SIZE + 1];
+	gchar hash[SHA1_BASE32_SIZE + 1];
+	gchar digest[SHA1_RAW_SIZE];
 	const gchar *urn = uri + N2R_QUERY_LENGTH;
 
 	/*
@@ -1177,7 +1218,12 @@ static struct shared_file *get_file_to_upload_from_urn(const gchar *uri)
 
 	hash[SHA1_BASE32_SIZE] = '\0';
 
-	return shared_file_by_sha1_base32(hash);
+	if (!huge_http_sha1_extract32(hash, digest))
+		return NULL;
+
+	huge_alternate_location(digest, header);
+
+	return shared_file_by_sha1(digest);
 }
 
 /*
@@ -1205,10 +1251,83 @@ static struct shared_file *get_file_to_upload(
 	if (sscanf(uri, "/get/%u/", &index))
 		return get_file_to_upload_from_index(u, header, uri, index);
 	else if (0 == strncmp(uri, n2r_query, N2R_QUERY_LENGTH))
-		return get_file_to_upload_from_urn(uri);
+		return get_file_to_upload_from_urn(uri, header);
 
 	upload_error_not_found(u, request);
 	return NULL;
+}
+
+/*
+ * upload_http_sha1_add
+ *
+ * This routine is called by http_send_status() to generate the
+ * SHA1-specific headers (added to the HTTP status) into `buf'.
+ */
+static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
+{
+	gint rw = 0;
+	gint length = *retval;
+	struct upload_http_cb *a = (struct upload_http_cb *) arg;
+	gint needed_room;
+
+	/*
+	 * Room for header + base32 SHA1 + crlf
+	 */
+
+	needed_room = 33 + SHA1_BASE32_SIZE + 2;
+
+	if (length - rw > needed_room)
+		rw += g_snprintf(buf, length,
+			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
+			sha1_base32(a->sf->sha1_digest));
+
+	// XXX send download mesh only if no change
+	// XXX Keep hash {IP,sha1} -> stamp, expiring after 2 hours (say).
+	// XXX (IP may be dynamic)
+
+	rw += dmesh_alternate_location(a->sf->sha1_digest,
+		&buf[rw], length - rw, a->u->ip, 0);
+
+	*retval = rw;
+}
+
+/*
+ * upload_http_status
+ *
+ * This routine is called by http_send_status() to generate the
+ * upload-specific headers into `buf'.
+ */
+static void upload_http_status(gchar *buf, gint *retval, gpointer arg)
+{
+	gint rw = 0;
+	gint length = *retval;
+	struct upload_http_cb *a = (struct upload_http_cb *) arg;
+	struct upload *u = a->u;
+
+	rw = g_snprintf(buf, length,
+		"Date: %s\r\n"
+		"Last-Modified: %s\r\n"
+		"Content-Type: application/binary\r\n"
+		"Content-Length: %u\r\n",
+			date_to_rfc822_gchar(a->now), date_to_rfc822_gchar2(a->mtime),
+			u->end - u->skip + 1);
+
+	if (u->skip || u->end != (u->file_size - 1))
+	  rw += g_snprintf(&buf[rw], length - rw,
+		"Content-Range: bytes %u-%u/%u\r\n", u->skip, u->end, u->file_size);
+
+	/*
+	 * Propagate the SHA1 information for the file, if we have it.
+	 */
+
+	if (sha1_hash_available(a->sf)) {
+		gint remain = length - rw;
+
+		upload_http_sha1_add(&buf[rw], &remain, arg);
+		rw += remain;
+	}
+
+	*retval = rw;
 }
 
 /*
@@ -1222,23 +1341,24 @@ static void upload_request(struct upload *u, header_t *header)
 {
 	struct gnutella_socket *s = u->socket;
 	struct shared_file *reqfile = NULL;
-	guint index = 0, skip = 0, end = 0, rw = 0, row = 0, upcount = 0;
-	gchar http_response[1024], *fpath = NULL;
+	guint index = 0, skip = 0, end = 0, row = 0, upcount = 0;
+	gchar *fpath = NULL;
 	gchar *user_agent = 0;
 	gchar *buf;
 	gchar *titles[6];
 	gchar *request = getline_str(s->getline);
 	GSList *l;
-	gint sent;
 	gboolean head_only;
 	gboolean has_end = FALSE;
 	gchar size_tmp[256];
 	gchar range_tmp[256];
 	gint range_len;
-	gint needed_room;
 	struct stat statbuf;
-	gboolean partial;
 	time_t mtime, now;
+	struct upload_http_cb cb_arg;
+	gint http_code;
+	gchar *http_msg;
+	http_extra_desc_t hev;
 
 	titles[0] = titles[1] = titles[2] = titles[3] = titles[4] = NULL;
 
@@ -1484,6 +1604,7 @@ static void upload_request(struct upload *u, header_t *header)
 	if (user_agent)
 		u->user_agent = atom_str_get(user_agent);
 
+	u->ip = s->ip;
 	u->skip = skip;
 	u->end = end;
 	u->pos = 0;
@@ -1513,70 +1634,28 @@ static void upload_request(struct upload *u, header_t *header)
 	sock_cork(s, TRUE);
 
 	/*
-	 * Setup and write the HTTP 200 header , including the file size.
-	 * If partial content (range request), emit a 206 reply.
+	 * Send back HTTP status.
 	 */
 
-	partial = skip || end != (u->file_size - 1);
-	if (partial)
-		rw = g_snprintf(http_response, sizeof(http_response),
-			  "HTTP/1.0 206 Partial Content\r\n");
-	else
-		rw = g_snprintf(http_response, sizeof(http_response),
-			  "HTTP/1.0 200 OK\r\n");
-	
-	rw += g_snprintf(http_response + rw, sizeof(http_response) - rw,
-		"Server: %s\r\n"
-		"X-Live-Since: %s\r\n"
-		"Connection: close\r\n"
-		"Date: %s\r\n"
-		"Last-Modified: %s\r\n"
-		"Content-Type: application/binary\r\n"
-		"Content-Length: %u\r\n",
-			version_string, start_rfc822_date,
-			date_to_rfc822_gchar(now), date_to_rfc822_gchar2(mtime),
-			u->end - u->skip + 1);
-
-	if (partial)
-	  rw += g_snprintf(http_response + rw, sizeof(http_response) - rw,
-		"Content-Range: bytes %u-%u/%u\r\n", u->skip, u->end, u->file_size);
-
-	/*
-	 * Propagate the SHA1 information for the file, if we have it.
-	 */
-
-	needed_room = 33 + SHA1_BASE32_SIZE + 2; /* Header + base32 SHA1 + crlf */
-
-	if (
-		sizeof(http_response) - rw > needed_room &&
-		sha1_hash_available(reqfile)
-	)
-		rw += g_snprintf(http_response + rw, sizeof(http_response) - rw,
-			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
-			sha1_base32(reqfile->sha1_digest));
-
-	rw += g_snprintf(http_response + rw, sizeof(http_response) - rw,
-			 "\r\n");
-
-	sent = bws_write(bws.out, s->file_desc, http_response, rw);
-	if (sent == -1) {
-		gint errcode = errno;
-		g_warning("Unable to send back HTTP OK reply to %s: %s",
-			ip_to_gchar(s->ip), g_strerror(errcode));
-		upload_remove(u, "Cannot send ACK: %s", g_strerror(errcode));
-		return;
-	} else if (sent < rw) {
-		g_warning("Could only send %d out of %d HTTP OK bytes to %s",
-			sent, rw, ip_to_gchar(s->ip));
-		upload_remove(u, "Cannot send whole ACK");
-		return;
+	if (u->skip || u->end != (u->file_size - 1)) {
+		http_code = 206;
+		http_msg = "Partial Content";
+	} else {
+		http_code = 200;
+		http_msg = "OK";
 	}
 
-	if (dbg > 4) {
-		printf("----Sent Reply to %s:\n%.*s----\n",
-			ip_to_gchar(s->ip), (int) rw, http_response);
-		fflush(stdout);
-	}
+	cb_arg.u = u;
+	cb_arg.now = now;
+	cb_arg.mtime = mtime;
+	cb_arg.sf = reqfile;
+
+	hev.he_type = HTTP_EXTRA_CALLBACK;
+	hev.he_cb = upload_http_status;
+	hev.he_arg = &cb_arg;
+
+	if (!http_send_status(u->socket, http_code, &hev, 1, http_msg))
+		upload_remove(u, "Cannot send whole HTTP status");
 
 	/*
 	 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
