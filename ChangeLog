@@ -1,5 +1,17 @@
 # since last version
 
+- (2003.05.13 - RAM)
+ * Avoid casting to (gint32), and use the "* (gint32*)" dereferencing trick.
+ * In the download pane, display ETA for queued entries in a readable way.
+ * Forgot to make a variable "static", causing endless promoting and demoting
+   to/from ultra mode.
+ * Fixed memory leak in sq.c, when query is ignored.
+
+- (2003.05.12 - RAM)
+ * Stopped removing half the slot contribution to writing b/w schedulers for
+   all the slots that don't trigger.
+ * Added missing RCSID to hostiles.c.
+
 - (2003.05.12 - Jeroen)
  * PARQ: Fixed an assertion when connecting back to another IP than the IP
          the upload connected from.
