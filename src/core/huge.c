@@ -1095,8 +1095,17 @@ ok:
 	 * Make sure the decoded value in `retval' is "valid".
 	 */
 
-	if (huge_improbable_sha1(retval, SHA1_RAW_SIZE))
-		goto bad;
+	if (huge_improbable_sha1(retval, SHA1_RAW_SIZE)) {
+		if (dbg) {
+			if (is_printable(buf, len)) {
+				g_warning("%s has bad SHA1 (len=%d): %.*s, hex: %s",
+					gmsg_infostr(header), len, len, buf,
+					data_hex_str(retval, SHA1_RAW_SIZE));
+			} else
+				goto bad;		/* SHA1 should be printable originally */
+		}
+		return FALSE;
+	}
 
 	return TRUE;
 
