@@ -77,7 +77,7 @@ GtkWidget *popup_queue = NULL;
 
 
 /***
- *** Private function
+ *** Private functions
  ***/
 
 static void gui_init_window_title(void)
@@ -90,6 +90,37 @@ static void gui_init_window_title(void)
 #endif
 	);
 }
+
+/*
+ * The contents of the navigation tree menu in exact order
+ */
+static const struct {
+	gboolean	parent;	/* Children have the last "TRUE" node as parent */
+	const gchar *title; /* Translatable title for the node */
+	gint		page;	/* Page reference ("the target") for the node */
+} menu[] = {
+	{ TRUE,	 N_("GnutellaNet"),		nb_main_page_gnet },
+	{ FALSE, N_("Stats"),			nb_main_page_gnet_stats },
+	{ TRUE,	 N_("Uploads"),			nb_main_page_uploads },
+	{ FALSE, N_("History"), 		nb_main_page_uploads_stats },
+	{ TRUE,	 N_("Downloads"),		nb_main_page_downloads },
+	{ TRUE,	 N_("Search"),			nb_main_page_search },
+	{ FALSE, N_("Monitor"),			nb_main_page_monitor },
+	{ FALSE, N_("Stats"),			nb_main_page_search_stats },
+#ifndef USE_GTK2
+	{ TRUE,	 N_("Config"),			nb_main_page_config }
+#else
+	{ TRUE,	 N_("Config"),			nb_main_page_config_sel },
+	{ FALSE, N_("Network"),			nb_main_page_config_net },
+	{ FALSE, N_("GnutellaNet"),		nb_main_page_config_gnet },
+	{ FALSE, N_("Bandwidth"),		nb_main_page_config_bwc },
+	{ FALSE, N_("Downloads"),		nb_main_page_config_dl },
+	{ FALSE, N_("Uploads"),			nb_main_page_config_ul },
+	{ FALSE, N_("User Interface"),	nb_main_page_config_ui },
+	{ FALSE, N_("Debugging"),		nb_main_page_config_dbg }
+#endif /* USE_GTK2 */
+};
+
 
 #ifdef USE_GTK2
 
@@ -109,83 +140,33 @@ static gboolean gui_init_menu_helper(
 static void gui_init_menu(void) 
 {
 	GtkTreeView	*treeview;
-	GtkTreeIter	iter, parent;
+	GtkTreeIter	parent;
 	GtkTreeStore *store;
 	GtkTreeViewColumn *column;
     GtkCellRenderer *renderer;
+	guint i;
 
     renderer = gtk_cell_renderer_text_new();
     g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, NULL);
 	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_menu"));
 	store = gtk_tree_store_new(3,
 		G_TYPE_STRING,	/* Label */
-		G_TYPE_INT,		/* Notbook page */
+		G_TYPE_INT,		/* Notebook page */
 		G_TYPE_INT);	/* Menu entry ID (persistent between releases) */
 
-	gtk_tree_store_append(store, &parent, NULL);
-	gtk_tree_store_set(store, &parent,
-		0, _("gnutellaNet"), 1, nb_main_page_gnet, 2, TREEMENU_NODE_GNET, (-1));
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, _("Stats"), 1, nb_main_page_gnet_stats, 2, TREEMENU_NODE_GNET_STATS,
-		(-1));
-	gtk_tree_store_append(store, &parent, NULL);
-	gtk_tree_store_set(store, &parent,
-		0, _("Uploads"), 1, nb_main_page_uploads, 2, TREEMENU_NODE_UL, (-1));
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, _("Stats"), 1, nb_main_page_uploads_stats, 2, TREEMENU_NODE_UL_STATS,
-		(-1));
+	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
+		GtkTreeIter	iter;
 
-	gtk_tree_store_append(store, &parent, NULL);
-	gtk_tree_store_set(store, &parent,
-		0, _("Downloads"), 1, nb_main_page_downloads, 2, TREEMENU_NODE_DL,
-		(-1));
+		gtk_tree_store_append(store, &iter, menu[i].parent ? NULL : &parent);
+		if (menu[i].parent)
+			parent = iter;
 
-	gtk_tree_store_append(store, &parent, NULL);
-	gtk_tree_store_set(store, &parent,
-		0, _("Search"), 1, nb_main_page_search, 2, TREEMENU_NODE_SEARCH, (-1));
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, _("Monitor"), 1, nb_main_page_monitor, 2, TREEMENU_NODE_SEARCH_MON,
-		(-1));
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, _("Stats"), 1, nb_main_page_search_stats, 2,
-		TREEMENU_NODE_SEARCH_STATS, (-1));
-
-	gtk_tree_store_append(store, &parent, NULL);
-	gtk_tree_store_set(store, &parent,
-		0, _("Config"), 1, nb_main_page_config_sel,
-		2, TREEMENU_NODE_CFG_SEL, (-1));
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, _("Network"), 1, nb_main_page_config_net,
-		2, TREEMENU_NODE_CFG_NET, (-1));
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, _("GnutellaNet"), 1, nb_main_page_config_gnet,
-		2, TREEMENU_NODE_CFG_GNET, (-1));
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, _("Bandwidth"), 1, nb_main_page_config_bwc,
-		2, TREEMENU_NODE_CFG_BWC, (-1));
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, _("Downloads"), 1, nb_main_page_config_dl,
-		2, TREEMENU_NODE_CFG_DL, (-1));
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, _("Uploads"), 1, nb_main_page_config_ul,
-		2, TREEMENU_NODE_CFG_UL, (-1));
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, _("User Interface"), 1, nb_main_page_config_ui,
-		2, TREEMENU_NODE_CFG_UI, (-1));
-	gtk_tree_store_append(store, &iter, &parent);
-	gtk_tree_store_set(store, &iter,
-		0, _("Debugging"), 1, nb_main_page_config_dbg,
-		2, TREEMENU_NODE_CFG_DBG, (-1));
+		gtk_tree_store_set(store, &iter,
+				0, _(menu[i].title),
+				1, menu[i].page,
+				2, i,
+				(-1));
+	}
 
 	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
 
@@ -278,21 +259,6 @@ static GtkWidget *gui_create_main_window(void)
 
 static void gui_init_menu(void) 
 {
-	static const struct {
-		gboolean	parent;
-		const gchar *title;
-		gint		page;
-	} menu[] = {
-		TRUE,	N_("gnutellaNet"),	nb_main_page_gnet,
-		FALSE,	N_("Stats"),		nb_main_page_gnet_stats,
-		TRUE,	N_("Uploads"),		nb_main_page_uploads,
-		FALSE,	N_("Stats"),		nb_main_page_uploads_stats,
-		TRUE,	N_("Downloads"),	nb_main_page_downloads,
-		TRUE,	N_("Search"),		nb_main_page_search,
-		FALSE,	N_("Monitor"),		nb_main_page_monitor,
-		FALSE,	N_("Stats"),		nb_main_page_search_stats,
-		TRUE,	N_("Config"),		nb_main_page_config,
-	};
     GtkCTree *ctree_menu = GTK_CTREE(lookup_widget(main_window, "ctree_menu"));
 	GtkCTreeNode *parent_node = NULL;    
 	guint i;
