@@ -1,5 +1,12 @@
 # since last version
 
+- (2002.06.24 - RAM)
+  * Mark callout queue event as freed to avoid memory corruptions in case
+	of misuse (i.e. usage bug).
+  * Forgot that dm_expire() could empty the mesh entry (fixes bug #573027).
+  * Fixed buggy node_remove_non_nearby() (closes bug #572918).
+  * Added vendor information to warning about improper pong-caching.
+
 - (2002.06.23 - Richard)
   * Added RETURN back to filter tree on request
   * Enabled stats for RETURN
