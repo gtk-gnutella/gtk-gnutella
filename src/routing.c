@@ -95,7 +95,7 @@ static const gchar *debug_msg[256];
 
 #define CHUNK_BITS			14 		/* log2 of # messages stored  in a chunk */
 #define MAX_CHUNKS			32		/* Max # of chunks */
-#define TABLE_MIN_CYCLE		1200	/* 20 minutes at least */
+#define TABLE_MIN_CYCLE		1800	/* 30 minutes at least */
 
 #define CHUNK_MESSAGES		(1 << CHUNK_BITS)
 #define CHUNK_INDEX(x)		(((x) & ~(CHUNK_MESSAGES - 1)) >> CHUNK_BITS)
@@ -677,7 +677,7 @@ find_message(const gchar *muid, guint8 function, struct message **m)
 
 	if (!found_message) {
 		*m = NULL;
-		return FALSE;		/* We don't remember about this message */
+		return FALSE;		/* We don't remember anything about this message */
 	} else {
 		/* wipe out dead references to old nodes */
 		purge_dangling_references(found_message);
@@ -779,6 +779,8 @@ forward_message(
 			GSList *l;
 			GSList *nodes = NULL;
 			gint count;
+
+			g_assert(sender->header.function == GTA_MSG_PUSH_REQUEST);
 			
 			for (l = routes, count = 0; l; l = g_slist_next(l), count++) {
 				struct route_data *rd = (struct route_data *) l->data;
@@ -934,25 +936,13 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 			sender->n_bad++;
 			if (dbg)
 				gmsg_log_bad(sender, "message with HOPS=255!");
-			return FALSE;	/* Don't handle, something is wrong */
+			return handle_it;	/* Don't route, something is wrong */
 		}
-
-		/*
-		 * If node propagates messages with TTL=0, it's a danger to
-		 * the network, kick him out.
-		 *		-- RAM, 15/09/2001
-		 *
-		 * If we're a leaf node, it's OK though, as we don't have to route
-		 * the message.  Some broken Ultrapeers out there send such messages!
-		 * We'll even handle the message.
-	 	 *		-- RAM, 12/01/2003
-		 */
 
 		if (sender->header.ttl == 0) {
 			routing_log("(TTL was 0)");
 			node_sent_ttl0(sender);
-			/* Don't handle unless we're a leaf: shouldn't have seen it */
-			return current_peermode == NODE_P_LEAF;
+			return handle_it	/* Don't route, but parse query hit! */;
 		}
 
 		if (!find_message
@@ -974,7 +964,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 				sender->header.ttl--;
 			}
 
-			return handle_it;	/* We don't have to handle the message */
+			return handle_it;	/* We can't route this message */
 		}
 
 		g_assert(m);		/* Or find_message() would have returned FALSE */
