@@ -26,6 +26,7 @@
  */
 
 #include "gui.h"
+#include "nodes_gui_common.h"
 #include "nodes_gui.h"
 
 RCSID("$Id$");
@@ -109,90 +110,6 @@ static void nodes_gui_node_flags_changed(gnet_node_t n)
  *** Private functions
  ***/
 
-/*
- * gui_node_status_str
- *
- * Compute info string for node.
- * Returns pointer to static data.
- */
-static gchar *nodes_gui_status_str(const gnet_node_status_t *n, time_t now)
-{
-	gchar *a;
-
-	switch (n->status) {
-	case GTA_NODE_CONNECTING:
-		a = "Connecting...";
-		break;
-
-	case GTA_NODE_HELLO_SENT:
-		a = "Hello sent";
-		break;
-
-	case GTA_NODE_WELCOME_SENT:
-		a = "Welcome sent";
-		break;
-
-	case GTA_NODE_CONNECTED:
-		if (n->sent || n->received) {
-			gint slen = 0;
-			if (n->tx_compressed)
-				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TXc=%d,%d%%",
-					n->sent, (gint) (n->tx_compression_ratio * 100));
-			else
-				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TX=%d", n->sent);
-
-			slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-				" (%.1f k/s)", n->tx_bps);
-
-			if (n->rx_compressed)
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" RXc=%d,%d%%",
-					n->received, (gint) (n->rx_compression_ratio * 100));
-			else
-				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" RX=%d", n->received);
-
-			slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-				" (%.1f k/s)"
-				" Query(TX=%d, Q=%d) Drop(TX=%d, RX=%d)"
-				" Dup=%d Bad=%d W=%d RT(avg=%d, last=%d) Q=%d,%d%% %s",
-				n->rx_bps,
-				n->squeue_sent, n->squeue_count,
-				n->tx_dropped, n->rx_dropped, n->n_dups, n->n_bad, n->n_weird,
-				n->rt_avg, n->rt_last, n->mqueue_count, n->mqueue_percent_used,
-				n->in_tx_flow_control ? " [FC]" : "");
-			a = gui_tmp;
-		} else
-			a = "Connected";
-		break;
-
-	case GTA_NODE_SHUTDOWN:
-		{
-			gm_snprintf(gui_tmp, sizeof(gui_tmp),
-				"Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%",
-				n->message, n->shutdown_remain, n->received,
-				n->mqueue_count, n->mqueue_percent_used);
-			a = gui_tmp;
-		}
-		break;
-
-	case GTA_NODE_REMOVING:
-		a = (gchar *) ((*n->message) ? n->message : "Removing");
-		break;
-
-	case GTA_NODE_RECEIVING_HELLO:
-		a = "Receiving hello";
-		break;
-
-	default:
-		a = "UNKNOWN STATUS";
-	}
-
-	return a;
-}
-
-
-
 static void nodes_gui_update_node_info(gnet_node_info_t *n)
 {
 	gint row;
@@ -223,7 +140,8 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n)
     	    gtk_clist_set_text(clist, row, 5, 
 	        	status.up_date ?  short_uptime(now - status.up_date) : "...");
 
-        gtk_clist_set_text(clist, row, 6, nodes_gui_status_str(&status, now));
+        gtk_clist_set_text(clist, row, 6,
+			nodes_gui_common_status_str(&status, now));
     } else {
         g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
     }
@@ -232,64 +150,17 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n)
 /*
  * nodes_gui_update_node_flags
  *
- * Display a summary of the node flags:
- *
- *    012345678 (offset)
- *    NIrwqTRFh
- *    ^^^^^^^^^
- *    ||||||||+ hops flow triggerd (h), or total query flow control (f)
- *    |||||||+  flow control (F), or pending data in queue (d)
- *    ||||||+   indicates whether RX is compressed
- *    |||||+    indicates whether TX is compressed
- *    ||||+     indicates whether we sent/received a QRT, or send/receive one
- *    |||+      indicates whether node is writable
- *    ||+       indicates whether node is readable
- *    |+        indicates connection type (Incoming, Outgoing, Ponging)
- *    +         indicates peer mode (Normal, Ultra, Leaf)
  */
 static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
 {
 	gint row;
-	gchar status[] = { '-', '-', '-', '-', '-', '-', '-', '-', '-', '\0' };
     GtkCList *clist = GTK_CLIST
         (lookup_widget(main_window, "clist_nodes"));
 
 	row = gtk_clist_find_row_from_data(clist, GUINT_TO_POINTER(n));
-
     if (row != -1) {
-		switch (flags->peermode) {
-		case NODE_P_UNKNOWN:	break;
-		case NODE_P_ULTRA:		status[0] = 'U'; break;
-		case NODE_P_NORMAL:		status[0] = 'N'; break;
-		case NODE_P_LEAF:		status[0] = 'L'; break;
-		case NODE_P_CRAWLER:	status[0] = 'C'; break;
-		default:				g_assert(0); break;
-		}
-
-		status[1] = flags->incoming ? 'I' : 'O';
-		if (flags->temporary) status[1] = 'P';
-		if (flags->readable) status[2] = 'r';
-		if (flags->writable) status[3] = 'w';
-
-		switch (flags->qrt_state) {
-		case QRT_S_SENT: case QRT_S_RECEIVED:		status[4] = 'Q'; break;
-		case QRT_S_SENDING: case QRT_S_RECEIVING:	status[4] = 'q'; break;
-		case QRT_S_PATCHING:						status[4] = 'p'; break;
-		default:									break;
-		}
-
-		if (flags->tx_compressed) status[5] = 'T';
-		if (flags->rx_compressed) status[6] = 'R';
-
-		if (flags->in_tx_flow_control) status[7] = 'F';
-		else if (!flags->mqueue_empty) status[7] = 'd';
-
-		if (flags->hops_flow == 0)
-			status[8] = 'f';
-		else if (flags->hops_flow < GTA_NORMAL_TTL)
-			status[8] = 'h';
-
-        gtk_clist_set_text(clist, row, 1, status);
+        gtk_clist_set_text(clist, row, 1,
+			nodes_gui_common_flags_str(flags));
     } else {
         g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
     }
@@ -441,7 +312,8 @@ void nodes_gui_update_nodes_display(time_t now)
 					status.up_date ?
 						short_uptime(now - status.up_date) : "...");
 		}
-        gtk_clist_set_text(clist, row, 6, nodes_gui_status_str(&status, now));
+        gtk_clist_set_text(clist, row, 6,
+			nodes_gui_common_status_str(&status, now));
     }
     gtk_clist_thaw(clist);
 }

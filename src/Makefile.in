@@ -124,7 +124,7 @@ XML_STORE_FILES = search_xml.c search_xml.h
 @ENABLE_REMOTE_SHELL_FALSE@REMOTE_SHELL = 
 
 # interface.h must come before any .c files that include it so that it is built.
-gtk_gnutella_SOURCES =  	$(XML_STORE) 	$(GLADE_UI) 	$(ADDITIONAL_DROPIN) 	$(REMOTE_SHELL) 	gnutella.h listener.h 	gnet.h 	common.c common.h 	misc.c misc.h 	prop.c prop.h 	gnet_property.c gnet_property.h gnet_property_priv.h 	guid.c guid.h 	settings.c settings.h oldconfig.c oldconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	hcache.c hcache.h 	pcache.c pcache.h 	routing.c routing.h 	search.c search.h search_gui.h 	downloads.c downloads.h downloads_gui.h 	fileinfo.c fileinfo.h 	fuzzy.c fuzzy.h 	whitelist.c whitelist.h 	share.c share.h 	uploads.c uploads.h uploads_gui.h 	upload_stats.c upload_stats.h 	main.c 	matching.c matching.h 	getline.c getline.h 	header.c header.h 	ioheader.c ioheader.h 	url.c url.h 	token.c token.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	cq.c cq.h 	mq.c mq.h 	sq.c sq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h 	tx_deflate.c tx_deflate.h 	rxbuf.c rxbuf.h 	rx.c rx.h 	rx_link.c rx_link.h 	rx_inflate.c rx_inflate.h 	zlib_util.c zlib_util.h 	sha1.c sha1.h huge.c huge.h 	base32.c base32.h 	base64.c base64.h 	crc.c crc.h 	utf8.c utf8.h 	ban.c ban.h 	inet.c inet.h 	qrp.c qrp.h 	getdate.y getdate.h 	atoms.c atoms.h 	extensions.c extensions.h 	cobs.c cobs.h 	ggep.c ggep.h 	dmesh.c dmesh.h 	http.c http.h 	version.c version.h 	alive.c alive.h 	zalloc.c zalloc.h 	walloc.c walloc.h 	vendors.c vendors.h 	idtable.c idtable.h 	namesize.c namesize.h 	ignore.c ignore.h 	gnet_stats.c gnet_stats.h 	gwcache.c gwcache.h 	bg.c bg.h 	verify.c verify.h 	move.c move.h 	file.c file.h 	inputevt.c inputevt.h 	vmsg.c vmsg.h 	parq.c parq.h 	adns.c adns.h 	event.c event.h
+gtk_gnutella_SOURCES =  	$(XML_STORE) 	$(GLADE_UI) 	$(ADDITIONAL_DROPIN) 	$(REMOTE_SHELL) 	gnutella.h listener.h 	gnet.h 	common.c common.h 	misc.c misc.h 	prop.c prop.h 	gnet_property.c gnet_property.h gnet_property_priv.h 	guid.c guid.h 	settings.c settings.h oldconfig.c oldconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	hcache.c hcache.h 	pcache.c pcache.h 	routing.c routing.h 	search.c search.h search_gui.h 	downloads.c downloads.h downloads_gui.h 	fileinfo.c fileinfo.h 	fuzzy.c fuzzy.h 	whitelist.c whitelist.h 	share.c share.h 	uploads.c uploads.h uploads_gui.h 	upload_stats.c upload_stats.h 	main.c 	matching.c matching.h 	getline.c getline.h 	header.c header.h 	ioheader.c ioheader.h 	url.c url.h 	token.c token.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	cq.c cq.h 	mq.c mq.h 	sq.c sq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h 	tx_deflate.c tx_deflate.h 	rxbuf.c rxbuf.h 	rx.c rx.h 	rx_link.c rx_link.h 	rx_inflate.c rx_inflate.h 	zlib_util.c zlib_util.h 	sha1.c sha1.h huge.c huge.h 	base32.c base32.h 	base64.c base64.h 	crc.c crc.h 	utf8.c utf8.h 	ban.c ban.h 	inet.c inet.h 	qrp.c qrp.h 	getdate.y getdate.h 	atoms.c atoms.h 	extensions.c extensions.h 	cobs.c cobs.h 	ggep.c ggep.h 	dmesh.c dmesh.h 	http.c http.h 	version.c version.h 	alive.c alive.h 	zalloc.c zalloc.h 	walloc.c walloc.h 	vendors.c vendors.h 	idtable.c idtable.h 	namesize.c namesize.h 	ignore.c ignore.h 	gnet_stats.c gnet_stats.h 	gwcache.c gwcache.h 	bg.c bg.h 	verify.c verify.h 	move.c move.h 	file.c file.h 	inputevt.c inputevt.h 	vmsg.c vmsg.h 	parq.c parq.h 	adns.c adns.h 	event.c event.h 	nodes_gui_common.c nodes_gui_common.h
 
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
@@ -249,7 +249,8 @@ LIBS = @LIBS@
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@vmsg.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@parq.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@adns.o \
-@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@event.o
+@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@event.o \
+@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@nodes_gui_common.o
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@gtk_gnutella_OBJECTS =  \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@interface-glade2.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@support-glade2.o \
@@ -355,7 +356,8 @@ LIBS = @LIBS@
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@vmsg.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@parq.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@adns.o \
-@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@event.o
+@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@event.o \
+@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@nodes_gui_common.o
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@gtk_gnutella_OBJECTS =  \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@search_xml.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@interface-glade2.o \
@@ -463,7 +465,8 @@ LIBS = @LIBS@
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@vmsg.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@parq.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@adns.o \
-@ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@event.o
+@ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@event.o \
+@ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@nodes_gui_common.o
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@gtk_gnutella_OBJECTS =  \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@interface-glade2.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@support-glade2.o \
@@ -570,7 +573,8 @@ LIBS = @LIBS@
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@vmsg.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@parq.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@adns.o \
-@ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@event.o
+@ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@event.o \
+@ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@nodes_gui_common.o
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@gtk_gnutella_OBJECTS =  \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@search_xml.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@interface-glade1.o \
@@ -680,7 +684,8 @@ LIBS = @LIBS@
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@vmsg.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@parq.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@adns.o \
-@ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@event.o
+@ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@event.o \
+@ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_FALSE@nodes_gui_common.o
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@gtk_gnutella_OBJECTS =  \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@search_xml.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@interface-glade2.o \
@@ -787,7 +792,8 @@ LIBS = @LIBS@
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@vmsg.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@parq.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@adns.o \
-@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@event.o
+@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@event.o \
+@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@nodes_gui_common.o
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@gtk_gnutella_OBJECTS =  \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@interface-glade1.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@support-glade1.o \
@@ -896,7 +902,8 @@ LIBS = @LIBS@
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@vmsg.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@parq.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@adns.o \
-@ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@event.o
+@ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@event.o \
+@ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@nodes_gui_common.o
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@gtk_gnutella_OBJECTS =  \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@interface-glade1.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@support-glade1.o \
@@ -1004,7 +1011,8 @@ LIBS = @LIBS@
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@vmsg.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@parq.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@adns.o \
-@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@event.o
+@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@event.o \
+@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@nodes_gui_common.o
 @ENABLE_GTK2_TRUE@gtk_gnutella_DEPENDENCIES = 
 @ENABLE_GTK2_FALSE@gtk_gnutella_DEPENDENCIES = 
 gtk_gnutella_LDFLAGS = 
@@ -1017,7 +1025,7 @@ DIST_COMMON =  Makefile.am Makefile.in getdate.c
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-TAR = tar
+TAR = gtar
 GZIP_ENV = --best
 DEP_FILES =  .deps/adns.P .deps/alive.P .deps/atoms.P .deps/ban.P \
 .deps/base32.P .deps/base64.P .deps/bg.P .deps/bsched.P \
@@ -1037,20 +1045,20 @@ DEP_FILES =  .deps/adns.P .deps/alive.P .deps/atoms.P .deps/ban.P \
 .deps/monitor_cb2.P .deps/monitor_gui.P .deps/monitor_gui2.P \
 .deps/move.P .deps/mq.P .deps/namesize.P .deps/nodes.P .deps/nodes_cb.P \
 .deps/nodes_cb2.P .deps/nodes_gui.P .deps/nodes_gui2.P \
-.deps/oldconfig.P .deps/parq.P .deps/pcache.P .deps/pmsg.P .deps/prop.P \
-.deps/qrp.P .deps/routing.P .deps/rx.P .deps/rx_inflate.P \
-.deps/rx_link.P .deps/rxbuf.P .deps/search.P .deps/search_cb.P \
-.deps/search_cb2.P .deps/search_gui.P .deps/search_gui2.P \
-.deps/search_stats_gui.P .deps/search_stats_gui2.P .deps/search_xml.P \
-.deps/settings.P .deps/settings_cb.P .deps/settings_gui.P .deps/sha1.P \
-.deps/share.P .deps/shell.P .deps/sockets.P .deps/sq.P \
-.deps/statusbar_gui.P .deps/support-glade1.P .deps/support-glade2.P \
-.deps/token.P .deps/tx.P .deps/tx_deflate.P .deps/tx_link.P \
-.deps/upload_stats.P .deps/upload_stats_gui.P .deps/upload_stats_gui2.P \
-.deps/uploads.P .deps/uploads_cb.P .deps/uploads_gui.P \
-.deps/uploads_gui2.P .deps/url.P .deps/utf8.P .deps/vendors.P \
-.deps/verify.P .deps/version.P .deps/vmsg.P .deps/walloc.P \
-.deps/whitelist.P .deps/zalloc.P .deps/zlib_util.P
+.deps/nodes_gui_common.P .deps/oldconfig.P .deps/parq.P .deps/pcache.P \
+.deps/pmsg.P .deps/prop.P .deps/qrp.P .deps/routing.P .deps/rx.P \
+.deps/rx_inflate.P .deps/rx_link.P .deps/rxbuf.P .deps/search.P \
+.deps/search_cb.P .deps/search_cb2.P .deps/search_gui.P \
+.deps/search_gui2.P .deps/search_stats_gui.P .deps/search_stats_gui2.P \
+.deps/search_xml.P .deps/settings.P .deps/settings_cb.P \
+.deps/settings_gui.P .deps/sha1.P .deps/share.P .deps/shell.P \
+.deps/sockets.P .deps/sq.P .deps/statusbar_gui.P .deps/support-glade1.P \
+.deps/support-glade2.P .deps/token.P .deps/tx.P .deps/tx_deflate.P \
+.deps/tx_link.P .deps/upload_stats.P .deps/upload_stats_gui.P \
+.deps/upload_stats_gui2.P .deps/uploads.P .deps/uploads_cb.P \
+.deps/uploads_gui.P .deps/uploads_gui2.P .deps/url.P .deps/utf8.P \
+.deps/vendors.P .deps/verify.P .deps/version.P .deps/vmsg.P \
+.deps/walloc.P .deps/whitelist.P .deps/zalloc.P .deps/zlib_util.P
 SOURCES = $(gtk_gnutella_SOURCES)
 OBJECTS = $(gtk_gnutella_OBJECTS)
 
@@ -1135,7 +1143,7 @@ TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) $(LISP)
 	  awk '    { files[$$0] = 1; } \
 	       END { for (i in files) print i; }'`; \
 	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
-	  || (cd $(srcdir) && etags -o $$here/TAGS $(ETAGS_ARGS) $$tags  $$unique $(LISP))
+	  || (cd $(srcdir) && etags $(ETAGS_ARGS) $$tags  $$unique $(LISP) -o $$here/TAGS)
 
 mostlyclean-tags:
 
