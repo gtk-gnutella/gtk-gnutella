@@ -1156,7 +1156,7 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 		g_assert(g_hash_table_lookup(ul_all_parq_by_ip,
 			  &parq_ul->remote_ip) == NULL);
 	}
-
+	
 	parq_ul->by_ip = NULL;
 
 	/*
@@ -1955,10 +1955,14 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 			/* Another upload in the current queue is allowed first */
 			return FALSE;
 		else
-		if (parq_ul == uq)
+		if (parq_ul == uq || parq_ul->by_ip->ip == uq->by_ip->ip)
 			/*
 			 * So the current upload is the first in line (we would have
 			 * returned FALSE otherwise by now).
+			 * We also check on ip slot (instead of only the requested file-
+			 * name). This is allowed as PARQ is a slot reservation system. So
+			 * we check if the requesting host has another queued item which
+			 * is allowed to continue. We will just use that position here then.
 			 */
 			return TRUE;
 	}
