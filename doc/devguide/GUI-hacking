@@ -1,12 +1,17 @@
 		GUI Hacking Hints
 		$Id$
 
-To regenerate the GUI source code from the Glade file, type
+1. To regenerate the GUI source code from the Glade file, type
+2. Some simple guidelines to add a net setting to the GUI:
+3. Layout guidelines
+
+
+1. To regenerate the GUI source code from the Glade file, type
 
     make glade_files
     
 
-Some simple guidelines to add a net setting to the GUI:
+2. Some simple guidelines to add a net setting to the GUI:
 
 Most of the time a new settings will need to be bound to a property.
 E.g. spinbutton_up_connections should be bound to PROP_UP_CONNECTIONS.
@@ -49,4 +54,32 @@ update_togglebutton. For other widgets/properties you may need to do more
 work, especially you have to add callbacks within Glade and you need to
 provide those callbacks somewhere in the GUI code. Most of the time
 these callbacks will end up in settings_cb.c.
+  
+
+
+3. Layout guidelines
+
+3.1 Layout of a GtkTable
+
+In all container widgets the there should be the same spacing values set:
+- Row spacing: 2
+- Col spacing: 4
+
+
+3.2 Border sizes
+
+On the first container widget within a container that provides a visual border
+(GtkFrame) the border width should be set to 2.
+
+
+3.3 Avoiding problems with GtkLabels
+
+To avoid that Gtk redraws the whole gui too often GtkLabels that change 
+thier text during runtime should be placed within a GtkHBox which in turn 
+should be placed inside a GtkViewport (no GtkScrolledWindow needed):
+
+  GtkViewport(GtkScrolledWindow(GtkLabel))
+  
+
+ 
   
