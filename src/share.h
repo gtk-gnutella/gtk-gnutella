@@ -37,7 +37,7 @@ struct extension {
 	gint len;			/* Extension length (e.g. 4) */
 };
 
-struct shared_file {
+typedef struct shared_file {
 	gchar *file_path;		/* The full path of the file */
 	gchar *file_name;		/* Pointer within file_path at start of filename */
 	guint32 file_index;		/* the files index within our local DB */
@@ -46,7 +46,7 @@ struct shared_file {
 	time_t mtime;			/* Last modification time, for SHA1 computation */
 	gchar sha1_digest[SHA1_RAW_SIZE];	/* SHA1 digest, binary form */
 	gboolean has_sha1_digest;				/* True when digest is set */
-};
+} shared_file_t;
 
 struct gnutella_search_results_out {
 	guchar num_recs;

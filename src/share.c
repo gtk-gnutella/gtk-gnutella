@@ -25,6 +25,8 @@
  *----------------------------------------------------------------------
  */
 
+#include "gnutella.h"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -32,18 +34,16 @@
 #include <string.h>
 #include <ctype.h>		/* tolower() */
 
-#include "gnutella.h"
 #include "share.h"
 #include "gmsg.h"
 #include "huge.h"
-#include "gtk-missing.h"
+#include "gtk-missing.h" // FIXME: remove this dependency
 #include "utf8.h"
 #include "qrp.h"
 #include "extensions.h"
 #include "nodes.h"
 #include "uploads.h"
 
-#include "gnet_property_priv.h"
 #include "settings.h"
 
 static guchar iso_8859_1[96] = {
@@ -175,9 +175,9 @@ void share_remove_search_request_listener(search_request_listener_t l)
     LISTENER_REMOVE(search_request, l);
 }
 
-static void share_emit_search_request(const gchar *query)
+static void share_emit_search_request(query_type_t type, const gchar *query)
 {
-    LISTENER_EMIT(search_request, query);
+    LISTENER_EMIT(search_request, type, query);
 }
 
 /*
@@ -299,6 +299,8 @@ static void found_reset()
 #define QHIT_MIN_TRAILER_LEN	(4+3+16)	/* NAME + open flags + GUID */
 
 #define FILENAME_CLASH 0xffffffff			/* Indicates basename clashes */
+
+
 
 /* ----------------------------------------- */
 
@@ -508,8 +510,6 @@ void shared_dir_add(gchar * path)
 		return;
 
 	shared_dirs = g_slist_append(shared_dirs, atom_str_get(path));
-
-	gui_update_shared_dirs();
 }
 
 /*
@@ -963,19 +963,16 @@ gboolean search_request(struct gnutella_node *n)
     /*
      * Push the query string to interested ones.
      */
-    if (search_request_listeners) {
-
-        gchar tmpstr[100];
-        gchar *str = n->data + 2;
+    {
+        gchar *str = search;
+        query_type_t type = QUERY_STRING;
 
         if (!*str && sha1_query) {
-            /* If the query is empty and we have a SHA1 extension,
-             * we print a urn:sha1-query instead. */
-            g_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", sha1_query);
-            str = tmpstr;
+            str = sha1_query;
+            type = QUERY_SHA1;
         }
 
-        share_emit_search_request(str);
+        share_emit_search_request(type, str);
     }
 
 	READ_GUINT16_LE(n->data, req_speed);
@@ -1240,15 +1237,3 @@ struct shared_file *shared_file_by_sha1(const gchar *sha1_digest)
 
 	return f;
 }
-
-/* 
- * Emacs stuff:
- * Local Variables: ***
- * c-indentation-style: "bsd" ***
- * fill-column: 80 ***
- * tab-width: 4 ***
- * indent-tabs-mode: nil ***
- * End: ***
- */
-
-/* vi: set ts=4: */
