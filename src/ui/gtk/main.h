@@ -36,6 +36,7 @@ extern GtkWidget *dlg_quit;
 extern GtkWidget *popup_downloads;
 extern GtkWidget *popup_uploads;
 extern GtkWidget *popup_search;
+extern GtkWidget *popup_search_list;
 extern GtkWidget *popup_nodes;
 extern GtkWidget *popup_monitor;
 extern GtkWidget *popup_queue;

@@ -927,6 +927,9 @@ search_gui_init(void)
 
 	search_gui_common_init();
 
+	g_signal_connect(GTK_OBJECT(tree_view_search), "button_press_event",
+		G_CALLBACK(on_tree_view_search_button_press_event), NULL);
+
 	STATIC_ASSERT(c_sl_num == G_N_ELEMENTS(types));
 	store = gtk_tree_store_newv(G_N_ELEMENTS(types), types);
 	gtk_tree_view_set_model(tree_view_search, GTK_TREE_MODEL(store));
@@ -1159,33 +1162,37 @@ search_gui_set_current_search(search_t *sch)
         gtk_widget_set_sensitive(GTK_WIDGET(button_search_clear), 
             sch->items != 0);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_restart"), !passive);
+            lookup_widget(popup_search_list, "popup_search_restart"), !passive);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_duplicate"), !passive);
+            lookup_widget(popup_search_list, "popup_search_duplicate"), !passive);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_stop"), !frozen);
+            lookup_widget(popup_search_list, "popup_search_stop"), !frozen);
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_resume"),frozen);
+            lookup_widget(popup_search_list, "popup_search_resume"), frozen);
 
         /*
          * Combo "Active searches"
          */
         gtk_list_item_select(GTK_LIST_ITEM(sch->list_item));
     } else {
+		static const gchar * const popup_items[] = {
+			"popup_search_restart",
+			"popup_search_duplicate",
+			"popup_search_stop",
+			"popup_search_resume",
+		};
+		guint i;
+		
         gtk_tree_selection_unselect_all(
 			gtk_tree_view_get_selection(tree_view_search));
         gtk_widget_set_sensitive(spinbutton_reissue_timeout, FALSE);
-        gtk_widget_set_sensitive(
+       	gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_download"), FALSE);
-        gtk_widget_set_sensitive(GTK_WIDGET(button_search_clear), FALSE);
-        gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_restart"), FALSE);
-        gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_duplicate"), FALSE);
-        gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_stop"), FALSE);
-        gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_resume"), FALSE);
+
+		for (i = 0; i < G_N_ELEMENTS(popup_items); i++) {
+       		gtk_widget_set_sensitive(
+            	lookup_widget(popup_search_list, popup_items[i]), FALSE);
+		}
     }
 
 	tree_view_restore_widths(GTK_TREE_VIEW(sch->tree_view),

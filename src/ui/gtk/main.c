@@ -79,6 +79,7 @@ GtkWidget *dlg_quit = NULL;
 GtkWidget *popup_downloads = NULL;
 GtkWidget *popup_uploads = NULL;
 GtkWidget *popup_search = NULL;
+GtkWidget *popup_search_list = NULL;
 GtkWidget *popup_nodes = NULL;
 GtkWidget *popup_monitor = NULL;
 GtkWidget *popup_queue = NULL;
@@ -491,6 +492,11 @@ void main_gui_early_init(gint argc, gchar **argv)
 
 	/* popup menus */
 	popup_search = create_popup_search();
+#ifdef USE_GTK2
+	/* XXX: Create the equivalent popup for GTK+ 1.2 */
+	popup_search_list = create_popup_search_list();
+#endif /* USE_GTK2 */
+	
 	popup_monitor = create_popup_monitor();
 	popup_downloads = create_popup_dl_active();
 	popup_queue = create_popup_dl_queued();	

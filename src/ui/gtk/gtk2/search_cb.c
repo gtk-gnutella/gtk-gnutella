@@ -58,7 +58,8 @@ static search_t *search_selected = NULL;
  *** Private functions
  ***/
 
-static void refresh_popup(void)
+static void
+refresh_popups(void)
 {
 	static const char * const popup_names[] = {
 		"popup_search_download",
@@ -70,8 +71,6 @@ static void refresh_popup(void)
 		"popup_search_autodownload_name",
 		"popup_search_autodownload_sha1",
 		"popup_search_new_from_selected",
-		"popup_search_restart",
-		"popup_search_duplicate",
 	};
 	search_t *search = search_gui_get_current_search();
 	gboolean sensitive = NULL != search;
@@ -83,19 +82,20 @@ static void refresh_popup(void)
 
     if (search) {
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search, "popup_search_stop"), 
+            lookup_widget(popup_search_list, "popup_search_stop"), 
 			!guc_search_is_frozen(search->search_handle));
 		gtk_widget_set_sensitive(
-			lookup_widget(popup_search, "popup_search_resume"),
+			lookup_widget(popup_search_list, "popup_search_resume"),
 			guc_search_is_frozen(search->search_handle));
 		if (search->passive)
 			gtk_widget_set_sensitive(
-				lookup_widget(popup_search, "popup_search_restart"), FALSE);
+				lookup_widget(popup_search_list, "popup_search_restart"),
+				FALSE);
     } else {
 		gtk_widget_set_sensitive(
-			lookup_widget(popup_search, "popup_search_stop"), FALSE);
+			lookup_widget(popup_search_list, "popup_search_stop"), FALSE);
 		gtk_widget_set_sensitive(
-			lookup_widget(popup_search, "popup_search_resume"), FALSE);
+			lookup_widget(popup_search_list, "popup_search_resume"), FALSE);
     }
 
 }
@@ -289,16 +289,21 @@ on_button_search_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
 void
 on_button_search_close_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
-    search_t *search;
-
 	(void) unused_button;
 	(void) unused_udata;
 
-    search = search_gui_get_current_search();
-	g_return_if_fail(NULL != search);
-	search_gui_close_search(search);
+	search_gui_close_search(search_gui_get_current_search());
 }
 
+void
+on_popup_search_close_activate(GtkMenuItem *unused_menuitem,
+	gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	search_gui_close_search(search_gui_get_current_search());
+}
 
 gboolean
 on_tree_view_search_results_key_press_event(GtkWidget *unused_widget,
@@ -357,18 +362,40 @@ on_tree_view_search_results_button_press_event(GtkWidget *widget,
 
 	case 3:
         /* right click section (popup menu) */
-        refresh_popup();
-		gui_prop_get_boolean_val(PROP_SEARCH_RESULTS_SHOW_TABS,
+		if (search_gui_get_current_search()) {
+        	refresh_popups();
+			gui_prop_get_boolean_val(PROP_SEARCH_RESULTS_SHOW_TABS,
                 &search_results_show_tabs);
-        gtk_label_set(GTK_LABEL((GTK_MENU_ITEM(
-			lookup_widget(popup_search, "popup_search_toggle_tabs"))
-                ->item.bin.child)),
-			search_results_show_tabs ? _("Show search list") : _("Show tabs"));
-		gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL,
-			event->button, event->time);
+        	gtk_label_set(GTK_LABEL((GTK_MENU_ITEM(
+				lookup_widget(popup_search, "popup_search_toggle_tabs"))
+                	->item.bin.child)),
+				search_results_show_tabs ?
+					_("Show search list") : _("Show tabs"));
+			gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL,
+				event->button, event->time);
+		}
 		return TRUE;
+    }
 
-        default: ;
+	return FALSE;
+}
+
+gboolean
+on_tree_view_search_button_press_event(GtkWidget *unused_widget,
+	GdkEventButton *event, gpointer unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_udata;
+
+	switch (event->button) {
+	case 3:
+        /* right click section (popup menu) */
+		if (search_gui_get_current_search()) {
+			refresh_popups();
+			gtk_menu_popup(GTK_MENU(popup_search_list), NULL, NULL, NULL, NULL,
+				event->button, event->time);
+		}
+		return TRUE;
     }
 
 	return FALSE;
@@ -508,7 +535,7 @@ on_tree_view_search_results_select_row(GtkTreeView *view, gpointer unused_udata)
 		set_tooltips_keyboard_mode(GTK_WIDGET(view), TRUE);
 	}
 
-    refresh_popup();
+    refresh_popups();
 }
 
 void

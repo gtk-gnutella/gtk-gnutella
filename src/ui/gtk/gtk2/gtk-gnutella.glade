@@ -458,33 +458,6 @@
   <property name="visible">True</property>
 
   <child>
-    <widget class="GtkImageMenuItem" id="popup_search_edit_filter">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Edit filter</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_popup_search_edit_filter_activate"/>
-
-      <child internal-child="image">
-	<widget class="GtkImage" id="image366">
-	  <property name="visible">True</property>
-	  <property name="stock">gtk-properties</property>
-	  <property name="icon_size">1</property>
-	  <property name="xalign">0.5</property>
-	  <property name="yalign">0.5</property>
-	  <property name="xpad">0</property>
-	  <property name="ypad">0</property>
-	</widget>
-      </child>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkSeparatorMenuItem" id="separator13">
-      <property name="visible">True</property>
-    </widget>
-  </child>
-
-  <child>
     <widget class="GtkImageMenuItem" id="popup_search_download">
       <property name="visible">True</property>
       <property name="label" translatable="yes">Download selected files</property>
@@ -492,7 +465,7 @@
       <signal name="activate" handler="on_popup_search_download_activate" last_modification_time="Sun, 30 Mar 2003 12:52:08 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image367">
+	<widget class="GtkImage" id="image390">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-save</property>
 	  <property name="icon_size">1</property>
@@ -512,7 +485,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image368">
+	<widget class="GtkImage" id="image391">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -564,7 +537,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image369">
+	<widget class="GtkImage" id="image392">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -622,7 +595,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image370">
+	<widget class="GtkImage" id="image393">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-execute</property>
 	  <property name="icon_size">1</property>
@@ -644,7 +617,7 @@
 	      <signal name="activate" handler="on_popup_search_autodownload_sha1_activate"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image371">
+		<widget class="GtkImage" id="image394">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-execute</property>
 		  <property name="icon_size">1</property>
@@ -665,7 +638,7 @@
 	      <signal name="activate" handler="on_popup_search_autodownload_name_activate"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image372">
+		<widget class="GtkImage" id="image395">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-execute</property>
 		  <property name="icon_size">1</property>
@@ -696,7 +669,7 @@
       <signal name="activate" handler="on_popup_search_new_from_selected_activate" last_modification_time="Sun, 15 Sep 2002 11:07:06 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image373">
+	<widget class="GtkImage" id="image396">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-new</property>
 	  <property name="icon_size">1</property>
@@ -723,7 +696,7 @@
       <signal name="activate" handler="on_popup_search_expand_all_activate" last_modification_time="Thu, 01 Jan 2004 05:01:39 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image374">
+	<widget class="GtkImage" id="image397">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -744,99 +717,9 @@
       <signal name="activate" handler="on_popup_search_collapse_all_activate" last_modification_time="Thu, 01 Jan 2004 05:01:39 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image375">
+	<widget class="GtkImage" id="image398">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
-	  <property name="icon_size">1</property>
-	  <property name="xalign">0.5</property>
-	  <property name="yalign">0.5</property>
-	  <property name="xpad">0</property>
-	  <property name="ypad">0</property>
-	</widget>
-      </child>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkSeparatorMenuItem" id="separator17">
-      <property name="visible">True</property>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkImageMenuItem" id="popup_search_stop">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Stop this search</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_popup_search_stop_activate"/>
-
-      <child internal-child="image">
-	<widget class="GtkImage" id="image376">
-	  <property name="visible">True</property>
-	  <property name="stock">gtk-stop</property>
-	  <property name="icon_size">1</property>
-	  <property name="xalign">0.5</property>
-	  <property name="yalign">0.5</property>
-	  <property name="xpad">0</property>
-	  <property name="ypad">0</property>
-	</widget>
-      </child>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkImageMenuItem" id="popup_search_resume">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Resume this search</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_popup_search_resume_activate"/>
-
-      <child internal-child="image">
-	<widget class="GtkImage" id="image377">
-	  <property name="visible">True</property>
-	  <property name="stock">gtk-go-forward</property>
-	  <property name="icon_size">1</property>
-	  <property name="xalign">0.5</property>
-	  <property name="yalign">0.5</property>
-	  <property name="xpad">0</property>
-	  <property name="ypad">0</property>
-	</widget>
-      </child>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkImageMenuItem" id="popup_search_restart">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Restart this search</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_popup_search_restart_activate"/>
-
-      <child internal-child="image">
-	<widget class="GtkImage" id="image378">
-	  <property name="visible">True</property>
-	  <property name="stock">gtk-redo</property>
-	  <property name="icon_size">1</property>
-	  <property name="xalign">0.5</property>
-	  <property name="yalign">0.5</property>
-	  <property name="xpad">0</property>
-	  <property name="ypad">0</property>
-	</widget>
-      </child>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkImageMenuItem" id="popup_search_duplicate">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Duplicate this search</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_popup_search_duplicate_activate"/>
-
-      <child internal-child="image">
-	<widget class="GtkImage" id="image379">
-	  <property name="visible">True</property>
-	  <property name="stock">gtk-copy</property>
 	  <property name="icon_size">1</property>
 	  <property name="xalign">0.5</property>
 	  <property name="yalign">0.5</property>
@@ -861,7 +744,7 @@
       <signal name="activate" handler="on_popup_search_toggle_tabs_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image380">
+	<widget class="GtkImage" id="image399">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-index</property>
 	  <property name="icon_size">1</property>
@@ -882,7 +765,7 @@
       <signal name="activate" handler="on_popup_search_config_cols_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image381">
+	<widget class="GtkImage" id="image400">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
 	  <property name="icon_size">1</property>
@@ -29173,6 +29056,129 @@ before kicking</property>
 	      </child>
 	    </widget>
 	  </child>
+	</widget>
+      </child>
+    </widget>
+  </child>
+</widget>
+
+<widget class="GtkMenu" id="popup_search_list">
+
+  <child>
+    <widget class="GtkImageMenuItem" id="popup_search_edit_filter">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Edit filter</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="on_popup_search_edit_filter_activate" last_modification_time="Mon, 06 Dec 2004 23:34:46 GMT"/>
+
+      <child internal-child="image">
+	<widget class="GtkImage" id="image385">
+	  <property name="visible">True</property>
+	  <property name="stock">gtk-properties</property>
+	  <property name="icon_size">1</property>
+	  <property name="xalign">0.5</property>
+	  <property name="yalign">0.5</property>
+	  <property name="xpad">0</property>
+	  <property name="ypad">0</property>
+	</widget>
+      </child>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkSeparatorMenuItem" id="separator21">
+      <property name="visible">True</property>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkImageMenuItem" id="popup_search_stop">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Stop this search</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="on_popup_search_stop_activate" last_modification_time="Mon, 06 Dec 2004 23:34:46 GMT"/>
+
+      <child internal-child="image">
+	<widget class="GtkImage" id="image386">
+	  <property name="visible">True</property>
+	  <property name="stock">gtk-stop</property>
+	  <property name="icon_size">1</property>
+	  <property name="xalign">0.5</property>
+	  <property name="yalign">0.5</property>
+	  <property name="xpad">0</property>
+	  <property name="ypad">0</property>
+	</widget>
+      </child>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkImageMenuItem" id="popup_search_resume">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Resume this search</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="on_popup_search_resume_activate" last_modification_time="Mon, 06 Dec 2004 23:34:46 GMT"/>
+
+      <child internal-child="image">
+	<widget class="GtkImage" id="image387">
+	  <property name="visible">True</property>
+	  <property name="stock">gtk-go-forward</property>
+	  <property name="icon_size">1</property>
+	  <property name="xalign">0.5</property>
+	  <property name="yalign">0.5</property>
+	  <property name="xpad">0</property>
+	  <property name="ypad">0</property>
+	</widget>
+      </child>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkImageMenuItem" id="popup_search_restart">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Restart this search</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="on_popup_search_restart_activate" last_modification_time="Mon, 06 Dec 2004 23:34:46 GMT"/>
+
+      <child internal-child="image">
+	<widget class="GtkImage" id="image388">
+	  <property name="visible">True</property>
+	  <property name="stock">gtk-redo</property>
+	  <property name="icon_size">1</property>
+	  <property name="xalign">0.5</property>
+	  <property name="yalign">0.5</property>
+	  <property name="xpad">0</property>
+	  <property name="ypad">0</property>
+	</widget>
+      </child>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkMenuItem" id="popup_search_duplicate">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Duplicate this search</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="on_popup_search_duplicate_activate" last_modification_time="Mon, 06 Dec 2004 23:34:46 GMT"/>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkImageMenuItem" id="popup_search_close">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">Close this search</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="on_popup_search_close_activate" last_modification_time="Mon, 06 Dec 2004 23:34:46 GMT"/>
+
+      <child internal-child="image">
+	<widget class="GtkImage" id="image389">
+	  <property name="visible">True</property>
+	  <property name="stock">gtk-close</property>
+	  <property name="icon_size">1</property>
+	  <property name="xalign">0.5</property>
+	  <property name="yalign">0.5</property>
+	  <property name="xpad">0</property>
+	  <property name="ypad">0</property>
 	</widget>
       </child>
     </widget>
