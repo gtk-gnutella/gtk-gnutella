@@ -162,6 +162,7 @@ gpointer http_async_get(
 gchar *http_async_info(
 	gpointer handle, gchar **req, gchar **path, guint32 *ip, guint16 *port);
 void http_async_connected(gpointer handle);
+void http_async_close(gpointer handle);
 void http_async_cancel(gpointer handle);
 void http_async_error(gpointer handle, gint code);
 

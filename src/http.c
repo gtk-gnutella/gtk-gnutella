@@ -726,6 +726,20 @@ static void http_async_free(struct http_async *ha)
 }
 
 /*
+ * http_async_close
+ *
+ * Close request.
+ */
+void http_async_close(gpointer handle)
+{
+	struct http_async *ha = (struct http_async *) handle;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+
+	http_async_free(ha);
+}
+
+/*
  * http_async_remove
  *
  * Cancel request (internal call).
