@@ -34,8 +34,8 @@
 /*
  * Needed stuff from search.h
  */
+
 struct record;
-struct search;
 
 typedef struct filter {
     gchar *name;
@@ -152,8 +152,8 @@ extern filter_t *work_filter;
 /*
  * Public interface.
  */
-filter_t *filter_new(gchar *);
-filter_result_t *filter_record(struct search *, struct record *);
+filter_t *filter_new(const gchar *);
+filter_result_t *filter_record(struct search *, const struct record *);
 gchar *filter_rule_condition_to_gchar(const rule_t *r);
 gchar *filter_rule_to_gchar(rule_t *f);
 gboolean filter_is_builtin(filter_t *f);
@@ -164,8 +164,9 @@ rule_t *filter_duplicate_rule(rule_t *rule);
 rule_t *filter_new_ip_rule(guint32, guint32, filter_t *, guint16);
 rule_t *filter_new_jump_rule(filter_t *,guint16);
 rule_t *filter_new_size_rule(filesize_t, filesize_t, filter_t *, guint16);
-rule_t *filter_new_text_rule(gchar *, gint, gboolean, filter_t *, guint16);
-rule_t *filter_new_sha1_rule(gchar *, gchar *, filter_t *, guint16);
+rule_t *filter_new_text_rule(const gchar *, gint,
+		gboolean, filter_t *, guint16);
+rule_t *filter_new_sha1_rule(const gchar *, const gchar *, filter_t *, guint16);
 rule_t *filter_new_flag_rule
     (enum rule_flag_action stable, enum rule_flag_action busy,
     enum rule_flag_action push, filter_t *target, guint16 flags);
@@ -193,7 +194,7 @@ void filter_timer(void);
 void filter_update_targets(void);
 void filter_free_result(filter_result_t *);
 void filter_free_rule(rule_t *rule);
-filter_t *filter_find_by_name_in_session(gchar *name);
+filter_t *filter_find_by_name_in_session(const gchar *name);
 gboolean filter_is_valid_in_session(filter_t *f);
 filter_t *filter_get_drop_target(void);
 filter_t *filter_get_show_target(void);
@@ -206,12 +207,12 @@ filter_t *filter_get_global_post(void);
 /*
  * Helper functions for adding filters.
  */
-struct record;
 
-void filter_add_drop_sha1_rule(struct record *rec, filter_t *filter);
-void filter_add_drop_name_rule(struct record *rec, filter_t *filter);
-void filter_add_drop_host_rule(struct record *rec, filter_t *filter);
-void filter_add_download_sha1_rule(struct record *rec, filter_t *filter);
-void filter_add_download_name_rule(struct record *rec, filter_t *filter);
+void filter_add_drop_sha1_rule(const struct record *rec, filter_t *filter);
+void filter_add_drop_name_rule(const struct record *rec, filter_t *filter);
+void filter_add_drop_host_rule(const struct record *rec, filter_t *filter);
+void filter_add_download_sha1_rule(const struct record *rec, filter_t *filter);
+void filter_add_download_name_rule(const struct record *rec, filter_t *filter);
 
+/* vi: set ts=4 sw=4 cindent: */
 #endif /* _gtk_filter_core_h_ */
