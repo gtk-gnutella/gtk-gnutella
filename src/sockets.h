@@ -58,7 +58,6 @@ enum socket_type {
     SOCK_TYPE_SHELL,
     SOCK_TYPE_CONNBACK,
     SOCK_TYPE_PPROXY,
-    SOCK_TYPE_CPROXY,
     SOCK_TYPE_DESTROYING,
 };
 

@@ -200,7 +200,6 @@ void socket_tos_default(struct gnutella_socket *s)
 	case SOCK_TYPE_DOWNLOAD: /* ACKs w/ low latency => higher transfer rates */
 	case SOCK_TYPE_HTTP:
 	case SOCK_TYPE_PPROXY:
-	case SOCK_TYPE_CPROXY:
 		socket_tos_lowdelay(s);
 		break;
 	case SOCK_TYPE_UPLOAD:
