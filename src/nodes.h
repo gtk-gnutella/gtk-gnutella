@@ -141,6 +141,9 @@ struct gnutella_node {
 #define NODE_IS_PONGING_ONLY(n) \
 	((n)->flags & NODE_F_TMP)
 
+#define NODE_IS_INCOMING(n)	\
+	((n)->flags & (NODE_F_TMP|NODE_F_INCOMING))
+
 /*
  * Global Data
  */

@@ -14,6 +14,7 @@
 #include "routing.h"
 #include "autodownload.h"
 #include "hosts.h"				/* For check_valid_host() */
+#include "nodes.h"				/* For NODE_IS_PONGING_ONLY() */
 #include "callbacks.h"
 
 #define MAKE_CODE(a,b,c,d) ( \
@@ -343,7 +344,8 @@ void mark_search_sent_to_connected_nodes(struct search *sch)
 	g_hash_table_freeze(sch->sent_nodes);
 	for (l = sl_nodes; l; l = l->next) {
 		n = (struct gnutella_node *) l->data;
-		mark_search_sent_to_node(sch, n);
+		if (!NODE_IS_PONGING_ONLY(n))
+			mark_search_sent_to_node(sch, n);
 	}
 	g_hash_table_thaw(sch->sent_nodes);
 }
@@ -354,6 +356,17 @@ static void __search_send_packet(struct search *sch, struct gnutella_node *n)
 {
 	struct gnutella_msg_search *m;
 	guint32 size;
+
+	/*
+	 * Don't send on a temporary connection.
+	 * Although sendto_one() is protected, it's useless to go through all
+	 * the message building only to discard the message at the end.
+	 * Moreover, we don't want to record the search being sent to this IP/port.
+	 *		--RAM, 13/01/2002
+	 */
+
+	if (n && NODE_IS_PONGING_ONLY(n))
+		return;
 
 	size = sizeof(struct gnutella_msg_search) + strlen(sch->query) + 1;
 
