@@ -27,6 +27,8 @@
 #include <gtk/gtk.h>
 #include "search.h"
 
+#include "filter_cb.h"
+
 #define SPINBUTTON_DECL(v)\
     void on_spinbutton_##v##_activate\
         (GtkEditable *editable, gpointer user_data);\
@@ -350,26 +352,5 @@ void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem, gpointer user_dat
  ***/
 void on_clist_search_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 
-
-
-/***
- *** filter dialog
- ***/
-gboolean on_dlg_filters_delete_event(GtkWidget *widget, gpointer user_data);
-void on_clist_filter_rules_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
-void on_clist_filter_rules_select_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
-void on_clist_filter_rules_unselect_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
-void on_clist_filter_rules_drag_end(GtkWidget *widget, GdkDragContext *drag_context, gpointer user_data);
-void on_button_filter_add_rule_text_clicked(GtkButton *button, gpointer user_data);
-void on_button_filter_add_rule_ip_clicked(GtkButton *button, gpointer user_data);
-void on_button_filter_add_rule_size_clicked(GtkButton *button, gpointer user_data);
-void on_button_filter_add_rule_jump_clicked(GtkButton *button, gpointer user_data);
-void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data);
-void on_button_filter_cancel_clicked(GtkButton *button, gpointer user_data);
-void on_button_filter_clear_clicked(GtkButton *button, gpointer user_data);
-void on_button_filter_remove_rule_clicked(GtkButton *button, gpointer user_data);
-void on_entry_filter_new_activate (GtkEditable *editable, gpointer user_data); 
-void on_button_filter_remove_clicked(GtkButton *button, gpointer user_data);
-void on_button_filter_create_clicked(GtkButton *button, gpointer user_data);
 
 #endif	/* __callbacks_h__ */
