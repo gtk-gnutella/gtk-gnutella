@@ -595,7 +595,8 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 					 * chunk here, and the new extended part
 					 * below. This is why we do not continue here.
 					 */
-					vp_create_chunk(nc->from, oc->to, nc->status, TRUE);
+					v->chunks_list = g_slist_append(v->chunks_list,
+						vp_create_chunk(nc->from, oc->to, nc->status, TRUE));
 				else {
 					/* 
 					 * In this case we copy the chunk and skip
@@ -604,7 +605,8 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 					 * overlap, or skip the old chunk, depending on
 					 * whether nc->to is larger than oc->to.
 					 */
-					vp_create_chunk(nc->from, nc->to, nc->status, TRUE);
+					v->chunks_list = g_slist_append(v->chunks_list,
+						vp_create_chunk(nc->from, nc->to, nc->status, TRUE));
 					highest = nc->to;
 					new = g_slist_next(new);
 					continue;
@@ -646,7 +648,6 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	guc_fi_free_chunks(keep_new);
 
 #ifdef VP_DEBUG
-	vp_print_chunk_list(v->chunks_list, "Merged");
 	vp_assert_chunks_list(v->chunks_list);
 #endif
 }
