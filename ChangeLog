@@ -1,11 +1,14 @@
 # since last version
 
-- (2004.06.01 - RAM)
+- (2003.06.02 - Richard)
+ * Applied symlink patch from Angelo Cano
+
+- (2003.06.01 - RAM)
  * Fixed download_clone() to remap the parq ID to the children download.
  * Make sure to revitalize a stopped download upon receiving QUEUE.
  * Removed spurious trailing "\n" in warnings from parq.c.
 
-- (2004.06.01 - Jeroen)
+- (2003.06.01 - Jeroen)
  * Uploads: HEAD requests won't be treated as a followup request anymore (which
             avoids an upload to ignore the max uploads per ip setting)
  * PARQ:    Fixed an assertion failure when an upload got removed due to too many
