@@ -276,7 +276,7 @@ static void gnet_stats_update_messages(const gnet_stats_t *stats)
 	GtkTreeIter iter;
 	gboolean perc = FALSE;
 	gboolean bytes = FALSE;
-	c_gs_t n;
+	gint n;
 
 	STATIC_ASSERT(num_c_gs == G_N_ELEMENTS(msg_stats_label));
 
@@ -286,7 +286,7 @@ static void gnet_stats_update_messages(const gnet_stats_t *stats)
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
-	for (n = 0; n < num_c_gs; n ++) {
+	for (n = 0; n < msg_type_str_size(); n++) {
 		if (!bytes) {
 			gtk_list_store_set(store, &iter,
 				c_gs_received,	 pkt_stat_str(str[c_gs_received],
@@ -627,7 +627,7 @@ static void gnet_stats_gui_messages_init(void)
 				G_TYPE_STRING	/* c_gs_generated */
 			));
 
-	for (n = 0; n < num_c_gs; n++) {
+	for (n = 0; n < msg_type_str_size(); n++) {
 		GtkTreeIter iter;
 		gint i;
 
