@@ -2831,6 +2831,8 @@ void node_close(void)
 		}
 		if (n->outq)
 			mq_free(n->outq);
+		if (n->searchq)
+			sq_free(n->searchq);
 		if (n->allocated)
 			g_free(n->data);
 		if (n->vendor)
