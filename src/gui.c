@@ -1,4 +1,6 @@
 /*
+ * $Id$
+ *
  * Copyright (c) 2001-2002, Raphael Manfredi & Richard Eckart
  *
  * GUI functions.
@@ -983,13 +985,14 @@ void gui_update_hosts_in_catcher()
         (lookup_widget(main_window, "progressbar_hosts_in_catcher"));
     gfloat frac;
 
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u hosts%s", 
-        hosts_in_catcher, max_hosts_cached, 
-        (hosts_in_catcher == 1 && max_hosts_cached == 1) ? "" : "s");
-    
     frac = MIN(hosts_in_catcher, max_hosts_cached) != 0 ? 
         (float)MIN(hosts_in_catcher, max_hosts_cached) / max_hosts_cached : 0;
 
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u host%s (%u%%%%)", 
+        hosts_in_catcher, max_hosts_cached, 
+        (hosts_in_catcher == 1 && max_hosts_cached == 1) ? "" : "s",
+		(guint) (frac * 100));
+    
     gtk_progress_bar_set_text(pg, gui_tmp);
     gtk_progress_bar_set_fraction(pg, frac);
 }
