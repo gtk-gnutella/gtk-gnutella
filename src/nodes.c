@@ -3068,7 +3068,7 @@ gboolean node_remove_worst(gboolean non_local)
         n = g_slist_nth_data(m, random_value(num - 1));
         g_slist_free(m);
 		if (non_local)
-			node_bye_if_writable(n, 202, "Local Node Prefered");
+			node_bye_if_writable(n, 202, "Local Node Preferred");
 		else {
 			if (worst)
 				node_bye_if_writable(n, 409, "Too Many Errors");
