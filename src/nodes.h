@@ -27,6 +27,7 @@ struct gnutella_node {
 	struct gnutella_socket *socket;		/* Socket of the node */
 	gint proto_major;			/* Protocol major number */
 	gint proto_minor;			/* Protocol minor number */
+	gchar *vendor;				/* Vendor information */
 	gpointer io_opaque;			/* Opaque I/O callback information */
 
 	struct gnutella_header header;		/* Header of the current message */
@@ -122,6 +123,7 @@ struct gnutella_node {
 #define NODE_A_BYE_PACKET	0x00000001	/* Supports Bye-Packet */
 #define NODE_A_PONG_CACHING	0x00000002	/* Supports Pong-Caching */
 #define NODE_A_PONG_ALIEN	0x00000004	/* Alien Pong-Caching scheme */
+#define NODE_A_QHD_NO_VTAG	0x00000008	/* Servent has no vendor tag in QHD */
 
 /*
  * Node states.

@@ -1263,13 +1263,28 @@ gboolean search_has_muid(struct search *sch, guchar * muid)
 /*
  * search_results
  *
- * This routine is called for each Query packet we receive.
+ * This routine is called for each Query Hit packet we receive.
  */
 void search_results(struct gnutella_node *n)
 {
 	struct results_set *rs;
 	GSList *selected_searches = NULL;
 	GSList *l;
+	gboolean extract_vendor = FALSE;
+
+	/*
+	 * If we don't have any known vendor name yet (0.4 handshaking), then
+	 * parse the query hits from that node (hops=0) to see if they have a
+	 * vendor tag in the QHD.
+	 *
+	 * NB: route_message() increases hops by 1 for messages we handle.
+	 */
+
+	if (
+		n->vendor == NULL && n->header.hops == 1 &&
+		!(n->attrs & NODE_A_QHD_NO_VTAG)		/* Not known to have no tag */
+	)
+		extract_vendor = TRUE;
 
 	/*
 	 * Look for all the searches, and put the ones we need to possibly
@@ -1295,7 +1310,7 @@ void search_results(struct gnutella_node *n)
 	 * If we don't have any selected search, we're done.
 	 */
 
-	if (selected_searches == NULL)
+	if (selected_searches == NULL && !extract_vendor)
 		return;
 
 	/*
@@ -1305,6 +1320,28 @@ void search_results(struct gnutella_node *n)
 	rs = get_results_set(n);
 	if (rs == NULL)
 		goto final_cleanup;
+
+	/*
+	 * Extract vendor tag if needed.
+	 */
+
+	if (extract_vendor) {
+		gchar *vendor = extract_vendor_name(rs);
+
+		if (vendor)
+			n->vendor = g_strdup(vendor);
+		else
+			n->attrs |= NODE_A_QHD_NO_VTAG;		/* No vendor tag in QHD */
+
+		/*
+		 * If we only parsed the results to get the tag, we're done.
+		 */
+
+		if (selected_searches == NULL) {
+			search_free_r_set(rs);
+			return;
+		}
+	}
 
 	/*
 	 * Dispatch the results to the selected searches.
@@ -1385,11 +1422,10 @@ void search_shutdown(void)
 }
 
 
-
 /* ----------------------------------------- */
 
 
-void download_selection_of_clist(GtkCList * c)
+static void download_selection_of_clist(GtkCList * c)
 {
 	struct results_set *rs;
 	struct record *rc;

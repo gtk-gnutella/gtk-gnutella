@@ -279,7 +279,8 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 		n->remove_msg = NULL;
 
 	if (dbg > 3)
-		printf("Node %s removed: %s\n", node_ip(n),
+		printf("Node %s <%s> removed: %s\n", node_ip(n),
+			n->vendor ? n->vendor : "????",
 			n->remove_msg ? n->remove_msg : "<no reason>");
 
 	if (NODE_IS_CONNECTED(n)) {
@@ -322,14 +323,19 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 		mq_free(n->outq);
 		n->outq = NULL;
 	}
+	if (n->vendor) {
+		g_free(n->vendor);
+		n->vendor = NULL;
+	}
 
 	n->status = GTA_NODE_REMOVING;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE);
 	n->last_update = time((time_t *) NULL);
 
 	if (dbg > 4) {
-		printf("NODE [%d.%d] %s TX=%d (drop=%d) RX=%d (drop=%d) Bad=%d\n",
+		printf("NODE [%d.%d] %s <%s> TX=%d (drop=%d) RX=%d (drop=%d) Bad=%d\n",
 			n->proto_major, n->proto_minor, node_ip(n),
+			n->vendor ? n->vendor : "????",
 			n->sent, n->tx_dropped, n->received, n->rx_dropped, n->n_bad);
 		printf("NODE \"%s%s\" %s PING (drop=%d acpt=%d spec=%d sent=%d) "
 			"PONG (rcvd=%d sent=%d)\n",
@@ -1290,6 +1296,12 @@ static void node_process_handshake_header(struct io_header *ih)
 	/*
 	 * Handle common header fields, non servent-specific.
 	 */
+
+	/* User-Agent -- servent vendor identification */
+
+	field = header_get(ih->header, "User-Agent");
+	if (field)
+		n->vendor = g_strdup(field);
 
 	/* Pong-Caching -- ping/pong reduction scheme */
 
@@ -2552,6 +2564,8 @@ void node_close(void)
 			mq_free(n->outq);
 		if (n->allocated)
 			g_free(n->data);
+		if (n->vendor)
+			g_free(n->vendor);
 		node_real_remove(n);
 	}
 
