@@ -920,6 +920,51 @@ gchar *strcasestr(const gchar *haystack, const gchar *needle)
 #endif	/* HAS_STRCASESTR */
 
 /*
+ * strcmp_delimit
+ *
+ * Compare two strings up to the specified delimiters.
+ */
+gint strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit)
+{
+	gboolean is_delimit[256];
+	gint i;
+	guchar *p;
+	guchar *q;
+	guchar c;
+	guchar d;
+
+	/*
+	 * Initialize delimitors.
+	 */
+
+	is_delimit[0] = TRUE;
+	for (i = 1; i < 256; i++)
+		is_delimit[i] = FALSE;
+
+	p = (guchar *) delimit;
+	while ((c = *p++))
+		is_delimit[c] = TRUE;
+
+	/*
+	 * Compare strings up to the specified delimitors.
+	 */
+
+	p = (guchar *) a;
+	q = (guchar *) b;
+
+	for (;;) {
+		c = *p++;
+		d = *q++;
+		if (is_delimit[c])
+			return is_delimit[d] ? 0 : -1;
+		if (is_delimit[d])
+			return +1;
+		if (c != d)
+			return c < d ? -1 : +1;
+	}
+}
+
+/*
  * random_init
  *
  * Initialize random number generator.

@@ -173,6 +173,7 @@ gint str_chomp(gchar *str, gint len);
 gint hex2dec(guchar c);
 void dump_hex(FILE *, const gchar *, gconstpointer, gint);
 void strlower(gchar *, const gchar *);
+gint strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit);
 char *unique_filename(const gchar *path, const gchar *file, const gchar *ext);
 gchar *hex_escape(const gchar *name, gboolean strict);
 gint highest_bit_set(guint32 n);
