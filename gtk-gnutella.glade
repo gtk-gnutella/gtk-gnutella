@@ -6453,6 +6453,7 @@
 			<class>GtkEntry</class>
 			<name>entry_config_max_banned_fd</name>
 			<sensitive>False</sensitive>
+			<tooltip>Actual amount of file descriptors used -- cannot be changed at runtime</tooltip>
 			<can_focus>True</can_focus>
 			<editable>False</editable>
 			<text_visible>True</text_visible>
@@ -6550,6 +6551,7 @@
 		      <widget>
 			<class>GtkViewport</class>
 			<name>viewport12</name>
+			<width>148</width>
 			<shadow_type>GTK_SHADOW_IN</shadow_type>
 			<child>
 			  <left_attach>2</left_attach>
@@ -6558,7 +6560,7 @@
 			  <bottom_attach>1</bottom_attach>
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
-			  <xexpand>True</xexpand>
+			  <xexpand>False</xexpand>
 			  <yexpand>False</yexpand>
 			  <xshrink>False</xshrink>
 			  <yshrink>False</yshrink>
@@ -7330,7 +7332,7 @@ settings</label>
 		      <widget>
 			<class>GtkLabel</class>
 			<name>label156</name>
-			<label>Report a connection speed of</label>
+			<label>Report an upload connection speed of</label>
 			<justify>GTK_JUSTIFY_CENTER</justify>
 			<wrap>False</wrap>
 			<xalign>7.45058e-09</xalign>
@@ -10927,7 +10929,7 @@ settings</label>
 			<class>GtkCheckButton</class>
 			<name>checkbutton_config_confirm_quit</name>
 			<can_focus>True</can_focus>
-			<label>show confirmation dialog when leaving gtk-gnutella</label>
+			<label>Show confirmation dialog when leaving gtk-gnutella</label>
 			<active>False</active>
 			<draw_indicator>True</draw_indicator>
 			<child>
@@ -10950,7 +10952,7 @@ settings</label>
 			<class>GtkCheckButton</class>
 			<name>checkbutton_config_show_tooltips</name>
 			<can_focus>True</can_focus>
-			<label>show tooltips (does not affect all tooltips yet)</label>
+			<label>Show tooltips (does not affect all tooltips yet)</label>
 			<active>False</active>
 			<draw_indicator>True</draw_indicator>
 			<child>

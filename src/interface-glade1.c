@@ -4578,6 +4578,7 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_sensitive (entry_config_max_banned_fd, FALSE);
+  gtk_tooltips_set_tip (tooltips, entry_config_max_banned_fd, _("Actual amount of file descriptors used -- cannot be changed at runtime"), NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_config_max_banned_fd), FALSE);
 
   frame80 = gtk_frame_new (_("Miscellaneous"));
@@ -4627,8 +4628,9 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (viewport12);
   gtk_table_attach (GTK_TABLE (table62), viewport12, 2, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_widget_set_usize (viewport12, 148, -2);
 
   hbox171 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox171, "hbox171");
@@ -5011,7 +5013,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label125), 0, 0.5);
 
-  label156 = gtk_label_new (_("Report a connection speed of"));
+  label156 = gtk_label_new (_("Report an upload connection speed of"));
   gtk_widget_set_name (label156, "label156");
   gtk_widget_ref (label156);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label156", label156,
@@ -6765,7 +6767,7 @@ create_main_window (void)
   gtk_table_set_row_spacings (GTK_TABLE (table35), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table35), 4);
 
-  checkbutton_config_confirm_quit = gtk_check_button_new_with_label (_("show confirmation dialog when leaving gtk-gnutella"));
+  checkbutton_config_confirm_quit = gtk_check_button_new_with_label (_("Show confirmation dialog when leaving gtk-gnutella"));
   gtk_widget_set_name (checkbutton_config_confirm_quit, "checkbutton_config_confirm_quit");
   gtk_widget_ref (checkbutton_config_confirm_quit);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_confirm_quit", checkbutton_config_confirm_quit,
@@ -6775,7 +6777,7 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  checkbutton_config_show_tooltips = gtk_check_button_new_with_label (_("show tooltips (does not affect all tooltips yet)"));
+  checkbutton_config_show_tooltips = gtk_check_button_new_with_label (_("Show tooltips (does not affect all tooltips yet)"));
   gtk_widget_set_name (checkbutton_config_show_tooltips, "checkbutton_config_show_tooltips");
   gtk_widget_ref (checkbutton_config_show_tooltips);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_show_tooltips", checkbutton_config_show_tooltips,
