@@ -5894,9 +5894,6 @@ node_init_outgoing(struct gnutella_node *n)
 	g_assert(s->gdk_tag != 0);		/* Leave with an I/O callback set */
 }
 
-#include <sys/time.h>
-#include <unistd.h>
-
 /**
  * Called by queue when it's not empty and it went through the service routine
  * and yet has more data enqueued.
