@@ -1026,7 +1026,7 @@ void search_matched(struct search *sch, struct results_set *rs)
 
 				/* Attempt to autodownload each result if desirable. */
 				autodownload_notify(rc->name, rc->size, rc->index, rs->ip,
-					rs->port, rs->guid);
+					rs->port, rs->guid, rs->status & ST_FIREWALL);
 			}
 		}
 	}
@@ -1157,7 +1157,7 @@ void download_selection_of_clist(GtkCList * c)
 		rc = (struct record *) gtk_clist_get_row_data(c, (gint) l->data);
 		rs = rc->results_set;
 		download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-					 rs->guid);
+					 rs->guid, rs->status & ST_FIREWALL);
 	}
 }
 

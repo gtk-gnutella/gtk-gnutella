@@ -94,8 +94,10 @@ extern struct download *selected_active_download;
  */
 
 void download_init(void);
-void download_new(gchar *, guint32, guint32, guint32, guint16, gchar *);
-void auto_download_new(gchar *, guint32, guint32, guint32, guint16, gchar *);
+void download_new(gchar *,
+	guint32, guint32, guint32, guint16, gchar *, gboolean);
+void auto_download_new(
+	gchar *, guint32, guint32, guint32, guint16, gchar *, gboolean);
 void download_queue(struct download *);
 void download_stop(struct download *, guint32, const gchar *, ...);
 void download_free(struct download *);

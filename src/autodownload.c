@@ -67,7 +67,7 @@ void autodownload_init()
 
 void autodownload_notify(gchar* file, guint32 size,
 						 guint32 record_index, guint32 ip,
-						 guint16 port, gchar* guid)
+						 guint16 port, gchar* guid, gboolean push)
 {
 	GSList* cur_pattern;
 
@@ -82,7 +82,7 @@ void autodownload_notify(gchar* file, guint32 size,
 		result = pattern_qsearch(pattern, file, 0, 0, qs_any);
 
 		if (result != NULL) {
-			auto_download_new(file, size, record_index, ip, port, guid);
+			auto_download_new(file, size, record_index, ip, port, guid, push);
 			return;
 		}
 

@@ -710,7 +710,7 @@ static void escape_filename(gchar *file)
 
 static void create_download(
 	gchar *file, guint32 size, guint32 record_index,
-	guint32 ip, guint16 port, gchar *guid,
+	guint32 ip, guint16 port, gchar *guid, gboolean push,
 	gboolean interactive)
 {
 	struct download *d;
@@ -743,6 +743,7 @@ static void create_download(
 	d->file_desc = -1;
 	memcpy(d->guid, guid, 16);
 	d->restart_timer_id = 0;
+	d->push = push;
 
 	sl_downloads = g_slist_prepend(sl_downloads, (gpointer) d);
 
@@ -762,7 +763,7 @@ static void create_download(
 /* Automatic download request */
 
 void auto_download_new(gchar * file, guint32 size, guint32 record_index,
-					   guint32 ip, guint16 port, gchar * guid)
+					   guint32 ip, guint16 port, gchar * guid, gboolean push)
 {
 	gchar dl_tmp[4096];
 	gchar *file_name = g_strdup(file);
@@ -824,7 +825,7 @@ void auto_download_new(gchar * file, guint32 size, guint32 record_index,
 		}
 	}
 
-	create_download(file_name, size, record_index, ip, port, guid, FALSE);
+	create_download(file_name, size, record_index, ip, port, guid, push, FALSE);
 	return;
 
 abort_download:
@@ -896,9 +897,9 @@ void download_index_changed(guint32 ip, guint16 port, guint32 from, guint32 to)
 /* Create a new download */
 
 void download_new(gchar * file, guint32 size, guint32 record_index,
-				  guint32 ip, guint16 port, gchar * guid)
+				  guint32 ip, guint16 port, gchar * guid, gboolean push)
 {
-	create_download(file, size, record_index, ip, port, guid, TRUE);
+	create_download(file, size, record_index, ip, port, guid, push, TRUE);
 }
 
 
