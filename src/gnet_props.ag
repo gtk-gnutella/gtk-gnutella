@@ -631,6 +631,16 @@ prop = {
 };
 
 prop = {
+    name = "bw_allow_stealing";
+    desc = "Allow HTTP and Gnutella to grab whatever bandwidth the other "
+			"is not using.  If FALSE, unused bandwidth is lost.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
     name = "autoclear_downloads";
     cfgvar = "auto_clear_completed_downloads";
     desc = "Auto clear completed downloads";
