@@ -31,6 +31,7 @@
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
+#include <langinfo.h>
 #endif
 
 #include "search.h"
@@ -388,6 +389,8 @@ static void log_init(void)
 
 gint main(gint argc, gchar **argv, gchar **env)
 {
+    char* tmp;
+    char* codeset;
 	gint i;
 
 	if (0 == getuid() || 0 == geteuid()) {
@@ -399,8 +402,19 @@ gint main(gint argc, gchar **argv, gchar **env)
 		close(i);				/* Just in case */
 
 #ifdef ENABLE_NLS
+	tmp = getenv("LC_ALL");
+	if (!tmp) tmp = getenv("LC_CTYPE");
+	if (!tmp) tmp = getenv("LANG");
+
+	if (tmp)
+		setlocale(LC_ALL, tmp);
+
+	codeset = nl_langinfo(CODESET);
+	if (codeset == NULL) 
+		codeset = "ISO-8859-1";		/* Default locale codeset */
+
 	bindtextdomain(PACKAGE, LOCALEDIR);
-	bind_textdomain_codeset(PACKAGE, "UTF-8");
+	bind_textdomain_codeset(PACKAGE, codeset);
 	textdomain(PACKAGE);
 #endif
 
