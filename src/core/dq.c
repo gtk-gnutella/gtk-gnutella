@@ -407,12 +407,12 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 		 * make it through the network.
 		 */
 
-		found = g_hash_table_lookup_extended(dq->queried, &pmi->node_id,
-			&key, &value);
+		found = g_hash_table_lookup_extended(dq->queried,
+					GUINT_TO_POINTER(pmi->node_id), &key, &value);
 
 		g_assert(found);		/* Or something is seriously corrupted */
 
-		g_hash_table_remove(dq->queried, &pmi->node_id);
+		g_hash_table_remove(dq->queried, GUINT_TO_POINTER(pmi->node_id));
 
 		if (dq_debug > 19)
 			printf("DQ[%d] %snode #%d degree=%d dropped message TTL=%d\n",
@@ -581,7 +581,7 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 		if (n->received == 0)
 			continue;
 
-		if (g_hash_table_lookup(dq->queried, &n->id))
+		if (g_hash_table_lookup(dq->queried, GUINT_TO_POINTER(n->id)))
 			continue;
 
 		/*
@@ -986,7 +986,7 @@ dq_send_query(dquery_t *dq, gnutella_node_t *n, gint ttl)
 	struct pmsg_info *pmi;
 	pmsg_t *mb;
 
-	g_assert(!g_hash_table_lookup(dq->queried, &n->id));
+	g_assert(!g_hash_table_lookup(dq->queried, GUINT_TO_POINTER(n->id)));
 	g_assert(NODE_IS_WRITABLE(n));
 
 	g_hash_table_insert(dq->queried,
@@ -1284,7 +1284,7 @@ dq_common_init(dquery_t *dq, query_hashvec_t *qhv)
 	struct gnutella_header *head;
 
 	dq->qid = dyn_query_id++;
-	dq->queried = g_hash_table_new(g_int_hash, g_int_equal);
+	dq->queried = g_hash_table_new(NULL, NULL);
 	dq->result_timeout = DQ_QUERY_TIMEOUT;
 	dq->start = time(NULL);
 
