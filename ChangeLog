@@ -2,6 +2,8 @@
 
 - (2004-11-14 - Hans)
  * Added Japanese translation (ja.po) from Daichi Kawahata.
+ * Updated .po files to include all files containing translatable strings
+   in the new directory layout.
 	
 - (2004-11-13 - RAM)
  * As a leaf node, refuse to connect to "ancient" ultra nodes.
