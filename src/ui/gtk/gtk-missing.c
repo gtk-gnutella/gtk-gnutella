@@ -76,31 +76,33 @@ void gtk_clist_set_column_name(GtkCList * clist, gint col, gchar * t)
  * Save visibility of columns in given property which must by a boolean array 
  * property with at least as many elements as there are columns.
  */
-void gtk_clist_save_visibility(GtkCList *clist, property_t prop)
+void
+gtk_clist_save_visibility(GtkCList *clist, property_t prop)
 {
-	guint i;
+	gint i;
 	guint32 val;
 
 	g_assert(clist);
 
-    for (i = 0; i < clist->columns; i ++) {
+    for (i = 0; i < clist->columns; i++) {
 		val = clist->column[i].visible;
 		gui_prop_set_boolean(prop, &val, i, 1);
 	}
 }
 
 /**
- * Restore visibility of columns from given property which must by a boolean array 
- * property with at least as many elements as there are columns.
+ * Restore visibility of columns from given property which must by a boolean
+ * array property with at least as many elements as there are columns.
  */
-void gtk_clist_restore_visibility(GtkCList *clist, property_t prop)
+void
+gtk_clist_restore_visibility(GtkCList *clist, property_t prop)
 {
-	guint i;
+	gint i;
 	gboolean val;
 
 	g_assert(clist);
 
-    for (i = 0; i < clist->columns; i ++) {
+    for (i = 0; i < clist->columns; i++) {
 		gui_prop_get_boolean(prop, &val, i, 1);
     	gtk_clist_set_column_visibility(clist, i, val);
 	}
