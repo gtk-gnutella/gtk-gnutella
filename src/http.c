@@ -552,7 +552,7 @@ static gchar *parse_errstr[] = {
  */
 const gchar *http_url_strerror(http_url_error_t errnum)
 {
-	if (errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
+	if ((gint) errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
 		return "Invalid error code";
 
 	return parse_errstr[errnum];
@@ -2123,7 +2123,7 @@ static void http_data_read(gpointer data, gint source, inputevt_cond_t cond)
 		return;
 	}
 
-	g_assert(s->pos >= 0 && s->pos <= sizeof(s->buffer));
+	g_assert((gint) s->pos >= 0 && s->pos <= sizeof(s->buffer));
 
 	if (s->pos == sizeof(s->buffer)) {
 		http_async_error(ha, HTTP_ASYNC_IO_ERROR);
