@@ -129,7 +129,7 @@ void search_gui_restart_search(search_t *sch)
 	search_gui_clear_search(sch);
 	sch->items = sch->unseen_items = 0;
 	gui_search_update_items(sch);
-	search_update_items(sch->search_handle);
+	search_update_items(sch->search_handle, sch->items);
 	search_reissue(sch->search_handle);
 }
 
@@ -175,7 +175,7 @@ void search_gui_clear_search(search_t *sch)
 	g_hash_table_foreach_remove(sch->parents, always_true, NULL);
 
 	sch->items = sch->unseen_items = 0;
-	search_update_items(sch);
+	search_update_items(sch->search_handle, sch->items);
 }
 
 /* 
@@ -660,7 +660,7 @@ static void download_selection_of_tree_view(GtkTreeView * tree_view)
 
     gui_search_force_update_tab_label(current_search, time(NULL));
     gui_search_update_items(current_search);
-    search_update_items(current_search->search_handle);
+    search_update_items(current_search->search_handle, current_search->items);
 }
 
 struct menu_helper {

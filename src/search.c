@@ -87,7 +87,7 @@ typedef struct search_ctrl {
 	guint reissue_timeout_id;
 	guint reissue_timeout;		/* timeout per search, 0 = search stopped */
 	guint query_emitted;		/* Amount of queries emitted since last retry */
-	guint items;				/* Items displayed in the GUI */
+	guint32 items;				/* Items displayed in the GUI */
 } search_ctrl_t;
 
 /*
@@ -1380,7 +1380,7 @@ static void update_one_reissue_timeout(search_ctrl_t *sch)
      */
 
 	if (dbg > 3)
-		printf("updating search \"%s\" with timeout %d.\n", sch->query,
+		printf("updating search \"%s\" with timeout %u.\n", sch->query,
 		   sch->reissue_timeout * factor * 1000);
 
     sch->reissue_timeout_id = g_timeout_add(
@@ -1847,7 +1847,7 @@ gnet_search_t search_new(
  *
  * The GUI updates us on the amount of items displayed in the search.
  */
-void search_update_items(gnet_search_t sh, guint items)
+void search_update_items(gnet_search_t sh, guint32 items)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 

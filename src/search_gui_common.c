@@ -898,7 +898,7 @@ void search_matched(search_t *sch, results_set_t *rs)
 	 * to make some room to allow the search to continue.
 	 */
 
-	search_update_items(sch->search_handle);
+	search_update_items(sch->search_handle, sch->items);
 
 	if (sch->items >= search_max_results && !sch->passive)
 		gui_search_set_enabled(sch, FALSE);
