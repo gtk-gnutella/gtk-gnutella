@@ -63,12 +63,12 @@ static void upload_stats_add(const gchar *filename,
 {
 	struct ul_stats *stat;
 
-	stat = g_malloc(sizeof(struct ul_stats));
+	stat = g_malloc0(sizeof(struct ul_stats));
 	stat->filename = g_strdup(filename);
 	stat->size = size;
 	stat->attempts = attempts;
 	stat->complete = complete;
-	stat->norm = (gfloat) ul_bytes / (gfloat) size;
+	stat->norm = size > 0 ? (gfloat) ul_bytes / (gfloat) size : 0;
 	stat->bytes_sent = ul_bytes;
 	upload_stats_list = g_list_append(upload_stats_list, stat);
 	upload_stats_gui_add(stat);
