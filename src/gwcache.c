@@ -257,16 +257,19 @@ static void gwc_retrieve(void)
 {
 	gint line;
 	FILE *in;
-	file_path_t fpvec[] = {
-		{ NULL, NULL },
-		{ PACKAGE_DATA_DIR, gwc_bootfile }
 #ifdef USE_SOURCE_DIR_AS_FALLBACK
-		, { PACKAGE_SOURCE_DIR, gwc_bootfile }
+	file_path_t fpvec[2];
+#else
+	file_path_t fpvec[3];
 #endif
-	};
 	gchar tmp[1024];
 
 	file_path_set(&fpvec[0], settings_config_dir(), gwc_file);
+	file_path_set(&fpvec[1], PACKAGE_DATA_DIR, gwc_bootfile);
+#ifdef USE_SOURCE_DIR_AS_FALLBACK
+	file_path_set(&fpvec[2], PACKAGE_SOURCE_DIR, gwc_bootfile);
+#endif
+
 	in = file_config_open_read(gwc_what, fpvec, G_N_ELEMENTS(fpvec));
 
 	if (!in)
