@@ -405,14 +405,18 @@ void filter_gui_update_filter_stats(void)
         if (filter == NULL)
             continue;
 
-        buf = filter->match_count+filter->fail_count;
-        if (buf != 0) {
-            g_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
-                filter->match_count, buf, 
-                (gint)((float)filter->match_count/buf*100));
-            title = fg_tmp;
+        if (filter_is_shadowed(filter)) {
+            title = "new";
         } else {
-            title = "none yet";
+            buf = filter->match_count+filter->fail_count;
+            if (buf != 0) {
+                g_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
+                    filter->match_count, buf, 
+                    (gint)((float)filter->match_count/buf*100));
+                title = fg_tmp;
+            } else {
+                title = "none yet";
+            }
         }
 
         gtk_ctree_node_set_text(
@@ -449,14 +453,18 @@ void filter_gui_update_rule_stats(void)
         if (rule == NULL)
             continue;
 
-        buf = rule->match_count+rule->fail_count;
-        if (buf != 0) {
-            g_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
-                rule->match_count, buf, 
-                (gint)((float)rule->match_count/buf*100));
-            title = fg_tmp;
+        if (RULE_IS_SHADOWED(rule)) {
+            title = "new";
         } else {
-            title = "none yet";
+            buf = rule->match_count+rule->fail_count;
+            if (buf != 0) {
+                g_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
+                    rule->match_count, buf, 
+                    (gint)((float)rule->match_count/buf*100));
+                title = fg_tmp;
+            } else {
+                title = "none yet";
+            }
         }
 
         gtk_clist_set_text(GTK_CLIST(clist_filter_rules), row, 3, title);

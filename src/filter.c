@@ -274,6 +274,12 @@ static void shadow_commit(shadow_t *shadow)
     for (f = shadow->removed; f != NULL; f = f->next)
         rule_free(f->data);
 
+    /*
+     * Remove the SHADOW flag from all new rules.
+     */
+    for (f = shadow->added; f != NULL; f = f->next)
+        clear_flags(((rule_t*) f->data)->flags, RULE_FLAG_SHADOW);
+
     /* 
      * We also free the memory of the filter->ruleset GList.
      * We don't need them anymore.
@@ -690,10 +696,12 @@ void filter_commit_changes()
     for (s = shadow_filters; s != NULL; s = shadow_filters)
         shadow_commit((shadow_t*)s->data);
 
-
     if (session_started) {
         g_list_free(filters);
         filters = filters_current;
+
+        for (s = filters_added; s != NULL; s = s->next)
+            clear_flags(((filter_t *)s->data)->flags, FILTER_FLAG_SHADOW);
 
         g_list_free(filters_added);
         filters_added = NULL;
@@ -705,7 +713,7 @@ void filter_commit_changes()
             filter_gui_filter_remove(s->data);
             filter_free(s->data);
         }
-    
+
         g_list_free(filters_removed);
         filters_removed = NULL;
 
@@ -1028,8 +1036,15 @@ void filter_add_to_session(filter_t *f)
      */
     if (g_list_find(filters_removed, f) != NULL)
         filters_removed = g_list_remove(filters_removed, f);
-    else
+    else {
         filters_added = g_list_append(filters_added, f);
+
+        /*
+         * Since the filter is new and not yet used for filtering
+         * we set the FILTER_FLAG_SHADOW flag.
+         */
+        set_flags(f->flags, FILTER_FLAG_SHADOW);
+    }
 
     filters_current = g_list_append(filters_current, f);
 
@@ -1291,6 +1306,11 @@ void filter_append_rule_to_session(filter_t *f, rule_t *r)
     if (dbg >= 4)
         printf("appending rule to filter: %s <- %s (%p)\n",
             f->name, filter_rule_to_gchar(r), r->target);
+
+    /*
+     * The rule is added to a session, so we set the shadow flag.
+     */
+    set_flags(r->flags, RULE_FLAG_SHADOW);
 
     /*
      * Create a new shadow if necessary.
@@ -1632,6 +1652,7 @@ void filter_replace_rule_in_session(filter_t *f,
      * as added.
      */
     shadow->added = g_list_append(shadow->added, new_rule);
+    set_flags(new_rule->flags, RULE_FLAG_SHADOW);
 
     /*
      * And we also need to increase the refcount on the new rule's

@@ -78,17 +78,22 @@ typedef struct filter {
 #define RULE_FLAG_VALID  (1 << 1) /* rule has valid target */
 #define RULE_FLAG_ACTIVE (1 << 2)
 #define RULE_FLAG_SOFT   (1 << 3)
+#define RULE_FLAG_SHADOW (1 << 4) /* rule is not yet committed */
 
 #define FILTER_FLAG_ACTIVE (1 << 0)
+#define FILTER_FLAG_SHADOW (1 << 4) /* filter is not yet committed */
 
 #define RULE_IS_VALID(r) ((r != NULL) && (r->flags & RULE_FLAG_VALID))
 #define RULE_IS_NEGATED(r) ((r != NULL) && (r->flags & RULE_FLAG_NEGATE))
 #define RULE_IS_ACTIVE(r) ((r != NULL) && (r->flags & RULE_FLAG_ACTIVE))
 #define RULE_IS_SOFT(r) ((r != NULL) && (r->flags & RULE_FLAG_SOFT))
-
+#define RULE_IS_SHADOWED(r) ((r != NULL) && (r->flags & RULE_FLAG_SHADOW))
 
 #define filter_is_active(f) ((f != NULL) && (f->flags & FILTER_FLAG_ACTIVE))
 #define filter_is_bound(f) (f->search != NULL)
+#define filter_is_shadowed(f) ((f != NULL) && (f->flags & FILTER_FLAG_SHADOW))
+
+
 
 /* 
  * Definition of a filter rule
