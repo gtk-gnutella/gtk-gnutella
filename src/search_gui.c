@@ -1563,7 +1563,7 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 	GList *sel_list;
 	gboolean need_push;
     gboolean remove_downloaded;
-	gboolean resort;
+	gboolean resort = FALSE;
 	guint created = 0;
 	guint count = 0;
 	GtkCTreeNode *node;
@@ -1627,10 +1627,13 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 			 * re-sort for parent nodes with no children).
 			 *
 			 * We need to check this before we actually remove the node.
+             *
+             * Finally it should only be necessary to determine once
+             * during the walk wether we need to resort and resort at the end.
+             *     -- Richard, 17/04/2004
 			 */
-			resort = FALSE;
 	
-			if (c_sr_count == current_search->sort_col) {
+			if (!resort && c_sr_count == current_search->sort_col) {
 				row = GTK_CTREE_ROW(node);
 
 				if (NULL == row->parent) {
@@ -1657,11 +1660,6 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 			}
 
 			search_gui_remove_result(ctree, node);
-			
-			if (resort) {
-				search_gui_sort_column(current_search, current_search->sort_col);
-			}
-
 		} else {
             /* make it visibile that we already selected this for download */
             gtk_ctree_node_set_foreground(ctree, node, 
@@ -1669,6 +1667,10 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
                     GTK_WIDGET(ctree))->fg[GTK_STATE_ACTIVE]);
 			gtk_ctree_unselect(ctree, node);
         }
+	}
+
+	if (resort) {
+		search_gui_sort_column(current_search, current_search->sort_col);
 	}
 	
 	gtk_clist_unselect_all(GTK_CLIST(ctree));
@@ -1690,28 +1692,28 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
  */
 void search_gui_download_files(void)
 {
-    GtkWidget *notebook_main;
-    GtkWidget *ctree_menu;
-	guint selected;
-	guint created;
-
     search_t *current_search = search_gui_get_current_search();
-	
-    notebook_main = lookup_widget(main_window, "notebook_main");
-    ctree_menu = lookup_widget(main_window, "ctree_menu");
 
 	if (current_search) {
+        GtkWidget *notebook_main;
+        GtkWidget *ctree_menu;
+        guint selected;
+        guint created;
+
+        notebook_main = lookup_widget(main_window, "notebook_main");
+        ctree_menu = lookup_widget(main_window, "ctree_menu");
+
 		created = download_selection_of_ctree(
 			GTK_CTREE(current_search->ctree), &selected);
 
-		gtk_clist_unselect_all(GTK_CLIST(current_search->ctree));
+        gtk_clist_unselect_all(GTK_CLIST(current_search->ctree));
 
 		statusbar_gui_message(15,
 			"Created %u download%s from the %u selected item%s",
 			created, created == 1 ? "" : "s",
 			selected, selected == 1 ? "" : "s");
 	} else {
-		g_warning("search_download_files(): no possible search!\n");
+		g_warning("search_gui_download_files(): no possible search!\n");
 	}	
 }
 
