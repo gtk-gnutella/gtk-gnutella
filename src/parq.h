@@ -30,6 +30,9 @@
 #include "downloads.h"
 #include "uploads.h"
 
+#define PARQ_MAX_UL_RETRY_DELAY 1200	/* 20 minutes retry rate max. */
+#define PARQ_GRACE_TIME			90		/* Grace period after life expired */
+
 /*
  * Public interface.
  */
@@ -59,8 +62,10 @@ gboolean parq_download_is_passive_queued(struct download *d);
 void parq_download_queue_ack(struct gnutella_socket *s);
 	
 void parq_upload_timer(time_t now);
-void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg);
-void parq_upload_add_header_id(gchar *buf, gint *retval, gpointer arg);
+void parq_upload_add_header(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags);
+void parq_upload_add_header_id(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 gpointer parq_upload_get(gnutella_upload_t *u, header_t *header);
 gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle, 
 		guint used_slots);

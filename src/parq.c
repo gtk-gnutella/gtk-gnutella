@@ -46,9 +46,7 @@ RCSID("$Id$");
 
 #define PARQ_RETRY_SAFETY	40		/* 40 seconds before lifetime */
 #define PARQ_TIMER_BY_POS	30		/* 30 seconds for each queue position */
-#define PARQ_MAX_UL_RETRY_DELAY 1200	/* 20 minutes retry rate max. */
 #define MIN_LIFE_TIME		90
-#define EXPIRE_GRACE_TIME	90
 #define QUEUE_PERIOD		600		/* Try to resend a queue every 10 minutes */
 #define MAX_QUEUE			144		/* Max amount of QUEUE we can send */
 #define MAX_QUEUE_REFUSED	2		/* Max QUEUE they can refuse in a row */
@@ -865,10 +863,11 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 			return FALSE;
 		}
 		
-		value = get_header_value(buf, "lifetime", NULL);
-		parq_dl->lifetime = value == NULL ? 0 : get_integer(value);
-
 		parq_dl->retry_delay = extract_retry_after(header);
+
+		value = get_header_value(buf, "lifetime", NULL);
+		parq_dl->lifetime = value == NULL ? 
+			parq_dl->retry_delay + 1 : get_integer(value);
 
 		/* Someone might not be playing nicely. */
 		if (parq_dl->lifetime < parq_dl->retry_delay) {
@@ -1833,7 +1832,7 @@ void parq_upload_timer(time_t now)
 			
 			if (
 				parq_ul->is_alive &&
-				parq_ul->expire + EXPIRE_GRACE_TIME < now &&
+				parq_ul->expire + PARQ_GRACE_TIME < now &&
 				!parq_ul->has_slot &&
 				!(parq_ul->flags & PARQ_UL_QUEUE)	/* No timeout if pending */
 			) {
@@ -2827,12 +2826,14 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
  * NB: Adds a Retry-After field for servents that will not understand PARQ,
  * to make sure they do not re-request too soon.
  */
-void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
+void parq_upload_add_header(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {	
 	gint rw = 0;
 	gint length = *retval;
 	time_t now = time((time_t *) NULL);
 	struct upload_http_cb *a = (struct upload_http_cb *) arg;
+	gboolean small_reply = (flags & HTTP_CBF_SMALL_REPLY);
 
 	g_assert(buf != NULL);
 	g_assert(retval != NULL);
@@ -2845,39 +2846,59 @@ void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
 		if (parq_ul->major == 0 && parq_ul->minor == 1 && 
 				  a->u->status == GTA_UL_QUEUED) {
 			g_assert(length > 0);
-			rw = gm_snprintf(buf, length,
-				"X-Queue: "
-				"position=%d, length=%d, limit=%d, pollMin=%d, pollMax=%d\r\n",
-				parq_ul->relative_position,
-				parq_ul->queue->size,
-				1,
-				MAX((gint32) (parq_ul->retry - now), 0), 
-				MAX((gint32) (parq_ul->expire - now), 0));
+
+			if (small_reply)
+				rw = gm_snprintf(buf, length,
+					"X-Queue: position=%d, pollMin=%d, pollMax=%d\r\n",
+					parq_ul->relative_position,
+					MAX((gint32) (parq_ul->retry - now), 0), 
+					MAX((gint32) (parq_ul->expire - now), 0));
+			else
+				rw = gm_snprintf(buf, length,
+					"X-Queue: position=%d, length=%d, "
+					"limit=%d, pollMin=%d, pollMax=%d\r\n",
+					parq_ul->relative_position,
+					parq_ul->queue->size,
+					1,
+					MAX((gint32) (parq_ul->retry - now), 0), 
+					MAX((gint32) (parq_ul->expire - now), 0));
 		} else {
 			g_assert(length > 0);
 
-			rw = gm_snprintf(buf, length,
-				"X-Queue: %d.%d\r\n"
-				"X-Queued: position=%d; ID=%s; length=%d; ETA=%d; lifetime=%d"
-					  "\r\n"
-				"Retry-After: %d\r\n",
-				PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
-				parq_ul->relative_position,
-				parq_ul->id,
-				parq_ul->queue->size,
-				parq_ul->eta,
-				MAX((gint32) (parq_ul->expire - now), 0),
-				MAX((gint32)  (parq_ul->retry - now ), 0));
-		
+			if (small_reply)
+				rw = gm_snprintf(buf, length,
+					"X-Queue: %d.%d\r\n"
+					"X-Queued: position=%d; ID=%s\r\n"
+					"Retry-After: %d\r\n",
+					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
+					parq_ul->relative_position,
+					parq_ul->id,
+					MAX((gint32)  (parq_ul->retry - now ), 0));
+			else
+				rw = gm_snprintf(buf, length,
+					"X-Queue: %d.%d\r\n"
+					"X-Queued: position=%d; ID=%s; length=%d; "
+					"ETA=%d; lifetime=%d\r\n"
+					"Retry-After: %d\r\n",
+					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
+					parq_ul->relative_position,
+					parq_ul->id,
+					parq_ul->queue->size,
+					parq_ul->eta,
+					MAX((gint32) (parq_ul->expire - now), 0),
+					MAX((gint32)  (parq_ul->retry - now ), 0));
+
 			/*
 			 * If we filled all the buffer, try with a shorter string, bearing
 			 * only the minimal amount of information.
 			 */
 			g_assert(length > 0);	
+
 			if (rw == length - 1 && buf[rw - 1] != '\n')
 				rw = gm_snprintf(buf, length,
 					"X-Queue: %d.%d\r\n"
-					"X-Queued: ID=%s; lifetime=%d\r\n",
+					"X-Queued: ID=%s\r\n"
+					"Retry-After: %d\r\n",
 					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
 					parq_upload_lookup_id(a->u),
 					MAX((gint32)  (parq_ul->retry - now ), 0));
@@ -2901,7 +2922,8 @@ void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
  * `retval' contains the length of the buffer initially, and is filled
  * with the amount of data written.
  */
-void parq_upload_add_header_id(gchar *buf, gint *retval, gpointer arg)
+void parq_upload_add_header_id(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {	
 	gint rw = 0;
 	gint length = *retval;
