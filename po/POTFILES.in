@@ -1,8 +1,10 @@
 src/core/downloads.c
 src/core/gnet_stats.c
+src/core/gwcache.c
 src/core/hcache.c
 src/core/settings.c
 src/core/shell.c
+src/core/uhc.c
 src/if/gnet_property.c
 src/if/gui_property.c
 src/lib/iso3166.c
