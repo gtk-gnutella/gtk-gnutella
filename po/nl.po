@@ -420,7 +420,6 @@ msgstr ""
 "is verstuurd"
 
 #: src/gnet_property.c:1386
-#, c-format
 msgid ""
 "Maximum size of the sendqueue for the nodes (in bytes). Must be at least "
 "150% of the maximum message size"
@@ -2611,7 +2610,6 @@ msgid "Max. file descriptors reserved for banning"
 msgstr "Maximaal aantal \"file descriptors\" gereserveerd voor verbanning."
 
 #: src/interface-glade2.c:3369
-#, c-format
 msgid "Max. % of file descriptors used for banning"
 msgstr ""
 "Maximum percentage van \"file descriptors\" in gebruik voor verbanning."
@@ -3050,7 +3048,6 @@ msgid "Bandwidth control for gnutellaNet traffic"
 msgstr "Bandbreedte controle voor gnutellaNet verkeer"
 
 #: src/interface-glade2.c:5659 src/interface-glade2.c:5715
-#, c-format
 msgid ""
 "Until xx% of outgoing HTTP bandwidth is in use, open additional upload slots "
 "on request."
