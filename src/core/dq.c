@@ -45,8 +45,6 @@ RCSID("$Id$");
 #include "vmsg.h"
 #include "search.h"
 #include "alive.h"
-#include "share.h"
-#include "guid.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -121,6 +119,7 @@ typedef struct dquery {
 #define DQ_F_LEAF_GUIDED	0x00000004	/* Leaf-guided query */
 #define DQ_F_WAITING		0x00000008	/* Waiting guidance reply from leaf */
 #define DQ_F_GOT_GUIDANCE	0x00000010	/* Got unsolicited leaf guidance */
+#define DQ_F_USR_CANCELLED	0x00000020	/* Explicitely cancelled by user */
 #define DQ_F_EXITING		0x80000000	/* Final cleanup at exit time */
 
 /*
@@ -1357,47 +1356,6 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 	if (tagged_speed && (req_speed & QUERY_SPEED_LEAF_GUIDED))
 		dq->flags |= DQ_F_LEAF_GUIDED;
 
-	/*
-	 * If the leaf is not guiding the query, yet requests out-of-band
-	 * replies, clear that flag so that we can monitor how much hits
-	 * are delivered.
-	 */
-
-	if (
-		tagged_speed &&
-		(req_speed & QUERY_SPEED_OOB_REPLY) &&
-		!(dq->flags & DQ_F_LEAF_GUIDED)
-	) {
-		gchar *data = pmsg_start(dq->mb) + GTA_HEADER_SIZE;
-		query_strip_oob_flag(n, data);
-		req_speed &= ~QUERY_SPEED_OOB_REPLY;	/* For further check below */
-
-		if (dq_debug > 19)
-			printf("DQ node %s <%s>: removed OOB flag (no leaf guidance)\n",
-				node_ip(n), node_vendor(n));
-	}
-
-	/*
-	 * Finally, if the leaf node is TCP-firewalled, chances are it's UDP
-	 * firewalled as well.  It won't get any indication of OOB replies
-	 * available, so clear the flag.
-	 *
-	 * XXX good candidate for OOB proxyfication, but we don't support that yet
-	 */
-
-	if (
-		tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY) &&
-		(req_speed & QUERY_SPEED_FIREWALLED)
-	) {
-		gchar *data = pmsg_start(dq->mb) + GTA_HEADER_SIZE;
-		query_strip_oob_flag(n, data);
-
-		if (dq_debug)
-			printf("DQ node %s <%s>: removed OOB flag "
-				"(leaf node is TCP-firewalled)\n",
-				node_ip(n), node_vendor(n));
-	}
-
 	if (dq_debug > 19)
 		printf("DQ node #%d %s <%s> (%s leaf-guidance) queries \"%s\"\n",
 			n->id, node_ip(n), node_vendor(n),
@@ -1495,8 +1453,12 @@ dq_node_removed(guint32 node_id)
  * Called every time we successfully parsed a query hit from the network.
  * If we have a dynamic query registered for the MUID, increase the result
  * count.
+ *
+ * @return FALSE if the query was explicitly cancelled by the user and
+ * results should be dropped, TRUE otherwise.  In other words, returns
+ * whether we should forward the results.
  */
-void
+gboolean
 dq_got_results(gchar *muid, gint count)
 {
 	dquery_t *dq;
@@ -1506,7 +1468,7 @@ dq_got_results(gchar *muid, gint count)
 	dq = g_hash_table_lookup(by_muid, muid);
 
 	if (dq == NULL)
-		return;
+		return TRUE;
 
 	if (dq->flags & DQ_F_LINGER)
 		dq->linger_results += count;
@@ -1531,6 +1493,8 @@ dq_got_results(gchar *muid, gint count)
 				(gint) (time(NULL) - dq->start),
 				count, dq->results, dq->new_results, dq->kept_results);
 	}
+
+	return (dq->flags & DQ_F_USR_CANCELLED) ? FALSE : TRUE;
 }
 
 /**
@@ -1576,11 +1540,16 @@ dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
 	/*
 	 * If they want us to terminate querying, honour it.
 	 * If the query is already in lingering mode, do nothing.
+	 *
+	 * Setting DQ_F_USR_CANCELLED will prevent any forwarding of
+	 * query hits for this query.
 	 */
 
 	if (kept == 0xffff) {
 		if (dq_debug > 19)
 			printf("DQ[%d] terminating at user's request\n", dq->qid);
+
+		dq->flags |= DQ_F_USR_CANCELLED;
 
 		if (!(dq->flags & DQ_F_LINGER)) {
 			if (dq->results_ev)
@@ -1656,6 +1625,35 @@ dq_search_closed(gnet_search_t handle)
 
 	g_slist_free(ctx->cancelled);
 	wfree(ctx, sizeof(*ctx));
+}
+
+/**
+ * Called for OOB-proxied queries when we get an "OOB Reply Indication"
+ * from remote hosts.  The aim is to determine whether the query still
+ * needs results, to decide whether we'll claim the advertised results
+ * or not.
+ *
+ * @param muid the message ID of the query
+ * @param wanted where the amount of results still expected is written
+ *
+ * @return TRUE if the query is still active, FALSE if it does not exist
+ * any more, in which case nothing is returned into `wanted'.
+ */
+gboolean
+dq_get_results_wanted(gchar *muid, guint32 *wanted)
+{
+	dquery_t *dq;
+	guint32 kept;
+
+	dq = g_hash_table_lookup(by_muid, muid);
+
+	if (dq == NULL)
+		return FALSE;
+
+	kept = dq_kept_results(dq);
+	*wanted = (kept > dq->max_results) ? 0 : dq->max_results - kept;
+
+	return TRUE;
 }
 
 /**
