@@ -45,7 +45,9 @@
 #define gdk_drawable_get_size gdk_window_get_size
 #endif
 
-#define GUI_CELL_RENDERER_YPAD ((guint) 0)
+/* Common padding values for GtkCellRenderer */
+#define GUI_CELL_RENDERER_XPAD ((guint) 4U)
+#define GUI_CELL_RENDERER_YPAD ((guint) 0U)
 
 /*
  * Gnet table columns.
@@ -129,6 +131,7 @@ enum {
     c_dl_server,
     c_dl_progress,
     c_dl_status,
+#define DOWNLOADS_VISIBLE_COLUMNS ((guint) c_dl_status + 1)
     c_dl_fg, /* invisible, holds the foreground color for the row */
     c_dl_bg, /* invisible, holds the background color for the row */
     c_dl_record, /* invisible, pointer to the record_t of this entry */
@@ -158,6 +161,7 @@ enum {
     c_queue_host,
     c_queue_server,
     c_queue_status,
+#define DOWNLOAD_QUEUE_VISIBLE_COLUMNS ((guint) c_queue_status + 1)
 	c_queue_fg, /* invisible, holds the foreground color for the row */
 	c_queue_bg, /* invisible, holds the background color for the row */
 	c_queue_record, /* invisible, pointer to the record_t of this entry */
@@ -177,6 +181,7 @@ enum {
 	c_fi_sources,
 	c_fi_status,
 #ifdef USE_GTK2
+#define FILEINFO_VISIBLE_COLUMNS ((guint) c_fi_status + 1)
 	c_fi_handle,
 	c_fi_isize,
 	c_fi_idone,
@@ -242,6 +247,7 @@ enum {
     c_hcs_host_count,
     c_hcs_hits,
     c_hcs_misses
+#define HCACHE_STATS_VISIBLE_COLUMNS ((guint) c_hcs_misses + 1)
 };
 
 
