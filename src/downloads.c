@@ -243,11 +243,13 @@ static gboolean has_same_active_download(gchar *file, gchar *guid)
  *
  * Remove all queued downloads bearing given name. --RAM, 26/09/2001
  * Rewritten to also handle timeout-waiting entries. --RAM, 20/01/2002
+ * Updated to remove only entries less than specified size. --RAM, 13/03/2002
  */
-static void queue_remove_all_named(const gchar *name)
+static void queue_remove_all_named(const gchar *name, guint32 size)
 {
 	GSList *to_remove = NULL;
 	GSList *l;
+	gint bigger = 0;
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
@@ -255,8 +257,12 @@ static void queue_remove_all_named(const gchar *name)
 		switch (d->status) {
 		case GTA_DL_QUEUED:
 		case GTA_DL_TIMEOUT_WAIT:
-			if (0 == strcmp(name, d->file_name))
-				to_remove = g_slist_prepend(to_remove, d);
+			if (0 == strcmp(name, d->file_name)) {
+				if (d->size <= size)
+					to_remove = g_slist_prepend(to_remove, d);
+				else
+					bigger++;
+			}
 			break;
 		default:
 			break;
@@ -267,6 +273,10 @@ static void queue_remove_all_named(const gchar *name)
 		download_free((struct download *) l->data);
 
 	g_slist_free(to_remove);
+
+	if (bigger)
+		g_warning("file \"%s\" is incomplete: %d bigger entr%s in queue",
+			name, bigger, bigger == 1 ? "y" : "ies");
 }
 
 /*
@@ -484,7 +494,7 @@ void download_stop(struct download *d, guint32 new_status,
 		gui_update_download(d, TRUE);
 
 	if (new_status == GTA_DL_COMPLETED)
-		queue_remove_all_named(d->file_name);
+		queue_remove_all_named(d->file_name, d->size);
 
 	if (store_queue)
 		download_store();			/* Refresh copy */
@@ -571,33 +581,54 @@ static void download_queue_delay(struct download *d, guint32 delay)
 static void download_push_insert(struct download *d)
 {
 	gchar *key;
-	gpointer val;
+	GSList *list;
+	gboolean found;
 
 	g_assert(!d->push);
 
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
 		d->record_index, guid_hex_str(d->guid));
-	key = g_strdup(dl_tmp);
 
 	/*
 	 * We should not have the download already in the table, since we take care
 	 * when starting a download that there is no (active) duplicate.  We also
 	 * perform the same check on resuming a stopped download, so the following
 	 * warning should not happen.  It will indicate a bug. --RAM, 01/01/2002
+	 *
+	 * However, it is possible that a servent updates its library, and that
+	 * we get another query hit from that servent with a different file name
+	 * but with the same index of a file we already recorded in the hash table.
+	 * That is possible because we check for duplicate downloads based on
+	 * the (name, GUID) tuple only.
+	 *
+	 * To overcome this, we have to store a list of downloads with the same
+	 * key, and prepend newest ones, as being the ones with the "most accurate"
+	 * index, supposedly. --RAM, 13/03/2002
 	 */
 
-	val = g_hash_table_lookup(pushed_downloads, (gpointer) key);
-	if (val == NULL)
-		g_hash_table_insert(pushed_downloads, (gpointer) key, (gpointer) d);
-	else {
-		struct download *ad = (struct download *) val;
-		g_warning("BUG: duplicate push ignored for \"%s\"", d->file_name);
-		g_warning("BUG: argument is 0x%lx, \"%s\", key = %s, state = %d",
-			(gulong) d, d->file_name, key, d->status);
-		g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
-			ad->record_index, guid_hex_str(ad->guid));
-		g_warning("BUG: in table has 0x%lx \"%s\", key = %s, state = %d",
-			(gulong) val, ad->file_name, dl_tmp, ad->status);
+	found = g_hash_table_lookup_extended(pushed_downloads, (gpointer) dl_tmp,
+		(gpointer *) &key, (gpointer *) &list);
+
+	if (!found) {
+		list = g_slist_append(NULL, d);
+		key = g_strdup(dl_tmp);
+		g_hash_table_insert(pushed_downloads, key, list);
+	} else {
+		GSList *l;
+
+		if ((l = g_slist_find(list, d))) {
+			struct download *ad = (struct download *) l->data;
+			g_warning("BUG: duplicate push ignored for \"%s\"", ad->file_name);
+			g_warning("BUG: argument is 0x%lx, \"%s\", key = %s, state = %d",
+				(gulong) d, d->file_name, key, d->status);
+			g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
+				ad->record_index, guid_hex_str(ad->guid));
+			g_warning("BUG: in table has 0x%lx \"%s\", key = %s, state = %d",
+				(gulong) ad, ad->file_name, dl_tmp, ad->status);
+		} else {
+			list = g_slist_prepend(list, d);
+			g_hash_table_insert(pushed_downloads, key, list);
+		}
 	}
 
 	d->push = TRUE;
@@ -611,7 +642,7 @@ static void download_push_insert(struct download *d)
 static void download_push_remove(struct download *d)
 {
 	gpointer key;
-	gpointer value;
+	GSList *list;
 
 	g_assert(d->push);
 
@@ -620,23 +651,30 @@ static void download_push_remove(struct download *d)
 
 	if (
 		g_hash_table_lookup_extended(pushed_downloads, (gpointer) dl_tmp,
-			&key, &value)
+			&key, (gpointer *) &list)
 	) {
-		if (value != d) {
-			struct download *ad = (struct download *) value;
-			g_warning("BUG: looked for 0x%lx \"%s\", key = %s, state = %d",
-				(gulong) d, d->file_name, dl_tmp, d->status);
-			g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
-				ad->record_index, guid_hex_str(ad->guid));
-			g_warning("BUG: got 0x%lx \"%s\", key = %s, state = %d",
-				(gulong) value, ad->file_name, dl_tmp, ad->status);
-		}
+		GSList *l = g_slist_find(list, d);
 
-		g_assert(value == d);
-		g_hash_table_remove(pushed_downloads, (gpointer) dl_tmp);
-		g_free(key);
+		/*
+		 * Value `list' is a list of downloads that share the same key.
+		 * We need to remove the entry in the hash table only when the
+		 * last downlaod is removed from that list.
+		 */
+
+		if (l == NULL) {
+			g_warning("BUG: push 0x%lx \"%s\" not found, key = %s, state = %d",
+				(gulong) d, d->file_name, dl_tmp, d->status);
+		} else {
+			g_assert(l->data == (gpointer) d);
+			list = g_slist_remove(list, d);
+			if (list == NULL) {
+				g_hash_table_remove(pushed_downloads, key);
+				g_free(key);
+			} else
+				g_hash_table_insert(pushed_downloads, key, list);
+		}
 	} else
-		g_warning("Tried to remove missing push %s", dl_tmp);
+		g_warning("BUG: tried to remove missing push %s", dl_tmp);
 
 	d->push = FALSE;
 }
@@ -659,25 +697,45 @@ static gboolean download_start_prepare(struct download *d)
 	 * This is done here so multiple downloads of existing files drop out when
 	 * they are smaller than the existing file.
 	 *
-	 * (This code was present in the Debian version 0.13, but moved things
-	 * from the "done" dir back to the working dir if the downloaded file
-	 * was bigger.	I think the "done" dir is sacred.  Let the user move back
-	 * the file if he so wants --RAM, 03/09/2001)
-	 *
 	 * If the file already exists, and has less than `download_overlap_range'
 	 * bytes, we restart the download from scratch.  Otherwise, we request
 	 * that amount before the resuming point.
 	 * Later on, in download_write_data(), and as soon as we have read more
 	 * than `download_overlap_range' bytes, we'll check for a match.
 	 *		--RAM, 12/01/2002
+	 *
+	 * Now that we have overlapping range checking, we can restore older code
+	 * to move back the file from the "done" directory back to the working
+	 * directory if the to-be-downloaded file is bigger than what we have.
+	 * This means that we started to download s shorter version (incomplete?)
+	 * of that file.
+	 *		--RAM, 13/03/2002
 	 */
 
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->output_name);
 
-	if (stat(dl_tmp, &st) != -1 && st.st_size > download_overlap_range)
-		d->skip = st.st_size;
-	else
-		d->skip = 0;
+	d->skip = 0;
+
+	if (stat(dl_tmp, &st) != -1) {
+		if (st.st_size > download_overlap_range)
+			d->skip = st.st_size;
+	} else {
+		gchar dl_dest[4096];
+
+		g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s",
+			move_file_path, d->output_name);
+
+		if (stat(dl_dest, &st) != -1 && st.st_size > download_overlap_range) {
+			if (-1 == rename(dl_dest, dl_tmp))
+				g_warning("cannot move incomplete \"%s\" back to "
+					"download dir: %s", dl_dest, g_strerror(errno));
+			else {
+				d->skip = st.st_size;
+				g_warning("moved incomplete \"%s\" back to download dir",
+					d->output_name);
+			}
+		}
+	}
 
 	d->pos = d->skip;
 	d->last_update = time((time_t *) NULL);
@@ -824,11 +882,11 @@ static void download_push(struct download *d, gboolean on_timeout)
 
 	g_assert(d->push);
 	if (!send_push_request(d->guid, d->record_index, listen_port)) {
-		if (d->status == GTA_DL_FALLBACK) {
+		if (!d->always_push) {
 			download_push_remove(d);
 			goto attempt_retry;
 		} else
-			download_stop(d, GTA_DL_ERROR, "Route lost");
+			download_stop(d, GTA_DL_ERROR, "Push route lost");
 	}
 
 	return;
@@ -2198,16 +2256,16 @@ static void download_push_ready(struct download *d, getline_t *empty)
 static struct download *select_push_download(guint file_index, gchar *hex_guid)
 {
 	struct download *d = NULL;
-	gpointer val;
+	GSList *list;
 	guchar rguid[16];		/* Remote GUID */
 	GSList *l;
 
 	g_strdown(hex_guid);
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s", file_index, hex_guid);
 
-	val = g_hash_table_lookup(pushed_downloads, (gpointer) dl_tmp);
-	if (val) {
-		d = (struct download *) val;
+	list = (GSList *) g_hash_table_lookup(pushed_downloads, (gpointer) dl_tmp);
+	if (list) {
+		d = (struct download *) list->data;			/* Take first entry */
 		g_assert(d->record_index == file_index);
 	} else if (dbg > 3)
 		printf("got unexpected GIV: nothing pending currently\n");
