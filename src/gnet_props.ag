@@ -269,6 +269,22 @@ prop = {
 };
 
 prop = {
+    name = "compute_connection_speed";
+    desc = "Whether the connection bandwidth reported to other hosts "
+		"should be computed based on the current average upload speed. "
+		"The reported speed is the available speed for a new upload, not "
+		"the theoretical maximum configured: it is the average bandwidth "
+		"(or the max configured bandwidth if no traffic yet) divided by "
+		"the number of upload slots. "
+		"When it is ON (recommended setting), the hardwired connection speed "
+		"is not used.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
     name = "query_response_max_items";
     cfgvar = "limit_search_results";
     desc = "Return at most this number of results to a query, using as many "

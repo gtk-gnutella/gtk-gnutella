@@ -52,6 +52,7 @@ extern guint32  average_servent_uptime;
 extern guint32  listen_port;
 extern guint32  forced_local_ip;
 extern guint32  connection_speed;
+extern gboolean compute_connection_speed;
 extern guint32  search_max_items;
 extern guint32  ul_usage_min_percentage;
 extern guint32  download_connecting_timeout;
