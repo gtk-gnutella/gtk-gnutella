@@ -1,5 +1,16 @@
 # since last version
 
+- (2004-09-23 - RAM)
+ * Keep track of whether we receive solicited UDP traffic.
+ * Send an UDP ping to our peers when we connect and we're not sure whether
+   we can get UDP solicited traffic.
+ * Ensure we can receive solicited UDP traffic before advertising OOB hits.
+ * New property "uploads_stalling" to track abnormal upload stalling.
+ * New property "recv_solicited_udp" to determine whether we can perform
+   UDP hole punching.
+ * [GTK1] [GTK2] Will now show a warning if uploads are stalling abnormally,
+   and a firewall with a green hole if we can perform UDP hole punching.
+
 - (2004-09-21 - RAM)
  * Added dh_would_route() for the OOB-proxying layer to be able to determine
    whether the hits it would claim would be delivered to the leaf or
