@@ -4643,8 +4643,7 @@ node_parse(struct gnutella_node *node)
 
 	/* Compute route (destination) then handle the message if required */
 
-	drop = !route_message(&n, &dest);
-	if (!drop) {		/* We have to handle the message */
+	if (route_message(&n, &dest)) {		/* We have to handle the message */
 		g_assert(n);
 		switch (n->header.function) {
 		case GTA_MSG_PUSH_REQUEST:
