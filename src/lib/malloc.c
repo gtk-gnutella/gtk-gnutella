@@ -1334,8 +1334,9 @@ gpointer leak_init(void)
  *
  * Get rid of the key/value tupple in the leak table.
  */
-static gboolean leak_free_kv(gpointer key, gpointer value, gpointer user)
+static gboolean leak_free_kv(gpointer key, gpointer value, gpointer unused_user)
 {
+	(void) unused_user;
 	free(key);
 	free(value);
 	return TRUE;
@@ -1559,11 +1560,13 @@ static gint stats_total_residual_cmp(const void *p1, const void *p2)
  * Append current hash table entry at the end of the "stats" array
  * in the supplied filler structure.  -- hash table iterator
  */
-static void stats_fill_array(gpointer key, gpointer value, gpointer user)
+static void stats_fill_array(gpointer unused_key, gpointer value, gpointer user)
 {
 	struct afiller *filler = (struct afiller *) user;
 	struct stats *st = (struct stats *) value;
 	struct stats **e;
+
+	(void) unused_key;
 
 	g_assert(filler->idx < filler->count);
 
@@ -1702,9 +1705,12 @@ void alloc_dump(FILE *f, gboolean total)
 /**
  * Reset incrementel allocation and free counters. -- hash table iterator
  */
-static void stats_reset(gpointer key, gpointer value, gpointer user)
+static void stats_reset(gpointer uu_key, gpointer value, gpointer uu_user)
 {
 	struct stats *st = (struct stats *) value;
+
+	(void) uu_key;
+	(void) uu_user;
 
 	st->blocks = st->allocated = st->freed = st->reallocated = 0;
 }

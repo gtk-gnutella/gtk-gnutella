@@ -80,9 +80,9 @@ RCSID("$Id$");
 
 static struct {
 	guchar *d;					/* data */
-	guint32 l;					/* data length */
-	guint32 s;					/* size used by current search hit */
-	guint files;				/* amount of file entries */
+	gint l;						/* data length */
+	gint s;						/* size used by current search hit */
+	gint files;					/* amount of file entries */
 	gint max_size;				/* max query hit size */
 	gboolean use_ggep_h;		/* whether to use GGEP "H" to send SHA1 */
 	gchar *muid;				/* the MUID to put in all query hits */

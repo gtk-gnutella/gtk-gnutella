@@ -1276,7 +1276,7 @@ cleanup:
  * Common initialization code for a dynamic query.
  */
 static void
-dq_common_init(dquery_t *dq, query_hashvec_t *qhv)
+dq_common_init(dquery_t *dq)
 {
 	struct gnutella_header *head;
 
@@ -1404,7 +1404,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 
 	gnet_stats_count_general(GNR_LEAF_DYN_QUERIES, 1);
 
-	dq_common_init(dq, qhv);
+	dq_common_init(dq);
 	dq_sendto_leaves(dq, n);
 	dq_send_probe(dq);
 }
@@ -1454,7 +1454,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 
 	gnet_stats_count_general(GNR_LOCAL_DYN_QUERIES, 1);
 
-	dq_common_init(dq, qhv);
+	dq_common_init(dq);
 	dq_sendto_leaves(dq, NULL);
 	dq_send_probe(dq);
 }

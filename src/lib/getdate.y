@@ -684,10 +684,10 @@ static TABLE const MilitaryTable[] = {
 
 
 
-
 /* ARGSUSED */
-static int yyerror(char *s)
+static int yyerror(char *unused_s)
 {
+	(void) unused_s;
     return 0;
 }
 

@@ -401,6 +401,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 	mqueue_t *mq;
 
 	g_assert(src->header.function == GTA_MSG_SEARCH_RESULTS);
+	g_assert(count >= 0);
 
 	if (!NODE_IS_WRITABLE(dest))
 		goto drop_shutdown;
@@ -444,7 +445,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 	dh->hits_queued += count;
 	dh->msg_queued++;
 
-	g_assert(dh->hits_queued >= count);
+	g_assert(dh->hits_queued >= (guint) count);
 
 	/*
 	 * Magic: we create an extended version of a pmsg_t that contains a
