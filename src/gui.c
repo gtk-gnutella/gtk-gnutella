@@ -230,9 +230,6 @@ void gui_update_all()
     
 	gui_update_config_port(TRUE);
 
-	gui_update_save_file_path();
-	gui_update_move_file_path();
-
 	gui_update_files_scanned();
 
 	gui_update_scan_extensions();
@@ -396,7 +393,7 @@ void gui_update_count_uploads(void)
 }
 */
 
-
+/*
 void gui_update_save_file_path(void)
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", save_file_path);
@@ -404,7 +401,9 @@ void gui_update_save_file_path(void)
         GTK_ENTRY(lookup_widget(main_window, "entry_config_save_path")),
         gui_tmp);
 }
+*/
 
+/*
 void gui_update_move_file_path(void)
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", move_file_path);
@@ -412,6 +411,7 @@ void gui_update_move_file_path(void)
         GTK_ENTRY(lookup_widget(main_window, "entry_config_move_path")),
         gui_tmp);
 }
+*/
 
 void gui_update_c_gnutellanet(void)
 {
