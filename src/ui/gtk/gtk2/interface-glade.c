@@ -12412,7 +12412,6 @@ create_dlg_prefs_bw_tab (void)
   GtkWidget *hbox281;
   GtkWidget *viewport114;
   GtkWidget *frame127;
-  GtkWidget *alignment106;
   GtkWidget *table13;
   GtkWidget *label181;
   GtkWidget *label182;
@@ -12665,16 +12664,10 @@ create_dlg_prefs_bw_tab (void)
   gtk_widget_show (frame127);
   gtk_container_add (GTK_CONTAINER (viewport114), frame127);
 
-  alignment106 = gtk_alignment_new (0.5, 0.5, 1, 1);
-  gtk_widget_set_name (alignment106, "alignment106");
-  gtk_widget_show (alignment106);
-  gtk_container_add (GTK_CONTAINER (frame127), alignment106);
-  gtk_alignment_set_padding (GTK_ALIGNMENT (alignment106), 0, 0, 12, 0);
-
   table13 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table13, "table13");
   gtk_widget_show (table13);
-  gtk_container_add (GTK_CONTAINER (alignment106), table13);
+  gtk_container_add (GTK_CONTAINER (frame127), table13);
   gtk_container_set_border_width (GTK_CONTAINER (table13), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table13), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table13), 4);
@@ -12989,7 +12982,6 @@ create_dlg_prefs_bw_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, hbox281, "hbox281");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, viewport114, "viewport114");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, frame127, "frame127");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, alignment106, "alignment106");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, table13, "table13");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label181, "label181");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label182, "label182");
