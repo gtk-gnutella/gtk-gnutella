@@ -1,5 +1,9 @@
 # since last version
 
+- (2003.07.27 - Jeroen)
+ * Downloads through a push proxy should no longer crash gtkg due to 
+   download_clone
+
 - (2003.07.22 - Jeroen)
  * Fixed path array in gwebcache.c when in unstable mode.
 

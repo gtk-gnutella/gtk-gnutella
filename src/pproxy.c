@@ -987,6 +987,7 @@ struct cproxy *cproxy_create(struct download *d,
  */
 void cproxy_reparent(struct download *d, struct download *cd)
 {
+	g_assert(d != cd);
 	g_assert(d->cproxy != NULL);
 	g_assert(cd->cproxy != NULL);
 	
