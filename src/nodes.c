@@ -1395,59 +1395,36 @@ static void send_connection_pongs(struct gnutella_node *n, gchar *muid)
  */
 static gchar *formatted_connection_pongs(gchar *field, hcache_type_t htype)
 {
-	static gchar fmt_line[MAX_LINE_SIZE];
 	struct gnutella_host hosts[CONNECT_PONGS_COUNT];
 	gint hcount;
+	gchar *line = "";
 
 	hcount = hcache_fill_caught_array(htype, hosts, CONNECT_PONGS_COUNT);
 	g_assert(hcount >= 0 && hcount <= CONNECT_PONGS_COUNT);
-
-	/*
-	 * XXX temporary implementation, until I find the time to write the
-	 * XXX generic formatting routines in "header.c" --RAM.
-	 */
 
 /* The most a pong can take is "xxx.xxx.xxx.xxx:yyyyy, ", i.e. 23 */
 #define PONG_LEN 23
 #define LINE_LENGTH	72
 
 	if (hcount) {
-		GString *line = g_string_sized_new(PONG_LEN * CONNECT_PONGS_COUNT + 30);
 		gint i;
-		gint curlen;
-		gboolean is_first = TRUE;
-
-		g_string_append(line, field);
-		g_string_append(line, ": ");
-		curlen = line->len;
+		gpointer fmt = header_fmt_make(field,
+			PONG_LEN * CONNECT_PONGS_COUNT + 30);
 
 		for (i = 0; i < hcount; i++) {
 			gchar *ipstr = ip_port_to_gchar(hosts[i].ip, hosts[i].port);
-			gint plen = strlen(ipstr);
-			
-			if (curlen + plen + 2 > LINE_LENGTH) {	/* 2 for ", " */
-				g_string_append(line, ",\r\n    ");
-				curlen = 4;
-			} else if (!is_first) {
-				g_string_append(line, ", ");
-				curlen += 2;
-			}
-			is_first = FALSE;
-			g_string_append(line, ipstr);
-			curlen += plen;
+			header_fmt_append(fmt, ipstr, ", ");
 		}
-		g_string_append(line, "\r\n");
 
-		strncpy(fmt_line, line->str, sizeof(fmt_line)-1);
-		fmt_line[sizeof(fmt_line)-1] = '\0';
-		g_string_free(line, TRUE);
-	} else
-		fmt_line[0] = '\0';		/* Nothing */
+		header_fmt_end(fmt);
+		line = header_fmt_to_gchar(fmt);
+		header_fmt_free(fmt);
+	}
 
 #undef PONG_LEN
 #undef LINE_LENGTH
 
-	return fmt_line;		/* Pointer to static data */
+	return line;		/* Pointer to static data */
 }
 
 /*
