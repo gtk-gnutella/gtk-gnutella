@@ -32,6 +32,7 @@
  *** Proxy protocols
  ***/
 enum {
+    PROXY_NONE = 0,
     PROXY_HTTP = 1,
     PROXY_SOCKSV4 = 4,
     PROXY_SOCKSV5 = 5
