@@ -4742,6 +4742,15 @@ static void download_request(
 	g_assert(ok);
 
 	/*
+	 * Even upon a 2xx reply, a PARQ-compliant server may send us an ID.
+	 * That ID will be used when the server sends us a QUEUE, so it's good
+	 * to remember it.
+	 *		--RAM, 17/05/2003
+	 */
+
+	(void) parq_download_parse_queue_status(d, header);
+
+	/*
 	 * If an URN is present, validate that we can continue this download.
  	 */
  
