@@ -29,6 +29,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "walloc.h"
 #include "filter.h"
 #include "filter_gui.h"
 #include "search_gui.h"
@@ -2218,7 +2219,7 @@ filter_result_t *filter_record(search_t *sch, record_t *rec)
      * Initialize all properties with FILTER_PROP_STATE_UNKNOWN and
      * the props_set count with 0;
      */
-    result = g_new0(filter_result_t, 1);
+    result = walloc0(sizeof(*result));
 
     filtered =  
         ((sch->filter->ruleset != NULL) && 
@@ -2472,7 +2473,7 @@ void filter_free_result(filter_result_t *res)
         };
     }
 
-    G_FREE_NULL(res);
+    wfree(res, sizeof(*res));
 }
 
 /*
