@@ -211,6 +211,8 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[4].type               = PROP_TYPE_GUINT32;
     gui_property->props[4].data.guint32.def   = nodes_col_widths_def;
     gui_property->props[4].data.guint32.value = nodes_col_widths;
+    gui_property->props[4].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[4].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -228,6 +230,8 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[5].type               = PROP_TYPE_GUINT32;
     gui_property->props[5].data.guint32.def   = dl_active_col_widths_def;
     gui_property->props[5].data.guint32.value = dl_active_col_widths;
+    gui_property->props[5].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[5].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -245,6 +249,8 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[6].type               = PROP_TYPE_GUINT32;
     gui_property->props[6].data.guint32.def   = dl_queued_col_widths_def;
     gui_property->props[6].data.guint32.value = dl_queued_col_widths;
+    gui_property->props[6].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[6].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -262,6 +268,8 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[7].type               = PROP_TYPE_GUINT32;
     gui_property->props[7].data.guint32.def   = search_results_col_visible_def;
     gui_property->props[7].data.guint32.value = search_results_col_visible;
+    gui_property->props[7].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[7].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -279,6 +287,8 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[8].type               = PROP_TYPE_GUINT32;
     gui_property->props[8].data.guint32.def   = search_list_col_widths_def;
     gui_property->props[8].data.guint32.value = search_list_col_widths;
+    gui_property->props[8].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[8].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -296,6 +306,8 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[9].type               = PROP_TYPE_GUINT32;
     gui_property->props[9].data.guint32.def   = search_results_col_widths_def;
     gui_property->props[9].data.guint32.value = search_results_col_widths;
+    gui_property->props[9].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[9].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -313,6 +325,8 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[10].type               = PROP_TYPE_GUINT32;
     gui_property->props[10].data.guint32.def   = search_stats_col_widths_def;
     gui_property->props[10].data.guint32.value = search_stats_col_widths;
+    gui_property->props[10].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[10].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -330,6 +344,8 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[11].type               = PROP_TYPE_GUINT32;
     gui_property->props[11].data.guint32.def   = ul_stats_col_widths_def;
     gui_property->props[11].data.guint32.value = ul_stats_col_widths;
+    gui_property->props[11].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[11].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -347,6 +363,8 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[12].type               = PROP_TYPE_GUINT32;
     gui_property->props[12].data.guint32.def   = uploads_col_widths_def;
     gui_property->props[12].data.guint32.value = uploads_col_widths;
+    gui_property->props[12].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[12].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -364,6 +382,8 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[13].type               = PROP_TYPE_GUINT32;
     gui_property->props[13].data.guint32.def   = filter_rules_col_widths_def;
     gui_property->props[13].data.guint32.value = filter_rules_col_widths;
+    gui_property->props[13].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[13].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -381,6 +401,8 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[14].type               = PROP_TYPE_GUINT32;
     gui_property->props[14].data.guint32.def   = filter_filters_col_widths_def;
     gui_property->props[14].data.guint32.value = filter_filters_col_widths;
+    gui_property->props[14].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[14].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -398,6 +420,8 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[15].type               = PROP_TYPE_GUINT32;
     gui_property->props[15].data.guint32.def   = window_coords_def;
     gui_property->props[15].data.guint32.value = window_coords;
+    gui_property->props[15].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[15].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -415,6 +439,8 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[16].type               = PROP_TYPE_GUINT32;
     gui_property->props[16].data.guint32.def   = filter_dlg_coords_def;
     gui_property->props[16].data.guint32.value = filter_dlg_coords;
+    gui_property->props[16].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[16].data.guint32.min   = 0x00000000;
 
 
     /*
