@@ -69,6 +69,7 @@ GHashTable *dl_all_parq_by_id = NULL;
 
 guint parq_max_upload_size = MAX_UPLOAD_QSIZE;
 guint parq_upload_active_size = 20; /* Number of active upload slots per queue*/
+guint parq_upload_ban_timeout = 600;
 static const gchar *file_parq_file = "parq";
 
 GList *ul_parqs = NULL;			/* List of all queued uploads */
@@ -1955,8 +1956,6 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 		 * Bad bad client, re-requested within the Retry-After interval.
 		 * we are not going to allow this download. Wether it could get an
 		 * upload slot or not. Neither are we going to active queue it.
-		 *
-		 * FIXME: Kick host out of queue when it does do it again!
 		 */
 		g_warning(__FILE__ ": Host %s re-requested to soon %d", 
 			  ip_port_to_gchar(u->socket->ip, u->socket->port), 
@@ -1971,7 +1970,7 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 			return FALSE;
 		}
 		
-		parq_ul->ban_timeout = parq_ul->retry;
+		parq_ul->ban_timeout = now + parq_upload_ban_timeout;
 		return FALSE;
 	}
 
@@ -2042,6 +2041,7 @@ void parq_upload_add(gnutella_upload_t *u)
  */
 void parq_upload_remove(gnutella_upload_t *u)
 {
+	time_t now = time((time_t *) NULL);
 	struct parq_ul_queued *parq_ul = NULL;
 
 	g_assert(u != NULL);
@@ -2089,6 +2089,15 @@ void parq_upload_remove(gnutella_upload_t *u)
 				g_list_find(ul_parqs, parq_ul->queue)) + 1,
 			g_list_length(ul_parqs));
 		return;
+	}
+	
+	/*
+	 * When the upload was actively queued, the last_update timestamp was
+	 * set to somewhere in the feature to avoid early removal. However, now we
+	 * do want to remove the upload.
+	 */
+	if (u->status == GTA_UL_QUEUED && u->last_update > now) {
+		u->last_update = parq_ul->updated;
 	}
 	
 	if (dbg)
@@ -2754,7 +2763,7 @@ static void parq_upload_load_queue(void)
 	
 	u = walloc(sizeof(gnutella_upload_t));
 	
-	printf("Loading queue information\n");
+	g_warning(__FILE__ ": Loading queue information\n");
 
 	line[sizeof(line)-1] = '\0';
 

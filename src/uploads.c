@@ -2042,7 +2042,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			g_assert(up);
 			if (up == u)
 				continue;				/* Current upload is already in list */
-			if (!UPLOAD_IS_SENDING(up))
+			if (!UPLOAD_IS_SENDING(up) && up->status != GTA_UL_QUEUED)
 				continue;
 			if (
 				up->socket->ip == s->ip &&
