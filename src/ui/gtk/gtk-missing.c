@@ -972,5 +972,28 @@ widget_force_tooltip(GtkWidget *widget)
 
 #endif
 
+#ifdef USE_GTK1
+void
+gtk_progress_bar_set_text(GtkProgressBar *pb, const gchar *text)
+{
+	const gchar *p = text;
+	gchar buf[1024], *q = buf, c;
+
+	/* Replace '%' with %% */	
+	for (p = text; (c = *p) != '\0'; p++) {
+		/* We need room for %% plus \0, truncation is OK */
+		if (&buf[sizeof buf] - q < 3)
+			break;
+
+		if (c == '%')
+			*q++ = c;
+		*q++ = c;
+	}
+	*q = '\0';
+
+	gtk_progress_set_format_string(GTK_PROGRESS(pb), buf);
+}
+#endif
+
 
 /* vi: set ts=4 sw=4 cindent: */

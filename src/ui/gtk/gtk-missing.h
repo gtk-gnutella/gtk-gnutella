@@ -37,10 +37,9 @@
  * Make Gtk1 and Gtk2 versions useable using the same interface.
  */
 #ifndef USE_GTK2
-#define gtk_progress_bar_set_text(pb, t)            \
-    gtk_progress_set_format_string(GTK_PROGRESS(pb), t)
-#define gtk_progress_bar_set_fraction(pb, t) \
-    gtk_progress_set_percentage(GTK_PROGRESS(pb), t)
+#define gtk_progress_bar_set_fraction(pb, val) \
+    gtk_progress_set_percentage(GTK_PROGRESS(pb), val)
+void gtk_progress_bar_set_text(GtkProgressBar *pb, const gchar *text);
 gint gtk_paned_get_position(GtkPaned *paned);
 #endif
 
@@ -153,3 +152,4 @@ GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb);
 void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra);
 
 #endif	/* _gtk_gtk_missing_h_ */
+/* vi: set ts=4 sw=4 cindent: */
