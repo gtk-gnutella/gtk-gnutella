@@ -192,7 +192,6 @@ typedef struct prop_set {
     prop_set_get_stub_t get_stub;
 } prop_set_t;
 
-
 /*
  * Helpers
  */
@@ -202,6 +201,8 @@ void prop_parse_storage(const gchar *str, gsize size, guint8 *t);
 
 prop_def_t *prop_get_def(prop_set_t *, property_t);
 void prop_free_def(prop_def_t *);
+
+gchar *prop_name(prop_set_t *ps, property_t prop);
 
 void prop_add_prop_changed_listener(
     prop_set_t *, property_t, prop_changed_listener_t, gboolean);

@@ -96,6 +96,7 @@ prop_set_stub_t *[=(. func-prefix)=]_get_stub(void);
  */
 prop_def_t *[=(. func-prefix)=]_get_def(property_t);
 property_t [=(. func-prefix)=]_get_by_name(const gchar *);
+gchar *[=(. func-prefix)=]_name(property_t);
 
 /*
  * Property-change listeners
@@ -187,6 +188,7 @@ void [=(. func-prefix)=]_shutdown(void);
 =]
 
 #include "prop.h"
+#include "eval.h"
 #include "[=(sprintf "%s.h" (. set-name-down))=]"
 
 
@@ -363,7 +365,7 @@ FOR prop =][=
     [=(. current-prop)=].data.string.value  = [=(. prop-var)=];
     if ([=(. current-prop)=].data.string.def) {
         *[=(. current-prop)=].data.string.value =
-            g_strdup(*[=(. current-prop)=].data.string.def);
+            g_strdup(eval_subst(*[=(. current-prop)=].data.string.def));
     }[= 
     ESAC =][=
 ENDFOR prop=]
@@ -489,6 +491,11 @@ guint8 *[=(. func-prefix)=]_get_storage(property_t p, guint8 *t, gsize l)
 gchar *[=(. func-prefix)=]_to_string(property_t prop)
 {
     return prop_to_string([=(. prop-set)=], prop);
+}
+
+gchar *[=(. func-prefix)=]_name(property_t p)
+{
+    return prop_name([=(. prop-set)=], p);
 }
 
 property_t [=(. func-prefix)=]_get_by_name(const gchar *name)

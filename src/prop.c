@@ -748,6 +748,16 @@ gchar *prop_get_string(prop_set_t *ps, property_t prop, gchar *t, guint32 size)
     return target;
 }
 
+/*
+ * prop_name
+ *
+ * Fetch the property name in the config files.
+ */
+gchar *prop_name(prop_set_t *ps, property_t prop)
+{
+	return PROP(ps,prop).name;
+}
+
 /* 
  * prop_to_string:
  *
