@@ -45,6 +45,7 @@
 #include "search_stats.h"
 #include "upload_stats.h"
 #include "pcache.h"
+#include "gtk-missing.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 #define EXIT_GRACE				30	/* Seconds to wait before exiting */
@@ -75,8 +76,8 @@ static gboolean exiting = FALSE;
 void gtk_gnutella_exit(gint n)
 {
 	time_t now = time((time_t *) NULL);
-    time_t tick;
-    gchar tmp[256];
+	time_t tick;
+	gchar tmp[256];
 
 	if (exiting)
 		return;			/* Already exiting, must be in loop below */
@@ -87,12 +88,13 @@ void gtk_gnutella_exit(gint n)
 	upload_close();		/* Done before config_close() for stats update */
 	download_close();
 
-    /*
-     * Make sure the gui writes config variabes it owns but that can't 
-     * be updated via callbacks.
-     *      --BLUE, 16/05/2002
-     */
-    gui_shutdown();
+	/*
+	 * Make sure the gui writes config variabes it owns but that can't 
+	 * be updated via callbacks.
+	 *      --BLUE, 16/05/2002
+	 */
+
+	gui_shutdown();
 
 	if (hosts_idle_func)
 		gtk_idle_remove(hosts_idle_func);
@@ -109,19 +111,19 @@ void gtk_gnutella_exit(gint n)
 	 * Wait at most EXIT_GRACE seconds, so that BYE messages can go through.
 	 */
 
-    gtk_widget_hide(main_window);
-    gtk_widget_show(shutdown_window);
+	gtk_widget_hide(main_window);
+	gtk_widget_show(shutdown_window);
 
 	while (
 		node_bye_pending() && 
 		(tick = time((time_t *) NULL)) - now < EXIT_GRACE
 	) {
 		g_snprintf(tmp, sizeof(tmp), "%d seconds", 
-            EXIT_GRACE - (gint)difftime(tick,now));
+			EXIT_GRACE - (gint)difftime(tick,now));
 
-        gtk_label_set(GTK_LABEL(label_shutdown_count),tmp);
-
+		gtk_label_set(GTK_LABEL(label_shutdown_count),tmp);
         gtk_main_flush();
+
 		usleep(200000);					/* 200 ms */
 	}
 
@@ -159,7 +161,7 @@ static void init_constants(void)
 
 	version_string = g_strdup(buf);
 
-        start_time = time((time_t *) NULL);
+	start_time = time((time_t *) NULL);
 	start_rfc822_date = g_strdup(date_to_rfc822_gchar(start_time));
 }
 
@@ -172,13 +174,13 @@ static gboolean main_timer(gpointer p)
 {
 	time_t now = time((time_t *) NULL);
 
-    bsched_timer();				    /* Scheduling update */
+	bsched_timer();					/* Scheduling update */
 	host_timer();					/* Host connection */
 	node_timer(now);				/* Node timeouts */
-    if (!exiting) {
-        download_timer(now);  	    /* Download timeouts */
-        upload_timer(now);			/* Upload timeouts */
-    }
+	if (!exiting) {
+		download_timer(now);  	    /* Download timeouts */
+		upload_timer(now);			/* Upload timeouts */
+	}
 	socket_monitor_incoming();		/* Expire connecting sockets */
 	pcache_possibly_expired(now);	/* Expire pong cache */
 
@@ -186,16 +188,16 @@ static gboolean main_timer(gpointer p)
 	 * GUI update
 	 */
 
-    if (!exiting) {
-        gui_statusbar_clear_timeouts(now);
-        gui_update_global();
+	if (!exiting) {
+		gui_statusbar_clear_timeouts(now);
+		gui_update_global();
 
-        /* Update for things that change slowly */
-        if (main_slow_update++ > SLOW_UPDATE_PERIOD) {
-            main_slow_update = 0;
-            slow_main_timer(now);
-        }
-    }
+		/* Update for things that change slowly */
+		if (main_slow_update++ > SLOW_UPDATE_PERIOD) {
+			main_slow_update = 0;
+			slow_main_timer(now);
+		}
+	}
 
 	return TRUE;
 }
@@ -216,13 +218,13 @@ gint main(gint argc, gchar ** argv)
 		NULL
 	};
 
-    const gint menutabs[] = { 0, 1, 2, 3, 4, 5, 6, 7, -1 };
+	const gint menutabs[] = { 0, 1, 2, 3, 4, 5, 6, 7, -1 };
 
 	gchar mtmp[1024];
 
 	gint optimal_width;
-    GtkCTreeNode * parent_node = NULL;    
-    GtkCTreeNode * last_node = NULL;
+	GtkCTreeNode * parent_node = NULL;    
+	GtkCTreeNode * last_node = NULL;
 
 
 	g_assert(sizeof(menus) / sizeof(menus[0]) - 2 == NOTEBOOK_MAIN_IDX_MAX);
@@ -242,7 +244,7 @@ gint main(gint argc, gchar ** argv)
 	add_pixmap_directory(PACKAGE_SOURCE_DIR "/pixmaps");
 
 	main_window = create_main_window();
-    shutdown_window = create_shutdown_window();
+	shutdown_window = create_shutdown_window();
 
 	/* Our inits */
 
@@ -251,7 +253,7 @@ gint main(gint argc, gchar ** argv)
 	config_init();
 	host_init();
 	gmsg_init();
-    bsched_init();
+	bsched_init();
 	network_init();
 	routing_init();
 	filters_init();			/* Must come before search_init() for retrieval */
