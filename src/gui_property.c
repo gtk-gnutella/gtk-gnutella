@@ -114,6 +114,8 @@ gboolean jump_to_downloads     = TRUE;
 gboolean jump_to_downloads_def = TRUE;
 gboolean show_search_results_settings     = FALSE;
 gboolean show_search_results_settings_def = FALSE;
+gboolean search_autoselect_fuzzy     = FALSE;
+gboolean search_autoselect_fuzzy_def = FALSE;
 
 static prop_set_t *gui_property = NULL;
 
@@ -846,6 +848,23 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[39].type               = PROP_TYPE_BOOLEAN;
     gui_property->props[39].data.boolean.def   = &show_search_results_settings_def;
     gui_property->props[39].data.boolean.value = &show_search_results_settings;
+
+
+    /*
+     * PROP_SEARCH_AUTOSELECT_FUZZY:
+     *
+     * General data:
+     */
+    gui_property->props[40].name = "search_autoselect_fuzzy";
+    gui_property->props[40].desc = "Use fuzzy name match for autoselection";
+    gui_property->props[40].prop_changed_listeners = NULL;
+    gui_property->props[40].save = TRUE;
+    gui_property->props[40].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[40].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[40].data.boolean.def   = &search_autoselect_fuzzy_def;
+    gui_property->props[40].data.boolean.value = &search_autoselect_fuzzy;
     return gui_property;
 }
 

@@ -405,3 +405,12 @@ prop = {
         default = FALSE;
     };
 };
+
+prop = {
+    name = "search_autoselect_fuzzy";
+    desc = "Use fuzzy name match for autoselection";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};

@@ -68,6 +68,7 @@ extern gboolean progressbar_bws_gout_avg;
 extern gboolean search_autoselect_ident;
 extern gboolean jump_to_downloads;
 extern gboolean show_search_results_settings;
+extern gboolean search_autoselect_fuzzy;
 
 
 prop_set_t *gui_prop_init(void);
