@@ -46,12 +46,12 @@ void gtk_gnutella_exit(gint n)
 	search_shutdown();
 	share_close();
 	host_close();
-	config_close();
 	node_close();
 	routing_close();
 	download_close();
 	upload_close();
 	gui_close();
+	config_close();
 	g_free(version_string);
 	g_free(start_rfc822_date);
 
