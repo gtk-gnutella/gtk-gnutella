@@ -164,6 +164,9 @@ void vmsg_handle(struct gnutella_node *n)
 
 	if (vm == NULL) {
 		gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
+		if (dbg)
+			g_warning("unknown vendor message: %s vendor=%s id=%u version=%u",
+				gmsg_infostr(&n->header), vendor_code_str(vendor), id, version);
 		return;
 	}
 
