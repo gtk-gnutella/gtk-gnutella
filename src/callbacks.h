@@ -78,6 +78,7 @@ gboolean on_clist_downloads_queue_button_press_event (GtkWidget *widget, GdkEven
 void on_button_downloads_abort_clicked (GtkButton *button, gpointer user_data); 
 void on_button_downloads_clear_completed_clicked (GtkButton *button, gpointer user_data);
 void on_checkbutton_downloads_auto_clear_toggled (GtkToggleButton *togglebutton, gpointer user_data);
+void on_checkbutton_downloads_delete_aborted_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_clist_downloads_click_column (GtkCList *clist, gint column, gpointer user_data); 
 void on_clist_downloads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_clist_downloads_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
@@ -135,16 +136,15 @@ gboolean on_entry_config_socks_password_focus_out_event (GtkWidget *widget, GdkE
 gboolean on_entry_config_socks_port_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_config_socks_username_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_config_speed_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
+gboolean on_entry_config_port_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 void on_button_config_add_dir_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_move_path_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_rescan_dir_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_save_path_clicked (GtkButton *button, gpointer user_data);
 void on_button_config_save_path_clicked (GtkButton *button, gpointer user_data); 
-void on_button_config_update_port_clicked (GtkButton *button, gpointer user_data); 
 void on_checkbutton_config_force_ip_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_proxy_connections_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_config_proxy_auth_toggled(GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_config_throttle_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_entry_config_extensions_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_config_extensions_changed (GtkEditable *editable, gpointer user_data);
 void on_entry_config_force_ip_activate (GtkEditable *editable, gpointer user_data); 
@@ -155,7 +155,6 @@ void on_entry_config_myttl_activate (GtkEditable *editable, gpointer user_data);
 void on_entry_config_myttl_changed (GtkEditable *editable, gpointer user_data);
 void on_entry_config_path_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_config_port_activate (GtkEditable *editable, gpointer user_data); 
-void on_entry_config_port_changed (GtkEditable *editable, gpointer user_data);
 void on_entry_config_search_items_activate (GtkEditable *editable, gpointer user_data);
 void on_entry_config_socks_host_activate (GtkEditable *editable, gpointer user_data);
 void on_entry_config_socks_password_activate (GtkEditable *editable, gpointer user_data);
@@ -214,13 +213,17 @@ void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_
 /***
  *** popup-downloads
  ***/
-void on_popup_downloads_kill_activate (GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_push_activate (GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_abort_named_activate (GtkMenuItem *menuitem, gpointer user_data); 
-void on_popup_downloads_abort_host_activate (GtkMenuItem *menuitem, gpointer user_data); 
-void on_popup_downloads_remove_file_activate (GtkMenuItem *menuitem, gpointer user_data); 
-void on_popup_downloads_search_again_activate (GtkMenuItem *menuitem, gpointer user_data); 
-void on_popup_downloads_queue_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_downloads_kill_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_downloads_push_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_downloads_abort_named_activate(GtkMenuItem *menuitem, gpointer user_data); 
+void on_popup_downloads_abort_host_activate(GtkMenuItem *menuitem, gpointer user_data); 
+void on_popup_downloads_remove_file_activate(GtkMenuItem *menuitem, gpointer user_data); 
+void on_popup_downloads_search_again_activate(GtkMenuItem *menuitem, gpointer user_data); 
+void on_popup_downloads_queue_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_downloads_copy_url_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_downloads_selection_get(GtkWidget * widget, GtkSelectionData * data, 
+                                      guint info, guint time, gpointer user_data);
+gint on_popup_downloads_selection_clear_event(GtkWidget * widget, GdkEventSelection *event);
 
 
 
