@@ -788,6 +788,8 @@ static void gwc_host_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 {
 	http_async_log_error(handle, type, v);
 	hostfile_running = FALSE;
+
+	clear_current_url();				/* This webcache is not good */
 }
 
 /*
