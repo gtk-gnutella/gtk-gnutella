@@ -52,6 +52,8 @@ struct dl_file_info {
 	GSList *sources;        /* list of sources (struct download *)*/
 	gint32 lifecount;		/* Amount of "alive" downloads referencing us */
 	time_t stamp;			/* Time stamp */
+	time_t ctime;			/* Creation time stamp */
+	time_t ntime;			/* Last time a new source was added */
 	time_t last_flush;		/* When last flush to disk occurred */
 	time_t last_dmesh;		/* When last dmesh query was used */
 	guint32 done;			/* Total number of bytes completed */
@@ -128,8 +130,8 @@ void file_info_close(void);
 void file_info_try_to_swarm_with(
 	gchar *file_name, guint32 idx, guint32 ip, guint32 port, gchar *sha1);
 void file_info_spot_completed_orphans(void);
-void file_info_add_source(
-    struct dl_file_info *fi, struct download *dl);
+void file_info_add_source(struct dl_file_info *fi, struct download *dl);
+void file_info_add_new_source(struct dl_file_info *fi, struct download *dl);
 void file_info_remove_source(
     struct dl_file_info *fi, struct download *dl, gboolean discard);
 void file_info_timer(void);
