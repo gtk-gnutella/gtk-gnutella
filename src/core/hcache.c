@@ -1145,7 +1145,7 @@ static void hcache_free(hostcache_t *hc)
 struct read_ctx {
 	gint magic;						/* Magic number */
 	FILE *fd;						/* File descriptor to read from */
-	hostcache_t *hc;			/* Hostcache to fill */
+	hostcache_t *hc;				/* Hostcache to fill */
 };
 
 /**
@@ -1208,9 +1208,8 @@ static bgret_t read_step(gpointer h, gpointer u, gint ticks)
 			guint32 ip;
 			guint16 port;
 
-			if (gchar_to_ip_port(h_tmp, &ip, &port)) {
+			if (gchar_to_ip_port(h_tmp, &ip, &port))
                 hcache_add(hc->type, ip, port, "on-disk cache");
-			}
 		} else
 			goto done;
 	}
@@ -1271,7 +1270,8 @@ static void hcache_retrieve(hostcache_t *hc, gchar *filename)
     gnet_prop_set_boolean_val(hc->reading, TRUE);
 
 	bg_reader[hc->type] = bg_task_create(
-		hc->type == HCACHE_FRESH_ANY ? "Hostcache reading" : "Ultracache reading",
+		hc->type == HCACHE_FRESH_ANY ?
+			"Hostcache reading" : "Ultracache reading",
 		&step, 1, rctx, read_ctx_free, bg_reader_done, NULL);
 }
 
