@@ -313,8 +313,8 @@ gboolean download_require_server_name     = TRUE;
 gboolean download_require_server_name_def = TRUE;
 guint32  max_ultrapeers     = 3;
 guint32  max_ultrapeers_def = 3;
-guint32  max_leaves     = 100;
-guint32  max_leaves_def = 100;
+guint32  max_leaves     = 48;
+guint32  max_leaves_def = 48;
 guint32  search_handle_ignored_files     = 0;
 guint32  search_handle_ignored_files_def = 0;
 prop_def_choice_t search_handle_ignored_files_choices[] = { 
@@ -378,8 +378,8 @@ guint32  clock_skew     = 0;
 guint32  clock_skew_def = 0;
 gboolean node_monitor_unstable_ip     = TRUE;
 gboolean node_monitor_unstable_ip_def = TRUE;
-gboolean node_monitor_unstable_servents     = TRUE;
-gboolean node_monitor_unstable_servents_def = TRUE;
+gboolean node_monitor_unstable_servents     = FALSE;
+gboolean node_monitor_unstable_servents_def = FALSE;
 gboolean dl_remove_file_on_mismatch     = FALSE;
 gboolean dl_remove_file_on_mismatch_def = FALSE;
 gchar   *server_hostname     = "";
@@ -2974,7 +2974,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[134].name = "max_leaves";
-    gnet_property->props[134].desc = _("Maximum amount of leaves we can accept.");
+    gnet_property->props[134].desc = _("Maximum amount of leaves we can accept.  To be promoted Ultra, you should reserve 64 bytes of bandwidth per leave");
     gnet_property->props[134].ev_changed = event_new("max_leaves_changed");
     gnet_property->props[134].save = TRUE;
     gnet_property->props[134].vector_size = 1;

@@ -1604,10 +1604,11 @@ prop = {
 
 prop = {
     name = "max_leaves";
-    desc = "Maximum amount of leaves we can accept.";
+    desc = "Maximum amount of leaves we can accept.  To be promoted Ultra, "
+		"you should reserve 64 bytes of bandwidth per leave";
     type = guint32;
     data = {
-        default = 100;
+        default = 48;
         min = 5;
         max = 1000;
     };
@@ -1896,7 +1897,7 @@ prop = {
 		"already keeps track of unstable IP addresses.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 
