@@ -110,8 +110,10 @@ void search_gui_download_files(void);
 
 void search_gui_sort_column(search_t *search, gint column);
 
+/*
 gint search_gui_compare_records(
 	gint sort_col, const gui_record_t *g1, const gui_record_t *g2);
+*/
 
 void search_gui_add_record(
 	search_t *sch, record_t *rc, GString *vinfo, GdkColor *fg, GdkColor *bg);
