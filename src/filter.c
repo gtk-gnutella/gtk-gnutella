@@ -372,9 +372,6 @@ void filter_open_dialog() {
         GList *ruleset;
         gboolean enabled;
 
-        if (filter == filter_return)
-            continue;
-        
         shadow = shadow_find(filter);
         ruleset = (shadow != NULL) ? shadow->current : filter->ruleset;
         enabled = (shadow != NULL) ? 
@@ -2092,6 +2089,7 @@ static int filter_apply
             if (r->target == filter_return) {
                 abort = TRUE;
                 r->match_count ++;
+                r->target->match_count ++;
             } else
             if ((r->target == filter_show) && 
                 (!res->props[FILTER_PROP_DISPLAY].state)) {
