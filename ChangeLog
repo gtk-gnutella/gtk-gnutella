@@ -1,5 +1,12 @@
 # since last version
 
+- (2003.03.26 - RAM)
+ * Split parq_upload_request() into two to avoid assertion failures.
+ * New parq_upload_get() call to return an opaque PARQ slot for uploads.
+ * Moved down inclusion of "gnutella.h" to avoid warnings on MIN/MAX redefine.
+ * Integrated PARQ patch #12 [From Jeroen Asselman].
+ * Fixed function declarations to avoid compiler warnings in downloads.c.
+
 - (2003.03.25 - RAM)
  * Fixed stupid trailing char truncation when quoting download mesh URLs.
  * Integrated icon patch #2 [From Michael Gray].
