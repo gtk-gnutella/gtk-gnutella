@@ -1254,7 +1254,7 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	} else {
 		mark_search_sent_to_connected_nodes(sch);
 		if (qhv != NULL) {
-			GSList *nodes = qrt_build_query_target(qhv, 0, NULL);
+			GSList *nodes = qrt_build_query_target(qhv, 0, my_ttl, NULL);
 			gmsg_search_sendto_all(nodes, sch->search_handle,
 				(gchar *) m, size);
 			g_slist_free(nodes);
