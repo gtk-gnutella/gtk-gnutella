@@ -637,7 +637,7 @@ void header_fmt_append(gpointer o, gchar *str, gchar *separator)
 				g_string_append_c(hf->header, *p);
 		}
 
-		g_string_append(hf->header, "\r\n    ");	/* Includes continuation */
+		g_string_append(hf->header, "\r\n\t");	/* Includes continuation */
 		curlen = 4;
 	} else if (hf->data_emitted) {
 		g_string_append(hf->header, separator);
