@@ -39,5 +39,6 @@ const gchar *horizon_stat_str(hsep_triple *table, gint row,
 
 int msg_type_str_size();
 void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples);
+void gnet_stats_gui_get_non_hsep_triple(hsep_triple *triple);
 
 #endif /* _gnet_stats_gui_common_h_ */

@@ -26,6 +26,7 @@
 #include "config.h"
 
 #include "gnet_stats_gui_common.h"
+#include "nodes.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -179,7 +180,9 @@ const gchar *horizon_stat_str(hsep_triple *table, gint row,
  *
  * Updates the horizon statistics in the statusbar.
  * This is an event-driven callback called from the HSEP code
- * using the event listener framework.
+ * using the event listener framework. In addition to taking into account
+ * the HSEP information, the number of established non-HSEP nodes and
+ * their library size (if provided) are added to the values displayed.
  */
 
 void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
@@ -187,32 +190,86 @@ void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 	const guint32 hops = 4U;      /* must be <= HSEP_N_MAX */
 	gchar s[64];
 	guint64 val;
+	hsep_triple other;
 
 	if (triples <= hops)     /* should not happen */
 	    return;
 	g_assert((gint32) triples > 0);
+
+	gnet_stats_gui_get_non_hsep_triple(&other);
 
 	/*
 	 * Update the 3 labels in the statusbar with the horizon values for a
 	 * distance of 'hops' hops.
 	 */
 
-	val = table[hops][HSEP_IDX_NODES];
+	val = table[hops][HSEP_IDX_NODES] + other[HSEP_IDX_NODES];
 	gm_snprintf(s, sizeof(s),
 	            "%llu %s", val, val == 1 ? _("node") : _("nodes"));
 	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
 	                   "label_statusbar_horizon_node_count")), s);
 
-	val = table[hops][HSEP_IDX_FILES];
+	val = table[hops][HSEP_IDX_FILES] + other[HSEP_IDX_FILES];
 	gm_snprintf(s, sizeof(s), "%llu %s",
 	            val, val == 1 ? _("file") : _("files"));
 	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
 	                   "label_statusbar_horizon_file_count")), s);
 
-	val = table[hops][HSEP_IDX_KIB];
+	val = table[hops][HSEP_IDX_KIB] + other[HSEP_IDX_KIB];
 	gm_snprintf(s, sizeof(s), "%s", short_kb_size64(val));
 	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
 	                   "label_statusbar_horizon_kb_count")), s);
+}
+
+/*
+ * gnet_stats_gui_get_non_hsep_triple
+ *
+ * Gets a HSEP-compatible triple for all non-HSEP nodes, which
+ * can be added to the displayed horizon stats values. The
+ * number of nodes is just the number of established non-HSEP
+ * connections, the number of shared files and KiB is the
+ * sum of the PONG-based library sizes of those connections.
+ * Note that this takes only direct neighbor connections into
+ * account. Also note that the shared library size in KiB is
+ * not accurate due to Gnutella protocol limitations.
+ *
+ * The determined values are stored in the provided triple address.
+ */
+
+void gnet_stats_gui_get_non_hsep_triple(hsep_triple *triple)
+{
+	GSList *sl;
+	guint64 other_nodes = 0;      /* # of other nodes */
+	guint64 other_files = 0;      /* what other nodes share (files) */
+	guint64 other_kib = 0;        /* what other nodes share (KiB) */
+
+	g_assert(triple);
+
+	/*
+	 * Iterate over all established non-HSEP nodes and count these nodes and
+	 * sum up what they share (PONG-based library size).
+	 */
+
+	for (sl = (GSList *) node_all_nodes() ; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *n = (struct gnutella_node *) sl->data;
+		gnet_node_status_t status;
+
+		if ((!NODE_IS_ESTABLISHED(n)) || n->attrs & NODE_A_CAN_HSEP)
+			continue;
+
+		other_nodes++;
+
+		node_get_status(n->node_handle, &status);
+
+		if (status.gnet_info_known) {
+			other_files += status.gnet_files_count;
+			other_kib += status.gnet_kbytes_count;
+		}
+	}
+
+	triple[0][HSEP_IDX_NODES] = other_nodes;
+	triple[0][HSEP_IDX_FILES] = other_files;
+	triple[0][HSEP_IDX_KIB] = other_kib;
 }
 
 /* vi: set ts=4: */
