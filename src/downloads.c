@@ -4055,15 +4055,15 @@ void download_send_request(struct download *d)
 	 *
 	 *		--RAM, 14/06/2002
 	 *
-	 * If `record_index' is 0, we only have the /uri-res/N2R? query, and
-	 * therefore we don't flag the download with DL_F_URIRES: if the server
+	 * If `record_index' is URN_INDEX, we only have the /uri-res/N2R? query,
+	 * and therefore we don't flag the download with DL_F_URIRES: if the server
 	 * does not understand those URLs, we won't have any fallback to use.
 	 *
 	 *		--RAM, 20/08/2002
 	 */
 
 	if (d->sha1) {
-		if (d->record_index == 0)
+		if (d->record_index == URN_INDEX)
 			n2r = TRUE;
 		else if (!d->push && !(d->server->attrs & DLS_A_NO_URIRES)) {
 			d->flags |= DL_F_URIRES;
