@@ -6,6 +6,7 @@
 #include "routing.h"
 #include "hosts.h"
 #include "misc.h"
+#include "gmsg.h"
 
 #include <stdarg.h>
 #include <assert.h>
@@ -189,7 +190,7 @@ void routing_init(void)
 	patch_muid_for_modern_node(guid);
 
 	for (i = 0; i < 256; i++)
-		debug_msg[i] = "UNKNOWN MSG	";
+		debug_msg[i] = "UNKN ";
 
 	debug_msg[GTA_MSG_INIT]           = "Ping ";
 	debug_msg[GTA_MSG_INIT_RESPONSE]  = "Pong ";
@@ -441,11 +442,13 @@ static gboolean find_message(guchar *muid, guint8 function, struct message **m)
  *
  * Forwards message to one node if `target' is non-NULL, or to all nodes but
  * the sender otherwise.  If we kick the node, then *node is set to NULL.
+ * The message is not physically sent yet, but the `dest' structure is filled
+ * with proper routing information.
  *
  * Returns whether we should handle the message after routing.
  */
 static gboolean forward_message(struct gnutella_node **node,
-	struct gnutella_node *target)
+	struct gnutella_node *target, struct route_dest *dest)
 {
 	struct gnutella_node *sender = *node;
 
@@ -465,7 +468,7 @@ static gboolean forward_message(struct gnutella_node **node,
 		/* XXX max_high_ttl_radius & max_high_ttl_msg XXX */
 
 		sender->n_hard_ttl++;
-		sender->dropped++;
+		sender->rx_dropped++;
 		dropped_messages++;
 
 		if (sender->header.hops <= max_high_ttl_radius &&
@@ -507,17 +510,17 @@ static gboolean forward_message(struct gnutella_node **node,
 	if (!--sender->header.ttl) {
 		/* TTL expired, message stops here */
 		routing_log("(TTL expired)\n");
-		sender->dropped++;
+		sender->rx_dropped++;
 		dropped_messages++;
 	} else {			/* Forward it to all others nodes */
 		if (target) {
 			routing_log("-> sendto_one(%s)\n", node_ip(target));
-			sendto_one(target, (guchar *) & (sender->header),
-				sender->data, sender->size + sizeof(struct gnutella_header));
+			dest->type = ROUTE_ONE;
+			dest->node = target;
 		} else {
 			routing_log("-> sendto_all_but_one()\n");
-			sendto_all_but_one(sender, (guchar *) & (sender->header),
-				sender->data, sender->size + sizeof(struct gnutella_header));
+			dest->type = ROUTE_ALL_BUT_ONE;
+			dest->node = sender;
 		}
 	}
 
@@ -525,10 +528,20 @@ static gboolean forward_message(struct gnutella_node **node,
 }
 
 /*
- * Main routing function
+ * route_message
+ *
+ * Main route computation function.
+ *
+ * Source of message is passed by reference as `node', because it can be
+ * nullified when the node is disconnected from.
+ *
+ * The destination of the message is computed in `dest', but the message is
+ * not physically sent.  The gmsg_sendto_route() will have to be called
+ * for that.
+ *
+ * Returns whether the message is to be handled locally.
  */
-
-gboolean route_message(struct gnutella_node **node)
+gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 {
 	static struct gnutella_node *sender;	/* The node that sent the message */
 	struct message *m;			/* The copy of the message we've already seen */
@@ -540,6 +553,7 @@ gboolean route_message(struct gnutella_node **node)
 	struct gnutella_node *found;
 
 	sender = (*node);
+	dest->type = ROUTE_NONE;
 
 	/* if we haven't allocated routing data for this node yet, do so */
 	if (sender->routing_data == NULL)
@@ -604,7 +618,7 @@ gboolean route_message(struct gnutella_node **node)
 
 			routing_log("[ ] no request matching the reply !\n");
 
-			sender->dropped++;
+			sender->rx_dropped++;
 			dropped_messages++;
 			sender->n_bad++;	/* Node shouldn't have forwarded this message */
 
@@ -623,7 +637,7 @@ gboolean route_message(struct gnutella_node **node)
 				handle_it ? 'H' : ' ');
 
 			routing_errors++;
-			sender->dropped++;
+			sender->rx_dropped++;
 			dropped_messages++;
 
 			return handle_it;
@@ -673,7 +687,7 @@ gboolean route_message(struct gnutella_node **node)
 		if (!--sender->header.ttl) {
 			/* TTL expired, message stops here */
 			routing_log("(TTL expired)\n");
-			sender->dropped++;
+			sender->rx_dropped++;
 			dropped_messages++;
 			return handle_it;
 		}
@@ -684,8 +698,8 @@ gboolean route_message(struct gnutella_node **node)
 
 		routing_log("-> sendto_one(%s)\n", node_ip(found));
 
-		sendto_one(found, (guchar *) & (sender->header), sender->data,
-				   sender->size + sizeof(struct gnutella_header));
+		dest->type = ROUTE_ONE;
+		dest->node = found;
 
 		return handle_it;
 	} else {
@@ -699,7 +713,7 @@ gboolean route_message(struct gnutella_node **node)
 			 */
 
 			dropped_messages++;
-			sender->dropped++;
+			sender->rx_dropped++;
 
 			if (m->nodes && node_sent_message(sender, m)) {
 				/* The same node has sent us a message twice ! */
@@ -783,21 +797,47 @@ gboolean route_message(struct gnutella_node **node)
 
 				routing_errors++;
 				dropped_messages++;
-				sender->dropped++;
+				sender->rx_dropped++;
 
 				return FALSE;
 			}
 
 			forward_message(node,
-				((struct route_data *) m->nodes->data)->node);
+				((struct route_data *) m->nodes->data)->node, dest);
 
 			return FALSE;		/* We are not the target, don't handle it */
 		} else {
 			/*
 			 * The message is a request to broadcast.
+			 *
+			 * If the node is flow-controlled on TX, then it is preferable
+			 * to drop queries immediately: the traffic the replies may
+			 * generate could pile up and make the queue reach its maximum
+			 * size.  It is hoped that the flow control condition will not
+			 * last too long.
+			 *
+			 * We do that here, at the lowest level, because we do not
+			 * want to record the query as seen: if it comes from another
+			 * route, we'll handle it.
+			 *
+			 *		--RAM, 02/02/2002
 			 */
 
-			return forward_message(node, NULL);		/* Broadcast */
+			if (
+				sender->header.function == GTA_MSG_SEARCH &&
+				NODE_IN_TX_FLOW_CONTROL(sender)
+			) {
+				if (dbg > 3)
+					gmsg_log_dropped(&sender->header,
+						"from %s, in TX flow-control", node_ip(sender));
+
+				dropped_messages++;
+				sender->rx_dropped++;
+
+				return FALSE;
+			}
+
+			return forward_message(node, NULL, dest);		/* Broadcast */
 		}
 	}
 
@@ -823,72 +863,6 @@ struct gnutella_node *route_towards_guid(guchar *guid)
 		return NULL;
 
 	return ((struct route_data *) m->nodes->data)->node;
-}
-
-/*
- * Sending of messages
- */
-
-/* Send a message to a specific connected node */
-
-void sendto_one(struct gnutella_node *n, guchar * msg, guchar * data,
-				guint32 size)
-{
-	g_return_if_fail(n);
-	g_return_if_fail(msg);
-	g_return_if_fail(size > 0);
-
-
-	if (!NODE_IS_CONNECTED(n) || NODE_IS_PONGING_ONLY(n))
-		return;
-
-	if (!data || size == sizeof(struct gnutella_header)) {
-		if (node_enqueue(n, msg, size)) {
-			node_enqueue_end_of_packet(n);
-		}
-	} else {
-		if (node_enqueue(n, msg, sizeof(struct gnutella_header))) {
-			if (node_enqueue
-				(n, data, size - sizeof(struct gnutella_header))) {
-				node_enqueue_end_of_packet(n);
-			}
-		}
-	}
-}
-
-/* Send a message to all connected nodes but one */
-
-void sendto_all_but_one(struct gnutella_node *o, guchar * msg,
-						guchar * data, guint32 size)
-{
-	GSList *l;
-	struct gnutella_node *n;
-
-	g_return_if_fail(o);
-	g_return_if_fail(msg);
-	g_return_if_fail(size > 0);
-
-	for (l = sl_nodes; l; l = l->next) {
-		n = (struct gnutella_node *) l->data;
-		if (n != o)
-			sendto_one(n, msg, data, size);
-	}
-}
-
-/* Send a message to all connected nodes */
-
-void sendto_all(guchar * msg, guchar * data, guint32 size)
-{
-	GSList *l;
-	struct gnutella_node *n;
-
-	g_return_if_fail(msg);
-	g_return_if_fail(size > 0);
-
-	for (l = sl_nodes; l; l = l->next) {
-		n = (struct gnutella_node *) l->data;
-		sendto_one(n, msg, data, size);
-	}
 }
 
 /* vi: set ts=4: */

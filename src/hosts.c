@@ -13,10 +13,11 @@
 #include "gui.h"
 #include "misc.h"
 #include "sockets.h"
-#include "routing.h"
 #include "hosts.h"
 #include "nodes.h"
 #include "share.h" /* For files_scanned and kbytes_scanned. */
+#include "routing.h"
+#include "gmsg.h"
 
 GList *sl_caught_hosts = NULL;				/* Reserve list */
 static GList *sl_valid_hosts = NULL;		/* Validated hosts */
@@ -643,19 +644,13 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
 
 	if (n) {
 		n->n_ping_sent++;
-		sendto_one(n, (guchar *) & m, NULL, sizeof(struct gnutella_msg_init));
+		gmsg_sendto_one(n, (guchar *) &m, sizeof(struct gnutella_msg_init));
 	} else {
 		GSList *l;
 
 		/*
-		 * We don't call sendto_all() because we wish to count the amount
-		 * of pings sent.
-		 *
-		 * XXX what we really need is a structure per node where we can
-		 * XXX record the amount of valid messages sent and received.  Then
-		 * XXX we'll be able to factorize counting in sendto_one().
-		 *
-		 *		--RAM, 02/01/2002
+		 * XXX Have to loop to count pings sent.
+		 * XXX Need to do that more generically, to factorize code.
 		 */
 
 		for (l = sl_nodes; l; l = l->next) {
@@ -663,9 +658,10 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
 			if (NODE_IS_PONGING_ONLY(n) || !NODE_IS_CONNECTED(n))
 				continue;
 			n->n_ping_sent++;
-			sendto_one(n, (guchar *) & m, NULL,
-				sizeof(struct gnutella_msg_init));
 		}
+
+		gmsg_sendto_all(sl_nodes, (guchar *) &m,
+			sizeof(struct gnutella_msg_init));
 	}
 
 	register_ping_req(m.header.muid);
@@ -721,7 +717,7 @@ static void send_pong(struct gnutella_node *n,
 
 	r = build_pong_msg(hops, ttl, muid, ip, port, files, kbytes);
 	n->n_pong_sent++;
-	sendto_one(n, (guchar *) r, NULL, sizeof(*r));
+	gmsg_sendto_one(n, (guchar *) r, sizeof(*r));
 }
 
 /*
@@ -1035,6 +1031,8 @@ static void clear_recent_pongs(void)
  */
 void pcache_outgoing_connection(struct gnutella_node *n)
 {
+	g_assert(NODE_IS_CONNECTED(n));
+
 	if (
 		connected_nodes() < up_connections ||
 		g_hash_table_size(ht_known_hosts) < MIN_RESERVE_SIZE
@@ -1375,6 +1373,8 @@ void pcache_ping_received(struct gnutella_node *n)
 	gint h;
 	guint8 ttl;
 
+	g_assert(NODE_IS_CONNECTED(n));
+
 	/*
 	 * Handle "alive" pings and "crawler" pings specially.
 	 * Besides, we always accept them.
@@ -1414,7 +1414,7 @@ void pcache_ping_received(struct gnutella_node *n)
 
 	if (now < n->ping_accept) {
 		n->n_ping_throttle++;		/* Drop the ping */
-		n->dropped++;
+		n->rx_dropped++;
 		dropped_messages++;
 		return;
 	} else {
@@ -1427,6 +1427,9 @@ void pcache_ping_received(struct gnutella_node *n)
 	 */
 
 	pcache_possibly_expired(now);
+
+	if (!NODE_IS_CONNECTED(n))		/* Can be removed if send queue is full */
+		return;
 
 	/*
 	 * If TTL = 0, only us can reply, and we'll do that below in any case..

@@ -2,6 +2,7 @@
 #define __nodes_h__
 
 #include "gnutella.h"
+#include "mq.h"
 
 /*
  * MAX_CACHE_HOPS defines the maximum hop count we handle for the ping/pong
@@ -41,7 +42,8 @@ struct gnutella_node {
 
 	guint32 sent;				/* Number of sent packets */
 	guint32 received;			/* Number of received packets */
-	guint32 dropped;			/* Number of packets dropped */
+	guint32 tx_dropped;			/* Number of packets dropped at TX time */
+	guint32 rx_dropped;			/* Number of packets dropped at RX time */
 	guint32 n_bad;				/* Number of bad packets received */
 	guint16 n_dups;				/* Number of dup messages received (bad) */
 	guint16 n_hard_ttl;			/* Number of hard_ttl exceeded (bad) */
@@ -51,6 +53,7 @@ struct gnutella_node {
 
 	time_t last_update;			/* Last update of the node in the GUI */
 	time_t connect_date;		/* When we got connected (after handshake) */
+	time_t tx_flowc_date;		/* When we entered in TX flow control */
 
 	const gchar *remove_msg;	/* Reason of removing */
 
@@ -58,17 +61,9 @@ struct gnutella_node {
 	guint16 port;				/* port of the node */
 
 	gint gdk_tag;				/* gdk tag for write status */
-	gchar *sendq;				/* Output buffer */
-	guint32 sq_pos;				/* write position in the sendq */
-	/* list of ends of packets, so that sent may be kept up to date. */
-	GSList *end_of_packets;
-	/* The data "pointer" is actually a guint32. */
-	/* how many bytes need to be written to reach the end of the last
-	 * enqueued end of packet */
-	guint32 end_of_last_packet;
-	/* any information necessary to route packets associated with this
-	   host goes here */
-	gpointer routing_data;
+	mqueue_t *outq;				/* Output queue */
+
+	gpointer routing_data;		/* Opaque info, for packet routing */
 
 	/*
 	 * The following are used after a 0.6 handshake.  See comment in
@@ -150,6 +145,33 @@ struct gnutella_node {
 #define NODE_IS_REMOVING(n) \
 	((n)->status == GTA_NODE_REMOVING)
 
+#define NODE_IN_TX_FLOW_CONTROL(n) \
+	((n)->outq && mq_is_flow_controlled((n)->outq))
+
+/*
+ * Macros.
+ */
+
+void gui_update_node(struct gnutella_node *, gboolean);
+
+#define node_inc_sent(n)		\
+	do { (n)->sent++; gui_update_node((n), FALSE); } while (0)
+
+#define node_inc_txdrop(n)		\
+	do { (n)->tx_dropped++; gui_update_node((n), FALSE); } while (0)
+
+#define node_inc_rxdrop(n)		\
+	do { (n)->rx_dropped++; gui_update_node((n), FALSE); } while (0)
+
+#define node_add_sent(n,x)		\
+	do { (n)->sent += (x); gui_update_node((n), FALSE); } while (0)
+
+#define node_add_txdrop(n,x)	\
+	do { (n)->rx_dropped += (x); gui_update_node((n), FALSE); } while (0)
+
+#define node_add_rxdrop(n,x)	\
+	do { (n)->rx_dropped += (x); gui_update_node((n), FALSE); } while (0)
+
 /*
  * Global Data
  */
@@ -178,10 +200,13 @@ void node_remove(struct gnutella_node *, const gchar * reason, ...);
 void node_init_outgoing(struct gnutella_node *);
 void node_read_connecting(gpointer, gint, GdkInputCondition);
 void node_read(gpointer, gint, GdkInputCondition);
-void node_write(gpointer, gint, GdkInputCondition);
-gboolean node_enqueue(struct gnutella_node *, gchar *, guint32);
-void node_enqueue_end_of_packet(struct gnutella_node *);
 gboolean node_sent_ttl0(struct gnutella_node *n);
+void node_disableq(struct gnutella_node *n);
+void node_enableq(struct gnutella_node *n);
+void node_tx_enter_flowc(struct gnutella_node *n);
+void node_tx_leave_flowc(struct gnutella_node *n);
+gint node_write(struct gnutella_node *n, gpointer data, gint len);
+gint node_writev(struct gnutella_node *n, struct iovec *iov, gint iovcnt);
 void node_close(void);
 
 #endif /* __nodes_h__ */

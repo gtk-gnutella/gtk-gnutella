@@ -14,8 +14,8 @@
 #include "matching.h"
 #include "share.h"
 #include "sockets.h" /* For local_ip. (FIXME: move local_ip to config.h.) */
-#include "routing.h"
 #include "misc.h"
+#include "gmsg.h"
 
 guint32 files_scanned = 0;
 guint32 kbytes_scanned = 0;
@@ -664,7 +664,7 @@ void search_request(struct gnutella_node *n)
 		WRITE_GUINT32_BE(listen_ip(), search_head->host_ip);
 		WRITE_GUINT32_LE(connection_speed, search_head->host_speed);
 
-		sendto_one(n, FOUND_BUF, NULL, FOUND_SIZE);
+		gmsg_sendto_one(n, FOUND_BUF, FOUND_SIZE);
 	}
 
 	return;

@@ -11,11 +11,12 @@
 #include "downloads.h"
 #include "gui.h"
 #include "dialog-filters.h"
-#include "routing.h"
 #include "autodownload.h"
 #include "hosts.h"				/* For check_valid_host() */
 #include "nodes.h"				/* For NODE_IS_PONGING_ONLY() */
 #include "callbacks.h"
+#include "routing.h"
+#include "gmsg.h"
 
 #define MAKE_CODE(a,b,c,d) ( \
 	((guint32) (a) << 24) | \
@@ -359,7 +360,7 @@ static void __search_send_packet(struct search *sch, struct gnutella_node *n)
 
 	/*
 	 * Don't send on a temporary connection.
-	 * Although sendto_one() is protected, it's useless to go through all
+	 * Although gmsg_sendto_one() is protected, it's useless to go through all
 	 * the message building only to discard the message at the end.
 	 * Moreover, we don't want to record the search being sent to this IP/port.
 	 *		--RAM, 13/01/2002
@@ -393,10 +394,10 @@ static void __search_send_packet(struct search *sch, struct gnutella_node *n)
 
 	if (n) {
 		mark_search_sent_to_node(sch, n);
-		sendto_one(n, (guchar *) m, NULL, size);
+		gmsg_sendto_one(n, (guchar *) m, size);
 	} else {
 		mark_search_sent_to_connected_nodes(sch);
-		sendto_all((guchar *) m, NULL, size);
+		gmsg_sendto_all(sl_nodes, (guchar *) m, size);
 	}
 
 	g_free(m);
