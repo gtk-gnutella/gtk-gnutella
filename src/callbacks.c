@@ -47,6 +47,7 @@
 #include "gtk-missing.h"
 #include "huge.h"
 #include "base32.h"
+#include "fuzzy.h"
 
 #include "gnet_property_priv.h"
 #include "gui_property_priv.h"
@@ -1906,9 +1907,11 @@ void on_clist_search_results_select_row
                         rc->sha1 != NULL && rc2->sha1 != NULL &&
                         memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0
                     ) || (
-                        (rc->sha1 == NULL) && rc2 && 
-                        !strcmp(rc2->name, rc->name) && 
-                        (rc2->size == rc->size)
+                        (rc->sha1 == NULL) && 
+                        (rc2->size == rc->size) && (
+                            (!search_autoselect_fuzzy && !strcmp(rc2->name, rc->name)) ||
+                            (search_autoselect_fuzzy && (fuzzy_compare(rc2->name, rc->name) * 100 >= fuzzy_threshold))
+                        )
                     )) {
                         gtk_clist_select_row(clist, i, 0);
                         x++;
