@@ -75,6 +75,8 @@ static gchar *names[HCACHE_MAX] = { "regular", "ultra" };
 
 gchar h_tmp[1024];
 
+static void hcache_remove_all(struct hostcache *hc);
+
 /*
  * hcache_type_to_gchar
  *
@@ -199,6 +201,7 @@ static void hcache_free(hcache_type_t type)
 
 	hc = caches[type];
 
+	hcache_remove_all(hc);
 	g_hash_table_destroy(hc->ht_known_hosts);
 	g_free(hc);
 
@@ -389,6 +392,26 @@ gboolean hcache_is_low(hcache_type_t type)
 }
 
 /*
+ * hcache_remove_all
+ *
+ * Remove all entries from hostcache.
+ */
+static void hcache_remove_all(struct hostcache *hc)
+{
+    start_mass_update(hc);
+
+	/*
+	 * Note that hcache_remove() will switch to `sl_valid_hosts' when the
+	 * `sl_caugh_hosts' list becomes empty.
+	 */
+
+	while (hc->sl_caught_hosts)
+		hcache_remove(hc, (struct gnutella_host *) hc->sl_caught_hosts->data);
+
+    end_mass_update(hc);
+}
+
+/*
  * hcache_clear
  *
  * Clear the whole host cache.
@@ -402,18 +425,8 @@ void hcache_clear(hcache_type_t type)
 
 	hc = caches[type];
 
-    start_mass_update(hc);
-
-	/*
-	 * Note that hcache_remove() will switch to `sl_valid_hosts' when the
-	 * `sl_caugh_hosts' list becomes empty.
-	 */
-
-	while (hc->sl_caught_hosts)
-		hcache_remove(hc, (struct gnutella_host *) hc->sl_caught_hosts->data);
-
+	hcache_remove_all(hc);
 	pcache_clear_recent(type);
-    end_mass_update(hc);
 }
 
 /*
