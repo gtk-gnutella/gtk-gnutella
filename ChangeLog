@@ -1,5 +1,22 @@
 # since last version
 
+- (2003.03.01 - Richard)
+ * [Gtk2] Reduced padding on uptime
+ * [Gtk2] Added "edit filters" button back to search pane
+ * Integrated patch by ko <junkpile@free.fr>:
+   - shell.c: Remove unnecessary (GdkInputCondition cast)
+   - gtk-missing.c: Optimize clist collect_data
+   - gtk-missing.c: added tree_selection_collect_data
+   - moved/renamed filter rule adding convenience functions from
+     search_cb.c and search_cb2.c to filter.c
+   - moved/renamed add_targetted_search from search_cb.c and search_cb2.c to
+     gui.c
+   - moved/renamed record comparing functions from search_cb.c and
+     search_cb2.c to gui.c
+ * Integrated patch by T'aZ <tazdev@altern.org>
+   - search_cb.c, search_cb2.c: show "none auto selected" in the status bar 
+     when no additional results were autoselected
+     
 - (2003.01.30 - RAM)
  * Immediately reset the qrt_ fields and query_table to NULL after having
    freed those items, to prevent accidental reuse.
