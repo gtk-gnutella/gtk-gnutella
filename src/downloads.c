@@ -7637,30 +7637,31 @@ void download_move_error(struct download *d)
 	const gchar *ext;
 	gchar *src;
 	gchar *dest;
+	gchar *name;
 
 	g_assert(d->status == GTA_DL_MOVING);
 
 	/*
 	 * If download is "good", rename it inplace as DL_OK_EXT, otherwise
 	 * rename it as DL_BAD_EXT.
+	 *
+	 * Don't keep an URN-like name when the file is done, if possible.
 	 */
 
-	src = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+	name = file_info_readable_filename(fi);
+
+	src = g_strdup_printf("%s/%s", fi->path, name);
 	ext = has_good_sha1(d) ? DL_OK_EXT : DL_BAD_EXT;
-	dest = unique_filename(fi->path, fi->file_name, ext);
+	dest = unique_filename(fi->path, name, ext);
 
 	file_info_strip_binary(fi);
 
-	
-	if (NULL == src ||
-		NULL == dest ||
-		-1 == rename(src, dest)
-	) {
+	if (NULL == src || NULL == dest || -1 == rename(src, dest)) {
 		g_warning("could not rename \"%s\" as \"%s\": %s",
 			src, dest, g_strerror(errno));
 		d->status = GTA_DL_DONE;
 	} else {
-		g_warning("completed \"%s\" left at \"%s\"", fi->file_name, dest);
+		g_warning("completed \"%s\" left at \"%s\"", name, dest);
 		download_move_done(d, 0);
 	}
 	if (NULL != src)
