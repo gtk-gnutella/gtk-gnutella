@@ -8541,7 +8541,7 @@ GtkWidget*
 create_main_window_downloads_tab (void)
 {
   GtkWidget *main_window_downloads_tab;
-  GtkWidget *notebook3;
+  GtkWidget *notebook_downloads;
   GtkWidget *vpaned_downloads;
   GtkWidget *vbox76;
   GtkWidget *frame3;
@@ -8665,15 +8665,15 @@ create_main_window_downloads_tab (void)
   gtk_window_set_title (GTK_WINDOW (main_window_downloads_tab), _("window11"));
   gtk_window_set_default_size (GTK_WINDOW (main_window_downloads_tab), 300, 200);
 
-  notebook3 = gtk_notebook_new ();
-  gtk_widget_set_name (notebook3, "notebook3");
-  gtk_widget_show (notebook3);
-  gtk_container_add (GTK_CONTAINER (main_window_downloads_tab), notebook3);
+  notebook_downloads = gtk_notebook_new ();
+  gtk_widget_set_name (notebook_downloads, "notebook_downloads");
+  gtk_widget_show (notebook_downloads);
+  gtk_container_add (GTK_CONTAINER (main_window_downloads_tab), notebook_downloads);
 
   vpaned_downloads = gtk_vpaned_new ();
   gtk_widget_set_name (vpaned_downloads, "vpaned_downloads");
   gtk_widget_show (vpaned_downloads);
-  gtk_container_add (GTK_CONTAINER (notebook3), vpaned_downloads);
+  gtk_container_add (GTK_CONTAINER (notebook_downloads), vpaned_downloads);
   gtk_paned_set_position (GTK_PANED (vpaned_downloads), 218);
 
   vbox76 = gtk_vbox_new (FALSE, 0);
@@ -9149,12 +9149,12 @@ create_main_window_downloads_tab (void)
   label671 = gtk_label_new (_("Downloads"));
   gtk_widget_set_name (label671, "label671");
   gtk_widget_show (label671);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook3), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook3), 0), label671);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads), 0), label671);
 
   vpaned2 = gtk_vpaned_new ();
   gtk_widget_set_name (vpaned2, "vpaned2");
   gtk_widget_show (vpaned2);
-  gtk_container_add (GTK_CONTAINER (notebook3), vpaned2);
+  gtk_container_add (GTK_CONTAINER (notebook_downloads), vpaned2);
   gtk_paned_set_position (GTK_PANED (vpaned2), 200);
 
   vbox108 = gtk_vbox_new (FALSE, 0);
@@ -9333,7 +9333,7 @@ create_main_window_downloads_tab (void)
   label672 = gtk_label_new (_("Fileinfo"));
   gtk_widget_set_name (label672, "label672");
   gtk_widget_show (label672);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook3), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook3), 1), label672);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads), 1), label672);
 
   g_signal_connect ((gpointer) button25, "clicked",
                     G_CALLBACK (on_button_config_select_dl_clicked),
@@ -9359,7 +9359,7 @@ create_main_window_downloads_tab (void)
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_downloads_tab, main_window_downloads_tab, "main_window_downloads_tab");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, notebook3, "notebook3");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, notebook_downloads, "notebook_downloads");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vpaned_downloads, "vpaned_downloads");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox76, "vbox76");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame3, "frame3");

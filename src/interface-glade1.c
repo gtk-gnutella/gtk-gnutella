@@ -218,7 +218,7 @@ create_main_window (void)
   GtkWidget *button_ul_stats_clear_deleted;
   GtkWidget *button_ul_stats_clear_all;
   GtkWidget *label_ul_stats;
-  GtkWidget *notebook5;
+  GtkWidget *notebook_downloads;
   GtkWidget *vpaned_downloads;
   GtkWidget *vbox36;
   GtkWidget *frame3;
@@ -2783,13 +2783,13 @@ create_main_window (void)
   gtk_widget_show (label_ul_stats);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 2), label_ul_stats);
 
-  notebook5 = gtk_notebook_new ();
-  gtk_widget_set_name (notebook5, "notebook5");
-  gtk_widget_ref (notebook5);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "notebook5", notebook5,
+  notebook_downloads = gtk_notebook_new ();
+  gtk_widget_set_name (notebook_downloads, "notebook_downloads");
+  gtk_widget_ref (notebook_downloads);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "notebook_downloads", notebook_downloads,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (notebook5);
-  gtk_container_add (GTK_CONTAINER (notebook_main), notebook5);
+  gtk_widget_show (notebook_downloads);
+  gtk_container_add (GTK_CONTAINER (notebook_main), notebook_downloads);
 
   vpaned_downloads = gtk_vpaned_new ();
   gtk_widget_set_name (vpaned_downloads, "vpaned_downloads");
@@ -2797,7 +2797,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vpaned_downloads", vpaned_downloads,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vpaned_downloads);
-  gtk_container_add (GTK_CONTAINER (notebook5), vpaned_downloads);
+  gtk_container_add (GTK_CONTAINER (notebook_downloads), vpaned_downloads);
   gtk_container_set_border_width (GTK_CONTAINER (vpaned_downloads), 2);
   gtk_paned_set_gutter_size (GTK_PANED (vpaned_downloads), 10);
   gtk_paned_set_position (GTK_PANED (vpaned_downloads), 230);
@@ -3458,7 +3458,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label510", label510,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label510);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook5), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook5), 0), label510);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads), 0), label510);
 
   frame76 = gtk_frame_new (_("Fileinfo"));
   gtk_widget_set_name (frame76, "frame76");
@@ -3466,7 +3466,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame76", frame76,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame76);
-  gtk_container_add (GTK_CONTAINER (notebook5), frame76);
+  gtk_container_add (GTK_CONTAINER (notebook_downloads), frame76);
   gtk_container_set_border_width (GTK_CONTAINER (frame76), 2);
 
   vbox109 = gtk_vbox_new (FALSE, 2);
@@ -3742,7 +3742,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label511", label511,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label511);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook5), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook5), 1), label511);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads), 1), label511);
 
   label_downloads = gtk_label_new (_("Downloads"));
   gtk_widget_set_name (label_downloads, "label_downloads");
