@@ -113,6 +113,7 @@ prop_set_stub_t *gui_prop_get_stub(void);
  * Property definition
  */
 prop_def_t *gui_prop_get_def(property_t);
+property_t gui_prop_get_by_name(const gchar *);
 
 /*
  * Property-change listeners
@@ -162,6 +163,8 @@ guint32 *gui_prop_get_guint32(
 void gui_prop_set_storage(property_t, const guint8 *, gsize);
 guint8 *gui_prop_get_storage(property_t, guint8 *, gsize);
 
+gchar *gui_prop_to_string(property_t prop);
+property_t gui_prop_get_by_name(const gchar *name);
 
 #endif /* _gui_property_h_ */
 

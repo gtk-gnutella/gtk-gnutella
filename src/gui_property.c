@@ -186,6 +186,8 @@ prop_def_choice_t config_toolbar_style_choices[] = {
 static prop_set_t *gui_property = NULL;
 
 prop_set_t *gui_prop_init(void) {
+    guint32 n;
+
     gui_property = g_new(prop_set_t, 1);
     gui_property->name   = "gui_property";
     gui_property->desc   = "";
@@ -194,6 +196,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->mtime  = 0;
     gui_property->props  = g_new(prop_def_t, GUI_PROPERTY_NUM);
     gui_property->get_stub = gui_prop_get_stub;
+    gui_property->byName = NULL;
 
 
     /*
@@ -203,7 +206,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[0].name = "monitor_enabled";
     gui_property->props[0].desc = "Search monitor enabled";
-    gui_property->props[0].prop_changed_listeners = NULL;
+    gui_property->props[0].ev_changed = event_new("monitor_enabled_changed");
     gui_property->props[0].save = TRUE;
     gui_property->props[0].vector_size = 1;
 
@@ -220,7 +223,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[1].name = "monitor_max_items";
     gui_property->props[1].desc = "Maximum number of queries visible in search monitor";
-    gui_property->props[1].prop_changed_listeners = NULL;
+    gui_property->props[1].ev_changed = event_new("monitor_max_items_changed");
     gui_property->props[1].save = TRUE;
     gui_property->props[1].vector_size = 1;
 
@@ -240,7 +243,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[2].name = "queue_regex_case";
     gui_property->props[2].desc = "Match queue selection by regexp case sensitive";
-    gui_property->props[2].prop_changed_listeners = NULL;
+    gui_property->props[2].ev_changed = event_new("queue_regex_case_changed");
     gui_property->props[2].save = TRUE;
     gui_property->props[2].vector_size = 1;
 
@@ -257,7 +260,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[3].name = "search_autoselect";
     gui_property->props[3].desc = "Autoselect similar files in searches";
-    gui_property->props[3].prop_changed_listeners = NULL;
+    gui_property->props[3].ev_changed = event_new("search_autoselect_changed");
     gui_property->props[3].save = TRUE;
     gui_property->props[3].vector_size = 1;
 
@@ -274,7 +277,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[4].name = "widths_nodes";
     gui_property->props[4].desc = "Widths of the columns in the nodes table";
-    gui_property->props[4].prop_changed_listeners = NULL;
+    gui_property->props[4].ev_changed = event_new("nodes_col_widths_changed");
     gui_property->props[4].save = TRUE;
     gui_property->props[4].vector_size = 7;
 
@@ -294,7 +297,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[5].name = "widths_dl_active";
     gui_property->props[5].desc = "Widths of the columns in the active downloads table";
-    gui_property->props[5].prop_changed_listeners = NULL;
+    gui_property->props[5].ev_changed = event_new("dl_active_col_widths_changed");
     gui_property->props[5].save = TRUE;
     gui_property->props[5].vector_size = 6;
 
@@ -314,7 +317,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[6].name = "widths_dl_queued";
     gui_property->props[6].desc = "Widths of the columns in the queued downloads table";
-    gui_property->props[6].prop_changed_listeners = NULL;
+    gui_property->props[6].ev_changed = event_new("dl_queued_col_widths_changed");
     gui_property->props[6].save = TRUE;
     gui_property->props[6].vector_size = 5;
 
@@ -334,7 +337,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[7].name = "search_results_col_visible";
     gui_property->props[7].desc = "Which columns are visible in the search results tables";
-    gui_property->props[7].prop_changed_listeners = NULL;
+    gui_property->props[7].ev_changed = event_new("search_results_col_visible_changed");
     gui_property->props[7].save = TRUE;
     gui_property->props[7].vector_size = 6;
 
@@ -354,7 +357,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[8].name = "widths_search_list";
     gui_property->props[8].desc = "Widths of the columns in the search list on the sidebar";
-    gui_property->props[8].prop_changed_listeners = NULL;
+    gui_property->props[8].ev_changed = event_new("search_list_col_widths_changed");
     gui_property->props[8].save = TRUE;
     gui_property->props[8].vector_size = 3;
 
@@ -374,7 +377,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[9].name = "widths_search_results";
     gui_property->props[9].desc = "Widths of the columns in the search results tables";
-    gui_property->props[9].prop_changed_listeners = NULL;
+    gui_property->props[9].ev_changed = event_new("search_results_col_widths_changed");
     gui_property->props[9].save = TRUE;
     gui_property->props[9].vector_size = 7;
 
@@ -394,7 +397,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[10].name = "widths_search_stats";
     gui_property->props[10].desc = "Widths of the columns in the search stats table";
-    gui_property->props[10].prop_changed_listeners = NULL;
+    gui_property->props[10].ev_changed = event_new("search_stats_col_widths_changed");
     gui_property->props[10].save = TRUE;
     gui_property->props[10].vector_size = 3;
 
@@ -414,7 +417,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[11].name = "widths_ul_stats";
     gui_property->props[11].desc = "Widths of the columns in the upload stats table";
-    gui_property->props[11].prop_changed_listeners = NULL;
+    gui_property->props[11].ev_changed = event_new("ul_stats_col_widths_changed");
     gui_property->props[11].save = TRUE;
     gui_property->props[11].vector_size = 5;
 
@@ -434,7 +437,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[12].name = "widths_uploads";
     gui_property->props[12].desc = "Widths of the columns in the uploads table";
-    gui_property->props[12].prop_changed_listeners = NULL;
+    gui_property->props[12].ev_changed = event_new("uploads_col_widths_changed");
     gui_property->props[12].save = TRUE;
     gui_property->props[12].vector_size = 6;
 
@@ -454,7 +457,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[13].name = "widths_filter_table";
     gui_property->props[13].desc = "Widths of the columns in the rules table in the filter dialog";
-    gui_property->props[13].prop_changed_listeners = NULL;
+    gui_property->props[13].ev_changed = event_new("filter_rules_col_widths_changed");
     gui_property->props[13].save = TRUE;
     gui_property->props[13].vector_size = 4;
 
@@ -474,7 +477,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[14].name = "widths_filter_filters";
     gui_property->props[14].desc = "Widths of the columns in the filter table in the filter dialog";
-    gui_property->props[14].prop_changed_listeners = NULL;
+    gui_property->props[14].ev_changed = event_new("filter_filters_col_widths_changed");
     gui_property->props[14].save = TRUE;
     gui_property->props[14].vector_size = 3;
 
@@ -494,7 +497,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[15].name = "widths_gnet_stats_msg";
     gui_property->props[15].desc = "Widths of the columns in the gnet packet stats table";
-    gui_property->props[15].prop_changed_listeners = NULL;
+    gui_property->props[15].ev_changed = event_new("gnet_stats_msg_col_widths_changed");
     gui_property->props[15].save = TRUE;
     gui_property->props[15].vector_size = 6;
 
@@ -514,7 +517,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[16].name = "widths_gnet_stats_fc_ttl";
     gui_property->props[16].desc = "Widths of the columns in the gnet fc ttl stats table";
-    gui_property->props[16].prop_changed_listeners = NULL;
+    gui_property->props[16].ev_changed = event_new("gnet_stats_fc_ttl_col_widths_changed");
     gui_property->props[16].save = TRUE;
     gui_property->props[16].vector_size = 10;
 
@@ -534,7 +537,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[17].name = "widths_gnet_stats_fc_hops";
     gui_property->props[17].desc = "Widths of the columns in the gnet fc hops stats table";
-    gui_property->props[17].prop_changed_listeners = NULL;
+    gui_property->props[17].ev_changed = event_new("gnet_stats_fc_hops_col_widths_changed");
     gui_property->props[17].save = TRUE;
     gui_property->props[17].vector_size = 10;
 
@@ -554,7 +557,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[18].name = "widths_gnet_stats_fc";
     gui_property->props[18].desc = "Widths of the columns in the gnet fc hops stats table";
-    gui_property->props[18].prop_changed_listeners = NULL;
+    gui_property->props[18].ev_changed = event_new("gnet_stats_fc_col_widths_changed");
     gui_property->props[18].save = TRUE;
     gui_property->props[18].vector_size = 10;
 
@@ -574,7 +577,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[19].name = "widths_gnet_stats_drop_reasons";
     gui_property->props[19].desc = "Widths of the columns in the gnet stats drop reasons table";
-    gui_property->props[19].prop_changed_listeners = NULL;
+    gui_property->props[19].ev_changed = event_new("gnet_stats_drop_reasons_col_widths_changed");
     gui_property->props[19].save = TRUE;
     gui_property->props[19].vector_size = 2;
 
@@ -594,7 +597,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[20].name = "widths_gnet_stats_recv";
     gui_property->props[20].desc = "Widths of the columns in the gnet stats drop reasons table";
-    gui_property->props[20].prop_changed_listeners = NULL;
+    gui_property->props[20].ev_changed = event_new("gnet_stats_recv_col_widths_changed");
     gui_property->props[20].save = TRUE;
     gui_property->props[20].vector_size = 10;
 
@@ -614,7 +617,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[21].name = "window_coords";
     gui_property->props[21].desc = "Position and size of the main window";
-    gui_property->props[21].prop_changed_listeners = NULL;
+    gui_property->props[21].ev_changed = event_new("window_coords_changed");
     gui_property->props[21].save = TRUE;
     gui_property->props[21].vector_size = 4;
 
@@ -634,7 +637,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[22].name = "filter_dlg_coords";
     gui_property->props[22].desc = "Position and size of the filter dialog";
-    gui_property->props[22].prop_changed_listeners = NULL;
+    gui_property->props[22].ev_changed = event_new("filter_dlg_coords_changed");
     gui_property->props[22].save = TRUE;
     gui_property->props[22].vector_size = 4;
 
@@ -654,7 +657,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[23].name = "downloads_divider_pos";
     gui_property->props[23].desc = "Position of the divider in the downloads panel";
-    gui_property->props[23].prop_changed_listeners = NULL;
+    gui_property->props[23].ev_changed = event_new("downloads_divider_pos_changed");
     gui_property->props[23].save = TRUE;
     gui_property->props[23].vector_size = 1;
 
@@ -674,7 +677,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[24].name = "main_divider_pos";
     gui_property->props[24].desc = "Size of the sidebar";
-    gui_property->props[24].prop_changed_listeners = NULL;
+    gui_property->props[24].ev_changed = event_new("main_divider_pos_changed");
     gui_property->props[24].save = TRUE;
     gui_property->props[24].vector_size = 1;
 
@@ -694,7 +697,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[25].name = "gnet_stats_divider_pos";
     gui_property->props[25].desc = "Position of the divider in the gnet stats pane";
-    gui_property->props[25].prop_changed_listeners = NULL;
+    gui_property->props[25].ev_changed = event_new("gnet_stats_divider_pos_changed");
     gui_property->props[25].save = TRUE;
     gui_property->props[25].vector_size = 1;
 
@@ -714,7 +717,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[26].name = "side_divider_pos";
     gui_property->props[26].desc = "Size of the menu in the sidebar";
-    gui_property->props[26].prop_changed_listeners = NULL;
+    gui_property->props[26].ev_changed = event_new("side_divider_pos_changed");
     gui_property->props[26].save = TRUE;
     gui_property->props[26].vector_size = 1;
 
@@ -734,7 +737,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[27].name = "search_max_results";
     gui_property->props[27].desc = "Maximum number of results to show in any search";
-    gui_property->props[27].prop_changed_listeners = NULL;
+    gui_property->props[27].ev_changed = event_new("search_max_results_changed");
     gui_property->props[27].save = TRUE;
     gui_property->props[27].vector_size = 1;
 
@@ -754,7 +757,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[28].name = "gui_debug";
     gui_property->props[28].desc = "Debug level for the gui";
-    gui_property->props[28].prop_changed_listeners = NULL;
+    gui_property->props[28].ev_changed = event_new("gui_debug_changed");
     gui_property->props[28].save = TRUE;
     gui_property->props[28].vector_size = 1;
 
@@ -774,7 +777,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[29].name = "filter_main_divider_pos";
     gui_property->props[29].desc = "Size of the filter tree in the filter dialog";
-    gui_property->props[29].prop_changed_listeners = NULL;
+    gui_property->props[29].ev_changed = event_new("filter_main_divider_pos_changed");
     gui_property->props[29].save = TRUE;
     gui_property->props[29].vector_size = 1;
 
@@ -794,7 +797,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[30].name = "search_results_show_tabs";
     gui_property->props[30].desc = "Show tabs or search list";
-    gui_property->props[30].prop_changed_listeners = NULL;
+    gui_property->props[30].ev_changed = event_new("search_results_show_tabs_changed");
     gui_property->props[30].save = TRUE;
     gui_property->props[30].vector_size = 1;
 
@@ -811,7 +814,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[31].name = "toolbar_visible";
     gui_property->props[31].desc = "Display toolbar";
-    gui_property->props[31].prop_changed_listeners = NULL;
+    gui_property->props[31].ev_changed = event_new("toolbar_visible_changed");
     gui_property->props[31].save = TRUE;
     gui_property->props[31].vector_size = 1;
 
@@ -828,7 +831,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[32].name = "statusbar_visible";
     gui_property->props[32].desc = "Display statusbar";
-    gui_property->props[32].prop_changed_listeners = NULL;
+    gui_property->props[32].ev_changed = event_new("statusbar_visible_changed");
     gui_property->props[32].save = TRUE;
     gui_property->props[32].vector_size = 1;
 
@@ -845,7 +848,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[33].name = "progressbar_uploads_visible";
     gui_property->props[33].desc = "Display upload statistics in sidebar";
-    gui_property->props[33].prop_changed_listeners = NULL;
+    gui_property->props[33].ev_changed = event_new("progressbar_uploads_visible_changed");
     gui_property->props[33].save = TRUE;
     gui_property->props[33].vector_size = 1;
 
@@ -862,7 +865,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[34].name = "progressbar_downloads_visible";
     gui_property->props[34].desc = "Display download statistics in sidebar";
-    gui_property->props[34].prop_changed_listeners = NULL;
+    gui_property->props[34].ev_changed = event_new("progressbar_downloads_visible_changed");
     gui_property->props[34].save = TRUE;
     gui_property->props[34].vector_size = 1;
 
@@ -879,7 +882,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[35].name = "progressbar_connections_visible";
     gui_property->props[35].desc = "Display connection statistics in sidebar";
-    gui_property->props[35].prop_changed_listeners = NULL;
+    gui_property->props[35].ev_changed = event_new("progressbar_connections_visible_changed");
     gui_property->props[35].save = TRUE;
     gui_property->props[35].vector_size = 1;
 
@@ -896,7 +899,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[36].name = "progressbar_bws_in_visible";
     gui_property->props[36].desc = "Display incoming HTTP traffic bandwidth usage";
-    gui_property->props[36].prop_changed_listeners = NULL;
+    gui_property->props[36].ev_changed = event_new("progressbar_bws_in_visible_changed");
     gui_property->props[36].save = TRUE;
     gui_property->props[36].vector_size = 1;
 
@@ -913,7 +916,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[37].name = "progressbar_bws_out_visible";
     gui_property->props[37].desc = "Display outgoing HTTP traffic bandwidth usage";
-    gui_property->props[37].prop_changed_listeners = NULL;
+    gui_property->props[37].ev_changed = event_new("progressbar_bws_out_visible_changed");
     gui_property->props[37].save = TRUE;
     gui_property->props[37].vector_size = 1;
 
@@ -930,7 +933,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[38].name = "progressbar_bws_gin_visible";
     gui_property->props[38].desc = "Display incoming gNet traffic bandwidth usage";
-    gui_property->props[38].prop_changed_listeners = NULL;
+    gui_property->props[38].ev_changed = event_new("progressbar_bws_gin_visible_changed");
     gui_property->props[38].save = TRUE;
     gui_property->props[38].vector_size = 1;
 
@@ -947,7 +950,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[39].name = "progressbar_bws_gout_visible";
     gui_property->props[39].desc = "Display outgoing gNet traffic bandwidth usage";
-    gui_property->props[39].prop_changed_listeners = NULL;
+    gui_property->props[39].ev_changed = event_new("progressbar_bws_gout_visible_changed");
     gui_property->props[39].save = TRUE;
     gui_property->props[39].vector_size = 1;
 
@@ -964,7 +967,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[40].name = "progressbar_bws_in_avg";
     gui_property->props[40].desc = "Display incoming HTTP traffic bandwidth average";
-    gui_property->props[40].prop_changed_listeners = NULL;
+    gui_property->props[40].ev_changed = event_new("progressbar_bws_in_avg_changed");
     gui_property->props[40].save = TRUE;
     gui_property->props[40].vector_size = 1;
 
@@ -981,7 +984,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[41].name = "progressbar_bws_out_avg";
     gui_property->props[41].desc = "Display outgoing HTTP traffic bandwidth average";
-    gui_property->props[41].prop_changed_listeners = NULL;
+    gui_property->props[41].ev_changed = event_new("progressbar_bws_out_avg_changed");
     gui_property->props[41].save = TRUE;
     gui_property->props[41].vector_size = 1;
 
@@ -998,7 +1001,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[42].name = "progressbar_bws_gin_avg";
     gui_property->props[42].desc = "Display incoming gNet traffic bandwidth average";
-    gui_property->props[42].prop_changed_listeners = NULL;
+    gui_property->props[42].ev_changed = event_new("progressbar_bws_gin_avg_changed");
     gui_property->props[42].save = TRUE;
     gui_property->props[42].vector_size = 1;
 
@@ -1015,7 +1018,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[43].name = "progressbar_bws_gout_avg";
     gui_property->props[43].desc = "Display outgoing gNet traffic bandwidth average";
-    gui_property->props[43].prop_changed_listeners = NULL;
+    gui_property->props[43].ev_changed = event_new("progressbar_bws_gout_avg_changed");
     gui_property->props[43].save = TRUE;
     gui_property->props[43].vector_size = 1;
 
@@ -1032,7 +1035,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[44].name = "search_autoselect_ident";
     gui_property->props[44].desc = "When enabled autoselection only takes place if filesize matches exactly, otherwise it must be equal or greater";
-    gui_property->props[44].prop_changed_listeners = NULL;
+    gui_property->props[44].ev_changed = event_new("search_autoselect_ident_changed");
     gui_property->props[44].save = TRUE;
     gui_property->props[44].vector_size = 1;
 
@@ -1049,7 +1052,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[45].name = "jump_to_downloads";
     gui_property->props[45].desc = "Jump to downloads screen when downloading a file";
-    gui_property->props[45].prop_changed_listeners = NULL;
+    gui_property->props[45].ev_changed = event_new("jump_to_downloads_changed");
     gui_property->props[45].save = TRUE;
     gui_property->props[45].vector_size = 1;
 
@@ -1066,7 +1069,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[46].name = "show_search_results_settings";
     gui_property->props[46].desc = "Display settings";
-    gui_property->props[46].prop_changed_listeners = NULL;
+    gui_property->props[46].ev_changed = event_new("show_search_results_settings_changed");
     gui_property->props[46].save = TRUE;
     gui_property->props[46].vector_size = 1;
 
@@ -1083,7 +1086,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[47].name = "search_autoselect_fuzzy";
     gui_property->props[47].desc = "Use fuzzy name match for autoselection";
-    gui_property->props[47].prop_changed_listeners = NULL;
+    gui_property->props[47].ev_changed = event_new("search_autoselect_fuzzy_changed");
     gui_property->props[47].save = TRUE;
     gui_property->props[47].vector_size = 1;
 
@@ -1100,7 +1103,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[48].name = "search_minimum_speed";
     gui_property->props[48].desc = "This is the default minimum speed for new searches in kbit/s";
-    gui_property->props[48].prop_changed_listeners = NULL;
+    gui_property->props[48].ev_changed = event_new("default_minimum_speed_changed");
     gui_property->props[48].save = TRUE;
     gui_property->props[48].vector_size = 1;
 
@@ -1120,7 +1123,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[49].name = "search_stats_mode";
     gui_property->props[49].desc = "Collect statistics about search that go through this node";
-    gui_property->props[49].prop_changed_listeners = NULL;
+    gui_property->props[49].ev_changed = event_new("search_stats_mode_changed");
     gui_property->props[49].save = TRUE;
     gui_property->props[49].vector_size = 1;
 
@@ -1140,7 +1143,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[50].name = "search_stats_update_interval";
     gui_property->props[50].desc = "Interval in which the search stats are updated";
-    gui_property->props[50].prop_changed_listeners = NULL;
+    gui_property->props[50].ev_changed = event_new("search_stats_update_interval_changed");
     gui_property->props[50].save = TRUE;
     gui_property->props[50].vector_size = 1;
 
@@ -1160,7 +1163,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[51].name = "search_stats_delcoef";
     gui_property->props[51].desc = "A deletion coefficient, so that small non-significant results can be dropped.  The lowest it is, the more search statistics will be kept in memory.";
-    gui_property->props[51].prop_changed_listeners = NULL;
+    gui_property->props[51].ev_changed = event_new("search_stats_delcoef_changed");
     gui_property->props[51].save = TRUE;
     gui_property->props[51].vector_size = 1;
 
@@ -1180,7 +1183,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[52].name = "confirm_quit";
     gui_property->props[52].desc = "Show confirmation dialog when leaving gtk-gnutella";
-    gui_property->props[52].prop_changed_listeners = NULL;
+    gui_property->props[52].ev_changed = event_new("confirm_quit_changed");
     gui_property->props[52].save = TRUE;
     gui_property->props[52].vector_size = 1;
 
@@ -1197,7 +1200,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[53].name = "show_tooltips";
     gui_property->props[53].desc = "Show a helpful message when the mouse pointer lingers over a widget";
-    gui_property->props[53].prop_changed_listeners = NULL;
+    gui_property->props[53].ev_changed = event_new("show_tooltips_changed");
     gui_property->props[53].save = TRUE;
     gui_property->props[53].vector_size = 1;
 
@@ -1214,7 +1217,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[54].name = "expert_mode";
     gui_property->props[54].desc = "Show a lot more settings to tweak. If you temper with them be sure to read up what they are doing";
-    gui_property->props[54].prop_changed_listeners = NULL;
+    gui_property->props[54].ev_changed = event_new("expert_mode_changed");
     gui_property->props[54].save = TRUE;
     gui_property->props[54].vector_size = 1;
 
@@ -1231,7 +1234,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[55].name = "gnet_stats_perc";
     gui_property->props[55].desc = "Show percentages instead of absolute values in the gnet stats";
-    gui_property->props[55].prop_changed_listeners = NULL;
+    gui_property->props[55].ev_changed = event_new("gnet_stats_perc_changed");
     gui_property->props[55].save = TRUE;
     gui_property->props[55].vector_size = 1;
 
@@ -1248,7 +1251,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[56].name = "gnet_stats_bytes";
     gui_property->props[56].desc = "Show bytes instead of packages in the gnet stats";
-    gui_property->props[56].prop_changed_listeners = NULL;
+    gui_property->props[56].ev_changed = event_new("gnet_stats_bytes_changed");
     gui_property->props[56].save = TRUE;
     gui_property->props[56].vector_size = 1;
 
@@ -1265,7 +1268,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[57].name = "gnet_stats_hops";
     gui_property->props[57].desc = "Show stats per hops instead of per TTL";
-    gui_property->props[57].prop_changed_listeners = NULL;
+    gui_property->props[57].ev_changed = event_new("gnet_stats_hops_changed");
     gui_property->props[57].save = TRUE;
     gui_property->props[57].vector_size = 1;
 
@@ -1282,7 +1285,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[58].name = "gnet_stats_with_headers";
     gui_property->props[58].desc = "Add the headers to the volume";
-    gui_property->props[58].prop_changed_listeners = NULL;
+    gui_property->props[58].ev_changed = event_new("gnet_stats_with_headers_changed");
     gui_property->props[58].save = TRUE;
     gui_property->props[58].vector_size = 1;
 
@@ -1299,7 +1302,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[59].name = "gnet_stats_drop_perc";
     gui_property->props[59].desc = "Show percentages instead of absolute values in the gnet stats (drop reasons)";
-    gui_property->props[59].prop_changed_listeners = NULL;
+    gui_property->props[59].ev_changed = event_new("gnet_stats_drop_perc_changed");
     gui_property->props[59].save = TRUE;
     gui_property->props[59].vector_size = 1;
 
@@ -1316,7 +1319,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[60].name = "widths_gnet_stats_general";
     gui_property->props[60].desc = "Widths of the columns in the gnet stats general table";
-    gui_property->props[60].prop_changed_listeners = NULL;
+    gui_property->props[60].ev_changed = event_new("gnet_stats_general_col_widths_changed");
     gui_property->props[60].save = TRUE;
     gui_property->props[60].vector_size = 2;
 
@@ -1336,7 +1339,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[61].name = "auto_clear_completed_uploads";
     gui_property->props[61].desc = "Auto clear completed uploads";
-    gui_property->props[61].prop_changed_listeners = NULL;
+    gui_property->props[61].ev_changed = event_new("autoclear_uploads_changed");
     gui_property->props[61].save = TRUE;
     gui_property->props[61].vector_size = 1;
 
@@ -1353,7 +1356,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[62].name = "treemenu_nodes_expanded";
     gui_property->props[62].desc = "Expanded stati of the nodes in the treemenu";
-    gui_property->props[62].prop_changed_listeners = NULL;
+    gui_property->props[62].ev_changed = event_new("treemenu_nodes_expanded_changed");
     gui_property->props[62].save = TRUE;
     gui_property->props[62].vector_size = 16;
 
@@ -1373,7 +1376,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[63].name = "widths_gnet_stats_pkg";
     gui_property->props[63].desc = "Widths of the columns in the gnet packet stats table (pkg)[GTK2]";
-    gui_property->props[63].prop_changed_listeners = NULL;
+    gui_property->props[63].ev_changed = event_new("gnet_stats_pkg_col_widths_changed");
     gui_property->props[63].save = TRUE;
     gui_property->props[63].vector_size = 6;
 
@@ -1393,7 +1396,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[64].name = "widths_gnet_stats_byte";
     gui_property->props[64].desc = "Widths of the columns in the gnet packet stats table (byte) [GTK2]";
-    gui_property->props[64].prop_changed_listeners = NULL;
+    gui_property->props[64].ev_changed = event_new("gnet_stats_byte_col_widths_changed");
     gui_property->props[64].save = TRUE;
     gui_property->props[64].vector_size = 6;
 
@@ -1413,7 +1416,7 @@ prop_set_t *gui_prop_init(void) {
      */
     gui_property->props[65].name = "config_toolbar_style";
     gui_property->props[65].desc = "Configures the appearance of the toolbar";
-    gui_property->props[65].prop_changed_listeners = NULL;
+    gui_property->props[65].ev_changed = event_new("config_toolbar_style_changed");
     gui_property->props[65].save = TRUE;
     gui_property->props[65].vector_size = 1;
 
@@ -1424,6 +1427,13 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[65].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[65].data.guint32.min   = 0x00000000;
     gui_property->props[65].data.guint32.choices = config_toolbar_style_choices;
+
+    gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
+    for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
+        g_hash_table_insert(gui_property->byName, 
+            gui_property->props[n].name, GINT_TO_POINTER(n+1000));
+    }
+
     return gui_property;
 }
 
@@ -1435,11 +1445,19 @@ prop_set_t *gui_prop_init(void) {
 void gui_prop_shutdown(void) {
     gint n;
 
+    if (gui_property->byName) {
+        g_hash_table_destroy(gui_property->byName);
+        gui_property->byName = NULL;
+    }
+
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
         if (gui_property->props[n].type == PROP_TYPE_STRING) {
 			gchar **p = gui_property->props[n].data.string.value;
+            struct event *e = gui_property->props[n].ev_changed;
 			if (*p)
 				G_FREE_NULL(*p);
+            if (e)
+                event_destroy(e);    
         }
     }
 
@@ -1462,6 +1480,20 @@ void gui_prop_add_prop_changed_listener(
     property_t prop, prop_changed_listener_t l, gboolean init)
 {
     prop_add_prop_changed_listener(gui_property, prop, l, init);
+}
+
+/*
+ * gui_prop_add_prop_changed_listener_full:
+ *
+ * Add a change listener to a given property. If init is TRUE then
+ * the listener is immediately called. 
+ */
+void gui_prop_add_prop_changed_listener_full(
+    property_t prop, prop_changed_listener_t l, gboolean init, 
+    enum frequency_type freq, guint32 interval)
+{
+    prop_add_prop_changed_listener_full(gui_property, prop, l, init,
+        freq, interval);
 }
 
 void gui_prop_remove_prop_changed_listener(
@@ -1514,6 +1546,17 @@ guint8 *gui_prop_get_storage(property_t p, guint8 *t, gsize l)
     return prop_get_storage(gui_property, p, t, l);
 }
 
+gchar *gui_prop_to_string(property_t prop)
+{
+    return prop_to_string(gui_property, prop);
+}
+
+property_t gui_prop_get_by_name(const gchar *name)
+{
+    return GPOINTER_TO_UINT(
+        g_hash_table_lookup(gui_property->byName, name));
+}
+
 
 /*
  * gui_prop_get_stub:
@@ -1529,9 +1572,13 @@ prop_set_stub_t *gui_prop_get_stub(void)
     stub->size    = GUI_PROPERTY_NUM;
     stub->offset  = GUI_PROPERTY_MIN;
     stub->get_def = gui_prop_get_def;
+    stub->get_by_name = gui_prop_get_by_name;
+    stub->to_string = gui_prop_to_string;
 
     stub->prop_changed_listener.add = 
         gui_prop_add_prop_changed_listener;
+    stub->prop_changed_listener.add_full = 
+        gui_prop_add_prop_changed_listener_full;
     stub->prop_changed_listener.remove = 
         gui_prop_remove_prop_changed_listener;
 
