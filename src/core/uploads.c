@@ -669,7 +669,7 @@ static void send_upload_error_v(
 			hev[hevcnt++].he_msg = extra;
 		} else
 			g_warning("send_upload_error_v: "
-				"ignoring too large extra header (%d bytes)", slen);
+				"ignoring too large extra header (%d bytes)", (int) slen);
 	}
 
 	/*
@@ -1802,8 +1802,8 @@ static void upload_http_xhost_add(
 static void upload_xfeatures_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
-	gint rw = 0;
-	gint length = *retval;
+	size_t rw = 0;
+	size_t length = *retval;
 
 	header_features_generate(&xfeatures.uploads, buf, length, &rw);
 	

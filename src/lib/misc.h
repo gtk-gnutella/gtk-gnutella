@@ -103,7 +103,7 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 #define is_ascii_upper(c) (isascii(c) && isupper(c))
 #define is_ascii_xdigit(c) (isascii(c) && isxdigit(c))
 
-static const char hex_alphabet_lower[] = "0123456789abcdef";
+static const char hex_alphabet_lower[] G_GNUC_UNUSED = "0123456789abcdef";
 
 /*
  * Array size determination

@@ -294,7 +294,7 @@ socket_timer(time_t now)
 		if (now - s->last_update > (gint32) incoming_connecting_timeout) {
 			if (dbg) {
 				g_warning("connection from %s timed out (%d bytes read)",
-						  ip_to_gchar(s->ip), s->pos);
+						  ip_to_gchar(s->ip), (int) s->pos);
 				if (s->pos > 0)
 					dump_hex(stderr, "Connection Header",
 						s->buffer, MIN(s->pos, 80));

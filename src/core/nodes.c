@@ -2230,12 +2230,14 @@ send_node_error(struct gnutella_socket *s, int code, const gchar *msg, ...)
 		if (dbg) g_warning("Unable to send back error %d (%s) to node %s: %s",
 			code, msg_tmp, ip_to_gchar(s->ip), g_strerror(errno));
 	} else if ((size_t) sent < rw) {
-		if (dbg) g_warning("Only sent %d out of %d bytes of error %d (%s) "
-			"to node %s: %s",
-			sent, rw, code, msg_tmp, ip_to_gchar(s->ip), g_strerror(errno));
+		if (dbg) {
+			g_warning("Only sent %d out of %d bytes of error %d (%s) "
+				"to node %s: %s", (int) sent, (int) rw, code, msg_tmp,
+				ip_to_gchar(s->ip), g_strerror(errno));
+		}
 	} else if (dbg > 2) {
 		printf("----Sent error %d to node %s (%d bytes):\n%.*s----\n",
-			code, ip_to_gchar(s->ip), rw, (int) rw, gnet_response);
+			code, ip_to_gchar(s->ip), (int) rw, (int) rw, gnet_response);
 		fflush(stdout);
 	}
 }
@@ -3420,7 +3422,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 		if (dbg > 4)
 			printf("read %d Gnet bytes from node %s after handshake\n",
-				s->pos, node_ip(n));
+				(int) s->pos, node_ip(n));
 
 		/*
 		 * Prepare data buffer out of the socket's buffer.
@@ -4170,12 +4172,12 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	} else if ((size_t) sent < rw) {
 		if (dbg) g_warning(
 			"Could only send %d out of %d bytes of %s to node %s",
-			sent, rw, what, ip_to_gchar(n->ip));
+			(int) sent, (int) rw, what, ip_to_gchar(n->ip));
 		node_remove(n, "Failed (Cannot send %s atomically)", what);
 		return;
 	} else if (dbg > 2) {
 		printf("----Sent OK %s to %s (%d bytes):\n%.*s----\n",
-			what, ip_to_gchar(n->ip), rw, (int) rw, gnet_response);
+			what, ip_to_gchar(n->ip), (int) rw, (int) rw, gnet_response);
 		fflush(stdout);
 	}
 

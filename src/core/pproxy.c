@@ -144,7 +144,7 @@ static void send_pproxy_error_v(
 			hev[hevcnt++].he_msg = extra;
 		} else
 			g_warning("send_pproxy_error_v: "
-				"ignoring too large extra header (%d bytes)", slen);
+				"ignoring too large extra header (%d bytes)", (int) slen);
 	}
 
 	http_send_status(pp->socket, code, FALSE,
@@ -1039,7 +1039,6 @@ struct cproxy *cproxy_create(struct download *d,
 	gpointer handle;
 	static gchar path[128];
 	gboolean swapped = FALSE;
-	guint32 new_ip;
 
 	(void) gm_snprintf(path, sizeof(path),
 		"/gnutella/push-proxy?ServerId=%s&file=%u",
@@ -1061,21 +1060,23 @@ struct cproxy *cproxy_create(struct download *d,
 	 *	--RAM, 04/08/2003
 	 */
 
-	if (handle == NULL)
+	if (handle == NULL) {
+		guint32 new_ip;
+
 		new_ip = swap_guint32(ip);
+		if (host_is_valid(new_ip, port)) {
+			g_warning("can't connect to push-proxy %s for GUID %s: %s "
+				"-- swapping to %s",
+				ip_port_to_gchar(ip, port), guid_hex_str(guid),
+				http_async_strerror(http_async_errno),
+				ip_to_gchar(new_ip));
 
-	if (handle == NULL && host_is_valid(new_ip, port)) {
-		g_warning("can't connect to push-proxy %s for GUID %s: %s "
-			"-- swapping to %s",
-			ip_port_to_gchar(ip, port), guid_hex_str(guid),
-			http_async_strerror(http_async_errno),
-			ip_to_gchar(new_ip));
+			ip = new_ip;
+			swapped = TRUE;
 
-		ip = new_ip;
-		swapped = TRUE;
-
-		handle = http_async_get_ip(path, ip, port,
-			cproxy_http_header_ind, NULL, cproxy_http_error_ind);
+			handle = http_async_get_ip(path, ip, port,
+				cproxy_http_header_ind, NULL, cproxy_http_error_ind);
+		}
 	}
 
 	if (handle == NULL) {

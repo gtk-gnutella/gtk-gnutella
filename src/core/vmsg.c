@@ -197,7 +197,7 @@ vmsg_infostr(gpointer data, gint size)
 	guint16 version;
 	struct vmsg *vm;
 	
-	if (size < sizeof(*v))
+	if ((size_t) size < sizeof(*v))
 		return "????";
 
 	READ_GUINT32_BE(v->vendor, vendor);
@@ -232,7 +232,7 @@ vmsg_handle(struct gnutella_node *n)
 		gnet_stats_count_dropped(n, MSG_DROP_TOO_SMALL);
 		if (dbg || vmsg_debug)
 			gmsg_log_bad(n, "message has only %d bytes, needs at least %d",
-				n->size, sizeof(*v));
+				n->size, (int) sizeof(*v));
 		return;
 	}
 

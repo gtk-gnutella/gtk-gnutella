@@ -34,6 +34,7 @@
 RCSID("$Id$");
 
 #include "glib-missing.h"
+#include "utf8.h"
 #include "misc.h"
 #include "override.h"		/* Must be the last header included */
 

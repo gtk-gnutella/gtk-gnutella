@@ -4506,7 +4506,7 @@ download_write_data(struct download *d)
 		const char *error = g_strerror(errno);
 		g_message("Write to file failed (%s) !", error);
 		g_message("Tried to write(%d, %p, %d)",
-			  d->file_desc, s->buffer, s->pos);
+			  (int) d->file_desc, s->buffer, (int) s->pos);
 		download_queue_delay(d, download_retry_busy_delay,
 			"Can't save data: %s", error);
 		return;
@@ -4517,7 +4517,7 @@ download_write_data(struct download *d)
 
 	if ((size_t) written < s->pos) {
 		g_message("Partial write of %d out of %d bytes to file '%s'",
-			written, s->pos, fi->file_name);
+			(int) written, (int) s->pos, fi->file_name);
 		download_queue_delay(d, download_retry_busy_delay,
 			"Partial write to file");
 		return;
@@ -6537,7 +6537,7 @@ download_send_request(struct download *d)
 {
 	struct gnutella_socket *s = d->socket;
 	struct dl_file_info *fi;
-	gint rw;
+	size_t rw;
 	gint sent;
 	gboolean n2r = FALSE;
 	const gchar *sha1;

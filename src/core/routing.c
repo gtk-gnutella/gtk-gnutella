@@ -262,14 +262,14 @@ get_next_slot(void)
 	idx = routing.next_idx;
 	chunk_idx = CHUNK_INDEX(idx);
 
-	g_assert(chunk_idx >= 0 && chunk_idx < MAX_CHUNKS);
+	g_assert((gint) chunk_idx >= 0 && chunk_idx < MAX_CHUNKS);
 
 	chunk = routing.chunks[chunk_idx];
 
 	if (chunk == NULL) {
 		time_t now = time((time_t) NULL);
 
-		g_assert(idx >= routing.capacity);
+		g_assert((gint) idx >= routing.capacity);
 
 		/*
 		 * Chunk does not exist yet, determine whether we should create
@@ -329,8 +329,8 @@ get_next_slot(void)
 	}
 
 	g_assert(slot != NULL);
-	g_assert(idx == routing.next_idx);
-	g_assert(idx >= 0 && idx < routing.capacity);
+	g_assert(idx == (guint) routing.next_idx);
+	g_assert((gint) idx >= 0 && idx < (guint) routing.capacity);
 
 	/*
 	 * It's OK to go beyond the last allocated chunk (a new chunk will

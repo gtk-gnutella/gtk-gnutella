@@ -171,7 +171,7 @@ void host_timer(void)
             guint to_add;
 
             fan = (missing * quick_connect_pool_size) / max_nodes;
-            to_add = is_inet_connected ? fan : missing;
+            to_add = is_inet_connected ? fan : (guint) missing;
 
             /*
              * Make sure that we never use more connections then the

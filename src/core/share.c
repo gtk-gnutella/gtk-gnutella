@@ -1795,7 +1795,7 @@ compact_query(gchar *search)
 
 	mangled_search_len = compact_query_utf8(search + offset, utf8_len);
 
-	g_assert(mangled_search_len <= search_len - offset);
+	g_assert(mangled_search_len <= (size_t) search_len - offset);
 
 	/*
 	 * Get rid of BOM, if any.
