@@ -15,10 +15,11 @@
 	d_deflate d_inflate i_zlib icu gtkgversion d_enablenls
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
-?T:frontend persistent zlib remote iptos unicode nls
+?T:glib_used frontend persistent zlib remote iptos unicode nls
 : end of configuration questions
 echo " "
 echo "End of configuration questions."
+glib_used=glib-${glibversion}.x
 frontend="GTK1"
 case "$gtkversion" in
 2) frontend="GTK2";;
@@ -51,6 +52,7 @@ $cat >&4 <<EOM
 
 Feature Summary (Version $gtkgversion):
 -------------------------------------------------
+Glib version                       : $glib_used
 GUI front-end                      : $frontend
 Persistent filters                 : $persistent
 Gnutella traffic compression       : $zlib
