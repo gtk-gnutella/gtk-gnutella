@@ -1,6 +1,10 @@
 # since last version
 
-- (2002.08.27 Richard)
+- (2002.08.29 Richard)
+ * Droped g_hash_tables to lookup handles in search.c and nodes.c and use
+   new id_table instead.
+
+- (2002.08.28 Richard)
  * Changed justification of columns in search stats
  * Moved search stats to gui side. Use the same callback as the
    search monitor to get information from backend.
