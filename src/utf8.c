@@ -32,13 +32,6 @@
 
 #ifdef ENABLE_NLS
 #include <libintl.h>
-#include <langinfo.h>
-#include <locale.h>
-
-#ifdef HAVE_LIBCHARSET_H
-#include <libcharset.h>
-#endif
-
 #endif /* ENABLE_NLS */
 
 #include <string.h>
@@ -52,11 +45,16 @@ RCSID("$Id$");
 
 #ifndef USE_GTK2
 #include <iconv.h>
+#include <langinfo.h>
+#include <locale.h>
+
+#ifdef HAVE_LIBCHARSET_H
+#include <libcharset.h>
+#endif /* HAVE_LIBCHARSET_H */
 
 #define GIConv iconv_t
 #define g_iconv_open(t, f) iconv_open(t, f) 
 #define g_iconv(c, i, n, o, m) iconv(c, i, n, o, m)
-#define g_get_charset(p) do { *(p) = codeset; } while (0)
 
 #endif /* !USE_GTK2 */
 
@@ -421,37 +419,167 @@ gint utf8_to_iso8859(gchar *s, gint len, gboolean space)
 	return xw - s;
 }
 
+
+#if !defined(USE_GTK2) && !defined(HAVE_LIBCHARSET_H)
+
+/* List of known codesets. The first word of each string is the alias to be
+ * returned. The words are seperated by whitespaces.
+ */
+static const char *codesets[] = {
+ "ASCII ISO_646.IRV:1983 646 C US-ASCII la_LN.ASCII lt_LN.ASCII",
+ "BIG5 big5 big5 zh_TW.BIG5 zh_TW.Big5",
+ "CP1046 IBM-1046",
+ "CP1124 IBM-1124",
+ "CP1129 IBM-1129",
+ "CP1252 IBM-1252",
+ "CP437 en_NZ en_US",
+ "CP775 lt lt_LT lv lv_LV",
+ "CP850 IBM-850 cp850 ca ca_ES de de_AT de_CH de_DE en en_AU en_CA en_GB "
+	"en_ZA es es_AR es_BO es_CL es_CO es_CR es_CU es_DO es_EC es_ES es_GT "
+	"es_HN es_MX es_NI es_PA es_PY es_PE es_SV es_UY es_VE et et_EE eu eu_ES "
+	"fi fi_FI fr fr_BE fr_CA fr_CH fr_FR ga ga_IE gd gd_GB gl gl_ES id id_ID " 
+	"it it_CH it_IT nl nl_BE nl_NL pt pt_BR pt_PT sv sv_SE mt mt_MT eo eo_EO",
+ "CP852 cs cs_CZ hr hr_HR hu hu_HU pl pl_PL ro ro_RO sk sk_SK sl sl_SI "
+	"sq sq_AL sr sr_YU",
+ "CP856 IBM-856",
+ "CP857 tr tr_TR",
+ "CP861 is is_IS",
+ "CP862 he he_IL",
+ "CP864 ar ar_AE ar_DZ ar_EG ar_IQ ar_IR ar_JO ar_KW ar_MA ar_OM ar_QA "
+	"ar_SA ar_SY",
+ "CP865 da da_DK nb nb_NO nn nn_NO no no_NO",
+ "CP866 ru_RU.CP866 ru_SU.CP866 be be_BE bg bg_BG mk mk_MK ru ru_RU ",
+ "CP869 el el_GR",
+ "CP874 th th_TH",
+ "CP922 IBM-922",
+ "CP932 IBM-932 ja ja_JP",
+ "CP943 IBM-943",
+ "CP949 KSC5601 kr kr_KR",
+ "CP950 zh_TW",
+ "DEC-HANYU dechanyu",
+ "DEC-KANJI deckanji",
+ "EUC-JP IBM-eucJP eucJP eucJP sdeckanji ja_JP.EUC",
+ "EUC-KR IBM-eucKR eucKR eucKR deckorean 5601 ko_KR.EUC",
+ "EUC-TW IBM-eucTW eucTW eucTW cns11643",
+ "GB2312 IBM-eucCN hp15CN eucCN dechanzi gb2312 zh_CN.EUC",
+ "GBK zh_CN",
+ "HP-ARABIC8 arabic8",
+ "HP-GREEK8 greek8",
+ "HP-HEBREW8 hebrew8",
+ "HP-KANA8 kana8",
+ "HP-ROMAN8 roman8 ",
+ "HP-TURKISH8 turkish8 ",
+ "ISO-8859-1 ISO8859-1 iso88591 da_DK.ISO_8859-1 de_AT.ISO_8859-1 "
+	"de_CH.ISO_8859-1 de_DE.ISO_8859-1 en_AU.ISO_8859-1 en_CA.ISO_8859-1 "
+	"en_GB.ISO_8859-1 en_US.ISO_8859-1 es_ES.ISO_8859-1 fi_FI.ISO_8859-1 "
+	"fr_BE.ISO_8859-1 fr_CA.ISO_8859-1 fr_CH.ISO_8859-1 fr_FR.ISO_8859-1 "
+	"is_IS.ISO_8859-1 it_CH.ISO_8859-1 it_IT.ISO_8859-1 la_LN.ISO_8859-1 "
+	"lt_LN.ISO_8859-1 nl_BE.ISO_8859-1 nl_NL.ISO_8859-1 no_NO.ISO_8859-1 "
+	"pt_PT.ISO_8859-1 sv_SE.ISO_8859-1",
+ "ISO-8859-13 IBM-921",
+ "ISO-8859-15 ISO8859-15 iso885915 da_DK.DIS_8859-15 de_AT.DIS_8859-15 "
+	"de_CH.DIS_8859-15 de_DE.DIS_8859-15 en_AU.DIS_8859-15 en_CA.DIS_8859-15 "
+	"en_GB.DIS_8859-15 en_US.DIS_8859-15 es_ES.DIS_8859-15 fi_FI.DIS_8859-15 "
+	"fr_BE.DIS_8859-15 fr_CA.DIS_8859-15 fr_CH.DIS_8859-15 fr_FR.DIS_8859-15 "
+	"is_IS.DIS_8859-15 it_CH.DIS_8859-15 it_IT.DIS_8859-15 la_LN.DIS_8859-15 "
+	"lt_LN.DIS_8859-15 nl_BE.DIS_8859-15 nl_NL.DIS_8859-15 no_NO.DIS_8859-15 "
+	"pt_PT.DIS_8859-15 sv_SE.DIS_8859-15",
+ "ISO-8859-2 ISO8859-2 iso88592 cs_CZ.ISO_8859-2 hr_HR.ISO_8859-2 "
+	"hu_HU.ISO_8859-2 la_LN.ISO_8859-2 lt_LN.ISO_8859-2 pl_PL.ISO_8859-2 "
+	"sl_SI.ISO_8859-2",
+ "ISO-8859-4 ISO8859-4 la_LN.ISO_8859-4 lt_LT.ISO_8859-4",
+ "ISO-8859-5 ISO8859-5 iso88595 ru_RU.ISO_8859-5 ru_SU.ISO_8859-5",
+ "ISO-8859-6 ISO8859-6 iso88596",
+ "ISO-8859-7 ISO8859-7 iso88597",
+ "ISO-8859-8 ISO8859-8 iso88598",
+ "ISO-8859-9 ISO8859-9 iso88599",
+ "KOI8-R koi8-r ru_RU.KOI8-R ru_SU.KOI8-R",
+ "KOI8-U uk_UA.KOI8-U",
+ "SHIFT_JIS SJIS PCK ja_JP.SJIS ja_JP.Shift_JIS",
+ "TIS-620 tis620 TACTIS TIS620.2533",
+ "UTF-8 utf8 *",
+ NULL
+};
+
+/*
+ * locale_charset:
+ *
+ * Returns a string representing the current locale as an alias which is
+ * understood by GNU iconv. The returned pointer points to a static buffer.
+ */
+const char *locale_charset(const char *cs)
+{
+	int i = 0;
+	const char *start = codesets[0]; 
+	const char *first_end = NULL;
+	size_t cs_len = strlen(cs);
+
+	while (NULL != codesets[i]) {
+		static char buf[64];
+		const char *end;
+		size_t len;
+		
+		end = strchr(start, ' ');
+		if (NULL == end)
+			end = strchr(start, '\0');
+		if (NULL == first_end)
+			first_end = end;
+
+ 		len = end - start;
+		if (len > 0 && 0 == g_ascii_strncasecmp(cs, start, cs_len)) {
+			len = first_end - codesets[i] + 1;
+			g_strlcpy(buf, codesets[i], MIN(len, sizeof(buf)));
+			return buf;
+		}
+		if ('\0' == *end) {
+			first_end = NULL;
+			start = codesets[++i];
+		} else
+			start = end + 1;
+		
+	}
+	return NULL;
+}
+#endif /* ENABLE_NLS && !HAVE_LIBCHARSET_H */
+
 void locale_init(void)
 {
-	const gchar *charset;
-	const gchar *codeset;
+	const gchar *charset = NULL;
+	const gchar *codeset = NULL;
 
 #ifdef ENABLE_NLS
 	setlocale(LC_ALL, "");
+#endif /* NLS */
 
 #ifdef USE_GTK2
+
 	codeset = "UTF-8";
+	g_get_charset(&charset);
+
 #else
 
-#ifdef HAVE_LIBCHARSET_H
-	codeset = locale_charset();
-#else
 	codeset = nl_langinfo(CODESET);
-#endif /* HAVE_LIBCHARSET_H */
-	if (codeset == NULL) 
+	if (NULL != codeset && '\0' != *codeset)
+		codeset = locale_charset(codeset);
+	if (codeset == NULL) {
 		codeset = "ISO-8859-1";		/* Default locale codeset */
+		g_warning("locale_init: Using default codeset %s as fallback.",
+			codeset);
+	}
+	charset = codeset;
+
 #endif /* USE_GTK2 */
 
+#ifdef ENABLE_NLS
 	bindtextdomain(PACKAGE, LOCALEDIR);
 
 #ifdef HAVE_BIND_TEXTDOMAIN_CODESET
 	bind_textdomain_codeset(PACKAGE, codeset);
-#endif
+#endif /* HAVE_BIND_TEXTDOMAIN_CODESET */
 
 	textdomain(PACKAGE);
 #endif /* NLS */
 
-	g_get_charset(&charset);
 
 	if ((GIConv)-1 == (cd_latin_to_utf8 = g_iconv_open("UTF-8", "ISO-8859-1")))
 		g_warning("g_iconv_open(\"UTF-8\", \"ISO-8859-1\") failed.");
@@ -530,8 +658,13 @@ gchar *locale_to_utf8(gchar *str, size_t len)
 
 	g_assert(NULL != str);
 
-	return g_iconv_complete(cd_locale_to_utf8,
-				str, len != 0 ? len : strlen(str), outbuf, sizeof(outbuf) - 7);
+	if (0 == len)
+		len = strlen(str);
+	if (utf8_is_valid_string(str, len))
+		return str;
+	else
+		return g_iconv_complete(cd_locale_to_utf8,
+				str, len, outbuf, sizeof(outbuf) - 7);
 }
 
 gchar *utf8_to_locale(gchar *str, size_t len)
