@@ -110,8 +110,9 @@ static void upload_http_sha1_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 static void upload_http_xhost_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
+static void upload_xfeatures_add(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 static void upload_write(gpointer up, gint source, inputevt_cond_t cond);
-
 
 /***
  *** Callbacks
@@ -570,6 +571,14 @@ static void send_upload_error_v(
 				"ignoring too large extra header (%d bytes)", slen);
 	}
 
+	/*
+	 * Send X-Features on error too.
+	 *		-- JA, 03/11/2003
+	 */
+	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+	hev[hevcnt].he_cb = upload_xfeatures_add;
+	hev[hevcnt++].he_arg = NULL;
+	
 	/*
 	 * If the download got queued, also add the queueing information
 	 *		--JA, 07/02/2003
