@@ -35,6 +35,7 @@
 #include <sys/stat.h>
 
 #include "downloads.h"
+#include "fileinfo.h"
 #include "move.h"
 
 RCSID("$Id$");
@@ -143,9 +144,10 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	struct moved *md = (struct moved *) ctx;
 	struct work *we = (struct work *) item;
 	struct download *d = we->d;
-	char *source = NULL;
-	char *target = NULL;
+	gchar *source = NULL;
+	gchar *target = NULL;
 	struct stat buf;
+	gchar *name;
 
 	g_assert(md->magic == MOVED_MAGIC);
 	g_assert(md->rd == -1);
@@ -174,7 +176,13 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 		goto abort_read;
 	}
 
-	target = unique_filename(we->dest, download_outname(d), we->ext);
+	/*
+	 * Don't keep an URN-like name when the file is done, if possible.
+	 */
+
+	name = file_info_readable_filename(d->file_info);
+
+	target = unique_filename(we->dest, name, we->ext);
 	if (NULL == target)
 		goto abort_read;
 
@@ -191,7 +199,7 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	md->error = 0;
 
 	if (dbg > 1)
-		printf("Moving \"%s\" to %s\n", download_outname(d), target);
+		printf("Moving \"%s\" to \"%s\"\n", download_outname(d), target);
 
 	G_FREE_NULL(source);
 	G_FREE_NULL(target);

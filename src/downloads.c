@@ -7272,6 +7272,7 @@ static void download_move(
 	gchar *dest = NULL;
 	gchar *src = NULL;
 	gboolean common_dir;
+	gchar *name;
 
 	g_assert(d);
 	g_assert(FILE_INFO_COMPLETE(d->file_info));
@@ -7285,12 +7286,18 @@ static void download_move(
 		goto error;
 
 	/*
+	 * Don't keep an URN-like name when the file is done, if possible.
+	 */
+
+	name = file_info_readable_filename(fi);
+
+	/*
 	 * If the target directory is the same as the source directory, we'll
 	 * use the supplied extension and simply rename the file.
 	 */
 
 	if (0 == strcmp(dir, fi->path)) {
-		dest = unique_filename(dir, fi->file_name, ext);
+		dest = unique_filename(dir, name, ext);
 		if (NULL == dest || -1 == rename(src, dest))
 			goto error;
 		goto renamed;
@@ -7305,7 +7312,7 @@ static void download_move(
 
 	common_dir = (0 == strcmp(move_file_path, bad_file_path));
 
-	dest = unique_filename(dir, fi->file_name, common_dir ? ext : "");
+	dest = unique_filename(dir, name, common_dir ? ext : "");
 	if (NULL == dest)
 		goto error;
 
@@ -7534,7 +7541,8 @@ void download_verify_done(struct download *d, gchar *digest, time_t elapsed)
 	ignore_add_sha1(download_outname(d), fi->cha1);
 
 	if (has_good_sha1(d)) {
-		ignore_add_filesize(d->file_name, d->file_info->size);
+		gchar *name = file_info_readable_filename(fi);
+		ignore_add_filesize(name, d->file_info->size);
 		queue_remove_downloads_with_file(d->file_info, d);
 		download_move(d, move_file_path, DL_OK_EXT);
 	} else {
@@ -7551,14 +7559,19 @@ void download_verify_done(struct download *d, gchar *digest, time_t elapsed)
 void download_verify_error(struct download *d)
 {
 	struct dl_file_info *fi = d->file_info;
+	gchar *name = file_info_readable_filename(fi);
 
 	g_assert(d->status == GTA_DL_VERIFYING);
 
-	g_warning("error while verifying SHA1 for \"%s\"", fi->file_name);
+	if (0 == strcmp(fi->file_name, name))
+		g_warning("error while verifying SHA1 for \"%s\"", fi->file_name);
+	else
+		g_warning("error while verifying SHA1 for \"%s\" (aka \"%s\")",
+			fi->file_name, name);
 
 	d->status = GTA_DL_VERIFIED;
 
-	ignore_add_filesize(d->file_name, fi->size);
+	ignore_add_filesize(name, fi->size);
 	queue_remove_downloads_with_file(fi, d);
 	download_move(d, move_file_path, DL_UNKN_EXT);
 	gui_update_download(d, TRUE);
