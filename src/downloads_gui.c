@@ -1418,7 +1418,9 @@ void gui_update_download_abort_resume(void)
 {
 
    	struct download *d;
-    GList *node_list, *data_list = NULL;
+    GList *node_list;
+    GList *data_list;
+    GList *l;
     GtkCTree *ctree_downloads =
 		GTK_CTREE(lookup_widget(main_window, "ctree_downloads"));
 
@@ -1428,13 +1430,12 @@ void gui_update_download_abort_resume(void)
     gboolean do_queue  = FALSE;
     gboolean abort_sha1 = FALSE;
 
-
-	node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
+    node_list = g_list_copy(GTK_CLIST(ctree_downloads)->selection);
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
 		node_list, FALSE, TRUE);
 	
-	for (; NULL != data_list; data_list = g_list_next(data_list)) {
-		d = (struct download *) data_list->data;
+    for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
 	
         if (!d) {
 			g_warning
