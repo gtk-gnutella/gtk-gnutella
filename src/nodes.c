@@ -173,10 +173,7 @@ void node_timer(time_t now)
 					g_free(reason);
 				}
 			} else if (now - n->last_update > node_connected_timeout) {
-				if (NODE_IS_WRITABLE(n))
-					node_bye(n, 405, "Activity timeout");
-				else
-					node_remove(n, "Activity timeout");
+				node_bye_if_writable(n, 405, "Activity timeout");
 			} else if (
 				NODE_IN_TX_FLOW_CONTROL(n) &&
 				now - n->tx_flowc_date > node_tx_flowc_timeout
@@ -192,21 +189,14 @@ void node_timer(time_t now)
 		 */
 
 		if (n->status == GTA_NODE_CONNECTED) {
-			if (n->n_weird >= MAX_WEIRD_MSG) {
-				if (NODE_IS_WRITABLE(n))
-					node_bye(n, 412, "Security violation");
-				else
-					node_remove(n, "Security violation");
-			}
+			if (n->n_weird >= MAX_WEIRD_MSG)
+				node_bye_if_writable(n, 412, "Security violation");
+
 			if (
 				n->sent > MIN_TX_FOR_RATIO &&
 				(n->received == 0 || n->sent / n->received > MAX_TX_RX_RATIO)
-			) {
-				if (NODE_IS_WRITABLE(n))
-					node_bye(n, 405, "Receive timeout");
-				else
-					node_remove(n, "Receive timeout");
-			}
+			)
+				node_bye_if_writable(n, 405, "Receive timeout");
 		}
 
 		gui_update_nodes_display(now);
@@ -587,30 +577,24 @@ end:
 }
 
 /*
- * node_bye
+ * node_bye_v
  *
- * Terminate connection by sending a bye message to the remote node.  Upon
- * reception of that message, the connection will be closed by the remote
- * party.
- *
- * This is otherwise equivalent to the node_shutdown() call.
+ * The vectorized version of node_bye().
  */
-void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
+static void node_bye_v(
+	struct gnutella_node *n, gint code, const gchar * reason, va_list ap)
 {
 	struct gnutella_header head;
 	gchar reason_fmt[1024];
 	struct gnutella_bye *payload = (struct gnutella_bye *) reason_fmt;
 	gint len;
 	gint sendbuf_len;
-	va_list args;
 
 	g_assert(n);
 
-	va_start(args, reason);
-
 	if (n->status == GTA_NODE_SHUTDOWN) {
-		node_recursive_shutdown_v(n, "Bye", reason, args);
-		goto end;
+		node_recursive_shutdown_v(n, "Bye", reason, ap);
+		return;
 	}
 
 	/*
@@ -621,12 +605,12 @@ void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
 	 */
 
 	if (NODE_IS_PONGING_ONLY(n)) {
-		node_remove_v(n, reason, args);
-		goto end;
+		node_remove_v(n, reason, ap);
+		return;
 	}
 
 	if (reason) {
-		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, args);
+		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, ap);
 		n->error_str[sizeof(n->error_str) - 1] = '\0';	/* May be truncated */
 		n->remove_msg = n->error_str;
 	} else {
@@ -708,9 +692,44 @@ void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
 
 		node_shutdown_mode(n, SHUTDOWN_GRACE_DELAY);
 	}
+}
 
-end:
+/*
+ * node_bye
+ *
+ * Terminate connection by sending a bye message to the remote node.  Upon
+ * reception of that message, the connection will be closed by the remote
+ * party.
+ *
+ * This is otherwise equivalent to the node_shutdown() call.
+ */
+void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
+{
+	va_list args;
+
+	va_start(args, reason);
+	node_bye_v(n, code, reason, args);
 	va_end(args);
+
+}
+
+/*
+ * node_bye_if_writable
+ *
+ * If node is writable, act as if node_bye() had been called.
+ * Otherwise, act as if node_remove() had been called.
+ */
+void node_bye_if_writable(
+	struct gnutella_node *n, gint code, const gchar * reason, ...)
+{
+	va_list args;
+
+	va_start(args, reason);
+
+	if (NODE_IS_WRITABLE(n))
+		node_bye_v(n, code, reason, args);
+	else
+		node_remove_v(n, reason, args);
 }
 
 gboolean node_connected(guint32 ip, guint16 port, gboolean incoming)
@@ -2862,10 +2881,7 @@ gboolean node_remove_non_nearby(void)
 		struct gnutella_node *n = (struct gnutella_node *) l->data;
 
 		if (n->status == GTA_NODE_CONNECTED && !host_is_nearby(n->ip)) {
-			if (NODE_IS_WRITABLE(n))
-				node_bye(n, 202, "Local node preferred");
-			else
-				node_remove(n, "Local node preferred");
+			node_bye_if_writable(n, 202, "Local node preferred");
 			return TRUE;
 		}
 	}

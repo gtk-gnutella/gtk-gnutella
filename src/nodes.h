@@ -312,6 +312,8 @@ void node_remove(struct gnutella_node *, const gchar * reason, ...);
 void node_eof(struct gnutella_node *n, const gchar * reason, ...);
 void node_shutdown(struct gnutella_node *n, const gchar * reason, ...);
 void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...);
+void node_bye_if_writable(
+	struct gnutella_node *n, gint code, const gchar * reason, ...);
 void node_init_outgoing(struct gnutella_node *);
 gboolean node_sent_ttl0(struct gnutella_node *n);
 void node_disableq(struct gnutella_node *n);
