@@ -40,8 +40,8 @@ extern gboolean is_firewalled;
  * Global Functions
  */
 
+void socket_init(void);
 void socket_register_fd_reclaimer(reclaim_fd_t callback);
-
 void socket_eof(struct gnutella_socket *s);
 void socket_free(struct gnutella_socket *);
 struct gnutella_socket *socket_connect(guint32, guint16, enum socket_type);

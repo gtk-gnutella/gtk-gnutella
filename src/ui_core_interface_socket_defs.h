@@ -27,6 +27,46 @@
 #ifndef _ui_core_interface_socket_defs_h_
 #define _ui_core_interface_socket_defs_h_
 
+#include "common.h"
+
+typedef struct wrap_io {
+	gpointer ctx;
+	ssize_t (*write)(struct wrap_io *, gconstpointer, size_t);
+	ssize_t (*read)(struct wrap_io *, gpointer, size_t);
+	ssize_t (*writev)(struct wrap_io *, const struct iovec *, int);
+	ssize_t (*readv)(struct wrap_io *, struct iovec *, int);
+	int (*fd)(struct wrap_io *);
+} wrap_io_t;
+
+typedef struct wrap_buf {
+	size_t	pos;		/**< Current position in the buffer. */
+	size_t	len;		/**< Amount of currently buffered bytes. */
+	size_t	size;		/**< The size of the buffer. */
+	gchar	*ptr;		/**< The walloc()ed buffer. */
+} wrap_buf_t;
+
+#ifdef USE_TLS
+#include <gnutls/gnutls.h>
+
+enum socket_tls_stage {
+	SOCK_TLS_NONE			= 0,
+	SOCK_TLS_INITIALIZED	= 1,
+	SOCK_TLS_ESTABLISHED	= 2
+};
+
+struct socket_tls_ctx {
+	gnutls_session		 	session;
+	gboolean			 	enabled;
+	enum socket_tls_stage	stage;
+	size_t snarf;			/**< Pending bytes if write failed temporarily. */
+};
+
+#define SOCKET_USES_TLS(s) \
+	((s)->tls.enabled && (s)->tls.stage >= SOCK_TLS_ESTABLISHED)
+#else /* !USE_TLS */
+#define SOCKET_USES_TLS(s) 0
+#endif /* USE_TLS */
+
 struct sockaddr;
 
 #define SOCK_BUFSZ	4096
@@ -76,6 +116,12 @@ struct gnutella_socket {
 	guint16 local_port;		/* Port on our side */
 
 	time_t last_update;		/* Timestamp of last activity on socket */
+	
+	struct wrap_io wio;		/**< Wrapped IO object */
+	
+#ifdef USE_TLS
+	struct socket_tls_ctx tls;
+#endif
 
 	union {
 		struct gnutella_node *node;
@@ -108,3 +154,5 @@ struct gnutella_socket {
 #define sock_is_corked(x)		((x)->corked)
 
 #endif
+
+/* vi: set ts=4 sw=4 cindent: */
