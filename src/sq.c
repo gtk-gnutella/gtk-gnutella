@@ -38,7 +38,7 @@
 
 /* hack value for now */
 #define QUEUE_SPACING	10		/* Send a search every 10 seconds */
-#define MAX_QUEUE		25		/* Max amount of searches we queue */
+#define MAX_QUEUE		256		/* Max amount of searches we queue */
 
 /*
  * Compute start of search string (which is NUL terminated) in query.
