@@ -466,12 +466,18 @@ on_tree_view_search_results_select_row(GtkTreeView *view, gpointer unused_udata)
 		gtk_tree_model_get_iter(model, &iter, path);
 		gtk_tree_model_get(model, &iter, c_sr_record, &rc, (-1));
 		g_assert(NULL != rc);
+		
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
 			lazy_locale_to_utf8(rc->name, 0));
+		
+		gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
+			rc->sha1 ? "urn:sha1" : _("<none>"),
+			rc->sha1 ? sha1_base32(rc->sha1) : "");
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
-			rc->sha1 != NULL ? sha1_base32(rc->sha1) : _("<none>"));
+			tmpstr);
+		
 		if (rc->results_set->hostname)
 			gtk_entry_set_text(GTK_ENTRY(
 				lookup_widget(main_window, "entry_result_info_source")),
@@ -481,20 +487,24 @@ on_tree_view_search_results_select_row(GtkTreeView *view, gpointer unused_udata)
 			gtk_entry_set_text(GTK_ENTRY(
 				lookup_widget(main_window, "entry_result_info_source")),
 				ip_port_to_gchar(rc->results_set->ip, rc->results_set->port));
+		
 		gm_snprintf(bytes, sizeof bytes, "%" PRIu64, (guint64) rc->size);
 		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%s bytes)"),
 			short_size(rc->size), bytes);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_size")),
 			tmpstr);
+		
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_guid")),
 			guid_hex_str(rc->results_set->guid));
+		
 		g_strlcpy(tmpstr, ctime(&rc->results_set->stamp),
 			MIN(25U, sizeof tmpstr)); /* discard trailing '\n' (see ctime(3) */
 		gtk_entry_set_text(GTK_ENTRY(
 			lookup_widget(main_window, "entry_result_info_timestamp")),
 			tmpstr);
+		
 		vendor = lookup_vendor_name(rc->results_set->vendor);
 		if (vendor == NULL)
 			*tmpstr = '\0';
@@ -506,10 +516,12 @@ on_tree_view_search_results_select_row(GtkTreeView *view, gpointer unused_udata)
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_vendor")),
 			tmpstr);
+		
 		gm_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) rc->index);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_index")),
 			tmpstr);
+		
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
 			rc->tag ? lazy_locale_to_utf8(rc->tag, 0) : "");
