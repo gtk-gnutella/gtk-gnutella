@@ -130,7 +130,7 @@ static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
 gchar *pkt_stat_str(
     guint64 *val_tbl, gint type)
 {
-    static gchar strbuf[20];
+    static gchar strbuf[21];
 
     if (val_tbl[type] == 0)
         return gnet_stats_perc ? "-  " : "-";
@@ -148,7 +148,7 @@ gchar *pkt_stat_str(
 gchar *byte_stat_str(
     guint64 *val_tbl, gint type)
 {
-    static gchar strbuf[20];
+    static gchar strbuf[21];
 
     if (val_tbl[type] == 0)
         return gnet_stats_perc ? "-  " : "-";
@@ -163,7 +163,7 @@ gchar *byte_stat_str(
 
 gchar *drop_stat_str(gnet_stats_t *stats, gint reason)
 {
-    static gchar strbuf[20];
+    static gchar strbuf[21];
     guint32 total = stats->pkg.dropped[MSG_TOTAL];
 
     if (stats->drop_reason[reason][selected_type] == 0)
@@ -181,7 +181,7 @@ gchar *drop_stat_str(gnet_stats_t *stats, gint reason)
 
 gchar *general_stat_str(gnet_stats_t *stats, gint type)
 {
-    static gchar strbuf[20];
+    static gchar strbuf[21];
 
     if (stats->general[type] == 0)
         return "-";
@@ -196,7 +196,7 @@ gchar *general_stat_str(gnet_stats_t *stats, gint type)
 
 gchar *flowc_stat_str_pkg(guint64 *val_tbl, gint type)
 {
-    static gchar strbuf[20];
+    static gchar strbuf[21];
 
     if (val_tbl[type] == 0)
         return gnet_stats_perc ? "-  " : "-";
@@ -213,7 +213,7 @@ gchar *flowc_stat_str_pkg(guint64 *val_tbl, gint type)
 
 gchar *flowc_stat_str_byte(guint64 *val_tbl, gint type)
 {
-    static gchar strbuf[20];
+    static gchar strbuf[21];
 
     if (val_tbl[type] == 0)
         return gnet_stats_perc ? "-  " : "-";
