@@ -962,6 +962,14 @@ set_tooltips_keyboard_mode(GtkWidget *widget, gboolean on)
 			"gtk-tooltips-keyboard-mode", GUINT_TO_POINTER(on));
 }
 
+void
+widget_force_tooltip(GtkWidget *widget)
+{
+	g_return_if_fail(widget != NULL);
+	set_tooltips_keyboard_mode(widget, TRUE);
+	set_tooltips_keyboard_mode(widget, FALSE);
+}
+
 #endif
 
 
