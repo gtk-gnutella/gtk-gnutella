@@ -228,8 +228,7 @@ struct download {
 	|| (d)->status == GTA_DL_DONE       )
 
 #define DOWNLOAD_IS_ACTIVE(d)			\
-	(  (d)->status == GTA_DL_RECEIVING	\
-	|| (d)->status == GTA_DL_SINKING)
+	(  (d)->status == GTA_DL_RECEIVING	)
 
 #define DOWNLOAD_IS_WAITING(d)			\
 	(  (d)->status == GTA_DL_TIMEOUT_WAIT)
