@@ -525,6 +525,7 @@ static void bsched_begin_timeslice(bsched_t *bs)
 {
 	GList *l;
 	GList *last = NULL;
+	gdouble norm_factor = 1000.0 / bs->period;
 
 	for (l = bs->sources; l; l = g_list_next(l)) {
 		bio_source_t *bio = (bio_source_t *) l->data;
@@ -557,6 +558,7 @@ static void bsched_begin_timeslice(bsched_t *bs)
 		actual = bio->bw_actual << BIO_EMA_SHIFT;
 		bio->bw_fast_ema += (actual >> 1) - (bio->bw_fast_ema >> 1);
 		bio->bw_slow_ema += (actual >> 6) - (bio->bw_slow_ema >> 6);
+		bio->bw_last_bps = (guint) (bio->bw_actual * norm_factor);
 		bio->bw_actual = 0;
 	}
 

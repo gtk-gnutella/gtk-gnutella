@@ -132,6 +132,7 @@ typedef struct bio_source {
 	gpointer io_arg;					/* I/O callback argument */
 	guint32 flags;						/* Source flags */
 	guint bw_actual;					/* Actual bandwidth used in period */
+	guint bw_last_bps;					/* B/w used last period (bps) */
 	guint bw_fast_ema;					/* Fast EMA of actual bandwidth used */
 	guint bw_slow_ema;					/* Slow EMA of actual bandwidth used */
 } bio_source_t;
@@ -149,7 +150,7 @@ typedef struct bio_source {
 
 #define BIO_EMA_SHIFT	7
 
-#define bio_bps(b)		((b)->bw_fast_ema >> BIO_EMA_SHIFT)
+#define bio_bps(b)		((b)->bw_last_bps)
 #define bio_avg_bps(b)	((b)->bw_slow_ema >> BIO_EMA_SHIFT)
 
 /*
