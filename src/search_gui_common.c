@@ -402,6 +402,7 @@ record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     rc->sha1 = (r->sha1 != NULL) ? atom_sha1_get(r->sha1) : NULL;
     rc->tag = (r->tag != NULL) ? atom_str_get(r->tag) : NULL;
     rc->flags = r->flags;
+	rc->alt_locs = NULL;
 
 	if (r->alt_locs != NULL) {
 		gnet_alt_locs_t *a = r->alt_locs;
