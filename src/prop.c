@@ -1354,7 +1354,7 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 void prop_load_from_file(
 	prop_set_t *ps, const gchar *dir, const gchar *filename)
 {
-	static const char fmt[] = "Bad line %u in config file, ignored\n";
+	static const char fmt[] = "Bad line %u in config file, ignored";
 	FILE *config;
 	gchar *s, *k, *v;
 	gchar *path;
@@ -1429,7 +1429,6 @@ void prop_load_from_file(
 		}
 		*s = '\0';
 
-
 		for (i = 0; i < ps->size; i++)
 			if (!g_ascii_strcasecmp(k, (ps->props[i]).name)) {
 				load_helper(ps, i+ps->offset, v);
@@ -1437,8 +1436,8 @@ void prop_load_from_file(
 			}
 
 		if (i >= ps->size)
-			g_warning("config file, line %u: unknown keyword '%s', ignored\n",
-					n, k);
+			g_warning("config file, line %u: unknown keyword '%s', ignored",
+					(guint) n, k);
 	}
 
 	fclose(config);
