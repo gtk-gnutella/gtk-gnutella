@@ -2387,18 +2387,36 @@ cleanup:
 	/*
 	 * Update listening IP and port information
 	 *
-	 * Sepcs 1.0 defined X-Listen-IP, but 1.0.a corrected to X-Node.
+	 * Specs 1.0 defined X-Listen-IP, but 1.0.a corrected to X-Node.
 	 * Parse both, but only emit X-Node from now on.
 	 *		--RAM, 11/05/2003
 	 */
 
 	if (parq_ul->major >= 1) {					/* Only if PARQ advertised */
+		GList *l = NULL;
+		
 		buf = header_get(header, "X-Node");
 		if (buf == NULL)
 			buf = header_get(header, "X-Listen-Ip");	/* Case normalized */
 
-		if (buf != NULL && gchar_to_ip_port(buf, &parq_ul->ip, &parq_ul->port))
-			parq_ul->flags &= ~PARQ_UL_NOQUEUE;
+		if (buf != NULL) {		
+			/*
+			 * Update port / IP entries for other queued entries too.
+			 *
+			 * XXX We should lookup the IP:Port combo. Multiple clients
+			 * XXX could be running from the same IP. We shouldn't update those 
+			 * XXX entries. However, evil clients might abuse this and run from
+			 * XXX multiple ports.
+			 */
+			
+			for (l = parq_ul->by_ip->list; l != NULL; l = l->next) {
+				struct parq_ul_queued *parq_ul_up = 
+					(struct parq_ul_queued *) l->data;
+						
+				gchar_to_ip_port(buf, &parq_ul_up->ip, &parq_ul_up->port);
+				parq_ul_up->flags &= ~PARQ_UL_NOQUEUE;
+			}
+		}
 	}
 		
 	parq_ul->u = u;	/* Save pointer to structure. Don't forget to move it too
