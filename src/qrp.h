@@ -50,6 +50,10 @@ void qrt_update_free(gpointer handle);
 gboolean qrt_update_send_next(gpointer handle);
 gboolean qrt_update_was_ok(gpointer handle);
 
+gpointer qrt_receive_create(struct gnutella_node *n, gpointer query_table);
+void qrt_receive_free(gpointer handle);
+gboolean qrt_receive_next(gpointer handle, gboolean *done);
+
 gpointer qrt_get_table(void);
 gpointer qrt_ref(gpointer obj);
 void qrt_unref(gpointer obj);
