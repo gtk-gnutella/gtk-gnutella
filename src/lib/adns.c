@@ -40,7 +40,7 @@ RCSID("$Id$");
 
 #include "override.h"		/* Must be the last header included */
 
-static guint32 common_dbg = ~0;	/* XXX -- need to init lib's props --RAM */
+static guint32 common_dbg = 0;	/* XXX -- need to init lib's props --RAM */
 
 /* private data types */
 
