@@ -35,6 +35,16 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
+
+#ifdef I_SYS_TIME
+#include <sys/time.h>
+#endif
+#ifdef I_SYS_TIME_KERNEL
+#define KERNEL
+#include <sys/time.h>
+#undef KERNEL
+#endif
+
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -47,23 +57,15 @@
 #include <string.h>
 #include <dirent.h>
 
+#ifdef I_TIME
+#include <time.h>
+#endif
+
 #ifdef I_SYS_PARAM
 #include <sys/param.h>
 #endif
 #ifdef I_SYS_SYSCTL
 #include <sys/sysctl.h>
-#endif
-
-#ifdef I_TIME
-#include <time.h>
-#endif
-#ifdef I_SYS_TIME
-#include <sys/time.h>
-#endif
-#ifdef I_SYS_TIME_KERNEL
-#define KERNEL
-#include <sys/time.h>
-#undef KERNEL
 #endif
 
 #ifdef I_INTTYPES
