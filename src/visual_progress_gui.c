@@ -82,7 +82,6 @@ typedef struct vp_info {
 
 GHashTable *vp_info_hash;  /* Hash table with our cached fileinfo info */
 
-GdkFont *vp_font = NULL;   /* Font to be used in our graphics data */
 GdkColor done;             /* Pre-filled color (green) for DONE chunks */
 GdkColor done_old;         /* Pre-filled color (dull green) for DONE chunks from previous sessions */
 GdkColor busy;             /* Pre-filled color (yellow) for BUSY chunks */
@@ -92,7 +91,6 @@ GdkColor available;        /* Pre-filled color (blue) available on network */
 GdkColor *base;            /* Theme-defined background color */
 
 vp_context_t fi_context;
-vp_context_t *vp_context;
 
 
 /* 
@@ -109,9 +107,19 @@ void vp_draw_rectangle (vp_info_t *v, guint32 from, guint32 to, guint top, guint
     g_assert( v->context );
     g_assert( v->context->drawable );
 
+	/* 
+	 * Both these variables should be set to a value, otherwise we get
+	 * a division by zero below. We could protect for that, but
+	 * neither should be zero when we end up here, so this can be
+	 * considered a bug somewhere in the calling code.
+	 */
 	g_assert( v->context->width );
 	g_assert( v->file_size);
 
+	/* 
+	 * FIXME: perhaps we should check the values here to see if they
+	 * are out of bounds?
+	 */
     bpp = v->file_size / v->context->width;
     s_from = from / bpp; 
     s_to = to / bpp; 
@@ -150,29 +158,6 @@ static void vp_draw_range (gpointer data, gpointer user_data)
 	vp_draw_rectangle(v, range->start, range->end, v->context->height - 3, v->context->height);
 }
 
-void vp_draw_fi (gpointer key, gpointer value, gpointer user_data)
-{
-    vp_info_t *v = value;
-    GString *fakename;
-
-    fakename = g_string_new("");
-#ifdef SCREENSHOT_MODE
-    g_string_printf(fakename, "<Filename %u>/%s",
-		    v->row + 1, compact_size(v->file_size));
-#else 
-    g_string_printf(fakename, "%s/%s", v->file_name, compact_size(v->file_size));
-#endif
-
-    v->context = vp_context;
-    v->context->offset_ver = VP_PIXELS_PER_ROW * v->row + VP_H_OFFSET + VP_LINE_BELOW_CHARS;
-
-    gdk_gc_set_foreground(v->context->gc, &black);
-    gdk_draw_string(v->context->drawable, vp_font, v->context->gc, 10, 
-        VP_H_OFFSET + VP_PIXELS_PER_ROW * v->row, fakename->str);
-    g_string_free(fakename, TRUE);
-
-    g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
-}
 
 
 /* 
@@ -379,12 +364,6 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
 	 */
     fi_free_chunks(v->chunks_list);
     v->chunks_list = keep_new;
-
-    /*
-     * If the graphics have already been set up then also draw the update
-     */
-    if (vp_context)
-        vp_draw_fi(atom, v, NULL);
 }
 
 
@@ -479,8 +458,6 @@ void vp_gui_shutdown(void)
     fi_remove_listener((GCallback)vp_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
 
 	src_remove_listener((src_listener_t)vp_update_ranges, EV_SRC_RANGES_CHANGED);
-
-    gdk_font_unref(vp_font);
 
     g_hash_table_foreach(vp_info_hash, vp_free_key_value, NULL);
     g_hash_table_destroy(vp_info_hash);
