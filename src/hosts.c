@@ -42,6 +42,7 @@
 #include "routing.h"
 #include "gmsg.h"
 #include "pcache.h"
+#include "whitelist.h"
 
 #include "gnet_property_priv.h"
 #include "settings.h"
@@ -157,7 +158,8 @@ static void auto_connect(void)
 void host_timer(void)
 {
 	static gint called = 0;
-	int nodes_missing = up_connections - node_count();
+    int count = node_count();
+	int nodes_missing = up_connections - count;
 	guint32 ip;
 	guint16 port;
 
@@ -177,15 +179,19 @@ void host_timer(void)
 			nodes_missing = 0;			/* Don't connect this run */
 	}
 
+    if (count < max_connections) {
+        nodes_missing -= whitelist_connect();
+    }
+    
 	/*
 	 * If we are under the number of connections wanted, we add hosts
 	 * to the connection list
 	 */
 
 	if (nodes_missing > 0) {
-		if (!stop_host_get) {
-			if (sl_caught_hosts != NULL) {
-				while (nodes_missing-- > 0 && sl_caught_hosts) {
+        if (!stop_host_get) {
+            if (sl_caught_hosts != NULL) {
+                while (nodes_missing-- > 0 && sl_caught_hosts) {
 					host_get_caught(&ip, &port);
 					node_add(ip, port);
 				}
