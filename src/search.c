@@ -848,6 +848,7 @@ static gnet_results_set_t *get_results_set(
 							gmsg_infostr(&n->header));
 						break;
 					}
+					rs->status |= ST_PUSH_PROXY;
 					if (!validate_only) {
 						gnet_host_t *hvec;
 						gint hvcnt = 0;

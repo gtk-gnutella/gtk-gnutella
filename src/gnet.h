@@ -258,6 +258,7 @@ typedef struct gnet_host_vec {
  */
 #define ST_KNOWN_VENDOR			0x8000		/* Found known vendor code */
 #define ST_PARSED_TRAILER		0x4000		/* Was able to parse trailer */
+#define ST_PUSH_PROXY			0x0010		/* Listed some push proxies */
 #define ST_GGEP					0x0008		/* Trailer has a GGEP extension */
 #define ST_UPLOADED				0x0004		/* Is "stable", people downloaded */
 #define ST_BUSY					0x0002		/* Has currently no slots */

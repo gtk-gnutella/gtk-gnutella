@@ -61,9 +61,10 @@ static struct {
 	guint32 flag;
 	const gchar *status;
 } open_flags[] = {
-	{ ST_BUSY,		N_("busy") },
-	{ ST_UPLOADED,	N_("stable") },		/* Allows uploads -> stable */
-	{ ST_FIREWALL,	N_("push") },
+	{ ST_BUSY,			N_("busy") },
+	{ ST_UPLOADED,		N_("stable") },		/* Allows uploads -> stable */
+	{ ST_FIREWALL,		N_("push") },
+	{ ST_PUSH_PROXY,	N_("proxy") },
 };
 
 search_t *search_gui_get_current_search(void)	{ return current_search; }
