@@ -424,7 +424,9 @@ static gchar *formatted_connection_pongs(gchar *field)
 		}
 		g_string_append(line, "\r\n");
 
-		strncpy(fmt_line, line->str, line->len);
+		strncpy(fmt_line, line->str, sizeof(fmt_line)-1);
+		fmt_line[sizeof(fmt_line)-1] = '\0';
+		g_string_free(line, TRUE);
 	} else
 		fmt_line[0] = '\0';		/* Nothing */
 
