@@ -575,13 +575,11 @@ static void textdomain_init(const char *charset)
 
 #ifdef HAS_BIND_TEXTDOMAIN_CODESET
 
-	bind_textdomain_codeset(PACKAGE,
 #ifdef USE_GTK2	
-		"UTF-8"
-#else
-		charset
+	charset = "UTF-8";
 #endif /* USE_GTK2*/
-	);
+
+	bind_textdomain_codeset(PACKAGE, charset);
 
 #endif /* HAS_BIND_TEXTDOMAIN_CODESET */
 
@@ -737,6 +735,48 @@ gchar *locale_to_utf8(gchar *str, size_t len)
 		return g_iconv_complete(cd_locale_to_utf8,
 				str, len, outbuf, sizeof(outbuf) - 7);
 }
+
+#ifdef USE_GTK2
+/**
+ * Converts a string from the current locale encoding to UTF-8 encoding
+ * with all characters decomposed.
+ *
+ * @param str the string to convert.
+ * @param len the length of ``str''. May be set to zero if ``str'' is 
+ *		  NUL-terminated.
+ *
+ * @returns a newly allocated string.
+ */
+gchar *
+locale_to_utf8_nfd(gchar *str, size_t len)
+{
+	gchar *s, *ret;
+	g_assert(NULL != str);
+
+	if (0 == len)
+		len = strlen(str);
+	if (0 == len)
+		return g_strdup("");
+
+	if (utf8_is_valid_string(str, len)) {
+		s = str;
+	} else {
+		size_t utf8_len = len * 6 + 1;
+		gchar *buf;
+
+		g_assert(utf8_len / 6 - 1 == len);
+		buf = g_malloc(utf8_len);
+		s = g_iconv_complete(cd_locale_to_utf8, str, len, buf, utf8_len);
+	}
+
+	ret = g_utf8_normalize(s, (gssize) -1, G_NORMALIZE_NFD);
+	if (s != str)
+		G_FREE_NULL(s);
+
+	return ret;
+}
+#endif /* USE_GTK2 */
+
 
 gchar *utf8_to_locale(gchar *str, size_t len)
 {
