@@ -97,11 +97,12 @@ static void update_servent_uptime(void);
  * Look for any existing PID file. If found, look at the pid recorded
  * there and make sure it has died. Abort operations if it hasn't...
  */
-static void ensure_unicity(const gchar *file)
+static void
+ensure_unicity(const gchar *file)
 {
 	FILE *f;
 	pid_t pid;
-	gulong pid_value; 
+	guint64 pid_value; 
 	gint error;
 	gchar buf[16];
 
@@ -114,7 +115,7 @@ static void ensure_unicity(const gchar *file)
 		return;
 	fclose(f);
 
-	pid_value = gm_atoul(buf, NULL, &error);
+	pid_value = parse_uint64(buf, NULL, 10, &error);
 	if (error)
 		return;				/* Can't read it back correctly */
 
@@ -138,12 +139,11 @@ static void ensure_unicity(const gchar *file)
 	exit(1);
 }
 
-/*
- * save_pid
- *
+/**
  * Write our pid to the pidfile.
  */
-static void save_pid(const gchar *file)
+static void
+save_pid(const gchar *file)
 {
 	FILE *f;
 
@@ -165,7 +165,8 @@ static void save_pid(const gchar *file)
 #endif
 
 #if defined (_SC_PAGE_SIZE) && defined (_SC_PHYS_PAGES)
-static glong settings_getpagesize(void)
+static glong
+settings_getpagesize(void)
 {
 	glong ret;
 
@@ -181,12 +182,11 @@ static glong settings_getpagesize(void)
 #define settings_getpagesize() ((glong) getpagesize())
 #endif /* _SC_PAGE_SIZE && _SC_PHYS_PAGES */
 
-/* 
- * settings_getphysmemsize:
- *
- * returns the amount of physical RAM in KB, or zero in case of failure
+/**
+ * @return the amount of physical RAM in KB, or zero in case of failure
  */
-static gulong settings_getphysmemsize(void)
+static gulong
+settings_getphysmemsize(void)
 {
 #if defined (_SC_PHYS_PAGES)
 	guint32 pagesize = settings_getpagesize();
@@ -225,8 +225,10 @@ void settings_init(void)
 	struct rlimit lim;
 	char *path = NULL;
 
-	g_message("detected amount of physical RAM: %lu KB", memory);
-	g_message("process can use %u file descriptors", maxfd);
+	if (debug > 0) {
+		g_message("detected amount of physical RAM: %lu KB", memory);
+		g_message("process can use %u file descriptors", maxfd);
+	}
 
 	if (-1 != getrlimit(RLIMIT_DATA, &lim)) {
 		guint32 maxdata = lim.rlim_cur >> 10;
@@ -317,36 +319,33 @@ no_config_dir:
 	exit(EXIT_FAILURE); /* g_error() would dump core, that's ugly. */
 }
 
-/*
- * settings_config_dir
- *
+/**
  * Get the config directory
  */
-const gchar *settings_config_dir(void)
+const gchar *
+settings_config_dir(void)
 {
 	g_assert(NULL != config_dir);
 	return (const gchar *) config_dir;
 }
 
-/*
- * settings_home_dir
- *
+/**
  * Gets the home dir.
  */
-const gchar *settings_home_dir(void)
+const gchar *
+settings_home_dir(void)
 {
 	g_assert(NULL != home_dir);
 	return (const gchar *) home_dir;
 }
 
-/*
- * settings_remove_pidfile:
- *
+/**
  * Remove pidfile.
  */
-static void settings_remove_pidfile(void)
+static void
+settings_remove_pidfile(void)
 {
-	char *path;
+	gchar *path;
 
 	path = make_pathname(config_dir, pidfile);
 	g_return_if_fail(NULL != path);
@@ -356,9 +355,7 @@ static void settings_remove_pidfile(void)
 	G_FREE_NULL(path);
 }
 
-/*
- * settings_ip_changed:
- *
+/**
  * This routine is called when we determined that our IP was no longer the
  * one we computed.  We base this on some headers sent back when we handshake
  * with other nodes, and as a result, cannot trust the information.
@@ -414,12 +411,11 @@ void settings_ip_changed(guint32 new_ip, guint32 peer_ip)
     gnet_prop_set_guint32_val(PROP_LOCAL_IP, new_ip);
 }
 
-/*
- * settings_max_msg_size:
- *
+/**
  * Maximum message payload size we are configured to handle.
  */
-guint32 settings_max_msg_size(void)
+guint32
+settings_max_msg_size(void)
 {
 	/*
 	 * Today, they are fixed at config time, but they will be set via
@@ -438,9 +434,7 @@ guint32 settings_max_msg_size(void)
 	return maxsize;
 }
 
-/*
- * settings_ask_for_property
- *
+/**
  * Ask them to set a property to be able to run.
  */
 void settings_ask_for_property(gchar *name, gchar *value)
@@ -463,12 +457,11 @@ void settings_ask_for_property(gchar *name, gchar *value)
 	gtk_gnutella_exit(1);
 }
 
-/*
- * settings_shutdown
- *
+/**
  * Called at exit time to flush the property files.
  */
-void settings_shutdown(void)
+void
+settings_shutdown(void)
 {
 	update_servent_uptime();
     settings_callbacks_shutdown();
@@ -476,19 +469,16 @@ void settings_shutdown(void)
     prop_save_to_file(properties, config_dir, config_file);
 }
 
-/*
- * settings_save_if_dirty
- *
+/**
  * Save settings if dirty.
  */
-void settings_save_if_dirty(void)
+void
+settings_save_if_dirty(void)
 {
     prop_save_to_file_if_dirty(properties, config_dir, config_file);
 }
 
-/*
- * settings_close:
- *
+/**
  * Finally free all memory allocated. Call after settings_shutdown.
  */
 void settings_close(void)
@@ -502,7 +492,8 @@ void settings_close(void)
 		G_FREE_NULL(config_dir);
 }
 
-void gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
+void
+gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
 {
     g_assert(s != NULL);
 
@@ -562,25 +553,26 @@ void gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
  *** Internal helpers.
  ***/
 
-/*
- * get_average_ip_lifetime
- *
+/**
  * Compute the EMA of the IP address lifetime up to now, but do not
  * update the property.
  */
-time_t get_average_ip_lifetime(time_t now)
+guint32
+get_average_ip_lifetime(time_t now)
 {
 	guint32 current_ip_stamp;
 	guint32 average_ip_uptime;
-	time_t lifetime = 0;
+	gint32 lifetime;
 
 	gnet_prop_get_guint32_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
 	gnet_prop_get_guint32_val(PROP_AVERAGE_IP_UPTIME, &average_ip_uptime);
 
 	if (current_ip_stamp) {
-		lifetime = now - current_ip_stamp;
+		lifetime = delta_time(now, current_ip_stamp);
 		if (lifetime < 0)
 			lifetime = 0;
+	} else {
+		lifetime = 0;
 	}
 
 	/*
@@ -593,13 +585,12 @@ time_t get_average_ip_lifetime(time_t now)
 	return average_ip_uptime;
 }
 
-/*
- * update_address_lifetime
- *
+/**
  * Called whenever the IP address we advertise changed.
  * Update the average uptime for a given IP address.
  */
-static void update_address_lifetime(void)
+static void
+update_address_lifetime(void)
 {
 	static guint32 old_ip = 0;
 	gboolean force_local_ip;
@@ -641,13 +632,12 @@ static void update_address_lifetime(void)
 	gnet_prop_set_guint32_val(PROP_CURRENT_IP_STAMP, (guint32) now);
 }
 
-/*
- * get_average_servent_uptime
- *
+/**
  * Compute the EMA of the averate servent uptime, up to now, but do not
  * update the property.
  */
-time_t get_average_servent_uptime(time_t now)
+guint32
+get_average_servent_uptime(time_t now)
 {
 	time_t start_stamp;
 	gint32 uptime, val;
@@ -671,13 +661,12 @@ time_t get_average_servent_uptime(time_t now)
 	return avg_servent_uptime;
 }
 
-/*
- * update_servent_uptime
- *
+/**
  * Called at shutdown time to update the average_uptime property before
  * saving the properties to disk.
  */
-static void update_servent_uptime(void)
+static void
+update_servent_uptime(void)
 {
 	time_t now = time(NULL);
 
@@ -688,12 +677,14 @@ static void update_servent_uptime(void)
 /***
  *** Callbacks
  ***/
-static gboolean up_connections_changed(property_t prop)
+static gboolean
+up_connections_changed(property_t prop)
 {
     guint32 up_connections;
     guint32 max_connections;
-    
-    gnet_prop_get_guint32_val(PROP_UP_CONNECTIONS, &up_connections);
+
+	g_assert(PROP_UP_CONNECTIONS == prop);   
+    gnet_prop_get_guint32_val(prop, &up_connections);
     gnet_prop_get_guint32_val(PROP_MAX_CONNECTIONS, &max_connections);
 
     if (up_connections > max_connections)
@@ -702,13 +693,15 @@ static gboolean up_connections_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean max_connections_changed(property_t prop)
+static gboolean
+max_connections_changed(property_t prop)
 {
     guint32 up_connections;
     guint32 max_connections;
     
+	g_assert(PROP_MAX_CONNECTIONS == prop);   
+    gnet_prop_get_guint32_val(prop, &max_connections);
     gnet_prop_get_guint32_val(PROP_UP_CONNECTIONS, &up_connections);
-    gnet_prop_get_guint32_val(PROP_MAX_CONNECTIONS, &max_connections);
 
     if (up_connections > max_connections)
         gnet_prop_set_guint32_val(PROP_UP_CONNECTIONS, max_connections);
@@ -716,22 +709,28 @@ static gboolean max_connections_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean max_hosts_cached_changed(property_t prop)
+static gboolean
+max_hosts_cached_changed(property_t prop)
 {
+	g_assert(PROP_MAX_HOSTS_CACHED == prop);
     hcache_prune(HCACHE_FRESH_ANY);
 
     return FALSE;
 }
 
-static gboolean max_ultra_hosts_cached_changed(property_t prop)
+static gboolean
+max_ultra_hosts_cached_changed(property_t prop)
 {
+	g_assert(PROP_MAX_ULTRA_HOSTS_CACHED == prop);
     hcache_prune(HCACHE_FRESH_ULTRA);
 
     return FALSE;
 }
 
-static gboolean max_bad_hosts_cached_changed(property_t prop)
+static gboolean
+max_bad_hosts_cached_changed(property_t prop)
 {
+	g_assert(PROP_MAX_BAD_HOSTS_CACHED == prop);
     hcache_prune(HCACHE_BUSY);
     hcache_prune(HCACHE_TIMEOUT);
     hcache_prune(HCACHE_UNSTABLE);
@@ -739,12 +738,12 @@ static gboolean max_bad_hosts_cached_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean enable_udp_changed(property_t prop)
+static gboolean
+enable_udp_changed(property_t prop)
 {
 	gboolean enabled;
 
     gnet_prop_get_boolean_val(prop, &enabled);
-
 	if (enabled) {
 		if (s_udp_listen == NULL)
 			s_udp_listen = socket_udp_listen(0, listen_port);
@@ -760,7 +759,8 @@ static gboolean enable_udp_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean listen_port_changed(property_t prop)
+static gboolean
+listen_port_changed(property_t prop)
 {
 	static guint32 old_listen_port = (guint32) -1;
 	gboolean random_port = FALSE;
@@ -863,12 +863,12 @@ static gboolean listen_port_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean bw_http_in_enabled_changed(property_t prop)
+static gboolean
+bw_http_in_enabled_changed(property_t prop)
 {
     gboolean val;
 
     gnet_prop_get_boolean_val(prop, &val);
-
     if (val)
         bsched_enable(bws.in);
     else
@@ -877,12 +877,12 @@ static gboolean bw_http_in_enabled_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean bw_http_out_enabled_changed(property_t prop)
+static gboolean
+bw_http_out_enabled_changed(property_t prop)
 {
     gboolean val;
 
     gnet_prop_get_boolean_val(prop, &val);
-
     if (val)
         bsched_enable(bws.out);
     else
@@ -891,12 +891,12 @@ static gboolean bw_http_out_enabled_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean bw_gnet_in_enabled_changed(property_t prop)
+static gboolean
+bw_gnet_in_enabled_changed(property_t prop)
 {
     gboolean val;
 
     gnet_prop_get_boolean_val(prop, &val);
-
     if (val)
         bsched_enable(bws.gin);
     else
@@ -905,12 +905,12 @@ static gboolean bw_gnet_in_enabled_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean bw_gnet_out_enabled_changed(property_t prop)
+static gboolean
+bw_gnet_out_enabled_changed(property_t prop)
 {
     gboolean val;
 
     gnet_prop_get_boolean_val(prop, &val);
-
     if (val)
         bsched_enable(bws.gout);
     else
@@ -919,12 +919,12 @@ static gboolean bw_gnet_out_enabled_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean bw_gnet_lin_enabled_changed(property_t prop)
+static gboolean
+bw_gnet_lin_enabled_changed(property_t prop)
 {
     gboolean val;
 
     gnet_prop_get_boolean_val(prop, &val);
-
     if (val)
         bsched_enable(bws.glin);
     else
@@ -933,12 +933,12 @@ static gboolean bw_gnet_lin_enabled_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean bw_gnet_lout_enabled_changed(property_t prop)
+static gboolean
+bw_gnet_lout_enabled_changed(property_t prop)
 {
     gboolean val;
 
     gnet_prop_get_boolean_val(prop, &val);
-
     if (val)
         bsched_enable(bws.glout);
     else
@@ -947,13 +947,14 @@ static gboolean bw_gnet_lout_enabled_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean node_sendqueue_size_changed(property_t prop)
+static gboolean
+node_sendqueue_size_changed(property_t unused_prop)
 {
     guint32 val;
     guint32 min = 1.5 * settings_max_msg_size();
 
+	(void) unused_prop;
     gnet_prop_get_guint32_val(PROP_NODE_SENDQUEUE_SIZE, &val);
-
     if (val < min) {
         gnet_prop_set_guint32_val(PROP_NODE_SENDQUEUE_SIZE, min);
         return TRUE;
@@ -962,18 +963,19 @@ static gboolean node_sendqueue_size_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean scan_extensions_changed(property_t prop)
+static gboolean
+scan_extensions_changed(property_t prop)
 {
     gchar *s = gnet_prop_get_string(prop, NULL, 0);
 
     parse_extensions(s);
-
     G_FREE_NULL(s);
 
     return FALSE;
 }
 
-static gboolean file_path_changed(property_t prop)
+static gboolean
+file_path_changed(property_t prop)
 {
     gchar *s = gnet_prop_get_string(prop, NULL, 0);
 
@@ -1009,37 +1011,42 @@ static gboolean file_path_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean shared_dirs_paths_changed(property_t prop)
+static gboolean
+shared_dirs_paths_changed(property_t prop)
 {
     gchar *s = gnet_prop_get_string(prop, NULL, 0);
+	gboolean ok;
 
-    if (!shared_dirs_parse(s)) {
-        G_FREE_NULL(s);
-        shared_dirs_update_prop();
-        return TRUE;
-    } else {
-        G_FREE_NULL(s);
-        return FALSE;
-    }
+	ok = shared_dirs_parse(s);
+	G_FREE_NULL(s);
+
+	if (!ok) {
+		shared_dirs_update_prop();
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
-static gboolean local_netmasks_string_changed(property_t prop)
+static gboolean
+local_netmasks_string_changed(property_t prop)
 {
     gchar *s = gnet_prop_get_string(prop, NULL, 0);
 
     parse_netmasks(s);
-
     G_FREE_NULL(s);
 
     return FALSE;
 }
 
-static gboolean hard_ttl_limit_changed(property_t prop)
+static gboolean
+hard_ttl_limit_changed(property_t prop)
 {
     guint32 hard_ttl_limit;
     guint32 max_ttl;
 
-    gnet_prop_get_guint32_val(PROP_HARD_TTL_LIMIT, &hard_ttl_limit);
+	g_assert(PROP_HARD_TTL_LIMIT == prop);
+    gnet_prop_get_guint32_val(prop, &hard_ttl_limit);
     gnet_prop_get_guint32_val(PROP_MAX_TTL, &max_ttl);
 
     if (hard_ttl_limit < max_ttl)
@@ -1048,13 +1055,15 @@ static gboolean hard_ttl_limit_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean max_ttl_changed(property_t prop)
+static gboolean
+max_ttl_changed(property_t prop)
 {
     guint32 hard_ttl_limit;
     guint32 max_ttl;
 
+	g_assert(PROP_MAX_TTL == prop);
+    gnet_prop_get_guint32_val(prop, &max_ttl);
     gnet_prop_get_guint32_val(PROP_HARD_TTL_LIMIT, &hard_ttl_limit);
-    gnet_prop_get_guint32_val(PROP_MAX_TTL, &max_ttl);
 
     if (hard_ttl_limit < max_ttl)
         gnet_prop_set_guint32_val(PROP_HARD_TTL_LIMIT, max_ttl);
@@ -1062,11 +1071,13 @@ static gboolean max_ttl_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean bw_http_in_changed(property_t prop)
+static gboolean
+bw_http_in_changed(property_t prop)
 {
     guint32 val;
 
-    gnet_prop_get_guint32(prop, &val, 0, 1);
+	g_assert(PROP_BW_HTTP_IN == prop);
+    gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.in, val);
 
 	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
@@ -1075,11 +1086,12 @@ static gboolean bw_http_in_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean bw_http_out_changed(property_t prop)
+static gboolean
+bw_http_out_changed(property_t prop)
 {
     guint32 val;
 
-    gnet_prop_get_guint32(prop, &val, 0, 1);
+    gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.out, val);
 
 	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
@@ -1088,11 +1100,12 @@ static gboolean bw_http_out_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean bw_gnet_in_changed(property_t prop)
+static gboolean
+bw_gnet_in_changed(property_t prop)
 {
     guint32 val;
 
-    gnet_prop_get_guint32(prop, &val, 0, 1);
+    gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.gin, val / 2);
     bsched_set_bandwidth(bws.gin_udp, val / 2);
     
@@ -1102,11 +1115,12 @@ static gboolean bw_gnet_in_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean bw_gnet_out_changed(property_t prop)
+static gboolean
+bw_gnet_out_changed(property_t prop)
 {
     guint32 val;
 
-    gnet_prop_get_guint32(prop, &val, 0, 1);
+    gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.gout, val / 2);
     bsched_set_bandwidth(bws.gout_udp, val / 2);
     
@@ -1116,11 +1130,12 @@ static gboolean bw_gnet_out_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean bw_gnet_lin_changed(property_t prop)
+static gboolean
+bw_gnet_lin_changed(property_t prop)
 {
     guint32 val;
 
-    gnet_prop_get_guint32(prop, &val, 0, 1);
+    gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.glin, val);
     
 	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
@@ -1129,11 +1144,12 @@ static gboolean bw_gnet_lin_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean bw_gnet_lout_changed(property_t prop)
+static gboolean
+bw_gnet_lout_changed(property_t prop)
 {
     guint32 val;
 
-    gnet_prop_get_guint32(prop, &val, 0, 1);
+    gnet_prop_get_guint32_val(prop, &val);
     bsched_set_bandwidth(bws.glout, val);
     
 	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
@@ -1142,7 +1158,8 @@ static gboolean bw_gnet_lout_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean bw_allow_stealing_changed(property_t prop)
+static gboolean
+bw_allow_stealing_changed(property_t prop)
 {
 	gboolean val;
 
@@ -1156,7 +1173,8 @@ static gboolean bw_allow_stealing_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean node_online_mode_changed(property_t prop)
+static gboolean
+node_online_mode_changed(property_t prop)
 {
 	gboolean val;
 
@@ -1166,8 +1184,10 @@ static gboolean node_online_mode_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean lib_debug_changed(property_t prop)
+static gboolean
+lib_debug_changed(property_t unused_prop)
 {
+	(void) unused_prop;
 /* XXX -- common_dbg is no longer a property! --RAM */
 #if 0
 	gnet_prop_get_guint32_val(prop, &common_dbg);
@@ -1175,19 +1195,24 @@ static gboolean lib_debug_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean force_local_ip_changed(property_t prop)
+static gboolean
+force_local_ip_changed(property_t prop)
 {
+	g_assert(PROP_FORCE_LOCAL_IP == prop);
 	update_address_lifetime();
     return FALSE;
 }
 
-static gboolean local_ip_changed(property_t prop)
+static gboolean
+local_ip_changed(property_t prop)
 {
+	g_assert(PROP_LOCAL_IP == prop);
 	update_address_lifetime();
     return FALSE;
 }
 
-static gboolean configured_peermode_changed(property_t prop)
+static gboolean
+configured_peermode_changed(property_t prop)
 {
     guint32 val;
 	gboolean forced = FALSE;
@@ -1228,7 +1253,8 @@ static gboolean configured_peermode_changed(property_t prop)
     return forced;
 }
 
-static gboolean current_peermode_changed(property_t prop)
+static gboolean
+current_peermode_changed(property_t prop)
 {
     guint32 val;
 
@@ -1238,7 +1264,8 @@ static gboolean current_peermode_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean download_rx_size_changed(property_t prop)
+static gboolean
+download_rx_size_changed(property_t prop)
 {
     guint32 val;
 
@@ -1248,7 +1275,8 @@ static gboolean download_rx_size_changed(property_t prop)
 	return FALSE;
 }
 
-static gboolean node_rx_size_changed(property_t prop)
+static gboolean
+node_rx_size_changed(property_t prop)
 {
     guint32 val;
 
@@ -1270,15 +1298,17 @@ static gpointer ev_file_descriptor_runout = NULL;
 
 #define RESET_PROP_TM	(10*60*1000)	/* 10 minutes in ms */
 
-/*
- * reset_property_cb	-- callout queue callback
+/**
+ * callout queue callback
  *
  * Reset the property.
  */
-static void reset_property_cb(cqueue_t *cq, gpointer obj)
+static void
+reset_property_cb(cqueue_t *unused_cq, gpointer obj)
 {
-	property_t prop = (property_t) obj;
+	property_t prop = (property_t) GPOINTER_TO_UINT(obj);
 
+	(void) unused_cq;
 	switch (prop) {
 	case PROP_FILE_DESCRIPTOR_SHORTAGE:
 		ev_file_descriptor_shortage = NULL;
@@ -1294,7 +1324,8 @@ static void reset_property_cb(cqueue_t *cq, gpointer obj)
 	gnet_prop_set_boolean_val(prop, FALSE);
 }
 
-static gboolean file_descriptor_x_changed(property_t prop)
+static gboolean
+file_descriptor_x_changed(property_t prop)
 {
 	gboolean state;
 	gpointer *ev = NULL;
@@ -1330,12 +1361,13 @@ static gboolean file_descriptor_x_changed(property_t prop)
     return FALSE;
 }
 
-/*
+/**
  * This is only necessary to migrate the old PROP_PROXY_IP to
  * PROP_PROXY_HOSTNAME and should be removed in a future release.
  *    -- cbiere, 2004-06-29
  */
-static gboolean proxy_ip_changed(property_t prop)
+static gboolean
+proxy_ip_changed(property_t prop)
 {
 	guint32 ip;
 
@@ -1583,7 +1615,8 @@ static prop_map_t property_map[] = {
 
 static gboolean init_list[GNET_PROPERTY_NUM];
 
-static void settings_callbacks_init(void)
+static void
+settings_callbacks_init(void)
 {
     guint n;
 
@@ -1625,7 +1658,8 @@ static void settings_callbacks_init(void)
     }
 }
 
-static void settings_callbacks_shutdown(void)
+static void
+settings_callbacks_shutdown(void)
 {
     guint n;
 
@@ -1647,4 +1681,4 @@ static void settings_callbacks_shutdown(void)
     }
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
