@@ -75,6 +75,7 @@ GHookList node_added_hook_list;
 struct gnutella_node *node_added;
 
 static gint32 connected_node_cnt = 0;
+static gint pending_byes = 0;			/* Used when shutdowning servent */
 
 /*
  * This structure is used to encapsulate the various arguments required
@@ -391,6 +392,9 @@ static void node_remove_v(
 	nodes_in_list--;
 	if (n->flags & NODE_F_TMP)
 		ponging_nodes--;
+
+	if (n->flags & NODE_F_EOF_WAIT)
+		pending_byes--;
 
 	gui_update_c_gnutellanet();
 	gui_update_node(n, TRUE);
@@ -2449,6 +2453,8 @@ void node_bye_sent(struct gnutella_node *n)
 	 * Shutdown the node.
 	 */
 
+	n->flags &= ~NODE_F_BYE_SENT;
+
 	sock_tx_shutdown(n->socket);
 	node_shutdown_mode(n, BYE_GRACE_DELAY);
 }
@@ -2719,9 +2725,30 @@ void node_bye_all(void)
 
 	for (l = sl_nodes; l; l = l->next) {
 		struct gnutella_node *n = l->data;
-		if (NODE_IS_WRITABLE(n))
+
+		/*
+		 * Record the NODE_F_EOF_WAIT condition, so that when waiting for
+		 * all byes to come through, we can monitor which connections were
+		 * closed, and exit immediately we have no pending byes.
+		 *		--RAM, 17/05/2002
+		 */
+
+		if (NODE_IS_WRITABLE(n)) {
+			n->flags |= NODE_F_EOF_WAIT;
+			pending_byes++;
 			node_bye(n, 200, "Servent shutdown");
+		}
 	}
+}
+
+/*
+ * node_bye_pending
+ *
+ * Returns true whilst there are some connections with a pending BYE.
+ */
+gboolean node_bye_pending(void)
+{
+	return pending_byes > 0;
 }
 
 /* 

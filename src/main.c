@@ -24,6 +24,7 @@
 #include "upload_stats.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
+#define EXIT_GRACE				20	/* Seconds to wait before exiting */
 
 /* */
 
@@ -38,10 +39,27 @@ static guint main_slow_update = 0;
 
 /* */
 
+/*
+ * gtk_gnutella_exit
+ *
+ * Exit program, return status `n' to parent process.
+ *
+ * Shutdown systems, so we can track memory leaks, and wait for EXIT_GRACE
+ * seconds so that BYE messages can be sent to other nodes.
+ */
 void gtk_gnutella_exit(gint n)
 {
+	static gboolean exiting = FALSE;
+	time_t now = time((time_t *) NULL);
+
+	if (exiting)
+		return;			/* Already exiting, must be in loop below */
+
+	exiting = TRUE;
+
 	node_bye_all();
 	upload_close();		/* Done before config_close() for stats update */
+	download_close();
 
     /*
      * Make sure the gui writes config variabes it owns but that can't 
@@ -54,17 +72,26 @@ void gtk_gnutella_exit(gint n)
 		gtk_idle_remove(hosts_idle_func);
 	config_shutdown();
 
-	/* Shutdown systems, so we can track memory leaks */
 	if (s_listen)
 		socket_destroy(s_listen);
 	socket_shutdown();
 	search_shutdown();
 	filters_shutdown();
+	bsched_shutdown();
+
+	/* 
+	 * Wait at most EXIT_GRACE seconds, so that BYE messages can go through.
+	 */
+
+	while (node_bye_pending() && time((time_t *) NULL) - now < EXIT_GRACE) {
+		gtk_main_iteration_do(FALSE);
+		usleep(200000);					/* 200 ms */
+	}
+
 	share_close();
 	node_close();
 	host_close();
 	routing_close();
-	download_close();
 	bsched_close();
 	gui_close();
 	config_close();

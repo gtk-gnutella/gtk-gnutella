@@ -2982,14 +2982,12 @@ void download_close(void)
 	GSList *l;
 
 	download_store();			/* Save latest copy */
+	download_freeze_queue(TRUE);
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
-		if (d->socket) {
-			if (d->socket->getline)
-				getline_free(d->socket->getline);
-			g_free(d->socket);
-		}
+		if (d->socket)
+			socket_free(d->socket);
 		if (d->push)
 			download_push_remove(d);
 		if (d->io_opaque)

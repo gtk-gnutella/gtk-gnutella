@@ -118,6 +118,7 @@ struct gnutella_node {
 #define NODE_F_BYE_SENT		0x00000100	/* Bye message was sent */
 #define NODE_F_NODELAY		0x00000200	/* TCP_NODELAY was activated */
 #define NODE_F_NOREAD		0x00000400	/* Prevent further reading from node */
+#define NODE_F_EOF_WAIT		0x00000800	/* During final shutdown, waiting EOF */
 
 /*
  * Node attributes.
@@ -272,6 +273,7 @@ void node_tx_enter_flowc(struct gnutella_node *n);
 void node_tx_leave_flowc(struct gnutella_node *n);
 void node_bye_sent(struct gnutella_node *n);
 void node_bye_all(void);
+gboolean node_bye_pending(void);
 void node_close(void);
 gboolean node_remove_non_nearby(void);
 

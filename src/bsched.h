@@ -125,6 +125,7 @@ extern struct bws_set bws;
 bsched_t *bsched_make(gchar *name,
 	gint type, guint32 mode, gint bandwidth, gint period);
 void bsched_init(void);
+void bsched_shutdown(void);
 void bsched_close(void);
 void bsched_enable(bsched_t *bs);
 void bsched_disable(bsched_t *bs);

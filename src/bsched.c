@@ -239,6 +239,21 @@ void bsched_enable_all(void)
 }
 
 /*
+ * bsched_shutdown
+ *
+ * Shutdowning program.
+ * Disable all known bandwidth schedulers, so that any pending I/O can
+ * go through as quickly as possible.
+ */
+void bsched_shutdown(void)
+{
+	bsched_disable(bws.out);
+	bsched_disable(bws.gout);
+	bsched_disable(bws.in);
+	bsched_disable(bws.gin);
+}
+
+/*
  * bio_enable
  *
  * Enable an I/O source.
