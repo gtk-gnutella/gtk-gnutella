@@ -58,6 +58,16 @@
 - The GUID of a servent is now made persistent and flagged as such, in order
   to prepare the possible implementation of gnet: URLs.
 - Factorized generation of random numbers into random_value().
+- Added search statistics pane [From Michael Tesch, patch #524921].
+- When "Never send a push request" is ticked, don't bother showing results
+  from explicitely firewalled servents.
+- Disable the "Start now" menu entry if we don't have any more download slot.
+- Removed broken support for computation of lower-cased directory paths in
+  the shared library.
+- Fixed broken recursive scan of the library, with help from Michael Tesch.
+- Ensure we do not launch two copies of gtk-gnutella backed by the same
+  configuration, and protect any configuration change made whilst the
+  program was running by saving a copy of the old configuration if needed.
 
 # v 0.80   2002.01.31  [stable]
 # v 0.80   2002.01.22  [beta2]
