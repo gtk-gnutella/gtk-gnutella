@@ -822,20 +822,23 @@ GSList *http_range_parse(
 			}
 
 			if (!minus_seen) {
-				g_warning("weird %s header from <%s>, offset %d (no range?): "
+				if (dbg) g_warning(
+					"weird %s header from <%s>, offset %d (no range?): "
 					"%s", field, vendor, (gint) (str - value) - 1, value);
 				goto reset;
 			}
 
 			if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
-				g_warning("weird %s header from <%s>, offset %d "
+				if (dbg) g_warning(
+					"weird %s header from <%s>, offset %d "
 					"(incomplete negative range): %s",
 					field, vendor, (gint) (str - value) - 1, value);
 				goto reset;
 			}
 
 			if (start > end) {
-				g_warning("weird %s header from <%s>, offset %d "
+				if (dbg) g_warning(
+					"weird %s header from <%s>, offset %d "
 					"(swapped range?): %s", field, vendor,
 					(gint) (str - value) - 1, value);
 				goto reset;
@@ -845,11 +848,13 @@ GSList *http_range_parse(
 				start, end, field, vendor, &ignored);
 			count++;
 
-			if (ignored)
-				g_warning("weird %s header from <%s>, offset %d "
+			if (ignored) {
+				if (dbg) g_warning(
+					"weird %s header from <%s>, offset %d "
 					"(ignored range #%d): %s",
 					field, vendor, (gint) (str - value) - 1, count,
 					value);
+			}
 
 			goto reset;
 		}
@@ -859,15 +864,15 @@ GSList *http_range_parse(
 
 		if (c == '-') {
 			if (minus_seen) {
-				g_warning("weird %s header from <%s>, offset %d "
-					"(spurious '-'): %s",
+				if (dbg) g_warning(
+					"weird %s header from <%s>, offset %d (spurious '-'): %s",
 					field, vendor, (gint) (str - value) - 1, value);
 				goto resync;
 			}
 			minus_seen = TRUE;
 			if (!has_start) {		/* Negative range */
 				if (!request) {
-					g_warning("weird %s header from <%s>, offset %d "
+					if (dbg) g_warning("weird %s header from <%s>, offset %d "
 						"(negative range in reply): %s",
 						field, vendor, (gint) (str - value) - 1,
 						value);
@@ -889,7 +894,7 @@ GSList *http_range_parse(
 			str = dend;		/* Skip number */
 
 			if (has_end) {
-				g_warning("weird %s header from <%s>, offset %d "
+				if (dbg) g_warning("weird %s header from <%s>, offset %d "
 					"(spurious boundary %u): %s",
 					field, vendor, (gint) (str - value) - 1, val,
 					value);
@@ -897,7 +902,7 @@ GSList *http_range_parse(
 			}
 
 			if (val >= size) {
-				g_warning("weird %s header from <%s>, offset %d "
+				if (dbg) g_warning("weird %s header from <%s>, offset %d "
 					"(%s boundary %u outside resource range 0-%u): %s",
 					field, vendor, (gint) (str - value) - 1,
 					has_start ? "end" : "start", val, size - 1, value);
@@ -906,7 +911,7 @@ GSList *http_range_parse(
 
 			if (has_start) {
 				if (!minus_seen) {
-					g_warning("weird %s header from <%s>, offset %d "
+					if (dbg) g_warning("weird %s header from <%s>, offset %d "
 						"(no '-' before boundary %u): %s",
 						field, vendor, (gint) (str - value) - 1, val, value);
 					goto resync;
@@ -924,7 +929,7 @@ GSList *http_range_parse(
 			continue;
 		}
 
-		g_warning("weird %s header from <%s>, offset %d "
+		if (dbg) g_warning("weird %s header from <%s>, offset %d "
 			"(unexpected char '%c'): %s",
 			field, vendor, (gint) (str - value) - 1, c, value);
 
@@ -946,14 +951,14 @@ GSList *http_range_parse(
 
 	if (minus_seen) {
 		if (start == HTTP_OFFSET_MAX && !has_end) {	/* Bad negative range */
-			g_warning("weird %s header from <%s>, offset %d "
+			if (dbg) g_warning("weird %s header from <%s>, offset %d "
 				"(incomplete trailing negative range): %s",
 				field, vendor, (gint) (str - value) - 1, value);
 			goto final;
 		}
 
 		if (start > end) {
-			g_warning("weird %s header from <%s>, offset %d "
+			if (dbg) g_warning("weird %s header from <%s>, offset %d "
 				"(swapped trailing range?): %s", field, vendor,
 				(gint) (str - value) - 1, value);
 			goto final;
@@ -963,7 +968,7 @@ GSList *http_range_parse(
 		count++;
 
 		if (ignored)
-			g_warning("weird %s header from <%s>, offset %d "
+			if (dbg) g_warning("weird %s header from <%s>, offset %d "
 				"(ignored final range #%d): %s",
 				field, vendor, (gint) (str - value) - 1, count,
 				value);
@@ -983,7 +988,7 @@ final:
 		}
 	}
 
-	if (ranges == NULL)
+	if (ranges == NULL && dbg)
 		g_warning("retained no ranges in %s header from <%s>: %s",
 			field, vendor, value);
 
