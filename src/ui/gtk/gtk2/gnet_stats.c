@@ -29,12 +29,14 @@ RCSID("$Id$");
 
 #include "gtk/gnet_stats.h"
 #include "gtk/notebooks.h"
+#include "gtk/gtk-missing.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
 #include "if/core/gnutella.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 static GtkTreeView *treeview_gnet_stats_messages = NULL;
@@ -425,7 +427,7 @@ static void gnet_stats_update_horizon(void)
 	GtkTreeView *treeview = treeview_gnet_stats_horizon;
 	GtkListStore *store;
 	GtkTreeIter iter;
-	gint n;
+	gint i;
 	static time_t last_horizon_update = 0;
 	time_t now = time(NULL);
 	gint global_table_size;
@@ -448,11 +450,11 @@ static void gnet_stats_update_horizon(void)
 
 	global_table_size = guc_hsep_get_table_size();
 	/* Skip the first element */
-	for (n = 1; (guint) n < global_table_size; n++) {
+	for (i = 1; i < global_table_size; i++) {
 		gtk_list_store_set(store, &iter,
-			c_horizon_nodes, horizon_stat_str(n, c_horizon_nodes),
-		    c_horizon_files, horizon_stat_str(n, c_horizon_files),
-		    c_horizon_size,	 horizon_stat_str(n, c_horizon_size),
+			c_horizon_nodes, horizon_stat_str(i, c_horizon_nodes),
+		    c_horizon_files, horizon_stat_str(i, c_horizon_files),
+		    c_horizon_size,	 horizon_stat_str(i, c_horizon_size),
 			(-1));
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 	}
@@ -610,13 +612,22 @@ static void gnet_stats_gui_messages_init(void)
 	guint32 *width;
 	gint n;
 
+	STATIC_ASSERT(num_c_gs == G_N_ELEMENTS(msg_stats_label));
+
 	treeview = treeview_gnet_stats_messages = GTK_TREE_VIEW(
 	    lookup_widget(main_window, "treeview_gnet_stats_messages"));
-	model = GTK_TREE_MODEL(gtk_list_store_new(G_N_ELEMENTS(msg_stats_label),
-							G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-							G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING));
+	model = GTK_TREE_MODEL(gtk_list_store_new(num_c_gs,
+				G_TYPE_STRING,	/* c_gs_type */
+				G_TYPE_STRING,	/* c_gs_received */
+				G_TYPE_STRING,	/* c_gs_expired */
+				G_TYPE_STRING,	/* c_gs_dropped */
+				G_TYPE_STRING,	/* c_gs_queued */
+				G_TYPE_STRING,	/* c_gs_relayed */
+				G_TYPE_STRING,	/* c_gs_gen_queued */
+				G_TYPE_STRING	/* c_gs_generated */
+			));
 
-	for (n = 0; n < msg_type_str_size(); n++) {
+	for (n = 0; n < num_c_gs; n++) {
 		GtkTreeIter iter;
 		gint i;
 
