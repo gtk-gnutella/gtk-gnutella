@@ -83,9 +83,6 @@ gfloat uploads_gui_progress(
 			progress = 0.0;
 		}	
 		break;
-	default:	/* Should never get this far. */ 
-		g_assert_not_reached(); 
-		break;
 	}
 	return progress;
 }
@@ -102,11 +99,11 @@ const gchar *uploads_gui_status_str(
 	static gchar tmpstr[256];
 
 	if (u->pos < data->range_start)
-		return "No output yet..."; /* Never wrote anything yet */
+		return _("No output yet..."); /* Never wrote anything yet */
 
     switch (u->status) {
     case GTA_UL_PUSH_RECEIVED:
-        return "Got push, connecting back...";
+        return _("Got push, connecting back...");
 
     case GTA_UL_COMPLETE:
 		if (u->last_update != data->start_date) {
@@ -114,9 +111,9 @@ const gchar *uploads_gui_status_str(
 			guint32 spent = u->last_update - data->start_date;
             gfloat rate = (requested / 1024.0) / spent;
 			gm_snprintf(tmpstr, sizeof(tmpstr),
-				"Completed (%.1f k/s) %s", rate, short_time(spent));
+				_("Completed (%.1f k/s) %s"), rate, short_time(spent));
 		} else
-			g_strlcpy(tmpstr, "Completed (< 1s)", sizeof(tmpstr));
+			g_strlcpy(tmpstr, _("Completed (< 1s)"), sizeof(tmpstr));
         break;
 
     case GTA_UL_SENDING:
@@ -132,7 +129,7 @@ const gchar *uploads_gui_status_str(
 
 			if (time((time_t *) NULL) - u->last_update > IO_STALLED)
 				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-					"(stalled) ");
+					_("(stalled) "));
 			else
 				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
 					"(%.1f k/s) ", rate);
@@ -143,19 +140,19 @@ const gchar *uploads_gui_status_str(
 		break;
 
     case GTA_UL_HEADERS:
-        return "Waiting for headers...";
+        return _("Waiting for headers...");
 
     case GTA_UL_WAITING:
-        return "Waiting for further request...";
+        return _("Waiting for further request...");
 
     case GTA_UL_PFSP_WAITING:
-        return "Unavailable range, waiting retry...";
+        return _("Unavailable range, waiting retry...");
 
     case GTA_UL_ABORTED:
-        return "Transmission aborted";
+        return _("Transmission aborted");
 
     case GTA_UL_CLOSED:
-        return "Transmission complete";
+        return _("Transmission complete");
 
 	case GTA_UL_QUEUED:
 		{
@@ -173,7 +170,7 @@ const gchar *uploads_gui_status_str(
 				/* position 1 should always get an upload slot */
 				if (u->parq_retry > 0)
 					gm_snprintf(tmpstr, sizeof(tmpstr),
-						"Waiting [%d] (slot %d / %d) %ds, lifetime: %s", 
+						_("Waiting [%d] (slot %d / %d) %ds, lifetime: %s"), 
 						u->parq_queue_no,
 						u->parq_position,
 						u->parq_size,
@@ -181,7 +178,7 @@ const gchar *uploads_gui_status_str(
 						short_time(u->parq_lifetime));
 				else
 					gm_snprintf(tmpstr, sizeof(tmpstr),
-						"Waiting [%d] (slot %d / %d) lifetime: %s", 
+						_("Waiting [%d] (slot %d / %d) lifetime: %s"), 
 						u->parq_queue_no,
 						u->parq_position,
 						u->parq_size,
@@ -189,7 +186,7 @@ const gchar *uploads_gui_status_str(
 			} else {
 				if (u->parq_retry > 0)
 					gm_snprintf(tmpstr, sizeof(tmpstr),
-						"Queued [%d] (slot %d / %d) %ds, lifetime: %s", 
+						_("Queued [%d] (slot %d / %d) %ds, lifetime: %s"),
 						u->parq_queue_no,
 						u->parq_position,
 						u->parq_size,
@@ -197,7 +194,7 @@ const gchar *uploads_gui_status_str(
 						short_time(u->parq_lifetime));
 				else
 					gm_snprintf(tmpstr, sizeof(tmpstr),
-						"Queued [%d] (slot %d / %d) lifetime: %s", 
+						_("Queued [%d] (slot %d / %d) lifetime: %s"), 
 						u->parq_queue_no,
 						u->parq_position,
 						u->parq_size,
@@ -211,7 +208,7 @@ const gchar *uploads_gui_status_str(
          * is wanted. So it is trying to connect back.
          *      -- JA, 15/04/2003 
          */
-        return "Sending QUEUE, connecting back...";
+        return _("Sending QUEUE, connecting back...");
 
     case GTA_UL_QUEUE_WAITING:
         /*
@@ -219,9 +216,8 @@ const gchar *uploads_gui_status_str(
          * wanted. The connection is established and now waiting for some action
          *      -- JA, 15/04/2003
          */
-		return "Sent QUEUE, waiting for headers...";
+		return _("Sent QUEUE, waiting for headers...");
 	
-    default:
         g_assert_not_reached();
 	}
 
@@ -268,7 +264,15 @@ gboolean upload_should_remove(time_t now, const upload_row_data_t *ul)
 			return val;
 		}
 		break;
-	default:
+
+	case GTA_UL_PUSH_RECEIVED:
+	case GTA_UL_SENDING:
+	case GTA_UL_HEADERS:
+	case GTA_UL_WAITING:
+	case GTA_UL_QUEUED:
+	case GTA_UL_QUEUE:
+	case GTA_UL_QUEUE_WAITING:
+	case GTA_UL_PFSP_WAITING:
 		break;
 	}
 	
