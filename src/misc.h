@@ -31,9 +31,21 @@
 #define SIZE_FIELD_MAX 64		/* Max size of sprintf-ed size quantity */
 
 /*
- * Global Functions
+ * Some useful macros.
  */
 
+/* Set/clear binary flags */
+#define set_flags(r,f) (r = r | (f))
+#define clear_flags(r,f) (r = r & ~(f))
+
+/*
+ * Some common types
+ */
+typedef guint16 flag_t;
+
+/*
+ * Global Functions
+ */
 gboolean file_exists(gchar *);
 gchar *ip_to_gchar(guint32);
 gchar *ip_port_to_gchar(guint32, guint16);
