@@ -43,6 +43,27 @@
  * Convenience macros.
  */
 
+#ifdef TRACK_ATOMS
+
+#define atom_str_get(k)		atom_get_track(ATOM_STRING, (k), __FILE__, __LINE__)
+#define atom_str_free(k)	atom_free_track(ATOM_STRING, (k), __FILE__, __LINE__)
+
+#define atom_guid_get(k)	atom_get_track(ATOM_GUID, (k), __FILE__, __LINE__)
+#define atom_guid_free(k)	atom_free_track(ATOM_GUID, (k), __FILE__, __LINE__)
+
+#define atom_sha1_get(k)	atom_get_track(ATOM_SHA1, (k), __FILE__, __LINE__)
+#define atom_sha1_free(k)	atom_free_track(ATOM_SHA1, (k), __FILE__, __LINE__)
+
+#define atom_int_get(k)		atom_get_track(ATOM_INT, (k), __FILE__, __LINE__)
+#define atom_int_free(k)	atom_free_track(ATOM_INT, (k), __FILE__, __LINE__)
+
+#ifndef ATOMS_SOURCE
+#define atom_get(t,k)		atom_get_track(t, (k), __FILE__, __LINE__)
+#define atom_free(t,k)		atom_free_track(t, (k), __FILE__, __LINE__)
+#endif
+
+#else	/* !TRACK_ATOMS */
+
 #define atom_str_get(k)		atom_get(ATOM_STRING, k)
 #define atom_str_free(k)	atom_free(ATOM_STRING, k)
 
@@ -55,6 +76,8 @@
 #define atom_int_get(k)		atom_get(ATOM_INT, k)
 #define atom_int_free(k)	atom_free(ATOM_INT, k)
 
+#endif	/* TRACK_ATOMS */
+
 /*
  * Public interface.
  */
@@ -62,8 +85,16 @@
 void atoms_init(void);
 void atoms_close(void);
 
+
+#ifdef TRACK_ATOMS
+gpointer atom_get_track(gint type, gconstpointer key, gchar *file, gint line);
+void atom_free_track(gint type, gconstpointer key, gchar *file, gint line);
+#endif
+
+#if !defined(TRACK_ATOMS) || defined(ATOMS_SOURCE)
 gpointer atom_get(gint type, gconstpointer key);
 void atom_free(gint type, gconstpointer key);
+#endif
 
 #endif	/* _atoms_h_ */
 

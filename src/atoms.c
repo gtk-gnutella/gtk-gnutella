@@ -31,12 +31,14 @@
 
 #include <string.h>
 
+#define ATOMS_SOURCE
 #include "common.h"
 
 RCSID("$Id$");
 
 #ifdef PROTECT_ATOMS
-/* With PROTECT_ATOMS the arena of atoms will be mapped read-only. This
+/*
+ * With PROTECT_ATOMS the arena of atoms will be mapped read-only. This
  * might not be fully portable and should be used for debugging only.
  * The atoms must be page-aligned for this feature. So you'll need
  * much more memory.
@@ -70,8 +72,11 @@ typedef enum {
  * the atom structure.
  */
 typedef struct atom {
-
 		gint refcnt;			/* Amount of references */
+#ifdef TRACK_ATOMS
+		GHashTable *get;		/* Allocation spots */
+		GHashTable *free;		/* Free spots */
+#endif
 #ifdef PROTECT_ATOMS
 		union {
 			struct {
@@ -82,7 +87,6 @@ typedef struct atom {
 		};
 		/* PADDING */
 #endif /* PROTECT_ATOMS */
-
 		gchar arena[1];			/* Start of user arena */
 } atom_t;
 
@@ -470,6 +474,147 @@ void atom_free(gint type, gconstpointer key)
 	}
 }
 
+#ifdef TRACK_ATOMS
+
+struct spot {			/* Information about given spot */
+	gint count;			/* Amount of allocation/free performed at spot */
+};
+
+/*
+ * atom_get_track
+ *
+ * The tracking version of atom_get().
+ * Returns the atom's value.
+ */
+gpointer atom_get_track(gint type, gconstpointer key, gchar *file, gint line)
+{
+	gpointer atom;
+	atom_t *a;
+	gchar buf[512];
+	gpointer k;
+	gpointer v;
+	struct spot *sp;
+
+	atom = atom_get(type, key);
+	a = (atom_t *) ((gchar *) atom - ARENA_OFFSET);
+
+	/*
+	 * Initialize tracking tables on first allocation.
+	 */
+
+	if (a->refcnt == 1) {
+		a->get = g_hash_table_new(g_str_hash, g_str_equal);
+		a->free = g_hash_table_new(g_str_hash, g_str_equal);
+	}
+
+	gm_snprintf(buf, sizeof(buf), "%s:%d", file, line);
+
+	if (g_hash_table_lookup_extended(a->get, buf, &k, &v)) {
+		sp = (struct spot *) v;
+		sp->count++;
+	} else {
+		sp = walloc(sizeof(*sp));
+		sp->count = 1;
+		g_hash_table_insert(a->get, g_strdup(buf), sp);
+	}
+
+	return atom;
+}
+
+/*
+ * tracking_free_kv
+ *
+ * Free key/value pair of the tracking table.
+ */
+static gboolean tracking_free_kv(gpointer key, gpointer value, gpointer user)
+{
+	g_free(key);
+	wfree(value, sizeof(struct spot));
+	return TRUE;
+}
+
+/*
+ * destroy_tracking_table
+ *
+ * Get rid of the tracking hash table.
+ */
+static void destroy_tracking_table(GHashTable *h)
+{
+	g_hash_table_foreach_remove(h, tracking_free_kv, NULL);
+	g_hash_table_destroy(h);
+}
+
+/*
+ * atom_free_track
+ *
+ * The tracking version of atom_free().
+ * Remove one reference from atom. 
+ * Dispose of atom if nobody references it anymore.
+ */
+void atom_free_track(gint type, gconstpointer key, gchar *file, gint line)
+{
+	atom_t *a;
+	gchar buf[512];
+	gpointer k;
+	gpointer v;
+	struct spot *sp;
+
+	a = (atom_t *) ((gchar *) key - ARENA_OFFSET);
+
+	/*
+	 * If we're going to free the atom, dispose the tracking tables.
+	 */
+
+	if (a->refcnt == 1) {
+		destroy_tracking_table(a->get);
+		destroy_tracking_table(a->free);
+	} else {
+		gm_snprintf(buf, sizeof(buf), "%s:%d", file, line);
+
+		if (g_hash_table_lookup_extended(a->free, buf, &k, &v)) {
+			sp = (struct spot *) v;
+			sp->count++;
+		} else {
+			sp = walloc(sizeof(*sp));
+			sp->count = 1;
+			g_hash_table_insert(a->free, g_strdup(buf), sp);
+		}
+	}
+
+	atom_free(type, key);
+}
+
+/*
+ * dump_tracking_entry
+ *
+ * Dump all the spots where some tracked operation occurred, along with the
+ * amount of such operations.
+ */
+static void dump_tracking_entry(gpointer key, gpointer value, gpointer user)
+{
+	struct spot *sp = (struct spot *) value;
+	gchar *what = (gchar *) user;
+
+	g_warning("%10d %s at \"%s\"", sp->count, what, (gchar *) key);
+}
+
+/*
+ * dump_tracking_table
+ *
+ * Dump the values held in the tracking table `h'.
+ */
+static void dump_tracking_table(gpointer atom, GHashTable *h, gchar *what)
+{
+	gint count = g_hash_table_size(h);
+
+	g_warning("all %d %s spot%s for 0x%lx:",
+		count, what, count == 1 ? "" : "s", (gulong) atom);
+
+	g_hash_table_foreach(h, dump_tracking_entry, what);
+}
+
+#endif	/* TRACK_ATOMS */
+
 /*
  * atom_warn_free
  *
@@ -482,6 +627,13 @@ static gboolean atom_warn_free(gpointer key, gpointer value, gpointer udata)
 
 	g_warning("found remaining %s atom 0x%lx, refcnt=%d: \"%s\"",
 		td->type, (glong) key, a->refcnt, (*td->str_func)(key));
+
+#ifdef TRACK_ATOMS
+	dump_tracking_table(key, a->get, "get");
+	dump_tracking_table(key, a->free, "free");
+	destroy_tracking_table(a->get);
+	destroy_tracking_table(a->free);
+#endif
 
 	/*
 	 * Don't free the entry, so that we know where the leak originates from
