@@ -350,17 +350,18 @@ void ignore_add_sha1(const gchar *file, const gchar *sha1)
  *
  * Add `file', `size' to the set of ignored entries.
  */
-void ignore_add_filesize(gchar *file, guint32 size)
+void ignore_add_filesize(const gchar *file, guint32 size)
 {
-	namesize_t *ns;
 	namesize_t nsk;
 
-	nsk.name = file;
+	nsk.name = (gchar *) file; /* Override const */
 	nsk.size = size;
 
 	if (!g_hash_table_lookup(by_namesize, &nsk)) {
+		namesize_t *ns;
+
 		ns = namesize_make(file, size);
-		g_hash_table_insert(by_namesize, ns, (gpointer) 0x1);
+		g_hash_table_insert(by_namesize, ns, GINT_TO_POINTER(1));
 	}
 
 	/*
@@ -451,3 +452,4 @@ void ignore_close(void)
 		fclose(namesize_out);
 }
 
+/* vi: set ts=4: */

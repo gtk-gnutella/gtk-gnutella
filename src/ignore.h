@@ -46,7 +46,7 @@ void ignore_timer(time_t now);
 enum ignore_val ignore_is_requested(
 	gchar *file, guint32 size, gchar *sha1);
 
-void ignore_add_filesize(gchar *file, guint32 size);
+void ignore_add_filesize(const gchar *file, guint32 size);
 void ignore_add_sha1(const gchar *file, const gchar *sha1);
 
 #endif	/* _ignore_h_ */
