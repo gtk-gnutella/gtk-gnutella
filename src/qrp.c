@@ -1066,6 +1066,38 @@ static bgret_t qrp_step_substring(gpointer h, gpointer u, gint ticks)
 }
 
 /*
+ * qrt_eq
+ *
+ * Compare possibly compacted table `rt' with expanded table arena `arena'
+ * having `slots' slots.
+ *
+ * Returns whether tables are identical.
+ */
+static gboolean qrt_eq(struct routing_table *rt, gchar *arena, gint slots)
+{
+	gint i;
+
+	g_assert(rt != NULL);
+	g_assert(arena != NULL);
+	g_assert(slots > 0);
+
+	if (rt->slots != slots)
+		return FALSE;
+
+	if (!rt->compacted)
+		return 0 == memcmp(rt->arena, arena, slots);
+
+	for (i = 0; i < slots; i++) {
+		gboolean s1 = RT_SLOT_READ(rt->arena, i);
+		gboolean s2 = arena[i] != LOCAL_INFINITY;
+		if (!s1 != !s2)
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+/*
  * qrp_step_compute
  *
  * Compute table.
@@ -1112,6 +1144,13 @@ static bgret_t qrp_step_compute(gpointer h, gpointer u, gint ticks)
 				printf("QRP added subword: \"%s\"\n", word);
 		}
 
+		/*
+		 * We won't be removing the slot we already filled, so if we
+		 * already filled more than our threshold ratio, there's no
+		 * need to continue: the table is full and we must double the
+		 * size -- unless we've reached our maximum size.
+		 */
+
 		if (bits < MAX_TABLE_BITS && 100*filled > upper_thresh) {
 			full = TRUE;
 			break;
@@ -1150,23 +1189,17 @@ static bgret_t qrp_step_compute(gpointer h, gpointer u, gint ticks)
 		/*
 		 * If we had already a table, compare it to the one we just built.
 		 * If they are identical, discard the new one.
+		 *
+		 * Can't do a direct memcmp() on the tables though, as the routing
+		 * table arena may be compressed and our table is not.
 		 */
 
-/*	XXX can't do memcmp!!  The routing table can be compacted, and not
- *	XXX the new one.  We need a dedicated comparison routine.
- *	XXX For now, disable: suboptimal, but safe -- RAM, 19/07/2003 */
-#if 0
-		if (
-			routing_table &&
-			routing_table->slots == slots &&
-			0 == memcmp(routing_table->arena, table, slots)
-		) {
+		if (routing_table && qrt_eq(routing_table, table, slots)) {
 			if (dbg)
 				printf("no change in QRP table\n");
 			g_free(table);
 			bg_task_exit(h, 0);	/* Abort processing */
 		}
-#endif
 
 		/* 
 		 * OK, we keep the table.
@@ -1633,7 +1666,8 @@ struct qrt_update {
 /*
  * qrt_compressed
  *
- * Callback invoked when the patch has been compressed.
+ * Callback invoked when the computed patch for a connection
+ * has been compressed.
  */
 static void qrt_compressed(
 	gpointer h, gpointer u, bgstatus_t status, gpointer arg)
@@ -1655,6 +1689,24 @@ static void qrt_compressed(
 
 	if (!NODE_IS_WRITABLE(qup->node))
 		goto error;
+
+	/*
+	 * If the computed patch for this connection is larger than the
+	 * size of the default patch (against an empty table), send that
+	 * one instead.  We'll need an extra RESET though.
+	 */
+
+	if (routing_patch != NULL && qup->patch->len > routing_patch->len) {
+		if (dbg)
+			g_warning("incremental query routing patch for node %s is %d "
+				"bytes, bigger than the default patch (%d bytes) -- "
+				"using latter",
+				node_ip(qup->node), qup->patch->len, routing_patch->len);
+
+		qrt_patch_unref(qup->patch);
+		qup->patch = qrt_patch_ref(routing_patch);
+		qup->reset_needed = TRUE;
+	}
 
 	/*
 	 * Now that we know the final length of the (hopefully) compressed patch,
@@ -2880,6 +2932,8 @@ GSList *qrt_build_query_target(
 		struct routing_table *rt = (struct routing_table *) dn->query_table;
 		struct query_hash *qh;
 		gboolean can_route;
+		gboolean sha1_query;
+		gboolean sha1_in_qrt;
 		gint i;
 
 		if (rt == NULL)			/* Node has not sent its query routing table */
@@ -2899,7 +2953,10 @@ GSList *qrt_build_query_target(
 		 */
 
 		node_inc_qrp_query(dn);
+
 		can_route = TRUE;
+		sha1_query = FALSE;
+		sha1_in_qrt = FALSE;
 
 		for (i = qhvec->count, qh = qhvec->vec; i > 0; i--, qh++) {
 			guint32 idx = QRP_HASH_RESTRICT(qh->hashcode, rt->bits);
@@ -2912,8 +2969,12 @@ GSList *qrt_build_query_target(
 
 			g_assert(idx < rt->slots);
 
+			if (qh->source == QUERY_H_URN)
+				sha1_query = TRUE;
+
 			if (RT_SLOT_READ(rt->arena, idx)) {
 				if (qh->source == QUERY_H_URN) {	/* URN present */
+					sha1_in_qrt = TRUE;
 					can_route = TRUE;				/* Force routing */
 					break;							/* Will forward */
 				}
@@ -2924,6 +2985,14 @@ GSList *qrt_build_query_target(
 		}
 
 		if (!can_route)
+			continue;
+
+		/*
+		 * When facing a SHA1 query, if not at least one of the possibly
+		 * multiple SHA1 URN present did not match the QRT, don't forward.
+		 */
+
+		if (sha1_query && !sha1_in_qrt)
 			continue;
 
 		/*
@@ -2949,9 +3018,18 @@ GSList *qrt_build_query_target(
 		 * some potential for a match.
 		 *
 		 * Therefore, let only 50% of the queries pass to flow-controlled nodes.
+		 *
+		 * We don't less SHA1 queries through, as the chances they will match
+		 * are very slim: not all servents include the SHA1 in their QRP, and
+		 * there can be many hashing conflicts, so the fact that it matched
+		 * an entry in the QRP table does not imply there will be a match
+		 * in the leaf node.
+		 *		--RAM, 31/12/2003
 		 */
 
 		if (NODE_IN_TX_FLOW_CONTROL(dn)) {
+			if (sha1_query)
+				continue;
 			if (random_value(99) >= 50)
 				continue;
 		}
