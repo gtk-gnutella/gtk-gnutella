@@ -1273,6 +1273,22 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
+        PROP_SCAN_IGNORE_SYMLINK_DIRS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_scan_ignore_symlink_dirs",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SCAN_IGNORE_SYMLINK_REGFILES,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_scan_ignore_symlink_regfiles",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
         PROP_SAVE_FILE_PATH,
         update_entry,
         TRUE,
