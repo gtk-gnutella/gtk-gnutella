@@ -406,7 +406,7 @@ share_query_context_free(struct query_context *ctx)
 	 */
 
 	g_hash_table_destroy(ctx->found_indices);
-	wfree(ctx, sizeof(ctx));
+	wfree(ctx, sizeof(*ctx));
 }
 
 /**
