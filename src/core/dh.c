@@ -72,6 +72,15 @@ struct pmsg_info {
 };
 
 /*
+ * Drop reasons.
+ */
+enum dh_drop {
+	DH_FORWARD = 0,			/* Don't drop */
+	DH_DROP_FC,				/* Drop because of flow-control */
+	DH_DROP_THROTTLE,		/* Drop because of hit throttling */
+};
+
+/*
  * These tables keep track of the association between a MUID and the
  * query hit info.  We keep two hash tables and they are "rotated" every so
  * and then, the current table becoming the old one and the old being
@@ -257,6 +266,128 @@ cleanup:
 }
 
 /**
+ * Based on the information we have on the query hits we already
+ * seen or enqueued, determine whether we're going to drop this
+ * message on the floor or forward it.
+ */
+static enum dh_drop
+dh_can_forward(dqhit_t *dh, mqueue_t *mq, gboolean test)
+{
+	g_assert(mq != NULL);
+
+	if (dh_debug > 19) printf("DH ");
+	if (dh_debug > 19 && test) printf("[test] ");
+
+	/*
+	 * The heart of the "dynamic hit routing" algorithm is here.
+	 */
+
+	/*
+	 * If the queue already has more bytes queued than its high-watermark,
+	 * meaning it is in the dangerous zone, drop this hit if we sent more
+	 * than DH_THRESH_HITS already or have enough in the queue to reach the
+	 * DH_MIN_HITS level.
+	 */
+
+	if (
+		mq_size(mq) > mq_hiwat(mq) &&		/* Implies we're flow-controlled */
+		(dh->hits_sent >= DH_THRESH_HITS || dh->hits_queued >= DH_MIN_HITS)
+	) {
+		if (dh_debug > 19) printf("queue size > hiwat, dropping\n");
+		return DH_DROP_FC;
+	}
+
+	/*
+	 * In SWIFT mode, we're aggressively dropping messages from the queue.
+	 * We're in flow control, but we're probably lower than hiwat, the
+	 * heaviest condition.  Be more tolerant before dropping, meaning
+	 * a strongest dropping rule than the above.
+	 */
+
+	if (
+		mq_is_swift_controlled(mq) &&
+		(dh->hits_sent >= DH_MIN_HITS || dh->hits_queued >= DH_MIN_HITS)
+	) {
+		if (dh_debug > 19) printf("queue in SWIFT mode, dropping\n");
+		return DH_DROP_FC;
+	}
+
+	/*
+	 * Queue is flow-controlled, don't add to its burden if we
+	 * already have hits enqueued for this query with results sent.
+	 */
+
+	if (
+		mq_is_flow_controlled(mq) &&
+		(
+			(dh->hits_sent >= DH_MIN_HITS &&
+		 	 dh->hits_queued >= 2 * DH_THRESH_HITS) ||
+			(dh->hits_sent < DH_MIN_HITS &&
+			 (dh->hits_sent + dh->hits_queued) >= DH_MIN_HITS + DH_THRESH_HITS)
+		)
+	) {
+		if (dh_debug > 19) printf("queue in FLOWC mode, dropping\n");
+		return DH_DROP_FC;
+	}
+
+	/*
+	 * If the queue has more bytes than its low-watermark, meaning
+	 * it is in the warning zone, drop if we sent more then DH_POPULAR_HITS
+	 * already, and we have quite a few queued.
+	 */
+
+	if (
+		mq_size(mq) > mq_lowat(mq) &&
+		dh->hits_sent >= DH_POPULAR_HITS &&
+		dh->hits_queued >= (DH_MIN_HITS / 2)
+	) {
+		if (dh_debug > 19) printf("queue size > lowat, dropping\n");
+		return DH_DROP_FC;
+	}
+
+	/*
+	 * If we sent more than DH_POPULAR_HITS and have DH_MIN_HITS queued,
+	 * don't add more and throttle.
+	 */
+
+	if (
+		dh->hits_sent >= DH_POPULAR_HITS &&
+		dh->hits_queued >= DH_MIN_HITS
+	) {
+		if (dh_debug > 19) printf("enough hits queued, throttling\n");
+		return DH_DROP_THROTTLE;
+	}
+
+	/*
+	 * If what we sent plus what we hold will top the maximum number of hits,
+	 * yet we did not reach the maximum, drop: we need to leave room for
+	 * other hits for less popular results.
+	 */
+
+	if (
+		dh->hits_sent < DH_MAX_HITS &&
+		dh->hits_queued > (DH_MIN_HITS / 2) &&
+		(dh->hits_queued + dh->hits_sent) >= DH_MAX_HITS) {
+		if (dh_debug > 19) printf("enough queued, nearing max, throttling\n");
+		return DH_DROP_THROTTLE;
+	}
+
+	/*
+	 * Finally, if what we have sent makes up for more than DH_MAX_HITS and
+	 * we have anything queued for that query, drop.
+	 */
+
+	if (dh->hits_sent >= DH_MAX_HITS && dh->hits_queued) {
+		if (dh_debug > 19) printf("max sendable hits reached, throttling\n");
+		return DH_DROP_THROTTLE;
+	}
+
+	if (dh_debug > 19) printf("forwarding\n");
+
+	return DH_FORWARD;
+}
+
+/**
  * Route query hits from one node to the other.
  */
 void
@@ -276,6 +407,8 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 	muid = src->header.muid;
 	dh = dh_locate(muid);
 
+	g_assert(dh != NULL);		/* Must have called dh_got_results() first! */
+
 	if (dh_debug > 19) {
 		printf("DH %s got %d hit%s: "
 			"msg=%u, hits_recv=%u, hits_sent=%u, hits_queued=%u\n",
@@ -284,118 +417,20 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 			dh->hits_queued);
 	}
 
-	g_assert(dh != NULL);		/* Must have called dh_got_results() first! */
-
-	/*
-	 * The heart of the "dynamic hit routing" algorithm is here.
-	 *
-	 * Based on the information we have on the query hits we already
-	 * seen or enqueued, determine whether we're going to drop this
-	 * message on the floor or forward it.
-	 */
-
 	mq = dest->outq;
 
-	g_assert(mq != NULL);
-
 	/*
-	 * If the queue already has more bytes queued than its high-watermark,
-	 * meaning it is in the dangerous zone, drop this hit if we sent more
-	 * than DH_THRESH_HITS already or have enough in the queue to reach the
-	 * DH_MIN_HITS level.
+	 * Can we forward the message?
 	 */
 
-	if (
-		mq_size(mq) > mq_hiwat(mq) &&		/* Implies we're flow-controlled */
-		(dh->hits_sent >= DH_THRESH_HITS || dh->hits_queued >= DH_MIN_HITS)
-	) {
-		if (dh_debug > 19) printf("DH queue size > hiwat, dropping\n");
+	switch (dh_can_forward(dh, mq, FALSE)) {
+	case DH_DROP_FC:
 		goto drop_flow_control;
-	}
-
-	/*
-	 * In SWIFT mode, we're aggressively dropping messages from the queue.
-	 * We're in flow control, but we're probably lower than hiwat, the
-	 * heaviest condition.  Be more tolerant before dropping, meaning
-	 * a strongest dropping rule than the above.
-	 */
-
-	if (
-		mq_is_swift_controlled(mq) &&
-		(dh->hits_sent >= DH_MIN_HITS || dh->hits_queued >= DH_MIN_HITS)
-	) {
-		if (dh_debug > 19) printf("DH queue in SWIFT mode, dropping\n");
-		goto drop_flow_control;
-	}
-
-	/*
-	 * Queue is flow-controlled, don't add to its burden if we
-	 * already have hits enqueued for this query with results sent.
-	 */
-
-	if (
-		mq_is_flow_controlled(mq) &&
-		(
-			(dh->hits_sent >= DH_MIN_HITS &&
-		 	 dh->hits_queued >= 2 * DH_THRESH_HITS) ||
-			(dh->hits_sent < DH_MIN_HITS &&
-			 (dh->hits_sent + dh->hits_queued) >= DH_MIN_HITS + DH_THRESH_HITS)
-		)
-	) {
-		if (dh_debug > 19) printf("DH queue in FLOWC mode, dropping\n");
-		goto drop_flow_control;
-	}
-
-	/*
-	 * If the queue has more bytes than its low-watermark, meaning
-	 * it is in the warning zone, drop if we sent more then DH_POPULAR_HITS
-	 * already, and we have quite a few queued.
-	 */
-
-	if (
-		mq_size(mq) > mq_lowat(mq) &&
-		dh->hits_sent >= DH_POPULAR_HITS &&
-		dh->hits_queued >= (DH_MIN_HITS / 2)
-	) {
-		if (dh_debug > 19) printf("DH queue size > lowat, dropping\n");
-		goto drop_flow_control;
-	}
-
-	/*
-	 * If we sent more than DH_POPULAR_HITS and have DH_MIN_HITS queued,
-	 * don't add more and throttle.
-	 */
-
-	if (
-		dh->hits_sent >= DH_POPULAR_HITS &&
-		dh->hits_queued >= DH_MIN_HITS
-	) {
-		if (dh_debug > 19) printf("DH enough hits queued, throttling\n");
+	case DH_DROP_THROTTLE:
 		goto drop_throttle;
-	}
-
-	/*
-	 * If what we sent plus what we hold will top the maximum number of hits,
-	 * yet we did not reach the maximum, drop: we need to leave room for
-	 * other hits for less popular results.
-	 */
-
-	if (
-		dh->hits_sent < DH_MAX_HITS &&
-		dh->hits_queued > (DH_MIN_HITS / 2) &&
-		(dh->hits_queued + dh->hits_sent) >= DH_MAX_HITS) {
-		if (dh_debug > 19) printf("DH enough queued, nearing max, throttling\n");
-		goto drop_throttle;
-	}
-
-	/*
-	 * Finally, if what we have sent makes up for more than DH_MAX_HITS and
-	 * we have anything queued for that query, drop.
-	 */
-
-	if (dh->hits_sent >= DH_MAX_HITS && dh->hits_queued) {
-		if (dh_debug > 19) printf("DH max sendable hits reached, throttling\n");
-		goto drop_throttle;
+	case DH_FORWARD:
+	default:
+		break;
 	}
 
 	/*
@@ -443,6 +478,25 @@ drop_flow_control:
 drop_throttle:
 	gnet_stats_count_dropped(src, MSG_DROP_THROTTLE);
 	return;
+}
+
+/**
+ * If we had to route hits to the specified node destination, would we?
+ */
+gboolean
+dh_would_route(const gchar *muid, gnutella_node_t *dest)
+{
+	dqhit_t *dh;
+
+	if (!NODE_IS_WRITABLE(dest))
+		return FALSE;
+
+	dh = dh_locate(muid);
+
+	if (dh == NULL)
+		return TRUE;		/* Unknown, no hits yet => would route */
+
+	return DH_FORWARD == dh_can_forward(dh, dest->outq, TRUE);
 }
 
 /**
