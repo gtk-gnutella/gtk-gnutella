@@ -285,7 +285,7 @@ void download_timer(time_t now)
 			}
 
 			if (now - d->last_update > t) {
-				if (d->status == GTA_DL_CONNECTING && !has_blank_guid(d))
+				if (d->status == GTA_DL_CONNECTING)
 					download_fallback_to_push(d, TRUE, FALSE);
 				else if (d->status == GTA_DL_HEADERS)
 					download_incomplete_header(d);
@@ -1980,7 +1980,7 @@ static void download_push(struct download *d, gboolean on_timeout)
 
 	g_assert(d);
 
-	if (d->flags & DL_F_PUSH_IGN)
+	if ((d->flags & DL_F_PUSH_IGN) || has_blank_guid(d))
 		ignore_push = TRUE;
 
 	if (is_firewalled || !send_pushes || ignore_push) {
