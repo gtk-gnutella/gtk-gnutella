@@ -1,5 +1,9 @@
 # since last version
 
+- (2004.03-17 - Richard)
+ * [GTK1] Slight layout change in the fileinfo pane.
+ * [GTK2] Purging of multiple files is now possible.
+
 - (2004.03.15 - RAM)
  * [GTK1] Added anti-crash countermeasures for memory corruption in GUI
    search results data.  Does NOT fix the root cause!
