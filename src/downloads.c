@@ -2841,6 +2841,7 @@ static struct download *create_download(
 		push = FALSE;
 
 	d->file_name = file_name;
+	d->escaped_name = url_escape_cntrl(file_name);
 
 	/*
 	 * Note: size and skip will be filled by download_pick_chunk() later
@@ -3091,6 +3092,11 @@ static struct download *download_clone(struct download *d)
 	cd->visible = FALSE;
 	cd->push = FALSE;
 	cd->status = GTA_DL_CONNECTING;
+
+	if (d->escaped_name == d->file_name)
+		cd->escaped_name = cd->file_name;
+	else
+		cd->escaped_name = url_escape_cntrl(cd->file_name);
 
 	download_add_to_list(cd, DL_LIST_WAITING);
 
@@ -3363,7 +3369,11 @@ void download_remove(struct download *d)
 	d->status = GTA_DL_REMOVED;
 
 	atom_str_free(d->file_name);
+	if (d->escaped_name != d->file_name)
+		g_free(d->escaped_name);
+
 	d->file_name = NULL;
+	d->escaped_name = NULL;
 
     file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
 	d->file_info = NULL;
@@ -4115,7 +4125,11 @@ static gboolean download_moved_permanently(
 		g_assert(d->list_idx == DL_LIST_RUNNING);
 
 		atom_str_free(d->file_name);
+		if (d->escaped_name != d->file_name)
+			g_free(d->escaped_name);
+
 		d->file_name = info.name;			/* Already an atom */
+		d->escaped_name = url_escape_cntrl(info.name);
 	} else
 		atom_str_free(info.name);
 
@@ -4253,6 +4267,7 @@ static gboolean download_convert_to_urires(struct download *d)
 	atom_str_free(d->file_name);
 	d->record_index = URN_INDEX;
 	d->file_name = name;
+	d->escaped_name = url_escape_cntrl(name);
 
 	/*
 	 * Maybe it became a duplicate download, due to our lame detection?
@@ -6437,7 +6452,6 @@ static void download_store(void)
 
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
-		gchar *escaped;
 		gchar *id;
 
 		if (d->status == GTA_DL_DONE || d->status == GTA_DL_REMOVED)
@@ -6445,7 +6459,6 @@ static void download_store(void)
 		if (d->always_push)
 			continue;
 
-		escaped = url_escape_cntrl(d->file_name);	/* Protect against "\n" */
 		id = get_parq_dl_id(d);
 
 		fprintf(out,
@@ -6453,16 +6466,13 @@ static void download_store(void)
 			"%u, %u:%s, %s\n"
 			"%s\n"
 			"%s\n\n",
-			escaped,
+			d->escaped_name,
 			d->file_info->size, d->record_index,
 			guid_hex_str(download_guid(d)),
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			d->file_info->sha1 ? sha1_base32(d->file_info->sha1) : "*",
 			id != NULL ? id : "*"
 		);
-
-		if (escaped != d->file_name)				/* Lazily dup'ed */
-			g_free(escaped);
 	}
 
 	file_config_close(out, &fp);
