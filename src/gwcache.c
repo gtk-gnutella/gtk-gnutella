@@ -393,6 +393,9 @@ static gboolean check_current_url(void)
 		 */
 		gchar *ptr = gwc_pick();
 
+		if (current_url != NULL)
+			atom_str_free(current_url);
+
 		current_url = ptr == NULL ? NULL : atom_str_get(ptr);
 		current_reused = 0;
 	} else
