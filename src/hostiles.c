@@ -114,19 +114,20 @@ void hostiles_retrieve(void)
 		linenum++;
 		if (*line == '\0' || *line == '#')
 			continue;
-	
+
 		/*
-		 * Remove any spaces from the input stream.
-		 * Don't check the last character in the stream for a space, as
-		 * this is \0 anyway
-		 *		-- JA 12/02/2003
+		 * Remove all trailing spaces in string.
+		 *
+		 * XXX Is this really needed?
+		 *   --RAM, 02/04/2004
 		 */
-		p = line + strlen(line) - 1;	
-		while (isspace( (guchar) *(p) )) {
-			if (p-- == line)
+	
+		p = line + strlen(line);	
+
+		while (p > line) {
+			guchar c = (guchar) *(--p);
+			if (!isspace(c))
 				break;
-			
-			g_assert(p >= line);
 			*p = '\0';
 		}
 
