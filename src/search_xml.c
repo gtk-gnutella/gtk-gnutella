@@ -45,7 +45,7 @@ RCSID("$Id$");
 #define TO_BOOL(v) (v == 0 ? 0 : 1)
 
 typedef struct node_parser {
-    gchar * name;
+    const gchar * name;
     void (*parser_func)(xmlNodePtr, gpointer);
 } node_parser_t;
 
@@ -130,19 +130,19 @@ static const gchar TAG_RULE_STATE_DOWNLOAD[]    = "Download";
 
 
 static gchar x_tmp[4096];
-static gchar *search_file_xml = "searches.xml";
+static const gchar *search_file_xml = "searches.xml";
 static GHashTable *id_map = NULL;
 static node_parser_t parser_map[] = {
-    {(gchar *)NODE_BUILTIN,     xml_to_builtin},
-    {(gchar *)NODE_SEARCH,      xml_to_search},
-    {(gchar *)NODE_FILTER,      xml_to_filter},
-    {(gchar *)NODE_RULE_TEXT,   xml_to_text_rule},
-    {(gchar *)NODE_RULE_IP,     xml_to_ip_rule},
-    {(gchar *)NODE_RULE_SIZE,   xml_to_size_rule},
-    {(gchar *)NODE_RULE_JUMP,   xml_to_jump_rule},
-    {(gchar *)NODE_RULE_SHA1,   xml_to_sha1_rule},
-    {(gchar *)NODE_RULE_FLAG,   xml_to_flag_rule},
-    {(gchar *)NODE_RULE_STATE,  xml_to_state_rule},
+    {NODE_BUILTIN,     xml_to_builtin},
+    {NODE_SEARCH,      xml_to_search},
+    {NODE_FILTER,      xml_to_filter},
+    {NODE_RULE_TEXT,   xml_to_text_rule},
+    {NODE_RULE_IP,     xml_to_ip_rule},
+    {NODE_RULE_SIZE,   xml_to_size_rule},
+    {NODE_RULE_JUMP,   xml_to_jump_rule},
+    {NODE_RULE_SHA1,   xml_to_sha1_rule},
+    {NODE_RULE_FLAG,   xml_to_flag_rule},
+    {NODE_RULE_STATE,  xml_to_state_rule},
     {NULL, NULL}
 };
 
