@@ -76,8 +76,9 @@
 #define g_strdup_printf(fmt, ...) \
 	strdup_printf_track(__FILE__, __LINE__, fmt, __VA_ARGS__)
 
-#define g_strsplit(s,d,m) \
-	strsplit_track((s), (d), (m), __FILE__, __LINE__)
+#define g_strsplit(s,d,m)		strsplit_track((s),(d),(m), __FILE__, __LINE__)
+#define g_hash_table_new(x,y)	hashtable_new_track(x, y, __FILE__, __LINE__)
+#define g_hash_table_destroy(x)	hashtable_destroy_track(x, __FILE__, __LINE__)
 
 /*
  * Use STRTRACK() to track an allocated string by some obscure routine that
@@ -116,6 +117,9 @@ gchar *strconcat_track(gchar *file, gint line, const gchar *s, ...);
 gchar *strdup_printf_track(gchar *file, gint line, const gchar *fmt, ...);
 gchar **strsplit_track(
 	const gchar *s, const gchar *d, gint m, gchar *file, gint line);
+GHashTable *hashtable_new_track(
+	GHashFunc h, GCompareFunc y, gchar *file, gint line);
+void *hashtable_destroy_track(GHashTable *h, gchar *file, gint line);
 
 #endif	/* TRACK_MALLOC || MALLOC_SOURCE */
 

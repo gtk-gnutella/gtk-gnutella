@@ -176,29 +176,22 @@ gpointer malloc0_track(guint32 s, gchar *file, gint line)
 }
 
 /*
- * free_track
+ * free_record
  *
- * Free allocated block.
+ * Record freeing of allocated block.
  */
-void free_track(gpointer o, gchar *file, gint line)
+static void free_record(gpointer o, gchar *file, gint line)
 {
 	struct block *b;
 	gpointer k;
 	gpointer v;
 	GSList *l;
 
-#ifdef TRANSPARENT
-	free(o);
-	return;
-#endif
-
 	if (blocks == NULL || !(g_hash_table_lookup_extended(blocks, o, &k, &v))) {
 		g_warning("(%s:%d) attempt to free block at 0x%lx twice?",
 			file, line, (gulong) o);
 		return;
 	}
-
-	free(o);
 
 	b = (struct block *) v;
 	g_assert(o == k);
@@ -211,6 +204,19 @@ void free_track(gpointer o, gchar *file, gint line)
 	}
 	g_slist_free(b->realloc);
 	free(b);
+}
+
+/*
+ * free_track
+ *
+ * Free allocated block.
+ */
+void free_track(gpointer o, gchar *file, gint line)
+{
+#ifndef TRANSPARENT
+	free_record(o, file, line);
+#endif
+	free(o);
 }
 
 /*
@@ -422,6 +428,31 @@ gpointer string_record(const gchar *s, gchar *file, gint line)
 		return NULL;
 
 	return malloc_record((gpointer) s, strlen(s) + 1, file, line);
+}
+
+/*
+ * hashtable_new_track
+ *
+ * Wrapper over g_hash_table_new() to track allocation of hash tables.
+ */
+GHashTable *hashtable_new_track(
+	GHashFunc h, GCompareFunc y, gchar *file, gint line)
+{
+	GHashTable *o;
+
+	o = g_hash_table_new(h, y);
+	return malloc_record(o, 24, file, line);	/* Size not right, don't care */
+}
+
+/*
+ * hashtable_destroy_track
+ *
+ * Wrapper over g_hash_Table_destroy() to track destruction of hash tables.
+ */
+void *hashtable_destroy_track(GHashTable *h, gchar *file, gint line)
+{
+	free_record(h, file, line);
+	g_hash_table_destroy(h);
 }
 
 #endif /* TRACK_MALLOC */
