@@ -74,6 +74,7 @@ typedef void (*GCallback) (void);
 #include "inputevt.h"
 #include "glib-missing.h"
 #include "event.h"
+#include "hashlist.h"
 
 /*
  * Portability macros.
