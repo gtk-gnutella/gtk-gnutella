@@ -32,6 +32,7 @@
 #ifdef ENABLE_NLS
 #include <libintl.h>
 #include <langinfo.h>
+#include <locale.h>
 #endif
 
 #include "search.h"
