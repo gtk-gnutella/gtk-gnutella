@@ -548,10 +548,8 @@ forget_url(gchar *url)
 	count--;							/* New amount of data in cache */
 	gwc_url_slot = j - 1;				/* Last position we filled */
 	gwc_url_slot = MAX(0, gwc_url_slot);	/* If we removed ALL entries */
-	if (count > 0) {
-		memcpy(gwc_url, url_tmp, sizeof(gwc_url));
-		g_assert(gwc_url_slot == count - 1);
-	}
+	g_assert(gwc_url_slot == MAX(0, count - 1));
+	memcpy(gwc_url, url_tmp, sizeof(gwc_url));
 	g_assert(gwc_url_slot >= 0 && gwc_url_slot < MAX_GWC_URLS);
 
 	gwc_file_dirty = TRUE;
