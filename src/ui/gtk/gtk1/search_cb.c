@@ -43,6 +43,8 @@ RCSID("$Id$");
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"
+#include "lib/iso3166.h"
+#include "lib/vendors.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 extern search_t *search_selected;
@@ -120,6 +122,104 @@ static void refresh_popup(void)
     }
 }
 
+/**
+ * Set or clear (when rc == NULL) the information about the search.
+ */
+static void
+search_gui_set_details(record_t *rc)
+{
+	static GtkEntry *info_filename = NULL;
+	static GtkEntry *info_sha1 = NULL;
+	static GtkEntry *info_source = NULL;
+	static GtkEntry *info_size = NULL;
+	static GtkEntry *info_guid = NULL;
+	static GtkEntry *info_timestamp = NULL;
+	static GtkEntry *info_vendor = NULL;
+	static GtkEntry *info_index = NULL;
+	static GtkEntry *info_tag = NULL;
+	static GtkEntry *info_country = NULL;
+	static GtkEntry *info_speed = NULL;
+	const gchar *vendor;
+
+	if (info_filename == NULL) {		/* First time */
+		info_filename =
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename"));
+		info_sha1 =
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1"));
+		info_source =
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_source"));
+		info_size =
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_size"));
+		info_guid =
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_guid"));
+		info_timestamp =
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_timestamp"));
+		info_vendor =
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_vendor"));
+		info_index =
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_index"));
+		info_tag =
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag"));
+		info_country =
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_country"));
+		info_speed =
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_speed"));
+	}
+
+	if (rc == NULL) {
+		gchar *empty = "";
+
+		gtk_entry_set_text(info_filename, empty);
+		gtk_entry_set_text(info_sha1, empty);
+		gtk_entry_set_text(info_source, empty);
+		gtk_entry_set_text(info_size, empty);
+		gtk_entry_set_text(info_guid, empty);
+		gtk_entry_set_text(info_timestamp, empty);
+		gtk_entry_set_text(info_vendor, empty);
+		gtk_entry_set_text(info_index, empty);
+		gtk_entry_set_text(info_tag, empty);
+		gtk_entry_set_text(info_country, empty);
+		gtk_entry_set_text(info_speed, empty);
+
+		return;
+	}
+
+	gtk_entry_set_text(info_filename, rc->name);
+	gtk_entry_set_text(info_sha1,
+		rc->sha1 != NULL ? sha1_base32(rc->sha1) : _("<none>"));
+	if (rc->results_set->hostname)
+		gtk_entry_set_text(info_source, hostname_port_to_gchar(
+			rc->results_set->hostname, rc->results_set->port));
+	else
+		gtk_entry_set_text(info_source, ip_port_to_gchar(
+			rc->results_set->ip, rc->results_set->port));
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s)",
+		iso3166_country_name(rc->results_set->country),
+		iso3166_country_cc(rc->results_set->country));
+	gtk_entry_set_text(info_country, tmpstr);
+	gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%lu bytes)"),
+		short_size(rc->size), (gulong) rc->size);
+	gtk_entry_set_text(info_size, tmpstr);
+	gtk_entry_set_text(info_guid, guid_hex_str(rc->results_set->guid));
+	g_strlcpy(tmpstr, ctime(&rc->results_set->stamp),
+		MIN(25U, sizeof tmpstr));	/* discard trailing '\n' (see ctime(3) */
+	gtk_entry_set_text(info_timestamp, tmpstr);
+	vendor = lookup_vendor_name(rc->results_set->vendor);
+	if (vendor == NULL)
+		*tmpstr = '\0';
+	else if (rc->results_set->version)
+		gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s",
+			vendor, rc->results_set->version);
+	else
+		g_strlcpy(tmpstr, vendor, sizeof tmpstr);
+	gtk_entry_set_text(info_vendor, tmpstr);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) rc->index);
+	gtk_entry_set_text(info_index, tmpstr);
+	gtk_entry_set_text(info_tag, rc->tag ? rc->tag : "");
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rc->results_set->speed);
+	gtk_entry_set_text(info_speed, tmpstr);
+}
+
 /* 
  * 	search_cb_autoselect
  *
@@ -175,13 +275,10 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
 
 	rc = grc->shared_record;
 
-	/* XXX anti-crash, when rc is 0x3 or something... -- RAM, 16/03/2004 */
-	if ((gulong) rc < 0x1000) {
-		statusbar_gui_message(15, "*** MEMORY CORRUPTED, TRYING TO IGNORE!");
-		g_warning("MEMORY CORRUPTED (in GUI search row data, rc=0x%lx)",
-			(gulong) rc);
-		return 0;
-	}
+	/*
+	 * Update details about the selected search.
+	 */
+	search_gui_set_details(rc);
 
     /* Search the top level of the tree for items to auto-select. 
      * We don't want to search the children, because on the 
@@ -693,6 +790,7 @@ void on_ctree_search_results_unselect_row(
     GtkCTree *ctree, GList *node, gint column, gpointer user_data)
 {
     refresh_popup();
+	search_gui_set_details(NULL);	/* Clear details about search */
 }
 
 
