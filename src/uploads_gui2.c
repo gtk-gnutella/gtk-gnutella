@@ -46,8 +46,6 @@ static GtkWidget *button_uploads_clear_completed = NULL;
 
 /* hash table for fast handle -> GtkTreeIter mapping */
 static GHashTable *upload_handles = NULL;
-/* list of all *active* uploads; contains the handles */
-static GList *list_uploads = NULL;
 /* list of all *removed* uploads; contains the handles */
 static GSList *sl_removed_uploads = NULL;
 
@@ -102,7 +100,6 @@ static void upload_removed(
 		gtk_list_store_set(store_uploads, &rd->iter, c_ul_status, reason, (-1));
 	sl_removed_uploads = g_slist_prepend(sl_removed_uploads, rd);
 	g_hash_table_remove(upload_handles, GUINT_TO_POINTER(uh));
-	list_uploads = g_list_remove(list_uploads, rd);
 	/* NB: rd MUST NOT be freed yet because it contains the GtkTreeIter! */
 }
 
@@ -184,22 +181,20 @@ COMPARE_FUNC(ranges, {
  */
 static inline upload_row_data_t *find_upload(gnet_upload_t u)
 {
-	union {
-		upload_row_data_t *rd; 
-		gpointer ptr;
-	} key;
+	upload_row_data_t *rd;
+	gpointer key;
 	gboolean found;
 
-	key.rd = NULL;
 	found = g_hash_table_lookup_extended(upload_handles, GUINT_TO_POINTER(u),
-				NULL, &key.ptr);
+				NULL, &key);
 	g_assert(found);
+	rd = key;
 
-	g_assert(NULL != key.rd);
-	g_assert(key.rd->valid);
-	g_assert(key.rd->handle == u);
+	g_assert(NULL != rd);
+	g_assert(rd->valid);
+	g_assert(rd->handle == u);
 
-	return key.rd;
+	return rd;
 }
 
 static void uploads_gui_update_upload_info(const gnet_upload_info_t *u)
@@ -376,7 +371,6 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 		c_ul_data, rd,
 		(-1));
 	g_hash_table_insert(upload_handles, GUINT_TO_POINTER(rd->handle), rd);
-	list_uploads = g_list_prepend(list_uploads, rd);
 }
 
 static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc,
@@ -482,6 +476,8 @@ void uploads_gui_init(void)
 
 static inline void free_row_data(upload_row_data_t *rd, gpointer user_data)
 {
+	(void) user_data;
+
 	if (NULL != rd->user_agent) {
 		atom_str_free(rd->user_agent);
 		rd->user_agent = NULL;
@@ -491,6 +487,15 @@ static inline void free_row_data(upload_row_data_t *rd, gpointer user_data)
 		rd->user_agent = NULL;
 	}
 	wfree(rd, sizeof(*rd));
+}
+
+static inline void free_handle(gpointer key, gpointer value,
+	gpointer user_data)
+{
+	(void) key;
+	(void) user_data;
+
+	free_row_data(value, NULL);
 }
 
 static inline void remove_row(upload_row_data_t *rd, remove_row_ctx_t *ctx)
@@ -503,21 +508,23 @@ static inline void remove_row(upload_row_data_t *rd, remove_row_ctx_t *ctx)
 		ctx->sl_remaining = g_slist_prepend(ctx->sl_remaining, rd);
 }
 
-static inline void update_row(
-	upload_row_data_t *rd, const time_t *now)
+static inline void update_row(gpointer key, gpointer data, gpointer user_data)
 {
+	time_t now = *(time_t *) user_data;
+	upload_row_data_t *rd = data;
 	gnet_upload_status_t status;
 
 	g_assert(NULL != rd);
-	if (delta_time(*now, rd->last_update) > 1) {
-		rd->last_update = *now;
-		upload_get_status(rd->handle, &status);
-		gtk_list_store_set(store_uploads, &rd->iter,
-			c_ul_progress, 
-				force_range(uploads_gui_progress(&status, rd), 0.0, 1.0),
-			c_ul_status, uploads_gui_status_str(&status, rd),
-			(-1));
-	}
+	g_assert(GPOINTER_TO_UINT(key) == rd->handle);
+	if (delta_time(now, rd->last_update) < 2)
+		return;
+
+	rd->last_update = now;
+	upload_get_status(rd->handle, &status);
+	gtk_list_store_set(store_uploads, &rd->iter,
+		c_ul_progress, force_range(uploads_gui_progress(&status, rd), 0.0, 1.0),
+		c_ul_status, uploads_gui_status_str(&status, rd),
+		(-1));
 }
 
 /*
@@ -566,7 +573,7 @@ void uploads_gui_update_display(time_t now)
 	sl_removed_uploads = ctx.sl_remaining;
 
 	/* Update the status column for all active uploads. */ 
-	G_LIST_FOREACH(list_uploads, update_row, &now);
+	g_hash_table_foreach(upload_handles, update_row, &now);
        
 	if (NULL == sl_removed_uploads)
 		gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
@@ -579,6 +586,8 @@ static gboolean uploads_clear_helper(gpointer user_data)
 	guint counter = 0;
     GSList *sl, *sl_remaining = NULL;
 	remove_row_ctx_t ctx = { TRUE, 0, NULL };
+
+	(void) user_data;
 
 	if (uploads_shutting_down)
 		return FALSE; /* Finished. */
@@ -638,15 +647,13 @@ void uploads_gui_shutdown(void)
 
 	gtk_list_store_clear(store_uploads);
 
+	g_hash_table_foreach(upload_handles, free_handle, NULL);
 	g_hash_table_destroy(upload_handles);
 	upload_handles = NULL;
-	G_LIST_FOREACH(list_uploads, free_row_data, NULL);
-	g_list_free(list_uploads);
-	list_uploads = NULL;
 	G_SLIST_FOREACH(sl_removed_uploads, free_row_data, NULL);
 	g_slist_free(sl_removed_uploads);
 	sl_removed_uploads = NULL;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 #endif	/* USE_GTK2 */
