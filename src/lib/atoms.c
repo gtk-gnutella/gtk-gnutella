@@ -93,10 +93,14 @@ typedef struct atom {
 	};
 		/* PADDING */
 #endif /* PROTECT_ATOMS */
-#if MEM_ALIGNBYTES > INTSIZE
-	gchar padding[MEM_ALIGNBYTES - INTSIZE];
-#endif
-	gchar arena[1];			/* Start of user arena */
+	/* Ensure `arena' is properly aligned */
+	union {
+		guint64 i64;
+		gpointer p;
+		gdouble d;
+		gulong l;
+		gchar c;
+	} arena[1];			/* Start of user arena */
 } atom_t;
 
 
