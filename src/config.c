@@ -207,7 +207,7 @@ guint32 nodes_col_widths[] = { 130, 50, 120, 20, 80 };
 guint32 dl_active_col_widths[] = { 240, 80, 80, 80, 80 };
 guint32 dl_queued_col_widths[] = { 240, 80, 80, 80, 80 };
 guint32 uploads_col_widths[] = { 200, 120, 36, 80, 80, 80 };
-guint32 search_results_col_widths[] = { 210, 80, 50, 140, 140 };
+guint32 search_results_col_widths[] = { 210, 80, 50, 70, 70, 140 };
 guint32 search_stats_col_widths[] = { 200, 80, 80 };
 guint32 ul_stats_col_widths[] = { 200, 80, 80, 80, 80 };
 guint32 search_list_col_widths[] = { 80, 20, 20 };
@@ -895,8 +895,8 @@ void config_set_param(keyword_t keyword, gchar *value)
 		return;
 
 	case k_widths_search_results:
-		if ((a = config_parse_array(value, 5)))
-			for (i = 0; i < 5; i++)
+		if ((a = config_parse_array(value, 6)))
+			for (i = 0; i < 6; i++)
 				search_results_col_widths[i] = a[i];
 		return;
 
@@ -1208,11 +1208,11 @@ static void config_save(void)
 			dl_queued_col_widths[0], dl_queued_col_widths[1],
             dl_queued_col_widths[2], dl_queued_col_widths[3],
             dl_queued_col_widths[4]);
-        fprintf(config, "%s = %u,%u,%u,%u,%u\n",
+        fprintf(config, "%s = %u,%u,%u,%u,%u,%u\n",
 			keywords[k_widths_search_results],
 			search_results_col_widths[0], search_results_col_widths[1],
 			search_results_col_widths[2], search_results_col_widths[3],
-			search_results_col_widths[4]);
+			search_results_col_widths[4], search_results_col_widths[5]);
         fprintf(config, "%s = %u,%u,%u\n",
 			keywords[k_widths_search_stats],
 			search_stats_col_widths[0], search_stats_col_widths[1],
