@@ -307,6 +307,7 @@ search_gui_new_search_full(const gchar *querystr,
 	gint sort_order, flag_t flags, search_t **search)
 {
     search_t *sch;
+	rule_t *rule;
 	gnet_search_t sch_id;
     GList *glist;
     gchar *titles[c_sl_num];
@@ -320,7 +321,7 @@ search_gui_new_search_full(const gchar *querystr,
         lookup_widget(main_window, "button_search_close");
     GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
 
-	query = search_gui_parse_query(querystr, &error);
+	query = search_gui_parse_query(querystr, &rule, &error);
 	if (!query) {
 		statusbar_gui_message(5, "%s", error);
 		return FALSE;
@@ -346,6 +347,10 @@ search_gui_new_search_full(const gchar *querystr,
 
 	sch->parents = g_hash_table_new(NULL, NULL);
   	filter_new_for_search(sch);
+	if (rule) {
+		g_assert(sch->filter != NULL);
+		filter_append_rule(sch->filter, rule);
+	}
 
 	/* Create the list item */
 
