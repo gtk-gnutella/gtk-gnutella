@@ -55,99 +55,99 @@
 
 #undef strdup			/* Defined in <bits/string2.h> */
 
-#define malloc(s)		malloc_track((s), __FILE__, __LINE__)
-#define calloc(n,s)		malloc0_track((n)*(s), __FILE__, __LINE__)
-#define free(o)			free_track(o, __FILE__, __LINE__)
-#define realloc(o,s)	realloc_track(o, (s), __FILE__, __LINE__)
-#define strdup(s)		strdup_track((s), __FILE__, __LINE__)
-#define strndup(s,n)	strndup_track((s), (n), __FILE__, __LINE__)
+#define malloc(s)		malloc_track((s), _WHERE_, __LINE__)
+#define calloc(n,s)		malloc0_track((n)*(s), _WHERE_, __LINE__)
+#define free(o)			free_track(o, _WHERE_, __LINE__)
+#define realloc(o,s)	realloc_track(o, (s), _WHERE_, __LINE__)
+#define strdup(s)		strdup_track((s), _WHERE_, __LINE__)
+#define strndup(s,n)	strndup_track((s), (n), _WHERE_, __LINE__)
 
-#define g_malloc(s)		malloc_track((s), __FILE__, __LINE__)
-#define g_malloc0(s)	malloc0_track((s), __FILE__, __LINE__)
-#define g_free(o)		free_track(o, __FILE__, __LINE__)
-#define g_realloc(o,s)	realloc_track(o, (s), __FILE__, __LINE__)
-#define g_strdup(s)		((s) ? strdup_track(s, __FILE__, __LINE__) : 0)
-#define g_strndup(s,n)	((s) ? strndup_track(s, (n), __FILE__, __LINE__) : 0)
-#define g_strjoinv(s,v)	strjoinv_track(s, (v), __FILE__, __LINE__)
-#define g_memdup(p,s)	((p) ? memdup_track((p), (s), __FILE__, __LINE__) : 0)
-#define g_strfreev(v)	strfreev_track((v), __FILE__, __LINE__)
+#define g_malloc(s)		malloc_track((s), _WHERE_, __LINE__)
+#define g_malloc0(s)	malloc0_track((s), _WHERE_, __LINE__)
+#define g_free(o)		free_track(o, _WHERE_, __LINE__)
+#define g_realloc(o,s)	realloc_track(o, (s), _WHERE_, __LINE__)
+#define g_strdup(s)		((s) ? strdup_track(s, _WHERE_, __LINE__) : 0)
+#define g_strndup(s,n)	((s) ? strndup_track(s, (n), _WHERE_, __LINE__) : 0)
+#define g_strjoinv(s,v)	strjoinv_track(s, (v), _WHERE_, __LINE__)
+#define g_memdup(p,s)	((p) ? memdup_track((p), (s), _WHERE_, __LINE__) : 0)
+#define g_strfreev(v)	strfreev_track((v), _WHERE_, __LINE__)
 
 #undef g_new
 #undef g_new0
 #undef g_renew
 
-#define g_new(t,c)		(t*) malloc_track(sizeof(t)*(c), __FILE__, __LINE__)
-#define g_new0(t,c)		(t*) malloc0_track(sizeof(t)*(c), __FILE__, __LINE__)
-#define g_renew(t,m,c)	(t*) realloc_track((m),sizeof(t)*(c),__FILE__,__LINE__)
+#define g_new(t,c)		(t*) malloc_track(sizeof(t)*(c), _WHERE_, __LINE__)
+#define g_new0(t,c)		(t*) malloc0_track(sizeof(t)*(c), _WHERE_, __LINE__)
+#define g_renew(t,m,c)	(t*) realloc_track((m),sizeof(t)*(c),_WHERE_,__LINE__)
 
 #define g_strconcat(s, ...) \
-	strconcat_track(__FILE__, __LINE__, s, __VA_ARGS__)
+	strconcat_track(_WHERE_, __LINE__, s, __VA_ARGS__)
 
 #define g_strdup_printf(fmt, ...) \
-	strdup_printf_track(__FILE__, __LINE__, fmt, __VA_ARGS__)
+	strdup_printf_track(_WHERE_, __LINE__, fmt, __VA_ARGS__)
 
-#define g_strsplit(s,d,m)		strsplit_track((s),(d),(m), __FILE__, __LINE__)
+#define g_strsplit(s,d,m)		strsplit_track((s),(d),(m), _WHERE_, __LINE__)
 
-#define g_hash_table_new(x,y)	hashtable_new_track(x, y, __FILE__, __LINE__)
-#define g_hash_table_destroy(x)	hashtable_destroy_track(x, __FILE__, __LINE__)
+#define g_hash_table_new(x,y)	hashtable_new_track(x, y, _WHERE_, __LINE__)
+#define g_hash_table_destroy(x)	hashtable_destroy_track(x, _WHERE_, __LINE__)
 
-#define hash_list_new()			hash_list_new_track(__FILE__, __LINE__)
-#define hash_list_free(h)		hash_list_free_track((h), __FILE__, __LINE__)
+#define hash_list_new()			hash_list_new_track(_WHERE_, __LINE__)
+#define hash_list_free(h)		hash_list_free_track((h), _WHERE_, __LINE__)
 
-#define g_slist_alloc()			slist_alloc_track(__FILE__, __LINE__)
-#define g_slist_append(l,d)		slist_append_track((l),(d), __FILE__, __LINE__)
-#define g_slist_prepend(l,d)	slist_prepend_track((l),(d), __FILE__, __LINE__)
-#define g_slist_copy(l)			slist_copy_track((l), __FILE__, __LINE__)
-#define g_slist_free(l)			slist_free_track((l), __FILE__, __LINE__)
-#define g_slist_free_1(l)		slist_free1_track((l), __FILE__, __LINE__)
-#define g_slist_remove(l,d)		slist_remove_track((l),(d), __FILE__, __LINE__)
+#define g_slist_alloc()			slist_alloc_track(_WHERE_, __LINE__)
+#define g_slist_append(l,d)		slist_append_track((l),(d), _WHERE_, __LINE__)
+#define g_slist_prepend(l,d)	slist_prepend_track((l),(d), _WHERE_, __LINE__)
+#define g_slist_copy(l)			slist_copy_track((l), _WHERE_, __LINE__)
+#define g_slist_free(l)			slist_free_track((l), _WHERE_, __LINE__)
+#define g_slist_free_1(l)		slist_free1_track((l), _WHERE_, __LINE__)
+#define g_slist_remove(l,d)		slist_remove_track((l),(d), _WHERE_, __LINE__)
 
 #define g_slist_insert(l,d,p) \
-	slist_insert_track((l),(d),(p), __FILE__, __LINE__)
+	slist_insert_track((l),(d),(p), _WHERE_, __LINE__)
 #define g_slist_insert_sorted(l,d,c) \
-	slist_insert_sorted_track((l),(d),(c), __FILE__, __LINE__)
+	slist_insert_sorted_track((l),(d),(c), _WHERE_, __LINE__)
 #define gm_slist_insert_after(l,lk,d) \
-	slist_insert_after_track((l),(lk),(d), __FILE__, __LINE__)
+	slist_insert_after_track((l),(lk),(d), _WHERE_, __LINE__)
 
-#define g_list_alloc()			list_alloc_track(__FILE__, __LINE__)
-#define g_list_append(l,d)		list_append_track((l),(d), __FILE__, __LINE__)
-#define g_list_prepend(l,d)		list_prepend_track((l),(d), __FILE__, __LINE__)
-#define g_list_copy(l)			list_copy_track((l), __FILE__, __LINE__)
-#define g_list_free(l)			list_free_track((l), __FILE__, __LINE__)
-#define g_list_free_1(l)		list_free1_track((l), __FILE__, __LINE__)
-#define g_list_remove(l,d)		list_remove_track((l),(d), __FILE__, __LINE__)
+#define g_list_alloc()			list_alloc_track(_WHERE_, __LINE__)
+#define g_list_append(l,d)		list_append_track((l),(d), _WHERE_, __LINE__)
+#define g_list_prepend(l,d)		list_prepend_track((l),(d), _WHERE_, __LINE__)
+#define g_list_copy(l)			list_copy_track((l), _WHERE_, __LINE__)
+#define g_list_free(l)			list_free_track((l), _WHERE_, __LINE__)
+#define g_list_free_1(l)		list_free1_track((l), _WHERE_, __LINE__)
+#define g_list_remove(l,d)		list_remove_track((l),(d), _WHERE_, __LINE__)
 
 #define g_list_insert(l,d,p) \
-	list_insert_track((l),(d),(p), __FILE__, __LINE__)
+	list_insert_track((l),(d),(p), _WHERE_, __LINE__)
 #define g_list_insert_sorted(l,d,c) \
-	list_insert_sorted_track((l),(d),(c), __FILE__, __LINE__)
+	list_insert_sorted_track((l),(d),(c), _WHERE_, __LINE__)
 #define gm_list_insert_after(l,lk,d) \
-	list_insert_after_track((l),(lk),(d), __FILE__, __LINE__)
+	list_insert_after_track((l),(lk),(d), _WHERE_, __LINE__)
 #define g_list_delete_link(l,lk) \
-	list_delete_link_track((l),(lk), __FILE__, __LINE__)
+	list_delete_link_track((l),(lk), _WHERE_, __LINE__)
 
-#define g_string_new(p)			string_new_track((p), __FILE__, __LINE__)
-#define g_string_sized_new(s)	string_sized_new_track((s), __FILE__, __LINE__)
-#define g_string_append(s,p)	string_append_track((s),(p),__FILE__,__LINE__)
-#define g_string_append_c(s,c)	string_append_c_track((s),(c),__FILE__,__LINE__)
-#define g_string_assign(s,p)	string_assign_track((s),(p),__FILE__,__LINE__)
-#define g_string_free(s,b)		string_free_track((s),(b), __FILE__, __LINE__)
-#define g_string_prepend(s,p)	string_prepend_track((s),(p),__FILE__,__LINE__)
-#define g_string_prepend_c(s,c) string_prepend_c_track(s),(c),__FILE__,__LINE__)
+#define g_string_new(p)			string_new_track((p), _WHERE_, __LINE__)
+#define g_string_sized_new(s)	string_sized_new_track((s), _WHERE_, __LINE__)
+#define g_string_append(s,p)	string_append_track((s),(p),_WHERE_,__LINE__)
+#define g_string_append_c(s,c)	string_append_c_track((s),(c),_WHERE_,__LINE__)
+#define g_string_assign(s,p)	string_assign_track((s),(p),_WHERE_,__LINE__)
+#define g_string_free(s,b)		string_free_track((s),(b), _WHERE_, __LINE__)
+#define g_string_prepend(s,p)	string_prepend_track((s),(p),_WHERE_,__LINE__)
+#define g_string_prepend_c(s,c) string_prepend_c_track(s),(c),_WHERE_,__LINE__)
 
 #define g_string_insert(s,i,p)	\
-	string_insert_track((s),(i),(p),__FILE__,__LINE__)
+	string_insert_track((s),(i),(p),_WHERE_,__LINE__)
 #define g_string_insert_c(s,i,c) \
-	string_insert_c_track((s),(i),(c),__FILE__,__LINE__)
+	string_insert_c_track((s),(i),(c),_WHERE_,__LINE__)
 
 #ifdef USE_GTK2 /* Those are defined in gstring.h of GLib2 */
 #undef g_string_sprintf
 #undef g_string_sprintfa
 #endif
 #define g_string_sprintf(s,fmt,...) \
-	string_sprintf_track((s),__FILE__,__LINE__,(fmt), __VA_ARGS__)
+	string_sprintf_track((s),_WHERE_,__LINE__,(fmt), __VA_ARGS__)
 #define g_string_sprintfa(s,fmt,...) \
-	string_sprintf_tracka((s),__FILE__,__LINE__,(fmt), __VA_ARGS__)
+	string_sprintf_tracka((s),_WHERE_,__LINE__,(fmt), __VA_ARGS__)
 
 
 /*
@@ -159,8 +159,8 @@
  * Likewise, use MEMTRACK() to track some random memory buffer known to have
  * been allocated by a routine and not via any of the trapped calls.
  */
-#define STRTRACK(s)		string_record((s), __FILE__, __LINE__)
-#define MEMTRACK(o,s)	malloc_record((o), (s), __FILE__, __LINE__)
+#define STRTRACK(s)		string_record((s), _WHERE_, __LINE__)
+#define MEMTRACK(o,s)	malloc_record((o), (s), _WHERE_, __LINE__)
 
 #else	/* !TRACK_MALLOC || MALLOC_SOURCE */
 

@@ -45,21 +45,21 @@
 
 #ifdef TRACK_ATOMS
 
-#define atom_str_get(k)		atom_get_track(ATOM_STRING, (k), __FILE__, __LINE__)
-#define atom_str_free(k)	atom_free_track(ATOM_STRING, (k), __FILE__, __LINE__)
+#define atom_str_get(k)		atom_get_track(ATOM_STRING, (k), _WHERE_, __LINE__)
+#define atom_str_free(k)	atom_free_track(ATOM_STRING, (k), _WHERE_, __LINE__)
 
-#define atom_guid_get(k)	atom_get_track(ATOM_GUID, (k), __FILE__, __LINE__)
-#define atom_guid_free(k)	atom_free_track(ATOM_GUID, (k), __FILE__, __LINE__)
+#define atom_guid_get(k)	atom_get_track(ATOM_GUID, (k), _WHERE_, __LINE__)
+#define atom_guid_free(k)	atom_free_track(ATOM_GUID, (k), _WHERE_, __LINE__)
 
-#define atom_sha1_get(k)	atom_get_track(ATOM_SHA1, (k), __FILE__, __LINE__)
-#define atom_sha1_free(k)	atom_free_track(ATOM_SHA1, (k), __FILE__, __LINE__)
+#define atom_sha1_get(k)	atom_get_track(ATOM_SHA1, (k), _WHERE_, __LINE__)
+#define atom_sha1_free(k)	atom_free_track(ATOM_SHA1, (k), _WHERE_, __LINE__)
 
-#define atom_int_get(k)		atom_get_track(ATOM_INT, (k), __FILE__, __LINE__)
-#define atom_int_free(k)	atom_free_track(ATOM_INT, (k), __FILE__, __LINE__)
+#define atom_int_get(k)		atom_get_track(ATOM_INT, (k), _WHERE_, __LINE__)
+#define atom_int_free(k)	atom_free_track(ATOM_INT, (k), _WHERE_, __LINE__)
 
 #ifndef ATOMS_SOURCE
-#define atom_get(t,k)		atom_get_track(t, (k), __FILE__, __LINE__)
-#define atom_free(t,k)		atom_free_track(t, (k), __FILE__, __LINE__)
+#define atom_get(t,k)		atom_get_track(t, (k), _WHERE_, __LINE__)
+#define atom_free(t,k)		atom_free_track(t, (k), _WHERE_, __LINE__)
 #endif
 
 #else	/* !TRACK_ATOMS */
