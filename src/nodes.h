@@ -3,6 +3,7 @@
 
 #include "gnutella.h"
 #include "mq.h"
+#include "sq.h"
 
 /*
  * MAX_CACHE_HOPS defines the maximum hop count we handle for the ping/pong
@@ -66,6 +67,7 @@ struct gnutella_node {
 
 	gint gdk_tag;				/* gdk tag for write status */
 	mqueue_t *outq;				/* Output queue */
+	squeue_t *searchq;			/* Search queue */
 
 	gpointer routing_data;		/* Opaque info, for packet routing */
 
@@ -172,12 +174,17 @@ struct gnutella_node {
 #define NODE_IS_READABLE(n) \
 	((n)->flags & NODE_F_READABLE)
 
-#define NODE_QUEUE_PERCENT_USED(n) \
+#define NODE_MQUEUE_PERCENT_USED(n) \
 	((n)->outq ? mq_size((n)->outq) * 100 / mq_maxsize((n)->outq) : 0)
 
-#define NODE_QUEUE_COUNT(n) \
+#define NODE_MQUEUE_COUNT(n) \
 	((n)->outq ? mq_count((n)->outq) : 0)
 
+#define NODE_SQUEUE_COUNT(n) \
+	((n)->searchq ? sq_count((n)->searchq) : 0)
+
+#define NODE_SQUEUE_SENT(n) \
+	((n)->searchq ? sq_sent((n)->searchq) : 0)
 
 /*
  * Macros.

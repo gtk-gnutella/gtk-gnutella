@@ -27,6 +27,7 @@
 #include "header.h"
 #include "gmsg.h"
 #include "mq.h"
+#include "sq.h"
 #include "tx.h"
 #include "tx_link.h"
 
@@ -126,6 +127,9 @@ void node_timer(time_t now)
 			)
 				node_bye(n, 405, "Transmit timeout");
 		}
+
+		if (n->searchq != NULL)
+			sq_process(n->searchq, now);
 
 		gui_update_node_display(n, now);
 	}
@@ -320,6 +324,10 @@ static void node_remove_v(
 	if (n->outq) {
 		mq_free(n->outq);
 		n->outq = NULL;
+	}
+	if (n->searchq) {
+		sq_free(n->searchq);
+		n->searchq = NULL;
 	}
 	if (n->vendor) {
 		g_free(n->vendor);
@@ -544,6 +552,7 @@ void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
 	 * The only message that may remain is the oldest partially sent.
 	 */
 
+	sq_clear(n->searchq);
 	mq_clear(n->outq);
 
 	/*
@@ -885,6 +894,7 @@ static void node_is_now_connected(struct gnutella_node *n)
 		txdrv_t *tx = tx_make(n, &tx_link_ops, 0);
 
 		n->outq = mq_make(node_sendqueue_size, n, tx);
+		n->searchq = sq_make(n);
 		n->flags |= NODE_F_WRITABLE;
 	}
 

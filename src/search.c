@@ -399,10 +399,10 @@ static void __search_send_packet(struct search *sch, struct gnutella_node *n)
 
 	if (n) {
 		mark_search_sent_to_node(sch, n);
-		gmsg_sendto_one(n, (guchar *) m, size);
+		gmsg_search_sendto_one(n, (guchar *) m, size);
 	} else {
 		mark_search_sent_to_connected_nodes(sch);
-		gmsg_sendto_all(sl_nodes, (guchar *) m, size);
+		gmsg_search_sendto_all(sl_nodes, (guchar *) m, size);
 	}
 
 	g_free(m);

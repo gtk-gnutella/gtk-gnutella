@@ -11,6 +11,7 @@
 #include "pmsg.h"
 #include "gmsg.h"
 #include "nodes.h"
+#include "sq.h"
 #include "mq.h"
 #include "gnutella.h"
 #include "routing.h"
@@ -109,6 +110,23 @@ void gmsg_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
 }
 
 /*
+ * gmsg_search_sendto_one
+ *
+ * Send our search message to one node.
+ */
+void gmsg_search_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
+{
+	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+	g_assert(((struct gnutella_header *) msg)->hops == 0);
+
+	if (!NODE_IS_WRITABLE(n))
+		return;
+
+	sq_putq(n->searchq, gmsg_to_pmsg(PMSG_P_DATA, msg, size));
+}
+
+
+/*
  * gmsg_ctrl_sendto_one
  *
  * Send control message to one node.
@@ -156,6 +174,28 @@ void gmsg_sendto_all(GSList *l, guchar *msg, guint32 size)
 		if (!NODE_IS_WRITABLE(dn))
 			continue;
 		mq_putq(dn->outq, pmsg_clone(mb));
+	}
+
+	pmsg_free(mb);
+}
+
+/*
+ * gmsg_search_sendto_all
+ *
+ * Broadcast our search message to all nodes in the list.
+ */
+void gmsg_search_sendto_all(GSList *l, guchar *msg, guint32 size)
+{
+	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
+
+	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+	g_assert(((struct gnutella_header *) msg)->hops == 0);
+
+	for (/* empty */; l; l = l->next) {
+		struct gnutella_node *dn = (struct gnutella_node *) l->data;
+		if (!NODE_IS_WRITABLE(dn))
+			continue;
+		sq_putq(dn->searchq, pmsg_clone(mb));
 	}
 
 	pmsg_free(mb);
