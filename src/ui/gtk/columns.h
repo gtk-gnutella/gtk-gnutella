@@ -187,11 +187,6 @@ enum {
     c_sr_meta,		/* meta-data info column */
     c_sr_info,
 #define SEARCH_RESULTS_VISIBLE_COLUMNS ((guint) c_sr_info + 1)
-#ifdef USE_GTK1
-    c_sr_speed,
-    c_sr_host,
-    c_sr_sha1,
-#endif /* USE_GTK1 */
 #ifdef USE_GTK2
 	c_sr_fg, /* invisible, holds the foreground color for the row */
 	c_sr_bg, /* invisible, holds the background color for the row */
