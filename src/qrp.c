@@ -257,9 +257,9 @@ qrt_compact(struct routing_table *rt)
 	g_assert(0 == (rt->slots & 0x7));	/* Multiple of 8 */
 	g_assert(!rt->compacted);
 
-	if (dbg > 4) {
+	if (qrp_debug > 4) {
 		printf("Dumping QRT before compaction...\n");
-		token = qrt_dump(stdout, rt, dbg > 19);
+		token = qrt_dump(stdout, rt, qrp_debug > 19);
 	}
 
 	nsize = rt->slots / 8;
@@ -300,10 +300,10 @@ qrt_compact(struct routing_table *rt)
 	rt->arena = (guchar *) narena;
 	rt->compacted = TRUE;
 
-	if (dbg > 4) {
+	if (qrp_debug > 4) {
 		guint32 token2;
 		printf("Dumping QRT after compaction...\n");
-		token2 = qrt_dump(stdout, rt, dbg > 19);
+		token2 = qrt_dump(stdout, rt, qrp_debug > 19);
 
 		if (token2 != token)
 			g_warning("BUG in QRT compaction!");
@@ -508,7 +508,7 @@ qrt_step_compress(gpointer h, gpointer u, gint ticks)
 
 	chunklen = ticks * QRT_TICK_CHUNK;
 
-	if (dbg > 4)
+	if (qrp_debug > 4)
 		printf("QRP qrt_step_compress: ticks = %d => chunk = %d bytes\n",
 			ticks, chunklen);
 
@@ -524,7 +524,7 @@ qrt_step_compress(gpointer h, gpointer u, gint ticks)
 		 * Install compressed routing patch if it's smaller than the original.
 		 */
 
-		if (dbg > 2) {
+		if (qrp_debug > 2) {
 			printf("QRP patch: len=%d, compressed=%d (ratio %.2f%%)\n",
 				ctx->rp->len, zlib_deflater_outlen(ctx->zd),
 				100.0 * (ctx->rp->len - zlib_deflater_outlen(ctx->zd)) /
@@ -666,7 +666,7 @@ qrt_create(gchar *name, gchar *arena, gint slots, gint max)
 
 	rt->digest = atom_sha1_get(qrt_sha1(rt));
 
-	if (dbg > 1)
+	if (qrp_debug > 1)
 		printf("QRP \"%s\" ready: gen=%d, slots=%d, SHA1=%s\n",
 			rt->name, rt->generation, rt->slots, sha1_base32(rt->digest));
 
@@ -1194,7 +1194,7 @@ qrp_add_file(struct shared_file *sf)
 
 		g_hash_table_insert(ht_seen_words, g_strdup(word), GINT_TO_POINTER(1));
 
-		if (dbg > 8)
+		if (qrp_debug > 8)
 			printf("new QRP word \"%s\" [from %s]\n", word, sf->file_name);
 	}
 
@@ -1426,7 +1426,7 @@ qrp_step_substring(gpointer h, gpointer u, gint ticks)
 
 	dispose_ht_seen_words();
 
-	if (dbg > 1)
+	if (qrp_debug > 1)
 		printf("QRP unique subwords: %d\n", ctx->substrings);
 
 	return BGR_NEXT;		/* All done for this step */
@@ -1505,7 +1505,7 @@ qrp_step_compute(gpointer h, gpointer u, gint ticks)
 		if (table[idx] == LOCAL_INFINITY) {
 			table[idx] = 1;
 			filled++;
-			if (dbg > 7)
+			if (qrp_debug > 7)
 				printf("QRP added subword: \"%s\"\n", word);
 		}
 
@@ -1525,7 +1525,7 @@ qrp_step_compute(gpointer h, gpointer u, gint ticks)
 	conflict_ratio = ctx->substrings == 0 ? 0 :
 		(gint) (100.0 * (ctx->substrings - filled) / ctx->substrings);
 
-	if (dbg > 1)
+	if (qrp_debug > 1)
 		printf("QRP [seqno=%d] size=%d, filled=%d, hashed=%d, "
 			"ratio=%d%%, conflicts=%d%%%s\n",
 			bg_task_seqno(h), slots, filled, hashed,
@@ -1540,7 +1540,7 @@ qrp_step_compute(gpointer h, gpointer u, gint ticks)
 		bits >= MAX_TABLE_BITS ||
 		(!full && conflict_ratio < MAX_CONFLICT_RATIO)
 	) {
-		if (dbg)
+		if (qrp_debug)
 			printf("QRP final table size: %d bytes\n", slots);
 
 		gnet_prop_set_guint32_val(PROP_QRP_SLOTS, (guint32) slots);
@@ -1560,7 +1560,7 @@ qrp_step_compute(gpointer h, gpointer u, gint ticks)
 		 */
 
 		if (routing_table && qrt_eq(routing_table, table, slots)) {
-			if (dbg)
+			if (qrp_debug)
 				printf("no change in QRP table\n");
 			G_FREE_NULL(table);
 			bg_task_exit(h, 0);	/* Abort processing */
@@ -1975,7 +1975,7 @@ qrt_patch_computed(gpointer h, gpointer u, bgstatus_t status, gpointer arg)
 	g_assert(ctx == qrt_patch_ctx);
 	g_assert(ctx->rpp != NULL);
 
-	if (dbg > 2)
+	if (qrp_debug > 2)
 		printf("QRP global default patch computed (status = %d)\n", status);
 
 	qrt_patch_ctx = NULL;			/* Indicates that we're done */
@@ -2155,7 +2155,7 @@ qrp_send_reset(struct gnutella_node *n, gint slots, gint infinity)
 
 	gmsg_sendto_one(n, (gchar *) &m, sizeof(m));
 
-	if (dbg > 4)
+	if (qrp_debug > 4)
 		printf("QRP sent RESET slots=%d, infinity=%d to %s\n",
 			slots, infinity, node_ip(n));
 }
@@ -2212,7 +2212,7 @@ qrp_send_patch(struct gnutella_node *n,
 	if ((gchar *) m != qrp_tmp)
 		G_FREE_NULL(m);
 
-	if (dbg > 4)
+	if (qrp_debug > 4)
 		printf("QRP sent PATCH #%d/%d (%d bytes) to %s\n",
 			seqno, seqsize, len, node_ip(n));
 }
@@ -2356,7 +2356,7 @@ qrt_compressed(gpointer h, gpointer u, bgstatus_t status, gpointer arg)
 	 */
 
 	if (routing_patch != NULL && qup->patch->len > routing_patch->len) {
-		if (dbg)
+		if (qrp_debug)
 			g_warning("incremental query routing patch for node %s is %d "
 				"bytes, bigger than the default patch (%d bytes) -- "
 				"using latter",
@@ -2422,7 +2422,7 @@ qrt_patch_available(gpointer arg, struct routing_patch *rp)
 
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
-	if (dbg > 2)
+	if (qrp_debug > 2)
 		printf("QRP global routing patch %s (node %s)\n",
 			rp == NULL ? "computation was cancelled" : "is now available",
 			node_ip(qup->node));
@@ -2465,7 +2465,7 @@ qrt_update_create(struct gnutella_node *n, gpointer query_table)
 		g_assert(old->magic == QRP_ROUTE_MAGIC);
 
 		if (old->slots != routing_table->slots) {
-			if (dbg)
+			if (qrp_debug)
 				g_warning("old QRT for %s had %d slots, new one has %d",
 					node_ip(n), old->slots, routing_table->slots);
 			old_table = NULL;
@@ -2487,14 +2487,14 @@ qrt_update_create(struct gnutella_node *n, gpointer query_table)
 		 */
 
 		if (routing_patch != NULL) {
-			if (dbg > 2)
+			if (qrp_debug > 2)
 				printf("QRP default routing patch is already there (node %s)\n",
 					node_ip(n));
 
 			qup->patch = qrt_patch_ref(routing_patch);
 			qrt_compressed(NULL, NULL, BGS_OK, qup);
 		} else {
-			if (dbg > 2)
+			if (qrp_debug > 2)
 				printf("QRP must wait for routing patch (node %s)\n",
 					node_ip(n));
 
@@ -3093,7 +3093,7 @@ qrt_handle_reset(
 		qrcv->shrink_factor <<= 1;
 	}
 
-	if (dbg && qrcv->shrink_factor > 1)
+	if (qrp_debug && qrcv->shrink_factor > 1)
 		g_warning("QRT from %s <%s> will be shrank by a factor of %d",
 			node_ip(n), node_vendor(n), qrcv->shrink_factor);
 
@@ -3335,7 +3335,7 @@ qrt_handle_patch(
 		else
 			rt->pass_throw = 100;		/* Always forward if QRT says so */
 
-		if (dbg > 2)
+		if (qrp_debug > 2)
 			printf("QRP got whole %d-bit patch "
 				"(gen=%d, slots=%d (*%d), fill=%d%%, throw=%d) "
 				"from %s <%s>: SHA1=%s\n",
@@ -3356,7 +3356,7 @@ qrt_handle_patch(
 		if (NODE_IS_LEAF(n))
 			qrp_leaf_changed();
 
-		(void) qrt_dump(stdout, rt, dbg > 19);
+		(void) qrt_dump(stdout, rt, qrp_debug > 19);
 	}
 
 	return TRUE;
@@ -3819,7 +3819,7 @@ qrt_build_query_target(
 	g_assert(hops >= 0);
 
 	if (qhvec->count == 0) {
-		if (dbg) {
+		if (qrp_debug) {
 			if (source != NULL)
 				g_warning("QRP %s had empty hash vector",
 					gmsg_infostr(&source->header));
@@ -3953,7 +3953,7 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 	if (nodes == NULL)
 		return;
 
-	if (dbg > 4) {
+	if (qrp_debug > 4) {
 		GSList *sl;
 		gint leaves = 0;
 		gint ultras = 0;

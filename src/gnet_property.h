@@ -96,6 +96,7 @@ typedef enum {
     PROP_VMSG_DEBUG,    
     PROP_SEARCH_DEBUG,    
     PROP_UDP_DEBUG,    
+    PROP_QRP_DEBUG,    
     PROP_TRACK_PROPS,    
     PROP_STOP_HOST_GET,    
     PROP_BW_HTTP_IN_ENABLED,    

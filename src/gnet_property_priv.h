@@ -91,6 +91,7 @@ extern guint32  dq_debug;
 extern guint32  vmsg_debug;
 extern guint32  search_debug;
 extern guint32  udp_debug;
+extern guint32  qrp_debug;
 extern guint32  track_props;
 extern gboolean stop_host_get;
 extern gboolean bws_in_enabled;
