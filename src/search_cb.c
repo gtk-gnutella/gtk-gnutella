@@ -769,11 +769,11 @@ GList *search_cb_collect_ctree_data(GtkCTree *ctree, GList *node_list)
 		if (node_list->data != NULL) {
 			grc = gtk_ctree_node_get_row_data(ctree, node_list->data);
 			rc = grc->shared_record;
-			data_list = g_list_append(data_list, rc);/* FIXME append is o(n) */
+			data_list = g_list_prepend(data_list, rc);
 		}
 	}
 	
-	data_list = g_list_first(data_list);
+	data_list = g_list_reverse(data_list);
 	return data_list;
 }
 
