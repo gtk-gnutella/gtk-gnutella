@@ -1,5 +1,14 @@
 # since last version
 
+- (2002.12.24 - cbiere)
+ * 'Uploaded stats: splitted into gui and core
+ * renamed ul_* functions to upload_*' (src/Makefile.am, src/Makefile.in,
+   gnet.h, gui.h, main.c, main_gui.c, settings.c, settings_gui.c,
+   upload_stats.[ch], upload_stats_gui.[ch], uploads.c, uploads_cb.c)
+ * [Gtk2] Upload stats: Replaced GtkCList with GtkTreeView
+ * [Gtk2] About dialog: freenode.org -> freenode.net (gtk2-gnutella.glade,
+   interface-glade2.c)
+
 - (2002.12.22 - cbiere)
  * [Gtk2] Added columns for connected time and uptime (sync with Gtk1)
    (nodes_gui2.c)
