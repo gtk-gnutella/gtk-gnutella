@@ -3268,13 +3268,15 @@ void fi_purge(gnet_fi_t fih)
 	GSList *sl;
 	GSList *csl;
 	struct dl_file_info *fi = file_info_find_by_handle(fih); 
+	gboolean do_remove;
 
 	g_assert(fi != NULL);
 	g_assert(fi->hashed);
 
+	do_remove = !(fi->flags & FI_F_DISCARD) || NULL == fi->sources;
 	csl = g_slist_copy(fi->sources);	/* Clone list, orig can be modified */
 
-	for(sl = csl; sl != NULL; sl = g_slist_next(sl)) {
+	for (sl = csl; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *dl = (struct download *) sl->data;
 
 		download_abort(dl);
@@ -3283,15 +3285,17 @@ void fi_purge(gnet_fi_t fih)
 
 	g_slist_free(csl);
 
-	/*
-	 * Downloads not freed at this point, this will happen when the
-	 * download_free_removed() is asynchronously called.  However, all
-	 * references to the file info has been cleared, so we can remove it.
-	 */
+	if (do_remove) {
+		/*
+	 	* Downloads not freed at this point, this will happen when the
+	 	* download_free_removed() is asynchronously called.  However, all
+	 	* references to the file info has been cleared, so we can remove it.
+	 	*/
 
-	g_assert(fi->refcount == 0);
+		g_assert(fi->refcount == 0);
 
-	file_info_hash_remove(fi);
-	fi_free(fi);
+		file_info_hash_remove(fi);
+		fi_free(fi);
+	}
 }
 
