@@ -44,6 +44,7 @@
 #include "search.h"
 #include "guid.h"
 #include "share.h"
+#include "file.h"
 
 #include "settings.h"
 #include "nodes.h"
@@ -475,7 +476,7 @@ void file_info_store_binary(struct dl_file_info *fi)
 	 * since then we'll go directly to file_info_fd_store_binary().
 	 */
 
-	fd = open(path, O_WRONLY);
+	fd = file_open(path, O_WRONLY);
 
 	if (fd < 0) {
 		if (errno != ENOENT)
@@ -745,7 +746,7 @@ gboolean file_info_has_trailer(const gchar *path)
 	struct trailer trailer;
 	gboolean valid;
 
-	fd = open(path, O_RDONLY);
+	fd = file_open(path, O_RDONLY);
 	if (fd < 0) {
 		if (errno != ENOENT)
 			g_warning("can't open \"%s\" for reading: %s",
@@ -1045,7 +1046,7 @@ static struct dl_file_info *file_info_retrieve_binary(
 	pathname = g_strdup_printf("%s/%s", path, file);
 	g_return_val_if_fail(NULL != pathname, NULL);
 	
-	fd = open(pathname, O_RDONLY);
+	fd = file_open(pathname, O_RDONLY);
 	if (fd < 0) {
 		if (errno != ENOENT)
 			g_warning("can't open \"%s\" for reading: %s",
