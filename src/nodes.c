@@ -99,6 +99,8 @@ static guint32 ponging_nodes = 0;
 static guint32 shutdown_nodes = 0;
 static guint32 node_id = 0;
 
+static gboolean allow_gnet_connections = FALSE;
+
 const gchar *gnutella_hello = "GNUTELLA CONNECT/";
 guint32 gnutella_hello_length = 0;
 
@@ -1091,7 +1093,7 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 
 	/*
 	 * When sending a 503 (Busy) error to a node, send some hosts from
-	 * our cache list as well.  Likewise on 403 (Non-compressed).
+	 * our cache list as well.  Likewise on 403 (Non-compressed, rejected).
 	 */
 
 	rw = g_snprintf(gnet_response, sizeof(gnet_response),
@@ -1290,6 +1292,37 @@ static void node_got_bye(struct gnutella_node *n)
 	}
 
 	node_remove(n, "Got BYE %d %.*s", code, MIN(80, message_len), message);
+}
+
+/*
+ * node_set_online_mode
+ *
+ * Whether they want to be "online" within Gnutella or not.
+ */
+void node_set_online_mode(gboolean on)
+{
+	GSList *l;
+
+	if (allow_gnet_connections == on)		/* No change? */
+		return;
+
+	allow_gnet_connections = on;
+
+	if (on)
+		return;
+
+	/*
+	 * They're disallowing Gnutella connections.
+	 */
+
+	for (l = sl_nodes; l; l = l->next) {
+		struct gnutella_node *n = l->data;
+
+		if (n->status == GTA_NODE_REMOVING)
+			continue;
+
+		node_bye_if_writable(n, 202, "User going offline");
+	}
 }
 
 /*
@@ -1757,12 +1790,12 @@ static void node_process_handshake_header(
 			n->attrs |= NODE_A_CAN_INFLATE;
 			n->attrs |= NODE_A_TX_DEFLATE;	/* We accept! */
 		}
-	} else {
+	} else if (incoming) {
 		if (
-            incoming && prefer_compressed_gnet &&
+			prefer_compressed_gnet &&
 			(connected_nodes() >= up_connections) &&
-            (connected_nodes() - compressed_node_cnt > 0)
-        ) {
+			(connected_nodes() - compressed_node_cnt > 0)
+		) {
 			send_node_error(n->socket, 403,
 				"Gnet connection not compressed");
 			node_remove(n, "Connection not compressed");
@@ -1816,6 +1849,17 @@ static void node_process_handshake_header(
 	 	
 		g_assert(rw < sizeof(gnet_response));
 	} else {
+		/*
+		 * Deny cleanly if they deactivated "online mode".
+		 */
+
+		if (!allow_gnet_connections) {
+			send_node_error(n->socket, 403,
+				"Gnet connections currently disabled");
+			node_remove(n, "Gnet connections disabled");
+			return;
+		}
+
 		/*
 		 * Welcome the incoming node.
 		 */
@@ -2015,6 +2059,13 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		return;
 	}
 
+	/* 
+	 * If they wish to be temporarily off Gnet, don't initiate connections.
+	 */
+
+	if (s == NULL && !allow_gnet_connections)
+		return;
+
 	/*
 	 * Compute the protocol version from the first handshake line, if
 	 * we got a socket (meaning an inbound connection).  It is important
@@ -2049,8 +2100,9 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 			return;
 		}
 		if (
-			prefer_compressed_gnet && 
-            (connected_nodes() >= up_connections)
+			!allow_gnet_connections ||
+			prefer_compressed_gnet ||
+			connected_nodes() >= up_connections
 		)
             ponging_only = TRUE;	/* Will only send connection pongs */
 	}
@@ -2888,7 +2940,7 @@ void node_bye_all(void)
 		/*
 		 * Record the NODE_F_EOF_WAIT condition, so that when waiting for
 		 * all byes to come through, we can monitor which connections were
-		 * closed, and exit immediately we have no pending byes.
+		 * closed, and exit immediately when we have no more pending byes.
 		 *		--RAM, 17/05/2002
 		 */
 
