@@ -29,7 +29,8 @@
 #include "url.h"
 
 #define ESCAPE_CHAR		'%'
-#define TRANSPARENT(x) ((x) >= 32 && (x) < 128 && is_transparent[(x)-32])
+#define TRANSPARENT(x,m) \
+	((x) >= 32 && (x) < 128 && (is_transparent[(x)-32] & (m)))
 
 /*
  * Reserved chars: ";", "/", "?", ":", "@", "=" and "&"
@@ -37,27 +38,34 @@
  * Misc chars    : "{", "}", "|", "\", "^", "~", "[", "]" and "`"
  *
  * We let "/" pass through though: cannot be used in filenames.
+ *
+ * Bit 0 encodes regular transparent set.
+ * Bir 1 encodes regular transparent set minus '+' and '/' for query args.
  */
-static gboolean is_transparent[96] = {
+static guint8 is_transparent[96] = {
 /*  0 1 2 3 4 5 6 7 8 9 a b c d e f */	/* 0123456789abcdef -            */
-    0,1,0,0,1,0,0,1,1,1,1,1,1,1,1,1,	/*  !"#$%&'()*+,-./ -  32 -> 47  */
-    1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,	/* 0123456789:;<=>? -  48 -> 63  */
-    0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* @ABCDEFGHIJKLMNO -  64 -> 79  */
-    1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,	/* PQRSTUVWXYZ[\]^_ -  80 -> 95  */
-    0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,	/* `abcdefghijklmno -  96 -> 111 */
-    1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,	/* pqrstuvwxyz{|}~  - 112 -> 127 */
+    0,3,0,0,3,0,0,3,3,3,3,1,3,3,3,1,	/*  !"#$%&'()*+,-./ -  32 -> 47  */
+    3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,	/* 0123456789:;<=>? -  48 -> 63  */
+    0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,	/* @ABCDEFGHIJKLMNO -  64 -> 79  */
+    3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,3,	/* PQRSTUVWXYZ[\]^_ -  80 -> 95  */
+    0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,	/* `abcdefghijklmno -  96 -> 111 */
+    3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,	/* pqrstuvwxyz{|}~  - 112 -> 127 */
 };
+
+#define PATH_MASK		0x1
+#define QUERY_MASK		0x2
 
 static char *hex_alphabet = "0123456789ABCDEF";
 
 /*
- * url_escape
+ * url_escape_mask
  *
  * Escape undesirable characters using %xx, where xx is an hex code.
+ * `mask' tells us wether we're escaping an URL path or a query string.
  *
  * Returns argument if no escaping is necessary, or a new string otherwise.
  */
-guchar *url_escape(guchar *url)
+static guchar *url_escape_mask(guchar *url, guint8 mask)
 {
 	guchar *p;
 	guchar *q;
@@ -66,7 +74,7 @@ guchar *url_escape(guchar *url)
 	guchar *new;
 
 	for (p = url, c = *p++; c; c = *p++)
-		if (!TRANSPARENT(c))
+		if (!TRANSPARENT(c, mask))
 			need_escape++;
 
 	if (need_escape == 0)
@@ -75,7 +83,7 @@ guchar *url_escape(guchar *url)
 	new = g_malloc(p - url + (need_escape << 1));
 
 	for (p = url, q = new, c = *p++; c; c = *p++) {
-		if (TRANSPARENT(c))
+		if (TRANSPARENT(c, mask))
 			*q++ = c;
 		else {
 			*q++ = ESCAPE_CHAR;
@@ -89,15 +97,17 @@ guchar *url_escape(guchar *url)
 }
 
 /*
- * url_escape_into
+ * url_escape_mask_into
  *
  * Escape undesirable characters using %xx, where xx is an hex code.
  * This is done in the `target' buffer, whose size is `len'.
+ * `mask' tells us wether we're escaping an URL path or a query string.
  *
  * Returns amount of characters written into buffer (not counting trailing
  * NUL), or -1 if the buffer was too small.
  */
-gint url_escape_into(guchar *url, guchar *target, gint len)
+static gint url_escape_mask_into(
+	guchar *url, guchar *target, gint len, guint8 mask)
 {
 	guchar *p;
 	guchar *q;
@@ -105,7 +115,7 @@ gint url_escape_into(guchar *url, guchar *target, gint len)
 	guchar *end = target + len;
 
 	for (p = url, q = target, c = *p++; c && q < end; c = *p++) {
-		if (TRANSPARENT(c))
+		if (TRANSPARENT(c, mask))
 			*q++ = c;
 		else if (end - q >= 3) {
 			*q++ = ESCAPE_CHAR;
@@ -123,6 +133,42 @@ gint url_escape_into(guchar *url, guchar *target, gint len)
 	*q = '\0';
 
 	return q - target;
+}
+
+/*
+ * url_escape
+ *
+ * Escape undesirable characters using %xx, where xx is an hex code.
+ * Returns argument if no escaping is necessary, or a new string otherwise.
+ */
+guchar *url_escape(guchar *url)
+{
+	return url_escape_mask(url, PATH_MASK);
+}
+
+/*
+ * url_escape_query
+ *
+ * Same as url_escape(), but '+' and '/' are also escaped for the query string.
+ * Returns argument if no escaping is necessary, or a new string otherwise.
+ */
+guchar *url_escape_query(guchar *url)
+{
+	return url_escape_mask(url, QUERY_MASK);
+}
+
+/*
+ * url_escape_into
+ *
+ * Escape undesirable characters using %xx, where xx is an hex code.
+ * This is done in the `target' buffer, whose size is `len'.
+ *
+ * Returns amount of characters written into buffer (not counting trailing
+ * NUL), or -1 if the buffer was too small.
+ */
+gint url_escape_into(guchar *url, guchar *target, gint len)
+{
+	return url_escape_mask_into(url, target, len, PATH_MASK);
 }
 
 /*
