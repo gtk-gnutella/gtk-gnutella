@@ -1844,7 +1844,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[87].name = "show_gnet_info_qrp_stats";
-    gui_property->props[87].desc = _("Whether Query Routing Protocol statistics should be displayed. For a leaf node, this is simply the ratio of queries that generated a hit over the amount of received queries.  For an upltrapeer, it displays the amount of slots in the QRP table, 'g' the generation number, 'f' the fill ratio, 't' the passing threshold and 'e' the efficiency, i.e. the proportion of received queries that are sent to the leaf.");
+    gui_property->props[87].desc = _("Whether Query Routing Protocol statistics should be displayed. For a leaf node, this is simply the ratio of queries that generated a hit over the amount of received queries.  For an ultrapeer, it displays the amount of slots in the QRP table, 'g' the generation number, 'f' the fill ratio, 't' the passing threshold and 'e' the efficiency, i.e. the proportion of received queries that are sent to the leaf.");
     gui_property->props[87].ev_changed = event_new("show_gnet_info_qrp_stats_changed");
     gui_property->props[87].save = TRUE;
     gui_property->props[87].vector_size = 1;

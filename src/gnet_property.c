@@ -3547,7 +3547,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[160].name = "dl_mismatch_backout";
-    gnet_property->props[160].desc = _("The amount of bytes which gtk-gnutella will strip off the already downloaded bytes after a resming mismatch, in the hope that only this amount was corrupted, preventing proper resuming. Most of the times a resuming mismatch indicates bad data on the server, but if the already downloaded data is bad then backing out some of it may allow us to recover from the problem.");
+    gnet_property->props[160].desc = _("The amount of bytes which gtk-gnutella will strip off the already downloaded bytes after a resuming mismatch, in the hope that only this amount was corrupted, preventing proper resuming. Most of the time, a resuming mismatch indicates bad data on the server, but if the already downloaded data is bad then backing out some of it may allow us to recover from the problem.");
     gnet_property->props[160].ev_changed = event_new("dl_mismatch_backout_changed");
     gnet_property->props[160].save = TRUE;
     gnet_property->props[160].vector_size = 1;
@@ -3567,7 +3567,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[161].name = "server_hostname";
-    gnet_property->props[161].desc = _("The hostname of the server that can be used by downloaders to find the IP address via a DNS resolution.  If you have a dynamic IP address coupled with a dynamic DNS service, then this is valuable to downloaders: they may find your node even after a few rotation of your IP address.");
+    gnet_property->props[161].desc = _("The hostname of the server that can be used by downloaders to find the IP address via a DNS resolution.  If you have a dynamic IP address coupled with a dynamic DNS service, then this is valuable to downloaders: they may find your node even after a few rotations of your IP address.");
     gnet_property->props[161].ev_changed = event_new("server_hostname_changed");
     gnet_property->props[161].save = TRUE;
     gnet_property->props[161].vector_size = 1;
