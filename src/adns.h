@@ -32,8 +32,11 @@
 
 #include <glib.h>
 
+#define ADNS_PENDING	1
+#define ADNS_FAILED		2
+
 void adns_init(void);
-void adns_resolve(const gchar *, gpointer, gpointer);
+gboolean adns_resolve(const gchar *, gpointer, gpointer);
 void adns_close(void);
 
 #endif /* _adns_h_ */

@@ -371,8 +371,13 @@ prefork_failure:
  * be directly converted and the callback immediately invoked. If
  * the adns helper process is ``out of service'' the query will be
  * resolved synchronously.
+ *
+ * Returns TRUE if the resolution is asynchronous i.e., the callback
+ * will be called AFTER adns_resolve() returned. If the resolution is
+ * synchronous i.e., the callback was called BEFORE adns_resolve()
+ * returned, adns_resolve() returns FALSE.
  */
- void adns_resolve(
+ gboolean adns_resolve(
 	const gchar *hostname, gpointer user_callback, gpointer user_data)
 {
 	static gboolean helper_alive = TRUE;
@@ -388,14 +393,14 @@ prefork_failure:
 	reply.ip = gchar_to_ip(hostname);
 	if (0 != reply.ip) {
 		query.user_callback(reply.ip, query.user_data);
-		return;
+		return FALSE; /* synchronous */
 	}
 
 	g_strlcpy(query.hostname, hostname, sizeof(query.hostname));
 
 	if (helper_alive) {	
 		if (adns_do_write(adns_query_fd, &query, sizeof(query)))
-			return;
+			return TRUE; /* asynchronous */
 
 		helper_alive = FALSE;
 		CLOSE_IF_VALID(adns_query_fd);
@@ -407,6 +412,7 @@ prefork_failure:
 	adns_gethostbyname(cache, &query, &reply);
 	g_assert(NULL != reply.user_callback);
 	reply.user_callback(reply.ip, reply.user_data);
+	return FALSE; /* synchronous */
 }
 
 /*
