@@ -172,6 +172,7 @@ subdirs:
 	do \
 		(cd $$i ; echo $(VERB) "in $(DIR)$$i..."; \
 			$(MAKE) $(MFLAGS) $(FLAGS) $(TARGET)); \
+		test "$$?" = 0 || exit 1; \
 	done
 
 sub_install::
