@@ -8,6 +8,12 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include "config.h"
+
+#ifdef HAVE_SENDFILE_H
+#include <sys/sendfile.h>
+#endif
+
 #include "bsched.h"
 #include "appconfig.h"
 
@@ -482,6 +488,58 @@ gint bio_write(bio_source_t *bio, gpointer data, gint len)
 	}
 
 	return r;
+}
+
+/*
+ * bio_sendfile
+ *
+ * Write at most `len' bytes to source's fd, as bandwidth permits.
+ * Bytes are read from `offset' in the in_fd file descriptor, and the value
+ * is updated in place by the kernel.
+ *
+ * If we cannot write anything due to bandwidth constraints, return -1 with
+ * errno set to EAGAIN.
+ */
+gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
+{
+#ifndef HAVE_SENDFILE_H
+	g_error("missing sendfile(2), should not have been called");
+#else
+	gint available;
+	gint amount;
+	gint r;
+
+	g_assert(bio);
+	g_assert(bio->flags & BIO_F_WRITE);
+
+	/* 
+	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN 
+	 * to signal that we cannot perform any I/O right now.
+	 */
+
+	available = bw_available(bio, len);
+
+	if (available == 0) {
+		errno = EAGAIN;
+		return -1;
+	}
+
+	amount = len > available ? available : len;
+
+	if (dbg > 7)
+		printf("bsched_write(fd=%d, len=%d) available=%d\n",
+			bio->fd, len, available);
+
+	bio->flags |= BIO_F_ACTIVE;
+	r = sendfile(bio->fd, in_fd, offset, amount);
+
+	if (r > 0) {
+		bsched_bw_update(bio->bs, r);
+		bio->bw_actual += r;
+	}
+
+	return r;
+#endif	/* HAVE_SENDFILE_H */
 }
 
 /*

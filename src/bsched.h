@@ -8,6 +8,7 @@
 #define __bsched_h__
 
 #include <sys/time.h>		/* For struct timeval */
+#include <sys/types.h>		/* For off_t */
 #include <gdk/gdk.h>
 
 /*
@@ -118,6 +119,7 @@ bio_source_t *bsched_source_add(bsched_t *bs, int fd, guint32 flags,
 	GdkInputFunction callback, gpointer arg);
 void bsched_source_remove(bio_source_t *bio);
 gint bio_write(bio_source_t *bio, gpointer data, gint len);
+gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len);
 gint bio_read(bio_source_t *bio, gpointer data, gint len);
 gint bws_write(bsched_t *bs, gint fd, gpointer data, gint len);
 gint bws_read(bsched_t *bs, gint fd, gpointer data, gint len);
