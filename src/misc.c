@@ -292,11 +292,11 @@ gboolean ip_is_valid(guint32 ip)
  */
 gint str_chomp(gchar *str, gint len)
 {
-	if (len == 0)
+	if (len == 0) {
 		len = strlen(str);
-
-	if (len == 0)
-		return 0;
+		if (len == 0)
+			return 0;
+	}
 
 	if (len >= 2 && str[len-2] == '\r' && str[len-1] == '\n') {
 		str[len-2] = '\0';
@@ -866,18 +866,19 @@ gchar *date_to_rfc1123_gchar(time_t date)
  * next_pow2
  *
  * Returns the closest power of two greater or equal to `n'.
+ * next_pow2(0) and next_pow2(0x8.......) return 0.
  */
 guint32 next_pow2(guint32 n)
 {
-	guint p = 0;
-	guint32 r = n;
+	n--;
 
-	while (r >>= 1)			/* Will find largest bit set */
-		p++;
+	n |= n >> 16;
+	n |= n >> 8;
+	n |= n >> 4;
+	n |= n >> 2;
+	n |= n >> 1;
 
-	r = 1 << p;
-	
-	return r == n ? n : r << 1;
+	return n + 1;
 }
 
 /*
