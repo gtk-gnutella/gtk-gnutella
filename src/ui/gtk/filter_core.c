@@ -524,8 +524,7 @@ filter_new_text_rule(const gchar *match, gint type,
 			l = g_list_prepend(l, pattern_compile(s));
 
 		r->u.text.u.words = g_list_reverse(l);
-	} else
-    if (r->u.text.type == RULE_TEXT_REGEXP) {
+	} else if (r->u.text.type == RULE_TEXT_REGEXP) {
 		int err;
 		regex_t *re;
 
