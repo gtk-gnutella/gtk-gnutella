@@ -1084,8 +1084,12 @@ static void set_host_progress(const gchar *w, guint32 cur, guint32 max)
 	if (frac != 0)
     	frac = frac * 100 / max;
 
-	gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u host(s) (%u%%)"),
-        cur, max, frac);
+	if (max == 1)
+		gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u host (%u%%)"),
+			cur, max, frac);
+	else
+		gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u hosts (%u%%)"),
+			cur, max, frac);
 
     gtk_progress_bar_set_text(pg, set_tmp);
     gtk_progress_bar_set_fraction(pg, frac / 100.0);
@@ -2035,15 +2039,18 @@ static gboolean dl_running_count_changed(property_t prop)
 	guint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
-    if (val == 0) {
+    if (val == 0)
         gtk_label_printf(
             GTK_LABEL(lookup_widget(main_window, "label_dl_running_count")),
             _("no sources"));
-    } else {
+    else if (val == 1)
         gtk_label_printf(
             GTK_LABEL(lookup_widget(main_window, "label_dl_running_count")),
-            _("%u source(s)"), val);
-    }
+            _("1 source"));
+	else
+        gtk_label_printf(
+            GTK_LABEL(lookup_widget(main_window, "label_dl_running_count")),
+            _("%u sources"), val);
 
 	downloads_count_changed(prop);
 
@@ -2198,9 +2205,12 @@ static gboolean gnet_connections_changed(property_t prop)
     case NODE_P_NORMAL: /* normal */
         nodes = (peermode == NODE_P_NORMAL) ? 
             max_connections : max_ultrapeers;
-        gm_snprintf(set_tmp, sizeof(set_tmp), 
-            _("%u/%u connection(s)"),
-            cnodes, nodes);
+		if (nodes == 1)
+			gm_snprintf(set_tmp, sizeof(set_tmp), 
+				_("%u/%u connection"), cnodes, nodes);
+		else
+			gm_snprintf(set_tmp, sizeof(set_tmp), 
+				_("%u/%u connections"), cnodes, nodes);
         break;
     case NODE_P_ULTRA: /* ultra */
         nodes = max_connections + max_leaves + max_normal;
@@ -2233,8 +2243,12 @@ static gboolean uploads_count_changed(property_t prop)
 
     gnet_prop_get_guint32_val(PROP_UL_REGISTERED, &registered);
     gnet_prop_get_guint32_val(PROP_UL_RUNNING, &running);
-	gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u upload(s)"),
-		running, registered);
+	if (registered == 1)
+		gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u upload"),
+			running, registered);
+	else
+		gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u uploads"),
+			running, registered);
 
 	min = MIN(running, registered);
     frac = min != 0 ? (gfloat) min / registered : 0;
@@ -2255,8 +2269,12 @@ static gboolean downloads_count_changed(property_t prop)
 
     gnet_prop_get_guint32_val(PROP_DL_ACTIVE_COUNT, &active);
     gnet_prop_get_guint32_val(PROP_DL_RUNNING_COUNT, &running);
-    gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u download(s)"),
-        active, running);
+	if (running == 1)
+		gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u download"),
+			active, running);
+	else
+		gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u downloads"),
+			active, running);
 
     min = MIN(active, running);
     frac = min != 0 ? (gfloat) min / running : 0;
