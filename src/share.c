@@ -36,10 +36,12 @@
 #include <string.h>
 #include <ctype.h>		/* toupper() */
 
+/* FIXME: remove this dependency */
+#include "gui.h"		/* gui_update_files_scanned() */
+
 #include "share.h"
 #include "gmsg.h"
 #include "huge.h"
-#include "gtk-missing.h" // FIXME: remove this dependency
 #include "qrp.h"
 #include "extensions.h"
 #include "nodes.h"
@@ -634,9 +636,9 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 			 */
 
 			if (
-				0 == g_strcasecmp("--all--", e->str) ||		/* All files */
+				0 == g_ascii_strcasecmp("--all--", e->str) ||	/* All files */
 				(start >= name && *start == '.' &&
-					0 == g_strcasecmp(start+1, e->str))
+					0 == g_ascii_strcasecmp(start+1, e->str))
 			) {
 				if (stat(full, &file_stat) == -1) {
 					g_warning("can't stat %s: %s", full, g_strerror(errno));
@@ -831,7 +833,7 @@ void share_scan(void)
 
 void share_close(void)
 {
-	g_free(found_data.d);
+	G_FREE_NULL(found_data.d);
 	free_extensions();
 	share_free();
 	shared_dirs_free();
