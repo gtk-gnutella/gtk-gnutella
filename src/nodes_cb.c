@@ -123,11 +123,14 @@ gboolean on_clist_nodes_button_press_event
 
 static void remove_selected_nodes(void)
 {
-    GList *node_list = NULL;
-    
-    node_list = clist_collect_data(main_window, "clist_nodes", FALSE, FALSE);
+    GSList *node_list = NULL;
+    GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
+
+    g_assert(clist != NULL);
+
+    node_list = clist_collect_data(clist, FALSE, g_direct_equal);
     node_remove_nodes_by_handle(node_list);
-    g_list_free(node_list);
+    g_slist_free(node_list);
 }
 
 static void add_node(void)

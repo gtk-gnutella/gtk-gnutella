@@ -248,23 +248,17 @@ void gtk_mass_widget_set_sensitive
  *
  * Fetch data from the selection of a clist. Returns a GList containing
  * the user_data pointers from the selected rows. If allow_null is TRUE,
- * the returned list may contain NULL pointers, if allow_dup is TRUE,
- * the list may contain duplicate pointers. Setting allow_dup to FALSE
- * will significantly increase runtime.
+ * the returned list may contain NULL pointers. If cfn != NULL, it will
+ * be used to determine wether two entries are equal and drop all duplicate
+ * items from the result list. Using cfn will significantly increase runtime.
  */
-GList *clist_collect_data(
-    GtkWidget *toplevel, const gchar *list_widget,
-    gboolean allow_null, gboolean allow_dup)
+GSList *clist_collect_data(GtkCList *clist, gboolean allow_null, 
+    GCompareFunc cfn)
 {
-    GList *result_list = NULL;
+    GSList *result_list = NULL;
     GList *l;
-    GList *to_unselect = NULL;
-    GtkCList *clist;
-
-    g_assert(toplevel != NULL);
-    g_assert(list_widget != NULL);
-
-    clist = GTK_CLIST(lookup_widget(toplevel, list_widget));
+    GSList *sl;
+    GSList *to_unselect = NULL;
 
     g_assert(clist != NULL);
     
@@ -279,23 +273,33 @@ GList *clist_collect_data(
         data = gtk_clist_get_row_data(clist, row);
  
         if ((data != NULL) || allow_null) {
-            if (!allow_dup) {
-                if ( g_list_find(result_list, data) != NULL) {
-                    g_warning("%s has duplicate data: %p", list_widget, data);
+            if (cfn != NULL) {
+                if (g_slist_find_custom(result_list, data, cfn) != NULL) {
+                    gchar *name = gtk_widget_get_name(GTK_WIDGET(clist));
+                    if (gui_debug >= 3)
+                        printf("%s has duplicate data: %p\n",
+                            (name != NULL) ? name : "<UNKNOWN>", data);
+                    to_unselect = g_slist_prepend(to_unselect, (gpointer) row);
                     continue;
                 }
             }
-            result_list = g_list_append(result_list, data);
-            to_unselect = g_list_append(to_unselect, (gpointer) row);
-        } else 
-            g_warning("%s contains NULL data in row %d", list_widget, row);
+            result_list = g_slist_prepend(result_list, data);
+            to_unselect = g_slist_prepend(to_unselect, (gpointer) row);
+        } else {
+            gchar *name = gtk_widget_get_name(GTK_WIDGET(clist));
+            if (gui_debug >= 3)
+                printf("%s contains NULL data in row %d\n",
+                    (name != NULL) ? name : "<UNKNOWN>", row);
+        }
     }
 
     /*
      * Unselect the rows from which data has been sucessfully gathered.
      */
-    for (l = to_unselect; l != NULL; l = g_list_next(l))
-        gtk_clist_unselect_row(clist, (gint) l->data, 0);
+    for (sl = to_unselect; sl != NULL; sl = g_slist_next(sl))
+        gtk_clist_unselect_row(clist, (gint) sl->data, 0);
+
+    g_slist_free(to_unselect);
 
     return result_list;
 }

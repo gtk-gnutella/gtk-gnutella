@@ -15,7 +15,7 @@
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
- *g
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
@@ -50,7 +50,8 @@ GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb);
 void gtk_entry_printf(GtkEntry *entry, const gchar * format, ...);
 void gtk_label_printf(GtkLabel *label, const gchar * format, ...);
 void gtk_mass_widget_set_sensitive(GtkWidget *tl, gchar *list[], gboolean b);
-GList *clist_collect_data(GtkWidget *toplevel, const gchar *list_widget, gboolean allow_null, gboolean allow_dup);
+GSList *clist_collect_data(GtkCList *clist, gboolean allow_null, 
+    GCompareFunc cfn);
 gdouble _gtk_spin_button_get_value(GtkSpinButton *);
 
 #endif	/* __gtk_missing_h__ */
