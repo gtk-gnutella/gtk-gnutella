@@ -1166,10 +1166,10 @@ http_range_contains(GSList *ranges, guint32 from, guint32 to)
 }
 
 /**
- * Returns an allocated copy of the given HTTP range.
+ * Returns a new copy of the given HTTP range.
  */
 static http_range_t *
-http_range_copy(http_range_t *range)
+http_range_clone(http_range_t *range)
 {
 	http_range_t *r;
 
@@ -1213,7 +1213,7 @@ http_range_merge(GSList *old_list, GSList *new_list)
 				&& new_range->end == old_range->end) {
 				highest = old_range->end;
 				result_list = 
-					g_slist_append(result_list, http_range_copy(old_range));
+					g_slist_append(result_list, http_range_clone(old_range));
 				old = g_slist_next(old);
 				new = g_slist_next(new);
 				continue;
@@ -1242,14 +1242,14 @@ http_range_merge(GSList *old_list, GSList *new_list)
 			if (new_range->end < old_range->start) {
 				highest = new_range->end;
 				result_list = 
-					g_slist_append(result_list, http_range_copy(new_range));
+					g_slist_append(result_list, http_range_clone(new_range));
 				new = g_slist_next(new);
 				continue;
 			}
 			if (old_range->end < new_range->start) {
 				highest = new_range->end;
 				result_list = 
-					g_slist_append(result_list, http_range_copy(old_range));
+					g_slist_append(result_list, http_range_clone(old_range));
 
 				old = g_slist_next(old);
 				continue;
@@ -1300,13 +1300,13 @@ http_range_merge(GSList *old_list, GSList *new_list)
 			if (old) {
 				old_range = (http_range_t *) old->data;
 				result_list = 
-					g_slist_append(result_list, http_range_copy(old_range));
+					g_slist_append(result_list, http_range_clone(old_range));
 				old = g_slist_next(old);
 			}
 			if (new) {
 				new_range = (http_range_t *) new->data;
 				result_list = 
-					g_slist_append(result_list, http_range_copy(new_range));
+					g_slist_append(result_list, http_range_clone(new_range));
 				new = g_slist_next(new);
 			}
 		}
