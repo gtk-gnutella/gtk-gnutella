@@ -1977,7 +1977,8 @@ void parq_upload_timer(time_t now)
 			parq_ul->flags &= ~PARQ_UL_QUEUE;
 		} while (
 			registered_uploads < MAX_UPLOADS && 
-			(queue_cmd_list = g_list_next(queue_cmd_list)) != NULL
+			(queue_cmd_list = g_list_next(queue_cmd_list)) != NULL &&
+			bws_can_connect(SOCK_TYPE_UPLOAD)
 		);
 		
 		while (g_list_first(queue_cmd_remove) != NULL) {
