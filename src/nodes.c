@@ -2460,11 +2460,6 @@ static void node_is_now_connected(struct gnutella_node *n)
 		}
 	}
 
-	/* Initialize connection's HSEP data and send first HSEP message. */
-
-	if (n->attrs & NODE_A_CAN_HSEP)
-		hsep_connection_init(n);
-
 	/*
 	 * If we're an Ultranode, we're going to monitor the queries sent by
 	 * our leaves and by our neighbours.
@@ -3737,8 +3732,11 @@ static void node_process_handshake_header(
 		
  		header_get_feature("hsep", head, &major, &minor);
  
- 		if (major == HSEP_VERSION_MAJOR && minor == HSEP_VERSION_MINOR)
+ 		if (major == HSEP_VERSION_MAJOR && minor == HSEP_VERSION_MINOR) {
 			n->attrs |= NODE_A_CAN_HSEP;
+			hsep_connection_init(n);
+			/* first HSEP message will be sent on next hsep_timer() call */
+		}
 	}
 	
 	/*

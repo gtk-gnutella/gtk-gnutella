@@ -157,8 +157,7 @@ void hsep_reset()
 /*
  * hsep_connection_init
  *
- * Initializes the connection's HSEP data to zero and sends the first HSEP
- * message to the node. Node must support HSEP.
+ * Initializes the connection's HSEP data.
  */
  
 void hsep_connection_init(struct gnutella_node *n)
@@ -185,8 +184,6 @@ void hsep_connection_init(struct gnutella_node *n)
 	n->hsep_msgs_sent = 0;
 	n->hsep_triples_sent = 0;
 	n->hsep_last_sent = 0;
-
-	hsep_send_msg(n);
 }
 
 /*
@@ -294,14 +291,24 @@ void hsep_process_msg(struct gnutella_node *n)
 	messaget = (guint64 *) n->data;
 	connectiont = (guint64 *) &n->hsep_table[1];
 	
-	if (length == 0)  /* error, at least 1 triple must be present */
+	if (length == 0) {   /* error, at least 1 triple must be present */
+		printf("HSEP: Node %p sent empty message\n", n);
 		return;
+	}
 
-	if (length % 24)  /* error, # of triples not an integer */
+	if (length % 24) {   /* error, # of triples not an integer */
+		printf("HSEP: Node %p sent broken message\n", n);
 		return;
+	}
 
 	/* get N_MAX of peer servent (other_n_max) */
 	msgmax = length / 24;
+
+	if (NODE_IS_LEAF(n) && msgmax > 1) {
+		printf("HSEP: Node %p is a leaf, but sent %u triples instead of 1\n",
+			n, msgmax);
+		return;
+	}
 
 	/* truncate if peer servent sent more triples than we need */
 	if (msgmax > HSEP_N_MAX)
@@ -328,11 +335,15 @@ void hsep_process_msg(struct gnutella_node *n)
 
 	/* sanity check */
 
-	if (*messaget != 1)  /* number of nodes for 1 hop must be 1 */
+	if (*messaget != 1) {   /* number of nodes for 1 hop must be 1 */
+		printf("HSEP: Node %p's message's #nodes for 1 hop is not 1", n);
 		return;
+	}
 
-	if (!hsep_check_monotony((hsep_triple *) messaget, max))
+	if (!hsep_check_monotony((hsep_triple *) messaget, max)) {
+		printf("HSEP: Node %p's message's monotony check failed", n);
 		return;
+	}
 
 	printf("HSEP: Received %d %s from node %p (msg #%u): ", max,
 	    max == 1 ? "triple" : "triples", n, n->hsep_msgs_received + 1);
