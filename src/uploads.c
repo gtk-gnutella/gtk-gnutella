@@ -232,6 +232,7 @@ static void send_upload_error(struct upload *u, int code, guchar *msg, ...)
 	rw = g_snprintf(http_response, sizeof(http_response),
 		"HTTP/1.0 %d %s\r\n"
 		"Server: %s\r\n"
+		"Connection: close\r\n"
 		"X-Live-Since: %s\r\n"
 		"\r\n",
 		code, reason, version_string, start_rfc822_date);
@@ -862,6 +863,7 @@ static void upload_request(struct upload *u, header_t *header)
 			rw = g_snprintf(http_response, sizeof(http_response),
 				"HTTP/1.0 206 Partial Content\r\n"
 				"Server: %s\r\n"
+				"Connection: close\r\n"
 				"X-Live-Since: %s\r\n"
 				"Content-type: application/binary\r\n"
 				"Content-length: %i\r\n"
@@ -873,6 +875,7 @@ static void upload_request(struct upload *u, header_t *header)
 			rw = g_snprintf(http_response, sizeof(http_response),
 				"HTTP/1.0 200 OK\r\n"
 				"Server: %s\r\n"
+				"Connection: close\r\n"
 				"X-Live-Since: %s\r\n"
 				"Content-type: application/binary\r\n"
 				"Content-length: %i\r\n\r\n",
