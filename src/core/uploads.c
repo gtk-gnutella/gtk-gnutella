@@ -3177,6 +3177,7 @@ void upload_close(void)
 		upload_free_resources(u);
 		wfree(u, sizeof(*u));
 	}
+	g_slist_free(to_remove);
 
     idtable_destroy(upload_handle_map);
     upload_handle_map = NULL;
