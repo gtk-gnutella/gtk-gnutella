@@ -50,6 +50,8 @@ enum {
 	HSEP_IDX_KIB = 2
 };
 
+typedef void (*hsep_global_listener_t) (hsep_triple *table, guint32 triples);
+
 void hsep_init(void);
 void hsep_reset(void);
 void hsep_close(void);
@@ -61,6 +63,10 @@ void hsep_dump_table(void);
 void hsep_timer(void);
 void hsep_notify_shared(guint64 ownfiles, guint64 ownkibibytes);
 void hsep_sanity_check(void);
+void hsep_fire_global_table_changed(void);
+void hsep_add_global_table_listener(GCallback cb, frequency_t type,
+	guint32 interval);
+void hsep_remove_global_table_listener(GCallback cb);
 gboolean hsep_check_monotony(hsep_triple *table, unsigned int triples);
 unsigned int hsep_triples_to_send(const hsep_triple *table,
 	unsigned int triples);
@@ -68,5 +74,6 @@ unsigned int hsep_get_global_table(hsep_triple *buffer,
 	unsigned int maxtriples);
 unsigned int hsep_get_connection_table(struct gnutella_node *n,
 	hsep_triple *buffer, unsigned int maxtriples);
-
 #endif
+
+/* vi: set ts=4: */

@@ -35,17 +35,23 @@
  *   connection is closed
  * - hsep_timer() should be called frequently to send out
  *   HSEP messages to HSEP-capable nodes as required
- * - hsep_notify_shared(files,kibibytes) should be called whenever the 
+ * - hsep_notify_shared(files, kibibytes) should be called whenever the
  *   number of shared files and/or kibibytes has changed
  * - hsep_process_msg(node) should be called whenever a HSEP message
  *   is received from a HSEP-capable node
  * - hsep_reset() can be used to reset all HSEP data (not for normal use)
- * - hsep_get_global_table(dest,triples) can be used to get the global
+ * - hsep_get_global_table(dest, triples) can be used to get the global
  *   HSEP table
- * - hsep_get_connection_table(conn,dest,triples) can be used to get a
+ * - hsep_get_connection_table(conn, dest, triples) can be used to get a
  *   per-connection HSEP table
+ * - hsep_add_global_table_listener(cb, freqtype, interval) can be used to
+ *   add a listener that is informed whenever the global HSEP table changes.
+ * - hsep_remove_global_table_listener(cb) can be used to remove an added
+ *   listener for global HSEP table changes.
  *
- * To display horizon size information, use the global HSEP table or the
+ * Obtaining horizon size information on demand:
+ *
+ * To obtain horizon size information, use the global HSEP table or the
  * per-connection HSEP table, obtained using hsep_get_global_table(...) or
  * hsep_get_connection_table (...), respectively (never access the internal
  * arrays directly). The usable array indexes are between 1 (for 1 hop) and
@@ -55,6 +61,15 @@
  * resources *within* the number of hops, not at *exactly* the number of hops.
  * To get the values for exactly the number of hops, simply subtract the
  * preceeding triple from the desired triple.
+ *
+ * Obtaining horizon size information using event-driven callbacks (only
+ * for the global HSEP table):
+ *
+ * You can register a callback function for being informed whenever the
+ * global HSEP table changes by calling hsep_add_global_table_listener(...).
+ * On change of the global HSEP table the callback will be called with a pointer
+ * to a copy of the HSEP table and the number of provided triples. You must
+ * remove thae listener later using hsep_remove_global_table_listener(...).
  */
 
 #include "common.h"
@@ -87,6 +102,8 @@ static hsep_triple hsep_global_table[HSEP_N_MAX+1];
 
 static hsep_triple hsep_own = {1, 0, 0};
 
+static event_t *hsep_global_table_changed_event;
+
 /*
  * hsep_init
  *
@@ -95,15 +112,59 @@ static hsep_triple hsep_own = {1, 0, 0};
 
 void hsep_init(void)
 {
-	header_features_add(&xfeatures.connections, 
+	header_features_add(&xfeatures.connections,
 		"HSEP", HSEP_VERSION_MAJOR, HSEP_VERSION_MINOR);
 
 	memset(hsep_global_table, 0, sizeof(hsep_global_table));
+
+	hsep_global_table_changed_event =
+	    event_new("hsep_global_table_changed");
+
+	/*
+	 * No need to fire up an initial change event here - we can't be
+	 * having any listeners yet. Listeners are triggered at
+	 * registration time anyway.
+	 */
+}
+
+/*
+ * hsep_add_global_table_listener
+ *
+ * Adds the specified listener to the list of subscribers for
+ * global HSEP table change events. The specified callback is
+ * called once immediately, independent of the given frequency type
+ * and time interval. This function must be called after hsep_init()
+ * has been called.
+ */
+
+void hsep_add_global_table_listener(GCallback cb, frequency_t t,
+                                    guint32 interval)
+{
+	hsep_triple table[HSEP_N_MAX + 1];
+
+	/* add callback to the event subscriber list */
+	event_add_subscriber(hsep_global_table_changed_event, cb, t, interval);
+
+	/*
+	 * Fire up the first event to the specified callback. We do it
+	 * manually, because we don't want to fire all listeners, but
+	 * just the newly added one, and we want it independent of the
+	 * given callback call constraints.
+	 */
+
+	hsep_get_global_table(table, G_N_ELEMENTS(table));
+
+	(*((hsep_global_listener_t)cb))(table, G_N_ELEMENTS(table));
+}
+
+void hsep_remove_global_table_listener(GCallback cb)
+{
+	event_remove_subscriber(hsep_global_table_changed_event, cb);
 }
 
 /*
  * hsep_reset
- * 
+ *
  * Resets all HSEP data. The global HSEP table and all connections'
  * HSEP tables are reset to zero. The number of own shared files and
  * kibibytes is untouched. This can be used to watch how quickly
@@ -144,6 +205,7 @@ void hsep_reset(void)
 		 * to all HSEP connections the next time it is called.
 		 */
 	}
+	hsep_fire_global_table_changed();
 }
 
 /*
@@ -151,7 +213,7 @@ void hsep_reset(void)
  *
  * Initializes the connection's HSEP data.
  */
- 
+
 void hsep_connection_init(struct gnutella_node *n)
 {
 	int i;
@@ -183,6 +245,8 @@ void hsep_connection_init(struct gnutella_node *n)
 	n->hsep_last_sent = 0;
 
 	hsep_sanity_check();
+
+	hsep_fire_global_table_changed();
 }
 
 /*
@@ -269,6 +333,8 @@ void hsep_connection_close(struct gnutella_node *n)
 
 	if (dbg > 1)
 		hsep_dump_table();
+
+	hsep_fire_global_table_changed();
 }
 
 /*
@@ -412,6 +478,8 @@ void hsep_process_msg(struct gnutella_node *n)
 
 	if (dbg > 1)
 		hsep_dump_table();
+
+	hsep_fire_global_table_changed();
 }
 
 /*
@@ -492,7 +560,7 @@ void hsep_send_msg(struct gnutella_node *n)
 		goto charge_timer;
 	}
 	
-	/*  
+	/*
 	 * Note that on big endian architectures the message data is now in
 	 * the wrong byte order. Nevertheless, we can use hsep_triples_to_send()
 	 * with that data.
@@ -631,7 +699,7 @@ void hsep_sanity_check(void)
 
 		sumt = (guint64 *) sum;
 		connectiont = (guint64 *) n->hsep_table;
- 
+
 		g_assert(connectiont[HSEP_IDX_NODES] == 0);      /* check nodes */
 		g_assert(connectiont[HSEP_IDX_FILES] == 0);      /* check files */
 		g_assert(connectiont[HSEP_IDX_KIB] == 0);        /* check KiB */
@@ -723,8 +791,8 @@ gboolean hsep_check_monotony(hsep_triple *table, unsigned int triples)
 	/* if any triple is not >= the previous one, error will be TRUE */
 
 	while (!error && --triples)
-		error |= (*curr++ < *prev++) || 
-				  (*curr++ < *prev++) || 
+		error |= (*curr++ < *prev++) ||
+				  (*curr++ < *prev++) ||
 				  (*curr++ < *prev++);
 
 	return FALSE == error;
@@ -842,9 +910,34 @@ unsigned int hsep_get_connection_table(struct gnutella_node *n,
 /*
  * hsep_close
  *
- * Used to shutdown HSEP. Currently does nothing.
+ * Used to shutdown HSEP.
  */
 
 void hsep_close(void)
 {
+	event_destroy(hsep_global_table_changed_event);
 }
+
+/*
+ * hsep_fire_global_table_changed
+ *
+ * Fires a change event for the global HSEP table.
+ */
+
+void hsep_fire_global_table_changed(void)
+{
+	hsep_triple table[HSEP_N_MAX + 1];
+
+	/*
+	 * Make a copy of the global HSEP table and give that
+	 * copy and the number of included triples to the
+	 * listeners.
+	 */
+
+	hsep_get_global_table(table, G_N_ELEMENTS(table));
+
+	event_trigger(hsep_global_table_changed_event,
+	    T_NORMAL(hsep_global_listener_t, table, G_N_ELEMENTS(table)));
+}
+
+/* vi: set ts=4: */
