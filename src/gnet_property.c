@@ -3968,7 +3968,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[182].data.guint32.def   = &node_queries_half_life_def;
     gnet_property->props[182].data.guint32.value = &node_queries_half_life;
     gnet_property->props[182].data.guint32.choices = NULL;
-    gnet_property->props[182].data.guint32.max   = 15;
+    gnet_property->props[182].data.guint32.max   = 10;
     gnet_property->props[182].data.guint32.min   = 1;
 
 
