@@ -49,6 +49,7 @@ static gboolean  last_shown_valid = FALSE;
 static GtkTreeView *treeview_fileinfo = NULL;
 static GtkTreeView *treeview_fi_aliases = NULL;
 static GtkEntry *entry_fi_filename = NULL;
+static GtkLabel *label_fi_sha1 = NULL;
 static GtkLabel *label_fi_size = NULL;
 
 static GtkTreeStore *store_fileinfo = NULL;
@@ -117,6 +118,9 @@ fi_gui_set_details(gnet_fi_t fih)
 	gm_snprintf(bytes, sizeof bytes, "%" PRIu64, (guint64) fis.size);
     gtk_label_printf(label_fi_size, _("%s (%s bytes)"),
 		short_size(fis.size), bytes);
+    gtk_label_printf(label_fi_sha1, "%s%s",
+		fi->sha1 ? "urn:sha1:" : _("<none>"),
+		fi->sha1 ? sha1_base32(fi->sha1) : "");
 
     gtk_tree_store_clear(store_aliases);
 	for (i = 0; NULL != aliases[i]; i++) {
@@ -464,6 +468,8 @@ fi_gui_init(void)
 		"treeview_fileinfo"));
 	entry_fi_filename = GTK_ENTRY(lookup_widget(main_window,
 		"entry_fi_filename"));
+	label_fi_sha1 = GTK_LABEL(lookup_widget(main_window,
+		"label_fi_sha1"));
 	label_fi_size = GTK_LABEL(lookup_widget(main_window,
 		"label_fi_size"));
 

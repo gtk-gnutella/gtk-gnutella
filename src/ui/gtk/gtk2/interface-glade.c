@@ -4003,13 +4003,16 @@ create_main_window_downloads_tab (void)
   GtkWidget *table67;
   GtkWidget *viewport68;
   GtkWidget *entry_fi_filename;
-  GtkWidget *label837;
   GtkWidget *label677;
-  GtkWidget *label678;
+  GtkWidget *label837;
   GtkWidget *frame105;
   GtkWidget *drawingarea_fi_progress;
+  GtkWidget *label678;
   GtkWidget *frame106;
   GtkWidget *label_fi_size;
+  GtkWidget *label901;
+  GtkWidget *frame128;
+  GtkWidget *label_fi_sha1;
   GtkWidget *frame108;
   GtkWidget *scrolledwindow72;
   GtkWidget *treeview_fi_aliases;
@@ -4481,6 +4484,7 @@ create_main_window_downloads_tab (void)
   gtk_widget_set_name (frame82, "frame82");
   gtk_widget_show (frame82);
   gtk_container_add (GTK_CONTAINER (viewport105), frame82);
+  gtk_container_set_border_width (GTK_CONTAINER (frame82), 2);
 
   vbox106 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox106, "vbox106");
@@ -4488,7 +4492,7 @@ create_main_window_downloads_tab (void)
   gtk_container_add (GTK_CONTAINER (frame82), vbox106);
   gtk_container_set_border_width (GTK_CONTAINER (vbox106), 2);
 
-  table67 = gtk_table_new (3, 2, FALSE);
+  table67 = gtk_table_new (4, 2, FALSE);
   gtk_widget_set_name (table67, "table67");
   gtk_widget_show (table67);
   gtk_box_pack_start (GTK_BOX (vbox106), table67, FALSE, TRUE, 0);
@@ -4511,14 +4515,6 @@ create_main_window_downloads_tab (void)
   gtk_editable_set_editable (GTK_EDITABLE (entry_fi_filename), FALSE);
   gtk_entry_set_has_frame (GTK_ENTRY (entry_fi_filename), FALSE);
 
-  label837 = gtk_label_new (_("Progress:"));
-  gtk_widget_set_name (label837, "label837");
-  gtk_widget_show (label837);
-  gtk_table_attach (GTK_TABLE (table67), label837, 0, 1, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label837), 0, 0.5);
-
   label677 = gtk_label_new (_("Filename:"));
   gtk_widget_set_name (label677, "label677");
   gtk_widget_show (label677);
@@ -4527,18 +4523,18 @@ create_main_window_downloads_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label677), 0, 0.5);
 
-  label678 = gtk_label_new (_("Size:"));
-  gtk_widget_set_name (label678, "label678");
-  gtk_widget_show (label678);
-  gtk_table_attach (GTK_TABLE (table67), label678, 0, 1, 1, 2,
+  label837 = gtk_label_new (_("Progress:"));
+  gtk_widget_set_name (label837, "label837");
+  gtk_widget_show (label837);
+  gtk_table_attach (GTK_TABLE (table67), label837, 0, 1, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label678), 0, 0.5);
+  gtk_misc_set_alignment (GTK_MISC (label837), 0, 0.5);
 
   frame105 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame105, "frame105");
   gtk_widget_show (frame105);
-  gtk_table_attach (GTK_TABLE (table67), frame105, 1, 2, 2, 3,
+  gtk_table_attach (GTK_TABLE (table67), frame105, 1, 2, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
 
@@ -4550,10 +4546,18 @@ create_main_window_downloads_tab (void)
   gtk_tooltips_set_tip (tooltips, drawingarea_fi_progress, _("Shows visual information on the download progress. Green chunks have been downloaded, with the brighter green chunks touched during this session. Yellow chunks are active right now; these active chunks are also marked with a triangle. Red chunks have not been downloaded yet. The blue line indicates which parts of the file have been seen on the network in this session."), NULL);
   gtk_widget_set_events (drawingarea_fi_progress, GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);
 
+  label678 = gtk_label_new (_("Size:"));
+  gtk_widget_set_name (label678, "label678");
+  gtk_widget_show (label678);
+  gtk_table_attach (GTK_TABLE (table67), label678, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label678), 0, 0.5);
+
   frame106 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame106, "frame106");
   gtk_widget_show (frame106);
-  gtk_table_attach (GTK_TABLE (table67), frame106, 1, 2, 1, 2,
+  gtk_table_attach (GTK_TABLE (table67), frame106, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
 
@@ -4562,6 +4566,27 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label_fi_size);
   gtk_container_add (GTK_CONTAINER (frame106), label_fi_size);
   gtk_misc_set_alignment (GTK_MISC (label_fi_size), 0, 0.5);
+
+  label901 = gtk_label_new (_("SHA1:"));
+  gtk_widget_set_name (label901, "label901");
+  gtk_widget_show (label901);
+  gtk_table_attach (GTK_TABLE (table67), label901, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label901), 0, 0.5);
+
+  frame128 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame128, "frame128");
+  gtk_widget_show (frame128);
+  gtk_table_attach (GTK_TABLE (table67), frame128, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label_fi_sha1 = gtk_label_new ("");
+  gtk_widget_set_name (label_fi_sha1, "label_fi_sha1");
+  gtk_widget_show (label_fi_sha1);
+  gtk_container_add (GTK_CONTAINER (frame128), label_fi_sha1);
+  gtk_misc_set_alignment (GTK_MISC (label_fi_sha1), 0, 0.5);
 
   frame108 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame108, "frame108");
@@ -4888,13 +4913,16 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table67, "table67");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport68, "viewport68");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, entry_fi_filename, "entry_fi_filename");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label837, "label837");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label677, "label677");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label678, "label678");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label837, "label837");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame105, "frame105");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, drawingarea_fi_progress, "drawingarea_fi_progress");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label678, "label678");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame106, "frame106");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_fi_size, "label_fi_size");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label901, "label901");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame128, "frame128");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_fi_sha1, "label_fi_sha1");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame108, "frame108");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow72, "scrolledwindow72");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, treeview_fi_aliases, "treeview_fi_aliases");
