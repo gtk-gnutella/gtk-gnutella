@@ -1695,6 +1695,10 @@ void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist)
 	gtk_clist_set_selection_mode(GTK_CLIST(*clist),
 								 GTK_SELECTION_EXTENDED);
 	gtk_clist_column_titles_show(GTK_CLIST(*clist));
+    gtk_clist_set_column_justification(GTK_CLIST(*clist),
+        c_sr_size, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(GTK_CLIST(*clist),
+        c_sr_speed, GTK_JUSTIFY_RIGHT);
 
 	label = gtk_label_new("File");
     gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
@@ -1761,11 +1765,6 @@ void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist)
     gtk_signal_connect(GTK_OBJECT(*clist), "key_press_event",
                        GTK_SIGNAL_FUNC
                        (on_clist_search_results_key_press_event), NULL);
-
-    gtk_clist_set_column_justification(GTK_CLIST(*clist),
-        c_sr_size, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(GTK_CLIST(*clist),
-        c_sr_speed, GTK_JUSTIFY_RIGHT);
 }
 
 void gui_search_update_items(struct search *sch)
