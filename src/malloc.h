@@ -119,7 +119,7 @@ gchar **strsplit_track(
 	const gchar *s, const gchar *d, gint m, gchar *file, gint line);
 GHashTable *hashtable_new_track(
 	GHashFunc h, GCompareFunc y, gchar *file, gint line);
-void *hashtable_destroy_track(GHashTable *h, gchar *file, gint line);
+void hashtable_destroy_track(GHashTable *h, gchar *file, gint line);
 
 #endif	/* TRACK_MALLOC || MALLOC_SOURCE */
 

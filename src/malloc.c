@@ -449,7 +449,7 @@ GHashTable *hashtable_new_track(
  *
  * Wrapper over g_hash_Table_destroy() to track destruction of hash tables.
  */
-void *hashtable_destroy_track(GHashTable *h, gchar *file, gint line)
+void hashtable_destroy_track(GHashTable *h, gchar *file, gint line)
 {
 	free_record(h, file, line);
 	g_hash_table_destroy(h);
