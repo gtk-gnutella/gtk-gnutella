@@ -296,7 +296,9 @@ void nodes_gui_init(void)
 		main_window, "treeview_nodes"));
 	tree = treeview_nodes;
 
+#if (GTK_MAJOR_VERSION > 2 || GTK_MINOR_VERSION == 4) /* GTK+ >= 2.4.0 */
     g_object_set(tree, "fixed_height_mode", TRUE, NULL);
+#endif /* GTK+ >= 2.4.0 */
 
 	gui_prop_get_guint32(PROP_NODES_COL_WIDTHS, width, 0, G_N_ELEMENTS(width));
 	gui_prop_get_boolean(PROP_NODES_COL_VISIBLE, visible, 0,
