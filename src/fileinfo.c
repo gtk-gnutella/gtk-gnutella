@@ -954,7 +954,7 @@ static gboolean looks_like_urn(const gchar *filename)
 
 	while ((c = *p++)) {
 		idx++;
-		if (isspace(c))
+		if (isspace(c) || c == '_')
 			break;
 		if (!isalpha(c))
 			break;
