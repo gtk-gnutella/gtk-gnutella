@@ -3934,13 +3934,21 @@ create_main_window_downloads_tab (void)
 {
   GtkWidget *main_window_downloads_tab;
   GtkWidget *notebook_downloads;
+  GtkWidget *scrolledwindow76;
+  GtkWidget *viewport459;
   GtkWidget *vpaned_downloads;
-  GtkWidget *vbox76;
-  GtkWidget *viewport100;
   GtkWidget *frame3;
   GtkWidget *vbox16;
   GtkWidget *scrolledwindow33;
   GtkWidget *treeview_downloads;
+  GtkWidget *viewport29;
+  GtkWidget *hbox234;
+  GtkWidget *label_dl_running_count;
+  GtkWidget *label708;
+  GtkWidget *label_dl_active_count;
+  GtkWidget *label710;
+  GtkWidget *label_dl_aqueued_count;
+  GtkWidget *label712;
   GtkWidget *frame_dl_settings;
   GtkWidget *hbox261;
   GtkWidget *table95;
@@ -3980,44 +3988,13 @@ create_main_window_downloads_tab (void)
   GtkWidget *hbox160;
   GtkWidget *image30;
   GtkWidget *label411;
-  GtkWidget *viewport29;
-  GtkWidget *hbox234;
-  GtkWidget *label_dl_running_count;
-  GtkWidget *label708;
-  GtkWidget *label_dl_active_count;
-  GtkWidget *label710;
-  GtkWidget *label_dl_aqueued_count;
-  GtkWidget *label712;
   GtkWidget *checkbutton_dl_show_settings;
   GtkWidget *alignment77;
   GtkWidget *hbox216;
   GtkWidget *image138;
   GtkWidget *label_dl_show_settings;
+  GtkWidget *label888;
   GtkWidget *label285;
-  GtkWidget *vbox77;
-  GtkWidget *viewport101;
-  GtkWidget *frame47;
-  GtkWidget *vbox78;
-  GtkWidget *scrolledwindow22;
-  GtkWidget *treeview_downloads_queue;
-  GtkWidget *table53;
-  GtkWidget *togglebutton_queue_freeze;
-  GtkWidget *alignment74;
-  GtkWidget *hbox209;
-  GtkWidget *image120;
-  GtkWidget *label554;
-  GtkWidget *checkbutton_queue_regex_case;
-  GtkWidget *label334;
-  GtkWidget *entry_queue_regex;
-  GtkWidget *viewport28;
-  GtkWidget *hbox212;
-  GtkWidget *label_dl_queue_count;
-  GtkWidget *label586;
-  GtkWidget *label_dl_qalive_count;
-  GtkWidget *label588;
-  GtkWidget *label_dl_pqueued_count;
-  GtkWidget *label714;
-  GtkWidget *label328;
   GtkWidget *label671;
   GtkWidget *vpaned_fileinfo;
   GtkWidget *vbox108;
@@ -4054,6 +4031,31 @@ create_main_window_downloads_tab (void)
   GtkWidget *label_fi_with_source_count;
   GtkWidget *label719;
   GtkWidget *label672;
+  GtkWidget *scrolledwindow77;
+  GtkWidget *viewport121;
+  GtkWidget *frame47;
+  GtkWidget *vbox78;
+  GtkWidget *scrolledwindow22;
+  GtkWidget *treeview_downloads_queue;
+  GtkWidget *table53;
+  GtkWidget *togglebutton_queue_freeze;
+  GtkWidget *alignment74;
+  GtkWidget *hbox209;
+  GtkWidget *image120;
+  GtkWidget *label554;
+  GtkWidget *checkbutton_queue_regex_case;
+  GtkWidget *label334;
+  GtkWidget *entry_queue_regex;
+  GtkWidget *viewport28;
+  GtkWidget *hbox212;
+  GtkWidget *label_dl_queue_count;
+  GtkWidget *label586;
+  GtkWidget *label_dl_qalive_count;
+  GtkWidget *label588;
+  GtkWidget *label_dl_pqueued_count;
+  GtkWidget *label714;
+  GtkWidget *label328;
+  GtkWidget *label887;
   GtkTooltips *tooltips;
 
   tooltips = gtk_tooltips_new ();
@@ -4068,27 +4070,30 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (notebook_downloads);
   gtk_container_add (GTK_CONTAINER (main_window_downloads_tab), notebook_downloads);
   gtk_notebook_set_show_border (GTK_NOTEBOOK (notebook_downloads), FALSE);
+  gtk_notebook_set_scrollable (GTK_NOTEBOOK (notebook_downloads), TRUE);
+
+  scrolledwindow76 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow76, "scrolledwindow76");
+  gtk_widget_show (scrolledwindow76);
+  gtk_container_add (GTK_CONTAINER (notebook_downloads), scrolledwindow76);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow76), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+  viewport459 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport459, "viewport459");
+  gtk_widget_show (viewport459);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow76), viewport459);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport459), GTK_SHADOW_NONE);
 
   vpaned_downloads = gtk_vpaned_new ();
   gtk_widget_set_name (vpaned_downloads, "vpaned_downloads");
   gtk_widget_show (vpaned_downloads);
-  gtk_container_add (GTK_CONTAINER (notebook_downloads), vpaned_downloads);
-  gtk_paned_set_position (GTK_PANED (vpaned_downloads), 218);
-
-  vbox76 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox76, "vbox76");
-  gtk_widget_show (vbox76);
-  gtk_paned_pack1 (GTK_PANED (vpaned_downloads), vbox76, FALSE, TRUE);
-
-  viewport100 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport100, "viewport100");
-  gtk_widget_show (viewport100);
-  gtk_box_pack_start (GTK_BOX (vbox76), viewport100, TRUE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (viewport459), vpaned_downloads);
+  gtk_paned_set_position (GTK_PANED (vpaned_downloads), 1);
 
   frame3 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame3, "frame3");
   gtk_widget_show (frame3);
-  gtk_container_add (GTK_CONTAINER (viewport100), frame3);
+  gtk_paned_pack2 (GTK_PANED (vpaned_downloads), frame3, TRUE, FALSE);
   gtk_container_set_border_width (GTK_CONTAINER (frame3), 2);
 
   vbox16 = gtk_vbox_new (FALSE, 2);
@@ -4109,6 +4114,58 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (treeview_downloads);
   gtk_container_add (GTK_CONTAINER (scrolledwindow33), treeview_downloads);
 
+  viewport29 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport29, "viewport29");
+  gtk_widget_show (viewport29);
+  gtk_box_pack_start (GTK_BOX (vbox16), viewport29, FALSE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport29), GTK_SHADOW_ETCHED_IN);
+
+  hbox234 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox234, "hbox234");
+  gtk_widget_show (hbox234);
+  gtk_container_add (GTK_CONTAINER (viewport29), hbox234);
+
+  label_dl_running_count = gtk_label_new (_("[running]"));
+  gtk_widget_set_name (label_dl_running_count, "label_dl_running_count");
+  gtk_widget_show (label_dl_running_count);
+  gtk_box_pack_start (GTK_BOX (hbox234), label_dl_running_count, TRUE, TRUE, 0);
+  gtk_label_set_justify (GTK_LABEL (label_dl_running_count), GTK_JUSTIFY_RIGHT);
+  gtk_misc_set_alignment (GTK_MISC (label_dl_running_count), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_dl_running_count), 5, 0);
+
+  label708 = gtk_label_new (_(" ("));
+  gtk_widget_set_name (label708, "label708");
+  gtk_widget_show (label708);
+  gtk_box_pack_start (GTK_BOX (hbox234), label708, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label708), GTK_JUSTIFY_RIGHT);
+  gtk_misc_set_alignment (GTK_MISC (label708), 1, 0.5);
+
+  label_dl_active_count = gtk_label_new (_("[active]"));
+  gtk_widget_set_name (label_dl_active_count, "label_dl_active_count");
+  gtk_widget_show (label_dl_active_count);
+  gtk_box_pack_start (GTK_BOX (hbox234), label_dl_active_count, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label_dl_active_count), GTK_JUSTIFY_RIGHT);
+  gtk_misc_set_alignment (GTK_MISC (label_dl_active_count), 1, 0.5);
+
+  label710 = gtk_label_new (_(", "));
+  gtk_widget_set_name (label710, "label710");
+  gtk_widget_show (label710);
+  gtk_box_pack_start (GTK_BOX (hbox234), label710, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label710), GTK_JUSTIFY_RIGHT);
+
+  label_dl_aqueued_count = gtk_label_new (_("[aqueued]"));
+  gtk_widget_set_name (label_dl_aqueued_count, "label_dl_aqueued_count");
+  gtk_widget_show (label_dl_aqueued_count);
+  gtk_box_pack_start (GTK_BOX (hbox234), label_dl_aqueued_count, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label_dl_aqueued_count), GTK_JUSTIFY_RIGHT);
+
+  label712 = gtk_label_new (_(")  "));
+  gtk_widget_set_name (label712, "label712");
+  gtk_widget_show (label712);
+  gtk_box_pack_start (GTK_BOX (hbox234), label712, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label712), GTK_JUSTIFY_RIGHT);
+  gtk_misc_set_alignment (GTK_MISC (label712), 0, 0.5);
+
   frame_dl_settings = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_dl_settings, "frame_dl_settings");
   gtk_widget_show (frame_dl_settings);
@@ -4120,7 +4177,7 @@ create_main_window_downloads_tab (void)
   gtk_container_add (GTK_CONTAINER (frame_dl_settings), hbox261);
   gtk_container_set_border_width (GTK_CONTAINER (hbox261), 2);
 
-  table95 = gtk_table_new (4, 3, FALSE);
+  table95 = gtk_table_new (3, 3, FALSE);
   gtk_widget_set_name (table95, "table95");
   gtk_widget_show (table95);
   gtk_box_pack_start (GTK_BOX (hbox261), table95, TRUE, TRUE, 0);
@@ -4336,60 +4393,6 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label411);
   gtk_box_pack_start (GTK_BOX (hbox160), label411, FALSE, FALSE, 0);
 
-  viewport29 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport29, "viewport29");
-  gtk_widget_show (viewport29);
-  gtk_table_attach (GTK_TABLE (table57), viewport29, 3, 5, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL), 0, 0);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport29), GTK_SHADOW_ETCHED_IN);
-
-  hbox234 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox234, "hbox234");
-  gtk_widget_show (hbox234);
-  gtk_container_add (GTK_CONTAINER (viewport29), hbox234);
-
-  label_dl_running_count = gtk_label_new (_("[running]"));
-  gtk_widget_set_name (label_dl_running_count, "label_dl_running_count");
-  gtk_widget_show (label_dl_running_count);
-  gtk_box_pack_start (GTK_BOX (hbox234), label_dl_running_count, TRUE, TRUE, 0);
-  gtk_label_set_justify (GTK_LABEL (label_dl_running_count), GTK_JUSTIFY_RIGHT);
-  gtk_misc_set_alignment (GTK_MISC (label_dl_running_count), 1, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label_dl_running_count), 5, 0);
-
-  label708 = gtk_label_new (_(" ("));
-  gtk_widget_set_name (label708, "label708");
-  gtk_widget_show (label708);
-  gtk_box_pack_start (GTK_BOX (hbox234), label708, FALSE, FALSE, 0);
-  gtk_label_set_justify (GTK_LABEL (label708), GTK_JUSTIFY_RIGHT);
-  gtk_misc_set_alignment (GTK_MISC (label708), 1, 0.5);
-
-  label_dl_active_count = gtk_label_new (_("[active]"));
-  gtk_widget_set_name (label_dl_active_count, "label_dl_active_count");
-  gtk_widget_show (label_dl_active_count);
-  gtk_box_pack_start (GTK_BOX (hbox234), label_dl_active_count, FALSE, FALSE, 0);
-  gtk_label_set_justify (GTK_LABEL (label_dl_active_count), GTK_JUSTIFY_RIGHT);
-  gtk_misc_set_alignment (GTK_MISC (label_dl_active_count), 1, 0.5);
-
-  label710 = gtk_label_new (_(", "));
-  gtk_widget_set_name (label710, "label710");
-  gtk_widget_show (label710);
-  gtk_box_pack_start (GTK_BOX (hbox234), label710, FALSE, FALSE, 0);
-  gtk_label_set_justify (GTK_LABEL (label710), GTK_JUSTIFY_RIGHT);
-
-  label_dl_aqueued_count = gtk_label_new (_("[aqueued]"));
-  gtk_widget_set_name (label_dl_aqueued_count, "label_dl_aqueued_count");
-  gtk_widget_show (label_dl_aqueued_count);
-  gtk_box_pack_start (GTK_BOX (hbox234), label_dl_aqueued_count, FALSE, FALSE, 0);
-  gtk_label_set_justify (GTK_LABEL (label_dl_aqueued_count), GTK_JUSTIFY_RIGHT);
-
-  label712 = gtk_label_new (_(")  "));
-  gtk_widget_set_name (label712, "label712");
-  gtk_widget_show (label712);
-  gtk_box_pack_start (GTK_BOX (hbox234), label712, FALSE, FALSE, 0);
-  gtk_label_set_justify (GTK_LABEL (label712), GTK_JUSTIFY_RIGHT);
-  gtk_misc_set_alignment (GTK_MISC (label712), 0, 0.5);
-
   checkbutton_dl_show_settings = gtk_toggle_button_new ();
   gtk_widget_set_name (checkbutton_dl_show_settings, "checkbutton_dl_show_settings");
   gtk_widget_show (checkbutton_dl_show_settings);
@@ -4417,151 +4420,20 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label_dl_show_settings);
   gtk_box_pack_start (GTK_BOX (hbox216), label_dl_show_settings, FALSE, FALSE, 0);
 
+  label888 = gtk_label_new (_(" "));
+  gtk_widget_set_name (label888, "label888");
+  gtk_widget_show (label888);
+  gtk_table_attach (GTK_TABLE (table57), label888, 3, 5, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label888), 0, 0.5);
+
   label285 = gtk_label_new (_("Active sources"));
   gtk_widget_set_name (label285, "label285");
   gtk_widget_show (label285);
   gtk_frame_set_label_widget (GTK_FRAME (frame3), label285);
 
-  vbox77 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox77, "vbox77");
-  gtk_widget_show (vbox77);
-  gtk_paned_pack2 (GTK_PANED (vpaned_downloads), vbox77, TRUE, TRUE);
-
-  viewport101 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport101, "viewport101");
-  gtk_widget_show (viewport101);
-  gtk_box_pack_start (GTK_BOX (vbox77), viewport101, TRUE, TRUE, 0);
-
-  frame47 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame47, "frame47");
-  gtk_widget_show (frame47);
-  gtk_container_add (GTK_CONTAINER (viewport101), frame47);
-  gtk_container_set_border_width (GTK_CONTAINER (frame47), 2);
-
-  vbox78 = gtk_vbox_new (FALSE, 2);
-  gtk_widget_set_name (vbox78, "vbox78");
-  gtk_widget_show (vbox78);
-  gtk_container_add (GTK_CONTAINER (frame47), vbox78);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox78), 2);
-
-  scrolledwindow22 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow22, "scrolledwindow22");
-  gtk_widget_show (scrolledwindow22);
-  gtk_box_pack_start (GTK_BOX (vbox78), scrolledwindow22, TRUE, TRUE, 0);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow22), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
-  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow22), GTK_SHADOW_IN);
-
-  treeview_downloads_queue = gtk_tree_view_new ();
-  gtk_widget_set_name (treeview_downloads_queue, "treeview_downloads_queue");
-  gtk_widget_show (treeview_downloads_queue);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow22), treeview_downloads_queue);
-
-  table53 = gtk_table_new (2, 5, FALSE);
-  gtk_widget_set_name (table53, "table53");
-  gtk_widget_show (table53);
-  gtk_box_pack_start (GTK_BOX (vbox78), table53, FALSE, TRUE, 0);
-  gtk_table_set_row_spacings (GTK_TABLE (table53), 2);
-  gtk_table_set_col_spacings (GTK_TABLE (table53), 4);
-
-  togglebutton_queue_freeze = gtk_toggle_button_new ();
-  gtk_widget_set_name (togglebutton_queue_freeze, "togglebutton_queue_freeze");
-  gtk_widget_show (togglebutton_queue_freeze);
-  gtk_table_attach (GTK_TABLE (table53), togglebutton_queue_freeze, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  alignment74 = gtk_alignment_new (0.5, 0.5, 0, 0);
-  gtk_widget_set_name (alignment74, "alignment74");
-  gtk_widget_show (alignment74);
-  gtk_container_add (GTK_CONTAINER (togglebutton_queue_freeze), alignment74);
-
-  hbox209 = gtk_hbox_new (FALSE, 2);
-  gtk_widget_set_name (hbox209, "hbox209");
-  gtk_widget_show (hbox209);
-  gtk_container_add (GTK_CONTAINER (alignment74), hbox209);
-
-  image120 = gtk_image_new_from_stock ("gtk-dialog-error", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image120, "image120");
-  gtk_widget_show (image120);
-  gtk_box_pack_start (GTK_BOX (hbox209), image120, FALSE, FALSE, 0);
-
-  label554 = gtk_label_new_with_mnemonic (_("Freeze queue"));
-  gtk_widget_set_name (label554, "label554");
-  gtk_widget_show (label554);
-  gtk_box_pack_start (GTK_BOX (hbox209), label554, FALSE, FALSE, 0);
-
-  checkbutton_queue_regex_case = gtk_check_button_new_with_mnemonic (_("case sensitive"));
-  gtk_widget_set_name (checkbutton_queue_regex_case, "checkbutton_queue_regex_case");
-  gtk_widget_show (checkbutton_queue_regex_case);
-  gtk_table_attach (GTK_TABLE (table53), checkbutton_queue_regex_case, 4, 5, 1, 2,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL), 0, 0);
-
-  label334 = gtk_label_new (_("Select all matching regex from queue"));
-  gtk_widget_set_name (label334, "label334");
-  gtk_widget_show (label334);
-  gtk_table_attach (GTK_TABLE (table53), label334, 0, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL), 0, 0);
-
-  entry_queue_regex = gtk_entry_new ();
-  gtk_widget_set_name (entry_queue_regex, "entry_queue_regex");
-  gtk_widget_show (entry_queue_regex);
-  gtk_table_attach (GTK_TABLE (table53), entry_queue_regex, 2, 4, 1, 2,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL), 0, 0);
-
-  viewport28 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport28, "viewport28");
-  gtk_widget_show (viewport28);
-  gtk_table_attach (GTK_TABLE (table53), viewport28, 1, 5, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL), 0, 0);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport28), GTK_SHADOW_ETCHED_IN);
-
-  hbox212 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox212, "hbox212");
-  gtk_widget_show (hbox212);
-  gtk_container_add (GTK_CONTAINER (viewport28), hbox212);
-  gtk_container_set_border_width (GTK_CONTAINER (hbox212), 2);
-
-  label_dl_queue_count = gtk_label_new (_("[queued downloads]"));
-  gtk_widget_set_name (label_dl_queue_count, "label_dl_queue_count");
-  gtk_widget_show (label_dl_queue_count);
-  gtk_box_pack_start (GTK_BOX (hbox212), label_dl_queue_count, TRUE, TRUE, 0);
-  gtk_misc_set_alignment (GTK_MISC (label_dl_queue_count), 1, 0.5);
-
-  label586 = gtk_label_new (_(" queued ("));
-  gtk_widget_set_name (label586, "label586");
-  gtk_widget_show (label586);
-  gtk_box_pack_start (GTK_BOX (hbox212), label586, FALSE, FALSE, 0);
-
-  label_dl_qalive_count = gtk_label_new (_("[hosts alive]"));
-  gtk_widget_set_name (label_dl_qalive_count, "label_dl_qalive_count");
-  gtk_widget_show (label_dl_qalive_count);
-  gtk_box_pack_start (GTK_BOX (hbox212), label_dl_qalive_count, FALSE, FALSE, 0);
-
-  label588 = gtk_label_new (_(" alive with "));
-  gtk_widget_set_name (label588, "label588");
-  gtk_widget_show (label588);
-  gtk_box_pack_start (GTK_BOX (hbox212), label588, FALSE, FALSE, 0);
-
-  label_dl_pqueued_count = gtk_label_new (_("[pqueued]"));
-  gtk_widget_set_name (label_dl_pqueued_count, "label_dl_pqueued_count");
-  gtk_widget_show (label_dl_pqueued_count);
-  gtk_box_pack_start (GTK_BOX (hbox212), label_dl_pqueued_count, FALSE, FALSE, 0);
-
-  label714 = gtk_label_new (_(" passive)"));
-  gtk_widget_set_name (label714, "label714");
-  gtk_widget_show (label714);
-  gtk_box_pack_start (GTK_BOX (hbox212), label714, FALSE, FALSE, 0);
-
-  label328 = gtk_label_new (_("Inactive sources"));
-  gtk_widget_set_name (label328, "label328");
-  gtk_widget_show (label328);
-  gtk_frame_set_label_widget (GTK_FRAME (frame47), label328);
-
-  label671 = gtk_label_new (_("Sources"));
+  label671 = gtk_label_new (_("Active Downloads"));
   gtk_widget_set_name (label671, "label671");
   gtk_widget_show (label671);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads), 0), label671);
@@ -4776,6 +4648,152 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label672);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads), 1), label672);
 
+  scrolledwindow77 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow77, "scrolledwindow77");
+  gtk_widget_show (scrolledwindow77);
+  gtk_container_add (GTK_CONTAINER (notebook_downloads), scrolledwindow77);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow77), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
+  viewport121 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport121, "viewport121");
+  gtk_widget_show (viewport121);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow77), viewport121);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport121), GTK_SHADOW_NONE);
+
+  frame47 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame47, "frame47");
+  gtk_widget_show (frame47);
+  gtk_container_add (GTK_CONTAINER (viewport121), frame47);
+  gtk_container_set_border_width (GTK_CONTAINER (frame47), 2);
+
+  vbox78 = gtk_vbox_new (FALSE, 2);
+  gtk_widget_set_name (vbox78, "vbox78");
+  gtk_widget_show (vbox78);
+  gtk_container_add (GTK_CONTAINER (frame47), vbox78);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox78), 2);
+
+  scrolledwindow22 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow22, "scrolledwindow22");
+  gtk_widget_show (scrolledwindow22);
+  gtk_box_pack_start (GTK_BOX (vbox78), scrolledwindow22, TRUE, TRUE, 0);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow22), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow22), GTK_SHADOW_IN);
+
+  treeview_downloads_queue = gtk_tree_view_new ();
+  gtk_widget_set_name (treeview_downloads_queue, "treeview_downloads_queue");
+  gtk_widget_show (treeview_downloads_queue);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow22), treeview_downloads_queue);
+
+  table53 = gtk_table_new (2, 5, FALSE);
+  gtk_widget_set_name (table53, "table53");
+  gtk_widget_show (table53);
+  gtk_box_pack_start (GTK_BOX (vbox78), table53, FALSE, TRUE, 0);
+  gtk_table_set_row_spacings (GTK_TABLE (table53), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table53), 4);
+
+  togglebutton_queue_freeze = gtk_toggle_button_new ();
+  gtk_widget_set_name (togglebutton_queue_freeze, "togglebutton_queue_freeze");
+  gtk_widget_show (togglebutton_queue_freeze);
+  gtk_table_attach (GTK_TABLE (table53), togglebutton_queue_freeze, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  alignment74 = gtk_alignment_new (0.5, 0.5, 0, 0);
+  gtk_widget_set_name (alignment74, "alignment74");
+  gtk_widget_show (alignment74);
+  gtk_container_add (GTK_CONTAINER (togglebutton_queue_freeze), alignment74);
+
+  hbox209 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_set_name (hbox209, "hbox209");
+  gtk_widget_show (hbox209);
+  gtk_container_add (GTK_CONTAINER (alignment74), hbox209);
+
+  image120 = gtk_image_new_from_stock ("gtk-dialog-error", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image120, "image120");
+  gtk_widget_show (image120);
+  gtk_box_pack_start (GTK_BOX (hbox209), image120, FALSE, FALSE, 0);
+
+  label554 = gtk_label_new_with_mnemonic (_("Freeze queue"));
+  gtk_widget_set_name (label554, "label554");
+  gtk_widget_show (label554);
+  gtk_box_pack_start (GTK_BOX (hbox209), label554, FALSE, FALSE, 0);
+
+  checkbutton_queue_regex_case = gtk_check_button_new_with_mnemonic (_("case sensitive"));
+  gtk_widget_set_name (checkbutton_queue_regex_case, "checkbutton_queue_regex_case");
+  gtk_widget_show (checkbutton_queue_regex_case);
+  gtk_table_attach (GTK_TABLE (table53), checkbutton_queue_regex_case, 4, 5, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL), 0, 0);
+
+  label334 = gtk_label_new (_("Select all matching regex from queue"));
+  gtk_widget_set_name (label334, "label334");
+  gtk_widget_show (label334);
+  gtk_table_attach (GTK_TABLE (table53), label334, 0, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL), 0, 0);
+
+  entry_queue_regex = gtk_entry_new ();
+  gtk_widget_set_name (entry_queue_regex, "entry_queue_regex");
+  gtk_widget_show (entry_queue_regex);
+  gtk_table_attach (GTK_TABLE (table53), entry_queue_regex, 2, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL), 0, 0);
+
+  viewport28 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport28, "viewport28");
+  gtk_widget_show (viewport28);
+  gtk_table_attach (GTK_TABLE (table53), viewport28, 1, 5, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport28), GTK_SHADOW_ETCHED_IN);
+
+  hbox212 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox212, "hbox212");
+  gtk_widget_show (hbox212);
+  gtk_container_add (GTK_CONTAINER (viewport28), hbox212);
+  gtk_container_set_border_width (GTK_CONTAINER (hbox212), 2);
+
+  label_dl_queue_count = gtk_label_new (_("[queued downloads]"));
+  gtk_widget_set_name (label_dl_queue_count, "label_dl_queue_count");
+  gtk_widget_show (label_dl_queue_count);
+  gtk_box_pack_start (GTK_BOX (hbox212), label_dl_queue_count, TRUE, TRUE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label_dl_queue_count), 1, 0.5);
+
+  label586 = gtk_label_new (_(" queued ("));
+  gtk_widget_set_name (label586, "label586");
+  gtk_widget_show (label586);
+  gtk_box_pack_start (GTK_BOX (hbox212), label586, FALSE, FALSE, 0);
+
+  label_dl_qalive_count = gtk_label_new (_("[hosts alive]"));
+  gtk_widget_set_name (label_dl_qalive_count, "label_dl_qalive_count");
+  gtk_widget_show (label_dl_qalive_count);
+  gtk_box_pack_start (GTK_BOX (hbox212), label_dl_qalive_count, FALSE, FALSE, 0);
+
+  label588 = gtk_label_new (_(" alive with "));
+  gtk_widget_set_name (label588, "label588");
+  gtk_widget_show (label588);
+  gtk_box_pack_start (GTK_BOX (hbox212), label588, FALSE, FALSE, 0);
+
+  label_dl_pqueued_count = gtk_label_new (_("[pqueued]"));
+  gtk_widget_set_name (label_dl_pqueued_count, "label_dl_pqueued_count");
+  gtk_widget_show (label_dl_pqueued_count);
+  gtk_box_pack_start (GTK_BOX (hbox212), label_dl_pqueued_count, FALSE, FALSE, 0);
+
+  label714 = gtk_label_new (_(" passive)"));
+  gtk_widget_set_name (label714, "label714");
+  gtk_widget_show (label714);
+  gtk_box_pack_start (GTK_BOX (hbox212), label714, FALSE, FALSE, 0);
+
+  label328 = gtk_label_new (_("Inactive sources"));
+  gtk_widget_set_name (label328, "label328");
+  gtk_widget_show (label328);
+  gtk_frame_set_label_widget (GTK_FRAME (frame47), label328);
+
+  label887 = gtk_label_new (_("Queue"));
+  gtk_widget_set_name (label887, "label887");
+  gtk_widget_show (label887);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads), 2), label887);
+
   g_signal_connect ((gpointer) button_downloads_abort, "clicked",
                     G_CALLBACK (on_button_downloads_abort_clicked),
                     NULL);
@@ -4784,12 +4802,6 @@ create_main_window_downloads_tab (void)
                     NULL);
   g_signal_connect ((gpointer) button_downloads_clear_stopped, "clicked",
                     G_CALLBACK (on_button_downloads_clear_stopped_clicked),
-                    NULL);
-  g_signal_connect ((gpointer) togglebutton_queue_freeze, "toggled",
-                    G_CALLBACK (on_togglebutton_queue_freeze_toggled),
-                    NULL);
-  g_signal_connect ((gpointer) entry_queue_regex, "activate",
-                    G_CALLBACK (on_entry_queue_regex_activate),
                     NULL);
   g_signal_connect ((gpointer) drawingarea_fi_progress, "realize",
                     G_CALLBACK (on_drawingarea_fi_progress_realize),
@@ -4800,17 +4812,31 @@ create_main_window_downloads_tab (void)
   g_signal_connect ((gpointer) button_fi_purge, "clicked",
                     G_CALLBACK (on_button_fi_purge_clicked),
                     NULL);
+  g_signal_connect ((gpointer) togglebutton_queue_freeze, "toggled",
+                    G_CALLBACK (on_togglebutton_queue_freeze_toggled),
+                    NULL);
+  g_signal_connect ((gpointer) entry_queue_regex, "activate",
+                    G_CALLBACK (on_entry_queue_regex_activate),
+                    NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_downloads_tab, main_window_downloads_tab, "main_window_downloads_tab");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, notebook_downloads, "notebook_downloads");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow76, "scrolledwindow76");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport459, "viewport459");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vpaned_downloads, "vpaned_downloads");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox76, "vbox76");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport100, "viewport100");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame3, "frame3");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox16, "vbox16");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow33, "scrolledwindow33");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, treeview_downloads, "treeview_downloads");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport29, "viewport29");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox234, "hbox234");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_running_count, "label_dl_running_count");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label708, "label708");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_active_count, "label_dl_active_count");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label710, "label710");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_aqueued_count, "label_dl_aqueued_count");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label712, "label712");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame_dl_settings, "frame_dl_settings");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox261, "hbox261");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table95, "table95");
@@ -4847,44 +4873,13 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox160, "hbox160");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image30, "image30");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label411, "label411");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport29, "viewport29");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox234, "hbox234");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_running_count, "label_dl_running_count");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label708, "label708");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_active_count, "label_dl_active_count");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label710, "label710");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_aqueued_count, "label_dl_aqueued_count");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label712, "label712");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_dl_show_settings, "checkbutton_dl_show_settings");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, alignment77, "alignment77");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox216, "hbox216");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image138, "image138");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_show_settings, "label_dl_show_settings");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label888, "label888");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label285, "label285");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox77, "vbox77");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport101, "viewport101");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame47, "frame47");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox78, "vbox78");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow22, "scrolledwindow22");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, treeview_downloads_queue, "treeview_downloads_queue");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table53, "table53");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, togglebutton_queue_freeze, "togglebutton_queue_freeze");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, alignment74, "alignment74");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox209, "hbox209");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image120, "image120");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label554, "label554");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_queue_regex_case, "checkbutton_queue_regex_case");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label334, "label334");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, entry_queue_regex, "entry_queue_regex");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport28, "viewport28");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox212, "hbox212");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_queue_count, "label_dl_queue_count");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label586, "label586");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_qalive_count, "label_dl_qalive_count");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label588, "label588");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_pqueued_count, "label_dl_pqueued_count");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label714, "label714");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label328, "label328");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label671, "label671");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vpaned_fileinfo, "vpaned_fileinfo");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox108, "vbox108");
@@ -4921,6 +4916,31 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_fi_with_source_count, "label_fi_with_source_count");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label719, "label719");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label672, "label672");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow77, "scrolledwindow77");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport121, "viewport121");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame47, "frame47");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox78, "vbox78");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow22, "scrolledwindow22");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, treeview_downloads_queue, "treeview_downloads_queue");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table53, "table53");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, togglebutton_queue_freeze, "togglebutton_queue_freeze");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, alignment74, "alignment74");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox209, "hbox209");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image120, "image120");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label554, "label554");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_queue_regex_case, "checkbutton_queue_regex_case");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label334, "label334");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, entry_queue_regex, "entry_queue_regex");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, viewport28, "viewport28");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox212, "hbox212");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_queue_count, "label_dl_queue_count");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label586, "label586");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_qalive_count, "label_dl_qalive_count");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label588, "label588");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label_dl_pqueued_count, "label_dl_pqueued_count");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label714, "label714");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label328, "label328");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label887, "label887");
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_downloads_tab, tooltips, "tooltips");
 
   return main_window_downloads_tab;
@@ -4949,6 +4969,7 @@ create_main_window_search_tab (void)
   GtkWidget *notebook_search_results;
   GtkWidget *empty_notebook_page;
   GtkWidget *label190;
+  GtkWidget *viewport119;
   GtkWidget *frame_search_results_settings;
   GtkWidget *hbox245;
   GtkWidget *vbox131;
@@ -5161,10 +5182,16 @@ create_main_window_search_tab (void)
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_search_results), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_search_results), 0), label190);
   gtk_label_set_justify (GTK_LABEL (label190), GTK_JUSTIFY_CENTER);
 
+  viewport119 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport119, "viewport119");
+  gtk_widget_show (viewport119);
+  gtk_box_pack_start (GTK_BOX (vbox107), viewport119, FALSE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport119), GTK_SHADOW_NONE);
+
   frame_search_results_settings = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_search_results_settings, "frame_search_results_settings");
   gtk_widget_show (frame_search_results_settings);
-  gtk_box_pack_start (GTK_BOX (vbox107), frame_search_results_settings, FALSE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (viewport119), frame_search_results_settings);
 
   hbox245 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox245, "hbox245");
@@ -5292,6 +5319,7 @@ create_main_window_search_tab (void)
   gtk_widget_set_name (viewport106, "viewport106");
   gtk_widget_show (viewport106);
   gtk_paned_pack2 (GTK_PANED (vpaned_results), viewport106, TRUE, TRUE);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport106), GTK_SHADOW_NONE);
 
   frame80 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame80, "frame80");
@@ -5343,7 +5371,7 @@ create_main_window_search_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label661), 1, 0.5);
 
-  label663 = gtk_label_new (_("Timestamp:"));
+  label663 = gtk_label_new (_("Received:"));
   gtk_widget_set_name (label663, "label663");
   gtk_widget_show (label663);
   gtk_table_attach (GTK_TABLE (table66), label663, 2, 3, 4, 5,
@@ -5735,6 +5763,7 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport16, "viewport16");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, notebook_search_results, "notebook_search_results");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label190, "label190");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport119, "viewport119");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, frame_search_results_settings, "frame_search_results_settings");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox245, "hbox245");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, vbox131, "vbox131");
@@ -9869,6 +9898,7 @@ create_dlg_prefs (void)
   dlg_prefs = gtk_dialog_new ();
   gtk_widget_set_name (dlg_prefs, "dlg_prefs");
   gtk_window_set_title (GTK_WINDOW (dlg_prefs), _("Preferences"));
+  gtk_window_set_position (GTK_WINDOW (dlg_prefs), GTK_WIN_POS_MOUSE);
   gtk_window_set_default_size (GTK_WINDOW (dlg_prefs), 640, 480);
   gtk_window_set_type_hint (GTK_WINDOW (dlg_prefs), GDK_WINDOW_TYPE_HINT_DIALOG);
 
@@ -9932,15 +9962,17 @@ create_dlg_prefs_net_tab (void)
   GtkWidget *label128;
   GtkWidget *label_current_port;
   GtkWidget *hseparator2;
-  GtkWidget *table5;
-  GtkWidget *entry_config_force_ip;
+  GtkWidget *table102;
+  GtkWidget *label129;
   GtkWidget *label35;
+  GtkWidget *checkbutton_config_force_ip;
+  GtkWidget *checkbutton_give_server_hostname;
+  GtkWidget *checkbutton_enable_udp;
+  GtkWidget *label886;
   GtkObject *spinbutton_config_port_adj;
   GtkWidget *spinbutton_config_port;
-  GtkWidget *checkbutton_give_server_hostname;
+  GtkWidget *entry_config_force_ip;
   GtkWidget *entry_server_hostname;
-  GtkWidget *checkbutton_config_force_ip;
-  GtkWidget *label129;
   GtkWidget *label287;
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox28;
@@ -10015,6 +10047,7 @@ create_dlg_prefs_net_tab (void)
   dlg_prefs_net_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_prefs_net_tab, "dlg_prefs_net_tab");
   gtk_window_set_title (GTK_WINDOW (dlg_prefs_net_tab), _("Network"));
+  gtk_window_set_default_size (GTK_WINDOW (dlg_prefs_net_tab), 600, 400);
 
   scrolledwindow38 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow38, "scrolledwindow38");
@@ -10038,6 +10071,7 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_set_name (frame13, "frame13");
   gtk_widget_show (frame13);
   gtk_box_pack_start (GTK_BOX (vbox24), frame13, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame13), 4);
 
   vbox30 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox30, "vbox30");
@@ -10067,67 +10101,83 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_show (hseparator2);
   gtk_box_pack_start (GTK_BOX (vbox30), hseparator2, FALSE, TRUE, 3);
 
-  table5 = gtk_table_new (3, 5, FALSE);
-  gtk_widget_set_name (table5, "table5");
-  gtk_widget_show (table5);
-  gtk_box_pack_start (GTK_BOX (vbox30), table5, TRUE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (table5), 2);
-  gtk_table_set_row_spacings (GTK_TABLE (table5), 2);
-  gtk_table_set_col_spacings (GTK_TABLE (table5), 4);
+  table102 = gtk_table_new (4, 5, FALSE);
+  gtk_widget_set_name (table102, "table102");
+  gtk_widget_show (table102);
+  gtk_box_pack_start (GTK_BOX (vbox30), table102, FALSE, TRUE, 0);
+  gtk_table_set_row_spacings (GTK_TABLE (table102), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table102), 4);
 
-  entry_config_force_ip = gtk_entry_new ();
-  gtk_widget_set_name (entry_config_force_ip, "entry_config_force_ip");
-  gtk_widget_show (entry_config_force_ip);
-  gtk_table_attach (GTK_TABLE (table5), entry_config_force_ip, 2, 5, 0, 1,
+  label129 = gtk_label_new_with_mnemonic (_("_Listen port"));
+  gtk_widget_set_name (label129, "label129");
+  gtk_widget_show (label129);
+  gtk_table_attach (GTK_TABLE (table102), label129, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label129), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_alignment (GTK_MISC (label129), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label129), 4, 0);
 
   label35 = gtk_label_new (_("Default: 6346, Random: 0"));
   gtk_widget_set_name (label35, "label35");
   gtk_widget_show (label35);
-  gtk_table_attach (GTK_TABLE (table5), label35, 4, 5, 1, 2,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+  gtk_table_attach (GTK_TABLE (table102), label35, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_label_set_justify (GTK_LABEL (label35), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_alignment (GTK_MISC (label35), 0, 0.5);
+
+  checkbutton_config_force_ip = gtk_check_button_new_with_mnemonic (_("Force local _IP to"));
+  gtk_widget_set_name (checkbutton_config_force_ip, "checkbutton_config_force_ip");
+  gtk_widget_show (checkbutton_config_force_ip);
+  gtk_table_attach (GTK_TABLE (table102), checkbutton_config_force_ip, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_give_server_hostname = gtk_check_button_new_with_mnemonic (_("Public _hostname"));
+  gtk_widget_set_name (checkbutton_give_server_hostname, "checkbutton_give_server_hostname");
+  gtk_widget_show (checkbutton_give_server_hostname);
+  gtk_table_attach (GTK_TABLE (table102), checkbutton_give_server_hostname, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_enable_udp = gtk_check_button_new_with_mnemonic (_("Enable _UDP"));
+  gtk_widget_set_name (checkbutton_enable_udp, "checkbutton_enable_udp");
+  gtk_widget_show (checkbutton_enable_udp);
+  gtk_table_attach (GTK_TABLE (table102), checkbutton_enable_udp, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label886 = gtk_label_new (_(" "));
+  gtk_widget_set_name (label886, "label886");
+  gtk_widget_show (label886);
+  gtk_table_attach (GTK_TABLE (table102), label886, 3, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label886), 0, 0.5);
 
   spinbutton_config_port_adj = gtk_adjustment_new (6346, 0, 65535, 1, 10, 10);
   spinbutton_config_port = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_port_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_port, "spinbutton_config_port");
   gtk_widget_show (spinbutton_config_port);
-  gtk_table_attach (GTK_TABLE (table5), spinbutton_config_port, 1, 4, 1, 2,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+  gtk_table_attach (GTK_TABLE (table102), spinbutton_config_port, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_port), TRUE);
 
-  checkbutton_give_server_hostname = gtk_check_button_new_with_mnemonic (_("Public hostname"));
-  gtk_widget_set_name (checkbutton_give_server_hostname, "checkbutton_give_server_hostname");
-  gtk_widget_show (checkbutton_give_server_hostname);
-  gtk_table_attach (GTK_TABLE (table5), checkbutton_give_server_hostname, 0, 1, 2, 3,
+  entry_config_force_ip = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_force_ip, "entry_config_force_ip");
+  gtk_widget_show (entry_config_force_ip);
+  gtk_table_attach (GTK_TABLE (table102), entry_config_force_ip, 1, 3, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
 
   entry_server_hostname = gtk_entry_new ();
   gtk_widget_set_name (entry_server_hostname, "entry_server_hostname");
   gtk_widget_show (entry_server_hostname);
-  gtk_table_attach (GTK_TABLE (table5), entry_server_hostname, 1, 5, 2, 3,
+  gtk_table_attach (GTK_TABLE (table102), entry_server_hostname, 1, 3, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_config_force_ip = gtk_check_button_new_with_mnemonic (_("_Force local IP to"));
-  gtk_widget_set_name (checkbutton_config_force_ip, "checkbutton_config_force_ip");
-  gtk_widget_show (checkbutton_config_force_ip);
-  gtk_table_attach (GTK_TABLE (table5), checkbutton_config_force_ip, 0, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  label129 = gtk_label_new_with_mnemonic (_("_Listen port"));
-  gtk_widget_set_name (label129, "label129");
-  gtk_widget_show (label129);
-  gtk_table_attach (GTK_TABLE (table5), label129, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_label_set_justify (GTK_LABEL (label129), GTK_JUSTIFY_CENTER);
-  gtk_misc_set_alignment (GTK_MISC (label129), 0, 0.5);
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
 
   label287 = gtk_label_new (_("IP settings"));
   gtk_widget_set_name (label287, "label287");
@@ -10138,6 +10188,7 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_set_name (frame_proxy_settings, "frame_proxy_settings");
   gtk_widget_show (frame_proxy_settings);
   gtk_box_pack_start (GTK_BOX (vbox24), frame_proxy_settings, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_proxy_settings), 4);
 
   vbox28 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox28, "vbox28");
@@ -10254,6 +10305,7 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_set_name (frame_expert_nw_local, "frame_expert_nw_local");
   gtk_widget_show (frame_expert_nw_local);
   gtk_box_pack_start (GTK_BOX (vbox24), frame_expert_nw_local, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_expert_nw_local), 4);
 
   vbox23_2 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox23_2, "vbox23_2");
@@ -10272,7 +10324,7 @@ create_dlg_prefs_net_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox77), checkbutton_config_use_netmasks, FALSE, FALSE, 0);
   gtk_tooltips_set_tip (tooltips, checkbutton_config_use_netmasks, _("This option can give peformance boosts to those on a large network with many peers by trying to locate files on the local networks first."), NULL);
 
-  checkbutton_config_no_rfc1918 = gtk_check_button_new_with_mnemonic (_("Allow connections from and to LAN addresses"));
+  checkbutton_config_no_rfc1918 = gtk_check_button_new_with_mnemonic (_("Allow connections from and to _LAN addresses"));
   gtk_widget_set_name (checkbutton_config_no_rfc1918, "checkbutton_config_no_rfc1918");
   gtk_widget_show (checkbutton_config_no_rfc1918);
   gtk_box_pack_start (GTK_BOX (hbox77), checkbutton_config_no_rfc1918, FALSE, FALSE, 0);
@@ -10283,7 +10335,7 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_show (hbox78);
   gtk_box_pack_start (GTK_BOX (vbox23_2), hbox78, FALSE, FALSE, 0);
 
-  label126_2 = gtk_label_new_with_mnemonic (_("A_ddresses of Local Network(s)"));
+  label126_2 = gtk_label_new_with_mnemonic (_("_Addresses of Local Network(s)"));
   gtk_widget_set_name (label126_2, "label126_2");
   gtk_widget_show (label126_2);
   gtk_box_pack_start (GTK_BOX (hbox78), label126_2, FALSE, FALSE, 0);
@@ -10304,6 +10356,7 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_set_name (frame_expert_nw_misc, "frame_expert_nw_misc");
   gtk_widget_show (frame_expert_nw_misc);
   gtk_box_pack_start (GTK_BOX (vbox24), frame_expert_nw_misc, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_expert_nw_misc), 4);
 
   table43 = gtk_table_new (3, 4, FALSE);
   gtk_widget_set_name (table43, "table43");
@@ -10313,7 +10366,7 @@ create_dlg_prefs_net_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table43), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table43), 4);
 
-  label515 = gtk_label_new (_("Max. file descriptors reserved for banning"));
+  label515 = gtk_label_new_with_mnemonic (_("Max. file descriptors reserved for _banning"));
   gtk_widget_set_name (label515, "label515");
   gtk_widget_show (label515);
   gtk_table_attach (GTK_TABLE (table43), label515, 0, 1, 0, 1,
@@ -10321,7 +10374,7 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label515), 0, 0.5);
 
-  label516 = gtk_label_new (_("Max. % of file descriptors used for banning"));
+  label516 = gtk_label_new_with_mnemonic (_("_Max. % of file descriptors used for banning"));
   gtk_widget_set_name (label516, "label516");
   gtk_widget_show (label516);
   gtk_table_attach (GTK_TABLE (table43), label516, 0, 1, 1, 2,
@@ -10329,7 +10382,7 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label516), 0, 0.5);
 
-  label583 = gtk_label_new (_("Hard limit of file descriptors used"));
+  label583 = gtk_label_new_with_mnemonic (_("Hard limit of _file descriptors used"));
   gtk_widget_set_name (label583, "label583");
   gtk_widget_show (label583);
   gtk_table_attach (GTK_TABLE (table43), label583, 0, 1, 2, 3,
@@ -10395,6 +10448,7 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_set_name (frame83, "frame83");
   gtk_widget_show (frame83);
   gtk_box_pack_start (GTK_BOX (vbox24), frame83, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame83), 4);
 
   table72 = gtk_table_new (1, 4, FALSE);
   gtk_widget_set_name (table72, "table72");
@@ -10424,7 +10478,7 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label701), 0, 0.5);
 
-  checkbutton_host_runs_ntp = gtk_check_button_new_with_mnemonic (_("Host runs NTP"));
+  checkbutton_host_runs_ntp = gtk_check_button_new_with_mnemonic (_("Host runs _NTP"));
   gtk_widget_set_name (checkbutton_host_runs_ntp, "checkbutton_host_runs_ntp");
   gtk_widget_show (checkbutton_host_runs_ntp);
   gtk_table_attach (GTK_TABLE (table72), checkbutton_host_runs_ntp, 0, 1, 0, 1,
@@ -10455,6 +10509,7 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_set_name (frame99, "frame99");
   gtk_widget_show (frame99);
   gtk_box_pack_start (GTK_BOX (vbox24), frame99, FALSE, FALSE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame99), 4);
 
   vbox118 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox118, "vbox118");
@@ -10462,7 +10517,7 @@ create_dlg_prefs_net_tab (void)
   gtk_container_add (GTK_CONTAINER (frame99), vbox118);
   gtk_container_set_border_width (GTK_CONTAINER (vbox118), 2);
 
-  checkbutton_enable_shell = gtk_check_button_new_with_mnemonic (_("Enable \"shell\" control interface"));
+  checkbutton_enable_shell = gtk_check_button_new_with_mnemonic (_("Enable \"_shell\" control interface"));
   gtk_widget_set_name (checkbutton_enable_shell, "checkbutton_enable_shell");
   gtk_widget_show (checkbutton_enable_shell);
   gtk_box_pack_start (GTK_BOX (vbox118), checkbutton_enable_shell, FALSE, FALSE, 0);
@@ -10476,6 +10531,7 @@ create_dlg_prefs_net_tab (void)
   gtk_widget_set_name (frame_expert_rx_buffers, "frame_expert_rx_buffers");
   gtk_widget_show (frame_expert_rx_buffers);
   gtk_box_pack_start (GTK_BOX (vbox24), frame_expert_rx_buffers, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_expert_rx_buffers), 4);
 
   table77 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table77, "table77");
@@ -10518,7 +10574,7 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  label_download_rx_buffer = gtk_label_new (_("Download RX buffer: "));
+  label_download_rx_buffer = gtk_label_new_with_mnemonic (_("_Download RX buffer: "));
   gtk_widget_set_name (label_download_rx_buffer, "label_download_rx_buffer");
   gtk_widget_show (label_download_rx_buffer);
   gtk_table_attach (GTK_TABLE (table77), label_download_rx_buffer, 0, 1, 0, 1,
@@ -10526,7 +10582,7 @@ create_dlg_prefs_net_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label_download_rx_buffer), 0, 0.5);
 
-  label_node_rx_buffer = gtk_label_new (_("Gnutella RX buffer: "));
+  label_node_rx_buffer = gtk_label_new_with_mnemonic (_("_Gnutella RX buffer: "));
   gtk_widget_set_name (label_node_rx_buffer, "label_node_rx_buffer");
   gtk_widget_show (label_node_rx_buffer);
   gtk_table_attach (GTK_TABLE (table77), label_node_rx_buffer, 0, 1, 1, 2,
@@ -10586,6 +10642,11 @@ create_dlg_prefs_net_tab (void)
   gtk_label_set_mnemonic_widget (GTK_LABEL (label93), entry_config_socks_username);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label94), entry_config_socks_password);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label126_2), entry_config_netmasks);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label515), spinbutton_config_ban_max_fds);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label516), spinbutton_config_ban_ratio_fds);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label583), entry_config_max_banned_fd);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label_download_rx_buffer), spinbutton_download_rx_size);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label_node_rx_buffer), spinbutton_node_rx_size);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_prefs_net_tab, dlg_prefs_net_tab, "dlg_prefs_net_tab");
@@ -10598,14 +10659,16 @@ create_dlg_prefs_net_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label128, "label128");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label_current_port, "label_current_port");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, hseparator2, "hseparator2");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table5, "table5");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_config_force_ip, "entry_config_force_ip");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label35, "label35");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, spinbutton_config_port, "spinbutton_config_port");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_give_server_hostname, "checkbutton_give_server_hostname");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_server_hostname, "entry_server_hostname");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_config_force_ip, "checkbutton_config_force_ip");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table102, "table102");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label129, "label129");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label35, "label35");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_config_force_ip, "checkbutton_config_force_ip");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_give_server_hostname, "checkbutton_give_server_hostname");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_enable_udp, "checkbutton_enable_udp");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label886, "label886");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, spinbutton_config_port, "spinbutton_config_port");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_config_force_ip, "entry_config_force_ip");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_server_hostname, "entry_server_hostname");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label287, "label287");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame_proxy_settings, "frame_proxy_settings");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, vbox28, "vbox28");
@@ -10682,22 +10745,21 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *vbox25;
   GtkWidget *frame92;
   GtkWidget *hbox253;
-  GtkWidget *alignment93;
   GtkWidget *table91;
-  GtkWidget *label537;
-  GtkWidget *combo_config_peermode;
-  GtkWidget *combo_entry3;
-  GtkWidget *checkbutton_gnet_monitor_ip;
-  GtkWidget *checkbutton_gnet_monitor_servents;
   GtkWidget *frame78;
   GtkWidget *table92;
-  GtkWidget *label576;
   GtkObject *spinbutton_normal_connections_adj;
   GtkWidget *spinbutton_normal_connections;
   GtkWidget *label577;
   GtkObject *spinbutton_config_max_leaves_adj;
   GtkWidget *spinbutton_config_max_leaves;
+  GtkWidget *label576;
   GtkWidget *label575;
+  GtkWidget *combo_config_peermode;
+  GtkWidget *combo_entry3;
+  GtkWidget *checkbutton_gnet_monitor_ip;
+  GtkWidget *checkbutton_gnet_monitor_servents;
+  GtkWidget *label537;
   GtkWidget *vbox120;
   GtkWidget *frame_gnet_can_become_ultra;
   GtkWidget *vbox116;
@@ -10737,29 +10799,33 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *label868;
   GtkWidget *label751;
   GtkWidget *label739;
+  GtkWidget *hbox286;
   GtkWidget *frame_searches;
   GtkWidget *hbox254;
-  GtkWidget *alignment94;
   GtkWidget *table17;
-  GtkWidget *label38;
   GtkObject *spinbutton_config_search_items_adj;
   GtkWidget *spinbutton_config_search_items;
+  GtkObject *spinbutton_config_search_reissue_timeout_adj;
+  GtkWidget *spinbutton_config_search_reissue_timeout;
+  GtkWidget *label38;
   GtkWidget *label37;
   GtkWidget *label364;
   GtkWidget *label365;
-  GtkObject *spinbutton_config_search_reissue_timeout_adj;
-  GtkWidget *spinbutton_config_search_reissue_timeout;
-  GtkWidget *vbox121;
+  GtkWidget *label293;
+  GtkWidget *frame128;
+  GtkWidget *table101;
+  GtkWidget *checkbutton_send_oob_queries;
+  GtkWidget *checkbutton_process_oob_queries;
+  GtkWidget *label885;
   GtkWidget *frame_expert_search_queue;
-  GtkWidget *hbox248;
+  GtkWidget *table100;
   GtkWidget *label771;
+  GtkWidget *label772;
   GtkObject *spinbutton_search_queue_size_adj;
   GtkWidget *spinbutton_search_queue_size;
-  GtkWidget *label772;
   GtkObject *spinbutton_search_queue_spacing_adj;
   GtkWidget *spinbutton_search_queue_spacing;
   GtkWidget *label770;
-  GtkWidget *label293;
   GtkWidget *frame_expert_gnet_timeout;
   GtkWidget *table10;
   GtkWidget *label175;
@@ -10796,7 +10862,6 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *label295;
   GtkWidget *frame_expert_gnet_quality;
   GtkWidget *table37;
-  GtkWidget *label432;
   GtkWidget *label433;
   GtkObject *spinbutton_config_min_dup_msg_adj;
   GtkWidget *spinbutton_config_min_dup_msg;
@@ -10817,6 +10882,7 @@ create_dlg_prefs_gnet_tab (void)
   GtkObject *spinbutton_node_requery_threshold_adj;
   GtkWidget *spinbutton_node_requery_threshold;
   GtkWidget *label429;
+  GtkWidget *hbox287;
   GtkWidget *frame_expert_gnet_connections;
   GtkWidget *table74;
   GtkWidget *label728;
@@ -10862,6 +10928,7 @@ create_dlg_prefs_gnet_tab (void)
   dlg_prefs_gnet_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_prefs_gnet_tab, "dlg_prefs_gnet_tab");
   gtk_window_set_title (GTK_WINDOW (dlg_prefs_gnet_tab), _("GnutellaNet"));
+  gtk_window_set_default_size (GTK_WINDOW (dlg_prefs_gnet_tab), 600, 400);
 
   scrolledwindow40 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow40, "scrolledwindow40");
@@ -10885,6 +10952,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_set_name (frame92, "frame92");
   gtk_widget_show (frame92);
   gtk_box_pack_start (GTK_BOX (vbox25), frame92, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame92), 4);
 
   hbox253 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox253, "hbox253");
@@ -10892,54 +10960,12 @@ create_dlg_prefs_gnet_tab (void)
   gtk_container_add (GTK_CONTAINER (frame92), hbox253);
   gtk_container_set_border_width (GTK_CONTAINER (hbox253), 2);
 
-  alignment93 = gtk_alignment_new (0, 0.5, 0, 1);
-  gtk_widget_set_name (alignment93, "alignment93");
-  gtk_widget_show (alignment93);
-  gtk_box_pack_start (GTK_BOX (hbox253), alignment93, TRUE, TRUE, 0);
-
   table91 = gtk_table_new (4, 2, FALSE);
   gtk_widget_set_name (table91, "table91");
   gtk_widget_show (table91);
-  gtk_container_add (GTK_CONTAINER (alignment93), table91);
+  gtk_box_pack_start (GTK_BOX (hbox253), table91, FALSE, TRUE, 0);
   gtk_table_set_row_spacings (GTK_TABLE (table91), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table91), 4);
-
-  label537 = gtk_label_new (_("Configured peermode"));
-  gtk_widget_set_name (label537, "label537");
-  gtk_widget_show (label537);
-  gtk_table_attach (GTK_TABLE (table91), label537, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  combo_config_peermode = gtk_combo_new ();
-  g_object_set_data (G_OBJECT (GTK_COMBO (combo_config_peermode)->popwin),
-                     "GladeParentKey", combo_config_peermode);
-  gtk_widget_set_name (combo_config_peermode, "combo_config_peermode");
-  gtk_widget_show (combo_config_peermode);
-  gtk_table_attach (GTK_TABLE (table91), combo_config_peermode, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  combo_entry3 = GTK_COMBO (combo_config_peermode)->entry;
-  gtk_widget_set_name (combo_entry3, "combo_entry3");
-  gtk_widget_show (combo_entry3);
-  gtk_editable_set_editable (GTK_EDITABLE (combo_entry3), FALSE);
-
-  checkbutton_gnet_monitor_ip = gtk_check_button_new_with_mnemonic (_("Monitor bad node IP addresses"));
-  gtk_widget_set_name (checkbutton_gnet_monitor_ip, "checkbutton_gnet_monitor_ip");
-  gtk_widget_show (checkbutton_gnet_monitor_ip);
-  gtk_table_attach (GTK_TABLE (table91), checkbutton_gnet_monitor_ip, 0, 2, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbutton_gnet_monitor_ip), TRUE);
-
-  checkbutton_gnet_monitor_servents = gtk_check_button_new_with_mnemonic (_("Monitor and auto-ban unstable servent types"));
-  gtk_widget_set_name (checkbutton_gnet_monitor_servents, "checkbutton_gnet_monitor_servents");
-  gtk_widget_show (checkbutton_gnet_monitor_servents);
-  gtk_table_attach (GTK_TABLE (table91), checkbutton_gnet_monitor_servents, 0, 2, 3, 4,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbutton_gnet_monitor_servents), TRUE);
 
   frame78 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame78, "frame78");
@@ -10957,28 +10983,20 @@ create_dlg_prefs_gnet_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table92), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table92), 4);
 
-  label576 = gtk_label_new (_("Legacy connections"));
-  gtk_widget_set_name (label576, "label576");
-  gtk_widget_show (label576);
-  gtk_table_attach (GTK_TABLE (table92), label576, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label576), 0, 0.5);
-
   spinbutton_normal_connections_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_normal_connections = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_normal_connections_adj), 1, 0);
   gtk_widget_set_name (spinbutton_normal_connections, "spinbutton_normal_connections");
   gtk_widget_show (spinbutton_normal_connections);
   gtk_table_attach (GTK_TABLE (table92), spinbutton_normal_connections, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
 
   label577 = gtk_label_new (_("Maximum # of leaves"));
   gtk_widget_set_name (label577, "label577");
   gtk_widget_show (label577);
   gtk_table_attach (GTK_TABLE (table92), label577, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label577), 0, 0.5);
 
   spinbutton_config_max_leaves_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
@@ -10986,13 +11004,58 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_set_name (spinbutton_config_max_leaves, "spinbutton_config_max_leaves");
   gtk_widget_show (spinbutton_config_max_leaves);
   gtk_table_attach (GTK_TABLE (table92), spinbutton_config_max_leaves, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label576 = gtk_label_new (_("Legacy connections"));
+  gtk_widget_set_name (label576, "label576");
+  gtk_widget_show (label576);
+  gtk_table_attach (GTK_TABLE (table92), label576, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 4, 4);
+  gtk_misc_set_alignment (GTK_MISC (label576), 0, 0.5);
 
   label575 = gtk_label_new (_("Ultrapeer mode settings"));
   gtk_widget_set_name (label575, "label575");
   gtk_widget_show (label575);
   gtk_frame_set_label_widget (GTK_FRAME (frame78), label575);
+
+  combo_config_peermode = gtk_combo_new ();
+  g_object_set_data (G_OBJECT (GTK_COMBO (combo_config_peermode)->popwin),
+                     "GladeParentKey", combo_config_peermode);
+  gtk_widget_set_name (combo_config_peermode, "combo_config_peermode");
+  gtk_widget_show (combo_config_peermode);
+  gtk_table_attach (GTK_TABLE (table91), combo_config_peermode, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  combo_entry3 = GTK_COMBO (combo_config_peermode)->entry;
+  gtk_widget_set_name (combo_entry3, "combo_entry3");
+  gtk_widget_show (combo_entry3);
+  gtk_editable_set_editable (GTK_EDITABLE (combo_entry3), FALSE);
+
+  checkbutton_gnet_monitor_ip = gtk_check_button_new_with_mnemonic (_("Monitor bad node IP addresses"));
+  gtk_widget_set_name (checkbutton_gnet_monitor_ip, "checkbutton_gnet_monitor_ip");
+  gtk_widget_show (checkbutton_gnet_monitor_ip);
+  gtk_table_attach (GTK_TABLE (table91), checkbutton_gnet_monitor_ip, 0, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbutton_gnet_monitor_ip), TRUE);
+
+  checkbutton_gnet_monitor_servents = gtk_check_button_new_with_mnemonic (_("Monitor and auto-ban unstable servent types"));
+  gtk_widget_set_name (checkbutton_gnet_monitor_servents, "checkbutton_gnet_monitor_servents");
+  gtk_widget_show (checkbutton_gnet_monitor_servents);
+  gtk_table_attach (GTK_TABLE (table91), checkbutton_gnet_monitor_servents, 0, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbutton_gnet_monitor_servents), TRUE);
+
+  label537 = gtk_label_new (_("Configured peermode"));
+  gtk_widget_set_name (label537, "label537");
+  gtk_widget_show (label537);
+  gtk_table_attach (GTK_TABLE (table91), label537, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
 
   vbox120 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox120, "vbox120");
@@ -11273,10 +11336,16 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_show (label739);
   gtk_frame_set_label_widget (GTK_FRAME (frame92), label739);
 
+  hbox286 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox286, "hbox286");
+  gtk_widget_show (hbox286);
+  gtk_box_pack_start (GTK_BOX (vbox25), hbox286, FALSE, FALSE, 0);
+
   frame_searches = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_searches, "frame_searches");
   gtk_widget_show (frame_searches);
-  gtk_box_pack_start (GTK_BOX (vbox25), frame_searches, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox286), frame_searches, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_searches), 4);
 
   hbox254 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox254, "hbox254");
@@ -11284,26 +11353,12 @@ create_dlg_prefs_gnet_tab (void)
   gtk_container_add (GTK_CONTAINER (frame_searches), hbox254);
   gtk_container_set_border_width (GTK_CONTAINER (hbox254), 2);
 
-  alignment94 = gtk_alignment_new (0, 0.5, 0, 1);
-  gtk_widget_set_name (alignment94, "alignment94");
-  gtk_widget_show (alignment94);
-  gtk_box_pack_start (GTK_BOX (hbox254), alignment94, TRUE, TRUE, 0);
-
   table17 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table17, "table17");
   gtk_widget_show (table17);
-  gtk_container_add (GTK_CONTAINER (alignment94), table17);
+  gtk_box_pack_start (GTK_BOX (hbox254), table17, FALSE, TRUE, 0);
   gtk_table_set_row_spacings (GTK_TABLE (table17), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table17), 4);
-
-  label38 = gtk_label_new (_("items"));
-  gtk_widget_set_name (label38, "label38");
-  gtk_widget_show (label38);
-  gtk_table_attach (GTK_TABLE (table17), label38, 2, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_label_set_justify (GTK_LABEL (label38), GTK_JUSTIFY_CENTER);
-  gtk_misc_set_alignment (GTK_MISC (label38), 7.45058e-09, 0.5);
 
   spinbutton_config_search_items_adj = gtk_adjustment_new (1, 1, 255, 1, 10, 10);
   spinbutton_config_search_items = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_search_items_adj), 1, 0);
@@ -11315,31 +11370,6 @@ create_dlg_prefs_gnet_tab (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_search_items, _("This limits how many results gnutella returns to other people searching your files."), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_search_items), TRUE);
 
-  label37 = gtk_label_new_with_mnemonic (_("Limit search _results to "));
-  gtk_widget_set_name (label37, "label37");
-  gtk_widget_show (label37);
-  gtk_table_attach (GTK_TABLE (table17), label37, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_label_set_justify (GTK_LABEL (label37), GTK_JUSTIFY_CENTER);
-  gtk_misc_set_alignment (GTK_MISC (label37), 7.45058e-09, 0.5);
-
-  label364 = gtk_label_new_with_mnemonic (_("Default search _reissue timeout"));
-  gtk_widget_set_name (label364, "label364");
-  gtk_widget_show (label364);
-  gtk_table_attach (GTK_TABLE (table17), label364, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label364), 0, 0.5);
-
-  label365 = gtk_label_new (_("seconds (0 - disable)"));
-  gtk_widget_set_name (label365, "label365");
-  gtk_widget_show (label365);
-  gtk_table_attach (GTK_TABLE (table17), label365, 2, 3, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label365), 0, 0.5);
-
   spinbutton_config_search_reissue_timeout_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_config_search_reissue_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_search_reissue_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_search_reissue_timeout, "spinbutton_config_search_reissue_timeout");
@@ -11349,62 +11379,130 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_search_reissue_timeout), TRUE);
 
-  vbox121 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox121, "vbox121");
-  gtk_widget_show (vbox121);
-  gtk_box_pack_start (GTK_BOX (hbox254), vbox121, FALSE, TRUE, 0);
+  label38 = gtk_label_new (_("items"));
+  gtk_widget_set_name (label38, "label38");
+  gtk_widget_show (label38);
+  gtk_table_attach (GTK_TABLE (table17), label38, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label38), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_alignment (GTK_MISC (label38), 7.45058e-09, 0.5);
 
-  frame_expert_search_queue = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame_expert_search_queue, "frame_expert_search_queue");
-  gtk_widget_show (frame_expert_search_queue);
-  gtk_box_pack_start (GTK_BOX (vbox121), frame_expert_search_queue, FALSE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame_expert_search_queue), GTK_SHADOW_OUT);
+  label37 = gtk_label_new_with_mnemonic (_("Limit search _results to "));
+  gtk_widget_set_name (label37, "label37");
+  gtk_widget_show (label37);
+  gtk_table_attach (GTK_TABLE (table17), label37, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label37), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_alignment (GTK_MISC (label37), 7.45058e-09, 0.5);
 
-  hbox248 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox248, "hbox248");
-  gtk_widget_show (hbox248);
-  gtk_container_add (GTK_CONTAINER (frame_expert_search_queue), hbox248);
-  gtk_container_set_border_width (GTK_CONTAINER (hbox248), 2);
+  label364 = gtk_label_new_with_mnemonic (_("Default search _reissue timeout"));
+  gtk_widget_set_name (label364, "label364");
+  gtk_widget_show (label364);
+  gtk_table_attach (GTK_TABLE (table17), label364, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label364), 0, 0.5);
 
-  label771 = gtk_label_new (_("Size"));
-  gtk_widget_set_name (label771, "label771");
-  gtk_widget_show (label771);
-  gtk_box_pack_start (GTK_BOX (hbox248), label771, FALSE, TRUE, 0);
-  gtk_label_set_justify (GTK_LABEL (label771), GTK_JUSTIFY_CENTER);
-  gtk_misc_set_padding (GTK_MISC (label771), 2, 0);
-
-  spinbutton_search_queue_size_adj = gtk_adjustment_new (1000, 0, 1000, 1, 10, 10);
-  spinbutton_search_queue_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_queue_size_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_search_queue_size, "spinbutton_search_queue_size");
-  gtk_widget_show (spinbutton_search_queue_size);
-  gtk_box_pack_start (GTK_BOX (hbox248), spinbutton_search_queue_size, FALSE, TRUE, 0);
-
-  label772 = gtk_label_new (_("Spacing"));
-  gtk_widget_set_name (label772, "label772");
-  gtk_widget_show (label772);
-  gtk_box_pack_start (GTK_BOX (hbox248), label772, FALSE, FALSE, 0);
-  gtk_misc_set_padding (GTK_MISC (label772), 2, 0);
-
-  spinbutton_search_queue_spacing_adj = gtk_adjustment_new (60, 0, 100, 1, 10, 10);
-  spinbutton_search_queue_spacing = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_queue_spacing_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_search_queue_spacing, "spinbutton_search_queue_spacing");
-  gtk_widget_show (spinbutton_search_queue_spacing);
-  gtk_box_pack_start (GTK_BOX (hbox248), spinbutton_search_queue_spacing, FALSE, TRUE, 0);
-
-  label770 = gtk_label_new (_("Search queue"));
-  gtk_widget_set_name (label770, "label770");
-  gtk_widget_show (label770);
-  gtk_frame_set_label_widget (GTK_FRAME (frame_expert_search_queue), label770);
+  label365 = gtk_label_new (_("seconds (0 - disable)"));
+  gtk_widget_set_name (label365, "label365");
+  gtk_widget_show (label365);
+  gtk_table_attach (GTK_TABLE (table17), label365, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label365), 0, 0.5);
 
   label293 = gtk_label_new_with_mnemonic (_("Searches"));
   gtk_widget_set_name (label293, "label293");
   gtk_widget_show (label293);
   gtk_frame_set_label_widget (GTK_FRAME (frame_searches), label293);
 
+  frame128 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame128, "frame128");
+  gtk_widget_show (frame128);
+  gtk_box_pack_start (GTK_BOX (hbox286), frame128, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame128), 4);
+
+  table101 = gtk_table_new (2, 1, FALSE);
+  gtk_widget_set_name (table101, "table101");
+  gtk_widget_show (table101);
+  gtk_container_add (GTK_CONTAINER (frame128), table101);
+
+  checkbutton_send_oob_queries = gtk_check_button_new_with_mnemonic (_("Queries ask for OOB results"));
+  gtk_widget_set_name (checkbutton_send_oob_queries, "checkbutton_send_oob_queries");
+  gtk_widget_show (checkbutton_send_oob_queries);
+  gtk_table_attach (GTK_TABLE (table101), checkbutton_send_oob_queries, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_process_oob_queries = gtk_check_button_new_with_mnemonic (_("Honour OOB flag in queries"));
+  gtk_widget_set_name (checkbutton_process_oob_queries, "checkbutton_process_oob_queries");
+  gtk_widget_show (checkbutton_process_oob_queries);
+  gtk_table_attach (GTK_TABLE (table101), checkbutton_process_oob_queries, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbutton_process_oob_queries), TRUE);
+
+  label885 = gtk_label_new (_("Out of Band Querying"));
+  gtk_widget_set_name (label885, "label885");
+  gtk_widget_show (label885);
+  gtk_frame_set_label_widget (GTK_FRAME (frame128), label885);
+
+  frame_expert_search_queue = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame_expert_search_queue, "frame_expert_search_queue");
+  gtk_widget_show (frame_expert_search_queue);
+  gtk_box_pack_start (GTK_BOX (hbox286), frame_expert_search_queue, TRUE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_expert_search_queue), 4);
+
+  table100 = gtk_table_new (2, 2, FALSE);
+  gtk_widget_set_name (table100, "table100");
+  gtk_widget_show (table100);
+  gtk_container_add (GTK_CONTAINER (frame_expert_search_queue), table100);
+
+  label771 = gtk_label_new (_("Size"));
+  gtk_widget_set_name (label771, "label771");
+  gtk_widget_show (label771);
+  gtk_table_attach (GTK_TABLE (table100), label771, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label771), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_padding (GTK_MISC (label771), 2, 0);
+
+  label772 = gtk_label_new (_("Spacing"));
+  gtk_widget_set_name (label772, "label772");
+  gtk_widget_show (label772);
+  gtk_table_attach (GTK_TABLE (table100), label772, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_padding (GTK_MISC (label772), 2, 0);
+
+  spinbutton_search_queue_size_adj = gtk_adjustment_new (1000, 0, 1000, 1, 10, 10);
+  spinbutton_search_queue_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_queue_size_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_search_queue_size, "spinbutton_search_queue_size");
+  gtk_widget_show (spinbutton_search_queue_size);
+  gtk_table_attach (GTK_TABLE (table100), spinbutton_search_queue_size, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  spinbutton_search_queue_spacing_adj = gtk_adjustment_new (60, 0, 100, 1, 10, 10);
+  spinbutton_search_queue_spacing = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_queue_spacing_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_search_queue_spacing, "spinbutton_search_queue_spacing");
+  gtk_widget_show (spinbutton_search_queue_spacing);
+  gtk_table_attach (GTK_TABLE (table100), spinbutton_search_queue_spacing, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label770 = gtk_label_new (_("Search queue"));
+  gtk_widget_set_name (label770, "label770");
+  gtk_widget_show (label770);
+  gtk_frame_set_label_widget (GTK_FRAME (frame_expert_search_queue), label770);
+
   frame_expert_gnet_timeout = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_expert_gnet_timeout, "frame_expert_gnet_timeout");
   gtk_widget_show (frame_expert_gnet_timeout);
   gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_timeout, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_expert_gnet_timeout), 4);
 
   table10 = gtk_table_new (2, 4, FALSE);
   gtk_widget_set_name (table10, "table10");
@@ -11494,6 +11592,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_set_name (frame_expert_gnet_ttl, "frame_expert_gnet_ttl");
   gtk_widget_show (frame_expert_gnet_ttl);
   gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_ttl, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_expert_gnet_ttl), 4);
 
   table9 = gtk_table_new (3, 5, FALSE);
   gtk_widget_set_name (table9, "table9");
@@ -11610,6 +11709,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_set_name (frame_expert_gnet_quality, "frame_expert_gnet_quality");
   gtk_widget_show (frame_expert_gnet_quality);
   gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_quality, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_expert_gnet_quality), 4);
 
   table37 = gtk_table_new (3, 6, FALSE);
   gtk_widget_set_name (table37, "table37");
@@ -11618,14 +11718,6 @@ create_dlg_prefs_gnet_tab (void)
   gtk_container_set_border_width (GTK_CONTAINER (table37), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table37), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table37), 4);
-
-  label432 = gtk_label_new (_("messages"));
-  gtk_widget_set_name (label432, "label432");
-  gtk_widget_show (label432);
-  gtk_table_attach (GTK_TABLE (table37), label432, 2, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label432), 0, 0.5);
 
   label433 = gtk_label_new (_("%"));
   gtk_widget_set_name (label433, "label433");
@@ -11745,10 +11837,16 @@ create_dlg_prefs_gnet_tab (void)
   gtk_widget_show (label429);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_gnet_quality), label429);
 
+  hbox287 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox287, "hbox287");
+  gtk_widget_show (hbox287);
+  gtk_box_pack_start (GTK_BOX (vbox25), hbox287, FALSE, TRUE, 0);
+
   frame_expert_gnet_connections = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_expert_gnet_connections, "frame_expert_gnet_connections");
   gtk_widget_show (frame_expert_gnet_connections);
-  gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_connections, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox287), frame_expert_gnet_connections, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_expert_gnet_connections), 4);
 
   table74 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table74, "table74");
@@ -11816,7 +11914,8 @@ create_dlg_prefs_gnet_tab (void)
   frame_expert_gnet_other = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_expert_gnet_other, "frame_expert_gnet_other");
   gtk_widget_show (frame_expert_gnet_other);
-  gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_other, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox287), frame_expert_gnet_other, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_expert_gnet_other), 4);
 
   table51 = gtk_table_new (2, 2, FALSE);
   gtk_widget_set_name (table51, "table51");
@@ -11858,7 +11957,8 @@ create_dlg_prefs_gnet_tab (void)
   frame_expert_gnet_message_size = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_expert_gnet_message_size, "frame_expert_gnet_message_size");
   gtk_widget_show (frame_expert_gnet_message_size);
-  gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_message_size, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_message_size, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_expert_gnet_message_size), 4);
 
   table85 = gtk_table_new (4, 3, FALSE);
   gtk_widget_set_name (table85, "table85");
@@ -11991,20 +12091,19 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, vbox25, "vbox25");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame92, "frame92");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, hbox253, "hbox253");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, alignment93, "alignment93");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table91, "table91");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label537, "label537");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame78, "frame78");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table92, "table92");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_normal_connections, "spinbutton_normal_connections");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label577, "label577");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_config_max_leaves, "spinbutton_config_max_leaves");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label576, "label576");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label575, "label575");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, combo_config_peermode, "combo_config_peermode");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, combo_entry3, "combo_entry3");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_gnet_monitor_ip, "checkbutton_gnet_monitor_ip");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_gnet_monitor_servents, "checkbutton_gnet_monitor_servents");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame78, "frame78");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table92, "table92");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label576, "label576");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_normal_connections, "spinbutton_normal_connections");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label577, "label577");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_config_max_leaves, "spinbutton_config_max_leaves");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label575, "label575");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label537, "label537");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, vbox120, "vbox120");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_gnet_can_become_ultra, "frame_gnet_can_become_ultra");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, vbox116, "vbox116");
@@ -12044,25 +12143,29 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label868, "label868");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label751, "label751");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label739, "label739");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, hbox286, "hbox286");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_searches, "frame_searches");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, hbox254, "hbox254");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, alignment94, "alignment94");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table17, "table17");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label38, "label38");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_config_search_items, "spinbutton_config_search_items");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_config_search_reissue_timeout, "spinbutton_config_search_reissue_timeout");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label38, "label38");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label37, "label37");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label364, "label364");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label365, "label365");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_config_search_reissue_timeout, "spinbutton_config_search_reissue_timeout");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, vbox121, "vbox121");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label293, "label293");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame128, "frame128");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table101, "table101");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_send_oob_queries, "checkbutton_send_oob_queries");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_process_oob_queries, "checkbutton_process_oob_queries");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label885, "label885");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_search_queue, "frame_expert_search_queue");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, hbox248, "hbox248");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table100, "table100");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label771, "label771");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_search_queue_size, "spinbutton_search_queue_size");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label772, "label772");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_search_queue_size, "spinbutton_search_queue_size");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_search_queue_spacing, "spinbutton_search_queue_spacing");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label770, "label770");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label293, "label293");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_gnet_timeout, "frame_expert_gnet_timeout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table10, "table10");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label175, "label175");
@@ -12090,7 +12193,6 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label295, "label295");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_gnet_quality, "frame_expert_gnet_quality");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table37, "table37");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label432, "label432");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label433, "label433");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_config_min_dup_msg, "spinbutton_config_min_dup_msg");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_config_min_dup_ratio, "spinbutton_config_min_dup_ratio");
@@ -12106,6 +12208,7 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label774, "label774");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, spinbutton_node_requery_threshold, "spinbutton_node_requery_threshold");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label429, "label429");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, hbox287, "hbox287");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_gnet_connections, "frame_expert_gnet_connections");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table74, "table74");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label728, "label728");
@@ -12150,12 +12253,11 @@ create_dlg_prefs_bw_tab (void)
   GtkWidget *vbox29;
   GtkWidget *frame72;
   GtkWidget *hbox255;
-  GtkWidget *alignment95;
-  GtkWidget *vbox124;
+  GtkWidget *table99;
   GtkWidget *checkbutton_config_bw_allow_stealing;
   GtkWidget *checkbutton_prefer_compressed_gnet;
   GtkWidget *checkbutton_config_use_ip_tos;
-  GtkWidget *vbox123;
+  GtkWidget *viewport116;
   GtkWidget *frame93;
   GtkWidget *table79;
   GtkWidget *label741;
@@ -12173,7 +12275,10 @@ create_dlg_prefs_bw_tab (void)
   GtkWidget *label740;
   GtkWidget *label536;
   GtkWidget *frame20;
-  GtkWidget *vbox103;
+  GtkWidget *hbox281;
+  GtkWidget *viewport114;
+  GtkWidget *frame127;
+  GtkWidget *alignment106;
   GtkWidget *table13;
   GtkWidget *label181;
   GtkWidget *label182;
@@ -12183,7 +12288,8 @@ create_dlg_prefs_bw_tab (void)
   GtkWidget *spinbutton_config_bws_gout;
   GtkWidget *checkbutton_config_bws_gin;
   GtkWidget *checkbutton_config_bws_gout;
-  GtkWidget *hbox263;
+  GtkWidget *label884;
+  GtkWidget *viewport115;
   GtkWidget *frame79;
   GtkWidget *table62;
   GtkObject *spinbutton_config_bws_glout_adj;
@@ -12212,11 +12318,11 @@ create_dlg_prefs_bw_tab (void)
   GtkWidget *label210;
   GtkWidget *label36;
   GtkWidget *hseparator8;
-  GtkWidget *checkbutton_config_bws_in;
-  GtkWidget *checkbutton_config_bws_out;
-  GtkWidget *checkbutton_config_bw_ul_usage_enabled;
   GtkWidget *label156;
   GtkWidget *checkbutton_compute_connection_speed;
+  GtkWidget *checkbutton_config_bw_ul_usage_enabled;
+  GtkWidget *checkbutton_config_bws_out;
+  GtkWidget *checkbutton_config_bws_in;
   GtkWidget *label291;
   GtkTooltips *tooltips;
 
@@ -12225,6 +12331,7 @@ create_dlg_prefs_bw_tab (void)
   dlg_prefs_bw_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_prefs_bw_tab, "dlg_prefs_bw_tab");
   gtk_window_set_title (GTK_WINDOW (dlg_prefs_bw_tab), _("Bandwidth"));
+  gtk_window_set_default_size (GTK_WINDOW (dlg_prefs_bw_tab), 600, 400);
 
   scrolledwindow39 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow39, "scrolledwindow39");
@@ -12255,42 +12362,44 @@ create_dlg_prefs_bw_tab (void)
   gtk_container_add (GTK_CONTAINER (frame72), hbox255);
   gtk_container_set_border_width (GTK_CONTAINER (hbox255), 2);
 
-  alignment95 = gtk_alignment_new (0, 0.5, 0, 1);
-  gtk_widget_set_name (alignment95, "alignment95");
-  gtk_widget_show (alignment95);
-  gtk_box_pack_start (GTK_BOX (hbox255), alignment95, TRUE, TRUE, 0);
+  table99 = gtk_table_new (3, 1, FALSE);
+  gtk_widget_set_name (table99, "table99");
+  gtk_widget_show (table99);
+  gtk_box_pack_start (GTK_BOX (hbox255), table99, TRUE, TRUE, 0);
 
-  vbox124 = gtk_vbox_new (FALSE, 2);
-  gtk_widget_set_name (vbox124, "vbox124");
-  gtk_widget_show (vbox124);
-  gtk_container_add (GTK_CONTAINER (alignment95), vbox124);
-
-  checkbutton_config_bw_allow_stealing = gtk_check_button_new_with_mnemonic (_("Use surplus bandwidth"));
+  checkbutton_config_bw_allow_stealing = gtk_check_button_new_with_mnemonic (_("Use _surplus bandwidth"));
   gtk_widget_set_name (checkbutton_config_bw_allow_stealing, "checkbutton_config_bw_allow_stealing");
   gtk_widget_show (checkbutton_config_bw_allow_stealing);
-  gtk_box_pack_start (GTK_BOX (vbox124), checkbutton_config_bw_allow_stealing, FALSE, FALSE, 0);
+  gtk_table_attach (GTK_TABLE (table99), checkbutton_config_bw_allow_stealing, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 4, 0);
 
-  checkbutton_prefer_compressed_gnet = gtk_check_button_new_with_mnemonic (_("Prefer compressed connections"));
+  checkbutton_prefer_compressed_gnet = gtk_check_button_new_with_mnemonic (_("Prefer _compressed connections"));
   gtk_widget_set_name (checkbutton_prefer_compressed_gnet, "checkbutton_prefer_compressed_gnet");
   gtk_widget_show (checkbutton_prefer_compressed_gnet);
-  gtk_box_pack_start (GTK_BOX (vbox124), checkbutton_prefer_compressed_gnet, FALSE, FALSE, 0);
+  gtk_table_attach (GTK_TABLE (table99), checkbutton_prefer_compressed_gnet, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 4, 0);
 
-  checkbutton_config_use_ip_tos = gtk_check_button_new_with_mnemonic (_("Use IP Type of Service (TOS)"));
+  checkbutton_config_use_ip_tos = gtk_check_button_new_with_mnemonic (_("Use IP _Type of Service (TOS)"));
   gtk_widget_set_name (checkbutton_config_use_ip_tos, "checkbutton_config_use_ip_tos");
   gtk_widget_show (checkbutton_config_use_ip_tos);
-  gtk_box_pack_start (GTK_BOX (vbox124), checkbutton_config_use_ip_tos, FALSE, FALSE, 0);
+  gtk_table_attach (GTK_TABLE (table99), checkbutton_config_use_ip_tos, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 4, 0);
 
-  vbox123 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox123, "vbox123");
-  gtk_widget_show (vbox123);
-  gtk_box_pack_start (GTK_BOX (hbox255), vbox123, FALSE, TRUE, 0);
+  viewport116 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport116, "viewport116");
+  gtk_widget_show (viewport116);
+  gtk_box_pack_start (GTK_BOX (hbox255), viewport116, TRUE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (viewport116), 4);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport116), GTK_SHADOW_OUT);
 
   frame93 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame93, "frame93");
   gtk_widget_show (frame93);
-  gtk_box_pack_start (GTK_BOX (vbox123), frame93, FALSE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (viewport116), frame93);
   gtk_container_set_border_width (GTK_CONTAINER (frame93), 2);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame93), GTK_SHADOW_OUT);
 
   table79 = gtk_table_new (3, 3, FALSE);
   gtk_widget_set_name (table79, "table79");
@@ -12405,16 +12514,33 @@ create_dlg_prefs_bw_tab (void)
   gtk_widget_show (frame20);
   gtk_box_pack_start (GTK_BOX (vbox29), frame20, FALSE, TRUE, 0);
 
-  vbox103 = gtk_vbox_new (FALSE, 2);
-  gtk_widget_set_name (vbox103, "vbox103");
-  gtk_widget_show (vbox103);
-  gtk_container_add (GTK_CONTAINER (frame20), vbox103);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox103), 2);
+  hbox281 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox281, "hbox281");
+  gtk_widget_show (hbox281);
+  gtk_container_add (GTK_CONTAINER (frame20), hbox281);
+  gtk_container_set_border_width (GTK_CONTAINER (hbox281), 2);
+
+  viewport114 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport114, "viewport114");
+  gtk_widget_show (viewport114);
+  gtk_box_pack_start (GTK_BOX (hbox281), viewport114, TRUE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport114), GTK_SHADOW_OUT);
+
+  frame127 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame127, "frame127");
+  gtk_widget_show (frame127);
+  gtk_container_add (GTK_CONTAINER (viewport114), frame127);
+
+  alignment106 = gtk_alignment_new (0.5, 0.5, 1, 1);
+  gtk_widget_set_name (alignment106, "alignment106");
+  gtk_widget_show (alignment106);
+  gtk_container_add (GTK_CONTAINER (frame127), alignment106);
+  gtk_alignment_set_padding (GTK_ALIGNMENT (alignment106), 0, 0, 12, 0);
 
   table13 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table13, "table13");
   gtk_widget_show (table13);
-  gtk_box_pack_start (GTK_BOX (vbox103), table13, TRUE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (alignment106), table13);
   gtk_container_set_border_width (GTK_CONTAINER (table13), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table13), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table13), 4);
@@ -12455,30 +12581,36 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bws_gout), TRUE);
 
-  checkbutton_config_bws_gin = gtk_check_button_new_with_mnemonic (_("Limit bandwidth for _incoming traffic to"));
+  checkbutton_config_bws_gin = gtk_check_button_new_with_mnemonic (_("_Incoming traffic"));
   gtk_widget_set_name (checkbutton_config_bws_gin, "checkbutton_config_bws_gin");
   gtk_widget_show (checkbutton_config_bws_gin);
   gtk_table_attach (GTK_TABLE (table13), checkbutton_config_bws_gin, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  checkbutton_config_bws_gout = gtk_check_button_new_with_mnemonic (_("Limit bandwidth for _outgoing traffic to"));
+  checkbutton_config_bws_gout = gtk_check_button_new_with_mnemonic (_("_Outgoing traffic"));
   gtk_widget_set_name (checkbutton_config_bws_gout, "checkbutton_config_bws_gout");
   gtk_widget_show (checkbutton_config_bws_gout);
   gtk_table_attach (GTK_TABLE (table13), checkbutton_config_bws_gout, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  hbox263 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox263, "hbox263");
-  gtk_widget_show (hbox263);
-  gtk_box_pack_start (GTK_BOX (vbox103), hbox263, TRUE, TRUE, 0);
+  label884 = gtk_label_new (_("General"));
+  gtk_widget_set_name (label884, "label884");
+  gtk_widget_show (label884);
+  gtk_frame_set_label_widget (GTK_FRAME (frame127), label884);
+  gtk_label_set_use_markup (GTK_LABEL (label884), TRUE);
+
+  viewport115 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport115, "viewport115");
+  gtk_widget_show (viewport115);
+  gtk_box_pack_start (GTK_BOX (hbox281), viewport115, TRUE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport115), GTK_SHADOW_OUT);
 
   frame79 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame79, "frame79");
   gtk_widget_show (frame79);
-  gtk_box_pack_start (GTK_BOX (hbox263), frame79, FALSE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame79), GTK_SHADOW_OUT);
+  gtk_container_add (GTK_CONTAINER (viewport115), frame79);
 
   table62 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table62, "table62");
@@ -12522,14 +12654,14 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label582), 0, 0.5);
 
-  checkbutton_config_bws_glin = gtk_check_button_new_with_mnemonic (_("Limit incoming bandwidth from leaves to"));
+  checkbutton_config_bws_glin = gtk_check_button_new_with_mnemonic (_("Incoming traffic from _leaves"));
   gtk_widget_set_name (checkbutton_config_bws_glin, "checkbutton_config_bws_glin");
   gtk_widget_show (checkbutton_config_bws_glin);
   gtk_table_attach (GTK_TABLE (table62), checkbutton_config_bws_glin, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  checkbutton_config_bws_glout = gtk_check_button_new_with_mnemonic (_("Limit outgoing bandwidth to leaves to"));
+  checkbutton_config_bws_glout = gtk_check_button_new_with_mnemonic (_("Outgoing traffic to lea_ves"));
   gtk_widget_set_name (checkbutton_config_bws_glout, "checkbutton_config_bws_glout");
   gtk_widget_show (checkbutton_config_bws_glout);
   gtk_table_attach (GTK_TABLE (table62), checkbutton_config_bws_glout, 0, 1, 1, 2,
@@ -12541,7 +12673,7 @@ create_dlg_prefs_bw_tab (void)
   gtk_widget_show (label578);
   gtk_frame_set_label_widget (GTK_FRAME (frame79), label578);
 
-  label290 = gtk_label_new_with_mnemonic (_("Bandwidth control for gnutellaNet traffic"));
+  label290 = gtk_label_new_with_mnemonic (_("Bandwidth limits for gnutellaNet traffic"));
   gtk_widget_set_name (label290, "label290");
   gtk_widget_show (label290);
   gtk_frame_set_label_widget (GTK_FRAME (frame20), label290);
@@ -12646,45 +12778,45 @@ create_dlg_prefs_bw_tab (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  checkbutton_config_bws_in = gtk_check_button_new_with_mnemonic (_("Limit bandwidth for _incoming traffic to"));
-  gtk_widget_set_name (checkbutton_config_bws_in, "checkbutton_config_bws_in");
-  gtk_widget_show (checkbutton_config_bws_in);
-  gtk_table_attach (GTK_TABLE (table4), checkbutton_config_bws_in, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_config_bws_out = gtk_check_button_new_with_mnemonic (_("Limit bandwidth for _outgoing traffic to"));
-  gtk_widget_set_name (checkbutton_config_bws_out, "checkbutton_config_bws_out");
-  gtk_widget_show (checkbutton_config_bws_out);
-  gtk_table_attach (GTK_TABLE (table4), checkbutton_config_bws_out, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_config_bw_ul_usage_enabled = gtk_check_button_new_with_mnemonic (_("Enable _dynamic upload slots allocation"));
-  gtk_widget_set_name (checkbutton_config_bw_ul_usage_enabled, "checkbutton_config_bw_ul_usage_enabled");
-  gtk_widget_show (checkbutton_config_bw_ul_usage_enabled);
-  gtk_table_attach (GTK_TABLE (table4), checkbutton_config_bw_ul_usage_enabled, 0, 1, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, checkbutton_config_bw_ul_usage_enabled, _("Until xx% of outgoing HTTP bandwidth is in use, open additional upload slots on request."), NULL);
-
   label156 = gtk_label_new_with_mnemonic (_("Report an upload connection _speed of"));
   gtk_widget_set_name (label156, "label156");
   gtk_widget_show (label156);
   gtk_table_attach (GTK_TABLE (table4), label156, 0, 1, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+                    (GtkAttachOptions) (0), 4, 0);
   gtk_label_set_justify (GTK_LABEL (label156), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label156), 0, 0.5);
 
-  checkbutton_compute_connection_speed = gtk_check_button_new_with_mnemonic (_("Compute upload connection speed"));
+  checkbutton_compute_connection_speed = gtk_check_button_new_with_mnemonic (_("_Compute upload connection speed"));
   gtk_widget_set_name (checkbutton_compute_connection_speed, "checkbutton_compute_connection_speed");
   gtk_widget_show (checkbutton_compute_connection_speed);
   gtk_table_attach (GTK_TABLE (table4), checkbutton_compute_connection_speed, 0, 3, 5, 6,
                     (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+                    (GtkAttachOptions) (0), 4, 0);
 
-  label291 = gtk_label_new_with_mnemonic (_("Bandwidth control for HTTP traffic"));
+  checkbutton_config_bw_ul_usage_enabled = gtk_check_button_new_with_mnemonic (_("Enable dynamic upload slots _allocation"));
+  gtk_widget_set_name (checkbutton_config_bw_ul_usage_enabled, "checkbutton_config_bw_ul_usage_enabled");
+  gtk_widget_show (checkbutton_config_bw_ul_usage_enabled);
+  gtk_table_attach (GTK_TABLE (table4), checkbutton_config_bw_ul_usage_enabled, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_tooltips_set_tip (tooltips, checkbutton_config_bw_ul_usage_enabled, _("Until xx% of outgoing HTTP bandwidth is in use, open additional upload slots on request."), NULL);
+
+  checkbutton_config_bws_out = gtk_check_button_new_with_mnemonic (_("Cumulative _upload rate"));
+  gtk_widget_set_name (checkbutton_config_bws_out, "checkbutton_config_bws_out");
+  gtk_widget_show (checkbutton_config_bws_out);
+  gtk_table_attach (GTK_TABLE (table4), checkbutton_config_bws_out, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+
+  checkbutton_config_bws_in = gtk_check_button_new_with_mnemonic (_("Cumulative _downloads rate"));
+  gtk_widget_set_name (checkbutton_config_bws_in, "checkbutton_config_bws_in");
+  gtk_widget_show (checkbutton_config_bws_in);
+  gtk_table_attach (GTK_TABLE (table4), checkbutton_config_bws_in, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+
+  label291 = gtk_label_new_with_mnemonic (_("Bandwidth limits for HTTP traffic"));
   gtk_widget_set_name (label291, "label291");
   gtk_widget_show (label291);
   gtk_frame_set_label_widget (GTK_FRAME (frame12), label291);
@@ -12698,12 +12830,11 @@ create_dlg_prefs_bw_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, vbox29, "vbox29");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, frame72, "frame72");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, hbox255, "hbox255");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, alignment95, "alignment95");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, vbox124, "vbox124");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, table99, "table99");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_config_bw_allow_stealing, "checkbutton_config_bw_allow_stealing");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_prefer_compressed_gnet, "checkbutton_prefer_compressed_gnet");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_config_use_ip_tos, "checkbutton_config_use_ip_tos");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, vbox123, "vbox123");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, viewport116, "viewport116");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, frame93, "frame93");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, table79, "table79");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label741, "label741");
@@ -12721,7 +12852,10 @@ create_dlg_prefs_bw_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label740, "label740");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label536, "label536");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, frame20, "frame20");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, vbox103, "vbox103");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, hbox281, "hbox281");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, viewport114, "viewport114");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, frame127, "frame127");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, alignment106, "alignment106");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, table13, "table13");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label181, "label181");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label182, "label182");
@@ -12729,7 +12863,8 @@ create_dlg_prefs_bw_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, spinbutton_config_bws_gout, "spinbutton_config_bws_gout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_config_bws_gin, "checkbutton_config_bws_gin");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_config_bws_gout, "checkbutton_config_bws_gout");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, hbox263, "hbox263");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label884, "label884");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, viewport115, "viewport115");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, frame79, "frame79");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, table62, "table62");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, spinbutton_config_bws_glout, "spinbutton_config_bws_glout");
@@ -12752,11 +12887,11 @@ create_dlg_prefs_bw_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label210, "label210");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label36, "label36");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, hseparator8, "hseparator8");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_config_bws_in, "checkbutton_config_bws_in");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_config_bws_out, "checkbutton_config_bws_out");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_config_bw_ul_usage_enabled, "checkbutton_config_bw_ul_usage_enabled");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label156, "label156");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_compute_connection_speed, "checkbutton_compute_connection_speed");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_config_bw_ul_usage_enabled, "checkbutton_config_bw_ul_usage_enabled");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_config_bws_out, "checkbutton_config_bws_out");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, checkbutton_config_bws_in, "checkbutton_config_bws_in");
   GLADE_HOOKUP_OBJECT (dlg_prefs_bw_tab, label291, "label291");
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_prefs_bw_tab, tooltips, "tooltips");
 
@@ -12797,22 +12932,33 @@ create_dlg_prefs_dl_tab (void)
   GtkWidget *image117;
   GtkWidget *label483;
   GtkWidget *label472;
-  GtkWidget *frame16;
-  GtkWidget *table38;
-  GtkWidget *label171;
-  GtkWidget *label172;
-  GtkWidget *label173;
-  GtkObject *spinbutton_config_download_overlap_range_adj;
-  GtkWidget *spinbutton_config_download_overlap_range;
-  GtkObject *spinbutton_config_download_max_retries_adj;
-  GtkWidget *spinbutton_config_download_max_retries;
-  GtkWidget *label298;
+  GtkWidget *frame123;
+  GtkWidget *table97;
+  GtkWidget *checkbutton_config_convert_spaces;
+  GtkWidget *label880;
+  GtkWidget *hbox283;
   GtkWidget *frame_expert_dl_source_quality;
+  GtkWidget *hbox281;
   GtkWidget *table39;
   GtkWidget *checkbutton_config_download_optimistic_start;
   GtkWidget *checkbutton_config_req_urn;
   GtkWidget *checkbutton_config_req_srv_name;
+  GtkWidget *hbox257;
+  GtkWidget *vbox126;
+  GtkWidget *checkbutton_config_use_alternate_sources;
+  GtkWidget *checkbutton_config_strict_sha1_matching;
+  GtkWidget *checkbutton_auto_feed_dmesh;
   GtkWidget *label480;
+  GtkWidget *frame16;
+  GtkWidget *table38;
+  GtkWidget *label173;
+  GtkObject *spinbutton_config_download_overlap_range_adj;
+  GtkWidget *spinbutton_config_download_overlap_range;
+  GtkWidget *label171;
+  GtkWidget *label172;
+  GtkObject *spinbutton_config_download_max_retries_adj;
+  GtkWidget *spinbutton_config_download_max_retries;
+  GtkWidget *label298;
   GtkWidget *frame_expert_dl_timeout;
   GtkWidget *table8;
   GtkObject *spinbutton_config_download_retry_stopped_delay_adj;
@@ -12833,34 +12979,28 @@ create_dlg_prefs_dl_tab (void)
   GtkWidget *spinbutton_config_download_push_sent_timeout;
   GtkObject *spinbutton_config_download_connected_timeout_adj;
   GtkWidget *spinbutton_config_download_connected_timeout;
-  GtkWidget *label162;
-  GtkWidget *label163;
-  GtkWidget *label164;
   GtkWidget *label165;
   GtkWidget *label166;
   GtkWidget *label167;
   GtkWidget *label168;
   GtkWidget *label169;
   GtkWidget *label170;
+  GtkWidget *label162;
+  GtkWidget *label163;
+  GtkWidget *label164;
   GtkWidget *label299;
   GtkWidget *frame51;
-  GtkWidget *vbox102;
+  GtkWidget *hbox282;
   GtkWidget *table94;
-  GtkWidget *label368;
-  GtkWidget *label369;
-  GtkWidget *checkbutton_config_use_swarming;
   GtkObject *spinbutton_dl_minchunksize_adj;
   GtkWidget *spinbutton_dl_minchunksize;
   GtkObject *spinbutton_dl_maxchunksize_adj;
   GtkWidget *spinbutton_dl_maxchunksize;
-  GtkWidget *hseparator11;
-  GtkWidget *hbox257;
-  GtkWidget *vbox126;
   GtkWidget *checkbutton_config_aggressive_swarming;
-  GtkWidget *checkbutton_config_use_alternate_sources;
-  GtkWidget *checkbutton_config_strict_sha1_matching;
-  GtkWidget *checkbutton_auto_feed_dmesh;
-  GtkWidget *vbox125;
+  GtkWidget *checkbutton_config_use_swarming;
+  GtkWidget *label368;
+  GtkWidget *label369;
+  GtkWidget *viewport117;
   GtkWidget *frame103;
   GtkWidget *table93;
   GtkWidget *label555;
@@ -12876,6 +13016,7 @@ create_dlg_prefs_dl_tab (void)
   dlg_prefs_dl_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_prefs_dl_tab, "dlg_prefs_dl_tab");
   gtk_window_set_title (GTK_WINDOW (dlg_prefs_dl_tab), _("Downloads"));
+  gtk_window_set_default_size (GTK_WINDOW (dlg_prefs_dl_tab), 600, 400);
 
   scrolledwindow64 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow64, "scrolledwindow64");
@@ -13036,10 +13177,106 @@ create_dlg_prefs_dl_tab (void)
   gtk_widget_show (label472);
   gtk_frame_set_label_widget (GTK_FRAME (frame60), label472);
 
+  frame123 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame123, "frame123");
+  gtk_widget_show (frame123);
+  gtk_box_pack_start (GTK_BOX (vbox38), frame123, FALSE, TRUE, 0);
+
+  table97 = gtk_table_new (1, 1, FALSE);
+  gtk_widget_set_name (table97, "table97");
+  gtk_widget_show (table97);
+  gtk_container_add (GTK_CONTAINER (frame123), table97);
+
+  checkbutton_config_convert_spaces = gtk_check_button_new_with_mnemonic (_("Convert spaces to underscores in filenames"));
+  gtk_widget_set_name (checkbutton_config_convert_spaces, "checkbutton_config_convert_spaces");
+  gtk_widget_show (checkbutton_config_convert_spaces);
+  gtk_table_attach (GTK_TABLE (table97), checkbutton_config_convert_spaces, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+
+  label880 = gtk_label_new (_("Miscellaneous"));
+  gtk_widget_set_name (label880, "label880");
+  gtk_widget_show (label880);
+  gtk_frame_set_label_widget (GTK_FRAME (frame123), label880);
+
+  hbox283 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox283, "hbox283");
+  gtk_widget_show (hbox283);
+  gtk_box_pack_start (GTK_BOX (vbox38), hbox283, FALSE, TRUE, 0);
+
+  frame_expert_dl_source_quality = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame_expert_dl_source_quality, "frame_expert_dl_source_quality");
+  gtk_widget_show (frame_expert_dl_source_quality);
+  gtk_box_pack_start (GTK_BOX (hbox283), frame_expert_dl_source_quality, TRUE, TRUE, 0);
+
+  hbox281 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox281, "hbox281");
+  gtk_widget_show (hbox281);
+  gtk_container_add (GTK_CONTAINER (frame_expert_dl_source_quality), hbox281);
+
+  table39 = gtk_table_new (3, 1, FALSE);
+  gtk_widget_set_name (table39, "table39");
+  gtk_widget_show (table39);
+  gtk_box_pack_start (GTK_BOX (hbox281), table39, TRUE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (table39), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table39), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table39), 4);
+
+  checkbutton_config_download_optimistic_start = gtk_check_button_new_with_mnemonic (_("Optimistic first _chunk"));
+  gtk_widget_set_name (checkbutton_config_download_optimistic_start, "checkbutton_config_download_optimistic_start");
+  gtk_widget_show (checkbutton_config_download_optimistic_start);
+  gtk_table_attach (GTK_TABLE (table39), checkbutton_config_download_optimistic_start, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+
+  checkbutton_config_req_urn = gtk_check_button_new_with_mnemonic (_("Require _URN"));
+  gtk_widget_set_name (checkbutton_config_req_urn, "checkbutton_config_req_urn");
+  gtk_widget_show (checkbutton_config_req_urn);
+  gtk_table_attach (GTK_TABLE (table39), checkbutton_config_req_urn, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+
+  checkbutton_config_req_srv_name = gtk_check_button_new_with_mnemonic (_("Require _server name"));
+  gtk_widget_set_name (checkbutton_config_req_srv_name, "checkbutton_config_req_srv_name");
+  gtk_widget_show (checkbutton_config_req_srv_name);
+  gtk_table_attach (GTK_TABLE (table39), checkbutton_config_req_srv_name, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+
+  hbox257 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox257, "hbox257");
+  gtk_widget_show (hbox257);
+  gtk_box_pack_start (GTK_BOX (hbox281), hbox257, TRUE, TRUE, 0);
+
+  vbox126 = gtk_vbox_new (FALSE, 2);
+  gtk_widget_set_name (vbox126, "vbox126");
+  gtk_widget_show (vbox126);
+  gtk_box_pack_start (GTK_BOX (hbox257), vbox126, FALSE, TRUE, 4);
+
+  checkbutton_config_use_alternate_sources = gtk_check_button_new_with_mnemonic (_("Watch hit for _alternate sources"));
+  gtk_widget_set_name (checkbutton_config_use_alternate_sources, "checkbutton_config_use_alternate_sources");
+  gtk_widget_show (checkbutton_config_use_alternate_sources);
+  gtk_box_pack_start (GTK_BOX (vbox126), checkbutton_config_use_alternate_sources, FALSE, TRUE, 0);
+
+  checkbutton_config_strict_sha1_matching = gtk_check_button_new_with_mnemonic (_("Strict SHA_1 matching"));
+  gtk_widget_set_name (checkbutton_config_strict_sha1_matching, "checkbutton_config_strict_sha1_matching");
+  gtk_widget_show (checkbutton_config_strict_sha1_matching);
+  gtk_box_pack_start (GTK_BOX (vbox126), checkbutton_config_strict_sha1_matching, FALSE, TRUE, 0);
+
+  checkbutton_auto_feed_dmesh = gtk_check_button_new_with_mnemonic (_("_Feed mesh from hits"));
+  gtk_widget_set_name (checkbutton_auto_feed_dmesh, "checkbutton_auto_feed_dmesh");
+  gtk_widget_show (checkbutton_auto_feed_dmesh);
+  gtk_box_pack_start (GTK_BOX (vbox126), checkbutton_auto_feed_dmesh, FALSE, TRUE, 0);
+
+  label480 = gtk_label_new (_("Source quality"));
+  gtk_widget_set_name (label480, "label480");
+  gtk_widget_show (label480);
+  gtk_frame_set_label_widget (GTK_FRAME (frame_expert_dl_source_quality), label480);
+
   frame16 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame16, "frame16");
   gtk_widget_show (frame16);
-  gtk_box_pack_start (GTK_BOX (vbox38), frame16, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox283), frame16, TRUE, TRUE, 0);
 
   table38 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table38, "table38");
@@ -13048,24 +13285,6 @@ create_dlg_prefs_dl_tab (void)
   gtk_container_set_border_width (GTK_CONTAINER (table38), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table38), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table38), 4);
-
-  label171 = gtk_label_new_with_mnemonic (_("_Overlap when resuming"));
-  gtk_widget_set_name (label171, "label171");
-  gtk_widget_show (label171);
-  gtk_table_attach (GTK_TABLE (table38), label171, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_label_set_justify (GTK_LABEL (label171), GTK_JUSTIFY_CENTER);
-  gtk_misc_set_alignment (GTK_MISC (label171), 0, 0.5);
-
-  label172 = gtk_label_new_with_mnemonic (_("Maximum number of _retries"));
-  gtk_widget_set_name (label172, "label172");
-  gtk_widget_show (label172);
-  gtk_table_attach (GTK_TABLE (table38), label172, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_label_set_justify (GTK_LABEL (label172), GTK_JUSTIFY_CENTER);
-  gtk_misc_set_alignment (GTK_MISC (label172), 0, 0.5);
 
   label173 = gtk_label_new (_("bytes"));
   gtk_widget_set_name (label173, "label173");
@@ -13085,12 +13304,30 @@ create_dlg_prefs_dl_tab (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_overlap_range, _("Amount of bytes to overlap when resuming download"), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_overlap_range), TRUE);
 
+  label171 = gtk_label_new_with_mnemonic (_("_Overlap when resuming"));
+  gtk_widget_set_name (label171, "label171");
+  gtk_widget_show (label171);
+  gtk_table_attach (GTK_TABLE (table38), label171, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_label_set_justify (GTK_LABEL (label171), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_alignment (GTK_MISC (label171), 0, 0.5);
+
+  label172 = gtk_label_new_with_mnemonic (_("Maximum number of _retries"));
+  gtk_widget_set_name (label172, "label172");
+  gtk_widget_show (label172);
+  gtk_table_attach (GTK_TABLE (table38), label172, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label172), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_alignment (GTK_MISC (label172), 0, 0.5);
+
   spinbutton_config_download_max_retries_adj = gtk_adjustment_new (1, 0, 100000, 1, 10, 10);
   spinbutton_config_download_max_retries = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_max_retries_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_download_max_retries, "spinbutton_config_download_max_retries");
   gtk_widget_show (spinbutton_config_download_max_retries);
   gtk_table_attach (GTK_TABLE (table38), spinbutton_config_download_max_retries, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_max_retries, _("Maximum attempts to make, not counting HTTP busy indications"), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_max_retries), TRUE);
@@ -13099,45 +13336,6 @@ create_dlg_prefs_dl_tab (void)
   gtk_widget_set_name (label298, "label298");
   gtk_widget_show (label298);
   gtk_frame_set_label_widget (GTK_FRAME (frame16), label298);
-
-  frame_expert_dl_source_quality = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame_expert_dl_source_quality, "frame_expert_dl_source_quality");
-  gtk_widget_show (frame_expert_dl_source_quality);
-  gtk_box_pack_start (GTK_BOX (vbox38), frame_expert_dl_source_quality, FALSE, TRUE, 0);
-
-  table39 = gtk_table_new (1, 3, FALSE);
-  gtk_widget_set_name (table39, "table39");
-  gtk_widget_show (table39);
-  gtk_container_add (GTK_CONTAINER (frame_expert_dl_source_quality), table39);
-  gtk_container_set_border_width (GTK_CONTAINER (table39), 2);
-  gtk_table_set_row_spacings (GTK_TABLE (table39), 2);
-  gtk_table_set_col_spacings (GTK_TABLE (table39), 4);
-
-  checkbutton_config_download_optimistic_start = gtk_check_button_new_with_mnemonic (_("Optimistic first _chunk"));
-  gtk_widget_set_name (checkbutton_config_download_optimistic_start, "checkbutton_config_download_optimistic_start");
-  gtk_widget_show (checkbutton_config_download_optimistic_start);
-  gtk_table_attach (GTK_TABLE (table39), checkbutton_config_download_optimistic_start, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_config_req_urn = gtk_check_button_new_with_mnemonic (_("Require _urn"));
-  gtk_widget_set_name (checkbutton_config_req_urn, "checkbutton_config_req_urn");
-  gtk_widget_show (checkbutton_config_req_urn);
-  gtk_table_attach (GTK_TABLE (table39), checkbutton_config_req_urn, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_config_req_srv_name = gtk_check_button_new_with_mnemonic (_("Require _server name"));
-  gtk_widget_set_name (checkbutton_config_req_srv_name, "checkbutton_config_req_srv_name");
-  gtk_widget_show (checkbutton_config_req_srv_name);
-  gtk_table_attach (GTK_TABLE (table39), checkbutton_config_req_srv_name, 2, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  label480 = gtk_label_new (_("Source quality"));
-  gtk_widget_set_name (label480, "label480");
-  gtk_widget_show (label480);
-  gtk_frame_set_label_widget (GTK_FRAME (frame_expert_dl_source_quality), label480);
 
   frame_expert_dl_timeout = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_expert_dl_timeout, "frame_expert_dl_timeout");
@@ -13242,33 +13440,6 @@ create_dlg_prefs_dl_tab (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_connected_timeout, _("Number of seconds before timeout for a connected download"), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_connected_timeout), TRUE);
 
-  label162 = gtk_label_new (_("Retry stopped delay"));
-  gtk_widget_set_name (label162, "label162");
-  gtk_widget_show (label162);
-  gtk_table_attach (GTK_TABLE (table8), label162, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_label_set_justify (GTK_LABEL (label162), GTK_JUSTIFY_CENTER);
-  gtk_misc_set_alignment (GTK_MISC (label162), 0, 0.5);
-
-  label163 = gtk_label_new (_("Retry refused delay"));
-  gtk_widget_set_name (label163, "label163");
-  gtk_widget_show (label163);
-  gtk_table_attach (GTK_TABLE (table8), label163, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_label_set_justify (GTK_LABEL (label163), GTK_JUSTIFY_CENTER);
-  gtk_misc_set_alignment (GTK_MISC (label163), 0, 0.5);
-
-  label164 = gtk_label_new (_("Retry busy delay"));
-  gtk_widget_set_name (label164, "label164");
-  gtk_widget_show (label164);
-  gtk_table_attach (GTK_TABLE (table8), label164, 0, 1, 2, 3,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_label_set_justify (GTK_LABEL (label164), GTK_JUSTIFY_CENTER);
-  gtk_misc_set_alignment (GTK_MISC (label164), 0, 0.5);
-
   label165 = gtk_label_new (_("Retry timeout delay"));
   gtk_widget_set_name (label165, "label165");
   gtk_widget_show (label165);
@@ -13323,6 +13494,33 @@ create_dlg_prefs_dl_tab (void)
   gtk_label_set_justify (GTK_LABEL (label170), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label170), 0, 0.5);
 
+  label162 = gtk_label_new (_("Retry stopped delay"));
+  gtk_widget_set_name (label162, "label162");
+  gtk_widget_show (label162);
+  gtk_table_attach (GTK_TABLE (table8), label162, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_label_set_justify (GTK_LABEL (label162), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_alignment (GTK_MISC (label162), 0, 0.5);
+
+  label163 = gtk_label_new (_("Retry refused delay"));
+  gtk_widget_set_name (label163, "label163");
+  gtk_widget_show (label163);
+  gtk_table_attach (GTK_TABLE (table8), label163, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_label_set_justify (GTK_LABEL (label163), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_alignment (GTK_MISC (label163), 0, 0.5);
+
+  label164 = gtk_label_new (_("Retry busy delay"));
+  gtk_widget_set_name (label164, "label164");
+  gtk_widget_show (label164);
+  gtk_table_attach (GTK_TABLE (table8), label164, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_label_set_justify (GTK_LABEL (label164), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_alignment (GTK_MISC (label164), 0, 0.5);
+
   label299 = gtk_label_new (_("Delays and timeouts (all values in seconds)"));
   gtk_widget_set_name (label299, "label299");
   gtk_widget_show (label299);
@@ -13333,25 +13531,56 @@ create_dlg_prefs_dl_tab (void)
   gtk_widget_show (frame51);
   gtk_box_pack_start (GTK_BOX (vbox38), frame51, FALSE, TRUE, 0);
 
-  vbox102 = gtk_vbox_new (FALSE, 2);
-  gtk_widget_set_name (vbox102, "vbox102");
-  gtk_widget_show (vbox102);
-  gtk_container_add (GTK_CONTAINER (frame51), vbox102);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox102), 2);
+  hbox282 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox282, "hbox282");
+  gtk_widget_show (hbox282);
+  gtk_container_add (GTK_CONTAINER (frame51), hbox282);
 
-  table94 = gtk_table_new (3, 2, FALSE);
+  table94 = gtk_table_new (3, 2, TRUE);
   gtk_widget_set_name (table94, "table94");
   gtk_widget_show (table94);
-  gtk_box_pack_start (GTK_BOX (vbox102), table94, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox282), table94, TRUE, TRUE, 0);
   gtk_table_set_row_spacings (GTK_TABLE (table94), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table94), 4);
+
+  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_dl_minchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_minchunksize_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_dl_minchunksize, "spinbutton_dl_minchunksize");
+  gtk_widget_show (spinbutton_dl_minchunksize);
+  gtk_table_attach (GTK_TABLE (table94), spinbutton_dl_minchunksize, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_minchunksize), TRUE);
+
+  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_dl_maxchunksize, "spinbutton_dl_maxchunksize");
+  gtk_widget_show (spinbutton_dl_maxchunksize);
+  gtk_table_attach (GTK_TABLE (table94), spinbutton_dl_maxchunksize, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_maxchunksize), TRUE);
+
+  checkbutton_config_aggressive_swarming = gtk_check_button_new_with_mnemonic (_("A_ggressive mode"));
+  gtk_widget_set_name (checkbutton_config_aggressive_swarming, "checkbutton_config_aggressive_swarming");
+  gtk_widget_show (checkbutton_config_aggressive_swarming);
+  gtk_table_attach (GTK_TABLE (table94), checkbutton_config_aggressive_swarming, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  checkbutton_config_use_swarming = gtk_check_button_new_with_mnemonic (_("Enable s_warming"));
+  gtk_widget_set_name (checkbutton_config_use_swarming, "checkbutton_config_use_swarming");
+  gtk_widget_show (checkbutton_config_use_swarming);
+  gtk_table_attach (GTK_TABLE (table94), checkbutton_config_use_swarming, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 4, 0);
 
   label368 = gtk_label_new_with_mnemonic (_("M_inimum chunk size"));
   gtk_widget_set_name (label368, "label368");
   gtk_widget_show (label368);
   gtk_table_attach (GTK_TABLE (table94), label368, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+                    (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label368), 0, 0.5);
 
   label369 = gtk_label_new_with_mnemonic (_("Ma_ximum chunk size"));
@@ -13359,79 +13588,20 @@ create_dlg_prefs_dl_tab (void)
   gtk_widget_show (label369);
   gtk_table_attach (GTK_TABLE (table94), label369, 0, 1, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+                    (GtkAttachOptions) (GTK_FILL), 4, 0);
   gtk_misc_set_alignment (GTK_MISC (label369), 0, 0.5);
 
-  checkbutton_config_use_swarming = gtk_check_button_new_with_mnemonic (_("Enable s_warming"));
-  gtk_widget_set_name (checkbutton_config_use_swarming, "checkbutton_config_use_swarming");
-  gtk_widget_show (checkbutton_config_use_swarming);
-  gtk_table_attach (GTK_TABLE (table94), checkbutton_config_use_swarming, 0, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 2e+09, 1, 10, 10);
-  spinbutton_dl_minchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_minchunksize_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_dl_minchunksize, "spinbutton_dl_minchunksize");
-  gtk_widget_show (spinbutton_dl_minchunksize);
-  gtk_table_attach (GTK_TABLE (table94), spinbutton_dl_minchunksize, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_minchunksize), TRUE);
-
-  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 2e+09, 1, 10, 10);
-  spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_dl_maxchunksize, "spinbutton_dl_maxchunksize");
-  gtk_widget_show (spinbutton_dl_maxchunksize);
-  gtk_table_attach (GTK_TABLE (table94), spinbutton_dl_maxchunksize, 1, 2, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_maxchunksize), TRUE);
-
-  hseparator11 = gtk_hseparator_new ();
-  gtk_widget_set_name (hseparator11, "hseparator11");
-  gtk_widget_show (hseparator11);
-  gtk_box_pack_start (GTK_BOX (vbox102), hseparator11, FALSE, TRUE, 0);
-
-  hbox257 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox257, "hbox257");
-  gtk_widget_show (hbox257);
-  gtk_box_pack_start (GTK_BOX (vbox102), hbox257, FALSE, TRUE, 0);
-
-  vbox126 = gtk_vbox_new (FALSE, 2);
-  gtk_widget_set_name (vbox126, "vbox126");
-  gtk_widget_show (vbox126);
-  gtk_box_pack_start (GTK_BOX (hbox257), vbox126, TRUE, TRUE, 0);
-
-  checkbutton_config_aggressive_swarming = gtk_check_button_new_with_mnemonic (_("A_ggressive mode"));
-  gtk_widget_set_name (checkbutton_config_aggressive_swarming, "checkbutton_config_aggressive_swarming");
-  gtk_widget_show (checkbutton_config_aggressive_swarming);
-  gtk_box_pack_start (GTK_BOX (vbox126), checkbutton_config_aggressive_swarming, FALSE, FALSE, 0);
-
-  checkbutton_config_use_alternate_sources = gtk_check_button_new_with_mnemonic (_("Watch hit for _alternate sources"));
-  gtk_widget_set_name (checkbutton_config_use_alternate_sources, "checkbutton_config_use_alternate_sources");
-  gtk_widget_show (checkbutton_config_use_alternate_sources);
-  gtk_box_pack_start (GTK_BOX (vbox126), checkbutton_config_use_alternate_sources, FALSE, FALSE, 0);
-
-  checkbutton_config_strict_sha1_matching = gtk_check_button_new_with_mnemonic (_("Strict SHA_1 matching"));
-  gtk_widget_set_name (checkbutton_config_strict_sha1_matching, "checkbutton_config_strict_sha1_matching");
-  gtk_widget_show (checkbutton_config_strict_sha1_matching);
-  gtk_box_pack_start (GTK_BOX (vbox126), checkbutton_config_strict_sha1_matching, FALSE, FALSE, 0);
-
-  checkbutton_auto_feed_dmesh = gtk_check_button_new_with_mnemonic (_("_Feed mesh from hits"));
-  gtk_widget_set_name (checkbutton_auto_feed_dmesh, "checkbutton_auto_feed_dmesh");
-  gtk_widget_show (checkbutton_auto_feed_dmesh);
-  gtk_box_pack_start (GTK_BOX (vbox126), checkbutton_auto_feed_dmesh, FALSE, FALSE, 0);
-
-  vbox125 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox125, "vbox125");
-  gtk_widget_show (vbox125);
-  gtk_box_pack_start (GTK_BOX (hbox257), vbox125, FALSE, FALSE, 0);
+  viewport117 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport117, "viewport117");
+  gtk_widget_show (viewport117);
+  gtk_box_pack_start (GTK_BOX (hbox282), viewport117, TRUE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (viewport117), 3);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport117), GTK_SHADOW_OUT);
 
   frame103 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame103, "frame103");
   gtk_widget_show (frame103);
-  gtk_box_pack_start (GTK_BOX (vbox125), frame103, FALSE, FALSE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame103), GTK_SHADOW_OUT);
+  gtk_container_add (GTK_CONTAINER (viewport117), frame103);
 
   table93 = gtk_table_new (2, 2, FALSE);
   gtk_widget_set_name (table93, "table93");
@@ -13523,20 +13693,31 @@ create_dlg_prefs_dl_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, image117, "image117");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label483, "label483");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label472, "label472");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, frame16, "frame16");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table38, "table38");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label171, "label171");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label172, "label172");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label173, "label173");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_config_download_overlap_range, "spinbutton_config_download_overlap_range");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_config_download_max_retries, "spinbutton_config_download_max_retries");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label298, "label298");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, frame123, "frame123");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table97, "table97");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_convert_spaces, "checkbutton_config_convert_spaces");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label880, "label880");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, hbox283, "hbox283");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, frame_expert_dl_source_quality, "frame_expert_dl_source_quality");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, hbox281, "hbox281");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table39, "table39");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_download_optimistic_start, "checkbutton_config_download_optimistic_start");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_req_urn, "checkbutton_config_req_urn");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_req_srv_name, "checkbutton_config_req_srv_name");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, hbox257, "hbox257");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, vbox126, "vbox126");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_use_alternate_sources, "checkbutton_config_use_alternate_sources");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_strict_sha1_matching, "checkbutton_config_strict_sha1_matching");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_auto_feed_dmesh, "checkbutton_auto_feed_dmesh");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label480, "label480");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, frame16, "frame16");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table38, "table38");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label173, "label173");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_config_download_overlap_range, "spinbutton_config_download_overlap_range");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label171, "label171");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label172, "label172");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_config_download_max_retries, "spinbutton_config_download_max_retries");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label298, "label298");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, frame_expert_dl_timeout, "frame_expert_dl_timeout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table8, "table8");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_config_download_retry_stopped_delay, "spinbutton_config_download_retry_stopped_delay");
@@ -13548,32 +13729,26 @@ create_dlg_prefs_dl_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_config_download_connecting_timeout, "spinbutton_config_download_connecting_timeout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_config_download_push_sent_timeout, "spinbutton_config_download_push_sent_timeout");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_config_download_connected_timeout, "spinbutton_config_download_connected_timeout");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label162, "label162");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label163, "label163");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label164, "label164");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label165, "label165");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label166, "label166");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label167, "label167");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label168, "label168");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label169, "label169");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label170, "label170");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label162, "label162");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label163, "label163");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label164, "label164");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label299, "label299");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, frame51, "frame51");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, vbox102, "vbox102");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, hbox282, "hbox282");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table94, "table94");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label368, "label368");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label369, "label369");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_use_swarming, "checkbutton_config_use_swarming");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_dl_minchunksize, "spinbutton_dl_minchunksize");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, spinbutton_dl_maxchunksize, "spinbutton_dl_maxchunksize");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, hseparator11, "hseparator11");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, hbox257, "hbox257");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, vbox126, "vbox126");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_aggressive_swarming, "checkbutton_config_aggressive_swarming");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_use_alternate_sources, "checkbutton_config_use_alternate_sources");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_strict_sha1_matching, "checkbutton_config_strict_sha1_matching");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_auto_feed_dmesh, "checkbutton_auto_feed_dmesh");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, vbox125, "vbox125");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_use_swarming, "checkbutton_config_use_swarming");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label368, "label368");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label369, "label369");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, viewport117, "viewport117");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, frame103, "frame103");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table93, "table93");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label555, "label555");
@@ -13615,25 +13790,27 @@ create_dlg_prefs_ul_tab (void)
   GtkWidget *checkbutton_scan_ignore_symlink_dirs;
   GtkWidget *checkbutton_scan_ignore_symlink_regfiles;
   GtkWidget *label300;
+  GtkWidget *hbox284;
+  GtkWidget *frame86;
+  GtkWidget *table73;
+  GtkWidget *label726;
+  GtkObject *spinbutton_pfsp_first_chunk_adj;
+  GtkWidget *spinbutton_pfsp_first_chunk;
+  GtkWidget *checkbutton_pfsp_server;
+  GtkWidget *label725;
   GtkWidget *frame_expert_ul_timeout;
   GtkWidget *table12;
+  GtkWidget *label179;
+  GtkWidget *label180;
   GtkObject *spinbutton_config_upload_connecting_timeout_adj;
   GtkWidget *spinbutton_config_upload_connecting_timeout;
   GtkObject *spinbutton_config_upload_connected_timeout_adj;
   GtkWidget *spinbutton_config_upload_connected_timeout;
-  GtkWidget *label179;
-  GtkWidget *label180;
   GtkWidget *label301;
-  GtkWidget *frame86;
-  GtkWidget *table73;
-  GtkWidget *checkbutton_pfsp_server;
-  GtkWidget *label726;
-  GtkObject *spinbutton_pfsp_first_chunk_adj;
-  GtkWidget *spinbutton_pfsp_first_chunk;
-  GtkWidget *label725;
   GtkWidget *frame_expert_share_statistics;
   GtkWidget *vbox117;
   GtkWidget *hbox258;
+  GtkWidget *viewport111;
   GtkWidget *frame101;
   GtkWidget *table87;
   GtkWidget *label786;
@@ -13644,6 +13821,7 @@ create_dlg_prefs_ul_tab (void)
   GtkWidget *viewport84;
   GtkWidget *label_library_rescan_time;
   GtkWidget *label785;
+  GtkWidget *viewport110;
   GtkWidget *frame_qrp_statistics;
   GtkWidget *table88;
   GtkWidget *label792;
@@ -13669,6 +13847,7 @@ create_dlg_prefs_ul_tab (void)
   GtkWidget *label_qrp_patch_computation_time;
   GtkWidget *label791;
   GtkWidget *hbox259;
+  GtkWidget *viewport112;
   GtkWidget *frame_qrp_table_info;
   GtkWidget *table89;
   GtkWidget *label808;
@@ -13693,6 +13872,7 @@ create_dlg_prefs_ul_tab (void)
   GtkWidget *viewport96;
   GtkWidget *label_qrp_conflict_ratio;
   GtkWidget *label807;
+  GtkWidget *viewport113;
   GtkWidget *frame_qrp_patch_info;
   GtkWidget *table90;
   GtkWidget *label823;
@@ -13771,7 +13951,7 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_show (image116);
   gtk_box_pack_start (GTK_BOX (hbox204), image116, FALSE, FALSE, 0);
 
-  label482 = gtk_label_new_with_mnemonic (_("_Add"));
+  label482 = gtk_label_new_with_mnemonic (_("_Add directory"));
   gtk_widget_set_name (label482, "label482");
   gtk_widget_show (label482);
   gtk_box_pack_start (GTK_BOX (hbox204), label482, FALSE, FALSE, 0);
@@ -13816,7 +13996,7 @@ create_dlg_prefs_ul_tab (void)
   label41 = gtk_label_new_with_mnemonic (_("Search _extensions"));
   gtk_widget_set_name (label41, "label41");
   gtk_widget_show (label41);
-  gtk_box_pack_start (GTK_BOX (hbox27), label41, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox27), label41, FALSE, FALSE, 4);
   gtk_label_set_justify (GTK_LABEL (label41), GTK_JUSTIFY_CENTER);
 
   entry_config_extensions = gtk_entry_new ();
@@ -13832,7 +14012,7 @@ create_dlg_prefs_ul_tab (void)
   checkbutton_scan_ignore_symlink_dirs = gtk_check_button_new_with_mnemonic (_("Ignore symbolically linked directories"));
   gtk_widget_set_name (checkbutton_scan_ignore_symlink_dirs, "checkbutton_scan_ignore_symlink_dirs");
   gtk_widget_show (checkbutton_scan_ignore_symlink_dirs);
-  gtk_box_pack_start (GTK_BOX (hbox232), checkbutton_scan_ignore_symlink_dirs, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox232), checkbutton_scan_ignore_symlink_dirs, FALSE, FALSE, 4);
 
   checkbutton_scan_ignore_symlink_regfiles = gtk_check_button_new_with_mnemonic (_("Ignore symbolically linked regular files"));
   gtk_widget_set_name (checkbutton_scan_ignore_symlink_regfiles, "checkbutton_scan_ignore_symlink_regfiles");
@@ -13844,36 +14024,64 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_show (label300);
   gtk_frame_set_label_widget (GTK_FRAME (frame_path_to_files), label300);
 
+  hbox284 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox284, "hbox284");
+  gtk_widget_show (hbox284);
+  gtk_box_pack_start (GTK_BOX (vbox40), hbox284, FALSE, TRUE, 0);
+
+  frame86 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame86, "frame86");
+  gtk_widget_show (frame86);
+  gtk_box_pack_start (GTK_BOX (hbox284), frame86, FALSE, TRUE, 0);
+
+  table73 = gtk_table_new (2, 2, FALSE);
+  gtk_widget_set_name (table73, "table73");
+  gtk_widget_show (table73);
+  gtk_container_add (GTK_CONTAINER (frame86), table73);
+  gtk_container_set_border_width (GTK_CONTAINER (table73), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table73), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table73), 4);
+
+  label726 = gtk_label_new (_("First chunk size"));
+  gtk_widget_set_name (label726, "label726");
+  gtk_widget_show (label726);
+  gtk_table_attach (GTK_TABLE (table73), label726, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 4, 0);
+  gtk_misc_set_alignment (GTK_MISC (label726), 0, 0.5);
+
+  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (0, 0, 6.71089e+07, 1, 10, 10);
+  spinbutton_pfsp_first_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_first_chunk_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_pfsp_first_chunk, "spinbutton_pfsp_first_chunk");
+  gtk_widget_show (spinbutton_pfsp_first_chunk);
+  gtk_table_attach (GTK_TABLE (table73), spinbutton_pfsp_first_chunk, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  checkbutton_pfsp_server = gtk_check_button_new_with_mnemonic (_("Enable upload of partially downloaded files"));
+  gtk_widget_set_name (checkbutton_pfsp_server, "checkbutton_pfsp_server");
+  gtk_widget_show (checkbutton_pfsp_server);
+  gtk_table_attach (GTK_TABLE (table73), checkbutton_pfsp_server, 0, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 4, 0);
+
+  label725 = gtk_label_new (_("Partial File Sharing"));
+  gtk_widget_set_name (label725, "label725");
+  gtk_widget_show (label725);
+  gtk_frame_set_label_widget (GTK_FRAME (frame86), label725);
+
   frame_expert_ul_timeout = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_expert_ul_timeout, "frame_expert_ul_timeout");
   gtk_widget_show (frame_expert_ul_timeout);
-  gtk_box_pack_start (GTK_BOX (vbox40), frame_expert_ul_timeout, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox284), frame_expert_ul_timeout, FALSE, TRUE, 0);
 
-  table12 = gtk_table_new (1, 4, FALSE);
+  table12 = gtk_table_new (2, 2, FALSE);
   gtk_widget_set_name (table12, "table12");
   gtk_widget_show (table12);
   gtk_container_add (GTK_CONTAINER (frame_expert_ul_timeout), table12);
   gtk_container_set_border_width (GTK_CONTAINER (table12), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table12), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table12), 4);
-
-  spinbutton_config_upload_connecting_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
-  spinbutton_config_upload_connecting_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_upload_connecting_timeout_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_upload_connecting_timeout, "spinbutton_config_upload_connecting_timeout");
-  gtk_widget_show (spinbutton_config_upload_connecting_timeout);
-  gtk_table_attach (GTK_TABLE (table12), spinbutton_config_upload_connecting_timeout, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_upload_connecting_timeout), TRUE);
-
-  spinbutton_config_upload_connected_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
-  spinbutton_config_upload_connected_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_upload_connected_timeout_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_upload_connected_timeout, "spinbutton_config_upload_connected_timeout");
-  gtk_widget_show (spinbutton_config_upload_connected_timeout);
-  gtk_table_attach (GTK_TABLE (table12), spinbutton_config_upload_connected_timeout, 3, 4, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_upload_connected_timeout), TRUE);
 
   label179 = gtk_label_new_with_mnemonic (_("_Connecting timeout"));
   gtk_widget_set_name (label179, "label179");
@@ -13887,79 +14095,61 @@ create_dlg_prefs_ul_tab (void)
   label180 = gtk_label_new_with_mnemonic (_("C_onnected timeout"));
   gtk_widget_set_name (label180, "label180");
   gtk_widget_show (label180);
-  gtk_table_attach (GTK_TABLE (table12), label180, 2, 3, 0, 1,
+  gtk_table_attach (GTK_TABLE (table12), label180, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_label_set_justify (GTK_LABEL (label180), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label180), 0, 0.5);
+
+  spinbutton_config_upload_connecting_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_upload_connecting_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_upload_connecting_timeout_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_upload_connecting_timeout, "spinbutton_config_upload_connecting_timeout");
+  gtk_widget_show (spinbutton_config_upload_connecting_timeout);
+  gtk_table_attach (GTK_TABLE (table12), spinbutton_config_upload_connecting_timeout, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_upload_connecting_timeout), TRUE);
+
+  spinbutton_config_upload_connected_timeout_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_upload_connected_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_upload_connected_timeout_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_upload_connected_timeout, "spinbutton_config_upload_connected_timeout");
+  gtk_widget_show (spinbutton_config_upload_connected_timeout);
+  gtk_table_attach (GTK_TABLE (table12), spinbutton_config_upload_connected_timeout, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_upload_connected_timeout), TRUE);
 
   label301 = gtk_label_new (_("Timeouts (all values in seconds)"));
   gtk_widget_set_name (label301, "label301");
   gtk_widget_show (label301);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_ul_timeout), label301);
 
-  frame86 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame86, "frame86");
-  gtk_widget_show (frame86);
-  gtk_box_pack_start (GTK_BOX (vbox40), frame86, FALSE, FALSE, 0);
-
-  table73 = gtk_table_new (1, 3, FALSE);
-  gtk_widget_set_name (table73, "table73");
-  gtk_widget_show (table73);
-  gtk_container_add (GTK_CONTAINER (frame86), table73);
-  gtk_container_set_border_width (GTK_CONTAINER (table73), 2);
-  gtk_table_set_row_spacings (GTK_TABLE (table73), 2);
-  gtk_table_set_col_spacings (GTK_TABLE (table73), 4);
-
-  checkbutton_pfsp_server = gtk_check_button_new_with_mnemonic (_("Enable"));
-  gtk_widget_set_name (checkbutton_pfsp_server, "checkbutton_pfsp_server");
-  gtk_widget_show (checkbutton_pfsp_server);
-  gtk_table_attach (GTK_TABLE (table73), checkbutton_pfsp_server, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  label726 = gtk_label_new (_("First chunk size"));
-  gtk_widget_set_name (label726, "label726");
-  gtk_widget_show (label726);
-  gtk_table_attach (GTK_TABLE (table73), label726, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label726), 0, 0.5);
-
-  spinbutton_pfsp_first_chunk_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
-  spinbutton_pfsp_first_chunk = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_pfsp_first_chunk_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_pfsp_first_chunk, "spinbutton_pfsp_first_chunk");
-  gtk_widget_show (spinbutton_pfsp_first_chunk);
-  gtk_table_attach (GTK_TABLE (table73), spinbutton_pfsp_first_chunk, 2, 3, 0, 1,
-                    (GtkAttachOptions) (0),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  label725 = gtk_label_new (_("Partial File Sharing (swarming)"));
-  gtk_widget_set_name (label725, "label725");
-  gtk_widget_show (label725);
-  gtk_frame_set_label_widget (GTK_FRAME (frame86), label725);
-
   frame_expert_share_statistics = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_expert_share_statistics, "frame_expert_share_statistics");
   gtk_widget_show (frame_expert_share_statistics);
   gtk_box_pack_start (GTK_BOX (vbox40), frame_expert_share_statistics, FALSE, FALSE, 0);
 
-  vbox117 = gtk_vbox_new (FALSE, 2);
+  vbox117 = gtk_vbox_new (FALSE, 4);
   gtk_widget_set_name (vbox117, "vbox117");
   gtk_widget_show (vbox117);
   gtk_container_add (GTK_CONTAINER (frame_expert_share_statistics), vbox117);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox117), 2);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox117), 5);
 
   hbox258 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox258, "hbox258");
   gtk_widget_show (hbox258);
   gtk_box_pack_start (GTK_BOX (vbox117), hbox258, TRUE, TRUE, 0);
 
+  viewport111 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport111, "viewport111");
+  gtk_widget_show (viewport111);
+  gtk_box_pack_start (GTK_BOX (hbox258), viewport111, TRUE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport111), GTK_SHADOW_OUT);
+
   frame101 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame101, "frame101");
   gtk_widget_show (frame101);
-  gtk_box_pack_start (GTK_BOX (hbox258), frame101, TRUE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame101), GTK_SHADOW_OUT);
+  gtk_container_add (GTK_CONTAINER (viewport111), frame101);
 
   table87 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table87, "table87");
@@ -14028,11 +14218,16 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_show (label785);
   gtk_frame_set_label_widget (GTK_FRAME (frame101), label785);
 
+  viewport110 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport110, "viewport110");
+  gtk_widget_show (viewport110);
+  gtk_box_pack_start (GTK_BOX (hbox258), viewport110, TRUE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport110), GTK_SHADOW_OUT);
+
   frame_qrp_statistics = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_qrp_statistics, "frame_qrp_statistics");
   gtk_widget_show (frame_qrp_statistics);
-  gtk_box_pack_start (GTK_BOX (hbox258), frame_qrp_statistics, TRUE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame_qrp_statistics), GTK_SHADOW_OUT);
+  gtk_container_add (GTK_CONTAINER (viewport110), frame_qrp_statistics);
 
   table88 = gtk_table_new (3, 5, FALSE);
   gtk_widget_set_name (table88, "table88");
@@ -14217,11 +14412,16 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_show (hbox259);
   gtk_box_pack_start (GTK_BOX (vbox117), hbox259, TRUE, TRUE, 0);
 
+  viewport112 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport112, "viewport112");
+  gtk_widget_show (viewport112);
+  gtk_box_pack_start (GTK_BOX (hbox259), viewport112, TRUE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport112), GTK_SHADOW_OUT);
+
   frame_qrp_table_info = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_qrp_table_info, "frame_qrp_table_info");
   gtk_widget_show (frame_qrp_table_info);
-  gtk_box_pack_start (GTK_BOX (hbox259), frame_qrp_table_info, TRUE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame_qrp_table_info), GTK_SHADOW_OUT);
+  gtk_container_add (GTK_CONTAINER (viewport112), frame_qrp_table_info);
 
   table89 = gtk_table_new (3, 6, FALSE);
   gtk_widget_set_name (table89, "table89");
@@ -14396,11 +14596,16 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_show (label807);
   gtk_frame_set_label_widget (GTK_FRAME (frame_qrp_table_info), label807);
 
+  viewport113 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport113, "viewport113");
+  gtk_widget_show (viewport113);
+  gtk_box_pack_start (GTK_BOX (hbox259), viewport113, TRUE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport113), GTK_SHADOW_OUT);
+
   frame_qrp_patch_info = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_qrp_patch_info, "frame_qrp_patch_info");
   gtk_widget_show (frame_qrp_patch_info);
-  gtk_box_pack_start (GTK_BOX (hbox259), frame_qrp_patch_info, TRUE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame_qrp_patch_info), GTK_SHADOW_OUT);
+  gtk_container_add (GTK_CONTAINER (viewport113), frame_qrp_patch_info);
 
   table90 = gtk_table_new (3, 3, FALSE);
   gtk_widget_set_name (table90, "table90");
@@ -14547,22 +14752,24 @@ create_dlg_prefs_ul_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_scan_ignore_symlink_dirs, "checkbutton_scan_ignore_symlink_dirs");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_scan_ignore_symlink_regfiles, "checkbutton_scan_ignore_symlink_regfiles");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label300, "label300");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame_expert_ul_timeout, "frame_expert_ul_timeout");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table12, "table12");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, spinbutton_config_upload_connecting_timeout, "spinbutton_config_upload_connecting_timeout");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, spinbutton_config_upload_connected_timeout, "spinbutton_config_upload_connected_timeout");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label179, "label179");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label180, "label180");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label301, "label301");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, hbox284, "hbox284");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame86, "frame86");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table73, "table73");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_pfsp_server, "checkbutton_pfsp_server");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label726, "label726");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, spinbutton_pfsp_first_chunk, "spinbutton_pfsp_first_chunk");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, checkbutton_pfsp_server, "checkbutton_pfsp_server");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label725, "label725");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame_expert_ul_timeout, "frame_expert_ul_timeout");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table12, "table12");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label179, "label179");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label180, "label180");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, spinbutton_config_upload_connecting_timeout, "spinbutton_config_upload_connecting_timeout");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, spinbutton_config_upload_connected_timeout, "spinbutton_config_upload_connected_timeout");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label301, "label301");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame_expert_share_statistics, "frame_expert_share_statistics");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, vbox117, "vbox117");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, hbox258, "hbox258");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, viewport111, "viewport111");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame101, "frame101");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table87, "table87");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label786, "label786");
@@ -14573,6 +14780,7 @@ create_dlg_prefs_ul_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, viewport84, "viewport84");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label_library_rescan_time, "label_library_rescan_time");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label785, "label785");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, viewport110, "viewport110");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame_qrp_statistics, "frame_qrp_statistics");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table88, "table88");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label792, "label792");
@@ -14598,6 +14806,7 @@ create_dlg_prefs_ul_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label_qrp_patch_computation_time, "label_qrp_patch_computation_time");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label791, "label791");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, hbox259, "hbox259");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, viewport112, "viewport112");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame_qrp_table_info, "frame_qrp_table_info");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table89, "table89");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label808, "label808");
@@ -14622,6 +14831,7 @@ create_dlg_prefs_ul_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, viewport96, "viewport96");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label_qrp_conflict_ratio, "label_qrp_conflict_ratio");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label807, "label807");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, viewport113, "viewport113");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame_qrp_patch_info, "frame_qrp_patch_info");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table90, "table90");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label823, "label823");
@@ -14699,6 +14909,7 @@ create_dlg_prefs_ui_tab (void)
   dlg_prefs_ui_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_prefs_ui_tab, "dlg_prefs_ui_tab");
   gtk_window_set_title (GTK_WINDOW (dlg_prefs_ui_tab), _("User Interface"));
+  gtk_window_set_default_size (GTK_WINDOW (dlg_prefs_ui_tab), 600, 400);
 
   scrolledwindow43 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow43, "scrolledwindow43");
@@ -15086,6 +15297,9 @@ create_dlg_prefs_dbg_tab (void)
   GtkWidget *viewport8;
   GtkWidget *vbox81;
   GtkWidget *frame54;
+  GtkWidget *hbox280;
+  GtkWidget *viewport109;
+  GtkWidget *frame125;
   GtkWidget *table36;
   GtkObject *spinbutton_config_dbg_adj;
   GtkWidget *spinbutton_config_dbg;
@@ -15093,40 +15307,67 @@ create_dlg_prefs_dbg_tab (void)
   GtkWidget *spinbutton_config_gui_debug;
   GtkObject *spinbutton_config_lib_debug_adj;
   GtkWidget *spinbutton_config_lib_debug;
+  GtkWidget *label376;
+  GtkWidget *label377;
+  GtkWidget *label517;
+  GtkWidget *label599;
   GtkObject *spinbutton_config_track_props_adj;
   GtkWidget *spinbutton_config_track_props;
-  GtkWidget *label599;
-  GtkWidget *label517;
-  GtkWidget *label377;
-  GtkWidget *label376;
   GtkWidget *checkbutton_config_stop_host_get;
+  GtkWidget *hseparator13;
+  GtkWidget *label882;
+  GtkWidget *viewport108;
+  GtkWidget *frame126;
+  GtkWidget *table98;
+  GtkWidget *label879;
+  GtkWidget *label872;
+  GtkWidget *label873;
+  GtkWidget *label874;
+  GtkWidget *label875;
+  GtkObject *spinbutton_config_dq_debug_adj;
+  GtkWidget *spinbutton_config_dq_debug;
+  GtkObject *spinbutton_config_dh_debug_adj;
+  GtkWidget *spinbutton_config_dh_debug;
+  GtkObject *spinbutton_config_gwc_debug_adj;
+  GtkWidget *spinbutton_config_gwc_debug;
+  GtkObject *spinbutton_config_url_debug_adj;
+  GtkWidget *spinbutton_config_url_debug;
+  GtkObject *spinbutton_config_vmsg_debug_adj;
+  GtkWidget *spinbutton_config_vmsg_debug;
+  GtkObject *spinbutton_config_search_debug_adj;
+  GtkWidget *spinbutton_config_search_debug;
+  GtkObject *spinbutton_config_qrp_debug_adj;
+  GtkWidget *spinbutton_config_qrp_debug;
+  GtkObject *spinbutton_config_udp_debug_adj;
+  GtkWidget *spinbutton_config_udp_debug;
+  GtkWidget *label877;
+  GtkWidget *label878;
+  GtkWidget *label876;
+  GtkWidget *label883;
   GtkWidget *label375;
   GtkWidget *frame_expert_unmapped;
   GtkWidget *table60;
-  GtkWidget *label585;
-  GtkWidget *entry_reading_ultrafile;
-  GtkWidget *entry_current_ip_stamp;
-  GtkWidget *entry_average_ip_uptime;
-  GtkWidget *entry_start_stamp;
-  GtkWidget *entry_average_servent_uptime;
-  GtkWidget *entry_proxy_connections;
-  GtkWidget *entry_sys_nofile;
-  GtkWidget *entry_sys_physmem;
-  GtkWidget *entry_crawler_visit_count;
-  GtkWidget *label559;
   GtkWidget *label563;
   GtkWidget *label564;
   GtkWidget *label565;
   GtkWidget *label566;
-  GtkWidget *label567;
   GtkWidget *label570;
   GtkWidget *label571;
   GtkWidget *label572;
+  GtkWidget *entry_current_ip_stamp;
+  GtkWidget *entry_average_ip_uptime;
+  GtkWidget *entry_start_stamp;
+  GtkWidget *entry_average_servent_uptime;
+  GtkWidget *entry_sys_nofile;
+  GtkWidget *entry_sys_physmem;
+  GtkWidget *entry_crawler_visit_count;
+  GtkWidget *label870;
   GtkWidget *label558;
 
   dlg_prefs_dbg_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_prefs_dbg_tab, "dlg_prefs_dbg_tab");
   gtk_window_set_title (GTK_WINDOW (dlg_prefs_dbg_tab), _("Debugging"));
+  gtk_window_set_default_size (GTK_WINDOW (dlg_prefs_dbg_tab), 600, 400);
 
   scrolledwindow44 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow44, "scrolledwindow44");
@@ -15151,10 +15392,27 @@ create_dlg_prefs_dbg_tab (void)
   gtk_widget_show (frame54);
   gtk_box_pack_start (GTK_BOX (vbox81), frame54, FALSE, TRUE, 0);
 
-  table36 = gtk_table_new (5, 2, FALSE);
+  hbox280 = gtk_hbox_new (FALSE, 8);
+  gtk_widget_set_name (hbox280, "hbox280");
+  gtk_widget_show (hbox280);
+  gtk_container_add (GTK_CONTAINER (frame54), hbox280);
+  gtk_container_set_border_width (GTK_CONTAINER (hbox280), 4);
+
+  viewport109 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport109, "viewport109");
+  gtk_widget_show (viewport109);
+  gtk_box_pack_start (GTK_BOX (hbox280), viewport109, TRUE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport109), GTK_SHADOW_OUT);
+
+  frame125 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame125, "frame125");
+  gtk_widget_show (frame125);
+  gtk_container_add (GTK_CONTAINER (viewport109), frame125);
+
+  table36 = gtk_table_new (6, 2, FALSE);
   gtk_widget_set_name (table36, "table36");
   gtk_widget_show (table36);
-  gtk_container_add (GTK_CONTAINER (frame54), table36);
+  gtk_container_add (GTK_CONTAINER (frame125), table36);
   gtk_container_set_border_width (GTK_CONTAINER (table36), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table36), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table36), 4);
@@ -15186,14 +15444,29 @@ create_dlg_prefs_dbg_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_lib_debug), TRUE);
 
-  spinbutton_config_track_props_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
-  spinbutton_config_track_props = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_track_props_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_track_props, "spinbutton_config_track_props");
-  gtk_widget_show (spinbutton_config_track_props);
-  gtk_table_attach (GTK_TABLE (table36), spinbutton_config_track_props, 1, 2, 3, 4,
+  label376 = gtk_label_new_with_mnemonic (_("_Core debug level"));
+  gtk_widget_set_name (label376, "label376");
+  gtk_widget_show (label376);
+  gtk_table_attach (GTK_TABLE (table36), label376, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_track_props), TRUE);
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label376), 0, 0.5);
+
+  label377 = gtk_label_new_with_mnemonic (_("_GUI debug level"));
+  gtk_widget_set_name (label377, "label377");
+  gtk_widget_show (label377);
+  gtk_table_attach (GTK_TABLE (table36), label377, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label377), 0, 0.5);
+
+  label517 = gtk_label_new_with_mnemonic (_("_Shared code debug level"));
+  gtk_widget_set_name (label517, "label517");
+  gtk_widget_show (label517);
+  gtk_table_attach (GTK_TABLE (table36), label517, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label517), 0, 0.5);
 
   label599 = gtk_label_new_with_mnemonic (_("_Track properties"));
   gtk_widget_set_name (label599, "label599");
@@ -15203,38 +15476,195 @@ create_dlg_prefs_dbg_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label599), 0, 0.5);
 
-  label517 = gtk_label_new_with_mnemonic (_("_Shared code debug level"));
-  gtk_widget_set_name (label517, "label517");
-  gtk_widget_show (label517);
-  gtk_table_attach (GTK_TABLE (table36), label517, 0, 1, 2, 3,
+  spinbutton_config_track_props_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
+  spinbutton_config_track_props = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_track_props_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_track_props, "spinbutton_config_track_props");
+  gtk_widget_show (spinbutton_config_track_props);
+  gtk_table_attach (GTK_TABLE (table36), spinbutton_config_track_props, 1, 2, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label517), 0, 0.5);
-
-  label377 = gtk_label_new_with_mnemonic (_("_GUI debug level"));
-  gtk_widget_set_name (label377, "label377");
-  gtk_widget_show (label377);
-  gtk_table_attach (GTK_TABLE (table36), label377, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label377), 0, 0.5);
-
-  label376 = gtk_label_new_with_mnemonic (_("_Core debug level"));
-  gtk_widget_set_name (label376, "label376");
-  gtk_widget_show (label376);
-  gtk_table_attach (GTK_TABLE (table36), label376, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label376), 0, 0.5);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_track_props), TRUE);
 
   checkbutton_config_stop_host_get = gtk_check_button_new_with_mnemonic (_("_stop collecting hosts in host catcher"));
   gtk_widget_set_name (checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
   gtk_widget_show (checkbutton_config_stop_host_get);
-  gtk_table_attach (GTK_TABLE (table36), checkbutton_config_stop_host_get, 0, 2, 4, 5,
+  gtk_table_attach (GTK_TABLE (table36), checkbutton_config_stop_host_get, 0, 2, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  hseparator13 = gtk_hseparator_new ();
+  gtk_widget_set_name (hseparator13, "hseparator13");
+  gtk_widget_show (hseparator13);
+  gtk_table_attach (GTK_TABLE (table36), hseparator13, 0, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  label882 = gtk_label_new (_("Global"));
+  gtk_widget_set_name (label882, "label882");
+  gtk_widget_show (label882);
+  gtk_frame_set_label_widget (GTK_FRAME (frame125), label882);
+
+  viewport108 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport108, "viewport108");
+  gtk_widget_show (viewport108);
+  gtk_box_pack_start (GTK_BOX (hbox280), viewport108, TRUE, TRUE, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport108), GTK_SHADOW_OUT);
+
+  frame126 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame126, "frame126");
+  gtk_widget_show (frame126);
+  gtk_container_add (GTK_CONTAINER (viewport108), frame126);
+
+  table98 = gtk_table_new (5, 4, FALSE);
+  gtk_widget_set_name (table98, "table98");
+  gtk_widget_show (table98);
+  gtk_container_add (GTK_CONTAINER (frame126), table98);
+  gtk_container_set_border_width (GTK_CONTAINER (table98), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table98), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table98), 4);
+
+  label879 = gtk_label_new_with_mnemonic (_("_GWebCache"));
+  gtk_widget_set_name (label879, "label879");
+  gtk_widget_show (label879);
+  gtk_table_attach (GTK_TABLE (table98), label879, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label879), 0, 0.5);
+
+  label872 = gtk_label_new_with_mnemonic (_("Dynamic Query _Hits"));
+  gtk_widget_set_name (label872, "label872");
+  gtk_widget_show (label872);
+  gtk_table_attach (GTK_TABLE (table98), label872, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label872), 0, 0.5);
+
+  label873 = gtk_label_new_with_mnemonic (_("Dynamic _Querying"));
+  gtk_widget_set_name (label873, "label873");
+  gtk_widget_show (label873);
+  gtk_table_attach (GTK_TABLE (table98), label873, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label873), 0, 0.5);
+
+  label874 = gtk_label_new_with_mnemonic (_("UR_L handling"));
+  gtk_widget_set_name (label874, "label874");
+  gtk_widget_show (label874);
+  gtk_table_attach (GTK_TABLE (table98), label874, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label874), 0, 0.5);
+
+  label875 = gtk_label_new_with_mnemonic (_("_Vendor Messages"));
+  gtk_widget_set_name (label875, "label875");
+  gtk_widget_show (label875);
+  gtk_table_attach (GTK_TABLE (table98), label875, 0, 1, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label875), 0, 0.5);
+
+  spinbutton_config_dq_debug_adj = gtk_adjustment_new (0, 0, 20, 1, 10, 10);
+  spinbutton_config_dq_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_dq_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_dq_debug, "spinbutton_config_dq_debug");
+  gtk_widget_show (spinbutton_config_dq_debug);
+  gtk_table_attach (GTK_TABLE (table98), spinbutton_config_dq_debug, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_dq_debug), TRUE);
 
-  label375 = gtk_label_new (_("Debug settings"));
+  spinbutton_config_dh_debug_adj = gtk_adjustment_new (0, 0, 20, 1, 10, 10);
+  spinbutton_config_dh_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_dh_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_dh_debug, "spinbutton_config_dh_debug");
+  gtk_widget_show (spinbutton_config_dh_debug);
+  gtk_table_attach (GTK_TABLE (table98), spinbutton_config_dh_debug, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_dh_debug), TRUE);
+
+  spinbutton_config_gwc_debug_adj = gtk_adjustment_new (0, 0, 20, 1, 10, 10);
+  spinbutton_config_gwc_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_gwc_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_gwc_debug, "spinbutton_config_gwc_debug");
+  gtk_widget_show (spinbutton_config_gwc_debug);
+  gtk_table_attach (GTK_TABLE (table98), spinbutton_config_gwc_debug, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_gwc_debug), TRUE);
+
+  spinbutton_config_url_debug_adj = gtk_adjustment_new (0, 0, 20, 1, 10, 10);
+  spinbutton_config_url_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_url_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_url_debug, "spinbutton_config_url_debug");
+  gtk_widget_show (spinbutton_config_url_debug);
+  gtk_table_attach (GTK_TABLE (table98), spinbutton_config_url_debug, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_url_debug), TRUE);
+
+  spinbutton_config_vmsg_debug_adj = gtk_adjustment_new (0, 0, 20, 1, 10, 10);
+  spinbutton_config_vmsg_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_vmsg_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_vmsg_debug, "spinbutton_config_vmsg_debug");
+  gtk_widget_show (spinbutton_config_vmsg_debug);
+  gtk_table_attach (GTK_TABLE (table98), spinbutton_config_vmsg_debug, 1, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_vmsg_debug), TRUE);
+
+  spinbutton_config_search_debug_adj = gtk_adjustment_new (0, 0, 20, 1, 10, 10);
+  spinbutton_config_search_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_search_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_search_debug, "spinbutton_config_search_debug");
+  gtk_widget_show (spinbutton_config_search_debug);
+  gtk_table_attach (GTK_TABLE (table98), spinbutton_config_search_debug, 3, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_search_debug), TRUE);
+
+  spinbutton_config_qrp_debug_adj = gtk_adjustment_new (0, 0, 20, 1, 10, 10);
+  spinbutton_config_qrp_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_qrp_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_qrp_debug, "spinbutton_config_qrp_debug");
+  gtk_widget_show (spinbutton_config_qrp_debug);
+  gtk_table_attach (GTK_TABLE (table98), spinbutton_config_qrp_debug, 3, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_qrp_debug), TRUE);
+
+  spinbutton_config_udp_debug_adj = gtk_adjustment_new (0, 0, 20, 1, 10, 10);
+  spinbutton_config_udp_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_udp_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_udp_debug, "spinbutton_config_udp_debug");
+  gtk_widget_show (spinbutton_config_udp_debug);
+  gtk_table_attach (GTK_TABLE (table98), spinbutton_config_udp_debug, 3, 4, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_udp_debug), TRUE);
+
+  label877 = gtk_label_new_with_mnemonic (_("_UDP traffic"));
+  gtk_widget_set_name (label877, "label877");
+  gtk_widget_show (label877);
+  gtk_table_attach (GTK_TABLE (table98), label877, 2, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label877), 0, 0.5);
+
+  label878 = gtk_label_new_with_mnemonic (_("QR_P management"));
+  gtk_widget_set_name (label878, "label878");
+  gtk_widget_show (label878);
+  gtk_table_attach (GTK_TABLE (table98), label878, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label878), 0, 0.5);
+
+  label876 = gtk_label_new_with_mnemonic (_("_Search management"));
+  gtk_widget_set_name (label876, "label876");
+  gtk_widget_show (label876);
+  gtk_table_attach (GTK_TABLE (table98), label876, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label876), 0, 0.5);
+
+  label883 = gtk_label_new (_("Functionality"));
+  gtk_widget_set_name (label883, "label883");
+  gtk_widget_show (label883);
+  gtk_frame_set_label_widget (GTK_FRAME (frame126), label883);
+
+  label375 = gtk_label_new (_("Debug levels"));
   gtk_widget_set_name (label375, "label375");
   gtk_widget_show (label375);
   gtk_frame_set_label_widget (GTK_FRAME (frame54), label375);
@@ -15252,99 +15682,10 @@ create_dlg_prefs_dbg_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table60), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table60), 4);
 
-  label585 = gtk_label_new (_("  "));
-  gtk_widget_set_name (label585, "label585");
-  gtk_widget_show (label585);
-  gtk_table_attach (GTK_TABLE (table60), label585, 2, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_sensitive (label585, FALSE);
-  gtk_misc_set_alignment (GTK_MISC (label585), 0, 0.5);
-
-  entry_reading_ultrafile = gtk_entry_new ();
-  gtk_widget_set_name (entry_reading_ultrafile, "entry_reading_ultrafile");
-  gtk_widget_show (entry_reading_ultrafile);
-  gtk_table_attach (GTK_TABLE (table60), entry_reading_ultrafile, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_reading_ultrafile), FALSE);
-
-  entry_current_ip_stamp = gtk_entry_new ();
-  gtk_widget_set_name (entry_current_ip_stamp, "entry_current_ip_stamp");
-  gtk_widget_show (entry_current_ip_stamp);
-  gtk_table_attach (GTK_TABLE (table60), entry_current_ip_stamp, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_current_ip_stamp), FALSE);
-
-  entry_average_ip_uptime = gtk_entry_new ();
-  gtk_widget_set_name (entry_average_ip_uptime, "entry_average_ip_uptime");
-  gtk_widget_show (entry_average_ip_uptime);
-  gtk_table_attach (GTK_TABLE (table60), entry_average_ip_uptime, 1, 2, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_average_ip_uptime), FALSE);
-
-  entry_start_stamp = gtk_entry_new ();
-  gtk_widget_set_name (entry_start_stamp, "entry_start_stamp");
-  gtk_widget_show (entry_start_stamp);
-  gtk_table_attach (GTK_TABLE (table60), entry_start_stamp, 1, 2, 3, 4,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_start_stamp), FALSE);
-
-  entry_average_servent_uptime = gtk_entry_new ();
-  gtk_widget_set_name (entry_average_servent_uptime, "entry_average_servent_uptime");
-  gtk_widget_show (entry_average_servent_uptime);
-  gtk_table_attach (GTK_TABLE (table60), entry_average_servent_uptime, 1, 2, 4, 5,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_average_servent_uptime), FALSE);
-
-  entry_proxy_connections = gtk_entry_new ();
-  gtk_widget_set_name (entry_proxy_connections, "entry_proxy_connections");
-  gtk_widget_show (entry_proxy_connections);
-  gtk_table_attach (GTK_TABLE (table60), entry_proxy_connections, 1, 2, 5, 6,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_proxy_connections), FALSE);
-
-  entry_sys_nofile = gtk_entry_new ();
-  gtk_widget_set_name (entry_sys_nofile, "entry_sys_nofile");
-  gtk_widget_show (entry_sys_nofile);
-  gtk_table_attach (GTK_TABLE (table60), entry_sys_nofile, 1, 2, 6, 7,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_sys_nofile), FALSE);
-
-  entry_sys_physmem = gtk_entry_new ();
-  gtk_widget_set_name (entry_sys_physmem, "entry_sys_physmem");
-  gtk_widget_show (entry_sys_physmem);
-  gtk_table_attach (GTK_TABLE (table60), entry_sys_physmem, 1, 2, 7, 8,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_sys_physmem), FALSE);
-
-  entry_crawler_visit_count = gtk_entry_new ();
-  gtk_widget_set_name (entry_crawler_visit_count, "entry_crawler_visit_count");
-  gtk_widget_show (entry_crawler_visit_count);
-  gtk_table_attach (GTK_TABLE (table60), entry_crawler_visit_count, 1, 2, 8, 9,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_crawler_visit_count), FALSE);
-
-  label559 = gtk_label_new (_("PROP_READING_ULTRAFILE"));
-  gtk_widget_set_name (label559, "label559");
-  gtk_widget_show (label559);
-  gtk_table_attach (GTK_TABLE (table60), label559, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label559), 0, 0.5);
-
   label563 = gtk_label_new (_("PROP_CURRENT_IP_STAMP"));
   gtk_widget_set_name (label563, "label563");
   gtk_widget_show (label563);
-  gtk_table_attach (GTK_TABLE (table60), label563, 0, 1, 1, 2,
+  gtk_table_attach (GTK_TABLE (table60), label563, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label563), 0, 0.5);
@@ -15352,7 +15693,7 @@ create_dlg_prefs_dbg_tab (void)
   label564 = gtk_label_new (_("PROP_AVERAGE_IP_UPTIME"));
   gtk_widget_set_name (label564, "label564");
   gtk_widget_show (label564);
-  gtk_table_attach (GTK_TABLE (table60), label564, 0, 1, 2, 3,
+  gtk_table_attach (GTK_TABLE (table60), label564, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label564), 0, 0.5);
@@ -15360,7 +15701,7 @@ create_dlg_prefs_dbg_tab (void)
   label565 = gtk_label_new (_("PROP_START_STAMP"));
   gtk_widget_set_name (label565, "label565");
   gtk_widget_show (label565);
-  gtk_table_attach (GTK_TABLE (table60), label565, 0, 1, 3, 4,
+  gtk_table_attach (GTK_TABLE (table60), label565, 0, 1, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label565), 0, 0.5);
@@ -15368,23 +15709,15 @@ create_dlg_prefs_dbg_tab (void)
   label566 = gtk_label_new (_("PROP_AVERAGE_SERVENT_UPTIME"));
   gtk_widget_set_name (label566, "label566");
   gtk_widget_show (label566);
-  gtk_table_attach (GTK_TABLE (table60), label566, 0, 1, 4, 5,
+  gtk_table_attach (GTK_TABLE (table60), label566, 0, 1, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label566), 0, 0.5);
 
-  label567 = gtk_label_new (_("PROP_PROXY_CONNECTIONS"));
-  gtk_widget_set_name (label567, "label567");
-  gtk_widget_show (label567);
-  gtk_table_attach (GTK_TABLE (table60), label567, 0, 1, 5, 6,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label567), 0, 0.5);
-
   label570 = gtk_label_new (_("PROP_SYS_NOFILE"));
   gtk_widget_set_name (label570, "label570");
   gtk_widget_show (label570);
-  gtk_table_attach (GTK_TABLE (table60), label570, 0, 1, 6, 7,
+  gtk_table_attach (GTK_TABLE (table60), label570, 0, 1, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label570), 0, 0.5);
@@ -15392,7 +15725,7 @@ create_dlg_prefs_dbg_tab (void)
   label571 = gtk_label_new (_("PROP_SYS_PHYSMEM"));
   gtk_widget_set_name (label571, "label571");
   gtk_widget_show (label571);
-  gtk_table_attach (GTK_TABLE (table60), label571, 0, 1, 7, 8,
+  gtk_table_attach (GTK_TABLE (table60), label571, 0, 1, 5, 6,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label571), 0, 0.5);
@@ -15400,20 +15733,92 @@ create_dlg_prefs_dbg_tab (void)
   label572 = gtk_label_new (_("PROP_CRAWLER_VISIT_COUNT"));
   gtk_widget_set_name (label572, "label572");
   gtk_widget_show (label572);
-  gtk_table_attach (GTK_TABLE (table60), label572, 0, 1, 8, 9,
+  gtk_table_attach (GTK_TABLE (table60), label572, 0, 1, 6, 7,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label572), 0, 0.5);
+
+  entry_current_ip_stamp = gtk_entry_new ();
+  gtk_widget_set_name (entry_current_ip_stamp, "entry_current_ip_stamp");
+  gtk_widget_show (entry_current_ip_stamp);
+  gtk_table_attach (GTK_TABLE (table60), entry_current_ip_stamp, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_current_ip_stamp), FALSE);
+
+  entry_average_ip_uptime = gtk_entry_new ();
+  gtk_widget_set_name (entry_average_ip_uptime, "entry_average_ip_uptime");
+  gtk_widget_show (entry_average_ip_uptime);
+  gtk_table_attach (GTK_TABLE (table60), entry_average_ip_uptime, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_average_ip_uptime), FALSE);
+
+  entry_start_stamp = gtk_entry_new ();
+  gtk_widget_set_name (entry_start_stamp, "entry_start_stamp");
+  gtk_widget_show (entry_start_stamp);
+  gtk_table_attach (GTK_TABLE (table60), entry_start_stamp, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_start_stamp), FALSE);
+
+  entry_average_servent_uptime = gtk_entry_new ();
+  gtk_widget_set_name (entry_average_servent_uptime, "entry_average_servent_uptime");
+  gtk_widget_show (entry_average_servent_uptime);
+  gtk_table_attach (GTK_TABLE (table60), entry_average_servent_uptime, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_average_servent_uptime), FALSE);
+
+  entry_sys_nofile = gtk_entry_new ();
+  gtk_widget_set_name (entry_sys_nofile, "entry_sys_nofile");
+  gtk_widget_show (entry_sys_nofile);
+  gtk_table_attach (GTK_TABLE (table60), entry_sys_nofile, 1, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_sys_nofile), FALSE);
+
+  entry_sys_physmem = gtk_entry_new ();
+  gtk_widget_set_name (entry_sys_physmem, "entry_sys_physmem");
+  gtk_widget_show (entry_sys_physmem);
+  gtk_table_attach (GTK_TABLE (table60), entry_sys_physmem, 1, 2, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_sys_physmem), FALSE);
+
+  entry_crawler_visit_count = gtk_entry_new ();
+  gtk_widget_set_name (entry_crawler_visit_count, "entry_crawler_visit_count");
+  gtk_widget_show (entry_crawler_visit_count);
+  gtk_table_attach (GTK_TABLE (table60), entry_crawler_visit_count, 1, 2, 6, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_crawler_visit_count), FALSE);
+
+  label870 = gtk_label_new (_(" "));
+  gtk_widget_set_name (label870, "label870");
+  gtk_widget_show (label870);
+  gtk_table_attach (GTK_TABLE (table60), label870, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label870), 0, 0.5);
 
   label558 = gtk_label_new (_("Unmapped stuff"));
   gtk_widget_set_name (label558, "label558");
   gtk_widget_show (label558);
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_unmapped), label558);
 
-  gtk_label_set_mnemonic_widget (GTK_LABEL (label599), spinbutton_config_track_props);
-  gtk_label_set_mnemonic_widget (GTK_LABEL (label517), spinbutton_config_lib_debug);
-  gtk_label_set_mnemonic_widget (GTK_LABEL (label377), spinbutton_config_gui_debug);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label376), spinbutton_config_dbg);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label377), spinbutton_config_gui_debug);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label517), spinbutton_config_lib_debug);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label599), spinbutton_config_track_props);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label879), spinbutton_config_dbg);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label872), spinbutton_config_dbg);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label873), spinbutton_config_dbg);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label874), spinbutton_config_dbg);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label875), spinbutton_config_dbg);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label877), spinbutton_config_dbg);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label878), spinbutton_config_dbg);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label876), spinbutton_config_dbg);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_prefs_dbg_tab, dlg_prefs_dbg_tab, "dlg_prefs_dbg_tab");
@@ -15421,38 +15826,59 @@ create_dlg_prefs_dbg_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, viewport8, "viewport8");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, vbox81, "vbox81");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, frame54, "frame54");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, hbox280, "hbox280");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, viewport109, "viewport109");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, frame125, "frame125");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, table36, "table36");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_dbg, "spinbutton_config_dbg");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_gui_debug, "spinbutton_config_gui_debug");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_lib_debug, "spinbutton_config_lib_debug");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_track_props, "spinbutton_config_track_props");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label599, "label599");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label517, "label517");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label377, "label377");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label376, "label376");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label377, "label377");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label517, "label517");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label599, "label599");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_track_props, "spinbutton_config_track_props");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, hseparator13, "hseparator13");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label882, "label882");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, viewport108, "viewport108");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, frame126, "frame126");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, table98, "table98");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label879, "label879");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label872, "label872");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label873, "label873");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label874, "label874");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label875, "label875");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_dq_debug, "spinbutton_config_dq_debug");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_dh_debug, "spinbutton_config_dh_debug");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_gwc_debug, "spinbutton_config_gwc_debug");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_url_debug, "spinbutton_config_url_debug");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_vmsg_debug, "spinbutton_config_vmsg_debug");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_search_debug, "spinbutton_config_search_debug");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_qrp_debug, "spinbutton_config_qrp_debug");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_udp_debug, "spinbutton_config_udp_debug");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label877, "label877");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label878, "label878");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label876, "label876");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label883, "label883");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label375, "label375");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, frame_expert_unmapped, "frame_expert_unmapped");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, table60, "table60");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label585, "label585");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_reading_ultrafile, "entry_reading_ultrafile");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_current_ip_stamp, "entry_current_ip_stamp");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_average_ip_uptime, "entry_average_ip_uptime");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_start_stamp, "entry_start_stamp");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_average_servent_uptime, "entry_average_servent_uptime");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_proxy_connections, "entry_proxy_connections");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_sys_nofile, "entry_sys_nofile");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_sys_physmem, "entry_sys_physmem");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_crawler_visit_count, "entry_crawler_visit_count");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label559, "label559");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label563, "label563");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label564, "label564");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label565, "label565");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label566, "label566");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label567, "label567");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label570, "label570");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label571, "label571");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label572, "label572");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_current_ip_stamp, "entry_current_ip_stamp");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_average_ip_uptime, "entry_average_ip_uptime");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_start_stamp, "entry_start_stamp");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_average_servent_uptime, "entry_average_servent_uptime");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_sys_nofile, "entry_sys_nofile");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_sys_physmem, "entry_sys_physmem");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, entry_crawler_visit_count, "entry_crawler_visit_count");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label870, "label870");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label558, "label558");
 
   return dlg_prefs_dbg_tab;
