@@ -81,6 +81,7 @@ static const gchar * const boot_hosts[] = {
 	"kisama.ath.cx:8080",
 	"krill.shacknet.nu:20095",
 	"secondary.udp-host-cache.com:9999",
+	"plankton.merseine.nu:20098",
 };
 
 static gboolean uhc_connecting = FALSE;
