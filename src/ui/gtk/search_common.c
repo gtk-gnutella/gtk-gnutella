@@ -79,6 +79,7 @@ static struct {
 	{ ST_UPLOADED,		N_("stable") },		/* Allows uploads -> stable */
 	{ ST_FIREWALL,		N_("push") },
 	{ ST_PUSH_PROXY,	N_("proxy") },
+	{ ST_UDP,			N_("udp") },
 };
 
 search_t *search_gui_get_current_search(void)	{ return current_search; }
