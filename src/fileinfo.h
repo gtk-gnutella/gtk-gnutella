@@ -100,7 +100,7 @@ struct dl_file_info {
 
 void file_info_init(void);
 void file_info_scandir(const gchar *dir);
-off_t file_info_filesize(const gchar *path);
+gboolean file_info_has_trailer(const gchar *path);
 void file_info_retrieve(void);
 void file_info_store(void);
 void file_info_store_binary(struct dl_file_info *fi);

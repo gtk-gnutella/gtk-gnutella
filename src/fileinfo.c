@@ -767,12 +767,11 @@ static gboolean file_info_get_trailer(
 }
 
 /*
- * file_info_filesize
+ * file_info_has_trailer
  *
- * Computes the real size of a file: if it has no trailer, it is its real size.
- * If it has a trailer, then fetch the filesize within.
+ * Check whether file has a trailer.
  */
-off_t file_info_filesize(const gchar *path)
+gboolean file_info_has_trailer(const gchar *path)
 {
 	gint fd;
 	struct stat buf;
@@ -784,22 +783,13 @@ off_t file_info_filesize(const gchar *path)
 		if (errno != ENOENT)
 			g_warning("can't open \"%s\" for reading: %s",
 				path, g_strerror(errno));
-		goto plainsize;
+		return FALSE;
 	}
 
 	valid = file_info_get_trailer(fd, &trailer, path);
 	close(fd);
 
-	if (valid)
-		return trailer.filesize;
-
-	/* FALL THROUGH */
-
-plainsize:
-	if (-1 == stat(path, &buf))
-		return 0;
-
-	return buf.st_size;
+	return valid;
 }
 
 /*
