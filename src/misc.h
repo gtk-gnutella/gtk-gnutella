@@ -42,6 +42,9 @@
 #define set_flags(r,f) (r = r | (f))
 #define clear_flags(r,f) (r = r & ~(f))
 
+/* Number of items in a static array */
+#define ARRAY_COUNT(a)	(sizeof(a) / sizeof(a[0]))
+
 #define SORT_ASC  1
 #define SORT_DESC -1
 #define SORT_NONE 0

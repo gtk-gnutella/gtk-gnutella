@@ -67,6 +67,7 @@
 #include "cobs.h"
 #include "bg.h"
 #include "guid.h"
+#include "file.h"
 
 #include "../config.h"
 
