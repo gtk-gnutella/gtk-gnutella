@@ -214,6 +214,22 @@ void free_track(gpointer o, gchar *file, gint line)
 }
 
 /*
+ * strfreev_track
+ *
+ * Free NULL-terminated vector of strings, and the vector.
+ */
+void strfreev_track(gchar **v, gchar *file, gint line)
+{
+	gchar *x;
+	gchar **iv = v;
+
+	while ((x = *iv++))
+		free_track(x, file, line);
+
+	free_track(v, file, line);
+}
+
+/*
  * realloc_track
  *
  * Realloc object `o' to `s' bytes.
@@ -370,6 +386,28 @@ gchar *strdup_printf_track(gchar *file, gint line, const gchar *fmt, ...)
 	va_end(args);
 
 	return malloc_record(o, strlen(o) + 1, file, line);
+}
+
+/*
+ * strsplit_track
+ *
+ * Perform a g_strplit() operation, tracking all returned strings.
+ */
+gchar **strsplit_track(
+	const gchar *s, const gchar *d, gint m, gchar *file, gint line)
+{
+	gchar **v;
+	gchar **iv;
+	gchar *x;
+
+	v = g_strsplit(s, d, m);
+	malloc_record(v, (m + 1) * sizeof(gchar *), file, line);
+
+	iv = v;
+	while ((x = *iv++))
+		malloc_record(x, strlen(x) + 1, file, line);
+
+	return v;
 }
 
 /*

@@ -60,6 +60,7 @@
 #define g_strndup(s,n)	((s) ? strndup_track(s, (n), __FILE__, __LINE__) : 0)
 #define g_strjoinv(s,v)	strjoinv_track(s, (v), __FILE__, __LINE__)
 #define g_memdup(p,s)	((p) ? memdup_track((p), (s), __FILE__, __LINE__) : 0)
+#define g_strfreev(v)	strfreev_track((v), __FILE__, __LINE__)
 
 #undef g_new
 #undef g_new0
@@ -74,6 +75,9 @@
 
 #define g_strdup_printf(fmt, ...) \
 	strdup_printf_track(__FILE__, __LINE__, fmt, __VA_ARGS__)
+
+#define g_strsplit(s,d,m) \
+	strsplit_track((s), (d), (m), __FILE__, __LINE__)
 
 /*
  * Use STRTRACK() to track an allocated string by some obscure routine that
@@ -98,9 +102,11 @@
 
 gpointer string_record(const gchar *s, gchar *file, gint line);
 gpointer malloc_record(gpointer o, guint32 s, gchar *file, gint line);
+
 gpointer malloc_track(guint32 s, gchar *file, gint line);
 gpointer malloc0_track(guint32 s, gchar *file, gint line);
 void free_track(gpointer o, gchar *file, gint line);
+void strfreev_track(gchar **v, gchar *file, gint line);
 gpointer realloc_track(gpointer o, guint32 s, gchar *file, gint line);
 gchar *strdup_track(const gchar *s, gchar *file, gint line);
 gchar *strndup_track(const gchar *s, gint n, gchar *file, gint line);
@@ -108,6 +114,8 @@ gpointer memdup_track(gconstpointer p, guint size, gchar *file, gint line);
 gchar *strjoinv_track(const gchar *s, gchar **vec, gchar *file, gint line);
 gchar *strconcat_track(gchar *file, gint line, const gchar *s, ...);
 gchar *strdup_printf_track(gchar *file, gint line, const gchar *fmt, ...);
+gchar **strsplit_track(
+	const gchar *s, const gchar *d, gint m, gchar *file, gint line);
 
 #endif	/* TRACK_MALLOC || MALLOC_SOURCE */
 
