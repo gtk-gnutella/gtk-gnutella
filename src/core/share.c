@@ -1598,6 +1598,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 					dump_hex(stderr, "Query Packet (BAD: has overhead)",
 						search, MIN(n->size - 2, 256));
 				gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
+				ext_reset(exv, MAX_EXTVEC);
 				return TRUE;			/* Drop message! */
 			}
 
@@ -1613,6 +1614,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 						sha1_digest, &n->header, FALSE)
                 ) {
                     gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
+					ext_reset(exv, MAX_EXTVEC);
 					return TRUE;			/* Drop message! */
                 }
 
