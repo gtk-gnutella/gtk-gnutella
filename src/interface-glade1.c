@@ -9572,6 +9572,7 @@ create_dlg_prefs (void)
   GtkObject *spinbutton_config_port_adj;
   GtkWidget *spinbutton_config_port;
   GtkWidget *entry_server_hostname;
+  GtkWidget *checkbutton_enable_udp;
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox100;
   GtkWidget *table53;
@@ -9700,6 +9701,10 @@ create_dlg_prefs (void)
   GtkObject *spinbutton_config_search_reissue_timeout_adj;
   GtkWidget *spinbutton_config_search_reissue_timeout;
   GtkWidget *label568;
+  GtkWidget *frame135;
+  GtkWidget *vbox131;
+  GtkWidget *checkbutton_send_oob_queries;
+  GtkWidget *checkbutton_process_oob_queries;
   GtkWidget *vbox122;
   GtkWidget *frame_expert_search_queue;
   GtkWidget *table75;
@@ -9881,6 +9886,9 @@ create_dlg_prefs (void)
   GtkWidget *hbox158;
   GtkWidget *entry_config_bad_path;
   GtkWidget *button_config_bad_path;
+  GtkWidget *frame136;
+  guint checkbutton_config_convert_spaces_key;
+  GtkWidget *checkbutton_config_convert_spaces;
   GtkWidget *frame16;
   GtkWidget *table46;
   GtkWidget *label171;
@@ -10106,6 +10114,8 @@ create_dlg_prefs (void)
   GtkWidget *viewport9;
   GtkWidget *vbox75;
   GtkWidget *frame49;
+  GtkWidget *hbox206;
+  GtkWidget *frame133;
   GtkWidget *table32;
   GtkWidget *label288;
   GtkWidget *label289;
@@ -10120,6 +10130,32 @@ create_dlg_prefs (void)
   GtkWidget *checkbutton_config_stop_host_get;
   GtkObject *spinbutton_config_track_props_adj;
   GtkWidget *spinbutton_config_track_props;
+  GtkWidget *frame134;
+  GtkWidget *table92;
+  GtkWidget *label689;
+  GtkWidget *label690;
+  GtkWidget *label691;
+  GtkWidget *label692;
+  GtkWidget *label693;
+  GtkWidget *label694;
+  GtkWidget *label695;
+  GtkWidget *label696;
+  GtkObject *spinbutton_config_gwc_debug_adj;
+  GtkWidget *spinbutton_config_gwc_debug;
+  GtkObject *spinbutton_config_url_debug_adj;
+  GtkWidget *spinbutton_config_url_debug;
+  GtkObject *spinbutton_config_dq_debug_adj;
+  GtkWidget *spinbutton_config_dq_debug;
+  GtkObject *spinbutton_config_dh_debug_adj;
+  GtkWidget *spinbutton_config_dh_debug;
+  GtkObject *spinbutton_config_vmsg_debug_adj;
+  GtkWidget *spinbutton_config_vmsg_debug;
+  GtkObject *spinbutton_config_search_debug_adj;
+  GtkWidget *spinbutton_config_search_debug;
+  GtkObject *spinbutton_config_udp_debug_adj;
+  GtkWidget *spinbutton_config_udp_debug;
+  GtkObject *spinbutton_config_qrp_debug_adj;
+  GtkWidget *spinbutton_config_qrp_debug;
   GtkWidget *frame_expert_unmapped;
   GtkWidget *table57;
   guint label461_key;
@@ -10264,7 +10300,7 @@ create_dlg_prefs (void)
   gtk_widget_show (hseparator2);
   gtk_box_pack_start (GTK_BOX (vbox30), hseparator2, FALSE, TRUE, 3);
 
-  table5 = gtk_table_new (3, 3, FALSE);
+  table5 = gtk_table_new (4, 3, FALSE);
   gtk_widget_set_name (table5, "table5");
   gtk_widget_ref (table5);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table5", table5,
@@ -10345,6 +10381,16 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_server_hostname);
   gtk_table_attach (GTK_TABLE (table5), entry_server_hostname, 1, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_enable_udp = gtk_check_button_new_with_label (_("Enable UDP"));
+  gtk_widget_set_name (checkbutton_enable_udp, "checkbutton_enable_udp");
+  gtk_widget_ref (checkbutton_enable_udp);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_enable_udp", checkbutton_enable_udp,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_enable_udp);
+  gtk_table_attach (GTK_TABLE (table5), checkbutton_enable_udp, 0, 1, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -11456,7 +11502,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame_searches);
   gtk_box_pack_start (GTK_BOX (vbox25), frame_searches, FALSE, TRUE, 0);
 
-  hbox188 = gtk_hbox_new (FALSE, 0);
+  hbox188 = gtk_hbox_new (FALSE, 2);
   gtk_widget_set_name (hbox188, "hbox188");
   gtk_widget_ref (hbox188);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "hbox188", hbox188,
@@ -11471,7 +11517,7 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "alignment31", alignment31,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (alignment31);
-  gtk_box_pack_start (GTK_BOX (hbox188), alignment31, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox188), alignment31, FALSE, TRUE, 0);
 
   table83 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table83, "table83");
@@ -11553,13 +11599,46 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label568), 0, 0.5);
 
+  frame135 = gtk_frame_new (_("Out of Band Querying"));
+  gtk_widget_set_name (frame135, "frame135");
+  gtk_widget_ref (frame135);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame135", frame135,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame135);
+  gtk_box_pack_start (GTK_BOX (hbox188), frame135, FALSE, TRUE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame135), GTK_SHADOW_OUT);
+
+  vbox131 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox131, "vbox131");
+  gtk_widget_ref (vbox131);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "vbox131", vbox131,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox131);
+  gtk_container_add (GTK_CONTAINER (frame135), vbox131);
+
+  checkbutton_send_oob_queries = gtk_check_button_new_with_label (_("Queries ask for OOB results"));
+  gtk_widget_set_name (checkbutton_send_oob_queries, "checkbutton_send_oob_queries");
+  gtk_widget_ref (checkbutton_send_oob_queries);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_send_oob_queries", checkbutton_send_oob_queries,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_send_oob_queries);
+  gtk_box_pack_start (GTK_BOX (vbox131), checkbutton_send_oob_queries, FALSE, FALSE, 0);
+
+  checkbutton_process_oob_queries = gtk_check_button_new_with_label (_("Honour OOB flag in queries"));
+  gtk_widget_set_name (checkbutton_process_oob_queries, "checkbutton_process_oob_queries");
+  gtk_widget_ref (checkbutton_process_oob_queries);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_process_oob_queries", checkbutton_process_oob_queries,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_process_oob_queries);
+  gtk_box_pack_start (GTK_BOX (vbox131), checkbutton_process_oob_queries, FALSE, FALSE, 0);
+
   vbox122 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox122, "vbox122");
   gtk_widget_ref (vbox122);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "vbox122", vbox122,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox122);
-  gtk_box_pack_start (GTK_BOX (hbox188), vbox122, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox188), vbox122, TRUE, TRUE, 0);
 
   frame_expert_search_queue = gtk_frame_new (_("Search queue"));
   gtk_widget_set_name (frame_expert_search_queue, "frame_expert_search_queue");
@@ -13101,6 +13180,26 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_config_bad_path);
   gtk_box_pack_start (GTK_BOX (hbox158), button_config_bad_path, FALSE, FALSE, 0);
+
+  frame136 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame136, "frame136");
+  gtk_widget_ref (frame136);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame136", frame136,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame136);
+  gtk_box_pack_start (GTK_BOX (vbox38), frame136, TRUE, TRUE, 0);
+
+  checkbutton_config_convert_spaces = gtk_check_button_new_with_label ("");
+  checkbutton_config_convert_spaces_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_convert_spaces)->child),
+                                   _("Convert spaces to \"__\"  in generated file names"));
+  gtk_widget_add_accelerator (checkbutton_config_convert_spaces, "clicked", accel_group,
+                              checkbutton_config_convert_spaces_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (checkbutton_config_convert_spaces, "checkbutton_config_convert_spaces");
+  gtk_widget_ref (checkbutton_config_convert_spaces);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_convert_spaces", checkbutton_config_convert_spaces,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_convert_spaces);
+  gtk_container_add (GTK_CONTAINER (frame136), checkbutton_config_convert_spaces);
 
   frame16 = gtk_frame_new (_("Resume and retry"));
   gtk_widget_set_name (frame16, "frame16");
@@ -15181,7 +15280,24 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame49", frame49,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame49);
-  gtk_box_pack_start (GTK_BOX (vbox75), frame49, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox75), frame49, FALSE, FALSE, 0);
+
+  hbox206 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_set_name (hbox206, "hbox206");
+  gtk_widget_ref (hbox206);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "hbox206", hbox206,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox206);
+  gtk_container_add (GTK_CONTAINER (frame49), hbox206);
+
+  frame133 = gtk_frame_new (_("Global"));
+  gtk_widget_set_name (frame133, "frame133");
+  gtk_widget_ref (frame133);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame133", frame133,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame133);
+  gtk_box_pack_start (GTK_BOX (hbox206), frame133, FALSE, TRUE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame133), GTK_SHADOW_OUT);
 
   table32 = gtk_table_new (5, 2, FALSE);
   gtk_widget_set_name (table32, "table32");
@@ -15189,7 +15305,7 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table32", table32,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (table32);
-  gtk_container_add (GTK_CONTAINER (frame49), table32);
+  gtk_container_add (GTK_CONTAINER (frame133), table32);
   gtk_container_set_border_width (GTK_CONTAINER (table32), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table32), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table32), 4);
@@ -15296,6 +15412,201 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_track_props), TRUE);
 
+  frame134 = gtk_frame_new (_("Functionality"));
+  gtk_widget_set_name (frame134, "frame134");
+  gtk_widget_ref (frame134);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame134", frame134,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame134);
+  gtk_box_pack_start (GTK_BOX (hbox206), frame134, FALSE, TRUE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame134), GTK_SHADOW_OUT);
+
+  table92 = gtk_table_new (5, 4, FALSE);
+  gtk_widget_set_name (table92, "table92");
+  gtk_widget_ref (table92);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table92", table92,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table92);
+  gtk_container_add (GTK_CONTAINER (frame134), table92);
+  gtk_table_set_row_spacings (GTK_TABLE (table92), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table92), 4);
+
+  label689 = gtk_label_new (_("Gnet web cache"));
+  gtk_widget_set_name (label689, "label689");
+  gtk_widget_ref (label689);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label689", label689,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label689);
+  gtk_table_attach (GTK_TABLE (table92), label689, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label689), 0, 0.5);
+
+  label690 = gtk_label_new (_("URL handling"));
+  gtk_widget_set_name (label690, "label690");
+  gtk_widget_ref (label690);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label690", label690,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label690);
+  gtk_table_attach (GTK_TABLE (table92), label690, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label690), 0, 0.5);
+
+  label691 = gtk_label_new (_("Dynamic querying"));
+  gtk_widget_set_name (label691, "label691");
+  gtk_widget_ref (label691);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label691", label691,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label691);
+  gtk_table_attach (GTK_TABLE (table92), label691, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label691), 0, 0.5);
+
+  label692 = gtk_label_new (_("Dynamic query hits"));
+  gtk_widget_set_name (label692, "label692");
+  gtk_widget_ref (label692);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label692", label692,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label692);
+  gtk_table_attach (GTK_TABLE (table92), label692, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label692), 0, 0.5);
+
+  label693 = gtk_label_new (_("Vendor messages"));
+  gtk_widget_set_name (label693, "label693");
+  gtk_widget_ref (label693);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label693", label693,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label693);
+  gtk_table_attach (GTK_TABLE (table92), label693, 0, 1, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label693), 0, 0.5);
+
+  label694 = gtk_label_new (_("Search management"));
+  gtk_widget_set_name (label694, "label694");
+  gtk_widget_ref (label694);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label694", label694,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label694);
+  gtk_table_attach (GTK_TABLE (table92), label694, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label694), 0, 0.5);
+
+  label695 = gtk_label_new (_("UDP traffic"));
+  gtk_widget_set_name (label695, "label695");
+  gtk_widget_ref (label695);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label695", label695,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label695);
+  gtk_table_attach (GTK_TABLE (table92), label695, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label695), 0, 0.5);
+
+  label696 = gtk_label_new (_("QRP management"));
+  gtk_widget_set_name (label696, "label696");
+  gtk_widget_ref (label696);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label696", label696,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label696);
+  gtk_table_attach (GTK_TABLE (table92), label696, 2, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label696), 0, 0.5);
+
+  spinbutton_config_gwc_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_gwc_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_gwc_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_gwc_debug, "spinbutton_config_gwc_debug");
+  gtk_widget_ref (spinbutton_config_gwc_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_gwc_debug", spinbutton_config_gwc_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_gwc_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_gwc_debug, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_config_url_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_url_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_url_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_url_debug, "spinbutton_config_url_debug");
+  gtk_widget_ref (spinbutton_config_url_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_url_debug", spinbutton_config_url_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_url_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_url_debug, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_config_dq_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_dq_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_dq_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_dq_debug, "spinbutton_config_dq_debug");
+  gtk_widget_ref (spinbutton_config_dq_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_dq_debug", spinbutton_config_dq_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_dq_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_dq_debug, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_config_dh_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_dh_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_dh_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_dh_debug, "spinbutton_config_dh_debug");
+  gtk_widget_ref (spinbutton_config_dh_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_dh_debug", spinbutton_config_dh_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_dh_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_dh_debug, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_config_vmsg_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_vmsg_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_vmsg_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_vmsg_debug, "spinbutton_config_vmsg_debug");
+  gtk_widget_ref (spinbutton_config_vmsg_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_vmsg_debug", spinbutton_config_vmsg_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_vmsg_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_vmsg_debug, 1, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_config_search_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_search_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_search_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_search_debug, "spinbutton_config_search_debug");
+  gtk_widget_ref (spinbutton_config_search_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_search_debug", spinbutton_config_search_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_search_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_search_debug, 3, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_config_udp_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_udp_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_udp_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_udp_debug, "spinbutton_config_udp_debug");
+  gtk_widget_ref (spinbutton_config_udp_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_udp_debug", spinbutton_config_udp_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_udp_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_udp_debug, 3, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_config_qrp_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_qrp_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_qrp_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_qrp_debug, "spinbutton_config_qrp_debug");
+  gtk_widget_ref (spinbutton_config_qrp_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_qrp_debug", spinbutton_config_qrp_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_qrp_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_qrp_debug, 3, 4, 2, 3,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   frame_expert_unmapped = gtk_frame_new (_("Unmapped stuff"));
   gtk_widget_set_name (frame_expert_unmapped, "frame_expert_unmapped");
   gtk_widget_ref (frame_expert_unmapped);
@@ -15317,7 +15628,7 @@ create_dlg_prefs (void)
 
   label461 = gtk_label_new ("");
   label461_key = gtk_label_parse_uline (GTK_LABEL (label461),
-                                   _("PROP__READING__ULTRAFILE"));
+                                   _("PROP__UNUSED"));
   gtk_widget_set_name (label461, "label461");
   gtk_widget_ref (label461);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label461", label461,
@@ -15482,6 +15793,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_entry_set_editable (GTK_ENTRY (entry_reading_ultrafile), FALSE);
+  gtk_entry_set_text (GTK_ENTRY (entry_reading_ultrafile), _("UNUSED"));
 
   label508 = gtk_label_new ("");
   label508_key = gtk_label_parse_uline (GTK_LABEL (label508),
