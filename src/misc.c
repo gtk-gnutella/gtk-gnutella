@@ -240,6 +240,20 @@ gchar *short_time(guint32 s)
 	return b;
 }
 
+/* Alternate time formatter for uptime*/
+
+gchar *short_uptime(guint32 s)
+{
+	static gchar b[SIZE_FIELD_MAX];
+
+	if (s > 86400)
+		g_snprintf(b, sizeof(b), "%ud %uh", s / 86400, (s % 86400) / 3600);
+	else
+		g_snprintf(b, sizeof(b), "%u:%02u:%02u", s / 3600, (s % 3600) / 60, (s % 3600) % 60);
+
+	return b;
+}
+
 /* Returns the ip:port of a node */
 
 gchar *node_ip(struct gnutella_node * n)
