@@ -39,7 +39,7 @@ gint utf8_to_iso8859(gchar *s, gint len, gboolean space);
  * Necessary for GTK+ 2.x version because it expects almost any string
  * to be encoded as UTF-8.
  */
-gchar* iso_8859_1_to_utf8(gchar* fromstr);
+gchar *iso_8859_1_to_utf8(gchar *fromstr);
 gchar *locale_to_utf8(gchar *str, size_t len);
 
 /* 
@@ -47,7 +47,7 @@ gchar *locale_to_utf8(gchar *str, size_t len);
  * to be in locale, but xml is stored in utf-8
  */
 
-gboolean is_ascii_string(guchar* str);
+gboolean is_ascii_string(gchar *str);
 gchar *utf8_to_locale(gchar *str, size_t len);
 
 #endif	/* _utf8_h_ */

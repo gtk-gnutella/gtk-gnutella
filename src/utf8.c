@@ -569,26 +569,25 @@ error:
 }
 
 
-gboolean is_ascii_string(guchar* str)
+gboolean is_ascii_string(gchar *str)
 {
-    gint i;
-
-	for (i=0; i<strlen(str); i++)
-	    if (str[i]>127)
+	while (str)
+		if (*str++ & 0x80)
 	        return FALSE;
+
     return TRUE;
 }
 
 gchar* iso_8859_1_to_utf8(gchar* fromstr) {
     static gboolean initialized = FALSE;
     static GIConv converter;
-	static gchar  tostr[4096 + 6]; /* a multibyte char is max. 6 bytes large */
+	static gchar tostr[4096 + 6]; /* a multibyte char is max. 6 bytes large */
     gsize fromsize;
     gsize tosize;
-	gchar* inbuf;
-	gchar* outbuf;
+	gchar *inbuf;
+	gchar *outbuf;
 
-    if ( fromstr == NULL || *fromstr == '\0' )
+    if (fromstr == NULL || *fromstr == '\0')
 	    return NULL;
 
 	if (!initialized) {
@@ -600,15 +599,15 @@ gchar* iso_8859_1_to_utf8(gchar* fromstr) {
 		} else
 			initialized = TRUE;
 	}
-  fromsize = strlen(fromstr);
-  tosize = 4096+6;
-  inbuf = fromstr;
-  outbuf = tostr;
+	fromsize = strlen(fromstr);
+	tosize = 4096+6;
+	inbuf = fromstr;
+	outbuf = tostr;
 
-  g_iconv(converter, &inbuf, &fromsize, &outbuf, &tosize);
+	g_iconv(converter, &inbuf, &fromsize, &outbuf, &tosize);
 
-  *outbuf = '\0';
-  return tostr;
+	*outbuf = '\0';
+	return tostr;
 
 error:
 	return "<Cannot convert to utf8>";
