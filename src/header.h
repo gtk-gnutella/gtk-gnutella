@@ -113,12 +113,13 @@ const gchar *header_strerror(guint errnum);
 gchar *header_get(const header_t *o, const gchar *field);
 gchar *header_getdup(const header_t *o, const gchar *field);
 
-gpointer header_fmt_make(gchar *field, gchar *separator, gint len_hint);
+gpointer header_fmt_make(const gchar *field, const gchar *separator,
+	gint len_hint);
 void header_fmt_free(gpointer o);
 void header_fmt_set_line_length(gpointer o, gint maxlen);
 gboolean header_fmt_value_fits(gpointer o, gint len, gint maxlen);
-void header_fmt_append(gpointer o, gchar *str, gchar *separator);
-void header_fmt_append_value(gpointer o, gchar *str);
+void header_fmt_append(gpointer o, const gchar *str, const gchar *separator);
+void header_fmt_append_value(gpointer o, const gchar *str);
 gint header_fmt_length(gpointer o);
 void header_fmt_end(gpointer o);
 gchar *header_fmt_string(gpointer o);
