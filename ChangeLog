@@ -1,5 +1,31 @@
 # since last version
 
+- (2002.07.09 - Richard)
+  * Gtk-gnutella is now compatible with Gtk2. To compile against Gtk2, 
+    use the --enable-gtk2 switch with the configure script.
+  * Now have two glade files, one for Gtk1.2/Glade 0.6.4 and one for
+    Gtk2/Glade 1.1.0. The format is not trivially upgradable, so for
+    a while changes will have to be maintained in both files, until
+    we abandon Gtk1.2.
+  * Remove the extern.tcl HACK. Now using the Glade-way of doing things
+    with a lookup_widget() call.
+  * Also now have interface-glade[12].[ch] and support-glade[12].[ch].
+    Depeding on which version of Gtk you compile against, the one or
+    the other will be included in gui.h and linked against. Don't
+    include any of the files directly, include gui.h instead.
+  * Added some _gui.h files. The gui.[ch] files are too monolothic and
+    there are still gui calls in some backend files. Those should be
+    moved to the corresponding _gui.[ch] files from now on. 
+    Actually we will need 3 files: 
+	- backend (model: what will one day become the lib/deamon api) 
+	- gui (view: gui modification/update and callbacks)
+	- control (controller: application workflow)
+    Backend and gui should not communicate directly with each other, but
+    must call the control layer to mediate. We should already now try
+    to separate into gui and backend parts. The control layer is still
+    spread across the callbacks and what we now have as "gui.c" or
+    "_gui" files.
+
 # v 0.90   2002.07.07  [stable]
 
 Highlight of changes (user-visible):
