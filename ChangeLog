@@ -1,4 +1,5 @@
 # since last version
+
 - added several new popup menu items to popup-download and popup-queue,
   but disabled them for now since they are not backed up by code yet.
   (Richard)
@@ -43,6 +44,9 @@
 - Made build-glade target in Makefile really regererate the code from the
   gtk-gnutella.glade file by calling src/Makefile glade_files
   (Richard)
+- Updated Debian's control file.
+- Now accounts for bytes transferred in interrupted uploads as well, and in
+  particular at servent shutdown time.
 
 # v 0.85   2002.04.04  [stable]
 
