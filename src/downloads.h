@@ -58,23 +58,28 @@ struct download {
 
 #define DOWNLOAD_IS_QUEUED(d)  ((d)->status == GTA_DL_QUEUED)
 
-#define DOWNLOAD_IS_STOPPED(d) \
-	(  (d)->status == GTA_DL_ABORTED \
-	|| (d)->status == GTA_DL_ERROR \
+#define DOWNLOAD_IS_STOPPED(d)			\
+	(  (d)->status == GTA_DL_ABORTED	\
+	|| (d)->status == GTA_DL_ERROR		\
 	|| (d)->status == GTA_DL_COMPLETED	)
 
-#define DOWNLOAD_IS_ACTIVE(d) \
+#define DOWNLOAD_IS_ACTIVE(d)			\
 	((d)->status == GTA_DL_RECEIVING)
 
-#define DOWNLOAD_IS_ESTABLISHING(d) \
+#define DOWNLOAD_IS_ESTABLISHING(d)		\
 	(  (d)->status == GTA_DL_CONNECTING \
-	|| (d)->status == GTA_DL_PUSH_SENT \
-	|| (d)->status == GTA_DL_FALLBACK \
-	|| (d)->status == GTA_DL_REQ_SENT \
-	|| (d)->status == GTA_DL_HEADERS)
+	|| (d)->status == GTA_DL_PUSH_SENT	\
+	|| (d)->status == GTA_DL_FALLBACK	\
+	|| (d)->status == GTA_DL_REQ_SENT	\
+	|| (d)->status == GTA_DL_HEADERS	)
 
-#define DOWNLOAD_IS_RUNNING(d) \
-	(DOWNLOAD_IS_ACTIVE(d) || DOWNLOAD_IS_ESTABLISHING(d))
+#define DOWNLOAD_IS_EXPECTING_GIV(d)	\
+	(  (d)->status == GTA_DL_PUSH_SENT	\
+	|| (d)->status == GTA_DL_FALLBACK	)
+
+#define DOWNLOAD_IS_RUNNING(d)			\
+	(	DOWNLOAD_IS_ACTIVE(d)			\
+	||	DOWNLOAD_IS_ESTABLISHING(d)		)
 
 #define DOWNLOAD_IS_IN_PUSH_MODE(d) (d->push)
 #define DOWNLOAD_IS_VISIBLE(d)		(d->visible)
