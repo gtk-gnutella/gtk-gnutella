@@ -1,5 +1,29 @@
 # since last version
 
+- (2002.09.23 - Richard)
+ * Gui/core separation for uploads
+ * Better monitoring of the gtk-gnutella internal server activity including
+   monitoring of failed upload attempts and connections that are being kept
+   open.
+ * Fixed: upload status bar fails to decrement (closes #609479)
+ * Should no longer give floating point exception on Alpha (closes #609253)
+   Always use gtk_progress_bar_set_fraction and check that we don't do a
+   div-by-zero when calculating the fraction.
+ * Started to move gui initialization code from main_gui.c to the respective
+   initialization functions of the different gui modules. That gives less 
+   problems with migrating to Gtk2 specific frontend modules.
+ * Revisited gui/core separation code for gNet connections. Don't transfer
+   the whole node information on each update. Don't alloc/free memory on
+   each status update.
+ * Use GtkTreeView instead of a GtkCList to list the gNet connections.
+   Breaks popup menu and removal of nodes in the experimental Gtk2 version.
+ * Destroy sorting arrow in search results panel when a search is closed.
+   (thanks to Bjorge Dijkstra for spotting and providing a fix).
+ * Moved PROP_AUTOCLEAR_UPLOADS from gnet_props.ag to gui_props.ag
+ * Give more warnings if a widget is not found in settings_gui.c
+ * Added "searches by router" to search stats.
+ * Remove sidebar viewport again (Gtk1)
+
 - (2002.09.22 RAM)
  * Forgot to initialize a field when starting an aync HTTP request.
  * QRP hash code no longer uses tolower() and only translates [A-Z] to [a-z].
