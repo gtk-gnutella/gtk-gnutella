@@ -2048,13 +2048,6 @@ filter_result_t *filter_record(search_t *sch, record_t *rec)
      */
     result = g_new0(filter_result_t, 1);
 
-	if (search_strict_and) {	
-        // FIXME:
-        // config value for strict AND checking
-		// XXX for now -- RAM
-        // Should just be dumped. I don't think we need that anymore. -- BLUE
-	}
-
     filtered =  
         ((sch->filter->ruleset != NULL) && 
             filter_is_active(sch->filter)) ||
@@ -2181,15 +2174,15 @@ void filter_init(void)
 {
     filter_global_pre  = filter_new("Global (pre)");
     filter_global_post = filter_new("Global (post)");
-    filter_drop        = filter_new("don't display");
-    filter_show        = filter_new("display");
-    filter_download    = filter_new("download");
-    filter_nodownload    = filter_new("don't download");
+    filter_show        = filter_new("DISPLAY");
+    filter_drop        = filter_new("DON'T DISPLAY");
+    filter_download    = filter_new("DOWNLOAD");
+    filter_nodownload  = filter_new("DON'T DOWNLOAD");
 
     filters = g_list_append(filters, filter_global_pre);
     filters = g_list_append(filters, filter_global_post);
-    filters = g_list_append(filters, filter_drop);
     filters = g_list_append(filters, filter_show);
+    filters = g_list_append(filters, filter_drop);
     filters = g_list_append(filters, filter_download);
     filters = g_list_append(filters, filter_nodownload);
 

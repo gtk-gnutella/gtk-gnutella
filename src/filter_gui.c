@@ -141,9 +141,9 @@ void filter_gui_init(void)
         (GTK_OPTION_MENU(optionmenu_filter_text_type), GTK_WIDGET(m));
 
     m = GTK_MENU(gtk_menu_new());
-        menu_new_item_with_data(m, "display", 
+        menu_new_item_with_data(m, "DISPLAY", 
         (gpointer) FILTER_PROP_STATE_DO);
-    menu_new_item_with_data(m, "don't display", 
+    menu_new_item_with_data(m, "DON'T DISPLAY", 
         (gpointer) FILTER_PROP_STATE_DONT);
     gtk_option_menu_set_menu
         (GTK_OPTION_MENU(optionmenu_filter_default_policy), GTK_WIDGET(m));
