@@ -205,7 +205,7 @@ gboolean http_send_status(
 
 	if (rw >= header_size && hev) {
 		g_warning("HTTP status %d (%s) too big, ignoring extra information",
-			code, reason);
+			code, status_msg);
 
 		rw = mrw + gm_snprintf(&header[mrw], header_size - mrw, "\r\n");
 		g_assert(rw < header_size);
@@ -214,11 +214,11 @@ gboolean http_send_status(
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, header, rw))) {
 		socket_eof(s);
 		g_warning("Unable to send back HTTP status %d (%s) to %s: %s",
-			code, reason, ip_to_gchar(s->ip), g_strerror(errno));
+			code, status_msg, ip_to_gchar(s->ip), g_strerror(errno));
 		return FALSE;
 	} else if (sent < rw) {
 		g_warning("Only sent %d out of %d bytes of status %d (%s) to %s: %s",
-			sent, rw, code, reason, ip_to_gchar(s->ip), g_strerror(errno));
+			sent, rw, code, status_msg, ip_to_gchar(s->ip), g_strerror(errno));
 		return FALSE;
 	} else if (dbg > 2) {
 		g_message("----Sent HTTP Status to %s (%d bytes):\n%.*s----\n",
