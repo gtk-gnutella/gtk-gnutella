@@ -844,6 +844,94 @@ static gboolean got_match(struct shared_file *sf)
 }
 
 /*
+ * compact_query:
+ *
+ * Remove unnecessary ballast from a query before processing it. Works in
+ * place on the given string. Removed are all consecutive blocks of
+ * whitespace and all word shorter then MIN_WORD_LENGTH.
+ */
+#define MIN_WORD_LENGTH 2
+static guint compact_query(gchar *search)
+{
+    gchar *s;
+    gchar *w;
+    gboolean skip_space = TRUE;
+    gint word_length = 0;
+
+    w = s = search;
+    while (*s) {
+        char c = *s;
+
+        switch (c) {
+        /* word delimiters/whitespace*/
+        case '(':  case ')':  case '[':  case ']':  case '^':
+        case '{':  case '}':  case '#':  case '$':  case '%':
+        case '*':  case '.':  case '!':  case '&':  case '|':
+        case '?':  case ',':  case ';':  case '-':  case '_':
+        case '"':  case '/':  case '~':  case ' ':  case '+':
+        case '\\': case '\n': case '\f': case '\r': case '\t':
+        case '\v': case '@':  case '<':  case '>':  case '\'':
+        case '`':
+            /* reduce consecutive spaces to a single space */
+            if (!skip_space) {
+                if (word_length < MIN_WORD_LENGTH) {
+                    /* 
+                     * reached end of very short word in query. drop
+                     * that word by rewinding write position
+                     */
+                    if (dbg > 4)
+                        printf("w");
+                    w -= word_length;
+                } else {
+                    /* copy space to final position, reset word length */
+                    *w = ' ';
+                    w++;
+                }
+                skip_space = TRUE;
+                word_length = 0; /* count this space to the next word */
+            } else {
+                if (dbg > 4)
+                    printf("s");
+            }
+            break;
+        default:
+            if (!iscntrl(c)) {
+                /* within a word now, copy word (except control characters) */
+                skip_space = FALSE;
+                *w = c;
+                w++;
+                word_length++;
+            }
+        }
+    
+        /* count the length of the original search string */
+        s++;
+    }
+    /* maybe very short word at end of query, then drop */
+    if ((word_length > 0) && (word_length < MIN_WORD_LENGTH)) {
+        if (dbg > 4)
+            printf("e");
+        w -= word_length;
+        skip_space = TRUE;
+    }
+    
+    /* space left at end of query but query not empty, drop */
+    if (skip_space && (w != search)) {
+        if (dbg > 4)
+            printf("t");
+        w--;
+    }
+
+    *w = '\0'; /* terminate mangled query */
+
+    if ((dbg > 4) && (w != s))
+        printf("\nmangled: [%s]\n", search);
+
+	/* search does no longer contain unnecessary whitespace */
+    return w - search;
+}
+
+/*
  * Searches requests (from others nodes) 
  * Basic matching. The search request is made lowercase and
  * is matched to the filenames in the LL.
@@ -886,8 +974,8 @@ gboolean search_request(struct gnutella_node *n)
 		gchar *s = search;
 		guint32 max_len = n->size - 3;		/* Payload size - Speed - NUL */
 
-		while (search_len <= max_len && *s++)
-			search_len++;
+        while (search_len <= max_len && *s++)
+            search_len ++;
 
 		if (search_len > max_len) {
 			g_assert(n->data[n->size - 1] != '\0');
@@ -901,9 +989,38 @@ gboolean search_request(struct gnutella_node *n)
             gnet_stats_count_dropped(n, MSG_DROP_QUERY_TOO_LONG);
 			return TRUE;		/* Drop the message! */
 		}
-
 		/* We can now use `search' safely as a C string: it embeds a NUL */
-	}
+
+        // FIXME: this is a problem with UTF-8 queries. We'd need to 
+        //        check wether a query is an UTF-8 query before touching
+        //        it, since we'd like to forward them unmodified.
+        //        Also update note in gnet_props.ag[gnet_compact_query]
+        if (gnet_compact_query) {
+            guint32 mangled_search_len;
+
+            mangled_search_len = compact_query(search);        
+    
+            g_assert(mangled_search_len <= search_len);
+        
+            if (mangled_search_len != search_len) {
+                gnet_stats_count_general(n, GNR_QUERY_COMPACT_COUNT, 1);
+                gnet_stats_count_general(n, GNR_QUERY_COMPACT_SIZE,
+                    search_len - mangled_search_len);
+            }
+
+            /*
+             * Need to move the trailing data forward and adjust the
+             * size of the packet.
+             */
+            g_memmove(
+                search+mangled_search_len, /* new end of query string */
+                search+search_len,         /* old end of query string */
+                n->size - (search - n->data) - search_len); /* trailer len */
+            n->size -= (search_len-mangled_search_len);
+         	WRITE_GUINT32_LE(n->size, n->header.size);
+            search_len = mangled_search_len;
+        } 
+    }
 
 	/*
 	 * If there are extra data after the first NUL, fill the extension vector.
@@ -959,30 +1076,22 @@ gboolean search_request(struct gnutella_node *n)
 				if (dbg > 4)
 					printf("Valid SHA1 in query: %32s\n", e->ext_payload);
 
+                gnet_stats_count_general(n, GNR_QUERY_SHA1, 1);
 				sha1_query = e->ext_payload;
 			}
 		}
 	}
 
     /*
-     * Push the query string to interested ones.
+     * Reorderd the checks: if we drop the packet, we won't notify any
+     * listeners. We first check wether we want to drop the packet and
+     * later decide wether we are eligible for answering the query:
+     * 1) try top drop
+     * 2) notify listeners
+     * 3) bail out if not eligible for a local search
+     * 4) local search
+     *      --Richard, 11/09/2002
      */
-    {
-        gchar *str = search;
-        query_type_t type = QUERY_STRING;
-
-        if (!*str && sha1_query) {
-            str = sha1_query;
-            type = QUERY_SHA1;
-        }
-
-        share_emit_search_request(type, str);
-    }
-
-	READ_GUINT16_LE(n->data, req_speed);
-
-	if (connection_speed < req_speed)
-		return FALSE;				/* We're not fast enough */
 
 	/*
 	 * If the query comes from a node farther than our TTL (i.e. the TTL we'll
@@ -1000,18 +1109,6 @@ gboolean search_request(struct gnutella_node *n)
         gnet_stats_count_dropped(n, MSG_DROP_MAX_TTL_EXCEEDED);
 		return TRUE;					/* Drop this long-lived search */
     }
-
-	/*
-	 * If we aren't going to let the searcher download anything, then
-	 * don't waste bandwidth and his time by giving him search results.
-	 *		--Mark Schreiber, 11/01/2002
-     *
-     * Also don't waste any time if we don't share a file.
-     *      -- Richard, 9/9/2002
-	 */
-
-	if ((max_uploads == 0) || (files_scanned == 0))
-		return FALSE;
 
 	/*
 	 * When an URN search is present, there can be an empty search string.
@@ -1036,11 +1133,42 @@ gboolean search_request(struct gnutella_node *n)
 		return TRUE;					/* Drop this search message */
     }
 
+    /*
+     * Push the query string to interested ones.
+     */
+    {
+        gchar *str = search;
+        query_type_t type = QUERY_STRING;
+
+        if (!*str && sha1_query) {
+            str = sha1_query;
+            type = QUERY_SHA1;
+        }
+
+        share_emit_search_request(type, str);
+    }
+
+	READ_GUINT16_LE(n->data, req_speed);
+	if (connection_speed < req_speed)
+		return FALSE;				/* We're not fast enough */
+
+	/*
+	 * If we aren't going to let the searcher download anything, then
+	 * don't waste bandwidth and his time by giving him search results.
+	 *		--Mark Schreiber, 11/01/2002
+     *
+     * Also don't waste any time if we don't share a file.
+     *      -- Richard, 9/9/2002
+	 */
+
+	if ((max_uploads == 0) || (files_scanned == 0))
+		return FALSE;
+
 	/*
 	 * Perform search...
 	 */
 
-    gnet_stats_count_local_search(n);
+    gnet_stats_count_general(n, GNR_LOCAL_SEARCHES, 1);
 	found_reset();
 
 	max_replies = (search_max_items == -1) ? 255 : search_max_items;
@@ -1072,11 +1200,14 @@ gboolean search_request(struct gnutella_node *n)
 
 		clen = utf8_is_valid_string(search, search_len+1);
 
-		if (clen && clen != (search_len+1)) {		/* Not pure ASCII */
-			gint isochars = utf8_to_iso8859(search, search_len+1, TRUE);
+		if (clen && clen != (search_len+1)) {  /* Not pure ASCII */
+			gint isochars = utf8_to_iso8859(
+                search, search_len+1, TRUE);
 
 			if (isochars != clen)		/* Not fully ISO-8859-1 */
 				ignore = TRUE;
+
+            gnet_stats_count_general(n, GNR_QUERY_UTF8, 1);
 
 			if (dbg > 4)
 				printf("UTF-8 query, len=%d, chars=%d, iso=%d: \"%s\"\n",
@@ -1089,7 +1220,7 @@ gboolean search_request(struct gnutella_node *n)
 
 	if (found_files > 0) {
 
-        gnet_stats_count_local_hit(n, found_files);
+        gnet_stats_count_general(n, GNR_LOCAL_HITS, found_files);
 
 		if (dbg > 3) {
 			printf("Share HIT %u files '%s'%s ", (gint) found_files, search,
