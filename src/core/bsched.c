@@ -1399,8 +1399,13 @@ ssize_t
 bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 	size_t len)
 {
+	/*
+	 * amount is only declared volatile to shut up the bogus warning by GCC
+	 * 2.95.x that ``amount'' *might* be clobbered by sigsetjmp - which is
+	 * actually not the case.
+	 */
+	volatile size_t amount;
 	size_t available;
-	size_t amount;
 	ssize_t r = (ssize_t) -1;
 	gint out_fd;
 	off_t start;
@@ -1473,19 +1478,16 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 			gint n;
 		
 			if (0 != (n = sigsetjmp(mmap_env, 1))) {
-				const gchar *signame;
-
 				switch (n) {
 				case SIGBUS:
-					signame = "SIGBUS";
+					g_warning("bio_sendfile(): Caught SIGBUS");
 					break;
 				case SIGSEGV:
-					signame = "SIGSEGV";
+					g_warning("bio_sendfile(): Caught SIGSEGV");
 					break;
 				default:
 					g_assert_not_reached();
 				}
-				g_warning("bio_sendfile(): Caught %s", signame);
 				errno = EPIPE;
 				return -1;
 			}
