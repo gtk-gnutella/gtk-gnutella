@@ -1044,7 +1044,7 @@ void upload_add(struct gnutella_socket *s)
  * Prepare reception of a full HTTP header, including the leading request.
  * Will call upload_request() when everything has been parsed.
  */
-void expect_http_header(gnutella_upload_t *u, guint32 new_status)
+void expect_http_header(gnutella_upload_t *u, upload_stage_t new_status)
 {
 	struct gnutella_socket *s = u->socket;
 
