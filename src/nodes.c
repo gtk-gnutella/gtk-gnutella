@@ -3256,17 +3256,22 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	getline_free(s->getline);
 	s->getline = NULL;
 
-	if (gnet_deflate_enabled) {
-		/*
-	 	 * Content-Encoding -- compression accepted by the remote side
-	 	 */
+	/*
+	 * Content-Encoding -- compression accepted by the remote side
+	 */
 
-		field = header_get(head, "Content-Encoding");
-		if (field) {
-			/* XXX needs more rigourous parsing */
-			if (strstr(field, "deflate"))
-				n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
-		}
+	field = header_get(head, "Content-Encoding");
+	if (field) {
+		/* XXX needs more rigourous parsing */
+		if (strstr(field, "deflate"))
+			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
+	}
+	
+	if (!gnet_deflate_enabled && (n->attrs & NODE_A_RX_INFLATE)) {
+		node_remove(n, "Compression was not accepted");
+		g_warning("Content-Encoding \"deflate\" although disabled - from"
+			   " node %s <%s>", node_ip(n), node_vendor(n));
+		return;
 	}
 
 
