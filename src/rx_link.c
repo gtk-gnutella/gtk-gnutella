@@ -16,13 +16,14 @@
 #include "rx.h"
 #include "rx_link.h"
 #include "rxbuf.h"
+#include "bsched.h"
 
 /*
  * Private attributes for the link.
  */
 struct attr {
 	gint fd;			/* Cached socket file descriptor */
-	gint gdk_tag;		/* Input callback tag */
+	bio_source_t *bio;	/* Bandwidth-limited I/O source */
 };
 
 /*
@@ -39,7 +40,7 @@ static void is_readable(gpointer data, gint source, GdkInputCondition cond)
 	pmsg_t *mb;
 	gint r;
 
-	g_assert(attr->gdk_tag);			/* Input enabled */
+	g_assert(attr->bio);			/* Input enabled */
 
 	if (cond & GDK_INPUT_EXCEPTION) {
 		node_eof(n, "Read failed (Input Exception)");
@@ -52,7 +53,7 @@ static void is_readable(gpointer data, gint source, GdkInputCondition cond)
 
 	db = rxbuf_new();
 
-	r = read(attr->fd, pdata_start(db), pdata_len(db));
+	r = bio_read(attr->bio, pdata_start(db), pdata_len(db));
 
 	if (r == 0) {
 		if (n->n_ping_sent <= 2 && n->n_pong_received)
@@ -103,7 +104,7 @@ static gpointer rx_link_init(rxdrv_t *rx, gpointer args)
 	attr = g_malloc(sizeof(*attr));
 
 	attr->fd = rx->node->socket->file_desc;
-	attr->gdk_tag = 0;
+	attr->bio = NULL;
 
 	rx->opaque = attr;
 	
@@ -119,9 +120,9 @@ static void rx_link_destroy(rxdrv_t *rx)
 {
 	struct attr *attr = (struct attr *) rx->opaque;
 
-	if (attr->gdk_tag) {
-		gdk_input_remove(attr->gdk_tag);
-		attr->gdk_tag = 0;					/* Paranoid */
+	if (attr->bio) {
+		bsched_source_remove(attr->bio);
+		attr->bio = NULL;					/* Paranoid */
 	}
 
 	g_free(rx->opaque);
@@ -159,18 +160,16 @@ static void rx_link_enable(rxdrv_t *rx)
 {
 	struct attr *attr = (struct attr *) rx->opaque;
 
+	g_assert(attr->bio == NULL);
+
 	/*
 	 * Install reading callback.
 	 */
 
-	g_assert(attr->gdk_tag == 0);
-
-	attr->gdk_tag = gdk_input_add(attr->fd,
-		(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+	attr->bio = bsched_source_add(bws.gin, attr->fd, BIO_F_READ,
 		is_readable, (gpointer) rx);
 
-	/* We assume that if this is valid, it is non-zero */
-	g_assert(attr->gdk_tag);
+	g_assert(attr->bio);
 }
 
 /*
@@ -182,10 +181,10 @@ static void rx_link_disable(rxdrv_t *rx)
 {
 	struct attr *attr = (struct attr *) rx->opaque;
 	
-	g_assert(attr->gdk_tag);
+	g_assert(attr->bio);
 
-	gdk_input_remove(attr->gdk_tag);
-	attr->gdk_tag = 0;
+	bsched_source_remove(attr->bio);
+	attr->bio = NULL;
 }
 
 struct rxdrv_ops rx_link_ops = {

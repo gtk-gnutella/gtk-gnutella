@@ -109,11 +109,17 @@ typedef struct bio_source {
  * Global bandwidth schedulers.
  */
 
-extern bsched_t *bws_out;
-extern bsched_t *bws_in;
+struct bws_set {
+	bsched_t *out;			/* Output (uploads) */
+	bsched_t *in;			/* Input (downloads) */
+	bsched_t *gout;			/* Gnet output */
+	bsched_t *gin;			/* Gnet input */
+};
+
+extern struct bws_set bws;
 
 /*
- * Public interaface.
+ * Public interface.
  */
 
 bsched_t *bsched_make(gchar *name,
@@ -128,6 +134,7 @@ bio_source_t *bsched_source_add(bsched_t *bs, int fd, guint32 flags,
 void bsched_source_remove(bio_source_t *bio);
 void bsched_set_bandwidth(bsched_t *bs, gint bandwidth);
 gint bio_write(bio_source_t *bio, gpointer data, gint len);
+gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt);
 gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len);
 gint bio_read(bio_source_t *bio, gpointer data, gint len);
 gint bws_write(bsched_t *bs, gint fd, gpointer data, gint len);

@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/uio.h>	/* struct iovec */
 
 #include "config.h"
 
@@ -21,10 +23,74 @@
  * Global bandwidth schedulers.
  */
 
-bsched_t *bws_out = NULL;
-bsched_t *bws_in = NULL;
+struct bws_set bws = { NULL, NULL, NULL, NULL };
 
 #define BW_SLOT_MIN		256		/* Minimum bandwidth/slot for realloc */
+
+/*
+ * Determine how large an I/O vector the kernel can accept.
+ */
+
+#if defined(MAXIOV)
+#define MAX_IOV_COUNT	MAXIOV			/* Regular */
+#elif defined(UIO_MAXIOV)
+#define MAX_IOV_COUNT	UIO_MAXIOV		/* Linux */
+#elif defined(IOV_MAX)
+#define MAX_IOV_COUNT	IOV_MAX			/* Solaris */
+#else
+#define MAX_IOV_COUNT	16				/* Unknown, use required minimum */
+#endif
+
+/*
+ * safe_writev
+ *
+ * Wrapper over writev() ensuring that we don't request more than
+ * MAX_IOV_COUNT entries at a time.
+ */
+static gint safe_writev(gint fd, struct iovec *iov, gint iovcnt)
+{
+	gint sent = 0;
+	struct iovec *end = iov + iovcnt;
+	struct iovec *siov;
+	gint siovcnt = MAX_IOV_COUNT;
+	gint iovsent = 0;
+
+	for (siov = iov; siov < end; siov += siovcnt) {
+		gint r;
+		gint size;
+		struct iovec *xiv;
+		struct iovec *xend;
+
+		siovcnt = iovcnt - iovsent;
+		if (siovcnt > MAX_IOV_COUNT)
+			siovcnt = MAX_IOV_COUNT;
+		g_assert(siovcnt > 0);
+		
+		r = writev(fd, siov, siovcnt);
+
+		if (r <= 0) {
+			if (r == 0 || sent)
+				break;				/* Don't flag error if bytes sent */
+			return -1;				/* Propagate error */
+		}
+
+		sent += r;
+		iovsent += siovcnt;		/* We'll break out if we did not send it all */
+
+		/*
+		 * How much did we sent?  If not the whole vector, we're blocking,
+		 * so stop writing and return amount we sent.
+		 */
+
+		for (size = 0, xiv = siov, xend = siov + siovcnt; xiv < xend; xiv++)
+			size += xiv->iov_len;
+
+		if (r < size)
+			break;
+	}
+
+	return sent;
+}
 
 /*
  * bsched_make
@@ -97,11 +163,17 @@ static void bsched_free(bsched_t *bs)
  */
 void bsched_init(void)
 {
-	bws_out = bsched_make("out",
-		BS_T_STREAM, BS_F_WRITE, output_bandwidth, 1000);
+	bws.out = bsched_make("out",
+		BS_T_STREAM, BS_F_WRITE, bandwidth.output, 1000);
 
-	bws_in = bsched_make("in",
-		BS_T_STREAM, BS_F_READ, input_bandwidth, 1000);
+	bws.gout = bsched_make("G out",
+		BS_T_STREAM, BS_F_WRITE, bandwidth.goutput, 1000);
+
+	bws.in = bsched_make("in",
+		BS_T_STREAM, BS_F_READ, bandwidth.input, 1000);
+
+	bws.gin = bsched_make("G in",
+		BS_T_STREAM, BS_F_READ, bandwidth.ginput, 1000);
 }
 
 /*
@@ -111,10 +183,12 @@ void bsched_init(void)
  */
 void bsched_close(void)
 {
-	bsched_free(bws_out);
-	bsched_free(bws_in);
+	bsched_free(bws.out);
+	bsched_free(bws.in);
+	bsched_free(bws.gout);
+	bsched_free(bws.gin);
 
-	bws_out = bws_in = NULL;
+	bws.out = bws.in = bws.gout = bws.gin = NULL;
 }
 
 /*
@@ -151,11 +225,17 @@ void bsched_disable(bsched_t *bs)
  */
 void bsched_enable_all(void)
 {
-	if (bws_out->bw_per_second)
-		bsched_enable(bws_out);
+	if (bws.out->bw_per_second)
+		bsched_enable(bws.out);
 
-	if (bws_in->bw_per_second)
-		bsched_enable(bws_in);
+	if (bws.gout->bw_per_second)
+		bsched_enable(bws.gout);
+
+	if (bws.in->bw_per_second)
+		bsched_enable(bws.in);
+
+	if (bws.gin->bw_per_second)
+		bsched_enable(bws.gin);
 }
 
 /*
@@ -166,6 +246,7 @@ void bsched_enable_all(void)
 static void bio_enable(bio_source_t *bio)
 {
 	g_assert(bio->io_tag == 0);
+	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 
 	bio->io_tag = gdk_input_add(bio->fd,
 		(GdkInputCondition) GDK_INPUT_EXCEPTION |
@@ -187,6 +268,7 @@ static void bio_enable(bio_source_t *bio)
 static void bio_disable(bio_source_t *bio)
 {
 	g_assert(bio->io_tag);
+	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 
 	gdk_input_remove(bio->io_tag);
 	bio->io_tag = 0;
@@ -245,7 +327,7 @@ static void bsched_begin_timeslice(bsched_t *bs)
 		guint32 actual;
 
 		bio->flags &= ~BIO_F_ACTIVE;
-		if (bio->io_tag == 0)
+		if (bio->io_tag == 0 && bio->io_callback)
 			bio_enable(bio);
 
 		/*
@@ -324,6 +406,12 @@ static void bsched_bio_remove(bsched_t *bs, bio_source_t *bio)
  * bsched_source_add
  *
  * Declare fd as a new source for the scheduler.
+ *
+ * When `callback' is NULL, the source will be "passive", i.e. its bandwidth
+ * will be limited when calls to bio_write() or bio_read() are made, but
+ * whether the source can accept those calls without blocking will have to
+ * be determined explicitly.
+ *
  * Returns new bio_source object.
  */
 bio_source_t *bsched_source_add(bsched_t *bs, int fd, guint32 flags,
@@ -349,8 +437,16 @@ bio_source_t *bsched_source_add(bsched_t *bs, int fd, guint32 flags,
 	bio->io_callback = callback;
 	bio->io_arg = arg;
 
+	/*
+	 * If there is no callback, the I/O source is "passive".  The supplier
+	 * has means to know whether it can read/write from the source, and only
+	 * uses the scheduler to limit the amount of data read/written from/to
+	 * that source.
+	 */
+
 	bsched_bio_add(bs, bio);
-	if (!(bs->flags & BS_F_NOBW))
+
+	if (!(bs->flags & BS_F_NOBW) && bio->io_callback)
 		bio_enable(bio);
 
 	return bio;
@@ -429,7 +525,7 @@ static gint bw_available(bio_source_t *bio, gint len)
 	if (bs->flags & BS_F_NOBW)				/* No more bandwidth */
 		return 0;							/* Grant nothing */
 
-	if (!bio->io_tag)						/* Source already disabled */
+	if (bio->io_callback && !bio->io_tag)	/* Source already disabled */
 		return 0;							/* No bandwidth available */
 
 	/*
@@ -544,6 +640,119 @@ gint bio_write(bio_source_t *bio, gpointer data, gint len)
 	if (r > 0) {
 		bsched_bw_update(bio->bs, r);
 		bio->bw_actual += r;
+	}
+
+	return r;
+}
+
+/*
+ * bio_writev
+ *
+ * Write at most `len' bytes from `iov' to source's fd, as bandwidth permits.
+ * If we cannot write anything due to bandwidth constraints, return -1 with
+ * errno set to EAGAIN.
+ */
+gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
+{
+	gint available;
+	gint r;
+	gint len;
+	struct iovec *siov;
+	gint slen = -1;			/* Avoid "may be used uninitialized" warning */
+
+	g_assert(bio);
+	g_assert(bio->flags & BIO_F_WRITE);
+
+	/*
+	 * Compute I/O vector's length.
+	 */
+
+	for (r = 0, siov = iov, len = 0; r < iovcnt; r++, siov++)
+		len += siov->iov_len;
+
+	/* 
+	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN 
+	 * to signal that we cannot perform any I/O right now.
+	 */
+
+	available = bw_available(bio, len);
+
+	if (available == 0) {
+		errno = EAGAIN;
+		return -1;
+	}
+
+	/*
+	 * If we cannot write the whole vector, we need to trim it.
+	 * Because we promise to not corrupt the original I/O vector, we
+	 * save the original length of the last I/O entry, should we modify it.
+	 */
+
+	if (len > available) {
+		gint curlen;
+
+		for (r = 0, siov = iov, curlen = 0; r < iovcnt; r++, siov++) {
+			curlen += siov->iov_len;
+
+			/*
+			 * Exact size reached, we just need to adjust down the iov count.
+			 * Force siov to NULL before leaving the loop to indicate we did
+			 * not have to alter it.
+			 */
+
+			if (curlen == available) {
+				siov = NULL;
+				iovcnt = r + 1;
+				break;
+			}
+
+			/*
+			 * Maximum size reached...  Need to adjust both the iov count
+			 * and the length of the current siov entry.
+			 */
+
+			if (curlen > available) {
+				slen = siov->iov_len;		/* Save for later restore */
+				siov->iov_len -= (curlen - available);
+				iovcnt = r + 1;
+				g_assert(siov->iov_len > 0);
+				break;
+			}
+		}
+	}
+
+	/*
+	 * Write I/O vector, updating used bandwidth.
+	 *
+	 * When `iovcnt' is greater than MAX_IOV_COUNT, use our custom writev()
+	 * wrapper to avoid failure with EINVAL.
+	 *		--RAM, 17/03/2002
+	 */
+
+	if (dbg > 7)
+		printf("bsched_writev(fd=%d, len=%d) available=%d\n",
+			bio->fd, len, available);
+
+	bio->flags |= BIO_F_ACTIVE;
+
+	if (iovcnt > MAX_IOV_COUNT)
+		r = safe_writev(bio->fd, iov, iovcnt);
+	else
+		r = writev(bio->fd, iov, iovcnt);
+
+	if (r > 0) {
+		g_assert(r <= available);
+		bsched_bw_update(bio->bs, r);
+		bio->bw_actual += r;
+	}
+
+	/*
+	 * Restore original I/O vector if we trimmed it.
+	 */
+
+	if (len > available && siov) {
+		g_assert(slen >= 0);			/* Ensure it was initialized */
+		siov->iov_len = slen;
 	}
 
 	return r;
@@ -833,7 +1042,9 @@ void bsched_timer(void)
 
 	(void) gettimeofday(&tv, &tz);
 
-	bsched_heartbeat(bws_out, &tv);
-	bsched_heartbeat(bws_in, &tv);
+	bsched_heartbeat(bws.out, &tv);
+	bsched_heartbeat(bws.in, &tv);
+	bsched_heartbeat(bws.gout, &tv);
+	bsched_heartbeat(bws.gin, &tv);
 }
 

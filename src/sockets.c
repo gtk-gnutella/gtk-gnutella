@@ -143,7 +143,7 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 		return;
 	}
 
-	r = bws_read(bws_in, s->file_desc, s->buffer + s->pos, count);
+	r = bws_read(bws.in, s->file_desc, s->buffer + s->pos, count);
 
 	if (r == 0) {
 		socket_destroy(s);
@@ -747,7 +747,7 @@ void socket_http_error(struct gnutella_socket *s, gint code, gchar *reason)
 		"\r\n",
 		code, reason, version_string, start_rfc822_date);
 
-	if (-1 == (sent = bws_write(bws_out, s->file_desc, http_response, rw)))
+	if (-1 == (sent = bws_write(bws.out, s->file_desc, http_response, rw)))
 		g_warning("Unable to send back HTTP error %d (%s) to %s: %s",
 			code, reason, ip_to_gchar(s->ip), g_strerror(errno));
 	else if (sent < rw)

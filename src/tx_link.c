@@ -4,30 +4,17 @@
  * Network driver -- link level.
  *
  * This driver writes to the remote node the data that are passed to it, and
- * will flow control as soon as the kernel refuses to write any more data.
+ * will flow control as soon as the kernel refuses to write any more data
+ * or when the bandwidth devoted to Gnet has reached its limit.
  */
 
 #include <sys/types.h>
-#include <sys/uio.h>	/* struct iovec */
 
 #include "sockets.h"
 #include "nodes.h"
 #include "tx.h"
 #include "tx_link.h"
-
-/*
- * Determine how large an I/O vector the kernel can accept.
- */
-
-#if defined(MAXIOV)
-#define MAX_IOV_COUNT	MAXIOV			/* Regular */
-#elif defined(UIO_MAXIOV)
-#define MAX_IOV_COUNT	UIO_MAXIOV		/* Linux */
-#elif defined(IOV_MAX)
-#define MAX_IOV_COUNT	IOV_MAX			/* Solaris */
-#else
-#define MAX_IOV_COUNT	16				/* Unknown, use required minimum */
-#endif
+#include "bsched.h"
 
 /*
  * Private attributes for the link.
@@ -35,58 +22,8 @@
 struct attr {
 	gint fd;			/* Cached socket file descriptor */
 	gint gdk_tag;		/* Input callback tag */
+	bio_source_t *bio;	/* Bandwidth-limited I/O source */
 };
-
-/*
- * safe_writev
- *
- * Wrapper over writev() ensuring that we don't request more than
- * MAX_IOV_COUNT entries at a time.
- */
-static gint safe_writev(gint fd, struct iovec *iov, gint iovcnt)
-{
-	gint sent = 0;
-	struct iovec *end = iov + iovcnt;
-	struct iovec *siov;
-	gint siovcnt = MAX_IOV_COUNT;
-	gint iovsent = 0;
-
-	for (siov = iov; siov < end; siov += siovcnt) {
-		gint r;
-		gint size;
-		struct iovec *xiv;
-		struct iovec *xend;
-
-		siovcnt = iovcnt - iovsent;
-		if (siovcnt > MAX_IOV_COUNT)
-			siovcnt = MAX_IOV_COUNT;
-		g_assert(siovcnt > 0);
-		
-		r = writev(fd, siov, siovcnt);
-
-		if (r <= 0) {
-			if (r == 0 || sent)
-				break;				/* Don't flag error if bytes sent */
-			return -1;				/* Propagate error */
-		}
-
-		sent += r;
-		iovsent += siovcnt;		/* We'll break out if we did not send it all */
-
-		/*
-		 * How much did we sent?  If not the whole vector, we're blocking,
-		 * so stop writing and return amount we sent.
-		 */
-
-		for (size = 0, xiv = siov, xend = siov + siovcnt; xiv < xend; xiv++)
-			size += xiv->iov_len;
-
-		if (r < size)
-			break;
-	}
-
-	return sent;
-}
 
 /*
  * is_writable
@@ -132,8 +69,17 @@ static gpointer tx_link_init(txdrv_t *tx, gpointer args)
 
 	attr = g_malloc(sizeof(*attr));
 
+	/*
+	 * Because we handle servicing of the upper layers explicitely within
+	 * the TX stack (i.e. upper layers detect that we were enable to comply
+	 * with the whole write and enable us), there is no I/O callback attached
+	 * to the I/O source: we only create it to benefit from bandwidth limiting
+	 * through calls to bio_write() and bio_writev().
+	 */
+
 	attr->fd = tx->node->socket->file_desc;
 	attr->gdk_tag = 0;
+	attr->bio = bsched_source_add(bws.gout, attr->fd, BIO_F_WRITE, NULL, NULL);
 
 	tx->opaque = attr;
 	
@@ -152,6 +98,8 @@ static void tx_link_destroy(txdrv_t *tx)
 	if (attr->gdk_tag)
 		gdk_input_remove(attr->gdk_tag);
 
+	bsched_source_remove(attr->bio);
+
 	g_free(tx->opaque);
 }
 
@@ -164,9 +112,9 @@ static void tx_link_destroy(txdrv_t *tx)
 static gint tx_link_write(txdrv_t *tx, gpointer data, gint len)
 {
 	gint r;
-	gint fd = ((struct attr *) tx->opaque)->fd;
+	bio_source_t *bio = ((struct attr *) tx->opaque)->bio;
 
-	r = write(fd, data, len);
+	r = bio_write(bio, data, len);
 
 	if (r >= 0) {
 		node_add_tx_written(tx->node, r);
@@ -188,6 +136,7 @@ static gint tx_link_write(txdrv_t *tx, gpointer data, gint len)
 		{
 			int terr = errno;
 			time_t t = time(NULL);
+			gint fd = ((struct attr *) tx->opaque)->fd;
 			g_error("%s  gtk-gnutella: node_write: "
 				"write failed on fd #%d with unexpected errno: %d (%s)\n",
 				ctime(&t), fd, terr, g_strerror(terr));
@@ -206,18 +155,9 @@ static gint tx_link_write(txdrv_t *tx, gpointer data, gint len)
 static gint tx_link_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 {
 	gint r;
-	gint fd = ((struct attr *) tx->opaque)->fd;
+	bio_source_t *bio = ((struct attr *) tx->opaque)->bio;
 
-	/*
-	 * If `iovcnt' is greater than MAX_IOV_COUNT, use our custom writev()
-	 * wrapper to avoid failure with EINVAL.
-	 *		--RAM, 17/03/2002
-	 */
-
-	if (iovcnt > MAX_IOV_COUNT)
-		r = safe_writev(fd, iov, iovcnt);
-	else
-		r = writev(fd, iov, iovcnt);
+	r = bio_writev(bio, iov, iovcnt);
 
 	if (r >= 0) {
 		node_add_tx_written(tx->node, r);
@@ -239,6 +179,7 @@ static gint tx_link_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 		{
 			int terr = errno;
 			time_t t = time(NULL);
+			gint fd = ((struct attr *) tx->opaque)->fd;
 			g_error("%s  gtk-gnutella: node_writev: "
 				"write failed on fd #%d with unexpected errno: %d (%s)\n",
 				ctime(&t), fd, terr, g_strerror(terr));

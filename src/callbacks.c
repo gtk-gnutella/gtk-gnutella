@@ -1415,17 +1415,17 @@ void on_clist_search_stats_resize_column(GtkCList * clist, gint column,
 
 BIND_SPINBUTTON_CALL(
     spinbutton_config_bps_in,
-    input_bandwidth,
+    bandwidth.input,
     1024,
-    bsched_set_bandwidth(bws_in, input_bandwidth)
+    bsched_set_bandwidth(bws.in, bandwidth.input)
 )
 FOCUS_TO_ACTIVATE(spinbutton_config_bps_in)
 
 BIND_SPINBUTTON_CALL(
     spinbutton_config_bps_out,
-    output_bandwidth,
+    bandwidth.output,
     1024,
-    bsched_set_bandwidth(bws_out, output_bandwidth)
+    bsched_set_bandwidth(bws.out, bandwidth.output)
 )
 FOCUS_TO_ACTIVATE(spinbutton_config_bps_out)
 
@@ -1617,9 +1617,9 @@ BIND_CHECKBUTTON(
         gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bps_out),
                                  bps_out_enabled);
         if (bps_out_enabled) {
-            bsched_enable(bws_out);
+            bsched_enable(bws.out);
         } else {
-            bsched_disable(bws_out);
+            bsched_disable(bws.out);
         } 
     }
 )
@@ -1630,9 +1630,9 @@ BIND_CHECKBUTTON(
         gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bps_in),
                                  bps_in_enabled);
         if (bps_in_enabled) {
-            bsched_enable(bws_in);
+            bsched_enable(bws.in);
         } else {
-            bsched_disable(bws_in);
+            bsched_disable(bws.in);
         }
     }
 )

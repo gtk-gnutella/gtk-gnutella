@@ -215,6 +215,11 @@ static void deflate_service(gpointer data)
 	g_assert(attr->send_idx >= 0);	/* We have something to send */
 	g_assert(attr->send_idx < BUFFER_COUNT);
 
+	if (dbg > 9)
+		printf("deflate_service: (%s) (buffer #%d, %d bytes held)\n",
+			node_ip(tx->node), attr->send_idx,
+			attr->buf[attr->send_idx].wptr - attr->buf[attr->send_idx].rptr);
+
 	/*
 	 * First, attempt to transmit the whole send buffer.
 	 */
@@ -235,8 +240,13 @@ static void deflate_service(gpointer data)
 
 	b = &attr->buf[attr->fill_idx];	/* Buffer we fill */
 
-	if (b->wptr >= b->end)
+	if (b->wptr >= b->end) {
+		if (dbg > 9)
+			printf("deflate_service: (%s) sending fill buffer #%d, %d bytes\n",
+				node_ip(tx->node), attr->fill_idx, b->wptr - b->rptr);
+
 		deflate_rotate_and_send(tx);
+	}
 
 	/*
 	 * If we were able to send the whole send buffer, disable servicing.

@@ -651,7 +651,7 @@ static void upload_header_read(
 		return;
 	}
 
-	r = bws_read(bws_in, s->file_desc, s->buffer + s->pos, count);
+	r = bws_read(bws.in, s->file_desc, s->buffer + s->pos, count);
 	if (r == 0) {
 		upload_remove(u, "Failed (EOF)");
 		return;
@@ -739,7 +739,7 @@ void upload_push_conf(struct upload *u)
 	giv[sizeof(giv)-1] = '\0';			/* Might have been truncated */
 	
 	s = u->socket;
-	if (-1 == (sent = bws_write(bws_out, s->file_desc, giv, rw))) {
+	if (-1 == (sent = bws_write(bws.out, s->file_desc, giv, rw))) {
 		g_warning("Unable to send back GIV for \"%s\" to %s: %s",
 			u->name, ip_to_gchar(s->ip), g_strerror(errno));
 	} else if (sent < rw) {
@@ -1170,7 +1170,7 @@ static void upload_request(struct upload *u, header_t *header)
 				date_to_rfc822_gchar(now), date_to_rfc822_gchar2(mtime),
 				u->file_size);
 
-		sent = bws_write(bws_out, s->file_desc, http_response, rw);
+		sent = bws_write(bws.out, s->file_desc, http_response, rw);
 		if (sent == -1) {
 			gint errcode = errno;
 			g_warning("Unable to send back HTTP OK reply to %s: %s",
@@ -1208,7 +1208,7 @@ static void upload_request(struct upload *u, header_t *header)
 		g_assert(s->gdk_tag == 0);
 		g_assert(u->bio == NULL);
 		
-		u->bio = bsched_source_add(bws_out, s->file_desc,
+		u->bio = bsched_source_add(bws.out, s->file_desc,
 			BIO_F_WRITE, upload_write, (gpointer) u);
 
 		/*

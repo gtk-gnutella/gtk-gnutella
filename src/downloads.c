@@ -1879,7 +1879,7 @@ static void download_header_read(
 		return;
 	}
 
-	r = bws_read(bws_in, s->file_desc, s->buffer + s->pos, count);
+	r = bws_read(bws.in, s->file_desc, s->buffer + s->pos, count);
 	if (r == 0) {
 		download_stop(d, GTA_DL_STOPPED, "Stopped (EOF)");
 		return;
@@ -2262,7 +2262,7 @@ static void download_request(struct download *d, header_t *header)
 	g_assert(s->gdk_tag == 0);
 	g_assert(d->bio == NULL);
 
-	d->bio = bsched_source_add(bws_in, s->file_desc,
+	d->bio = bsched_source_add(bws.in, s->file_desc,
 		BIO_F_READ, download_read, (gpointer) d);
 
 	/*
@@ -2384,7 +2384,7 @@ gboolean download_send_request(struct download *d)
 			d->record_index, d->file_name,
 			version_string);
 
-	if (-1 == (sent = bws_write(bws_out, d->socket->file_desc, dl_tmp, rw))) {
+	if (-1 == (sent = bws_write(bws.out, d->socket->file_desc, dl_tmp, rw))) {
 		download_stop(d, GTA_DL_ERROR, "Write failed: %s", g_strerror(errno));
 		return FALSE;
 	} else if (sent < rw) {

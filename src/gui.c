@@ -688,7 +688,7 @@ void gui_update_input_bandwidth ()
 {
     gtk_spin_button_set_value(
         GTK_SPIN_BUTTON(spinbutton_config_bps_in),
-        (float)input_bandwidth / 1024.0);
+        (float) bandwidth.input / 1024.0);
 }
 
 UPDATE_CHECKBUTTON(
@@ -701,7 +701,7 @@ void gui_update_output_bandwidth ()
 {
     gtk_spin_button_set_value(
         GTK_SPIN_BUTTON(spinbutton_config_bps_out),
-        (float)output_bandwidth / 1024.0);
+        (float) bandwidth.output / 1024.0);
 }
 
 UPDATE_CHECKBUTTON(
@@ -856,14 +856,14 @@ void gui_update_global(void)
 	 */
 	
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
-			   compact_size(progressbar_bps_in_avg ? bsched_avg_bps(bws_in) : 
-										             bsched_bps(bws_in)),
+			   compact_size(progressbar_bps_in_avg ? bsched_avg_bps(bws.in) : 
+										             bsched_bps(bws.in)),
 			   progressbar_bps_in_avg ? "(avg)" : "");
 	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bps_in), gui_tmp);
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s", 
-			   compact_size(progressbar_bps_out_avg ? bsched_avg_bps(bws_out) :
-										              bsched_bps(bws_out)),
+			   compact_size(progressbar_bps_out_avg ? bsched_avg_bps(bws.out) :
+										              bsched_bps(bws.out)),
 			   progressbar_bps_out_avg ? "(avg)" : "");
 	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bps_out), gui_tmp);
 
@@ -875,16 +875,16 @@ void gui_update_global(void)
 	 */
 
 	gtk_progress_configure(GTK_PROGRESS(progressbar_bps_in), 
-    	MIN(progressbar_bps_in_avg ? bsched_avg_bps(bws_in) : 
-									 bsched_bps(bws_in), 
-			bws_in->bw_per_second),
-		0, bws_in->bw_per_second);
+    	MIN(progressbar_bps_in_avg ? bsched_avg_bps(bws.in) : 
+									 bsched_bps(bws.in), 
+			bws.in->bw_per_second),
+		0, bws.in->bw_per_second);
 
 	gtk_progress_configure(GTK_PROGRESS(progressbar_bps_out), 
-    	MIN(progressbar_bps_out_avg ? bsched_avg_bps(bws_out) :
-									  bsched_bps(bws_out), 
-			bws_out->bw_per_second),
-		0, bws_out->bw_per_second);
+    	MIN(progressbar_bps_out_avg ? bsched_avg_bps(bws.out) :
+									  bsched_bps(bws.out), 
+			bws.out->bw_per_second),
+		0, bws.out->bw_per_second);
 }
 
 void gui_update_node_display(struct gnutella_node *n, time_t now)

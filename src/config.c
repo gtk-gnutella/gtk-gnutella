@@ -97,8 +97,6 @@ guint32 download_retry_stopped = 15;
 guint32 download_overlap_range = 512;
 guint32 upload_connecting_timeout = 60;		/* Receiving headers */
 guint32 upload_connected_timeout = 180;		/* Sending data */
-guint32 output_bandwidth = 0;				/* Output b/w limit (0=none) */
-guint32 input_bandwidth = 0;				/* Input b/w limit (0=none) */
 guint32 node_connected_timeout = 45;
 guint32 node_connecting_timeout = 5;
 guint32 node_sendqueue_size = 98304;		/* 150% of max msg size (64K) */
@@ -116,6 +114,8 @@ gfloat min_dup_ratio = 1.5;
 guint32 max_hosts_cached = 20480;
 guint32 search_stats_update_interval = 200;
 guint32 search_stats_delcoef = 25;
+
+struct conf_bandwidth bandwidth = { 0, 0, 0, 0};	/* No limits */
 
 gchar *local_netmasks_string = NULL;
 
@@ -193,6 +193,7 @@ enum {
 	k_download_retry_refused_delay, k_download_retry_stopped,
 	k_upload_connecting_timeout, k_upload_connected_timeout,
 	k_output_bandwidth, k_input_bandwidth,
+	k_output_gnet_bandwidth, k_input_gnet_bandwidth,
 	k_node_connected_timeout,
 	k_node_connecting_timeout, k_node_sendqueue_size, k_node_tx_flowc_timeout,
 	k_search_queries_forward_size,
@@ -272,6 +273,8 @@ static gchar *keywords[] = {
 	"upload_connected_timeout",			/* k_upload_connected_timeout */
 	"output_bandwidth",					/* k_output_bandwidth */
 	"input_bandwidth",					/* k_input_bandwidth */
+	"output_gnet_bandwidth",			/* k_output_gnet_bandwidth */
+	"input_gnet_bandwidth",				/* k_input_gnet_bandwidth */
 	"node_connected_timeout",	/* k_node_connected_timeout */
 	"node_connecting_timeout",	/* k_node_connecting_timeout */
 	"node_sendqueue_size",		/* k_node_sendqueue_size */
@@ -740,12 +743,22 @@ void config_set_param(guint32 keyword, gchar *value)
 
 	case k_output_bandwidth:
 		/* Limited to 2 MB/s since we multiply by 1000 in an unsigned 32-bit */
-		if (i >= 0 && i < BS_BW_MAX) output_bandwidth = i;
+		if (i >= 0 && i < BS_BW_MAX) bandwidth.output = i;
 		return;
 
 	case k_input_bandwidth:
 		/* Limited to 2 MB/s since we multiply by 1000 in an unsigned 32-bit */
-		if (i >= 0 && i < BS_BW_MAX) input_bandwidth = i;
+		if (i >= 0 && i < BS_BW_MAX) bandwidth.input = i;
+		return;
+
+	case k_output_gnet_bandwidth:
+		/* Limited to 2 MB/s since we multiply by 1000 in an unsigned 32-bit */
+		if (i >= 0 && i < BS_BW_MAX) bandwidth.goutput = i;
+		return;
+
+	case k_input_gnet_bandwidth:
+		/* Limited to 2 MB/s since we multiply by 1000 in an unsigned 32-bit */
+		if (i >= 0 && i < BS_BW_MAX) bandwidth.ginput = i;
 		return;
 
 	case k_search_queries_forward_size:
@@ -1255,11 +1268,19 @@ static void config_save(void)
 
 	fprintf(config, "# Output bandwidth, in bytes/sec (Gnet excluded) "
 		"[0=nolimit, max=2 MB/s]\n"
-		"%s = %u\n\n", keywords[k_output_bandwidth], output_bandwidth);
+		"%s = %u\n\n", keywords[k_output_bandwidth], bandwidth.output);
 
 	fprintf(config, "# Input bandwidth, in bytes/sec (Gnet excluded) "
 		"[0=nolimit, max=2 MB/s]\n"
-		"%s = %u\n\n", keywords[k_input_bandwidth], input_bandwidth);
+		"%s = %u\n\n", keywords[k_input_bandwidth], bandwidth.input);
+
+	fprintf(config, "# Gnet output bandwidth, in bytes/sec "
+		"[0=nolimit, max=2 MB/s]\n"
+		"%s = %u\n\n", keywords[k_output_gnet_bandwidth], bandwidth.goutput);
+
+	fprintf(config, "# Gnet input bandwidth, in bytes/sec "
+		"[0=nolimit, max=2 MB/s]\n"
+		"%s = %u\n\n", keywords[k_input_gnet_bandwidth], bandwidth.ginput);
 
 	fprintf(config, "# Name of file with auto-download strings "
 		"(relative is taken from launch dir)\n%s = \"%s\"\n\n",

@@ -62,8 +62,6 @@ extern guint32 download_retry_stopped;
 extern guint32 download_overlap_range;
 extern guint32 upload_connecting_timeout;
 extern guint32 upload_connected_timeout;
-extern guint32 output_bandwidth;
-extern guint32 input_bandwidth;
 extern guint32 node_connected_timeout;
 extern guint32 node_connecting_timeout;
 extern guint32 node_sendqueue_size;
@@ -74,6 +72,15 @@ extern guint32 search_answers_forward_size;
 extern guint32 search_answers_kick_size;
 extern guint32 other_messages_kick_size;
 extern time_t tab_update_time;
+
+struct conf_bandwidth {
+	guint32 output;
+	guint32 input;
+	guint32 goutput;
+	guint32 ginput;
+};
+
+extern struct conf_bandwidth bandwidth;
 
 extern guint32 nodes_col_widths[];
 extern guint32 dl_active_col_widths[];

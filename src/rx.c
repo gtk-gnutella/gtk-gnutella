@@ -165,6 +165,7 @@ void rx_enable(rxdrv_t *rx)
 	if (rx->lower)
 		rx_enable(rx->lower);
 }
+
 /*
  * rx_disable
  *
