@@ -44,6 +44,8 @@
 #include <glib.h>
 
 
+#include "cq.h"
+#include "url.h"
 #include "vendors.h"
 #include "misc.h"
 #include "base32.h"
@@ -55,6 +57,7 @@
 #include "matching.h"
 #include "getdate.h"
 #include "regex.h"
+#include "sha1.h"
 
 #include "../config.h"
 
@@ -69,6 +72,13 @@
 #define GTA_INTERFACE "X11"
 #define GTA_RELEASE "25/08/2002"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
+
+/*
+ * Functions
+ */
+
+/* main.c */
+void gtk_gnutella_exit(gint); 
 
 
 #endif /* __common_h__ */
