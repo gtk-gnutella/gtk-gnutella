@@ -1,0 +1,63 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:official d_official: Myread Setvar package cat pkgsrc
+?MAKE:	-pick add $@ %<
+?S:official:
+?S:	This variable holds 'true' or 'false' depending on whether we're making
+?S:	an "official" build.  When not official, generated programs may choose
+?S:	to peek within the source directory, for instance via $pkgsrc in the
+?S:	shell and PACKAGE_SOURCE_DIR in C programs.
+?S:.
+?S:d_official:
+?S:	This variable conditionally defines OFFICIAL_BUILD.
+?S:
+?S:.
+?C:OFFICIAL_BUILD:
+?C: When defined, the build is "official".  Programs generated for an
+?C:	official build MUST NOT peek into the place where the sources lie, via
+?C:	PACKAGE_SOURCE_DIR or any other means.
+?C:.
+?H:#$d_official OFFICIAL_BUILD	/**/
+?H:.
+?Y:TOP
+?LINT:set official d_official
+: determine whether this is an official build
+case "$official" in
+true) dflt=y;;
+*) dflt=n;;
+esac
+$cat <<EOM
+
+I can compile $package for a so-called "official build".  That means
+a build whose generated programs should not refer back to the place
+where the sources for $package are located.  In other words, no
+mention of the current source directory:
+
+	$pkgsrc
+
+should make its way into the generated scripts and programs.  Because
+that would be useless, and to protect your privacy.
+
+When compiling for local use, it usually makes sense to allow $package
+to access your sources, in case you don't want to make a full install
+and wish to rely on some configuration file or other data file present
+in the sources.
+
+EOM
+rp='Is this producing an official build'
+. ./myread
+case "$ans" in
+y) val=true;;
+*) val=false;;
+esac
+set official
+eval $setvar
+case "$official" in
+true) val="$define";;
+*) val="$undef";;
+esac
+set d_official
+eval $setvar
+
