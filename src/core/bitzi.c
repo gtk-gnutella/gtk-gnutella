@@ -38,8 +38,6 @@
 
 #include "common.h"
 
-#ifdef HAS_LIBXML2
-
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 
@@ -688,32 +686,5 @@ bitzi_init(void)
 
 	g_timeout_add(1 * 10000, (GSourceFunc) bitzi_heartbeat, NULL);
 }
-
-#else	/* !HAS_LIBXML2 */
-
-/**
- * Empty version when no libxml2.
- */
-void
-bitzi_init(void)
-{
-}
-
-/**
- * Empty version when no libxml2.
- */
-gpointer
-bitzi_query_byurnsha1(const gchar *urnsha1)
-{
-	/*
-	 * This routine should not be called when libxml2 is not available,
-	 * because the GUI should hide the menu entry when there is no libxml2.
-	 *		--RAM, 2004-12-04
-	 */
-
-	g_warning("cannot perform Bitzi search without libxml2 support");
-}
-
-#endif	/* HAS_LIBXML2 */
 
 /* vi: set ts=4 sw=4 cindent: */

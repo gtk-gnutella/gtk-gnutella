@@ -27,8 +27,6 @@
 
 #include "gui.h"
 
-#ifdef HAS_LIBXML2
-
 RCSID("$Id$");
 
 #include <libxml/tree.h>
@@ -1489,7 +1487,5 @@ get_rule_flags_from_xml(xmlNodePtr xmlnode)
 
     return flags;
 }
-
-#endif	/* HAS_LIBXML2 */
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -28,6 +28,10 @@
 
 #include "config.h"
 
+#ifndef HAS_LIBXML2
+#error You need libxml2 (http://www.xmlsoft.org/) to compile Gtk-Gnutella
+#endif
+
 /*
  * Main includes
  */

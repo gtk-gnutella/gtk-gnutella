@@ -36,10 +36,8 @@ RCSID("$Id$");
 #include "search.h"
 #include "settings.h"
 
-#ifdef HAS_LIBXML2
 #include "search_xml.h"
 #include <libxml/parser.h>
-#endif
 
 #include "if/gui_property_priv.h"
 #include "if/gnet_property.h"
@@ -626,44 +624,12 @@ search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 	search_gui_free_alt_locs(rc);
 }
 
-#ifndef HAS_LIBXML2
-/*
- * search_store_old
- *
- * Store pending non-passive searches.
- */
-static void
-search_store_old(void)
-{
-	const GList *l;
-	FILE *out;
-	file_path_t fp;
-
-	file_path_set(&fp, settings_gui_config_dir(), search_file);
-	out = file_config_open_write("searches", &fp);
-
-	if (!out)
-		return;
-
-	file_config_preamble(out, "Searches");
-
-	for (l = search_gui_get_searches(); l; l = g_list_next(l)) {
-		const search_t *sch = (const search_t *) l->data;
-		if (!sch->passive)
-			fprintf(out, "%s\n", sch->query);
-	}
-
-	file_config_close(out, &fp);
-}
-#endif /* HAS_LIBXML2 */
-
 /**
  * Persist searches to disk.
  */
 void
 search_gui_store_searches(void)
 {
-#ifdef HAS_LIBXML2
 	char *path;
 
 	search_store_xml();
@@ -689,9 +655,6 @@ search_gui_store_searches(void)
 		}
     }
 	G_FREE_NULL(path);
-#else
-    search_store_old();
-#endif
 }
 
 /**
@@ -742,7 +705,6 @@ search_retrieve_old(void)
 void
 search_gui_retrieve_searches(void)
 {
-#ifdef HAS_LIBXML2
 	LIBXML_TEST_VERSION
 
     if (!search_retrieve_xml()) {
@@ -752,10 +714,6 @@ search_gui_retrieve_searches(void)
             	"You may remove \"searches.orig\"."));
     	}
 	}
-
-#else
-    search_retrieve_old();
-#endif /* HAS_LIBXML2 */
 }
 
 /**

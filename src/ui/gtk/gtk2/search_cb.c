@@ -914,7 +914,6 @@ void
 on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
-#ifdef HAS_LIBXML2
 	search_t *search;
 	GtkTreeSelection *selection;
 	GSList *sl, *sl_records;
@@ -955,7 +954,6 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 
 	g_slist_free(sl_records);
 
-#endif	/* HAS_LIBXML2 */
 }
 
 
