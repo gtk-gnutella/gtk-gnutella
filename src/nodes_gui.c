@@ -217,8 +217,17 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n)
         g_snprintf(gui_tmp, sizeof(gui_tmp), "%d.%d",
             n->proto_major, n->proto_minor);
         gtk_clist_set_text(clist, row, 3, gui_tmp);
+		if (status.status == GTA_NODE_CONNECTED) {
+	        gtk_clist_set_text(clist, row, 4, 
+    	    	status.connect_date ? 
+        			short_uptime(now - status.connect_date) : "...");
 
-        gtk_clist_set_text(clist, row, 4, nodes_gui_status_str(&status, now));
+    	    gtk_clist_set_text(clist, row, 5, 
+	        	status.up_date ?
+        			short_uptime(now - status.up_date) : "...");
+		}
+
+        gtk_clist_set_text(clist, row, 6, nodes_gui_status_str(&status, now));
     } else {
         g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
     }
@@ -301,7 +310,7 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 {
     GtkCList *clist_nodes;
     gint row;
-	gchar *titles[5];
+	gchar *titles[7];
 	gchar proto_tmp[16];
 
     g_assert(n != NULL);
@@ -314,6 +323,8 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
     titles[2] = n->vendor ? n->vendor : "...";
     titles[3] = proto_tmp;
     titles[4] = "...";
+    titles[5] = "...";
+    titles[6] = "...";
 
     clist_nodes = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
 
@@ -358,7 +369,17 @@ void nodes_gui_update_nodes_display(time_t now)
 		gnet_node_t n = (gnet_node_t) ((GtkCListRow *) l->data)->data;
 
         node_get_status(n, &status);
-        gtk_clist_set_text(clist, row, 4, nodes_gui_status_str(&status, now));
+
+		if (status.status == GTA_NODE_CONNECTED) {
+	        gtk_clist_set_text(clist, row, 4, 
+    	    	status.connect_date ? 
+        			short_uptime(now - status.connect_date) : "...");
+		
+	        gtk_clist_set_text(clist, row, 5, 
+    	    	status.up_date ?
+        			short_uptime(now - status.up_date) : "...");
+		}
+        gtk_clist_set_text(clist, row, 6, nodes_gui_status_str(&status, now));
     }
 
     gtk_clist_thaw(clist);
