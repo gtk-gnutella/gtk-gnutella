@@ -656,6 +656,7 @@ static gboolean file_info_get_trailer(gint fd, struct trailer *tb, gchar *name)
 {
 	guint32 tr[5];
 	struct stat buf;
+	off_t offset;
 
 	g_assert(fd >= 0);
 	g_assert(tb);
@@ -675,7 +676,9 @@ static gboolean file_info_get_trailer(gint fd, struct trailer *tb, gchar *name)
 	 *		--RAM, 02/02/2003 after a bug report from Christian Biere
 	 */
 
-	if (lseek(fd, buf.st_size - sizeof(tr), SEEK_SET) == -1) {
+	offset = buf.st_size - sizeof(tr);		/* Start of trailer */
+
+	if (offset != lseek(fd, offset, SEEK_SET)) {
 		g_warning("file_info_get_trailer(): "
 			"error seek()ing in file \"%s\": %s", name, g_strerror(errno));
 		return FALSE;
