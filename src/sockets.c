@@ -163,6 +163,11 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 		g_warning("socket_read(): first line too long, disconnecting from %s",
 			 ip_to_gchar(s->ip));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		if (
+			0 == strncmp(s->buffer, "GET ", 4) ||
+			0 == strncmp(s->buffer, "HEAD ", 5)
+		)
+			socket_http_error(s, 414, "Requested URL Too Large");
 		socket_destroy(s);
 		return;
 	case READ_DONE:
@@ -687,6 +692,39 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 					  socket_accept, s);
 
 	return s;
+}
+
+/*
+ * socket_http_error
+ *
+ * Send HTTP error on socket.
+ * The connection is NOT closed.
+ */
+void socket_http_error(struct gnutella_socket *s, gint code, gchar *reason)
+{
+	gchar http_response[1024];
+	gint rw;
+	gint sent;
+
+	rw = g_snprintf(http_response, sizeof(http_response),
+		"HTTP/1.0 %d %s\r\n"
+		"Server: %s\r\n"
+		"Connection: close\r\n"
+		"X-Live-Since: %s\r\n"
+		"\r\n",
+		code, reason, version_string, start_rfc822_date);
+
+	if (-1 == (sent = bws_write(bws_out, s->file_desc, http_response, rw)))
+		g_warning("Unable to send back HTTP error %d (%s) to %s: %s",
+			code, reason, ip_to_gchar(s->ip), g_strerror(errno));
+	else if (sent < rw)
+		g_warning("Only sent %d out of %d bytes of error %d (%s) to %s: %s",
+			sent, rw, code, reason, ip_to_gchar(s->ip), g_strerror(errno));
+	else if (dbg > 4) {
+		printf("----Sent HTTP Error to %s:\n%.*s----\n",
+			ip_to_gchar(s->ip), rw, http_response);
+		fflush(stdout);
+	}
 }
 
 /*
