@@ -36,6 +36,8 @@
 
 #define BIT_TO_BOOL(m) ((m == 0) ? FALSE : TRUE)
 
+
+
 /*
  * If FILTER_HIDE_ON_CLOSE is defined, the filter dialog is only hidden
  * when the dialog is close instead the of the dialog being destroyed.
@@ -84,10 +86,8 @@ const gchar * const filter_prop_state_names[MAX_FILTER_PROP_STATE] = {
 /*
  * Private variables
  */
-static gboolean session_started = FALSE;
 static GList *shadow_filters = NULL;
 static gchar f_tmp[1024];
-static GList *filters_current = NULL;
 static GList *filters_added = NULL;
 static GList *filters_removed = NULL;
 
@@ -104,7 +104,7 @@ static filter_t *filter_global_post = NULL;
 
 /* not static because needed in search_xml. */
 GList *filters = NULL;
-
+GList *filters_current = NULL;
 
 
 /***
@@ -341,38 +341,22 @@ static void shadow_commit(shadow_t *shadow)
 
 
 /*
- * filter_open_dialog:
+ * filter_refresh_display:
  *
- * Open and initialize the filter dialog.
+ * Regenerates the filter tree and rules display from after a apply/revert.
  */
-void filter_open_dialog() {
+void filter_refresh_display(GList *filters)
+{
     GList *l;
 
-    /*
-     * If we have not started a editing session yet, we do that now.
-     */
-    if (!session_started)
-    {
-        session_started = TRUE;
-        filters_current = g_list_copy(filters);
-    }
-
-    if (filter_dialog == NULL) {
-        filter_dialog = create_dlg_filters();
-        g_assert(filter_dialog != NULL);
-   
-        filter_gui_init();
-
-    /*
-     * We initialize the root nodes here.
-     */
+    filter_gui_freeze_filters();
     filter_gui_filter_clear_list();
-    for (l = filters_current; l != NULL; l = l->next) {
+    for (l = filters; l != NULL; l = l->next) {
         filter_t *filter = (filter_t *)l->data;
         shadow_t *shadow;
         GList *ruleset;
         gboolean enabled;
-
+    
         shadow = shadow_find(filter);
         ruleset = (shadow != NULL) ? shadow->current : filter->ruleset;
         enabled = (shadow != NULL) ? 
@@ -382,6 +366,23 @@ void filter_open_dialog() {
         filter_gui_filter_add(filter, ruleset);
         filter_gui_filter_set_enabled(filter, enabled);
     }
+    filter_gui_thaw_filters();
+}
+
+
+
+/*
+ * filter_open_dialog:
+ *
+ * Open and initialize the filter dialog.
+ */
+void filter_open_dialog() {
+    if (filter_dialog == NULL) {
+        filter_dialog = create_dlg_filters();
+        g_assert(filter_dialog != NULL);
+   
+        filter_gui_init();
+        filter_refresh_display(filters_current);
     }
     
     if (current_search != NULL) {
@@ -406,13 +407,11 @@ void filter_open_dialog() {
 void filter_close_dialog(gboolean commit)
 {
     if (commit) {
-        filter_commit_changes();
+        filter_apply_changes();
         filter_default_policy = (gint) option_menu_get_selected_data
             (optionmenu_filter_default_policy);
     } else
-        filter_cancel_changes();
-
-    filter_update_targets();
+        filter_revert_changes();
 
     if (filter_dialog != NULL) {
         gdk_window_get_root_origin
@@ -776,7 +775,7 @@ void filter_close_search(search_t *s)
 
 
 /*
- * filter_commit_changes:
+ * filter_apply_changes:
  *
  * Go through all the shadow filters, and commit the recorded
  * changes to the assosicated filter. We walk through the 
@@ -785,11 +784,9 @@ void filter_close_search(search_t *s)
  * Then shadow->current will be set as the new filter for that
  * search.
  */
-void filter_commit_changes() 
+void filter_apply_changes() 
 {
     GList *s;
-
-    filter_set(NULL);
 
     /*
      * Free memory for all removed filters;
@@ -797,46 +794,49 @@ void filter_commit_changes()
     for (s = shadow_filters; s != NULL; s = shadow_filters)
         shadow_commit((shadow_t*)s->data);
 
-    if (session_started) {
-        g_list_free(filters);
-        filters = filters_current;
+    g_list_free(filters);
+    filters = g_list_copy(filters_current);
 
-        for (s = filters_added; s != NULL; s = s->next)
-            clear_flags(((filter_t *)s->data)->flags, FILTER_FLAG_SHADOW);
+    /*
+     * Remove the SHADOW flag from all added filters
+     */
+    for (s = filters_added; s != NULL; s = s->next)
+        clear_flags(((filter_t *)s->data)->flags, FILTER_FLAG_SHADOW);
 
-        g_list_free(filters_added);
-        filters_added = NULL;
+    g_list_free(filters_added);
+    filters_added = NULL;
     
-        /*
-         * Free all removed filters.
-         */
-        for (s = filters_removed; s != NULL; s = s->next) {
-            filter_gui_filter_remove(s->data);
-            filter_free(s->data);
-        }
-
-        g_list_free(filters_removed);
-        filters_removed = NULL;
-
-        session_started = FALSE;
+    /*
+     * Free all removed filters. Don't iterate since filter_free removes
+     * the filter from filters_removed.
+     */
+    for (s = filters_removed; s != NULL; s = filters_removed) {
+        filter_free(s->data);
     }
+    g_assert(filters_removed == NULL);
+
+    filter_update_targets();
+    filter_set(work_filter);
 }
 
 
 
 /*
- * filter_cancel_changes:
+ * filter_revert_changes:
  *
  * Free the ressources for all added filters and forget all shadows.
+ * A running session will not be ended by this.
  */
-void filter_cancel_changes()
+void filter_revert_changes()
 {
     GList *s;
+    gint n;
 
     if (dbg >= 5)
-        printf("Canceling all changes to rules\n");
+        printf("Canceling all changes to filters/rules\n");
 
-    filter_set(NULL);
+    filter_gui_freeze_filters();
+    filter_gui_freeze_rules();
 
     /*
      * Free memory for all added filters and for the shadows.
@@ -844,36 +844,55 @@ void filter_cancel_changes()
     for (s = shadow_filters; s != NULL; s = shadow_filters)
         shadow_cancel((shadow_t *)s->data);
 
+    if (g_list_find(filters, work_filter) != NULL)
+        filter_set(work_filter);
+    else
+        filter_set(NULL);
 
-    if (session_started) {
-        if (dbg >= 5)
-            printf("Also cancelling changes to filters\n");
-
-        g_list_free(filters_current);
-        filters_current = NULL;
+    g_list_free(filters_current);
+    filters_current = g_list_copy(filters);
     
-        g_list_free(filters_removed);
-        filters_removed = NULL;
-        
-        /*
-         * Free all added filters.
-         */
-        for (s = filters_added; s != NULL; s = s->next) {
-            filter_gui_filter_remove(s->data);
-            filter_free(s->data);
-        }
+    /*
+     * Free and remove all added filters. We don't iterate explicitly,
+     * because filter_free removes the added filter from filters_added
+     * for us.
+     */
+    n = 0;
+    for (s = filters_added; s != NULL; s = filters_added) {
+        filter_t *filter = (filter_t *) s->data;
     
-        g_list_free(filters_added);
-        filters_added = NULL;
+        filter_gui_filter_remove(filter);
+        filter_free(filter);
+    }
+    g_assert(filters_added == NULL);
 
-        session_started = FALSE;
+    /*
+     * Restore all removed filters.
+     */
+    for (s = filters_removed; s != NULL; s = s->next) {
+        filter_t *filter = (filter_t *) s->data;
 
-        if (dbg >= 5)
-            printf("Cancelling changes to filters done.\n");
+        filter_gui_filter_add(filter, filter->ruleset);
+    }
+    g_list_free(filters_removed);
+    filters_removed = NULL;
+
+    /*
+     * Update the rulecounts. Since we don't have any shadows anymore, we
+     * can just use f->ruleset. Also update the 'enabled' state of the
+     * filters while we are at it.
+     */
+    for (s = filters_current; s != NULL; s = g_list_next(s)) {
+        filter_t *filter = (filter_t *) s->data;
+
+        filter_gui_update_rule_count(filter, filter->ruleset);
+        filter_gui_filter_set_enabled(filter, filter_is_active(filter));
     }
 
-    if (dbg >= 5)
-        printf("Canceling all changed to rules done\n");
+    filter_gui_thaw_rules();
+    filter_gui_thaw_filters();
+    
+    filter_update_targets();
 }
 
 
@@ -1183,14 +1202,6 @@ void filter_add_to_session(filter_t *f)
     g_assert(g_list_find(filters_current, f) == NULL);
     g_assert(f != NULL);
    
-    /*
-     * If we have not started a editing session yet, we do that now.
-     */
-    if (!session_started)
-    {
-        session_started = TRUE;
-        filters_current = g_list_copy(filters);
-    }
 
     /*
      * Either remove from removed or add to added list.
@@ -1233,16 +1244,15 @@ void filter_new_for_search(search_t *s)
     f->visited = FALSE;
     set_flags(f->flags, FILTER_FLAG_ACTIVE);
 
-    filters = g_list_append(filters, f);
-          
     /*
-     * If we are in a editing session we have to make sure the
-     * filter is also added there.
+     * Add filter to current and session lists
      */
-    if (session_started) {
-        filters_current = g_list_append(filters_current, f);
-    }
+    filters = g_list_append(filters, f);
+    filters_current = g_list_append(filters_current, f);
 
+    /*
+     * Crosslink filter and search
+     */
     f->search = s;
     s->filter = f;
 
@@ -1265,15 +1275,6 @@ void filter_remove_from_session(filter_t *f)
 {
     g_assert(g_list_find(filters_removed, f) == NULL);
     g_assert(g_list_find(filters_current, f) != NULL);
-
-    /*
-     * If we have not started a editing session yet, we do that now.
-     */
-    if (!session_started)
-    {
-        session_started = TRUE;
-        filters_current = g_list_copy(filters);
-    }
 
     /*
      * Either remove from added list or add to removed list.
@@ -1300,7 +1301,7 @@ void filter_remove_from_session(filter_t *f)
  * filter_free:
  *
  * Frees a filter and the filters assiciated with it and
- * unregister it.
+ * unregisters it from current and session filter lists.
  */
 static void filter_free(filter_t *f) 
 {
@@ -1317,14 +1318,16 @@ static void filter_free(filter_t *f)
             f->name, f->refcount);
     
     /*
-     * If we are in a editing session we have to make sure the
-     * filter is also removed there.
+     * Remove the filter from current and session data
      */
-    if (session_started) {
+    if (g_list_find(filters, f) != NULL)
+        filters = g_list_remove(filters, f);
+    if (g_list_find(filters_current, f) != NULL)
         filters_current = g_list_remove(filters_current, f);
-    }
-
-    filters = g_list_remove(filters, f);
+    if (g_list_find(filters_added, f) != NULL)
+        filters_added = g_list_remove(filters_added, f);
+    if (g_list_find(filters_removed, f) != NULL)
+        filters_removed = g_list_remove(filters_removed, f);
 
     for (l = g_list_copy(f->ruleset); l != NULL; l = l->next) {
         filter_remove_rule(f, (rule_t *)l->data);
@@ -1426,6 +1429,9 @@ void filter_append_rule(filter_t *f, rule_t * const r)
      */
     f->ruleset = g_list_append(f->ruleset, r);
     r->target->refcount ++;
+    if (dbg >= 6)
+        printf("increased refcount on \"%s\" to %d\n",
+            r->target->name, r->target->refcount);
 
     /*
      * If a shadow for our filter exists, we add it there also.
@@ -1436,9 +1442,13 @@ void filter_append_rule(filter_t *f, rule_t * const r)
     /*
      * If a shadow for the target exists, we increase refcount there too.
      */
-    if (target_shadow != NULL)
+    if (target_shadow != NULL) {
         target_shadow->refcount ++;
 
+        if (dbg >= 6)
+            printf("increased refcount on shadow of \"%s\" to %d\n",
+                target_shadow->filter->name, target_shadow->refcount);
+    }
     
     /*
      * Update dialog if necessary.
@@ -1511,7 +1521,7 @@ void filter_append_rule_to_session(filter_t *f, rule_t * const r)
 
     target_shadow->refcount ++;
     if (dbg >= 6)
-        printf("increased refcount on \"%s\" to %d\n",
+        printf("increased refcount on shadow of \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
 
     /*
@@ -1632,20 +1642,20 @@ void filter_remove_rule(filter_t *f, rule_t *r)
      *    filter.
      */
     if (in_filter) {
+        r->target->refcount --;
+
         if (dbg >= 6)
             printf("decreased refcount on \"%s\" to %d\n",
                 r->target->name, r->target->refcount);
-
-        r->target->refcount --;
     }
 
     if (in_shadow_current) {
         if (target_shadow != NULL) {
+            target_shadow->refcount --;
+        
             if (dbg >= 6)
                 printf("decreased refcount on shadow of \"%s\" to %d\n",
                     target_shadow->filter->name, target_shadow->refcount);
-
-            target_shadow->refcount --;
         }
     }
 
@@ -1714,7 +1724,7 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
 
     target_shadow->refcount --;
     if (dbg >= 6)
-        printf("decreased refcount on \"%s\" to %d\n",
+        printf("decreased refcount on shadow of \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
 
     l = g_list_find(shadow->added, r);
@@ -1809,7 +1819,7 @@ void filter_replace_rule_in_session(filter_t *f,
 
     target_shadow->refcount --;
     if (dbg >= 6)
-        printf("decreased refcount on \"%s\" to %d\n",
+        printf("decreased refcount on shadow of \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
 
     /*
@@ -1849,7 +1859,7 @@ void filter_replace_rule_in_session(filter_t *f,
 
     target_shadow->refcount ++;
     if (dbg >= 6)
-        printf("increased refcount on \"%s\" to %d\n",
+        printf("increased refcount on shadow of \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
         
     /*
@@ -1920,7 +1930,7 @@ void filter_adapt_order(void)
     (prop_count) ++;                                              \
     (r)->target->match_count ++;                                  \
                                                                   \
-    if (dbg >= 6)                                                 \
+    if (dbg >= 10)                                                 \
         printf("matched rule: %s\n", filter_rule_to_gchar((r)));
    
 /*
@@ -1966,7 +1976,7 @@ static int filter_apply
         gboolean match = FALSE;
 
         r = (rule_t *)list->data;
-        if (dbg >= 6)
+        if (dbg >= 10)
             printf("trying to match against: %s\n", filter_rule_to_gchar(r));
 
         if (RULE_IS_ACTIVE(r)) {
@@ -2341,6 +2351,8 @@ void filter_init(void)
     filters = g_list_append(filters, filter_nodownload);
     filters = g_list_append(filters, filter_return);
 
+    filters_current = g_list_copy(filters);
+
     create_popup_filter_rule();
 }
 
@@ -2353,10 +2365,7 @@ void filter_init(void)
  */
 void filter_update_targets(void)
 {
-    if (session_started)
-        filter_gui_rebuild_target_combos(filters_current);
-    else
-        filter_gui_rebuild_target_combos(filters);
+    filter_gui_rebuild_target_combos(filters_current);
 }
 
 
@@ -2411,7 +2420,6 @@ void filter_set_enabled(filter_t *filter, gboolean active)
 {
     shadow_t *shadow;
     static gboolean locked = FALSE;
-    flag_t *flags;
 
     g_assert(filter != NULL);
 
@@ -2421,16 +2429,13 @@ void filter_set_enabled(filter_t *filter, gboolean active)
     locked = TRUE;
 
     shadow = shadow_find(filter);
-    if (shadow != NULL) {
-        flags = &shadow->flags;
-    } else {
-        flags = &filter->flags;
-    }   
-
+    if (shadow == NULL)
+        shadow = shadow_new(filter);
+    
     if (active) {
-        set_flags(*flags, FILTER_FLAG_ACTIVE);
+        set_flags(shadow->flags, FILTER_FLAG_ACTIVE);
     } else {
-        clear_flags(*flags, FILTER_FLAG_ACTIVE);
+        clear_flags(shadow->flags, FILTER_FLAG_ACTIVE);
     }
 
     filter_gui_filter_set_enabled(work_filter, active);
@@ -2478,13 +2483,10 @@ void filter_free_result(filter_result_t *res)
  */
 gboolean filter_is_valid_in_session(filter_t *f)
 {
-    GList *list;
-
     if (f == NULL)
         return FALSE;
-
-    list = session_started ? filters_current : filters;
-    return g_list_find(list, f) != NULL;
+    else
+        return g_list_find(filters_current, f) != NULL;
 }
 
 /*
@@ -2498,9 +2500,7 @@ filter_t *filter_find_by_name_in_session(gchar *name)
 {
     GList *l;
 
-    l = session_started ? filters_current : filters;
-
-    for (;l != NULL; l = l->next) {
+    for (l = filters_current; l != NULL; l = l->next) {
         filter_t *filter = (filter_t *) l->data;
 
         if (strcmp(filter->name, name) == 0)

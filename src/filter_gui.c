@@ -110,6 +110,9 @@ void filter_gui_init(void)
     GtkMenu *m;
     gint i;
 
+    if (filter_dialog == NULL)
+        return;
+
     gtk_notebook_set_show_tabs
         (GTK_NOTEBOOK(notebook_filter_detail), FALSE);
 
@@ -163,6 +166,9 @@ void filter_gui_init(void)
  */
 void filter_gui_show_dialog(void)
 {
+    if (filter_dialog == NULL)
+        return;
+
   	gtk_window_set_default_size(GTK_WINDOW(filter_dialog), 
         flt_dlg_w, flt_dlg_h);
 
@@ -183,11 +189,11 @@ void filter_gui_show_dialog(void)
 void filter_gui_filter_clear_list(void)
 {
     gchar *titles[3];
-    GdkColor *fg_color;
     GdkColor *bg_color;
+
+    if (filter_dialog == NULL)
+        return;
     
-    fg_color = &(gtk_widget_get_style(GTK_WIDGET(ctree_filter_filters))
-        ->fg[GTK_STATE_ACTIVE]);
     bg_color = &(gtk_widget_get_style(GTK_WIDGET(ctree_filter_filters))
         ->bg[GTK_STATE_ACTIVE]);
 
@@ -236,15 +242,6 @@ void filter_gui_filter_clear_list(void)
     gtk_ctree_node_set_selectable
         (GTK_CTREE(ctree_filter_filters), fl_node_free, FALSE);
 
-    gtk_ctree_node_set_foreground(GTK_CTREE(ctree_filter_filters),
-        fl_node_builtin, fg_color);
-    gtk_ctree_node_set_foreground(GTK_CTREE(ctree_filter_filters),
-        fl_node_global, fg_color);
-    gtk_ctree_node_set_foreground(GTK_CTREE(ctree_filter_filters),
-        fl_node_bound, fg_color);
-    gtk_ctree_node_set_foreground(GTK_CTREE(ctree_filter_filters),
-        fl_node_free, fg_color);
-
     gtk_ctree_node_set_background(GTK_CTREE(ctree_filter_filters),
         fl_node_builtin, bg_color);
     gtk_ctree_node_set_background(GTK_CTREE(ctree_filter_filters),
@@ -266,45 +263,49 @@ void filter_gui_filter_clear_list(void)
  */
 void filter_gui_filter_add(filter_t *f, GList *ruleset)
 {
+    gchar *titles[3];
+    GtkCTreeNode *node;
+    GtkCTreeNode *parent;
+    guint buf;
+
     g_assert(f != NULL);
+
+    if (filter_dialog == NULL)
+        return;
 
     if (ruleset == NULL)
         ruleset = f->ruleset;
 
-    if (filter_dialog != NULL) {
-        gchar *titles[3];
-        GtkCTreeNode *node;
-        GtkCTreeNode *parent;
-        guint buf;
-            
-        titles[0] = f->name;
-        g_snprintf(fg_tmp, sizeof(fg_tmp), "%d", g_list_length(ruleset));
-        titles[1] = g_strdup(fg_tmp);
-        buf = f->match_count+f->fail_count;
-        if (buf != 0) {
-            g_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
-                f->match_count, buf, 
-                (gint)((float)f->match_count/buf*100));
-            titles[2] = fg_tmp;
+    titles[0] = f->name;
+    g_snprintf(fg_tmp, sizeof(fg_tmp), "%d", g_list_length(ruleset));
+    titles[1] = g_strdup(fg_tmp);
+    buf = f->match_count+f->fail_count;
+    if (buf != 0) {
+        if (filter_is_builtin(f)) {
+            g_snprintf(fg_tmp, sizeof(fg_tmp), "%d", f->match_count);
         } else {
-            titles[2] = "...";
+            g_snprintf(fg_tmp, sizeof(fg_tmp), "%d/%d (%d%%)",
+                f->match_count, buf, (gint)((float)f->match_count/buf*100));
         }
-
-        parent = getFilterRoot(f);
-
-        node = gtk_ctree_insert_node(
-            GTK_CTREE(ctree_filter_filters), parent, NULL, titles,
-            0, NULL, NULL, NULL, NULL, TRUE, TRUE);
-        gtk_ctree_node_set_row_data
-            (GTK_CTREE(ctree_filter_filters), node, (gpointer) f);
-
-        if (parent == fl_node_builtin) {
-            gtk_ctree_node_set_selectable
-                (GTK_CTREE(ctree_filter_filters), node, FALSE);
-        }
-    
-        g_free(titles[1]);
+        titles[2] = fg_tmp;
+    } else {
+        titles[2] = "...";
     }
+
+    parent = getFilterRoot(f);
+
+    node = gtk_ctree_insert_node(
+        GTK_CTREE(ctree_filter_filters), parent, NULL, titles,
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE);
+    gtk_ctree_node_set_row_data
+        (GTK_CTREE(ctree_filter_filters), node, (gpointer) f);
+
+    if (parent == fl_node_builtin) {
+        gtk_ctree_node_set_selectable
+            (GTK_CTREE(ctree_filter_filters), node, FALSE);
+    }
+    
+    g_free(titles[1]);
 }
 
 
@@ -379,6 +380,8 @@ void filter_gui_filter_set
     work_filter = f;
 
     if (f != NULL) {
+        GtkCTreeNode *node;
+
         gtk_widget_set_sensitive(checkbutton_filter_enabled, TRUE);
         gtk_widget_set_sensitive(button_filter_reset, TRUE);
         gtk_widget_set_sensitive(button_filter_add_rule_text, TRUE);
@@ -400,11 +403,21 @@ void filter_gui_filter_set
         if (dbg >= 5)
             printf("showing ruleset for filter: %s\n", f->name);
         filter_gui_set_ruleset(ruleset);
+
+        node = gtk_ctree_find_by_row_data
+            (GTK_CTREE(ctree_filter_filters), getFilterRoot(f), f);
+        if (node != NULL) {
+            gtk_ctree_select(GTK_CTREE(ctree_filter_filters), node);
+        } else {
+            g_warning("work_filter is not available in filter tree");
+            gtk_clist_unselect_all(GTK_CLIST(ctree_filter_filters));
+        }
     } else {
         gtk_entry_set_text(GTK_ENTRY(entry_filter_name), "");
         filter_gui_set_ruleset(NULL);
         filter_gui_filter_set_enabled(NULL, FALSE);
-
+        
+        gtk_clist_unselect_all(GTK_CLIST(ctree_filter_filters));
         gtk_widget_set_sensitive(checkbutton_filter_enabled, FALSE);
         gtk_widget_set_sensitive(button_filter_reset, FALSE);
         gtk_widget_set_sensitive(button_filter_add_rule_text, FALSE);
@@ -652,6 +665,9 @@ void filter_gui_rebuild_target_combos(GList *filters)
  */
 void filter_gui_set_default_policy(gint pol)
 {
+    if (filter_dialog == NULL)
+        return;
+
     option_menu_select_item_by_data(
         optionmenu_filter_default_policy, 
         (gpointer) pol);
@@ -1546,4 +1562,36 @@ static rule_t *filter_gui_get_state_rule()
             (negate ? RULE_FLAG_NEGATE : 0);
 
     return filter_new_state_rule(display, download, target, flags);
+}
+
+void filter_gui_freeze_rules()
+{
+    if (filter_dialog == NULL)
+        return;
+
+    gtk_clist_freeze(GTK_CLIST(clist_filter_rules));
+}
+
+void filter_gui_thaw_rules()
+{
+    if (filter_dialog == NULL)
+        return;
+
+    gtk_clist_thaw(GTK_CLIST(clist_filter_rules));
+}
+
+void filter_gui_freeze_filters()
+{
+    if (filter_dialog == NULL)
+        return;
+
+    gtk_clist_freeze(GTK_CLIST(ctree_filter_filters));
+}
+
+void filter_gui_thaw_filters()
+{
+    if (filter_dialog == NULL)
+        return;
+
+    gtk_clist_thaw(GTK_CLIST(ctree_filter_filters));
 }

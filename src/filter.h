@@ -228,10 +228,11 @@ rule_t *filter_new_state_rule
 void filter_adapt_order(void);
 void filter_append_rule(filter_t *f, rule_t * const r);
 void filter_append_rule_to_session(filter_t * f, rule_t * const r);
-void filter_cancel_changes();
+void filter_revert_changes();
+void filter_apply_changes();
 void filter_close_dialog(gboolean);
 void filter_close_search(struct search *);
-void filter_commit_changes();
+void filter_apply_changes();
 void filter_add_to_session(filter_t *f);
 void filter_remove_from_session(filter_t *f);
 void filter_init(void);

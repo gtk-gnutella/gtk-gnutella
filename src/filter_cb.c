@@ -32,7 +32,7 @@
 /*
  * Private variables
  */
-rule_t *rule_clipboard = NULL;
+static rule_t *rule_clipboard = NULL;
 
 void filter_cb_close()
 {
@@ -61,12 +61,20 @@ void on_checkbutton_filter_enabled_toggled
 void on_ctree_filter_filters_tree_select_row
     (GtkCTree * ctree, GList *node, gint column, gpointer user_data)
 {
+    static gboolean lock = FALSE;
     filter_t *filter;
+
+    if (lock)
+        return;
+    
+    lock = TRUE;
 
     filter = (filter_t *) gtk_ctree_node_get_row_data
         (GTK_CTREE(ctree), GTK_CTREE_NODE(node));
 
     filter_set(filter);
+
+    lock = FALSE;
 }
 
 void on_button_filter_reset_all_clicked
@@ -182,15 +190,15 @@ void on_button_filter_add_rule_state_clicked(GtkButton *button, gpointer user_da
 
 void on_button_filter_ok_clicked(GtkButton *button, gpointer user_data)
 {
+    filter_close_dialog(TRUE);
+}
+
+void on_button_filter_add_rule_clicked(GtkButton *button, gpointer user_data)
+{
     rule_t * r = NULL;
 
     gint page = gtk_notebook_get_current_page
         (GTK_NOTEBOOK(notebook_filter_detail));
-
-    if ((page == nb_filt_page_buttons) || (work_filter == NULL)) {
-        filter_close_dialog(TRUE);
-        return;
-    }
 
     switch (page) {
     case nb_filt_page_text:
@@ -245,9 +253,21 @@ void on_button_filter_cancel_clicked(GtkButton *button, gpointer user_data)
         filter_close_dialog(FALSE);
         return;
     }
-
     filter_gui_edit_rule(NULL);
 }
+
+void on_button_filter_apply_clicked(GtkButton *button, gpointer user_data)
+{
+    filter_apply_changes();
+    filter_gui_edit_rule(NULL);
+}
+
+void on_button_filter_revert_clicked(GtkButton *button, gpointer user_data)
+{
+    filter_revert_changes();
+    filter_gui_edit_rule(NULL);
+}
+
 
 void on_button_filter_clear_clicked(GtkButton *button, gpointer user_data)
 {
@@ -281,6 +301,12 @@ void on_button_filter_remove_rule_clicked(GtkButton *button, gpointer user_data)
        
     filter_remove_rule_from_session(work_filter, r);
 
+    gtk_notebook_set_page
+        (GTK_NOTEBOOK(notebook_filter_detail), nb_filt_page_buttons);
+}
+
+void on_button_filter_abort_rule_clicked(GtkButton *button, gpointer user_data)
+{
     gtk_notebook_set_page
         (GTK_NOTEBOOK(notebook_filter_detail), nb_filt_page_buttons);
 }
