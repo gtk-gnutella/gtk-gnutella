@@ -85,6 +85,8 @@ gboolean enable_real_passive = TRUE;	/* If TRUE, a dead upload is only marked
 										 * really removed and cannot reclaim
 										 * its position */
 
+
+gboolean parq_shutdown = FALSE;
  
 /*
  * Holds status of current queue.
@@ -402,6 +404,8 @@ void parq_close(void)
 	GSList *remove = NULL;
 	GSList *removeq = NULL;
 
+	parq_shutdown = TRUE;
+	
 	parq_upload_save_queue();
 	
 	/* 
@@ -1198,8 +1202,16 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 		parq_ul->queue->by_rel_pos = 
 			  g_list_remove(parq_ul->queue->by_rel_pos, parq_ul);
 		
-		parq_upload_update_relative_position(parq_ul);
-		parq_upload_update_eta(parq_ul->queue);
+		/*
+		 * Don't update ETA on shutdown, we don't need this information, so
+		 * speed up the shutdown process. Also it is better not doing so as on
+		 * shutdown not all entries are removed the 'correct' way, we just want 
+		 * to free the memory
+		 */
+		if (!parq_shutdown) {
+			parq_upload_update_relative_position(parq_ul);
+			parq_upload_update_eta(parq_ul->queue);
+		}
 	} else {
 		parq_ul->queue->by_date_dead = g_list_remove(
 			  parq_ul->queue->by_date_dead, parq_ul);
@@ -1221,8 +1233,14 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 	 */
 	parq_ul->queue->size--;
 
-	parq_upload_update_eta(parq_ul->queue);
-
+	/*
+	 * Don't update ETA on shutdown, we don't need this information, so speed
+	 * up the shutdown process. Also it is better not doing so as on shutdown
+	 * not all entries are removed the 'correct' way, we just want to free
+	 * the memory
+	 */
+	if (!parq_shutdown)
+		parq_upload_update_eta(parq_ul->queue);
 
 	/* Free the memory used by the current queued item */
 	G_FREE_NULL(parq_ul->ip_and_name);
