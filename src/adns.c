@@ -48,12 +48,113 @@ struct adns_reply_t {
     guint32 ip;
 } __attribute__((__packed__));
 
+struct adns_cache_entry_t {
+	gchar hostname[MAX_HOSTLEN + 1];
+    guint32 ip;
+	time_t timestamp;
+};
+
+/* Cache entries will expire after ADNS_CACHE_TIMEOUT seconds */
+#define ADNS_CACHE_TIMEOUT (5 * 60)
+/* Cache max. ADNS_CACHED_NUM of (hostname,ip) entries*/
+#define ADNS_CACHED_NUM (32)
+
+struct adns_cache_t {
+	guint size;
+	guint oldest;
+	time_t timeout;
+	struct adns_cache_entry_t entry[ADNS_CACHED_NUM];
+};
+
 /* private variables */
 
 static gint adns_query_fd = -1;
 static guint adns_event_id = 0;
 
 /* private functions */
+
+static struct adns_cache_t *adns_cache_init(void)
+{
+	struct adns_cache_t *cache;
+
+	cache = g_malloc0(sizeof(*cache));
+	cache->size = ADNS_CACHED_NUM;
+	cache->timeout = ADNS_CACHE_TIMEOUT;
+	return cache;
+}
+
+/* these are not needed anywhere else so undefine them */
+#undef ADNS_CACHED_NUM
+#undef ADNS_CACHE_TIMEOUT
+
+/*
+ * adns_cache_add
+ * 
+ * Adds ``hostname'' and ``ip'' to the cache. The cache is implemented
+ * as a wrap-around FIFO. In case it's full, the oldest entry will be
+ * overwritten. 
+ */
+static void adns_cache_add(
+	struct adns_cache_t *cache, time_t now, const gchar *hostname, guint32 ip)
+{
+	g_assert(NULL != cache);
+	g_assert(NULL != hostname);
+	
+	g_strlcpy(cache->entry[cache->oldest].hostname, hostname,
+		sizeof(cache->entry[0].hostname));
+	cache->entry[cache->oldest].timestamp = now;
+	cache->entry[cache->oldest].ip = ip;
+
+	cache->oldest++;
+	cache->oldest %= cache->size;
+}
+
+/*
+ * adns_cache_lookup
+ *
+ * Looks for ``hostname'' in ``cache'' wrt to cache->timeout. If
+ * ``hostname'' is not found or the entry is expired, FALSE will be
+ * returned. Expired entries will be removed! ``ip'' is allowed to
+ * be NULL, otherwise the cached IP will be stored into the variable
+ * ``ip'' points to. 
+ */
+static gboolean adns_cache_lookup(
+	struct adns_cache_t *cache, time_t now, const gchar *hostname, guint32 *ip)
+{
+	guint i;
+
+	g_assert(NULL != cache);
+	g_assert(NULL != hostname);
+
+/* FIXME:	Take advantage of the order in which entries are added to
+			the cache and the timestamps
+*/
+	for (i = 0; i < cache->size; i++) {
+		struct adns_cache_entry_t *entry;
+
+		entry = &cache->entry[i];
+		if (0 != g_ascii_strcasecmp(entry->hostname, hostname))
+			continue;
+
+		if (now - entry->timestamp <= cache->timeout) {
+			if (NULL != ip)
+				*ip = entry->ip;
+			if (dbg > 1)
+				g_warning("adns_cache_lookup: \"%s\" cached (ip=%s)",
+					entry->hostname, ip_to_gchar(entry->ip));
+			return TRUE;
+		}
+		if (dbg > 1)
+			g_warning("adns_cache_lookup: removing \"%s\" from cache",
+				entry->hostname);
+		entry->hostname[0] = '\0';
+		entry->timestamp = 0;
+		entry->ip = 0;
+		break;
+	}
+
+	return FALSE;
+}
 
 G_INLINE_FUNC gboolean adns_do_transfer(
 	gint fd, gpointer buf, size_t len, gboolean do_write)
@@ -118,14 +219,25 @@ static gboolean adns_do_write(gint fd, gpointer buf, size_t len)
  * fails ``reply->ip'' will be set to zero.
  */
 static void adns_gethostbyname(
-	const struct adns_query_t *query, struct adns_reply_t *reply)
+	struct adns_cache_t *cache,
+	const struct adns_query_t *query,
+	struct adns_reply_t *reply)
 {
+	time_t now;
+
+	g_assert(NULL != cache);
 	g_assert(NULL != query);
 	g_assert(NULL != reply);
-	g_warning("adns_gethostbyname: Resolving \"%s\" ...", query->hostname);
-	reply->ip = host_to_ip(query->hostname);
+
+	if (dbg > 1)
+		g_warning("adns_gethostbyname: Resolving \"%s\" ...", query->hostname);
 	reply->user_callback = query->user_callback;
 	reply->user_data = query->user_data;
+	now = time(NULL);
+	if (!adns_cache_lookup(cache, now, query->hostname, &reply->ip)) {
+		reply->ip = host_to_ip(query->hostname);
+		adns_cache_add(cache, now, query->hostname, reply->ip);
+	}
 }
 
 /*
@@ -138,15 +250,17 @@ static void adns_gethostbyname(
  */
 static void adns_helper(gint fd_in, gint fd_out)
 {
-	struct adns_query_t query;
-	struct adns_reply_t reply;
+	static struct adns_query_t query;
+	static struct adns_reply_t reply;
+	static struct adns_cache_t *cache; 
 
 	g_set_prgname("DNS-helper for gtk-gnutella");
+	cache = adns_cache_init();
 
 	for (;;) {
 		if (!adns_do_read(fd_in, &query, sizeof(query)))
 			break;
-		adns_gethostbyname(&query, &reply);
+		adns_gethostbyname(cache, &query, &reply);
 		if (!adns_do_write(fd_out, &reply, sizeof(reply)))
 			break;
 	}
@@ -165,10 +279,12 @@ static void adns_helper(gint fd_in, gint fd_out)
 static void adns_callback(
 	gpointer data, gint source, inputevt_cond_t condition)
 {
-	struct adns_reply_t reply;
+	static struct adns_reply_t reply;
 
 	if (adns_do_read(source, &reply, sizeof(reply))) {
-		g_warning("adns_callback: resolved to \"%s\"", ip_to_gchar(reply.ip));
+		if (dbg > 1)
+			g_warning("adns_callback: resolved to \"%s\"",
+				ip_to_gchar(reply.ip));
 		g_assert(NULL != reply.user_callback);
 		reply.user_callback(reply.ip, reply.user_data);
 	} else {
@@ -191,7 +307,7 @@ do {						\
 /*
  * adns_init:
  *
- * Initializes the adns helper i.e., fork()s a children process which will
+ * Initializes the adns helper i.e., fork()s a child process which will
  * be used to resolve hostnames asynchronously.
  */
 void adns_init(void)
@@ -257,8 +373,10 @@ prefork_failure:
  void adns_resolve(
 	const gchar *hostname, gpointer user_callback, gpointer user_data)
 {
-	struct adns_query_t query;
-	struct adns_reply_t reply;
+	static gboolean helper_alive = TRUE;
+	static struct adns_query_t query;
+	static struct adns_reply_t reply;
+	static struct adns_cache_t *cache = NULL; 
 
 	g_assert(NULL != hostname);
 	g_assert(NULL != user_callback);
@@ -272,15 +390,19 @@ prefork_failure:
 	}
 
 	g_strlcpy(query.hostname, hostname, sizeof(query.hostname));
-	
-	if (-1 != adns_query_fd
-		&& adns_do_write(adns_query_fd, &query, sizeof(query))) {
-		return;
-	}
 
-	CLOSE_IF_VALID(adns_query_fd);
-	g_warning("adns_resolve: adns_do_write() failed using fall back");
-	adns_gethostbyname(&query, &reply);
+	if (helper_alive) {	
+		if (adns_do_write(adns_query_fd, &query, sizeof(query)))
+			return;
+
+		helper_alive = FALSE;
+		CLOSE_IF_VALID(adns_query_fd);
+		g_warning("adns_resolve: adns_do_write() failed using fall back");
+		g_assert(NULL == cache);
+		cache = adns_cache_init();
+	}
+	/* FALL THROUGH */
+	adns_gethostbyname(cache, &query, &reply);
 	g_assert(NULL != reply.user_callback);
 	reply.user_callback(reply.ip, reply.user_data);
 }
