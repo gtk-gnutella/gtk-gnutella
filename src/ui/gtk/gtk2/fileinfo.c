@@ -567,8 +567,8 @@ fi_gui_init(void)
 	STATIC_ASSERT(FILEINFO_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
 	STATIC_ASSERT(c_fi_num == G_N_ELEMENTS(types));
 
-	fi_gui_handles = g_hash_table_new_full(
-        NULL, NULL, NULL, (gpointer) w_tree_iter_free);
+	fi_gui_handles = g_hash_table_new_full(NULL, NULL,
+						NULL, (GDestroyNotify) w_tree_iter_free);
 
 	fi_updates = g_hash_table_new(NULL, NULL);
 
@@ -610,7 +610,7 @@ fi_gui_init(void)
 
 	/* Initialize drag support */
 	gtk_tree_view_enable_model_drag_source(treeview_fileinfo, 
-		GTK_DEST_DEFAULT_ALL, targets, G_N_ELEMENTS(targets),
+		0, targets, G_N_ELEMENTS(targets),
 		GDK_ACTION_COPY | GDK_ACTION_ASK);
 	
     g_signal_connect(G_OBJECT(treeview_fileinfo), "drag-data-get",
