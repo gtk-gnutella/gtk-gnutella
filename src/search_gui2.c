@@ -688,6 +688,14 @@ static gint search_gui_compare_size_func(
 	return rec_a->size == rec_b->size ? 0 : rec_a->size > rec_b->size ? 1 : -1;
 }
 
+static gint search_gui_compare_count_func(
+    GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
+{
+	guint m = (guint) gtk_tree_model_iter_n_children(model, a);
+	guint n = (guint) gtk_tree_model_iter_n_children(model, b);
+	return m == n ? 0 : m > n ? 1 : -1;
+}
+
 static gint search_gui_compare_host_func(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
 {
@@ -872,10 +880,14 @@ static void search_gui_add_record(
 		parent = find_parent_with_sha1(sch->parents, key);
 		gtk_tree_store_append(model, &iter, parent);
 		if (NULL != parent) {
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%d",
-				gtk_tree_model_iter_n_children(
-					(GtkTreeModel *) model, parent) + 1);
-			gtk_tree_store_set(model, parent, c_sr_count, tmpstr, -1);
+			guint n;
+
+			n = (guint) gtk_tree_model_iter_n_children(
+                                (GtkTreeModel *) model, parent) + 1;
+			if (n > 0) {
+				gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n);
+				gtk_tree_store_set(model, parent, c_sr_count, tmpstr, (-1));
+			}
 			atom_sha1_free(key);
 		} else
 			add_parent_with_sha1(sch->parents, key, &iter);
@@ -2085,7 +2097,7 @@ static void add_results_columns (GtkTreeView *treeview)
 		(gfloat) 0.0, NULL);
 */
 	add_results_column(treeview, "#", c_sr_count, width[c_sr_count],
-		(gfloat) 1.0, NULL);
+		(gfloat) 1.0, search_gui_compare_count_func);
 	add_results_column(treeview, "Info", c_sr_info, width[c_sr_info],
 		(gfloat) 0.0, NULL);
 
