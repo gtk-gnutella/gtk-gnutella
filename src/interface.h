@@ -217,6 +217,8 @@ extern GtkWidget *button_filter_add_rule_text;
 extern GtkWidget *button_filter_add_rule_jump;
 extern GtkWidget *button_filter_clear;
 extern GtkWidget *button_filter_remove;
+extern GtkWidget *button_filter_reset;
+extern GtkWidget *button_filter_reset_all_rules;
 extern GtkWidget *checkbutton_filter_ip_invert_cond;
 extern GtkWidget *checkbutton_filter_size_invert_cond;
 extern GtkWidget *checkbutton_filter_text_case;
@@ -229,13 +231,13 @@ extern GtkWidget *checkbutton_filter_size_active;
 extern GtkWidget *checkbutton_filter_ip_active;
 extern GtkWidget *checkbutton_filter_jump_active;
 extern GtkWidget *clist_filter_rules;
+extern GtkWidget *ctree_filter_filters;
 extern GtkWidget *entry_filter_ip_address;
 extern GtkWidget *entry_filter_ip_mask;
 extern GtkWidget *entry_filter_new;
 extern GtkWidget *entry_filter_text_pattern;
 extern GtkWidget *notebook_filter_detail;
 extern GtkWidget *optionmenu_filter_ip_target;
-extern GtkWidget *optionmenu_filter_filters;
 extern GtkWidget *optionmenu_filter_size_target;
 extern GtkWidget *optionmenu_filter_text_target;
 extern GtkWidget *optionmenu_filter_jump_target;
@@ -243,6 +245,9 @@ extern GtkWidget *optionmenu_filter_text_type;
 extern GtkWidget *optionmenu_filter_default_policy;
 extern GtkWidget *spinbutton_filter_size_max;
 extern GtkWidget *spinbutton_filter_size_min;
+extern GtkWidget *hpaned_filter_main;
+extern GtkWidget *entry_filter_name;
+extern GtkWidget *checkbutton_filter_enabled;
 
 /* End of global widgets */
 
