@@ -1614,7 +1614,8 @@ static void qrt_compressed(
 	return;
 
 error:
-	qrt_patch_unref(qup->patch);
+	if (qup->patch != NULL)
+		qrt_patch_unref(qup->patch);
 	qup->patch = NULL;			/* Signal error to qrt_update_send_next() */
 	return;
 }
@@ -1635,12 +1636,12 @@ static void qrt_patch_available(gpointer arg, struct routing_patch *rp)
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
 	if (dbg > 2)
-		printf("QRP global routing patch is now available (node %s)\n",
+		printf("QRP global routing patch % (node %s)\n",
+			rp == NULL ? "computation was cancelled" : "is now available",
 			node_ip(qup->node));
 
 	qup->listener = NULL;
-	if (rp != NULL)
-		qup->patch = qrt_patch_ref(rp);
+	qup->patch = (rp == NULL) ? NULL : qrt_patch_ref(rp);
 
 	qrt_compressed(NULL, NULL, rp == NULL ? BGS_ERROR : BGS_OK, qup);
 }
