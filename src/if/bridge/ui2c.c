@@ -71,7 +71,7 @@ gboolean guc_adns_resolve(
 
 /*	bitzi interface functions (UI -> Core)*/
 
-void guc_query_bitzi_by_urn(guchar *urnsha1)
+void guc_query_bitzi_by_urn(gchar *urnsha1)
 {
     bitzi_query_byurnsha1(urnsha1);
 }
