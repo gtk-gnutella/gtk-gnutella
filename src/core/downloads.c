@@ -2275,54 +2275,6 @@ download_queue_hold(struct download *d, guint32 hold, const gchar *fmt, ...)
 }
 
 /**
- * If we sent a "GET /uri-res/N2R?" and we don't know the remote
- * server does not support it, then mark it here and retry as if we
- * got a 503 busy.
- *
- * `delay' is the Retry-After delay we got, 0 if none.
- * `ack_code' is the HTTP status code we got, 0 if none.
- *
- * Returns TRUE if we marked the download for retry.
- */
-static gboolean
-download_retry_no_urires(struct download *d, gint delay, gint ack_code)
-{
-	/*
-	 * Gtk-gnutella servers understand /uri-res.  Therefore, if we get an
-	 * HTTP error after sending such a request, trust it (i.e. don't retry).
-	 */
-
-	if (0 == strncmp(download_vendor_str(d), "gtk-gnutella/", 13))
-		return FALSE;
-
-	if (!(d->server->attrs & DLS_A_NO_URIRES) && (d->flags & DL_F_URIRES)) {
-		/*
-		 * We sent /uri-res, and never marked server as not supporting it.
-		 */
-
-		d->server->attrs |= DLS_A_NO_URIRES;
-
-		if (dbg)
-			g_message("Server %s (%s) does not support /uri-res/N2R?\n",
-				ip_port_to_gchar(download_ip(d), download_port(d)),
-				download_vendor_str(d));
-
-		download_passively_queued(d, FALSE);
-
-		if (ack_code)
-			download_queue_delay(d, delay ? delay : DOWNLOAD_SHORT_DELAY,
-				"Server cannot handle /uri-res (%d)", ack_code);
-		else
-			download_queue_delay(d, DOWNLOAD_SHORT_DELAY,
-				"Server cannot handle /uri-res (EOF)");
-
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-/**
  * Record that we sent a push request for this download.
  */
 static void
@@ -4071,16 +4023,6 @@ err_header_read_eof(gpointer o)
 			d->server->attrs |= DLS_A_NO_KEEPALIVE;
 
 		/*
-		 * If we did not read anything in the header at that point, and
-		 * we sent a /uri-res request, maybe the remote server does not
-		 * support it and closed the connection abruptly.
-		 *		--RAM, 20/06/2002
-		 */
-
-		if (download_retry_no_urires(d, 0, 0))
-			return;
-
-		/*
 		 * Maybe we sent HTTP header continuations and the server does not
 		 * understand them, breaking the connection on "invalid" request.
 		 * Use minimalist HTTP then when talking to this server!
@@ -5692,20 +5634,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				delay ? delay : download_retry_busy_delay,
 				"%sHTTP %d %s", short_read, ack_code, ack_message);
 			return;
-		case 400:				/* Bad request */
-		case 404:				/* Could be sent if /uri-res not understood */
-		case 401:				/* Idem, /uri-res is "unauthorized" */
-		case 403:				/* Idem, /uri-res is "forbidden" */
-		case 410:				/* Idem, /uri-res is "gone" */
-		case 500:				/* Server error */
-		case 501:				/* Not implemented */
-			/*
-			 * If we sent a "GET /uri-res/N2R?" and the remote
-			 * server does not support it, then retry without it.
-			 */
-			if (download_retry_no_urires(d, delay, ack_code))
-				return;
-			break;
 		case 416:				/* Requested range not available */
 			/*
 			 * There was no ranges supplied (or we'd have gone through the
@@ -6504,33 +6432,13 @@ picked:
 	if (sha1 == NULL)
 		sha1 = fi->sha1;
 
-	/*
-	 * When we have a SHA1, the remote host normally supports HUGE, and
-	 * therefore should understand our "GET /uri-res/N2R?" query.
-	 * However, I'm suspicious, so we track our attempts and don't send
-	 * the /uri-res when we have evidence the remote host does not support it.
-	 *
-	 * When we got a GIV request, don't take the chance that /uri-res be
-	 * not understood and request the file.
-	 *
-	 *		--RAM, 14/06/2002
-	 *
-	 * If `record_index' is URN_INDEX, we only have the /uri-res/N2R? query,
-	 * and therefore we don't flag the download with DL_F_URIRES: if the server
-	 * does not understand those URLs, we won't have any fallback to use.
-	 *
-	 *		--RAM, 20/08/2002
-	 */
+	if (sha1)
+		n2r = TRUE;
 
-	if (sha1) {
-		if (!(d->server->attrs & DLS_A_NO_URIRES)) {
-			d->flags |= DL_F_URIRES;
-			n2r = TRUE;
-		}
-	}
-
-	if (!n2r)
-		d->flags &= ~DL_F_URIRES;		/* Clear if not sending /uri-res/N2R? */
+	if (n2r)
+		d->flags |= DL_F_URIRES;
+	else
+		d->flags &= ~DL_F_URIRES;
 
 	d->flags &= ~DL_F_REPLIED;			/* Will be set if we get a reply */
 

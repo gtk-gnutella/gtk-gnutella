@@ -199,7 +199,7 @@ struct download {
  * Download flags.
  */
 
-#define DL_F_URIRES			0x00000001	/* Tried to GET "/uri-res/N2R?" */
+#define DL_F_URIRES			0x00000001	/* We sent a "/uri-res/N2R?" request */
 #define DL_F_PUSH_IGN		0x00000002	/* Trying to ignore push flag */
 #define DL_F_OVERLAPPED		0x00000004	/* We went through overlap checking */
 #define DL_F_REPLIED		0x00000008	/* Servent replied to last request */
@@ -216,7 +216,7 @@ struct download {
  * Server attributes.
  */
 
-#define DLS_A_NO_URIRES		0x00000001	/* No support for "/uri-res/N2R?" */
+#define DLS_A_UNUSED		0x00000001	/* UNUSED */
 #define DLS_A_PUSH_IGN		0x00000002	/* Ignore pushes and connect directly */
 #define DLS_A_NO_KEEPALIVE	0x00000004	/* No persistent connection */
 #define DLS_A_HTTP_1_1		0x00000008	/* Server supports HTTP/1.1 */
