@@ -1952,7 +1952,6 @@ void parq_upload_add(gnutella_upload_t *u)
 void parq_upload_remove(gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = NULL;
-//FIXME	struct parq_ul_queued *parq_ul_next = NULL;
 
 	g_assert(u != NULL);
 
@@ -1988,7 +1987,7 @@ void parq_upload_remove(gnutella_upload_t *u)
 				
 	
 	if (parq_ul->has_slot) {
-//FIXME		GList *next = NULL;
+		GList *lnext = NULL;
 		
 		if (dbg)
 			printf("PARQ UL: Freed an upload slot\n");
@@ -1996,24 +1995,22 @@ void parq_upload_remove(gnutella_upload_t *u)
 		parq_ul->queue->active_uploads--;
 		
 		/* Search next waiting upload that an slot is avail using QUEUE */
-//FIXME		for (next = g_list_first(parq_ul->queue->by_rel_pos); 
-//FIXME			  next != NULL; next = next->next) {
-//FIXME			parq_ul_next = (struct parq_ul_queued *) next->data;
-//FIXME				
-//FIXME			if (!parq_ul_next->has_slot)
-//FIXME				break;
-//FIXME		}
-		
-//FIXME		g_list_free(next);
+		for (lnext = g_list_first(parq_ul->queue->by_rel_pos); lnext != NULL;
+			  lnext = g_list_next(lnext)) {
+				struct parq_ul_queued *parq_ul_next =
+					  (struct parq_ul_queued *) lnext->data;
+				
+			if (!parq_ul_next->has_slot) {
+				g_assert(parq_ul_next->queue->active <= 1);
+				parq_upload_send_queue(parq_ul_next);	
+				break;
+			}
+		}
 	}
 	
 	g_assert(parq_ul->queue->active_uploads >= 0);	
 	
-	parq_upload_free(parq_ul);
-
-	/* Signal next */
-//FIXME		if (parq_ul_next != NULL && parq_ul_next->has_slot)
-//FIXME		parq_upload_send_queue(parq_ul_next);	
+	parq_upload_free(parq_ul);		
 }
 
 /*
@@ -2528,7 +2525,7 @@ static void parq_store(gpointer data, gpointer x)
 		  g_list_position(ul_parqs, g_list_find(ul_parqs, parq_ul->queue)) + 1,
 		  parq_ul->position,
 		  (gint) parq_ul->enter,
-		  (gint) parq_ul->expire - now,
+		  (gint) parq_ul->expire - (gint) now,
 		  parq_ul->id,
 		  parq_ul->file_size,
 		  parq_ul->ip,
