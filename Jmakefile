@@ -41,6 +41,8 @@ AddedByConfigure(install gtk-gnutella.spec)
 
 >PRIVLIB	/* Grrr... figure this one automatically */
 
+INSTALLFLAGS = -m 444
+
 MakeInstallDirectories($(PRIVLIB))
 InstallMultiple($(EXTRA_FILES), $(PRIVLIB))
 

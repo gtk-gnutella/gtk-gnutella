@@ -72,38 +72,40 @@ depend::
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in src ;\
 	do \
-	(cd $$i ; echo "Depending" "in $(DIR)$$i..."; \
-	$(MAKE) $(MFLAGS)  depend); \
+		(cd $$i ; echo "Depending" "in $(DIR)$$i..."; \
+			$(MAKE) $(MFLAGS)  depend); \
 	done
 
 local_clobber::
 	$(RM) install gtk-gnutella.spec
 
+INSTALLFLAGS = -m 444
+
 local_install::
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for dir in $(PRIVLIB); do	\
 	(set -x; test -d $(INSTALL_PREFIX)$$dir || \
-	$(INSTALLDIR) $(INSTALL_PREFIX)$$dir);	\
+		$(INSTALLDIR) $(INSTALL_PREFIX)$$dir);	\
 	done
 
 local_deinstall::
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for dir in $(PRIVLIB); do \
-	(set -x; test -d $$dir && $(RM) -r $(INSTALL_PREFIX)$$dir); \
+		(set -x; test -d $$dir && $(RM) -r $(INSTALL_PREFIX)$$dir); \
 	done
 
 local_install:: $(EXTRA_FILES)
 	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
 	(set -x; test -d $(INSTALL_PREFIX)$(PRIVLIB) || \
-	$(INSTALLDIR) $(INSTALL_PREFIX)$(PRIVLIB)); \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$(PRIVLIB)); \
 	for i in $(EXTRA_FILES); do \
-	(set -x; $(INSTALL) -c $(INSTALLFLAGS) $$i $(INSTALL_PREFIX)$(PRIVLIB)); \
+		(set -x; $(INSTALL) -c $(INSTALLFLAGS) $$i $(INSTALL_PREFIX)$(PRIVLIB)); \
 	done
 
 local_deinstall::
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for i in $(EXTRA_FILES); do \
-	(set -x; $(RM) $(INSTALL_PREFIX)$(PRIVLIB)/$$i); \
+		(set -x; $(RM) $(INSTALL_PREFIX)$(PRIVLIB)/$$i); \
 	done
 
 ########################################################################
@@ -139,12 +141,12 @@ maybe_deinstall.man: deinstall.man-no
 
 Makefile.SH: Jmakefile
 	-@if test -f $(TOP)/.package; then \
-	if test -f Makefile.SH; then \
-	echo "	$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~"; \
-	$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~; \
-	fi; \
-	echo "	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT)" ; \
-	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT) ; \
+		if test -f Makefile.SH; then \
+			echo "	$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~"; \
+			$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~; \
+		fi; \
+		echo "	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT)" ; \
+		$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT) ; \
 	else touch $@; exit 0; fi
 
 Makefile: Makefile.SH
@@ -164,8 +166,8 @@ subdirs:
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in $(SUBDIRS) ;\
 	do \
-	(cd $$i ; echo $(VERB) "in $(DIR)$$i..."; \
-	$(MAKE) $(MFLAGS) $(FLAGS) $(TARGET)); \
+		(cd $$i ; echo $(VERB) "in $(DIR)$$i..."; \
+			$(MAKE) $(MFLAGS) $(FLAGS) $(TARGET)); \
 	done
 
 sub_install::
@@ -198,37 +200,37 @@ tag::
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in $(SUBDIRS) ;\
 	do \
-	(cd $$i ; echo "Tagging" "in $(DIR)$$i..."; \
-	$(MAKE) $(MFLAGS)  tag); \
+		(cd $$i ; echo "Tagging" "in $(DIR)$$i..."; \
+			$(MAKE) $(MFLAGS)  tag); \
 	done
 
 Makefiles::
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in $(SUBDIRS);\
 	do \
-	echo "Making "Makefiles" in $(DIR)$$i..."; \
-	(cd $$i || exit 1; \
-	if test ! -f Makefile; then /bin/sh Makefile.SH; fi; \
-	$(MAKE) $(MFLAGS) Makefiles) \
+		echo "Making "Makefiles" in $(DIR)$$i..."; \
+		(cd $$i || exit 1; \
+		if test ! -f Makefile; then /bin/sh Makefile.SH; fi; \
+		$(MAKE) $(MFLAGS) Makefiles) \
 	done
 
 Makefiles.SH:: Makefile.SH
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in $(SUBDIRS);\
 	do \
-	case "$(DIR)$$i/" in \
-	*/*/*/*/) newtop=../../../..;; \
-	*/*/*/) newtop=../../..;; \
-	*/*/) newtop=../..;; \
-	*/) newtop=..;; \
-	esac; \
-	case "$(TOP)" in \
-	/*) newtop="$(TOP)" ;; \
-	esac; \
-	echo "Making Makefiles.SH in $(DIR)$$i..."; \
-	(cd $$i || exit 1; $(MAKE) $(MFLAGS) -f ../Makefile \
-	Makefile TOP=$$newtop CURRENT=$(DIR)$$i;\
-	$(MAKE) $(MFLAGS) Makefiles.SH) \
+		case "$(DIR)$$i/" in \
+		*/*/*/*/) newtop=../../../..;; \
+		*/*/*/) newtop=../../..;; \
+		*/*/) newtop=../..;; \
+		*/) newtop=..;; \
+		esac; \
+		case "$(TOP)" in \
+		/*) newtop="$(TOP)" ;; \
+		esac; \
+		echo "Making Makefiles.SH in $(DIR)$$i..."; \
+		(cd $$i || exit 1; $(MAKE) $(MFLAGS) -f ../Makefile \
+		Makefile TOP=$$newtop CURRENT=$(DIR)$$i;\
+		$(MAKE) $(MFLAGS) Makefiles.SH) \
 	done
 
 all::
