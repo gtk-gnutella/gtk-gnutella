@@ -1,5 +1,13 @@
 # since last version
 
+- (2003.05.08 - RAM)
+ * Added monitoring of average outgoing bandwidth.
+ * Further tuned the bandwidth scheduler to maximize available bandwidth use.
+ * Ultrapeer election now takes into account system params and bandwidth.
+ * Don't further limit query propagation to leaves with no pending messages.
+ * Integrated hostile IP parsing [From Markus Goetz].
+ * Plugged dropping of connections and packets from/to hostile IP addresses.
+
 - (2003.05.07 - Richard)
  * [Gtk1] Added "purge" button to fileinfo pane.
  * [Gtk1] Removed "sources" tab from fileinfo pane. This has not been used yet
