@@ -165,6 +165,7 @@ static gboolean send_pushes_changed(property_t prop);
 static gboolean statusbar_visible_changed(property_t prop);
 static gboolean toolbar_visible_changed(property_t prop);
 static gboolean hosts_in_catcher_changed(property_t prop);
+static gboolean hosts_in_ultra_catcher_changed(property_t prop);
 static gboolean progressbar_bws_in_visible_changed(property_t prop);
 static gboolean progressbar_bws_out_visible_changed(property_t prop);
 static gboolean progressbar_bws_gin_visible_changed(property_t prop);
@@ -1421,6 +1422,23 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_config_bw_allow_stealing"
     },
+#ifndef USE_GTK2
+// FIXME: Gtk2 should also have these
+    {
+        get_main_window,
+        PROP_MAX_ULTRA_HOSTS_CACHED,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_nodes_max_ultra_hosts_cached",
+    },
+    {
+        get_main_window,
+        PROP_HOSTS_IN_ULTRA_CATCHER,
+        hosts_in_ultra_catcher_changed,
+        TRUE,
+        "progressbar_hosts_in_ultra_catcher"
+    },
+#endif
 };
 
 /***
@@ -2177,23 +2195,12 @@ static gboolean toolbar_visible_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean hosts_in_catcher_changed(property_t prop)
+static void set_host_progress(const gchar *w, guint32 cur, guint32 max)
 {
-    GtkProgressBar *pg = GTK_PROGRESS_BAR
-        (lookup_widget(main_window, "progressbar_hosts_in_catcher"));
-    GtkWidget *clear_button = lookup_widget
-        (main_window, "button_host_catcher_clear");
+    GtkProgressBar *pg = GTK_PROGRESS_BAR(lookup_widget(main_window, w));
     gfloat frac;
-    guint32 hosts_in_catcher;
-    guint32 max_hosts_cached;
 
-    gnet_prop_get_guint32(PROP_HOSTS_IN_CATCHER, &hosts_in_catcher, 0, 1);
-    gnet_prop_get_guint32(PROP_MAX_HOSTS_CACHED, &max_hosts_cached, 0, 1);
-
-    gtk_widget_set_sensitive(clear_button, hosts_in_catcher != 0);
-
-    frac = MIN(hosts_in_catcher, max_hosts_cached) != 0 ? 
-        (float)MIN(hosts_in_catcher, max_hosts_cached) / max_hosts_cached : 0;
+    frac = MIN(cur, max) != 0 ? (float)MIN(cur, max) / max : 0;
 
 	g_snprintf(set_tmp, sizeof(set_tmp), 
 #ifdef USE_GTK2
@@ -2201,12 +2208,51 @@ static gboolean hosts_in_catcher_changed(property_t prop)
 #else
 		"%u/%u host%s (%u%%%%)",
 #endif
-        hosts_in_catcher, max_hosts_cached, 
-        (hosts_in_catcher == 1 && max_hosts_cached == 1) ? "" : "s",
+        cur, max, (cur == 1 && max == 1) ? "" : "s",
         (guint)(frac*100));
 
     gtk_progress_bar_set_text(pg, set_tmp);
     gtk_progress_bar_set_fraction(pg, frac);
+}
+
+static gboolean hosts_in_catcher_changed(property_t prop)
+{
+    guint32 hosts_in_catcher;
+    guint32 max_hosts_cached;
+
+    gnet_prop_get_guint32(PROP_HOSTS_IN_CATCHER, &hosts_in_catcher, 0, 1);
+    gnet_prop_get_guint32(PROP_MAX_HOSTS_CACHED, &max_hosts_cached, 0, 1);
+
+    gtk_widget_set_sensitive(
+        lookup_widget(main_window, "button_host_catcher_clear"), 
+        hosts_in_catcher != 0);
+
+    set_host_progress(
+        "progressbar_hosts_in_catcher", 
+        hosts_in_catcher,
+        max_hosts_cached);
+    
+    return FALSE;
+}
+
+static gboolean hosts_in_ultra_catcher_changed(property_t prop)
+{
+    guint32 hosts_in_catcher;
+    guint32 max_hosts_cached;
+
+    gnet_prop_get_guint32(
+        PROP_HOSTS_IN_ULTRA_CATCHER, &hosts_in_catcher, 0, 1);
+    gnet_prop_get_guint32(
+            PROP_MAX_ULTRA_HOSTS_CACHED, &max_hosts_cached, 0, 1);
+
+    gtk_widget_set_sensitive(
+        lookup_widget(main_window, "button_ultra_catcher_clear"), 
+        hosts_in_catcher != 0);
+
+    set_host_progress(
+        "progressbar_hosts_in_ultra_catcher", 
+        hosts_in_catcher,
+        max_hosts_cached);
     
     return FALSE;
 }
