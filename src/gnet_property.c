@@ -298,8 +298,8 @@ gboolean force_leaf     = FALSE;
 gboolean force_leaf_def = FALSE;
 guint32  max_ultrapeers     = 3;
 guint32  max_ultrapeers_def = 3;
-guint32  max_leaves     = 50;
-guint32  max_leaves_def = 50;
+guint32  max_leaves     = 15;
+guint32  max_leaves_def = 15;
 guint32  current_peermode     = 1;
 guint32  current_peermode_def = 1;
 prop_def_choice_t current_peermode_choices[] = { 
@@ -2779,7 +2779,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[127].data.guint32.value = &max_leaves;
     gnet_property->props[127].data.guint32.choices = NULL;
     gnet_property->props[127].data.guint32.max   = 1000;
-    gnet_property->props[127].data.guint32.min   = 25;
+    gnet_property->props[127].data.guint32.min   = 5;
 
 
     /*
