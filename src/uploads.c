@@ -1883,7 +1883,7 @@ static void upload_http_sha1_add(
 	if (need_available_ranges) {
 		mesh_len = dmesh_alternate_location(
 			sf->sha1_digest, tmp, sizeof(tmp), u->socket->ip,
-			last_sent, u->user_agent, NULL);
+			last_sent, u->user_agent, NULL, FALSE);
 
 		if (mesh_len < sizeof(tmp) - 5)
 			range_length = length - mesh_len;	/* Leave more room for ranges */
@@ -1922,7 +1922,7 @@ static void upload_http_sha1_add(
 
 		rw += dmesh_alternate_location(
 			sf->sha1_digest, &buf[rw], maxlen, u->socket->ip,
-			last_sent, u->user_agent, NULL);
+			last_sent, u->user_agent, NULL, FALSE);
 
 		u->last_dmesh = now;
 	}

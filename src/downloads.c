@@ -6577,7 +6577,7 @@ picked:
 			wmesh = dmesh_alternate_location(sha1,
 				&dl_tmp[rw], altloc_size,
 				download_ip(d), d->last_dmesh, download_vendor(d),
-				file_info);
+				file_info, TRUE);
 			rw += wmesh;
 
 			d->last_dmesh = (guint32) time(NULL);
