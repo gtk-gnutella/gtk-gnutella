@@ -97,7 +97,7 @@ static gboolean find_message(
  * The following GUIDs are so common that it does not make sense to
  * route pushes to them (i.e. they are are NOT unique on the network!).
  */
-static const gchar *banned_push[] = {
+static const gchar * const banned_push[] = {
 	"20d262ff0e6fd6119734004005a207b1",		/* Morpheus, 29/06/2002 */
 };
 GHashTable *ht_banned_push = NULL;
@@ -232,7 +232,7 @@ void routing_init(void)
 		gchar g[16];
 		const gchar *hex = banned_push[i];
 
-		g_assert(strlen(hex) == 2*sizeof(g));
+		g_assert(strlen(hex) == 2 * sizeof(g));
 
 		(void) hex_to_guid(hex, g);
 		g_hash_table_insert(ht_banned_push, atom_guid_get(g), (gpointer) 1);
@@ -248,6 +248,7 @@ void routing_init(void)
 
     gnet_prop_get_storage(PROP_GUID, (guint8 *) guid_buf, sizeof(guid_buf));
 
+	/* XXX: 15? Shouldn't this be 16? */
 	for (i = 0; i < 15; i++) {
 		if (guid_buf[i]) {
 			need_guid = FALSE;
@@ -272,6 +273,7 @@ retry:
 	}
 
     gnet_prop_set_storage(PROP_GUID, (guint8 *) guid_buf, sizeof(guid_buf));
+	g_assert(guid_is_gtkg(guid_buf, NULL, NULL, NULL));
 
 	/*
 	 * Initialize message type array for routing logs.
