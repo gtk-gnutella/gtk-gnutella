@@ -1,5 +1,22 @@
 # since last version
 
+- (2004-09-11 - RAM)
+ * Will now send queries marked for out-of-band hit delivery.
+ * Out-of-band hit delivery is now enabled by default.
+   Changed tooltip comment for property to explain the user benefits.
+ * Tag hits received from UDP in search results with the string "udp".
+ * Strip OOB flag for leaf queries that also advertise they're firewalled.
+   Chances are that if they are TCP-firewalled, then they're UDP-firewalled
+   as well.
+ * Added GUID generation for OOB queries.
+ * Forgot to arm the timer for monitoring absence of unsolicited UDP traffic.
+ * Update RX traffic size for the pseudo UDP node.
+ * Fixed statistics bookkeeping for dropped UDP messages.
+ * New properties "show_gnet_info_tx_wire" and "show_gnet_info_rx_wire"
+   to govern display of TX and RX bytes, as sent/read from the wire.
+ * [GTK1] [GTK2] Can now ask to display bytes sent/read from the wire for
+   each node connection.
+
 - (2004-09-10 - RAM)
  * UDP listening is now enabled by default.
  * Strip OOB flag of OOB queries from leaves where the IP:port encoded in
