@@ -1,5 +1,8 @@
 # since last version
 
+- (2003.11.25 - Jeroen)
+ * Removed dead gnucleus gwebcache
+
 - (2003.11.24 - RAM)
  * Don't hammer the same webcache if we can't connect.
  * New strcmp_delimit() routine to compare strings up to a delimitor.
