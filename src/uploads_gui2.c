@@ -26,6 +26,7 @@
 #include "gui.h"
 #include "interface-glade2.h"
 #include "uploads_gui.h"
+#include "uploads_gui_common.h"
 
 RCSID("$Id$");
 
@@ -155,109 +156,6 @@ static gboolean find_row(
     
     g_warning("find_row: upload not found [handle=%u]", u);
     return FALSE;
-}
-
-static const gchar *uploads_gui_status_str(
-    gnet_upload_status_t *u, upload_row_data_t *data)
-{
-	static gchar tmpstr[256];
-	guint32 requested = data->range_end - data->range_start + 1;
-
-	if (u->pos < data->range_start)
-		return "No output yet..."; /* Never wrote anything yet */
-
-    switch (u->status) {
-		/*
-		 * Status: GTA_UL_QUEUED. When PARQ is enabled, and all upload slots are
-		 * full an upload is placed into the PARQ-upload. Clients supporting 
-		 * Queue 0.1 and 1.0 will get an active slot. We probably want to
-		 * display this information
-		 *		-- JA, 06/02/2003
-		 */
-	case GTA_UL_QUEUED:
-		if (u->parq_position == 1) {
-			/* position 1 should always get an upload slot */
-			if (u->parq_retry > 0)
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"Waiting (slot %4d / %4d) %ds, lifetime: %s", 
-					u->parq_position,
-					u->parq_size,
-					u->parq_retry, 
-					short_time(u->parq_lifetime));
-			else
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"Waiting (slot %4d / %4d) lifetime: %s", 
-					u->parq_position,
-					u->parq_size,
-					short_time(u->parq_lifetime));
-		} else {
-			if (u->parq_retry > 0)
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"Queued (slot %4d / %4d) %ds, lifetime: %s", 
-					u->parq_position,
-					u->parq_size,
-					u->parq_retry, 
-					short_time(u->parq_lifetime));
-			else
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"Queued (slot %4d / %4d) lifetime: %s", 
-					u->parq_position,
-					u->parq_size,
-					short_time(u->parq_lifetime));
-		}
-        break;
-    case GTA_UL_ABORTED:
-        return "Transmission aborted";
-    case GTA_UL_CLOSED:
-        return "Transmission complete";
-    case GTA_UL_HEADERS:
-        return "Waiting for headers...";
-    case GTA_UL_WAITING:
-        return "Waiting for further request...";
-    case GTA_UL_PUSH_RECEIVED:
-        return "Got push, connecting back...";
-    case GTA_UL_COMPLETE:
-		if (u->last_update != data->start_date) {
-			guint32 spent = u->last_update - data->start_date;
-            gfloat rate = (requested / 1024.0) / spent;
-			gm_snprintf(tmpstr, sizeof(tmpstr),
-				"Completed (%.1f k/s) %s", rate, short_time(spent));
-		} else
-			g_strlcpy(tmpstr, "Completed (< 1s)", sizeof(tmpstr));
-        break;
-    case GTA_UL_SENDING:
-		{
-			gint slen;
-			gfloat rate = u->bps / 1024.0;
-			/*
-			 * position divided by 1 percentage point, found by dividing
-			 * the total size by 100
-			 */
-			gfloat pc = (u->pos - data->range_start) * 100.0 / requested;
-
-
-			/* Time Remaining at the current rate, in seconds  */
-			guint32 tr = (data->range_end + 1 - u->pos) / u->avg_bps;
-
-			slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ", pc);
-
-			if (time((time_t *) NULL) - u->last_update > IO_STALLED)
-				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-					"(stalled) ");
-			else
-				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-					"(%.1f k/s) ", rate);
-
-			gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-				"TR: %s", short_time(tr));
-		} 
-		break;
-
-    default:
-        g_assert_not_reached();
-	}
-
-    return tmpstr;
 }
 
 static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
@@ -502,25 +400,6 @@ void uploads_gui_shutdown(void)
     upload_remove_upload_added_listener(upload_added);
     upload_remove_upload_removed_listener(upload_removed);
     upload_remove_upload_info_changed_listener(upload_info_changed);
-}
-
-static gboolean upload_should_remove(time_t now, upload_row_data_t *ul) 
-{
-	g_assert(NULL != ul);
-	if (now - ul->last_update <= REMOVE_DELAY)
-		return FALSE;
-
-	if (clear_uploads_complete && GTA_UL_COMPLETE == ul->status)
-		return TRUE;
-	
-	if (
-		clear_uploads_failed &&
-		(GTA_UL_CLOSED == ul->status || GTA_UL_ABORTED == ul->status)
-	) {
-		return TRUE;
-	}
-
-	return FALSE;
 }
 
 /*

@@ -26,24 +26,17 @@
 #include "gui.h"
 #include "interface-glade1.h"
 #include "uploads_gui.h"
-#include "parq.h"
+#include "uploads_gui_common.h"
 
 RCSID("$Id$");
 
-#define IO_STALLED		60		/* If nothing exchanged after that many secs */
-#define REMOVE_DELAY    5       /* delay before outdated info is removed */
-
 static gboolean uploads_remove_lock = FALSE;
 static guint uploads_rows_done = 0;
-
 
 static gint find_row(gnet_upload_t u, upload_row_data_t **data);
 
 static void uploads_gui_update_upload_info(gnet_upload_info_t *u);
 static void uploads_gui_add_upload(gnet_upload_info_t *u);
-static gchar *uploads_gui_status_str(
-    gnet_upload_status_t *u, upload_row_data_t *data);
-
 
 /***
  *** Callbacks
@@ -166,124 +159,6 @@ static gint find_row(gnet_upload_t u, upload_row_data_t **data)
         G_GNUC_PRETTY_FUNCTION, u);
 
     return -1;
-}
-
-
-static gchar *uploads_gui_status_str(
-    gnet_upload_status_t *u, upload_row_data_t *data)
-{
-	gfloat rate = 1, pc = 0;
-	guint32 tr = 0;
-	static gchar tmpstr[256];
-	guint32 requested = data->range_end - data->range_start + 1;
-
-	if (u->pos < data->range_start)
-		return "No output yet..."; /* Never wrote anything yet */
-
-    switch(u->status) {
-		/*
-		 * Status: GTA_UL_QUEUED. When PARQ is enabled, and all upload slots are
-		 * full an upload is placed into the PARQ-upload. Clients supporting 
-		 * Queue 0.1 and 1.0 will get an active slot. We probably want to
-		 * display this information
-		 *		-- JA, 06/02/2003
-		 */
-	case GTA_UL_QUEUED:
-		if (u->parq_position == 1) {
-			/* position 1 should always get an upload slot */
-			if (u->parq_retry > 0)
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"Waiting (slot %4d / %4d) %ds, lifetime: %s", 
-					u->parq_position,
-					u->parq_size,
-					u->parq_retry, 
-					short_time(u->parq_lifetime));
-			else
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"Waiting (slot %4d / %4d) lifetime: %s", 
-					u->parq_position,
-					u->parq_size,
-					short_time(u->parq_lifetime));
-		} else {
-			if (u->parq_retry > 0)
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"Queued (slot %4d / %4d) %ds, lifetime: %s", 
-					u->parq_position,
-					u->parq_size,
-					u->parq_retry, 
-					short_time(u->parq_lifetime));
-			else
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"Queued (slot %4d / %4d) lifetime: %s", 
-					u->parq_position,
-					u->parq_size,
-					short_time(u->parq_lifetime));
-		}
-        break;
-    case GTA_UL_ABORTED:
-        return "Transmission aborted";
-    case GTA_UL_CLOSED:
-        return "Transmission complete";
-    case GTA_UL_HEADERS:
-        return "Waiting for headers...";
-    case GTA_UL_WAITING:
-        return "Waiting for further request...";
-	case GTA_UL_QUEUE:
-		/*
-	     * PARQ wants to inform a client that action from the client its side
-	     * is wanted. So it is trying to connect back.
-		 * 		-- JA, 15/04/2003 
-	     */
-		return "Sending QUEUE, connecting back...";
-	case GTA_UL_QUEUE_WAITING:
-		/*
-		 * PARQ made a connect back because some action from the client is 
-		 * wanted. The connection is established and now waiting for some action
-	     *		-- JA, 15/04/2003
-		 */
-		return "Sent QUEUE, waiting for headers...";
-    case GTA_UL_PUSH_RECEIVED:
-        return "Got push, connecting back...";
-    case GTA_UL_COMPLETE:
-		if (u->last_update != data->start_date) {
-			guint32 spent = u->last_update - data->start_date;
-
-			rate = (requested / 1024.0) / spent;
-			gm_snprintf(tmpstr, sizeof(tmpstr),
-				"Completed (%.1f k/s) %s", rate, short_time(spent));
-		} else
-			gm_snprintf(tmpstr, sizeof(tmpstr), "Completed (< 1s)");
-        break;
-    case GTA_UL_SENDING:
-		{
-			gint slen;
-			/*
-			 * position divided by 1 percentage point, found by dividing
-			 * the total size by 100
-			 */
-			pc = (u->pos - data->range_start) * 100.0 / requested;
-
-			rate = u->bps / 1024.0;
-
-			/* Time Remaining at the current rate, in seconds  */
-			tr = (data->range_end + 1 - u->pos) / u->avg_bps;
-
-			slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ", pc);
-
-			if (time((time_t *) 0) - u->last_update > IO_STALLED)
-				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-					"(stalled) ");
-			else
-				slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-					"(%.1f k/s) ", rate);
-
-			gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-				"TR: %s", short_time(tr));
-		} 
-		break;
-	}
-
-    return tmpstr;
 }
 
 static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
@@ -410,26 +285,6 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
     gtk_clist_set_row_data_full(GTK_CLIST(clist_uploads), row, 
         data, g_free);
 }
-
-static gboolean upload_should_remove(time_t now, upload_row_data_t *ul) 
-{
-	g_assert(NULL != ul);
-	if (now - ul->last_update <= REMOVE_DELAY)
-		return FALSE;
-
-	if (clear_uploads_complete && GTA_UL_COMPLETE == ul->status)
-		return TRUE;
-	
-	if (
-		clear_uploads_failed &&
-		(GTA_UL_CLOSED == ul->status || GTA_UL_ABORTED == ul->status)
-	) {
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
 
 
 /***
