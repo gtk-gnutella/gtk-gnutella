@@ -26,7 +26,7 @@
 #ifndef __prop_h__
 #define __prop_h__
 
-//#include "gnutella.h"
+#include "common.h"
 #include "listener.h"
 
 /*
