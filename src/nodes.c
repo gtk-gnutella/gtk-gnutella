@@ -1438,7 +1438,8 @@ static gboolean node_avoid_monopoly(struct gnutella_node *n)
 	guint normal_cnt = 0;
 	GSList *sl;
 
-	if (n->vendor == NULL || (n->flags & NODE_F_CRAWLER))
+	g_assert(unique_nodes >= 0 && unique_nodes <= 100);
+	if (!n->vendor || (n->flags & NODE_F_CRAWLER) || unique_nodes == 100)
 		return FALSE;
 
 	for (sl = sl_nodes; sl; sl = sl->next) {
@@ -1524,8 +1525,9 @@ static gboolean node_reserve_slot(struct gnutella_node *n)
 	guint normal_cnt = 0;	/* GTKG normal nodes */
 	GSList *sl;
 	gchar *gtkg_vendor = "gtk-gnutella";
-	
-	if (n->vendor == NULL || (n->flags & NODE_F_CRAWLER))
+
+	g_assert(reserve_gtkg_nodes >= 0 && reserve_gtkg_nodes <= 100);	
+	if (!n->vendor || (n->flags & NODE_F_CRAWLER) || !reserve_gtkg_nodes)
 		return FALSE;
 	
 	if (0 == strcmp_delimit(gtkg_vendor, n->vendor, "/ "))
