@@ -10899,6 +10899,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_statusbar_horizon_node_count);
   gtk_container_add (GTK_CONTAINER (frame129), label_statusbar_horizon_node_count);
+  gtk_misc_set_padding (GTK_MISC (label_statusbar_horizon_node_count), 5, 0);
 
   frame130 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame130, "frame130");
@@ -10916,6 +10917,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_statusbar_horizon_file_count);
   gtk_container_add (GTK_CONTAINER (frame130), label_statusbar_horizon_file_count);
+  gtk_misc_set_padding (GTK_MISC (label_statusbar_horizon_file_count), 5, 0);
 
   frame131 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame131, "frame131");
@@ -10933,6 +10935,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_statusbar_horizon_kb_count);
   gtk_container_add (GTK_CONTAINER (frame131), label_statusbar_horizon_kb_count);
+  gtk_misc_set_padding (GTK_MISC (label_statusbar_horizon_kb_count), 5, 0);
 
   frame123 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame123, "frame123");
@@ -15217,7 +15220,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new (_("Raphaël Manfredi"));
+  label267 = gtk_label_new (_("Rapha\353l Manfredi"));
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -15261,7 +15264,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
-  label273 = gtk_label_new (_("Raphaël Manfredi"));
+  label273 = gtk_label_new (_("Rapha\353l Manfredi"));
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
