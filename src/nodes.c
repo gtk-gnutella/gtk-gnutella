@@ -231,6 +231,8 @@ struct gnutella_node *node_add(struct gnutella_socket *s, guint32 ip,
 	n->ip = ip;
 	n->port = port;
 
+	n->routing_data = NULL;
+
 	if (s) {					/* This is an incoming control connection */
 		n->socket = s;
 		s->type = GTA_TYPE_CONTROL;

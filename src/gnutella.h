@@ -230,6 +230,9 @@ struct gnutella_node {
 	/* how many bytes need to be written to reach the end of the last
 	 * enqueued end of packet */
 	guint32 end_of_last_packet;
+	/* any information necessary to route packets associated with this
+	   host goes here */
+	gpointer routing_data;
 };
 
 struct gnutella_host {
