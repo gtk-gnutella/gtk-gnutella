@@ -2725,12 +2725,15 @@ void qhvec_add(query_hashvec_t *qhvec, gchar *word, enum query_hsrc src)
  * qrt_build_query_target
  *
  * Compute list of nodes to send the query to, based on node's QRT.
- * The query is identified by its list of QRP hashes, and by its hop count.
+ * The query is identified by its list of QRP hashes, by its hop count
+ * and by its source node (so we don't send back the query where it
+ * came from).
  *
  * Returns list of nodes, a subset of the currently connected nodes.
  * Once used, the list of nodes can be freed with g_slist_free().
  */
-GSList *qrt_build_query_target(query_hashvec_t *qhvec, gint hops)
+GSList *qrt_build_query_target(
+	query_hashvec_t *qhvec, gint hops, struct gnutella_node *source)
 {
 	GSList *nodes = NULL;		/* Targets for the query */
 	gint count = 0;				/* Amount of selected nodes so far */
@@ -2747,6 +2750,9 @@ GSList *qrt_build_query_target(query_hashvec_t *qhvec, gint hops)
 		gint i;
 
 		if (rt == NULL)			/* Node has not sent its query routing table */
+			continue;
+
+		if (dn == source)		/* This is the node that sent us the query */
 			continue;
 
 		if (!NODE_IS_LEAF(dn) || !NODE_IS_WRITABLE(dn))
@@ -2820,10 +2826,10 @@ void qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 	g_assert(qhvec != NULL);
 	g_assert(n->header.function == GTA_MSG_SEARCH);
 
-	nodes = qrt_build_query_target(qhvec, n->header.hops);
+	nodes = qrt_build_query_target(qhvec, n->header.hops, n);
 
-	if (dbg > 8)
-		printf("QRP query %s (%d word/hash) forwarded to %d/%d leaves\n",
+	if (dbg > 4)
+		printf("QRP %s (%d word/hash) forwarded to %d/%d leaves\n",
 			gmsg_infostr(&n->header), qhvec->count, g_slist_length(nodes),
 			node_leaf_count);
 
