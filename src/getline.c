@@ -124,9 +124,10 @@ gint getline_read(getline_t *o, gchar *data, gint len, gint *used)
 	missing = o->pos + MIN(len, needed) - o->size + 1;	/* Trailing NUL */
 
 	if (missing > 0) {
-		gint new_size = o->size + MAX(missing, GROW_LENGTH);
+		guint new_size = o->size + MAX(missing, GROW_LENGTH);
 		new_size = MIN(new_size, o->maxlen);
 
+		g_assert(new_size <= INT_MAX);
 		o->line = g_realloc(o->line, new_size);
 		o->size = new_size;
 
@@ -216,3 +217,4 @@ void getline_copy(getline_t *source, getline_t *dest)
 	g_assert(dest->size <= dest->maxlen);
 }
 
+/* vi: set ts=4: */
