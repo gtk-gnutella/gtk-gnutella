@@ -40,6 +40,7 @@ U/new/i_uni_putil.U
 U/new/i_zlib.U
 U/new/icu.U
 U/new/locale.U
+U/new/msgmerge_update.U
 U/new/official.U
 U/new/pkgsrc.U
 U/packages/glade.U
@@ -246,6 +247,8 @@ src/guid.c
 src/guid.h
 src/gwcache.c
 src/gwcache.h
+src/hashlist.c
+src/hashlist.h
 src/hashtree.c
 src/hashtree.h
 src/hcache.c
