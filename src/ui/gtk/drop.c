@@ -35,11 +35,14 @@ RCSID("$Id$");
 #include "statusbar.h"
 #include "search.h"
 
+#include "if/bridge/ui2c.h"
 #include "if/core/downloads.h"		/* URN_INDEX */
 #include "if/core/guid.h"			/* blank_guid[] */
 #include "if/gui_property_priv.h"
 
 #include "lib/glib-missing.h"
+#include "lib/url.h"
+#include "lib/urn.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 /*

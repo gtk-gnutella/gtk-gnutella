@@ -32,6 +32,8 @@ RCSID("$Id$");
 #include "filter.h"
 #include "gtk-missing.h"
 
+#include "gtk/misc.h"
+
 #ifdef USE_GTK1
 #include "gtk/gtk1/interface-glade.h"
 #endif

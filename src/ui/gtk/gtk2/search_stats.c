@@ -37,11 +37,14 @@
 RCSID("$Id$");
 
 #include "gtk/search_stats.h"
+#include "gtk/gtk-missing.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/glib-missing.h"
+#include "lib/utf8.h"
 #include "lib/wordvec.h"
 #include "lib/override.h"		/* Must be the last header included */
 

@@ -49,10 +49,13 @@ RCSID("$Id$");
 #include "interface-glade.h" /* for create_popup_upload_stats */
 
 #include "gtk/columns.h"
+#include "gtk/gtk-missing.h"
 
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/glib-missing.h"
+#include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 /* Private variables */

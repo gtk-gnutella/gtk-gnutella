@@ -33,6 +33,8 @@ RCSID("$Id$");
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
 
+#include "if/bridge/ui2c.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 static void add_node_helper(guint32 ip, gpointer port)

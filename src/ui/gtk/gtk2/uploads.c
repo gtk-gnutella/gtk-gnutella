@@ -31,6 +31,7 @@
 #include "gtk/uploads.h"
 #include "gtk/uploads_common.h"
 #include "gtk/columns.h"
+#include "gtk/gtk-missing.h"
 #include "gtk/notebooks.h"
 
 #include "if/gui_property.h"

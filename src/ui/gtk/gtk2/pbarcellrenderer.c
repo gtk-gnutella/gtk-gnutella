@@ -57,6 +57,7 @@ RCSID("$Id$");
 
 #include "pbarcellrenderer.h"
 
+#include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 static void gtk_cell_renderer_progress_init(GtkCellRendererProgress *);

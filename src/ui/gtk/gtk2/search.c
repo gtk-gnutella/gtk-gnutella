@@ -45,6 +45,7 @@
 #include "if/bridge/ui2c.h"
 
 #include "lib/atoms.h"
+#include "lib/base32.h"
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
 #include "lib/urn.h"

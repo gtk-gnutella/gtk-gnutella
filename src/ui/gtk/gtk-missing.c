@@ -32,6 +32,7 @@ RCSID("$Id$");
 #include "gtk-missing.h"
 #include "columns.h"
 
+#include "if/gui_property.h"
 #include "if/gui_property_priv.h"
 
 #include "lib/glib-missing.h"
