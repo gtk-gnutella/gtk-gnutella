@@ -57,6 +57,7 @@ static gchar tmpstr[4096];
 static void refresh_popup(void)
 {
 	gboolean sensitive;
+
     search_t *search;
 
     search = search_gui_get_current_search();
@@ -114,184 +115,157 @@ static void refresh_popup(void)
     }
 }
 
-
 /* 
  * 	search_cb_autoselect
  *
  *	Autoselects all searches matching given node in given tree
  */
-gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node, 
-	gboolean search_autoselect_ident)
+gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node)
 {
 	GtkCTreeNode *auto_node;
 	GtkCTreeNode *parent, *child;
-	GtkCTreeRow *row;
 	gui_record_t *grc;
 	gui_record_t *grc2;
 	record_t *rc;
 	record_t *rc2;
     guint32 fuzzy_threshold;
-	gboolean child_selected, node_expanded;
-	gint x = 0;
-	
-	gnet_prop_get_guint32(PROP_FUZZY_THRESHOLD, &fuzzy_threshold, 0, 1);
+    gboolean search_autoselect;
+    gboolean search_autoselect_ident;
+    gboolean search_autoselect_fuzzy;
+	guint32 sel_files = 0;
+    guint32 sel_sources = 0;
+    gboolean frozen = FALSE;
+
+    gui_prop_get_boolean(
+        PROP_SEARCH_AUTOSELECT_SIMILAR, 
+        &search_autoselect, 0, 1);
+
+    gui_prop_get_boolean(
+        PROP_SEARCH_AUTOSELECT_SAMESIZE, 
+        &search_autoselect_ident, 0, 1);
+
+    gui_prop_get_boolean(
+        PROP_SEARCH_AUTOSELECT_FUZZY, 
+        &search_autoselect_fuzzy, 0, 1);
+
+	gnet_prop_get_guint32(
+        PROP_FUZZY_THRESHOLD, 
+        &fuzzy_threshold, 0, 1);
 
 	/* 
      * Rows with NULL data can appear when inserting new rows
      * because the selection is resynced and the row data cannot
-     * be set until insertion (and therefore also selection syncing
+     * be set until insertion and therefore also selection syncing
      * is done.
-     *      --BLUE, 20/06/2002
+     *      -- Richard, 20/06/2002
+     *
+     * Can this really happen???
+     *      -- Richard, 18/04/2004
      */
 	grc = gtk_ctree_node_get_row_data(ctree, node);
+    if (grc == NULL) {
+        g_warning("search_cb_autoselect: row with NULL data detected");
+        return 0;
+    }
+
 	rc = grc->shared_record;
 
 	/* XXX anti-crash, when rc is 0x3 or something... -- RAM, 16/03/2004 */
 	if ((gulong) rc < 0x1000) {
 		statusbar_gui_message(15, "*** MEMORY CORRUPTED, TRYING TO IGNORE!");
+		g_warning("MEMORY CORRUPTED (in GUI search row data, rc=0x%lx)",
+			(gulong) rc);
 		return 0;
 	}
 
-	gtk_clist_freeze(GTK_CLIST(ctree));
-	
-    /* Search whole ctree for nodes to autoselect 
-     */			
-	for (x = 1, auto_node = GTK_CTREE_NODE(GTK_CLIST(ctree)->row_list);
+    /* Search the top level of the tree for items to auto-select. 
+     * We don't want to search the children, because on the 
+     * relevant data, all the children are the same as thier parents
+     * anyway (stored in the shared_record) */
+	for (
+        auto_node = GTK_CTREE_NODE(GTK_CLIST(ctree)->row_list);
 		(NULL != auto_node) && (NULL != rc);
-		auto_node = GTK_CTREE_NODE_NEXT (auto_node)) {			
-       
+		auto_node = GTK_CTREE_NODE_SIBLING (auto_node)
+    ) {	  
 		if (NULL == auto_node)
 			continue;
 			
 		grc2 = gtk_ctree_node_get_row_data(ctree, auto_node);
 		rc2 = grc2->shared_record;
-        /*
-         * Skip the line we selected in the first place.
-         */
-        if (rc == rc2)
-        	continue;
 
         if (rc2 == NULL) {
-        	g_warning(" on_ctree_search_results_select_row: "
-            			"detected row with NULL data, skipping.");
+        	g_warning("on_ctree_search_results_select_row: "
+                "detected row with NULL data, skipping.");
             continue;
 		}
 
 		/* XXX anti-crash, when rc is 0x3 or something... -- RAM, 16/03/2004 */
 		if ((gulong) rc2 < 0x1000) {
 			statusbar_gui_message(15, "*** MEMORY CORRUPTED, TRYING TO IGNORE!");
+            g_warning("MEMORY CORRUPTED (in GUI search row data, rc=0x%lx)",
+                (gulong) rc2);
 			continue;
 		}
 
-		parent = GTK_CTREE_NODE(auto_node);
-		row = GTK_CTREE_ROW(parent);
-		
-		/* If auto_node is a child node, we skip it cause it will be handled 
-		 * when we come to it's parent 
-		 */
-		if (NULL != row->parent)
-			continue; 			
-		
-		child = row->children;
-		if (NULL != child) /* If the node has children */
-		{
-			/* A header node.  We expand it and check all of the children 
-			 * If one of the children get selected keep node expanded,
-			 * if it was initially collapsed, collapse it again
-			 */				
-			child_selected = FALSE;
-			node_expanded = FALSE;
+        /* Check if the current node matches. If this is true, then
+         * we also select all the children without checking further
+         * if they match too. All the children share the same "shared_record"
+         * with thier parents and that contains the only relevant data
+         * on which the matching is done. 
+         *     -- Richard, 18/04/2004
+         */
+        if (
+            search_gui_autoselect_cmp(rc, rc2, 
+                search_autoselect,
+                search_autoselect_ident,
+                search_autoselect_fuzzy,
+                fuzzy_threshold)
+        ) {
+			gtk_ctree_select(ctree, auto_node);
+            sel_files ++;
+            sel_sources ++;
 
-			node_expanded = gtk_ctree_is_viewable(ctree, child);
-			gtk_ctree_expand(ctree, parent);
-			
-			for (; NULL != child; row = GTK_CTREE_ROW(child), 
-				child = row->sibling) {		
+            parent = auto_node;
+            child  = GTK_CTREE_ROW(auto_node)->children;
 
-				grc2 = gtk_ctree_node_get_row_data (ctree, child);
-		    	rc2 = grc2->shared_record;
-				if (rc == rc2)
-	        		continue;
-
-				/* XXX anti-crash -- RAM, 16/03/2004 */
-				if ((gulong) rc2 < 0x1000) {
-					statusbar_gui_message(15,
-						"*** MEMORY CORRUPTED, TRYING TO IGNORE!");
-					continue;
-				}
-	
-	            if (search_autoselect_ident) {
-       		    	if ((rc->size == rc2->size && rc->sha1 != NULL && 
-						rc2->sha1 != NULL &&
-                        memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0) 
-						|| ((rc->sha1 == NULL) && (rc2->size == rc->size) && 
-						((!search_autoselect_fuzzy && 
-						!strcmp(rc2->name, rc->name)) || 
-						(search_autoselect_fuzzy &&
-(fuzzy_compare(rc2->name, rc->name) * 100 >= (fuzzy_threshold << FUZZY_SHIFT)))
-                    	))) {
-							gtk_ctree_select(ctree, child);
-							child_selected = TRUE;	                      
-							x++;
-                    }
-                } else {
-                   	if (((rc->sha1 != NULL && rc2->sha1 != NULL &&
-                	    memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0) || 
-                        (rc2 && !strcmp(rc2->name, rc->name))) &&
-                        (rc2->size >= rc->size)) {
-							
-						gtk_ctree_select(ctree, child);
-						child_selected = TRUE;	                      
-   	                    x++;
-                   	}
-				}
-			}         				
-			if ((!child_selected) && (!node_expanded))
-				gtk_ctree_collapse(ctree, parent);
-		}
-
-		/* Re-get rc2 in case we overwrote it while parsing the children */
-		grc2 = gtk_ctree_node_get_row_data(ctree, auto_node);
-		rc2 = grc2->shared_record;
-        if (search_autoselect_ident) {
-			if ((
-            	/*
-				 * size check added to workaround buggy
-                 * servents. -vidar, 2002-08-08
-				 */
-                rc->size == rc2->size && 
-                rc->sha1 != NULL && rc2->sha1 != NULL &&
-                memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0
-			) || (
-                (rc->sha1 == NULL) && 
-                (rc2->size == rc->size) && (
-                (!search_autoselect_fuzzy &&
-				!strcmp(rc2->name, rc->name)) ||
-                (search_autoselect_fuzzy &&
-(fuzzy_compare(rc2->name, rc->name) * 100 >= (fuzzy_threshold << FUZZY_SHIFT)))
-                )
-                )) {
-                
-				gtk_ctree_select(ctree, auto_node);
-              	x++;
-			}
-		} else {
-            
-			if (((rc->sha1 != NULL && rc2->sha1 != NULL &&
-               	memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0) || 
-                (rc2 && !strcmp(rc2->name, rc->name))) &&
-                (rc2->size >= rc->size)) {
-				
-				gtk_ctree_select(ctree, auto_node);
-                x++;
+            for (; NULL != child; child = GTK_CTREE_NODE_SIBLING(child)) {
+                if (!frozen && gtk_ctree_is_viewable(ctree, child)) {
+                    gtk_clist_freeze(GTK_CLIST(ctree));
+                    frozen = TRUE;
+                }
+                gtk_ctree_select(ctree, child);
+				sel_sources ++;
             }
-		}	
-	} /* for */
-	
-	gtk_clist_thaw(GTK_CLIST(ctree));
-	
-	gtk_widget_queue_draw((GtkWidget *) ctree); /* Force redraw */
-	return x;
+		}
+	} /* top-level node iteration loop (for)*/
+
+    if (frozen) {
+        gtk_clist_thaw(GTK_CLIST(ctree));
+    }
+
+    if (sel_sources > 1) {
+        statusbar_gui_message(15, 
+            "%d files auto selected with %d sources %s",
+            sel_files, sel_sources, 
+            (search_autoselect) ? 
+                "by urn:sha1, filename and size." :
+                "by urn:sha1.");
+    }
+
+    /* The quest for reduced gui flickering...
+     * Gtk1 seems to have an odd system of determining when to 
+     * redraw what. These conditions seem to reduce need to 
+     * redraw quite well while still guaranteeing that Gtk1
+     * redraws the gui when necessary:
+     * - If more than one top-level line is affected (sel_files)
+     * - If a visible child was affected (frozen).
+     *     -- Richard, 18/04/2004
+     */
+    if (frozen || (sel_files > 1)) {
+        gtk_widget_queue_draw((GtkWidget *) ctree); /* Force redraw */
+    }
+
+	return (sel_files+sel_sources);
 }
 
 
@@ -673,15 +647,6 @@ void on_clist_search_results_click_column(
 void on_ctree_search_results_select_row(GtkCTree *ctree,
 	GList *node, gint column, gpointer user_data)
 {
-    gboolean search_autoselect;
-    gboolean search_autoselect_ident;
-    gboolean search_autoselect_fuzzy;
-	GtkCTreeNode *parent;
-	GtkCTreeRow *parent_row;
-    search_t *sch;
-	gui_record_t *grc;
-	record_t *rc;
-	gint x;
     static gboolean active = FALSE;
 
     /*
@@ -694,85 +659,24 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
 		return;
 
     active = TRUE;
-	
-    sch = search_gui_get_current_search();
-	grc = gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));
-	rc = grc->shared_record;
 
-	/* XXX anti-crash, when rc is 0x3 or something... -- RAM, 15/03/2004 */
-	if ((gulong) rc < 0x1000) {
-		statusbar_gui_message(15, "*** MEMORY CORRUPTED, TRYING TO IGNORE!");
-		g_warning("MEMORY CORRUPTED (in GUI search row data, rc=0x%lx)",
-			(gulong) rc);
-		goto out;
-	}
-
-    gui_prop_get_boolean(
-        PROP_SEARCH_AUTOSELECT, 
-        &search_autoselect, 0, 1);
-
-    gui_prop_get_boolean(
-        PROP_SEARCH_AUTOSELECT_IDENT, 
-        &search_autoselect_ident, 0, 1);
-
-    gui_prop_get_boolean(
-        PROP_SEARCH_AUTOSELECT_FUZZY, 
-        &search_autoselect_fuzzy, 0, 1);
-
-
-    refresh_popup();
-
-    /* 
-     * check if config setting select all is on and only autoselect if
-     * only one item is selected (no way to merge two autoselections)
+    /* actually using the "active" guard should be enough, but
+     * I'll try to block the signal too, just to be on the save side.
      */
-	if (search_autoselect && 
-        (GTK_CLIST(ctree)->selection != NULL) &&
-        (GTK_CLIST(ctree)->selection->next == NULL)) {
-
-		x =	search_cb_autoselect(ctree, GTK_CTREE_NODE(node), 
-			search_autoselect_ident); 
+    // FIXME: Use either guard or signal blocking. Signal blocking
+    //        should be preferred to get better performance.
+    gtk_signal_handler_block_by_func(GTK_OBJECT(ctree), 
+		GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
+		NULL);
+	
+    refresh_popup();
+	search_cb_autoselect(ctree, GTK_CTREE_NODE(node)); 
    
-        if (x > 1) {
-            statusbar_gui_message(15, 
-                "%d auto selected %s",
-                x, (rc->sha1 != NULL) ? 
-                    "by urn:sha1 and filename" : "by filename");
-        } else if (x == 1) {
-            statusbar_gui_message(15, "none auto selected");
-        }
-	} 
-
-	/* If a parent node is selected, select all children */
-	if (GTK_CLIST(ctree)->selection != NULL) {
-		if (NULL != rc->sha1) {
-			parent = find_parent_with_sha1(sch->parents, rc->sha1);
-		
-			if (NULL != parent) {
-				parent_row = GTK_CTREE_ROW(parent);
-								
-				/* A parent exists with that sha1, is it the selected node? */
-				if ((parent == GTK_CTREE_NODE(node)) 
-					&& (NULL != parent_row->children)) {
-
-					    gtk_signal_handler_block_by_func(GTK_OBJECT(ctree), 
-							GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
-        					NULL);
-
-						gtk_ctree_select_recursive(ctree, GTK_CTREE_NODE(node));
-
-						/* Force redraw, needed. - Emile Feb 02, 2004 */
-						gtk_widget_queue_draw((GtkWidget *) ctree); 
-
-					    gtk_signal_handler_unblock_by_func(GTK_OBJECT(ctree),
-        					GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
-        					NULL);
-				}
-			}
-		}	
-	}
-
 out:
+    gtk_signal_handler_unblock_by_func(GTK_OBJECT(ctree),
+        GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
+        NULL);
+
     active = FALSE;
 }
 
