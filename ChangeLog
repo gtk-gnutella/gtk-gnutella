@@ -1,5 +1,12 @@
 # since last version
 
+- (2003.04.02 - RAM)
+ * Added icon.xpm, the default gtk-gnutella icon for GTK1 [From Michael Gray].
+ * Also remove all downloads from host when push route is lost, or when we
+   can't reach a host through a direct connection.
+ * Fixed icon.c to have it work with GTK 2.0 [From Michael Gray].
+ * Avoid setting the IP ToS on a freed socket descriptor.
+
 - (2003.03.31 - RAM)
  * Optimized sha1_eq() and guid_eq() when pointers are identical.
  * Added Retry-After header in parq_upload_add_header().
