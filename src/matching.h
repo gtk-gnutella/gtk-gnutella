@@ -96,10 +96,15 @@ void st_destroy(search_table_t *);
 void st_insert_item(search_table_t *, guchar *, void *);
 void st_compact(search_table_t *);
 
+#include "share.h" /* For shared_file. FIXME: see note below. */
+
+/* FIXME: The type of this callback is too specific. */
+typedef void (*st_search_callback)(struct shared_file *);
+
 gint st_search(
 	search_table_t *table,
 	guchar *search,
-	void (*callback)(struct shared_file *),
+	st_search_callback callback,
 	gint max_res);
 
 #endif	/* __matching_h__ */

@@ -9,6 +9,10 @@
 #include <fcntl.h>
 #include <time.h>
 
+#include "sockets.h"
+#include "share.h"
+#include "gui.h"
+#include "misc.h"
 
 GSList *uploads = NULL;
 gint running_uploads = 0;

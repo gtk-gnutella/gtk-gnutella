@@ -2,6 +2,10 @@
 /* Gnutella Network Messages routing */
 
 #include "gnutella.h"
+#include "search.h" /* For search_passive. */
+#include "routing.h"
+#include "hosts.h"
+#include "misc.h"
 
 #include <stdarg.h>
 #include <assert.h>

@@ -1,10 +1,6 @@
 
 /* gtk-gnutella configuration */
 
-#include "gnutella.h"
-#include "interface.h"
-#include "search.h"
-
 #include <sys/stat.h>
 #include <pwd.h>
 #include <sys/types.h>
@@ -13,6 +9,14 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <netdb.h>
+
+#include "gnutella.h"
+#include "interface.h"
+#include "search.h"
+#include "misc.h"
+#include "hosts.h"
+#include "share.h"
+#include "gui.h"
 
 static gchar *config_file = "config";
 static gchar *host_file = "hosts";

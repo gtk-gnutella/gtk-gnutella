@@ -10,20 +10,20 @@ CLEANFILES = interface-glade.c interface-glade.h *.bak
 gtk_gnutella_SOURCES = \
 	interface.c interface.h \
 	gnutella.h \
-	misc.c \
-	config.c \
+	misc.c misc.h \
+	config.c appconfig.h \
 	md5.c \
-	sockets.c \
-	nodes.c \
-	hosts.c \
-	routing.c \
+	sockets.c sockets.h \
+	nodes.c nodes.h \
+	hosts.c hosts.h \
+	routing.c routing.h \
 	search.c search.h \
 	filter.c filter.h \
-	downloads.c \
-	share.c \
-	uploads.c \
+	downloads.c downloads.h \
+	share.c share.h \
+	uploads.c uploads.h \
 	main.c \
-	gui.c \
+	gui.c gui.h \
 	support.c support.h \
 	matching.c matching.h \
 	callbacks.c callbacks.h \

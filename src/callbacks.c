@@ -6,13 +6,16 @@
 
 #include "callbacks.h"
 #include "interface.h"
+#include "gui.h"
 #include "support.h"
 #include "search.h"
+#include "share.h"
+#include "sockets.h"
+#include "hosts.h"
+#include "downloads.h"
+#include "misc.h"
 
 gchar c_tmp[2048];
-
-struct download *selected_queued_download = (struct download *) NULL;
-struct download *selected_active_download = (struct download *) NULL;
 
 /*
  * Main window

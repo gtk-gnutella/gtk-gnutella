@@ -15,6 +15,12 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "sockets.h"
+#include "downloads.h"
+#include "uploads.h"
+#include "nodes.h"
+#include "misc.h"
+
 guint32 local_ip = 0;
 
 static GSList *sl_incoming = (GSList *) NULL;	/* Track incoming sockets */

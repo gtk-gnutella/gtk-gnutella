@@ -7,9 +7,13 @@
 
 #include "interface.h"
 
+#include "misc.h"
 #include "search.h"
 #include "filter.h"
+#include "downloads.h"
+#include "gui.h"
 #include "dialog-filters.h"
+#include "routing.h"
 
 #define MAKE_CODE(a,b,c,d) ( \
 	((guint32) (a) << 24) | \

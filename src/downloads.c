@@ -2,12 +2,20 @@
 /* Handle downloads */
 
 #include "gnutella.h"
-
+#include "misc.h"
 #include "interface.h"
+#include "gui.h"
+#include "sockets.h"
+#include "routing.h"
+#include "downloads.h"
+#include "hosts.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+struct download *selected_queued_download = (struct download *) NULL;
+struct download *selected_active_download = (struct download *) NULL;
 
 GSList *sl_downloads = NULL;
 

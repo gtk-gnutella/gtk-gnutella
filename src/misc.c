@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 
 #include "gnutella.h"
+#include "nodes.h"
 
 gchar *ip_to_gchar(guint32 ip)
 {

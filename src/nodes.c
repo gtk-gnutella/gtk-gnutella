@@ -11,6 +11,14 @@
 #include <assert.h>
 
 #include "interface.h"
+#include "sockets.h"
+#include "search.h"
+#include "share.h"
+#include "gui.h"
+#include "routing.h"
+#include "hosts.h"
+#include "nodes.h"
+#include "misc.h"
 
 GSList *sl_nodes = (GSList *) NULL;
 

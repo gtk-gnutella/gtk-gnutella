@@ -4,10 +4,17 @@
 #include <signal.h>
 
 #include "interface.h"
+#include "gui.h"
 #include "support.h"
 
 #include "search.h"
+#include "share.h"
+#include "sockets.h"
+#include "routing.h"
+#include "downloads.h"
+#include "hosts.h"
 #include "filter.h"
+#include "misc.h"
 
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define DL_UPDATE_DELAY			10	/* Don't update downloads too often */

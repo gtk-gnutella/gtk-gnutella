@@ -3,6 +3,13 @@
 
 #include "gnutella.h"
 #include "interface.h"
+#include "gui.h"
+#include "sockets.h" /* For local_ip. (FIXME: move to config.h?) */
+#include "search.h" /* For search_reissue_timeout. (FIXME: move to config.h?) */
+#include "share.h" /* For stats globals. (FIXME: move to config.h?) */
+#include "downloads.h" /* For stats globals. (FIXME: move to config.h?) */
+#include "hosts.h" /* For pr_ref. (FIXME: ???) */
+#include "misc.h"
 
 #include <netinet/in.h>
 #include <arpa/inet.h>

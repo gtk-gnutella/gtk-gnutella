@@ -10,7 +10,12 @@
 
 #include "gnutella.h"
 #include "interface.h"
+#include "gui.h"
 #include "matching.h"
+#include "share.h"
+#include "sockets.h" /* For local_ip. (FIXME: move local_ip to config.h.) */
+#include "routing.h"
+#include "misc.h"
 
 guint32 files_scanned = 0;
 guint32 kbytes_scanned = 0;

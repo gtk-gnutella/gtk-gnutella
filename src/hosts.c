@@ -9,6 +9,13 @@
 #include <arpa/inet.h>
 
 #include "interface.h"
+#include "gui.h"
+#include "misc.h"
+#include "sockets.h"
+#include "routing.h"
+#include "hosts.h"
+#include "nodes.h"
+#include "share.h" /* For files_scanned and kbytes_scanned. */
 
 GList *sl_catched_hosts = NULL;
 GHashTable *ht_catched_hosts = NULL;	/* Same, as H table */

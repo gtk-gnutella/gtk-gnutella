@@ -72,7 +72,7 @@ bin_PROGRAMS = gtk-gnutella
 CLEANFILES = interface-glade.c interface-glade.h *.bak
 
 # interface.h must come before any .c files that include it so that it is built.
-gtk_gnutella_SOURCES =  	interface.c interface.h 	gnutella.h 	misc.c 	config.c 	md5.c 	sockets.c 	nodes.c 	hosts.c 	routing.c 	search.c search.h 	filter.c filter.h 	downloads.c 	share.c 	uploads.c 	main.c 	gui.c 	support.c support.h 	matching.c matching.h 	callbacks.c callbacks.h 	dialog-filters.c dialog-filters.h
+gtk_gnutella_SOURCES =  	interface.c interface.h 	gnutella.h 	misc.c misc.h 	config.c appconfig.h 	md5.c 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	routing.c routing.h 	search.c search.h 	filter.c filter.h 	downloads.c downloads.h 	share.c share.h 	uploads.c uploads.h 	main.c 	gui.c gui.h 	support.c support.h 	matching.c matching.h 	callbacks.c callbacks.h 	dialog-filters.c dialog-filters.h
 
 
 gtk_gnutella_LDADD = @GTK_LIBS@
