@@ -103,7 +103,7 @@ gint w_x = 0, w_y = 0, w_w = 0, w_h = 0;
 guint32 search_reissue_timeout = 600;	/* 10 minutes */
 
 gboolean proxy_connections = FALSE;
-gint socks_protocol = 4;
+gint proxy_protocol = 4;
 gchar *proxy_ip = "0.0.0.0";
 gint proxy_port = 1080;
 
@@ -143,7 +143,7 @@ enum {
 	k_show_results_tabs,
 	k_hops_random_factor, k_send_pushes, k_jump_to_downloads,
 	k_max_connections, k_proxy_connections,
-	k_socks_protocol, k_proxy_ip, k_proxy_port, k_socksv5_user,
+	k_proxy_protocol, k_proxy_ip, k_proxy_port, k_socksv5_user,
 	k_socksv5_pass, k_search_reissue_timeout,
 	k_hard_ttl_limit,
 	k_dbg, k_stop_host_get, k_enable_err_log, k_max_uploads_ip,
@@ -216,7 +216,7 @@ gchar *keywords[] = {
 	"jump_to_downloads",		/* k_jump_to_downloads */
 	"max_connections",
 	"proxy_connections",
-	"socks_protocol",
+	"proxy_protocol",
 	"proxy_ip",
 	"proxy_port",
 	"socksv5_user",
@@ -399,10 +399,12 @@ void config_init(void)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
 								 (checkbutton_proxy_connections),
 								 proxy_connections);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_http),
+								 (proxy_protocol == 1) ? TRUE : FALSE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_socksv4),
-								 (socks_protocol == 4) ? TRUE : FALSE);
+								 (proxy_protocol == 4) ? TRUE : FALSE);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_socksv5),
-								 (socks_protocol == 5) ? TRUE : FALSE);
+								 (proxy_protocol == 5) ? TRUE : FALSE);
 
 	gui_update_socks_host();
 	gui_update_socks_port();
@@ -766,8 +768,8 @@ void config_set_param(guint32 keyword, gchar *value)
 		proxy_connections = i ? TRUE : FALSE;
 		return;
 
-	case k_socks_protocol:
-		socks_protocol = i;
+	case k_proxy_protocol:
+		proxy_protocol = i;
 		return;
 
 	case k_proxy_ip:
@@ -1187,7 +1189,7 @@ void config_save(void)
 	fprintf(config, "# Proxy Info\n\n");
 	fprintf(config, "%s = %u\n\n", keywords[k_proxy_connections],
 			proxy_connections);
-	fprintf(config, "%s = %u\n\n", keywords[k_socks_protocol], socks_protocol);
+	fprintf(config, "%s = %u\n\n", keywords[k_proxy_protocol], proxy_protocol);
 	fprintf(config, "%s = \"%s\"\n\n", keywords[k_proxy_ip], proxy_ip);
 	fprintf(config, "%s = %u\n\n", keywords[k_proxy_port], proxy_port);
 	fprintf(config, "%s = \"%s\"\n\n", keywords[k_socksv5_user], socksv5_user);

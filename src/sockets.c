@@ -20,6 +20,7 @@
 #include "uploads.h"
 #include "nodes.h"
 #include "misc.h"
+#include "header.h"
 #include "getline.h"
 
 guint32 local_ip = 0;
@@ -232,7 +233,7 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 			gdk_input_remove(s->gdk_tag);
 			s->gdk_tag = 0;
 
-			if (socks_protocol == 4) {
+			if (proxy_protocol == 4) {
 				if (recv_socks(s) != 0) {
 					socket_destroy(s);
 					return;
@@ -246,7 +247,7 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 								  GDK_INPUT_EXCEPTION, socket_connected,
 								  (gpointer) s);
 				return;
-			} else if (socks_protocol == 5) {
+			} else if (proxy_protocol == 5) {
 				if (connect_socksv5(s) != 0) {
 					socket_destroy(s);
 					return;
@@ -271,6 +272,28 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 
 				return;
 
+			} else if (proxy_protocol == 1) {
+				if (connect_http(s) != 0) {
+					socket_destroy(s);
+					return;
+				}
+
+				if (s->pos > 2) {
+					s->direction = GTA_CONNECTION_OUTGOING;
+
+					s->gdk_tag =
+						gdk_input_add(s->file_desc,
+									  GDK_INPUT_READ | GDK_INPUT_WRITE |
+									  GDK_INPUT_EXCEPTION,
+									  socket_connected, (gpointer) s);
+					return;
+				} else {
+					s->gdk_tag =
+						gdk_input_add(s->file_desc,
+									  GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+									  socket_connected, (gpointer) s);
+					return;
+				}
 			}
 		}
 	}
@@ -299,18 +322,23 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 
 		if (proxy_connections
 			&& s->direction == GTA_CONNECTION_PROXY_OUTGOING) {
-			if (socks_protocol == 4) {
+			if (proxy_protocol == 4) {
 
 				if (send_socks(s) != 0) {
 					socket_destroy(s);
 					return;
 				}
-			} else if (socks_protocol == 5) {
+			} else if (proxy_protocol == 5) {
 				if (connect_socksv5(s) != 0) {
 					socket_destroy(s);
 					return;
 				}
 
+			} else if (proxy_protocol == 1) {
+				if (connect_http(s) != 0) {
+					socket_destroy(s);
+					return;
+				}
 			}
 
 			s->gdk_tag =
@@ -805,6 +833,118 @@ int recv_socks(struct gnutella_socket *s)
 
 	return 0;
 
+}
+
+int connect_http(struct gnutella_socket *s)
+{
+	int rc = 0;
+	guint parsed;
+	int status;
+	guchar *str;
+
+	switch (s->pos) {
+	case 0:
+		sprintf(s->buffer, "CONNECT %s HTTP/1.0\r\n\r\n",
+			ip_port_to_gchar(s->ip, s->port));
+		if (
+			(rc = send(s->file_desc, (void *)s->buffer,
+				strlen(s->buffer), 0)) < 0
+		) {
+			show_error("Error %d attempting to send info to HTTP proxy\n",
+				errno);
+			return -1;
+		}
+		s->pos++;
+		break;
+	case 1:
+		rc = read(s->file_desc, s->buffer, sizeof(s->buffer)-1);
+		if (rc < 0) {
+			show_error("Error %d receving answer from HTTP proxy\n", errno);
+			return -1;
+		}
+		s->getline = getline_make();
+		switch (getline_read(s->getline, s->buffer, rc, &parsed)) {
+		case READ_OVERFLOW:
+			show_error("Reading buffer overflow");
+			return -1;
+		case READ_DONE:
+			if (rc != parsed)
+				memmove(s->buffer, s->buffer+parsed, rc-parsed);
+			rc -= parsed;
+			break;
+		case READ_MORE:
+		default:
+			g_assert(parsed == rc);
+			return 0;
+		}
+		str = getline_str(s->getline);
+		if ((status=parse_status_line(str, NULL, NULL, NULL, NULL)) < 0) {
+			show_error("Bad status line\n");
+			return -1;
+		}
+		if ((status/100) != 2) {
+			show_error(str);
+			return -1;
+		}
+		s->pos++;
+
+		while (rc) {
+			getline_reset(s->getline);
+			switch (getline_read(s->getline, s->buffer, rc, &parsed)) {
+			case READ_OVERFLOW:
+				show_error("Reading buffer overflow");
+				return -1;
+			case READ_DONE:
+				if (rc != parsed)
+					memmove(s->buffer, s->buffer+parsed, rc-parsed);
+				rc -= parsed;
+				if (getline_length(s->getline) == 0) {
+					s->pos++;
+					getline_free(s->getline);
+					s->getline = NULL;
+					return 0;
+				}
+				break;
+			case READ_MORE:
+			default:
+				g_assert(parsed == rc);
+				return 0;
+			}
+		}
+		break;
+	case 2:
+		rc = read(s->file_desc, s->buffer, sizeof(s->buffer)-1);
+		if (rc < 0) {
+			show_error("Error %d receving answer from HTTP proxy\n", errno);
+			return -1;
+		}
+		while (rc) {
+			getline_reset(s->getline);
+			switch (getline_read(s->getline, s->buffer, rc, &parsed)) {
+			case READ_OVERFLOW:
+				show_error("Reading buffer overflow");
+				return -1;
+			case READ_DONE:
+				if (rc != parsed)
+					memmove(s->buffer, s->buffer+parsed, rc-parsed);
+				rc -= parsed;
+				if (getline_length(s->getline) == 0) {
+					s->pos++;
+					getline_free(s->getline);
+					s->getline = NULL;
+					return 0;
+				}
+				break;
+			case READ_MORE:
+			default:
+				g_assert(parsed == rc);
+				return 0;
+			}
+		}
+		break;
+	}
+
+	return 0;
 }
 
 /*

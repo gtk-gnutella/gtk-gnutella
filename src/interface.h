@@ -85,6 +85,7 @@ extern GtkWidget *button_config_rescan_dir;
 extern GtkWidget *label_left;
 extern GtkWidget *label_right;
 extern GtkWidget *entry_config;
+extern GtkWidget *radio_http;
 extern GtkWidget *radio_socksv4;
 extern GtkWidget *radio_socksv5;
 extern GtkWidget *checkbutton_proxy_connections;

@@ -34,7 +34,7 @@ set w_main_list {
 	label_current_port
 	checkbutton_config_force_ip entry_config_search_items entry_config_maxttl entry_config_myttl
 	button_config_update_port button_config_rescan_dir
-        label_left label_right entry_config radio_socksv4 radio_socksv5
+        label_left label_right entry_config radio_http radio_socksv4 radio_socksv5
         checkbutton_proxy_connections config_entry_socks_host
         config_entry_socks_port config_entry_socks_username 
         config_entry_socks_password entry_max_connections entry_search_reissue_timeout

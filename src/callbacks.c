@@ -1447,18 +1447,25 @@ void on_checkbutton_proxy_connections_toggled(GtkToggleButton *
 
 }
 
+void on_radio_http_toggled(GtkToggleButton * togglebutton,
+							  gpointer user_data)
+{
+	if (gtk_toggle_button_get_active(togglebutton))
+		proxy_protocol = 1;
+}
+
 void on_radio_socksv4_toggled(GtkToggleButton * togglebutton,
 							  gpointer user_data)
 {
 	if (gtk_toggle_button_get_active(togglebutton))
-		socks_protocol = 4;
+		proxy_protocol = 4;
 }
 
 void on_radio_socksv5_toggled(GtkToggleButton * togglebutton,
 							  gpointer user_data)
 {
 	if (gtk_toggle_button_get_active(togglebutton))
-		socks_protocol = 5;
+		proxy_protocol = 5;
 }
 
 void on_entry_max_connections_activate(GtkEditable * editable,

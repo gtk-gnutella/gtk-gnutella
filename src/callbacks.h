@@ -127,6 +127,7 @@ gboolean on_config_entry_socks_username_focus_out_event (GtkWidget *widget, GdkE
 void on_config_entry_socks_password_activate (GtkEditable *editable, gpointer user_data);
 gboolean on_config_entry_socks_password_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 void on_checkbutton_proxy_connections_toggled (GtkToggleButton *togglebutton, gpointer user_data);
+void on_radio_http_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_radio_socksv4_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_radio_socksv5_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_entry_max_connections_activate (GtkEditable *editable, gpointer user_data);

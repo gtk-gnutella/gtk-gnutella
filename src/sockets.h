@@ -63,6 +63,7 @@ void socket_destroy(struct gnutella_socket *);
 void socket_free(struct gnutella_socket *);
 struct gnutella_socket *socket_connect(guint32, guint16, gint);
 struct gnutella_socket *socket_listen(guint32, guint16, gint);
+int connect_http(struct gnutella_socket *);
 int connect_socksv5(struct gnutella_socket *);
 int proxy_connect(int, const struct sockaddr *, socklen_t);
 int recv_socks(struct gnutella_socket *);

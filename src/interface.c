@@ -92,6 +92,7 @@ GtkWidget *button_config_rescan_dir;
 GtkWidget *label_left;
 GtkWidget *label_right;
 GtkWidget *entry_config;
+GtkWidget *radio_http;
 GtkWidget *radio_socksv4;
 GtkWidget *radio_socksv5;
 GtkWidget *checkbutton_proxy_connections;
@@ -2051,12 +2052,20 @@ create_main_window (void)
   gtk_widget_show (hbox59);
   gtk_box_pack_start (GTK_BOX (vbox10), hbox59, TRUE, TRUE, 0);
 
-  label90 = gtk_label_new ("Socks Version:");
+  label90 = gtk_label_new ("Proxy type:");
   gtk_widget_ref (label90);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label90", label90,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label90);
   gtk_box_pack_start (GTK_BOX (hbox59), label90, FALSE, FALSE, 0);
+
+  radio_http = gtk_radio_button_new_with_label (socks_version_group, "http");
+  socks_version_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radio_http));
+  gtk_widget_ref (radio_http);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "radio_http", radio_http,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (radio_http);
+  gtk_box_pack_start (GTK_BOX (hbox59), radio_http, FALSE, FALSE, 0);
 
   radio_socksv4 = gtk_radio_button_new_with_label (socks_version_group, "v4");
   socks_version_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radio_socksv4));
@@ -2452,6 +2461,9 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_myttl), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_config_myttl_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (radio_http), "toggled",
+                      GTK_SIGNAL_FUNC (on_radio_http_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (radio_socksv4), "toggled",
                       GTK_SIGNAL_FUNC (on_radio_socksv4_toggled),

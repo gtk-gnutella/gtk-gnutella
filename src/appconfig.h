@@ -79,7 +79,7 @@ extern gchar *global_IP_filter_file;
 extern gboolean jump_to_downloads;
 
 extern gboolean proxy_connections;
-extern gint socks_protocol;
+extern gint proxy_protocol;
 extern gchar *proxy_ip;
 extern gint proxy_port;
 
