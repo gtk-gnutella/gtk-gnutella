@@ -215,6 +215,7 @@ on_drawingarea_fi_progress_realize(GtkWidget *widget, gpointer user_data)
 {
 	GtkStyle *style;
 
+	(void) user_data;
 	fi_context.widget = widget;
     fi_context.drawable = widget->window;
     g_assert(fi_context.drawable);
@@ -229,6 +230,9 @@ gboolean
 on_drawingarea_fi_progress_expose_event(
 	GtkWidget *widget, GdkEventExpose *event, gpointer user_data)
 {
+	(void) widget;
+	(void) event;
+	(void) user_data;
 	vp_draw_fi_progress(fi_context.fih_valid, fi_context.fih);
 
     return FALSE;
@@ -431,6 +435,8 @@ static void vp_update_ranges(gnet_src_t srcid)
 
 void vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
 {
+	(void) key;
+	(void) user_data;
     wfree(value, sizeof(vp_info_t));
 }
 
@@ -456,13 +462,13 @@ void vp_gui_init(void)
 
     cmap = gdk_colormap_get_system();
     g_assert(cmap);
-    gdk_color_parse("#00DD00", &done_old);
+    gdk_color_parse("green4", &done_old);
     gdk_colormap_alloc_color(cmap, &done_old, FALSE, TRUE);
-    gdk_color_parse("#00FF00", &done);
+    gdk_color_parse("green", &done);
     gdk_colormap_alloc_color(cmap, &done, FALSE, TRUE);
-    gdk_color_parse("#FFFF00", &busy);
+    gdk_color_parse("yellow2", &busy);
     gdk_colormap_alloc_color(cmap, &busy, FALSE, TRUE);
-    gdk_color_parse("#FF0000", &empty);
+    gdk_color_parse("red2", &empty);
     gdk_colormap_alloc_color(cmap, &empty, FALSE, TRUE);
     gdk_color_parse("black", &black);
     gdk_colormap_alloc_color(cmap, &black, FALSE, TRUE);
