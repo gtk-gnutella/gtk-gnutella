@@ -1362,17 +1362,23 @@ static gboolean node_reserve_slot(struct gnutella_node *n)
 		g_free(cur_vendor);
 	}	
 	
-	if ((max_ultrapeers - node_ultra_count) * 100 / max_ultrapeers <= 
-		reserve_gtkg_nodes)
-		return TRUE;
+	if (max_ultrapeers > 0 ) {
+		if ((max_ultrapeers - node_ultra_count) * 100 / max_ultrapeers <= 
+			reserve_gtkg_nodes)
+			return TRUE;
+	}
+
+	if (max_leaves > 0) {
+		if ((max_leaves - node_leaf_count) * 100 / max_leaves <= 
+			reserve_gtkg_nodes)
+			return TRUE;
+	}
 	
-	if ((max_leaves - node_leaf_count) * 100 / max_leaves <= 
-		reserve_gtkg_nodes)
-		return TRUE;
-	
-	if ((normal_connections - node_normal_count) * 100 / normal_connections <=
-		reserve_gtkg_nodes)
-		return TRUE;
+	if (normal_connections > 0) {
+		if ((normal_connections - node_normal_count) * 100 / normal_connections <=
+			reserve_gtkg_nodes)
+			return TRUE;
+	}
 
 	
 	return FALSE;
