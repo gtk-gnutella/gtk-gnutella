@@ -594,6 +594,24 @@ gboolean is_pow2(guint32 value)
 }
 
 /*
+ * next_pow2
+ *
+ * Returns the closest power of two greater or equal to `n'.
+ */
+guint32 next_pow2(guint32 n)
+{
+	guint p = 0;
+	guint32 r = n;
+
+	while (r >>= 1)			/* Will find largest bit set */
+		p++;
+
+	r = 1 << p;
+	
+	return r == n ? n : r << 1;
+}
+
+/*
  * random_value:
  *
  * Return random value between (0..max).

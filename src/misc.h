@@ -123,6 +123,7 @@ gboolean is_private_ip(guint32 ip);
 gboolean is_directory(const gchar *);
 gboolean file_exists(gchar *);
 gboolean is_pow2(guint32 value);
+guint32 next_pow2(guint32 n);
 
 /*
  * Random numbers
