@@ -3712,6 +3712,7 @@ gboolean fi_purge(gnet_fi_t fih)
 
 		g_assert(fi->refcount == 0);
 
+        file_info_unlink(fi);
 		file_info_hash_remove(fi);
 		fi_free(fi);
 	}
