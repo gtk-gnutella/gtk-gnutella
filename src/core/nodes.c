@@ -5326,6 +5326,8 @@ node_parse(struct gnutella_node *node)
             gnet_stats_count_dropped(n, MSG_DROP_TOO_LARGE);
 		} else {
 			/* In case no Vendor-Message was seen in handshake */
+
+			/* XXX: Is this correct for the Pseudo UDP node? */
 			n->attrs |= NODE_A_CAN_VENDOR;
 		}
 		break;
@@ -5932,7 +5934,7 @@ node_tx_enter_flowc(struct gnutella_node *n)
 {
 	n->tx_flowc_date = time((time_t *) NULL);
 
-	if (n->attrs & NODE_A_CAN_VENDOR)
+	if ((n->attrs & NODE_A_CAN_VENDOR) && !NODE_IS_UDP(n))
 		vmsg_send_hops_flow(n, 0);			/* Disable all query traffic */
 
     node_fire_node_flags_changed(n);
@@ -5951,7 +5953,7 @@ node_tx_leave_flowc(struct gnutella_node *n)
 			node_ip(n), spent, spent == 1 ? "" : "s");
 	}
 
-	if (n->attrs & NODE_A_CAN_VENDOR)
+	if ((n->attrs & NODE_A_CAN_VENDOR) && !NODE_IS_UDP(n))
 		vmsg_send_hops_flow(n, 255);		/* Re-enable query traffic */
 
     node_fire_node_flags_changed(n);
