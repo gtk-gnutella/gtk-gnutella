@@ -49,8 +49,6 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last inclusion */
 
-static gpointer tt_verify_daemon = NULL;
-
 gpointer tt_internal_hash(gpointer hash1, gpointer hash2)
 {
 	gchar data[TIGERSIZE + TIGERSIZE + 1];
@@ -136,6 +134,7 @@ static bgret_t tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 	ssize_t r;
 	gchar *hash;
 
+	(void) ticks;
 	tt_computation_context_t *ctx = (tt_computation_context_t *) u;
 
 	if (ctx->fd == -1) {
@@ -313,11 +312,15 @@ void tt_parse_header(struct download *d, header_t *header)
 	hash[39] = '\0';
 	printf("Tigertree value is %s\n", hash);
 
-//	fi = file_info_get(hash, save_file_path, 0, NULL);
+#if 0
+	fi = file_info_get(hash, save_file_path, 0, NULL);
+#endif
 
 	download_new_uri(hash /* file */, uri /* uri */, 0 /* size */,
 		d->socket->ip, d->socket->port,
-//		NULL, NULL,
+#if 0
+		NULL, NULL,
+#endif
 		blank_guid, NULL /* hostname */, NULL /* SHA1 */, time(NULL),
 		FALSE /* PUSH */, NULL /* fi */, NULL /* proxies */);
 
