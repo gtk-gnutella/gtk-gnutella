@@ -1940,7 +1940,8 @@ void file_info_retrieve(void)
  * be done, a copy of the original argument is made first.	Otherwise,
  * no change nor allocation occur.
  *
- * All the control characters are also replaced with '_'.
+ * All the control characters are also replaced with '_'.  Any leading '.'
+ * in the filename is also replaced with '_'.
  *
  * Returns the pointer to the escaped filename, or the original argument if
  * no escaping needed to be performed.
@@ -1953,7 +1954,7 @@ static gchar *escape_filename(gchar *file)
 
 	s = file;
 	while ((c = *(guchar *) s)) {
-		if (c == '/' || iscntrl(c)) {
+		if (c == '/' || iscntrl(c) || (c == '.' && s == file)) {
 			if (escaped == NULL) {
 				escaped = g_strdup(file);
 				s = escaped + (s - file);	/* s now refers to escaped string */
