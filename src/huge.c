@@ -42,6 +42,7 @@
 #include "gmsg.h"
 #include "header.h"
 #include "dmesh.h"
+#include "version.h"
 
 #include "settings.h"
 
@@ -1216,7 +1217,21 @@ gboolean huge_has_xalt_support(const gchar *vendor)
 {
 	g_assert(vendor != NULL);
 
-	return NULL != g_hash_table_lookup(x_alt, vendor);
+	if (NULL != g_hash_table_lookup(x_alt, vendor))
+		return TRUE;
+
+	/*
+	 * Look for GTKG version of 05/10/2003 or greater, which is the cut-off
+	 * date after which we started parsing X-Alt.
+	 */
+
+	if (*vendor == 'g' && version_newer(vendor, 1065304800)) {
+		gchar *key = atom_str_get(vendor);
+		g_hash_table_insert(x_alt, key, GINT_TO_POINTER(0x1));
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 /*
