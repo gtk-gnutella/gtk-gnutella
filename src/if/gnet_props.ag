@@ -15,7 +15,7 @@ uses = "if/core/nodes.h";
 
 prop = {
     name = "reading_hostfile";
-    desc = "Indicates whether the hostcache file is being read";
+    desc = "Indicates whether the hostcache file is being read.";
     type = boolean;
     save = FALSE;
     data = {
@@ -25,7 +25,7 @@ prop = {
 
 prop = {
     name = "reading_ultrafile";
-    desc = "Indicates whether the ultracache file is being read";
+    desc = "Indicates whether the ultracache file is being read.";
     type = boolean;
     save = FALSE;
     data = {
@@ -51,7 +51,7 @@ prop = {
 prop = {
     name = "new_version_str";
     desc = "Gtk-Gnutella found a newer version on the Gnet and gives "
-           "information about it here";
+           "information about it here.";
     type = string;
     save = FALSE;
     data = {
@@ -178,7 +178,7 @@ prop = {
 prop = {
     name = "max_uploads_ip";
     desc = "Don't upload more than this number of files in parallel to a "
-           "single host";
+           "single host.";
     type = guint32;
     data = {
         default = 1;
@@ -189,7 +189,7 @@ prop = {
 
 prop = {
     name = "local_ip";
-    desc = "Local IP address last determined";
+    desc = "Local IP address last determined.";
     type = ip;
     data = {
         default = 0x00000000;
@@ -198,7 +198,7 @@ prop = {
 
 prop = {
     name = "current_ip_stamp";
-    desc = "When the current IP address was determined";
+    desc = "When the current IP address was determined.";
     type = guint32;
     data = {
         default = 0;
@@ -207,7 +207,7 @@ prop = {
 
 prop = {
     name = "average_ip_uptime";
-    desc = "Average uptime with the same IP address";
+    desc = "Average uptime with the same IP address.";
     type = guint32;
     data = {
         default = 0;
@@ -216,7 +216,7 @@ prop = {
 
 prop = {
     name = "start_stamp";
-    desc = "Timestamp at which servent was started";
+    desc = "Timestamp at which servent was started.";
 	save = FALSE;
     type = guint32;
     data = {
@@ -226,7 +226,7 @@ prop = {
 
 prop = {
     name = "average_servent_uptime";
-    desc = "Average servent uptime, in seconds";
+    desc = "Average servent uptime, in seconds.";
     type = guint32;
     data = {
         default = 0;
@@ -252,7 +252,7 @@ prop = {
 prop = {
     name = "forced_local_ip";
     desc = "Use this IP address as source address if 'force local ip' "
-           "is activated";
+           "is activated.";
     type = ip;
     data = {
         default = 0x00000000;
@@ -306,7 +306,7 @@ prop = {
     name = "ul_usage_min_percentage";
     cfgvar = "upload_bandwith_min_percentage";
     desc = "Unless this percentage or more of the upload bandwidth is used, "
-           "allow additional upload slots";
+           "allow additional upload slots.";
     type = guint32;
     data = {
         default = 70;
@@ -318,7 +318,7 @@ prop = {
 prop = {
     name = "download_connecting_timeout";
     desc = "Number of seconds before a download connect attempt "
-		   "times out";
+		   "times out.";
     type = guint32;
     data = {
         default = 60;
@@ -329,7 +329,7 @@ prop = {
 
 prop = {
     name = "download_push_sent_timeout";
-    desc = "Number of seconds before a push request times out";
+    desc = "Number of seconds before a push request times out.";
     type = guint32;
     data = {
         default = 60;
@@ -341,7 +341,7 @@ prop = {
 prop = {
     name = "download_connected_timeout";
     desc = "Number of seconds before a download times out if no data "
-           "is received";
+           "is received.";
     type = guint32;
     data = {
         default = 60;
@@ -352,7 +352,7 @@ prop = {
 
 prop = {
     name = "download_retry_timeout_min";
-    desc = "Minimum number of seconds to wait on auto-retry timeouts";
+    desc = "Minimum number of seconds to wait on auto-retry timeouts.";
     type = guint32;
     data = {
         default = 20;
@@ -363,7 +363,7 @@ prop = {
 
 prop = {
     name = "download_retry_timeout_max";
-    desc = "Maximum number of seconds to wait on auto-retry timeouts";
+    desc = "Maximum number of seconds to wait on auto-retry timeouts.";
     type = guint32;
     data = {
         default = 300;
@@ -375,7 +375,7 @@ prop = {
 prop = {
     name = "download_max_retries";
     desc = "Maximum number of attempts to download a file not "
-           "counting HTTP busy indications";
+           "counting HTTP busy indications.";
     type = guint32;
     data = {
         default = 50;
@@ -387,7 +387,7 @@ prop = {
 prop = {
     name = "download_retry_timeout_delay";
     desc = "Delay in seconds before retrying after a connection "
-           "timed out";
+           "timed out.";
     type = guint32;
     data = {
         default = 1200;
@@ -399,7 +399,7 @@ prop = {
 prop = {
     name = "download_retry_busy_delay";
     desc = "Delay in seconds before retrying after getting a 'busy' "
-           "response from a host";
+           "response from a host.";
     type = guint32;
     data = {
         default = 60;
@@ -411,7 +411,7 @@ prop = {
 prop = {
     name = "download_retry_refused_delay";
     desc = "Delay in seconds before retrying after getting a 'connection "
-           "refused' response from a host";
+           "refused' response from a host.";
     type = guint32;
     data = {
         default = 1800;
@@ -424,7 +424,7 @@ prop = {
     name = "download_retry_stopped_delay";
     cfgvar = "download_retry_stopped";
     desc = "Delay in seconds before retrying after a retry stopped "
-           "(timed out, connection reset by peer, etc...)";
+           "(timed out, connection reset by peer, etc...).";
     type = guint32;
     data = {
         default = 15;
@@ -464,7 +464,7 @@ prop = {
 prop = {
     name = "upload_connected_timeout";
     desc = "Number of seconds after which an upload times out if no data "
-           "is transmitted";
+           "is transmitted.";
     type = guint32;
     data = {
         default = 180;
@@ -504,7 +504,7 @@ prop = {
 
 prop = {
     name = "ban_max_fds";
-    desc = "Maximum number of file descriptors reserved for banning";
+    desc = "Maximum number of file descriptors reserved for banning.";
     type = guint32;
     data = {
         default = 100;
@@ -526,7 +526,7 @@ prop = {
 
 prop = {
     name = "max_banned_fd";
-    desc = "Number of file descriptors we'll actually be using for banning";
+    desc = "Number of file descriptors we'll actually be using for banning.";
     type = guint32;
 	save = FALSE;
     data = {
@@ -537,7 +537,7 @@ prop = {
 prop = {
     name = "incoming_connecting_timeout";
     desc =  "Number of seconds an incoming connection has "
-            "to start sending out its request";
+            "to start sending out its request.";
     type = guint32;
     data = {
         default = 30;
@@ -549,7 +549,7 @@ prop = {
 prop = {
     name = "node_connecting_timeout";
     desc =  "Number of seconds before a Gnet connect attempt times "
-            "out if no connection can be established";
+            "out if no connection can be established.";
     type = guint32;
     data = {
         default = 30;
@@ -561,7 +561,7 @@ prop = {
 prop = {
     name = "node_connected_timeout";
     desc =  "Number of seconds before a Gnet connection times out "
-            "if no data is transmitted";
+            "if no data is transmitted.";
     type = guint32;
     data = {
         default = 180;
@@ -573,7 +573,7 @@ prop = {
 prop = {
     name = "node_sendqueue_size";
     desc = "Maximum size of the sendqueue for the nodes (in bytes). "
-           "Must be at least 150 percent of the maximum message size";
+           "Must be at least 150 percent of the maximum message size.";
     type = guint32;
     data = {
         default = 98304;
@@ -655,7 +655,7 @@ prop = {
 
 prop = {
     name = "dbg";
-    desc = "For development use: debug level";
+    desc = "For development use: debug level.";
     type = guint32;
     data = {
         default = 0;
@@ -666,7 +666,7 @@ prop = {
 
 prop = {
     name = "lib_debug";
-    desc = "Debug level for code shared between gui and core";
+    desc = "Debug level for code shared between gui and core.";
     type = guint32;
     data = {
         default = 0;
@@ -675,7 +675,7 @@ prop = {
 
 prop = {
     name = "gwc_debug";
-    desc = "Verbosity of GWebCache related debug messages";
+    desc = "Verbosity of GWebCache related debug messages.";
     type = guint32;
     data = {
         default = 0;
@@ -686,7 +686,7 @@ prop = {
 
 prop = {
     name = "url_debug";
-    desc = "Verbosity of URL handling related debug messages";
+    desc = "Verbosity of URL handling related debug messages.";
     type = guint32;
     data = {
         default = 0;
@@ -807,7 +807,7 @@ prop = {
 
 prop = {
     name = "track_props";
-    desc = "For development use: track properties";
+    desc = "For development use: track properties.";
     type = guint32;
     data = {
         default = 0;
@@ -818,7 +818,7 @@ prop = {
 
 prop = {
     name = "stop_host_get";
-    desc = "For development use: don't add new hosts to the hostcatcher";
+    desc = "For development use: don't add new hosts to the hostcatcher.";
     type = boolean;
     data = {
         default = FALSE;
@@ -828,7 +828,7 @@ prop = {
 prop = {
     name = "bw_http_in_enabled";
     cfgvar = "bandwidth_input_limit";
-    desc = "Enable bandwidth limitation for incoming HTTP traffic";
+    desc = "Enable bandwidth limitation for incoming HTTP traffic.";
     type = boolean;
     data = {
         default = FALSE;
@@ -839,7 +839,7 @@ prop = {
 prop = {
     name = "bw_http_out_enabled";
     cfgvar = "bandwidth_output_limit";
-    desc = "Enable bandwidth limitation for outgoing HTTP traffic";
+    desc = "Enable bandwidth limitation for outgoing HTTP traffic.";
     type = boolean;
     data = {
         default = FALSE;
@@ -850,7 +850,7 @@ prop = {
 prop = {
     name = "bw_gnet_in_enabled";
     cfgvar = "bandwidth_ginput_limit";
-    desc = "Enable bandwidth limitation for incoming Gnet traffic";
+    desc = "Enable bandwidth limitation for incoming Gnet traffic.";
     type = boolean;
     data = {
         default = FALSE;
@@ -861,7 +861,7 @@ prop = {
 prop = {
     name = "bw_gnet_leaf_in_enabled";
     cfgvar = "bandwidth_glinput_limit";
-    desc = "Enable bandwidth limitation for incoming Gnet leaf traffic";
+    desc = "Enable bandwidth limitation for incoming Gnet leaf traffic.";
     type = boolean;
     data = {
         default = FALSE;
@@ -872,7 +872,7 @@ prop = {
 prop = {
     name = "bw_gnet_out_enabled";
     cfgvar = "bandwidth_goutput_limit";
-    desc = "Enable bandwidth limitation for outgoing Gnet traffic";
+    desc = "Enable bandwidth limitation for outgoing Gnet traffic.";
     type = boolean;
     data = {
         default = FALSE;
@@ -883,7 +883,7 @@ prop = {
 prop = {
     name = "bw_gnet_leaf_out_enabled";
     cfgvar = "bandwidth_gloutput_limit";
-    desc = "Enable bandwidth limitation for outgoing Gnet leaf traffic";
+    desc = "Enable bandwidth limitation for outgoing Gnet leaf traffic.";
     type = boolean;
     data = {
         default = FALSE;
@@ -894,7 +894,7 @@ prop = {
 prop = {
     name = "bw_ul_usage_enabled";
     cfgvar = "upload_bandwith_usage_enabled";
-    desc = "Enable dynamic upload slots allocation";
+    desc = "Enable dynamic upload slots allocation.";
     type = boolean;
     data = {
         default = FALSE;
@@ -914,7 +914,7 @@ prop = {
 prop = {
     name = "autoclear_completed_downloads";
     cfgvar = "auto_clear_completed_downloads";
-    desc = "Auto clear completed downloads";
+    desc = "Auto clear completed downloads.";
     type = boolean;
     data = {
         default = FALSE;
@@ -948,7 +948,7 @@ prop = {
 
 prop = {
     name = "search_remove_downloaded";
-    desc = "Remove downloaded files from the search result";
+    desc = "Remove downloaded files from the search result.";
     type = boolean;
     data = {
         default = FALSE;
@@ -958,7 +958,7 @@ prop = {
 
 prop = {
     name = "force_local_ip";
-    desc = "Enable to use [forced_local_ip] as local ip";
+    desc = "Enable to use [forced_local_ip] as local ip.";
     type = boolean;
     data = {
         default = FALSE;
@@ -967,7 +967,7 @@ prop = {
 
 prop = {
     name = "use_netmasks";
-    desc = "Try to connect to local networks first";
+    desc = "Try to connect to local networks first.";
     type = boolean;
     data = {
         default = FALSE;
@@ -998,7 +998,7 @@ prop = {
 
 prop = {
     name = "download_delete_aborted";
-    desc = "Remove files of aborted downloads from disk";
+    desc = "Remove files of aborted downloads from disk.";
     type = boolean;
     data = {
         default = TRUE;
@@ -1007,7 +1007,7 @@ prop = {
 
 prop = {
     name = "proxy_auth";
-    desc = "Use username and password to authenticate to proxy";
+    desc = "Use username and password to authenticate to proxy.";
     type = boolean;
     data = {
         default = FALSE;
@@ -1016,7 +1016,7 @@ prop = {
 
 prop = {
     name = "socks_user";
-    desc = "Username for proxy";
+    desc = "Username for proxy.";
     type = string;
     data = {
         default = "username";
@@ -1025,7 +1025,7 @@ prop = {
 
 prop = {
     name = "socks_pass";
-    desc = "Password for proxy";
+    desc = "Password for proxy.";
     type = string;
     data = {
         default = "password";
@@ -1034,7 +1034,7 @@ prop = {
 
 prop = {
     name = "proxy_ip";
-    desc = "IP address of the proxy";
+    desc = "IP address of the proxy.";
     save = FALSE;
     type = ip;
     data = {
@@ -1044,7 +1044,7 @@ prop = {
 
 prop = {
     name = "proxy_hostname";
-    desc = "Hostname of the proxy";
+    desc = "Hostname of the proxy.";
     type = string;
     data = {
         default = "";
@@ -1053,7 +1053,7 @@ prop = {
 
 prop = {
     name = "proxy_port";
-    desc = "TCP Port the proxy is listening on";
+    desc = "TCP Port the proxy is listening on.";
     type = guint32;
     data = {
         default = 0x0000;
@@ -1064,7 +1064,7 @@ prop = {
 
 prop = {
     name = "proxy_protocol";
-    desc = "Protocol the proxy uses";
+    desc = "Protocol the proxy uses.";
     type = multichoice;
     data = {
         default = PROXY_NONE;
@@ -1089,7 +1089,7 @@ prop = {
 
 prop = {
     name = "hosts_in_catcher";
-    desc = "Current number of hosts in regular node caches";
+    desc = "Current number of hosts in regular node caches.";
     save = FALSE;
     type = guint32;
     data = {
@@ -1101,7 +1101,7 @@ prop = {
 
 prop = {
     name = "hosts_in_ultra_catcher";
-    desc = "Current number of hosts in ultra node caches";
+    desc = "Current number of hosts in ultra node caches.";
     save = FALSE;
     type = guint32;
     data = {
@@ -1113,7 +1113,7 @@ prop = {
 
 prop = {
     name = "hosts_in_bad_catcher";
-    desc = "Current number of hosts in bad node caches";
+    desc = "Current number of hosts in bad node caches.";
     save = FALSE;
     type = guint32;
     data = {
@@ -1125,7 +1125,7 @@ prop = {
 
 prop = {
     name = "max_hosts_cached";
-    desc = "Maximum number of hosts in the regular node catcher";
+    desc = "Maximum number of hosts in the regular node catcher.";
     type = guint32;
     data = {
         default = 10000;
@@ -1136,7 +1136,7 @@ prop = {
 
 prop = {
     name = "max_ultra_hosts_cached";
-    desc = "Maximum number of hosts in the ultra node catcher";
+    desc = "Maximum number of hosts in the ultra node catcher.";
     type = guint32;
     data = {
         default = 10000;
@@ -1147,7 +1147,7 @@ prop = {
 
 prop = {
     name = "max_bad_hosts_cached";
-    desc = "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists";
+    desc = "Maximum number of hosts in the BUSY, UNSTABLE and TIMEOUT lists.";
     type = guint32;
     data = {
         default = 8000;
@@ -1171,7 +1171,7 @@ prop = {
 prop = {
     name = "max_high_ttl_radius";
     desc = "Hop radius for counting high TTL limit messages (# hops "
-           "lower than...) See also MAX_HIGH_TTL_MSG";
+           "lower than...). See also MAX_HIGH_TTL_MSG";
     type = guint32;
     data = {
         default = 2;
@@ -1183,7 +1183,7 @@ prop = {
 prop = {
     name = "bw_http_in";
     cfgvar = "input_bandwidth";
-    desc = "Bandwidth limit for incoming HTTP traffic in bytes/sec";
+    desc = "Bandwidth limit for incoming HTTP traffic in bytes/sec.";
     type = guint32;
     data = {
         default = 8192;
@@ -1195,7 +1195,7 @@ prop = {
 prop = {
     name = "bw_http_out";
     cfgvar = "output_bandwidth";
-    desc = "Bandwidth limit for outgoing HTTP traffic in bytes/sec";
+    desc = "Bandwidth limit for outgoing HTTP traffic in bytes/sec.";
     type = guint32;
     data = {
         default = 8192;
@@ -1207,7 +1207,7 @@ prop = {
 prop = {
      name = "bw_gnet_in";
      cfgvar = "input_gnet_bandwidth";
-     desc = "Bandwidth limit for incoming Gnet traffic in bytes/sec";
+     desc = "Bandwidth limit for incoming Gnet traffic in bytes/sec.";
      type = guint32;
      data = {
         default = 8192;
@@ -1219,7 +1219,7 @@ prop = {
 prop = {
     name = "bw_gnet_out";
     cfgvar = "output_gnet_bandwidth";
-    desc = "Bandwidth limit for outgoing Gnet traffic in bytes/sec";
+    desc = "Bandwidth limit for outgoing Gnet traffic in bytes/sec.";
     type = guint32;
     data = {
         default = 8192;
@@ -1261,7 +1261,7 @@ prop = {
 prop = {
     name = "search_queries_forward_size";
     desc = "Maximum size of search queries messages we forward to others "
-           " (in bytes)";
+           " (in bytes).";
     type = guint32;
     data = {
         default = 256;
@@ -1273,7 +1273,7 @@ prop = {
 prop = {
     name = "search_queries_kick_size";
     desc =  "Maximum size of search queries messages we allow, otherwise "
-            "close the connection (in bytes)";
+            "close the connection (in bytes).";
     type = guint32;
     data = {
         default = 1024;
@@ -1285,7 +1285,7 @@ prop = {
 prop = {
     name = "search_answers_forward_size";
     desc = "Maximum size of search answers messages we forward to others "
-           "(in bytes)";
+           "(in bytes).";
     type = guint32;
     data = {
         default = 16384;
@@ -1297,7 +1297,7 @@ prop = {
 prop = {
     name = "search_answers_kick_size";
     desc =  "Maximum size of search answers messages we allow, otherwise "
-            "close the connection (in bytes)";
+            "close the connection (in bytes).";
     type = guint32;
     data = {
         default = 65536;
@@ -1309,7 +1309,7 @@ prop = {
 prop = {
     name = "other_messages_kick_size";
     desc = "Maximum size of unknown messages we allow, otherwise close the "
-           "connection (in bytes)";
+           "connection (in bytes).";
     type = guint32;
     data = {
         default = 40960;
@@ -1321,7 +1321,7 @@ prop = {
 prop = {
     name = "hops_random_factor";
     desc = "Random factor for the hops field in search packets we send "
-           "between 0 and 3 inclusive)";
+           "between 0 and 3 inclusive).";
     type = guint32;
     data = {
         default = 0;
@@ -1345,7 +1345,7 @@ prop = {
 prop = {
     name = "min_dup_msg";
     desc = "Minimum amount of dup messages to enable kicking, per node "
-           "(also see [min_dup_ratio])";
+           "(also see [min_dup_ratio]).";
     type = guint32;
     data = {
         default = 5;
@@ -1359,7 +1359,7 @@ prop = {
     desc = "Minimum ratio of dups on received messages, per node "
            "(between 0.00 and 100.00) (also see [min_dup_msg]) "
            "Note: the value is stored between 0 (0.0) and 10000 (100.0) "
-           "in the config file";
+           "in the config file.";
     type = guint32;
     data = {
         default = 150;
@@ -1423,7 +1423,7 @@ prop = {
 prop = {
     name = "save_file_path";
     cfgvar = "store_downloading_files_to";
-    desc = "Store incomplete files in this directory";
+    desc = "Store incomplete files in this directory.";
     type = string;
     data = {
         default = "~/gtk-gnutella-downloads/incomplete";
@@ -1457,7 +1457,7 @@ prop = {
 prop = {
     name = "shared_dirs_paths";
     cfgvar = "shared_dirs";
-    desc = "Directories which contain shared files";
+    desc = "Directories which contain shared files.";
     type = string;
     data = {
         default = "";
@@ -1481,7 +1481,7 @@ prop = {
 
 prop = {
     name = "total_downloads";
-    desc = "Total number of completed downloads in this session";
+    desc = "Total number of completed downloads in this session.";
     save = FALSE;
     type = guint32;
     data = {
@@ -1493,7 +1493,7 @@ prop = {
 
 prop = {
     name = "ul_running";
-    desc = "Number of running uploads";
+    desc = "Number of running uploads.";
     save = FALSE;
     type = guint32;
     data = {
@@ -1505,7 +1505,7 @@ prop = {
 
 prop = {
     name = "ul_registered";
-    desc = "Number of registered (pending) uploads";
+    desc = "Number of registered (pending) uploads.";
     save = FALSE;
     type = guint32;
     data = {
@@ -1517,7 +1517,7 @@ prop = {
 
 prop = {
     name = "total_uploads";
-    desc = "Total number of completed uploads in this session";
+    desc = "Total number of completed uploads in this session.";
     save = FALSE;
     type = guint32;
     data = {
@@ -1529,14 +1529,14 @@ prop = {
 
 prop = {
     name = "guid";
-    desc = "Global Unique IDentifier of this node";
+    desc = "Global Unique IDentifier of this node.";
     type = storage;
     vector_size = 16;
 };
 
 prop = {
     name = "use_swarming";
-    desc = "Whether or not to use swarming (recommended = YES)";
+    desc = "Whether or not to use swarming (recommended = YES).";
     type = boolean;
     data = {
         default = TRUE;
@@ -1568,7 +1568,7 @@ prop = {
 
 prop = {
     name = "dl_maxchunksize";
-    desc = "Maximum chunk size when swarming";
+    desc = "Maximum chunk size when swarming.";
     type = guint32;
     data = {
 	    min = "64*1024";
@@ -1581,7 +1581,7 @@ prop = {
 prop = {
     name = "auto_download_identical";
     desc = "Whether or not to automatically queue search results that "
-	   "match a file in the download queue";
+	   "match a file in the download queue.";
     type = boolean;
     data = {
 	    default = TRUE;
@@ -1603,7 +1603,7 @@ prop = {
 prop = {
     name = "strict_sha1_matching";
     desc = "When enabled, SHA1s must match. Otherwise, name and size "
-			"will be sufficient";
+			"will be sufficient.";
     type = boolean;
     data = {
 	    default = TRUE;
@@ -1613,7 +1613,7 @@ prop = {
 prop = {
     name = "use_fuzzy_matching";
     desc = "Use fuzzy file name matching (recommended = NO; only rely on "
-		   "SHA1 matching to be safe)";
+		   "SHA1 matching to be safe).";
     type = boolean;
     data = {
 	    default = FALSE;
@@ -1644,7 +1644,7 @@ prop = {
 
 prop = {
     name = "is_firewalled";
-    desc = "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise";
+    desc = "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise.";
     type = boolean;
     data = {
 	    default = TRUE;
@@ -1653,7 +1653,7 @@ prop = {
 
 prop = {
     name = "is_inet_connected";
-    desc = "Whether gtk-gnutella thinks it's connected to the Internet";
+    desc = "Whether gtk-gnutella thinks it's connected to the Internet.";
     save = FALSE;
     type = boolean;
     data = {
@@ -1663,7 +1663,7 @@ prop = {
 
 prop = {
     name = "is_udp_firewalled";
-    desc = "Whether gtk-gnutella thinks you're currently firewalled, UDP-wise";
+    desc = "Whether gtk-gnutella thinks you're currently firewalled, UDP-wise.";
     type = boolean;
     data = {
 	    default = TRUE;
@@ -1672,7 +1672,7 @@ prop = {
 
 prop = {
     name = "recv_solicited_udp";
-    desc = "Whether gtk-gnutella determined it could receive solicited UDP";
+    desc = "Whether gtk-gnutella determined it could receive solicited UDP.";
     type = boolean;
     data = {
 	    default = FALSE;
@@ -1682,7 +1682,7 @@ prop = {
 prop = {
     name = "gnet_compact_query";
     desc = "Remove unnecessary ballast from query string before processing "
-           "or forwarding them. Reduces traffic at the cost of little CPU time";
+           "or forwarding them. Reduces traffic at the cost of little CPU time.";
     type = boolean;
     data = {
 	    default = TRUE;
@@ -1704,7 +1704,7 @@ prop = {
 prop = {
     name = "library_rebuilding";
     desc = "Whether gtk-gnutella is currently rebuilding its library "
-           "in the background";
+           "in the background.";
     save = FALSE;
     type = boolean;
     data = {
@@ -1715,7 +1715,7 @@ prop = {
 prop = {
     name = "sha1_rebuilding";
     desc = "Whether gtk-gnutella is currently computing SHA1 of shared "
-           "files in the background";
+           "files in the background.";
     save = FALSE;
     type = boolean;
     data = {
@@ -1726,7 +1726,7 @@ prop = {
 prop = {
     name = "sha1_verifying";
     desc = "Whether gtk-gnutella is currently verifying SHA1 of downloaded "
-           "files in the background";
+           "files in the background.";
     save = FALSE;
     type = boolean;
     data = {
@@ -1737,7 +1737,7 @@ prop = {
 prop = {
     name = "file_moving";
     desc = "Whether gtk-gnutella is currently moving files across "
-           "filesystems or simply copying in the background";
+           "filesystems or simply copying in the background.";
     save = FALSE;
     type = boolean;
     data = {
@@ -1879,7 +1879,7 @@ prop = {
 
 prop = {
     name = "current_peermode";
-    desc = "Current peer mode for gtk-gnutella";
+    desc = "Current peer mode for gtk-gnutella.";
 	save = FALSE;
     type = multichoice;
     data = {
@@ -2064,7 +2064,7 @@ prop = {
 
 prop = {
     name = "crawler_visit_count";
-    desc = "Number of crawler visits during this session";
+    desc = "Number of crawler visits during this session.";
 	save = FALSE;
     type = guint32;
     data = {
@@ -2074,7 +2074,7 @@ prop = {
 
 prop = {
     name = "udp_crawler_visit_count";
-    desc = "Number of UDP crawler visits during this session";
+    desc = "Number of UDP crawler visits during this session.";
 	save = FALSE;
     type = guint32;
     data = {
@@ -2202,7 +2202,7 @@ prop = {
 
 prop = {
 	name = "unique_nodes";
-	desc = "Maximum percentage of slots a vendor can occupy";
+	desc = "Maximum percentage of slots a vendor can occupy.";
 	type = guint32;
 	data = {
 		default = 60;
@@ -2599,7 +2599,7 @@ prop = {
 
 prop = {
 	name = "qrp_patch_raw_length";
-	desc = "Total raw size of the QRP table patch, in bytes";
+	desc = "Total raw size of the QRP table patch, in bytes.";
 	type = guint32;
 	save = FALSE;
 	data = {
@@ -2630,7 +2630,7 @@ prop = {
 prop = {
 	name = "ancient_version_force";
 	desc = "This property must be set to the current version number "
-		"of gtk-gnutella in order to allow it to run when it is ancient";
+		"of gtk-gnutella in order to allow it to run when it is ancient.";
 	type = string;
 	data = {
 		default = "";
