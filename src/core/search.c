@@ -54,6 +54,7 @@ RCSID("$Id$");
 #include "share.h"
 #include "vmsg.h"
 #include "sq.h"
+#include "settings.h"		/* For listen_ip() */
 
 #include "if/gnet_property_priv.h"
 #include "if/gui_property.h"
@@ -62,6 +63,7 @@ RCSID("$Id$");
 #include "lib/endian.h"
 #include "lib/idtable.h"
 #include "lib/listener.h"
+#include "lib/misc.h"
 #include "lib/vendors.h"
 #include "lib/wordvec.h"
 #include "lib/walloc.h"
@@ -787,6 +789,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 	 * Compute status bits, decompile trailer info, if present
 	 */
 
+	if (NODE_IS_UDP(n))
+		rs->status |= ST_UDP;
+
 	if (trailer) {
 		guint32 t;
 		guint open_size = trailer[4];
@@ -1264,6 +1269,23 @@ build_search_msg(search_ctrl_t *sch, gint *len, gint *sizep)
 	speed |= QUERY_SPEED_GGEP_H;		/* GTKG understands GGEP "H" in hits */
 	speed |= QUERY_SPEED_NO_XML;		/* GTKG does not parse XML in hits */
 
+	/*
+	 * We need special processing for OOB queries since the GUID has to be
+	 * marked specially.  This must happen at the time we issue the search.
+	 * Therefore, if we're in a position for emitting an OOB query, make sure
+	 * the already chosen MUID is valid according to our current IP:port.
+	 */
+
+	if (enable_udp && send_oob_queries && !is_udp_firewalled) {
+		guint32 ip;
+		guint16 port;
+
+		guid_oob_get_ip_port(m->header.muid, &ip, &port);
+
+		if (ip == listen_ip() && port == listen_port && ip_is_valid(ip))
+			speed |= QUERY_SPEED_OOB_REPLY;
+	}
+
 	WRITE_GUINT16_LE(speed, m->search.speed);
 
 	if (is_urn_search) {
@@ -1528,8 +1550,7 @@ update_one_reissue_timeout(search_ctrl_t *sch)
 	 * The more we have, the less often we retry to save network resources.
 	 */
 
-	gui_prop_get_guint32_val
-		(PROP_SEARCH_MAX_RESULTS, &max_items);
+	gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
 	percent = sch->items * 100 / max_items;
 	factor = (percent < 10) ? 1.0 :
 		1.0 + (percent - 10) * (percent - 10) / 550.0;
@@ -1789,7 +1810,7 @@ search_results(gnutella_node_t *n, gint *results)
 	 * NB: route_message() increases hops by 1 for messages we handle.
 	 */
 
-	if (n->header.hops == 1)
+	if (n->header.hops == 1 && !NODE_IS_UDP(n))
 		update_neighbour_info(n, rs);
 
 	/*
@@ -2063,6 +2084,42 @@ search_close(gnet_search_t sh)
 }
 
 /**
+ * Allocate a new MUID for a search.
+ *
+ * @param initial indicates whether this is an initial query or a requery.
+ *
+ * @return a new MUID that can be wfree()'d when done.
+ */
+static gchar *
+search_new_muid(gboolean initial)
+{
+	gchar *muid;
+	guint32 ip;
+
+	muid = walloc(MUID_SIZE);
+
+	/*
+	 * Determine whether this is going to be an OOB query, because we have
+	 * to encode our IP port correctly right now, at MUID selection time.
+	 *
+	 * We allow them to change their mind on `send_oob_queries', as we're not
+	 * testing that flag yet, but if they allow UDP, and have a valid IP,
+	 * we can encode an OOB-compatible MUID.  Likewise, we ignore the
+	 * `is_udp_firewalled' yet, as this can change between now and the time
+	 * we emit the query.
+	 */
+
+	ip = listen_ip();
+
+	if (enable_udp && ip_is_valid(ip))
+		guid_query_oob_muid(muid, ip, listen_port, initial);
+	else
+		guid_query_muid(muid, initial);
+
+	return muid;
+}
+
+/**
  * Force a reissue of the given search. Restart reissue timer.
  */
 void
@@ -2080,8 +2137,7 @@ search_reissue(gnet_search_t sh)
 		printf("reissuing search \"%s\" (queries broadcasted: %d)\n",
 			sch->query, sch->query_emitted);
 
-	muid = walloc(MUID_SIZE);
-	guid_query_muid(muid, FALSE);
+	muid = search_new_muid(FALSE);
 
 	sch->query_emitted = 0;
 	search_add_new_muid(sch, muid);
@@ -2251,9 +2307,9 @@ search_start(gnet_search_t sh)
 		 */
 
 		if (sch->muids == NULL) {
-			gchar *muid = walloc(MUID_SIZE);
+			gchar *muid;
 
-			guid_query_muid(muid, TRUE);
+			muid = search_new_muid(TRUE);
 			search_add_new_muid(sch, muid);
 			search_send_packet_all(sch);		/* Send initial query */
 		}
@@ -2323,6 +2379,88 @@ search_get_kept_results_by_handle(gnet_search_t sh)
 	g_assert(sch);
 
 	return sch->kept_results;
+}
+
+/**
+ * Received out-of-band indication of results for search identified by its
+ * MUID, on remote node `n'.
+ *
+ * @param n the remote node which has results for us
+ * @param muid the MUID of the search
+ * @param hits the amount of hits available (255 mean 255+ hits).
+ * @param udp_firewalled the remote host is UDP-firewalled and cannot
+ * receive unsolicited UDP traffic.
+ */
+void
+search_oob_pending_results(
+	gnutella_node_t *n, gchar *muid, gint hits, gboolean udp_firewalled)
+{
+	guint32 kept;
+	guint32 max_items;
+	gint ask;
+
+	g_assert(NODE_IS_UDP(n));
+
+	/*
+	 * Locate the search bearing this MUID and get the amount of results
+	 * we got so far during this query.  If the search is unknown, drop
+	 * indication.
+	 */
+
+	if (!search_get_kept_results(muid, &kept)) {
+		if (search_debug)
+			g_warning("got OOB indication of %d hit%s for unknown search %s",
+				hits, hits == 1 ? "" : "s", guid_hex_str(muid));
+		return;
+	}
+
+	if (search_debug || udp_debug)
+		printf("has %d pending OOB hit%s for search %s at %s\n",
+			hits, hits == 1 ? "" : "s", guid_hex_str(muid), node_ip(n));
+
+	/*
+	 * If we got more than 15% of our maximum amount of shown results,
+	 * then we have a very popular query here.  We don't really need
+	 * to get more results, ignore.
+	 */
+
+	gui_prop_get_guint32_val(PROP_SEARCH_MAX_RESULTS, &max_items);
+
+	if (kept > max_items * 0.15) {
+		if (search_debug)
+			printf("ignoring %d OOB hit%s for search %s (already got %u)\n",
+				hits, hits == 1 ? "" : "s", guid_hex_str(muid), kept);
+		return;
+	}
+
+	/*
+	 * They have configured us to never reply to a query with more than
+	 * `search_max_items' query hit entries.  So we will never ask for more
+	 * results than that from remote hosts as well.  This can be construed
+	 * as a way to educate users to create meaningful query strings that don't
+	 * match everything, and as a flood protection as well in case the remote
+	 * host is trying to send us lots of files.  In any case, don't request
+	 * more than 254 hits, since 255 means getting eveything the remote has.
+	 *
+	 * Note that we're at the mercy of the other host there, which can choose
+	 * to flood us with more than we asked for.
+	 *
+	 * XXX We currently have no protection against this, nor any way to
+	 * XXX track it, as we'll blindly accept incoming UDP hits without really
+	 * XXX knowing how much we asked for.  Tracking would allow us to identify
+	 * XXX hostile hosts for the remaining of the session.
+	 */
+
+	ask = MIN(hits, 254);
+	ask = MIN(ask, search_max_items);
+
+	/*
+	 * Ok, ask them the hits then.
+	 */
+
+	g_assert(ask < 255);
+
+	vmsg_send_oob_reply_ack(n, muid, ask);
 }
 
 gboolean

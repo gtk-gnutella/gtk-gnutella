@@ -56,6 +56,8 @@ void search_notify_sent(gpointer search, guint32 id, guint32 node_id);
 void search_add_kept(gnet_search_t sh, guint32 kept);
 gboolean search_get_kept_results(gchar *muid, guint32 *kept);
 guint32 search_get_kept_results_by_handle(gnet_search_t sh);
+void search_oob_pending_results(
+	gnutella_node_t *n, gchar *muid, gint hits, gboolean udp_firewalled);
 
 #endif /* _core_search_h_ */
 
