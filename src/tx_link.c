@@ -47,7 +47,7 @@ RCSID("$Id$");
  * Private attributes for the link.
  */
 struct attr {
-	gint fd;			/* Cached socket file descriptor */
+	wrap_io_t 	 *wio;	/* Cached wrapped IO object */
 	bio_source_t *bio;	/* Bandwidth-limited I/O source */
 };
 
@@ -106,8 +106,8 @@ static gpointer tx_link_init(txdrv_t *tx, gpointer args)
 
 	bs = tx->node->peermode == NODE_P_LEAF ? bws.glout : bws.gout;
 
-	attr->fd = tx->node->socket->file_desc;
-	attr->bio = bsched_source_add(bs, attr->fd, BIO_F_WRITE, NULL, NULL);
+	attr->wio = &tx->node->socket->wio;
+	attr->bio = bsched_source_add(bs, attr->wio, BIO_F_WRITE, NULL, NULL);
 
 	tx->opaque = attr;
 	
@@ -144,7 +144,8 @@ static inline gint tx_link_write_error(txdrv_t *tx, const char *func)
 	{
 		struct attr *attr = (struct attr *) tx->opaque;
 		g_warning("%s(fd=%d) failed with weird errno = %d (%s), "
-			"assuming EAGAIN", func, attr->fd, errno, g_strerror(errno));
+			"assuming EAGAIN", func, attr->wio->fd(attr->wio), errno,
+			g_strerror(errno));
 	}
 		return 0;
 	case EPIPE:
@@ -166,7 +167,8 @@ static inline gint tx_link_write_error(txdrv_t *tx, const char *func)
 		{
 			int terr = errno;
 			time_t t = time(NULL);
-			gint fd = ((struct attr *) tx->opaque)->fd;
+			wrap_io_t *wio = ((struct attr *) tx->opaque)->wio;
+			gint fd = wio->fd(wio);
 			g_error("%s  gtk-gnutella: %s: "
 				"write failed on fd #%d with unexpected errno: %d (%s)\n",
 				ctime(&t), func, fd, terr, g_strerror(terr));
@@ -227,7 +229,7 @@ static void tx_link_enable(txdrv_t *tx)
 	struct attr *attr = (struct attr *) tx->opaque;
 	struct gnutella_node *n = tx->node;
 
-	g_assert(n->socket->file_desc == attr->fd);
+	g_assert(n->socket->file_desc == attr->wio->fd(attr->wio));
 
 	bio_add_callback(attr->bio, is_writable, (gpointer) tx);
 }
@@ -289,3 +291,4 @@ struct txdrv_ops tx_link_ops = {
 	tx_link_bio_source,	/* bio_source */
 };
 
+/* vi: set ts=4 sw=4 cindent: */
