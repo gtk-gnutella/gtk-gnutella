@@ -23,75 +23,81 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
-#include "gui.h"
+#include "common.h"
 
 #include <signal.h>
-#include <ctype.h>
 #include <setjmp.h>
 
-#include "search.h"
-#include "share.h"
-#include "sockets.h"
-#include "routing.h"
-#include "downloads.h"
-#include "drop.h"
-#include "hosts.h"
-#include "gmsg.h"
-#include "bsched.h"
-#include "upload_stats.h"
-#include "pcache.h"
-#include "hcache.h"
-#include "ban.h"
-#include "dmesh.h"
-#include "version.h"
-#include "nodes.h"
-#include "whitelist.h"
-#include "ignore.h"
-#include "guid.h"
-#include "gnet_stats.h"
-#include "http.h"
-#include "gwcache.h"
-#include "verify.h"
-#include "move.h"
-#include "extensions.h"
-#include "inet.h"
-#include "parq.h"
-#include "adns.h"
-#include "crc.h"
-#include "icon.h"
-#include "hostiles.h"
-#include "clock.h"
-#include "eval.h"
-#include "pproxy.h"
-#include "hsep.h"
-#include "dq.h"
-#include "dh.h"
+#define CORE_SOURCES
+
+#include "core/ban.h"
+#include "core/bsched.h"
+#include "core/clock.h"
+#include "core/dh.h"
+#include "core/dmesh.h"
+#include "core/downloads.h"
+#include "core/dq.h"
+#include "core/extensions.h"
+#include "core/features.h"
+#include "core/fileinfo.h"
+#include "core/gmsg.h"
+#include "core/gnet_stats.h"
+#include "core/gnutella.h"
+#include "core/guid.h"
+#include "core/gwcache.h"
+#include "core/hcache.h"
+#include "core/hostiles.h"
+#include "core/hosts.h"
+#include "core/hsep.h"
+#include "core/http.h"
+#include "core/ignore.h"
+#include "core/inet.h"
+#include "core/move.h"
+#include "core/nodes.h"
+#include "core/parq.h"
+#include "core/pcache.h"
+#include "core/pproxy.h"
+#include "core/routing.h"
+#include "core/search.h"
+#include "core/settings.h"
+#include "core/share.h"
+#include "core/sockets.h"
+#include "core/upload_stats.h"
+#include "core/verify.h"
+#include "core/version.h"
+#include "core/whitelist.h"
+#include "lib/adns.h"
+#include "lib/atoms.h"
+#include "lib/bg.h"
+#include "lib/cq.h"
+#include "lib/crc.h"
+#include "lib/eval.h"
+#include "lib/glib-missing.h"
+#include "lib/pattern.h"
+#include "lib/utf8.h"
+#include "lib/walloc.h"
+#include "lib/wordvec.h"
+#include "ui/gtk/drop.h"
+#include "ui/gtk/gui.h"
+#include "ui/gtk/icon.h"
+#include "ui/gtk/main.h"
+#include "ui/gtk/settings.h"
+#include "ui/gtk/upload_stats.h"
+#include "if/ui/gtk/search.h"
+#include "if/gnet_property_priv.h"
+#include "if/bridge/c2ui.h"
 
 #ifdef USE_REMOTE_CTRL
-#include "shell.h"
+#include "core/shell.h"
 #endif
 
-#include "main_gui.h"
-#include "upload_stats_gui.h"
-#include "settings.h"
-#include "fileinfo.h"
-#include "settings_gui.h"
-#include "override.h"		/* Must be the last header included */
+#include "lib/override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 #define EXIT_GRACE				30	/* Seconds to wait before exiting */
-#define CALLOUT_PERIOD			100	/* milliseconds */
 #define ATEXIT_TIMEOUT			20	/* Final cleanup must not take longer */
-
-/* */
-
-struct gnutella_socket *s_tcp_listen = NULL;
-struct gnutella_socket *s_udp_listen = NULL;
-gchar *start_rfc822_date = NULL;		/* RFC822 format of start_time */
-cqueue_t *callout_queue;
 
 static guint main_slow_update = 0;
 static gboolean exiting = FALSE;
@@ -99,6 +105,8 @@ static gboolean from_atexit = FALSE;
 static gint signal_received = 0;
 static jmp_buf atexit_env;
 static volatile gchar *exit_step = "gtk_gnutella_exit";
+
+void gtk_gnutella_exit(gint n);
 
 /*
  * sig_alarm
@@ -192,7 +200,6 @@ void gtk_gnutella_exit(gint n)
 
 #undef DO
 
-	vp_gui_shutdown();
 	main_gui_update_coords();
 	main_gui_shutdown();
 
@@ -211,15 +218,6 @@ void gtk_gnutella_exit(gint n)
 
 	if (current_peermode == NODE_P_ULTRA)
 		exit_grace *= 2;
-
-	if (s_tcp_listen) {
-		socket_free(s_tcp_listen);		/* No longer accept connections */
-		s_tcp_listen = NULL;
-	}
-	if (s_udp_listen) {
-		socket_free(s_udp_listen);		/* No longer accept connections */
-		s_udp_listen = NULL;
-	}
 
 	while (node_bye_pending()) {
 		time_t now = time(NULL);
@@ -248,10 +246,11 @@ void gtk_gnutella_exit(gint n)
 	settings_close();	/* Must come after hcache_close() */
 	ban_close();
 	whitelist_close();
-	header_features_close();
+	features_close();
 	clock_close();
-	cq_free(callout_queue);
-	matching_close();
+	cq_close();
+	word_vec_close();
+	pattern_close();
 	pmsg_close();
 	version_close();
 	ignore_close();
@@ -265,6 +264,7 @@ void gtk_gnutella_exit(gint n)
 #ifdef TRACK_MALLOC
 	malloc_close();
 #endif
+
 
 	if (dbg)
 		printf("gtk-gnutella shut down cleanly.\n\n");
@@ -298,13 +298,6 @@ static void sig_ignore(int n)
 #else
 	(void) n;
 #endif
-}
-
-static void init_constants(void)
-{
-	time_t now = clock_loc2gmt(time(NULL));
-	start_rfc822_date = atom_str_get(date_to_rfc822_gchar(now));
-	gnet_prop_set_guint32_val(PROP_START_STAMP, (guint32) now);
 }
 
 /* FIXME: this is declared in search_gui.c and should be called in the
@@ -404,42 +397,6 @@ static gboolean main_timer(gpointer p)
 }
 
 /*
- * callout_timer
- *
- * Called every CALLOUT_PERIOD to heartbeat the callout queue.
- */
-static gboolean callout_timer(gpointer p)
-{
-	static GTimeVal last_period = { 0L, 0L };
-	GTimeVal tv;
-	gint delay;
-
-	(void) p;
-	g_get_current_time(&tv);
-
-	/*
-	 * How much elapsed since last call?
-	 */
-
-	delay = (gint) ((tv.tv_sec - last_period.tv_sec) * 1000 +
-		(tv.tv_usec - last_period.tv_usec) / 1000);
-
-	last_period = tv;		/* struct copy */
-
-	/*
-	 * If too much variation, or too little, maybe the clock was adjusted.
-	 * Assume a single period then.
-	 */
-
-	if (delay < 0 || delay > 10 * CALLOUT_PERIOD)
-		delay = CALLOUT_PERIOD;
-
-	cq_clock(callout_queue, delay);
-
-	return TRUE;
-}
-
-/*
  * scan_files_once
  *
  * Scan files when the GUI is up.
@@ -447,9 +404,9 @@ static gboolean callout_timer(gpointer p)
 static gboolean scan_files_once(gpointer p)
 {
 	(void) p;
-	gui_allow_rescan_dir(FALSE);
+	guc_allow_rescan_dir(FALSE);
 	share_scan();
-	gui_allow_rescan_dir(TRUE);
+	guc_allow_rescan_dir(TRUE);
 
 	return FALSE;
 }
@@ -522,6 +479,7 @@ static void log_init(void)
 	}
 }
 
+
 gint main(gint argc, gchar **argv, gchar **env)
 {
 	gint i;
@@ -541,27 +499,27 @@ gint main(gint argc, gchar **argv, gchar **env)
 
 	/* Our inits */
 	log_init();
+	random_init();
 	locale_init();
 	adns_init();
 	atoms_init();
 	eval_init();
 	version_init();
-	random_init();
 	socket_init();
 	gnet_stats_init();
 	main_gui_early_init(argc, argv);
-	callout_queue = cq_make(0);
+	cq_init();
 	hcache_init(); /* before settings_init() */
 	settings_init();
     hcache_retrieve_all(); /* after settings_init() */
-	init_constants();
 	guid_init();
 	gwc_init();
 	verify_init();
 	move_init();
 	ignore_init();
 	file_info_init();
-	matching_init();
+	pattern_init();
+	word_vec_init();
 	host_init();
 	pmsg_init();
 	gmsg_init();
@@ -606,7 +564,6 @@ gint main(gint argc, gchar **argv, gchar **env)
 	/* Setup the main timers */
 
 	(void) g_timeout_add(1000, main_timer, NULL);
-	(void) g_timeout_add(CALLOUT_PERIOD, callout_timer, NULL);
 	(void) g_timeout_add(1000, scan_files_once, NULL);
 
 	/* Prepare against X connection losses -> exit() */
