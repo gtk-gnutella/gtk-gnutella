@@ -6092,8 +6092,8 @@
 			    <handler>on_clist_gnet_stats_msg_resize_column</handler>
 			    <last_modification_time>Mon, 09 Dec 2002 15:22:25 GMT</last_modification_time>
 			  </signal>
-			  <columns>6</columns>
-			  <column_widths>80,80,80,79,80,80</column_widths>
+			  <columns>8</columns>
+			  <column_widths>80,80,80,79,80,80,80,80</column_widths>
 			  <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
 			  <show_titles>True</show_titles>
 			  <shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -6154,6 +6154,19 @@
 			    <class>GtkLabel</class>
 			    <child_name>CList:title</child_name>
 			    <name>label395</name>
+			    <label>queued</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label500</name>
 			    <label>relayed</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
@@ -6166,8 +6179,21 @@
 			  <widget>
 			    <class>GtkLabel</class>
 			    <child_name>CList:title</child_name>
+			    <name>label501</name>
+			    <label>gen. queued</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
 			    <name>label396</name>
-			    <label>generated</label>
+			    <label>gen. sent</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>0.5</xalign>

@@ -33,6 +33,8 @@ void gnet_stats_init(void);
 
 void gnet_stats_count_received_header(gnutella_node_t *n);
 void gnet_stats_count_received_payload(gnutella_node_t *n);
+void gnet_stats_count_queued(
+	gnutella_node_t *n, guint8 type, guint8 hops, guint32 size);
 void gnet_stats_count_sent(
 	gnutella_node_t *n, guint8 type, guint8 hops, guint32 size);
 void gnet_stats_count_expired(gnutella_node_t *n);

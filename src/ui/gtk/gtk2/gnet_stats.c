@@ -51,8 +51,10 @@ static const gchar * const msg_stats_label[] = {
 	N_("Received"),
 	N_("Expired"),
 	N_("Dropped"),
+	N_("Queued"),
 	N_("Relayed"),
-	N_("Generated")
+	N_("Gen. Queued"),
+	N_("Gen. Sent")
 };
 
 enum {
@@ -274,6 +276,8 @@ static void gnet_stats_update_messages(const gnet_stats_t *stats)
 	gboolean bytes = FALSE;
 	c_gs_t n;
 
+	STATIC_ASSERT(num_c_gs == G_N_ELEMENTS(msg_stats_label));
+
 	gui_prop_get_boolean_val(PROP_GNET_STATS_PERC, &perc);
 	gui_prop_get_boolean_val(PROP_GNET_STATS_BYTES, &bytes);
 
@@ -283,29 +287,37 @@ static void gnet_stats_update_messages(const gnet_stats_t *stats)
 	for (n = 0; n < num_c_gs; n ++) {
 		if (!bytes) {
 			gtk_list_store_set(store, &iter,
-				c_gs_received,	pkt_stat_str(str[c_gs_received],
+				c_gs_received,	 pkt_stat_str(str[c_gs_received],
 									len, stats->pkg.received, n, perc), 
-				c_gs_generated, pkt_stat_str(str[c_gs_generated],
-									len, stats->pkg.generated, n, perc),
-				c_gs_dropped,	pkt_stat_str(str[c_gs_dropped],
-									len, stats->pkg.dropped, n, perc),
-				c_gs_expired,	pkt_stat_str(str[c_gs_expired],
+				c_gs_expired,	 pkt_stat_str(str[c_gs_expired],
 									len, stats->pkg.expired, n, perc),
-				c_gs_relayed,	pkt_stat_str(str[c_gs_relayed],
+				c_gs_dropped,	 pkt_stat_str(str[c_gs_dropped],
+									len, stats->pkg.dropped, n, perc),
+				c_gs_queued,	 pkt_stat_str(str[c_gs_queued],
+									len, stats->pkg.queued, n, perc),
+				c_gs_relayed,	 pkt_stat_str(str[c_gs_relayed],
 									len, stats->pkg.relayed, n, perc),
+				c_gs_gen_queued, pkt_stat_str(str[c_gs_gen_queued],
+									len, stats->pkg.gen_queued, n, perc),
+				c_gs_generated,  pkt_stat_str(str[c_gs_generated],
+									len, stats->pkg.generated, n, perc),
 				(-1));
 		} else { /* byte mode */
 			gtk_list_store_set(store, &iter,
-				c_gs_received,	byte_stat_str(str[c_gs_received],
+				c_gs_received,	 byte_stat_str(str[c_gs_received],
 									len, stats->byte.received, n, perc),
-				c_gs_generated, byte_stat_str(str[c_gs_generated],
-									len, stats->byte.generated, n, perc),
-				c_gs_dropped,	byte_stat_str(str[c_gs_dropped],
-									len, stats->byte.dropped, n, perc),
-				c_gs_expired,	byte_stat_str(str[c_gs_expired],
+				c_gs_expired,	 byte_stat_str(str[c_gs_expired],
 									len, stats->byte.expired, n, perc),
-				c_gs_relayed,	byte_stat_str(str[c_gs_relayed],
+				c_gs_dropped,	 byte_stat_str(str[c_gs_dropped],
+									len, stats->byte.dropped, n, perc),
+				c_gs_queued,	 byte_stat_str(str[c_gs_queued],
+									len, stats->byte.queued, n, perc),
+				c_gs_relayed,	 byte_stat_str(str[c_gs_relayed],
 									len, stats->byte.relayed, n, perc),
+				c_gs_gen_queued, byte_stat_str(str[c_gs_gen_queued],
+									len, stats->byte.gen_queued, n, perc),
+				c_gs_generated,  byte_stat_str(str[c_gs_generated],
+									len, stats->byte.generated, n, perc),
 				(-1));
 		}
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);

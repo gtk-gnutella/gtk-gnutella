@@ -298,7 +298,7 @@ void gnet_stats_gui_init(void)
             clist_horizon, n, GTK_JUSTIFY_RIGHT);
     }
 
-    for (n = 1; n < 6; n ++) {
+    for (n = 1; n < num_c_gs; n ++) {
         gtk_clist_set_column_justification(
             clist_stats_msg, n, GTK_JUSTIFY_RIGHT);
     }
@@ -440,6 +440,10 @@ void gnet_stats_gui_update(time_t now)
             gnet_stats_bytes ? 
                 byte_stat_str(stats.byte.received, n) : 
                 pkt_stat_str(stats.pkg.received, n));
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_gen_queued, 
+            gnet_stats_bytes ? 
+                byte_stat_str(stats.byte.gen_queued, n) : 
+                pkt_stat_str(stats.pkg.gen_queued, n));
         gtk_clist_set_text(clist_stats_msg, n, c_gs_generated, 
             gnet_stats_bytes ? 
                 byte_stat_str(stats.byte.generated, n) : 
@@ -452,6 +456,10 @@ void gnet_stats_gui_update(time_t now)
             gnet_stats_bytes ? 
                 byte_stat_str(stats.byte.expired, n) : 
                 pkt_stat_str(stats.pkg.expired, n));
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_queued, 
+            gnet_stats_bytes ? 
+                byte_stat_str(stats.byte.queued, n) : 
+                pkt_stat_str(stats.pkg.queued, n));
         gtk_clist_set_text(clist_stats_msg, n, c_gs_relayed, 
             gnet_stats_bytes ? 
                 byte_stat_str(stats.byte.relayed, n) : 

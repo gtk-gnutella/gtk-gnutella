@@ -56,7 +56,7 @@ extern const guint32  uploads_col_widths[7];
 extern const gboolean uploads_col_visible[7];
 extern const guint32  filter_rules_col_widths[4];
 extern const guint32  filter_filters_col_widths[3];
-extern const guint32  gnet_stats_msg_col_widths[6];
+extern const guint32  gnet_stats_msg_col_widths[8];
 extern const guint32  gnet_stats_fc_ttl_col_widths[10];
 extern const guint32  gnet_stats_fc_hops_col_widths[10];
 extern const guint32  gnet_stats_fc_col_widths[10];

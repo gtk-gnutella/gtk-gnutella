@@ -80,8 +80,8 @@ guint32  filter_rules_col_widths[4]     = { 10, 240, 80, 40 };
 guint32  filter_rules_col_widths_def[4] = { 10, 240, 80, 40 };
 guint32  filter_filters_col_widths[3]     = { 80, 40, 20 };
 guint32  filter_filters_col_widths_def[3] = { 80, 40, 20 };
-guint32  gnet_stats_msg_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
-guint32  gnet_stats_msg_col_widths_def[6] = { 60, 20, 20, 20, 20, 20 };
+guint32  gnet_stats_msg_col_widths[8]     = { 60, 20, 20, 20, 20, 20, 20, 20 };
+guint32  gnet_stats_msg_col_widths_def[8] = { 60, 20, 20, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_fc_ttl_col_widths[10]     = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_fc_ttl_col_widths_def[10] = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_fc_hops_col_widths[10]     = { 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 };
@@ -697,7 +697,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[22].desc = _("Widths of the columns in the Gnet packet stats table");
     gui_property->props[22].ev_changed = event_new("gnet_stats_msg_col_widths_changed");
     gui_property->props[22].save = TRUE;
-    gui_property->props[22].vector_size = 6;
+    gui_property->props[22].vector_size = 8;
 
     /* Type specific data: */
     gui_property->props[22].type               = PROP_TYPE_GUINT32;

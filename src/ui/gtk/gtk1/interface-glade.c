@@ -450,6 +450,8 @@ create_main_window (void)
   GtkWidget *label393;
   GtkWidget *label394;
   GtkWidget *label395;
+  GtkWidget *label500;
+  GtkWidget *label501;
   GtkWidget *label396;
   GtkWidget *label436;
   GtkWidget *scrolledwindow38;
@@ -4274,7 +4276,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (notebook3), scrolledwindow29);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow29), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  clist_gnet_stats_msg = gtk_clist_new (6);
+  clist_gnet_stats_msg = gtk_clist_new (8);
   gtk_widget_set_name (clist_gnet_stats_msg, "clist_gnet_stats_msg");
   gtk_widget_ref (clist_gnet_stats_msg);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_gnet_stats_msg", clist_gnet_stats_msg,
@@ -4287,6 +4289,8 @@ create_main_window (void)
   gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_msg), 3, 79);
   gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_msg), 4, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_msg), 5, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_msg), 6, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_msg), 7, 80);
   gtk_clist_column_titles_show (GTK_CLIST (clist_gnet_stats_msg));
 
   label391 = gtk_label_new (_("Type"));
@@ -4322,7 +4326,7 @@ create_main_window (void)
   gtk_widget_show (label394);
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_msg), 3, label394);
 
-  label395 = gtk_label_new (_("relayed"));
+  label395 = gtk_label_new (_("queued"));
   gtk_widget_set_name (label395, "label395");
   gtk_widget_ref (label395);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label395", label395,
@@ -4330,13 +4334,29 @@ create_main_window (void)
   gtk_widget_show (label395);
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_msg), 4, label395);
 
-  label396 = gtk_label_new (_("generated"));
+  label500 = gtk_label_new (_("relayed"));
+  gtk_widget_set_name (label500, "label500");
+  gtk_widget_ref (label500);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label500", label500,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label500);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_msg), 5, label500);
+
+  label501 = gtk_label_new (_("gen. queued"));
+  gtk_widget_set_name (label501, "label501");
+  gtk_widget_ref (label501);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label501", label501,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label501);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_msg), 6, label501);
+
+  label396 = gtk_label_new (_("gen. sent"));
   gtk_widget_set_name (label396, "label396");
   gtk_widget_ref (label396);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label396", label396,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label396);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_msg), 5, label396);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_msg), 7, label396);
 
   label436 = gtk_label_new (_("Messages"));
   gtk_widget_set_name (label436, "label436");

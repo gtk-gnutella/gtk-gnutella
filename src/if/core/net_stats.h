@@ -107,10 +107,12 @@ typedef struct gnet_stat {
 
 	struct {
 		guint64 received[MSG_TYPE_COUNT];
-		guint64 generated[MSG_TYPE_COUNT];
-		guint64 relayed[MSG_TYPE_COUNT];
-		guint64 dropped[MSG_TYPE_COUNT];
 		guint64 expired[MSG_TYPE_COUNT];
+		guint64 dropped[MSG_TYPE_COUNT];
+		guint64 queued[MSG_TYPE_COUNT];
+		guint64 relayed[MSG_TYPE_COUNT];
+		guint64 gen_queued[MSG_TYPE_COUNT];
+		guint64 generated[MSG_TYPE_COUNT];
 		guint64 received_hops[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
 		guint64 received_ttl[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
 		guint64 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
@@ -119,10 +121,12 @@ typedef struct gnet_stat {
 
 	struct {
 		guint64 received[MSG_TYPE_COUNT];
-		guint64 generated[MSG_TYPE_COUNT];
-		guint64 relayed[MSG_TYPE_COUNT];
-		guint64 dropped[MSG_TYPE_COUNT];
 		guint64 expired[MSG_TYPE_COUNT];
+		guint64 dropped[MSG_TYPE_COUNT];
+		guint64 queued[MSG_TYPE_COUNT];
+		guint64 relayed[MSG_TYPE_COUNT];
+		guint64 gen_queued[MSG_TYPE_COUNT];
+		guint64 generated[MSG_TYPE_COUNT];
 		guint64 received_hops[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
 		guint64 received_ttl[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
 		guint64 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];

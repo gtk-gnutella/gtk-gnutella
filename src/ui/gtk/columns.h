@@ -199,7 +199,9 @@ typedef enum {
     c_gs_received,
     c_gs_expired,
     c_gs_dropped,
+    c_gs_queued,
     c_gs_relayed,
+    c_gs_gen_queued,
     c_gs_generated,
 
 	num_c_gs

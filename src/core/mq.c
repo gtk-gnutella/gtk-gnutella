@@ -1312,6 +1312,9 @@ update_servicing:
 void mq_putq(mqueue_t *q, pmsg_t *mb)
 {
 	gint size = pmsg_size(mb);
+	gchar *mbs = pmsg_start(mb);
+	guint8 function = gmsg_function(mbs);
+	guint8 hops = gmsg_hops(mbs);
 
 	g_assert(q);
 	g_assert(!pmsg_was_sent(mb));
@@ -1327,14 +1330,13 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 		goto cleanup;
 	}
 
+	gnet_stats_count_queued(q->node, function, hops, size);
+
 	/*
 	 * If queue is empty, attempt a write immediatly.
 	 */
 
 	if (q->qhead == NULL) {
-		gchar *mbs = pmsg_start(mb);
-		guint8 function = gmsg_function(mbs);
-		guint8 hops = gmsg_hops(mbs);
 		gint written;
 
 		/*

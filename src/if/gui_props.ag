@@ -243,9 +243,9 @@ prop = {
     cfgvar = "widths_gnet_stats_msg";
     desc = "Widths of the columns in the Gnet packet stats table";
     type = guint32;
-    vector_size = 6;
+    vector_size = 8;
     data = {
-        default = "{ 60, 20, 20, 20, 20, 20 }";
+        default = "{ 60, 20, 20, 20, 20, 20, 20, 20 }";
     };
 };
 

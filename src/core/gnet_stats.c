@@ -146,6 +146,22 @@ void gnet_stats_count_received_payload(gnutella_node_t *n)
     stats->byte.received_hops[i][t] += size;
 }
 
+void gnet_stats_count_queued(
+	gnutella_node_t *n, guint8 type, guint8 hops, guint32 size)
+{
+	guint64 *stats_pkg;
+	guint64 *stats_byte;
+	guint t = stats_lut[type];
+
+	stats_pkg = hops ? gnet_stats.pkg.queued : gnet_stats.pkg.gen_queued;
+	stats_byte = hops ? gnet_stats.byte.queued : gnet_stats.byte.gen_queued;
+
+    stats_pkg[MSG_TOTAL]++;
+    stats_pkg[t]++;
+    stats_byte[MSG_TOTAL] += size;
+    stats_byte[t] += size;
+}
+
 void gnet_stats_count_sent(
 	gnutella_node_t *n, guint8 type, guint8 hops, guint32 size)
 {
