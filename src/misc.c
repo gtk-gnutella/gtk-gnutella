@@ -1028,13 +1028,45 @@ done:
 	fflush(out);
 }
 
-/* copies str to dst, converting all upper-case characters to lower-case */
+/*
+ * strlower
+ *
+ * NB: Bad name because it might clash with <string.h>.
+ *
+ * Copies ``src'' to ``dst'', converting all upper-case characters to
+ * lower-case. ``dst'' and ``src'' may point to the same object.
+ */
 void strlower(gchar *dst, const gchar *src)
 {
 	do {
 		*dst++ = tolower((const guchar) *src);
 	} while (*src++);
 }
+
+/* 
+ * ascii_strlower
+ *
+ * Copies ``src'' to ``dst'', converting all ASCII upper-case characters to
+ * ASCII lower-case. ``dst'' and ``src'' may point to the same object.
+ */
+void ascii_strlower(gchar *dst, const gchar *src)
+{
+	gint c;
+
+	if (dst != src)
+		do {
+			c = (const guchar) *src++;
+			*dst++ = is_ascii_upper(c) ? tolower(c) : c;
+		} while (c != '\0');
+	else
+		do {
+			c = (const guchar) *src++;
+			if (is_ascii_upper(c))
+				*dst = tolower(c);
+			dst++;
+		} while (c != '\0');
+}
+
 
 #ifndef HAS_STRCASESTR
 /*
