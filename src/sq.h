@@ -43,6 +43,7 @@ struct gnutella_node;
  */
 typedef struct search_queue {
 	GList *searches;			/* A pointer to the GList */
+	GHashTable *handles;		/* Keeps track of search handles in queue */
 	struct gnutella_node *node;	/* Node owning this search queue */
 	time_t last_sent;    		/* Time last msg was sent */
 	gint count;					/* Count of number in queue */

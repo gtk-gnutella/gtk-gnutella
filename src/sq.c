@@ -34,6 +34,7 @@
 #include "pmsg.h"
 #include "nodes.h"
 #include "search.h"
+#include "atoms.h"
 
 RCSID("$Id$");
 
@@ -93,6 +94,67 @@ static void smsg_free(smsg_t *sb)
 }
 
 /***
+ *** "handle" hash table management.
+ ***/
+
+/*
+ * sqh_exists
+ *
+ * Checks whether an entry exists in the search queue for given search handle.
+ */
+static gboolean sqh_exists(squeue_t *sq, gnet_search_t sh)
+{
+	g_assert(sq != NULL);
+
+	return NULL != g_hash_table_lookup(sq->handles, (gpointer) &sh);
+}
+
+/*
+ * sqh_put
+ *
+ * Record search handle in the hash table.
+ */
+static void sqh_put(squeue_t *sq, gnet_search_t sh)
+{
+	g_assert(sq != NULL);
+	g_assert(!sqh_exists(sq, sh));
+
+	g_hash_table_insert(sq->handles, atom_int_get(&sh), GINT_TO_POINTER(1));
+}
+
+/*
+ * sqh_remove
+ *
+ * Remove search handle from the hash table.
+ */
+static void sqh_remove(squeue_t *sq, gnet_search_t sh)
+{
+	g_assert(sq != NULL);
+	gpointer key;
+	gpointer value;
+	gboolean found;
+
+	found = g_hash_table_lookup_extended(sq->handles, &sh, &key, &value);
+
+	g_assert(found);
+	g_assert(*(gnet_search_t *) key == sh);
+
+	g_hash_table_remove(sq->handles, &sh);
+	atom_int_free(key);
+}
+
+/*
+ * sqh_free_kv
+ *
+ * Iterator callback for removing all entries from hash table.
+ */
+static gboolean sqh_free_kv(gpointer key, gpointer value, gpointer user)
+{
+	atom_int_free(key);
+	return TRUE;
+}
+
+/***
  *** Search queue.
  ***/
 
@@ -123,6 +185,7 @@ squeue_t *sq_make(struct gnutella_node *node)
 	sq->n_sent 		= 0;
 	sq->n_dropped 	= 0;
 	sq->node        = node;
+	sq->handles     = g_hash_table_new(g_int_hash, g_int_equal);
 
 	return sq;
 }
@@ -150,6 +213,7 @@ void sq_clear(squeue_t *sq)
 	}
 
 	g_list_free(sq->searches);
+	g_hash_table_foreach_remove(sq->handles, sqh_free_kv, NULL);
 
 	sq->searches = NULL;
 	sq->count = 0;
@@ -165,6 +229,7 @@ void sq_free(squeue_t *sq)
 	g_assert(sq);
 
 	sq_clear(sq);
+	g_hash_table_destroy(sq->handles);
 	wfree(sq, sizeof(*sq));
 }
 
@@ -177,7 +242,8 @@ void sq_free(squeue_t *sq)
  *
  * Having the search handle allows us to check before sending the query
  * that we are not over-querying for a given search.  It's also handy
- * to remove the queries when a search is closed.
+ * to remove the queries when a search is closed, and avoid queuing twice
+ * the same search.
  */
 void sq_putq(squeue_t *sq, gnet_search_t sh, pmsg_t *mb)
 {
@@ -186,8 +252,12 @@ void sq_putq(squeue_t *sq, gnet_search_t sh, pmsg_t *mb)
 	g_assert(sq);
 	g_assert(mb);
 
+	if (sqh_exists(sq, sh))
+		return;						/* Search already in queue */
+
 	sb = smsg_alloc(sh, mb);
 
+	sqh_put(sq, sh);
 	sq->searches = g_list_prepend(sq->searches, sb);
 	sq->count++;
 
@@ -284,6 +354,7 @@ retry:
 		pmsg_free(sb->mb);
 	}
 
+	sqh_remove(sq, sb->shandle);
 	smsg_free(sb);
 	sq->searches = g_list_remove_link(sq->searches, item);
 	g_list_free_1(item);
@@ -320,6 +391,7 @@ static void cap_queue(squeue_t *sq)
 				sq->count, sq->n_dropped);
 
 		pmsg_free(sb->mb);
+		sqh_remove(sq, sb->shandle);
 		smsg_free(sb);
 		g_list_free_1(item);
     }
@@ -352,6 +424,7 @@ void sq_search_closed(squeue_t *sq, gnet_search_t sh)
 				node_ip(sq->node), QUERY_TEXT(pmsg_start(sb->mb)), sq->count);
 
 		pmsg_free(sb->mb);
+		sqh_remove(sq, sb->shandle);
 		smsg_free(sb);
 		g_list_free_1(l);
 	}
