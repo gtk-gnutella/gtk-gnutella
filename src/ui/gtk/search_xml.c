@@ -167,6 +167,18 @@ xml_get_string(xmlNode *node, const gchar *id)
 	return (gchar *) xmlGetProp(node, (const xmlChar *) id);
 }
 
+static inline const xmlChar *
+gchar_to_xmlChar(const gchar *p)
+{
+	return (const xmlChar *) p;
+}
+
+static inline xmlNodePtr
+xml_new_empty_child(xmlNodePtr parent, const gchar *name)
+{
+	return xmlNewChild(parent, NULL, gchar_to_xmlChar(name), NULL);
+}
+
 
 /**
  * A wrapper around parse_uint64. It's a little stricter, so that trailing
@@ -312,7 +324,7 @@ target_to_string(gpointer target)
 	}
 	
     gm_snprintf(buf, sizeof buf, "0x%x", GPOINTER_TO_UINT(value));
-	return (const xmlChar *) buf;
+	return gchar_to_xmlChar(buf);
 }
 
 /**
@@ -326,7 +338,7 @@ target_to_string(gpointer target)
 static inline xmlAttrPtr
 xml_prop_set(xmlNodePtr node, const gchar *name, const char *value)
 {
-    return xmlSetProp(node, (const xmlChar *) name, (const xmlChar *) value);
+    return xmlSetProp(node, gchar_to_xmlChar(name), gchar_to_xmlChar(value));
 }
 	
 /**
@@ -371,12 +383,12 @@ search_store_xml(void)
     /*
      * Create new xml document with version 1.0
      */
-    doc = xmlNewDoc((const xmlChar *) "1.0");
+    doc = xmlNewDoc(gchar_to_xmlChar("1.0"));
 
     /*
      * Create a new root node "gtkGnutella searches"
      */
-    root = xmlNewDocNode(doc, NULL, (const xmlChar *) "Searches", NULL);
+    root = xmlNewDocNode(doc, NULL, gchar_to_xmlChar("Searches"), NULL);
     xmlDocSetRootElement(doc, root);
 	/* Discard the newline of the ctime string */
     xml_prop_printf(root, "Time", "%24.24s", ctime(&now));
@@ -647,26 +659,26 @@ out:
 static void
 builtin_to_xml(xmlNodePtr parent)
 {
+	const struct {
+		const gchar *tag;
+		filter_t * (* target)(void);
+	} builtins[] = {
+		{ TAG_BUILTIN_SHOW_UID, filter_get_show_target },
+		{ TAG_BUILTIN_DROP_UID, filter_get_drop_target },
+		{ TAG_BUILTIN_DOWNLOAD_UID, filter_get_download_target },
+		{ TAG_BUILTIN_NODOWNLOAD_UID, filter_get_nodownload_target },
+		{ TAG_BUILTIN_RETURN_UID, filter_get_return_target },
+	};
     xmlNodePtr newxml;
+	guint i;
 
     g_assert(parent != NULL);
 
-    newxml = xmlNewChild(parent, NULL, NODE_BUILTIN, NULL);
-
-    xml_prop_set(newxml, TAG_BUILTIN_SHOW_UID,
-		target_to_string(filter_get_show_target()));
-
-    xml_prop_set(newxml, TAG_BUILTIN_DROP_UID,
-		target_to_string(filter_get_drop_target()));
-
-    xml_prop_set(newxml, TAG_BUILTIN_DOWNLOAD_UID,
-		target_to_string(filter_get_download_target()));
-
-    xml_prop_set(newxml, TAG_BUILTIN_NODOWNLOAD_UID,
-		target_to_string(filter_get_nodownload_target()));
-
-    xml_prop_set(newxml, TAG_BUILTIN_RETURN_UID,
-		target_to_string(filter_get_return_target()));
+    newxml = xml_new_empty_child(parent, NODE_BUILTIN);
+	for (i = 0; i < G_N_ELEMENTS(builtins); i++) {
+    	xml_prop_set(newxml, builtins[i].tag,
+			target_to_string(builtins[i].target));
+	}
 }
 
 static void
@@ -696,7 +708,7 @@ search_to_xml(xmlNodePtr parent, search_t *s)
 		return;
 	}
 
-    newxml = xmlNewChild(parent, NULL, NODE_SEARCH, NULL);
+    newxml = xml_new_empty_child(parent, NODE_SEARCH);
     xml_prop_set(newxml, TAG_SEARCH_QUERY, query);
 	if (query != s->query)
 		G_FREE_NULL(query);
@@ -747,7 +759,7 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
 		return;
 	}
 
-    newxml = xmlNewChild(parent, NULL, NODE_FILTER, NULL);
+    newxml = xml_new_empty_child(parent, NODE_FILTER);
     xml_prop_set(newxml, TAG_FILTER_NAME, name);
 	if (name != f->name)
 		G_FREE_NULL(name);
@@ -805,7 +817,7 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
 				return;
 			}
 
-			newxml = xmlNewChild(parent, NULL, NODE_RULE_TEXT, NULL);
+			newxml = xml_new_empty_child(parent, NODE_RULE_TEXT);
         	xml_prop_set(newxml, TAG_RULE_TEXT_CASE,
 				r->u.text.case_sensitive ? "1" : "0");
         	xml_prop_set(newxml, TAG_RULE_TEXT_MATCH, match);
@@ -816,19 +828,19 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
 		}
         break;
     case RULE_IP:
-        newxml = xmlNewChild(parent, NULL, NODE_RULE_IP, NULL);
+        newxml = xml_new_empty_child(parent, NODE_RULE_IP);
         xml_prop_set(newxml, TAG_RULE_IP_ADDR, ip_to_gchar(r->u.ip.addr));
         xml_prop_set(newxml, TAG_RULE_IP_MASK, ip_to_gchar(r->u.ip.mask));
         break;
     case RULE_SIZE:
-        newxml = xmlNewChild(parent, NULL, NODE_RULE_SIZE, NULL);
+        newxml = xml_new_empty_child(parent, NODE_RULE_SIZE);
         xml_prop_printf(newxml, TAG_RULE_SIZE_LOWER,
 			"%" PRIu64, (guint64) r->u.size.lower);
         xml_prop_printf(newxml, TAG_RULE_SIZE_UPPER,
 			"%" PRIu64, (guint64) r->u.size.upper);
         break;
     case RULE_JUMP:
-        newxml = xmlNewChild(parent, NULL, NODE_RULE_JUMP, NULL);
+        newxml = xml_new_empty_child(parent, NODE_RULE_JUMP);
 
         /*
          * Only need target to this rule and that's done below.
@@ -838,7 +850,7 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
 		{
 			gchar *name;
 			
-        	newxml = xmlNewChild(parent, NULL, NODE_RULE_SHA1, NULL);
+        	newxml = xml_new_empty_child(parent, NODE_RULE_SHA1);
 
         	if (r->u.sha1.hash != NULL)
             	xml_prop_set(newxml, TAG_RULE_SHA1_HASH,
@@ -858,14 +870,14 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
          */
         break;
     case RULE_FLAG:
-        newxml = xmlNewChild(parent, NULL, NODE_RULE_FLAG, NULL);
+        newxml = xml_new_empty_child(parent, NODE_RULE_FLAG);
 
         xml_prop_printf(newxml, TAG_RULE_FLAG_STABLE, "%u", r->u.flag.stable);
         xml_prop_printf(newxml, TAG_RULE_FLAG_BUSY, "%u", r->u.flag.busy);
         xml_prop_printf(newxml, TAG_RULE_FLAG_PUSH, "%u", r->u.flag.push);
         break;
     case RULE_STATE:
-        newxml = xmlNewChild(parent, NULL, NODE_RULE_STATE, NULL);
+        newxml = xml_new_empty_child(parent, NODE_RULE_STATE);
         xml_prop_printf(newxml, TAG_RULE_STATE_DISPLAY,
 			"%u", r->u.state.display);
         xml_prop_printf(newxml, TAG_RULE_STATE_DOWNLOAD,
@@ -920,7 +932,7 @@ xml_to_builtin(xmlNodePtr xmlnode, gpointer unused_udata)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
-		(const gchar *) NODE_BUILTIN));
+					NODE_BUILTIN));
     g_assert(filter_get_show_target() != NULL);
     g_assert(filter_get_drop_target() != NULL);
     g_assert(filter_get_download_target() != NULL);
@@ -1000,7 +1012,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
-		(const gchar *) NODE_SEARCH));
+					NODE_SEARCH));
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &reissue_timeout);
 	gnet_prop_get_boolean_val(PROP_ALLOW_DANGEROUS_BUGS, &override);
@@ -1108,7 +1120,7 @@ xml_to_filter(xmlNodePtr xmlnode, gpointer unused_udata)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
-		(const gchar *) NODE_FILTER));
+					NODE_FILTER));
 
 	buf = STRTRACK(xml_get_string(xmlnode, TAG_FILTER_NAME));
     if (!buf) {
@@ -1196,7 +1208,7 @@ xml_to_text_rule(xmlNodePtr xmlnode, gpointer data)
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
-		(const gchar *) NODE_RULE_TEXT));
+					NODE_RULE_TEXT));
 
     match = STRTRACK(xml_get_string(xmlnode, TAG_RULE_TEXT_MATCH));
     if (match == NULL) {
@@ -1254,7 +1266,7 @@ xml_to_ip_rule(xmlNodePtr xmlnode, gpointer data)
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
-		(const gchar *) NODE_RULE_IP));
+					NODE_RULE_IP));
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_IP_ADDR));
     if (buf == NULL) {
@@ -1306,7 +1318,7 @@ xml_to_size_rule(xmlNodePtr xmlnode, gpointer data)
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
-		(const gchar *) NODE_RULE_SIZE));
+					NODE_RULE_SIZE));
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_SIZE_LOWER));
     if (buf == NULL) {
@@ -1365,7 +1377,7 @@ xml_to_jump_rule(xmlNodePtr xmlnode, gpointer data)
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
-		(const gchar *) NODE_RULE_JUMP));
+					NODE_RULE_JUMP));
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_TARGET));
     g_assert(buf != NULL);
@@ -1402,8 +1414,8 @@ xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer data)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_ascii_strcasecmp(
-		(const gchar *) xmlnode->name, (const gchar *) NODE_RULE_SHA1) == 0);
+    g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
+					NODE_RULE_SHA1));
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_SHA1_FILENAME));
     filename = buf != NULL ? buf : g_strdup("[Unknown]");
@@ -1458,7 +1470,7 @@ xml_to_flag_rule(xmlNodePtr xmlnode, gpointer data)
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
-		(const gchar *) NODE_RULE_FLAG));
+					NODE_RULE_FLAG));
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_FLAG_STABLE));
     if (buf != NULL) {
@@ -1530,7 +1542,7 @@ xml_to_state_rule(xmlNodePtr xmlnode, gpointer data)
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
-		(const gchar *) NODE_RULE_STATE));
+					NODE_RULE_STATE));
 
     buf = STRTRACK(xml_get_string(xmlnode, TAG_RULE_STATE_DISPLAY));
     if (buf != NULL) {
