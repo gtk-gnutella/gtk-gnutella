@@ -121,11 +121,9 @@ static void upload_stats_cell_render_size_func(
 	gpointer data)
 {
 	guint val = 0;
-	gchar tmpstr[16];
 
 	gtk_tree_model_get(model, iter, c_us_size, &val, -1);
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%s", short_size(val));
-	g_object_set(cell, "text", tmpstr, NULL);
+	g_object_set(cell, "text", short_size(val), NULL);
 }
 
 static void upload_stats_cell_render_norm_func(
