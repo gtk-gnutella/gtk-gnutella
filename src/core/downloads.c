@@ -6257,8 +6257,6 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 				"Stopped data (EOF)");
 		return;
 	} else if ((ssize_t) -1 == r) {
-		if (errno == EINVAL)
-			G_BREAKPOINT();
 		if (errno != EAGAIN) {
 			socket_eof(s);
 			if (errno == ECONNRESET)
