@@ -1,5 +1,12 @@
 # since last version
 
+- (2003.05.07 - Richard)
+ * [Gtk1] Added "purge" button to fileinfo pane.
+ * [Gtk1] Removed "sources" tab from fileinfo pane. This has not been used yet
+   and will not be completed before the next release.
+ * Export download_free_removed() so it can be used in fi_purge.
+ * [Gtk1] Added tooltips to peermode icons.
+
 - (2003.04.17 - RAM)
  * Integrated PARQ patch #15 [From Jeroen Asselman].
  * List PARQ development explicitly in the AUTHORS file.
