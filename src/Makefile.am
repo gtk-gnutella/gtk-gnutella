@@ -154,6 +154,8 @@ gtk_gnutella_SOURCES = \
 	rx_link.c rx_link.h \
 	rx_inflate.c rx_inflate.h \
 	zlib_util.c zlib_util.h \
+	tigertree.c tigertree.h \
+	tiger.c tiger.h \
 	sha1.c sha1.h huge.c huge.h \
 	base32.c base32.h \
 	base64.c base64.h \
