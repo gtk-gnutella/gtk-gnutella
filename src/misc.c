@@ -43,7 +43,7 @@ RCSID("$Id$");
 
 #if !defined(HAS_SRANDOM) || !defined(HAS_RANDOM)
 #define srandom(x)	srand(x)
-#define random(x)	rand(x)
+#define random()	rand()
 #define RANDOM_MASK				0xffffffff
 #define RANDOM_MAXV				RAND_MAX
 #else
