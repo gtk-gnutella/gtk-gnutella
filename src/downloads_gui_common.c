@@ -48,8 +48,6 @@ RCSID("$Id$");
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 #define IO_AVG_RATE		5		/* Compute global recv rate every 5 secs */
 
-gchar *selected_url = NULL;
-
 static gboolean update_download_clear_needed = FALSE;
 
 /*
@@ -165,33 +163,6 @@ void gui_update_queue_frozen(void)
 }
 
 
-/*
- *	on_popup_downloads_selection_get
- *
- */
-void on_popup_downloads_selection_get(GtkWidget * widget, 
-	GtkSelectionData * data, guint info, guint eventtime, gpointer user_data) 
-{
-    g_return_if_fail(selected_url);
-
-    gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING,
-                           8, (guchar *) selected_url, strlen(selected_url));
-}
-
-
-/*
- *	on_popup_downloads_selection_clear_event
- *
- */
-gint on_popup_downloads_selection_clear_event(GtkWidget * widget,
-                                              GdkEventSelection *event)
-{
-    if (selected_url != NULL) {
-        G_FREE_NULL(selected_url);
-    }
-    return TRUE;
-}
-
 
 /*
  *	on_button_downloads_clear_stopped_clicked
@@ -220,14 +191,6 @@ void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton,
     } else {
         download_thaw_queue();
     }
-}
-
-gchar *download_gui_get_hostname(struct download *d) 
-{
-    return is_faked_download(d) ? "" :
-		d->server->hostname == NULL ?
-		ip_port_to_gchar(download_ip(d), download_port(d)) :
-		hostname_port_to_gchar(d->server->hostname, download_port(d));    
 }
 
 /* vi: set ts=4: */
