@@ -899,13 +899,11 @@ static guint compact_query(gchar *search, gint utf8_len)
 				}
 				skip_space = TRUE;
 				word_length = 0; /* count this space to the next word */
-			} else {
-				if (dbg > 4)
-					printf("s");
-			}
+			} else if (dbg > 4)
+				printf("s");
 			break;
 		default:
-			if (!iscntrl(c)) {
+			if (c > ' ') {
 				/* within a word now, copy word (except control characters) */
 				skip_space = FALSE;
 				if (utf8_len) {
@@ -917,7 +915,8 @@ static guint compact_query(gchar *search, gint utf8_len)
 					*w++ = c;
 					word_length++;
 				}
-			}
+			} else if (dbg > 4)
+				printf("c");
 			break;
 		}
 	
