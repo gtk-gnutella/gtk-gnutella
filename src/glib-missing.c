@@ -31,6 +31,8 @@
 
 #include "common.h"
 #include "glib-missing.h"
+#include "gnet_property.h"
+#include "gnet_property_priv.h"
 
 RCSID("$Id$");
 
@@ -236,7 +238,8 @@ void gm_setproctitle(gchar *title)
 
 		sysarglen = s - orig_argv[0] - 1;	/* -1: leave room for NUL */
 
-		g_warning("exec() args used %d contiguous bytes", sysarglen + 1);
+		if (lib_debug)
+			g_warning("exec() args used %d contiguous bytes", sysarglen + 1);
 	}
 
 	tlen = strlen(title);
