@@ -48,6 +48,8 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
 
+#define SECS_PER_DAY	86400
+
 gchar *version_string = NULL;
 gchar *version_short_string = NULL;
 
@@ -632,6 +634,7 @@ version_ancient_warn(void)
 {
 	time_t now = time(NULL);
 	gint lifetime, remain, elapsed;
+	time_t s;
 
 	g_assert(our_version.timestamp != 0);	/* version_init() called */
 
@@ -670,9 +673,30 @@ version_ancient_warn(void)
 
 	g_assert(remain >= 0);		/* None of the checks above have fired */
 
+	/*
+	 * Try to see whether the token will expire within the next
+	 * VERSION_ANCIENT_REMIND secs, looking for the minimum cutoff date.
+	 *
+	 * Indeed, it is possible to emit new versions without issuing a
+	 * new set of token keys, thereby constraining the lifetime of the
+	 * version.  This is usually what happens for bug-fixing releases
+	 * that do not introduce significant Gnutella features.
+	 */
+
+	for (s = now + VERSION_ANCIENT_REMIND; s > now; s -= SECS_PER_DAY) {
+		if (!tok_is_ancient(s))
+			break;
+	}
+
+	remain = MIN(remain, s - now);
+
+	/*
+	 * Let them know when version will expire soon...
+	 */
+
 	if (remain < VERSION_ANCIENT_REMIND)
         gnet_prop_set_guint32_val(PROP_ANCIENT_VERSION_LEFT_DAYS,
-			remain / 86400);
+			remain / SECS_PER_DAY);
 }
 
 /**
