@@ -142,8 +142,8 @@ bsched_t *bsched_make(gchar *name,
 	bs->flags = mode;
 	bs->type = type;
 	bs->period = period;
-	bs->min_period = period - (period >> 2);	/* 75% of nominal period */
-	bs->max_period = period + (period >> 1);	/* 150% of nominal period */
+	bs->min_period = period >> 1;		/* 50% of nominal period */
+	bs->max_period = period << 1;		/* 200% of nominal period */
 	bs->period_ema = period;
 	bs->bw_per_second = bandwidth;
 	bs->bw_max = bandwidth * period / 1000;
@@ -990,7 +990,11 @@ static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
 	delay = (gint) ((tv->tv_sec - bs->last_period.tv_sec) * 1000 +
 		(tv->tv_usec - bs->last_period.tv_usec) / 1000);
 
-	bs->last_period = *tv;		/* struct copy */
+	if (dbg > 9)
+		printf("[%s] tv = %d,%d  bs = %d,%d, delay = %d\n",
+			bs->name, (gint) tv->tv_sec, (gint) tv->tv_usec,
+			(gint) bs->last_period.tv_sec, (gint) bs->last_period.tv_usec,
+			delay);
 
 	/*
 	 * It is possible to get a negative delay (i.e. have the current time
@@ -1008,14 +1012,18 @@ static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
 	 */
 
 	if (delay < bs->min_period) {
-		g_warning("periodic timer (%s) noticed time jumped backwards (~%d ms)",
-			bs->name, bs->period - delay);
+		if (dbg && bs->last_period.tv_sec)
+			g_warning("heartbeat (%s) noticed time jumped backwards (~%d ms)",
+				bs->name, bs->period - delay);
 		delay = bs->period;
 	} else if (delay > bs->max_period) {
-		g_warning("periodic timer (%s) noticed time jumped forwards (~%d ms)",
-			bs->name, delay - bs->period);
+		if (dbg && bs->last_period.tv_sec)
+			g_warning("heartbeat (%s) noticed time jumped forwards (~%d ms)",
+				bs->name, delay - bs->period);
 		delay = bs->period;
 	}
+
+	bs->last_period = *tv;		/* struct copy */
 
 	g_assert(delay > 0);
 
