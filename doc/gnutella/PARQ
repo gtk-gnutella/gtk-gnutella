@@ -1,0 +1,375 @@
+                    Passive/Active Remote Queuing
+                            Version 0.1
+
+                          Raphael Manfredi
+                    <Raphael_Manfredi@pobox.com>
+
+                          July, 14th 2001
+                      Updated July, 17th 2002
+                      Updated August, 9th 2002
+
+
+1. Introduction
+
+This proposal is a formalization of my previous Queuing proposal, which
+was in turn derived from the original proposal from Mike Green.  It has
+been refined to take into account the feedback I got from the GDF, as well
+as my own comments to another queuing proposal from Christopher Rohrs.
+
+The aim of remote queuing is to have a servent serving a file (aka, the
+"server") enqueue a request from a servent requesting a file (aka, the
+"client") when the server has run out of upload slots.  This queuing
+must satisfy the following properties:
+
+* Fairness: first come, first serve, provided the client plays by
+  the rules.
+* Monitoring: the client side must be able to monitor progress.
+* Remanence: the queue must survive a servent shutdown, either on the
+  client side or on the server side, provided the servent comes back
+  "quickly".
+* Legacy: older servents not aware of PARQ must not be penalized and must
+  still get their share of slots.  This also participates to Fairness.
+
+A few comments on those properties: Fairness is obvious.  Monitoring
+ensures that the client can see the evolution of its queued slot on
+the server, which helps the end-user decide whether it should pursue
+further or "cancel" the download.  Remanence allows the client or server
+to become unavailable for a short period of time (max. 5 minutes) and
+yet not perturb the queue.  This property is valuable for modem users
+(this includes DSL users), which can experience a connection drop, and
+servent developers who can have their servent crash in the middle of an
+experiment.  Finally, Legacy ensures that in a world of queuing servers,
+a client not aware of PARQ can still be allowed to get slots, although
+it will not be able to get the complete PARQ experience, of course.
+
+
+2. Definitions and Principles
+
+PARQ maintains an arbitrary long queue (typically 5000 entries or more)
+which is split into two parts:
+
+Aq. Asynchronous queue, the largest part.  Those are the newest entries
+    added to the queue, and are far away from being scheduled.  The queue
+    is said to be asynchronous because the connection between the server
+    and the client is not maintained.
+
+Sq. Synchronous queue, the smallest part.  Those are the entries close to
+    be able to get an uploading slot.  The connection between the server
+    and the client is maintained.
+
+Typically, Sq will hold the top 50 entries or so, and Aq will hold
+the remaining 4950 ones.  As time goes by, an entry first made in Aq
+will gradually moves to Sq, and then is allowed the uploading slot.
+Naturally, if Sq is almost empty, the entry is initially made there,
+not to Aq, which starts filling when Sq is full.
+
+Each entry is identified by a random GUID allocated when it enters the
+server queue.  This GUID acts as a "token" and is used by the server to
+recognize the entry.  This is espcially useful for Aq entries, but Sq
+entries can occasionally make use of this GUID (for Remanence, or for
+Legacy clients which are queued without knowing it).
+
+An queued slot is said to be "actively queued" if the client is aware of
+PARQ and knows that its request is in the queue.  Otherwise, the slot is
+said to be "passively queued", which means the client is unaware of it
+(legacy clients).
+
+It follows that only actively queued entry actually use the Sq.
+All passively queued entry, use the Sq slots like the Aq ones, since
+the client is unaware of it.
+
+
+3. Required Features
+
+In order to use PARQ actively, the client must support HTTP 1xx responses.
+Only HTTP/1.0 support is required, and in particaly HTTP persistent
+connections are not needed.  If an active client is connected to the server,
+and the connection is broken for any reason, it can reconnect within the
+next 300 seconds and keep its slot in the queue (Remanence effect).
+
+In order to use PARQ passively, the client need either support the Retry-After:
+header in HTTP responses, and strictly honour it instead of its internal
+retry timer.  Only the
+
+    Retry-After: <amount of seconds>
+
+for of the header is used, for convenience.  If the client does not support
+Retry-After:, as many legacy servents do, the client only needs to retry
+the download on 503 before the next 300 seconds.
+
+Optionally, non-firewalled clients that support PARQ can also support a new
+form of request that can be used by the server as a callback.  It is similar
+to a GIV request sent by the server to the client when a PUSH is received.
+It is named "QUEUE" and will be detailed in section 4.
+
+
+4. Active Queuing
+
+This section presents the active queuing, i.e. only addresses clients
+that are aware of PARQ.
+
+PARQ-compliance is indicated by the client through the following header
+in the HTTP request:
+
+    X-Queue: 0.1
+
+which indicates that the servent will understand the queuing protocol
+and the replies from the PARQ-compliant server.
+
+An initial request/answer from the client will result in the following
+HTTP exchange:
+
+    GET /resource HTTP/1.0
+    User-Agent: blah
+    X-Queue: 0.1
+    X-Listen-IP: 13.4.5.6:4567
+
+        HTTP/1.0 503 Busy
+        Server: blah
+        X-Queue: 0.1
+        X-Queued: slot=1503; eta=4200; lifetime=3600;
+            ID=6a074979f3201edbf323b6425fef4a53
+        Connection: close
+        Retry-After: 600
+
+The "X-Listen-IP" in the request indicates the client is not firewalled
+and provides the address and port where the server can make its QUEUE
+callback, if necessary.
+
+The server tells its PARQ level of support via its own X-Queue header.
+Even if the server supports a more recent version (say 0.3), it will always
+downgrade its reply to match that of the client.
+
+The "X-Queued" header of the reply indicates that the request was
+asynchronously queued, at slot #1503.  The ETA (Estimated Time of Arrival)
+for it to reach slot #1 is 4200 seconds.  The lifetime of 3600 means
+the server expects a new request to come before the next 3600 seconds,
+be after the 600 seconds in the Retry-After header.  The ID indicates
+the GUID of the queued slot (pure random number).
+
+The general syntax of the X-Queued: header is a list of var=value
+settings, each separated by ';'.  The spaces after each ';' are optional.
+
+If the client does not re-issue the request after 3600 seconds, and
+provided there was an X-Listen-IP given, then the server will contact the
+client at the specified IP:port and will give it the following request:
+
+    QUEUE 6a074979f3201edbf323b6425fef4a53\r\n
+
+To which the client must reply with:
+
+    GET /resource HTTP/1.0
+    User-Agent: blah
+    X-Listen-IP: 13.4.5.6:4567
+    X-Queue: 0.1
+    X-Queued: slot=1503; ID=6a074979f3201edbf323b6425fef4a53
+
+        HTTP/1.0 503 Busy
+        Server: blah
+        X-Queue: 0.1
+        X-Queued: slot=1501; eta=4100; lifetime=3600;
+            ID=6a074979f3201edbf323b6425fef4a53
+        Connection: close
+        Retry-After: 600
+
+This is identical to any client-generated requery made by the client.
+Note that even when replying to a QUEUE request, the ID MUST be given
+in the request.  This simplifies the implementation on the server side.
+(and the server will again reply with the same ID, the aim being to
+avoid special-casing the processing of those headers as much as possible).
+
+The X-Queued header in the request simply shows the server that the
+client at this IP:port knows the last slot number that was returned for
+this entry, and is therefore the proper client.  If there is a mismatch,
+the corresponding slot is immediately freed.
+
+The QUEUE callback is useful when the server is firewalled and the client
+is not.  Otherwise, the client will make the request after the time
+given by the Retry-After, and the server will never make the callback.
+
+Any PARQ-compliant client MUST honour the Retry-After.  Sending the
+request too soon will cause the slot to be freed.
+
+To "cancel" the request, the client simply stops sending requests and
+ignores the QUEUE callbacks, which will cause the slot to be freed.
+
+When the slot number is low enough to enter the Synchronous Queue (Sq),
+the HTTP exchanges becomes totally different.  Let's take a requery as
+an example, but things would be totally similar for an initial request:
+
+    GET /resource HTTP/1.0
+    User-Agent: blah
+    X-Listen-IP: 13.4.5.6:4567
+    X-Queue: 0.1
+    X-Queued: slot=53; ID=6a074979f3201edbf323b6425fef4a53
+
+        HTTP/1.0 100 Remotely Queued
+        X-Queue: 0.1
+        Server: blah
+        X-Queued: slot=14; eta=2100; ID=6a074979f3201edbf323b6425fef4a53
+
+        HTTP/1.0 100 Remotely Queued
+        X-Queued: slot=13; eta=1200
+
+        HTTP/1.0 100 Remotely Queued
+        X-Queued: slot=1; eta=150
+
+        HTTP/1.0 200 OK
+
+This sequence requires some explainations.  First, 1xx status codes are
+not defined in HTTP/1.0, but they are used here nonetheless.  This "abuse"
+is perfectly OK, since regular HTTP does not define the X-Queue header.
+Normally, all HTTP/1.1 clients should be able to understand 1xx status
+codes.
+
+Second, the connection between the server and the client is maintained
+throughout all the 100 replies, up to the final 200.  Each reply is
+a complete HTTP header set, i.e. it is ended by an empty <cr><lf> or
+"\r\n" for C adepts.
+
+The server will send back a 100 reply every minute or so, giving precise
+feedback to the client about the status of its request.  There is no
+need for the client to send anything (in fact, the client MUST NOT send
+anything after its initial HTTP/1.0 request).  Naturally, we move to
+a 200 status as soon as possible, even if we just sent the last 100 a
+few seconds ago.
+
+Only the fist 100 reply will contain the Server, and the first X-Queued
+line will contain the queue ID.  Also, since the connection is maintained,
+the ID is not repeated each time and there is no need for the "lifetime"
+parameter.
+
+If the connection between the server and the client is broken at this
+stage, the server will hold the slot for 300 seconds max the first time.
+The client can re-issue its request within the first 300 seconds,
+or the server will call back with a QUEUE request after 300 seconds
+(i.e. the implicit "lifetime" here is 300).
+
+To prevent abuse, servers MAY limit the amount of disconnections allowed
+within Sq, but it must allow at least 1 (one).
+
+
+5. Passive Queuing
+
+This section presents the passive queuing, i.e. only addresses clients
+that are unaware of PARQ (clients that do not send the X-Queue header,
+and which are incapable of handling the QUEUE callback).
+
+The principle of passive queueing is that the server remembers the IP
+address of the requesting servent and allocates a slot for it.  This slot
+is kept as long as the servent retries within the next 300 seconds.
+
+Naturally, there is no Sq used with those clients.  Even when the slot
+number is low enough to deserve an entry in the Sq, the server will act as
+if the slot was in Aq.  The "lifetime" is implicitly set to 300 seconds.
+
+In order to avoid excessive requerying, the server will use the
+
+    Retry-After: 250
+
+header to indicate that it is useless to retry before 250 seconds
+(for instance).  As the requests moves in the queue towards slot 1,
+this amount will decrease.  It is suggested that the amount be initially
+set to 250 for slots up to 21 (included), and then to 30 + 5*(slot-1):
+125 for slot=20, and 30 for slot=1.
+
+Since Retry-After is a standard HTTP header, all servents should already
+honour it correctly.  If the client does not understand the header, it
+will requery at its normal rate (since it does not know about the queue).
+
+This forces the server to hold slots for at most 300 seconds.
+In practice, servents requery every 60 seconds or so.
+
+
+6. Discussion
+
+The main advantage of PARQ is that it provides a queuing system for
+modern servents whilst not completely preventing older servents from
+getting slots.  Full deployment of PARQ will indeed take some time.
+
+Another important advantage is that it allows the download queue to
+be persisted.  Even the Sq can be "persisted".  This will prove most
+useful for non-firewalled clients, as they will get a callback from
+the server, possibly days later, when the server comes back online.
+There has to be some advantage to not being firewalled!
+
+It is also important to note that PARQ is only a slot reservation system.
+There is no correlation between a slot and a file.  This means a client
+can request a file initially, and change its mind until the upload
+slot is allocated.  When in Sq, this requires closing the connection.
+Thanks to Remanence, this will either trigger a callback from the server
+after 300 seconds, or the client can try to reconnect if the server is
+not firewalled.
+
+The Remanence property of the queue can also be extended to overcome the
+lack of persistent connection support in HTTP/1.0 by reserving an upload slot
+for 300 seconds, to the same IP, same file!  This can help servents behind
+a modem, that waited painfully to get an upload slot and once they got it,
+had their connection broken suddenly.
+
+The upload slots could even be "persisted", for PARQ-aware servents that
+are not firewalled: the server would then send back QUEUE requests to
+them, and they would get back their slot immediately.
+
+Because both the client and the server exchange version numbers via the
+X-Queue header, smooth upgrades will be possible: a server will always
+downgrade to a level acceptable by the client.  And future versions of this
+specification will mandate that a client at level 0.3 be able to understand
+0.2 and 0.1 replies from a server.
+
+
+7. Backward Compatibility with Legacy Queuing
+
+BearShare and Shareaza support an incompatible queuing protocol, built
+before PARQ was launched.
+
+In order to allow for smooth transition to PARQ and at the same time
+not penalize PARQ-compliant clients that would connect to those legacy
+servers, any client advertising:
+
+    X-Queue: 0.1
+
+MUST also be prepared to honour the legacy queuing implementation.
+The legacy server will reply with:
+
+    X-Queue: position=2,length=5,limit=4,pollMin=45,pollMax=120
+
+It's easy to tell that it's a legacy servent, because PARQ servers will
+use the X-Queue header in replies to advertise the level used to reply.
+Therefore, any X-Queue header not starting with "digit.digit" must belong
+to the legacy implementation.
+
+In this header, the only fields of interest are:
+
+. position: this is the same as PARQ's "slot" field.
+. pollMin: this is the same as PARQ's Retry-After header.
+. pollMax: this is the same as PARQ's "lifetime" field.
+
+However, those legacy servents require that the connection be maintained,
+i.e. they require HTTP/1.1 persistent connections (they only support
+some kind of Sq, in PARQ parlance).  If the connection is dropped,
+the slot will be lost since those servers do not support Remanence.
+
+Also, contrary to PARQ where being in the Sq means the server sends
+regular updates, clients must send a new HTTP request on the connection
+before pollMax seconds but not before pollMin seconds.
+
+Naturally, this backward compatibility goes only one way.  Legacy servers
+should upgrade their specifications to PARQ as they see fit.
+
+
+8. Conclusion
+
+Let's go back to the initial goals we had set and look how well we fulfill
+them:
+
+* Fairness: this is ensured by the FIFO nature of the queue and by the fact
+  that we support both active and passive queuing.
+* Monitoring: low granularity when the request is far deep in the queue (Aq),
+  the period of feedback increases as the request reaches Sq and moves to the
+  first slots.  Each client request also gives the instantaneous status (queue
+  position, ETA).
+* Remanence: this is a property of the implementation, but PARQ makes it easy
+  to support since it was designed with it in mind.
+* Legacy: this is assured by the passive queuing features of PARQ.
+
