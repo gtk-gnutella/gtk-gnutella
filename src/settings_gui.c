@@ -1186,6 +1186,14 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
+        PROP_ALLOW_PRIVATE_NETWORK_CONNECTION,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_no_rfc1918",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
         PROP_FORCED_LOCAL_IP,
         update_entry,
         TRUE,
@@ -1679,14 +1687,6 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_BAN_MAX_FDS,
-        update_spinbutton,
-        TRUE,
-        "spinbutton_config_ban_max_fds",
-        FREQ_UPDATES, 0
-    },
-    {
-        get_main_window,
         PROP_BAN_RATIO_FDS,
         update_spinbutton,
         TRUE,
@@ -1827,7 +1827,7 @@ static prop_map_t property_map[] = {
         update_entry,
         TRUE,
         "entry_config_max_banned_fd",
-        FREQ_UPDATES, 0
+        FREQ_UPDATES, 1
     },
     {
         get_main_window,
