@@ -66,11 +66,11 @@ void gnet_stats_count_received_header(gnutella_node_t *n)
     gnet_stats.byte.received[MSG_TOTAL] += sizeof(n->header);
     gnet_stats.byte.received[t] += sizeof(n->header);
 
-	i = MIN(n->header.ttl, 9);
+	i = MIN(n->header.ttl, STATS_RECV_COLUMNS);
     gnet_stats.pkg.received_ttl[i][MSG_TOTAL]++;
     gnet_stats.pkg.received_ttl[i][t]++;
 
-	i = MIN(n->header.hops, 9);
+	i = MIN(n->header.hops, STATS_RECV_COLUMNS);
     gnet_stats.pkg.received_hops[i][MSG_TOTAL]++;
     gnet_stats.pkg.received_hops[i][t]++;
 }
@@ -89,13 +89,13 @@ void gnet_stats_count_received_payload(gnutella_node_t *n)
     gnet_stats.byte.received[MSG_TOTAL] += size;
     gnet_stats.byte.received[t] += size;
 
-	i = MIN(n->header.ttl, 9);
-    gnet_stats.byte.received_ttl[i][MSG_TOTAL]++;
-    gnet_stats.byte.received_ttl[i][t]++;
+	i = MIN(n->header.ttl, STATS_RECV_COLUMNS);
+    gnet_stats.byte.received_ttl[i][MSG_TOTAL] += size;
+    gnet_stats.byte.received_ttl[i][t] += size;
 
-	i = MIN(n->header.hops, 9);
-    gnet_stats.byte.received_hops[i][MSG_TOTAL]++;
-    gnet_stats.byte.received_hops[i][t]++;
+	i = MIN(n->header.hops, STATS_RECV_COLUMNS);
+    gnet_stats.byte.received_hops[i][MSG_TOTAL] += size;
+    gnet_stats.byte.received_hops[i][t] += size;
 }
 
 void gnet_stats_count_sent(
