@@ -50,6 +50,7 @@ void gui_init(void);
 void gui_close(void);
 void gui_nodes_remove_selected();
 void gui_search_clear_results(void);
+void gui_search_history_add(gchar *s);
 void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist);
 void gui_search_force_update_tab_label(struct search *sch);
 void gui_search_init(void);

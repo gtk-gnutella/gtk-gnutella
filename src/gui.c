@@ -18,7 +18,7 @@
 
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 
-gchar gui_tmp[4096];
+static gchar gui_tmp[4096];
 
 /* If no search are currently allocated */
 GtkWidget *default_search_clist = NULL;
@@ -31,7 +31,9 @@ guint scid_search_autoselected = -1;
 guint scid_queue_freezed       = -1;
 
 /* List with timeout entries for statusbar messages */
-GSList *sl_statusbar_timeouts = NULL;
+static GSList *sl_statusbar_timeouts = NULL;
+
+static GList *sl_search_history = NULL;
 
 void gui_init(void)
 {
@@ -1051,7 +1053,33 @@ void gui_search_clear_results(void)
  */
 void gui_search_history_add(gchar * s)
 {
-    // FIXME
+    GList *new_hist = NULL;
+    GList *cur_hist = sl_search_history;
+    guint n = 0;
+
+    g_return_if_fail(s);
+
+    while (cur_hist != NULL) {
+        if ((n < 9) && (g_strcasecmp(s,cur_hist->data) != 0)) {
+            /* copy up to the first 9 items */
+            new_hist = g_list_append(new_hist, cur_hist->data);
+            n ++;
+        } else {
+            /* and free the rest */
+            g_free(cur_hist->data);
+        }
+        cur_hist = cur_hist->next;
+    }
+    /* put the new item on top */
+    new_hist = g_list_prepend(new_hist, g_strdup(s));
+
+    /* set new history */
+    gtk_combo_set_popdown_strings(GTK_COMBO(combo_search),new_hist);
+
+    /* free old list structure */
+    g_list_free(sl_search_history);
+    
+    sl_search_history = new_hist;
 }
 
 void gui_close(void)
