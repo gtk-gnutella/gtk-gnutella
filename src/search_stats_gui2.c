@@ -400,10 +400,10 @@ void search_stats_gui_shutdown(void)
  */
 void search_stats_gui_update(time_t now)
 {
-	static guint32 last_update = 0;
+	static time_t last_update = 0;
 	char tmpstr[32];
 
-    if (last_update + search_stats_update_interval > now)
+    if (delta_time(now, last_update) < search_stats_update_interval)
         return;
 
     last_update = now;
@@ -420,4 +420,5 @@ void search_stats_gui_update(time_t now)
 	gtk_label_set_text(label_search_stats_count, tmpstr);
 }
 
+/* vi: set ts=4: */
 #endif	/* USE_GTK2 */
