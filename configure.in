@@ -49,7 +49,9 @@ AC_MSG_CHECKING(whether inet_aton needs libresolv)
 AC_TRY_LINK_FUNC(inet_aton, need_lresolv=no, LIBS="$LIBS -lresolv")
 AC_MSG_RESULT($need_lresolv)
 
-
+# Checks for libsocket and libnsl needed by Solaris
+AC_SEARCH_LIBS(socket,socket)                                               
+AC_SEARCH_LIBS(gethostbyname,nsl socket)                                    
 
 dnl Set PACKAGE_DATA_DIR in config.h.
 if test "x${datadir}" = 'x${prefix}/share'; then
