@@ -4106,6 +4106,11 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 			/* If we made a follow-up request, mark host as not reliable */
 			if (is_followup)
 				d->server->attrs |= DLS_A_NO_KEEPALIVE;
+
+			/* Make sure we're waiting for the right file, collect alt-locs */
+			if (!check_content_urn(d, header))
+				return;
+
 			/* FALL THROUGH */
 		case 408:				/* Request timeout */
 			/* Update mesh */
