@@ -1382,10 +1382,55 @@ static void dmesh_check_deferred_altlocs(
 }
 
 /*
+ * dmesh_collect_sha1
+ *
+ * Parse the value of the X-Gnutella-Content-URN header in `value', looking
+ * for a SHA1.  When found, the SHA1 is extracted and placed into the given
+ * `digest' buffer.
+ *
+ * Returns whether we successfully extracted the SHA1.
+ */
+gboolean dmesh_collect_sha1(guchar *value, guchar *digest)
+{
+	guchar *p = value;
+
+	for (;;) {
+		guchar c;
+
+		/*
+		 * Skip leading spaces, if any.
+		 */
+
+		while ((c = *p)) {
+			if (!isspace(c))
+				break;
+			p++;
+		}
+
+		if (huge_extract_sha1(p, digest))
+			return TRUE;
+
+		/*
+		 * Advance past the next ',', if any.
+		 */
+
+		while ((c = *p++)) {
+			if (c == ',')
+				break;
+		}
+
+		if (c == '\0')			/* Reached end of string w/o finding a SHA1 */
+			break;
+	}
+
+	return FALSE;
+}
+
+/*
  * dmesh_collect_locations
  *
- * Parse value of the "X-Gnutella-Content-URN" to extract alternate sources
- * for a given SHA1 key.
+ * Parse value of the "X-Gnutella-Alternate-Location" to extract alternate
+ * sources for a given SHA1 key.
  */
 void dmesh_collect_locations(guchar *sha1, guchar *value, gboolean defer)
 {

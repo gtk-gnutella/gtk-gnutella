@@ -84,6 +84,7 @@ gboolean dmesh_add(
 void dmesh_remove(
 	const guchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name);
 
+gboolean dmesh_collect_sha1(guchar *value, guchar *digest);
 void dmesh_collect_locations(guchar *sha1, guchar *value, gboolean defer);
 
 gint dmesh_alternate_location(
