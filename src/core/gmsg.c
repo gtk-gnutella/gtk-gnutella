@@ -709,9 +709,7 @@ gmsg_cmp(gpointer pdu1, gpointer pdu2)
 		switch (h1->function) {
 		case GTA_MSG_PUSH_REQUEST:
 		case GTA_MSG_SEARCH_RESULTS:
-			if (h1->ttl == h2->ttl)
-				return 0;
-			return h1->ttl > h2->ttl ? -1 : +1;
+			return CMP(h2->ttl, h1->ttl);
 		default:
 			return 0;
 		}
@@ -1004,4 +1002,4 @@ gmsg_split_is_oob_query(gpointer head, gpointer data)
 		(QUERY_SPEED_MARK | QUERY_SPEED_OOB_REPLY);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
