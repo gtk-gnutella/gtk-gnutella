@@ -52,6 +52,9 @@
 - If search results say remote servent is firewalled, start immediately in
   push mode when downloading, provided pushes are authorized.
 - Recognizes more vendor codes in QHD (Query Hit Descriptor).
+- Implemented LimeWire's ping/pong reducing scheme.
+- Created doc/gnutella directory, populated with reference on the recently
+  implemented algorithms.
 
 # v 0.18   2001.11.19
 
