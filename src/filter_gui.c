@@ -37,8 +37,7 @@
 #include "gtk-missing.h"
 
 
-extern filter_t *filter_drop;
-#define DEFAULT_TARGET (filter_drop)   
+#define DEFAULT_TARGET (filter_get_drop_target())   
 
 
 /*
@@ -142,8 +141,10 @@ void filter_gui_init(void)
         (GTK_OPTION_MENU(optionmenu_filter_text_type), GTK_WIDGET(m));
 
     m = GTK_MENU(gtk_menu_new());
-        menu_new_item_with_data(m, "display", (gpointer) 1);
-    menu_new_item_with_data(m, "don't display", (gpointer) 0);
+        menu_new_item_with_data(m, "display", 
+        (gpointer) FILTER_PROP_STATE_DO);
+    menu_new_item_with_data(m, "don't display", 
+        (gpointer) FILTER_PROP_STATE_DONT);
     gtk_option_menu_set_menu
         (GTK_OPTION_MENU(optionmenu_filter_default_policy), GTK_WIDGET(m));
 }
@@ -535,9 +536,10 @@ void filter_gui_rebuild_target_combos(GList *filters)
         filter_t *filter = (filter_t *)l->data;
         /*
          * This is no need to create a query which should not
-         * display anything.
+         * display anything, also we can't advertise a filter
+         * as target that does not really exist yet.
          */
-        if (!filter_is_builtin(filter))
+        if (!filter_is_builtin(filter) && !filter_is_shadowed(filter))
             menu_new_item_with_data(m, filter->name, filter);
     }
 
