@@ -1027,7 +1027,7 @@ static struct shared_file *get_file_to_upload_from_index(
 	 */
 
 	if ((buf = header_get(header, "X-Gnutella-Content-Urn"))) {
-		sha1 = strstr(buf, "urn:sha1:");	// XXX case insensitive, RAM
+		sha1 = strcasestr(buf, "urn:sha1:");	/* Case-insensitive */
 
 		/*
 		 * NB: base32_decode_into() will stop when NUL is reached
@@ -1107,8 +1107,8 @@ static struct shared_file *get_file_to_upload_from_index(
 				printf("INDEX FIXED: requested %u, serving %u: %s\n",
 					index, sfn->file_index, sfn->file_path);
 			else
-				printf("INDEX MISMATCH (no fix): requested %u: %s\n",
-					index, basename);
+				printf("INDEX MISMATCH: requested %u: %s (has %s)\n",
+					index, basename, sf->file_name);
 		}
 
 		if (sfn == NULL) {
@@ -1147,22 +1147,33 @@ failed:
 	return NULL;
 }
 
-/* XXX -- urn:sha1: is case-insensitive -- RAM, 20/05/2002 */
-static const char sha1_query[] = "GET /uri-res/N2R?urn:sha1:";
-static const int sha1_query_length = sizeof(sha1_query) - 1;
+static const char urn_query[] = "GET /uri-res/N2R?";
+
+#define URN_QUERY_LENGTH	(sizeof(urn_query) - 1)
 
 /* 
- * get_file_to_upload_from_sha1
+ * get_file_to_upload_from_urn
  * 
- * Get the shared_file to upload from a given SHA1 hash. request is the
- * base32-encoded SHA1 hash.
+ * Get the shared_file to upload from a given URN.
  * Return the shared_file if we have it, NULL otherwise
  */
-static struct shared_file *get_file_to_upload_from_sha1(const gchar *request)
+static struct shared_file *get_file_to_upload_from_urn(const gchar *request)
 {
-	char hash[SHA1_BASE32_SIZE + 2];
+	char hash[SHA1_BASE32_SIZE + 1];
+	const gchar *urn = request + URN_QUERY_LENGTH;
 
-	sscanf(request + sha1_query_length, "%32s", hash);
+	/*
+	 * We currently only support SHA1 URNs.
+	 *		--RAM, 10/06/2002
+	 */
+
+	if (0 != strncasecmp(urn, "urn:sha1:", 9))
+		return NULL;
+
+	if (1 != sscanf(urn + 9, "%32s", hash))
+		return NULL;
+
+	hash[SHA1_BASE32_SIZE] = '\0';
 
 	return shared_file_by_sha1_base32(hash);
 }
@@ -1179,13 +1190,14 @@ static struct shared_file *get_file_to_upload(
 {
 	guint index = 0;
 
+	// XXX still not good, needs to handle HEAD /uri-res/ -- RAM, 13/06/2002
 	if (
 		sscanf(request, "GET /get/%u/", &index) ||
 		sscanf(request, "HEAD /get/%u/", &index)
 	)
 		return get_file_to_upload_from_index(u, header, request, index);
-	else if (!strncmp(request, sha1_query, sha1_query_length))
-		return get_file_to_upload_from_sha1(request);
+	else if (0 == strncmp(request, urn_query, URN_QUERY_LENGTH))
+		return get_file_to_upload_from_urn(request);
 
 	upload_error_not_found(u, request);
 	return NULL;
