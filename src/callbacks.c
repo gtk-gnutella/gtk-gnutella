@@ -295,7 +295,7 @@ void button_fs_bad_path_clicked(GtkButton *button, gpointer user_data)
 	}
 
 	gtk_widget_destroy(bad_path_filesel);
-	move_path_filesel = (GtkWidget *) NULL;
+	bad_path_filesel = (GtkWidget *) NULL;
 }
 
 void on_button_config_bad_path_clicked(
