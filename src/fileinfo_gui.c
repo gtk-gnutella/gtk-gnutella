@@ -300,12 +300,12 @@ static void fi_gui_set_filter_regex(gchar *s)
    	if (err) {
         gchar buf[1000];
 		regerror(err, &filter_re, buf, 1000);
-        statusbar_gui_warning(
-            15, "fi_gui_set_filter_regex: %s", buf);
+        statusbar_gui_warning(15, "*** ERROR: %s", buf);
 
         /* If an error occurs turn filter off. If this doesn't work,
          * then we probably have a serious problem. */
-        g_assert(!regcomp(&filter_re, fallback_re, REG_EXTENDED|REG_NOSUB));
+        err = regcomp(&filter_re, fallback_re, REG_EXTENDED|REG_NOSUB);
+        g_assert(!err);
     }
 
     clist_fi = GTK_CLIST(
