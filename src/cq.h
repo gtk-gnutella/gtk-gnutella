@@ -1,0 +1,79 @@
+/*
+ * Copyright (c) 2002, Raphael Manfredi
+ *
+ * Callout queue.
+ */
+
+#ifndef __cq_h__
+#define __cq_h__
+
+#include <glib.h>
+
+struct cqueue;
+
+typedef void (*cq_service_t)(struct cqueue *cq, gpointer obj);
+
+/*
+ * Callout queue event.
+ */
+typedef struct cevent {
+	struct cevent *ce_next;		/* Next item in callout queue */
+	struct cevent *ce_prev;		/* Prev item in callout queue */
+	struct cevent *ce_bnext;	/* Next item in hash bucket */
+	struct cevent *ce_bprev;	/* Prev item in hash bucket */
+	cq_service_t ce_fn;			/* Callback routine */
+	gpointer ce_arg;			/* Argument to pass to said callback */
+	guint32 ce_time;			/* Absolute trigger time */
+	gint ce_magic;				/* Magic number */
+} cevent_t;
+
+/*
+ * Callout queue descriptor.
+ *
+ * A callout queue is really a sorted linked list of events that are to
+ * happen in the near future, most recent coming first.
+ *
+ * Naturally, the insertion/deletion of items has to be relatively efficient.
+ * We don't want to go through all the items in the list to find the proper
+ * position for insertion.
+ *
+ * To do that, we maintain a parallel hash list of all the events, each event
+ * being inserted in the bucket i, where i is computed by abs_time % size,
+ * abs_time being the absolute time where the event is to be triggered
+ * and size being the size of the hash list. All the items under the bucket
+ * list are further sorted by increasing trigger time.
+ *
+ * To be completely generic, the callout queue "absolute time" is a mere
+ * unsigned long value. It can represent an amount of ms, or an amount of
+ * yet-to-come messages, or whatever. We don't care, and we don't want to care.
+ * The notion of "current time" is simply given by calling cq_clock() at
+ * regular intervals and giving it the "elasped time" since the last call.
+ */
+
+struct chash {
+	cevent_t *ch_head;			/* Bucket list head */
+	cevent_t *ch_tail;			/* Bucket list tail */
+};
+
+typedef struct cqueue {
+	cevent_t *cq_head;			/* Callout queue list head */
+	cevent_t *cq_tail;			/* Callout queue list tail */
+	struct chash *cq_hash;		/* Array of buckets for hash list */
+	guint32 cq_time;			/* "current time" */
+	gint cq_items;				/* Amount of recorded events */
+} cqueue_t;
+
+/*
+ * Interface routines.
+ */
+
+cqueue_t *cq_make(guint32 now);
+void cq_free(cqueue_t *cq);
+gpointer cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg);
+void cq_cancel(cqueue_t *cq, gpointer handle);
+void cq_resched(cqueue_t *cq, gpointer handle, gint delay);
+void cq_clock(cqueue_t *cq, gint elapsed);
+
+#endif	/* __cq_h__ */
+
+/* vi: set ts=4: */

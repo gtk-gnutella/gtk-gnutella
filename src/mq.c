@@ -137,8 +137,15 @@ void mq_clear(mqueue_t *q)
 
 	while ((l = q->qhead)) {
 		pmsg_t *mb = (pmsg_t *) l->data;
-		if (mb->m_rptr != pmsg_start(mb))	/* Started to write this message */
+
+		/*
+		 * Break if we started to write this message, i.e. if we read
+		 * some data out of it.
+		 */
+
+		if (!pmsg_is_unread(mb))
 			break;
+
 		(void) mq_rmlink_prev(q, l, pmsg_size(mb));
 	}
 
@@ -281,7 +288,7 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 		 * removed or we'd break the flow of messages.
 		 */
 
-		if (cmb->m_rptr != cmb_start)	/* Started to write this message */
+		if (pmsg_read_base(cmb) != cmb_start)	/* Started to write it  */
 			continue;
 
 		/*
@@ -434,7 +441,7 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 			pmsg_t *m = (pmsg_t *) l->data;
 			
 			if (
-				m->m_rptr == pmsg_start(m) &&	/* Not partially written */
+				pmsg_is_unread(m) &&			/* Not partially written */
 				pmsg_prio(m) < prio				/* Reached insert point */
 			) {
 				/*

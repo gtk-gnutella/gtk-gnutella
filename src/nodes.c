@@ -28,8 +28,15 @@
 #include "gmsg.h"
 #include "mq.h"
 #include "sq.h"
+#include "cq.h"
 #include "tx.h"
 #include "tx_link.h"
+#include "tx_deflate.h"
+#include "rxbuf.h"
+#include "rx.h"
+#include "rx_link.h"
+#include "rx_inflate.h"
+#include "pmsg.h"
 
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
@@ -39,6 +46,7 @@
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define SHUTDOWN_GRACE_DELAY	120	/* Grace period for shutdowning nodes */
 #define BYE_GRACE_DELAY			20	/* Bye sent, give time to propagate */
+#define CALLOUT_PERIOD			100	/* milliseconds */
 
 GSList *sl_nodes = (GSList *) NULL;
 
@@ -57,6 +65,7 @@ guint32 gnutella_hello_length = 0;
 
 static const gchar *gnutella_welcome = "GNUTELLA OK\n\n";
 static guint32 gnutella_welcome_length = 0;
+static cqueue_t *callout_queue;
 
 GHookList node_added_hook_list;
 /*
@@ -82,7 +91,9 @@ struct io_header {
 #define IO_EXTRA_DATA_OK	0x00000001	/* OK to have extra data after EOH */
 #define IO_STATUS_LINE		0x00000002	/* First line is a status line */
 
-static GHashTable *node_by_fd = 0;
+static void node_read_connecting(
+	gpointer data, gint source, GdkInputCondition cond);
+static void node_data_ind(rxdrv_t *rx, pmsg_t *mb);
 
 /***
  *** Node timer.
@@ -136,17 +147,57 @@ void node_timer(time_t now)
 }
 
 /*
+ * node_callout_timer
+ *
+ * Called every CALLOUT_PERIOD to heartbeat the callout queue.
+ */
+static gboolean node_callout_timer(gpointer p)
+{
+	static struct timeval last_period = { 0L, 0L };
+	struct timezone tz;
+	struct timeval tv;
+	gint delay;
+
+	(void) gettimeofday(&tv, &tz);
+
+	/*
+	 * How much elapsed since last call?
+	 */
+
+	delay = (gint) ((tv.tv_sec - last_period.tv_sec) * 1000 +
+		(tv.tv_usec - last_period.tv_usec) / 1000);
+
+	last_period = tv;		/* struct copy */
+
+	/*
+	 * If too much variation, or too little, maybe the clock was adjusted.
+	 * Assume a single period then.
+	 */
+
+	if (delay < CALLOUT_PERIOD/2 || delay > 3*CALLOUT_PERIOD)
+		delay = CALLOUT_PERIOD;
+
+	cq_clock(callout_queue, delay);
+
+	return TRUE;
+}
+
+/*
  * Network init
  */
 
 void network_init(void)
 {
+	rxbuf_init();
+	callout_queue = cq_make(0);
+
+	gtk_timeout_add(CALLOUT_PERIOD, (GtkFunction) node_callout_timer, NULL);
+
 	gnutella_welcome_length = strlen(gnutella_welcome);
 	gnutella_hello_length = strlen(gnutella_hello);
 	g_hook_list_init(&node_added_hook_list, sizeof(GHook));
 	node_added_hook_list.seq_id = 1;
 	node_added = NULL;
-	node_by_fd = g_hash_table_new(g_direct_hash, g_direct_equal);
 }
 
 /*
@@ -298,24 +349,12 @@ static void node_remove_v(
 	if (n->status == GTA_NODE_SHUTDOWN)
 		shutdown_nodes--;
 
-	if (n->membuf) {
-		g_assert(n->socket);
-		g_free(n->membuf->data);
-		g_free(n->membuf);
-		n->membuf = NULL;
-		g_hash_table_remove(node_by_fd, (gpointer) n->socket->file_desc);
-	}
 	if (n->socket) {
 		g_assert(n->socket->resource.node == n);
 		socket_free(n->socket);
 		n->socket = NULL;
 	}
 	/* n->io_opaque will be freed by node_real_remove() */
-
-	if (n->gdk_tag) {
-		gdk_input_remove(n->gdk_tag);
-		n->gdk_tag = 0;
-	}
 
 	if (n->allocated) {
 		g_free(n->data);
@@ -328,6 +367,10 @@ static void node_remove_v(
 	if (n->searchq) {
 		sq_free(n->searchq);
 		n->searchq = NULL;
+	}
+	if (n->rx) {
+		rx_free(n->rx);
+		n->rx = 0;
 	}
 	if (n->vendor) {
 		g_free(n->vendor);
@@ -398,7 +441,7 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
  * Terminate connection with remote node, but keep structure around for a
  * while, for displaying purposes.
  */
-static void node_eof(struct gnutella_node *n, const gchar * reason, ...)
+void node_eof(struct gnutella_node *n, const gchar * reason, ...)
 {
 	va_list args;
 
@@ -602,12 +645,22 @@ void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
 
 	n->flags |= NODE_F_BYE_SENT;
 
+	/*
+	 * XXX to know whether we sent it or not, we'd need to probe the size
+	 * XXX of the RX stack, now that there is a possible compression stage.
+	 */
+
 	if (mq_size(n->outq) == 0) {
 		if (dbg > 4)
 			printf("successfully sent BYE \"%s\" to %s\n",
 				n->error_str, node_ip(n));
-		sock_tx_shutdown(n->socket);
-		node_shutdown_mode(n, BYE_GRACE_DELAY);
+
+		if (!(n->attrs & NODE_A_TX_DEFLATE)) {
+			/* No compression, it's safe to shutdown */
+			sock_tx_shutdown(n->socket);
+			node_shutdown_mode(n, BYE_GRACE_DELAY);
+		} else
+			node_shutdown_mode(n, SHUTDOWN_GRACE_DELAY);
 	} else {
 		if (dbg > 4)
 			printf("delayed sending of BYE \"%s\" to %s\n",
@@ -862,17 +915,23 @@ static void node_is_now_connected(struct gnutella_node *n)
 	struct gnutella_socket *s = n->socket;
 
 	/*
-	 * Install reading callback.
+	 * Create RX stack, and enable reception of data.
 	 */
 
-	g_assert(s->gdk_tag == 0);
 
-	s->gdk_tag = gdk_input_add(s->file_desc,
-		(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-		node_read, (gpointer) n);
+	if (n->attrs & NODE_A_RX_INFLATE) {
+		rxdrv_t *rx;
 
-	/* We assume that if this is valid, it is non-zero */
-	g_assert(s->gdk_tag);
+		if (dbg > 4)
+			printf("Receiving compressed data from node %s\n", node_ip(n));
+
+		n->rx = rx_make(n, &rx_inflate_ops, node_data_ind, 0);
+		rx = rx_make_under(n->rx, &rx_link_ops, 0);
+		g_assert(rx);			/* Cannot fail */
+	} else
+		n->rx = rx_make(n, &rx_link_ops, node_data_ind, 0);
+
+	rx_enable(n->rx);
 
 	/*
 	 * Update state, and mark node as valid.
@@ -891,7 +950,33 @@ static void node_is_now_connected(struct gnutella_node *n)
 	connected_node_cnt++;
 
 	if (!NODE_IS_PONGING_ONLY(n)) {
-		txdrv_t *tx = tx_make(n, &tx_link_ops, 0);
+		txdrv_t *tx = tx_make(n, &tx_link_ops, 0);		/* Cannot fail */
+
+		/*
+		 * If we committed on compressing traffic, install layer.
+		 */
+
+		if (n->attrs & NODE_A_TX_DEFLATE) {
+			struct tx_deflate_args args;
+			txdrv_t *ctx;
+
+			if (dbg > 4)
+				printf("Sending compressed data to node %s\n", node_ip(n));
+
+			args.nd = tx;
+			args.cq = callout_queue;
+
+			ctx = tx_make(n, &tx_deflate_ops, &args);
+			if (ctx == NULL) {
+				tx_free(tx);
+				node_remove(n, "Cannot setup compressing TX stack");
+				return;
+			}
+
+			tx = ctx;		/* Use compressing stack */
+		}
+
+		g_assert(tx);
 
 		n->outq = mq_make(node_sendqueue_size, n, tx);
 		n->searchq = sq_make(n);
@@ -988,52 +1073,6 @@ static void node_got_bye(struct gnutella_node *n)
 	}
 
 	node_remove(n, "Got BYE %d %.*s", code, MIN(80, message_len), message);
-}
-
-/*
- * membuf_read
- *
- * Reading callback installed by node_process_handshake_ack() to read from
- * a memory buffer.
- */
-static gint membuf_read(gint fd, gpointer buf, gint len)
-{
-	struct gnutella_node *n;
-	struct membuf *mbuf;
-	gint available;
-	gint count;
-
-	if (dbg > 4) printf("membuf_read: fd=%d, len=%d\n", fd, len);
-
-	n = (struct gnutella_node *) g_hash_table_lookup(node_by_fd, (gpointer) fd);
-	g_assert(n);
-	g_assert(n->read == membuf_read);
-
-	mbuf = n->membuf;
-	g_assert(mbuf);
-
-	g_assert(mbuf->rptr <= mbuf->end);
-
-	/*
-	 * Sockets are set non-blocking.  If we have nothing to read, don't
-	 * return 0, but -1 with errno set appropriately.
-	 */
-
-	if (mbuf->rptr == mbuf->end) {
-		errno = EAGAIN;
-		return -1;
-	}
-
-	available = mbuf->end - mbuf->rptr;
-	count = len < available ? len : available;
-	g_assert(count > 0);
-
-	memmove(buf, mbuf->rptr, count);
-	mbuf->rptr += count;
-
-	g_assert(mbuf->rptr <= mbuf->end);
-
-	return count;
 }
 
 /*
@@ -1269,6 +1308,7 @@ static void node_process_handshake_ack(struct io_header *ih)
 	struct gnutella_node *n = ih->node;
 	struct gnutella_socket *s = n->socket;
 	gboolean ack_ok;
+	gchar *field;
 
 	if (dbg) {
 		printf("Got final acknowledgment headers from node %s:\n",
@@ -1294,6 +1334,16 @@ static void node_process_handshake_ack(struct io_header *ih)
 	s->getline = NULL;
 
 	/*
+	 * Content-Encoding -- compression accepted by the remote side
+	 */
+
+	field = header_get(ih->header, "Content-Encoding");
+	if (field) {
+		if (strstr(field, "deflate"))		// XXX needs more rigourous parsing
+			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
+	}
+
+	/*
 	 * Install new node.
 	 */
 
@@ -1303,87 +1353,42 @@ static void node_process_handshake_ack(struct io_header *ih)
 	node_is_now_connected(n);
 
 	/*
-	 * The problem we have now is that the remote node is going to
-	 * send binary data, normally processed by node_read().  However,
-	 * we have probably read some of those data along with the handshaking
-	 * reply.  We can't just install the callback and leave, since the
-	 * callback won't be invoked until new data comes in.  And the remote
-	 * node might have send us a Ping that it expects us to reply to
-	 * or it will close the connection.
-	 *
-	 * To minimize the amount of change to make to the existing code, I
-	 * came up with the following trick:
-	 *
-	 * . The node_read() routine will no longer call read(), the system call,
-	 *   directly, but will use n->read() instead.
-	 * . While there is data pending in the socket, we install our own reading
-	 *   routine so that node_read() gets to read from a memory buffer through
-	 *   a reading routine we provide: membuf_read().
-	 * . We force all the data to be read now by calling node_read() manually.
-	 *
-	 * Because read() normally takes a file descriptor, we'll need to be able
-	 * to convert that file descriptor back into a node structure.  That's
-	 * the purpose of the `node_by_fd' hash.
-	 *
-	 *		--RAM, 23/12/2001
+	 * If we already have data following the final acknowledgment, feed it
+	 * to to stack, from the bottom: we already read it into the socket's
+	 * buffer, but we need to inject it at the bottom of the RX stack.
 	 */
 
 	if (s->pos > 0) {
-		struct membuf *mbuf;
+		pdata_t *db;
+		pmsg_t *mb;
+
+		if (dbg > 4)
+			printf("read %d Gnet bytes from node %s after handshake\n",
+				s->pos, node_ip(n));
 
 		/*
-		 * Prepare buffer where membuf_read() will read from and copy all
-		 * the pending data that we read from the socket.  Then reset the
-		 * socket buffer so that it appears to be empty.
+		 * Prepare data buffer out of the socket's buffer.
 		 */
 
-		mbuf = (struct membuf *) g_malloc(sizeof(struct membuf));
-		mbuf->data = mbuf->rptr = g_malloc(s->pos);
-		mbuf->end = mbuf->data + s->pos;
-		n->membuf = mbuf;
-		memmove(mbuf->data, s->buffer, s->pos);
+		db = pdata_allocb_ext(s->buffer, s->pos, pdata_free_nop, NULL);
+		mb = pmsg_alloc(PMSG_P_DATA, db, 0, s->pos);
+
+		/*
+		 * The message is given to the RX stack, and it will be freed by
+		 * the last function consuming it.
+		 */
+
+		rx_recv(rx_bottom(n->rx), mb);
+
+		/* 
+		 * We know that the message is synchronously delivered.  At this
+		 * point, all the data have been consumed, and the socket buffer
+		 * can be "emptied" my marking it holds zero data.
+		 */
+
 		s->pos = 0;
 
-		/*
-		 * Install the membuf_read() callback.
-		 */
-
-		n->read = membuf_read;
-		g_assert(0 == g_hash_table_lookup(node_by_fd, (gpointer) s->file_desc));
-		g_hash_table_insert(node_by_fd, (gpointer) s->file_desc, (gpointer) n);
-
-		/*
-		 * Call node_read() until all the data have been read from the
-		 * memory buffer.
-		 *
-		 * During processing, it is possible that the node be removed, at which
-		 * point `membuf' would be cleaned up.  We therefore escape out of
-		 * the loop as soon as we're not connected.
-		 */
-
-		g_assert(n->status == GTA_NODE_CONNECTED);
-
-		while (n->status == GTA_NODE_CONNECTED && mbuf->rptr < mbuf->end)
-			node_read((gpointer) n, s->file_desc, GDK_INPUT_READ);
-
-		/*
-		 * Cleanup the memory buffer data structures, if not already
-		 * done by node removal.
-		 */
-
-		if (n->membuf) {
-			g_hash_table_remove(node_by_fd, (gpointer) s->file_desc);
-			g_free(mbuf->data);
-			g_free(mbuf);
-			n->membuf = 0;
-		}
 	}
-
-	/*
-	 * We can now read via the system call.
-	 */
-
-	n->read = (gint (*)(gint, gpointer, gint)) read;
 }
 
 /*
@@ -1403,6 +1408,8 @@ static void node_process_handshake_header(struct io_header *ih)
 	gchar *field;
 	gboolean incoming = (n->flags & (NODE_F_INCOMING|NODE_F_TMP));
 	gchar *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
+	gchar *compressing = "Content-Encoding: deflate\r\n";
+	gchar *empty = "";
 
 	if (dbg) {
 		printf("Got %s handshaking headers from node %s:\n",
@@ -1504,6 +1511,28 @@ static void node_process_handshake_header(struct io_header *ih)
 	}
 
 	/*
+	 * Accept-Encoding -- decompression support on the remote side
+	 */
+
+	field = header_get(ih->header, "Accept-Encoding");
+	if (field) {
+		if (strstr(field, "deflate")) {		// XXX needs more rigourous parsing
+			n->attrs |= NODE_A_CAN_INFLATE;
+			n->attrs |= NODE_A_TX_DEFLATE;	/* We accept! */
+		}
+	}
+
+	/*
+	 * Content-Encoding -- compression accepted by the remote side
+	 */
+
+	field = header_get(ih->header, "Content-Encoding");
+	if (field) {
+		if (strstr(field, "deflate"))		// XXX needs more rigourous parsing
+			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
+	}
+
+	/*
 	 * If the connection is flagged as being temporary, it's time to deny
 	 * it with a 503 error code.
 	 */
@@ -1546,7 +1575,9 @@ static void node_process_handshake_header(struct io_header *ih)
 
 		rw = g_snprintf(gnet_response, sizeof(gnet_response),
 			"GNUTELLA/0.6 200 OK\r\n"
-			"\r\n");
+			"%s"
+			"\r\n",
+			(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty);
 		
 	} else {
 		/*
@@ -1559,9 +1590,13 @@ static void node_process_handshake_header(struct io_header *ih)
 			"Pong-Caching: 0.1\r\n"
 			"Bye-Packet: 0.1\r\n"
 			"Remote-IP: %s\r\n"
+			"Accept-Encoding: deflate\r\n"
+			"%s"
 			"X-Live-Since: %s\r\n"
 			"\r\n",
-			version_string, ip_to_gchar(n->socket->ip), start_rfc822_date);
+			version_string, ip_to_gchar(n->socket->ip),
+			(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
+			start_rfc822_date);
 	}
 
 	/*
@@ -1873,8 +1908,6 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 	)
 		node_remove_non_nearby();
 
-#define NO_RFC1918				/* XXX */
-
 #ifdef NO_RFC1918
 	/*
 	 * This needs to be a runtime option.  I could see a need for someone
@@ -1906,7 +1939,6 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 	n->proto_minor = minor;
 
 	n->routing_data = NULL;
-	n->read = (gint (*)(gint, gpointer, gint)) read;
 	n->flags = NODE_F_HDSK_PING;
 
 	if (s) {					/* This is an incoming control connection */
@@ -2267,6 +2299,7 @@ void node_init_outgoing(struct gnutella_node *n)
 			"User-Agent: %s\r\n"
 			"Pong-Caching: 0.1\r\n"
 			"Bye-Packet: 0.1\r\n"
+			"Accept-Encoding: deflate\r\n"
 			"X-Live-Since: %s\r\n"
 			"\r\n",
 			n->proto_major, n->proto_minor,
@@ -2386,14 +2419,10 @@ void node_tx_leave_flowc(struct gnutella_node *n)
  */
 static void node_disable_read(struct gnutella_node *n)
 {
-	struct gnutella_socket *s = n->socket;
-
-	g_assert(s);
-	g_assert(s->gdk_tag);
+	g_assert(n->rx);
 
 	n->flags |= NODE_F_NOREAD;
-	gdk_input_remove(s->gdk_tag);		/* Don't read anymore */
-	s->gdk_tag = 0;
+	rx_disable(n->rx);
 }
 
 /*
@@ -2417,56 +2446,24 @@ void node_bye_sent(struct gnutella_node *n)
 /*
  * node_read
  *
- * I/O callback used to read binary Gnet traffic from a node.
+ * Read data from the message buffer we just received.
+ * Returns TRUE whilst we think there is more data to read in the buffer.
  */
-void node_read(gpointer data, gint source, GdkInputCondition cond)
+static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 {
 	gint r;
-	struct gnutella_node *n = (struct gnutella_node *) data;
-
-	g_return_if_fail(n);
-	g_assert(NODE_IS_CONNECTED(n));
-
-	if (cond & GDK_INPUT_EXCEPTION) {
-		node_eof(n, "Failed (Input Exception)");
-		return;
-	}
-
-	/*
-	 * It is possible to be called whilst NODE_F_NOREAD has been set, when
-	 * we're reading from a memory buffer.
-	 */
-
-	if (n->flags & NODE_F_NOREAD) {
-		node_eof(n, "Reading disabled");
-		return;
-	}
 
 	if (!n->have_header) {		/* We haven't got the header yet */
-		guchar *w = (guchar *) & n->header;
+		guchar *w = (guchar *) &n->header;
 		gboolean kick = FALSE;
 
-		r = n->read(n->socket->file_desc, w + n->pos,
+		r = pmsg_read(mb, w + n->pos,
 				 sizeof(struct gnutella_header) - n->pos);
-
-		if (!r) {
-			if (n->n_ping_sent <= 2 && n->n_pong_received)
-				node_eof(n, "Got %d connection pong%s",
-					n->n_pong_received, n->n_pong_received == 1 ? "" : "s");
-			else
-				node_eof(n, "Failed (EOF)");
-			return;
-		} else if (r < 0 && errno == EAGAIN)
-			return;
-		else if (r < 0) {
-			node_eof(n, "Read error: %s", g_strerror(errno));
-			return;
-		}
 
 		n->pos += r;
 
 		if (n->pos < sizeof(struct gnutella_header))
-			return;
+			return FALSE;
 
 		/* Okay, we have read the full header */
 
@@ -2483,7 +2480,7 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 
 		if (!n->size) {
 			node_parse(n);
-			return;
+			return TRUE;		/* There may be more to come */
 		}
 
 		/* Check wether the message is not too big */
@@ -2493,7 +2490,7 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 			if (n->size > BYE_MAX_SIZE) {
 				node_remove(n, "Kicked: %s message too big (%d bytes)",
 							gmsg_name(n->header.function), n->size);
-				return;
+				return FALSE;
 			}
 			break;
 
@@ -2522,7 +2519,7 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 			node_disable_read(n);
 			node_bye(n, 400, "Too large %s message (%u bytes)",
 				gmsg_name(n->header.function), n->size);
-			return;
+			return FALSE;
 		}
 
 		/* Okay */
@@ -2543,7 +2540,7 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 				node_disable_read(n);
 				node_bye(n, 400, "Too large %s message (%d bytes)",
 					gmsg_name(n->header.function), n->size);
-				return;
+				return FALSE;
 			}
 
 			if (n->allocated)
@@ -2558,26 +2555,49 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 
 	/* Reading of the message data */
 
-	r = n->read(n->socket->file_desc, n->data + n->pos, n->size - n->pos);
-
-	if (r == 0) {
-		node_eof(n, "Failed (EOF in %s message data)",
-			gmsg_name(n->header.function));
-		return;
-	} else if (r < 0 && errno == EAGAIN)
-		return;
-	else if (r < 0) {
-		node_eof(n, "Read error in %s message: %s",
-			gmsg_name(n->header.function), g_strerror(errno));
-		return;
-	}
+	r = pmsg_read(mb, n->data + n->pos, n->size - n->pos);
 
 	n->pos += r;
 
 	g_assert(n->pos <= n->size);
 
-	if (n->pos == n->size)
-		node_parse(n);
+	if (n->pos < n->size)
+		return FALSE;
+
+	node_parse(n);
+
+	return TRUE;		/* There may be more data */
+}
+
+/*
+ * node_data_ind
+ *
+ * RX data indication callback used to give us some new Gnet traffic in a
+ * low-level message structure (which can contain several Gnet messages).
+ */
+static void node_data_ind(rxdrv_t *rx, pmsg_t *mb)
+{
+	struct gnutella_node *n = rx_node(rx);
+
+	g_assert(mb);
+	g_assert(NODE_IS_CONNECTED(n));
+
+	/*
+	 * Since node_read() can shutdown the node, we must explicitly check
+	 * the the GTA_NODE_CONNECTED status and can't use NODE_IS_CONNECTED().
+	 * Likewise, processing of messages can cause the node to become
+	 * unreadable, so we need to check that as well.
+	 *
+	 * The node_read() routine will return FALSE when it detects that the
+	 * message buffer is empty.
+	 */
+
+	while (n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n)) {
+		if (!node_read(n, mb))
+			break;
+	}
+
+	pmsg_free(mb);
 }
 
 /*
@@ -2585,7 +2605,8 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
  *
  * Reads an outgoing connecting CONTROL node handshaking at the 0.4 level.
  */
-void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
+static void node_read_connecting(
+	gpointer data, gint source, GdkInputCondition cond)
 {
 	struct gnutella_node *n = (struct gnutella_node *) data;
 	struct gnutella_socket *s = n->socket;
@@ -2738,7 +2759,9 @@ void node_close(void)
 	}
 
 	g_slist_free(sl_nodes);
-	g_hash_table_destroy(node_by_fd);
+
+	rxbuf_close();
+	cq_free(callout_queue);
 }
 
 /* vi: set ts=4: */

@@ -27,6 +27,8 @@
  *
  * Create a new network driver, equipped with the `ops' operations and
  * initialize its specific parameters by calling the init routine with `args'.
+ *
+ * Return NULL if there is an initialization problem.
  */
 txdrv_t *tx_make(struct gnutella_node *n, struct txdrv_ops *ops, gpointer args)
 {
@@ -40,7 +42,8 @@ txdrv_t *tx_make(struct gnutella_node *n, struct txdrv_ops *ops, gpointer args)
 	tx->node = n;
 	tx->ops = ops;
 
-	TX_INIT(tx, args);		/* Let the heir class initialize */
+	if (NULL == TX_INIT(tx, args))		/* Let the heir class initialize */
+		return NULL;
 
 	return tx;
 }

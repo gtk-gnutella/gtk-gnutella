@@ -35,13 +35,20 @@ gtk_gnutella_SOURCES = \
 	url.c url.h \
 	pmsg.c pmsg.h \
 	gmsg.c gmsg.h \
+	cq.c cq.h \
 	mq.c mq.h \
 	sq.c sq.h \
 	bsched.c bsched.h \
 	tx.c tx.h \
-	tx_link.c tx_link.h
+	tx_link.c tx_link.h \
+	tx_deflate.c tx_deflate.h \
+	rxbuf.c rxbuf.h \
+	rx.c rx.h \
+	rx_link.c rx_link.h \
+	rx_inflate.c rx_inflate.h \
+	zlib_util.c zlib_util.h
 
-gtk_gnutella_LDADD = @GTK_LIBS@
+gtk_gnutella_LDADD = @GTK_LIBS@ -lz
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
 GLADE_WARNING2 = "  \"glade --write-source\" failed.  To ignore any changes to"

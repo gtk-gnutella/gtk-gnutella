@@ -20,7 +20,7 @@ typedef void (*tx_service_t)(gpointer obj);
  */
 typedef struct txdriver {
 	struct gnutella_node *node;		/* Node to which this driver belongs */
-	struct txdrv_ops *ops;			/* Dynamically bitxed operations */
+	struct txdrv_ops *ops;			/* Dynamically dispatched operations */
 	gint flags;						/* Driver flags */
 	tx_service_t srv_routine;		/* Service routine of upper TX layer */
 	gpointer srv_arg;				/* Service routine argument */
@@ -38,7 +38,7 @@ typedef struct txdriver {
  */
 
 struct txdrv_ops {
-	void (*init)(txdrv_t *tx, gpointer args);
+	gpointer (*init)(txdrv_t *tx, gpointer args);
 	void (*destroy)(txdrv_t *tx);
 	gint (*write)(txdrv_t *tx, gpointer data, gint len);
 	gint (*writev)(txdrv_t *tx, struct iovec *iov, gint iovcnt);

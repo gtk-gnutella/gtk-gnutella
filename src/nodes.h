@@ -4,6 +4,7 @@
 #include "gnutella.h"
 #include "mq.h"
 #include "sq.h"
+#include "rx.h"
 
 /*
  * MAX_CACHE_HOPS defines the maximum hop count we handle for the ping/pong
@@ -16,12 +17,6 @@
 #define MAX_CACHE_HOPS	9		/* We won't handle anything larger */
 
 #define CACHE_HOP_IDX(h)	(((h) > MAX_CACHE_HOPS) ? MAX_CACHE_HOPS : (h))
-
-struct membuf {
-	gchar *data;			/* Where data is held */
-	gchar *end;				/* First location beyond buffer */
-	gchar *rptr;			/* Read pointer within data */
-};
 
 struct gnutella_node {
 	gchar error_str[256];		/* To sprintf() error strings with vars */
@@ -65,20 +60,11 @@ struct gnutella_node {
 	guint32 ip;					/* ip of the node */
 	guint16 port;				/* port of the node */
 
-	gint gdk_tag;				/* gdk tag for write status */
-	mqueue_t *outq;				/* Output queue */
-	squeue_t *searchq;			/* Search queue */
+	mqueue_t *outq;				/* TX Output queue */
+	squeue_t *searchq;			/* TX Search queue */
+	rxdrv_t *rx;				/* RX stack top */
 
 	gpointer routing_data;		/* Opaque info, for packet routing */
-
-	/*
-	 * The following are used after a 0.6 handshake.  See comment in
-	 * node_process_handshake_ack() to understand how it is used and why.
-	 *		--RAM, 23/12/2001
-	 */
-
-	gint (*read)(gint, gpointer, gint);	/* Data reading routine */
-	struct membuf *membuf;				/* Buffer, which we can read from */
 
 	/*
 	 * Data structures used by the ping/pong reduction scheme.
@@ -129,6 +115,10 @@ struct gnutella_node {
 #define NODE_A_PONG_CACHING	0x00000002	/* Supports Pong-Caching */
 #define NODE_A_PONG_ALIEN	0x00000004	/* Alien Pong-Caching scheme */
 #define NODE_A_QHD_NO_VTAG	0x00000008	/* Servent has no vendor tag in QHD */
+#define NODE_A_RX_INFLATE	0x00000010	/* Reading compressed data */
+#define NODE_A_TX_DEFLATE	0x00000020	/* Sending compressed data */
+
+#define NODE_A_CAN_INFLATE	0x80000000	/* Node capable of inflating */
 
 /*
  * Node states.
@@ -172,7 +162,7 @@ struct gnutella_node {
 	(((n)->flags & (NODE_F_TMP|NODE_F_WRITABLE)) == NODE_F_WRITABLE)
 
 #define NODE_IS_READABLE(n) \
-	((n)->flags & NODE_F_READABLE)
+	(((n)->flags & (NODE_F_READABLE|NODE_F_NOREAD)) == NODE_F_READABLE)
 
 #define NODE_MQUEUE_PERCENT_USED(n) \
 	((n)->outq ? mq_size((n)->outq) * 100 / mq_maxsize((n)->outq) : 0)
@@ -236,11 +226,10 @@ gint32 node_count(void);
 void node_add(struct gnutella_socket *, guint32, guint16);
 void node_real_remove(struct gnutella_node *);
 void node_remove(struct gnutella_node *, const gchar * reason, ...);
+void node_eof(struct gnutella_node *n, const gchar * reason, ...);
 void node_shutdown(struct gnutella_node *n, const gchar * reason, ...);
 void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...);
 void node_init_outgoing(struct gnutella_node *);
-void node_read_connecting(gpointer, gint, GdkInputCondition);
-void node_read(gpointer, gint, GdkInputCondition);
 gboolean node_sent_ttl0(struct gnutella_node *n);
 void node_disableq(struct gnutella_node *n);
 void node_enableq(struct gnutella_node *n);
@@ -253,3 +242,4 @@ void node_close(void);
 gboolean node_remove_non_nearby(void);
 
 #endif /* __nodes_h__ */
+

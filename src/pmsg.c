@@ -11,8 +11,7 @@
 #define implies(a,b)	(!(a) || (b))
 #define valid_ptr(a)	(((gulong) (a)) > 100L)
 
-#define OFFSET(s,x)		((guint) (&((s *) NULL)->x))
-#define ARENA_OFFSET	OFFSET(pdata_t, d_arena)
+#define EMBEDDED_OFFSET	G_STRUCT_OFFSET(pdata_t, d_embedded)
 
 /*
  * pmsg_size
@@ -149,10 +148,31 @@ gint pmsg_write(pmsg_t *mb, gpointer data, gint len)
 	if (written == 0)
 		return 0;
 
-	memcpy(mb->m_wptr, data, len);
-	mb->m_wptr += len;
+	memcpy(mb->m_wptr, data, written);
+	mb->m_wptr += written;
 
 	return written;
+}
+
+/*
+ * pmsg_read
+ *
+ * Read data from the message, returning the amount of bytes transferred.
+ */
+gint pmsg_read(pmsg_t *mb, gpointer data, gint len)
+{
+	gint available = mb->m_wptr - mb->m_rptr;
+	gint readable = len >= available ? available : len;
+
+	g_assert(available >= 0);		/* Data cannot go beyond end of arena */
+
+	if (readable == 0)
+		return 0;
+
+	memcpy(data, mb->m_rptr, readable);
+	mb->m_rptr += readable;
+
+	return readable;
 }
 
 /*
@@ -168,9 +188,9 @@ pdata_t *pdata_new(int len)
 
 	g_assert(len > 0);
 
-	arena = g_malloc(len + ARENA_OFFSET);
+	arena = g_malloc(len + EMBEDDED_OFFSET);
 
-	db = pdata_allocb(arena, len + ARENA_OFFSET, NULL, 0);
+	db = pdata_allocb(arena, len + EMBEDDED_OFFSET, NULL, 0);
 
 	g_assert(len == pdata_len(db));
 
@@ -180,29 +200,70 @@ pdata_t *pdata_new(int len)
 /*
  * pdata_allocb
  *
- * Create a data buffer out of existing arena.
+ * Create an embedded data buffer out of existing arena.
  *
  * The optional `freecb' structure supplies the free routine callback to be
  * used to free the arena, with freearg as additional argument.
  */
-pdata_t *pdata_allocb(void *buf, gint len, pdata_free_t freecb, gint freearg)
+pdata_t *pdata_allocb(void *buf, gint len,
+	pdata_free_t freecb, gpointer freearg)
 {
 	pdata_t *db;
 
 	g_assert(valid_ptr(buf));
-	g_assert(len >= ARENA_OFFSET);
+	g_assert(len >= EMBEDDED_OFFSET);
 	g_assert(implies(freecb, valid_ptr(freecb)));
 
 	db = (pdata_t *) buf;
 
-	db->d_end = db->d_arena + (len - ARENA_OFFSET);
+	db->d_arena = db->d_embedded;
+	db->d_end = db->d_arena + (len - EMBEDDED_OFFSET);
 	db->d_refcnt = 0;
 	db->d_free = freecb;
 	db->d_arg = freearg;
 
-	g_assert(len - ARENA_OFFSET == pdata_len(db));
+	g_assert(len - EMBEDDED_OFFSET == pdata_len(db));
 
 	return db;
+}
+
+/*
+ * pdata_allocb_ext
+ *
+ * Create an external (arena not embedded) data buffer out of existing arena.
+ *
+ * The optional `freecb' structure supplies the free routine callback to be
+ * used to free the arena, with freearg as additional argument.
+ */
+pdata_t *pdata_allocb_ext(void *buf, gint len,
+	pdata_free_t freecb, gpointer freearg)
+{
+	pdata_t *db;
+
+	g_assert(valid_ptr(buf));
+	g_assert(implies(freecb, valid_ptr(freecb)));
+
+	db = g_malloc(sizeof(*db));
+
+	db->d_arena = buf;
+	db->d_end = (gchar *) buf + len;
+	db->d_refcnt = 0;
+	db->d_free = freecb;
+	db->d_arg = freearg;
+
+	g_assert(len == pdata_len(db));
+
+	return db;
+}
+
+/*
+ * pdata_free_nop
+ *
+ * This free routine can be used when there is nothing to be freed for
+ * the buffer, probably because it was made out of a static buffer.
+ */
+void pdata_free_nop(gpointer p, gpointer arg)
+{
 }
 
 /*
@@ -212,16 +273,24 @@ pdata_t *pdata_allocb(void *buf, gint len, pdata_free_t freecb, gint freearg)
  */
 static void pdata_free(pdata_t *db)
 {
+	gboolean is_embedded = (db->d_arena == db->d_embedded);
+
 	g_assert(db->d_refcnt == 0);
 
 	/*
 	 * If user supplied a free routine for the buffer, invoke it.
 	 */
 
-	if (db->d_free)
-		(*db->d_free)(db, db->d_arg);
-	else
+	if (db->d_free) {
+		gpointer p = is_embedded ? (gpointer) db : (gpointer) db->d_arena;
+		(*db->d_free)(p, db->d_arg);
+		if (!is_embedded)
+			g_free(db);
+	} else {
+		if (!is_embedded)
+			g_free(db->d_arena);
 		g_free(db);
+	}
 }
 
 /*
