@@ -4,7 +4,7 @@
  * This file comes from http://sourceforge.net/projects/tigertree/
  * Inclusion in gtk-gnutella is:
  *
- *   Copyright (c) 20033, Jeroen Asselman
+ *   Copyright (c) 2003, Jeroen Asselman
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -78,16 +78,16 @@
 
 RCSID("$Id$");
 
-#ifdef _WIN32
-#undef WORDS_BIGENDIAN
-#else
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"
 #endif
 
-#ifdef WORDS_BIGENDIAN
-#   define USE_BIG_ENDIAN 1
-#else
-#   define USE_BIG_ENDIAN 0
+#if G_BYTE_ORDER == G_BIG_ENDIAN 
+#   define USE_BIG_ENDIAN		1
+#elif G_BYTE_ORDER == G_LITTLE_ENDIAN
+#	define USE_LITTLE_ENDIAN	0
+#elif
+#error Byteorder not supported!
 #endif
 
 void tt_endian(gint8 *s);
