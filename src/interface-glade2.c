@@ -4667,6 +4667,11 @@ create_main_window (void)
   GtkWidget *entry_config_move_path;
   GtkWidget *button_config_move_path;
   GtkWidget *label297;
+  GtkWidget *frame60;
+  GtkWidget *hbox201;
+  GtkWidget *entry_config_bad_path;
+  GtkWidget *button_config_bad_path;
+  GtkWidget *label472;
   GtkWidget *frame16;
   GtkWidget *table38;
   GtkWidget *label171;
@@ -4830,7 +4835,9 @@ create_main_window (void)
   GtkWidget *hbox170;
   GtkWidget *image_offline;
   GtkWidget *image_online;
+  GtkWidget *alignment68;
   GtkWidget *statusbar;
+  GtkWidget *eventbox_image_save;
   GtkWidget *image_save;
   GtkWidget *eventbox_image_sha;
   GtkWidget *image_sha;
@@ -4839,7 +4846,9 @@ create_main_window (void)
   GtkWidget *eventbox_image_lib;
   GtkWidget *image_lib;
   GtkWidget *hbox147;
+  GtkWidget *eventbox2;
   GtkWidget *image_firewall;
+  GtkWidget *eventbox3;
   GtkWidget *image_no_firewall;
   GtkWidget *label_statusbar_uptime;
   GtkAccelGroup *accel_group;
@@ -7666,7 +7675,6 @@ create_main_window (void)
   gtk_widget_set_name (entry_config_save_path, "entry_config_save_path");
   gtk_widget_show (entry_config_save_path);
   gtk_box_pack_start (GTK_BOX (hbox96), entry_config_save_path, TRUE, TRUE, 0);
-  gtk_widget_set_sensitive (entry_config_save_path, FALSE);
   gtk_editable_set_editable (GTK_EDITABLE (entry_config_save_path), FALSE);
 
   button_config_save_path = gtk_button_new_with_mnemonic ("Browse");
@@ -7695,7 +7703,6 @@ create_main_window (void)
   gtk_widget_set_name (entry_config_move_path, "entry_config_move_path");
   gtk_widget_show (entry_config_move_path);
   gtk_box_pack_start (GTK_BOX (hbox95), entry_config_move_path, TRUE, TRUE, 0);
-  gtk_widget_set_sensitive (entry_config_move_path, FALSE);
   gtk_editable_set_editable (GTK_EDITABLE (entry_config_move_path), FALSE);
 
   button_config_move_path = gtk_button_new_with_mnemonic ("Browse");
@@ -7708,6 +7715,34 @@ create_main_window (void)
   gtk_widget_show (label297);
   gtk_frame_set_label_widget (GTK_FRAME (frame_move_downloaded_files), label297);
   gtk_label_set_justify (GTK_LABEL (label297), GTK_JUSTIFY_LEFT);
+
+  frame60 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame60, "frame60");
+  gtk_widget_show (frame60);
+  gtk_box_pack_start (GTK_BOX (vbox38), frame60, FALSE, TRUE, 0);
+
+  hbox201 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox201, "hbox201");
+  gtk_widget_show (hbox201);
+  gtk_container_add (GTK_CONTAINER (frame60), hbox201);
+  gtk_container_set_border_width (GTK_CONTAINER (hbox201), 2);
+
+  entry_config_bad_path = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_bad_path, "entry_config_bad_path");
+  gtk_widget_show (entry_config_bad_path);
+  gtk_box_pack_start (GTK_BOX (hbox201), entry_config_bad_path, TRUE, TRUE, 0);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_config_bad_path), FALSE);
+
+  button_config_bad_path = gtk_button_new_with_mnemonic ("Browse");
+  gtk_widget_set_name (button_config_bad_path, "button_config_bad_path");
+  gtk_widget_show (button_config_bad_path);
+  gtk_box_pack_start (GTK_BOX (hbox201), button_config_bad_path, FALSE, FALSE, 0);
+
+  label472 = gtk_label_new ("Move corrupted downloaded files to");
+  gtk_widget_set_name (label472, "label472");
+  gtk_widget_show (label472);
+  gtk_frame_set_label_widget (GTK_FRAME (frame60), label472);
+  gtk_label_set_justify (GTK_LABEL (label472), GTK_JUSTIFY_LEFT);
 
   frame16 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame16, "frame16");
@@ -7963,7 +7998,7 @@ create_main_window (void)
   frame51 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame51, "frame51");
   gtk_widget_show (frame51);
-  gtk_box_pack_start (GTK_BOX (vbox38), frame51, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox38), frame51, TRUE, TRUE, 0);
 
   table33 = gtk_table_new (7, 2, FALSE);
   gtk_widget_set_name (table33, "table33");
@@ -8670,6 +8705,7 @@ create_main_window (void)
   gtk_widget_show (togglebutton_online);
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), togglebutton_online, FALSE, FALSE, 0);
   GTK_WIDGET_UNSET_FLAGS (togglebutton_online, GTK_CAN_FOCUS);
+  gtk_button_set_relief (GTK_BUTTON (togglebutton_online), GTK_RELIEF_NONE);
 
   hbox170 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox170, "hbox170");
@@ -8686,15 +8722,25 @@ create_main_window (void)
   gtk_widget_show (image_online);
   gtk_box_pack_start (GTK_BOX (hbox170), image_online, TRUE, TRUE, 0);
 
+  alignment68 = gtk_alignment_new (0.5, 0.5, 1, 0);
+  gtk_widget_set_name (alignment68, "alignment68");
+  gtk_widget_show (alignment68);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), alignment68, TRUE, TRUE, 0);
+
   statusbar = gtk_statusbar_new ();
   gtk_widget_set_name (statusbar, "statusbar");
   gtk_widget_show (statusbar);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), statusbar, TRUE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (alignment68), statusbar);
   gtk_statusbar_set_has_resize_grip (GTK_STATUSBAR (statusbar), FALSE);
+
+  eventbox_image_save = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_save, "eventbox_image_save");
+  gtk_widget_show (eventbox_image_save);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_save, FALSE, FALSE, 0);
 
   image_save = create_pixmap (main_window, "save.xpm");
   gtk_widget_set_name (image_save, "image_save");
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), image_save, FALSE, FALSE, 0);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_save), image_save);
   gtk_misc_set_padding (GTK_MISC (image_save), 1, 0);
 
   eventbox_image_sha = gtk_event_box_new ();
@@ -8735,16 +8781,28 @@ create_main_window (void)
   gtk_widget_show (hbox147);
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox147, FALSE, TRUE, 0);
 
+  eventbox2 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox2, "eventbox2");
+  gtk_widget_show (eventbox2);
+  gtk_box_pack_start (GTK_BOX (hbox147), eventbox2, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox2, "Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results. ", NULL);
+
   image_firewall = create_pixmap (main_window, "firewall.xpm");
   gtk_widget_set_name (image_firewall, "image_firewall");
   gtk_widget_show (image_firewall);
-  gtk_box_pack_start (GTK_BOX (hbox147), image_firewall, FALSE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (eventbox2), image_firewall);
   gtk_misc_set_padding (GTK_MISC (image_firewall), 1, 0);
+
+  eventbox3 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox3, "eventbox3");
+  gtk_widget_show (eventbox3);
+  gtk_box_pack_start (GTK_BOX (hbox147), eventbox3, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox3, "People can connect to you. Push should work.", NULL);
 
   image_no_firewall = create_pixmap (main_window, "no_firewall.xpm");
   gtk_widget_set_name (image_no_firewall, "image_no_firewall");
   gtk_widget_show (image_no_firewall);
-  gtk_box_pack_start (GTK_BOX (hbox147), image_no_firewall, FALSE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (eventbox3), image_no_firewall);
   gtk_misc_set_padding (GTK_MISC (image_no_firewall), 1, 0);
 
   label_statusbar_uptime = gtk_label_new ("[uptime]");
@@ -8980,6 +9038,9 @@ create_main_window (void)
                     NULL);
   g_signal_connect ((gpointer) button_config_move_path, "clicked",
                     G_CALLBACK (on_button_config_move_path_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_config_bad_path, "clicked",
+                    G_CALLBACK (on_button_config_bad_path_clicked),
                     NULL);
   g_signal_connect ((gpointer) entry_config_path, "activate",
                     G_CALLBACK (on_entry_config_path_activate),
@@ -9475,6 +9536,11 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, entry_config_move_path, "entry_config_move_path");
   GLADE_HOOKUP_OBJECT (main_window, button_config_move_path, "button_config_move_path");
   GLADE_HOOKUP_OBJECT (main_window, label297, "label297");
+  GLADE_HOOKUP_OBJECT (main_window, frame60, "frame60");
+  GLADE_HOOKUP_OBJECT (main_window, hbox201, "hbox201");
+  GLADE_HOOKUP_OBJECT (main_window, entry_config_bad_path, "entry_config_bad_path");
+  GLADE_HOOKUP_OBJECT (main_window, button_config_bad_path, "button_config_bad_path");
+  GLADE_HOOKUP_OBJECT (main_window, label472, "label472");
   GLADE_HOOKUP_OBJECT (main_window, frame16, "frame16");
   GLADE_HOOKUP_OBJECT (main_window, table38, "table38");
   GLADE_HOOKUP_OBJECT (main_window, label171, "label171");
@@ -9620,7 +9686,9 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, hbox170, "hbox170");
   GLADE_HOOKUP_OBJECT (main_window, image_offline, "image_offline");
   GLADE_HOOKUP_OBJECT (main_window, image_online, "image_online");
+  GLADE_HOOKUP_OBJECT (main_window, alignment68, "alignment68");
   GLADE_HOOKUP_OBJECT (main_window, statusbar, "statusbar");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_save, "eventbox_image_save");
   GLADE_HOOKUP_OBJECT (main_window, image_save, "image_save");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_sha, "eventbox_image_sha");
   GLADE_HOOKUP_OBJECT (main_window, image_sha, "image_sha");
@@ -9629,7 +9697,9 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_lib, "eventbox_image_lib");
   GLADE_HOOKUP_OBJECT (main_window, image_lib, "image_lib");
   GLADE_HOOKUP_OBJECT (main_window, hbox147, "hbox147");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox2, "eventbox2");
   GLADE_HOOKUP_OBJECT (main_window, image_firewall, "image_firewall");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox3, "eventbox3");
   GLADE_HOOKUP_OBJECT (main_window, image_no_firewall, "image_no_firewall");
   GLADE_HOOKUP_OBJECT (main_window, label_statusbar_uptime, "label_statusbar_uptime");
   GLADE_HOOKUP_OBJECT_NO_REF (main_window, tooltips, "tooltips");
