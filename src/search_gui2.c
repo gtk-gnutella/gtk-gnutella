@@ -136,11 +136,12 @@ static GtkTreeIter *find_parent_with_sha1(GHashTable *ht, gpointer key)
 
 void search_gui_restart_search(search_t *sch)
 {
-	search_reissue(sch->search_handle);
 	gtk_tree_store_clear(GTK_TREE_STORE(
 			gtk_tree_view_get_model(GTK_TREE_VIEW(sch->tree_view))));
+	search_gui_clear_search(sch);
 	sch->items = sch->unseen_items = 0;
 	gui_search_update_items(sch);
+	search_reissue(sch->search_handle);
 }
 
 /*
@@ -1742,7 +1743,7 @@ void search_gui_shutdown(void)
 	search_gui_store_searches();
 
     while (searches != NULL)
-        search_gui_close_search((search_t *)searches->data);
+        search_gui_close_search((search_t *) searches->data);
 
 	zdestroy(rs_zone);
 	zdestroy(rc_zone);
@@ -1777,7 +1778,7 @@ static gboolean tree_view_search_remove(
 {
 	gpointer sch;
 
-    gtk_tree_model_get(model, iter, c_sl_sch, &sch, -1);
+    gtk_tree_model_get(model, iter, c_sl_sch, &sch, (-1));
  	if (sch == data) {
     	gtk_tree_store_remove((GtkTreeStore *) model, iter);
 		return TRUE;
@@ -2178,7 +2179,7 @@ static gboolean tree_view_search_update(
 			c_sl_new, sch->unseen_items,
 			c_sl_fg, fg,
 			c_sl_bg, bg,
-			-1);
+			(-1));
 		return TRUE;
 	}
 
