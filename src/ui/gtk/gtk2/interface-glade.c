@@ -15383,7 +15383,6 @@ create_dlg_prefs_dbg_tab (void)
   GtkWidget *viewport108;
   GtkWidget *frame126;
   GtkWidget *table98;
-  GtkWidget *label879;
   GtkWidget *label872;
   GtkWidget *label873;
   GtkWidget *label874;
@@ -15407,6 +15406,10 @@ create_dlg_prefs_dbg_tab (void)
   GtkWidget *label877;
   GtkWidget *label878;
   GtkWidget *label876;
+  GtkWidget *label890;
+  GtkObject *spinbutton_config_query_debug_adj;
+  GtkWidget *spinbutton_config_query_debug;
+  GtkWidget *label879;
   GtkWidget *label883;
   GtkWidget *label375;
   GtkWidget *frame_expert_unmapped;
@@ -15587,14 +15590,6 @@ create_dlg_prefs_dbg_tab (void)
   gtk_table_set_row_spacings (GTK_TABLE (table98), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table98), 4);
 
-  label879 = gtk_label_new_with_mnemonic (_("_GWebCache"));
-  gtk_widget_set_name (label879, "label879");
-  gtk_widget_show (label879);
-  gtk_table_attach (GTK_TABLE (table98), label879, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label879), 0, 0.5);
-
   label872 = gtk_label_new_with_mnemonic (_("Dynamic Query _Hits"));
   gtk_widget_set_name (label872, "label872");
   gtk_widget_show (label872);
@@ -15722,6 +15717,30 @@ create_dlg_prefs_dbg_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label876), 0, 0.5);
+
+  label890 = gtk_label_new (_("Query management"));
+  gtk_widget_set_name (label890, "label890");
+  gtk_widget_show (label890);
+  gtk_table_attach (GTK_TABLE (table98), label890, 2, 3, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label890), 0, 0.5);
+
+  spinbutton_config_query_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_query_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_query_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_query_debug, "spinbutton_config_query_debug");
+  gtk_widget_show (spinbutton_config_query_debug);
+  gtk_table_attach (GTK_TABLE (table98), spinbutton_config_query_debug, 3, 4, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label879 = gtk_label_new_with_mnemonic (_("_GWebCache"));
+  gtk_widget_set_name (label879, "label879");
+  gtk_widget_show (label879);
+  gtk_table_attach (GTK_TABLE (table98), label879, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label879), 0, 0.5);
 
   label883 = gtk_label_new (_("Functionality"));
   gtk_widget_set_name (label883, "label883");
@@ -15875,7 +15894,6 @@ create_dlg_prefs_dbg_tab (void)
   gtk_label_set_mnemonic_widget (GTK_LABEL (label377), spinbutton_config_gui_debug);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label517), spinbutton_config_lib_debug);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label599), spinbutton_config_track_props);
-  gtk_label_set_mnemonic_widget (GTK_LABEL (label879), spinbutton_config_dbg);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label872), spinbutton_config_dbg);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label873), spinbutton_config_dbg);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label874), spinbutton_config_dbg);
@@ -15883,6 +15901,7 @@ create_dlg_prefs_dbg_tab (void)
   gtk_label_set_mnemonic_widget (GTK_LABEL (label877), spinbutton_config_dbg);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label878), spinbutton_config_dbg);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label876), spinbutton_config_dbg);
+  gtk_label_set_mnemonic_widget (GTK_LABEL (label879), spinbutton_config_dbg);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (dlg_prefs_dbg_tab, dlg_prefs_dbg_tab, "dlg_prefs_dbg_tab");
@@ -15908,7 +15927,6 @@ create_dlg_prefs_dbg_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, viewport108, "viewport108");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, frame126, "frame126");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, table98, "table98");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label879, "label879");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label872, "label872");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label873, "label873");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label874, "label874");
@@ -15924,6 +15942,9 @@ create_dlg_prefs_dbg_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label877, "label877");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label878, "label878");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label876, "label876");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label890, "label890");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_query_debug, "spinbutton_config_query_debug");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label879, "label879");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label883, "label883");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label375, "label375");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, frame_expert_unmapped, "frame_expert_unmapped");

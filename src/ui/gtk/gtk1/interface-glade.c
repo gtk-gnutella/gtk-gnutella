@@ -10270,6 +10270,9 @@ create_dlg_prefs (void)
   GtkWidget *spinbutton_config_udp_debug;
   GtkObject *spinbutton_config_qrp_debug_adj;
   GtkWidget *spinbutton_config_qrp_debug;
+  GtkWidget *label698;
+  GtkObject *spinbutton_config_query_debug_adj;
+  GtkWidget *spinbutton_config_query_debug;
   GtkWidget *frame_expert_unmapped;
   GtkWidget *table57;
   guint label461_key;
@@ -15718,6 +15721,28 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_config_qrp_debug);
   gtk_table_attach (GTK_TABLE (table92), spinbutton_config_qrp_debug, 3, 4, 2, 3,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label698 = gtk_label_new (_("Query management"));
+  gtk_widget_set_name (label698, "label698");
+  gtk_widget_ref (label698);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label698", label698,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label698);
+  gtk_table_attach (GTK_TABLE (table92), label698, 2, 3, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label698), 0, 0.5);
+
+  spinbutton_config_query_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_query_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_query_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_query_debug, "spinbutton_config_query_debug");
+  gtk_widget_ref (spinbutton_config_query_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_query_debug", spinbutton_config_query_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_query_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_query_debug, 3, 4, 3, 4,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
