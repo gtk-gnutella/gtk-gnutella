@@ -1,5 +1,19 @@
 # since last version
 
+- (2002.12.26 - RAM)
+ * New properties: "current_ip_stamp", "average_ip_uptime", "start_stamp",
+   "average_servent_uptime", "force_ultrapeer", "force_leaf",
+   "max_ultrapeers", "max_leaves", "enable_ultrapeer", "current_peermode".
+ * Plugged support for GTA_MSG_QRP messages.
+ * Added management of QRP updating messages (RESET and PATCH).
+ * Now recognizes Ultrapeer-marked pongs (non-GGEP).
+ * Added support for handshaking as a leaf node and sending QRP updates.
+ * Added is_pow2() routine.
+ * `start_time' is no longer a variable, we now use the "start_stamp" property.
+ * Added host_add_ultra(), and adapted connecting loop to pay attention to
+   the "max_ultrapeers" property when acting in leaf mode.
+ * Made sure leaf nodes don't send connectible pongs back.
+
 - (2002.12.24 - cbiere)
  * 'Uploaded stats: splitted into gui and core
  * renamed ul_* functions to upload_*' (src/Makefile.am, src/Makefile.in,
@@ -8,6 +22,11 @@
  * [Gtk2] Upload stats: Replaced GtkCList with GtkTreeView
  * [Gtk2] About dialog: freenode.org -> freenode.net (gtk2-gnutella.glade,
    interface-glade2.c)
+
+- (2002.12.22 - RAM)
+ * Turned the Type colum in the gnet display into flags.
+ * Forgot to cancel the hostcache reading tasks at shutdown time.
+ * Look at the file's timestamp to ensure the SHA1 we have is up to date.
 
 - (2002.12.22 - cbiere)
  * [Gtk2] Added columns for connected time and uptime (sync with Gtk1)
