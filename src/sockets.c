@@ -9,11 +9,14 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <string.h>
+#include <dlfcn.h>
+#include <pwd.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
 guint32 local_ip = 0;
+
 
 /* ------------------------------------------------------------------------------------------------ */
 
@@ -30,7 +33,6 @@ void socket_destroy(struct gnutella_socket *s)
 	}
 	else if (s->type == GTA_TYPE_DOWNLOAD && s->resource.download)
 	{
-/*		printf("socket_remove(): removing download %s first \n", s->resource.download->file_name); */
 		download_stop(s->resource.download, GTA_DL_ERROR, NULL);
 		return;
 
@@ -42,9 +44,10 @@ void socket_destroy(struct gnutella_socket *s)
 	}
 
 	if (s->gdk_tag)   gdk_input_remove(s->gdk_tag);
-	if (s->file_desc) close(s->file_desc);
+	if (s->file_desc != -1) close(s->file_desc);
 
 	g_free(s); 
+
 }
 
 /* ------------------------------------------------------------------------------------------------ */
@@ -61,7 +64,8 @@ void socket_read(gpointer data, gint source, GdkInputCondition cond)
 	if (cond & GDK_INPUT_EXCEPTION) { socket_destroy(s); return; }
 
 	r = read(s->file_desc, s->buffer + s->pos, sizeof(s->buffer) - s->pos);
-
+	
+	
 	if (r == 0) { socket_destroy(s); return; }
 	else if (r < 0 && errno == EAGAIN) return;
 	else if (r < 0) { socket_destroy(s); return; }
@@ -82,11 +86,12 @@ void socket_read(gpointer data, gint source, GdkInputCondition cond)
 
 			n = node_add(s, s->ip, s->port);
 
-			if (n) s->gdk_tag = gdk_input_add(s->file_desc, (GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION, node_read, (gpointer) n);
+			if (n) s->gdk_tag = gdk_input_add(s->file_desc, (GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+							  node_read, (gpointer) n);
 
 		}
 		else if ( (!strncmp(s->buffer, "GET", 3)) || (!strncmp(s->buffer, "HEAD", 4))) { /* This is an Upload request in HTTP */
-		  struct upload* up; 
+		  struct upload* up;
 		  
 		  gdk_input_remove(s->gdk_tag);
 
@@ -121,10 +126,51 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 	if (cond & GDK_INPUT_EXCEPTION)	/* Error while connecting */
 	{
 		if (s->type == GTA_TYPE_CONTROL && s->resource.node) node_remove(s->resource.node, "Connection failed");
-		else if (s->type == GTA_TYPE_DOWNLOAD && s->resource.download) download_fallback_to_push(s->resource.download, FALSE);
+		else if (s->type == GTA_TYPE_DOWNLOAD && s->resource.download) 
+		  download_fallback_to_push(s->resource.download, FALSE);
 		else socket_destroy(s);
 		return;
 	}
+
+	if (cond & GDK_INPUT_READ)
+	  {
+	    if (proxy_connections && s->direction == GTA_CONNECTION_PROXY_OUTGOING){
+	      gdk_input_remove(s->gdk_tag);
+
+	      if (socks_protocol == 4) {
+		if (recv_socks(s) != 0) {
+		  socket_destroy(s);
+		  return;
+		}
+	      
+	      s->direction = GTA_CONNECTION_OUTGOING;
+
+	      s->gdk_tag = gdk_input_add(s->file_desc, GDK_INPUT_READ | GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION, 
+					 socket_connected, (gpointer) s);
+	      return;
+	      }
+		  else if (socks_protocol == 5){
+		    if (connect_socksv5(s) != 0) {
+		      socket_destroy(s);
+		      return;
+		    }
+		   
+		    if (s->pos > 5) {
+		    s->direction = GTA_CONNECTION_OUTGOING;
+
+		    s->gdk_tag = gdk_input_add(s->file_desc, GDK_INPUT_READ | GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION, 
+					       socket_connected, (gpointer) s);
+		  
+		    return;
+		    }
+		    else s->gdk_tag = gdk_input_add(s->file_desc, GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION, 
+					       socket_connected, (gpointer) s);
+		      
+		    return;
+
+		  }
+	    }
+	  }
 
 	if (cond & GDK_INPUT_WRITE)	/* We are just connected to our partner */
 	{
@@ -138,24 +184,52 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 
 		if (res == -1 || option)
 		{
-			if (s->type == GTA_TYPE_CONTROL && s->resource.node) node_remove(s->resource.node, "Connection failed");
-			else if (s->type == GTA_TYPE_DOWNLOAD && s->resource.download) download_fallback_to_push(s->resource.download, FALSE);
+			if (s->type == GTA_TYPE_CONTROL && s->resource.node) 
+			  node_remove(s->resource.node, "Connection failed");
+			else if (s->type == GTA_TYPE_DOWNLOAD && s->resource.download) 
+			  download_fallback_to_push(s->resource.download, FALSE);
 			else socket_destroy(s);
-			return;
+ 			return;
 		}
+
+		if (proxy_connections && s->direction == GTA_CONNECTION_PROXY_OUTGOING){
+		  if (socks_protocol == 4){
+
+		    if ( send_socks(s) != 0){
+		      socket_destroy(s);
+		      return;
+		    }
+		  }
+		    else if (socks_protocol == 5){
+		      if (connect_socksv5(s) != 0){
+			socket_destroy(s);
+			return;
+		      }
+		      
+		    }
+		 
+		  s->gdk_tag = gdk_input_add(s->file_desc, GDK_INPUT_READ | GDK_INPUT_EXCEPTION, 
+							   socket_connected, (gpointer) s);
+		  return;
+		}
+
+		s->pos = 0;
+		memset(s->buffer, 0, sizeof(s->buffer));
 
 		switch (s->type)
 		{
 			case GTA_TYPE_CONTROL:
 			{
-				s->gdk_tag = gdk_input_add(s->file_desc, GDK_INPUT_READ | GDK_INPUT_EXCEPTION, node_read_connecting, (gpointer) s);
+				s->gdk_tag = gdk_input_add(s->file_desc, GDK_INPUT_READ | GDK_INPUT_EXCEPTION, 
+							   node_read_connecting, (gpointer) s);
 				node_init_outgoing(s->resource.node);
 				break;
 			}
 
 			case GTA_TYPE_DOWNLOAD:
 			{
-				s->gdk_tag = gdk_input_add(s->file_desc, GDK_INPUT_READ | GDK_INPUT_EXCEPTION, download_read, (gpointer) s);
+				s->gdk_tag = gdk_input_add(s->file_desc, GDK_INPUT_READ | GDK_INPUT_EXCEPTION, 
+							   download_read, (gpointer) s);
 				download_send_request(s->resource.download);
 				break;
 			}
@@ -168,8 +242,9 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
       
 			      up = upload_add(s);
 			      if (up != NULL) {
-			      s->gdk_tag = gdk_input_add(s->file_desc, (GdkInputCondition) GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
-						     upload_write, (gpointer) up);
+			      s->gdk_tag = gdk_input_add(s->file_desc, 
+							 (GdkInputCondition) GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION, 
+							 upload_write, (gpointer) up);
 			      s->resource.upload = up;
 			      }
 			      else socket_destroy(s);
@@ -301,7 +376,7 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 {
 	/* Create a socket and try to connect it to ip:port */
 
-	gint sd, option = 1, res;
+	gint sd, option = 1, res = 0;
 	struct sockaddr_in addr, lcladdr;
 	struct gnutella_socket *s;
 
@@ -318,15 +393,17 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 	s->type = type;
 	s->direction = GTA_CONNECTION_OUTGOING;
 	s->file_desc = sd;
+	s->ip = ip;
+	s->port = port;
 
 	setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, (void *) &option, sizeof(option));
 	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (void *) &option, sizeof(option));
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
-
+	
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = g_htonl(ip);
-	addr.sin_port = g_htons(port);
+	s->ip = addr.sin_addr.s_addr = g_htonl(ip);
+	s->port = addr.sin_port = g_htons(port);
 
         /* Now we check if we're forcing a local IP, and make it happen if so.  --JSL */
         if (force_local_ip)
@@ -338,7 +415,18 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
                 res = bind(sd, (struct sockaddr *) &lcladdr, sizeof(struct sockaddr_in));
         }
 
-	res = connect(sd, (struct sockaddr *) &addr, sizeof(struct sockaddr_in));
+	if (proxy_connections) {
+	  lcladdr.sin_family = AF_INET;
+	  lcladdr.sin_port = INADDR_ANY;
+
+	  res = bind(sd, (struct sockaddr *) &lcladdr, sizeof(struct sockaddr_in));
+
+	  res = proxy_connect(sd, (struct sockaddr *) &addr, sizeof(struct sockaddr_in));
+	  
+	  s->direction = GTA_CONNECTION_PROXY_OUTGOING;
+	}
+	else
+	  res = connect(sd, (struct sockaddr *) &addr, sizeof(struct sockaddr_in));
 
 	if (res == -1 && errno != EINPROGRESS)
 	{
@@ -346,6 +434,8 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 		socket_destroy(s);
 		return NULL;
 	}
+
+	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */	
 
 	if(!local_ip)
 	  if(guess_local_ip(sd, &local_ip, &s->local_port) == -1)
@@ -355,7 +445,10 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 		  return NULL;
 		}
 
-	s->gdk_tag = gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION, socket_connected, s);
+	if (proxy_connections)
+	  s->gdk_tag = gdk_input_add(sd, GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION, socket_connected, s);
+	else
+	  s->gdk_tag = gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION, socket_connected, s);
 
 	return s;
 }
@@ -382,6 +475,7 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 	s->type = type;
 	s->direction = GTA_CONNECTION_LISTENING;
 	s->file_desc = sd;
+	s->pos = 0;
 
 	setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, (void *) &option, sizeof(option));
 	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (void *) &option, sizeof(option));
@@ -432,5 +526,356 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 	return s;
 }
 
+
+
+static void show_error(char *fmt, ...) {
+	
+}
+
+/*    The socks 4/5 code was taken from tsocks 1.16 Copyright (C) 2000 Shaun Clowes */
+/*    It was modified to work with gtk_gnutella and non-blocking sockets. --DW      */
+
+int proxy_connect (int __fd, const struct sockaddr * __addr, socklen_t __len) {
+	struct sockaddr_in *connaddr;
+	void **kludge;
+	struct sockaddr_in server;
+
+	int rc = 0;
+
+	
+	  if (!(inet_aton(proxy_ip, &server.sin_addr))) {
+	    show_error("The SOCKS server (%s) in configuration "
+		       "file is invalid\n", proxy_ip);
+	  } else {		
+	    /* Construct the addr for the socks server */
+	    server.sin_family = AF_INET; /* host byte order */
+	    server.sin_port = htons(proxy_port);
+	    bzero(&(server.sin_zero), 8);/* zero the rest of the struct */    
+	  }
+	
+
+	/* Ok, so this method sucks, but it's all I can think of */
+
+	kludge = (void *) & __addr; 
+	connaddr = (struct sockaddr_in *) *kludge;
+
+	rc = connect(__fd, (struct sockaddr *) &server, sizeof(struct sockaddr));
+	
+	return rc;
+
+}
+
+struct socksent {
+        struct in_addr localip;
+        struct in_addr localnet;
+        struct socksent *next;
+};
+        
+struct sockreq {
+        int8_t version; 
+        int8_t command; 
+        int16_t dstport;
+        int32_t dstip;
+        /* A null terminated username goes here */
+};
+
+struct sockrep {
+        int8_t version;
+        int8_t result;
+        int16_t ignore1;
+        int32_t ignore2;
+};
+
+int send_socks(struct gnutella_socket* s)
+{
+  int rc = 0;
+  int length = 0;
+  char *realreq;
+  struct passwd *user;
+  struct sockreq *thisreq;
+	
+	
+	/* Determine the current username */
+	user = getpwuid(getuid());	
+
+	/* Allocate enough space for the request and the null */
+	/* terminated username */
+	length = sizeof(struct sockreq) + 
+			(user == NULL ? 1 : strlen(user->pw_name) + 1);
+	if ((realreq = malloc(length)) == NULL) {
+		/* Could not malloc, bail */
+		exit(1);
+	}
+	thisreq = (struct sockreq *) realreq;
+
+	/* Create the request */
+	thisreq->version = 4;
+	thisreq->command = 1;
+	thisreq->dstport = s->port;
+	thisreq->dstip   = s->ip;
+
+	/* Copy the username */
+	strcpy(realreq + sizeof(struct sockreq), 
+	       (user == NULL ? "" : user->pw_name));
+
+	/* Send the socks header info */
+	if ((rc = send(s->file_desc, (void *) thisreq, length, 0)) < 0) {
+			show_error("Error attempting to send SOCKS request (%s)\n"
+				   , strerror(errno));
+			rc = rc;
+			return -1;
+	}
+
+	free(thisreq);
+
+	return 0;
+
+}
+
+int recv_socks(struct gnutella_socket* s)
+{
+  int rc = 0;
+  struct sockrep thisrep;
+
+	if ((rc = recv(s->file_desc, (void *) &thisrep, sizeof(struct sockrep), 0)) < 0) {
+			show_error("Error attempting to receive SOCKS "
+				   "reply (%s)\n", g_strerror(errno));
+			rc = ECONNREFUSED;
+		} else if (rc < sizeof(struct sockrep)) {
+			show_error("Short reply from SOCKS server\n");
+			/* Let the application try and see how they */
+			/* go                                       */
+			rc = 0;
+		} else if (thisrep.result == 91) {
+			show_error("SOCKS server refused connection\n");
+			rc = ECONNREFUSED;
+		} else if (thisrep.result == 92) {
+			show_error("SOCKS server refused connection "
+				   "because of failed connect to identd "
+				   "on this machine\n");
+			rc = ECONNREFUSED;
+		} else if (thisrep.result == 93) {
+			show_error("SOCKS server refused connection "
+				   "because identd and this library "
+				   "reported different user-ids\n");
+			rc = ECONNREFUSED;
+		} else {
+			rc = 0;
+		}
+
+	if (rc != 0) 
+	  {
+	    errno = rc;
+	    return -1;
+	  }
+
+	return 0;
+
+}
+
+/*
+0: Send
+1: Recv
+.. 
+4: Send
+5: Recv
+
+6: Done
+*/
+
+int connect_socksv5(struct gnutella_socket *s) {
+	int rc = 0;
+	int offset = 0;
+	char *verstring = "\x05\x02\x02\x00";
+	char *uname, *upass;
+	struct passwd *nixuser;
+	char *buf;
+	int sockid;
+
+	sockid = s->file_desc;
+
+	buf = (char *)s->buffer;
+
+    switch(s->pos)
+     {
+
+       case 0:
+        /* Now send the method negotiation */
+	if ((rc = send(sockid, (void *) verstring, 4,0)) < 0) {
+		show_error("Error %d attempting to send SOCKS "
+			   "method negotiation\n", errno);
+		return(-1);
+	}
+	s->pos++;
+       break;
+
+       case 1:
+	/* Now receive the reply as to which method we're using */
+	if ((rc = recv(sockid, (void *) buf, 2, 0)) < 0) {
+		show_error("Error %d attempting to receive SOCKS "
+			   "method negotiation reply\n", errno);
+		rc = ECONNREFUSED;
+		return(rc);
+	}
+
+	if (rc < 2) {
+		show_error("Short reply from SOCKS server\n");
+		rc = ECONNREFUSED;
+		return(rc);
+	}
+
+	/* See if we offered an acceptable method */
+	if (buf[1] == '\xff') {
+		show_error("SOCKS server refused authentication methods\n");
+		rc = ECONNREFUSED;
+		return(rc);
+	}
+
+	if ((unsigned short int) buf[1] == 2) s->pos++;
+	else s->pos += 3;
+	break;
+	case 2:
+	/* If the socks server chose username/password authentication */
+	/* (method 2) then do that */
+	
+
+		/* Determine the current *nix username */
+		nixuser = getpwuid(getuid());	
+
+		if (((uname = socksv5_user) == NULL) &&
+		    ((uname = (nixuser == NULL ? NULL : nixuser->pw_name)) == NULL)) {
+			show_error("No Username to authenticate with."); 
+			rc = ECONNREFUSED;
+			return(rc);
+		} 
+
+		if (((upass = socksv5_pass) == NULL)) {
+			show_error("No Password to authenticate with.");
+			rc = ECONNREFUSED;
+			return(rc);
+		} 
+		
+		offset = 0;
+		buf[offset] = '\x01';
+		offset++;
+		buf[offset] = (int8_t) strlen(uname);
+		offset++;
+		memcpy(&buf[offset], uname, strlen(uname));
+		offset = offset + strlen(uname);
+		buf[offset] = (int8_t) strlen(upass);
+		offset++;
+		memcpy(&buf[offset], upass, strlen(upass));
+		offset = offset + strlen(upass);
+
+		/* Send out the authentication */
+		if ((rc = send(sockid, (void *) buf, offset,0)) < 0) {
+			show_error("Error %d attempting to send SOCKS "
+				   "authentication\n", errno);
+			return(-1);
+		}
+
+		s->pos++;
+            
+	break;
+     case 3:
+		/* Receive the authentication response */
+		if ((rc = recv(sockid, (void *) buf, 2, 0)) < 0) {
+			show_error("Error %d attempting to receive SOCKS "
+				   "authentication reply\n", errno);
+			rc = ECONNREFUSED;
+			return(rc);
+		}
+
+		if (rc < 2) {
+			show_error("Short reply from SOCKS server\n");
+			rc = ECONNREFUSED;
+			return(rc);
+		}
+
+		if (buf[1] != '\x00') {
+			show_error("SOCKS authentication failed, "
+				   "check username and password\n");
+			rc = ECONNREFUSED;
+			return(rc);
+		}
+		s->pos++;
+		break;
+     case 4:
+	/* Now send the connect */
+	buf[0] = '\x05';		/* Version 5 SOCKS */
+	buf[1] = '\x01'; 		/* Connect request */
+	buf[2] = '\x00';		/* Reserved	   */
+	buf[3] = '\x01';		/* IP version 4    */
+	memcpy(&buf[4], &s->ip, 4);
+	memcpy(&buf[8], &s->port, 2);
+
+        /* Now send the connection */
+	if ((rc = send(sockid, (void *) buf, 10,0)) <= 0) {
+		show_error("Error %d attempting to send SOCKS "
+			   "connect command\n", errno);
+		return(-1);
+	}
+	
+	s->pos++;
+	break;
+     case 5:
+	/* Now receive the reply to see if we connected */
+	if ((rc = recv(sockid, (void *) buf, 10, 0)) < 0) {
+		show_error("Error %d attempting to receive SOCKS "
+			   "connection reply\n", errno);
+		rc = ECONNREFUSED;
+		return(rc);
+	}
+	printf("connect_socksv5: Step 5, bytes recv'd %i\n", rc);
+	if (rc < 10) {
+		show_error("Short reply from SOCKS server\n");
+		rc = ECONNREFUSED;
+		return(rc);
+	}
+
+	/* See the connection succeeded */
+	if (buf[1] != '\x00') {
+		show_error("SOCKS connect failed: ");
+		switch ((int8_t) buf[1]) {
+			case 1:
+				show_error("General SOCKS server failure\n");
+				return(ECONNABORTED);
+			case 2:
+				show_error("Connection denied by rule\n");
+				return(ECONNABORTED);
+			case 3:
+				show_error("Network unreachable\n");
+				return(ENETUNREACH);
+			case 4:
+				show_error("Host unreachable\n");
+				return(EHOSTUNREACH);
+			case 5:
+				show_error("Connection refused\n");
+				return(ECONNREFUSED);
+			case 6: 
+				show_error("TTL Expired\n");
+				return(ETIMEDOUT);
+			case 7:
+				show_error("Command not supported\n");
+				return(ECONNABORTED);
+			case 8:
+				show_error("Address type not supported\n");
+				return(ECONNABORTED);
+			default:
+				show_error("Unknown error\n");
+				return(ECONNABORTED);
+		}	
+	}
+      
+	s->pos++;
+     
+	break;
+     }
+
+	return(0);   
+
+}
+
 /* vi: set ts=3: */
+
 
