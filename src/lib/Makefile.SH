@@ -52,18 +52,12 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-OBJECTS =   getdate.o \$(LOBJ) getdate.o
-SOURCES =   getdate.y \$(LSRC)
+SOURCES =  \$(LSRC)
+OBJECTS =  \$(LOBJ)
 GLIB_CFLAGS =  $glibcflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
-
-.SUFFIXES: .y
-
-.y.c:
-	\$(YACC) \$(JYFLAGS) \$<
-	\$(MV) y.tab.c \$@
 
 .c.o:
 	\$(RM) \$@
@@ -85,7 +79,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.9 2004/10/18 19:46:00 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.10 2004/11/08 14:29:23 rmanfredi Exp $
 
 LSRC = \
 	adns.c \
@@ -102,6 +96,7 @@ LSRC = \
 	fifo.c \
 	file.c \
 	fuzzy.c \
+	getdate.c \
 	getline.c \
 	glib-missing.c \
 	hashlist.c \
@@ -144,6 +139,7 @@ LOBJ = \
 	fifo.o \
 	file.o \
 	fuzzy.o \
+	getdate.o \
 	getline.o \
 	glib-missing.o \
 	hashlist.o \
@@ -175,19 +171,14 @@ LOBJ = \
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
-libshared.a:  getdate.c
-
-local_realclean::
-	$(RM)  getdate.c
-
 all:: libshared.a
 
 local_realclean::
 	$(RM) libshared.a
 
-libshared.a: $(LOBJ) getdate.o
+libshared.a: $(LOBJ)
 	$(RM) $@
-	$(AR) $@ $(LOBJ) getdate.o
+	$(AR) $@ $(LOBJ)
 	$(RANLIB) $@
 
 depend:: ../../mkdep
@@ -205,6 +196,10 @@ depend::
 	cp Makefile Makefile.bak
 	cp Makefile.new Makefile
 	$(RM) Makefile.new
+
+getdate.c: getdate.y
+	-$(YACC) $(JYFLAGS) $<
+	-$(MV) y.tab.c $@
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
