@@ -25,7 +25,6 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
 #include "nodes_gui.h"
 #include "gtk-missing.h"
 

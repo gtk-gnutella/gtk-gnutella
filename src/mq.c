@@ -35,7 +35,7 @@
 #include "mq.h"
 #include "pmsg.h"
 #include "gmsg.h"
-#include "misc.h"
+#include "common.h"
 #include "tx.h"
 
 #define MQ_MAXIOV	256		/* Our limit on the I/O vectors we build */

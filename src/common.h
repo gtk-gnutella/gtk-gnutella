@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2001-2002, Richard Eckart
  *
  *----------------------------------------------------------------------
@@ -23,26 +21,54 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __settings_gui_h__
-#define __settings_gui_h__
+#ifndef __common_h__
+#define __common_h__
 
-#include "gui.h"
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
 
-/***
- *** Properties
- ***/
-#include "gui_property.h"
+/*
+ * Main includes
+ */
 
-extern gchar *gui_config_dir;
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <time.h>
+#include <sys/time.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <glib.h>
 
-prop_def_t *gui_prop_get_def(gui_property_t);
 
-void gui_prop_add_prop_changed_listener
-    (property_t, prop_changed_listener_t, gboolean);
-void gui_prop_remove_prop_changed_listener
-    (property_t, prop_changed_listener_t);
+#include "vendors.h"
+#include "misc.h"
+#include "base32.h"
+#include "zalloc.h"
+#include "walloc.h"
+#include "atoms.h"
+#include "listener.h"
+#include "fuzzy.h"
+#include "matching.h"
+#include "getdate.h"
+#include "regex.h"
 
-void settings_gui_init(void);
-void settings_gui_shutdown(void);
+#include "../config.h"
 
-#endif /* __settings_gui_h__ */
+/*
+ * Constants
+ */
+
+#define GTA_VERSION 0
+#define GTA_SUBVERSION 91
+#define GTA_REVISION "unstable"
+#define GTA_REVCHAR "u"
+#define GTA_INTERFACE "X11"
+#define GTA_RELEASE "25/08/2002"
+#define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
+
+
+#endif /* __common_h__ */

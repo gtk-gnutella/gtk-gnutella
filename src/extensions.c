@@ -31,7 +31,6 @@
 #include <ctype.h>
 #include <stdio.h>
 
-#include "misc.h"
 #include "extensions.h"
 #include "ggep.h"
 

@@ -26,6 +26,8 @@
 #ifndef __hosts_h__
 #define __hosts_h__
 
+#include <glib.h>
+
 struct gnutella_host {
 	guint32 ip;
 	guint16 port;

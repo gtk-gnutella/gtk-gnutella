@@ -30,7 +30,7 @@
 
 #include <glib.h>
 
-#include "matching.h"
+#include "common.h"
 
 typedef void (*qrp_callback_t)(gpointer arg, gboolean cancelled);
 

@@ -29,7 +29,6 @@
 #include "gnutella.h"
 
 #include "fileinfo.h"
-#include "misc.h"
 #include "downloads_gui.h"
 #include "sockets.h"
 #include "downloads.h"
@@ -43,19 +42,15 @@
 #include "bsched.h"
 #include "regex.h"
 #include "getdate.h"
-#include "atoms.h"
 #include "huge.h"
-#include "base32.h"
 #include "dmesh.h"
 #include "http.h"
 #include "version.h"
-#include "fuzzy.h"
 
 #include "gnet.h"
 #include "gnet_property_priv.h"
 #include "settings.h"
 #include "nodes.h"
-//#include "search_gui.h" // FIXME: I think this is backend... remove?
 
 #include <sys/types.h>
 #include <sys/stat.h>

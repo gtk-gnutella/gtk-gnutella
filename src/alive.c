@@ -26,13 +26,9 @@
  */
 
 #include "gnutella.h"
-#include <glib.h>
 
 #include "alive.h"
-#include "atoms.h"
 #include "nodes.h"
-#include "misc.h"
-#include "walloc.h"
 
 #include "gnet_property_priv.h"
 

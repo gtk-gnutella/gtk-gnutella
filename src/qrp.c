@@ -29,7 +29,6 @@
 
 #include "gnutella.h"
 #include "qrp.h"
-#include "matching.h"
 #include "zlib_util.h"
 
 #include "gnet_property_priv.h"

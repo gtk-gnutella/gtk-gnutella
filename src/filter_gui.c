@@ -32,13 +32,12 @@
 #include <netinet/in.h> 
 #include <arpa/inet.h>
 
-#include "gnutella.h"
+#include "gui.h"
+
 #include "filter_gui.h"
-#include "misc.h"
 #include "gtk-missing.h"
 
 #include "gui_property_priv.h"
-#include "gui_property.h"
 
 #define DEFAULT_TARGET (filter_get_drop_target())   
 

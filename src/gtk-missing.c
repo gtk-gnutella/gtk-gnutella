@@ -25,10 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
-
+#include "gui.h"
 #include "gtk-missing.h"
-#include "share_gui.h"
 
 /*
  * gtk_paned_get_position:

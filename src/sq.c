@@ -1,5 +1,4 @@
-/* -*- mode: cc-mode; tab-width:4; -*-
- *
+/* 
  * $Id$
  *
  * Copyright (c) 2002, Alex Bennee <alex@bennee.com> & Raphael Manfredi
@@ -30,9 +29,7 @@
  */
 
 #include "gnutella.h"
-#include <glib.h>
 
-#include "misc.h"
 #include "sq.h"					/* search_queue structures */
 #include "pmsg.h"
 #include "nodes.h"

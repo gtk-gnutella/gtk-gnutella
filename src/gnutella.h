@@ -26,23 +26,7 @@
 #ifndef __gnutella_h__
 #define __gnutella_h__
 
-/*
- * Main includes
- */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <time.h>
-#include <sys/time.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <glib.h>
-
-#include "../config.h"
-
+#include "common.h"
 
 /*
  * Macros
@@ -61,14 +45,6 @@
 /*
  * Constants
  */
-
-#define GTA_VERSION 0
-#define GTA_SUBVERSION 91
-#define GTA_REVISION "unstable"
-#define GTA_REVCHAR "u"
-#define GTA_INTERFACE "X11"
-#define GTA_RELEASE "25/08/2002"
-#define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #define GTA_MSG_INIT					0x00
 #define GTA_MSG_INIT_RESPONSE			0x01

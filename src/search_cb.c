@@ -25,16 +25,13 @@
  *----------------------------------------------------------------------
  */
 
-#include <gtk/gtk.h>
+#include "gui.h"
 #include <gdk/gdkkeysyms.h>
 
 #include "search_cb.h"
 #include "search_gui.h"
 #include "gnet.h"
-#include "gui_property.h"
-#include "base32.h"
 #include "gtk-missing.h"
-#include "fuzzy.h"
 #include "statusbar_gui.h"
 
 #ifndef USE_GTK2

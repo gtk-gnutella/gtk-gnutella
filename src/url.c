@@ -25,7 +25,7 @@
 
 #include <ctype.h>
 
-#include "misc.h"
+#include "common.h"
 #include "url.h"
 
 #define ESCAPE_CHAR		'%'

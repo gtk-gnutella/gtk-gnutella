@@ -25,12 +25,11 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
+#include "gui.h"
+
 #include "settings_cb.h"
-#include "gnet.h"
 #include "settings_gui.h"
 #include "search_gui.h"
-#include "gtk-missing.h"
 
 /* 
  * Create a function for the focus out signal and make it call

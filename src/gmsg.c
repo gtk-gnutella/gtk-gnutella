@@ -34,7 +34,6 @@
 #include "nodes.h"
 #include "sq.h"
 #include "mq.h"
-#include "gnutella.h"
 #include "routing.h"
 #include "gnet_property_priv.h"
 

@@ -32,16 +32,12 @@
  *		(C) 2002 Michael Tesch, released with gtk-gnutella & its license
  */
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
+#include "gnutella.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "gnutella.h"
-
-#include "search_stats_gui.h"
+#include "search_stats_gui.h" // FIXME: remove this dependency
 #include "search_stats.h"
 
 #include "gnet_property_priv.h"

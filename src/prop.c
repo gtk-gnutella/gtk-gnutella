@@ -27,7 +27,7 @@
 #include <stdio.h>
 
 #include "prop.h"
-#include "misc.h"
+#include "common.h"
 
 #define debug 0
 

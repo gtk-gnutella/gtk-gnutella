@@ -33,8 +33,6 @@
 #include <fcntl.h>
 #include <time.h>
 
-#include "config.h"
-
 #ifdef HAVE_SENDFILE_H
 #include <sys/sendfile.h>
 #endif
@@ -42,16 +40,13 @@
 #include "sockets.h"
 #include "share.h"
 #include "uploads_gui.h"
-#include "misc.h"
 #include "getline.h"
 #include "header.h"
 #include "hosts.h"		/* for check_valid_host() */
 #include "url.h"
 #include "bsched.h"
 #include "upload_stats.h"
-#include "base32.h"
 #include "dmesh.h"
-#include "atoms.h"
 #include "http.h"
 #include "cq.h"
 #include "version.h"

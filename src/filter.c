@@ -31,7 +31,6 @@
 
 #include "filter.h"
 #include "filter_gui.h"
-#include "misc.h"
 #include "search_gui.h"
 #include "gtk-missing.h"
 

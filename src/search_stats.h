@@ -28,7 +28,7 @@
 
 #include <glib.h>
 
-#include "matching.h"
+#include "common.h"
 
 void search_stats_enable(void);
 void search_stats_disable(void);

@@ -30,7 +30,6 @@
 
 #include "gnutella.h"
 #include <errno.h>
-#include <glib.h>
 
 #include "nodes.h"
 #include "sockets.h"

@@ -27,7 +27,6 @@
 #define __callbacks_h__
 
 #include <gtk/gtk.h>
-#include "search.h"
 
 #include "filter_cb.h"
 #include "nodes_cb.h"

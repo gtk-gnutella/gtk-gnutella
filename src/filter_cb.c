@@ -25,7 +25,7 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
+//#include "gnutella.h"
 #include "filter.h"
 #include "filter_cb.h"
 #include "filter_gui.h"

@@ -26,12 +26,8 @@
 #ifndef __filter_h__
 #define __filter_h__
 
-#include <regex.h>
+#include "gui.h"
 
-#include "gnutella.h"
-#include "matching.h"
-#include "misc.h"
-#include "gnet.h"
 
 /*
  * Needed stuff from search.h

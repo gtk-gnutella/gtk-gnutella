@@ -31,8 +31,7 @@
 
 #include <string.h>
 
-#include "atoms.h"
-#include "misc.h"
+#include "common.h"
 
 /*
  * Atoms are ref-counted.

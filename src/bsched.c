@@ -25,13 +25,13 @@
  *----------------------------------------------------------------------
  */
 
+#include "common.h"
+
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/uio.h>	/* struct iovec */
-
-#include "config.h"
 
 #ifdef HAVE_SENDFILE_H
 #include <sys/sendfile.h>

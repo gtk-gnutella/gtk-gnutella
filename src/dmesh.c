@@ -32,16 +32,14 @@
 #include <time.h>
 #include <sys/time.h>
 
+#include "gnutella.h"
+
 #include "downloads.h"
 #include "dmesh.h"
-#include "atoms.h"
 #include "url.h"
-#include "misc.h"
 #include "getdate.h"
 #include "huge.h"
-#include "base32.h"
 #include "cq.h"
-#include "walloc.h"
 
 #include "gnet_property_priv.h"
 #include "settings.h"

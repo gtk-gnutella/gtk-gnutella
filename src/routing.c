@@ -29,9 +29,7 @@
 #include "search.h" /* For search_passive. */
 #include "routing.h"
 #include "hosts.h"
-#include "misc.h"
 #include "gmsg.h"
-#include "atoms.h"
 #include "nodes.h"
 
 #include <stdarg.h>

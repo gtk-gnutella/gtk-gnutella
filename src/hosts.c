@@ -33,8 +33,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "gui.h"
-#include "misc.h"
+#include "gui.h" // FIXME: remove this dependency
 #include "sockets.h"
 #include "hosts.h"
 #include "nodes.h"

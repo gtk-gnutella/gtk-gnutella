@@ -26,17 +26,10 @@
 #ifndef __search_gui_h__
 #define __search_gui_h__
 
-#include <gtk/gtk.h>
-
 #include "gui.h"
-#include "gnet.h"
-#include "gnutella.h"
-#include "gnet.h"
 
 #include <time.h>
 #include "filter.h"
-
-#include <gtk/gtk.h> // FIXME: remove this dependency
 
 /*
  * A results_set structure factorizes the common information from a Query Hit

@@ -27,6 +27,7 @@
 #define __upload_stats_h__
 
 #include <glib.h>
+#include <gtk/gtk.h>
 
 #include "uploads.h"
 

@@ -27,10 +27,8 @@
 
 #include <ctype.h>
 
-#include "gnutella.h"
-#include "matching.h"
+#include "common.h"
 #include "search_stats.h"
-#include "zalloc.h"
 
 #include "gnet_property_priv.h"
 
@@ -420,7 +418,6 @@ __inline__ static gint st_key(search_table_t *table, guchar k[2])
 
 static void destroy_entry(struct st_entry *entry)
 {
-	/* FIXME: make sure this frees everything */
 	g_free(entry->string);
 }
 

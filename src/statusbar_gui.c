@@ -25,9 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
-#include "statusbar_gui.h"
 #include "gui.h"
+#include "statusbar_gui.h"
 
 /*
  * Timeout entry for statusbar messages.

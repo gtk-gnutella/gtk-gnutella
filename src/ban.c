@@ -34,8 +34,6 @@
 #include "ban.h"
 #include "cq.h"
 #include "sockets.h"
-#include "misc.h"			/* For debug printf() only */
-#include "zalloc.h"
 
 #include "gnet_property_priv.h"
 

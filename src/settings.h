@@ -24,6 +24,7 @@
 #ifndef __settings_h__
 #define __settings_h__
 
+#include <glib.h>
 #include <sys/time.h>		/* for time_t */
 
 /*

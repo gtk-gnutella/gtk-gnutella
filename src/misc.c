@@ -35,12 +35,10 @@
 #include <ctype.h>			/* For isalnum() and isspace() */
 #include <sys/times.h>		/* For times() */
 
-#include "gnutella.h"
+#include "common.h"
 #include "nodes.h"
-#include "misc.h"
 #include "url.h"
 #include "huge.h"
-#include "base32.h"
 #include "sha1.h"
 
 /*
@@ -791,5 +789,3 @@ void random_init(void)
 
 	srand(seed);
 }
-
-/* vi: set ts=4: */

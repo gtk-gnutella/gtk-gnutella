@@ -28,7 +28,7 @@
 #include <string.h>		/* For memcpy() */
 
 #include "pmsg.h"
-#include "zalloc.h"
+#include "common.h"
 
 #define implies(a,b)	(!(a) || (b))
 #define valid_ptr(a)	(((gulong) (a)) > 100L)

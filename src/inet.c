@@ -31,10 +31,9 @@
 
 #include "inet.h"
 #include "cq.h"
-#include "gnet_property.h"
 #include "gnet_property_priv.h"
 #include "settings.h"
-#include "misc.h"
+#include "gnet.h"
 
 extern cqueue_t *callout_queue;
 

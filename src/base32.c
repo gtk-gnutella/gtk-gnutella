@@ -25,7 +25,7 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"
+//#include "gnutella.h"
 #include <glib.h>
 #include <string.h>
 

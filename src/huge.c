@@ -37,12 +37,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "base32.h"
 #include "sha1.h"
 #include "huge.h"
 #include "share.h"
-#include "misc.h"
-#include "atoms.h"
 #include "gmsg.h"
 #include "header.h"
 #include "dmesh.h"

@@ -42,18 +42,15 @@
  *		(C) 2002 Michael Tesch, released with gtk-gnutella & its license
  */
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
+#include "gnutella.h"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>
 #include <errno.h>
 #include <time.h>		/* For ctime() */
 
-#include "gnutella.h"
-#include "upload_stats_gui.h"
-#include "misc.h"
+#include "upload_stats_gui.h" // FIXME: remove this dependency
 #include "upload_stats.h"
 #include "url.h"
 

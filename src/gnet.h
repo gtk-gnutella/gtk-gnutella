@@ -24,10 +24,8 @@
 #ifndef __gnet_h__
 #define __gnet_h__
 
-#include "gnutella.h"
-#include "listener.h"
-#include "prop.h"
-#include "misc.h"
+#include "common.h"
+
 
 /***
  *** Proxy protocols

@@ -39,7 +39,6 @@
 #include "gnet_property_priv.h"
 #include "sockets.h"
 #include "bsched.h"
-#include "misc.h"
 #include "gnutella.h"
 
 /*

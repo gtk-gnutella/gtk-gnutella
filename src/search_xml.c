@@ -28,15 +28,12 @@
 #include <libxml/tree.h>
 #include <libxml/parser.h>
 
-//#include "gnutella.h" // FIXME: remove this dependency
-//#include "gmsg.h" // FIXME: remove this dependency
-#include "misc.h"
+#include "common.h"
 #include "filter.h"
-#include "search.h"
 #include "search_xml.h"
 
 #include "gnet.h"
-#include "settings_gui.h" // FIXME: remove this dependency
+#include "settings_gui.h"
 #include "search_gui.h"
 
 #include "gui_property.h"

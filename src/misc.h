@@ -29,8 +29,6 @@
 #include <time.h>
 #include <stdio.h>
 
-#include "config.h"
-//#include "nodes.h"
 #include "downloads.h"
 
 struct gnutella_node;

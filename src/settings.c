@@ -36,20 +36,15 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#include "gnutella.h"
+#include "common.h"
+
 #include "settings.h"
 #include "search.h"
-#include "misc.h"
 #include "hosts.h"
-#include "gui.h"
-#include "search_stats.h"
 #include "upload_stats.h"
-#include "filter.h"
 #include "sockets.h"
 #include "inet.h"
 #include "gnet.h"
-#include "listener.h"
-#include "gnet_property.h"
 #include "gnet_property_priv.h"
 
 #define debug dbg

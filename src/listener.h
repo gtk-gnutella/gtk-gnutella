@@ -24,7 +24,7 @@
 #ifndef __listener_h__
 #define __listener_h__
 
-#include "gnutella.h"
+#include <glib.h>
 
 /*
  * To use the macros below with a "node_added" signal for example, 

@@ -26,11 +26,9 @@
  */
 
 #include "gnutella.h"
-#include <glib.h>
 #include <zlib.h>
 
 #include "nodes.h"
-#include "misc.h"
 #include "pmsg.h"
 #include "rx.h"
 #include "rx_inflate.h"

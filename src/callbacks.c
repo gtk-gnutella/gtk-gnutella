@@ -23,33 +23,22 @@
  *----------------------------------------------------------------------
  */
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
-
-#include "gnutella.h"
-
-
-#include "callbacks.h"
 #include "gui.h"
+
+#include "gnutella.h" // FIXME: needed fot gtk_gnutella_exit()
+#include "callbacks.h"
 #include "search_gui.h" // FIXME: remove when search monitor is out-sourced
 #include "share.h"
 #include "sockets.h" // FIXME: needed when killing an upload
 #include "hosts.h"
 #include "downloads.h"
-#include "misc.h"
 #include "search_stats.h"
 #include "upload_stats.h"
-#include "regex.h"
 #include "filter.h"
-#include "gtk-missing.h"
 #include "huge.h"
-//#include "base32.h"
 
-#include "gui_property.h"
 #include "gui_property_priv.h"
 
-#include "gnet.h"
 #include "statusbar_gui.h"
 
 
