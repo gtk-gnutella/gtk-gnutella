@@ -182,7 +182,7 @@ static gulong settings_getphysmemsize(void)
 #if defined (_SC_PHYS_PAGES)
 	guint32 pagesize = settings_getpagesize();
 	return (pagesize >> 10) * sysconf(_SC_PHYS_PAGES);
-#elif defined(HAVE_SYSCTL)
+#elif defined(HAVE_SYSCTL) && defined(CTL_HW) && defined(HW_USERMEM)
 /* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM };
 	int amount = 0;
