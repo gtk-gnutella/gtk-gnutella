@@ -104,9 +104,9 @@ static const gint8 old_values[256] = {
     21,22,23,							/* XYZ        -  88 ->  90 */
 
     -1,-1,-1,-1,-1,-1, 0, 1, 2, 3,		/*       abcd -  91 -> 100 */
-     4, 5, 6, 7, 8, 9,10,11,12,13,		/* efghijklmn - 101 -> 110 */
-    14,15,16,17,18,19,20,21,22,23,		/* opqrstuvwx - 111 -> 120 */
-    24,25,-1,-1,-1,-1,-1,-1,-1,-1,		/* yz         - 121 -> 130 */
+     4, 5, 6, 7, 8, 9,10,-1,11,12,		/* efghijklmn - 101 -> 110 */
+    -1,13,14,15,16,17,18,19,20,21,		/* opqrstuvwx - 111 -> 120 */
+    22,23,-1,-1,-1,-1,-1,-1,-1,-1,		/* yz         - 121 -> 130 */
     -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 131 -> 140 */
     -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 141 -> 150 */
     -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 151 -> 160 */
@@ -246,7 +246,10 @@ static void base32_encode_exactly(const gchar *buf, guint len,
  * base32_encode_into
  *
  * Encode `len' bytes from `buf' into `enclen' bytes starting from `encbuf'.
+ * Trailing padding chars are emitted.
  * Caller must have ensured that there was enough room in encbuf.
+ *
+ * NB: No trailing NUL is emitted.
  */
 void base32_encode_into(const gchar *buf, gint len,
 	gchar *encbuf, gint enclen)
@@ -265,7 +268,7 @@ void base32_encode_into(const gchar *buf, gint len,
  * base32_encode
  *
  * Encode `len' bytes starting at `buf' into new allocated buffer.
- * No trailing padding chars are emitted.
+ * Trailing padding chars are emitted.
  *
  * Returns the new encoded buffer, NUL-terminated, and the added amount
  * of padding chars in `retpad' if it is a non-NULL pointer.
