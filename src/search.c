@@ -1232,28 +1232,123 @@ gboolean search_result_is_dup(search_t * sch, struct record * rc)
 	return TRUE;		/* yes, it's a duplicate */
 }
 
-/*
- * search_gui_update
- *
- * Update the search GUI window by displaying only those records from the
- * result set that pass our filtering criteria.
- */
-static void search_gui_update(search_t *sch, struct results_set *rs)
+static void search_gui_add_record
+    (search_t *sch, record_t *rc, GString *vinfo, GdkColor *fg, GdkColor *bg)
 {
-	gchar *titles[6];
-    GSList* l;
+  	GString *info = g_string_sized_new(80);
+  	gchar *titles[6];
 	guint32 row;
-	GString *vinfo = g_string_sized_new(40);
-	GString *info = g_string_sized_new(80);
-	gchar *vendor;
-	gboolean need_push;			/* Would need a push to get this file? */
+    struct results_set *rs = rc->results_set;
+
+	titles[c_sr_filename] = rc->name;
+	titles[c_sr_size] = short_size(rc->size);
+	g_snprintf(stmp_2, sizeof(stmp_2), "%u", rs->speed);
+	titles[c_sr_speed] = stmp_2;
+	titles[c_sr_host] = ip_port_to_gchar(rs->ip, rs->port);
+    titles[c_sr_urn] = (rc->sha1 != NULL) ? sha1_base32(rc->sha1) : "";
+
+	if (rc->tag) {
+		guint len = strlen(rc->tag);
+
+		/*
+		 * We want to limit the length of the tag shown, but we don't
+		 * want to loose that information.	I imagine to have a popup
+		 * "show file info" one day that will give out all the
+		 * information.
+		 *				--RAM, 09/09/2001
+		 */
+
+		if (len > MAX_TAG_SHOWN) {
+            gchar saved = rc->tag[MAX_TAG_SHOWN];
+			rc->tag[MAX_TAG_SHOWN] = '\0';
+			g_string_append(info, rc->tag);
+			rc->tag[MAX_TAG_SHOWN] = saved;
+		} else
+			g_string_append(info, rc->tag);
+	}
+	if (vinfo->len) {
+		if (info->len)
+			g_string_append(info, "; ");
+		g_string_append(info, vinfo->str);
+	}
+	titles[c_sr_info] = info->str;
+
+    if (!sch->sort) {
+		row = gtk_clist_append(GTK_CLIST(sch->clist), titles);
+	} else {
+		/*
+		 * gtk_clist_set_auto_sort() can't work for row data based sorts!
+		 * Too bad. The problem is, that our compare callback wants to
+         * extract the record from the row data. But since we have not
+         * yet added neither the row nor the row data, this does not
+         * work.
+		 * So we need to find the place to put the result by ourselves.
+		 */
+
+        GList *work;
+		row = 0;
+
+        switch (sch->sort_order) {
+        case SORT_ASC:
+            for (
+                work = GTK_CLIST(sch->clist)->row_list;
+                work != NULL;
+                work = work->next )
+            {
+                record_t *rec = (record_t *)GTK_CLIST_ROW(work)->data;
+
+                if (search_compare(sch->sort_col, rc, rec) < 0)
+                    break;
+				row++;
+			}
+            break;
+        case SORT_DESC:
+            for (
+                work = GTK_CLIST(sch->clist)->row_list;
+                work != NULL;
+                work = work->next )
+            {
+                record_t *rec = (record_t *)GTK_CLIST_ROW(work)->data;
+    
+                if (search_compare(sch->sort_col, rc, rec) > 0)
+                    break;
+				row++;
+			}
+        }
+		gtk_clist_insert(GTK_CLIST(sch->clist), row, titles);
+    }
+
+    if (fg != NULL)
+        gtk_clist_set_foreground(GTK_CLIST(sch->clist), row, fg);
+
+    if (bg != NULL)
+        gtk_clist_set_background(GTK_CLIST(sch->clist), row, bg);
+
+    gtk_clist_set_row_data(GTK_CLIST(sch->clist), row, (gpointer) rc);
+	g_string_free(info, TRUE);
+}
+
+void search_matched(search_t *sch, struct results_set *rs)
+{
+	guint32 old_items = sch->items;
+   	gboolean need_push;			/* Would need a push to get this file? */
 	gboolean skip_records;		/* Shall we skip those records? */
-    GdkColor *color;
-	extern gboolean is_firewalled;
+	GString *vinfo = g_string_sized_new(40);
+	gchar *vendor;
+    GdkColor *mark_color;
+    GdkColor *download_color;
+    extern gboolean is_firewalled;
+    GSList *l;
 
-	vendor = extract_vendor_name(rs);
+    mark_color = &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+        ->bg[GTK_STATE_INSENSITIVE]);
 
-	if (vendor)
+    download_color =  &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+        ->fg[GTK_STATE_ACTIVE]);
+
+    vendor = extract_vendor_name(rs);
+
+   	if (vendor)
 		g_string_append(vinfo, vendor);
 
 	if (rs->status & ST_BUSY)
@@ -1267,188 +1362,92 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
 	}
 
 	/*
-	 * Update the GUI
-	 */
-
-	gtk_clist_freeze(GTK_CLIST(sch->clist));
-
-	/*
 	 * If we're firewalled, or they don't want to send pushes, then don't
 	 * bother displaying results if they need a push request to succeed.
 	 *		--RAM, 10/03/2002
 	 */
-
 	need_push = (rs->status & ST_FIREWALL) ||
 		!check_valid_host(rs->ip, rs->port);
 	skip_records = (!send_pushes || is_firewalled) && need_push;
 
-    color = &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
-                ->bg[GTK_STATE_INSENSITIVE]);
+   	gtk_clist_freeze(GTK_CLIST(sch->clist));
 
-	for (l = rs->records; l; l = l->next) {
+    // FIXME: is skip_records is set, we need not process the list
+  	for (l = rs->records; l; l = l->next) {
 		struct record *rc = (struct record *) l->data;
-        gint filter_result;
+        filter_result_t *flt_result;
+        gboolean mark;
+        gboolean downloaded = FALSE;
 
         if (dbg > 7)
-            printf("search_gui_update: [%s] considering %s (%s)\n",
+            printf("search_matched: [%s] considering %s (%s)\n",
 				sch->query, rc->name, vinfo->str);
 
-		/*
-		 * If we have too many results in this search already,
-		 * or if the size is zero bytes,
+        /*
+	     * If the size is zero bytes,
 		 * or we don't send pushes and it's a private IP,
 		 * or if this is a duplicate search result,
-		 * or if we are filtering this result, throw the record away.
 		 *
 		 * Note that we pass ALL records through search_result_is_dup(), to
 		 * be able to update the index/GUID of our records correctly, when
 		 * we detect a change.
 		 */
 
-		if (
+       	if (
 			search_result_is_dup(sch, rc)    ||
 			skip_records                     ||
-			sch->items >= search_max_results ||
 			rc->size == 0
 		)
 			continue;
+        
+        flt_result = filter_record(sch, rc);
 
-        filter_result = filter_record(sch, rc);
-        if (!filter_result)
-            continue;
+        /*
+         * Now we check for the different filter result properties.
+         */
 
-        sch->items++;
-		g_hash_table_insert(sch->dups, rc, (void *) 1);
-		rc->refcount++;
-
-		titles[c_sr_filename] = rc->name;
-		titles[c_sr_size] = short_size(rc->size);
-		g_snprintf(stmp_2, sizeof(stmp_2), "%u", rs->speed);
-		titles[c_sr_speed] = stmp_2;
-		titles[c_sr_host] = ip_port_to_gchar(rs->ip, rs->port);
-        titles[c_sr_urn] = (rc->sha1 != NULL) ? sha1_base32(rc->sha1) : "";
-
-		if (rc->tag) {
-			guint len = strlen(rc->tag);
-
-			/*
-			 * We want to limit the length of the tag shown, but we don't
-			 * want to loose that information.	I imagine to have a popup
-			 * "show file info" one day that will give out all the
-			 * information.
-			 *				--RAM, 09/09/2001
-			 */
-
-			if (len > MAX_TAG_SHOWN) {
-				gchar saved = rc->tag[MAX_TAG_SHOWN];
-				rc->tag[MAX_TAG_SHOWN] = '\0';
-				g_string_append(info, rc->tag);
-				rc->tag[MAX_TAG_SHOWN] = saved;
-			} else
-				g_string_append(info, rc->tag);
-		}
-		if (vinfo->len) {
-			if (info->len)
-				g_string_append(info, "; ");
-			g_string_append(info, vinfo->str);
-		}
-		titles[c_sr_info] = info->str;
-
-        if (!sch->sort) {
-			row = gtk_clist_append(GTK_CLIST(sch->clist), titles);
-		} else {
-			/*
-			 * gtk_clist_set_auto_sort() can't work for row data based sorts!
-			 * Too bad. The problem is, that our compare callback wants to
-             * extract the record from the row data. But since we have not
-             * yet added neither the row nor the row data, this does not
-             * work.
-			 * So we need to find the place to put the result by ourselves.
-			 */
-
-			GList *work;
-
-			row = 0;
-
-            switch (sch->sort_order) {
-			case SORT_ASC:
-                for (
-                    work = GTK_CLIST(sch->clist)->row_list;
-                    work != NULL;
-                    work = work->next )
-                {
-                    record_t *rec = (record_t *)GTK_CLIST_ROW(work)->data;
-
-                    if (search_compare(sch->sort_col, rc, rec) < 0)
-                        break;
-					row++;
-				}
-                break;
-            case SORT_DESC:
-                for (
-                    work = GTK_CLIST(sch->clist)->row_list;
-                    work != NULL;
-                    work = work->next )
-                {
-                    record_t *rec = (record_t *)GTK_CLIST_ROW(work)->data;
+        /*
+         * Check for FILTER_PROP_DOWNLOAD:
+         */
+        if (flt_result->props[FILTER_PROP_DOWNLOAD].state ==
+            FILTER_PROP_STATE_DO) {
+            download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
+                rs->guid, rc->sha1, need_push);
+            downloaded = TRUE;
+        }
     
-                    if (search_compare(sch->sort_col, rc, rec) > 0)
-                        break;
-					row++;
-				}
-			}
-			gtk_clist_insert(GTK_CLIST(sch->clist), row, titles);
-		}
+        /*
+         * We start with FILTER_PROP_DISPLAY:
+         */
+        if (!((flt_result->props[FILTER_PROP_DISPLAY].state == 
+                FILTER_PROP_STATE_DONT) &&
+            (flt_result->props[FILTER_PROP_DISPLAY].user_data == 0)) &&
+            (sch->items < search_max_results))
+        {
+            sch->items++;
+            g_hash_table_insert(sch->dups, rc, (void *) 1);
+            rc->refcount++;
 
-        if (filter_result == 2)
-            gtk_clist_set_foreground(GTK_CLIST(sch->clist), row, color);
-		gtk_clist_set_row_data(GTK_CLIST(sch->clist), row, (gpointer) rc);
-		g_string_truncate(info, 0);
-	}
+            mark = (flt_result->props[FILTER_PROP_DISPLAY].state == 
+                    FILTER_PROP_STATE_DONT) &&
+                (flt_result->props[FILTER_PROP_DISPLAY].user_data == 
+                    (gpointer) 1);
+            
+            search_gui_add_record(sch, rc, vinfo, 
+                downloaded ? download_color :  NULL,
+                mark ? mark_color : NULL);
+        }
 
-	gtk_clist_thaw(GTK_CLIST(sch->clist));
+        if (use_autodownload) {
+            /* Attempt to autodownload each result if desirable. */
+			autodownload_notify(rc->name, rc->size, rc->index, rs->ip,
+				rs->port, rs->guid, rc->sha1, need_push);
+        }
 
-	g_string_free(info, TRUE);
-	g_string_free(vinfo, TRUE);
-}
+        filter_free_result(flt_result);
+    }
 
-void search_matched(search_t *sch, struct results_set *rs)
-{
-	guint32 old_items = sch->items;
-
-	if (use_autodownload) {
-		GSList *l;
-		gboolean need_push =
-			(rs->status & ST_FIREWALL) || !check_valid_host(rs->ip, rs->port);
-
-		if (send_pushes || !need_push) {
-			for (l = rs->records; l; l = l->next) {
-				struct record *rc = (struct record *) l->data;
-
-				/*
-				 * We apply search filters on the entry, on the basis that
-				 * if it is not to be shown, then it is not desirable.
-				 * 		--RAM, 09/03/2002, after an anonymous patch
-				 */
-
-				if (rc->size == 0 || !filter_record(sch, rc))
-					continue;
-
-				/* Attempt to autodownload each result if desirable. */
-				autodownload_notify(rc->name, rc->size, rc->index, rs->ip,
-					rs->port, rs->guid, rc->sha1, need_push);
-			}
-		}
-	}
-
-	/*
-	 * We always update the GUI, even if we can determine here that we
-	 * already have more items than necessary.  The reason is that we benefit
-	 * from the side effect of checking all records against index changes
-	 * that could affect our downloads.
-	 */
-
-	search_gui_update(sch, rs);
+   	gtk_clist_thaw(GTK_CLIST(sch->clist));
 
 	/* Adds the set to the list */
 	sch->r_sets = g_slist_prepend(sch->r_sets, (gpointer) rs);
@@ -1471,6 +1470,8 @@ void search_matched(search_t *sch, struct results_set *rs)
 	if (sch->reissue_timeout_id) {
 		update_one_reissue_timeout(sch);
 	}
+
+  	g_string_free(vinfo, TRUE);
 }
 
 gboolean search_has_muid(search_t *sch, guchar * muid)
