@@ -278,12 +278,12 @@ void upload_stats_gui_init(void)
 
 	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model),
 		c_us_size,
-		(gpointer) &upload_stats_gui_compare_values_func,
+		(GtkTreeIterCompareFunc) upload_stats_gui_compare_values_func,
 		GINT_TO_POINTER(c_us_size),
 		NULL);
 	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model),
 		c_us_norm,
-		(gpointer) &upload_stats_gui_compare_values_func,
+		(GtkTreeIterCompareFunc) upload_stats_gui_compare_values_func,
 		GINT_TO_POINTER(c_us_norm),
 		NULL);
 

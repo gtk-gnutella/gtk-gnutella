@@ -81,7 +81,7 @@ static void uploads_kill_helper(
 {
 	upload_row_data_t *d = NULL;
 
-	gtk_tree_model_get(model, iter, c_ul_data, &d, -1);
+	gtk_tree_model_get(model, iter, c_ul_data, &d, (-1));
 	g_assert(NULL != d);
 	kill_upload(d, NULL);
 }
@@ -94,7 +94,7 @@ void on_button_uploads_kill_clicked(GtkButton *button, gpointer user_data)
     treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_uploads"));
     selection = gtk_tree_view_get_selection(treeview);
     gtk_tree_selection_selected_foreach(selection,
-        (gpointer) &uploads_kill_helper, NULL);
+        (GtkTreeSelectionForeachFunc) uploads_kill_helper, NULL);
 }
 
 #else
