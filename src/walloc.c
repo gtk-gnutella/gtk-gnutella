@@ -42,7 +42,10 @@ RCSID("$Id$");
 #error "Unexpected ZALLOC_ALIGNBYTES value"
 #endif
 
-#define WALLOC_MAX	4096	/* Passed this size, use malloc(), not zalloc() */
+#define WALLOC_MAX		4096	/* Passed this size, use malloc() */
+#define WALLOC_CHUNK	4096	/* Target chunk size for small structs */
+#define WALLOC_MINCOUNT	8		/* Minimum amount of structs in a chunk */
+
 #define WZONE_SIZE	(WALLOC_MAX / ZALLOC_ALIGNBYTES)
 
 static struct zone *wzone[WZONE_SIZE];
@@ -80,11 +83,22 @@ gpointer walloc(int size)
 	g_assert(WALLOC_MAX >> ZALLOC_ALIGNBITS == WZONE_SIZE);
 	g_assert(idx >= 0 && idx < WZONE_SIZE);
 
-	if (
-		!(zone = wzone[idx]) &&
-		!(zone = wzone[idx] = zget(rounded, 0))	/* Will pay the cost once! */
-	)
-		g_error("zget() failed?");
+	if (!(zone = wzone[idx])) {
+		gint count;
+
+		/*
+		 * We're paying this computation/allocation cost once per size!
+		 *
+		 * Try to create approximately WALLOC_CHUNK byte chunks, but
+		 * capable of holding at least WALLOC_MINCOUNT structures.
+		 */
+
+		count = WALLOC_CHUNK / rounded;
+		count = MAX(count, WALLOC_MINCOUNT);
+
+		if (!(zone = wzone[idx] = zget(rounded, count)))
+			g_error("zget() failed?");
+	}
 
 	return zalloc(zone);
 }
