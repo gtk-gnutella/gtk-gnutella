@@ -448,11 +448,20 @@ void gui_update_global(void)
 							   short_uptime((guint32) difftime(now,startup)));
 	gtk_label_set_text(GTK_LABEL(label_statusbar_uptime), gui_tmp);
 
+	/*
+	 * If the bandwidth usage peaks above the maximum, then GTK will not
+	 * update the progress bar, so we have to cheat and limit the value
+	 * displayed.
+	 *		--RAM, 16/04/2002
+	 */
+
 	gtk_progress_configure(GTK_PROGRESS(progressbar_bps_in), 
-                           bsched_bps(bws_in), 0, bws_in->bw_per_second);
+    	MIN(bsched_bps(bws_in), bws_in->bw_per_second),
+		0, bws_in->bw_per_second);
 
 	gtk_progress_configure(GTK_PROGRESS(progressbar_bps_out), 
-                           bsched_bps(bws_out), 0, bws_out->bw_per_second);
+    	MIN(bsched_bps(bws_out), bws_out->bw_per_second),
+		0, bws_out->bw_per_second);
 }
 
 void gui_update_node_display(struct gnutella_node *n, time_t now)
