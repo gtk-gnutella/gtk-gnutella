@@ -1,6 +1,22 @@
 # since last version
 
-- (2003.05.25 - Jeroen)
+- (2003.05.24 - RAM)
+ * Also package the pixmaps in the RPM [Patch #635484 from Sam Varshavchik].
+ * Don't store download queue at each download inserted [Patch #699251 from
+   Paul J. Mantyla].
+ * When ignoring a download due to an hostile IP address, make sure we don't
+   clear all the downloads for that file: it's just the server that we ignore,
+   not the download entry.
+ * Remember disabled searches when persisting (fixes bug #625314) [Patch
+   #739466 from Stephane Corbe].
+ * Increased max HTTP header size on reception to 16K.
+ * Cleaned up patch from Stephane Corbe.
+ * Added some assertions regarding fileinfo lifecount.
+ * Try to report a more specific message to servents mis-handling Retry-After
+   whilst passively queued.
+ * Include vendor string in PARQ warning messages about early retries.
+
+- (2003.05.24 - Jeroen)
  * PARQ: New ETA calculations. It now takes the current uploads into account too.
  * PARQ: Don't save PARQ entries from which the upload was finished.
  * PARQ: Avoid abusing: re-using the ID for another upload which got finished.
