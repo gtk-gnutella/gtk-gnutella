@@ -596,7 +596,7 @@ static void search_gui_add_record(
 	g_string_free(info, TRUE);
 }
 
-static void search_matched(search_t *sch, results_set_t *rs)
+void search_matched(search_t *sch, results_set_t *rs)
 {
 	guint32 old_items = sch->items;
    	gboolean need_push;			/* Would need a push to get this file? */
@@ -708,10 +708,14 @@ static void search_matched(search_t *sch, results_set_t *rs)
          */
         if (!downloaded &&
             (flt_result->props[FILTER_PROP_DOWNLOAD].state ==
-            FILTER_PROP_STATE_DO)) {
+				FILTER_PROP_STATE_DO)
+		) {
             download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-                rs->guid, rc->sha1, rs->stamp, need_push,
-				NULL);
+                rs->guid, rc->sha1, rs->stamp, need_push, NULL, rs->proxies);
+
+			if (rs->proxies != NULL)
+				search_gui_free_proxies(rs);
+
             downloaded = TRUE;
         }
     
@@ -831,12 +835,15 @@ static guint download_selection_of_clist(GtkCList * c, guint *selected)
 
 		if (
 			download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-				rs->guid, rc->sha1, rs->stamp, need_push, NULL)
+				rs->guid, rc->sha1, rs->stamp, need_push, NULL, rs->proxies)
 		)
 			created++;
 
+		if (rs->proxies != NULL)
+			search_gui_free_proxies(rs);
+
 		if (rc->alt_locs != NULL)
-			search_gui_check_alt_locs(rc, rs->stamp);
+			search_gui_check_alt_locs(rs, rc);
 
         /*
          * I'm not totally sure why we have to determine the row again,
@@ -924,57 +931,6 @@ void search_gui_download_files(void)
 /***
  *** Callbacks
  ***/
-
-static void search_gui_got_results(
-	GSList *schl, const gnet_results_set_t *r_set)
-{
-    GSList *l;
-    results_set_t *rs;
-
-    /*
-     * Copy the data we got from the backend.
-     */
-    rs = search_gui_create_results_set(r_set);
-
-    if (gui_debug >= 12)
-        printf("got incoming results...\n");
-
-    for (l = schl; l != NULL; l = g_slist_next(l))
-        search_matched(
-			search_gui_find((gnet_search_t) GPOINTER_TO_UINT(l->data)),
-			rs);
-
-   	/*
-	 * Some of the records might have not been used by searches, and need
-	 * to be freed.  If no more records remain, we request that the
-	 * result set be removed from all the dispatched searches, the last one
-	 * removing it will cause its destruction.
-	 */
-    if (gui_debug >= 15)
-        printf("cleaning phase\n");
-
-    if (rs->refcount == 0) {
-        search_gui_free_r_set(rs);
-        return;
-    }
-
-    search_gui_clean_r_set(rs);
-
-    if (gui_debug >= 15)
-        printf("trash phase\n");
-    /*
-     * If the record set does not contain any records after the cleansing,
-     * we have only an empty shell left which we can safely remove from 
-     * all the searches.
-     */
-	if (rs->num_recs == 0) {
-		for (l = schl; l; l = l->next) {
-			search_t *sch = search_gui_find(
-				(gnet_search_t) GPOINTER_TO_UINT(l->data));
-			search_gui_remove_r_set(sch, rs);
-		}
-	}
-}
 
 /*
  * search_gui_search_results_col_widths_changed:

@@ -55,7 +55,7 @@ static gchar tmpstr[1024];
  */
 void search_gui_free_alt_locs(record_t *rc)
 {
-	host_vec_t *alt = rc->alt_locs;
+	gnet_host_vec_t *alt = rc->alt_locs;
 
 	g_assert(alt != NULL);
 
@@ -63,6 +63,23 @@ void search_gui_free_alt_locs(record_t *rc)
 	wfree(alt, sizeof(*alt));
 
 	rc->alt_locs = NULL;
+}
+
+/*
+ * search_gui_free_proxies
+ *
+ * Free the push proxies held within a result set.
+ */
+void search_gui_free_proxies(results_set_t *rs)
+{
+	gnet_host_vec_t *v = rs->proxies;
+
+	g_assert(v != NULL);
+
+	wfree(v->hvec, v->hvcnt * sizeof(*v->hvec));
+	wfree(v, sizeof(*v));
+
+	rs->proxies = NULL;
 }
 
 /*
@@ -168,6 +185,8 @@ void search_gui_free_r_set(results_set_t *rs)
 		atom_guid_free(rs->guid);
 	if (rs->version)
 		atom_str_free(rs->version);
+	if (rs->proxies)
+		search_gui_free_proxies(rs);
 
 	g_slist_free(rs->records);
 	zfree(rs_zone, rs);
@@ -416,8 +435,8 @@ record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 	rc->alt_locs = NULL;
 
 	if (r->alt_locs != NULL) {
-		gnet_host_vec_t *a = r->alt_locs;
-		host_vec_t *alt = walloc(sizeof(*alt));
+		gnet_host_vec_t *a = r->alt_locs;				/* Original from core */
+		gnet_host_vec_t *alt = walloc(sizeof(*alt));	/* GUI copy */
 		gint hlen = a->hvcnt * sizeof(*a->hvec);
 
 		alt->hvec = walloc(hlen);
@@ -455,6 +474,7 @@ results_set_t *search_gui_create_results_set(const gnet_results_set_t *r_set)
 
     rs->num_recs = 0;
     rs->records = NULL;
+	rs->proxies = NULL;
     
     for (sl = r_set->records; sl != NULL; sl = g_slist_next(sl)) {
         record_t *rc = search_gui_create_record(rs, (gnet_record_t *) sl->data);
@@ -498,21 +518,22 @@ void search_gui_common_shutdown(void)
  * Check for alternate locations in the result set, and enqueue the downloads
  * if there are any.  Then free the alternate location from the record.
  */
-void search_gui_check_alt_locs(record_t *rc, time_t stamp)
+void search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 {
 	gint i;
-	host_vec_t *alt = rc->alt_locs;
+	gnet_host_vec_t *alt = rc->alt_locs;
 
 	g_assert(alt != NULL);
+	g_assert(rs->proxies == NULL);	/* Since we downloaded record already */
 
 	for (i = alt->hvcnt - 1; i >= 0; i--) {
-		struct host *h = &alt->hvec[i];
+		gnet_host_t *h = &alt->hvec[i];
 
 		if (!host_is_valid(h->ip, h->port))
 			continue;
 
 		download_auto_new(rc->name, rc->size, URN_INDEX, h->ip,
-			h->port, blank_guid, rc->sha1, stamp, FALSE, NULL);
+			h->port, blank_guid, rc->sha1, rs->stamp, FALSE, NULL, NULL);
 	}
 
 	search_gui_free_alt_locs(rc);
@@ -650,3 +671,66 @@ void search_gui_retrieve_searches(void)
     search_retrieve_old();
 #endif /* USE_SEARCH_XML */
 }
+
+/***
+ *** Callbacks
+ ***/
+
+/*
+ * search_gui_got_results
+ *
+ * Called when the core has finished parsing the result set, and the results
+ * need to be dispatched to the searches listed in `schl'.
+ */
+void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
+{
+    GSList *l;
+    results_set_t *rs;
+
+    /*
+     * Copy the data we got from the backend.
+     */
+    rs = search_gui_create_results_set(r_set);
+
+    if (gui_debug >= 12)
+        printf("got incoming results...\n");
+
+    for (l = schl; l != NULL; l = g_slist_next(l))
+        search_matched(
+			search_gui_find((gnet_search_t) GPOINTER_TO_UINT(l->data)), rs);
+
+   	/*
+	 * Some of the records might have not been used by searches, and need
+	 * to be freed.  If no more records remain, we request that the
+	 * result set be removed from all the dispatched searches, the last one
+	 * removing it will cause its destruction.
+	 */
+
+    if (gui_debug >= 15)
+        printf("cleaning phase\n");
+
+    if (rs->refcount == 0) {
+        search_gui_free_r_set(rs);
+        return;
+    }
+
+    search_gui_clean_r_set(rs);
+
+    if (gui_debug >= 15)
+        printf("trash phase\n");
+
+    /*
+     * If the record set does not contain any records after the cleansing,
+     * we have only an empty shell left which we can safely remove from 
+     * all the searches.
+     */
+
+	if (rs->num_recs == 0) {
+		for (l = schl; l; l = l->next) {
+			search_t *sch = search_gui_find(
+				(gnet_search_t) GPOINTER_TO_UINT(l->data));
+			search_gui_remove_r_set(sch, rs);
+		}
+	}
+}
+

@@ -40,6 +40,9 @@
  * various searches in presence.  Each time the structure is dispatched,
  * the `refcount' is incremented, so that we don't free it and its content
  * until it has been "forgotten" that many times.
+ *
+ * NB: we reuse the pure data structure gnet_host_vec_t from the core.  It
+ *     is purely descriptive anyway.
  */
 typedef struct results_set {
 	gint refcount;				/* Numner of "struct search" this belongs to */
@@ -52,26 +55,11 @@ typedef struct results_set {
 	time_t  stamp;				/* Reception time of the hit */
 	guchar  vendor[4];			/* Vendor code */
 	gchar *version;				/* Version information (atom) */
+	gnet_host_vec_t *proxies;	/* Optional: known push proxies */
 
 	guint32 num_recs;
 	GSList *records;
 } results_set_t;
-
-/*
- * A host.
- */
-struct host {
-	guint32 ip;
-	guint16 port;
-};
-
-/*
- * Host vector held in query hits.
- */
-typedef struct host_vec {
-	struct host *hvec;			/* Vector of alternate locations */
-	gint hvcnt;					/* Amount of hosts in vector */
-} host_vec_t;
 
 /*
  * An individual hit.  It referes to a file entry on the remote servent,
@@ -91,7 +79,7 @@ typedef struct record {
 	guint32 index;				/* Index for GET command */
 	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
 	gchar  *tag;				/* Optional tag data string (atom) */
-	host_vec_t *alt_locs;		/* Optional alternate locations for record */
+	gnet_host_vec_t *alt_locs;	/* Optional alternate locations for record */
     flag_t  flags;              /* same flags as in gnet_record_t */
 } record_t;
 
@@ -105,6 +93,7 @@ void search_gui_common_init(void);
 void search_gui_common_shutdown(void);
 
 void search_gui_free_alt_locs(record_t *rc);
+void search_gui_free_proxies(results_set_t *rs);
 void search_gui_free_record(record_t *rc);
 void search_gui_clean_r_set(results_set_t *rs);
 void search_gui_free_r_set(results_set_t *rs);
@@ -118,8 +107,10 @@ gboolean search_gui_result_is_dup(struct search* sch, struct record * rc);
 struct search *search_gui_find(gnet_search_t sh);
 record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r) ;
 results_set_t *search_gui_create_results_set(const gnet_results_set_t *r_set);
-void search_gui_check_alt_locs(record_t *rc, time_t stamp);
+void search_gui_check_alt_locs(results_set_t *rs, record_t *rc);
 void search_gui_store_searches(void);
 void search_gui_retrieve_searches(void);
+void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set);
 
 #endif /* _search_gui_common_h_ */
+

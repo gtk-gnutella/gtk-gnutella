@@ -137,4 +137,6 @@ void gui_search_update_items(struct search *);
 gboolean search_gui_search_results_col_widths_changed(property_t prop);
 gboolean search_gui_search_results_col_visible_changed(property_t prop);
 
+void search_matched(search_t *sch, results_set_t *rs);
+
 #endif /* _search_gui_h_ */
