@@ -42,6 +42,7 @@ RCSID("$Id$");
 #include "gnet_stats.h"
 #include "gnutella.h"
 #include "mq_udp.h"
+#include "routing.h"
 
 #include "if/gnet_property_priv.h"
 
