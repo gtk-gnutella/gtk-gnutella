@@ -135,7 +135,7 @@ static GHashTable *dqueries = NULL;
 
 /*
  * This table keeps track of all the dynamic query objects created
- * for a given node ID.  The key is an integer atom (the node ID) and
+ * for a given node ID.  The key is the node ID (converted to a pointer) and
  * the value is a GSList containing all the queries for that node.
  */
 static GHashTable *by_node_id = NULL;
@@ -413,7 +413,6 @@ dq_pmsg_free(pmsg_t *mb, gpointer arg)
 		g_assert(found);		/* Or something is seriously corrupted */
 
 		g_hash_table_remove(dq->queried, &pmi->node_id);
-		atom_int_free(key);
 
 		if (dq_debug > 19)
 			printf("DQ[%d] %snode #%d degree=%d dropped message TTL=%d\n",
@@ -637,15 +636,6 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 }
 
 /**
- * Hashtable iteration callback to free the atoms held in the keys.
- */
-static void 
-free_node_id(gpointer key, gpointer value, gpointer udata)
-{
-	atom_int_free(key);
-}
-
-/**
  * Release the dynamic query object.
  */
 static void
@@ -676,22 +666,21 @@ dq_free(dquery_t *dq)
 		cq_cancel(callout_queue, dq->expire_ev);
 
 	if (dq->results >= dq->max_results)
-		gnet_stats_count_general(NULL, GNR_DYN_QUERIES_COMPLETED_FULL, 1);
+		gnet_stats_count_general(GNR_DYN_QUERIES_COMPLETED_FULL, 1);
 	else if (dq->results > 0)
-		gnet_stats_count_general(NULL, GNR_DYN_QUERIES_COMPLETED_PARTIAL, 1);
+		gnet_stats_count_general(GNR_DYN_QUERIES_COMPLETED_PARTIAL, 1);
 	else
-		gnet_stats_count_general(NULL, GNR_DYN_QUERIES_COMPLETED_ZERO, 1);
+		gnet_stats_count_general(GNR_DYN_QUERIES_COMPLETED_ZERO, 1);
 
 	if (dq->linger_results) {
 		if (dq->results >= dq->max_results)
-			gnet_stats_count_general(NULL, GNR_DYN_QUERIES_LINGER_EXTRA, 1);
+			gnet_stats_count_general(GNR_DYN_QUERIES_LINGER_EXTRA, 1);
 		else if (dq->results + dq->linger_results >= dq->max_results)
-			gnet_stats_count_general(NULL, GNR_DYN_QUERIES_LINGER_COMPLETED, 1);
+			gnet_stats_count_general(GNR_DYN_QUERIES_LINGER_COMPLETED, 1);
 		else
-			gnet_stats_count_general(NULL, GNR_DYN_QUERIES_LINGER_RESULTS, 1);
+			gnet_stats_count_general(GNR_DYN_QUERIES_LINGER_RESULTS, 1);
 	}
 
-	g_hash_table_foreach(dq->queried, free_node_id, NULL);
 	g_hash_table_destroy(dq->queried);
 
 	qhvec_free(dq->qhv);
@@ -720,8 +709,8 @@ dq_free(dquery_t *dq)
 	) {
 		GSList *list;
 
-		found = g_hash_table_lookup_extended(by_node_id, &dq->node_id,
-			&key, &value);
+		found = g_hash_table_lookup_extended(by_node_id,
+					GUINT_TO_POINTER(dq->node_id), &key, &value);
 
 		g_assert(found);
 
@@ -731,7 +720,6 @@ dq_free(dquery_t *dq)
 		if (list == NULL) {
 			/* Last item removed, get rid of the entry */
 			g_hash_table_remove(by_node_id, key);
-			atom_int_free(key);
 		} else if (list != value)
 			g_hash_table_insert(by_node_id, key, list);
 	}
@@ -759,9 +747,11 @@ dq_free(dquery_t *dq)
  * Callout queue callback invoked when the dynamic query has expired.
  */
 static void
-dq_expired(cqueue_t *cq, gpointer obj)
+dq_expired(cqueue_t *unused_cq, gpointer obj)
 {
 	dquery_t *dq = (dquery_t *) obj;
+
+	(void) unused_cq;
 
 	if (dq_debug > 19)
 		printf("DQ[%d] expired\n", dq->qid);
@@ -794,7 +784,7 @@ dq_expired(cqueue_t *cq, gpointer obj)
  * Callout queue callback invoked when the result timer has expired.
  */
 static void
-dq_results_expired(cqueue_t *cq, gpointer obj)
+dq_results_expired(cqueue_t *unused_cq, gpointer obj)
 {
 	dquery_t *dq = (dquery_t *) obj;
 	gnutella_node_t *n;
@@ -803,6 +793,7 @@ dq_results_expired(cqueue_t *cq, gpointer obj)
 	guint32 avg;
 	guint32 last;
 
+	(void) unused_cq;
 	g_assert(!(dq->flags & DQ_F_LINGER));
 
 	dq->results_ev = NULL;	/* Indicates callback fired */
@@ -992,15 +983,14 @@ node_mq_qrp_cmp(const void *np1, const void *np2)
 static void
 dq_send_query(dquery_t *dq, gnutella_node_t *n, gint ttl)
 {
-	gint *id_atom;
 	struct pmsg_info *pmi;
 	pmsg_t *mb;
 
 	g_assert(!g_hash_table_lookup(dq->queried, &n->id));
 	g_assert(NODE_IS_WRITABLE(n));
 
-	id_atom = atom_int_get(&n->id);
-	g_hash_table_insert(dq->queried, id_atom, GINT_TO_POINTER(1));
+	g_hash_table_insert(dq->queried,
+		GUINT_TO_POINTER(n->id), GINT_TO_POINTER(1));
 
 	pmi = dq_pmi_alloc(dq, n->degree, MIN(n->max_ttl, ttl), n->id);
 
@@ -1322,8 +1312,8 @@ dq_common_init(dquery_t *dq, query_hashvec_t *qhv)
 		gpointer value;
 		GSList *list;
 
-		found = g_hash_table_lookup_extended(by_node_id, &dq->node_id,
-			&key, &value);
+		found = g_hash_table_lookup_extended(by_node_id,
+					GUINT_TO_POINTER(dq->node_id), &key, &value);
 
 		if (found) {
 			list = value;
@@ -1331,7 +1321,7 @@ dq_common_init(dquery_t *dq, query_hashvec_t *qhv)
 			g_assert(list == value);		/* Head not changed */
 		} else {
 			list = g_slist_prepend(NULL, dq);
-			key = atom_int_get(&dq->node_id);
+			key = GUINT_TO_POINTER(dq->node_id);
 			g_hash_table_insert(by_node_id, key, list);
 		}
 	}
@@ -1412,7 +1402,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 			tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY) ? "OOB-" : "",
 			QUERY_TEXT(pmsg_start(dq->mb)));
 
-	gnet_stats_count_general(NULL, GNR_LEAF_DYN_QUERIES, 1);
+	gnet_stats_count_general(GNR_LEAF_DYN_QUERIES, 1);
 
 	dq_common_init(dq, qhv);
 	dq_sendto_leaves(dq, n);
@@ -1459,7 +1449,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	dq->ttl = MIN(my_ttl, DQ_MAX_TTL);
 	dq->alive = NULL;
 
-	gnet_stats_count_general(NULL, GNR_LOCAL_DYN_QUERIES, 1);
+	gnet_stats_count_general(GNR_LOCAL_DYN_QUERIES, 1);
 
 	dq_common_init(dq, qhv);
 	dq_sendto_leaves(dq, NULL);
@@ -1478,7 +1468,8 @@ dq_node_removed(guint32 node_id)
 	gpointer value;
 	GSList *sl;
 
-	found = g_hash_table_lookup_extended(by_node_id, &node_id, &key, &value);
+	found = g_hash_table_lookup_extended(by_node_id,
+				GUINT_TO_POINTER(node_id), &key, &value);
 
 	if (!found)
 		return;		/* No dynamic query for this node */
@@ -1497,7 +1488,6 @@ dq_node_removed(guint32 node_id)
 
 	g_hash_table_remove(by_node_id, key);
 	g_slist_free(value);
-	atom_int_free(key);
 }
 
 /**
@@ -1567,7 +1557,7 @@ dq_count_results(gchar *muid, gint count, gboolean oob)
  * whether we should forward the results.
  */
 gboolean
-dq_got_results(gchar *muid, gint count)
+dq_got_results(gchar *muid, guint count)
 {
 	return dq_count_results(muid, count, FALSE);
 }
@@ -1592,11 +1582,12 @@ dq_oob_results_ind(gchar *muid, gint count)
  * were finally claimed and parsed).
  */
 void
-dq_oob_results_got(const gchar *muid, gint count)
+dq_oob_results_got(const gchar *muid, guint count)
 {
 	dquery_t *dq;
 
-	g_assert(count > 0);		/* Query hits with no result are bad! */
+	/* Query hits with no result are bad! */
+	g_assert(count > 0 && count <= INT_MAX);
 
 	dq = g_hash_table_lookup(by_muid, muid);
 
@@ -1703,11 +1694,12 @@ struct cancel_context {
  * -- hash table iterator callback
  */
 static void
-dq_cancel_local(gpointer key, gpointer value, gpointer udata)
+dq_cancel_local(gpointer key, gpointer unused_value, gpointer udata)
 {
 	struct cancel_context *ctx = (struct cancel_context *) udata;
 	dquery_t *dq = (dquery_t *) key;
 
+	(void) unused_value;
 	if (dq->node_id != NODE_ID_LOCAL || dq->sh != ctx->handle)
 		return;
 
@@ -1786,7 +1778,7 @@ dq_init(void)
 	extern gint guid_eq(gconstpointer a, gconstpointer b);
 
 	dqueries = g_hash_table_new(g_direct_hash, 0);
-	by_node_id = g_hash_table_new(g_int_hash, g_int_equal);
+	by_node_id = g_hash_table_new(NULL, NULL);
 	by_muid = g_hash_table_new(guid_hash, guid_eq);
 	fill_hosts();
 }
@@ -1795,9 +1787,12 @@ dq_init(void)
  * Hashtable iteration callback to free the dquery_t object held as the key.
  */
 static void
-free_query(gpointer key, gpointer value, gpointer udata)
+free_query(gpointer key, gpointer unused_value, gpointer unused_udata)
 {
 	dquery_t *dq = (dquery_t *) key;
+
+	(void) unused_value;
+	(void) unused_udata;
 
 	dq->flags |= DQ_F_EXITING;		/* So nothing is removed from the table */
 	dq_free(dq);
@@ -1809,15 +1804,15 @@ free_query(gpointer key, gpointer value, gpointer udata)
  * there should not be anything remaining, hence warn!
  */
 static void
-free_query_list(gpointer key, gpointer value, gpointer udata)
+free_query_list(gpointer key, gpointer value, gpointer unused_udata)
 {
-	gint *atom = (gint *) key;
 	GSList *list = (GSList *) value;
 	gint count = g_slist_length(list);
 	GSList *sl;
 
-	g_warning("remained %d un-freed dynamic quer%s for node #%d",
-		count, count == 1 ? "y" : "ies", *atom);
+	(void) unused_udata;
+	g_warning("remained %d un-freed dynamic quer%s for node #%u",
+		count, count == 1 ? "y" : "ies", GPOINTER_TO_UINT(key));
 
 	for (sl = list; sl; sl = g_slist_next(sl)) {
 		dquery_t *dq = (dquery_t *) sl->data;
@@ -1828,7 +1823,6 @@ free_query_list(gpointer key, gpointer value, gpointer udata)
 	}
 
 	g_slist_free(list);
-	atom_int_free(atom);
 }
 
 /**
@@ -1837,8 +1831,10 @@ free_query_list(gpointer key, gpointer value, gpointer udata)
  * anything remaining, hence warn!
  */
 static void
-free_muid(gpointer key, gpointer value, gpointer udata)
+free_muid(gpointer key, gpointer unused_value, gpointer unused_udata)
 {
+	(void) unused_value;
+	(void) unused_udata;
 	g_warning("remained un-freed MUID \"%s\" in dynamic queries",
 		guid_hex_str(key));
 
@@ -1861,3 +1857,4 @@ dq_close(void)
 	g_hash_table_destroy(by_muid);
 }
 
+/* vi: set ts=4 sw=4 cindent: */
