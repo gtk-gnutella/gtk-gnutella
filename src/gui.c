@@ -2043,6 +2043,21 @@ void gui_view_search(search_t *sch)
 
     locked = TRUE;
 
+    /*
+     * We now propagate the column visibility from the current_search
+     * to the new current_search.
+     */
+    if (current_search != NULL) {
+        gint i;
+        GtkCList *list;
+        
+        list = GTK_CLIST(current_search->clist);
+
+        for (i = 0; i < list->columns; i ++)
+            gtk_clist_set_column_visibility
+                (GTK_CLIST(sch->clist), i, list->column[i].visible);
+    }
+
 	current_search = sch;
 	sch->unseen_items = 0;
 
