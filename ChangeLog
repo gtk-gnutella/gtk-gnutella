@@ -1,3 +1,23 @@
+- changed lots of stuff on the gui layout (Richard)
+- changed menu from list to tree (Richard)
+- renamed lots of widgets (Richard)
+- fixed several popup action handlers to cope with multiple selections 
+  (Richard)
+- can add searches from the monitor pane (only if monitoring is off, because
+  otherwise the selection would be gone too fast).
+  (Richard)
+- replace numeric text fields (like max no of downloads) with a spinbutton
+  (Richard)
+- disable autoselection when more that one file is already selected (search).
+  (Richard=)
+- hid old stats frame (Richard)
+- added menu bar and statusbar (both optional) (Richard)
+- added progress bars to display connection/upload/download stats (optional)
+  (Richard)
+- Made build-glade target in Makefile really regererate the code from the
+  gtk-gnutella.glade file by calling src/Makefile glade_files
+  (Richard)
+
 # v 0.85   2002.04.04  [stable]
 
 - Changed bzero() into memset() in sockets.c for Solaris [patch #538619].
