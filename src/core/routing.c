@@ -1583,7 +1583,22 @@ route_query_hit(struct route_log *log,
 		goto handle;
 	}
 
-	g_assert(!is_oob_proxied);		/* Or we would have sent the message */
+	/*
+	 * If the query hit's MUID is among the registered OOB-proxied queries,
+	 * yet we did not find the message in the routing table as having been
+	 * sent by ourselves, something is wrong.
+	 *
+	 * I ued to assert "!is_oob_proxied" at this point, but it failed once
+	 * in a while, and we can recover, it's not critical.  Let's handle it
+	 * then, as it's known by the OOB proxy layer.
+	 */
+
+	if (is_oob_proxied) {
+		g_warning("BUG: forgot we sent OOB-proxied query %s in routing table!",
+			guid_hex_str(sender->header.muid));
+		node_is_target = TRUE;		/* We are the target of the reply */
+		goto handle;
+	}
 
 	/*
 	 * Look for a route different from the one we received the
