@@ -68,7 +68,7 @@
  *	 function.
  */
 #define STATIC_ASSERT(x) \
-	(void) sizeof(char[((x) ? 1 : -23)]);
+	do { (void) sizeof(char[((x) ? 1 : -23)]); } while(0)
 
 /*
  * Needs to be defined if we are not using Glib 2
