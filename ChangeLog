@@ -1,5 +1,18 @@
 # since last version
 
+- (2004-09-21 - RAM)
+ * Added dh_would_route() for the OOB-proxying layer to be able to determine
+   whether the hits it would claim would be delivered to the leaf or
+   thrown away by the dynamic hit layer.
+ * Deleted obsolete code in download_push_insert() and download_push_remove():
+   select_push_download() has already all the logic to grab the proper
+   download when a GIV is received.
+ * Let dynamic query know about unclaimed OOB-proxied hits.
+ * Raised timeout for "Query Status Response" to 30 seconds.
+ * Don't send dynamic query to another node if we already queued but not
+   sent 3 queries to other nodes.
+ * Send "Query Status Request" as a control prioritary message.
+
 - (2004-09-20 - RAM)
  * Fixed OOB-proxy routing logic to no longer use the routing table: we keep
    the ID of the leaf node originating the query around.
