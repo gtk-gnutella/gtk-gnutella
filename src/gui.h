@@ -80,7 +80,7 @@ enum {
 #endif /* USE_GTK2 */	
     c_ul_status,
 #ifdef USE_GTK2
-#define UPLOADS_GUI_VISIBLE_COLUMNS 7
+#define UPLOADS_GUI_VISIBLE_COLUMNS ((guint) c_ul_status + 1)
     c_ul_fg,
     c_ul_data,
 #endif /* USE_GTK2 */
@@ -97,7 +97,7 @@ enum {
     c_us_attempts,
     c_us_complete,
     c_us_norm,
-#define UPLOAD_STATS_GUI_VISIBLE_COLUMNS 5
+#define UPLOAD_STATS_GUI_VISIBLE_COLUMNS ((guint) c_us_norm + 1)
 	c_us_stat,
 
 	c_us_num
@@ -198,6 +198,9 @@ enum {
 #endif
     c_sr_info,
 #ifdef USE_GTK2
+	c_sr_ext,
+#define SEARCH_GUI2_VISIBLE_COLUMNS ((guint) c_sr_ext + 1)
+
 	c_sr_fg, /* invisible, holds the foreground color for the row */
 	c_sr_bg, /* invisible, holds the background color for the row */
 	c_sr_record, /* invisible, pointer to the record_t of this entry */
@@ -210,14 +213,25 @@ enum {
 /*
  * Gnet stats table columns
  */
-enum {
+typedef enum {
     c_gs_type = 0,
     c_gs_received,
     c_gs_expired,
     c_gs_dropped,
     c_gs_relayed,
-    c_gs_generated
-};
+    c_gs_generated,
+
+	num_c_gs
+} c_gs_t;
+
+typedef enum {
+    c_horizon_hops = 0,
+    c_horizon_nodes,
+    c_horizon_files,
+    c_horizon_size,
+
+    num_c_horizon
+} c_horizon_t;
 
 
 
@@ -356,4 +370,5 @@ void gui_merge_window_as_tab(GtkWidget *toplvl, GtkWidget *notebook,
 void icon_init(void);
 void icon_close(void);
 
+/* vi: set ts=4: */
 #endif /* _gui_h_ */
