@@ -57,6 +57,7 @@
 #include "pproxy.h"
 #include "features.h"
 #include "gnet_stats.h"
+#include "geo_ip.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -719,6 +720,7 @@ allocate_server(const gchar *guid, guint32 ip, guint16 port)
 	server = walloc0(sizeof(*server));
 	server->key = key;
 	server->retry_after = time(NULL);
+	server->country = atom_str_get(gip_country(ip));
 
 	g_hash_table_insert(dl_by_host, key, server);
 	dl_by_time_insert(server);
@@ -762,6 +764,7 @@ free_server(struct dl_server *server)
 	if (server->vendor)
 		atom_str_free(server->vendor);
 	atom_guid_free(server->key->guid);
+	atom_str_free(server->country);
 
 	/*
 	 * We only inserted the server in the `dl_ip' table if it was "reachable".
@@ -3329,6 +3332,17 @@ download_auto_new(gchar *file, guint32 size, guint32 record_index,
 	gchar *file_name;
 	const char *reason;
 	enum ignore_val ign_reason;
+
+	/*
+	 * Make sure host is reacheable, especially if we come from the GUI,
+	 * which cannot access the bogus IP database.
+	 */
+
+	if (!push && !host_is_valid(ip, port)) {
+		push = TRUE;
+		if (guid_eq(guid, blank_guid))
+			return;
+	}
 
 	/*
 	 * Make sure we're not prevented from downloading that file.
