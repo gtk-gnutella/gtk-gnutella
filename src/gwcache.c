@@ -260,7 +260,7 @@ static void gwc_retrieve(void)
 	};
 	gchar tmp[1024];
 
-	in = file_config_open_read(gwc_what, fpvec, ARRAY_COUNT(fpvec));
+	in = file_config_open_read(gwc_what, fpvec, G_N_ELEMENTS(fpvec));
 
 	if (!in)
 		return;

@@ -21,6 +21,20 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ *
+ * This misc.[ch] provides several miscellaneos small routines & macros for:
+ *
+ * - Array size determination
+ * - Flag handling
+ * - Sorting constants
+ * - Network related string routines
+ * - Date string conversions
+ * - Time string conversions
+ * - Size string conversions
+ * - SHA1<->base32 string conversion
+ * - Tests
+ * - Random numbers
+ * - Stuff...
  */
 
 #ifndef __misc_h__
@@ -35,55 +49,84 @@
 
 
 /*
- * Some useful macros.
+ * Array size determination
  */
+#ifndef G_N_ELEMENTS
+#define G_N_ELEMENTS(arr) (sizeof (arr) / sizeof ((arr)[0]))
+#endif
 
-/* Set/clear binary flags */
+/* 
+ * Set/clear binary flags 
+ */
+typedef guint16 flag_t;
 #define set_flags(r,f) (r = r | (f))
 #define clear_flags(r,f) (r = r & ~(f))
 
-/* Number of items in a static array */
-#define ARRAY_COUNT(a)	(sizeof(a) / sizeof(a[0]))
-
+/*
+ * Sorting constants
+ */
 #define SORT_ASC  1
 #define SORT_DESC -1
 #define SORT_NONE 0
 
 /*
- * Some common types
+ * Network related string routines
  */
-typedef guint16 flag_t;
+guint32  gchar_to_ip(const gchar *);
+gboolean gchar_to_ip_port(gchar *str, guint32 *ip, guint16 *port);
+gchar *  ip_to_gchar(guint32);
+gchar *  ip_port_to_gchar(guint32, guint16);
+guint32  host_to_ip(gchar *);
+gchar *  host_name(void);
 
 /*
- * Global Functions
+ * Date string conversions
  */
-gboolean is_string_ip(const gchar *);
-gboolean file_exists(gchar *);
-gchar *ip_to_gchar(guint32);
-gchar *ip_port_to_gchar(guint32, guint16);
-guint32 gchar_to_ip(const gchar *);
-gboolean gchar_to_ip_port(gchar *str, guint32 *ip, guint16 *port);
-guint32 host_to_ip(gchar *);
-gchar *host_name(void);
-gint str_chomp(gchar *str, gint len);
-gboolean is_private_ip(guint32 ip);
-gboolean is_directory(const gchar *);
-gchar *guid_hex_str(guchar *guid);
-gint hex2dec(gchar c);
-void hex_to_guid(gchar *hexguid, guchar *guid);
 gchar *date_to_iso_gchar(time_t date);
 gchar *date_to_rfc822_gchar(time_t date);
 gchar *date_to_rfc822_gchar2(time_t date);
-gchar *sha1_base32(const guchar *sha1);
-guchar *base32_sha1(const gchar *base32);
-void dump_hex(FILE *, gchar *, gchar *, gint);
+
+/*
+ * Time string conversions
+ */
+gchar *short_time(guint32 s);
+gchar *short_uptime(guint32 s);
+
+/*
+ * Size string conversions
+ */
 gchar *short_size(guint32);
 gchar *short_kb_size(guint32);
 gchar *compact_size(guint32 size);
-gchar *short_time(guint32 s);
-gchar *short_uptime(guint32 s);
+
+/*
+ * SHA1<->base32 string conversion
+ */
+gchar *sha1_base32(const guchar *sha1);
+guchar *base32_sha1(const gchar *base32);
+
+/*
+ * Tests
+ */
+gboolean is_string_ip(const gchar *);
+gboolean is_private_ip(guint32 ip);
+gboolean is_directory(const gchar *);
+gboolean file_exists(gchar *);
+
+/*
+ * Randomnumbers
+ */
 void random_init(void);
 guint32 random_value(guint32 max);
+
+/*
+ * Stuff
+ */
+gint str_chomp(gchar *str, gint len);
+gchar *guid_hex_str(guchar *guid);
+gint hex2dec(gchar c);
+void hex_to_guid(gchar *hexguid, guchar *guid);
+void dump_hex(FILE *, gchar *, gchar *, gint);
 void strlower(gchar *, gchar *);
 gchar *unique_filename(gchar *path, gchar *file, gchar *ext);
 
