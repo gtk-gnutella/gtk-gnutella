@@ -803,7 +803,8 @@ void header_features_generate(gchar *buf, gint len, gint *rw, gint type)
 			if (first) {
 				*rw += gm_snprintf(&buf[*rw], len - *rw, "X-Features: ");
 				first = FALSE;
-			}
+			} else
+				*rw += gm_snprintf(&buf[*rw], len - *rw, ", ");
 			
 			*rw += gm_snprintf(&buf[*rw], len - *rw, "%s/%d.%d ",
 				feature->name, feature->major, feature->minor);
@@ -849,10 +850,6 @@ void header_get_feature(const gchar *feature_name, const header_t *header,
 	buf = strcasestr(buf, feature_name);
 	
 	if (buf == NULL) {
-		/* Not supported */
-		// REMOVE:
-		g_warning("[header] Feature_name %s not supported", feature_name);
-		header_dump(header, stderr);
 		return;
 	}
 	
@@ -860,7 +857,7 @@ void header_get_feature(const gchar *feature_name, const header_t *header,
 	
 	if (*buf != '/') {
 		g_warning("[header] Malformed X-Features header, ignoring");
-		//if (dbg)
+		if (dbg > 2)
 			header_dump(header, stderr);
 		
 		return;
