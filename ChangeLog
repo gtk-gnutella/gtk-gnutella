@@ -1,5 +1,9 @@
 # since last version
 
+- (2003.10.02 - Jeroen)
+ * Added extra assertions to parq to verify u->name != NULL. Trying to track
+   a porting problem
+
 - (2003.09.11 - RAM)
  * My farewell to gtk-gnutella...  Appointed Jeroen as new leader.
  * No longer aborts downloads when we can't write data to disk: requeue them
