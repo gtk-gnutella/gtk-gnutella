@@ -39,7 +39,6 @@
 
 #define DEFAULT_TARGET (filter_get_drop_target())   
 
-
 /*
  * Public variables
  */
@@ -424,7 +423,7 @@ void filter_gui_update_rule_count(filter_t *f, GList *ruleset)
 
     g_assert(f != NULL);
 
-    if (filter_dialog == NULL);
+    if (filter_dialog == NULL)
         return;
 
     ctree_filter_filters = GTK_CTREE
@@ -455,7 +454,7 @@ void filter_gui_filter_remove(filter_t *f)
 
     g_assert(f != NULL);
 
-    if (filter_dialog == NULL);
+    if (filter_dialog == NULL)
         return;
 
     ctree_filter_filters = GTK_CTREE
