@@ -12,8 +12,9 @@ gint compare_ul_norm(GtkCList *, gconstpointer, gconstpointer);
 void ul_stats_load_history(const gchar *);
 void ul_stats_dump_history(const gchar *filename, gboolean cleanup);
 void ul_flush_stats_if_dirty(void);
-void ul_stats_file_begin(const struct upload *);
-void ul_stats_file_complete(const struct upload *);
+void ul_stats_file_begin(const struct upload *u);
+void ul_stats_file_aborted(const struct upload *u);
+void ul_stats_file_complete(const struct upload *u);
 void ul_stats_prune_nonexistant();
 void ul_stats_clear_all();
 

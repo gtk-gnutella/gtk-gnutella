@@ -41,6 +41,7 @@ static guint main_slow_update = 0;
 void gtk_gnutella_exit(gint n)
 {
 	node_bye_all();
+	upload_close();		/* Done before config_close() for stats update */
 
 	if (hosts_idle_func)
 		gtk_idle_remove(hosts_idle_func);
@@ -57,7 +58,6 @@ void gtk_gnutella_exit(gint n)
 	host_close();
 	routing_close();
 	download_close();
-	upload_close();
 	bsched_close();
 	gui_close();
 	config_close();

@@ -372,6 +372,14 @@ static void upload_remove_v(struct upload *u, const gchar *reason, va_list ap)
 	if (!UPLOAD_IS_COMPLETE(u) && !UPLOAD_IS_CONNECTING(u))
 		running_uploads--;
 
+	/*
+	 * If we were sending data, and we have not accounted the download yet,
+	 * then update the stats, not marking the upload as completed.
+	 */
+
+	if (UPLOAD_IS_SENDING(u) && !u->accounted)
+		ul_stats_file_aborted(u);
+
 	upload_free_resources(u);
 	g_free(u);
 
@@ -879,7 +887,7 @@ static void upload_request(struct upload *u, header_t *header)
 			g_assert(up);
 			if (up == u)
 				continue;				/* Current upload is already in list */
-			if (up->status != GTA_UL_SENDING)
+			if (!UPLOAD_IS_SENDING(up))
 				continue;
 			if (up->index == index && up->socket->ip == s->ip) {
 				upload_error_remove(u, 409, "Already downloading that file");
@@ -1254,6 +1262,7 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		gui_update_count_uploads();
 		gui_update_c_uploads();
 		ul_stats_file_complete(u);
+		u->accounted = TRUE;			/* Called ul_stats_file_complete() */
 
 		if (clear_uploads == TRUE)
 			upload_remove(u, NULL);
@@ -1276,6 +1285,8 @@ void upload_close(void)
 
 	for (l = uploads; l; l = l->next) {
 		struct upload *u = (struct upload *) l->data;
+		if (UPLOAD_IS_SENDING(u) && !u->accounted)
+			ul_stats_file_aborted(u);
 		upload_free_resources(u);
 		g_free(u);
 	}

@@ -32,6 +32,7 @@ struct upload {
 	guint end;						/* Last byte to send, inclusive */
 	off_t pos;						/* Read position in file we're sending */
 	gboolean push;
+	gboolean accounted;				/* True when upload was accounted for */
 };
 
 /*
@@ -54,6 +55,10 @@ struct upload {
 
 #define UPLOAD_IS_COMPLETE(u)	\
 	((u)->status == GTA_UL_COMPLETE)
+
+#define UPLOAD_IS_SENDING(u)	\
+	((u)->status == GTA_UL_SENDING)
+
 
 /*
  * Until we got all the HTTP headers, the entry does not appear

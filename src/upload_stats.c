@@ -356,33 +356,41 @@ void ul_stats_file_begin(const struct upload *u)
 }
 
 /*
- * Called when an upload completes
+ * ul_stats_file_add
+ *
+ * Add `comp' to the current completed count, and update the amount of
+ * bytes transferred.  Note that `comp' can be zero.
+ *
+ * If the row does not exist (race condition: deleted since upload started),
+ * recreate one.
  */
-void ul_stats_file_complete(const struct upload *u)
+static void ul_stats_file_add(const struct upload *u, gint comp, gint sent)
 {
 	gint row;
 	struct ul_stats *stat;
+
+	g_assert(comp >= 0);
 
 	/* find this file in the ul_stats_clist */
 	row = ul_find_row_by_upload(u, &stat);
 
 	/* increment the completed counter */
 	if (-1 == row) {
-		/* uh oh, row has since been deleted, add it: 1 attempt, 1 success */
-		ul_stats_add_row(u->name, u->file_size, 1, 1, u->end - u->skip);
+		/* uh oh, row has since been deleted, add it: 1 attempt */
+		ul_stats_add_row(u->name, u->file_size, 1, comp, sent);
 	} else {
 		gchar complete_tmp[16];
 		gchar norm_tmp[16];
 
 		/* update complete counter */
-		stat->complete++;
+		stat->complete += comp;
 		g_snprintf(complete_tmp, sizeof(complete_tmp), "%d", 
 			stat->complete);
 		gtk_clist_set_text(GTK_CLIST(clist_ul_stats), row,
 			UL_STATS_COMPLETE_IDX, complete_tmp);
 
 		/* update normalized upload counter */
-		stat->bytes_sent += u->pos - u->skip;
+		stat->bytes_sent += sent;
 		stat->norm = (float) stat->bytes_sent / (float) stat->size;
 
 		g_snprintf(norm_tmp, sizeof(complete_tmp), "%.3f", stat->norm);
@@ -393,6 +401,27 @@ void ul_stats_file_complete(const struct upload *u)
 	}
 
 	dirty = TRUE;		/* Request asynchronous save of stats */
+}
+
+/*
+ * ul_stats_file_aborted
+ *
+ * Called when an upload is aborted, to update the amount of bytes transferred.
+ */
+void ul_stats_file_aborted(const struct upload *u)
+{
+	if (u->pos > u->skip)
+		ul_stats_file_add(u, 0, u->pos - u->skip);
+}
+
+/*
+ * ul_stats_file_complete
+ *
+ * Called when an upload completes
+ */
+void ul_stats_file_complete(const struct upload *u)
+{
+	ul_stats_file_add(u, 1, u->end - u->skip + 1);
 }
 
 void ul_stats_prune_nonexistant()
