@@ -1,5 +1,9 @@
 # since last version
 
+- (2002.12.09 - Richard)
+ * Fixed typo: c_gs_recieved
+ * Backported new stats from Gtk2 and reorganized stats display.
+
 - (2002.12.08 - cbiere)
  * [Gtk2] Added new stats pane with information about flow-control
 
