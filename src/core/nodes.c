@@ -76,6 +76,7 @@ RCSID("$Id$");
 #include "features.h"
 #include "udp.h"
 #include "tsync.h"
+#include "geo_ip.h"
 #ifdef ENABLE_G2
 #include "g2/g2nodes.h"
 #endif
@@ -1249,11 +1250,14 @@ node_real_remove(gnutella_node_t *node)
 	/*
 	 * The freeing of the vendor string is delayed, because the GUI update
 	 * code reads it.  When this routine is called, the GUI line has been
-	 * removed, so it's safe to do it now.
+	 * removed, so it's safe to do it now.  Ditto for the country code.
 	 */
 
 	if (node->vendor)
 		atom_str_free(node->vendor);
+
+	if (node->country)
+		atom_str_free(node->country);
 
 	/*
 	 * The RX stack needs to be dismantled asynchronously, to not be freed
@@ -1382,7 +1386,7 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 	}
 
 	/* n->io_opaque will be freed by node_real_remove() */
-	/* n->vendor will be freed by node_real_remove() */
+	/* n->vendor and n->country will be freed by node_real_remove() */
 
 	if (n->allocated) {
 		G_FREE_NULL(n->data);
@@ -4473,6 +4477,7 @@ node_udp_create(void)
 	n->up_date = start_stamp;
 	n->connect_date = start_stamp;
 	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
+	n->country = atom_str_get(gip_country(n->ip));
 
 	return n;
 }
@@ -4699,6 +4704,7 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	n->start_peermode = (node_peer_t) current_peermode;
 	n->hops_flow = MAX_HOP_COUNT;
 	n->last_update = n->last_tx = n->last_rx = time(NULL);
+	n->country = atom_str_get(gip_country(ip));
 
 	n->hello.ptr = NULL;
     n->hello.size =	0;
@@ -6345,6 +6351,9 @@ node_clear_info(gnet_node_info_t *info)
 {
 	if (info->vendor)
 		atom_str_free(info->vendor);
+
+	if (info->country)
+		atom_str_free(info->country);
 }
 
 /**
@@ -6370,6 +6379,7 @@ node_fill_info(const gnet_node_t n, gnet_node_info_t *info)
     info->proto_major = node->proto_major;
     info->proto_minor = node->proto_minor;
     info->vendor = node->vendor ? atom_str_get(node->vendor) : NULL;
+    info->country = node->country ? atom_str_get(node->country) : NULL;
     memcpy(info->vcode, node->vcode, 4);
 
     info->ip   = node->ip;
