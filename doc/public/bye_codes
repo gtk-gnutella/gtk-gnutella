@@ -32,6 +32,7 @@ Here are the officially registered BYE codes and their meaning:
 208		RESERVED
 209		RESERVED
 210		User Timeout Expired [UNUSED]
+299		Generic User-side Condition [UNUSED]
 
 400		Message Too Large
 401		Too Many Duplicates
@@ -45,9 +46,17 @@ Here are the officially registered BYE codes and their meaning:
 409		RESERVED
 410		Excessive Messages [UNUSED]
 411		Invalid Payload [UNUSED]
+499		Generic Peer-side Error [UNUSED]
 
 500		Servent Internal Error [UNUSED]
 501		Protocol Desynchronized
 502		Send Queue Full
 503		Servent Closing Connection [UNUSED]
+599		Generic Servent-side Error [UNUSED]
 
+Finally, recall that the above are generic categories of events.
+For instance, gtk-gnutella will send:
+
+	400 Too large ping message (543255552 bytes)
+
+The code is the classifier, the message given can be more explicit.
