@@ -286,6 +286,8 @@ alive_get_roundtrip_ms(gpointer obj, guint32 *avg, guint32 *last)
 {
 	const struct alive *a = (const struct alive *) obj;
 
+	g_assert(obj != NULL);
+
 	if (avg)	*avg = a->avg_rt;
 	if (last)	*last = a->last_rt;
 }
