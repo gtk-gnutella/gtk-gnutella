@@ -537,7 +537,6 @@ static prop_map_t property_map[] = {
         NULL,
         FREQ_UPDATES, 0
     ),
-#endif /* USE_GTK1 */
     PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_RESULTS_COL_VISIBLE,
@@ -546,6 +545,7 @@ static prop_map_t property_map[] = {
         NULL,
         FREQ_UPDATES, 0
     ),
+#endif /* USE_GTK1 */
     PROP_ENTRY(
         get_main_window,
         PROP_PROGRESSBAR_BWS_IN_VISIBLE,
