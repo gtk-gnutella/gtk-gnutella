@@ -41,14 +41,12 @@ U/new/icu.U
 U/new/locale.U
 U/new/msgmerge_update.U
 U/new/official.U
-U/new/pkgsrc.U
 U/packages/glade.U
 U/packages/gtkconfig.U
 U/packages/gtkversion.U
 U/packages/remotectrl.U
 U/packages/xmlconfig.U
 U/specific/gtkgversion.U
-config_h.SH                  Produces config.h
 debian/README.debian
 debian/changelog
 debian/control
@@ -428,3 +426,4 @@ src/zalloc.c
 src/zalloc.h
 src/zlib_util.c
 src/zlib_util.h
+config_h.SH                  Produces config.h
