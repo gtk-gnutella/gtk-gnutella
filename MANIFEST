@@ -126,7 +126,6 @@ gtk-gnutella.desktop
 gtk-gnutella.png
 gtk-gnutella.svg
 gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
-gtkgbw.sh
 gwcache.boot
 hostiles.txt
 install.SH                   BSD-compatible install program
