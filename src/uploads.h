@@ -2,6 +2,7 @@
 #define __uploads_h__
 
 #include "sockets.h"
+#include "bsched.h"
 
 struct upload {
 	guint32 status;
@@ -10,6 +11,7 @@ struct upload {
 	gpointer io_opaque;				/* Opaque I/O callback information */
 
 	gint file_desc;
+	bio_source_t *bio;				/* Bandwidth-limited source */
 
 	gchar *buffer;
 	gint bpos;

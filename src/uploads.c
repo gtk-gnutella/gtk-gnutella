@@ -17,6 +17,7 @@
 #include "header.h"
 #include "hosts.h"		/* for check_valid_host() */
 #include "url.h"
+#include "bsched.h"
 
 GSList *uploads = NULL;
 gint running_uploads = 0;
@@ -39,6 +40,7 @@ struct io_header {
 #define IO_STATUS_LINE		0x00000002	/* First line is a status line */
 
 static void upload_request(struct upload *u, header_t *header);
+static void send_upload_error(struct upload *u, int code, guchar *msg, ...);
 
 /*
  * upload_timer
@@ -79,8 +81,12 @@ void upload_timer(time_t now)
 
 	for (l = remove; l; l = l->next) {
 		struct upload *u = (struct upload *) l->data;
-		upload_remove(u, UPLOAD_IS_CONNECTING(u) ?
-			"Request timeout" : "Data timeout");
+		if (UPLOAD_IS_CONNECTING(u)) {
+			gchar *msg = "Request timeout";
+			send_upload_error(u, 408, msg);
+			upload_remove(u, msg);
+		} else
+			upload_remove(u, "Data timeout");
 	}
 	g_slist_free(remove);
 }
@@ -246,6 +252,10 @@ static void upload_free_resources(struct upload *u)
 	}
 	if (u->io_opaque)				/* I/O data */
 		io_free(u->io_opaque);
+	if (u->bio != NULL) {
+		bsched_source_remove(u->bio);
+		u->bio = NULL;
+	}
 }
 
 /*
@@ -282,7 +292,7 @@ static void send_upload_error(struct upload *u, int code, guchar *msg, ...)
 		"\r\n",
 		code, reason, version_string, start_rfc822_date);
 
-	if (-1 == (sent = write(s->file_desc, http_response, rw)))
+	if (-1 == (sent = bws_write(bws_out, s->file_desc, http_response, rw)))
 		g_warning("Unable to send back HTTP error %d (%s) to %s: %s",
 			code, reason, ip_to_gchar(s->ip), g_strerror(errno));
 	else if (sent < rw)
@@ -620,7 +630,7 @@ void upload_push_conf(struct upload *u)
 	giv[sizeof(giv)-1] = '\0';			/* Might have been truncated */
 	
 	s = u->socket;
-	if (-1 == (sent = write(s->file_desc, giv, rw))) {
+	if (-1 == (sent = bws_write(bws_out, s->file_desc, giv, rw))) {
 		g_warning("Unable to send back GIV for \"%s\" to %s: %s",
 			u->name, ip_to_gchar(s->ip), g_strerror(errno));
 	} else if (sent < rw) {
@@ -955,7 +965,7 @@ static void upload_request(struct upload *u, header_t *header)
 				"Content-length: %u\r\n\r\n",
 				version_string, start_rfc822_date, u->file_size);
 
-		sent = write(s->file_desc, http_response, rw);
+		sent = bws_write(bws_out, s->file_desc, http_response, rw);
 		if (sent == -1) {
 			gint errcode = errno;
 			g_warning("Unable to send back HTTP OK reply to %s: %s",
@@ -985,15 +995,16 @@ static void upload_request(struct upload *u, header_t *header)
 		}
 
 		/*
-		 * Install the output callback.
+		 * Install the output I/O, which is via a bandwidth limited source.
 		 */
 
 		io_free(u->io_opaque);
 
 		g_assert(s->gdk_tag == 0);
-		s->gdk_tag = gdk_input_add(s->file_desc,
-			(GdkInputCondition) GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
-			upload_write, (gpointer) u);
+		g_assert(u->bio == NULL);
+		
+		u->bio = bsched_source_add(bws_out, s->file_desc,
+			BIO_F_WRITE, upload_write, (gpointer) u);
 
 		/*
 		 * Add upload to the GUI
@@ -1030,7 +1041,7 @@ static void upload_request(struct upload *u, header_t *header)
  */
 void upload_write(gpointer up, gint source, GdkInputCondition cond)
 {
-	struct upload *current_upload = (struct upload *) up;
+	struct upload *u = (struct upload *) up;
 	guint32 write_bytes;
 	guint32 amount;
 	guint32 available;
@@ -1040,79 +1051,76 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		if (dbg)
 			printf("upload_write(); Condition %i, Exception = %i\n",
 				   cond, GDK_INPUT_EXCEPTION);
-		upload_remove(current_upload, "Write exception");
+		upload_remove(u, "Write exception");
 		return;
 	}
 
 	/* If we got a valid skip amount then jump ahead to that position */
-	if (current_upload->pos == 0 && current_upload->skip > 0) {
-		if (lseek
-			(current_upload->file_desc, current_upload->skip,
-			 SEEK_SET) == -1) {
-			upload_remove(current_upload,
-				"File seek error: %s", g_strerror(errno));
+	if (u->pos == 0 && u->skip > 0) {
+		if (lseek(u->file_desc, u->skip, SEEK_SET) == -1) {
+			upload_remove(u, "File seek error: %s", g_strerror(errno));
 			return;
 		}
-		current_upload->pos = current_upload->skip;
+		u->pos = u->skip;
 	}
 
 	/*
 	 * Compute the amount of bytes to send.
 	 */
 
-	amount = current_upload->end - current_upload->pos + 1;
+	amount = u->end - u->pos + 1;
 
 	/*
-	 * If the buffer position is equal to zero then we need to read
+	 * If the buffer position reached the size, then we need to read
 	 * more data from the file. We read in under or equal to the buffer
 	 * memory size
 	 */
 
-	if (current_upload->bpos == 0)
-		if ((current_upload->bsize =
-			 read(current_upload->file_desc, current_upload->buffer,
-				  current_upload->buf_size)) == -1) {
-			upload_remove(current_upload,
-				"File read error: %s", g_strerror(errno));
+	if (u->bpos == u->bsize) {
+		if ((u->bsize = read(u->file_desc, u->buffer, u->buf_size)) == -1) {
+			upload_remove(u, "File read error: %s", g_strerror(errno));
 			return;
 		}
+		if (u->bsize == 0) {
+			upload_remove(u, "File EOF?");
+			return;
+		}
+		u->bpos = 0;
+	}
 
-	available = current_upload->bsize - current_upload->bpos;
+	available = u->bsize - u->bpos;
 	if (available > amount)
 		available = amount;
 
-	if ((write_bytes =
-		 write(current_upload->socket->file_desc,
-			   &current_upload->buffer[current_upload->bpos],
-			   available)) == -1) {
-		upload_remove(current_upload,
-			"Data write error: %s", g_strerror(errno));
+	g_assert(available > 0);
+
+	write_bytes = bio_write(u->bio, &u->buffer[u->bpos], available);
+
+	if (write_bytes == -1) {
+		if (errno != EAGAIN)
+			upload_remove(u, "Data write error: %s", g_strerror(errno));
 		return;
 	}
 
-	current_upload->pos += write_bytes;
+	u->pos += write_bytes;
+	u->bpos += write_bytes;
 
-	if ((current_upload->bpos + write_bytes) < current_upload->bsize)
-		current_upload->bpos += write_bytes;
-	else
-		current_upload->bpos = 0;
+	u->last_update = time((time_t *) NULL);
 
-	current_upload->last_update = time((time_t *) NULL);
-
-	if (current_upload->pos > current_upload->end) {
+	if (u->pos > u->end) {
 		count_uploads++;
 		gui_update_count_uploads();
 		gui_update_c_uploads();
 		if (clear_uploads == TRUE)
-			upload_remove(current_upload, NULL);
+			upload_remove(u, NULL);
 		else {
-			current_upload->status = GTA_UL_COMPLETE;
-			gui_update_upload(current_upload);
+			u->status = GTA_UL_COMPLETE;
+			gui_update_upload(u);
 			registered_uploads--;
 			running_uploads--;
 			gui_update_c_uploads();
 			gtk_widget_set_sensitive(button_clear_uploads, 1);
-			upload_free_resources(current_upload);
+			upload_free_resources(u);
 		}
 		return;
 	}

@@ -14,6 +14,7 @@
 #include "url.h"
 #include "routing.h"
 #include "gmsg.h"
+#include "bsched.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -2064,7 +2065,7 @@ gboolean download_send_request(struct download *d)
 			d->record_index, d->file_name,
 			version_string);
 
-	if (-1 == (sent = write(d->socket->file_desc, dl_tmp, rw))) {
+	if (-1 == (sent = bws_write(bws_out, d->socket->file_desc, dl_tmp, rw))) {
 		download_stop(d, GTA_DL_ERROR, "Write failed: %s", g_strerror(errno));
 		return FALSE;
 	} else if (sent < rw) {

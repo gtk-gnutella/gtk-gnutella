@@ -2,6 +2,7 @@
 #include "gnutella.h"
 
 #include <signal.h>
+#include <locale.h>
 
 #include "interface.h"
 #include "gui.h"
@@ -17,6 +18,7 @@
 #include "misc.h"
 #include "autodownload.h"
 #include "gmsg.h"
+#include "bsched.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 
@@ -51,6 +53,7 @@ void gtk_gnutella_exit(gint n)
 	routing_close();
 	download_close();
 	upload_close();
+	bsched_close();
 	gui_close();
 	config_close();
 	g_free(version_string);
@@ -87,6 +90,7 @@ gboolean main_timer(gpointer p)
 {
 	time_t now = time((time_t *) NULL);
 
+	bsched_timer();					/* Scheduling update */
 	host_timer();					/* Host connection */
 	node_timer(now);				/* Node timeouts */
 	download_timer(now);			/* Download timeouts */
@@ -129,6 +133,8 @@ gint main(gint argc, gchar ** argv)
 	for (i = 3; i < 256; i++)
 		close(i);				/* Just in case */
 
+	setlocale(LC_TIME, "C");	/* strftime() must emit standard dates */
+
 	/* Glade inits */
 
 	gtk_set_locale();
@@ -156,6 +162,7 @@ gint main(gint argc, gchar ** argv)
 	config_init();
 	host_init();
 	gmsg_init();
+	bsched_init();
 	network_init();
 	routing_init();
 	search_init();
@@ -245,6 +252,7 @@ gint main(gint argc, gchar ** argv)
 
 	/* Okay, here we go */
 
+	bsched_enable_all();
 	gtk_main();
 
 	return 0;

@@ -38,6 +38,8 @@ extern guint32 download_retry_stopped;
 extern guint32 download_overlap_range;
 extern guint32 upload_connecting_timeout;
 extern guint32 upload_connected_timeout;
+extern guint32 output_bandwidth;
+extern guint32 input_bandwidth;
 extern guint32 node_connected_timeout;
 extern guint32 node_connecting_timeout;
 extern guint32 node_sendqueue_size;
