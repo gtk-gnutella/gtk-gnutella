@@ -48,25 +48,24 @@ RCSID("$Id$");
 static GSList *sl_buffers = NULL;
 static gint allocated = 0;
 
-/*
- * rxbuf_free
- *
+/**
  * Put RX buffer back to freelist.
  *
  * Can be called directly, or via pdata_unref() because this routine is
  * installed as the "free routine" of the buffer.
  */
-void rxbuf_free(gpointer p, gpointer unused)
+void
+rxbuf_free(gpointer p, gpointer unused_data)
 {
+	(void) unused_data;
 	sl_buffers = g_slist_prepend(sl_buffers, p);
 }
 
-/*
- * rxbuf_alloc
- *
+/**
  * Allocate new RX buffer.
  */
-static pdata_t *rxbuf_alloc(void)
+static pdata_t *
+rxbuf_alloc(void)
 {
 	gchar *phys = g_malloc(BUF_SIZE);
 
@@ -75,12 +74,11 @@ static pdata_t *rxbuf_alloc(void)
 	return pdata_allocb(phys, BUF_SIZE, rxbuf_free, NULL);
 }
 
-/*
- * rxbuf_new
- *
- * Return new RX buffer.
+/**
+ * @return new RX buffer.
  */
-pdata_t *rxbuf_new(void)
+pdata_t *
+rxbuf_new(void)
 {
 	pdata_t *buf;
 
@@ -106,12 +104,11 @@ pdata_t *rxbuf_new(void)
 	return buf;
 }
 
-/*
- * rxbuf_init
- *
+/**
  * Initialize pool of RX buffers.
  */
-void rxbuf_init(void)
+void
+rxbuf_init(void)
 {
 	gint i;
 
@@ -121,12 +118,11 @@ void rxbuf_init(void)
 	}
 }
 
-/*
- * rxbuf_close
- *
+/**
  * Dispose of all the RX buffers.
  */
-void rxbuf_close(void)
+void
+rxbuf_close(void)
 {
 	GSList *l;
 	gint freed = 0;
@@ -144,3 +140,4 @@ void rxbuf_close(void)
 			allocated, freed);
 }
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -494,8 +494,10 @@ pdata_allocb_ext(void *buf, gint len, pdata_free_t freecb, gpointer freearg)
  * the buffer, probably because it was made out of a static buffer.
  */
 void
-pdata_free_nop(gpointer p, gpointer arg)
+pdata_free_nop(gpointer unused_p, gpointer unused_arg)
 {
+	(void) unused_p;
+	(void) unused_arg;
 }
 
 /**
