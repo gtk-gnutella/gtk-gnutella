@@ -257,7 +257,7 @@ static guint base64_decode_alphabet(const gint8 valmap[256],
 {
 	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
 	gchar const *ip = buf + len;	/* Input pointer, one byte off end */
-	guint dlen = (len >> 2) * 3;	/* Exact decoded lenth */
+	guint dlen = (len >> 2) * 3;	/* Exact decoded length */
 	gchar *op;						/* Output pointer, one byte off end */
 	guint bytes;					/* Bytes decoded without padding */
 	gint8 v;
