@@ -29,6 +29,12 @@
 /* Define if you have the strcasestr function.  */
 #undef HAVE_STRCASESTR
 
+/* Define if you have the srandom function.  */
+#undef HAVE_SRANDOM
+
+/* Define if you have the random function.  */
+#undef HAVE_RANDOM
+
 /* Name of package */
 #undef PACKAGE
 

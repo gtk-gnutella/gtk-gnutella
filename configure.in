@@ -122,6 +122,7 @@ changequote([,])dnl
 
 AC_CHECK_FUNCS(herror inet_aton)
 AC_CHECK_FUNCS(strcasestr)
+AC_CHECK_FUNCS(srandom random)
 
 dnl Checks for sys/sendfile.h
 AC_CHECK_HEADER(sys/sendfile.h, [have_sendfile_h=yes], [have_sendfile_h=no])

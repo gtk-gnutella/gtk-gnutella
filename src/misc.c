@@ -37,6 +37,11 @@
 #include <ctype.h>			/* For isalnum() and isspace() */
 #include <sys/times.h>		/* For times() */
 
+#if !defined(HAVE_SRANDOM) || !defined(HAVE_RANDOM)
+#define srandom(x)	srand(x)
+#define random(x)	rand(x)
+#endif
+
 /*
  * is_string_ip:
  *
@@ -461,7 +466,7 @@ gchar *date_to_rfc822_gchar2(time_t date)
  */
 guint32 random_value(guint32 max)
 {
-	return (guint32) ((max + 1.0) * rand() / (RAND_MAX + 1.0));
+	return (guint32) ((max + 1.0) * random() / (RAND_MAX + 1.0));
 }
 
 /* Display header line for hex dumps */
@@ -707,5 +712,5 @@ void random_init(void)
 	 * Finally, can initialize the random number generator.
 	 */
 
-	srand(seed);
+	srandom(seed);
 }
