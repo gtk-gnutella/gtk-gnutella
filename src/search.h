@@ -69,7 +69,7 @@ struct record {
 
 #define ST_KNOWN_VENDOR			0x8000		/* Found known vendor code */
 #define ST_PARSED_TRAILER		0x4000		/* Was able to parse trailer */
-#define ST_UPLOADED				0x0004		/* Is "open", people downloaded */
+#define ST_UPLOADED				0x0004		/* Is "stable", people downloaded */
 #define ST_BUSY					0x0002		/* Has currently no slots */
 #define ST_FIREWALL				0x0001		/* Is behind a firewall */
 

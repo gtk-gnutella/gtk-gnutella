@@ -26,6 +26,7 @@
 
 #define T_BEAR	MAKE_CODE('B','E','A','R')
 #define T_CULT	MAKE_CODE('C','U','L','T')
+#define T_FIRE	MAKE_CODE('F','I','R','E')
 #define T_FISH	MAKE_CODE('F','I','S','H')
 #define T_GNEW	MAKE_CODE('G','N','E','W')
 #define T_GNOT	MAKE_CODE('G','N','O','T')
@@ -749,6 +750,7 @@ static gchar *extract_vendor_name(struct results_set * rs)
 	switch (t) {
 	case T_BEAR: vendor = "Bear";			break;
 	case T_CULT: vendor = "Cultiv8r";		break;
+	case T_FIRE: vendor = "FireFly";		break;
 	case T_FISH: vendor = "PEERahna";		break;
 	case T_GNEW: vendor = "Gnewtellium";	break;
 	case T_GNOT: vendor = "Gnotella";		break;
@@ -962,6 +964,7 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 			if (rs->trailer[4] == 4)
 				rs->trailer[4] = 2;		/* We ignore XML data size */
 				/* Fall through */
+		case T_FIRE:
 		case T_FISH:
 		case T_GTKG:
 		case T_BEAR:
