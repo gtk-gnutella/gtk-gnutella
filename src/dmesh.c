@@ -440,6 +440,8 @@ gboolean dmesh_add(guchar *sha1,
 
 		g_hash_table_insert(mesh, atom_sha1_get(sha1), dm);
 	} else {
+		g_assert(dm->count > 0);
+
 		dm_expire(dm, MAX_LIFETIME, sha1);
 
 		/*
@@ -448,7 +450,7 @@ gboolean dmesh_add(guchar *sha1,
 		 * we have the entry already, and reject this duplicate.
 		 */
 
-		if (!dm_remove(dm, ip, port, idx, name, stamp))
+		if (dm->count && !dm_remove(dm, ip, port, idx, name, stamp))
 			return FALSE;
 	}
 
