@@ -188,8 +188,11 @@ static gboolean version_parse(guchar *str, version_t *ver)
 	if (
 		4 == sscanf(v, "%u.%u.%u%c",
 			&ver->major, &ver->minor, &ver->patchlevel, &ver->tag)
-	)
+	) {
+		if (!isalpha(ver->tag))		/* Not a letter */
+			ver->tag = '\0';
 		goto ok;
+	}
 
 	ver->tag = '\0';
 
@@ -209,8 +212,11 @@ static gboolean version_parse(guchar *str, version_t *ver)
 
 	ver->taglevel = 0;
 
-	if (3 == sscanf(v, "%u.%u%c", &ver->major, &ver->minor, &ver->tag))
+	if (3 == sscanf(v, "%u.%u%c", &ver->major, &ver->minor, &ver->tag)) {
+		if (!isalpha(ver->tag))		/* Not a letter */
+			ver->tag = '\0';
 		goto ok;
+	}
 
 	ver->tag = '\0';
 
