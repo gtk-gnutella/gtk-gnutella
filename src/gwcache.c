@@ -416,10 +416,29 @@ void gwc_close(void)
 static void check_current_url(void)
 {
 	if (current_url == NULL || current_reused >= MAX_GWC_REUSE) {
-		current_url = gwc_pick();
+		/*
+		 * `current_url' must be an atom since we may replace the value
+		 * in the cache at any time: we could be using a cache even after
+		 * its entry has been superseded.
+		 */
+		current_url = atom_str_get(gwc_pick());
 		current_reused = 0;
 	} else
 		current_reused++;
+}
+
+/*
+ * clear_current_url
+ *
+ * Dispose of current URL atom, if defined.
+ */
+static void clear_current_url(void)
+{
+	if (current_url == NULL)
+		return;
+
+	atom_str_free(current_url);
+	current_url = NULL;
 }
 
 /***
@@ -602,7 +621,7 @@ static void gwc_url_eof(struct parse_context *ctx)
 
 	if (ctx->processed < MIN_URL_LINES) {
 		gwc_seed_cache(current_url);
-		current_url = NULL;			/* This webcache has nothing */
+		clear_current_url();		/* This webcache has nothing */
 		gwc_get_urls();				/* Try with another one! */
 	}
 }
@@ -626,7 +645,7 @@ static void gwc_url_error_ind(gpointer handle, http_errtype_t type, gpointer v)
 {
 	http_async_log_error(handle, type, v);
 
-	current_url = NULL;				/* This webcache is not good */
+	clear_current_url();			/* This webcache is not good */
 	gwc_get_urls();					/* Try with another one! */
 }
 
@@ -660,7 +679,7 @@ static void gwc_get_urls(void)
 	if (!handle) {
 		g_warning("could not launch a \"GET %s\" request: %s",
 			gwc_tmp, http_async_strerror(http_async_errno));
-		current_url = NULL;
+		clear_current_url();
 		return;
 	}
 
@@ -717,7 +736,7 @@ static void gwc_host_eof(struct parse_context *ctx)
 
 	if (ctx->processed < MIN_IP_LINES) {
 		gwc_seed_cache(current_url);
-		current_url = NULL;				/* Move to another cache */
+		clear_current_url();				/* Move to another cache */
 	}
 
 	hostfile_running = FALSE;
@@ -778,7 +797,7 @@ void gwc_get_hosts(void)
 	if (!handle) {
 		g_warning("could not launch a \"GET %s\" request: %s",
 			gwc_tmp, http_async_strerror(http_async_errno));
-		current_url = NULL;
+		clear_current_url();
 		return;
 	}
 
@@ -837,7 +856,7 @@ static void gwc_update_error_ind(
 	gpointer handle, http_errtype_t type, gpointer v)
 {
 	http_async_log_error(handle, type, v);
-	current_url = NULL;				/* This webcache is not good */
+	clear_current_url();				/* This webcache is not good */
 }
 
 /*
@@ -929,7 +948,7 @@ static void gwc_update_this(gchar *cache_url)
 		g_warning("could not launch a \"GET %s\" request: %s",
 			gwc_tmp, http_async_strerror(http_async_errno));
 		if (cache_url == current_url)
-			current_url = NULL;
+			clear_current_url();
 		return;
 	}
 
