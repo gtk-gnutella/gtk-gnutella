@@ -1,5 +1,14 @@
 # since last version
 
+- (2003.01.05 - cbiere)
+ * [Gtk2] gnutellaNet: Nodes can be removed manually	
+ * [Gtk2] Enable proper sorting of upload stats by size and normalized
+ * [Gtk2] reenabled "clear" buttons for caches
+ * [Gtk2] Revisited code; removed unnecessary functions in search_{cb,gui}2.c
+ * [Gtk2] removed unused variable 'error' in monitor_gui2.c
+ * [Gtk2] locale_to_utf8: extended error message
+ * Include version.h for version_is_too_old() in ban.c
+
 - (2003.01.04 - RAM)
  * Had forgotten that we must "goto next" instead of "continue" in
    the URL parsing loop from dmesh_collect_locations().
