@@ -26,16 +26,16 @@
 #include "gnet_stats_gui.h"
 
 gchar *msg_type_str[MSG_TYPE_COUNT] = {
-    "unknown type",
-    "init",
-    "init response",
-    "bye",
+    "Unknown",
+    "Ping",
+    "Pong",
+    "Bye",
     "QRP",
-    "vendor",
-    "standard vendor",
-    "push request",
-    "search",
-    "search results"
+    "Vendor Spec.",
+    "Vendor Std.",
+    "Push",
+    "Query",
+    "Query Hit"
 };
 
 gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
