@@ -176,7 +176,7 @@ void search_store_xml(void)
     xmlDocSetRootElement(doc, root);
     xmlSetProp(root, (const xmlChar *) "Time", (const xmlChar *) ctime(&now));
 
-	gm_snprintf(x_tmp, sizeof(x_tmp), "%s", version_number);
+	g_strlcpy(x_tmp, version_number, sizeof(x_tmp));
     xmlSetProp(root, (const xmlChar *) "Version", (const xmlChar *) x_tmp);
 
     /*
@@ -187,16 +187,14 @@ void search_store_xml(void)
     /*
      * Iterate over the searches and add them to the tree
      */
-    for (l = searches; l; l = l->next) {
-		search_t *sch = (search_t *) l->data;
-        search_to_xml(root, sch);
-	}
+    for (l = searches; l; l = g_list_next(l))
+        search_to_xml(root, (search_t *) l->data);
 
     /*
      * Iterate over the rulesets and add them to the tree.
      * Only those that are not bound to a search.
      */
-    for (l = filters; l; l = l->next)
+    for (l = filters; l; l = g_list_next(l))
         filter_to_xml(root, (filter_t *) l->data);
 
     /* 
@@ -318,8 +316,8 @@ gboolean search_retrieve_xml(void)
     if (gui_debug >= 6)
         printf("resolving UIDs\n");
 
-    for (f = filters; f != NULL; f = f->next) {
-        filter_t *filter = (filter_t *)f->data;
+    for (f = filters; f != NULL; f = g_list_next(f)) {
+        filter_t *filter = (filter_t *) f->data;
         GList *r;
         gint n = 0;
 
@@ -329,14 +327,15 @@ gboolean search_retrieve_xml(void)
         }
         
         if (!filter_is_builtin(filter)) {
-            for (r = filter->ruleset; r != NULL; r = r->next) {
+            for (r = filter->ruleset; r != NULL; r = g_list_next(r)) {
                 rule_t *rule = (rule_t *)r->data;
                 gpointer new_target;
 
                 g_assert(rule->target != NULL);
                 new_target = g_hash_table_lookup(id_map, rule->target);
                 if (new_target == NULL)
-                    g_error("Failed to resolve rule %d in \"%s\": missing key %p",
+                    g_error("Failed to resolve rule %d in \"%s\": "
+						"missing key %p",
                         n, filter->name, filter_rule_to_gchar(rule));
                 rule->target = new_target;
                 set_flags(rule->flags, RULE_FLAG_VALID);
@@ -369,8 +368,8 @@ gboolean search_retrieve_xml(void)
         if (gui_debug >= 6)
             printf("verifying bindings...\n");
 
-        for (s = searches; s != NULL; s = s->next) {
-            search_t * search = (search_t *)s->data;
+        for (s = searches; s != NULL; s = g_list_next(s)) {
+            search_t *search = (search_t *) s->data;
 
             if (search->filter->search == search) {
                 if (gui_debug >= 6)
@@ -423,9 +422,6 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
 {
     xmlNodePtr newxml;
     GList *l;
-#ifndef USE_GTK2
-	gboolean ascii, utf8;
-#endif
 
     g_assert(s != NULL);
     g_assert(s->query != NULL);
@@ -440,15 +436,9 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
     newxml = xmlNewChild(parent, NULL, NODE_SEARCH, NULL);
 
 #ifndef USE_GTK2   
-	utf8 = utf8_is_valid_string(s->query, 0)?TRUE:FALSE;
-	ascii = is_ascii_string(s->query);
-
-	if (!ascii && !utf8) {
-	    gchar* tmp;
-
-	    tmp = locale_to_utf8(s->query, 0);
-	    xmlSetProp(newxml, TAG_SEARCH_QUERY, (const xmlChar *) tmp);
-	}
+	if (!is_ascii_string(s->query) && !utf8_is_valid_string(s->query, 0))
+	    xmlSetProp(newxml, TAG_SEARCH_QUERY,
+			(const xmlChar *) locale_to_utf8(s->query, 0));
 	else
 #endif
 	    xmlSetProp(newxml, TAG_SEARCH_QUERY, (const xmlChar *) s->query);
@@ -473,8 +463,8 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
   	gm_snprintf(x_tmp, sizeof(x_tmp), "%i", s->sort_order);
     xmlSetProp(newxml, TAG_SEARCH_SORT_ORDER, (const xmlChar *) x_tmp);
 
-    for (l = s->filter->ruleset; l != NULL; l = l->next)
-        rule_to_xml(newxml, (rule_t *)l->data);
+    for (l = s->filter->ruleset; l != NULL; l = g_list_next(l))
+        rule_to_xml(newxml, (rule_t *) l->data);
 }
 
 
@@ -532,8 +522,8 @@ static void filter_to_xml(xmlNodePtr parent, filter_t *f)
      * Visited is only used internally during filter
      * application.
      */
-    for (l = f->ruleset; l != NULL; l = l->next)
-        rule_to_xml(newxml, (rule_t *)l->data);
+    for (l = f->ruleset; l != NULL; l = g_list_next(l))
+        rule_to_xml(newxml, (rule_t *) l->data);
 }
 
 static void rule_to_xml(xmlNodePtr parent, rule_t *r)
@@ -554,7 +544,8 @@ static void rule_to_xml(xmlNodePtr parent, rule_t *r)
 
         xmlSetProp(newxml, TAG_RULE_TEXT_CASE, 
             (const xmlChar *) (r->u.text.case_sensitive ? "1" : "0"));
-        xmlSetProp(newxml, TAG_RULE_TEXT_MATCH, (const xmlChar *) r->u.text.match);
+        xmlSetProp(newxml, TAG_RULE_TEXT_MATCH,
+			(const xmlChar *) r->u.text.match);
 
         gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.text.type);
         xmlSetProp(newxml, TAG_RULE_TEXT_TYPE, (const xmlChar *) x_tmp);
@@ -562,8 +553,10 @@ static void rule_to_xml(xmlNodePtr parent, rule_t *r)
     case RULE_IP:
         newxml = xmlNewChild(parent, NULL, NODE_RULE_IP, NULL);
 
-        xmlSetProp(newxml, TAG_RULE_IP_ADDR, (const xmlChar *) ip_to_gchar(r->u.ip.addr));
-        xmlSetProp(newxml, TAG_RULE_IP_MASK, (const xmlChar *) ip_to_gchar(r->u.ip.mask));
+        xmlSetProp(newxml, TAG_RULE_IP_ADDR,
+			(const xmlChar *) ip_to_gchar(r->u.ip.addr));
+        xmlSetProp(newxml, TAG_RULE_IP_MASK,
+			(const xmlChar *) ip_to_gchar(r->u.ip.mask));
         break;
     case RULE_SIZE:
         newxml = xmlNewChild(parent, NULL, NODE_RULE_SIZE, NULL);
@@ -648,7 +641,10 @@ static void parse_xml(xmlNodePtr xmlnode, gpointer user_data)
     } 
 
     for (n = 0; parser_map[n].name != NULL; n ++) {
-        if (g_ascii_strcasecmp((const gchar *) xmlnode->name, (const gchar *) parser_map[n].name) == 0) {
+        if (
+			0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
+					(const gchar *) parser_map[n].name)
+		) {
             parser_map[n].parser_func(xmlnode, user_data);
             return;
         }
@@ -664,7 +660,8 @@ static void xml_to_builtin(xmlNodePtr xmlnode, gpointer user_data)
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
-    g_assert(g_ascii_strcasecmp((const gchar *) xmlnode->name, (const gchar *) NODE_BUILTIN) == 0);
+    g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
+		(const gchar *) NODE_BUILTIN));
     g_assert(filter_get_show_target() != NULL);
     g_assert(filter_get_drop_target() != NULL);
     g_assert(filter_get_download_target() != NULL);
@@ -737,7 +734,8 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
-    g_assert(g_ascii_strcasecmp((const gchar *) xmlnode->name, (const gchar *) NODE_SEARCH) == 0);
+    g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
+		(const gchar *) NODE_SEARCH));
 
     gui_prop_get_guint32_val(PROP_DEFAULT_MINIMUM_SPEED, &speed);
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &reissue_timeout);
@@ -807,7 +805,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
     /*
      * Also parse all children.
      */
-	for(node = xmlnode->children; node != NULL; node = node->next)
+	for (node = xmlnode->children; node != NULL; node = node->next)
         parse_xml(node, search->filter);
 }
 
@@ -822,7 +820,8 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
-    g_assert(g_ascii_strcasecmp((const gchar *) xmlnode->name, (const gchar *) NODE_FILTER) == 0);
+    g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
+		(const gchar *) NODE_FILTER));
 
 	buf = (gchar *) xmlGetProp(xmlnode, TAG_FILTER_NAME);
     if (!buf) {
@@ -837,7 +836,7 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
         errno = 0;
         t = strtoul(buf, 0, 10);
         if (errno != 0)
-            g_error( "xml_to_filter: %s", g_strerror(errno));
+            g_error("xml_to_filter: %s", g_strerror(errno));
         switch(t) {
         case GLOBAL_PRE:
             filter = filter_get_global_pre();
@@ -898,7 +897,8 @@ static void xml_to_text_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_ascii_strcasecmp((const gchar *) xmlnode->name, (const gchar *) NODE_RULE_TEXT) == 0);
+    g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
+		(const gchar *) NODE_RULE_TEXT));
 
     match = (gchar *) xmlGetProp(xmlnode, TAG_RULE_TEXT_MATCH);
     if (match == NULL)
@@ -946,7 +946,8 @@ static void xml_to_ip_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_ascii_strcasecmp((const gchar *) xmlnode->name, (const gchar *) NODE_RULE_IP) == 0);
+    g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
+		(const gchar *) NODE_RULE_IP));
 
     buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_IP_ADDR);
     if (buf == NULL)
@@ -991,7 +992,8 @@ static void xml_to_size_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_ascii_strcasecmp((const gchar *) xmlnode->name, (const gchar *) NODE_RULE_SIZE) == 0);
+    g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
+		(const gchar *) NODE_RULE_SIZE));
 
     buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_SIZE_LOWER);
     if (buf == NULL)
@@ -1034,7 +1036,8 @@ static void xml_to_jump_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_ascii_strcasecmp((const gchar *) xmlnode->name, (const gchar *) NODE_RULE_JUMP) == 0);
+    g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
+		(const gchar *) NODE_RULE_JUMP));
 
     buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_TARGET);
     g_assert(buf != NULL);
@@ -1113,7 +1116,8 @@ static void xml_to_flag_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_ascii_strcasecmp((const gchar *) xmlnode->name, (const gchar *) NODE_RULE_FLAG) == 0);
+    g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
+		(const gchar *) NODE_RULE_FLAG));
 
     buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_FLAG_STABLE);
     if (buf != NULL) {
@@ -1171,7 +1175,8 @@ static void xml_to_state_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_ascii_strcasecmp((const gchar *) xmlnode->name, (const gchar *) NODE_RULE_STATE) == 0);
+    g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
+		(const gchar *) NODE_RULE_STATE));
 
     buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_STATE_DISPLAY);
     if (buf != NULL) {
