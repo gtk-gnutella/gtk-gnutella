@@ -370,7 +370,16 @@ static prop_map_t property_map[] = {
         "clist_downloads_queue",
         FREQ_UPDATES, 0
     },
-#ifndef USE_GTK2
+#ifdef USE_GTK2
+    {
+        get_main_window,
+        PROP_FILE_INFO_COL_WIDTHS,
+        update_treeview_col_widths,
+        TRUE,
+        "treeview_fileinfo",
+        FREQ_UPDATES, 0
+    },
+#else
     {
         get_main_window,
         PROP_FILE_INFO_COL_WIDTHS,

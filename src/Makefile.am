@@ -53,6 +53,7 @@ ADDITIONAL_DROPIN = \
 	upload_stats_gui2.c upload_stats_gui.h \
 	gnet_stats_gui2.c gnet_stats_gui.h \
 	search_stats_gui2.c search_stats_gui.h \
+	fileinfo_gui2.c fileinfo_gui.h \
 	main_gui.c main_gui.h main_cb.c main_cb.h 
 gtk_gnutella_LDADD = @GTK_GNUTELLA_LIBS@ -lz @XML_LIBS@
 else

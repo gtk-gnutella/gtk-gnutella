@@ -109,7 +109,7 @@ YACC = @YACC@
 @ENABLE_GTK2_FALSE@GLADEFILE = gtk-gnutella.glade
 @ENABLE_GTK2_TRUE@GLADE_UI = 	interface-glade2.c interface-glade2.h 	support-glade2.c support-glade2.h
 @ENABLE_GTK2_FALSE@GLADE_UI = 	interface-glade1.c interface-glade1.h 	support-glade1.c support-glade1.h
-@ENABLE_GTK2_TRUE@ADDITIONAL_DROPIN = 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h 	glib-missing.c glib-missing.h 	gtk-missing.c gtk-missing.h 	gui.c gui.h 	callbacks.c callbacks.h 	gtkcolumnchooser.c gtkcolumnchooser.h 	monitor_gui2.c monitor_gui.h monitor_cb2.c monitor_cb.h 	nodes_gui2.c nodes_gui.h nodes_cb2.c nodes_cb2.h	gui_property.c gui_property.h gui_property_priv.h 	settings_gui.c settings_gui.h settings_cb.c settings_cb.h 	statusbar_gui.c statusbar_gui.h 	search_gui2.c search_gui.h search_cb2.c search_cb2.h 	downloads_gui.c downloads_gui.h downloads_cb.c downloads_cb.h 	uploads_gui2.c uploads_gui.h uploads_cb.c uploads_cb.h 	upload_stats_gui2.c upload_stats_gui.h 	gnet_stats_gui2.c gnet_stats_gui.h 	search_stats_gui2.c search_stats_gui.h 	main_gui.c main_gui.h main_cb.c main_cb.h 
+@ENABLE_GTK2_TRUE@ADDITIONAL_DROPIN = 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h 	glib-missing.c glib-missing.h 	gtk-missing.c gtk-missing.h 	gui.c gui.h 	callbacks.c callbacks.h 	gtkcolumnchooser.c gtkcolumnchooser.h 	monitor_gui2.c monitor_gui.h monitor_cb2.c monitor_cb.h 	nodes_gui2.c nodes_gui.h nodes_cb2.c nodes_cb2.h	gui_property.c gui_property.h gui_property_priv.h 	settings_gui.c settings_gui.h settings_cb.c settings_cb.h 	statusbar_gui.c statusbar_gui.h 	search_gui2.c search_gui.h search_cb2.c search_cb2.h 	downloads_gui.c downloads_gui.h downloads_cb.c downloads_cb.h 	uploads_gui2.c uploads_gui.h uploads_cb.c uploads_cb.h 	upload_stats_gui2.c upload_stats_gui.h 	gnet_stats_gui2.c gnet_stats_gui.h 	search_stats_gui2.c search_stats_gui.h 	fileinfo_gui2.c fileinfo_gui.h 	main_gui.c main_gui.h main_cb.c main_cb.h 
 @ENABLE_GTK2_FALSE@ADDITIONAL_DROPIN = 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h 	glib-missing.c glib-missing.h 	gtk-missing.c gtk-missing.h 	gui.c gui.h 	callbacks.c callbacks.h 	gtkcolumnchooser.c gtkcolumnchooser.h 	monitor_gui.c monitor_gui.h monitor_cb.c monitor_cb.h 	nodes_gui.c nodes_gui.h nodes_cb.c nodes_cb.h 	gui_property.c gui_property.h gui_property_priv.h 	settings_gui.c settings_gui.h settings_cb.c settings_cb.h 	statusbar_gui.c statusbar_gui.h 	search_gui.c search_gui.h search_cb.c search_cb.h 	downloads_gui.c downloads_gui.h downloads_cb.c downloads_cb.h 	uploads_gui.c uploads_gui.h uploads_cb.c uploads_cb.h 	upload_stats_gui.c upload_stats_gui.h 	gnet_stats_gui.c gnet_stats_gui.h 	search_stats_gui.c search_stats_gui.h 	main_gui.c main_gui.h main_cb.c main_cb.h 	fileinfo_gui.c fileinfo_gui.h
 @ENABLE_GTK2_TRUE@gtk_gnutella_LDADD = @GTK_GNUTELLA_LIBS@ -lz @XML_LIBS@
 @ENABLE_GTK2_FALSE@gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
@@ -280,6 +280,7 @@ LIBS = @LIBS@
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@upload_stats_gui2.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@gnet_stats_gui2.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@search_stats_gui2.o \
+@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@fileinfo_gui2.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@main_gui.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@main_cb.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@common.o \
@@ -390,6 +391,7 @@ LIBS = @LIBS@
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@upload_stats_gui2.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@gnet_stats_gui2.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@search_stats_gui2.o \
+@ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@fileinfo_gui2.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@main_gui.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@main_cb.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@shell.o \
@@ -500,6 +502,7 @@ LIBS = @LIBS@
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@upload_stats_gui2.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@gnet_stats_gui2.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@search_stats_gui2.o \
+@ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@fileinfo_gui2.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@main_gui.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@main_cb.o \
 @ENABLE_REMOTE_SHELL_TRUE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_TRUE@shell.o \
@@ -723,6 +726,7 @@ LIBS = @LIBS@
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@upload_stats_gui2.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@gnet_stats_gui2.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@search_stats_gui2.o \
+@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@fileinfo_gui2.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@main_gui.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@main_cb.o \
 @ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_TRUE@@ENABLE_GTK2_TRUE@common.o \
@@ -1037,41 +1041,41 @@ DIST_COMMON =  Makefile.am Makefile.in getdate.c
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-TAR = tar
+TAR = gtar
 GZIP_ENV = --best
 DEP_FILES =  .deps/adns.P .deps/alive.P .deps/atoms.P .deps/ban.P \
 .deps/base32.P .deps/base64.P .deps/bg.P .deps/bsched.P \
 .deps/callbacks.P .deps/cobs.P .deps/common.P .deps/cq.P .deps/crc.P \
 .deps/dmesh.P .deps/downloads.P .deps/downloads_cb.P \
 .deps/downloads_gui.P .deps/event.P .deps/extensions.P .deps/file.P \
-.deps/fileinfo.P .deps/fileinfo_gui.P .deps/filter.P .deps/filter_cb.P \
-.deps/filter_gui.P .deps/fuzzy.P .deps/getdate.P .deps/getline.P \
-.deps/ggep.P .deps/glib-missing.P .deps/gmsg.P .deps/gnet_property.P \
-.deps/gnet_stats.P .deps/gnet_stats_gui.P .deps/gnet_stats_gui2.P \
-.deps/gtk-missing.P .deps/gtkcolumnchooser.P .deps/gui.P \
-.deps/gui_property.P .deps/guid.P .deps/gwcache.P .deps/hcache.P \
-.deps/header.P .deps/hosts.P .deps/http.P .deps/huge.P .deps/icon.P \
-.deps/idtable.P .deps/ignore.P .deps/inet.P .deps/inputevt.P \
-.deps/interface-glade1.P .deps/interface-glade2.P .deps/ioheader.P \
-.deps/main.P .deps/main_cb.P .deps/main_gui.P .deps/matching.P \
-.deps/misc.P .deps/monitor_cb.P .deps/monitor_cb2.P .deps/monitor_gui.P \
-.deps/monitor_gui2.P .deps/move.P .deps/mq.P .deps/namesize.P \
-.deps/nodes.P .deps/nodes_cb.P .deps/nodes_cb2.P .deps/nodes_gui.P \
-.deps/nodes_gui2.P .deps/nodes_gui_common.P .deps/oldconfig.P \
-.deps/parq.P .deps/pcache.P .deps/pmsg.P .deps/prop.P .deps/qrp.P \
-.deps/routing.P .deps/rx.P .deps/rx_inflate.P .deps/rx_link.P \
-.deps/rxbuf.P .deps/search.P .deps/search_cb.P .deps/search_cb2.P \
-.deps/search_gui.P .deps/search_gui2.P .deps/search_stats_gui.P \
-.deps/search_stats_gui2.P .deps/search_xml.P .deps/settings.P \
-.deps/settings_cb.P .deps/settings_gui.P .deps/sha1.P .deps/share.P \
-.deps/shell.P .deps/sockets.P .deps/sq.P .deps/statusbar_gui.P \
-.deps/support-glade1.P .deps/support-glade2.P .deps/token.P .deps/tx.P \
-.deps/tx_deflate.P .deps/tx_link.P .deps/upload_stats.P \
-.deps/upload_stats_gui.P .deps/upload_stats_gui2.P .deps/uploads.P \
-.deps/uploads_cb.P .deps/uploads_gui.P .deps/uploads_gui2.P .deps/url.P \
-.deps/utf8.P .deps/vendors.P .deps/verify.P .deps/version.P \
-.deps/vmsg.P .deps/walloc.P .deps/whitelist.P .deps/zalloc.P \
-.deps/zlib_util.P
+.deps/fileinfo.P .deps/fileinfo_gui.P .deps/fileinfo_gui2.P \
+.deps/filter.P .deps/filter_cb.P .deps/filter_gui.P .deps/fuzzy.P \
+.deps/getdate.P .deps/getline.P .deps/ggep.P .deps/glib-missing.P \
+.deps/gmsg.P .deps/gnet_property.P .deps/gnet_stats.P \
+.deps/gnet_stats_gui.P .deps/gnet_stats_gui2.P .deps/gtk-missing.P \
+.deps/gtkcolumnchooser.P .deps/gui.P .deps/gui_property.P .deps/guid.P \
+.deps/gwcache.P .deps/hcache.P .deps/header.P .deps/hosts.P \
+.deps/http.P .deps/huge.P .deps/icon.P .deps/idtable.P .deps/ignore.P \
+.deps/inet.P .deps/inputevt.P .deps/interface-glade1.P \
+.deps/interface-glade2.P .deps/ioheader.P .deps/main.P .deps/main_cb.P \
+.deps/main_gui.P .deps/matching.P .deps/misc.P .deps/monitor_cb.P \
+.deps/monitor_cb2.P .deps/monitor_gui.P .deps/monitor_gui2.P \
+.deps/move.P .deps/mq.P .deps/namesize.P .deps/nodes.P .deps/nodes_cb.P \
+.deps/nodes_cb2.P .deps/nodes_gui.P .deps/nodes_gui2.P \
+.deps/nodes_gui_common.P .deps/oldconfig.P .deps/parq.P .deps/pcache.P \
+.deps/pmsg.P .deps/prop.P .deps/qrp.P .deps/routing.P .deps/rx.P \
+.deps/rx_inflate.P .deps/rx_link.P .deps/rxbuf.P .deps/search.P \
+.deps/search_cb.P .deps/search_cb2.P .deps/search_gui.P \
+.deps/search_gui2.P .deps/search_stats_gui.P .deps/search_stats_gui2.P \
+.deps/search_xml.P .deps/settings.P .deps/settings_cb.P \
+.deps/settings_gui.P .deps/sha1.P .deps/share.P .deps/shell.P \
+.deps/sockets.P .deps/sq.P .deps/statusbar_gui.P .deps/support-glade1.P \
+.deps/support-glade2.P .deps/token.P .deps/tx.P .deps/tx_deflate.P \
+.deps/tx_link.P .deps/upload_stats.P .deps/upload_stats_gui.P \
+.deps/upload_stats_gui2.P .deps/uploads.P .deps/uploads_cb.P \
+.deps/uploads_gui.P .deps/uploads_gui2.P .deps/url.P .deps/utf8.P \
+.deps/vendors.P .deps/verify.P .deps/version.P .deps/vmsg.P \
+.deps/walloc.P .deps/whitelist.P .deps/zalloc.P .deps/zlib_util.P
 SOURCES = $(gtk_gnutella_SOURCES)
 OBJECTS = $(gtk_gnutella_OBJECTS)
 
@@ -1156,7 +1160,7 @@ TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) $(LISP)
 	  awk '    { files[$$0] = 1; } \
 	       END { for (i in files) print i; }'`; \
 	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
-	  || (cd $(srcdir) && etags -o $$here/TAGS $(ETAGS_ARGS) $$tags  $$unique $(LISP))
+	  || (cd $(srcdir) && etags $(ETAGS_ARGS) $$tags  $$unique $(LISP) -o $$here/TAGS)
 
 mostlyclean-tags:
 

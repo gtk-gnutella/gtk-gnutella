@@ -12774,6 +12774,74 @@ Andrew Barnert &lt;barnert@myrealbox.com&gt;</property>
 			  </child>
 
 			  <child>
+			    <widget class="GtkCheckButton" id="checkbutton_queue_regex_case">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="label" translatable="yes">case sensitive</property>
+			      <property name="use_underline">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="active">False</property>
+			      <property name="inconsistent">False</property>
+			      <property name="draw_indicator">True</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">4</property>
+			      <property name="right_attach">5</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
+			      <property name="x_options">shrink|fill</property>
+			      <property name="y_options">shrink|fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label334">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">Select all matching regex from queue</property>
+			      <property name="use_underline">False</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_LEFT</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0.5</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
+			      <property name="x_options">shrink|fill</property>
+			      <property name="y_options">shrink|fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkEntry" id="entry_queue_regex">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="editable">True</property>
+			      <property name="visibility">True</property>
+			      <property name="max_length">0</property>
+			      <property name="text" translatable="yes"></property>
+			      <property name="has_frame">True</property>
+			      <property name="invisible_char" translatable="yes">*</property>
+			      <property name="activates_default">False</property>
+			      <signal name="activate" handler="on_entry_queue_regex_activate" last_modification_time="Thu, 04 Jul 2002 11:42:39 GMT"/>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">2</property>
+			      <property name="right_attach">4</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
+			      <property name="x_options">shrink|fill</property>
+			      <property name="y_options">shrink|fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
 			    <widget class="GtkViewport" id="viewport28">
 			      <property name="visible">True</property>
 			      <property name="shadow_type">GTK_SHADOW_IN</property>
@@ -12876,75 +12944,7 @@ Andrew Barnert &lt;barnert@myrealbox.com&gt;</property>
 			      <property name="right_attach">5</property>
 			      <property name="top_attach">0</property>
 			      <property name="bottom_attach">1</property>
-			      <property name="x_options">shrink|fill</property>
-			      <property name="y_options">shrink|fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkCheckButton" id="checkbutton_queue_regex_case">
-			      <property name="visible">True</property>
-			      <property name="can_focus">True</property>
-			      <property name="label" translatable="yes">case sensitive</property>
-			      <property name="use_underline">True</property>
-			      <property name="relief">GTK_RELIEF_NORMAL</property>
-			      <property name="active">False</property>
-			      <property name="inconsistent">False</property>
-			      <property name="draw_indicator">True</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">4</property>
-			      <property name="right_attach">5</property>
-			      <property name="top_attach">1</property>
-			      <property name="bottom_attach">2</property>
-			      <property name="x_options">shrink|fill</property>
-			      <property name="y_options">shrink|fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkLabel" id="label334">
-			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Select all matching regex from queue</property>
-			      <property name="use_underline">False</property>
-			      <property name="use_markup">False</property>
-			      <property name="justify">GTK_JUSTIFY_LEFT</property>
-			      <property name="wrap">False</property>
-			      <property name="selectable">False</property>
-			      <property name="xalign">0.5</property>
-			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
-			      <property name="ypad">0</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">0</property>
-			      <property name="right_attach">2</property>
-			      <property name="top_attach">1</property>
-			      <property name="bottom_attach">2</property>
-			      <property name="x_options">shrink|fill</property>
-			      <property name="y_options">shrink|fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkEntry" id="entry_queue_regex">
-			      <property name="visible">True</property>
-			      <property name="can_focus">True</property>
-			      <property name="editable">True</property>
-			      <property name="visibility">True</property>
-			      <property name="max_length">0</property>
-			      <property name="text" translatable="yes"></property>
-			      <property name="has_frame">True</property>
-			      <property name="invisible_char" translatable="yes">*</property>
-			      <property name="activates_default">False</property>
-			      <signal name="activate" handler="on_entry_queue_regex_activate" last_modification_time="Thu, 04 Jul 2002 11:42:39 GMT"/>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">2</property>
-			      <property name="right_attach">4</property>
-			      <property name="top_attach">1</property>
-			      <property name="bottom_attach">2</property>
-			      <property name="x_options">shrink|fill</property>
+			      <property name="x_options">expand|shrink|fill</property>
 			      <property name="y_options">shrink|fill</property>
 			    </packing>
 			  </child>
@@ -13019,7 +13019,7 @@ Andrew Barnert &lt;barnert@myrealbox.com&gt;</property>
 	<widget class="GtkVPaned" id="vpaned2">
 	  <property name="visible">True</property>
 	  <property name="can_focus">True</property>
-	  <property name="position">0</property>
+	  <property name="position">200</property>
 
 	  <child>
 	    <widget class="GtkFrame" id="frame81">
@@ -13039,7 +13039,7 @@ Andrew Barnert &lt;barnert@myrealbox.com&gt;</property>
 		  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
 		  <child>
-		    <widget class="GtkTreeView" id="treeview2">
+		    <widget class="GtkTreeView" id="treeview_fileinfo">
 		      <property name="visible">True</property>
 		      <property name="can_focus">True</property>
 		      <property name="headers_visible">True</property>
@@ -13099,31 +13099,6 @@ Andrew Barnert &lt;barnert@myrealbox.com&gt;</property>
 		      <property name="homogeneous">False</property>
 		      <property name="row_spacing">2</property>
 		      <property name="column_spacing">4</property>
-
-		      <child>
-			<widget class="GtkLabel" id="label_fi_filename">
-			  <property name="visible">True</property>
-			  <property name="can_focus">True</property>
-			  <property name="label" translatable="yes"></property>
-			  <property name="use_underline">False</property>
-			  <property name="use_markup">False</property>
-			  <property name="justify">GTK_JUSTIFY_LEFT</property>
-			  <property name="wrap">False</property>
-			  <property name="selectable">True</property>
-			  <property name="xalign">0</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">0</property>
-			  <property name="ypad">0</property>
-			</widget>
-			<packing>
-			  <property name="left_attach">1</property>
-			  <property name="right_attach">2</property>
-			  <property name="top_attach">0</property>
-			  <property name="bottom_attach">1</property>
-			  <property name="x_options">fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
 
 		      <child>
 			<widget class="GtkLabel" id="label_fi_size">
@@ -13198,6 +13173,35 @@ Andrew Barnert &lt;barnert@myrealbox.com&gt;</property>
 			  <property name="y_options"></property>
 			</packing>
 		      </child>
+
+		      <child>
+			<widget class="GtkViewport" id="viewport68">
+			  <property name="visible">True</property>
+			  <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+			  <child>
+			    <widget class="GtkEntry" id="entry_fi_filename">
+			      <property name="visible">True</property>
+			      <property name="can_focus">True</property>
+			      <property name="editable">False</property>
+			      <property name="visibility">True</property>
+			      <property name="max_length">0</property>
+			      <property name="text" translatable="yes"></property>
+			      <property name="has_frame">False</property>
+			      <property name="invisible_char" translatable="yes">*</property>
+			      <property name="activates_default">False</property>
+			    </widget>
+			  </child>
+			</widget>
+			<packing>
+			  <property name="left_attach">1</property>
+			  <property name="right_attach">2</property>
+			  <property name="top_attach">0</property>
+			  <property name="bottom_attach">1</property>
+			  <property name="x_options">expand|shrink|fill</property>
+			  <property name="y_options">fill</property>
+			</packing>
+		      </child>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
@@ -13226,11 +13230,11 @@ Andrew Barnert &lt;barnert@myrealbox.com&gt;</property>
 			  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
 			  <child>
-			    <widget class="GtkTreeView" id="treeview3">
+			    <widget class="GtkTreeView" id="treeview_fi_sources">
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
 			      <property name="headers_visible">True</property>
-			      <property name="rules_hint">False</property>
+			      <property name="rules_hint">True</property>
 			      <property name="reorderable">False</property>
 			      <property name="enable_search">True</property>
 			    </widget>
@@ -13271,10 +13275,10 @@ Andrew Barnert &lt;barnert@myrealbox.com&gt;</property>
 			  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
 			  <child>
-			    <widget class="GtkTreeView" id="treeview4">
+			    <widget class="GtkTreeView" id="treeview_fi_aliases">
 			      <property name="visible">True</property>
 			      <property name="can_focus">True</property>
-			      <property name="headers_visible">True</property>
+			      <property name="headers_visible">False</property>
 			      <property name="rules_hint">True</property>
 			      <property name="reorderable">False</property>
 			      <property name="enable_search">True</property>
@@ -14104,286 +14108,6 @@ Andrew Barnert &lt;barnert@myrealbox.com&gt;</property>
 			  </child>
 
 			  <child>
-			    <widget class="GtkViewport" id="viewport58">
-			      <property name="visible">True</property>
-			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
-
-			      <child>
-				<widget class="GtkEntry" id="entry_result_info_index">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">0</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">False</property>
-				  <property name="invisible_char" translatable="yes">*</property>
-				  <property name="activates_default">False</property>
-				</widget>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">1</property>
-			      <property name="right_attach">2</property>
-			      <property name="top_attach">3</property>
-			      <property name="bottom_attach">4</property>
-			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkViewport" id="viewport59">
-			      <property name="visible">True</property>
-			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
-
-			      <child>
-				<widget class="GtkEntry" id="entry_result_info_source">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">0</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">False</property>
-				  <property name="invisible_char" translatable="yes">*</property>
-				  <property name="activates_default">False</property>
-				</widget>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">3</property>
-			      <property name="right_attach">4</property>
-			      <property name="top_attach">1</property>
-			      <property name="bottom_attach">2</property>
-			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkViewport" id="viewport60">
-			      <property name="visible">True</property>
-			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
-
-			      <child>
-				<widget class="GtkEntry" id="entry_result_info_tag">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">0</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">False</property>
-				  <property name="invisible_char" translatable="yes">*</property>
-				  <property name="activates_default">False</property>
-				</widget>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">1</property>
-			      <property name="right_attach">4</property>
-			      <property name="top_attach">5</property>
-			      <property name="bottom_attach">6</property>
-			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkViewport" id="viewport61">
-			      <property name="visible">True</property>
-			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
-
-			      <child>
-				<widget class="GtkEntry" id="entry_result_info_timestamp">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">0</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">False</property>
-				  <property name="invisible_char" translatable="yes">*</property>
-				  <property name="activates_default">False</property>
-				</widget>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">3</property>
-			      <property name="right_attach">4</property>
-			      <property name="top_attach">4</property>
-			      <property name="bottom_attach">5</property>
-			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkViewport" id="viewport62">
-			      <property name="visible">True</property>
-			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
-
-			      <child>
-				<widget class="GtkEntry" id="entry_result_info_vendor">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">0</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">False</property>
-				  <property name="invisible_char" translatable="yes">*</property>
-				  <property name="activates_default">False</property>
-				</widget>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">3</property>
-			      <property name="right_attach">4</property>
-			      <property name="top_attach">3</property>
-			      <property name="bottom_attach">4</property>
-			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkViewport" id="viewport63">
-			      <property name="visible">True</property>
-			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
-
-			      <child>
-				<widget class="GtkEntry" id="entry_result_info_guid">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">0</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">False</property>
-				  <property name="invisible_char" translatable="yes">*</property>
-				  <property name="activates_default">False</property>
-				</widget>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">3</property>
-			      <property name="right_attach">4</property>
-			      <property name="top_attach">2</property>
-			      <property name="bottom_attach">3</property>
-			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkViewport" id="viewport64">
-			      <property name="visible">True</property>
-			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
-
-			      <child>
-				<widget class="GtkEntry" id="entry_result_info_speed">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">0</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">False</property>
-				  <property name="invisible_char" translatable="yes">*</property>
-				  <property name="activates_default">False</property>
-				</widget>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">1</property>
-			      <property name="right_attach">2</property>
-			      <property name="top_attach">4</property>
-			      <property name="bottom_attach">5</property>
-			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkViewport" id="viewport65">
-			      <property name="visible">True</property>
-			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
-
-			      <child>
-				<widget class="GtkEntry" id="entry_result_info_size">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">0</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">False</property>
-				  <property name="invisible_char" translatable="yes">*</property>
-				  <property name="activates_default">False</property>
-				</widget>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">1</property>
-			      <property name="right_attach">2</property>
-			      <property name="top_attach">2</property>
-			      <property name="bottom_attach">3</property>
-			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkViewport" id="viewport66">
-			      <property name="visible">True</property>
-			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
-
-			      <child>
-				<widget class="GtkEntry" id="entry_result_info_sha1">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">0</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">False</property>
-				  <property name="invisible_char" translatable="yes">*</property>
-				  <property name="activates_default">False</property>
-				</widget>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">1</property>
-			      <property name="right_attach">2</property>
-			      <property name="top_attach">1</property>
-			      <property name="bottom_attach">2</property>
-			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkViewport" id="viewport67">
-			      <property name="visible">True</property>
-			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
-
-			      <child>
-				<widget class="GtkEntry" id="entry_result_info_filename">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">0</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">False</property>
-				  <property name="invisible_char" translatable="yes">*</property>
-				  <property name="activates_default">False</property>
-				</widget>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">1</property>
-			      <property name="right_attach">4</property>
-			      <property name="top_attach">0</property>
-			      <property name="bottom_attach">1</property>
-			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
 			    <widget class="GtkLabel" id="label664">
 			      <property name="visible">True</property>
 			      <property name="label" translatable="yes">Source:</property>
@@ -14500,6 +14224,298 @@ Andrew Barnert &lt;barnert@myrealbox.com&gt;</property>
 			      <property name="bottom_attach">5</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkViewport" id="viewport66">
+			      <property name="visible">True</property>
+			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+			      <child>
+				<widget class="GtkEntry" id="entry_result_info_sha1">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="editable">False</property>
+				  <property name="visibility">True</property>
+				  <property name="max_length">0</property>
+				  <property name="text" translatable="yes"></property>
+				  <property name="has_frame">False</property>
+				  <property name="invisible_char" translatable="yes">*</property>
+				  <property name="activates_default">False</property>
+				  <property name="width_chars">32</property>
+				</widget>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkViewport" id="viewport65">
+			      <property name="visible">True</property>
+			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+			      <child>
+				<widget class="GtkEntry" id="entry_result_info_size">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="editable">False</property>
+				  <property name="visibility">True</property>
+				  <property name="max_length">0</property>
+				  <property name="text" translatable="yes"></property>
+				  <property name="has_frame">False</property>
+				  <property name="invisible_char" translatable="yes">*</property>
+				  <property name="activates_default">False</property>
+				  <property name="width_chars">20</property>
+				</widget>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">2</property>
+			      <property name="bottom_attach">3</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkViewport" id="viewport58">
+			      <property name="visible">True</property>
+			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+			      <child>
+				<widget class="GtkEntry" id="entry_result_info_index">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="editable">False</property>
+				  <property name="visibility">True</property>
+				  <property name="max_length">0</property>
+				  <property name="text" translatable="yes"></property>
+				  <property name="has_frame">False</property>
+				  <property name="invisible_char" translatable="yes">*</property>
+				  <property name="activates_default">False</property>
+				  <property name="width_chars">12</property>
+				</widget>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">3</property>
+			      <property name="bottom_attach">4</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkViewport" id="viewport64">
+			      <property name="visible">True</property>
+			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+			      <child>
+				<widget class="GtkEntry" id="entry_result_info_speed">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="editable">False</property>
+				  <property name="visibility">True</property>
+				  <property name="max_length">0</property>
+				  <property name="text" translatable="yes"></property>
+				  <property name="has_frame">False</property>
+				  <property name="invisible_char" translatable="yes">*</property>
+				  <property name="activates_default">False</property>
+				  <property name="width_chars">8</property>
+				</widget>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">4</property>
+			      <property name="bottom_attach">5</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkViewport" id="viewport59">
+			      <property name="visible">True</property>
+			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+			      <child>
+				<widget class="GtkEntry" id="entry_result_info_source">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="editable">False</property>
+				  <property name="visibility">True</property>
+				  <property name="max_length">0</property>
+				  <property name="text" translatable="yes"></property>
+				  <property name="has_frame">False</property>
+				  <property name="invisible_char" translatable="yes">*</property>
+				  <property name="activates_default">False</property>
+				</widget>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">3</property>
+			      <property name="right_attach">4</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkViewport" id="viewport63">
+			      <property name="visible">True</property>
+			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+			      <child>
+				<widget class="GtkEntry" id="entry_result_info_guid">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="editable">False</property>
+				  <property name="visibility">True</property>
+				  <property name="max_length">0</property>
+				  <property name="text" translatable="yes"></property>
+				  <property name="has_frame">False</property>
+				  <property name="invisible_char" translatable="yes">*</property>
+				  <property name="activates_default">False</property>
+				</widget>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">3</property>
+			      <property name="right_attach">4</property>
+			      <property name="top_attach">2</property>
+			      <property name="bottom_attach">3</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkViewport" id="viewport62">
+			      <property name="visible">True</property>
+			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+			      <child>
+				<widget class="GtkEntry" id="entry_result_info_vendor">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="editable">False</property>
+				  <property name="visibility">True</property>
+				  <property name="max_length">0</property>
+				  <property name="text" translatable="yes"></property>
+				  <property name="has_frame">False</property>
+				  <property name="invisible_char" translatable="yes">*</property>
+				  <property name="activates_default">False</property>
+				</widget>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">3</property>
+			      <property name="right_attach">4</property>
+			      <property name="top_attach">3</property>
+			      <property name="bottom_attach">4</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkViewport" id="viewport61">
+			      <property name="visible">True</property>
+			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+			      <child>
+				<widget class="GtkEntry" id="entry_result_info_timestamp">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="editable">False</property>
+				  <property name="visibility">True</property>
+				  <property name="max_length">0</property>
+				  <property name="text" translatable="yes"></property>
+				  <property name="has_frame">False</property>
+				  <property name="invisible_char" translatable="yes">*</property>
+				  <property name="activates_default">False</property>
+				</widget>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">3</property>
+			      <property name="right_attach">4</property>
+			      <property name="top_attach">4</property>
+			      <property name="bottom_attach">5</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkViewport" id="viewport67">
+			      <property name="visible">True</property>
+			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+			      <child>
+				<widget class="GtkEntry" id="entry_result_info_filename">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="editable">False</property>
+				  <property name="visibility">True</property>
+				  <property name="max_length">0</property>
+				  <property name="text" translatable="yes"></property>
+				  <property name="has_frame">False</property>
+				  <property name="invisible_char" translatable="yes">*</property>
+				  <property name="activates_default">False</property>
+				</widget>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">4</property>
+			      <property name="top_attach">0</property>
+			      <property name="bottom_attach">1</property>
+			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkViewport" id="viewport60">
+			      <property name="visible">True</property>
+			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
+
+			      <child>
+				<widget class="GtkEntry" id="entry_result_info_tag">
+				  <property name="visible">True</property>
+				  <property name="can_focus">True</property>
+				  <property name="editable">False</property>
+				  <property name="visibility">True</property>
+				  <property name="max_length">0</property>
+				  <property name="text" translatable="yes"></property>
+				  <property name="has_frame">False</property>
+				  <property name="invisible_char" translatable="yes">*</property>
+				  <property name="activates_default">False</property>
+				</widget>
+			      </child>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">1</property>
+			      <property name="right_attach">4</property>
+			      <property name="top_attach">5</property>
+			      <property name="bottom_attach">6</property>
+			      <property name="y_options">fill</property>
 			    </packing>
 			  </child>
 			</widget>
@@ -14887,7 +14903,7 @@ Andrew Barnert &lt;barnert@myrealbox.com&gt;</property>
 	    </widget>
 	    <packing>
 	      <property name="padding">0</property>
-	      <property name="expand">True</property>
+	      <property name="expand">False</property>
 	      <property name="fill">True</property>
 	    </packing>
 	  </child>
