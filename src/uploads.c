@@ -69,7 +69,7 @@ RCSID("$Id$");
 
 #define RQST_LINE_LENGTH	256		/* Reasonable estimate for request line */
 
-static GSList *uploads = NULL;
+static GSList *list_uploads = NULL;
 static gint stalled = 0;			/* Counts stalled connections */
 static time_t last_stalled;			/* Time at which last stall occurred */
 
@@ -83,6 +83,8 @@ static idtable_t *upload_handle_map = NULL;
 
 #define upload_free_handle(n) \
     idtable_free_id(upload_handle_map, n);
+
+#define CONST_STRLEN(x) (sizeof(x) - 1)
 
 gint running_uploads = 0;
 gint registered_uploads = 0;
@@ -202,11 +204,10 @@ void upload_fire_upload_info_changed
  */
 void upload_timer(time_t now)
 {
-	GSList *sl;
-	GSList *to_remove = NULL;
+	GSList *sl, *to_remove = NULL;
 	time_t t;
 
-	for (sl = uploads; sl; sl = g_slist_next(sl)) {
+	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
 		gnutella_upload_t *u = (gnutella_upload_t *) sl->data;
 		gboolean is_connecting;
 
@@ -356,7 +357,7 @@ gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push)
 	 * from now on within the main loop for timeouts.
 	 */
 
-	uploads = g_slist_prepend(uploads, u);
+	list_uploads = g_slist_prepend(list_uploads, u);
 
 	/*
 	 * Add upload to the GUI
@@ -381,7 +382,7 @@ gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push)
  * currently prohibited.
  */
 void upload_send_giv(guint32 ip, guint16 port, guint8 hops, guint8 ttl,
-	guint32 file_index, gchar *file_name, gboolean banning)
+	guint32 file_index, const gchar *file_name, gboolean banning)
 {
 	gnutella_upload_t *u;
 	struct gnutella_socket *s;
@@ -427,7 +428,7 @@ void handle_push_request(struct gnutella_node *n)
 	guint16 port;
 	gchar *info;
 	gboolean show_banning = FALSE;
-	gchar *file_name = "<invalid file index>";
+	const gchar *file_name = "<invalid file index>";
 
 	if (0 != memcmp(n->data, guid, 16))		/* Servent ID matches our GUID? */
 		return;								/* No: not for us */
@@ -611,7 +612,7 @@ static gnutella_upload_t *upload_clone(gnutella_upload_t *u)
 	 * from now on within the main loop for timeouts.
 	 */
 
-	uploads = g_slist_prepend(uploads, cu);
+	list_uploads = g_slist_prepend(list_uploads, cu);
 
 	/*
 	 * Add upload to the GUI
@@ -877,7 +878,7 @@ static void upload_remove_v(
 
 	upload_free_resources(u);
 	wfree(u, sizeof(*u));
-	uploads = g_slist_remove(uploads, (gpointer) u);
+	list_uploads = g_slist_remove(list_uploads, u);
 }
 
 /*
@@ -959,12 +960,11 @@ static void upload_error_remove_ext(
  */
 void upload_stop_all(struct dl_file_info *fi, const gchar *reason)
 {
-	GSList *to_stop = NULL;
+	GSList *sl, *to_stop = NULL;
 	gint count = 0;
-	GSList *l;
 
-	for (l = uploads; l; l = g_slist_next(l)) {
-		gnutella_upload_t *up = (gnutella_upload_t *) (l->data);
+	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+		gnutella_upload_t *up = (gnutella_upload_t *) (sl->data);
 		g_assert(up);
 		if (up->file_info == fi) {
 			to_stop = g_slist_prepend(to_stop, up);
@@ -979,8 +979,8 @@ void upload_stop_all(struct dl_file_info *fi, const gchar *reason)
 		g_warning("stopping %d uploads for \"%s\": %s",
 			count, fi->file_name, reason);
 
-	for (l = to_stop; l; l = g_slist_next(l)) {
-		gnutella_upload_t *up = (gnutella_upload_t *) (l->data);
+	for (sl = to_stop; sl; sl = g_slist_next(sl)) {
+		gnutella_upload_t *up = (gnutella_upload_t *) (sl->data);
 		upload_remove(up, "%s", reason);
 	}
 
@@ -1338,7 +1338,7 @@ void upload_connect_conf(gnutella_upload_t *u)
  */
 static void upload_error_not_found(gnutella_upload_t *u, const gchar *request)
 {
-	g_warning("bad request from %s: %s", ip_to_gchar(u->socket->ip), request);
+	g_warning("Returned 404 for %s: %s", ip_to_gchar(u->socket->ip), request);
 	upload_error_remove(u, NULL, 404, "Not Found");
 }
 
@@ -1509,7 +1509,7 @@ static struct shared_file *get_file_to_upload_from_index(
 
 		if (sfn && sf != sfn) {
 			gchar location[1024];
-			gchar *escaped;
+			const gchar *escaped;
 
 			if (!sha1_hash_is_uptodate(sfn))
 				goto sha1_recomputed;
@@ -1561,7 +1561,7 @@ static struct shared_file *get_file_to_upload_from_index(
 				301, "Moved Permanently");
 
 			if (escaped != sfn->file_name)
-				g_free(escaped);
+				G_FREE_NULL((gchar *) escaped); /* Override const */
 			return NULL;
 		}
 		else if (sf == NULL)
@@ -1654,6 +1654,9 @@ static struct shared_file *get_file_to_upload_from_urn(
 	header_t *header,
 	const gchar *uri)
 {
+	static const char urn_prefix[] = "urn:";
+	static const char urn_bitprint[] = "urn:bitprint:";
+	static const char urn_sha1[] = "urn:sha1:";
 	gchar hash[SHA1_BASE32_SIZE + 1];
 	gchar digest[SHA1_RAW_SIZE];
 	const gchar *urn = uri + N2R_QUERY_LENGTH;
@@ -1666,21 +1669,20 @@ static struct shared_file *get_file_to_upload_from_urn(
 	 *		--RAM, 16/11/2002
 	 */
 
-	if (0 == strncasecmp(urn, "urn:sha1:", 9))
-		skip = 9;
-	else if (0 == strncasecmp(urn, "urn:bitprint:", 13))
-		skip = 13;
-	else {
-		upload_error_not_found(u, uri);			/* Unknown URN => not found */
-		return NULL;
-	}
+	if (0 != strncasecmp(urn, urn_prefix, CONST_STRLEN(urn_prefix)))
+		goto not_found;
+
+	if (0 == strncasecmp(urn, urn_sha1, CONST_STRLEN(urn_sha1)))
+		skip = CONST_STRLEN(urn_sha1);
+	else if (0 == strncasecmp(urn, urn_bitprint, CONST_STRLEN(urn_bitprint)))
+		skip = CONST_STRLEN(urn_bitprint);
+	else
+		goto not_found;
 
 	u->n2r = TRUE;		/* Remember we saw an N2R request */
 
-	if (1 != sscanf(urn + skip, "%32s", hash))
+	if (g_strlcpy(hash, urn + skip, sizeof hash) < SHA1_BASE32_SIZE)
 		goto malformed;
-
-	hash[SHA1_BASE32_SIZE] = '\0';
 
 	if (!huge_http_sha1_extract32(hash, digest))
 		goto malformed;
@@ -1706,6 +1708,10 @@ static struct shared_file *get_file_to_upload_from_urn(
 
 malformed:
 	upload_error_remove(u, NULL, 400, "Malformed URN in /uri-res request");
+	return NULL;
+
+not_found:
+	upload_error_not_found(u, uri);			/* Unknown URN => not found */
 	return NULL;
 }
 
@@ -2013,11 +2019,11 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	struct gnutella_socket *s = u->socket;
 	struct shared_file *reqfile = NULL;
     guint32 idx = 0, skip = 0, end = 0;
-	gchar *fpath = NULL;
+	const gchar *fpath = NULL;
 	gchar *user_agent = 0;
 	gchar *buf;
 	gchar *request = getline_str(s->getline);
-	GSList *l;
+	GSList *sl;
 	gboolean head_only;
 	gboolean has_end = FALSE;
 	struct stat statbuf;
@@ -2475,8 +2481,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		 * 		-- JA 12/7/'03
 		 */
 
-		for (l = uploads; l; l = g_slist_next(l)) {
-			gnutella_upload_t *up = (gnutella_upload_t *) (l->data);
+		for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+			gnutella_upload_t *up = (gnutella_upload_t *) (sl->data);
 			g_assert(up);
 			if (up == u)
 				continue;				/* Current upload is already in list */
@@ -2509,8 +2515,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		 * at most.
 		 */
 
-		for (l = to_remove; l; l = g_slist_next(l)) {
-			gnutella_upload_t *up = (gnutella_upload_t *) (l->data);
+		for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+			gnutella_upload_t *up = (gnutella_upload_t *) (sl->data);
 			g_assert(up);
 
 			g_warning("stalling connection to %s (%s) replaced "
@@ -3025,18 +3031,25 @@ void upload_kill(gnet_upload_t upload)
  */
 void upload_kill_ip(guint32 ip)
 {
-	GSList *l;
+	GSList *sl, *to_remove = NULL;
 
-	for (l = uploads; l; l = g_slist_next(l)) {
-		gnutella_upload_t *u = (gnutella_upload_t *) (l->data);
+	for (sl = list_uploads; sl; sl = g_slist_next(sl)) {
+		gnutella_upload_t *u = (gnutella_upload_t *) (sl->data);
 
 		g_assert(u != NULL);
 
 		if (u->ip == ip && !UPLOAD_IS_COMPLETE(u)) {
-			parq_upload_force_remove(u);
-			upload_remove(u, "IP denying uploads");
+			to_remove = g_slist_prepend(to_remove, u);
 		}
 	}
+
+	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+		gnutella_upload_t *u = (gnutella_upload_t *) (sl->data);
+
+		parq_upload_force_remove(u);
+		upload_remove(u, "IP denying uploads");
+	}
+	g_slist_free(to_remove);
 }
 
 /*
@@ -3068,10 +3081,14 @@ void upload_init(void)
 
 void upload_close(void)
 {
-	GSList *l;
+	GSList *sl, *to_remove = NULL;
 
-	for (l = uploads; l; l = g_slist_next(l)) {
-		gnutella_upload_t *u = (gnutella_upload_t *) l->data;
+	for (sl = list_uploads; sl; sl = g_slist_next(sl))
+		to_remove = g_slist_prepend(to_remove, sl->data);
+
+	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+		gnutella_upload_t *u = (gnutella_upload_t *) (sl->data);
+
 		if (UPLOAD_IS_SENDING(u) && !u->accounted)
 			upload_stats_file_aborted(u);
 		upload_free_resources(u);
@@ -3081,7 +3098,8 @@ void upload_close(void)
     idtable_destroy(upload_handle_map);
     upload_handle_map = NULL;
 
-	g_slist_free(uploads);
+	g_slist_free(list_uploads);
+	list_uploads = NULL;
 
 	g_hash_table_foreach(mesh_info, mi_free_kv, NULL);
 	g_hash_table_destroy(mesh_info);
@@ -3149,7 +3167,5 @@ void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 	if (si->avg_bps == 0)
         si->avg_bps++;
 }
-
-/* vi: set ts=4: */
 
 /* vi: set ts=4: */
