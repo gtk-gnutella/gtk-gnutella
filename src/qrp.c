@@ -1157,7 +1157,7 @@ static bgret_t qrp_step_compute(gpointer h, gpointer u, gint ticks)
 		}
 	}
 
-	conflict_ratio =
+	conflict_ratio = ctx->substrings == 0 ? 0 :
 		(gint) (100.0 * (ctx->substrings - filled) / ctx->substrings);
 
 	if (dbg > 1)
