@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Tue Aug 12 20:04:49 MEST 2003 [metaconfig 3.0 PL70]
+# Generated on Wed Aug 13 00:15:46 MEST 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -4379,21 +4379,20 @@ esac
 $rm -f try.* .out
 
 : determine compiler compiler
-case "$yacc" in
-'')
-	dflt=yacc;;
-*)
-	dflt="$yacc";;
-esac
 echo " "
 comp='yacc'
+prefer='yacc'
 if $test -f "$byacc"; then
-	dflt="$byacc"
+	prefer="$byacc"
 	comp="byacc or $comp"
 fi
 if $test -f "$bison"; then
 	comp="$comp or bison -y"
 fi
+case "$yacc" in
+'') dflt=$prefer;;
+*) dflt="$yacc";;
+esac
 rp="Which compiler compiler ($comp) shall I use?"
 . ./myread
 yacc="$ans"
