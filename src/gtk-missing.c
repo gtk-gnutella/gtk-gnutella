@@ -248,7 +248,7 @@ void gtk_mass_widget_set_sensitive
 /*
  * clist_collect_data:
  *
- * Fetch data from the selection of a clist. Returns a GList containing
+ * Fetch data from the selection of a clist. Returns a GSList containing
  * the user_data pointers from the selected rows. If allow_null is TRUE,
  * the returned list may contain NULL pointers. If cfn != NULL, it will
  * be used to determine wether two entries are equal and drop all duplicate
@@ -277,10 +277,12 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
         if ((data != NULL) || allow_null) {
             if (cfn != NULL) {
                 if (g_slist_find_custom(result_list, data, cfn) != NULL) {
-                    const gchar *name = gtk_widget_get_name(GTK_WIDGET(clist));
-                    if (gui_debug >= 3)
+                    if (gui_debug >= 3) {
+                        const gchar *name = 
+                            gtk_widget_get_name(GTK_WIDGET(clist));
                         printf("%s has duplicate data: %p\n",
                             (name != NULL) ? name : "<UNKNOWN>", data);
+                    }
                     to_unselect =
 						g_slist_prepend(to_unselect, GINT_TO_POINTER(row));
                     continue;
@@ -289,10 +291,12 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
             result_list = g_slist_prepend(result_list, data);
             to_unselect = g_slist_prepend(to_unselect, GINT_TO_POINTER(row));
         } else {
-            const gchar *name = gtk_widget_get_name(GTK_WIDGET(clist));
-            if (gui_debug >= 3)
+            if (gui_debug >= 3) {
+                const gchar *name = 
+                    gtk_widget_get_name(GTK_WIDGET(clist));
                 printf("%s contains NULL data in row %d\n",
                     (name != NULL) ? name : "<UNKNOWN>", row);
+            }
         }
     }
 
@@ -306,6 +310,81 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
 
     return result_list;
 }
+
+
+/*
+ * tree_selection_collect_data:
+ *
+ * Fetch data from the selection of a treeview. Returns a GSList containing
+ * the user_data pointers from the selected rows. If allow_null is TRUE,
+ * the returned list may contain NULL pointers. If cfn != NULL, it will
+ * be used to determine wether two entries are equal and drop all duplicate
+ * items from the result list. Using cfn will significantly increase runtime.
+ */
+#ifdef USE_GTK2
+GSList *tree_selection_collect_data(GtkTreeSelection *tsel,
+    gboolean allow_null, GCompareFunc cfn)
+{
+    GSList *results = NULL;
+    GSList *to_unselect = NULL;
+    GtkTreeModel *model = NULL;
+    GList *rows;
+    GList *row;
+    GSList *sl;
+
+    g_assert(tsel != NULL);       rows = gtk_tree_selection_get_selected_rows(tsel, &model);
+    /*
+     * Browse selected rows and gather data.
+     */
+    for (row = rows; row != NULL; row = g_list_next(row)) {
+        gpointer data;
+        GtkTreeIter iter;
+        GtkTreePath *path;
+
+        path = (GtkTreePath *) row->data;
+        gtk_tree_model_get_iter(model, &iter, path);
+        gtk_tree_model_get(model, &iter, c_sr_record, &data, -1);
+
+        if ((data != NULL) || allow_null) {
+            if (cfn != NULL) {
+                if (g_slist_find_custom(results, data, cfn) != NULL) {
+                    if (gui_debug >= 3) {
+                        const gchar *name = gtk_widget_get_name(GTK_WIDGET(
+                            gtk_tree_selection_get_tree_view (tsel)));
+                        printf("%s has duplicate data: %p\n",
+                            (name != NULL) ? name : "<UNKNOWN>", data);
+                    }
+                    to_unselect =
+                                               g_slist_prepend(to_unselect, path);
+                    continue;
+                }
+            }
+            results = g_slist_prepend(results, data);
+            to_unselect = g_slist_prepend(to_unselect, path);
+        } else if (gui_debug >= 3) {
+            const gchar *name = gtk_widget_get_name(GTK_WIDGET(
+                gtk_tree_selection_get_tree_view (tsel)));
+            printf("%s contains NULL data in row %p\n",
+                   (name != NULL) ? name : "<UNKNOWN>", row);
+        }
+    }
+
+    /*
+     * Now unselect the rows from which we got data.
+     */
+    for (sl = to_unselect; sl != NULL; sl = g_slist_next(sl))
+        gtk_tree_selection_unselect_path(tsel, (GtkTreePath *) sl->data);
+
+    /*
+     * Cleanup before exit.
+     */
+    g_slist_free(to_unselect);
+    g_list_foreach(rows, (GFunc) gtk_tree_path_free, NULL);
+    g_list_free(rows);
+
+    return results;
+}
+#endif /* USE_GTK2 */
 
 gdouble _gtk_spin_button_get_value(GtkSpinButton *spinbutton)
 {

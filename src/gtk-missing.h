@@ -52,6 +52,10 @@ void gtk_label_printf(GtkLabel *label, const gchar * format, ...);
 void gtk_mass_widget_set_sensitive(GtkWidget *tl, gchar *list[], gboolean b);
 GSList *clist_collect_data(GtkCList *clist, gboolean allow_null, 
     GCompareFunc cfn);
+#ifdef USE_GTK2
+GSList *tree_selection_collect_data(GtkTreeSelection *tsel,
+    gboolean allow_null, GCompareFunc cfn);
+#endif
 gdouble _gtk_spin_button_get_value(GtkSpinButton *);
 guint32 gtk_editable_get_value_as_uint(GtkEditable *editable);
 void gtk_combo_init_choices(
