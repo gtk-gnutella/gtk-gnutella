@@ -55,7 +55,10 @@ gboolean huge_sha1_extract32(gchar *buf, gint len, gchar *retval,
 gboolean huge_extract_sha1(gchar *buf, gchar *digest);
 gboolean huge_extract_sha1_no_urn(gchar *buf, gchar *digest);
 
-void huge_collect_locations(gchar *sha1, struct header *header);
+void huge_collect_locations(gchar *sha1, struct header *header,
+	const gchar *vendor);
+
+gboolean huge_has_xalt_support(const gchar *vendor);
 
 #endif	/* _huge_h_ */
 

@@ -82,6 +82,7 @@ struct sha1_cache_entry {
 };
 
 static GHashTable *sha1_cache = NULL;
+static GHashTable *x_alt = NULL;
 
 /* 
  * cache_dirty means that in-core cache is different from the one on disk when
@@ -946,6 +947,7 @@ void request_sha1(struct shared_file *sf)
  */
 void huge_init(void)
 {
+	x_alt = g_hash_table_new(g_str_hash, g_str_equal);
 	sha1_cache = g_hash_table_new(g_str_hash, g_str_equal);
 	sha1_read_cache();
 }
@@ -961,6 +963,18 @@ static gboolean cache_free_entry(gpointer k, gpointer v, gpointer udata)
 
 	atom_str_free(e->file_name);
 	g_free(e);
+
+	return TRUE;
+}
+
+/*
+ * xalt_free_entry
+ *
+ * Free vendor entry for X-Alt support.
+ */
+static gboolean xalt_free_entry(gpointer k, gpointer v, gpointer udata)
+{
+	atom_str_free(k);
 
 	return TRUE;
 }
@@ -983,6 +997,9 @@ void huge_close(void)
 
 	g_hash_table_foreach_remove(sha1_cache, cache_free_entry, NULL);
 	g_hash_table_destroy(sha1_cache);
+
+	g_hash_table_foreach_remove(x_alt, xalt_free_entry, NULL);
+	g_hash_table_destroy(x_alt);
 
 	while (waiting_for_sha1_computation) {
 		struct file_sha1 *l = waiting_for_sha1_computation;
@@ -1173,12 +1190,47 @@ gboolean huge_extract_sha1_no_urn(gchar *buf, gchar *digest)
 }
 
 /*
+ * huge_set_xalt_support
+ *
+ * Record that a vendor supports X-Alt.
+ */
+static void huge_set_xalt_support(const gchar *vendor)
+{
+	gchar *key;
+
+	g_assert(vendor != NULL);
+
+	if (g_hash_table_lookup(x_alt, vendor))
+		return;
+
+	key = atom_str_get(vendor);
+	g_hash_table_insert(x_alt, key, GINT_TO_POINTER(0x1));
+}
+
+/*
+ * huge_has_xalt_support
+ *
+ * Check whether vendor is known to have X-Alt support.
+ */
+gboolean huge_has_xalt_support(const gchar *vendor)
+{
+	g_assert(vendor != NULL);
+
+	return NULL != g_hash_table_lookup(x_alt, vendor);
+}
+
+/*
  * huge_collect_locations
  *
  * Parse the "X-Gnutella-Alternate-Location" header if present to learn
  * about other sources for this file.
+ *
+ * Since 05/10/2003, we also parse the new compact "X-Alt" header which
+ * is a more compact representation of alternate locations.  We also remember
+ * which vendor gave us X-Alt locations, so that we can emit back X-Alt to
+ * them the next time instead of the longer X-Gnutella-Alternate-Location.
  */
-void huge_collect_locations(gchar *sha1, header_t *header)
+void huge_collect_locations(gchar *sha1, header_t *header, const gchar *vendor)
 {
 	gchar *alt = header_get(header, "X-Gnutella-Alternate-Location");
 
@@ -1193,8 +1245,18 @@ void huge_collect_locations(gchar *sha1, header_t *header)
 	if (alt == NULL)
 		alt = header_get(header, "Alt-Location");
 
-	if (alt) 
+	if (alt) {
 		dmesh_collect_locations(sha1, alt, TRUE);
+		return;
+	}
+
+	alt = header_get(header, "X-Alt");
+
+	if (alt) {
+		dmesh_collect_compact_locations(sha1, alt);
+		if (vendor != NULL)
+			huge_set_xalt_support(vendor);
+	}
 }
 
 /* 
