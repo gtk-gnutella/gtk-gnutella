@@ -658,12 +658,14 @@ create_main_window (void)
   GtkWidget *spinbutton_dl_maxchunksize;
   GtkWidget *hseparator12;
   GtkWidget *table52;
-  GtkWidget *checkbutton_config_use_alternate_sources;
   GtkWidget *checkbutton_config_strict_sha1_matching;
   GtkWidget *checkbutton_config_use_fuzzy_matching;
   GtkWidget *label285;
   GtkObject *spinbutton_config_fuzzy_threshold_adj;
   GtkWidget *spinbutton_config_fuzzy_threshold;
+  GtkWidget *checkbutton_fuzzy_filter_dmesh;
+  GtkWidget *checkbutton_config_use_alternate_sources;
+  GtkWidget *checkbutton_auto_feed_dmesh;
   GtkWidget *label161;
   GtkWidget *scrolledwindow35;
   GtkWidget *viewport7;
@@ -6414,7 +6416,7 @@ create_main_window (void)
   gtk_widget_show (hseparator12);
   gtk_box_pack_start (GTK_BOX (vbox99), hseparator12, FALSE, TRUE, 0);
 
-  table52 = gtk_table_new (2, 4, FALSE);
+  table52 = gtk_table_new (3, 4, FALSE);
   gtk_widget_set_name (table52, "table52");
   gtk_widget_ref (table52);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table52", table52,
@@ -6423,16 +6425,6 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox99), table52, FALSE, TRUE, 0);
   gtk_table_set_row_spacings (GTK_TABLE (table52), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table52), 4);
-
-  checkbutton_config_use_alternate_sources = gtk_check_button_new_with_label (_("Watch searches for alternate sources"));
-  gtk_widget_set_name (checkbutton_config_use_alternate_sources, "checkbutton_config_use_alternate_sources");
-  gtk_widget_ref (checkbutton_config_use_alternate_sources);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_use_alternate_sources", checkbutton_config_use_alternate_sources,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_config_use_alternate_sources);
-  gtk_table_attach (GTK_TABLE (table52), checkbutton_config_use_alternate_sources, 0, 4, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
 
   checkbutton_config_strict_sha1_matching = gtk_check_button_new_with_label (_("Strict SHA1 matching"));
   gtk_widget_set_name (checkbutton_config_strict_sha1_matching, "checkbutton_config_strict_sha1_matching");
@@ -6476,6 +6468,36 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_fuzzy_threshold), TRUE);
+
+  checkbutton_fuzzy_filter_dmesh = gtk_check_button_new_with_label (_("Apply fuzzy filter on download mesh entries"));
+  gtk_widget_set_name (checkbutton_fuzzy_filter_dmesh, "checkbutton_fuzzy_filter_dmesh");
+  gtk_widget_ref (checkbutton_fuzzy_filter_dmesh);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_fuzzy_filter_dmesh", checkbutton_fuzzy_filter_dmesh,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_fuzzy_filter_dmesh);
+  gtk_table_attach (GTK_TABLE (table52), checkbutton_fuzzy_filter_dmesh, 0, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_use_alternate_sources = gtk_check_button_new_with_label (_("Watch hits for alternate download sources"));
+  gtk_widget_set_name (checkbutton_config_use_alternate_sources, "checkbutton_config_use_alternate_sources");
+  gtk_widget_ref (checkbutton_config_use_alternate_sources);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_use_alternate_sources", checkbutton_config_use_alternate_sources,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_use_alternate_sources);
+  gtk_table_attach (GTK_TABLE (table52), checkbutton_config_use_alternate_sources, 0, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_auto_feed_dmesh = gtk_check_button_new_with_label (_("Feed mesh from hits"));
+  gtk_widget_set_name (checkbutton_auto_feed_dmesh, "checkbutton_auto_feed_dmesh");
+  gtk_widget_ref (checkbutton_auto_feed_dmesh);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_auto_feed_dmesh", checkbutton_auto_feed_dmesh,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_auto_feed_dmesh);
+  gtk_table_attach (GTK_TABLE (table52), checkbutton_auto_feed_dmesh, 2, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label161 = gtk_label_new (_("Download\nsettings"));
   gtk_widget_set_name (label161, "label161");
@@ -7228,7 +7250,8 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame69", frame69,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame69);
-  gtk_box_pack_start (GTK_BOX (vbox90), frame69, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox90), frame69, FALSE, TRUE, 0);
+  gtk_widget_set_usize (frame69, -2, 309);
 
   vbox97 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox97, "vbox97");
@@ -7245,6 +7268,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (notebook3);
   gtk_box_pack_start (GTK_BOX (vbox97), notebook3, TRUE, TRUE, 0);
+  gtk_widget_set_usize (notebook3, -2, 157);
 
   scrolledwindow29 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow29, "scrolledwindow29");
@@ -7589,8 +7613,8 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame65", frame65,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame65);
-  gtk_box_pack_start (GTK_BOX (vbox90), frame65, FALSE, TRUE, 0);
-  gtk_widget_set_usize (frame65, -2, 185);
+  gtk_box_pack_start (GTK_BOX (vbox90), frame65, TRUE, TRUE, 0);
+  gtk_widget_set_usize (frame65, -2, 193);
 
   vbox94 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox94, "vbox94");

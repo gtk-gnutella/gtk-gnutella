@@ -1757,6 +1757,22 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
+        PROP_AUTO_FEED_DOWNLOAD_MESH,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_auto_feed_dmesh",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_FUZZY_FILTER_DMESH,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_fuzzy_filter_dmesh",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
         PROP_CONFIGURED_PEERMODE,
         update_multichoice,
         TRUE,
@@ -3812,7 +3828,7 @@ static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
     g_assert(def != NULL);
 
     if (map->cb != IGNORE) {
-        if (gui_debug >= 10)
+        if (gui_debug >= 8)
             printf("settings_gui_config_widget: %s\n", def->name);
 
         /*
@@ -3840,7 +3856,11 @@ static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
 #ifdef USE_GTK2
 			if (!GTK_IS_TREE_VIEW(w))
 #endif
+			{
             	gtk_tooltips_set_tip(tooltips, w, def->desc, "");
+				if (gui_debug >= 9)
+					printf("\t...added tooltip\n");
+			}
 
             /*
              * If the widget is a spinbutton, configure the bounds
@@ -3889,6 +3909,10 @@ static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                     GTK_OBJECT (adj), "value_changed",
                     (GtkSignalFunc) spinbutton_adjustment_value_changed,
                     (gpointer) map);
+
+				if (gui_debug >= 9)
+					printf("\t...adjusted lower=%d, upper=%d\n",
+						adj->lower, adj->upper);
             }
 
             if (top && GTK_IS_TOGGLE_BUTTON(w)) {
@@ -3898,6 +3922,9 @@ static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                     GTK_OBJECT(w), "toggled",
                     (GtkSignalFunc) togglebutton_state_changed,
                     (gpointer) map);
+
+				if (gui_debug >= 9)
+					printf("\t...connected toggle signal\n");
             }
 
             if (top && GTK_IS_COMBO(w)) {
@@ -3906,10 +3933,13 @@ static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                 gtk_combo_init_choices(GTK_COMBO(w),
                     GTK_SIGNAL_FUNC(multichoice_item_selected),
                     def, (gpointer) map);
+
+				if (gui_debug >= 9)
+					printf("\t...connected multichoice signal\n");
             }
         }
-        if (gui_debug >= 10)
-            printf("settings_gui_config_widget: %s [done]\n", def->name);
+        if (gui_debug >= 8)
+            printf("\t...all done for %s.\n", def->name);
 
     }
 }
