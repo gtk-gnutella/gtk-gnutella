@@ -49,6 +49,7 @@
 #include "http.h"
 #include "version.h"
 #include "nodes.h"
+#include "ioheader.h"
 
 #include "settings.h"
 
@@ -57,20 +58,6 @@ gint running_uploads = 0;
 gint registered_uploads = 0;
 
 guint32 count_uploads = 0;
-
-/*
- * This structure is used to encapsulate the various arguments required
- * by the header parsing I/O callback.
- */
-struct io_header {
-	struct upload *upload;
-	header_t *header;
-	getline_t *getline;
-	void (*process_header)(struct io_header *);
-	gint flags;
-};
-
-#define IO_STATUS_LINE		0x00000002	/* First line is a status line */
 
 /*
  * This structure is used for HTTP status printing callbacks.
@@ -155,85 +142,6 @@ void upload_timer(time_t now)
 			upload_remove(u, "Data timeout");
 	}
 	g_slist_free(remove);
-}
-
-/*
- * io_free
- *
- * Free the opaque I/O data.
- */
-static void io_free(gpointer opaque)
-{
-	struct io_header *ih = (struct io_header *) opaque;
-
-	g_assert(ih);
-	g_assert(ih->upload->io_opaque == opaque);
-
-	ih->upload->io_opaque = NULL;
-
-	if (ih->header)
-		header_free(ih->header);
-	if (ih->getline)
-		getline_free(ih->getline);
-
-	g_free(ih);
-}
-
-/*
- * extract_http_version
- *
- * Extract HTTP version major/minor out of the given request, whose string
- * length is `len' bytes.
- *
- * Returns TRUE when we identified the "HTTP/x.x" trailing string, filling
- * major and minor accordingly.
- */
-static gboolean extract_http_version(
-	gchar *request, gint len, gint *major, gint *minor)
-{
-	gint limit;
-	gchar *p;
-	gint i;
-
-	/*
-	 * The smallest request would be "GET / HTTP/1.0".
-	 */
-
-	limit = sizeof("GET / HTTP/1.0") - 1;
-
-	if (len < limit)
-		return FALSE;
-
-	/*
-	 * Scan backwards, until we find the first space with the last trailing
-	 * chars.  If we don't, it can't be an HTTP request.
-	 */
-
-	for (p = request + len - 1, i = 0; i < limit; p--, i++) {
-		gint c = *p;
-
-		if (c == ' ')		/* Not isspace(), looking for space only */
-			break;
-	}
-
-	if (i == limit)
-		return FALSE;		/* Reached our limit without finding a space */
-
-	/*
-	 * Here, `p' point to the space character.
-	 */
-
-	g_assert(*p == ' ');
-
-	if (2 != sscanf(p+1, "HTTP/%d.%d", major, minor))
-		return FALSE;
-
-	/*
-	 * We don't check trailing chars after the HTTP/x.x indication.
-	 * There should not be any, but even if there are, we'll just ignore them.
-	 */
-
-	return TRUE;			/* Parsed HTTP/x.x OK */
 }
 
 /*
@@ -678,6 +586,70 @@ static void upload_error_remove_ext(
 }
 
 /***
+ *** I/O header parsing callbacks.
+ ***/
+
+#define UPLOAD(x)	((struct upload *) (x))
+
+static void err_line_too_long(gpointer obj)
+{
+	upload_error_remove(UPLOAD(obj), NULL, 413, "Header too large");
+}
+
+static void err_header_error_tell(gpointer obj, gint error)
+{
+	send_upload_error(UPLOAD(obj), NULL, 413, header_strerror(error));
+}
+
+static void err_header_error(gpointer obj, gint error)
+{
+	upload_remove(UPLOAD(obj), "Failed (%s)", header_strerror(error));
+}
+
+static void err_input_exception(gpointer obj)
+{
+	upload_remove(UPLOAD(obj), "Failed (Input Exception)");
+}
+
+static void err_input_buffer_full(gpointer obj)
+{
+	upload_error_remove(UPLOAD(obj), NULL, 500, "Input buffer full");
+}
+
+static void err_header_read_error(gpointer obj, gint error)
+{
+	upload_remove(UPLOAD(obj), "Failed (Input error: %s)", g_strerror(error));
+}
+
+static void err_header_read_eof(gpointer obj)
+{
+	upload_remove(UPLOAD(obj), "Failed (EOF)");
+}
+
+static void err_header_extra_data(gpointer obj)
+{
+	upload_error_remove(UPLOAD(obj), NULL, 400, "Extra data after HTTP header");
+}
+
+static struct io_error upload_io_error = {
+	err_line_too_long,
+	err_header_error_tell,
+	err_header_error,
+	err_input_exception,
+	err_input_buffer_full,
+	err_header_read_error,
+	err_header_read_eof,
+	err_header_extra_data,
+};
+
+static void call_upload_request(gpointer obj, header_t *header)
+{
+	upload_request(UPLOAD(obj), header);
+}
+
+#undef UPLOAD
+
+/***
  *** Upload mesh info tracking.
  ***/
 
@@ -833,197 +805,6 @@ static guint32 mi_get_stamp(guint32 ip, guchar *sha1, time_t now)
 	return 0;			/* Don't remember sending info about this file */
 }
 
-/***
- *** Header parsing callbacks
- ***
- *** We could call those directly, but I'm thinking about factoring all
- *** that processing into a generic set of functions, and the processing
- *** callbacks will all have the same signature.  --RAM, 31/12/2001
- ***/
-
-static void call_upload_request(struct io_header *ih)
-{
-	upload_request(ih->upload, ih->header);
-}
-
-/*
- * upload_header_parse
- *
- * This routine is called to parse the input buffer, a line at a time,
- * until EOH is reached.
- */
-static void upload_header_parse(struct io_header *ih)
-{
-	struct upload *u = ih->upload;
-	struct gnutella_socket *s = u->socket;
-	getline_t *getline = ih->getline;
-	header_t *header = ih->header;
-	guint parsed;
-	gint error;
-
-	/*
-	 * Read header a line at a time.  We have exacly s->pos chars to handle.
-	 * NB: we're using a goto label to loop over.
-	 */
-
-nextline:
-	switch (getline_read(getline, s->buffer, s->pos, &parsed)) {
-	case READ_OVERFLOW:
-		g_warning("upload_header_parse: line too long, disconnecting from %s",
-			ip_to_gchar(s->ip));
-		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
-		upload_error_remove(u, NULL, 413, "Header too large");
-		return;
-		/* NOTREACHED */
-	case READ_DONE:
-		if (s->pos != parsed)
-			memmove(s->buffer, s->buffer + parsed, s->pos - parsed);
-		s->pos -= parsed;
-		break;
-	case READ_MORE:		/* ok, but needs more data */
-	default:
-		g_assert(parsed == s->pos);
-		s->pos = 0;
-		return;
-	}
-
-	/*
-	 * We come here everytime we get a full header line.
-	 */
-
-	if (ih->flags & IO_STATUS_LINE) {
-		/*
-		 * Save status line away in socket's "getline" object, then clear
-		 * the fact that we're expecting a status line and continue to get
-		 * the following header lines.
-		 *
-		 * XXX Refactoring note: it's not a status line here, it's the HTTP
-		 * XXX request, which we get from the remote servent through a
-		 * XXX connection we initiated with the GIV string (PUSH reply).
-		 * XXX The flag must be renamed, kept it as-is for now to not add
-		 * XXX futher factoring difficulty.
-		 */
-
-		g_assert(s->getline == 0);
-		s->getline = getline_make();
-
-		getline_copy(getline, s->getline);
-		getline_reset(getline);
-		ih->flags &= ~IO_STATUS_LINE;
-		goto nextline;
-	}
-
-	error = header_append(header,
-		getline_str(getline), getline_length(getline));
-
-	switch (error) {
-	case HEAD_OK:
-		getline_reset(getline);
-		goto nextline;			/* Go process other lines we may have read */
-		/* NOTREACHED */
-	case HEAD_EOH:				/* We reached the end of the header */
-		break;
-	case HEAD_TOO_LARGE:
-	case HEAD_MANY_LINES:
-		send_upload_error(u, NULL, 413, header_strerror(error));
-		/* FALL THROUGH */
-	case HEAD_EOH_REACHED:
-		g_warning("upload_header_parse: %s, disconnecting from %s",
-			header_strerror(error),  ip_to_gchar(s->ip));
-		fprintf(stderr, "------ Header Dump:\n");
-		header_dump(header, stderr);
-		fprintf(stderr, "------\n");
-		dump_hex(stderr, "Header Line", getline_str(getline),
-			MIN(getline_length(getline), 128));
-		upload_remove(u, "Failed (%s)", header_strerror(error));
-		return;
-		/* NOTREACHED */
-	default:					/* Error, but try to continue */
-		g_warning("upload_header_parse: %s, from %s",
-			header_strerror(error), ip_to_gchar(s->ip));
-		dump_hex(stderr, "Header Line",
-			getline_str(getline), getline_length(getline));
-		getline_reset(getline);
-		goto nextline;			/* Go process other lines we may have read */
-	}
-
-	/*
-	 * We reached the end of headers.  Make sure there's no more data.
-	 */
-
-	if (s->pos) {
-		g_warning("remote %s sent extra bytes after HTTP headers",
-			ip_to_gchar(s->ip));
-		dump_hex(stderr, "Extra Data", s->buffer, MIN(s->pos, 256));
-		upload_remove(u, "Failed (Extra HTTP header data)");
-		return;
-	}
-
-	/*
-	 * OK, we got the whole headers.
-	 *
-	 * Free up the I/O callback structure, remove the input callback and
-	 * initialize the upload.  NB: the initial HTTP request on the first
-	 * line is still held in the s->getline structure.
-	 */
-
-	gdk_input_remove(s->gdk_tag);
-	s->gdk_tag = 0;
-
-	ih->process_header(ih);
-}
-
-/*
- * upload_header_read
- *
- * This routine is installed as an input callback to read the HTTP headers
- * of the request.
- */
-static void upload_header_read(
-	gpointer data, gint source, GdkInputCondition cond)
-{
-	struct io_header *ih = (struct io_header *) data;
-	struct upload *u = ih->upload;
-	struct gnutella_socket *s = u->socket;
-	guint count;
-	gint r;
-
-	if (cond & GDK_INPUT_EXCEPTION) {
-		upload_remove(u, "Failed (Input Exception)");
-		return;
-	}
-
-	count = sizeof(s->buffer) - s->pos - 1;		/* -1 to allow trailing NUL */
-	if (count <= 0) {
-		g_warning("upload_header_read: incoming buffer full, "
-			"disconnecting from %s", ip_to_gchar(s->ip));
-		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
-		upload_remove(u, "Failed (Input buffer full)");
-		return;
-	}
-
-	r = bws_read(bws.in, s->file_desc, s->buffer + s->pos, count);
-	if (r == 0) {
-		upload_remove(u, "Failed (EOF)");
-		return;
-	} else if (r < 0 && errno == EAGAIN)
-		return;
-	else if (r < 0) {
-		upload_remove(u, "Failed (Input error: %s)", g_strerror(errno));
-		return;
-	}
-
-	/*
-	 * During the header reading phase, we don't update "u->last_update"
-	 * on purpose.  The timeout is defined for the whole connection phase,
-	 * i.e. until we read the end of the headers.
-	 */
-
-	s->pos += r;
-
-	upload_header_parse(ih);
-}
-
 /*
  * upload_add
  *
@@ -1032,36 +813,17 @@ static void upload_header_read(
 void upload_add(struct gnutella_socket *s)
 {
 	struct upload *u;
-	struct io_header *ih;
 
 	s->type = SOCK_TYPE_UPLOAD;
 
 	u = upload_create(s, FALSE);
 
 	/*
-	 * Prepare callback argument used during the header reading phase.
+	 * Read HTTP headers fully, then call upload_request() when done.
 	 */
 
-	ih = (struct io_header *) g_malloc(sizeof(struct io_header));
-	ih->upload = u;
-	ih->header = header_make();
-	ih->getline = getline_make();
-	ih->flags = 0;
-	ih->process_header = call_upload_request;
-	u->io_opaque = (gpointer) ih;
-
-	g_assert(s->gdk_tag == 0);
-
-	s->gdk_tag = gdk_input_add(s->file_desc,
-		(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-		upload_header_read, (gpointer) ih);
-
-	/*
-	 * There may be pending input in the socket buffer, so go handle
-	 * it immediately.
-	 */
-
-	upload_header_parse(ih);
+	io_get_header(u, &u->io_opaque, bws.in, s, IO_HEAD_ONLY,
+		call_upload_request, NULL, &upload_io_error);
 }
 
 /*
@@ -1073,34 +835,20 @@ void upload_add(struct gnutella_socket *s)
 static void expect_http_header(struct upload *u)
 {
 	struct gnutella_socket *s = u->socket;
-	struct io_header *ih;
 
 	g_assert(s->resource.upload == u);
 	g_assert(s->getline == NULL);
 	g_assert(u->io_opaque == NULL);
 
 	/*
-	 * Prepare callback argument used during the header reading phase.
-	 *
 	 * We're requesting the reading of a "status line", which will be the
 	 * HTTP request.  It will be stored in a created s->getline entry.
 	 * Once we're done, we'll end-up in upload_request(): the path joins
 	 * with the one used for direct uploading.
 	 */
 
-	ih = (struct io_header *) g_malloc(sizeof(struct io_header));
-	ih->upload = u;
-	ih->header = header_make();
-	ih->getline = getline_make();
-	ih->flags = IO_STATUS_LINE;		/* XXX will be really the HTTP request */
-	ih->process_header = call_upload_request;
-	u->io_opaque = (gpointer) ih;
-
-	g_assert(s->gdk_tag == 0);
-
-	s->gdk_tag = gdk_input_add(s->file_desc,
-		(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-		upload_header_read, (gpointer) ih);
+	io_get_header(u, &u->io_opaque, bws.in, s, IO_SAVE_FIRST,
+		call_upload_request, NULL, &upload_io_error);
 }
 
 /*
@@ -1192,7 +940,7 @@ static gboolean upload_request_is_ok(
 	 */
 
 	if (
-		!extract_http_version(request, getline_length(s->getline),
+		!http_extract_version(request, getline_length(s->getline),
 			&http_major, &http_minor)
 	) {
 		upload_error_remove(u, NULL, 500, "Unknown/Missing Protocol Tag");

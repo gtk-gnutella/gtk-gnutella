@@ -42,6 +42,7 @@
 #include "http.h"
 #include "version.h"
 #include "ignore.h"
+#include "ioheader.h"
 
 #include "settings.h"
 #include "nodes.h"
@@ -116,21 +117,6 @@ static gint dl_active = 0;				/* Active downloads */
 
 #define count_running_downloads()	(dl_establishing + dl_active)
 #define count_running_on_server(s)	(s->count[DL_LIST_RUNNING])
-
-/*
- * This structure is used to encapsulate the various arguments required
- * by the header parsing I/O callback.
- */
-struct io_header {
-	struct download *download;
-	header_t *header;
-	getline_t *getline;
-	void (*process_header)(struct io_header *);
-	gint flags;
-};
-
-#define IO_STATUS_LINE		0x00000002	/* First line is a status line */
-#define IO_ONE_LINE			0x00000004	/* Get one line only, then process */
 
 /* ----------------------------------------- */
 
@@ -212,45 +198,6 @@ static gint dl_server_retry_cmp(gconstpointer a, gconstpointer b)
 		return 0;
 
 	return as->retry_after < bs->retry_after ? -1 : +1;
-}
-
-/* ----------------------------------------- */
-
-/*
- * io_free
- *
- * Free the opaque I/O data.
- */
-static void io_free(gpointer opaque)
-{
-	struct io_header *ih = (struct io_header *) opaque;
-
-	g_assert(ih);
-	g_assert(ih->download->io_opaque == opaque);
-
-	ih->download->io_opaque = NULL;
-
-	if (ih->header)
-		header_free(ih->header);
-	if (ih->getline)
-		getline_free(ih->getline);
-
-	g_free(ih);
-}
-
-/*
- * io_header
- *
- * Fetch header structure from opaque I/O data.
- */
-static header_t *io_header(gpointer opaque)
-{
-	struct io_header *ih = (struct io_header *) opaque;
-
-	g_assert(ih);
-	g_assert(ih->download->io_opaque == opaque);
-
-	return ih->header;
 }
 
 /* ----------------------------------------- */
@@ -2848,246 +2795,122 @@ static gboolean send_push_request(gchar *guid, guint32 file_id, guint16 port)
 }
 
 /***
- *** Header parsing callbacks
- ***
- *** We could call those directly, but I'm thinking about factoring all
- *** that processing into a generic set of functions, and the processing
- *** callbacks will all have the same signature.  --RAM, 30/12/2001
+ *** I/O header parsing callbacks
  ***/
 
-static void call_download_request(struct io_header *ih)
+#define DOWNLOAD(x)		((struct download *) (x))
+
+static void err_line_too_long(gpointer o)
 {
-	download_request(ih->download, ih->header, TRUE);
+	download_stop(DOWNLOAD(o), GTA_DL_ERROR, "Failed (Header line too large)");
 }
 
-static void call_download_push_ready(struct io_header *ih)
+static void err_header_error(gpointer o, gint error)
 {
-	download_push_ready(ih->download, ih->getline);
+	download_stop(DOWNLOAD(o), GTA_DL_ERROR,
+		"Failed (%s)", header_strerror(error));
 }
 
-/***
- *** Read data on a download socket
- ***/
-
-/*
- * download_header_parse
- *
- * This routine is called to parse the input buffer, a line at a time,
- * until EOH is reached.
- */
-static void download_header_parse(struct io_header *ih)
+static void err_input_exception(gpointer o)
 {
-	struct download *d = ih->download;
-	struct gnutella_socket *s = d->socket;
-	getline_t *getline = ih->getline;
-	header_t *header = ih->header;
-	guint parsed;
-	gint error;
-
-	/*
-	 * Read header a line at a time.  We have exacly s->pos chars to handle.
-	 * NB: we're using a goto label to loop over.
-	 */
-
-nextline:
-	switch (getline_read(getline, s->buffer, s->pos, &parsed)) {
-	case READ_OVERFLOW:
-		g_warning("download_header_parse: line too long, disconnecting from %s",
-			ip_to_gchar(s->ip));
-		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
-		fprintf(stderr, "------ Header Dump:\n");
-		header_dump(header, stderr);
-		fprintf(stderr, "------\n");
-		download_stop(d, GTA_DL_ERROR, "Failed (Header line too large)");
-		return;
-		/* NOTREACHED */
-	case READ_DONE:
-		if (s->pos != parsed)
-			memmove(s->buffer, s->buffer + parsed, s->pos - parsed);
-		s->pos -= parsed;
-		break;
-	case READ_MORE:		/* ok, but needs more data */
-	default:
-		g_assert(parsed == s->pos);
-		s->pos = 0;
-		return;
-	}
-
-	/*
-	 * We come here everytime we get a full header line.
-	 */
-
-	if (ih->flags & IO_STATUS_LINE) {
-		/*
-		 * Save status line away in socket's "getline" object, then clear
-		 * the fact that we're expecting a status line and continue to get
-		 * the following header lines.
-		 */
-
-		g_assert(s->getline == 0);
-		s->getline = getline_make();
-
-		getline_copy(getline, s->getline);
-		getline_reset(getline);
-		ih->flags &= ~IO_STATUS_LINE;
-		goto nextline;
-	}
-
-	if (ih->flags & IO_ONE_LINE) {
-		/*
-		 * Call processing routine immediately, then terminate processing.
-		 * It is up to the callback to cleanup the I/O structure.
-		 */
-
-		gdk_input_remove(s->gdk_tag);
-		s->gdk_tag = 0;
-
-		ih->process_header(ih);
-		return;
-	}
-
-	error = header_append(header,
-		getline_str(getline), getline_length(getline));
-
-	switch (error) {
-	case HEAD_OK:
-		getline_reset(getline);
-		goto nextline;			/* Go process other lines we may have read */
-		/* NOTREACHED */
-	case HEAD_EOH:				/* We reached the end of the header */
-		break;
-	case HEAD_TOO_LARGE:
-	case HEAD_MANY_LINES:
-	case HEAD_EOH_REACHED:
-		g_warning("download_header_parse: %s, disconnecting from %s",
-			header_strerror(error),	ip_to_gchar(s->ip));
-		fprintf(stderr, "------ Header Dump:\n");
-		header_dump(header, stderr);
-		fprintf(stderr, "------\n");
-		dump_hex(stderr, "Header Line", getline_str(getline),
-			MIN(getline_length(getline), 128));
-		download_stop(d, GTA_DL_ERROR, "Failed (%s)", header_strerror(error));
-		return;
-		/* NOTREACHED */
-	default:					/* Error, but try to continue */
-		g_warning("download_header_parse: %s, from %s",
-			header_strerror(error), ip_to_gchar(s->ip));
-		dump_hex(stderr, "Header Line",
-			getline_str(getline), getline_length(getline));
-		getline_reset(getline);
-		goto nextline;			/* Go process other lines we may have read */
-	}
-
-	/*
-	 * We reached the end of headers.  Downloaded data should follow.
-	 * Remove the I/O callback input before invoking the processing callback.
-	 */
-
-	gdk_input_remove(s->gdk_tag);
-	s->gdk_tag = 0;
-
-	ih->process_header(ih);
+	download_stop(DOWNLOAD(o), GTA_DL_ERROR, "Failed (Input Exception)");
 }
 
-/*
- * download_header_read
- *
- * This routine is installed as an input callback to read the HTTP headers
- * of the request.
- */
-static void download_header_read(
-	gpointer data, gint source, GdkInputCondition cond)
+static void err_input_buffer_full(gpointer o)
 {
-	struct io_header *ih = (struct io_header *) data;
-	struct download *d = ih->download;
-	struct gnutella_socket *s = d->socket;
-	guint count;
-	gint r;
+	download_stop(DOWNLOAD(o), GTA_DL_ERROR, "Failed (Input buffer full)");
+}
 
-	if (cond & GDK_INPUT_EXCEPTION) {
-		download_stop(d, GTA_DL_ERROR, "Failed (Input Exception)");
-		return;
-	}
+static void err_header_read_error(gpointer o, gint error)
+{
+	struct download *d = DOWNLOAD(o);
 
-	/*
-	 * Update status and GUI.
-	 */
-
-	if (d->status != GTA_DL_HEADERS) {
-		d->status = GTA_DL_HEADERS;
-		d->last_update = time((time_t *) 0);	/* Starting reading */
-		gui_update_download(d, TRUE);
-	}
-
-	count = sizeof(s->buffer) - s->pos - 1;		/* -1 to allow trailing NUL */
-	if (count <= 0) {
-		g_warning("download_header_read: incoming buffer full, "
-			"disconnecting from %s", ip_to_gchar(s->ip));
-		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
-		download_stop(d, GTA_DL_ERROR, "Failed (Input buffer full)");
-		return;
-	}
-
-	r = bws_read(bws.in, s->file_desc, s->buffer + s->pos, count);
-	if (r == 0) {
-		if (header_lines(ih->header) == 0) {
-			/*
-			 * If the connection was flagged keep-alive, we were making
-			 * a follow-up request but the server did not honour it and
-			 * closed the connection (probably after serving the last byte
-			 * of the previous request).
-			 *		--RAM, 01/09/2002
-			 */
-
-			if (d->keep_alive)
-				d->server->attrs |= DLS_A_NO_KEEPALIVE;
-
-			/*
-			 * If we did not read anything in the header at that point, and
-			 * we sent a /uri-res request, maybe the remote server does not
-			 * support it and closed the connection abruptly.
-			 *		--RAM, 20/06/2002
-			 */
-
-			if (download_retry_no_urires(d, 0, 0))
-				return;
-		}
-
+	if (error == ECONNRESET) {
 		if (d->retries++ < download_max_retries)
 			download_queue_delay(d, download_retry_stopped_delay,
-				d->keep_alive ? "Connection not kept-alive (EOF)" :
-				"Stopped (EOF)");
+				"Stopped (%s)", g_strerror(error));
 		else
-			goto too_many_retries;
-		return;
-	} else if (r < 0 && errno == EAGAIN)
-		return;
-	else if (r < 0) {
-		if (errno == ECONNRESET) {
-			if (d->retries++ < download_max_retries)
-				download_queue_delay(d, download_retry_stopped_delay,
-					"Stopped (%s)", g_strerror(errno));
-			else
-				goto too_many_retries;
-		} else
-			download_stop(d, GTA_DL_ERROR, "Failed (Read error: %s)",
-				g_strerror(errno));
-		return;
+			download_stop(d, GTA_DL_ERROR,
+				"Too many attempts (%d)", d->retries - 1);
+	} else
+		download_stop(d, GTA_DL_ERROR, "Failed (Read error: %s)",
+			g_strerror(error));
+}
+
+static void err_header_read_eof(gpointer o)
+{
+	struct download *d = DOWNLOAD(o);
+	header_t *header = io_header(d->io_opaque);
+
+	if (header_lines(header) == 0) {
+		/*
+		 * If the connection was flagged keep-alive, we were making
+		 * a follow-up request but the server did not honour it and
+		 * closed the connection (probably after serving the last byte
+		 * of the previous request).
+		 *		--RAM, 01/09/2002
+		 */
+
+		if (d->keep_alive)
+			d->server->attrs |= DLS_A_NO_KEEPALIVE;
+
+		/*
+		 * If we did not read anything in the header at that point, and
+		 * we sent a /uri-res request, maybe the remote server does not
+		 * support it and closed the connection abruptly.
+		 *		--RAM, 20/06/2002
+		 */
+
+		if (download_retry_no_urires(d, 0, 0))
+			return;
 	}
 
+	if (d->retries++ < download_max_retries)
+		download_queue_delay(d, download_retry_stopped_delay,
+			d->keep_alive ? "Connection not kept-alive (EOF)" :
+			"Stopped (EOF)");
+	else
+		download_stop(d, GTA_DL_ERROR,
+			"Too many attempts (%d)", d->retries - 1);
+}
+
+static struct io_error download_io_error = {
+	err_line_too_long,
+	NULL,
+	err_header_error,
+	err_input_exception,
+	err_input_buffer_full,
+	err_header_read_error,
+	err_header_read_eof,
+	NULL,
+};
+
+static void download_start_reading(gpointer o)
+{
+	struct download *d = DOWNLOAD(o);
+
 	/*
-	 * During the header reading phase, we don't update "d->last_update".
-	 * That way, timeout is measured from when we first started to read them.
+	 * Update status and GUI, timestamp start of header reading.
 	 */
 
-	s->pos += r;
-
-	download_header_parse(ih);
-	return;
-
-too_many_retries:
-	download_stop(d, GTA_DL_ERROR, "Too many attempts (%d)", d->retries - 1);
+	d->status = GTA_DL_HEADERS;
+	d->last_update = time((time_t *) 0);	/* Starting reading */
+	gui_update_download(d, TRUE);
 }
+
+static void call_download_request(gpointer o, header_t *header)
+{
+	download_request(DOWNLOAD(o), header, TRUE);
+}
+
+static void call_download_push_ready(gpointer o, header_t *header)
+{
+	struct download *d = DOWNLOAD(o);
+
+	download_push_ready(d, io_getline(d->io_opaque));
+}
+
+#undef DOWNLOAD
 
 /*
  * download_overlap_check
@@ -3261,7 +3084,7 @@ static void download_write_data(struct download *d)
 	 */
 
 	if (d->pos + s->pos > d->range_end) {
-		gint extra = d->range_end - (d->pos + s->pos);
+		gint extra = (d->pos + s->pos) - d->range_end;
 		g_warning("server %s gave us %d more byte%s than requested for \"%s\"",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			extra, extra == 1 ? "" : "s", download_outname(d));
@@ -4187,7 +4010,6 @@ static void download_read(gpointer data, gint source, GdkInputCondition cond)
 void download_send_request(struct download *d)
 {
 	struct gnutella_socket *s = d->socket;
-	struct io_header *ih;
 	gint rw;
 	gint sent;
 	gboolean n2r = FALSE;
@@ -4359,7 +4181,7 @@ void download_send_request(struct download *d)
 	 * Send the HTTP Request
 	 */
 
-	if (-1 == (sent = bws_write(bws.out, d->socket->file_desc, dl_tmp, rw))) {
+	if (-1 == (sent = bws_write(bws.out, s->file_desc, dl_tmp, rw))) {
 		/*
 		 * If the connection was flagged keep-alive, we were making
 		 * a follow-up request but the server did not honour it and
@@ -4409,21 +4231,8 @@ void download_send_request(struct download *d)
 
 	g_assert(d->io_opaque == NULL);
 
-	ih = (struct io_header *) g_malloc(sizeof(struct io_header));
-	ih->download = d;
-	ih->header = header_make();
-	ih->getline = getline_make();
-	ih->flags = IO_STATUS_LINE;		/* First line will be a status line */
-	ih->process_header = call_download_request;
-	d->io_opaque = (gpointer) ih;
-
-	g_assert(s->gdk_tag == 0);
-
-	s->gdk_tag = gdk_input_add(s->file_desc,
-		GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-		download_header_read, (gpointer) ih);
-
-	return;
+	io_get_header(d, &d->io_opaque, bws.in, s, IO_SAVE_FIRST,
+		call_download_request, download_start_reading, &download_io_error);
 }
 
 /*
@@ -4630,7 +4439,6 @@ void download_push_ack(struct gnutella_socket *s)
 	gchar *giv;
 	guint file_index;		/* The requested file index */
 	gchar hex_guid[33];		/* The hexadecimal GUID */
-	struct io_header *ih;
 
 	g_assert(s->getline);
 
@@ -4680,21 +4488,8 @@ void download_push_ack(struct gnutella_socket *s)
 	 * Now we have to read that trailing "\n" which comes right afterwards.
 	 */
 
-	ih = (struct io_header *) g_malloc(sizeof(struct io_header));
-	ih->download = d;
-	ih->header = NULL;				/* Won't be needed, we read one line */
-	ih->getline = getline_make();
-	ih->flags = IO_ONE_LINE;		/* Process one line (will be empty) */
-	ih->process_header = call_download_push_ready;
-	d->io_opaque = ih;
-
-	g_assert(s->gdk_tag == 0);
-
-	s->gdk_tag = gdk_input_add(s->file_desc,
-		GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-		download_header_read, (gpointer) ih);
-
-	download_header_parse(ih);		/* Data might already be there */
+	io_get_header(d, &d->io_opaque, bws.in, s, IO_SINGLE_LINE,
+		call_download_push_ready, NULL, &download_io_error);
 }
 
 void download_retry(struct download *d)

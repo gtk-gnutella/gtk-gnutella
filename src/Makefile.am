@@ -123,6 +123,7 @@ gtk_gnutella_SOURCES = \
 	matching.c matching.h \
 	getline.c getline.h \
 	header.c header.h \
+	ioheader.c ioheader.h \
 	url.c url.h \
 	pmsg.c pmsg.h \
 	gmsg.c gmsg.h \
