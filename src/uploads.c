@@ -1234,6 +1234,8 @@ static struct shared_file *get_file_to_upload_from_index(
 		 */
 
 		if (sf && sha1_hash_available(sf)) {
+			if (!sha1_hash_is_uptodate(sf))
+				goto sha1_recomputed;
 			if (sha1_eq(digest, sf->sha1_digest))
 				goto found;
 		}
@@ -1252,6 +1254,9 @@ static struct shared_file *get_file_to_upload_from_index(
 		if (sfn && sf != sfn) {
 			gchar location[1024];
 			gchar *escaped;
+
+			if (!sha1_hash_is_uptodate(sfn))
+				goto sha1_recomputed;
 
 			/*
 			 * Be nice to pushed downloads: returning a 301 currently means
@@ -1288,10 +1293,9 @@ static struct shared_file *get_file_to_upload_from_index(
 			if (escaped != sfn->file_name)
 				g_free(escaped);
 			return NULL;
-		} else if (sf == NULL) {
-			upload_error_remove(u, NULL, 404, "URN Not Found (urn:sha1)");
-			return NULL;
 		}
+		else if (sf == NULL)
+			goto urn_not_found;
 
 		/* FALL THROUGH */
 	}
@@ -1355,6 +1359,14 @@ found:
 	if (p) *p = ' ';			/* Restore patched space */
 
 	return sf;
+
+urn_not_found:
+	upload_error_remove(u, NULL, 404, "URN Not Found (urn:sha1)");
+	return NULL;
+
+sha1_recomputed:
+	upload_error_remove(u, NULL, 503, "SHA1 is being recomputed");
+	return NULL;
 }
 
 static const char n2r_query[] = "/uri-res/N2R?";
@@ -1604,7 +1616,7 @@ static void upload_http_status(gchar *buf, gint *retval, gpointer arg)
 	 * Propagate the SHA1 information for the file, if we have it.
 	 */
 
-	if (sha1_hash_available(a->sf)) {
+	if (sha1_hash_is_uptodate(a->sf)) {
 		gint remain = length - rw;
 
 		if (remain > 0) {

@@ -654,7 +654,7 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 				found->file_size = file_stat.st_size;
 				found->file_index = ++files_scanned;
 				found->mtime = file_stat.st_mtime;
-				found->has_sha1_digest = FALSE;
+				found->flags = 0;
 				request_sha1(found);
 
 				st_insert_item(&search_table, found->file_name, found);
@@ -810,7 +810,6 @@ void share_scan(void)
 
 	gui_update_files_scanned();		/* Final view */
 
-#if 0		// XXX not ready yet
 	/*
 	 * Query routing table update.
 	 */
@@ -825,7 +824,6 @@ void share_scan(void)
 	}
 
 	qrp_finalize_computation();
-#endif
 
 	in_share_scan = FALSE;
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);
@@ -928,7 +926,10 @@ static gboolean got_match(struct shared_file *sf)
 {
 	guint32 pos = FOUND_SIZE;
 	guint32 needed = 8 + 2 + sf->file_name_len;		/* size of hit entry */
-	gboolean sha1_available = sf->has_sha1_digest;
+	gboolean sha1_available;
+
+	sha1_available = SHARE_F_HAS_DIGEST ==
+		(sf->flags & (SHARE_F_HAS_DIGEST | SHARE_F_RECOMPUTING));
 	
 	/*
 	 * We don't stop adding records if we refused this one, hence the TRUE
@@ -1641,8 +1642,17 @@ static void reinit_sha1_table()
 
 void set_sha1(struct shared_file *f, const char *sha1)
 {
+	/*
+	 * If we were recomputing the SHA1, remove the old version.
+	 */
+
+	if (f->flags & SHARE_F_RECOMPUTING) {
+		f->flags &= ~SHARE_F_RECOMPUTING;
+		g_tree_remove(sha1_to_share, f->sha1_digest);
+	}
+
 	memcpy(f->sha1_digest, sha1, SHA1_RAW_SIZE);
-	f->has_sha1_digest = TRUE;
+	f->flags |= SHARE_F_HAS_DIGEST;
 	g_tree_insert(sha1_to_share, f->sha1_digest, f);
 }
 
@@ -1651,11 +1661,59 @@ void set_sha1(struct shared_file *f, const char *sha1)
  * 
  * Predicate returning TRUE if the SHA1 hash is available for a given
  * shared_file, FALSE otherwise.
+ *
+ * Use sha1_hash_is_uptodate() to check for availability and accurateness.
  */
 
 gboolean sha1_hash_available(const struct shared_file *sf)
 {
-	return sf->has_sha1_digest;
+	return SHARE_F_HAS_DIGEST ==
+		(sf->flags & (SHARE_F_HAS_DIGEST | SHARE_F_RECOMPUTING));
+}
+
+/*
+ * sha1_hash_is_uptodate
+ *
+ * Predicate returning TRUE if the SHA1 hash is available AND is up to date
+ * for the shared file.
+ *
+ * NB: if the file is found to have changed, the background computation of
+ * the SHA1 is requested.
+ */
+gboolean sha1_hash_is_uptodate(struct shared_file *sf)
+{
+	struct stat buf;
+
+	if (!(sf->flags & SHARE_F_HAS_DIGEST))
+		return FALSE;
+
+	if (sf->flags & SHARE_F_RECOMPUTING)
+		return FALSE;
+
+	if (-1 == stat(sf->file_path, &buf)) {
+		g_warning("can't stat shared file #%d \"%s\": %s",
+			sf->file_index, sf->file_path, g_strerror(errno));
+		g_tree_remove(sha1_to_share, sf->sha1_digest);
+		sf->flags &= ~SHARE_F_HAS_DIGEST;
+		return FALSE;
+	}
+
+	/*
+	 * If file was modified since the last time we computed the SHA1,
+	 * recompute it and tell them that the SHA1 we have might not be
+	 * accurate.
+	 */
+
+	if (sf->mtime != buf.st_mtime) {
+		g_warning("shared file #%d \"%s\" changed, recomputing SHA1",
+			sf->file_index, sf->file_path);
+		sf->flags |= SHARE_F_RECOMPUTING;
+		sf->mtime = buf.st_mtime;
+		request_sha1(sf);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 /* 

@@ -467,6 +467,7 @@ static void put_sha1_back_into_share_library(
 	const char *digest)
 {
 	struct sha1_cache_entry *cached_sha1;
+	struct stat buf;
 
 	g_assert(sf != SHARE_REBUILDING);
 
@@ -482,10 +483,26 @@ static void put_sha1_back_into_share_library(
 		 * (that is, "rescan dir" was called)
 		 */
 
-		if (dbg > 1)
-			printf("SHA1: name of file #%d changed from %s to %s (reload ?): "
-				"discarding\n", sf->file_index, file_name, sf->file_path);
+		g_warning("name of file #%d changed from \"%s\" to \"%s\" (rescan?): "
+				"discarding SHA1", sf->file_index, file_name, sf->file_path);
+		return;
+	}
 
+	/*
+	 * Make sure the file's timestamp is still accurate.
+	 */
+
+	if (-1 == stat(sf->file_path, &buf)) {
+		g_warning("discarding SHA1 for file #%d \"%s\": can't stat(): %s",
+			sf->file_index, sf->file_path, g_strerror(errno));
+		return;
+	}
+
+	if (buf.st_mtime != sf->mtime) {
+		g_warning("file #%d \"%s\" was modified whilst SHA1 was computed",
+			sf->file_index, sf->file_path);
+		sf->mtime = buf.st_mtime;
+		request_sha1(sf);					/* Retry! */
 		return;
 	}
 

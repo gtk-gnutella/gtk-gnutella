@@ -42,11 +42,18 @@ typedef struct shared_file {
 	gchar *file_name;		/* Pointer within file_path at start of filename */
 	guint32 file_index;		/* the files index within our local DB */
 	guint32 file_size;		/* File size in Bytes */
+	guint32 flags;			/* See below for definition */
 	gint file_name_len;
 	time_t mtime;			/* Last modification time, for SHA1 computation */
 	gchar sha1_digest[SHA1_RAW_SIZE];	/* SHA1 digest, binary form */
-	gboolean has_sha1_digest;				/* True when digest is set */
 } shared_file_t;
+
+/*
+ * shared_file flags
+ */
+
+#define SHARE_F_HAS_DIGEST	0x00000001		/* Digest is set */
+#define SHARE_F_RECOMPUTING	0x00000002		/* Digest being recomputed */
 
 struct gnutella_search_results_out {
 	guchar num_recs;
@@ -91,5 +98,6 @@ gint get_file_size(gint);
 void set_sha1(struct shared_file *, const gchar *sha1_digest);
 struct shared_file *shared_file_by_sha1(const gchar *sha1_digest);
 gboolean sha1_hash_available(const struct shared_file *);
+gboolean sha1_hash_is_uptodate(struct shared_file *sf);
 
 #endif /* __share_h__ */
