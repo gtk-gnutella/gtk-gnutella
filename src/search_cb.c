@@ -28,15 +28,12 @@
 #include <gtk/gtk.h>
 #include "search_cb.h"
 #include "search_gui.h"
-#include "search.h" // FIXME: remove this dependency
+#include "gnet.h"
 
-void on_search_popdown_switch(GtkWidget * w, gpointer data)
+void on_search_popdown_switch(GtkWidget *w, gpointer data)
 {
-	search_t *sch = search_selected;
-	if (!sch)
-		return;
-
-	search_gui_set_current_search(sch);
+	if (search_selected != NULL)
+        search_gui_set_current_search(search_selected);
 }
 
 void on_search_notebook_switch(GtkNotebook * notebook,
@@ -68,4 +65,9 @@ void on_clist_search_select_row(GtkCList * clist, gint row,
         return;
 
     search_gui_set_current_search((search_t *)sch);
+}
+
+void on_search_selected(GtkItem * i, gpointer data)
+{
+	search_selected = (search_t *) data;
 }

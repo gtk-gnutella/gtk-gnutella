@@ -120,7 +120,6 @@ void on_clist_search_results_unselect_row(GtkCList * clist, gint row, gint colum
 void on_entry_search_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_search_changed (GtkEditable *editable, gpointer user_data);
 void on_entry_search_reissue_timeout_activate (GtkEditable *editable, gpointer user_data);
-void on_search_selected(GtkItem * i, gpointer data);
 void on_combo_entry_searches_activate(GtkEditable *editable, gpointer user_data);
 
 
