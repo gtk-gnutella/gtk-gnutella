@@ -532,8 +532,8 @@ void main_gui_init(void)
     search_gui_init();
     filter_update_targets(); /* Make sure the default filters are ok */
     monitor_gui_init();
-
-   	gui_update_all();
+	gui_update_files_scanned();
+    gui_update_stats_frames();
 }
 
 void main_gui_run(void)
@@ -541,7 +541,7 @@ void main_gui_run(void)
     guint32 coord[4] = { 0, 0, 0, 0 };
 
     gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
-    gui_update_global();
+    main_gui_timer();
     gtk_widget_show(main_window);		/* Display the main window */
     
     /*
@@ -658,9 +658,23 @@ void main_gui_update_coords(void)
     gui_prop_set_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
 }
 
+/**
+ * Main gui timer. This is called once a second.
+ */
 void main_gui_timer(void)
 {
-    gui_update_global();
+	time_t now = time((time_t *) NULL);
+
+    gui_general_timer(now);
+
+    hcache_gui_update(now);
+    gnet_stats_gui_update(now);
+    search_stats_gui_update(now);
+    nodes_gui_update_nodes_display(now);
+    uploads_gui_update_display(now);
+    statusbar_gui_clear_timeouts(now);
+    search_gui_flush(now);
+
     gui_update_traffic_stats();
     filter_timer();					/* Update the filter stats */
 }
