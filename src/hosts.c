@@ -318,7 +318,7 @@ gboolean check_valid_host(guint32 ip, guint16 port)
 	if (ip == (guint32) 0x01020304 || ip == (guint32) 0x01010101)
 		return FALSE;			/* IP == 1.2.3.4 || IP == 1.1.1.1 */
 	if ((ip & (guint32) 0xF0000000) == (guint32) 0xE0000000)
-		return FALSE;			/* IP == 224..239.0.0.0 / 8 (multicast) */
+		return FALSE;			/* IP == 224..239.0.0 / 8 (multicast) */
 	if ((ip & (guint32) 0xFF000000) == (guint32) 0x00000000)
 		return FALSE;			/* IP == 0.0.0.0 / 8 */
 	if ((ip & (guint32) 0xFF000000) == (guint32) 0x7F000000)
