@@ -35,7 +35,11 @@
 
 #ifdef HAVE_SYS_SENDFILE_H
 #include <sys/sendfile.h>
+#else	/* !HAVE_SYS_SENDFILE_H */
+#ifdef HAVE_SENDFILE
+#define USE_BSD_SENDFILE		/* No <sys/sendfile.h>, assume BSD version */
 #endif
+#endif	/* HAVE_SYS_SENDFILE_H */
 
 #include "bsched.h"
 
@@ -852,6 +856,7 @@ gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 
 	g_assert(bio);
 	g_assert(bio->flags & BIO_F_WRITE);
+	g_assert(len > 0);
 
 	/* 
 	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN 
@@ -872,7 +877,38 @@ gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 			bio->fd, len, available);
 
 	bio->flags |= BIO_F_ACTIVE;
+
+#ifdef USE_BSD_SENDFILE
+	/*
+	 * The BSD semantics for sendfile() differ from the Linux one:
+	 *
+	 * . BSD sendfile() returns 0 on succes, -1 on failure.
+	 * . BSD sendfile() returns the amount of written bytes via a parameter
+	 *   when EAGAIN.
+	 * . BSD sendfile() does not update the offset inplace.
+	 *
+	 * Emulate the Linux semantics: set `r' to the amount of bytes written,
+	 * and update the `offset' variable.
+	 */
+
+	{
+		off_t start = *offset;
+		off_t written;
+
+		r = sendfile(bio->fd, in_fd, start, amount, NULL, &written, 0);
+
+		if (r == -1) {
+			if (errno == EAGAIN)
+				r = (gint) written;
+		} else
+			r = amount;			/* Everything written, but returns 0 if OK */
+
+		if (r > 0)
+			*offset = start + r;
+	}
+#else	/* !USE_BSD_SENDFILE */
 	r = sendfile(bio->fd, in_fd, offset, amount);
+#endif	/* USE_BSD_SENDFILE */
 
 	if (r > 0) {
 		bsched_bw_update(bio->bs, r);
