@@ -144,6 +144,16 @@ gchar *date_to_rfc1123_gchar(time_t date);
 gchar *short_time(time_t s);
 gchar *short_uptime(time_t s);
 
+/* Use a macro so that's possible to not use difftime where it's not
+ * necessary because time_t is flat encoded
+ */
+/* XXX: Hardcoded to difftime because there's no Configure check yet */
+#if 1 || defined(USE_DIFFTIME)
+#define delta_time(a, b) ((gint64) difftime((a), (b)))
+#else
+#define ((gint64) ((a) - (b)))
+#endif
+
 /*
  * Size string conversions
  */
