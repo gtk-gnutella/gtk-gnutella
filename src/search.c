@@ -1119,6 +1119,7 @@ static struct results_set *get_results_set(
 	rs->refcount = 0;
 	rs->records = NULL;
 	rs->guid = NULL;
+    rs->status = 0;
 
 	r = (struct gnutella_search_results *) n->data;
 
