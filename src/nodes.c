@@ -360,7 +360,7 @@ static gboolean can_become_ultra(time_t now)
  */
 void node_slow_timer(time_t now)
 {
-	time_t last_switch = 0;
+	static time_t last_switch = 0;
 
 	/*
 	 * If we're in "auto" mode and we're still running as a leaf node,
