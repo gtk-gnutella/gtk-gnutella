@@ -22,10 +22,10 @@ http://gwebcache1.limewire.com/gwebcache/cgi-bin/perlgcache.cgi
 http://gwebcache2.limewire.com:9000/gwc
 http://jason.ionichost.com/gwebcache/gcache.php
 http://jum.dyndns.org:9006/GWebCache/req
+http://kisama.ath.cx:8080/
 http://loot.alumnigroup.org/
 http://multiisocom.com/GWebCache/gcache.php
 http://nodecache.dyndns.org/cgi-bin/perlgcache.cgi
 http://terrorist.host.sk/gnutella-cache/gwcii.php
-http://www.rodage.net/gnetcache/gcache.php
 http://xbmodder.us/perlgwebcache/perlgcache.cgi
 
