@@ -1,5 +1,14 @@
 # since last version
 
+- (2003.06.17 - RAM)
+ * Now supports collection of multiple URNs from X-Gnutella-Content-URN,
+   but still only look at ones containing a SHA1.
+ * Use new dmesh_collect_sha1() to collect URNs.
+ * Collect URNs from non-standard Shareaza X-Content-URN header.
+ * When remote host turns out to be a genuine GTKG, stop anti-banning
+   protection by faking a user-agent string, since we know the remote end
+   won't be discriminating us.
+
 # v 0.92   2003.06.15  [stable]
 
 - Now supports Ultrapeers, which means GTKG can work as an ultra node or as
