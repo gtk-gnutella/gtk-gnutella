@@ -265,29 +265,6 @@ static gint parent_children_add(GtkCTree *ctree, gpointer key, gint x)
 	return cnt;
 }
 
-#if 0	/* No longer needed */
-/*
- *	count_node_children
- *
- *	Returns number of children under parent node in the given ctree
- */
-static inline gint count_node_children(GtkCTree *ctree, GtkCTreeNode *parent)
-{
-	GtkCTreeRow *current_row;
-	GtkCTreeNode *current_node;
-	gint num_children = 0;
-	
-	current_row = GTK_CTREE_ROW(parent);
-	current_node = current_row->children;
-	
-	for (;NULL != current_node; current_node = current_row->sibling){
-		current_row = GTK_CTREE_ROW(current_node);
-		num_children++;
-	}	
-	
-	return num_children;	
-}
-#endif
 
 /* 
  * 	downloads_gui_collect_ctree_data

@@ -65,6 +65,8 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
 #ifdef USE_GTK1
 void gtk_ctree_fast_move (GtkCTree *ctree, GtkCTreeNode *node,
 	GtkCTreeNode *new_sibling);
+inline gint gtk_ctree_count_node_children(
+    GtkCTree *ctree, GtkCTreeNode *parent);
 #define GTK_CTREE_NODE_SIBLING(n) \
     ((n) ? (GTK_CTREE_ROW(n)->sibling) : (NULL))
 #endif /* USE_GTK1 */
