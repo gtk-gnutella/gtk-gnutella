@@ -774,13 +774,13 @@ void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra)
 {
     GtkStyle *style;
     GdkFont *font;
-    gchar c;
-    gint max_width;
+    gint c;
+    gint max_width = 0;
 
     style = gtk_widget_get_style(l);
     font = style->font;
 
-    for (c = 1; c != 0; c ++) {
+    for (c = 1; c < 256; c ++) {
         gint width;
 
         if (isdigit(c)) {
