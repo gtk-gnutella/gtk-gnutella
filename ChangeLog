@@ -1,5 +1,9 @@
 # since last version
 
+- (2003.05.23 - RAM)
+ * Fixed punishing of hosts that re-request too early without paying attention
+   to the Retry-After header.
+
 - (2003.05.22 - Jeroen)
  * PARQ: A broken/disconnected upload can reclaim its queue position
  * PARQ: Upload pane now shows the Queue the current upload is queued in
@@ -13,7 +17,13 @@
  * PARQ: Shouldn't assert anymore when using dynamic slot allocations
  * PARQ: If a client does not obey the Retry-After header it will be
          removed from the PARQ queue.
-	
+
+- (2003.05.19 - RAM)
+ * Forgot a "continue" statement in download_remove_file().
+ * Likewise, on a file info change, don't requeue actively queued downloads
+   or connecting ones.
+ * Make sure the message queue kept track of the right amount of items.
+
 - (2003.05.18 - RAM)
  * Added the @INTLLIBS@ macro in the linking flags for I18N
    [From Christian Biere].
