@@ -252,7 +252,7 @@ gui_record_name_eq(gconstpointer rec1, gconstpointer rec2)
 {
     gint result;
 
-    result = 0 == strcmp(((const record_t *) rec1)->name,
+    result = strcmp(((const record_t *) rec1)->name,
        ((const record_t *) rec2)->name);
 
 	if (gui_debug > 4)
@@ -275,7 +275,7 @@ gui_record_sha1_eq(gconstpointer rec1, gconstpointer rec2)
         return 0;
 
     if (s1 == NULL || s2 == NULL)
-               return 1;
+		return 1;
 
     return memcmp(s1, s2, SHA1_RAW_SIZE);
 }
