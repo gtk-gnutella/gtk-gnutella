@@ -43,6 +43,8 @@
 #include "gtkcolumnchooser.h"
 #include "filter.h"
 #include "gtk-missing.h"
+#include "huge.h"
+#include "base32.h"
 
 #define NO_FUNC
 
@@ -1506,7 +1508,46 @@ void on_button_search_clicked(GtkButton * button, gpointer user_data)
     if (*e) {
         filter_t *default_filter;
         search_t *search;
-    
+
+		/*
+		 * If string begins with "urn:sha1:", then it's an URN search.
+		 * Validate the base32 representation, and if not valid, beep
+		 * and refuse the entry.
+		 *		--RAM, 28/06/2002
+		 */
+
+		if (0 == strncmp(e, "urn:sha1:", 9)) {
+			guchar raw[SHA1_RAW_SIZE];
+			gchar *b = e + 9;
+
+			if (base32_decode_into(b, SHA1_BASE32_SIZE, raw, sizeof(raw)))
+				goto validated;
+
+			/*
+			 * If they gave us an old base32 representation, convert it to
+			 * the new one on the fly.
+			 */
+
+			if (base32_decode_old_into(b, SHA1_BASE32_SIZE, raw, sizeof(raw))) {
+				guchar b32[SHA1_BASE32_SIZE];
+				base32_encode_into(raw, sizeof(raw), b32, sizeof(b32));
+				memcpy(b, b32, SHA1_BASE32_SIZE);
+				goto validated;
+			}
+
+			/*
+			 * Entry refused.
+			 */
+
+			gdk_beep();
+			goto done;
+
+		validated:
+			b[SHA1_BASE32_SIZE] = '\0';		/* Truncate to end of URN */
+
+			/* FALL THROUGH */
+		}
+
         /*
          * It's important gui_search_history_add is called before
          * new_search, otherwise the search entry will not be
@@ -1545,6 +1586,7 @@ void on_button_search_clicked(GtkButton * button, gpointer user_data)
         }
     }
 
+done:
 	g_free(e);
 }
 

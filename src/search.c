@@ -491,6 +491,7 @@ static void __search_send_packet(search_t *sch, struct gnutella_node *n)
 	guint32 size;
 	gint plen;				/* Length of payload */
 	gint qlen;				/* Length of query text */
+	gboolean is_urn_search = FALSE;
 
 	/*
 	 * Don't send on a temporary connection.
@@ -504,14 +505,31 @@ static void __search_send_packet(search_t *sch, struct gnutella_node *n)
 		return;
 
 	/*
-	 * We're adding "urn:" after the NUL to request the SHA1 hash (4 chars),
-	 * and terminate that string with a NUL.
-	 *		-- RAM, 05/06/2002
+	 * Are we dealing with an URN search?
 	 */
 
-	qlen = strlen(sch->query);
-	size = sizeof(struct gnutella_msg_search) + qlen + 4 + 2;	/* 2 NULs */
-	plen = size - sizeof(struct gnutella_header);
+	if (0 == strncmp(sch->query, "urn:sha1:", 9))
+		is_urn_search = TRUE;
+
+	if (is_urn_search) {
+		/*
+		 * We're sending an empty search text (NUL only), then the 9+32 bytes
+		 * of the URN query, plus a trailing NUL.
+		 */
+		qlen = 0;
+		size = sizeof(struct gnutella_msg_search) + 9+32 + 2;		/* 2 NULs */
+	} else {
+		/*
+		 * We're adding "urn:" after the NUL to request the SHA1 hash
+		 * (4 chars), and terminate that string with a NUL.
+		 *		-- RAM, 05/06/2002
+		 */
+
+		qlen = strlen(sch->query);
+		size = sizeof(struct gnutella_msg_search) + qlen + 4 + 2;	/* 2 NULs */
+	}
+
+	plen = size - sizeof(struct gnutella_header);	/* Payload length */
 
 	if (plen > search_queries_forward_size) {
 		g_warning("not sending query \"%s\": larger than max query size (%d)",
@@ -533,8 +551,13 @@ static void __search_send_packet(search_t *sch, struct gnutella_node *n)
 	WRITE_GUINT32_LE(plen, m->header.size);
 	WRITE_GUINT16_LE(minimum_speed, m->search.speed);
 
-	strcpy(m->search.query, sch->query);
-	strcpy(m->search.query + qlen + 1, "urn:");
+	if (is_urn_search) {
+		*m->search.query = '\0';
+		strncpy(m->search.query + 1, sch->query, 9+32);	/* urn:sha1:32bytes */
+	} else {
+		strcpy(m->search.query, sch->query);
+		strcpy(m->search.query + qlen + 1, "urn:");
+	}
 
 	message_add(m->header.muid, GTA_MSG_SEARCH, NULL);
 
