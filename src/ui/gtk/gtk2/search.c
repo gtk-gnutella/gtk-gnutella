@@ -1382,6 +1382,7 @@ gui_search_clear_results(void)
 	search_t *search;
 
 	search = search_gui_get_current_search();
+	search_gui_reset_search();
 	gui_search_force_update_tab_label(search, time(NULL));
 	search_gui_update_items(search);
 }

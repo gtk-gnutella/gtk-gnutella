@@ -2319,7 +2319,7 @@ void gui_search_clear_results(void)
 {
 	search_t *current_search = search_gui_get_current_search();
 
-	search_gui_clear_search(current_search);
+	search_gui_reset_search(current_search);
 	gui_search_force_update_tab_label(current_search);
     search_gui_update_items(current_search);
 }
