@@ -288,7 +288,7 @@ on_drawingarea_fi_progress_expose_event(
  * @param fih  Fileinfo handle for which chunks should be retrieved
  */
 static GSList *
-vp_get_chunks_initial(fih) {
+vp_get_chunks_initial(gnet_fi_t fih) {
 
 	GSList *result;
 	GSList *l;
