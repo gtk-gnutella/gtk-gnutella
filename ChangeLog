@@ -16,6 +16,10 @@
     not be used unless the user closes the filter dialog with "Ok".
   * Started to use scid_info for general temporary information in 
     the status bar.
+  * Make autoselection based on urn rather then on filename if the
+    selected record has a urn.
+  * Added "Globally drop results with [name|urn:sha1]" to search popup.
+    I wanted to be able to drop definite spam once and for all.
 
 - (2002.06.15 - Richard)
   * Added URN column to the search results (hidden by default)
