@@ -935,6 +935,13 @@ GSList *http_range_parse(
 			goto final;
 		}
 
+		if (start > end) {
+			g_warning("weird %s header from <%s>, offset %d "
+				"(swapped trailing range?): %s", field, vendor,
+				((gchar *) str - value) - 1, value);
+			goto final;
+		}
+
 		ranges = http_range_add(ranges, start, end, field, vendor, &ignored);
 		count++;
 
