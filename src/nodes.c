@@ -401,7 +401,9 @@ static gboolean can_become_ultra(time_t now)
 	/* System requirements */
 	enough_fd = (max_leaves + max_connections + max_uploads + max_downloads
 			+ max_banned_fd + NODE_CASUAL_FD) < sys_nofile;
-	enough_mem = (max_leaves * NODE_AVG_LEAF_MEM) < 1024 / 2 * sys_physmem;
+	enough_mem = (max_leaves * NODE_AVG_LEAF_MEM +
+		(max_leaves + max_connections) * node_sendqueue_size)
+		< 1024 / 2 * sys_physmem;
 
 	/* Bandwidth requirements */
 	enough_bw = bsched_enough_up_bandwidth();
