@@ -566,7 +566,7 @@ static void mq_service(gpointer data)
 	iovsize = MIN(MQ_MAXIOV, q->count);
 
 	for (l = q->qtail; l && iovsize > 0; iovsize--) {
-		struct iovec *ie = &iov[iovcnt++];
+		struct iovec *ie;
 		pmsg_t *mb = (pmsg_t *) l->data;
 		gchar *mbs = pmsg_start(mb);
 
@@ -575,10 +575,13 @@ static void mq_service(gpointer data)
 		 */
 
 		if (node_can_send(q->node, gmsg_function(mbs), gmsg_hops(mbs))) {
+			/* send the message */
 			l = g_list_previous(l);
+			ie = &iov[iovcnt++];
 			ie->iov_base = mb->m_rptr;
 			ie->iov_len = pmsg_size(mb);
 		} else {
+			/* drop the message */
 			l = mq_rmlink_prev(q, l, pmsg_size(mb));
 
 			if (dbg > 4)
