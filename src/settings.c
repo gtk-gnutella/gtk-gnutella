@@ -296,10 +296,8 @@ void settings_init(void)
 		/* Parse the configuration */
 	prop_load_from_file(properties, config_dir, config_file);
     
-	hcache_retrieve(HCACHE_ANY);
-	hcache_retrieve(HCACHE_ULTRA);
-
 	path = make_pathname(config_dir, ul_stats_file);
+
 	upload_stats_load_history(path);	/* Loads the upload statistics */
 	G_FREE_NULL(path);
 	
@@ -347,58 +345,6 @@ const gchar *settings_home_dir(void)
 {
 	g_assert(NULL != home_dir);
 	return (const gchar *) home_dir;
-}
-
-#if 0
-/* 
- * FIXME: remove this if it is no longer needed
- * -- Richard, 29 Mar 2003
- */
-static guint32 *settings_parse_array(gchar * str, guint32 n)
-{
-	/* Parse comma delimited settings */
-
-	static guint32 array[10];
-	gchar **h = g_strsplit(str, ",", n + 1);
-	guint32 *r = array;
-	gint i;
-
-	for (i = 0; i < n; i++) {
-		if (!h[i]) {
-			r = NULL;
-			break;
-		}
-		array[i] = atol(h[i]);
-	}
-
-	g_strfreev(h);
-	return r;
-}
-#endif
-
-static void settings_hostcache_save(void)
-{
-	gboolean reading;
-
-	/* Save the caught hosts */
-
-	gnet_prop_get_boolean_val(PROP_READING_HOSTFILE, &reading);
-
-	if (reading)
-		g_warning("exit() while still reading the hosts file, "
-			"caught hosts not saved!");
-	else
-		hcache_store(HCACHE_ANY);
-
-	/* Save the caught ultra hosts */
-
-	gnet_prop_get_boolean_val(PROP_READING_ULTRAFILE, &reading);
-
-	if (reading)
-		g_warning("exit() while still reading the ultrahosts file, "
-			"caught hosts not saved !");
-	else
-		hcache_store(HCACHE_ULTRA);
 }
 
 /*
@@ -515,9 +461,6 @@ void settings_shutdown(void)
     settings_callbacks_shutdown();
 
     prop_save_to_file(properties, config_dir, config_file);
-
-	settings_hostcache_save();
-	settings_remove_pidfile();
 }
 
 /*
@@ -537,6 +480,7 @@ void settings_save_if_dirty(void)
  */
 void settings_close(void)
 {
+	settings_remove_pidfile();
     gnet_prop_shutdown();
 
 	if (home_dir)
@@ -748,32 +692,26 @@ static gboolean max_connections_changed(property_t prop)
 
 static gboolean max_hosts_cached_changed(property_t prop)
 {
-    guint32 max_hosts;
-    guint32 host_count;
-
-    gnet_prop_get_guint32_val(PROP_MAX_HOSTS_CACHED, &max_hosts);
-    gnet_prop_get_guint32_val(PROP_HOSTS_IN_CATCHER, &host_count);
-
-    if (max_hosts < host_count)
-        hcache_prune(HCACHE_ANY);
+    hcache_prune(HCACHE_FRESH_ANY);
 
     return FALSE;
 }
 
 static gboolean max_ultra_hosts_cached_changed(property_t prop)
 {
-    guint32 max_hosts;
-    guint32 host_count;
-
-    gnet_prop_get_guint32_val(PROP_MAX_ULTRA_HOSTS_CACHED, &max_hosts);
-    gnet_prop_get_guint32_val(PROP_HOSTS_IN_ULTRA_CATCHER, &host_count);
-
-    if (max_hosts < host_count)
-        hcache_prune(HCACHE_ULTRA);
+    hcache_prune(HCACHE_FRESH_ULTRA);
 
     return FALSE;
 }
 
+static gboolean max_bad_hosts_cached_changed(property_t prop)
+{
+    hcache_prune(HCACHE_BUSY);
+    hcache_prune(HCACHE_TIMEOUT);
+    hcache_prune(HCACHE_UNSTABLE);
+
+    return FALSE;
+}
 
 static gboolean listen_port_changed(property_t prop)
 {
@@ -1322,6 +1260,11 @@ static prop_map_t property_map[] = {
     {
         PROP_MAX_ULTRA_HOSTS_CACHED, 
         max_ultra_hosts_cached_changed, 
+        TRUE 
+	},
+    {
+        PROP_MAX_BAD_HOSTS_CACHED, 
+        max_bad_hosts_cached_changed, 
         TRUE 
 	},
     {
