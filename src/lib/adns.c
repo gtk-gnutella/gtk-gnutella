@@ -109,7 +109,8 @@ do {						\
 
 /* private functions */
 
-static adns_cache_t *adns_cache_init(void)
+static adns_cache_t *
+adns_cache_init(void)
 {
 	adns_cache_t *cache;
 	guint i;
@@ -124,12 +125,11 @@ static adns_cache_t *adns_cache_init(void)
 	return cache;
 }
 
-/*
- *	adns_cache_free:
- *
+/**
  *	Frees all memory allocated by the cache and returns NULL. 
  */
-adns_cache_t *adns_cache_free(adns_cache_t *cache)
+adns_cache_t *
+adns_cache_free(adns_cache_t *cache)
 {
 	guint i;
 
@@ -147,15 +147,14 @@ adns_cache_t *adns_cache_free(adns_cache_t *cache)
 #undef ADNS_CACHED_NUM
 #undef ADNS_CACHE_TIMEOUT
 
-/*
- * adns_cache_add
- * 
+/**
  * Adds ``hostname'' and ``ip'' to the cache. The cache is implemented
  * as a wrap-around FIFO. In case it's full, the oldest entry will be
  * overwritten. 
  */
-static void adns_cache_add(
-	adns_cache_t *cache, time_t now, const gchar *hostname, guint32 ip)
+static void
+adns_cache_add(adns_cache_t *cache, time_t now,
+	const gchar *hostname, guint32 ip)
 {
 	adns_cache_entry_t *entry;
 	gchar *atom;
@@ -179,17 +178,16 @@ static void adns_cache_add(
 	cache->oldest %= cache->size;
 }
 
-/*
- * adns_cache_lookup
- *
+/**
  * Looks for ``hostname'' in ``cache'' wrt to cache->timeout. If
  * ``hostname'' is not found or the entry is expired, FALSE will be
  * returned. Expired entries will be removed! ``ip'' is allowed to
  * be NULL, otherwise the cached IP will be stored into the variable
  * ``ip'' points to. 
  */
-static gboolean adns_cache_lookup(
-	adns_cache_t *cache, time_t now, const gchar *hostname, guint32 *ip)
+static gboolean
+adns_cache_lookup(adns_cache_t *cache, time_t now,
+	const gchar *hostname, guint32 *ip)
 {
 	guint i;
 	gpointer key;
@@ -229,17 +227,15 @@ static gboolean adns_cache_lookup(
 	return FALSE;
 }
 
-/*
- * adns_do_transfer
- *
+/**
  * Transfers the data in `buf' of size `len' through `fd'. If `do_write' is
  * FALSE the buffer will be filled from `fd'. Otherwise, the data from the
  * buffer will be written to `fd'. The function returns only if all data
  * has been transferred or if an unrecoverable error occurs. This function
  * should only be used with a blocking `fd'.
  */
-static gboolean adns_do_transfer(
-	gint fd, gpointer buf, size_t len, gboolean do_write)
+static gboolean
+adns_do_transfer(gint fd, gpointer buf, size_t len, gboolean do_write)
 {
 	ssize_t ret;
 	size_t n = len;
@@ -278,36 +274,35 @@ static gboolean adns_do_transfer(
 	return TRUE;
 }
 
-/*
- * adns_do_read
- *
+/**
  * read the complete buffer ``buf'' of size ``len'' from file descriptor ``fd''
- * return TRUE on success, FALSE if the operation failed
+ *
+ * @return TRUE on success, FALSE if the operation failed
  */
-static gboolean adns_do_read(gint fd, gpointer buf, size_t len)
+static gboolean
+adns_do_read(gint fd, gpointer buf, size_t len)
 {
 	return adns_do_transfer(fd, buf, len, FALSE);
 }
 
-/*
- * adns_do_write
- *
+/**
  * write the complete buffer ``buf'' of size ``len'' to file descriptor ``fd''
- * return TRUE on success, FALSE if the operation failed
+ *
+ * @return TRUE on success, FALSE if the operation failed
  */
-static gboolean adns_do_write(gint fd, gpointer buf, size_t len)
+static gboolean
+adns_do_write(gint fd, gpointer buf, size_t len)
 {
 	return adns_do_transfer(fd, buf, len, TRUE);
 }
 
-/*
- * adns_gethostbyname
- *
+/**
  * copies user_callback and user_data from the query buffer to the
  * reply buffer. This function won't fail. However, if gethostbyname()
  * fails ``reply->ip'' will be set to zero.
  */
-static void adns_gethostbyname(const adns_query_t *query, adns_reply_t *reply)
+static void
+adns_gethostbyname(const adns_query_t *query, adns_reply_t *reply)
 {
 	g_assert(NULL != query);
 	g_assert(NULL != reply);
@@ -320,15 +315,14 @@ static void adns_gethostbyname(const adns_query_t *query, adns_reply_t *reply)
 	reply->ip = host_to_ip(query->hostname);
 }
 
-/*
- * adns_helper
- * 
+/**
  * The ``main'' function of the adns helper process (server).
  * Simply reads requests (queries) from fd_in, performs a DNS lookup for it
  * and writes the result to fd_out. All operations should be blocking. Exits
  * in case of non-recoverable error during read or write.  
  */
-static void adns_helper(gint fd_in, gint fd_out)
+static void
+adns_helper(gint fd_in, gint fd_out)
 {
 	static adns_query_t query;
 	static adns_reply_t reply;
@@ -353,14 +347,13 @@ static void adns_helper(gint fd_in, gint fd_out)
 	_exit(EXIT_SUCCESS);
 }
 
-/*
- * adns_fallback
- *
+/**
  * Handles the query in synchronous (blocking) mode and is used if the
  * dns helper is busy i.e., the pipe buffer is full or in case the dns
  * helper is dead.  
  */
-static void adns_fallback(adns_query_t *query)
+static void
+adns_fallback(adns_query_t *query)
 {
 	adns_reply_t reply;
 
@@ -375,20 +368,20 @@ static void adns_fallback(adns_query_t *query)
 	reply.user_callback(reply.ip, reply.user_data);
 }
 
-/*
- * adns_reply_callback
- *
+/**
  * Callback function for inputevt_add(). This function invokes the callback
  * function given in DNS query on the client-side i.e., gtk-gnutella itself.
  * It handles partial reads if necessary. In case of an unrecoverable error
  * the reply pipe will be closed and the callback will be lost.
  */
-static void adns_reply_callback(
-	gpointer data, gint source, inputevt_cond_t condition)
+static void
+adns_reply_callback(gpointer data, gint source, inputevt_cond_t condition)
 {
 	static size_t n = 0;
 	static adns_reply_t reply;
-	
+
+	g_assert(NULL == data);	
+	g_assert(condition & (INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION));
 	g_assert(sizeof(reply) >= n);
 
 again:
@@ -435,13 +428,12 @@ again:
 	}
 }
 
-/*
- * adns_query_write_alloc
- *
+/**
  * Allocate a the "spill" buffer for the query, with `n' bytes being already
  * written into the pipe.  The query is cloned.
  */
-static adns_async_write_t *adns_async_write_alloc(adns_query_t *query, size_t n)
+static adns_async_write_t *
+adns_async_write_alloc(adns_query_t *query, size_t n)
 {
 	adns_async_write_t *remain;
 
@@ -456,27 +448,24 @@ static adns_async_write_t *adns_async_write_alloc(adns_query_t *query, size_t n)
 	return remain;
 }
 
-/*
- * adns_query_write_free
- *
+/**
  * Dispose of the "spill" buffer.
  */
-static void adns_async_write_free(adns_async_write_t *remain)
+static void
+adns_async_write_free(adns_async_write_t *remain)
 {
 	wfree(remain->query, sizeof(*remain->query));
 	wfree(remain, sizeof(*remain));
 }
 
-/*
- * adns_query_callback
- *
+/**
  * Callback function for inputevt_add(). This function pipes the query to
  * the server using the pipe in non-blocking mode, partial writes are handled
  * appropriately. In case of an unrecoverable error the query pipe will be
  * closed and the blocking adns_fallback() will be invoked.
  */
-static void adns_query_callback(
-		gpointer data, gint dest, inputevt_cond_t condition)
+static void
+adns_query_callback(gpointer data, gint dest, inputevt_cond_t condition)
 {
 	adns_async_write_t *remain = data;
 
@@ -530,13 +519,12 @@ abort:
 
 /* public functions */
 
-/*
- * adns_init:
- *
+/**
  * Initializes the adns helper i.e., fork()s a child process which will
  * be used to resolve hostnames asynchronously.
  */
-void adns_init(void)
+void
+adns_init(void)
 {
 	gint fd_query[2] = {-1, -1};
 	gint fd_reply[2] = {-1, -1};
@@ -588,9 +576,7 @@ prefork_failure:
 	CLOSE_IF_VALID(fd_reply[1]);
 }
 
-/*
- * adns_resolve
- *
+/**
  * Creates a DNS resolve query for ``hostname''. The given function
  * ``user_callback'' (which MUST NOT be NULL) will be invoked with
  * the resolved IP address and ``user_data'' as its parameters. The
@@ -600,13 +586,14 @@ prefork_failure:
  * the adns helper process is ``out of service'' the query will be
  * resolved synchronously.
  *
- * Returns TRUE if the resolution is asynchronous i.e., the callback
+ * @eturn TRUE if the resolution is asynchronous i.e., the callback
  * will be called AFTER adns_resolve() returned. If the resolution is
  * synchronous i.e., the callback was called BEFORE adns_resolve()
  * returned, adns_resolve() returns FALSE.
  */
-gboolean adns_resolve(
-	const gchar *hostname, adns_callback_t user_callback, gpointer user_data)
+gboolean
+adns_resolve(const gchar *hostname,
+	adns_callback_t user_callback, gpointer user_data)
 {
 	gsize hostname_len;
 	static adns_query_t query;
@@ -695,15 +682,14 @@ fallback:
 	return FALSE; /* synchronous */
 }
 
-/*
- * adns_close
- *
+/**
  * Removes the callback and frees the cache.
  */
-void adns_close(void)
+void
+adns_close(void)
 {
 	inputevt_remove(adns_reply_event_id);
 	adns_cache = adns_cache_free(adns_cache);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
