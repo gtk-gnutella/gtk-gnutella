@@ -929,10 +929,24 @@ static void socket_accept(gpointer data, gint source,
 	sd = accept(s->file_desc, (struct sockaddr *) &addr, &len);
 
 	if (sd == -1) {
+		/*
+		 * If we ran out of file descriptors, try to reclaim one from the
+		 * banning pool and retry.
+		 */
+
+		if ((errno == EMFILE || errno == ENFILE) && ban_reclaim_fd()) {
+			sd = accept(s->file_desc, (struct sockaddr *) &addr, &len);
+			if (sd >= 0) {
+				g_warning("had to close a banned fd to accept new connection");
+				goto accepted;
+			}
+		}
+
 		g_warning("accept() failed (%s)", g_strerror(errno));
 		return;
 	}
 
+accepted:
 	s->flags |= SOCK_F_ESTABLISHED;
 	bws_sock_accepted(SOCK_TYPE_HTTP);	/* Do not charge Gnet b/w for that */
 
