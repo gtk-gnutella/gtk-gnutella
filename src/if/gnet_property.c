@@ -595,7 +595,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[2].name = "ancient_version";
-    gnet_property->props[2].desc = _("Indicates that gtk-gnutella finds the version you run very very old");
+    gnet_property->props[2].desc = _("Indicates that gtk-gnutella finds the version you run very VERY old.  You should upgrade as soon as possible to avoid suffering from non-optimal Gnutella support that may not only damage your abilities to search and download but also harm the network since you're not supporting the newest features.");
     gnet_property->props[2].ev_changed = event_new("ancient_version_changed");
     gnet_property->props[2].save = FALSE;
     gnet_property->props[2].vector_size = 1;

@@ -36,7 +36,11 @@ prop = {
 prop = {
     name = "ancient_version";
     desc = "Indicates that gtk-gnutella finds the version you run "
-           "very very old";
+           "very VERY old.  You should upgrade as soon as possible "
+		   "to avoid suffering from non-optimal Gnutella support that "
+		   "may not only damage your abilities to search and download "
+		   "but also harm the network since you're not supporting the "
+		   "newest features.";
     type = boolean;
     save = FALSE;
     data = { 
