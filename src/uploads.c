@@ -1824,7 +1824,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			if (!UPLOAD_IS_SENDING(up))
 				continue;
 			if (up->index == index && up->socket->ip == s->ip) {
-				upload_error_remove(u, NULL, 409,
+				upload_error_remove(u, NULL, 503,
 					"Already downloading that file");
 				return;
 			}
