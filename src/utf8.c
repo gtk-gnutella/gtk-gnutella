@@ -3085,15 +3085,16 @@ utf32_decompose_nfd_char(guint32 uc, size_t *len)
 		 *
 		 * 		http://www.unicode.org/reports/tr15/#Hangul
 		 */
+#define T_COUNT 28
+#define V_COUNT 21
+#define N_COUNT (T_COUNT * V_COUNT)
 		static const guint32 l_base = 0x1100;
 		static const guint32 v_base = 0x1161;
 		static const guint32 t_base = 0x11A7;
-		static const gint v_count = 21, t_count = 28;
-		static const gint n_count = v_count * t_count;
 		const guint32 i = uc - UNI_HANGUL_FIRST;
-		guint32 l = l_base + i / n_count;
-		guint32 v = v_base + (i % n_count) / t_count;
-		guint32 t = t_base + i % t_count;
+		guint32 l = l_base + i / N_COUNT;
+		guint32 v = v_base + (i % N_COUNT) / T_COUNT;
+		guint32 t = t_base + i % T_COUNT;
 
 		*p++ = l;
 		*p++ = v;
@@ -3101,6 +3102,9 @@ utf32_decompose_nfd_char(guint32 uc, size_t *len)
 		if (t != t_base) {
 			*p++ = t;
 		}
+#undef N_COUNT
+#undef V_COUNT
+#undef T_COUNT
 	} else if (NULL != (q = utf32_nfd_lookup(uc))) {
 		*len = utf32_strmaxlen(q, UTF32_NFD_REPLACE_MAXLEN);
 		return q;
