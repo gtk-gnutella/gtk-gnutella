@@ -60,6 +60,13 @@ Ladies and gentleman, here's the
 				foo;
 		#endif
 
+2.5  Don't use C++ style comments. True, they're valid in ISO C99 but some
+     compilers don't support them.
+
+	// Blah blah			WRONG
+	/* Valuable comment */		RIGHT
+	
+
 3. SPACES **************************************************************
 
 3.1  No space should appear between a function and the parameters, that is:
@@ -88,6 +95,25 @@ Ladies and gentleman, here's the
         c . f   WRONG
 
 3.5  There is a single space AFTER a ",".
+
+3.6  There are no additional spaces in front of a `case' statement WRT to
+     the `switch' statement:
+
+     This one is WRONG:
+
+        switch (cond) {
+                case x: ...
+                case y: ...
+        }
+
+
+     This one is RIGHT, the `case' statements are aligned with `switch':
+
+        switch (cond) {
+        case x: ...
+        case y: ...
+        }
+
 
 4. MISCELLANEOUS FORMATTING CONVENTIONS ********************************
 
@@ -248,7 +274,7 @@ Ladies and gentleman, here's the
 
 9.1  Use an empty "for (;;)" to start an infinite loop.
 
-9.2  Use goto to factorize error cleanup code, since C lacks proper
+9.2  Use `goto' to factorize error cleanup code, since C lacks proper
      exception handling.  The goto label is "outdented" one level.
 
         if (-1 == write(fd, buf, len))
