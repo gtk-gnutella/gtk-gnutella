@@ -34,6 +34,8 @@ void on_clist_gnet_stats_byte_resize_column(
     GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_clist_gnet_stats_drop_reasons_resize_column(
     GtkCList *clist, gint column, gint width, gpointer user_data);
+void on_clist_gnet_stats_general_resize_column(
+    GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_combo_entry_gnet_stats_drop_reasons_changed(
     GtkEditable *editable, gpointer user_data);
 

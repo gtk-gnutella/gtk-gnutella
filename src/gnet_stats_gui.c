@@ -66,6 +66,16 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "query hit had bad SHA1"
 };
 
+gchar *general_type_str[GNR_TYPE_COUNT] = {
+    "routing errors",
+    "searches to local db",
+    "hits on local db",
+    "compacted queries",
+    "bytes saved by compacting",
+    "UTF8 queries",
+    "SHA1 queries"
+};
+
 static gint selected_type = MSG_TOTAL;
 
 /***
@@ -118,6 +128,16 @@ void on_clist_gnet_stats_drop_reasons_resize_column(
 
     /* remember the width for storing it to the config file later */
     gui_prop_set_guint32(PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS, 
+        &buf, column, 1);
+}
+
+void on_clist_gnet_stats_general_resize_column(
+    GtkCList *clist, gint column, gint width, gpointer user_data)
+{
+    guint32 buf = width;
+
+    /* remember the width for storing it to the config file later */
+    gui_prop_set_guint32(PROP_GNET_STATS_GENERAL_COL_WIDTHS, 
         &buf, column, 1);
 }
 
@@ -183,6 +203,21 @@ static __inline__ gchar *drop_stat_str(gnet_stats_t *stats, gint reason)
     return strbuf;
 }
 
+static __inline__ gchar *general_stat_str(gnet_stats_t *stats, gint type)
+{
+    static gchar strbuf[20];
+
+    if (stats->general[type] == 0)
+        return "-";
+
+    if (type == GNR_QUERY_COMPACT_SIZE) {
+        return compact_size(stats->general[type]);
+    } else {
+        g_snprintf(strbuf, sizeof(strbuf), "%u", stats->general[type]);
+        return strbuf;
+    }
+}
+
 /***
  *** Public functions
  ***/
@@ -191,6 +226,7 @@ void gnet_stats_gui_init(void)
 {
     GtkCList *clist_stats_pkg;
     GtkCList *clist_stats_byte;
+    GtkCList *clist_general;
     GtkCList *clist_reason;
     GtkCombo *combo_types;
     gchar *titles[6];
@@ -204,6 +240,8 @@ void gnet_stats_gui_init(void)
         lookup_widget(main_window, "clist_gnet_stats_byte"));
     clist_reason = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_drop_reasons"));
+    clist_general = GTK_CLIST(
+        lookup_widget(main_window, "clist_gnet_stats_general"));
     combo_types = GTK_COMBO(
         lookup_widget(main_window, "combo_gnet_stats_type"));
 
@@ -242,6 +280,13 @@ void gnet_stats_gui_init(void)
         row = gtk_clist_append(clist_reason, titles);
         gtk_clist_set_selectable(clist_reason, row, FALSE);
     }
+
+    for (n = 0; n < GNR_TYPE_COUNT; n ++) {
+        gint row;
+        titles[0] = general_type_str[n];
+        row = gtk_clist_append(clist_general, titles);
+        gtk_clist_set_selectable(clist_general, row, FALSE);
+    }
 }
 
 void gnet_stats_gui_update(void)
@@ -249,6 +294,7 @@ void gnet_stats_gui_update(void)
     GtkCList *clist_stats_pkg;
     GtkCList *clist_stats_byte;
     GtkCList *clist_reason;
+    GtkCList *clist_general;
     gint n;
     gnet_stats_t stats;
 
@@ -262,6 +308,7 @@ void gnet_stats_gui_update(void)
 
     gnet_stats_get(&stats);
 
+    /*
     gtk_label_printf(
         GTK_LABEL(lookup_widget(main_window, "label_routing_errors")),
         "%u", stats.routing_errors);
@@ -271,6 +318,7 @@ void gnet_stats_gui_update(void)
     gtk_label_printf(
         GTK_LABEL(lookup_widget(main_window, "label_local_hits")),
         "%u", stats.local_hits);
+    */
 
     clist_stats_pkg = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_pkg"));
@@ -278,8 +326,11 @@ void gnet_stats_gui_update(void)
         lookup_widget(main_window, "clist_gnet_stats_byte"));
     clist_reason = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_drop_reasons"));
+    clist_general = GTK_CLIST(
+        lookup_widget(main_window, "clist_gnet_stats_general"));
 
     gtk_clist_freeze(clist_reason);
+    gtk_clist_freeze(clist_general);
     gtk_clist_freeze(clist_stats_byte);
     gtk_clist_freeze(clist_stats_pkg);
 
@@ -307,11 +358,15 @@ void gnet_stats_gui_update(void)
             byte_stat_str(stats.byte.relayed, n));
     }
 
-
     for (n = 0; n < MSG_DROP_REASON_COUNT; n ++)
         gtk_clist_set_text(clist_reason, n, 1, drop_stat_str(&stats, n));
 
+
+    for (n = 0; n < GNR_TYPE_COUNT; n ++)
+        gtk_clist_set_text(clist_general, n, 1, general_stat_str(&stats, n));
+
     gtk_clist_thaw(clist_reason);
+    gtk_clist_thaw(clist_general);
     gtk_clist_thaw(clist_stats_byte);
     gtk_clist_thaw(clist_stats_pkg);
 }

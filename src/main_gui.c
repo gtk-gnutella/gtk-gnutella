@@ -332,6 +332,9 @@ void main_gui_init(void)
         GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
         c_gs_relayed, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_general")),
+        1, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_drop_reasons")),
         1, GTK_JUSTIFY_RIGHT);
 
@@ -352,6 +355,8 @@ void main_gui_init(void)
 	gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(
             main_window, "clist_gnet_stats_drop_reasons")));
+	gtk_clist_column_titles_passive(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_general")));
 
     gtk_clist_set_compare_func(
         GTK_CLIST(lookup_widget(main_window, "clist_ul_stats")), 

@@ -41,9 +41,7 @@ static guint32 stats_byte_drop[MSG_TYPE_COUNT];
 
 static guint32 stats_drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
 
-static guint32 routing_errors = 0;
-static guint32 local_searches = 0;
-static guint32 local_hits = 0;
+static guint32 stats_general[GNR_TYPE_COUNT];
 
 /***
  *** Public functions
@@ -74,9 +72,10 @@ void gnet_stats_init(void)
     memset(stats_byte_expd, 0, sizeof(guint32)*sizeof(stats_byte_expd));
     memset(stats_byte_drop, 0, sizeof(guint32)*sizeof(stats_byte_drop));
 
+    memset(stats_general, 0, sizeof(guint32)*sizeof(stats_general));
+
     memset(stats_drop_reason, 0, 
         sizeof(guint32)*MSG_DROP_REASON_COUNT*MSG_TYPE_COUNT);
-
 }
 
 /*
@@ -135,7 +134,7 @@ void gnet_stats_count_expired(gnutella_node_t *n)
         (reason == MSG_DROP_DUPLICATE) ||							\
         (reason == MSG_DROP_NO_ROUTE)								\
     )																\
-        routing_errors ++;											\
+        stats_general[GNR_ROUTING_ERRORS]++;						\
 																	\
     stats_drop_reason[reason][MSG_TOTAL]++;							\
     stats_drop_reason[reason][stats_lut[n->header.function]]++;		\
@@ -152,20 +151,15 @@ void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 	DROP_STATS(size);
 }
 
+void gnet_stats_count_general(gnutella_node_t *n, gint type, guint32 amount)
+{
+    stats_general[type] += amount;
+}
+
 void gnet_stats_count_dropped_nosize(
 	gnutella_node_t *n, msg_drop_reason_t reason)
 {
 	DROP_STATS(sizeof(n->header));
-}
-
-void gnet_stats_count_local_search(gnutella_node_t *n)
-{
-    local_searches++;
-}
-
-void gnet_stats_count_local_hit(gnutella_node_t *n, guint32 hits)
-{
-    local_hits += hits;
 }
 
 /***
@@ -191,8 +185,6 @@ void gnet_stats_get(gnet_stats_t *s)
     memcpy(s->drop_reason, stats_drop_reason, 
         sizeof(guint32)*MSG_DROP_REASON_COUNT*MSG_TYPE_COUNT);
 
-    s->routing_errors = routing_errors;
-    s->local_searches = local_searches;
-    s->local_hits     = local_hits;
+    memcpy(s->general, stats_general, sizeof(guint32)*GNR_TYPE_COUNT);
 }
 
