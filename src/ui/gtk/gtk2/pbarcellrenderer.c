@@ -201,7 +201,7 @@ gtk_cell_renderer_progress_class_init (GtkCellRendererProgressClass *class)
 	g_object_class_install_property(
 		object_class,
 		PROP_VALUE,
-		g_param_spec_float (
+		g_param_spec_int (
 			"value",
 			"Value",
 			"Value of the progress bar.",
@@ -233,7 +233,7 @@ gtk_cell_renderer_progress_get_property(
 
 	switch (param_id) {
 	case PROP_VALUE:
-		g_value_set_float(value, cellprogress->priv->value);
+		g_value_set_int(value, cellprogress->priv->value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, param_id, pspec);
@@ -264,7 +264,7 @@ gtk_cell_renderer_progress_set_property(
 
 	switch (param_id) {
 	case PROP_VALUE:
-		cellprogress->priv->value = g_value_get_float(value);
+		cellprogress->priv->value = g_value_get_int(value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, param_id, pspec);

@@ -236,6 +236,7 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
     upload_row_data_t *rd = NULL;
 	gnet_upload_status_t status;
 	size_t range_len;
+	gint progress;
 
 	rd = find_upload(u->upload_handle);
 	g_assert(NULL != rd);
@@ -312,8 +313,9 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 	guc_upload_get_status(u->upload_handle, &status);
 	rd->status = status.status;
 
+	progress = 100.0 * uploads_gui_progress(&status, rd);
 	gtk_list_store_set(store_uploads, &rd->iter,
-		c_ul_progress, force_range(uploads_gui_progress(&status, rd), 0.0, 1.0),
+		c_ul_progress, CLAMP(progress, 0, 100),
 		c_ul_status, uploads_gui_status_str(&status, rd),
 		(-1));
 
@@ -332,7 +334,7 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 void
 uploads_gui_add_upload(gnet_upload_info_t *u)
 {
-	gint range_len;
+	gint range_len, progress;
 	const gchar *titles[UPLOADS_GUI_VISIBLE_COLUMNS];
     upload_row_data_t *rd = walloc(sizeof(*rd));
 	gnet_upload_status_t status;
@@ -398,6 +400,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 	titles[c_ul_host]     = ip_to_gchar(u->ip);
 	titles[c_ul_status] = uploads_gui_status_str(&status, rd);
 
+	progress = 100.0 * uploads_gui_progress(&status, rd);
     gtk_list_store_append(store_uploads, &rd->iter);
     gtk_list_store_set(store_uploads, &rd->iter,
 		c_ul_size, titles[c_ul_size],
@@ -406,9 +409,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 		c_ul_host, titles[c_ul_host],
 		c_ul_loc, titles[c_ul_loc],
 		c_ul_agent, titles[c_ul_agent],
-		c_ul_progress,
-			force_range(
-				uploads_gui_progress(&status, rd), 0.0, 1.0),
+		c_ul_progress, CLAMP(progress, 0, 100),
 		c_ul_status, titles[c_ul_status],
 		c_ul_fg, NULL,
 		c_ul_data, rd,
@@ -493,7 +494,7 @@ uploads_gui_init(void)
 		G_TYPE_STRING,
 		G_TYPE_STRING,
 		G_TYPE_STRING,
-		G_TYPE_FLOAT,
+		G_TYPE_INT,
 		G_TYPE_STRING,
 		GDK_TYPE_COLOR,
 		G_TYPE_POINTER
@@ -584,6 +585,7 @@ update_row(gpointer key, gpointer data, gpointer user_data)
 	time_t now = *(time_t *) user_data;
 	upload_row_data_t *rd = data;
 	gnet_upload_status_t status;
+	gint progress;
 
 	g_assert(NULL != rd);
 	g_assert(GPOINTER_TO_UINT(key) == rd->handle);
@@ -592,8 +594,9 @@ update_row(gpointer key, gpointer data, gpointer user_data)
 
 	rd->last_update = now;
 	guc_upload_get_status(rd->handle, &status);
+	progress = 100.0 * uploads_gui_progress(&status, rd);
 	gtk_list_store_set(store_uploads, &rd->iter,
-		c_ul_progress, force_range(uploads_gui_progress(&status, rd), 0.0, 1.0),
+		c_ul_progress, CLAMP(progress, 0, 100),
 		c_ul_status, uploads_gui_status_str(&status, rd),
 		(-1));
 }

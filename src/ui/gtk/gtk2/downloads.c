@@ -520,7 +520,7 @@ void downloads_gui_init(void)
 		G_TYPE_STRING,		/* Loc */
 		G_TYPE_STRING,		/* Range */
 		G_TYPE_STRING,		/* Server */
-		G_TYPE_FLOAT,		/* Progress [0.0 - 1.0] */
+		G_TYPE_INT,			/* Progress [0 - 100] */
 		G_TYPE_STRING,		/* Status */
 		GDK_TYPE_COLOR,		/* Foreground */
 		GDK_TYPE_COLOR,		/* Background */
@@ -788,6 +788,7 @@ download_gui_add(download_t *d)
 
 	} else {
 		const gchar *d_file_name, *d_file_size;
+		gint progress;
 
 		/* This is an active download */
 
@@ -819,7 +820,7 @@ download_gui_add(download_t *d)
 			} else {
 				gchar *filename, *host, *size, *range, *status,
 					*server, *country;
-				gfloat percent_done, progress;
+				gfloat percent_done;
 				GtkTreeIter *iter;
 
 				g_assert(find_download(drecord) != NULL);
@@ -849,15 +850,16 @@ download_gui_add(download_t *d)
 	      			c_dl_size, NULL,
 	      			c_dl_range, range,
 	     	 		c_dl_server, server,
-					c_dl_progress, force_range(progress, 0.0, 1.0),
+					c_dl_progress, CLAMP(progress, 0, 100),
 	      			c_dl_status, status,
 	      			c_dl_record, drecord,
 		        	(-1));
 
-				percent_done = guc_download_total_progress(d);
+				percent_done = 100.0 * guc_download_total_progress(d);
+				progress = percent_done;
 				gm_snprintf(tmpstr, sizeof(tmpstr),
 					"%.02f%% [%d/%d]  TR:  -",
-					percent_done * 100.0,
+					percent_done,
 					d->file_info->recvcount, d->file_info->lifecount);
 
 				/* Clear the old info */
@@ -868,7 +870,7 @@ download_gui_add(download_t *d)
 					c_dl_size, size,
 					c_dl_range, NULL,
 					c_dl_server, NULL,
-					c_dl_progress, force_range(percent_done, 0.0, 1.0),
+					c_dl_progress, CLAMP(progress, 0, 100),
 					c_dl_status, tmpstr,
 					c_dl_record, DL_GUI_IS_HEADER,
 					(-1));
@@ -889,6 +891,7 @@ download_gui_add(download_t *d)
 			d_file_size = NULL;
 		}
 
+		progress = 100.0 * guc_download_total_progress(d);
 		/* Fill in the values for current download d */
 		gtk_tree_store_set(model, child,
 			c_dl_filename, d_file_name,
@@ -897,8 +900,7 @@ download_gui_add(download_t *d)
 			c_dl_size, d_file_size,
 			c_dl_range, NULL,
 			c_dl_server, lazy_locale_to_utf8(vendor, 0),
-			c_dl_progress, force_range(
-				guc_download_total_progress(d), 0.0, 1.0),
+			c_dl_progress, CLAMP(progress, 0, 100),
 			c_dl_status, NULL,
 			c_dl_record, d,
 			(-1));
@@ -939,7 +941,7 @@ void download_gui_remove(download_t *d)
 	download_t *drecord = NULL;
 	gchar *host, *range;
 	gchar *server, *status, *country;
-	gfloat progress;
+	gint progress;
 	GtkTreeIter *iter;
 	GtkTreeIter *parent;
 	GtkTreeStore *store;
@@ -1055,7 +1057,7 @@ void download_gui_remove(download_t *d)
 				c_dl_loc, country,
 				c_dl_range, range,
 				c_dl_server, server,
-				c_dl_progress, force_range(progress, 0.0, 1.0),
+				c_dl_progress, CLAMP(progress, 0, 100),
 				c_dl_status, tmpstr,
 				c_dl_record, drecord,
 				(-1));
@@ -1246,13 +1248,13 @@ void gui_update_download(download_t *d, gboolean force)
 		if (DL_GUI_IS_HEADER == drecord) {
 			/* There is a header entry, we need to update it */
 			const gchar *status = NULL;
-			gfloat progress = 0.0;
+			gint progress = 0;
 
 			has_header = TRUE;
 
 			/* Download is done */
 			if (GTA_DL_DONE == d->status) {
-				progress = 1.0;
+				progress = 100;
 				status = _("Complete");
 			} else /* if (GTA_DL_RECEIVING == d->status && d->pos > d->skip)*/ {
 				gfloat percent_done = guc_download_total_progress(d);
@@ -1269,7 +1271,8 @@ void gui_update_download(download_t *d, gboolean force)
 					percent_done * 100.0, fi->recvcount, fi->lifecount);
 				}
 
-				progress = force_range(percent_done, 0.0, 1.0);
+				percent_done *= 100;
+				progress = CLAMP(percent_done, 0, 100);
    				status = tmpstr;
 			}
 
@@ -1624,7 +1627,7 @@ void gui_update_download(download_t *d, gboolean force)
 
 	if (d->status != GTA_DL_QUEUED) {
 		GtkTreeIter *iter;
-		gfloat progress;
+		gint progress;
 
 		iter = find_download(d);
 		if (!iter)
@@ -1634,23 +1637,25 @@ void gui_update_download(download_t *d, gboolean force)
 		case GTA_DL_DONE:
 		case GTA_DL_VERIFIED:
 		case GTA_DL_COMPLETED:
-			progress = 1.0;
+			progress = 100;
 			break;
 		case GTA_DL_VERIFYING:
-			progress = fi->size ?
-					(gfloat) fi->cha1_hashed / (gfloat) fi->size : 0.0;
+			{
+				guint64 div = fi->size / 100;
+				progress = div ? fi->cha1_hashed / div : 0;
+			}
 			break;
 		case GTA_DL_CONNECTING:
 		case GTA_DL_VERIFY_WAIT:
-			progress = 0.0;
+			progress = 0;
 			break;
 		default:
-			progress = guc_download_source_progress(d);
+			progress = 100 * guc_download_source_progress(d);
 			break;
 		}
 		gtk_tree_store_set(model, iter,
 			c_dl_status, (a && a[0] != '\0') ? a : NULL,
-			c_dl_progress, force_range(progress, 0.0, 1.0),
+			c_dl_progress, CLAMP(progress, 0, 100),
 			(-1));
 	}
 
