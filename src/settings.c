@@ -842,52 +842,35 @@ static gboolean scan_extensions_changed(property_t prop)
     return FALSE;
 }
 
-static gboolean save_file_path_changed(property_t prop)
+static gboolean file_path_changed(property_t prop)
 {
     gchar *s = gnet_prop_get_string(prop, NULL, 0);
 
+	g_assert(s != NULL);
+
     if (!is_directory(s)) {
-        prop_def_t *def = gnet_prop_get_def(prop);
-        gchar* path = (home_dir) ? (home_dir) : *def->data.string.def;
+		gchar *path;
+
+        if (prop == PROP_SAVE_FILE_PATH) {
+			prop_def_t *def = gnet_prop_get_def(prop);
+			path = home_dir ? home_dir : *def->data.string.def;
+			prop_free_def(def);
+		} else
+			path = gnet_prop_get_string(PROP_SAVE_FILE_PATH, NULL, 0);
     
-        g_warning(
-            "save_file_path: directory %s is not available, "
-            "using %s instead", s, path); 
+        g_warning("property \"%s\": directory %s is not available, "
+            "using %s instead", gnet_prop_name(prop), s, path); 
 
         gnet_prop_set_string(prop, path);
 
-        prop_free_def(def);
+        if (prop != PROP_SAVE_FILE_PATH)
+			g_free(path);
 
+        g_free(s);
         return TRUE;
     }
 
-    if (s)
-        g_free(s);
-
-    return FALSE;
-}
-
-static gboolean move_file_path_changed(property_t prop)
-{
-    gchar *s = gnet_prop_get_string(prop, NULL, 0);
-
-    if (!is_directory(s)) {
-        gchar *path = gnet_prop_get_string(PROP_SAVE_FILE_PATH, NULL, 0);
-
-        g_warning(
-            "move_file_path: directory %s is not available, "
-            "using %s instead", s, path); 
-
-        gnet_prop_set_string(prop, path);
-
-        g_free(path);
-
-        return TRUE;
-    }
-    
-    if (s)
-        g_free(s);
-
+    g_free(s);
     return FALSE;
 }
 
@@ -1187,12 +1170,17 @@ static prop_map_t property_map[] = {
     },
     {
         PROP_SAVE_FILE_PATH,
-        save_file_path_changed,
+        file_path_changed,
         TRUE
     },
     {
         PROP_MOVE_FILE_PATH,
-        move_file_path_changed,
+        file_path_changed,
+        TRUE
+    },
+    {
+        PROP_BAD_FILE_PATH,
+        file_path_changed,
         TRUE
     },
     {
@@ -1322,21 +1310,16 @@ static void settings_callbacks_init(void)
                 property_map[n].cb,
                 property_map[n].init);
         } else if (debug >= 10) {
-            prop_def_t *def = gnet_prop_get_def(prop);
-            printf("settings_callbacks_init: "
-                "property ignored: %s\n", def->name);
-            prop_free_def(def);
+            printf("settings_callbacks_init: property ignored: %s\n",
+				gnet_prop_name(prop));
         }
     }
 
     if (debug >= 1) {
         for (n = 0; n < GNET_PROPERTY_NUM; n++) {
-            if (!init_list[n]) {
-                prop_def_t *def = gnet_prop_get_def(n+GNET_PROPERTY_MIN);
-                printf("settings_callbacks_init: "
-                    "unmapped property: %s\n", def->name); 
-                prop_free_def(def);
-            }
+            if (!init_list[n])
+                printf("settings_callbacks_init: unmapped property: %s\n",
+					gnet_prop_name(n+GNET_PROPERTY_MIN)); 
         }
     }
 }
