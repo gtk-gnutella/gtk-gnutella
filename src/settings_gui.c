@@ -1218,7 +1218,6 @@ static gboolean update_spinbutton(property_t prop)
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
     prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
-
     GtkAdjustment *adj;
 
     if (!top)
@@ -1239,9 +1238,6 @@ static gboolean update_spinbutton(property_t prop)
     adj = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(w));
     gtk_adjustment_set_value(adj, val);
     
-
-//    gtk_spin_button_set_value(GTK_SPIN_BUTTON(w), val);
-
     return FALSE;
 }
 
@@ -1521,9 +1517,9 @@ static gboolean bw_http_out_enabled_changed(property_t prop)
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
 
-    gtk_widget_set_sensitive(s1, val);
+    gtk_widget_set_sensitive(s2, val);
     gtk_widget_set_sensitive(c, val);
-    gtk_widget_set_sensitive(s2, val && val2);
+    gtk_widget_set_sensitive(s1, val && val2);
 
     return FALSE;
 }
