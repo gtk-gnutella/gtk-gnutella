@@ -149,6 +149,14 @@ void search_gui_store_searches(void);
 
 gint search_gui_compare_records(gint sort_col, record_t *r1, record_t *r2);
 
+gboolean gui_search_update_tab_label(struct search *);
+void gui_search_clear_results(void);
+void gui_search_history_add(gchar *s);
+void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist);
+void gui_search_force_update_tab_label(struct search *);
+void gui_search_update_items(struct search *);
+
+
 /*
  * Callbacks
  */

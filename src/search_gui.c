@@ -25,7 +25,7 @@
  *----------------------------------------------------------------------
  */
 
-#include "common.h"
+#include "gui.h"
 
 #include "hosts.h" // FIXME: remove this dependency
 
@@ -104,6 +104,9 @@ static zone_t *rs_zone;		/* Allocation of results_set */
 static zone_t *rc_zone;		/* Allocation of record */
 
 time_t tab_update_time = 5;
+
+static GList *sl_search_history = NULL;
+
 
 /*
  * Private function prototypes
@@ -1666,4 +1669,223 @@ void search_gui_set_current_search(search_t *sch)
 search_t *search_gui_get_current_search(void)
 {
     return current_search;
+}
+
+/* Create a new GtkCList for search results */
+
+void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist)
+{
+	GtkWidget *label;
+    GtkWidget *hbox;
+
+	gint i;
+
+	*sw = gtk_scrolled_window_new(NULL, NULL);
+
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(*sw),
+								   GTK_POLICY_AUTOMATIC,
+								   GTK_POLICY_AUTOMATIC);
+
+	*clist = gtk_clist_new(6);
+
+	gtk_container_add(GTK_CONTAINER(*sw), *clist);
+	for (i = 0; i < 6; i++)
+		gtk_clist_set_column_width(GTK_CLIST(*clist), i,
+								   search_results_col_widths[i]);
+	gtk_clist_set_selection_mode(GTK_CLIST(*clist),
+								 GTK_SELECTION_EXTENDED);
+	gtk_clist_column_titles_show(GTK_CLIST(*clist));
+
+	label = gtk_label_new("File");
+    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_filename, hbox);
+    gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*clist), 0, "File");
+
+	label = gtk_label_new("Size");
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_size, hbox);
+    gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*clist), 1, "Size");
+
+	label = gtk_label_new("Speed");
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_speed, hbox);
+    gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*clist), 2, "Speed");
+
+	label = gtk_label_new("Host");
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_host, hbox);
+    gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*clist), 3, "Host");
+
+	label = gtk_label_new("urn:sha1");
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_urn, hbox);
+    gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*clist), 4, "urn:sha1");
+    gtk_clist_set_column_visibility(GTK_CLIST(*clist), 4, FALSE);
+
+	label = gtk_label_new("Info");
+    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_info, hbox);
+    gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*clist), 5, "Info");
+
+	gtk_widget_show_all(*sw);
+
+	gtk_signal_connect(GTK_OBJECT(*clist), "select_row",
+					   GTK_SIGNAL_FUNC(on_clist_search_results_select_row),
+					   NULL);
+	gtk_signal_connect(GTK_OBJECT(*clist), "unselect_row",
+					   GTK_SIGNAL_FUNC
+					   (on_clist_search_results_unselect_row), NULL);
+	gtk_signal_connect(GTK_OBJECT(*clist), "click_column",
+					   GTK_SIGNAL_FUNC
+					   (on_clist_search_results_click_column), NULL);
+	gtk_signal_connect(GTK_OBJECT(*clist), "button_press_event",
+					   GTK_SIGNAL_FUNC
+					   (on_clist_search_results_button_press_event), NULL);
+	gtk_signal_connect(GTK_OBJECT(*clist), "resize-column",
+					   GTK_SIGNAL_FUNC
+					   (on_clist_search_results_resize_column), NULL);
+    gtk_signal_connect(GTK_OBJECT(*clist), "key_press_event",
+                       GTK_SIGNAL_FUNC
+                       (on_clist_search_results_key_press_event), NULL);
+}
+
+void gui_search_update_items(struct search *sch)
+{
+    if (sch) {
+        gchar *str = sch->passive ? "(passive search) " : "";
+    
+        if (sch->items)
+            g_snprintf(tmpstr, sizeof(tmpstr), "%s%u item%s found", 
+                str, sch->items, (sch->items > 1) ? "s" : "");
+        else
+            g_snprintf(tmpstr, sizeof(tmpstr), "%sNo item found", str);
+    } else
+        g_snprintf(tmpstr, sizeof(tmpstr), "No search");
+
+	gtk_label_set(
+        GTK_LABEL(lookup_widget(main_window, "label_items_found")), 
+        tmpstr);
+}
+
+/* Like search_update_tab_label but always update the label */
+void gui_search_force_update_tab_label(struct search *sch)
+{
+    gint row;
+    GtkNotebook *notebook_search_results = GTK_NOTEBOOK
+        (lookup_widget(main_window, "notebook_search_results"));
+    GtkCList *clist_search = GTK_CLIST
+        (lookup_widget(main_window, "clist_search"));
+    search_t *current_search;
+
+    current_search = search_gui_get_current_search();
+
+	if (sch == current_search || sch->unseen_items == 0)
+		g_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d)", sch->query,
+				   sch->items);
+	else
+		g_snprintf(tmpstr, sizeof(tmpstr), "%s\n(%d, %d)", sch->query,
+				   sch->items, sch->unseen_items);
+	sch->last_update_items = sch->items;
+	gtk_notebook_set_tab_label_text
+        (notebook_search_results, sch->scrolled_window, tmpstr);
+
+    row = gtk_clist_find_row_from_data(clist_search, sch);
+    g_snprintf(tmpstr, sizeof(tmpstr), "%u", sch->items);
+    gtk_clist_set_text(clist_search, row, c_sl_hit, tmpstr);
+    g_snprintf(tmpstr, sizeof(tmpstr), "%u", sch->unseen_items);
+    gtk_clist_set_text(clist_search, row, c_sl_new, tmpstr);
+
+    if (sch->unseen_items > 0) {
+        gtk_clist_set_background(
+            clist_search, row, 
+            &gtk_widget_get_style(GTK_WIDGET(clist_search))
+                ->bg[GTK_STATE_ACTIVE]);
+    } else {
+        gtk_clist_set_background(clist_search, row, NULL);
+    }
+
+	sch->last_update_time = time(NULL);
+    
+}
+
+/* Doesn't update the label if nothing's changed or if the last update was
+   recent. */
+gboolean gui_search_update_tab_label(struct search *sch)
+{
+	if (sch->items == sch->last_update_items)
+		return TRUE;
+
+	if (time(NULL) - sch->last_update_time < tab_update_time)
+		return TRUE;
+
+	gui_search_force_update_tab_label(sch);
+
+	return TRUE;
+}
+
+void gui_search_clear_results(void)
+{
+    search_t *current_search;
+
+    current_search = search_gui_get_current_search();
+	gtk_clist_clear(GTK_CLIST(current_search->clist));
+	search_gui_clear_search(current_search);
+	gui_search_force_update_tab_label(current_search);
+    gui_search_update_items(current_search);
+}
+
+/*
+ * gui_search_history_add:
+ *
+ * Adds a search string to the search history combo. Makes
+ * sure we do not get more than 10 entries in the history.
+ * Also makes sure we don't get duplicate history entries.
+ * If a string is already in history and it's added again,
+ * it's moved to the beginning of the history list.
+ */
+void gui_search_history_add(gchar * s)
+{
+    GList *new_hist = NULL;
+    GList *cur_hist = sl_search_history;
+    guint n = 0;
+
+    g_return_if_fail(s);
+
+    while (cur_hist != NULL) {
+        if ((n < 9) && (g_strcasecmp(s,cur_hist->data) != 0)) {
+            /* copy up to the first 9 items */
+            new_hist = g_list_append(new_hist, cur_hist->data);
+            n ++;
+        } else {
+            /* and free the rest */
+            g_free(cur_hist->data);
+        }
+        cur_hist = cur_hist->next;
+    }
+    /* put the new item on top */
+    new_hist = g_list_prepend(new_hist, g_strdup(s));
+
+    /* set new history */
+    gtk_combo_set_popdown_strings(
+        GTK_COMBO(lookup_widget(main_window, "combo_search")),
+        new_hist);
+
+    /* free old list structure */
+    g_list_free(sl_search_history);
+    
+    sl_search_history = new_hist;
 }
