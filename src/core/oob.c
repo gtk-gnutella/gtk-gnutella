@@ -73,6 +73,7 @@ struct oob_results {
 	gpointer ev_expire;		/* Global expiration event */
 	gpointer ev_timeout;	/* Reply waiting timeout */
 	gboolean use_ggep_h;	/* Whether GGEP "H" can be used for SHA1 coding */
+	gint refcount;
 };
 
 /*
@@ -134,6 +135,7 @@ results_make(
 	r->count = count;
 	r->dest = *to;			/* Struct copy */
 	r->use_ggep_h = ggep_h;
+	r->refcount = 1;
 
 	r->ev_expire = cq_insert(callout_queue, OOB_EXPIRE_MS, results_destroy, r);
 
@@ -148,17 +150,27 @@ results_free(struct oob_results *r)
 {
 	GSList *sl;
 
+	g_assert(r->refcount > 0);
+	if (--(r->refcount) > 0)
+		return;
+	
 	atom_guid_free(r->muid);
-	if (r->ev_expire)
+	r->muid = NULL;
+	if (r->ev_expire) {
 		cq_cancel(callout_queue, r->ev_expire);
-	if (r->ev_timeout)
+		r->ev_expire = NULL;
+	}
+	if (r->ev_timeout) {
 		cq_cancel(callout_queue, r->ev_timeout);
+		r->ev_timeout = NULL;
+	}
 
 	for (sl = r->files; sl; sl = g_slist_next(sl)) {
 		shared_file_t *sf = (shared_file_t *) sl->data;
 		shared_file_unref(sf);
 	}
 	g_slist_free(r->files);
+	r->files = NULL;
 
 	wfree(r, sizeof(*r));
 }
@@ -169,7 +181,12 @@ results_free(struct oob_results *r)
 static void
 results_free_remove(struct oob_results *r)
 {
-	g_hash_table_remove(results_by_muid, r->muid);
+	g_assert(r->refcount > 0);
+	if (g_hash_table_lookup(results_by_muid, r->muid)) {
+		g_hash_table_remove(results_by_muid, r->muid);
+		r->refcount--;
+	}
+	g_assert(r->refcount > 0);
 	results_free(r);
 }
 
@@ -183,6 +200,7 @@ results_destroy(cqueue_t *unused_cq, gpointer obj)
 
 	(void) unused_cq;
 
+	g_assert(r->refcount > 0);
 	if (query_debug)
 		printf("OOB query %s from %s expired with unclaimed %d hit%s\n",
 			guid_hex_str(r->muid), ip_port_to_gchar(r->dest.ip, r->dest.port),
@@ -204,6 +222,7 @@ results_timeout(cqueue_t *unused_cq, gpointer obj)
 
 	(void) unused_cq;
 
+	g_assert(r->refcount > 0);
 	if (query_debug)
 		printf("OOB query %s, no ACK from %s to claim %d hit%s\n",
 			guid_hex_str(r->muid), ip_port_to_gchar(r->dest.ip, r->dest.port),
@@ -355,6 +374,8 @@ oob_deliver_hits(struct gnutella_node *n, gchar *muid, guint8 wanted)
 		return;
 	}
 
+	g_assert(r->refcount > 0);
+
 	/*
 	 * Here's what could happen with proxied OOB queries:
 	 *
@@ -450,6 +471,7 @@ oob_pmsg_free(pmsg_t *mb, gpointer arg)
 	struct oob_results *r = (struct oob_results *) arg;
 
 	g_assert(pmsg_is_extended(mb));
+	g_assert(r->refcount > 0);
 
 	/*
 	 * If we sent the message, great!  Arm a timer to ensure we get a
@@ -498,6 +520,10 @@ oob_send_reply_ind(struct oob_results *r)
 	pmsg_t *mb;
 	pmsg_t *emb;
 
+	g_assert(r->refcount > 0);
+	r->refcount++;
+	g_assert(r->refcount > 0);
+
 	mb = vmsg_build_oob_reply_ind(r->muid, MIN(r->count, 255));
 	emb = pmsg_clone_extend(mb, oob_pmsg_free, r);
 	pmsg_free(mb);
@@ -537,6 +563,10 @@ oob_got_results(
 	to.port = port;
 
 	r = results_make(n->header.muid, files, count, &to, use_ggep_h);
+	g_assert(r->refcount > 0);
+	r->refcount++;
+	g_assert(r->refcount > 0);
+	g_assert(!g_hash_table_lookup(results_by_muid, r->muid));
 	g_hash_table_insert(results_by_muid, r->muid, r);
 
 	oob_send_reply_ind(r);
@@ -562,6 +592,7 @@ free_oob_kv(gpointer key, gpointer value, gpointer unused_udata)
 	struct oob_results *r = (struct oob_results *) value;
 
 	(void) unused_udata;
+	g_assert(r->refcount > 0);
 	g_assert(muid == r->muid);		/* Key is same as results's MUID */
 
 	results_free(r);
