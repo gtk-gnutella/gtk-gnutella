@@ -89,7 +89,7 @@ struct dl_file_info {
 	time_t last_dmesh;		/* When last dmesh query was used */
 	filesize_t done;		/* Total number of bytes completed */
 	GSList *chunklist;		/* List of ranges within file */
-	GSList *seenonnetwork;  /* List of ranges available on network */
+	GSList *seen_on_network;  /* List of ranges available on network */
 	guint32 generation;		/* Generation number, incremented on disk update */
 	struct shared_file *sf;	/* When PFSP-server is enabled, share this file */
 	gboolean file_size_known; /* File size known? */
