@@ -1172,12 +1172,16 @@ static void file_info_free_outname_kv(gpointer key, gpointer val, gpointer x)
 	 * happens here.
 	 *
 	 * Note that normally all fileinfo structures should have been collected
-	 * during the freeing of downloads, so if we come here, something is
-	 * wrong with our memory management.
+	 * during the freeing of downloads, so if we come here with a non-zero
+	 * refcount, something is wrong with our memory management.
+	 *
+	 * (refcount of zero is possible if we have a fileinfo entry but no
+	 * download attached to that fileinfo)
 	 */
 
-	g_warning("file_info_free_outname_kv() refcount = %u for \"%s\"",
-		fi->refcount, name);
+	if (fi->refcount)
+		g_warning("file_info_free_outname_kv() refcount = %u for \"%s\"",
+			fi->refcount, name);
 
 	fi->hashed = FALSE;			/* Since we're clearing them! */
 	fi_free(fi);
