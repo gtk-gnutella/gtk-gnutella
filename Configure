@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Sun Aug 10 12:48:19 MEST 2003 [metaconfig 3.0 PL70]
+# Generated on Sun Aug 10 16:55:16 MEST 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -247,10 +247,13 @@ d_attribut=''
 d_bcopy=''
 d_bindtxtcode=''
 d_const=''
+d_deflate=''
 d_gnulibc=''
 d_herror=''
 d_hstrerror=''
 d_inetaton=''
+d_inflate=''
+d_iptos=''
 d_isascii=''
 d_memcpy=''
 d_open3=''
@@ -268,6 +271,7 @@ d_index=''
 d_strchr=''
 d_strlcpy=''
 d_sysctl=''
+d_ucnv_open_2_6=''
 d_volatile=''
 d_vsnprintf=''
 glade=''
@@ -285,11 +289,18 @@ h_fcntl=''
 h_sysfile=''
 i_langinfo=''
 i_libcharset=''
+i_niin=''
+i_sysin=''
+i_niip=''
 i_string=''
 strings=''
 i_sysparam=''
 i_syssendfile=''
 i_syssysctl=''
+i_uni_putil=''
+i_zlib=''
+d_icu=''
+icu=''
 libc=''
 glibpth=''
 libpth=''
@@ -316,6 +327,8 @@ installprivlib=''
 privlib=''
 privlibexp=''
 prototype=''
+d_remotectrl=''
+remotectrl=''
 sh=''
 so=''
 sharpbang=''
@@ -379,12 +392,9 @@ glibpth="$glibpth /usr/ccs/lib /usr/ucblib /usr/local/lib"
 : machines, like the mips.  Usually, it should be empty.
 plibpth=''
 
-: default library list
-libswanted=''
 : full support for void wanted by default
 defvoidused=15
 
-cppflags=''
 : Possible local include directories to search.
 : Set locincpth to "" in a hint file to defeat local include searches.
 locincpth="/usr/local/include /opt/local/include /usr/gnu/include"
@@ -393,7 +403,9 @@ locincpth="$locincpth /opt/gnu/include /usr/GNU/include /opt/GNU/include"
 : no include file wanted by default
 inclwanted=''
 
-libswanted='sendfile'
+: default library list
+libswanted=''
+libswanted='sendfile z icuuc'
 
 : Find the basic shell for Bourne shell scripts
 case "$sh" in
@@ -1402,6 +1414,48 @@ case "$cf_by" in
 	case "$cf_by" in
 	"") cf_by=unknown ;;
 	esac ;;
+esac
+
+: ask them whether they want remote control support
+$cat <<'EOM'
+
+I have an experimental remote control service.  It is not currently
+functional, but you may choose to enable it if you're brave enough.
+
+EOM
+case "$remotectrl" in
+true) dflt=y;;
+*) dflt=n;;
+esac
+rp="Enable experimental remote control service"
+. ./myread
+case "$ans" in
+y) remotectrl=true; d_remotectrl="$define";;
+*) remotectrl=false; d_remotectrl="$undef";;
+esac
+
+: ask them wich GTK+ version they want
+$cat <<'EOM'
+
+I can compile for the GTK+ 1.x version or for the GTK+ 2.x version.
+The GTK1 frontend will use much less CPU than the GTK2 one, so if you
+have a slow CPU, you are encouraged to choose GTK1.
+
+EOM
+case "$gtkversion" in
+'') dflt=1;;
+2) dflt=2;;
+*) dflt=1;;
+esac
+rp="Use which GTK toolkit (1 or 2)"
+. ./myread
+case "$ans" in
+2)
+	gtkversion=2; gtkpackage=gtk+-2.0
+	d_usegtk2="$define"; d_usegtk1="$undef";;
+*)
+	gtkversion=1; gtkpackage=gtk+
+	d_usegtk1="$define"; d_usegtk2="$undef";;
 esac
 
 : is AFS running?
@@ -2704,32 +2758,49 @@ esac
 case "$libswanted" in
 '') libswanted='c_s';;
 esac
+echo "extern char printf(); int main() { printf(); return 0; }" > lt.c
+canlink='$cc $ccflags $ldflags -o lt lt.c -l$thislib >/dev/null 2>&1'
 for thislib in $libswanted; do
-	
 	if xxx=`./loc lib$thislib.$so.[0-9]'*' X $libpth`; $test -f "$xxx"; then
-		echo "Found -l$thislib (shared)."
-		case " $dflt " in
-		*"-l$thislib "*);;
-		*) dflt="$dflt -l$thislib";;
-		esac
+		if eval $canlink; then
+			echo "Found -l$thislib (shared)."
+			case " $dflt " in
+			*"-l$thislib "*);;
+			*) dflt="$dflt -l$thislib";;
+			esac
+		else
+			echo "Found -l$thislib (shared) but I can't link against it."
+		fi
 	elif xxx=`./loc lib$thislib.$so X $libpth` ; $test -f "$xxx"; then
-		echo "Found -l$thislib (shared)."
-		case " $dflt " in
-		*"-l$thislib "*);;
-		*) dflt="$dflt -l$thislib";;
-		esac
+		if eval $canlink; then
+			echo "Found -l$thislib (shared)."
+			case " $dflt " in
+			*"-l$thislib "*);;
+			*) dflt="$dflt -l$thislib";;
+			esac
+		else
+			echo "Found -l$thislib (shared) but I can't link against it."
+		fi
 	elif xxx=`./loc lib$thislib$_a X $libpth`; $test -f "$xxx"; then
-		echo "Found -l$thislib."
-		case " $dflt " in
-		*"-l$thislib "*);;
-		*) dflt="$dflt -l$thislib";;
-		esac
+		if eval $canlink; then
+			echo "Found -l$thislib."
+			case " $dflt " in
+			*"-l$thislib "*);;
+			*) dflt="$dflt -l$thislib";;
+			esac
+		else
+			echo "Found -l$thislib but I can't link against it."
+		fi
 	elif xxx=`./loc $thislib$_a X $libpth`; $test -f "$xxx"; then
-		echo "Found -l$thislib."
-		case " $dflt " in
-		*"-l$thislib "*);;
-		*) dflt="$dflt -l$thislib";;
-		esac
+		if eval $canlink; then
+			echo "Found -l$thislib."
+			case " $dflt " in
+			*"-l$thislib "*);;
+			*) dflt="$dflt -l$thislib";;
+			esac
+		else
+			echo "Found -l$thislib but I can't link against it."
+		fi
 	elif xxx=`./loc lib${thislib}_s$_a X $libpth`; $test -f "$xxx"; then
 		echo "Found -l${thislib}_s."
 		case " $dflt " in
@@ -2737,11 +2808,15 @@ for thislib in $libswanted; do
 		*) dflt="$dflt -l${thislib}_s";;
 		esac
 	elif xxx=`./loc Slib$thislib$_a X $xlibpth`; $test -f "$xxx"; then
-		echo "Found -l$thislib."
-		case " $dflt " in
-		*"-l$thislib "*);;
-		*) dflt="$dflt -l$thislib";;
-		esac
+		if eval $canlink; then
+			echo "Found -l$thislib."
+			case " $dflt " in
+			*"-l$thislib "*);;
+			*) dflt="$dflt -l$thislib";;
+			esac
+		else
+			echo "Found -l$thislib but I can't link against it."
+		fi
 	else
 		echo "No -l$thislib."
 	fi
@@ -2777,6 +2852,7 @@ case "$ans" in
 none) libs=' ';;
 *) libs="$ans";;
 esac
+$rm -f lt.c lt
 
 echo " "
 echo "Checking for GNU C Library..." >&4
@@ -3232,6 +3308,148 @@ eval $inlibc
 set inet_aton d_inetaton
 eval $inlibc
 
+: determine filename position in cpp output
+echo " "
+echo "Computing filename position in cpp output for #include directives..." >&4
+echo '#include <stdio.h>' > foo.c
+$cat >fieldn <<EOF
+$startsh
+$cppstdin $cppflags $cppminus <foo.c 2>/dev/null | \
+$grep '^[ 	]*#.*stdio\.h' | \
+while read cline; do
+	pos=1
+	set \$cline
+	while $test \$# -gt 0; do
+		if $test -r \`echo \$1 | $tr -d '"'\`; then
+			echo "\$pos"
+			exit 0
+		fi
+		shift
+		pos=\`expr \$pos + 1\`
+	done
+done
+EOF
+chmod +x fieldn
+fieldn=`./fieldn`
+$rm -f foo.c fieldn
+case $fieldn in
+'') pos='???';;
+1) pos=first;;
+2) pos=second;;
+3) pos=third;;
+*) pos="${fieldn}th";;
+esac
+echo "Your cpp writes the filename in the $pos field of the line."
+
+: locate header file
+$cat >findhdr <<EOF
+$startsh
+wanted=\$1
+name=''
+if test -f $usrinc/\$wanted; then
+	echo "$usrinc/\$wanted"
+	exit 0
+fi
+awkprg='{ print \$$fieldn }'
+echo "#include <\$wanted>" > foo\$\$.c
+$cppstdin $cppminus $cppflags < foo\$\$.c 2>/dev/null | \
+$grep "^[ 	]*#.*\$wanted" | \
+while read cline; do
+	name=\`echo \$cline | $awk "\$awkprg" | $tr -d '"'\`
+	case "\$name" in
+	*/\$wanted) echo "\$name"; exit 0;;
+	*) name='';;
+	esac;
+done;
+$rm -f foo\$\$.c;
+case "\$name" in
+'') exit 1;;
+esac
+EOF
+chmod +x findhdr
+
+: define an alternate in-header-list? function
+inhdr='echo " "; td=$define; tu=$undef; yyy=$@;
+cont=true; xxf="echo \"<\$1> found.\" >&4";
+case $# in 2) xxnf="echo \"<\$1> NOT found.\" >&4";;
+*) xxnf="echo \"<\$1> NOT found, ...\" >&4";;
+esac;
+case $# in 4) instead=instead;; *) instead="at last";; esac;
+while $test "$cont"; do
+	xxx=`./findhdr $1`
+	var=$2; eval "was=\$$2";
+	if $test "$xxx" && $test -r "$xxx";
+	then eval $xxf;
+	eval "case \"\$$var\" in $undef) . ./whoa; esac"; eval "$var=\$td";
+		cont="";
+	else eval $xxnf;
+	eval "case \"\$$var\" in $define) . ./whoa; esac"; eval "$var=\$tu"; fi;
+	set $yyy; shift; shift; yyy=$@;
+	case $# in 0) cont="";;
+	2) xxf="echo \"but I found <\$1> $instead.\" >&4";
+		xxnf="echo \"and I did not find <\$1> either.\" >&4";;
+	*) xxf="echo \"but I found <\$1\> instead.\" >&4";
+		xxnf="echo \"there is no <\$1>, ...\" >&4";;
+	esac;
+done;
+while $test "$yyy";
+do set $yyy; var=$2; eval "was=\$$2";
+	eval "case \"\$$var\" in $define) . ./whoa; esac"; eval "$var=\$tu";
+	set $yyy; shift; shift; yyy=$@;
+done'
+
+: see if this is a netinet/in.h or sys/in.h system
+set netinet/in.h i_niin sys/in.h i_sysin
+eval $inhdr
+
+: see if this is a netinet/ip.h system
+set netinet/ip.h i_niip
+eval $inhdr
+
+: check for IP TOS support
+echo " "
+echo "Checking for IP TOS (Type of Service) support..." >&4
+case "$i_niin" in
+"$define") inh=netinet/in.h;;
+*)
+	case "$i_sysin" in
+	"$define") inh=sys/in.h;;
+	esac
+	;;
+esac
+$cat >iptos <<EOM
+#include <sys/socket.h>
+#include <$inh>
+#if defined(IP_TOS) && defined(IPTOS_LOWDELAY) && defined(IPTOS_THROUGHPUT)
+YES
+#endif
+EOM
+$cppstdin $cppflags $cppminus <iptos >iptos.h
+val="$undef"
+if $contains 'YES' iptos.h >/dev/null 2>&1; then
+	val="$define"
+	echo "You have IP TOS support in <$inh>."
+elif $test "x$i_niip" = "x$define"; then
+	$cat >iptos <<EOM
+	#include <sys/socket.h>
+	#include <$inh>
+	#include <netinet/ip.h>
+	#if defined(IP_TOS) && defined(IPTOS_LOWDELAY) && defined(IPTOS_THROUGHPUT)
+	YES
+	#endif
+EOM
+	$cppstdin $cppflags $cppminus <iptos >iptos.h
+	if $contains 'YES' iptos.h >/dev/null 2>&1; then
+		val="$define"
+		echo "You have IP TOS support in <netinet/ip.h>."
+	else
+		echo "Sorry, you seem to be lacking IP TOS support.".
+	fi
+fi
+set d_iptos
+eval $setvar
+$rm -f iptos iptos.h
+
 : Look for isascii
 echo " "
 $cat >isascii.c <<'EOCP'
@@ -3303,66 +3521,6 @@ h_fcntl=false
 
 : Initialize h_sysfile
 h_sysfile=false
-
-: determine filename position in cpp output
-echo " "
-echo "Computing filename position in cpp output for #include directives..." >&4
-echo '#include <stdio.h>' > foo.c
-$cat >fieldn <<EOF
-$startsh
-$cppstdin $cppflags $cppminus <foo.c 2>/dev/null | \
-$grep '^[ 	]*#.*stdio\.h' | \
-while read cline; do
-	pos=1
-	set \$cline
-	while $test \$# -gt 0; do
-		if $test -r \`echo \$1 | $tr -d '"'\`; then
-			echo "\$pos"
-			exit 0
-		fi
-		shift
-		pos=\`expr \$pos + 1\`
-	done
-done
-EOF
-chmod +x fieldn
-fieldn=`./fieldn`
-$rm -f foo.c fieldn
-case $fieldn in
-'') pos='???';;
-1) pos=first;;
-2) pos=second;;
-3) pos=third;;
-*) pos="${fieldn}th";;
-esac
-echo "Your cpp writes the filename in the $pos field of the line."
-
-: locate header file
-$cat >findhdr <<EOF
-$startsh
-wanted=\$1
-name=''
-if test -f $usrinc/\$wanted; then
-	echo "$usrinc/\$wanted"
-	exit 0
-fi
-awkprg='{ print \$$fieldn }'
-echo "#include <\$wanted>" > foo\$\$.c
-$cppstdin $cppminus $cppflags < foo\$\$.c 2>/dev/null | \
-$grep "^[ 	]*#.*\$wanted" | \
-while read cline; do
-	name=\`echo \$cline | $awk "\$awkprg" | $tr -d '"'\`
-	case "\$name" in
-	*/\$wanted) echo "\$name"; exit 0;;
-	*) name='';;
-	esac;
-done;
-$rm -f foo\$\$.c;
-case "\$name" in
-'') exit 1;;
-esac
-EOF
-chmod +x findhdr
 
 : Locate the flags for 'open()'
 echo " "
@@ -3541,30 +3699,6 @@ eval $inlibc
 : see if sysctl exists
 set sysctl d_sysctl
 eval $inlibc
-
-: ask them wich GTK+ version they want
-$cat <<'EOM'
-
-I can compile for the GTK+ 1.x version or for the GTK+ 2.x version.
-The GTK1 frontend will use much less CPU than the GTK2 one, so if you
-have a slow CPU, you are encouraged to choose GTK1.
-
-EOM
-case "$gtkversion" in
-'') dflt=1;;
-2) dflt=2;;
-*) dflt=1;;
-esac
-rp="Use which GTK toolkit (1 or 2)"
-. ./myread
-case "$ans" in
-2)
-	gtkversion=2; gtkpackage=gtk+-2.0
-	d_usegtk2="$define"; d_usegtk1="$undef";;
-*)
-	gtkversion=1; gtkpackage=gtk+
-	d_usegtk1="$define"; d_usegtk2="$undef";;
-esac
 
 : check for volatile keyword
 echo " "
@@ -4036,36 +4170,6 @@ none) yaccflags='';;
 *) yaccflags="$ans";;
 esac
 
-: define an alternate in-header-list? function
-inhdr='echo " "; td=$define; tu=$undef; yyy=$@;
-cont=true; xxf="echo \"<\$1> found.\" >&4";
-case $# in 2) xxnf="echo \"<\$1> NOT found.\" >&4";;
-*) xxnf="echo \"<\$1> NOT found, ...\" >&4";;
-esac;
-case $# in 4) instead=instead;; *) instead="at last";; esac;
-while $test "$cont"; do
-	xxx=`./findhdr $1`
-	var=$2; eval "was=\$$2";
-	if $test "$xxx" && $test -r "$xxx";
-	then eval $xxf;
-	eval "case \"\$$var\" in $undef) . ./whoa; esac"; eval "$var=\$td";
-		cont="";
-	else eval $xxnf;
-	eval "case \"\$$var\" in $define) . ./whoa; esac"; eval "$var=\$tu"; fi;
-	set $yyy; shift; shift; yyy=$@;
-	case $# in 0) cont="";;
-	2) xxf="echo \"but I found <\$1> $instead.\" >&4";
-		xxnf="echo \"and I did not find <\$1> either.\" >&4";;
-	*) xxf="echo \"but I found <\$1\> instead.\" >&4";
-		xxnf="echo \"there is no <\$1>, ...\" >&4";;
-	esac;
-done;
-while $test "$yyy";
-do set $yyy; var=$2; eval "was=\$$2";
-	eval "case \"\$$var\" in $define) . ./whoa; esac"; eval "$var=\$tu";
-	set $yyy; shift; shift; yyy=$@;
-done'
-
 : see if this is a langinfo system
 set langinfo.h i_langinfo
 eval $inhdr
@@ -4086,10 +4190,106 @@ eval $inhdr
 set sys/sysctl.h i_syssysctl
 eval $inhdr
 
+: see if deflate exists
+set deflate d_deflate
+eval $inlibc
+
+: see if inflate exists
+set inflate d_inflate
+eval $inlibc
+
+: see if this is a zlib.h system
+set zlib.h i_zlib
+eval $inhdr
+
+: see if this is a unicode/putil.h system
+set unicode/putil.h i_uni_putil
+eval $inhdr
+
+: check to ensire unicode/putil.h compiles if present
+case "$i_uni_putil" in
+"$define") 
+	echo "#include <unicode/putil.h>" >t.c
+	if $cc -c $ccflags t.c >/dev/null 2>&1; then
+		: ok
+	else
+		echo "But it does not compile, sorry."
+		i_uni_putil="$undef"
+	fi
+	;;
+esac
+$rm -f t.c
+
+: see if ucnv_open_2_6 exists
+set ucnv_open_2_6 d_ucnv_open_2_6
+eval $inlibc
+
+: check whether we have a working ICU library
+echo " "
+case " $libs " in
+*" -licuuc "*)
+	case "$i_uni_putil$d_ucnv_open_2_6" in
+	"$define$define")
+		echo "Your ICU library is workable." >&4
+		val="$define"
+		;;
+	*)
+		echo "Your ICU library is present, but unworkable." >&4
+		val="$undef"
+		;;
+	esac
+	;;
+*)
+	echo "You have no ICU library installed." >&4
+	val="$undef"
+	;;
+esac
+set d_icu
+eval $setvar
+case "$d_icu" in
+"$define") icu=true;;
+*) icu=false;;
+esac
+
 : end of configuration questions
 echo " "
 echo "End of configuration questions."
-echo " "
+frontend="GTK1"
+case "$gtkversion" in
+2) frontend="GTK2";;
+esac
+persistent=no
+case "$d_libxml2" in
+"$define") persistent=yes;;
+esac
+zlib=no
+case " $libs " in
+*" -lz "*)
+	case "$i_zlib$d_deflate$d_inflate" in
+	"$define$define$define") zlib=yes;;
+	esac
+	;;
+esac
+remote=no
+if $remotectrl; then remote=yes; fi
+unicode=no
+if $icu; then unicode=yes; fi
+iptos=no
+case "$d_iptos" in
+"$define") iptos=yes;;
+esac
+$cat >&4 <<EOM
+
+Feature Summary:
+-------------------------------------------------
+GUI front-end                      : $frontend
+Persistent filters                 : $persistent
+Experimental remote control        : $remote
+Gnutella traffic compression       : $zlib
+IP TOS (Type of Service)           : $iptos
+Extended non-roman charset support : $unicode
+-------------------------------------------------
+EOM
 
 : back to where it started
 if test -d ../UU; then
@@ -4183,12 +4383,16 @@ d_bcopy='$d_bcopy'
 d_bindtxtcode='$d_bindtxtcode'
 d_bsd='$d_bsd'
 d_const='$d_const'
+d_deflate='$d_deflate'
 d_eunice='$d_eunice'
 d_gnulibc='$d_gnulibc'
 d_herror='$d_herror'
 d_hstrerror='$d_hstrerror'
+d_icu='$d_icu'
 d_index='$d_index'
 d_inetaton='$d_inetaton'
+d_inflate='$d_inflate'
+d_iptos='$d_iptos'
 d_isascii='$d_isascii'
 d_libxml2='$d_libxml2'
 d_memcpy='$d_memcpy'
@@ -4196,6 +4400,7 @@ d_oldsock='$d_oldsock'
 d_open3='$d_open3'
 d_portable='$d_portable'
 d_random='$d_random'
+d_remotectrl='$d_remotectrl'
 d_sendfile='$d_sendfile'
 d_socket='$d_socket'
 d_sockpair='$d_sockpair'
@@ -4204,6 +4409,7 @@ d_strcasestr='$d_strcasestr'
 d_strchr='$d_strchr'
 d_strlcpy='$d_strlcpy'
 d_sysctl='$d_sysctl'
+d_ucnv_open_2_6='$d_ucnv_open_2_6'
 d_usegtk1='$d_usegtk1'
 d_usegtk2='$d_usegtk2'
 d_volatile='$d_volatile'
@@ -4239,10 +4445,16 @@ hint='$hint'
 huge='$huge'
 i_langinfo='$i_langinfo'
 i_libcharset='$i_libcharset'
+i_niin='$i_niin'
+i_niip='$i_niip'
 i_string='$i_string'
+i_sysin='$i_sysin'
 i_sysparam='$i_sysparam'
 i_syssendfile='$i_syssendfile'
 i_syssysctl='$i_syssysctl'
+i_uni_putil='$i_uni_putil'
+i_zlib='$i_zlib'
+icu='$icu'
 incpath='$incpath'
 inews='$inews'
 installprivlib='$installprivlib'
@@ -4294,6 +4506,7 @@ prefixexp='$prefixexp'
 privlib='$privlib'
 privlibexp='$privlibexp'
 prototype='$prototype'
+remotectrl='$remotectrl'
 rm='$rm'
 rmail='$rmail'
 runnm='$runnm'

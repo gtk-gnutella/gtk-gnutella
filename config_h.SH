@@ -178,6 +178,14 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
  */
 #$d_hstrerror HAS_HSTRERROR		/**/
 
+/* USE_IP_TOS:
+ *	This symbol, if defined, indicates that the IP TOS services are
+ *	available and can be used.  Be prepared to include <sys/socket.h>,
+ * either <netinet/in.h> or <sys/in.h>, and <netinet/ip.h> when
+ *	I_NETINET_IP is defined.
+ */
+#$d_iptos USE_IP_TOS		/**/
+
 /* HAS_RANDOM:
  *	This symbol, if defined, indicates that the random routine is
  *	available.
@@ -232,6 +240,12 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
  */
 #$i_libcharset I_LIBCHARSET		/**/
 
+/* I_NETINET_IP:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <netinet/ip.h>.
+ */
+#$i_niip I_NETINET_IP	/**/
+
 /* I_SYS_SENDFILE:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <sys/sendfile.h>.
@@ -257,6 +271,11 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
  */
 #$d_usegtk1 USE_GTK1    /**/
 #$d_usegtk2 USE_GTK2    /**/
+
+/* USE_REMOTE_CTRL:
+ * This symbol is defined when they want remote control support.
+ */
+#$d_remotectrl USE_REMOTE_CTRL    /**/
 
 /* HAS_LIBXML2:
  * This symbol is defined when libxml 2.4.19, at least, is present.
