@@ -1064,7 +1064,7 @@ static struct parq_ul_queue *parq_upload_which_queue(gnutella_upload_t *u)
 	 * Smallest: PARQ_UL_LARGE_SIZE / 2^(parq_upload_slots-1)
 	 */
 	
-	for(slot = 1 ; slot <= max_uploads; slot++) {
+	for (slot = 1 ; slot <= max_uploads; slot++) {
 		if (u->file_size > size || slot >= max_uploads)
 			break;
 		size = size / 2;
@@ -1460,9 +1460,6 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 		}
 
 		if (uq->relative_position == pos) {
-			g_assert(uq->relative_position <= 
-				  max_uploads - uq->queue->active_uploads);
-
 			if (dbg)
 				printf("PARQ UL: Upload %d[%d] is allowed to continue\r\n",
 					  uq->position, uq->relative_position);
