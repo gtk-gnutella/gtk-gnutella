@@ -1,5 +1,8 @@
 # since last version
 
+- (2004-10-23 - Richard)
+ * [Gtk1] Removed autoselection controlling. Now we only autoselect the whole branch.
+
 - (2004-10-19 - Richard)
  * [Gtk1] Added "Configure columns" to nodes pane
  * [Gtk1] [Gtk2] Removed nodes column configuration checkboxes
