@@ -59,7 +59,7 @@ RCSID("$Id$");
  * `stepvec' is the set of steps we have to run (normally in sequence).
  */
 struct bgtask {
-	gint magic;				/* Magic number */
+	guint magic;			/* Magic number */
 	guint32 flags;			/* Operating flags */
 	gchar *name;			/* Task name */
 	gint step;				/* Current processing step */
