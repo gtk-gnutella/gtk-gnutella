@@ -10084,8 +10084,12 @@ create_dlg_prefs (void)
   GtkWidget *entry_config_bad_path;
   GtkWidget *button_config_bad_path;
   GtkWidget *frame136;
+  GtkWidget *table94;
   guint checkbutton_config_convert_spaces_key;
   GtkWidget *checkbutton_config_convert_spaces;
+  guint checkbutton_config_convert_evil_chars_key;
+  GtkWidget *checkbutton_config_convert_evil_chars;
+  GtkWidget *checkbutton_config_convert_old_filenames;
   GtkWidget *frame16;
   GtkWidget *table46;
   GtkWidget *label171;
@@ -13394,13 +13398,21 @@ create_dlg_prefs (void)
   gtk_widget_show (button_config_bad_path);
   gtk_box_pack_start (GTK_BOX (hbox158), button_config_bad_path, FALSE, FALSE, 0);
 
-  frame136 = gtk_frame_new (NULL);
+  frame136 = gtk_frame_new (_("Miscellaneous"));
   gtk_widget_set_name (frame136, "frame136");
   gtk_widget_ref (frame136);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "frame136", frame136,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame136);
   gtk_box_pack_start (GTK_BOX (vbox38), frame136, TRUE, TRUE, 0);
+
+  table94 = gtk_table_new (3, 1, FALSE);
+  gtk_widget_set_name (table94, "table94");
+  gtk_widget_ref (table94);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table94", table94,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table94);
+  gtk_container_add (GTK_CONTAINER (frame136), table94);
 
   checkbutton_config_convert_spaces = gtk_check_button_new_with_label ("");
   checkbutton_config_convert_spaces_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_convert_spaces)->child),
@@ -13412,7 +13424,33 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_convert_spaces", checkbutton_config_convert_spaces,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_config_convert_spaces);
-  gtk_container_add (GTK_CONTAINER (frame136), checkbutton_config_convert_spaces);
+  gtk_table_attach (GTK_TABLE (table94), checkbutton_config_convert_spaces, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_convert_evil_chars = gtk_check_button_new_with_label ("");
+  checkbutton_config_convert_evil_chars_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_convert_evil_chars)->child),
+                                   _("Convert \"evil\" characters (like shell meta characters) to \"__\" in filenames"));
+  gtk_widget_add_accelerator (checkbutton_config_convert_evil_chars, "clicked", accel_group,
+                              checkbutton_config_convert_evil_chars_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (checkbutton_config_convert_evil_chars, "checkbutton_config_convert_evil_chars");
+  gtk_widget_ref (checkbutton_config_convert_evil_chars);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_convert_evil_chars", checkbutton_config_convert_evil_chars,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_convert_evil_chars);
+  gtk_table_attach (GTK_TABLE (table94), checkbutton_config_convert_evil_chars, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_convert_old_filenames = gtk_check_button_new_with_label (_("Apply above conversions, upon startup, to existing files in the downloading directory"));
+  gtk_widget_set_name (checkbutton_config_convert_old_filenames, "checkbutton_config_convert_old_filenames");
+  gtk_widget_ref (checkbutton_config_convert_old_filenames);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_convert_old_filenames", checkbutton_config_convert_old_filenames,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_convert_old_filenames);
+  gtk_table_attach (GTK_TABLE (table94), checkbutton_config_convert_old_filenames, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   frame16 = gtk_frame_new (_("Resume and retry"));
   gtk_widget_set_name (frame16, "frame16");

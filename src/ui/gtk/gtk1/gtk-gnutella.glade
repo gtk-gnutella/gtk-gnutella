@@ -19194,6 +19194,7 @@ allowed</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame136</name>
+	      <label>Miscellaneous</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -19203,12 +19204,82 @@ allowed</label>
 	      </child>
 
 	      <widget>
-		<class>GtkCheckButton</class>
-		<name>checkbutton_config_convert_spaces</name>
-		<can_focus>True</can_focus>
-		<label>Convert spaces to &quot;__&quot;  in generated file names</label>
-		<active>False</active>
-		<draw_indicator>True</draw_indicator>
+		<class>GtkTable</class>
+		<name>table94</name>
+		<rows>3</rows>
+		<columns>1</columns>
+		<homogeneous>False</homogeneous>
+		<row_spacing>0</row_spacing>
+		<column_spacing>0</column_spacing>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_config_convert_spaces</name>
+		  <can_focus>True</can_focus>
+		  <label>Convert spaces to &quot;__&quot;  in generated file names</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>0</left_attach>
+		    <right_attach>1</right_attach>
+		    <top_attach>0</top_attach>
+		    <bottom_attach>1</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_config_convert_evil_chars</name>
+		  <can_focus>True</can_focus>
+		  <label>Convert &quot;evil&quot; characters (like shell meta characters) to &quot;__&quot; in filenames</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>0</left_attach>
+		    <right_attach>1</right_attach>
+		    <top_attach>1</top_attach>
+		    <bottom_attach>2</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckButton</class>
+		  <name>checkbutton_config_convert_old_filenames</name>
+		  <can_focus>True</can_focus>
+		  <label>Apply above conversions, upon startup, to existing files in the downloading directory</label>
+		  <active>False</active>
+		  <draw_indicator>True</draw_indicator>
+		  <child>
+		    <left_attach>0</left_attach>
+		    <right_attach>1</right_attach>
+		    <top_attach>2</top_attach>
+		    <bottom_attach>3</bottom_attach>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <xexpand>False</xexpand>
+		    <yexpand>False</yexpand>
+		    <xshrink>False</xshrink>
+		    <yshrink>False</yshrink>
+		    <xfill>True</xfill>
+		    <yfill>False</yfill>
+		  </child>
+		</widget>
 	      </widget>
 	    </widget>
 

@@ -1605,14 +1605,14 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label493 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label494 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -13075,6 +13075,7 @@ create_dlg_prefs_dl_tab (void)
   GtkWidget *table97;
   GtkWidget *checkbutton_config_convert_spaces;
   GtkWidget *checkbutton_config_convert_evil_chars;
+  GtkWidget *checkbutton_config_convert_old_filenames;
   GtkWidget *label880;
   GtkWidget *hbox283;
   GtkWidget *frame_expert_dl_source_quality;
@@ -13322,7 +13323,7 @@ create_dlg_prefs_dl_tab (void)
   gtk_widget_show (frame123);
   gtk_box_pack_start (GTK_BOX (vbox38), frame123, FALSE, TRUE, 0);
 
-  table97 = gtk_table_new (2, 1, FALSE);
+  table97 = gtk_table_new (3, 1, FALSE);
   gtk_widget_set_name (table97, "table97");
   gtk_widget_show (table97);
   gtk_container_add (GTK_CONTAINER (frame123), table97);
@@ -13338,6 +13339,13 @@ create_dlg_prefs_dl_tab (void)
   gtk_widget_set_name (checkbutton_config_convert_evil_chars, "checkbutton_config_convert_evil_chars");
   gtk_widget_show (checkbutton_config_convert_evil_chars);
   gtk_table_attach (GTK_TABLE (table97), checkbutton_config_convert_evil_chars, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+
+  checkbutton_config_convert_old_filenames = gtk_check_button_new_with_mnemonic (_("Apply above conversions, upon startup, to existing files in the downloading directory"));
+  gtk_widget_set_name (checkbutton_config_convert_old_filenames, "checkbutton_config_convert_old_filenames");
+  gtk_widget_show (checkbutton_config_convert_old_filenames);
+  gtk_table_attach (GTK_TABLE (table97), checkbutton_config_convert_old_filenames, 0, 1, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 4, 0);
 
@@ -13844,6 +13852,7 @@ create_dlg_prefs_dl_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, table97, "table97");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_convert_spaces, "checkbutton_config_convert_spaces");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_convert_evil_chars, "checkbutton_config_convert_evil_chars");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, checkbutton_config_convert_old_filenames, "checkbutton_config_convert_old_filenames");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, label880, "label880");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, hbox283, "hbox283");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dl_tab, frame_expert_dl_source_quality, "frame_expert_dl_source_quality");
