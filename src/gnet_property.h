@@ -91,6 +91,7 @@ typedef enum {
     PROP_LIB_DEBUG,    
     PROP_GWC_DEBUG,    
     PROP_URL_DEBUG,    
+    PROP_DH_DEBUG,    
     PROP_DQ_DEBUG,    
     PROP_TRACK_PROPS,    
     PROP_STOP_HOST_GET,    
