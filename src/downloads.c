@@ -371,6 +371,16 @@ void download_stop(struct download *d, guint32 new_status,
 		return;
 	}
 
+	if (reason) {
+		va_list args;
+		va_start(args, reason);
+		g_vsnprintf(d->error_str, sizeof(d->error_str), reason, args);
+		d->error_str[sizeof(d->error_str) - 1] = '\0';	/* May be truncated */
+		va_end(args);
+		d->remove_msg = d->error_str;
+	} else
+		d->remove_msg = NULL;
+
 	if (d->file_desc != -1) {		/* Close output file */
 		close(d->file_desc);
 		d->file_desc = -1;
@@ -389,16 +399,6 @@ void download_stop(struct download *d, guint32 new_status,
 
 	if (d->status != GTA_DL_TIMEOUT_WAIT)
 		d->retries = 0;		/* If they retry, go over whole cycle again */
-
-	if (reason) {
-		va_list args;
-		va_start(args, reason);
-		g_vsnprintf(d->error_str, sizeof(d->error_str), reason, args);
-		d->error_str[sizeof(d->error_str) - 1] = '\0';	/* May be truncated */
-		va_end(args);
-		d->remove_msg = d->error_str;
-	} else
-		d->remove_msg = NULL;
 
 	if (DOWNLOAD_IS_VISIBLE(d))
 		gui_update_download(d, TRUE);
