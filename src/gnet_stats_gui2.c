@@ -313,8 +313,8 @@ static void gnet_stats_update_types(
 	const gnet_stats_t *stats,
 	GtkTreeView *treeview,
 	gint columns,
-	const guint32 (*byte_counters)[MSG_TYPE_COUNT],
-	const guint32 (*pkg_counters)[MSG_TYPE_COUNT])
+	const guint64 (*byte_counters)[MSG_TYPE_COUNT],
+	const guint64 (*pkg_counters)[MSG_TYPE_COUNT])
 {
     GtkListStore *store;
     GtkTreeIter iter;
@@ -374,8 +374,8 @@ static void gnet_stats_update_types(
 
 static void gnet_stats_update_flowc(const gnet_stats_t *stats)
 {
-	const guint32 (*byte_counters)[MSG_TYPE_COUNT];
-	const guint32 (*pkg_counters)[MSG_TYPE_COUNT];
+	const guint64 (*byte_counters)[MSG_TYPE_COUNT];
+	const guint64 (*pkg_counters)[MSG_TYPE_COUNT];
 	GtkTreeView *treeview = treeview_gnet_stats_flowc;
 	gboolean hops = FALSE;
 
@@ -394,8 +394,8 @@ static void gnet_stats_update_flowc(const gnet_stats_t *stats)
 
 static void gnet_stats_update_recv(const gnet_stats_t *stats)
 {
-	const guint32 (*byte_counters)[MSG_TYPE_COUNT];
-	const guint32 (*pkg_counters)[MSG_TYPE_COUNT];
+	const guint64 (*byte_counters)[MSG_TYPE_COUNT];
+	const guint64 (*pkg_counters)[MSG_TYPE_COUNT];
 	GtkTreeView *treeview = treeview_gnet_stats_recv;
 	gboolean hops = FALSE;
 	
