@@ -133,8 +133,8 @@ guint32  node_sendqueue_size     = 98304;
 guint32  node_sendqueue_size_def = 98304;
 guint32  node_tx_flowc_timeout     = 180;
 guint32  node_tx_flowc_timeout_def = 180;
-guint32  node_rx_flowc_ratio     = 50;
-guint32  node_rx_flowc_ratio_def = 50;
+guint32  node_rx_flowc_ratio     = 70;
+guint32  node_rx_flowc_ratio_def = 70;
 guint32  max_ttl     = 10;
 guint32  max_ttl_def = 10;
 guint32  my_ttl     = 7;
@@ -1413,7 +1413,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[46].data.guint32.def   = &node_tx_flowc_timeout_def;
     gnet_property->props[46].data.guint32.value = &node_tx_flowc_timeout;
     gnet_property->props[46].data.guint32.choices = NULL;
-    gnet_property->props[46].data.guint32.max   = 100000;
+    gnet_property->props[46].data.guint32.max   = 7200;
     gnet_property->props[46].data.guint32.min   = 60;
 
 
@@ -1434,7 +1434,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[47].data.guint32.value = &node_rx_flowc_ratio;
     gnet_property->props[47].data.guint32.choices = NULL;
     gnet_property->props[47].data.guint32.max   = 100;
-    gnet_property->props[47].data.guint32.min   = 10;
+    gnet_property->props[47].data.guint32.min   = 30;
 
 
     /*

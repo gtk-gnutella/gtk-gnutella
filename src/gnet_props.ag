@@ -576,7 +576,7 @@ prop = {
     data = {
         default = 180;
         min     = 60;
-        max     = 100000;
+        max     = 7200;
     };
 };
 
@@ -588,8 +588,8 @@ prop = {
 		   "they are flow-controlling us.";
     type = guint32;
     data = {
-        default = 50;
-        min     = 10;
+        default = 70;
+        min     = 30;
         max     = 100;
     };
 };
