@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Sun Aug 10 16:55:16 MEST 2003 [metaconfig 3.0 PL70]
+# Generated on Sun Aug 10 23:49:57 MEST 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -228,6 +228,9 @@ State=''
 archobjs=''
 firstmakefile=''
 afs=''
+bin=''
+binexp=''
+installbin=''
 cc=''
 gccversion=''
 ccflags=''
@@ -301,6 +304,8 @@ i_uni_putil=''
 i_zlib=''
 d_icu=''
 icu=''
+install=''
+installdir=''
 libc=''
 glibpth=''
 libpth=''
@@ -1160,9 +1165,13 @@ $eunicefix loc
 loclist="
 awk
 cat
+chgrp
+chmod
+chown
 echo
 expr
 grep
+mkdir
 mv
 rm
 sed
@@ -1457,24 +1466,6 @@ case "$ans" in
 	gtkversion=1; gtkpackage=gtk+
 	d_usegtk1="$define"; d_usegtk2="$undef";;
 esac
-
-: is AFS running?
-echo " "
-case "$afs" in
-$define|true)	afs=true ;;
-$undef|false)	afs=false ;;
-*)	if test -d /afs; then
-		afs=true
-	else
-		afs=false
-	fi
-	;;
-esac
-if $afs; then
-	echo "AFS may be running... I'll be extra cautious then..." >&4
-else
-	echo "AFS does not seem to be running..." >&4
-fi
 
 : decide how portable to be
 case "$d_portable" in
@@ -1810,6 +1801,56 @@ prefixit='case "$3" in
 	*) eval "$1=\"\$$2\"";;
 	esac;;
 esac'
+
+: is AFS running?
+echo " "
+case "$afs" in
+$define|true)	afs=true ;;
+$undef|false)	afs=false ;;
+*)	if test -d /afs; then
+		afs=true
+	else
+		afs=false
+	fi
+	;;
+esac
+if $afs; then
+	echo "AFS may be running... I'll be extra cautious then..." >&4
+else
+	echo "AFS does not seem to be running..." >&4
+fi
+
+: determine where public executables go
+echo " "
+set dflt bin bin
+eval $prefixit
+fn=d~
+rp='Pathname where the public executables will reside?'
+. ./getfile
+if $test "X$ansexp" != "X$binexp"; then
+	installbin=''
+fi
+bin="$ans"
+binexp="$ansexp"
+if $afs; then
+	$cat <<EOM
+
+Since you are running AFS, I need to distinguish the directory in which
+executables reside from the directory in which they are installed (and from
+which they are presumably copied to the former directory by occult means).
+
+EOM
+	case "$installbin" in
+	'') dflt=`echo $binexp | sed 's#^/afs/#/afs/.#'`;;
+	*) dflt="$installbin";;
+	esac
+	fn=de~
+	rp='Where will public executables be installed?'
+	. ./getfile
+	installbin="$ans"
+else
+	installbin="$binexp"
+fi
 
 : determine where private executables go
 set dflt privlib lib/$package
@@ -3735,6 +3776,9 @@ $rm -f try.*
 set vsnprintf d_vsnprintf
 eval $inlibc
 
+: preserve RCS keywords in files with variable substitution, grrr
+Id='$Id'
+
 : derive which glade to use based on the configure GTK+
 echo " "
 case "$gtkversion" in
@@ -3796,6 +3840,130 @@ esac
 
 gtkcflags=`$gtkconfig --cflags`
 gtkldflags=`$gtkconfig --libs`
+
+: locate a BSD compatible install program
+echo " "
+echo "Looking for a BSD-compatible install program..." >&4
+creatdir=''
+case "$install" in
+'')
+	tryit=''
+	for dir in $pth; do
+		for file in ginstall installbsd scoinst install; do
+			if $test -f $dir/$file; then
+				tryit="$tryit $dir/$file"
+			fi
+		done
+	done
+	$cat >try.c <<EOC
+main()
+{
+	printf("OK\n");
+	exit(0);
+}
+EOC
+	if $cc try.c -o try >/dev/null 2>&1; then
+		cp try try.ns
+		strip try >/dev/null 2>&1
+	else
+		echo "(I can't seem to compile a trivial C program -- bypassing.)"
+		echo "try" >try
+		cp try try.ns
+	fi
+	$cat >tryinst <<EOS
+$startsh
+$rm -rf foo d
+\$1 -d foo/bar
+$mkdir d
+\$1 -c -m 764 try.ns d
+\$1 -c -s -m 642 try.ns d/try
+EOS
+	chmod +x tryinst
+	$eunicefix tryinst
+	dflt=''
+	either=''
+	for prog in $tryit; do
+		$echo $n "Checking $prog... $c"
+		./tryinst $prog >/dev/null 2>&1
+		if $test -d foo/bar; then
+			creatdir="$prog -d"
+		fi
+		(ls -l d/try >try.ls; ls -l d/try.ns >tryno.ls) 2>/dev/null
+		if (cmp -s d/try try && cmp -s d/try.ns try.ns && \
+			$contains 'rwxrw-r--' tryno.ls && \
+			$contains 'rw-r---w-' try.ls) >/dev/null 2>&1
+		then
+			dflt="$prog"
+			echo "ok, that will do."
+			break
+		fi
+		echo "not good$either."
+		either=' either'
+		$rm -f try*.ls
+	done
+	$rm -rf foo d tryinst try try*.ls try.*
+	case "$dflt" in
+	'')
+		echo "Hopefully, $package comes with its own install script!"
+		dflt='./install'
+		;;
+	esac
+	;;
+*) dflt="$install";;
+esac
+$cat <<EOM
+
+I will be requiring a BSD-compatible install program (one that allows
+options like -s to strip executables or -m to specify a file mode) to
+install $package.
+
+If the question below contains a fully qualified default path, then it
+is probably ok. If it is an unqualified name such as 'install', then it
+means I was unable to find out a good install program I could use. If
+you know of one, please tell me about it. If the default is './install',
+then I shall be using the install script supplied with $package.
+
+EOM
+fn='/fe~(install,./install)'
+rp='Which install program shall I use?'
+. ./getfile
+install="$ans"
+
+: how can we create nested directories?
+echo " "
+echo "Ok, let's see how we can create nested directories..." >&4
+case "$installdir" in
+'')
+	case "$creatdir" in
+	'')
+		$mkdir -p foo/bar >/dev/null 2>&1
+		if $test -d foo/bar; then
+			echo "Great, we can build them using 'mkdir -p'."
+			creatdir='mkdir -p'
+		elif eval "$install -d foo/bar"; $test -d foo/bar; then
+			creatdir="install -d"
+			echo "It looks like '$creatdir' will do it for us."
+		fi
+		;;
+	*)
+		eval "$creatdir foo/bar" >/dev/null 2>&1
+		if $test -d foo/bar; then
+			echo "Ah! We can use '$creatdir' to do just that."
+		fi
+		;;
+	esac
+	$rm -rf foo
+	case "$creatdir" in
+	'')
+		echo "Heck! Another ancient system lacking the comfort of modern ones!"
+		echo "You can thank $package for bringing you its own install script!"
+		installdir='./install -d'
+		;;
+	*) installdir="$creatdir";;
+	esac
+	;;
+*) echo "As you already told me, '$installdir' should work.";;
+esac
 
 : find out how to generate dependencies
 echo " "
@@ -4355,6 +4523,8 @@ ar='$ar'
 archobjs='$archobjs'
 awk='$awk'
 bash='$bash'
+bin='$bin'
+binexp='$binexp'
 bison='$bison'
 byacc='$byacc'
 c='$c'
@@ -4457,6 +4627,9 @@ i_zlib='$i_zlib'
 icu='$icu'
 incpath='$incpath'
 inews='$inews'
+install='$install'
+installbin='$installbin'
+installdir='$installdir'
 installprivlib='$installprivlib'
 ksh='$ksh'
 large='$large'
@@ -4583,9 +4756,6 @@ EOM
 		;;
 	esac
 fi
-
-: preserve RCS keywords in files with variable substitution, grrr
-Id='$Id'
 
 : Finish up by extracting the .SH files
 case "$alldone" in
