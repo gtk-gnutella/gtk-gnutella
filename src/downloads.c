@@ -948,7 +948,9 @@ void download_pickup_queued(void)
 	 * Enable "Start now" only if we would not exceed limits.
 	 */
 
-	gtk_widget_set_sensitive(popup_queue_start_now, running < max_downloads); 
+	gtk_widget_set_sensitive(popup_queue_start_now, 
+							 (running < max_downloads) && 
+							 (GTK_CLIST(clist_downloads_queue)->selection)); 
 
 	gtk_clist_thaw(GTK_CLIST(clist_downloads_queue));
 }
