@@ -558,8 +558,11 @@ static void parse_dispatch_lines(
 
 		linep = getline_str(getline);
 		linelen = str_chomp(linep, getline_length(getline));
-		if (!(*cb)(ctx, linep, linelen))
+
+		if (!(*cb)(ctx, linep, linelen)) {
+			clear_current_url();		/* An ERROR was reported */
 			return;
+		}
 
 		/*
 		 * Make sure we don't process lines ad infinitum.
