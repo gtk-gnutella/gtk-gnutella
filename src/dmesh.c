@@ -1902,12 +1902,13 @@ static void dmesh_header_print(FILE *out)
 {
 	file_config_preamble(out, "Download mesh");
 
-	fputs("#\n# Format is:\n", out);
-	fputs("#   SHA1\n", out);
-	fputs("#   URL1 timestamp1\n", out);
-	fputs("#   URL2 timestamp2\n", out);
-	fputs("#   <blank line>\n", out);
-	fputs("#\n\n", out);
+	fputs(	"#\n# Format is:\n"
+			"#   SHA1\n"
+			"#   URL1 timestamp1\n"
+			"#   URL2 timestamp2\n"
+			"#   <blank line>\n"
+			"#\n\n",
+			out);
 }
 
 /*
@@ -2016,9 +2017,9 @@ static void dmesh_ban_header_print(FILE *out)
 {
 	file_config_preamble(out, "Banned mesh");
 
-	fputs("#\n# Format is:\n", out);
-	fputs("#  timestamp URL\n", out);
-	fputs("#\n\n", out);
+	fputs(	"#\n# Format is:\n"
+			"#  timestamp URL\n"
+			"#\n\n", out);
 }
 
 /*

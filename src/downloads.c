@@ -6079,15 +6079,14 @@ static void download_store(void)
 
 	file_config_preamble(out, "Downloads");
 
-	fputs("#\n# Format is:\n", out);
-	fputs("#   File name\n", out);
-	fputs("#   size, index:GUID, IP:port\n", out);
-	fputs("#   SHA1 or * if none\n", out);
-	fputs("#   PARQ id or * if none\n", out);
-	fputs("#   <blank line>\n", out);
-	fputs("#\n\n", out);
-
-	fputs("RECLINES=4\n\n", out);
+	fputs(	"#\n# Format is:\n"
+			"#   File name\n"
+			"#   size, index:GUID, IP:port\n"
+			"#   SHA1 or * if none\n"
+			"#   PARQ id or * if none\n"
+			"#   <blank line>\n"
+			"#\n\n" 
+			"RECLINES=4\n\n", out);
 
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
@@ -6102,14 +6101,18 @@ static void download_store(void)
 		escaped = url_escape_cntrl(d->file_name);	/* Protect against "\n" */
 		id = get_parq_dl_id(d);
 
-		fprintf(out, "%s\n", escaped);
-		fprintf(out, "%u, %u:%s, %s\n",
-			d->file_info->size,
-			d->record_index, guid_hex_str(download_guid(d)),
-			ip_port_to_gchar(download_ip(d), download_port(d)));
-		fprintf(out, "%s\n",
-			d->file_info->sha1 ? sha1_base32(d->file_info->sha1) : "*");
-		fprintf(out, "%s\n\n", id != NULL ? id : "*");
+		fprintf(out,
+			"%s\n"
+			"%u, %u:%s, %s\n"
+			"%s\n"
+			"%s\n\n",
+			escaped,
+			d->file_info->size, d->record_index,
+			guid_hex_str(download_guid(d)),
+			ip_port_to_gchar(download_ip(d), download_port(d)),
+			d->file_info->sha1 ? sha1_base32(d->file_info->sha1) : "*",
+			id != NULL ? id : "*"
+		);
 
 		if (escaped != d->file_name)				/* Lazily dup'ed */
 			g_free(escaped);

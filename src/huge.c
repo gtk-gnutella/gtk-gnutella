@@ -188,7 +188,7 @@ static void add_persistent_cache_entry(
 	 */
 
 	if (0 == ftell(persistent_cache))
-		fprintf(persistent_cache, "%s", sha1_persistent_cache_file_header);
+		fputs(sha1_persistent_cache_file_header, persistent_cache);
 
 	fprintf(persistent_cache, "%s\t%lu\t%ld\t%s\n",
 		sha1_base32(digest), (gulong) size, (glong) mtime, file_name);
@@ -231,7 +231,7 @@ static void dump_cache(void)
 		return;
 	}
 
-	fprintf(persistent_cache, "%s", sha1_persistent_cache_file_header);
+	fputs(sha1_persistent_cache_file_header, persistent_cache);
 	g_hash_table_foreach(sha1_cache,
 		(GHFunc)dump_cache_one_entry, persistent_cache);
 	fclose(persistent_cache);

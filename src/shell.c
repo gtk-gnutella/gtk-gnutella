@@ -735,7 +735,7 @@ static void shell_dump_cookie()
 	if (!out)
 		return;
 
-	fprintf(out, "%s", sha1_base32(auth_cookie));
+	fputs(sha1_base32(auth_cookie), out);
 
 	file_config_close(out, &fp);
 }
