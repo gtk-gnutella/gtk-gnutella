@@ -357,6 +357,16 @@ static prop_map_t property_map[] = {
         "clist_downloads_queue",
         FREQ_UPDATES, 0
     },
+#ifndef USE_GTK2
+    {
+        get_main_window,
+        PROP_FILE_INFO_COL_WIDTHS,
+        update_clist_col_widths,
+        TRUE,
+        "clist_fileinfo",
+        FREQ_UPDATES, 0
+    },
+#endif
 #ifdef USE_GTK2
     {
         get_main_window,
@@ -1695,6 +1705,14 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
+        PROP_BAN_MAX_FDS,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_ban_max_fds",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
         PROP_PROXY_PROTOCOL,
         update_multichoice,
         TRUE,
@@ -1820,7 +1838,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "spinbutton_config_max_leaves",
         FREQ_UPDATES, 0
-    },
+    }, 
     {
         get_main_window,
         PROP_MAX_BANNED_FD,
