@@ -127,7 +127,7 @@ gchar *ip_port_to_gchar(guint32 ip, guint16 port)
  * Copied from icecast.
  * Fixed to returns 0 on failure, 1 on success --RAM, 12/01/2002.
  */
-int inet_aton(const char *s, struct in_addr *a)
+int inet_aton(const char *s, struct in_addr *addr)
 {
 	int a, b, c, d;
 
@@ -135,9 +135,9 @@ int inet_aton(const char *s, struct in_addr *a)
 		return 0;
 
 #if G_BYTE_ORDER == G_BIG_ENDIAN	
-	a->s_addr = d + (c << 8) + (b << 16) + (a << 24);
+	addr->s_addr = d + (c << 8) + (b << 16) + (a << 24);
 #elif G_BYTE_ORDER == G_LITTLE_ENDIAN
-	a->s_addr = a + (b << 8) + (c << 16) + (d << 24);
+	addr->s_addr = a + (b << 8) + (c << 16) + (d << 24);
 #else
 #error Byteorder not supported!
 #endif
