@@ -25,11 +25,41 @@ GtkWidget *default_search_clist = NULL;
 GtkWidget *default_scrolled_window = NULL;
 
 /* statusbar context ids */
-guint scid_bottom = -1;
+guint scid_bottom              = -1;
+guint scid_hostsfile           = -1;
+guint scid_search_autoselected = -1;
+guint scid_queue_freezed       = -1;
+
+/* List with timeout entries for statusbar messages */
+GSList *sl_statusbar_timeouts = NULL;
+
+void gui_init(void)
+{
+	/* popup menus */
+	create_popup_nodes();
+	create_popup_search();
+	create_popup_monitor();
+	create_popup_uploads();
+	create_popup_dl_active();
+	create_popup_dl_queued();	
+
+	/* statusbar stuff */
+	scid_bottom    = 
+		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), "default");
+	scid_hostsfile = 
+		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), "reading hosts file");
+	scid_search_autoselected = 
+		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), "autoselected search items");
+	scid_queue_freezed = 
+		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), "queue freezed");	
+
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", GTA_WEBSITE);
+	gui_statusbar_push(scid_bottom, gui_tmp);
+}
 
 void gui_nodes_remove_selected(void)
 {
-  if (GTK_CLIST(clist_nodes)->selection) {
+	if (GTK_CLIST(clist_nodes)->selection) {
 		struct gnutella_node *n;
 		GList *l = GTK_CLIST(clist_nodes)->selection;
 
@@ -37,35 +67,97 @@ void gui_nodes_remove_selected(void)
 			n = (struct gnutella_node *)
 				gtk_clist_get_row_data(GTK_CLIST(clist_nodes),
                                    (gint) l->data);
-         if( n ) {
-           if( NODE_IS_WRITABLE(n) ) {
-             node_bye(n, 201, "User manual removal");
-             gtk_clist_unselect_row(GTK_CLIST(clist_nodes), (gint) l->data, 0);
-           } else {
-             node_remove(n, NULL);
-             node_real_remove(n);
-           }
-         } else 
-           g_warning( "remove_selected_nodes(): row %d has NULL data\n", 
-                      (gint) l->data);
-         
-         l = GTK_CLIST(clist_nodes)->selection;
+        if (n) {
+			if (NODE_IS_WRITABLE(n)) {
+				node_bye(n, 201, "User manual removal");
+				gtk_clist_unselect_row(GTK_CLIST(clist_nodes), (gint) l->data, 0);
+            } else {
+				node_remove(n, NULL);
+				node_real_remove(n);
+            }
+        } else 
+			g_warning( "remove_selected_nodes(): row %d has NULL data\n", 
+                       (gint) l->data);
+			l = GTK_CLIST(clist_nodes)->selection;
 		}
 	}
 }
 
-void gui_set_status(gchar * msg)
+/* 
+ * gui_statusbar_add_timeout:
+ * 
+ * Add a statusbar message id to the timeout list, so it will be removed
+ * automatically after a number of seconds.
+ */
+void gui_statusbar_add_timeout(guint scid, guint msgid, guint timeout)
 {
-	if( scid_bottom == -1 )
-		scid_bottom = gtk_statusbar_get_context_id( GTK_STATUSBAR(statusbar), "sb" );
+	struct statusbar_timeout * t = NULL;
 
-	gtk_statusbar_pop( GTK_STATUSBAR(statusbar), scid_bottom );
+	g_message( "adding statusbar timeout" );
+	
+    t = g_malloc0(sizeof(struct statusbar_timeout));
+	
+	t->scid    = scid;
+	t->msgid   = msgid;
+	t->timeout = time((time_t *) NULL) + timeout;
 
-    if( msg ) {
-		gtk_statusbar_push( GTK_STATUSBAR(statusbar), scid_bottom, msg );
-    } else {
-		g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", GTA_WEBSITE);
-		gtk_statusbar_push( GTK_STATUSBAR(statusbar), scid_bottom, gui_tmp );
+	sl_statusbar_timeouts = g_slist_prepend(sl_statusbar_timeouts, t);
+}
+
+/*
+ * gui_statusbar_free_timeout:
+ *
+ * Remove the timeout from the timeout list and free allocated memory.
+ */
+static void gui_statusbar_free_timeout(struct statusbar_timeout * t)
+{
+	g_return_if_fail(t);
+
+	g_message("clearing timed out statusbar message");
+
+	gui_statusbar_remove(t->scid, t->msgid);
+
+	sl_statusbar_timeouts = g_slist_remove(sl_statusbar_timeouts, t);
+	
+	g_free(t);
+}
+
+/*
+ * gui_statusbar_clear_timeouts
+ *
+ * Check wether statusbar items have expired and remove them from the statusbar.
+ */
+void gui_statusbar_clear_timeouts(time_t now)
+{
+	GSList *to_remove = NULL;
+	GSList *l;
+	
+	for (l = sl_statusbar_timeouts; l; l = l->next) {
+		struct statusbar_timeout *t = (struct statusbar_timeout *) l->data;
+
+		if (now > t->timeout)  
+			to_remove = g_slist_prepend(to_remove, t);
+	}
+
+	for (l = to_remove; l; l = l->next)
+		gui_statusbar_free_timeout((struct statusbar_timeout *) l->data);
+
+	g_slist_free(to_remove);
+}
+
+/*
+ * gui_statusbar_free_timeout_list:
+ *
+ * Cleat the whole timeout list and free allocated memory.
+ */
+static void gui_statusbar_free_timeout_list() 
+{
+	GSList *l;
+
+	for (l = sl_statusbar_timeouts; l; l = sl_statusbar_timeouts) {
+		struct statusbar_timeout *t = (struct statusbar_timeout *) l->data;
+		
+		gui_statusbar_free_timeout(t);
 	}
 }
 
@@ -260,6 +352,19 @@ void gui_update_socks_pass()
 	gtk_entry_set_text(GTK_ENTRY(entry_config_socks_password), gui_tmp);
 }
 
+void gui_update_bandwidth_input()
+{
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_config_bps_in),
+						      input_bandwidth);
+}
+
+void gui_update_bandwidth_output()
+{
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_config_bps_out),
+						      output_bandwidth);
+}
+
+
 
 void gui_update_scan_extensions(void)
 {
@@ -314,7 +419,8 @@ void gui_update_shared_dirs(void)
 void gui_update_global(void)
 {
 	static gboolean startupset = FALSE;
-	static time_t startup;
+	static time_t   startup;
+
 	time_t now = time((time_t *) NULL);	
 
 	if( !startupset ) {
@@ -341,6 +447,12 @@ void gui_update_global(void)
     g_snprintf(gui_tmp, sizeof(gui_tmp),  "Uptime: %s", 
 							   short_uptime((guint32) difftime(now,startup)));
 	gtk_label_set_text(GTK_LABEL(label_statusbar_uptime), gui_tmp);
+
+	gtk_progress_configure(GTK_PROGRESS(progressbar_bps_in), 
+                           bsched_bps(bws_in), 0, bws_in->bw_per_second);
+
+	gtk_progress_configure(GTK_PROGRESS(progressbar_bps_out), 
+                           bsched_bps(bws_out), 0, bws_out->bw_per_second);
 }
 
 void gui_update_node_display(struct gnutella_node *n, time_t now)
@@ -844,6 +956,7 @@ void gui_search_clear_results(void)
 
 void gui_close(void)
 {
+	gui_statusbar_free_timeout_list();
 	if (scan_extensions)
 		g_free(scan_extensions);
 	if (shared_dirs_paths)

@@ -17,9 +17,36 @@
 #define NOTEBOOK_MAIN_IDX_MAX				7
 
 
-/* gui.c */
+/*
+ * Timeout entry for statusbar messages.
+ */
+typedef struct statusbar_timeout {
+	guint scid;     /* context id for the message */
+    guint msgid;    /* message it of the message */
+	time_t timeout; /* time after which the message should be removed */
+} statusbar_timeout_t;
+
+/* 
+ * Context ids for the status bar 
+ */
+
+extern guint scid_hostsfile;
+extern guint scid_search_autoselected;
+extern guint scid_queue_freezed;
+
+/*
+ * Macros for accessing the statusbar
+ */
+#define gui_statusbar_push(scid, msg)   (gtk_statusbar_push(GTK_STATUSBAR(statusbar), (scid), (msg)))
+#define gui_statusbar_pop(scid)         (gtk_statusbar_pop(GTK_STATUSBAR(statusbar), (scid)))
+#define gui_statusbar_remove(scid, mid) (gtk_statusbar_remove(GTK_STATUSBAR(statusbar), (scid), (mid)))
+
+/*
+ * Public interface.
+ */
 
 gboolean gui_search_update_tab_label(struct search *sch);
+void gui_init(void);
 void gui_close(void);
 void gui_nodes_remove_selected();
 void gui_search_clear_results(void);
@@ -27,7 +54,8 @@ void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist);
 void gui_search_force_update_tab_label(struct search *sch);
 void gui_search_init(void);
 void gui_search_update_items(struct search *sch);
-void gui_set_status(gchar *);
+void gui_statusbar_add_timeout(guint scid, guint msgid, guint timeout);
+void gui_statusbar_clear_timeouts(time_t now);
 void gui_update_c_downloads(gint, gint);
 void gui_update_c_gnutellanet(void);
 void gui_update_c_uploads(void);
@@ -77,6 +105,8 @@ void gui_update_socks_host();
 void gui_update_socks_pass();
 void gui_update_socks_port();
 void gui_update_socks_user();
+void gui_update_bandwidth_input();
+void gui_update_bandwidth_output();
 void gui_update_stats(void);
 void gui_update_up_connections(void);
 void gui_update_upload(struct upload *);
