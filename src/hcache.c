@@ -72,6 +72,7 @@ struct hostcache_entry {
 static struct hostcache *caches[HCACHE_MAX];
 static gchar *files[HCACHE_MAX] = { "hosts", "ultras" };
 static gchar *names[HCACHE_MAX] = { "regular", "ultra" };
+static gpointer bg_reader[HCACHE_MAX] = { NULL, NULL };
 
 gchar h_tmp[1024];
 
@@ -765,6 +766,23 @@ done:
 	return BGR_DONE;
 }
 
+/*
+ * bg_reader_done
+ *
+ * Invoked when the task is completed.
+ */
+static void bg_reader_done(
+	gpointer h, gpointer ctx, bgstatus_t status, gpointer arg)
+{
+	struct read_ctx *rctx = (struct read_ctx *) ctx;
+	struct hostcache *hc;
+
+	g_assert(rctx->magic == READ_MAGIC);
+
+	hc = rctx->hc;
+	bg_reader[hc->type] = NULL;
+}
+
 /* 
  * hcache_retrieve
  *
@@ -798,9 +816,9 @@ void hcache_retrieve(hcache_type_t type)
     start_mass_update(hc);
     gnet_prop_set_boolean_val(hc->reading, TRUE);
 
-	bg_task_create(
+	bg_reader[type] = bg_task_create(
 		type == HCACHE_ANY ? "Hostcache reading" : "Ultracache reading",
-		&step, 1, rctx, read_ctx_free, NULL, NULL);
+		&step, 1, rctx, read_ctx_free, bg_reader_done, NULL);
 }
 
 /*
@@ -871,8 +889,17 @@ void hcache_init(void)
  */
 void hcache_close(void)
 {
-	hcache_free(HCACHE_ANY);
-	hcache_free(HCACHE_ULTRA);
+	static hcache_type_t types[] = { HCACHE_ANY, HCACHE_ULTRA };
+	gint i;
+
+	for (i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
+		hcache_type_t type = types[i];
+
+		if (bg_reader[type] != NULL)
+			bg_task_cancel(bg_reader[type]);
+
+		hcache_free(type);
+	}
 }
 
 /* vi: set ts=4: */
