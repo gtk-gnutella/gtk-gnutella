@@ -2692,14 +2692,14 @@ create_main_window (void)
   gtk_widget_show (button_search_stats_reset);
   gtk_box_pack_start (GTK_BOX (hbox66), button_search_stats_reset, FALSE, FALSE, 0);
 
-  label_search_stats_count = gtk_label_new ("0");
+  label_search_stats_count = gtk_label_new ("0 terms counted");
   gtk_widget_ref (label_search_stats_count);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_search_stats_count", label_search_stats_count,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_search_stats_count);
-  gtk_box_pack_end (GTK_BOX (hbox66), label_search_stats_count, FALSE, FALSE, 0);
-  gtk_widget_set_usize (label_search_stats_count, 48, -2);
+  gtk_box_pack_start (GTK_BOX (hbox66), label_search_stats_count, TRUE, TRUE, 0);
   gtk_label_set_justify (GTK_LABEL (label_search_stats_count), GTK_JUSTIFY_RIGHT);
+  gtk_misc_set_alignment (GTK_MISC (label_search_stats_count), 1, 0.5);
 
   label98 = gtk_label_new ("Search Stats");
   gtk_widget_ref (label98);
@@ -5375,9 +5375,6 @@ create_popup_monitor (void)
   gtk_widget_show (popup_monitor_add_search);
   gtk_container_add (GTK_CONTAINER (popup_monitor), popup_monitor_add_search);
 
-  gtk_signal_connect (GTK_OBJECT (popup_monitor), "hide",
-                      GTK_SIGNAL_FUNC (on_popup_monitor_hide),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (popup_monitor_add_search), "activate",
                       GTK_SIGNAL_FUNC (on_popup_monitor_add_search_activate),
                       NULL);

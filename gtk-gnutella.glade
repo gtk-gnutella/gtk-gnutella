@@ -4031,19 +4031,17 @@
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label_search_stats_count</name>
-		  <width>48</width>
-		  <label>0</label>
+		  <label>0 terms counted</label>
 		  <justify>GTK_JUSTIFY_RIGHT</justify>
 		  <wrap>False</wrap>
-		  <xalign>0.5</xalign>
+		  <xalign>1</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
 		  <child>
 		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		    <pack>GTK_PACK_END</pack>
+		    <expand>True</expand>
+		    <fill>True</fill>
 		  </child>
 		</widget>
 	      </widget>
@@ -8799,11 +8797,6 @@ settings</label>
 <widget>
   <class>GtkMenu</class>
   <name>popup_monitor</name>
-  <signal>
-    <name>hide</name>
-    <handler>on_popup_monitor_hide</handler>
-    <last_modification_time>Fri, 29 Mar 2002 01:33:44 GMT</last_modification_time>
-  </signal>
 
   <widget>
     <class>GtkMenuItem</class>
