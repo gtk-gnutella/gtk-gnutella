@@ -85,18 +85,18 @@ typedef struct vp_info {
     vp_context_t *context;
 } vp_info_t;
 
-GHashTable *vp_info_hash;  /* Hash table with our cached fileinfo info */
+static GHashTable *vp_info_hash; /* Hash table with our cached fileinfo info */
 
-GdkColor done;             /* Pre-filled color (green) for DONE chunks */
-GdkColor done_old;         /* Pre-filled color (dull green) for DONE chunks
-                              from previous sessions */
-GdkColor busy;             /* Pre-filled color (yellow) for BUSY chunks */
-GdkColor empty;            /* Pre-filled color (red) for EMPTY chunks */
-GdkColor black;            /* Pre-filled color (black) for general drawing */
-GdkColor available;        /* Pre-filled color (blue) available on network */
-GdkColor *base;            /* Theme-defined background color */
+static GdkColor done;       /* Pre-filled color (green) for DONE chunks */
+static GdkColor done_old;	/* Pre-filled color (dull green) for DONE
+							 * chunks from previous sessions */
+static GdkColor busy;       /* Pre-filled color (yellow) for BUSY chunks */
+static GdkColor empty;      /* Pre-filled color (red) for EMPTY chunks */
+static GdkColor black;      /* Pre-filled color (black) for general drawing */
+static GdkColor available;  /* Pre-filled color (blue) available on network */
+static GdkColor *base;      /* Theme-defined background color */
 
-vp_context_t fi_context;
+static vp_context_t fi_context;
 
 
 /* 
@@ -393,12 +393,12 @@ static void vp_update_ranges(gnet_src_t srcid)
     g_assert(found);
     g_assert(v);
 	
-	fprintf(stderr, "Ranges info for %s\n", d->file_info->file_name);
-	fprintf(stderr, "Ranges before: %s\n", http_range_to_gchar(v->ranges));
-	fprintf(stderr, "Ranges new   : %s\n", http_range_to_gchar(d->ranges));
+	g_message("Ranges info for %s", d->file_info->file_name);
+	g_message("Ranges before: %s", http_range_to_gchar(v->ranges));
+	g_message("Ranges new   : %s", http_range_to_gchar(d->ranges));
 	v->ranges = http_range_merge(v->ranges, d->ranges);
 	// FIXME: should be freeing old v->ranges list here...
-	fprintf(stderr, "Ranges after : %s\n", http_range_to_gchar(v->ranges));
+	g_message("Ranges after : %s", http_range_to_gchar(v->ranges));
 }
 
 
@@ -475,4 +475,5 @@ void vp_gui_shutdown(void)
  * Local Variables:
  * tab-width:4
  * End:
+ * vi: set ts=4:
  */
