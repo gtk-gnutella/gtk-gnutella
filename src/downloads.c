@@ -9,6 +9,8 @@
 #include "routing.h"
 #include "downloads.h"
 #include "hosts.h"
+#include "getline.h"
+#include "header.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -27,8 +29,24 @@ gchar dl_tmp[4096];
 
 void send_push_request(gchar *, guint32, guint16);
 static void download_start_restart_timer(struct download *d);
+static void download_read(gpointer data, gint source, GdkInputCondition cond);
 
 #define DL_RUN_DELAY	5		/* To avoid hammering host --RAM */
+
+/*
+ * This structure is used to encapsulate the various arguments required
+ * by the header parsing I/O callback.
+ */
+struct io_header {
+	struct download *download;
+	header_t *header;
+	getline_t *getline;
+	gint flags;
+};
+
+#define IO_STATUS_LINE		0x00000002	/* First line is a status line */
+
+static void download_request(struct download *d, header_t *header);
 
 /* ----------------------------------------- */
 
@@ -37,15 +55,20 @@ static void download_start_restart_timer(struct download *d);
 static guint32 count_running_downloads(void)
 {
 	GSList *l;
-	guint32 n = 0;
+	guint32 establishing = 0;
+	guint32 active = 0;
 
-	for (l = sl_downloads; l; l = l->next)
-		if (DOWNLOAD_IS_RUNNING((struct download *) l->data))
-			n++;
+	for (l = sl_downloads; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
+		if (DOWNLOAD_IS_ESTABLISHING(d))
+			establishing++;
+		else if (DOWNLOAD_IS_ACTIVE(d))
+			active++;
+	}
 
-	gui_update_c_downloads(n);
+	gui_update_c_downloads(active, establishing + active);
 
-	return n;
+	return establishing + active;
 }
 
 static guint32 count_running_downloads_with_guid(gchar * guid)
@@ -475,7 +498,6 @@ void download_start(struct download *d, gboolean check_allowed)
 		d->socket->resource.download = d;
 		d->socket->pos = 0;
 	} else {					/* We have to send a push request */
-
 		d->status = GTA_DL_PUSH_SENT;
 		download_push(d);
 	}
@@ -533,6 +555,16 @@ void download_push(struct download *d)
 			download_stop(d, GTA_DL_ERROR, "Timeout");
 		return;
 	}
+
+	/*
+	 * XXX what is the purpose of creating a dedicated listening socket
+	 * XXX for a push request?  Can't we have the listening done on
+	 * XXX the main GNet socket?  If we're firewalled, the only port
+	 * XXX open/forwarded is likely to be only the main GNet one...
+	 * XXX NB: that's precisely my config, and why Pushes don't work
+	 * XXX for me...
+	 * XXX		--RAM, 28/12/2001
+	 */
 
 	d->push = TRUE;
 	d->socket = socket_listen(0, 0, GTA_TYPE_DOWNLOAD);
@@ -745,7 +777,6 @@ void download_index_changed(guint32 ip, guint16 port, guint32 from, guint32 to)
 			nfound++;
 
 			switch (d->status) {
-			case GTA_DL_CONNECTING:
 			case GTA_DL_REQ_SENT:
 			case GTA_DL_HEADERS:
 			case GTA_DL_PUSH_SENT:
@@ -1023,17 +1054,513 @@ void send_push_request(gchar * guid, guint32 file_id, guint16 local_port)
 			   sizeof(struct gnutella_msg_push_request));
 }
 
-/* Send the HTTP request for a download */
+static gboolean download_queue_w(gpointer dp)
+{
+	struct download *d = (struct download *) dp;
+	download_queue(d);
+	download_pickup_queued();
+	return TRUE;
+}
 
+static void download_start_restart_timer(struct download *d)
+{
+	d->restart_timer_id = g_timeout_add(60 * 1000, download_queue_w, d);
+}
+
+/***
+ *** Read data on a download socket
+ ***/
+
+/*
+ * download_header_parse
+ *
+ * This routine is called to parse the input buffer, a line at a time,
+ * until EOH is reached.
+ */
+static void download_header_parse(struct io_header *ih)
+{
+	struct download *d = ih->download;
+	struct gnutella_socket *s = d->socket;
+	getline_t *getline = ih->getline;
+	header_t *header = ih->header;
+	guint parsed;
+	gint error;
+
+	/*
+	 * Read header a line at a time.  We have exacly s->pos chars to handle.
+	 * NB: we're using a goto label to loop over.
+	 */
+
+nextline:
+	switch (getline_read(getline, s->buffer, s->pos, &parsed)) {
+	case READ_OVERFLOW:
+		g_warning("download_header_parse: line too long, disconnecting from %s",
+			ip_to_gchar(s->ip));
+		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		download_stop(d, GTA_DL_ERROR, "Failed (Header too large)");
+		goto final_cleanup;
+		/* NOTREACHED */
+	case READ_DONE:
+		if (s->pos != parsed)
+			memmove(s->buffer, s->buffer + parsed, s->pos - parsed);
+		s->pos -= parsed;
+		break;
+	case READ_MORE:		/* ok, but needs more data */
+	default:
+		g_assert(parsed == s->pos);
+		s->pos = 0;
+		return;
+	}
+
+	/*
+	 * We come here everytime we get a full header line.
+	 */
+
+	if (ih->flags & IO_STATUS_LINE) {
+		/*
+		 * Save status line away in socket's "getline" object, then clear
+		 * the fact that we're expecting a status line and continue to get
+		 * the following header lines.
+		 */
+
+		g_assert(s->getline == 0);
+		s->getline = getline_make();
+
+		getline_copy(getline, s->getline);
+		getline_reset(getline);
+		ih->flags &= ~IO_STATUS_LINE;
+		goto nextline;
+	}
+
+	error = header_append(header,
+		getline_str(getline), getline_length(getline));
+
+	switch (error) {
+	case HEAD_OK:
+		getline_reset(getline);
+		goto nextline;			/* Go process other lines we may have read */
+		/* NOTREACHED */
+	case HEAD_EOH:				/* We reached the end of the header */
+		break;
+	case HEAD_TOO_LARGE:
+	case HEAD_MANY_LINES:
+	case HEAD_EOH_REACHED:
+		g_warning("download_header_parse: %s, disconnecting from %s",
+			header_strerror(error),  ip_to_gchar(s->ip));
+		fprintf(stderr, "------ Header Dump:\n");
+		header_dump(header, stderr);
+		fprintf(stderr, "------\n");
+		dump_hex(stderr, "Header Line", getline_str(getline),
+			MIN(getline_length(getline), 128));
+		download_stop(d, GTA_DL_ERROR, "Failed (%s)", header_strerror(error));
+		goto final_cleanup;
+		/* NOTREACHED */
+	default:					/* Error, but try to continue */
+		g_warning("download_header_parse: %s, from %s",
+			header_strerror(error), ip_to_gchar(s->ip));
+		dump_hex(stderr, "Header Line",
+			getline_str(getline), getline_length(getline));
+		getline_reset(getline);
+		goto nextline;			/* Go process other lines we may have read */
+	}
+
+	/*
+	 * We reached the end of headers.  Downloaded data should follow.
+	 *
+	 * Free up the I/O callback structure, remove the input callback and
+	 * initialize the upload.  NB: the initial HTTP request on the first
+	 * line is still held in the s->getline structure.
+	 */
+
+	getline_free(ih->getline);
+	g_free(ih);
+
+	gdk_input_remove(s->gdk_tag);
+	s->gdk_tag = 0;
+
+	d->last_update = time((time_t *) 0);	/* Done reading headers */
+	download_request(d, header);
+
+	header_free(header);
+	return;
+
+	/*
+	 * When we come here, we're done with the parsing structures, we can
+	 * free them.
+	 */
+
+final_cleanup:
+	header_free(ih->header);
+	getline_free(ih->getline);
+	g_free(ih);
+}
+
+/*
+ * download_header_read
+ *
+ * This routine is installed as an input callback to read the HTTP headers
+ * of the request.
+ */
+static void download_header_read(
+	gpointer data, gint source, GdkInputCondition cond)
+{
+	struct io_header *ih = (struct io_header *) data;
+	struct download *d = ih->download;
+	struct gnutella_socket *s = d->socket;
+	guint count;
+	gint r;
+
+	if (cond & GDK_INPUT_EXCEPTION) {
+		download_stop(d, GTA_DL_ERROR, "Failed (Input Exception)");
+		goto final_cleanup;
+	}
+
+	/*
+	 * Update status and GUI.
+	 */
+
+	if (d->status != GTA_DL_HEADERS) {
+		d->status = GTA_DL_HEADERS;
+		gui_update_download(d, TRUE);
+	}
+
+	count = sizeof(s->buffer) - s->pos - 1;		/* -1 to allow trailing NUL */
+	if (count <= 0) {
+		g_warning("download_header_read: incoming buffer full, "
+			"disconnecting from %s", ip_to_gchar(s->ip));
+		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		download_stop(d, GTA_DL_ERROR, "Failed (Input buffer full)");
+		goto final_cleanup;
+	}
+
+	r = read(s->file_desc, s->buffer + s->pos, count);
+	if (r == 0) {
+		download_stop(d, GTA_DL_ERROR, "Failed (EOF)");
+		download_start_restart_timer(d);
+		goto final_cleanup;
+	} else if (r < 0 && errno == EAGAIN)
+		return;
+	else if (r < 0) {
+		download_stop(d, GTA_DL_ERROR,
+			"Failed (Read error: %s)", g_strerror(errno));
+		goto final_cleanup;
+	}
+
+	/*
+	 * During the header reading phase, we do update "d->last_update".
+	 */
+
+	s->pos += r;
+	d->last_update = time((time_t *) 0);
+	d->retries = 0;		/* successful read means our retry was successful */
+
+	download_header_parse(ih);
+	return;
+
+	/*
+	 * When we come here, we're done with the parsing structures, we can
+	 * free them.
+	 */
+
+final_cleanup:
+	header_free(ih->header);
+	getline_free(ih->getline);
+	g_free(ih);
+}
+
+/*
+ * download_write_data
+ *
+ * Write data in socket buffer to file.
+ */
+static void download_write_data(struct download *d)
+{
+	struct gnutella_socket *s = d->socket;
+	gint written;
+
+	g_assert(s->pos > 0);
+
+	if (-1 == (written = write(d->file_desc, s->buffer, s->pos))) {
+		char *error = g_strerror(errno);
+		g_warning("download_read(): write to file failed (%s) !", error);
+		g_warning("download_read: tried to write(%d, %p, %d)",
+			  d->file_desc, s->buffer, s->pos);
+		download_stop(d, GTA_DL_ERROR, "Can't save data: %s", error);
+		return;
+	} else if (written < s->pos) {
+		g_warning("download_read(): "
+			"partial write of %d out of %d bytes to file '%s'",
+			written, s->pos, d->file_name);
+		download_stop(d, GTA_DL_ERROR, "Partial write to file");
+		return;
+	}
+
+	d->pos += s->pos;
+	s->pos = 0;
+
+	/*
+	 * End download if we have completed it.
+	 */
+
+	if (d->pos >= d->size) {
+		download_stop(d, GTA_DL_COMPLETED, NULL);
+		download_move_to_completed_dir(d);
+		count_downloads++;
+		gui_update_count_downloads();
+	} else
+		gui_update_download(d, FALSE);
+}
+
+/*
+ * download_request
+ *
+ * Called to initiate the download once all the HTTP headers have been read.
+ * Validate the reply, and begin saving the incoming data if OK.
+ * Otherwise, stop the download.
+ */
+static void download_request(struct download *d, header_t *header)
+{
+	struct gnutella_socket *s = d->socket;
+	gchar *status = getline_str(s->getline);
+	gint ack_code;
+	gchar *ack_message = "";
+	gchar *buf;
+	struct stat st;
+
+	if (dbg > 4) {
+		printf("----Got reply from %s:\n", ip_to_gchar(s->ip));
+		printf("%s\n", status);
+		header_dump(header, stdout);
+		printf("----\n");
+		fflush(stdout);
+	}
+
+	ack_code = parse_status_line(status, "HTTP", &ack_message, NULL, NULL);
+
+	if (ack_code == -1) {
+		g_warning("weird HTTP acknowledgment status line from %s",
+			ip_to_gchar(s->ip));
+		dump_hex(stderr, "Status Line", status,
+			MIN(getline_length(s->getline), 80));
+		download_stop(d, GTA_DL_ERROR, "Weird HTTP status");
+		return;
+	}
+
+	if (ack_code >= 200 && ack_code <= 299) {
+		/* empty -- everything OK */
+	} else if (ack_code >= 500 && ack_code <= 599) {
+		/* No hammering */
+		download_queue_delay(d, DL_RUN_DELAY);
+		return;
+	} else {
+		download_stop(d, GTA_DL_ERROR, "HTTP %d: %s", ack_code, ack_message);
+		return;
+	}
+
+	/*
+	 * We got a success status from the remote servent.  Parse header.
+	 */
+
+	buf = header_get(header, "Content-Length");		/* Mandatory */
+	if (buf) {
+		guint32 z = atol(buf);
+		if (z == 0) {
+			download_stop(d, GTA_DL_ERROR, "Bad length !?");
+			return;
+		} else if (z + d->skip != d->size) {
+			if (z == d->size) {
+				g_warning("File '%s': server seems to have "
+					"ignored our range request of %u.",
+					d->file_name, d->size);
+				download_stop(d, GTA_DL_ERROR,
+					"Server can't handle resume request");
+				return;
+			} else {
+				g_warning("File '%s': expected size %u but server said %u",
+					d->file_name, d->size, z + d->skip);
+				download_stop(d, GTA_DL_ERROR, "File size mismatch");
+				return;
+			}
+		}
+	} else {
+		download_stop(d, GTA_DL_ERROR, "No Content-Length header");
+		return;
+	}
+
+	buf = header_get(header, "Content-Range");		/* Optional */
+	if (buf) {
+		guint32 start, end, total;
+		if (
+			sscanf(buf, "bytes %d-%d/%d", &start, &end, &total) ||	/* Good */
+			sscanf(buf, "bytes=%d-%d/%d", &start, &end, &total)		/* Bad! */
+		) {
+			if (start != d->skip) {
+				g_warning("File '%s': start byte mismatch: wanted %u, got %u",
+					d->file_name, d->skip, start);
+				download_stop(d, GTA_DL_ERROR, "Range start mismatch");
+				return;
+			}
+			if (total != d->size) {
+				g_warning("File '%s': file size mismatch: expected %u, got %u",
+					d->file_name, d->size, total);
+			}
+		} else {
+			g_warning("File '%s': malformed Content-Range: %s",
+				d->file_name, buf);
+		}
+	}
+
+	/*
+	 * Open output file.
+	 */
+
+	g_assert(d->file_desc == -1);
+
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->file_name);
+
+	if (stat(dl_tmp, &st) != -1) {
+		/* File exists, we'll append the data to it */
+		if (st.st_size != d->skip) {
+			g_warning("File '%s' changed size (now %ld, but was %d)",
+				d->file_name, st.st_size, d->skip);
+			download_stop(d, GTA_DL_ERROR, "File modified since start");
+			return;
+		}
+
+		d->file_desc = open(dl_tmp, O_WRONLY);
+	} else {
+		if (d->skip) {
+			download_stop(d, GTA_DL_ERROR, "Cannot resume: file gone");
+			return;
+		}
+		d->file_desc = open(dl_tmp, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	}
+
+	if (d->file_desc == -1) {
+		gchar *error = g_strerror(errno);
+		g_warning("Unable to open file '%s' for writing! (%s)",
+			dl_tmp, error);
+		download_stop(d, GTA_DL_ERROR, "Cannot write into file: %s", error);
+		return;
+	}
+
+	if (d->skip && -1 == lseek(d->file_desc, d->skip, SEEK_SET)) {
+		download_stop(d, GTA_DL_ERROR, "Unable to seek: %s",
+			g_strerror(errno));
+		return;
+	}
+
+	/*
+	 * We're ready to receive.
+	 */
+
+	d->start_date = time((time_t *) NULL);
+	d->status = GTA_DL_RECEIVING;
+	gui_update_download(d, TRUE);
+
+	s->gdk_tag = gdk_input_add(s->file_desc,
+		GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+		download_read, (gpointer) d);
+
+	/*
+	 * If we have something in the input buffer, write the data to the
+	 * file immediately.  Note that this may close the download immediately
+	 * if the whole file was already read in the socket buffer.
+	 */
+
+	if (s->pos > 0)
+		download_write_data(d);
+}
+
+/*
+ * XXXX
+ * My analysis: do the same here as we do on socket_read?
+ * The problem: we attach this callback for reading, but we may have sent
+ * a download rquest, or expect a GIV string. (see callbacks in sockets.c).
+ * What we want is a different callback for each situation.
+ *
+ * Or handle GIVs from the main GNet socket...  but this will force us to
+ * keep a hash indexed by index:servent GUID so that we may quickly find
+ * whether we issued that Push or not, and which download it was.
+ */
+
+/*
+ * download_read
+ *
+ * Read callback for file data.
+ */
+static void download_read(gpointer data, gint source, GdkInputCondition cond)
+{
+	struct download *d = (struct download *) data;
+	struct gnutella_socket *s;
+	gint32 r;
+	gint32 to_read, remains;
+
+	g_return_if_fail(d);
+	s = d->socket;
+	g_return_if_fail(s);
+
+	if (cond & GDK_INPUT_EXCEPTION) {
+		download_stop(d, GTA_DL_ERROR, "Failed (Input Exception)");
+		return;
+	}
+
+	g_assert(s->pos >= 0 && s->pos <= sizeof(s->buffer));
+
+	if (s->pos == sizeof(s->buffer)) {
+		download_stop(d, GTA_DL_ERROR, "Failed (Read buffer full)");
+		download_start_restart_timer(d);
+		return;
+	}
+
+	g_assert(d->pos <= d->size);
+
+	if (d->pos == d->size) {
+		download_stop(d, GTA_DL_ERROR, "Failed (Completed?)");
+		return;
+	}
+
+	remains = sizeof(s->buffer) - s->pos;
+	to_read = d->size - d->pos;
+	if (remains < to_read)
+		to_read = remains;			/* Only read to fill buffer */
+
+	r = read(s->file_desc, s->buffer + s->pos, to_read);
+
+	if (r <= 0) {
+		if (r == 0) {
+			download_stop(d, GTA_DL_ERROR, "Failed (EOF)");
+			download_start_restart_timer(d);
+		} else if (errno != EAGAIN) {
+			download_stop(d, GTA_DL_ERROR,
+				"Failed (Read error: %s)", g_strerror(errno));
+		}
+		return;
+	}
+
+	s->pos += r;
+	d->last_update = time((time_t *) 0);
+
+	g_assert(s->pos > 0);
+
+	download_write_data(d);
+}
+
+/*
+ * Send the HTTP request for a download, then prepare I/O reading callbacks
+ * to read the incoming status line and following headers.
+ */
 gboolean download_send_request(struct download *d)
 {
+	struct gnutella_socket *s = d->socket;
+	struct io_header *ih;
 	gint rw;
+	gint sent;
 
 	g_return_val_if_fail(d, FALSE);
 
-	if (!d->socket) {
-		g_warning("download_send_request(): No socket for '%s'",
-				  d->file_name);
+	if (!s) {
+		g_warning("download_send_request(): No socket for '%s'", d->file_name);
 		download_stop(d, GTA_DL_ERROR, "Internal Error");
 		return FALSE;
 	}
@@ -1056,331 +1583,57 @@ gboolean download_send_request(struct download *d)
 			d->record_index, d->file_name,
 			GTA_VERSION, GTA_SUBVERSION);
 
-	printf("----Sending Request to %s:\n%.*s----\n",
-		ip_port_to_gchar(d->ip, d->port), (int) rw, dl_tmp);
-	fflush(stdout);
-
-	if (write(d->socket->file_desc, dl_tmp, rw) < 0) {
+	if (-1 == (sent = write(d->socket->file_desc, dl_tmp, rw))) {
 		download_stop(d, GTA_DL_ERROR, "Write failed: %s", g_strerror(errno));
 		return FALSE;
-	}
-
-	/* Update the GUI */
-
-	d->status = GTA_DL_REQ_SENT;
-
-	gui_update_download(d, TRUE);
-
-	return TRUE;
-}
-
-static gboolean download_queue_w(gpointer dp)
-{
-	struct download *d = (struct download *) dp;
-	download_queue(d);
-	download_pickup_queued();
-	return TRUE;
-}
-
-static void download_start_restart_timer(struct download *d)
-{
-	d->restart_timer_id = g_timeout_add(60 * 1000, download_queue_w, d);
-}
-
-/* Read data on a download socket */
-
-void download_read(gpointer data, gint source, GdkInputCondition cond)
-{
-	struct download *d = (struct download *) data;
-	struct gnutella_socket *s;
-	gint32 r;
-	gint32 to_read, remains;
-
-	g_return_if_fail(d);
-	s = d->socket;
-	g_return_if_fail(s);
-
-	if (cond & GDK_INPUT_EXCEPTION) {
-		download_stop(d, GTA_DL_ERROR, "Failed (Input Exception)");
-		return;
-	}
-
-	remains = sizeof(s->buffer) - s->pos;
-	if (remains <= 0) {
-		char *error = remains == 0 ?
-			"Failed (Buffer Full)" :
-			"Failed (Buffer space negative?)";		/* A bug! */
-		download_stop(d, GTA_DL_ERROR, error);
-		if (remains == 0)
-			download_start_restart_timer(d);	/* Don't restart on bug! */
-	}
-
-	to_read = d->size - d->pos;
-	if (to_read <= 0) {
-		char *error = to_read == 0 ?
-			"Failed (Completed?)" :
-			"Failed (Amount to read negative?)";	/* A bug! */
-		download_stop(d, GTA_DL_ERROR, error);
-	}
-
-	if (remains < to_read)
-		to_read = remains;		/* Only read to fill buffer */
-
-	r = read(s->file_desc, s->buffer + s->pos, to_read);
-
-	if (r <= 0) {
-		if (r == 0) {
-			download_stop(d, GTA_DL_ERROR, "Failed (EOF)");
-			download_start_restart_timer(d);
-		} else if (errno != EAGAIN) {
-			download_stop(d, GTA_DL_ERROR,
-				"Failed (Read error: %s)", g_strerror(errno));
-		}
-		return;
-	}
-
-	if (s->pos == 0 && d->status != GTA_DL_RECEIVING) {
-		/* We limit dumping up to the end of HTTP headers... */
-		char *end = strstr(s->buffer, "\r\n\r\n");
-		int len = end ? ((end - s->buffer) + 4) : (int) r;
-		printf("----Got Reply from %s:\n%.*s----\n",
-			ip_port_to_gchar(d->ip, d->port), len, s->buffer);
+	} else if (sent < rw) {
+		download_stop(d, GTA_DL_ERROR, "Partial write: wrote %d of %d bytes",
+			sent, rw);
+		return FALSE;
+	} else if (dbg > 4) {
+		printf("----Sent Request to %s:\n%.*s----\n",
+			ip_port_to_gchar(d->ip, d->port), (int) rw, dl_tmp);
 		fflush(stdout);
 	}
 
-	d->retries = 0;		/* successful read means our retry was successful */
-	s->pos += r;
-	d->last_update = time((time_t *) 0);
+	/*
+	 * Update status and GUI.
+	 */
 
-	switch (d->status) {
-	case GTA_DL_REQ_SENT:
-	case GTA_DL_PUSH_SENT:
-	case GTA_DL_FALLBACK:
-	case GTA_DL_RECEIVING:
-	case GTA_DL_HEADERS:
-		break;
+	d->status = GTA_DL_REQ_SENT;
+	gui_update_download(d, TRUE);
 
-	default:
-		g_warning("download_read(): UNEXPECTED DOWNLOAD STATUS %d",
-				  d->status);
-	}
+	/*
+	 * Now prepare to read the status line and the headers.
+	 */
 
-	if (d->status == GTA_DL_REQ_SENT) {
-		d->status = GTA_DL_HEADERS;
-		gui_update_download(d, TRUE);
-	} else if (d->status == GTA_DL_PUSH_SENT
-			   || d->status == GTA_DL_FALLBACK) {
-		gboolean end = FALSE;
-		gchar *seek;
+	ih = (struct io_header *) g_malloc(sizeof(struct io_header));
+	ih->download = d;
+	ih->header = header_make();
+	ih->getline = getline_make();
+	ih->flags = IO_STATUS_LINE;		/* First line will be a status line */
 
-		do {
-			seek = (gchar *) memchr(s->buffer, '\n', s->pos);
+	g_assert(s->gdk_tag == 0);
 
-			if (!seek)
-				return;
+	s->gdk_tag = gdk_input_add(s->file_desc,
+		GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+		download_header_read, (gpointer) ih);
 
-			if (seek != s->buffer && *(seek - 1) == '\r')
-				*(seek - 1) = 0;
-			*seek++ = 0;
+	return TRUE;
+}
 
-			if (!*(s->buffer))
-				end = TRUE;		/* End of headers */
-			else if (!g_strncasecmp(s->buffer, "GIV ", 4)) {
-				printf("Got GIV string : %s\n", s->buffer);
-			} else if (!g_strcasecmp(s->buffer, "GNUTELLA CONNECT/0.4")) {
-				g_warning("download_read: "
-					"\"GNUTELLA CONNECT/0.4\" when not expected, ignoring.");
-			} else {
-				g_warning("download_read(): Unknown header "
-						"on incoming socket ('%s')\n",
-					 s->buffer);
-				download_stop(d, GTA_DL_ERROR, "Unknown header");
-				return;
-			}
+/*
+ * download_push_read
+ *
+ * Read callback for connection on listening socket opened when sending push.
+ */
+void download_push_read(gpointer data, gint source, GdkInputCondition cond)
+{
+	struct download *d = (struct download *) data;
 
-			memmove(s->buffer, seek, s->pos - (seek - s->buffer));
-			s->pos -= (seek - s->buffer);
+	g_warning("was in download_push_read");
 
-		} while (!end);
-
-		/* We can now send the request */
-
-		if (!download_send_request(d))
-			return;
-	}
-
-	if (d->status == GTA_DL_HEADERS) {
-		gchar *seek;
-		gboolean end = FALSE;
-
-		do {
-			seek = (gchar *) memchr(s->buffer, '\n', s->pos);
-
-			if (!seek)
-				return;
-
-			if (seek != s->buffer && *(seek - 1) == '\r')
-				*(seek - 1) = 0;
-			else {
-				download_stop(d, GTA_DL_ERROR, "Malformed HTTP header !");
-				return;
-			}
-			*seek++ = 0;
-
-			if (!*(s->buffer))
-				end = TRUE;		/* We have got all the headers */
-			else {
-				if (!g_strncasecmp(s->buffer, "HTTP", 4)) {
-					char http_status_string[4];
-					int http_status = 0;
-					int offs = 0;
-
-					do {
-						offs++;
-					} while (g_strncasecmp(s->buffer + offs, " ", 1));
-					offs++;
-
-					strncpy(http_status_string, s->buffer + offs, 3);
-					http_status_string[3] = '\0';
-					http_status = atoi(http_status_string);
-
-					if (http_status >= 200 && http_status <= 299)
-						d->ok = TRUE;
-					else if (http_status >= 500 && http_status <= 599) {
-						/* No hammering */
-						download_queue_delay(d, DL_RUN_DELAY);
-						return;
-					} else {
-						download_stop(d, GTA_DL_ERROR, "%s", s->buffer);
-						return;
-					}
-				} else
-					if (!g_strncasecmp(s->buffer, "Content-length:", 15)) {
-					guint32 z = atol(s->buffer + 15);
-
-					if (!z) {
-						download_stop(d, GTA_DL_ERROR, "Bad length !?");
-						return;
-					} else if (z + d->skip != d->size) {
-						if (z == d->size) {
-							d->skip = 0;
-							d->pos = 0;
-							g_warning("File '%s': server seems to have "
-								"ignored our range request of %u.",
-								 d->file_name, d->size);
-							/* XXX - make optional "safe_resume"? */
-							download_stop(d, GTA_DL_ERROR,
-										  "Server can't handle resume request");
-							return;
-						} else if (d->size - d->skip > 1000 && z < 1000) {
-							download_stop(d, GTA_DL_ERROR,
-										  "Length too short, probably busy!?");
-							return;
-						} else {
-							g_warning("File '%s': expected size %u "
-								"but server said %u",
-								 d->file_name, d->size, z + d->skip);
-							d->size = z + d->skip;
-							/* XXX - make optional "safe_resume"? */
-							download_stop(d, GTA_DL_ERROR,
-										  "File size mismatch");
-							return;
-						}
-					}
-				} else if (!g_strncasecmp(s->buffer, "Content-Range:", 14)) {
-					g_warning("Got Content-Range. We should check that!");
-				} else if (!g_strncasecmp(s->buffer, "Server:", 7)) {
-					// Store Server
-				} else if (!g_strncasecmp(s->buffer, "Content-type:", 13)) {
-					// Store Content type
-				} else if (!d->ok) {
-					g_warning
-						("File '%s': FIXME FIXME FIXME unhandled header: %s",
-						 d->file_name, s->buffer);
-					d->retries = 0;		/* FIXME Hack */
-					download_stop(d, GTA_DL_ERROR, "%s", s->buffer);
-					return;
-				} else {
-					g_warning
-						("File '%s': unhandled header but successfull: %s",
-						 d->file_name, s->buffer);
-				}
-			}
-
-			memmove(s->buffer, seek, s->pos - (seek - s->buffer));
-			s->pos -= (seek - s->buffer);
-
-		} while (!end);
-
-		d->start_date = time((time_t *) NULL);
-		d->status = GTA_DL_RECEIVING;
-		gui_update_download(d, TRUE);
-	}
-
-	/* If we have data, write it to the output file */
-	if (d->status == GTA_DL_RECEIVING) {
-		if (d->file_desc == -1 && s->pos > 0) {
-			/* The output file is not yet open */
-			struct stat st;
-
-			g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->file_name);
-
-			if (stat(dl_tmp, &st) != -1) {
-				/* File exists, we'll append the data to it */
-				if (st.st_size != d->skip) {
-					g_warning("File '%s' changed size (now %ld, but was %d)",
-						 d->file_name, st.st_size, d->skip);
-					download_stop(d, GTA_DL_ERROR, "File modified since start");
-					return;
-				}
-
-				d->file_desc = open(dl_tmp, O_WRONLY);
-				if (d->file_desc != -1) {
-					if (-1 == lseek(d->file_desc, d->skip, SEEK_SET)) {
-						download_stop(d, GTA_DL_ERROR, "Unable to seek: %s",
-							g_strerror(errno));
-						return;
-					}
-				}
-			} else {
-				if (d->skip) {
-					download_stop(d, GTA_DL_ERROR, "Cannot resume: file gone");
-					return;
-				}
-				d->file_desc =
-					open(dl_tmp, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-			}
-
-			if (d->file_desc == -1) {
-				char *error = g_strerror(errno);
-				g_warning("Unable to open() file '%s'! (%s)", dl_tmp, error);
-				download_stop(d, GTA_DL_ERROR, "Cannot open file: %s", error);
-				return;
-			}
-		}
-
-		if (s->pos > 0 && write(d->file_desc, s->buffer, s->pos) < 0) {
-			char *error = g_strerror(errno);
-			g_warning("download_read(): write to file failed (%s) !", error);
-			g_warning("download_read: tried to write(%d, %p, %d)",
-					  d->file_desc, s->buffer, s->pos);
-			download_stop(d, GTA_DL_ERROR, "Can't save data: %s", error);
-			return;
-		}
-
-		d->pos += s->pos;
-		s->pos = 0;
-
-		if (d->pos >= d->size) {
-			download_stop(d, GTA_DL_COMPLETED, NULL);
-			download_move_to_completed_dir(d);
-			count_downloads++;
-			gui_update_count_downloads();
-			return;
-		}
-	}
-
-	gui_update_download(d, FALSE);
+	download_stop(d, GTA_DL_ERROR, "Pushes not supported, for now");
 }
 
 void download_retry(struct download *d)
