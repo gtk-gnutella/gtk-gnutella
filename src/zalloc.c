@@ -61,7 +61,7 @@ RCSID("$Id$");
 #endif	/* TRACK_ZALLOC */
 
 #ifdef ZONE_SAFE
-#define BLOCK_USED			((gchar *) 0xff12aa34)	/* Tagging of used blocks */
+#define BLOCK_USED			((gchar *) 0xff12aa35)	/* Tagging of used blocks */
 #endif
 
 #define DEFAULT_HINT		128	/* Default amount of blocks in a zone */
