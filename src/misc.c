@@ -1263,7 +1263,8 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	const gchar extra_bytes[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 	/* Use extra_bytes so we can easily append a few chars later */
-	filename = g_strdup_printf("%s/%s%s%s", path, file, ext, extra_bytes);
+	filename = g_strconcat(path, G_DIR_SEPARATOR_S, file, ext,
+					extra_bytes, NULL);
 	size = strlen(filename);
 	len = strlen(extra_bytes);
 	filename[size - len] = '\0';
