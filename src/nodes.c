@@ -1264,7 +1264,7 @@ static gboolean node_avoid_monopoly(struct gnutella_node *n)
 		cur_vendor = g_strdup(node->vendor); 
 		cur_vendor = g_strdelimit(cur_vendor, "1234567890/ ", '\0');
 
-		if (strcmp(cur_vendor, node_vendor)) {
+		if (strcmp(cur_vendor, node_vendor) != 0) { /* No match */
 			g_free(cur_vendor);
 			continue;
 		}
@@ -1305,26 +1305,48 @@ static gboolean node_avoid_monopoly(struct gnutella_node *n)
 
 static gboolean node_reserve_slot(struct gnutella_node *n)
 {
-	guint node_up_count = 0;
-	guint node_leaf_count = 0;
-	guint node_normal_count = 0;
+	guint node_up_count = 0;		/* GTKG UPs */
+	guint node_leaf_count = 0;		/* GTKG leafs */
+	guint node_normal_count = 0;	/* GTKG normal nodes */
 	
 	GSList *sl;
 
-	gchar *node_vendor = "gtk-gnutella";
+	gchar *gtkg_vendor = "gtk-gnutella";
+	gchar *node_vendor = NULL;
+	
+	if (n->vendor == NULL)
+		return FALSE;
+	
+	node_vendor = g_strdup(n->vendor);
+	node_vendor = g_strdelimit(node_vendor, "1234567890/ ", '\0');
+	
+	if (strcmp(gtkg_vendor, node_vendor) == 0) { /* Match */
+		g_free(node_vendor);
+		return FALSE;
+	}
+	
+	g_free(node_vendor);
+	node_vendor = NULL;
 		
 	for (sl = sl_nodes; sl; sl = sl->next) {
 		struct gnutella_node *node = (struct gnutella_node *) sl->data;
 		gchar *cur_vendor;
 		
-		if (node->status != GTA_NODE_CONNECTED || node->vendor == NULL) {
+		if (node->status != GTA_NODE_CONNECTED 
+			|| node->vendor == NULL
+			|| node->flags & NODE_F_CLOSING) {
+			if (node->status == GTA_NODE_CONNECTED ) {
+				g_warning("Got an empty vendor name, status: %d, flags: %d",
+					n->status, n->flags
+				);
+			}
 			continue;
 		}
 
 		cur_vendor = g_strdup(node->vendor); 
 		cur_vendor = g_strdelimit(cur_vendor, "1234567890/ ", '\0');
 
-		if (strcmp(cur_vendor, node_vendor)) {
+		if (strcmp(cur_vendor, gtkg_vendor) != 0) { /* no match */
 			g_free(cur_vendor);
 			continue;
 		}
@@ -1338,25 +1360,20 @@ static gboolean node_reserve_slot(struct gnutella_node *n)
 			node_normal_count++;
 		
 		g_free(cur_vendor);
-	}
+	}	
 	
-	/* Include current node into counter as well */
-	if (n->attrs & NODE_A_ULTRA)
-		node_up_count++;
-	else
-	if (n->flags & NODE_F_LEAF)
-		node_leaf_count++;
-	else
-		node_normal_count++;
+	if ((max_ultrapeers - node_ultra_count) * 100 / max_ultrapeers <= 
+		reserve_gtkg_nodes)
+		return TRUE;
 	
-	if (node_up_count * 100 > max_ultrapeers * (100 - reserve_gtkg_nodes))
-		return TRUE;	/* Dissallow */
+	if ((max_leaves - node_leaf_count) * 100 / max_leaves <= 
+		reserve_gtkg_nodes)
+		return TRUE;
+	
+	if ((normal_connections - node_normal_count) * 100 / normal_connections <=
+		reserve_gtkg_nodes)
+		return TRUE;
 
-	if (node_leaf_count * 100 > max_leaves * (100 - reserve_gtkg_nodes))
-		return TRUE;
-	
-	if (node_normal_count * 100 > normal_connections * (100-reserve_gtkg_nodes))
-		return TRUE;
 	
 	return FALSE;
 }
@@ -3411,7 +3428,7 @@ static void node_process_handshake_header(
 	if (node_avoid_monopoly(n)) {
 		send_node_error(n->socket, 403,
 			"Vendor code takes too many of our slots");
-		node_remove(n, "Vendor allready took %d%% slots", unique_nodes);
+		node_remove(n, "Vendor already took %d%% slots", unique_nodes);
 		return;
 	}
 	
@@ -4635,7 +4652,7 @@ static void node_read_connecting(
 
 #define TRACE_LIMIT		256
 
-	if (strcmp(s->buffer, gnutella_welcome)) {
+	if (strcmp(s->buffer, gnutella_welcome) != 0) {
 		/*
 		 * The node does not seem to be a valid gnutella server !?
 		 *
