@@ -154,6 +154,21 @@ static void sig_terminate(int n)
 	gtk_gnutella_exit(1);
 }
 
+/*
+ * sig_ignore
+ *
+ * This routine is meant as a workaround for some systems where a single
+ * setting to SIG_IGN just won't do (e.g. on linux kernel 2.4.19-pre8-ben0).
+ * Doing this is a little suboptimal, but we're not going to get hundreds of
+ * SIGPIPE per second either.
+ *		--RAM, 08/07/2002 (should fix bug #578151)
+ */
+static void sig_ignore(int n)
+{
+	signal(n, sig_ignore);
+	return;
+}
+
 static void init_constants(void)
 {
 	start_time = time((time_t *) NULL);
@@ -316,7 +331,7 @@ gint main(gint argc, gchar ** argv)
 
 	signal(SIGTERM, sig_terminate);
 	signal(SIGINT, sig_terminate);
-	signal(SIGPIPE, SIG_IGN);
+	signal(SIGPIPE, sig_ignore);		/* Not SIG_IGN, see comment */
 
 #ifdef SIGXFSZ
 	signal(SIGXFSZ, SIG_IGN);
