@@ -1,0 +1,338 @@
+
+
+
+Gnutella Developer Forum                                         A. Fisk
+                                                            LimeWire LLC
+                                                            May 20, 2003
+
+
+                 Gnutella Ultrapeer Query Routing v0.1
+
+
+Abstract
+
+   Gnutella has traditionally used a broadcast search model.  Broadcast
+   architectures search many computers quickly, but they consume a great
+   deal of bandwidth.  The use of query routing tables between
+   Ultrapeers attempts to minimize this bandwidth use by using a form of
+   keyword indexing that allows the majority of queries to be routed
+   instead of broadcast.
+
+Table of Contents
+
+   1.  Introduction . . . . . . . . . . . . . . . . . . . . . . . . .  2
+   1.1 Purpose  . . . . . . . . . . . . . . . . . . . . . . . . . . .  2
+   1.2 Requirements . . . . . . . . . . . . . . . . . . . . . . . . .  2
+   1.3 Required Features  . . . . . . . . . . . . . . . . . . . . . .  2
+   2.  Architecture . . . . . . . . . . . . . . . . . . . . . . . . .  2
+   2.1 Aggregate Leaf Tables  . . . . . . . . . . . . . . . . . . . .  2
+   2.2 Forwarding Tables  . . . . . . . . . . . . . . . . . . . . . .  3
+   2.3 Last Hop Most Important Hop  . . . . . . . . . . . . . . . . .  3
+   2.4 Ultrapeers and Leaves Single Unit  . . . . . . . . . . . . . .  4
+   2.5 Route Table Sizes  . . . . . . . . . . . . . . . . . . . . . .  4
+   2.6 Connection Headers . . . . . . . . . . . . . . . . . . . . . .  5
+   3.  Conclusion . . . . . . . . . . . . . . . . . . . . . . . . . .  5
+       References . . . . . . . . . . . . . . . . . . . . . . . . . .  5
+       Author's Address . . . . . . . . . . . . . . . . . . . . . . .  6
+   A.  Acknowledgements . . . . . . . . . . . . . . . . . . . . . . .  6
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Fisk                                                            [Page 1]
+
+The GDF          Gnutella Ultrapeer Query Routing v0.1          May 2003
+
+
+1. Introduction
+
+1.1 Purpose
+
+   This proposal makes use of the query routing tables specified in the
+   query routing proposal [2] for Gnutella. The query routing proposal
+   distributes bit vectors of keyword hashes, or query routing tables
+   (QRT), between hosts, with the keywords coming from the names of
+   shared files on disk. On Gnutella, Ultrapeers take advantage of QRTs
+   to pass keyword data from leaves to Ultrapeers.[3]  This allows
+   Ultrapeers to only forward queries to leaves that have matching files
+   for that keyword search, thus shielding leaves from the vast majority
+   of query traffic.  This proposal uses the same idea to pass query
+   routing tables between directly connected Ultrapeers, allowing
+   Ultrapeers to also shield other Ultrapeers from the majority of query
+   traffic.  The details of how this is achieved are described below.
+
+1.2 Requirements
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in RFC 2119.[1] An
+   implementation is not compliant if it fails to satisfy one or more of
+   the MUST or REQUIRED level requirements for the protocols it
+   implements. An implementation that satisfies all the MUST or REQUIRED
+   level and all the SHOULD level requirements for its protocols is said
+   to be "unconditionally compliant"; one that satisfies all the MUST
+   level requirements but not all the SHOULD level requirements for its
+   protocols is said to be "conditionally compliant".
+
+1.3 Required Features
+
+   Because this proposal makes use of both the query routing proposal
+   and Ultrapeers, clients wishing to use query routing tables between
+   Ultrapeers also MUST implement both the query routing proposal [2]
+   and the Ultrapeer proposal [3].
+
+2. Architecture
+
+2.1 Aggregate Leaf Tables
+
+   The use of query routing tables between Ultrapeers differs slightly
+   from the use of query routing tables between Ultrapeers and leaves.
+   In particular, leaves only include keywords for their own files in
+   their tables.  Ultrapeers, however, MUST aggregate the query routing
+   tables for all of their leaves in addition to adding keywords for
+   their own files. So, when an Ultrapeer receives a QRT from another
+   Ultrapeer, it knows all of the keyword data for that Ultrapeer and
+
+
+
+Fisk                                                            [Page 2]
+
+The GDF          Gnutella Ultrapeer Query Routing v0.1          May 2003
+
+
+   all of the keyword data for that Ultrapeer's leaves.
+
+2.2 Forwarding Tables
+
+   Just as leaves periodically send query routing messages to their
+   Ultrapeers, Ultrapeers also MUST periodically send query routing
+   messages to their neighboring Ultrapeers -- in particular, PATCH and
+   RESET messages when these messages are necessary.  Because data for
+   an Ultrapeer and all of its leaves is more subject to change than
+   data for a single leaf only, Ultrapeers MUST send route table
+   messages more frequently than leaves currently send them to their
+   Ultrapeers.  Checking if new messages are necessary every minute
+   should be adequate to ensure relatively live data while not consuming
+   excessive resources for table passing.
+
+2.3 Last Hop Most Important Hop
+
+   Because query routing tables are only exchanged between Ultrapeers
+   that have direct Gnutella, TCP connections, it's only possible to use
+   those tables for the last hop of a query.  If a query has further to
+   travel than 1 hop, the Ultrapeer has no way of knowing whether or not
+   there might be more results for the query 2 or more hops away, so it
+   MUST simply forward the query as it normally would.  If the query is
+   on the last hop, however, the Ultrapeer MUST check the query routing
+   table for a given Ultrapeer before forwarding it on.  It then MUST
+   forward the query if there is a hit in the table, and it MUST NOT
+   forward the query if there is not a hit. If the Ultrapeer potentially
+   receiving the query does not support Ultrapeer query routing, then
+   the query also MUST be forwarded just as it normally would in
+   traditional Gnutella.
+   At first glance, it may seem that the limitation of only passing last
+   hop queries through the tables makes this proposal significantly less
+   powerful.  A closer analysis of the Gnutella search architecture
+   reveals that this is not the case, however.  Traditionally, Gnutella
+   Ultrapeers held 6 connections to other Ultrapeers, and sent queries
+   out with TTL=7.  In this configuration, 80% of the Ultrapeers reached
+   for a given query are reached on the last hop, so 80% of query
+   traffic would be filtered through our new tables.  What's more, newer
+   Gnutella clients maintain up to 32 connections to other Ultrapeers,
+   passing queries with a maximum TTL of 3.  In this configuration,
+   almost 97% of the Ultrapeers reached for a query are reached on the
+   last hop.  This concentration of nodes on the last hop is really the
+   key insight that makes this proposal so powerful, however obvious and
+   simple an insight it may be.
+   This concentration of nodes on the last hop also clarifies why this
+   query routing scheme is preferable to traditional query routing.  In
+   the raw query routing proposal, nodes maintain routing information
+   for all nodes within their horizon, up to 7 hops away.  This is a
+
+
+
+Fisk                                                            [Page 3]
+
+The GDF          Gnutella Ultrapeer Query Routing v0.1          May 2003
+
+
+   powerful system, but it is costly and difficult to maintain fresh
+   routing information for this many Ultrapeers due to the high
+   transience of nodes on Gnutella, as on most peer-to-peer networks.
+   With the majority of nodes on the last hop, however, maintaining
+   routing information for all hops is an unnecessary waste of
+   resources, particularly given the simplicity of the last hop scheme.
+
+2.4 Ultrapeers and Leaves Single Unit
+
+   To make this proposal work, Ultrapeers and leaves MUST be treated as
+   a single "unit" when processing queries.  In particular, if an
+   Ultrapeer receives a query, it MUST forward that query only to leaves
+   with hits in their routing tables, and it MUST do so regardless of
+   the query's TTL.  For example, if an Ultrapeer receives a query with
+   TTL=1, the Ultrapeer then decrements the TTL to 0, but still forwards
+   that query to its leaves.  This change allows Ultrapeers to pass
+   generic query routing tables that use bit vectors instead of tables
+   that specify the hops of the content. In other words, the tables
+   don't specify whether a leaf or the Ultrapeer is sharing the content,
+   they just specify that the content is being shared by at least one of
+   the nodes in the Ultrapeer/leaf unit.  This change allows the routing
+   tables to use bits instead of bytes -- a bit simply indicating
+   whether or not there's a matching keyword, as opposed to a byte
+   specifying the number hops away the content resides.  Clients
+   implementing this proposal MUST use bits instead of bytes in their
+   query routing tables to save space.  This change reduces the size of
+   the query routing tables by a factor of 8 while also simplifying the
+   design, but it requires that Ultrapeers forward all query traffic to
+   their leaves regardless of TTL.
+
+2.5 Route Table Sizes
+
+   On average, query routing tables passed between Ultrapeers will
+   contain far more "hits" than query routing tables passed from leaves
+   to Ultrapeers.  This is because the routing tables passed between
+   Ultrapeers contain all of the keywords for all of the files shared on
+   leaves as well as on the Ultrapeer itself.  This significantly
+   increases the chance of "false positives" -- two words that happen to
+   hash to the same value, resulting in queries being forwarded even
+   though the recipient does not, in fact, have matching content for the
+   query.  To mitigate this problem the tables passed between Ultrapeers
+   must be fairly large.  Because 64 kilobyte tables have worked well in
+   practice and because resizing of query routing tables can consume
+   significant CPU, it is RECOMMENDED that clients use 64 kilobyte
+   tables for both Ultrapeers and leaves.  When compressed, these tables
+   become quite small. With most messages being small patches, these
+   tables overall should consume very little bandwidth when compared
+   with other Gnutella message traffic.
+
+
+
+Fisk                                                            [Page 4]
+
+The GDF          Gnutella Ultrapeer Query Routing v0.1          May 2003
+
+
+2.6 Connection Headers
+
+   To advertise support for Ultrapeer query routing, clients MUST
+   include a new connection header indicating the version of Ultrapeer
+   query routing they support.  To advertise support for version 0.1 of
+   this protocol, for example, clients MUST include the following
+   header:
+
+   		    X-Ultrapeer-Query-Routing: 0.1
+
+   Given that Ultrapeers may wish to prefer leaves that also are aware
+   of these features, leaves also MUST report this header.  If leaves
+   did not report this header, it would not be possible to offer
+   significant performance improvements to new clients unless they
+   became Ultrapeers themselves.  This is because this is an
+   optimization at the Ultrapeer level only -- unless a leaf happens to
+   connect to one of these Ultrapeers, new leaves would not see any
+   performance improvements. At the same time, however, new Ultrapeers
+   supporting these features will only appear if users download new
+   clients, making it necessary to give users extra motivation to
+   download clients supporting this proposal.  In this case, the
+   motivation is giving leaves a better chance of obtaining a leaf
+   connection to a new Ultrapeer that uses bandwidth more efficiently,
+   and that will therefore provide better results for leaf queries.
+
+3. Conclusion
+
+   Use of query routing tables between Ultrapeers is a relatively simple
+   change, particularly if you already have implemented Ultrapeers,
+   since the query routing code can easily be reused.  With adoption of
+   this proposal, 80% to 98% of query traffic will be routed instead of
+   broadcast, effectively solving one of the most glaring and
+   long-lasting issues on the Gnutella network.
+
+References
+
+   [1]  Bradner, S., "Key words for use in RFCs to Indicate Requirement
+        Levels", BCP 14, RFC 2119, March 1997.
+
+   [2]  Rohrs, C., "Query Routing for the Gnutella Network", May 2002,
+        <http://www.limewire.com/developer/query_routing/
+        keyword%20routing.htm>.
+
+   [3]  Rohrs, C. and A. Singla, "Ultrapeers: Another Step Towards
+        Gnutella Scalability", December 2001, <http://groups.yahoo.com/
+        group/the_gdf/files/Proposals/Ultrapeer/
+        Ultrapeers_proper_format.html>.
+
+
+
+
+Fisk                                                            [Page 5]
+
+The GDF          Gnutella Ultrapeer Query Routing v0.1          May 2003
+
+
+   [4]  Osokine, S., "Search Optimization in the Distributed Networks",
+        December 2002, <http://www.grouter.net/gnutella/search.htm>.
+
+   [5]  <http://www-db.stanford.edu/peers/>
+
+
+Author's Address
+
+   Adam A. Fisk
+   LimeWire LLC
+
+   EMail: afisk@limewire.com
+   URI:   http://www.limewire.org
+
+Appendix A. Acknowledgements
+
+   The author would like to thank the rest of the LimeWire team and all
+   members of the Gnutella Developer Forum (GDF).  Special thanks to
+   Serguei Osokine, whose work on search optimization clarified these
+   issues and led directly to this proposal.[4]. The Stanford Peers
+   Group [5] has also published a number of helpful, practical papers in
+   this regard.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Fisk                                                            [Page 6]
+
+

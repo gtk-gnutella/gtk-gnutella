@@ -1,0 +1,77 @@
+
+
+                 Proposal for Leaf Guidance of Dynamic Queries
+
+
+                                 Mario Solares
+
+                               Free Peers, Inc.
+
+                                   June 2003
+
+Problem
+
+Dynamic Querying has a limitation concerning client side filters that can
+only be addressed by the client. An ultrapeer has no knowledge of client
+side filters and therefore might terminate the query early because it
+has no knowledge of hits dropped by those filters. It could be argued
+that the query should be rich enough in the first place so as to not
+generate a query hit that will be dropped, however that is beyond the
+scope of this document.
+
+Proposal
+
+We propose that when an ultrapeer is performing dynamic querying on behalf
+of a leaf that has requested control, the ultrapeer will request the
+number of hits that have satisfied the leaves client side filters. This
+Query Status Request, originated by the ultrapeer, will have the original
+query message guid. The ultrapeer will need to wait for the leaf to reply
+before sending the next query. The Query Status Response, again containing
+the original query guid, will indicate the number of hits.
+
+Query Status Responses can be sent unsolicited and the ultrapeer should
+handle them gracefully. If the leaf does not reply to a Query Status
+Request within 10 seconds the query can be terminated by the ultrapeer.
+
+Modifications
+
+           
+We propose using bit 12 of the minspeed field to indicate status awareness.
+
+            Query Message
+ __________________________________________________________________________
+|   Fields    | Minimum Speed |Search Criteria|  NUL (0x00)   | (Optional) |
+|_____________|_______________|____String_____|__Terminator___|_Query_Data_|
+|_Byte_offset_|_____0...1_____|_____2...N_____|______N+1______|_N+2...L-1__|
+
+   Minimum Speed: Setting bits 15 and 12 will indicate that the client
+   wishes to control the query and will accept Query Status Requests and
+   will provide Query Status Responses.
+
+New Vendor Messages
+       We propose creating two new vendor messages.
+
+            Query Status Request
+ __________________________________________________________________________
+|_____Fields______|___Vendor_ID___|__Sub-Selector___|_______Version________|
+|___Byte_offset___|_____0...3_____|_______4-5_______|_________6-7__________|
+
+   Vendor ID: "BEAR" - 0x42454152.
+   Sub-Selector: 11 - 0x000B
+   Version: 1
+
+            Query Status Response
+ ____________________________________________________________________________
+|              |               |              |              |               |
+|Fields        |   Vendor-ID   | Sub-Selector |   Version    |   Hit Count   |
+|______________|_______________|______________|______________|_______________|
+|_Bytes_Offset_|_____0...3_____|_____4-5______|_____6-7______|______8-9______|
+
+   Vendor ID: "BEAR" - 0x42454152.
+   Sub-Selector: 12 - 0x000C
+   Version: 1
+
+   Hit Count: The number of hits that the client's filters allowed
+   through.  0xFFFF should be used to indicate that the query should be
+   terminated. This value is unsigned. Little-Endian
+
