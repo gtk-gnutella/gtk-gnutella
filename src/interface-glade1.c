@@ -7875,7 +7875,7 @@ create_main_window (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_connected_timeout, _("Number of seconds before timeout for a connected download"), NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_connected_timeout), TRUE);
 
-  frame48 = gtk_frame_new (_("Downloading from mutiple sources (swarming)"));
+  frame48 = gtk_frame_new (_("Downloading from multiple sources (swarming)"));
   gtk_widget_set_name (frame48, "frame48");
   gtk_widget_ref (frame48);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame48", frame48,

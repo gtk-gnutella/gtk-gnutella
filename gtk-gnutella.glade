@@ -12429,7 +12429,7 @@ settings</label>
 		  <widget>
 		    <class>GtkFrame</class>
 		    <name>frame48</name>
-		    <label>Downloading from mutiple sources (swarming)</label>
+		    <label>Downloading from multiple sources (swarming)</label>
 		    <label_xalign>0</label_xalign>
 		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		    <child>
