@@ -30,7 +30,7 @@
 #define HSEP_VERSION_MINOR 2
 
 /* number of hops to consider */
-#define HSEP_N_MAX 10
+#define HSEP_N_MAX 7
 
 /* average time in seconds before resending a */
 /* HSEP message to a node (can be increased to 60) */
