@@ -425,7 +425,7 @@ static gboolean url_safe_char(gint c, url_policy_t p)
  * byte order and ``*endptr'' will point to the character after the
  * IPv4 address. ``addr'' and ``endptr'' may be NULL.
  */
-static gboolean url_strtoaddr_strict(const gchar *s, guint32 *addr,
+gboolean url_strtoaddr_strict(const gchar *s, guint32 *addr,
 	gchar const **endptr)
 {
 	const gchar *p = s;
@@ -489,7 +489,6 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 	gchar *endptr;
 	const gchar *tld = NULL;
 	guint16 port = 0;
-	guint32 addr = 0;
 	gchar *p, *q = url;
 	const gchar *uri;
 	static const char http_prefix[] = "http://";
@@ -510,7 +509,7 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 		return NULL;
 	}
 
-	if (url_strtoaddr_strict(q, &addr, (const gchar **) &endptr)) {
+	if (url_strtoaddr_strict(q, NULL, (const gchar **) &endptr)) {
 		if (!(pol & URL_POLICY_ALLOW_IP_AS_HOST)) {
 			if (url_dbg)
 				g_warning("URLs without hostnames have been disabled");
