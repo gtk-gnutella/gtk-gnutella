@@ -1,5 +1,67 @@
 # since last version
 
+#### Changes
+
+- Now uses HTTP/1.1, which implies support for persistent connections.
+- gtk-gnutella will now monitor whether we're connected to Internet and
+  slow down its connection requests when it detects the connection was broken
+  (after a delay of ~3 minutes at most).
+- Download swarming is now supported: gtk-gnutella will download different
+  portions of the same file from many hosts, as long as alternate sources
+  are available.
+- The download mesh (alternate source collection during downloads) is now
+  used to fill the download queue with more sources.
+- Alternate locations can also be passively collected from query hits.
+  You can enable this in the swarming section on the download config pane.
+- Download scheduling was entiretly redesigned to avoid hammering busy hosts
+  and scale to 5000+ entries in the queue without slowing down the whole.
+- Is now smart about the "push" flag and will try to ignore it if possible,
+  in case the remote host wrongly set the flag but is not firewalled.
+- gtk-gnutella now remembers the files it downloaded and will ignore further
+  requests to download the same file.  It will visually mark those files, as
+  well as the ones it already shares, by showing them in lighter color in the
+  search results.
+- It is possible to supply to gtk-gnutella your own ignore lists by SHA1 and
+  by name/size but the feature is under-documented. XXX manpage update XXX
+- Added an "expert mode".  Only when this is enabled will gtk-gnutella show
+  the users some of the most complex settings.
+- New Gnutella statistics pane, showing the packets we sent and received,
+  how many we generated, and the reasons why we drop packets, by packet type.
+- Now understands UTF-8 queries, but does not generate them.
+- Fixed important bugs whereby all earlier versions of gtk-gnutella were
+  unintentionally corrupting the Gnutella traffic!
+- Moved away from the public hostcaches and now uses the Gnutella Web Cache.
+- Will now show all upload attempts, not only the ones that are transferring.
+  If the connection is aborted, the reason is also shown.
+- New search stats types: queries by router, whole query.
+  . "Queries by router" shows how many queries have been recieved
+	from any node gtk-gnutella was directly connected to.
+  . "Whole query" shows stats based on the complete query string
+	instead of individual query words.
+
+KNOWN BUGS/PROBLEMS:
+
+- When changing the directory for incomplete/complete files, all 
+  partially downloaded files recorded in ~/.gtk-gnutella/fileinfo 
+  will still be downloaded to the old directory. You need to manually
+  change the paths in above file using search/replace and your 
+  favourite text editor.
+- Sorting order of tables is not perserved across sessions.
+- Marking/highlighting of results/downloads/uploads heavily depends
+  on your GTK theme. Especially most themes do not set fg[ACTIVE] and 
+  fg[NORMAL] to different values.
+- There is currently no way to un-ignore a file via the gui. You 
+  can however edit the done.sha1 and done.namesize files in your
+  ~/.gtk-gnutella directory manually. Unignoring via gui is planned
+  for the next release.
+
+- (2002.10.17 RAM)
+ * Reset "Clear Completed" correctly in upload pane when auto-clear is on.
+ * Disabled failing assert in file_info_find_hole(), replaced by a warning
+   for now, pending further investigation after the release.
+ * Fixed Gnet compression rejection messages.
+ * Also send out X-Try when rejecting connections based on lack of compression.
+
 - (2002.10.17 Richard)
  * Fixed several bugs in filter_cb.c when copying/pasting a rule.
  * Fixed bug: hostcatcher does not update properly in gui if no hosts 
