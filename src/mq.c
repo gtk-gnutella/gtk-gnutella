@@ -313,24 +313,6 @@ static void mq_enter_swift(cqueue_t *cq, gpointer obj)
 }
 
 /*
- * mq_leave_swift
- *
- * Invoked to clear the "swift" mode condition.
- */
-static void mq_leave_swift(mqueue_t *q)
-{
-	g_assert(q->flags & MQ_SWIFT);
-	g_assert(q->swift_ev != NULL);
-	
-	q->flags &= ~MQ_SWIFT;
-	if (q->swift_ev)
-		cq_cancel(callout_queue, q->swift_ev);
-	q->swift_ev = NULL;
-
-	node_tx_swift_changed(q->node);
-}
-
-/*
  * mq_enter_flowc
  *
  * Called when the message queue first enters flow-control.
@@ -371,20 +353,21 @@ static void mq_leave_flowc(mqueue_t *q)
 {
 	g_assert(q->flags & MQ_FLOWC);
 
-	if (q->flags & MQ_SWIFT)
-		mq_leave_swift(q);
+	if (dbg > 4)
+		printf("leaving %s for node %s (%d bytes queued)\n",
+			(q->flags & MQ_SWIFT) ? "SWIFT" : "FLOWC",
+			node_ip(q->node), q->size);
 
-	g_assert(!(q->flags & MQ_SWIFT));
-
-	q->flags &= ~MQ_FLOWC;			/* Under low watermark, clear */
+	q->flags &= ~(MQ_FLOWC|MQ_SWIFT);	/* Under low watermark, clear */
 	if (q->qlink)
 		qlink_free(q);
 
-	node_tx_leave_flowc(q->node);	/* Signal end flow control */
+	if (q->swift_ev) {
+		cq_cancel(callout_queue, q->swift_ev);
+		q->swift_ev = NULL;
+	}
 
-	if (dbg > 4)
-		printf("leaving FLOWC for node %s (%d bytes queued)\n",
-			node_ip(q->node), q->size);
+	node_tx_leave_flowc(q->node);	/* Signal end flow control */
 }
 
 /*
