@@ -31,8 +31,7 @@
 $cat <<'EOM'
 
 I can compile for the GTK+ 1.x version or for the GTK+ 2.x version.
-
-The GTK1 frontend will use much less CPU that the GTK2 one, so if you
+The GTK1 frontend will use much less CPU than the GTK2 one, so if you
 have a slow CPU, you are encouraged to choose GTK1.
 
 EOM

@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Sun Aug 10 01:22:11 MEST 2003 [metaconfig 3.0 PL70]
+# Generated on Sun Aug 10 01:31:21 MEST 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -3544,8 +3544,7 @@ eval $inlibc
 $cat <<'EOM'
 
 I can compile for the GTK+ 1.x version or for the GTK+ 2.x version.
-
-The GTK1 frontend will use much less CPU that the GTK2 one, so if you
+The GTK1 frontend will use much less CPU than the GTK2 one, so if you
 have a slow CPU, you are encouraged to choose GTK1.
 
 EOM
