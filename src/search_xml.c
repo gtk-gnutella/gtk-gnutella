@@ -717,7 +717,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
 
     if (gui_debug >= 4)
         printf("adding new search: %s\n", query);
-    search = search_gui_new_search_full(query, speed, reissue_timeout, flags);
+    search_gui_new_search_full(query, speed, reissue_timeout, flags, &search);
 
     g_free(query);
 

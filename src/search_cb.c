@@ -232,7 +232,7 @@ static void add_targetted_search(record_t *rec, filter_t *noneed)
     gui_prop_get_guint32(PROP_DEFAULT_MINIMUM_SPEED, &minimum_speed, 0, 1);
 
     /* create new search item with search string set to filename */
-    new_search = search_gui_new_search(rec->name, minimum_speed, 0);
+    search_gui_new_search(rec->name, minimum_speed, 0, &new_search);
     g_assert(new_search != NULL);
 
     if (rec->sha1) {
@@ -316,72 +316,10 @@ void on_button_search_clicked(GtkButton *button, gpointer user_data)
         filter_t *default_filter;
         search_t *search;
         guint32 minimum_speed;
+        gboolean res;
 
         gui_prop_get_guint32(PROP_DEFAULT_MINIMUM_SPEED,
             &minimum_speed, 0, 1);
-
-		/*
-		 * If the text is a magnet link we extract the SHA1 urn
-		 * and put it back into the search field string so that the
-		 * code for urn searches below can handle it.
-		 *		--DBelius   11/11/2002
-		 */
-
-		if (0 == strncasecmp(e, "magnet:", 7)) {
-			guchar raw[SHA1_RAW_SIZE];
-
-			if (huge_extract_sha1(e, raw)) {
-				gint len = strlen(e);
-				g_assert(len >= SHA1_BASE32_SIZE + 9);
-				g_snprintf(e, len, "urn:sha1:%s", sha1_base32(raw));
-			} else {
-				gdk_beep();		/* Entry refused */
-				goto done;
-			}
-		}
-
-		/*
-		 * If string begins with "urn:sha1:", then it's an URN search.
-		 * Validate the base32 representation, and if not valid, beep
-		 * and refuse the entry.
-		 *		--RAM, 28/06/2002
-		 */
-
-		if (0 == strncasecmp(e, "urn:sha1:", 9)) {
-			guchar raw[SHA1_RAW_SIZE];
-			gchar *b = e + 9;
-
-			if (strlen(b) < SHA1_BASE32_SIZE)
-				goto refused;
-
-			if (base32_decode_into(b, SHA1_BASE32_SIZE, raw, sizeof(raw)))
-				goto validated;
-
-			/*
-			 * If they gave us an old base32 representation, convert it to
-			 * the new one on the fly.
-			 */
-
-			if (base32_decode_old_into(b, SHA1_BASE32_SIZE, raw, sizeof(raw))) {
-				guchar b32[SHA1_BASE32_SIZE];
-				base32_encode_into(raw, sizeof(raw), b32, sizeof(b32));
-				memcpy(b, b32, SHA1_BASE32_SIZE);
-				goto validated;
-			}
-
-			/*
-			 * Entry refused.
-			 */
-
-		refused:
-			gdk_beep();
-			goto done;
-
-		validated:
-			b[SHA1_BASE32_SIZE] = '\0';		/* Truncate to end of URN */
-
-			/* FALL THROUGH */
-		}
 
         /*
          * It's important gui_search_history_add is called before
@@ -391,7 +329,6 @@ void on_button_search_clicked(GtkButton *button, gpointer user_data)
          */
         gui_search_history_add(e);
 
-
         /*
          * We have to capture the selection here already, because
          * new_search will trigger a rebuild of the menu as a
@@ -400,12 +337,12 @@ void on_button_search_clicked(GtkButton *button, gpointer user_data)
         default_filter = (filter_t *)option_menu_get_selected_data
             (lookup_widget(main_window, "optionmenu_search_filter"));
 
-		search = search_gui_new_search(e, minimum_speed, 0);
+		res = search_gui_new_search(e, minimum_speed, 0, &search);
 
         /*
          * If we should set a default filter, we do that.
          */
-        if (default_filter != NULL) {
+        if (res && (default_filter != NULL)) {
             rule_t *rule = filter_new_jump_rule
                 (default_filter, RULE_FLAG_ACTIVE);
             
@@ -419,9 +356,11 @@ void on_button_search_clicked(GtkButton *button, gpointer user_data)
                 g_list_append(search->filter->ruleset, rule);
             rule->target->refcount ++;
         }
+        
+        if (!res)
+        	gdk_beep();
     }
 
-done:
 	g_free(e);
 }
 
@@ -805,7 +744,7 @@ void on_button_search_passive_clicked(
         option_menu_get_selected_data
             (lookup_widget(main_window, "optionmenu_search_filter"));
 
-	search = search_gui_new_search("Passive", minimum_speed, SEARCH_PASSIVE);
+	search_gui_new_search("Passive", minimum_speed, SEARCH_PASSIVE, &search);
 
     /*
      * If we should set a default filter, we do that.
@@ -1057,7 +996,7 @@ void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,
     // FIXME: should properly duplicate passive searches.
 	if (current_search)
 		search_gui_new_search(current_search->query, 
-            search_get_minimum_speed(current_search->search_handle), 0);
+            search_get_minimum_speed(current_search->search_handle), 0, NULL);
 }
 
 void on_popup_search_restart_activate

@@ -425,8 +425,13 @@ static void search_remove_r_set(search_t *sch, results_set_t *rs)
 	search_free_r_set(rs);
 }
 
-search_t *search_gui_new_search
-    (const gchar *query, guint16 speed, flag_t flags)
+/*
+ * search_gui_new_search:
+ * 
+ * Create a new search and start it. Use default reissue timeout.
+ */
+gboolean search_gui_new_search(
+	const gchar *query, guint16 speed, flag_t flags, search_t **search)
 {
     guint32 search_reissue_timeout;
     
@@ -435,21 +440,26 @@ search_t *search_gui_new_search
         &search_reissue_timeout, 0, 1);
 
 	return search_gui_new_search_full
-        (query, speed, search_reissue_timeout, flags);
+        (query, speed, search_reissue_timeout, flags, search);
 }
 
 /* 
- * search_new_full:
+ * search_gui_new_search_full:
  *
  * Create a new search and start it.
+ * Returns TRUE if search was sucessfully created and FALSE if an error
+ * happened. If the "search" argument is not NULL a pointer to the new
+ * search is stored there.
  */
-search_t *search_gui_new_search_full(
-	const gchar *query, guint16 speed, guint32 reissue_timeout, flag_t flags)
+gboolean search_gui_new_search_full(
+	const gchar *querystr, guint16 speed, guint32 reissue_timeout, flag_t flags,
+	search_t **search)
 {
 	search_t *sch;
 	GList *glist;
     gchar *titles[3];
     gint row;
+    gchar query[512];
 
     GtkWidget *combo_searches = lookup_widget(main_window, "combo_searches");
     GtkWidget *clist_search = lookup_widget(main_window, "clist_search");
@@ -458,6 +468,66 @@ search_t *search_gui_new_search_full(
     GtkWidget *button_search_close = 
         lookup_widget(main_window, "button_search_close");
     GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
+
+
+	g_snprintf(query, sizeof(query), "%s", querystr);
+
+	/*
+	 * If the text is a magnet link we extract the SHA1 urn
+	 * and put it back into the search field string so that the
+	 * code for urn searches below can handle it.
+	 *		--DBelius   11/11/2002
+	 */
+
+	if (0 == strncasecmp(query, "magnet:", 7)) {
+		guchar raw[SHA1_RAW_SIZE];
+
+		if (huge_extract_sha1(query, raw)) {
+			g_snprintf(query, sizeof(query), "urn:sha1:%s", sha1_base32(raw));
+		} else {
+			return FALSE;		/* Entry refused */
+		}
+	}
+
+	/*
+	 * If string begins with "urn:sha1:", then it's an URN search.
+	 * Validate the base32 representation, and if not valid, beep
+	 * and refuse the entry.
+	 *		--RAM, 28/06/2002
+	 */
+
+	if (0 == strncasecmp(query, "urn:sha1:", 9)) {
+		guchar raw[SHA1_RAW_SIZE];
+		gchar *b = query + 9;
+
+		if (strlen(b) < SHA1_BASE32_SIZE)
+			goto refused;
+
+		if (base32_decode_into(b, SHA1_BASE32_SIZE, raw, sizeof(raw)))
+			goto validated;
+
+		/*
+		 * If they gave us an old base32 representation, convert it to
+		 * the new one on the fly.
+		 */
+		if (base32_decode_old_into(b, SHA1_BASE32_SIZE, raw, sizeof(raw))) {
+			guchar b32[SHA1_BASE32_SIZE];
+			base32_encode_into(raw, sizeof(raw), b32, sizeof(b32));
+			memcpy(b, b32, SHA1_BASE32_SIZE);
+			goto validated;
+		}
+
+		/*
+		 * Entry refused.
+		 */
+	refused:
+		return FALSE;
+
+	validated:
+		b[SHA1_BASE32_SIZE] = '\0';		/* Truncate to end of URN */
+
+		/* FALL THROUGH */
+	}
 
 	sch = g_new0(search_t, 1);
 
@@ -543,7 +613,9 @@ search_t *search_gui_new_search_full(
 
     search_start(sch->search_handle);
 
-	return sch;
+	if (search)
+		*search = sch;
+	return TRUE;
 }
 
 /* Searches results */
@@ -1345,7 +1417,7 @@ static gboolean search_retrieve_old(void)
 
 		(void) str_chomp(tmpstr, 0);	/* The search string */
 
-		search_gui_new_search(tmpstr, minimum_speed, 0);
+		search_gui_new_search(tmpstr, minimum_speed, 0, NULL);
 		tmpstr[0] = 0;
 	}
 

@@ -131,9 +131,11 @@ extern search_t *search_selected;
 void search_gui_init(void);
 void search_gui_shutdown(void);
 
-search_t *search_gui_new_search(const gchar *, guint16, flag_t flags);
-search_t *search_gui_new_search_full
-    (const gchar *query, guint16 speed, guint32 reissue_timeout, flag_t flags);
+gboolean search_gui_new_search(
+	const gchar *, guint16, flag_t flags, search_t **search);
+gboolean search_gui_new_search_full(
+	const gchar *query, guint16 speed, guint32 reissue_timeout, flag_t flags,
+	search_t **search);
 struct search *search_new_full(const gchar *, guint16, guint32, flag_t flags);
 void search_gui_close_search(search_t *sch);
 

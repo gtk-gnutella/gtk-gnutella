@@ -80,7 +80,7 @@ void on_popup_monitor_add_search_activate
             gui_prop_get_guint32(PROP_DEFAULT_MINIMUM_SPEED, 
                 &minimum_speed, 0, 1);
 
-			search_gui_new_search(e, minimum_speed, 0);
+			search_gui_new_search(e, minimum_speed, 0, NULL);
         }
 
 		g_free(e);
