@@ -1047,8 +1047,10 @@ void pcache_pong_received(struct gnutella_node *n)
 	 * If it's not a connectible pong, discard it.
 	 */
 
-	if (!check_valid_host(ip, port))
+	if (!check_valid_host(ip, port)) {
+		gnet_stats_count_dropped(n, MSG_DROP_PONG_UNUSABLE);
 		return;
+	}
 
 	/*
 	 * If pong points to us, maybe we explicitly connected to ourselves
