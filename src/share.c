@@ -1262,7 +1262,11 @@ gboolean search_request(struct gnutella_node *n)
 	 * Compact query, if requested and we're going to relay that message.
 	 */
 
-	if (gnet_compact_query && n->header.ttl) {
+	if (
+		gnet_compact_query &&
+		n->header.ttl &&
+		current_peermode != NODE_P_LEAF
+	) {
 		guint32 mangled_search_len;
 
 		/*
