@@ -646,15 +646,15 @@ void download_info_change_all(
 }
 
 /*
- * download_info_invalidate
+ * download_info_reget
  *
- * Invalidate improper fileinfo for the download.
+ * Invalidate improper fileinfo for the download, and get new one.
  *
  * This usually happens when we discover the SHA1 of the file on the remote
  * server, and see that it does not match the one for the associated file on
  * disk, as described in `file_info'.
  */
-static void download_info_invalidate(struct download *d)
+static void download_info_reget(struct download *d)
 {
 	struct dl_file_info *fi = d->file_info;
 
@@ -663,22 +663,11 @@ static void download_info_invalidate(struct download *d)
 
 	fi->lifecount--;
 	file_info_free(fi);
-	d->file_info = NULL;
-}
-
-/*
- * download_info_get
- *
- * Reget proper fileinfo for download, after an invalidation.
- */
-static void download_info_get(struct download *d)
-{
-	g_assert(d);
-	g_assert(d->file_info == NULL);
 
 	d->file_info = file_info_get(
 		d->file_name, save_file_path, d->file_size, d->sha1);
 	d->file_info->refcount++;
+	d->file_info->lifecount++;
 }
 
 /*
@@ -1334,6 +1323,9 @@ void download_queue(struct download *d, const gchar *fmt, ...)
 	va_list args;
 
 	g_assert(d);
+	g_assert(d->file_info);
+	g_assert(d->file_info->refcount > 0);
+	g_assert(d->file_info->lifecount > 0);
 
 	va_start(args, fmt);
 	download_queue_v(d, fmt, args);
@@ -1600,6 +1592,7 @@ static gboolean download_start_prepare(struct download *d)
 
     g_assert(d != NULL);
 	g_assert(d->list_idx != DL_LIST_RUNNING);
+	g_assert(fi != NULL);
 
 	/*
 	 * Updata global accounting data.
@@ -1618,9 +1611,6 @@ static gboolean download_start_prepare(struct download *d)
 	}
 
 	d->status = GTA_DL_CONNECTING;	/* Most common state if we succeed */
-
-	if (d->file_info == NULL)		/* Could have been invalidated */
-		download_info_get(d);
 
 	/*
 	 * If we were asked to ignore this download, abort now.
@@ -2618,14 +2608,6 @@ void download_resume(struct download *d)
 	if (DOWNLOAD_IS_RUNNING(d))
 		return;
 
-	/*
-	 * We can invalidate an improper file_info after stopping a download.
-	 * Recreate the association now if needed.
-	 */
-
-	if (d->file_info == NULL)
-		download_info_get(d);
-
 	if (
 		NULL != has_same_download(d->file_name, download_guid(d),
 			download_ip(d), download_port(d))
@@ -2638,6 +2620,22 @@ void download_resume(struct download *d)
 
 	d->file_info->lifecount++;
 	download_start(d, TRUE);
+}
+
+/*
+ * download_requeue
+ *
+ * Explicitly re-enqueue potentially stopped download.
+ */
+void download_requeue(struct download *d)
+{
+	g_assert(d);
+	g_assert(!DOWNLOAD_IS_QUEUED(d));
+
+	if (DOWNLOAD_IS_STOPPED(d))
+		d->file_info->lifecount++;
+
+	download_queue(d, "Explicitly requeued");
 }
 
 /*
@@ -3378,7 +3376,7 @@ done:
 	download_stop(d, GTA_DL_COMPLETED, NULL);
 	queue_remove_downloads_with_file(d->file_info, d);
 	download_move_to_completed_dir(d);
-	ignore_add(d->file_info->file_name, d->file_info->size, d->file_info->sha1);
+	ignore_add(d->file_name, d->file_info->size, d->file_info->sha1);
 
 	val = total_downloads + 1;
 	gnet_prop_set_guint32(PROP_TOTAL_DOWNLOADS, &val, 0, 1);
@@ -3624,8 +3622,8 @@ static void download_request(struct download *d, header_t *header)
 						extern gint sha1_eq(gconstpointer a, gconstpointer b);
 						g_assert(!sha1_eq(d->file_info->sha1, d->sha1));
 
+						download_info_reget(d);
 						download_queue(d, "URN fileinfo mismatch");
-						download_info_invalidate(d);
 
 						return;
 					}
@@ -3642,8 +3640,8 @@ static void download_request(struct download *d, header_t *header)
 					 */
 
 					if (!file_info_got_sha1(d->file_info, d->sha1)) {
+						download_info_reget(d);
 						download_queue(d, "Discovered dup SHA1");
-						download_info_invalidate(d);
 						return;
 					}
 
@@ -4032,6 +4030,7 @@ void download_send_request(struct download *d)
 	gint rw;
 	gint sent;
 	gboolean n2r = FALSE;
+	guchar *sha1;
 
 	g_assert(d);
 
@@ -4148,7 +4147,21 @@ void download_send_request(struct download *d)
 
 	g_assert(rw + 3 < sizeof(dl_tmp));		/* Should not have filled yet! */
 
-	if (d->sha1) {
+	/*
+	 * We can have a SHA1 for this download (information gathered from
+	 * the query hit, or from a previous interaction with the server),
+	 * or from the fileinfo metadata (if we don't have d->sha1 yet, it means
+	 * we assigned the fileinfo based on name only).
+	 *
+	 * In any case, if we know a SHA1, we need to send it over.  If the server
+	 * sees a mismatch, it will abort.
+	 */
+
+	sha1 = d->sha1;
+	if (sha1 == NULL)
+		sha1 = d->file_info->sha1;
+
+	if (sha1 != NULL) {
 		gint wmesh;
 		gint sha1_room;
 
@@ -4163,7 +4176,7 @@ void download_send_request(struct download *d)
 		 * learned about since the last time.
 		 */
 
-		wmesh = dmesh_alternate_location(d->sha1,
+		wmesh = dmesh_alternate_location(sha1,
 			&dl_tmp[rw], sizeof(dl_tmp)-(rw+sha1_room),
 			download_ip(d), d->last_dmesh);
 		rw += wmesh;
@@ -4180,7 +4193,7 @@ void download_send_request(struct download *d)
 		if (!n2r || wmesh)
 			rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 				"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
-				sha1_base32(d->sha1));
+				sha1_base32(sha1));
 	}
 
 	rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw, "\r\n");

@@ -231,7 +231,7 @@ void download_clear_stopped(gboolean, gboolean);
 void download_abort(struct download *);
 void download_resume(struct download *);
 void download_start(struct download *, gboolean);
-void download_queue_back(struct download *);
+void download_requeue(struct download *);
 void download_send_request(struct download *);
 void download_retry(struct download *);
 void download_index_changed(guint32, guint16, guchar *, guint32, guint32);

@@ -563,7 +563,7 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
                  (gint) l->data);
             continue;
         }
-        download_queue(d, "Explicitly requeued");
+        download_requeue(d);
     }
 
     gtk_clist_thaw(GTK_CLIST(clist_downloads));
