@@ -85,7 +85,7 @@ gtk_gnutella_SOURCES = \
 	sha1.c sha1.h huge.c huge.h \
 	base32.c base32.h \
 	utf8.c utf8.h \
-	filter.c filter.h \
+	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h\
 	ban.c han.h \
 	qrp.c qrp.h \
 	getdate.y \
