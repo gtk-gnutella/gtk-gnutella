@@ -1,5 +1,4 @@
-/* -*- mode: cc-mode; tab-width:4; -*-
- *
+/*
  * $Id$
  *
  * Copyright (c) 2004, Alex Bennee <alex@bennee.com>
@@ -53,8 +52,6 @@
 #include "lib/walloc.h"
 #include "lib/override.h"	/* This file MUST be the last one included */
 
-/* Get rid of the obnoxious (xmlChar *) */
-#define xml_get_string(node, id) ((gchar *) xmlGetProp((node), (id)))
 /*
  * The bitzi_request_t structure ties together each Bitzi request
  * which are stored in the request queue.
@@ -107,6 +104,13 @@ static void process_meta_data(bitzi_request_t * req);
 static void bitzi_cache_add(bitzi_data_t * data);
 static void bitzi_cache_remove(bitzi_data_t * data);
 static void bitzi_cache_clean(void);
+
+/* Get rid of the obnoxious (xmlChar *) */
+static inline gchar *
+xml_get_string(xmlNode *node, const gchar *id)
+{
+	return (gchar *) xmlGetProp(node, (const xmlChar *) id);
+}
 
 /********************************************************************
  ** Bitzi Create and Destroy data structure
@@ -691,3 +695,4 @@ bitzi_init(void)
 }
 
 /* vi: set ts=4 sw=4 cindent: */
+/* -*- mode: cc-mode; tab-width:4; -*- */
