@@ -12,6 +12,18 @@
    and filter_cb.c, since the saving/restoring of searches/filters and all
    the filtering takes place inside the GUI. The backend is only responsible
    to collect search results and push it to the GUI.
+ * search.c and nodes.c use a g_hash_table now to resolve handles and don't
+   map the internal pointers directly as handles.
+ * current_search is no longer exported and must be accessed through
+   search_gui_get_current_search().
+ * __search_send_packet uses minimum speed setting from search and not
+   global default minimum speed setting.
+ * Moved from gnet_props.ag to gui_props.ag (reset to default on startup):
+   - PROP_MINIMUM_SPEED (now PROP_DEFAULT_MINIMUM_SPEED)
+   - PROP_FILTER_DEFAULT_POLICY
+ * Added "Range" column to active downloads
+ * Move lots of callbacks from callback.[ch] to search_cb.[ch]
+ * Clobbered some more unwanted includes in several files
 
 - (2002.08.25 - RAM)
  * Use /dev/urandom to initialize seed on systems that have it.
