@@ -139,20 +139,24 @@ void vp_draw_fi (gpointer key, gpointer value, gpointer user_data)
 
 
 /* 
- * Draws a progress bar for the given fi struct in the DrawingArea.
+ * Draws a progress bar for the given fi struct in the
+ * DrawingArea. fih is expected to be a valid fih, or 0 in which case
+ * the function returns instead of drawing something.
  */
 void vp_draw_fi_progress(gnet_fi_t fih)
 {
     vp_info_t *v;
     gpointer atom;
 
-    g_assert( g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, &v) );
-    g_assert( v );
+    if (fih) {
+	g_assert( g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, &v) );
+	g_assert( v );
 
-    v->context = &fi_context;
-    v->context->fih = fih;
+	v->context = &fi_context;
+	v->context->fih = fih;
 
-    g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
+	g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
+    }
 }
 
 /* 
