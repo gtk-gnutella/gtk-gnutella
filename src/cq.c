@@ -416,6 +416,7 @@ void cq_cancel(cqueue_t *cq, gpointer handle)
 	g_assert(cq->cq_items > 0);
 
 	ev_unlink(cq, ev);
+	ev->ce_magic = 0;			/* Prevent further use as a valid event */
 	g_free(ev);
 }
 
