@@ -1,6 +1,9 @@
 # since last version
 
 - (2004.01.18 - Richard)
+ * Count number of unstable nodes and hits on node_is_bad and node_ip_is_bad.
+   Numbers are reported if core debug level is > 1.
+ * Don't add bad ip adresses to the host caches in extract_field_pongs.
  * [Gtk1] Disable "expand all" and "collapse all" when no search is open.
  * [Gtk1] Fix possible crash if sorting on less then 50 results (Thanks Emile).
 
