@@ -110,6 +110,7 @@
 
 64.15.0.0/255.255.0.0
 207.234.131.147
+207.234.131.148
 
 ###
 ### The following come from an htaccess denying RIAA/MPAA access
