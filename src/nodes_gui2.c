@@ -37,6 +37,8 @@ enum {
     COL_NODE_TYPE,
     COL_NODE_VENDOR,
     COL_NODE_VERSION,
+    COL_NODE_CONNECTED,
+    COL_NODE_UPTIME,
     COL_NODE_INFO,
     COL_NODE_HANDLE,
     NODE_COLUMNS
@@ -50,6 +52,7 @@ static void nodes_gui_node_removed(
 static void nodes_gui_node_added(
     gnet_node_t n, const gchar *t, guint32, guint32);
 static void nodes_gui_node_info_changed(gnet_node_t);
+static void nodes_gui_add_column(GtkTreeView *, gint, const gchar *);
 
 /*
  * nodes_gui_find_node:
@@ -98,9 +101,7 @@ void nodes_gui_early_init(void)
  */
 void nodes_gui_init() 
 {
-    GtkWidget *tree;
-    GtkTreeViewColumn *column;
-    GtkCellRenderer *renderer;
+    GtkTreeView *tree;
 
     /* Create a model.  We are using the store model for now, though we
      * could use any other GtkTreeModel */
@@ -109,52 +110,28 @@ void nodes_gui_init()
         G_TYPE_STRING,   /* COL_NODE_TYPE */
         G_TYPE_STRING,   /* COL_NODE_VENDOR */
         G_TYPE_STRING,   /* COL_NODE_VERSION */
+        G_TYPE_STRING,   /* COL_NODE_CONNECTED */
+        G_TYPE_STRING,   /* COL_NODE_UPTIME */
         G_TYPE_STRING,   /* COL_NODE_INFO */
         G_TYPE_UINT);    /* COL_NODE_HANDLE */
 
     /* Get the monitor widget */
-    tree = lookup_widget(main_window, "treeview_nodes");
+    tree = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
 
-    gtk_tree_view_set_model
-        (GTK_TREE_VIEW(tree), GTK_TREE_MODEL(nodes_model));
+    gtk_tree_view_set_model(tree, GTK_TREE_MODEL(nodes_model));
 
     /* The view now holds a reference.  We can get rid of our own
      * reference */
     g_object_unref(G_OBJECT (nodes_model));
 
-    /* Create a column, associating the "text" attribute of the
-     * cell_renderer to the first column of the model */
-    renderer = gtk_cell_renderer_text_new ();
 
-    column = gtk_tree_view_column_new_with_attributes 
-        ("Host", renderer, "text", COL_NODE_HOST, NULL);
-    gtk_tree_view_column_set_resizable(column, TRUE);
-    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
-
-    column = gtk_tree_view_column_new_with_attributes 
-        ("Type", renderer, "text", COL_NODE_TYPE, NULL);
-    gtk_tree_view_column_set_resizable(column, TRUE);
-    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
-
-    column = gtk_tree_view_column_new_with_attributes 
-        ("Vendor", renderer, "text", COL_NODE_VENDOR, NULL);
-    gtk_tree_view_column_set_resizable(column, TRUE);
-    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
-
-    column = gtk_tree_view_column_new_with_attributes 
-        ("Ver", renderer, "text", COL_NODE_VERSION, NULL);
-    gtk_tree_view_column_set_resizable(column, TRUE);
-    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
-
-    column = gtk_tree_view_column_new_with_attributes 
-        ("Info", renderer, "text", COL_NODE_INFO, NULL);
-    gtk_tree_view_column_set_resizable(column, TRUE);
-    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
+    nodes_gui_add_column(tree, COL_NODE_HOST, "Host");
+    nodes_gui_add_column(tree, COL_NODE_TYPE, "Type");
+    nodes_gui_add_column(tree, COL_NODE_VENDOR, "Vendor");
+    nodes_gui_add_column(tree, COL_NODE_VERSION, "Ver");
+    nodes_gui_add_column(tree, COL_NODE_CONNECTED, "Connected");
+    nodes_gui_add_column(tree, COL_NODE_UPTIME, "Uptime");
+    nodes_gui_add_column(tree, COL_NODE_INFO, "Info");
 
     node_add_node_added_listener(nodes_gui_node_added);
     node_add_node_removed_listener(nodes_gui_node_removed);
@@ -217,6 +194,8 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
         COL_NODE_TYPE,    type_tmp,
         COL_NODE_VENDOR,  n->vendor ? n->vendor : "...",
         COL_NODE_VERSION, proto_tmp,
+        COL_NODE_CONNECTED, "...",
+        COL_NODE_UPTIME,  "...",
         COL_NODE_INFO,    "...",
         COL_NODE_HANDLE,  handle,
         -1);
@@ -345,13 +324,19 @@ void nodes_gui_update_nodes_display(time_t now)
     
     while (valid) {
         GValue val = { 0, };
+        gchar timestr[32];
 
         gtk_tree_model_get_value(GTK_TREE_MODEL(nodes_model),
             &iter, COL_NODE_HANDLE, &val);
 
         node_get_status(g_value_get_uint(&val), &status);
 
+		g_strlcpy(timestr, status.connect_date ? 
+			short_uptime(now - status.connect_date)  : "...", sizeof(timestr));
         gtk_list_store_set(nodes_model, &iter, 
+            COL_NODE_CONNECTED, timestr,
+            COL_NODE_UPTIME, status.up_date ?
+				short_uptime(now - status.up_date) : "...",
             COL_NODE_INFO, gui_node_status_str(&status, now),
             -1);
 
@@ -369,10 +354,9 @@ void nodes_gui_update_node_info(gnet_node_info_t *n)
     valid = nodes_gui_find_node(n->node_handle, &iter);
 
     if (valid) {
-	gchar version[16];
-    
-        time_t now = time((time_t *) NULL);
+		gchar version[16];
         gnet_node_status_t status;
+        time_t now = time((time_t *) NULL);
 
         node_get_status(n->node_handle, &status);
 
@@ -438,8 +422,7 @@ static void nodes_gui_node_added(
  *
  * Callback: called when node information was changed by the backend.
  *
- * This updates the node information in the gui. If important is TRUE,
- * the update is forced and the connection stats are refreshed.
+ * This updates the node information in the gui. 
  */
 static void nodes_gui_node_info_changed(gnet_node_t n)
 {
@@ -450,4 +433,20 @@ static void nodes_gui_node_info_changed(gnet_node_t n)
     nodes_gui_update_node_info(info);
 
     node_free_info(info);
+}
+
+
+/* Create a column, associating the "text" attribute of the
+ * cell_renderer to the first column of the model */
+static void nodes_gui_add_column(
+	GtkTreeView *tree, gint column_id, const gchar *title)
+{
+    GtkTreeViewColumn *column;
+
+    column = gtk_tree_view_column_new_with_attributes 
+        (title, gtk_cell_renderer_text_new (), "text", column_id, NULL);
+    gtk_tree_view_column_set_reorderable(column, TRUE);
+    gtk_tree_view_column_set_resizable(column, TRUE);
+    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
+    gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
 }
