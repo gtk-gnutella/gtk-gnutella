@@ -1303,6 +1303,25 @@ void gui_search_clear_results(void)
 }
 
 /*
+ * gui_search_get_colors
+ *
+ * Extract the mark/ignore/download color.
+ */
+void gui_search_get_colors(
+	search_t *sch,
+	GdkColor **mark_color, GdkColor **ignore_color, GdkColor **download_color)
+{
+    *mark_color = &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+        ->bg[GTK_STATE_INSENSITIVE]);
+
+    *ignore_color = &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+        ->fg[GTK_STATE_INSENSITIVE]);
+
+    *download_color =  &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+        ->fg[GTK_STATE_ACTIVE]);
+}
+
+/*
  * gui_search_history_add:
  *
  * Adds a search string to the search history combo. Makes
