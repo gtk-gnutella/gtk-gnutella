@@ -793,7 +793,7 @@ void download_remove_file(struct download *d, gboolean reset)
 	 * Requeue all the active downloads that were referencing that file.
 	 */
 
-	for (l = sl_downloads; l; l = l->next) {
+	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
 
 		if (d->status == GTA_DL_REMOVED)
@@ -822,7 +822,7 @@ void download_info_change_all(
 {
 	GSList *l;
 
-	for (l = sl_downloads; l; l = l->next) {
+	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
 		gboolean is_running;
 
@@ -986,7 +986,7 @@ static void queue_remove_downloads_with_file(
 	}
 
     for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
-        download_free((struct download *)sl->data);
+        download_free((struct download *) sl->data);
 
     g_slist_free(to_remove);
 }
@@ -1066,7 +1066,7 @@ gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port)
  * download_remove_all_named
  *
  * remove all downloads with a given name from the download queue
- * and abort all conenctions to peer in the active download list.
+ * and abort all connections to peer in the active download list.
  * Returns the number of removed downloads.
  */
 gint download_remove_all_named(const gchar *name)
@@ -1077,8 +1077,6 @@ gint download_remove_all_named(const gchar *name)
 
 	g_return_val_if_fail(name, 0);
 	
-	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%s", name);
-
 	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
 
@@ -1086,7 +1084,7 @@ gint download_remove_all_named(const gchar *name)
 
 		if (
             (d->status == GTA_DL_REMOVED) ||
-            (strcmp(dl_tmp, d->file_name) != 0)
+            (strcmp(name, d->file_name) != 0)
         )
 			continue;
 
@@ -1181,15 +1179,14 @@ gint download_remove_all_with_sha1(const guchar *sha1)
 
 void download_clear_stopped(gboolean complete, gboolean failed, gboolean now)
 {
-	GSList *l = sl_unqueued;
+	GSList *sl;
 	time_t current_time = 0;
 
-	if (l && !now)
+	if (sl_unqueued && !now)
 		current_time = time(NULL);
 
-	while (l) {
-		struct download *d = (struct download *) l->data;
-		l = l->next;
+	for (sl = sl_unqueued; sl; sl = g_slist_next(sl)) {
+		struct download *d = (struct download *) sl->data;
 
 		if (d->status == GTA_DL_REMOVED)
 			continue;
@@ -2852,7 +2849,7 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 		return;
 
 	for (n = 0; n < G_N_ELEMENTS(listnum); n++) {
-		for (l = server->list[n]; l; l = l->next) {
+		for (l = server->list[n]; l; l = g_list_next(l)) {
 			struct download *d = (struct download *) l->data;
 			gboolean push_mode;
 
@@ -2916,7 +2913,7 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 		}
 	}
 
-	for (sl = to_stop; sl; sl = sl->next) {
+	for (sl = to_stop; sl; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
 		download_queue_delay(d, download_retry_stopped_delay,
 			"Stopped (Index changed)");
@@ -2968,7 +2965,7 @@ void download_free_removed(void)
 	if (sl_removed == NULL)
 		return;
 
-	for (l = sl_removed; l; l = l->next) {
+	for (l = sl_removed; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
 
 		g_assert(d->status == GTA_DL_REMOVED);
@@ -2990,7 +2987,7 @@ void download_free_removed(void)
 	g_slist_free(sl_removed);
 	sl_removed = NULL;
 
-	for (l = sl_removed_servers; l; l = l->next) {
+	for (l = sl_removed_servers; l; l = g_slist_next(l)) {
 		struct dl_server *s = (struct dl_server *) l->data;
 		free_server(s);
 	}
@@ -5671,7 +5668,7 @@ static void download_store(void)
 
 	fputs("RECLINES=3\n\n", out);
 
-	for (l = sl_downloads; l; l = l->next) {
+	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
 		gchar *escaped;
 
@@ -6220,7 +6217,7 @@ static void download_resume_bg_tasks(void)
 	GSList *l;
 	GSList *to_remove = NULL;			/* List of fileinfos to remove */
 
-	for (l = sl_downloads; l; l = l->next) {
+	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
 		struct dl_file_info *fi = d->file_info;
 
@@ -6296,7 +6293,7 @@ static void download_resume_bg_tasks(void)
 	 * Clear the marks.
 	 */
 
-	for (l = sl_downloads; l; l = l->next) {
+	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
 		struct dl_file_info *fi = d->file_info;
 
@@ -6314,7 +6311,7 @@ void download_close(void)
 
 	download_free_removed();
 
-	for (l = sl_downloads; l; l = l->next) {
+	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
 		if (d->socket)
 			socket_free(d->socket);
