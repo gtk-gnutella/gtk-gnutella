@@ -1,0 +1,52 @@
+The 'H' GGEP Extension
+======================
+
+Name: H
+Where: Query, Query Hit
+Status: Standard (GDF-approved in February, 2002)
+Date: Sun Jun  9 12:09:17 MEST 2002
+Format: <hash type> <binary hash digest>
+COBS-Encoding: Maybe
+Deflate: Never
+
+The 'H' extension carries a hash digest in binary form.  It is meant to
+replace the "urn:xxx:<base32 digest>" representation defined by HUGE in
+order to save bandwidth and prevent needless conversions from the base32
+form into the binary form.
+
+In Query Hits, it appears after each filename, in place of the "urn:sha1:"
+indication.
+
+For backward compatibility reasons, it will not be sent in Queries (despite
+the gain it would bring) until major servents support it.  This is to preserve
+the ability of gtk-gnutella users to perform queries by hash: the HUGE
+representation will be used in the interim.
+
+The payload format is:
+
+    <hash type>  1 byte
+    <binary hash digest> x bytes, determined by hash type
+
+The currently supported hash types are:
+
+    0x01    sha1        x=20
+    0x02    bitprint    x=20+24=44 (a)
+
+The whole payload can be COBS-encoded in the case where the hash digest
+contains NUL bytes and the GGEP extension is used in Query Hits.  It does
+not need any COBS-encoding when used in a Query.
+
+The payload is never deflated.
+
+Footnotes
+---------
+
+(a)
+    The "bitprint" URN was defined in HUGE by
+
+        urn:bitprint:[32-character-SHA1].[39-character-TigerTree]
+
+   Here, we encode it as 20 bytes (binary SHA1) and 24 bytes (binary Tiger)
+   without any separator between them.  The first 20 bytes refer to the SHA1,
+   the trailing 24 bytes refer to the Tiger tree hash.
+
