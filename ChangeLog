@@ -1,5 +1,9 @@
 # since last version
 
+- (2002.12.20 - cbiere)
+ * Rearranged gnet stats; reduced CPU load for gnet stats (gnet_stats_gui2.c,
+   gtk2-gnutella.glade, interface-glade2.c)
+
 - (2002.12.18 - cbiere)
  * Fixed race condition in shell_dump_cookie(); moved g_string_printf
    compatibility quirk to misc.h (shell.c)
