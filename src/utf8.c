@@ -381,6 +381,7 @@ gint utf8_to_iso8859(guchar *s, gint len, gboolean space)
 
 		*xw++ = (guchar) v;
 		x += clen;
+		len -= clen;
 	}
 
 	*xw = '\0';
