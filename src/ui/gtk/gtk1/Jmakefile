@@ -98,9 +98,7 @@ GLADEFILE = gtk-gnutella.glade
 ;# We allow the target to fail since we're distribute the generated files
 ;# with the sources, so even if they don't have glade, it will work.
 $(GLADE_GEN): $(GLADEFILE) $(REMOTE_GLADE)
-	$(CHMOD) 0644 $(REMOTE_GLADE)
 	-$(GLADE) --write-source $(GLADEFILE)
-	$(CHMOD) 0444 $(REMOTE_GLADE)
 	touch $(GLADE_GEN)
 
 GTK_SHARED = ../gtk-shared
@@ -114,7 +112,7 @@ GTK_SHARED = ../gtk-shared
 |expand f!$(REMOTE_GLADE)!
 !f: $(GTK_SHARED)/!f
 	$(RM) !f
-	$(CP) $(GTK_SHARED)/!f . && $(CHMOD) 0444 !f
+	$(CP) $(GTK_SHARED)/!f .
 
 -expand
 
