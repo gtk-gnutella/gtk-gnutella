@@ -1708,8 +1708,10 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	if (
 		sender->header.function == GTA_MSG_SEARCH &&
 		gmsg_split_is_oob_query(&sender->header, sender->data)
-	)
+	) {
 		mangled = route_mangled_oob_muid(sender->header.muid);
+		gnet_stats_count_general(sender, GNR_OOB_QUERIES, 1);
+	}
 
 	/*
 	 * For routed messages, we check whether we get a duplicate and
