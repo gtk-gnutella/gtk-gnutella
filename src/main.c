@@ -199,39 +199,60 @@ gint main(gint argc, gchar ** argv)
 		gtk_clist_optimal_column_width(GTK_CLIST(ctree_menu), 0);
 
     // gnutellaNet
-    last_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) & menus[0],
-                                     0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[0]);
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[0],
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[0]);
+
     // Uploads
-    parent_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), NULL, NULL, 
-                                        (gchar **) & menus[1],
-                                        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
-    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), parent_node, (gpointer) &menutabs[1]);
+    parent_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[1],
+        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), parent_node, (gpointer) &menutabs[1]);
+
     // Uploads -> Stats
-    last_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) & menus[2],
-                          0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[2]);
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) &menus[2],
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE);
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[2]);
+
     // Downloads
-    last_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) & menus[3],
-                                      0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[3]);
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[3],
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[3]);
+
     // Search
-    parent_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), NULL, NULL,
-                                        (gchar **) & menus[4],
-                                        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
-    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), parent_node, (gpointer) &menutabs[4]);
+    parent_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[4],
+        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), parent_node, (gpointer) &menutabs[4]);
+
     // Search -> Monitor
-    last_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) & menus[5],
-                                      0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[5]);
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) & menus[5],
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[5]);
+
     // Search -> Monitor
-    last_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) & menus[6],
-                                      0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[6]);
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) & menus[6],
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[6]);
+
     // Config
-    last_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) & menus[7],
-                                      0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[7]); 
+    last_node = gtk_ctree_insert_node(
+		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) & menus[7],
+        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(
+		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[7]); 
 
 	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
 
