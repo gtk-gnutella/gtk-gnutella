@@ -46,8 +46,9 @@ RCSID("$Id$");
  * Global bandwidth schedulers.
  */
 
-struct bws_set bws = { NULL, NULL, NULL, NULL, NULL, NULL };
+struct bws_set bws = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 static GSList *bws_list = NULL;
+static GSList *bws_gsteal_list = NULL;
 static GSList *bws_out_list = NULL;
 static gint bws_out_ema = 0;
 
@@ -59,6 +60,8 @@ static gint bws_out_ema = 0;
 
 #define BW_TCP_MSG		40		/* Smallest size of a TCP message */
 #define BW_UDP_MSG		20		/* Minimal IP overhead for a UDP message */
+
+#define BW_UDP_OVERSIZE	512		/* Allow that many bytes over available b/w */
 
 /*
  * Determine how large an I/O vector the kernel can accept.
@@ -200,6 +203,82 @@ bsched_add_stealer(bsched_t *bs, bsched_t *stealer)
 }
 
 /**
+ * Reset `stealer' list for scheduler.
+ */
+static void
+bsched_reset_stealers(bsched_t *bs)
+{
+	if (bs->stealers != NULL)
+		g_slist_free(bs->stealers);
+	bs->stealers = NULL;
+}
+
+/**
+ * Allow cross-stealing of unused bandwidth between HTTP/gnet.
+ */
+void
+bsched_config_steal_http_gnet(void)
+{
+	GSList *l;
+
+	for (l = bws_list; l; l = g_slist_next(l)) {
+		bsched_t *bs = (bsched_t *) l->data;
+		bsched_reset_stealers(bs);
+	}
+
+	bsched_add_stealer(bws.out, bws.gout);
+	bsched_add_stealer(bws.out, bws.gout_udp);
+	bsched_add_stealer(bws.out, bws.glout);
+
+	bsched_add_stealer(bws.gout, bws.out);
+	bsched_add_stealer(bws.gout, bws.gout_udp);
+	bsched_add_stealer(bws.gout, bws.glout);
+
+	bsched_add_stealer(bws.in, bws.gin);
+	bsched_add_stealer(bws.in, bws.gin_udp);
+	bsched_add_stealer(bws.in, bws.glin);
+
+	bsched_add_stealer(bws.gin, bws.in);
+	bsched_add_stealer(bws.gin, bws.gin_udp);
+	bsched_add_stealer(bws.gin, bws.glin);
+
+	bsched_add_stealer(bws.glout, bws.gout);
+	bsched_add_stealer(bws.glout, bws.gout_udp);
+	bsched_add_stealer(bws.glout, bws.out);
+
+	bsched_add_stealer(bws.glin, bws.gin);
+	bsched_add_stealer(bws.glin, bws.gin_udp);
+	bsched_add_stealer(bws.glin, bws.in);
+
+	bsched_add_stealer(bws.gout_udp, bws.gout);
+	bsched_add_stealer(bws.gout_udp, bws.glout);
+	bsched_add_stealer(bws.gout_udp, bws.out);
+
+	bsched_add_stealer(bws.gin_udp, bws.gin);
+	bsched_add_stealer(bws.gin_udp, bws.glin);
+	bsched_add_stealer(bws.gin_udp, bws.in);
+}
+
+/**
+ * Allow cross-stealing of unused bandwidth between TCP and UDP gnet only.
+ */
+void
+bsched_config_steal_gnet(void)
+{
+	GSList *l;
+
+	for (l = bws_list; l; l = g_slist_next(l)) {
+		bsched_t *bs = (bsched_t *) l->data;
+		bsched_reset_stealers(bs);
+	}
+
+	bsched_add_stealer(bws.gin, bws.gin_udp);
+	bsched_add_stealer(bws.gin_udp, bws.gin);
+	bsched_add_stealer(bws.gout, bws.gout_udp);
+	bsched_add_stealer(bws.gout_udp, bws.gout);
+}
+
+/**
  * Initialize global bandwidth schedulers.
  */
 void
@@ -208,8 +287,11 @@ bsched_init(void)
 	bws.out = bsched_make("out",
 		BS_T_STREAM, BS_F_WRITE, bw_http_out, 1000);
 
-	bws.gout = bsched_make("G out",
-		BS_T_STREAM, BS_F_WRITE, bw_gnet_out, 1000);
+	bws.gout = bsched_make("G TCP out",
+		BS_T_STREAM, BS_F_WRITE, bw_gnet_out / 2, 1000);
+
+	bws.gout_udp = bsched_make("G UDP out",
+		BS_T_STREAM, BS_F_WRITE, bw_gnet_out / 2, 1000);
 
 	bws.glout = bsched_make("GL out",
 		BS_T_STREAM, BS_F_WRITE, bw_gnet_lout, 1000);
@@ -217,44 +299,44 @@ bsched_init(void)
 	bws.in = bsched_make("in",
 		BS_T_STREAM, BS_F_READ, bw_http_in, 1000);
 
-	bws.gin = bsched_make("G in",
-		BS_T_STREAM, BS_F_READ, bw_gnet_in, 1000);
+	bws.gin = bsched_make("G TCP in",
+		BS_T_STREAM, BS_F_READ, bw_gnet_in / 2, 1000);
+
+	bws.gin_udp = bsched_make("G UDP in",
+		BS_T_STREAM, BS_F_READ, bw_gnet_in / 2, 1000);
 
 	bws.glin = bsched_make("GL in",
 		BS_T_STREAM, BS_F_READ, bw_gnet_lin, 1000);
 
 	bws_list = g_slist_prepend(bws_list, bws.glin);
 	bws_list = g_slist_prepend(bws_list, bws.gin);
+	bws_list = g_slist_prepend(bws_list, bws.gin_udp);
 	bws_list = g_slist_prepend(bws_list, bws.in);
 	bws_list = g_slist_prepend(bws_list, bws.glout);
 	bws_list = g_slist_prepend(bws_list, bws.gout);
+	bws_list = g_slist_prepend(bws_list, bws.gout_udp);
 	bws_list = g_slist_prepend(bws_list, bws.out);
 
 	bws_out_list = g_slist_prepend(bws_out_list, bws.glout);
 	bws_out_list = g_slist_prepend(bws_out_list, bws.gout);
+	bws_out_list = g_slist_prepend(bws_out_list, bws.gout_udp);
 	bws_out_list = g_slist_prepend(bws_out_list, bws.out);
 
+	bws_gsteal_list = g_slist_prepend(bws_gsteal_list, bws.gout);
+	bws_gsteal_list = g_slist_prepend(bws_gsteal_list, bws.gout_udp);
+	bws_gsteal_list = g_slist_prepend(bws_gsteal_list, bws.gin);
+	bws_gsteal_list = g_slist_prepend(bws_gsteal_list, bws.gin_udp);
+
 	/*
-	 * Allow cross-stealing of unused bandwidth between HTTP/gnet.
+	 * We always steal bandwidth between TCP and UDP gnet, since we
+	 * forcefully split the allocated bandwidth evenly between the
+	 * two traffic types.
 	 */
 
-	bsched_add_stealer(bws.out, bws.gout);
-	bsched_add_stealer(bws.out, bws.glout);
-
-	bsched_add_stealer(bws.gout, bws.out);
-	bsched_add_stealer(bws.gout, bws.glout);
-
-	bsched_add_stealer(bws.in, bws.gin);
-	bsched_add_stealer(bws.in, bws.glin);
-
-	bsched_add_stealer(bws.gin, bws.in);
-	bsched_add_stealer(bws.gin, bws.glin);
-
-	bsched_add_stealer(bws.glout, bws.gout);
-	bsched_add_stealer(bws.glout, bws.out);
-
-	bsched_add_stealer(bws.glin, bws.gin);
-	bsched_add_stealer(bws.glin, bws.in);
+	if (bw_allow_stealing)
+		bsched_config_steal_http_gnet();
+	else
+		bsched_config_steal_gnet();
 
 	bsched_set_peermode(current_peermode);
 }
@@ -363,8 +445,10 @@ bsched_enable_all(void)
 	if (bws.out->bw_per_second && bws_out_enabled)
 		bsched_enable(bws.out);
 
-	if (bws.gout->bw_per_second && bws_gout_enabled)
+	if (bws.gout->bw_per_second && bws_gout_enabled) {
 		bsched_enable(bws.gout);
+		bsched_enable(bws.gout_udp);
+	}
 
 	if (bws.glout->bw_per_second && bws_glout_enabled)
 		bsched_enable(bws.glout);
@@ -372,8 +456,10 @@ bsched_enable_all(void)
 	if (bws.in->bw_per_second && bws_in_enabled)
 		bsched_enable(bws.in);
 
-	if (bws.gin->bw_per_second && bws_gin_enabled)
+	if (bws.gin->bw_per_second && bws_gin_enabled) {
 		bsched_enable(bws.gin);
+		bsched_enable(bws.gin_udp);
+	}
 
 	if (bws.glin->bw_per_second && bws_glin_enabled)
 		bsched_enable(bws.glin);
@@ -1043,7 +1129,7 @@ bio_write(bio_source_t *bio, gconstpointer data, gint len)
 	amount = len > available ? available : len;
 
 	if (dbg > 7)
-		printf("bsched_write(wio=%d, len=%d) available=%d\n",
+		printf("bio_write(wio=%d, len=%d) available=%d\n",
 			bio->wio->fd(bio->wio), len, available);
 
 	r = bio->wio->write(bio->wio, data, amount);
@@ -1154,7 +1240,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 	 */
 
 	if (dbg > 7)
-		printf("bsched_writev(fd=%d, len=%d) available=%d\n",
+		printf("bio_writev(fd=%d, len=%d) available=%d\n",
 			bio->wio->fd(bio->wio), len, available);
 
 	if (iovcnt > MAX_IOV_COUNT)
@@ -1189,6 +1275,67 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 	if (len > available && siov) {
 		g_assert(slen >= 0);			/* Ensure it was initialized */
 		siov->iov_len = slen;
+	}
+
+	return r;
+}
+
+/**
+ * Send UDP datagram to specified destination `to'.
+ * If we cannot write anything due to bandwidth constraints, return -1 with
+ * errno set to EAGAIN.
+ */
+gint
+bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, gint len)
+{
+	gint available;
+	gint r;
+
+	g_assert(bio);
+	g_assert(bio->flags & BIO_F_WRITE);
+
+	/* 
+	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN 
+	 * to signal that we cannot perform any I/O right now.
+	 *
+	 * Note that datagrams are necessarily atomic operations, therefore
+	 * they must be completely possible or not performed at all, but we
+	 * can't really be too strict or large datagrams will never be sent
+	 * at all.  Hence we act as if we had BW_UDP_OVERSIZE extra bandwidth
+	 * available if we don't have enough bandwidth initially, but have
+	 * some available still.
+	 */
+
+	available = bw_available(bio, len);
+
+	if (available == 0 || available + BW_UDP_OVERSIZE < len) {
+		errno = EAGAIN;
+		return -1;
+	}
+
+	if (dbg > 7)
+		printf("bio_sendto(wio=%d, len=%d) available=%d\n",
+			bio->wio->fd(bio->wio), len, available);
+
+	r = bio->wio->sendto(bio->wio, to, data, len);
+
+	/*
+	 * XXX hack for broken libc, which can return -1 with errno = 0!
+	 *
+	 * Apparently, when compiling with gcc-3.3.x, one can have a system
+	 * call return -1 with errno set to EOK.
+	 *		--RAM, 05/10/2003
+	 */
+
+	if (r == -1 && errno == 0) {
+		g_warning("wio->sendto(fd=%d, len=%d) returned -1 with errno = 0, "
+			"assuming EAGAIN", bio->wio->fd(bio->wio), len);
+		errno = EAGAIN;
+	}
+
+	if (r > 0) {
+		bsched_bw_update(bio->bs, r + BW_UDP_MSG, len + BW_UDP_MSG);
+		bio->bw_actual += r + BW_UDP_MSG;
 	}
 
 	return r;
@@ -1383,7 +1530,7 @@ bws_udp_count_read(gint len)
 {
 	gint count = BW_UDP_MSG + len;
 
-	bsched_bw_update(bws.gin, count, count);
+	bsched_bw_update(bws.gin_udp, count, count);
 }
 
 /**
@@ -1394,7 +1541,7 @@ bws_udp_count_written(gint len)
 {
 	gint count = BW_UDP_MSG + len;
 
-	bsched_bw_update(bws.gout, count, count);
+	bsched_bw_update(bws.gout_udp, count, count);
 }
 
 /**
@@ -1923,10 +2070,8 @@ bsched_timer(void)
 	 * have not used up all their quota.
 	 */
 
-	if (bw_allow_stealing) {
-		for (l = bws_list; l; l = g_slist_next(l))
-			bsched_stealbeat(l->data);
-	}
+	for (l = bws_list; l; l = g_slist_next(l))
+		bsched_stealbeat(l->data);
 
 	/*
 	 * Third pass: begin new timeslice.

@@ -31,6 +31,7 @@
 #include "sockets.h"		/* For enum socket_type */
 
 #include "lib/inputevt.h"
+#include "if/core/hosts.h"	/* For gnet_host_t */
 #include "if/core/nodes.h"	/* For node_peer_t */
 #include "if/core/bsched.h"
 
@@ -128,8 +129,10 @@ struct bsched {
 struct bws_set {
 	bsched_t *out;			/* Output (uploads) */
 	bsched_t *in;			/* Input (downloads) */
-	bsched_t *gout;			/* Gnet output */
-	bsched_t *gin;			/* Gnet input */
+	bsched_t *gout;			/* Gnet TCP output */
+	bsched_t *gin;			/* Gnet TCP input */
+	bsched_t *gout_udp;		/* Gnet UDP output */
+	bsched_t *gin_udp;		/* Gnet UDP input */
 	bsched_t *glout;		/* Gnet leaf output */
 	bsched_t *glin;			/* Gnet leaf input */
 };
@@ -162,6 +165,8 @@ void bio_add_callback(bio_source_t *bio,
 void bio_remove_callback(bio_source_t *bio);
 gint bio_write(bio_source_t *bio, gconstpointer data, gint len);
 gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt);
+gint bio_sendto(bio_source_t *bio, gnet_host_t *to,
+	gconstpointer data, gint len);
 gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len);
 gint bio_read(bio_source_t *bio, gpointer data, gint len);
 gint bws_write(bsched_t *bs, wrap_io_t *wio, gconstpointer data, gint len);
@@ -180,6 +185,9 @@ void bws_udp_count_written(gint len);
 void bws_udp_count_read(gint len);
 
 gboolean bsched_enough_up_bandwidth(void);
+
+void bsched_config_steal_http_gnet(void);
+void bsched_config_steal_gnet(void);
 
 #endif	/* _core_bsched_h_ */
 
