@@ -156,7 +156,7 @@ GList *g_list_delete_link(GList *l, GList *lnk)
  */
 size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args)
 {
-	size_t retval;
+	ssize_t retval;
 
 	g_return_val_if_fail (str != NULL, 0);
 	g_return_val_if_fail (fmt != NULL, 0);
@@ -165,7 +165,7 @@ size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args)
 
 	DO_VSNPRINTF();
 
-	g_assert(retval < n);
+	g_assert(retval >= 0 && retval < n);
 
 	return retval;
 }
@@ -180,7 +180,7 @@ size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args)
 size_t gm_snprintf(gchar *str, size_t n, gchar const *fmt, ...)
 {
 	va_list args;
-	size_t retval;
+	ssize_t retval;
 
 	g_return_val_if_fail (str != NULL, 0);
 	g_return_val_if_fail (fmt != NULL, 0);
@@ -191,7 +191,7 @@ size_t gm_snprintf(gchar *str, size_t n, gchar const *fmt, ...)
 	DO_VSNPRINTF();
 	va_end (args);
 
-	g_assert(retval < n);
+	g_assert(retval >= 0 && retval < n);
 
 	return retval;
 }
