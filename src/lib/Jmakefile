@@ -60,6 +60,7 @@ LSRC = \
 	utf8.c \
 	vendors.c \
 	walloc.c \
+	watcher.c \
 	wordvec.c \
 	zalloc.c \
 	zlib_util.c
