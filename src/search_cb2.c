@@ -321,15 +321,15 @@ void on_tree_view_search_select_row(GtkTreeView * treeview, gpointer user_data)
 
 	g_assert(treeview != NULL);
 	selection = gtk_tree_view_get_selection(treeview);
-	if (!gtk_tree_selection_get_selected(selection, &model, &iter))
-		return;
-
-	gtk_tree_model_get(model, &iter, c_sl_sch, &sch, -1);
-
-	if (sch == NULL)
-		return;
-
-	search_gui_set_current_search(sch);
+	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+		gtk_tree_model_get(model, &iter, c_sl_sch, &sch, -1);
+		if (NULL != sch) {
+			gtk_notebook_set_page(
+				GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+				nb_main_page_search);
+			search_gui_set_current_search(sch);
+		}
+	}
 }
 
 void on_search_selected(GtkItem * i, gpointer data)
