@@ -244,16 +244,16 @@ void bsched_disable(bsched_t *bs)
  */
 void bsched_enable_all(void)
 {
-	if (bws.out->bw_per_second)
+	if (bws.out->bw_per_second && bws_out_enabled)
 		bsched_enable(bws.out);
 
-	if (bws.gout->bw_per_second)
+	if (bws.gout->bw_per_second && bws_gout_enabled)
 		bsched_enable(bws.gout);
 
-	if (bws.in->bw_per_second)
+	if (bws.in->bw_per_second && bws_in_enabled)
 		bsched_enable(bws.in);
 
-	if (bws.gin->bw_per_second)
+	if (bws.gin->bw_per_second && bws_gin_enabled)
 		bsched_enable(bws.gin);
 }
 
