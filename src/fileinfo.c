@@ -2985,6 +2985,7 @@ void file_info_scandir(const gchar *dir)
 	struct dirent *dentry;
 	gchar *slash = "/";
 	struct dl_file_info *fi;
+	gchar *filename = NULL;
 
 	d = opendir(dir);
 	if (d == NULL) {
@@ -2997,7 +2998,6 @@ void file_info_scandir(const gchar *dir)
 
 	while ((dentry = readdir(d))) {
 		struct stat buf;
-		gchar *filename = NULL;
 		
 		if (NULL != filename)
 			G_FREE_NULL(filename);
@@ -3041,10 +3041,10 @@ void file_info_scandir(const gchar *dir)
 		g_warning("reactivated orphan entry (%.02f%% done, %s SHA1): %s",
 			fi->done * 100.0 / (fi->size == 0 ? 1 : fi->size),
 			fi->sha1 ? "with" : "no", filename);
-		if (NULL != filename)
-			G_FREE_NULL(filename);
 	}
 
+	if (NULL != filename)
+		G_FREE_NULL(filename);
 	closedir(d);
 }
 
