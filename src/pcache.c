@@ -192,7 +192,7 @@ static void send_pong(struct gnutella_node *n, gboolean control,
  */
 static void send_personal_info(struct gnutella_node *n, gboolean control)
 {
-	guint32 kbytes;
+	guint32 kbytes = 0;
 
 	g_assert(n->header.function == GTA_MSG_INIT);	/* Replying to a ping */
 
