@@ -1833,6 +1833,7 @@ static void node_is_now_connected(struct gnutella_node *n)
 {
 	struct gnutella_socket *s = n->socket;
 	txdrv_t *tx;
+	gboolean peermode_changed = FALSE;
 
 	/*
 	 * Cleanup hanshaking objects.
@@ -1855,6 +1856,15 @@ static void node_is_now_connected(struct gnutella_node *n)
 	}
 
 	/*
+	 * Make sure we did not change peermode whilst performing the 3-way
+	 * handshaking with this node.
+	 */
+
+	peermode_changed =
+		n->start_peermode != current_peermode ||
+		n->start_peermode != peermode.new;
+
+	/*
 	 * Determine correct peer mode.
 	 *
 	 * If we're a leaf node and we connected to an ultranode, send it
@@ -1872,7 +1882,9 @@ static void node_is_now_connected(struct gnutella_node *n)
 	} else if (n->attrs & NODE_A_ULTRA)
 		n->peermode = NODE_P_ULTRA;
 
-	g_assert(current_peermode != NODE_P_LEAF || NODE_IS_ULTRA(n));
+	/* If peermode did not change, current_peermode = leaf => node is Ultra */
+	g_assert(peermode_changed ||
+		current_peermode != NODE_P_LEAF || NODE_IS_ULTRA(n));
 
 	/*
 	 * Update state, and mark node as valid.
@@ -1969,6 +1981,15 @@ static void node_is_now_connected(struct gnutella_node *n)
 	n->searchq = sq_make(n);
 	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
 	n->flags |= NODE_F_WRITABLE;
+
+	/*
+	 * Terminate connection if the peermode changed during handshaking.
+	 */
+
+	if (peermode_changed) {
+		node_bye(n, 504, "Switched between Leaf/Ultra during handshake");
+		return;
+	}
 
 	if (current_peermode == NODE_P_LEAF) {
 		gpointer qrt = qrt_get_table();
@@ -3580,6 +3601,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	n->proto_major = major;
 	n->proto_minor = minor;
 	n->peermode = NODE_P_UNKNOWN;		/* Until end of handshaking */
+	n->start_peermode = (node_peer_t) current_peermode;
 	n->hops_flow = MAX_HOP_COUNT;
 
 	n->routing_data = NULL;

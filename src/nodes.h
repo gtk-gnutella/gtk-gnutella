@@ -71,6 +71,7 @@ struct node_rxfc_mon {
 typedef struct gnutella_node {
     gnet_node_t node_handle;    /* Handle of this node */
 	node_peer_t peermode;		/* Operating mode (leaf, ultra, normal) */
+	node_peer_t start_peermode;	/* Operating mode when handshaking begun */
 
 	gchar error_str[256];		/* To sprintf() error strings with vars */
 	struct gnutella_socket *socket;		/* Socket of the node */
