@@ -139,6 +139,8 @@ CORE = \
 	sq.c \
 	tiger.c \
 	tigertree.c \
+	verify-tigertree.c \
+	hashtree.c \
 	token.c \
 	tx.c \
 	tx_deflate.c \

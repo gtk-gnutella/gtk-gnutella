@@ -222,6 +222,8 @@ CORE = \
 	sq.c \
 	tiger.c \
 	tigertree.c \
+	hashtree.c \
+	verify-tigertree.c \
 	token.c \
 	tx.c \
 	tx_deflate.c \
@@ -359,6 +361,8 @@ OBJLIST = \
 	sq.o \
 	tiger.o \
 	tigertree.o \
+	hashtree.o \
+	verify-tigertree.o \
 	token.o \
 	tx.o \
 	tx_deflate.o \
