@@ -40,7 +40,7 @@
  * is disposed of.
  */
 
-#define NODE_RX_FC_HALF_PERIOD	150		/* 2.5 minutes */
+#define NODE_RX_FC_HALF_PERIOD	300		/* 5 minutes */
 
 struct node_rxfc_mon {
 	time_t start_half_period;	/* When half period started */
