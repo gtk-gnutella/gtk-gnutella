@@ -46,9 +46,12 @@
 #include "upload_stats.h"
 #include "pcache.h"
 #include "gtk-missing.h"
+#include "cq.h"
+#include "ban.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 #define EXIT_GRACE				30	/* Seconds to wait before exiting */
+#define CALLOUT_PERIOD			100	/* milliseconds */
 
 /* */
 
@@ -59,6 +62,7 @@ struct gnutella_socket *s_listen = NULL;
 gchar *version_string = NULL;
 time_t start_time;
 gchar *start_rfc822_date = NULL;		/* RFC822 format of start_time */
+cqueue_t *callout_queue;
 
 static guint main_slow_update = 0;
 static gboolean exiting = FALSE;
@@ -134,6 +138,8 @@ void gtk_gnutella_exit(gint n)
 	bsched_close();
 	gui_close();
 	config_close();
+	ban_close();
+	cq_free(callout_queue);
 	g_free(version_string);
 	g_free(start_rfc822_date);
 
@@ -201,6 +207,42 @@ static gboolean main_timer(gpointer p)
 	return TRUE;
 }
 
+/*
+ * callout_timer
+ *
+ * Called every CALLOUT_PERIOD to heartbeat the callout queue.
+ */
+static gboolean callout_timer(gpointer p)
+{
+	static struct timeval last_period = { 0L, 0L };
+	struct timezone tz;
+	struct timeval tv;
+	gint delay;
+
+	(void) gettimeofday(&tv, &tz);
+
+	/*
+	 * How much elapsed since last call?
+	 */
+
+	delay = (gint) ((tv.tv_sec - last_period.tv_sec) * 1000 +
+		(tv.tv_usec - last_period.tv_usec) / 1000);
+
+	last_period = tv;		/* struct copy */
+
+	/*
+	 * If too much variation, or too little, maybe the clock was adjusted.
+	 * Assume a single period then.
+	 */
+
+	if (delay < 0 || delay > 10*CALLOUT_PERIOD)
+		delay = CALLOUT_PERIOD;
+
+	cq_clock(callout_queue, delay);
+
+	return TRUE;
+}
+
 gint main(gint argc, gchar ** argv)
 {
 	gint i;
@@ -224,6 +266,7 @@ gint main(gint argc, gchar ** argv)
 
 	/* Our inits */
 
+	callout_queue = cq_make(0);
 	gui_init();
 	init_constants();
 	config_init();
@@ -237,6 +280,7 @@ gint main(gint argc, gchar ** argv)
 	share_init();
 	download_init();
 	autodownload_init();
+	ban_init();
 
    	gui_update_all();
 
@@ -261,13 +305,16 @@ gint main(gint argc, gchar ** argv)
 
 	gtk_widget_show(main_window);		/* Display the main window */
 
-	/* Setup the main timer */
+	/* Setup the main timers */
 
 	gtk_timeout_add(1000, (GtkFunction) main_timer, NULL);
+	gtk_timeout_add(CALLOUT_PERIOD, (GtkFunction) callout_timer, NULL);
+
 
 	/* Okay, here we go */
 
 	bsched_enable_all();
+	share_scan();			/* XXX Scan files when the GUI is up */
 	gtk_main();
 
 	return 0;
