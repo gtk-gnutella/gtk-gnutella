@@ -256,7 +256,9 @@ void gm_setproctitle(gchar *title)
 
 		sysarglen = s - orig_argv[0] - 1;	/* -1: leave room for NUL */
 
+#if 0
 		g_message("exec() args used %d contiguous bytes", sysarglen + 1);
+#endif
 	}
 
 	tlen = strlen(title);
