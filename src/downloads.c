@@ -410,6 +410,7 @@ void download_timer(time_t now)
 		case GTA_DL_HEADERS:
 		case GTA_DL_PUSH_SENT:
 		case GTA_DL_CONNECTING:
+		case GTA_DL_REQ_SENDING:
 		case GTA_DL_REQ_SENT:
 		case GTA_DL_FALLBACK:
 		case GTA_DL_SINKING:
