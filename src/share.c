@@ -41,6 +41,7 @@
 #include "huge.h"
 #include "gtk-missing.h"
 #include "utf8.h"
+#include "qrp.h"
 
 static guchar iso_8859_1[96] = {
 	' ', 			/* 160 - NO-BREAK SPACE */
@@ -312,19 +313,15 @@ static void setup_char_map(char_map_t map)
 		map[c] = iso_8859_1[c - 160];
 }
 
-static void search_table_init(void)
-{
-	setup_char_map(query_map);
-	st_initialize(&search_table, query_map);
-}
-
 /* ----------------------------------------- */
 
 void share_init(void)
 {
+	setup_char_map(query_map);
 	huge_init();
-	search_table_init();
-	share_scan();
+	st_initialize(&search_table, query_map);
+	qrp_init(query_map);
+
 	found_data.l = FOUND_CHUNK;		/* must be > size after found_reset */
 	found_data.d = (guchar *) g_malloc(found_data.l * sizeof(guchar));
 }
@@ -571,7 +568,7 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 		}
 		g_free(full);
 
-		if (!(files_scanned & 0x1f)) {
+		if (!(files_scanned & 0x3f)) {
 			gui_update_files_scanned();		/* Interim view */
 			gtk_main_flush();
 		}
@@ -656,6 +653,27 @@ void share_scan(void)
 	}
 
 	gui_update_files_scanned();		/* Final view */
+
+/// XXX
+	{
+		struct timeval start, end;
+
+		gettimeofday(&start, NULL);
+		qrp_prepare_computation();
+
+		for (l = shared_files; l; l = l->next) {
+			struct shared_file *sf = l->data;
+			qrp_add_file(sf);
+		}
+
+		qrp_finalize_computation();
+		gettimeofday(&end, NULL);
+
+		if (dbg)
+			printf("QRP computation took: %d msec\n",
+				(gint) ((end.tv_sec - start.tv_sec) * 1000 +
+					(end.tv_usec - start.tv_usec) / 1000));
+	}
 }
 
 void share_close(void)
@@ -1002,20 +1020,28 @@ void search_request(struct gnutella_node *n)
 		found_files = urn_match;
 	else {
 		gint clen;
+		gboolean ignore = FALSE;
 
 		/*
 		 * If the query string is UTF-8 encoded, decode it and keep only
 		 * the characters in the ISO-8859-1 charset.
+		 * NB: we use `search_len+1' chars to include the trailing NUL.
 		 *		--RAM, 21/05/2002
 		 */
 
-		clen = utf8_is_valid_string(search, search_len);
+		g_assert(search[search_len] == '\0');
 
-		if (clen && clen != search_len) {			/* Not pure ASCII */
+		clen = utf8_is_valid_string(search, search_len+1);
+
+		if (clen && clen != (search_len+1)) {		/* Not pure ASCII */
+			gint isochars = utf8_to_iso8859(search, search_len+1, TRUE);
+
+			if (isochars != clen)		/* Not fully ISO-8859-1 */
+				ignore = TRUE;
+
 			if (dbg > 4)
-				printf("UTF-8 query, len=%d, chars=%d\n", search_len, clen);
-
-			(void) utf8_to_iso8859(search, search_len, TRUE);
+				printf("UTF-8 query, len=%d, chars=%d, iso=%d: \"%s\"\n",
+					search_len, clen, isochars, search);
 		}
 
 		found_files = urn_match +
