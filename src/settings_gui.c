@@ -3776,6 +3776,9 @@ static gboolean new_version_str_changed(property_t prop)
     gchar *str;
 
     str = gnet_prop_get_string(PROP_NEW_VERSION_STR, NULL, 0);
+	if (!str)
+		str = g_strdup(GTA_WEBSITE);
+
     statusbar_gui_set_default("%s", str);
 
 	if (str)
