@@ -314,6 +314,7 @@ src/nodes_gui.h
 src/nodes_gui2.c
 src/nodes_gui_common.c
 src/nodes_gui_common.h
+src/override.h
 src/parq.c
 src/parq.h
 src/pcache.c
