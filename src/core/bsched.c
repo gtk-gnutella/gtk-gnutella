@@ -1341,6 +1341,8 @@ bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, size_t len)
 		printf("bio_sendto(wio=%d, len=%d) available=%d\n",
 			bio->wio->fd(bio->wio), (gint) len, (gint) available);
 
+	g_assert(bio->wio != NULL);
+	g_assert(bio->wio->sendto != NULL);
 	r = bio->wio->sendto(bio->wio, to, data, len);
 
 	/*
