@@ -1269,7 +1269,7 @@ static gboolean node_avoid_monopoly(struct gnutella_node *n)
 			continue;
 		}
 				
-		if (node->attrs & NODE_A_ULTRA)
+		if (node->attrs & NODE_A_ULTRA || node->attrs & NODE_F_ULTRA)
 			node_up_count++;
 		else
 		if (node->flags & NODE_F_LEAF)
@@ -1283,22 +1283,34 @@ static gboolean node_avoid_monopoly(struct gnutella_node *n)
 	g_free(node_vendor);
 	
 	/* Include current node into counter as well */
-	if (n->attrs & NODE_A_ULTRA)
+	if (n->attrs & NODE_A_ULTRA || n->attrs & NODE_F_ULTRA)
 		node_up_count++;
 	else
 	if (n->flags & NODE_F_LEAF)
 		node_leaf_count++;
 	else
 		node_normal_count++;
-	
-	if (node_up_count * 100 > max_ultrapeers * unique_nodes)
-		return TRUE;	/* Dissallow */
-
-	if (node_leaf_count * 100 > max_leaves * unique_nodes)
-		return TRUE;
-	
-	if (node_normal_count * 100 > normal_connections * unique_nodes)
-		return TRUE;
+			
+	switch (current_peermode) {
+		case NODE_P_ULTRA:
+			if (node_up_count * 100 > max_connections * unique_nodes)
+				return TRUE;	/* Dissallow */
+			if (node_leaf_count * 100 > max_leaves * unique_nodes)
+				return TRUE;
+			if (node_normal_count * 100 > normal_connections * unique_nodes)
+				return TRUE;
+			break;
+		case NODE_P_LEAF:
+			if (node_up_count * 100 > max_ultrapeers * unique_nodes)
+				return TRUE;	/* Dissallow */
+			break;
+		case NODE_P_NORMAL:
+			if (node_normal_count * 100 > max_connections * unique_nodes)
+				return TRUE;
+			break;
+		default:
+			break;
+	}
 	
 	return FALSE;
 }
@@ -1351,7 +1363,7 @@ static gboolean node_reserve_slot(struct gnutella_node *n)
 			continue;
 		}
 				
-		if (node->attrs & NODE_A_ULTRA)
+		if (node->attrs & NODE_A_ULTRA || node->attrs & NODE_F_ULTRA)
 			node_up_count++;
 		else
 		if (node->flags & NODE_F_LEAF)
@@ -1362,24 +1374,41 @@ static gboolean node_reserve_slot(struct gnutella_node *n)
 		g_free(cur_vendor);
 	}	
 	
-	if (max_ultrapeers > 0 ) {
-		if ((max_ultrapeers - node_ultra_count) * 100 / max_ultrapeers <= 
-			reserve_gtkg_nodes)
-			return TRUE;
+	switch (current_peermode) {
+		case NODE_P_ULTRA:
+			if (max_connections > 0 ) {
+				if ((max_connections - node_ultra_count) * 100 / 
+					max_connections <= 	reserve_gtkg_nodes)
+					return TRUE;
+			}
+			if (max_leaves > 0) {
+				if ((max_leaves - node_leaf_count) * 100 / 
+					max_leaves <= reserve_gtkg_nodes)
+					return TRUE;
+			}
+			if (normal_connections > 0) {
+				if ((normal_connections - node_normal_count) * 100 / 
+					normal_connections <= reserve_gtkg_nodes)
+					return TRUE;
+			}
+			break;
+		case NODE_P_LEAF:
+			if (max_ultrapeers > 0 ) {
+				if ((max_ultrapeers - node_ultra_count) * 100 / 
+					max_ultrapeers <= reserve_gtkg_nodes)
+						return TRUE;
+			}
+			break;
+		case NODE_P_NORMAL:
+			if (max_connections > 0) {
+				if ((max_connections - node_normal_count) * 100 / 
+					max_connections <= reserve_gtkg_nodes)
+					return TRUE;
+			}
+			break;
+		default:
+			break;
 	}
-
-	if (max_leaves > 0) {
-		if ((max_leaves - node_leaf_count) * 100 / max_leaves <= 
-			reserve_gtkg_nodes)
-			return TRUE;
-	}
-	
-	if (normal_connections > 0) {
-		if ((normal_connections - node_normal_count) * 100 / normal_connections <=
-			reserve_gtkg_nodes)
-			return TRUE;
-	}
-
 	
 	return FALSE;
 }
