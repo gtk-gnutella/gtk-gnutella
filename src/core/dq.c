@@ -45,6 +45,8 @@ RCSID("$Id$");
 #include "vmsg.h"
 #include "search.h"
 #include "alive.h"
+#include "share.h"
+#include "guid.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -1366,18 +1368,41 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		(req_speed & QUERY_SPEED_OOB_REPLY) &&
 		!(dq->flags & DQ_F_LEAF_GUIDED)
 	) {
-		gchar *data = pmsg_start(dq->mb) + sizeof(struct gnutella_header);
-		guint16 speed;
-
-		READ_GUINT16_LE(data, speed);
-		g_assert(speed == req_speed);
-		speed &= ~QUERY_SPEED_OOB_REPLY;
-		WRITE_GUINT16_LE(speed, data);
+		gchar *data = pmsg_start(dq->mb) + GTA_HEADER_SIZE;
+		query_strip_oob_flag(n, data);
+		req_speed &= ~QUERY_SPEED_OOB_REPLY;	/* For further check below */
 
 		if (dq_debug > 19)
-			printf("DQ node #%d %s <%s>: removed OOB delivery from query "
-				"(old speed = 0x%x, new speed = 0x%x)\n",
-				n->id, node_ip(n), node_vendor(n), req_speed, speed);
+			printf("DQ node %s <%s>: removed OOB flag (no leaf guidance)\n",
+				node_ip(n), node_vendor(n));
+	}
+
+	/*
+	 * If the query is marked for OOB reply delivery and the IP is not
+	 * matching the leaf's one, remove the OOB flag as well: otherwise,
+	 * query hits won't be received and we'll query too many nodes because
+	 * of lack of feedback from the leaf, which will get nothing back!
+	 */
+
+	if (tagged_speed && (req_speed & QUERY_SPEED_OOB_REPLY)) {
+		guint32 ip;
+		guint16 port;
+
+		guid_oob_get_ip_port(n->header.muid, &ip, &port);
+
+		if (
+			(n->gnet_ip && ip != n->gnet_ip) ||
+			(n->gnet_port && port != n->gnet_port)
+		) {
+			gchar *data = pmsg_start(dq->mb) + GTA_HEADER_SIZE;
+			query_strip_oob_flag(n, data);
+
+			if (dq_debug)
+				printf("DQ node %s <%s>: removed OOB flag "
+					"(return address mismatch: %s, node: %s)\n",
+					node_ip(n), node_vendor(n),
+					ip_port_to_gchar(ip, port), node_gnet_ip(n));
+		}
 	}
 
 	if (dq_debug > 19)
