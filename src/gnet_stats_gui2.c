@@ -23,7 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnet_stats_gui.h"
+#include "gnet_stats_gui2.h"
+#include "gnutella.h" /* for sizeof(struct gnutella_header) */
 
 gchar *msg_type_str[MSG_TYPE_COUNT] = {
     "Unknown",
@@ -88,12 +89,14 @@ gchar *flowc_mode_str[8] = {
 	"Hops, bytes, percent",
 };
 
-#define FLOWC_MODE_HOPS(m)	((m) & 1)
-#define FLOWC_MODE_TTL(m)	(!((m) & 1))
-#define FLOWC_MODE_BYTE(m)	(((m) & 2))
-#define FLOWC_MODE_PKTS(m)	(!((m) & 2))
-#define FLOWC_MODE_PERC(m)	(((m) & 4))
-#define FLOWC_MODE_ABS(m)	(!((m) & 4))
+#define FLOWC_MODE_HOPS(m)	((m) & 1)		/* columns represent hops */
+#define FLOWC_MODE_TTL(m)	(!((m) & 1))	/*    "        "     TTL  */
+#define FLOWC_MODE_BYTE(m)	(((m) & 2))		/* show volumes */
+#define FLOWC_MODE_PKTS(m)	(!((m) & 2))	/* show number of packets */
+#define FLOWC_MODE_REL(m)	(((m) & 4))		/* relative values */
+#define FLOWC_MODE_ABS(m)	(!((m) & 4))	/* absolutes   " */
+#define FLOWC_MODE_HDRS(m)	(((m) & 8))		/* add header size */
+#define FLOWC_MODE_PAYL(m)	(!((m) & 8))	/* show payload only */
 
 static gint selected_type = MSG_TOTAL;
 static gint selected_flowc = 0;
@@ -167,15 +170,19 @@ static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
     gnet_stats_gui_update();
 }
 
-static void on_gnet_stats_fc_toggled(GtkToggleButton *b, gpointer data) {
+static void on_gnet_stats_fc_toggled(GtkWidget *b, gpointer data) {
 const gchar *name = gtk_widget_get_name(GTK_WIDGET(b));
+/* FIXME: add properties to save settings */
 
+	g_assert(NULL != name);
 	if (!strcmp(name, "radio_fc_ttl") || !strcmp(name, "radio_fc_hops"))
 		selected_flowc ^= 1;
 	else if (!strcmp(name, "radio_fc_pkts") || !strcmp(name, "radio_fc_bytes"))
 		selected_flowc ^= 2;
 	else if (!strcmp(name, "radio_fc_abs") || !strcmp(name, "radio_fc_rel"))
 		selected_flowc ^= 4;
+	else if (!strcmp(name, "checkbutton_fc_headers"))
+		selected_flowc ^= 8;
 	else
 		g_assert_not_reached();
 
@@ -203,7 +210,7 @@ G_INLINE_FUNC gchar *pkt_stat_str(
 }
 
 
-G_INLINE_FUNC gchar *byte_stat_str(
+G_INLINE_FUNC const gchar *byte_stat_str(
     const guint32 *val_tbl, gint type)
 {
     static gchar strbuf[20];
@@ -219,7 +226,7 @@ G_INLINE_FUNC gchar *byte_stat_str(
         return compact_size(val_tbl[type]);
 }
 
-G_INLINE_FUNC gchar *drop_stat_str(const gnet_stats_t *stats, gint reason)
+G_INLINE_FUNC const gchar *drop_stat_str(const gnet_stats_t *stats, gint reason)
 {
     static gchar strbuf[20];
     guint32 total = stats->pkg.dropped[MSG_TOTAL];
@@ -237,7 +244,8 @@ G_INLINE_FUNC gchar *drop_stat_str(const gnet_stats_t *stats, gint reason)
     return strbuf;
 }
 
-G_INLINE_FUNC gchar *general_stat_str(const gnet_stats_t *stats, gint type)
+G_INLINE_FUNC const gchar *general_stat_str(
+	const gnet_stats_t *stats, gint type)
 {
     static gchar strbuf[20];
 
@@ -252,24 +260,20 @@ G_INLINE_FUNC gchar *general_stat_str(const gnet_stats_t *stats, gint type)
     }
 }
 
-G_INLINE_FUNC gchar *flowc_stat_str(
-    const guint32 *val_tbl, gint type)
+G_INLINE_FUNC const gchar *flowc_stat_str(gulong value, gulong total)
 {
     static gchar strbuf[20];
 
-    if (val_tbl[type] == 0)
-        return FLOWC_MODE_PERC(selected_flowc) ? "-" : "- ";
+	if (value == 0 || total == 0)
+		return "-";
 
 	if (FLOWC_MODE_ABS(selected_flowc)) {
-		
-		if (FLOWC_MODE_BYTE(selected_flowc))  /* byte mode */
-    		return compact_size(val_tbl[type]);
-		else /* packet mode */
-        	g_snprintf(strbuf, sizeof(strbuf), "%u", val_tbl[type]);
-	}
-    else 
-		g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
-            (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
+		if (FLOWC_MODE_BYTE(selected_flowc))	/* byte mode */
+			return compact_size(value);
+		else									/* packet mode */
+       		g_snprintf(strbuf, sizeof(strbuf), "%lu", (gulong) value);
+	} else 
+		g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", (float) value/total*100.0);
 
     return strbuf;
 }
@@ -425,6 +429,9 @@ void gnet_stats_gui_init(void)
 	g_signal_connect(
 		GTK_RADIO_BUTTON(lookup_widget(main_window, "radio_fc_abs")),
 		"toggled", G_CALLBACK(on_gnet_stats_fc_toggled), NULL);
+	g_signal_connect(
+		GTK_CHECK_BUTTON(lookup_widget(main_window, "checkbutton_fc_headers")),
+		"toggled", G_CALLBACK(on_gnet_stats_fc_toggled), NULL);
 
     for (n = 0; n < MSG_DROP_REASON_COUNT; n ++) {
         gint row;
@@ -447,6 +454,7 @@ const gchar *title;
 
 	/* Hide column for TTL=0 */
 	list = gtk_tree_view_get_columns(treeview);
+	g_assert(NULL != list); 
 
 	for (l = list; NULL != l; l = g_list_next(l))
 		if (NULL != l->data) {
@@ -474,7 +482,8 @@ void gnet_stats_gui_update(void)
     gnet_stats_t stats;
 	static gboolean lock = FALSE;
 	gchar *str[MSG_TYPE_COUNT];
-	guint32 (*counters)[MSG_TYPE_COUNT];
+	guint32 (*byte_counters)[MSG_TYPE_COUNT];
+	guint32 (*pkg_counters)[MSG_TYPE_COUNT];
     gint current_page;
 
 	if (lock)
@@ -534,51 +543,52 @@ void gnet_stats_gui_update(void)
             byte_stat_str(stats.byte.relayed, n));
     }
 
-	counters = (FLOWC_MODE_HOPS(selected_flowc))
+	if (FLOWC_MODE_HOPS(selected_flowc)) {
 		/* Hops mode */
-		?  (FLOWC_MODE_PKTS(selected_flowc))
-			? stats.pkg.flowc_hops : stats.byte.flowc_hops
+		pkg_counters = stats.pkg.flowc_hops;
+		byte_counters = stats.byte.flowc_hops;
+	} else {
 		/* TTL mode */
-		:  (FLOWC_MODE_PKTS(selected_flowc))
-			? stats.pkg.flowc_ttl : stats.byte.flowc_ttl;
+		pkg_counters = stats.pkg.flowc_ttl;
+		byte_counters = stats.byte.flowc_ttl;
+	}
 
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
 	for (n = 0; n < MSG_TYPE_COUNT; n++) {
 		gint i;
 
-		for (i = 0; i < STATS_FLOWC_COLUMNS; i++)
-			str[i] = g_strdup(flowc_stat_str(counters[i], n));
+		if (FLOWC_MODE_PKTS(selected_flowc))	/* packet mode */
+			for (i = 0; i < STATS_FLOWC_COLUMNS; i++)
+				str[i] = g_strdup(flowc_stat_str(
+					(gulong) pkg_counters[i][n],
+					(gulong) pkg_counters[i][MSG_TOTAL]));
+		else									/* byte mode */
+			for (i = 0; i < STATS_FLOWC_COLUMNS; i++)
+				str[i] = g_strdup(FLOWC_MODE_HDRS(selected_flowc)
+					?  flowc_stat_str(		/* add headers */
+							(gulong) byte_counters[i][n]
+								+ (gulong) pkg_counters[i][n]
+									* sizeof(struct gnutella_header),
+							(gulong) byte_counters[i][MSG_TOTAL]
+								+ (gulong) pkg_counters[i][MSG_TOTAL]
+									* sizeof(struct gnutella_header))
+
+					:  flowc_stat_str(		/* show payload only */ 
+						(gulong) byte_counters[i][n],
+						(gulong) byte_counters[i][MSG_TOTAL]));
 
 		gtk_list_store_set(store, &iter,
 			0, msg_type_str[n],
-#if STATS_FLOWC_COLUMNS >= 1
 			1, str[0],
-#endif
-#if STATS_FLOWC_COLUMNS >= 2
 			2, str[1],
-#endif
-#if STATS_FLOWC_COLUMNS >= 3
 			3, str[2],
-#endif
-#if STATS_FLOWC_COLUMNS >= 4
 			4, str[3],
-#endif
-#if STATS_FLOWC_COLUMNS >= 5
 			5, str[4],
-#endif
-#if STATS_FLOWC_COLUMNS >= 6
 			6, str[5],
-#endif
-#if STATS_FLOWC_COLUMNS >= 7
 			7, str[6],
-#endif
-#if STATS_FLOWC_COLUMNS >= 8
 			8, str[7],
-#endif
-#if STATS_FLOWC_COLUMNS >= 9
 			9, str[8],
-#endif
 			-1);
 #if 0		
 		g_message("%-12s %-4s %-4s %-4s %-4s %-4s %-4s %-4s",

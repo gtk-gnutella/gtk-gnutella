@@ -4865,17 +4865,26 @@ create_main_window (void)
   GtkWidget *vbox89;
   GtkWidget *treeview_gnet_stats_flowc;
   GtkWidget *frame62;
-  GtkWidget *table41;
-  GtkWidget *radio_fc_ttl;
-  GSList *radio_fc_ttl_group = NULL;
-  GtkWidget *radio_fc_pkts;
-  GSList *radio_fc_pkts_group = NULL;
+  GtkWidget *hbox209;
+  GtkWidget *frame63;
+  GtkWidget *vbox90;
   GtkWidget *radio_fc_hops;
+  GSList *radio_fc_hops_group = NULL;
+  GtkWidget *radio_fc_ttl;
+  GtkWidget *label504;
+  GtkWidget *frame64;
+  GtkWidget *table41;
   GtkWidget *radio_fc_byte;
+  GSList *radio_fc_byte_group = NULL;
+  GtkWidget *checkbutton_fc_headers;
+  GtkWidget *radio_fc_pkts;
+  GtkWidget *label505;
+  GtkWidget *frame65;
+  GtkWidget *vbox92;
   GtkWidget *radio_fc_abs;
   GSList *radio_fc_abs_group = NULL;
   GtkWidget *radio_fc_rel;
-  GtkWidget *label503;
+  GtkWidget *label506;
   GtkWidget *label502;
   GtkWidget *label378;
   GtkWidget *hbox_statusbar;
@@ -8671,7 +8680,7 @@ create_main_window (void)
   gtk_widget_show (frame56);
   gtk_container_add (GTK_CONTAINER (notebook2), frame56);
 
-  vbox86 = gtk_vbox_new (FALSE, 2);
+  vbox86 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox86, "vbox86");
   gtk_widget_show (vbox86);
   gtk_container_add (GTK_CONTAINER (frame56), vbox86);
@@ -8717,6 +8726,7 @@ create_main_window (void)
   gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_drop_reasons), 0, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_drop_reasons), 1, 80);
   gtk_clist_column_titles_show (GTK_CLIST (clist_gnet_stats_drop_reasons));
+  gtk_clist_set_shadow_type (GTK_CLIST (clist_gnet_stats_drop_reasons), GTK_SHADOW_NONE);
 
   label400 = gtk_label_new ("Reason");
   gtk_widget_set_name (label400, "label400");
@@ -8899,6 +8909,7 @@ create_main_window (void)
   gtk_widget_show (frame61);
   gtk_container_add (GTK_CONTAINER (notebook2), frame61);
   gtk_container_set_border_width (GTK_CONTAINER (frame61), 2);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame61), GTK_SHADOW_IN);
 
   vbox83 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox83, "vbox83");
@@ -8920,61 +8931,111 @@ create_main_window (void)
   frame62 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame62, "frame62");
   gtk_widget_show (frame62);
-  gtk_box_pack_start (GTK_BOX (vbox89), frame62, FALSE, TRUE, 2);
+  gtk_box_pack_start (GTK_BOX (vbox89), frame62, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame62), 1);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame62), GTK_SHADOW_IN);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame62), GTK_SHADOW_OUT);
 
-  table41 = gtk_table_new (2, 3, FALSE);
-  gtk_widget_set_name (table41, "table41");
-  gtk_widget_show (table41);
-  gtk_container_add (GTK_CONTAINER (frame62), table41);
-  gtk_container_set_border_width (GTK_CONTAINER (table41), 2);
-  gtk_table_set_col_spacings (GTK_TABLE (table41), 10);
+  hbox209 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox209, "hbox209");
+  gtk_widget_show (hbox209);
+  gtk_container_add (GTK_CONTAINER (frame62), hbox209);
 
-  radio_fc_ttl = gtk_radio_button_new_with_mnemonic (NULL, "TTL");
-  gtk_widget_set_name (radio_fc_ttl, "radio_fc_ttl");
-  gtk_widget_show (radio_fc_ttl);
-  gtk_table_attach (GTK_TABLE (table41), radio_fc_ttl, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_ttl), radio_fc_ttl_group);
-  radio_fc_ttl_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_ttl));
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (radio_fc_ttl), TRUE);
+  frame63 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame63, "frame63");
+  gtk_widget_show (frame63);
+  gtk_box_pack_start (GTK_BOX (hbox209), frame63, TRUE, TRUE, 2);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame63), GTK_SHADOW_IN);
 
-  radio_fc_pkts = gtk_radio_button_new_with_mnemonic (NULL, "Packets");
-  gtk_widget_set_name (radio_fc_pkts, "radio_fc_pkts");
-  gtk_widget_show (radio_fc_pkts);
-  gtk_table_attach (GTK_TABLE (table41), radio_fc_pkts, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_pkts), radio_fc_pkts_group);
-  radio_fc_pkts_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_pkts));
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (radio_fc_pkts), TRUE);
+  vbox90 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox90, "vbox90");
+  gtk_widget_show (vbox90);
+  gtk_container_add (GTK_CONTAINER (frame63), vbox90);
 
   radio_fc_hops = gtk_radio_button_new_with_mnemonic (NULL, "Hops");
   gtk_widget_set_name (radio_fc_hops, "radio_fc_hops");
   gtk_widget_show (radio_fc_hops);
-  gtk_table_attach (GTK_TABLE (table41), radio_fc_hops, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_hops), radio_fc_ttl_group);
-  radio_fc_ttl_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_hops));
+  gtk_box_pack_start (GTK_BOX (vbox90), radio_fc_hops, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, radio_fc_hops, "The column headers show the hops value of dropped packets.", NULL);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_hops), radio_fc_hops_group);
+  radio_fc_hops_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_hops));
+
+  radio_fc_ttl = gtk_radio_button_new_with_mnemonic (NULL, "TTL");
+  gtk_widget_set_name (radio_fc_ttl, "radio_fc_ttl");
+  gtk_widget_show (radio_fc_ttl);
+  gtk_box_pack_start (GTK_BOX (vbox90), radio_fc_ttl, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, radio_fc_ttl, "Column headers show the TTL value of dropped packets. There's no column zero because we never ever send such packets.", NULL);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_ttl), radio_fc_hops_group);
+  radio_fc_hops_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_ttl));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (radio_fc_ttl), TRUE);
+
+  label504 = gtk_label_new ("Columns");
+  gtk_widget_set_name (label504, "label504");
+  gtk_widget_show (label504);
+  gtk_frame_set_label_widget (GTK_FRAME (frame63), label504);
+  gtk_label_set_justify (GTK_LABEL (label504), GTK_JUSTIFY_LEFT);
+
+  frame64 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame64, "frame64");
+  gtk_widget_show (frame64);
+  gtk_box_pack_start (GTK_BOX (hbox209), frame64, TRUE, TRUE, 2);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame64), GTK_SHADOW_IN);
+
+  table41 = gtk_table_new (2, 2, FALSE);
+  gtk_widget_set_name (table41, "table41");
+  gtk_widget_show (table41);
+  gtk_container_add (GTK_CONTAINER (frame64), table41);
 
   radio_fc_byte = gtk_radio_button_new_with_mnemonic (NULL, "Bytes");
   gtk_widget_set_name (radio_fc_byte, "radio_fc_byte");
   gtk_widget_show (radio_fc_byte);
-  gtk_table_attach (GTK_TABLE (table41), radio_fc_byte, 1, 2, 1, 2,
+  gtk_table_attach (GTK_TABLE (table41), radio_fc_byte, 0, 1, 1, 2,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_byte), radio_fc_pkts_group);
-  radio_fc_pkts_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_byte));
+  gtk_tooltips_set_tip (tooltips, radio_fc_byte, "Show the volumes of dropped packets.", NULL);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_byte), radio_fc_byte_group);
+  radio_fc_byte_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_byte));
+
+  checkbutton_fc_headers = gtk_check_button_new_with_mnemonic ("Add headers");
+  gtk_widget_set_name (checkbutton_fc_headers, "checkbutton_fc_headers");
+  gtk_widget_show (checkbutton_fc_headers);
+  gtk_table_attach (GTK_TABLE (table41), checkbutton_fc_headers, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_tooltips_set_tip (tooltips, checkbutton_fc_headers, "If checked add the header size of the packets to the volume.", NULL);
+
+  radio_fc_pkts = gtk_radio_button_new_with_mnemonic (NULL, "Packets");
+  gtk_widget_set_name (radio_fc_pkts, "radio_fc_pkts");
+  gtk_widget_show (radio_fc_pkts);
+  gtk_table_attach (GTK_TABLE (table41), radio_fc_pkts, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_tooltips_set_tip (tooltips, radio_fc_pkts, "Show the number of dropped packets.", NULL);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_pkts), radio_fc_byte_group);
+  radio_fc_byte_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_pkts));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (radio_fc_pkts), TRUE);
+
+  label505 = gtk_label_new ("Unit");
+  gtk_widget_set_name (label505, "label505");
+  gtk_widget_show (label505);
+  gtk_frame_set_label_widget (GTK_FRAME (frame64), label505);
+  gtk_label_set_justify (GTK_LABEL (label505), GTK_JUSTIFY_LEFT);
+
+  frame65 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame65, "frame65");
+  gtk_widget_show (frame65);
+  gtk_box_pack_start (GTK_BOX (hbox209), frame65, TRUE, TRUE, 2);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame65), GTK_SHADOW_IN);
+
+  vbox92 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox92, "vbox92");
+  gtk_widget_show (vbox92);
+  gtk_container_add (GTK_CONTAINER (frame65), vbox92);
 
   radio_fc_abs = gtk_radio_button_new_with_mnemonic (NULL, "Absolute");
   gtk_widget_set_name (radio_fc_abs, "radio_fc_abs");
   gtk_widget_show (radio_fc_abs);
-  gtk_table_attach (GTK_TABLE (table41), radio_fc_abs, 2, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+  gtk_box_pack_start (GTK_BOX (vbox92), radio_fc_abs, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, radio_fc_abs, "Show the raw values.", NULL);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_abs), radio_fc_abs_group);
   radio_fc_abs_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_abs));
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (radio_fc_abs), TRUE);
@@ -8982,17 +9043,16 @@ create_main_window (void)
   radio_fc_rel = gtk_radio_button_new_with_mnemonic (NULL, "Relative");
   gtk_widget_set_name (radio_fc_rel, "radio_fc_rel");
   gtk_widget_show (radio_fc_rel);
-  gtk_table_attach (GTK_TABLE (table41), radio_fc_rel, 2, 3, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+  gtk_box_pack_start (GTK_BOX (vbox92), radio_fc_rel, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, radio_fc_rel, "Show the percentage of dropped packets per packet type.", NULL);
   gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_rel), radio_fc_abs_group);
   radio_fc_abs_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_rel));
 
-  label503 = gtk_label_new ("View mode selection");
-  gtk_widget_set_name (label503, "label503");
-  gtk_widget_show (label503);
-  gtk_frame_set_label_widget (GTK_FRAME (frame62), label503);
-  gtk_label_set_justify (GTK_LABEL (label503), GTK_JUSTIFY_LEFT);
+  label506 = gtk_label_new ("Mode");
+  gtk_widget_set_name (label506, "label506");
+  gtk_widget_show (label506);
+  gtk_frame_set_label_widget (GTK_FRAME (frame65), label506);
+  gtk_label_set_justify (GTK_LABEL (label506), GTK_JUSTIFY_LEFT);
 
   label502 = gtk_label_new_with_mnemonic ("Flow _control");
   gtk_widget_set_name (label502, "label502");
@@ -10053,14 +10113,23 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, vbox89, "vbox89");
   GLADE_HOOKUP_OBJECT (main_window, treeview_gnet_stats_flowc, "treeview_gnet_stats_flowc");
   GLADE_HOOKUP_OBJECT (main_window, frame62, "frame62");
-  GLADE_HOOKUP_OBJECT (main_window, table41, "table41");
-  GLADE_HOOKUP_OBJECT (main_window, radio_fc_ttl, "radio_fc_ttl");
-  GLADE_HOOKUP_OBJECT (main_window, radio_fc_pkts, "radio_fc_pkts");
+  GLADE_HOOKUP_OBJECT (main_window, hbox209, "hbox209");
+  GLADE_HOOKUP_OBJECT (main_window, frame63, "frame63");
+  GLADE_HOOKUP_OBJECT (main_window, vbox90, "vbox90");
   GLADE_HOOKUP_OBJECT (main_window, radio_fc_hops, "radio_fc_hops");
+  GLADE_HOOKUP_OBJECT (main_window, radio_fc_ttl, "radio_fc_ttl");
+  GLADE_HOOKUP_OBJECT (main_window, label504, "label504");
+  GLADE_HOOKUP_OBJECT (main_window, frame64, "frame64");
+  GLADE_HOOKUP_OBJECT (main_window, table41, "table41");
   GLADE_HOOKUP_OBJECT (main_window, radio_fc_byte, "radio_fc_byte");
+  GLADE_HOOKUP_OBJECT (main_window, checkbutton_fc_headers, "checkbutton_fc_headers");
+  GLADE_HOOKUP_OBJECT (main_window, radio_fc_pkts, "radio_fc_pkts");
+  GLADE_HOOKUP_OBJECT (main_window, label505, "label505");
+  GLADE_HOOKUP_OBJECT (main_window, frame65, "frame65");
+  GLADE_HOOKUP_OBJECT (main_window, vbox92, "vbox92");
   GLADE_HOOKUP_OBJECT (main_window, radio_fc_abs, "radio_fc_abs");
   GLADE_HOOKUP_OBJECT (main_window, radio_fc_rel, "radio_fc_rel");
-  GLADE_HOOKUP_OBJECT (main_window, label503, "label503");
+  GLADE_HOOKUP_OBJECT (main_window, label506, "label506");
   GLADE_HOOKUP_OBJECT (main_window, label502, "label502");
   GLADE_HOOKUP_OBJECT (main_window, label378, "label378");
   GLADE_HOOKUP_OBJECT (main_window, hbox_statusbar, "hbox_statusbar");
