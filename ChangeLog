@@ -1,5 +1,29 @@
 # since last version
 
+- (2004-11-14 - RAM)
+ * Don't remove a host from the cache whilst iterating over it.
+ * Generation of X-Features appended a trailing space after feature name.
+ * Don't send out GGEP "LOC" indication in pongs until they can configure
+   that from the GUI.
+ * Limited number of "normal" (legacy) nodes to which we can connect to 1 max.
+ * Only emit warnings about unknown / too numerous extensions when debugging.
+ * Adopted the same variable reply lengh on errors as in HTTP when bandwidth
+   is saturated.  Added new error code 409 for "conflicts" and don't send out
+   connection "pongs" in the headers on all 403, 406 and 550 errors.  Also
+   don't send them GTKG-specific headers if we determined they were not GTKG.
+ * Must shutdown OOB query hit delivery or we'll crash at shutdown time after
+   having freed the UDP socket.
+ * Added zlib_is_valid_header() to check for valid "deflated" buffer.
+ * [GTK2] Removed spurious g_assert() when no parent for SHA1-less results.
+ * Raised the max amount of alt-locs sent in GGEP "ALT" in query hits to 10.
+ * Added back accidentally removed sanity check during COBS decoding.
+ * Added extensive sanity checks on extensions marked as COBS and/or deflate,
+   to avoid parsing garbage as GGEP.
+ * Added GUI feedback in the statusbar about the web cache operations.
+ * Added UDP host cache support.
+ * Alternate between UDP host caches and TCP web caches when missing hosts.
+ * Regenerated po/gtk-gnutella.pot and friends.
+
 - (2004-11-14 - Hans)
  * Added Japanese translation (ja.po) from Daichi Kawahata.
  * Updated .po files to include all files containing translatable strings
