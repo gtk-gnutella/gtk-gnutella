@@ -39,6 +39,15 @@ prop = {
 };
 
 prop = {
+    name = "fi_regex_case";
+    desc = "Match fileinfo selection by regexp case sensitive";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
     name = "search_autoselect";
     desc = "Autoselect similar files in searches";
     type = boolean;

@@ -48,7 +48,8 @@ void on_clist_fileinfo_unselect_row(
 void on_button_fi_purge_clicked(
 	GtkButton *button, gpointer user_data);
 
-
+void on_entry_fi_regex_activate(
+    GtkEditable *editable, gpointer user_data);
 
 #endif /* _fileinfo_gui_h_ */
 

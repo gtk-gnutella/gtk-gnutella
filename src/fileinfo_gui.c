@@ -26,15 +26,26 @@
  */
 
 #include "gui.h"
-#include "fileinfo.h"
-#include "override.h"		/* Must be the last header included */
 
 #ifdef USE_GTK1
+
+#include "fileinfo.h"
+#include "statusbar_gui.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
 static gnet_fi_t last_shown = 0;
 static gboolean  last_shown_valid = FALSE;
+
+/* 
+ * Together visible_fi and hidden_fi are a list of all fileinfo handles
+ * the the gui knows about. 
+ */
+static GSList *visible_fi = NULL;
+static GSList *hidden_fi  = NULL;
+
+static regex_t filter_re;
 
 void on_clist_fileinfo_resize_column(
     GtkCList *clist, gint column, gint width, gpointer user_data)
@@ -42,111 +53,8 @@ void on_clist_fileinfo_resize_column(
     file_info_col_widths[column] = width;
 }
 
-static void fi_gui_set_details(gnet_fi_t fih)
-{
-    gnet_fi_info_t *fi = NULL;
-    gnet_fi_status_t fis;
-    gchar **aliases;
-    guint n;
-    GtkCList *cl_aliases;
-
-    fi = fi_get_info(fih);
-    g_assert(fi != NULL);
-
-    fi_get_status(fih, &fis);
-    aliases = fi_get_aliases(fih);
-
-    cl_aliases = GTK_CLIST(lookup_widget(main_window, "clist_fi_aliases"));
-
-    gtk_label_set_text(
-        GTK_LABEL(lookup_widget(main_window, "label_fi_filename")),
-        fi->file_name);
-    gtk_label_printf(
-        GTK_LABEL(lookup_widget(main_window, "label_fi_size")),
-        "%s (%u bytes)", short_size(fis.size), fis.size);
-
-    gtk_clist_freeze(cl_aliases);
-    gtk_clist_clear(cl_aliases);
-    for(n = 0; aliases[n] != NULL; n++)
-        gtk_clist_append(cl_aliases, &aliases[n]);
-    gtk_clist_thaw(cl_aliases);
-    
-    g_strfreev(aliases);
-    fi_free_info(fi);
-
-    last_shown = fih;
-    last_shown_valid = TRUE;
-
-    gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
-        TRUE);
-}
-
-static void fi_gui_clear_details()
-{
-    last_shown_valid = FALSE;
-
-    gtk_label_set_text(
-        GTK_LABEL(lookup_widget(main_window, "label_fi_filename")),
-        "");
-    gtk_label_set_text(
-        GTK_LABEL(lookup_widget(main_window, "label_fi_size")),
-        "");
-    gtk_clist_clear(
-        GTK_CLIST(lookup_widget(main_window, "clist_fi_aliases")));
-    gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
-        FALSE);
-}
-
-void on_clist_fileinfo_select_row(GtkCList *clist, gint row, gint column,
-    GdkEvent *event, gpointer user_data)
-{
-    gnet_fi_t fih;
-    
-    fih = GPOINTER_TO_UINT(gtk_clist_get_row_data(clist, row));
-
-    fi_gui_set_details(fih);
-}
-
-void on_clist_fileinfo_unselect_row(GtkCList *clist, gint row, gint column,
-    GdkEvent *event, gpointer user_data)
-{ 
-    if (clist->selection == NULL)
-        fi_gui_clear_details();
-}
-
-void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
-{
-    if (last_shown_valid)
-        fi_purge(last_shown);
-}
-
-
-static void fi_gui_append_row(
-    GtkCList *cl, gnet_fi_t fih, gchar **titles, guint len)
-{
-    gint row;
-    gint n;
-
-    for (n = 0; n < len; n ++) {
-        if (titles[n] == NULL)
-            titles[n] = "";
-    }
-
-    row = gtk_clist_append(cl, titles);
-    gtk_clist_set_row_data(cl, row, GUINT_TO_POINTER(fih));
-}
-
-static void fi_gui_update_row(
-    GtkCList *cl, gint row, gchar **titles, guint len)
-{
-    gint n;
-
-    for (n = 0; n < len; n ++) {
-        if (titles[n] != NULL)
-            gtk_clist_set_text(cl, row, n, titles[n]);
-    }
-}
-
+/* Cache for fi_gui_fill_info. This is global so it can be freed
+ * when fi_gui_shutdown is called. */
 static gnet_fi_info_t *last_fi = NULL;
 
 /*
@@ -209,18 +117,247 @@ static void fi_gui_fill_status(
     }
 }
 
+/*
+ * fi_gui_set_details:
+ *
+ * Display details for the given fileinfo entry in the details pane.
+ * It is expected, that the given handle is really used. If not, an
+ * assertion will be triggered.
+ */
+static void fi_gui_set_details(gnet_fi_t fih)
+{
+    gnet_fi_info_t *fi = NULL;
+    gnet_fi_status_t fis;
+    gchar **aliases;
+    guint n;
+    GtkCList *cl_aliases;
+
+    fi = fi_get_info(fih);
+    g_assert(fi != NULL);
+
+    fi_get_status(fih, &fis);
+    aliases = fi_get_aliases(fih);
+
+    cl_aliases = GTK_CLIST(lookup_widget(main_window, "clist_fi_aliases"));
+
+    gtk_label_set_text(
+        GTK_LABEL(lookup_widget(main_window, "label_fi_filename")),
+        fi->file_name);
+    gtk_label_printf(
+        GTK_LABEL(lookup_widget(main_window, "label_fi_size")),
+        "%s (%u bytes)", short_size(fis.size), fis.size);
+
+    gtk_clist_freeze(cl_aliases);
+    gtk_clist_clear(cl_aliases);
+    for(n = 0; aliases[n] != NULL; n++)
+        gtk_clist_append(cl_aliases, &aliases[n]);
+    gtk_clist_thaw(cl_aliases);
+    
+    g_strfreev(aliases);
+    fi_free_info(fi);
+
+    last_shown = fih;
+    last_shown_valid = TRUE;
+
+    gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
+        TRUE);
+}
+
+/*
+ * fi_gui_clear_details:
+ *
+ * Clear the details pane.
+ */
+static void fi_gui_clear_details()
+{
+    last_shown_valid = FALSE;
+
+    gtk_label_set_text(
+        GTK_LABEL(lookup_widget(main_window, "label_fi_filename")),
+        "");
+    gtk_label_set_text(
+        GTK_LABEL(lookup_widget(main_window, "label_fi_size")),
+        "");
+    gtk_clist_clear(
+        GTK_CLIST(lookup_widget(main_window, "clist_fi_aliases")));
+    gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
+        FALSE);
+}
+
+/*
+ * fi_gui_match_filter:
+ *
+ * Returns TRUE if the given string matches with the currntly set
+ * row filter. Returns FALSE otherwise.
+ */
+static inline gboolean fi_gui_match_filter(gchar *s)
+{
+    gint n;
+
+    n = regexec(&filter_re, s, 0, NULL, 0);
+
+    if (n == REG_ESPACE) {
+        g_warning("fi_gui_match_filter: "
+            "regexp memory overflow");
+    } 
+
+    return n == 0;
+}
+
+/*
+ * fi_gui_append_row:
+ *
+ * Add a fileinfo entry to the list if it matches the currently set
+ * row filter. visible_fi and hidden_fi are properly updated wether
+ * the entry is displayed or not and no matter if the line was already
+ * shown/hidden or is newly added.
+ */
+static void fi_gui_add_row(gnet_fi_t fih)
+{
+    GtkCList *clist;
+    gint row;
+    gint n;
+    gchar *titles[c_fi_num];
+
+    memset(titles, 0, sizeof(titles));
+    fi_gui_fill_info(fih, titles);
+
+    /* If the entry doesn't match the filter, register it as hidden and
+     * return. */
+    if (!fi_gui_match_filter(titles[c_fi_filename])) {
+        if (!g_slist_find(hidden_fi, GUINT_TO_POINTER(fih))) {
+            hidden_fi = g_slist_prepend(hidden_fi, GUINT_TO_POINTER(fih));
+            visible_fi = g_slist_remove(visible_fi, GUINT_TO_POINTER(fih));
+        }
+        return;
+    }
+
+    visible_fi = g_slist_prepend(visible_fi, GUINT_TO_POINTER(fih));
+    hidden_fi = g_slist_remove(hidden_fi, GUINT_TO_POINTER(fih));
+
+    fi_gui_fill_status(fih, titles);
+
+    clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
+
+    for (n = 0; n < G_N_ELEMENTS(titles); n ++) {
+        if (titles[n] == NULL)
+            titles[n] = "";
+    }
+
+    row = gtk_clist_append(clist, titles);
+    gtk_clist_set_row_data(clist, row, GUINT_TO_POINTER(fih));
+}
+
+/*
+ * fi_gui_remove_row:
+ *
+ * Remove a fileinfo entry from the list. If it is not displayed, then
+ * nothing happens. If hide is TRUE, then the row is not unregistered
+ * and only moved to the hidden_fi list.
+ */
+static void fi_gui_remove_row(gnet_fi_t fih, gboolean hide)
+{
+    GtkCList *clist;
+    gint row;
+
+    clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
+
+    row = gtk_clist_find_row_from_data(clist, GUINT_TO_POINTER(fih));
+    gtk_clist_remove(clist, row);
+
+    if (hide) {
+        visible_fi = g_slist_remove(visible_fi, GUINT_TO_POINTER(fih));
+        hidden_fi  = g_slist_prepend(hidden_fi, GUINT_TO_POINTER(fih));
+    } else {
+        visible_fi = g_slist_remove(visible_fi, GUINT_TO_POINTER(fih));
+        hidden_fi  = g_slist_remove(hidden_fi,  GUINT_TO_POINTER(fih));
+    }
+}
+
+/*
+ * fi_gui_set_filter_regex:
+ *
+ * Takes a string containing a regular expression updates the list to
+ * only show files matching that expression.
+ */
+static void fi_gui_set_filter_regex(gchar *s)
+{
+    gint err;
+    GSList *sl;
+    gint row;
+    GSList *old_hidden = g_slist_copy(hidden_fi);
+	GtkCList *clist_fi;
+
+    if (s == NULL) {
+        s = "";
+    }
+ 
+    /* Recompile the row filter*/
+    err = regcomp(&filter_re, s,
+                  REG_EXTENDED|REG_NOSUB|(fi_regex_case ? 0 : REG_ICASE));
+
+   	if (err) {
+        gchar buf[1000];
+		regerror(err, &filter_re, buf, 1000);
+        statusbar_gui_warning(
+            15, "fi_gui_set_filter_regex: %s", buf);
+
+        /* If an error occurs turn filter off. If this doesn't work,
+         * then we probably have a serious problem. */
+        g_assert(!regcomp(&filter_re, "", REG_EXTENDED|REG_NOSUB));        
+    }
+
+    clist_fi = GTK_CLIST(
+        lookup_widget(main_window, "clist_fileinfo"));
+
+    /* now really apply the filter */
+    gtk_clist_unselect_all(clist_fi);
+	gtk_clist_freeze(clist_fi);
+
+    /* first remove non-matching from the list. */
+    row = 0;
+    while (row < clist_fi->rows) {
+        gchar *text;
+        gint n;
+
+        if (!gtk_clist_get_text(clist_fi, row, c_fi_filename, &text)) {
+            continue;
+        }
+
+        if (!fi_gui_match_filter(text)) {
+            gnet_fi_t fih;
+
+            fih = GPOINTER_TO_UINT(gtk_clist_get_row_data(clist_fi, row));
+            fi_gui_remove_row(fih, TRUE); /* decreases clist_fi->rows */
+        } else {
+            row ++;
+        }
+    }
+		
+    /* now add matching hidden to list */
+    for (sl = old_hidden; NULL != sl; sl = g_slist_next(sl)) {
+        /* We simply try to add all hidden rows. If they match
+         * the new filter they will be unhidden */
+        fi_gui_add_row(GPOINTER_TO_UINT(sl->data));
+    }
+    
+    gtk_clist_thaw(clist_fi);
+}
+
 static void fi_gui_update(gnet_fi_t fih, gboolean full)
 {
     GtkCList *clist;
 	gchar    *titles[c_fi_num];
     gint      row;
+    gint      n;
+
 
     clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
 
     row = gtk_clist_find_row_from_data(clist, GUINT_TO_POINTER(fih));
 
     if (row == -1) {
-        g_warning("fi_gui_remove: no matching row found");
+        /* This can happen if we get an update event for a hidden row. */
         return;
     }
 
@@ -229,43 +366,66 @@ static void fi_gui_update(gnet_fi_t fih, gboolean full)
         fi_gui_fill_info(fih, titles);
     fi_gui_fill_status(fih, titles);
 
-    fi_gui_update_row(clist, row, titles, G_N_ELEMENTS(titles));
+    for (n = 0; n < G_N_ELEMENTS(titles); n ++) {
+        if (titles[n] != NULL)
+            gtk_clist_set_text(clist, row, n, titles[n]);
+    }
 }
 
 static void fi_gui_fi_added(gnet_fi_t fih)
 {
-    GtkCList       *clist;
-	gchar          *titles[c_fi_num];
-
-    clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
-
-    memset(titles, 0, sizeof(titles));
-    fi_gui_fill_info(fih, titles);
-    fi_gui_fill_status(fih, titles);
-
-    fi_gui_append_row(clist, fih, titles, G_N_ELEMENTS(titles));
+    fi_gui_add_row(fih);
 }
 
 static void fi_gui_fi_removed(gnet_fi_t fih)
 {
-    GtkCList *clist;
-    gint row;
-
-    clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
-
-    row = gtk_clist_find_row_from_data(clist, GUINT_TO_POINTER(fih));
-
-    if (row == -1) {
-        g_warning("fi_gui_remove: no matching row found");
-        return;
-    }
-
-    gtk_clist_remove(clist, row);
+    fi_gui_remove_row(fih, FALSE);
 }
 
 static void fi_gui_fi_status_changed(gnet_fi_t fih)
 {
     fi_gui_update(fih, FALSE);
+}
+
+void on_clist_fileinfo_select_row(GtkCList *clist, gint row, gint column,
+    GdkEvent *event, gpointer user_data)
+{
+    gnet_fi_t fih;
+    
+    fih = GPOINTER_TO_UINT(gtk_clist_get_row_data(clist, row));
+
+    fi_gui_set_details(fih);
+}
+
+void on_clist_fileinfo_unselect_row(GtkCList *clist, gint row, gint column,
+    GdkEvent *event, gpointer user_data)
+{ 
+    if (clist->selection == NULL)
+        fi_gui_clear_details();
+}
+
+void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
+{
+    if (last_shown_valid)
+        fi_purge(last_shown);
+}
+
+void on_entry_fi_regex_activate(GtkEditable *editable, gpointer user_data)
+{
+	GtkCList *clist_fi;
+	struct download *d, *dtemp;
+
+    gint  err;
+    gchar * regex;
+
+    regex = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1));
+
+    if (NULL == regex)
+        return;
+
+    fi_gui_set_filter_regex(regex);
+
+    G_FREE_NULL(regex);
 }
 
 void fi_gui_init(void) 
@@ -280,15 +440,23 @@ void fi_gui_init(void)
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_fileinfo")),
         c_fi_size, GTK_JUSTIFY_RIGHT);
+
+    /* Initialize the row filter */
+    fi_gui_set_filter_regex(NULL);
 }
 
 void fi_gui_shutdown(void)
 {
+    g_slist_free(hidden_fi);
+    g_slist_free(visible_fi);
+
     fi_remove_listener((GCallback)fi_gui_fi_removed, EV_FI_REMOVED);
     fi_remove_listener((GCallback)fi_gui_fi_added, EV_FI_ADDED);
     fi_remove_listener((GCallback)fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
     if (last_fi != NULL)
         fi_free_info(last_fi);
+
+    regfree(&filter_re);
 }
 
 /*
