@@ -11629,7 +11629,7 @@ create_dlg_about (void)
   GtkWidget *label528;
   GtkWidget *frame46;
   GtkWidget *scrolledwindow18;
-  GtkWidget *text1;
+  GtkWidget *text_about_contributors;
   GtkWidget *label408;
   GtkWidget *hbox137;
   GtkWidget *hseparator9;
@@ -11759,7 +11759,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new ("Raphaël Manfredi");
+  label267 = gtk_label_new ("Rapha\353l Manfredi");
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -11803,7 +11803,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
-  label273 = gtk_label_new ("Raphaël Manfredi");
+  label273 = gtk_label_new ("Rapha\353l Manfredi");
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
@@ -11877,16 +11877,14 @@ create_dlg_about (void)
   gtk_container_set_border_width (GTK_CONTAINER (scrolledwindow18), 2);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow18), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
 
-  text1 = gtk_text_new (NULL, NULL);
-  gtk_widget_set_name (text1, "text1");
-  gtk_widget_ref (text1);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "text1", text1,
+  text_about_contributors = gtk_text_new (NULL, NULL);
+  gtk_widget_set_name (text_about_contributors, "text_about_contributors");
+  gtk_widget_ref (text_about_contributors);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "text_about_contributors", text_about_contributors,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (text1);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow18), text1);
-  gtk_widget_set_usize (text1, 213, -2);
-  gtk_text_insert (GTK_TEXT (text1), NULL, NULL, NULL,
-                   "Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net>\nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>\nko <junkpile@free.fr>\nJeroen Asselman <jeroen@asselman.com>\nT'aZ <tazdev@altern.org>\nAndrew Barnert <barnert@myrealbox.com>\nMichael Gray <mrgray01@louisville.edu>\nNicolas Lichtmaier <niqueco@users.sf.net>\nEmile le Vivre <emile@struggle.ca>", -1);
+  gtk_widget_show (text_about_contributors);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow18), text_about_contributors);
+  gtk_widget_set_usize (text_about_contributors, 213, -2);
 
   label408 = gtk_label_new ("==> We are looking for people who want to contribute to this fine tool. <==\nVisit http://gtk-gnutella.sourceforge.net.\nJoin the users or developers mailing lists.\nMeet us on #gtk-gnutella at irc.freenode.net.");
   gtk_widget_set_name (label408, "label408");

@@ -416,6 +416,78 @@ static void gui_init_menu(void)
 }
 #endif /* USE_GTK2 */
 
+static GtkWidget *gui_create_dlg_about(void)
+{
+    /* NB: These strings are ISO-8859-1 encoded. */
+    static const char *contributors[] = {
+        "Yann Grossel <olrick@users.sourceforge.net>",
+        "Steven Wilcoxon <swilcoxon@users.sourceforge.net>",
+        "Jason Lingohr <lingman@users.sourceforge.net>",
+        "Brian St Pierre <bstpierre@users.sourceforge.net>",
+        "Chuck Homic <homic@users.sourceforge.net>",
+        "Ingo Saitz <salz@users.sourceforge.net>",
+        "Ben Hochstedler <hochstrb@users.sourceforge.net>",
+        "Daniel Walker <axiom@users.sourceforge.net>",
+        "Paul Cassella <pwc@users.sourceforge.net>",
+        "Jared Mauch <jaredmauch@users.sourceforge.net>",
+        "Nate E <web1 (at) users dot sourceforge dot net>",
+        "Rapha\353l Manfredi <Raphael_Manfredi@pobox.com>",
+        "Kenn Brooks Hamm <khamm@andrew.cmu.edu>",
+        "Mark Schreiber <mark7@andrew.cmu.edu>",
+        "Sam Varshavchik <mrsam@courier-mta.com>",
+        "Vladimir Klebanov <unny@rz.uni-karlsruhe.de>",
+        "Roman Shterenzon <roman@xpert.com>",
+        "Robert Bihlmeyer <robbe@orcus.priv.at>",
+        "Noel T.Nunkovich <ntnunk@earthlink.net>",
+        "Michael Tesch <tesch@users.sourceforge.net>",
+        "Markus 'guruz' Goetz <guruz@guruz.info>",
+        "Richard Eckart <wyldfire@users.sourceforge.net>",
+        "Christophe Tronche <ch.tronche@computer.org>",
+        "Alex Bennee <alex@bennee.com>",
+        "Mike Perry <mikepery@fscked.org>",
+        "Zygo Blaxell <zblaxell@feedme.hungrycats.org>",
+        "Vidar Madsen <vidar@gimp.org>",
+        "Christian Biere <christianbiere@gmx.de>",
+        "ko <junkpile@free.fr>",
+        "Jeroen Asselman <jeroen@asselman.com>",
+        "T'aZ <tazdev@altern.org>",
+        "Andrew Barnert <barnert@myrealbox.com>",
+        "Michael Gray <mrgray01@louisville.edu>",
+        "Nicol\341s Lichtmaier <nick@technisys.com.ar>",
+        "Emile le Vivre <emile@struggle.ca>",
+        NULL
+    };
+    GtkWidget *dlg = create_dlg_about();
+    guint i;
+#ifdef USE_GTK2
+    GtkTextBuffer *textbuf;
+
+    textbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(
+        lookup_widget(dlg, "textview_about_contributors")));
+    
+    for (i = 0; NULL != contributors[i]; i++) {
+        static char s[256];
+
+        gm_snprintf(s, sizeof(s), "%s%s", i > 0 ? "\n" : "", contributors[i]);
+        gtk_text_buffer_insert_at_cursor(
+            textbuf, convert_to_utf8(s, 0, "ISO-8859-1"), (-1));
+    }
+#else
+    GtkText *text = GTK_TEXT(lookup_widget(dlg, "text_about_contributors"));
+
+    for (i = 0; NULL != contributors[i]; i++) {
+        if (i > 0)
+            gtk_text_insert(text, NULL, NULL, NULL, "\n", (-1));
+        gtk_text_insert(text, NULL, NULL, NULL, contributors[i], (-1));
+    }
+#endif
+
+    gtk_label_set_text(
+        GTK_LABEL(lookup_widget(dlg, "label_about_title")), 
+        version_string);
+
+    return dlg;
+}
 
 /***
  *** Public functions
@@ -449,7 +521,7 @@ void main_gui_early_init(gint argc, gchar **argv)
 
     main_window = gui_create_main_window();
     shutdown_window = create_shutdown_window();
-    dlg_about = create_dlg_about();
+    dlg_about = gui_create_dlg_about();
     dlg_quit = create_dlg_quit();
 
 	/* popup menus */
@@ -463,11 +535,6 @@ void main_gui_early_init(gint argc, gchar **argv)
     statusbar_gui_init();
 
 	gui_init_window_title();
-
-    /* about box */
-    gtk_label_set_text(
-        GTK_LABEL(lookup_widget(dlg_about, "label_about_title")), 
-        version_string);
 
     /* search history combo stuff */
     gtk_combo_disable_activate
