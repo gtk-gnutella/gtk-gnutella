@@ -37,7 +37,7 @@ RCSID("$Id$");
 
 GSList *sl_whitelist = NULL;
 
-static const gchar *whitelist_file = "whitelist";
+static const gchar whitelist_file[] = "whitelist";
 static time_t whitelist_mtime, whitelist_checked;
 static gchar *whitelist_path = NULL;
 
