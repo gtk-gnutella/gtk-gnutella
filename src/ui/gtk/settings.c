@@ -761,9 +761,17 @@ static gboolean is_firewalled_changed(property_t prop)
 static gboolean enable_udp_changed(property_t prop)
 {
 	gboolean changed;
+	gboolean enabled;
+
+	gnet_prop_get_boolean_val(prop, &enabled);
 
 	changed = update_togglebutton(prop);
 	(void) is_firewalled_changed(prop);
+
+	if (enabled)
+		guc_node_udp_gui_show();
+	else
+		guc_node_udp_gui_remove();
 
 	return changed;
 }
