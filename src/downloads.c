@@ -7692,12 +7692,12 @@ void download_verify_progress(struct download *d, guint32 hashed)
  */
 void download_verify_done(struct download *d, gchar *digest, time_t elapsed)
 {
-	struct dl_file_info *fi;
+	struct dl_file_info *fi = d->file_info;
+	gchar *name = file_info_readable_filename(fi);
 
 	g_assert(d->status == GTA_DL_VERIFYING);
 	g_assert(d->list_idx == DL_LIST_STOPPED);
 
-	fi = d->file_info;
 	fi->cha1 = atom_sha1_get(digest);
 	fi->cha1_elapsed = elapsed;
 	file_info_store_binary(fi);		/* Resync with computed SHA1 */
@@ -7705,10 +7705,9 @@ void download_verify_done(struct download *d, gchar *digest, time_t elapsed)
 	d->status = GTA_DL_VERIFIED;
 	gui_update_download(d, TRUE);
 
-	ignore_add_sha1(download_outname(d), fi->cha1);
+	ignore_add_sha1(name, fi->cha1);
 
 	if (has_good_sha1(d)) {
-		gchar *name = file_info_readable_filename(fi);
 		ignore_add_filesize(name, d->file_info->size);
 		queue_remove_downloads_with_file(d->file_info, d);
 		download_move(d, move_file_path, DL_OK_EXT);
