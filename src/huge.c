@@ -932,6 +932,15 @@ void request_sha1(struct shared_file *sf)
 		return;
 	}
 
+	if (dbg > 4) {
+		if (cached_sha1)
+			g_message(
+				"Cached SHA1 entry for \"%s\" outdated: had mtime %d, now %d",
+				sf->file_path, (gint) cached_sha1->mtime, (gint) sf->mtime);
+		else
+			g_message("Queuing \"%s\" for SHA1 computation", sf->file_path);
+	}
+
 	queue_shared_file_for_sha1_computation(sf->file_index, sf->file_path);
 }
 
