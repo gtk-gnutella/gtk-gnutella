@@ -74,7 +74,7 @@ RCSID("$Id$");
  */
 
 struct found_struct {
-	guchar data[64 * 1024];		/* data */
+	gchar data[64 * 1024];		/* data */
 	size_t pos;					/* current write position */
 	size_t files;				/* amount of file entries */
 	size_t max_size;			/* max query hit size */
@@ -532,7 +532,7 @@ add_file(struct shared_file *sf)
 	 * use the "LF" GGEP extension to hold the real size.
 	 */
 
-	fs32 = sf->file_size > ((1U << 31) - 1) ? ~0U : sf->file_size;
+	fs32 = sf->file_size >= (1U << 31) ? ~0U : sf->file_size;
 	
 	WRITE_GUINT32_LE(sf->file_index, &idx_le);
 	if (!found_write(&idx_le, sizeof idx_le)) {
@@ -604,7 +604,7 @@ add_file(struct shared_file *sf)
 	 */
 
 	if (fs32 == ~0U) {
-		guint8 buf[sizeof(guint64)];
+		gchar buf[sizeof(guint64)];
 		gint len;
 
 		len = ggept_lf_encode(sf->file_size, buf);
@@ -612,7 +612,6 @@ add_file(struct shared_file *sf)
 		g_assert(len > 0 && len <= (gint) sizeof buf);
 
 		ok = ggep_stream_pack(&gs, "LF", buf, len, GGEP_W_COBS);
-
 		if (!ok)
 			g_warning("could not write GGEP \"LF\" extension in query hit");
 	}
