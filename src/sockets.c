@@ -1662,7 +1662,7 @@ int connect_http(struct gnutella_socket *s)
 			return -1;
 		}
 		if ((status/100) != 2) {
-			show_error(str);
+			fputs(str, stderr);
 			return -1;
 		}
 		s->pos++;
