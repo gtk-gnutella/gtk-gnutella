@@ -341,17 +341,6 @@ void settings_hostcache_save(void)
 }
 
 /*
- * settings_upload_stats_save:
- *
- * Save upload statistics.
- */
-static void settings_upload_stats_save(void)
-{
-	gm_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, ul_stats_file);
-	upload_stats_dump_history(cfg_tmp, TRUE);
-}
-
-/*
  * settings_remove_pidfile:
  *
  * Remove pidfile.
@@ -431,7 +420,6 @@ void settings_shutdown(void)
     prop_save_to_file(properties, config_dir, config_file);
 
 	settings_hostcache_save();
-	settings_upload_stats_save();
 	settings_remove_pidfile();
 }
 
@@ -894,7 +882,10 @@ static gboolean bw_http_in_changed(property_t prop)
 
     gnet_prop_get_guint32(prop, &val, 0, 1);
     bsched_set_bandwidth(bws.in, val);
-    
+
+	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
+	bsched_set_peermode(val);
+
     return FALSE;
 }
 
@@ -904,6 +895,9 @@ static gboolean bw_http_out_changed(property_t prop)
 
     gnet_prop_get_guint32(prop, &val, 0, 1);
     bsched_set_bandwidth(bws.out, val);
+
+	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
+	bsched_set_peermode(val);
     
     return FALSE;
 }
@@ -915,6 +909,9 @@ static gboolean bw_gnet_in_changed(property_t prop)
     gnet_prop_get_guint32(prop, &val, 0, 1);
     bsched_set_bandwidth(bws.gin, val);
     
+	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
+	bsched_set_peermode(val);
+
     return FALSE;
 }
 
@@ -925,6 +922,9 @@ static gboolean bw_gnet_out_changed(property_t prop)
     gnet_prop_get_guint32(prop, &val, 0, 1);
     bsched_set_bandwidth(bws.gout, val);
     
+	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
+	bsched_set_peermode(val);
+
     return FALSE;
 }
 
@@ -935,6 +935,9 @@ static gboolean bw_gnet_lin_changed(property_t prop)
     gnet_prop_get_guint32(prop, &val, 0, 1);
     bsched_set_bandwidth(bws.glin, val);
     
+	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
+	bsched_set_peermode(val);
+
     return FALSE;
 }
 
@@ -945,6 +948,9 @@ static gboolean bw_gnet_lout_changed(property_t prop)
     gnet_prop_get_guint32(prop, &val, 0, 1);
     bsched_set_bandwidth(bws.glout, val);
     
+	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &val);
+	bsched_set_peermode(val);
+
     return FALSE;
 }
 
