@@ -39,6 +39,7 @@
 #include "statusbar_gui.h"
 #include "search_gui.h"
 #include "gui_property_priv.h"
+#include "filter_gui.h"
 
 #include "settings_cb.h"
 
@@ -99,11 +100,9 @@ GtkWidget *get_main_window(void) {
     return main_window;
 }
 
-/*
 GtkWidget *get_filter_dialog(void) {
     return filter_dialog;
 }
-*/
 
 GtkWidget *get_search_popup(void) {
     return popup_search;
@@ -295,6 +294,20 @@ static prop_map_t property_map[] = {
         update_clist_col_widths,
         TRUE,
         "clist_search"
+    },
+    {
+        get_filter_dialog,
+        PROP_FILTER_RULES_COL_WIDTHS,
+        update_clist_col_widths,
+        TRUE,
+        "clist_filter_rules"
+    },
+    {
+        get_filter_dialog,
+        PROP_FILTER_FILTERS_COL_WIDTHS,
+        update_clist_col_widths,
+        TRUE,
+        "clist_filter_filters"
     },
     {
         get_main_window,
