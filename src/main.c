@@ -321,6 +321,7 @@ static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 	time_t now;
 	struct tm *ct;
 	const char *level;
+	gchar *safer;
 
 	now = time((time_t *) NULL);
 	ct = localtime(&now);
@@ -339,10 +340,12 @@ static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 		level = "UNKNOWN";
 	}
 
+	safer = hex_escape(message);
 	fprintf(stderr, "%.2d/%.2d/%.2d %.2d:%.2d:%.2d (%s): %s\n",
 		ct->tm_year % 100, ct->tm_mon + 1, ct->tm_mday,
-		ct->tm_hour, ct->tm_min, ct->tm_sec,
-		level, message);
+		ct->tm_hour, ct->tm_min, ct->tm_sec, level, safer);
+	if (safer != message)
+		G_FREE_NULL(safer);
 }
  
 static void log_init(void)
