@@ -1,5 +1,25 @@
 # since last version
 
+- (2002.09.16 RAM)
+ * Fixed Alternate-Location parsing to avoid mistaking an URL for a date.
+ * Should now correctly guess whether a "," in an URL is a separator of
+   two URLs or is part of the current URL.
+ * Special index to indicate URN is now 0xffffffff instead of 0.
+ * IP/port parsing of URLs is now done in http.c.
+ * Embryon of code for asynchronous HTTP requests.
+ * Fixed download problem with swarming deactivated.
+ * Socket type/direction constant refactoring.
+ * Capitalized first letter of all Gnet stats.
+ * Removed MSG_DROP_RESULT_DOUBLE_NUL, which was wrong.
+ * Changed MSG_DROP_QUERY_TOO_LONG into MSG_DROP_QUERY_NO_NUL.
+ * Added MSG_DROP_PONG_UNUSABLE.
+ * Query compaction is now enabled by default.
+ * Now counts unusable pongs that we drop.
+ * No longer alter open-data of query hits inplace for LimeWire/Swapper hits!
+ * Will now detect query hit trailer with GGEP extensions.
+ * Parse trailer extensions for validation only (currently).
+ * Count queries with no trailing NUL as such.
+
 - (2002.09.15 Richard)
  * (Hopefully) fixed flickering in gui by jailing label_items_found and
    label_search_stats_count into GtkViewports (Gtk1 & Gtk2)
