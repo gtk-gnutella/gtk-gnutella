@@ -308,7 +308,7 @@ static void add_column(
         GTK_CELL_RENDERER_TEXT(renderer), 1);
     g_object_set(renderer,
         "xalign", xalign,
-        "ypad", (gint) GUI_CELL_RENDERER_YPAD,
+        "ypad", GUI_CELL_RENDERER_YPAD,
         NULL);
 
     column = gtk_tree_view_column_new_with_attributes(

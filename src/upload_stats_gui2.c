@@ -178,7 +178,7 @@ static void upload_stats_gui_add_column(
 					cell_data_func, GINT_TO_POINTER(column_id), NULL);
 	g_object_set(renderer,
 		"xalign", xalign,
-		"ypad", (gint) GUI_CELL_RENDERER_YPAD,
+		"ypad", GUI_CELL_RENDERER_YPAD,
 		NULL);
     gtk_tree_view_column_set_reorderable(column, TRUE);
     gtk_tree_view_column_set_resizable(column, TRUE);

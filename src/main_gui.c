@@ -160,7 +160,7 @@ static void gui_init_menu(void)
     GtkCellRenderer *renderer;
 
     renderer = gtk_cell_renderer_text_new();
-    g_object_set(renderer, "ypad", (gint) GUI_CELL_RENDERER_YPAD, NULL);
+    g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, NULL);
 	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_menu"));
 	store = gtk_tree_store_new(3,
 		G_TYPE_STRING,	/* Label */
@@ -529,9 +529,9 @@ void main_gui_init(void)
             GTK_TOGGLE_BUTTON
                 (lookup_widget(main_window, 
                                "checkbutton_downloads_never_push"))));
-    nodes_gui_init();
-    fi_gui_init();
     settings_gui_init();
+    fi_gui_init();
+    nodes_gui_init();
     gui_init_menu();
     gnet_stats_gui_init();
     search_stats_gui_init();

@@ -494,8 +494,8 @@ gboolean search_gui_new_search(
  * search is stored there.
  */
 gboolean search_gui_new_search_full(
-	const gchar *querystr, guint16 speed, guint32 reissue_timeout, flag_t flags,
-    search_t **search)
+	const gchar *querystr, guint16 speed, guint32 reissue_timeout,
+	flag_t flags, search_t **search)
 {
 	search_t *sch;
 	GList *glist;
@@ -593,9 +593,7 @@ gboolean search_gui_new_search_full(
 	sch->list_item = gtk_list_item_new_with_label(sch->query);
 	gtk_widget_show(sch->list_item);
 	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
-	gtk_list_prepend_items(GTK_LIST(GTK_COMBO(combo_searches)->list),
-						   glist);
-
+	gtk_list_prepend_items(GTK_LIST(GTK_COMBO(combo_searches)->list), glist);
 
 	/* Create a new TreeView if needed, or use the default TreeView */
 
@@ -635,7 +633,7 @@ gboolean search_gui_new_search_full(
 		c_sl_sch, sch,
 		c_sl_fg, NULL,
 		c_sl_bg, NULL,
-		-1);
+		(-1));
 
 	gui_search_update_tab_label(sch);
 	sch->tab_updating = gtk_timeout_add(tab_update_time * 1000,
@@ -658,7 +656,7 @@ gboolean search_gui_new_search_full(
     gtk_entry_set_text(GTK_ENTRY(entry_search), "");
 	searches = g_list_append(searches, (gpointer) sch);
     search_start(sch->search_handle);
-	if (search)
+	if (NULL != search)
 		*search = sch;
 	return TRUE;
 }
@@ -871,10 +869,10 @@ static void search_gui_add_record(
 
 			n = (guint) gtk_tree_model_iter_n_children(
                                 (GtkTreeModel *) model, parent) + 1;
-			if (n > 0) {
-				gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n);
-				gtk_tree_store_set(model, parent, c_sr_count, tmpstr, (-1));
-			}
+			/* Use a string to suppress showing 0 in the # column */
+			gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n);
+			gtk_tree_store_set(model, parent, c_sr_count, tmpstr, (-1));
+ 			/* we need only the reference for the parent */
 			atom_sha1_free(key);
 		} else
 			add_parent_with_sha1(sch->parents, key, &iter);
@@ -888,7 +886,7 @@ static void search_gui_add_record(
 		      c_sr_fg, fg,
 		      c_sr_bg, bg,
 		      c_sr_record, rc,
-		      -1);
+		      (-1));
 	G_FREE_NULL(info_utf8);
 	g_string_free(info, TRUE);
 }
@@ -1384,7 +1382,7 @@ gboolean search_gui_search_results_col_widths_changed(property_t prop)
     guint32 *width;
     GtkTreeView *tree_view;
 
-    if ((current_search == NULL) && (default_search_tree_view == NULL))
+    if (current_search == NULL && default_search_tree_view == NULL)
         return FALSE;
 
     width = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, NULL, 0, 0);
@@ -1417,7 +1415,7 @@ gboolean search_gui_search_results_col_visible_changed(property_t prop)
     guint32 *val;
     GtkTreeView *treeview;
 
-    if ((current_search == NULL) && (default_search_tree_view == NULL))
+    if (current_search == NULL && default_search_tree_view == NULL)
         return FALSE;
 
     val = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_VISIBLE, NULL, 0, 0);
@@ -1456,9 +1454,9 @@ static search_t *find_search(gnet_search_t sh)
         if (((search_t *)l->data)->search_handle == sh) {
             if (gui_debug >= 15)
                 printf("search [%s] matched handle %x\n", (
-                    (search_t *)l->data)->query, sh);
+                    (search_t *) l->data)->query, sh);
 
-            return (search_t *)l->data;
+            return (search_t *) l->data;
         }
     }
 
@@ -2040,25 +2038,26 @@ static GtkTreeViewColumn *add_column(
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_text_set_fixed_height_from_font(
 		GTK_CELL_RENDERER_TEXT(renderer), 1);
-	g_object_set(renderer,
+	column = gtk_tree_view_column_new_with_attributes(name, renderer,
+		"background-gdk", bg_column,
+		"foreground-gdk", fg_column,
+		"text", id,
+		NULL);
+	g_object_set(G_OBJECT(renderer),
 		"background-set", TRUE,
 		"foreground-set", TRUE,
 		"mode", GTK_CELL_RENDERER_MODE_INERT,
 		"xalign", xalign,
-		"ypad", (gint) GUI_CELL_RENDERER_YPAD,
+		"ypad", (guint) GUI_CELL_RENDERER_YPAD,
 		NULL);
-	column = gtk_tree_view_column_new_with_attributes(name, renderer,
-		"text", id,
-		"foreground-gdk", fg_column,
-		"background-gdk", bg_column,
+	g_object_set(G_OBJECT(column),
+		"fixed-width", MAX(1, width),
+		"min-width", 1,
+		"reorderable", TRUE,
+		"resizable", TRUE,
+		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		NULL);
-	
     gtk_tree_view_column_set_sort_column_id(column, id);
-    gtk_tree_view_column_set_fixed_width(column, MAX(1, width));
-    gtk_tree_view_column_set_min_width(column, 1);
-    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_column_set_resizable(column, TRUE);
-    gtk_tree_view_column_set_reorderable(column, TRUE);
     gtk_tree_view_append_column(treeview, column);
 	g_object_notify(G_OBJECT(column), "width");
 
@@ -2075,14 +2074,14 @@ static void add_results_columns (GtkTreeView *treeview)
 		(gfloat) 0.0, NULL);
 	add_results_column(treeview, "Size", c_sr_size, width[c_sr_size],
 		(gfloat) 1.0, search_gui_compare_size_func);
-/*
+#if 0
 	add_results_column(treeview, "Speed", c_sr_speed, width[c_sr_speed],
 		(gfloat) 1.0, NULL);
 	add_results_column(treeview, "Host", c_sr_host, width[c_sr_host],
 		(gfloat) 0.0, (gpointer) &search_gui_compare_host_func);
 	add_results_column(treeview, "urn:sha1", c_sr_urn, width[c_sr_urn],
 		(gfloat) 0.0, NULL);
-*/
+#endif
 	add_results_column(treeview, "#", c_sr_count, width[c_sr_count],
 		(gfloat) 1.0, search_gui_compare_count_func);
 	add_results_column(treeview, "Info", c_sr_info, width[c_sr_info],
@@ -2095,43 +2094,40 @@ static void add_results_columns (GtkTreeView *treeview)
 
 void gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 {
-	GtkTreeModel	*tree_model = create_model();
-	GtkTreeSelection	*tree_selection;
-	GtkTreeView	*tree_view;
+	GtkTreeModel *model = create_model();
+	GtkTreeSelection *selection;
+	GtkTreeView	*treeview;
 
 	*sw = gtk_scrolled_window_new(NULL, NULL);
 
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(*sw),
         GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
 
-	tree_view = GTK_TREE_VIEW(gtk_tree_view_new_with_model(tree_model));
-	*tv = GTK_WIDGET(tree_view);
-	g_object_unref(tree_model);
+	treeview = GTK_TREE_VIEW(gtk_tree_view_new_with_model(model));
+	*tv = GTK_WIDGET(treeview);
+	g_object_unref(model);
 
-	tree_selection = gtk_tree_view_get_selection(tree_view);
-	gtk_tree_selection_set_mode(tree_selection, GTK_SELECTION_MULTIPLE);
-	gtk_tree_view_set_headers_visible(tree_view, TRUE);
-	gtk_tree_view_set_headers_clickable(tree_view, TRUE);
-	gtk_tree_view_set_enable_search(tree_view, TRUE);
-	gtk_tree_view_set_rules_hint(tree_view, TRUE);
+	selection = gtk_tree_view_get_selection(treeview);
+	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
+	gtk_tree_view_set_headers_visible(treeview, TRUE);
+	gtk_tree_view_set_headers_clickable(treeview, TRUE);
+	gtk_tree_view_set_enable_search(treeview, TRUE);
+	gtk_tree_view_set_rules_hint(treeview, TRUE);
 
       /* add columns to the tree view */
-	add_results_columns(tree_view);
+	add_results_columns(treeview);
 
 	gtk_container_add(GTK_CONTAINER(*sw), *tv);
 
 	if (!GTK_WIDGET_VISIBLE (*sw))
 		gtk_widget_show_all(*sw);
 
-	g_signal_connect(GTK_OBJECT(tree_view), "cursor-changed",
-				   G_CALLBACK(on_tree_view_search_results_select_row),
-				   tree_view);
-	g_signal_connect(GTK_OBJECT(tree_view), "button_press_event",
-					   G_CALLBACK
-					   (on_tree_view_search_results_button_press_event), NULL);
-    g_signal_connect(GTK_OBJECT(tree_view), "key_press_event",
-                       G_CALLBACK
-                       (on_tree_view_search_results_key_press_event), NULL);
+	g_signal_connect(GTK_OBJECT(treeview), "cursor-changed",
+		G_CALLBACK(on_tree_view_search_results_select_row), treeview);
+	g_signal_connect(GTK_OBJECT(treeview), "button_press_event",
+		G_CALLBACK(on_tree_view_search_results_button_press_event), NULL);
+    g_signal_connect(GTK_OBJECT(treeview), "key_press_event",
+		G_CALLBACK(on_tree_view_search_results_key_press_event), NULL);
 }
 
 void gui_search_update_items(struct search *sch)
@@ -2147,8 +2143,7 @@ void gui_search_update_items(struct search *sch)
     } else
         g_strlcpy(tmpstr, "No search", sizeof(tmpstr));
 
-	gtk_label_set(
-        GTK_LABEL(lookup_widget(main_window, "label_items_found")), 
+	gtk_label_set(GTK_LABEL(lookup_widget(main_window, "label_items_found")), 
         tmpstr);
 }
 

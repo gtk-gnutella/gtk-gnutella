@@ -49,7 +49,7 @@ static void monitor_gui_append_to_monitor(
     query_type_t type, const gchar *item, guint32 ip, guint16 port)
 {
     GtkTreeIter iter;
-    gchar tmpstr[100];
+    static gchar tmpstr[100];
 	gchar *str;
 	size_t len;
 
@@ -57,9 +57,9 @@ static void monitor_gui_append_to_monitor(
         monitor_items++;
     else {
         /* Get the first iter in the list */
-        gboolean valid = gtk_tree_model_get_iter_first
-            (GTK_TREE_MODEL(monitor_model), &iter);
-        if (valid)
+        if (
+			gtk_tree_model_get_iter_first(GTK_TREE_MODEL(monitor_model), &iter)
+		)
             gtk_list_store_remove(monitor_model, &iter);
     }
 
@@ -106,8 +106,7 @@ void monitor_gui_init(void)
     /* Create a column, associating the "text" attribute of the
      * cell_renderer to the first column of the model */
     renderer = gtk_cell_renderer_text_new();
-	g_object_set(renderer,
-		"ypad", (gint) GUI_CELL_RENDERER_YPAD, NULL);
+	g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, NULL);
     column = gtk_tree_view_column_new_with_attributes 
         ("Query", renderer, "text", QUERY_COLUMN, NULL);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);

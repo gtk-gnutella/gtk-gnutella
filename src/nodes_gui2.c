@@ -74,13 +74,10 @@ static void on_nodes_gui_column_resized(
 {
     guint32 width;
     gint column_id = GPOINTER_TO_INT(data);
-    static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
 
 	g_assert(column_id >= 0 && column_id <= 6);
-	g_static_mutex_lock(&mutex);
 	width = gtk_tree_view_column_get_width(column);
 	gui_prop_set_guint32(PROP_NODES_COL_WIDTHS, &width, column_id, 1);
-	g_static_mutex_unlock(&mutex);
 }
 
 /*
@@ -89,17 +86,20 @@ static void on_nodes_gui_column_resized(
  * Create a column, associating the "text" attribute of the
  * cell_renderer to the first column of the model
  */
-static void nodes_gui_add_column(
-	GtkTreeView *tree, gint column_id, const gchar *title)
+static void add_column(
+	GtkTreeView *tree, gint column_id, gint width, const gchar *title)
 {
     GtkTreeViewColumn *column;
 
    	column = gtk_tree_view_column_new_with_attributes(
 		title, nodes_gui_cell_renderer, "text", column_id, NULL);
-    gtk_tree_view_column_set_reorderable(column, TRUE);
-    gtk_tree_view_column_set_resizable(column, TRUE);
-    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_column_set_min_width(column, 1);
+	g_object_set(G_OBJECT(column),
+		"fixed-width", MAX(1, width),
+		"min-width", 1,
+		"reorderable", TRUE,
+		"resizable", TRUE,
+		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
+		NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW (tree), column);
 	g_object_notify(G_OBJECT(column), "width");
 	g_signal_connect(G_OBJECT(column), "notify::width",
@@ -201,6 +201,7 @@ void nodes_gui_early_init(void)
 void nodes_gui_init(void) 
 {
     GtkTreeView *tree;
+	guint32 *width;
 
     /* Create a model.  We are using the store model for now, though we
      * could use any other GtkTreeModel */
@@ -230,14 +231,19 @@ void nodes_gui_init(void)
 	gtk_cell_renderer_text_set_fixed_height_from_font(
 		GTK_CELL_RENDERER_TEXT(nodes_gui_cell_renderer), 1);
     g_object_set(nodes_gui_cell_renderer,
-		"ypad", (gint) GUI_CELL_RENDERER_YPAD, NULL);
-    nodes_gui_add_column(tree, COL_NODE_HOST, "Host");
-    nodes_gui_add_column(tree, COL_NODE_TYPE, "Flags");
-    nodes_gui_add_column(tree, COL_NODE_VENDOR, "User-agent");
-    nodes_gui_add_column(tree, COL_NODE_VERSION, "Ver");
-    nodes_gui_add_column(tree, COL_NODE_CONNECTED, "Connected");
-    nodes_gui_add_column(tree, COL_NODE_UPTIME, "Uptime");
-    nodes_gui_add_column(tree, COL_NODE_INFO, "Info");
+		"ypad", GUI_CELL_RENDERER_YPAD, NULL);
+
+	width = gui_prop_get_guint32(PROP_NODES_COL_WIDTHS, NULL, 0, 0);
+    add_column(tree, COL_NODE_HOST, width[COL_NODE_HOST], "Host");
+    add_column(tree, COL_NODE_TYPE, width[COL_NODE_TYPE], "Flags");
+    add_column(tree, COL_NODE_VENDOR, width[COL_NODE_VENDOR], "User-agent");
+    add_column(tree, COL_NODE_VERSION, width[COL_NODE_VERSION], "Ver");
+    add_column(tree, COL_NODE_CONNECTED, width[COL_NODE_CONNECTED],
+		"Connected");
+    add_column(tree, COL_NODE_UPTIME, width[COL_NODE_UPTIME], "Uptime");
+    add_column(tree, COL_NODE_INFO, width[COL_NODE_INFO], "Info");
+	G_FREE_NULL(width);
+
 	nodes_handles = g_hash_table_new_full(
 		NULL, NULL, NULL, (gpointer) w_tree_iter_free);
     node_add_node_added_listener(nodes_gui_node_added);
