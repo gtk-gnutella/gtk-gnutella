@@ -335,6 +335,7 @@ static struct dl_request *dl_req_alloc(gchar *buf, gint len, gint written)
 
 	r = walloc(sizeof(*r));
 	r->buffer = walloc(len);		/* Should be small enough for walloc */
+	r->len = len;
 	r->end = r->buffer + len;
 	r->rptr = r->buffer + written;
 
