@@ -56,7 +56,7 @@ RCSID("$Id$");
  *        15 P            32 g            49 x
  *        16 Q            33 h            50 y
  */
-static gint8 values[256] = {
+static const gint8 values[256] = {
 /*  0  1  2  3  4  5  6  7  8  9  */	/* 0123456789              */
     -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            -  00 ->  09 */
     -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            -  10 ->  19 */
@@ -89,7 +89,7 @@ static gint8 values[256] = {
     -1,-1,-1,-1,-1,						/*            - 251 -> 255 */
 };
 
-static const gchar *b64_alphabet =
+static const gchar b64_alphabet[] =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 /*
@@ -114,7 +114,7 @@ static guint encode_pad_length(guint len, guint *pad)
 	tcount = len / 3;
 	remainder = len - (tcount * 3);
 
-	g_assert(remainder >= 0);
+	g_assert((gint) remainder >= 0);
 
 	switch (remainder) {
 	case 0: npad = 0; break;
@@ -407,3 +407,4 @@ gchar *base64_decode(const gchar *buf, guint len, guint *outlen)
 	return decbuf;
 }
 
+/* vi: set ts=4: */
