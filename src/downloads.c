@@ -4831,7 +4831,8 @@ static void download_request(
 				 *		-- RAM, 15/05/2003
 				 */
 
-				file_info_update(d, end + 1, d->range_end, DL_CHUNK_EMPTY);
+				file_info_clear_download(d, TRUE);
+				file_info_update(d, d->skip, end + 1, DL_CHUNK_BUSY);
 
 				d->range_end = end + 1;				/* The new end */
 				d->size = d->range_end - d->skip;	/* Don't count overlap */
