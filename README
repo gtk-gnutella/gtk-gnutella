@@ -20,7 +20,7 @@
         59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ------------------------------------------------------------------------
 
-[This software is now maintained by Raphael_Manfredi@pobox.com]
+This software is currently maintained by Jeroen Asselman jeroen@asselman.com
 
 If you have problems, your best bet is to subscribe to the gtk-gnutella-users
 list on www.sf.net, and more precisely here:
@@ -86,6 +86,33 @@ to create a `Makefile' in each directory of the package.  It may also
 create one or more `.h' files containing system-dependent definitions.
 Finally, it creates `config.sh' file that saves the results of its tests
 to speed up reconfiguring, reusing your previous values as defaults.
+
+For a list of command line switches use "Configure -h"
+
+"Configure" can be run non-interactively by using the "-d" commandline option, 
+which will configure gtk-gnutella using default values for all symbols.  
+Defaults can be changed using the "-D" and "-U" options.  The following is a 
+list of commonly used options with the defaults. 
+
+-Dprefix=/usr/local
+-Dbindir=/usr/local/bin
+-Dsysman=/usr/local/man/man1
+-Dprivlib=/usr/local/lib/gtk-gnutella
+-Dlocale=/usr/local/share/locale
+-Dcc=cc
+-Dccflags=''
+-Doptimize='-O'
+-Dyacc='yacc'
+-Dgtkversion=1
+-Dofficial='false'
+-Dremotectrl='false'
+
+To disable nls:
+-Ud_enablenls
+
+For example, a fairly typical configuration for linux x86, gtk2 gui:
+./Configure -d -e -r -s -Dprefix=/usr -Dprivlib=/usr/share/gtk-gnutella \
+	-Dcc=gcc -Dccflags='-Wall' -Doptimize='-O2' -Dgtkversion=2
 
 If you need to do unusual things to compile the package, please try
 to figure out how `Configure' could check whether to do them, and mail
