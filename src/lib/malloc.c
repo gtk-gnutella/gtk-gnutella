@@ -70,6 +70,9 @@ RCSID("$Id$");
 #define TRANSPARENT	/* To make sure our macros have no side effect */
 #endif
 
+static time_t init_time = 0;
+static time_t reset_time = 0;
+
 /*
  * Structure keeping track of allocated blocks.
  *
@@ -85,6 +88,8 @@ struct block {
 };
 
 static GHashTable *blocks = NULL;
+
+static void free_record(gpointer o, gchar *file, gint line);
 
 #ifdef MALLOC_FRAMES
 
@@ -197,6 +202,8 @@ static void malloc_init(void)
 #ifdef MALLOC_STATS
 	stats = g_hash_table_new(stats_hash, stats_eq);
 #endif
+
+	init_time = reset_time = time(NULL);
 }
 
 /*
@@ -280,9 +287,22 @@ gpointer malloc_record(gpointer o, guint32 sz, gchar *file, gint line)
 	b->size = sz;
 	b->realloc = NULL;
 
-	if ((ob = (struct block *) g_hash_table_lookup(blocks, o)))
+	/*
+	 * It can happen that we track the allocation of a block somewhere
+	 * but the freeing happens somewhere we either we forgot to include
+	 * "override.h", or happens in some library (e.g. in GTK+) where we
+	 * can't record it.
+	 *
+	 * If we're "lucky" enough to see the address of such a block being
+	 * reused again, then it has necessarily been freed, or malloc() would
+	 * not reuse it again!  Fake a free from "FAKED:0".
+	 */
+
+	if ((ob = (struct block *) g_hash_table_lookup(blocks, o))) {
 		g_warning("(%s:%d) reusing block 0x%lx from %s:%d, missed its freeing",
 			file, line, (glong) o, ob->file, ob->line);
+		free_record(o, "FAKED", 0);
+	}
 
 	g_hash_table_insert(blocks, o, b);
 
@@ -393,12 +413,6 @@ static void free_record(gpointer o, gchar *file, gint line)
 #ifdef MALLOC_STATS
 	{
 		struct stats s;
-		guint32 alloc_size = b->size;
-
-		if (b->realloc != NULL) {
-			struct block *last = (struct block *) g_slist_last(b->realloc);
-			alloc_size = last->size;		/* Original allocation size */
-		}
 
 		s.file = b->file;
 		s.line = b->line;
@@ -409,8 +423,9 @@ static void free_record(gpointer o, gchar *file, gint line)
 			g_warning("(%s:%d) no allocation record of block 0x%lx from %s:%d?",
 				file, line, (gulong) o, b->file, b->line);
 		else {
-			st->freed += alloc_size;
-			st->total_freed += alloc_size;
+			/* Count present block size, after possible realloc() */
+			st->freed += b->size;
+			st->total_freed += b->size;
 			if (st->total_blocks > 0)
 				st->total_blocks--;
 			else
@@ -798,7 +813,7 @@ void hashtable_destroy_track(GHashTable *h, gchar *file, gint line)
  */
 hash_list_t *hash_list_new_track(gchar *file, gint line)
 {
-	return malloc_record(hash_list_new(), 16, file, line);	/* Random size */
+	return malloc_record(hash_list_new(), 28, file, line);	/* Approx. size */
 }
 
 /*
@@ -1520,7 +1535,7 @@ static gint stats_residual_cmp(const void *p1, const void *p2)
 	gint32 i2 = s2->allocated + s2->reallocated - s2->freed;
 
 	return
-		i1 == i2 ?  0 :
+		i1 == i2 ?  stats_allocated_cmp(p1, p2) :
 		i1 < i2  ? +1 : -1;		/* Reverse order: largest first */
 }
 
@@ -1536,7 +1551,7 @@ static gint stats_total_residual_cmp(const void *p1, const void *p2)
 	gint32 i2 = s2->total_allocated + s2->total_reallocated - s2->total_freed;
 
 	return
-		i1 == i2 ?  0 :
+		i1 == i2 ?  stats_total_allocated_cmp(p1, p2) :
 		i1 < i2  ? +1 : -1;		/* Reverse order: largest first */
 }
 
@@ -1631,13 +1646,16 @@ void alloc_dump(FILE *f, gboolean total)
 {
 	gint count;
 	struct afiller filler;
+	time_t now;
 
 	count = g_hash_table_size(stats);
 
 	if (count == 0)
 		return;
 
-	fprintf(f, "--- distinct allocation spots found: %d\n", count);
+	now = time(NULL);
+	fprintf(f, "--- distinct allocation spots found: %d after %s\n",
+		count, short_time(now - init_time));
 
 	filler.stats = (struct stats **) malloc(sizeof(struct stats *) * count);
 	filler.count = count;
@@ -1656,8 +1674,9 @@ void alloc_dump(FILE *f, gboolean total)
 	 * Dump the allocation based on allocation sizes.
 	 */
 
-	fprintf(f, "--- summary by decreasing %s allocation size:\n",
-		total ? "total" : "incremental");
+	fprintf(f, "--- summary by decreasing %s allocation size after %s:\n",
+		total ? "total" : "incremental",
+		short_time(now - (total ? init_time : reset_time)));
 	stats_array_dump(f, &filler);
 
 	/*
@@ -1670,11 +1689,12 @@ void alloc_dump(FILE *f, gboolean total)
 	qsort(filler.stats, count, sizeof(struct stats *),
 		total ? stats_total_residual_cmp : stats_residual_cmp);
 
-	fprintf(f, "--- summary by decreasing %s residual memory size:\n",
-		total ? "total" : "incremental");
+	fprintf(f, "--- summary by decreasing %s residual memory size after %s:\n",
+		total ? "total" : "incremental",
+		short_time(now - (total ? init_time : reset_time)));
 	stats_array_dump(f, &filler);
 
-	fprintf(f, "--- end summary\n");
+	fprintf(f, "--- end summary at %s\n", short_time(now - init_time));
 
 	free(filler.stats);
 }
@@ -1697,7 +1717,10 @@ void alloc_reset(FILE *f, gboolean total)
 {
 	alloc_dump(f, total);
 	g_hash_table_foreach(stats, stats_reset, NULL);
-	fprintf(f, "--- incremental allocation stats reset.\n");
+	reset_time = time(NULL);
+
+	fprintf(f, "--- incremental allocation stats reset after %s.\n",
+		short_time(reset_time - init_time));
 }
 
 #endif /* MALLOC_STATS */
