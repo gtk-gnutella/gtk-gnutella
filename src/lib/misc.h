@@ -89,6 +89,17 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 #define is_ascii_upper(c) (isascii(c) && isupper((guchar) c))
 #define is_ascii_xdigit(c) (isascii(c) && isxdigit((guchar) c))
 
+#if !GLIB_CHECK_VERSION(2,4,0)
+static inline const gchar *
+g_strip_context(const gchar *id, const gchar *val)
+{
+	const gchar *s;
+
+	s = id != val ? NULL : strchr(id, '|');
+	return s ? ++s : val;
+}
+#endif /* GLib < 2.4.0 */
+
 /**
  * Skips over all ASCII space characters starting at ``s''.
  *
