@@ -87,6 +87,15 @@
   on TCP_NODELAY to disable Nagle's algorithm.
 - Reworked on the shutdowning/bye code to maximize chances of proper delivery
   of the BYE indication.
+- Must duplicate filenames in uploads in case library is rebuilt, or it will
+  corrupt the upload statistics.
+- Save config and host cache in a temporary file first, then rename as the
+  final file when everything is OK to avoid corrupting precious data via an
+  incomplete write.
+- Be sure to disable a queue becoming empty in mq_clear() if it was enabled
+  (fixes bug #530811).
+- Split I/O vectors larger than the max allowed size (fixes bug #530106).
+- Fixed off-by-one error in url_escape_cntrl() causing memory corruptions.
 
 # v 0.80   2002.01.31  [stable]
 # v 0.80   2002.01.22  [beta2]
