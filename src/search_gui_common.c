@@ -335,7 +335,8 @@ void search_gui_free_r_sets(search_t *sch)
 
 	if (NULL != sch->r_sets) {
 		hash_list_foreach(sch->r_sets, (GFunc) free_r_sets_helper, NULL);
-		hash_list_free(&sch->r_sets);
+		hash_list_free(sch->r_sets);
+		sch->r_sets = NULL;
 	}
 }
 
