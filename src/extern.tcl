@@ -117,6 +117,7 @@ set w_main_list {
 	entry_search_reissue_timeout
 	entry_search_stats_delcoef 
 	entry_search_stats_update_interval 
+    clist_search
 
 	clist_monitor
 	checkbutton_monitor_enable
@@ -129,6 +130,7 @@ set w_main_list {
 	popup_search_resume
 	popup_search_stop
 	popup_search_toggle_tabs 
+    popup_search_config_cols
  	popup_search 
 
 	popup_hosts 
@@ -141,6 +143,8 @@ set w_main_list {
 	popup_queue_search_again
 	popup_queue_start_now
 	popup_queue_search_again
+    popup_queue_copy_url
+    popup_queue_connect
 
 	popup_dl_active 
 	popup_downloads_abort
@@ -152,6 +156,7 @@ set w_main_list {
 	popup_downloads_remove_file
 	popup_downloads_search_again
     popup_downloads_copy_url
+    popup_downloads_connect
 
 	popup_monitor 
 	popup_monitor_add_search	
@@ -212,6 +217,9 @@ set w_main_list {
     frame_bws_inout
     frame_bws_ginout
     hpaned_main
+    vpaned_sidebar
+    hb_searches
+    notebook_sidebar
 
     label_shutdown_count
 }
