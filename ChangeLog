@@ -1,5 +1,15 @@
 # since last version
 
+- (2002.12.17 - Richard)
+ * Added optional remote shell support (add --enable-remote-shell to configure)
+   Documentation is in doc/other/remote-shell.txt
+ * About dialog should be opened centered now
+ * Quit dialog should open at mouse position now
+ * [Gtk2] Moved #define of g_ascii_strcasecmp from dmesh.c to misc.h
+ * Fixed wrong argument type in inputevt_add (gint -> guint).
+ * Added inputevt_remove(). Please use this instead of g_source_remove().
+ * Removed reissue_timeout argument from search_gui_new_search(). (Also [Gtk2])
+
 - (2002.12.15 - cbiere)
  * [Gtk2] Replaced deprecated GtkCList in gnet stats pane by GtkTreeView
 
