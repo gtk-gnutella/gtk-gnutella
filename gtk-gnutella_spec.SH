@@ -106,9 +106,9 @@ features.
 %{__install} -D -m 644 gtk-gnutella.png $RPM_BUILD_ROOT/%{_datadir}/pixmaps
 
 # freedesktop.org icon theme specification locations.
-%{__install} -D -m 644 gtk-gnutella16.png \
+%{__install} -D -m 644 gtk-gnutella.16.png \
 	$RPM_BUILD_ROOT/%{_datadir}/icons/hicolor/16x16/apps/gtk-gnutella.png
-%{__install} -D -m 644 gtk-gnutella32.png \
+%{__install} -D -m 644 gtk-gnutella.32.png \
 	$RPM_BUILD_ROOT/%{_datadir}/icons/hicolor/32x32/apps/gtk-gnutella.png
 %{__install} -D -m 644 gtk-gnutella.png \
 	$RPM_BUILD_ROOT/%{_datadir}/icons/hicolor/48x48/apps/gtk-gnutella.png
