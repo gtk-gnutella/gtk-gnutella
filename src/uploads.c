@@ -1510,6 +1510,7 @@ static struct shared_file *get_file_to_upload(
 {
 	guint index = 0;
 	gchar *uri;
+	gchar s;
 
 	/*
 	 * We have either "GET uri" or "HEAD uri" at this point.  Since the
@@ -1520,7 +1521,12 @@ static struct shared_file *get_file_to_upload(
 
 	uri = request + ((request[0] == 'G') ? sizeof("GET") : sizeof("HEAD"));
 
-	if (sscanf(uri, "/get/%u/", &index))
+	/*
+	 * Because of a bug in sscanf(), we must end the format with a parameter,
+	 * since sscanf() will ignore whatever lies afterwards.
+	 */
+
+	if (2 == sscanf(uri, "/get/%u%c", &index, &s) && s == '/')
 		return get_file_to_upload_from_index(u, header, uri, index);
 	else if (0 == strncmp(uri, n2r_query, N2R_QUERY_LENGTH))
 		return get_file_to_upload_from_urn(uri, header);
@@ -1889,7 +1895,7 @@ static void upload_request(struct upload *u, header_t *header)
 			else
 				skip = reqfile->file_size - skip;
 		} else
-			(void) sscanf(buf, "bytes=%u-", &skip);
+			(void) sscanf(buf, "bytes=%u", &skip);
 	}
 
 	/* 

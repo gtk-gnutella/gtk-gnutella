@@ -288,6 +288,7 @@ gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info)
 	guint port;
 	guint idx;
 	guint lsb, b2, b3, msb;
+	guchar q;
 	gchar *file;
 
 	if (0 != strncasecmp(url, "http://", 7))
@@ -318,17 +319,23 @@ gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info)
 	 * Test the second form of URL:
 	 *
 	 *    http://1.2.3.4:5678/uri-res/N2R?urn:sha1:ABCDEFGHIJKLMN....
+	 *
+	 * Because of a bug in sscanf(), we have to end with a %c, otherwise
+	 * the trailing text after the last parameter is NOT tested.
 	 */
 
 	idx = 0;			/* Identifies second form */
 
 	if (
-		5 == sscanf(url, "%u.%u.%u.%u:%u/uri-res/N2R?",
-			&msb, &b3, &b2, &lsb, &port)
+		6 == sscanf(url, "%u.%u.%u.%u:%u/uri-res/N2R%c",
+			&msb, &b3, &b2, &lsb, &port, &q) && q == '?'
 	)
 		goto ok;
 	
-	if (4 == sscanf(url, "%u.%u.%u.%u/uri-res/N2R?", &msb, &b3, &b2, &lsb)) {
+	if (
+		5 == sscanf(url, "%u.%u.%u.%u/uri-res/N2R%c",
+			&msb, &b3, &b2, &lsb, &q) && q == '?'
+	) {
 		port = HTTP_PORT;
 		goto ok;
 	}
