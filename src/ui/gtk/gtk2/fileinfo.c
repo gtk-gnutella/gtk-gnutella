@@ -355,10 +355,22 @@ void fi_gui_init(void)
     	{ c_fi_sources,  N_("Sources"), 1.0, compare_uint_func, c_fi_isources },
     	{ c_fi_status,   N_("Status"),	0.0, NULL, -1 }
 	};
+	static GType types[] = {
+		G_TYPE_STRING,	/* Filename */
+		G_TYPE_STRING,	/* Size		*/
+		G_TYPE_STRING,	/* Done		*/
+		G_TYPE_STRING,	/* Sources	*/
+		G_TYPE_STRING,	/* Status	*/
+		G_TYPE_UINT,	/* Fileinfo handle		*/
+		G_TYPE_UINT,	/* Size (for sorting)	*/
+		G_TYPE_UINT,	/* Done (for sorting)	*/
+		G_TYPE_UINT		/* Sources (for sorting */
+	};
 	guint32 width[G_N_ELEMENTS(columns)];
 	guint i;
 
 	STATIC_ASSERT(FILEINFO_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
+	STATIC_ASSERT(c_fi_num == G_N_ELEMENTS(types));
 
 	fi_gui_handles = g_hash_table_new_full(
         NULL, NULL, NULL, (gpointer) w_tree_iter_free);
@@ -372,16 +384,7 @@ void fi_gui_init(void)
 	label_fi_size = GTK_LABEL(lookup_widget(main_window,
 		"label_fi_size"));
 
-	store_fileinfo = gtk_tree_store_new(c_fi_num,
-		G_TYPE_STRING,	/* Filename */
-		G_TYPE_STRING,	/* Size		*/
-		G_TYPE_STRING,	/* Done		*/
-		G_TYPE_STRING,	/* Sources	*/
-		G_TYPE_STRING,	/* Status	*/
-		G_TYPE_UINT,	/* Fileinfo handle		*/
-		G_TYPE_UINT,	/* Size (for sorting)	*/
-		G_TYPE_UINT,	/* Done (for sorting)	*/
-		G_TYPE_UINT);	/* Sources (for sorting */
+	store_fileinfo = gtk_tree_store_newv(G_N_ELEMENTS(types), types);
 	gtk_tree_view_set_model(treeview_fileinfo, GTK_TREE_MODEL(store_fileinfo));
 	g_signal_connect(GTK_OBJECT(treeview_fileinfo), "cursor-changed",
         G_CALLBACK(on_treeview_fileinfo_selected), NULL);
@@ -390,11 +393,8 @@ void fi_gui_init(void)
 		G_N_ELEMENTS(width));
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
-    	add_column(treeview_fileinfo,
-			columns[i].id,
-			_(columns[i].title),
-			width[i],
-			columns[i].align);
+    	add_column(treeview_fileinfo, columns[i].id, _(columns[i].title),
+			width[i], columns[i].align);
 
 		if (columns[i].sort_func) {
 			gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_fileinfo),
@@ -435,4 +435,4 @@ void fi_gui_shutdown(void)
 	fi_gui_handles = NULL;
 }
 
-/* vi: set ts=4 sw=4: */
+/* vi: set ts=4 sw=4 cindent: */

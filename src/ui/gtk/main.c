@@ -139,6 +139,11 @@ static gboolean gui_init_menu_helper(
 
 static void gui_init_menu(void) 
 {
+	static GType types[] = {
+		G_TYPE_STRING,	/* Label */
+		G_TYPE_INT,		/* Notebook page */
+		G_TYPE_INT		/* Menu entry ID (persistent between releases) */
+	};
 	GtkTreeView	*treeview;
 	GtkTreeIter	parent;
 	GtkTreeStore *store;
@@ -149,10 +154,7 @@ static void gui_init_menu(void)
     renderer = gtk_cell_renderer_text_new();
     g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, NULL);
 	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_menu"));
-	store = gtk_tree_store_new(3,
-		G_TYPE_STRING,	/* Label */
-		G_TYPE_INT,		/* Notebook page */
-		G_TYPE_INT);	/* Menu entry ID (persistent between releases) */
+	store = gtk_tree_store_newv(G_N_ELEMENTS(types), types);
 
 	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
 		GtkTreeIter	iter;
@@ -166,6 +168,7 @@ static void gui_init_menu(void)
 				1, menu[i].page,
 				2, i,
 				(-1));
+		STATIC_ASSERT(G_N_ELEMENTS(types) == 3);
 	}
 
 	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
