@@ -186,8 +186,8 @@ guint32  min_dup_msg     = 5;
 guint32  min_dup_msg_def = 5;
 guint32  min_dup_ratio     = 150;
 guint32  min_dup_ratio_def = 150;
-gchar   *scan_extensions     = "asf;avi;bin;bz2;cue;deb;divx;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;ogg;qt;png;ps;pdf;ram;rm;rar;rpm;s3m;stm;tar;tgz;txt;vob;voc;vqf;wav;wma;wmv;xm;zip";
-gchar   *scan_extensions_def = "asf;avi;bin;bz2;cue;deb;divx;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;ogg;qt;png;ps;pdf;ram;rm;rar;rpm;s3m;stm;tar;tgz;txt;vob;voc;vqf;wav;wma;wmv;xm;zip";
+gchar   *scan_extensions     = "asf;avi;bin;bz2;cue;deb;divx;doc;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;nes;ogg;qt;png;ps;pdf;ram;rm;rar;rpm;rom;s3m;smc;smd;stm;tar;tgz;txt;vob;voc;vqf;wav;wma;wmv;xm;zip";
+gchar   *scan_extensions_def = "asf;avi;bin;bz2;cue;deb;divx;doc;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;nes;ogg;qt;png;ps;pdf;ram;rm;rar;rpm;rom;s3m;smc;smd;stm;tar;tgz;txt;vob;voc;vqf;wav;wma;wmv;xm;zip";
 gchar   *save_file_path     = "/tmp";
 gchar   *save_file_path_def = "/tmp";
 gchar   *move_file_path     = "/tmp";
@@ -1637,7 +1637,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[74].name = "min_dup_ratio";
-    gnet_property->props[74].desc = "Minimum ratio of dups on received messages, per node (between 0.00 and 100.00) (also see [min_dup_msg]) Note: the value is stored between 0 (0.0) and 10000 (100.0) in the config file";
+    gnet_property->props[74].desc = "Minimum ratio of dups on received messages, per node (beween 0.00 and 100.00) (also see [min_dup_msg]) Note: the value is stored between 0 (0.0) and 10000 (100.0) in the config file";
     gnet_property->props[74].prop_changed_listeners = NULL;
     gnet_property->props[74].save = TRUE;
     gnet_property->props[74].vector_size = 1;
