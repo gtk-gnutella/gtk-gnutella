@@ -1763,14 +1763,14 @@ gboolean search_gui_search_results_col_widths_changed(property_t prop)
 gboolean search_gui_search_results_col_visible_changed(property_t prop)
 {
 	gint i;
-    guint32 *val;
+    gboolean *val;
  	GtkCTree *ctree;
     search_t *current_search = search_gui_get_current_search();
 
     if ((current_search == NULL) && (default_search_ctree == NULL))
         return FALSE;
 
-    val = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_VISIBLE, NULL, 0, 0);
+    val = gui_prop_get_boolean(PROP_SEARCH_RESULTS_COL_VISIBLE, NULL, 0, 0);
 
     ctree = (current_search != NULL) ? 
         GTK_CTREE(current_search->ctree) : default_search_ctree;
