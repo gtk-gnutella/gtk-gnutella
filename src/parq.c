@@ -120,7 +120,7 @@ struct parq_ul_queued {
 	gboolean had_slot;		/* If an upload had an upload slot it is not allowed
 							   to reuse the id for another upload	*/
 	guint eta;				/* Expected time in seconds till an upload slot is
-							   reached */
+							   reached, this is a relative timestamp */
 
 	time_t expire;			/* Time at which the queue position will be lost */
 	time_t retry;			/* Time at which the first retry-after is expected*/
@@ -2220,9 +2220,7 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	parq_ul->chunk_size = abs(u->skip - u->end);
 	parq_ul->updated = now;
 	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
-	
-	g_assert(parq_ul->eta - now > 0);
-	
+		
 #if 0
 	/* If the chunk sizes are really small, expire them sooner */
 	parq_ul->expire = parq_ul->retry + parq_ul->chunk_size / bw_http_out;
