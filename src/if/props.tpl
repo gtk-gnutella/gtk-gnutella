@@ -267,7 +267,7 @@ guint8   [=(. item)=][[=vector_size=]];[=
         IF (= (get "type") "multichoice")=]
 prop_def_choice_t [=(. item)=]_choices[] = { [=
             FOR choice =]
-    {"[=name=]", [=value=]},[=
+    {N_("[=name=]"), [=value=]},[=
             ENDFOR choice =]
     {NULL, 0}
 };[=

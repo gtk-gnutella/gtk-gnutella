@@ -224,10 +224,10 @@ guint32  proxy_port_def = 0x0000;
 guint32  proxy_protocol     = PROXY_NONE;
 guint32  proxy_protocol_def = PROXY_NONE;
 prop_def_choice_t proxy_protocol_choices[] = { 
-    {"None", PROXY_NONE},
-    {"HTTP", PROXY_HTTP},
-    {"SOCKS v4", PROXY_SOCKSV4},
-    {"SOCKS v5", PROXY_SOCKSV5},
+    {N_("None"), PROXY_NONE},
+    {N_("HTTP"), PROXY_HTTP},
+    {N_("SOCKS v4"), PROXY_SOCKSV4},
+    {N_("SOCKS v5"), PROXY_SOCKSV5},
     {NULL, 0}
 };
 guint32  hosts_in_catcher     = 0;
@@ -356,25 +356,25 @@ guint32  max_leaves_def = 100;
 guint32  search_handle_ignored_files     = 0;
 guint32  search_handle_ignored_files_def = 0;
 prop_def_choice_t search_handle_ignored_files_choices[] = { 
-    {"displayed normally", 0},
-    {"displayed marked", 1},
-    {"not displayed", 2},
+    {N_("displayed normally"), 0},
+    {N_("displayed marked"), 1},
+    {N_("not displayed"), 2},
     {NULL, 0}
 };
 guint32  configured_peermode     = NODE_P_AUTO;
 guint32  configured_peermode_def = NODE_P_AUTO;
 prop_def_choice_t configured_peermode_choices[] = { 
-    {"auto (recommended)", NODE_P_AUTO},
-    {"ultra node", NODE_P_ULTRA},
-    {"leaf node", NODE_P_LEAF},
+    {N_("auto (recommended)"), NODE_P_AUTO},
+    {N_("ultra node"), NODE_P_ULTRA},
+    {N_("leaf node"), NODE_P_LEAF},
     {NULL, 0}
 };
 guint32  current_peermode     = 0;
 guint32  current_peermode_def = 0;
 prop_def_choice_t current_peermode_choices[] = { 
-    {"ultra node", 2},
-    {"normal node", 1},
-    {"leaf node", 0},
+    {N_("ultra node"), 2},
+    {N_("normal node"), 1},
+    {N_("leaf node"), 0},
     {NULL, 0}
 };
 guint32  sys_nofile     = 1024;
@@ -913,7 +913,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[18].name = "average_servent_uptime";
-    gnet_property->props[18].desc = _("Average servent uptime, in seconds.");
+    gnet_property->props[18].desc = _("Average servent uptime.");
     gnet_property->props[18].ev_changed = event_new("average_servent_uptime_changed");
     gnet_property->props[18].save = TRUE;
     gnet_property->props[18].vector_size = 1;
@@ -3570,7 +3570,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[157].name = "sys_nofile";
-    gnet_property->props[157].desc = _("How many file descriptors a process can open.");
+    gnet_property->props[157].desc = _("How many file descriptors this process can open.");
     gnet_property->props[157].ev_changed = event_new("sys_nofile_changed");
     gnet_property->props[157].save = FALSE;
     gnet_property->props[157].vector_size = 1;
@@ -3590,7 +3590,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[158].name = "sys_physmem";
-    gnet_property->props[158].desc = _("How many KB of physical memory is available.");
+    gnet_property->props[158].desc = _("How much physical memory is available.");
     gnet_property->props[158].ev_changed = event_new("sys_physmem_changed");
     gnet_property->props[158].save = FALSE;
     gnet_property->props[158].vector_size = 1;

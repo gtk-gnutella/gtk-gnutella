@@ -226,7 +226,7 @@ prop = {
 
 prop = {
     name = "average_servent_uptime";
-    desc = "Average servent uptime, in seconds.";
+    desc = "Average servent uptime.";
     type = guint32;
     data = {
         default = 0;
@@ -1901,7 +1901,7 @@ prop = {
 
 prop = {
     name = "sys_nofile";
-    desc = "How many file descriptors a process can open.";
+    desc = "How many file descriptors this process can open.";
 	save = FALSE;
     type = guint32;
     data = {
@@ -1911,7 +1911,7 @@ prop = {
 
 prop = {
     name = "sys_physmem";
-    desc = "How many KB of physical memory is available.";
+    desc = "How much physical memory is available.";
 	save = FALSE;
     type = guint32;
     data = {
