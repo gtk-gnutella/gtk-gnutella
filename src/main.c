@@ -379,6 +379,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 
 #ifdef ENABLE_NLS
 	bindtextdomain(PACKAGE, LOCALEDIR);
+	bind_textdomain_codeset(PACKAGE, "UTF-8");
 	textdomain(PACKAGE);
 #endif
 
