@@ -1,5 +1,22 @@
 # since last version
 
+- (2002.08.15 - Richard)
+ * Support NULL as default value of string properties.
+ * Fixed default listen port (typo)
+ * Don't display "no new version" in the statusbar all the time.
+ * Set default min/max values (0x0000000/0xFFFFFFFF) for guint32
+   properties when not specified in .ag file.
+ * Ignore incomplete number-vector config lines when reading in
+   legacy config file.
+ * Check value of PROP_NODE_SENDQUEUE_SIZE when PROP_NODE_SENDQUEUE_SIZE,
+   PROP_SEARCH_QUERIES_KICK_SIZE or PROP_SEARCH_ANSWERS_KICK_SIZE are
+   changed and adjust when needed.
+ * Mapped more properties in GUI.
+ * Debug levels configurable from GUI.
+ * Makefile target to generate sources from the glade file is now
+   glade_files in both Makefiles.
+ * Fixed bug: changes to bandwidth settings have no effect.
+ 
 - (2002.08.14 - RAM)
  * Send them back a "501 Method not implemented" if we can't figure out
    what they send and we see the string HTTP somewhere.
