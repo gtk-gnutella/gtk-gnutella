@@ -486,7 +486,7 @@ static gboolean forward_message(struct gnutella_node **node,
 		if (sender->header.hops <= max_high_ttl_radius &&
 			sender->n_hard_ttl > max_high_ttl_msg
 		) {
-			node_bye(sender, 403, "relayed %d high TTL (>%d) messages",
+			node_bye(sender, 403, "Relayed %d high TTL (>%d) messages",
 				sender->n_hard_ttl, max_high_ttl_msg);
 			(*node) = NULL;
 		}
@@ -750,7 +750,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 					sender->n_dups >
 						(guint16) (min_dup_ratio / 100.0 * sender->received)
 				) {
-					node_bye(sender, 401, "sent %d dups (%.1f%% of RX)",
+					node_bye(sender, 401, "Sent %d dups (%.1f%% of RX)",
 						sender->n_dups, sender->received ?
 							100.0 * sender->n_dups / sender->received :
 							0.0);

@@ -110,18 +110,18 @@ void node_timer(time_t now)
 			now - n->shutdown_date > SHUTDOWN_GRACE_DELAY
 		) {
 			gchar *reason = g_strdup(n->error_str);
-			node_remove(n, "Shutdown Timeout (%s)", reason);
+			node_remove(n, "Shutdown timeout (%s)", reason);
 			g_free(reason);
 		} else if (now - n->last_update > node_connected_timeout) {
 			if (NODE_IS_WRITABLE(n))
-				node_bye(n, 405, "Activity Timeout");
+				node_bye(n, 405, "Activity timeout");
 			else
-				node_remove(n, "Activity Timeout");
+				node_remove(n, "Activity timeout");
 		} else if (
 			NODE_IN_TX_FLOW_CONTROL(n) &&
 			now - n->tx_flowc_date > node_tx_flowc_timeout
 		)
-			node_bye(n, 405, "Transmit Timeout");
+			node_bye(n, 405, "Transmit timeout");
 	}
 }
 
@@ -872,7 +872,7 @@ static void node_got_bye(struct gnutella_node *n)
 				node_ip(n), (gint) n->size - 2, message);
 	}
 
-	node_remove(n, "got BYE %d %.*s", code, MIN(80, message_len), message);
+	node_remove(n, "Got BYE %d %.*s", code, MIN(80, message_len), message);
 }
 
 /*
@@ -2387,7 +2387,7 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 		}
 
 		if (kick) {
-			node_bye(n, 400, "%s message too big (%d bytes)",
+			node_bye(n, 400, "Too large %s message (%d bytes)",
 				gmsg_name(n->header.function), n->size);
 			return;
 		}
@@ -2406,7 +2406,7 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 			if (maxsize < n->size) {
 				g_warning("got %d byte %s message, should have kicked node\n",
 					n->size, gmsg_name(n->header.function));
-				node_bye(n, 400, "%s message too big (%d bytes)",
+				node_bye(n, 400, "Too large %s message (%d bytes)",
 					gmsg_name(n->header.function), n->size);
 				return;
 			}
@@ -2523,7 +2523,7 @@ gboolean node_sent_ttl0(struct gnutella_node *n)
 
 	if (connected_nodes() > MAX(2, up_connections)) {
 		node_bye(n, 408, "%s %s message with TTL=0",
-			n->header.hops ? "relayed" : "sent",
+			n->header.hops ? "Relayed" : "Sent",
 			gmsg_name(n->header.function));
 		return TRUE;
 	}
