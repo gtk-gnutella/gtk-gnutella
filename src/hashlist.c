@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2003, Raphael Manfredi
+ * Copyright (c) 2003, Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
