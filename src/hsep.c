@@ -200,6 +200,18 @@ void hsep_timer()
 {
 	time_t now = time(NULL);
 	GSList *sl;
+	gboolean scanning_shared;
+	
+	/* update number of shared files and KiB */
+
+	gnet_prop_get_boolean_val(PROP_LIBRARY_REBUILDING, &scanning_shared);
+
+	if (!scanning_shared) {
+		if (upload_is_enabled())
+			hsep_notify_shared(files_scanned, kbytes_scanned);
+		else
+			hsep_notify_shared(0, 0);
+	}
 
 	for (sl = (GSList *) node_all_nodes(); sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = (struct gnutella_node *) sl->data;
@@ -449,6 +461,9 @@ void hsep_send_msg(struct gnutella_node *n)
 	opttriples = hsep_triples_to_send(
 		(hsep_triple *) ((&m->header) + 1), triples);
 
+	globalt = (guint64 *) &hsep_global_table[1];
+	connectiont = (guint64 *) &n->hsep_table[1];
+
 	printf("HSEP: Sending %d %s to node %p (msg #%u): ", opttriples,
 	    opttriples == 1 ? "triple" : "triples", n, n->hsep_msgs_sent + 1);
 
@@ -456,6 +471,8 @@ void hsep_send_msg(struct gnutella_node *n)
 		printf("(%llu,%llu,%llu) ", ownt[0] + globalt[0] - connectiont[0],
 			ownt[1] + globalt[1] - connectiont[1],
 			ownt[2] + globalt[2] - connectiont[2]);
+		globalt += 3;
+		connectiont += 3;
 	}
 
 	printf("\n");
@@ -547,9 +564,6 @@ void hsep_sanity_check()
 	memset(sum, 0, sizeof(sum));
 
 	g_assert(hsep_own[HSEP_IDX_NODES] == 1);
-	g_assert(hsep_global_table[0][HSEP_IDX_NODES] == 0);
-	g_assert(hsep_global_table[0][HSEP_IDX_FILES] == 0);
-	g_assert(hsep_global_table[0][HSEP_IDX_KIB] == 0);
 
 	/*
 	 * Iterate over all HSEP-capable nodes, and for each triple position
@@ -578,26 +592,21 @@ void hsep_sanity_check()
 			hsep_check_monotony((hsep_triple *) (connectiont + 3), HSEP_N_MAX)
 			);
 
-		/*
-		 * Sum up the values (skip first triple, already checked for zero)
-		 */
+		/* sum up the values */
 
-		connectiont += 3;
-		sumt += 3;
-
-		for (i = 0; i < HSEP_N_MAX; i++) {
+		for (i = 0; i <= HSEP_N_MAX; i++) {
 			*sumt++ += *connectiont++;
 			*sumt++ += *connectiont++;
 			*sumt++ += *connectiont++;
 		}
 	}
 
-	globalt = (guint64 *) &hsep_global_table[1];
-	sumt = (guint64 *) &sum[1];
+	globalt = (guint64 *) hsep_global_table;
+	sumt = (guint64 *) sum;
 
-	/* we needn't check for i=0 (we've done that already) */
+	/* check sums */
 
-	for (i = 0; i < HSEP_N_MAX; i++) {
+	for (i = 0; i <= HSEP_N_MAX; i++) {
 		g_assert(*globalt == *sumt);
 		globalt++;
 		sumt++;
@@ -608,12 +617,6 @@ void hsep_sanity_check()
 		globalt++;
 		sumt++;
 	}
-
-	/*
-	 * As each connection's triples are in monotonously
-	 * increasing order, the same is automatically true for
-	 * the global table
-	 */
 }
 
 /*

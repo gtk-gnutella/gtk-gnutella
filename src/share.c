@@ -1148,22 +1148,6 @@ void share_scan(void)
 
 	in_share_scan = FALSE;
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);
-
-	/*
-	 * Tell HSEP about our shared resources.
-	 *
-	 * Note that currently HSEP only (re-)learns about resources when
-	 * files are scanned, not when the number of upload slots is
-	 * changed from 0 or to 0 in the GUI. We'd have to listen for
-	 * that event and would have to call the same code as specified
-	 * below. As shared files are scanned every 1000 seconds, this should
-	 * be ok.
-	 */
-
-	if (max_uploads > 0)
-		hsep_notify_shared(files_scanned, kbytes_scanned);
-	else
-		hsep_notify_shared(0, 0);
 }
 
 void share_close(void)
