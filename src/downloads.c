@@ -385,8 +385,6 @@ void download_remove_all_from_peer(const gchar *guid)
 		}
 	}
 
-	g_message( "removed %u of %u downloads", m, n );
-
 	g_slist_free(to_remove);
 }
 
@@ -434,8 +432,6 @@ void download_remove_all_named(const gchar *name)
 		}
 	}
 
-	g_message( "removed %u of %u downloads named %s", m, n, dl_tmp );
-
 	g_slist_free(to_remove);
 }
 
@@ -473,7 +469,6 @@ void download_remove_all_regex(const gchar *regex)
 		msgid = gui_statusbar_push(scid_queue_remove_regex, buf);
 		gui_statusbar_add_timeout(scid_queue_remove_regex, msgid, 15);
 	} else {
-		g_message("traversing rows");
 		for (l = sl_downloads; l; l = g_slist_next(l)) {
 			int i;
 			struct download *d = (struct download *) l->data;
