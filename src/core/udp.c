@@ -177,5 +177,28 @@ udp_connect_back(guint32 ip, guint16 port, const gchar *muid)
 			guid_hex_str(muid), ip_port_to_gchar(ip, port));
 }
 
+/*
+ * Send a Gnutella ping to the specified host.
+ */
+void
+udp_send_ping(guint32 ip, guint16 port)
+{
+	struct gnutella_msg_init m;
+	struct gnutella_node *n = node_udp_get_ip_port(ip, port);
+
+	if (!enable_udp)
+		return;
+
+	message_set_muid(&m.header, GTA_MSG_INIT);
+
+	m.header.function = GTA_MSG_INIT;
+	m.header.ttl = 1;
+	m.header.hops = 0;
+
+	WRITE_GUINT32_LE(0, m.header.size);
+
+	mq_udp_node_putq(n->outq, gmsg_to_pmsg(&m, sizeof(m)), n);
+}
+
 /* vi: set ts=4: */
 
