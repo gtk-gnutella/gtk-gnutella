@@ -2049,6 +2049,18 @@ static void node_process_handshake_header(
 	}
 
 	/*
+	 * If we're a regular node, we want to talk to a non-leaf node.
+	 */
+
+	if (current_peermode == NODE_P_NORMAL) {
+		if ((n->attrs & (NODE_A_CAN_ULTRA|NODE_A_ULTRA)) == NODE_A_CAN_ULTRA) {
+			send_node_error(n->socket, 503, "Cannot accept leaf node");
+			node_remove(n, "Rejected leaf node");
+			return;
+		}
+	}
+
+	/*
 	 * If this is an outgoing connection, we're processing the remote
 	 * acknowledgment to our initial handshake.
 	 */
@@ -2074,30 +2086,15 @@ static void node_process_handshake_header(
 
 		/*
 		 * If we're a leaf node, we want to talk to an Ultra node.
-		 * If we're a regular node, we want to talk to a non-leaf node.
 		 */
 
-		switch (current_peermode) {
-		case NODE_P_LEAF:
+		if (current_peermode == NODE_P_LEAF) {
 			if (!(n->attrs & NODE_A_ULTRA)) {
 				send_node_error(n->socket, 503, "Looking for an ultra node");
 				node_remove(n, "Not an ultra node");
 				return;
 			} else
 				n->flags |= NODE_F_ULTRA;		/* This is our ultranode */
-			break;
-		case NODE_P_NORMAL:
-			if (
-				(n->attrs & (NODE_A_CAN_ULTRA|NODE_A_ULTRA))
-					== NODE_A_CAN_ULTRA
-			) {
-				send_node_error(n->socket, 503, "Cannot accept leaf node");
-				node_remove(n, "Rejected leaf node");
-				return;
-			}
-			break;
-		default:
-			break;
 		}
 
 		/*
@@ -3517,32 +3514,36 @@ void node_close(void)
 	rxbuf_close();
 }
 
-G_INLINE_FUNC void node_add_sent(gnutella_node_t *n, gint x)
+// XXX
+// XXX Those used to be declared inline, via G_INLINE_FUNC
+// XXX However, inlined functions seem to be statically defined only
+// XXX Removing the G_INLINE_FUNC attribute.
+// XXX		--RAM, 01/01/2003
+// XXX
+
+void node_add_sent(gnutella_node_t *n, gint x)
 {
     n->last_update = time((time_t *)NULL);
 	n->sent += x; 
 }
 
-G_INLINE_FUNC void  node_add_txdrop(gnutella_node_t *n, gint x)
+void node_add_txdrop(gnutella_node_t *n, gint x)
 {
     n->last_update = time((time_t *)NULL);
 	n->tx_dropped += x;
 }
 
-G_INLINE_FUNC void node_add_rxdrop(gnutella_node_t *n, gint x)
+void node_add_rxdrop(gnutella_node_t *n, gint x)
 {
     n->last_update = time((time_t *)NULL);
 	n->rx_dropped += x; 
 }
 
-
-G_INLINE_FUNC void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
+void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 {
     n->vendor = atom_str_get(vendor);
     node_fire_node_info_changed(n);
 }
-
-
 
 /*
  * node_get_info:
