@@ -300,7 +300,6 @@ static gchar *keywords[] = {
 };
 
 static gchar cfg_tmp[4096];
-static gboolean cfg_use_local_file = FALSE;	// use config file in same dir
 static time_t cfg_mtime = 0;
 static gchar *pidfile = "gtk-gnutella.pid";
 
@@ -433,37 +432,20 @@ void config_init(void)
 	if (config_dir) {
 		/* Ensure we're the only instance running */
 
-		if (cfg_use_local_file) {
-			ensure_unicity(pidfile);
-			save_pid(pidfile);
-		} else {
-			g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, pidfile);
-			ensure_unicity(cfg_tmp);
-			save_pid(cfg_tmp);
-		}
+		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, pidfile);
+		ensure_unicity(cfg_tmp);
+		save_pid(cfg_tmp);
 
 		/* Parse the configuration */
 
 		config_read();
 
+		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, host_file);
+		hosts_read_from_file(cfg_tmp, TRUE);	/* Loads the catched hosts */
 
-		if (cfg_use_local_file) {
-			/* Loads the catched hosts */
-			hosts_read_from_file(host_file, TRUE);
-			/* Loads the upload statistics */
-			ul_stats_load_history(ul_stats_file);
-		} else {
-			g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir,
-					   host_file);
-			/* Loads the catched hosts */
-			hosts_read_from_file(cfg_tmp, TRUE);
-
-			g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir,
-					   ul_stats_file);
-			/* Loads the upload statistics */
-			ul_stats_load_history(cfg_tmp);
-
-		}
+		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s",
+			config_dir, ul_stats_file);
+		ul_stats_load_history(cfg_tmp);		/* Loads the upload statistics */
 	}
 
 	if (!save_file_path || !is_directory(save_file_path))
@@ -1134,23 +1116,12 @@ static void config_read(void)
 
 	static gchar *err = "Bad line %u in config file, ignored\n";
 
-	if (is_directory(config_dir))
-		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir,
-				   config_file);
-	else
-		strncpy(cfg_tmp, config_dir, sizeof(cfg_tmp));
+	if (!is_directory(config_dir))
+		return;
+
+	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, config_file);
 
 	config = fopen(cfg_tmp, "r");
-
-	/* Try to open settings file in local directory first */
-	if (
-		!is_directory(config_file) &&
-		(config = fopen(config_file, "r")) != NULL
-	)
-		cfg_use_local_file = 1; /* We're using a local config file */
-	else
-		config = fopen(cfg_tmp, "r");	/* The normal file */
-
 	if (!config)
 		return;
 
@@ -1243,11 +1214,7 @@ static void config_save(void)
 	}
 
 	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, config_file);
-
-	if (cfg_use_local_file)
-		filename = config_file;
-	else
-		filename = cfg_tmp;
+	filename = cfg_tmp;
 
 	if (-1 == stat(filename, &buf))
 		g_warning("could not stat \"%s\": %s", filename, g_strerror(errno));
@@ -1642,13 +1609,8 @@ void config_hostcache_save(void)
 		g_warning("exit() while still reading the hosts file, "
 			"catched hosts not saved !\n");
 	} else {
-		if (cfg_use_local_file)
-			hosts_write_to_file(host_file);
-		else {
-			g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s",
-				config_dir, host_file);
-			hosts_write_to_file(cfg_tmp);
-		}
+		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, host_file);
+		hosts_write_to_file(cfg_tmp);
 	}
 }
 
@@ -1659,13 +1621,8 @@ void config_hostcache_save(void)
  */
 static void config_upload_stats_save(void)
 {
-	if (cfg_use_local_file)
-		ul_stats_dump_history(ul_stats_file, TRUE);
-	else {
-		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s",
-			config_dir, ul_stats_file);
-		ul_stats_dump_history(cfg_tmp, TRUE);
-	}
+	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, ul_stats_file);
+	ul_stats_dump_history(cfg_tmp, TRUE);
 }
 
 /*
@@ -1675,20 +1632,12 @@ static void config_upload_stats_save(void)
  */
 static void config_remove_pidfile(void)
 {
-	gchar *filename;
-
 	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, pidfile);
 
-	if (cfg_use_local_file)
-		filename = pidfile;
-	else
-		filename = cfg_tmp;
-
-	if (-1 == unlink(filename))
+	if (-1 == unlink(cfg_tmp))
 		g_warning("could not remove pidfile \"%s\": %s",
-			filename, g_strerror(errno));
+			cfg_tmp, g_strerror(errno));
 }
-
 
 /*
  * config_ip_changed
