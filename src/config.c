@@ -94,7 +94,7 @@ guint32 max_hosts_cached = 20480;
 guint32 search_stats_update_interval = 200;
 guint32 search_stats_delcoef = 25;
 
-gchar *local_netmasks_string;
+gchar *local_netmasks_string = NULL;
 
 gint dbg = 0;					// debug level, for development use
 gint stop_host_get = 0;			// stop get new hosts, non activity ok (debug)

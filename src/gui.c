@@ -403,9 +403,10 @@ void gui_update_bandwidth_output()
 void gui_update_config_netmasks()
 {
 	gtk_toggle_button_set_active(
-		GTK_TOGGLE_BUTTON(checkbutton_config_use_netmasks),
-		use_netmasks);
-	gtk_entry_set_text(GTK_ENTRY(entry_config_netmasks), local_netmasks_string);
+		GTK_TOGGLE_BUTTON(checkbutton_config_use_netmasks), use_netmasks);
+	if (local_netmasks_string)
+		gtk_entry_set_text(GTK_ENTRY(entry_config_netmasks),
+			local_netmasks_string);
 }
 
 void gui_update_scan_extensions(void)
