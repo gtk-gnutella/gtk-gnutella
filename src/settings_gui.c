@@ -51,22 +51,28 @@
 /* 
  * This file has five parts:
  *
- * I.     Definition of the GUI specific properties
- * II.    Definition of the callbacks
- * III.   Property-to-callback map
- * IV.    Simple default callbacks
+ * I.     General variables/defines used in this module
+ * II.    Property-to-callback map
+ * III.   Simple default callbacks
+ * IV.    Special case callbacks
  * V.     Control functions.
  *
  * To add another property change listener, just define the callback
- * in the callback section, either using a standard call like
- * update_spinbutton_gui (from part IV) for a simple binding or a 
- * full definition and add an entry to the property_map table.
- * The rest will be done automatically.
+ * in the callback section (IV), or use a standard call like
+ * update_spinbutton (from part III) and add an entry to 
+ * the property_map table. The rest will be done automatically.
  * If debugging is activated, you will get a list of unmapped and
  * ignored properties on startup.
- * To ignore a property, just set the .cb item in the property_map to
- * IGNORE.
+ * To ignore a property, just set the cb, fn_toplevel and wid attributes
+ * in the property_map to IGNORE,
+ * To create a listener which is not bound to a signle widget, set
+ * the fn_toplevel and wid attributed of your property_map entry to
+ * NULL.
  */
+
+/***
+ *** I. General variables/defines used in this module
+ ***/
 
 #define PROP_MAP_SIZE \
     (sizeof(property_map) / sizeof(property_map[0]))
@@ -88,7 +94,7 @@ static gchar set_tmp[4096];
 static prop_set_t *properties = NULL;
 
 /***
- *** III.   Property-to-callback map
+ *** II. Property-to-callback map
  ***/
 
 /*
@@ -131,12 +137,17 @@ typedef struct prop_map {
 
 #define IGNORE NULL
 
+/*
+ * Callback declarations.
+ */
 static gboolean update_entry(property_t prop);
 static gboolean update_spinbutton(property_t prop);
 static gboolean update_togglebutton(property_t prop);
 static gboolean update_split_pane(property_t prop);
 static gboolean update_clist_col_widths(property_t prop);
 static gboolean update_bandwidth_spinbutton(property_t prop);
+static gboolean update_window_geometry(property_t prop);
+
 static gboolean bw_http_in_enabled_changed(property_t prop);
 static gboolean bw_gnet_in_enabled_changed(property_t prop);
 static gboolean bw_gnet_out_enabled_changed(property_t prop);
@@ -165,6 +176,7 @@ static gboolean socks_user_changed(property_t prop);
 static gboolean socks_pass_changed(property_t prop);
 static gboolean traffic_stats_mode_changed(property_t prop);
 static gboolean is_firewalled_changed(property_t prop);
+static gboolean min_dup_ratio_changed(property_t prop);
 static gboolean is_inet_connected_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
@@ -225,6 +237,13 @@ static prop_map_t property_map[] = {
         update_split_pane,
         TRUE,
         "vpaned_downloads"
+    },
+    {
+        get_filter_dialog,
+        PROP_FILTER_MAIN_DIVIDER_POS,
+        update_split_pane,
+        TRUE,
+        "hpaned_filter_main"
     },
     {
         get_main_window,
@@ -901,7 +920,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_MIN_DUP_RATIO,
-        update_spinbutton,
+        min_dup_ratio_changed,
         TRUE,
         "spinbutton_config_min_dup_ratio"
     },
@@ -1088,6 +1107,20 @@ static prop_map_t property_map[] = {
         NULL
     },
     {
+        get_main_window,
+        PROP_WINDOW_COORDS,
+        update_window_geometry,
+        TRUE,
+        NULL /* uses fn_toplevel as widget */
+    },
+    {
+        get_filter_dialog,
+        PROP_FILTER_DLG_COORDS,
+        update_window_geometry,
+        TRUE,
+        NULL /* uses fn_toplevel as widget */
+    },
+    {
         NULL,
         PROP_IS_INET_CONNECTED,
         is_inet_connected_changed,
@@ -1097,7 +1130,7 @@ static prop_map_t property_map[] = {
 };
 
 /***
- *** IV.  Simple default callbacks
+ *** III. Simple default callbacks
  ***/
 
 /*
@@ -1305,6 +1338,38 @@ static gboolean update_clist_col_widths(property_t prop)
     return FALSE;
 }
 
+static gboolean update_window_geometry(property_t prop)
+{
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    if (!top)
+        return FALSE;
+
+    w = top;
+    
+    if (!w->window)
+        return FALSE;
+    
+    switch (map_entry->type) {
+        case PROP_TYPE_GUINT32: {
+            guint32 geo[4];
+
+            stub->guint32.get(prop, geo, 0, 4);
+            gdk_window_move_resize(w->window, geo[0], geo[1], geo[2], geo[3]);
+
+            break;
+        }
+        default:
+            g_error("update_window_geometry: incompatible type %s", 
+                prop_type_str[map_entry->type]);
+    }
+
+    return FALSE;
+}
+
 /*
  * update_bandwidth_spinbutton:
  *
@@ -1341,79 +1406,8 @@ static gboolean update_bandwidth_spinbutton(property_t prop)
     return FALSE;
 }
 
-void spinbutton_adjustment_value_changed
-    (GtkAdjustment *adj, gpointer user_data)
-{
-    prop_map_t *map_entry = (prop_map_t *) user_data;
-    prop_set_stub_t *stub = map_entry->stub;
-    guint32 val = adj->value;
-
-    /*
-     * Special handling for the special cases.
-     */
-    if (stub == gnet_prop_set_stub) {
-        /*
-         * Bandwidth spinbuttons need the value multiplied by 1024
-         */
-        if (
-            (map_entry->prop == PROP_BW_HTTP_IN) ||
-            (map_entry->prop == PROP_BW_HTTP_OUT) ||
-            (map_entry->prop == PROP_BW_GNET_IN) ||
-            (map_entry->prop == PROP_BW_GNET_OUT)
-        ) {
-            val = adj->value * 1024.0;
-        }
-        
-        /*
-         * When MAX_DOWNLOADS or MAX_HOST_DOWNLOADS are changed, we
-         * have some ancient workaround which may still be necessary.
-         */
-        if (
-            (map_entry->prop == PROP_MAX_DOWNLOADS) ||
-            (map_entry->prop == PROP_MAX_HOST_DOWNLOADS)
-        ) {
-            /*
-             * XXX If the user modifies the max simulteneous download 
-             * XXX and click on a queued download, gtk-gnutella segfaults 
-             * XXX in some cases. This unselected_all() is a first attempt
-             * XXX to work around the problem.
-             *
-             * It's unknown wether this ancient workaround is still
-             * needed.
-             *      -- Richard, 13/08/2002
-             */             
-            gtk_clist_unselect_all(GTK_CLIST(
-                lookup_widget(main_window, "clist_downloads_queue")));
-        }
-    }
-
-    stub->guint32.set(map_entry->prop, &val, 0, 1);
-}
-
-void togglebutton_state_changed
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    prop_map_t *map_entry = (prop_map_t *) user_data;
-    prop_set_stub_t *stub = map_entry->stub;
-    gboolean val = gtk_toggle_button_get_active(tb);
-    
-    /*
-     * Special handling for the special cases.
-     */
-    if (stub == gnet_prop_set_stub) {
-        /*
-         * PROP_SEND_PUSHES needs widget value inversed.
-         */
-        if (map_entry->prop == PROP_SEND_PUSHES) {
-            val = !val;
-        }
-    }
-
-    stub->boolean.set(map_entry->prop, &val, 0, 1);
-}
-
 /***
- *** II. Definition of the callbacks
+ *** IV. Special case callbacks
  ***/
 
 #define ENTRY(v, widget)                                    \
@@ -1548,15 +1542,12 @@ static gboolean proxy_ip_changed(property_t prop)
 
 static gboolean is_firewalled_changed(property_t prop)
 {
-	static GtkWidget *image_firewall = NULL;
-	static GtkWidget *image_no_firewall = NULL;
+	GtkWidget *image_firewall;
+	GtkWidget *image_no_firewall;
 	gboolean val;
 
-	if (image_firewall == NULL)
-		image_firewall = lookup_widget(main_window, "image_firewall");
-
-	if (image_no_firewall == NULL)
-		image_no_firewall = lookup_widget(main_window, "image_no_firewall");
+    image_firewall = lookup_widget(main_window, "image_firewall");
+	image_no_firewall = lookup_widget(main_window, "image_no_firewall");
 
     gnet_prop_get_boolean(prop, &val, 0, 1);
 	
@@ -1573,7 +1564,23 @@ static gboolean is_firewalled_changed(property_t prop)
 
 static gboolean is_inet_connected_changed(property_t prop)
 {
-	g_warning("is_inet_connected_changed() called");	// XXX
+	GtkWidget *image_online;
+	GtkWidget *image_offline;
+	gboolean val;
+
+    image_online = lookup_widget(main_window, "image_online");
+	image_offline = lookup_widget(main_window, "image_offline");
+
+    gnet_prop_get_boolean(prop, &val, 0, 1);
+	
+	if (val) {
+		gtk_widget_show(image_online);
+		gtk_widget_hide(image_offline);
+	} else {
+		gtk_widget_hide(image_online);
+		gtk_widget_show(image_offline);
+	}
+
 	return FALSE;
 }
 
@@ -1902,10 +1909,115 @@ static gboolean traffic_stats_mode_changed(property_t prop)
     return FALSE;
 }
 
+static gboolean min_dup_ratio_changed(property_t prop)
+{
+    GtkWidget *w;
+    guint32 val = 0;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    if (!top)
+        return FALSE;
+
+    w = lookup_widget(top, map_entry->wid);
+    stub->guint32.get(prop, &val, 0, 1);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(w), (float)val/100.0);
+
+    return FALSE;
+}
+
 
 /***
  *** V.  Control functions.
  ***/
+
+/*
+ * spinbutton_adjustment_value_changed:
+ *
+ * This callbacks is called when a GtkSpinbutton which is referenced in 
+ * the property_map changed. It reacts to the "value_changed" signal of 
+ * the GtkAdjustement associated with the GtkSpinbutton.
+ */
+void spinbutton_adjustment_value_changed
+    (GtkAdjustment *adj, gpointer user_data)
+{
+    prop_map_t *map_entry = (prop_map_t *) user_data;
+    prop_set_stub_t *stub = map_entry->stub;
+    guint32 val = adj->value;
+
+    /*
+     * Special handling for the special cases.
+     */
+    if (stub == gnet_prop_set_stub) {
+        /*
+         * Bandwidth spinbuttons need the value multiplied by 1024
+         */
+        if (
+            (map_entry->prop == PROP_BW_HTTP_IN) ||
+            (map_entry->prop == PROP_BW_HTTP_OUT) ||
+            (map_entry->prop == PROP_BW_GNET_IN) ||
+            (map_entry->prop == PROP_BW_GNET_OUT)
+        ) {
+            val = adj->value * 1024.0;
+        }
+
+        /*
+         * Some spinbuttons need the multiplied by 100
+         */
+        if (
+            (map_entry->prop == PROP_MIN_DUP_RATIO)
+        ) {
+            val = adj->value * 100.0;
+        }
+        
+        /*
+         * When MAX_DOWNLOADS or MAX_HOST_DOWNLOADS are changed, we
+         * have some ancient workaround which may still be necessary.
+         */
+        if (
+            (map_entry->prop == PROP_MAX_DOWNLOADS) ||
+            (map_entry->prop == PROP_MAX_HOST_DOWNLOADS)
+        ) {
+            /*
+             * XXX If the user modifies the max simulteneous download 
+             * XXX and click on a queued download, gtk-gnutella segfaults 
+             * XXX in some cases. This unselected_all() is a first attempt
+             * XXX to work around the problem.
+             *
+             * It's unknown wether this ancient workaround is still
+             * needed.
+             *      -- Richard, 13/08/2002
+             */             
+            gtk_clist_unselect_all(GTK_CLIST(
+                lookup_widget(main_window, "clist_downloads_queue")));
+        }
+    }
+
+    stub->guint32.set(map_entry->prop, &val, 0, 1);
+}
+
+void togglebutton_state_changed
+    (GtkToggleButton *tb, gpointer user_data)
+{
+    prop_map_t *map_entry = (prop_map_t *) user_data;
+    prop_set_stub_t *stub = map_entry->stub;
+    gboolean val = gtk_toggle_button_get_active(tb);
+    
+    /*
+     * Special handling for the special cases.
+     */
+    if (stub == gnet_prop_set_stub) {
+        /*
+         * PROP_SEND_PUSHES needs widget value inversed.
+         */
+        if (map_entry->prop == PROP_SEND_PUSHES) {
+            val = !val;
+        }
+    }
+
+    stub->boolean.set(map_entry->prop, &val, 0, 1);
+}
 
 /*
  * settings_config_widget:
@@ -1948,6 +2060,7 @@ static void settings_config_widget(prop_map_t *map, prop_def_t *def)
             if (top && GTK_IS_SPIN_BUTTON(w)) {
                 GtkAdjustment *adj =
                     gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(w));
+                gdouble divider = 1.0;
             
                 g_assert(def->type == PROP_TYPE_GUINT32);
         
@@ -1956,17 +2069,30 @@ static void settings_config_widget(prop_map_t *map, prop_def_t *def)
                  * 1024.
                  */
                 if (
-                    (map->prop == PROP_BW_HTTP_IN) ||
-                    (map->prop == PROP_BW_HTTP_OUT) ||
-                    (map->prop == PROP_BW_GNET_IN) ||
-                    (map->prop == PROP_BW_GNET_OUT)
+                    (map->stub == gnet_prop_set_stub) && (
+                        (map->prop == PROP_BW_HTTP_IN) ||
+                        (map->prop == PROP_BW_HTTP_OUT) ||
+                        (map->prop == PROP_BW_GNET_IN) ||
+                        (map->prop == PROP_BW_GNET_OUT)
+                    )
                 ) {
-                    adj->lower = def->data.guint32.min / 1024;
-                    adj->upper = def->data.guint32.max / 1024;
-                } else {
-                    adj->lower = def->data.guint32.min;
-                    adj->upper = def->data.guint32.max;
+                    divider = 1024.0;
                 }
+    
+                /*
+                 * Some others need the value divided by 100.
+                 */
+                if (
+                    (map->stub == gnet_prop_set_stub) && (
+                        (map->prop == PROP_MIN_DUP_RATIO)
+                    )
+                ) {
+                    divider = 100.0;
+                }
+
+                adj->lower = def->data.guint32.min / divider;
+                adj->upper = def->data.guint32.max / divider;
+
                 gtk_adjustment_changed(adj);
 
                 gtk_signal_connect_after(
@@ -2156,65 +2282,6 @@ void settings_gui_init(void)
     
     settings_gui_init_prop_map();
 
-    {
-        gint i;
-
-        GtkCList *clist_nodes = 
-            GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
-        GtkCList *clist_downloads = 
-            GTK_CLIST(lookup_widget(main_window, "clist_downloads"));
-        GtkCList *clist_queue = 
-            GTK_CLIST(lookup_widget(main_window, "clist_downloads_queue"));
-        GtkCList *clist_search_stats = 
-            GTK_CLIST(lookup_widget(main_window, "clist_search_stats"));
-        GtkCList *clist_uploads = 
-            GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
-        GtkCList *clist_ul_stats = 
-            GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
-        GtkCList *clist_search = 
-            GTK_CLIST(lookup_widget(main_window, "clist_search"));
-
-        for (i = 0; i < 5; i++)
-            gtk_clist_set_column_width
-                (clist_nodes, i, nodes_col_widths[i]);
-
-        for (i = 0; i < 5; i++)
-            gtk_clist_set_column_width
-                (clist_downloads, i, dl_active_col_widths[i]);
-
-        for (i = 0; i < 5; i++)
-            gtk_clist_set_column_width
-                (clist_queue, i, dl_queued_col_widths[i]);
-
-        for (i = 0; i < 6; i++)
-            gtk_clist_set_column_width
-                (clist_uploads, i, uploads_col_widths[i]);
-
-        for (i = 0; i < 3; i++)
-            gtk_clist_set_column_width
-                (clist_search_stats, i, search_stats_col_widths[i]);
-
-        for (i = 0; i < 5; i++)
-            gtk_clist_set_column_width
-                (clist_ul_stats, i, ul_stats_col_widths[i]);
-    
-        for (i = 0; i < 3; i++)
-            gtk_clist_set_column_width
-                (clist_search, i, search_list_col_widths[i]);
-    }
-
-    gtk_paned_set_position(
-        GTK_PANED(lookup_widget(main_window, "vpaned_downloads")),
-        downloads_divider_pos);
-    
-    gtk_paned_set_position(
-        GTK_PANED(lookup_widget(main_window, "hpaned_main")),
-        main_divider_pos);
-        
-    gtk_paned_set_position(
-        GTK_PANED(lookup_widget(main_window, "vpaned_sidebar")),
-        side_divider_pos);
-
     /* 
      * Just hide the tabs so we can keep them displayed in glade
      * which is easier for editing.
@@ -2240,6 +2307,10 @@ void settings_gui_shutdown(void)
         }
     }
 
+    /*
+     * There are no Gtk signals to listen to, so we must set those
+     * values on exit.
+     */
     downloads_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_downloads")));
