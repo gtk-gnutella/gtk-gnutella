@@ -1,5 +1,12 @@
 # since last version
 
+- (2003.11.02 - RAM)
+ * Added the concept of "established" Gnutella connection: don't relay
+   Gnutella traffic to non-established connections.  A connection becomes
+   established when we receive traffic or got the 3rd handshake.
+ * Don't forget a cache URL when it reports an ERROR: can be a transient
+   problem.
+
 - (2003.11.01 - RAM)
  * Account for BearShare 4.3.x no longer sending the X-Ultrapeer to signal
    Ultrapeer status but relies on X-Ultrapeer-Needed instead.
