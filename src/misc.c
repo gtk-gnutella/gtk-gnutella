@@ -562,6 +562,7 @@ void strlower(gchar *dst, gchar *src)
 	} while (*src++);
 }
 
+#ifndef HAVE_STRCASESTR
 /*
  * strcasestr
  *
@@ -615,6 +616,7 @@ guchar *strcasestr(const guchar *haystack, const guchar *needle)
 
 	return NULL;		/* Not found */
 }
+#endif	/* HAVE_STRCASESTR */
 
 /* 
  * build_url_from_download:

@@ -25,6 +25,8 @@
 #define __misc_h__
 
 #include <time.h>
+
+#include "config.h"
 #include "nodes.h"
 #include "downloads.h"
 
@@ -78,7 +80,12 @@ gchar *short_time(guint32 s);
 gchar *short_uptime(guint32 s);
 guint32 random_value(guint32 max);
 void strlower(gchar *, gchar *);
-guchar *strcasestr(const guchar *haystack, const guchar *needle);
 gchar *build_url_from_download(struct download *d);
+
+#ifdef HAVE_STRCASESTR
+char *strcasestr(const char *haystack, const char *needle);
+#else
+guchar *strcasestr(const guchar *haystack, const guchar *needle);
+#endif
 
 #endif /* __misc_h__ */
