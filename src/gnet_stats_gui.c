@@ -59,8 +59,8 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "Flow control",
     "Query text had no trailing NUL",
     "Query text too short",
-    "Multiple SHA1",
-    "malformed SHA1 Query",
+    "Query had unnecessary overhead",
+    "Malformed SHA1 Query",
     "Max TTL exceeded",
     "Malformed Query Hit",
     "Query hit had bad SHA1"
