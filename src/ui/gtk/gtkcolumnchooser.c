@@ -44,8 +44,11 @@ static void gtk_column_chooser_deactivate(GtkMenuShell *menu_shell);
 static gint gtk_column_chooser_button_press(GtkWidget * widget,
                                             GdkEventButton *event);
 
-static void on_popup_hide(GtkWidget * widget, gpointer user_data)
+static void
+on_popup_hide(GtkWidget *widget, gpointer unused_udata)
 {
+	(void) unused_udata;
+
     /* 
      * We remove the last reference to the widget and cause it
      * to be destroyed and finalized.
@@ -57,8 +60,8 @@ static void on_popup_hide(GtkWidget * widget, gpointer user_data)
 #endif
 }
 
-static gpointer gtk_column_chooser_get_column(
-	GtkColumnChooser * cc, GtkWidget * widget)
+static gpointer
+gtk_column_chooser_get_column(GtkColumnChooser *cc, GtkWidget *widget)
 {
     g_assert(widget != NULL);
     g_assert(cc != NULL);
@@ -66,8 +69,8 @@ static gpointer gtk_column_chooser_get_column(
     return g_hash_table_lookup(cc->col_map, widget);
 }
 
-static void on_column_popup_toggled(
-	GtkCheckMenuItem * checkmenuitem, gpointer user_data)
+static void
+on_column_popup_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data)
 {
     GtkColumnChooser * cc;
 
@@ -89,16 +92,19 @@ static void on_column_popup_toggled(
 #endif
 }
 
-static void on_column_popup_activate(
-	GtkCheckMenuItem * checkmenuitem, gpointer user_data)
+static void
+on_column_popup_activate(GtkCheckMenuItem *unused_checkmenuitem,
+	gpointer user_data)
 {
+	(void) unused_checkmenuitem;
     g_assert(user_data != NULL);
     g_assert(GTK_IS_COLUMN_CHOOSER(user_data));
 
     gtk_menu_popdown(GTK_MENU(user_data));
 }
 
-GtkWidget * gtk_column_chooser_new(GtkWidget *widget)
+GtkWidget *
+gtk_column_chooser_new(GtkWidget *widget)
 {
     GtkColumnChooser * cc;
     GtkMenu * menu;
@@ -127,7 +133,7 @@ GtkWidget * gtk_column_chooser_new(GtkWidget *widget)
 			gtk_tree_view_column_get_visible(col));
     
 #else
-    for(i = 0; i < GTK_CLIST(widget)->columns; i ++) {
+    for (i = 0; i < GTK_CLIST(widget)->columns; i ++) {
         gchar * title = gtk_clist_get_column_title(GTK_CLIST(widget), i);
 
         menuitem = gtk_check_menu_item_new_with_label(title);
@@ -188,7 +194,8 @@ GtkWidget * gtk_column_chooser_new(GtkWidget *widget)
     return GTK_WIDGET(cc);
 }
 
-static void gtk_column_chooser_finalize(GtkObject * object)
+static void
+gtk_column_chooser_finalize(GtkObject *object)
 {
     GtkColumnChooser * cc;
 
@@ -204,7 +211,8 @@ static void gtk_column_chooser_finalize(GtkObject * object)
 #endif
 }
 
-static void gtk_column_chooser_init(GtkColumnChooser * cc)
+static void
+gtk_column_chooser_init(GtkColumnChooser *cc)
 {
     g_assert(cc != NULL);
 
@@ -213,7 +221,8 @@ static void gtk_column_chooser_init(GtkColumnChooser * cc)
     cc->closed = FALSE;
 }
 
-static void gtk_column_chooser_class_init(GtkColumnChooserClass * klass)
+static void
+gtk_column_chooser_class_init(GtkColumnChooserClass *klass)
 {
     GtkObjectClass * object_class;
     GtkWidgetClass * widget_class;
@@ -241,7 +250,8 @@ static void gtk_column_chooser_class_init(GtkColumnChooserClass * klass)
 #endif
 }
 
-GtkType gtk_column_chooser_get_type()
+GtkType
+gtk_column_chooser_get_type(void)
 {
     static guint cct_type = 0;   
 
@@ -262,7 +272,8 @@ GtkType gtk_column_chooser_get_type()
     return cct_type;
 }
 
-static void gtk_column_chooser_deactivate(GtkMenuShell *menu_shell)
+static void
+gtk_column_chooser_deactivate(GtkMenuShell *menu_shell)
 {
     g_assert(menu_shell != NULL);
     g_assert(GTK_IS_COLUMN_CHOOSER(menu_shell));
@@ -271,8 +282,8 @@ static void gtk_column_chooser_deactivate(GtkMenuShell *menu_shell)
         GTK_MENU_SHELL_CLASS(parent_class)->deactivate(menu_shell);
 }
 
-static gint gtk_column_chooser_button_press(
-	GtkWidget * widget, GdkEventButton *event)
+static gint
+gtk_column_chooser_button_press(GtkWidget * widget, GdkEventButton *event)
 {
     g_return_val_if_fail(widget != NULL, FALSE);
     g_return_val_if_fail(GTK_IS_COLUMN_CHOOSER(widget), FALSE);
@@ -296,4 +307,4 @@ static gint gtk_column_chooser_button_press(
     return GTK_WIDGET_CLASS(parent_class)->button_press_event(widget,event);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
