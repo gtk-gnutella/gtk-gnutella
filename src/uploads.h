@@ -5,8 +5,8 @@
 
 struct upload {
 	guint32 status;
-
 	struct gnutella_socket *socket;
+	gint error_sent;				/* HTTP error code sent back */
 
 	gint file_desc;
 
@@ -62,6 +62,7 @@ struct upload {
 
 extern GSList *uploads;
 extern gint running_uploads;
+extern gint registered_uploads;
 extern guint32 count_uploads;
 
 /* 
