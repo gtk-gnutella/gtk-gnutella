@@ -301,10 +301,6 @@ gboolean is_private_ip(guint32 ip)
 	if ((ip & 0xfff00000) == 0xac100000)
 		return TRUE;
 
-	/* 172.31.0.0 -- (172.31/12 prefix) */
-	if ((ip & 0xfff00000) == 0xac1f0000)
-		return TRUE;
-
 	/* 169.254.0.0 -- (169.254/16 prefix) -- since Jan 2001 */
 	if ((ip & 0xffff0000) == 0xa9fe0000)
 		return TRUE;
