@@ -1,9 +1,34 @@
 # since last version
 
+- (2004-11-09 - RAM)
+ * Forgot to alter host_count when moving hosts between caches.
+ * Added support for LimeWire's UDP crawling.
+ * New properties "pcache_debug" and "udp_crawler_visit_count".
+
+- (2004-11-08 - RAM)
+ * Use MEM_ALIGNBYTES to let Configure compute the proper memory alignment.
+ * Moved STATIC_ASSERT() to "common.h".
+ * Make sure atom's arena is properly aligned.
+ * Now parses GGEP extensions in "fat" pongs and saves them in the pong cache.
+ * Emit "fat" pongs for ourselves unless we're replying to an "alive" ping.
+ * Replies to UDP host cache pings ("SCP") with "IPP" extension in pongs.
+
 - (2004-11-07 - Hans)
  * Show arrows in visual progress to indicate downloads in progress more
    clearly.
-	
+
+- (2004-11-07 - RAM)
+ * Allow zlib_deflater to perform deflation into a supplied buffer.
+ * Keep track of the amount of input we see for incremental deflation.
+ * Allow COBS to perform streaming operations.
+ * Fixed bug in COBS decoding.
+ * Added the "ggep_debug" property.
+ * New streaming interface to generate GGEP extensions replaces older one.
+
+- (2004-11-01 - RAM)
+ * Integrated GTK1 patch from Alex to display feedback on Bitzi query queuing.
+ * Don't kick out nodes for relaying high TTL routed messages.
+
 - (2004-10-31 - RAM)
  * Changed the interface for hashlist iterators.
  * Move bogons and hostiles closing after host_close() since the cache can be
