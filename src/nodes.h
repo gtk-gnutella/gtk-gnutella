@@ -262,6 +262,7 @@ typedef struct gnutella_node {
 #define NODE_A_ULTRA		0x00000040	/* Node wants to be an Ultrapeer */
 #define NODE_A_NO_ULTRA		0x00000080	/* Node is NOT ultra capable */
 #define NODE_A_UP_QRP		0x00000100	/* Supports intra-UP QRP */
+#define NODE_A_LEAF_GUIDE	0x00000200	/* Supports leaf-guided dyn queries */
 
 #define NODE_A_CAN_HSEP		0x04000000	/* Node supports HSEP */
 #define NODE_A_CAN_QRP		0x08000000	/* Node supports query routing */
@@ -340,8 +341,11 @@ typedef struct gnutella_node {
 	((n)->rx_inflated ?					\
 		(double) ((n)->rx_inflated - (n)->rx_given) / (n)->rx_inflated : 0.0)
 
-#define NODE_CAN_GGEP(n)	((n)->attrs & NODE_A_CAN_GGEP)
-#define NODE_UP_QRP(n)		((n)->attrs & NODE_A_UP_QRP)
+#define NODE_ID(n)				((n)->id)
+
+#define NODE_CAN_GGEP(n)		((n)->attrs & NODE_A_CAN_GGEP)
+#define NODE_UP_QRP(n)			((n)->attrs & NODE_A_UP_QRP)
+#define NODE_GUIDES_QUERY(n)	((n)->attrs & NODE_A_LEAF_GUIDE)
 
 /*
  * Peer inspection macros
@@ -507,6 +511,7 @@ void node_http_proxies_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 GSList *node_push_proxies(void);
 const GSList *node_all_nodes(void);
+gnutella_node_t *node_active_by_id(guint32 id);
 
 void node_became_firewalled(void);
 void node_set_socket_rx_size(gint rx_size);

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * Vendor-specific messages.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,20 +23,29 @@
  *----------------------------------------------------------------------
  */
 
-#include "common.h"		/* For -DUSE_DMALLOC */
+/**
+ * @file
+ *
+ * Vendor-specific messages.
+ */
+
+#include "common.h"			/* For -DUSE_DMALLOC */
 
 #include "vmsg.h"
 #include "vendors.h"
 #include "nodes.h"
+#include "search.h"
 #include "gmsg.h"
-#include "routing.h"	/* For message_set_muid() */
+#include "routing.h"		/* For message_set_muid() */
 #include "gnet_stats.h"
-#include "settings.h"	/* For listen_ip() */
+#include "gnet_net_stats.h"
+#include "dq.h"
+#include "settings.h"		/* For listen_ip() */
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
-static gchar v_tmp[256];
+static gchar v_tmp[256];	/* Large enough for a payload of 225 bytes */
 
 /*
  * Vendor message handler.
@@ -70,6 +77,10 @@ static void handle_proxy_req(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
 static void handle_proxy_ack(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
+static void handle_qstat_req(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size);
+static void handle_qstat_answer(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size);
 
 /*
  * Known vendor-specific messages.
@@ -80,6 +91,8 @@ static struct vmsg vmsg_map[] = {
 	{ T_0000, 0x0000, 0x0000, handle_messages_supported, "Messages Supported" },
 	{ T_BEAR, 0x0004, 0x0001, handle_hops_flow, "Hops Flow" },
 	{ T_BEAR, 0x0007, 0x0001, handle_connect_back, "Connect Back" },
+	{ T_BEAR, 0x000b, 0x0001, handle_qstat_req, "Query Status Request" },
+	{ T_BEAR, 0x000c, 0x0001, handle_qstat_answer, "Query Status Response" },
 	{ T_LIME, 0x0015, 0x0002, handle_proxy_req, "Push Proxy Request" },
 	{ T_LIME, 0x0016, 0x0002, handle_proxy_ack, "Push Proxy Acknowledgment" },
 
@@ -99,9 +112,7 @@ struct vms_item {
 
 #define VMS_ITEM_SIZE	8		/* Each entry is 8 bytes (4+2+2) */
 
-/*
- * find_message
- *
+/**
  * Find message, given vendor code, and id, version.
  *
  * We don't necessarily match the version exactly: we only guarantee to
@@ -110,8 +121,8 @@ struct vms_item {
  *
  * Returns handler callback if found, NULL otherwise.
  */
-static struct vmsg *find_message(
-	guint32 vendor, guint16 id, guint16 version)
+static struct vmsg *
+find_message(guint32 vendor, guint16 id, guint16 version)
 {
 	struct vmsg *low = vmsg_map;
 	struct vmsg *high = END(vmsg_map);
@@ -143,12 +154,11 @@ static struct vmsg *find_message(
 	return NULL;		/* Not found */
 }
 
-/*
- * vmsg_handle
- *
+/**
  * Main entry point to handle reception of vendor-specific message.
  */
-void vmsg_handle(struct gnutella_node *n)
+void
+vmsg_handle(struct gnutella_node *n)
 {
 	struct gnutella_vendor *v = (struct gnutella_vendor *) n->data;
 	guint32 vendor;
@@ -186,9 +196,7 @@ void vmsg_handle(struct gnutella_node *n)
 	(*vm->handler)(n, vm, n->data + sizeof(*v), n->size - sizeof(*v));
 }
 
-/*
- * vmsg_fill_header
- *
+/**
  * Fill common message header part for all vendor-specific messages.
  * The GUID is blanked (all zero bytes), TTL is set to 1 and hops to 0.
  * Those common values can be superseded by the caller if needed.
@@ -198,8 +206,8 @@ void vmsg_handle(struct gnutella_node *n)
  *
  * Returns the total size of the whole Gnutella message.
  */
-static guint32 vmsg_fill_header(struct gnutella_header *header,
-	guint32 size, guint32 maxsize)
+static guint32
+vmsg_fill_header(struct gnutella_header *header, guint32 size, guint32 maxsize)
 {
 	guint32 msize;
 
@@ -221,15 +229,14 @@ static guint32 vmsg_fill_header(struct gnutella_header *header,
 	return msize;
 }
 
-/*
- * vmsg_fill_type
- *
+/**
  * Fill leading part of the payload data, containing the common part for
  * all vendor-specific messages.
  *
  * Returns start of payload after that common part.
  */
-static guchar *vmsg_fill_type(
+static guchar *
+vmsg_fill_type(
 	struct gnutella_vendor *base, guint32 vendor, guint16 id, guint16 version)
 {
 	WRITE_GUINT32_BE(vendor, base->vendor);
@@ -239,46 +246,101 @@ static guchar *vmsg_fill_type(
 	return (guchar *) (base + 1);
 }
 
-/*
- * handle_messages_supported
- *
+/**
+ * Report a vendor-message with bad payload to the stats.
+ */
+static void
+vmsg_bad_payload(
+	struct gnutella_node *n, struct vmsg *vmsg, gint size, gint expected)
+{
+	n->rx_dropped++;
+	n->n_bad++;
+	gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
+
+	if (dbg)
+		gmsg_log_bad(n, "Bad payload size %d for %s/%dv%d (%s), expected %d",
+			size, vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version,
+			vmsg->name, expected);
+}
+
+/**
  * Handle the "Messages Supported" message.
  */
-static void handle_messages_supported(struct gnutella_node *n,
+static void
+handle_messages_supported(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size)
 {
 	guint16 count;
+	gint i;
+	gchar *description;
+	gint expected;
 
 	READ_GUINT16_LE(payload, count);
 
-	if (dbg > 2)
+	if (dbg)
 		printf("VMSG node %s <%s> supports %u vendor message%s\n",
 			node_ip(n), node_vendor(n), count,
 			count == 1 ? "" : "s");
 
-	if (size != (gint) sizeof(count) + count * VMS_ITEM_SIZE) {
-		g_warning("bad payload length in \"Messages Supported\" from %s <%s>: "
-			"expected %d bytes in vector for %d item%s, got %d",
-			node_ip(n), node_vendor(n),
-			count * VMS_ITEM_SIZE, count, count == 1 ? "" : "s",
-			size - (gint) sizeof(count));
+	expected = (gint) sizeof(count) + count * VMS_ITEM_SIZE;
+
+	if (size != expected) {
+		vmsg_bad_payload(n, vmsg, size, expected);
 		return;
 	}
 
-	/* XXX -- we don't need this support yet -- RAM, 30/01/2003 */
-	if (dbg)
-		g_warning("handle_messages_supported() not implemented yet!");
+	description = payload + 2;		/* Skip count */
+
+	/*
+	 * Analyze the supported messages.
+	 */
+
+	for (i = 0; i < count; i++) {
+		guint32 vendor;
+		gint id;
+		gint version;
+		struct vmsg *vm;
+
+		READ_GUINT32_BE(description, vendor);
+		description += 4;
+		READ_GUINT16_LE(description, id);
+		description += 2;
+		READ_GUINT16_LE(description, version);
+		description += 2;
+
+		vm = find_message(vendor, id, version);
+
+		if (vm == NULL) {
+			if (dbg > 1)
+				printf("VMSG node %s <%s> supports unknown %s/%dv%d\n",
+					node_ip(n), node_vendor(n),
+					vendor_code_str(vendor), id, version);
+			continue;
+		}
+
+		/*
+		 * Look for leaf-guided dynamic query support.
+		 *
+		 * Remote can advertise only one of the two messages needed, we
+		 * can infer support for the other!.
+		 */
+
+		if (
+			vm->handler == handle_qstat_req ||
+			vm->handler == handle_qstat_answer
+		)
+			n->attrs |= NODE_A_LEAF_GUIDE;
+	}
 }
 
-/*
- * vmsg_send_messages_supported
- *
+/**
  * Send a "Messages Supported" message to specified node, telling it which
  * subset of the vendor messages we can understand.  We don't send information
  * about the "Messages Supported" message itself, since this one is guarateeed
  * to be always understood
  */
-void vmsg_send_messages_supported(struct gnutella_node *n)
+void
+vmsg_send_messages_supported(struct gnutella_node *n)
 {
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint16 count = G_N_ELEMENTS(vmsg_map) - 1;
@@ -318,12 +380,11 @@ void vmsg_send_messages_supported(struct gnutella_node *n)
 	gmsg_sendto_one(n, (gchar *) m, msgsize);
 }
 
-/*
- * handle_hops_flow
- *
+/**
  * Handle the "Hops Flow" message.
  */
-static void handle_hops_flow(struct gnutella_node *n,
+static void
+handle_hops_flow(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size)
 {
 	guint8 hops;
@@ -331,8 +392,7 @@ static void handle_hops_flow(struct gnutella_node *n,
 	g_assert(vmsg->version <= 1);
 
 	if (size != 1) {
-		g_warning("got improper %s (payload has %d bytes) from %s <%s>",
-			vmsg->name, size, node_ip(n), node_vendor(n));
+		vmsg_bad_payload(n, vmsg, size, 1);
 		return;
 	}
 
@@ -340,12 +400,11 @@ static void handle_hops_flow(struct gnutella_node *n,
 	node_set_hops_flow(n, hops);
 }
 
-/*
- * vmsg_send_hops_flow
- *
+/**
  * Send an "Hops Flow" message to specified node.
  */
-void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
+void
+vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
 {
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint32 paysize = sizeof(hops);
@@ -364,12 +423,11 @@ void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
 	gmsg_ctrl_sendto_one(n, (gchar *) m, msgsize);
 }
 
-/*
- * handle_connect_back
- *
+/**
  * Handle the "Connect Back" message.
  */
-static void handle_connect_back(struct gnutella_node *n,
+static void
+handle_connect_back(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size)
 {
 	guint16 port;
@@ -377,9 +435,7 @@ static void handle_connect_back(struct gnutella_node *n,
 	g_assert(vmsg->version <= 1);
 
 	if (size != 2) {
-		g_warning("got improper %s (payload has %d byte%ss) "
-			"from %s <%s>", vmsg->name, size, size == 1 ? "" : "s",
-			node_ip(n), node_vendor(n));
+		vmsg_bad_payload(n, vmsg, size, 2);
 		return;
 	}
 
@@ -391,16 +447,17 @@ static void handle_connect_back(struct gnutella_node *n,
 		return;
 	}
 
+	/* XXX forward to neighbours supporting the remote connect back message? */
+
 	node_connect_back(n, port);
 }
 
-/*
- * vmsg_send_connect_back
- *
+/**
  * Send an "Connect Back" message to specified node, telling it to connect
  * back to us on the specified port.
  */
-void vmsg_send_connect_back(struct gnutella_node *n, guint16 port)
+void
+vmsg_send_connect_back(struct gnutella_node *n, guint16 port)
 {
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint32 paysize = sizeof(port);
@@ -415,18 +472,15 @@ void vmsg_send_connect_back(struct gnutella_node *n, guint16 port)
 	gmsg_sendto_one(n, (gchar *) m, msgsize);
 }
 
-/*
- * handle_proxy_req
- *
+/**
  * Handle reception of the "Push Proxy Request" message.
  */
-static void handle_proxy_req(struct gnutella_node *n,
+static void
+handle_proxy_req(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size)
 {
 	if (size != 0) {
-		g_warning("got improper %s (payload has %d byte%ss) "
-			"from %s <%s>", vmsg->name, size, size == 1 ? "" : "s",
-			node_ip(n), node_vendor(n));
+		vmsg_bad_payload(n, vmsg, size, 0);
 		return;
 	}
 
@@ -449,13 +503,12 @@ static void handle_proxy_req(struct gnutella_node *n,
 		vmsg_send_proxy_ack(n, n->header.muid);
 }
 
-/*
- * vmsg_send_proxy_req
- *
+/**
  * Send a "Push Proxy Request" message to specified node, using supplied
  * `muid' as the message ID (which is our GUID).
  */
-void vmsg_send_proxy_req(struct gnutella_node *n, gchar *muid)
+void
+vmsg_send_proxy_req(struct gnutella_node *n, gchar *muid)
 {
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint32 msgsize;
@@ -472,12 +525,11 @@ void vmsg_send_proxy_req(struct gnutella_node *n, gchar *muid)
 		g_warning("sent proxy REQ to %s <%s>", node_ip(n), node_vendor(n));
 }
 
-/*
- * handle_proxy_ack
- *
+/**
  * Handle reception of the "Push Proxy Acknowledgment" message.
  */
-static void handle_proxy_ack(struct gnutella_node *n,
+static void
+handle_proxy_ack(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size)
 {
 	guint32 ip;
@@ -486,9 +538,7 @@ static void handle_proxy_ack(struct gnutella_node *n,
 	g_assert(vmsg->version >= 2);
 
 	if (size != 6) {
-		g_warning("got improper %s (payload has %d byte%ss) "
-			"from %s <%s>", vmsg->name, size, size == 1 ? "" : "s",
-			node_ip(n), node_vendor(n));
+		vmsg_bad_payload(n, vmsg, size, 6);
 		return;
 	}
 
@@ -511,13 +561,12 @@ static void handle_proxy_ack(struct gnutella_node *n,
 	node_proxy_add(n, ip, port);
 }
 
-/*
- * vmsg_send_proxy_ack
- *
+/**
  * Send a "Push Proxy Acknowledgment" message to specified node, using
  * supplied `muid' as the message ID (which is the target node's GUID).
  */
-void vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid)
+void
+vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid)
 {
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint32 paysize = sizeof(guint32) + sizeof(guint16);
@@ -538,6 +587,99 @@ void vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid)
 	 */
 
 	gmsg_ctrl_sendto_one(n, (gchar *) m, msgsize);
+}
+
+/**
+ * Handle reception of "Query Status Request", where the UP requests how
+ * many results the search filters of the leave (ourselves) let pass through.
+ */
+static void
+handle_qstat_req(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size)
+{
+	guint32 kept;
+
+	if (size != 0) {
+		vmsg_bad_payload(n, vmsg, size, 0);
+		return;
+	}
+
+	if (!search_get_kept_results(n->header.muid, &kept)) {
+		/*
+		 * We did not find any search for this MUID.  Either the remote
+		 * side goofed, or they closed the search.
+		 */
+
+		kept = 0xffff;		/* Magic value telling them to stop the search */
+	}
+
+	vmsg_send_qstat_answer(n, n->header.muid, (guint16) kept);
+}
+
+/**
+ * Send a "Query Status Request" message to specified node, using supplied
+ * `muid' as the message ID (which is the query ID).
+ */
+void
+vmsg_send_qstat_req(struct gnutella_node *n, gchar *muid)
+{
+	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
+	guint32 msgsize;
+
+	msgsize = vmsg_fill_header(&m->header, 0, sizeof(v_tmp));
+	memcpy(m->header.muid, muid, 16);
+	(void) vmsg_fill_type(&m->data, T_BEAR, 11, 1);
+
+	gmsg_sendto_one(n, (gchar *) m, msgsize);
+}
+
+/**
+ * Handle "Query Status Response" where the leave notifies us about the
+ * amount of results its search filters let pass through for the specified
+ * query.
+ */
+static void
+handle_qstat_answer(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size)
+{
+	guint16 kept;
+
+	if (size != 2) {
+		vmsg_bad_payload(n, vmsg, size, 2);
+		return;
+	}
+
+	/*
+	 * Let the dynamic querying side about the reply.
+	 */
+
+	READ_GUINT16_LE(payload, kept);
+	
+	if (kept)
+		dq_got_query_status(n->header.muid, NODE_ID(n), kept);
+}
+
+/**
+ * Send a "Query Status Response" message to specified node.
+ *
+ * @param muid is the query ID
+ * @param hits is the number of hits our filters did not drop.
+ */
+void
+vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits)
+{
+	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
+	guint32 msgsize;
+	guint32 paysize = sizeof(guint16);
+	gchar *payload;
+
+	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
+	memcpy(m->header.muid, muid, 16);
+	payload = vmsg_fill_type(&m->data, T_BEAR, 12, 1);
+
+	WRITE_GUINT16_LE(hits, payload);
+
+	gmsg_sendto_one(n, (gchar *) m, msgsize);
 }
 
 /* vi: set ts=4: */

@@ -722,6 +722,7 @@ void search_matched(search_t *sch, results_set_t *rs)
     gboolean send_pushes;
     gboolean is_firewalled;
 	guint i;
+	guint32 results_kept = 0;
 
     g_assert(sch != NULL);
     g_assert(rs != NULL);
@@ -830,6 +831,7 @@ void search_matched(search_t *sch, results_set_t *rs)
 
 		if (downloaded && search_hide_downloaded) {
             filter_free_result(flt_result);
+			results_kept++;
 			continue;
         }
     
@@ -845,6 +847,7 @@ void search_matched(search_t *sch, results_set_t *rs)
             gboolean mark;
 
             sch->items++;
+			results_kept++;
             g_hash_table_insert(sch->dups, rc, GINT_TO_POINTER(1));
             search_gui_ref_record(rc);
 
@@ -890,11 +893,17 @@ void search_matched(search_t *sch, results_set_t *rs)
 		search_gui_set_clear_button_sensitive(TRUE);
 
 	/*
-	 * Disable search when the maximum amount of items is shown: they need
-	 * to make some room to allow the search to continue.
+	 * Update counters in the core-side of the search.
 	 */
 
 	search_update_items(sch->search_handle, sch->items);
+	if (results_kept)
+		search_add_kept(sch->search_handle, results_kept);
+
+	/*
+	 * Disable search when the maximum amount of items is shown: they need
+	 * to make some room to allow the search to continue.
+	 */
 
 	if (sch->items >= search_max_results && !sch->passive)
 		gui_search_set_enabled(sch, FALSE);

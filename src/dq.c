@@ -50,6 +50,8 @@ RCSID("$Id$");
 #include "gnet_search.h"
 #include "gnet_stats.h"
 #include "qrp.h"
+#include "vmsg.h"
+#include "search.h"
 #include "override.h"		/* Must be the last header included */
 
 #define DQ_MAX_LIFETIME		300000	/* 5 minutes, in ms */
@@ -59,6 +61,7 @@ RCSID("$Id$");
 #define DQ_TIMEOUT_ADJUST	100		/* 100 ms at each connection */
 #define DQ_MIN_TIMEOUT		1500	/* 1.5 s at least between queries */
 #define DQ_LINGER_TIMEOUT	120000	/* 2 minutes, in ms */
+#define DQ_STATUS_TIMEOUT	25000	/* 25 s, in ms, to reply to query status */
 
 #define DQ_LEAF_RESULTS		50		/* # of results targetted for leaves */
 #define DQ_LOCAL_RESULTS	150		/* # of results for local queries */
@@ -96,7 +99,8 @@ typedef struct dquery {
 	guint32 max_results;	/* Max results we're targetting for */
 	guint32 results;		/* Results we got so far for the query */
 	guint32 linger_results;	/* Results we got whilst lingering */
-	guint32 kept;			/* Results they say they kept after filtering */
+	guint32 new_results;	/* New we got since last query status request */
+	guint32 kept_results;	/* Results they say they kept after filtering */
 	guint32 result_timeout;	/* The current timeout for getting results */
 	gpointer expire_ev;		/* Callout queue global expiration event */
 	gpointer results_ev;	/* Callout queue results expiration event */
@@ -107,6 +111,8 @@ typedef struct dquery {
 
 #define DQ_F_ID_CLEANING	0x00000001	/* Cleaning the `by_node_id' table */
 #define DQ_F_LINGER			0x00000002	/* Lingering to monitor extra results */
+#define DQ_F_LEAF_GUIDED	0x00000004	/* Leaf-guided query */
+#define DQ_F_WAITING		0x00000008	/* Waiting guidance reply from leaf */
 
 /*
  * This table keeps track of all the dynamic query objects that we have
@@ -586,6 +592,7 @@ dq_free(dquery_t *dq)
 	struct gnutella_header *head;
 
 	g_assert(dq != NULL);
+	g_assert(g_hash_table_lookup(dqueries, dq));
 
 	if (dq_debug > 19)
 		printf("DQ[%d] (%d secs; +%d secs) node #%d ending: "
@@ -722,11 +729,63 @@ static void
 dq_results_expired(cqueue_t *cq, gpointer obj)
 {
 	dquery_t *dq = (dquery_t *) obj;
+	gnutella_node_t *n;
+	struct gnutella_header *head;
 
 	g_assert(!(dq->flags & DQ_F_LINGER));
 
 	dq->results_ev = NULL;	/* Indicates callback fired */
-	dq_send_next(dq);
+
+	/*
+	 * If we were waiting for a status reply from the queryier, well, we
+	 * just timed-out.  Cancel this query.
+	 */
+
+	if (dq->flags & DQ_F_WAITING) {
+		if (dq_debug > 19)
+			printf("DQ[%d] (%d secs) timeout waiting for status results\n",
+				dq->qid, (gint) (time(NULL) - dq->start));
+		dq->flags &= ~DQ_F_WAITING;
+		dq_terminate(dq);
+		return;
+	}
+
+	/*
+	 * If host does not support leaf-guided queries, proceed to next ultra.
+	 * Likewise if we haven't got any new results.
+	 */
+
+	if (!(dq->flags & DQ_F_LEAF_GUIDED) || dq->new_results == 0) {
+		dq_send_next(dq);
+		return;
+	}
+
+	/*
+	 * Ask queryier how many hits it kept so far.
+	 */
+
+	n = node_active_by_id(dq->node_id);
+
+	if (n == NULL) {
+		if (dq_debug > 19)
+			printf("DQ[%d] (%d secs) node #%d appears to be dead\n",
+				dq->qid, (gint) (time(NULL) - dq->start), dq->node_id);
+		dq_free(dq);
+		return;
+	}
+
+	if (dq_debug > 19)
+		printf("DQ[%d] (%d secs) requesting node #%d for status (kept=%u)\n",
+			dq->qid, (gint) (time(NULL) - dq->start), dq->node_id,
+			dq->kept_results);
+
+	dq->flags |= DQ_F_WAITING;
+	head = (struct gnutella_header *) pmsg_start(dq->mb);
+
+	vmsg_send_qstat_req(n, head->muid);
+
+	dq->results_ev = cq_insert(callout_queue, DQ_STATUS_TIMEOUT,
+		dq_results_expired, dq);
 }
 
 /**
@@ -895,6 +954,7 @@ dq_send_next(dquery_t *dq)
 	gint timeout;
 	gint i;
 	gboolean sent = FALSE;
+	guint32 results;
 
 	g_assert(dq->results_ev == NULL);
 
@@ -912,7 +972,9 @@ dq_send_next(dquery_t *dq)
 	 * if we reached the maximum theoretical horizon.
 	 */
 
-	if (dq->results >= dq->max_results || dq->horizon >= DQ_MAX_HORIZON) {
+	results = (dq->flags & DQ_F_LEAF_GUIDED) ? dq->kept_results : dq->results;
+
+	if (dq->horizon >= DQ_MAX_HORIZON || results >= dq->max_results) {
 		dq_terminate(dq);
 		return;
 	}
@@ -931,8 +993,9 @@ dq_send_next(dquery_t *dq)
 	found = dq_fill_next_up(dq, nv, ncount);
 
 	if (dq_debug > 19)
-		printf("DQ[%d] still %d UP%s to query\n",
-			dq->qid, found, found == 1 ? "" : "s");
+		printf("DQ[%d] still %d UP%s to query (results %sso far: %u)\n",
+			dq->qid, found, found == 1 ? "" : "s",
+			(dq->flags & DQ_F_LEAF_GUIDED) ? "reported kept " : "", results);
 
 	if (found == 0) {
 		dq_terminate(dq);	/* Terminate query: no more UP to send it to */
@@ -986,7 +1049,7 @@ dq_send_next(dquery_t *dq)
 
 	if (
 		dq->horizon > DQ_MIN_HORIZON &&
-		dq->results < (DQ_MAX_RESULTS * dq->horizon / DQ_MIN_HORIZON)
+		results < (DQ_MAX_RESULTS * dq->horizon / DQ_MIN_HORIZON)
 	) {
 		dq->result_timeout -= DQ_TIMEOUT_ADJUST;
 		dq->result_timeout = MAX(DQ_MIN_TIMEOUT, dq->result_timeout);
@@ -1168,6 +1231,7 @@ void
 dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 {
 	dquery_t *dq;
+	guint16 req_speed;
 
 	g_assert(NODE_IS_LEAF(n));
 
@@ -1179,6 +1243,28 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		n->size + sizeof(struct gnutella_header));
 	dq->max_results = DQ_LEAF_RESULTS;
 	dq->ttl = MIN(n->header.ttl, DQ_MAX_TTL);
+
+	/*
+	 * Determine whether this query will be leaf-guided.
+	 *
+	 * If the remote node performed the vendor message supported exchange,
+	 * we have already determined whether its queries would be leaf-guided
+	 * (i.e. advertised support for BEAR/11v1 is enough to assume the query
+	 * is leaf-guided).
+	 *
+	 * But there is also a flag in the query that can be set to indicate
+	 * leaf-guidance, and some vendors may choose to rely on that solely
+	 * and never advertise the vendor messages related to this feature.
+	 * So we also perform a test on the query flags in the speed field.
+	 */
+
+	if (NODE_GUIDES_QUERY(n))
+		dq->flags |= DQ_F_LEAF_GUIDED;
+
+	READ_GUINT16_LE(n->data, req_speed);
+
+	if (req_speed & QUERY_SPEED_LEAF_GUIDED)
+		dq->flags |= DQ_F_LEAF_GUIDED;
 
 	if (dq_debug > 19)
 		printf("DQ node #%d %s <%s> queries \"%s\"\n",
@@ -1244,19 +1330,89 @@ dq_got_results(gchar *muid, gint count)
 
 	if (dq->flags & DQ_F_LINGER)
 		dq->linger_results += count;
-	else
+	else {
 		dq->results += count;
+		dq->new_results += count;
+	}
 
 	if (dq_debug > 19) {
 		if (dq->flags & DQ_F_LINGER)
-			printf("DQ[%d] (%d secs; +%d secs) +%d linger_results=%d\n",
+			printf("DQ[%d] (%d secs; +%d secs) +%d linger_results=%d kept=%d\n",
 				dq->qid, (gint) (time(NULL) - dq->start),
 				(gint) (time(NULL) - dq->stop),
-				count, dq->linger_results);
+				count, dq->linger_results, dq->kept_results);
 		else
-			printf("DQ[%d] (%d secs) +%d results=%d\n",
+			printf("DQ[%d] (%d secs) +%d results=%d new=%d kept=%d\n",
 				dq->qid, (gint) (time(NULL) - dq->start),
-				count, dq->results);
+				count, dq->results, dq->new_results, dq->kept_results);
+	}
+}
+
+/**
+ * Called when we get a "Query Status Response" message where the querying
+ * node informs us about the amount of results he kept after filtering.
+ *
+ * @param muid is the search MUID.
+ *
+ * @param node_id is the ID of the node that sent us the status response.
+ * we check that it is the one for the query, to avoid a neighbour telling
+ * us about a search it did not issue!
+ *
+ * @param kept is the amount of results they kept.
+ * The special value 0xffff is a request to stop the query immediately.
+ */
+void
+dq_got_query_status(gchar *muid, guint32 node_id, guint16 kept)
+{
+	dquery_t *dq;
+
+	dq = g_hash_table_lookup(by_muid, muid);
+
+	if (dq == NULL)
+		return;
+
+	if (dq->node_id != node_id)
+		return;
+
+	dq->kept_results = kept;
+
+	if (dq_debug > 19) {
+		if (dq->flags & DQ_F_LINGER)
+			printf("DQ[%d] (%d secs; +%d secs) kept_results=%d\n",
+				dq->qid, (gint) (time(NULL) - dq->start),
+				(gint) (time(NULL) - dq->stop), dq->kept_results);
+		else
+			printf("DQ[%d] (%d secs) kept_results%d\n",
+				dq->qid, (gint) (time(NULL) - dq->start), dq->kept_results);
+	}
+
+	/*
+	 * If they want us to terminate querying, honour it.
+	 * If the query is already in lingering mode, do nothing.
+	 */
+
+	if (kept == 0xffff) {
+		if (dq_debug > 19)
+			printf("DQ[%d] terminating at user's request\n", dq->qid);
+
+		if (!(dq->flags & DQ_F_LINGER))
+			dq_terminate(dq);
+		return;
+	}
+
+	/*
+	 * If we were waiting for status, we can resume the course of this query.
+	 */
+
+	if (dq->flags & DQ_F_WAITING) {
+		g_assert(dq->results_ev != NULL);	/* The "timeout" for status */
+
+		cq_cancel(callout_queue, dq->results_ev);
+		dq->results_ev = NULL;
+		dq->flags &= ~DQ_F_WAITING;
+
+		dq_send_next(dq);
+		return;
 	}
 }
 

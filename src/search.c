@@ -23,6 +23,12 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ * Search handling (core side).
+ */
+
 #include "gnutella.h"
 
 #include <ctype.h>
@@ -91,6 +97,7 @@ typedef struct search_ctrl {
 	guint reissue_timeout;		/* timeout per search, 0 = search stopped */
 	guint query_emitted;		/* Amount of queries emitted since last retry */
 	guint32 items;				/* Items displayed in the GUI */
+	guint32 kept_results;		/* Results we kept for last query */
 } search_ctrl_t;
 
 /*
@@ -122,7 +129,8 @@ static void search_check_results_set(gnet_results_set_t *rs);
  ***/
 static listeners_t search_got_results_listeners = NULL;
 
-void search_add_got_results_listener(search_got_results_listener_t l)
+void
+search_add_got_results_listener(search_got_results_listener_t l)
 {
     g_assert(l != NULL);
 
@@ -130,7 +138,8 @@ void search_add_got_results_listener(search_got_results_listener_t l)
         g_slist_append(search_got_results_listeners, (gpointer) l);
 }
 
-void search_remove_got_results_listener(search_got_results_listener_t l)
+void
+search_remove_got_results_listener(search_got_results_listener_t l)
 {
     g_assert(l != NULL);
 
@@ -138,8 +147,8 @@ void search_remove_got_results_listener(search_got_results_listener_t l)
         g_slist_remove(search_got_results_listeners, (gpointer) l);
 }
 
-static void search_fire_got_results(
-	GSList *sch_matched, const gnet_results_set_t *rs)
+static
+void search_fire_got_results(GSList *sch_matched, const gnet_results_set_t *rs)
 {
     GSList *sl;
     g_assert(rs != NULL);
@@ -152,7 +161,8 @@ static void search_fire_got_results(
  *** Private functions
  ***/
 
-static guint sent_node_hash_func(gconstpointer key)
+static guint
+sent_node_hash_func(gconstpointer key)
 {
 	const struct sent_node_data *sd = (const struct sent_node_data *) key;
 
@@ -163,7 +173,8 @@ static guint sent_node_hash_func(gconstpointer key)
 	return ip ^ port;
 }
 
-static gint sent_node_compare(gconstpointer a, gconstpointer b)
+static gint
+sent_node_compare(gconstpointer a, gconstpointer b)
 {
 	const struct sent_node_data *sa = (const struct sent_node_data *) a;
 	const struct sent_node_data *sb = (const struct sent_node_data *) b;
@@ -171,21 +182,22 @@ static gint sent_node_compare(gconstpointer a, gconstpointer b)
 	return sa->ip == sb->ip && sa->port == sb->port;
 }
 
-static gboolean search_free_sent_node(
-	gpointer node, gpointer value, gpointer udata)
+static gboolean
+search_free_sent_node(gpointer node, gpointer value, gpointer udata)
 {
 	wfree(node, sizeof(struct sent_node_data));
 	return TRUE;
 }
 
-static void search_free_sent_nodes(search_ctrl_t *sch)
+static void
+search_free_sent_nodes(search_ctrl_t *sch)
 {
 	g_hash_table_foreach_remove(sch->sent_nodes, search_free_sent_node, NULL);
 	g_hash_table_destroy(sch->sent_nodes);
 }
 
-static void mark_search_sent_to_node(
-	search_ctrl_t *sch, gnutella_node_t *n)
+static void
+mark_search_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
 {
 	struct sent_node_data *sd = walloc(sizeof(*sd));
 	sd->ip = n->ip;
@@ -193,7 +205,8 @@ static void mark_search_sent_to_node(
 	g_hash_table_insert(sch->sent_nodes, sd, GUINT_TO_POINTER(1));
 }
 
-static void mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
+static void
+mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
 {
 	const GSList *sl;
 	struct gnutella_node *n;
@@ -207,13 +220,11 @@ static void mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
 	g_hash_table_thaw(sch->sent_nodes);
 }
 
-/*
- * search_already_sent_to_node
- *
+/**
  * Return TRUE if we already queried the given node for the given search.
  */
-static gboolean search_already_sent_to_node(
-	search_ctrl_t *sch, gnutella_node_t *n)
+static gboolean
+search_already_sent_to_node(search_ctrl_t *sch, gnutella_node_t *n)
 {
 	struct sent_node_data sd;
 	sd.ip = n->ip;
@@ -221,25 +232,23 @@ static gboolean search_already_sent_to_node(
 	return NULL != g_hash_table_lookup(sch->sent_nodes, &sd);
 }
 
-/*
- * search_has_muid:
- *
+/**
  * Return TRUE if the muid list of the given search contains the
  * given muid.
  */
-static gboolean search_has_muid(search_ctrl_t *sch, const gchar *muid)
+static gboolean
+search_has_muid(search_ctrl_t *sch, const gchar *muid)
 {
 	g_assert(sch->h_muids);
 
 	return NULL != g_hash_table_lookup(sch->h_muids, muid);
 }
 
-/*
- * search_free_alt_locs
- *
+/**
  * Free the alternate locations held within a file record.
  */
-void search_free_alt_locs(gnet_record_t *rc)
+void
+search_free_alt_locs(gnet_record_t *rc)
 {
 	gnet_host_vec_t *alt = rc->alt_locs;
 
@@ -251,12 +260,11 @@ void search_free_alt_locs(gnet_record_t *rc)
 	rc->alt_locs = NULL;
 }
 
-/*
- * search_free_proxies
- *
+/**
  * Free the push proxies held within a result set.
  */
-void search_free_proxies(gnet_results_set_t *rs)
+void
+search_free_proxies(gnet_results_set_t *rs)
 {
 	gnet_host_vec_t *v = rs->proxies;
 
@@ -268,12 +276,11 @@ void search_free_proxies(gnet_results_set_t *rs)
 	rs->proxies = NULL;
 }
 
-/*
- * search_free_record
- *
+/**
  * Free one file record.
  */
-static void search_free_record(gnet_record_t *rc)
+static void
+search_free_record(gnet_record_t *rc)
 {
 	atom_str_free(rc->name);
 	if (rc->tag != NULL)
@@ -285,12 +292,11 @@ static void search_free_record(gnet_record_t *rc)
 	zfree(rc_zone, rc);
 }
 
-/*
- * search_free_r_set
- *
+/**
  * Free one results_set.
  */
-static void search_free_r_set(gnet_results_set_t *rs)
+static void
+search_free_r_set(gnet_results_set_t *rs)
 {
 	GSList *m;
 
@@ -313,9 +319,7 @@ static void search_free_r_set(gnet_results_set_t *rs)
 	zfree(rs_zone, rs);
 }
 
-/*
- * get_results_set
- *
+/**
  * Parse Query Hit and extract the embedded records, plus the optional
  * trailing Query Hit Descritor (QHD).
  *
@@ -326,8 +330,8 @@ static void search_free_r_set(gnet_results_set_t *rs)
  * Returns a structure describing the whole result set, or NULL if we
  * were unable to parse it properly.
  */
-static gnet_results_set_t *get_results_set(
-	gnutella_node_t *n, gboolean validate_only)
+static gnet_results_set_t *
+get_results_set(gnutella_node_t *n, gboolean validate_only)
 {
 	gnet_results_set_t *rs;
 	gnet_record_t *rc = NULL;
@@ -972,12 +976,11 @@ static gnet_results_set_t *get_results_set(
 	return NULL;				/* Forget set, comes from a bad node */
 }
 
-/*
- * update_neighbour_info
- *
+/**
  * Called when we get a query hit from an immediate neighbour.
  */
-static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
+static void
+update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 {
 	extern gint guid_eq(gconstpointer a, gconstpointer b);
 	gchar *vendor;
@@ -1102,9 +1105,11 @@ static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		dump_hex(stderr, "Query Hit Data (weird)", n->data, n->size);
 }
 
-/* Create and send a search request packet */
-
-static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
+/**
+ * Create and send a search request packet
+ */
+static void
+_search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 {
 	struct gnutella_msg_search *m;
 	guint32 size;
@@ -1117,6 +1122,8 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
     g_assert(sch != NULL);
     g_assert(!sch->passive);
 	g_assert(!sch->frozen);
+
+	sch->kept_results = 0;
 
 	/*
 	 * We'll do query routing only if in ultra mode and we're going to
@@ -1228,6 +1235,7 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	speed = QUERY_SPEED_MARK;			/* Indicates: special speed field */
 	if (is_firewalled)
 		speed |= QUERY_SPEED_FIREWALLED;
+	speed |= QUERY_SPEED_LEAF_GUIDED;	/* GTKG supports leaf-guided queries */
 	speed |= QUERY_SPEED_GGEP_H;		/* GTKG understands GGEP "H" in hits */
 	speed |= QUERY_SPEED_NO_XML;		/* GTKG does not parse XML in hits */
 
@@ -1277,14 +1285,13 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	wfree(m, size);
 }
 
-/*
- * node_added_callback
- *
+/**
  * Called when we connect to a new node and thus can send it our searches.
  * FIXME: uses node_added which is a global variable in nodes.c. This
  *        should instead be contained with the argument to this call.
  */
-static void node_added_callback(gpointer data)
+static void
+node_added_callback(gpointer data)
 {
 	search_ctrl_t *sch = (search_ctrl_t *) data;
 	g_assert(node_added != NULL);
@@ -1302,18 +1309,18 @@ static void node_added_callback(gpointer data)
 	}
 }
 
-static void search_reset_sent_nodes(search_ctrl_t *sch)
+static void
+search_reset_sent_nodes(search_ctrl_t *sch)
 {
 	search_free_sent_nodes(sch);
 	sch->sent_nodes = g_hash_table_new(sent_node_hash_func, sent_node_compare);
 }
 
-/*
- * search_add_new_muid:
- *
+/**
  * Create a new muid and add it to the search's list of muids.
  */
-static void search_add_new_muid(search_ctrl_t *sch, gchar *muid)
+static void
+search_add_new_muid(search_ctrl_t *sch, gchar *muid)
 {
 	guint count;
 
@@ -1338,18 +1345,18 @@ static void search_add_new_muid(search_ctrl_t *sch, gchar *muid)
 	}
 }
 
-static void search_send_packet(search_ctrl_t *sch)
+static void
+search_send_packet(search_ctrl_t *sch)
 {
 	_search_send_packet(sch, NULL);
 }
 
-/*
- * search_reissue_timeout_callback:
- *
+/**
  * Called when the reissue timer for any search is triggered. The
  * data given is the search to be reissued.
  */
-static gboolean search_reissue_timeout_callback(gpointer data)
+static gboolean
+search_reissue_timeout_callback(gpointer data)
 {
 	search_ctrl_t *sch = (search_ctrl_t *) data;
 
@@ -1357,12 +1364,11 @@ static gboolean search_reissue_timeout_callback(gpointer data)
 	return TRUE;
 }
 
-/*
- * update_one_reissue_timeout:
- *
+/**
  * Make sure a timer is created/removed after a search was started/stopped.
  */
-static void update_one_reissue_timeout(search_ctrl_t *sch)
+static void
+update_one_reissue_timeout(search_ctrl_t *sch)
 {
 	guint32 max_items;
 	gint percent;
@@ -1408,12 +1414,11 @@ static void update_one_reissue_timeout(search_ctrl_t *sch)
 		tm * 1000, search_reissue_timeout_callback, sch);
 }
 
-/*
- * search_dequeue_all_nodes
- *
+/**
  * Signal to all search queues that search was closed.
  */
-static void search_dequeue_all_nodes(gnet_search_t sh)
+static void
+search_dequeue_all_nodes(gnet_search_t sh)
 {
 	const GSList *sl;
 
@@ -1430,7 +1435,8 @@ static void search_dequeue_all_nodes(gnet_search_t sh)
  *** Public functions
  ***/
 
-void search_init(void)
+void
+search_init(void)
 {
 	rs_zone = zget(sizeof(gnet_results_set_t), 1024);
 	rc_zone = zget(sizeof(gnet_record_t), 1024);
@@ -1439,7 +1445,8 @@ void search_init(void)
 	query_hashvec = qhvec_alloc(128);	/* Max: 128 unique words / URNs! */
 }
 
-void search_shutdown(void)
+void
+search_shutdown(void)
 {
     while (sl_search_ctrl != NULL) {
         g_warning("force-closing search left over by GUI: %s", 
@@ -1458,16 +1465,15 @@ void search_shutdown(void)
 	rs_zone = rc_zone = NULL;
 }
 
-/*
- * search_results
- *
+/**
  * This routine is called for each Query Hit packet we receive.
  *
  * Returns whether the message should be dropped, i.e. FALSE if OK.
  * If the message should not be dropped, `results' is filled with the
  * amount of results contained in the query hit.
  */
-gboolean search_results(gnutella_node_t *n, gint *results)
+gboolean
+search_results(gnutella_node_t *n, gint *results)
 {
 	gnet_results_set_t *rs;
 	GSList *selected_searches = NULL;
@@ -1604,14 +1610,13 @@ final_cleanup:
 	return drop_it;
 }
 
-/*
- * search_query_allowed
- *
+/**
  * Check whether we can send another query for this search.
  * Returns TRUE if we can send, with the emitted counter incremented, or FALSE
  * if the query should just be ignored.
  */
-gboolean search_query_allowed(gnet_search_t sh)
+gboolean
+search_query_allowed(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -1632,13 +1637,12 @@ gboolean search_query_allowed(gnet_search_t sh)
 	return TRUE;
 }
 
-/*
- * search_check_alt_locs
- *
+/**
  * Check for alternate locations in the result set, and enqueue the downloads
  * if there are any.  Then free the alternate location from the record.
  */
-static void search_check_alt_locs(
+static void
+search_check_alt_locs(
 	gnet_results_set_t *rs, gnet_record_t *rc, struct dl_file_info *fi)
 {
 	gint i;
@@ -1673,13 +1677,12 @@ static void search_check_alt_locs(
 	}
 }
 
-/*
- * search_check_results_set
- *
+/**
  * Check a results_set for matching entries in the download queue,
  * and generate new entries if we find a match.
  */
-static void search_check_results_set(gnet_results_set_t *rs)
+static void
+search_check_results_set(gnet_results_set_t *rs)
 {
 	GSList *sl;
 	struct dl_file_info *fi;
@@ -1722,13 +1725,12 @@ static void search_check_results_set(gnet_results_set_t *rs)
  *** Public functions accessible through gnet.h
  ***/
 
-/* 
- * search_close:
- *
+/* *
  * Remove the search from the list of searches and free all 
  * associated ressources.
  */
-void search_close(gnet_search_t sh)
+void
+search_close(gnet_search_t sh)
 {
 	GSList *m;
     search_ctrl_t *sch = search_find_by_handle(sh);
@@ -1771,12 +1773,11 @@ void search_close(gnet_search_t sh)
 	G_FREE_NULL(sch);
 }
 
-/*
- * search_reissue:
- *
+/**
  * Force a reissue of the given search. Restart reissue timer.
  */
-void search_reissue(gnet_search_t sh)
+void
+search_reissue(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 	gchar *muid;
@@ -1799,12 +1800,11 @@ void search_reissue(gnet_search_t sh)
 	update_one_reissue_timeout(sch);
 }
 
-/*
- * search_set_reissue_timeout:
- *
+/**
  * Set the reissue timeout of a search.
  */
-void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
+void
+search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -1819,12 +1819,11 @@ void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
     update_one_reissue_timeout(sch);
 }
 
-/*
- * search_get_reissue_timeout:
- *
+/**
  * Get the reissue timeout of a search.
  */
-guint32 search_get_reissue_timeout(gnet_search_t sh)
+guint32
+search_get_reissue_timeout(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -1833,12 +1832,11 @@ guint32 search_get_reissue_timeout(gnet_search_t sh)
     return sch->reissue_timeout;
 }
 
-/*
- * search_new:
- *
+/**
  * Create a new suspended search and return a handle which identifies it.
  */
-gnet_search_t search_new(
+gnet_search_t
+search_new(
     const gchar *query, guint16 minimum_speed, guint32 reissue_timeout,
     flag_t flags)
 {
@@ -1900,24 +1898,35 @@ gnet_search_t search_new(
 	return sch->search_handle;
 }
 
-/*
- * search_update_items
- *
+/**
  * The GUI updates us on the amount of items displayed in the search.
  */
-void search_update_items(gnet_search_t sh, guint32 items)
+void
+search_update_items(gnet_search_t sh, guint32 items)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
 	sch->items = items;
 }
 
-/*
- * search_start
- *
+/**
+ * The filtering side lets us know the amount of items we "kept", which
+ * are either things we display to the user or entries we used for
+ * auto-download.
+ */
+void
+search_add_kept(gnet_search_t sh, guint32 kept)
+{
+    search_ctrl_t *sch = search_find_by_handle(sh);
+
+	sch->kept_results += kept;
+}
+
+/**
  * Start a newly created start or resume stopped search.
  */
-void search_start(gnet_search_t sh)
+void
+search_start(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -1951,12 +1960,11 @@ void search_start(gnet_search_t sh)
 	}
 }
 
-/*
- * search_stop
- *
+/**
  * Stop search. Cancel reissue timer and don't return any results anymore.
  */
-void search_stop(gnet_search_t sh)
+void
+search_stop(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -1969,7 +1977,41 @@ void search_stop(gnet_search_t sh)
         update_one_reissue_timeout(sch);
 }
 
-gboolean search_is_frozen(gnet_search_t sh)
+/**
+ * Get amount of results we displayed for the search identified by
+ * its MUID.  We assume it is the last MUID we used for requerying if we
+ * find a search that sent a query with the MUID.
+ *
+ * @returns TRUE if we found a search having sent this MUID, along with
+ * the amount of results we kept sofar for the last requery, via "kept",
+ * or FALSE if we did not find any search.
+ */
+gboolean
+search_get_kept_results(gchar *muid, guint32 *kept)
+{
+	GSList *sl;
+	search_ctrl_t *sch;
+
+	for (sl = sl_search_ctrl; sl; sl = g_slist_next(sl)) {
+		sch = (search_ctrl_t *) sl->data;
+
+		if (!sch->passive && search_has_muid(sch, muid))
+			goto found;
+	}
+
+	return FALSE;
+
+found:
+	if (dbg > 1)
+		printf("SCH reporting %u kept results for \"%s\"\n",
+			sch->kept_results, sch->query);
+
+	*kept = sch->kept_results;
+	return TRUE;
+}
+
+gboolean
+search_is_frozen(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
@@ -1978,7 +2020,8 @@ gboolean search_is_frozen(gnet_search_t sh)
     return sch->frozen;
 }
 
-gboolean search_is_passive(gnet_search_t sh)
+gboolean
+search_is_passive(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
