@@ -32,7 +32,7 @@
 
 #ifdef CORE_SOURCES
 
-void upload_stats_prune_nonexistent();
+void upload_stats_prune_nonexistent(void);
 void upload_stats_clear_all(void);
 
 #endif /* CORE_SOURCES */
