@@ -17,14 +17,42 @@
 
 guint32 local_ip = 0;
 
+static GSList *sl_incoming = (GSList *) NULL;	/* Track incoming sockets */
+
+void socket_monitor_incoming(void)
+{
+	/* Did an incoming connection timout? */
+
+	GSList *l;
+	time_t now = time((time_t *) 0);
+
+retry:
+	for (l = sl_incoming; l; l = l->next) {
+		struct gnutella_socket *s = (struct gnutella_socket *) l->data;
+		g_assert(s->last_update);
+		/* We reuse the `node_connecting_timeout' parameter, need a new one? */
+		if (now - s->last_update > node_connecting_timeout) {
+			g_warning("connection from %s timed out (%d bytes read)\n",
+				ip_to_gchar(s->ip), s->pos);
+			socket_destroy(s);
+			goto retry;			/* Don't know the internals of lists, retry */
+		}
+	}
+}
+
+void socket_shutdown(void)
+{
+	while (sl_incoming)
+		socket_destroy((struct gnutella_socket *) sl_incoming->data);
+}
 
 /* ------------------------------------------------------------------------------------------------ */
 
-/* Destroy a socket, a free its resource if needed */
+/* Destroy a socket, and free its resource if needed */
 
 void socket_destroy(struct gnutella_socket *s)
 {
-	g_return_if_fail(s);
+	g_assert(s);
 
 	if (s->type == GTA_TYPE_CONTROL && s->resource.node)
 	{
@@ -43,37 +71,55 @@ void socket_destroy(struct gnutella_socket *s)
 		return;
 	}
 
+	socket_free(s);
+}
+
+void socket_free(struct gnutella_socket *s)
+{
+	g_assert(s);
+	if (s->last_update) {
+		g_assert(sl_incoming);
+		sl_incoming = g_slist_remove(sl_incoming, s);
+	}
 	if (s->gdk_tag)   gdk_input_remove(s->gdk_tag);
 	if (s->file_desc != -1) close(s->file_desc);
-
 	g_free(s); 
-
 }
 
 /* ------------------------------------------------------------------------------------------------ */
 
 /* Read bytes on an unknown incoming socket */
 
-void socket_read(gpointer data, gint source, GdkInputCondition cond)
+static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 {
 	gint r;
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
+	gint count;
 	
 	//s->type = 0;
 
 	if (cond & GDK_INPUT_EXCEPTION) { socket_destroy(s); return; }
 
-	r = read(s->file_desc, s->buffer + s->pos, sizeof(s->buffer) - s->pos);
-	
+	count = sizeof(s->buffer) - s->pos - 1;	/* -1 to allow trailing NUL */
+	if (count <= 0) {
+		g_warning("socket_read(): incoming buffer full, disconnecting from %s",
+			ip_to_gchar(s->ip));
+		socket_destroy(s);
+		return;
+	}
+
+	r = read(s->file_desc, s->buffer + s->pos, count);
 	
 	if (r == 0) { socket_destroy(s); return; }
 	else if (r < 0 && errno == EAGAIN) return;
 	else if (r < 0) { socket_destroy(s); return; }
 
+	s->last_update = time((time_t *) 0);
 	s->pos += r;
+	*(s->buffer + s->pos) = '\0';	/* Bound strchr() below --RAM */
 
 	/* XXX FIXME: need to read all the headers, not just the firts so that we read the Range: field if there is one. */
-	if (strchr(s->buffer, '\n')) /* We have got at least a line */
+	if (s->pos >= 4 && strchr(s->buffer, '\n')) /* We've got at least a line */
 	{
 
 		if (!strncmp(s->buffer, gnutella_hello, 17)) /* This is an incoming control connection */
@@ -82,7 +128,16 @@ void socket_read(gpointer data, gint source, GdkInputCondition cond)
 
 			gdk_input_remove(s->gdk_tag);
 			s->gdk_tag = 0;
+			if (s->pos > 22)	/* 22 = 17 + "0.4\n\n" */
+				g_warning("incoming node %s sent extra bytes after HELLO\n",
+					ip_port_to_gchar(s->ip, s->port));
+			else if (s->pos < 22)
+				g_warning("incoming node %s sent short HELLO: \"%s\"\n",
+					ip_port_to_gchar(s->ip, s->port), s->buffer);
+
 			s->pos = 0;
+			sl_incoming = g_slist_remove(sl_incoming, s);
+			s->last_update = 0;
 
 			n = node_add(s, s->ip, s->port);
 
@@ -95,7 +150,15 @@ void socket_read(gpointer data, gint source, GdkInputCondition cond)
 		  
 		  gdk_input_remove(s->gdk_tag);
 
+		  /* XXX initiate state machine to remain here while we did not
+		   * XXX read the full headers; then we'll call upload_add().
+		   * XXX better move to a dedicated callback waiting for all headers.
+		   * XXX	--RAM
+		   */
+
 		  up = upload_add(s);
+		  sl_incoming = g_slist_remove(sl_incoming, s);
+		  s->last_update = 0;
 
 		  if (up != NULL) 
 		    {
@@ -275,7 +338,7 @@ int guess_local_ip(int sd, guint32 *ip_addr, guint16 *ip_port) {
 }
 
 
-void socket_accept(gpointer data, gint source, GdkInputCondition cond)
+static void socket_accept(gpointer data, gint source, GdkInputCondition cond)
 {
 	/* Someone is connecting to us */
 
@@ -295,12 +358,13 @@ void socket_accept(gpointer data, gint source, GdkInputCondition cond)
 	{
 		case GTA_TYPE_CONTROL:
 		case GTA_TYPE_DOWNLOAD:
-	        case GTA_TYPE_UPLOAD:
+		/* No listening socket ever created for uploads --RAM */
 			break;
 
 		default:
 
-			g_warning("socket_accept(): Unknown socket type %d !\n", s->type);
+			g_warning("socket_accept(): Unknown listning socket type %d !\n",
+				s->type);
 			socket_destroy(s);
 			return;
 	}
@@ -330,6 +394,25 @@ void socket_accept(gpointer data, gint source, GdkInputCondition cond)
 		case GTA_TYPE_CONTROL:
 		{
 			t->gdk_tag = gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_EXCEPTION, socket_read, t);
+			/*
+			 * Whilst the socket is attached to that callback, it has been
+			 * freshly accepted and we don't know what we're going to do with
+			 * it.  Is it an incoming node connection or an upload request?
+			 * Can't tell until we have read enough bytes.
+			 *
+			 * However, we must guard against a subtle DOS attack whereby
+			 * someone would connect to us and then send only one byte (say),
+			 * then nothing.  The socket would remain connected, without
+			 * being monitored for timeout by the node/upload code.
+			 *
+			 * Insert the socket to the `sl_incoming' list, and have it
+			 * monitored periodically.  We know the socket is on the list
+			 * as soon as it has a non-zero last_update field.
+			 *		--RAM, 07/09/2001
+			 */
+
+			sl_incoming = g_slist_prepend(sl_incoming, t);
+			t->last_update = time((time_t *) 0);
 			break;
 		}
 
@@ -343,30 +426,14 @@ void socket_accept(gpointer data, gint source, GdkInputCondition cond)
 
 			t->gdk_tag = gdk_input_add(sd, GDK_INPUT_READ | GDK_INPUT_EXCEPTION, download_read, t);
 
-			/* Close the listening socket */
-
-			s->resource.download = NULL;
-			socket_destroy(s);
+			socket_free(s);		/* Close the listening socket */
 
 			break;
 		}
 
-		case GTA_TYPE_UPLOAD:
-		{
-
-		  struct upload* up; 
-
-		  up = upload_add(s);
-		  if (up != NULL) 
-		    {
-		  s->gdk_tag = gdk_input_add(s->file_desc, (GdkInputCondition) GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION,
-					     upload_write, (gpointer) up);
-		  s->resource.upload = up;
-		    }
-		  else socket_destroy(s);
-
+		default:
+			g_assert(0);		/* Can't happen */
 			break;
-		}
 	}
 }
 
@@ -412,14 +479,19 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
                 lcladdr.sin_addr.s_addr = g_htonl(forced_local_ip);
                 lcladdr.sin_port = g_htons(0);
 
-                res = bind(sd, (struct sockaddr *) &lcladdr, sizeof(struct sockaddr_in));
+				/*
+				 * Note: we ignore failures: it will be automatic at connect()
+				 * It's useful only for people forcing the IP without being
+				 * behind a masquerading firewall --RAM.
+				 */
+                (void) bind(sd, (struct sockaddr *) &lcladdr, sizeof(struct sockaddr_in));
         }
 
 	if (proxy_connections) {
 	  lcladdr.sin_family = AF_INET;
 	  lcladdr.sin_port = INADDR_ANY;
 
-	  res = bind(sd, (struct sockaddr *) &lcladdr, sizeof(struct sockaddr_in));
+	  (void) bind(sd, (struct sockaddr *) &lcladdr, sizeof(struct sockaddr_in));
 
 	  res = proxy_connect(sd, (struct sockaddr *) &addr, sizeof(struct sockaddr_in));
 	  
@@ -437,7 +509,7 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */	
 
-	if(!local_ip)
+	/* Always keep our IP current, in case of dynamic address */
 	  if(guess_local_ip(sd, &local_ip, &s->local_port) == -1)
 		{
 		  g_warning("Unable to guess our IP ! (%s)\n", g_strerror(errno));
@@ -490,7 +562,8 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 
 	if (bind(sd, (struct sockaddr *) &addr, l) == -1)
 	{
-		g_warning("Unable to bind() the socket (%s)\n", g_strerror(errno));
+		g_warning("Unable to bind() the socket on port %u (%s)\n",
+			port, g_strerror(errno));
 		socket_destroy(s);
 		return NULL;
 	}

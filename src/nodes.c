@@ -29,26 +29,37 @@ struct gnutella_node *node_added; /* For use by node_added_hook_list hooks, sinc
 
 guint32 gnutella_welcome_length = 0;
 
+static gint32 connected_node_cnt = 0;
+static gchar *msg_name[256];
+
 /* Network init ----------------------------------------------------------------------------------- */
 
 void network_init(void)
 {
+	int i;
+
 	gnutella_welcome_length = strlen(gnutella_welcome);
 	g_hook_list_init(&node_added_hook_list, sizeof(GHook));
 	node_added_hook_list.seq_id = 1;
 	node_added = NULL; 
+
+	for (i = 0; i < 256; i++) msg_name[i] = "unknown";
+	msg_name[GTA_MSG_INIT]                = "ping";
+	msg_name[GTA_MSG_INIT_RESPONSE]       = "pong";
+	msg_name[GTA_MSG_SEARCH]              = "query";
+	msg_name[GTA_MSG_SEARCH_RESULTS]      = "query hit";
 }
 
 /* Nodes ------------------------------------------------------------------------------------------ */
 
 gboolean on_the_net(void)
 {
-	GSList *l;
+	return connected_node_cnt > 0 ? TRUE : FALSE;
+}
 
-	for (l = sl_nodes; l; l = l->next)
-		if (((struct gnutella_node *) l->data)->status == GTA_NODE_CONNECTED) return TRUE;
-
-	return FALSE;
+gint32 connected_nodes(void)
+{
+	return connected_node_cnt;
 }
 
 void node_real_remove(struct gnutella_node *n)
@@ -65,7 +76,7 @@ void node_real_remove(struct gnutella_node *n)
 	g_free(n);
 }
 
-void node_remove(struct gnutella_node *n, const gchar *reason)
+void node_remove(struct gnutella_node *n, const gchar *reason, ...)
 {
 	gboolean on;
 
@@ -73,24 +84,34 @@ void node_remove(struct gnutella_node *n, const gchar *reason)
 
 	if (n->status == GTA_NODE_REMOVING) return;
 
-	if (n->status == GTA_NODE_CONNECTED) routing_node_remove(n);
+	if (n->status == GTA_NODE_CONNECTED) {
+		routing_node_remove(n);
+		connected_node_cnt--;
+		g_assert(connected_node_cnt >= 0);
+	}
 
 	if (n->socket)
 	{
-		n->socket->resource.node = (struct gnutella_node *) NULL;
-		socket_destroy(n->socket);
+		g_assert(n->socket->resource.node == n);
+		socket_free(n->socket);
 	}
 
-	if (n->gdk_tag) gdk_input_remove(n->gdk_tag);
-
-	if (n->allocated) g_free(n->data);
-
-	if (n->sendq) g_free(n->sendq);
+	if (n->gdk_tag)		gdk_input_remove(n->gdk_tag);
+	if (n->allocated)	g_free(n->data);
+	if (n->sendq)		g_free(n->sendq);
 
 	n->status = GTA_NODE_REMOVING;
 	n->last_update = time((time_t *) NULL);
 
-	if (reason) n->remove_msg = reason;
+	if (reason) {
+		va_list args;
+		va_start(args, reason);
+		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, args);
+		n->error_str[sizeof(n->error_str)-1] = '\0';	/* May be truncated */
+		va_end(args);
+		n->remove_msg = n->error_str;
+	} else
+		n->remove_msg = NULL;
 
 	nodes_in_list--;
 
@@ -108,6 +129,9 @@ gboolean have_node(guint32 ip)
 {
 	GSList *l;
 
+	if (stop_host_get)		/* Useful for testing */
+		return FALSE;
+
 	if (ip == local_ip || (force_local_ip && ip == forced_local_ip)) return TRUE;
 	for (l = sl_nodes; l; l = l->next) if (((struct gnutella_node *) l->data)->ip == ip) return TRUE;
 	return FALSE;
@@ -120,25 +144,26 @@ struct gnutella_node *node_add(struct gnutella_socket *s, guint32 ip, guint16 po
 	gint row;
 	gboolean incoming = FALSE, already_connected = FALSE;
 
+#define NO_RFC1918	/* XXX */
+
 #ifdef NO_RFC1918
        /* This needs to be a runtime option.  I could see a need for someone
        * to want to run gnutella behind a firewall over on a private network. */
        if (is_private_ip(ip))
        {       
-	 socket_destroy(s);
+	 if (s)
+		 socket_destroy(s);
 	 return NULL;
         }
 #endif
 
    /* Too many gnutellaNet connections */
-       if (nodes_in_list >= max_connections)
-       {
-	 socket_destroy(s);
-	 return NULL;
-       }
+	if (nodes_in_list >= max_connections) {
+		if (s)
+			 socket_destroy(s);
+		 return NULL;
+	}
  
-
-
 	n = (struct gnutella_node *) g_malloc0(sizeof(struct gnutella_node));
 
 	n->ip = ip;
@@ -185,18 +210,20 @@ struct gnutella_node *node_add(struct gnutella_socket *s, guint32 ip, guint16 po
 	already_connected = have_node(n->ip);
 
 	sl_nodes = g_slist_prepend(sl_nodes, n);
-	nodes_in_list++;
+	if (n->status != GTA_NODE_REMOVING)
+		nodes_in_list++;
+
+	if (already_connected)
+	{
+		node_remove(n, "Already connected");
+		return (struct gnutella_node *) NULL;
+	}
 
 	if (incoming) /* Welcome the incoming node */
 	{
-		if (already_connected)
+		if (write(s->file_desc, gnutella_welcome, strlen(gnutella_welcome)) < 0)
 		{
-			node_remove(n, "Already connected");
-			return (struct gnutella_node *) NULL;
-		}
-		else if (write(s->file_desc, gnutella_welcome, strlen(gnutella_welcome)) < 0)
-		{
-			node_remove(n, "Write failed");
+			node_remove(n, "Write of HELLO failed: %s", g_strerror(errno));
 			return (struct gnutella_node *) NULL;
 		}
 	}
@@ -227,6 +254,12 @@ void node_parse(struct gnutella_node *node)
 			break;
 		case GTA_MSG_INIT_RESPONSE:
 			if (*n->header.size != sizeof(struct gnutella_init_response)) drop = TRUE;
+			/* 
+			 * TODO
+			 * Don't propagate more than a fraction of pongs coming from
+			 * hosts that don't share much.
+			 *		--RAM, 09/09/2001
+			 */
 			break;
 		case GTA_MSG_PUSH_REQUEST:
 			if (*n->header.size != sizeof(struct gnutella_push_request)) drop = TRUE;
@@ -234,6 +267,15 @@ void node_parse(struct gnutella_node *node)
 		case GTA_MSG_SEARCH:
 			if (!*n->header.size) drop = TRUE;
 			else if (*n->header.size > search_queries_forward_size) drop = TRUE;
+
+			/*
+			 * TODO
+			 * Just like we refuse to process queries that are "too short",
+			 * and would therefore match too many things, we should probably
+			 * refuse to forward those on the network.  Less careful servents
+			 * would reply, and then we'll have more messages to process.
+			 *		-- RAM, 09/09/2001
+			 */
 			break;
 		case GTA_MSG_SEARCH_RESULTS:
 			if (*n->header.size > search_answers_forward_size) drop = TRUE;
@@ -241,6 +283,8 @@ void node_parse(struct gnutella_node *node)
 
 		default: /* Unknown message type - we drop it */
 			drop = TRUE;
+			n->n_bad++;
+			break;
 	}
 
 	/* Route (forward) then handle the message if required */
@@ -277,7 +321,7 @@ void node_init_outgoing(struct gnutella_node *n)
 {
 	if (write(n->socket->file_desc, gnutella_hello, strlen(gnutella_hello)) < 0)
 	{
-		node_remove(n, "Write error");
+		node_remove(n, "Write error: %s", g_strerror(errno));
 	}
 	else
 	{
@@ -304,7 +348,11 @@ gboolean node_enqueue(struct gnutella_node *n, gchar *data, guint32 size)
 	  return TRUE;
 	}
 
-	if (size + n->sq_pos > node_sendqueue_size) { node_remove(n, "Send queue exceeded"); return FALSE; }
+	if (size + n->sq_pos > node_sendqueue_size) {
+		node_remove(n, "Send queue exceeded limit of %d bytes",
+			node_sendqueue_size);
+		return FALSE;
+	}
 
 	if (!n->gdk_tag) {
 		n->gdk_tag = gdk_input_add(n->socket->file_desc, GDK_INPUT_WRITE | GDK_INPUT_EXCEPTION, node_write, (gpointer) n);
@@ -381,7 +429,7 @@ void node_write(gpointer data, gint source, GdkInputCondition cond)
 		} else if (errno == EAGAIN || errno == EINTR) {
 		  return;
 		} else if (errno == EPIPE || errno == ENOSPC || errno == EIO || errno == ECONNRESET || errno == ETIMEDOUT) {
-		  node_remove(n, "Write of queue failed");
+		  node_remove(n, "Write of queue failed: %s", g_strerror(errno));
 		  return; 
 		} else {
 		  int terr = errno;
@@ -392,9 +440,10 @@ void node_write(gpointer data, gint source, GdkInputCondition cond)
 
 	if (!n->sq_pos)
 	{
-		if (n->sendq) { g_free(n->sendq); n->sendq = (gchar *) NULL; }
 		gdk_input_remove(n->gdk_tag);
 		n->gdk_tag = 0;
+		g_assert(n->end_of_packets == NULL);
+		g_assert(n->end_of_last_packet == 0);
 	}
 }
 
@@ -410,6 +459,7 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 	if (n->status == GTA_NODE_WELCOME_SENT)	/* This is the first packet from this node */
 	{
 		n->status = GTA_NODE_CONNECTED;
+		connected_node_cnt++;
 		gtk_widget_set_sensitive(button_host_catcher_get_more, TRUE);
 
 		node_added = n;
@@ -428,7 +478,10 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 
 		if (!r) { node_remove(n, "Failed (EOF)"); return; }
 		else if (r < 0 && errno == EAGAIN) return;
-		else if (r < 0) { node_remove(n, "Failed (Read Error)"); return; }
+		else if (r < 0) {
+			node_remove(n, "Read error: %s", g_strerror(errno));
+			return;
+		}
 
 		n->pos += r;
 
@@ -463,7 +516,11 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 				if (n->size > other_messages_kick_size) kick = TRUE; break;
 		}
 
-		if (kick) { node_remove(n, "Kicked (message too big)"); return; }
+		if (kick) {
+			node_remove(n, "Kicked: %s message too big (%d bytes)",
+				msg_name[n->header.function], n->size);
+			return;
+		}
 
 		/* Okay */
 
@@ -492,7 +549,10 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 
 	if (!r) { node_remove(n, "Failed (EOF in message data)"); return; }
 	else if (r < 0 && errno == EAGAIN) return;
-	else if (r < 0) { node_remove(n, "Failed (Read Error in message data)"); return; }
+	else if (r < 0) {
+		node_remove(n, "Read error in message: %s", g_strerror(errno));
+		return;
+	}
 
 	n->pos += r;
 
@@ -514,7 +574,11 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 
 	if (!r) { node_remove(s->resource.node, "Failed (EOF)"); return; }
 	else if (r < 0 && errno == EAGAIN) return;
-	else if (r < 0) { node_remove(s->resource.node, "Failed (Read Error)"); return; }
+	else if (r < 0) {
+		node_remove(s->resource.node, "Read error in HELLO: %s",
+			g_strerror(errno));
+		return;
+	}
 
 	s->pos += r;
 
@@ -524,6 +588,8 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 	{
 		/* The node does not seem to be a valid gnutella server !? */
 
+		g_warning("node %s replied to our HELLO with: \"%.80s\"\n",
+			ip_port_to_gchar(s->ip, s->port), s->buffer);
 		node_remove(s->resource.node, "Failed (Not a gnutella server ?)");
 		return;
 	}
@@ -540,6 +606,7 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 	s->pos = 0;
 
 	s->resource.node->status = GTA_NODE_CONNECTED;
+	connected_node_cnt++;
 
 	gui_update_node(s->resource.node, TRUE);
 
@@ -550,6 +617,22 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 	node_added = s->resource.node;
 	g_hook_list_invoke(&node_added_hook_list, TRUE);
 	node_added = NULL;
+}
+
+void node_close(void)
+{
+	while (sl_nodes) {
+		struct gnutella_node *n = sl_nodes->data;
+		if (n->socket)
+			g_free(n->socket);
+		if (n->sendq)
+			g_free(n->sendq);
+		if (n->allocated)
+			g_free(n->data);
+		node_real_remove(n);
+	}
+
+	g_slist_free(sl_nodes);
 }
 
 /* vi: set ts=3: */

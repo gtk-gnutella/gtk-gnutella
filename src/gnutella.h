@@ -4,8 +4,6 @@
 
 /* Main includes ---------------------------------------------------------------------------------- */
 
-#include <gtk/gtk.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -15,6 +13,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+
+#include <gtk/gtk.h>
 
 #include "../config.h"
 
@@ -178,9 +178,9 @@ struct gnutella_socket
 	guint32 ip;					/* IP	of our partner */
 	guint16 port;				/* Port of our partner */
 
-	guint16 local_port;		/* Port on our side */
-       
-        gint freed;                     /* temp fix for memory leakage */
+	guint16 local_port;			/* Port on our side */
+
+	time_t last_update;			/* Timestamp of last activity on socket */
 
 	union
 	{
@@ -195,6 +195,7 @@ struct gnutella_socket
 
 struct gnutella_node
 {
+	gchar error_str[256];			/* To sprintf() error strings with vars */
 	struct gnutella_socket *socket;	/* Socket of the node */
 
 	struct gnutella_header header;	/* Header of the current message */
@@ -211,6 +212,8 @@ struct gnutella_node
 	guint32 received;			/* Number of received packets */
 	guint32 dropped;			/* Number of packets dropped */
 	guint32 n_bad;				/* Number of bad packets received */
+	guint16 n_dups;				/* Number of dup messages received (bad) */
+	guint16 n_hard_ttl;			/* Number of hard_ttl exceeded (bad) */
 
 	gboolean allocated;		/* TRUE if we have allocated extra memory for message data */
 	gboolean have_header;	/* TRUE if we have got a full message header */
@@ -234,8 +237,8 @@ struct gnutella_host
 {
 	guint32 ip;
 	guint16 port;
-	guint32 files_count;
-	guint32 kbytes_count;
+	// guint32 files_count;		/* UNUSED --RAM */
+	// guint32 kbytes_count;	/* UNUSED --RAM */
 };
 
 struct ping_req
@@ -251,6 +254,7 @@ struct ping_req
 
 struct download
 {
+	gchar error_str[256];	/* Used to sprintf() error strings with vars */
 	guint32 status;			/* Current status of the download */
 
 	gchar *path;				/* Path of the created output file */
@@ -319,6 +323,7 @@ struct shared_file {
   gchar *file_directory_path; /* lowercase of the path from the share_dir entry to the file */
   guint32 file_index;                /* the files index withing out local DB */
   guint32 file_size;               /* File size in Bytes */
+  gint file_name_len;
 };
 
 /* Structure for search results */
@@ -351,8 +356,8 @@ struct search
 
 	GHook  *new_node_hook;
 	guint   reissue_timeout_id;
+	guint reissue_timeout;		/* timeout per search, 0 = search stopped */
 	/* XXX Other fields for the filtering will be added here */
-
 };
 
 /* Variables -------------------------------------------------------------------------------------- */
@@ -369,6 +374,7 @@ extern gboolean clear_downloads;
 
 extern guint8  my_ttl;
 extern guint8  max_ttl;
+extern guint8  hard_ttl_limit;
 extern guint16 listen_port;
 extern guint32 minimum_speed;
 extern guint32 up_connections;
@@ -401,6 +407,13 @@ extern guint32 dl_queued_col_widths[];
 extern guint32 uploads_col_widths[];
 extern guint32 search_results_col_widths[];
 extern guint32 hops_random_factor;
+
+extern gint dbg;
+extern gint stop_host_get;
+extern gint enable_err_log;
+extern gint search_strict_and;
+extern gint search_pick_all;
+extern gint max_uploads_ip;
 
 extern gchar *save_file_path;
 extern gchar *move_file_path;
@@ -498,12 +511,14 @@ gboolean is_private_ip(guint32 ip);
 gchar *node_ip(struct gnutella_node *);
 void message_dump(struct gnutella_node *);
 gboolean is_directory(gchar *);
+void debug_show_hex(gchar *, gchar *, gint);
 gchar *short_size(guint32);
 
 /* config.c */
 
 void config_init(void);
 void config_save();
+void config_close(void);
 
 /* gui.c */
 
@@ -544,34 +559,40 @@ void gui_update_socks_host();
 void gui_update_socks_port();
 void gui_update_socks_user();
 void gui_update_socks_pass();
+void gui_close(void);
 
 /* sockets.c */
 
 void socket_destroy(struct gnutella_socket *);
+void socket_free(struct gnutella_socket *);
 struct gnutella_socket *socket_connect(guint32, guint16, gint);
 struct gnutella_socket *socket_listen(guint32, guint16, gint);
-void socket_read(gpointer, gint, GdkInputCondition);
 int connect_socksv5(struct gnutella_socket*);
 int proxy_connect (int, const struct sockaddr *, size_t socklen_t);
 int recv_socks(struct gnutella_socket*);
 int send_socks(struct gnutella_socket*);
+void socket_monitor_incoming(void);
+void socket_shutdown(void);
 
 /* nodes.c */
 
 void network_init(void);
 gboolean on_the_net(void);
+gint32 connected_nodes(void);
 struct gnutella_node *node_add(struct gnutella_socket *, guint32, guint16);
 void node_real_remove(struct gnutella_node *);
-void node_remove(struct gnutella_node *, const gchar *reason);
+void node_remove(struct gnutella_node *, const gchar *reason, ...);
 void node_init_outgoing(struct gnutella_node *);
 void node_read_connecting(gpointer, gint, GdkInputCondition);
 void node_read(gpointer, gint, GdkInputCondition);
 void node_write(gpointer, gint, GdkInputCondition);
 gboolean node_enqueue(struct gnutella_node *, gchar *, guint32);
 void node_enqueue_end_of_packet(struct gnutella_node *);
+void node_close(void);
 
 /* hosts.c */
 
+void host_init(void);
 gboolean find_host(guint32, guint16);
 void host_remove(struct gnutella_host *, gboolean);
 void host_add(struct gnutella_node *, guint32, guint16, gboolean);
@@ -582,10 +603,12 @@ void ping_stats_update(void);
 gboolean check_valid_host(guint32, guint16);
 void hosts_read_from_file(gchar *, gboolean);
 void hosts_write_to_file(gchar *);
+void host_close(void);
 
 /* routing.c */
 
 void routing_init(void);
+void routing_close(void);
 void generate_new_muid(guchar *muid);
 void message_set_muid(struct gnutella_header *);
 gboolean route_message(struct gnutella_node **);
@@ -599,7 +622,7 @@ void message_add(guchar *, guint8, struct gnutella_node *);
 
 void download_new(gchar *, guint32, guint32, guint32, guint16, gchar *);
 void download_queue(struct download *);
-void download_stop(struct download *, guint32, const gchar *);
+void download_stop(struct download *, guint32, const gchar *, ...);
 void download_free(struct download *);
 void download_read(gpointer, gint, GdkInputCondition);
 void download_push(struct download *);
@@ -608,11 +631,12 @@ void download_pickup_queued(void);
 void downloads_clear_stopped(gboolean, gboolean);
 void download_abort(struct download *);
 void download_resume(struct download *);
-void download_start(struct download *);
+void download_start(struct download *, gboolean);
 void download_kill(struct download *);
 void download_queue_back(struct download *);
 gboolean download_send_request(struct download *);
 void download_retry(struct download *);
+void download_close(void);
 
 /* uploads.c */
 
@@ -620,12 +644,14 @@ void upload_remove(struct upload *, gchar *);
 void handle_push_request(struct gnutella_node *);
 struct upload* upload_add(struct gnutella_socket *s);
 void upload_write(gpointer up, gint, GdkInputCondition);
+void upload_close(void);
 
 
 /* share.c */
 
 void share_init(void);
 void share_scan(void);
+void share_close(void);
 void search_request(struct gnutella_node *n);
 void parse_extensions(gchar *);
 gint file_exists(gint, gchar *);
@@ -639,6 +665,8 @@ gint get_file_size(gint);
 void search_init(void);
 struct search *new_search(guint16, gchar *);
 struct search *_new_search(guint16, gchar *, guint flags);
+void search_stop(struct search *sch);
+void search_resume(struct search *sch);
 void search_results(struct gnutella_node *n);
 void search_download_files(void);
 void search_close_current(void);
@@ -647,6 +675,7 @@ gint search_results_compare_speed(GtkCList *, gconstpointer, gconstpointer);
 gint search_results_compare_ip(GtkCList *, gconstpointer, gconstpointer);
 void search_clear_clicked(void);
 void search_update_reissue_timeout(guint32);
+void search_shutdown(void);
 
 #endif	/* __gnutella_h__ */
 

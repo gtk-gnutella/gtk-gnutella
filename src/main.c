@@ -10,11 +10,16 @@
 #include "search.h"
 #include "filter.h"
 
+#define NODE_ERRMSG_TIMEOUT	5	/* Time to leave erorr messages displayed */
+#define DL_UPDATE_DELAY		10	/* Don't update downloads too often */
+#define SLOW_UPDATE_PERIOD	20	/* Updating period for `main_slow_update' */
+
 /* */
 
 GtkWidget *main_window;
 
 struct gnutella_socket *s_listen = NULL;
+static guint main_slow_update = 0;
 
 /* */
 
@@ -22,12 +27,32 @@ void gtk_gnutella_exit(gint n)
 {
 	if (hosts_idle_func) gtk_idle_remove(hosts_idle_func);
 	config_save();
+
+	/* Shutdown systems, so we can track memory leaks */
+	if (s_listen)
+		socket_destroy(s_listen);
+	socket_shutdown();
+	search_shutdown();
+	share_close();
+	host_close();
+	config_close();
+	node_close();
+	routing_close();
+	download_close();
+	upload_close();
+	gui_close();
+
 	gtk_exit(n);
 }
 
-void SIG_Handler(int n)
+static void SIG_Handler(int n)
 {
 	gtk_gnutella_exit(1);
+}
+
+static void SIG_Ignore(int n)
+{
+	return;
 }
 
 gboolean main_timer(gpointer p)
@@ -36,12 +61,16 @@ gboolean main_timer(gpointer p)
 	struct gnutella_node *n;
 	struct download *d;
 	guint32 t;
+	time_t now = time((time_t *) NULL);
 
        /* If we are under the number of connections wanted, we add a host
         * to the connection list */
        
-       if ((nodes_in_list < up_connections) && (sl_catched_hosts != NULL))
-       {
+       if (
+			nodes_in_list < up_connections &&
+			sl_catched_hosts != NULL &&
+			!stop_host_get
+       ) {
                struct gnutella_host *host;
 
                host = (struct gnutella_host *) sl_catched_hosts->data;
@@ -53,14 +82,19 @@ gboolean main_timer(gpointer p)
 
 	l = sl_nodes;
 
-	while (l)
+	while (l && !stop_host_get)		/* No timeout if stop_host_get is set */
 	{
 		n = (struct gnutella_node *) l->data;
 		l = l->next;
 
-		if (n->status == GTA_NODE_REMOVING && time((time_t *) NULL) - n->last_update > 3) node_real_remove(n);
-		else if (n->status == GTA_NODE_CONNECTING && time((time_t *) NULL) - n->last_update > node_connecting_timeout) node_remove(n, "Timeout");
-		else if (time((time_t *) NULL) - n->last_update > node_connected_timeout) node_remove(n, "Timeout");
+		if (n->status == GTA_NODE_REMOVING &&
+				now - n->last_update > NODE_ERRMSG_TIMEOUT)
+			node_real_remove(n);
+		else if (n->status == GTA_NODE_CONNECTING &&
+				now - n->last_update > node_connecting_timeout)
+			node_remove(n, "Timeout");
+		else if (now - n->last_update > node_connected_timeout)
+			node_remove(n, "Activity Timeout");
 	}
 
 	/* The downloads */
@@ -80,7 +114,7 @@ gboolean main_timer(gpointer p)
 			case GTA_DL_REQ_SENT:
 			case GTA_DL_FALLBACK:
 			{
-				if (time((time_t *) NULL) - d->last_update < 10) break;
+				if (now - d->last_update < DL_UPDATE_DELAY) break;
 				
 				switch (d->status)
 				{
@@ -95,7 +129,7 @@ gboolean main_timer(gpointer p)
 						t = download_connected_timeout;
 				}
 
-				if (time((time_t *) NULL) - d->last_update > t)
+				if (now - d->last_update > t)
 				{
 					if (d->status == GTA_DL_CONNECTING)
 						download_fallback_to_push(d, FALSE);
@@ -109,8 +143,8 @@ gboolean main_timer(gpointer p)
 		  }
 		  case GTA_DL_TIMEOUT_WAIT:
 		  {
-				if (time((time_t *) NULL) - d->last_update > d->timeout_delay)
-					 download_start(d);
+				if (now - d->last_update > d->timeout_delay)
+					 download_start(d, TRUE);
 				else gui_update_download(d,FALSE);
 				break;
 		  }
@@ -119,14 +153,26 @@ gboolean main_timer(gpointer p)
 
 	if (clear_downloads) downloads_clear_stopped(FALSE, FALSE);
 
+	/* Dequeuing */
+	download_pickup_queued();
+
         /* Uploads */
         
         for (l = uploads; l; l = l->next) gui_update_upload((struct upload*)l->data);
+
+	/* Expire connecting sockets */
+	socket_monitor_incoming();
 
 	/* GUI update */
 
 	gui_update_global();
 	gui_update_stats();
+
+	/* Update for things that change slowly */
+	if (main_slow_update++ > SLOW_UPDATE_PERIOD) {
+		main_slow_update = 0;
+		gui_update_config_port();	/* Show current IP:port if dynamic IP */
+	}
 
 	return TRUE;
 }
@@ -165,6 +211,7 @@ gint main(gint argc, gchar **argv)
 	/* Our inits */
 
 	config_init();
+	host_init();
 	network_init();
 	routing_init();
 	search_init();
@@ -175,7 +222,7 @@ gint main(gint argc, gchar **argv)
 
 	signal(SIGTERM, SIG_Handler);
 	signal(SIGINT,  SIG_Handler);
-	signal(SIGPIPE, SIG_IGN);
+	signal(SIGPIPE, SIG_Ignore);	/* SIG_IGN -- running under debugger */
 
 	/* Create the main listening socket */
 
@@ -238,7 +285,7 @@ gint main(gint argc, gchar **argv)
 
 
         /* Auto-connect to the network. */
-        if(up_connections) {
+        if (up_connections && !stop_host_get) {
             guint32 autoConnectIp = 0;
 
             autoConnectIp = host_to_ip("gnutellahosts.com");
@@ -258,7 +305,4 @@ gint main(gint argc, gchar **argv)
 }
 
 /* vi: set ts=3: */
-
-
-
 

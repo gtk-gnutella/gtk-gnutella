@@ -1,13 +1,13 @@
 
 /* Misc functions */
 
-#include "gnutella.h"
-
 #include <sys/stat.h>
 
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+
+#include "gnutella.h"
 
 gchar *ip_to_gchar(guint32 ip)
 {
@@ -107,9 +107,9 @@ gchar *short_size(guint32 size)
 	static gchar b[256];
 
 	if (size < 1024) g_snprintf(b, sizeof(b), "%u Bytes", size);
-	else if (size < 1048576) g_snprintf(b, sizeof(b), "%.1fKB", (float) size / 1024.0);
-	else if (size < 1073741824) g_snprintf(b, sizeof(b), "%.1fMB", (float) size / 1048576.0);
-	else g_snprintf(b, sizeof(b), "%.1fGB", (float) size / 1073741824.0);
+	else if (size < 1048576) g_snprintf(b, sizeof(b), "%.1f KB", (float) size / 1024.0);
+	else if (size < 1073741824) g_snprintf(b, sizeof(b), "%.1f MB", (float) size / 1048576.0);
+	else g_snprintf(b, sizeof(b), "%.1f GB", (float) size / 1073741824.0);
 
 	return b;
 }
@@ -163,5 +163,51 @@ void message_dump(struct gnutella_node *n)
 	printf("\n");
 }
 
-/* vi: set ts=3: */
+/* 
+ * Displays hex & ascii lines to the terminal (for debug)
+ * Displays the "title" then the characters in "s", # of bytes to print in "b"
+ */
 
+void debug_show_hex(gchar *title, gchar *s, gint b){
+
+	int i,x,y,z,end;
+	char temp[18];
+
+	printf ("----------------- %s\n",title);
+
+	if ((b < 1) || (s == NULL)) { // check everything, this is for debug
+		printf ("ERROR - debug_show_hex, value out of range\n");
+		fflush(stdout);
+		return;
+		}
+
+	i = x = end = 0;
+	while (1) {
+		if (end) {
+			printf("   ");
+			temp[i] = ' ';
+			}
+		else {
+			z = s[x] & 0x000000FF;
+			printf("%.2X ",z);
+			z = z & 0x0000007F; // hack off bit 7 for ASCII
+      	if (z < 0x20) z = '.'; // no non printables
+			if (z == 0x7F) z = '.'; // no DEL
+			temp[i] = z ; // save it for later ASCII print
+			}
+		if (++i >= 16) {
+			printf(" ");
+			for (y=0; y<16; y++){ //do 16 bytes ASCII
+				printf("%c",temp[y]);
+				}
+    		printf("\n");
+			if (end || ((x + 1) >= b)) break;
+			i = 0;
+			}
+		if (++x >= b) end = 1;
+		}
+	printf ("----------------- Bytes = %d\n",b);
+	fflush(stdout);
+}
+
+/* vi: set ts=3: */

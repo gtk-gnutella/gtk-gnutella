@@ -116,6 +116,8 @@ extern GtkWidget *popup_search_toggle_tabs;
 extern GtkWidget *popup_search_restart;
 extern GtkWidget *popup_search_duplicate;
 extern GtkWidget *popup_search_clear_results;
+extern GtkWidget *popup_search_stop;
+extern GtkWidget *popup_search_resume;
 extern GtkWidget *popup_monitor;
 extern GtkWidget *popup_monitor_title;
 extern GtkWidget *popup_nodes;

@@ -9,8 +9,32 @@
 
 #include "search.h"
 #include "filter.h"
-
 #include "dialog-filters.h"
+
+#define MAKE_CODE(a,b,c,d) ( \
+	((guint32) (a) << 24) | \
+	((guint32) (b) << 16) | \
+	((guint32) (c) << 8)  | \
+	((guint32) (d)))
+
+#define T_GTKG	MAKE_CODE('G','T','K','G')
+#define T_NAPS	MAKE_CODE('N','A','P','S')
+#define T_LIME	MAKE_CODE('L','I','M','E')
+#define T_BEAR	MAKE_CODE('B','E','A','R')
+#define T_GNOT	MAKE_CODE('G','N','O','T')
+#define T_GNUC	MAKE_CODE('G','N','U','C')
+#define T_MACT	MAKE_CODE('M','A','C','T')
+#define T_SNUT	MAKE_CODE('S','N','U','T')
+#define T_TOAD	MAKE_CODE('T','O','A','D')
+#define T_GNUT	MAKE_CODE('G','N','U','T')
+#define T_OCFG	MAKE_CODE('O','C','F','G')
+#define T_XOLO	MAKE_CODE('X','O','L','O')
+#define T_CULT	MAKE_CODE('C','U','L','T')
+#define T_HSLG	MAKE_CODE('H','S','L','G')
+#define T_OPRA	MAKE_CODE('O','P','R','A')
+#define T_QTEL	MAKE_CODE('Q','T','E','L')
+
+#define MAX_TAG_SHOWN	60		/* Show only first chars of tag */
 
 static gchar stmp_1[4096];
 static gchar stmp_2[4096];
@@ -22,7 +46,7 @@ GtkWidget *default_scrolled_window = NULL;	/* If no search are currently allocat
 
 struct search *current_search = NULL;			/*	The search currently displayed */
 
-gboolean search_results_show_tabs = FALSE;	/* Do we have to display the notebook tabs */
+gboolean search_results_show_tabs = TRUE;	/* Do we have to display the notebook tabs */
 
 static void search_free_r_sets(struct search *);
 static void search_send_packet(struct search *);
@@ -35,6 +59,7 @@ static gboolean search_reissue_timeout_callback(gpointer data);
 static void update_one_reissue_timeout(struct search *sch);
 
 guint32 search_passive = 0;
+gint select_all_lock = 0;
 
 
 /* --------------------------------------------------------------------------------------------------------- */
@@ -44,6 +69,32 @@ guint32 search_passive = 0;
 void on_clist_search_results_select_row(GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data)
 {
 	gtk_widget_set_sensitive(button_search_download, TRUE);
+
+	
+	if (search_pick_all) { // config setting select all is on
+		if (!select_all_lock) {
+			struct record *rc, *rc2;
+			gint x, i;
+			// this will be called for each selection, so only do it here
+			select_all_lock = 1;
+			rc = (struct record *) gtk_clist_get_row_data(clist, row);
+			x = 1;
+			for (i = 0; i < clist->rows; i++) {
+				if (i == row) continue; // skip this one
+				rc2 = (struct record *) gtk_clist_get_row_data(clist, i);
+				// if name match and file is same or larger, select it
+				if (rc2) if (!strcmp(rc2->name,rc->name)) {
+					if (rc2->size >= rc->size) {
+							gtk_clist_select_row(clist, i, 0);
+							x++;
+					}
+				}
+			}
+			g_snprintf(stmp_1, sizeof(stmp_1), "        (%d auto selected)",x);
+			gtk_label_set(GTK_LABEL(label_left), stmp_1);
+			select_all_lock = 0; // we are done, un "lock" it
+		}
+	}
 }
 
 /* Row unselected */
@@ -54,6 +105,7 @@ void on_clist_search_results_unselect_row(GtkCList *clist, gint row, gint column
 
   sensitive = current_search && GTK_CLIST(current_search->clist)->selection;
   gtk_widget_set_sensitive(button_search_download, sensitive);
+  if (search_pick_all) gtk_label_set(GTK_LABEL(label_left), "");
 }
 
 /* Column title clicked */
@@ -63,9 +115,10 @@ void on_clist_search_results_click_column (GtkCList *clist, gint column, gpointe
 	if(current_search == NULL)
 	  return;
 
-	/* Sorting by host doesn't work for now - so we disable it */
+	/* No sorting for those columns */
 
 	if (column == 3) return;
+	if (column == 4) return;
 
 	switch (column)
 	{
@@ -140,12 +193,31 @@ static void search_restart(struct search *sch) {
 
 void on_popup_search_restart_activate (GtkMenuItem *menuitem, gpointer user_data) {
 	if (current_search)
-	  search_restart(current_search);
+		search_restart(current_search);
 }
 
 void on_popup_search_duplicate_activate (GtkMenuItem *menuitem, gpointer user_data)
 {
-	if (current_search) new_search(current_search->speed, current_search->query);
+	if (current_search)
+		new_search(current_search->speed, current_search->query);
+}
+
+void on_popup_search_stop_activate (GtkMenuItem *menuitem, gpointer user_data)
+{
+	if (current_search) {
+		gtk_widget_set_sensitive(popup_search_stop, FALSE);
+		gtk_widget_set_sensitive(popup_search_resume, TRUE);
+		search_stop(current_search);
+	}
+}
+
+void on_popup_search_resume_activate (GtkMenuItem *menuitem, gpointer user_data)
+{
+	if (current_search) {
+		gtk_widget_set_sensitive(popup_search_stop, TRUE);
+		gtk_widget_set_sensitive(popup_search_resume, FALSE);
+		search_resume(current_search);
+	}
 }
 
 gboolean on_clist_search_results_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
@@ -161,11 +233,15 @@ gboolean on_clist_search_results_button_press_event(GtkWidget *widget, GdkEventB
 	{
 		gtk_clist_unselect_all(GTK_CLIST(current_search->clist));
 		gtk_widget_set_sensitive(popup_search_stop_sorting, current_search->sort);
+		gtk_widget_set_sensitive(popup_search_stop, current_search->reissue_timeout);
+		gtk_widget_set_sensitive(popup_search_resume, !current_search->reissue_timeout);
 		g_snprintf(stmp_1, sizeof(stmp_1), "%s", current_search->query);
 	}
 	else
 	{
 		gtk_widget_set_sensitive(popup_search_stop_sorting, FALSE);
+		gtk_widget_set_sensitive(popup_search_stop, FALSE);
+		gtk_widget_set_sensitive(popup_search_resume, FALSE);
 		g_snprintf(stmp_1, sizeof(stmp_1), "No current search");
 	}
 
@@ -210,10 +286,10 @@ void search_create_clist(GtkWidget **sw, GtkWidget **clist)
 
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (*sw), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-	*clist = gtk_clist_new (4);
+	*clist = gtk_clist_new (5);
 
 	gtk_container_add (GTK_CONTAINER (*sw), *clist);
-	for (i = 0; i < 4; i++) gtk_clist_set_column_width (GTK_CLIST (*clist), i, search_results_col_widths[i]);
+	for (i = 0; i < 5; i++) gtk_clist_set_column_width (GTK_CLIST (*clist), i, search_results_col_widths[i]);
 	gtk_clist_set_selection_mode (GTK_CLIST (*clist), GTK_SELECTION_EXTENDED);
 	gtk_clist_column_titles_show (GTK_CLIST (*clist));
 
@@ -229,6 +305,9 @@ void search_create_clist(GtkWidget **sw, GtkWidget **clist)
 
 	label = gtk_label_new ("Host");
 	gtk_clist_set_column_widget (GTK_CLIST (*clist), 3, label);
+
+	label = gtk_label_new ("Info");
+	gtk_clist_set_column_widget (GTK_CLIST (*clist), 4, label);
 	
 	gtk_widget_show_all (*sw);
 
@@ -307,6 +386,8 @@ void on_search_switch(struct search *sch)
 
 	gtk_widget_set_sensitive(popup_search_restart, !sch->passive);
 	gtk_widget_set_sensitive(popup_search_duplicate, !sch->passive);
+	gtk_widget_set_sensitive(popup_search_stop, sch->reissue_timeout);
+	gtk_widget_set_sensitive(popup_search_resume, !sch->reissue_timeout);
 }
 
 void on_search_popdown_switch(GtkWidget *w, gpointer data)
@@ -344,6 +425,16 @@ void search_init(void)
 	gtk_window_set_position(GTK_WINDOW(dialog_filters), GTK_WIN_POS_CENTER);
 }
 
+/* Free one file record */
+
+static void search_free_record(struct record *rc)
+{
+	g_free(rc->name);
+	if (rc->tag)
+		g_free(rc->tag);
+	g_free(rc);
+}
+
 /* Free one results_set */
 
 void search_free_r_set(struct results_set *rs)
@@ -351,11 +442,10 @@ void search_free_r_set(struct results_set *rs)
 	GSList *m;
 
 	for (m = rs->records; m; m = m->next)
-	{
-		g_free(((struct record *) m->data)->name);
-		g_free(m->data);
-	}
+		search_free_record((struct record *) m->data);
 
+	if (rs->trailer)
+		g_free(rs->trailer);
 	g_slist_free(rs->records);
 	g_free(rs);
 }
@@ -372,7 +462,6 @@ void search_free_r_sets(struct search *sch)
 		search_free_r_set((struct results_set *) l->data);
 
 	g_slist_free(sch->r_sets);
-
 	sch->r_sets = NULL;
 }
 
@@ -394,7 +483,9 @@ void search_close_current(void)
 		g_hook_destroy_link(&node_added_hook_list, sch->new_node_hook);
 		sch->new_node_hook = NULL;
 
-		g_source_remove(sch->reissue_timeout_id);
+		/* we could have stopped the search already, must test the ID */
+		if (sch->reissue_timeout_id)
+			g_source_remove(sch->reissue_timeout_id);
 
 		for(m = sch->muids; m; m = m->next) {
 		  g_free(m->data);
@@ -502,7 +593,10 @@ void __search_send_packet(struct search *sch, struct gnutella_node *n)
 
 	m->header.function = GTA_MSG_SEARCH;
 	m->header.ttl = my_ttl;
-	m->header.hops = 0; /* (hops_random_factor)? (rand() % (hops_random_factor + 1)) : 0;*/
+	m->header.hops = hops_random_factor ?
+		(rand() % (hops_random_factor + 1)) : 0;
+	if (m->header.ttl + m->header.hops > hard_ttl_limit)
+		m->header.ttl = hard_ttl_limit - m->header.hops;
 
 	WRITE_GUINT32_LE(size - sizeof(struct gnutella_header), m->header.size);
 
@@ -580,6 +674,26 @@ struct search *new_search(guint16 speed, gchar *query) {
   return _new_search(speed, query, 0);
 }
 
+void search_stop(struct search *sch)
+{
+	g_assert(sch->reissue_timeout_id);
+	g_assert(sch->reissue_timeout);		/* not already stopped */
+
+	sch->reissue_timeout = 0;
+	update_one_reissue_timeout(sch);
+
+	g_assert(sch->reissue_timeout_id == 0);
+}
+
+void search_resume(struct search *sch)
+{
+	g_assert(sch->reissue_timeout == 0);	/* already stopped */
+
+	sch->reissue_timeout = search_reissue_timeout;
+	sch->reissue_timeout_id = g_timeout_add(sch->reissue_timeout * 1000,
+		search_reissue_timeout_callback, sch);
+}
+
 static gboolean search_already_sent_to_node(struct search *sch, struct gnutella_node *n) {
   struct sent_node_data sd;
   sd.ip = n->ip;
@@ -616,7 +730,7 @@ static gint sent_node_compare(gconstpointer a, gconstpointer b) {
 static gboolean search_reissue_timeout_callback(gpointer data) {
   struct search *sch = (struct search *)data;
 
-  printf("reissuing search %s.\n", sch->query);
+  if (dbg) printf("reissuing search %s.\n", sch->query);
   search_reissue(sch);
 
   return TRUE;
@@ -624,12 +738,12 @@ static gboolean search_reissue_timeout_callback(gpointer data) {
 
 static void update_one_reissue_timeout(struct search *sch) {
   g_source_remove(sch->reissue_timeout_id);
-  if(search_reissue_timeout > 0) {
-	printf("updating search %s with timeout %d.\n", sch->query, search_reissue_timeout * 1000);
-	sch->reissue_timeout_id = g_timeout_add(search_reissue_timeout * 1000, search_reissue_timeout_callback, sch);
+  if(sch->reissue_timeout > 0) {
+	if (dbg) printf("updating search %s with timeout %d.\n", sch->query, sch->reissue_timeout * 1000);
+	sch->reissue_timeout_id = g_timeout_add(sch->reissue_timeout * 1000, search_reissue_timeout_callback, sch);
   } else {
 	sch->reissue_timeout_id = 0;
-	printf("canceling search %s reissue timeout.\n", sch->query);
+	if (dbg) printf("canceling search %s reissue timeout.\n", sch->query);
   }
 }
 
@@ -640,6 +754,8 @@ void search_update_reissue_timeout(guint32 timeout) {
 
   for(l = searches; l; l = l->next) {
 	struct search *sch = (struct search *)l->data;
+	if (sch->reissue_timeout > 0)		/* Not stopped */
+		sch->reissue_timeout = timeout;
 	if(sch->reissue_timeout_id)
 	  update_one_reissue_timeout(sch);
   }
@@ -671,7 +787,8 @@ struct search *_new_search(guint16 speed, gchar *query, guint flags)
 	  sch->new_node_hook->func = node_added_callback;
 	  g_hook_prepend(&node_added_hook_list, sch->new_node_hook);
 
-	  sch->reissue_timeout_id = g_timeout_add(search_reissue_timeout * 1000,
+	  sch->reissue_timeout = search_reissue_timeout;
+	  sch->reissue_timeout_id = g_timeout_add(sch->reissue_timeout * 1000,
 											  search_reissue_timeout_callback,
 											  sch);
 	}
@@ -757,70 +874,148 @@ gint search_compare(gint sort_col, struct record *r1, struct record *r2)
 struct results_set *get_results_set(struct gnutella_node *n) {
 	struct results_set *rs;
 	struct record *rc;
-	gchar *e, *s, *fname;
-	guint32 nr, size, index;
+	gchar *e, *s, *fname, *tag;
+	guint32 nr, size, index, taglen;
 	struct gnutella_search_results *r;
 
-	rs = (struct results_set *) g_malloc0(sizeof(struct results_set));
+	/* We shall try to detect malformed packets as best as we can */
+	if (n->size < 27) {
+		/* packet too small 11 header, 16 GUID min */
+		g_warning("get_results_set(): given too small a packet (%d bytes)",
+			n->size);
+		return NULL;
+	}
 
+	rs = (struct results_set *) g_malloc0(sizeof(struct results_set));
 	r = (struct gnutella_search_results *) n->data;
 
-	rs->num_recs = (guint8) r->num_recs;
-	READ_GUINT32_BE(r->host_ip, rs->ip);
-	READ_GUINT16_LE(r->host_port, rs->port);
-	READ_GUINT32_LE(r->host_speed, rs->speed);
+	/* Transfer the Query Hit info to our internal results_set struct */
 
-	s  = r->records;					/* Start of the records */
-	e  = s + n->size - 16 - 11;	/* End of the records */
+	rs->num_recs = (guint8) r->num_recs;		/* Number of hits */
+	READ_GUINT32_BE(r->host_ip, rs->ip);		/* IP address */
+	READ_GUINT16_LE(r->host_port, rs->port);	/* Port */
+	READ_GUINT32_LE(r->host_speed, rs->speed);	/* Connection speed */
+
+	/* Now come the result set, and the servent ID will close the packet */
+
+	s  = r->records;				/* Start of the records */
+	e  = s + n->size - 11 - 16;		/* End of the records, less header, GUID */
 	nr = 0;
+
+	if (dbg > 7) debug_show_hex("Query Hit Data", n->data, n->size);
 
 	while (s < e && nr < rs->num_recs)
 	{
-		READ_GUINT32_LE(s, index); s += 4;
-		READ_GUINT32_LE(s, size);  s += 4;
+		READ_GUINT32_LE(s, index); s += 4;		/* File Index */
+		READ_GUINT32_LE(s, size);  s += 4;		/* File Size */
+
+		/* Followed by file name, and termination (double NUL) */
 		fname = s;
+		tag = NULL;
 
-		while (s < e && *s) s++;
+		while (s < e && *s) s++;	/* move s up to the next double NUL */
+		if (s >= e)
+			goto bad_packet;
 
-		if (s >= e) {
-			fprintf(stderr, "Node %s: %u records found in set (node said %u records), last record not NULL-terminated\n", node_ip(n), nr, rs->num_recs);
-			break;
-		}
+		/*
+		 * `s' point to the first NUL of the double NUL sequence.
+		 *
+		 * Between the two NULs at the end of each record, servents may put
+		 * some extra information about the file (a tag), but this information
+		 * may not contain any NUL.  If it does, it needs encoding (e.g.
+		 * base64), but if it's ASCII, then it's ok to put it as-is.
+		 */
 
 		if (s[1]) {
-			fprintf(stderr, "Node %s: Record %u is not double-NULL terminated (%c (0x%x) instead)!\n", node_ip(n), nr, isalnum((char)s[1]) ?:' ', (int)s[1]);
-			if(isalnum(s[1]))
-			   s--; /* allow for s += 2, assuming s[1] the beginning of the next entry. */
-		}
+			guint tagbin = 0;
+
+			/* Not a NUL, so we're *probably* within the tag info */
+
+			s++;							/* Skip first NUL */
+			tag = s;
+			taglen = 0;
+
+			/*
+			 * Inspect the tag, and if we see too many binary (non-ASCII),
+			 * then forget about it, it's coded garbage.
+		 	 *		--RAM, 10/09/2001
+			 */
+
+			while (s < e) {					/* On the way to second NUL */
+				gchar c = *s;
+				if (!c)
+					break;					/* Reached second nul */
+				s++;			
+				taglen++;
+				if (!isalpha(c))
+					tagbin++;
+			}
+
+			if (s >= e)
+				goto bad_packet;
+
+			if (3 * tagbin >= taglen)		/* More than 1/3 of binary */
+				tag = NULL;					/* Discard tag */
+
+			s++;							/* Now points to next record */
+		} else
+			s += 2;							/* Skip double NUL */
 
 		/* Okay, one more record */
 
 		nr++;
 
 		rc = (struct record *) g_malloc0(sizeof(struct record));
-
 		rc->index = index;
 		rc->size  = size;
 		rc->name  = g_strdup(fname);
+		rc->tag = tag ? g_strdup(tag) : NULL;
 
 		rc->results_set = rs;
-
 		rs->records = g_slist_prepend(rs->records, (gpointer) rc);
-
-		s += 2;	/* Skip the two null bytes at the end */
 	}
 
-	if (s < e)
-	  fprintf(stderr, "Node %s: %u records found in set (node said %u), but %u bytes remains after the records !\n", node_ip(n), nr, rs->num_recs, e - s);
-	if (nr != rs->num_recs) 
-	  fprintf(stderr, "Node %s: %u records found in set, but node said %u.\n", node_ip(n), nr, rs->num_recs);
+	/*
+	 * If we have not reached the end of the packet, then we have a trailer.
+	 * It can be of any length, but bound by the maximum query hit packet
+	 * size we configured for this node.
+	 *
+	 * The payload of the trailer is vendor-specific, but its "header" is
+	 * somehow codified:
+	 *
+	 *   bytes 0..3: vendor code (4 letters)
+	 *   byte 4    : open data size
+	 *
+	 * Followed by open data (flags usually), and opaque data.
+	 */
 
+	if (s < e) {
+		guint32 tlen = e - s;
+		rs->trailer_len = tlen;
+		rs->trailer = g_malloc0(tlen);
+		memcpy(rs->trailer, s, tlen);		/* Copy whole trailer */
+	}
+
+	if (nr != rs->num_recs) 
+		goto bad_packet;
 
 	/* We now have the guid of the node */
 
-	memcpy(rs->guid, s, 16);
+	memcpy(rs->guid, e, 16);
 
 	return rs;
+
+	/*
+	 * Come here when we encounter bad packets (NUL chars not where expected,
+	 * or missing).  The whole packet is ignored.
+	 *		--RAM, 09/01/2001
+	 */
+
+bad_packet:
+	g_warning("Bad Query Hit packet from %s, ignored (%u/%u records parsed)\n",
+		node_ip(n), nr, rs->num_recs);
+	search_free_r_set(rs);
+	return NULL;			/* Forget set, comes from a bad node */
 }
 
 gboolean search_result_is_dup(struct search *sch, struct record *rc) {
@@ -829,23 +1024,110 @@ gboolean search_result_is_dup(struct search *sch, struct record *rc) {
 
 void search_matched(struct search *sch, struct results_set *rs) {
 	GSList *l, *next;
-	gchar *titles[4];
-	struct record *rc;
+	gchar *titles[5];
 	guint32 row;
+	GString *vinfo = g_string_sized_new(40);
+	GString *info = g_string_sized_new(80);
+
+	/* Compute status bits, decompile trailer info, if present */
+
+	if (rs->trailer) {
+		gchar *vendor = NULL;
+		guint32 t;
+		gchar temp[5];
+		gint i;
+
+		READ_GUINT32_BE(rs->trailer, t); 
+		rs->status = ST_KNOWN_VENDOR;
+
+		switch (t) {
+		case T_GTKG: vendor = "Gtk-Gnutella";	break;
+		case T_NAPS: vendor = "NapShare";		break;
+		case T_LIME: vendor = "Lime";			break;
+		case T_BEAR: vendor = "Bear";			break;
+		case T_GNOT: vendor = "Gnotella";		break;
+		case T_GNUC: vendor = "Gnucleus";		break;
+		case T_MACT: vendor = "Mactella";		break;
+		case T_SNUT: vendor = "SwapNut";		break;
+		case T_TOAD: vendor = "ToadNode";		break;
+		case T_GNUT: vendor = "Gnut";			break;
+		case T_OCFG: vendor = "OpenCola";		break;
+		case T_XOLO: vendor = "Xolox";			break;
+		case T_CULT: vendor = "Cultiv8r";		break;
+		case T_HSLG: vendor = "Hagelslag";		break;
+		case T_OPRA: vendor = "Opera";			break;
+		case T_QTEL: vendor = "Qtella";			break;
+		default:
+			/* Unknown type, look whether we have all alphanum */
+			rs->status &= ~ST_KNOWN_VENDOR;
+			for (i = 0; i < 4; i++) {
+				if (isalpha(rs->trailer[i])) temp[i] = rs->trailer[i];
+				else { temp[0] = 0; break; }
+			}
+			temp[4] = 0;
+			vendor = temp[0] ? temp : NULL;
+			break;
+		}
+
+		if (vendor)
+			g_string_append(vinfo, vendor);
+
+		switch (t) {
+		case T_NAPS:
+			/*
+			 * The author of NapShare apparently did not understand the
+			 * purpose of having two flag bytes: one enabler and one
+			 * setter. His trailer therefore needs to be specially parsed.
+			 *		--RAM, 09/09/2001
+			 */
+			if ((rs->trailer[4] == 1) && (rs->trailer[5] & 0x04))
+				rs->status |= ST_BUSY;
+			if ((rs->trailer[4] > 0) && (rs->trailer[5] & 0x01))
+				rs->status |= ST_FIREWALL;
+			break;
+		case T_GTKG:
+		case T_LIME:
+		case T_BEAR:
+		case T_GNOT:
+		case T_GNUC:
+		case T_SNUT:
+			if ((rs->trailer[4] == 2)) {
+				guint32 status =
+					((guint32) rs->trailer[5]) & ((guint32) rs->trailer[6]);
+				if (status & 0x04)
+					rs->status |= ST_BUSY;
+				if (status & 0x01)
+					rs->status |= ST_FIREWALL;
+				if (status & 0x08)
+					rs->status |= ST_UPLOADED;
+			} else
+				g_warning("vendor %s changed # of open data bytes to %d",
+					vendor, rs->trailer[4]);
+			break;
+		default:
+			break;
+		}
+
+		if (rs->status & ST_BUSY)
+			g_string_append(vinfo, ", busy");
+		if (rs->status & ST_UPLOADED)
+			g_string_append(vinfo, ", open");	/* Open for uploading */
+		if (rs->status & ST_FIREWALL)
+			g_string_append(vinfo, ", push");
+	}
 
 	/* Update the GUI */
 
 	gtk_clist_freeze(GTK_CLIST(sch->clist));
 
-	for (l = rs->records; l; l = next)
-	{
+	for (l = rs->records; l; l = next) {
+		struct record *rc = (struct record *) l->data;
 		next = l->next;
 
-		rc = (struct record *) l->data;
-
-		if (search_result_is_dup(sch, rc) || !filter_record(sch, rc) || rc->size == 186) {
-		  rs->records = g_slist_remove(rs->records, l->data);
+		if (search_result_is_dup(sch, rc) || !filter_record(sch, rc)) {
+		  rs->records = g_slist_remove(rs->records, rc);
 		  rs->num_recs--;
+		  search_free_record(rc);
 		  continue;
 		}
 
@@ -853,8 +1135,34 @@ void search_matched(struct search *sch, struct results_set *rs) {
 
 		titles[0] = rc->name;
 		titles[1] = short_size(rc->size);
-		g_snprintf(stmp_2, sizeof(stmp_2), "%u", rs->speed); titles[2] = stmp_2;
+		g_snprintf(stmp_2, sizeof(stmp_2), "%u", rs->speed);
+		titles[2] = stmp_2;
 		titles[3] = ip_port_to_gchar(rs->ip, rs->port);
+
+		if (rc->tag) {
+			guint len = strlen(rc->tag);
+			if (len > MAX_TAG_SHOWN) {
+				/*
+				 * We want to limit the length of the tag shown, but we don't
+				 * want to loose that information.  I imagine to have a popup
+				 * "show file info" one day that will give out all the
+				 * information.
+				 *		--RAM, 09/09/2001
+				 */
+
+				gchar saved = rc->tag[MAX_TAG_SHOWN];
+				rc->tag[MAX_TAG_SHOWN] = '\0';
+				g_string_append(info, rc->tag);
+				rc->tag[MAX_TAG_SHOWN] = saved;
+			} else
+				g_string_append(info, rc->tag);
+		}
+		if (vinfo->len) {
+			if (info->len)
+				g_string_append(info, "; ");
+			g_string_append(info, vinfo->str);
+		}
+		titles[4] = info->str;
 
 		if (!sch->sort) row = gtk_clist_append(GTK_CLIST(sch->clist), titles);
 		else
@@ -892,9 +1200,13 @@ void search_matched(struct search *sch, struct results_set *rs) {
 		}
 
 		gtk_clist_set_row_data(GTK_CLIST(sch->clist), row, (gpointer) rc);
+		g_string_truncate(info, 0);
 	}
 
 	gtk_clist_thaw(GTK_CLIST(sch->clist));
+
+	g_string_free(info, TRUE);
+	g_string_free(vinfo, TRUE);
 
 	/* If all the results were dups */
 	if(rs->num_recs == 0) {
@@ -970,6 +1282,29 @@ void search_clear_results(void) {
   gtk_clist_clear(GTK_CLIST(current_search->clist));
   current_search->items = current_search->unseen_items = 0;
   __search_update_tab_label(current_search);
+}
+
+void search_shutdown(void)
+{
+	GSList *l;
+
+	for (l = searches; l; l = l->next) {
+		struct search *sch = (struct search *) l->data;
+		if (!sch->passive) {
+			GSList *m;
+			for(m = sch->muids; m; m = m->next) {
+				g_free(m->data);
+			}
+			g_slist_free(sch->muids);
+			search_free_sent_nodes(sch);
+		}
+		search_free_r_sets(sch);
+		g_hash_table_destroy(sch->dups);
+		g_free(sch->query);
+		g_free(sch);
+	}
+
+	g_slist_free(searches);
 }
 
 void

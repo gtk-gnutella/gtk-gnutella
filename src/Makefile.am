@@ -24,6 +24,7 @@ gtk_gnutella_SOURCES = \
 	main.c \
 	gui.c \
 	support.c support.h \
+	matching.c matching.h \
 	callbacks.c callbacks.h \
 	dialog-filters.c dialog-filters.h
 

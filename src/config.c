@@ -5,7 +5,6 @@
 #include "interface.h"
 #include "search.h"
 
-
 #include <sys/stat.h>
 #include <pwd.h>
 #include <sys/types.h>
@@ -15,13 +14,17 @@
 #include <unistd.h>
 #include <netdb.h>
 
+static gchar *config_file = "config";
+static gchar *host_file   = "hosts";
+
 gboolean clear_uploads					= FALSE;
 gboolean clear_downloads				= FALSE;
 gboolean monitor_enabled				= FALSE;
 gboolean force_local_ip					= FALSE;
 
-guint8 max_ttl								= 5;
+guint8 max_ttl								= 7;
 guint8 my_ttl								= 5;
+guint8 hard_ttl_limit						= 15;
 
 guint16 listen_port	     				= 6346;
 
@@ -29,7 +32,7 @@ guint32 up_connections					= 4;
 guint32 max_connections             = 10;
 guint32 max_downloads					= 10;
 guint32 max_host_downloads				= 4;
-guint32 max_uploads						= 10;
+guint32 max_uploads						= 5;
 guint32 minimum_speed					= 0;
 guint32 monitor_max_items				= 25;
 guint32 connection_speed				= 28;
@@ -38,18 +41,25 @@ guint32 forced_local_ip					= 0;
 guint32 download_connecting_timeout	= 60;
 guint32 download_push_sent_timeout	= 60;
 guint32 download_connected_timeout	= 60;
-guint32 download_retry_timeout_min	= 10;
+guint32 download_retry_timeout_min	= 20;
 guint32 download_retry_timeout_max	= 120;
-guint32 download_max_retries			= 3;
+guint32 download_max_retries		= 5;
 guint32 node_connected_timeout		= 45;
 guint32 node_connecting_timeout		= 45;
 guint32 node_sendqueue_size			= 20480; /* was 10240 */
 guint32 search_queries_forward_size	= 256;
 guint32 search_queries_kick_size		= 5120;
 guint32 search_answers_forward_size	= 32768;
-guint32 search_answers_kick_size		= 40960;
-guint32 other_messages_kick_size		= 40960;
-guint32 hops_random_factor				= 0;
+guint32 search_answers_kick_size	= 40960;
+guint32 other_messages_kick_size	= 40960;
+guint32 hops_random_factor			= 0;
+
+gint dbg				= 0;	// debug level, for development use
+gint stop_host_get		= 0;	// stop get new hosts, non activity ok (debug)
+gint enable_err_log		= 0;	// enable writing to log file for errors
+gint search_strict_and	= 0;	// search filter for strict AND of results
+gint search_pick_all    = 1;	// enable picking all files alike in search
+gint max_uploads_ip     = 2;	// maximum uploads per IP
 
 time_t tab_update_time = 5;
 
@@ -63,10 +73,10 @@ gchar *config_dir							= NULL;
 
 
 guint32 nodes_col_widths[]          = { 140, 80, 80 };
-guint32 dl_active_col_widths[]      = { 180, 80, 80 };
+guint32 dl_active_col_widths[]      = { 240, 80, 80 };
 guint32 dl_queued_col_widths[]      = { 320, 80 };
 guint32 uploads_col_widths[]        = { 200, 140, 80 };
-guint32 search_results_col_widths[] = { 290, 80, 50, 140 };
+guint32 search_results_col_widths[] = { 210, 80, 50, 140, 140 };
 
 gboolean jump_to_downloads = TRUE;
 
@@ -79,8 +89,12 @@ gint socks_protocol = 4;
 gchar *proxy_ip = "0.0.0.0";
 gint proxy_port = 1080;
 
-gchar *socksv5_user = "proxyuser";
-gchar *socksv5_pass = "proxypass";
+#define SOCKSV5_USER	0
+#define SOCKSV5_PASS	1
+
+static gchar *socksv5[] = { "proxyuser", "proxypass" };
+gchar *socksv5_user = NULL;
+gchar *socksv5_pass = NULL;
 
 enum
 {
@@ -96,6 +110,9 @@ enum
 	k_widths_dl_active, k_widths_dl_queued, k_widths_search_results, k_show_results_tabs,
         k_hops_random_factor, k_send_pushes, k_jump_to_downloads, k_max_connections,  k_proxy_connections,
         k_socks_protocol, k_proxy_ip, k_proxy_port, k_socksv5_user, k_socksv5_pass, k_search_reissue_timeout,
+		k_hard_ttl_limit,
+	k_dbg, k_stop_host_get, k_enable_err_log, k_max_uploads_ip,
+	k_search_strict_and, k_search_pick_all,
 	k_end
 };
 
@@ -143,7 +160,7 @@ gchar *keywords[] =
 	"widths_uploads",							/* k_width_uploads					*/
 	"widths_dl_active",						/* k_width_dl_active					*/
 	"widths_dl_queued",						/* k_width_dl_queued					*/
-	"widths_search_results",				/* k_width_search_results			*/
+	"widths_search_results",				/* k_widths_search_results			*/
 	"show_results_tabs",						/* k_show_results_tabs				*/
 	"hops_random_factor",					/* k_hops_random_factor 			*/
 	"send_pushes",							/* k_send_pushes					*/
@@ -156,10 +173,18 @@ gchar *keywords[] =
         "socksv5_user",
         "socksv5_pass",
 	"search_reissue_timeout",
+	"hard_ttl_limit",							/* k_hard_ttl_limit */
+	"dbg",
+	"stop_host_get",
+	"enable_err_log",
+	"max_uploads_ip",
+	"search_strict_and",
+	"search_pick_all",
 	NULL
 };
 
 gchar cfg_tmp[4096];
+gboolean cfg_use_local_file = FALSE;		// use config file in same dir
 
 void config_read(void);
 
@@ -171,6 +196,8 @@ void config_init(void)
 	struct passwd *pwd = NULL;
 
 	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
+	socksv5_user = socksv5[SOCKSV5_USER];
+	socksv5_pass = socksv5[SOCKSV5_PASS];
 
 	pwd = getpwuid(getuid());
 
@@ -204,8 +231,12 @@ void config_init(void)
 
 		/* Loads the catched hosts */
 
-		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/hosts", config_dir);
-		hosts_read_from_file(cfg_tmp, TRUE);
+		if (cfg_use_local_file) hosts_read_from_file(host_file, TRUE);
+		else {
+			g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir,
+				host_file);
+			hosts_read_from_file(cfg_tmp, TRUE);
+		}
 	}
 
 	if (!save_file_path || !is_directory(save_file_path))
@@ -218,9 +249,14 @@ void config_init(void)
 
 	if (!shared_dirs_paths) shared_dirs_paths = g_strdup("");
 
+	if (!extensions) parse_extensions(
+		"mp3;mp2;mp1;vqf;avi;mpg;mpeg;wav;mod;voc;it;xm;s3m;"
+		"stm;wma;mov;asf;zip;rar;txt;jpg;pdf");
+
 	if (!scan_extensions) scan_extensions = g_strdup("mp3;mp2;mp1;vqf;avi;mpg;mpeg;wav;mod;voc;it;xm;s3m;stm;wma;mov;asf;zip;rar");
         /* watch for filter_file defaults */
      
+	/* XXX -- Why is this disabled? -- RAM */
 	if (0 && !local_ip)	/* We need our local address */
 	  {
 	    char hostname[255];
@@ -230,6 +266,7 @@ void config_init(void)
 	    local_ip = g_ntohl(((struct in_addr*)(hostinfo->h_addr))->s_addr);
 	  }
 
+	if (hard_ttl_limit < max_ttl) hard_ttl_limit = max_ttl;
 
 	/* Okay, update the GUI with values loaded */
 
@@ -287,9 +324,14 @@ void config_init(void)
 	}
 
 	for (i = 0; i < 3; i++) gtk_clist_set_column_width(GTK_CLIST(clist_nodes), i, nodes_col_widths[i]);
-	for (i = 0; i < 4; i++) gtk_clist_set_column_width(GTK_CLIST(clist_downloads), i, dl_active_col_widths[i]);
+	for (i = 0; i < 3; i++) gtk_clist_set_column_width(GTK_CLIST(clist_downloads), i, dl_active_col_widths[i]);
 	for (i = 0; i < 2; i++) gtk_clist_set_column_width(GTK_CLIST(clist_download_queue), i, dl_queued_col_widths[i]);
 	for (i = 0; i < 3; i++) gtk_clist_set_column_width(GTK_CLIST(clist_uploads), i, uploads_col_widths[i]);
+
+	// as soon as this is corrected in Glade, you can do this
+	// check the variable names and take out the stuff in
+	// search.c that sets this up
+	// for (i = 0; i < 5; i++) gtk_clist_set_column_width(GTK_CLIST(clist_search_results), i, search_results_col_widths[i]);
 
 	/* Transition : HOME/.gtk-gnutella is now a directory */
 
@@ -346,6 +388,8 @@ void config_hosts_catched(gchar *str)
 
 guint32 *config_parse_array(gchar *str, guint32 n)
 {
+	/* Parse comma delimited settings */
+
 	static guint32 array[10];
 	gchar **h  = g_strsplit(str, ",", n + 1);
 	guint32 *r = array;
@@ -378,6 +422,7 @@ void config_set_param(guint32 keyword, gchar *value)
 		case k_max_uploads: { if (i >= 0 && i < 512) max_uploads = i; return; }
 		case k_minimum_speed: { minimum_speed = atol(value); return; }
 		case k_listen_port: { listen_port = atoi(value); return; }
+		case k_hard_ttl_limit: { if (i >= 5 && i < 255) hard_ttl_limit = i; return; }
 		case k_max_ttl: { if (i > 0 && i < 255) max_ttl = i; return; }
 		case k_my_ttl:  { if (i > 0 && i < 255) my_ttl = i; return; }
 		case k_search_max_items: { if (i >= -1 && i < 256) search_max_items = i; return; }
@@ -408,8 +453,8 @@ void config_set_param(guint32 keyword, gchar *value)
 		case k_widths_nodes: { if ((a = config_parse_array(value, 3))) for (i=0; i < 3; i++) nodes_col_widths[i] = a[i]; return; }
 		case k_widths_uploads: { if ((a = config_parse_array(value, 3))) for (i=0; i < 3; i++) uploads_col_widths[i] = a[i]; return; }
 		case k_widths_dl_active: { if ((a = config_parse_array(value, 3))) for (i=0; i < 3; i++) dl_active_col_widths[i] = a[i]; return; }
-		case k_widths_dl_queued: { if ((a = config_parse_array(value, 2))) for (i=0; i < 3; i++) dl_queued_col_widths[i] = a[i]; return; }
-		case k_widths_search_results: { if ((a = config_parse_array(value, 4))) for (i=0; i < 3; i++) search_results_col_widths[i] = a[i]; return; }
+		case k_widths_dl_queued: { if ((a = config_parse_array(value, 2))) for (i=0; i < 2; i++) dl_queued_col_widths[i] = a[i]; return; }
+		case k_widths_search_results: { if ((a = config_parse_array(value, 5))) for (i=0; i < 5; i++) search_results_col_widths[i] = a[i]; return; }
 		case k_show_results_tabs: { search_results_show_tabs = (gboolean) !g_strcasecmp(value, "true"); return; }
 		case k_forced_local_ip: { forced_local_ip = gchar_to_ip(value); return; }
 		case k_hops_random_factor: { if (i >= 0 && i <= 3) hops_random_factor = i; return; }
@@ -422,7 +467,13 @@ void config_set_param(guint32 keyword, gchar *value)
                 case k_socksv5_user: { socksv5_user = g_strdup(value); return; }
                 case k_socksv5_pass: { socksv5_pass = g_strdup(value); return; }
  		case k_max_connections: { if (i >= 0 && i < 512) max_connections = i; return; }
-	        case k_search_reissue_timeout: { search_reissue_timeout = i; return; }
+		case k_search_reissue_timeout: { search_reissue_timeout = i; return; }
+		case k_dbg: { dbg = i; return; }
+		case k_stop_host_get: { stop_host_get = i; return; }
+		case k_enable_err_log: { enable_err_log = i; return; }
+		case k_max_uploads_ip: { if (i >= 0 && i < 512) max_uploads_ip = i; return; }
+		case k_search_strict_and: { search_strict_and = i; return; }
+		case k_search_pick_all: { search_pick_all = i; return; }
 	}
 }
 
@@ -435,12 +486,18 @@ void config_read(void)
 	static gchar *err = "Bad line %u in config file, ignored\n";
 
 	if (is_directory(config_dir))
-		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/gtk-gnutella", config_dir);
+		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, config_file);
 	else
 		strncpy(cfg_tmp, config_dir, sizeof(cfg_tmp));
 
 	config = fopen(cfg_tmp, "r");
 
+	/* Try to open settings file in local directory first */
+	if ((config = fopen(config_file, "r")) != NULL)
+		cfg_use_local_file = 1;			/* We're using a local config file */
+	else
+		config = fopen(cfg_tmp, "r");	/* The normal file */
+		
 	if (!config) return;
 
 	gtk_clist_freeze(GTK_CLIST(clist_host_catcher));
@@ -496,9 +553,12 @@ void config_save(void)
 		return;
 	}
 
-	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/gtk-gnutella", config_dir);
+	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, config_file);
 
-	config = fopen(cfg_tmp, "w");
+	if (cfg_use_local_file)
+		config = fopen(config_file, "w");
+	else
+		config = fopen(cfg_tmp, "w");
 
 	if (!config)
 	{
@@ -510,11 +570,12 @@ void config_save(void)
 	gdk_window_get_size(main_window->window, &win_w, &win_h);
 
 	#ifdef GTA_REVISION
-	fprintf(config, "\n# Gtk-Gnutella %u.%u %s (%s) by Olrick - %s\n\n", GTA_VERSION, GTA_SUBVERSION, GTA_REVISION, GTA_RELEASE, GTA_WEBSITE);
+	fprintf(config, "\n# Gtk-Gnutella %u.%u %s (%s) by Olrick & Co. - %s\n\n", GTA_VERSION, GTA_SUBVERSION, GTA_REVISION, GTA_RELEASE, GTA_WEBSITE);
 	#else
-	fprintf(config, "\n# Gtk-Gnutella %u.%u (%s) by Olrick - %s\n\n", GTA_VERSION, GTA_SUBVERSION, GTA_RELEASE, GTA_WEBSITE);
+	fprintf(config, "\n# Gtk-Gnutella %u.%u (%s) by Olrick & Co. - %s\n\n", GTA_VERSION, GTA_SUBVERSION, GTA_RELEASE, GTA_WEBSITE);
 	#endif
-	fprintf(config, "# This is Gtk-Gnutella configuration file - you may edit it if you're careful.\n\n");
+	fprintf(config, "# This is Gtk-Gnutella configuration file - you may edit it if you're careful.\n");
+	fprintf(config, "# (only when the program is not running: this file is saved on quit)\n\n");
 	fprintf(config, "%s = %u\n", keywords[k_up_connections], up_connections);
 	fprintf(config, "\n");
 	fprintf(config, "%s = %u\n", keywords[k_max_connections], max_connections);
@@ -562,7 +623,7 @@ void config_save(void)
 	fprintf(config, "%s = %u,%u,%u\n", keywords[k_widths_uploads], uploads_col_widths[0], uploads_col_widths[1], uploads_col_widths[2]);
 	fprintf(config, "%s = %u,%u,%u\n", keywords[k_widths_dl_active], dl_active_col_widths[0], dl_active_col_widths[1], dl_active_col_widths[2]);
 	fprintf(config, "%s = %u,%u\n", keywords[k_widths_dl_queued], dl_queued_col_widths[0], dl_queued_col_widths[1]);
-	fprintf(config, "%s = %u,%u,%u,%u\n", keywords[k_widths_search_results], search_results_col_widths[0], search_results_col_widths[1], search_results_col_widths[2], search_results_col_widths[3]);
+	fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_search_results], search_results_col_widths[0], search_results_col_widths[1], search_results_col_widths[2], search_results_col_widths[3], search_results_col_widths[4]);
 
 	fprintf(config, "\n\n# The following variables cannot yet be configured with the GUI.\n\n"); 
 
@@ -572,16 +633,25 @@ void config_save(void)
 	fprintf(config, "# Number of seconds before timeout for a connecting node\n%s = %u\n\n", keywords[k_node_connecting_timeout], node_connecting_timeout);
 	fprintf(config, "# Number of seconds before timeout for a connected node\n%s = %u\n\n", keywords[k_node_connected_timeout], node_connected_timeout);
 
-	fprintf(config, "\n");
+	fprintf(config, "# Max hard TTL limit (hop+ttl) on message (minimum 5)\n");
+	fprintf(config, "%s = %u\n\n", keywords[k_hard_ttl_limit], hard_ttl_limit);
 
 	fprintf(config, "# Maximum size of the sendqueue for the nodes (in bytes)\n%s = %u\n\n", keywords[k_node_sendqueue_size], node_sendqueue_size);
 
 	fprintf(config, "# Random factor for the hops field in search packets we send (between 0 and 3 inclusive)\n%s = %u\n\n", keywords[k_hops_random_factor], hops_random_factor);
 
+	fprintf(config, "\n");
 	fprintf(config, "# Whether or not to send pushes.\n%s = %u\n\n", keywords[k_send_pushes], send_pushes);
 
 	fprintf(config, "# Whether or not to jump to the downloads screen when a new download is selected.\n"
 			"%s = %u\n\n", keywords[k_jump_to_downloads], jump_to_downloads);
+
+	fprintf(config, "# Maximum uploads per IP address\n"
+		"%s = %u\n\n", keywords[k_max_uploads_ip], max_uploads_ip);
+	fprintf(config, "# Set to 1 to filter search results with a strict AND\n"
+		"%s = %u\n\n", keywords[k_search_strict_and], search_strict_and);
+	fprintf(config, "# Set to 1 to select all same filenames with greater or equal size\n"
+		"%s = %u\n", keywords[k_search_pick_all], search_pick_all);
 
         fprintf(config, "# Proxy Info\n\n");
  
@@ -599,18 +669,24 @@ void config_save(void)
  
         fprintf(config, "\n\n");
 
-	/* I'm not sure yet that the following variables are really useful...
+	fprintf(config, "# For developers only, debugging stuff\n\n"); 
+	fprintf(config, "# Debug level, each one prints more detail (between 0 and 20)\n"
+		"%s = %u\n\n", keywords[k_dbg], dbg);
+	fprintf(config, "# Set to 1 to stop getting new hosts and stop timeout, manual connect only\n"
+		"%s = %u\n\n", keywords[k_stop_host_get], stop_host_get);
+	fprintf(config, "# Set to 1 to log network errors for later inspection, for developer improvements\n"
+		"%s = %u\n\n", keywords[k_enable_err_log], enable_err_log);
+
+	/* The following are useful if you want to tweak your node --RAM */
 
 	fprintf(config, "# WARNING: *PLEASE* DO NOT MODIFY THE FOLLOWING VALUES IF YOU DON'T KNOW WHAT YOU'RE DOING\n\n"); 
 
-	fprintf(config, "# [NOT IMPLEMENTED] Maximum size of search queries messages we forward to others (in bytes)\n%s = %u\n\n", keywords[k_search_queries_forward_size], search_queries_forward_size);
-	fprintf(config, "# [NOT IMPLEMENTED] Maximum size of search queries messages we allow before closing the connection (in bytes)\n%s = %u\n\n", keywords[k_search_queries_kick_size], search_queries_kick_size);
-	fprintf(config, "# [NOT IMPLEMENTED] Maximum size of search answers messages we forward to others (in bytes)\n%s = %u\n\n", keywords[k_search_answers_forward_size], search_answers_forward_size);
-	fprintf(config, "# [NOT IMPLEMENTED] Maximum size of search answers messages we allow before closing the connection (in bytes)\n%s = %u\n\n", keywords[k_search_answers_kick_size], search_answers_kick_size);
-	fprintf(config, "# [NOT IMPLEMENTED] Maximum size of unknown messages we allow before closing the connection (in bytes)\n%s = %u\n\n", keywords[k_other_messages_kick_size], other_messages_kick_size);
+	fprintf(config, "# Maximum size of search queries messages we forward to others (in bytes)\n%s = %u\n\n", keywords[k_search_queries_forward_size], search_queries_forward_size);
+	fprintf(config, "# Maximum size of search queries messages we allow, otherwise close the connection (in bytes)\n%s = %u\n\n", keywords[k_search_queries_kick_size], search_queries_kick_size);
+	fprintf(config, "# Maximum size of search answers messages we forward to others (in bytes)\n%s = %u\n\n", keywords[k_search_answers_forward_size], search_answers_forward_size);
+	fprintf(config, "# Maximum size of search answers messages we allow, otherwise close the connection (in bytes)\n%s = %u\n\n", keywords[k_search_answers_kick_size], search_answers_kick_size);
+	fprintf(config, "# Maximum size of unknown messages we allow, otherwise close the connection (in bytes)\n%s = %u\n\n", keywords[k_other_messages_kick_size], other_messages_kick_size);
 
-	*/
-	
 	fprintf(config, "\n\n");
 
 	fclose(config);
@@ -623,9 +699,26 @@ void config_save(void)
 	}
 	else
 	{
-		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/hosts", config_dir);
-		hosts_write_to_file(cfg_tmp);
+		if (cfg_use_local_file) hosts_write_to_file(host_file);
+		else {
+			g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir,
+				host_file);
+			hosts_write_to_file(cfg_tmp);
+		}
 	}
+}
+
+void config_close(void)
+{
+	if (home_dir) g_free(home_dir);
+	if (config_dir) g_free(config_dir);
+	if (save_file_path) g_free(save_file_path);
+	if (move_file_path) g_free(move_file_path);
+	if (proxy_ip) g_free(proxy_ip);
+	if (socksv5_user && socksv5_user != socksv5[SOCKSV5_USER])
+		g_free(socksv5_user);
+	if (socksv5_pass && socksv5_pass != socksv5[SOCKSV5_PASS])
+		g_free(socksv5_pass);
 }
 
 /* vi: set ts=3: */

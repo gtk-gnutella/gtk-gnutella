@@ -32,9 +32,14 @@ void gui_update_config_force_ip(void)
 	
 void gui_update_config_port(void)
 {
+	gchar *iport;
+
+	iport = ip_port_to_gchar(force_local_ip ? forced_local_ip : local_ip,
+		listen_port);
+
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", listen_port);
 	gtk_entry_set_text(GTK_ENTRY(entry_config_port), gui_tmp);
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "Current port : %u", listen_port);
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "Current IP:port : %s", iport);
 	gtk_label_set(GTK_LABEL(label_current_port), gui_tmp);
 }
 
@@ -253,7 +258,7 @@ void gui_update_stats(void)
 	}
 	else hosts = files = kbytes = ping = 0;
 
-        if (files_scanned > 0) {files += files_scanned; kbytes += kbytes_scanned;}
+	if (files_scanned > 0) {files += files_scanned; kbytes += kbytes_scanned;}
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u hosts", hosts);
 	gtk_clist_set_text(GTK_CLIST(clist_stats), 0, 0, gui_tmp);
@@ -262,13 +267,16 @@ void gui_update_stats(void)
 	gtk_clist_set_text(GTK_CLIST(clist_stats), 1, 0, gui_tmp);
 
 	if (kbytes < 1024) g_snprintf(b, sizeof(b), "%u KB", (guint32) kbytes);
-	else if (kbytes < 1048576) g_snprintf(b, sizeof(b), "%.1fMB", (double) kbytes / 1024.0);
-	else if (kbytes < 1073741824) g_snprintf(b, sizeof(b), "%.1fGB", (double) kbytes / 1048576.0);
-	else g_snprintf(b, sizeof(b), "%.2fTB", (double) kbytes / 1073741824.0);
+	else if (kbytes < 1048576) g_snprintf(b, sizeof(b), "%.1f MB", (double) kbytes / 1024.0);
+	else if (kbytes < 1073741824) g_snprintf(b, sizeof(b), "%.1f GB", (double) kbytes / 1048576.0);
+	else g_snprintf(b, sizeof(b), "%.2f TB", (double) kbytes / 1073741824.0);
 
 	gtk_clist_set_text(GTK_CLIST(clist_stats), 2, 0, b);
 
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%ums avg ping", ping);
+	if (ping < 1000)
+		g_snprintf(gui_tmp, sizeof(gui_tmp), "%u ms avg ping", ping);
+	else
+		g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f s avg ping", ping / 1000.0);
 	gtk_clist_set_text(GTK_CLIST(clist_stats), 3, 0, gui_tmp);
 }
 
@@ -297,7 +305,7 @@ void gui_update_node(struct gnutella_node *n, gboolean force)
 	switch(n->status)
 	{
 		case GTA_NODE_CONNECTING:
-			a = "Connecting";
+			a = "Connecting...";
 			break;
 
 		case GTA_NODE_HELLO_SENT:
@@ -312,7 +320,9 @@ void gui_update_node(struct gnutella_node *n, gboolean force)
 
 			if (n->sent || n->received)
 			{
-				g_snprintf(gui_tmp, sizeof(gui_tmp), "Connected:   %-8d\t%-8d\t%-8d", n->sent, n->received, n->dropped);
+				g_snprintf(gui_tmp, sizeof(gui_tmp),
+					"Connected: TX=%-8d\tRX=%-8d\tDrop=%-8d\tBad=%-8d",
+					n->sent, n->received, n->dropped, n->n_bad);
 				a = gui_tmp;
 			}
 			else a = "Connected";
@@ -439,7 +449,7 @@ void gui_update_download(struct download *d, gboolean force)
 			break;
 
 		case GTA_DL_CONNECTING:
-			a = "Connecting";
+			a = "Connecting...";
 			break;
 
 		case GTA_DL_PUSH_SENT:
@@ -463,7 +473,14 @@ void gui_update_download(struct download *d, gboolean force)
 			break;
 
 		case GTA_DL_COMPLETED:
-			a = "Completed";
+			if (d->last_update != d->start_date) {
+				gfloat rate = ((d->size - d->skip)  / 1024.0) /
+					(d->last_update - d->start_date);
+				g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed (%.1f k/s)", rate);
+			} else {
+				g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed (< 1s)");
+			}
+			a = gui_tmp;
 			break;
 
 		case GTA_DL_RECEIVING:
@@ -499,7 +516,7 @@ void gui_update_download(struct download *d, gboolean force)
 			break;
 
 		case GTA_DL_TIMEOUT_WAIT:
-			g_snprintf(gui_tmp, sizeof(gui_tmp), "Timeout -- Waiting to retry (%lds)",
+			g_snprintf(gui_tmp, sizeof(gui_tmp), "Retry in %lds",
 				d->timeout_delay - (time((time_t *) NULL) - d->last_update) );
 			a = gui_tmp;
 			break;
@@ -545,11 +562,26 @@ void gui_update_upload(struct upload *u)
   else g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f%% (%.1f k/s) TR: %us", pc, rate, tr);
   
     }
-  else g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed");
-  
+  else {
+	if (u->last_update != u->start_date) {
+		rate = ((u->file_size - u->skip)  / 1024.0) /
+			(u->last_update - u->start_date);
+		g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed (%.1f k/s)", rate);
+	} else {
+		g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed (< 1s)");
+	}
+  }
+
   row = gtk_clist_find_row_from_data(GTK_CLIST(clist_uploads), (gpointer) u);
 
   gtk_clist_set_text(GTK_CLIST(clist_uploads), row, 2, gui_tmp);
 
 }
+
+void gui_close(void)
+{
+	if (scan_extensions) g_free(scan_extensions);
+	if (shared_dirs_paths) g_free(shared_dirs_paths);
+}
+
 /* vi: set ts=3: */

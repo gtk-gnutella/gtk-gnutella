@@ -413,8 +413,6 @@ gboolean on_clist_uploads_button_press_event (GtkWidget *widget, GdkEventButton 
 
 	gtk_menu_popup(GTK_MENU(popup_uploads), NULL, NULL, NULL, NULL, 3, 0);
 
-	
-
 	return TRUE;
 }
 
@@ -627,7 +625,7 @@ void on_clist_download_queue_click_column (GtkCList *clist, gint column, gpointe
 
 void on_download_start_now_activate (GtkMenuItem *menuitem, gpointer user_data)
 {
-	if (selected_queued_download) download_start(selected_queued_download);
+	if (selected_queued_download) download_start(selected_queued_download, TRUE);
 }
 
 gboolean on_clist_download_queue_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data)

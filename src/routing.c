@@ -22,7 +22,15 @@ struct message
 
 gchar *debug_msg[256];
 
-#define MAX_MESSAGES_PER_LIST	256	/* So we can remember 256 * 256 = about 65536 messages */
+#define MAX_MESSAGES_PER_LIST	256	/* We can remember 256 * 256 messages */
+
+/* XXX -- must be configured externally --RAM */
+/* Next two work together */
+#define MAX_HARD_TTL_LIMIT_MSG		10	/* Kick node if we're flooded */
+#define MAX_HARD_TTL_HOP			2	/* (node or close node flooding...) */
+/* Next two work together */
+#define MAX_DUP_MSG					5	/* Kick node after that many dups */
+#define MAX_DUP_RATIO				0.5	/* And if dup/RX > ratio% */
 
 /* ------------------------------------------------------------------------------------------------ */
 
@@ -81,8 +89,13 @@ void routing_init(void)
 
 
 void generate_new_muid(guchar *muid) {
+  static guint32 muid_cnt = 0;		/* Ensure messages we send are unique */
   gint i;
-  for (i = 0; i < 16; i += 2) (*((guint16 *) (muid + i))) = rand() % 65536;
+
+  for (i = 0; i < (16 - sizeof(muid_cnt)); i += 2)
+	(*((guint16 *) (muid + i))) = (guint16) (rand() & 0xffff);
+
+	*((guint32 *) (muid + 16 - sizeof(muid_cnt))) = muid_cnt++;
 }
 
 /* Generate a new muid and put it in a message header */
@@ -158,23 +171,40 @@ void message_add(guchar *muid, guint8 function, struct gnutella_node *node)
 gboolean find_message(guchar *muid, guint8 function, struct message **m)
 {
 	/* Returns TRUE if the message is found */
-	/* Set *node to node if there is a connected node associated with the message found */
+	/* Set *m to message when the message is found */
 
 	static GList *l;
 
 	for (l = messages[(guint8) muid[0]]; l; l = l->next)
 	{
-		if (!memcmp(((struct message *) l->data)->muid + 1, muid + 1, 15) && ((struct message *) l->data)->function == function)
-		{
-			/* We found the message */
-
-			*m = (struct message *) l->data;	/* The node the message came from */
+		struct message *msg = (struct message *) l->data;
+		if (
+			(msg->muid[15] == muid[15]) &&
+			(msg->function == function) &&
+			!memcmp(msg->muid + 1, muid + 1, 14)	/* Done for [0] and [15] */
+		) {
+			*m = msg;		/* We found the message */
 			return TRUE;
 		}
 	}
 
 	*m = NULL;
 	return FALSE; /* Message not found in the tables */
+}
+
+void routing_close(void)
+{
+	GList *l;
+	guint32 i;
+
+	for (i = 0; i < 256; i++) {
+		for (l = messages[i]; l; l = l->next) {
+			struct message *m = (struct message *)l->data;
+			while (m->nodes)
+				m->nodes = g_slist_remove(m->nodes, m->nodes->data);
+			g_free(m);
+		}
+	}
 }
 
 /* Main routing function -------------------------------------------------------------------------- */
@@ -228,17 +258,17 @@ gboolean route_message(struct gnutella_node **node)
 			if (sender->header.ttl > max_ttl) /* TTL too large, don't forward */
 			{
 				routing_log("[Max TTL] ");
-/*				sender->dropped++; */
-/*				dropped_messages++; */
-/*				return handle_it; */
+				sender->dropped++;
+				dropped_messages++;
+				return handle_it;
 			}
 
 			if (!sender->header.ttl || !--sender->header.ttl)	/* TTL expired, message can't go further */
 			{
 				routing_log("[TTL expired] ");
-/*				sender->dropped++; */
-/*				dropped_messages++; */
-/*				return handle_it; */
+				sender->dropped++;
+				dropped_messages++;
+				return handle_it;
 			}
 
 			sender->header.hops++;
@@ -272,11 +302,29 @@ gboolean route_message(struct gnutella_node **node)
 
 				routing_errors++;
 
-				/* That should be a really good reason to kick the offender immediately */
-				/* But it will kick far too many people nowadays... */
-
-/*				node_remove(sender, "Kicked (sent identical messages twice)"); */
-/*				(*node) = NULL; */
+				/*
+				 * That is a really good reason to kick the offender
+				 * But do so only if killing this node would not bring
+				 * us too low in node count, and if they have sent enough
+				 * dups to be sure it's not bad luck in MUID generation.
+				 * Finally, check the ratio of dups on received messages,
+				 * because a dup once in a while is nothing.
+				 * 		--RAM, 08/09/2001
+				 */
+				if (
+					++(sender->n_dups) > MAX_DUP_MSG &&
+					connected_nodes() > MAX(2, up_connections) &&
+					sender->n_dups >
+						(guint16) (MAX_DUP_RATIO/100.0*sender->received)
+				) {
+					node_remove(sender, "Kicked: sent %d dups (%.1f%% of RX)",
+						sender->n_dups, sender->received ?
+						100.0 * sender->n_dups / sender->received : 0.0);
+					(*node) = NULL;
+				} else {
+					sender->n_bad++;
+					dropped_messages++;
+				}
 			} else {
 			  routing_log("[ ] duplicated\n");
 
@@ -297,6 +345,34 @@ gboolean route_message(struct gnutella_node **node)
 		}
 		else	/* Never seen this message before */
 		{
+			/* Drop messages that would travel way too many nodes --RAM */
+			if (sender->header.ttl + sender->header.hops > hard_ttl_limit) {
+				routing_log("[ ] [NEW] Hard TTL limit reached\n");
+
+				/*
+				 * When close neighboors of that node send messages we drop
+				 * that way, they may try to flood the network.  Disconnect
+				 * after too many offenses, which should have give the relaying
+				 * node ample time to kick the offender out, according to our
+				 * standards.
+				 *		--RAM, 08/09/2001
+				 */
+
+				sender->n_hard_ttl++;
+				if (
+					sender->header.hops <= MAX_HARD_TTL_HOP &&
+					sender->n_hard_ttl > MAX_HARD_TTL_LIMIT_MSG
+				) {
+					node_remove(sender, "Kicked: relayed %d high TTL messages",
+						sender->n_hard_ttl);
+					(*node) = NULL;
+				} else {
+					sender->dropped++;
+					dropped_messages++;
+				}
+				return FALSE;
+			}
+
 			if (sender->header.ttl > max_ttl)	/* TTL too large */
 			{
 				routing_log("[ ] [NEW] Max TTL reached\n");
