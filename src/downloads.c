@@ -267,6 +267,23 @@ static gint dl_ip_eq(gconstpointer a, gconstpointer b)
 }
 
 /*
+ * dl_retry_cmp
+ *
+ * Compare two `download' structures based on the `retry_after' field.
+ * The smaller that time, the smaller the structure is.
+ */
+static gint dl_retry_cmp(gconstpointer a, gconstpointer b)
+{
+	const struct download *as = (const struct download *) a;
+	const struct download *bs = (const struct download *) b;
+
+	if (as->retry_after == bs->retry_after)
+		return 0;
+
+	return as->retry_after < bs->retry_after ? -1 : +1;
+}
+
+/*
  * dl_server_retry_cmp
  *
  * Compare two `dl_server' structures based on the `retry_after' field.
@@ -1315,7 +1332,14 @@ static void download_add_to_list(struct download *d, enum dl_list idx)
 
 	d->list_idx = idx;
 
-	server->list[idx] = g_list_prepend(server->list[idx], d);
+	/*
+	 * The DL_LIST_WAITING list is sorted by increasing retry after.
+	 */
+
+	server->list[idx] = (idx == DL_LIST_WAITING) ?
+		g_list_insert_sorted(server->list[idx], d, dl_retry_cmp) :
+		g_list_prepend(server->list[idx], d);
+
 	server->count[idx]++;
 }
 
@@ -1353,6 +1377,7 @@ static void download_move_to_list(struct download *d, enum dl_list idx)
 
 	/*
 	 * Local counter and list update.
+	 * The DL_LIST_WAITING list is sorted by increasing retry after.
 	 */
 
 	g_assert(server->count[old_idx] > 0);
@@ -1360,26 +1385,47 @@ static void download_move_to_list(struct download *d, enum dl_list idx)
 	server->list[old_idx] = g_list_remove(server->list[old_idx], d);
 	server->count[old_idx]--;
 
-	server->list[idx] = g_list_append(server->list[idx], d);
+	server->list[idx] = (idx == DL_LIST_WAITING) ?
+		g_list_insert_sorted(server->list[idx], d, dl_retry_cmp) :
+		g_list_append(server->list[idx], d);
+
 	server->count[idx]++;
 
 	d->list_idx = idx;
 }
 
 /*
- * download_set_retry_after
+ * download_server_retry_after
  *
  * Change the `retry_after' field of the host where this download runs.
  */
-static void download_set_retry_after(struct download *d, time_t after)
+static void download_server_retry_after(struct dl_server *server)
 {
-	struct dl_server *server = d->server;
+	struct download *d;
+	time_t after;
 
 	g_assert(server != NULL);
+	g_assert(server->count[DL_LIST_WAITING]);	/* We have queued something */
 
-	dl_by_time_remove(server);
-	server->retry_after = after;
-	dl_by_time_insert(server);
+	/*
+	 * Always consider the earliest time in the future for all the downloads
+	 * enqueued in the server when updating its `retry_after' field.
+	 *
+	 * Indeed, we may have several downloads queued with PARQ, and each
+	 * download bears its own retry_after time.  But we need to know the
+	 * earliest time at which we should start browsing through the downloads
+	 * for a given server.
+	 *		--RAM, 16/07/2003
+	 */
+
+	d = (struct download *) server->list[DL_LIST_WAITING]->data;
+	after = d->retry_after;
+
+	if (server->retry_after != after) {
+		dl_by_time_remove(server);
+		server->retry_after = after;
+		dl_by_time_insert(server);
+	}
 }
 
 /*
@@ -1750,30 +1796,22 @@ gint download_queue_is_frozen(void)
 static void download_queue_delay(struct download *d, guint32 delay,
 	const gchar *fmt, ...)
 {
-	struct dl_server *server = d->server;
 	time_t now = time((time_t *) NULL);
 	va_list args;
 
-	va_start(args, fmt);
-	download_queue_v(d, fmt, args);
-	va_end(args);
-
 	/*
-	 * Always consider the earliest time in the future when updating the
-	 * `retry_after' field of the server.
-	 *
-	 * Indeed, we may have several downloads queued with PARQ, and each
-	 * downloads bears its own retry_after time.  But we need to know the
-	 * earliest time at which we should start browsing through the downloads
-	 * for a given server.
-	 *		--RAM, 16/07/2003
+	 * Must update `retry_after' before enqueuing, since the "waiting" list
+	 * is sorted by increasing retry_after for a given server.
 	 */
 
 	d->last_update = now;
 	d->retry_after = now + delay;
 
-	if (server->retry_after > (now + delay))
-		download_set_retry_after(d, now + delay);
+	va_start(args, fmt);
+	download_queue_v(d, fmt, args);
+	va_end(args);
+
+	download_server_retry_after(d->server);
 }
 
 /*
@@ -2396,7 +2434,7 @@ void download_pickup_queued(void)
 					continue;
 
 				if (now < d->retry_after)
-					continue;
+					break;	/* List is sorted */
 
 				if (d->flags & DL_F_SUSPENDED)
 					continue;
@@ -5887,7 +5925,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 					continue;
 
 				if (now < d->retry_after)
-					continue;
+					break;		/* List is sorted */
 
 				if (d->flags & DL_F_SUSPENDED)
 					continue;
