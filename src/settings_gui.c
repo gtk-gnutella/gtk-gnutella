@@ -1005,6 +1005,16 @@ static prop_map_t property_map[] = {
         "checkbutton_search_remove_downloaded",
         FREQ_UPDATES, 0
     },
+#ifdef USE_GTK1
+    {
+        get_main_window,
+        PROP_DL_REMOVE_FILE_ON_MISMATCH,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_dl_remove_file_on_mismatch",
+        FREQ_UPDATES, 0
+    },
+#endif	/* USE_GTK1 */
     {
         get_main_window,
         PROP_SEARCH_HIDE_DOWNLOADED,
