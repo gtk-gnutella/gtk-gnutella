@@ -28,8 +28,6 @@
 #ifndef _icon_h_
 #define _icon_h_
 
-#include <glib.h>
-
 /*
  * Public interface.
  */
