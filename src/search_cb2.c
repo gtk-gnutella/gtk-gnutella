@@ -37,51 +37,33 @@ RCSID("$Id$");
 
 /* Privat variables */
 
-static gchar tmpstr[4096];
-
 /***
  *** Private functions
  ***/
 
 static void refresh_popup(void)
 {
-	gboolean sensitive;
-	search_t *search;
+	static const char *popup_names[] = {
+		"popup_search_download",
+		"popup_search_drop_name",
+		"popup_search_drop_sha1",
+		"popup_search_drop_host",
+		"popup_search_drop_name_global",
+		"popup_search_drop_host_global",
+		"popup_search_autodownload_name",
+		"popup_search_autodownload_sha1",
+		"popup_search_new_from_selected",
+		"popup_search_restart",
+		"popup_search_duplicate",
+		NULL
+	};
+	search_t *search = search_gui_get_current_search();
+	gboolean sensitive = NULL != search;
+	guint i;
 
-    search = search_gui_get_current_search();
-	sensitive = search != NULL;
-
-	gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_download"), sensitive);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_drop_name"), sensitive);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_drop_sha1"), sensitive);
-    gtk_widget_set_sensitive
-        (lookup_widget(popup_search, "popup_search_drop_host"), sensitive);
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_drop_name_global"), 
-        sensitive);
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_drop_sha1_global"), 
-        sensitive);   
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_drop_host_global"), 
-        sensitive);   
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_autodownload_name"), 
-        sensitive);
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_autodownload_sha1"), 
-        sensitive);   
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_new_from_selected"), 
-        sensitive);   
-
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_restart"), NULL != search);
-    gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_duplicate"), NULL != search);
+	for (i = 0; NULL != popup_names[i]; i++)
+		gtk_widget_set_sensitive(lookup_widget(popup_search, popup_names[i]),
+			sensitive);
 
     if (search) {
         gtk_widget_set_sensitive(
@@ -275,7 +257,7 @@ gboolean on_tree_view_search_results_key_press_event
 {
     g_assert(event != NULL);
 
-    switch(event->keyval) {
+    switch (event->keyval) {
     case GDK_Return:
         search_gui_download_files();
         return TRUE;
@@ -288,6 +270,7 @@ gboolean on_tree_view_search_results_button_press_event
     (GtkWidget *widget, GdkEventButton * event, gpointer user_data)
 {
 	static guint click_time = 0;
+	gboolean search_results_show_tabs;
 
 	switch (event->button) {
 	case 1:
@@ -315,29 +298,18 @@ gboolean on_tree_view_search_results_button_press_event
 		}
 		return FALSE;
 
-        case 3:
+	case 3:
         /* right click section (popup menu) */
         refresh_popup();
-
-
-        {
-            gboolean search_results_show_tabs;
-
-            gui_prop_get_boolean(
-                PROP_SEARCH_RESULTS_SHOW_TABS,
-                &search_results_show_tabs, 0, 1);
-
-            g_strlcpy(tmpstr,
-				search_results_show_tabs ?  "Show search list" : "Show tabs",
-				sizeof(tmpstr));
-        }
-
-        gtk_label_set(GTK_LABEL((GTK_MENU_ITEM
-            (lookup_widget(popup_search, "popup_search_toggle_tabs"))
-                ->item.bin.child)), tmpstr);
-                gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL,
-                     event->button, event->time);
-                return TRUE;
+		gui_prop_get_boolean_val(PROP_SEARCH_RESULTS_SHOW_TABS,
+                &search_results_show_tabs);
+        gtk_label_set(GTK_LABEL((GTK_MENU_ITEM(
+			lookup_widget(popup_search, "popup_search_toggle_tabs"))
+                ->item.bin.child)),
+			search_results_show_tabs ? "Show search list" : "Show tabs");
+		gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL,
+			event->button, event->time);
+		return TRUE;
 
         default: ;
     }
@@ -494,21 +466,9 @@ static void autoselect_files_helper(
 
 static void autoselect_files(GtkTreeView *treeview)
 {
-    gboolean search_autoselect;
-    gboolean search_autoselect_ident;
-    gboolean search_autoselect_fuzzy;
+    gboolean autoselect;
 
-    gui_prop_get_boolean(
-        PROP_SEARCH_AUTOSELECT,
-        &search_autoselect, 0, 1);
-
-    gui_prop_get_boolean(
-        PROP_SEARCH_AUTOSELECT_IDENT,
-        &search_autoselect_ident, 0, 1);
-
-    gui_prop_get_boolean(
-        PROP_SEARCH_AUTOSELECT_FUZZY,
-        &search_autoselect_fuzzy, 0, 1);
+    gui_prop_get_boolean_val(PROP_SEARCH_AUTOSELECT, &autoselect);
 
     /*
      * Block this signal so we don't emit it for every autoselected item.
@@ -520,8 +480,8 @@ static void autoselect_files(GtkTreeView *treeview)
 
     refresh_popup();
 
-	gnet_prop_get_guint32(PROP_FUZZY_THRESHOLD, 
-		&autoselect_files_fuzzy_threshold, 0, 1);
+	gnet_prop_get_guint32_val(PROP_FUZZY_THRESHOLD, 
+		&autoselect_files_fuzzy_threshold);
 
     /* 
      * check if config setting select all is on and only autoselect if
@@ -529,7 +489,7 @@ static void autoselect_files(GtkTreeView *treeview)
      */
 
 	autoselect_files_lock = FALSE;
-	if (search_autoselect)
+	if (autoselect)
 		gtk_tree_selection_selected_foreach(
             gtk_tree_view_get_selection(treeview),
             autoselect_files_helper,
@@ -551,6 +511,7 @@ void on_tree_view_search_results_select_row(
     GtkTreeView *tree_view, gpointer user_data)
 {
 	static gboolean autoselection_running = FALSE;
+	static gchar tmpstr[4096];
 	GtkTreePath *path;
 
 	gtk_tree_view_get_cursor(tree_view, &path, NULL);
@@ -563,10 +524,8 @@ void on_tree_view_search_results_select_row(
 
 		model = gtk_tree_view_get_model(tree_view);
 		gtk_tree_model_get_iter(model, &iter, path);
-		gtk_tree_model_get(model, &iter,
-			c_sr_filename, &filename,
-			c_sr_record, &rc,
-			-1);
+		gtk_tree_model_get(model, &iter, c_sr_filename, &filename,
+			c_sr_record, &rc, (-1));
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
 			filename);
@@ -616,7 +575,8 @@ void on_tree_view_search_results_select_row(
 void on_tree_view_search_results_resize_column(
     GtkTreeView * tree_view, gint column, gint width, gpointer user_data)
 {
-#if 0 /* FIXME */
+/* FIXME */
+#if 0
     guint32 buf = width; 
 
     /* remember the width for storing it to the config file later */
@@ -644,8 +604,7 @@ void on_button_search_passive_clicked(
      * If we should set a default filter, we do that.
      */
     if (default_filter != NULL) {
-        rule_t *rule = filter_new_jump_rule
-            (default_filter, RULE_FLAG_ACTIVE);
+        rule_t *rule = filter_new_jump_rule(default_filter, RULE_FLAG_ACTIVE);
 
         /*
          * Since we don't want to distrub the shadows and
