@@ -1154,21 +1154,34 @@ void gui_update_download(struct download *d, gboolean force)
 	GtkTreeIter *parent;
 	GtkTreeView *tree_view;
 	GtkTreeStore *model;
-	
-	
-	/* Why update if no one's looking? */
     gint current_page;
-    current_page = gtk_notebook_get_current_page(
-        GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
+	static GtkNotebook *notebook = NULL;
+	static GtkNotebook *dl_notebook = NULL;
+
+    if (d->last_gui_update == now && !force)
+		return;
+	
+	/*
+	 * Why update if no one's looking?
+	 */
+
+	if (notebook == NULL)
+		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
+
+	if (dl_notebook == NULL)
+		dl_notebook =
+			GTK_NOTEBOOK(lookup_widget(main_window, "notebook_downloads"));
+
+    current_page = gtk_notebook_get_current_page(notebook);
     if (current_page != nb_main_page_downloads)
         return;
 	
+    current_page = gtk_notebook_get_current_page(dl_notebook);
+    if (current_page != nb_downloads_page_downloads)
+		return;
 
 	if (DL_GUI_IS_HEADER == (guint32) d)
 		return;			/*A header was sent here by mistake */ 		
-	
-    if (d->last_gui_update == now && !force)
-		return;
 	
 	d->last_gui_update = now;
 	fi = d->file_info;
