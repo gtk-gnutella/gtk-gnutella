@@ -1214,7 +1214,7 @@ no_nalt:
 	 * at the first position.
 	 */
 
-	if (fi != NULL && fi->done != 0 && pfsp_server) {
+	if (fi != NULL && fi->done != 0 && pfsp_server && !is_firewalled) {
 		gint url_len;
 		struct dmesh_entry ourselves;
 		time_t now = time(NULL);
