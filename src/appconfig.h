@@ -16,7 +16,6 @@ extern gboolean progressbar_bps_out_avg;
 extern gboolean progressbar_bps_in_avg;
 extern gboolean toolbar_visible;
 extern gboolean statusbar_visible;
-extern gboolean force_local_ip;
 extern gboolean monitor_enabled;
 extern gboolean search_stats_enabled;
 extern gboolean clear_uploads;
@@ -27,6 +26,10 @@ extern gboolean use_netmasks;
 extern struct in_addr *local_netmasks;
 extern guint32 number_local_netmasks;
 extern gchar *local_netmasks_string;
+
+extern gboolean force_local_ip;
+extern guint32 forced_local_ip;
+extern guint32 local_ip;
 
 extern guint8 my_ttl;
 extern guint8 max_ttl;
@@ -40,7 +43,6 @@ extern guint32 max_host_downloads;
 extern guint32 max_uploads;
 extern guint32 connection_speed;
 extern gint32 search_max_items;
-extern guint32 forced_local_ip;
 extern guint32 download_connecting_timeout;
 extern guint32 download_push_sent_timeout;
 extern guint32 download_connected_timeout;
@@ -109,6 +111,13 @@ extern gint proxy_port;
 extern gboolean proxy_auth;
 extern gchar *socksv5_user;
 extern gchar *socksv5_pass;
+
+/*
+ * Global macros.
+ */
+
+#define listen_ip()		(force_local_ip ? forced_local_ip : local_ip)
+
 
 /*
  * Global Functions

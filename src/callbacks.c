@@ -1604,6 +1604,7 @@ void on_checkbutton_config_force_ip_toggled(GtkToggleButton * togglebutton,
 											gpointer user_data)
 {
 	force_local_ip = gtk_toggle_button_get_active(togglebutton);
+	gui_update_config_port();
 }
 
 void on_entry_config_force_ip_changed(GtkEditable * editable,
@@ -1628,6 +1629,7 @@ void on_entry_config_force_ip_activate(GtkEditable * editable,
 	if (ip != forced_local_ip)
 		forced_local_ip = ip;
 	gui_update_config_force_ip();
+	gui_update_config_port();
 	g_free(e);
 }
 

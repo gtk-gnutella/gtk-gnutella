@@ -1487,9 +1487,9 @@ static void node_process_handshake_header(struct io_header *ih)
 	 *		--RAM, 13/01/2002
 	 */
 
-	if (force_local_ip) {
+	if (!force_local_ip) {
 		guint32 ip = extract_my_ip(ih->header);
-		if (ip && ip != forced_local_ip)
+		if (ip && ip != local_ip)
 			config_ip_changed(ip);
 	}
 

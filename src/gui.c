@@ -194,8 +194,7 @@ void gui_update_config_port(void)
 {
 	gchar *iport;
 
-	iport = ip_port_to_gchar(force_local_ip ? forced_local_ip : local_ip,
-							 listen_port);
+	iport = ip_port_to_gchar(listen_ip(), listen_port);
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", listen_port);
 	gtk_entry_set_text(GTK_ENTRY(entry_config_port), gui_tmp);

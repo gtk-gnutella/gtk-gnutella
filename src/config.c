@@ -59,6 +59,7 @@ guint32 monitor_max_items = 25;
 guint32 connection_speed = 28;	/* kbits/s */
 gint32 search_max_items = 50;	/* For now, this is limited to 255 anyway */
 guint32 forced_local_ip = 0;
+guint32 local_ip = 0;
 guint32 download_connecting_timeout = 30;
 guint32 download_push_sent_timeout = 60;
 guint32 download_connected_timeout = 60;
@@ -148,7 +149,7 @@ enum {
 	k_listen_port, k_max_ttl, k_my_ttl, k_shared_dirs, k_forced_local_ip,
 	k_connection_speed,
 	k_search_max_items, k_search_max_results,
-	k_force_local_ip, k_guid,
+	k_local_ip, k_force_local_ip, k_guid,
 	k_download_connecting_timeout,
 	k_download_push_sent_timeout, k_download_connected_timeout,
 	k_download_retry_timeout_min, k_download_retry_timeout_max,
@@ -212,6 +213,7 @@ static gchar *keywords[] = {
 	"connection_speed",			/* k_connection_speed */
 	"limit_search_results",		/* k_search_max_items */
 	"search_max_results",		/* k_search_max_results */
+	"local_ip",					/* k_local_ip */
 	"force_local_ip",			/* k_force_local_ip */
 	"guid",						/* k_guid */
 	"download_connecting_timeout",		/* k_download_connecting_timeout */
@@ -750,6 +752,10 @@ void config_set_param(guint32 keyword, gchar *value)
 
 	case k_connection_speed:
 		if (i > 0 && i < 65535) connection_speed = i;
+		return;
+
+	case k_local_ip:
+		local_ip = gchar_to_ip(value);
 		return;
 
 	case k_force_local_ip:
@@ -1330,6 +1336,8 @@ static void config_save(void)
 	fprintf(config, "%s = \"%s\"\n", keywords[k_scan_extensions],
 			(scan_extensions) ? scan_extensions : "");
 	fprintf(config, "\n");
+	fprintf(config, "%s = \"%s\"\n", keywords[k_local_ip],
+			ip_to_gchar(local_ip));
 	fprintf(config, "%s = %s\n", keywords[k_force_local_ip],
 			config_boolean(force_local_ip));
 	fprintf(config, "%s = \"%s\"\n", keywords[k_forced_local_ip],
@@ -1685,7 +1693,7 @@ static void config_remove_pidfile(void)
  * config_ip_changed
  *
  * This routine is called when we determined that our IP was no longer the
- * one we force.  We base this on some headers sent back when we handshake
+ * one we computed.  We base this on some headers sent back when we handshake
  * with other nodes, and as a result, cannot trust the information.
  *
  * What we do henceforth is trust 3 successive indication that our IP changed,
@@ -1698,7 +1706,7 @@ void config_ip_changed(guint32 new_ip)
 	static guint32 last_ip_seen = 0;
 	static gint same_ip_count = 0;
 
-	g_assert(force_local_ip);		/* Must only be called when IP is forced */
+	g_assert(!force_local_ip);		/* Must be called when IP isn't forced */
 
 	if (new_ip != last_ip_seen) {
 		last_ip_seen = new_ip;
@@ -1712,13 +1720,13 @@ void config_ip_changed(guint32 new_ip)
 	last_ip_seen = 0;
 	same_ip_count = 0;
 
-	if (new_ip == forced_local_ip)
+	if (new_ip == local_ip)
 		return;
 
-	g_warning("Changing forced IP to %s", ip_to_gchar(new_ip));
+	g_warning("Changing local IP to %s", ip_to_gchar(new_ip));
 
-	forced_local_ip = new_ip;
-	gui_update_config_force_ip();
+	local_ip = new_ip;
+	gui_update_config_port();
 }
 
 /*

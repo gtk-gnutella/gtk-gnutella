@@ -91,7 +91,6 @@ static void init_constants(void)
 
 static void slow_main_timer(time_t now)
 {
-		gui_update_config_port();		/* Show current IP:port if dynamic IP */
 		ul_flush_stats_if_dirty();
 }
 

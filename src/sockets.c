@@ -14,6 +14,7 @@
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 
+#include "appconfig.h"		/* For local_ip */
 #include "sockets.h"
 #include "downloads.h"
 #include "uploads.h"
@@ -22,6 +23,7 @@
 #include "header.h"
 #include "getline.h"
 #include "bsched.h"
+#include "gui.h"			/* For gui_update_config_port() */
 
 #if !defined(SOL_TCP) && defined(IPPROTO_TCP)
 #define SOL_TCP IPPROTO_TCP
@@ -31,10 +33,11 @@
 #define SHUT_WR 1		/* Shutdown TX side */
 #endif
 
-guint32 local_ip = 0;
 gboolean is_firewalled = TRUE;		/* Assume the worst --RAM, 20/12/2001 */
 
 static GSList *sl_incoming = (GSList *) NULL;	/* Track incoming sockets */
+
+static void guess_local_ip(int sd);
 
 void socket_monitor_incoming(void)
 {
@@ -369,6 +372,9 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 
 		g_assert(s->gdk_tag == 0);
 
+		if (!local_ip)
+			guess_local_ip(s->file_desc);
+
 		switch (s->type) {
 		case GTA_TYPE_CONTROL:
 			{
@@ -405,22 +411,32 @@ void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 	}
 }
 
-int guess_local_ip(int sd, guint32 * ip_addr, guint16 * ip_port)
+static void guess_local_ip(int sd)
 {
 	struct sockaddr_in addr;
 	gint len = sizeof(struct sockaddr_in);
 
-	if (getsockname(sd, (struct sockaddr *) &addr, &len) == -1) {
-		return -1;
-	} else {
-		if (ip_addr)
-			*ip_addr = g_ntohl(addr.sin_addr.s_addr);
-		if (ip_port)
-			*ip_port = g_ntohs(addr.sin_port);
-		return 0;
+	if (-1 != getsockname(sd, (struct sockaddr *) &addr, &len)) {
+		local_ip = g_ntohl(addr.sin_addr.s_addr);
+		gui_update_config_port();
 	}
 }
 
+/*
+ * socket_port
+ *
+ * Return socket's local port, or -1 on error.
+ */
+static int socket_local_port(struct gnutella_socket *s)
+{
+	struct sockaddr_in addr;
+	gint len = sizeof(struct sockaddr_in);
+
+	if (getsockname(s->file_desc, (struct sockaddr *) &addr, &len) == -1)
+		return -1;
+
+	return g_ntohs(addr.sin_port);
+}
 
 static void socket_accept(gpointer data, gint source,
 						  GdkInputCondition cond)
@@ -460,7 +476,7 @@ static void socket_accept(gpointer data, gint source,
 	}
 
 	if (!local_ip)
-		guess_local_ip(sd, &local_ip, NULL);
+		guess_local_ip(sd);
 
 	/* Create a new struct socket for this incoming connection */
 
@@ -597,14 +613,9 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 		return NULL;
 	}
 
-	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
+	s->local_port = socket_local_port(s);
 
-	/* Always keep our IP current, in case of dynamic address */
-	if (guess_local_ip(sd, &local_ip, &s->local_port) == -1) {
-		g_warning("Unable to guess our IP ! (%s)", g_strerror(errno));
-		socket_destroy(s);
-		return NULL;
-	}
+	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
 	g_assert(s->gdk_tag == 0);
 

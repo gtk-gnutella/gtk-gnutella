@@ -55,10 +55,7 @@ struct gnutella_socket {
  * Global Data
  */
 
-extern guint32 local_ip;
 extern gboolean is_firewalled;
-
-#define listen_ip()		(force_local_ip ? forced_local_ip : local_ip)
 
 /*
  * Global Functions
