@@ -624,14 +624,15 @@ static void update_address_lifetime(void)
  */
 time_t get_average_servent_uptime(time_t now)
 {
-	time_t uptime;
-	guint32 start_stamp;
+	time_t start_stamp;
+	gint32 uptime, val;
 	guint32 avg_servent_uptime;
 
 	gnet_prop_get_guint32_val(PROP_AVERAGE_SERVENT_UPTIME, &avg_servent_uptime);
-	gnet_prop_get_guint32_val(PROP_START_STAMP, &start_stamp);
+	gnet_prop_get_guint32_val(PROP_START_STAMP, &val);
 	
-	uptime = now - start_stamp;
+	start_stamp = val;
+	uptime = delta_time(now, start_stamp);
 	if (uptime < 0)
 		uptime = 0;
 
