@@ -233,6 +233,8 @@ static void dump_cache(void)
 	g_hash_table_foreach(sha1_cache,
 		(GHFunc)dump_cache_one_entry, persistent_cache);
 	fclose(persistent_cache);
+
+	cache_dirty = FALSE;
 }
 
 /*
@@ -493,8 +495,10 @@ static void put_sha1_back_into_share_library(
 {
 	struct sha1_cache_entry *cached_sha1;
 
+	g_assert(sf != SHARE_REBUILDING);
+
 	if (!sf) {
-		fprintf(stderr, "Got SHA1 for unknown file %s ???\n", file_name);
+		g_warning("got SHA1 for unknown file: %s", file_name);
 		return;
 	}
 
@@ -563,11 +567,20 @@ static void try_to_put_sha1_back_into_share_library()
 	if (sf == SHARE_REBUILDING)
 		return;						/* Nope. Try later. */
 
+	if (dbg > 1)
+		printf("try_to_put_sha1_back_into_share_library: flushing...\n");
+
 	while (waiting_for_library_build_complete) {
 		struct file_sha1 *f = waiting_for_library_build_complete;
+		struct shared_file *sf = shared_file(f->file_index);
+
+		if (dbg > 4)
+			printf("flushing file \"%s\" (idx=%u), %sfound in lib\n",
+				f->file_name, f->file_index, sf ? "" : "NOT ");
+
 		waiting_for_library_build_complete = f->next;
-		put_sha1_back_into_share_library(shared_file(f->file_index),
-			f->file_name, f->sha1_digest);
+		put_sha1_back_into_share_library(sf, f->file_name, f->sha1_digest);
+
 		free_cell(f);
 	}
 }
@@ -787,6 +800,17 @@ static gboolean sha1_timer(gpointer p)
 	adjust_credit(&start, &end);
 
 no_adjust:
+	if (dbg > 4)
+		printf("sha1_timer: file=0x%lx [#%d], wait_comp=0x%lx [#%d], "
+			"wait_lib=0x%lx [#%d]\n",
+			(gulong) current_file, current_file ? current_file->file_index : 0,
+			(gulong) waiting_for_sha1_computation,
+			waiting_for_sha1_computation ?
+				waiting_for_sha1_computation->file_index : 0,
+			(gulong) waiting_for_library_build_complete,
+			waiting_for_library_build_complete ?
+				waiting_for_library_build_complete->file_index : 0);
+
 	if (waiting_for_library_build_complete) 
 		try_to_put_sha1_back_into_share_library();
 
@@ -795,6 +819,8 @@ no_adjust:
 		|| waiting_for_library_build_complete;
 
 	if (!call_timer_again) {
+		if (dbg > 1)
+			printf("sha1_timer: was last call for now\n");
 		if (cache_dirty)
 			dump_cache();
 		sha1_timeout_tag = 0;
@@ -911,6 +937,9 @@ void huge_close(void)
 {
 	if (sha1_timeout_tag)
 		g_source_remove(sha1_timeout_tag);
+
+	if (cache_dirty)
+		dump_cache();
 
 	if (persistent_cache_file_name)
 		g_free(persistent_cache_file_name);
