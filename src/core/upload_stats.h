@@ -35,7 +35,6 @@ void upload_stats_flush_if_dirty(void);
 void upload_stats_file_begin(const struct upload *u);
 void upload_stats_file_aborted(const struct upload *u);
 void upload_stats_file_complete(const struct upload *u);
-void upload_stats_clear_all(void);
 void upload_stats_close(void);
 
 #endif /* _core_upload_stats_h_ */
