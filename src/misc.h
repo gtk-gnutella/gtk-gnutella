@@ -15,6 +15,7 @@ gboolean is_private_ip(guint32 ip);
 gchar *node_ip(struct gnutella_node *);
 void message_dump(struct gnutella_node *);
 gboolean is_directory(gchar *);
+gchar *guid_hex_str(guchar *guid);
 void dump_hex(FILE *, gchar *, gchar *, gint);
 gchar *short_size(guint32);
 

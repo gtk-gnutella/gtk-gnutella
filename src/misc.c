@@ -131,6 +131,24 @@ gchar *node_ip(struct gnutella_node * n)
 	return ip_port_to_gchar(n->ip, n->port);
 }
 
+/*
+ * guid_hex_str
+ *
+ * Returns hexadecimal string representing given GUID.
+ */
+gchar *guid_hex_str(guchar *guid)
+{
+	static gchar buf[33];
+	gint i;
+
+	for (i = 0; i < 16; i++)
+		g_snprintf(&buf[i*2], 3, "%02x", guid[i]);
+
+	buf[32] = '\0';		/* Should not be necessary, but... */
+
+	return buf;
+}
+
 /* Dumps a gnutella message (debug) */
 
 void message_dump(struct gnutella_node *n)
