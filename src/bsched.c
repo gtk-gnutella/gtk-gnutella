@@ -42,6 +42,7 @@
 #endif	/* I_SYS_SENDFILE_H */
 
 #include "bsched.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

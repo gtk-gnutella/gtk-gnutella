@@ -36,6 +36,7 @@
 #include "mq.h"
 #include "routing.h"
 #include "extensions.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

@@ -35,7 +35,7 @@
 #ifdef TRACK_MALLOC
 
 #define MALLOC_SOURCE	/* Avoid nasty remappings, but include signatures */
-#include "malloc.h"
+#include "override.h"
 
 RCSID("$Id$");
 

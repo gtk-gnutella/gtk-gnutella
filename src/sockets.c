@@ -65,6 +65,8 @@
 #include "shell.h"
 #endif
 
+#include "override.h"		/* Must be the last header included */
+
 RCSID("$Id$");
 
 #ifndef SHUT_WR

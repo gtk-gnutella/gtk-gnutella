@@ -100,7 +100,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.9 2003/12/26 21:35:39 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.10 2004/01/14 20:44:24 rmanfredi Exp $
 
 GUI_GTK2 = \
 	downloads_cb2.c \

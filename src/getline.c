@@ -27,6 +27,7 @@
 #include "getline.h"
 #include "walloc.h"
 #include "misc.h"		/* For RCSID */
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

@@ -32,7 +32,8 @@
 #include "downloads_cb.h"
 #include "statusbar_gui.h"
 
-#include "downloads.h" /* FIXME: remove this dependency */
+#include "downloads.h"	/* FIXME: remove this dependency */
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
@@ -858,7 +859,7 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
     gchar * regex;
 	regex_t re;
 
-    regex = gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1);
+    regex = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1));
 
 	g_return_if_fail(regex != NULL);
 	

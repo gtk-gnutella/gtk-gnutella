@@ -44,6 +44,8 @@
 #include <libxml/parser.h>
 #endif
 
+#include "override.h"		/* Must be the last header included */
+
 RCSID("$Id$");
 
 static search_t *current_search  = NULL; /* The search currently displayed */

@@ -43,6 +43,8 @@ RCSID("$Id$");
 #include "downloads_cb.h"
 #endif
 
+#include "override.h"		/* Must be the last header included */
+
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 #define IO_AVG_RATE		5		/* Compute global recv rate every 5 secs */
 

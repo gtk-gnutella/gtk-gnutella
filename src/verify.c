@@ -34,6 +34,7 @@
 #include "downloads.h"
 #include "verify.h"
 #include "file.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

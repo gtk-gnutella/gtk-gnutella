@@ -33,6 +33,7 @@
 #include "nodes_cb.h"
 #include "settings_gui.h"
 #include "statusbar_gui.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
@@ -150,7 +151,7 @@ static void add_node(void)
     GtkEditable *editable = GTK_EDITABLE
         (lookup_widget(main_window, "entry_host"));
 
-    addr = gtk_editable_get_chars(editable, 0, -1);
+    addr = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 
     nodes_cb_connect_by_name(addr);
 
@@ -182,11 +183,11 @@ void on_entry_host_activate(GtkEditable * editable, gpointer user_data)
 void on_entry_host_changed(GtkEditable * editable, gpointer user_data)
 {
     gchar *p;
-	gchar *e = gtk_editable_get_chars(editable, 0, -1);
+	gchar *e = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 	g_strstrip(e);
 
     /* Strip away port, if any. */
-    if((p = strchr(e, ':')) != NULL)
+    if ((p = strchr(e, ':')) != NULL)
         *p = '\0';
     
 	gtk_widget_set_sensitive(

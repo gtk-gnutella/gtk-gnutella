@@ -41,6 +41,7 @@
 #include "nodes_gui_common.h"
 
 #include "settings_cb.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

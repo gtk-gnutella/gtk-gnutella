@@ -26,12 +26,13 @@
 
 #include "gnutella.h"
 
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "whitelist.h"
 #include "settings.h"
 #include "nodes.h"
-
-#include <sys/stat.h>
-#include <unistd.h>
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

@@ -27,6 +27,7 @@
 
 #include "common.h"			/* For safe compilation under USE_DMALLOC */
 #include "namesize.h"
+#include "override.h"			/* Must be the last header included */
 
 RCSID("$Id$");
 

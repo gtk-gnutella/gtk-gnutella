@@ -37,6 +37,7 @@
 #include "gmsg.h"
 #include "nodes.h"					/* For NODE_IS_WRITABLE() */
 #include "gnet_stats.h"
+#include "override.h"					/* Must be the last header included */
 
 RCSID("$Id$");
 

@@ -25,6 +25,8 @@
 
 #include "config.h"
 
+#include <pwd.h>
+
 #include "gui.h"
 
 #ifdef USE_GTK2
@@ -53,10 +55,8 @@
 #include "filter_cb.h"
 #include "filter.h"
 #include "upload_stats_cb.h" /* FIXME: remove dependency (compare_ul_norm) */
-
 #include "fileinfo_gui.h"
-
-#include <pwd.h>
+#include "override.h"			/* Must be the last header included */
 
 RCSID("$Id$");
 

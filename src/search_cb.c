@@ -35,6 +35,7 @@
 #include "search_cb.h"
 #include "search_gui.h"
 #include "statusbar_gui.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
@@ -358,8 +359,8 @@ void on_search_selected(GtkItem * i, gpointer data)
  */
 void on_button_search_clicked(GtkButton *button, gpointer user_data)
 {
-	gchar *e = gtk_editable_get_chars
-        (GTK_EDITABLE(lookup_widget(main_window, "entry_search")), 0, -1);
+	gchar *e = STRTRACK(gtk_editable_get_chars
+        (GTK_EDITABLE(lookup_widget(main_window, "entry_search")), 0, -1));
 
 	/*
 	 * Even though we might not be on_the_net() yet, record the search.
@@ -440,7 +441,7 @@ void on_entry_search_activate(GtkEditable * editable, gpointer user_data)
  */
 void on_entry_search_changed(GtkEditable * editable, gpointer user_data)
 {
-	gchar *e = gtk_editable_get_chars(editable, 0, -1);
+	gchar *e = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 	g_strstrip(e);
 	gtk_widget_set_sensitive
         (lookup_widget(main_window, "button_search"), *e != 0);

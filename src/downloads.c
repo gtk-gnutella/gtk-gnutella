@@ -62,6 +62,8 @@
 #include <fcntl.h>
 #include <regex.h>
 
+#include "override.h"		/* Must be the last header included */
+
 RCSID("$Id$");
 
 #define DOWNLOAD_MIN_OVERLAP	64			/* Minimum overlap for safety */

@@ -33,6 +33,7 @@
 #include "nodes.h"		/* For node_beaome_firewalled() */
 #include "settings.h"
 #include "bsched.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

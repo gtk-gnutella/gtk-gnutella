@@ -207,12 +207,12 @@ void [=(. func-prefix)=]_shutdown(void);
 #include "eval.h"
 #include "[=(sprintf "%s.h" (. set-name-down))=]"
 
-
 /*
  * Includes specified by "uses"-statement in .ag file
  */
 [= FOR uses =]#include "[=uses=]"
 [= ENDFOR uses =]
+#include "malloc.h"		/* Must be the last header included */
 
 [= 
 FOR prop =][= 

@@ -28,6 +28,7 @@
 #ifdef USE_GTK1
 
 #include "gnet_stats_gui.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

@@ -60,6 +60,8 @@ typedef enum {
 
 #endif /* PROTECT_ATOMS */
 
+#include "override.h"		/* Must be the last header included */
+
 /*
  * Atoms are ref-counted.
  *

@@ -36,6 +36,7 @@
 #include "nodes.h"
 #include "tx.h"
 #include "tx_deflate.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

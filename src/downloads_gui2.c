@@ -40,6 +40,8 @@ RCSID("$Id$");
 #include "statusbar_gui.h"
 #include "parq.h"
 
+#include "override.h"		/* Must be the last header included */
+
 static gchar tmpstr[4096];
 static GtkTreeIter *temp_iter_global;  
 static GHashTable *parents;			/* table of parent download iterators */

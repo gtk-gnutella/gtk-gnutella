@@ -28,6 +28,7 @@
 
 #include "zalloc.h"
 #include "misc.h"		/* For RCSID */
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
@@ -202,8 +203,7 @@ static void zblock_log(gchar *p)
 	line = *(gint *) uptr;
 	uptr += sizeof(gint);
 
-	g_warning("block 0x%lx was allocated from \"%s\", line %d",
-		(gulong) uptr, file, line);
+	g_warning("leaked block 0x%lx from \"%s:%d\"", (gulong) uptr, file, line);
 }
 
 /*

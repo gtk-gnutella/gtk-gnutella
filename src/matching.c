@@ -26,9 +26,11 @@
  */
 
 #include "common.h"
-#include "qrp.h"			/* For qhvec_add() */
 
 #include <ctype.h>
+
+#include "qrp.h"			/* For qhvec_add() */
+#include "override.h"			/* Must be the last header included */
 
 RCSID("$Id$");
 

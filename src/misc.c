@@ -37,6 +37,7 @@
 #include <sys/times.h>		/* For times() */
 
 #include "common.h"
+#include "override.h"			/* Must be the last header included */
 
 RCSID("$Id$");
 

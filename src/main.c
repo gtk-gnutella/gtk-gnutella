@@ -71,6 +71,7 @@
 #include "settings.h"
 #include "fileinfo.h"
 #include "settings_gui.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
@@ -242,6 +243,9 @@ void gtk_gnutella_exit(gint n)
 	atoms_close();
 	wdestroy();
 	locale_close();
+#ifdef TRACK_MALLOC
+	malloc_close();
+#endif
 
 	if (dbg)
 		printf("gtk-gnutella shut down cleanly.\n\n");

@@ -34,6 +34,7 @@
 #ifdef USE_GTK2
 
 #include "interface-glade2.h"
+#include "override.h"		/* Must be the last header included */
 
 static GtkWidget *icon;
 static GtkWidget *canvas;

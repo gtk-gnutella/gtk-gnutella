@@ -40,6 +40,8 @@ RCSID("$Id$");
 #include "statusbar_gui.h"
 #include "parq.h"
 
+#include "override.h"		/* Must be the last header included */
+
 static gchar tmpstr[4096];
 static GHashTable *parents;			/* table of parent download iterators */
 static GHashTable *parents_queue;	/* table of parent queued dl iterators */

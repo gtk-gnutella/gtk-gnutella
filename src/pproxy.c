@@ -52,6 +52,7 @@
 #include "settings.h"		/* For listen_ip() */
 #include "token.h"
 #include "downloads.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

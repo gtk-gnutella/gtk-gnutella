@@ -41,6 +41,7 @@
 #include "search_gui.h"
 #include "version.h"
 #include "utf8.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
@@ -704,7 +705,7 @@ static void xml_to_builtin(xmlNodePtr xmlnode, gpointer user_data)
     g_assert(filter_get_drop_target() != NULL);
     g_assert(filter_get_download_target() != NULL);
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_BUILTIN_SHOW_UID);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_BUILTIN_SHOW_UID));
     g_assert(buf != NULL);
     errno = 0;
     target = (gpointer) strtoul(buf, 0, 16);
@@ -713,7 +714,7 @@ static void xml_to_builtin(xmlNodePtr xmlnode, gpointer user_data)
     g_free(buf);
     g_hash_table_insert(id_map, target, filter_get_show_target());
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_BUILTIN_DROP_UID);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_BUILTIN_DROP_UID));
     g_assert(buf != NULL);
     errno = 0;
     target = (gpointer) strtoul(buf, 0, 16);
@@ -722,7 +723,7 @@ static void xml_to_builtin(xmlNodePtr xmlnode, gpointer user_data)
     g_free(buf);
     g_hash_table_insert(id_map, target, filter_get_drop_target());
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_BUILTIN_DOWNLOAD_UID);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_BUILTIN_DOWNLOAD_UID));
     if (buf != NULL) {
         errno = 0;
         target = (gpointer) strtoul(buf, 0, 16);
@@ -734,7 +735,7 @@ static void xml_to_builtin(xmlNodePtr xmlnode, gpointer user_data)
         g_warning("xml_to_builtin: no \"DOWNLOAD\" target");
     }
     
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_BUILTIN_NODOWNLOAD_UID);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_BUILTIN_NODOWNLOAD_UID));
     if (buf != NULL) {
         errno = 0;
         target = (gpointer) strtoul(buf, 0, 16);
@@ -746,7 +747,7 @@ static void xml_to_builtin(xmlNodePtr xmlnode, gpointer user_data)
         g_warning("xml_to_builtin: no \"DON'T DOWNLOAD\" target");
     }
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_BUILTIN_RETURN_UID);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_BUILTIN_RETURN_UID));
     if (buf != NULL) {
         errno = 0;
         target = (gpointer) strtoul(buf, 0, 16);
@@ -776,7 +777,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &reissue_timeout);
 
-	buf = (gchar *) xmlGetProp(xmlnode, TAG_SEARCH_QUERY);
+	buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_SEARCH_QUERY));
     if (!buf) {
         g_warning("Ignored search without query");
         return;
@@ -795,7 +796,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
 #endif
 		query = buf;
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_SEARCH_ENABLED);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_SEARCH_ENABLED));
     if (buf) {
         if (atoi(buf) == 1)
 			flags |= SEARCH_ENABLED;
@@ -803,32 +804,32 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
     } else
 		flags |= SEARCH_ENABLED;	 /* Compatibility: searches always began */
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_SEARCH_SPEED);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_SEARCH_SPEED));
     if (buf) {
 		g_warning("xml_to_search: Found deprecated speed attribute.");
         g_free(buf);
     }
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_SEARCH_REISSUE_TIMEOUT);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_SEARCH_REISSUE_TIMEOUT));
     if (buf) {
         reissue_timeout = atol(buf);
         g_free(buf);
     }
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_SEARCH_PASSIVE);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_SEARCH_PASSIVE));
     if (buf) {
         if (atol(buf) == 1)
 			flags |= SEARCH_PASSIVE;
         g_free(buf);
     }
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_SEARCH_SORT_COL);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_SEARCH_SORT_COL));
     if (buf) {
         sort_col = atol(buf);
         g_free(buf);
     }
 
-	buf = (gchar *) xmlGetProp(xmlnode, TAG_SEARCH_SORT_ORDER);
+	buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_SEARCH_SORT_ORDER));
     if (buf) {
         sort_order = atol(buf);
         g_free(buf);
@@ -866,14 +867,14 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
 		(const gchar *) NODE_FILTER));
 
-	buf = (gchar *) xmlGetProp(xmlnode, TAG_FILTER_NAME);
+	buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_FILTER_NAME));
     if (!buf) {
         g_warning("Ignored unnamed filter");
         return;
     }
     name = buf;
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_FILTER_GLOBAL);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_FILTER_GLOBAL));
     if (buf) {
         gint t;
         errno = 0;
@@ -899,7 +900,7 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
         filters = g_list_append(filters, filter);
     }
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_FILTER_ACTIVE);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_FILTER_ACTIVE));
     if (buf != NULL) {
         active = atol(buf) == 1 ? TRUE : FALSE;
         g_free(buf);
@@ -909,7 +910,7 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
     else
         clear_flags(filter->flags, FILTER_FLAG_ACTIVE);
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_FILTER_UID);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_FILTER_UID));
     g_assert(buf);
     errno = 0;
     dest = (gpointer) strtoul(buf, 0, 16);
@@ -943,19 +944,19 @@ static void xml_to_text_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
 		(const gchar *) NODE_RULE_TEXT));
 
-    match = (gchar *) xmlGetProp(xmlnode, TAG_RULE_TEXT_MATCH);
+    match = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TEXT_MATCH));
     if (match == NULL)
         g_error("xml_to_text_rule: rule without match string");
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_TEXT_CASE);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TEXT_CASE));
     case_sensitive = atol(buf) == 1 ? TRUE : FALSE;
     g_free(buf);
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_TEXT_TYPE);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TEXT_TYPE));
     type = (enum rule_text_type) atol(buf);
     g_free(buf);
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_TARGET);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
     errno = 0;
     target = (gpointer) strtoul(buf, 0, 16);
     if (errno != 0)
@@ -992,19 +993,19 @@ static void xml_to_ip_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
 		(const gchar *) NODE_RULE_IP));
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_IP_ADDR);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_IP_ADDR));
     if (buf == NULL)
         g_error("xml_to_ip_rule: rule without ip address");
     addr = gchar_to_ip(buf);
     g_free(buf);
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_IP_MASK);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_IP_MASK));
     if (buf == NULL)
         g_error("xml_to_ip_rule: rule without netmask");
     mask = gchar_to_ip(buf);
     g_free(buf);
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_TARGET);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
     errno = 0;
     target = (gpointer) strtoul(buf, 0, 16);
     if (errno != 0)
@@ -1038,19 +1039,19 @@ static void xml_to_size_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
 		(const gchar *) NODE_RULE_SIZE));
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_SIZE_LOWER);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_SIZE_LOWER));
     if (buf == NULL)
         g_error("xml_to_size_rule: rule without lower bound");
     lower = atol(buf);
     g_free(buf);
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_SIZE_UPPER);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_SIZE_UPPER));
     if (buf == NULL)
         g_error("xml_to_size_rule: rule without upper bound");
     upper = atol(buf);
     g_free(buf);
  
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_TARGET);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
     errno = 0;
     target = (gpointer) strtoul(buf, 0, 16);
     if (errno != 0)
@@ -1082,7 +1083,7 @@ static void xml_to_jump_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
 		(const gchar *) NODE_RULE_JUMP));
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_TARGET);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
     g_assert(buf != NULL);
     errno = 0;
     target = (gpointer) strtoul(buf, 0, 16);
@@ -1114,17 +1115,18 @@ static void xml_to_sha1_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(filter != NULL);
-    g_assert(g_ascii_strcasecmp((const gchar *) xmlnode->name, (const gchar *) NODE_RULE_SHA1) == 0);
+    g_assert(g_ascii_strcasecmp(
+		(const gchar *) xmlnode->name, (const gchar *) NODE_RULE_SHA1) == 0);
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_SHA1_FILENAME);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_SHA1_FILENAME));
     filename = buf != NULL ? buf : g_strdup("[Unknown]");
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_SHA1_HASH);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_SHA1_HASH));
     if (buf != NULL && strlen(buf) == SHA1_BASE32_SIZE)
         hash = (gchar *) base32_sha1(buf);
     g_free(buf);
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_TARGET);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
     g_assert(buf != NULL);
     errno = 0;
     target = (gpointer) strtoul(buf, 0, 16);
@@ -1162,7 +1164,7 @@ static void xml_to_flag_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
 		(const gchar *) NODE_RULE_FLAG));
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_FLAG_STABLE);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_FLAG_STABLE));
     if (buf != NULL) {
         gint val = atol(buf);
         if ((val == RULE_FLAG_SET) || (val == RULE_FLAG_UNSET))
@@ -1170,7 +1172,7 @@ static void xml_to_flag_rule(xmlNodePtr xmlnode, gpointer filter)
         g_free(buf);
     }
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_FLAG_BUSY);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_FLAG_BUSY));
     if (buf != NULL) {
         gint val = atol(buf);
         if ((val == RULE_FLAG_SET) || (val == RULE_FLAG_UNSET))
@@ -1178,7 +1180,7 @@ static void xml_to_flag_rule(xmlNodePtr xmlnode, gpointer filter)
         g_free(buf);
     }
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_FLAG_PUSH);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_FLAG_PUSH));
     if (buf != NULL) {
         gint val = atol(buf);
         if ((val == RULE_FLAG_SET) || (val == RULE_FLAG_UNSET))
@@ -1186,7 +1188,7 @@ static void xml_to_flag_rule(xmlNodePtr xmlnode, gpointer filter)
         g_free(buf);
     }
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_TARGET);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
     g_assert(buf != NULL);
     errno = 0;
     target = (gpointer) strtoul(buf, 0, 16);
@@ -1221,7 +1223,7 @@ static void xml_to_state_rule(xmlNodePtr xmlnode, gpointer filter)
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
 		(const gchar *) NODE_RULE_STATE));
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_STATE_DISPLAY);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_STATE_DISPLAY));
     if (buf != NULL) {
         gint val = atol(buf);
         if (((val >= 0) && (val <= MAX_FILTER_PROP_STATE)) ||
@@ -1230,7 +1232,7 @@ static void xml_to_state_rule(xmlNodePtr xmlnode, gpointer filter)
         g_free(buf);
     }
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_STATE_DOWNLOAD);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_STATE_DOWNLOAD));
     if (buf != NULL) {
         gint val = atol(buf);
         if (((val >= 0) && (val <= MAX_FILTER_PROP_STATE)) ||
@@ -1239,7 +1241,7 @@ static void xml_to_state_rule(xmlNodePtr xmlnode, gpointer filter)
         g_free(buf);
     }
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_TARGET);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
     g_assert(buf != NULL);
     errno = 0;
     target = (gpointer) strtoul(buf, 0, 16);
@@ -1270,19 +1272,19 @@ static guint16 get_rule_flags_from_xml(xmlNodePtr xmlnode)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_NEGATE);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_NEGATE));
     if (buf != NULL) {
         negate = atol(buf) == 1 ? TRUE : FALSE;
         g_free(buf);
     }
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_ACTIVE);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_ACTIVE));
     if (buf != NULL) {
         active = atol(buf) == 1 ? TRUE : FALSE;
         g_free(buf);
     }
 
-    buf = (gchar *) xmlGetProp(xmlnode, TAG_RULE_SOFT);
+    buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_SOFT));
     if (buf != NULL) {
         soft = atol(buf) == 1 ? TRUE : FALSE;
         g_free(buf);

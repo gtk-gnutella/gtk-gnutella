@@ -34,6 +34,8 @@
 #include "gnet_property.h"
 #include "gnet_property_priv.h"
 
+#include "override.h"		/* Must be the last header included */
+
 RCSID("$Id$");
 
 /*
@@ -188,6 +190,30 @@ size_t gm_snprintf(gchar *str, size_t n, gchar const *fmt, ...)
 	g_assert(retval < n);
 
 	return retval;
+}
+
+/*
+ * gm_strconcatv
+ *
+ * The vectorized version of g_strconcat().
+ */
+gchar *gm_strconcatv(const gchar *s, va_list args)
+{
+	gchar *res;
+	gchar *add;
+	gint size;
+
+	res = strdup(s);
+	size = strlen(s) + 1;
+
+	while ((add = va_arg(args, gchar *))) {
+		gint len = strlen(add);
+		res = g_realloc(res, size + len);
+		memcpy(res + size - 1, add, len + 1);	/* Includes trailing NULL */
+		size += len;
+	}
+
+	return res;
 }
 
 static gint orig_argc;

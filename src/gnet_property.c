@@ -38,6 +38,8 @@
 #include "bsched.h"
 
 
+#include "override.h"		/* Must be the last header included */
+
 
 gboolean reading_hostfile     = FALSE;
 gboolean reading_hostfile_def = FALSE;

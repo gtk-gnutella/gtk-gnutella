@@ -51,6 +51,7 @@ size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args);
 size_t gm_snprintf(gchar *str, size_t n, gchar const *fmt, ...)
 	G_GNUC_PRINTF (3, 4);
 
+gchar *gm_strconcatv(const gchar *s, va_list args);
 void gm_savemain(gint argc, gchar **argv, gchar **env);
 void gm_setproctitle(gchar *title);
 unsigned long gm_atoul(const char *str, char **endptr, int *errorcode);

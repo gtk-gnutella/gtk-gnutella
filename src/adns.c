@@ -35,6 +35,8 @@ RCSID("$Id$");
 #include "adns.h"
 #include "http.h" /* MAX_HOSTLEN */
 
+#include "override.h"		/* Must be the last header included */
+
 /* private data types */
 
 typedef struct adns_query {
@@ -132,6 +134,7 @@ adns_cache_t *adns_cache_free(adns_cache_t *cache)
 		if (NULL != cache->entries[i].hostname)
 			atom_str_free(cache->entries[i].hostname);
 	cache->size = 0;
+	g_free(cache);
 	return NULL;
 }
 

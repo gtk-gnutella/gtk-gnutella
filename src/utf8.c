@@ -55,6 +55,7 @@ RCSID("$Id$");
 
 #endif /* !USE_GTK2 || ENABLE_NLS */
 
+#include "override.h"		/* Must be the last header included */
 
 #ifdef USE_ICU
 static  UConverter *conv_icu_locale = NULL;

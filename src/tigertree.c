@@ -75,12 +75,9 @@
 #include <glib.h>
 #include <string.h>
 #include "tigertree.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 #if G_BYTE_ORDER == G_BIG_ENDIAN 
 #   define USE_BIG_ENDIAN		1

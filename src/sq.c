@@ -36,6 +36,7 @@
 #include "search.h"
 #include "atoms.h"
 #include "gnet_property_priv.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

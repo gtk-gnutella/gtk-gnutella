@@ -27,6 +27,7 @@
 
 #include "gui.h"
 #include "fileinfo.h"
+#include "override.h"		/* Must be the last header included */
 
 #ifdef USE_GTK1
 

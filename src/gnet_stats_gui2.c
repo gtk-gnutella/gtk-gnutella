@@ -29,6 +29,7 @@
 
 #include "gnet_stats_gui.h"
 #include "gnutella.h" /* for sizeof(struct gnutella_header) */
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

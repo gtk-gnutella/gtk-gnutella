@@ -40,6 +40,8 @@
 #include "interface-glade1.h"
 #endif
 
+#include "override.h"		/* Must be the last header included */
+
 RCSID("$Id$");
 
 /*

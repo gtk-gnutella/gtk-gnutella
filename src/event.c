@@ -27,6 +27,7 @@
 
 #include "common.h"
 #include "walloc.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

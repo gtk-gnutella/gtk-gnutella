@@ -52,6 +52,7 @@
 #include "ggep.h"
 #include "search.h"		/* For QUERY_SPEED_MARK */
 #include "dmesh.h"		/* For dmesh_fill_alternate() */
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
@@ -836,12 +837,16 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 		full = g_strconcat(dir_slash, dir_entry->d_name, NULL);
 
 		if (!is_directory(full)) {
-			if (scan_ignore_symlink_regfiles && is_symlink(full))
+			if (scan_ignore_symlink_regfiles && is_symlink(full)) {
+				g_free(full);
 				continue;
+			}
 			files = g_slist_prepend(files, full);
 		} else {
-			if (scan_ignore_symlink_dirs && is_symlink(full))
+			if (scan_ignore_symlink_dirs && is_symlink(full)) {
+				g_free(full);
 				continue;
+			}
 			directories = g_slist_prepend(directories, full);
 		}
 	}

@@ -52,6 +52,7 @@
 #include "upload_stats_gui.h"
 #include "upload_stats.h"
 #include "file.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

@@ -25,6 +25,7 @@
 
 #include "gnet_stats.h"
 #include "gmsg.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

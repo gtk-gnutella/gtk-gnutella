@@ -27,6 +27,7 @@
 
 #include "gui.h"
 #include "gtk-missing.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
@@ -455,7 +456,7 @@ gdouble _gtk_spin_button_get_value(GtkSpinButton *spinbutton)
     gchar *e;
     gdouble result;
 
-    e = gtk_editable_get_chars(GTK_EDITABLE(spinbutton), 0, -1);
+    e = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(spinbutton), 0, -1));
     g_strstrip(e);
     result = g_strtod(e, NULL);
     g_free(e);
@@ -467,7 +468,7 @@ guint32 gtk_editable_get_value_as_uint(GtkEditable *editable)
     gchar *e;
     guint32 result;
 
-    e = gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1);
+    e = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1));
     g_strstrip(e);
     result = strtol(e, NULL, 10);
     g_free(e);

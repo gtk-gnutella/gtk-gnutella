@@ -41,8 +41,10 @@
  * TODO: Allow adding of a complete tree, including allready calculated
  *       hashes
  */
+
 #include "gnutella.h"
 #include "hashtree.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

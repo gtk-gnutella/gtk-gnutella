@@ -33,6 +33,7 @@
 #include "rx.h"
 #include "rx_inflate.h"
 #include "rxbuf.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

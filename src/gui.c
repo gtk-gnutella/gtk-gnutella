@@ -37,6 +37,8 @@
 #include "settings_gui.h"
 #include "search_stats_gui.h"
 
+#include "override.h"		/* Must be the last header included */
+
 RCSID("$Id$");
 
 static gchar gui_tmp[4096];

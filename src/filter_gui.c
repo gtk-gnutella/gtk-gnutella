@@ -39,6 +39,8 @@
 #include "interface-glade1.h"
 #endif
 
+#include "override.h"		/* Must be the last header included */
+
 RCSID("$Id$");
 
 #ifdef USE_GTK2
@@ -48,7 +50,6 @@ RCSID("$Id$");
 #define WIDGET_FILTER_SIZE_MIN "entry_filter_size_min"
 #define WIDGET_FILTER_SIZE_MAX "entry_filter_size_max"
 #endif
-
 
 #define DEFAULT_TARGET (filter_get_drop_target())   
 
@@ -1454,10 +1455,10 @@ static rule_t *filter_gui_get_text_rule(void)
         option_menu_get_selected_data
             (lookup_widget(filter_dialog, "optionmenu_filter_text_type"));
 
-	match = gtk_editable_get_chars(
+	match = STRTRACK(gtk_editable_get_chars(
         GTK_EDITABLE
             (lookup_widget(filter_dialog, "entry_filter_text_pattern")),
-        0, -1);
+        0, -1));
 
 	case_sensitive = gtk_toggle_button_get_active(
         GTK_TOGGLE_BUTTON
@@ -1512,17 +1513,17 @@ static rule_t *filter_gui_get_ip_rule(void)
 
     g_return_val_if_fail(filter_dialog != NULL, NULL);
 
-	s = gtk_editable_get_chars(
+	s = STRTRACK(gtk_editable_get_chars(
         GTK_EDITABLE
             (lookup_widget(filter_dialog, "entry_filter_ip_address")),
-        0, -1);
+        0, -1));
 	addr = ntohl(inet_addr(s));
 	g_free(s);
 
-	s = gtk_editable_get_chars(
+	s = STRTRACK(gtk_editable_get_chars(
         GTK_EDITABLE
             (lookup_widget(filter_dialog, "entry_filter_ip_mask")),
-        0, -1);
+        0, -1));
 	mask = ntohl(inet_addr(s));
 	g_free(s);
 

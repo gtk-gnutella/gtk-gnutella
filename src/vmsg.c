@@ -34,6 +34,7 @@
 #include "routing.h"	/* For message_set_muid() */
 #include "gnet_stats.h"
 #include "settings.h"	/* For listen_ip() */
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

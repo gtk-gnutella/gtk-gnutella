@@ -35,6 +35,7 @@
 #include "ggep.h"
 #include "extensions.h"
 #include "huge.h"			/* For SHA1_RAW_SIZE */
+#include "override.h"			/* Must be the last header included */
 
 RCSID("$Id$");
 

@@ -36,10 +36,11 @@
 
 #ifdef USE_GTK1
 
-#include "search_stats_gui.h"
-
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "search_stats_gui.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

@@ -25,6 +25,8 @@
 
 #include "gnutella.h"
 
+#include <ctype.h>
+
 #include "extensions.h"
 #include "gmsg.h"
 #include "huge.h"
@@ -42,8 +44,7 @@
 #include "fileinfo.h"
 #include "guid.h"
 #include "gui_property.h"
-
-#include <ctype.h>
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

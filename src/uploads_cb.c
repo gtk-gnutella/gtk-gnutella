@@ -25,7 +25,8 @@
 
 #include "uploads_cb.h"
 #include "uploads_gui.h"
-#include "upload_stats.h" /* FIXME: remove this dependency */
+#include "upload_stats.h"	/* FIXME: remove this dependency */
+#include "override.h"			/* Must be the last header included */
 
 RCSID("$Id$");
 

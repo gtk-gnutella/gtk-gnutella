@@ -61,6 +61,7 @@
 #include "hcache.h"
 #include "downloads.h"
 #include "file.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

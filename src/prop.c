@@ -30,6 +30,7 @@
 #include "common.h"
 #include "version.h"
 #include "file.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
@@ -1266,7 +1267,21 @@ void prop_save_to_file(
 
 		fprintf(config, "%s%s = %s%s%s\n\n", defaultvalue ? "#" : "",
 			p->name, quotes ? "\"" : "", val, quotes ? "\"" : "");
+
+		switch (p->type) {
+		case PROP_TYPE_BOOLEAN:
+		case PROP_TYPE_MULTICHOICE:
+		case PROP_TYPE_GUINT32:
+		case PROP_TYPE_GUINT64:
+		case PROP_TYPE_IP:
+			for (i = 0; i < p->vector_size; i++)
+				g_free(vbuf[i]);
+			break;
+		default:
+			break;
+		}
 	
+		g_free(vbuf);
 		g_free(val);
 		g_strfreev(vbuf);
 	}

@@ -27,13 +27,14 @@
 
 #include "gnutella.h"
 
-#include "search.h" /* For search_passive. */
+#include "search.h"		/* For search_passive. */
 #include "routing.h"
 #include "hosts.h"
 #include "gmsg.h"
 #include "nodes.h"
 #include "gnet_stats.h"
 #include "hostiles.h"
+#include "override.h"		/* Must be the last header included */
 
 #include <stdarg.h>
 

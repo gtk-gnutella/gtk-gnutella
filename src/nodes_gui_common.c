@@ -28,6 +28,7 @@
 #include "gui.h"
 #include "nodes_gui_common.h"
 #include "gui_property_priv.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

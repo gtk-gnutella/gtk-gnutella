@@ -27,6 +27,9 @@
 
 #ifdef USE_REMOTE_CTRL
 
+#include <errno.h>
+#include <sys/stat.h>
+
 #include "inputevt.h"
 #include "shell.h"
 #include "sockets.h"
@@ -34,9 +37,7 @@
 #include "gnet_property_priv.h"
 
 #include "search_gui.h" /* FIXME: remove this dependency */
-
-#include <errno.h>
-#include <sys/stat.h>
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

@@ -60,6 +60,8 @@
 #include <dirent.h>
 #include <ctype.h>			/* For iscntrl() */
 
+#include "override.h"		/* Must be the last header included */
+
 RCSID("$Id$");
 
 #define FI_MIN_CHUNK_SPLIT	512		/* Smallest chunk we can split */

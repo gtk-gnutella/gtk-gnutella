@@ -29,6 +29,11 @@
 
 #ifdef USE_GTK1
 
+/* System includes */
+#include <ctype.h>
+#include <gtk/gtk.h>
+#include <sys/stat.h>
+
 #include "file.h"
 
 /* GUI includes  */
@@ -42,11 +47,7 @@
 
 /* Core includes */
 #include "search.h"
-
-/* System includes */
-#include <ctype.h>
-#include <gtk/gtk.h>
-#include <sys/stat.h>
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

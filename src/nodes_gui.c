@@ -32,6 +32,7 @@
 #include "interface-glade1.h"
 #include "nodes_gui_common.h"
 #include "nodes_gui.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

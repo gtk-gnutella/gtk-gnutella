@@ -28,6 +28,7 @@
 #include "filter.h"
 #include "filter_cb.h"
 #include "filter_gui.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
@@ -376,7 +377,7 @@ void on_button_filter_remove_clicked(
 void on_entry_filter_new_activate(
     GtkEditable *editable, gpointer user_data)
 {
-    gchar *name = gtk_editable_get_chars(editable, 0, -1);
+    gchar *name = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
     filter_t *filter;
 
     g_strstrip(name);

@@ -28,6 +28,8 @@
 #include "statusbar_gui.h"
 #include "search_stats_gui.h"
 
+#include "override.h"		/* Must be the last header included */
+
 RCSID("$Id$");
 
 /* 
@@ -411,7 +413,7 @@ void on_entry_config_netmask_activate(GtkEditable *editable, gpointer data)
 {
     gchar *buf;
     
-    buf = gtk_editable_get_chars(editable, 0, -1);
+    buf = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
     
     gnet_prop_set_string(PROP_LOCAL_NETMASKS_STRING, buf);
     

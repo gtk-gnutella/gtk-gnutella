@@ -36,6 +36,7 @@
 #include "ggep_type.h"
 #include "huge.h"			/* For SHA1_RAW_SIZE */
 #include "hosts.h"			/* For struct gnutella_host */
+#include "override.h"			/* Must be the last header included */
 
 RCSID("$Id$");
 

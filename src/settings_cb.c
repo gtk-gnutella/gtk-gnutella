@@ -31,6 +31,7 @@
 #include "settings_cb.h"
 #include "settings_gui.h"
 #include "search_gui.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
@@ -91,7 +92,7 @@ static void on_entry_config_proxy_ip_activate_helper(
 void on_entry_config_proxy_ip_activate
     (GtkEditable *editable, gpointer user_data)
 {
-   	gchar *e = g_strstrip(gtk_editable_get_chars(editable, 0, -1));
+   	gchar *e = g_strstrip(STRTRACK(gtk_editable_get_chars(editable, 0, -1)));
 
 	adns_resolve(e, &on_entry_config_proxy_ip_activate_helper, NULL);
 	g_free(e);
@@ -101,7 +102,7 @@ FOCUS_TO_ACTIVATE(entry_config_proxy_ip)
 void on_entry_config_socks_username_activate
     (GtkEditable *editable, gpointer user_data)
 {
-   	gchar *e = g_strstrip(gtk_editable_get_chars(editable, 0, -1));
+   	gchar *e = g_strstrip(STRTRACK(gtk_editable_get_chars(editable, 0, -1)));
 
     gnet_prop_set_string(PROP_SOCKS_USER, e);
 	
@@ -112,7 +113,7 @@ FOCUS_TO_ACTIVATE(entry_config_socks_username)
 void on_entry_config_socks_password_activate
     (GtkEditable * editable, gpointer user_data)
 {
-   	gchar *e = g_strstrip(gtk_editable_get_chars(editable, 0, -1));
+   	gchar *e = g_strstrip(STRTRACK(gtk_editable_get_chars(editable, 0, -1)));
 
     gnet_prop_set_string(PROP_SOCKS_PASS, e);
 	
@@ -124,7 +125,7 @@ void on_entry_config_extensions_activate(GtkEditable *editable, gpointer data)
 {
     gchar *ext;
 
-    ext = gtk_editable_get_chars(editable, 0, -1);
+    ext = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 
     gnet_prop_set_string(PROP_SCAN_EXTENSIONS, ext);
 
@@ -134,9 +135,7 @@ FOCUS_TO_ACTIVATE(entry_config_extensions)
 
 void on_entry_config_path_activate(GtkEditable *editable, gpointer user_data)
 {
-    gchar *path;
-
-    path = gtk_editable_get_chars(editable, 0, -1);
+    gchar *path = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 
     gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, path);
 
@@ -149,9 +148,9 @@ void on_entry_config_force_ip_activate
 {
    	gchar *e;
 	guint32 ip;
-	e = gtk_editable_get_chars(
+	e = STRTRACK(gtk_editable_get_chars(
         GTK_EDITABLE(lookup_widget(main_window, "entry_config_force_ip")), 
-        0, -1);
+        0, -1));
 	g_strstrip(e);
 	ip = gchar_to_ip(e);
 	gnet_prop_set_guint32_val(PROP_FORCED_LOCAL_IP, ip);
@@ -162,7 +161,7 @@ FOCUS_TO_ACTIVATE(entry_config_force_ip)
 void on_entry_config_force_ip_changed
     (GtkEditable *editable,  gpointer user_data)
 {
-    gchar *e = gtk_editable_get_chars(editable, 0, -1);
+    gchar *e = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 
 	g_strstrip(e);
 
@@ -178,9 +177,9 @@ void on_entry_server_hostname_activate
 {
    	gchar *e;
 
-	e = gtk_editable_get_chars(
+	e = STRTRACK(gtk_editable_get_chars(
         GTK_EDITABLE(lookup_widget(main_window, "entry_server_hostname")), 
-        0, -1);
+        0, -1));
 	g_strstrip(e);
 	gnet_prop_set_string(PROP_SERVER_HOSTNAME, e);
 	g_free(e);
@@ -190,7 +189,7 @@ FOCUS_TO_ACTIVATE(entry_server_hostname)
 void on_entry_server_hostname_changed
     (GtkEditable *editable,  gpointer user_data)
 {
-    gchar *e = gtk_editable_get_chars(editable, 0, -1);
+    gchar *e = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 
 	g_strstrip(e);
 

@@ -36,6 +36,8 @@
 #include "gui.h"
 
 
+#include "override.h"		/* Must be the last header included */
+
 
 gboolean monitor_enabled     = FALSE;
 gboolean monitor_enabled_def = FALSE;

@@ -30,6 +30,7 @@
 #include "interface-glade1.h"
 #include "uploads_gui.h"
 #include "uploads_gui_common.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

@@ -26,6 +26,7 @@
 #include "config.h"
 
 #include "gnet_stats_gui_common.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 

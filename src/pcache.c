@@ -49,6 +49,7 @@
 #include "hostiles.h"
 
 #include "settings.h"
+#include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
 
