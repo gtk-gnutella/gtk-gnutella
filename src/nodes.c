@@ -467,7 +467,7 @@ void node_slow_timer(time_t now)
 	GSList *sl;
 	GSList *to_remove = NULL;
     guint32 expunged = 0;
-	
+
 	for (sl = unstable_ips; sl != NULL; sl = g_slist_next(sl)) {
 		node_bad_ip_t *bad_ip = (node_bad_ip_t *) sl->data;
 		
@@ -489,10 +489,10 @@ void node_slow_timer(time_t now)
 	g_slist_free(to_remove);
 	to_remove = NULL;
 
-    if (dbg > 1) {
-        printf("unstable ips: %d (hits %d, expunged %d)", g_slist_length(unstable_ips),
-            unstable_hits, expunged);
-    }
+	if (dbg > 1)
+		printf("unstable ips: %d (hits %d, expunged %d)",
+			g_slist_length(unstable_ips), unstable_hits, expunged);
+
     unstable_hits = 0;
 	
 	/*
