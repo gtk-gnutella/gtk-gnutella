@@ -885,11 +885,12 @@ gui_update_download_range(struct download *d)
 
 	len += d->overlap_size;
 
-	rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s", short_size(len), and_more);
+	rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
+			compact_size(len), and_more);
 
 	if (d->skip)
 		gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " @ %s",
-			short_size(d->skip));
+			compact_size(d->skip));
 
 	node = gtk_ctree_find_by_row_data(ctree_downloads, NULL, (gpointer) d);
 	if (NULL != node)

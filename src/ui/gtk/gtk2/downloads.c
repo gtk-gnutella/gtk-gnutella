@@ -1194,11 +1194,12 @@ gui_update_download_range(download_t *d)
 
 	len += d->overlap_size;
 
-	rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s", short_size(len), and_more);
+	rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
+			compact_size(len), and_more);
 
 	if (d->skip)
 		gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " @ %s",
-			short_size(d->skip));
+			compact_size(d->skip));
 
 	gui_update_download_column(d, treeview_downloads, c_dl_range, tmpstr);
 }
