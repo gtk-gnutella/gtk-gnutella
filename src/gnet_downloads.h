@@ -114,6 +114,7 @@ typedef enum {
 	EV_FI_EVENTS           /* Number of events in this domain */
 } gnet_fi_ev_t;
 
+
 typedef struct gnet_fi_chunks {
     guint32  from;
     guint32  to;
@@ -121,8 +122,8 @@ typedef struct gnet_fi_chunks {
     gboolean old;
 } gnet_fi_chunks_t;
 
-void fi_add_listener(GCallback, gnet_fi_ev_t, frequency_t, guint32);
-void fi_remove_listener(GCallback, gnet_fi_ev_t);
+void fi_add_listener(fi_listener_t, gnet_fi_ev_t, frequency_t, guint32);
+void fi_remove_listener(fi_listener_t, gnet_fi_ev_t);
 
 gnet_fi_info_t *fi_get_info(gnet_fi_t);
 void fi_free_info(gnet_fi_info_t *);
