@@ -904,10 +904,8 @@ static gint bw_available(bio_source_t *bio, gint len)
 			if (used) {
 				g_assert(bs->current_used != 0);	/* This source is used! */
 				nominal = distribute / bs->current_used;
-			} else {
-				g_assert(bs->last_used != 0);	/* We capped => 1 source used */
+			} else
 				nominal = distribute / MAX(bs->last_used, bs->current_used);
-			}
 		} else {
 			/*
 			 * Try to stuff 2 slots worth of data
