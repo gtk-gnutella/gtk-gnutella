@@ -135,6 +135,7 @@ typedef enum {
 	NODE_P_ULTRA,						/* Ultra node */
 	NODE_P_AUTO,						/* Automatic mode */
 	NODE_P_CRAWLER,						/* Crawler node */
+	NODE_P_UDP,							/* UDP "fake" node */
 	NODE_P_UNKNOWN,						/* Unknown mode yet */
 } node_peer_t;
 
