@@ -711,6 +711,24 @@ static gboolean bw_http_out_enabled_changed(property_t prop)
     return FALSE;
 }
 
+/**
+ * Hide the "frame_status_images" frame and show it again, to be able
+ * to shrink it back to its minimal size when an icon is removed.
+ */
+static void
+shrink_frame_status(void)
+{
+#ifdef USE_GTK1
+	GtkWidget *w = lookup_widget(main_window, "frame_status_images");
+
+	if (w == NULL)
+		return;
+
+	gtk_widget_hide(w);
+	gtk_widget_show(w);
+#endif
+}
+
 static gboolean is_firewalled_changed(property_t prop)
 {
 	GtkWidget *icon_firewall;
@@ -1280,6 +1298,7 @@ static gboolean ancient_version_changed(property_t prop)
         gtk_widget_show(w);
     } else {
         gtk_widget_hide(w);
+		shrink_frame_status();
     }
 
     return FALSE;
@@ -1303,6 +1322,7 @@ static gboolean uploads_stalling_changed(property_t prop)
         gtk_widget_show(w);
     } else {
         gtk_widget_hide(w);
+		shrink_frame_status();
     }
 
     return FALSE;
@@ -1325,6 +1345,7 @@ static gboolean file_descriptor_shortage_changed(property_t prop)
         gtk_widget_show(w);
     } else {
         gtk_widget_hide(w);
+		shrink_frame_status();
     }
 
     return FALSE;
@@ -1347,6 +1368,7 @@ static gboolean file_descriptor_runout_changed(property_t prop)
         gtk_widget_show(w);
     } else {
         gtk_widget_hide(w);
+		shrink_frame_status();
     }
 
     return FALSE;
@@ -2010,6 +2032,7 @@ static gboolean expert_mode_changed(property_t prop)
         "frame_expert_gnet_message_size",
         "frame_expert_search_queue",
         "frame_expert_share_statistics",
+        "frame_expert_oob_queries",
         NULL
     };
 	
