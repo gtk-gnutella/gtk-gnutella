@@ -463,8 +463,9 @@
 	<widget>
 	  <class>GtkNotebook</class>
 	  <name>notebook_main</name>
-	  <show_tabs>False</show_tabs>
-	  <show_border>False</show_border>
+	  <can_focus>True</can_focus>
+	  <show_tabs>True</show_tabs>
+	  <show_border>True</show_border>
 	  <tab_pos>GTK_POS_TOP</tab_pos>
 	  <scrollable>False</scrollable>
 	  <tab_hborder>2</tab_hborder>
@@ -1203,11 +1204,10 @@
 	      </widget>
 
 	      <widget>
-		<class>GtkFrame</class>
-		<name>frame10</name>
-		<label>Host catcher</label>
-		<label_xalign>0</label_xalign>
-		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		<class>GtkVBox</class>
+		<name>vbox33</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
 		<child>
 		  <padding>0</padding>
 		  <expand>True</expand>
@@ -1215,75 +1215,226 @@
 		</child>
 
 		<widget>
-		  <class>GtkVBox</class>
-		  <name>vbox20</name>
-		  <border_width>2</border_width>
-		  <homogeneous>False</homogeneous>
-		  <spacing>2</spacing>
+		  <class>GtkFrame</class>
+		  <name>frame10</name>
+		  <label>Host catcher</label>
+		  <label_xalign>0</label_xalign>
+		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
 
 		  <widget>
-		    <class>GtkHBox</class>
-		    <name>hbox69</name>
+		    <class>GtkVBox</class>
+		    <name>vbox20</name>
+		    <border_width>2</border_width>
 		    <homogeneous>False</homogeneous>
-		    <spacing>4</spacing>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>True</fill>
-		    </child>
+		    <spacing>2</spacing>
 
 		    <widget>
-		      <class>GtkLabel</class>
-		      <name>label95</name>
-		      <label>Hosts in catcher:</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
+		      <class>GtkHBox</class>
+		      <name>hbox69</name>
+		      <homogeneous>False</homogeneous>
+		      <spacing>4</spacing>
 		      <child>
 			<padding>0</padding>
 			<expand>False</expand>
-			<fill>False</fill>
+			<fill>True</fill>
 		      </child>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label95</name>
+			<label>Hosts in catcher:</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <padding>0</padding>
+			  <expand>False</expand>
+			  <fill>False</fill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkEntry</class>
+			<name>entry_hosts_in_catcher</name>
+			<width>72</width>
+			<sensitive>False</sensitive>
+			<tooltip>Somebody tell me a sensible tooltip for this.</tooltip>
+			<can_focus>True</can_focus>
+			<editable>False</editable>
+			<text_visible>True</text_visible>
+			<text_max_length>0</text_max_length>
+			<text></text>
+			<child>
+			  <padding>0</padding>
+			  <expand>True</expand>
+			  <fill>True</fill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkButton</class>
+			<name>button_host_catcher_clear</name>
+			<sensitive>False</sensitive>
+			<can_focus>True</can_focus>
+			<signal>
+			  <name>clicked</name>
+			  <handler>on_button_host_catcher_clear_clicked</handler>
+			  <last_modification_time>Wed, 22 Mar 2000 07:10:32 GMT</last_modification_time>
+			</signal>
+			<label>Clear</label>
+			<relief>GTK_RELIEF_NORMAL</relief>
+			<child>
+			  <padding>0</padding>
+			  <expand>False</expand>
+			  <fill>False</fill>
+			</child>
+		      </widget>
 		    </widget>
+		  </widget>
+		</widget>
+
+		<widget>
+		  <class>GtkFrame</class>
+		  <name>frame14</name>
+		  <label>Local node</label>
+		  <label_xalign>0</label_xalign>
+		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
+
+		  <widget>
+		    <class>GtkVBox</class>
+		    <name>vbox34</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
 
 		    <widget>
-		      <class>GtkEntry</class>
-		      <name>entry_hosts_in_catcher</name>
-		      <width>72</width>
-		      <sensitive>False</sensitive>
-		      <tooltip>Somebody tell me a sensible tooltip for this.</tooltip>
-		      <can_focus>True</can_focus>
-		      <editable>False</editable>
-		      <text_visible>True</text_visible>
-		      <text_max_length>0</text_max_length>
-		      <text></text>
+		      <class>GtkTable</class>
+		      <name>table6</name>
+		      <border_width>2</border_width>
+		      <rows>2</rows>
+		      <columns>2</columns>
+		      <homogeneous>False</homogeneous>
+		      <row_spacing>2</row_spacing>
+		      <column_spacing>4</column_spacing>
 		      <child>
 			<padding>0</padding>
 			<expand>True</expand>
 			<fill>True</fill>
 		      </child>
-		    </widget>
 
-		    <widget>
-		      <class>GtkButton</class>
-		      <name>button_host_catcher_clear</name>
-		      <sensitive>False</sensitive>
-		      <can_focus>True</can_focus>
-		      <signal>
-			<name>clicked</name>
-			<handler>on_button_host_catcher_clear_clicked</handler>
-			<last_modification_time>Wed, 22 Mar 2000 07:10:32 GMT</last_modification_time>
-		      </signal>
-		      <label>Clear</label>
-		      <relief>GTK_RELIEF_NORMAL</relief>
-		      <child>
-			<padding>0</padding>
-			<expand>False</expand>
-			<fill>False</fill>
-		      </child>
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label150</name>
+			<label>GUID:</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>7.45058e-09</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkEntry</class>
+			<name>entry_nodes_guid</name>
+			<sensitive>False</sensitive>
+			<can_focus>True</can_focus>
+			<editable>False</editable>
+			<text_visible>True</text_visible>
+			<text_max_length>0</text_max_length>
+			<text></text>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>True</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label151</name>
+			<label>IP:Port:</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<child>
+			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkEntry</class>
+			<name>entry_nodes_ip</name>
+			<sensitive>False</sensitive>
+			<can_focus>True</can_focus>
+			<editable>False</editable>
+			<text_visible>True</text_visible>
+			<text_max_length>0</text_max_length>
+			<text></text>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>1</top_attach>
+			  <bottom_attach>2</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>True</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
 		    </widget>
 		  </widget>
 		</widget>
@@ -1818,594 +1969,633 @@
 	    <border_width>2</border_width>
 	    <handle_size>8</handle_size>
 	    <gutter_size>8</gutter_size>
-	    <position>293</position>
+	    <position>168</position>
 
 	    <widget>
-	      <class>GtkFrame</class>
-	      <name>frame3</name>
-	      <label>Active downloads</label>
-	      <label_xalign>0</label_xalign>
-	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	      <class>GtkVBox</class>
+	      <name>vbox36</name>
+	      <homogeneous>False</homogeneous>
+	      <spacing>0</spacing>
 	      <child>
 		<shrink>True</shrink>
 		<resize>False</resize>
 	      </child>
 
 	      <widget>
-		<class>GtkVBox</class>
-		<name>vbox16</name>
-		<border_width>2</border_width>
-		<homogeneous>False</homogeneous>
-		<spacing>2</spacing>
+		<class>GtkFrame</class>
+		<name>frame3</name>
+		<label>Active downloads</label>
+		<label_xalign>0</label_xalign>
+		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		<child>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
+		</child>
 
 		<widget>
-		  <class>GtkScrolledWindow</class>
-		  <name>scrolledwindow6</name>
-		  <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-		  <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-		  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-		  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-		  <child>
-		    <padding>0</padding>
-		    <expand>True</expand>
-		    <fill>True</fill>
-		  </child>
-
-		  <widget>
-		    <class>GtkCList</class>
-		    <name>clist_downloads</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>unselect_row</name>
-		      <handler>on_clist_downloads_unselect_row</handler>
-		      <last_modification_time>Mon, 18 Mar 2002 23:33:37 GMT</last_modification_time>
-		    </signal>
-		    <signal>
-		      <name>select_row</name>
-		      <handler>on_clist_downloads_select_row</handler>
-		      <last_modification_time>Mon, 18 Mar 2002 23:33:43 GMT</last_modification_time>
-		    </signal>
-		    <signal>
-		      <name>button_press_event</name>
-		      <handler>on_clist_downloads_button_press_event</handler>
-		      <last_modification_time>Mon, 18 Mar 2002 23:34:22 GMT</last_modification_time>
-		    </signal>
-		    <signal>
-		      <name>resize_column</name>
-		      <handler>on_clist_downloads_resize_column</handler>
-		      <last_modification_time>Mon, 18 Mar 2002 23:34:36 GMT</last_modification_time>
-		    </signal>
-		    <columns>4</columns>
-		    <column_widths>80,80,80,80</column_widths>
-		    <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
-		    <show_titles>True</show_titles>
-		    <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-		    <widget>
-		      <class>GtkLabel</class>
-		      <child_name>CList:title</child_name>
-		      <name>label112</name>
-		      <label>Filename</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		    </widget>
-
-		    <widget>
-		      <class>GtkLabel</class>
-		      <child_name>CList:title</child_name>
-		      <name>label113</name>
-		      <label>Host</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		    </widget>
-
-		    <widget>
-		      <class>GtkLabel</class>
-		      <child_name>CList:title</child_name>
-		      <name>label114</name>
-		      <label>Size</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		    </widget>
-
-		    <widget>
-		      <class>GtkLabel</class>
-		      <child_name>CList:title</child_name>
-		      <name>label115</name>
-		      <label>Status</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		    </widget>
-		  </widget>
-		</widget>
-
-		<widget>
-		  <class>GtkHBox</class>
-		  <name>hbox41</name>
+		  <class>GtkVBox</class>
+		  <name>vbox16</name>
+		  <border_width>2</border_width>
 		  <homogeneous>False</homogeneous>
-		  <spacing>4</spacing>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>True</fill>
-		  </child>
+		  <spacing>2</spacing>
 
 		  <widget>
-		    <class>GtkButton</class>
-		    <name>button_downloads_abort</name>
-		    <sensitive>False</sensitive>
-		    <tooltip>Abort all selected downloads</tooltip>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>clicked</name>
-		      <handler>on_button_downloads_abort_clicked</handler>
-		      <last_modification_time>Fri, 29 Mar 2002 18:49:20 GMT</last_modification_time>
-		    </signal>
-		    <label>Abort selected</label>
-		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <class>GtkScrolledWindow</class>
+		    <name>scrolledwindow6</name>
+		    <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+		    <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+		    <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+		    <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 		    <child>
 		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
+		      <expand>True</expand>
+		      <fill>True</fill>
 		    </child>
+
+		    <widget>
+		      <class>GtkCList</class>
+		      <name>clist_downloads</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>unselect_row</name>
+			<handler>on_clist_downloads_unselect_row</handler>
+			<last_modification_time>Mon, 18 Mar 2002 23:33:37 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>select_row</name>
+			<handler>on_clist_downloads_select_row</handler>
+			<last_modification_time>Mon, 18 Mar 2002 23:33:43 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>button_press_event</name>
+			<handler>on_clist_downloads_button_press_event</handler>
+			<last_modification_time>Mon, 18 Mar 2002 23:34:22 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>resize_column</name>
+			<handler>on_clist_downloads_resize_column</handler>
+			<last_modification_time>Mon, 18 Mar 2002 23:34:36 GMT</last_modification_time>
+		      </signal>
+		      <columns>4</columns>
+		      <column_widths>80,80,80,80</column_widths>
+		      <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
+		      <show_titles>True</show_titles>
+		      <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<child_name>CList:title</child_name>
+			<name>label112</name>
+			<label>Filename</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<child_name>CList:title</child_name>
+			<name>label113</name>
+			<label>Host</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<child_name>CList:title</child_name>
+			<name>label114</name>
+			<label>Size</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+		      </widget>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<child_name>CList:title</child_name>
+			<name>label115</name>
+			<label>Status</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+		      </widget>
+		    </widget>
 		  </widget>
 
 		  <widget>
-		    <class>GtkButton</class>
-		    <name>button_downloads_resume</name>
-		    <sensitive>False</sensitive>
-		    <tooltip>Resume all selected downloads</tooltip>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>clicked</name>
-		      <handler>on_button_downloads_resume_clicked</handler>
-		      <last_modification_time>Fri, 29 Mar 2002 19:25:57 GMT</last_modification_time>
-		    </signal>
-		    <label>Resume selected</label>
-		    <relief>GTK_RELIEF_NORMAL</relief>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkButton</class>
-		    <name>button_downloads_clear_completed</name>
-		    <sensitive>False</sensitive>
-		    <tooltip>Remove completed downloads from list</tooltip>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>clicked</name>
-		      <handler>on_button_downloads_clear_completed_clicked</handler>
-		      <last_modification_time>Fri, 29 Mar 2002 18:50:33 GMT</last_modification_time>
-		    </signal>
-		    <label>Clear completed</label>
-		    <relief>GTK_RELIEF_NORMAL</relief>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-		  </widget>
-		</widget>
-
-		<widget>
-		  <class>GtkHBox</class>
-		  <name>hbox42</name>
-		  <homogeneous>False</homogeneous>
-		  <spacing>4</spacing>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>True</fill>
-		  </child>
-
-		  <widget>
-		    <class>GtkLabel</class>
-		    <name>label64</name>
-		    <label>Maximum simultaneous downloads</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkSpinButton</class>
-		    <name>entry_max_downloads</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>activate</name>
-		      <handler>on_entry_max_downloads_activate</handler>
-		      <last_modification_time>Wed, 20 Mar 2002 23:38:01 GMT</last_modification_time>
-		    </signal>
-		    <signal>
-		      <name>focus_out_event</name>
-		      <handler>on_entry_max_downloads_focus_out_event</handler>
-		      <last_modification_time>Wed, 20 Mar 2002 23:38:06 GMT</last_modification_time>
-		    </signal>
-		    <climb_rate>1</climb_rate>
-		    <digits>0</digits>
-		    <numeric>True</numeric>
-		    <update_policy>GTK_UPDATE_ALWAYS</update_policy>
-		    <snap>False</snap>
-		    <wrap>False</wrap>
-		    <value>1</value>
-		    <lower>0</lower>
-		    <upper>100</upper>
-		    <step>1</step>
-		    <page>10</page>
-		    <page_size>10</page_size>
+		    <class>GtkHBox</class>
+		    <name>hbox41</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>4</spacing>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
 		      <fill>True</fill>
 		    </child>
+
+		    <widget>
+		      <class>GtkButton</class>
+		      <name>button_downloads_abort</name>
+		      <sensitive>False</sensitive>
+		      <tooltip>Abort all selected downloads</tooltip>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>clicked</name>
+			<handler>on_button_downloads_abort_clicked</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:49:20 GMT</last_modification_time>
+		      </signal>
+		      <label>Abort selected</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkButton</class>
+		      <name>button_downloads_resume</name>
+		      <sensitive>False</sensitive>
+		      <tooltip>Resume all selected downloads</tooltip>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>clicked</name>
+			<handler>on_button_downloads_resume_clicked</handler>
+			<last_modification_time>Fri, 29 Mar 2002 19:25:57 GMT</last_modification_time>
+		      </signal>
+		      <label>Resume selected</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkButton</class>
+		      <name>button_downloads_clear_completed</name>
+		      <sensitive>False</sensitive>
+		      <tooltip>Remove completed downloads from list</tooltip>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>clicked</name>
+			<handler>on_button_downloads_clear_completed_clicked</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:50:33 GMT</last_modification_time>
+		      </signal>
+		      <label>Clear completed</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
 		  </widget>
 
 		  <widget>
-		    <class>GtkLabel</class>
-		    <name>label80</name>
-		    <label>Max downloads from single host</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkSpinButton</class>
-		    <name>entry_max_host_downloads</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>activate</name>
-		      <handler>on_entry_max_host_downloads_activate</handler>
-		      <last_modification_time>Wed, 20 Mar 2002 23:38:44 GMT</last_modification_time>
-		    </signal>
-		    <signal>
-		      <name>focus_out_event</name>
-		      <handler>on_entry_max_host_downloads_focus_out_event</handler>
-		      <last_modification_time>Wed, 20 Mar 2002 23:38:48 GMT</last_modification_time>
-		    </signal>
-		    <climb_rate>1</climb_rate>
-		    <digits>0</digits>
-		    <numeric>True</numeric>
-		    <update_policy>GTK_UPDATE_ALWAYS</update_policy>
-		    <snap>False</snap>
-		    <wrap>False</wrap>
-		    <value>1</value>
-		    <lower>0</lower>
-		    <upper>100</upper>
-		    <step>1</step>
-		    <page>10</page>
-		    <page_size>10</page_size>
+		    <class>GtkHBox</class>
+		    <name>hbox42</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>4</spacing>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
 		      <fill>True</fill>
 		    </child>
-		  </widget>
-		</widget>
 
-		<widget>
-		  <class>GtkHBox</class>
-		  <name>hbox73</name>
-		  <homogeneous>False</homogeneous>
-		  <spacing>0</spacing>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>True</fill>
-		  </child>
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label64</name>
+		      <label>Maximum simultaneous downloads</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkSpinButton</class>
+		      <name>entry_max_downloads</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>activate</name>
+			<handler>on_entry_max_downloads_activate</handler>
+			<last_modification_time>Wed, 20 Mar 2002 23:38:01 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_entry_max_downloads_focus_out_event</handler>
+			<last_modification_time>Wed, 20 Mar 2002 23:38:06 GMT</last_modification_time>
+		      </signal>
+		      <climb_rate>1</climb_rate>
+		      <digits>0</digits>
+		      <numeric>True</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>1</value>
+		      <lower>0</lower>
+		      <upper>100</upper>
+		      <step>1</step>
+		      <page>10</page>
+		      <page_size>10</page_size>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>True</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label80</name>
+		      <label>Max downloads from single host</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkSpinButton</class>
+		      <name>entry_max_host_downloads</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>activate</name>
+			<handler>on_entry_max_host_downloads_activate</handler>
+			<last_modification_time>Wed, 20 Mar 2002 23:38:44 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_entry_max_host_downloads_focus_out_event</handler>
+			<last_modification_time>Wed, 20 Mar 2002 23:38:48 GMT</last_modification_time>
+		      </signal>
+		      <climb_rate>1</climb_rate>
+		      <digits>0</digits>
+		      <numeric>True</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>1</value>
+		      <lower>0</lower>
+		      <upper>100</upper>
+		      <step>1</step>
+		      <page>10</page>
+		      <page_size>10</page_size>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>True</fill>
+		      </child>
+		    </widget>
+		  </widget>
 
 		  <widget>
-		    <class>GtkCheckButton</class>
-		    <name>checkbutton_downloads_auto_clear</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>toggled</name>
-		      <handler>on_checkbutton_downloads_auto_clear_toggled</handler>
-		      <last_modification_time>Fri, 29 Mar 2002 18:53:38 GMT</last_modification_time>
-		    </signal>
-		    <label>Auto clear completed downloads</label>
-		    <active>False</active>
-		    <draw_indicator>True</draw_indicator>
+		    <class>GtkHBox</class>
+		    <name>hbox73</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
-		      <fill>False</fill>
+		      <fill>True</fill>
 		    </child>
-		  </widget>
 
-		  <widget>
-		    <class>GtkCheckButton</class>
-		    <name>checkbutton_downloads_never_push</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>toggled</name>
-		      <handler>on_checkbutton_downloads_never_push_toggled</handler>
-		      <last_modification_time>Fri, 29 Mar 2002 21:03:45 GMT</last_modification_time>
-		    </signal>
-		    <label>Never send a push request</label>
-		    <active>False</active>
-		    <draw_indicator>True</draw_indicator>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-		  </widget>
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_downloads_auto_clear</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_checkbutton_downloads_auto_clear_toggled</handler>
+			<last_modification_time>Fri, 29 Mar 2002 18:53:38 GMT</last_modification_time>
+		      </signal>
+		      <label>Auto clear completed downloads</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
 
-		  <widget>
-		    <class>GtkCheckButton</class>
-		    <name>checkbutton_downloads_delete_aborted</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>toggled</name>
-		      <handler>on_checkbutton_downloads_delete_aborted_toggled</handler>
-		      <last_modification_time>Wed, 24 Apr 2002 13:51:52 GMT</last_modification_time>
-		    </signal>
-		    <label>Delete file on abort</label>
-		    <active>False</active>
-		    <draw_indicator>True</draw_indicator>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_downloads_never_push</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_checkbutton_downloads_never_push_toggled</handler>
+			<last_modification_time>Fri, 29 Mar 2002 21:03:45 GMT</last_modification_time>
+		      </signal>
+		      <label>Never send a push request</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_download_delete_aborted</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_checkbutton_downloads_delete_aborted_toggled</handler>
+			<last_modification_time>Wed, 24 Apr 2002 13:51:52 GMT</last_modification_time>
+		      </signal>
+		      <label>Delete file on abort</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
 		  </widget>
 		</widget>
 	      </widget>
 	    </widget>
 
 	    <widget>
-	      <class>GtkFrame</class>
-	      <name>frame4</name>
-	      <label>Download queue</label>
-	      <label_xalign>0</label_xalign>
-	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	      <class>GtkScrolledWindow</class>
+	      <name>scrolledwindow12</name>
+	      <hscrollbar_policy>GTK_POLICY_NEVER</hscrollbar_policy>
+	      <vscrollbar_policy>GTK_POLICY_NEVER</vscrollbar_policy>
+	      <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+	      <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 	      <child>
 		<shrink>True</shrink>
 		<resize>True</resize>
 	      </child>
 
 	      <widget>
-		<class>GtkVBox</class>
-		<name>vbox15</name>
-		<border_width>2</border_width>
-		<homogeneous>False</homogeneous>
-		<spacing>2</spacing>
+		<class>GtkViewport</class>
+		<name>viewport1</name>
+		<shadow_type>GTK_SHADOW_IN</shadow_type>
 
 		<widget>
-		  <class>GtkScrolledWindow</class>
-		  <name>scrolledwindow7</name>
-		  <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-		  <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-		  <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-		  <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-		  <child>
-		    <padding>0</padding>
-		    <expand>True</expand>
-		    <fill>True</fill>
-		  </child>
-
-		  <widget>
-		    <class>GtkCList</class>
-		    <name>clist_downloads_queue</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>select_row</name>
-		      <handler>on_clist_downloads_queue_select_row</handler>
-		      <last_modification_time>Fri, 29 Mar 2002 18:59:09 GMT</last_modification_time>
-		    </signal>
-		    <signal>
-		      <name>unselect_row</name>
-		      <handler>on_clist_downloads_queue_unselect_row</handler>
-		      <last_modification_time>Fri, 29 Mar 2002 18:59:12 GMT</last_modification_time>
-		    </signal>
-		    <signal>
-		      <name>button_press_event</name>
-		      <handler>on_clist_downloads_queue_button_press_event</handler>
-		      <last_modification_time>Fri, 29 Mar 2002 18:59:16 GMT</last_modification_time>
-		    </signal>
-		    <signal>
-		      <name>resize_column</name>
-		      <handler>on_clist_downloads_queue_resize_column</handler>
-		      <last_modification_time>Fri, 29 Mar 2002 18:59:19 GMT</last_modification_time>
-		    </signal>
-		    <columns>3</columns>
-		    <column_widths>79,80,80</column_widths>
-		    <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
-		    <show_titles>True</show_titles>
-		    <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-		    <widget>
-		      <class>GtkLabel</class>
-		      <child_name>CList:title</child_name>
-		      <name>label66</name>
-		      <label>File</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		    </widget>
-
-		    <widget>
-		      <class>GtkLabel</class>
-		      <child_name>CList:title</child_name>
-		      <name>label96</name>
-		      <label>Host</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		    </widget>
-
-		    <widget>
-		      <class>GtkLabel</class>
-		      <child_name>CList:title</child_name>
-		      <name>label67</name>
-		      <label>Size</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		    </widget>
-		  </widget>
-		</widget>
-
-		<widget>
-		  <class>GtkHBox</class>
-		  <name>hbox68</name>
+		  <class>GtkVBox</class>
+		  <name>vbox35</name>
 		  <homogeneous>False</homogeneous>
-		  <spacing>4</spacing>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>False</fill>
-		  </child>
+		  <spacing>0</spacing>
 
 		  <widget>
-		    <class>GtkButton</class>
-		    <name>button_queue_clear</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>clicked</name>
-		      <handler>on_button_queue_clear_clicked</handler>
-		      <last_modification_time>Thu, 11 Apr 2002 17:20:13 GMT</last_modification_time>
-		    </signal>
-		    <label>Clear queue</label>
-		    <relief>GTK_RELIEF_NORMAL</relief>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkToggleButton</class>
-		    <name>togglebutton_queue_freeze</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>toggled</name>
-		      <handler>on_togglebutton_queue_freeze_toggled</handler>
-		      <last_modification_time>Thu, 11 Apr 2002 17:20:40 GMT</last_modification_time>
-		    </signal>
-		    <label>Freeze queue</label>
-		    <relief>GTK_RELIEF_NORMAL</relief>
-		    <active>False</active>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-		  </widget>
-		</widget>
-
-		<widget>
-		  <class>GtkHBox</class>
-		  <name>hbox86</name>
-		  <homogeneous>False</homogeneous>
-		  <spacing>4</spacing>
-		  <child>
-		    <padding>0</padding>
-		    <expand>False</expand>
-		    <fill>True</fill>
-		  </child>
-
-		  <widget>
-		    <class>GtkLabel</class>
-		    <name>label149</name>
-		    <label>Remove all matching regex from queue</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
-		  </widget>
-
-		  <widget>
-		    <class>GtkEntry</class>
-		    <name>entry_queue_remove_regex</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>activate</name>
-		      <handler>on_entry_queue_remove_regex_activate</handler>
-		      <last_modification_time>Mon, 06 May 2002 20:48:14 GMT</last_modification_time>
-		    </signal>
-		    <editable>True</editable>
-		    <text_visible>True</text_visible>
-		    <text_max_length>0</text_max_length>
-		    <text></text>
+		    <class>GtkFrame</class>
+		    <name>frame4</name>
+		    <label>Download queue</label>
+		    <label_xalign>0</label_xalign>
+		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		    <child>
 		      <padding>0</padding>
 		      <expand>True</expand>
 		      <fill>True</fill>
 		    </child>
-		  </widget>
 
-		  <widget>
-		    <class>GtkCheckButton</class>
-		    <name>checkbutton_queue_regex_case</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>toggled</name>
-		      <handler>on_checkbutton_queue_regex_case_toggled</handler>
-		      <last_modification_time>Mon, 06 May 2002 22:18:44 GMT</last_modification_time>
-		    </signal>
-		    <label>case sensitive</label>
-		    <active>False</active>
-		    <draw_indicator>True</draw_indicator>
-		    <child>
-		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
-		    </child>
+		    <widget>
+		      <class>GtkVBox</class>
+		      <name>vbox15</name>
+		      <border_width>2</border_width>
+		      <homogeneous>False</homogeneous>
+		      <spacing>2</spacing>
+
+		      <widget>
+			<class>GtkScrolledWindow</class>
+			<name>scrolledwindow7</name>
+			<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
+			<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
+			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+			<child>
+			  <padding>0</padding>
+			  <expand>True</expand>
+			  <fill>True</fill>
+			</child>
+
+			<widget>
+			  <class>GtkCList</class>
+			  <name>clist_downloads_queue</name>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>select_row</name>
+			    <handler>on_clist_downloads_queue_select_row</handler>
+			    <last_modification_time>Fri, 29 Mar 2002 18:59:09 GMT</last_modification_time>
+			  </signal>
+			  <signal>
+			    <name>unselect_row</name>
+			    <handler>on_clist_downloads_queue_unselect_row</handler>
+			    <last_modification_time>Fri, 29 Mar 2002 18:59:12 GMT</last_modification_time>
+			  </signal>
+			  <signal>
+			    <name>button_press_event</name>
+			    <handler>on_clist_downloads_queue_button_press_event</handler>
+			    <last_modification_time>Fri, 29 Mar 2002 18:59:16 GMT</last_modification_time>
+			  </signal>
+			  <signal>
+			    <name>resize_column</name>
+			    <handler>on_clist_downloads_queue_resize_column</handler>
+			    <last_modification_time>Fri, 29 Mar 2002 18:59:19 GMT</last_modification_time>
+			  </signal>
+			  <columns>3</columns>
+			  <column_widths>79,80,80</column_widths>
+			  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
+			  <show_titles>True</show_titles>
+			  <shadow_type>GTK_SHADOW_IN</shadow_type>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label66</name>
+			    <label>File</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label96</name>
+			    <label>Host</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+
+			  <widget>
+			    <class>GtkLabel</class>
+			    <child_name>CList:title</child_name>
+			    <name>label67</name>
+			    <label>Size</label>
+			    <justify>GTK_JUSTIFY_CENTER</justify>
+			    <wrap>False</wrap>
+			    <xalign>0.5</xalign>
+			    <yalign>0.5</yalign>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			  </widget>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkHBox</class>
+			<name>hbox68</name>
+			<homogeneous>False</homogeneous>
+			<spacing>4</spacing>
+			<child>
+			  <padding>0</padding>
+			  <expand>False</expand>
+			  <fill>False</fill>
+			</child>
+
+			<widget>
+			  <class>GtkButton</class>
+			  <name>button_queue_clear</name>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>clicked</name>
+			    <handler>on_button_queue_clear_clicked</handler>
+			    <last_modification_time>Thu, 11 Apr 2002 17:20:13 GMT</last_modification_time>
+			  </signal>
+			  <label>Clear queue</label>
+			  <relief>GTK_RELIEF_NORMAL</relief>
+			  <child>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>False</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkToggleButton</class>
+			  <name>togglebutton_queue_freeze</name>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>toggled</name>
+			    <handler>on_togglebutton_queue_freeze_toggled</handler>
+			    <last_modification_time>Thu, 11 Apr 2002 17:20:40 GMT</last_modification_time>
+			  </signal>
+			  <label>Freeze queue</label>
+			  <relief>GTK_RELIEF_NORMAL</relief>
+			  <active>False</active>
+			  <child>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>False</fill>
+			  </child>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkHBox</class>
+			<name>hbox86</name>
+			<homogeneous>False</homogeneous>
+			<spacing>4</spacing>
+			<child>
+			  <padding>0</padding>
+			  <expand>False</expand>
+			  <fill>True</fill>
+			</child>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label149</name>
+			  <label>Select all matching regex from queue</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0.5</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>False</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkEntry</class>
+			  <name>entry_queue_regex</name>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>activate</name>
+			    <handler>on_entry_queue_regex_activate</handler>
+			    <last_modification_time>Sat, 11 May 2002 15:32:31 GMT</last_modification_time>
+			  </signal>
+			  <editable>True</editable>
+			  <text_visible>True</text_visible>
+			  <text_max_length>0</text_max_length>
+			  <text></text>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkCheckButton</class>
+			  <name>checkbutton_queue_regex_case</name>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>toggled</name>
+			    <handler>on_checkbutton_queue_regex_case_toggled</handler>
+			    <last_modification_time>Mon, 06 May 2002 22:18:44 GMT</last_modification_time>
+			  </signal>
+			  <label>case sensitive</label>
+			  <active>False</active>
+			  <draw_indicator>True</draw_indicator>
+			  <child>
+			    <padding>0</padding>
+			    <expand>False</expand>
+			    <fill>False</fill>
+			  </child>
+			</widget>
+		      </widget>
+		    </widget>
 		  </widget>
 		</widget>
 	      </widget>
@@ -2741,6 +2931,25 @@
 		<expand>False</expand>
 		<fill>True</fill>
 	      </child>
+
+	      <widget>
+		<class>GtkCheckButton</class>
+		<name>checkbutton_search_pick_all</name>
+		<can_focus>True</can_focus>
+		<signal>
+		  <name>toggled</name>
+		  <handler>on_checkbutton_search_pick_all_toggled</handler>
+		  <last_modification_time>Sat, 11 May 2002 13:15:02 GMT</last_modification_time>
+		</signal>
+		<label>Enable autoselect</label>
+		<active>False</active>
+		<draw_indicator>True</draw_indicator>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+	      </widget>
 
 	      <widget>
 		<class>GtkLabel</class>
@@ -3125,7 +3334,7 @@
 		</signal>
 		<columns>1</columns>
 		<column_widths>80</column_widths>
-		<selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
+		<selection_mode>GTK_SELECTION_SINGLE</selection_mode>
 		<show_titles>True</show_titles>
 		<shadow_type>GTK_SHADOW_IN</shadow_type>
 
@@ -3626,27 +3835,18 @@
 		    </widget>
 
 		    <widget>
-		      <class>GtkEntry</class>
-		      <name>entry_config_port</name>
-		      <width>43</width>
-		      <can_focus>True</can_focus>
-		      <signal>
-			<name>activate</name>
-			<handler>on_entry_config_port_activate</handler>
-			<last_modification_time>Sun, 02 Apr 2000 08:43:34 GMT</last_modification_time>
-		      </signal>
-		      <signal>
-			<name>focus_out_event</name>
-			<handler>on_entry_config_port_focus_out_event</handler>
-			<last_modification_time>Wed, 24 Apr 2002 08:44:27 GMT</last_modification_time>
-		      </signal>
-		      <editable>True</editable>
-		      <text_visible>True</text_visible>
-		      <text_max_length>0</text_max_length>
-		      <text></text>
+		      <class>GtkLabel</class>
+		      <name>label35</name>
+		      <label>Default: 6346, Disable: 0</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
 		      <child>
-			<left_attach>1</left_attach>
-			<right_attach>2</right_attach>
+			<left_attach>2</left_attach>
+			<right_attach>3</right_attach>
 			<top_attach>1</top_attach>
 			<bottom_attach>2</bottom_attach>
 			<xpad>0</xpad>
@@ -3661,18 +3861,35 @@
 		    </widget>
 
 		    <widget>
-		      <class>GtkLabel</class>
-		      <name>label35</name>
-		      <label>Default: 6346, Disable: 0</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <class>GtkSpinButton</class>
+		      <name>spinbutton_config_port</name>
+		      <width>64</width>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>activate</name>
+			<handler>on_spinbutton_config_port_activate</handler>
+			<last_modification_time>Sat, 11 May 2002 12:32:02 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_spinbutton_config_port_focus_out_event</handler>
+			<last_modification_time>Sat, 11 May 2002 12:32:11 GMT</last_modification_time>
+		      </signal>
+		      <climb_rate>1</climb_rate>
+		      <digits>0</digits>
+		      <numeric>True</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
 		      <wrap>False</wrap>
-		      <xalign>0.5</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
+		      <value>6346</value>
+		      <lower>1</lower>
+		      <upper>65535</upper>
+		      <step>1</step>
+		      <page>10</page>
+		      <page_size>10</page_size>
 		      <child>
-			<left_attach>2</left_attach>
-			<right_attach>3</right_attach>
+			<left_attach>1</left_attach>
+			<right_attach>2</right_attach>
 			<top_attach>1</top_attach>
 			<bottom_attach>2</bottom_attach>
 			<xpad>0</xpad>
@@ -3846,7 +4063,7 @@
 
 		    <widget>
 		      <class>GtkEntry</class>
-		      <name>entry_config_socks_host</name>
+		      <name>entry_config_proxy_ip</name>
 		      <can_focus>True</can_focus>
 		      <signal>
 			<name>activate</name>
@@ -3887,24 +4104,32 @@
 		    </widget>
 
 		    <widget>
-		      <class>GtkEntry</class>
-		      <name>entry_config_socks_port</name>
-		      <width>43</width>
+		      <class>GtkSpinButton</class>
+		      <name>spinbutton_config_proxy_port</name>
+		      <width>64</width>
 		      <can_focus>True</can_focus>
 		      <signal>
 			<name>activate</name>
-			<handler>on_entry_config_socks_port_activate</handler>
-			<last_modification_time>Fri, 29 Mar 2002 18:20:49 GMT</last_modification_time>
+			<handler>on_spinbutton_config_proxy_port_activate</handler>
+			<last_modification_time>Sat, 11 May 2002 12:33:21 GMT</last_modification_time>
 		      </signal>
 		      <signal>
 			<name>focus_out_event</name>
-			<handler>on_entry_config_socks_port_focus_out_event</handler>
-			<last_modification_time>Fri, 29 Mar 2002 18:20:57 GMT</last_modification_time>
+			<handler>on_spinbutton_config_proxy_port_focus_out_event</handler>
+			<last_modification_time>Sat, 11 May 2002 12:33:32 GMT</last_modification_time>
 		      </signal>
-		      <editable>True</editable>
-		      <text_visible>True</text_visible>
-		      <text_max_length>0</text_max_length>
-		      <text></text>
+		      <climb_rate>1</climb_rate>
+		      <digits>0</digits>
+		      <numeric>True</numeric>
+		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		      <snap>False</snap>
+		      <wrap>False</wrap>
+		      <value>3128</value>
+		      <lower>1</lower>
+		      <upper>65535</upper>
+		      <step>1</step>
+		      <page>10</page>
+		      <page_size>10</page_size>
 		      <child>
 			<padding>0</padding>
 			<expand>False</expand>
@@ -4486,66 +4711,14 @@ sharing</label>
 		    <column_spacing>4</column_spacing>
 		    <child>
 		      <padding>0</padding>
-		      <expand>False</expand>
-		      <fill>False</fill>
+		      <expand>True</expand>
+		      <fill>True</fill>
 		    </child>
 
 		    <widget>
 		      <class>GtkLabel</class>
-		      <name>label123</name>
-		      <label>Input bandwidth limit</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <child>
-			<left_attach>0</left_attach>
-			<right_attach>1</right_attach>
-			<top_attach>0</top_attach>
-			<bottom_attach>1</bottom_attach>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<xexpand>False</xexpand>
-			<yexpand>False</yexpand>
-			<xshrink>False</xshrink>
-			<yshrink>False</yshrink>
-			<xfill>True</xfill>
-			<yfill>False</yfill>
-		      </child>
-		    </widget>
-
-		    <widget>
-		      <class>GtkLabel</class>
-		      <name>label124</name>
-		      <label>Output bandwidth limit</label>
-		      <justify>GTK_JUSTIFY_CENTER</justify>
-		      <wrap>False</wrap>
-		      <xalign>0</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <child>
-			<left_attach>0</left_attach>
-			<right_attach>1</right_attach>
-			<top_attach>1</top_attach>
-			<bottom_attach>2</bottom_attach>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<xexpand>False</xexpand>
-			<yexpand>False</yexpand>
-			<xshrink>False</xshrink>
-			<yshrink>False</yshrink>
-			<xfill>True</xfill>
-			<yfill>False</yfill>
-		      </child>
-		    </widget>
-
-		    <widget>
-		      <class>GtkLabel</class>
 		      <name>label125</name>
-		      <label>bps</label>
+		      <label>kBps</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
@@ -4571,7 +4744,7 @@ sharing</label>
 		    <widget>
 		      <class>GtkLabel</class>
 		      <name>label126</name>
-		      <label>bps</label>
+		      <label>kBps</label>
 		      <justify>GTK_JUSTIFY_CENTER</justify>
 		      <wrap>False</wrap>
 		      <xalign>0</xalign>
@@ -4597,12 +4770,16 @@ sharing</label>
 		    <widget>
 		      <class>GtkSpinButton</class>
 		      <name>spinbutton_config_bps_in</name>
-		      <width>100</width>
 		      <can_focus>True</can_focus>
 		      <signal>
-			<name>changed</name>
-			<handler>on_spinbutton_config_bps_in_changed</handler>
-			<last_modification_time>Sun, 14 Apr 2002 20:49:50 GMT</last_modification_time>
+			<name>activate</name>
+			<handler>on_spinbutton_config_bps_in_activate</handler>
+			<last_modification_time>Sat, 11 May 2002 12:54:58 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_spinbutton_config_bps_in_focus_out_event</handler>
+			<last_modification_time>Sat, 11 May 2002 12:55:05 GMT</last_modification_time>
 		      </signal>
 		      <climb_rate>1</climb_rate>
 		      <digits>0</digits>
@@ -4610,12 +4787,12 @@ sharing</label>
 		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
 		      <snap>False</snap>
 		      <wrap>False</wrap>
-		      <value>0</value>
+		      <value>1</value>
 		      <lower>0</lower>
-		      <upper>2e+06</upper>
+		      <upper>2000</upper>
 		      <step>1</step>
-		      <page>1024</page>
-		      <page_size>1024</page_size>
+		      <page>16</page>
+		      <page_size>16</page_size>
 		      <child>
 			<left_attach>1</left_attach>
 			<right_attach>2</right_attach>
@@ -4635,12 +4812,16 @@ sharing</label>
 		    <widget>
 		      <class>GtkSpinButton</class>
 		      <name>spinbutton_config_bps_out</name>
-		      <width>100</width>
 		      <can_focus>True</can_focus>
 		      <signal>
-			<name>changed</name>
-			<handler>on_spinbutton_config_bps_out_changed</handler>
-			<last_modification_time>Sun, 14 Apr 2002 21:42:55 GMT</last_modification_time>
+			<name>activate</name>
+			<handler>on_spinbutton_config_bps_out_activate</handler>
+			<last_modification_time>Sat, 11 May 2002 12:55:13 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_spinbutton_config_bps_out_focus_out_event</handler>
+			<last_modification_time>Sat, 11 May 2002 12:55:19 GMT</last_modification_time>
 		      </signal>
 		      <climb_rate>1</climb_rate>
 		      <digits>0</digits>
@@ -4648,15 +4829,71 @@ sharing</label>
 		      <update_policy>GTK_UPDATE_ALWAYS</update_policy>
 		      <snap>False</snap>
 		      <wrap>False</wrap>
-		      <value>0</value>
-		      <lower>0</lower>
-		      <upper>2e+06</upper>
+		      <value>1</value>
+		      <lower>1</lower>
+		      <upper>2000</upper>
 		      <step>1</step>
-		      <page>1024</page>
+		      <page>16</page>
 		      <page_size>1024</page_size>
 		      <child>
 			<left_attach>1</left_attach>
 			<right_attach>2</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_config_bps_in</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_checkbutton_config_bps_in_toggled</handler>
+			<last_modification_time>Wed, 08 May 2002 17:50:53 GMT</last_modification_time>
+		      </signal>
+		      <label>Limit bandwidth for incoming traffic to</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<left_attach>0</left_attach>
+			<right_attach>1</right_attach>
+			<top_attach>0</top_attach>
+			<bottom_attach>1</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_config_bps_out</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_checkbutton_config_bps_out_toggled</handler>
+			<last_modification_time>Wed, 08 May 2002 17:51:00 GMT</last_modification_time>
+		      </signal>
+		      <label>Limit bandwidth for outgoing traffic to</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<left_attach>0</left_attach>
+			<right_attach>1</right_attach>
 			<top_attach>1</top_attach>
 			<bottom_attach>2</bottom_attach>
 			<xpad>0</xpad>
@@ -5088,7 +5325,7 @@ options</label>
       <child>
 	<padding>0</padding>
 	<expand>False</expand>
-	<fill>False</fill>
+	<fill>True</fill>
       </child>
 
       <widget>
