@@ -162,6 +162,9 @@ struct parq_ul_queued {
 	
 	struct parq_ul_queue *queue;	/* In which queue this entry is listed */
 	struct parq_ul_queued_by_ip *by_ip;
+	
+	gnutella_upload_t *u;	/* Internal reference to upload structure if
+							   available */
 };
 
 /*
@@ -1159,6 +1162,9 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 	g_assert(parq_ul->by_ip->total > 0);
 	g_assert(parq_ul->by_ip->uploading <= parq_ul->by_ip->total);
 	
+	if (parq_ul->u != NULL)
+		parq_ul->u->parq_opaque = NULL;
+	
 	parq_upload_decrease_all_after(parq_ul);	
 
 	if (parq_ul->flags & PARQ_UL_QUEUE)
@@ -2144,6 +2150,19 @@ static gint parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
 		
 	return as->relative_position - bs->relative_position;
 }
+
+/*
+ * parq_upload_upload_got_freed
+ *
+ * Makes sure parq doesn't keep any internal reference to the upload structure
+ */
+void parq_upload_upload_got_freed(gnutella_upload_t *u)
+{
+	struct parq_ul_queued *parq_ul = parq_upload_find(u);
+		
+	parq_ul->u = NULL;
+}
+
 /*
  * parq_upload_get
  *
@@ -2250,6 +2269,10 @@ cleanup:
 		if (buf != NULL && gchar_to_ip_port(buf, &parq_ul->ip, &parq_ul->port))
 			parq_ul->flags &= ~PARQ_UL_NOQUEUE;
 	}
+	
+	parq_ul->u = u;	/* Save pointer to structure. Don't forget to move it too
+	                   the cloned upload or remove the pointer when the struct
+	                   is freed */
 	
 	return parq_ul;
 }
@@ -2449,7 +2472,6 @@ void parq_upload_force_remove(gnutella_upload_t *u)
 		
 	if (parq_ul != NULL) {
 		if (!parq_upload_remove(u)) {
-			u->parq_opaque = NULL;
 			parq_upload_free(parq_ul);
 		}
 	}
@@ -2588,7 +2610,6 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 				upload_vendor_str(u),
 				u->name, (gint) (parq_ul->disc_timeout - now));
 		}
-		u->parq_opaque = NULL;
 		parq_upload_free(parq_ul);
 		return_result = TRUE;
 

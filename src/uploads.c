@@ -402,6 +402,8 @@ void upload_real_remove(void)
 
 static void upload_free_resources(gnutella_upload_t *u)
 {
+	parq_upload_upload_got_freed(u);
+	
 	if (u->name != NULL) {
 		atom_str_free(u->name);
 		u->name = NULL;
@@ -466,6 +468,7 @@ static gnutella_upload_t *upload_clone(gnutella_upload_t *u)
 	cu->accounted = FALSE;
     cu->skip = 0;
     cu->end = 0;
+	cu->parq_opaque = NULL;				/* Let parq reassign it */
 
 	/*
 	 * The following have been copied and appropriated by the cloned upload.
@@ -714,7 +717,6 @@ static void upload_remove_v(
             u->status = GTA_UL_ABORTED;
         upload_fire_upload_info_changed(u);
     }
-
 
 	parq_upload_remove(u);
     upload_fire_upload_removed(u, reason ? errbuf : NULL);
@@ -2499,7 +2501,6 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 		} else {
 			registered_uploads--;
 			running_uploads--;
-			parq_upload_remove(u);
 		}
 
 		upload_remove(u, NULL);
