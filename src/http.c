@@ -599,6 +599,48 @@ gboolean http_url_parse(
 }
 
 /***
+ *** HTTP buffer management.
+ ***/
+
+/*
+ * http_buffer_alloc
+ *
+ * Allocate HTTP buffer, capable of holding data at `buf', of `len' bytes,
+ * and whose `written' bytes have already been sent out.
+ */
+http_buffer_t *http_buffer_alloc(gchar *buf, gint len, gint written)
+{
+	http_buffer_t *b;
+
+	g_assert(buf);
+	g_assert(len > 0);
+	g_assert(written >= 0 && written < len);
+
+	b = walloc(sizeof(*b));
+	b->hb_arena = walloc(len);		/* Should be small enough for walloc */
+	b->hb_len = len;
+	b->hb_end = b->hb_arena + len;
+	b->hb_rptr = b->hb_arena + written;
+
+	memcpy(b->hb_arena, buf, len);
+
+	return b;
+}
+
+/*
+ * http_buffer_free
+ *
+ * Dispose of HTTP buffer.
+ */
+void http_buffer_free(http_buffer_t *b)
+{
+	g_assert(b);
+
+	wfree(b->hb_arena, b->hb_len);
+	wfree(b, sizeof(*b));
+}
+
+/***
  *** HTTP range parsing.
  ***/
 
@@ -1113,7 +1155,14 @@ struct http_async {					/* An asynchronous HTTP request */
 	gpointer user_opaque;			/* User opaque data */
 	http_user_free_t user_free;		/* Free routine for opaque data */
 	struct http_async *parent;		/* Parent request, for redirections */
+	http_buffer_t *delayed;			/* Delayed data that could not be sent */
 	GSList *children;				/* Child requests */
+
+	/*
+	 * Operations that may be redefined by user.
+	 */
+
+	http_op_request_t op_request;	/* Creates HTTP request */
 };
 
 /*
@@ -1219,6 +1268,8 @@ static void http_async_free_recursive(struct http_async *ha)
 		bsched_source_remove(ha->bio);
 	if (ha->user_free)
 		(*ha->user_free)(ha->user_opaque);
+	if (ha->delayed)
+		http_buffer_free(ha->delayed);
 
 	sl_outgoing = g_slist_remove(sl_outgoing, ha);
 
@@ -1372,6 +1423,31 @@ static void http_async_http_error(
 	http_async_remove(handle, HTTP_ASYNC_HTTP, &he);
 }
 
+/*
+ * http_async_build_request
+ *
+ * Default callback invoked to build the HTTP request.
+ *
+ * The request is to be built in `buf', which is `len' bytes long.
+ * The HTTP request is defined by the `verb' ("GET", "HEAD", ...), the
+ * `path' to ask for and the `host' to which we are making the request, for
+ * suitable "Host:" header emission.
+ *
+ * Returns the length of the generated request, which must be terminated
+ * properly by a trailing "\r\n" on a line by itself to mark the end of the
+ * header.
+ */
+static gint http_async_build_request(gpointer handle, gchar *buf, gint len,
+	gchar *verb, gchar *path, gchar *host)
+{
+	return gm_snprintf(buf, len,
+		"%s %s HTTP/1.1\r\n"
+		"Host: %s\r\n"
+		"User-Agent: %s\r\n"
+		"Connection: close\r\n"
+		"\r\n",
+		verb, path, host, version_string);
+}
 
 /*
  * http_async_create
@@ -1458,6 +1534,8 @@ static struct http_async *http_async_create(
 	ha->user_free = NULL;
 	ha->parent = parent;
 	ha->children = NULL;
+	ha->delayed = NULL;
+	ha->op_request = http_async_build_request;
 
 	sl_outgoing = g_slist_prepend(sl_outgoing, ha);
 
@@ -1493,6 +1571,21 @@ gpointer http_async_get(
 	return (gpointer) http_async_create(url, HTTP_GET,
 		header_ind, data_ind, error_ind,
 		NULL);
+}
+
+/*
+ *  http_async_set_op_request
+ *
+ * Redefines the building of the HTTP request.
+ */
+void http_async_set_op_request(gpointer handle, http_op_request_t op)
+{
+	struct http_async *ha = (struct http_async *) handle;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+	g_assert(op != NULL);
+
+	ha->op_request = op;
 }
 
 /*
@@ -1573,6 +1666,12 @@ static gboolean http_async_subrequest(
 		parent->header_ind ? http_subreq_header_ind : NULL,	/* Optional */
 		http_subreq_data_ind, http_subreq_error_ind,
 		parent);
+
+	/*
+	 * Propagate any redefined operation.
+	 */
+
+	child->op_request = parent->op_request;
 
 	/*
 	 * Indicate that the child request now has control, the parent request
@@ -1895,6 +1994,87 @@ static void http_header_start(gpointer handle)
 }
 
 /*
+ * http_async_request_sent
+ *
+ * Called when the whole HTTP request has been sent out.
+ */
+static void http_async_request_sent(struct http_async *ha)
+{
+	ha->state = HTTP_AS_REQ_SENT;
+	ha->last_update = time(NULL);
+
+	/*
+	 * Prepare to read back the status line and the headers.
+	 */
+
+	g_assert(ha->io_opaque == NULL);
+
+	io_get_header(ha, &ha->io_opaque, bws.in, ha->socket, IO_SAVE_FIRST,
+		call_http_got_header, http_header_start, &http_io_error);
+}
+
+/*
+ * http_async_write_request
+ *
+ * I/O callback invoked when we can write more data to the server to finish
+ * sending the HTTP request.
+ */
+static void http_async_write_request(
+	gpointer data, gint source, inputevt_cond_t cond)
+{
+	struct http_async *ha = (struct http_async *) data;
+	struct gnutella_socket *s = ha->socket;
+	http_buffer_t *r = ha->delayed;
+	gint sent;
+	gint rw;
+	gchar *base;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+	g_assert(r != NULL);
+	g_assert(ha->state == HTTP_AS_REQ_SENDING);
+
+	if (cond & INPUT_EVENT_EXCEPTION) {
+		http_async_error(ha, HTTP_ASYNC_IO_ERROR);
+		return;
+	}
+
+	rw = http_buffer_unread(r);			/* Data we still have to send */
+	base = http_buffer_read_base(r);	/* And where unsent data start */
+
+	if (-1 == (sent = bws_write(bws.out, s->file_desc, base, rw))) {
+		g_warning("HTTP request sending to %s failed: %s",
+			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
+		http_async_syserr(ha, errno);
+		return;
+	} else if (sent < rw) {
+		http_buffer_add_read(r, sent);
+		return;
+	} else if (dbg > 2) {
+		printf("----Sent HTTP request completely to %s:\n%.*s----\n",
+			ip_port_to_gchar(s->ip, s->port),
+			http_buffer_length(r), http_buffer_base(r));
+		fflush(stdout);
+	}
+
+	/*
+	 * HTTP request was completely sent.
+	 */
+
+	if (dbg)
+		g_warning("flushed partially written HTTP request to %s (%d bytes)",
+			ip_port_to_gchar(s->ip, s->port),
+			http_buffer_length(r));
+
+	g_source_remove(s->gdk_tag);
+	s->gdk_tag = 0;
+
+	http_buffer_free(r);
+	ha->delayed = NULL;
+
+	http_async_request_sent(ha);
+}
+
+/*
  * http_async_connected
  *
  * Callback from the socket layer when the connection to the remote
@@ -1913,18 +2093,12 @@ void http_async_connected(gpointer handle)
 	g_assert(s->resource.handle == handle);
 
 	/*
-	 * Create the HTTP request.
+	 * Build the HTTP request.
 	 */
 
-	rw = gm_snprintf(req, sizeof(req),
-		"%s %s HTTP/1.1\r\n"
-		"Host: %s\r\n"
-		"User-Agent: %s\r\n"
-		"Connection: close\r\n"
-		"\r\n",
-		http_verb[ha->type], ha->path,
-		ha->host ? ha->host : ip_to_gchar(s->ip),
-		version_string);
+	rw = (*ha->op_request)(ha, req, sizeof(req),
+		(gchar *) http_verb[ha->type], ha->path,
+		ha->host ? ha->host : ip_to_gchar(s->ip));
 
 	if (rw >= sizeof(req)) {
 		http_async_error(ha, HTTP_ASYNC_REQ2BIG);
@@ -1936,16 +2110,31 @@ void http_async_connected(gpointer handle)
 	 */
 
 	ha->state = HTTP_AS_REQ_SENDING;
-
+	ha->last_update = time(NULL);
+	
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, req, rw))) {
 		g_warning("HTTP request sending to %s failed: %s",
 			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
 		http_async_syserr(ha, errno);
 		return;
 	} else if (sent < rw) {
-		g_warning("HTTP request sending to %s: only %d of %d bytes sent",
+		g_warning("partial HTTP request write to %s: only %d of %d bytes sent",
 			ip_port_to_gchar(s->ip, s->port), sent, rw);
-		http_async_error(ha, HTTP_ASYNC_IO_ERROR);
+
+		g_assert(ha->delayed == NULL);
+
+		ha->delayed = http_buffer_alloc(req, rw, sent);
+
+		/*
+		 * Install the writing callback.
+		 */
+
+		g_assert(s->gdk_tag == 0);
+
+		s->gdk_tag = inputevt_add(s->file_desc,
+			(inputevt_cond_t) INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
+			http_async_write_request, (gpointer) ha);
+
 		return;
 	} else if (dbg > 2) {
 		printf("----Sent HTTP request to %s:\n%.*s----\n",
@@ -1953,16 +2142,7 @@ void http_async_connected(gpointer handle)
 		fflush(stdout);
 	}
 
-	ha->last_update = time(NULL);
-	
-	/*
-	 * Prepare to read back the status line and the headers.
-	 */
-
-	ha->state = HTTP_AS_REQ_SENT;
-
-	io_get_header(ha, &ha->io_opaque, bws.in, s, IO_SAVE_FIRST,
-		call_http_got_header, http_header_start, &http_io_error);
+	http_async_request_sent(ha);
 }
 
 /*

@@ -120,6 +120,13 @@ typedef void (*http_error_cb_t)(gpointer h, http_errtype_t error, gpointer val);
 typedef void (*http_user_free_t)(gpointer data);
 
 /*
+ * Asynchronous operations that the user may redefine.
+ */
+
+typedef gint (*http_op_request_t)(gpointer handle, gchar *buf, gint len,
+	gchar *verb, gchar *path, gchar *host);
+
+/*
  * Asynchronous request error codes.
  */
 
@@ -178,6 +185,24 @@ typedef enum http_state {
 } http_state_t;
 
 /*
+ * HTTP data buffered when it cannot be sent out immediately.
+ */
+
+typedef struct http_buffer {
+	gchar *hb_arena;		/* The whole thing */
+	gchar *hb_rptr;			/* Reading pointer within arena */
+	gchar *hb_end;			/* First char after buffer */
+	gint hb_len;			/* Total arena length */
+} http_buffer_t;
+
+#define http_buffer_base(hb)		((hb)->hb_arena)
+#define http_buffer_length(hb)		((hb)->hb_len)
+#define http_buffer_read_base(hb)	((hb)->hb_rptr)
+#define http_buffer_unread(hb)		((hb)->hb_end - (hb)->hb_rptr)
+
+#define http_buffer_add_read(hb,tx)	do { (hb)->hb_rptr += (tx); } while (0)
+
+/*
  * Public interface
  */
 
@@ -192,6 +217,9 @@ gint http_status_parse(const gchar *line,
 
 gboolean http_extract_version(
 	gchar *request, gint len, gint *major, gint *minor);
+
+http_buffer_t *http_buffer_alloc(gchar *buf, gint len, gint written);
+void http_buffer_free(http_buffer_t *b);
 
 guint32 http_range_size(const GSList *list);
 const gchar *http_range_to_gchar(const GSList *list);
@@ -223,6 +251,8 @@ http_state_t http_async_state(gpointer handle);
 void http_async_set_opaque(gpointer handle, gpointer data, http_user_free_t fn);
 gpointer http_async_get_opaque(gpointer handle);
 void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v);
+
+void http_async_set_op_request(gpointer handle, http_op_request_t op);
 
 void http_close(void);
 
