@@ -5114,6 +5114,10 @@ void node_qrt_discard(struct gnutella_node *n)
 		qrt_unref(n->query_table);
 		n->query_table = NULL;
 	}
+	if (n->qrt_info != NULL) {
+		wfree(n->qrt_info, sizeof(*n->qrt_info));
+		n->qrt_info = NULL;
+	}
 
     node_fire_node_flags_changed(n);
 }
@@ -5127,6 +5131,7 @@ void node_qrt_install(struct gnutella_node *n, gpointer query_table)
 {
 	g_assert(NODE_IS_LEAF(n));
 	g_assert(n->query_table == NULL);
+	g_assert(n->qrt_info == NULL);
 
 	n->query_table = qrt_ref(query_table);
 	n->qrt_info = walloc(sizeof(*n->qrt_info));
