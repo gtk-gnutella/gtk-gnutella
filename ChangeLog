@@ -1,5 +1,21 @@
 # since last version
 
+- (2002.06.02 - Richard) 
+  * Format of RULE_SIZE display string changed.
+  * Added "Create filter" button to dialog.
+  * Normalize upper/lower value in filter_new_size_rule()
+  * Replaced all g_message calls with printf (fixes log corruption)
+  * Filter rules can now be deactivated
+  * When a filter has the "don't display" target, the user may choose
+    to grey out the result instead of completely dropping it using the
+    "mark only" flag.
+  * Make filter dialog size persistant.
+  * The xml backend gives better information when unable to read in the
+    xml file and can cope with missing rule flags.
+  * Information about how often a rule matched is displayed in the
+    filter dialog (but not updated periodically)
+  * Fixed default filter selection when adding a new search.
+	
 - (2002.06.02 - RAM)
   * Added build dependency on libxml2-dev in debian control.
   * Force --enable-xml-store in debian's build.
