@@ -952,6 +952,8 @@ again:
 
 	if (r <= 0) {
 		q->last_written = 0;
+		if (r == 0)
+			goto update_servicing;
 		return;
 	}
 
