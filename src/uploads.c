@@ -2922,7 +2922,7 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 		written = bio_sendfile(u->bio, u->file_desc, &u->pos, available);
 
 		g_assert(written == -1 || written == u->pos - pos);
-	} else
+	} else {
 		/*
 	 	* Compute the amount of bytes to send.
 	 	*/
