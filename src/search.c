@@ -106,8 +106,16 @@ static GSList *sl_search_ctrl = NULL;
 static zone_t *rs_zone;		/* Allocation of results_set */
 static zone_t *rc_zone;		/* Allocation of record */
 
-static GHashTable *search_handle_map = NULL;
-static gnet_search_t next_search_handle = 0;
+static idtable_t *search_handle_map = NULL;
+
+#define search_find_by_handle(n) \
+    (search_ctrl_t *) idtable_get_value(search_handle_map, n)
+
+#define search_request_handle(n) \
+    idtable_request_key(search_handle_map, n)
+
+#define search_drop_handle(n) \
+    idtable_drop_key(search_handle_map, n);
 
 guint32   search_passive  = 0;		/* Amount of passive searches */
 
@@ -967,63 +975,6 @@ static void search_dequeue_all_nodes(gchar *qtext)
 	}
 }
 
-/*
- * search_find_by_handle:
- *
- * Return a pointer to the search_ctrl struct which has the given
- * search handle. Since the search_handle_map may not include NULL values
- * and we don't want to allow outdated search handles, we assert that
- * we find a non-NULL value to return.
- */
-search_ctrl_t *search_find_by_handle(gnet_search_t sh)
-{
-    search_ctrl_t *result;
-
-    /* handle must have been assigned */
-    g_assert(sh < next_search_handle);
-
-    result = (search_ctrl_t *) g_hash_table_lookup
-        (search_handle_map, (gpointer) sh);
-
-    g_assert(result);
-
-    return result;
-}
-
-/*
- * search_request_handle:
- *
- * Fetch a new search handle and register the the search/handle pair
- * in the search_handle_map. The handle is also stored in the given
- * search_ctrl_t struct.
- */
-gnet_search_t search_request_handle(search_ctrl_t *sch)
-{
-    gnet_search_t sh = next_search_handle;
-
-    g_assert(sch != NULL);
-    sch->search_handle = sh;
-
-    next_search_handle ++;
-
-    g_hash_table_insert(search_handle_map, (gpointer) sh, sch);
-
-    return sh;
-}
-
-/*
- * search_drop_handle:
- *
- * Drop handle from the search_handle_map. 
- */
-void search_drop_handle(gnet_search_t sh)
-{
-    g_assert(g_hash_table_lookup(search_handle_map, (gpointer) sh) != NULL);
-
-    g_hash_table_remove(search_handle_map, (gpointer) sh);
-}
-
-
 /***
  *** Public functions
  ***/
@@ -1034,7 +985,7 @@ void search_init(void)
 	rs_zone = zget(sizeof(gnet_results_set_t), 1024);
 	rc_zone = zget(sizeof(gnet_record_t), 1024);
     
-    search_handle_map = g_hash_table_new(g_direct_hash, g_direct_equal);
+    search_handle_map = idtable_new(32,32);
 }
 
 void search_shutdown(void)
@@ -1045,9 +996,9 @@ void search_shutdown(void)
         search_close(((search_ctrl_t *)sl_search_ctrl->data)->search_handle);
     }
 
-    g_assert(g_hash_table_size(search_handle_map) == 0);
+    g_assert(idtable_keys(search_handle_map) == 0);
 
-    g_hash_table_destroy(search_handle_map);
+    idtable_destroy(search_handle_map);
     search_handle_map = NULL;
 
 	zdestroy(rs_zone);
@@ -1290,7 +1241,7 @@ gnet_search_t search_new(
 	search_ctrl_t *sch;
 
 	sch = g_new0(search_ctrl_t, 1);
-    search_request_handle(sch);
+    sch->search_handle = search_request_handle(sch);
 
 	sch->query = atom_str_get(query);
 	sch->speed = minimum_speed;

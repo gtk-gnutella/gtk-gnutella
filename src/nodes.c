@@ -80,8 +80,17 @@
 
 GSList *sl_nodes = (GSList *) NULL;
 
-static GHashTable *node_handle_map = NULL;
-static gnet_search_t next_node_handle = 0;
+static idtable_t *node_handle_map = NULL;
+
+#define node_find_by_handle(n) \
+    (gnutella_node_t *) idtable_get_value(node_handle_map, n)
+
+#define node_request_handle(n) \
+    idtable_request_key(node_handle_map, n)
+
+#define node_drop_handle(n) \
+    idtable_drop_key(node_handle_map, n);
+
 
 static guint32 nodes_in_list = 0;
 static guint32 ponging_nodes = 0;
@@ -261,63 +270,6 @@ void node_extract_host(struct gnutella_node *n, guint32 *ip, guint16 *port)
 	*port = hport;
 }
 
-
-/*
- * node_find_by_handle:
- *
- * Return a pointer to the gnutella_node_t struct which has the given
- * node handle. Since the node_handle_map may not include NULL values
- * and we don't want to allow outdated node handles, we assert that
- * we find a non-NULL value to return.
- */
-gnutella_node_t *node_find_by_handle(gnet_node_t nh)
-{
-    gnutella_node_t *result;
-
-    /* handle must have been assigned */
-    g_assert(nh < next_node_handle);
-
-    result = (gnutella_node_t *) g_hash_table_lookup
-        (node_handle_map, (gpointer) nh);
-
-    g_assert(result);
-
-    return result;
-}
-
-/*
- * node_request_handle:
- *
- * Fetch a new node handle and register the the node/handle pair
- * in the node_handle_map. The node_handle field in the given
- * gnutella_node_t struct is also filled in.
- */
-gnet_node_t node_request_handle(gnutella_node_t *n)
-{
-    gnet_node_t nh = next_node_handle;
-
-    g_assert(n != NULL);
-    n->node_handle = nh;
-
-    next_node_handle ++;
-
-    g_hash_table_insert(node_handle_map, (gpointer) nh, n);
-
-    return nh;
-}
-
-/*
- * node_drop_handle:
- *
- * Drop handle from the node_handle_map. 
- */
-void node_drop_handle(gnet_node_t nh)
-{
-    g_assert(g_hash_table_lookup(node_handle_map, (gpointer) nh) != NULL);
-
-    g_hash_table_remove(node_handle_map, (gpointer) nh);
-}
-
 /*
  * node_timer
  *
@@ -411,7 +363,7 @@ void network_init(void)
 {
 	rxbuf_init();
 
-    node_handle_map = g_hash_table_new(g_direct_hash, g_direct_equal);
+    node_handle_map = idtable_new(32, 32);
 
 	gnutella_welcome_length = strlen(gnutella_welcome);
 	gnutella_hello_length = strlen(gnutella_hello);
@@ -2286,7 +2238,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	 */
 
 	n = (struct gnutella_node *) g_malloc0(sizeof(struct gnutella_node));
-    node_request_handle(n);
+    n->node_handle = node_request_handle(n);
     
     n->id = node_id++;
 	n->ip = ip;
@@ -3230,9 +3182,9 @@ void node_close(void)
 
 	g_slist_free(sl_nodes);
 
-    g_assert(g_hash_table_size(node_handle_map) == 0);
+    g_assert(idtable_keys(node_handle_map) == 0);
 
-    g_hash_table_destroy(node_handle_map);
+    idtable_destroy(node_handle_map);
     node_handle_map = NULL;
 
 	rxbuf_close();

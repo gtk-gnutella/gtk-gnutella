@@ -1,4 +1,6 @@
 /*
+ * $Id$
+ *
  * Copyright (c) 2001-2002, Richard Eckart
  *
  *----------------------------------------------------------------------
@@ -21,65 +23,29 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __common_h__
-#define __common_h__
+#ifndef __idtable_h__
+#define __idtable_h__
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
+#include "common.h"
 
-/*
- * Main includes
- */
+#define idtable_keys(tbl) (tbl->keys)
+#define idtable_size(tbl) (tbl->size)
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <time.h>
-#include <sys/time.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <glib.h>
+typedef struct idtable {
+    guint32        size;        /* numbers of slots available */
+    guint32        esize;       /* number of slots to add if table is full */
+    guint32        keys;        /* numbers of slots currently used */
+    guint32        last_key;    /* last issued key */
+    guint32       *used_keys;   /* binary array of used keys */
+    gpointer      *data;        /* actual table array */
+} idtable_t;
 
+idtable_t *idtable_new(guint32 isize, guint32 esize);
 
-#include "cq.h"
-#include "url.h"
-#include "vendors.h"
-#include "misc.h"
-#include "base32.h"
-#include "zalloc.h"
-#include "walloc.h"
-#include "atoms.h"
-#include "listener.h"
-#include "fuzzy.h"
-#include "matching.h"
-#include "getdate.h"
-#include "regex.h"
-#include "sha1.h"
-#include "idtable.h"
+void idtable_destroy(idtable_t *table);
 
-#include "../config.h"
+guint32 idtable_request_key(idtable_t *tbl, gpointer value);
+gpointer idtable_get_value(idtable_t *tbl, guint32 key);
+void idtable_drop_key(idtable_t *tbl, guint32 key);
 
-/*
- * Constants
- */
-
-#define GTA_VERSION 0
-#define GTA_SUBVERSION 91
-#define GTA_REVISION "unstable"
-#define GTA_REVCHAR "u"
-#define GTA_INTERFACE "X11"
-#define GTA_RELEASE "25/08/2002"
-#define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
-
-/*
- * Functions
- */
-
-/* main.c */
-void gtk_gnutella_exit(gint); 
-
-
-#endif /* __common_h__ */
+#endif /* __idtable_h__ */
