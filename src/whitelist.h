@@ -24,6 +24,9 @@
  *----------------------------------------------------------------------
  */
 
+#ifndef _whitelist_h_
+#define _whitelist_h_
+
 /* Number of seconds between each connection attempt to a whitelisted node. */
 #define WHITELIST_RETRY_DELAY 30
 
@@ -43,3 +46,4 @@ void whitelist_close(void);
 int whitelist_connect(void);
 void whitelist_reload(void);
 
+#endif /* _whitelist_h_ */
