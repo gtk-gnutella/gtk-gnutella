@@ -133,6 +133,18 @@ void bsched_enable(bsched_t *bs)
 }
 
 /*
+ * bsched_disable
+ *
+ * Disable scheduling.
+ */
+static void bsched_disable(bsched_t *bs)
+{
+	g_assert(bs);
+
+	bs->flags &= ~BS_F_ENABLED;
+}
+
+/*
  * bsched_enable_all
  *
  * Enable all known bandwidth schedulers.
@@ -233,7 +245,7 @@ static void bsched_begin_timeslice(bsched_t *bs)
 		guint32 actual;
 
 		bio->flags &= ~BIO_F_ACTIVE;
-		if (!bio->io_tag)
+		if (bio->io_tag == 0)
 			bio_enable(bio);
 
 		/*
@@ -375,6 +387,19 @@ void bsched_set_bandwidth(bsched_t *bs, gint bandwidth)
 
 	bs->bw_per_second = bandwidth;
 	bs->bw_max = bandwidth * bs->period / 1000;
+
+	/*
+	 * If `bandwidth' is 0, then we're disabling bandwidth scheduling and
+	 * allow all traffic to go through, unlimited.
+	 *
+	 * NB: at the next heartbeat, bsched_begin_timeslice() will be called
+	 * to re-enable all the sources if any were disabled.
+	 */
+
+	if (bandwidth == 0) {
+		bsched_disable(bs);
+		return;
+	}
 
 	/*
 	 * When all bandwidth has been used, disable all sources.
