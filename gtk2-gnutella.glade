@@ -14368,7 +14368,7 @@ Grace time remaining:</property>
 			<widget class="GtkTable" id="table66">
 			  <property name="border_width">2</property>
 			  <property name="visible">True</property>
-			  <property name="n_rows">6</property>
+			  <property name="n_rows">5</property>
 			  <property name="n_columns">4</property>
 			  <property name="homogeneous">False</property>
 			  <property name="row_spacing">2</property>
@@ -14441,30 +14441,6 @@ Grace time remaining:</property>
 			      <property name="right_attach">3</property>
 			      <property name="top_attach">3</property>
 			      <property name="bottom_attach">4</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options"></property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkLabel" id="label662">
-			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Tag:</property>
-			      <property name="use_underline">False</property>
-			      <property name="use_markup">False</property>
-			      <property name="justify">GTK_JUSTIFY_LEFT</property>
-			      <property name="wrap">False</property>
-			      <property name="selectable">False</property>
-			      <property name="xalign">1</property>
-			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
-			      <property name="ypad">0</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">0</property>
-			      <property name="right_attach">1</property>
-			      <property name="top_attach">5</property>
-			      <property name="bottom_attach">6</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options"></property>
 			    </packing>
@@ -14591,30 +14567,6 @@ Grace time remaining:</property>
 			  </child>
 
 			  <child>
-			    <widget class="GtkLabel" id="label668">
-			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Speed:</property>
-			      <property name="use_underline">False</property>
-			      <property name="use_markup">False</property>
-			      <property name="justify">GTK_JUSTIFY_LEFT</property>
-			      <property name="wrap">False</property>
-			      <property name="selectable">False</property>
-			      <property name="xalign">1</property>
-			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
-			      <property name="ypad">0</property>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">0</property>
-			      <property name="right_attach">1</property>
-			      <property name="top_attach">4</property>
-			      <property name="bottom_attach">5</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options"></property>
-			    </packing>
-			  </child>
-
-			  <child>
 			    <widget class="GtkViewport" id="viewport66">
 			      <property name="visible">True</property>
 			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
@@ -14699,36 +14651,6 @@ Grace time remaining:</property>
 			      <property name="right_attach">2</property>
 			      <property name="top_attach">3</property>
 			      <property name="bottom_attach">4</property>
-			      <property name="x_options">fill</property>
-			      <property name="y_options">fill</property>
-			    </packing>
-			  </child>
-
-			  <child>
-			    <widget class="GtkViewport" id="viewport64">
-			      <property name="visible">True</property>
-			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
-
-			      <child>
-				<widget class="GtkEntry" id="entry_result_info_speed">
-				  <property name="visible">True</property>
-				  <property name="can_focus">True</property>
-				  <property name="editable">False</property>
-				  <property name="visibility">True</property>
-				  <property name="max_length">0</property>
-				  <property name="text" translatable="yes"></property>
-				  <property name="has_frame">False</property>
-				  <property name="invisible_char" translatable="yes">*</property>
-				  <property name="activates_default">False</property>
-				  <property name="width_chars">8</property>
-				</widget>
-			      </child>
-			    </widget>
-			    <packing>
-			      <property name="left_attach">1</property>
-			      <property name="right_attach">2</property>
-			      <property name="top_attach">4</property>
-			      <property name="bottom_attach">5</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options">fill</property>
 			    </packing>
@@ -14879,6 +14801,30 @@ Grace time remaining:</property>
 			  </child>
 
 			  <child>
+			    <widget class="GtkLabel" id="label662">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">Tag:</property>
+			      <property name="use_underline">False</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_LEFT</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">1</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">0</property>
+			      <property name="right_attach">1</property>
+			      <property name="top_attach">4</property>
+			      <property name="bottom_attach">5</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
 			    <widget class="GtkViewport" id="viewport60">
 			      <property name="visible">True</property>
 			      <property name="shadow_type">GTK_SHADOW_ETCHED_IN</property>
@@ -14899,9 +14845,9 @@ Grace time remaining:</property>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
-			      <property name="right_attach">4</property>
-			      <property name="top_attach">5</property>
-			      <property name="bottom_attach">6</property>
+			      <property name="right_attach">2</property>
+			      <property name="top_attach">4</property>
+			      <property name="bottom_attach">5</property>
 			      <property name="y_options">fill</property>
 			    </packing>
 			  </child>

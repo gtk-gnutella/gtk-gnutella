@@ -539,15 +539,10 @@ void on_tree_view_search_results_select_row(
 			filename);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
-			rc->sha1 != NULL ? sha1_base32(rc->sha1) : "<none>");
+			rc->sha1 != NULL ? sha1_base32(rc->sha1) : _("<none>"));
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_source")),
 			ip_port_to_gchar(rc->results_set->ip, rc->results_set->port));
-		gm_snprintf(tmpstr, sizeof(tmpstr), "%u",
-			(guint) rc->results_set->speed);
-		gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_speed")),
-			tmpstr);
 		gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%lu byte)",
 			short_size(rc->size), (gulong) rc->size);
 		gtk_entry_set_text(
