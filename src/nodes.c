@@ -308,22 +308,49 @@ static void node_extract_host(
  */
 static gboolean can_become_ultra(time_t now)
 {
-	return
-		/* Uptime requirements */
-		average_servent_uptime >= NODE_MIN_AVG_UPTIME &&
-		average_ip_uptime >= NODE_MIN_AVG_UPTIME &&
-		now - start_stamp > NODE_MIN_UPTIME &&
+	gboolean avg_servent_uptime;
+	gboolean avg_ip_uptime;
+	gboolean node_uptime;
+	gboolean not_firewalled;
+	gboolean enough_fd;
+	gboolean enough_mem;
+	gboolean enough_bw;
+	gchar *ok = "** OK **";
+	gchar *no = "-- NO --";
 
-		/* Connectivity requirements */
-		!is_firewalled &&
+	/* Uptime requirements */
+	avg_servent_uptime = average_servent_uptime >= NODE_MIN_AVG_UPTIME;
+	avg_ip_uptime = average_ip_uptime >= NODE_MIN_AVG_UPTIME;
+	node_uptime = now - start_stamp > NODE_MIN_UPTIME;
 
-		/* System requirements */
-		(max_leaves + max_connections + max_uploads + max_downloads
-			+ max_banned_fd + NODE_CASUAL_FD) < sys_nofile &&
-		(max_leaves * NODE_AVG_LEAF_MEM) < 1024 / 2 * sys_physmem &&
+	/* Connectivity requirements */
+	not_firewalled = !is_firewalled;
 
-		/* Bandwidth requirements */
-		bsched_enough_up_bandwidth();
+	/* System requirements */
+	enough_fd = (max_leaves + max_connections + max_uploads + max_downloads
+			+ max_banned_fd + NODE_CASUAL_FD) < sys_nofile;
+	enough_mem = (max_leaves * NODE_AVG_LEAF_MEM) < 1024 / 2 * sys_physmem;
+
+	/* Bandwidth requirements */
+	enough_bw = bsched_enough_up_bandwidth();
+
+#define OK(b)	((b) ? ok : no)
+
+	if (dbg > 3) {
+		printf("Checking Ultrapeer criteria:\n");
+		printf(" * Sufficient average uptime   : %s\n", OK(avg_servent_uptime));
+		printf(" * Sufficient IP address uptime: %s\n", OK(avg_ip_uptime));
+		printf(" * Sufficient node uptime      : %s\n", OK(node_uptime));
+		printf(" * Node not firewalled         : %s\n", OK(not_firewalled));
+		printf(" * Enough file descriptors     : %s\n", OK(enough_fd));
+		printf(" * Enough physical memory      : %s\n", OK(enough_mem));
+		printf(" * Enough available bandwidth  : %s\n", OK(enough_bw));
+	}
+
+#undef OK
+
+	return avg_servent_uptime && avg_ip_uptime && node_uptime &&
+		not_firewalled && enough_fd && enough_mem && enough_bw;
 }
 
 /*
