@@ -1021,7 +1021,7 @@ search_gui_update_items(struct search *sch)
 			"(%u skipped, %u ignored, %u hidden, %u auto-d/l, %u dups)"
 			" Hits: %u (%u TCP, %u UDP)"),
 			sch->enabled ? "" : _("[stopped] "),
-			str, sch->items, (sch->items > 1) ? _("items") : _("item"),
+			str, sch->items, sch->items != 1 ? _("items") : _("item"),
 			sch->skipped, sch->ignored, sch->hidden, sch->auto_downloaded,
 			sch->duplicates,
 			sch->tcp_qhits + sch->udp_qhits, sch->tcp_qhits, sch->udp_qhits);
