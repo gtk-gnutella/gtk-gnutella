@@ -1,8 +1,7 @@
 # since last version
 
 - gtk-gnutella.spec now generated at configure time thanks to a patch
-  from Sam Varshavchik -- Problem: always generated for version 0.1
-  (don't know how to fix this)
+  from Sam Varshavchik
 - LimeWire shut down their router.limewire.com pong cache
 - Trace IP of HTTP requests/replies we send or receive
 - Check for valid index/name combination before checking for upload slots
