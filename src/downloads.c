@@ -591,10 +591,17 @@ static struct download *has_same_download(
 	struct dl_server *server = get_server(guid, ip, port);
 	GList *l;
 	gint n;
-	enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
+	enum dl_list listnum[] = { DL_LIST_WAITING, DL_LIST_RUNNING };
 
 	if (server == NULL)
 		return NULL;
+
+	/*
+	 * Note that we scan the WAITING downloads first, and then only
+	 * the RUNNING ones.  This is because that routine can now be called
+	 * from download_convert_to_urires(), where the download is actually
+	 * running!
+	 */
 
 	for (n = 0; n < sizeof(listnum) / sizeof(listnum[0]); n++) {
 		for (l = server->list[n]; l; l = l->next) {
@@ -3613,6 +3620,7 @@ static gboolean download_check_status(
 static gboolean download_convert_to_urires(struct download *d)
 {
 	gchar *name;
+	struct download *xd;
 
 	g_assert(d->record_index != URN_INDEX);
 	g_assert(d->sha1 != NULL);
@@ -3641,10 +3649,10 @@ static gboolean download_convert_to_urires(struct download *d)
 	 * Maybe it became a duplicate download, due to our lame detection?
 	 */
 
-	if (
-		has_same_download(name, d->sha1,
+	xd = has_same_download(name, d->sha1,
 			download_guid(d), download_ip(d), download_port(d))
-	) {
+
+	if (xd != NULL && xd != d) {
 		download_stop(d, GTA_DL_ERROR, "Was a duplicate");
 		return FALSE;
 	}
