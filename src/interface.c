@@ -345,11 +345,11 @@ create_main_window (void)
   GtkWidget *vbox13;
   GtkWidget *table1;
   GtkWidget *label7;
-  GtkWidget *label8;
   GtkWidget *label9;
-  GtkWidget *label10;
   GtkWidget *label11;
   GtkWidget *label12;
+  GtkWidget *label8;
+  GtkWidget *label10;
   GtkWidget *vbox33;
   GtkWidget *frame10;
   GtkWidget *table11;
@@ -1320,17 +1320,6 @@ create_main_window (void)
   gtk_label_set_justify (GTK_LABEL (label7), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label7), 0, 0.5);
 
-  label8 = gtk_label_new ("Searches to local DB:");
-  gtk_widget_ref (label8);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label8", label8,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label8);
-  gtk_table_attach (GTK_TABLE (table1), label8, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_label_set_justify (GTK_LABEL (label8), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label8), 7.45058e-09, 0.5);
-
   entry_routing_errors = gtk_entry_new ();
   gtk_widget_ref (entry_routing_errors);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_routing_errors", entry_routing_errors,
@@ -1342,30 +1331,6 @@ create_main_window (void)
   gtk_widget_set_usize (entry_routing_errors, 72, -2);
   gtk_tooltips_set_tip (tooltips, entry_routing_errors, "Somebody tell me a sensible tooltip for this.", NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_routing_errors), FALSE);
-
-  entry_global_searches = gtk_entry_new ();
-  gtk_widget_ref (entry_global_searches);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_global_searches", entry_global_searches,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_global_searches);
-  gtk_table_attach (GTK_TABLE (table1), entry_global_searches, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (GTK_EXPAND), 0, 0);
-  gtk_widget_set_usize (entry_global_searches, 72, -2);
-  gtk_tooltips_set_tip (tooltips, entry_global_searches, "Somebody tell me a sensible tooltip for this.", NULL);
-  gtk_entry_set_editable (GTK_ENTRY (entry_global_searches), FALSE);
-
-  entry_dropped_messages = gtk_entry_new ();
-  gtk_widget_ref (entry_dropped_messages);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_dropped_messages", entry_dropped_messages,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_dropped_messages);
-  gtk_table_attach (GTK_TABLE (table1), entry_dropped_messages, 1, 2, 3, 4,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (GTK_EXPAND), 0, 0);
-  gtk_widget_set_usize (entry_dropped_messages, 72, -2);
-  gtk_tooltips_set_tip (tooltips, entry_dropped_messages, "Somebody tell me a sensible tooltip for this.", NULL);
-  gtk_entry_set_editable (GTK_ENTRY (entry_dropped_messages), FALSE);
 
   entry_count_downloads = gtk_entry_new ();
   gtk_widget_ref (entry_count_downloads);
@@ -1402,17 +1367,6 @@ create_main_window (void)
   gtk_label_set_justify (GTK_LABEL (label9), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label9), 7.45058e-09, 0.5);
 
-  label10 = gtk_label_new ("Dropped messages:");
-  gtk_widget_ref (label10);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label10", label10,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label10);
-  gtk_table_attach (GTK_TABLE (table1), label10, 0, 1, 3, 4,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_label_set_justify (GTK_LABEL (label10), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label10), 7.45058e-09, 0.5);
-
   label11 = gtk_label_new ("Download count (files):");
   gtk_widget_ref (label11);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label11", label11,
@@ -1446,6 +1400,52 @@ create_main_window (void)
   gtk_widget_set_usize (entry_global_messages, 72, -2);
   gtk_tooltips_set_tip (tooltips, entry_global_messages, "Somebody tell me a sensible tooltip for this.", NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_global_messages), FALSE);
+
+  label8 = gtk_label_new ("Searches to local DB:");
+  gtk_widget_ref (label8);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label8", label8,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label8);
+  gtk_table_attach (GTK_TABLE (table1), label8, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label8), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label8), 7.45058e-09, 0.5);
+
+  entry_global_searches = gtk_entry_new ();
+  gtk_widget_ref (entry_global_searches);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_global_searches", entry_global_searches,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_global_searches);
+  gtk_table_attach (GTK_TABLE (table1), entry_global_searches, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (entry_global_searches, 72, -2);
+  gtk_tooltips_set_tip (tooltips, entry_global_searches, "Somebody tell me a sensible tooltip for this.", NULL);
+  gtk_entry_set_editable (GTK_ENTRY (entry_global_searches), FALSE);
+
+  label10 = gtk_label_new ("Dropped messages:");
+  gtk_widget_ref (label10);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label10", label10,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label10);
+  gtk_table_attach (GTK_TABLE (table1), label10, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label10), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label10), 7.45058e-09, 0.5);
+
+  entry_dropped_messages = gtk_entry_new ();
+  gtk_widget_ref (entry_dropped_messages);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_dropped_messages", entry_dropped_messages,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_dropped_messages);
+  gtk_table_attach (GTK_TABLE (table1), entry_dropped_messages, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (entry_dropped_messages, 72, -2);
+  gtk_tooltips_set_tip (tooltips, entry_dropped_messages, "Somebody tell me a sensible tooltip for this.", NULL);
+  gtk_entry_set_editable (GTK_ENTRY (entry_dropped_messages), FALSE);
 
   vbox33 = gtk_vbox_new (FALSE, 0);
   gtk_widget_ref (vbox33);
@@ -7214,6 +7214,18 @@ create_dlg_about (void)
   gtk_box_pack_start (GTK_BOX (vbox67), label228, FALSE, FALSE, 0);
 
   return dlg_about;
+}
+
+GtkWidget*
+create_window1 (void)
+{
+  GtkWidget *window1;
+
+  window1 = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_object_set_data (GTK_OBJECT (window1), "window1", window1);
+  gtk_window_set_title (GTK_WINDOW (window1), "window1");
+
+  return window1;
 }
 
 

@@ -1181,32 +1181,6 @@
 		    </widget>
 
 		    <widget>
-		      <class>GtkLabel</class>
-		      <name>label8</name>
-		      <label>Searches to local DB:</label>
-		      <justify>GTK_JUSTIFY_LEFT</justify>
-		      <wrap>False</wrap>
-		      <xalign>7.45058e-09</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <child>
-			<left_attach>0</left_attach>
-			<right_attach>1</right_attach>
-			<top_attach>1</top_attach>
-			<bottom_attach>2</bottom_attach>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<xexpand>False</xexpand>
-			<yexpand>False</yexpand>
-			<xshrink>False</xshrink>
-			<yshrink>False</yshrink>
-			<xfill>True</xfill>
-			<yfill>False</yfill>
-		      </child>
-		    </widget>
-
-		    <widget>
 		      <class>GtkEntry</class>
 		      <name>entry_routing_errors</name>
 		      <width>72</width>
@@ -1226,58 +1200,6 @@
 			<xexpand>False</xexpand>
 			<yexpand>True</yexpand>
 			<xshrink>True</xshrink>
-			<yshrink>False</yshrink>
-			<xfill>True</xfill>
-			<yfill>False</yfill>
-		      </child>
-		    </widget>
-
-		    <widget>
-		      <class>GtkEntry</class>
-		      <name>entry_global_searches</name>
-		      <width>72</width>
-		      <tooltip>Somebody tell me a sensible tooltip for this.</tooltip>
-		      <can_focus>True</can_focus>
-		      <editable>False</editable>
-		      <text_visible>True</text_visible>
-		      <text_max_length>0</text_max_length>
-		      <text></text>
-		      <child>
-			<left_attach>1</left_attach>
-			<right_attach>2</right_attach>
-			<top_attach>1</top_attach>
-			<bottom_attach>2</bottom_attach>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<xexpand>True</xexpand>
-			<yexpand>True</yexpand>
-			<xshrink>False</xshrink>
-			<yshrink>False</yshrink>
-			<xfill>True</xfill>
-			<yfill>False</yfill>
-		      </child>
-		    </widget>
-
-		    <widget>
-		      <class>GtkEntry</class>
-		      <name>entry_dropped_messages</name>
-		      <width>72</width>
-		      <tooltip>Somebody tell me a sensible tooltip for this.</tooltip>
-		      <can_focus>True</can_focus>
-		      <editable>False</editable>
-		      <text_visible>True</text_visible>
-		      <text_max_length>0</text_max_length>
-		      <text></text>
-		      <child>
-			<left_attach>1</left_attach>
-			<right_attach>2</right_attach>
-			<top_attach>3</top_attach>
-			<bottom_attach>4</bottom_attach>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<xexpand>False</xexpand>
-			<yexpand>True</yexpand>
-			<xshrink>False</xshrink>
 			<yshrink>False</yshrink>
 			<xfill>True</xfill>
 			<yfill>False</yfill>
@@ -1364,32 +1286,6 @@
 
 		    <widget>
 		      <class>GtkLabel</class>
-		      <name>label10</name>
-		      <label>Dropped messages:</label>
-		      <justify>GTK_JUSTIFY_LEFT</justify>
-		      <wrap>False</wrap>
-		      <xalign>7.45058e-09</xalign>
-		      <yalign>0.5</yalign>
-		      <xpad>0</xpad>
-		      <ypad>0</ypad>
-		      <child>
-			<left_attach>0</left_attach>
-			<right_attach>1</right_attach>
-			<top_attach>3</top_attach>
-			<bottom_attach>4</bottom_attach>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-			<xexpand>False</xexpand>
-			<yexpand>False</yexpand>
-			<xshrink>False</xshrink>
-			<yshrink>False</yshrink>
-			<xfill>True</xfill>
-			<yfill>False</yfill>
-		      </child>
-		    </widget>
-
-		    <widget>
-		      <class>GtkLabel</class>
 		      <name>label11</name>
 		      <label>Download count (files):</label>
 		      <justify>GTK_JUSTIFY_LEFT</justify>
@@ -1459,6 +1355,110 @@
 			<ypad>0</ypad>
 			<xexpand>False</xexpand>
 			<yexpand>True</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label8</name>
+		      <label>Searches to local DB:</label>
+		      <justify>GTK_JUSTIFY_LEFT</justify>
+		      <wrap>False</wrap>
+		      <xalign>7.45058e-09</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<left_attach>0</left_attach>
+			<right_attach>1</right_attach>
+			<top_attach>3</top_attach>
+			<bottom_attach>4</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkEntry</class>
+		      <name>entry_global_searches</name>
+		      <width>72</width>
+		      <tooltip>Somebody tell me a sensible tooltip for this.</tooltip>
+		      <can_focus>True</can_focus>
+		      <editable>False</editable>
+		      <text_visible>True</text_visible>
+		      <text_max_length>0</text_max_length>
+		      <text></text>
+		      <child>
+			<left_attach>1</left_attach>
+			<right_attach>2</right_attach>
+			<top_attach>3</top_attach>
+			<bottom_attach>4</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>True</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label10</name>
+		      <label>Dropped messages:</label>
+		      <justify>GTK_JUSTIFY_LEFT</justify>
+		      <wrap>False</wrap>
+		      <xalign>7.45058e-09</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<left_attach>0</left_attach>
+			<right_attach>1</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>False</xexpand>
+			<yexpand>False</yexpand>
+			<xshrink>False</xshrink>
+			<yshrink>False</yshrink>
+			<xfill>True</xfill>
+			<yfill>False</yfill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkEntry</class>
+		      <name>entry_dropped_messages</name>
+		      <width>72</width>
+		      <tooltip>Somebody tell me a sensible tooltip for this.</tooltip>
+		      <can_focus>True</can_focus>
+		      <editable>False</editable>
+		      <text_visible>True</text_visible>
+		      <text_max_length>0</text_max_length>
+		      <text></text>
+		      <child>
+			<left_attach>1</left_attach>
+			<right_attach>2</right_attach>
+			<top_attach>1</top_attach>
+			<bottom_attach>2</bottom_attach>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+			<xexpand>True</xexpand>
+			<yexpand>False</yexpand>
 			<xshrink>False</xshrink>
 			<yshrink>False</yshrink>
 			<xfill>True</xfill>
@@ -11480,6 +11480,22 @@ Grace time remaining:</label>
 	<fill>False</fill>
       </child>
     </widget>
+  </widget>
+</widget>
+
+<widget>
+  <class>GtkWindow</class>
+  <name>window1</name>
+  <title>window1</title>
+  <type>GTK_WINDOW_TOPLEVEL</type>
+  <position>GTK_WIN_POS_NONE</position>
+  <modal>False</modal>
+  <allow_shrink>False</allow_shrink>
+  <allow_grow>True</allow_grow>
+  <auto_shrink>False</auto_shrink>
+
+  <widget>
+    <class>Placeholder</class>
   </widget>
 </widget>
 
