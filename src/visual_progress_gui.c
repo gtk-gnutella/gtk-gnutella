@@ -26,7 +26,11 @@
  */
 
 
-/* 
+/**
+ * @file
+ * 
+ * Visual progress indicator for files in the download queue.
+ * 
  * TODO and other ideas to be implemented.
  *
  * make colors into properties so that they can be stored in config,
@@ -58,7 +62,7 @@ RCSID("$Id$");
 #define VP_H_OFFSET         35
 #define VP_LINE_BELOW_CHARS 3
 
-/*
+/**
  * The context for drawing, including location to draw
  */
 typedef struct vp_context {
@@ -72,7 +76,7 @@ typedef struct vp_context {
 	gboolean fih_valid;
 } vp_context_t;
 
-/*
+/**
  * Locally cached information from fileinfo needed for drawing the graphics 
  */
 typedef struct vp_info {
@@ -85,24 +89,26 @@ typedef struct vp_info {
     vp_context_t *context;
 } vp_info_t;
 
-static GHashTable *vp_info_hash; /* Hash table with our cached fileinfo info */
+static GHashTable *vp_info_hash; /** Hash table with our cached fileinfo info */
 
-static GdkColor done;       /* Pre-filled color (green) for DONE chunks */
-static GdkColor done_old;	/* Pre-filled color (dull green) for DONE
+static GdkColor done;       /** Pre-filled color (green) for DONE chunks */
+static GdkColor done_old;	/** Pre-filled color (dull green) for DONE
 							 * chunks from previous sessions */
-static GdkColor busy;       /* Pre-filled color (yellow) for BUSY chunks */
-static GdkColor empty;      /* Pre-filled color (red) for EMPTY chunks */
-static GdkColor black;      /* Pre-filled color (black) for general drawing */
-static GdkColor available;  /* Pre-filled color (blue) available on network */
-static GdkColor *base;      /* Theme-defined background color */
+static GdkColor busy;       /** Pre-filled color (yellow) for BUSY chunks */
+static GdkColor empty;      /** Pre-filled color (red) for EMPTY chunks */
+static GdkColor black;      /** Pre-filled color (black) for general drawing */
+static GdkColor available;  /** Pre-filled color (blue) available on network */
+static GdkColor *base;      /** Theme-defined background color */
 
+/**
+ * The visual progress context for drawing fileinfo information
+ */
 static vp_context_t fi_context;
 
 
-/* 
- * The graphics routines that do the actual drawing
+/**
+ * Draw a rectangle for visual progress
  */
-
 void vp_draw_rectangle(vp_info_t *v,
 	guint32 from, guint32 to, guint top, guint bottom)
 {
@@ -134,6 +140,9 @@ void vp_draw_rectangle(vp_info_t *v,
 		s_to - s_from, bottom);
 }
 
+/**
+ * Draw a chunk for visual progress
+ */
 void vp_draw_chunk (gpointer data, gpointer user_data)
 {
     gnet_fi_chunks_t *chunk = data;
@@ -166,9 +175,9 @@ static void vp_draw_range (gpointer data, gpointer user_data)
 
 
 
-/* 
- * Draws a progress bar for the given fi struct in the
- * DrawingArea. fih is expected to be a valid fih. Depending on the
+/**
+ * Draws a progress bar for the given fi struct in the DrawingArea. 
+ * fih is expected to be a valid fih. Depending on the
  * value of valid the area will be drawn or cleared.
  */
 void vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
@@ -203,7 +212,7 @@ void vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 	}
 }
 
-/* 
+/** 
  * Callback for the fileinfo pane GtkDrawingArea 
  */
 void
@@ -370,7 +379,7 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
 }
 
 
-/*
+/**
  * Callback for range updates.
  */
 static void vp_update_ranges(gnet_src_t srcid)
@@ -397,7 +406,7 @@ static void vp_update_ranges(gnet_src_t srcid)
 	g_message("Ranges before: %s", http_range_to_gchar(v->ranges));
 	g_message("Ranges new   : %s", http_range_to_gchar(d->ranges));
 	v->ranges = http_range_merge(v->ranges, d->ranges);
-	// FIXME: should be freeing old v->ranges list here...
+	/* FIXME: should be freeing old v->ranges list here... */
 	g_message("Ranges after : %s", http_range_to_gchar(v->ranges));
 }
 
@@ -449,7 +458,7 @@ void vp_gui_init(void)
     fi_context.fih_valid = FALSE;
 }
 
-/* 
+/**
  * Undo everything set up in cv_gui_init
  */
 void vp_gui_shutdown(void)
