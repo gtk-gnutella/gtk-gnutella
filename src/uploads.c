@@ -236,7 +236,7 @@ void handle_push_request(struct gnutella_node *n)
 
 	u = upload_create(s, TRUE);
 	u->index = file_index;
-	u->name = req_file->file_name;
+	u->name = g_strdup(req_file->file_name);
 
 	/* Now waiting for the connection CONF -- will call upload_push_conf() */
 }
@@ -251,6 +251,10 @@ void upload_real_remove(void)
 
 static void upload_free_resources(struct upload *u)
 {
+	if (u->name != NULL) {
+		g_free(u->name);
+		u->name = NULL;
+	}
 	if (u->file_desc != -1) {
 		close(u->file_desc);
 		u->file_desc = -1;
@@ -956,7 +960,7 @@ static void upload_request(struct upload *u, header_t *header)
 
 		/* Set all the upload information */
 		u->index = index;
-		u->name = requested_file->file_name;
+		u->name = g_strdup(requested_file->file_name);
 
 		u->skip = skip;
 		u->end = end;
