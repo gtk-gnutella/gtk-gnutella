@@ -417,7 +417,7 @@ static time_t release_date;
  * index is used as the key.
  */
 
-static GTree *index_of_found_files = NULL;
+static GHashTable *index_of_found_files = NULL;
 static gint index_of_found_files_count = 0;
 static struct gnutella_node *issuing_node;
 
@@ -442,7 +442,7 @@ static int compare_indexes(guint32 i1, guint32 i2)
  */
 static gboolean shared_file_already_in_found_set(const struct shared_file *sf)
 {
-	return NULL != g_tree_lookup(index_of_found_files,
+	return NULL != g_hash_table_lookup(index_of_found_files,
 		GUINT_TO_POINTER(sf->file_index));
 }
 
@@ -455,7 +455,7 @@ static gboolean shared_file_already_in_found_set(const struct shared_file *sf)
 static void put_shared_file_into_found_set(const struct shared_file *sf)
 {
 	index_of_found_files_count++;
-	g_tree_insert(index_of_found_files, 
+	g_hashtable_insert(index_of_found_files, 
 				  GUINT_TO_POINTER(sf->file_index), 
 				  GUINT_TO_POINTER(!NULL));
 }
@@ -478,13 +478,13 @@ static void found_reset(struct gnutella_node *n)
 	 */
 
 	if (index_of_found_files && index_of_found_files_count) {
-		g_tree_destroy(index_of_found_files);
+		g_hashtable_destroy(index_of_found_files);
 		index_of_found_files_count = 0;
 		index_of_found_files = NULL;
 	}
 
 	if (index_of_found_files == NULL)
-		index_of_found_files = g_tree_new((GCompareFunc) compare_indexes);
+		index_of_found_files = g_hash_table_new(NULL, NULL);
 }
 
 /*
