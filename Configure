@@ -1859,7 +1859,7 @@ esac
 
 : see whether [:lower:] and [:upper:] are supported character classes
 echo " "
-case "`echo AbyZ | $tr '[:lower:]' '[:upper:]' 2>/dev/null`" in
+case "`echo AbyZ | LC_ALL=C $tr '[:lower:]' '[:upper:]' 2>/dev/null`" in
 ABYZ)
 	echo "Good, your tr supports [:lower:] and [:upper:] to convert case." >&4
 	up='[:upper:]'
@@ -1868,14 +1868,14 @@ ABYZ)
 *)	# There is a discontinuity in EBCDIC between 'I' and 'J'
         # (0xc9 and 0xd1), therefore that is a nice testing point.
         if test "X$up" = X -o "X$low" = X; then
-	    case "`echo IJ | $tr '[I-J]' '[i-j]' 2>/dev/null`" in
+	    case "`echo IJ | LC_ALL=C $tr '[I-J]' '[i-j]' 2>/dev/null`" in
 	    ij) up='[A-Z]'
 	        low='[a-z]'
 		;;
 	    esac
         fi
 	if test "X$up" = X -o "X$low" = X; then
-	    case "`echo IJ | $tr I-J i-j 2>/dev/null`" in
+	    case "`echo IJ | LC_ALL=C $tr I-J i-j 2>/dev/null`" in
 	    ij) up='A-Z'
 		low='a-z'
 		;;
@@ -1886,14 +1886,14 @@ ABYZ)
 	    *C9D1*|*c9d1*)
 		echo "Hey, this might be EBCDIC." >&4
 		if test "X$up" = X -o "X$low" = X; then
-		    case "`echo IJ | $tr '[A-IJ-RS-Z]' '[a-ij-rs-z]' 2>/dev/null`" in
+		    case "`echo IJ | LC_ALL=C $tr '[A-IJ-RS-Z]' '[a-ij-rs-z]' 2>/dev/null`" in
 		    ij) up='[A-IJ-RS-Z]'
 		        low='[a-ij-rs-z]'
 			;;
 		    esac
 		fi
 		if test "X$up" = X -o "X$low" = X; then
-		    case "`echo IJ | $tr A-IJ-RS-Z a-ij-rs-z 2>/dev/null`" in
+		    case "`echo IJ | LC_ALL=C $tr A-IJ-RS-Z a-ij-rs-z 2>/dev/null`" in
 		    ij) up='A-IJ-RS-Z'
 		        low='a-ij-rs-z'
 			;;
@@ -1903,7 +1903,7 @@ ABYZ)
 	    esac
 	fi
 esac
-case "`echo IJ | $tr \"$up\" \"$low\" 2>/dev/null`" in
+case "`echo IJ | LC_ALL=C $tr \"$up\" \"$low\" 2>/dev/null`" in
 ij)
     echo "Using $up and $low to convert case." >&4
     ;;
@@ -1917,10 +1917,10 @@ esac
 cat >tr <<EOSC
 $startsh
 case "\$1\$2" in
-'[A-Z][a-z]') exec $tr '$up' '$low';;
-'[a-z][A-Z]') exec $tr '$low' '$up';;
+'[A-Z][a-z]') LC_ALL=C exec $tr '$up' '$low';;
+'[a-z][A-Z]') LC_ALL=C exec $tr '$low' '$up';;
 esac
-exec $tr "\$@"
+LC_ALL=C exec $tr "\$@"
 EOSC
 chmod +x tr
 $eunicefix tr
