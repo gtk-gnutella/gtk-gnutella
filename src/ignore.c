@@ -59,10 +59,10 @@ static GHashTable *by_namesize;		/* By filename + filesize */
  * since we're appending to them (we only read them on startup).
  */
 
-static const gchar *ignore_sha1     = "ignore.sha1";
-static const gchar *ignore_namesize = "ignore.namesize";
-static const gchar *done_sha1       = "done.sha1";
-static const gchar *done_namesize   = "done.namesize";
+static const gchar ignore_sha1[]     = "ignore.sha1";
+static const gchar ignore_namesize[] = "ignore.namesize";
+static const gchar done_sha1[]       = "done.sha1";
+static const gchar done_namesize[]   = "done.namesize";
 
 static time_t ignore_sha1_mtime;
 static time_t ignore_namesize_mtime;
@@ -165,7 +165,7 @@ static void sha1_parse(FILE *f, const gchar *file)
 
 	g_assert(f);
 
-	while (fgets(ign_tmp, sizeof(ign_tmp) - 1, f)) {
+	while (fgets(ign_tmp, sizeof(ign_tmp), f)) {
 		line++;
 
 		if (ign_tmp[0] == '#' || ign_tmp[0] == '\n')
@@ -189,7 +189,7 @@ static void sha1_parse(FILE *f, const gchar *file)
 			continue;
 
 		sha1 = atom_sha1_get(sha1_digest);
-		g_hash_table_insert(by_sha1, sha1, (gpointer) 0x1);
+		g_hash_table_insert(by_sha1, sha1, GUINT_TO_POINTER(1));
 	}
 }
 
@@ -230,7 +230,7 @@ static void namesize_parse(FILE *f, const gchar *file)
 
 	g_assert(f);
 
-	while (fgets(ign_tmp, sizeof(ign_tmp) - 1, f)) {
+	while (fgets(ign_tmp, sizeof(ign_tmp), f)) {
 		line++;
 
 		if (ign_tmp[0] == '#' || ign_tmp[0] == '\n')
@@ -238,15 +238,16 @@ static void namesize_parse(FILE *f, const gchar *file)
 
 		str_chomp(ign_tmp, 0);	/* Remove final "\n" */
 
+		errno = 0;
 		size = strtoul(ign_tmp, (gchar **)&p, 10);
 
-		if (p == ign_tmp || !isspace(*(guchar *) p)) {
+		if (errno || p == ign_tmp || !is_ascii_space(*(guchar *) p)) {
 			g_warning("malformed size at \"%s\" line %d: %s",
 				file, line, ign_tmp);
 			continue;
 		}
 
-		while ((c = *p) && isspace(c))
+		while ((c = *p) && is_ascii_space(c))
 			p++;
 
 		/*
@@ -445,11 +446,15 @@ void ignore_close(void)
 	g_hash_table_foreach_remove(by_sha1, free_sha1_kv, NULL);
 	g_hash_table_foreach_remove(by_namesize, free_namesize_kv, NULL);
 
-	if (sha1_out != NULL)
+	if (sha1_out != NULL) {
 		fclose(sha1_out);
+		sha1_out = NULL;
+	}
 
-	if (namesize_out != NULL)
+	if (namesize_out != NULL) {
 		fclose(namesize_out);
+		namesize_out = NULL;
+	}
 }
 
 /* vi: set ts=4: */
