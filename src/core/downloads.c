@@ -97,7 +97,7 @@ static const gchar DL_BAD_EXT[] = ".BAD"; 	/* "Bad" files (SHA1 mismatch) */
 static const gchar DL_UNKN_EXT[] = ".UNKN";	/* For unchecked files */
 static const gchar file_what[] = "downloads";/* What we're persisting to file */
 
-static GHashTable *pushed_downloads = 0;
+static GHashTable *pushed_downloads = NULL;
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
 static gboolean send_push_request(const gchar *, guint32, guint16);
@@ -178,6 +178,7 @@ static guint dl_active = 0;				/* Active downloads */
 
 extern gint sha1_eq(gconstpointer a, gconstpointer b);
 extern gint guid_eq(gconstpointer a, gconstpointer b);
+extern guint guid_hash(gconstpointer key);
 
 /***
  *** Sources API
@@ -249,7 +250,6 @@ dl_key_hash(gconstpointer key)
 {
 	const struct dl_key *k = (const struct dl_key *) key;
 	guint hash;
-	extern guint guid_hash(gconstpointer key);
 
 	hash = guid_hash(k->guid);
 	hash ^= k->ip;
@@ -417,7 +417,7 @@ download_source_progress(struct download *d)
 void
 download_init(void)
 {
-	pushed_downloads = g_hash_table_new(g_str_hash, g_str_equal);
+	pushed_downloads = g_hash_table_new(guid_hash, guid_eq);
 	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
 	dl_by_ip = g_hash_table_new(dl_ip_hash, dl_ip_eq);
 	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
@@ -2340,9 +2340,6 @@ download_push_insert(struct download *d)
 
 	g_assert(!d->push);
 
-	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
-		d->record_index, guid_hex_str(download_guid(d)));
-
 	/*
 	 * We should not have the download already in the table, since we take care
 	 * when starting a download that there is no (active) duplicate.  We also
@@ -2360,12 +2357,12 @@ download_push_insert(struct download *d)
 	 * index, supposedly. --RAM, 13/03/2002
 	 */
 
-	found = g_hash_table_lookup_extended(pushed_downloads, (gpointer) dl_tmp,
+	found = g_hash_table_lookup_extended(pushed_downloads, download_guid(d),
 				&key, &value.ptr);
 
 	if (!found) {
 		value.list = g_slist_append(NULL, d);
-		key = atom_str_get(dl_tmp);
+		key = atom_str_get(download_guid(d));
 		g_hash_table_insert(pushed_downloads, key, value.list);
 	} else {
 		GSList *l;
@@ -2375,11 +2372,10 @@ download_push_insert(struct download *d)
 			g_assert(ad != NULL);
 			g_warning("BUG: duplicate push ignored for \"%s\"", ad->file_name);
 			g_warning("BUG: argument is 0x%lx, \"%s\", key = %s, state = %d",
-				(gulong) d, d->file_name, (gchar *) key, d->status);
-			gm_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
-				ad->record_index, guid_hex_str(download_guid(ad)));
+				(gulong) d, d->file_name, guid_hex_str(key), d->status);
 			g_warning("BUG: in table has 0x%lx \"%s\", key = %s, state = %d",
-				(gulong) ad, ad->file_name, dl_tmp, ad->status);
+				(gulong) ad, ad->file_name, guid_hex_str(download_guid(ad)),
+				ad->status);
 		} else {
 			value.list = g_slist_prepend(value.list, d);
 			g_hash_table_insert(pushed_downloads, key, value.list);
@@ -2403,11 +2399,8 @@ download_push_remove(struct download *d)
 
 	g_assert(d->push);
 
-	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
-		d->record_index, guid_hex_str(download_guid(d)));
-
 	if (
-		g_hash_table_lookup_extended(pushed_downloads, (gpointer) dl_tmp,
+		g_hash_table_lookup_extended(pushed_downloads, download_guid(d),
 			&key, &value.ptr)
 	) {
 		GSList *l = g_slist_find(value.list, d);
@@ -2420,7 +2413,8 @@ download_push_remove(struct download *d)
 
 		if (l == NULL) {
 			g_warning("BUG: push 0x%lx \"%s\" not found, key = %s, state = %d",
-				(gulong) d, d->file_name, dl_tmp, d->status);
+				(gulong) d, d->file_name, guid_hex_str(download_guid(d)),
+				d->status);
 		} else {
 			g_assert(l->data == (gpointer) d);
 			value.list = g_slist_remove(value.list, d);
@@ -2431,7 +2425,8 @@ download_push_remove(struct download *d)
 				g_hash_table_insert(pushed_downloads, key, value.list);
 		}
 	} else {
-		g_warning("BUG: tried to remove missing push %s", dl_tmp);
+		g_warning("BUG: tried to remove missing push %s",
+			guid_hex_str(download_guid(d)));
     }
 
 	d->push = FALSE;
@@ -3359,11 +3354,9 @@ create_download(gchar *file, gchar *uri, guint32 size, guint32 record_index,
 	 * if we use swarming.
 	 */
 	d->size = size;					/* Will be changed if range requested */
-	d->record_index = record_index;
 	d->file_desc = -1;
 	d->always_push = push;
-	if (sha1)
-		d->sha1 = atom_sha1_get(sha1);
+	d->sha1 = sha1 ? atom_sha1_get(sha1) : NULL;
 	if (push)
 		download_push_insert(d);
 	else
@@ -6932,21 +6925,17 @@ download_push_ready(struct download *d, getline_t *empty)
  * Returns the selected download, or NULL if we could not find one.
  */
 static struct download *
-select_push_download(guint file_index, const gchar *hex_guid)
+select_push_download(const gchar *guid)
 {
 	struct download *d = NULL;
 	GSList *list;
-	gchar rguid[16];		/* Remote GUID */
 	gint i;
 	time_t now;
 
-	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s", file_index, hex_guid);
-
-	list = (GSList *) g_hash_table_lookup(pushed_downloads, (gpointer) dl_tmp);
+	list = (GSList *) g_hash_table_lookup(pushed_downloads, guid);
 	if (list) {
 		d = (struct download *) list->data;			/* Take first entry */
 		g_assert(d != NULL);
-		g_assert(d->record_index == file_index);
 	} else if (dbg > 3)
 		g_message("got unexpected GIV: nothing pending currently");
 
@@ -6979,16 +6968,6 @@ select_push_download(guint file_index, const gchar *hex_guid)
 	if (d) {
 		g_assert(d->socket == NULL);
 		return d;
-	}
-
-	/*
-	 * Whilst we are connected to that servent, find a suitable download
-	 * we could request.
-	 */
-
-	if (!hex_to_guid(hex_guid, rguid)) {
-		g_message("Discarding GIV with malformed GUID %s", hex_guid);
-		return NULL;
 	}
 
 	/*
@@ -7025,7 +7004,7 @@ select_push_download(guint file_index, const gchar *hex_guid)
 			 * There might be several hosts with the same GUID (Mallory nodes).
 			 */
 
-			if (!guid_eq(rguid, server->key->guid))
+			if (!guid_eq(guid, server->key->guid))
 				continue;
 
 			/*
@@ -7044,7 +7023,7 @@ select_push_download(guint file_index, const gchar *hex_guid)
 				if (d->socket == NULL && DOWNLOAD_IS_EXPECTING_GIV(d)) {
 					if (dbg > 2)
 						g_message("GIV: selected active download '%s' from %s",
-							d->file_name, guid_hex_str(rguid));
+							d->file_name, guid_hex_str(guid));
 					return d;
 				}
 			}
@@ -7076,7 +7055,7 @@ select_push_download(guint file_index, const gchar *hex_guid)
 				if (dbg > 4)
 					g_message(
 						"GIV: trying alternate download '%s' from %s at %s",
-						d->file_name, guid_hex_str(rguid),
+						d->file_name, guid_hex_str(guid),
 						ip_port_to_gchar(download_ip(d), download_port(d)));
 
 				/*
@@ -7101,7 +7080,7 @@ select_push_download(guint file_index, const gchar *hex_guid)
 					if (dbg > 2)
 						g_message(
 							"GIV: selected alternate download '%s' from %s",
-							d->file_name, guid_hex_str(rguid));
+							d->file_name, guid_hex_str(guid));
 
 					return d;
 				}
@@ -7119,7 +7098,7 @@ select_push_download(guint file_index, const gchar *hex_guid)
 	}
 
 	g_message("Discarding GIV from %s: no suitable alternate found",
-		guid_hex_str(rguid));
+		guid_hex_str(guid));
 
 	return NULL;
 }
@@ -7137,6 +7116,7 @@ download_push_ack(struct gnutella_socket *s)
 	gchar *giv;
 	guint file_index;		/* The requested file index */
 	gchar hex_guid[33];		/* The hexadecimal GUID */
+	gchar guid[16];			/* The decoded (binary) GUID */
 
 	g_assert(s->getline);
 	giv = getline_str(s->getline);
@@ -7165,8 +7145,12 @@ download_push_ack(struct gnutella_socket *s)
 	 */
 
 	hex_guid[32] = '\0';
-	ascii_strlower(hex_guid, hex_guid);
-	d = select_push_download(file_index, hex_guid);
+	if (!hex_to_guid(hex_guid, guid)) {
+		g_message("Discarding GIV with malformed GUID %s", hex_guid);
+		return;
+	}
+
+	d = select_push_download(guid);
 	if (!d) {
 		g_message("Discarded GIV string: %s", giv);
 		g_assert(s->resource.download == NULL);	/* Hence socket_free() */
