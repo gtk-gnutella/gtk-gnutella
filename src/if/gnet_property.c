@@ -34,6 +34,7 @@
  */
 #include "core/sockets.h"
 #include "core/bsched.h"
+#include "if/core/nodes.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -356,13 +357,12 @@ prop_def_choice_t search_handle_ignored_files_choices[] = {
     {"not displayed", 2},
     {NULL, 0}
 };
-guint32  configured_peermode     = 3;
-guint32  configured_peermode_def = 3;
+guint32  configured_peermode     = NODE_P_AUTO;
+guint32  configured_peermode_def = NODE_P_AUTO;
 prop_def_choice_t configured_peermode_choices[] = { 
-    {"auto (recommended)", 3},
-    {"ultra node", 2},
-    {"leaf node", 0},
-    {"legacy node (avoid)", 1},
+    {"auto (recommended)", NODE_P_AUTO},
+    {"ultra node", NODE_P_ULTRA},
+    {"leaf node", NODE_P_LEAF},
     {NULL, 0}
 };
 guint32  current_peermode     = 0;

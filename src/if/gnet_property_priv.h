@@ -39,6 +39,7 @@
  */
 #include "core/sockets.h"
 #include "core/bsched.h"
+#include "if/core/nodes.h"
 
 
 extern const gboolean reading_hostfile;

@@ -11,6 +11,7 @@ private_src  = "CORE_SOURCES";
 
 uses = "core/sockets.h";
 uses = "core/bsched.h";
+uses = "if/core/nodes.h";
 
 prop = {
     name = "reading_hostfile";
@@ -1827,24 +1828,27 @@ prop = {
 		"that you are not firewalled.";
     type = multichoice;
     data = {
-        default = 3;
+        default = NODE_P_AUTO;
     };
     choice = {
         name = "auto (recommended)";
-        value = 3;
+        value = NODE_P_AUTO;
     };
     choice = {
         name = "ultra node";
-        value = 2;
+        value = NODE_P_ULTRA;
     };
     choice = {
         name = "leaf node";
-        value = 0;
+        value = NODE_P_LEAF;
     };
+/*
+	DISABLED -- RAM, 2004-10-30
     choice = {
         name = "legacy node (avoid)";
-        value = 1;
+        value = NODE_P_NORMAL;
     };
+*/
 };
 
 prop = {
