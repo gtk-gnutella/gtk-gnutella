@@ -364,7 +364,7 @@ on_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
    	guc_node_fill_info(n, &info);
 	g_assert(info.node_handle == n);
 	gm_snprintf(text, sizeof text,
-		_("Peer: %s\nCountry: %s (%s)\nVendor: %-64.64s\n%s"),
+		_("Peer: %s\nCountry: %s (%s)\nVendor: %.64s\n%s"),
 		ip_port_to_gchar(info.ip, info.port),
 		iso3166_country_name(info.country),
 		iso3166_country_cc(info.country),
