@@ -3973,11 +3973,6 @@ static void err_header_error(gpointer o, gint error)
 		"Failed (%s)", header_strerror(error));
 }
 
-static void err_input_exception(gpointer o)
-{
-	download_stop(DOWNLOAD(o), GTA_DL_ERROR, "Failed (Input Exception)");
-}
-
 static void err_input_buffer_full(gpointer o)
 {
 	download_stop(DOWNLOAD(o), GTA_DL_ERROR, "Failed (Input buffer full)");
@@ -4060,7 +4055,7 @@ static struct io_error download_io_error = {
 	err_line_too_long,
 	NULL,
 	err_header_error,
-	err_input_exception,
+	err_header_read_eof,		/* Input exception, assume EOF */
 	err_input_buffer_full,
 	err_header_read_error,
 	err_header_read_eof,
@@ -5128,9 +5123,10 @@ static void download_sink_read(gpointer data, gint source, inputevt_cond_t cond)
 
 	g_assert(s);
 
-	if (cond & INPUT_EVENT_EXCEPTION) {
+	if (cond & INPUT_EVENT_EXCEPTION) {		/* Treat as EOF */
 		socket_eof(s);
-		download_stop(d, GTA_DL_ERROR, "Failed (Input Exception)");
+		download_queue_delay(d, download_retry_busy_delay,
+			"Stopped data (EOF)");
 		return;
 	}
 
@@ -6047,9 +6043,10 @@ static void download_read(gpointer data, gint source, inputevt_cond_t cond)
 	g_assert(s);
 	g_assert(fi);
 
-	if (cond & INPUT_EVENT_EXCEPTION) {
+	if (cond & INPUT_EVENT_EXCEPTION) {		/* Treat as EOF */
 		socket_eof(s);
-		download_stop(d, GTA_DL_ERROR, "Failed (Input Exception)");
+		download_queue_delay(d, download_retry_stopped_delay,
+			"Stopped data (EOF)");
 		return;
 	}
 
