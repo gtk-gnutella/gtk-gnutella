@@ -29,6 +29,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/uio.h>	/* For struct iovec */
 #include <unistd.h>
 #include <dirent.h>
 #include <string.h>
@@ -45,6 +46,7 @@
 #include "uploads.h"
 #include "gnet_stats.h"
 #include "settings.h"
+#include "ggep.h"
 
 #include "gnet_property.h"
 
@@ -229,6 +231,8 @@ struct {
 #define FOUND_BUF	found_data.d
 #define FOUND_SIZE	found_data.s
 #define FOUND_FILES	found_data.files
+
+#define FOUND_LEFT(x)	(found_data.l - (x))
 
 /* 
  * We don't want to include the same file several times in a reply (for
@@ -925,6 +929,13 @@ static gboolean got_match(struct shared_file *sf)
 
 	put_shared_file_into_found_set(sf);
 
+	/*
+	 * In case we emit the SHA1 as a GGEP "H", we'll grow the buffer
+	 * larger necessary, since the extension will take at most 26 bytes,
+	 * and could take only 25.  This is NOT a problem, as we later adjust
+	 * the real size to fit the data we really emitted.
+	 */
+
 	if (sha1_available)
 		needed += 9 + SHA1_BASE32_SIZE;
 
@@ -960,8 +971,39 @@ static gboolean got_match(struct shared_file *sf)
 		pos += SHA1_BASE32_SIZE;
 	}
 
+#if 0
+	// GGEP H version -- deactivated for 0.91 -- RAM, 15/10/2002
+	if (sha1_available) {
+		guint8 type = GGEP_H_SHA1;
+		struct iovec iov[2];
+		gint w;
+
+		iov[0].iov_base = &type;
+		iov[0].iov_len = 1;
+
+		iov[1].iov_base = sf->sha1_digest;
+		iov[1].iov_len = SHA1_RAW_SIZE;
+
+		w = ggep_ext_writev(&FOUND_BUF[pos], FOUND_LEFT(pos),
+				"H", iov, 2, GGEP_W_FIRST|GGEP_W_LAST|GGEP_W_COBS);
+
+		if (w == -1)
+			g_warning("could not write GGEP \"H\" extension in query hit");
+		else
+			pos += w;			/* Could be COBS-encoded, we don't know */
+	}
+#endif
+
 	FOUND_BUF[pos++] = '\0';
 	FOUND_FILES++;
+
+	/*
+	 * Because we don't know exactly the size of the GGEP extension
+	 * (could be COBS-encoded or not), we need to adjust the real
+	 * extension size now that the entry is fully written.
+	 */
+
+	FOUND_SIZE = pos;
 
 	/*
 	 * If we have reached our size limit for query hits, flush what
