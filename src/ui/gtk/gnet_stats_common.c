@@ -100,6 +100,7 @@ const gchar *msg_drop_str(int value)
 		N_("Message with malformed SHA1"),
 		N_("Message with malformed UTF-8"),
 		N_("Malformed Query Hit"),
+		N_("Bad return address"),
 		N_("Hostile IP address"),
 	};
 	
