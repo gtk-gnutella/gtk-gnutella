@@ -1059,7 +1059,7 @@ static void search_gui_update(struct search *sch, struct results_set *rs)
 	if (rs->status & ST_BUSY)
 		g_string_append(vinfo, ", busy");
 	if (rs->status & ST_UPLOADED)
-		g_string_append(vinfo, ", open");	/* Open for uploading */
+		g_string_append(vinfo, ", stable");	/* Allows uploads -> stable */
 	if (rs->status & ST_FIREWALL)
 		g_string_append(vinfo, ", push");
 	if (vendor && !(rs->status & ST_PARSED_TRAILER)) {
