@@ -32,8 +32,8 @@ void upload_remove(struct upload *d, gchar * reason)
 {
   gint row;
 
-  if (d->socket->file_desc) close(d->socket->file_desc);
-  if (d->file_desc) close(d->file_desc);
+  if (d->socket->file_desc != -1) close(d->socket->file_desc);
+  if (d->file_desc != -1) close(d->file_desc);
 
   if (d->status != GTA_UL_COMPLETE) /* if UL_COMPLETE, we've already decremented it. */
 	running_uploads--;
@@ -161,7 +161,7 @@ struct upload* upload_add(struct gnutella_socket *s)
 
   not_found:
 
-  /* What? 404 we either don't have it , or have too many uploads already */
+  /* What?  Either the sscanf() failed or we don't have the file. */
   rw = g_snprintf(http_response, sizeof(http_response), 
 				  "HTTP 404 Not Found\r\nServer: Gnutella\r\n\r\n");
 
@@ -218,7 +218,6 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
       return;
     }
 
-
   current_upload->pos += write_bytes;
 
   if ((current_upload->bpos+write_bytes) < current_upload->bsize)
@@ -229,13 +228,12 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 	current_upload->last_update = time((time_t *) NULL);
 
 
-  if (current_upload->pos == current_upload->file_size)
-	{
+  if (current_upload->pos == current_upload->file_size) {
 	  count_uploads++;
-	  gui_update_upload(current_upload);
 	  gui_update_count_uploads();
 	  gui_update_c_uploads();
 	  if(clear_uploads == TRUE) {
+		gui_update_upload(current_upload);
 		socket_destroy(current_upload->socket);
 		return;
 	  } else {
@@ -243,6 +241,14 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		running_uploads--;
 		gtk_widget_set_sensitive(button_clear_uploads, 1);
 		gdk_input_remove(current_upload->socket->gdk_tag);
+		if (current_upload->socket->file_desc != -1) {
+		  close(current_upload->socket->file_desc);
+		  current_upload->socket->file_desc = -1;
+		}
+		if (current_upload->file_desc != -1) {
+		  close(current_upload->file_desc);
+		  current_upload->file_desc = -1;
+		}
 		current_upload->socket->gdk_tag = 0;
 		gui_update_upload(current_upload);
 	  }
