@@ -782,8 +782,6 @@ done:
  */
 void hosts_read_from_file(const gchar * path, gboolean quiet)
 {
-    start_mass_update();
-    
 	hosts_r_file = fopen(path, "r");
 
 	if (!hosts_r_file) {
@@ -793,9 +791,9 @@ void hosts_read_from_file(const gchar * path, gboolean quiet)
 		return;
 	}
 
-	hosts_idle_func = g_idle_add(hosts_reading_func, (gpointer) NULL);
-
-	gnet_prop_set_boolean_val(PROP_READING_HOSTFILE, TRUE);
+    start_mass_update(); /* end_mass_update called in hosts_reading_func */
+    hosts_idle_func = g_idle_add(hosts_reading_func, (gpointer) NULL);
+    gnet_prop_set_boolean_val(PROP_READING_HOSTFILE, TRUE);
 }
 
 void hosts_write_to_file(const gchar *path)
