@@ -47,15 +47,15 @@ const gchar *nodes_gui_common_status_str(
 
 	switch (n->status) {
 	case GTA_NODE_CONNECTING:
-		a = "Connecting...";
+		a = _("Connecting...");
 		break;
 
 	case GTA_NODE_HELLO_SENT:
-		a = "Hello sent";
+		a = _("Hello sent");
 		break;
 
 	case GTA_NODE_WELCOME_SENT:
-		a = "Welcome sent";
+		a = _("Welcome sent");
 		break;
 
 	case GTA_NODE_CONNECTED:
@@ -214,13 +214,13 @@ const gchar *nodes_gui_common_status_str(
 				n->in_tx_flow_control ? " [FC]" : "");
 			a = gui_tmp;
 		} else
-			a = "Connected";
+			a = _("Connected");
 		break;
 
 	case GTA_NODE_SHUTDOWN:
 		{
 			gm_snprintf(gui_tmp, sizeof(gui_tmp),
-				"Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%",
+				_("Closing: %s [Stop in %ds] RX=%d Q=%d,%d%%"),
 				n->message, n->shutdown_remain, n->received,
 				n->mqueue_count, n->mqueue_percent_used);
 			a = gui_tmp;
@@ -228,15 +228,15 @@ const gchar *nodes_gui_common_status_str(
 		break;
 
 	case GTA_NODE_REMOVING:
-		a =  *n->message ? n->message : "Removing";
+		a =  *n->message ? n->message : _("Removing");
 		break;
 
 	case GTA_NODE_RECEIVING_HELLO:
-		a = "Receiving hello";
+		a = _("Receiving hello");
 		break;
 
 	default:
-		a = "UNKNOWN STATUS";
+		a = _("UNKNOWN STATUS");
 	}
 
 	return a;
@@ -308,3 +308,4 @@ const gchar *nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 	return status;
 }
 
+/* vi: set ts=4: */
