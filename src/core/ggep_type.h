@@ -69,8 +69,8 @@ ggept_status_t ggept_alt_extract(extvec_t *exv,
 ggept_status_t ggept_push_extract(extvec_t *exv,
 	struct gnutella_host **hvec, gint *hvcnt);
 
-gint ggept_lf_encode(guint64 filesize, guint8 *data);
-gint ggept_du_encode(guint32 uptime, guint8 *data);
+gint ggept_lf_encode(guint64 filesize, gchar *data);
+gint ggept_du_encode(guint32 uptime, gchar *data);
 
 #endif	/* _core_ggep_type_h_ */
 
