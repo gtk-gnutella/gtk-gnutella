@@ -165,7 +165,7 @@ void sq_process(squeue_t *sq, time_t now)
 
 	n = sq->node;
 
-	if (n->received == 0)
+	if (n->received == 0)		/* RX = 0, wait for handshaking ping */
 		return;
 
 	/*
