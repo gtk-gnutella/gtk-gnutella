@@ -3261,7 +3261,7 @@ node_check_remote_ip_header(guint32 peer, header_t *head)
 			ua = "Unknown";
 
 		g_message("Peer %s reported different IP address: %s (%s)\n",
-			ip_to_gchar(peer), ip2_to_gchar(peer), ua);
+			ip_to_gchar(peer), ip2_to_gchar(ip), ua);
 	}
 
 	settings_ip_changed(ip, peer);
