@@ -28,6 +28,7 @@
 #include "gui.h"
 #include "callbacks.h"
 
+#include "search_gui.h"
 #include "filter_gui.h"
 #include "nodes_gui.h"
 #include "downloads_gui.h"
@@ -213,4 +214,108 @@ void gui_update_stats_frames()
     } else {
         gtk_widget_hide(frame_bws_ginout);
     }
+}
+
+/*
+ * search_gui_add_targetted_search:
+ *
+ * Creates a new search based on the filename found and adds a filter
+ * to it based on the sha1 hash if it has one or the exact filename if
+ * it hasn't.
+ * (patch by Andrew Meredith <andrew@anvil.org>)
+ */
+void gui_add_targetted_search(record_t *rec, filter_t *noneed)
+{
+    search_t *new_search;
+    rule_t *rule;
+
+    g_assert(rec != NULL);
+    g_assert(rec->name != NULL);
+
+    /* create new search item with search string set to filename */
+    search_gui_new_search(rec->name, 0, &new_search);
+    g_assert(new_search != NULL);
+
+    if (rec->sha1) {
+        rule = filter_new_sha1_rule(rec->sha1, rec->name,
+            filter_get_download_target(), RULE_FLAG_ACTIVE);
+    } else {
+        rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE,
+            filter_get_download_target(), RULE_FLAG_ACTIVE);
+    }
+    g_assert(rule != NULL);
+
+    filter_append_rule(new_search->filter, rule);
+}
+
+
+/*
+ * Tells if two hit records have the same filename.
+ */
+gint gui_record_name_eq(gconstpointer rec1, gconstpointer rec2)
+{
+    gint result;
+
+    result = g_str_equal(((const record_t *) rec1)->name,
+       ((const record_t *) rec2)->name) ? 0 : 1;
+
+    printf("[%s] == [%s] -> %d\n", ((const record_t *) rec1)->name,
+       ((const record_t *) rec2)->name, result);
+
+    return result;
+}
+
+/*
+ * Tells if two hit records have the same SHA1.
+ */
+gint gui_record_sha1_eq(gconstpointer rec1, gconstpointer rec2)
+{
+    const guchar *s1 = ((const record_t *) rec1)->sha1;
+    const guchar *s2 = ((const record_t *) rec2)->sha1;
+
+    if (s1 == s2)
+        return 0;
+
+    if (s1 == NULL || s2 == NULL)
+               return 1;
+
+    return memcmp(s1, s2, SHA1_RAW_SIZE);
+}
+
+/*
+ * Tells if two hit records come from the same host.
+ */
+gint gui_record_host_eq(gconstpointer rec1, gconstpointer rec2)
+{
+    return ((const record_t *) rec1)->results_set->ip
+       == ((const record_t *) rec2)->results_set->ip
+       ? 0 : 1;
+}
+
+/*
+ * Tells if two hit records have the same SHA1 or the same name.
+ *
+ * The targetted search feature by Andrew Meredith (andrew@anvil.org)
+ * now uses this function to filter input and avoid duplicates.
+ * Andrew, if this somehow breaks the intent, let me know at
+ * junkpile@free.fr.
+ *
+ * This provides the following behavior :
+ *
+ * - If several hits with the same SHA1 are selected, only one SHA1 rule
+ *   will be added even if the filenames differ (same as before).
+ *
+ * - If several hits with the same filename and no SHA1 are selected,
+ *   only one filename rule will be added.
+ *
+ * - If two selected hits have the same filename, but one has an SHA1
+ *   and the other doesn't, both rules (filename and SHA1) will be added.
+ *
+ */ 
+gint gui_record_sha1_or_name_eq(gconstpointer rec1, gconstpointer rec2)
+{
+    if (((const record_t *) rec1)->sha1 || ((const record_t *) rec2)->sha1)
+        return gui_record_sha1_eq(rec1, rec2);
+    else
+        return gui_record_name_eq(rec1, rec2);
 }

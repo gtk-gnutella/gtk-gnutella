@@ -37,7 +37,6 @@
 #include "gui_property_priv.h"
 #include "gtk-missing.h"
 
-
 #ifndef USE_GTK2
 #define g_ascii_strcasecmp g_strcasecmp
 #define gdk_drawable_get_size gdk_window_get_size
@@ -229,4 +228,20 @@ void gui_update_traffic_stats(void);
 void gui_update_stats(void);
 void gui_update_stats_frames();
 void gui_allow_rescan_dir(gboolean flag);
+
+/*
+ * Create a new search based on a search result record.
+ */
+struct record;
+struct filter;
+void gui_add_targetted_search(struct record *rec, struct filter *noneed);
+
+/*
+ * Hit record comparison functions.
+ */
+gint gui_record_name_eq(gconstpointer rec1, gconstpointer rec2);
+gint gui_record_sha1_eq(gconstpointer rec1, gconstpointer rec2);
+gint gui_record_host_eq(gconstpointer rec1, gconstpointer rec2);
+gint gui_record_sha1_or_name_eq(gconstpointer rec1, gconstpointer rec2);
+
 #endif /* _gui_h_ */
