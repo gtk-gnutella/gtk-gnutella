@@ -30,20 +30,6 @@
 
 #include <gtk/gtk.h>
 
-#define ATLEAST_GTK(a, b, c) 		\
-(									\
-	(								\
-	 	GTK_MAJOR_VERSION > (a)		\
-	) || (							\
-	 	GTK_MAJOR_VERSION == (a) &&	\
-		GTK_MINOR_VERSION > (b)		\
-	) || (							\
-	 	GTK_MAJOR_VERSION == (a) &&	\
-		GTK_MINOR_VERSION == (b) &&	\
-		GTK_MICRO_VERSION >= (c)	\
-	)								\
-)
-
 #ifdef USE_GTK1
 #include "gtk1/support-glade.h"
 #endif
