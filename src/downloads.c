@@ -821,9 +821,8 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	if (fmt) {
 		g_vsnprintf(d->error_str, sizeof(d->error_str), fmt, ap);
 		d->error_str[sizeof(d->error_str) - 1] = '\0';	/* May be truncated */
-		d->remove_msg = d->error_str;
-	} else
-		d->remove_msg = NULL;
+		/* d->remove_msg updated below */
+	}
 
 	if (DOWNLOAD_IS_VISIBLE(d))
 		download_gui_remove(d);
@@ -831,6 +830,11 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	if (DOWNLOAD_IS_RUNNING(d))
 		download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
 
+	/*
+	 * Since download stop can change "d->remove_msg", update it now.
+	 */
+
+	d->remove_msg = fmt ? d->error_str: NULL;
 	d->status = GTA_DL_QUEUED;
 
 	download_gui_add(d);
