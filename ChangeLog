@@ -1,5 +1,24 @@
 # since last version
 
+- (2003.08.05 - RAM)
+ * Forgot to customize the HTTP async layer when we're using the IP
+   swapping hack for client-side push proxy.
+ * After having swapped the IP, reswap it back before reporting failure to the
+   download layer.
+ * Don't display negative uptimes, force 0.
+ * When computing the remote node's uptime, use our clock offset to correct
+   the remote timestamp.
+ * Default for "nodes_monitor_unstable_servents" is now FALSE.
+ * [GTK1] Turned on gettext support in glade.
+ * [GTK1] Added GUI settings for the "node_monitor_unstable_ip" and
+   "node_monitor_unstable_servents" properties in the Gnutella config pane.
+ * [GTK1] New "Hide downloaded files" setting in Search to control display
+   of entries that were auto-downloaded already.
+ * New "search_hide_downloaded" GUI property.
+ * Don't show them auto-downloaded files if they don't want to see them.
+ * Plugged the necessary tieing update logic for the update of the three
+   new checkboxes.
+
 - (2003.08.04 - Jeroen)
  * 'Banning' of unstable servents and IPs is optional now using the
    node_monitor_unstable_ip and node_monitor_unstable_servents config
