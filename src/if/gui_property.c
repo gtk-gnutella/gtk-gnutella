@@ -48,36 +48,36 @@ gboolean fi_regex_case     = FALSE;
 gboolean fi_regex_case_def = FALSE;
 gboolean search_hide_downloaded     = FALSE;
 gboolean search_hide_downloaded_def = FALSE;
-guint32  nodes_col_widths[7]     = { 130, 50, 120, 20, 30, 30, 80 };
-guint32  nodes_col_widths_def[7] = { 130, 50, 120, 20, 30, 30, 80 };
-gboolean nodes_col_visible[7]     = { 1,1,1,1,1,1,1};
-gboolean nodes_col_visible_def[7] = { 1,1,1,1,1,1,1};
-guint32  dl_active_col_widths[7]     = { 240, 80, 80, 80, 80, 80, 80 };
-guint32  dl_active_col_widths_def[7] = { 240, 80, 80, 80, 80, 80, 80 };
-gboolean dl_active_col_visible[7]     = { 1, 1, 1, 1, 1, 1, 1 };
-gboolean dl_active_col_visible_def[7] = { 1, 1, 1, 1, 1, 1, 1 };
-guint32  dl_queued_col_widths[5]     = { 240, 80, 80, 80, 80 };
-guint32  dl_queued_col_widths_def[5] = { 240, 80, 80, 80, 80 };
-gboolean dl_queued_col_visible[5]     = { 1, 1, 1, 1, 1 };
-gboolean dl_queued_col_visible_def[5] = { 1, 1, 1, 1, 1 };
-guint32  file_info_col_widths[5]     = { 240, 80, 80, 80, 80 };
-guint32  file_info_col_widths_def[5] = { 240, 80, 80, 80, 80 };
-gboolean search_results_col_visible[8]     = { 1,1,1,1,1,1,1,1};
-gboolean search_results_col_visible_def[8] = { 1,1,1,1,1,1,1,1};
-guint32  search_list_col_widths[3]     = { 80, 20, 20 };
-guint32  search_list_col_widths_def[3] = { 80, 20, 20 };
-guint32  search_results_col_widths[c_sr_num]     = { 210, 50, 80, 50, 70, 70, 70, 140, 70 };
-guint32  search_results_col_widths_def[c_sr_num] = { 210, 50, 80, 50, 70, 70, 70, 140, 70 };
+guint32  nodes_col_widths[NODES_VISIBLE_COLUMNS]     = { 130, 50, 120, 20, 30, 30, 80 };
+guint32  nodes_col_widths_def[NODES_VISIBLE_COLUMNS] = { 130, 50, 120, 20, 30, 30, 80 };
+gboolean nodes_col_visible[NODES_VISIBLE_COLUMNS]     = { 1,1,1,1,1,1,1,1};
+gboolean nodes_col_visible_def[NODES_VISIBLE_COLUMNS] = { 1,1,1,1,1,1,1,1};
+guint32  dl_active_col_widths[DOWNLOADS_VISIBLE_COLUMNS]     = { 240, 80, 40, 80, 80, 80, 80 };
+guint32  dl_active_col_widths_def[DOWNLOADS_VISIBLE_COLUMNS] = { 240, 80, 40, 80, 80, 80, 80 };
+gboolean dl_active_col_visible[DOWNLOADS_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1, 1, 1 };
+gboolean dl_active_col_visible_def[DOWNLOADS_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1, 1 };
+guint32  dl_queued_col_widths[DOWNLOAD_QUEUE_VISIBLE_COLUMNS]     = { 240, 80, 40, 80, 80, 80 };
+guint32  dl_queued_col_widths_def[DOWNLOAD_QUEUE_VISIBLE_COLUMNS] = { 240, 80, 40, 80, 80, 80 };
+gboolean dl_queued_col_visible[DOWNLOAD_QUEUE_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1, 1 };
+gboolean dl_queued_col_visible_def[DOWNLOAD_QUEUE_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1 };
+guint32  file_info_col_widths[FILEINFO_VISIBLE_COLUMNS]     = { 240, 80, 80, 80, 80 };
+guint32  file_info_col_widths_def[FILEINFO_VISIBLE_COLUMNS] = { 240, 80, 80, 80, 80 };
+gboolean search_results_col_visible[SEARCH_RESULTS_VISIBLE_COLUMNS]     = { 1,1,1,1,1,1,1,1,1 };
+gboolean search_results_col_visible_def[SEARCH_RESULTS_VISIBLE_COLUMNS] = { 1,1,1,1,1,1,1,1,1 };
+guint32  search_list_col_widths[SEARCH_LIST_VISIBLE_COLUMNS]     = { 80, 20, 20 };
+guint32  search_list_col_widths_def[SEARCH_LIST_VISIBLE_COLUMNS] = { 80, 20, 20 };
+guint32  search_results_col_widths[SEARCH_RESULTS_VISIBLE_COLUMNS]     = { 210, 50, 80, 50, 70, 70, 70, 140, 70 };
+guint32  search_results_col_widths_def[SEARCH_RESULTS_VISIBLE_COLUMNS] = { 210, 50, 80, 50, 70, 70, 70, 140, 70 };
 guint32  search_stats_col_widths[3]     = { 200, 80, 80 };
 guint32  search_stats_col_widths_def[3] = { 200, 80, 80 };
-guint32  ul_stats_col_widths[5]     = { 200, 80, 80, 80, 80 };
-guint32  ul_stats_col_widths_def[5] = { 200, 80, 80, 80, 80 };
-gboolean ul_stats_col_visible[5]     = { 1, 1, 1, 1, 1 };
-gboolean ul_stats_col_visible_def[5] = { 1, 1, 1, 1, 1 };
-guint32  uploads_col_widths[7]     = { 200, 120, 36, 80, 80, 80, 80 };
-guint32  uploads_col_widths_def[7] = { 200, 120, 36, 80, 80, 80, 80 };
-gboolean uploads_col_visible[7]     = { 1, 1, 1, 1, 1, 1, 1 };
-gboolean uploads_col_visible_def[7] = { 1, 1, 1, 1, 1, 1, 1 };
+guint32  ul_stats_col_widths[UPLOAD_STATS_GUI_VISIBLE_COLUMNS]     = { 200, 80, 80, 80, 80 };
+guint32  ul_stats_col_widths_def[UPLOAD_STATS_GUI_VISIBLE_COLUMNS] = { 200, 80, 80, 80, 80 };
+gboolean ul_stats_col_visible[UPLOAD_STATS_GUI_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1 };
+gboolean ul_stats_col_visible_def[UPLOAD_STATS_GUI_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1 };
+guint32  uploads_col_widths[UPLOADS_GUI_VISIBLE_COLUMNS]     = { 200, 120, 36, 80, 80, 80, 80 };
+guint32  uploads_col_widths_def[UPLOADS_GUI_VISIBLE_COLUMNS] = { 200, 120, 36, 80, 80, 80, 80 };
+gboolean uploads_col_visible[UPLOADS_GUI_VISIBLE_COLUMNS]     = { 1, 1, 1, 1, 1, 1, 1 };
+gboolean uploads_col_visible_def[UPLOADS_GUI_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1, 1 };
 guint32  filter_rules_col_widths[4]     = { 10, 240, 80, 40 };
 guint32  filter_rules_col_widths_def[4] = { 10, 240, 80, 40 };
 guint32  filter_filters_col_widths[3]     = { 80, 40, 20 };
@@ -389,7 +389,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[5].desc = _("Widths of the columns in the nodes table");
     gui_property->props[5].ev_changed = event_new("nodes_col_widths_changed");
     gui_property->props[5].save = TRUE;
-    gui_property->props[5].vector_size = 7;
+    gui_property->props[5].vector_size = NODES_VISIBLE_COLUMNS;
 
     /* Type specific data: */
     gui_property->props[5].type               = PROP_TYPE_GUINT32;
@@ -409,7 +409,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[6].desc = _("Which columns are visible in the nodes pane");
     gui_property->props[6].ev_changed = event_new("nodes_col_visible_changed");
     gui_property->props[6].save = TRUE;
-    gui_property->props[6].vector_size = 7;
+    gui_property->props[6].vector_size = NODES_VISIBLE_COLUMNS;
 
     /* Type specific data: */
     gui_property->props[6].type               = PROP_TYPE_BOOLEAN;
@@ -426,7 +426,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[7].desc = _("Widths of the columns in the active downloads table");
     gui_property->props[7].ev_changed = event_new("dl_active_col_widths_changed");
     gui_property->props[7].save = TRUE;
-    gui_property->props[7].vector_size = 7;
+    gui_property->props[7].vector_size = DOWNLOADS_VISIBLE_COLUMNS;
 
     /* Type specific data: */
     gui_property->props[7].type               = PROP_TYPE_GUINT32;
@@ -446,7 +446,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[8].desc = _("Which columns are visible in the active downloads table");
     gui_property->props[8].ev_changed = event_new("dl_active_col_visible_changed");
     gui_property->props[8].save = TRUE;
-    gui_property->props[8].vector_size = 7;
+    gui_property->props[8].vector_size = DOWNLOADS_VISIBLE_COLUMNS;
 
     /* Type specific data: */
     gui_property->props[8].type               = PROP_TYPE_BOOLEAN;
@@ -463,7 +463,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[9].desc = _("Widths of the columns in the queued downloads table");
     gui_property->props[9].ev_changed = event_new("dl_queued_col_widths_changed");
     gui_property->props[9].save = TRUE;
-    gui_property->props[9].vector_size = 5;
+    gui_property->props[9].vector_size = DOWNLOAD_QUEUE_VISIBLE_COLUMNS;
 
     /* Type specific data: */
     gui_property->props[9].type               = PROP_TYPE_GUINT32;
@@ -483,7 +483,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[10].desc = _("Which columns are visible in the queued downloads table");
     gui_property->props[10].ev_changed = event_new("dl_queued_col_visible_changed");
     gui_property->props[10].save = TRUE;
-    gui_property->props[10].vector_size = 5;
+    gui_property->props[10].vector_size = DOWNLOAD_QUEUE_VISIBLE_COLUMNS;
 
     /* Type specific data: */
     gui_property->props[10].type               = PROP_TYPE_BOOLEAN;
@@ -500,7 +500,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[11].desc = _("Widths of the columns in the file info table");
     gui_property->props[11].ev_changed = event_new("file_info_col_widths_changed");
     gui_property->props[11].save = TRUE;
-    gui_property->props[11].vector_size = 5;
+    gui_property->props[11].vector_size = FILEINFO_VISIBLE_COLUMNS;
 
     /* Type specific data: */
     gui_property->props[11].type               = PROP_TYPE_GUINT32;
@@ -520,7 +520,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[12].desc = _("Which columns are visible in the search results tables");
     gui_property->props[12].ev_changed = event_new("search_results_col_visible_changed");
     gui_property->props[12].save = TRUE;
-    gui_property->props[12].vector_size = 8;
+    gui_property->props[12].vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
 
     /* Type specific data: */
     gui_property->props[12].type               = PROP_TYPE_BOOLEAN;
@@ -537,7 +537,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[13].desc = _("Widths of the columns in the search list on the sidebar");
     gui_property->props[13].ev_changed = event_new("search_list_col_widths_changed");
     gui_property->props[13].save = TRUE;
-    gui_property->props[13].vector_size = 3;
+    gui_property->props[13].vector_size = SEARCH_LIST_VISIBLE_COLUMNS;
 
     /* Type specific data: */
     gui_property->props[13].type               = PROP_TYPE_GUINT32;
@@ -557,7 +557,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[14].desc = _("Widths of the columns in the search results tables");
     gui_property->props[14].ev_changed = event_new("search_results_col_widths_changed");
     gui_property->props[14].save = TRUE;
-    gui_property->props[14].vector_size = c_sr_num;
+    gui_property->props[14].vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
 
     /* Type specific data: */
     gui_property->props[14].type               = PROP_TYPE_GUINT32;
@@ -597,7 +597,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[16].desc = _("Widths of the columns in the upload stats table");
     gui_property->props[16].ev_changed = event_new("ul_stats_col_widths_changed");
     gui_property->props[16].save = TRUE;
-    gui_property->props[16].vector_size = 5;
+    gui_property->props[16].vector_size = UPLOAD_STATS_GUI_VISIBLE_COLUMNS;
 
     /* Type specific data: */
     gui_property->props[16].type               = PROP_TYPE_GUINT32;
@@ -617,7 +617,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[17].desc = _("Which columns are visible in the upload stats table");
     gui_property->props[17].ev_changed = event_new("ul_stats_col_visible_changed");
     gui_property->props[17].save = TRUE;
-    gui_property->props[17].vector_size = 5;
+    gui_property->props[17].vector_size = UPLOAD_STATS_GUI_VISIBLE_COLUMNS;
 
     /* Type specific data: */
     gui_property->props[17].type               = PROP_TYPE_BOOLEAN;
@@ -634,7 +634,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[18].desc = _("Widths of the columns in the uploads table");
     gui_property->props[18].ev_changed = event_new("uploads_col_widths_changed");
     gui_property->props[18].save = TRUE;
-    gui_property->props[18].vector_size = 7;
+    gui_property->props[18].vector_size = UPLOADS_GUI_VISIBLE_COLUMNS;
 
     /* Type specific data: */
     gui_property->props[18].type               = PROP_TYPE_GUINT32;
@@ -654,7 +654,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[19].desc = _("Which columns are visible in the uploads table");
     gui_property->props[19].ev_changed = event_new("uploads_col_visible_changed");
     gui_property->props[19].save = TRUE;
-    gui_property->props[19].vector_size = 7;
+    gui_property->props[19].vector_size = UPLOADS_GUI_VISIBLE_COLUMNS;
 
     /* Type specific data: */
     gui_property->props[19].type               = PROP_TYPE_BOOLEAN;

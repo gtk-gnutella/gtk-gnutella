@@ -65,7 +65,7 @@ prop = {
     cfgvar = "widths_nodes";
     desc = "Widths of the columns in the nodes table";
     type = guint32;
-    vector_size = 7;
+    vector_size = NODES_VISIBLE_COLUMNS;
     data = {
         default = "{ 130, 50, 120, 20, 30, 30, 80 }";
     };
@@ -75,9 +75,9 @@ prop = {
     name = "nodes_col_visible";
     desc = "Which columns are visible in the nodes pane";
     type = boolean;
-    vector_size = 7;
+    vector_size = NODES_VISIBLE_COLUMNS;
     data = {
-        default = "{ 1,1,1,1,1,1,1}";
+        default = "{ 1,1,1,1,1,1,1,1}";
     };
 };
 
@@ -86,9 +86,9 @@ prop = {
     cfgvar = "widths_dl_active";
     desc = "Widths of the columns in the active downloads table";
     type = guint32;
-    vector_size = 7;
+    vector_size = DOWNLOADS_VISIBLE_COLUMNS;
     data = {
-        default = "{ 240, 80, 80, 80, 80, 80, 80 }";
+        default = "{ 240, 80, 40, 80, 80, 80, 80 }";
     };
 };
 
@@ -96,7 +96,7 @@ prop = {
     name = "dl_active_col_visible";
     desc = "Which columns are visible in the active downloads table";
     type = boolean;
-    vector_size = 7;
+    vector_size = DOWNLOADS_VISIBLE_COLUMNS;
     data = {
         default = "{ 1, 1, 1, 1, 1, 1, 1 }";
     };
@@ -107,9 +107,9 @@ prop = {
     cfgvar = "widths_dl_queued";
     desc = "Widths of the columns in the queued downloads table";
     type = guint32;
-    vector_size = 5;
+    vector_size = DOWNLOAD_QUEUE_VISIBLE_COLUMNS;
     data = {
-        default = "{ 240, 80, 80, 80, 80 }";
+        default = "{ 240, 80, 40, 80, 80, 80 }";
     };
 };
 
@@ -117,9 +117,9 @@ prop = {
     name = "dl_queued_col_visible";
     desc = "Which columns are visible in the queued downloads table";
     type = boolean;
-    vector_size = 5;
+    vector_size = DOWNLOAD_QUEUE_VISIBLE_COLUMNS;
     data = {
-        default = "{ 1, 1, 1, 1, 1 }";
+        default = "{ 1, 1, 1, 1, 1, 1 }";
     };
 };
 
@@ -128,7 +128,7 @@ prop = {
     cfgvar = "widths_file_info";
     desc = "Widths of the columns in the file info table";
     type = guint32;
-    vector_size = 5;
+    vector_size = FILEINFO_VISIBLE_COLUMNS;
     data = {
         default = "{ 240, 80, 80, 80, 80 }";
     };
@@ -138,9 +138,9 @@ prop = {
     name = "search_results_col_visible";
     desc = "Which columns are visible in the search results tables";
     type = boolean;
-    vector_size = 8;
+    vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
     data = {
-        default = "{ 1,1,1,1,1,1,1,1}";
+        default = "{ 1,1,1,1,1,1,1,1,1 }";
     };
 };
 
@@ -149,7 +149,7 @@ prop = {
     cfgvar = "widths_search_list";
     desc = "Widths of the columns in the search list on the sidebar";
     type = guint32;
-    vector_size = 3;
+    vector_size = SEARCH_LIST_VISIBLE_COLUMNS;
     data = {
         default = "{ 80, 20, 20 }";
     };
@@ -160,7 +160,7 @@ prop = {
     cfgvar = "widths_search_results";
     desc = "Widths of the columns in the search results tables";
     type = guint32;
-    vector_size = c_sr_num;
+    vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
     data = {
         default = "{ 210, 50, 80, 50, 70, 70, 70, 140, 70 }";
     };
@@ -182,7 +182,7 @@ prop = {
     cfgvar = "widths_ul_stats";
     desc = "Widths of the columns in the upload stats table";
     type = guint32;
-    vector_size = 5;
+    vector_size = UPLOAD_STATS_GUI_VISIBLE_COLUMNS;
     data = {
         default = "{ 200, 80, 80, 80, 80 }";
     };
@@ -192,7 +192,7 @@ prop = {
     name = "ul_stats_col_visible";
     desc = "Which columns are visible in the upload stats table";
     type = boolean;
-    vector_size = 5;
+    vector_size = UPLOAD_STATS_GUI_VISIBLE_COLUMNS;
     data = {
         default = "{ 1, 1, 1, 1, 1 }";
     };
@@ -203,7 +203,7 @@ prop = {
     cfgvar = "widths_uploads";
     desc = "Widths of the columns in the uploads table";
     type = guint32;
-    vector_size = 7;
+    vector_size = UPLOADS_GUI_VISIBLE_COLUMNS;
     data = {
         default = "{ 200, 120, 36, 80, 80, 80, 80 }";
     };
@@ -213,7 +213,7 @@ prop = {
     name = "uploads_col_visible";
     desc = "Which columns are visible in the uploads table";
     type = boolean;
-    vector_size = 7;
+    vector_size = UPLOADS_GUI_VISIBLE_COLUMNS;
     data = {
         default = "{ 1, 1, 1, 1, 1, 1, 1 }";
     };
