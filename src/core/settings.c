@@ -249,7 +249,8 @@ settings_getphysmemsize(void)
 #endif /* _SC_PHYS_PAGES */
 }
 
-void settings_init(void)
+void
+settings_init(void)
 {
     struct passwd *pwd = NULL;
 	guint32 maxfd = (guint32) sysconf(_SC_OPEN_MAX);
@@ -405,7 +406,8 @@ settings_remove_pidfile(void)
  *
  *		--cbiere, 2004-08-01
  */
-void settings_ip_changed(guint32 new_ip, guint32 peer_ip)
+void
+settings_ip_changed(guint32 new_ip, guint32 peer_ip)
 {
 	static guint32 last_ip_seen = 0;
 	static guint same_ip_count = 0;
@@ -415,7 +417,25 @@ void settings_ip_changed(guint32 new_ip, guint32 peer_ip)
 	g_assert(!force_local_ip);		/* Must be called when IP isn't forced */
 	g_assert(new_ip != 0);			/* The new IP must be valid */
 
-	peer_ip &= 0xffff0000;		/* One vote per /16 network; host byteorder! */
+	if (!ip_is_valid(new_ip) || !ip_is_valid(peer_ip))
+		return;
+
+	/* Don't accept updates for private addresses from non-private addresses
+	 * and vice-versa. */
+	if (is_private_ip(new_ip) ^ is_private_ip(peer_ip))
+		return;
+
+	/* Accept updates for private addresses only from peer in the same /16
+	 * network; addresses are in host byte order */
+	if (
+		is_private_ip(new_ip) &&
+		is_private_ip(peer_ip) &&
+		(peer_ip & 0xffff0000) != (new_ip & 0xffff0000)
+	) {
+		return;
+	}
+
+	peer_ip &= 0xffff0000;	/* One vote per /16 network; host byte order! */
 	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
 		if (peers[i] == peer_ip)
 			return;
@@ -470,7 +490,8 @@ settings_max_msg_size(void)
 /**
  * Ask them to set a property to be able to run.
  */
-void settings_ask_for_property(gchar *name, gchar *value)
+void
+settings_ask_for_property(gchar *name, gchar *value)
 {
 	extern void gtk_gnutella_exit(gint);
 
@@ -514,7 +535,8 @@ settings_save_if_dirty(void)
 /**
  * Finally free all memory allocated. Call after settings_shutdown.
  */
-void settings_close(void)
+void
+settings_close(void)
 {
 	settings_remove_pidfile();
     gnet_prop_shutdown();
@@ -530,7 +552,7 @@ gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
 {
     g_assert(s != NULL);
 
-    switch(type) {
+    switch (type) {
     case BW_GNET_IN:
         s->enabled  = bws_gin_enabled;
         s->current  = bsched_bps(bws.gin);
@@ -579,7 +601,7 @@ gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
         s->average  = bsched_avg_bps(bws.glout);
         s->limit    = bws.glout->bw_per_second;
         break;
-    };
+    }
 }
 
 /***
