@@ -745,10 +745,6 @@ forward_message(
 	}
 
 	/*
-	 * If node propagates messages with TTL=0, it's a danger to
-	 * the network, kick him out.
-	 *		-- RAM, 15/09/2001
-	 *
 	 * If we're a leaf node, it's OK though, as we don't have to route
 	 * the message.  Some broken Ultrapeers out there send such messages!
 	 * We'll even handle the message.
@@ -969,8 +965,8 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
             gnet_stats_count_dropped(sender, MSG_DROP_UNREQUESTED_REPLY);
 			sender->n_bad++;	/* Node shouldn't have forwarded this message */
 
-			if (dbg > 2)
-				gmsg_log_bad(sender, "got reply ID %s without matching request",
+			if (dbg)
+				gmsg_log_bad(sender, "got reply without matching request %s",
 					guid_hex_str(sender->header.muid));
 
 			if (handle_it) {

@@ -4455,6 +4455,8 @@ node_parse(struct gnutella_node *node)
 		if (n->header.hops != 0 || n->header.ttl != 1) {
 			n->n_bad++;
 			drop = TRUE;
+			if (dbg)
+				gmsg_log_bad(n, "expected hops=0 and TTL=1");
             gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		}
 		break;
@@ -4493,6 +4495,8 @@ node_parse(struct gnutella_node *node)
 		if (n->header.hops != 0 || n->header.ttl != 1) {
 			n->n_bad++;
 			drop = TRUE;
+			if (dbg)
+				gmsg_log_bad(n, "expected hops=0 and TTL=1");
             gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		} else if (n->size > MAX_MSG_SIZE) {
             drop = TRUE;
@@ -4507,6 +4511,8 @@ node_parse(struct gnutella_node *node)
 		if (n->header.hops != 0 || n->header.ttl != 1) {
 			n->n_bad++;
 			drop = TRUE;
+			if (dbg)
+				gmsg_log_bad(n, "expected hops=0 and TTL=1");
             gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		} else if (
 			current_peermode != NODE_P_ULTRA ||
@@ -4516,31 +4522,33 @@ node_parse(struct gnutella_node *node)
 			)
 		) {
 			drop = TRUE;
-			gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
+			n->n_bad++;
 			if (dbg)
 				gmsg_log_bad(n, "unexpected QRP message");
-			n->n_bad++;
+			gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
 		}
 		break;
 	case GTA_MSG_HSEP_DATA:     /* never routed */
 		if (n->header.hops != 0 || n->header.ttl != 1) {
 			n->n_bad++;
 			drop = TRUE;
+			if (dbg)
+				gmsg_log_bad(n, "expected hops=0 and TTL=1");
 			gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		} else if (!(n->attrs & NODE_A_CAN_HSEP)) {
 			drop = TRUE;
-			gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
+			n->n_bad++;
 			if (dbg)
 				gmsg_log_bad(n, "unexpected HSEP message");
-			n->n_bad++;
+			gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
 		}
 		break;
 	default:					/* Unknown message type - we drop it */
 		drop = TRUE;
-        gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
+		n->n_bad++;
 		if (dbg)
 			gmsg_log_bad(n, "unknown message type");
-		n->n_bad++;
+        gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
 		break;
 	}
 
