@@ -319,7 +319,6 @@ static void fi_gui_set_filter_regex(gchar *s)
     row = 0;
     while (row < clist_fi->rows) {
         gchar *text;
-        gint n;
 
         if (!gtk_clist_get_text(clist_fi, row, c_fi_filename, &text)) {
             continue;
@@ -413,20 +412,15 @@ void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
 
     sl = clist_collect_data(clist, TRUE, NULL);
 
-    if (sl) {
+    if (sl)
         fi_purge_by_handle_list(sl);
-    }
 
     g_slist_free(sl);
 }
 
 void on_entry_fi_regex_activate(GtkEditable *editable, gpointer user_data)
 {
-	GtkCList *clist_fi;
-	struct download *d, *dtemp;
-
-    gint  err;
-    gchar * regex;
+    gchar *regex;
 
     regex = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1));
 
