@@ -79,6 +79,17 @@ prop = {
         default = "{ 240, 80, 80, 80, 80 }";
     };
 };
+
+prop = {
+    name = "file_info_col_widths";
+    cfgvar = "widths_file_info";
+    desc = "Widths of the columns in the file info table";
+    type = guint32;
+    vector_size = 5;
+    data = {
+        default = "{ 240, 80, 80, 80, 80 }";
+    };
+};
     
 prop = {
     name = "search_results_col_visible";
