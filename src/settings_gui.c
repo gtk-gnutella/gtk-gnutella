@@ -4500,9 +4500,15 @@ static gboolean guid_changed(property_t prop)
     gnet_prop_get_storage(prop, (guint8 *) guid_buf, sizeof(guid_buf));
 
 #ifdef USE_GTK2
-    gtk_label_set_text(
-        GTK_LABEL(lookup_widget(main_window, "label_nodes_guid")),
-        guid_hex_str(guid_buf));
+	{
+		GtkLabel *label = GTK_LABEL(lookup_widget(main_window,
+										"label_nodes_guid"));
+		gchar buf[64];
+
+		gm_snprintf(buf, sizeof buf, "<tt>%s</tt>", guid_hex_str(guid_buf));
+		gtk_label_set_use_markup(label, TRUE);
+		gtk_label_set_markup(label, buf);
+	}
 #else
     gtk_entry_set_text(
         GTK_ENTRY(lookup_widget(main_window, "entry_nodes_guid")),
