@@ -52,10 +52,6 @@ const gchar * const prop_type_str[] = {
 	"multichoice"
 };
 
-static const char hex_alphabet_lower[] = "0123456789abcdef";
-
-static gchar prop_tmp[4096];
-
 /***
  *** Helpers
  ***/
@@ -68,12 +64,11 @@ do {																\
 	}																\
 } while (0)
 
-/*
- * prop_parse_ip_vector:
- *
+/**
  * Parse comma delimited numeric vector.
  */
-static void prop_parse_ip_vector(const gchar *name,
+static void
+prop_parse_ip_vector(const gchar *name,
 	const gchar *str, gsize size, guint32 *t)
 {
 	/* Parse comma delimited settings */
@@ -99,12 +94,12 @@ static void prop_parse_ip_vector(const gchar *name,
 
 	g_strfreev(h);
 }
-/*
- * prop_parse_guint64_vector:
- *
+
+/**
  * Parse comma delimited numeric vector.
  */
-static void prop_parse_guint64_vector(const gchar *name,
+static void
+prop_parse_guint64_vector(const gchar *name,
 	const gchar *str, gsize size, guint64 *t)
 {
 	/* Parse comma delimited settings */
@@ -142,12 +137,11 @@ static void prop_parse_guint64_vector(const gchar *name,
 	g_strfreev(h);
 }
 
-/*
- * prop_parse_guint32_vector:
- *
+/**
  * Parse comma delimited numeric vector.
  */
-static void prop_parse_guint32_vector(const gchar *name,
+static void
+prop_parse_guint32_vector(const gchar *name,
 	const gchar *str, gsize size, guint32 *t)
 {
 	/* Parse comma delimited settings */
@@ -188,12 +182,11 @@ static void prop_parse_guint32_vector(const gchar *name,
 	g_strfreev(h);
 }
 
-/*
- * prop_parse_boolean_vector:
- *
+/**
  * Parse comma delimited boolean vector (TRUE/FALSE list).
  */
-static void prop_parse_boolean_vector(const gchar *name,
+static void
+prop_parse_boolean_vector(const gchar *name,
 	const gchar *str, gsize size, gboolean *t)
 {
 	/* Parse comma delimited settings */
@@ -258,13 +251,11 @@ static void prop_parse_boolean_vector(const gchar *name,
 			"target initialization incomplete!", name);
 }
 
-/*
- * prop_parse_storage:
- *
+/**
  * Parse a hex string into a guint8 array.
  */
-static void prop_parse_storage(const gchar *name,
-	const gchar *str, gsize size, guint8 *t)
+static void
+prop_parse_storage(const gchar *name, const gchar *str, gsize size, gchar *t)
 {
 	gsize i;
 
@@ -274,7 +265,7 @@ static void prop_parse_storage(const gchar *name,
 			"storage does not match requested size", name);
 
 	for (i = 0; i < size; i++) {
-		guchar h, l;
+		gchar h, l;
 
 		h = str[i * 2];
 		l = str[i * 2 + 1];
@@ -294,16 +285,15 @@ static void prop_parse_storage(const gchar *name,
  *** Properties
  ***/
 
-/*
- * prop_get_def:
- *
+/**
  * Copy the property definition from the property set and return it.
  * Use the prop_free_def call to free the memory again. A simple g_free
  * won't do, since there are lot's of pointers to allocated memory
  * in the definition structure.
  * The prop_changed_listeners field will always be NULL in the copy.
  */
-prop_def_t *prop_get_def(prop_set_t *ps, property_t p)
+prop_def_t *
+prop_get_def(prop_set_t *ps, property_t p)
 {
 	prop_def_t *buf;
 
@@ -379,7 +369,8 @@ prop_def_t *prop_get_def(prop_set_t *ps, property_t p)
 	return buf;
 }
 
-void prop_free_def(prop_def_t *d)
+void
+prop_free_def(prop_def_t *d)
 {
 	g_assert(d != NULL);
 
@@ -424,25 +415,23 @@ void prop_free_def(prop_def_t *d)
 	G_FREE_NULL(d);
 }
 
-/*
- * prop_add_prop_changed_listener:
- *
+/**
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */
-void prop_add_prop_changed_listener(
+void
+prop_add_prop_changed_listener(
 	prop_set_t *ps, property_t prop, prop_changed_listener_t l, gboolean init)
 {
 	prop_add_prop_changed_listener_full(ps, prop, l, init, FREQ_SECS, 0);
 }
 
-/*
- * prop_add_prop_changed_listener_full:
- *
+/**
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */
-void prop_add_prop_changed_listener_full(
+void
+prop_add_prop_changed_listener_full(
 	prop_set_t *ps, property_t prop, prop_changed_listener_t l,
 	gboolean init, enum frequency_type freq, guint32 interval)
 {
@@ -456,7 +445,8 @@ void prop_add_prop_changed_listener_full(
 		(*l)(prop);
 }
 
-void prop_remove_prop_changed_listener(
+void
+prop_remove_prop_changed_listener(
 	prop_set_t *ps, property_t prop, prop_changed_listener_t l)
 {
 	g_assert(ps != NULL);
@@ -465,7 +455,8 @@ void prop_remove_prop_changed_listener(
 	event_remove_subscriber(PROP(ps,prop).ev_changed, (GCallback) l);
 }
 
-static void prop_emit_prop_changed(prop_set_t *ps, property_t prop)
+static void
+prop_emit_prop_changed(prop_set_t *ps, property_t prop)
 {
 	g_assert(ps != NULL);
 
@@ -477,8 +468,8 @@ static void prop_emit_prop_changed(prop_set_t *ps, property_t prop)
 		ps->dirty = TRUE;
 }
 
-void prop_set_boolean(
-	prop_set_t *ps, property_t prop, const gboolean *src,
+void
+prop_set_boolean(prop_set_t *ps, property_t prop, const gboolean *src,
 	guint32 offset, guint32 length)
 {
 	gboolean old;
@@ -533,8 +524,8 @@ void prop_set_boolean(
 	prop_emit_prop_changed(ps, prop);
 }
 
-gboolean *prop_get_boolean(
-	prop_set_t *ps, property_t prop, gboolean *t,
+gboolean *
+prop_get_boolean(prop_set_t *ps, property_t prop, gboolean *t,
 	guint32 offset, guint32 length)
 {
 	gboolean *target;
@@ -562,8 +553,8 @@ gboolean *prop_get_boolean(
 	return target;
 }
 
-void prop_set_guint64(
-	prop_set_t *ps, property_t prop, const guint64 *src,
+void
+prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 	guint64 offset, guint64 length)
 {
 	gboolean differ = FALSE;
@@ -650,8 +641,8 @@ void prop_set_guint64(
 	prop_emit_prop_changed(ps, prop);
 }
 
-guint64 *prop_get_guint64(
-	prop_set_t *ps, property_t prop, guint64 *t,
+guint64 *
+prop_get_guint64(prop_set_t *ps, property_t prop, guint64 *t,
 	guint64 offset, guint64 length)
 {
 	guint64 *target;
@@ -679,8 +670,8 @@ guint64 *prop_get_guint64(
 	return target;
 }
 
-void prop_set_guint32(
-	prop_set_t *ps, property_t prop, const guint32 *src,
+void
+prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
 	guint32 offset, guint32 length)
 {
 	gboolean differ = FALSE;
@@ -795,8 +786,8 @@ void prop_set_guint32(
 	prop_emit_prop_changed(ps, prop);
 }
 
-guint32 *prop_get_guint32(
-	prop_set_t *ps, property_t prop, guint32 *t,
+guint32 *
+prop_get_guint32(prop_set_t *ps, property_t prop, guint32 *t,
 	guint32 offset, guint32 length)
 {
 	guint32 *target;
@@ -828,8 +819,9 @@ guint32 *prop_get_guint32(
 	return target;
 }
 
-void prop_set_storage(
-	prop_set_t *ps, property_t prop, const gchar *src, gsize length)
+void
+prop_set_storage(prop_set_t *ps, property_t prop, const gchar *src,
+	gsize length)
 {
 	gboolean differ = FALSE;
 
@@ -888,7 +880,8 @@ prop_get_storage(prop_set_t *ps, property_t prop, gchar *t, gsize length)
 	return target;
 }
 
-void prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
+void
+prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
 {
 	gchar *old;
 	gboolean differ = FALSE;
@@ -938,9 +931,7 @@ void prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
 		prop_emit_prop_changed(ps, prop);
 }
 
-/*
- * prop_get_string:
- *
+/**
  * Fetches the value of a string property. If a string buffer is provided
  * (t != NULL), then this is used. The size indicates the size of the given
  * string buffer and may not be 0 in this case. The pointer which is
@@ -949,7 +940,8 @@ void prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
  * returned. This memory must be free'ed later. The size parameter has
  * no effect in this case.
  */
-gchar *prop_get_string(prop_set_t *ps, property_t prop, gchar *t, guint32 size)
+gchar *
+prop_get_string(prop_set_t *ps, property_t prop, gchar *t, guint32 size)
 {
 	gchar *target;
 	gchar *s;
@@ -991,22 +983,20 @@ gchar *prop_get_string(prop_set_t *ps, property_t prop, gchar *t, guint32 size)
 	return target;
 }
 
-/*
- * prop_name
- *
+/**
  * Fetch the property name in the config files.
  */
-gchar *prop_name(prop_set_t *ps, property_t prop)
+gchar *
+prop_name(prop_set_t *ps, property_t prop)
 {
 	return PROP(ps,prop).name;
 }
 
-/*
- * prop_to_string:
- *
+/**
  * Helper function for update_label() and update_entry()
  */
-gchar *prop_to_string(prop_set_t *ps, property_t prop)
+gchar *
+prop_to_string(prop_set_t *ps, property_t prop)
 {
 	static gchar s[4096];
 
@@ -1089,26 +1079,23 @@ gchar *prop_to_string(prop_set_t *ps, property_t prop)
 }
 
 
-/*
- * config_boolean:
- *
+/**
  * Returns "TRUE" or "FALSE" depending on the given boolean value.
  */
-static const gchar *config_boolean(gboolean b)
+static const gchar *
+config_boolean(gboolean b)
 {
-	static const gchar *b_true = "TRUE";
-	static const gchar *b_false = "FALSE";
+	static const gchar b_true[] = "TRUE", b_false[] = "FALSE";
 	return b ? b_true : b_false;
 }
 
-/*
- * config_comment:
- *
+/**
  * Creates a string containing aset of lines from with words taken from s,
  * each line no longer than 80 chars (except when a single words is very long)
  * and prepended with "# ".
  */
-static gchar *config_comment(const gchar *s)
+static gchar *
+config_comment(const gchar *s)
 {
 	gchar **sv;
 	gchar *tok;
@@ -1145,14 +1132,13 @@ static gchar *config_comment(const gchar *s)
 	return result;
 }
 
-/*
- * prop_save_to_file_if_dirty
- *
+/**
  * Like prop_save_to_file(), but only perform when dirty, i.e. when at least
  * one persisted property changed since the last time we saved.
  */
-void prop_save_to_file_if_dirty(
-	prop_set_t *ps, const gchar *dir, const gchar *filename)
+void
+prop_save_to_file_if_dirty(prop_set_t *ps, const gchar *dir,
+	const gchar *filename)
 {
 	if (!ps->dirty)
 		return;
@@ -1160,17 +1146,15 @@ void prop_save_to_file_if_dirty(
 	prop_save_to_file(ps, dir, filename);
 }
 
-/*
- * prop_save_to_file
- *
+/**
  * Read the all properties from the given property set and stores them
  * along with thier description to the given file in the given directory.
  * If this file was modified since the property set was read from it at
  * startup, the modifies file will be renamed to [filename].old before
  * saving.
  */
-void prop_save_to_file(
-	prop_set_t *ps, const gchar *dir, const gchar *filename)
+void
+prop_save_to_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 {
 	FILE *config;
 	time_t mtime = 0;
@@ -1319,6 +1303,7 @@ void prop_save_to_file(
 			val = g_malloc((p->vector_size * 2) + 1);
 
 			for (i = 0; i < p->vector_size; i++) {
+				static const char hex_alphabet_lower[] = "0123456789abcdef";
 				guint8 c = p->data.storage.value[i];
 
 				val[i * 2] = hex_alphabet_lower[c >> 4];
@@ -1362,9 +1347,7 @@ end:
 	G_FREE_NULL(pathname);
 }
 
-/*
- * load_helper:
- *
+/**
  * Called by prop_load_from_file to actually set the properties.
  */
 static void
@@ -1449,10 +1432,11 @@ load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 	G_FREE_NULL(stub);
 }
 
-void prop_load_from_file(
-	prop_set_t *ps, const gchar *dir, const gchar *filename)
+void
+prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 {
 	static const char fmt[] = "Bad line %u in config file, ignored";
+	static gchar prop_tmp[4096];
 	FILE *config;
 	gchar *path;
 	guint32 n = 0;
@@ -1583,11 +1567,12 @@ void prop_load_from_file(
 	fclose(config);
 }
 
-inline property_t prop_get_by_name(prop_set_t *ps, const gchar *name)
+inline property_t
+prop_get_by_name(prop_set_t *ps, const gchar *name)
 {
 	g_assert(ps != NULL);
 
 	return GPOINTER_TO_UINT(g_hash_table_lookup(ps->byName, name));
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
