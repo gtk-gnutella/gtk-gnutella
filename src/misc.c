@@ -1255,6 +1255,7 @@ void random_init(void)
 gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 {
 	static const gchar extra_bytes[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+	const gchar *sep;
 	gchar *filename;
 	size_t size;
 	size_t len;
@@ -1262,11 +1263,21 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	gint i;
 	gchar xuid[16];
 
+	g_assert(path);
+	g_assert(file);
+	g_assert(ext);
+
+	sep = strrchr(path, G_DIR_SEPARATOR);
+	g_assert(sep);	/* This is supposed to an absolute path */
+	/* Insert G_DIR_SEPARATOR_S only if necessary */
+	sep = sep[1] != '\0' ? G_DIR_SEPARATOR_S : "";
+	
 	/* Use extra_bytes so we can easily append a few chars later */
-	filename = GM_STRCONCAT_NULL(path, G_DIR_SEPARATOR_S, file, ext,
-					extra_bytes);
+	filename = GM_STRCONCAT_NULL(path, sep, file, ext, extra_bytes);
 	size = strlen(filename);
-	len = size - sizeof extra_bytes - 1;
+	g_assert(size > sizeof extra_bytes);
+	len = size - (sizeof extra_bytes - 1);
+	g_assert(filename[len] == extra_bytes[0]);
 	filename[len] = '\0';
 
 	/*
