@@ -2,7 +2,6 @@
 #include "gnutella.h"
 
 #include <signal.h>
-#include <mcheck.h>
 
 #include "interface.h"
 #include "support.h"
