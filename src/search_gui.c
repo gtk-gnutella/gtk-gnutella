@@ -81,6 +81,8 @@ static GtkWidget *default_scrolled_window = NULL;
 
 void search_gui_restart_search(search_t *sch)
 {
+	if (!sch->enabled)
+		gui_search_set_enabled(sch, TRUE);
 	search_reissue(sch->search_handle);
 	gtk_clist_clear(GTK_CLIST(sch->clist));
 	sch->items = sch->unseen_items = 0;

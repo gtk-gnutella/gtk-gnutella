@@ -128,6 +128,8 @@ static void	search_gui_clear_store(search_t *sch)
 
 void search_gui_restart_search(search_t *sch)
 {
+	if (!sch->enabled)
+		gui_search_set_enabled(sch, TRUE);
 	search_gui_clear_store(sch);
 	search_gui_clear_search(sch);
 	sch->items = sch->unseen_items = 0;
