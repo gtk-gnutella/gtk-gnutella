@@ -32,6 +32,7 @@
  * When about to move to "disconnected from the Internet" state, look whether
    there was incoming traffic received recently.
  * Don't assert that size_atom exists on fi_free(), it could be missing.
+ * Fixed Richard's sent counter stats.
 
 - (2002.09.07 RAM)
  * Added "int" atoms.
