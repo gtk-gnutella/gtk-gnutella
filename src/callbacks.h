@@ -4,6 +4,13 @@
 #include <gtk/gtk.h>
 #include "search.h"
 
+#define SPINBUTTON_DECL(v)\
+    void on_spinbutton_##v##_activate\
+        (GtkEditable *editable, gpointer user_data);\
+    gboolean on_spinbutton_##v##_focus_out_event\
+        (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
+
+
 gboolean on_clist_monitor_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 gboolean on_clist_nodes_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 gboolean on_clist_uploads_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
@@ -53,6 +60,7 @@ gboolean on_progressbar_bps_out_button_press_event(GtkWidget *widget, GdkEventBu
 void on_button_host_catcher_clear_clicked (GtkButton *button, gpointer user_data);
 void on_button_nodes_add_clicked (GtkButton *button, gpointer user_data); 
 void on_button_nodes_remove_clicked (GtkButton *button, gpointer user_data);
+SPINBUTTON_DECL(nodes_max_hosts_cached)
 
 
 
@@ -140,10 +148,6 @@ gboolean on_entry_config_socks_host_focus_out_event (GtkWidget *widget, GdkEvent
 gboolean on_entry_config_socks_password_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_config_socks_username_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 gboolean on_entry_config_speed_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-gboolean on_spinbutton_config_bps_in_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-gboolean on_spinbutton_config_bps_out_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-gboolean on_spinbutton_config_port_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
-gboolean on_spinbutton_config_proxy_port_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 void on_button_config_add_dir_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_move_path_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_rescan_dir_clicked (GtkButton *button, gpointer user_data); 
@@ -173,10 +177,29 @@ void on_entry_config_speed_activate (GtkEditable *editable, gpointer user_data);
 void on_radio_config_http_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_radio_config_socksv4_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_radio_config_socksv5_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_spinbutton_config_bps_in_activate(GtkEditable *editable, gpointer user_data);
-void on_spinbutton_config_bps_out_activate(GtkEditable *editable, gpointer user_data);
-void on_spinbutton_config_port_activate (GtkEditable *editable, gpointer user_data); 
-void on_spinbutton_config_proxy_port_activate (GtkEditable *editable, gpointer user_data);
+SPINBUTTON_DECL(config_bps_in)
+SPINBUTTON_DECL(config_bps_out)
+SPINBUTTON_DECL(config_port)
+SPINBUTTON_DECL(config_proxy_port)
+SPINBUTTON_DECL(config_max_high_ttl_radius)
+SPINBUTTON_DECL(config_max_high_ttl_msg)
+SPINBUTTON_DECL(config_hard_ttl_limit)
+SPINBUTTON_DECL(config_download_overlap_range)
+SPINBUTTON_DECL(config_download_max_retries)
+SPINBUTTON_DECL(config_download_retry_stopped)
+SPINBUTTON_DECL(config_download_retry_refused_delay)
+SPINBUTTON_DECL(config_download_retry_busy_delay)
+SPINBUTTON_DECL(config_download_retry_timeout_delay)
+SPINBUTTON_DECL(config_download_retry_timeout_max)
+SPINBUTTON_DECL(config_download_retry_timeout_min)
+SPINBUTTON_DECL(config_download_connecting_timeout)
+SPINBUTTON_DECL(config_download_push_sent_timeout)
+SPINBUTTON_DECL(config_download_connected_timeout)
+SPINBUTTON_DECL(config_node_tx_flowc_timeout)
+SPINBUTTON_DECL(config_node_connecting_timeout)
+SPINBUTTON_DECL(config_node_connected_timeout)
+SPINBUTTON_DECL(config_upload_connecting_timeout)
+SPINBUTTON_DECL(config_upload_connected_timeout)
 
 
 

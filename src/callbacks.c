@@ -83,7 +83,8 @@
     v = (float)m * gtk_spin_button_get_value_as_float(\
             GTK_SPIN_BUTTON(editable));\
     f;\
-    }
+    }\
+    FOCUS_TO_ACTIVATE(w)
 
 static gchar c_tmp[2048];
 static gint select_all_lock = 0;
@@ -246,6 +247,13 @@ void on_entry_up_connections_activate(GtkEditable * editable,
 	}
 }
 FOCUS_TO_ACTIVATE(entry_up_connections)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_nodes_max_hosts_cached,
+    max_hosts_cached,
+    1,
+    NO_FUNC)
+
 
 
 /*** 
@@ -1419,7 +1427,6 @@ BIND_SPINBUTTON_CALL(
     1024,
     bsched_set_bandwidth(bws.in, bandwidth.input)
 )
-FOCUS_TO_ACTIVATE(spinbutton_config_bps_in)
 
 BIND_SPINBUTTON_CALL(
     spinbutton_config_bps_out,
@@ -1427,7 +1434,6 @@ BIND_SPINBUTTON_CALL(
     1024,
     bsched_set_bandwidth(bws.out, bandwidth.output)
 )
-FOCUS_TO_ACTIVATE(spinbutton_config_bps_out)
 
 /* While downloading, store files to */
 
@@ -1637,12 +1643,6 @@ BIND_CHECKBUTTON(
     }
 )
 
-
-
-/***
- *** Netmaks
- ***/
-
 void on_entry_config_netmask_activate(GtkEditable * editable,
 									  gpointer user_data)
 {
@@ -1725,48 +1725,23 @@ void on_spinbutton_config_port_activate(GtkEditable * editable,
 }
 FOCUS_TO_ACTIVATE(spinbutton_config_port)
 
-void on_entry_config_maxttl_activate(GtkEditable * editable,
-									 gpointer user_data)
-{
-    guint32 v;
-	gchar *e =
-		g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_config_maxttl)));
-	g_strstrip(e);
-	v = atoi(e);
-	if (v > 0 && v < 255)
-		max_ttl = v;
-	gui_update_max_ttl();
-	g_free(e);
-}
-FOCUS_TO_ACTIVATE(entry_config_maxttl)
+BIND_SPINBUTTON_CALL(
+    entry_config_maxttl,
+    max_ttl,
+    1,
+    NO_FUNC)
 
-void on_entry_config_myttl_activate(GtkEditable * editable,
-									gpointer user_data)
-{
-    guint32 v;
-	gchar *e = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_config_myttl)));
-	g_strstrip(e);
-	v = atoi(e);
-	if (v > 0 && v < 255)
-		my_ttl = v;
-	gui_update_my_ttl();
-	g_free(e);
-}
-FOCUS_TO_ACTIVATE(entry_config_myttl)
+BIND_SPINBUTTON_CALL(
+    entry_config_myttl,
+    my_ttl,
+    1,
+    NO_FUNC)
 
-void on_entry_config_speed_activate(GtkEditable * editable,
-									gpointer user_data)
-{
-    guint32 v;
-	gchar *e = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_config_speed)));
-	g_strstrip(e);
-	v = atol(e);
-	if (v > 0 && v < 65535)
-		connection_speed = v;
-	gui_update_connection_speed();
-	g_free(e);
-}
-FOCUS_TO_ACTIVATE(entry_config_speed)
+BIND_SPINBUTTON_CALL(
+    entry_config_speed,
+    connection_speed,
+    1,
+    NO_FUNC)
 
 void on_entry_config_search_items_activate(GtkEditable * editable,
 										   gpointer user_data)
@@ -1782,6 +1757,120 @@ void on_entry_config_search_items_activate(GtkEditable * editable,
 	g_free(e);
 }
 FOCUS_TO_ACTIVATE(entry_config_search_items)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_max_high_ttl_radius,
+    max_high_ttl_radius,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_max_high_ttl_msg,
+    max_high_ttl_msg,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_hard_ttl_limit,
+    hard_ttl_limit,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_download_overlap_range,
+    download_overlap_range,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_download_max_retries,
+    download_max_retries,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_download_retry_stopped,
+    download_retry_stopped,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_download_retry_refused_delay,
+    download_retry_refused_delay,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_download_retry_busy_delay,
+    download_retry_busy_delay,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_download_retry_timeout_delay,
+    download_retry_timeout_delay,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_download_retry_timeout_max,
+    download_retry_timeout_max,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_download_retry_timeout_min,
+    download_retry_timeout_min,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_download_connecting_timeout,
+    download_connecting_timeout,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_download_push_sent_timeout,
+    download_push_sent_timeout,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_download_connected_timeout,
+    download_connected_timeout,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_node_tx_flowc_timeout,
+    node_tx_flowc_timeout,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_node_connecting_timeout,
+    node_connecting_timeout,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_node_connected_timeout,
+    node_connected_timeout,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_upload_connecting_timeout,
+    upload_connecting_timeout,
+    1,
+    NO_FUNC)
+
+BIND_SPINBUTTON_CALL(
+    spinbutton_config_upload_connected_timeout,
+    upload_connected_timeout,
+    1,
+    NO_FUNC)
 
 void on_button_search_passive_clicked(GtkButton * button,
 									  gpointer user_data)
@@ -1874,20 +1963,6 @@ BIND_SPINBUTTON_CALL(
     proxy_port,
     1,
     NO_FUNC)
-
-/*
-void on_entry_config_socks_port_activate(GtkEditable * editable,
-										 gpointer user_data)
-{
-    gint16 v;
-	v = gtk_spin_button_get_value_as_int(
-            GTK_SPIN_BUTTON(spinbutton_config_proxy_port));
-
-	if (v >= -1 && v < 32000)
-		proxy_port = v;
-}
-*/
-FOCUS_TO_ACTIVATE(spinbutton_config_proxy_port)
 
 void on_entry_config_socks_username_activate(GtkEditable * editable,
 											 gpointer user_data)

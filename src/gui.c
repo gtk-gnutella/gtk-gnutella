@@ -349,6 +349,26 @@ void gui_update_all()
     gui_update_download_delete_aborted();
     gui_update_search_pick_all();
     gui_update_is_firewalled();
+    gui_update_max_high_ttl_radius();
+    gui_update_max_high_ttl_msg();
+    gui_update_hard_ttl_limit();
+    gui_update_download_overlap_range();
+    gui_update_download_max_retries();
+    gui_update_download_retry_stopped();
+    gui_update_download_retry_refused_delay();
+    gui_update_download_retry_busy_delay();
+    gui_update_download_retry_timeout_delay();
+    gui_update_download_retry_timeout_max();
+    gui_update_download_retry_timeout_min();
+    gui_update_download_connecting_timeout();
+    gui_update_download_push_sent_timeout();
+    gui_update_download_connected_timeout();
+    gui_update_node_tx_flowc_timeout();
+    gui_update_node_connecting_timeout();
+    gui_update_node_connected_timeout();
+    gui_update_upload_connecting_timeout();
+    gui_update_upload_connected_timeout();
+    gui_update_max_hosts_cached();
 
     if (win_w && win_h) {
 		gtk_widget_set_uposition(main_window, win_x, win_y);
@@ -557,15 +577,13 @@ void gui_update_count_uploads(void)
 void gui_update_save_file_path(void)
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", save_file_path);
-	gtk_label_set(GTK_LABEL(GTK_BIN(button_config_save_path)->child),
-				  gui_tmp);
+    gtk_entry_set_text(GTK_ENTRY(entry_config_save_path),gui_tmp);
 }
 
 void gui_update_move_file_path(void)
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", move_file_path);
-	gtk_label_set(GTK_LABEL(GTK_BIN(button_config_move_path)->child),
-				  gui_tmp);
+	gtk_entry_set_text(GTK_ENTRY(entry_config_move_path),gui_tmp);
 }
 
 void gui_update_monitor_max_items(void)
@@ -751,6 +769,105 @@ void gui_update_is_firewalled()
     }
 }
 
+UPDATE_SPINBUTTON(
+    spinbutton_config_max_high_ttl_radius,
+    max_high_ttl_radius,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_max_high_ttl_msg,
+    max_high_ttl_msg,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_hard_ttl_limit,
+    hard_ttl_limit,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_download_overlap_range,
+    download_overlap_range,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_download_max_retries,
+    download_max_retries,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_download_retry_stopped,
+    download_retry_stopped,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_download_retry_refused_delay,
+    download_retry_refused_delay,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_download_retry_busy_delay,
+    download_retry_busy_delay,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_download_retry_timeout_delay,
+    download_retry_timeout_delay,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_download_retry_timeout_max,
+    download_retry_timeout_max,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_download_retry_timeout_min,
+    download_retry_timeout_min,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_download_connecting_timeout,
+    download_connecting_timeout,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_download_push_sent_timeout,
+    download_push_sent_timeout,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_download_connected_timeout,
+    download_connected_timeout,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_node_tx_flowc_timeout,
+    node_tx_flowc_timeout,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_node_connecting_timeout,
+    node_connecting_timeout,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_node_connected_timeout,
+    node_connected_timeout,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_upload_connecting_timeout,
+    upload_connecting_timeout,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_upload_connected_timeout,
+    upload_connected_timeout,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_nodes_max_hosts_cached,
+    max_hosts_cached,
+    NO_FUNC)
 
 /*
  * gui_update_config_netmasks

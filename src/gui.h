@@ -126,5 +126,25 @@ void gui_update_search_remove_downloaded();
 void gui_update_download_delete_aborted();
 void gui_update_search_pick_all();
 void gui_update_is_firewalled();
+void gui_update_max_high_ttl_radius();
+void gui_update_max_high_ttl_msg();
+void gui_update_hard_ttl_limit();
+void gui_update_download_overlap_range();
+void gui_update_download_max_retries();
+void gui_update_download_retry_stopped();
+void gui_update_download_retry_refused_delay();
+void gui_update_download_retry_busy_delay();
+void gui_update_download_retry_timeout_delay();
+void gui_update_download_retry_timeout_max();
+void gui_update_download_retry_timeout_min();
+void gui_update_download_connecting_timeout();
+void gui_update_download_push_sent_timeout();
+void gui_update_download_connected_timeout();
+void gui_update_node_tx_flowc_timeout();
+void gui_update_node_connecting_timeout();
+void gui_update_node_connected_timeout();
+void gui_update_upload_connecting_timeout();
+void gui_update_upload_connected_timeout();
+void gui_update_max_hosts_cached();
 
 #endif /* __gui_h__ */
