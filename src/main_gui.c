@@ -507,6 +507,7 @@ void main_gui_early_init(gint argc, gchar **argv)
 	/* Glade inits */
 
 	gtk_set_locale();
+	gtk_init(&argc, &argv);
 
 	add_pixmap_directory(PACKAGE_DATA_DIR "/pixmaps");
 #ifdef USE_SOURCE_DIR_AS_FALLBACK
