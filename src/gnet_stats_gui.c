@@ -213,26 +213,6 @@ gchar *general_stat_str(gnet_stats_t *stats, gint type)
     }
 }
 
-gchar *horizon_stat_str(hsep_triple *table, gint row, gint column)
-{
-    static gchar strbuf[21];
-
-    switch (column)
-    {
-      case 0: gm_snprintf(strbuf, sizeof(strbuf), "%u", row);
-              return strbuf;
-      case 1: gm_snprintf(strbuf, sizeof(strbuf),
-	              "%llu", table[row][HSEP_IDX_NODES]);
-              return strbuf;
-      case 2: gm_snprintf(strbuf, sizeof(strbuf),
-	              "%llu", table[row][HSEP_IDX_FILES]);
-              return strbuf;
-      case 3: return(short_kb_size64(table[row][HSEP_IDX_KIB]));
-    }
-
-    return NULL;
-}
-
 gchar *flowc_stat_str_pkg(guint64 *val_tbl, gint type)
 {
     static gchar strbuf[21];
@@ -492,7 +472,7 @@ void gnet_stats_gui_update(time_t now)
     for (n = 0; n < HSEP_N_MAX; n ++) {
         /* 
 		 * Note that we output hsep_table[1..HSEP_N_MAX] 
-		 *		-- TS 2/6/2004 
+		 *		-- TNT 2/6/2004 
 		 */
         gtk_clist_set_text(clist_horizon, n, 1,
 		    horizon_stat_str(hsep_table, n + 1, 1));

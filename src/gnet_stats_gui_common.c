@@ -125,3 +125,28 @@ const gchar *general_type_str(int value)
 			return "";
 	}
 }
+
+/*
+ * horizon_stat_str
+ *
+ * Returns the cell contents for the horizon stats table.
+ */
+const gchar *horizon_stat_str(hsep_triple *table, gint row, gint column)
+{
+    static gchar strbuf[21];
+
+    switch (column)
+    {
+      case 0: gm_snprintf(strbuf, sizeof(strbuf), "%u", row);
+              return strbuf;
+      case 1: gm_snprintf(strbuf, sizeof(strbuf),
+                     "%llu", table[row][HSEP_IDX_NODES]);
+              return strbuf;
+      case 2: gm_snprintf(strbuf, sizeof(strbuf),
+                     "%llu", table[row][HSEP_IDX_FILES]);
+              return strbuf;
+      case 3: return(short_kb_size64(table[row][HSEP_IDX_KIB]));
+    }
+
+    return NULL;
+}
