@@ -102,7 +102,7 @@ void gui_update_global(void)
 }
 
 static void update_stat(guint32 *max, GtkProgressBar *pg, 
-    gnet_bw_stats_t *stats, gboolean avg_mode)
+    gnet_bw_stats_t *stats, gboolean avg_mode, gboolean inout)
 {
     gfloat frac = 0;
     guint32 high_limit;
@@ -117,8 +117,10 @@ static void update_stat(guint32 *max, GtkProgressBar *pg,
         current);
     frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
 
-	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
-        compact_size(current), avg_mode ? "(avg)" : "");
+	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s %s %s", 
+        compact_size(current), 
+        inout ? "in" : "out",
+        avg_mode ? "(avg)" : "");
 	gtk_progress_bar_set_text(pg, gui_tmp);
     gtk_progress_bar_set_fraction(pg, frac);
 }
@@ -161,17 +163,17 @@ void gui_update_traffic_stats() {
 	 */
 
     gnet_get_bw_stats(BW_HTTP_IN,&s);
-    update_stat(&http_in_max, pg_http_in, &s, progressbar_bws_in_avg);
+    update_stat(&http_in_max, pg_http_in, &s, progressbar_bws_in_avg, 1);
     gnet_get_bw_stats(BW_HTTP_OUT, &s);
-    update_stat(&http_out_max, pg_http_out, &s, progressbar_bws_out_avg);
+    update_stat(&http_out_max, pg_http_out, &s, progressbar_bws_out_avg, 0);
     gnet_get_bw_stats(BW_GNET_IN, &s);
-    update_stat(&gnet_in_max, pg_gnet_in, &s, progressbar_bws_gin_avg);
+    update_stat(&gnet_in_max, pg_gnet_in, &s, progressbar_bws_gin_avg, 1);
     gnet_get_bw_stats(BW_GNET_OUT, &s);
-    update_stat(&gnet_out_max, pg_gnet_out, &s, progressbar_bws_gout_avg);
+    update_stat(&gnet_out_max, pg_gnet_out, &s, progressbar_bws_gout_avg, 0);
     gnet_get_bw_stats(BW_LEAF_IN, &s);
-    update_stat(&leaf_in_max, pg_leaf_in, &s, progressbar_bws_glin_avg);
+    update_stat(&leaf_in_max, pg_leaf_in, &s, progressbar_bws_glin_avg, 1);
     gnet_get_bw_stats(BW_LEAF_OUT, &s);
-    update_stat(&leaf_out_max, pg_leaf_out, &s, progressbar_bws_glout_avg);
+    update_stat(&leaf_out_max, pg_leaf_out, &s, progressbar_bws_glout_avg, 0);
 }
 
 void gui_update_stats_frames()
@@ -180,6 +182,8 @@ void gui_update_stats_frames()
         lookup_widget(main_window, "frame_bws_inout");
     GtkWidget *frame_bws_ginout = 
         lookup_widget(main_window, "frame_bws_ginout");
+    GtkWidget *frame_bws_glinout = 
+        lookup_widget(main_window, "frame_bws_glinout");
 
 
     if (progressbar_bws_in_visible || progressbar_bws_out_visible) {
@@ -192,6 +196,12 @@ void gui_update_stats_frames()
         gtk_widget_show(frame_bws_ginout);
     } else {
         gtk_widget_hide(frame_bws_ginout);
+    }
+
+    if (progressbar_bws_glin_visible || progressbar_bws_glout_visible) {
+        gtk_widget_show(frame_bws_glinout);
+    } else {
+        gtk_widget_hide(frame_bws_glinout);
     }
 }
 
