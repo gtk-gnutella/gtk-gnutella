@@ -125,7 +125,7 @@ XML_CONFIG = @XML_CONFIG@
 XML_LIBS = @XML_LIBS@
 YACC = @YACC@
 
-SUBDIRS = m4  po src
+SUBDIRS = po src
 
 EXTRA_GTK2 =  	src/fileinfo_gui2.c 	src/gnet_stats_gui2.c 	src/interface-glade2.c 	src/interface-glade2.h 	src/monitor_cb2.c 	src/monitor_gui2.c 	src/nodes_cb2.c 	src/nodes_gui2.c 	src/nodes_cb2.h 	src/search_cb2.c 	src/search_cb2.h 	src/search_gui2.c 	src/search_stats_gui2.c 	src/support-glade2.c 	src/support-glade2.h 	src/upload_stats_gui2.c 	src/uploads_gui2.c
 
@@ -136,7 +136,7 @@ EXTRA_SHELL =  	src/shell.c 	src/shell.h
 EXTRA_DIST = config.rpath  gtk-gnutella.spec		gwcache.boot 	hostiles.txt 	debian/README.debian			debian/changelog				debian/control					debian/copyright				debian/dirs						debian/gtk-gnutella.1			debian/menu						debian/rules					$(EXTRA_GTK2) 	$(EXTRA_SHELL)
 
 
-ACLOCAL_AMFLAGS = -I m4
+ACLOCAL_AMFLAGS =
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h

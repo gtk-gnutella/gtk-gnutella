@@ -91,9 +91,6 @@
 /* Define if you want to use the remote shell feature. */
 #undef USE_REMOTE_SHELL
 
-/* Define if you have a GNU gettext. */
-#undef HAVE_BIND_TEXTDOMAIN_CODESET
-
 /* Define if you have the bind_textdomain_codeset function. */
 #undef HAVE_BIND_TEXTDOMAIN_CODESET
 
