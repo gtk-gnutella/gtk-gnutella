@@ -4086,7 +4086,7 @@ static gboolean autoclear_completed_downloads_changed(property_t prop)
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
         (lookup_widget(top, map_entry->wid)), val);
 
-    if(val)
+    if (val)
         download_clear_stopped(TRUE, FALSE, FALSE, TRUE);
 
     return FALSE;
@@ -4104,7 +4104,7 @@ static gboolean autoclear_failed_downloads_changed(property_t prop)
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
         (lookup_widget(top, map_entry->wid)), val);
 
-    if(val)
+    if (val)
         download_clear_stopped(FALSE, TRUE, FALSE, TRUE);
 
     return FALSE;
@@ -4122,7 +4122,7 @@ static gboolean autoclear_unavailable_downloads_changed(property_t prop)
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
         (lookup_widget(top, map_entry->wid)), val);
 
-    if(val)
+    if (val)
         download_clear_stopped(FALSE, FALSE, TRUE, TRUE);
 
     return FALSE;
