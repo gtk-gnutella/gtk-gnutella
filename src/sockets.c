@@ -86,7 +86,7 @@ void socket_timer(time_t now)
 	GSList *l;
 	GSList *to_remove = NULL;
 
-	for (l = sl_incoming; l; l = l->next) {
+	for (l = sl_incoming; l; l = g_slist_next(l)) {
 		struct gnutella_socket *s = (struct gnutella_socket *) l->data;
 		g_assert(s->last_update);
 		if (now - s->last_update > incoming_connecting_timeout) {
@@ -101,10 +101,12 @@ void socket_timer(time_t now)
 		}
 	}
 
-	for (l = to_remove; l; l = l->next) {
+	for (l = to_remove; l; l = g_slist_next(l)) {
 		struct gnutella_socket *s = (struct gnutella_socket *) l->data;
 		socket_destroy(s, "Connection timeout");
 	}
+
+	g_slist_free(to_remove);
 }
 
 void socket_shutdown(void)
@@ -769,6 +771,7 @@ static struct gnutella_socket *socket_connect_finalize(
 	g_assert(NULL != s);
 
 	s->adns_pending = FALSE;
+	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = g_htonl(s->ip);
 	addr.sin_port = g_htons(s->port);
@@ -782,6 +785,7 @@ static struct gnutella_socket *socket_connect_finalize(
 	if (force_local_ip) {
 		struct sockaddr_in lcladdr;
 
+		memset(&lcladdr, 0, sizeof(addr));
 		lcladdr.sin_family = AF_INET;
 		lcladdr.sin_addr.s_addr = g_htonl(forced_local_ip);
 		lcladdr.sin_port = g_htons(0);
