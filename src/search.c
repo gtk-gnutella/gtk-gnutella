@@ -955,8 +955,10 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
 			wocnt = query_make_word_vec(sch->query, &wovec);
 			
-			while (wocnt > 0)
-				qhvec_add(qhv, wovec[--wocnt].word, QUERY_H_WORD);
+			while (wocnt > 0) {
+				if (wovec[--wocnt].len >= QRP_MIN_WORD_LENGTH)
+					qhvec_add(qhv, wovec[wocnt].word, QUERY_H_WORD);
+			}
 
 			query_word_vec_free(wovec, wocnt);
 		}

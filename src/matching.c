@@ -742,8 +742,10 @@ gint st_search(
 	 */
 
 	if (qhv != NULL) {
-		for (i = 0; i < wocnt; i++)
-			qhvec_add(qhv, wovec[i].word, QUERY_H_WORD);
+		for (i = 0; i < wocnt; i++) {
+			if (wovec[i].len >= QRP_MIN_WORD_LENGTH)
+				qhvec_add(qhv, wovec[i].word, QUERY_H_WORD);
+		}
 	}
 
 	if (wocnt == 0 || best_bin == NULL) {
