@@ -25,7 +25,7 @@
  *----------------------------------------------------------------------
  */
 
-/* For inet_addr */
+/* For ntohl and inet_addr */
 #include <sys/types.h>
 #include <netinet/in.h> 
 #include <arpa/inet.h>
@@ -1516,14 +1516,14 @@ static rule_t *filter_gui_get_ip_rule(void)
         GTK_EDITABLE
             (lookup_widget(filter_dialog, "entry_filter_ip_address")),
         0, -1);
-	addr = inet_addr(s);
+	addr = ntohl(inet_addr(s));
 	g_free(s);
 
 	s = gtk_editable_get_chars(
         GTK_EDITABLE
             (lookup_widget(filter_dialog, "entry_filter_ip_mask")),
         0, -1);
-	mask = inet_addr(s);
+	mask = ntohl(inet_addr(s));
 	g_free(s);
 
    	negate = gtk_toggle_button_get_active(
