@@ -164,6 +164,7 @@ static gboolean autoclear_downloads_changed(property_t prop);
 static gboolean search_stats_enabled_changed(property_t prop);
 static gboolean socks_user_changed(property_t prop);
 static gboolean socks_pass_changed(property_t prop);
+static gboolean traffic_stats_mode_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
 //        description. 
@@ -365,18 +366,18 @@ static prop_map_t property_map[] = {
         "popup_search_toggle_tabs"
     },
     {
-        NULL,
+        get_main_window,
         PROP_GUI_DEBUG,
-        IGNORE,
-        FALSE,
-        NULL
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_gui_debug"
     },
     {
-        NULL,
+        get_main_window,
         PROP_DBG,
-        IGNORE,
-        FALSE,
-        NULL
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_dbg"
     },
     { 
         get_main_window,
@@ -945,6 +946,125 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_config_aggressive_swarming"
     },
+    {
+        get_main_window,
+        PROP_STOP_HOST_GET,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_stop_host_get"
+    },
+    {
+        NULL,
+        PROP_SEARCH_QUERIES_FORWARD_SIZE,
+        IGNORE,
+        FALSE,
+        NULL
+    },
+    {
+        NULL,
+        PROP_SEARCH_QUERIES_KICK_SIZE,
+        IGNORE,
+        FALSE,
+        NULL
+    },
+    {
+        NULL,
+        PROP_SEARCH_ANSWERS_FORWARD_SIZE,
+        IGNORE,
+        FALSE,
+        NULL
+    },
+    {
+        NULL,
+        PROP_SEARCH_ANSWERS_KICK_SIZE,
+        IGNORE,
+        FALSE,
+        NULL
+    },
+    {
+        NULL,
+        PROP_OTHER_MESSAGES_KICK_SIZE,
+        IGNORE,
+        FALSE,
+        NULL
+    },
+    {
+        get_main_window,
+        PROP_HOPS_RANDOM_FACTOR,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_hops_random_factor"
+    },
+    {
+        NULL,
+        PROP_PROGRESSBAR_BWS_IN_AVG,
+        traffic_stats_mode_changed,
+        FALSE,
+        NULL
+    },
+    {
+        NULL,
+        PROP_PROGRESSBAR_BWS_OUT_AVG,
+        traffic_stats_mode_changed,
+        FALSE,
+        NULL
+    },
+    {
+        NULL,
+        PROP_PROGRESSBAR_BWS_GIN_AVG,
+        traffic_stats_mode_changed,
+        FALSE,
+        NULL
+    },
+    {
+        NULL,
+        PROP_PROGRESSBAR_BWS_GOUT_AVG,
+        traffic_stats_mode_changed,
+        FALSE,
+        NULL
+    },
+    {
+        NULL,
+        PROP_BAN_RATIO_FDS,
+        IGNORE,
+        FALSE,
+        NULL
+    },
+    {
+        NULL,
+        PROP_BAN_MAX_FDS,
+        IGNORE,
+        FALSE,
+        NULL
+    },
+    {
+        NULL,
+        PROP_NODE_SENDQUEUE_SIZE,
+        IGNORE,
+        FALSE,
+        NULL
+    },
+    {
+        NULL,
+        PROP_FILTER_DEFAULT_POLICY,
+        IGNORE,
+        FALSE,
+        NULL
+    },
+    {
+        NULL,
+        PROP_GUID,
+        IGNORE,
+        FALSE,
+        NULL
+    },
+    {
+        NULL,
+        PROP_LOCAL_IP,
+        IGNORE,
+        FALSE,
+        NULL
+    }
 };
 
 /***
@@ -1714,6 +1834,14 @@ static gboolean search_stats_enabled_changed(property_t prop)
 
     return FALSE;
 }
+
+static gboolean traffic_stats_mode_changed(property_t prop)
+{
+    gui_update_traffic_stats();
+
+    return FALSE;
+}
+
 
 /***
  *** V.  Control functions.
