@@ -276,7 +276,8 @@ static void mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		q->last_size = q->size;
 		q->swift_ev = cq_insert(callout_queue,
 			q->swift_elapsed, mq_swift_timer, q);
-	}
+	} else
+		q->swift_ev = NULL;
 }
 
 /*
