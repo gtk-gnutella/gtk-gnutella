@@ -42,6 +42,7 @@ RCSID("$Id$");
 
 #include "lib/glib-missing.h"
 #include "lib/walloc.h"
+#include "lib/misc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 
@@ -1367,6 +1368,25 @@ bio_sendto(bio_source_t *bio, gnet_host_t *to, gconstpointer data, size_t len)
 	return r;
 }
 
+#ifndef HAS_SENDFILE
+static sigjmp_buf mmap_env;
+static sig_atomic_t mmap_access;
+
+/**
+ * Handles SIGBUS or SIGSEGV when accessing mmap()ed areas.
+ */
+static void
+signal_handler(int n)
+{
+	if (mmap_access) {
+		mmap_access = 0;
+		siglongjmp(mmap_env, n);
+	}
+	set_signal(n, SIG_DFL);
+	raise(n);
+}
+#endif /* !HAVE_SENDFILE */
+
 /**
  * Write at most `len' bytes to source's fd, as bandwidth permits.
  * Bytes are read from `offset' in the in_fd file descriptor, and the value
@@ -1415,6 +1435,14 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 
 #ifndef HAS_SENDFILE
 	{
+		static gboolean first_call = TRUE;
+
+		if (first_call) {
+			first_call = FALSE;
+			set_signal(SIGBUS, signal_handler);
+			set_signal(SIGSEGV, signal_handler);
+		}
+			
 		if (
 			ctx->map == NULL ||
 			start < ctx->map_start ||
@@ -1442,9 +1470,32 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio, gint in_fd, off_t *offset,
 		}
 		if (ctx->map != NULL) {
 			const gchar *data;
+			gint n;
 		
+			if (0 != (n = sigsetjmp(mmap_env, 1))) {
+				const gchar *signame;
+
+				switch (n) {
+				case SIGBUS:
+					signame = "SIGBUS";
+					break;
+				case SIGSEGV:
+					signame = "SIGSEGV";
+					break;
+				default:
+					g_assert_not_reached();
+				}
+				g_warning("bio_sendfile(): Caught %s", signame);
+				errno = EPIPE;
+				return -1;
+			}
+
 			data = ctx->map;
+			g_assert(mmap_access == 0);
+			mmap_access = 1;
 			r = write(out_fd, &data[start - ctx->map_start], amount);
+			mmap_access = 0;
+
 			if (r > 0)
 				*offset = start + r;
 		}
