@@ -40,6 +40,8 @@ static guint main_slow_update = 0;
 
 void gtk_gnutella_exit(gint n)
 {
+	node_bye_all();
+
 	if (hosts_idle_func)
 		gtk_idle_remove(hosts_idle_func);
 	config_save();

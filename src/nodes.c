@@ -34,7 +34,8 @@
 #define NODE_RECV_BUFSIZE		49152	/* TCP receive buffer size - 48K */
 
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
-#define SHUTDOWN_GRACE_DELAY	600	/* Grace period for shutdowning nodes */
+#define SHUTDOWN_GRACE_DELAY	120	/* Grace period for shutdowning nodes */
+#define BYE_GRACE_DELAY			20	/* Bye sent, give time to propagate */
 
 GSList *sl_nodes = (GSList *) NULL;
 
@@ -107,9 +108,9 @@ void node_timer(time_t now)
 				if (now - n->last_update > node_connecting_timeout)
 					node_remove(n, "Timeout");
 			} else if (n->status == GTA_NODE_SHUTDOWN) {
-				if (now - n->shutdown_date > SHUTDOWN_GRACE_DELAY) {
+				if (now - n->shutdown_date > n->shutdown_delay) {
 					gchar *reason = g_strdup(n->error_str);
-					node_remove(n, "Shutdown timeout (%s)", reason);
+					node_remove(n, "Shutdown (%s)", reason);
 					g_free(reason);
 				}
 			} else if (now - n->last_update > node_connected_timeout) {
@@ -124,7 +125,7 @@ void node_timer(time_t now)
 				node_bye(n, 405, "Transmit timeout");
 		}
 
-		gui_update_node_display(n);
+		gui_update_node_display(n, now);
 	}
 }
 
@@ -260,27 +261,18 @@ void node_real_remove(struct gnutella_node *n)
 }
 
 /*
- * node_remove
+ * node_remove_v
  *
- * Terminate connection with remote node, but keep structure around for a
- * while, for displaying purposes, and also to prevent the node from being
- * physically reclaimed within this stack frame.
- *
- * It will be reclaimed on the "idle" stack frame, via node_real_remove().
+ * The vectorized (message-wise) version of node_remove().
  */
-void node_remove(struct gnutella_node *n, const gchar * reason, ...)
+static void node_remove_v(
+	struct gnutella_node *n, const gchar *reason, va_list ap)
 {
-	g_return_if_fail(n);
-
-	if (n->status == GTA_NODE_REMOVING)
-		return;
+	g_assert(n->status != GTA_NODE_REMOVING);
 
 	if (reason) {
-		va_list args;
-		va_start(args, reason);
-		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, args);
+		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, ap);
 		n->error_str[sizeof(n->error_str) - 1] = '\0';	/* May be truncated */
-		va_end(args);
 		n->remove_msg = n->error_str;
 	} else if (n->status != GTA_NODE_SHUTDOWN)	/* Preserve shutdown error */
 		n->remove_msg = NULL;
@@ -362,14 +354,104 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 }
 
 /*
+ * node_recursive_shutdown_v
+ *
+ * Called when node_bye() or node_shutdown() is called during the time we're
+ * in shutdown mode, processing the messages we might still read from the
+ * socket.
+ */
+static void node_recursive_shutdown_v(
+	struct gnutella_node *n, gchar *where, const gchar *reason, va_list ap)
+{
+	gchar *fmt;
+
+	g_assert(n->status == GTA_NODE_SHUTDOWN);
+	g_assert(n->error_str);
+	g_assert(reason);
+
+	fmt = g_strdup_printf("%s (%s) [within %s]", where, reason, n->error_str);
+	node_remove_v(n, fmt, ap);
+	g_free(fmt);
+}
+
+/*
+ * node_remove
+ *
+ * Terminate connection with remote node, but keep structure around for a
+ * while, for displaying purposes, and also to prevent the node from being
+ * physically reclaimed within this stack frame.
+ *
+ * It will be reclaimed on the "idle" stack frame, via node_real_remove().
+ */
+void node_remove(struct gnutella_node *n, const gchar * reason, ...)
+{
+	va_list args;
+
+	g_assert(n);
+
+	if (n->status == GTA_NODE_REMOVING)
+		return;
+
+	va_start(args, reason);
+	node_remove_v(n, reason, args);
+	va_end(args);
+}
+
+/*
+ * node_eof
+ *
+ * Got an EOF condition, or a read error, whilst reading Gnet data from node.
+ *
+ * Terminate connection with remote node, but keep structure around for a
+ * while, for displaying purposes.
+ */
+static void node_eof(struct gnutella_node *n, const gchar * reason, ...)
+{
+	va_list args;
+
+	g_assert(n);
+
+	va_start(args, reason);
+
+	/*
+	 * Call node_remove_v() with supplied message unless we alrady sent a BYE
+ 	 * message, in which case we're done since the remote end most probably
+	 * read it and closed the connection.
+     */
+
+	if (n->flags & NODE_F_BYE_SENT) {
+		g_assert(n->status == GTA_NODE_SHUTDOWN);
+		if (dbg > 4) {
+			printf("EOF-style error during BYE to %s:\n (BYE) ", node_ip(n));
+			vprintf(reason, args);
+			printf("\n");
+		}
+		node_remove_v(n, NULL, NULL);		/* Reuse existing reason */
+	} else
+		node_remove_v(n, reason, args);
+
+	va_end(args);
+}
+
+/*
  * node_shutdown_mode
  *
  * Enter shutdown mode: prevent further writes, drop read broadcasted messages,
  * and make sure we flush the buffers at the fastest possible speed.
  */
-static void node_shutdown_mode(struct gnutella_node *n)
+static void node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 {
-	if (NODE_IS_CONNECTED(n)) {				/* Free Gnet slot */
+
+	/*
+	 * If node is already in shutdown node, simply update the delay.
+	 */
+
+	n->shutdown_delay = delay;
+
+	if (n->status == GTA_NODE_SHUTDOWN)
+		return;
+
+	if (n->status == GTA_NODE_CONNECTED) {	/* Free Gnet slot */
 		connected_node_cnt--;
 		g_assert(connected_node_cnt >= 0);
 	}
@@ -383,6 +465,7 @@ static void node_shutdown_mode(struct gnutella_node *n)
 	shutdown_nodes++;
 
 	gui_update_node(n, TRUE);
+	gui_update_c_gnutellanet();
 }
 
 /*
@@ -397,26 +480,30 @@ static void node_shutdown_mode(struct gnutella_node *n)
  */
 void node_shutdown(struct gnutella_node *n, const gchar * reason, ...)
 {
+	va_list args;
+
 	g_assert(n);
 
+	va_start(args, reason);
+
 	if (n->status == GTA_NODE_SHUTDOWN) {
-		g_warning("node_shutdown() called whilst already in shutdown mode");
-		return;
+		node_recursive_shutdown_v(n, "Shutdown", reason, args);
+		goto end;
 	}
 
 	if (reason) {
-		va_list args;
-		va_start(args, reason);
 		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, args);
 		n->error_str[sizeof(n->error_str) - 1] = '\0';	/* May be truncated */
-		va_end(args);
 		n->remove_msg = n->error_str;
 	} else {
 		n->remove_msg = NULL;
 		n->error_str[0] = '\0';
 	}
 
-	node_shutdown_mode(n);
+	node_shutdown_mode(n, SHUTDOWN_GRACE_DELAY);
+
+end:
+	va_end(args);
 }
 
 /*
@@ -435,24 +522,15 @@ void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
 	struct gnutella_bye *payload = (struct gnutella_bye *) reason_fmt;
 	gint len;
 	gint sendbuf_len;
+	va_list args;
 
 	g_assert(n);
 
-	if (n->status == GTA_NODE_SHUTDOWN) {
-		g_warning("node_bye() called whilst already in shutdown mode");
-		return;
-	}
+	va_start(args, reason);
 
-	if (reason) {
-		va_list args;
-		va_start(args, reason);
-		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, args);
-		n->error_str[sizeof(n->error_str) - 1] = '\0';	/* May be truncated */
-		va_end(args);
-		n->remove_msg = n->error_str;
-	} else {
-		n->remove_msg = NULL;
-		n->error_str[0] = '\0';
+	if (n->status == GTA_NODE_SHUTDOWN) {
+		node_recursive_shutdown_v(n, "Bye", reason, args);
+		goto end;
 	}
 
 	/*
@@ -463,9 +541,17 @@ void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
 	 */
 
 	if (NODE_IS_PONGING_ONLY(n)) {
-		n->status = GTA_NODE_SHUTDOWN;	/* Ensure the reason propagates */
-		node_remove(n, NULL);
-		return;
+		node_remove_v(n, reason, args);
+		goto end;
+	}
+
+	if (reason) {
+		g_vsnprintf(n->error_str, sizeof(n->error_str), reason, args);
+		n->error_str[sizeof(n->error_str) - 1] = '\0';	/* May be truncated */
+		n->remove_msg = n->error_str;
+	} else {
+		n->remove_msg = NULL;
+		n->error_str[0] = '\0';
 	}
 
 	/*
@@ -506,34 +592,36 @@ void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
 		(guchar *) &head, (guchar *) payload, len + sizeof(head));
 
 	/*
-	 * Enter shutdown mode.  This is not really needed if we managed to write
-	 * the whole data, but it will allow the existing error message to be
-	 * preserved by node_remove().
-	 */
-
-	node_shutdown_mode(n);
-
-	/*
-	 * If we managed to write everything, remove the node entry.  Otherwise,
-	 * we'll stay in the shutdown mode for some time, then we'll kick the node
-	 * out anyway.
+	 * Whether we sent the message or not, enter shutdown mode.
 	 *
-	 * As soon as BYE is sent, we'll close the connection: this is done by
-	 * flagging the node with "bye_sent", and node_disableq() will check
-	 * for that condition.
+	 * We'll stay in the shutdown mode for some time, then we'll kick the node
+	 * out.  But not doing it immediately gives a chance for the message to
+	 * proagate AND be read by the remote node.
+	 *
+	 * When sending is delayed, node_disableq() will check for the
+	 * NODE_F_BYE_SENT condition and change the shutdown delay to a much
+	 * shorter period.
+	 *
+	 * In shutdown mode, we'll also preserve the existing error message for
+	 * node_remove().
 	 */
+
+	n->flags |= NODE_F_BYE_SENT;
 
 	if (mq_size(n->outq) == 0) {
 		if (dbg > 4)
 			printf("successfully sent BYE \"%s\" to %s\n",
 				n->error_str, node_ip(n));
-		node_remove(n, NULL);
+		node_shutdown_mode(n, BYE_GRACE_DELAY);
 	} else {
 		if (dbg > 4)
 			printf("delayed sending of BYE \"%s\" to %s\n",
 				n->error_str, node_ip(n));
-		n->flags |= NODE_F_BYE_SENT;
+		node_shutdown_mode(n, SHUTDOWN_GRACE_DELAY);
 	}
+
+end:
+	va_end(args);
 }
 
 gboolean node_connected(guint32 ip, guint16 port, gboolean incoming)
@@ -871,7 +959,7 @@ static void node_got_bye(struct gnutella_node *n)
 			if (++cnt < n->size) {
 				if ((c = *(++p)) == '\n') {
 					is_plain_message = FALSE;
-					message_len = (p - message) - 2;	/* 2 = length("\r\n") */
+					message_len = (p - message + 1) - 2;  /* 2 = len("\r\n") */
 					break;
 				} else {
 					p--;			/* Undo our look-ahead */
@@ -1027,9 +1115,12 @@ static void extract_header_pongs(header_t *header, struct gnutella_node *n)
 
 	/*
 	 * The X-Try line refers to regular nodes.
+     * (Also allow a plain Try: header, for when it is standardized)
 	 */
 
 	field = header_get(header, "X-Try");
+	if (!field) field = header_get(header, "Try");
+
 	if (field) {
 		pong = extract_field_pongs(field);
 		if (dbg > 4)
@@ -1043,9 +1134,12 @@ static void extract_header_pongs(header_t *header, struct gnutella_node *n)
 	/*
 	 * The X-Try-Ultrapeers line refers to ultra-nodes.
 	 * For now, we don't handle ultranodes, so store that as regular pongs.
+     * (Also allow a plain Try-Ultrapeers: header, for when it is standardized)
 	 */
 
 	field = header_get(header, "X-Try-Ultrapeers");
+	if (!field) field = header_get(header, "Try-Ultrapeers");
+
 	if (field) {
 		pong = extract_field_pongs(field);
 		if (dbg > 4)
@@ -2238,7 +2332,7 @@ void node_disableq(struct gnutella_node *n)
 		if (dbg > 4)
 			printf("finally sent BYE \"%s\" to %s\n",
 				n->error_str, node_ip(n));
-		node_remove(n, NULL);
+		node_shutdown_mode(n, BYE_GRACE_DELAY);
 		return;
 	}
 
@@ -2395,7 +2489,17 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 	g_assert(NODE_IS_CONNECTED(n));
 
 	if (cond & GDK_INPUT_EXCEPTION) {
-		node_remove(n, "Failed (Input Exception)");
+		node_eof(n, "Failed (Input Exception)");
+		return;
+	}
+
+	/*
+	 * It is possible to be called whilst NODE_F_NOREAD has been set, when
+	 * we're reading from a memory buffer.
+	 */
+
+	if (n->flags & NODE_F_NOREAD) {
+		node_eof(n, "Reading disabled");
 		return;
 	}
 
@@ -2408,15 +2512,15 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 
 		if (!r) {
 			if (n->n_ping_sent <= 2 && n->n_pong_received)
-				node_remove(n, "Got %d connection pong%s",
+				node_eof(n, "Got %d connection pong%s",
 					n->n_pong_received, n->n_pong_received == 1 ? "" : "s");
 			else
-				node_remove(n, "Failed (EOF)");
+				node_eof(n, "Failed (EOF)");
 			return;
 		} else if (r < 0 && errno == EAGAIN)
 			return;
 		else if (r < 0) {
-			node_remove(n, "Read error: %s", g_strerror(errno));
+			node_eof(n, "Read error: %s", g_strerror(errno));
 			return;
 		}
 
@@ -2473,6 +2577,9 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 		if (kick) {
 			node_bye(n, 400, "Too large %s message (%d bytes)",
 				gmsg_name(n->header.function), n->size);
+			gdk_input_remove(n->socket->gdk_tag);	/* Don't read anymore */
+			n->socket->gdk_tag = 0;
+			n->flags |= NODE_F_NOREAD;
 			return;
 		}
 
@@ -2492,6 +2599,9 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 					n->size, gmsg_name(n->header.function));
 				node_bye(n, 400, "Too large %s message (%d bytes)",
 					gmsg_name(n->header.function), n->size);
+				gdk_input_remove(n->socket->gdk_tag);
+				n->socket->gdk_tag = 0;
+				n->flags |= NODE_F_NOREAD;
 				return;
 			}
 
@@ -2510,13 +2620,13 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 	r = n->read(n->socket->file_desc, n->data + n->pos, n->size - n->pos);
 
 	if (r == 0) {
-		node_remove(n, "Failed (EOF in %s message data)",
+		node_eof(n, "Failed (EOF in %s message data)",
 			gmsg_name(n->header.function));
 		return;
 	} else if (r < 0 && errno == EAGAIN)
 		return;
 	else if (r < 0) {
-		node_remove(n, "Read error in %s message: %s",
+		node_eof(n, "Read error in %s message: %s",
 			gmsg_name(n->header.function), g_strerror(errno));
 		return;
 	}
@@ -2620,12 +2730,26 @@ gboolean node_sent_ttl0(struct gnutella_node *n)
 	return FALSE;
 }
 
+/*
+ * node_bye_all
+ *
+ * Send a BYE message to all the nodes.
+ */
+void node_bye_all(void)
+{
+	GSList *l;
+
+	for (l = sl_nodes; l; l = l->next) {
+		struct gnutella_node *n = sl_nodes->data;
+		if (NODE_IS_WRITABLE(n))
+			node_bye(n, 200, "Servent shutdown");
+	}
+}
+
 void node_close(void)
 {
 	while (sl_nodes) {
 		struct gnutella_node *n = sl_nodes->data;
-		if (NODE_IS_WRITABLE(n))
-			node_bye(n, 200, "Servent shutdown");
 		if (n->socket) {
 			if (n->socket->getline)
 				getline_free(n->socket->getline);

@@ -326,7 +326,7 @@ void gui_update_global(void)
 	gtk_entry_set_text(GTK_ENTRY(entry_hosts_in_catcher), gui_tmp);
 }
 
-void gui_update_node_display(struct gnutella_node *n)
+void gui_update_node_display(struct gnutella_node *n, time_t now)
 {
 	gchar *a = (gchar *) NULL;
 	gint row;
@@ -345,18 +345,28 @@ void gui_update_node_display(struct gnutella_node *n)
 		break;
 
 	case GTA_NODE_CONNECTED:
-	case GTA_NODE_SHUTDOWN:
 		if (n->sent || n->received) {
 			g_snprintf(gui_tmp, sizeof(gui_tmp),
-				"%s: "
+				"Connected: "
 				"TX=%d RX=%d Drop(TX=%d, RX=%d) Bad=%d Q=%d,%d%% %s",
-				n->status == GTA_NODE_SHUTDOWN ? "Shutdown" : "Connected",
 				n->sent, n->received, n->tx_dropped, n->rx_dropped, n->n_bad,
 				NODE_QUEUE_COUNT(n), NODE_QUEUE_PERCENT_USED(n),
 				NODE_IN_TX_FLOW_CONTROL(n) ? " [FC]" : "");
 			a = gui_tmp;
 		} else
 			a = "Connected";
+		break;
+
+	case GTA_NODE_SHUTDOWN:
+		{
+			gint spent = now - n->shutdown_date;
+			gint remain = n->shutdown_delay - spent;
+			if (remain < 0)
+				remain = 0;
+			g_snprintf(gui_tmp, sizeof(gui_tmp),
+				"Shutdowning: %s [Stop in %ds]", n->error_str, remain);
+			a = gui_tmp;
+		}
 		break;
 
 	case GTA_NODE_REMOVING:
@@ -385,7 +395,7 @@ void gui_update_node(struct gnutella_node *n, gboolean force)
 		return;
 	n->last_update = now;
 
-	gui_update_node_display(n);
+	gui_update_node_display(n, now);
 }
 
 void gui_update_node_proto(struct gnutella_node *n)

@@ -39,8 +39,8 @@ struct gnutella_node {
 	guint32 pos;			/* write position in data */
 
 	guchar status;			/* See possible values below */
-	gint flags;				/* See possible values below */
-	gint attrs;				/* See possible values below */
+	guint32 flags;			/* See possible values below */
+	guint32 attrs;			/* See possible values below */
 
 	guint32 sent;				/* Number of sent packets */
 	guint32 received;			/* Number of received packets */
@@ -57,6 +57,7 @@ struct gnutella_node {
 	time_t connect_date;		/* When we got connected (after handshake) */
 	time_t tx_flowc_date;		/* When we entered in TX flow control */
 	time_t shutdown_date;		/* When we entered in shutdown mode */
+	guint32 shutdown_delay;		/* How long we can stay in shutdown mode */
 
 	const gchar *remove_msg;	/* Reason of removing */
 
@@ -116,6 +117,7 @@ struct gnutella_node {
 #define NODE_F_READABLE		0x00000080	/* Node is readable, process queries */
 #define NODE_F_BYE_SENT		0x00000100	/* Bye message was sent */
 #define NODE_F_NODELAY		0x00000200	/* TCP_NODELAY was activated */
+#define NODE_F_NOREAD		0x00000400	/* Prevent further reading from node */
 
 /*
  * Node attributes.
@@ -240,6 +242,7 @@ void node_tx_enter_flowc(struct gnutella_node *n);
 void node_tx_leave_flowc(struct gnutella_node *n);
 gint node_write(struct gnutella_node *n, gpointer data, gint len);
 gint node_writev(struct gnutella_node *n, struct iovec *iov, gint iovcnt);
+void node_bye_all(void);
 void node_close(void);
 
 #endif /* __nodes_h__ */
