@@ -96,6 +96,20 @@
   (fixes bug #530811).
 - Split I/O vectors larger than the max allowed size (fixes bug #530106).
 - Fixed off-by-one error in url_escape_cntrl() causing memory corruptions.
+- When needed, must disable reading before calling node_bye(), in case we're
+  facing a temporary "ponging" connection, which node_bye() happily removes
+  (fixes bug #531167).
+- Now handle parsing of 0.6 handshake headers on Ponging connections, to grab
+  any Node: header and fake a pong.  This also allows Ponging 0.6 hosts to
+  be seen in the GUI: they used to be discarded very early in the process,
+  making display impossible.
+- Was mistakenly displaying last offset as size in uploads.
+- Negative range requests are offsets from the end of the file.
+- Added upload stats "average count" [From Michael Tesch, patch #533257]
+  (will convert existing stats to the new format).
+- Ensure minimum value for node_sendqueue_size (1.5 * max packet size).
+- Fixed cornercase, a leftover of bug #530811.
+- Fixed crash when upload stats are cleared (bug #533904).
 
 # v 0.80   2002.01.31  [stable]
 # v 0.80   2002.01.22  [beta2]
