@@ -58,13 +58,17 @@ struct table_desc {
 	len_func_t len_func;		/* Atom length function */
 };
 
+#define public
+
 static gint str_len(gconstpointer v);
 static guint guid_hash(gconstpointer key);
 static gint guid_eq(gconstpointer a, gconstpointer b);
 static gint guid_len(gconstpointer v);
-static guint sha1_hash(gconstpointer key);
-static gint sha1_eq(gconstpointer a, gconstpointer b);
+public guint sha1_hash(gconstpointer key);
+public gint sha1_eq(gconstpointer a, gconstpointer b);
 static gint sha1_len(gconstpointer v);
+
+#undef public
 
 /*
  * The set of all atom types we know about.
@@ -152,8 +156,10 @@ static gint guid_len(gconstpointer v)
  * sha1_hash
  *
  * Hash a SHA1 (20 bytes).
+ *
+ * NB: This routine is visible for the download mesh.
  */
-static guint sha1_hash(gconstpointer key)
+guint sha1_hash(gconstpointer key)
 {
 	return binary_hash(key, 20);
 }
@@ -162,8 +168,10 @@ static guint sha1_hash(gconstpointer key)
  * sha1_eq
  *
  * Test two SHA1s for equality.
+ *
+ * NB: This routine is visible for the download mesh.
  */
-static gint sha1_eq(gconstpointer a, gconstpointer b)
+gint sha1_eq(gconstpointer a, gconstpointer b)
 {
 	return 0 == memcmp(a, b, 20);
 }
