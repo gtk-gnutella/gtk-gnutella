@@ -69,6 +69,8 @@ RCSID("$Id$");
 #define DOWNLOAD_SERVER_HOLD	15			/* Space requests to same server */
 #define DOWNLOAD_DNS_LOOKUP		7200		/* Period of server DNS lookups */
 
+#define IO_AVG_RATE		5		/* Compute global recv rate every 5 secs */
+
 static GSList *sl_downloads = NULL; /* All downloads (queued + unqueued) */
 GSList *sl_unqueued = NULL;			/* Unqueued downloads only */
 GSList *sl_removed = NULL;			/* Removed downloads only */
@@ -405,8 +407,26 @@ void download_timer(time_t now)
 		l = l->next;
 
 		switch (d->status) {
-		case GTA_DL_ACTIVE_QUEUED:
 		case GTA_DL_RECEIVING:
+			/*
+			 * Update the global average reception rate periodically.
+			 */
+
+			{
+				struct dl_file_info *fi = d->file_info;
+
+				g_assert(fi->recvcount > 0);
+
+				if (now - fi->recv_last_time > IO_AVG_RATE) {
+					fi->recv_last_rate =
+						fi->recv_amount / (now - fi->recv_last_time);
+					fi->recv_amount = 0;
+					fi->recv_last_time = now;
+				}
+			}
+			/* FALL THROUGH */
+
+		case GTA_DL_ACTIVE_QUEUED:
 		case GTA_DL_HEADERS:
 		case GTA_DL_PUSH_SENT:
 		case GTA_DL_CONNECTING:

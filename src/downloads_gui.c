@@ -43,8 +43,6 @@ RCSID("$Id$");
 static gchar tmpstr[4096];
 
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
-#define IO_AVG_RATE		5		/* Compute global recv rate every 5 secs */
-
 
 void downloads_gui_init(void)
 {
@@ -477,19 +475,6 @@ void gui_update_download(struct download *d, gboolean force)
 			gfloat p = 0, pt = 0;
 			gint bps;
 			guint32 avg_bps;
-
-			/*
-			 * Update the global average reception rate periodically.
-			 */
-
-			g_assert(fi->recvcount > 0);
-
-			if (now - fi->recv_last_time > IO_AVG_RATE) {
-				fi->recv_last_rate =
-					fi->recv_amount / (now - fi->recv_last_time);
-				fi->recv_amount = 0;
-				fi->recv_last_time = now;
-			}
 
 			if (d->size)
                 p = (d->pos - d->skip) * 100.0 / d->size;
