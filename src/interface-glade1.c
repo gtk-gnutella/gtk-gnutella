@@ -830,6 +830,9 @@ create_main_window (void)
   GtkWidget *image_firewall;
   GtkWidget *eventbox_image_no_firewall;
   GtkWidget *image_no_firewall;
+  GtkWidget *image_leaf;
+  GtkWidget *image_legacy;
+  GtkWidget *image_ultra;
   GtkWidget *label_statusbar_uptime;
   GtkAccelGroup *accel_group;
   GtkTooltips *tooltips;
@@ -7833,6 +7836,33 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_image_no_firewall), image_no_firewall);
   gtk_misc_set_padding (GTK_MISC (image_no_firewall), 1, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_no_firewall), FALSE);
+
+  image_leaf = create_pixmap (main_window, "leaf.xpm");
+  gtk_widget_set_name (image_leaf, "image_leaf");
+  gtk_widget_ref (image_leaf);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_leaf", image_leaf,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_leaf);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), image_leaf, FALSE, FALSE, 0);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_leaf), FALSE);
+
+  image_legacy = create_pixmap (main_window, "legacy.xpm");
+  gtk_widget_set_name (image_legacy, "image_legacy");
+  gtk_widget_ref (image_legacy);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_legacy", image_legacy,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_legacy);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), image_legacy, FALSE, FALSE, 0);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_legacy), FALSE);
+
+  image_ultra = create_pixmap (main_window, "ultra.xpm");
+  gtk_widget_set_name (image_ultra, "image_ultra");
+  gtk_widget_ref (image_ultra);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_ultra", image_ultra,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_ultra);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), image_ultra, FALSE, TRUE, 0);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_ultra), FALSE);
 
   label_statusbar_uptime = gtk_label_new ("Uptime");
   gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");

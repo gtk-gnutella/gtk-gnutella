@@ -12654,6 +12654,54 @@ interface</label>
       </widget>
 
       <widget>
+	<class>GtkPixmap</class>
+	<name>image_leaf</name>
+	<filename>leaf.xpm</filename>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
+	<build_insensitive>False</build_insensitive>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkPixmap</class>
+	<name>image_legacy</name>
+	<filename>legacy.xpm</filename>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
+	<build_insensitive>False</build_insensitive>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>False</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkPixmap</class>
+	<name>image_ultra</name>
+	<filename>ultra.xpm</filename>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xpad>0</xpad>
+	<ypad>0</ypad>
+	<build_insensitive>False</build_insensitive>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>True</fill>
+	</child>
+      </widget>
+
+      <widget>
 	<class>GtkLabel</class>
 	<name>label_statusbar_uptime</name>
 	<label>Uptime</label>
