@@ -185,20 +185,60 @@ static void gwc_add(gchar *url)
 }
 
 /*
+ * is_boot_url
+ *
+ * Returns TRUE if the URL belongs to the boot set.
+ */
+static gboolean is_boot_url(const gchar *url)
+{
+	gint i;
+
+	/*
+	 * The bootstrap set is small, loop, no need for an hash table!
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(boot_url); i++) {
+		if (0 == strcmp(boot_url[i], url))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/*
  * gwc_pick
  *
  * Pickup a cache randomly from the known set.
+ *
+ * Try to avoid using default bootstrapping URLs if we have more than the
+ * minimum set of caches in stock...
  */
 static gchar *gwc_pick(void)
 {
 	gint count = g_hash_table_size(gwc_known_url);
 	gint idx;
+	gint i;
 
 	g_assert(count > 0);
 	g_assert(count <= MAX_GWC_URLS);
 	g_assert(count == MAX_GWC_URLS || gwc_url_slot < count);
 
 	idx = random_value(count - 1);
+
+	/*
+	 * Treat bootstrap URLs specially: don't use them if we have more
+	 * caches in our set.  But don't try too hard to avoid them in case
+	 * we just have a few URLs available, in which case we have to balance
+	 * the load someohow.
+	 *		--RAM, 10/04/2004
+	 */
+
+	for (i = 0; i < 3 && count > G_N_ELEMENTS(boot_url); i++) {
+		if (!is_boot_url(gwc_url[idx]))
+			break;
+		idx = random_value(count - 1);
+		
+	}
 
 	if (dbg)
 		g_warning("picked webcache %s", gwc_url[idx]);
