@@ -2285,12 +2285,12 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 	if (d) {
 		if (d->socket) {
 			if (dbg > 3)
-				printf("got concurrent GIV: download is connected, state %d",
+				printf("got concurrent GIV: download is connected, state %d\n",
 					d->status);
 			d = NULL;
 		} else if (!DOWNLOAD_IS_EXPECTING_GIV(d)) {
 			if (dbg > 3)
-				printf("got GIV string for download in state %d",
+				printf("got GIV string for download in state %d\n",
 					d->status);
 			d = NULL;
 		}
