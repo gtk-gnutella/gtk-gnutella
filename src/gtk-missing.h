@@ -116,6 +116,23 @@ GSList *tree_selection_collect_data(GtkTreeSelection *tsel, GCompareFunc cfn);
 void tree_view_save_widths(GtkTreeView *treeview, property_t prop);
 #endif /* USE_GTK2 */
 
+/*
+ * GtkListStore
+ */
+#define GTK_LIST_STORE_SET(store, iter, ...) \
+	gtk_list_store_set(store, iter, ## __VA_ARGS__, (-1))
+
+/*
+ * GtkTreeStore
+ */
+#define GTK_TREE_STORE_SET(store, iter, ...) \
+	gtk_tree_store_set(store, iter, ## __VA_ARGS__, (-1))
+
+/*
+ * GtkTreeModel
+ */
+#define GTK_TREE_MODEL_GET(model, iter, ...) \
+	gtk_tree_model_get(model, iter, ## __VA_ARGS__, (-1))
 
 gint gtk_main_flush(void);
 GtkWidget *menu_new_item_with_data(GtkMenu *m, gchar *l, gpointer d );
