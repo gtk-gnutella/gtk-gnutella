@@ -1,5 +1,12 @@
 # since last version
 
+- (2003.04.09 - RAM)
+ * Be sure to requeue all active downloads that were referencing a file
+   we are removing.
+ * Make sure we're not over-querying new connections by limiting the amount
+   of queries sent to the configured outdegree.
+ * Propagate random unsollicited ultra pongs to leaf nodes.
+
 - (2003.04.02 - RAM)
  * Added icon.xpm, the default gtk-gnutella icon for GTK1 [From Michael Gray].
  * Also remove all downloads from host when push route is lost, or when we
