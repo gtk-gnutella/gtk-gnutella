@@ -1122,7 +1122,7 @@ vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want)
 
 	*payload = want;
 
-	udp_send_reply(n, m, msgsize);
+	udp_send_msg(n, m, msgsize);
 
 	if (vmsg_debug > 2)
 		printf("sent OOB reply ACK %s to %s for %u hit%s\n",
@@ -1471,7 +1471,7 @@ vmsg_send_udp_crawler_pong(struct gnutella_node *n, pmsg_t *mb)
 			gmsg_infostr_full(m), nup, nleaves, node_ip(n));
 	}
 
-	udp_send_reply(n, m, msgsize);
+	udp_send_msg(n, m, msgsize);
 }
 
 #if 0
@@ -1496,7 +1496,7 @@ vmsg_send_udp_crawler_ping(struct gnutella_node *n,
 	*payload++ = leaves;
 	*payload++ = features;
 
-	udp_send_reply(n, m, msgsize);
+	udp_send_msg(n, m, msgsize);
 }
 #endif
 
