@@ -102,6 +102,8 @@
 - Fixed buglet in has_same_active_download() where "waiting" downloads
   were not considered when looking for duplicates, which could lead to
   assertion failures for pushes later on.
+- When not sharing, don't return query hits [From Mark Schreiber].
+- When not sharing, send them a "410 Sharing currently disabled" error.
 
 # v 0.18   2001.11.19
 
