@@ -1,8 +1,9 @@
 #ifndef __uploads_h__
 #define __uploads_h__
 
-#include "sockets.h"
 #include "bsched.h"
+
+struct gnutella_node;
 
 struct upload {
 	guint32 status;

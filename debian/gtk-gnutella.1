@@ -202,6 +202,20 @@ running
 over a 56k modem would set this to 56. Someone running over a 1.5mb
 cable connection would set this to 1500.
 .TP
+.BI output_bandwidth
+This can not be set through the GUI.
+The maximum allowed output bandwidth, in bytes per second.  If set to 0,
+then there is no throttling.  The maximum value is 2097152, or 2 MB/sec.
+In effect, this variable allows to limit the speed of the uploads.
+The Gnet traffic is not accounted for.
+.TP
+.BI input_bandwidth
+This can not be set through the GUI.
+The maximum allowed input bandwidth, in bytes per second.  If set to 0,
+then there is no throttling.  The maximum value is 2097152, or 2 MB/sec.
+In effect, this variable allows to limit the speed of the downloads.
+The Gnet traffic is not accounted for.
+.TP
 .BI limit_search_results
 This is on the config tab.
 This limits how many results are returned to other people searching

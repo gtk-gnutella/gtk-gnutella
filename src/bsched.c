@@ -457,11 +457,54 @@ gint bio_write(bio_source_t *bio, gpointer data, gint len)
 }
 
 /*
+ * bio_read
+ *
+ * Read at most `len' bytes from `buf' from source's fd, as bandwidth permits.
+ * If we cannot read anything due to bandwidth constraints, return -1 with
+ * errno set to EAGAIN.
+ */
+gint bio_read(bio_source_t *bio, gpointer data, gint len)
+{
+	gint available;
+	gint amount;
+	gint r;
+
+	g_assert(bio);
+	g_assert(bio->flags & BIO_F_READ);
+
+	/* 
+	 * If we don't have any bandwidth, return -1 with errno set to EAGAIN 
+	 * to signal that we cannot perform any I/O right now.
+	 */
+
+	available = bw_available(bio, len);
+
+	if (available == 0) {
+		errno = EAGAIN;
+		return -1;
+	}
+
+	amount = len > available ? available : len;
+
+	if (dbg > 4)		// XXX dbg > 8
+		printf("bsched_read(fd=%d, len=%d) available=%d\n",
+			bio->fd, len, available);
+
+	bio->flags |= BIO_F_ACTIVE;
+	r = read(bio->fd, data, amount);
+
+	if (r > 0)
+		bsched_bw_update(bio->bs, r);
+
+	return r;
+}
+
+/*
  * bws_write
  *
  * Write at most `len' bytes from `buf' to specified fd, and account the
- * bandwidth used.  Any overused bandwidth will be accounted for, so that
- * on average, we stick to the requested bandwidth rate.
+ * bandwidth used.  Any overused bandwidth will be tracked, so that on
+ * average, we stick to the requested bandwidth rate.
  */
 gint bws_write(bsched_t *bs, gint fd, gpointer data, gint len)
 {
@@ -471,6 +514,28 @@ gint bws_write(bsched_t *bs, gint fd, gpointer data, gint len)
 	g_assert(bs->flags & BS_F_WRITE);
 
 	r = write(fd, data, len);
+
+	if (r > 0)
+		bsched_bw_update(bs, r);
+
+	return r;
+}
+
+/*
+ * bws_read
+ *
+ * Read at most `len' bytes from `buf' from specified fd, and account the
+ * bandwidth used.  Any overused bandwidth will be tracked, so that on
+ * average, we stick to the requested bandwidth rate.
+ */
+gint bws_read(bsched_t *bs, gint fd, gpointer data, gint len)
+{
+	gint r;
+
+	g_assert(bs);
+	g_assert(bs->flags & BS_F_READ);
+
+	r = read(fd, data, len);
 
 	if (r > 0)
 		bsched_bw_update(bs, r);

@@ -465,6 +465,10 @@ void download_stop(struct download *d, guint32 new_status,
 	}
 	if (d->io_opaque)				/* I/O data */
 		io_free(d->io_opaque);
+	if (d->bio) {
+		bsched_source_remove(d->bio);
+		d->bio = NULL;
+	}
 
 	/* Register the new status, and update the GUI if needed */
 
@@ -1573,7 +1577,7 @@ static void download_header_read(
 		return;
 	}
 
-	r = read(s->file_desc, s->buffer + s->pos, count);
+	r = bws_read(bws_in, s->file_desc, s->buffer + s->pos, count);
 	if (r == 0) {
 		download_stop(d, GTA_DL_STOPPED, "Stopped (EOF)");
 		return;
@@ -1948,9 +1952,11 @@ static void download_request(struct download *d, header_t *header)
 	d->status = GTA_DL_RECEIVING;
 	gui_update_download(d, TRUE);
 
-	s->gdk_tag = gdk_input_add(s->file_desc,
-		GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-		download_read, (gpointer) d);
+	g_assert(s->gdk_tag == 0);
+	g_assert(d->bio == NULL);
+
+	d->bio = bsched_source_add(bws_in, s->file_desc,
+		BIO_F_READ, download_read, (gpointer) d);
 
 	/*
 	 * If we have something in the input buffer, write the data to the
@@ -2002,7 +2008,7 @@ static void download_read(gpointer data, gint source, GdkInputCondition cond)
 	if (remains < to_read)
 		to_read = remains;			/* Only read to fill buffer */
 
-	r = read(s->file_desc, s->buffer + s->pos, to_read);
+	r = bio_read(d->bio, s->buffer + s->pos, to_read);
 
 	if (r <= 0) {
 		if (r == 0) {
@@ -2571,6 +2577,8 @@ void download_close(void)
 			download_push_remove(d);
 		if (d->io_opaque)
 			io_free(d->io_opaque);
+		if (d->bio)
+			bsched_source_remove(d->bio);
 		g_free(d->path);
 		g_free(d->file_name);
 		if (d->output_name != d->file_name)

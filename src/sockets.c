@@ -22,6 +22,7 @@
 #include "misc.h"
 #include "header.h"
 #include "getline.h"
+#include "bsched.h"
 
 guint32 local_ip = 0;
 gboolean is_firewalled = TRUE;		/* Assume the worst --RAM, 20/12/2001 */
@@ -128,7 +129,7 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 		return;
 	}
 
-	r = read(s->file_desc, s->buffer + s->pos, count);
+	r = bws_read(bws_in, s->file_desc, s->buffer + s->pos, count);
 
 	if (r == 0) {
 		socket_destroy(s);

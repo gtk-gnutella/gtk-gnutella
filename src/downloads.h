@@ -1,6 +1,8 @@
 #ifndef __downloads_h__
 #define __downloads_h__
 
+#include "bsched.h"
+
 struct download {
 	gchar error_str[256];	/* Used to sprintf() error strings with vars */
 	guint32 status;			/* Current status of the download */
@@ -8,6 +10,7 @@ struct download {
 
 	gchar *path;			/* Path of the created output file */
 	gchar *output_name;		/* Basename of the created output file */
+	bio_source_t *bio;		/* Bandwidth-limited source */
 
 	gchar guid[16];			/* GUID of server from which we download the file */
 	guint32 record_index;	/* Index of the file on the Gnutella server */

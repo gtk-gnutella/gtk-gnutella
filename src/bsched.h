@@ -108,7 +108,9 @@ bio_source_t *bsched_source_add(bsched_t *bs, int fd, guint32 flags,
 	GdkInputFunction callback, gpointer arg);
 void bsched_source_remove(bio_source_t *bio);
 gint bio_write(bio_source_t *bio, gpointer data, gint len);
+gint bio_read(bio_source_t *bio, gpointer data, gint len);
 gint bws_write(bsched_t *bs, gint fd, gpointer data, gint len);
+gint bws_read(bsched_t *bs, gint fd, gpointer data, gint len);
 void bsched_timer(void);
 
 #endif	/* __bsched_h__ */

@@ -542,7 +542,7 @@ static void upload_header_read(
 		return;
 	}
 
-	r = read(s->file_desc, s->buffer + s->pos, count);
+	r = bws_read(bws_in, s->file_desc, s->buffer + s->pos, count);
 	if (r == 0) {
 		upload_remove(u, "Failed (EOF)");
 		return;
