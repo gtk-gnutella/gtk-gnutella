@@ -197,8 +197,6 @@ static void hcache_free(hcache_type_t type)
 	g_assert(type >= 0 && type < HCACHE_MAX);
 	g_assert(caches[type] != NULL);
 
-	hcache_clear(type);
-
 	hc = caches[type];
 
 	hcache_remove_all(hc);
