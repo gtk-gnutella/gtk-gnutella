@@ -48,6 +48,7 @@
 #include "uploads_cb.h"
 #include "downloads_cb.h"
 #include "gnet_stats_gui.h"
+#include "fileinfo_gui.h"
 #endif
 
 gboolean on_entry_search_reissue_timeout_focus_out_event (GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
@@ -156,4 +157,5 @@ on_button_config_select_ui_clicked     (GtkButton       *button,
 void
 on_button_config_select_dbg_clicked    (GtkButton       *button,
                                         gpointer         user_data);
+
 
