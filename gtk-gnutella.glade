@@ -209,7 +209,7 @@
 	    <widget>
 	      <class>GtkMenuItem</class>
 	      <name>menu_gnet_stats_visible</name>
-	      <label>gNet traffic stats</label>
+	      <label>Gnet traffic stats</label>
 	      <right_justify>False</right_justify>
 
 	      <widget>
@@ -224,7 +224,7 @@
 		    <handler>on_menu_bws_gin_visible_activate</handler>
 		    <last_modification_time>Wed, 15 May 2002 10:33:03 GMT</last_modification_time>
 		  </signal>
-		  <label>show gNet incoming traffic</label>
+		  <label>show Gnet incoming traffic</label>
 		  <active>True</active>
 		  <always_show_toggle>True</always_show_toggle>
 		</widget>
@@ -237,7 +237,7 @@
 		    <handler>on_menu_bws_gout_visible_activate</handler>
 		    <last_modification_time>Wed, 15 May 2002 10:33:03 GMT</last_modification_time>
 		  </signal>
-		  <label>show gNet outgoing traffic</label>
+		  <label>show Gnet outgoing traffic</label>
 		  <active>True</active>
 		  <always_show_toggle>True</always_show_toggle>
 		</widget>
@@ -247,7 +247,7 @@
 	    <widget>
 	      <class>GtkMenuItem</class>
 	      <name>menu_gnet_leaf_stats_visible</name>
-	      <label>gNet leaf traffic stats</label>
+	      <label>Gnet leaf traffic stats</label>
 	      <right_justify>False</right_justify>
 
 	      <widget>
@@ -771,7 +771,7 @@
 		    <widget>
 		      <class>GtkEventBox</class>
 		      <name>eventbox6</name>
-		      <tooltip>gNet connections</tooltip>
+		      <tooltip>Gnet connections</tooltip>
 		      <child>
 			<padding>0</padding>
 			<expand>False</expand>
@@ -800,7 +800,7 @@
 		      <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
 		      <activity_mode>False</activity_mode>
 		      <show_text>True</show_text>
-		      <format>%v/%u gNet nodes</format>
+		      <format>%v/%u Gnet nodes</format>
 		      <text_xalign>0.5</text_xalign>
 		      <text_yalign>0.5</text_yalign>
 		      <child>
@@ -2081,7 +2081,7 @@
 	    <class>GtkLabel</class>
 	    <child_name>Notebook:tab</child_name>
 	    <name>label_gnutellanet</name>
-	    <label>gNet</label>
+	    <label>Gnet</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -17291,7 +17291,7 @@ interface</label>
 	    <class>GtkLabel</class>
 	    <child_name>Notebook:tab</child_name>
 	    <name>label_gnet_stats</name>
-	    <label>gNet Stats</label>
+	    <label>Gnet Stats</label>
 	    <justify>GTK_JUSTIFY_CENTER</justify>
 	    <wrap>False</wrap>
 	    <xalign>0.5</xalign>
@@ -18135,7 +18135,7 @@ interface</label>
 	  <widget>
 	    <class>GtkEventBox</class>
 	    <name>eventbox_image_legacy</name>
-	    <tooltip>Running in legacy mode. Consider switching to auto mode (Config-&gt;gNet settings-&gt;Current peermode)</tooltip>
+	    <tooltip>Running in legacy mode. Consider switching to auto mode (Config-&gt;Gnet settings-&gt;Current peermode)</tooltip>
 	    <child>
 	      <padding>0</padding>
 	      <expand>True</expand>

@@ -45,7 +45,7 @@ prop = {
 
 prop = {
     name = "new_version_str";
-    desc = "Gtk-gnutella found a newer version on the gNet and gives "
+    desc = "Gtk-gnutella found a newer version on the Gnet and gives "
            "information about it here";
     type = string;
     save = FALSE;
@@ -1073,7 +1073,7 @@ prop = {
 prop = {
      name = "bw_gnet_in";
      cfgvar = "input_gnet_bandwidth";
-     desc = "Bandwidth limit for incoming gNet traffic in bytes/sec";
+     desc = "Bandwidth limit for incoming Gnet traffic in bytes/sec";
      type = guint32;
      data = {
         default = 8192;
@@ -1085,7 +1085,7 @@ prop = {
 prop = {
     name = "bw_gnet_out";
     cfgvar = "output_gnet_bandwidth";
-    desc = "Bandwidth limit for outgoing gNet traffic in bytes/sec";
+    desc = "Bandwidth limit for outgoing Gnet traffic in bytes/sec";
     type = guint32;
     data = {
         default = 8192;
@@ -1097,7 +1097,7 @@ prop = {
 prop = {
      name = "bw_gnet_lin";
      cfgvar = "input_gnet_leaf_bandwidth";
-     desc = "Bandwidth limit for incoming gNet leaf traffic in bytes/sec. "
+     desc = "Bandwidth limit for incoming Gnet leaf traffic in bytes/sec. "
 			"When running as an ultra node, this bandwidth is stolen "
 			"from the regular HTTP traffic if the shaper for leaves is "
 			"enabled.";
@@ -1112,7 +1112,7 @@ prop = {
 prop = {
     name = "bw_gnet_lout";
     cfgvar = "output_gnet_leaf_bandwidth";
-    desc = "Bandwidth limit for outgoing gNet leaf traffic in bytes/sec. "
+    desc = "Bandwidth limit for outgoing Gnet leaf traffic in bytes/sec. "
 			"When running as an ultra node, this bandwidth is stolen "
 			"from the regular HTTP traffic, if the shaper for leaves is "
 			"enabled.";

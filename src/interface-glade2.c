@@ -2017,7 +2017,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (menu_http_stats_visible_menu), menu_bws_out_visible);
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_bws_out_visible), TRUE);
 
-  menu_gnet_stats_visible = gtk_menu_item_new_with_mnemonic (_("gNet traffic stats"));
+  menu_gnet_stats_visible = gtk_menu_item_new_with_mnemonic (_("Gnet traffic stats"));
   gtk_widget_set_name (menu_gnet_stats_visible, "menu_gnet_stats_visible");
   gtk_widget_show (menu_gnet_stats_visible);
   gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_gnet_stats_visible);
@@ -2026,19 +2026,19 @@ create_main_window (void)
   gtk_widget_set_name (menu_gnet_stats_visible_menu, "menu_gnet_stats_visible_menu");
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_gnet_stats_visible), menu_gnet_stats_visible_menu);
 
-  menu_bws_gin_visible = gtk_check_menu_item_new_with_mnemonic (_("show gNet incoming traffic"));
+  menu_bws_gin_visible = gtk_check_menu_item_new_with_mnemonic (_("show Gnet incoming traffic"));
   gtk_widget_set_name (menu_bws_gin_visible, "menu_bws_gin_visible");
   gtk_widget_show (menu_bws_gin_visible);
   gtk_container_add (GTK_CONTAINER (menu_gnet_stats_visible_menu), menu_bws_gin_visible);
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_bws_gin_visible), TRUE);
 
-  menu_bws_gout_visible = gtk_check_menu_item_new_with_mnemonic (_("show gNet outgoing traffic"));
+  menu_bws_gout_visible = gtk_check_menu_item_new_with_mnemonic (_("show Gnet outgoing traffic"));
   gtk_widget_set_name (menu_bws_gout_visible, "menu_bws_gout_visible");
   gtk_widget_show (menu_bws_gout_visible);
   gtk_container_add (GTK_CONTAINER (menu_gnet_stats_visible_menu), menu_bws_gout_visible);
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_bws_gout_visible), TRUE);
 
-  menu_gnet_leaf_stats_visible = gtk_menu_item_new_with_mnemonic (_("gNet leaf traffic stats"));
+  menu_gnet_leaf_stats_visible = gtk_menu_item_new_with_mnemonic (_("Gnet leaf traffic stats"));
   gtk_widget_set_name (menu_gnet_leaf_stats_visible, "menu_gnet_leaf_stats_visible");
   gtk_widget_show (menu_gnet_leaf_stats_visible);
   gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_gnet_leaf_stats_visible);
@@ -2421,7 +2421,7 @@ create_main_window (void)
   gtk_widget_set_name (eventbox8, "eventbox8");
   gtk_widget_show (eventbox8);
   gtk_box_pack_start (GTK_BOX (hbox_stats_connections), eventbox8, FALSE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox8, _("gNet connections"), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox8, _("Gnet connections"), NULL);
 
   image131 = create_pixmap (main_window, "smallserver.xpm");
   gtk_widget_set_name (image131, "image131");

@@ -695,7 +695,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[22].name = "widths_gnet_stats_msg";
-    gui_property->props[22].desc = _("Widths of the columns in the gnet packet stats table");
+    gui_property->props[22].desc = _("Widths of the columns in the Gnet packet stats table");
     gui_property->props[22].ev_changed = event_new("gnet_stats_msg_col_widths_changed");
     gui_property->props[22].save = TRUE;
     gui_property->props[22].vector_size = 6;
@@ -715,7 +715,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[23].name = "widths_gnet_stats_fc_ttl";
-    gui_property->props[23].desc = _("Widths of the columns in the gnet fc ttl stats table");
+    gui_property->props[23].desc = _("Widths of the columns in the Gnet fc ttl stats table");
     gui_property->props[23].ev_changed = event_new("gnet_stats_fc_ttl_col_widths_changed");
     gui_property->props[23].save = TRUE;
     gui_property->props[23].vector_size = 10;
@@ -735,7 +735,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[24].name = "widths_gnet_stats_fc_hops";
-    gui_property->props[24].desc = _("Widths of the columns in the gnet fc hops stats table");
+    gui_property->props[24].desc = _("Widths of the columns in the Gnet fc hops stats table");
     gui_property->props[24].ev_changed = event_new("gnet_stats_fc_hops_col_widths_changed");
     gui_property->props[24].save = TRUE;
     gui_property->props[24].vector_size = 10;
@@ -755,7 +755,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[25].name = "widths_gnet_stats_fc";
-    gui_property->props[25].desc = _("Widths of the columns in the gnet fc hops stats table");
+    gui_property->props[25].desc = _("Widths of the columns in the Gnet fc hops stats table");
     gui_property->props[25].ev_changed = event_new("gnet_stats_fc_col_widths_changed");
     gui_property->props[25].save = TRUE;
     gui_property->props[25].vector_size = 10;
@@ -775,7 +775,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[26].name = "widths_gnet_stats_horizon";
-    gui_property->props[26].desc = _("Widths of the columns in the gnet horizon stats table");
+    gui_property->props[26].desc = _("Widths of the columns in the Gnet horizon stats table");
     gui_property->props[26].ev_changed = event_new("gnet_stats_horizon_col_widths_changed");
     gui_property->props[26].save = TRUE;
     gui_property->props[26].vector_size = 4;
@@ -795,7 +795,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[27].name = "widths_gnet_stats_drop_reasons";
-    gui_property->props[27].desc = _("Widths of the columns in the gnet stats drop reasons table");
+    gui_property->props[27].desc = _("Widths of the columns in the Gnet stats drop reasons table");
     gui_property->props[27].ev_changed = event_new("gnet_stats_drop_reasons_col_widths_changed");
     gui_property->props[27].save = TRUE;
     gui_property->props[27].vector_size = 2;
@@ -815,7 +815,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[28].name = "widths_gnet_stats_recv";
-    gui_property->props[28].desc = _("Widths of the columns in the gnet stats drop reasons table");
+    gui_property->props[28].desc = _("Widths of the columns in the Gnet stats drop reasons table");
     gui_property->props[28].ev_changed = event_new("gnet_stats_recv_col_widths_changed");
     gui_property->props[28].save = TRUE;
     gui_property->props[28].vector_size = 10;
@@ -955,7 +955,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[35].name = "gnet_stats_divider_pos";
-    gui_property->props[35].desc = _("Position of the divider in the gnet stats pane");
+    gui_property->props[35].desc = _("Position of the divider in the Gnet stats pane");
     gui_property->props[35].ev_changed = event_new("gnet_stats_divider_pos_changed");
     gui_property->props[35].save = TRUE;
     gui_property->props[35].vector_size = 1;
@@ -1211,7 +1211,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[49].name = "progressbar_bws_gin_visible";
-    gui_property->props[49].desc = _("Display incoming gNet traffic bandwidth usage");
+    gui_property->props[49].desc = _("Display incoming Gnet traffic bandwidth usage");
     gui_property->props[49].ev_changed = event_new("progressbar_bws_gin_visible_changed");
     gui_property->props[49].save = TRUE;
     gui_property->props[49].vector_size = 1;
@@ -1228,7 +1228,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[50].name = "progressbar_bws_gout_visible";
-    gui_property->props[50].desc = _("Display outgoing gNet traffic bandwidth usage");
+    gui_property->props[50].desc = _("Display outgoing Gnet traffic bandwidth usage");
     gui_property->props[50].ev_changed = event_new("progressbar_bws_gout_visible_changed");
     gui_property->props[50].save = TRUE;
     gui_property->props[50].vector_size = 1;
@@ -1245,7 +1245,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[51].name = "progressbar_bws_glin_visible";
-    gui_property->props[51].desc = _("Display incoming gNet leaf traffic bandwidth usage");
+    gui_property->props[51].desc = _("Display incoming Gnet leaf traffic bandwidth usage");
     gui_property->props[51].ev_changed = event_new("progressbar_bws_glin_visible_changed");
     gui_property->props[51].save = TRUE;
     gui_property->props[51].vector_size = 1;
@@ -1262,7 +1262,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[52].name = "progressbar_bws_glout_visible";
-    gui_property->props[52].desc = _("Display outgoing gNet leaf traffic bandwidth usage");
+    gui_property->props[52].desc = _("Display outgoing Gnet leaf traffic bandwidth usage");
     gui_property->props[52].ev_changed = event_new("progressbar_bws_glout_visible_changed");
     gui_property->props[52].save = TRUE;
     gui_property->props[52].vector_size = 1;
@@ -1330,7 +1330,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[56].name = "progressbar_bws_gin_avg";
-    gui_property->props[56].desc = _("Display incoming gNet traffic bandwidth average");
+    gui_property->props[56].desc = _("Display incoming Gnet traffic bandwidth average");
     gui_property->props[56].ev_changed = event_new("progressbar_bws_gin_avg_changed");
     gui_property->props[56].save = TRUE;
     gui_property->props[56].vector_size = 1;
@@ -1347,7 +1347,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[57].name = "progressbar_bws_gout_avg";
-    gui_property->props[57].desc = _("Display outgoing gNet traffic bandwidth average");
+    gui_property->props[57].desc = _("Display outgoing Gnet traffic bandwidth average");
     gui_property->props[57].ev_changed = event_new("progressbar_bws_gout_avg_changed");
     gui_property->props[57].save = TRUE;
     gui_property->props[57].vector_size = 1;
@@ -1364,7 +1364,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[58].name = "progressbar_bws_glin_avg";
-    gui_property->props[58].desc = _("Display incoming gNet leaf traffic bandwidth average");
+    gui_property->props[58].desc = _("Display incoming Gnet leaf traffic bandwidth average");
     gui_property->props[58].ev_changed = event_new("progressbar_bws_glin_avg_changed");
     gui_property->props[58].save = TRUE;
     gui_property->props[58].vector_size = 1;
@@ -1381,7 +1381,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[59].name = "progressbar_bws_glout_avg";
-    gui_property->props[59].desc = _("Display outgoing gNet leaf traffic bandwidth average");
+    gui_property->props[59].desc = _("Display outgoing Gnet leaf traffic bandwidth average");
     gui_property->props[59].ev_changed = event_new("progressbar_bws_glout_avg_changed");
     gui_property->props[59].save = TRUE;
     gui_property->props[59].vector_size = 1;
@@ -1611,7 +1611,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[72].name = "gnet_stats_perc";
-    gui_property->props[72].desc = _("Show percentages instead of absolute values in the gnet stats");
+    gui_property->props[72].desc = _("Show percentages instead of absolute values in the Gnet stats");
     gui_property->props[72].ev_changed = event_new("gnet_stats_perc_changed");
     gui_property->props[72].save = TRUE;
     gui_property->props[72].vector_size = 1;
@@ -1628,7 +1628,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[73].name = "gnet_stats_bytes";
-    gui_property->props[73].desc = _("Show bytes instead of packets in the gnet stats");
+    gui_property->props[73].desc = _("Show bytes instead of packets in the Gnet stats");
     gui_property->props[73].ev_changed = event_new("gnet_stats_bytes_changed");
     gui_property->props[73].save = TRUE;
     gui_property->props[73].vector_size = 1;
@@ -1679,7 +1679,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[76].name = "gnet_stats_drop_perc";
-    gui_property->props[76].desc = _("Show percentages instead of absolute values in the gnet stats (drop reasons)");
+    gui_property->props[76].desc = _("Show percentages instead of absolute values in the Gnet stats (drop reasons)");
     gui_property->props[76].ev_changed = event_new("gnet_stats_drop_perc_changed");
     gui_property->props[76].save = TRUE;
     gui_property->props[76].vector_size = 1;
@@ -1696,7 +1696,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[77].name = "widths_gnet_stats_general";
-    gui_property->props[77].desc = _("Widths of the columns in the gnet stats general table");
+    gui_property->props[77].desc = _("Widths of the columns in the Gnet stats general table");
     gui_property->props[77].ev_changed = event_new("gnet_stats_general_col_widths_changed");
     gui_property->props[77].save = TRUE;
     gui_property->props[77].vector_size = 2;
@@ -2130,7 +2130,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[102].name = "widths_gnet_stats_pkg";
-    gui_property->props[102].desc = _("Widths of the columns in the gnet packet stats table (pkg)[GTK2]");
+    gui_property->props[102].desc = _("Widths of the columns in the Gnet packet stats table (pkg) [GTK2]");
     gui_property->props[102].ev_changed = event_new("gnet_stats_pkg_col_widths_changed");
     gui_property->props[102].save = TRUE;
     gui_property->props[102].vector_size = 6;
@@ -2150,7 +2150,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[103].name = "widths_gnet_stats_byte";
-    gui_property->props[103].desc = _("Widths of the columns in the gnet packet stats table (byte) [GTK2]");
+    gui_property->props[103].desc = _("Widths of the columns in the Gnet packet stats table (byte) [GTK2]");
     gui_property->props[103].ev_changed = event_new("gnet_stats_byte_col_widths_changed");
     gui_property->props[103].save = TRUE;
     gui_property->props[103].vector_size = 6;

@@ -2508,7 +2508,7 @@ Grace time remaining:</property>
 			      <child>
 				<widget class="GtkMenuItem" id="menu_gnet_stats_visible">
 				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">gNet traffic stats</property>
+				  <property name="label" translatable="yes">Gnet traffic stats</property>
 				  <property name="use_underline">True</property>
 
 				  <child>
@@ -2517,7 +2517,7 @@ Grace time remaining:</property>
 				      <child>
 					<widget class="GtkCheckMenuItem" id="menu_bws_gin_visible">
 					  <property name="visible">True</property>
-					  <property name="label" translatable="yes">show gNet incoming traffic</property>
+					  <property name="label" translatable="yes">show Gnet incoming traffic</property>
 					  <property name="use_underline">True</property>
 					  <property name="active">True</property>
 					  <signal name="activate" handler="on_menu_bws_gin_visible_activate"/>
@@ -2527,7 +2527,7 @@ Grace time remaining:</property>
 				      <child>
 					<widget class="GtkCheckMenuItem" id="menu_bws_gout_visible">
 					  <property name="visible">True</property>
-					  <property name="label" translatable="yes">show gNet outgoing traffic</property>
+					  <property name="label" translatable="yes">show Gnet outgoing traffic</property>
 					  <property name="use_underline">True</property>
 					  <property name="active">True</property>
 					  <signal name="activate" handler="on_menu_bws_gout_visible_activate"/>
@@ -2541,7 +2541,7 @@ Grace time remaining:</property>
 			      <child>
 				<widget class="GtkMenuItem" id="menu_gnet_leaf_stats_visible">
 				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">gNet leaf traffic stats</property>
+				  <property name="label" translatable="yes">Gnet leaf traffic stats</property>
 				  <property name="use_underline">True</property>
 
 				  <child>
@@ -3384,7 +3384,7 @@ Grace time remaining:</property>
 				      <child>
 					<widget class="GtkEventBox" id="eventbox8">
 					  <property name="visible">True</property>
-					  <property name="tooltip" translatable="yes">gNet connections</property>
+					  <property name="tooltip" translatable="yes">Gnet connections</property>
 					  <property name="visible_window">True</property>
 					  <property name="above_child">False</property>
 

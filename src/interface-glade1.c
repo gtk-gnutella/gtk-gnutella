@@ -1360,7 +1360,7 @@ create_main_window (void)
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_bws_out_visible), TRUE);
   gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_bws_out_visible), TRUE);
 
-  menu_gnet_stats_visible = gtk_menu_item_new_with_label (_("gNet traffic stats"));
+  menu_gnet_stats_visible = gtk_menu_item_new_with_label (_("Gnet traffic stats"));
   gtk_widget_set_name (menu_gnet_stats_visible, "menu_gnet_stats_visible");
   gtk_widget_ref (menu_gnet_stats_visible);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_gnet_stats_visible", menu_gnet_stats_visible,
@@ -1376,7 +1376,7 @@ create_main_window (void)
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_gnet_stats_visible), menu_gnet_stats_visible_menu);
   menu_gnet_stats_visible_menu_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (menu_gnet_stats_visible_menu));
 
-  menu_bws_gin_visible = gtk_check_menu_item_new_with_label (_("show gNet incoming traffic"));
+  menu_bws_gin_visible = gtk_check_menu_item_new_with_label (_("show Gnet incoming traffic"));
   gtk_widget_set_name (menu_bws_gin_visible, "menu_bws_gin_visible");
   gtk_widget_ref (menu_bws_gin_visible);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_bws_gin_visible", menu_bws_gin_visible,
@@ -1386,7 +1386,7 @@ create_main_window (void)
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_bws_gin_visible), TRUE);
   gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_bws_gin_visible), TRUE);
 
-  menu_bws_gout_visible = gtk_check_menu_item_new_with_label (_("show gNet outgoing traffic"));
+  menu_bws_gout_visible = gtk_check_menu_item_new_with_label (_("show Gnet outgoing traffic"));
   gtk_widget_set_name (menu_bws_gout_visible, "menu_bws_gout_visible");
   gtk_widget_ref (menu_bws_gout_visible);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_bws_gout_visible", menu_bws_gout_visible,
@@ -1396,7 +1396,7 @@ create_main_window (void)
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_bws_gout_visible), TRUE);
   gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_bws_gout_visible), TRUE);
 
-  menu_gnet_leaf_stats_visible = gtk_menu_item_new_with_label (_("gNet leaf traffic stats"));
+  menu_gnet_leaf_stats_visible = gtk_menu_item_new_with_label (_("Gnet leaf traffic stats"));
   gtk_widget_set_name (menu_gnet_leaf_stats_visible, "menu_gnet_leaf_stats_visible");
   gtk_widget_ref (menu_gnet_leaf_stats_visible);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_gnet_leaf_stats_visible", menu_gnet_leaf_stats_visible,
@@ -1779,7 +1779,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox6);
   gtk_box_pack_start (GTK_BOX (hbox_stats_connections), eventbox6, FALSE, FALSE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox6, _("gNet connections"), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox6, _("Gnet connections"), NULL);
 
   pixmap1 = create_pixmap (main_window, "smallserver.xpm");
   gtk_widget_set_name (pixmap1, "pixmap1");
@@ -1798,7 +1798,7 @@ create_main_window (void)
   gtk_widget_show (progressbar_connections);
   gtk_box_pack_start (GTK_BOX (hbox_stats_connections), progressbar_connections, TRUE, TRUE, 0);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_connections), TRUE);
-  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_connections), _("%v/%u gNet nodes"));
+  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_connections), _("%v/%u Gnet nodes"));
 
   hbox_stats_uploads = gtk_hbox_new (FALSE, 1);
   gtk_widget_set_name (hbox_stats_uploads, "hbox_stats_uploads");
@@ -2476,7 +2476,7 @@ create_main_window (void)
   gtk_widget_set_usize (entry_nodes_ip, 72, -2);
   gtk_entry_set_editable (GTK_ENTRY (entry_nodes_ip), FALSE);
 
-  label_gnutellanet = gtk_label_new (_("gNet"));
+  label_gnutellanet = gtk_label_new (_("Gnet"));
   gtk_widget_set_name (label_gnutellanet, "label_gnutellanet");
   gtk_widget_ref (label_gnutellanet);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_gnutellanet", label_gnutellanet,
@@ -10555,7 +10555,7 @@ create_main_window (void)
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_horizon), 3, label666);
   gtk_widget_set_usize (label666, 36, -2);
 
-  label_gnet_stats = gtk_label_new (_("gNet Stats"));
+  label_gnet_stats = gtk_label_new (_("Gnet Stats"));
   gtk_widget_set_name (label_gnet_stats, "label_gnet_stats");
   gtk_widget_ref (label_gnet_stats);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_gnet_stats", label_gnet_stats,
@@ -11136,7 +11136,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_legacy);
   gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_legacy, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_image_legacy, _("Running in legacy mode. Consider switching to auto mode (Config->gNet settings->Current peermode)"), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_legacy, _("Running in legacy mode. Consider switching to auto mode (Config->Gnet settings->Current peermode)"), NULL);
 
   image_legacy = create_pixmap (main_window, "legacy.xpm");
   gtk_widget_set_name (image_legacy, "image_legacy");
