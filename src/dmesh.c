@@ -235,9 +235,12 @@ static void dmesh_ban_expire(cqueue_t *cq, gpointer obj)
 		GSList *head;
 		gpointer key;			/* The SHA1 atom used for key in table */
 		gpointer x;
+		gboolean found;
 
-		head = by_ip = (GSList *) g_hash_table_lookup_extended(
+		found = g_hash_table_lookup_extended(
 			ban_mesh_by_sha1, dmb->sha1, &key, &x);
+		g_assert(found);
+		head = by_ip = (GSList *) x;
 		by_ip = g_slist_remove(by_ip, dmb);
 
 		if (by_ip == NULL) {
