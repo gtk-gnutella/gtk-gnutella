@@ -1,5 +1,14 @@
 # since last version
 
+- (2004-09-15 - RAM)
+ * Was not accounting received queries and query hits for the UDP node.
+ * If they remove the pseudo UDP node, it will disable UDP.
+ * Handle GTKG/7v2, where GUID of the ping is taken from the MUID instead
+   of from the payload.
+
+- (2004-09-13 - RAM)
+ * RX dropped packets are now accounted for in gnet_stats_count_dropped().
+
 - (2004-09-11 - RAM)
  * Will now send queries marked for out-of-band hit delivery.
  * Out-of-band hit delivery is now enabled by default.
