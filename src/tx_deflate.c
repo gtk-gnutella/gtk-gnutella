@@ -309,7 +309,6 @@ retry:
 
 	switch (ret) {
 	case Z_BUF_ERROR:				/* Nothing to flush */
-		g_warning("got Z_BUF_ERROR in deflate_flush");	// XXX
 		return TRUE;
 	case Z_OK:
 		break;
