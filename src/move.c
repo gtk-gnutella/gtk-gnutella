@@ -263,6 +263,9 @@ static bgret_t d_step_copy(gpointer h, gpointer u, gint ticks)
 	if (md->rd == -1)			/* Could not open the file */
 		return BGR_DONE;		/* Computation done */
 
+	if (md->size == 0)			/* Empty file */
+		return BGR_DONE;
+
 	remain = md->size - md->copied;
 
 	g_assert(remain > 0);

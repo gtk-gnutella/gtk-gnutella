@@ -183,6 +183,9 @@ static bgret_t d_step_compute(gpointer h, gpointer u, gint ticks)
 	if (vd->fd == -1)			/* Could not open the file */
 		return BGR_DONE;		/* Computation done */
 
+	if (vd->size == 0)			/* Empty file */
+		return BGR_DONE;
+
 	remain = vd->size - vd->hashed;
 
 	g_assert(remain > 0);
