@@ -303,9 +303,9 @@ guint search_gui_hash_func(const record_t *rc)
 		GPOINTER_TO_UINT(rc->sha1) ^	/* atom! (may be NULL) */
 		GPOINTER_TO_UINT(rc->results_set->guid) ^	/* atom! */
 		(NULL != rc->sha1 ? 0 : g_str_hash(rc->name)) ^
-		g_int_hash(&rc->size) ^
-		g_int_hash(&rc->results_set->ip) ^
-		g_int_hash(&rc->results_set->port);
+		rc->size ^
+		rc->results_set->ip ^
+		rc->results_set->port;
 }
 
 gint search_gui_hash_key_compare(const record_t *rc1, const record_t *rc2)
