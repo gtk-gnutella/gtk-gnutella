@@ -521,8 +521,7 @@ routing_init(void)
 
     gnet_prop_get_storage(PROP_GUID, (guint8 *) guid_buf, sizeof(guid_buf));
 
-	/* XXX: 15? Shouldn't this be 16? */
-	for (i = 0; i < 15; i++) {
+	for (i = 0; i < 15; i++) {		/* Not 16 since byte #15 is a marker */
 		if (guid_buf[i]) {
 			need_guid = FALSE;
 			break;
@@ -842,7 +841,6 @@ check_hops_ttl(struct gnutella_node *sender)
 	if (sender->header.hops == 255) {
 		routing_log("(max hop count reached)");
 		gnet_stats_count_dropped(sender, MSG_DROP_MAX_HOP_COUNT);
-		sender->rx_dropped++;
 		sender->n_bad++;
 		if (dbg)
 			gmsg_log_bad(sender, "message with HOPS=255!");
@@ -899,7 +897,6 @@ forward_message(
 		/* XXX max_high_ttl_radius & max_high_ttl_msg XXX */
 
 		sender->n_hard_ttl++;
-		sender->rx_dropped++;
         gnet_stats_count_dropped(sender, MSG_DROP_HARD_TTL_LIMIT);
 
 		if (sender->header.hops <= max_high_ttl_radius &&
@@ -923,7 +920,6 @@ forward_message(
 		/* TTL expired, message stops here */
 		routing_log("(TTL expired)");
 		gnet_stats_count_expired(sender);
-		/* don't increase rx_dropped, we'll handle this message */
 	} else {
 		/*
 		 * Forward message to all others nodes, or the the ones specified
@@ -1023,7 +1019,6 @@ check_duplicate(struct gnutella_node **node, struct message **mp)
 		}
 
 		gnet_stats_count_dropped(sender, MSG_DROP_DUPLICATE);
-		sender->rx_dropped++;
 
 		if (m->routes && node_sent_message(sender, m)) {
 			/* The same node has sent us a message twice ! */
@@ -1131,7 +1126,6 @@ route_push(struct gnutella_node **node, struct route_dest *dest)
 				node_ip(sender), guid_hex_str(sender->data));
 
 		gnet_stats_count_dropped(sender, MSG_DROP_BANNED);
-		sender->rx_dropped++;
 
 		return FALSE;
 	}
@@ -1144,8 +1138,6 @@ route_push(struct gnutella_node **node, struct route_dest *dest)
 
 	if (hostiles_check(ip)) {
 		gnet_stats_count_dropped(sender, MSG_DROP_HOSTILE_IP);
-		sender->rx_dropped++;
-
 		return FALSE;
 	}
 
@@ -1167,8 +1159,6 @@ route_push(struct gnutella_node **node, struct route_dest *dest)
 				guid_hex_str(sender->data));
 			gnet_stats_count_dropped(sender, MSG_DROP_NO_ROUTE);
 		}
-
-		sender->rx_dropped++;
 
 		return FALSE;
 	}
@@ -1214,7 +1204,6 @@ route_query(struct gnutella_node **node, struct route_dest *dest)
 
 	if (!NODE_IS_READABLE(sender) && !is_oob_query) {
 		gnet_stats_count_dropped(sender, MSG_DROP_SHUTDOWN);
-		sender->rx_dropped++;
 		return FALSE;
 	}
 
@@ -1239,8 +1228,6 @@ route_query(struct gnutella_node **node, struct route_dest *dest)
 
 	if (!is_oob_query && NODE_IN_TX_FLOW_CONTROL(sender)) {
 		gnet_stats_count_dropped(sender, MSG_DROP_FLOW_CONTROL);
-		sender->rx_dropped++;
-
 		return FALSE;
 	}
 
@@ -1316,7 +1303,6 @@ route_query_hit(struct gnutella_node **node, struct route_dest *dest)
 
 		routing_log("[ ] no request matching the reply!");
 
-		sender->rx_dropped++;
 		gnet_stats_count_dropped(sender, MSG_DROP_NO_ROUTE);
 		sender->n_bad++;	/* Node shouldn't have forwarded this message */
 
@@ -1384,7 +1370,6 @@ route_query_hit(struct gnutella_node **node, struct route_dest *dest)
 			if (current_peermode != NODE_P_LEAF) {
 				routing_log("(TTL expired)");
 				gnet_stats_count_expired(sender);
-				sender->rx_dropped++;
 			}
 			goto handle;
 		}
@@ -1400,7 +1385,6 @@ route_query_hit(struct gnutella_node **node, struct route_dest *dest)
 route_lost:
 	routing_log("[H] route to target lost ");
 
-	sender->rx_dropped++;
 	gnet_stats_count_dropped(sender, MSG_DROP_ROUTE_LOST);
 	goto final;
 

@@ -432,18 +432,15 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 	return;
 
 drop_shutdown:
-	src->rx_dropped++;
 	gnet_stats_count_dropped(src, MSG_DROP_SHUTDOWN);
 	return;
 
 drop_flow_control:
-	src->rx_dropped++;
 	gnet_stats_count_dropped(src, MSG_DROP_FLOW_CONTROL);
 	gnet_stats_count_flowc(&src->header);
 	return;
 	
 drop_throttle:
-	src->rx_dropped++;
 	gnet_stats_count_dropped(src, MSG_DROP_THROTTLE);
 	return;
 }

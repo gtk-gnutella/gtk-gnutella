@@ -3435,7 +3435,6 @@ qrt_receive_next(gpointer handle, gboolean *done)
 	return TRUE;
 
 dropped:
-	n->rx_dropped++;
 	return TRUE;		/* Everything is fine, even if we dropped message */
 }
 

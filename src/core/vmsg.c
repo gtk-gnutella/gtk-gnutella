@@ -332,7 +332,6 @@ static void
 vmsg_bad_payload(
 	struct gnutella_node *n, struct vmsg *vmsg, gint size, gint expected)
 {
-	n->rx_dropped++;
 	n->n_bad++;
 	gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
 

@@ -1150,7 +1150,6 @@ pcache_ping_received(struct gnutella_node *n)
 
 	if (now < n->ping_accept) {
 		n->n_ping_throttle++;		/* Drop the ping */
-		n->rx_dropped++;
         gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 		return;
 	} else {

@@ -4887,8 +4887,6 @@ node_parse(struct gnutella_node *node)
 	if (drop) {
 		if (n->header.ttl == 0)
 			node_sent_ttl0(n);
-		else
-			n->rx_dropped++;
 		goto reset_header;
 	}
 
@@ -5089,7 +5087,7 @@ node_parse(struct gnutella_node *node)
 	}
 
 dropped:
-	n->rx_dropped++;
+	/* gnet_stats_count_dropped() already counted dropped packet */
 
 reset_header:
 	n->have_header = FALSE;
@@ -5650,7 +5648,6 @@ node_sent_ttl0(struct gnutella_node *n)
 
 	gnet_stats_count_dropped(n, MSG_DROP_TTL0);
 
-	n->rx_dropped++;
 	n->n_bad++;
 
 	if (dbg)

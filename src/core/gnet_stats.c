@@ -266,6 +266,7 @@ void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 	stats = NODE_IS_UDP(n) ? &gnet_udp_stats : &gnet_tcp_stats;
 
 	DROP_STATS(stats, type, size);
+	node_inc_rxdrop(n);
 
 	if (dbg > 4)
 		gmsg_log_dropped(&n->header, "from %s <%s>: %s",
