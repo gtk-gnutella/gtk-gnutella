@@ -46,6 +46,8 @@ void gmsg_init(void);
 const gchar *gmsg_name(guint function);
 
 pmsg_t *gmsg_split_to_pmsg(gpointer head, gpointer data, guint32 size);
+pmsg_t * gmsg_split_to_pmsg_extend(
+	gpointer head, gpointer data, guint32 size, pmsg_free_t free, gpointer arg);
 
 void gmsg_mb_sendto_all(const GSList *sl, pmsg_t *mb);
 void gmsg_mb_sendto_one(struct gnutella_node *n, pmsg_t *mb);
