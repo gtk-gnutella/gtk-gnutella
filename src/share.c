@@ -1571,14 +1571,23 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 *
 	 *		--RAM, 19/01/2003, updated 06/07/2003 (bit 14-13 instead of 8-9)
 	 *
+	 * 3. If the GGEP "H" bit (bit 12) is set, the issuer of the query will
+	 *    understand the "H" extension in query hits.
+	 *		--RAM, 16/07/2003
+	 *
 	 * Starting today (06/07/2003), we ignore the connection speed overall
 	 * if it's not marked with the QUERY_SPEED_MARK flag to indicate new
 	 * interpretation. --RAM
 	 */
 
+	use_ggep_h = FALSE;
+
 	if (req_speed & QUERY_SPEED_MARK) {
 		if ((req_speed & QUERY_SPEED_FIREWALLED) && is_firewalled)
 			return FALSE;			/* Both servents are firewalled */
+
+		if (req_speed & QUERY_SPEED_GGEP_H)
+			use_ggep_h = TRUE;
 	}
 
 	/*
@@ -1609,11 +1618,14 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		guint8 major, minor;
 		gboolean release;
 
-		use_ggep_h = FALSE;
 		use_ggep_version = NULL;
 
 		if (guid_is_gtkg(n->header.muid, &major, &minor, &release)) {
-			use_ggep_h = major >= 1 || minor > 91 || (minor == 91 && release);
+			/* Only supersede `use_ggep_h' if not indicated in "min speed" */
+			if (!use_ggep_h)
+				use_ggep_h =
+					major >= 1 || minor > 91 || (minor == 91 && release);
+
 			if (major >= 1 || minor >= 92)
 				use_ggep_version = "GTKGV1";
 
