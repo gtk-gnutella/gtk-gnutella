@@ -7476,8 +7476,8 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 	 * the index in the array at which we'll start iterating.
 	 */
 
-	ui = (ux <= ucnt) ? 0 : random_value(ucnt - 1);
-	li = (lx <= lcnt) ? 0 : random_value(lcnt - 1);
+	ui = (ux <= ucnt) ? 0 : ucnt ? random_value(ucnt - 1) : 0;
+	li = (lx <= lcnt) ? 0 : lcnt ? random_value(lcnt - 1) : 0;
 
 	/*
 	 * Construct the payload of the reply in a message buffer.
@@ -7524,7 +7524,7 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 	 * from the selected random place if we have to put less than we have.
 	 */
 
-	if (ux) {
+	if (un) {
 		gint w;
 		w = node_crawl_fill(mb, ultras, 0, ux, un, features, now, agents, TRUE);
 		if (w < un)
@@ -7533,7 +7533,7 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 		ui = w;
 	}
 
-	if (lx) {
+	if (ln) {
 		gint w;
 		w = node_crawl_fill(mb, leaves, 0, lx, ln, features, now, agents, TRUE);
 		if (w < ln)
@@ -7618,9 +7618,9 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 	}
 
 	if (dbg) g_message(
-		"UDP crawler sending data for %u ultras and %u leaves: %d bytes, "
+		"UDP crawler sending data for %u/%u ultras and %u/%u leaves: %d bytes, "
 		"features=0x%x to %s",
-		payload[0], payload[1], pmsg_size(mb), payload[2], node_ip(n));
+		payload[0], ux, payload[1], lx, pmsg_size(mb), payload[2], node_ip(n));
 
 	vmsg_send_udp_crawler_pong(n, mb);
 
