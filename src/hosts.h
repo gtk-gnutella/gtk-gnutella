@@ -42,7 +42,6 @@ extern gboolean host_low_on_pongs;
 
 void host_init(void);
 void host_timer(void);
-void host_add_ultra(guint32 ip, guint16 port);
 void host_add(guint32, guint16, gboolean);
 void host_add_semi_pong(guint32 ip, guint16 port);
 void host_shutdown(void);
@@ -53,5 +52,6 @@ gboolean host_is_nearby(guint32 ip);
 
 guint host_hash(gconstpointer key);
 gint host_eq(gconstpointer v1, gconstpointer v2);
+gint host_cmp(gconstpointer v1, gconstpointer v2);
 
 #endif /* _hosts_h_ */

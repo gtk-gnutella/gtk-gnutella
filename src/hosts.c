@@ -49,8 +49,6 @@
 
 RCSID("$Id$");
 
-#define MAX_EXTRA_HOSTS	15			/* Max amount of extra connections */
-
 gboolean host_low_on_pongs = FALSE;			/* True when less than 12% full */
 
 static gboolean in_shutdown = FALSE;
@@ -59,6 +57,9 @@ static gboolean in_shutdown = FALSE;
  *** Host hashing.
  ***/
 
+/**
+ * Hash function for use in g_hash_table_new.
+ */
 guint host_hash(gconstpointer key)
 {
 	const gnet_host_t *host = (const gnet_host_t *) key;
@@ -66,12 +67,27 @@ guint host_hash(gconstpointer key)
 	return (guint) (host->ip ^ ((host->port << 16) | host->port));
 }
 
+/**
+ * Compare function which returns TRUE if the hosts are equal.
+ *
+ * @note For use in g_hash_table_new
+ */
 gint host_eq(gconstpointer v1, gconstpointer v2)
 {
 	const gnet_host_t *h1 = (const gnet_host_t *) v1;
 	const gnet_host_t *h2 = (const gnet_host_t *) v2;
 
 	return h1->ip == h2->ip && h1->port == h2->port;
+}
+
+/**
+ * Compare function which returns 0 if the hosts are equal, otherwise 1.
+ *
+ * @note For use in g_list_find_custom
+ */
+gint host_cmp(gconstpointer v1, gconstpointer v2)
+{
+	return host_eq(v1, v2) ? 0 : 1;
 }
 
 
@@ -91,7 +107,7 @@ void host_timer(void)
 	gint missing;
 	guint32 ip;
 	guint16 port;
-	hcache_type_t hctype;
+	host_type_t htype;
 	gint max_nodes;
 
 	if (in_shutdown || !online_mode)
@@ -122,10 +138,10 @@ void host_timer(void)
 	/*
 	 * Allow more outgoing connections than the maximum amount of
 	 * established Gnet connection we can maintain, but not more
-	 * than MAX_EXTRA_HOSTS.  This is the "greedy mode".
+	 * than quick_connect_pool_size   This is the "greedy mode".
 	 */
 
-	if (count > max_nodes + MAX_EXTRA_HOSTS)
+	if (count >= quick_connect_pool_size)
 		return;
 
 	if (count < max_nodes)
@@ -136,22 +152,37 @@ void host_timer(void)
 	 * to the connection list
 	 */
 
-	hctype = current_peermode == NODE_P_NORMAL ? HCACHE_ANY : HCACHE_ULTRA;
+	htype = (current_peermode == NODE_P_NORMAL) ? 
+        HOST_ANY : HOST_ULTRA;
 
 	if (
-		current_peermode == NODE_P_ULTRA &&
-		node_normal_count < normal_connections &&
-		node_ultra_count >= (up_connections - normal_connections)
-	)
-		hctype = HCACHE_ANY;
+        current_peermode == NODE_P_ULTRA &&
+        node_normal_count < normal_connections &&
+        node_ultra_count >= (up_connections - normal_connections)
+	) {
+		htype = HOST_ANY;
+    }
 
-	if (hcache_size(hctype) == 0)
-		hctype = HCACHE_ANY;
+	if (hcache_size(htype) == 0) {
+		htype = HOST_ANY;
+    }
 
-	if (missing > 0) {
-        if (!stop_host_get) {
-			while (hcache_size(hctype) && missing-- > 0) {
-				hcache_get_caught(hctype, &ip, &port);
+    if (!stop_host_get) {
+        if (missing > 0) {
+            guint fan;
+
+            fan = (missing * quick_connect_pool_size) / max_nodes;
+            missing = fan;
+            if ((missing + count) > (quick_connect_pool_size))
+                missing = quick_connect_pool_size - count;
+
+/*      
+            g_message("host_timer - connecting - fan:%d   miss:%d   max_hosts:%d   count:%d   extra:%d",
+                fan, missing, max_nodes, count, quick_connect_pool_size);
+*/
+
+			while (hcache_size(htype) && missing-- > 0) {
+				hcache_get_caught(htype, &ip, &port);
 				node_add(ip, port);
 			}
 			if (missing > 0)
@@ -160,11 +191,11 @@ void host_timer(void)
 	}
 	else if (use_netmasks) {
 		/* Try to find better hosts */
-		if (hcache_find_nearby(hctype, &ip, &port)) {
+		if (hcache_find_nearby(htype, &ip, &port)) {
 			if (node_remove_worst(TRUE))
 				node_add(ip, port); 
 			else
-				hcache_add(hctype, ip, port, "nearby host");
+				hcache_add_caught(htype, ip, port, "nearby host");
 		}
 	}
 }
@@ -179,40 +210,6 @@ void host_init(void)
 }
 
 /*
- * add_host_to_cache
- *
- * Common processing for host_add() and host_add_semi_pong().
- * Returns true when IP/port passed sanity checks.
- */
-static gboolean add_host_to_cache(
-	hcache_type_t htype, guint32 ip, guint16 port, gchar *type)
-{
-	if (ip == listen_ip() && port == listen_port)
-		return FALSE;
-
-	if (node_host_is_connected(ip, port))
-		return FALSE;			/* Connected to that host? */
-
-	if (hcache_add(htype, ip, port, type))
-		return TRUE;
-
-	return FALSE;
-}
-
-/*
- * host_add_ultra
- *
- * Add a new host to our ultra pong reserve.
- */
-void host_add_ultra(guint32 ip, guint16 port)
-{
-	if (!add_host_to_cache(HCACHE_ULTRA, ip, port, "pong"))
-		return;
-
-    hcache_prune(HCACHE_ULTRA);
-}
-
-/*
  * host_add
  *
  * Add a new host to our pong reserve.
@@ -220,7 +217,7 @@ void host_add_ultra(guint32 ip, guint16 port)
  */
 void host_add(guint32 ip, guint16 port, gboolean do_connect)
 {
-	if (!add_host_to_cache(HCACHE_ANY, ip, port, "pong"))
+	if (!hcache_add_caught(HOST_ANY, ip, port, "pong"))
 		return;
 
 	/*
@@ -248,8 +245,6 @@ void host_add(guint32 ip, guint16 port, gboolean do_connect)
 		}
 
 	}
-
-    hcache_prune(HCACHE_ANY);
 }
 
 /*
@@ -263,11 +258,7 @@ void host_add_semi_pong(guint32 ip, guint16 port)
 {
 	g_assert(host_low_on_pongs);	/* Only used when low on pongs */
 
-	(void) add_host_to_cache(HCACHE_ANY, ip, port, "semi-pong");
-
-	/*
-	 * Don't attempt to prune cache, we know we're below the limit.
-	 */
+    hcache_add_caught(HOST_ANY, ip, port, "semi-pong");
 }
 
 /* ---------- Netmask heuristic by Mike Perry -------- */
