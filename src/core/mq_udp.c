@@ -1,0 +1,384 @@
+/*
+ * $Id$
+ *
+ * Copyright (c) 2002-2003, Raphael Manfredi
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+/**
+ * @file
+ *
+ * Message queues, writing to a TCP stack.
+ */
+
+#include "common.h"
+
+RCSID("$Id$");
+
+#include "nodes.h"
+#include "mq.h"
+#include "mq_tcp.h"
+#include "pmsg.h"
+#include "gmsg.h"
+#include "tx.h"
+#include "gnet_stats.h"
+
+#include "lib/walloc.h"
+
+#include "if/gnet_property_priv.h"
+
+#include "lib/override.h"		/* Must be the last header included */
+
+static void mq_udp_service(gpointer data);
+static struct mq_ops mq_udp_ops;
+
+/*
+ * The "meta data" attached to each message block enqueued yields routing
+ * information, perused by the queue to route messages.
+ */
+struct mq_udp_info {
+	gnet_host_t to;		/* Destination */
+};
+
+/*
+ * The extended meta data are used when the enqueued message is already
+ * extended.  The structural equivalence with `mq_udp_info' is critical.
+ */
+struct mq_udp_info_extended {
+	gnet_host_t to;		/* Destination */
+	/* Original free routine info */
+	pmsg_free_t orig_free;
+	gpointer orig_arg;
+};
+
+/**
+ * Free routine for plain metadata.
+ */
+static void
+mq_udp_pmsg_free(pmsg_t *mb, gpointer arg)
+{
+	struct mq_udp_info *mi = (struct mq_udp_info *) arg;
+
+	g_assert(pmsg_is_extended(mb));
+
+	wfree(mi, sizeof(*mi));
+}
+
+/**
+ * Free routine for extended metadata, invoking the original free routine
+ * on the original metadata.
+ */
+static void
+mq_udp_pmsg_free_extended(pmsg_t *mb, gpointer arg)
+{
+	struct mq_udp_info_extended *mi = (struct mq_udp_info_extended *) arg;
+
+	g_assert(pmsg_is_extended(mb));
+
+	if (mi->orig_free)
+		(*mi->orig_free)(mb, mi->orig_arg);
+
+	wfree(mi, sizeof(*mi));
+}
+
+/**
+ * Attach meta information to supplied message block, returning a possibly
+ * new message block to use.
+ */
+static pmsg_t *mq_udp_attach_metadata(pmsg_t *mb, gnet_host_t *to)
+{
+	pmsg_t *result;
+
+	if (pmsg_is_extended(mb)) {
+		struct mq_udp_info_extended *mi;
+
+		mi = walloc(sizeof(*mi));
+		mi->to = *to;				/* Struct copy */
+		result = mb;
+
+		/*
+		 * Replace original free routine with the new one, saving the original
+		 * metadata and its free routine in the new metadata for later
+		 * transparent dispatching at free time.
+		 */
+
+		mi->orig_free = pmsg_replace_ext(mb,
+			mq_udp_pmsg_free_extended, mi, &mi->orig_arg);
+
+	} else {
+		struct mq_udp_info *mi;
+
+		mi = walloc(sizeof(*mi));
+		mi->to = *to;				/* Struct copy */
+		result = pmsg_clone_extend(mb, mq_udp_pmsg_free, mi);
+		pmsg_free(mb);
+	}
+
+	g_assert(pmsg_is_extended(mb));
+
+	return result;
+}
+
+/**
+ * Create new message queue capable of holding `maxsize' bytes, and
+ * owned by the supplied node.
+ */
+mqueue_t *mq_udp_make(
+	gint maxsize, struct gnutella_node *n, struct txdriver *nd)
+{
+	mqueue_t *q;
+
+	q = walloc0(sizeof(*q));
+
+	q->node = n;
+	q->tx_drv = nd;
+	q->maxsize = maxsize;
+	q->lowat = maxsize >> 2;		/* 25% of max size */
+	q->hiwat = maxsize >> 1;		/* 50% of max size */
+	q->ops = &mq_udp_ops;
+	q->cops = mq_get_cops();
+
+	tx_srv_register(nd, mq_udp_service, q);
+
+	return q;
+}
+
+
+/*
+ * mq_udp_service
+ *
+ * Service routine for UDP message queue.
+ */
+static void mq_udp_service(gpointer data)
+{
+	mqueue_t *q = (mqueue_t *) data;
+	gint r;
+	GList *l;
+	gint sent;
+	gint dropped;
+
+	g_assert(q->count);		/* Queue is serviced, we must have something */
+
+	sent = 0;
+	dropped = 0;
+
+	/*
+	 * Write as much as possible.
+	 */
+
+	for (l = q->qtail; l; /* empty */) {
+		pmsg_t *mb = (pmsg_t *) l->data;
+		gchar *mb_start = pmsg_start(mb);
+		gint mb_size = pmsg_size(mb);
+		struct mq_udp_info *mi = (struct mq_udp_info *) pmsg_get_metadata(mb);
+		guint8 function;
+
+		r = tx_sendto((txdrv_t *) q->tx_drv, &mi->to, mb_start, mb_size);
+
+		if (r <= 0)		/* No more bandwidth, or write error received */
+			break;
+
+		if (r != mb_size) {
+			g_warning("partial UDP write (%d bytes) to %s for %d-byte datagram",
+				r, ip_port_to_gchar(mi->to.ip, mi->to.port), mb_size);
+			l = q->cops->rmlink_prev(q, l, mb_size);
+			dropped++;
+			continue;
+		}
+
+		node_add_tx_given(q->node, r);
+
+		if (q->flags & MQ_FLOWC)
+			q->flowc_written += r;
+
+		function = gmsg_function(mb_start);
+		sent++;
+		pmsg_mark_sent(mb);
+		gnet_stats_count_sent(q->node, function, gmsg_hops(mb_start), mb_size);
+		switch (function) {
+		case GTA_MSG_SEARCH:
+			node_inc_tx_query(q->node);
+			break;
+		case GTA_MSG_SEARCH_RESULTS:
+			node_inc_tx_qhit(q->node);
+			break;
+		default:
+			break;
+		}
+
+		if (q->qlink)
+			q->cops->qlink_remove(q, l);
+		l = q->cops->rmlink_prev(q, l, mb_size);
+	}
+
+	g_assert(q->size >= 0 && q->count >= 0);
+
+	if (sent)
+		node_add_sent(q->node, sent);
+
+	if (dropped)
+		node_add_txdrop(q->node, dropped);	/* Dropped during TX */
+
+	/*
+	 * Update flow-control information.
+	 */
+
+	q->cops->update_flowc(q);
+
+	/*
+	 * If queue is empty, disable servicing.
+	 *
+	 * If not, we've been through a writing cycle and there are still some
+	 * data we could not send.  We know the TCP window is full, or we
+	 * would not be servicing and still get some data to send.  Notify
+	 * the node.
+	 *		--RAM, 15/03/2002
+	 */
+
+	if (q->size == 0) {
+		g_assert(q->count == 0);
+		tx_srv_disable((txdrv_t *) q->tx_drv);
+		node_tx_service(q->node, FALSE);
+	} else
+		node_flushq(q->node);		/* Need to flush kernel buffers faster */
+}
+
+/**
+ * Enqueue message, which becomes owned by the queue.
+ *
+ * The data held in `to' is copied, so the structure can be reclaimed
+ * immediately by the caller.
+ */
+void mq_udp_putq(mqueue_t *q, pmsg_t *mb, gnet_host_t *to)
+{
+	gint size = pmsg_size(mb);
+	gchar *mbs = pmsg_start(mb);
+	guint8 function = gmsg_function(mbs);
+	guint8 hops = gmsg_hops(mbs);
+	pmsg_t *mbe;
+
+	g_assert(q);
+	g_assert(!pmsg_was_sent(mb));
+	g_assert(pmsg_is_unread(mb));
+
+	if (size == 0) {
+		g_warning("mq_putq: called with empty message");
+		goto cleanup;
+	}
+
+	if (q->flags & MQ_DISCARD) {
+		g_warning("mq_putq: called whilst queue shutdown");
+		goto cleanup;
+	}
+
+	gnet_stats_count_queued(q->node, function, hops, size);
+
+	/*
+	 * If queue is empty, attempt a write immediatly.
+	 */
+
+	if (q->qhead == NULL) {
+		gint written;
+
+		written = tx_sendto(q->tx_drv, to, mbs, size);
+
+		if (written < 0)
+			goto cleanup;
+
+		node_add_tx_given(q->node, written);
+
+		if (written == size) {
+			pmsg_mark_sent(mb);
+			node_inc_sent(q->node);
+			gnet_stats_count_sent(q->node, function, hops, size);
+			switch (function) {
+			case GTA_MSG_SEARCH:
+				node_inc_tx_query(q->node);
+				break;
+			case GTA_MSG_SEARCH_RESULTS:
+				node_inc_tx_qhit(q->node);
+				break;
+			default:
+				break;
+			}
+			goto cleanup;
+		}
+
+		/*
+		 * Since UDP respects write boundaries, the following can never
+		 * happen in practice: either we write the whole datagram, or none
+		 * of it.
+		 */
+
+		if (written > 0) {
+			g_warning("partial UDP write (%d bytes) to %s for %d-byte datagram",
+				written, ip_port_to_gchar(to->ip, to->port), size);
+			goto cleanup;
+		}
+
+		/* FALL THROUGH */
+	}
+
+	/*
+	 * Attach the destination information as metadata to the message.
+	 *
+	 * This is later extracted via pmsg_get_metadata() on the extended
+	 * message by the message queue to get the destination information.
+	 *
+	 * Then enqueue the extended message.
+	 */
+
+	mbe = mq_udp_attach_metadata(mb, to);
+
+	q->cops->puthere(q, mbe, size);
+	return;
+
+cleanup:
+	pmsg_free(mb);
+	return;
+}
+
+/*
+ * Enqueue message to be sent to the ip:port held in the supplied node.
+ */
+void mq_udp_node_putq(mqueue_t *q, pmsg_t *mb, gnutella_node_t *n)
+{
+	gnet_host_t to;
+
+	to.ip = n->ip;
+	to.port = n->port;
+
+	mq_udp_putq(q, mb, &to);
+}
+
+/**
+ * Disable plain mq_putq() operation on an UDP queue.
+ */
+static void mq_no_putq(mqueue_t *q, pmsg_t *mb)
+{
+	g_error("plain mq_putq() forbidden on UDP queue -- use mq_udp_putq()");
+}
+
+static struct mq_ops mq_udp_ops = {
+	mq_no_putq,			/* putq */
+};
+
+/* vi: set ts=4: */
