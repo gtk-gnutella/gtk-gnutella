@@ -75,7 +75,7 @@ const gchar *msg_drop_str(int value)
 		case 5: return _("Unexpected message");
 		case 6: return _("Message sent with TTL = 0");
 		case 7: return _("Max TTL exceeded");
-		case 8: return _("Ping throttle");
+		case 8: return _("Message throttle");
 		case 9: return _("Unusable Pong");
 		case 10: return _("Hard TTL limit reached");
 		case 11: return _("Max hop count reached");
