@@ -251,10 +251,10 @@ static void namesize_parse(FILE *f, const gchar *file)
 			p++;
 
 		/*
-		 * Go past the last "/" if filename, if any.
+		 * Go past the last directory separator if filename, if any.
 		 */
 
-		q = strrchr(p, '/');
+		q = strrchr(p, G_DIR_SEPARATOR);
 		if (q == NULL)
 			q = p;
 		else
@@ -314,7 +314,7 @@ enum ignore_val ignore_is_requested(
 			return IGNORE_LIBRARY;
 	}
 
-	ns.name = file;			/* Must be a basename, without any "/" inside */
+	ns.name = file;	/* Must be a basename, without any directory separator */
 	ns.size = size;
 
 	if (g_hash_table_lookup(by_namesize, &ns))

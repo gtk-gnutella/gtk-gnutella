@@ -438,9 +438,9 @@ void main_gui_early_init(gint argc, gchar **argv)
 	gtk_set_locale();
 	gtk_init(&argc, &argv);
 
-	add_pixmap_directory(PRIVLIB_EXP "/pixmaps");
+	add_pixmap_directory(PRIVLIB_EXP G_DIR_SEPARATOR_S "pixmaps");
 #ifndef OFFICIAL_BUILD
-	add_pixmap_directory(PACKAGE_SOURCE_DIR "/pixmaps");
+	add_pixmap_directory(PACKAGE_SOURCE_DIR G_DIR_SEPARATOR_S "pixmaps");
 #endif
 
     main_window = gui_create_main_window();

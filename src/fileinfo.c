@@ -519,7 +519,7 @@ void file_info_strip_binary_from_file(
 {
 	struct dl_file_info *dfi;
 
-	g_assert(file[0] == '/');		/* Absolute path given */
+	g_assert(file[0] == G_DIR_SEPARATOR);	/* Absolute path given */
 
 	/*
 	 * Before truncating the file, we must be really sure it is reasonnably
@@ -1202,7 +1202,8 @@ static struct dl_file_info *file_info_retrieve_binary(
 bailout:
 
 	g_warning("file_info_retrieve_binary(): %s in %s%s%s",
-		reason, path, path[strlen(path) - 1] == '/' ? "" : "/", file);
+		reason, path, path[strlen(path) - 1] == G_DIR_SEPARATOR
+						? "" : G_DIR_SEPARATOR_S, file);
 
 eof:
 	if (NULL != pathname)
@@ -2116,9 +2117,9 @@ void file_info_retrieve(void)
 /*
  * escape_filename
  *
- * Lazily replace all '/' if filename with '_': if a substitution needs to
- * be done, a copy of the original argument is made first.	Otherwise,
- * no change nor allocation occur.
+ * Lazily replace all G_DIR_SEPARATOR if filename with '_': if a
+ * substitution needs to be done, a copy of the original argument is made
+ * first. Otherwise, no change nor allocation occur.
  *
  * Any ASCII control characters and leading '.' in the filename are also
  * replaced with '_'.
@@ -2133,7 +2134,7 @@ static gchar *escape_filename(const gchar *file)
 	size_t i;
 
 	for (i = 0; (c = (guchar) file[i]) != '\0'; i++) {
-		if (c == '/' || is_ascii_cntrl(c) || (c == '.' && i == 0)) {
+		if (c == G_DIR_SEPARATOR || is_ascii_cntrl(c) || (c == '.' && i == 0)) {
 			if (escaped == NULL) {
 				escaped = g_strdup(file);
 				g_assert(escaped[i] == c);

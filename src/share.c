@@ -822,7 +822,7 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 		return;
 	}
 	
-	if (dir[strlen(dir) - 1] == '/')
+	if (dir[strlen(dir) - 1] == G_DIR_SEPARATOR)
 		dir_slash = dir;
 	else
 		dir_slash = g_strconcat(dir, G_DIR_SEPARATOR_S, NULL);
@@ -862,7 +862,7 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 		 * downloading directory...
 		 */
 
-		name = strrchr(full, '/');
+		name = strrchr(full, G_DIR_SEPARATOR);
 		g_assert(name);
 		name++;						/* Start of file name */
 
