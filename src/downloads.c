@@ -1987,9 +1987,13 @@ static gboolean send_push_request(gchar *guid, guint32 file_id, guint16 port)
 static gboolean download_queue_w(gpointer dp)
 {
 	struct download *d = (struct download *) dp;
+	gchar error_str[256];	/* Used to sprintf() error strings with vars */
+
+	if (d->remove_msg)
+		strncpy(error_str, d->remove_msg, sizeof(error_str) - 1);
 
 	d->restart_timer_id = 0;
-	download_queue(d, d->remove_msg);
+	download_queue(d, d->remove_msg ? error_str : NULL);
 
 	return FALSE;			/* Called only once per download */
 }
