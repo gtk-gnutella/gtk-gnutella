@@ -1,5 +1,22 @@
 # since last version
 
+- (2002.04.30 - Richard)
+  * Put statistics into a handlebox so they can be displayed seperatly
+    from the main window
+  * Went throught the gui layout and set a consistent layout style:
+    horizonal spacing: 4; vertical spacing: 2; border: 2
+  * removing of unnecessary widgets and more clean up of the widget
+    tree
+  * make "remove file" in downloads popup work
+  * removed "abort and delete file" from downloads popup
+  * made "copy url" really supply an escaped url which should work
+    when pasted to a browser
+  * changed the widget for entering search strings in the search panel
+    from a GtkEntry to a GtkCombo as a preparation to supply a search
+    history in future.
+  * fixed sensitivity of several items in the downloads popup which
+    were sensitive even if they would have done nothing when activated.
+
 - (2002.04.27 - RAM)
   * Reversed logic for forced IP, to make it behave properly: the IP is
 	now only updated dynamically when "force IP" is not checked.
