@@ -66,8 +66,6 @@ RCSID("$Id$");
 #include "lib/utf8.h"
 #include "lib/override.h"			/* Must be the last header included */
 
-static gchar tmpstr[1024];
-
 /***
  *** Windows
  ***/
@@ -89,18 +87,19 @@ GtkWidget *popup_queue = NULL;
  *** Private functions
  ***/
 
-static void gui_init_window_title(void)
+static void
+gui_init_window_title(void)
 {
+	gchar title[256];
+
 #ifdef GTA_REVISION
-	gm_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %s %s",
-		GTA_VERSION_NUMBER,
-		GTA_REVISION);
+	gm_snprintf(title, sizeof(title), "gtk-gnutella %s %s",
+		GTA_VERSION_NUMBER, GTA_REVISION);
 #else
-	gm_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %s",
-		GTA_VERSION_NUMBER);
+	gm_snprintf(title, sizeof(title), "gtk-gnutella %s", GTA_VERSION_NUMBER);
 #endif
 
-	gtk_window_set_title(GTK_WINDOW(main_window), tmpstr);
+	gtk_window_set_title(GTK_WINDOW(main_window), title);
 }
 
 /*
@@ -129,8 +128,9 @@ static const struct {
 
 #ifdef USE_GTK2
 
-static gboolean gui_init_menu_helper(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
+static gboolean
+gui_init_menu_helper(GtkTreeModel *model, GtkTreePath *path,
+	GtkTreeIter *iter, gpointer data)
 {
 	guint32 expanded;
 	gint id;
@@ -142,7 +142,8 @@ static gboolean gui_init_menu_helper(
 	return FALSE;
 }
 
-static void gui_init_menu(void)
+static void
+gui_init_menu(void)
 {
 	static GType types[] = {
 		G_TYPE_STRING,	/* Label */
@@ -197,20 +198,18 @@ static void gui_init_menu(void)
 		G_CALLBACK(on_main_gui_treeview_menu_row_expanded), NULL);
 }
 
-/*
- * gui_create_main_window:
- *
+/**
  * Handles main window UI joining.
  * Creates all dependent "tab" windows and merges them into
  * the main notebook.
- *
  */
-static GtkWidget *gui_create_main_window(void)
+static GtkWidget *
+gui_create_main_window(void)
 {
 	GtkWidget *window;
 	GtkWidget *notebook;
 	GtkWidget *tab_window[nb_main_page_num];
-	gint i ;
+	gint i;
 
 	/*
 	 * First create the main window without the tab contents.
@@ -263,7 +262,8 @@ static GtkWidget *gui_create_main_window(void)
 
 #define gui_create_main_window() create_main_window()
 
-static void gui_init_menu(void)
+static void
+gui_init_menu(void)
 {
     GtkCTree *ctree_menu = GTK_CTREE(lookup_widget(main_window, "ctree_menu"));
 	GtkCTreeNode *parent_node = NULL;
@@ -290,7 +290,8 @@ static void gui_init_menu(void)
 
 
 
-static GtkWidget *gui_create_dlg_prefs(void)
+static GtkWidget *
+gui_create_dlg_prefs(void)
 {
 	GtkWidget *dialog;
 #ifdef USE_GTK2
@@ -334,7 +335,8 @@ static GtkWidget *gui_create_dlg_prefs(void)
 	return dialog;
 }
 
-static GtkWidget *gui_create_dlg_about(void)
+static GtkWidget *
+gui_create_dlg_about(void)
 {
     /* NB: These strings are UTF-8 encoded. */
     static const char * const contributors[] = {
@@ -421,9 +423,7 @@ static GtkWidget *gui_create_dlg_about(void)
     return dlg;
 }
 
-/*
- * main_gui_gtkrc_init
- *
+/**
  * Searches for the gktrc file to use. Order in which they are scanned:
  * - $HOME/.gtkrc
  * - $HOME/.gtk/gtkrc
@@ -432,7 +432,8 @@ static GtkWidget *gui_create_dlg_about(void)
  * - ./gtkrc
  * Where the last one can overrule settings from earlier resource files.
  */
-void main_gui_gtkrc_init(void)
+void
+main_gui_gtkrc_init(void)
 {
 #ifdef USE_GTK2
     const gchar rcfn[] = "gtkrc-2.0";
@@ -475,15 +476,14 @@ void main_gui_gtkrc_init(void)
  *** Public functions
  ***/
 
-/*
- * main_gui_early_init:
- *
+/**
  * Some setup of the gui side which I wanted out of main.c but must be done
  * before the backend can be initialized since the core code is not free of
  * GTK yet.
  *      -- Richard, 6/9/2002
  */
-void main_gui_early_init(gint argc, gchar **argv)
+void
+main_gui_early_init(gint argc, gchar **argv)
 {
 	/* Glade inits */
 
@@ -527,7 +527,8 @@ void main_gui_early_init(gint argc, gchar **argv)
         (popup_downloads, GDK_SELECTION_PRIMARY, GDK_SELECTION_TYPE_STRING, 1);
 }
 
-void main_gui_init(void)
+void
+main_gui_init(void)
 {
 	main_gui_gtkrc_init();
 
@@ -592,7 +593,8 @@ void main_gui_init(void)
     gui_update_stats_frames();
 }
 
-void main_gui_run(void)
+void
+main_gui_run(void)
 {
     guint32 coord[4] = { 0, 0, 0, 0 };
 
@@ -694,7 +696,8 @@ void main_gui_run(void)
     gtk_main();
 }
 
-void main_gui_shutdown(void)
+void
+main_gui_shutdown(void)
 {
 	icon_close();
 
@@ -721,7 +724,8 @@ void main_gui_shutdown(void)
     hcache_gui_shutdown();
 }
 
-void main_gui_update_coords(void)
+void
+main_gui_update_coords(void)
 {
     guint32 coord[4] = { 0, 0, 0, 0};
 	gint x, y, w, h;
@@ -743,7 +747,8 @@ void main_gui_update_coords(void)
 /**
  * Main gui timer. This is called once a second.
  */
-void main_gui_timer(void)
+void
+main_gui_timer(void)
 {
 	time_t now = time((time_t *) NULL);
 
@@ -762,24 +767,19 @@ void main_gui_timer(void)
     filter_timer();					/* Update the filter stats */
 }
 
-void main_gui_shutdown_tick(guint left)
+void
+main_gui_shutdown_tick(guint left)
 {
     static gboolean notice_visible = FALSE;
-	gchar tmp[256];
-
-    GtkLabel *label_shutdown_count;
+    GtkLabel *label;
 
     if (!notice_visible) {
         gtk_widget_show(shutdown_window);
         notice_visible = TRUE;
     }
 
-    label_shutdown_count = GTK_LABEL
-        (lookup_widget(shutdown_window, "label_shutdown_count"));
-
-	gm_snprintf(tmp, sizeof(tmp), "%d seconds", left);
-
-	gtk_label_set(label_shutdown_count,tmp);
+    label = GTK_LABEL(lookup_widget(shutdown_window, "label_shutdown_count"));
+	gtk_label_printf(label, NG_("%d second", "%d seconds", left), left);
     gtk_main_flush();
 }
 
