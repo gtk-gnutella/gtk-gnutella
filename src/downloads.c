@@ -2047,8 +2047,8 @@ static gboolean download_overlap_check(struct download *d)
 	 */
 
 	if (d->skip != buf.st_size) {
-		g_warning("File '%s' changed size (now %ld, but was %u)",
-			d->output_name, buf.st_size, d->skip);
+		g_warning("File '%s' changed size (now %lu, but was %u)",
+			d->output_name, (gulong) buf.st_size, d->skip);
 		download_stop(d, GTA_DL_STOPPED, "Stopped (Output file size changed)");
 		goto out;
 	}
@@ -2352,8 +2352,8 @@ static void download_request(struct download *d, header_t *header)
 	if (stat(dl_tmp, &st) != -1) {
 		/* File exists, we'll append the data to it */
 		if (st.st_size != d->skip) {
-			g_warning("File '%s' changed size (now %ld, but was %u)",
-				d->output_name, st.st_size, d->skip);
+			g_warning("File '%s' changed size (now %lu, but was %u)",
+				d->output_name, (gulong) st.st_size, d->skip);
 			download_stop(d, GTA_DL_STOPPED,
 				"Stopped (Output file size changed)");
 			return;

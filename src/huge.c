@@ -586,8 +586,8 @@ static void close_current_file(void)
 			time_t delta = time((time_t *) NULL) - current_start;
 
 			if (delta && -1 != fstat(current_fd, &buf))
-				printf("SHA1 computation rate: %ld bytes/sec\n",
-					buf.st_size / delta);
+				printf("SHA1 computation rate: %lu bytes/sec\n",
+					(gulong) buf.st_size / delta);
 		}
 		close(current_fd);
 		current_fd = -1;
