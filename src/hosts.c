@@ -415,13 +415,9 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 		}
 
 	}
+
 	/*
-	 * Prune cache if we reached our limit.
-	 *
-	 * Because the `ht_known_hosts' table records the hosts in the
-	 * `sl_caught_hosts' list as well as those in the `sl_valid_hosts' list,
-	 * it is possible that during the while loop, we reach the end of the
-	 * `sl_valid_hosts'.  At that point, we switch.
+	 * Prune cache, in case we reached our limit.
 	 */
 
     host_prune_cache();
@@ -435,6 +431,13 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 void host_prune_cache() 
 {
     gint extra;
+
+	/*
+	 * Because the `ht_known_hosts' table records the hosts in the
+	 * `sl_caught_hosts' list as well as those in the `sl_valid_hosts' list,
+	 * it is possible that during the while loop, we reach the end of the
+	 * `sl_valid_hosts'.  At that point, we switch.
+	 */
 
     extra = g_hash_table_size(ht_known_hosts) - max_hosts_cached;
 	while (extra-- > 0) {
