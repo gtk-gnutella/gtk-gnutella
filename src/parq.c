@@ -1706,9 +1706,6 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 		}
 
 		if (uq->relative_position == pos) {
-			g_assert(uq->relative_position <= max_uploads);
-			g_assert(uq->queue->active_uploads <= max_uploads);
-			
 			if (dbg)
 				printf("PARQ UL: Upload %d[%d] is allowed to continue\n",
 					  uq->position, uq->relative_position);
@@ -2353,7 +2350,7 @@ void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul)
 	parq_ul->last_queue_sent = time(NULL);		/* We tried... */
 	parq_ul->queue_sent++;
 
-//	if (dbg)
+	if (dbg)
 		printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
 			"Sending QUEUE #%d to %s: '%s'\n\r",
 			  g_list_position(ul_parqs, 
@@ -2378,7 +2375,8 @@ void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul)
 	
 	u->status = GTA_UL_QUEUE;
 	u->name = atom_str_get(parq_ul->name);
-	u->ip = parq_ul->remote_ip;
+	parq_upload_update_ip_and_name(parq_ul, u);
+//	u->ip = parq_ul->remote_ip;
 	upload_fire_upload_info_changed(u);
 	
 	/* Verify created upload entry */
