@@ -237,11 +237,12 @@ void upload_timer(time_t now)
 
 		if (delta_time(now, u->last_update) > IO_STALLED) {
 			if (!(u->flags & UPLOAD_F_STALLED)) {
-				if (stalled++ == STALL_THRESH)
+				if (stalled++ == STALL_THRESH) {
 					g_warning("frequent stalling detected, using workarounds");
+					gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, TRUE);
+				}
 				last_stalled = now;
 				u->flags |= UPLOAD_F_STALLED;
-				gnet_prop_set_boolean_val(PROP_UPLOADS_STALLING, TRUE);
 				g_warning("connection to %s (%s) stalled after %u bytes sent,"
 					" stall counter at %d",
 					ip_to_gchar(u->ip), upload_vendor_str(u), u->sent, stalled);
