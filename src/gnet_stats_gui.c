@@ -444,14 +444,14 @@ void gnet_stats_gui_update(void)
                 byte_stat_str(stats.byte.relayed, n) : 
                 pkt_stat_str(stats.pkg.relayed, n));
 
-        for (m = 1; m < 10; m ++)
-            gtk_clist_set_text(clist_stats_fc_ttl, n, m,
+        for (m = 0; m < 9; m ++)
+            gtk_clist_set_text(clist_stats_fc_ttl, n+1, m,
                 gnet_stats_bytes ? 
                     flowc_stat_str_byte(stats.byte.flowc_ttl[m], n) :
                     flowc_stat_str_pkg(stats.pkg.flowc_ttl[m], n));
 
-        for (m = 1; m < 10; m ++)
-            gtk_clist_set_text(clist_stats_fc_hops, n, m,
+        for (m = 0; m < 9; m ++)
+            gtk_clist_set_text(clist_stats_fc_hops, n+1, m,
                 gnet_stats_bytes ? 
                     flowc_stat_str_byte(stats.byte.flowc_hops[m], n) :
                     flowc_stat_str_pkg(stats.pkg.flowc_hops[m], n));
