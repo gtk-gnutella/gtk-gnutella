@@ -2280,13 +2280,10 @@ formatted_connection_pongs(gchar *field, hcache_type_t htype, gint num)
 	g_assert(hcount >= 0 && hcount <= num);
 
 /* The most a pong can take is "xxx.xxx.xxx.xxx:yyyyy, ", i.e. 23 */
-#define PONG_LEN 23
-#define LINE_LENGTH	72
-
 	if (hcount) {
 		gint i;
 		gpointer fmt = header_fmt_make(field, ", ",
-			PONG_LEN * CONNECT_PONGS_COUNT + 30);
+			23 /* 23 == PONG_LEN */ * CONNECT_PONGS_COUNT + 30);
 
 		for (i = 0; i < hcount; i++) {
 			const gchar *ipstr = ip_port_to_gchar(hosts[i].ip, hosts[i].port);
@@ -2297,9 +2294,6 @@ formatted_connection_pongs(gchar *field, hcache_type_t htype, gint num)
 		line = header_fmt_to_gchar(fmt);
 		header_fmt_free(fmt);
 	}
-
-#undef PONG_LEN
-#undef LINE_LENGTH
 
 	return line;		/* Pointer to static data */
 }
