@@ -20,7 +20,19 @@ struct gnutella_search_results {
 	/* Last 16 bytes = client_id */
 };
 
+/*
+ * A results_set structure factorizes the common information from a Query Hit
+ * packet, and then has a list of individual records, one for each hit.
+ *
+ * A single structure is created for each Query Hit packet we receive, but
+ * then it can be dispatched for displaying some of its records to the
+ * various searches in presence.  Each time the structure is dispatched,
+ * the `refcount' is incremented, so that we don't free it and its content
+ * until it has been "forgotten" that many times.
+ */
 struct results_set {
+	gint refcount;				/* Numner of "struct search" this belongs to */
+
 	guchar guid[16];
 	guint32 num_recs;
 	guint32 ip;
@@ -34,22 +46,33 @@ struct results_set {
 };
 
 /*
- * Flags for the `status' field above.
+ * An individual hit.  It referes to a file entry on the remote servent,
+ * as identified by the parent results_set structure that contains this hit.
+ *
+ * When a record is kept in a search window for display, it is put into
+ * a hash table and its `refcount' is incremented: since the parent structure
+ * can be dispatched to various searches, each record can be inserted in so
+ * many different hash tables (one per search).
  */
-
-#define ST_KNOWN_VENDOR			0x8000		/* Found known vendor code */
-#define ST_PARSED_TRAILER		0x4000		/* Was able to parse trailer */
-#define ST_UPLOADED				0x0004
-#define ST_BUSY					0x0002
-#define ST_FIREWALL				0x0001
-
 struct record {
-	struct results_set *results_set;
+	struct results_set *results_set;	/* Parent, containing record */
+	gint refcount;				/* Number of hash tables it has been put to */
 	gchar *name;				/* File name */
 	guint32 size;				/* Size of file, in bytes */
 	guint32 index;				/* Index for GET command */
 	gchar *tag;					/* Optional tag data, NUL terminated */
 };
+
+/*
+ * Result sets `status' flags.
+ */
+
+#define ST_KNOWN_VENDOR			0x8000		/* Found known vendor code */
+#define ST_PARSED_TRAILER		0x4000		/* Was able to parse trailer */
+#define ST_UPLOADED				0x0004		/* Is "open", people downloaded */
+#define ST_BUSY					0x0002		/* Has currently no slots */
+#define ST_FIREWALL				0x0001		/* Is behind a firewall */
+
 
 struct gnutella_msg_search {
 	struct gnutella_header header;

@@ -62,7 +62,6 @@ gboolean search_results_show_tabs = TRUE;	/* Display the notebook tabs? */
 guint32 search_max_results = 5000;		/* Max items allowed in GUI results */
 guint32 search_passive = 0;				/* Amount of passive searches */
 
-static void search_free_r_sets(struct search *);
 static void search_send_packet(struct search *);
 static void search_add_new_muid(struct search *sch);
 static guint sent_node_hash_func(gconstpointer key);
@@ -70,6 +69,7 @@ static gint sent_node_compare(gconstpointer a, gconstpointer b);
 static void search_free_sent_nodes(struct search *sch);
 static gboolean search_reissue_timeout_callback(gpointer data);
 static void update_one_reissue_timeout(struct search *sch);
+static struct results_set *get_results_set(struct gnutella_node *n);
 
 /* ----------------------------------------- */
 
@@ -94,21 +94,85 @@ void search_init(void)
 	gui_search_init();
 }
 
-/* Free one file record */
-
+/*
+ * search_free_record
+ *
+ * Free one file record.
+ *
+ * Those records may be inserted into some `dups' tables, at which time they
+ * have their refcount increased.  They may later be removed from those tables
+ * and they will have their refcount decreased.
+ *
+ * To ensure some level of sanity, we ask our callers to explicitely check
+ * for a refcount to be zero before calling us.
+ */
 static void search_free_record(struct record *rc)
 {
+	g_assert(rc->refcount == 0);
+
 	g_free(rc->name);
 	if (rc->tag)
 		g_free(rc->tag);
 	g_free(rc);
 }
 
-/* Free one results_set */
-
-void search_free_r_set(struct results_set *rs)
+/*
+ * search_clean_r_set
+ *
+ * This routine must be called when the results_set has been dispatched to
+ * all the opened searches.
+ *
+ * All the records that have not been used by a search are removed.
+ */
+static void search_clean_r_set(struct results_set *rs)
 {
 	GSList *m;
+
+	g_assert(rs->refcount);		/* If not dispatched, should be freed */
+
+again:
+	for (m = rs->records; m; m = m->next) {
+		struct record *rc = (struct record *) m->data;
+
+		if (rc->refcount)
+			continue;
+
+		search_free_record(rc);
+		rs->records = g_slist_remove(rs->records, rc);
+		rs->num_recs--;
+
+		goto again;				/* Need to restart from the beginning */
+	}
+}
+
+/*
+ * search_free_r_set
+ *
+ * Free one results_set.
+ *
+ * Those records may be shared between several searches.  So while the refcount
+ * is positive, we just decrement it and return without doing anything.
+ */
+static void search_free_r_set(struct results_set *rs)
+{
+	GSList *m;
+
+	/*
+	 * It is conceivable that some records were used solely by the search
+	 * dropping the result set.  Therefore, if the refcount is not 0,  we
+	 * pass through search_clean_r_set().
+	 */
+
+	if (--(rs->refcount) > 0) {
+		search_clean_r_set(rs);
+		return;
+	}
+
+	/*
+	 * Because noone refers to us any more, we know that our embedded records
+	 * cannot be held in the hash table anymore.  Hence we may call the
+	 * search_free_record() safely, because rc->refcount must be zero.
+	 */
 
 	for (m = rs->records; m; m = m->next)
 		search_free_record((struct record *) m->data);
@@ -121,17 +185,32 @@ void search_free_r_set(struct results_set *rs)
 
 /* Free all the results_set's of a search */
 
-void search_free_r_sets(struct search *sch)
+static void search_free_r_sets(struct search *sch)
 {
 	GSList *l;
 
 	g_return_if_fail(sch);
+	g_assert(sch->dups == NULL);	/* All records were cleaned */
 
 	for (l = sch->r_sets; l; l = l->next)
 		search_free_r_set((struct results_set *) l->data);
 
 	g_slist_free(sch->r_sets);
 	sch->r_sets = NULL;
+}
+
+/*
+ * dec_records_refcount
+ *
+ * Decrement refcount of hash table key entry.
+ */
+static void dec_records_refcount(gpointer key, gpointer value, gpointer udata)
+{
+	struct record *rc = (struct record *) key;
+
+	g_assert(rc->refcount > 0);
+
+	rc->refcount--;
 }
 
 /* Close a search */
@@ -198,13 +277,23 @@ void search_close_current(void)
 
 	}
 
+	/*
+	 * Before invoking search_free_r_sets(), we must iterate on the
+	 * hash table where we store records and decrement the refcount of
+	 * each record.  Otherwise, we will violate the pre-condition of
+	 * search_free_record(), which is there precisely for that reason!
+	 */
+
+	g_hash_table_foreach(sch->dups, dec_records_refcount, NULL);
+	g_hash_table_destroy(sch->dups);
+	sch->dups = NULL;
+
 	search_free_r_sets(sch);
 
 	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
 
 	gtk_list_remove_items(GTK_LIST(GTK_COMBO(combo_searches)->list), glist);
 
-	g_hash_table_destroy(sch->dups);
 	g_free(sch->query);
 	g_free(sch);
 
@@ -261,7 +350,7 @@ void mark_search_sent_to_connected_nodes(struct search *sch)
 
 /* Create and send a search request packet */
 
-void __search_send_packet(struct search *sch, struct gnutella_node *n)
+static void __search_send_packet(struct search *sch, struct gnutella_node *n)
 {
 	struct gnutella_msg_search *m;
 	guint32 size;
@@ -300,6 +389,17 @@ void __search_send_packet(struct search *sch, struct gnutella_node *n)
 	g_free(m);
 }
 
+static void search_add_new_muid(struct search *sch)
+{
+	guchar *muid = (guchar *) g_malloc(16);
+
+	generate_new_muid(muid, TRUE);
+
+	if (sch->muids)				/* If this isn't the first muid */
+		search_reset_sent_nodes(sch);
+	sch->muids = g_slist_prepend(sch->muids, (gpointer) muid);
+}
+
 static void search_send_packet(struct search *sch)
 {
 	autodownload_init();			/* Reload patterns, if necessary */
@@ -314,68 +414,24 @@ static guint search_hash_func(gconstpointer key)
 		g_str_hash(rc->name) ^
 		g_int_hash(&rc->size) ^
 		g_int_hash(&rc->results_set->ip) ^
-		g_int_hash(&rc->results_set->port);
+		g_int_hash(&rc->results_set->port) ^
+		g_int_hash(&rc->results_set->guid[0]) ^
+		g_int_hash(&rc->results_set->guid[4]) ^
+		g_int_hash(&rc->results_set->guid[8]) ^
+		g_int_hash(&rc->results_set->guid[12]);
 }
 
-/* Put it back when it's needed --DW */
-#if 0
-static char *guid_to_str(guchar * g)
+static gint search_hash_key_compare(gconstpointer a, gconstpointer b)
 {
-	static char buf[16 * 3];
-	static int i, j;
-	char *t = "";
-
-	for (i = 0, j = 0; i < 16;) {
-		j += sprintf(&buf[j], "%s%02x", t, g[i]);
-		i++;
-		t = " ";
-	}
-	return buf;
-}
-#endif
-
-static void search_add_new_muid(struct search *sch)
-{
-	guchar *muid = (guchar *) g_malloc(16);
-
-	generate_new_muid(muid, TRUE);
-
-	if (sch->muids)				/* If this isn't the first muid */
-		search_reset_sent_nodes(sch);
-	sch->muids = g_slist_prepend(sch->muids, (gpointer) muid);
-}
-
-gint search_hash_key_compare(gconstpointer a, gconstpointer b)
-{
-	struct record *this_record = (struct record *) a;
-	struct record *rc = (struct record *) b;
-	gboolean identical;
+	struct record *rc1 = (struct record *) a;
+	struct record *rc2 = (struct record *) b;
 
 	/* Must compare same fields as search_hash_func() --RAM */
-	identical = !strcmp(rc->name, this_record->name)
-		&& rc->size == this_record->size
-		&& rc->results_set->ip == this_record->results_set->ip
-		&& rc->results_set->port == this_record->results_set->port;
-
-	/*
-	 * Actually, if the index is the only thing that changed,
-	 * we want to overwrite the old one (and if we've
-	 * got the download queue'd, replace it there too.
-	 *		--RAM, 17/12/2001 from a patch by Vladimir Klebanov
-	 */
-	if (identical && rc->index != this_record->index) {
-		g_warning("Index changed from %u to %u for %s",
-			this_record->index, rc->index, rc->name);
-		download_index_changed(
-			this_record->results_set->ip,
-			this_record->results_set->port,
-			this_record->index,
-			rc->index);
-		this_record->index = rc->index;
-		return TRUE;		/* yes, it's a duplicate */
-	}
-
-	return identical && rc->index == this_record->index;
+	return rc1->size == rc2->size
+		&& rc1->results_set->ip == rc2->results_set->ip
+		&& rc1->results_set->port == rc2->results_set->port
+		&& 0 == memcmp(rc1->results_set->guid, rc2->results_set->guid, 16)
+		&& 0 == strcmp(rc1->name, rc2->name);
 }
 
 
@@ -497,6 +553,18 @@ void search_update_reissue_timeout(guint32 timeout)
 		if (sch->reissue_timeout_id)
 			update_one_reissue_timeout(sch);
 	}
+}
+
+/*
+ * search_remove_r_set
+ *
+ * Remove reference to results in our search.
+ * Last one to remove it will trigger a free.
+ */
+static void search_remove_r_set(struct search *sch, struct results_set *rs)
+{
+	sch->r_sets = g_slist_remove(sch->r_sets, rs);
+	search_free_r_set(rs);
 }
 
 
@@ -640,7 +708,82 @@ gint search_compare(gint sort_col, struct record * r1, struct record * r2)
 	return 0;
 }
 
-struct results_set *get_results_set(struct gnutella_node *n)
+/*
+ * extract_vendor_name
+ *
+ * Extract vendor name from the results set's trailer, and return the name.
+ * If no trailer, or if we can't understand the name, return NULL.
+ * Otherwise returns the name as a pointer to static data.
+ *
+ * As a side effect, set the ST_KNOWN_VENDOR in the status flags when the
+ * vendor is known.
+ */
+static gchar *extract_vendor_name(struct results_set * rs)
+{
+	static gchar temp[5];
+	gchar *vendor = NULL;
+	guint32 t;
+	gint i;
+
+	if (!rs->trailer)
+		return NULL;
+
+	READ_GUINT32_BE(rs->trailer, t);
+	rs->status |= ST_KNOWN_VENDOR;
+
+	switch (t) {
+	case T_BEAR: vendor = "Bear";			break;
+	case T_CULT: vendor = "Cultiv8r";		break;
+	case T_GNEW: vendor = "Gnewtellium";	break;
+	case T_GNOT: vendor = "Gnotella";		break;
+	case T_GNUC: vendor = "Gnucleus";		break;
+	case T_GNUT: vendor = "Gnut";			break;
+	case T_GTKG: vendor = "Gtk-Gnut";		break;
+	case T_HSLG: vendor = "Hagelslag";		break;
+	case T_LIME: vendor = "Lime";			break;
+	case T_MACT: vendor = "Mactella";		break;
+	case T_MNAP: vendor = "MyNapster";		break;
+	case T_MUTE: vendor = "Mutella";		break;
+	case T_NAPS: vendor = "NapShare";		break;
+	case T_OCFG: vendor = "OpenCola";		break;
+	case T_OPRA: vendor = "Opera";			break;
+	case T_PHEX: vendor = "Phex";			break;
+	case T_QTEL: vendor = "Qtella";			break;
+	case T_SNUT: vendor = "SwapNut";		break;
+	case T_SWAP: vendor = "Swapper";		break;
+	case T_TOAD: vendor = "ToadNode";		break;
+	case T_XOLO: vendor = "Xolox";			break;
+	case T_XTLA: vendor = "Xtella";			break;
+	case T_ZIGA: vendor = "Ziga";			break;
+	default:
+		/* Unknown type, look whether we have all alphanum */
+		rs->status &= ~ST_KNOWN_VENDOR;
+		for (i = 0; i < 4; i++) {
+			if (isalpha(rs->trailer[i]))
+				temp[i] = rs->trailer[i];
+			else {
+				temp[0] = 0;
+				break;
+			}
+		}
+		temp[4] = 0;
+		vendor = temp[0] ? temp : NULL;
+		break;
+	}
+
+	return vendor;
+}
+
+/*
+ * get_results_set
+ *
+ * Parse Query Hit and extract the embedded records, plus the optional
+ * trailing Query Hit Descritor (QHD).
+ *
+ * Returns a structure describing the whole result set, or NULL if we
+ * were unable to parse it properly.
+ */
+static struct results_set *get_results_set(struct gnutella_node *n)
 {
 	struct results_set *rs;
 	struct record *rc;
@@ -776,6 +919,55 @@ struct results_set *get_results_set(struct gnutella_node *n)
 
 	memcpy(rs->guid, e, 16);
 
+	/*
+	 * Compute status bits, decompile trailer info, if present
+	 */
+
+	if (rs->trailer) {
+		gchar *vendor = extract_vendor_name(rs);
+		guint32 t;
+
+		READ_GUINT32_BE(rs->trailer, t);
+
+		switch (t) {
+		case T_NAPS:
+			/*
+			 * NapShare has a one-byte only flag: no enabler, just setters.
+			 *		--RAM, 17/12/2001
+			 */
+			if (rs->trailer[4] == 1) {
+				if (rs->trailer[5] & 0x04) rs->status |= ST_BUSY;
+				if (rs->trailer[5] & 0x01) rs->status |= ST_FIREWALL;
+				rs->status |= ST_PARSED_TRAILER;
+			}
+			break;
+		case T_LIME:
+			if (rs->trailer[4] == 4)
+				rs->trailer[4] = 2;		/* We ignore XML data size */
+				/* Fall through */
+		case T_GTKG:
+		case T_BEAR:
+		case T_GNOT:
+		case T_GNUC:
+		case T_SNUT:
+		default:
+			if (rs->trailer[4] == 2) {
+				guint32 status =
+					((guint32) rs->trailer[5]) & ((guint32) rs-> trailer[6]);
+				if (status & 0x04) rs->status |= ST_BUSY;
+				if (status & 0x01) rs->status |= ST_FIREWALL;
+				if (status & 0x08) rs->status |= ST_UPLOADED;
+				rs->status |= ST_PARSED_TRAILER;
+			} else if (rs->status  & ST_KNOWN_VENDOR)
+				g_warning("vendor %s changed # of open data bytes to %d",
+						  vendor, rs->trailer[4]);
+			else if (vendor)
+				g_warning("ignoring %d open data byte%s from unknown vendor %s",
+					rs->trailer[4], rs->trailer[4] == 1 ? "" : "s", vendor);
+			break;
+		}
+	}
+
 	return rs;
 
 	/*
@@ -792,18 +984,87 @@ struct results_set *get_results_set(struct gnutella_node *n)
 	return NULL;				/* Forget set, comes from a bad node */
 }
 
+/*
+ * search_result_is_dup
+ *
+ * Check to see whether we already have a record for this file.
+ * If we do, make sure that the index is still accurate,
+ * otherwise inform the interested parties about the change.
+ *
+ * Returns true if the record is a duplicate.
+ */
 gboolean search_result_is_dup(struct search * sch, struct record * rc)
 {
-	return (gboolean) g_hash_table_lookup(sch->dups, rc);
+	struct record *old_rc;
+	gpointer dummy;
+	gboolean found;
+
+	found = g_hash_table_lookup_extended(sch->dups, rc,
+		(gpointer *) &old_rc, &dummy);
+
+	if (!found)
+		return FALSE;
+
+	/*
+	 * Actually, if the index is the only thing that changed,
+	 * we want to overwrite the old one (and if we've
+	 * got the download queue'd, replace it there too.
+	 *		--RAM, 17/12/2001 from a patch by Vladimir Klebanov
+	 *
+	 * XXX needs more care: handle is_old, and use GUID for patching.
+	 * XXX the client may change its GUID as well, and this must only
+	 * XXX be used in the hash table where we record which downloads are
+	 * XXX queued from whom.
+	 * XXX when the GUID changes for a download in push mode, we have to
+	 * XXX change it.  We have a new route anyway, since we just got a match!
+	 */
+
+	if (rc->index != old_rc->index) {
+		g_warning("Index changed from %u to %u at %s for %s",
+			old_rc->index, rc->index, guid_hex_str(rc->results_set->guid),
+			rc->name);
+		download_index_changed(
+			rc->results_set->ip,		/* This is for optimizing lookups */
+			rc->results_set->port,
+			rc->results_set->guid,		/* This is for formal identification */
+			old_rc->index,
+			rc->index);
+		old_rc->index = rc->index;
+	}
+
+	return TRUE;		/* yes, it's a duplicate */
 }
 
-static void search_gui_update(struct search * sch, struct results_set * rs,
-                              GString* info, GString* vinfo)
+/*
+ * search_gui_update
+ *
+ * Update the search GUI window by displaying only those records from the
+ * result set that pass our filtering criteria.
+ */
+static void search_gui_update(struct search *sch, struct results_set *rs)
 {
 	gchar *titles[5];
     GSList* next;
     GSList* l;
 	guint32 row;
+	GString *vinfo = g_string_sized_new(40);
+	GString *info = g_string_sized_new(80);
+	gchar *vendor;
+
+	vendor = extract_vendor_name(rs);
+
+	if (vendor)
+		g_string_append(vinfo, vendor);
+
+	if (rs->status & ST_BUSY)
+		g_string_append(vinfo, ", busy");
+	if (rs->status & ST_UPLOADED)
+		g_string_append(vinfo, ", open");	/* Open for uploading */
+	if (rs->status & ST_FIREWALL)
+		g_string_append(vinfo, ", push");
+	if (vendor && !(rs->status & ST_PARSED_TRAILER)) {
+		g_string_append(vinfo, ", <unparsed>");
+	}
 
 	/* Update the GUI */
 
@@ -823,23 +1084,24 @@ static void search_gui_update(struct search * sch, struct results_set * rs,
 		 * or we don't send pushes and it's a private IP,
 		 * or if this is a duplicate search result,
 		 * or if we are filtering this result, throw the record away.
+		 *
+		 * Note that we pass ALL records through search_result_is_dup(), to
+		 * be able to update the index/GUID of our records correctly, when
+		 * we detect a change.
 		 */
 
 		if (
+			search_result_is_dup(sch, rc) ||
 			sch->items >= search_max_results ||
 			rc->size == 0 ||
 			(!send_pushes && !check_valid_host(rs->ip, rs->port)) ||
-			search_result_is_dup(sch, rc) ||
 			!filter_record(sch, rc)
-		) {
-			rs->records = g_slist_remove(rs->records, rc);
-			rs->num_recs--;
-			search_free_record(rc);
+		)
 			continue;
-		}
 
 		sch->items++;
 		g_hash_table_insert(sch->dups, rc, (void *) 1);
+		rc->refcount++;
 
 		titles[0] = rc->name;
 		titles[1] = short_size(rc->size);
@@ -914,116 +1176,14 @@ static void search_gui_update(struct search * sch, struct results_set * rs,
 	}
 
 	gtk_clist_thaw(GTK_CLIST(sch->clist));
+
+	g_string_free(info, TRUE);
+	g_string_free(vinfo, TRUE);
 }
 
 void search_matched(struct search *sch, struct results_set *rs)
 {
-	GString *vinfo = g_string_sized_new(40);
-	GString *info = g_string_sized_new(80);
 	guint32 old_items = sch->items;
-
-	/* Compute status bits, decompile trailer info, if present */
-
-	if (rs->trailer) {
-		gchar *vendor = NULL;
-		guint32 t;
-		gchar temp[5];
-		gint i;
-
-		READ_GUINT32_BE(rs->trailer, t);
-		rs->status = ST_KNOWN_VENDOR;
-
-		switch (t) {
-		case T_BEAR: vendor = "Bear";			break;
-		case T_CULT: vendor = "Cultiv8r";		break;
-		case T_GNEW: vendor = "Gnewtellium";	break;
-		case T_GNOT: vendor = "Gnotella";		break;
-		case T_GNUC: vendor = "Gnucleus";		break;
-		case T_GNUT: vendor = "Gnut";			break;
-		case T_GTKG: vendor = "Gtk-Gnut";		break;
-		case T_HSLG: vendor = "Hagelslag";		break;
-		case T_LIME: vendor = "Lime";			break;
-		case T_MACT: vendor = "Mactella";		break;
-		case T_MNAP: vendor = "MyNapster";		break;
-		case T_MUTE: vendor = "Mutella";		break;
-		case T_NAPS: vendor = "NapShare";		break;
-		case T_OCFG: vendor = "OpenCola";		break;
-		case T_OPRA: vendor = "Opera";			break;
-		case T_PHEX: vendor = "Phex";			break;
-		case T_QTEL: vendor = "Qtella";			break;
-		case T_SNUT: vendor = "SwapNut";		break;
-		case T_SWAP: vendor = "Swapper";		break;
-		case T_TOAD: vendor = "ToadNode";		break;
-		case T_XOLO: vendor = "Xolox";			break;
-		case T_XTLA: vendor = "Xtella";			break;
-		case T_ZIGA: vendor = "Ziga";			break;
-		default:
-			/* Unknown type, look whether we have all alphanum */
-			rs->status &= ~ST_KNOWN_VENDOR;
-			for (i = 0; i < 4; i++) {
-				if (isalpha(rs->trailer[i]))
-					temp[i] = rs->trailer[i];
-				else {
-					temp[0] = 0;
-					break;
-				}
-			}
-			temp[4] = 0;
-			vendor = temp[0] ? temp : NULL;
-			break;
-		}
-
-		if (vendor)
-			g_string_append(vinfo, vendor);
-
-		switch (t) {
-		case T_NAPS:
-			/*
-			 * NapShare has a one-byte only flag: no enabler, just setters.
-			 *		--RAM, 17/12/2001
-			 */
-			if (rs->trailer[4] == 1) {
-				if (rs->trailer[5] & 0x04) rs->status |= ST_BUSY;
-				if (rs->trailer[5] & 0x01) rs->status |= ST_FIREWALL;
-				rs->status |= ST_PARSED_TRAILER;
-			}
-			break;
-		case T_LIME:
-			if (rs->trailer[4] == 4)
-				rs->trailer[4] = 2;		/* We ignore XML data size */
-				/* Fall through */
-		case T_GTKG:
-		case T_BEAR:
-		case T_GNOT:
-		case T_GNUC:
-		case T_SNUT:
-		default:
-			if (rs->trailer[4] == 2) {
-				guint32 status =
-					((guint32) rs->trailer[5]) & ((guint32) rs-> trailer[6]);
-				if (status & 0x04) rs->status |= ST_BUSY;
-				if (status & 0x01) rs->status |= ST_FIREWALL;
-				if (status & 0x08) rs->status |= ST_UPLOADED;
-				rs->status |= ST_PARSED_TRAILER;
-			} else if (rs->status  & ST_KNOWN_VENDOR)
-				g_warning("vendor %s changed # of open data bytes to %d",
-						  vendor, rs->trailer[4]);
-			else if (vendor)
-				g_warning("ignoring %d open data byte%s from unknown vendor %s",
-					rs->trailer[4], rs->trailer[4] == 1 ? "" : "s", vendor);
-			break;
-		}
-
-		if (rs->status & ST_BUSY)
-			g_string_append(vinfo, ", busy");
-		if (rs->status & ST_UPLOADED)
-			g_string_append(vinfo, ", open");	/* Open for uploading */
-		if (rs->status & ST_FIREWALL)
-			g_string_append(vinfo, ", push");
-		if (vendor && !(rs->status & ST_PARSED_TRAILER)) {
-			g_string_append(vinfo, ", <unparsed>");
-		}
-	}
 
 	if (use_autodownload) {
 		GSList *l;
@@ -1045,28 +1205,17 @@ void search_matched(struct search *sch, struct results_set *rs)
 	}
 
 	/*
-	 * If we have more entries than the configured maximum, don't even
-	 * bother updating the GUI.
+	 * We always update the GUI, even if we can determine here that we
+	 * already have more items than necessary.  The reason is that we benefit
+	 * from the side effect of checking all records against index changes
+	 * that could affect our downloads.
 	 */
 
-	if (sch->items >= search_max_results) {
-		search_free_r_set(rs);
-		return;
-	}
-
-	search_gui_update(sch, rs, info, vinfo);
-
-	g_string_free(info, TRUE);
-	g_string_free(vinfo, TRUE);
-
-	/* If all the results were dups */
-	if (rs->num_recs == 0) {
-		search_free_r_set(rs);
-		return;
-	}
+	search_gui_update(sch, rs);
 
 	/* Adds the set to the list */
 	sch->r_sets = g_slist_prepend(sch->r_sets, (gpointer) rs);
+	rs->refcount++;
 
 	if (old_items == 0 && sch == current_search && sch->items > 0) {
 		gtk_widget_set_sensitive(button_search_clear, TRUE);
@@ -1097,38 +1246,81 @@ gboolean search_has_muid(struct search *sch, guchar * muid)
 	return FALSE;
 }
 
+/*
+ * search_results
+ *
+ * This routine is called for each Query packet we receive.
+ */
 void search_results(struct gnutella_node *n)
 {
-	struct search *sch;
 	struct results_set *rs;
+	GSList *selected_searches = NULL;
 	GSList *l;
 
-	/* Find the search matching the MUID */
+	/*
+	 * Look for all the searches, and put the ones we need to possibly
+	 * dispatch the results to into the selected_searches list.
+	 */
 
 	for (l = searches; l; l = l->next) {
-		sch = (struct search *) l->data;
-		if ((sch->passive && !sch->frozen) ||
+		struct search *sch = (struct search *) l->data;
+
+		/*
+		 * Candidates are all non-frozen passive searches, and searches
+		 * for which we sent a query bearing the message ID of the reply.
+		 */
+
+		if (
+			(sch->passive && !sch->frozen) ||
 			search_has_muid(sch, n->header.muid)
-			) {
-			/* This should eventually be replaced with some sort of
-			   copy_results_set so that we don't have to repeatedly parse
-			   the packet. */
-			/* XXX when this is fixed, we'll need to do reference counting
-			 * on the rs's, or duplicate them for each search so that we
-			 * can free them.
-			 */
-			rs = get_results_set(n);
+		)
+			selected_searches = g_slist_append(selected_searches, sch);
+	}
 
-			if (rs == NULL) {
-				g_warning
-					("search_results: get_results_set returned NULL.\n");
-				return;
-			}
+	/*
+	 * If we don't have any selected search, we're done.
+	 */
 
-			/* The result set is ok */
-			search_matched(sch, rs);
+	if (selected_searches == NULL)
+		return;
+
+	/*
+	 * Parse the packet.
+	 */
+
+	rs = get_results_set(n);
+	if (rs == NULL)
+		goto final_cleanup;
+
+	/*
+	 * Dispatch the results to the selected searches.
+	 */
+
+	for (l = selected_searches; l; l = l->next) {
+		struct search *sch = (struct search *) l->data;
+		search_matched(sch, rs);
+	}
+
+	g_assert(rs->refcount > 0);
+
+	/*
+	 * Some of the records might have not been used by searches, and need
+	 * to be freed.  If no more records remain, we request that the
+	 * result set be removed from all the dispatched searches, the last one
+	 * removing it will cause its destruction.
+	 */
+
+	search_clean_r_set(rs);
+
+	if (rs->num_recs == 0) {
+		for (l = selected_searches; l; l = l->next) {
+			struct search *sch = (struct search *) l->data;
+			search_remove_r_set(sch, rs);
 		}
 	}
+		
+final_cleanup:
+	g_slist_free(selected_searches);
 }
 
 
@@ -1146,8 +1338,10 @@ void search_shutdown(void)
 			g_slist_free(sch->muids);
 			search_free_sent_nodes(sch);
 		}
-		search_free_r_sets(sch);
+		g_hash_table_foreach(sch->dups, dec_records_refcount, NULL);
 		g_hash_table_destroy(sch->dups);
+		sch->dups = NULL;
+		search_free_r_sets(sch);
 		g_free(sch->query);
 		g_free(sch);
 	}
