@@ -1,0 +1,24 @@
+The 'ALT' GGEP Extension
+========================
+
+Name: ALT
+Where: Query Hit (per File Entry)
+Status: Experimental
+Date: Mon Jul 14 20:05:36 MEST 2003
+Format: Array of <ip> <port>
+COBS-Encoding: Maybe
+Deflate: Maybe
+
+[Those specs written by Raphael Manfredi after a proposal from BearShare]
+
+The "ALT" extension is used to carry alternate locations on a file entry
+basis.  It is used only for servers that can understand
+"/uri-res/N2R?urn:sha1:" requests, and for files that have a known SHA1,
+so that the servent may construct the URLs manually.
+
+The payload is an array of 6-byte entries.  The first 4 bytes encode
+the IP of the server (in little-endian, watch out!), and the remaining
+2 bytes encode the port (in little-endian).
+
+There is no size indication for the array.  The length of the payload
+must be a multiple of 6 bytes (after COBS decoding, or course).
