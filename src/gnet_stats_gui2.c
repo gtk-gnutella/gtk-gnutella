@@ -49,6 +49,7 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "Too large",
 	"Way too large",
     "Unknown message type",
+    "Unexpected message",
     "Message sent with TTL = 0",
     "Max TTL exceeded",
     "Ping throttle",

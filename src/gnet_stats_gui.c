@@ -47,6 +47,7 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "Too large",
 	"Way too large",
     "Unknown message type",
+    "Unexpected message",
     "Message sent with TTL = 0",
     "Max TTL exceeded",
     "Ping throttle",
@@ -66,7 +67,7 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "Malformed SHA1 Query",
     "Malformed UTF-8 Query",
     "Malformed Query Hit",
-    "Query hit had bad SHA1"
+    "Query hit had bad SHA1",
 };
 
 gchar *general_type_str[GNR_TYPE_COUNT] = {

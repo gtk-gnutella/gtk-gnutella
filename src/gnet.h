@@ -129,7 +129,8 @@ typedef enum {
 	QRT_S_NONE = 0,						/* Nothing */
 	QRT_S_SENDING,						/* Sending QRT to ultrapeer */
 	QRT_S_SENT,							/* Sent QRT to ultrapeer */
-	QRT_S_RECEIVING,					/* Receiving QRT from leaf */
+	QRT_S_RECEIVING,					/* Receiving initial QRT from leaf */
+	QRT_S_PATCHING,						/* Receiving QRT patch from leaf */
 	QRT_S_RECEIVED,						/* Received QRT from leaf */
 } qrt_state_t;
 
@@ -393,6 +394,7 @@ typedef enum msg_drop_reason {
     MSG_DROP_TOO_LARGE,
     MSG_DROP_WAY_TOO_LARGE,
     MSG_DROP_UNKNOWN_TYPE,
+	MSG_DROP_UNEXPECTED,
     MSG_DROP_TTL0,
     MSG_DROP_MAX_TTL_EXCEEDED,
     MSG_DROP_PING_THROTTLE,
