@@ -541,20 +541,22 @@ void gui_update_download(struct download *d, gboolean force)
 		if (d->pos - d->skip > 0) {
 			gfloat p = 0;
 			gint bps;
+			guint32 avg_bps;
 
 			if (d->size)
 				p = ((gfloat) d->pos / (gfloat) d->size) * 100.0;
 
 			bps = bio_bps(d->bio);
+			avg_bps = bio_avg_bps(d->bio);
 
-			if (bps) {
+			if (avg_bps <= 10 && d->last_update != d->start_date)
+				avg_bps = (d->pos - d->skip) / (d->last_update - d->start_date);
+
+			if (avg_bps) {
 				gint slen;
-				gfloat bs;
 				guint32 s;
-				guint32 avg_bps = bio_avg_bps(d->bio);
+				gfloat bs;
 
-				if (avg_bps == 0)
-					avg_bps++;
 				s = (d->size - d->pos) / avg_bps;
 				bs = bps / 1024.0;
 
@@ -636,9 +638,12 @@ void gui_update_upload(struct upload *u)
 		if (u->bio) {
 			bps = bio_bps(u->bio);
 			avg_bps = bio_avg_bps(u->bio);
-			if (avg_bps == 0)
-				avg_bps++;
 		}
+
+		if (avg_bps <= 10 && u->last_update != u->start_date)
+			avg_bps = (u->pos - u->skip) / (u->last_update - u->start_date);
+		if (avg_bps == 0)
+			avg_bps++;
 
 		rate = bps / 1024.0;
 
