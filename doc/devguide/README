@@ -3,3 +3,4 @@ This directory contains documents that should be useful to developers:
 STYLE   		The coding guidelines.
 GUI-hacking		Hints about hacking the GUI.
 RELEASE			How to make a release, step by step.
+I18N			Short guide about translating messages.
