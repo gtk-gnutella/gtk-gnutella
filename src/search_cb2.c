@@ -559,6 +559,7 @@ void on_tree_view_search_results_select_row(
 		GtkTreeModel *model;
 		record_t *rc;
 		gchar *filename;
+		const gchar *vendor;
 		GtkTreeIter iter;
 
 		model = gtk_tree_view_get_model(tree_view);
@@ -593,9 +594,10 @@ void on_tree_view_search_results_select_row(
 		gtk_entry_set_text(GTK_ENTRY(
 			lookup_widget(main_window, "entry_result_info_timestamp")),
 			tmpstr);
+		vendor = lookup_vendor_name(rc->results_set->vendor);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_vendor")),
-			lookup_vendor_name(rc->results_set->vendor));
+			vendor != NULL ? vendor : "");
 		gm_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) rc->index);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_index")),
