@@ -843,92 +843,115 @@ static gboolean got_match(struct shared_file *sf)
 	return TRUE;		/* Hit entry accepted */
 }
 
+#define MIN_WORD_LENGTH 2		/* For compaction */
+
 /*
  * compact_query:
  *
  * Remove unnecessary ballast from a query before processing it. Works in
  * place on the given string. Removed are all consecutive blocks of
  * whitespace and all word shorter then MIN_WORD_LENGTH.
+ *
+ * If `utf8_len' is non-zero, then we're facing an UTF-8 string.
  */
-#define MIN_WORD_LENGTH 2
-static guint compact_query(gchar *search)
+static guint compact_query(gchar *search, gint utf8_len)
 {
-    gchar *s;
-    gchar *w;
-    gboolean skip_space = TRUE;
-    gint word_length = 0;
+	gchar *s;
+	gchar *w;
+	gboolean skip_space = TRUE;
+	gint word_length = 0;
+	guint32 c;
+	gint clen;
+	gboolean is_utf8 = utf8_len != 0;
 
-    w = s = search;
-    while (*s) {
-        char c = *s;
+	if (dbg > 4)
+		printf("original (%s): [%s]\n", is_utf8 ? "UTF-8" : "ASCII", search);
 
-        switch (c) {
-        /* word delimiters/whitespace*/
-        case '(':  case ')':  case '[':  case ']':  case '^':
-        case '{':  case '}':  case '#':  case '$':  case '%':
-        case '*':  case '.':  case '!':  case '&':  case '|':
-        case '?':  case ',':  case ';':  case '-':  case '_':
-        case '"':  case '/':  case '~':  case ' ':  case '+':
-        case '\\': case '\n': case '\f': case '\r': case '\t':
-        case '\v': case '@':  case '<':  case '>':  case '\'':
-        case '`':
-            /* reduce consecutive spaces to a single space */
-            if (!skip_space) {
-                if (word_length < MIN_WORD_LENGTH) {
-                    /* 
-                     * reached end of very short word in query. drop
-                     * that word by rewinding write position
-                     */
-                    if (dbg > 4)
-                        printf("w");
-                    w -= word_length;
-                } else {
-                    /* copy space to final position, reset word length */
-                    *w = ' ';
-                    w++;
-                }
-                skip_space = TRUE;
-                word_length = 0; /* count this space to the next word */
-            } else {
-                if (dbg > 4)
-                    printf("s");
-            }
-            break;
-        default:
-            if (!iscntrl(c)) {
-                /* within a word now, copy word (except control characters) */
-                skip_space = FALSE;
-                *w = c;
-                w++;
-                word_length++;
-            }
-        }
-    
-        /* count the length of the original search string */
-        s++;
-    }
-    /* maybe very short word at end of query, then drop */
-    if ((word_length > 0) && (word_length < MIN_WORD_LENGTH)) {
-        if (dbg > 4)
-            printf("e");
-        w -= word_length;
-        skip_space = TRUE;
-    }
-    
-    /* space left at end of query but query not empty, drop */
-    if (skip_space && (w != search)) {
-        if (dbg > 4)
-            printf("t");
-        w--;
-    }
+	w = s = search;
+	while (
+		(c = utf8_len ?
+			utf8_decode_char(s, utf8_len, &clen, FALSE) :
+			(guint32) *(guchar *) s)
+	) {
+		switch (c) {
+		/* word delimiters/whitespace*/
+		case '(':  case ')':  case '[':  case ']':  case '^':
+		case '{':  case '}':  case '#':  case '$':  case '%':
+		case '*':  case '.':  case '!':  case '&':  case '|':
+		case '?':  case ',':  case ';':  case '-':  case '_':
+		case '"':  case '/':  case '~':  case ' ':  case '+':
+		case '\\': case '\n': case '\f': case '\r': case '\t':
+		case '\v': case '@':  case '<':  case '>':  case '\'':
+		case '`':
+			/* reduce consecutive spaces to a single space */
+			if (!skip_space) {
+				if (word_length < MIN_WORD_LENGTH) {
+					/* 
+					 * reached end of very short word in query. drop
+					 * that word by rewinding write position
+					 */
+					if (dbg > 4)
+						printf("w");
+					w -= word_length;
+				} else {
+					/* copy space to final position, reset word length */
+					*w++ = ' ';
+				}
+				skip_space = TRUE;
+				word_length = 0; /* count this space to the next word */
+			} else {
+				if (dbg > 4)
+					printf("s");
+			}
+			break;
+		default:
+			if (!iscntrl(c)) {
+				/* within a word now, copy word (except control characters) */
+				skip_space = FALSE;
+				if (utf8_len) {
+					gint i;
+					for (i = 0; i < clen; i++)
+						*w++ = s[i];
+					word_length += clen;	/* Yes, count 3-wide char as 3 */
+				} else {
+					*w++ = c;
+					word_length++;
+				}
+			}
+			break;
+		}
+	
+		/* count the length of the original search string */
+		if (utf8_len) {
+			s += clen;
+			utf8_len -= clen;
+			g_assert(utf8_len >= 0);
+		} else
+			s++;
+	}
 
-    *w = '\0'; /* terminate mangled query */
+	/* maybe very short word at end of query, then drop */
+	if ((word_length > 0) && (word_length < MIN_WORD_LENGTH)) {
+		if (dbg > 4)
+			printf("e");
+		w -= word_length;
+		skip_space = TRUE;
+	}
+	
+	/* space left at end of query but query not empty, drop */
+	if (skip_space && (w != search)) {
+		if (dbg > 4)
+			printf("t");
+		w--;
+	}
 
-    if ((dbg > 4) && (w != s))
-        printf("\nmangled: [%s]\n", search);
+	*w = '\0'; /* terminate mangled query */
+
+	if (dbg > 4 && w != s)
+		printf("\nmangled (%s): [%s]\n", is_utf8 ? "UTF-8" : "ASCII", search);
 
 	/* search does no longer contain unnecessary whitespace */
-    return w - search;
+	return w - search;
 }
 
 /*
@@ -955,6 +978,7 @@ gboolean search_request(struct gnutella_node *n)
 	gint exvcnt = 0;
 	guchar *sha1_query = NULL;
 	gchar sha1_digest[SHA1_RAW_SIZE];
+	gint utf8_len = -1;
 
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
@@ -990,37 +1014,51 @@ gboolean search_request(struct gnutella_node *n)
 			return TRUE;		/* Drop the message! */
 		}
 		/* We can now use `search' safely as a C string: it embeds a NUL */
-
-        // FIXME: this is a problem with UTF-8 queries. We'd need to 
-        //        check wether a query is an UTF-8 query before touching
-        //        it, since we'd like to forward them unmodified.
-        //        Also update note in gnet_props.ag[gnet_compact_query]
-        if (gnet_compact_query) {
-            guint32 mangled_search_len;
-
-            mangled_search_len = compact_query(search);        
-    
-            g_assert(mangled_search_len <= search_len);
-        
-            if (mangled_search_len != search_len) {
-                gnet_stats_count_general(n, GNR_QUERY_COMPACT_COUNT, 1);
-                gnet_stats_count_general(n, GNR_QUERY_COMPACT_SIZE,
-                    search_len - mangled_search_len);
-            }
-
-            /*
-             * Need to move the trailing data forward and adjust the
-             * size of the packet.
-             */
-            g_memmove(
-                search+mangled_search_len, /* new end of query string */
-                search+search_len,         /* old end of query string */
-                n->size - (search - n->data) - search_len); /* trailer len */
-            n->size -= (search_len-mangled_search_len);
-         	WRITE_GUINT32_LE(n->size, n->header.size);
-            search_len = mangled_search_len;
-        } 
     }
+
+	/*
+	 * Compact query, if requested.
+	 */
+
+	if (gnet_compact_query) {
+		guint32 mangled_search_len;
+
+		/*
+		 * Look whether we're facing an UTF-8 query.
+		 */
+
+		utf8_len = utf8_is_valid_string(search, search_len+1);
+		if (utf8_len && utf8_len != (search_len+1))		/* Not pure ASCII */
+			gnet_stats_count_general(n, GNR_QUERY_UTF8, 1);
+		else
+			utf8_len = 0;			/* Not fully UTF-8 */
+
+		mangled_search_len = compact_query(search, utf8_len);
+
+		g_assert(mangled_search_len <= search_len);
+	
+		if (mangled_search_len != search_len) {
+			gnet_stats_count_general(n, GNR_QUERY_COMPACT_COUNT, 1);
+			gnet_stats_count_general(n, GNR_QUERY_COMPACT_SIZE,
+				search_len - mangled_search_len);
+		}
+
+		/*
+		 * Need to move the trailing data forward and adjust the
+		 * size of the packet.
+		 */
+
+		g_memmove(
+			search+mangled_search_len, /* new end of query string */
+			search+search_len,         /* old end of query string */
+			n->size - (search - n->data) - search_len); /* trailer len */
+
+		n->size -= search_len - mangled_search_len;
+		WRITE_GUINT32_LE(n->size, n->header.size);
+		search_len = mangled_search_len;
+
+		g_assert(search[search_len] == '\0');
+	} 
 
 	/*
 	 * If there are extra data after the first NUL, fill the extension vector.
@@ -1183,10 +1221,11 @@ gboolean search_request(struct gnutella_node *n)
 		}
 	}
 
-	if (skip_file_search)
-		found_files = urn_match;
-	else {
-		gint clen;
+	found_files = urn_match;
+
+	if (!skip_file_search) {
+		gchar *query;
+		gboolean is_utf8 = FALSE;
 		gboolean ignore = FALSE;
 
 		/*
@@ -1198,24 +1237,34 @@ gboolean search_request(struct gnutella_node *n)
 
 		g_assert(search[search_len] == '\0');
 
-		clen = utf8_is_valid_string(search, search_len+1);
+		if (utf8_len == -1) {
+			utf8_len = utf8_is_valid_string(search, search_len+1);
+			if (utf8_len && utf8_len != (search_len+1)) {  /* Not pure ASCII */
+				is_utf8 = TRUE;
+				gnet_stats_count_general(n, GNR_QUERY_UTF8, 1);
+			}
+		} else
+			is_utf8 = utf8_len > 0;
 
-		if (clen && clen != (search_len+1)) {  /* Not pure ASCII */
-			gint isochars = utf8_to_iso8859(
-                search, search_len+1, TRUE);
+		if (is_utf8) {
+			gint isochars;
 
-			if (isochars != clen)		/* Not fully ISO-8859-1 */
+			query = stmp_1;
+			memcpy(stmp_1, search, search_len + 1);
+			isochars = utf8_to_iso8859(stmp_1, search_len + 1, TRUE);
+
+			if (isochars != utf8_len)		/* Not fully ISO-8859-1 */
 				ignore = TRUE;
-
-            gnet_stats_count_general(n, GNR_QUERY_UTF8, 1);
 
 			if (dbg > 4)
 				printf("UTF-8 query, len=%d, chars=%d, iso=%d: \"%s\"\n",
-					search_len, clen-1, isochars-1, search);
-		}
+					search_len, utf8_len-1, isochars-1, search);
+		} else
+			query = search;
 
-		found_files = urn_match +
-			st_search(&search_table, search, got_match, max_replies);
+		if (!ignore)
+			found_files +=
+				st_search(&search_table, query, got_match, max_replies);
 	}
 
 	if (found_files > 0) {
