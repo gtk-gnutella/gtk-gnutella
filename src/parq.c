@@ -932,7 +932,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		 */
 
 		file_info_clear_download(d, TRUE);
-		download_actively_queued(d);
+		download_actively_queued(d, TRUE);
 	}
 	
 	d->timeout_delay = retry;

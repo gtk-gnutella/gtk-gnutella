@@ -844,21 +844,30 @@ static struct download *has_same_download(
  *
  * Mark a download as being actively queued.
  */
-void download_actively_queued(struct download *d)
+void download_actively_queued(struct download *d, gboolean queued)
 {
-	d->status = GTA_DL_ACTIVE_QUEUED;
+	if (queued) {
+		d->status = GTA_DL_ACTIVE_QUEUED;
 
-	if (d->flags & DL_F_ACTIVE_QUEUED)		/* Already accounted for */
-		return;
+		if (d->flags & DL_F_ACTIVE_QUEUED)		/* Already accounted for */
+			return;
 
-	d->flags |= DL_F_ACTIVE_QUEUED;
-	gnet_prop_set_guint32_val(PROP_DL_AQUEUED_COUNT, dl_aqueued_count + 1);
+		d->flags |= DL_F_ACTIVE_QUEUED;
+		gnet_prop_set_guint32_val(PROP_DL_AQUEUED_COUNT, dl_aqueued_count + 1);
+	} else {
+		if (!(d->flags & DL_F_ACTIVE_QUEUED))	/* Already accounted for */
+			return;
+
+		gnet_prop_set_guint32_val(PROP_DL_AQUEUED_COUNT, dl_aqueued_count - 1);
+		g_assert((gint) dl_aqueued_count >= 0);
+		d->flags &= ~DL_F_ACTIVE_QUEUED;
+	}
 }
 
 /*
  * download_passively_queued
  *
- * Mark download as being passively queued (if queued is TRUE) or unmark it.
+ * Mark download as being passively queued.
  */
 static void download_passively_queued(struct download *d, gboolean queued)
 {
@@ -1791,11 +1800,7 @@ void download_stop(struct download *d, guint32 new_status,
 	file_info_clear_download(d, FALSE);
 	d->flags &= ~DL_F_CHUNK_CHOSEN;
 
-	if (d->flags & DL_F_ACTIVE_QUEUED) {
-		gnet_prop_set_guint32_val(PROP_DL_AQUEUED_COUNT, dl_aqueued_count - 1);
-		g_assert((gint) dl_aqueued_count >= 0);
-		d->flags &= ~DL_F_ACTIVE_QUEUED;
-	}
+	download_actively_queued(d, FALSE);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gnet_prop_set_guint32_val(PROP_DL_ACTIVE_COUNT, dl_active);
@@ -3118,6 +3123,8 @@ static struct download *download_clone(struct download *d)
 {
 	struct download *cd = walloc0(sizeof(struct download));
     struct dl_file_info *fi;
+
+	g_assert(!(d->flags & (DL_F_ACTIVE_QUEUED|DL_F_PASSIVE_QUEUED)));
 
     fi = d->file_info;
 
@@ -5130,6 +5137,7 @@ static void download_request(
 			d->server->attrs |= DLS_A_NO_KEEPALIVE;
 
 		download_passively_queued(d, FALSE);
+		download_actively_queued(d, FALSE);
 
 		if (!ok) {
 			download_queue_delay(d, download_retry_busy_delay,
