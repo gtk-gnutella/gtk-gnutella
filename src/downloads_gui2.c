@@ -81,14 +81,9 @@ static inline void remove_parent_with_fi_handle(
 	GHashTable *ht, const gint *fi_handle)
 {
 	gpointer key;
-	gpointer orig_key;
-	gpointer data;
  
 	key = (gpointer) fi_handle;
-	if (g_hash_table_lookup_extended(ht, key, &orig_key, &data)) {
-		g_hash_table_remove(ht, key);
-		atom_int_free(orig_key);
-	}
+	g_hash_table_remove(ht, key);	/* Automatic disposal configured */
 }
 
 
