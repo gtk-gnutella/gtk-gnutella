@@ -1,5 +1,41 @@
 # since last version
 
+- (2002.07.02 - Richard)
+  * Added "Apply" and "Revert" buttons to filter dialog
+  * Made the "filter enabled" state work with shadows
+  * Added "Add/Replace" and "Abort" buttons to rule editors
+  * Removed double meaning of "Ok" button in filter dialog and replaced
+    that with the "Add/Replace" button in the rule editors
+  * Filter rule count, rule list and enabled/disabled states should
+    properly show after a apply/revert
+  * Try to preserve expansion state of nodes in the filter tree.
+  * Removed the notion of a "session" from the filter code. Now 
+    filters_current, filters_added and filters_removed are always expected
+    to have valid content.
+  * Gave search_xml access to the filters_current list to properly load
+    the saved filters.
+  * Added missing "if (filter_dialog == NULL) return" to some callbacks.
+  * Try to reduce list updates in filter window to a minimum.
+  * Fixed some debug messages where refcount was shown wrong.
+  * Increased debug level on rule matching.
+  * Pressing [enter] in search results list will download the selected items.
+
+- (2002.07.02 - RAM)
+  * Added pseudo-extension "--all--" which allows to share all files, whether
+	they have an extension or not [Debian patch from Zygo Blaxell].
+  * When getting an incoming connection, make sure it's not from localhost
+	(fixes bug #562127).
+  * Don't enter ourselves in the pong/host cache.
+  * Typo minumum -> minimum in GUI.
+  * When overriding upload slots, use recent bandwidth for computation, not
+	the average, or we'll override more often when the limit is raised.
+  * When "Nothing more to get" on downloads. remove all identical files from
+	the queue as well.
+  * Avoid needless display flickering in search screens [From Richard].
+  * During shutdown, make sure we neither accept nor make Gnet connections.
+  * Ignore XML size in QHD for Swapper.
+  * Remove freeze/thaw calls to node clists during update.
+
 # v 0.90   2002.07.01  [beta2]
 
 Highlight of changes (user-visible):
