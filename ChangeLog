@@ -1,5 +1,18 @@
 # since last version
 
+- (2003.01.02 - RAM)
+ * New properties: "dl_queue_count", "dl_running_count", "dl_byte_count"
+   and "ul_byte_count".
+ * Maintains two new property counters: amount of running downloads and amount
+   of queued downloads.
+ * Now counts total useful bytes uploaded.
+ * Now counts total useful bytes downloaded.
+ * Added error reporting for failed download mesh URL parsing.
+ * Added error reporting for failed HTTP URL parsing.
+ * Added Shinobu (SHNB) vendor code.
+ * Fixed "was a duplicate" computation, which falsely reported duplicates
+   with oneself!
+
 - (2003.01.02 - cbiere)
  * Bugfix: Wrote into stats array out of bounds (gnet_stats.c)
 
