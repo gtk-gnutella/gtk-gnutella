@@ -189,6 +189,8 @@ gchar *strcasestr(const gchar *haystack, const gchar *needle);
 
 struct stat;
 
+extern gint do_errno;
+
 gint do_stat(const gchar *path, struct stat *buf);
 
 #endif /* _misc_h_ */

@@ -1027,39 +1027,6 @@ void random_init(void)
 }
 
 /*
- * do_stat
- *
- * Wrapper for the stat() system call.
- */
-gint do_stat(const gchar *path, struct stat *buf)
-{
-	gint ret;
-
-	/*
-	 * On my system, since I upgraded to libc6 2.3.2, I have system calls
-	 * that fail with errno = 0.  I assume this is a multi-threading issue,
-	 * since my kernel is SMP and gcc 3.3 requires a libpthread.  Or whatever,
-	 * but it did not occur before with the same kernel and a previous libc6
-	 * along with gcc 2.95.
-	 *
-	 * So... Assume that if stat() returns -1 and errno is 0, then it
-	 * really means ENOENT.
-	 *
-	 *		--RAM, 27/10/2003
-	 */
-
-	ret = stat(path, buf);
-
-	if (-1 == ret && 0 == errno) {
-		g_warning("stat(\"%s\") returned -1 with errno = 0, assuming ENOENT",
-			path);
-		errno = ENOENT;
-	}
-
-	return ret;
-}
-
-/*
  * unique_filemame
  *
  * Determine unique filename for `file' in `path', with optional trailing
@@ -1079,8 +1046,7 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	const gchar *extra_bytes = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 	/* Use extra_bytes so we can easily append a few chars later */
-	filename = g_strdup_printf("%s/%s%s%s",
-		path, file, ext, extra_bytes);
+	filename = g_strdup_printf("%s/%s%s%s", path, file, ext, extra_bytes);
 	size = strlen(filename);
 	len = strlen(extra_bytes);
 	filename[size - len] = '\0';
@@ -1090,7 +1056,7 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	 * Append file and extension, then try to see whether this file exists.
 	 */
 
-	if (-1 == do_stat(filename, &buf) && ENOENT == errno)
+	if (-1 == do_stat(filename, &buf) && ENOENT == do_errno)
 		return filename;
 
 	/*
@@ -1100,7 +1066,7 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 
 	for (i = 0; i < 100; i++) {
 		gm_snprintf(&filename[len], size - len, ".%02d%s", i, ext);
-		if (-1 == do_stat(filename, &buf) && ENOENT == errno)
+		if (-1 == do_stat(filename, &buf) && ENOENT == do_errno)
 			return filename;
 	}
 
@@ -1111,7 +1077,7 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	for (i = 0; i < 100; i++) {
 		guint32 rnum = random_value(RAND_MAX);
 		gm_snprintf(&filename[len], size - len, ".%x%s", rnum, ext);
-		if (-1 == do_stat(filename, &buf) && ENOENT == errno)
+		if (-1 == do_stat(filename, &buf) && ENOENT == do_errno)
 			return filename;
 	}
 
@@ -1242,3 +1208,62 @@ gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 	*netmask = ~(~0 >> b);
 	return TRUE;
 }
+
+/***
+ *** System call wrapping with errno remapping.
+ ***/
+
+gint do_errno;
+
+/*
+ * do_stat
+ *
+ * Wrapper for the stat() system call.
+ */
+gint do_stat(const gchar *path, struct stat *buf)
+{
+	gint ret;
+
+	/*
+	 * On my system, since I upgraded to libc6 2.3.2, I have system calls
+	 * that fail with errno = 0.  I assume this is a multi-threading issue,
+	 * since my kernel is SMP and gcc 3.3 requires a libpthread.  Or whatever,
+	 * but it did not occur before with the same kernel and a previous libc6
+	 * along with gcc 2.95.
+	 *
+	 * So... Assume that if stat() returns -1 and errno is 0, then it
+	 * really means ENOENT.
+	 *
+	 *		--RAM, 27/10/2003
+	 */
+
+	ret = stat(path, buf);
+	do_errno = errno;
+
+	if (-1 == ret && 0 == do_errno) {
+		g_warning("stat(\"%s\") returned -1 with errno = 0, assuming ENOENT",
+			path);
+		do_errno = errno = ENOENT;
+	}
+
+	/*
+	 * Perform some remapping.  Stats through NFS may return EXDEV?
+	 */
+
+	switch (do_errno) {
+	case EXDEV:
+		g_warning("stat(\"%s\") failed with weird errno = %d (%s), "
+			"assuming ENOENT", path, do_errno, g_strerror(do_errno));
+		do_errno = errno = ENOENT;
+		break;
+	defaul:
+		break;
+	}
+
+	if (-1 == ret && ENOENT != do_errno)
+		g_warning("stat(\"%s\") returned -1 with errno = %d (%s)",
+			path, do_errno, g_strerror(do_errno));
+
+	return ret;
+}
+
