@@ -1573,7 +1573,7 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 	guint count = 0;
 	GtkCTreeNode *node;
 	GtkCTreeRow *row;
-	
+	gchar *filename;
 	search_t *current_search = search_gui_get_current_search();
 
     gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
@@ -1606,10 +1606,16 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 		need_push =
 			(rs->status & ST_FIREWALL) || !host_is_valid(rs->ip, rs->port);
 
-		if (download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
+		filename = gm_sanitize_filename(rc->name);
+		if (download_new(filename, rc->size, rc->index, rs->ip, rs->port,
 				rs->guid, rs->hostname,
-				rc->sha1, rs->stamp, need_push, NULL, rs->proxies))
+				rc->sha1, rs->stamp, need_push, NULL, rs->proxies)
+		) {
 			created++;
+		}
+
+		if (filename != rc->name)
+			G_FREE_NULL(filename);
 
 		if (rs->proxies != NULL)
 			search_gui_free_proxies(rs);
@@ -2475,7 +2481,7 @@ void gui_search_set_enabled(struct search *sch, gboolean enabled)
  *
  *	Expand all nodes in tree for current search
  */
-void search_gui_expand_all()
+void search_gui_expand_all(void)
 {
 	GtkCTree *ctree;
     search_t *current_search = search_gui_get_current_search();
@@ -2494,7 +2500,7 @@ void search_gui_expand_all()
  *
  *	Expand all nodes in tree for current search
  */
-void search_gui_collapse_all()
+void search_gui_collapse_all(void)
 {
 	GtkCTree *ctree;
     search_t *current_search = search_gui_get_current_search();
@@ -2525,5 +2531,5 @@ void search_gui_end_massive_update(search_t *sch)
 		gtk_clist_thaw(ctree);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 #endif	/* USE_GTK1 */
