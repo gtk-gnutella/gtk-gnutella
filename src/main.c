@@ -134,17 +134,21 @@ gint main(gint argc, gchar ** argv)
 	const gchar *menus[] = {
 		"gnutellaNet",
 		"Uploads",
-		"  Stats",
+		"Stats",
 		"Downloads",
 		"Search",
-		"  Monitor",
-		"  Stats",
+		"Monitor",
+		"Stats",
 		"Config",
 		NULL
 	};
+
+    const gint menutabs[] = { 0, 1, 2, 3, 4, 5, 6, 7, -1 };
 	gchar *titles[5];
 	gchar mtmp[1024];
 	gint optimal_width;
+    GtkCTreeNode * parent_node = NULL;    
+    GtkCTreeNode * last_node = NULL;
 
 	g_assert(sizeof(menus) / sizeof(menus[0]) - 2 == NOTEBOOK_MAIN_IDX_MAX);
 
@@ -203,39 +207,66 @@ gint main(gint argc, gchar ** argv)
 	/* Final interface setup */
 
 	optimal_width =
-		gtk_clist_optimal_column_width(GTK_CLIST(clist_stats), 0);
+		gtk_clist_optimal_column_width(GTK_CLIST(ctree_menu), 0);
 
-	for (i = 0; i <= NOTEBOOK_MAIN_IDX_MAX; i++)
-		gtk_clist_insert(GTK_CLIST(clist_menu), i, (gchar **) & menus[i]);
-	gtk_clist_select_row(GTK_CLIST(clist_menu), 0, 0);
+    // gnutellaNet
+    last_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) & menus[0],
+                                     0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[0]);
+    // Uploads
+    parent_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), NULL, NULL, 
+                                        (gchar **) & menus[1],
+                                        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
+    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), parent_node, (gpointer) &menutabs[1]);
+    // Uploads -> Stats
+    last_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) & menus[2],
+                          0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[2]);
+    // Downloads
+    last_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) & menus[3],
+                                      0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[3]);
+    // Search
+    parent_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), NULL, NULL,
+                                        (gchar **) & menus[4],
+                                        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
+    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), parent_node, (gpointer) &menutabs[4]);
+    // Search -> Monitor
+    last_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) & menus[5],
+                                      0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[5]);
+    // Search -> Monitor
+    last_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) & menus[6],
+                                      0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[6]);
+    // Config
+    last_node = gtk_ctree_insert_node(GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) & menus[7],
+                                      0, NULL, NULL, NULL, NULL, TRUE, TRUE );
+    gtk_ctree_node_set_row_data(GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[7]); 
+
+	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
 
 	gtk_widget_set_usize(sw_menu, optimal_width,
-						 (clist_menu->style->font->ascent +
-						  clist_menu->style->font->descent + 4) * 8);
+						 (ctree_menu->style->font->ascent +
+						  ctree_menu->style->font->descent + 4) * 8);
 
 	gtk_clist_column_titles_passive(GTK_CLIST(clist_nodes));
 	gtk_clist_column_titles_passive(GTK_CLIST(clist_uploads));
 	gtk_clist_column_titles_passive(GTK_CLIST(clist_downloads));
-	gtk_clist_column_titles_passive(GTK_CLIST(clist_download_queue));
+	gtk_clist_column_titles_passive(GTK_CLIST(clist_downloads_queue));
 	gtk_clist_column_titles_passive(GTK_CLIST(clist_monitor));
 
-	gtk_clist_set_reorderable(GTK_CLIST(clist_download_queue), TRUE);
+	gtk_clist_set_reorderable(GTK_CLIST(clist_downloads_queue), TRUE);
 
 	titles[0] = NULL;
 
 	for (i = 0; i < 3; i++)
 		gtk_clist_append(GTK_CLIST(clist_connections), titles);
-	for (i = 0; i < 4; i++)
-		gtk_clist_append(GTK_CLIST(clist_stats), titles);
 
 	gtk_widget_set_usize(sw_connections, optimal_width,
 						 (clist_connections->style->font->ascent +
 						  clist_connections->style->font->descent +
 						  4) * 3);
-	gtk_widget_set_usize(sw_stats, optimal_width,
-						 (clist_stats->style->font->ascent +
-						  clist_stats->style->font->descent + 4) * 4);
-
 	gui_update_c_gnutellanet();
 	gui_update_c_uploads();
 	gui_update_c_downloads(0, 0);
@@ -252,13 +283,10 @@ gint main(gint argc, gchar ** argv)
 
 	gtk_window_set_title(GTK_WINDOW(main_window), mtmp);
 
-	gtk_widget_set_sensitive(popup_hosts_title, FALSE);
-	gtk_widget_set_sensitive(popup_dl_active_title, FALSE);
-	gtk_widget_set_sensitive(popup_dl_queued_title, FALSE);
-	gtk_widget_set_sensitive(popup_monitor_title, FALSE);
-	gtk_widget_set_sensitive(popup_nodes_title, FALSE);
-	gtk_widget_set_sensitive(popup_uploads_title, FALSE);
-	gtk_widget_set_sensitive(popup_search_title, FALSE);
+    gtk_widget_set_sensitive(popup_nodes_remove, FALSE);
+    gtk_widget_set_sensitive(popup_downloads_push, 
+                             !gtk_toggle_button_get_active(
+								 GTK_TOGGLE_BUTTON(checkbutton_downloads_never_push)));
 
 	gtk_widget_show(main_window);		/* Display the main window */
 
