@@ -877,9 +877,9 @@ gboolean search_request(struct gnutella_node *n)
 				n->header.hops, n->header.ttl, n->size - 2,
 				n->size == 3 ? "" : "s", exvcnt);
 
-		if (dbg > 4) {
+		if (exvcnt && dbg > 3) {
 			printf("Query with extensions: %s\n", search);
-			ext_dump(stdout, exv, exvcnt, "> ", "\n", dbg > 7);
+			ext_dump(stdout, exv, exvcnt, "> ", "\n", dbg > 4);
 		}
 
 		/*
