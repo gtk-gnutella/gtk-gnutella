@@ -1126,8 +1126,11 @@ static void flush_match(void)
 	struct gnutella_search_results_out *search_head;
 	gchar version[24];
 	gchar push_proxies[40];
+	gchar hostname[256];
+	gchar *last_ggep = NULL;
 	gint version_size = 0;		/* Size of emitted GGEP version */
 	gint proxies_size = 0;		/* Size of emitted GGEP proxies */
+	gint hostname_size = 0;		/* Size of emitted GGEP hostname */
 
 	if (dbg > 3)
 		printf("flushing query hit (%d entr%s, %d bytes sofar)\n",
@@ -1201,6 +1204,7 @@ static void flush_match(void)
 		else {
 			trailer[6] |= 0x20;			/* Has GGEP extensions in trailer */
 			version_size = w;
+			last_ggep = version + 1;	/* Skip leading magic byte */
 		}
 	}
 
@@ -1243,7 +1247,7 @@ static void flush_match(void)
 
 			w = ggep_ext_writev(push_proxies, sizeof(push_proxies),
 					"PUSH", iov, G_N_ELEMENTS(iov),
-					version_size ? GGEP_W_LAST : (GGEP_W_FIRST|GGEP_W_LAST));
+					last_ggep == NULL ? GGEP_W_FIRST : 0);
 
 			if (w == -1)
 				g_warning("could not write GGEP \"PUSH\" extension "
@@ -1251,15 +1255,42 @@ static void flush_match(void)
 			else {
 				trailer[6] |= 0x20;			/* Has GGEP extensions in trailer */
 				proxies_size = w;
+				last_ggep = push_proxies + ((last_ggep == NULL) ? 1 : 0);
 			}
 		}
 	}
 
-	if (proxies_size == 0)
-		ggep_ext_mark_last(version + 1);	/* +1: first byte is GGEP magic */
+	/*
+	 * Look whether we can include an HNAME extension advertising the
+	 * server's hostname.
+	 */
+
+	if (!is_firewalled && give_server_hostname && 0 != *server_hostname) {
+		struct iovec iov[1];
+		gint w;
+
+		iov[0].iov_base = (gpointer) server_hostname;
+		iov[0].iov_len = strlen(server_hostname);
+
+		w = ggep_ext_writev(hostname, sizeof(hostname),
+				"HNAME", iov, G_N_ELEMENTS(iov),
+				last_ggep == NULL ? GGEP_W_FIRST : 0);
+
+		if (w == -1)
+			g_warning("could not write GGEP \"HNAME\" extension "
+				"in query hit");
+		else {
+			trailer[6] |= 0x20;			/* Has GGEP extensions in trailer */
+			hostname_size = w;
+			last_ggep = hostname + ((last_ggep == NULL) ? 1 : 0);
+		}
+	}
+
+	if (last_ggep != NULL)
+		ggep_ext_mark_last(last_ggep);
 
 	pos = FOUND_SIZE;
-	FOUND_GROW(16 + 7 + version_size + proxies_size);
+	FOUND_GROW(16 + 7 + version_size + proxies_size + hostname_size);
 	memcpy(&FOUND_BUF[pos], trailer, 7);	/* Store the open trailer */
 	pos += 7;
 
@@ -1271,6 +1302,11 @@ static void flush_match(void)
 	if (proxies_size) {
 		memcpy(&FOUND_BUF[pos], push_proxies, proxies_size); /* Store "PUSH" */
 		pos += proxies_size;
+	}
+
+	if (hostname_size) {
+		memcpy(&FOUND_BUF[pos], hostname, hostname_size); /* Store "HNAME" */
+		pos += hostname_size;
 	}
 
 	memcpy(&FOUND_BUF[pos], guid, 16);	/* Store the GUID */
