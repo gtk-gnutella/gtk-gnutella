@@ -4005,7 +4005,7 @@ static void update_available_ranges(struct download *d, header_t *header)
 	
 	buf = header_get(header, available);
 
-	if (buf == NULL)
+	if (buf == NULL || download_filesize(d) == 0)
 		return;
 
 	/*

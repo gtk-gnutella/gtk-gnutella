@@ -1819,7 +1819,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	buf = header_get(header, "Range");
-	if (buf) {
+	if (buf && reqfile->file_size != 0) {
 		http_range_t *r;
 		GSList *ranges =
 			http_range_parse("Range", buf,  reqfile->file_size, user_agent);
