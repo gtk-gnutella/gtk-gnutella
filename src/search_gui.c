@@ -487,6 +487,10 @@ gboolean search_gui_new_search_full(
 
 	gtk_widget_set_sensitive(combo_searches, TRUE);
 	gtk_widget_set_sensitive(button_search_close, TRUE);
+    gtk_widget_set_sensitive(
+        lookup_widget(main_window, "button_search_expand_all"), TRUE);
+    gtk_widget_set_sensitive(
+        lookup_widget(main_window, "button_search_collapse_all"), TRUE);
 
     gtk_entry_set_text(GTK_ENTRY(entry_search),"");
 
@@ -651,6 +655,13 @@ GList *search_gui_insert_with_sort(GList *list, GtkCTreeNode *node,
                  * proper insertion funtion in glib-missing.c
                  *    -- BLUE 17/01/2004
                  */
+				
+				/*
+				 * The purpose of using this sort hinges upon the assumption
+				 * that this insert will be O(1) if i == 0, ie. if we're working
+				 * with already ordered data
+				 * 	 -- Emile
+				 */				
 
                 /* Prepends if i == 0 */
 				list = g_list_insert(list, node, i);
@@ -690,6 +701,13 @@ GList *search_gui_insert_with_sort(GList *list, GtkCTreeNode *node,
                  * proper insertion funtion in glib-missing.c
                  *    -- BLUE 17/01/2004
                  */
+
+				/*
+				 * The purpose of using this sort hinges upon the assumption
+				 * that this insert will be O(1) if i == 0, ie. if we're working
+				 * with already ordered data
+				 * 	 -- Emile
+				 */				
 
                 /* Prepends if i == 0 */
 				list = g_list_insert(list, node, i); 
@@ -839,7 +857,7 @@ gint search_gui_analyze_col_data(GtkCTree *ctree, gint sort_col)
      */
 	for (
         cur_node = GTK_CTREE_NODE_SIBLING(prev_node), i = 0; 
-        i < 50; 
+        i < 50, NULL != cur_node; 
         i++, prev_node = cur_node, cur_node = GTK_CTREE_NODE_SIBLING(cur_node)
     ) {	
 
@@ -962,7 +980,7 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 
             // FIXME: It might be possible to use fast_mode only when
             // moving top-level nodes around and also sort the children,
-            // or to simply iterate over all nodes (also chilren), purge
+            // or to simply iterate over all nodes (also children), purge
             // the tree content are create it from scratch. How fast would
             // that be? Should be like <O(n^2) for iteration and sorting and
             // O(n) for purging and rebuilding.
@@ -1867,9 +1885,18 @@ void search_gui_remove_search(search_t * sch)
             (lookup_widget(main_window, "button_search_clear"), FALSE);
 	}
     
-	gtk_widget_set_sensitive(GTK_WIDGET(combo_searches), searches != NULL);
 	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_search_close"), searches != NULL);
+        GTK_WIDGET(combo_searches), 
+        searches != NULL);
+	gtk_widget_set_sensitive(
+        lookup_widget(main_window, "button_search_close"), 
+        searches != NULL);
+    gtk_widget_set_sensitive(
+        lookup_widget(main_window, "button_search_expand_all"), 
+        searches != NULL);
+    gtk_widget_set_sensitive(
+        lookup_widget(main_window, "button_search_collapse_all"),
+        searches != NULL);
 
     sensitive = searches != NULL;
     current_search = search_gui_get_current_search();
