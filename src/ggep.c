@@ -500,7 +500,7 @@ bad:
  *
  * If `GGEP_W_LAST' is set, marks the extension as being the last one.
  * Otherwise, you can always mark it as being the last afterwards
- * by calling "ggep_mark_last(buf)" upon successful return.
+ * by calling "ggep_ext_mark_last(buf)" upon successful return.
  *
  * If `GGEP_W_COBS' is set, COBS encoding is attempted if there is a
  * NUL byte within the payload.
