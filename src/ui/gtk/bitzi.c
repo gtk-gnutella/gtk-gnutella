@@ -50,23 +50,28 @@ RCSID("$Id$");
 
 static const gchar * const bitzi_fj_table[] =
 {
-	N_("Unknown"),				/* UNKNOWN */
-	N_("Dangerous/Misleading"),	/* DANGEROUS_MISLEADING */
-	N_("Incomplete/Damaged"),	/* INCOMPLETE_DAMAGED */
-	N_("Substandard"),			/* SUBSTANDARD */
-	N_("Overrated"),			/* OVERRATED */
-	N_("Normal"),				/* NORMAL */
-	N_("Underrated"),			/* UNDERRATED */
-	N_("Complete"),				/* COMPLETE */
-	N_("Recommended"),			/* RECOMMENDED */
-	N_("Best Version"),			/* BEST_VERSION*/
+	N_("Bitzi|Unknown"),				/* UNKNOWN */
+	N_("Bitzi|Dangerous/Misleading"),	/* DANGEROUS_MISLEADING */
+	N_("Bitzi|Incomplete/Damaged"),		/* INCOMPLETE_DAMAGED */
+	N_("Bitzi|Substandard"),			/* SUBSTANDARD */
+	N_("Bitzi|Overrated"),				/* OVERRATED */
+	N_("Bitzi|Normal"),					/* NORMAL */
+	N_("Bitzi|Underrated"),				/* UNDERRATED */
+	N_("Bitzi|Complete"),				/* COMPLETE */
+	N_("Bitzi|Recommended"),			/* RECOMMENDED */
+	N_("Bitzi|Best Version"),			/* BEST_VERSION*/
 };
 
 const gchar *
 bitzi_fjtostring(bitzi_fj_t fj)
 {
+	const gchar *s, *t;
+	
 	g_assert((gint) fj >= 0 && fj < G_N_ELEMENTS(bitzi_fj_table));
-	return _(bitzi_fj_table[fj]);
+	t = bitzi_fj_table[fj];
+	s = strchr(t, '|');
+	t = s ? ++s : t;
+	return _(t);
 }
 
 void
