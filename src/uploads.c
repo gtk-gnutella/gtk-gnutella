@@ -1972,11 +1972,10 @@ static void upload_http_status(
 		rw = gm_snprintf(buf, length, "Connection: close\r\n");
 
 	rw += gm_snprintf(&buf[rw], length - rw,
-		"Date: %s\r\n"
 		"Last-Modified: %s\r\n"
 		"Content-Type: application/binary\r\n"
 		"Content-Length: %u\r\n",
-			date_to_rfc822_gchar(a->now), date_to_rfc822_gchar2(a->mtime),
+			date_to_rfc1123_gchar(a->mtime),
 			u->end - u->skip + 1);
 
 	g_assert(rw < length);
