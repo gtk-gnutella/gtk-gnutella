@@ -41,7 +41,6 @@ RCSID("$Id$");
 
 extern search_t *search_selected;
 
-static gboolean in_autoselect = FALSE;
 static gchar tmpstr[4096];
 
 /***
@@ -120,7 +119,6 @@ static void refresh_popup(void)
  * 	search_cb_autoselect
  *
  *	Autoselects all searches matching given node in given tree
- *	Uses the in_autosearch flag to prevent recursive autoselecting
  */
 gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node, 
 	gboolean search_autoselect_ident)
@@ -136,10 +134,6 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node,
 	gboolean child_selected, node_expanded;
 	gint x = 0;
 	
-	if (in_autoselect)
-		return 0;	/* Prevent recursive autoselect */
-	
-	in_autoselect = TRUE;
 	gnet_prop_get_guint32(PROP_FUZZY_THRESHOLD, &fuzzy_threshold, 0, 1);
 
 	/* 
@@ -277,7 +271,6 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node,
 	gtk_clist_thaw(GTK_CLIST(ctree));
 	
 	gtk_widget_queue_draw((GtkWidget *) ctree); /* Force redraw */
-	in_autoselect = FALSE;
 	return x;
 }
 
@@ -672,7 +665,10 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
 	gint x;
     static gboolean active = FALSE;
 
-	if (in_autoselect || active)
+    /*
+     * We need to avoid recursion to prevent memory corruption.
+     */
+	if (active)
 		return;
 	
 	if (NULL == node)
