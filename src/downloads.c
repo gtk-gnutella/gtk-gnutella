@@ -28,25 +28,6 @@ gchar dl_tmp[4096];
 void send_push_request(gchar *, guint32, guint16);
 static void download_start_restart_timer(struct download *d);
 
-#define IS_DOWNLOAD_QUEUED(d)  ((d)->status == GTA_DL_QUEUED)
-
-#define IS_DOWNLOAD_STOPPED(d) \
-	(  (d)->status == GTA_DL_ABORTED \
-	|| (d)->status == GTA_DL_ERROR \
-	|| (d)->status == GTA_DL_COMPLETED	)
-
-#define IS_DOWNLOAD_RUNNING(d) \
-	(  (d)->status == GTA_DL_CONNECTING \
-	|| (d)->status == GTA_DL_PUSH_SENT \
-	|| (d)->status == GTA_DL_FALLBACK \
-	|| (d)->status == GTA_DL_REQ_SENT \
-	|| (d)->status == GTA_DL_HEADERS \
-	|| (d)->status == GTA_DL_RECEIVING \
-    || (d)->status == GTA_DL_TIMEOUT_WAIT  )
-
-#define IS_DOWNLOAD_IN_PUSH_MODE(d) (d->push)
-#define IS_DOWNLOAD_VISIBLE(d)		(d->visible)
-
 #define DL_RUN_DELAY	5		/* To avoid hammering host --RAM */
 
 /* ----------------------------------------- */
@@ -59,7 +40,7 @@ static guint32 count_running_downloads(void)
 	guint32 n = 0;
 
 	for (l = sl_downloads; l; l = l->next)
-		if (IS_DOWNLOAD_RUNNING((struct download *) l->data))
+		if (DOWNLOAD_IS_RUNNING((struct download *) l->data))
 			n++;
 
 	gui_update_c_downloads(n);
@@ -73,7 +54,7 @@ static guint32 count_running_downloads_with_guid(gchar * guid)
 	guint32 n = 0;
 
 	for (l = sl_downloads; l; l = l->next)
-		if (IS_DOWNLOAD_RUNNING((struct download *) l->data))
+		if (DOWNLOAD_IS_RUNNING((struct download *) l->data))
 			if (!memcmp(((struct download *) l->data)->guid, guid, 16))
 				n++;
 
@@ -86,7 +67,7 @@ static guint32 count_running_downloads_with_name(const char *name)
 	guint32 n = 0;
 
 	for (l = sl_downloads; l; l = l->next)
-		if (IS_DOWNLOAD_RUNNING((struct download *) l->data)
+		if (DOWNLOAD_IS_RUNNING((struct download *) l->data)
 			&& 0 == strcmp(((struct download *) l->data)->file_name, name))
 			n++;
 
@@ -105,7 +86,7 @@ static gboolean has_same_active_download(gchar *file, gchar *guid)
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
-		if (IS_DOWNLOAD_STOPPED(d))
+		if (DOWNLOAD_IS_STOPPED(d))
 			continue;
 		if (0 == strcmp(file, d->file_name) && 0 == memcmp(guid, d->guid, 16))
 			return TRUE;
@@ -131,9 +112,9 @@ static void queue_remove_all_named(const gchar *name)
 		struct download *d = (struct download *)
 			gtk_clist_get_row_data(GTK_CLIST(clist_download_queue), row);
 
-		if (!IS_DOWNLOAD_QUEUED(d))
+		if (!DOWNLOAD_IS_QUEUED(d))
 			g_warning("queue_remove_all_named(): "
-				"Download '%s' is not in queued state ! (state = %d)\n",
+				"Download '%s' is not in queued state ! (state = %d)",
 				 d->file_name, d->status);
 
 		if (0 == strcmp(name, d->file_name))
@@ -160,9 +141,9 @@ void download_gui_add(struct download *d)
 
 	g_return_if_fail(d);
 
-	if (IS_DOWNLOAD_VISIBLE(d)) {
+	if (DOWNLOAD_IS_VISIBLE(d)) {
 		g_warning
-			("download_gui_add() called on already visible download '%s' !\n",
+			("download_gui_add() called on already visible download '%s' !",
 			 d->file_name);
 		return;
 	}
@@ -171,7 +152,7 @@ void download_gui_add(struct download *d)
 	titles[1] = short_size(d->size);
 	titles[2] = "";
 
-	if (IS_DOWNLOAD_QUEUED(d)) {		/* This is a queued download */
+	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
 		row = gtk_clist_append(GTK_CLIST(clist_download_queue), titles);
 		gtk_clist_set_row_data(GTK_CLIST(clist_download_queue), row,
 							   (gpointer) d);
@@ -193,14 +174,14 @@ void download_gui_remove(struct download *d)
 
 	g_return_if_fail(d);
 
-	if (!IS_DOWNLOAD_VISIBLE(d)) {
+	if (!DOWNLOAD_IS_VISIBLE(d)) {
 		g_warning
-			("download_gui_remove() called on invisible download '%s' !\n",
+			("download_gui_remove() called on invisible download '%s' !",
 			 d->file_name);
 		return;
 	}
 
-	if (IS_DOWNLOAD_QUEUED(d)) {
+	if (DOWNLOAD_IS_QUEUED(d)) {
 		if (selected_queued_download == d)
 			selected_queued_download = (struct download *) NULL;
 		row =
@@ -210,7 +191,7 @@ void download_gui_remove(struct download *d)
 			gtk_clist_remove(GTK_CLIST(clist_download_queue), row);
 		else
 			g_warning("download_gui_remove(): "
-				"Queued download '%s' not found in clist !?\n", d->file_name);
+				"Queued download '%s' not found in clist !?", d->file_name);
 	} else {
 		if (selected_active_download == d)
 			selected_active_download = (struct download *) NULL;
@@ -221,7 +202,7 @@ void download_gui_remove(struct download *d)
 			gtk_clist_remove(GTK_CLIST(clist_downloads), row);
 		else
 			g_warning("download_gui_remove(): "
-				"Active download '%s' not found in clist !?\n", d->file_name);
+				"Active download '%s' not found in clist !?", d->file_name);
 	}
 
 	d->visible = FALSE;
@@ -252,7 +233,7 @@ void downloads_clear_stopped(gboolean all, gboolean now)
 		struct download *d = (struct download *) l->data;
 		l = l->next;
 
-		if (!IS_DOWNLOAD_STOPPED(d))
+		if (!DOWNLOAD_IS_STOPPED(d))
 			continue;
 
 		if (all) {
@@ -280,14 +261,14 @@ void download_stop(struct download *d, guint32 new_status,
 
 	g_return_if_fail(d);
 
-	if (IS_DOWNLOAD_QUEUED(d)) {
-		g_warning("download_stop() called on queued download '%s'!\n",
+	if (DOWNLOAD_IS_QUEUED(d)) {
+		g_warning("download_stop() called on queued download '%s'!",
 				  d->file_name);
 		return;
 	}
 
-	if (IS_DOWNLOAD_STOPPED(d)) {
-		g_warning("download_stop() called on stopped download '%s'!\n",
+	if (DOWNLOAD_IS_STOPPED(d)) {
+		g_warning("download_stop() called on stopped download '%s'!",
 				  d->file_name);
 		return;
 	}
@@ -295,13 +276,13 @@ void download_stop(struct download *d, guint32 new_status,
 	if (new_status != GTA_DL_ERROR && new_status != GTA_DL_ABORTED
 		&& new_status != GTA_DL_COMPLETED
 		&& new_status != GTA_DL_TIMEOUT_WAIT) {
-		g_warning("download_stop(): unexpected new status %d !\n",
+		g_warning("download_stop(): unexpected new status %d !",
 				  new_status);
 		return;
 	}
 
 	if (d->status == new_status) {
-		g_warning("download_stop(): download '%s' already in state %d\n",
+		g_warning("download_stop(): download '%s' already in state %d",
 				  d->file_name, new_status);
 		return;
 	}
@@ -335,7 +316,7 @@ void download_stop(struct download *d, guint32 new_status,
 	} else
 		d->remove_msg = NULL;
 
-	if (IS_DOWNLOAD_VISIBLE(d))
+	if (DOWNLOAD_IS_VISIBLE(d))
 		gui_update_download(d, TRUE);
 
 	if (new_status == GTA_DL_COMPLETED)
@@ -343,7 +324,7 @@ void download_stop(struct download *d, guint32 new_status,
 
 	download_pickup_queued();
 
-	if (IS_DOWNLOAD_VISIBLE(d)) {
+	if (DOWNLOAD_IS_VISIBLE(d)) {
 		gui_update_download_abort_resume();
 		gui_update_download_clear();
 	}
@@ -351,7 +332,7 @@ void download_stop(struct download *d, guint32 new_status,
 	count_running_downloads();
 
 	if (d->restart_timer_id) {
-		g_warning("download_stop: download %s has a restart_timer_id.\n",
+		g_warning("download_stop: download %s has a restart_timer_id.",
 				  d->file_name);
 		g_source_remove(d->restart_timer_id);
 		d->restart_timer_id = 0;
@@ -364,8 +345,8 @@ void download_kill(struct download *d)
 
 	g_return_if_fail(d);
 
-	if (IS_DOWNLOAD_QUEUED(d)) {
-		g_warning("download_kill(): Download is already queued ?!\n");
+	if (DOWNLOAD_IS_QUEUED(d)) {
+		g_warning("download_kill(): Download is already queued ?!");
 		return;
 	}
 
@@ -386,15 +367,15 @@ void download_queue(struct download *d)
 
 	g_return_if_fail(d);
 
-	if (IS_DOWNLOAD_QUEUED(d)) {
-		g_warning("download_queue(): Download is already queued ?!\n");
+	if (DOWNLOAD_IS_QUEUED(d)) {
+		g_warning("download_queue(): Download is already queued ?!");
 		return;
 	}
 
-	if (IS_DOWNLOAD_VISIBLE(d))
+	if (DOWNLOAD_IS_VISIBLE(d))
 		download_gui_remove(d);
 
-	if (IS_DOWNLOAD_RUNNING(d))
+	if (DOWNLOAD_IS_RUNNING(d))
 		download_stop(d, GTA_DL_ABORTED, NULL);
 
 	d->status = GTA_DL_QUEUED;
@@ -438,7 +419,7 @@ void download_start(struct download *d, gboolean check_allowed)
 		count_running_downloads_with_guid(d->guid) >= max_host_downloads ||
 		count_running_downloads_with_name(d->file_name) != 0)
 	) {
-		if (!IS_DOWNLOAD_QUEUED(d))
+		if (!DOWNLOAD_IS_QUEUED(d))
 			download_queue(d);
 		return;
 	}
@@ -464,13 +445,13 @@ void download_start(struct download *d, gboolean check_allowed)
 	d->pos = d->skip;
 
 	/* If the download is in the queue, we remove it from there */
-	if (IS_DOWNLOAD_QUEUED(d) && IS_DOWNLOAD_VISIBLE(d))
+	if (DOWNLOAD_IS_QUEUED(d) && DOWNLOAD_IS_VISIBLE(d))
 		download_gui_remove(d);
 
 	/* Is there anything to get at all? */
 	if (d->size <= d->pos) {
 		d->status = GTA_DL_CONNECTING;
-		if (!IS_DOWNLOAD_VISIBLE(d))
+		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
 		download_stop(d, GTA_DL_COMPLETED, "Nothing more to get");
 		return;
@@ -479,13 +460,13 @@ void download_start(struct download *d, gboolean check_allowed)
 	if (!send_pushes)
 		d->push = FALSE;
 
-	if (!IS_DOWNLOAD_IN_PUSH_MODE(d) && check_valid_host(d->ip, d->port)) {
+	if (!DOWNLOAD_IS_IN_PUSH_MODE(d) && check_valid_host(d->ip, d->port)) {
 		/* Direct download */
 		d->status = GTA_DL_CONNECTING;
 		d->socket = socket_connect(d->ip, d->port, GTA_TYPE_DOWNLOAD);
 
 		if (!d->socket) {
-			if (!IS_DOWNLOAD_VISIBLE(d))
+			if (!DOWNLOAD_IS_VISIBLE(d))
 				download_gui_add(d);
 			download_stop(d, GTA_DL_ERROR, "Connection failed");
 			return;
@@ -499,7 +480,7 @@ void download_start(struct download *d, gboolean check_allowed)
 		download_push(d);
 	}
 
-	if (!IS_DOWNLOAD_VISIBLE(d))
+	if (!DOWNLOAD_IS_VISIBLE(d))
 		download_gui_add(d);
 
 	gui_update_download(d, TRUE);
@@ -522,9 +503,9 @@ void download_pickup_queued(void)
 		struct download *d = (struct download *)
 			gtk_clist_get_row_data(GTK_CLIST(clist_download_queue), row);
 
-		if (!IS_DOWNLOAD_QUEUED(d))
+		if (!DOWNLOAD_IS_QUEUED(d))
 			g_warning("download_pickup_queued(): "
-				"Download '%s' is not in queued state ! (state = %d)\n",
+				"Download '%s' is not in queued state ! (state = %d)",
 				 d->file_name, d->status);
 
 		if ((now - d->last_update) > d->timeout_delay &&
@@ -532,7 +513,7 @@ void download_pickup_queued(void)
 			&& count_running_downloads_with_name(d->file_name) == 0
 		) {
 			download_start(d, FALSE);
-			if (!IS_DOWNLOAD_QUEUED(d))
+			if (!DOWNLOAD_IS_QUEUED(d))
 				running++;
 		} else
 			row++;
@@ -570,17 +551,17 @@ void download_fallback_to_push(struct download *d, gboolean user_request)
 {
 	g_return_if_fail(d);
 
-	if (IS_DOWNLOAD_QUEUED(d)) {
+	if (DOWNLOAD_IS_QUEUED(d)) {
 		g_warning
-			("download_fallback_to_push() called on a queued download !?!\n");
+			("download_fallback_to_push() called on a queued download !?!");
 		return;
 	}
 
-	if (IS_DOWNLOAD_STOPPED(d))
+	if (DOWNLOAD_IS_STOPPED(d))
 		return;
 
 	if (!d->socket)
-		g_warning("download_fallback_to_push(): no socket for '%s'\n",
+		g_warning("download_fallback_to_push(): no socket for '%s'",
 				  d->file_name);
 	else {
 		d->socket->resource.download = NULL;
@@ -824,10 +805,10 @@ void download_free(struct download *d)
 {
 	g_return_if_fail(d);
 
-	if (IS_DOWNLOAD_VISIBLE(d))
+	if (DOWNLOAD_IS_VISIBLE(d))
 		download_gui_remove(d);
 
-	if (IS_DOWNLOAD_RUNNING(d))
+	if (DOWNLOAD_IS_RUNNING(d))
 		download_stop(d, GTA_DL_ABORTED, NULL);
 
 	sl_downloads = g_slist_remove(sl_downloads, (gpointer) d);
@@ -846,13 +827,13 @@ void download_abort(struct download *d)
 {
 	g_return_if_fail(d);
 
-	if (IS_DOWNLOAD_QUEUED(d)) {
-		g_warning("download_abort() called on queued download '%s'!\n",
+	if (DOWNLOAD_IS_QUEUED(d)) {
+		g_warning("download_abort() called on queued download '%s'!",
 				  d->file_name);
 		return;
 	}
 
-	if (IS_DOWNLOAD_STOPPED(d))
+	if (DOWNLOAD_IS_STOPPED(d))
 		return;
 
 	download_stop(d, GTA_DL_ABORTED, NULL);
@@ -862,13 +843,13 @@ void download_resume(struct download *d)
 {
 	g_return_if_fail(d);
 
-	if (IS_DOWNLOAD_QUEUED(d)) {
-		g_warning("download_resume() called on queued download '%s'!\n",
+	if (DOWNLOAD_IS_QUEUED(d)) {
+		g_warning("download_resume() called on queued download '%s'!",
 				  d->file_name);
 		return;
 	}
 
-	if (IS_DOWNLOAD_RUNNING(d))
+	if (DOWNLOAD_IS_RUNNING(d))
 		return;
 
 	download_start(d, TRUE);
@@ -963,7 +944,7 @@ void download_move_to_completed_dir(struct download *d)
 		gboolean ok = FALSE;
 
 		if ((tmp_src = open(dl_src, O_RDONLY)) < 0) {
-			g_warning("Unable to open() file '%s' (%s) !\n", dl_src,
+			g_warning("Unable to open() file '%s' (%s) !", dl_src,
 					  g_strerror(errno));
 			return;
 		}
@@ -971,7 +952,7 @@ void download_move_to_completed_dir(struct download *d)
 		if ((tmp_dest =
 			 open(dl_dest, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0) {
 			close(tmp_src);
-			g_warning("Unable to create file '%s' (%s) !\n", dl_src,
+			g_warning("Unable to create file '%s' (%s) !", dl_src,
 					  g_strerror(errno));
 			return;
 		}
@@ -986,7 +967,7 @@ void download_move_to_completed_dir(struct download *d)
 
 			if (return_tmp < 0) {
 				g_warning("download_move_to_completed_dir(): "
-					"error reading while moving file to save directory (%s)\n",
+					"error reading while moving file to save directory (%s)",
 					 g_strerror(errno));
 				break;
 			}
@@ -995,7 +976,7 @@ void download_move_to_completed_dir(struct download *d)
 
 			if (return_tmp2 < 0) {
 				g_warning("download_move_to_completed_dir(): "
-					"error writing while moving file to save directory (%s)\n",
+					"error writing while moving file to save directory (%s)",
 					 g_strerror(errno));
 				break;
 			}
@@ -1051,7 +1032,7 @@ gboolean download_send_request(struct download *d)
 	g_return_val_if_fail(d, FALSE);
 
 	if (!d->socket) {
-		g_warning("download_send_request(): No socket for '%s'\n",
+		g_warning("download_send_request(): No socket for '%s'",
 				  d->file_name);
 		download_stop(d, GTA_DL_ERROR, "Internal Error");
 		return FALSE;
@@ -1110,15 +1091,14 @@ static void download_start_restart_timer(struct download *d)
 
 void download_read(gpointer data, gint source, GdkInputCondition cond)
 {
-	struct gnutella_socket *s = (struct gnutella_socket *) data;
-	struct download *d;
+	struct download *d = (struct download *) data;
+	struct gnutella_socket *s;
 	gint32 r;
 	gint32 to_read, remains;
 
-	g_return_if_fail(s);
-
-	d = s->resource.download;
 	g_return_if_fail(d);
+	s = d->socket;
+	g_return_if_fail(s);
 
 	if (cond & GDK_INPUT_EXCEPTION) {
 		download_stop(d, GTA_DL_ERROR, "Failed (Input Exception)");
@@ -1164,12 +1144,13 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 		char *end = strstr(s->buffer, "\r\n\r\n");
 		int len = end ? ((end - s->buffer) + 4) : (int) r;
 		printf("----Got Reply from %s:\n%.*s----\n",
-			ip_port_to_gchar(s->ip, s->port), len, s->buffer);
+			ip_port_to_gchar(d->ip, d->port), len, s->buffer);
 		fflush(stdout);
 	}
 
 	d->retries = 0;		/* successful read means our retry was successful */
 	s->pos += r;
+	d->last_update = time((time_t *) 0);
 
 	switch (d->status) {
 	case GTA_DL_REQ_SENT:
@@ -1180,7 +1161,7 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 		break;
 
 	default:
-		g_warning("download_read(): UNEXPECTED DOWNLOAD STATUS %d\n",
+		g_warning("download_read(): UNEXPECTED DOWNLOAD STATUS %d",
 				  d->status);
 	}
 
@@ -1208,7 +1189,7 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 				printf("Got GIV string : %s\n", s->buffer);
 			} else if (!g_strcasecmp(s->buffer, "GNUTELLA CONNECT/0.4")) {
 				g_warning("download_read: "
-					"\"GNUTELLA CONNECT/0.4\" when not expected, ignoring.\n");
+					"\"GNUTELLA CONNECT/0.4\" when not expected, ignoring.");
 			} else {
 				g_warning("download_read(): Unknown header "
 						"on incoming socket ('%s')\n",
@@ -1285,7 +1266,7 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 							d->skip = 0;
 							d->pos = 0;
 							g_warning("File '%s': server seems to have "
-								"ignored our range request of %u.\n",
+								"ignored our range request of %u.",
 								 d->file_name, d->size);
 							/* XXX - make optional "safe_resume"? */
 							download_stop(d, GTA_DL_ERROR,
@@ -1297,7 +1278,7 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 							return;
 						} else {
 							g_warning("File '%s': expected size %u "
-								"but server said %u\n",
+								"but server said %u",
 								 d->file_name, d->size, z + d->skip);
 							d->size = z + d->skip;
 							/* XXX - make optional "safe_resume"? */
@@ -1347,7 +1328,7 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 			if (stat(dl_tmp, &st) != -1) {
 				/* File exists, we'll append the data to it */
 				if (st.st_size != d->skip) {
-					g_warning("File '%s' changed size (now %ld, but was %d)\n",
+					g_warning("File '%s' changed size (now %ld, but was %d)",
 						 d->file_name, st.st_size, d->skip);
 					download_stop(d, GTA_DL_ERROR, "File modified since start");
 					return;
@@ -1372,7 +1353,7 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 
 			if (d->file_desc == -1) {
 				char *error = g_strerror(errno);
-				g_warning("Unable to open() file '%s'! (%s)\n", dl_tmp, error);
+				g_warning("Unable to open() file '%s'! (%s)", dl_tmp, error);
 				download_stop(d, GTA_DL_ERROR, "Cannot open file: %s", error);
 				return;
 			}
@@ -1380,8 +1361,8 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 
 		if (s->pos > 0 && write(d->file_desc, s->buffer, s->pos) < 0) {
 			char *error = g_strerror(errno);
-			g_warning("download_read(): write to file failed (%s) !\n", error);
-			g_warning("download_read: tried to write(%d, %p, %d)\n",
+			g_warning("download_read(): write to file failed (%s) !", error);
+			g_warning("download_read: tried to write(%d, %p, %d)",
 					  d->file_desc, s->buffer, s->pos);
 			download_stop(d, GTA_DL_ERROR, "Can't save data: %s", error);
 			return;
