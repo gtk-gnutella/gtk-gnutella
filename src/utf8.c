@@ -765,7 +765,7 @@ locale_to_utf8_nfd(const gchar *str, size_t len)
 		size_t utf8_len = len * 6 + 1;
 		gchar *buf;
 
-		g_assert(utf8_len / 6 - 1 == len);
+		g_assert((utf8_len - 1) / 6 == len);
 		buf = g_malloc(utf8_len);
 		s = g_iconv_complete(cd_locale_to_utf8, str, len, buf, utf8_len);
 	}
