@@ -97,6 +97,7 @@ extern const guint32  query_debug;
 extern const guint32  search_debug;
 extern const guint32  udp_debug;
 extern const guint32  qrp_debug;
+extern const guint32  routing_debug;
 extern const guint32  track_props;
 extern const gboolean stop_host_get;
 extern const gboolean bws_in_enabled;

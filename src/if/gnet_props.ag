@@ -768,6 +768,17 @@ prop = {
 };
 
 prop = {
+	name = "routing_debug";
+	desc = "Debug level for message routing.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
     name = "track_props";
     desc = "For development use: track properties";
     type = guint32;
