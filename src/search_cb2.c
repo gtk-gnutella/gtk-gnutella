@@ -37,6 +37,8 @@ RCSID("$Id$");
 
 /* Privat variables */
 
+static search_t *search_selected = NULL;
+
 /***
  *** Private functions
  ***/

@@ -62,6 +62,22 @@ typedef struct results_set {
 } results_set_t;
 
 /*
+ * A host.
+ */
+typedef struct host {
+	guint32 ip;
+	guint16 port;
+} host_t;
+
+/*
+ * Host vector held in query hits.
+ */
+typedef struct host_vec {
+	host_t *hvec;				/* Vector of alternate locations */
+	gint hvcnt;					/* Amount of hosts in vector */
+} host_vec_t;
+
+/*
  * An individual hit.  It referes to a file entry on the remote servent,
  * as identified by the parent results_set structure that contains this hit.
  *
@@ -71,7 +87,7 @@ typedef struct results_set {
  * many different hash tables (one per search).
  */
 typedef struct record {
-	struct results_set *results_set;	/* Parent, containing record */
+	results_set_t *results_set;	/* Parent, containing record */
 	gint refcount;				/* Number of hash tables it has been put to */
 
 	gchar  *name;				/* File name */
@@ -87,7 +103,7 @@ typedef struct record {
  * Global Functions
  */
 
-struct search;
+typedef struct search search_t;
 
 void search_gui_common_init(void);
 void search_gui_common_shutdown(void);
@@ -98,13 +114,13 @@ void search_gui_free_record(record_t *rc);
 void search_gui_clean_r_set(results_set_t *rs);
 void search_gui_free_r_set(results_set_t *rs);
 void search_gui_dispose_results(results_set_t *rs);
-void search_gui_unref_record(struct record *rc);
-void search_gui_free_r_sets(struct search *sch);
-guint search_gui_hash_func(gconstpointer key);
-gint search_gui_hash_key_compare(gconstpointer a, gconstpointer b);
-void search_gui_remove_r_set(struct search *sch, results_set_t *rs);
-gboolean search_gui_result_is_dup(struct search* sch, struct record * rc);
-struct search *search_gui_find(gnet_search_t sh);
+void search_gui_unref_record(record_t *rc);
+void search_gui_free_r_sets(search_t *sch);
+guint search_gui_hash_func(const record_t *key);
+gint search_gui_hash_key_compare(const record_t *a, const record_t *b);
+void search_gui_remove_r_set(search_t *sch, results_set_t *rs);
+gboolean search_gui_result_is_dup(search_t *sch, record_t *rc);
+search_t *search_gui_find(gnet_search_t sh);
 record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r) ;
 results_set_t *search_gui_create_results_set(const gnet_results_set_t *r_set);
 void search_gui_check_alt_locs(results_set_t *rs, record_t *rc);

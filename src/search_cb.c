@@ -35,6 +35,8 @@
 
 RCSID("$Id$");
 
+extern search_t *search_selected;
+
 static gchar tmpstr[4096];
 
 /***

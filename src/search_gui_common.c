@@ -44,7 +44,7 @@ RCSID("$Id$");
 static zone_t *rs_zone;		/* Allocation of results_set */
 static zone_t *rc_zone;		/* Allocation of record */
 
-static gchar *search_file = "searches";	/* File where "old" searches are */
+static const gchar *search_file = "searches"; /* "old" file to searches */
 
 static gchar tmpstr[1024];
 
@@ -118,7 +118,7 @@ void search_gui_free_record(record_t *rc)
  */
 void search_gui_clean_r_set(results_set_t *rs)
 {
-	GSList *m;
+	GSList *sl;
     GSList *sl_remove = NULL;
 
 	g_assert(rs->refcount);		/* If not dispatched, should be freed */
@@ -126,8 +126,8 @@ void search_gui_clean_r_set(results_set_t *rs)
     /*
      * Collect empty searches.
      */
-    for (m = rs->records; m != NULL; m = m->next) {
-		record_t *rc = (record_t *) m->data;
+    for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
+		record_t *rc = (record_t *) sl->data;
 
 		if (rc->refcount == 0)
 			sl_remove = g_slist_prepend(sl_remove, (gpointer) rc);
@@ -136,8 +136,8 @@ void search_gui_clean_r_set(results_set_t *rs)
     /*
      * Remove empty searches from record set.
      */
-	for (m = sl_remove; m != NULL; m = g_slist_next(m)) {
-		record_t *rc = (record_t *) m->data;
+	for (sl = sl_remove; sl != NULL; sl = g_slist_next(sl)) {
+		record_t *rc = (record_t *) sl->data;
 
 		search_gui_free_record(rc);
 		rs->records = g_slist_remove(rs->records, rc);
@@ -157,7 +157,7 @@ void search_gui_clean_r_set(results_set_t *rs)
  */
 void search_gui_free_r_set(results_set_t *rs)
 {
-	GSList *m;
+	GSList *sl;
 
     g_assert(rs != NULL);
 
@@ -178,8 +178,8 @@ void search_gui_free_r_set(results_set_t *rs)
 	 * search_free_record() safely, because rc->refcount must be zero.
 	 */
 
-	for (m = rs->records; m != NULL; m = m->next)
-		search_gui_free_record((record_t *) m->data);
+	for (sl = rs->records; sl != NULL; sl = g_slist_next(sl))
+		search_gui_free_record((record_t *) sl->data);
 
     if (rs->guid)
 		atom_guid_free(rs->guid);
@@ -202,7 +202,7 @@ void search_gui_free_r_set(results_set_t *rs)
 void search_gui_dispose_results(results_set_t *rs)
 {
 	gint refs = 0;
-	GList *l;
+	const GList *l;
 
 	g_assert(rs->num_recs == 0);
 	g_assert(rs->refcount > 0);
@@ -212,7 +212,7 @@ void search_gui_dispose_results(results_set_t *rs)
 	 * reference it, so we have to do that manually.
 	 */
 
-	for (l = searches; l; l = l->next) {
+	for (l = search_gui_get_searches(); NULL != l; l = g_list_next(l)) {
 		GSList *lnk;
 		search_t *sch = (search_t *) l->data;
 
@@ -245,9 +245,9 @@ void search_gui_dispose_results(results_set_t *rs)
  * If the record has no more references, remove it from its parent result
  * set and free the record physically.
  */
-void search_gui_unref_record(struct record *rc)
+void search_gui_unref_record(record_t *rc)
 {
-	struct results_set *rs;
+	results_set_t *rs;
 
 	g_assert(rc->refcount > 0);
 
@@ -279,45 +279,40 @@ void search_gui_unref_record(struct record *rc)
 
 void search_gui_free_r_sets(search_t *sch)
 {
-	GSList *l;
+	GSList *sl;
 
 	g_assert(sch != NULL);
 	g_assert(sch->dups != NULL);
 	g_assert(g_hash_table_size(sch->dups) == 0); /* All records were cleaned */
 
-	for (l = sch->r_sets; l; l = l->next)
-		search_gui_free_r_set((results_set_t *) l->data);
+	for (sl = sch->r_sets; NULL != sl; sl = g_slist_next(sl))
+		search_gui_free_r_set((results_set_t *) sl->data);
 
 	g_slist_free(sch->r_sets);
 	sch->r_sets = NULL;
 }
 
-guint search_gui_hash_func(gconstpointer key)
+guint search_gui_hash_func(const record_t *rc)
 {
-	const struct record *rc = (const struct record *) key;
 	/* Must use same fields as search_hash_key_compare() --RAM */
 	return
-		g_str_hash(rc->name) ^
+		g_direct_hash(rc->sha1) ^	/* atom! (may be NULL) */
+		g_direct_hash(rc->results_set->guid) ^	/* atom! */
+		(NULL != rc->sha1 ? 0 : g_str_hash(rc->name)) ^
 		g_int_hash(&rc->size) ^
 		g_int_hash(&rc->results_set->ip) ^
-		g_int_hash(&rc->results_set->port) ^
-		g_int_hash(&rc->results_set->guid[0]) ^
-		g_int_hash(&rc->results_set->guid[4]) ^
-		g_int_hash(&rc->results_set->guid[8]) ^
-		g_int_hash(&rc->results_set->guid[12]);
+		g_int_hash(&rc->results_set->port);
 }
 
-gint search_gui_hash_key_compare(gconstpointer a, gconstpointer b)
+gint search_gui_hash_key_compare(const record_t *rc1, const record_t *rc2)
 {
-	const struct record *rc1 = (const struct record *) a;
-	const struct record *rc2 = (const struct record *) b;
-
 	/* Must compare same fields as search_hash_func() --RAM */
 	return rc1->size == rc2->size
 		&& rc1->results_set->ip == rc2->results_set->ip
 		&& rc1->results_set->port == rc2->results_set->port
-		&& 0 == memcmp(rc1->results_set->guid, rc2->results_set->guid, 16)
-		&& 0 == strcmp(rc1->name, rc2->name);
+		&& rc1->results_set->guid == rc2->results_set->guid	/* atom! */
+		&& (rc1->sha1 != NULL /* atom! */
+				? rc1->sha1 == rc2->sha1 : (0 == strcmp(rc1->name, rc2->name)));
 }
 
 /*
@@ -341,10 +336,10 @@ void search_gui_remove_r_set(search_t *sch, results_set_t *rs)
  *
  * Returns true if the record is a duplicate.
  */
-gboolean search_gui_result_is_dup(search_t * sch, struct record * rc)
+gboolean search_gui_result_is_dup(search_t *sch, record_t *rc)
 {
 	union {
-		struct record *rc;
+		record_t *rc;
 		gpointer ptr;
 	} old;
 	gpointer dummy;
@@ -392,17 +387,18 @@ gboolean search_gui_result_is_dup(search_t * sch, struct record * rc)
  * Returns a pointer to gui_search_t from gui_searches which has
  * sh as search_handle. If none is found, return NULL.
  */
-struct search *search_gui_find(gnet_search_t sh) 
+search_t *search_gui_find(gnet_search_t sh) 
 {
-    GList *l;
+    const GList *l;
     
-    for (l = searches; l != NULL; l = g_list_next(l)) {
-        if (((search_t *)l->data)->search_handle == sh) {
-            if (gui_debug >= 15)
-                printf("search [%s] matched handle %x\n", (
-                    (search_t *)l->data)->query, sh);
+    for (l = search_gui_get_searches(); l != NULL; l = g_list_next(l)) {
+		search_t *s = l->data;
 
-            return (struct search *) l->data;
+        if (s->search_handle == sh) {
+            if (gui_debug >= 15)
+                printf("search [%s] matched handle %x\n", s->query, sh);
+
+            return s;
         }
     }
 
@@ -429,8 +425,8 @@ record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     rc->name = atom_str_get(r->name);
     rc->size = r->size;
     rc->index = r->index;
-    rc->sha1 = (r->sha1 != NULL) ? atom_sha1_get(r->sha1) : NULL;
-    rc->tag = (r->tag != NULL) ? atom_str_get(r->tag) : NULL;
+    rc->sha1 = r->sha1 != NULL ? atom_sha1_get(r->sha1) : NULL;
+    rc->tag = r->tag != NULL ? atom_str_get(r->tag) : NULL;
     rc->flags = r->flags;
 	rc->alt_locs = NULL;
 
@@ -547,7 +543,7 @@ void search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
  */
 static void search_store_old(void)
 {
-	GList *l;
+	const GList *l;
 	FILE *out;
 	file_path_t fp;
 
@@ -559,8 +555,8 @@ static void search_store_old(void)
 
 	file_config_preamble(out, "Searches");
 	
-	for (l = searches; l; l = g_list_next(l)) {
-		const struct search *sch = (const struct search *) l->data;
+	for (l = search_gui_get_searches(); l; l = g_list_next(l)) {
+		const search_t *sch = (const search_t *) l->data;
 		if (!sch->passive)
 			fprintf(out, "%s\n", sch->query);
 	}
@@ -660,13 +656,14 @@ void search_gui_retrieve_searches(void)
 #ifdef USE_SEARCH_XML
 	LIBXML_TEST_VERSION
 
-	if (search_retrieve_old()) {
-        g_warning(
-            _("Found old searches file. Loaded it.\n"
-            "On exit the searches will be saved in the new XML format\n"
-            "and the old file will be renamed."));
-    } else
-        search_retrieve_xml();
+    if (!search_retrieve_xml()) {
+		if (search_retrieve_old()) {
+        	g_warning(_("Found old searches file. Loaded it.\n"
+            	"On exit the searches will be saved in the new XML format\n"
+            	"You may remove \"searches.orig\"."));
+    	}
+	}
+
 #else
     search_retrieve_old();
 #endif /* USE_SEARCH_XML */

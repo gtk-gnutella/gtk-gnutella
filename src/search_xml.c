@@ -158,7 +158,7 @@ static node_parser_t parser_map[] = {
  */
 void search_store_xml(void)
 {
-	GList *l;
+	const GList *l;
 	time_t now = time((time_t *) NULL);
     xmlDocPtr doc;
     xmlNodePtr root;
@@ -187,7 +187,7 @@ void search_store_xml(void)
     /*
      * Iterate over the searches and add them to the tree
      */
-    for (l = searches; l; l = g_list_next(l))
+    for (l = search_gui_get_searches(); l; l = g_list_next(l))
         search_to_xml(root, (search_t *) l->data);
 
     /*
@@ -383,17 +383,17 @@ gboolean search_retrieve_xml(void)
         }
     }
 
-    /*
+	/*
      * Verify bindings.
      */
     {
         gboolean borked = FALSE;
-        GList *s;
+        const GList *s;
 
         if (gui_debug >= 6)
             printf("verifying bindings...\n");
 
-        for (s = searches; s != NULL; s = g_list_next(s)) {
+        for (s = search_gui_get_searches(); s != NULL; s = g_list_next(s)) {
             search_t *search = (search_t *) s->data;
 
             if (search->filter->search == search) {

@@ -4033,11 +4033,7 @@ void settings_gui_init(void)
 
 void settings_gui_shutdown(void)
 {
-    GtkWidget *widget;
     gint n;
-    search_t *current_search;
-
-    current_search = search_gui_get_current_search();
 
     /*
      * Remove the listeners
@@ -4066,36 +4062,6 @@ void settings_gui_shutdown(void)
     gnet_stats_divider_pos = 
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_gnet_stats")));
-#ifdef USE_GTK2
-
-    results_divider_pos = 
-        gtk_paned_get_position(GTK_PANED
-            (lookup_widget(main_window, "vpaned_results")));
-
-	widget = (current_search != NULL) ? 
-			GTK_WIDGET(current_search->tree_view) : 
-			GTK_WIDGET(default_search_tree_view);
-      
-	for (n = 0; /* empty */; n++) {
-		GtkTreeViewColumn *c;
-
-		c = gtk_tree_view_get_column(GTK_TREE_VIEW(widget), n);
-		if (NULL == c)
-			break;
-
-		search_results_col_visible[n] = gtk_tree_view_column_get_visible(c);
-	}
-
-#else
-
-    widget = (current_search != NULL) ? 
-        GTK_WIDGET(current_search->clist) : 
-        GTK_WIDGET(default_search_clist);
-
-    for (n = 0; n < GTK_CLIST(widget)->columns; n ++)
-        search_results_col_visible[n] =  GTK_CLIST(widget)->column[n].visible;
-
-#endif /* USE_GTK2 */
 
     /*
      * Save properties to file

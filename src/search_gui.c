@@ -52,14 +52,13 @@ GList *searches = NULL;		/* List of search structs */
 
 /* Need to remove this dependency on GUI further --RAM */
 extern GtkWidget *default_search_clist;
-extern GtkWidget *default_scrolled_window;
 
 static search_t *current_search  = NULL; /*	The search currently displayed */
 search_t *search_selected = NULL;
 
-time_t tab_update_time = 5;
+static time_t tab_update_time = 5;
 
-static GList *sl_search_history = NULL;
+static GList *list_search_history = NULL;
 
 /*
  * Private function prototypes
@@ -84,7 +83,7 @@ static struct {
  * If no search are currently allocated 
  */
 GtkWidget *default_search_clist = NULL;
-GtkWidget *default_scrolled_window = NULL;
+static GtkWidget *default_scrolled_window = NULL;
 
 
 /* ----------------------------------------- */
@@ -281,8 +280,8 @@ gboolean search_gui_new_search_full(
 	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
     sch->search_handle = search_new(query, speed, reissue_timeout, flags);
     sch->passive = (flags & SEARCH_PASSIVE) ? TRUE : FALSE;
-	sch->dups =
-		g_hash_table_new(search_gui_hash_func, search_gui_hash_key_compare);
+	sch->dups = g_hash_table_new((GHashFunc) search_gui_hash_func,
+					(GCompareFunc) search_gui_hash_key_compare);
 	if (!sch->dups)
 		g_error("new_search: unable to allocate hash table.\n");
     
@@ -633,7 +632,7 @@ void search_matched(search_t *sch, results_set_t *rs)
 		}
 	}
 
-	for (i = 0; i < sizeof(open_flags) / sizeof(open_flags[0]); i++) {
+	for (i = 0; i < G_N_ELEMENTS(open_flags); i++) {
 		if (rs->status & open_flags[i].flag) {
 			if (vinfo->len)
 				g_string_append(vinfo, ", ");
@@ -730,14 +729,14 @@ void search_matched(search_t *sch, results_set_t *rs)
             GdkColor *fg_color = NULL;
             gboolean mark;
             sch->items++;
-            g_hash_table_insert(sch->dups, rc, (void *) 1);
+            g_hash_table_insert(sch->dups, rc, GINT_TO_POINTER(1));
             rc->refcount++;
 
             mark = 
                 (flt_result->props[FILTER_PROP_DISPLAY].state == 
                     FILTER_PROP_STATE_DONT) &&
                 (flt_result->props[FILTER_PROP_DISPLAY].user_data == 
-                    (gpointer) 1);
+					GINT_TO_POINTER(1));
 
             if (rc->flags & SR_IGNORED) {
                 /*
@@ -1059,14 +1058,27 @@ void search_gui_init(void)
 
 void search_gui_shutdown(void)
 {
-    search_remove_got_results_listener(search_gui_got_results);
+	GtkCList *clist;
+	gint i;
 
+    search_remove_got_results_listener(search_gui_got_results);
 	search_gui_store_searches();
 
+    clist = current_search != NULL
+		? GTK_CLIST(current_search->clist) : GTK_CLIST(default_search_clist);
+
+    for (i = 0; i < clist->columns; i ++)
+        search_results_col_visible[i] = clist->column[i].visible;
+
     while (searches != NULL)
-        search_gui_close_search((search_t *)searches->data);
+        search_gui_close_search((search_t *) searches->data);
 
 	search_gui_common_shutdown();
+}
+
+const GList *search_gui_get_searches(void)
+{
+	return (const GList *) searches;
 }
 
 /*
@@ -1385,7 +1397,7 @@ void gui_search_update_items(struct search *sch)
         else
             gm_snprintf(tmpstr, sizeof(tmpstr), _("%sNo items found"), str);
     } else
-        gm_snprintf(tmpstr, sizeof(tmpstr), _("No search"));
+        g_strlcpy(tmpstr, _("No search"), sizeof(tmpstr));
 
 	gtk_label_set(
         GTK_LABEL(lookup_widget(main_window, "label_items_found")), 
@@ -1468,16 +1480,16 @@ void gui_search_clear_results(void)
  * If a string is already in history and it's added again,
  * it's moved to the beginning of the history list.
  */
-void gui_search_history_add(gchar * s)
+void gui_search_history_add(gchar *s)
 {
     GList *new_hist = NULL;
-    GList *cur_hist = sl_search_history;
+    GList *cur_hist = list_search_history;
     guint n = 0;
 
     g_return_if_fail(s);
 
     while (cur_hist != NULL) {
-        if ((n < 9) && (g_ascii_strcasecmp(s,cur_hist->data) != 0)) {
+        if (n < 9 && 0 != g_ascii_strcasecmp(s,cur_hist->data)) {
             /* copy up to the first 9 items */
             new_hist = g_list_append(new_hist, cur_hist->data);
             n ++;
@@ -1496,7 +1508,7 @@ void gui_search_history_add(gchar * s)
         new_hist);
 
     /* free old list structure */
-    g_list_free(sl_search_history);
+    g_list_free(list_search_history);
     
-    sl_search_history = new_hist;
+    list_search_history = new_hist;
 }
