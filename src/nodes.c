@@ -93,6 +93,7 @@ struct io_header {
 
 static void node_read_connecting(
 	gpointer data, gint source, GdkInputCondition cond);
+static void node_disable_read(struct gnutella_node *n);
 static void node_data_ind(rxdrv_t *rx, pmsg_t *mb);
 
 /***
@@ -297,6 +298,14 @@ void node_real_remove(struct gnutella_node *n)
 	if (n->io_opaque)				/* I/O data */
 		io_free(n->io_opaque);
 
+	/*
+	 * The RX stack needs to be dismantled asynchronously, to not be freed
+	 * whilst on the "data reception" interrupt path.
+	 */
+
+	if (n->rx)
+		rx_free(n->rx);
+
 	g_free(n);
 }
 
@@ -368,10 +377,8 @@ static void node_remove_v(
 		sq_free(n->searchq);
 		n->searchq = NULL;
 	}
-	if (n->rx) {
-		rx_free(n->rx);
-		n->rx = 0;
-	}
+	if (n->rx)					/* RX stack freed by node_real_remove() */
+		node_disable_read(n);
 	if (n->vendor) {
 		g_free(n->vendor);
 		n->vendor = NULL;
@@ -2420,6 +2427,9 @@ void node_tx_leave_flowc(struct gnutella_node *n)
 static void node_disable_read(struct gnutella_node *n)
 {
 	g_assert(n->rx);
+
+	if (n->flags & NODE_F_NOREAD)
+		return;						/* Already disabled */
 
 	n->flags |= NODE_F_NOREAD;
 	rx_disable(n->rx);
