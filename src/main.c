@@ -40,6 +40,7 @@
 #include "bsched.h"
 #include "upload_stats.h"
 #include "pcache.h"
+#include "hcache.h"
 #include "ban.h"
 #include "dmesh.h"
 #include "version.h"
@@ -189,6 +190,7 @@ void gtk_gnutella_exit(gint n)
 	main_gui_update_coords();
 	main_gui_shutdown();
 
+    hcache_shutdown(); // Save host caches to disk
 	settings_shutdown();
 	socket_shutdown();
 	search_shutdown();
@@ -345,6 +347,7 @@ static gboolean main_timer(gpointer p)
 
 	bsched_timer();					/* Scheduling update */
 	host_timer();					/* Host connection */
+    hcache_timer();
 	node_timer(now);				/* Node timeouts */
 	http_timer(now);				/* HTTP request timeouts */
 	if (!exiting) {
@@ -510,8 +513,9 @@ gint main(gint argc, gchar **argv, gchar **env)
 	gnet_stats_init();
 	main_gui_early_init(argc, argv);
 	callout_queue = cq_make(0);
-	hcache_init();
+	hcache_init(); /* before settings_init() */
 	settings_init();
+    hcache_retrieve_all(); /* after settings_init() */
 	init_constants();
 	guid_init();
 	gwc_init();
