@@ -35,6 +35,8 @@
 #include "nodes.h"
 #include "misc.h"
 #include "url.h"
+#include "huge.h"
+#include "base32.h"
 
 gboolean file_exists(gchar *f)
 {
@@ -344,6 +346,22 @@ void hex_to_guid(gchar *hexguid, guchar *guid)
 
 	for (i = 0; i < 16; i++)
 		guid[i] = (hex2dec(hexguid[i*2]) << 4) + hex2dec(hexguid[i*2+1]);
+}
+
+/*
+ * sha1_base32
+ *
+ * Convert binary SHA1 into a base32 string.
+ * Returns pointer to static data.
+ */
+gchar *sha1_base32(const guchar *sha1)
+{
+	static gchar digest_b32[SHA1_BASE32_SIZE + 1];
+
+	base32_encode_into(sha1, SHA1_RAW_SIZE, digest_b32, sizeof(digest_b32));
+	digest_b32[SHA1_BASE32_SIZE] = '\0';
+
+	return digest_b32;
 }
 
 /*
