@@ -47,6 +47,7 @@
 #include "bsched.h"
 #include "gui.h"			/* For gui_update_config_port() */
 #include "ban.h"
+#include "http.h"
 
 #if !defined(SOL_TCP) && defined(IPPROTO_TCP)
 #define SOL_TCP IPPROTO_TCP
@@ -207,7 +208,7 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 			0 == strncmp(s->buffer, "GET ", 4) ||
 			0 == strncmp(s->buffer, "HEAD ", 5)
 		)
-			socket_http_error(s, 414, NULL, "Requested URL Too Large");
+			http_send_status(s, 414, NULL, 0, "Requested URL Too Large");
 		socket_destroy(s);
 		return;
 	case READ_DONE:
@@ -264,10 +265,14 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 		else {
 			gint delay = ban_delay(s->ip);
 			gchar msg[80];
+			http_extra_desc_t hev;
 
 			g_snprintf(msg, sizeof(msg)-1, "Retry-After: %d\r\n", delay);
 
-			socket_http_error(s, 550, msg, "Banned for %s",
+			hev.he_type = HTTP_EXTRA_LINE;
+			hev.he_msg = msg;
+
+			http_send_status(s, 550, &hev, 1, "Banned for %s",
 				short_time(delay));
 		}
 		goto cleanup;
@@ -807,64 +812,6 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 }
 
 /*
- * socket_http_error
- *
- * Send HTTP error on socket, with code and reason.
- * If `extra' is non-null, it is inserted as-is in the header, so it must
- * be properly terminated on each of its embedded lines.
- *
- * The connection is NOT closed.
- */
-void socket_http_error(
-	struct gnutella_socket *s, gint code, gchar *extra, gchar *reason, ...)
-{
-	gchar http_response[1024];
-	gchar status_msg[512];
-	gint rw;
-	gint sent;
-	va_list args;
-
-	va_start(args, reason);
-	g_vsnprintf(status_msg, sizeof(status_msg)-1,  reason, args);
-	va_end(args);
-
-	rw = g_snprintf(http_response, sizeof(http_response),
-		"HTTP/1.0 %d %s\r\n"
-		"Server: %s\r\n"
-		"Connection: close\r\n"
-		"X-Live-Since: %s\r\n"
-		"%s"
-		"\r\n",
-		code, status_msg, version_string, start_rfc822_date,
-		extra == NULL ? "" : extra);
-
-	if (rw == sizeof(http_response) && extra) {
-		g_warning("HTTP error %d (%s) too big, ignoring extra (%d bytes)",
-			code, reason, strlen(extra));
-
-		rw = g_snprintf(http_response, sizeof(http_response),
-			"HTTP/1.0 %d %s\r\n"
-			"Server: %s\r\n"
-			"Connection: close\r\n"
-			"X-Live-Since: %s\r\n"
-			"\r\n",
-			code, reason, version_string, start_rfc822_date);
-	}
-
-	if (-1 == (sent = bws_write(bws.out, s->file_desc, http_response, rw)))
-		g_warning("Unable to send back HTTP error %d (%s) to %s: %s",
-			code, reason, ip_to_gchar(s->ip), g_strerror(errno));
-	else if (sent < rw)
-		g_warning("Only sent %d out of %d bytes of error %d (%s) to %s: %s",
-			sent, rw, code, reason, ip_to_gchar(s->ip), g_strerror(errno));
-	else if (dbg > 4) {
-		printf("----Sent HTTP Error to %s:\n%.*s----\n",
-			ip_to_gchar(s->ip), rw, http_response);
-		fflush(stdout);
-	}
-}
-
-/*
  * sock_cork
  *
  * Set/clear TCP_CORK on the socket.
@@ -1198,7 +1145,7 @@ int connect_http(struct gnutella_socket *s)
 			return 0;
 		}
 		str = getline_str(s->getline);
-		if ((status=parse_status_line(str, NULL, NULL, NULL, NULL)) < 0) {
+		if ((status=http_status_parse(str, NULL, NULL, NULL, NULL)) < 0) {
 			show_error("Bad status line\n");
 			return -1;
 		}
