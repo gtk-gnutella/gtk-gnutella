@@ -611,8 +611,9 @@ void prop_set_storage(
 
     if (debug >= 5) {
         printf("updated property [%s] (binary)\n", PROP(ps,prop).name);
-        dump_hex(stderr, PROP(ps,prop).name, 
-            PROP(ps,prop).data.storage.value, PROP(ps,prop).vector_size);
+        dump_hex(stderr, PROP(ps,prop).name,
+			(const gchar *) PROP(ps,prop).data.storage.value,
+			PROP(ps,prop).vector_size);
     }
 
     prop_emit_prop_changed(ps, prop);
@@ -962,7 +963,7 @@ void prop_save_to_file
 
         fprintf(config, "%s\n", config_comment(p->desc));
 
-        switch(p->type) {
+        switch (p->type) {
         case PROP_TYPE_BOOLEAN:
             for (i = 0; i < p->vector_size; i++) {
                 gm_snprintf(sbuf, sizeof(sbuf), "%s", 
@@ -1000,7 +1001,7 @@ void prop_save_to_file
             quotes = TRUE;
             break;
         case PROP_TYPE_STORAGE:
-            val = g_new(guint8, (p->vector_size*2)+1);
+            val = g_new(gchar, (p->vector_size*2)+1);
 
             /*
              * This may not be entirely portable to architectures where
@@ -1051,38 +1052,33 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 {
     prop_def_t *p = &PROP(ps,prop);
     prop_set_stub_t *stub;
-    static guchar vecbuf[100];
+    static gboolean vecbuf_bool[100];
+    static guint32 vecbuf_uint32[100];
 
     stub = ps->get_stub();
 
     switch(p->type) {
     case PROP_TYPE_BOOLEAN:
-        g_assert(
-            (p->vector_size * sizeof(gboolean)) < 
-            (sizeof(vecbuf) * sizeof(vecbuf[0])));
+        g_assert(p->vector_size * sizeof(gboolean) < sizeof(vecbuf_bool));
     
-        prop_parse_boolean_vector(val, p->vector_size, (gboolean *)vecbuf);
-        stub->boolean.set(prop, (gboolean *)&vecbuf, 0, 0);
+        prop_parse_boolean_vector(val, p->vector_size, vecbuf_bool);
+        stub->boolean.set(prop, vecbuf_bool, 0, 0);
         break;
     case PROP_TYPE_MULTICHOICE:
     case PROP_TYPE_GUINT32:
-        g_assert(
-            (p->vector_size * sizeof(guint32)) < 
-            (sizeof(vecbuf) * sizeof(vecbuf[0])));
+        g_assert(p->vector_size * sizeof(guint32) < sizeof(vecbuf_uint32));
 
-        prop_parse_guint32_vector(val, p->vector_size, (guint32 *)vecbuf);
-        stub->guint32.set(prop, (guint32 *)&vecbuf, 0, 0);
+        prop_parse_guint32_vector(val, p->vector_size, vecbuf_uint32);
+        stub->guint32.set(prop, vecbuf_uint32, 0, 0);
         break;
     case PROP_TYPE_STRING:
         stub->string.set(prop, val);
         break;
     case PROP_TYPE_IP:
-        g_assert(
-            (p->vector_size * sizeof(guint32)) < 
-            (sizeof(vecbuf) * sizeof(vecbuf[0])));
+        g_assert(p->vector_size * sizeof(guint32) < sizeof(vecbuf_uint32));
 
-        prop_parse_ip_vector(val, p->vector_size, (guint32 *)vecbuf);
-        stub->guint32.set(prop, (guint32 *)&vecbuf, 0, 0);
+        prop_parse_ip_vector(val, p->vector_size, vecbuf_uint32);
+        stub->guint32.set(prop, vecbuf_uint32, 0, 0);
         break;
     case PROP_TYPE_STORAGE: {
         guint8 *buf = g_new(guint8, p->vector_size);
