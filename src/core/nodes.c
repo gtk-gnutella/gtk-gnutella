@@ -2311,6 +2311,8 @@ node_crawler_headers(struct gnutella_node *n)
 	gint leaves_len = 0;				/* Size of `leaves' */
 	gint ux = 0;						/* Index in `ultras' */
 	gint lx = 0;						/* Index in `leaves' */
+	gint uw = 0;						/* Amount of ultras written */
+	gint lw = 0;						/* Amount of leaves written */
 	GSList *sl;
 	gint maxsize;
 	gint rw;
@@ -2377,11 +2379,13 @@ node_crawler_headers(struct gnutella_node *n)
 		if (cn == n)				/* Don't show the crawler itself */
 			continue;
 
-		if (count > 0)
+		if (uw > 0)
 			rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, ", ");
 
 		rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "%s",
 			ip_port_to_gchar(cn->gnet_ip, cn->gnet_port));
+
+		uw++;		/* One more ultra written */
 	}
 
 	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
@@ -2401,14 +2405,22 @@ node_crawler_headers(struct gnutella_node *n)
 		if (cn == n)				/* Don't show the crawler itself */
 			continue;
 
-		if (count > 0)
+		if (lw > 0)
 			rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, ", ");
 
 		rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "%s",
 			ip_port_to_gchar(cn->gnet_ip, cn->gnet_port));
+
+		lw++;		/* One more leaf written */
 	}
 
 	rw += gm_snprintf(&buf[rw], sizeof(buf)-rw, "\r\n");
+
+	if (dbg) g_message(
+		"TCP crawler sending %d/%d ultra%s and %d/%d lea%s to %s",
+			uw, ux, uw == 1 ? "" : "s",
+			lw, lx, lw == 1 ? "f" : "ves",
+			node_ip(n));
 
 	/* FALL THROUGH */
 
@@ -6080,6 +6092,16 @@ node_bye_all(void)
 	g_assert(!in_shutdown);		/* Meant to be called once */
 
 	in_shutdown = TRUE;
+
+	/*
+	 * Shutdowning the application, clear the UDP queue: we don't want
+	 * to have any transmission scheduled now as we're going to close
+	 * the UDP socket very shortly...
+	 */
+
+	if (udp_node->outq)
+		mq_clear(udp_node->outq);
+
 	host_shutdown();
 	
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
@@ -7286,7 +7308,7 @@ node_crawl_fill(pmsg_t *mb,
 	g_assert(len > 0);
 	g_assert(start < len);
 
-	for (i = start, n = 0; n < want; n++) {
+	for (i = start, n = 0; written < want && n < len; n++) {
 		gnutella_node_t *n = ary[i];
 		gchar addr[6];
 
@@ -7567,7 +7589,7 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 	}
 
 	if (dbg) g_message(
-		"crawler sending data for %u ultras and %u leaves: %d bytes, "
+		"UDP crawler sending data for %u ultras and %u leaves: %d bytes, "
 		"features=0x%x to %s",
 		payload[0], payload[1], pmsg_size(mb), payload[2], node_ip(n));
 
