@@ -616,7 +616,7 @@ static struct download *has_same_download(
 	 * running!
 	 */
 
-	for (n = 0; n < sizeof(listnum) / sizeof(listnum[0]); n++) {
+	for (n = 0; n < G_N_ELEMENTS(listnum); n++) {
 		for (l = server->list[n]; l; l = l->next) {
 			struct download *d = (struct download *) l->data;
 
@@ -903,7 +903,7 @@ gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 		if (server[i] == NULL)
 			continue;
 
-		for (j = 0; j < sizeof(listnum) / sizeof(listnum[0]); j++) {
+		for (j = 0; j < G_N_ELEMENTS(listnum); j++) {
 			enum dl_list idx = listnum[j];
 			GList *l;
 
@@ -2805,7 +2805,7 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 	if (!server)
 		return;
 
-	for (n = 0; n < sizeof(listnum) / sizeof(listnum[0]); n++) {
+	for (n = 0; n < G_N_ELEMENTS(listnum); n++) {
 		for (l = server->list[n]; l; l = l->next) {
 			struct download *d = (struct download *) l->data;
 			gboolean push_mode;
