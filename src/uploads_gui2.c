@@ -44,8 +44,6 @@ static gboolean find_row(GtkTreeIter *, gnet_upload_t, upload_row_data_t **);
 
 static void uploads_gui_update_upload_info(gnet_upload_info_t *u);
 static void uploads_gui_add_upload(gnet_upload_info_t *u);
-static gchar *uploads_gui_status_str(
-    gnet_upload_status_t *u, upload_row_data_t *data);
 
 
 /***
@@ -159,18 +157,16 @@ static gboolean find_row(
     return FALSE;
 }
 
-static gchar *uploads_gui_status_str(
+static const gchar *uploads_gui_status_str(
     gnet_upload_status_t *u, upload_row_data_t *data)
 {
-	gfloat rate = 1, pc = 0;
-	guint32 tr = 0;
 	static gchar tmpstr[256];
 	guint32 requested = data->range_end - data->range_start + 1;
 
 	if (u->pos < data->range_start)
 		return "No output yet..."; /* Never wrote anything yet */
 
-    switch(u->status) {
+    switch (u->status) {
 		/*
 		 * Status: GTA_UL_QUEUED. When PARQ is enabled, and all upload slots are
 		 * full an upload is placed into the PARQ-upload. Clients supporting 
@@ -208,7 +204,7 @@ static gchar *uploads_gui_status_str(
 					u->parq_position,
 					u->parq_size,
 					short_time(u->parq_lifetime));
-		}		if (u->parq_position == 1) {
+		}
         break;
     case GTA_UL_ABORTED:
         return "Transmission aborted";
@@ -223,8 +219,7 @@ static gchar *uploads_gui_status_str(
     case GTA_UL_COMPLETE:
 		if (u->last_update != data->start_date) {
 			guint32 spent = u->last_update - data->start_date;
-
-			rate = (requested / 1024.0) / spent;
+            gfloat rate = (requested / 1024.0) / spent;
 			gm_snprintf(tmpstr, sizeof(tmpstr),
 				"Completed (%.1f k/s) %s", rate, short_time(spent));
 		} else
@@ -233,16 +228,16 @@ static gchar *uploads_gui_status_str(
     case GTA_UL_SENDING:
 		{
 			gint slen;
+			gfloat rate = u->bps / 1024.0;
 			/*
 			 * position divided by 1 percentage point, found by dividing
 			 * the total size by 100
 			 */
-			pc = (u->pos - data->range_start) * 100.0 / requested;
+			gfloat pc = (u->pos - data->range_start) * 100.0 / requested;
 
-			rate = u->bps / 1024.0;
 
 			/* Time Remaining at the current rate, in seconds  */
-			tr = (data->range_end + 1 - u->pos) / u->avg_bps;
+			guint32 tr = (data->range_end + 1 - u->pos) / u->avg_bps;
 
 			slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ", pc);
 
@@ -257,6 +252,9 @@ static gchar *uploads_gui_status_str(
 				"TR: %s", short_time(tr));
 		} 
 		break;
+
+    default:
+        g_assert_not_reached();
 	}
 
     return tmpstr;
