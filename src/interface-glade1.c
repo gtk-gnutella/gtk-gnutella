@@ -644,10 +644,13 @@ create_main_window (void)
   GtkWidget *spinbutton_config_dbg;
   GtkObject *spinbutton_config_gui_debug_adj;
   GtkWidget *spinbutton_config_gui_debug;
-  GtkWidget *checkbutton_config_stop_host_get;
   GtkWidget *label440;
   GtkObject *spinbutton_config_lib_debug_adj;
   GtkWidget *spinbutton_config_lib_debug;
+  GtkWidget *checkbutton_config_stop_host_get;
+  GtkWidget *label509;
+  GtkObject *spinbutton_config_track_props_adj;
+  GtkWidget *spinbutton_config_track_props;
   GtkWidget *frame_expert_unmapped;
   GtkWidget *table57;
   guint label461_key;
@@ -689,6 +692,9 @@ create_main_window (void)
   GtkWidget *entry_sys_nofile;
   GtkWidget *entry_sys_physmem;
   GtkWidget *entry_reading_ultrafile;
+  guint label508_key;
+  GtkWidget *label508;
+  GtkWidget *entry_crawler_visit_count;
   GtkWidget *label296;
   GtkWidget *label_config;
   GtkWidget *vbox84;
@@ -6079,7 +6085,7 @@ create_main_window (void)
   gtk_widget_show (frame49);
   gtk_box_pack_start (GTK_BOX (vbox75), frame49, FALSE, TRUE, 0);
 
-  table32 = gtk_table_new (4, 2, FALSE);
+  table32 = gtk_table_new (5, 2, FALSE);
   gtk_widget_set_name (table32, "table32");
   gtk_widget_ref (table32);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table32", table32,
@@ -6136,16 +6142,6 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_gui_debug), TRUE);
 
-  checkbutton_config_stop_host_get = gtk_check_button_new_with_label ("Stop collecting hosts in host catcher");
-  gtk_widget_set_name (checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
-  gtk_widget_ref (checkbutton_config_stop_host_get);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_stop_host_get", checkbutton_config_stop_host_get,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_config_stop_host_get);
-  gtk_table_attach (GTK_TABLE (table32), checkbutton_config_stop_host_get, 0, 2, 3, 4,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
   label440 = gtk_label_new ("Shared code debug level");
   gtk_widget_set_name (label440, "label440");
   gtk_widget_ref (label440);
@@ -6167,6 +6163,40 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table32), spinbutton_config_lib_debug, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_lib_debug), TRUE);
+
+  checkbutton_config_stop_host_get = gtk_check_button_new_with_label ("Stop collecting hosts in host catcher");
+  gtk_widget_set_name (checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
+  gtk_widget_ref (checkbutton_config_stop_host_get);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_stop_host_get", checkbutton_config_stop_host_get,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_stop_host_get);
+  gtk_table_attach (GTK_TABLE (table32), checkbutton_config_stop_host_get, 0, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label509 = gtk_label_new ("Track properties");
+  gtk_widget_set_name (label509, "label509");
+  gtk_widget_ref (label509);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label509", label509,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label509);
+  gtk_table_attach (GTK_TABLE (table32), label509, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label509), 0, 0.5);
+
+  spinbutton_config_track_props_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_track_props = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_track_props_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_track_props, "spinbutton_config_track_props");
+  gtk_widget_ref (spinbutton_config_track_props);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_track_props", spinbutton_config_track_props,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_track_props);
+  gtk_table_attach (GTK_TABLE (table32), spinbutton_config_track_props, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_track_props), TRUE);
 
   frame_expert_unmapped = gtk_frame_new ("Unmapped stuff");
   gtk_widget_set_name (frame_expert_unmapped, "frame_expert_unmapped");
@@ -6176,7 +6206,7 @@ create_main_window (void)
   gtk_widget_show (frame_expert_unmapped);
   gtk_box_pack_start (GTK_BOX (vbox75), frame_expert_unmapped, FALSE, TRUE, 0);
 
-  table57 = gtk_table_new (13, 2, FALSE);
+  table57 = gtk_table_new (14, 2, FALSE);
   gtk_widget_set_name (table57, "table57");
   gtk_widget_ref (table57);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table57", table57,
@@ -6498,6 +6528,30 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_entry_set_editable (GTK_ENTRY (entry_reading_ultrafile), FALSE);
+
+  label508 = gtk_label_new ("");
+  label508_key = gtk_label_parse_uline (GTK_LABEL (label508),
+                                   "PROP__CRAWLER__VISIT__COUNT");
+  gtk_widget_set_name (label508, "label508");
+  gtk_widget_ref (label508);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label508", label508,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label508);
+  gtk_table_attach (GTK_TABLE (table57), label508, 0, 1, 13, 14,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label508), 0, 0.5);
+
+  entry_crawler_visit_count = gtk_entry_new ();
+  gtk_widget_set_name (entry_crawler_visit_count, "entry_crawler_visit_count");
+  gtk_widget_ref (entry_crawler_visit_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_crawler_visit_count", entry_crawler_visit_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_crawler_visit_count);
+  gtk_table_attach (GTK_TABLE (table57), entry_crawler_visit_count, 1, 2, 13, 14,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_entry_set_editable (GTK_ENTRY (entry_crawler_visit_count), FALSE);
 
   label296 = gtk_label_new ("Debugging");
   gtk_widget_set_name (label296, "label296");
@@ -7568,6 +7622,8 @@ create_main_window (void)
                               label479_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
   gtk_widget_add_accelerator (entry_sys_physmem, "grab_focus", accel_group,
                               label480_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_add_accelerator (entry_crawler_visit_count, "grab_focus", accel_group,
+                              label508_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
 
   gtk_object_set_data (GTK_OBJECT (main_window), "tooltips", tooltips);
 
