@@ -10,6 +10,10 @@
   <language>C</language>
   <gnome_support>False</gnome_support>
   <gettext_support>False</gettext_support>
+  <main_source_file>interface-glade.c</main_source_file>
+  <main_header_file>interface-glade.h</main_header_file>
+  <handler_source_file>callbacks-glade.c</handler_source_file>
+  <handler_header_file>callbacks-glade.h</handler_header_file>
 </project>
 
 <widget>
@@ -617,20 +621,75 @@
 	    </widget>
 
 	    <widget>
-	      <class>GtkLabel</class>
-	      <name>label4</name>
-	      <label></label>
-	      <justify>GTK_JUSTIFY_CENTER</justify>
-	      <wrap>False</wrap>
-	      <xalign>0.5</xalign>
-	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
-	      <ypad>0</ypad>
+	      <class>GtkHBox</class>
+	      <name>hbox54</name>
+	      <homogeneous>False</homogeneous>
+	      <spacing>0</spacing>
 	      <child>
 		<padding>0</padding>
 		<expand>True</expand>
 		<fill>True</fill>
 	      </child>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<name>label82</name>
+		<label>Maximum of</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+	      </widget>
+
+	      <widget>
+		<class>GtkEntry</class>
+		<name>entry_max_connections</name>
+		<width>32</width>
+		<can_focus>True</can_focus>
+		<signal>
+		  <name>activate</name>
+		  <handler>on_entry_max_connections_activate</handler>
+		  <last_modification_time>Mon, 12 Feb 2001 11:27:48 GMT</last_modification_time>
+		</signal>
+		<signal>
+		  <name>focus_out_event</name>
+		  <handler>on_entry_max_connections_focus_out_event</handler>
+		  <last_modification_time>Mon, 12 Feb 2001 11:30:04 GMT</last_modification_time>
+		</signal>
+		<editable>True</editable>
+		<text_visible>True</text_visible>
+		<text_max_length>0</text_max_length>
+		<text></text>
+		<child>
+		  <padding>4</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<name>label83</name>
+		<label>total connections.</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+	      </widget>
 	    </widget>
 	  </widget>
 
@@ -2373,7 +2432,7 @@
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
-	      <fill>False</fill>
+	      <fill>True</fill>
 	    </child>
 
 	    <widget>
@@ -2499,11 +2558,102 @@
 	    </widget>
 
 	    <widget>
-	      <class>Placeholder</class>
+	      <class>GtkHBox</class>
+	      <name>hbox63</name>
+	      <homogeneous>False</homogeneous>
+	      <spacing>0</spacing>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkHBox</class>
+		<name>hbox64</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
+		<child>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>Placeholder</class>
+		</widget>
+	      </widget>
 	    </widget>
 
 	    <widget>
-	      <class>Placeholder</class>
+	      <class>GtkHBox</class>
+	      <name>hbox62</name>
+	      <homogeneous>False</homogeneous>
+	      <spacing>0</spacing>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkHButtonBox</class>
+		<name>hbuttonbox3</name>
+		<layout_style>GTK_BUTTONBOX_DEFAULT_STYLE</layout_style>
+		<spacing>30</spacing>
+		<child_min_width>85</child_min_width>
+		<child_min_height>27</child_min_height>
+		<child_ipad_x>7</child_ipad_x>
+		<child_ipad_y>0</child_ipad_y>
+		<child>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
+		</child>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<name>search_reissue_label</name>
+		<label>Search Reissue Timeout (seconds):</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<child>
+		  <padding>2</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+	      </widget>
+
+	      <widget>
+		<class>GtkEntry</class>
+		<name>entry_search_reissue_timeout</name>
+		<width>32</width>
+		<can_focus>True</can_focus>
+		<signal>
+		  <name>activate</name>
+		  <handler>on_entry_search_reissue_timeout_activate</handler>
+		  <last_modification_time>Mon, 19 Feb 2001 05:12:38 GMT</last_modification_time>
+		</signal>
+		<signal>
+		  <name>focus_out_event</name>
+		  <handler>on_entry_search_reissue_timeout_focus_out_event</handler>
+		  <last_modification_time>Mon, 19 Feb 2001 05:12:52 GMT</last_modification_time>
+		</signal>
+		<editable>True</editable>
+		<text_visible>True</text_visible>
+		<text_max_length>0</text_max_length>
+		<text></text>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+	      </widget>
 	    </widget>
 	  </widget>
 	</widget>
@@ -3502,11 +3652,10 @@
 	  </widget>
 
 	  <widget>
-	    <class>GtkFrame</class>
-	    <name>frame_TTL</name>
-	    <label>gnutellaNet TTL settings (both default to 5)</label>
-	    <label_xalign>0</label_xalign>
-	    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	    <class>GtkHBox</class>
+	    <name>hbox55</name>
+	    <homogeneous>False</homogeneous>
+	    <spacing>0</spacing>
 	    <child>
 	      <padding>0</padding>
 	      <expand>True</expand>
@@ -3514,96 +3663,427 @@
 	    </child>
 
 	    <widget>
-	      <class>GtkHBox</class>
-	      <name>hbox_TTL</name>
-	      <border_width>4</border_width>
-	      <homogeneous>False</homogeneous>
-	      <spacing>4</spacing>
+	      <class>GtkFrame</class>
+	      <name>frame1</name>
+	      <width>178</width>
+	      <label>gnutellaNet TTL settings</label>
+	      <label_xalign>0</label_xalign>
+	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	      <child>
+		<padding>2</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
 
 	      <widget>
-		<class>GtkLabel</class>
-		<name>label32</name>
-		<label>Max TTL:</label>
-		<justify>GTK_JUSTIFY_CENTER</justify>
-		<wrap>False</wrap>
-		<xalign>0.5</xalign>
-		<yalign>0.5</yalign>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>False</fill>
-		</child>
+		<class>GtkHBox</class>
+		<name>hbox56</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <name>label84</name>
+		  <label>Max TTL:</label>
+		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <wrap>False</wrap>
+		  <xalign>0.5</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		  <child>
+		    <padding>2</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkEntry</class>
+		  <name>entry_config_maxttl</name>
+		  <width>32</width>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_entry_config_maxttl_activate</handler>
+		    <last_modification_time>Mon, 12 Feb 2001 12:16:48 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>focus_out_event</name>
+		    <handler>on_entry_config_maxttl_focus_out_event</handler>
+		    <last_modification_time>Mon, 12 Feb 2001 12:16:58 GMT</last_modification_time>
+		  </signal>
+		  <editable>True</editable>
+		  <text_visible>True</text_visible>
+		  <text_max_length>0</text_max_length>
+		  <text></text>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <name>label85</name>
+		  <width>46</width>
+		  <label>My TTL:</label>
+		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <wrap>False</wrap>
+		  <xalign>0.5</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		  <child>
+		    <padding>7</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
+
+		<widget>
+		  <class>GtkEntry</class>
+		  <name>entry_config_myttl</name>
+		  <width>32</width>
+		  <can_focus>True</can_focus>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_entry_config_myttl_activate</handler>
+		    <last_modification_time>Mon, 12 Feb 2001 12:17:35 GMT</last_modification_time>
+		  </signal>
+		  <signal>
+		    <name>focus_out_event</name>
+		    <handler>on_entry_config_myttl_focus_out_event</handler>
+		    <last_modification_time>Mon, 12 Feb 2001 12:17:41 GMT</last_modification_time>
+		  </signal>
+		  <editable>True</editable>
+		  <text_visible>True</text_visible>
+		  <text_max_length>0</text_max_length>
+		  <text></text>
+		  <child>
+		    <padding>0</padding>
+		    <expand>False</expand>
+		    <fill>False</fill>
+		  </child>
+		</widget>
 	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkFrame</class>
+	      <name>frame2</name>
+	      <width>301</width>
+	      <height>91</height>
+	      <label>Proxy Options</label>
+	      <label_xalign>0</label_xalign>
+	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+	      <child>
+		<padding>2</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
 
 	      <widget>
-		<class>GtkEntry</class>
-		<name>entry_config_maxttl</name>
-		<width>32</width>
-		<can_focus>True</can_focus>
-		<signal>
-		  <name>activate</name>
-		  <handler>on_entry_config_maxttl_activate</handler>
-		  <last_modification_time>Sun, 02 Apr 2000 08:23:22 GMT</last_modification_time>
-		</signal>
-		<signal>
-		  <name>focus_out_event</name>
-		  <handler>on_entry_config_maxttl_focus_out_event</handler>
-		  <last_modification_time>Sun, 02 Apr 2000 08:23:34 GMT</last_modification_time>
-		</signal>
-		<editable>True</editable>
-		<text_visible>True</text_visible>
-		<text_max_length>0</text_max_length>
-		<text></text>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>True</fill>
-		</child>
-	      </widget>
+		<class>GtkHBox</class>
+		<name>hbox57</name>
+		<homogeneous>False</homogeneous>
+		<spacing>0</spacing>
 
-	      <widget>
-		<class>GtkLabel</class>
-		<name>label33</name>
-		<label>My TTL:</label>
-		<justify>GTK_JUSTIFY_CENTER</justify>
-		<wrap>False</wrap>
-		<xalign>0.5</xalign>
-		<yalign>0.5</yalign>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>False</fill>
-		</child>
-	      </widget>
+		<widget>
+		  <class>GtkVBox</class>
+		  <name>vbox10</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>0</spacing>
+		  <child>
+		    <padding>0</padding>
+		    <expand>True</expand>
+		    <fill>True</fill>
+		  </child>
 
-	      <widget>
-		<class>GtkEntry</class>
-		<name>entry_config_myttl</name>
-		<width>32</width>
-		<can_focus>True</can_focus>
-		<signal>
-		  <name>activate</name>
-		  <handler>on_entry_config_myttl_activate</handler>
-		  <last_modification_time>Sun, 02 Apr 2000 08:23:06 GMT</last_modification_time>
-		</signal>
-		<signal>
-		  <name>focus_out_event</name>
-		  <handler>on_entry_config_myttl_focus_out_event</handler>
-		  <last_modification_time>Sun, 02 Apr 2000 08:23:13 GMT</last_modification_time>
-		</signal>
-		<editable>True</editable>
-		<text_visible>True</text_visible>
-		<text_max_length>0</text_max_length>
-		<text></text>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>True</fill>
-		</child>
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox59</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
+		    <child>
+		      <padding>0</padding>
+		      <expand>True</expand>
+		      <fill>True</fill>
+		    </child>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label90</name>
+		      <label>Socks Version:</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkRadioButton</class>
+		      <name>radio_socksv4</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_radio_socksv4_toggled</handler>
+			<last_modification_time>Tue, 13 Feb 2001 05:17:49 GMT</last_modification_time>
+		      </signal>
+		      <label>v4</label>
+		      <active>True</active>
+		      <draw_indicator>True</draw_indicator>
+		      <group>socks_version</group>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkRadioButton</class>
+		      <name>radio_socksv5</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_radio_socksv5_toggled</handler>
+			<last_modification_time>Tue, 13 Feb 2001 05:18:08 GMT</last_modification_time>
+		      </signal>
+		      <label>v5</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <group>socks_version</group>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_proxy_connections</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_checkbutton_proxy_connections_toggled</handler>
+			<last_modification_time>Tue, 13 Feb 2001 05:18:39 GMT</last_modification_time>
+		      </signal>
+		      <label>Proxy Connections?</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+		  </widget>
+
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox60</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
+		    <child>
+		      <padding>0</padding>
+		      <expand>True</expand>
+		      <fill>True</fill>
+		    </child>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label91</name>
+		      <label>Socks Host:</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkEntry</class>
+		      <name>config_entry_socks_host</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>activate</name>
+			<handler>on_config_entry_socks_host_activate</handler>
+			<last_modification_time>Tue, 13 Feb 2001 05:09:21 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_config_entry_socks_host_focus_out_event</handler>
+			<last_modification_time>Tue, 13 Feb 2001 05:09:32 GMT</last_modification_time>
+		      </signal>
+		      <editable>True</editable>
+		      <text_visible>True</text_visible>
+		      <text_max_length>0</text_max_length>
+		      <text></text>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label92</name>
+		      <label>Port:</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkEntry</class>
+		      <name>config_entry_socks_port</name>
+		      <width>43</width>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>activate</name>
+			<handler>on_config_entry_socks_port_activate</handler>
+			<last_modification_time>Tue, 13 Feb 2001 05:09:56 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_config_entry_socks_port_focus_out_event</handler>
+			<last_modification_time>Tue, 13 Feb 2001 05:10:03 GMT</last_modification_time>
+		      </signal>
+		      <editable>True</editable>
+		      <text_visible>True</text_visible>
+		      <text_max_length>0</text_max_length>
+		      <text></text>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+		  </widget>
+
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox61</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
+		    <child>
+		      <padding>0</padding>
+		      <expand>True</expand>
+		      <fill>True</fill>
+		    </child>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label93</name>
+		      <label>Username:</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>4</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkEntry</class>
+		      <name>config_entry_socks_username</name>
+		      <width>82</width>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>activate</name>
+			<handler>on_config_entry_socks_username_activate</handler>
+			<last_modification_time>Tue, 13 Feb 2001 05:10:27 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_config_entry_socks_username_focus_out_event</handler>
+			<last_modification_time>Tue, 13 Feb 2001 05:10:36 GMT</last_modification_time>
+		      </signal>
+		      <editable>True</editable>
+		      <text_visible>True</text_visible>
+		      <text_max_length>0</text_max_length>
+		      <text></text>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkLabel</class>
+		      <name>label94</name>
+		      <label>Password:</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <child>
+			<padding>2</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkEntry</class>
+		      <name>config_entry_socks_password</name>
+		      <width>82</width>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>activate</name>
+			<handler>on_config_entry_socks_password_activate</handler>
+			<last_modification_time>Tue, 13 Feb 2001 05:11:07 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_config_entry_socks_password_focus_out_event</handler>
+			<last_modification_time>Tue, 13 Feb 2001 05:11:14 GMT</last_modification_time>
+		      </signal>
+		      <editable>True</editable>
+		      <text_visible>True</text_visible>
+		      <text_max_length>0</text_max_length>
+		      <text></text>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+		  </widget>
+		</widget>
 	      </widget>
 	    </widget>
 	  </widget>
