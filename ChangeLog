@@ -1,5 +1,14 @@
 # since last version
 
+- (2004-09-18 - RAM)
+ * Must not reset n->socket after processing data from UDP node, since we
+   can issue an UDP message at any time, therefore the n->socket must stay
+   set at all times.  Removed node_udp_release().
+ * Fixed binary search for vendor messages: was assuming there would not
+   be duplicates with only the version number changing in the table, but
+   this was forgotten and the table lists messages with different versions
+   as different entries.  Caused it to not process UDP connect back correctly.
+
 - (2004-09-15 - RAM)
  * Was not accounting received queries and query hits for the UDP node.
  * If they remove the pseudo UDP node, it will disable UDP.
