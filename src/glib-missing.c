@@ -356,7 +356,7 @@ gchar *
 gm_sanitize_filename(const gchar *filename)
 {
 	gint c;
-	gchar *q = NULL;
+	gchar *q = NULL, *r;
 	const gchar *p, *s = filename;
 	gboolean no_spaces;
 	
@@ -365,7 +365,7 @@ gm_sanitize_filename(const gchar *filename)
 	gnet_prop_get_boolean_val(PROP_CONVERT_SPACES, &no_spaces);
 	
 #if defined(__APPLE__) && defined(__MACH__) /* Mac OS X*/
-	s = g_locale_to_utf8_nfd(filename, len);
+	s = locale_to_utf8_nfd(filename, len);
 	q = s;
 #endif /* Mac OS X */
 
