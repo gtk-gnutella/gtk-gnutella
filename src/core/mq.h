@@ -32,6 +32,24 @@
 
 #include "gnutella.h"
 #include "pmsg.h"
+#include "tx.h"
+
+typedef struct mqueue mqueue_t;
+
+/*
+ * Operations defined on all mq types.
+ */
+
+struct mq_ops {
+	void (*putq)(mqueue_t *q, pmsg_t *mb);
+};
+
+struct mq_cops {
+	void (*puthere)(mqueue_t *q, pmsg_t *mb, gint msize);
+	void (*qlink_remove)(mqueue_t *q, GList *l);
+	GList *(*rmlink_prev)(mqueue_t *q, GList *l, gint size);
+	void (*update_flowc)(mqueue_t *q);
+};
 
 /*
  * A message queue.
@@ -51,10 +69,12 @@
  * The `header' is used to hold the function/hops/TTL of a reference message
  * to be used as a comparison point when speeding up dropping in flow-control.
  */
-typedef struct mqueue {
+struct mqueue {
 	struct gnutella_header header;	/* Comparison point during flow control */
 	struct gnutella_node *node;		/* Node to which this queue belongs */
-	struct txdriver *tx_drv;		/* Network TX driver */
+	const struct mq_ops *ops;		/* Polymorphic operations */
+	const struct mq_cops *cops;		/* Common operations */
+	txdrv_t *tx_drv;				/* Network TX stack driver */
 	GList *qhead;			/* The queue head, new messages are prepended */
 	GList *qtail;			/* The queue tail, oldest message to send first */
 	GList **qlink;			/* Sorted array of (GList *) entries, or NULL */
@@ -70,7 +90,7 @@ typedef struct mqueue {
 	gint last_written;		/* Amount last written by service routine */
 	gint flowc_written;		/* Amount written during flow control */
 	gint last_size;			/* Queue size at last "swift" event callback */
-} mqueue_t;
+};
 
 /*
  * Queue flags.
@@ -91,19 +111,17 @@ typedef struct mqueue {
 #define mq_pending(q)				((q)->size + tx_pending((q)->tx_drv))
 #define mq_bio(q)					(tx_bio_source((q)->tx_drv))
 
-extern gint tx_pending(struct txdriver *tx);
-
 /*
  * Public interface
  */
 
-struct txdriver;
-
-mqueue_t *mq_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd);
-void mq_free(mqueue_t *q);
 void mq_putq(mqueue_t *q, pmsg_t *mb);
+void mq_free(mqueue_t *q);
 void mq_clear(mqueue_t *q);
 void mq_shutdown(mqueue_t *q);
+void mq_fill_ops(struct mq_ops *ops);
+
+const struct mq_cops *mq_get_cops(void);
 
 #endif	/* _core_mq_h_ */
 

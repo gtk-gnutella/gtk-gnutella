@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Message queues.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,12 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ * Message queues, common code between TCP and UDP sending stacks.
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -33,7 +37,6 @@ RCSID("$Id$");
 #include "mq.h"
 #include "pmsg.h"
 #include "gmsg.h"
-#include "tx.h"
 #include "gnet_stats.h"
 
 #include "lib/walloc.h"
@@ -43,49 +46,26 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define MQ_MAXIOV		256		/* Our limit on the I/O vectors we build */
-#define MQ_MINIOV		2		/* Minimum amount of I/O vectors in service */
-#define MQ_MINSEND		256		/* Minimum size we try to send */
-
 static void qlink_free(mqueue_t *q);
-static void mq_service(gpointer data);
 static void mq_update_flowc(mqueue_t *q);
 static gboolean make_room_header(
 	mqueue_t *q, gchar *header, guint prio, gint needed, gint *offset);
 static void mq_swift_timer(cqueue_t *cq, gpointer obj);
 
 /*
- * mq_make
- *
- * Create new message queue capable of holding `maxsize' bytes, and
- * owned by the supplied node.
+ * Polymorphic operations.
  */
-mqueue_t *mq_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd)
-{
-	mqueue_t *q;
 
-	q = walloc0(sizeof(*q));
+#define MQ_PUTQ(o,m)		((o)->ops->putq((o), (m)))
 
-	q->node = n;
-	q->tx_drv = nd;
-	q->maxsize = maxsize;
-	q->lowat = maxsize >> 2;		/* 25% of max size */
-	q->hiwat = maxsize >> 1;		/* 50% of max size */
-
-	tx_srv_register(nd, mq_service, q);
-
-	return q;
-}
-
-/*
- * mq_free
- *
+/**
  * Free queue and all enqueued messages.
  *
  * Since the message queue is the top of the network TX stack,
  * calling mq_free() recursively requests freeing to lower layers.
  */
-void mq_free(mqueue_t *q)
+void
+mq_free(mqueue_t *q)
 {
 	GList *l;
 	gint n;
@@ -109,16 +89,15 @@ void mq_free(mqueue_t *q)
 	wfree(q, sizeof(*q));
 }
 
-/*
- * mq_rmlink_prev
- *
+/**
  * Remove link from message queue and return the previous item.
  * The `size' parameter refers to the size of the removed message.
  *
  * The underlying message is freed and the size information on the
  * queue is updated, but not the flow-control information.
  */
-static GList *mq_rmlink_prev(mqueue_t *q, GList *l, gint size)
+static GList *
+mq_rmlink_prev(mqueue_t *q, GList *l, gint size)
 {
 	GList *prev = g_list_previous(l);
 
@@ -134,12 +113,11 @@ static GList *mq_rmlink_prev(mqueue_t *q, GList *l, gint size)
 	return prev;
 }
 
-/*
- * mq_swift_checkpoint
- *
+/**
  * A "swift" checkpoint was reached.
  */
-static void mq_swift_checkpoint(mqueue_t *q, gboolean initial)
+static void
+mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 {
 	gint elapsed = q->swift_elapsed;	/* Elapsed since we were scheduled */
 	gint target_to_lowmark;
@@ -281,12 +259,11 @@ static void mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 	}
 }
 
-/*
- * mq_swift_timer
- *
+/**
  * Callout queue callback: periodic "swift" mode timer.
  */
-static void mq_swift_timer(cqueue_t *cq, gpointer obj)
+static void
+mq_swift_timer(cqueue_t *cq, gpointer obj)
 {
 	mqueue_t *q = (mqueue_t *) obj;
 
@@ -295,12 +272,11 @@ static void mq_swift_timer(cqueue_t *cq, gpointer obj)
 	mq_swift_checkpoint(q, FALSE);
 }
 
-/*
- * mq_enter_swift
- *
+/**
  * Callout queue callback invoked when the queue must enter "swift" mode.
  */
-static void mq_enter_swift(cqueue_t *cq, gpointer obj)
+static void
+mq_enter_swift(cqueue_t *cq, gpointer obj)
 {
 	mqueue_t *q = (mqueue_t *) obj;
 
@@ -312,12 +288,11 @@ static void mq_enter_swift(cqueue_t *cq, gpointer obj)
 	mq_swift_checkpoint(q, TRUE);
 }
 
-/*
- * mq_enter_flowc
- *
+/**
  * Called when the message queue first enters flow-control.
  */
-static void mq_enter_flowc(mqueue_t *q)
+static void
+mq_enter_flowc(mqueue_t *q)
 {
 	/*
 	 * We're installing an event that will fire once the grace period is
@@ -344,12 +319,11 @@ static void mq_enter_flowc(mqueue_t *q)
 			node_ip(q->node), q->size);
 }
 
-/*
- * mq_leave_flowc
- *
+/**
  * Leaving flow-control state.
  */
-static void mq_leave_flowc(mqueue_t *q)
+static void
+mq_leave_flowc(mqueue_t *q)
 {
 	g_assert(q->flags & MQ_FLOWC);
 
@@ -370,15 +344,14 @@ static void mq_leave_flowc(mqueue_t *q)
 	node_tx_leave_flowc(q->node);	/* Signal end flow control */
 }
 
-/*
- * mq_update_flowc
- *
+/**
  * Update flow-control indication for queue.
  * Invoke node "callbacks" when crossing a watermark boundary.
  *
  * We define three levels: no flow-control, in warn zone, in flow-control.
  */
-static void mq_update_flowc(mqueue_t *q)
+static void
+mq_update_flowc(mqueue_t *q)
 {
 	if (q->flags & MQ_FLOWC) {
 		if (q->size <= q->lowat) {
@@ -399,12 +372,11 @@ static void mq_update_flowc(mqueue_t *q)
 	}
 }
 
-/*
- * mq_clear
- *
+/**
  * Remove all unsent messages from the queue.
  */
-void mq_clear(mqueue_t *q)
+void
+mq_clear(mqueue_t *q)
 {
 	GList *l;
 
@@ -445,25 +417,24 @@ void mq_clear(mqueue_t *q)
 	}
 }
 
-/*
- * mq_shutdown
- *
+/**
  * Forbid further writes to the queue.
  */
-void mq_shutdown(mqueue_t *q)
+void
+mq_shutdown(mqueue_t *q)
 {
 	g_assert(q);
 
 	q->flags |= MQ_DISCARD;
 }
 
-/*
- * qlink_cmp		-- qsort() callback
- *
+/**
  * Compare two pointers to links based on their relative priorities, then
  * based on their held Gnutella messages.
+ * -- qsort() callback
  */
-static gint qlink_cmp(const void *lp1, const void *lp2)
+static gint
+qlink_cmp(const void *lp1, const void *lp2)
 {
 	const pmsg_t *m1 = (const pmsg_t *) (*(const GList * const *) lp1)->data;
 	const pmsg_t *m2 = (const pmsg_t *) (*(const GList * const *) lp2)->data;
@@ -474,12 +445,11 @@ static gint qlink_cmp(const void *lp1, const void *lp2)
 	return pmsg_prio(m1) < pmsg_prio(m2) ? -1 : +1;
 }
 
-/*
- * qlink_create
- *
+/**
  * Create the `qlink' sorted array of queued items.
  */
-static void qlink_create(mqueue_t *q)
+static void
+qlink_create(mqueue_t *q)
 {
 	GList **qlink;
 	GList *l;
@@ -512,12 +482,11 @@ static void qlink_create(mqueue_t *q)
 	qsort(qlink, n, sizeof(GList *), qlink_cmp);
 }
 
-/*
- * qlink_free
- *
+/**
  * Free the `qlink' sorted array of queued items.
  */
-static void qlink_free(mqueue_t *q)
+static void
+qlink_free(mqueue_t *q)
 {
 	g_assert(q->qlink);
 
@@ -525,13 +494,12 @@ static void qlink_free(mqueue_t *q)
 	q->qlink_count = 0;
 }
 
-/*
- * qlink_insert_before
- *
+/**
  * Insert linkable `l' within the sorted qlink array of linkables for the queue,
  * before the position indicated by `hint'.
  */
-static void qlink_insert_before(mqueue_t *q, gint hint, GList *l)
+static void
+qlink_insert_before(mqueue_t *q, gint hint, GList *l)
 {
 	g_assert(hint >= 0 && hint < q->qlink_count);
 	g_assert(qlink_cmp(&q->qlink[hint], &l) >= 0);	/* `hint' >= `l' */
@@ -557,12 +525,11 @@ static void qlink_insert_before(mqueue_t *q, gint hint, GList *l)
 	q->qlink[hint] = l;
 }
 
-/*
- * qlink_insert
- *
+/**
  * Insert linkable `l' within the sorted qlink array of linkables.
  */
-static void qlink_insert(mqueue_t *q, GList *l)
+static void
+qlink_insert(mqueue_t *q, GList *l)
 {
 	gint low = 0;
 	gint high = q->qlink_count - 1;
@@ -710,12 +677,11 @@ static void qlink_insert(mqueue_t *q, GList *l)
 	qlink_insert_before(q, low, l);
 }
 
-/*
- * qlink_remove
- *
+/**
  * Remove the entry in the `qlink' linkable array.
  */
-static void qlink_remove(mqueue_t *q, GList *l)
+static void
+qlink_remove(mqueue_t *q, GList *l)
 {
 	GList **qlink = q->qlink;
 	gint n = q->qlink_count;
@@ -760,9 +726,7 @@ static void qlink_remove(mqueue_t *q, GList *l)
 	}
 }
 
-/*
- * make_room
- *
+/**
  * Remove from the queue enough messages that are less prioritary than
  * the current one, so as to make sure we can enqueue it.
  *
@@ -773,7 +737,8 @@ static void qlink_remove(mqueue_t *q, GList *l)
  *
  * Returns TRUE if we were able to make enough room.
  */
-static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
+static gboolean
+make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
 {
 	gchar *header = pmsg_start(mb);
 	guint prio = pmsg_prio(mb);
@@ -781,13 +746,12 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed, gint *offset)
 	return make_room_header(q, header, prio, needed, offset);
 }
 
-/*
- * make_room_header
- *
+/**
  * Same as make_room(), but we are not given a "pmsg_t" as a comparison
  * point but a Gnutella header and a message priority explicitly.
  */
-static gboolean make_room_header(
+static gboolean
+make_room_header(
 	mqueue_t *q, gchar *header, guint prio, gint needed, gint *offset)
 {
 	gint n;
@@ -933,12 +897,11 @@ static gboolean make_room_header(
 	return needed <= 0;		/* Can be 0 if we broke out loop above */
 }
 
-/*
- * mq_puthere
- *
+/**
  * Put message in this queue.
  */
-static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
+static void
+mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 {
 	gint needed;
 	gint qlink_offset = -1;
@@ -1124,290 +1087,29 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 		node_tx_service(q->node, TRUE);		/* Only on first message queued */
 }
 
-/*
- * mq_service
- *
- * Service routine for message queue.
- */
-static void mq_service(gpointer data)
-{
-	mqueue_t *q = (mqueue_t *) data;
-	static struct iovec iov[MQ_MAXIOV];
-	gint iovsize;
-	gint iovcnt;
-	gint sent;
-	gint r;
-	GList *l;
-	gint dropped;
-	gint maxsize;
-	gboolean saturated;
-
-again:
-	g_assert(q->count);		/* Queue is serviced, we must have something */
-
-	iovcnt = 0;
-	sent = 0;
-	dropped = 0;
-
-	/*
-	 * Build I/O vector.
-	 *
-	 * Optimize our time: don't spend time building too much if we're
-	 * not likely to send anything.  We limit to 1.5 times the amount we
-	 * last wrote last time we were called, with a minimum of 2 entries.
-	 */
-
-	iovsize = MIN(MQ_MAXIOV, q->count);
-	maxsize = q->last_written + (q->last_written >> 1);		/* 1.5 times */
-	maxsize = MAX(MQ_MINSEND, maxsize);
-
-	for (l = q->qtail; l && iovsize > 0; /* empty */) {
-		struct iovec *ie;
-		pmsg_t *mb = (pmsg_t *) l->data;
-		gchar *mbs = pmsg_start(mb);
-
-		/*
-		 * Don't build too much.
-		 */
-
-		if (iovcnt > MQ_MINIOV && maxsize < 0)
-			break;
-
-		/*
-		 * Honour hops-flow, and ensure there is a route for possible replies.
-		 */
-
-		if (node_can_send(q->node, gmsg_function(mbs), gmsg_hops(mbs), mbs)) {
-			/* send the message */
-			l = g_list_previous(l);
-			iovsize--;
-			ie = &iov[iovcnt++];
-			ie->iov_base = mb->m_rptr;
-			ie->iov_len = pmsg_size(mb);
-			maxsize -= ie->iov_len;
-		} else {
-			gnet_stats_count_flowc(mbs);	/* Done before message freed */
-			if (q->qlink)
-				qlink_remove(q, l);
-
-			/* drop the message, will be freed by mq_rmlink_prev() */
-			l = mq_rmlink_prev(q, l, pmsg_size(mb));
-
-			if (dbg > 4)
-				gmsg_log_dropped(mbs, "to node %s due to hops-flow / route",
-					node_ip(q->node));
-
-			dropped++;
-		}
-	}
-
-	g_assert(iovcnt > 0 || dropped > 0);
-
-	if (dropped > 0)
-		node_add_txdrop(q->node, dropped);	/* Dropped during TX */
-
-	if (iovcnt == 0)						/* Nothing to send */
-		goto update_servicing;
-
-	/*
-	 * Write as much as possible.
-	 */
-
-	r = tx_writev(q->tx_drv, iov, iovcnt);
-
-	if (r <= 0) {
-		q->last_written = 0;
-		if (r == 0)
-			goto update_servicing;
-		return;
-	}
-
-	node_add_tx_given(q->node, r);
-	q->last_written = r;
-
-	if (q->flags & MQ_FLOWC)
-		q->flowc_written += r;
-
-	/*
-	 * Determine which messages we wrote, and whether we saturated the
-	 * lower layer.
-	 */
-
-	iovsize = iovcnt;
-	iovcnt = 0;
-	saturated = FALSE;
-
-	for (l = q->qtail; l && r > 0 && iovsize > 0; iovsize--) {
-		struct iovec *ie = &iov[iovcnt++];
-		pmsg_t *mb = (pmsg_t *) l->data;
-
-		if ((guint) r >= ie->iov_len) {			/* Completely written */
-			gchar *mb_start = pmsg_start(mb);
-			guint8 function = gmsg_function(mb_start);
-			sent++;
-			pmsg_mark_sent(mb);
-			node_inc_sent(q->node);
-            gnet_stats_count_sent(q->node,
-				function, gmsg_hops(mb_start), pmsg_size(mb));
-			switch (function) {
-			case GTA_MSG_SEARCH:
-				node_inc_tx_query(q->node);
-				break;
-			case GTA_MSG_SEARCH_RESULTS:
-				node_inc_tx_qhit(q->node);
-				break;
-			default:
-				break;
-			}
-			r -= ie->iov_len;
-			if (q->qlink)
-				qlink_remove(q, l);
-			l = mq_rmlink_prev(q, l, ie->iov_len);
-		} else {
-			g_assert(r > 0 && r < pmsg_size(mb));
-			g_assert(r < q->size);
-			mb->m_rptr += r;
-			q->size -= r;
-			g_assert(l == q->qtail);	/* Partially written, is at tail */
-			saturated = TRUE;
-			break;
-		}
-	}
-
-	g_assert(r == 0 || iovsize > 0);
-	g_assert(q->size >= 0 && q->count >= 0);
-
-	if (sent)
-		node_add_sent(q->node, sent);
-
-	/*
-	 * We're in the service routine, and we need to flush as much as possible
-	 * to the lower layer.  If it has not saturated yet, continue.  This is
-	 * the only way to ensure the lower layer will keep calling our service
-	 * routine.  For instance, the compressing layer will only invoke us when
-	 * it has flushed its pending buffer and it was in flow control.
-	 *
-	 *		--RAM. 01/03/2003
-	 */
-
-	if (!saturated && q->count > 0)
-		goto again;
-
-update_servicing:
-	/*
-	 * Update flow-control information.
-	 */
-
-	mq_update_flowc(q);
-
-	/*
-	 * If queue is empty, disable servicing.
-	 *
-	 * If not, we've been through a writing cycle and there are still some
-	 * data we could not send.  We know the TCP window is full, or we
-	 * would not be servicing and still get some data to send.  Notify
-	 * the node.
-	 *		--RAM, 15/03/2002
-	 */
-
-	if (q->size == 0) {
-		g_assert(q->count == 0);
-		tx_srv_disable(q->tx_drv);
-		node_tx_service(q->node, FALSE);
-	} else
-		node_flushq(q->node);		/* Need to flush kernel buffers faster */
-}
-
-/*
- * mq_putq
- *
+/**
  * Enqueue message, which becomes owned by the queue.
  */
-void mq_putq(mqueue_t *q, pmsg_t *mb)
+void
+mq_putq(mqueue_t *q, pmsg_t *mb)
 {
-	gint size = pmsg_size(mb);
-	gchar *mbs = pmsg_start(mb);
-	guint8 function = gmsg_function(mbs);
-	guint8 hops = gmsg_hops(mbs);
+	MQ_PUTQ(q, mb);
+}
 
-	g_assert(q);
-	g_assert(!pmsg_was_sent(mb));
-	g_assert(pmsg_is_unread(mb));
+static const struct mq_cops mq_cops = {
+	mq_puthere,				/* puthere */
+	qlink_remove,			/* qlink_remove */
+	mq_rmlink_prev,			/* rmlink_prev */
+	mq_update_flowc,		/* update_flowc */
+};
 
-	if (size == 0) {
-		g_warning("mq_putq: called with empty message");
-		goto cleanup;
-	}
-
-	if (q->flags & MQ_DISCARD) {
-		g_warning("mq_putq: called whilst queue shutdown");
-		goto cleanup;
-	}
-
-	gnet_stats_count_queued(q->node, function, hops, size);
-
-	/*
-	 * If queue is empty, attempt a write immediatly.
-	 */
-
-	if (q->qhead == NULL) {
-		gint written;
-
-		/*
-		 * Honour hops-flow, and ensure there is a route for possible replies.
-		 */
-
-		if (node_can_send(q->node, function, hops, mbs))
-			written = tx_write(q->tx_drv, mbs, size);
-		else {
-			if (dbg > 4)
-				gmsg_log_dropped(mbs, "to node %s due to hops-flow / route",
-					node_ip(q->node));
-
-			gnet_stats_count_flowc(mbs);
-			node_inc_txdrop(q->node);		/* Dropped during TX */
-
-			written = -1;
-		}
-
-		if (written < 0)
-			goto cleanup;			/* Node already removed if necessary */
-
-		node_add_tx_given(q->node, written);
-
-		if (written == size) {
-			pmsg_mark_sent(mb);
-			node_inc_sent(q->node);
-            gnet_stats_count_sent(q->node, function, hops, size);
-			switch (function) {
-			case GTA_MSG_SEARCH:
-				node_inc_tx_query(q->node);
-				break;
-			case GTA_MSG_SEARCH_RESULTS:
-				node_inc_tx_qhit(q->node);
-				break;
-			default:
-				break;
-			}
-			goto cleanup;
-		}
-
-		mb->m_rptr += written;		/* Partially written */
-		size -= written;
-
-		/* FALL THROUGH */
-	}
-
-	/*
-	 * Enqueue message.
-	 */
-
-	mq_puthere(q, mb, size);
-	return;
-
-cleanup:
-	pmsg_free(mb);
-	return;
+/**
+ * Get common operations.
+ */
+const struct mq_cops *
+mq_get_cops(void)
+{
+	return &mq_cops;
 }
 
 /* vi: set ts=4: */
