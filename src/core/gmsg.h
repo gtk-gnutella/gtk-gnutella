@@ -47,6 +47,7 @@ void gmsg_init(void);
 const gchar *gmsg_name(guint function);
 
 pmsg_t *gmsg_to_pmsg(gpointer msg, guint32 size);
+pmsg_t *gmsg_to_ctrl_pmsg(gpointer msg, guint32 size);
 pmsg_t *gmsg_split_to_pmsg(gpointer head, gpointer data, guint32 size);
 pmsg_t * gmsg_split_to_pmsg_extend(
 	gpointer head, gpointer data, guint32 size, pmsg_free_t free, gpointer arg);

@@ -114,7 +114,7 @@ gmsg_to_pmsg(gpointer msg, guint32 size)
 /**
  * Construct control PDU descriptor from message.
  */
-static pmsg_t *
+pmsg_t *
 gmsg_to_ctrl_pmsg(gpointer msg, guint32 size)
 {
 	return pmsg_new(PMSG_P_CONTROL, msg, size);
