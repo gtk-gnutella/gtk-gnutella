@@ -68,9 +68,14 @@ static gchar gwc_tmp[1024];
 #define MAX_GWC_URLS	200					/* Max URLs we store */
 #define MAX_GWC_REUSE	1					/* Max amount of uses for one URL */
 
-static gchar *gwc_url[MAX_GWC_URLS];		/* Holds string atoms */
+struct gwc {
+	gchar *url;			/* atom */
+	time_t stamp;		/* time of last access */	
+} gwc_url[MAX_GWC_URLS];		/* Holds string atoms */
+
 static gint gwc_url_slot = -1;
 static GHashTable *gwc_known_url = NULL;
+static GHashTable *gwc_failed_url = NULL;
 
 /*
  * Web cache update policy:
@@ -175,7 +180,10 @@ gwc_add(const gchar *new_url)
 	 * Don't add duplicates to the cache.
   	 */
 
-	if (g_hash_table_lookup(gwc_known_url, url)) {
+	if (
+		g_hash_table_lookup(gwc_known_url, url) ||
+		g_hash_table_lookup(gwc_failed_url, url)
+	) {
 		G_FREE_NULL(url);
 		return;
 	}
@@ -195,17 +203,19 @@ gwc_add(const gchar *new_url)
 	 * Expire any entry present at the slot we're about to write into.
 	 */
 
-	old_url = gwc_url[gwc_url_slot];
+	old_url = gwc_url[gwc_url_slot].url;
 
 	if (old_url != NULL) {
 		g_assert(g_hash_table_lookup(gwc_known_url, old_url));
 		g_hash_table_remove(gwc_known_url, old_url);
 		atom_str_free(old_url);
+		gwc_url[gwc_url_slot].url = NULL;
 	}
 
 	g_hash_table_insert(gwc_known_url, url_atom, GUINT_TO_POINTER(1));
 
-	gwc_url[gwc_url_slot] = url_atom;
+	gwc_url[gwc_url_slot].url = url_atom;
+	gwc_url[gwc_url_slot].stamp = 0;
 	gwc_file_dirty = TRUE;
 }
 
@@ -214,32 +224,47 @@ gwc_add(const gchar *new_url)
  *
  * Try to avoid using default bootstrapping URLs if we have more than the
  * minimum set of caches in stock...
+ *
+ * @return a GWebCache URL or NULL on failure.
  */
 static gchar *
 gwc_pick(void)
 {
 	gint count = g_hash_table_size(gwc_known_url);
-	gint idx;
+	gint idx, i;
+	gchar *url = NULL;
+	time_t now = time(NULL);
+
+	if (0 == count)
+		return NULL;
 
 	g_assert(count > 0);
 	g_assert(count <= MAX_GWC_URLS);
 	g_assert(count == MAX_GWC_URLS || gwc_url_slot < count);
 
 	idx = random_value(count - 1);
+	for (i = 0; i < count; i++) {
+		time_t stamp = gwc_url[idx].stamp;
+	
+		if (0 == stamp || delta_time(now, stamp) > 3900) {
+			url = gwc_url[idx].url;
+			gwc_url[idx].stamp = now;
+			break;
+		}
+	}
 
-	if (gwc_debug)
-		g_warning("picked webcache %s", gwc_url[idx]);
+	if (gwc_debug && url)
+		g_message("picked webcache \"%s\"", url);
 
-	return gwc_url[idx];
+	return url;
 }
 
-/*
- * gwc_store
- *
+/**
  * Store known GWC URLs.
  * They are normally saved in ~/.gtk-gnutella/gwcache.
  */
-static void gwc_store(void)
+static void
+gwc_store(void)
 {
 	FILE *out;
 	gint i;
@@ -264,8 +289,9 @@ static void gwc_store(void)
 		i = 0;
 
 	for (j = 0; j < MAX_GWC_URLS; j++) {
-		gchar *url = gwc_url[i];
-		i = (i == MAX_GWC_URLS - 1) ? 0 : (i + 1);
+		gchar *url = gwc_url[i].url;
+		
+		i = (i + 1) % MAX_GWC_URLS;
 		if (url == NULL)
 			continue;
 		fprintf(out, "%s\n", url);
@@ -275,12 +301,11 @@ static void gwc_store(void)
 		gwc_file_dirty = FALSE;
 }
 
-/*
- * gwc_store_if_dirty
- *
+/**
  * Store known GWC URLs if dirty.
  */
-void gwc_store_if_dirty(void)
+void
+gwc_store_if_dirty(void)
 {
 	if (gwc_file_dirty)
 		gwc_store();
@@ -398,11 +423,13 @@ gwc_init(void)
 	guint i;
 
 	gwc_known_url = g_hash_table_new(g_str_hash, g_str_equal);
-
-	for (i = 0; i < G_N_ELEMENTS(boot_url); i++)
-		gwc_add(boot_url[i]);
+	gwc_failed_url = g_hash_table_new(g_str_hash, g_str_equal);
 
 	gwc_retrieve();
+	if (0 == g_hash_table_size(gwc_known_url)) {
+		for (i = 0; i < G_N_ELEMENTS(boot_url); i++)
+			gwc_add(boot_url[i]);
+	}
 
 	if (ancient_version)
 		return;				/* Older versions must have a harder time */
@@ -449,12 +476,13 @@ check_current_url(void)
 }
 
 /**
- * Remove all knowledge about given URL, but do not free its memory.
+ * Removes the URL from the set of known URL, but do not free its memory
+ * and keeps it in the set of failed URLs for the session.
  */
 static void
 forget_url(gchar *url)
 {
-	gchar *url_tmp[MAX_GWC_URLS];			/* Temporary copy */
+	struct gwc url_tmp[MAX_GWC_URLS];			/* Temporary copy */
 	gint count = g_hash_table_size(gwc_known_url);
 	gint i;
 	gint j = 0;
@@ -482,6 +510,7 @@ forget_url(gchar *url)
 			g_warning("URL was already gone from GWC");
 		return;
 	}
+	g_hash_table_insert(gwc_failed_url, url, GUINT_TO_POINTER(1));
 
 	/*
 	 * Because we have a round-robin buffer, removing something in the
@@ -499,10 +528,8 @@ forget_url(gchar *url)
 
 	if (count == MAX_GWC_URLS) {		/* Buffer was full */
 		for (i = gwc_url_slot;;) {
-			if (gwc_url[i] != url)		/* Atoms: we can compare addresses */
+			if (gwc_url[i].url != url)	/* Atoms: we can compare addresses */
 				url_tmp[j++] = gwc_url[i];
-			else
-				atom_str_free(url);		/* Or gwc_url[i], same pointer */
 			i++;
 			if (i == MAX_GWC_URLS)
 				i = 0;
@@ -511,10 +538,8 @@ forget_url(gchar *url)
 		}
 	} else {							/* Buffer was partially filled */
 		for (i = 0; i <= gwc_url_slot; i++) {
-			if (gwc_url[i] != url)		/* Atoms: we can compare addresses */
+			if (gwc_url[i].url != url)	/* Atoms: we can compare addresses */
 				url_tmp[j++] = gwc_url[i];
-			else
-				atom_str_free(url);		/* Or gwc_url[i], same pointer */
 		}
 	}
 
@@ -524,20 +549,6 @@ forget_url(gchar *url)
 
 	g_assert(gwc_url_slot >= 0 && gwc_url_slot < MAX_GWC_URLS);
 	g_assert(gwc_url_slot == count - 1);
-
-	/*
-	 * If we have less that the amount of bootstrapping URLs, fill
-	 * the cache with those.
-	 */
-
-	j = G_N_ELEMENTS(boot_url);
-
-	for (i = 0; i < j && count < j; i++) {
-		if (0 != strcmp(url, boot_url[i])) {
-			gwc_add(boot_url[i]);		/* Only if not the removed URL */
-			count++;
-		}
-	}
 
 	gwc_url_slot = MAX(0, gwc_url_slot);	/* If we removed ALL entries */
 	gwc_file_dirty = TRUE;
@@ -561,6 +572,17 @@ clear_current_url(gboolean discard)
 }
 
 /**
+ * Frees the atom used as hash table key 
+ */
+static void
+free_failed_url(gpointer key, gpointer unused_value, gpointer unused_udata)
+{
+	(void) unused_value;
+	(void) unused_udata;
+	atom_str_free(key);
+}
+
+/**
  * Called when servent shuts down.
  */
 void
@@ -577,9 +599,11 @@ gwc_close(void)
 
 	gwc_store();
 	g_hash_table_destroy(gwc_known_url);
+	g_hash_table_foreach(gwc_failed_url, free_failed_url, NULL);
+	g_hash_table_destroy(gwc_failed_url);
 
 	for (i = 0; i < MAX_GWC_URLS; i++) {
-		gchar *url = gwc_url[i];
+		gchar *url = gwc_url[i].url;
 		if (url == NULL)
 			continue;
 		atom_str_free(url);
@@ -995,7 +1019,7 @@ gwc_get_hosts(void)
 	 */
 
 	gm_snprintf(gwc_tmp, sizeof(gwc_tmp),
-		"_(Connecting to web cache %s)", current_url);
+		_("Connecting to web cache %s"), current_url);
 
 	gcu_statusbar_message(gwc_tmp);
 
@@ -1044,8 +1068,7 @@ gwc_update_line(struct parse_context *ctx, gchar *buf, gint len)
 				http_async_info(ctx->handle, NULL, NULL, NULL, NULL));
 		http_async_close(ctx->handle);		/* OK, don't read more */
 		return FALSE;
-	}
-	else if (0 == strncmp(buf, "ERROR", 5)) {
+	} else if (0 == strncmp(buf, "ERROR", 5)) {
 		g_warning("GWC cache \"%s\" returned %s",
 			http_async_info(ctx->handle, NULL, NULL, NULL, NULL), buf);
 		http_async_cancel(ctx->handle);
@@ -1097,7 +1120,7 @@ gwc_update_this(gchar *cache_url)
 
 	for (i = 0; i < MAX_GWC_URLS; i++) {
 		url = gwc_pick();
-		if (0 != strcmp(url, cache_url)) {
+		if (NULL != url && 0 != strcmp(url, cache_url)) {
 			found_alternate = TRUE;
 			break;
 		}
@@ -1203,7 +1226,7 @@ gwc_seed_cache(gchar *cache_url)
 static void
 gwc_update_ip_url(void)
 {
-	if (!check_current_url())
+	if (!check_current_url() || current_peermode == NODE_P_LEAF)
 		return;
 
 	gwc_update_this(current_url);
