@@ -649,6 +649,19 @@ static gboolean update_bandwidth_spinbutton(property_t prop)
  *** III. Special case callbacks
  ***/
 
+static void
+shake_vpane_sidebar(void)
+{
+	GtkPaned *paned;
+	guint pos;
+	
+	/* Shake the vpane a little so that the widgets are readjusted */
+	paned = GTK_PANED(lookup_widget(main_window, "vpaned_sidebar"));
+	pos = gtk_paned_get_position(paned);
+    gtk_paned_set_position(paned, pos >= 1 ? pos - 1 : pos + 1);
+    gtk_paned_set_position(paned, pos);
+}
+
 static gboolean bw_gnet_lin_enabled_changed(property_t prop)
 {
     GtkWidget *w;
@@ -1521,6 +1534,7 @@ progressbar_bws_in_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
+	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1535,6 +1549,7 @@ progressbar_bws_out_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
+	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1549,6 +1564,7 @@ progressbar_bws_gin_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
+	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1563,6 +1579,7 @@ progressbar_bws_gout_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
+	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1577,6 +1594,7 @@ progressbar_bws_glin_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
+	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1591,6 +1609,7 @@ progressbar_bws_glout_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
+	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1611,6 +1630,7 @@ autohide_bws_gleaf_changed(property_t prop)
     /* The actual evaluation of the property takes place in
        gui_update_stats_frames() */
     gui_update_stats_frames();
+	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1625,6 +1645,7 @@ progressbar_downloads_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
+	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1639,6 +1660,7 @@ progressbar_uploads_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
+	shake_vpane_sidebar();
 
     return FALSE;
 }
@@ -1653,6 +1675,7 @@ progressbar_connections_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
+	shake_vpane_sidebar();
 
     return FALSE;
 }
