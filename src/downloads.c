@@ -897,7 +897,6 @@ void download_info_change_all(
 		g_assert(old_fi->refcount > 0);
         file_info_remove_source(old_fi, d, FALSE); /* Keep it around */
         file_info_add_source(new_fi, d);
-		d->file_info = new_fi;
 
 		d->flags &= ~DL_F_SUSPENDED;
 		if (new_fi->flags & FI_F_SUSPEND)
@@ -1599,15 +1598,20 @@ void download_stop(struct download *d, guint32 new_status,
  */
 static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 {
+	g_assert(d);
+	g_assert(!DOWNLOAD_IS_QUEUED(d));
+	g_assert(d->file_info);
+	g_assert(d->file_info->refcount > 0);
+	g_assert(d->file_info->lifecount > 0);
+	g_assert(d->file_info->lifecount <= d->file_info->refcount);
+	g_assert(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
+
 	/*
 	 * Put a download in the queue :
 	 * - it's a new download, but we have reached the max number of
 	 *	running downloads
 	 * - the user requested it with the popup menu "Move back to the queue"
 	 */
-
-	g_assert(d);
-	g_assert(!DOWNLOAD_IS_QUEUED(d));
 
 	if (fmt) {
 		gm_vsnprintf(d->error_str, sizeof(d->error_str), fmt, ap);
@@ -1651,13 +1655,6 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 void download_queue(struct download *d, const gchar *fmt, ...)
 {
 	va_list args;
-
-	g_assert(d);
-	g_assert(d->file_info);
-	g_assert(d->file_info->refcount > 0);
-	g_assert(d->file_info->lifecount > 0);
-	g_assert(d->file_info->lifecount <= d->file_info->refcount);
-	g_assert(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
 
 	va_start(args, fmt);
 	download_queue_v(d, fmt, args);
@@ -1712,8 +1709,6 @@ static void download_queue_delay(struct download *d, guint32 delay,
 	struct dl_server *server = d->server;
 	time_t now = time((time_t *) NULL);
 	va_list args;
-
-	g_assert(d);
 
 	va_start(args, fmt);
 	download_queue_v(d, fmt, args);
@@ -1973,6 +1968,7 @@ gboolean download_start_prepare_running(struct download *d)
 	g_assert(!DOWNLOAD_IS_QUEUED(d));
 	g_assert(d->list_idx == DL_LIST_RUNNING);
 	g_assert(fi != NULL);
+	g_assert(fi->lifecount > 0);
 
 	d->status = GTA_DL_CONNECTING;	/* Most common state if we succeed */
 
@@ -3161,8 +3157,8 @@ void download_resume(struct download *d)
 	case GTA_DL_MOVING:
 	case GTA_DL_DONE:
 		return;
-    default: ;
-    /* FIXME: Is this fallthrough alright or not? */
+    default:
+		/* FALL THROUGH */
 	}
 
 	d->file_info->lifecount++;
@@ -4345,10 +4341,13 @@ static void download_request(
 	guint16 port;
 	gint http_major = 0, http_minor = 0;
 	gboolean is_followup = d->keep_alive;
-	struct dl_file_info *fi;
+	struct dl_file_info *fi = d->file_info;
 	gchar short_read[80];
 	guint delay;
 	gchar *path = NULL;
+
+	g_assert(fi->lifecount > 0);
+	g_assert(fi->lifecount <= fi->refcount);
 
 	/*
 	 * If `ok' is FALSE, we might not even have fully read the status line,
@@ -4813,7 +4812,6 @@ static void download_request(
 	 *		--RAM, 08/01/2002
 	 */
 
-	fi = d->file_info;
 	requested_size = d->range_end - d->skip + d->overlap_size;
 
 	buf = header_get(header, "Content-Length");		/* Mandatory */
@@ -5149,12 +5147,20 @@ static void download_read(gpointer data, gint source, inputevt_cond_t cond)
 void download_send_request(struct download *d)
 {
 	struct gnutella_socket *s = d->socket;
+	struct dl_file_info *fi;
 	gint rw;
 	gint sent;
 	gboolean n2r = FALSE;
 	const guchar *sha1;
 
 	g_assert(d);
+
+	fi = d->file_info;
+
+	g_assert(fi);
+	g_assert(fi->lifecount > 0);
+	g_assert(fi->lifecount <= fi->refcount);
+
 	if (!s)
 		g_error("download_send_request(): No socket for '%s'", d->file_name);
 
@@ -5177,7 +5183,7 @@ void download_send_request(struct download *d)
 	 * (will set d->skip and d->overlap_size).
 	 */
 
-	if (d->file_info->use_swarming) {
+	if (fi->use_swarming) {
 		/*
 		 * PFSP -- client side
 		 *
@@ -5325,7 +5331,7 @@ picked:
 
 	sha1 = d->sha1;
 	if (sha1 == NULL)
-		sha1 = d->file_info->sha1;
+		sha1 = fi->sha1;
 
 	if (sha1 != NULL) {
 		gint wmesh;
