@@ -33,23 +33,17 @@
 #include <ctype.h>		/* tolower() */
 
 #include "gnutella.h"
-#include "share_gui.h"
-#include "matching.h"
 #include "share.h"
-#include "sockets.h" /* For local_ip. (FIXME: move local_ip to config.h.) */
-#include "misc.h"
 #include "gmsg.h"
 #include "huge.h"
 #include "gtk-missing.h"
 #include "utf8.h"
 #include "qrp.h"
-#include "base32.h"
-#include "atoms.h"
 #include "extensions.h"
 #include "nodes.h"
+#include "uploads.h"
 
 #include "gnet_property_priv.h"
-#include "listener.h"
 #include "settings.h"
 
 static guchar iso_8859_1[96] = {
@@ -370,8 +364,6 @@ void share_init(void)
 	 */
 
 	st_create(&search_table);
-
-    share_gui_init();
 }
 
 /*
