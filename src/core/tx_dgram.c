@@ -153,6 +153,7 @@ static inline gint tx_dgram_write_error(
 		return 0;
 	case EPIPE:
 	case ENOSPC:
+	case EINVAL:			/* Seen this with "reserved" IP addresses */
 #ifdef EDQUOT
 	case EDQUOT:
 #endif /* EDQUOT */
@@ -197,6 +198,10 @@ tx_dgram_sendto(txdrv_t *tx, gnet_host_t *to, gpointer data, gint len)
 		inet_udp_record_sent(to->ip);
 		return r;
 	}
+
+	/*
+	 * Special
+	 */
 
 	return tx_dgram_write_error(tx, to, "tx_dgram_sendto");
 }
