@@ -23,18 +23,18 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __nodes_gui_h__
-#define __nodes_gui_h__
+#ifndef __nodes_cb2_h__
+#define __nodes_cb2_h__
 
-#include "gui.h"
+#include <gtk/gtk.h>
 
-void nodes_gui_early_init(void);
-void nodes_gui_init(void);
-void nodes_gui_shutdown(void);
+/***
+ *** nodes panel
+ ***/
 
-void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type);
-void nodes_gui_remove_node(gnet_node_t n);
-void nodes_gui_update_node(gnet_node_info_t *, gboolean);
-void nodes_gui_update_nodes_display(time_t now);
+void on_button_nodes_add_clicked (GtkButton *button, gpointer user_data); 
+void on_button_nodes_remove_clicked (GtkButton *button, gpointer user_data);
+void on_entry_host_activate (GtkEditable *editable, gpointer user_data); 
+void on_entry_host_changed (GtkEditable *editable, gpointer user_data);
 
-#endif /* __nodes_gui_h__ */
+#endif /* __nodes_cb2_h__ */
