@@ -313,9 +313,12 @@ static gboolean dm_remove(struct dmesh *dm,
 		) {
 			/*
 			 * Found entry, remove it if older than `stamp'.
+			 *
+			 * If it's equal, we don't remove it either, to prevent addition
+			 * of an entry we already have.
 			 */
 
-			if (dme->stamp > stamp)
+			if (dme->stamp >= stamp)
 				return FALSE;
 
 			dm->entries = g_slist_remove(dm->entries, dme);
@@ -438,6 +441,12 @@ gboolean dmesh_add(guchar *sha1,
 		g_hash_table_insert(mesh, atom_sha1_get(sha1), dm);
 	} else {
 		dm_expire(dm, MAX_LIFETIME, sha1);
+
+		/*
+		 * If dm_remove() returns FALSE, it means that we found the entry
+		 * in the mesh, but it is not older than the supplied stamp.  So
+		 * we have the entry already, and reject this duplicate.
+		 */
 
 		if (!dm_remove(dm, ip, port, idx, name, stamp))
 			return FALSE;
