@@ -243,7 +243,6 @@ void gnet_prop_set_storage(property_t, const guint8 *, gsize);
 guint8 *gnet_prop_get_storage(property_t, guint8 *, gsize);
 
 gchar *gnet_prop_to_string(property_t prop);
-property_t gnet_prop_get_by_name(const gchar *name);
 
 #endif /* _gnet_property_h_ */
 
