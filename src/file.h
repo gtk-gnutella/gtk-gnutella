@@ -44,6 +44,8 @@ typedef struct {
 
 FILE *file_config_open_read(
 	const gchar *what, const file_path_t *fv, gint fvcnt);
+FILE *file_config_open_read_norename(
+	const gchar *what, const file_path_t *fv, gint fvcnt);
 FILE *file_config_open_write(const gchar *what, const file_path_t *fv);
 gboolean file_config_close(FILE *out, const file_path_t *fv);
 

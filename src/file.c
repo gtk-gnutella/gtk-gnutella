@@ -39,18 +39,19 @@ static const gchar *instead_str = " instead";
 static const gchar *empty_str = "";
 
 /*
- * file_config_open_read
+ * open_read
  *
- * Open configuration file, renaming it as ".orig".  If configuration file
- * cannot be found, try opening the ".orig" variant if already present.
+ * Open configuration file, renaming it as ".orig" when `renaming' is TRUE.
+ * If configuration file cannot be found, try opening the ".orig" variant
+ * if already present and `renaming' is TRUE.
  * If not found, try with successive alternatives, if supplied.
  *
  * NB: the supplied `fv' argument is a vector of `fvcnt' elements.
  *
  * Returns opened FILE, or NULL if we were unable to open any.
  */
-FILE *file_config_open_read(
-	const gchar *what, const file_path_t *fv, gint fvcnt)
+static FILE *open_read(
+	const gchar *what, const file_path_t *fv, gint fvcnt, gboolean renaming)
 {
 	FILE *in;
 	gchar *path;
@@ -71,7 +72,7 @@ FILE *file_config_open_read(
 
 	in = fopen(path, "r");
 	if (in) {
-		if (-1 == rename(path, path_orig))
+		if (renaming && -1 == rename(path, path_orig))
 			g_warning("[%s] could not rename \"%s\" as \"%s\": %s",
 				what, path, path_orig, g_strerror(errno));
 		goto out;
@@ -94,7 +95,18 @@ FILE *file_config_open_read(
 	 * ".orig" file instead.
 	 */
 
-	in = fopen(path_orig, "r");	/* The ".orig", in case of a crash */
+	g_assert(in == NULL);
+
+	if (renaming)
+		in = fopen(path_orig, "r");		/* The ".orig", in case of a crash */
+
+	if (in != NULL) {
+		instead = instead_str;
+
+		G_FREE_NULL(path);
+		path = path_orig;
+		G_FREE_NULL(path_orig);
+	}
 
 	/*
 	 * Try with alternatives, if supplied.
@@ -130,6 +142,40 @@ out:
 	if (NULL != path_orig)
 		G_FREE_NULL(path_orig);
 	return in;
+}
+
+/*
+ * file_config_open_read
+ *
+ * Open configuration file, renaming it as ".orig".  If configuration file
+ * cannot be found, try opening the ".orig" variant if already present.
+ * If not found, try with successive alternatives, if supplied.
+ *
+ * NB: the supplied `fv' argument is a vector of `fvcnt' elements.
+ *
+ * Returns opened FILE, or NULL if we were unable to open any.
+ */
+FILE *file_config_open_read(
+	const gchar *what, const file_path_t *fv, gint fvcnt)
+{
+	return open_read(what, fv, fvcnt, TRUE);
+}
+
+/*
+ * file_config_open_read_norename
+ *
+ * Open configuration file, without renaming it.  If configuration file
+ * cannot be found, try opening the ".orig" variant if already present.
+ * If not found, try with successive alternatives, if supplied.
+ *
+ * NB: the supplied `fv' argument is a vector of `fvcnt' elements.
+ *
+ * Returns opened FILE, or NULL if we were unable to open any.
+ */
+FILE *file_config_open_read_norename(
+	const gchar *what, const file_path_t *fv, gint fvcnt)
+{
+	return open_read(what, fv, fvcnt, FALSE);
 }
 
 /*
