@@ -50,10 +50,12 @@ enum {
 };
 
 static GtkTreeView *treeview_nodes = NULL;
-
 static GtkListStore *nodes_model = NULL;
 static GtkCellRenderer *nodes_gui_cell_renderer = NULL;
+
+/* hash table for fast handle -> GtkTreeIter mapping */
 static GHashTable *nodes_handles = NULL;
+/* list of all node handles */
 static GList *list_nodes = NULL;
 
 /***
@@ -107,7 +109,7 @@ static void add_column(
 		G_CALLBACK(on_nodes_gui_column_resized), GINT_TO_POINTER(column_id));
 }
 
-static void nodes_gui_remove_selected_helper(
+static inline void nodes_gui_remove_selected_helper(
 	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
 {
 	GSList **list = data;
@@ -137,7 +139,7 @@ static inline GtkTreeIter *find_node(gnet_node_t n)
  *
  * Updates vendor, version and info column 
  */
-static void nodes_gui_update_node_info(gnet_node_info_t *n)
+static inline void nodes_gui_update_node_info(gnet_node_info_t *n)
 {
     time_t now = time((time_t *) NULL);
     GtkTreeIter *iter;
@@ -164,7 +166,8 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n)
  * nodes_gui_update_node_flags
  *  
  */
-static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
+static inline void nodes_gui_update_node_flags(
+	gnet_node_t n, gnet_node_flags_t *flags)
 {
     GtkTreeIter *iter;
 
@@ -282,7 +285,7 @@ void nodes_gui_shutdown(void)
  *
  * Removes all references to the given node handle in the gui.
  */
-void nodes_gui_remove_node(gnet_node_t n)
+void inline nodes_gui_remove_node(gnet_node_t n)
 {
     GtkTreeIter *iter;
 
@@ -298,7 +301,7 @@ void nodes_gui_remove_node(gnet_node_t n)
  *
  * Adds the given node to the gui.
  */
-void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
+void inline nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 {
     GtkTreeIter *iter = w_tree_iter_new();
 	static gchar proto_tmp[32];
@@ -340,14 +343,14 @@ static inline void update_row(gpointer data, const time_t *now)
 			sizeof(timestr));
 		gtk_list_store_set(nodes_model, iter, 
 			COL_NODE_CONNECTED, timestr,
-			COL_NODE_UPTIME, status.up_date ?
-			short_uptime(*now - status.up_date) : NULL,
+			COL_NODE_UPTIME, status.up_date
+				? short_uptime(*now - status.up_date) : NULL,
 			COL_NODE_INFO, nodes_gui_common_status_str(&status, *now),
 			(-1));
 	} else {
 		gtk_list_store_set(nodes_model, iter,
-			COL_NODE_UPTIME, status.up_date ?
-				short_uptime(*now - status.up_date) : NULL,
+			COL_NODE_UPTIME, status.up_date
+				? short_uptime(*now - status.up_date) : NULL,
 			COL_NODE_INFO, nodes_gui_common_status_str(&status, *now),
 			(-1));
 	}
@@ -370,11 +373,10 @@ void nodes_gui_update_nodes_display(time_t now)
 {
     static time_t last_update = 0;
 
-    if (last_update >= (now - 1))
-        return;
-	last_update = now;
-
-	g_list_foreach(list_nodes, (GFunc) update_row, &now);
+    if (last_update + 1 < now) {
+		last_update = now;
+		G_LIST_FOREACH(list_nodes, (GFunc) update_row, &now);
+	}
 }
 
 /***
@@ -391,7 +393,7 @@ void nodes_gui_update_nodes_display(time_t now)
 static void nodes_gui_node_removed(gnet_node_t n)
 {
     if (gui_debug >= 5)
-        printf("nodes_gui_node_removed(%u)\n", n);
+        g_warning("nodes_gui_node_removed(%u)\n", n);
 
     nodes_gui_remove_node(n);
 }
@@ -408,7 +410,7 @@ static void nodes_gui_node_added(gnet_node_t n, const gchar *type)
     gnet_node_info_t *info;
 
     if (gui_debug >= 5)
-        printf("nodes_gui_node_added(%u, %s)\n", n, type);
+        g_warning("nodes_gui_node_added(%u, %s)\n", n, type);
 
     info = node_get_info(n);
     nodes_gui_add_node(info, type);
