@@ -248,6 +248,8 @@ src/core/nodes.c
 src/core/nodes.h 
 src/core/oob.c
 src/core/oob.h
+src/core/oob_proxy.c
+src/core/oob_proxy.h
 src/core/parq.c 
 src/core/parq.h 
 src/core/pcache.c 
@@ -363,6 +365,7 @@ src/if/ui/gtk/downloads.h
 src/if/ui/gtk/gnet_stats.h
 src/if/ui/gtk/misc.h
 src/if/ui/gtk/search.h
+src/if/ui/gtk/statusbar.h
 src/if/ui/gtk/upload_stats.h
 src/lib/Jmakefile
 src/lib/Makefile.SH
