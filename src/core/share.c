@@ -1837,23 +1837,31 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	{
 		guint8 major, minor;
 		gboolean release;
-
+		
 		if (
-			guid_query_muid_is_gtkg(
-				n->header.muid, oob, &major, &minor, &release)
+			guid_query_muid_is_gtkg(n->header.muid, oob,
+				&major, &minor, &release)
 		) {
+			gboolean requery = guid_is_requery(n->header.muid);
+
 			/* Only supersede `use_ggep_h' if not indicated in "min speed" */
 			if (!use_ggep_h)
 				use_ggep_h =
 					major >= 1 || minor > 91 || (minor == 91 && release);
 
+			gnet_stats_count_general(n, GNR_GTKG_TOTAL_QUERIES, 1);
+			if (requery)
+				gnet_stats_count_general(n, GNR_GTKG_REQUERIES, 1);
+
 			if (query_debug > 3)
 				printf("GTKG %s%squery from %d.%d%s\n",
-					oob ? "OOB " : "",
-					guid_is_requery(n->header.muid) ? "re-" : "",
+					oob ? "OOB " : "", requery ? "re-" : "",
 					major, minor, release ? "" : "u");
 		}
 	}
+
+	if (use_ggep_h)
+		gnet_stats_count_general(n, GNR_QUERIES_WITH_GGEP_H, 1);
 
 	/*
 	 * If OOB reply is wanted, validate a few things.

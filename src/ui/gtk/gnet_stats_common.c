@@ -151,6 +151,9 @@ const gchar *general_type_str(int value)
 		N_("Fully completed dynamic queries getting late results"),
 		N_("Dynamic queries with partial late results"),
 		N_("Dynamic queries completed by late results"),
+		N_("Queries seen from GTKG"),
+		N_("Queries seen from GTKG that were re-queries"),
+		N_("Queries advertising support of GGEP \"H\""),
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == GNR_TYPE_COUNT);
