@@ -94,7 +94,7 @@ void host_timer(void)
 	guint32 ip;
 	guint16 port;
 
-	if (in_shutdown)
+	if (in_shutdown || !online_mode)
 		return;
 
 	/*
@@ -792,8 +792,8 @@ void hosts_read_from_file(const gchar * path, gboolean quiet)
 	}
 
     start_mass_update(); /* end_mass_update called in hosts_reading_func */
-    hosts_idle_func = g_idle_add(hosts_reading_func, (gpointer) NULL);
     gnet_prop_set_boolean_val(PROP_READING_HOSTFILE, TRUE);
+    hosts_idle_func = g_idle_add(hosts_reading_func, (gpointer) NULL);
 }
 
 void hosts_write_to_file(const gchar *path)
