@@ -129,6 +129,11 @@ const gchar *general_type_str(int value)
 		N_("Push proxy relayed messages"),
 		N_("Push proxy broadcasted messages"),
 		N_("Push proxy lookup failures"),
+		N_("Locally generated dynamic queries"),
+		N_("Leaf-generated dynamic queries"),
+		N_("Fully completed dynamic queries"),
+		N_("Partially completed dynamic queries"),
+		N_("Dynamic queries ended with no results"),
 	};
 	
 	if ((guint) value >= G_N_ELEMENTS(strs)) {
