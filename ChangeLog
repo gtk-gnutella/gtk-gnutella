@@ -1,4 +1,10 @@
 # since last version
+- (2004-11-21 - Richard)
+ * Merge most of hache_remove into hcache_unlink_host and made the first
+   use the latter.
+ * [Gtk1] Added settings_gui_init_late() to restore split_pane positions after
+   main window is resized and visible.
+ * [Gtk1] Added viewport around result details.
 
 - (2004-11-14 - RAM)
  * Don't remove a host from the cache whilst iterating over it.
