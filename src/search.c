@@ -956,6 +956,8 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 			
 			while (wocnt > 0)
 				qhvec_add(qhv, wovec[--wocnt].word, QUERY_H_WORD);
+
+			query_word_vec_free(wovec, wocnt);
 		}
 	}
 
@@ -997,7 +999,7 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	} else {
 		mark_search_sent_to_connected_nodes(sch);
 		if (qhv != NULL) {
-			GSList *nodes = qrt_build_query_target(qhv, 0);
+			GSList *nodes = qrt_build_query_target(qhv, 0, NULL);
 			gmsg_search_sendto_all(nodes, (guchar *) m, size);
 			g_slist_free(nodes);
 			gmsg_search_sendto_all_nonleaf(sl_nodes, (guchar *) m, size);
