@@ -323,6 +323,12 @@ void on_button_search_filter_clicked(
 	filter_open_dialog();
 }
 
+void on_button_search_download_selected_clicked(
+	GtkButton *button, gpointer user_data)
+{
+    search_gui_download_files();
+}
+
 gboolean on_tree_view_search_results_click_column(
     GtkTreeViewColumn *column, gpointer user_data)
 {

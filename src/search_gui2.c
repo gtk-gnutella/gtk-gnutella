@@ -1189,9 +1189,8 @@ static void download_selection_of_tree_view(GtkTreeView * tree_view)
 	selection = gtk_tree_view_get_selection(tree_view);
 	model = gtk_tree_view_get_model(tree_view);
 
-    gnet_prop_get_boolean(
-        PROP_SEARCH_REMOVE_DOWNLOADED,
-        &search_remove_downloaded, 0, 1);
+    gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
+		&search_remove_downloaded);
 
 	gtk_tree_selection_selected_foreach(
 		selection, 

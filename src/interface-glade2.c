@@ -8189,6 +8189,11 @@ create_main_window_search_tab (void)
   GtkWidget *entry_result_info_tag;
   GtkWidget *label669;
   GtkWidget *hbox154;
+  GtkWidget *button_search_download_selected;
+  GtkWidget *alignment89;
+  GtkWidget *hbox233;
+  GtkWidget *image223;
+  GtkWidget *label705;
   GtkWidget *button_search_filter;
   GtkWidget *alignment75;
   GtkWidget *hbox213;
@@ -8727,6 +8732,32 @@ create_main_window_search_tab (void)
   gtk_widget_show (hbox154);
   gtk_box_pack_start (GTK_BOX (vbox79), hbox154, FALSE, TRUE, 0);
 
+  button_search_download_selected = gtk_button_new ();
+  gtk_widget_set_name (button_search_download_selected, "button_search_download_selected");
+  gtk_widget_show (button_search_download_selected);
+  gtk_box_pack_start (GTK_BOX (hbox154), button_search_download_selected, FALSE, FALSE, 0);
+
+  alignment89 = gtk_alignment_new (0.5, 0.5, 0, 0);
+  gtk_widget_set_name (alignment89, "alignment89");
+  gtk_widget_show (alignment89);
+  gtk_container_add (GTK_CONTAINER (button_search_download_selected), alignment89);
+
+  hbox233 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_set_name (hbox233, "hbox233");
+  gtk_widget_show (hbox233);
+  gtk_container_add (GTK_CONTAINER (alignment89), hbox233);
+
+  image223 = gtk_image_new_from_stock ("gtk-save", GTK_ICON_SIZE_BUTTON);
+  gtk_widget_set_name (image223, "image223");
+  gtk_widget_show (image223);
+  gtk_box_pack_start (GTK_BOX (hbox233), image223, FALSE, FALSE, 0);
+
+  label705 = gtk_label_new_with_mnemonic (_("_Download selected"));
+  gtk_widget_set_name (label705, "label705");
+  gtk_widget_show (label705);
+  gtk_box_pack_start (GTK_BOX (hbox233), label705, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label705), GTK_JUSTIFY_LEFT);
+
   button_search_filter = gtk_button_new ();
   gtk_widget_set_name (button_search_filter, "button_search_filter");
   gtk_widget_show (button_search_filter);
@@ -8908,6 +8939,9 @@ create_main_window_search_tab (void)
   g_signal_connect ((gpointer) button_search_passive, "clicked",
                     G_CALLBACK (on_button_search_passive_clicked),
                     NULL);
+  g_signal_connect ((gpointer) button_search_download_selected, "clicked",
+                    G_CALLBACK (on_button_search_download_selected_clicked),
+                    NULL);
   g_signal_connect ((gpointer) button_search_filter, "clicked",
                     G_CALLBACK (on_button_search_filter_clicked),
                     NULL);
@@ -8999,6 +9033,11 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, entry_result_info_tag, "entry_result_info_tag");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label669, "label669");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox154, "hbox154");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, button_search_download_selected, "button_search_download_selected");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, alignment89, "alignment89");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox233, "hbox233");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, image223, "image223");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, label705, "label705");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, button_search_filter, "button_search_filter");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, alignment75, "alignment75");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox213, "hbox213");
