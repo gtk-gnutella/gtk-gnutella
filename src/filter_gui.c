@@ -35,6 +35,13 @@
 #include <arpa/inet.h>
 
 
+#ifdef USE_GTK2
+#define WIDGET_FILTER_SIZE_MIN "spinbutton_filter_size_min"
+#define WIDGET_FILTER_SIZE_MAX "spinbutton_filter_size_max"
+#else
+#define WIDGET_FILTER_SIZE_MIN "entry_filter_size_min"
+#define WIDGET_FILTER_SIZE_MAX "entry_filter_size_max"
+#endif
 
 
 #define DEFAULT_TARGET (filter_get_drop_target())   
@@ -1076,11 +1083,11 @@ void filter_gui_edit_size_rule(rule_t *r)
     }
 
     gtk_entry_printf(
-        GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_size_min")), 
-        "%u", min);
+        GTK_ENTRY(lookup_widget(filter_dialog, WIDGET_FILTER_SIZE_MIN)),
+		"%u", min);
     gtk_entry_printf(
-        GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_size_max")),
-        "%u", max);
+        GTK_ENTRY(lookup_widget(filter_dialog, WIDGET_FILTER_SIZE_MAX)),
+		"%u", max);
     option_menu_select_item_by_data(
         lookup_widget(filter_dialog, "optionmenu_filter_size_target"),
         target);
@@ -1583,11 +1590,11 @@ static rule_t *filter_gui_get_size_rule()
 
     lower = gtk_editable_get_value_as_uint
         (GTK_EDITABLE
-            (lookup_widget(filter_dialog, "entry_filter_size_min")));
+            (lookup_widget(filter_dialog, WIDGET_FILTER_SIZE_MIN)));
 
     upper = gtk_editable_get_value_as_uint
         (GTK_EDITABLE
-            (lookup_widget(filter_dialog, "entry_filter_size_max")));
+            (lookup_widget(filter_dialog, WIDGET_FILTER_SIZE_MAX)));
 
 	negate = gtk_toggle_button_get_active(
         GTK_TOGGLE_BUTTON
