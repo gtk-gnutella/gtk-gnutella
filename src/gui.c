@@ -738,11 +738,11 @@ void gui_update_monitor_max_items(void)
 void gui_update_c_gnutellanet(void)
 {
 	gint nodes = node_count();
+	gint cnodes = connected_nodes();
 
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u gnutellaNet",
-		connected_nodes(), nodes);
-    gtk_progress_configure(GTK_PROGRESS(progressbar_connections), 
-                           connected_nodes(), 0, nodes);
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u gnutellaNet", cnodes, nodes);
+    gtk_progress_configure(GTK_PROGRESS(progressbar_connections),
+		MIN(cnodes, nodes), 0, nodes);
 }
 
 void gui_update_c_uploads(void)
@@ -752,7 +752,7 @@ void gui_update_c_uploads(void)
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u upload%s", i, t,
 			   (i == 1 && t == 1) ? "" : "s");
     gtk_progress_configure(GTK_PROGRESS(progressbar_uploads), 
-                           i, 0, t);
+                           MIN(i,t), 0, t);
 }
 
 void gui_update_c_downloads(gint c, gint ec)
@@ -760,14 +760,13 @@ void gui_update_c_downloads(gint c, gint ec)
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u download%s", c, ec,
 			   (c == 1 && ec == 1) ? "" : "s");
     gtk_progress_configure(GTK_PROGRESS(progressbar_downloads), 
-                           c, 0, ec);
+                           MIN(c, ec), 0, ec);
 }
 
 void gui_update_hosts_in_catcher()
 {
     gtk_progress_configure(GTK_PROGRESS(progressbar_hosts_in_catcher), 
-                           hosts_in_catcher, 0, 
-                           MAX(hosts_in_catcher, max_hosts_cached));
+		MIN(hosts_in_catcher, max_hosts_cached), 0, max_hosts_cached);
 }
 
 void gui_update_max_downloads(void)
