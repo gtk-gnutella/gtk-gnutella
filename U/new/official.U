@@ -12,7 +12,6 @@
 ?S:.
 ?S:d_official:
 ?S:	This variable conditionally defines OFFICIAL_BUILD.
-?S:
 ?S:.
 ?C:OFFICIAL_BUILD:
 ?C: When defined, the build is "official".  Programs generated for an
@@ -22,7 +21,7 @@
 ?H:#$d_official OFFICIAL_BUILD	/**/
 ?H:.
 ?Y:TOP
-?LINT:set official d_official
+?LINT:set d_official
 : determine whether this is an official build
 case "$official" in
 true) dflt=y;;
@@ -49,11 +48,9 @@ EOM
 rp='Is this producing an official build'
 . ./myread
 case "$ans" in
-y) val=true;;
-*) val=false;;
+y) official=true;;
+*) official=false;;
 esac
-set official
-eval $setvar
 case "$official" in
 true) val="$define";;
 *) val="$undef";;
