@@ -1,5 +1,23 @@
 # since last version
 
+- (2003.01.03 - RAM)
+ * Added support for vendor-specific messages.
+ * Ban ancient-enough versions of GTKG.
+ * Ignore leading/trailing quotes in "quoted" URLs from Alternate-Location.
+ * Keep track of IDs from unknown GGEP extensions we see.
+ * New miscellaneous routing hex_escape().
+ * Now supports the "Hops Flow" vendor-specific message (BEAR/4v1).
+ * New version_is_too_old() routine.
+ * Exported vendor_code_cmp() and added vendor_code_str().
+ * Make sure there is a private extension in the query hit before calling
+   ext_parse() on it.
+ * New Gnutella node flag 'h' or 'f' to indicate hops-flow or flow-control
+   on the receiving side (hops flow message sent to remote node so that it
+   limits the traffic sent to us).
+ * Added pre-condition to gmsg_check_ggep().
+ * Sockets now allocated via walloc0() instead of g_malloc0().
+ * Implemented the "Connect Back" vendor-specific message (BEAR/7v1).
+
 - (2003.01.03 - cbiere)
  * [Gtk2] Added multichoice for toolbar style
  * [Gtk2] Added property for collapsed/expanded status of nodes in tree menu
@@ -21,6 +39,7 @@
  * Added Shinobu (SHNB) vendor code.
  * Fixed "was a duplicate" computation, which falsely reported duplicates
    with oneself!
+ * Was not filling the ultra cache correctly upon startup.
 
 - (2003.01.02 - cbiere)
  * Bugfix: Wrote into stats array out of bounds (gnet_stats.c)
