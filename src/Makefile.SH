@@ -100,7 +100,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.23 2004/08/06 17:09:23 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.24 2004/08/11 17:34:58 nonamer Exp $
 
 GUI_GTK2 = \
 	downloads_cb2.c \
@@ -245,6 +245,7 @@ CORE = \
 	tx.c \
 	tx_deflate.c \
 	tx_link.c \
+	udp.c \
 	upload_stats.c \
 	uploads.c \
 	url.c \
@@ -401,6 +402,7 @@ OBJLIST = \
 	tx.o \
 	tx_deflate.o \
 	tx_link.o \
+	udp.o \
 	upload_stats.o \
 	uploads.o \
 	url.o \
