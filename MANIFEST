@@ -137,6 +137,7 @@ po/Makefile.SH
 po/Makevars
 po/POTFILES.in
 po/boldquot.sed
+po/de.po
 po/es.po
 po/fr.po
 po/gtk-gnutella.pot
