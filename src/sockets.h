@@ -68,7 +68,8 @@ struct gnutella_socket {
 	enum socket_direction direction;
 	enum socket_type type;
 	gboolean corked;
-	gboolean adns_pending;
+	gint adns;				/* status of ADNS resolution */
+	gchar *adns_msg;		/* ADNS error message */
 
 	guint32 ip;				/* IP	of our partner */
 	guint16 port;			/* Port of our partner */
