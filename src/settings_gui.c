@@ -3427,7 +3427,7 @@ static gboolean is_firewalled_changed(property_t prop)
 {
 	GtkWidget *icon_firewall;
 	GtkWidget *icon_open;
-	gboolean val;
+	gboolean val, send_pushes;
 
     icon_firewall = lookup_widget(main_window, "eventbox_image_firewall");
 	icon_open = lookup_widget(main_window, "eventbox_image_no_firewall");
@@ -3440,6 +3440,11 @@ static gboolean is_firewalled_changed(property_t prop)
 		gtk_widget_hide(icon_firewall);
 		gtk_widget_show(icon_open);
 	}
+
+    gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
+  	gtk_widget_set_sensitive
+        (lookup_widget(popup_downloads, "popup_downloads_push"),
+		!val && send_pushes);
 
 	return FALSE;
 }
@@ -3868,7 +3873,10 @@ static gboolean new_version_str_changed(property_t prop)
     gchar *str;
 
     str = gnet_prop_get_string(PROP_NEW_VERSION_STR, NULL, 0);
-    statusbar_gui_set_default(str);
+	if (!str)
+		str = g_strdup(GTA_WEBSITE);
+
+    statusbar_gui_set_default("%s", str);
 
 	if (str)
 		g_free(str);
@@ -3889,7 +3897,8 @@ static gboolean send_pushes_changed(property_t prop)
         (lookup_widget(top, map_entry->wid)), !val);
 
   	gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_push"), val);
+        (lookup_widget(popup_downloads, "popup_downloads_push"),
+		val && !is_firewalled);
 
     return FALSE;
 }
@@ -4665,7 +4674,7 @@ static gboolean dl_http_latency_changed(property_t prop)
     gnet_prop_get_guint32_val(prop, &val);
 	gtk_label_printf(
 		GTK_LABEL(lookup_widget(main_window, "label_dl_http_latency")),
-		"%.3lf", val / 1000.0);
+		"%.3f", val / 1000.0);
 
 	return FALSE;
 }
@@ -5321,5 +5330,7 @@ const gchar *settings_gui_config_dir(void)
 {
 	return settings_config_dir();
 }
+
+/* vi: set ts=4: */
 
 /* vi: set ts=4: */
