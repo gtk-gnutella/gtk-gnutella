@@ -1,5 +1,8 @@
 # since last version
 
+- (2003.07.13 - Jeroen)
+ * PARQ won't assert on bad behaving clients anymore
+
 - (2003.07.13 - RAM)
  * Fixed ban_record(): could be using the wrong callout queue callback.
  * Added ban_is_banned() to allow checking for the ban status without calling
