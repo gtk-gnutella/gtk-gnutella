@@ -49,7 +49,7 @@ static guint32 stats_general[GNR_TYPE_COUNT];
 
 void gnet_stats_init(void)
 {
-    memset(stats_lut, MSG_UNKNOWN, sizeof(guint8)*sizeof(stats_lut));
+    memset(stats_lut, MSG_UNKNOWN, sizeof(stats_lut));
     stats_lut[GTA_MSG_INIT] = MSG_INIT;
     stats_lut[GTA_MSG_INIT_RESPONSE]= MSG_INIT_RESPONSE;
     stats_lut[GTA_MSG_BYE] = MSG_BYE;
@@ -60,19 +60,19 @@ void gnet_stats_init(void)
     stats_lut[GTA_MSG_SEARCH] = MSG_SEARCH;
     stats_lut[GTA_MSG_SEARCH_RESULTS] = MSG_SEARCH_RESULTS;
 
-    memset(stats_pkg_recv, 0, sizeof(guint32)*sizeof(stats_pkg_recv));
-    memset(stats_pkg_genr, 0, sizeof(guint32)*sizeof(stats_pkg_genr));
-    memset(stats_pkg_rely, 0, sizeof(guint32)*sizeof(stats_pkg_rely));
-    memset(stats_pkg_expd, 0, sizeof(guint32)*sizeof(stats_pkg_expd));
-    memset(stats_pkg_drop, 0, sizeof(guint32)*sizeof(stats_pkg_drop));
+    memset(stats_pkg_recv, 0, sizeof(stats_pkg_recv));
+    memset(stats_pkg_genr, 0, sizeof(stats_pkg_genr));
+    memset(stats_pkg_rely, 0, sizeof(stats_pkg_rely));
+    memset(stats_pkg_expd, 0, sizeof(stats_pkg_expd));
+    memset(stats_pkg_drop, 0, sizeof(stats_pkg_drop));
 
-    memset(stats_byte_recv, 0, sizeof(guint32)*sizeof(stats_byte_recv));
-    memset(stats_byte_genr, 0, sizeof(guint32)*sizeof(stats_byte_genr));
-    memset(stats_byte_rely, 0, sizeof(guint32)*sizeof(stats_byte_rely));
-    memset(stats_byte_expd, 0, sizeof(guint32)*sizeof(stats_byte_expd));
-    memset(stats_byte_drop, 0, sizeof(guint32)*sizeof(stats_byte_drop));
+    memset(stats_byte_recv, 0, sizeof(stats_byte_recv));
+    memset(stats_byte_genr, 0, sizeof(stats_byte_genr));
+    memset(stats_byte_rely, 0, sizeof(stats_byte_rely));
+    memset(stats_byte_expd, 0, sizeof(stats_byte_expd));
+    memset(stats_byte_drop, 0, sizeof(stats_byte_drop));
 
-    memset(stats_general, 0, sizeof(guint32)*sizeof(stats_general));
+    memset(stats_general, 0, sizeof(stats_general));
 
     memset(stats_drop_reason, 0, 
         sizeof(guint32)*MSG_DROP_REASON_COUNT*MSG_TYPE_COUNT);
@@ -170,21 +170,20 @@ void gnet_stats_get(gnet_stats_t *s)
 {
     g_assert(s != NULL);
 
-    memcpy(s->pkg.received, stats_pkg_recv, sizeof(guint32)*MSG_TYPE_COUNT);
-    memcpy(s->pkg.generated, stats_pkg_genr, sizeof(guint32)*MSG_TYPE_COUNT);
-    memcpy(s->pkg.relayed, stats_pkg_rely, sizeof(guint32)*MSG_TYPE_COUNT);
-    memcpy(s->pkg.expired, stats_pkg_expd, sizeof(guint32)*MSG_TYPE_COUNT);
-    memcpy(s->pkg.dropped, stats_pkg_drop, sizeof(guint32)*MSG_TYPE_COUNT);
+    memcpy(s->pkg.received, stats_pkg_recv, sizeof(s->pkg.received));
+    memcpy(s->pkg.generated, stats_pkg_genr, sizeof(s->pkg.generated));
+    memcpy(s->pkg.relayed, stats_pkg_rely, sizeof(s->pkg.relayed));
+    memcpy(s->pkg.expired, stats_pkg_expd, sizeof(s->pkg.expired));
+    memcpy(s->pkg.dropped, stats_pkg_drop, sizeof(s->pkg.dropped));
 
-    memcpy(s->byte.received, stats_byte_recv, sizeof(guint32)*MSG_TYPE_COUNT);
-    memcpy(s->byte.generated, stats_byte_genr, sizeof(guint32)*MSG_TYPE_COUNT);
-    memcpy(s->byte.relayed, stats_byte_rely, sizeof(guint32)*MSG_TYPE_COUNT);
-    memcpy(s->byte.expired, stats_byte_expd, sizeof(guint32)*MSG_TYPE_COUNT);
-    memcpy(s->byte.dropped, stats_byte_drop, sizeof(guint32)*MSG_TYPE_COUNT);
+    memcpy(s->byte.received, stats_byte_recv, sizeof(s->byte.received));
+    memcpy(s->byte.generated, stats_byte_genr, sizeof(s->byte.generated));
+    memcpy(s->byte.relayed, stats_byte_rely, sizeof(s->byte.relayed));
+    memcpy(s->byte.expired, stats_byte_expd, sizeof(s->byte.expired));
+    memcpy(s->byte.dropped, stats_byte_drop, sizeof(s->byte.dropped));
 
-    memcpy(s->drop_reason, stats_drop_reason, 
-        sizeof(guint32)*MSG_DROP_REASON_COUNT*MSG_TYPE_COUNT);
+    memcpy(s->drop_reason, stats_drop_reason, sizeof(s->drop_reason));
 
-    memcpy(s->general, stats_general, sizeof(guint32)*GNR_TYPE_COUNT);
+    memcpy(s->general, stats_general, sizeof(s->general));
 }
 
