@@ -554,6 +554,9 @@ typedef struct gnet_upload_info {
 #define GTA_UL_ABORTED          6   /* Upload removed during operation */
 #define GTA_UL_CLOSED           7   /* Upload removed while waiting */
 #define GTA_UL_QUEUED			8	/* Upload is queued */
+#define GTA_UL_QUEUE			9   /* Send a queue (Similar to push) */
+#define GTA_UL_QUEUE_WAITING   10 	/* Connect back with GTA_UL_QUEUE was succes
+									   now waiting for a response */
 
 /*
  * State inspection macros.
@@ -562,6 +565,8 @@ typedef struct gnet_upload_info {
 #define UPLOAD_IS_CONNECTING(u)						\
 	(	(u)->status == GTA_UL_HEADERS				\
 	||	(u)->status == GTA_UL_PUSH_RECEIVED			\
+	||	(u)->status == GTA_UL_QUEUE					\
+	||	(u)->status == GTA_UL_QUEUE_WAITING			\
 	||	(u)->status == GTA_UL_WAITING	)
 
 #define UPLOAD_IS_COMPLETE(u)	\

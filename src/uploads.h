@@ -70,6 +70,8 @@ typedef struct upload {
 
 	gboolean keep_alive;			/* Keep HTTP connection? */
 	gboolean push;
+	gboolean queue;					/* Similar to PUSH, but this time it is due
+				                       to parq */
 	gboolean accounted;				/* True when upload was accounted for */
 	
 	gboolean parq_status;
@@ -104,6 +106,9 @@ void upload_add(struct gnutella_socket *s);
 void upload_push_conf(struct upload *u);
 void upload_init(void);
 void upload_close(void);
+gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push);
+void upload_fire_upload_info_changed(gnutella_upload_t *n);
+void expect_http_header(gnutella_upload_t *u, guint32 new_status);
 
 #endif /* _uploads_h_ */
 

@@ -47,6 +47,7 @@
 #include "sockets.h"
 #include "downloads.h"
 #include "uploads.h"
+#include "parq.h"
 #include "nodes.h"
 #include "header.h"
 #include "bsched.h"
@@ -444,7 +445,12 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		download_push_ack(s);
 		return;
 	}
-
+#ifdef EXP_PARQ
+	if (0 == strncmp(first, "QUEUE ", 6)) {
+		parq_download_queue_ack(s);
+		return;
+	}
+#endif
 	/*
 	 * Check for banning.
 	 */

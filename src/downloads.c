@@ -1994,7 +1994,7 @@ gboolean download_start_prepare_running(struct download *d)
  * Returns TRUE if we may continue with the download, FALSE if it has been
  * stopped due to a problem.
  */
-static gboolean download_start_prepare(struct download *d)
+gboolean download_start_prepare(struct download *d)
 {
     g_assert(d != NULL);
 	g_assert(d->list_idx != DL_LIST_RUNNING);	/* Not already running */

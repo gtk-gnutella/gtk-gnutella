@@ -417,7 +417,6 @@ gint main(gint argc, gchar **argv, gchar **env)
 	share_init();
 	dmesh_init();			/* Muse be done BEFORE download_init() */
 	download_init();
-	parq_upload_queue_init();
 	upload_init();
 #ifdef USE_REMOTE_SHELL
     shell_init();
@@ -431,6 +430,7 @@ gint main(gint argc, gchar **argv, gchar **env)
     main_gui_init();
 
     download_restore_state();
+	parq_init();
 
 	/* Some signal handlers */
 

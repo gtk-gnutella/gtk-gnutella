@@ -181,7 +181,8 @@ static gchar *uploads_gui_status_str(
     switch(u->status) {
 		/*
 		 * Status: GTA_UL_QUEUED. When PARQ is enabled, and all upload slots are
-		 * full an upload is placed into the PARQ-upload. We probably want to
+		 * full an upload is placed into the PARQ-upload. Clients supporting 
+		 * Queue 0.1 and 1.0 will get an active slot. We probably want to
 		 * display this information
 		 *		-- JA, 06/02/2003
 		 */
@@ -200,6 +201,20 @@ static gchar *uploads_gui_status_str(
         return "Waiting for headers...";
     case GTA_UL_WAITING:
         return "Waiting for further request...";
+	case GTA_UL_QUEUE:
+		/*
+	     * PARQ wants to inform a client that action from the client its side
+	     * is wanted. So it is trying to connect back.
+		 * 		-- JA, 15/04/2003 
+	     */
+		return "Sending QUEUE, connecting back...";
+	case GTA_UL_QUEUE_WAITING:
+		/*
+		 * PARQ made a connect back because some action from the client is 
+		 * wanted. The connection is established and now waiting for some action
+	     *		-- JA, 15/04/2003
+		 */
+		return "Sent QUEUE, waiting for headers...";
     case GTA_UL_PUSH_RECEIVED:
         return "Got push, connecting back...";
     case GTA_UL_COMPLETE:

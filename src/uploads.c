@@ -164,7 +164,7 @@ static void upload_fire_upload_removed(
 	gnet_prop_set_guint32_val(PROP_UL_REGISTERED, registered_uploads);
 }
 
-static void upload_fire_upload_info_changed
+void upload_fire_upload_info_changed
     (gnutella_upload_t *n)
 {
     LISTENER_EMIT(upload_info_changed, n->upload_handle,
@@ -210,7 +210,7 @@ void upload_timer(time_t now)
 	for (l = to_remove; l; l = l->next) {
 		gnutella_upload_t *u = (gnutella_upload_t *) l->data;
 		if (UPLOAD_IS_CONNECTING(u)) {
-			if (u->status == GTA_UL_PUSH_RECEIVED)
+			if (u->status == GTA_UL_PUSH_RECEIVED || u->status == GTA_UL_QUEUE)
 				upload_remove(u, "Connect back timeout");
 			else
 				upload_error_remove(u, NULL, 408, "Request timeout");
@@ -225,7 +225,7 @@ void upload_timer(time_t now)
  *
  * Create a new upload structure, linked to a socket.
  */
-static gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push)
+gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push)
 {
 	gnutella_upload_t *u;
 
@@ -644,12 +644,14 @@ static void upload_remove_v(
 	 * Push requests still connecting don't have anything to send, hence
 	 * we check explicitely for GTA_UL_PUSH_RECEIVED.
 	 *		--RAM, 31/12/2001
+	 * 	Same goes for a parq QUEUE 'push' send.
+	 *		-- JA, 12/04/2003
 	 */
 
 	if (
 		UPLOAD_IS_CONNECTING(u) &&
 		!u->error_sent &&
-		u->status != GTA_UL_PUSH_RECEIVED
+		(u->status != GTA_UL_PUSH_RECEIVED || u->status != GTA_UL_QUEUE)
 	) {
 		if (reason == NULL)
 			logreason = "Bad Request";
@@ -1016,7 +1018,7 @@ void upload_add(struct gnutella_socket *s)
  * Prepare reception of a full HTTP header, including the leading request.
  * Will call upload_request() when everything has been parsed.
  */
-static void expect_http_header(gnutella_upload_t *u, guint32 new_status)
+void expect_http_header(gnutella_upload_t *u, guint32 new_status)
 {
 	struct gnutella_socket *s = u->socket;
 
@@ -1065,6 +1067,16 @@ void upload_push_conf(gnutella_upload_t *u)
 	gint sent;
 
 	g_assert(u);
+	
+	if (u->status == GTA_UL_QUEUE) {
+		/*
+		 * PARQ should send QUEUE information header here.
+	 	 *		-- JA, 13/04/2003
+	 	 */
+		parq_upload_send_queue_conf(u);
+		return;
+	}
+	
 	g_assert(u->name);
 
 	/*
@@ -1682,7 +1694,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean is_followup = u->status == GTA_UL_WAITING;
 	gboolean faked = FALSE;
 	gchar *token;
-	gpointer parq_handle;
+	gpointer parq_handle = NULL;
 	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 	if (dbg > 2) {

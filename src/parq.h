@@ -34,6 +34,8 @@
  * Public interface.
  */
 
+void parq_init();
+
 void parq_download_retry_active_queued(struct download *d);
 gboolean parq_download_supports_parq(header_t *header);
 gboolean parq_download_parse_queue_status(struct download *d, header_t *header);
@@ -41,8 +43,8 @@ gboolean parq_download_is_active_queued(struct download *d);
 void parq_download_add_header(
 gchar *buf, gint len, gint *rw, struct download *d);
 gboolean parq_download_is_passive_queued(struct download *d);
+void parq_download_queue_ack(struct gnutella_socket *s);
 	
-void parq_upload_queue_init();
 void parq_upload_timer(time_t now);
 void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg);
 gpointer parq_upload_get(gnutella_upload_t *u, header_t *header);
@@ -59,6 +61,7 @@ void parq_upload_remove(gnutella_upload_t *u);
 void parq_upload_add(gnutella_upload_t *u);
 void parq_upload_busy(gnutella_upload_t *u, gpointer handle);
 void parq_upload_save_queue();
-
+void parq_upload_send_queue_conf(gnutella_upload_t *u);
+	
 #endif /* _parq_h_ */
 

@@ -300,6 +300,7 @@ void download_clear_stopped(gboolean, gboolean, gboolean);
 void download_abort(struct download *);
 void download_resume(struct download *);
 void download_start(struct download *, gboolean);
+gboolean download_start_prepare(struct download *d);
 gboolean download_start_prepare_running(struct download *d);
 void download_requeue(struct download *);
 void download_send_request(struct download *);
