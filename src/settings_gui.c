@@ -2501,29 +2501,171 @@ static prop_map_t property_map[] = {
         PROP_RESERVE_GTKG_NODES,
         update_spinbutton,
         TRUE,
-        "spinbutton_config_reserve_gtkg_nodes"
+        "spinbutton_config_reserve_gtkg_nodes",
+        FREQ_UPDATES, 0
     },
     {
         get_main_window,
         PROP_UNIQUE_NODES,
         update_spinbutton,
         TRUE,
-        "spinbutton_config_unique_nodes"
+        "spinbutton_config_unique_nodes",
+        FREQ_UPDATES, 0
     },
     {
         get_main_window,
         PROP_DOWNLOAD_RX_SIZE,
         update_spinbutton,
         TRUE,
-        "spinbutton_download_rx_size"
+        "spinbutton_download_rx_size",
+        FREQ_UPDATES, 0
     },
     {
         get_main_window,
         PROP_NODE_RX_SIZE,
         update_spinbutton,
         TRUE,
-        "spinbutton_node_rx_size"
+        "spinbutton_node_rx_size",
+        FREQ_UPDATES, 0
     },
+#ifdef USE_GTK1
+    {
+        get_main_window,
+        PROP_LIBRARY_RESCAN_TIMESTAMP,
+        update_label_date,
+        TRUE,
+        "label_library_rescan_timestamp",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_LIBRARY_RESCAN_TIME,
+        update_label,
+        TRUE,
+        "label_library_rescan_time",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_INDEXING_TIMESTAMP,
+        update_label_date,
+        TRUE,
+        "label_qrp_indexing_timestamp",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_INDEXING_TIME,
+        update_label,
+        TRUE,
+        "label_qrp_indexing_time",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_TIMESTAMP,
+        update_label_date,
+        TRUE,
+        "label_qrp_timestamp",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_COMPUTATION_TIME,
+        update_label,
+        TRUE,
+        "label_qrp_computation_time",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_PATCH_TIMESTAMP,
+        update_label_date,
+        TRUE,
+        "label_qrp_patch_timestamp",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_PATCH_COMPUTATION_TIME,
+        update_label,
+        TRUE,
+        "label_qrp_patch_computation_time",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_GENERATION,
+        update_label,
+        TRUE,
+        "label_qrp_generation",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_SLOTS,
+        update_label,
+        TRUE,
+        "label_qrp_slots",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_SLOTS_FILLED,
+        update_label,
+        TRUE,
+        "label_qrp_slots_filled",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_FILL_RATIO,
+        update_label,
+        TRUE,
+        "label_qrp_fill_ratio",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_CONFLICT_RATIO,
+        update_label,
+        TRUE,
+        "label_qrp_conflict_ratio",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_HASHED_KEYWORDS,
+        update_label,
+        TRUE,
+        "label_qrp_hashed_keywords",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_PATCH_RAW_LENGTH,
+        update_label,
+        TRUE,
+        "label_qrp_patch_raw_length",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_PATCH_LENGTH,
+        update_label,
+        TRUE,
+        "label_qrp_patch_length",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_QRP_PATCH_COMP_RATIO,
+        update_label,
+        TRUE,
+        "label_qrp_patch_comp_ratio",
+        FREQ_UPDATES, 0
+    },
+#endif
 };
 
 /***
@@ -3398,6 +3540,15 @@ static gboolean configured_peermode_changed(property_t prop)
 	gboolean ret;
 	GtkWidget *frame =
 		lookup_widget(main_window, "frame_gnet_can_become_ultra");
+#ifdef USE_GTK1
+	GtkWidget *qrp_frame1;
+	GtkWidget *qrp_frame2;
+	GtkWidget *qrp_frame3;
+
+	qrp_frame1 = lookup_widget(main_window, "frame_qrp_statistics");
+	qrp_frame2 = lookup_widget(main_window, "frame_qrp_table_info");
+	qrp_frame3 = lookup_widget(main_window, "frame_qrp_patch_info");
+#endif
 
 	ret = update_multichoice(prop);
     gnet_prop_get_guint32_val(prop, &mode);
@@ -3406,6 +3557,18 @@ static gboolean configured_peermode_changed(property_t prop)
 		gtk_widget_show(frame);
 	else
 		gtk_widget_hide(frame);
+
+#ifdef USE_GTK1
+	if (mode == NODE_P_NORMAL) {
+		gtk_widget_hide(qrp_frame1);
+		gtk_widget_hide(qrp_frame2);
+		gtk_widget_hide(qrp_frame3);
+	} else {
+		gtk_widget_show(qrp_frame1);
+		gtk_widget_show(qrp_frame2);
+		gtk_widget_show(qrp_frame3);
+	}
+#endif
 
 	return ret;
 }
@@ -4191,6 +4354,9 @@ static gboolean expert_mode_changed(property_t prop)
         "frame_expert_rx_buffers",
         "frame_expert_gnet_message_size",
         "frame_expert_search_queue",
+#ifdef USE_GTK1
+        "frame_expert_share_statistics",
+#endif
         NULL
     };
     gint n;
