@@ -50,7 +50,7 @@ gfloat uploads_gui_progress(
 	const upload_row_data_t *data)
 {
 	gfloat progress = 0.0;
-	guint32 requested;
+	filesize_t requested;
 	
 	if (u->pos < data->range_start) /* No progress yet */
 		return 0.0; 
@@ -77,8 +77,7 @@ gfloat uploads_gui_progress(
 			 * position divided by 1 percentage point, found by dividing
 			 * the total size by 100
 			 */
-			progress = (gfloat)(u->pos - data->range_start) /
-				(gfloat)requested;
+			progress = (gfloat) (u->pos - data->range_start) / requested;
 		} else {
 			progress = 0.0;
 		}	
@@ -87,14 +86,13 @@ gfloat uploads_gui_progress(
 	return progress;
 }
 
-/*
- * uploads_gui_status_str
- *
- * Returns a pointer to a static buffer containing a string which
+/**
+ * @return a pointer to a static buffer containing a string which
  * describes the current status of the upload.
  */
-const gchar *uploads_gui_status_str(
-    const gnet_upload_status_t *u, const upload_row_data_t *data)
+const gchar *
+uploads_gui_status_str(const gnet_upload_status_t *u,
+	const upload_row_data_t *data)
 {
 	static gchar tmpstr[256];
 
@@ -107,9 +105,9 @@ const gchar *uploads_gui_status_str(
 
     case GTA_UL_COMPLETE:
 		if (u->last_update != data->start_date) {
-	        guint32 requested = data->range_end - data->range_start + 1;
-			guint32 spent = u->last_update - data->start_date;
-            gfloat rate = (requested / 1024.0) / spent;
+	        filesize_t requested = data->range_end - data->range_start + 1;
+			gint spent = u->last_update - data->start_date;
+            gfloat rate = (requested / 1024) / (gfloat) spent;
 			gm_snprintf(tmpstr, sizeof(tmpstr),
 				_("Completed (%.1f k/s) %s"), rate, short_time(spent));
 		} else
@@ -122,7 +120,7 @@ const gchar *uploads_gui_status_str(
 			gfloat rate = u->bps / 1024.0;
 
 			/* Time Remaining at the current rate, in seconds  */
-			guint32 tr = (data->range_end + 1 - u->pos) / u->avg_bps;
+			filesize_t tr = (data->range_end + 1 - u->pos) / u->avg_bps;
 
 			slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ", 
 				uploads_gui_progress(u, data) * 100.0);
@@ -227,47 +225,25 @@ const gchar *uploads_gui_status_str(
     return tmpstr;
 }
 
-/*
- * upload_should_remove
- * 
- * Returns whether the entry for the upload `ul' should be removed 
+/**
+ * @return whether the entry for the upload `ul' should be removed 
  * from the UI with respect to the configured behaviour.
  */
-gboolean upload_should_remove(time_t now, const upload_row_data_t *ul) 
+gboolean
+upload_should_remove(time_t now, const upload_row_data_t *ul) 
 {
-	guint32 grace;
+	property_t prop = 0;
 
 	g_assert(NULL != ul);
 
 	switch (ul->status) {
 	case GTA_UL_COMPLETE:
-		{
-			gboolean val;
-
-			gui_prop_get_boolean_val(PROP_AUTOCLEAR_COMPLETED_UPLOADS, &val);
-			gnet_prop_get_guint32_val(PROP_ENTRY_REMOVAL_TIMEOUT, &grace);
-
-			if (delta_time(now, ul->last_update) <= grace)
-				return FALSE;
-
-			return val;
-		}
+		prop = PROP_AUTOCLEAR_COMPLETED_UPLOADS;
 		break;
 	case GTA_UL_CLOSED:
 	case GTA_UL_ABORTED:
-		{
-			gboolean val;
-
-			gui_prop_get_boolean_val(PROP_AUTOCLEAR_FAILED_UPLOADS, &val);
-			gnet_prop_get_guint32_val(PROP_ENTRY_REMOVAL_TIMEOUT, &grace);
-
-			if (delta_time(now, ul->last_update) <= grace)
-				return FALSE;
-
-			return val;
-		}
+		prop = PROP_ENTRY_REMOVAL_TIMEOUT;
 		break;
-
 	case GTA_UL_PUSH_RECEIVED:
 	case GTA_UL_SENDING:
 	case GTA_UL_HEADERS:
@@ -278,8 +254,20 @@ gboolean upload_should_remove(time_t now, const upload_row_data_t *ul)
 	case GTA_UL_PFSP_WAITING:
 		break;
 	}
-	
+
+	if (0 != prop) {
+		guint32 grace;
+
+		gnet_prop_get_guint32_val(PROP_ENTRY_REMOVAL_TIMEOUT, &grace);
+		if (delta_time(now, ul->last_update) > grace) {
+			gboolean val;
+
+			gui_prop_get_boolean_val(PROP_AUTOCLEAR_COMPLETED_UPLOADS, &val);
+			return val;
+		}
+	}
+
 	return FALSE;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

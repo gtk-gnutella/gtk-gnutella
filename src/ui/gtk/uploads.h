@@ -34,13 +34,13 @@ typedef struct upload_row_data {
     gboolean      valid;       /* handle still valid in backend */
     time_t        start_date;
     time_t        last_update; /* last time the gui updated */
-    guint32       range_start;
-    guint32       range_end;
+    filesize_t    range_start;
+    filesize_t    range_end;
     upload_stage_t status;      /* last known status */
 #ifdef USE_GTK2
     GtkTreeIter   iter;
 	guint32       ip;
-	guint32       size;
+	filesize_t    size;
 	gboolean      push; 
 	gchar         *user_agent;	/* atom */
 	gchar         *name;		/* atom */
