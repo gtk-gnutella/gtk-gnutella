@@ -3087,7 +3087,7 @@ analyse_status(struct gnutella_node *n, gint *code)
 				g_warning("node %s gave a 0.4 reply to our 0.6 HELLO, dropping",
 					node_ip(n));
 		}
-        hcache_add(HCACHE_UNSTABLE, n->ip, 0, "bad ack_node");
+        hcache_add(HCACHE_UNSTABLE, n->ip, 0, "bad ack_code");
 	} else {
 		ack_ok = TRUE;
 		n->flags |= NODE_F_VALID;		/* This is a Gnutella node */
