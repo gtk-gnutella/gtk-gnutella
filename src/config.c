@@ -28,6 +28,11 @@
         v = (gboolean) ! g_strcasecmp(value, "true");\
         return;
 
+#define CONFIG_SET_BOOLEAN_COMPATIBLE(v,w)           \
+    case k_##w##:                                    \
+        v = (gboolean) ! g_strcasecmp(value, "true");\
+        return;
+
 #define CONFIG_SET_STRING(v)                         \
     case k_##v##:                                    \
         v = g_strdup(value);                         \
@@ -47,8 +52,10 @@ static gchar *host_file = "hosts";
 static gchar *ul_stats_file = "upload_stats";
 
 
-gboolean bps_in_enabled;
-gboolean bps_out_enabled;
+gboolean bws_in_enabled;
+gboolean bws_out_enabled;
+gboolean bws_gin_enabled;
+gboolean bws_gout_enabled;
 gboolean clear_uploads = FALSE;
 gboolean clear_downloads = FALSE;
 gboolean monitor_enabled = FALSE;
@@ -59,10 +66,15 @@ gboolean statusbar_visible = TRUE;
 gboolean progressbar_uploads_visible = TRUE;
 gboolean progressbar_downloads_visible = TRUE;
 gboolean progressbar_connections_visible = TRUE;
-gboolean progressbar_bps_in_visible = TRUE;
-gboolean progressbar_bps_out_visible = TRUE;
-gboolean progressbar_bps_in_avg = FALSE;
-gboolean progressbar_bps_out_avg = FALSE;
+gboolean progressbar_bws_in_visible = TRUE;
+gboolean progressbar_bws_out_visible = TRUE;
+gboolean progressbar_bws_gin_visible = TRUE;
+gboolean progressbar_bws_gout_visible = TRUE;
+gboolean progressbar_bws_in_avg = FALSE;
+gboolean progressbar_bws_out_avg = FALSE;
+gboolean progressbar_bws_gin_avg = FALSE;
+gboolean progressbar_bws_gout_avg = FALSE;
+
 gboolean use_netmasks = FALSE;
 gboolean download_delete_aborted = FALSE;
 gboolean queue_regex_case = FALSE;
@@ -139,7 +151,7 @@ gchar *config_dir = NULL;
 
 guint32 nodes_col_widths[] = { 130, 50, 120, 20, 80 };
 guint32 dl_active_col_widths[] = { 240, 80, 80, 80 };
-guint32 dl_queued_col_widths[] = { 320, 80, 80 };
+guint32 dl_queued_col_widths[] = { 240, 80, 80, 80 };
 guint32 uploads_col_widths[] = { 200, 120, 36, 80, 80 };
 guint32 search_results_col_widths[] = { 210, 80, 50, 140, 140 };
 guint32 search_stats_col_widths[] = { 200, 80, 80 };
@@ -169,10 +181,14 @@ gchar *socks_pass = NULL;
  * For backward compatibility these values are still read, but 
  * no longer written to the config file:
  *
- * Variable            Changed at           New name
- * ----------------    ------------------   -------------
- * socksv5_user        0.90u 12/05/2002     socks_user
- * socksv5_pass        0.90u 12/05/2002     socks_pass
+ * Variable                    Changed at       New name
+ * ----------------            ---------------- -------------
+ * socksv5_user                0.90u 12/05/2002 socks_user
+ * socksv5_pass                0.90u 12/05/2002 socks_pass
+ * progressbar_bps_in_visible  0.90u 15/05/2002 progressbar_bws_in_visible
+ * progressbar_bps_out_visible 0.90u 15/05/2002 progressbar_bws_out_visible
+ * progressbar_bps_in_avg      0.90u 15/05/2002 progressbar_bws_in_avg
+ * progressbar_bps_out_avg     0.90u 15/05/2002 progressbar_bws_out_avg
  */
 
 enum {
@@ -219,18 +235,28 @@ enum {
 	k_toolbar_visible, k_statusbar_visible,
 	k_progressbar_uploads_visible, k_progressbar_downloads_visible, 
 	k_progressbar_connections_visible, 
-	k_progressbar_bps_in_visible,
-	k_progressbar_bps_out_visible,
-	k_progressbar_bps_in_avg,
-	k_progressbar_bps_out_avg,
+	k_progressbar_bws_in_visible,
+	k_progressbar_bws_out_visible,
+    k_progressbar_bws_gin_visible,
+	k_progressbar_bws_gout_visible,
+	k_progressbar_bws_in_avg,
+	k_progressbar_bws_out_avg,
+    k_progressbar_bws_gin_avg,
+	k_progressbar_bws_gout_avg,
 	k_use_netmasks,
 	k_local_netmasks,
     k_queue_regex_case,
     k_search_remove_downloaded,
-    k_bps_in_enabled,
-    k_bps_out_enabled,
+    k_bws_in_enabled,
+    k_bws_out_enabled,
+    k_bws_gin_enabled,
+    k_bws_gout_enabled,
     k_socksv5_user,
     k_socksv5_pass,
+    k_progressbar_bps_in_visible,
+    k_progressbar_bps_out_visible,
+    k_progressbar_bps_in_avg,
+    k_progressbar_bps_out_avg,
 	k_end
 };
 
@@ -333,18 +359,28 @@ static gchar *keywords[] = {
 	"progressbar_uploads_visible",
 	"progressbar_downloads_visible",
 	"progressbar_connections_visible",
-	"progressbar_bps_in_visible",
-	"progressbar_bps_out_visible",
-	"progressbar_bps_in_avg",
-	"progressbar_bps_out_avg",
+	"progressbar_bws_in_visible",
+	"progressbar_bws_out_visible",
+    "progressbar_bws_gin_visible",
+	"progressbar_bws_gout_visible",
+	"progressbar_bws_in_avg",
+	"progressbar_bws_out_avg",
+   	"progressbar_bws_gin_avg",
+	"progressbar_bws_gout_avg",
 	"use_netmasks",
 	"local_netmasks",
     "queue_regex_case",
     "search_remove_downloaded",
     "bandwidth_input_limit",
     "bandwidth_output_limit",
+    "bandwidth_ginput_limit",
+    "bandwidth_goutput_limit",
     "socksv5_user",
     "socksv5_pass",
+    "progressbar_bps_in_visible",
+    "progressbar_bps_out_visible",
+    "progressbar_bps_in_avg",
+    "progressbar_bps_out_avg",
 	NULL
 };
 
@@ -824,8 +860,8 @@ void config_set_param(guint32 keyword, gchar *value)
 		return;
 
 	case k_widths_dl_queued:
-		if ((a = config_parse_array(value, 3)))
-			for (i = 0; i < 3; i++)
+		if ((a = config_parse_array(value, 4)))
+			for (i = 0; i < 4; i++)
 				dl_queued_col_widths[i] = a[i];
 		return;
 
@@ -970,15 +1006,30 @@ void config_set_param(guint32 keyword, gchar *value)
     CONFIG_SET_BOOLEAN(progressbar_uploads_visible)
     CONFIG_SET_BOOLEAN(progressbar_downloads_visible)
     CONFIG_SET_BOOLEAN(progressbar_connections_visible)
-    CONFIG_SET_BOOLEAN(progressbar_bps_in_visible)
-    CONFIG_SET_BOOLEAN(progressbar_bps_out_visible)
-    CONFIG_SET_BOOLEAN(progressbar_bps_in_avg)
-    CONFIG_SET_BOOLEAN(progressbar_bps_out_avg)
+    CONFIG_SET_BOOLEAN(progressbar_bws_in_visible)
+    CONFIG_SET_BOOLEAN(progressbar_bws_out_visible)
+    CONFIG_SET_BOOLEAN(progressbar_bws_gin_visible)
+    CONFIG_SET_BOOLEAN(progressbar_bws_gout_visible)
+    CONFIG_SET_BOOLEAN(progressbar_bws_in_avg)
+    CONFIG_SET_BOOLEAN(progressbar_bws_out_avg)
+    CONFIG_SET_BOOLEAN(progressbar_bws_gin_avg)
+    CONFIG_SET_BOOLEAN(progressbar_bws_gout_avg)
+    CONFIG_SET_BOOLEAN_COMPATIBLE(progressbar_bws_in_visible,
+                                  progressbar_bps_in_visible)
+    CONFIG_SET_BOOLEAN_COMPATIBLE(progressbar_bws_out_visible,        
+                                  progressbar_bps_out_visible)
+    CONFIG_SET_BOOLEAN_COMPATIBLE(progressbar_bws_in_avg,
+                                  progressbar_bps_in_avg)
+    CONFIG_SET_BOOLEAN_COMPATIBLE(progressbar_bws_out_avg,
+                                  progressbar_bps_out_avg)
     CONFIG_SET_BOOLEAN(use_netmasks)
     CONFIG_SET_BOOLEAN(queue_regex_case)
     CONFIG_SET_BOOLEAN(search_remove_downloaded)
-    CONFIG_SET_BOOLEAN(bps_in_enabled)
-    CONFIG_SET_BOOLEAN(bps_out_enabled)
+    CONFIG_SET_BOOLEAN(bws_in_enabled)
+    CONFIG_SET_BOOLEAN(bws_out_enabled)
+    CONFIG_SET_BOOLEAN(bws_gin_enabled)
+    CONFIG_SET_BOOLEAN(bws_gout_enabled)
+    
     
  	case k_local_netmasks:
  		local_netmasks_string = g_strdup(value);
@@ -1221,9 +1272,9 @@ static void config_save(void)
 	fprintf(config, "%s = %u,%u,%u,%u\n", keywords[k_widths_dl_active],
 			dl_active_col_widths[0], dl_active_col_widths[1],
 			dl_active_col_widths[2], dl_active_col_widths[3]);
-	fprintf(config, "%s = %u,%u,%u\n", keywords[k_widths_dl_queued],
+	fprintf(config, "%s = %u,%u,%u,%u\n", keywords[k_widths_dl_queued],
 			dl_queued_col_widths[0], dl_queued_col_widths[1],
-		dl_queued_col_widths[2]);
+            dl_queued_col_widths[2], dl_queued_col_widths[3]);
 	fprintf(config, "%s = %u,%u,%u,%u,%u\n",
 			keywords[k_widths_search_results],
 			search_results_col_widths[0], search_results_col_widths[1],
@@ -1243,15 +1294,21 @@ static void config_save(void)
     CONFIG_WRITE_BOOLEAN(progressbar_uploads_visible)
     CONFIG_WRITE_BOOLEAN(progressbar_downloads_visible)
     CONFIG_WRITE_BOOLEAN(progressbar_connections_visible)
-    CONFIG_WRITE_BOOLEAN(progressbar_bps_in_visible)
-    CONFIG_WRITE_BOOLEAN(progressbar_bps_out_visible)
-    CONFIG_WRITE_BOOLEAN(progressbar_bps_in_avg)
-    CONFIG_WRITE_BOOLEAN(progressbar_bps_out_avg)
+    CONFIG_WRITE_BOOLEAN(progressbar_bws_in_visible)
+    CONFIG_WRITE_BOOLEAN(progressbar_bws_out_visible)
+    CONFIG_WRITE_BOOLEAN(progressbar_bws_gin_visible)
+    CONFIG_WRITE_BOOLEAN(progressbar_bws_gout_visible)
+    CONFIG_WRITE_BOOLEAN(progressbar_bws_in_avg)
+    CONFIG_WRITE_BOOLEAN(progressbar_bws_out_avg)
+    CONFIG_WRITE_BOOLEAN(progressbar_bws_gin_avg)
+    CONFIG_WRITE_BOOLEAN(progressbar_bws_gout_avg)
     CONFIG_WRITE_BOOLEAN(queue_regex_case)
     CONFIG_WRITE_BOOLEAN(search_remove_downloaded)
     CONFIG_WRITE_BOOLEAN(download_delete_aborted)
-    CONFIG_WRITE_BOOLEAN(bps_in_enabled)
-    CONFIG_WRITE_BOOLEAN(bps_out_enabled)
+    CONFIG_WRITE_BOOLEAN(bws_in_enabled)
+    CONFIG_WRITE_BOOLEAN(bws_out_enabled)
+    CONFIG_WRITE_BOOLEAN(bws_gin_enabled)
+    CONFIG_WRITE_BOOLEAN(bws_gout_enabled)
 
  	/* Mike Perry's netmask hack */
  	fprintf(config, "%s = %s\n", keywords[k_use_netmasks],
@@ -1559,7 +1616,7 @@ void config_ip_changed(guint32 new_ip)
 	g_warning("Changing local IP to %s", ip_to_gchar(new_ip));
 
 	local_ip = new_ip;
-	gui_update_config_port();
+	gui_update_config_port(FALSE);
 }
 
 /*

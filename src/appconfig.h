@@ -5,18 +5,24 @@
  * Global Data
  */
 
-extern gboolean bps_in_enabled;
-extern gboolean bps_out_enabled;
+extern gboolean bws_in_enabled;
+extern gboolean bws_out_enabled;
+extern gboolean bws_gin_enabled;
+extern gboolean bws_gout_enabled;
 
 extern gchar *config_dir;
 
 extern gboolean progressbar_uploads_visible;
 extern gboolean progressbar_downloads_visible;
 extern gboolean progressbar_connections_visible;
-extern gboolean progressbar_bps_in_visible;
-extern gboolean progressbar_bps_out_visible;
-extern gboolean progressbar_bps_out_avg;
-extern gboolean progressbar_bps_in_avg;
+extern gboolean progressbar_bws_in_visible;
+extern gboolean progressbar_bws_out_visible;
+extern gboolean progressbar_bws_gin_visible;
+extern gboolean progressbar_bws_gout_visible;
+extern gboolean progressbar_bws_out_avg;
+extern gboolean progressbar_bws_in_avg;
+extern gboolean progressbar_bws_gout_avg;
+extern gboolean progressbar_bws_gin_avg;
 extern gboolean toolbar_visible;
 extern gboolean statusbar_visible;
 extern gboolean monitor_enabled;
