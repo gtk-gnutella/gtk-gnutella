@@ -166,6 +166,7 @@ static void
 inet_not_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_FIREWALLED, FALSE);
+	node_proxy_cancel_all();
 
 	if (dbg)
 		printf("FW: we're not TCP-firewalled for port %u\n", listen_port);

@@ -42,6 +42,7 @@ RCSID("$Id$");
 #include "dq.h"
 #include "udp.h"
 #include "settings.h"		/* For listen_ip() */
+#include "guid.h"			/* For blank_guid[] */
 
 #include "if/gnet_property_priv.h"
 
@@ -90,6 +91,8 @@ static void handle_qstat_req(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
 static void handle_qstat_answer(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
+static void handle_proxy_cancel(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size);
 
 /*
  * Known vendor-specific messages.
@@ -104,10 +107,11 @@ static struct vmsg vmsg_map[] = {
 	{ T_BEAR, 0x000b, 0x0001, handle_qstat_req, "Query Status Request" },
 	{ T_BEAR, 0x000c, 0x0001, handle_qstat_answer, "Query Status Response" },
 	{ T_GTKG, 0x0007, 0x0001, handle_udp_connect_back, "UDP Connect Back" },
-	{ T_LIME, 0x0015, 0x0002, handle_proxy_req, "Push Proxy Request" },
-	{ T_LIME, 0x0016, 0x0002, handle_proxy_ack, "Push Proxy Acknowledgment" },
+	{ T_GTKG, 0x0015, 0x0001, handle_proxy_cancel, "Push-Proxy Cancel" },
+	{ T_LIME, 0x0015, 0x0002, handle_proxy_req, "Push-Proxy Request" },
+	{ T_LIME, 0x0016, 0x0002, handle_proxy_ack, "Push-Proxy Acknowledgment" },
 
-	/* Above line intentionally left blank (for "!}sort" on vi) */
+	/* Above line intentionally left blank (for "!}sort" in vi) */
 };
 
 #define END(v)		(v - 1 + sizeof(v) / sizeof(v[0]))
@@ -849,6 +853,42 @@ vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits)
 			gmsg_infostr_full(m), hits, node_ip(n), node_vendor(n));
 
 	gmsg_ctrl_sendto_one(n, (gchar *) m, msgsize);	/* Send it ASAP */
+}
+
+/**
+ * Handle reception of "Push Proxy Cancel" request, when remote node no longer
+ * wishes to have us as a push-proxy.  This is an indication that the host
+ * determined it was not TCP-firewalled.
+ */
+static void
+handle_proxy_cancel(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size)
+{
+	if (size != 0) {
+		vmsg_bad_payload(n, vmsg, size, 0);
+		return;
+	}
+	
+	node_proxying_remove(n);
+}
+
+/**
+ * Send a "Push Proxy Cancel" message to specified node.
+ */
+void
+vmsg_send_proxy_cancel(struct gnutella_node *n)
+{
+	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
+	guint32 msgsize;
+
+	msgsize = vmsg_fill_header(&m->header, 0, sizeof(v_tmp));
+	memcpy(m->header.muid, blank_guid, 16);
+	(void) vmsg_fill_type(&m->data, T_GTKG, 21, 1);
+
+	gmsg_sendto_one(n, (gchar *) m, msgsize);
+
+	if (vmsg_debug > 2)
+		g_warning("sent proxy CANCEL to %s <%s>", node_ip(n), node_vendor(n));
 }
 
 /* vi: set ts=4: */

@@ -497,6 +497,8 @@ void node_flushq(struct gnutella_node *n);
 void node_tx_service(struct gnutella_node *n, gboolean on);
 void node_tx_enter_flowc(struct gnutella_node *n);
 void node_tx_leave_flowc(struct gnutella_node *n);
+void node_tx_enter_warnzone(struct gnutella_node *n);
+void node_tx_leave_warnzone(struct gnutella_node *n);
 void node_tx_swift_changed(struct gnutella_node *n);
 void node_bye_all(void);
 gboolean node_bye_pending(void);
@@ -527,8 +529,10 @@ void node_connected_back(struct gnutella_socket *s);
 
 void node_mark_bad_vendor(struct gnutella_node *n);
 	
+void node_proxying_remove(gnutella_node_t *n);
 gboolean node_proxying_add(gnutella_node_t *n, gchar *guid);
 void node_proxy_add(gnutella_node_t *n, guint32 ip, guint16 port);
+void node_proxy_cancel_all(void);
 void node_http_proxies_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 GSList *node_push_proxies(void);

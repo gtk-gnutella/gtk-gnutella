@@ -1269,17 +1269,13 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 		alive_free(n->alive_pings);
 		n->alive_pings = NULL;
 	}
-	if (n->guid) {
-		route_proxy_remove(n->guid);
-		atom_guid_free(n->guid);
-		n->guid = NULL;
-	}
 
 	n->status = GTA_NODE_REMOVING;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE|NODE_F_BYE_SENT);
 	n->last_update = time((time_t *) NULL);
 
     node_ht_connected_nodes_remove(n->gnet_ip, n->gnet_port);
+	node_proxying_remove(n);
 
 	if (n->flags & NODE_F_EOF_WAIT)
 		pending_byes--;
@@ -5246,6 +5242,24 @@ node_tx_service(struct gnutella_node *n, gboolean on)
 }
 
 /**
+ * Called by message queue when the node enters the warn zone.
+ */
+void
+node_tx_enter_warnzone(struct gnutella_node *n)
+{
+    node_fire_node_flags_changed(n);
+}
+
+/**
+ * Called by message queue when the node leaves the warn zone.
+ */
+void
+node_tx_leave_warnzone(struct gnutella_node *n)
+{
+    node_fire_node_flags_changed(n);
+}
+
+/**
  * Called by message queue when the node enters TX flow control.
  */
 void
@@ -6340,6 +6354,21 @@ node_connected_back(struct gnutella_socket *s)
 }
 
 /**
+ * Remove push proxy indication for the node, i.e. we're no longer acting
+ * as its push-proxy from now on.
+ */
+void
+node_proxying_remove(gnutella_node_t *n)
+{
+	if (n->guid) {
+		route_proxy_remove(n->guid);
+		atom_guid_free(n->guid);
+		n->guid = NULL;
+		node_fire_node_flags_changed(n);
+	}
+}
+
+/**
  * Record that node wants us to be his push proxy.
  * Returns TRUE if we can act as this node's proxy.
  */
@@ -6393,8 +6422,10 @@ node_proxying_add(gnutella_node_t *n, gchar *guid)
 	}
 
 	n->guid = atom_guid_get(guid);
-	if (route_proxy_add(n->guid, n))
+	if (route_proxy_add(n->guid, n)) {
+		node_fire_node_flags_changed(n);
 		return TRUE;
+	}
 
 	g_warning("push-proxyfication failed for %s <%s>: conflicting GUID %s",
 		node_ip(n), node_vendor(n), guid_hex_str(guid));
@@ -6448,6 +6479,26 @@ node_proxy_add(gnutella_node_t *n, guint32 ip, guint16 port)
 	n->proxy_port = port;
 
 	sl_proxies = g_slist_prepend(sl_proxies, n);
+}
+
+/**
+ * Cancel all our known push-proxies.
+ */
+void
+node_proxy_cancel_all(void)
+{
+	GSList *sl;
+
+	for (sl = sl_proxies; sl; sl = g_slist_next(sl)) {
+		gnutella_node_t *n = (gnutella_node_t *) sl->data;
+
+		vmsg_send_proxy_cancel(n);
+		n->proxy_ip = 0;
+		n->proxy_port = 0;
+	}
+
+	g_slist_free(sl_proxies);
+	sl_proxies = NULL;
 }
 
 /**
