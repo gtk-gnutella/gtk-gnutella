@@ -1,5 +1,23 @@
 # since last version
 
+- (2004-09-20 - RAM)
+ * Fixed OOB-proxy routing logic to no longer use the routing table: we keep
+   the ID of the leaf node originating the query around.
+ * Don't claim UDP results fro OOB-proxied query when the leaf node is
+   in TX flow-control.
+ * Don't check for TTL=0 on hits for OOB-proxied queries.
+ * Can only check the IP of neighbours setting the OOB flag on queries, since
+   the UDP port can be different from the TCP port.
+ * Was not displaying instantaneous RX traffic rate for the pseudo UDP node.
+ * Count the amount of OOB hits received for OOB-proxied queries.
+ * Count the amount of queries we see with the OOB flag set.
+ * Improved delivery of query hits to searches by making it faster to locate
+   a search given a MUID.
+ * Raised the timeouts for dynamic querying slightly, to see if we can get
+   less traffic overall and less results during lingering period.
+ * Monitor the hostiles.txt file and reload it automatically if it changes
+   (closes RFE #1003129).
+
 - (2004-09-19 - RAM)
  * Automatically demote an Ultrapeer that appears to be TCP-firewalled.
  * Fixed routing debugging logs.
