@@ -213,6 +213,23 @@ extern guint32  entry_removal_timeout;
 extern gboolean node_watch_similar_queries;
 extern guint32  node_queries_half_life;
 extern guint32  node_requery_threshold;
+extern guint32  library_rescan_timestamp;
+extern guint32  library_rescan_time;
+extern guint32  qrp_indexing_timestamp;
+extern guint32  qrp_indexing_time;
+extern guint32  qrp_timestamp;
+extern guint32  qrp_computation_time;
+extern guint32  qrp_patch_timestamp;
+extern guint32  qrp_patch_computation_time;
+extern guint32  qrp_generation;
+extern guint32  qrp_slots;
+extern guint32  qrp_slots_filled;
+extern guint32  qrp_fill_ratio;
+extern guint32  qrp_conflict_ratio;
+extern guint32  qrp_hashed_keywords;
+extern guint32  qrp_patch_raw_length;
+extern guint32  qrp_patch_length;
+extern guint32  qrp_patch_comp_ratio;
 
 
 prop_set_t *gnet_prop_init(void);

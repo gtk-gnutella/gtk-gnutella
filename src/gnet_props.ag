@@ -2211,3 +2211,174 @@ prop = {
 	};
 };
 
+prop = {
+	name = "library_rescan_timestamp";
+	desc = "Time at which we started the last scan of the library.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "library_rescan_time";
+	desc = "Time spent scanning the library, in seconds.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_indexing_timestamp";
+	desc = "Time at which we started shared file indexing.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_indexing_time";
+	desc = "Time spent indexing shared files.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_timestamp";
+	desc = "Time at which we started query routing table generation.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_computation_time";
+	desc = "Time spent computing the QRP table, in seconds.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_patch_timestamp";
+	desc = "Time at which we started computing our QRP patch.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_patch_computation_time";
+	desc = "Time spent computing the QRP table patch, in seconds.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_generation";
+	desc = "Query routing table generation number.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_slots";
+	desc = "Amount of slots used by our QRP table.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_slots_filled";
+	desc = "Amount of slots filled within our QRP table.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_fill_ratio";
+	desc = "Percentage of slots filled within our QRP table.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_conflict_ratio";
+	desc = "Percentage of hashing conflicts whilst inserting data in "
+		"our QRP table.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_hashed_keywords";
+	desc = "Amount of hashed keywords in our QRP table.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_patch_raw_length";
+	desc = "Total raw size of the QRP table patch, in bytes";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_patch_length";
+	desc = "Final QRP table patch length, after possible compression.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "qrp_patch_comp_ratio";
+	desc = "QRP table patch compression ratio, in percent, 0 means none.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+

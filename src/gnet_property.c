@@ -430,6 +430,40 @@ guint32  node_queries_half_life     = 5;
 guint32  node_queries_half_life_def = 5;
 guint32  node_requery_threshold     = 1700;
 guint32  node_requery_threshold_def = 1700;
+guint32  library_rescan_timestamp     = 0;
+guint32  library_rescan_timestamp_def = 0;
+guint32  library_rescan_time     = 0;
+guint32  library_rescan_time_def = 0;
+guint32  qrp_indexing_timestamp     = 0;
+guint32  qrp_indexing_timestamp_def = 0;
+guint32  qrp_indexing_time     = 0;
+guint32  qrp_indexing_time_def = 0;
+guint32  qrp_timestamp     = 0;
+guint32  qrp_timestamp_def = 0;
+guint32  qrp_computation_time     = 0;
+guint32  qrp_computation_time_def = 0;
+guint32  qrp_patch_timestamp     = 0;
+guint32  qrp_patch_timestamp_def = 0;
+guint32  qrp_patch_computation_time     = 0;
+guint32  qrp_patch_computation_time_def = 0;
+guint32  qrp_generation     = 0;
+guint32  qrp_generation_def = 0;
+guint32  qrp_slots     = 0;
+guint32  qrp_slots_def = 0;
+guint32  qrp_slots_filled     = 0;
+guint32  qrp_slots_filled_def = 0;
+guint32  qrp_fill_ratio     = 0;
+guint32  qrp_fill_ratio_def = 0;
+guint32  qrp_conflict_ratio     = 0;
+guint32  qrp_conflict_ratio_def = 0;
+guint32  qrp_hashed_keywords     = 0;
+guint32  qrp_hashed_keywords_def = 0;
+guint32  qrp_patch_raw_length     = 0;
+guint32  qrp_patch_raw_length_def = 0;
+guint32  qrp_patch_length     = 0;
+guint32  qrp_patch_length_def = 0;
+guint32  qrp_patch_comp_ratio     = 0;
+guint32  qrp_patch_comp_ratio_def = 0;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -3930,6 +3964,346 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[182].data.guint32.choices = NULL;
     gnet_property->props[182].data.guint32.max   = 1800;
     gnet_property->props[182].data.guint32.min   = 1200;
+
+
+    /*
+     * PROP_LIBRARY_RESCAN_TIMESTAMP:
+     *
+     * General data:
+     */
+    gnet_property->props[183].name = "library_rescan_timestamp";
+    gnet_property->props[183].desc = _("Time at which we started the last scan of the library.");
+    gnet_property->props[183].ev_changed = event_new("library_rescan_timestamp_changed");
+    gnet_property->props[183].save = FALSE;
+    gnet_property->props[183].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[183].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[183].data.guint32.def   = &library_rescan_timestamp_def;
+    gnet_property->props[183].data.guint32.value = &library_rescan_timestamp;
+    gnet_property->props[183].data.guint32.choices = NULL;
+    gnet_property->props[183].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[183].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_LIBRARY_RESCAN_TIME:
+     *
+     * General data:
+     */
+    gnet_property->props[184].name = "library_rescan_time";
+    gnet_property->props[184].desc = _("Time spent scanning the library, in seconds.");
+    gnet_property->props[184].ev_changed = event_new("library_rescan_time_changed");
+    gnet_property->props[184].save = FALSE;
+    gnet_property->props[184].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[184].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[184].data.guint32.def   = &library_rescan_time_def;
+    gnet_property->props[184].data.guint32.value = &library_rescan_time;
+    gnet_property->props[184].data.guint32.choices = NULL;
+    gnet_property->props[184].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[184].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_INDEXING_TIMESTAMP:
+     *
+     * General data:
+     */
+    gnet_property->props[185].name = "qrp_indexing_timestamp";
+    gnet_property->props[185].desc = _("Time at which we started shared file indexing.");
+    gnet_property->props[185].ev_changed = event_new("qrp_indexing_timestamp_changed");
+    gnet_property->props[185].save = FALSE;
+    gnet_property->props[185].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[185].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[185].data.guint32.def   = &qrp_indexing_timestamp_def;
+    gnet_property->props[185].data.guint32.value = &qrp_indexing_timestamp;
+    gnet_property->props[185].data.guint32.choices = NULL;
+    gnet_property->props[185].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[185].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_INDEXING_TIME:
+     *
+     * General data:
+     */
+    gnet_property->props[186].name = "qrp_indexing_time";
+    gnet_property->props[186].desc = _("Time spent indexing shared files.");
+    gnet_property->props[186].ev_changed = event_new("qrp_indexing_time_changed");
+    gnet_property->props[186].save = FALSE;
+    gnet_property->props[186].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[186].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[186].data.guint32.def   = &qrp_indexing_time_def;
+    gnet_property->props[186].data.guint32.value = &qrp_indexing_time;
+    gnet_property->props[186].data.guint32.choices = NULL;
+    gnet_property->props[186].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[186].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_TIMESTAMP:
+     *
+     * General data:
+     */
+    gnet_property->props[187].name = "qrp_timestamp";
+    gnet_property->props[187].desc = _("Time at which we started query routing table generation.");
+    gnet_property->props[187].ev_changed = event_new("qrp_timestamp_changed");
+    gnet_property->props[187].save = FALSE;
+    gnet_property->props[187].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[187].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[187].data.guint32.def   = &qrp_timestamp_def;
+    gnet_property->props[187].data.guint32.value = &qrp_timestamp;
+    gnet_property->props[187].data.guint32.choices = NULL;
+    gnet_property->props[187].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[187].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_COMPUTATION_TIME:
+     *
+     * General data:
+     */
+    gnet_property->props[188].name = "qrp_computation_time";
+    gnet_property->props[188].desc = _("Time spent computing the QRP table, in seconds.");
+    gnet_property->props[188].ev_changed = event_new("qrp_computation_time_changed");
+    gnet_property->props[188].save = FALSE;
+    gnet_property->props[188].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[188].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[188].data.guint32.def   = &qrp_computation_time_def;
+    gnet_property->props[188].data.guint32.value = &qrp_computation_time;
+    gnet_property->props[188].data.guint32.choices = NULL;
+    gnet_property->props[188].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[188].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_PATCH_TIMESTAMP:
+     *
+     * General data:
+     */
+    gnet_property->props[189].name = "qrp_patch_timestamp";
+    gnet_property->props[189].desc = _("Time at which we started computing our QRP patch.");
+    gnet_property->props[189].ev_changed = event_new("qrp_patch_timestamp_changed");
+    gnet_property->props[189].save = FALSE;
+    gnet_property->props[189].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[189].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[189].data.guint32.def   = &qrp_patch_timestamp_def;
+    gnet_property->props[189].data.guint32.value = &qrp_patch_timestamp;
+    gnet_property->props[189].data.guint32.choices = NULL;
+    gnet_property->props[189].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[189].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_PATCH_COMPUTATION_TIME:
+     *
+     * General data:
+     */
+    gnet_property->props[190].name = "qrp_patch_computation_time";
+    gnet_property->props[190].desc = _("Time spent computing the QRP table patch, in seconds.");
+    gnet_property->props[190].ev_changed = event_new("qrp_patch_computation_time_changed");
+    gnet_property->props[190].save = FALSE;
+    gnet_property->props[190].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[190].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[190].data.guint32.def   = &qrp_patch_computation_time_def;
+    gnet_property->props[190].data.guint32.value = &qrp_patch_computation_time;
+    gnet_property->props[190].data.guint32.choices = NULL;
+    gnet_property->props[190].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[190].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_GENERATION:
+     *
+     * General data:
+     */
+    gnet_property->props[191].name = "qrp_generation";
+    gnet_property->props[191].desc = _("Query routing table generation number.");
+    gnet_property->props[191].ev_changed = event_new("qrp_generation_changed");
+    gnet_property->props[191].save = FALSE;
+    gnet_property->props[191].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[191].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[191].data.guint32.def   = &qrp_generation_def;
+    gnet_property->props[191].data.guint32.value = &qrp_generation;
+    gnet_property->props[191].data.guint32.choices = NULL;
+    gnet_property->props[191].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[191].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_SLOTS:
+     *
+     * General data:
+     */
+    gnet_property->props[192].name = "qrp_slots";
+    gnet_property->props[192].desc = _("Amount of slots used by our QRP table.");
+    gnet_property->props[192].ev_changed = event_new("qrp_slots_changed");
+    gnet_property->props[192].save = FALSE;
+    gnet_property->props[192].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[192].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[192].data.guint32.def   = &qrp_slots_def;
+    gnet_property->props[192].data.guint32.value = &qrp_slots;
+    gnet_property->props[192].data.guint32.choices = NULL;
+    gnet_property->props[192].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[192].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_SLOTS_FILLED:
+     *
+     * General data:
+     */
+    gnet_property->props[193].name = "qrp_slots_filled";
+    gnet_property->props[193].desc = _("Amount of slots filled within our QRP table.");
+    gnet_property->props[193].ev_changed = event_new("qrp_slots_filled_changed");
+    gnet_property->props[193].save = FALSE;
+    gnet_property->props[193].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[193].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[193].data.guint32.def   = &qrp_slots_filled_def;
+    gnet_property->props[193].data.guint32.value = &qrp_slots_filled;
+    gnet_property->props[193].data.guint32.choices = NULL;
+    gnet_property->props[193].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[193].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_FILL_RATIO:
+     *
+     * General data:
+     */
+    gnet_property->props[194].name = "qrp_fill_ratio";
+    gnet_property->props[194].desc = _("Percentage of slots filled within our QRP table.");
+    gnet_property->props[194].ev_changed = event_new("qrp_fill_ratio_changed");
+    gnet_property->props[194].save = FALSE;
+    gnet_property->props[194].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[194].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[194].data.guint32.def   = &qrp_fill_ratio_def;
+    gnet_property->props[194].data.guint32.value = &qrp_fill_ratio;
+    gnet_property->props[194].data.guint32.choices = NULL;
+    gnet_property->props[194].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[194].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_CONFLICT_RATIO:
+     *
+     * General data:
+     */
+    gnet_property->props[195].name = "qrp_conflict_ratio";
+    gnet_property->props[195].desc = _("Percentage of hashing conflicts whilst inserting data in our QRP table.");
+    gnet_property->props[195].ev_changed = event_new("qrp_conflict_ratio_changed");
+    gnet_property->props[195].save = FALSE;
+    gnet_property->props[195].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[195].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[195].data.guint32.def   = &qrp_conflict_ratio_def;
+    gnet_property->props[195].data.guint32.value = &qrp_conflict_ratio;
+    gnet_property->props[195].data.guint32.choices = NULL;
+    gnet_property->props[195].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[195].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_HASHED_KEYWORDS:
+     *
+     * General data:
+     */
+    gnet_property->props[196].name = "qrp_hashed_keywords";
+    gnet_property->props[196].desc = _("Amount of hashed keywords in our QRP table.");
+    gnet_property->props[196].ev_changed = event_new("qrp_hashed_keywords_changed");
+    gnet_property->props[196].save = FALSE;
+    gnet_property->props[196].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[196].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[196].data.guint32.def   = &qrp_hashed_keywords_def;
+    gnet_property->props[196].data.guint32.value = &qrp_hashed_keywords;
+    gnet_property->props[196].data.guint32.choices = NULL;
+    gnet_property->props[196].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[196].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_PATCH_RAW_LENGTH:
+     *
+     * General data:
+     */
+    gnet_property->props[197].name = "qrp_patch_raw_length";
+    gnet_property->props[197].desc = _("Total raw size of the QRP table patch, in bytes");
+    gnet_property->props[197].ev_changed = event_new("qrp_patch_raw_length_changed");
+    gnet_property->props[197].save = FALSE;
+    gnet_property->props[197].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[197].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[197].data.guint32.def   = &qrp_patch_raw_length_def;
+    gnet_property->props[197].data.guint32.value = &qrp_patch_raw_length;
+    gnet_property->props[197].data.guint32.choices = NULL;
+    gnet_property->props[197].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[197].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_PATCH_LENGTH:
+     *
+     * General data:
+     */
+    gnet_property->props[198].name = "qrp_patch_length";
+    gnet_property->props[198].desc = _("Final QRP table patch length, after possible compression.");
+    gnet_property->props[198].ev_changed = event_new("qrp_patch_length_changed");
+    gnet_property->props[198].save = FALSE;
+    gnet_property->props[198].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[198].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[198].data.guint32.def   = &qrp_patch_length_def;
+    gnet_property->props[198].data.guint32.value = &qrp_patch_length;
+    gnet_property->props[198].data.guint32.choices = NULL;
+    gnet_property->props[198].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[198].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_QRP_PATCH_COMP_RATIO:
+     *
+     * General data:
+     */
+    gnet_property->props[199].name = "qrp_patch_comp_ratio";
+    gnet_property->props[199].desc = _("QRP table patch compression ratio, in percent, 0 means none.");
+    gnet_property->props[199].ev_changed = event_new("qrp_patch_comp_ratio_changed");
+    gnet_property->props[199].save = FALSE;
+    gnet_property->props[199].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[199].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[199].data.guint32.def   = &qrp_patch_comp_ratio_def;
+    gnet_property->props[199].data.guint32.value = &qrp_patch_comp_ratio;
+    gnet_property->props[199].data.guint32.choices = NULL;
+    gnet_property->props[199].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[199].data.guint32.min   = 0x00000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
