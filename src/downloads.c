@@ -576,6 +576,7 @@ void download_gui_add(struct download *d)
 {
 	gchar *titles[5];
 	gint row;
+    GdkColor *color;
 
 	g_return_if_fail(d);
 
@@ -585,6 +586,9 @@ void download_gui_add(struct download *d)
 			 d->file_name);
 		return;
 	}
+
+    color = &(gtk_widget_get_style(GTK_WIDGET(clist_downloads))
+                ->fg[GTK_STATE_INSENSITIVE]);
 
 	titles[c_dl_filename] = d->file_name;
 	titles[c_dl_host] = ip_port_to_gchar(d->ip, d->port);
@@ -596,10 +600,16 @@ void download_gui_add(struct download *d)
 		row = gtk_clist_append(GTK_CLIST(clist_downloads_queue), titles);
 		gtk_clist_set_row_data(GTK_CLIST(clist_downloads_queue), row,
 							   (gpointer) d);
+        if (d->always_push)
+             gtk_clist_set_foreground(GTK_CLIST(clist_downloads_queue), 
+                row, color);
 	} else {					/* This is an active download */
 		row = gtk_clist_append(GTK_CLIST(clist_downloads), titles);
 		gtk_clist_set_row_data(GTK_CLIST(clist_downloads), row,
 							   (gpointer) d);
+        if (DOWNLOAD_IS_IN_PUSH_MODE(d))
+             gtk_clist_set_foreground(GTK_CLIST(clist_downloads), 
+                row, color);
 	}
 
 	d->visible = TRUE;

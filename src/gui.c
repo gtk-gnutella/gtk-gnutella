@@ -1523,9 +1523,13 @@ void gui_update_download(struct download *d, gboolean force)
 	gchar *a = NULL;
 	gint row;
 	time_t now = time((time_t *) NULL);
+    GdkColor *color;
 
 	if (d->last_gui_update == now && !force)
 		return;
+
+    color = &(gtk_widget_get_style(GTK_WIDGET(clist_downloads))
+        ->fg[GTK_STATE_INSENSITIVE]);
 
 	d->last_gui_update = now;
 
@@ -1638,12 +1642,18 @@ void gui_update_download(struct download *d, gboolean force)
 		row = gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads),
 			(gpointer) d);
 		gtk_clist_set_text(GTK_CLIST(clist_downloads), row, c_dl_status, a);
+        if (DOWNLOAD_IS_IN_PUSH_MODE(d))
+             gtk_clist_set_foreground(GTK_CLIST(clist_downloads), 
+                row, color);
 	}
     if (d->status == GTA_DL_QUEUED) {
 		row = gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads_queue),
 			(gpointer) d);
 		gtk_clist_set_text(GTK_CLIST(clist_downloads_queue), 
                            row, c_dl_status, a);
+        if (d->always_push)
+             gtk_clist_set_foreground(GTK_CLIST(clist_downloads_queue), 
+                row, color);
 	}
 }
 
