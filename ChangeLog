@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.06.21 - RAM)
+  * Forgot to free dmesh slots sometimes.
+  * General cleanup to be able to compile with dmalloc.
+  * Watch out the g_snprintf() return code: it can return more than the
+	buffer size with glibc >= 2.1.
+
 - (2002.06.20 - RAM)
   * Was not properly parsing more than one GGEP extension block in a row.
   * First take at download mesh implementation, with code refactoring.
