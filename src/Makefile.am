@@ -193,6 +193,7 @@ gtk_gnutella_SOURCES = \
 	hostiles.c hostiles.h \
 	clock.c clock.h \
 	eval.c eval.h \
+	pproxy.c pproxy.h \
 	search_gui_common.c search_gui_common.h \
 	nodes_gui_common.c nodes_gui_common.h \
 	uploads_gui_common.c uploads_gui_common.h
