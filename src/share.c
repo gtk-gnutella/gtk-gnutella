@@ -40,11 +40,110 @@
 #include "gmsg.h"
 #include "huge.h"
 #include "gtk-missing.h"
+#include "utf8.h"
+
+static guchar iso_8859_1[96] = {
+	' ', 			/* 160 - NO-BREAK SPACE */
+	' ', 			/* 161 - INVERTED EXCLAMATION MARK */
+	' ', 			/* 162 - CENT SIGN */
+	' ', 			/* 163 - POUND SIGN */
+	' ', 			/* 164 - CURRENCY SIGN */
+	' ', 			/* 165 - YEN SIGN */
+	' ', 			/* 166 - BROKEN BAR */
+	' ', 			/* 167 - SECTION SIGN */
+	' ', 			/* 168 - DIAERESIS */
+	' ', 			/* 169 - COPYRIGHT SIGN */
+	' ', 			/* 170 - FEMININE ORDINAL INDICATOR */
+	' ', 			/* 171 - LEFT-POINTING DOUBLE ANGLE QUOTATION MARK */
+	' ', 			/* 172 - NOT SIGN */
+	' ', 			/* 173 - SOFT HYPHEN */
+	' ', 			/* 174 - REGISTERED SIGN */
+	' ', 			/* 175 - MACRON */
+	' ', 			/* 176 - DEGREE SIGN */
+	' ', 			/* 177 - PLUS-MINUS SIGN */
+	'2', 			/* 178 - SUPERSCRIPT TWO */
+	'3', 			/* 179 - SUPERSCRIPT THREE */
+	' ', 			/* 180 - ACUTE ACCENT */
+	'u', 			/* 181 - MICRO SIGN */
+	' ', 			/* 182 - PILCROW SIGN */
+	' ', 			/* 183 - MIDDLE DOT */
+	' ', 			/* 184 - CEDILLA */
+	'1', 			/* 185 - SUPERSCRIPT ONE */
+	' ', 			/* 186 - MASCULINE ORDINAL INDICATOR */
+	' ', 			/* 187 - RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK */
+	' ', 			/* 188 - VULGAR FRACTION ONE QUARTER */
+	' ', 			/* 189 - VULGAR FRACTION ONE HALF */
+	' ', 			/* 190 - VULGAR FRACTION THREE QUARTERS */
+	' ', 			/* 191 - INVERTED QUESTION MARK */
+	'a', 			/* 192 - LATIN CAPITAL LETTER A WITH GRAVE */
+	'a', 			/* 193 - LATIN CAPITAL LETTER A WITH ACUTE */
+	'a', 			/* 194 - LATIN CAPITAL LETTER A WITH CIRCUMFLEX */
+	'a', 			/* 195 - LATIN CAPITAL LETTER A WITH TILDE */
+	'a', 			/* 196 - LATIN CAPITAL LETTER A WITH DIAERESIS */
+	'a', 			/* 197 - LATIN CAPITAL LETTER A WITH RING ABOVE */
+	' ', 			/* 198 - LATIN CAPITAL LETTER AE */
+	'c', 			/* 199 - LATIN CAPITAL LETTER C WITH CEDILLA */
+	'e', 			/* 200 - LATIN CAPITAL LETTER E WITH GRAVE */
+	'e', 			/* 201 - LATIN CAPITAL LETTER E WITH ACUTE */
+	'e', 			/* 202 - LATIN CAPITAL LETTER E WITH CIRCUMFLEX */
+	'e', 			/* 203 - LATIN CAPITAL LETTER E WITH DIAERESIS */
+	'i', 			/* 204 - LATIN CAPITAL LETTER I WITH GRAVE */
+	'i', 			/* 205 - LATIN CAPITAL LETTER I WITH ACUTE */
+	'i',			/* 206 - LATIN CAPITAL LETTER I WITH CIRCUMFLEX */
+	'i',			/* 207 - LATIN CAPITAL LETTER I WITH DIAERESIS */
+	' ',			/* 208 - LATIN CAPITAL LETTER ETH */
+	'n',			/* 209 - LATIN CAPITAL LETTER N WITH TILDE */
+	'o',			/* 210 - LATIN CAPITAL LETTER O WITH GRAVE */
+	'o',			/* 211 - LATIN CAPITAL LETTER O WITH ACUTE */
+	'o',			/* 212 - LATIN CAPITAL LETTER O WITH CIRCUMFLEX */
+	'o',			/* 213 - LATIN CAPITAL LETTER O WITH TILDE */
+	'o',			/* 214 - LATIN CAPITAL LETTER O WITH DIAERESIS */
+	' ',			/* 215 - MULTIPLICATION SIGN */
+	'o',			/* 216 - LATIN CAPITAL LETTER O WITH STROKE */
+	'u',			/* 217 - LATIN CAPITAL LETTER U WITH GRAVE */
+	'u',			/* 218 - LATIN CAPITAL LETTER U WITH ACUTE */
+	'u',			/* 219 - LATIN CAPITAL LETTER U WITH CIRCUMFLEX */
+	'u',			/* 220 - LATIN CAPITAL LETTER U WITH DIAERESIS */
+	'y',			/* 221 - LATIN CAPITAL LETTER Y WITH ACUTE */
+	' ',			/* 222 - LATIN CAPITAL LETTER THORN */
+	's',			/* 223 - LATIN SMALL LETTER SHARP S */
+	'a',			/* 224 - LATIN SMALL LETTER A WITH GRAVE */
+	'a',			/* 225 - LATIN SMALL LETTER A WITH ACUTE */
+	'a',			/* 226 - LATIN SMALL LETTER A WITH CIRCUMFLEX */
+	'a',			/* 227 - LATIN SMALL LETTER A WITH TILDE */
+	'a',			/* 228 - LATIN SMALL LETTER A WITH DIAERESIS */
+	'a',			/* 229 - LATIN SMALL LETTER A WITH RING ABOVE */
+	' ',			/* 230 - LATIN SMALL LETTER AE */
+	'c',			/* 231 - LATIN SMALL LETTER C WITH CEDILLA */
+	'e',			/* 232 - LATIN SMALL LETTER E WITH GRAVE */
+	'e',			/* 233 - LATIN SMALL LETTER E WITH ACUTE */
+	'e',			/* 234 - LATIN SMALL LETTER E WITH CIRCUMFLEX */
+	'e',			/* 235 - LATIN SMALL LETTER E WITH DIAERESIS */
+	'i',			/* 236 - LATIN SMALL LETTER I WITH GRAVE */
+	'i',			/* 237 - LATIN SMALL LETTER I WITH ACUTE */
+	'i',			/* 238 - LATIN SMALL LETTER I WITH CIRCUMFLEX */
+	'i',			/* 239 - LATIN SMALL LETTER I WITH DIAERESIS */
+	' ',			/* 240 - LATIN SMALL LETTER ETH */
+	'n',			/* 241 - LATIN SMALL LETTER N WITH TILDE */
+	'o',			/* 242 - LATIN SMALL LETTER O WITH GRAVE */
+	'o',			/* 243 - LATIN SMALL LETTER O WITH ACUTE */
+	'o',			/* 244 - LATIN SMALL LETTER O WITH CIRCUMFLEX */
+	'o',			/* 245 - LATIN SMALL LETTER O WITH TILDE */
+	'o',			/* 246 - LATIN SMALL LETTER O WITH DIAERESIS */
+	' ',			/* 247 - DIVISION SIGN */
+	'o',			/* 248 - LATIN SMALL LETTER O WITH STROKE */
+	'u',			/* 249 - LATIN SMALL LETTER U WITH GRAVE */
+	'u',			/* 250 - LATIN SMALL LETTER U WITH ACUTE */
+	'u',			/* 251 - LATIN SMALL LETTER U WITH CIRCUMFLEX */
+	'u',			/* 252 - LATIN SMALL LETTER U WITH DIAERESIS */
+	'y',			/* 253 - LATIN SMALL LETTER Y WITH ACUTE */
+	' ',			/* 254 - LATIN SMALL LETTER THORN */
+	'y',			/* 255 - LATIN SMALL LETTER Y WITH DIAERESIS */
+};
 
 guint32 files_scanned = 0;
 guint32 kbytes_scanned = 0;
 guint32 bytes_scanned = 0;
-
 
 GSList *extensions = NULL;
 GSList *shared_dirs = NULL;
@@ -177,39 +276,46 @@ static void found_reset()
 
 /* ----------------------------------------- */
 
+static char_map_t query_map;
+
+
+/*
+ * setup_char_map
+ *
+ * Set up keymapping table for Gnutella.
+ *
+ * The most common encoding of searches are ASCII, then ISO-8859-1.
+ * Unicode is marginal for now, and we restrict it to the ISO-8859-1 subset.
+ */
 static void setup_char_map(char_map_t map)
 {
-	/* set up keymapping table for Gnutella */
+	gint c;	
 
-	gint cur_char;	
-
-	for (cur_char = 0; cur_char < 256; cur_char++)
-		map[cur_char] = '\0';
-	
-	for (cur_char = 0; cur_char < 256; cur_char++)	{
-		if (islower(cur_char)) {
-			map[cur_char] = cur_char;
-			map[toupper(cur_char)] = cur_char;
+	for (c = 0; c < 256; c++)	{
+		if (islower(c)) {
+			map[c] = c;
+			map[toupper(c)] = c;
 		}
-		else if (isupper(cur_char))
+		else if (isupper(c))
 			; /* handled by previous case */
-		else if (ispunct(cur_char) || isspace(cur_char))
-			map[cur_char] = ' ';
-		else if (isdigit(cur_char))
-			map[cur_char] = cur_char;
-		else if (isalnum(cur_char))
-			map[cur_char] = cur_char;
+		else if (ispunct(c) || isspace(c))
+			map[c] = ' ';
+		else if (isdigit(c))
+			map[c] = c;
+		else if (isalnum(c))
+			map[c] = c;
 		else
-			map[cur_char] = ' ';	/* unknown in our locale */
+			map[c] = ' ';			/* unknown in our locale */
 	}
+
+	for (c = 160; c < 256; c++)
+		map[c] = iso_8859_1[c - 160];
 }
 
 static void search_table_init(void)
 {
-	char_map_t map;
-
-	setup_char_map(map);
-	st_initialize(&search_table, map);
+	setup_char_map(query_map);
+	st_initialize(&search_table, query_map);
 }
 
 /* ----------------------------------------- */
@@ -892,8 +998,29 @@ void search_request(struct gnutella_node *n)
 		}
 	}
 
-	found_files = urn_match + skip_file_search ?
-		0 : st_search(&search_table, search, got_match, max_replies);
+	if (skip_file_search)
+		found_files = urn_match;
+	else {
+		gint clen;
+
+		/*
+		 * If the query string is UTF-8 encoded, decode it and keep only
+		 * the characters in the ISO-8859-1 charset.
+		 *		--RAM, 21/05/2002
+		 */
+
+		clen = utf8_is_valid_string(search, search_len);
+
+		if (clen && clen != search_len) {			/* Not pure ASCII */
+			if (dbg > 4)
+				printf("UTF-8 query, len=%d, chars=%d\n", search_len, clen);
+
+			(void) utf8_to_iso8859(search, search_len, TRUE);
+		}
+
+		found_files = urn_match +
+			st_search(&search_table, search, got_match, max_replies);
+	}
 
 	if (found_files > 0) {
 

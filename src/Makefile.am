@@ -73,7 +73,8 @@ gtk_gnutella_SOURCES = \
 	zlib_util.c zlib_util.h \
 	gtk-missing.c gtk-missing.h \
 	sha1.c sha1.h huge.c huge.h \
-	base32.c base32.h
+	base32.c base32.h \
+	utf8.c utf8.h
 
 gtk_gnutella_LDADD = @GTK_LIBS@ -lz
 
