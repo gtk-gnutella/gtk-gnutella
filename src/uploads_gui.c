@@ -77,8 +77,6 @@ static void upload_removed(
     }
 }
 
-
-
 /*
  * upload_added:
  *
@@ -96,41 +94,25 @@ static void upload_added(
     upload_free_info(info);
 }
 
-
-
 /*
  * upload_info_changed:
  *
  * Callback: called when upload information was changed by the backend.
- *
- * This updates the upload information in the gui. 
+ * This updates the upload information in the gui.
  */
 static void upload_info_changed(gnet_upload_t u, 
     guint32 running, guint32 registered)
 {
     gnet_upload_info_t *info;
-	gint current_page;
-	static GtkNotebook *notebook = NULL;
-
-	if (notebook == NULL)
-		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
-
-	current_page = gtk_notebook_get_current_page(notebook);
-	if (current_page != nb_main_page_uploads)
-		return;
 
     info = upload_get_info(u);
     uploads_gui_update_upload_info(info);
     upload_free_info(info);
 }
 
-
-
 /***
  *** Private functions
  ***/
-
-
 
 /*
  * find_row:
@@ -350,6 +332,13 @@ void uploads_gui_update_display(time_t now)
     GSList *to_remove = NULL;
     GSList *sl;
 	gboolean all_removed = TRUE;
+	gint current_page;
+
+	current_page = gtk_notebook_get_current_page(
+		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
+
+	if (current_page != nb_main_page_uploads)
+		return;
 
     if (last_update == now)
         return;
