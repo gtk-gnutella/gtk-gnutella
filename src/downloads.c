@@ -5842,6 +5842,7 @@ static void download_store(void)
 	fputs("#   File name\n", out);
 	fputs("#   size, index:GUID, IP:port\n", out);
 	fputs("#   SHA1 or * if none\n", out);
+	fputs("#   PARQ id or * if none\n", out);
 	fputs("#   <blank line>\n", out);
 	fputs("#\n\n", out);
 
