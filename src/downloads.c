@@ -3010,12 +3010,6 @@ void download_free_removed(void)
 
 		g_assert(d->status == GTA_DL_REMOVED);
 
-		/* 
-		 * Let parq remove and free its allocated memory
-		 *			-- JA, 18/4/2003
-	 	 */
-		parq_dl_remove(d);
-
 		download_reclaim_server(d, TRUE);	/* Delays freeing of server */
 
 		sl_downloads = g_slist_remove(sl_downloads, d);
@@ -3096,6 +3090,13 @@ void download_remove(struct download *d)
 		http_range_free(d->ranges);
 		d->ranges = NULL;
 	}
+	
+	/* 
+	 * Let parq remove and free its allocated memory
+	 *			-- JA, 18/4/2003
+	 */
+	parq_dl_remove(d);
+
 
 	download_remove_from_server(d, FALSE);
 	d->status = GTA_DL_REMOVED;
