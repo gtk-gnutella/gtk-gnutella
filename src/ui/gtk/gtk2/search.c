@@ -40,6 +40,7 @@
 #include "gtk/settings.h"
 #include "gtk/columns.h"
 #include "gtk/notebooks.h"
+#include "gtk/statusbar.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
@@ -47,11 +48,9 @@
 #include "if/core/bitzi.h"
 
 #include "lib/atoms.h"
-#include "lib/base32.h"
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
 #include "lib/iso3166.h"
-#include "lib/urn.h"
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -295,7 +294,7 @@ gboolean
 search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	gint sort_col, gint sort_order, flag_t flags, search_t **search)
 {
-	static gchar query[512];
+	const gchar *query, *error;
 	search_t *sch;
 	GList *glist;
 	GtkTreeStore *model;
@@ -304,73 +303,13 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
         lookup_widget(main_window, "button_search_close");
     GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
 
-
-	/*
-	 * If the text is a magnet link we extract the SHA1 urn
-	 * and put it back into the search field string so that the
-	 * code for urn searches below can handle it.
-	 *		--DBelius   11/11/2002
-	 */
-
-	g_strlcpy(query, querystr, sizeof(query));
-
-	if (0 == strncasecmp(query, "magnet:", 7)) {
-		guchar raw[SHA1_RAW_SIZE];
-
-		if (urn_get_sha1(query, raw)) {
-			size_t len;
-
-			len = g_strlcpy(query, "urn:sha1:", sizeof(query));
-			if (len < sizeof(query))
-				g_strlcpy(query + len, sha1_base32(raw), sizeof(query) - len);
-		} else {
-			return FALSE;		/* Entry refused */
-		}
-	}
-
-	/*
-	 * If string begins with "urn:sha1:", then it's an URN search.
-	 * Validate the base32 representation, and if not valid, beep
-	 * and refuse the entry.
-	 *		--RAM, 28/06/2002
-	 */
-
-	if (0 == strncasecmp(query, "urn:sha1:", 9)) {
-		guchar raw[SHA1_RAW_SIZE];
-		gchar *b = query + 9;
-
-		if (strlen(b) < SHA1_BASE32_SIZE) {
-			goto refused;
-		}
-
-		if (base32_decode_into(b, SHA1_BASE32_SIZE, raw, sizeof(raw)))
-			goto validated;
-
-		/*
-		 * If they gave us an old base32 representation, convert it to
-		 * the new one on the fly.
-		 */
-		if (base32_decode_old_into(b, SHA1_BASE32_SIZE, raw, sizeof(raw))) {
-			guchar b32[SHA1_BASE32_SIZE];
-			base32_encode_into(raw, sizeof(raw), b32, sizeof(b32));
-			memcpy(b, b32, SHA1_BASE32_SIZE);
-			goto validated;
-		}
-
-		/*
-		 * Entry refused.
-		 */
-	refused:
+	query = search_gui_parse_query(querystr, &error);
+	if (!query) {
+		statusbar_gui_warning(5, "%s", error);
 		return FALSE;
-
-	validated:
-		b[SHA1_BASE32_SIZE] = '\0';		/* Truncate to end of URN */
-
-		/* FALL THROUGH */
 	}
 
 	sch = g_new0(search_t, 1);
-
 	sch->sort_col = sort_col;		/* Unused in GTK2 currently */
 	sch->sort_order = sort_order;	/* Unused in GTK2 currently */
 	sch->query = atom_str_get(query);

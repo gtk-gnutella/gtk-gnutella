@@ -48,10 +48,12 @@ RCSID("$Id$");
 #include "if/bridge/ui2c.h"
 
 #include "lib/atoms.h"
+#include "lib/base32.h"
 #include "lib/fuzzy.h"
 #include "lib/file.h"
 #include "lib/glib-missing.h"
 #include "lib/vendors.h"
+#include "lib/urn.h"
 #include "lib/utf8.h"
 #include "lib/zalloc.h"
 #include "lib/walloc.h"
@@ -331,8 +333,10 @@ search_gui_unref_record(record_t *rc)
  * Free all the results_set's of a search 
  */
 static inline void
-free_r_sets_helper(gpointer data, gpointer user_data)
+free_r_sets_helper(gpointer data, gpointer unused_udata)
 {
+	(void) unused_udata;
+
 	results_set_t *rs = data;
 	search_gui_free_r_set(rs);
 }
@@ -1208,11 +1212,12 @@ search_gui_extract_ext(gchar *filename)
  * @author Andrew Meredith <andrew@anvil.org>
  */
 void
-search_gui_add_targetted_search(record_t *rec, filter_t *noneed)
+search_gui_add_targetted_search(record_t *rec, filter_t *unused_filter)
 {
     search_t *new_search;
     rule_t *rule;
 
+	(void) unused_filter;
     g_assert(rec != NULL);
     g_assert(rec->name != NULL);
 
@@ -1248,6 +1253,93 @@ search_gui_restart_search(search_t *sch)
 	search_gui_update_items(sch);
 	guc_search_update_items(sch->search_handle, sch->items);
 	guc_search_reissue(sch->search_handle);	
+}
+
+/**
+ * Parses a query string as entered by the user.
+ *
+ * @param	querystr must point to the query string.
+ * @param	*error will point to an descriptive error message on failure.
+ * @return	NULL if the query was not valid. Otherwise, the decoded query
+ *			is returned.
+ */
+const gchar *
+search_gui_parse_query(const gchar *querystr, const gchar **error)
+{
+	static const gchar magnet[] = "magnet:";
+	static const gchar urnsha1[] = "urn:sha1:";
+	static gchar query[512];
+	size_t len;
+
+	g_assert(querystr != NULL);
+	g_assert(error != NULL);
+
+	*error = NULL;	
+	
+	/*
+	 * If the text is a magnet link we extract the SHA1 urn
+	 * and put it back into the search field string so that the
+	 * code for urn searches below can handle it.
+	 *		--DBelius   11/11/2002
+	 */
+
+	len = g_strlcpy(query, querystr, sizeof query);
+	if (len >= sizeof query) {
+		*error = _("The entered query is too long");
+		return NULL;
+	}
+
+	if (0 == strncasecmp(query, magnet, CONST_STRLEN(magnet))) {
+		guchar raw[SHA1_RAW_SIZE];
+
+		if (urn_get_sha1(query, raw)) {
+			gm_snprintf(query, sizeof query, "%s%s", urnsha1, sha1_base32(raw));
+			return query;
+		}
+		
+		*error = _("The SHA1 of the magnet is not validly encoded");
+		return NULL;		/* Entry refused */
+	}
+
+	/*
+	 * If string begins with "urn:sha1:", then it's an URN search.
+	 * Validate the base32 representation, and if not valid, beep
+	 * and refuse the entry.
+	 *		--RAM, 28/06/2002
+	 */
+
+	if (0 == strncasecmp(query, urnsha1, CONST_STRLEN(urnsha1))) {
+		guchar raw[SHA1_RAW_SIZE];
+		gchar *b = &query[CONST_STRLEN(urnsha1)];
+
+		if (strlen(b) >= SHA1_BASE32_SIZE) {
+
+			if (base32_decode_into(b, SHA1_BASE32_SIZE, raw, sizeof raw))
+				return query;
+
+			/*
+		 	 * If they gave us an old base32 representation, convert it to
+		 	 * the new one on the fly.
+		 	 */
+			if (base32_decode_old_into(b, SHA1_BASE32_SIZE, raw, sizeof raw)) {
+				guchar b32[SHA1_BASE32_SIZE + 1];
+
+				base32_encode_into(raw, sizeof(raw), b32, sizeof(b32));
+				b32[sizeof b32 - 1] = '\0';
+				gm_snprintf(query, sizeof query, "%s%s", urnsha1, b32);
+				return query;
+			}
+
+		}
+		
+		/*
+	 	 * Entry refused.
+	 	 */
+		*error = _("The SHA1 query is not validly encoded");
+		return NULL;
+	}
+
+	return query;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -320,8 +320,7 @@ gboolean search_gui_new_search_full(const gchar *querystr,
     GList *glist;
     gchar *titles[c_sl_num];
     gint row;
-    gchar query[512];
-
+    const gchar *query, *error;
     GtkWidget *combo_searches = lookup_widget(main_window, "combo_searches");
     GtkWidget *clist_search = lookup_widget(main_window, "clist_search");
     GtkWidget *notebook_search_results = 
@@ -330,71 +329,15 @@ gboolean search_gui_new_search_full(const gchar *querystr,
         lookup_widget(main_window, "button_search_close");
     GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
 
-
-	g_strlcpy(query, querystr, sizeof(query));
-
-	/*
-	 * If the text is a magnet link we extract the SHA1 urn
-	 * and put it back into the search field string so that the
-	 * code for urn searches below can handle it.
-	 *		--DBelius   11/11/2002
-	 */
-
-	if (0 == strncasecmp(query, "magnet:", 7)) {
-		gchar raw[SHA1_RAW_SIZE];
-
-		if (urn_get_sha1(query, raw)) {
-			gm_snprintf(query, sizeof(query), "urn:sha1:%s", sha1_base32(raw));
-		} else {
-			return FALSE;		/* Entry refused */
-		}
-	}
-
-	/*
-	 * If string begins with "urn:sha1:", then it's an URN search.
-	 * Validate the base32 representation, and if not valid, beep
-	 * and refuse the entry.
-	 *		--RAM, 28/06/2002
-	 */
-
-	if (0 == strncasecmp(query, "urn:sha1:", 9)) {
-		gchar raw[SHA1_RAW_SIZE];
-		gchar *b = query + 9;
-
-		if (strlen(b) < SHA1_BASE32_SIZE)
-			goto refused;
-
-		if (base32_decode_into(b, SHA1_BASE32_SIZE, raw, sizeof(raw)))
-			goto validated;
-
-		/*
-		 * If they gave us an old base32 representation, convert it to
-		 * the new one on the fly.
-		 */
-		if (base32_decode_old_into(b, SHA1_BASE32_SIZE, raw, sizeof(raw))) {
-			gchar b32[SHA1_BASE32_SIZE];
-			base32_encode_into(raw, sizeof(raw), b32, sizeof(b32));
-			memcpy(b, b32, SHA1_BASE32_SIZE);
-			goto validated;
-		}
-
-		/*
-		 * Entry refused.
-		 */
-	refused:
+	query = search_gui_parse_query(querystr, &error);
+	if (!query) {
+		statusbar_gui_message(5, "%s", error);
 		return FALSE;
-
-	validated:
-		b[SHA1_BASE32_SIZE] = '\0';		/* Truncate to end of URN */
-
-		/* FALL THROUGH */
 	}
-
+	
 	sch = g_new0(search_t, 1);
-
 	sch->sort_col = sort_col;
 	sch->sort_order = sort_order;
-	
 	sch->query = atom_str_get(query);
 	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
     sch->search_handle = guc_search_new(query, reissue_timeout, flags);
