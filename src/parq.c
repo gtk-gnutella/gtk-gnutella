@@ -3037,6 +3037,9 @@ void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul)
 	
 	u->status = GTA_UL_QUEUE;
 	u->name = atom_str_get(parq_ul->name);
+	
+	/* TODO: Create an PARQ pointer in the download structure, so we don't need
+	 * to lookup the ID again, which we don't at the moment */
 	parq_upload_update_ip_and_name(parq_ul, u);
 	upload_fire_upload_info_changed(u);
 	
@@ -3063,6 +3066,11 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 	g_assert(u->name);
 	
 	parq_ul = parq_upload_find(u);
+	
+	if (parq_ul == NULL) {
+		printf("[PARQ UL] FIXME: Need to lookup the ID first!\r\n");
+		return;
+	}
 	
 	g_assert(parq_ul != NULL);
 
