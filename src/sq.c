@@ -296,7 +296,7 @@ retry:
 	if (sq->count == 0)
 		return;
 
-    if (sq->last_sent + search_queue_spacing > now)
+    if (delta_time(now, sq->last_sent) < search_queue_spacing)
 		return;
 
 	n = sq->node;
@@ -431,3 +431,4 @@ void sq_search_closed(squeue_t *sq, gnet_search_t sh)
 	g_assert(sq->searches || sq->count == 0);
 }
 
+/* vi: set ts=4: */
