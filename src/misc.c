@@ -617,13 +617,13 @@ gboolean hex_to_guid(const gchar *hexguid, gchar *guid)
 	gulong i;
 
 	for (i = 0; i < 16; i++) {
-		gint a = hex2dec((guchar) hexguid[i << 1]);
-		gint b = hex2dec((guchar) hexguid[(i << 1) + 1]);
+ 		gint a = (guchar) hexguid[i << 1];
+ 		gint b = (guchar) hexguid[(i << 1) + 1];
 
-		if (a < 0 || b < 0)
+		if (!(is_ascii_xdigit(a) && is_ascii_xdigit(b)))
 			return FALSE;
 
-		guid[i] = (a << 4) + b;
+		guid[i] = (hex2dec(a) << 4) + hex2dec(b);
 	}
 
 	return TRUE;
