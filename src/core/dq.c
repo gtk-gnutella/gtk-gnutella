@@ -1643,15 +1643,18 @@ gboolean
 dq_get_results_wanted(gchar *muid, guint32 *wanted)
 {
 	dquery_t *dq;
-	guint32 kept;
 
 	dq = g_hash_table_lookup(by_muid, muid);
 
 	if (dq == NULL)
 		return FALSE;
 
-	kept = dq_kept_results(dq);
-	*wanted = (kept > dq->max_results) ? 0 : dq->max_results - kept;
+	if (dq->flags & DQ_F_USR_CANCELLED)
+		*wanted = 0;
+	else {
+		guint32 kept = dq_kept_results(dq);
+		*wanted = (kept > dq->max_results) ? 0 : dq->max_results - kept;
+	}
 
 	return TRUE;
 }
