@@ -18,6 +18,7 @@
 
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
+#define HOST_CATCHER_DELAY		10	/* Delay between connections to same host */
 
 /* */
 
@@ -75,17 +76,40 @@ static void auto_connect(void)
 		"public.bearshare.net",
 		"connect3.gnutellanet.com",
 	};
+	static time_t *host_tried = NULL;
 	static guint host_idx = 0;
 	guint32 ip = 0;
 	guint16 port = 6346;
+	gint host_count = sizeof(host_catcher) / sizeof(host_catcher[0]);
+	gint i;
+	time_t now = time((time_t *) NULL);
 	extern gboolean node_connected(guint32, guint16, gboolean);
 
-	if (host_idx >= (sizeof(host_catcher) / sizeof(host_catcher[0])))
-		host_idx = 0;
+	/*
+	 * To avoid hammering the host caches, we don't allow connections to
+	 * each of them that are not at least HOST_CATCHER_DELAY seconds apart.
+	 * The `host_tried' array keeps track of our last attempts.
+	 *		--RAM, 30/12/2001
+	 */
 
-	ip = host_to_ip(host_catcher[host_idx++]);
-	if (ip != 0 && !node_connected(ip, port, FALSE))
-		node_add(NULL, ip, port);
+	if (host_tried == NULL)
+		host_tried = g_malloc0(sizeof(time_t) * host_count);
+
+	for (i = 0; i < host_count; i++, host_idx++) {
+		if (host_idx >= host_count)
+			host_idx = 0;
+
+		ip = host_to_ip(host_catcher[host_idx]);
+		if (
+			ip != 0 &&
+			!node_connected(ip, port, FALSE) &&
+			(now - host_tried[host_idx]) >= HOST_CATCHER_DELAY
+		) {
+			node_add(NULL, ip, port);
+			host_tried[host_idx] = now;
+			return;
+		}
+	}
 }
 
 gboolean main_timer(gpointer p)
@@ -108,9 +132,9 @@ gboolean main_timer(gpointer p)
 			int missing = up_connections - nodes_in_list;
 
 			while (missing-- > 0 && sl_catched_hosts) {
-				host = (struct gnutella_host *) sl_catched_hosts->data;
+				host = host_get_caught();
 				node_add(NULL, host->ip, host->port);
-				host_remove(host, TRUE);
+				g_free(host);
 			}
 		} else
 			auto_connect();
@@ -357,7 +381,7 @@ gint main(gint argc, gchar ** argv)
 
 	gui_update_c_gnutellanet();
 	gui_update_c_uploads();
-	gui_update_c_downloads(0);
+	gui_update_c_downloads(0, 0);
 
 	gui_update_global();
 
