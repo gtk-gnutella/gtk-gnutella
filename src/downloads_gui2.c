@@ -637,7 +637,7 @@ void downloads_gui_shutdown(void)
 void download_gui_add(download_t *d)
 {
 	static gchar vendor[256];
-	gchar *d_file_name, *d_file_size;
+	const gchar *d_file_name, *d_file_size;
 	gchar *filename, *host, *size, *server, *status, *range;
 	download_t *drecord = NULL;
 	gpointer key;
@@ -665,8 +665,9 @@ void download_gui_add(download_t *d)
 	 *		--RAM, 22/10/2002
 	 */
 	d_file_name = file_info_readable_filename(d->file_info);
-	d_file_name = lazy_locale_to_utf8(d_file_name, 0);
-	
+	d_file_name = lazy_locale_to_utf8(
+					(gchar *) d_file_name, 0); /* Override const */
+
 	gm_snprintf(vendor, sizeof(vendor), "%s%s",
 		(d->server->attrs & DLS_A_BANNING) ? "*" : "",
 		download_vendor_str(d));
@@ -811,7 +812,7 @@ void download_gui_add(download_t *d)
 		      			c_dl_size, "",
 		      			c_dl_range, range,
 		     	 		c_dl_server, server,
-					c_dl_progress, force_range(progress, 0.0, 1.0),
+						c_dl_progress, force_range(progress, 0.0, 1.0),
 		      			c_dl_status, status,
 		      			c_dl_record, drecord,
 			        	(-1));
@@ -834,7 +835,7 @@ void download_gui_add(download_t *d)
 	    	  			c_dl_size, size,
 	      				c_dl_range, "",
 	     	 			c_dl_server, "",
-					c_dl_progress, force_range(percent_done, 0.0, 1.0),
+						c_dl_progress, force_range(percent_done, 0.0, 1.0),
 	      				c_dl_status, tmpstr,
 	      				c_dl_record, DL_GUI_IS_HEADER,
 		        		(-1));
@@ -1136,7 +1137,7 @@ void gui_update_download_column(download_t *d, GtkTreeView *tree_view,
 			gtk_tree_store_set(model, temp_iter_global, column, tmpstr, (-1));
 		} else {
 			g_warning("gui_update_download_column: couldn't find"
-					" download updating column %d", column);	
+					" download updating column %d", column);
 		}
 	}
 
@@ -1433,7 +1434,7 @@ void gui_update_download(download_t *d, gboolean force)
 
 		/* If this download is aborted, it's possible all the downloads in this
 	     * parent node (if there is one) are aborted too. If so, update parent*/
-		if(downloads_gui_all_aborted(d))
+		if (downloads_gui_all_aborted(d))
 			downloads_gui_update_parent_status(d, "Aborted");
 
 		break;
