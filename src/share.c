@@ -43,7 +43,7 @@
 #include "extensions.h"
 #include "nodes.h"
 #include "uploads.h"
-
+#include "gnet_stats.h"
 #include "settings.h"
 
 static guchar iso_8859_1[96] = {
@@ -898,6 +898,7 @@ gboolean search_request(struct gnutella_node *n)
 			if (dbg > 4)
 				dump_hex(stderr, "Query Text", search, MIN(n->size - 2, 256));
 
+            gnet_stats_count_dropped(n, MSG_DROP_QUERY_TOO_LONG);
 			return TRUE;		/* Drop the message! */
 		}
 
@@ -943,14 +944,17 @@ gboolean search_request(struct gnutella_node *n)
 				if (sha1_query) {
 					g_warning("%s has multiple SHA1 URNs, dropped",
 						gmsg_infostr(&n->header));
+                    gnet_stats_count_dropped(n, MSG_DROP_MULTIPLE_SHA1);
 					return TRUE;			/* Drop message! */
 				}
 
 				if (
 					!huge_sha1_extract32(e->ext_payload, e->ext_paylen,
 						sha1_digest, &n->header, FALSE)
-				)
+                ) {
+                    gnet_stats_count_dropped(n, MSG_DROP_MISFORMED_SHA1_QUERY);
 					return TRUE;			/* Drop message! */
+                }
 
 				if (dbg > 4)
 					printf("Valid SHA1 in query: %32s\n", e->ext_payload);
@@ -992,8 +996,10 @@ gboolean search_request(struct gnutella_node *n)
 	 *				--RAM, 12/09/2001
 	 */
 
-	if (n->header.hops > max_ttl)
+    if (n->header.hops > max_ttl) {
+        gnet_stats_count_dropped(n, MSG_DROP_MAX_TTL_EXCEEDED);
 		return TRUE;					/* Drop this long-lived search */
+    }
 
 	/*
 	 * If we aren't going to let the searcher download anything, then
@@ -1022,14 +1028,16 @@ gboolean search_request(struct gnutella_node *n)
 	)
 		skip_file_search = TRUE;
 
-	if (!sha1_query && skip_file_search)
+    if (!sha1_query && skip_file_search) {
+        gnet_stats_count_dropped(n, MSG_DROP_QUERY_TOO_SHORT);
 		return TRUE;					/* Drop this search message */
+    }
 
 	/*
 	 * Perform search...
 	 */
 
-	global_searches++;
+    gnet_stats_count_local_search(n);
 	found_reset();
 
 	max_replies = (search_max_items == -1) ? 255 : search_max_items;
