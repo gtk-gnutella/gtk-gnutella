@@ -360,14 +360,6 @@ static prop_map_t property_map[] = {
         "menu_toolbar_visible",
         FREQ_UPDATES, 0
     },
-    {
-        get_main_window,
-        PROP_JUMP_TO_DOWNLOADS,
-        update_togglebutton,
-        TRUE,
-        "checkbutton_search_jump_to_downloads",
-        FREQ_UPDATES, 0
-    },
 #ifdef USE_GTK2
     {
         get_main_window,
@@ -2726,6 +2718,16 @@ static prop_map_t property_map[] = {
         "label_qrp_patch_comp_ratio",
         FREQ_UPDATES, 0
     },
+#ifdef USE_GTK1
+    {
+        get_main_window,
+        PROP_SEARCH_SORT_CASESENSE,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_search_sort_casesense",
+        FREQ_UPDATES, 0
+    },
+#endif
 };
 
 /***
