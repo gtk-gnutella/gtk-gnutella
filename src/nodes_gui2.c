@@ -129,31 +129,31 @@ void nodes_gui_init()
     column = gtk_tree_view_column_new_with_attributes 
         ("Host", renderer, "text", COL_NODE_HOST, NULL);
     gtk_tree_view_column_set_resizable(column, TRUE);
-//    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
+    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
     gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
 
     column = gtk_tree_view_column_new_with_attributes 
         ("Type", renderer, "text", COL_NODE_TYPE, NULL);
     gtk_tree_view_column_set_resizable(column, TRUE);
-//    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
+    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
     gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
 
     column = gtk_tree_view_column_new_with_attributes 
         ("Vendor", renderer, "text", COL_NODE_VENDOR, NULL);
     gtk_tree_view_column_set_resizable(column, TRUE);
-//   gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
+    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
     gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
 
     column = gtk_tree_view_column_new_with_attributes 
         ("Ver", renderer, "text", COL_NODE_VERSION, NULL);
     gtk_tree_view_column_set_resizable(column, TRUE);
-//    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
+    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
     gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
 
     column = gtk_tree_view_column_new_with_attributes 
         ("Info", renderer, "text", COL_NODE_INFO, NULL);
     gtk_tree_view_column_set_resizable(column, TRUE);
-//    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
+    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
     gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
 
     node_add_node_added_listener(nodes_gui_node_added);
