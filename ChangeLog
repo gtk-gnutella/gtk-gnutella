@@ -7,6 +7,7 @@
  * Added lazy property saving to the slow main timer.
  * Added atexit() hook to allow GTKG to cleanup properly when a library
    calls exit() directly, especially when the connection with X is lost.
+ * Now uses GGEP "ALT" to provide known alternate locations in query hits.
 
 - (2003.10.05 - RAM)
  * Added parsing of new compact X-Alt header and generation of that new header
@@ -28,7 +29,6 @@
  * Closed bug [ 790622 ] change "fuzzy filter" tooltip contents. The tooltip
    was: "... Thepurpose of this filtering..." which should be ".... The 
    purpose of this filtering..."
-
 
 - (2003.10.04 - Jeroen)
  * Closed bug #784574 Transferred files byte counter rollover. Transfer counter
