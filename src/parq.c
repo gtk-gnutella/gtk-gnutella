@@ -1062,13 +1062,27 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 		return;
 	}
 
-	if (dl->list_idx == DL_LIST_RUNNING) {
-		g_warning("[PARQ DL] Watch it! Download already running.");
+	if (dl->list_idx != DL_LIST_WAITING) {
+
+		if (dl->list_idx == DL_LIST_RUNNING) {
+			if (dl->status == GTA_DL_ACTIVE_QUEUED) {
+				parq_download_retry_active_queued(dl);
+			}
+			g_warning("[PARQ DL] Watch it! Download already running.");
+		} else
+		if (dl->list_idx == DL_LIST_STOPPED) {	
+			g_warning("[PARQ DL] Watch it! Download was stopped (Hashing?)");
+		} else {
+			g_warning("[PARQ DL] Watch it! Unknown status");
+		}
+
 		g_assert(s->resource.download == NULL); /* Hence socket_free() */
 		socket_free(s);
 		return;
 	}
-
+	
+	g_assert (dl->list_idx == DL_LIST_WAITING);
+	
 	if (has_ip_port)
 		download_redirect_to_server(dl, ip, port);	/* Might have changed */
 
