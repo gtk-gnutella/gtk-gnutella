@@ -115,8 +115,8 @@ void download_new(gchar *,
 void auto_download_new(
 	gchar *, guint32, guint32, guint32, guint16, gchar *, gboolean);
 void download_queue(struct download *);
-void download_set_freeze(gboolean t);
-gboolean download_get_freeze();
+void download_freeze_queue(gboolean t);
+gboolean download_queue_is_frozen();
 void download_stop(struct download *, guint32, const gchar *, ...);
 void download_free(struct download *);
 void download_push_ack(struct gnutella_socket *);

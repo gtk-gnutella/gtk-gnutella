@@ -29,7 +29,7 @@ GSList *sl_downloads = NULL;
 guint32 count_downloads = 0;
 gboolean send_pushes = TRUE;
 static gchar dl_tmp[4096];
-static gboolean freeze_queue = FALSE;
+static gboolean frozen_queue = FALSE;
 
 static GHashTable *pushed_downloads = 0;
 
@@ -82,7 +82,7 @@ void download_timer(time_t now)
 {
 	GSList *l = sl_downloads;
 
-	if(freeze_queue)
+	if (frozen_queue)
 		return;
 
 	while (l) {
@@ -660,14 +660,24 @@ void download_queue(struct download *d)
 	}
 }
 
-void download_set_freeze(gboolean val)
+/*
+ * download_freeze_queue
+ *
+ * Freeze/unfreeze the scheduling queue.
+ */
+void download_freeze_queue(gboolean val)
 {
-	freeze_queue = val;
+	frozen_queue = val;
 }
 
-gboolean download_get_freeze(void)
+/*
+ * download_queue_is_frozen
+ *
+ * Test whether download queue is frozen.
+ */
+gboolean download_queue_is_frozen(void)
 {
-	return freeze_queue;
+	return frozen_queue;
 }
 
 static void download_queue_delay(struct download *d, guint32 delay)
