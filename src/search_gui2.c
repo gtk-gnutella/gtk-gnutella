@@ -486,6 +486,7 @@ void search_gui_add_record(
 	GtkTreeIter *parent;
 	GtkTreeIter iter;
 	GtkTreeStore *model = GTK_TREE_STORE(sch->model);
+	gchar *name_utf8, ext_utf8[32] = "";
 
 	/*
 	 * When the search is displayed in multiple search results, the refcount
@@ -543,9 +544,28 @@ void search_gui_add_record(
 	search_gui_ref_record(rc);
 	
 	g_assert(rc->refcount >= 2);
-	
+
+	name_utf8 = lazy_locale_to_utf8(rc->name, 0);
+	if (name_utf8) {
+		const gchar *p = strrchr(name_utf8, '.');
+		size_t len;
+
+		len = g_strlcpy(ext_utf8, p ? ++p : "", sizeof ext_utf8);
+		if (len > sizeof ext_utf8) {
+			/* If the guessed extension is really this long, assume the
+			 * part after the dot isn't an extension at all. */
+			ext_utf8[0] = '\0';
+		} else {
+			/* Using g_utf8_strdown() would be cleaner but it allocates
+			 * a new string which is ugly. Nobody uses such file extensions
+			 * anyway. */
+			g_strdown(ext_utf8);
+		}
+	}
+
 	gtk_tree_store_set(model, &iter,
-		      c_sr_filename, lazy_locale_to_utf8(rc->name, 0),
+		      c_sr_filename, name_utf8,
+		      c_sr_ext, ext_utf8,
 		      c_sr_size, NULL != parent ? NULL : short_size(rc->size),
 		      c_sr_info, info_utf8,
 		      c_sr_fg, fg,
@@ -611,7 +631,7 @@ static void remove_selected_file(
 	g_assert(rc->refcount > 1);
 
 	if (gtk_tree_model_iter_nth_child(model, &child, iter, 0)) {
-		gchar *filename;
+		gchar *filename, *ext;
 		gchar *info;
 		gpointer fg;
 		gpointer bg;
@@ -621,6 +641,7 @@ static void remove_selected_file(
 		 * the parent's row */
     	gtk_tree_model_get(model, &child,
               c_sr_filename, &filename,
+              c_sr_ext, &ext,
               c_sr_info, &info,
               c_sr_fg, &fg,
               c_sr_bg, &bg,
@@ -630,12 +651,14 @@ static void remove_selected_file(
 		g_assert(child_rc->refcount > 0);
 		gtk_tree_store_set((GtkTreeStore *) model, iter,
               c_sr_filename, filename,
+              c_sr_ext, ext,
               c_sr_info, info,
               c_sr_fg, fg,
               c_sr_bg, bg,
               c_sr_record, child_rc,
               (-1));
 
+		G_FREE_NULL(ext);
 		G_FREE_NULL(filename);
 		G_FREE_NULL(info);
 
@@ -759,12 +782,12 @@ void search_gui_download_files(void)
 static void sync_column_widths(GtkTreeView *treeview)
 {
     guint32 *width;
-	gint i;
+	guint i;
 
 	g_assert(NULL != treeview);
     width = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, NULL, 0, 0);
 
-    for (i = 0; i <= c_sr_info; i ++)
+    for (i = 0; i < SEARCH_GUI2_VISIBLE_COLUMNS; i++)
 		gtk_tree_view_column_set_fixed_width(
 			gtk_tree_view_get_column(treeview, i), MAX(1, (gint) width[i]));
 
@@ -1222,6 +1245,7 @@ static GtkTreeModel *create_model(void)
   /* create tree store */
   model = (GtkTreeModel *) gtk_tree_store_new(c_sr_num,
 	G_TYPE_STRING,		/* File */
+	G_TYPE_STRING,		/* Extension */
 	G_TYPE_STRING,		/* Size */
 	G_TYPE_STRING,		/* Source counter */
 	G_TYPE_STRING,		/* Info */
@@ -1281,6 +1305,8 @@ static void add_results_columns(GtkTreeView *treeview)
     width = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, NULL, 0, 0);
 
 	add_results_column(treeview, "File", c_sr_filename, width[c_sr_filename],
+		(gfloat) 0.0, NULL);
+	add_results_column(treeview, "Extension", c_sr_ext, width[c_sr_ext],
 		(gfloat) 0.0, NULL);
 	add_results_column(treeview, "Size", c_sr_size, width[c_sr_size],
 		(gfloat) 1.0, search_gui_compare_size_func);
