@@ -23,10 +23,22 @@
 #include "search_stats.h"
 #include "upload_stats.h"
 
+#define CONFIG_SET_BOOLEAN(v) \
+    case k_##v##:\
+        v = (gboolean) ! g_strcasecmp(value, "true");\
+        return;
+
+#define CONFIG_WRITE_BOOLEAN(v)\
+  	fprintf(config, "%s = %s\n", keywords[k_##v##],\
+			config_boolean(v));
+
 static gchar *config_file = "config";
 static gchar *host_file = "hosts";
 static gchar *ul_stats_file = "upload_stats";
 
+
+gboolean bps_in_enabled;
+gboolean bps_out_enabled;
 gboolean clear_uploads = FALSE;
 gboolean clear_downloads = FALSE;
 gboolean monitor_enabled = FALSE;
@@ -125,7 +137,7 @@ guint32 ul_stats_col_widths[] = { 200, 80, 80, 80, 80 };
 
 gboolean jump_to_downloads = TRUE;
 
-gint w_x = 0, w_y = 0, w_w = 0, w_h = 0;
+gint win_x = 0, win_y = 0, win_w = 0, win_h = 0;
 
 guint32 search_reissue_timeout = 600;	/* 10 minutes */
 
@@ -135,13 +147,13 @@ static gchar *static_proxy_ip = "0.0.0.0";
 gint proxy_port = 1080;
 gchar *proxy_ip = NULL;
 
-#define SOCKSV5_USER	0
-#define SOCKSV5_PASS	1
+#define SOCKS_USER	0
+#define SOCKS_PASS	1
 
 gboolean proxy_auth = FALSE;
-static gchar *socksv5[] = { "proxyuser", "proxypass" };
-gchar *socksv5_user = NULL;
-gchar *socksv5_pass = NULL;
+static gchar *socks[] = { "proxyuser", "proxypass" };
+gchar *socks_user = NULL;
+gchar *socks_pass = NULL;
 
 enum {
 	k_up_connections = 0,
@@ -170,11 +182,11 @@ enum {
 	k_win_x, k_win_y, k_win_w, k_win_h, k_win_coords, k_widths_nodes,
 	k_widths_uploads,
 	k_widths_dl_active, k_widths_dl_queued, k_widths_search_results,
-	k_widths_search_stats, k_widths_ul_stats, k_show_results_tabs,
+	k_widths_search_stats, k_widths_ul_stats, k_search_results_show_tabs,
 	k_hops_random_factor, k_send_pushes, k_jump_to_downloads,
 	k_max_connections, k_proxy_connections,
-	k_proxy_protocol, k_proxy_ip, k_proxy_port, k_proxy_auth, k_socksv5_user,
-	k_socksv5_pass, k_search_reissue_timeout,
+	k_proxy_protocol, k_proxy_ip, k_proxy_port, k_proxy_auth, k_socks_user,
+	k_socks_pass, k_search_reissue_timeout,
 	k_hard_ttl_limit,
 	k_dbg, k_stop_host_get, k_enable_err_log, k_max_uploads_ip,
 	k_search_strict_and, k_search_pick_all,
@@ -192,6 +204,10 @@ enum {
 	k_progressbar_bps_out_avg,
 	k_use_netmasks,
 	k_local_netmasks,
+    k_queue_regex_case,
+    k_search_remove_downloaded,
+    k_bps_in_enabled,
+    k_bps_out_enabled,
 	k_end
 };
 
@@ -257,7 +273,7 @@ static gchar *keywords[] = {
 	"widths_search_results",	/* k_widths_search_results */
 	"widths_search_stats",		/* k_widths_search_stats */
 	"widths_ul_stats",			/* k_widths_ul_stats */
-	"show_results_tabs",		/* k_show_results_tabs */
+	"show_results_tabs",		/* k_search_results_show_tabs */
 	"hops_random_factor",		/* k_hops_random_factor */
 	"send_pushes",				/* k_send_pushes */
 	"jump_to_downloads",		/* k_jump_to_downloads */
@@ -267,8 +283,8 @@ static gchar *keywords[] = {
 	"proxy_ip",
 	"proxy_port",
 	"proxy_auth",
-	"socksv5_user",
-	"socksv5_pass",
+	"socks_user",
+	"socks_pass",
 	"search_reissue_timeout",
 	"hard_ttl_limit",			/* k_hard_ttl_limit */
 	"dbg",
@@ -298,6 +314,10 @@ static gchar *keywords[] = {
 	"progressbar_bps_out_avg",
 	"use_netmasks",
 	"local_netmasks",
+    "queue_regex_case",
+    "search_remove_downloaded",
+    "bandwidth_input_limit",
+    "bandwidth_output_limit",
 	NULL
 };
 
@@ -398,12 +418,12 @@ static void save_pid(gchar *file)
 
 void config_init(void)
 {
-	gint i;
+//	gint i;
 	struct passwd *pwd = NULL;
 
 	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
-	socksv5_user = socksv5[SOCKSV5_USER];
-	socksv5_pass = socksv5[SOCKSV5_PASS];
+	socks_user = socks[SOCKS_USER];
+	socks_pass = socks[SOCKS_PASS];
 	proxy_ip = static_proxy_ip;
 	memset(guid, 0, sizeof(guid));
 
@@ -484,141 +504,6 @@ void config_init(void)
 			node_sendqueue_size);
 	}
 
-	/* Okay, update the GUI with values loaded */
-
-	gui_update_count_downloads();
-	gui_update_count_uploads();
-
-	gui_update_minimum_speed(minimum_speed);
-	gui_update_up_connections();
-	gui_update_max_connections();
-	gui_update_config_port();
-	gui_update_config_force_ip();
-
-	gui_update_save_file_path();
-	gui_update_move_file_path();
-
-	gui_update_monitor_max_items();
-
-	gui_update_max_ttl();
-	gui_update_my_ttl();
-
-	gui_update_max_downloads();
-	gui_update_max_host_downloads();
-	gui_update_max_uploads();
-    gui_update_max_host_uploads();
-	gui_update_files_scanned();
-
-	gui_update_connection_speed();
-
-	gui_update_search_max_items();
-	/* PLACEHOLDER: gui_update_search_max_results(); */
-
-	gui_update_search_reissue_timeout();
-
-	gui_update_scan_extensions();
-	gui_update_shared_dirs();
-
-	gui_update_search_stats_delcoef();
-	gui_update_search_stats_update_interval();
-
-    gui_update_config_netmasks();
-
-	gtk_toggle_button_set_active(
-		GTK_TOGGLE_BUTTON(checkbutton_search_stats_enable),
-		search_stats_enabled);
-
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_monitor_enable),
-								 monitor_enabled);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-								 (checkbutton_uploads_auto_clear),
-								 clear_uploads);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-								 (checkbutton_downloads_auto_clear),
-								 clear_downloads);
-   	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-							     (checkbutton_downloads_delete_aborted),
-							     download_delete_aborted);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-								 (checkbutton_config_force_ip),
-								 force_local_ip);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_downloads_never_push),
-								 !send_pushes);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-								 (checkbutton_search_jump_to_downloads),
-								 jump_to_downloads);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-								 (checkbutton_autodownload),
-								 use_autodownload);
-
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-								 (checkbutton_config_proxy_connections),
-								 proxy_connections);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-								 (checkbutton_config_proxy_auth),
-								 proxy_auth);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_config_http),
-								 (proxy_protocol == 1) ? TRUE : FALSE);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_config_socksv4),
-								 (proxy_protocol == 4) ? TRUE : FALSE);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_config_socksv5),
-								 (proxy_protocol == 5) ? TRUE : FALSE);
-
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_toolbar_visible),
-								   toolbar_visible);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_statusbar_visible),
-								   statusbar_visible);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_uploads_visible),
-								   progressbar_uploads_visible);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_downloads_visible),
-								   progressbar_downloads_visible);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_connections_visible),
-								   progressbar_connections_visible);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_bps_in_visible),
-								   progressbar_bps_in_visible);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_bps_out_visible),
-								   progressbar_bps_out_visible);
-
-	gui_update_socks_host();
-	gui_update_socks_port();
-	gui_update_socks_user();
-	gui_update_socks_pass();
-
-	gui_update_bandwidth_input();
-	gui_update_bandwidth_output();
-
-	if (w_w && w_h) {
-		gtk_widget_set_uposition(main_window, w_x, w_y);
-		gtk_window_set_default_size(GTK_WINDOW(main_window), w_w, w_h);
-	}
-
-	for (i = 0; i < 5; i++)
-		gtk_clist_set_column_width(GTK_CLIST(clist_nodes), i,
-								   nodes_col_widths[i]);
-	for (i = 0; i < 4; i++)
-		gtk_clist_set_column_width(GTK_CLIST(clist_downloads), i,
-								   dl_active_col_widths[i]);
-	for (i = 0; i < 3; i++)
-		gtk_clist_set_column_width(GTK_CLIST(clist_downloads_queue), i,
-								   dl_queued_col_widths[i]);
-	for (i = 0; i < 5; i++)
-		gtk_clist_set_column_width(GTK_CLIST(clist_uploads), i,
-								   uploads_col_widths[i]);
-
-	// as soon as this is corrected in Glade, you can do this
-	// check the variable names and take out the stuff in
-	// search.c that sets this up
-	// for (i = 0; i < 5; i++)
-	//    gtk_clist_set_column_width(GTK_CLIST(clist_search_results),
-	//         i, search_results_col_widths[i]);
-
-	for (i = 0; i < 3; i++)
-		gtk_clist_set_column_width(GTK_CLIST(clist_search_stats), i,
-								   search_stats_col_widths[i]);
-	for (i = 0; i < 5; i++)
-		gtk_clist_set_column_width(GTK_CLIST(clist_ul_stats), i,
-								   ul_stats_col_widths[i]);
-
 	/* Transition : HOME/.gtk-gnutella is now a directory */
 
 	if (config_dir && !is_directory(config_dir)) {
@@ -673,25 +558,15 @@ void config_set_param(guint32 keyword, gchar *value)
 	guint32 *a;
 
 	switch (keyword) {
-	case k_monitor_enabled:
-		monitor_enabled = (gboolean) ! g_strcasecmp(value, "true");
-		return;
+    CONFIG_SET_BOOLEAN(monitor_enabled)
 
 	case k_monitor_max_items:
 		if (i > 0 && i < 512) monitor_max_items = i;
 		return;
 
-	case k_clear_uploads:
-		clear_uploads = (gboolean) ! g_strcasecmp(value, "true");
-		return;
-
-	case k_clear_downloads:
-		clear_downloads = (gboolean) ! g_strcasecmp(value, "true");
-		return;
-
-    case k_download_delete_aborted:
-        download_delete_aborted = (gboolean) ! g_strcasecmp(value, "true");
-		return;
+    CONFIG_SET_BOOLEAN(clear_uploads)
+    CONFIG_SET_BOOLEAN(clear_downloads)
+    CONFIG_SET_BOOLEAN(download_delete_aborted)
 
 	case k_up_connections:
 		if (i >= 0 && i < 512) up_connections = i;
@@ -870,26 +745,26 @@ void config_set_param(guint32 keyword, gchar *value)
 		return;
 
 	case k_win_x:
-		w_x = i;
+		win_x = i;
 		return;
 
 	case k_win_y:
-		w_y = i;
+		win_y = i;
 		return;
 
 	case k_win_w:
-		w_w = i;
+		win_w = i;
 		return;
 
 	case k_win_h:
-		w_h = i;
+		win_h = i;
 		return;
 	case k_win_coords:
 		if ((a = config_parse_array(value, 4))) {
-			w_x = a[0];
-			w_y = a[1];
-			w_w = a[2];
-			w_h = a[3];
+			win_x = a[0];
+			win_y = a[1];
+			win_w = a[2];
+			win_h = a[3];
 		}
 		return;
 
@@ -935,10 +810,7 @@ void config_set_param(guint32 keyword, gchar *value)
 				ul_stats_col_widths[i] = a[i];
 		return;
 
-	case k_show_results_tabs:
-		search_results_show_tabs =
-			(gboolean) ! g_strcasecmp(value, "true");
-		return;
+    CONFIG_SET_BOOLEAN(search_results_show_tabs)
 
 	case k_forced_local_ip:
 		forced_local_ip = gchar_to_ip(value);
@@ -973,16 +845,14 @@ void config_set_param(guint32 keyword, gchar *value)
 		proxy_port = i;
 		return;
 
-	case k_proxy_auth:
-		proxy_auth = (gboolean) ! g_strcasecmp(value, "true");
+    CONFIG_SET_BOOLEAN(proxy_auth)
+
+	case k_socks_user:
+		socks_user = g_strdup(value);
 		return;
 
-	case k_socksv5_user:
-		socksv5_user = g_strdup(value);
-		return;
-
-	case k_socksv5_pass:
-		socksv5_pass = g_strdup(value);
+	case k_socks_pass:
+		socks_pass = g_strdup(value);
 		return;
 
 	case k_max_connections:
@@ -1062,53 +932,26 @@ void config_set_param(guint32 keyword, gchar *value)
 			search_stats_update_interval = i;
 		return;
 
-	case k_toolbar_visible:
-		toolbar_visible = (gboolean) ! g_strcasecmp(value, "true");
-		return;
-
-	case k_statusbar_visible:
-		statusbar_visible = (gboolean) ! g_strcasecmp(value, "true");
-		return;
-
-	case k_progressbar_uploads_visible:
-		progressbar_uploads_visible = (gboolean) ! g_strcasecmp(value, "true");
-		return;
-
-	case k_progressbar_downloads_visible:
-		progressbar_downloads_visible =
-			(gboolean) ! g_strcasecmp(value, "true");
-		return;
-
-	case k_progressbar_connections_visible:
-		progressbar_connections_visible =
-			(gboolean) ! g_strcasecmp(value, "true");
-		return;
-
-	case k_progressbar_bps_in_visible:
-		progressbar_bps_in_visible = (gboolean) ! g_strcasecmp(value, "true");
-		return;
-
-	case k_progressbar_bps_out_visible:
-		progressbar_bps_out_visible = (gboolean) ! g_strcasecmp(value, "true");
- 		return;
-
-	case k_progressbar_bps_in_avg:
-		progressbar_bps_in_avg = (gboolean) ! g_strcasecmp(value, "true");
-		return;
-
-	case k_progressbar_bps_out_avg:
-		progressbar_bps_out_avg = (gboolean) ! g_strcasecmp(value, "true");
-		return;
-
+    CONFIG_SET_BOOLEAN(toolbar_visible)
+    CONFIG_SET_BOOLEAN(statusbar_visible)
+    CONFIG_SET_BOOLEAN(progressbar_uploads_visible)
+    CONFIG_SET_BOOLEAN(progressbar_downloads_visible)
+    CONFIG_SET_BOOLEAN(progressbar_connections_visible)
+    CONFIG_SET_BOOLEAN(progressbar_bps_in_visible)
+    CONFIG_SET_BOOLEAN(progressbar_bps_out_visible)
+    CONFIG_SET_BOOLEAN(progressbar_bps_in_avg)
+    CONFIG_SET_BOOLEAN(progressbar_bps_out_avg)
+    CONFIG_SET_BOOLEAN(use_netmasks)
+    CONFIG_SET_BOOLEAN(queue_regex_case)
+    CONFIG_SET_BOOLEAN(search_remove_downloaded)
+    CONFIG_SET_BOOLEAN(bps_in_enabled)
+    CONFIG_SET_BOOLEAN(bps_out_enabled)
+    
  	case k_local_netmasks:
  		local_netmasks_string = g_strdup(value);
  		parse_netmasks(value);
  		return;
- 
- 	case k_use_netmasks:
- 		use_netmasks = (gboolean)!(g_strcasecmp(value, "true"));
- 		return;
-	}
+ 	}
 }
 
 static void config_read(void)
@@ -1328,8 +1171,7 @@ static void config_save(void)
 	fprintf(config, "%s = %u\n\n", keywords[k_search_reissue_timeout],
 			search_reissue_timeout);
 
-	fprintf(config, "%s = %s\n", keywords[k_show_results_tabs],
-			config_boolean(search_results_show_tabs));
+    CONFIG_WRITE_BOOLEAN(search_results_show_tabs)
 
 	fprintf(config, "\n\n# GUI values\n\n");
 
@@ -1363,24 +1205,20 @@ static void config_save(void)
 			ul_stats_col_widths[0], ul_stats_col_widths[1],
 			ul_stats_col_widths[2], ul_stats_col_widths[3],
 				ul_stats_col_widths[4]);
-	fprintf(config, "%s = %s\n", keywords[k_toolbar_visible],
-			config_boolean(toolbar_visible));
-	fprintf(config, "%s = %s\n", keywords[k_statusbar_visible],
-			config_boolean(statusbar_visible));
-	fprintf(config, "%s = %s\n", keywords[k_progressbar_uploads_visible],
-			config_boolean(progressbar_uploads_visible));
-	fprintf(config, "%s = %s\n", keywords[k_progressbar_downloads_visible],
-			config_boolean(progressbar_downloads_visible));
-	fprintf(config, "%s = %s\n", keywords[k_progressbar_connections_visible],
-			config_boolean(progressbar_connections_visible));
-	fprintf(config, "%s = %s\n", keywords[k_progressbar_bps_in_visible],
-			config_boolean(progressbar_bps_in_visible));
-	fprintf(config, "%s = %s\n", keywords[k_progressbar_bps_out_visible],
-			config_boolean(progressbar_bps_out_visible));
-	fprintf(config, "%s = %s\n", keywords[k_progressbar_bps_in_avg],
-			config_boolean(progressbar_bps_in_avg));
-	fprintf(config, "%s = %s\n", keywords[k_progressbar_bps_out_avg],
-			config_boolean(progressbar_bps_out_avg));
+    CONFIG_WRITE_BOOLEAN(toolbar_visible)
+    CONFIG_WRITE_BOOLEAN(statusbar_visible)
+    CONFIG_WRITE_BOOLEAN(progressbar_uploads_visible)
+    CONFIG_WRITE_BOOLEAN(progressbar_downloads_visible)
+    CONFIG_WRITE_BOOLEAN(progressbar_connections_visible)
+    CONFIG_WRITE_BOOLEAN(progressbar_bps_in_visible)
+    CONFIG_WRITE_BOOLEAN(progressbar_bps_out_visible)
+    CONFIG_WRITE_BOOLEAN(progressbar_bps_in_avg)
+    CONFIG_WRITE_BOOLEAN(progressbar_bps_out_avg)
+    CONFIG_WRITE_BOOLEAN(queue_regex_case)
+    CONFIG_WRITE_BOOLEAN(search_remove_downloaded)
+    CONFIG_WRITE_BOOLEAN(download_delete_aborted)
+    CONFIG_WRITE_BOOLEAN(bps_in_enabled)
+    CONFIG_WRITE_BOOLEAN(bps_out_enabled)
 
  	/* Mike Perry's netmask hack */
  	fprintf(config, "%s = %s\n", keywords[k_use_netmasks],
@@ -1535,8 +1373,8 @@ static void config_save(void)
 	fprintf(config, "%s = %u\n", keywords[k_proxy_port], proxy_port);
 	fprintf(config, "%s = %s\n", keywords[k_proxy_auth],
 			config_boolean(proxy_auth));
-	fprintf(config, "%s = \"%s\"\n", keywords[k_socksv5_user], socksv5_user);
-	fprintf(config, "%s = \"%s\"\n", keywords[k_socksv5_pass], socksv5_pass);
+	fprintf(config, "%s = \"%s\"\n", keywords[k_socks_user], socks_user);
+	fprintf(config, "%s = \"%s\"\n", keywords[k_socks_pass], socks_pass);
 	fprintf(config, "\n");
 
 	fprintf(config, "# For developers only, debugging stuff\n\n");
@@ -1724,10 +1562,10 @@ void config_close(void)
 		g_free(move_file_path);
 	if (proxy_ip && proxy_ip != static_proxy_ip)
 		g_free(proxy_ip);
-	if (socksv5_user && socksv5_user != socksv5[SOCKSV5_USER])
-		g_free(socksv5_user);
-	if (socksv5_pass && socksv5_pass != socksv5[SOCKSV5_PASS])
-		g_free(socksv5_pass);
+	if (socks_user && socks_user != socks[SOCKS_USER])
+		g_free(socks_user);
+	if (socks_pass && socks_pass != socks[SOCKS_PASS])
+		g_free(socks_pass);
 }
 
 /* vi: set ts=4: */
