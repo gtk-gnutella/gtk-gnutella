@@ -2178,6 +2178,22 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	}
 
 	/*
+	 * Include X-Hostname if not in a followup reply and if we have a
+	 * known hostname, for which the user gave permission to advertise.
+	 */
+
+	if (
+		!is_firewalled && !is_followup &&
+		give_server_hostname && 0 != *server_hostname
+	) {
+		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+		hev[hevcnt].he_cb = http_hostname_add;
+		hev[hevcnt++].he_arg = NULL;
+	}
+
+	g_assert(hevcnt <= G_N_ELEMENTS(hev));
+
+	/*
 	 * When requested range is invalid, the HTTP 416 reply should contain
 	 * a Content-Range header giving the total file size, so that they
 	 * know the limits of what they can request.
@@ -2197,6 +2213,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = upload_416_extra;
 		hev[hevcnt++].he_arg = &cb_arg;
+
+		g_assert(hevcnt <= G_N_ELEMENTS(hev));
 
 		(void) http_send_status(u->socket, 416, FALSE, hev, hevcnt, msg);
 		upload_remove(u, msg);
@@ -2297,6 +2315,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = upload_http_sha1_add;
 		hev[hevcnt++].he_arg = &cb_arg;
+
+		g_assert(hevcnt <= G_N_ELEMENTS(hev));
 
 		if (!head_only && u->keep_alive && !u->unavailable_range) {
 			/*
@@ -2604,20 +2624,6 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 	hev[hevcnt].he_cb = upload_http_status;
 	hev[hevcnt++].he_arg = &cb_arg;
-
-	/*
-	 * Include X-Hostname if not in a followup reply and if we have a
-	 * known hostname, for which the user gave permission to advertise.
-	 */
-
-	if (
-		!is_firewalled && !is_followup &&
-		give_server_hostname && 0 != *server_hostname
-	) {
-		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = http_hostname_add;
-		hev[hevcnt++].he_arg = NULL;
-	}
 
 	g_assert(hevcnt <= G_N_ELEMENTS(hev));
 
