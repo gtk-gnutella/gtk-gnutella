@@ -54,8 +54,26 @@ static GtkLabel *label_fi_size = NULL;
 static GtkTreeStore *store_fileinfo = NULL;
 static GtkTreeStore *store_aliases = NULL;
 static GHashTable *fi_gui_handles = NULL;
-
 static GHashTable *fi_updates = NULL;
+
+static void
+fi_gui_fi_removed(gnet_fi_t fih)
+{
+	GtkTreeIter *iter;
+	
+	g_hash_table_remove(fi_updates, GUINT_TO_POINTER(fih));
+	
+	if (
+		!g_hash_table_lookup_extended(fi_gui_handles, GUINT_TO_POINTER(fih),
+			NULL, (gpointer) &iter)
+	) {
+        g_warning("fi_gui_fi_removed: no matching iter found");
+        return;
+    }
+
+    gtk_tree_store_remove(store_fileinfo, iter);
+	g_hash_table_remove(fi_gui_handles, GUINT_TO_POINTER(fih));
+}
 
 static void
 fi_gui_update_row(GtkTreeStore *store, GtkTreeIter *iter, gchar **titles)
@@ -130,22 +148,42 @@ fi_gui_clear_details(void)
 }
 
 void
-on_treeview_fileinfo_selected(GtkTreeView *unused_tv, gpointer unused_udata)
+on_treeview_fileinfo_cursor_changed(GtkTreeView *tv,
+	gpointer unused_udata)
 {
-	GtkTreeSelection *selection;
 	GtkTreeModel *model;
 	GtkTreeIter iter;
     gnet_fi_t fih;
+	GtkTreePath *path;
 
-	(void) unused_tv;
 	(void) unused_udata;
-	
-    selection = gtk_tree_view_get_selection(treeview_fileinfo);
-    if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+	if (!path)
+		return;
+
+	model = gtk_tree_view_get_model(tv);
+	if (gtk_tree_model_get_iter(model, &iter, path)) {
 		gtk_tree_model_get(model, &iter, c_fi_handle, &fih, (-1));
     	fi_gui_set_details(fih);
-    } else
-	fi_gui_clear_details();
+    } else {
+		fi_gui_clear_details();
+	}
+}
+
+static void 
+fi_purge_helper(GtkTreeModel *model, GtkTreePath *unused_path,
+	GtkTreeIter *iter, gpointer data)
+{
+	GSList **sl;
+    gnet_fi_t fih;
+
+	(void) unused_path;
+	g_assert(NULL != data);
+
+	sl = data;
+	gtk_tree_model_get(model, iter, c_fi_handle, &fih, (-1));
+	*sl = g_slist_prepend(*sl, GUINT_TO_POINTER(fih));
 }
 
 /**
@@ -154,13 +192,17 @@ on_treeview_fileinfo_selected(GtkTreeView *unused_tv, gpointer unused_udata)
 void
 on_button_fi_purge_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
+	GtkTreeSelection *s;
+	GSList *sl_fih = NULL;
+	
 	(void) unused_button;
 	(void) unused_udata;
 	
-    if (last_shown_valid) {
-		guc_fi_purge(last_shown);
-		fi_gui_clear_details();
-    }
+	s = gtk_tree_view_get_selection(treeview_fileinfo);
+	gtk_tree_selection_selected_foreach(s, fi_purge_helper, &sl_fih);
+	guc_fi_purge_by_handle_list(sl_fih);
+	g_slist_free(sl_fih);
+	fi_gui_clear_details();
 }
 
 static void
@@ -287,25 +329,6 @@ fi_gui_fi_added(gnet_fi_t fih)
     fi_gui_fill_status(fih, titles);
 
     fi_gui_append_row(store_fileinfo, fih, titles);
-}
-
-static void
-fi_gui_fi_removed(gnet_fi_t fih)
-{
-	GtkTreeIter *iter;
-	
-	g_hash_table_remove(fi_updates, GUINT_TO_POINTER(fih));
-	
-	if (
-		!g_hash_table_lookup_extended(fi_gui_handles, GUINT_TO_POINTER(fih),
-			NULL, (gpointer) &iter)
-	) {
-        g_warning("fi_gui_fi_removed: no matching iter found");
-        return;
-    }
-
-    gtk_tree_store_remove(store_fileinfo, iter);
-	g_hash_table_remove(fi_gui_handles, GUINT_TO_POINTER(fih));
 }
 
 static void
@@ -441,8 +464,11 @@ fi_gui_init(void)
 
 	store_fileinfo = gtk_tree_store_newv(G_N_ELEMENTS(types), types);
 	gtk_tree_view_set_model(treeview_fileinfo, GTK_TREE_MODEL(store_fileinfo));
+	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(treeview_fileinfo),
+		GTK_SELECTION_MULTIPLE);
+		
 	g_signal_connect(GTK_OBJECT(treeview_fileinfo), "cursor-changed",
-        G_CALLBACK(on_treeview_fileinfo_selected), NULL);
+        G_CALLBACK(on_treeview_fileinfo_cursor_changed), NULL);
 
 	gui_prop_get_guint32(PROP_FILE_INFO_COL_WIDTHS, width, 0,
 		G_N_ELEMENTS(width));
