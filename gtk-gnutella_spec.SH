@@ -48,9 +48,9 @@ the user wishes to share.
 %setup -q
 
 %build
-./Configure -D_prefix=%_prefix/ -Dbindir=%_bindir/ -Dprivlib=%_datadir/%name/ \
-	-Dsysman=%_mandir/man1/ -Dcc="$CC" -Dccflags="-Wall $CFLAGS" \
-	-Doptimize="%optflags" -Dgtkversion=2 -Dremotectrl=true \
+./Configure -Dprefix=%_prefix/ -Dbindir=%_bindir/ -Dprivlib=%_datadir/%name/ \
+	-Dsysman=%_mandir/man1/ -Dccflags="-Wall" \
+	-Doptimize="%optflags" -Dgtkversion=2 \
 	-ders
 
 %install
@@ -79,7 +79,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/gtk-gnutella
 /etc/X11/applnk/Applications/gtk-gnutella.desktop
 
-%doc README TODO NEWS INSTALL AUTHORS ChangeLog COPYING
+%doc README TODO AUTHORS ChangeLog
 
 %changelog
 * Tue Dec 11 2001 Sam Varshavchik <mrsam@courier-mta.com>
