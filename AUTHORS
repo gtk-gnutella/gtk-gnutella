@@ -62,6 +62,7 @@ Contributors:
 	Paco Arjonilla <pacoarjonilla@yahoo.es>
 	Clayton Rollins <clayton.rollins@asu.edu>
 	Hans de Graaff <hans@degraaff.org>
+	Globuz
 
 Translators:
 	fr - T'aZ <tazdev@altern.org>
@@ -72,11 +73,15 @@ Artwork:
 	Taken from the gtop package:
 	arrow_up.xpm, arrow_down.xpm
 
-    Taken from eMule:
-    upload.xpm, download.xpm, smallserver.xpm
+        Taken from eMule:
+        upload.xpm, download.xpm, smallserver.xpm
 	
 	Taken from Evolution:
 	online.xpm, offline.xpm
+	
+	Taken from http://jimmac.musichall.cz who created
+	the icons for OpenOffice.org
+	stock_form-time-field-16.xpm
 	
 	Original art by Richard Eckart created using the Gimp:
 	firewall.xpm, no_firewall.xpm
