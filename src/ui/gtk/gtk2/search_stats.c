@@ -43,8 +43,10 @@ RCSID("$Id$");
 #include "if/gui_property_priv.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/atoms.h"
 #include "lib/glib-missing.h"
 #include "lib/utf8.h"
+#include "lib/walloc.h"
 #include "lib/wordvec.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -67,11 +69,16 @@ static void empty_hash_table(void);
 static gboolean stats_hash_to_treeview(
 	gpointer key, gpointer value, gpointer userdata);
 
-static gboolean delete_hash_entry(gpointer key, gpointer val, gpointer data)
+static gboolean
+delete_hash_entry(gpointer key, gpointer value, gpointer unused_data)
 {
-	/* free the key str (was strdup'd below) */
-	g_free(key);
-	g_free(val);
+	struct term_counts *val = (struct term_counts *) value;
+	
+	(void) unused_data;
+	
+	/* free the key str (was atomized below) */
+	atom_str_free(key);
+	wfree(val, sizeof *val);
 	return TRUE;
 }
 
@@ -88,8 +95,9 @@ static void search_stats_tally(const word_vec_t * vec);
  *** Callbacks
  ***/
 
-static void search_stats_notify_word(
-    query_type_t type, const gchar *search, guint32 ip, guint16 port)
+static void
+search_stats_notify_word(query_type_t type, const gchar *search,
+	guint32 ip, guint16 port)
 {
     word_vec_t *wovec;
     guint wocnt;
@@ -99,7 +107,6 @@ static void search_stats_notify_word(
         return;
 
    	wocnt = word_vec_make(search, &wovec);
-
 	if (wocnt != 0) {
 		for (i = 0; i < wocnt; i++)
 			search_stats_tally(&wovec[i]);
@@ -108,8 +115,9 @@ static void search_stats_notify_word(
 	}
 }
 
-static void search_stats_notify_whole(
-    query_type_t type, const gchar *search, guint32 ip, guint16 port)
+static void
+search_stats_notify_whole(query_type_t type, const gchar *search,
+	guint32 ip, guint16 port)
 {
     word_vec_t wovec;
 	gchar buf[1024];
@@ -124,8 +132,9 @@ static void search_stats_notify_whole(
     search_stats_tally(&wovec);
 }
 
-static void search_stats_notify_routed(
-    query_type_t type, const gchar *search, guint32 ip, guint16 port)
+static void
+search_stats_notify_routed(query_type_t type, const gchar *search,
+	guint32 ip, guint16 port)
 {
     word_vec_t wovec;
 
@@ -141,7 +150,8 @@ static void search_stats_notify_routed(
  ***/
 
 /* this sucks -- too slow */
-static void empty_hash_table(void)
+static void
+empty_hash_table(void)
 {
 	if (!stat_hash)
 		return;
@@ -149,24 +159,20 @@ static void empty_hash_table(void)
 	g_hash_table_foreach_remove(stat_hash, delete_hash_entry, NULL);
 }
 
-/*
+/**
  * helper func for stats_display -
  *  does two things:
  *  1. clears out aged / infrequent search terms
  *  2. sticks the rest of the search terms in treeview_search_stats
- *
  */
-static gboolean stats_hash_to_treeview(
-    gpointer key, gpointer value, gpointer userdata)
+static gboolean
+stats_hash_to_treeview(gpointer key, gpointer value, gpointer userdata)
 {
+	struct term_counts *val = value;
 	GtkTreeIter iter;
-	struct term_counts *val = (struct term_counts *) value;
 
 	/* update counts */
-	if (!val->period_cnt)
-		val->periods++;
-	else
-		val->periods = 0;
+	val->periods = val->period_cnt ? 0 : (val->periods + 1);
 	val->total_cnt += val->period_cnt;
 
 	/* try to keep the number of infrequent terms down */
@@ -174,8 +180,8 @@ static gboolean stats_hash_to_treeview(
 		((gfloat) val->total_cnt / (val->periods + 2.0)) * 100 <
 			search_stats_delcoef
 	) {
-		G_FREE_NULL(key);
-		G_FREE_NULL(val);
+		atom_str_free(key);
+		wfree(val, sizeof *val);
 		return TRUE;
 	}
 
@@ -196,12 +202,11 @@ static gboolean stats_hash_to_treeview(
 	return FALSE;
 }
 
-/*
- * search_stats_enable
- *
+/**
  * Enable search stats.
  */
-static void search_stats_gui_enable(search_request_listener_t lst)
+static void
+search_stats_gui_enable(search_request_listener_t lst)
 {
     if (!callback_registered) {
         guc_share_add_search_request_listener(lst);
@@ -209,27 +214,24 @@ static void search_stats_gui_enable(search_request_listener_t lst)
     }
 }
 
-static void search_stats_gui_disable(void)
+static void
+search_stats_gui_disable(void)
 {
     if (callback_registered) {
-        guc_share_remove_search_request_listener
-            (search_stats_notify_word);
-        guc_share_remove_search_request_listener
-            (search_stats_notify_whole);
-        guc_share_remove_search_request_listener
-            (search_stats_notify_routed);
+        guc_share_remove_search_request_listener(search_stats_notify_word);
+        guc_share_remove_search_request_listener(search_stats_notify_whole);
+        guc_share_remove_search_request_listener(search_stats_notify_routed);
         callback_registered = FALSE;
     }
 
     empty_hash_table();
 }
 
-/*
- * search_stats_tally:
- *
+/**
  * Count a word that has been seen.
  */
-static void search_stats_tally(const word_vec_t * vec)
+static void
+search_stats_tally(const word_vec_t *vec)
 {
 	struct term_counts *val;
 	gpointer key;
@@ -241,10 +243,10 @@ static void search_stats_tally(const word_vec_t * vec)
 	if (val) {
 		val->period_cnt++;
 	} else {
-		key = g_strdup(vec->word);
-		val = (struct term_counts *) g_malloc0(sizeof(struct term_counts));
+		key = atom_str_get(vec->word);
+		val = walloc0(sizeof *val);
 		val->period_cnt = vec->amount;
-		g_hash_table_insert(stat_hash, key, (gpointer) val);
+		g_hash_table_insert(stat_hash, key, val);
 	}
 }
 
@@ -254,24 +256,23 @@ static void search_stats_tally(const word_vec_t * vec)
  *** Public functions 
  ***/
 
-/*
- * search_stats_reset:
- *
+/**
  * Clear the list, empty the hash table.
  */
-void search_stats_gui_reset(void)
+void
+search_stats_gui_reset(void)
 {
 	empty_hash_table();
 	gtk_list_store_clear(store_search_stats);
 }
 
-void search_stats_gui_set_type(gint type)
+void
+search_stats_gui_set_type(gint type)
 {
     if (type == selected_type)
         return;
 
     search_stats_gui_disable();
-
     selected_type = type;
 
     switch (type) {
@@ -289,16 +290,13 @@ void search_stats_gui_set_type(gint type)
         break;
     default:
         g_assert_not_reached();
-    };
+    }
 }
 
 /* FIXME: merge all `add_column' functions into one */
-static void add_column(
-    GtkTreeView *treeview,
-    gint column_id,
-    gint width,
-    gfloat xalign,
-    const gchar *label)
+static void
+add_column(GtkTreeView *treeview, gint id, gint width, gfloat xalign,
+	const gchar *label)
 {
     GtkTreeViewColumn *column;
     GtkCellRenderer *renderer;
@@ -312,21 +310,46 @@ static void add_column(
         NULL);
 
     column = gtk_tree_view_column_new_with_attributes(
-                label, renderer, "text", column_id, NULL);
-    gtk_tree_view_column_set_min_width(column, 1);
-    gtk_tree_view_column_set_fixed_width(column, MAX(1, width));
-    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_column_set_resizable(column, TRUE);
-    gtk_tree_view_column_set_reorderable(column, TRUE);
+                label, renderer, "text", id, NULL);
+	
+	g_object_set(G_OBJECT(column),
+		"fixed-width", MAX(1, width),
+		"min-width", 1,
+		"reorderable", TRUE,
+		"resizable", TRUE,
+		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
+		"visible", TRUE,
+		NULL);
+
     gtk_tree_view_append_column(treeview, column);
+	gtk_tree_view_column_set_sort_column_id(column, id);
 }
 
-void search_stats_gui_init(void)
+void
+search_stats_gui_init(void)
 {
+	static GType types[] = {
+		G_TYPE_STRING,
+		G_TYPE_ULONG,
+		G_TYPE_ULONG
+	};
+	static const struct {
+		const gint id;
+		const guint width;
+		const gfloat align;
+		const gchar *title;
+	} cols[] = {
+		{ 0, 200, 0.0, N_("Search Term") },
+		{ 1,  60, 1.0, N_("This Interval") },
+		{ 2,  60, 1.0, N_("Total") },
+	};
+	size_t i;
     GtkCombo *combo_types;
 	GtkTreeModel *model;
     GtkTreeView *treeview;
 
+	STATIC_ASSERT(G_N_ELEMENTS(cols) == G_N_ELEMENTS(types));
+	
 	treeview_search_stats = 
         GTK_TREE_VIEW(lookup_widget(main_window, "treeview_search_stats"));
 	label_search_stats_count =
@@ -374,18 +397,21 @@ void search_stats_gui_init(void)
 #endif
 
     /* set up the treeview to be sorted properly */
-	model = GTK_TREE_MODEL(gtk_list_store_new(3,
-		G_TYPE_STRING, G_TYPE_ULONG, G_TYPE_ULONG));
+	model = GTK_TREE_MODEL(gtk_list_store_newv(G_N_ELEMENTS(types), types));
 	gtk_tree_view_set_model(treeview, model);
     store_search_stats = GTK_LIST_STORE(model);
 	g_object_unref(model);
-	add_column(treeview, 0, 200, 0.0, "Search Term");
-	add_column(treeview, 1, 60, 1.0, "This Interval");
-	add_column(treeview, 2, 60, 1.0, "Total");
-	stat_hash = g_hash_table_new(g_str_hash, g_str_equal);
+
+	for (i = 0; i < G_N_ELEMENTS(cols); i++) {
+		add_column(treeview,
+			cols[i].id, cols[i].width, cols[i].align, _(cols[i].title));
+	}
+
+	stat_hash = g_hash_table_new(NULL, NULL);
 }
 
-void search_stats_gui_shutdown(void)
+void
+search_stats_gui_shutdown(void)
 {
 	tree_view_save_widths(treeview_search_stats, PROP_SEARCH_STATS_COL_WIDTHS);
     search_stats_gui_set_type(NO_SEARCH_STATS);
@@ -393,14 +419,15 @@ void search_stats_gui_shutdown(void)
 	stat_hash = NULL;
 }
 
-/*
+/**
  * Display the data gathered during the last time period.
  * Perhaps it would be better to have this done on a button click(?)
  */
-void search_stats_gui_update(time_t now)
+void
+search_stats_gui_update(time_t now)
 {
 	static time_t last_update = 0;
-	char tmpstr[32];
+	gchar tmpstr[32];
 
     if (delta_time(now, last_update) < search_stats_update_interval)
         return;
@@ -419,4 +446,4 @@ void search_stats_gui_update(time_t now)
 	gtk_label_set_text(label_search_stats_count, tmpstr);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
