@@ -1973,8 +1973,6 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 			slots_free--;
 	}
 	
-	g_assert(slots_free >= 0);
-	
 	if (allowed_max_uploads <= uq->queue->active_uploads - slots_free) {
 		return FALSE;
 	}
