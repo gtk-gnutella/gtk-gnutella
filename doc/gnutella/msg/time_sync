@@ -1,0 +1,103 @@
+             The "Time Sync" Vendor-specific Messages
+                              Version 1
+
+                          Raphael Manfredi
+                    <Raphael_Manfredi@pobox.com>
+                         September 29th, 2004
+                
+
+INTRODUCTION
+
+For some operations, it is necessary that the Gnutella servents be able
+to report an accurate absolute time.  Naturally, hosts can run NTP to
+ensure that their clock is properly configured, but for various reasons,
+this will not always happen.
+
+The "Time Sync" messages allow hosts to perform two distinct actions:
+
+1. Determine the relative clock offsets between them.  This can be used
+   to express time-sensitive information in messages in the local clock
+   of the remote servent with which we computed our offset.
+
+2. Compute the round-trip time between two hosts when everything is
+   performed as quickly as possible.
+
+
+SPECIFICATIONS
+
+First let us define the "timestamp" payload.  It is made of two 32-bit
+integers, written in big-endian format.  The first one is the amount of
+seconds elapsed since The Epoch (UNIX timestamps) and the second is an
+amount of microseconds, representing the fractional part of the current time.
+Each timestamp is therefore a 64-bit quantity.
+
+The synchronization protocol begins when a servent issues a "Time Sync
+Request":
+
+    Name: Time Sync Request
+    Vendor: GTKG
+    ID: 9
+    Version: 1
+    TTL: 1
+    Payload:
+        single byte
+
+The single byte is used for transmitting flags.  The currently defined
+flags are:
+
+	bit0: local host runs NTP
+
+The first eight bytes of the GUID contain a "timestamp" (T1), which is the
+time at which the message is sent by the node.
+
+The message can be sent either via UDP or via TCP (in which case it is
+put "ahead of the queue", i.e. scheduled for sending as quickly as possible
+after the T1 timestamp was written).
+
+A servent receiving a GTKG/9v1 message must reply as quickly as possible
+with a GTKG/10v1 message:
+
+    Name: Time Sync Reply
+    Vendor: GTKG
+    ID: 10
+    Version: 1
+    TTL: 1
+    Payload:
+        single byte
+		8 bytes: reception "timestamp"
+
+The flags in the first single byte are defined as:
+
+	bit0: local host runs NTP
+
+The first half of the GUID of the message holds the T1 timestamp.  The
+second half of the GUID hold another timestamp (T3), which is the time
+at which the reply is scheduled for sending by the replying party.
+
+The 8 bytes of the payload, after the flags, hold the T2 timestamp, defined
+as being the time at which the GTKG/9v1 was received, expressed in the
+recipient's clock reference.
+
+This message is then sent back to the host which sent GTKG/9v1, using the
+same medium (UDP or TCP) as the one used to get the request.  It is sent
+as quickly as possible after T3 has been committed to the GUID.
+
+When the servent gets the GTKG/10v1 reply, it immediately computes the T4
+timestamp, defined as the time at which the message was received.
+
+From then on, the round-trip time (RTT) can be defined as:
+
+	RTT = (T4 - T1) - (T3 - T2)
+
+i.e. we substract the "processing" time (T3 - T2) on the remote host
+from the wall clock time we measure between the time we sent the GTKG/9v1
+message and the time the GTKG/10v1 reply came back (T4 - T1).
+
+The offset (algebraic quantity) between the local servent's clock and the
+replier's clock can be computed as:
+
+	offset = ((T2 - T1) + (T3 - T4))/2
+
+i.e. we average the difference between their clock and ours, assuming the
+messages travelled at the same speed (with the same latencies) in both
+directions, which is a very strong hypothesis.

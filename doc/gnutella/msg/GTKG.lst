@@ -7,4 +7,14 @@
 #
 
 GTKG/1v1	GSW proposal 			[UNUSED]
-GTKG/7v1	UDP Connect Back		[UNUSED]
+GTKG/2v1	Hit Route Lost 			[UNUSED]
+GTKG/3v1	OOB Proxy Request       [UNUSED]
+GTKG/4v1	OOB Proxy Acknowledge   [UNUSED]
+GTKG/5v1	OOB Proxy Indication    [UNUSED]
+GTKG/6v1	OOB Proxy Cancel        [UNUSED]
+GTKG/7v2	UDP Connect Back		[USED]
+GTKG/8v1	UDP Firewall Level		[UNUSED]
+GTKG/9v1	Time Sync Request		[USED]
+GTKG/10v1	Time Sync Reply			[USED]
+GTKG/12v2	OOB Waiting Results		[UNUSED]
+GTKG/21v1	Push Proxy Cancel		[USED]
