@@ -1346,6 +1346,7 @@ route_query_hit(struct gnutella_node **node, struct route_dest *dest)
 
 	if (node_sent_message(fake_node, m)) {
 		node_is_target = TRUE;		/* We are the target of the reply */
+		gnet_stats_count_general(sender, GNR_LOCAL_QUERY_HITS, 1);
 		goto handle;
 	}
 

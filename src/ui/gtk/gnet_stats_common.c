@@ -121,6 +121,7 @@ const gchar *general_type_str(int value)
 		N_("Routing errors"),
 		N_("Searches to local DB"),
 		N_("Hits on local DB"),
+		N_("Query hits received for local searches"),
 		N_("Duplicates with higher TTL"),
 		N_("Compacted queries"),
 		N_("Bytes saved by compacting"),
