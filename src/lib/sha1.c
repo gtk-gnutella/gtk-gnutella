@@ -266,25 +266,50 @@ void SHA1ProcessMessageBlock(SHA1Context *context)
                             0x8F1BBCDC,
                             0xCA62C1D6
                             };
-    int           t;                 /* Loop counter                */
+    int           t;                /* Loop counter                */
     guint32      temp;              /* Temporary word value        */
     guint32      W[80];             /* Word sequence               */
     guint32      A, B, C, D, E;     /* Word buffers                */
+    guint32      *wp;               /* Pointer in word sequence    */
 
     /*
      *  Initialize the first 16 words in the array W
      */
-    for(t = 0; t < 16; t++)
-    {
-        W[t] = context->Message_Block[t * 4] << 24;
-        W[t] |= context->Message_Block[t * 4 + 1] << 16;
-        W[t] |= context->Message_Block[t * 4 + 2] << 8;
-        W[t] |= context->Message_Block[t * 4 + 3];
-    }
 
-    for(t = 16; t < 80; t++)
+#define INIT(x) \
+        W[x] = (context->Message_Block[(x) * 4] << 24) | \
+        	(context->Message_Block[(x) * 4 + 1] << 16) | \
+        	(context->Message_Block[(x) * 4 +2] << 8) | \
+        	(context->Message_Block[(x) * 4 +3])
+
+	/* Unrolling this loop saves time */
+	INIT(0);  INIT(1);  INIT(2);  INIT(3);
+	INIT(4);  INIT(5);  INIT(6);  INIT(7);
+	INIT(8);  INIT(9);  INIT(10); INIT(11);
+	INIT(12); INIT(13); INIT(14); INIT(15);
+
+#define CRUNCH \
+       *wp = SHA1CircularShift(1,wp[-3] ^ wp[-8] ^ wp[-14] ^ wp[-16])
+
+	wp = &W[16];
+	CRUNCH; wp++;		/* 16 */
+	CRUNCH; wp++;		/* 17 */
+	CRUNCH; wp++;		/* 18 */
+	CRUNCH; wp++;		/* 19 */
+
+	/* Fully unrolling this loop does NOT save time due to I-cache misses */
+    for (t = 20; t < 80; t += 10)
     {
-       W[t] = SHA1CircularShift(1,W[t-3] ^ W[t-8] ^ W[t-14] ^ W[t-16]);
+		CRUNCH; wp++;		/* t+0 */
+		CRUNCH; wp++;		/* t+1 */
+		CRUNCH; wp++;		/* t+2 */
+		CRUNCH; wp++;		/* t+3 */
+		CRUNCH; wp++;		/* t+4 */
+		CRUNCH; wp++;		/* t+5 */
+		CRUNCH; wp++;		/* t+6 */
+		CRUNCH; wp++;		/* t+7 */
+		CRUNCH; wp++;		/* t+8 */
+		CRUNCH; wp++;		/* t+9 */
     }
 
     A = context->Intermediate_Hash[0];
@@ -295,8 +320,9 @@ void SHA1ProcessMessageBlock(SHA1Context *context)
 
     for(t = 0; t < 20; t++)
     {
-        temp =  SHA1CircularShift(5,A) +
-                ((B & C) | ((~B) & D)) + E + W[t] + K[0];
+		/* Optimizing "(B & C) | (~B & D)" into "D ^ (B & (C ^ D))" */
+        temp = SHA1CircularShift(5,A) +
+			(D ^ (B & (C ^ D))) + E + W[t] + K[0];
         E = D;
         D = C;
         C = SHA1CircularShift(30,B);
@@ -316,8 +342,9 @@ void SHA1ProcessMessageBlock(SHA1Context *context)
 
     for(t = 40; t < 60; t++)
     {
+		/* Optimizing "(B & C) | (B & D)" into "B & (C | D)" */
         temp = SHA1CircularShift(5,A) +
-               ((B & C) | (B & D) | (C & D)) + E + W[t] + K[2];
+               ((B & (C | D)) | (C & D)) + E + W[t] + K[2];
         E = D;
         D = C;
         C = SHA1CircularShift(30,B);
