@@ -88,12 +88,12 @@ void gui_update_download(struct download *d, gboolean force)
 		{
 			time_t elapsed = now - d->last_update;
 
-			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "Remotely queued");
+			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "Queued");
 
 			if (d->queue_status.position > 0) {
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					" (position %d",		/* ) */
+					" (slot %d",		/* ) */
 					d->queue_status.position);
 				
 				if (d->queue_status.length > 0) {
