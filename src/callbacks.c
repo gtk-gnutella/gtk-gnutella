@@ -440,11 +440,6 @@ void on_clist_uploads_unselect_row(GtkCList * clist, gint row, gint column,
 	gui_update_upload_kill();
 }
 
-void on_clist_uploads_click_column(GtkCList * clist, gint column,
-								   gpointer user_data)
-{
-}
-
 void on_clist_uploads_resize_column(GtkCList * clist, gint column,
 									gint width, gpointer user_data)
 {
@@ -2232,15 +2227,15 @@ void on_clist_search_results_click_column(GtkCList * clist, gint column,
 		return;
 
 	switch (column) {
-	case 1:		/* Size */
+	case c_sr_size:		
 		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist),
 								   search_results_compare_size);
 		break;
-	case 2:		/* Speed */
+	case c_sr_speed:	
 		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist),
 								   search_results_compare_speed);
 		break;
-	case 3:		/* Host */
+	case c_sr_host:		
 		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist),
 								   search_results_compare_host);
 		break;
