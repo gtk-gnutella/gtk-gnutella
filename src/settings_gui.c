@@ -220,6 +220,7 @@ static void update_input_bw_display(void);
 static gboolean dl_http_latency_changed(property_t prop);
 static gboolean update_byte_size_entry(property_t prop);
 static gboolean compute_connection_speed_changed(property_t prop);
+static gboolean update_toggle_search_autoselect(property_t prop);
 #ifdef USE_GTK1
 static gboolean update_toggle_node_show_uptime(property_t prop);
 static gboolean update_toggle_node_show_handshake(property_t prop);
@@ -260,7 +261,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_SEARCH_AUTOSELECT,
-        update_togglebutton,
+        update_toggle_search_autoselect,
         TRUE,
         "checkbutton_search_autoselect",
         FREQ_UPDATES, 0
@@ -3256,6 +3257,24 @@ static gboolean update_byte_size_entry(property_t prop)
     gtk_entry_set_text(GTK_ENTRY(w), buf);
 
     return FALSE;
+}
+
+static gboolean update_toggle_search_autoselect(property_t prop)
+{
+	gboolean value;
+	gboolean ret;
+
+	ret = update_togglebutton(prop);
+	gui_prop_get_boolean_val(prop, &value);
+
+	gtk_widget_set_sensitive(
+		lookup_widget(main_window, "checkbutton_search_autoselect_ident"),
+		value);
+	gtk_widget_set_sensitive(
+		lookup_widget(main_window, "checkbutton_search_autoselect_fuzzy"),
+		value);
+
+	return ret;
 }
 
 #ifdef USE_GTK1
