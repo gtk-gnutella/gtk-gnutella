@@ -1407,6 +1407,9 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	parq_ul->by_ip->total++;
 	parq_ul->by_ip->list = g_list_prepend(parq_ul->by_ip->list, parq_ul);
 	
+	/* well, we can safely assign the parq pointer to this upload now */
+	u->parq_opaque = parq_ul;
+	
 	g_assert(parq_ul != NULL);
 	g_assert(parq_ul->position > 0);
 	g_assert(parq_ul->id != NULL);
@@ -1651,13 +1654,16 @@ static struct parq_ul_queued *parq_upload_find_id(gnutella_upload_t *u,
  * Finds an upload if available in the upload queue.
  * returns NULL if upload could not be found.
  */
-static struct parq_ul_queued *parq_upload_find(gnutella_upload_t *u)
+static inline struct parq_ul_queued *parq_upload_find(gnutella_upload_t *u)
 {
 	gchar buf[1024];
 	
 	g_assert(u != NULL);
 	g_assert(ul_all_parq_by_ip_and_name != NULL);
 	g_assert(ul_all_parq_by_id != NULL);
+	
+	if (u->parq_opaque != NULL)
+		return (struct parq_ul_queued *) u->parq_opaque;
 	
 	gm_snprintf(buf, sizeof(buf), "%u %s", u->ip, u->name);
 	
@@ -3068,7 +3074,7 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 	parq_ul = parq_upload_find(u);
 	
 	if (parq_ul == NULL) {
-		printf("[PARQ UL] FIXME: Need to lookup the ID first!\r\n");
+		g_warning("[PARQ UL] Did the upload got removed?\r\n");
 		return;
 	}
 	

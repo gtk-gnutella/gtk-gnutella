@@ -40,7 +40,8 @@ typedef struct upload {
 	struct gnutella_socket *socket;
 	gint error_sent;				/* HTTP error code sent back */
 	gpointer io_opaque;				/* Opaque I/O callback information */
-
+	gpointer parq_opaque;			/* Opaque parq information */
+	
 	gint file_desc;
 	bio_source_t *bio;				/* Bandwidth-limited source */
 
@@ -113,4 +114,3 @@ void upload_fire_upload_info_changed(gnutella_upload_t *n);
 void expect_http_header(gnutella_upload_t *u, upload_stage_t new_status);
 
 #endif /* _uploads_h_ */
-
