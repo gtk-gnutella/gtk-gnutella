@@ -32,7 +32,7 @@
 
 struct extension {
 	gchar *str;			/* Extension string (e.g. "html") */
-	gint len;			/* Extension length (e.g. 4) */
+	size_t len;			/* Extension length (e.g. 4) */
 };
 
 typedef struct shared_file {
@@ -40,9 +40,9 @@ typedef struct shared_file {
 	gchar *file_path;		/* The full path of the file */
 	const gchar *file_name;	/* Pointer within file_path at start of filename */
 	guint32 file_index;		/* the files index within our local DB */
-	guint32 file_size;		/* File size in Bytes */
+	filesize_t file_size;	/* File size in Bytes */
 	guint32 flags;			/* See below for definition */
-	gint file_name_len;
+	size_t file_name_len;
 	time_t mtime;			/* Last modification time, for SHA1 computation */
 	gchar sha1_digest[SHA1_RAW_SIZE];	/* SHA1 digest, binary form */
 	struct dl_file_info *fi;			/* PFSP-server: the holding fileinfo */
@@ -113,4 +113,4 @@ void use_map_on_query(gchar *query, int len);
 
 #endif /* _core_share_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

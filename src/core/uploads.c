@@ -91,8 +91,6 @@ static idtable_t *upload_handle_map = NULL;
 #define upload_free_handle(n) \
     idtable_free_id(upload_handle_map, n);
 
-#define CONST_STRLEN(x) (sizeof(x) - 1)
-
 static gint running_uploads = 0;
 static gint registered_uploads = 0;
 
@@ -265,9 +263,11 @@ upload_timer(time_t now)
 				}
 				if (!skip) last_stalled = now;
 				u->flags |= UPLOAD_F_STALLED;
-				g_warning("connection to %s (%s) stalled after %u bytes sent,"
+				g_warning("connection to %s (%s) "
+					"stalled after %" PRIu64 " bytes sent,"
 					" stall counter at %d%s",
-					ip_to_gchar(u->ip), upload_vendor_str(u), u->sent, stalled,
+					ip_to_gchar(u->ip), upload_vendor_str(u),
+					(guint64) u->sent, stalled,
 					skip ? " (IGNORED)" : "");
 
 				/*
@@ -287,8 +287,10 @@ upload_timer(time_t now)
 				skip = TRUE;
 
 			if (u->flags & UPLOAD_F_STALLED) {
-				g_warning("connection to %s (%s) un-stalled, %u bytes sent%s",
-					ip_to_gchar(u->ip), upload_vendor_str(u), u->sent,
+				g_warning("connection to %s (%s) un-stalled, %" PRIu64
+					" bytes sent%s",
+					ip_to_gchar(u->ip), upload_vendor_str(u),
+					(guint64) u->sent,
 					skip ? " (IGNORED)" : "");
 
 				if (
@@ -366,8 +368,8 @@ upload_timer(time_t now)
 			else
 				upload_error_remove(u, NULL, 408, "Request timeout");
 		} else if (UPLOAD_IS_SENDING(u))
-			upload_remove(u, "Data timeout after %u byte%s", u->sent,
-				u->sent == 1 ? "" : "s");
+			upload_remove(u, "Data timeout after %" PRIu64 " byte%s",
+				(guint64) u->sent, u->sent == 1 ? "" : "s");
 		else
 			upload_remove(u, "Lifetime expired");
 	}
@@ -1131,7 +1133,6 @@ static guint
 mi_key_hash(gconstpointer key)
 {
 	const struct mesh_info_key *mik = (const struct mesh_info_key *) key;
-	extern guint sha1_hash(gconstpointer key);
 
 	return sha1_hash((gconstpointer) mik->sha1) ^ mik->ip;
 }
@@ -1141,7 +1142,6 @@ mi_key_eq(gconstpointer a, gconstpointer b)
 {
 	const struct mesh_info_key *mika = (const struct mesh_info_key *) a;
 	const struct mesh_info_key *mikb = (const struct mesh_info_key *) b;
-	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 	return mika->ip == mikb->ip &&
 		sha1_eq((gconstpointer) mika->sha1, (gconstpointer) mikb->sha1);
@@ -1514,7 +1514,6 @@ get_file_to_upload_from_index(
 
 	if (sent_sha1) {
 		struct shared_file *sfn;
-		extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 		/*
 		 * If they sent a SHA1, maybe they have a download mesh as well?
@@ -2001,7 +2000,8 @@ upload_416_extra(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 
 	(void) unused_flags;
 	g_assert(len <= INT_MAX);
-	rw = gm_snprintf(buf, len, "Content-Range: bytes */%u\r\n", u->file_size);
+	rw = gm_snprintf(buf, len, "Content-Range: bytes */%" PRIu64 "\r\n",
+			(guint64) u->file_size);
 	g_assert(rw < len);
 
 	*retval = rw;
@@ -2025,15 +2025,16 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 	rw += gm_snprintf(&buf[rw], length - rw,
 		"Last-Modified: %s\r\n"
 		"Content-Type: application/binary\r\n"
-		"Content-Length: %u\r\n",
+		"Content-Length: %" PRIu64 "\r\n",
 			date_to_rfc1123_gchar(a->mtime),
-			u->end - u->skip + 1);
+			(guint64) u->end - u->skip + 1);
 
 	g_assert(rw < length);
 
 	if (u->skip || u->end != (u->file_size - 1))
 	  rw += gm_snprintf(&buf[rw], length - rw,
-		"Content-Range: bytes %u-%u/%u\r\n", u->skip, u->end, u->file_size);
+				"Content-Range: bytes %" PRIu64 "-%" PRIu64 "/%" PRIu64 "\r\n",
+				(guint64) u->skip, (guint64) u->end, (guint64) u->file_size);
 
 	g_assert(rw < length);
 
@@ -2063,7 +2064,8 @@ upload_request(gnutella_upload_t *u, header_t *header)
 {
 	struct gnutella_socket *s = u->socket;
 	struct shared_file *reqfile = NULL;
-    guint32 idx = 0, skip = 0, end = 0;
+    guint32 idx = 0;
+	filesize_t skip = 0, end = 0;
 	const gchar *fpath = NULL;
 	gchar *user_agent = 0;
 	gchar *buf;
@@ -2088,7 +2090,6 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean use_sendfile;
 	gchar *token;
 	gboolean known_for_stalling;
-	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 	if (dbg > 2) {
 		printf("----%s Request from %s:\n",
@@ -2200,7 +2201,6 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	reqfile = get_file_to_upload(u, header, request);
-
 	if (!reqfile) {
 		/* get_file_to_upload() has signaled the error already */
 		return;
@@ -2568,8 +2568,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 			g_assert(up);
 
 			g_warning("stalling connection to %s (%s) replaced "
-				"after %u bytes sent, stall counter at %d",
-				ip_to_gchar(up->ip), upload_vendor_str(up), up->sent, stalled);
+				"after %" PRIu64 " bytes sent, stall counter at %d",
+				ip_to_gchar(up->ip), upload_vendor_str(up),
+				(guint64) up->sent, stalled);
 
 			upload_remove(up, "Stalling upload replaced");
 			replacing_stall = TRUE;
@@ -2967,7 +2968,7 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 		pos = u->pos;
 		written = bio_sendfile(u->bio, u->file_desc, &u->pos, available);
 
-		g_assert(written == -1 || written == u->pos - pos);
+		g_assert(written == -1 || (guint64) written == u->pos - pos);
 	} else {
 		/*
 	 	* Compute the amount of bytes to send.
