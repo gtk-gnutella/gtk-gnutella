@@ -564,8 +564,10 @@ void hsep_send_msg(struct gnutella_node *n,time_t now)
 	 * little endian byte order.
 	 */
 
-	/* determine what we know about non-HSEP nodes in 1 hop distance */
-	hsep_get_non_hsep_triple(&other);
+	if (triples > 1) {
+		/* determine what we know about non-HSEP nodes in 1 hop distance */
+		hsep_get_non_hsep_triple(&other);
+	}
 
 	for (i = 0; i < triples; i++) {
 		guint64 val;
