@@ -1624,7 +1624,7 @@ static void file_info_hash_remove(struct dl_file_info *fi)
     file_info_drop_handle(fi->fi_handle);
 
 	gnet_prop_set_guint32_val(PROP_FI_ALL_COUNT, fi_all_count - 1);
-	g_assert(fi_all_count >= 0);
+	g_assert((gint) fi_all_count >= 0);
 
 	/*
 	 * Remove from plain hash tables: by output name, and by SHA1.
@@ -3721,7 +3721,7 @@ void file_info_remove_source(
     if (fi->refcount == 0) {
 		gnet_prop_set_guint32_val(PROP_FI_WITH_SOURCE_COUNT,
 			fi_with_source_count - 1);
-		g_assert(fi_with_source_count >= 0);
+		g_assert((gint) fi_with_source_count >= 0);
 
 		if (discard || (fi->flags & FI_F_DISCARD)) {
 			file_info_hash_remove(fi);
