@@ -124,7 +124,7 @@ find_vendor(guchar raw[4])
     READ_GUINT32_BE(raw, code);
 
 #define GET_KEY(i) (vendor_map[(i)].code)
-#define FOUND(i) do { return vendor_map[(i)].name; } while (0)
+#define FOUND(i) G_STMT_START { return vendor_map[(i)].name; } G_STMT_END
 
 	BINARY_SEARCH(guint32, code, G_N_ELEMENTS(vendor_map), VENDOR_CODE_CMP,
 		GET_KEY, FOUND);

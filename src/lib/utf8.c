@@ -4636,7 +4636,7 @@ utf32_nfd_lookup(guint32 uc)
 	const guint16 *p = NULL;
 
 #define GET_ITEM(i) (utf32_nfd_lut_low[(i)].c)
-#define FOUND(i) do { p = utf32_nfd_lut_low[(i)].d; } while (0)
+#define FOUND(i) G_STMT_START { p = utf32_nfd_lut_low[(i)].d; } G_STMT_END
 	
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_nfd_lut_low), CMP,
@@ -4667,7 +4667,7 @@ utf32_nfd_lookup(guint32 uc)
 	/* utf32_nfd_lut_high contains UTF-32 strings, so we return a pointer
 	 * to the respective entry instead of copying the string */
 #define GET_ITEM(i) (utf32_nfd_lut_high[(i)].c)
-#define FOUND(i) do { return utf32_nfd_lut_high[(i)].d; } while (0)
+#define FOUND(i) G_STMT_START { return utf32_nfd_lut_high[(i)].d; } G_STMT_END
 	
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_nfd_lut_high), CMP,
@@ -4685,7 +4685,8 @@ utf32_uppercase(guint32 uc)
 		return is_ascii_lower(uc) ? (guint32) toupper(uc) : uc;
 
 #define GET_ITEM(i) (utf32_uppercase_lut[(i)].lower)
-#define FOUND(i) do { return utf32_uppercase_lut[(i)].upper; } while (0)
+#define FOUND(i) \
+	G_STMT_START { return utf32_uppercase_lut[(i)].upper; } G_STMT_END
 	
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_uppercase_lut), CMP,
@@ -4708,7 +4709,8 @@ utf32_lowercase(guint32 uc)
 		return is_ascii_upper(uc) ? (guint32) tolower(uc) : uc;
 
 #define GET_ITEM(i) (utf32_lowercase_lut[(i)].upper)
-#define FOUND(i) do { return utf32_lowercase_lut[(i)].lower; } while (0)
+#define FOUND(i) \
+	G_STMT_START { return utf32_lowercase_lut[(i)].lower; } G_STMT_END
 	
 	/* Perform a binary search to find ``uc'' */
 	BINARY_SEARCH(guint32, uc, G_N_ELEMENTS(utf32_lowercase_lut), CMP,
