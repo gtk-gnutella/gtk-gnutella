@@ -2538,7 +2538,6 @@ static prop_map_t property_map[] = {
         "spinbutton_node_rx_size",
         FREQ_UPDATES, 0
     },
-#ifdef USE_GTK1
     {
         get_main_window,
         PROP_LIBRARY_RESCAN_TIMESTAMP,
@@ -2675,7 +2674,6 @@ static prop_map_t property_map[] = {
         "label_qrp_patch_comp_ratio",
         FREQ_UPDATES, 0
     },
-#endif
 };
 
 /***
@@ -3550,7 +3548,6 @@ static gboolean configured_peermode_changed(property_t prop)
 	gboolean ret;
 	GtkWidget *frame =
 		lookup_widget(main_window, "frame_gnet_can_become_ultra");
-#ifdef USE_GTK1
 	GtkWidget *qrp_frame1;
 	GtkWidget *qrp_frame2;
 	GtkWidget *qrp_frame3;
@@ -3558,7 +3555,6 @@ static gboolean configured_peermode_changed(property_t prop)
 	qrp_frame1 = lookup_widget(main_window, "frame_qrp_statistics");
 	qrp_frame2 = lookup_widget(main_window, "frame_qrp_table_info");
 	qrp_frame3 = lookup_widget(main_window, "frame_qrp_patch_info");
-#endif
 
 	ret = update_multichoice(prop);
     gnet_prop_get_guint32_val(prop, &mode);
@@ -3568,7 +3564,6 @@ static gboolean configured_peermode_changed(property_t prop)
 	else
 		gtk_widget_hide(frame);
 
-#ifdef USE_GTK1
 	if (mode == NODE_P_NORMAL) {
 		gtk_widget_hide(qrp_frame1);
 		gtk_widget_hide(qrp_frame2);
@@ -3578,7 +3573,6 @@ static gboolean configured_peermode_changed(property_t prop)
 		gtk_widget_show(qrp_frame2);
 		gtk_widget_show(qrp_frame3);
 	}
-#endif
 
 	return ret;
 }
@@ -4364,9 +4358,7 @@ static gboolean expert_mode_changed(property_t prop)
         "frame_expert_rx_buffers",
         "frame_expert_gnet_message_size",
         "frame_expert_search_queue",
-#ifdef USE_GTK1
         "frame_expert_share_statistics",
-#endif
         NULL
     };
     gint n;
@@ -5041,12 +5033,10 @@ void settings_gui_init(void)
 	 *		--RAM, 27/12/2003
 	 */
 #ifndef USE_REMOTE_CTRL
-#ifdef USE_GTK1
 	{
 		GtkWidget *w = lookup_widget(main_window, "checkbutton_enable_shell");
 		gtk_widget_set_sensitive(w, FALSE);
 	}
-#endif
 #endif
 }
 
@@ -5072,11 +5062,9 @@ void settings_gui_shutdown(void)
     downloads_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_downloads")));
-#ifdef USE_GTK1
 	fileinfo_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_fileinfo")));
-#endif
     main_divider_pos = 
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_main")));
