@@ -78,22 +78,25 @@ typedef enum {
  * the atom structure.
  */
 typedef struct atom {
-		gint refcnt;			/* Amount of references */
 #ifdef TRACK_ATOMS
-		GHashTable *get;		/* Allocation spots */
-		GHashTable *free;		/* Free spots */
+	GHashTable *get;		/* Allocation spots */
+	GHashTable *free;		/* Free spots */
 #endif
+	gint refcnt;			/* Amount of references */
 #ifdef PROTECT_ATOMS
-		union {
-			struct {
-				guint len;				/* Length of user arena */
-				atom_prot_magic_t magic;
-			} attr;
-			gchar padding[PAGESIZE - sizeof(guint)];
-		};
+	union {
+		struct {
+			guint len;				/* Length of user arena */
+			atom_prot_magic_t magic;
+		} attr;
+		gchar padding[PAGESIZE - sizeof(guint)];
+	};
 		/* PADDING */
 #endif /* PROTECT_ATOMS */
-		gchar arena[1];			/* Start of user arena */
+#if MEM_ALIGNBYTES > INTSIZE
+	gchar padding[MEM_ALIGNBYTES - INTSIZE];
+#endif
+	gchar arena[1];			/* Start of user arena */
 } atom_t;
 
 
@@ -400,6 +403,7 @@ atom_get(gint type, gconstpointer key)
 	atom_t *a;
 	gint len;
 
+	STATIC_ASSERT(ARENA_OFFSET % MEM_ALIGNBYTES == 0);
     g_assert(key != NULL);
 	g_assert(type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
 
