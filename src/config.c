@@ -60,7 +60,7 @@ guint32 output_bandwidth = 0;				/* Output b/w limit (0=none) */
 guint32 input_bandwidth = 0;				/* Input b/w limit (0=none) */
 guint32 node_connected_timeout = 45;
 guint32 node_connecting_timeout = 5;
-guint32 node_sendqueue_size = 40960;
+guint32 node_sendqueue_size = 98304;		/* 150% of max msg size (64K) */
 guint32 node_tx_flowc_timeout = 300;
 guint32 search_queries_forward_size = 256;
 guint32 search_queries_kick_size = 1024;
