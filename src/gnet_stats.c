@@ -27,21 +27,7 @@
 
 static guint8 stats_lut[256];
 
-static guint32 stats_pkg_recv[MSG_TYPE_COUNT];
-static guint32 stats_pkg_genr[MSG_TYPE_COUNT];	/* Sent from local node */
-static guint32 stats_pkg_rely[MSG_TYPE_COUNT];	/* Relayed by node */
-static guint32 stats_pkg_expd[MSG_TYPE_COUNT];
-static guint32 stats_pkg_drop[MSG_TYPE_COUNT];
-
-static guint32 stats_byte_recv[MSG_TYPE_COUNT];
-static guint32 stats_byte_genr[MSG_TYPE_COUNT];
-static guint32 stats_byte_rely[MSG_TYPE_COUNT];
-static guint32 stats_byte_expd[MSG_TYPE_COUNT];
-static guint32 stats_byte_drop[MSG_TYPE_COUNT];
-
-static guint32 stats_drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
-
-static guint32 stats_general[GNR_TYPE_COUNT];
+static gnet_stats_t gnet_stats;
 
 /***
  *** Public functions
@@ -60,22 +46,7 @@ void gnet_stats_init(void)
     stats_lut[GTA_MSG_SEARCH] = MSG_SEARCH;
     stats_lut[GTA_MSG_SEARCH_RESULTS] = MSG_SEARCH_RESULTS;
 
-    memset(stats_pkg_recv, 0, sizeof(stats_pkg_recv));
-    memset(stats_pkg_genr, 0, sizeof(stats_pkg_genr));
-    memset(stats_pkg_rely, 0, sizeof(stats_pkg_rely));
-    memset(stats_pkg_expd, 0, sizeof(stats_pkg_expd));
-    memset(stats_pkg_drop, 0, sizeof(stats_pkg_drop));
-
-    memset(stats_byte_recv, 0, sizeof(stats_byte_recv));
-    memset(stats_byte_genr, 0, sizeof(stats_byte_genr));
-    memset(stats_byte_rely, 0, sizeof(stats_byte_rely));
-    memset(stats_byte_expd, 0, sizeof(stats_byte_expd));
-    memset(stats_byte_drop, 0, sizeof(stats_byte_drop));
-
-    memset(stats_general, 0, sizeof(stats_general));
-
-    memset(stats_drop_reason, 0, 
-        sizeof(guint32)*MSG_DROP_REASON_COUNT*MSG_TYPE_COUNT);
+    memset(&gnet_stats, 0, sizeof(gnet_stats));
 }
 
 /*
@@ -87,10 +58,11 @@ void gnet_stats_count_received_header(gnutella_node_t *n)
 {
     n->received++;
 
-    stats_pkg_recv[MSG_TOTAL]++;
-    stats_pkg_recv[stats_lut[n->header.function]]++;
-    stats_byte_recv[MSG_TOTAL] += sizeof(n->header);
-    stats_byte_recv[stats_lut[n->header.function]] += sizeof(n->header);
+    gnet_stats.pkg.received[MSG_TOTAL]++;
+    gnet_stats.pkg.received[stats_lut[n->header.function]]++;
+    gnet_stats.byte.received[MSG_TOTAL] += sizeof(n->header);
+    gnet_stats.byte.received[stats_lut[n->header.function]] +=
+		sizeof(n->header);
 }
 
 /*
@@ -102,15 +74,18 @@ void gnet_stats_count_received_payload(gnutella_node_t *n)
 {
     guint32 size = n->size;
 
-    stats_byte_recv[MSG_TOTAL] += size;
-    stats_byte_recv[stats_lut[n->header.function]] += size;
+    gnet_stats.byte.received[MSG_TOTAL] += size;
+    gnet_stats.byte.received[stats_lut[n->header.function]] += size;
 }
 
 void gnet_stats_count_sent(
 	gnutella_node_t *n, guint8 type, guint8 hops, guint32 size)
 {
-	guint32 *stats_pkg = hops ? stats_pkg_rely : stats_pkg_genr;
-	guint32 *stats_byte = hops ? stats_byte_rely : stats_byte_genr;
+	guint32 *stats_pkg;
+	guint32 *stats_byte;
+
+	stats_pkg = hops ? gnet_stats.pkg.relayed : gnet_stats.pkg.generated;
+	stats_byte = hops ? gnet_stats.byte.relayed : gnet_stats.byte.generated;
 
     stats_pkg[MSG_TOTAL]++;
     stats_pkg[stats_lut[type]]++;
@@ -122,10 +97,10 @@ void gnet_stats_count_expired(gnutella_node_t *n)
 {
     guint32 size = n->size + sizeof(n->header);
 
-    stats_pkg_expd[MSG_TOTAL]++;
-    stats_pkg_expd[stats_lut[n->header.function]]++;
-    stats_byte_expd[MSG_TOTAL] += size;
-    stats_byte_expd[stats_lut[n->header.function]] += size;
+    gnet_stats.pkg.expired[MSG_TOTAL]++;
+    gnet_stats.pkg.expired[stats_lut[n->header.function]]++;
+    gnet_stats.byte.expired[MSG_TOTAL] += size;
+    gnet_stats.byte.expired[stats_lut[n->header.function]] += size;
 }
 
 #define DROP_STATS(s) do {											\
@@ -134,14 +109,14 @@ void gnet_stats_count_expired(gnutella_node_t *n)
         (reason == MSG_DROP_DUPLICATE) ||							\
         (reason == MSG_DROP_NO_ROUTE)								\
     )																\
-        stats_general[GNR_ROUTING_ERRORS]++;						\
+        gnet_stats.general[GNR_ROUTING_ERRORS]++;					\
 																	\
-    stats_drop_reason[reason][MSG_TOTAL]++;							\
-    stats_drop_reason[reason][stats_lut[n->header.function]]++;		\
-    stats_pkg_drop[MSG_TOTAL]++;									\
-    stats_pkg_drop[stats_lut[n->header.function]]++;				\
-    stats_byte_drop[MSG_TOTAL] += (s);								\
-    stats_byte_drop[stats_lut[n->header.function]] += (s);			\
+    gnet_stats.drop_reason[reason][MSG_TOTAL]++;					\
+    gnet_stats.drop_reason[reason][stats_lut[n->header.function]]++;\
+    gnet_stats.pkg.dropped[MSG_TOTAL]++;							\
+    gnet_stats.pkg.dropped[stats_lut[n->header.function]]++;		\
+    gnet_stats.byte.dropped[MSG_TOTAL] += (s);						\
+    gnet_stats.byte.dropped[stats_lut[n->header.function]] += (s);	\
 } while (0)
 
 void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
@@ -153,13 +128,69 @@ void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 
 void gnet_stats_count_general(gnutella_node_t *n, gint type, guint32 amount)
 {
-    stats_general[type] += amount;
+    gnet_stats.general[type] += amount;
 }
 
 void gnet_stats_count_dropped_nosize(
 	gnutella_node_t *n, msg_drop_reason_t reason)
 {
 	DROP_STATS(sizeof(n->header));
+}
+
+void gnet_stats_count_flowc(gpointer head)
+{
+    struct gnutella_header *h = (struct gnutella_header *) head;
+	guint t;
+	guint i;
+	guint32 size;
+
+	READ_GUINT32_LE(h->size, size);
+//	g_message("FLOWC function=%d ttl=%d hops=%d", h->function, h->ttl, h->hops);
+
+	switch (h->function) {
+		case GTA_MSG_INIT:
+			t = MSG_INIT;
+			break;
+		case GTA_MSG_INIT_RESPONSE:
+			t = MSG_INIT_RESPONSE;
+			break;
+		case GTA_MSG_BYE:
+			t = MSG_BYE;
+			break;
+		case GTA_MSG_QRP:
+			t = MSG_QRP;
+			break;
+		case GTA_MSG_VENDOR:
+			t = MSG_VENDOR;
+			break;
+		case GTA_MSG_STANDARD:
+			t = MSG_STANDARD;
+			break;
+		case GTA_MSG_PUSH_REQUEST:
+			t = MSG_PUSH_REQUEST;
+			break;
+		case GTA_MSG_SEARCH:
+			t = MSG_SEARCH;
+			break;
+		case GTA_MSG_SEARCH_RESULTS:
+			t = MSG_SEARCH_RESULTS;
+			break;	
+
+		default:
+			t = MSG_UNKNOWN;
+	}
+
+	i = MIN(h->hops, STATS_FLOWC_COLUMNS);
+	gnet_stats.pkg.flowc_hops[i][t]++;
+	gnet_stats.pkg.flowc_hops[i][MSG_TOTAL]++;
+	gnet_stats.byte.flowc_hops[i][t] += size;
+	gnet_stats.byte.flowc_hops[i][MSG_TOTAL] += size;
+
+	i = MIN(h->ttl, STATS_FLOWC_COLUMNS);
+	gnet_stats.pkg.flowc_ttl[i][t]++;
+	gnet_stats.pkg.flowc_ttl[i][MSG_TOTAL]++;
+	gnet_stats.byte.flowc_ttl[i][t] += size;
+	gnet_stats.byte.flowc_ttl[i][MSG_TOTAL] += size;
 }
 
 /***
@@ -169,21 +200,6 @@ void gnet_stats_count_dropped_nosize(
 void gnet_stats_get(gnet_stats_t *s)
 {
     g_assert(s != NULL);
-
-    memcpy(s->pkg.received, stats_pkg_recv, sizeof(s->pkg.received));
-    memcpy(s->pkg.generated, stats_pkg_genr, sizeof(s->pkg.generated));
-    memcpy(s->pkg.relayed, stats_pkg_rely, sizeof(s->pkg.relayed));
-    memcpy(s->pkg.expired, stats_pkg_expd, sizeof(s->pkg.expired));
-    memcpy(s->pkg.dropped, stats_pkg_drop, sizeof(s->pkg.dropped));
-
-    memcpy(s->byte.received, stats_byte_recv, sizeof(s->byte.received));
-    memcpy(s->byte.generated, stats_byte_genr, sizeof(s->byte.generated));
-    memcpy(s->byte.relayed, stats_byte_rely, sizeof(s->byte.relayed));
-    memcpy(s->byte.expired, stats_byte_expd, sizeof(s->byte.expired));
-    memcpy(s->byte.dropped, stats_byte_drop, sizeof(s->byte.dropped));
-
-    memcpy(s->drop_reason, stats_drop_reason, sizeof(s->drop_reason));
-
-    memcpy(s->general, stats_general, sizeof(s->general));
+    memcpy(s, &gnet_stats, sizeof(*s));
 }
 

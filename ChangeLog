@@ -1,5 +1,8 @@
 # since last version
 
+- (2002.12.08 - cbiere)
+ * [Gtk2] Added new stats pane with information about flow-control
+
 - (2002.12.06 - RAM)
  * Added properties "download_require_urn" and "download_require_server_name".
  * Added more cases where we remove source from the download mesh on error.

@@ -361,6 +361,7 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 				"to FLOWC node %s, in favor of %s",
 				node_ip(q->node), gmsg_infostr(mb_start));
 
+		gnet_stats_count_flowc(pmsg_start(cmb));
 		cmb_size = pmsg_size(cmb);
 
 		needed -= cmb_size;
@@ -431,6 +432,7 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 				"to FLOWC node %s, %d bytes queued",
 				node_ip(q->node), q->size);
 
+		gnet_stats_count_flowc(pmsg_start(mb));
 		pmsg_free(mb);
 		node_inc_txdrop(q->node);		/* Dropped during TX */
 		return;

@@ -40,5 +40,6 @@ void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason);
 void gnet_stats_count_dropped_nosize(
 	gnutella_node_t *n, msg_drop_reason_t reason);
 void gnet_stats_count_general(gnutella_node_t *n, gint, guint32);
+void gnet_stats_count_flowc(gpointer);
 
 #endif /* __gnet_stats_h__ */

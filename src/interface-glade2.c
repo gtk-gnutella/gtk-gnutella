@@ -4859,8 +4859,14 @@ create_main_window (void)
   GtkWidget *label479;
   GtkWidget *vbox83;
   GtkWidget *scrolledwindow45;
-  GtkWidget *treeview1;
-  GtkWidget *label475;
+  GtkWidget *viewport9;
+  GtkWidget *vbox89;
+  GtkWidget *hbox209;
+  GtkWidget *label502;
+  GtkWidget *combo_gnet_stats_flowc;
+  GtkWidget *combo_entry3;
+  GtkWidget *treeview_gnet_stats_flowc;
+  GtkWidget *_;
   GtkWidget *label378;
   GtkWidget *hbox_statusbar;
   GtkWidget *togglebutton_online;
@@ -5886,7 +5892,7 @@ create_main_window (void)
   gtk_widget_show (image39);
   gtk_box_pack_start (GTK_BOX (hbox169), image39, FALSE, FALSE, 0);
 
-  label420 = gtk_label_new_with_mnemonic ("Clear nonexistant files");
+  label420 = gtk_label_new_with_mnemonic ("Clear non-existent files");
   gtk_widget_set_name (label420, "label420");
   gtk_widget_show (label420);
   gtk_box_pack_start (GTK_BOX (hbox169), label420, FALSE, FALSE, 0);
@@ -8886,17 +8892,51 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox83), scrolledwindow45, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow45), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  treeview1 = gtk_tree_view_new ();
-  gtk_widget_set_name (treeview1, "treeview1");
-  gtk_widget_show (treeview1);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow45), treeview1);
-  gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview1), FALSE);
+  viewport9 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport9, "viewport9");
+  gtk_widget_show (viewport9);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow45), viewport9);
 
-  label475 = gtk_label_new_with_mnemonic ("Flow _control");
-  gtk_widget_set_name (label475, "label475");
-  gtk_widget_show (label475);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 4), label475);
-  gtk_label_set_justify (GTK_LABEL (label475), GTK_JUSTIFY_LEFT);
+  vbox89 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox89, "vbox89");
+  gtk_widget_show (vbox89);
+  gtk_container_add (GTK_CONTAINER (viewport9), vbox89);
+
+  hbox209 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox209, "hbox209");
+  gtk_widget_show (hbox209);
+  gtk_box_pack_start (GTK_BOX (vbox89), hbox209, FALSE, FALSE, 0);
+
+  label502 = gtk_label_new ("Select mode");
+  gtk_widget_set_name (label502, "label502");
+  gtk_widget_show (label502);
+  gtk_box_pack_start (GTK_BOX (hbox209), label502, FALSE, FALSE, 5);
+  gtk_label_set_justify (GTK_LABEL (label502), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label502), 0, 0.5);
+
+  combo_gnet_stats_flowc = gtk_combo_new ();
+  g_object_set_data (G_OBJECT (GTK_COMBO (combo_gnet_stats_flowc)->popwin),
+                     "GladeParentKey", combo_gnet_stats_flowc);
+  gtk_widget_set_name (combo_gnet_stats_flowc, "combo_gnet_stats_flowc");
+  gtk_widget_show (combo_gnet_stats_flowc);
+  gtk_box_pack_start (GTK_BOX (hbox209), combo_gnet_stats_flowc, TRUE, TRUE, 0);
+
+  combo_entry3 = GTK_COMBO (combo_gnet_stats_flowc)->entry;
+  gtk_widget_set_name (combo_entry3, "combo_entry3");
+  gtk_widget_show (combo_entry3);
+  gtk_editable_set_editable (GTK_EDITABLE (combo_entry3), FALSE);
+
+  treeview_gnet_stats_flowc = gtk_tree_view_new ();
+  gtk_widget_set_name (treeview_gnet_stats_flowc, "treeview_gnet_stats_flowc");
+  gtk_widget_show (treeview_gnet_stats_flowc);
+  gtk_box_pack_start (GTK_BOX (vbox89), treeview_gnet_stats_flowc, TRUE, TRUE, 0);
+  gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_gnet_stats_flowc), FALSE);
+
+  _ = gtk_label_new_with_mnemonic ("Flow _control");
+  gtk_widget_set_name (_, "_");
+  gtk_widget_show (_);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 4), _);
+  gtk_label_set_justify (GTK_LABEL (_), GTK_JUSTIFY_LEFT);
 
   label378 = gtk_label_new ("gNet stats");
   gtk_widget_set_name (label378, "label378");
@@ -9948,8 +9988,14 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label479, "label479");
   GLADE_HOOKUP_OBJECT (main_window, vbox83, "vbox83");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow45, "scrolledwindow45");
-  GLADE_HOOKUP_OBJECT (main_window, treeview1, "treeview1");
-  GLADE_HOOKUP_OBJECT (main_window, label475, "label475");
+  GLADE_HOOKUP_OBJECT (main_window, viewport9, "viewport9");
+  GLADE_HOOKUP_OBJECT (main_window, vbox89, "vbox89");
+  GLADE_HOOKUP_OBJECT (main_window, hbox209, "hbox209");
+  GLADE_HOOKUP_OBJECT (main_window, label502, "label502");
+  GLADE_HOOKUP_OBJECT (main_window, combo_gnet_stats_flowc, "combo_gnet_stats_flowc");
+  GLADE_HOOKUP_OBJECT (main_window, combo_entry3, "combo_entry3");
+  GLADE_HOOKUP_OBJECT (main_window, treeview_gnet_stats_flowc, "treeview_gnet_stats_flowc");
+  GLADE_HOOKUP_OBJECT (main_window, _, "_");
   GLADE_HOOKUP_OBJECT (main_window, label378, "label378");
   GLADE_HOOKUP_OBJECT (main_window, hbox_statusbar, "hbox_statusbar");
   GLADE_HOOKUP_OBJECT (main_window, togglebutton_online, "togglebutton_online");

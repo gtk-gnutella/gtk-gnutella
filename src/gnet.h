@@ -328,7 +328,7 @@ typedef enum filter_prop_state {
  ***/
 
 enum {
-    MSG_UNKNOWN,
+    MSG_UNKNOWN = 0,
     MSG_INIT,
     MSG_INIT_RESPONSE,
     MSG_BYE,
@@ -382,7 +382,9 @@ enum {
     GNR_TYPE_COUNT /* number of general stats */
 };
 
-typedef struct gnet_stats {
+#define STATS_FLOWC_COLUMNS 10
+
+typedef struct gnet_stat {
     guint32 drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
 
     struct {
@@ -391,6 +393,8 @@ typedef struct gnet_stats {
         guint32 relayed[MSG_TYPE_COUNT];
         guint32 dropped[MSG_TYPE_COUNT];
         guint32 expired[MSG_TYPE_COUNT];
+		guint32 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
+		guint32 flowc_ttl[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
     } pkg;
 
     struct {
@@ -399,7 +403,10 @@ typedef struct gnet_stats {
         guint32 relayed[MSG_TYPE_COUNT];
         guint32 dropped[MSG_TYPE_COUNT];
         guint32 expired[MSG_TYPE_COUNT];
+		guint32 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
+		guint32 flowc_ttl[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
     } byte;
+
 
     guint32 general[GNR_TYPE_COUNT];
 } gnet_stats_t;
