@@ -308,7 +308,7 @@ static gint compare_uint_func(
 
     gtk_tree_model_get(model, i, GPOINTER_TO_INT(user_data), &a, (-1));
     gtk_tree_model_get(model, j, GPOINTER_TO_INT(user_data), &b, (-1));
-    return CMP(a, b);
+    return CMP(b, a);
 }
 
 static gint compare_uint64_func(
@@ -318,7 +318,7 @@ static gint compare_uint64_func(
 
     gtk_tree_model_get(model, i, GPOINTER_TO_INT(user_data), &a, (-1));
     gtk_tree_model_get(model, j, GPOINTER_TO_INT(user_data), &b, (-1));
-    return CMP(a, b);
+    return CMP(b, a);
 }
 
 static void add_column(
