@@ -61,7 +61,7 @@ RCSID("$Id$");
 #define IO_PRE_STALL	30			/* Pre-stalling warning */
 #define IO_STALLED		60			/* Stalling condition */
 #define IO_LONG_TIMEOUT	160			/* Longer timeouting condition */
-#define UP_SEND_BUFSIZE	16384		/* Socket write buffer, when stalling */
+#define UP_SEND_BUFSIZE	8192		/* Socket write buffer, when stalling */
 #define STALL_CLEAR		600			/* Decrease stall counter every 10 min */
 #define STALL_THRESH	3			/* If more stalls than that, workaround */
 
@@ -232,14 +232,14 @@ void upload_timer(time_t now)
 					g_warning("frequent stalling detected, using workarounds");
 				last_stalled = now;
 				u->flags |= UPLOAD_F_STALLED;
-				g_warning(
-					"connection to %s (%s) stalled, stall counter at %d",
-					ip_to_gchar(u->ip), upload_vendor_str(u), stalled);
+				g_warning("connection to %s (%s) stalled after %u bytes sent,"
+					" stall counter at %d",
+					ip_to_gchar(u->ip), upload_vendor_str(u), u->sent, stalled);
 			}
 		} else {
 			if (u->flags & UPLOAD_F_STALLED) {
-				g_warning("connection to %s (%s) alive again",
-					ip_to_gchar(u->ip), upload_vendor_str(u));
+				g_warning("connection to %s (%s) alive again, %u bytes sent",
+					ip_to_gchar(u->ip), upload_vendor_str(u), u->sent);
 
 				if (stalled <= STALL_THRESH && !sock_is_corked(u->socket)) {
 					g_warning(
@@ -305,7 +305,8 @@ void upload_timer(time_t now)
 			else
 				upload_error_remove(u, NULL, 408, "Request timeout");
 		} else if (UPLOAD_IS_SENDING(u))
-			upload_remove(u, "Data timeout");
+			upload_remove(u, "Data timeout after %u byte%s", u->sent,
+				u->sent == 1 ? "" : "s");
 		else
 			upload_remove(u, "Lifetime expired");
 	}
@@ -580,6 +581,7 @@ static gnutella_upload_t *upload_clone(gnutella_upload_t *u)
 	cu->accounted = FALSE;
     cu->skip = 0;
     cu->end = 0;
+	cu->sent = 0;
 
 	/*
 	 * The following have been copied and appropriated by the cloned upload.
@@ -2696,10 +2698,9 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		socket_tos_lowdelay(s);	/* Make sure ACKs come back faster */
 
 	/*
-	 * If they have some connections stalling recently, limit the send buffer
-	 * size.  This will lower TCP's throughput by limiting the amount of
-	 * windowing possible, but at least we will be reacting more quickly
-	 * to stalling conditions.
+	 * If they have some connections stalling recently, reduce the send buffer
+	 * size.  This will lower TCP's throughput but will prevent us from
+	 * writing too much before detecting the stall.
 	 */
 
 	if (stalled > STALL_THRESH)
@@ -2894,6 +2895,7 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 	gnet_prop_set_guint64_val(PROP_UL_BYTE_COUNT, ul_byte_count + written);
 
 	u->last_update = time((time_t *) NULL);
+	u->sent += written;
 
 	/* This upload is complete */
 	if (u->pos > u->end) {
