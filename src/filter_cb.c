@@ -347,11 +347,23 @@ gboolean on_clist_filter_rules_button_press_event
     if (event->button != 3)
 		return FALSE;
 
+    /*
+     * If the target is no longer valid, free the rule and
+     * clear the clipboard.
+     */
+    if ((rule_clipboard != NULL) &&
+        !filter_is_valid_in_session(rule_clipboard->target)) {
+        filter_free_rule(rule_clipboard);
+        rule_clipboard = NULL;
+        return TRUE;
+    }
+
     sensitive = (GTK_CLIST(clist_filter_rules)->selection != NULL) &&
         (work_filter != NULL);
 
     gtk_widget_set_sensitive(popup_filter_rule_copy, sensitive);
     gtk_widget_set_sensitive(popup_filter_rule_paste, rule_clipboard != NULL);
+
 
     gtk_menu_popup
         (GTK_MENU(popup_filter_rule), NULL, NULL, NULL, NULL, 
@@ -385,8 +397,18 @@ void on_popup_filter_rule_paste_activate
 {
     rule_t *r;
 
-    if (work_filter == NULL)
+    if ((work_filter == NULL) || (rule_clipboard == NULL))
         return;
+
+    /*
+     * If the target is no longer valid, free the rule and
+     * clear the clipboard.
+     */
+    if (!filter_is_valid_in_session(rule_clipboard->target)) {
+        filter_free_rule(rule_clipboard);
+        rule_clipboard = NULL;
+        return;
+    }
 
     /*
      * Since a rule may not be added to two filters, we copy again here.
