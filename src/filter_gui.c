@@ -257,6 +257,33 @@ void filter_gui_filter_add(filter_t *f, GList *ruleset)
 
 
 /*
+ * filter_gui_update_rule_count:
+ *
+ * Update the rule count of a filter in the filter table.
+ */
+void filter_gui_update_rule_count(filter_t *f, GList *ruleset)
+{
+    g_assert(f != NULL);
+
+    if (filter_dialog != NULL) {
+        GtkCTreeNode *parent;
+        GtkCTreeNode *node;
+        
+        parent = getFilterRoot(f);
+        node = gtk_ctree_find_by_row_data
+            (GTK_CTREE(ctree_filter_filters), parent, f);
+
+        if (node != NULL) {
+            g_snprintf(fg_tmp, sizeof(fg_tmp), "%d", g_list_length(ruleset));
+            gtk_ctree_node_set_text(GTK_CTREE(ctree_filter_filters), node,
+                1, fg_tmp);
+        }
+    }
+}
+
+
+
+/*
  * filter_gui_filter_remove:
  *
  * Removes a filter from the list in the dialog.
