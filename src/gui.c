@@ -89,12 +89,20 @@ void gui_update_global(void)
 {
 	time_t now = time((time_t *) NULL);	
 	guint32 start_stamp;
+	GtkLabel *label = GTK_LABEL(lookup_widget(
+				main_window, "label_statusbar_uptime"));
 
 	gnet_prop_get_guint32_val(PROP_START_STAMP, &start_stamp);
 
-    gtk_label_set_text(
-        GTK_LABEL(lookup_widget(main_window, "label_statusbar_uptime")),
-        short_uptime(difftime(now, start_stamp)));
+#ifdef USE_GTK2
+	gm_snprintf(gui_tmp, sizeof gui_tmp, "<tt> %s </tt>",
+		short_uptime(difftime(now, start_stamp)));
+	gtk_label_set_use_markup(label, TRUE);
+	gtk_label_set_markup(label, gui_tmp);
+#else
+
+	gtk_label_set_text(label, short_uptime(difftime(now, start_stamp)));
+#endif
 
     /*
      * Update the different parts of the GUI.
@@ -416,5 +424,7 @@ void gui_merge_window_as_tab(GtkWidget *toplvl, GtkWidget *notebook,
 		g_list_free(children);
 	}
 }
+
+/* vi: set ts=4 sw=4 cindent: */
 #endif	/* USE_GTK2 */
 

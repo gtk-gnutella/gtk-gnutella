@@ -417,9 +417,10 @@ void main_gui_gtkrc_init(void)
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
 
-	gtk_rc_parse("./gtkrc");
+	gtk_rc_parse("." G_DIR_SEPARATOR_S "gtkrc");
 }
- 
+
+
 /***
  *** Public functions
  ***/
@@ -468,7 +469,6 @@ void main_gui_early_init(gint argc, gchar **argv)
     /* copy url selection stuff */
     gtk_selection_add_target
         (popup_downloads, GDK_SELECTION_PRIMARY, GDK_SELECTION_TYPE_STRING, 1);
-
 }
 
 void main_gui_init(void)
@@ -536,18 +536,14 @@ void main_gui_init(void)
    	gui_update_all();
 }
 
-
 void main_gui_run(void)
 {	
     guint32 coord[4] = { 0, 0, 0, 0 };
 
     gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
-
     gui_update_global();
-
     gtk_widget_show(main_window);		/* Display the main window */
     
-
     /*
      * We need to tell Gtk the size of the window, otherwise we'll get
      * strange side effects when the window is shown (like implicitly
@@ -607,12 +603,12 @@ void main_gui_run(void)
 		if (dx || dy)
         	gdk_window_move(main_window->window, coord[0] + dx, coord[1] + dy);
 	}
-#endif
 
     gtk_widget_fix_width(
         lookup_widget(main_window, "frame_statusbar_uptime"),
         lookup_widget(main_window, "label_statusbar_uptime"),
         8, 8);
+#endif
 
     gtk_main();
 }
@@ -690,4 +686,4 @@ void main_gui_shutdown_tick(guint left)
     gtk_main_flush();
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
