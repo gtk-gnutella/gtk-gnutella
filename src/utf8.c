@@ -1028,10 +1028,10 @@ gchar *unicode_canonize(const gchar *in)
 	gboolean latin_locale = is_latin_locale();
 
 	len = strlen(in);
-	maxlen = len*6; /* Max 6 bytes for one char in utf8 */
+	maxlen = len * 6; /* Max 6 bytes for one char in utf8 */
 
-	qtmp1 = (UChar *) g_malloc(maxlen*sizeof(UChar));
-	qtmp2 = (UChar *) g_malloc(maxlen*sizeof(UChar));
+	qtmp1 = (UChar *) g_malloc(maxlen * sizeof(UChar));
+	qtmp2 = (UChar *) g_malloc(maxlen * sizeof(UChar));
 
 	if (latin_locale) {
 		len = to_icu_conv(in, len, qtmp1, maxlen);
