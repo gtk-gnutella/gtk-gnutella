@@ -86,10 +86,10 @@ static idtable_t *node_handle_map = NULL;
     (gnutella_node_t *) idtable_get_value(node_handle_map, n)
 
 #define node_request_handle(n) \
-    idtable_request_key(node_handle_map, n)
+    idtable_new_id(node_handle_map, n)
 
 #define node_drop_handle(n) \
-    idtable_drop_key(node_handle_map, n);
+    idtable_free_id(node_handle_map, n);
 
 
 static guint32 nodes_in_list = 0;
@@ -3182,7 +3182,7 @@ void node_close(void)
 
 	g_slist_free(sl_nodes);
 
-    g_assert(idtable_keys(node_handle_map) == 0);
+    g_assert(idtable_ids(node_handle_map) == 0);
 
     idtable_destroy(node_handle_map);
     node_handle_map = NULL;

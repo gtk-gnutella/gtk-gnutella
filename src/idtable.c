@@ -23,8 +23,6 @@
  *----------------------------------------------------------------------
  */
 
-#include "common.h"
-
 #include "idtable.h"
 
 /*
@@ -33,55 +31,59 @@
 #define BLOCK_SIZE 32
 #define BLOCK_COUNT(tbl) (((tbl->size-1)/BLOCK_SIZE)+1)
 
-#define KEY_BLOCK(key) (key/BLOCK_SIZE)
+#define ID_BLOCK(id) (id/BLOCK_SIZE)
 
-#define MARK_KEY(tbl, s) \
-    (tbl->used_keys[s/BLOCK_SIZE] |= (guint32)0x80000000 >> s)
+#define MARK_ID(tbl, s) \
+    (tbl->used_ids[s/BLOCK_SIZE] |= (guint32)0x80000000 >> s)
 
-#define CLEAR_KEY(tbl, s) \
-    (tbl->used_keys[s/BLOCK_SIZE] &= ~((guint32)0x80000000 >> s))
+#define CLEAR_ID(tbl, s) \
+    (tbl->used_ids[s/BLOCK_SIZE] &= ~((guint32)0x80000000 >> s))
 
-#define IS_KEY_TAKEN(tbl, s) \
-    (tbl->used_keys[s/BLOCK_SIZE] & ((guint32)0x80000000 >> s))
+#define IS_ID_TAKEN(tbl, s) \
+    (tbl->used_ids[s/BLOCK_SIZE] & ((guint32)0x80000000 >> s))
 
 /***
- *** Public functions
+ *** Private functions
  ***/
 
-static guint32 find_unused_key(idtable_t *tbl)
+static guint32 find_unused_id(idtable_t *tbl)
 {
-    guint32 blk = KEY_BLOCK(tbl->last_key);
-    guint32 key;
+    guint32 blk = ID_BLOCK(tbl->last_id);
+    guint32 id;
     guint32 blk_buf;
+    guint32 max_blk = BLOCK_COUNT(tbl)-1;
 
-    g_assert(tbl->keys < tbl->size);
+    g_assert(tbl->ids < tbl->size);
     
     /*
-     * Seek a block which has room (at least one bit in key block must
+     * Seek a block which has room (at least one bit in id block must
      * be ZERO.
      */
-    while(tbl->used_keys[blk] == 0xFFFFFFFF)
-        blk = (blk+1) % BLOCK_COUNT(tbl);
+    while (tbl->used_ids[blk] == 0xFFFFFFFF) {
+        blk++;
+        if (blk > max_blk)
+            blk = 0;
+    }
 
     /*
      * Block blk has room, now we need to find it.
      */
-    key = 0;
-    blk_buf = tbl->used_keys[blk];
-    while(blk_buf & 0x80000000) {
+    id = 0;
+    blk_buf = tbl->used_ids[blk];
+    while (blk_buf & 0x80000000) {
         blk_buf = blk_buf << 1;
-        key ++;
+        id++;
     }
 
     /*
      * Ok, now we found a free slot.
      */
-    key += blk*BLOCK_SIZE;
+    id += blk*BLOCK_SIZE;
 
-    g_assert(!IS_KEY_TAKEN(tbl, key));
-    g_assert(key < tbl->size);
+    g_assert(!IS_ID_TAKEN(tbl, id));
+    g_assert(id < tbl->size);
 
-    return key;
+    return id;
 }
 
 static void idtable_extend(idtable_t *tbl)
@@ -89,20 +91,20 @@ static void idtable_extend(idtable_t *tbl)
     guint32 old_blk_count = BLOCK_COUNT(tbl);
 
     /*
-     * We know that the array is full, so the next free key would be
-     * tbl->size+1. To find that fast, we set tbl->last_key to tbl->size
+     * We know that the array is full, so the next free id would be
+     * tbl->size+1. To find that fast, we set tbl->last_id to tbl->size
      * before we set the new size.
      */
-    tbl->last_key = tbl->size-1;
+    tbl->last_id = tbl->size-1;
     tbl->size += tbl->esize;
 
     tbl->data = g_renew(gpointer, tbl->data, tbl->size);
-    tbl->used_keys = g_renew(guint32, tbl->used_keys, BLOCK_COUNT(tbl));
+    tbl->used_ids = g_renew(guint32, tbl->used_ids, BLOCK_COUNT(tbl));
 
     /*
-     * All new keys be marked unused.
+     * All new ids be marked unused.
      */
-    memset(&tbl->used_keys[old_blk_count], 0, 
+    memset(&tbl->used_ids[old_blk_count], 0, 
         (BLOCK_COUNT(tbl)-old_blk_count)*sizeof(guint32));
 }
 
@@ -115,6 +117,8 @@ static void idtable_extend(idtable_t *tbl)
  *
  * Allocate new id table. Sizes will be rounded up to multiples of
  * 32. The size of the table will be automatically expanded if necessary.
+ * Initial size and extend size must be larger then 0 and are internally
+ * rounded up to the closest multiple of 32.
  */
 idtable_t *idtable_new(guint32 isize, guint32 esize)
 {
@@ -126,96 +130,151 @@ idtable_t *idtable_new(guint32 isize, guint32 esize)
     tbl = g_new(idtable_t, 1);
     
     /*
-     * We need sizes in multiples of 32 so that the used_keys blocks
-     * can always be fully used. find_unused_key depends on that.
+     * We need sizes in multiples of 32 so that the used_ids blocks
+     * can always be fully used. find_unused_id depends on that.
      */
     tbl->esize     = (((esize-1)/BLOCK_SIZE)+1)*32;
     tbl->size      = (((isize-1)/BLOCK_SIZE)+1)*32;
 
-    tbl->keys      = 0;
+    tbl->ids      = 0;
     tbl->data      = g_new(gpointer, tbl->size);
-    tbl->used_keys = g_new0(guint32, BLOCK_COUNT(tbl));
+    tbl->used_ids = g_new0(guint32, BLOCK_COUNT(tbl));
 
     return tbl;
 }
 
+/*
+ * idtable_destroy:
+ *
+ * Free all memory occupied by this table. The table must not be used
+ * again after idtable_destroy call called on it.
+ */
 void idtable_destroy(idtable_t *tbl)
 {
     g_assert(tbl != NULL);
 
-    if (tbl->keys > 0) {
-        g_warning("idtable_destroy: destroying table with %u keys\n", 
-            tbl->keys);
+    if (tbl->ids > 0) {
+        g_warning("idtable_destroy: destroying table with %u ids\n", 
+            tbl->ids);
     }
 
-    tbl->size = tbl->esize = tbl->keys = 0;
+    tbl->size = tbl->esize = tbl->ids = 0;
 
-    g_free(tbl->used_keys);
+    g_free(tbl->used_ids);
     g_free(tbl->data);
     g_free(tbl);
 }
 
 /*
- * idtable_request_key:
+ * idtable_new_id:
  *
- * Get a key for the given value. The key can be used to look up the
+ * Get a id for the given value. The id can be used to look up the
  * value later. 
  */
-guint32 idtable_request_key(idtable_t *tbl, gpointer value)
+guint32 idtable_new_id(idtable_t *tbl, gpointer value)
 {
-    guint32 key;
+    guint32 id;
 
     g_assert(tbl != NULL);
-    g_assert(tbl->keys <= tbl->size);
+    g_assert(tbl->ids <= tbl->size);
     
     /*
      * When the table is already full, we extend it.
      */
-    if (tbl->keys == tbl->size)
+    if (tbl->ids == tbl->size)
         idtable_extend(tbl);
 
     /*
      * Now we have room to insert the new value.
      */
-    key = find_unused_key(tbl);
-    MARK_KEY(tbl, key);
-    tbl->data[key] = value;
+    id = find_unused_id(tbl);
+    MARK_ID(tbl, id);
+    tbl->data[id] = value;
     
-    tbl->keys ++;
-    tbl->last_key = key;
+    tbl->ids++;
+    tbl->last_id = id;
     
-    return key;
+    return id;
+}
+
+/*
+ * idtable_new_id_value
+ *
+ * Request a special id for a given value. If the id must not be already in 
+ * use.Best check wether the id is already in use with the idtable_is_id_used
+ * call. If the id is outside the current id range, the table is extend
+ * until the id is in range.
+ */
+void idtable_new_id_value(idtable_t *tbl, guint32 id, gpointer value)
+{
+    g_assert(tbl != NULL);
+    
+    while (id >= tbl->size)
+        idtable_extend(tbl);
+
+    g_assert(id < tbl->size);
+
+    MARK_ID(tbl, id);
+    tbl->data[id] = value;
+}
+
+/*
+ * idtable_set_value:
+ *
+ * Replace the value of a give id. The id must already be in use.
+ */
+void idtable_set_value(idtable_t *tbl, guint32 id, gpointer value)
+{
+    g_assert(tbl != NULL);
+    g_assert(id < tbl->size);
+    g_assert(IS_ID_TAKEN(tbl, id));
+
+    tbl->data[id] = value;
 }
 
 /*
  * idtable_get_value:
  *
- * Fetch the value associated with the given key. The key must have been
- * requested with idtable_request_key before and must not be accessed 
- * after it has been dropped by idtable_drop_key.
+ * Fetch the value associated with the given id. The id must have been
+ * requested with idtable_request_id before and must not be accessed 
+ * after it has been dropped by idtable_drop_id.
  */
-gpointer idtable_get_value(idtable_t *tbl, guint32 key)
+gpointer idtable_get_value(idtable_t *tbl, guint32 id)
 {
     g_assert(tbl != NULL);
-    g_assert(key < tbl->size);
-    g_assert(IS_KEY_TAKEN(tbl, key));
+    g_assert(id < tbl->size);
+    g_assert(IS_ID_TAKEN(tbl, id));
 
-    return tbl->data[key];
+    return tbl->data[id];
 }
 
 /*
- * idtable_drop_key:
+ * idtable_is_id_used:
  *
- * Mark this key as unused. If will eventually be reissued.
+ * Returns TRUE if a id is already in use, returns FALSE if the id is
+ * not in use. If the id is outside the current table range it also returns
+ * FALSE. The table is not modified by this call.
  */
-void idtable_drop_key(idtable_t *tbl, guint32 key)
+__inline__ gboolean idtable_is_id_used(idtable_t *tbl, guint32 id)
 {
     g_assert(tbl != NULL);
-    g_assert(key < tbl->size);
-    g_assert(IS_KEY_TAKEN(tbl, key));
 
-    tbl->keys --;
+    return (id >= tbl->size) ? FALSE : IS_ID_TAKEN(tbl, id);
+}
 
-    CLEAR_KEY(tbl, key);
-    tbl->data[key] = NULL;
+/*
+ * idtable_free_id:
+ *
+ * Mark this id as unused. If will eventually be reissued.
+ */
+void idtable_free_id(idtable_t *tbl, guint32 id)
+{
+    g_assert(tbl != NULL);
+    g_assert(id < tbl->size);
+    g_assert(IS_ID_TAKEN(tbl, id));
+
+    tbl->ids --;
+
+    CLEAR_ID(tbl, id);
+    tbl->data[id] = NULL;
 }
