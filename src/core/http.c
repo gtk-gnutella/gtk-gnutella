@@ -43,6 +43,7 @@ RCSID("$Id$");
 #include "ioheader.h"
 #include "version.h"
 #include "token.h"
+#include "clock.h"
 
 #include "lib/atoms.h"
 #include "lib/getline.h"
@@ -159,7 +160,7 @@ http_send_status(
 
 	g_assert((size_t) header_size <= sizeof(header));
 
-	date = date_to_rfc1123_gchar(time(NULL));
+	date = date_to_rfc1123_gchar(clock_loc2gmt(time(NULL)));
 	rw = gm_snprintf(header, header_size,
 		"HTTP/1.1 %d %s\r\n"
 		"Server: %s\r\n"
