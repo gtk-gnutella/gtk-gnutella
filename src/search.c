@@ -113,7 +113,6 @@ static gboolean search_reissue_timeout_callback(gpointer data);
 static void update_one_reissue_timeout(search_t *sch);
 static struct results_set *get_results_set(struct gnutella_node *n);
 static gboolean search_retrieve_old(void);
-static void search_close(search_t *);
 
 #ifndef USE_SEARCH_XML
     static void search_store_old(void);
@@ -274,11 +273,6 @@ static void dec_records_refcount(gpointer key, gpointer value, gpointer udata)
 	g_assert(rc->refcount > 0);
 
 	rc->refcount--;
-}
-
-void search_close_current(void)
-{
-    search_close(current_search);
 }
 
 /* 

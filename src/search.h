@@ -152,10 +152,10 @@ void search_resume(struct search *sch);
 void search_results(struct gnutella_node *n);
 void search_extract_host(struct gnutella_node *n, guint32 *ip, guint16 *port);
 void search_download_files(void);
-void search_close_current(void);
 void search_clear_clicked(void);
 void search_update_reissue_timeout(guint32);
 void search_shutdown(void);
+void search_close(search_t* sch);
 
 #endif							/* __search_h__ */
 
