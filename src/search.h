@@ -146,7 +146,7 @@ void search_stop(struct search *sch);
 void search_restart(struct search *sch);
 void search_reissue(struct search *sch);
 void search_resume(struct search *sch);
-void search_results(struct gnutella_node *n);
+gboolean search_results(struct gnutella_node *n);
 void search_extract_host(struct gnutella_node *n, guint32 *ip, guint16 *port);
 void search_download_files(void);
 void search_clear_clicked(void);

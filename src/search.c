@@ -1010,7 +1010,7 @@ static gchar *extract_vendor_name(struct results_set * rs)
 	default:
 		/* Unknown type, look whether we have all alphanum */
 		rs->status &= ~ST_KNOWN_VENDOR;
-		for (i = 0; i < 4; i++) {
+		for (i = 0; i < sizeof(rs->vendor); i++) {
 			if (isalpha(rs->vendor[i]))
 				temp[i] = rs->vendor[i];
 			else {
@@ -1262,6 +1262,7 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 			break;
 		case T_LIME:
 		case T_SWAP:
+		case T_RAZA:
 			if (trailer[4] == 4)
 				trailer[4] = 2;			/* We ignore XML data size */
 				/* Fall through */
@@ -1637,30 +1638,148 @@ gboolean search_has_muid(search_t *sch, guchar * muid)
 }
 
 /*
+ * update_neighbour_info
+ *
+ * Called when we get a query hit from an immediate neighbour.
+ */
+static void update_neighbour_info(
+	struct gnutella_node *n, struct results_set *rs)
+{
+	gchar *vendor = extract_vendor_name(rs);
+	extern gint guid_eq(gconstpointer a, gconstpointer b);
+	gint old_weird = n->n_weird;
+
+	g_assert(n->header.hops == 1);
+
+	if (n->attrs & NODE_A_QHD_NO_VTAG) {	/* Known to have no tag */
+		if (vendor) {
+			if (dbg) g_warning(
+				"node %s (%s) had no tag in its query hits, now has %s in %s",
+				node_ip(n), n->vendor ? n->vendor : "", vendor,
+				gmsg_infostr(&n->header));
+			n->n_weird++;
+			n->attrs &= ~NODE_A_QHD_NO_VTAG;
+		}
+	} else {
+		/*
+		 * Use vendor tag if needed to guess servent vendor name.
+		 */
+
+		if (n->vendor == NULL && vendor) {
+			n->vendor = atom_str_get(vendor);
+			gui_update_node_vendor(n);
+		}
+
+		if (vendor == NULL)
+			n->attrs |= NODE_A_QHD_NO_VTAG;	/* No vendor tag */
+
+		if (n->vcode[0] != '\0' && vendor == NULL) {
+			if (dbg) g_warning(
+				"node %s (%s) had tag %c%c%c%c in its query hits, "
+				"now has none in %s",
+				node_ip(n), n->vendor ? n->vendor : "",
+				n->vcode[0], n->vcode[1], n->vcode[2], n->vcode[3],
+				gmsg_infostr(&n->header));
+			n->n_weird++;
+		}
+	}
+
+	/*
+	 * Save vendor code if present.
+	 */
+
+	if (vendor != NULL) {
+		g_assert(sizeof(n->vcode) == sizeof(rs->vendor));
+
+		if (
+			n->vcode[0] != '\0' &&
+			0 != memcmp(n->vcode, rs->vendor, sizeof(n->vcode))
+		) {
+			if (dbg) g_warning(
+				"node %s (%s) moved from tag %c%c%c%c to %c%c%c%c "
+				"in %s",
+				node_ip(n), n->vendor ? n->vendor : "",
+				n->vcode[0], n->vcode[1], n->vcode[2], n->vcode[3],
+				rs->vendor[0], rs->vendor[1], rs->vendor[2], rs->vendor[3],
+				gmsg_infostr(&n->header));
+			n->n_weird++;
+		}
+
+		memcpy(n->vcode, rs->vendor, sizeof(n->vcode));
+	} else
+		n->vcode[0] = '\0';
+
+	/*
+	 * Save node's GUID.
+	 */
+
+	if (n->gnet_guid) {
+		if (!guid_eq(n->gnet_guid, rs->guid)) {
+			if (dbg) {
+				gchar old[33];
+				strncpy(old, guid_hex_str(n->gnet_guid), sizeof(old)-1);
+
+				g_warning(
+					"node %s (%s) moved from GUID %s to %s in %s",
+					node_ip(n), n->vendor ? n->vendor : "",
+					old, guid_hex_str(rs->guid), gmsg_infostr(&n->header));
+			}
+			atom_guid_free(n->gnet_guid);
+			n->gnet_guid = NULL;
+			n->n_weird++;
+		}
+	}
+
+	if (n->gnet_guid == NULL)
+		n->gnet_guid = atom_guid_get(rs->guid);
+
+	/*
+	 * We don't declare any weirdness if the address in the results matches
+	 * the socket's peer address.
+	 *
+	 * Otherwise, make sure the address is a private IP one, or that the hit
+	 * has the "firewalled" bit.  Otherwise, the IP must match the one the
+	 * servent thinks it has, which we know from its pongs with hops=0.
+	 * If we never got a pong from that servent, check against last IP
+	 * we saw in hit.
+	 */
+
+	if (
+		n->ip != rs->ip &&					/* Not socket's address */
+		!(rs->status & ST_FIREWALL) &&		/* Hit not marked "firewalled" */
+		!is_private_ip(rs->ip)				/* Address not private */
+	) {
+		if (
+			(n->gnet_pong_ip && n->gnet_pong_ip != rs->ip) ||
+			(n->gnet_qhit_ip && n->gnet_qhit_ip != rs->ip)
+		) {
+			if (dbg) g_warning(
+				"node %s (%s) advertised %s but now says Query Hits from %s",
+				node_ip(n), n->vendor ? n->vendor : "",
+				ip_to_gchar(n->gnet_pong_ip ?
+					n->gnet_pong_ip : n->gnet_qhit_ip),
+				ip_port_to_gchar(rs->ip, rs->port));
+			n->n_weird++;
+		}
+		n->gnet_qhit_ip = rs->ip;
+	}
+
+	if (dbg > 1 && old_weird != n->n_weird)
+		dump_hex(stderr, "Query Hit Data (weird)", n->data, n->size);
+}
+
+/*
  * search_results
  *
  * This routine is called for each Query Hit packet we receive.
+ * Returns whether the message should be dropped, i.e. FALSE if OK.
  */
-void search_results(struct gnutella_node *n)
+gboolean search_results(struct gnutella_node *n)
 {
 	struct results_set *rs;
 	GList *selected_searches = NULL;
 	GList *l;
-	gboolean extract_vendor = FALSE;
-
-	/*
-	 * If we don't have any known vendor name yet (0.4 handshaking), then
-	 * parse the query hits from that node (hops=0) to see if they have a
-	 * vendor tag in the QHD.
-	 *
-	 * NB: route_message() increases hops by 1 for messages we handle.
-	 */
-
-	if (
-		n->vendor == NULL && n->header.hops == 1 &&
-		!(n->attrs & NODE_A_QHD_NO_VTAG)		/* Not known to have no tag */
-	)
-		extract_vendor = TRUE;
+	gboolean drop_it = FALSE;
 
 	/*
 	 * Look for all the searches, and put the ones we need to possibly
@@ -1683,13 +1802,6 @@ void search_results(struct gnutella_node *n)
 	}
 
 	/*
-	 * If we don't have any selected search, we're done.
-	 */
-
-	if (selected_searches == NULL && !extract_vendor)
-		return;
-
-	/*
 	 * Parse the packet.
 	 */
 
@@ -1698,27 +1810,15 @@ void search_results(struct gnutella_node *n)
 		goto final_cleanup;
 
 	/*
-	 * Extract vendor tag if needed.
+	 * If we're handling a message from our immediate neighbour, grab the
+	 * vendor code from the QHD.  This is useful for 0.4 handshaked nodes
+	 * to determine and display their vendor ID.
+	 *
+	 * NB: route_message() increases hops by 1 for messages we handle.
 	 */
 
-	if (extract_vendor) {
-		gchar *vendor = extract_vendor_name(rs);
-
-		if (vendor) {
-			n->vendor = atom_str_get(vendor);
-			gui_update_node_vendor(n);
-		} else
-			n->attrs |= NODE_A_QHD_NO_VTAG;		/* No vendor tag in QHD */
-
-		/*
-		 * If we only parsed the results to get the tag, we're done.
-		 */
-
-		if (selected_searches == NULL) {
-			search_free_r_set(rs);
-			return;
-		}
-	}
+	if (n->header.hops == 1)
+		update_neighbour_info(n, rs);
 
 	/*
 	 * Dispatch the results to the selected searches.
@@ -1729,7 +1829,7 @@ void search_results(struct gnutella_node *n)
 		search_matched(sch, rs);
 	}
 
-	g_assert(rs->refcount > 0);
+	g_assert(selected_searches == NULL || rs->refcount > 0);
 
 	/*
 	 * Some of the records might have not been used by searches, and need
@@ -1738,7 +1838,10 @@ void search_results(struct gnutella_node *n)
 	 * removing it will cause its destruction.
 	 */
 
-	search_clean_r_set(rs);
+	if (selected_searches == NULL)
+		search_free_r_set(rs);			/* Not dispatched to any search */
+	else
+		search_clean_r_set(rs);
 
 	if (rs->num_recs == 0) {
 		for (l = selected_searches; l; l = l->next) {
@@ -1749,6 +1852,11 @@ void search_results(struct gnutella_node *n)
 		
 final_cleanup:
 	g_list_free(selected_searches);
+
+	if (drop_it && n->header.hops == 1)
+		n->n_weird++;
+
+	return drop_it;
 }
 
 /*

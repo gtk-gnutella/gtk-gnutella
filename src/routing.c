@@ -472,18 +472,18 @@ void message_add(guchar * muid, guint8 function,
 			 */
 
 			if (node_sent_message(fake_node, m)) {
-				routing_log("ROUTE %-21s %s %s %3d [already sent]\n",
+				routing_log("ROUTE %-21s %s %s %3d/%3d [already sent]\n",
 					"OURSELVES", debug_msg[function],
-					guid_hex_str(muid), my_ttl);
+					guid_hex_str(muid), 0, my_ttl);
 				return;
 			}
 
-			routing_log("ROUTE %-21s %s %s %3d [forgot we sent it]\n",
+			routing_log("ROUTE %-21s %s %s %3d/%3d [forgot we sent it]\n",
 					"OURSELVES", debug_msg[function],
-					guid_hex_str(muid), my_ttl);
+					guid_hex_str(muid), 0, my_ttl);
 		} else
-			routing_log("ROUTE %-21s %s %s %3d\n", "OURSELVES",
-				debug_msg[function], guid_hex_str(muid), my_ttl);
+			routing_log("ROUTE %-21s %s %s %3d/%3d\n", "OURSELVES",
+				debug_msg[function], guid_hex_str(muid), 0, my_ttl);
 
 		route = &fake_route;
 		node = fake_node;		/* We are the sender of the message */
@@ -631,7 +631,7 @@ static gboolean forward_message(struct gnutella_node **node,
 		) {
 			node_bye(sender, 403, "Relayed %d high TTL (>%d) messages",
 				sender->n_hard_ttl, max_high_ttl_msg);
-			(*node) = NULL;
+			*node = NULL;
 		}
 
 		return FALSE;
@@ -646,7 +646,7 @@ static gboolean forward_message(struct gnutella_node **node,
 	if (sender->header.ttl == 0) {
 		routing_log("[ ] [NEW] TTL was 0\n");
 		if (node_sent_ttl0(sender))
-			(*node) = NULL;
+			*node = NULL;
 		return FALSE;	/* Don't handle, shouldn't have seen it */
 	}
 
@@ -707,7 +707,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 	 */
 	struct gnutella_node *found;
 
-	sender = (*node);
+	sender = *node;
 	dest->type = ROUTE_NONE;
 
 	/* if we haven't allocated routing data for this node yet, do so */
@@ -729,12 +729,10 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 
 	if (sender->header.function & 0x01) {
 		/*
-		 * We'll also handle all search replies if we're doing a passive
-		 * search, or if we don't have the vendor ID yet and the hop count
-		 * is 0.
+		 * We'll also handle all search replies.
 		 */
-		handle_it = sender->header.function == GTA_MSG_SEARCH_RESULTS &&
-			(search_passive || (!sender->vendor && sender->header.hops == 0));
+
+		handle_it = sender->header.function == GTA_MSG_SEARCH_RESULTS;
 
 		/*
 		 * If message is a Query Hit, we have to record we have seen a
@@ -770,6 +768,36 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			}
 		}
 
+		/*
+		 * Can't forward a message with 255 hops: we can't increase the
+		 * counter.  This should never happen, even for a routed message
+		 * due to network constraints.
+		 *		--RAM, 04/07/2002
+		 */
+
+		if (sender->header.hops == 255) {
+			routing_log("(max hop count reached)\n");
+			dropped_messages++;
+			sender->rx_dropped++;
+			sender->n_bad++;
+			if (dbg)
+				gmsg_log_bad(sender, "message with HOPS=255!");
+			return FALSE;	/* Don't handle, something is wrong */
+		}
+
+		/*
+		 * If node propagates messages with TTL=0, it's a danger to
+		 * the network, kick him out.
+		 *				-- RAM, 15/09/2001
+		 */
+
+		if (sender->header.ttl == 0) {
+			routing_log("(TTL was 0)\n");
+			if (node_sent_ttl0(sender))
+				*node = NULL;
+			return FALSE;	/* Don't handle, shouldn't have seen it */
+		}
+
 		if (!find_message
 			(sender->header.muid, sender->header.function & ~(0x01), &m)) {
 			/* We have never seen any request matching this reply ! */
@@ -783,6 +811,11 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			if (dbg > 2)
 				gmsg_log_bad(sender, "got reply ID %s without matching request",
 					guid_hex_str(sender->header.muid));
+
+			if (handle_it) {
+				sender->header.hops++;	/* Must be accurate if we handle it */
+				sender->header.ttl--;
+			}
 
 			return handle_it;	/* We don't have to handle the message */
 		}
@@ -801,18 +834,26 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			sender->rx_dropped++;
 			dropped_messages++;
 
+			if (handle_it) {
+				sender->header.hops++;	/* Must be accurate if we handle it */
+				sender->header.ttl--;
+			}
+
 			return handle_it;
 		}
 
 		if (node_sent_message(fake_node, m)) {
 			/* We are the target of the reply */
 			routing_log("[H] we are the target\n");
+			sender->header.hops++;		/* Must be accurate: we handle it */
+			sender->header.ttl--;
 			return TRUE;
 		}
 
 		routing_log("[%c] ", handle_it ? 'H' : ' ');
 
 		/* We only have to forward the message the target node */
+
 		/*
 		 * We apply the TTL limits differently for replies.
 		 *
@@ -832,18 +873,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			sender->header.ttl = hard_ttl_limit + 1;
 		}
 
-		/*
-		 * If node propagates messages with TTL=0, it's a danger to
-		 * the network, kick him out.
-		 *				-- RAM, 15/09/2001
-		 */
-
-		if (sender->header.ttl == 0) {
-			routing_log("(TTL was 0)\n");
-			if (node_sent_ttl0(sender))
-				(*node) = NULL;
-			return FALSE;	/* Don't handle, shouldn't have seen it */
-		}
+		sender->header.hops++;
 
 		if (!--sender->header.ttl) {
 			/* TTL expired, message stops here */
@@ -852,8 +882,6 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			sender->rx_dropped++;
 			return handle_it;
 		}
-
-		sender->header.hops++;
 
 		found = ((struct route_data *) m->routes->data)->node;
 
@@ -903,7 +931,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 						sender->n_dups, sender->received ?
 							100.0 * sender->n_dups / sender->received :
 							0.0);
-					(*node) = NULL;
+					*node = NULL;
 				} else {
 					if (dbg > 2)
 						gmsg_log_bad(sender, "dup message ID %s from same node",

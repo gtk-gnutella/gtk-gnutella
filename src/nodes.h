@@ -47,6 +47,7 @@ struct gnutella_node {
 	gint proto_major;			/* Protocol major number */
 	gint proto_minor;			/* Protocol minor number */
 	gchar *vendor;				/* Vendor information */
+	guchar vcode[4];			/* Vendor code (vcode[0] == NUL when unknown) */
 	gpointer io_opaque;			/* Opaque I/O callback information */
 
 	struct gnutella_header header;		/* Header of the current message */
@@ -69,6 +70,7 @@ struct gnutella_node {
 	guint32 n_bad;				/* Number of bad packets received */
 	guint16 n_dups;				/* Number of dup messages received (bad) */
 	guint16 n_hard_ttl;			/* Number of hard_ttl exceeded (bad) */
+	guint32 n_weird;			/* Number of weird messages from that node */
 
 	guint32 allocated;			/* Size of allocated buffer data, 0 for none */
 	gboolean have_header;		/* TRUE if we have got a full message header */
@@ -107,6 +109,9 @@ struct gnutella_node {
 	guint16 gnet_port;			/* (listening port, that is ) */
 	guint32 gnet_files_count;	/* Used to answer "Crawling" pings */
 	guint32 gnet_kbytes_count;	/* Used to answer "Crawling" pings */
+	guint32 gnet_pong_ip;		/* When != 0, last IP we got in pong */
+	guint32 gnet_qhit_ip;		/* When != 0, last IP we got in query hit */
+	guchar *gnet_guid;			/* GUID of node (atom) seen on the network */
 
 	guint32 n_ping_throttle;	/* Number of pings we throttled */
 	guint32 n_ping_accepted;	/* Number of pings we accepted */

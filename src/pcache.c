@@ -660,7 +660,16 @@ static gboolean iterate_on_cached_line(
 			continue;
 		cp->last_sent_id = n->id;
 
-		send_pong(n, FALSE, hops, ttl, n->ping_guid,
+		/*
+		 * When sending a cached pong, don't forget that its cached hop count
+		 * is the one we got when we received it, i.e. hops=0 means a pong
+		 * from one of our immediate neighbours.  However, we're now "routing"
+		 * it, so we must increase the hop count.
+		 */
+
+		g_assert(hops < 255);		/* Because of MAX_CACHE_HOPS */
+
+		send_pong(n, FALSE, hops + 1, ttl, n->ping_guid,
 			cp->ip, cp->port, cp->files_count, cp->kbytes_count);
 
 		n->pong_missing--;
@@ -784,7 +793,7 @@ static struct cached_pong *record_fresh_pong(struct gnutella_node *n,
 	cp->files_count = files_count;
 	cp->kbytes_count = kbytes_count;
 
-	hop = CACHE_HOP_IDX(hops);
+	hop = CACHE_HOP_IDX(hops);		/* Trim high values to MAX_CACHE_HOPS */
 	cl = &pong_cache[hop];
 	cl->pongs = g_slist_append(cl->pongs, cp);
 	add_recent_pong(cp);
@@ -969,15 +978,31 @@ void pcache_pong_received(struct gnutella_node *n)
 				n->gnet_ip = ip;		/* Signals: we have figured it out */
 				n->gnet_port = port;
 			} else if (!(n->flags & NODE_F_ALIEN_IP)) {
-				if (dbg)
-					g_warning(
-						"node %s sent us a pong for itself with alien IP %s",
-						node_ip(n), ip_to_gchar(ip));
+				if (dbg) g_warning(
+					"node %s (%s) sent us a pong for itself with alien IP %s",
+					node_ip(n), n->vendor ? n->vendor : "", ip_to_gchar(ip));
 				n->flags |= NODE_F_ALIEN_IP;	/* Probably firewalled */
 			}
 		}
+
 		n->gnet_files_count = files_count;
 		n->gnet_kbytes_count = kbytes_count;
+
+		/*
+		 * Spot any change in the pong's IP address.  We try to avoid messages
+		 * about "connection pongs" by checking whether we have sent at least
+		 * 2 pings (one handshaking ping plus one another).
+		 */
+
+		if (n->gnet_pong_ip && ip != n->gnet_pong_ip) {
+			if (dbg && n->n_ping_sent > 2) g_warning(
+				"node %s (%s) sent us a pong for new IP %s (used %s before)",
+				node_ip(n), n->vendor ? n->vendor : "",
+				ip_port_to_gchar(ip, port), ip_to_gchar(n->gnet_pong_ip));
+			n->n_weird++;
+		}
+
+		n->gnet_pong_ip = ip;
 	}
 
 	/*

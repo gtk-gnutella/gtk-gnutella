@@ -1401,9 +1401,9 @@ static gchar *gui_node_info_str(struct gnutella_node *n, time_t now)
 
 			slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 				" Query(TX=%d, Q=%d) Drop(TX=%d, RX=%d)"
-				" Dup=%d Bad=%d Q=%d,%d%% %s",
+				" Dup=%d Bad=%d W=%d Q=%d,%d%% %s",
 				NODE_SQUEUE_SENT(n), NODE_SQUEUE_COUNT(n),
-				n->tx_dropped, n->rx_dropped, n->n_dups, n->n_bad,
+				n->tx_dropped, n->rx_dropped, n->n_dups, n->n_bad, n->n_weird,
 				NODE_MQUEUE_COUNT(n), NODE_MQUEUE_PERCENT_USED(n),
 				NODE_IN_TX_FLOW_CONTROL(n) ? " [FC]" : "");
 			a = gui_tmp;

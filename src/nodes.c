@@ -70,6 +70,9 @@
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define SHUTDOWN_GRACE_DELAY	120	/* Grace period for shutdowning nodes */
 #define BYE_GRACE_DELAY			30	/* Bye sent, give time to propagate */
+#define MAX_WEIRD_MSG			5	/* Close connection after so much weirds */
+#define MAX_TX_RX_RATIO			100	/* Max TX/RX ratio */
+#define MIN_TX_FOR_RATIO		200	/* TX packets before enforcing ratio */
 
 GSList *sl_nodes = (GSList *) NULL;
 
@@ -183,6 +186,28 @@ void node_timer(time_t now)
 
 		if (n->searchq != NULL)
 			sq_process(n->searchq, now);
+
+		/*
+		 * Sanity checks for connected nodes.
+		 */
+
+		if (n->status == GTA_NODE_CONNECTED) {
+			if (n->n_weird >= MAX_WEIRD_MSG) {
+				if (NODE_IS_WRITABLE(n))
+					node_bye(n, 412, "Security violation");
+				else
+					node_remove(n, "Security violation");
+			}
+			if (
+				n->sent > MIN_TX_FOR_RATIO &&
+				(n->received == 0 || n->sent / n->received > MAX_TX_RX_RATIO)
+			) {
+				if (NODE_IS_WRITABLE(n))
+					node_bye(n, 405, "Receive timeout");
+				else
+					node_remove(n, "Receive timeout");
+			}
+		}
 
 		gui_update_nodes_display(now);
 	}
@@ -335,10 +360,12 @@ static void node_remove_v(
 			n->remove_msg ? n->remove_msg : "<no reason>");
 
 	if (dbg > 4) {
-		printf("NODE [%d.%d] %s <%s> TX=%d (drop=%d) RX=%d (drop=%d) Bad=%d\n",
+		printf("NODE [%d.%d] %s <%s> TX=%d (drop=%d) RX=%d (drop=%d) "
+			"Dup=%d Bad=%d W=%d\n",
 			n->proto_major, n->proto_minor, node_ip(n),
 			n->vendor ? n->vendor : "????",
-			n->sent, n->tx_dropped, n->received, n->rx_dropped, n->n_bad);
+			n->sent, n->tx_dropped, n->received, n->rx_dropped,
+			n->n_dups, n->n_bad, n->n_weird);
 		printf("NODE \"%s%s\" %s PING (drop=%d acpt=%d spec=%d sent=%d) "
 			"PONG (rcvd=%d sent=%d)\n",
 			(n->attrs & NODE_A_PONG_CACHING) ? "new" : "old",
@@ -385,6 +412,10 @@ static void node_remove_v(
 	if (n->vendor) {
 		atom_str_free(n->vendor);
 		n->vendor = NULL;
+	}
+	if (n->gnet_guid) {
+		atom_guid_free(n->gnet_guid);
+		n->gnet_guid = NULL;
 	}
 
 	n->status = GTA_NODE_REMOVING;
@@ -1488,6 +1519,7 @@ static void node_process_handshake_header(struct io_header *ih)
 			if (ip == n->ip) {
 				n->gnet_ip = ip;				/* Signals: we know the port */
 				n->gnet_port = port;
+				n->gnet_pong_ip = ip;			/* Cannot lie about its IP */
 				n->flags |= NODE_F_VALID;
 			}
 		}
@@ -2294,6 +2326,7 @@ static void node_parse(struct gnutella_node *node)
 	/* Compute route (destination) then handle the message if required */
 
 	if (route_message(&n, &dest)) {		/* We have to handle the message */
+		g_assert(n);
 		switch (n->header.function) {
 		case GTA_MSG_PUSH_REQUEST:
 			handle_push_request(n);
@@ -2302,7 +2335,7 @@ static void node_parse(struct gnutella_node *node)
 			drop = search_request(n);
 			break;
 		case GTA_MSG_SEARCH_RESULTS:
-			search_results(n);
+			drop = search_results(n);
 			break;
 		default:
 			message_dump(n);
@@ -2870,6 +2903,8 @@ void node_close(void)
 			g_free(n->data);
 		if (n->vendor)
 			atom_str_free(n->vendor);
+		if (n->gnet_guid)
+			atom_guid_free(n->gnet_guid);
 		node_real_remove(n);
 	}
 
