@@ -1,5 +1,11 @@
 # since last version
 
+- (2004-10-04 - RAM)
+ * Integrated bitzi patch #1037927 [From Alex Bennee].
+ * Include user-supplied headers in the private file as well, in case they
+   refer to constants in the vectorized properties.
+ * Control dispersion during clock skew updates.
+
 - (2004-10-03 - RAM)
  * Added pre-send checking hook to the PDU message descriptor.
  * Added the tx_flush() operation to force buffer flushing, if any.
@@ -16,6 +22,8 @@
  * Tooltip for "Host runs NTP" now mentions GTKG will auto-detect NTP.
  * Correct remote clock seen in the Date HTTP header by the amount of time
    necessary for the headers to travel back (estimated from HTTP roundtrip).
+ * Better clock skew computation and update algorithm, based on statistics.
+ * The Date HTTP header was not using clock skew to correct time.
 
 - (2004-09-29 - RAM)
  * Added "Time Sync" vendor messages.
