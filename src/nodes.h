@@ -354,6 +354,7 @@ typedef struct gnutella_node {
 #define NODE_IS_LEAF(n)			((n)->peermode == NODE_P_LEAF)
 #define NODE_IS_NORMAL(n)		((n)->peermode == NODE_P_NORMAL)
 #define NODE_IS_ULTRA(n)		((n)->peermode == NODE_P_ULTRA)
+#define NODE_IS_UDP(n)			((n)->peermode == NODE_P_UDP)
 
 /*
  * Macros.
@@ -516,5 +517,8 @@ gnutella_node_t *node_active_by_id(guint32 id);
 void node_became_firewalled(void);
 void node_set_socket_rx_size(gint rx_size);
 
-/* vi: set ts=4: */
+void node_udp_process(struct gnutella_socket *s);
+
 #endif /* _nodes_h_ */
+
+/* vi: set ts=4: */

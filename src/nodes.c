@@ -108,6 +108,7 @@ RCSID("$Id$");
 
 static GSList *sl_nodes = NULL;
 static GHashTable *nodes_by_id = NULL;
+static gnutella_node_t *udp_node = NULL;
 
 /* These two contain connected and connectING(!) nodes. */
 static GHashTable *ht_connected_nodes   = NULL;
@@ -191,6 +192,7 @@ static void node_bye_all_but_one(
 	struct gnutella_node *nskip, gint code, gchar *message);
 static void node_set_current_peermode(node_peer_t mode);
 static enum node_bad node_is_bad(struct gnutella_node *n);
+static gnutella_node_t * node_udp_create(void);
 
 extern gint guid_eq(gconstpointer a, gconstpointer b);
 
@@ -899,6 +901,8 @@ node_init(void)
 	unstable_servent   = g_hash_table_new(NULL, NULL);
     ht_connected_nodes = g_hash_table_new(host_hash, host_eq);
 	nodes_by_id        = g_hash_table_new(g_int_hash, g_int_equal);
+
+	udp_node = node_udp_create();
 }
 
 /**
@@ -1115,6 +1119,7 @@ static void
 node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 {
 	g_assert(n->status != GTA_NODE_REMOVING);
+	g_assert(!NODE_IS_UDP(n));
 
 	if (reason) {
 		gm_vsnprintf(n->error_str, sizeof(n->error_str), reason, ap);
@@ -2486,10 +2491,12 @@ node_is_now_connected(struct gnutella_node *n)
 	if (n->attrs & NODE_A_CAN_VENDOR) {
 		vmsg_send_messages_supported(n);
 		if (is_firewalled) {
-			vmsg_send_connect_back(n, listen_port);
+			vmsg_send_tcp_connect_back(n, listen_port);
 			if (!NODE_IS_LEAF(n))
 				send_proxy_request(n);
 		}
+		if (is_udp_firewalled)
+			vmsg_send_udp_connect_back(n, listen_port);
 	}
 
 	/*
@@ -3469,6 +3476,32 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		n->attrs |= NODE_A_PONG_CACHING;
 	}
 
+	/* X-Ultrapeer -- support for ultra peer mode */
+
+	field = header_get(head, "X-Ultrapeer");
+	if (field) {
+		n->attrs |= NODE_A_CAN_ULTRA;
+		if (0 == strcasecmp(field, "true"))
+			n->attrs |= NODE_A_ULTRA;
+		else if (0 == strcasecmp(field, "false")) {
+			if (current_peermode == NODE_P_ULTRA)
+				n->flags |= NODE_F_LEAF;
+		}
+	} else {
+		/*
+		 * BearShare 4.3.x decided to no longer send X-Ultrapeer on connection,
+		 * but rather include the X-Ultrapeer-Needed header.  Hopefully, only
+		 * their UPs will send back such a header.
+		 *		--RAM, 01/11/2003
+		 */
+
+		field = header_get(head, "X-Ultrapeer-Needed");
+		if (field)
+			n->attrs |= NODE_A_CAN_ULTRA | NODE_A_ULTRA;
+		else
+			n->attrs |= NODE_A_NO_ULTRA;
+	}
+
 	/* Node -- remote node Gnet IP/port information */
 
 	if (incoming) {
@@ -3487,7 +3520,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		if (!field) field = header_get(head, "Listen-Ip");
 
 		if (field && gchar_to_ip_port(field, &ip, &port)) {
-			pcache_pong_fake(n, ip, port);		/* Might have free slots */
+			if (n->attrs & NODE_A_ULTRA)
+				pcache_pong_fake(n, ip, port);	/* Might have free slots */
 
 			/*
 			 * Since we have the node's IP:port, record it now and mark the
@@ -3610,32 +3644,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				g_warning("cannot parse Uptime \"%s\" from %s (%s)",
 					field, node_ip(n), node_vendor(n));
 		}
-	}
-
-	/* X-Ultrapeer -- support for ultra peer mode */
-
-	field = header_get(head, "X-Ultrapeer");
-	if (field) {
-		n->attrs |= NODE_A_CAN_ULTRA;
-		if (0 == strcasecmp(field, "true"))
-			n->attrs |= NODE_A_ULTRA;
-		else if (0 == strcasecmp(field, "false")) {
-			if (current_peermode == NODE_P_ULTRA)
-				n->flags |= NODE_F_LEAF;
-		}
-	} else {
-		/*
-		 * BearShare 4.3.x decided to no longer send X-Ultrapeer on connection,
-		 * but rather include the X-Ultrapeer-Needed header.  Hopefully, only
-		 * their UPs will send back such a header.
-		 *		--RAM, 01/11/2003
-		 */
-
-		field = header_get(head, "X-Ultrapeer-Needed");
-		if (field)
-			n->attrs |= NODE_A_CAN_ULTRA | NODE_A_ULTRA;
-		else
-			n->attrs |= NODE_A_NO_ULTRA;
 	}
 
 	/*
@@ -4157,6 +4165,73 @@ call_node_process_handshake_ack(gpointer obj, header_t *header)
 }
 
 #undef NODE
+
+/**
+ * Create a "fake" node that is used as a placeholder when processing
+ * Gnutella messages received from UDP.
+ */
+static gnutella_node_t *
+node_udp_create(void)
+{
+	gnutella_node_t *n;
+
+	n = (struct gnutella_node *) walloc0(sizeof(struct gnutella_node));
+
+    n->node_handle = node_request_handle(n);
+    n->id = node_id++;
+	n->ip = 0;
+	n->port = 0;
+	n->proto_major = 0;
+	n->proto_minor = 6;
+	n->peermode = NODE_P_UDP;
+	n->hops_flow = MAX_HOP_COUNT;
+	n->last_update = n->last_tx = n->last_rx = time(NULL);
+	n->routing_data = NULL;
+	n->vendor = atom_str_get("UDP node");
+	n->status = GTA_NODE_CONNECTED;
+	n->flags = NODE_F_INCOMING | NODE_F_ESTABLISHED |
+		NODE_F_READABLE | NODE_F_WRITABLE | NODE_F_VALID;
+
+	return n;
+}
+
+/**
+ * Get "fake" node after reception of a datagram and return its address.
+ */
+static gnutella_node_t *
+node_udp_get(struct gnutella_socket *s)
+{
+	gnutella_node_t *n = udp_node;
+	struct gnutella_header *head;
+
+	g_assert(n->socket == NULL);
+
+	head = (struct gnutella_header *) s->buffer;
+	READ_GUINT32_LE(head->size, n->size);
+
+	n->header = *head;		/* Struct copy */
+	n->socket = s;
+	n->data = s->buffer + sizeof(struct gnutella_header);
+
+	n->ip = s->ip;
+	n->port = s->port;
+
+	return n;
+}
+
+/**
+ * Release "fake" node after processing of a datagram.
+ */
+static void
+node_udp_release(struct gnutella_socket *s)
+{
+	gnutella_node_t *n = udp_node;
+
+	g_assert(n->socket == s);
+	g_assert(n->socket != NULL);
+
+	n->socket = NULL;
+}
 
 /**
  * Add new node.
@@ -4790,6 +4865,37 @@ reset_header:
 clean_dest:
 	if (dest.type == ROUTE_MULTI)
 		g_slist_free(dest.ur.u_nodes);
+}
+
+/**
+ * Process incoming Gnutella datagram.
+ */
+void
+node_udp_process(struct gnutella_socket *s)
+{
+	gnutella_node_t *n = node_udp_get(s);
+
+	/*
+	 * The node_parse() routine was written to process incoming Gnutella
+	 * messages from TCP-connected nodes, whose connection can be broken.
+	 * To reuse as much of the logic as possible, we reuse the same routine
+	 * on a fake node target.
+	 *
+	 * At strategic places where it is important to know whether the message
+	 * comes from UDP or not (e.g. for queries which are not meant to be
+	 * routed), the NODE_IS_UDP() predicate is used.
+	 *
+	 * We enclose the node_parse() call between assertions to make sure
+	 * that we never attempt to remove the fake UDP node!
+	 *
+	 *		--RAM, 2004-08-16
+	 */
+
+	g_assert(n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n));
+	node_parse(n);
+	g_assert(n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n));
+
+	node_udp_release(s);
 }
 
 /**
@@ -5608,6 +5714,8 @@ node_close(void)
 			string_table_free(n->qrelayed_old);
 		node_real_remove(n);
 	}
+
+	node_real_remove(udp_node);
 
 	g_slist_free(sl_proxies);
     g_hash_table_destroy(ht_connected_nodes);
