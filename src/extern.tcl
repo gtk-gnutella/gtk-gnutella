@@ -129,7 +129,9 @@ set w_main_list {
     popup_search_clear_results
     popup_search_close
     popup_search_duplicate 
-    popup_search_dont_show
+    popup_search_dont_show_name
+    popup_search_dont_show_sha1
+    popup_search_edit_filter
     popup_search_restart 
     popup_search_resume
     popup_search_stop
@@ -226,43 +228,62 @@ set w_main_list {
 
     label_shutdown_count
 
+    button_filter_add_flag_rule
     button_filter_add_rule_ip
+    button_filter_add_rule_jump
     button_filter_add_rule_size
     button_filter_add_rule_text
-    button_filter_add_rule_jump
+    button_filter_add_rule_flag
     button_filter_clear
     button_filter_remove
     button_filter_reset
     button_filter_reset_all_rules
+    checkbutton_filter_enabled
+    checkbutton_filter_ip_active
     checkbutton_filter_ip_invert_cond
+    checkbutton_filter_ip_soft
+    checkbutton_filter_jump_active
+    checkbutton_filter_sha1_active
+    checkbutton_filter_sha1_invert_cond
+    checkbutton_filter_sha1_soft
+    checkbutton_filter_size_active
     checkbutton_filter_size_invert_cond
+    checkbutton_filter_size_soft
+    checkbutton_filter_text_active
     checkbutton_filter_text_case
     checkbutton_filter_text_invert_cond
     checkbutton_filter_text_soft
-    checkbutton_filter_size_soft
-    checkbutton_filter_ip_soft
-    checkbutton_filter_text_active
-    checkbutton_filter_size_active
-    checkbutton_filter_ip_active
-    checkbutton_filter_jump_active
+    checkbutton_filter_flag_active
+    checkbutton_filter_flag_soft
     clist_filter_rules
     ctree_filter_filters
     entry_filter_ip_address
     entry_filter_ip_mask
+    entry_filter_name
     entry_filter_new
+    entry_filter_sha1_hash
     entry_filter_text_pattern
+    hpaned_filter_main
     notebook_filter_detail
+    optionmenu_filter_default_policy
     optionmenu_filter_ip_target
+    optionmenu_filter_jump_target
+    optionmenu_filter_sha1_target
     optionmenu_filter_size_target
     optionmenu_filter_text_target
-    optionmenu_filter_jump_target
+    optionmenu_filter_flag_target
     optionmenu_filter_text_type
-    optionmenu_filter_default_policy
+    radiobutton_filter_flag_stable_set
+    radiobutton_filter_flag_stable_unset
+    radiobutton_filter_flag_stable_ignore
+    radiobutton_filter_flag_busy_set
+    radiobutton_filter_flag_busy_unset
+    radiobutton_filter_flag_busy_ignore
+    radiobutton_filter_flag_push_set
+    radiobutton_filter_flag_push_unset
+    radiobutton_filter_flag_push_ignore    
     spinbutton_filter_size_max
     spinbutton_filter_size_min
-    hpaned_filter_main
-    entry_filter_name
-    checkbutton_filter_enabled
 }
 
 # interface.h ----------------------------------------------------------------------------------------
