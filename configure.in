@@ -42,7 +42,7 @@ AC_ARG_ENABLE(no-rfc1918,[
 gtk-gnutella options:
   --enable-no-rfc1918             avoid RFC1918 networks (default=off)], , enable_no_rfc1918=no)
 AC_ARG_ENABLE(xml-store,[
-  --enable-xml-store              save searches and filters in XML (default=on)], , enable_xml_store=no)
+  --enable-xml-store              save searches and filters in XML (default=off)], , enable_xml_store=no)
 
 
 AC_MSG_CHECKING([whether to enable RFC1918 network avoidance mode])

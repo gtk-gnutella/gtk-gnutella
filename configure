@@ -23,7 +23,7 @@ gtk-gnutella options:
   --enable-no-rfc1918             avoid RFC1918 networks (default=off)"
 ac_help="$ac_help
 
-  --enable-xml-store              save searches and filters in XML (default=on)"
+  --enable-xml-store              save searches and filters in XML (default=off)"
 
 # Initialize some variables set by options.
 # The variables have the same names as the options, with
