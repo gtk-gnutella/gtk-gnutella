@@ -13,7 +13,7 @@
 
 gchar *ip_to_gchar(guint32 ip)
 {
-	static gchar a[128];
+	static gchar a[32];
 	struct in_addr ia;
 	ia.s_addr = g_htonl(ip);
 	g_snprintf(a, sizeof(a), "%s", inet_ntoa(ia));
@@ -23,7 +23,7 @@ gchar *ip_to_gchar(guint32 ip)
 
 gchar *ip_port_to_gchar(guint32 ip, guint16 port)
 {
-	static gchar a[128];
+	static gchar a[32];
 	struct in_addr ia;
 	ia.s_addr = g_htonl(ip);
 	g_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), port);
@@ -169,7 +169,7 @@ gboolean is_directory(gchar * path)
 
 gchar *short_size(guint32 size)
 {
-	static gchar b[256];
+	static gchar b[64];
 
 	if (size < 1024)
 		g_snprintf(b, sizeof(b), "%u Bytes", size);
@@ -190,7 +190,7 @@ gchar *node_ip(struct gnutella_node * n)
 	/* Same as ip_port_to_gchar(), but need another static buffer to be able
 	   to use both in same printf() line */
 
-	static gchar a[128];
+	static gchar a[32];
 	struct in_addr ia;
 	ia.s_addr = g_htonl(n->ip);
 	g_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), n->port);
