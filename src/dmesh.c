@@ -711,10 +711,9 @@ static gboolean dmesh_raw_add(guchar *sha1,
 	dme->url.idx = idx;
 	dme->url.name = atom_str_get(name);
 
-    if (dbg) {
-		g_warning ("dmesh entry created, name %px:%s\n",
-				dme->url.name,dme->url.name);
-    }
+    if (dbg)
+		printf("dmesh entry created, name %p: %s\n",
+				dme->url.name, dme->url.name);
 
 	/*
 	 * The entries are sorted by time.  We're going to unconditionally add
@@ -1115,7 +1114,8 @@ typedef struct {
 static GSList *dmesh_get_nonurn_altlocs(guchar *sha1)
 {
     struct dmesh *dm;
-    GSList *l,*nonurn_altlocs=NULL;
+    GSList *l;
+	GSList *nonurn_altlocs = NULL;
 
     g_assert(sha1);
 
@@ -1197,19 +1197,23 @@ static void dmesh_free_deferred_altloc(
  *
  * These factors are currently semi-empirical guesses and hardwired
  *
+ * NOTE: this is an O(m*n) process, when `m' is the amount of new entries
+ * and `n' the amount of existing entries.
  */
 static void dmesh_check_deferred_against_existing(
     guchar *sha1, GSList *existing_urls, GSList *deferred_urls)
 {
     GSList *ex, *def;
+	GSList *adding = NULL;
     float score;
     gint matches;
     gint threshold = g_slist_length(existing_urls);
+	time_t now = time(NULL);
 
     /* We want to match at least 2 or more entries, going for 50% */
     threshold = (threshold < 3) ? 2 : (threshold / 2);
     
-	for (def = deferred_urls; def; def=def->next) {
+	for (def = deferred_urls; def; def = def->next) {
 		dmesh_deferred_url_t *d = def->data;
 		matches=0;
 
@@ -1224,24 +1228,17 @@ static void dmesh_check_deferred_against_existing(
 				matches++;
 		}
 
-		if (matches >= threshold) {
-			dmesh_urlinfo_t *url = d->dmesh_url;
-			gboolean ok;
+		/*
+		 * We can't add the entry in the mesh in the middle of the
+		 * traversal: if we reach the max amount of entries in the mesh,
+		 * we'll free some of them, and since our `existing_urls' items
+		 * directly refer the dmesh_entry structures, that would be horrible!
+		 *		--RAM, 05/02/2003
+		 */
 
-			ok = dmesh_raw_add(sha1, url->ip, url->port, url->idx, url->name,
-					  d->stamp);
-
-			if (dbg > 4) {
-				time_t now = time(NULL);
-				printf("MESH %s: %s deferred \"%s\", stamp=%u age=%u\n"
-					   "\t(matched %d of existing, threshold was %d)\n",
-					sha1_base32(sha1),
-					ok ? "added" : "rejected",
-					dmesh_urlinfo_to_gchar(url), (guint32) d->stamp,
-					(guint32) (now - MIN(d->stamp, now)),
-					matches, threshold);
-			}
-		} else {
+		if (matches >= threshold)
+			adding = g_slist_prepend(adding, d);
+		else {
 			dmesh_urlinfo_t *url = d->dmesh_url;
 			if (dbg)
 				g_warning("dumped potential dmesh entry:\n%s\n\t"
@@ -1249,6 +1246,25 @@ static void dmesh_check_deferred_against_existing(
 					url->name, matches, threshold);
 		}
 	} /* for def */
+
+	for (def = adding; def; def = def->next) {
+		dmesh_deferred_url_t *d = def->data;
+		dmesh_urlinfo_t *url = d->dmesh_url;
+		gboolean ok;
+
+		ok = dmesh_raw_add(sha1, url->ip, url->port, url->idx, url->name,
+				  d->stamp);
+
+		if (dbg > 4) {
+			printf("MESH %s: %s deferred \"%s\", stamp=%u age=%u\n",
+				sha1_base32(sha1),
+				ok ? "added" : "rejected",
+				dmesh_urlinfo_to_gchar(url), (guint32) d->stamp,
+				(guint32) (now - MIN(d->stamp, now)));
+		}
+	}
+
+	g_slist_free(adding);
 }
 
 /*
