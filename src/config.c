@@ -31,6 +31,11 @@ gboolean clear_uploads = FALSE;
 gboolean clear_downloads = FALSE;
 gboolean monitor_enabled = FALSE;
 gboolean force_local_ip = TRUE;
+gboolean toolbar_visible = FALSE;
+gboolean statusbar_visible = TRUE;
+gboolean progressbar_uploads_visible = TRUE;
+gboolean progressbar_downloads_visible = TRUE;
+gboolean progressbar_connections_visible = TRUE;
 
 guint8 max_ttl = 7;
 guint8 my_ttl = 5;
@@ -165,6 +170,9 @@ enum {
 	k_use_auto_download, k_auto_download_file, 
 	k_search_stats_update_interval, k_search_stats_delcoef,
 	k_search_stats_enabled,
+	k_toolbar_visible, k_statusbar_visible,
+	k_progressbar_uploads_visible, k_progressbar_downloads_visible, 
+	k_progressbar_connections_visible,
 	k_end
 };
 
@@ -257,6 +265,11 @@ static gchar *keywords[] = {
 	"search_stats_update_interval",
 	"search_stats_delcoef",
 	"search_stats_enabled",
+	"toolbar_visible",
+	"statusbar_visible",
+	"progressbar_uploads_visible",
+	"progressbar_downloads_visible",
+	"progressbar_connections_visible",
 	NULL
 };
 
@@ -498,38 +511,49 @@ void config_init(void)
 	gui_update_search_stats_update_interval();
 
 	gtk_toggle_button_set_active(
-		GTK_TOGGLE_BUTTON(checkbutton_enable_search_stats),
+		GTK_TOGGLE_BUTTON(checkbutton_search_stats_enable),
 		search_stats_enabled);
 
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_monitor),
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_monitor_enable),
 								 monitor_enabled);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-								 (checkbutton_clear_uploads),
+								 (checkbutton_uploads_auto_clear),
 								 clear_uploads);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-								 (checkbutton_clear_downloads),
+								 (checkbutton_downloads_auto_clear),
 								 clear_downloads);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
 								 (checkbutton_config_force_ip),
 								 force_local_ip);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_never_push),
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_downloads_never_push),
 								 !send_pushes);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-								 (checkbutton_jump_to_downloads),
+								 (checkbutton_search_jump_to_downloads),
 								 jump_to_downloads);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
 								 (checkbutton_autodownload),
 								 use_autodownload);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-								 (checkbutton_proxy_connections),
+								 (checkbutton_config_proxy_connections),
 								 proxy_connections);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_http),
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_config_http),
 								 (proxy_protocol == 1) ? TRUE : FALSE);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_socksv4),
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_config_socksv4),
 								 (proxy_protocol == 4) ? TRUE : FALSE);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_socksv5),
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_config_socksv5),
 								 (proxy_protocol == 5) ? TRUE : FALSE);
+
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_toolbar_visible),
+								   toolbar_visible);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_statusbar_visible),
+								   statusbar_visible);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_uploads_visible),
+								   progressbar_uploads_visible);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_downloads_visible),
+								   progressbar_downloads_visible);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_connections_visible),
+								   progressbar_connections_visible);
 
 	gui_update_socks_host();
 	gui_update_socks_port();
@@ -548,7 +572,7 @@ void config_init(void)
 		gtk_clist_set_column_width(GTK_CLIST(clist_downloads), i,
 								   dl_active_col_widths[i]);
 	for (i = 0; i < 3; i++)
-		gtk_clist_set_column_width(GTK_CLIST(clist_download_queue), i,
+		gtk_clist_set_column_width(GTK_CLIST(clist_downloads_queue), i,
 								   dl_queued_col_widths[i]);
 	for (i = 0; i < 5; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_uploads), i,
@@ -998,6 +1022,16 @@ void config_set_param(guint32 keyword, gchar *value)
 		if (i >= 0 && i <= 50000)
 			search_stats_update_interval = i;
 		return;
+	case k_toolbar_visible:
+		toolbar_visible = (gboolean) ! g_strcasecmp(value, "true");
+	case k_statusbar_visible:
+		statusbar_visible = (gboolean) ! g_strcasecmp(value, "true");
+	case k_progressbar_uploads_visible:
+		progressbar_uploads_visible = (gboolean) ! g_strcasecmp(value, "true");
+	case k_progressbar_downloads_visible:
+		progressbar_downloads_visible = (gboolean) ! g_strcasecmp(value, "true");
+	case k_progressbar_connections_visible:
+		progressbar_connections_visible = (gboolean) ! g_strcasecmp(value, "true");
 	}
 }
 
@@ -1263,7 +1297,17 @@ static void config_save(void)
 			keywords[k_widths_ul_stats],
 			ul_stats_col_widths[0], ul_stats_col_widths[1],
 			ul_stats_col_widths[2], ul_stats_col_widths[3],
-			ul_stats_col_widths[4]);
+				ul_stats_col_widths[4]);
+	fprintf(config, "%s = %s\n", keywords[k_toolbar_visible],
+			config_boolean(toolbar_visible));
+	fprintf(config, "%s = %s\n", keywords[k_statusbar_visible],
+			config_boolean(statusbar_visible));
+	fprintf(config, "%s = %s\n", keywords[k_progressbar_uploads_visible],
+			config_boolean(progressbar_uploads_visible));
+	fprintf(config, "%s = %s\n", keywords[k_progressbar_downloads_visible],
+			config_boolean(progressbar_downloads_visible));
+	fprintf(config, "%s = %s\n", keywords[k_progressbar_connections_visible],
+			config_boolean(progressbar_connections_visible));
 
 	fprintf(config, "\n\n#\n# The following variables cannot "
 		"yet be configured with the GUI.\n#\n\n");
