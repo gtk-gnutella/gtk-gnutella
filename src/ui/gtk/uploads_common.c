@@ -110,7 +110,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			
 			gm_snprintf(tmpstr, sizeof(tmpstr),
 				_("Completed (%s) %s"),
-				t > 0 ? compact_rate(requested / t) : _("< 1s"),
+				t > 0 ? short_rate(requested / t) : _("< 1s"),
 				t > 0 ? short_time(t) : "");
 		}
         break;
@@ -125,7 +125,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			gboolean stalled = delta_time(now, u->last_update) > IO_STALLED;
 
 			slen += gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen, " %s",
-							stalled ? _("(stalled)") : compact_rate(u->bps));
+							stalled ? _("(stalled)") : short_rate(u->bps));
 
 			gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
 				" TR: %s", short_time(tr));

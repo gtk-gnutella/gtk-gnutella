@@ -262,13 +262,13 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 		else {
 			range_len = gm_snprintf(str, sizeof(str), "%s%s",
 				u->partial ? "*" : "",
-				compact_size(u->range_end - u->range_start + 1));
+				short_size(u->range_end - u->range_start + 1));
 
 			if ((guint) range_len < sizeof(str)) {
 				if (u->range_start)
 					range_len += gm_snprintf(&str[range_len],
 									sizeof(str)-range_len,
-									" @ %s", compact_size(u->range_start));
+									" @ %s", short_size(u->range_start));
 				g_assert((guint) range_len < sizeof(str));
 			}
 		}
@@ -367,12 +367,12 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 
         range_len = gm_snprintf(range_tmp, sizeof(range_tmp), "%s%s",
 			u->partial ? "*" : "",
-            compact_size(u->range_end - u->range_start + 1));
+            short_size(u->range_end - u->range_start + 1));
 
         if (u->range_start)
             range_len += gm_snprintf(
                 &range_tmp[range_len], sizeof(range_tmp)-range_len,
-                " @ %s", compact_size(u->range_start));
+                " @ %s", short_size(u->range_start));
 
         g_assert((guint) range_len < sizeof(range_tmp));
 

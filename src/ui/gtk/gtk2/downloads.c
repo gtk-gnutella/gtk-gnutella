@@ -1194,12 +1194,11 @@ gui_update_download_range(download_t *d)
 
 	len += d->overlap_size;
 
-	rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
-		compact_size(len), and_more);
+	rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s", short_size(len), and_more);
 
 	if (d->skip)
 		gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " @ %s",
-			compact_size(d->skip));
+			short_size(d->skip));
 
 	gui_update_download_column(d, treeview_downloads, c_dl_range, tmpstr);
 }
@@ -1287,7 +1286,7 @@ gui_update_download(download_t *d, gboolean force)
 
 				gm_snprintf(tmpstr, sizeof(tmpstr),
 					"%.02f%%  (%s)  [%d/%d]  TR:  %s",
-					percent_done * 100.0, compact_rate(fi->recv_last_rate),
+					percent_done * 100.0, short_rate(fi->recv_last_rate),
 					fi->recvcount, fi->lifecount, short_time(s));
 			} else {
 				gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% [%d/%d]",
@@ -1468,7 +1467,7 @@ gui_update_download(download_t *d, gboolean force)
 
 			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
-				compact_rate((d->range_end - d->skip + d->overlap_size) / t),
+				short_rate((d->range_end - d->skip + d->overlap_size) / t),
 				short_time(t));
 		} else {
 			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s)",
@@ -1510,7 +1509,7 @@ gui_update_download(download_t *d, gboolean force)
 				guint elapsed = fi->cha1_elapsed;
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" (%s) %s",
-					compact_rate(fi->cha1_hashed / (elapsed ? elapsed : 1)),
+					short_rate(fi->cha1_hashed / (elapsed ? elapsed : 1)),
 					short_time(fi->cha1_elapsed));
 			}
 
@@ -1527,7 +1526,7 @@ gui_update_download(download_t *d, gboolean force)
 				if (fi->copy_elapsed) {
 					gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						_("; Moved (%s) %s"),
-						compact_rate(fi->copied / fi->copy_elapsed),
+						short_rate(fi->copied / fi->copy_elapsed),
 						short_time(fi->copy_elapsed));
 				}
 				break;
@@ -1575,7 +1574,7 @@ gui_update_download(download_t *d, gboolean force)
 							"%s ", _("(stalled)"));
 				else
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr) - rw,
-						"(%s) ", compact_rate(bps));
+						"(%s) ", short_rate(bps));
 
 				if (!has_header) {
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
@@ -1595,7 +1594,7 @@ gui_update_download(download_t *d, gboolean force)
 						bs = fi->recv_last_rate / 1024.0;
 
 						rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-							" (%s)", compact_rate(bps));
+							" (%s)", short_rate(bps));
 					}
 				}
 			} else if (delta_time(now, d->last_update) > IO_STALLED) {

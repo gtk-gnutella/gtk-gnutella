@@ -885,12 +885,11 @@ gui_update_download_range(struct download *d)
 
 	len += d->overlap_size;
 
-	rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
-		compact_size(len), and_more);
+	rw = gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s", short_size(len), and_more);
 
 	if (d->skip)
 		gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " @ %s",
-			compact_size(d->skip));
+			short_size(d->skip));
 
 	node = gtk_ctree_find_by_row_data(ctree_downloads, NULL, (gpointer) d);
 	if (NULL != node)
@@ -1141,7 +1140,7 @@ gui_update_download(struct download *d, gboolean force)
 			
 			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
-				compact_rate((d->range_end - d->skip + d->overlap_size) / t),
+				short_rate((d->range_end - d->skip + d->overlap_size) / t),
 				short_time(t));
 		} else {
 			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (< 1s)",
@@ -1183,7 +1182,7 @@ gui_update_download(struct download *d, gboolean force)
 			
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" (%s) %s",
-					compact_rate(fi->cha1_hashed / (elapsed ? elapsed : 1)),
+					short_rate(fi->cha1_hashed / (elapsed ? elapsed : 1)),
 					short_time(fi->cha1_elapsed));
 			}
 
@@ -1200,7 +1199,7 @@ gui_update_download(struct download *d, gboolean force)
 				if (fi->copy_elapsed) {
 					gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						_("; Moved (%s) %s"),
-						compact_rate(fi->copied / fi->copy_elapsed),
+						short_rate(fi->copied / fi->copy_elapsed),
 						short_time(fi->copy_elapsed));
 				}
 				break;
@@ -1247,7 +1246,7 @@ gui_update_download(struct download *d, gboolean force)
 						_("(stalled)"));
 				else
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						" (%s)", compact_rate(bps));
+						" (%s)", short_rate(bps));
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" [%d/%d] TR: %s", fi->recvcount, fi->lifecount,
@@ -1261,7 +1260,7 @@ gui_update_download(struct download *d, gboolean force)
 
 					if (fi->recvcount > 1) {
 						rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-							" (%s)", compact_rate(bps));
+							" (%s)", short_rate(bps));
 					}
 				}
 			} else {
@@ -1369,13 +1368,13 @@ gui_update_download(struct download *d, gboolean force)
 								gm_snprintf(tmpstr, sizeof(tmpstr),
 									"%.02f%%  (%s)  [%d/%d]  TR:  %s",
 									percent_done,
-									compact_rate(fi->recv_last_rate),
+									short_rate(fi->recv_last_rate),
 									active_src, tot_src, short_time(s));
 							} else {
 								gm_snprintf(tmpstr, sizeof(tmpstr),
 									"%.02f%%  (%s)  [%d/%d]  TR:  -",
 									percent_done,
-									compact_rate(fi->recv_last_rate),
+									short_rate(fi->recv_last_rate),
 									active_src, tot_src);
 							}
 
@@ -1443,13 +1442,13 @@ gui_update_download(struct download *d, gboolean force)
 								gm_snprintf(tmpstr, sizeof(tmpstr),
 									"%.02f%%  (%s)  [%d/%d]  TR:  %s",
 									percent_done,
-									compact_rate(fi->recv_last_rate),
+									short_rate(fi->recv_last_rate),
 									active_src, tot_src, short_time(s));
 							} else {
 								gm_snprintf(tmpstr, sizeof(tmpstr),
 									"%.02f%%  (%s)  [%d/%d]  TR:  -",
 									percent_done,
-									compact_rate(fi->recv_last_rate),
+									short_rate(fi->recv_last_rate),
 									active_src, tot_src);
 							}
 
