@@ -596,8 +596,8 @@ void main_gui_init(void)
                 (lookup_widget(main_window, 
                                "checkbutton_downloads_never_push"))));
 
-	downloads_gui_init();	/* Before settings_gui_init() */
     settings_gui_init();
+	downloads_gui_init();
     fi_gui_init();
     nodes_gui_init();
     gui_init_menu();
