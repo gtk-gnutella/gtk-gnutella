@@ -387,7 +387,7 @@ void search_gui_close_search(search_t *sch)
     search_close(sch->search_handle);
 	atom_str_free(sch->query);
 
-	g_free(sch);
+	G_FREE_NULL(sch);
 }
 
 static guint search_hash_func(gconstpointer key)
@@ -808,8 +808,8 @@ static void search_gui_add_record(
 		      c_sr_sortkey, titles[c_sr_sortkey],
 		      -1);
 
-	g_free(titles[c_sr_filename]);
-	g_free(titles[c_sr_sortkey]);
+	G_FREE_NULL(titles[c_sr_filename]);
+	G_FREE_NULL(titles[c_sr_sortkey]);
 
 
 /*    if (!sch->sort) {
@@ -1346,7 +1346,7 @@ gboolean search_gui_search_results_col_widths_changed(property_t prop)
             gtk_clist_set_column_width(clist, i, val[i]);
     }
 */
-    g_free(val);
+    G_FREE_NULL(val);
     return FALSE;
 }
 
@@ -1377,7 +1377,7 @@ gboolean search_gui_search_results_col_visible_changed(property_t prop)
             gtk_clist_set_column_visibility(clist, i, val[i]);
     }
 */
-    g_free(val);
+    G_FREE_NULL(val);
     return FALSE;
 }
 
@@ -2138,7 +2138,7 @@ void gui_search_history_add(gchar * s)
             n ++;
         } else {
             /* and free the rest */
-            g_free(cur_hist->data);
+            G_FREE_NULL(cur_hist->data);
         }
         cur_hist = cur_hist->next;
     }
