@@ -47,7 +47,7 @@
 #define gdk_drawable_get_size gdk_window_get_size
 #endif
 
-#define GUI_CELL_RENDERER_YPAD 0
+#define GUI_CELL_RENDERER_YPAD ((guint) 0)
 
 /*
  * Uploads table columns
