@@ -31,7 +31,7 @@ do {											\
 	if (i) {									\
 		(n)->ce_bnext = i;						\
 		if (((n)->ce_bprev = (i)->ce_bprev))	\
-			(i)->ce_bprev->ce_next = (n);		\
+			(i)->ce_bprev->ce_bnext = (n);		\
 		(i)->ce_bprev = (n);					\
 		if ((c)->ch_head == (i))				\
 			(c)->ch_head = (n);					\
@@ -46,12 +46,12 @@ do {											\
 #define CH_INSERT_AFTER(c,i,n)					\
 do {											\
 	if (i) {									\
-		if ((c)->ch_tail == (i))				\
-			(c)->ch_tail = (n);					\
 		(n)->ce_bprev = i;						\
 		if (((n)->ce_bnext = (i)->ce_bnext))	\
-			(i)->ce_bnext->ce_prev = (n);		\
+			(i)->ce_bnext->ce_bprev = (n);		\
 		(i)->ce_bnext = (n);					\
+		if ((c)->ch_tail == (i))				\
+			(c)->ch_tail = (n);					\
 	} else										\
 		CH_INSERT_HEAD(c,n);					\
 } while (0)
@@ -129,10 +129,11 @@ static void ev_link(cqueue_t *cq, cevent_t *ev)
 	 */
 
 	if (cq->cq_head == NULL) {
+		g_assert(cq->cq_tail == NULL);
 		cq->cq_head = cq->cq_tail = ev;
 		ev->ce_next = ev->ce_prev = (cevent_t *) 0;
-		ev->ce_bnext = ev->ce_bprev = (cevent_t *) 0;
 		g_assert(ch->ch_head == NULL);
+		g_assert(ch->ch_tail == NULL);
 		CH_INSERT_HEAD(ch, ev);
 		return;
 	}
@@ -365,7 +366,7 @@ gpointer cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
 	g_assert(valid_ptr(fn));
 	g_assert(delay > 0);
 
-	ev = (cevent_t *) g_malloc0(sizeof(*ev));
+	ev = (cevent_t *) g_malloc(sizeof(*ev));
 
 	ev->ce_magic = EV_MAGIC;
 	ev->ce_time = cq->cq_time + delay;
