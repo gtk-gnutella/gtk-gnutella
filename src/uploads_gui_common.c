@@ -103,6 +103,9 @@ const gchar *uploads_gui_status_str(
     case GTA_UL_WAITING:
         return "Waiting for further request...";
 
+    case GTA_UL_PFSP_WAITING:
+        return "Unavailable range, waiting retry...";
+
     case GTA_UL_ABORTED:
         return "Transmission aborted";
 
