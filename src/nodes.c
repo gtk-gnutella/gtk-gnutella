@@ -3341,8 +3341,6 @@ void node_remove_nodes_by_handle(GSList *node_list)
 
         node = (gnet_node_t) l->data;
 
-        g_assert(node);
-
         node_remove_by_handle(node);
     }
 }
