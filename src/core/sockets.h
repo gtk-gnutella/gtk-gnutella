@@ -139,6 +139,14 @@ struct gnutella_socket {
 #define sock_is_corked(x)		((x)->corked)
 
 /*
+ * This macro verifies whether UDP support is enabled and if the UDP socket
+ * has been initialized.
+ */
+#define udp_active()	(enable_udp && NULL != s_udp_listen)
+
+
+
+/*
  * Global Data
  */
 
