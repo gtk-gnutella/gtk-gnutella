@@ -23,3 +23,5 @@ dist-hook:
 	  done \
 	fi
 
+build-glade:
+	glade --write-source gtk-gnutella.glade
