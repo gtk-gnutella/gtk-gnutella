@@ -2346,6 +2346,7 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 			upload_vendor_str(u),
 			u->name, (gint) (parq_ul->disc_timeout - now));
 		parq_upload_free(parq_ul);
+		return_result = TRUE;
 	} else {
 		/*
 		 * A client is not allowed to disconnect over and over again
@@ -2353,7 +2354,6 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 		 * should not disconnect
 		 */
 		if (parq_ul->has_slot)
-			return_result = TRUE;
 			parq_ul->disc_timeout = now + parq_upload_ban_window;
 
 		/* Disconnected upload is allowed to reconnect immediatly */
