@@ -53,6 +53,7 @@ void gtk_mass_widget_set_sensitive(GtkWidget *tl, gchar *list[], gboolean b);
 GSList *clist_collect_data(GtkCList *clist, gboolean allow_null, 
     GCompareFunc cfn);
 #ifdef USE_GTK2
+GtkTreeIter *w_tree_iter_new(void);
 GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter);
 void w_tree_iter_free(GtkTreeIter *iter);
 GSList *tree_selection_collect_data(GtkTreeSelection *tsel, GCompareFunc cfn);

@@ -315,6 +315,16 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
 #ifdef USE_GTK2
 
 /*
+ * w_tree_iter_new:
+ * 
+ * Returns a pointer to a newly allocated GtkTreeIter. Must be freed
+ * with w_tree_iter_free().  
+ */
+GtkTreeIter *w_tree_iter_new(void) {
+	return walloc(sizeof(GtkTreeIter));
+}
+
+/*
  * w_tree_iter_copy:
  *
  * Same as gtk_tree_iter_copy() but uses walloc(). Use w_tree_iter_free()
