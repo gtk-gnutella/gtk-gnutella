@@ -30,15 +30,14 @@
 #include <sys/types.h>
 #include <sys/resource.h>
 
-/* XXX this is rather bad, it must be metaconfigured */
-#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#ifdef HAVE_SYS_SYSCTL_H 
 
 #ifndef __FreeBSD__
 #include <sys/param.h>
 #endif /* __FreeBSD__ */
 
 #include <sys/sysctl.h>
-#endif /* defined(__FreeBSD__) || ... */
+#endif /* HAVE_SYS_SYSCTL_H */
 
 #include <sys/stat.h>
 #include <signal.h>
@@ -99,7 +98,7 @@ static void update_servent_uptime(void);
  * Look for any existing PID file. If found, look at the pid recorded
  * there and make sure it has died. Abort operations if it hasn't...
  */
-static void ensure_unicity(gchar *file)
+static void ensure_unicity(const gchar *file)
 {
 	FILE *fd;
 	pid_t pid;
@@ -142,7 +141,7 @@ static void ensure_unicity(gchar *file)
  *
  * Write our pid to the pidfile.
  */
-static void save_pid(gchar *file)
+static void save_pid(const gchar *file)
 {
 	FILE *fd;
 
@@ -180,8 +179,10 @@ static void save_pid(gchar *file)
  */
 static gulong settings_getphysmemsize(void)
 {
-/* XXX must be metaconfigured */
-#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#if defined (_SC_PHYS_PAGES)
+	guint32 pagesize = settings_getpagesize();
+	return (pagesize >> 10) * sysconf(_SC_PHYS_PAGES);
+#elif defined(HAVE_SYSCTL)
 /* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM };
 	int amount = 0;
@@ -192,15 +193,10 @@ static gulong settings_getphysmemsize(void)
 			"settings_getphysmemsize: sysctl() for HW_USERMEM failed: %s",
 			g_strerror(errno));
 	return amount / 1024;
-#else	/* !(defined(__FreeBSD__) || ...) */
-#ifdef _SC_PHYS_PAGES
-	guint32 pagesize = settings_getpagesize();
-	return (pagesize >> 10) * sysconf(_SC_PHYS_PAGES);
-#else
+#else /* !(defined (_SC_PHYS_PAGES) || defined(HAVE_SYSCTL)) */
 	g_warning("Unable to determine amount of physical RAM");
 	return 0;
-#endif	/* _SC_PHYS_PAGES */
-#endif 	/* defined(__FreeBSD__) || ... */
+#endif 	/* _SC_PHYS_PAGES */
 }
 
 void settings_init(void)
@@ -430,9 +426,9 @@ void settings_close(void)
     gnet_prop_shutdown();
 
 	if (home_dir)
-		g_free(home_dir);
+		G_FREE_NULL(home_dir);
 	if (config_dir)
-		g_free(config_dir);
+		G_FREE_NULL(config_dir);
 }
 
 void gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
