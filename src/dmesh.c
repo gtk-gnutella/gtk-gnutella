@@ -131,6 +131,11 @@ gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info)
 	guint lsb, b2, b3, msb;
 	gchar *file;
 
+	if (0 != strncasecmp(url, "http://", 7))
+		return FALSE;
+
+	url += 7;
+
 	/*
 	 * Test the first form of URL:
 	 *
@@ -140,15 +145,12 @@ gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info)
 	 */
 
 	if (
-		6 == sscanf(url, "http://%u.%u.%u.%u:%u/get/%u",
+		6 == sscanf(url, "%u.%u.%u.%u:%u/get/%u",
 			&msb, &b3, &b2, &lsb, &port, &idx)
 	)
 		goto ok;
 
-	if (
-		5 == sscanf(url, "http://%u.%u.%u.%u/get/%u",
-			&msb, &b3, &b2, &lsb, &idx)
-	) {
+	if (5 == sscanf(url, "%u.%u.%u.%u/get/%u", &msb, &b3, &b2, &lsb, &idx)) {
 		port = HTTP_PORT;
 		goto ok;
 	}
@@ -162,15 +164,12 @@ gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info)
 	idx = 0;			/* Identifies second form */
 
 	if (
-		5 == sscanf(url, "http://%u.%u.%u.%u:%u/uri-res/N2R?",
+		5 == sscanf(url, "%u.%u.%u.%u:%u/uri-res/N2R?",
 			&msb, &b3, &b2, &lsb, &port)
 	)
 		goto ok;
 	
-	if (
-		4 == sscanf(url, "http://%u.%u.%u.%u/uri-res/N2R?",
-			&msb, &b3, &b2, &lsb)
-	) {
+	if (4 == sscanf(url, "%u.%u.%u.%u/uri-res/N2R?", &msb, &b3, &b2, &lsb)) {
 		port = HTTP_PORT;
 		goto ok;
 	}
@@ -936,10 +935,11 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 		ok = dmesh_add(sha1, info.ip, info.port, info.idx, info.name, stamp);
 
 		if (dbg > 4)
-			printf("MESH %s: %s \"%s\", age=%u\n",
+			printf("MESH %s: %s \"%s\", stamp=%u age=%u\n",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
-				dmesh_urlinfo_to_gchar(&info), (guint32) (now - stamp));
+				dmesh_urlinfo_to_gchar(&info), (guint32) stamp,
+				(guint32) (now - MIN(stamp, now)));
 
 		atom_str_free(info.name);
 
