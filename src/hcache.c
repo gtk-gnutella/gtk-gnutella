@@ -86,10 +86,10 @@ typedef struct hostcache {
     gboolean        ip_only;            /**< Use IP only, port always 0 */
     GList *         hostlist;           /**< Host list: IP/Port  */
 
-    guint32         hits;               /**< Hits to the cache */
-    guint32         misses;             /**< Misses to the cache */
+    guint           hits;               /**< Hits to the cache */
+    guint           misses;             /**< Misses to the cache */
 
-    gint32          host_count;			/**< Amount of hosts in cache */
+    guint           host_count;			/**< Amount of hosts in cache */
 	gnet_property_t reading;			/**< Property to signal reading */
     gnet_property_t hosts_in_catcher;   /**< Property to update host count */
     gint            mass_update;        /**< If a mass update is in progess */
@@ -120,7 +120,6 @@ static const gchar * const host_type_names[HOST_MAX] = {
 
 
 static gpointer bg_reader[HCACHE_MAX];
-static gboolean is_closing = FALSE;
 
 enum {
     HCACHE_ALREADY_CONNECTED,
@@ -129,7 +128,7 @@ enum {
     HCACHE_STATS_MAX
 };
 
-static guint32 stats[HCACHE_STATS_MAX];
+static guint stats[HCACHE_STATS_MAX];
 
 /**
  * Initiate mass update of host cache. While mass updates are in
@@ -210,9 +209,9 @@ static void hce_free(struct hostcache_entry *hce)
 /**
  * Output contents information about a hostcache.
  */
-void hcache_dump_info(struct hostcache *hc, gchar *what)
+static void hcache_dump_info(struct hostcache *hc, gchar *what)
 {
-    g_message("[%s|%s] %d (%d) hosts (%d hits, %d misses)",
+    g_message("[%s|%s] %u (%u) hosts (%u hits, %u misses)",
         hc->name, what, hc->host_count,
         g_list_length(hc->hostlist), 
         hc->hits, hc->misses);
@@ -486,8 +485,6 @@ gboolean hcache_add(
 
 	g_assert((guint) type < HCACHE_MAX);
 
-    g_assert(!is_closing);
-
 	if (ip == listen_ip() && port == listen_port) {
         stats[HCACHE_LOCAL_INSTANCE] ++;
 		return FALSE;
@@ -565,6 +562,7 @@ gboolean hcache_add(
 
     hc->misses ++;
 	hc->host_count++;
+
     if (hc->mass_update == 0) {
         guint32 cur;
         gnet_prop_get_guint32_val(hc->hosts_in_catcher, &cur);
@@ -649,17 +647,12 @@ static void hcache_remove(gnet_host_t *h)
 
 	g_assert(hc->host_count > 0);
 	hc->host_count--;
+
     if (hc->mass_update == 0) {
         guint32 cur;
         gnet_prop_get_guint32_val(hc->hosts_in_catcher, &cur);
         gnet_prop_set_guint32_val(hc->hosts_in_catcher, cur - 1);
     }
-
-    if (hc->host_count == 0)
-        g_assert(hc->hostlist == NULL);
-
-    if (hc->hostlist == NULL)
-        g_assert(hc->host_count == 0);
 
 	hcache_ht_remove(h);
 
@@ -1336,6 +1329,8 @@ void hcache_get_stats(hcache_stats_t *stats)
  */
 void hcache_timer(void)
 {
+    guint i;
+
     hcache_expire_all();
 
     if (dbg >= 15) {
@@ -1349,7 +1344,7 @@ void hcache_timer(void)
         hcache_dump_info(caches[HCACHE_BUSY],     "timer");    
         hcache_dump_info(caches[HCACHE_UNSTABLE], "timer");    
 
-        g_message("Hcache global: local %d   alrdy connected %d   invalid %d",
+        g_message("Hcache global: local %u   alrdy connected %u   invalid %u",
             stats[HCACHE_LOCAL_INSTANCE], stats[HCACHE_ALREADY_CONNECTED],
             stats[HCACHE_INVALID_HOST]);
     }
@@ -1468,8 +1463,6 @@ void hcache_close(void)
     };
 	guint i;
 
-    is_closing = TRUE;
-
     /*
      * First we stop all background processes and remove all hosts, 
      * only then we free the hcaches. This is important because 
@@ -1491,6 +1484,7 @@ void hcache_close(void)
         caches[type] = NULL;
 	}
 
+    g_assert(g_hash_table_size(ht_known_hosts) == 0);
 
 	g_hash_table_destroy(ht_known_hosts);
     ht_known_hosts = NULL;
