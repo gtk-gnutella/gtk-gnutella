@@ -488,10 +488,8 @@ static void node_remove_v(
 			n->n_ping_sent, n->n_pong_received, n->n_pong_sent);
 	}
 
-	if (NODE_IS_CONNECTED(n)) {
-		if (n->routing_data)
-			routing_node_remove(n);
-	}
+	if (n->routing_data)
+		routing_node_remove(n);
 
 	if (n->status == GTA_NODE_CONNECTED) {		/* Already did if shutdown */
 		connected_node_cnt--;
