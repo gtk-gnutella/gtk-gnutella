@@ -3777,6 +3777,9 @@ qrp_node_can_route(gnutella_node_t *n, query_hashvec_t *qhv)
 {
 	struct routing_table *rt = (struct routing_table *) n->recv_query_table;
 
+	if (!NODE_IS_WRITABLE(n))
+		return FALSE;
+
 	/*
 	 * If we did not get any table for an UP, act as if it did not
 	 * support QRP-routing and send it everything.
@@ -3784,9 +3787,6 @@ qrp_node_can_route(gnutella_node_t *n, query_hashvec_t *qhv)
 
 	if (rt == NULL)
 		return NODE_IS_LEAF(n) ? FALSE : TRUE;
-
-	if (!NODE_IS_WRITABLE(n))
-		return FALSE;
 
 	return qrp_can_route(qhv, rt);
 }
