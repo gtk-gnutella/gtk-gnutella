@@ -496,12 +496,9 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
 	record_t *rc, *rc2;
 
 	GList *row_list;
-	GtkCTreeNode *auto_node, *parent;
-	GtkCTreeRow *parent_row;
+	GtkCTreeNode *auto_node;
 	gint x, i;
-    GList *l;
     guint32 fuzzy_threshold;
-	gpointer key = NULL;
 
 	if (NULL == node)
 		return;
