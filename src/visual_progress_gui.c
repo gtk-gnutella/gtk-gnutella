@@ -419,17 +419,14 @@ void vp_gui_init(void)
 
     vp_info_hash = g_hash_table_new(g_int_hash, g_int_equal);
 
-    fi_add_listener((GCallback)vp_gui_fi_added, 
-        EV_FI_ADDED, FREQ_SECS, 0);
-    fi_add_listener((GCallback)vp_gui_fi_removed, 
-        EV_FI_REMOVED, FREQ_SECS, 0);
-    fi_add_listener((GCallback)vp_gui_fi_status_changed, 
-        EV_FI_STATUS_CHANGED, FREQ_SECS, 0);
-    fi_add_listener((GCallback)vp_gui_fi_status_changed, 
-        EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
+    fi_add_listener(vp_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
+    fi_add_listener(vp_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
+    fi_add_listener(vp_gui_fi_status_changed, EV_FI_STATUS_CHANGED,
+		FREQ_SECS, 0);
+    fi_add_listener(vp_gui_fi_status_changed, EV_FI_STATUS_CHANGED_TRANSIENT,
+		FREQ_SECS, 0);
 
-	src_add_listener((src_listener_t)vp_update_ranges,
-					 EV_SRC_RANGES_CHANGED, FREQ_SECS, 0);
+	src_add_listener(vp_update_ranges, EV_SRC_RANGES_CHANGED, FREQ_SECS, 0);
 
     cmap = gdk_colormap_get_system();
     g_assert(cmap);
@@ -457,13 +454,11 @@ void vp_gui_init(void)
  */
 void vp_gui_shutdown(void)
 {
-    fi_remove_listener((GCallback) vp_gui_fi_removed, EV_FI_REMOVED);
-    fi_remove_listener((GCallback) vp_gui_fi_added, EV_FI_ADDED);
-    fi_remove_listener((GCallback) vp_gui_fi_status_changed,
-		EV_FI_STATUS_CHANGED);
+    fi_remove_listener(vp_gui_fi_removed, EV_FI_REMOVED);
+    fi_remove_listener(vp_gui_fi_added, EV_FI_ADDED);
+    fi_remove_listener(vp_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
 
-	src_remove_listener((src_listener_t) vp_update_ranges,
-		EV_SRC_RANGES_CHANGED);
+	src_remove_listener(vp_update_ranges, EV_SRC_RANGES_CHANGED);
 
     g_hash_table_foreach(vp_info_hash, vp_free_key_value, NULL);
     g_hash_table_destroy(vp_info_hash);
