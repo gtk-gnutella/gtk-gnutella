@@ -11,6 +11,7 @@
 #include "hosts.h"
 #include "getline.h"
 #include "header.h"
+#include "routing.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -29,7 +30,7 @@ gchar dl_tmp[4096];
 
 static GHashTable *pushed_downloads = 0;
 
-void send_push_request(gchar *, guint32, guint16);
+static gboolean send_push_request(gchar *, guint32, guint16);
 static void download_start_restart_timer(struct download *d);
 static void download_read(gpointer data, gint source, GdkInputCondition cond);
 static void download_request(struct download *d, header_t *header);
@@ -638,13 +639,7 @@ void download_push(struct download *d)
 	if (!send_pushes) {
 		if (d->push)
 			download_push_remove(d);
-
-		if (++d->retries <= download_max_retries)
-			download_queue_delay(d, DL_RUN_DELAY);
-		else
-			download_stop(d, GTA_DL_ERROR, "Timeout");
-
-		return;
+		goto attempt_retry;
 	}
 
 	/*
@@ -663,7 +658,22 @@ void download_push(struct download *d)
 		download_push_insert(d);
 
 	g_assert(d->push);
-	send_push_request(d->guid, d->record_index, listen_port);
+	if (!send_push_request(d->guid, d->record_index, listen_port)) {
+		if (d->status == GTA_DL_FALLBACK) {
+			download_push_remove(d);
+			goto attempt_retry;
+		} else
+			download_stop(d, GTA_DL_ERROR, "Route lost");
+	}
+
+	return;
+
+attempt_retry:
+	if (++d->retries <= download_max_retries)
+		download_queue_delay(d, DL_RUN_DELAY);
+	else
+		download_stop(d, GTA_DL_ERROR, "Timeout");
+
 }
 
 /* Direct download failed, let's try it with a push request */
@@ -857,7 +867,8 @@ abort_download:
 
 /* search has detected index change in queued download --RAM, 18/12/2001 */
 
-void download_index_changed(guint32 ip, guint16 port, guint32 from, guint32 to)
+void download_index_changed(guint32 ip, guint16 port, guchar *guid,
+	guint32 from, guint32 to)
 {
 	GSList *l;
 	gint nfound = 0;
@@ -865,7 +876,12 @@ void download_index_changed(guint32 ip, guint16 port, guint32 from, guint32 to)
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
 
-		if (d->ip == ip && d->port == port && d->record_index == from) {
+		if (
+			d->ip == ip &&
+			d->port == port &&
+			d->record_index == from &&
+			0 == memcmp(d->guid, guid, 16)
+		) {
 			gboolean push_mode = d->push;
 
 			/*
@@ -912,7 +928,12 @@ void download_index_changed(guint32 ip, guint16 port, guint32 from, guint32 to)
 					d->file_name);
 				break;
 			default:
-				/* Queued or other state not needing special notice */
+				/*
+				 * Queued or other state not needing special notice
+				 */
+				if (dbg > 3)
+					printf("Noted index change from %u to %u at %s for %s",
+						from, to, guid_hex_str(guid), d->file_name);
 				break;
 			}
 		}
@@ -1144,11 +1165,22 @@ void download_move_to_completed_dir(struct download *d)
 	return;
 }
 
-/* Send a push request */
-
-void send_push_request(gchar * guid, guint32 file_id, guint16 local_port)
+/*
+ * send_push_request
+ *
+ * Send a push request to the target GUID, in order to request the push of
+ * the file whose index is `file_id' there onto our local port `port'.
+ *
+ * Returns TRUE if the request could be sent, FALSE if we don't have the route.
+ */
+static gboolean send_push_request(gchar *guid, guint32 file_id, guint16 port)
 {
 	struct gnutella_msg_push_request m;
+	struct gnutella_node *n;
+
+	n = route_towards_guid(guid);
+	if (!n)
+		return FALSE;
 
 	message_set_muid(&(m.header), FALSE);
 
@@ -1163,12 +1195,13 @@ void send_push_request(gchar * guid, guint32 file_id, guint16 local_port)
 	WRITE_GUINT32_LE(file_id, m.request.file_id);
 	WRITE_GUINT32_BE((force_local_ip) ? forced_local_ip : local_ip,
 					 m.request.host_ip);
-	WRITE_GUINT16_LE(local_port, m.request.host_port);
+	WRITE_GUINT16_LE(port, m.request.host_port);
 
 	message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);
-
-	sendto_all((guchar *) & m, NULL,
+	sendto_one(n, (guchar *) & m, NULL,
 			   sizeof(struct gnutella_msg_push_request));
+
+	return TRUE;
 }
 
 static gboolean download_queue_w(gpointer dp)
