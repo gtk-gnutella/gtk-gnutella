@@ -106,6 +106,7 @@ enum dl_file_info_field {
 	FILE_INFO_FIELD_ALIAS,
 	FILE_INFO_FIELD_SHA1,
 	FILE_INFO_FIELD_CHUNK,
+	FILE_INFO_FIELD_CHA1,
 	FILE_INFO_FIELD_END,
 };
 
@@ -369,6 +370,9 @@ static void file_info_fd_store_binary(
 	if (fi->sha1)
 		FIELD_ADD(FILE_INFO_FIELD_SHA1, SHA1_RAW_SIZE, fi->sha1);
 
+	if (fi->cha1)
+		FIELD_ADD(FILE_INFO_FIELD_CHA1, SHA1_RAW_SIZE, fi->cha1);
+
 	for (a = fi->alias; a; a = a->next)
 		FIELD_ADD(FILE_INFO_FIELD_ALIAS, strlen(a->data)+1, a->data);
 
@@ -468,6 +472,8 @@ static void fi_free(struct dl_file_info *fi)
 		atom_str_free(fi->path);
 	if (fi->sha1)
 		atom_sha1_free(fi->sha1);
+	if (fi->cha1)
+		atom_sha1_free(fi->cha1);
 	if (fi->chunklist) {
 		for (l = fi->chunklist; l; l = l->next)
 			g_free(l->data);
@@ -918,6 +924,9 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 		case FILE_INFO_FIELD_SHA1:
 			fi->sha1 = atom_sha1_get(tmp);
 			break;
+		case FILE_INFO_FIELD_CHA1:
+			fi->cha1 = atom_sha1_get(tmp);
+			break;
 		case FILE_INFO_FIELD_CHUNK:
 			memcpy(tmpchunk, tmp, sizeof(tmpchunk));
 			fc = g_malloc0(sizeof(*fc));
@@ -1023,6 +1032,8 @@ static void file_info_store_one(FILE *f, struct dl_file_info *fi)
 	for (a = fi->alias; a; a = a->next)
 		fprintf(f, "ALIA %s\n", (gchar *)a->data);
 	fprintf(f, "SHA1 %s\n", fi->sha1 ? sha1_base32(fi->sha1) : "");
+	if (fi->cha1)
+		fprintf(f, "CHA1 %s\n", sha1_base32(fi->cha1));
 	fprintf(f, "SIZE %u\n", fi->size);
 	fprintf(f, "DONE %u\n", fi->done);
 	fprintf(f, "TIME %lu\n", fi->stamp);
@@ -1084,10 +1095,12 @@ void file_info_store(void)
 	fputs("#	GENR <generation number>\n", f);
 	fputs("#	ALIA <alias file name>\n", f);
 	fputs("#	SIZE <size>\n", f);
-	fputs("#	SHA1 <sha1>\n", f);
+	fputs("#	SHA1 <server sha1>\n", f);
+	fputs("#	CHA1 <computed sha1> [when done only]\n", f);
 	fputs("#	DONE <bytes done>\n", f);
 	fputs("#	TIME <last update stamp>\n", f);
 	fputs("#	SWRM <boolean; use_swarming>\n", f);
+	fputs("#	CHNK <start> <end+1> <0=hole, 1=busy, 2=done>\n", f);
 	fputs("#	<blank line>\n", f);
 	fputs("#\n\n", f);
 
@@ -1474,6 +1487,25 @@ gboolean file_info_got_sha1(struct dl_file_info *fi, guchar *sha1)
 }
 
 /*
+ * extract_sha1
+ *
+ * Extract sha1 from SHA1/CHA1 line in the ASCII "fileinfo" summary file
+ * and return NULL if none or invalid, the SHA1 atom otherwise.
+ */
+static guchar *extract_sha1(const gchar *line)
+{
+	guchar sha1_digest[SHA1_RAW_SIZE];
+
+	if (
+		line[5] && base32_decode_into(line + 5, SHA1_BASE32_SIZE,
+			sha1_digest, sizeof(sha1_digest))
+	)
+		return atom_sha1_get(sha1_digest);
+
+	return NULL;
+}
+
+/*
  * file_info_retrieve
  *
  * Loads the fileinfo database from disk, and saves a copy in fileinfo.orig.
@@ -1647,15 +1679,10 @@ void file_info_retrieve(void)
 			fi->done = atoi(line + 5);
 		else if (!strncmp(line, "SWRM ", 5))
 			fi->use_swarming = atoi(line + 5);
-		else if (!strncmp(line, "SHA1 ", 5)) {
-			guchar sha1_digest[SHA1_RAW_SIZE];
-
-			if (
-				line[5] && base32_decode_into(line + 5, SHA1_BASE32_SIZE,
-					sha1_digest, sizeof(sha1_digest))
-			)
-				fi->sha1 = atom_sha1_get(sha1_digest);
-		}
+		else if (!strncmp(line, "SHA1 ", 5))
+			fi->sha1 = extract_sha1(line);
+		else if (!strncmp(line, "CHA1 ", 5))
+			fi->cha1 = extract_sha1(line);
 		else if (!strncmp(line, "CHNK ", 5)) {
 			if (sscanf(line + 5, "%u %u %u", &from, &to, &status)) {
 				fc = g_malloc0(sizeof(struct dl_file_chunk));

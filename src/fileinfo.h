@@ -47,7 +47,8 @@ struct dl_file_info {
 	GSList *alias;			/* List of file name aliases (atoms) */
 	guint32 size;			/* File size */
 	gint *size_atom;		/* File size (atom -- points to value in memory) */
-	guchar *sha1;			/* SHA1 (atom) if known, NULL if not. */
+	guchar *sha1;			/* server SHA1 (atom) if known, NULL if not. */
+	guchar *cha1;			/* computed SHA1 (atom) if known, NULL if not. */
 	gint32 refcount;		/* Reference count of file */
 	gint32 lifecount;		/* Amount of "alive" downloads referencing us */
 	time_t stamp;			/* Time stamp */
