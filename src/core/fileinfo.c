@@ -4164,7 +4164,8 @@ fi_update_seenonnetwork(gnet_src_t srcid)
 	 * Look at all the download sources for this fileinfo and calculate the
 	 * overall ranges info for this file.
 	 */
-	printf("*** Fileinfo: %s\n", d->file_info->file_name);
+	if (dbg > 5)
+		printf("*** Fileinfo: %s\n", d->file_info->file_name);
 	for (l = d->file_info->sources; l; l = g_slist_next(l)) {
 		struct download *src = (struct download *)l->data;
 		/*
@@ -4178,7 +4179,10 @@ fi_update_seenonnetwork(gnet_src_t srcid)
 			|| src->status == GTA_DL_ABORTED
 			|| src->status == GTA_DL_REMOVED
 			|| src->status == GTA_DL_DONE )) {
-			printf("    %s:%d replied (%x, %x), ", ip_to_gchar(src->server->key->ip), src->server->key->port, src->flags, src->status);
+			if (dbg > 5)
+				printf("    %s:%d replied (%x, %x), ",
+					ip_to_gchar(src->server->key->ip),
+					src->server->key->port, src->flags, src->status);
 			if (!src->file_info->use_swarming || src->ranges == NULL) {
 				/* 
 				 * Indicate that the whole file is available.
@@ -4192,20 +4196,24 @@ fi_update_seenonnetwork(gnet_src_t srcid)
 				 * believe that currently a 404 will also trigger a 
 				 * whole file is available event...
 				*/
-				printf("whole file available.\n");
+				if (dbg > 5)
+					printf("whole file available.\n");
 				full_r = fi_range_for_complete_file(d->file_info->size);
 				new_r = http_range_merge(r, full_r);
 				fi_free_ranges(full_r);
 			} else {
 				/* Merge in the new ranges */
-				printf(" ranges %s available\n", http_range_to_gchar(src->ranges));
+				if (dbg > 5)
+					printf(" ranges %s available\n",
+						http_range_to_gchar(src->ranges));
 				new_r = http_range_merge(r, src->ranges);
 			}
 			fi_free_ranges(r);
 			r = new_r;
 		}
 	}
-	printf("    Final ranges: %s\n\n", http_range_to_gchar(r));
+	if (dbg > 5)
+		printf("    Final ranges: %s\n\n", http_range_to_gchar(r));
 	d->file_info->seenonnetwork = r;
 		
 	/* 
