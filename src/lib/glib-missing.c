@@ -97,8 +97,9 @@ GList *gm_list_insert_after(GList *list, GList *lnk, gpointer data)
 	return list;
 }
 
-#ifndef USE_GLIB2
-GList *g_list_delete_link(GList *l, GList *lnk)
+#ifdef USE_GLIB1
+GList *
+g_list_delete_link(GList *l, GList *lnk)
 {
 	GList *new;
 
@@ -106,7 +107,7 @@ GList *g_list_delete_link(GList *l, GList *lnk)
 	g_list_free_1(lnk);
 	return new;
 }
-#endif /* !USE_GLIB2 */
+#endif /* USE_GLIB1 */
 
 #endif /* !TRACK_MALLOC */
 
@@ -360,9 +361,10 @@ gm_sanitize_filename(const gchar *filename,
 		ext = strrchr(s, '.');
 		if (ext) {
 			ext_size = strlen(ext) + 1;
-			ext_size = MIN(FILENAME_MAXBYTES, ext_size);
+			ext_size = MIN(FILENAME_MAXBYTES - 1, ext_size);
 		}
 
+		g_assert(ext_size < FILENAME_MAXBYTES);
 		strlcpy_utf8(buf, s, FILENAME_MAXBYTES - ext_size);
 
 		/* Append the filename extension */
