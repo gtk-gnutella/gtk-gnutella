@@ -116,6 +116,7 @@ extern guint32 uploads_col_widths[];
 extern guint32 search_results_col_widths[];
 extern guint32 search_stats_col_widths[];
 extern guint32 ul_stats_col_widths[];
+extern guint32 search_list_col_widths[];
 extern guint32 hops_random_factor;
 extern guint32 max_high_ttl_msg;
 extern guint32 max_high_ttl_radius;
@@ -139,6 +140,7 @@ extern gint win_w;
 extern gint win_h;
 extern guint16 downloads_divider_pos;
 extern guint16 main_divider_pos;
+extern guint16 side_divider_pos;
 
 extern gchar *save_file_path;
 extern gchar *move_file_path;
