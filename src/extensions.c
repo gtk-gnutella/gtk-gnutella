@@ -255,6 +255,7 @@ static gint ext_ggep_parse(
 		exv++;
 		count++;
 		lastp = p + data_length;
+		p = lastp;
 
 		/*
 		 * Was this the last extension?
