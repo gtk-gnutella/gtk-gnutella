@@ -787,6 +787,13 @@ void download_pickup_queued(void)
 		} else
 			row++;
 	}
+
+	/*
+	 * Enable "Start now" only if we would not exceed limits.
+	 */
+
+	gtk_widget_set_sensitive(download_start_now, running < max_downloads); 
+
 	gtk_clist_thaw(GTK_CLIST(clist_download_queue));
 }
 
