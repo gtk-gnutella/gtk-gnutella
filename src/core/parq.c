@@ -37,6 +37,7 @@ RCSID("$Id$");
 #include "settings.h"
 #include "share.h"
 #include "sockets.h"
+#include "gnet_stats.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -1093,7 +1094,9 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 	g_assert(s->getline);
 	
 	queue = getline_str(s->getline);
-	
+
+	gnet_stats_count_general(NULL, GNR_QUEUE_CALLBACKS, 1);
+
 	if (dbg) {
 		printf("--- Got QUEUE from %s:\n", ip_to_gchar(s->ip));
 		printf("%s\n", queue);
