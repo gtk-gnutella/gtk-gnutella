@@ -1,5 +1,22 @@
 # since last version
 
+- (2003.12.24 - Richard)
+ * [Gtk2] Changed lots of paddings and spacings so they are more uniform.
+ * [Gtk1] [Gtk2] Applied suggestions of Emile le Vivre for gui simplification:
+   - moved to expert mode:
+     - hostcatcher (gnet panel)
+     - transfered files stats (gnet panel)
+     - local node information (gnet panel)
+     - 'add passive' searches (sidebar)
+   - Searches: current search combo removed (only hidden for now), 
+     redesigned settings panel, moved adding of new searches to sidebar,
+     moved a few buttons around
+   - Sidebar: moved adding of new searches here
+   - Config: a few minor changes in the gnet settings to make gtk1 and gtk2
+     look more similar.
+ * Hide leaf bandwidth odometers in the sidebar by default. Most people will
+   not need those.
+
 - (2003.12.20 - RAM)
  * PARQ will no longer send QUEUE when uploads are disabled.
  * Changed semantics of reported connection speed: it is now the connection
@@ -903,7 +920,7 @@ The following changes affect only the GTK+ 2.x front-end:
  * Moved verify_close() and move_close() calls before main_gui_shutdown()
    so that no ticks to the daemon thread be made whilst in shutdown!
 
-- (2003.06.17 - Richard
+- (2003.06.17 - Richard)
  * [Gtk2] No longer disable antialiasing. This confuses people who are 
    using Gtk2 and get font problems. If they want better performance, they
    should turn off AA manually using "export GDK_USE_XFT=0".
