@@ -946,6 +946,20 @@ gboolean huge_http_sha1_extract32(guchar *buf, guchar *retval)
 
 	if (base32_decode_into(buf, SHA1_BASE32_SIZE, retval, SHA1_RAW_SIZE))
 		return TRUE;
+
+	/*
+	 * When extracting SHA1 from HTTP headers, we want to get the proper
+	 * hash value: some servents were deployed with the old base32 encoding
+	 * (using the digits 8 and 9 in the alphabet instead of letters L and O
+	 * in the new one).
+	 *
+	 * Among the 32 groups of 5 bits, equi-probable, there is a 2/32 chance
+	 * of having a 8 or a 9 encoded in the old alphabet.  Therefore, the
+	 * probability of not having a 8 or a 9 in the first letter is 30/32.
+	 * The probability of having no 8 or 9 in the 32 letters is (30/32)^32.
+	 * So the probability of having at least an 8 or a 9 is 1-(30/32)^32,
+	 * which is 87.32%.
+	 */
 	
 	if (base32_decode_old_into(buf, SHA1_BASE32_SIZE, retval, SHA1_RAW_SIZE))
 		return TRUE;
