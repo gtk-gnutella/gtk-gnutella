@@ -1356,11 +1356,19 @@ static gchar *rule_condition_to_gchar(rule_t *r)
         };
         break;
     case RULE_IP:
-       	g_snprintf(
-            tmp, sizeof(tmp), 
-            "If IP address matches %s/%s",
-            ip_to_gchar(r->u.ip.addr),
-            ip_to_gchar(r->u.ip.mask));
+        {
+            gchar *mask;
+            gchar *addr;
+
+            mask = g_strdup(ip_to_gchar(r->u.ip.mask));
+            addr = g_strdup(ip_to_gchar(r->u.ip.addr));
+
+            g_snprintf(tmp, sizeof(tmp), 
+                "If IP address matches %s/%s", addr, mask);
+
+            g_free(addr);
+            g_free(mask);
+        }
         break;
     case RULE_SIZE:
 		if (r->u.size.lower == 0)
