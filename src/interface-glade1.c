@@ -407,8 +407,7 @@ create_main_window (void)
   GtkObject *spinbutton_config_ban_ratio_fds_adj;
   GtkWidget *spinbutton_config_ban_ratio_fds;
   GtkWidget *label502;
-  GtkObject *spinbutton_config_max_banned_fd_adj;
-  GtkWidget *spinbutton_config_max_banned_fd;
+  GtkWidget *entry_config_max_banned_fd;
   GtkWidget *label119;
   GtkWidget *scrolledwindow33;
   GtkWidget *viewport4;
@@ -4147,17 +4146,17 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label502), 0, 0.5);
 
-  spinbutton_config_max_banned_fd_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
-  spinbutton_config_max_banned_fd = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_max_banned_fd_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_max_banned_fd, "spinbutton_config_max_banned_fd");
-  gtk_widget_ref (spinbutton_config_max_banned_fd);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_max_banned_fd", spinbutton_config_max_banned_fd,
+  entry_config_max_banned_fd = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_max_banned_fd, "entry_config_max_banned_fd");
+  gtk_widget_ref (entry_config_max_banned_fd);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_config_max_banned_fd", entry_config_max_banned_fd,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_config_max_banned_fd);
-  gtk_table_attach (GTK_TABLE (table48), spinbutton_config_max_banned_fd, 1, 2, 2, 3,
+  gtk_widget_show (entry_config_max_banned_fd);
+  gtk_table_attach (GTK_TABLE (table48), entry_config_max_banned_fd, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_max_banned_fd), TRUE);
+  gtk_widget_set_sensitive (entry_config_max_banned_fd, FALSE);
+  gtk_entry_set_editable (GTK_ENTRY (entry_config_max_banned_fd), FALSE);
 
   label119 = gtk_label_new ("Network\nsettings");
   gtk_widget_set_name (label119, "label119");

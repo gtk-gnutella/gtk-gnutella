@@ -1824,9 +1824,9 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_MAX_BANNED_FD,
-        update_spinbutton,
+        update_entry,
         TRUE,
-        "spinbutton_config_max_banned_fd",
+        "entry_config_max_banned_fd",
         FREQ_UPDATES, 0
     },
     {
