@@ -151,7 +151,7 @@ prop = {
     type = boolean;
     vector_size = c_sr_num;
     data = {
-        default = "{ 1,1,1,1,1,1,1,1,1,1 }";
+        default = "{ 1,1,1,1,1,1,1 }";
     };
 };
 
@@ -162,7 +162,7 @@ prop = {
     type = guint32;
     vector_size = c_sr_num;
     data = {
-        default = "{ 210, 50, 80, 50, 70, 70, 70, 140, 70 }";
+        default = "{ 210, 30, 50, 80, 30, 120, 90 }";
     };
 };
 
