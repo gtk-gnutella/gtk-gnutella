@@ -1,5 +1,23 @@
 # since last version
 
+- (2004.01.12 - RAM)
+ * Display the amount of file descriptors currently used for banning.
+ * New property "banned_count".
+ * Default number of node connections raised to 12 now that many servents
+   support high outdegree.
+ * Don't ping all our neighbours on pong-cache expiration: only select
+   20% of them, randomly, with at least 3 being selected.
+ * (event.c) Fixed free(0) call and switched to walloc() for subscriber
+   allocation.
+ * Must use file_fopen_missing() when reading the pid file.
+ * New flow-control mode called "swift" mode, shown with an 'S' instead of 'F'.
+   This mode is activated when we have spent some time in flow-control and
+   need to flush the queue faster, at the price of dropping more messages,
+   and possibly some query hits.
+ * Changed minimum for "node_tx_flowc_timeout" to 90 secs (was 60 secs)
+   since new "swift" mode needs at least 70 secs to clear the FC condition
+   with 95% probability.
+
 - (2004.01.11 - RAM)
  * Fixed "fi->lifecount > 0" assertion failure when backing out data after a
    resuming mismatch.
@@ -24,6 +42,8 @@
    contain the functions we want (fixes bug #859761).
  * Don't force bit 0 of amount of Kbytes shared to 1 if they share nothing.
  * Don't consider pongs with less than 8 kbytes shared as being ultra pongs.
+ * Added file_open_missing(), and file_fopen*() routines.
+ * Error logging is now assured by file_open*() and file_fopen*() routines.
 
 - (2004.01.10 - RAM)
  * Fixed assert failure when all the entries from the cache are deleted.
