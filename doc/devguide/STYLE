@@ -70,18 +70,22 @@ Ladies and gentleman, here's the
 
         /**
          * Purpose in life.
+	 *
+	 * @param param1 blah blah
+	 * @param param2 blah blah
          *
          * @returns blah blah.
          */
         void function_name(...args...)
 
-    When the API documentation is generated with doxygen, the first
+    When the API documentation is generated with Doxygen, the first
     sentence (up to the first ".") is treated as the short description
     of the function. The complete comment makes up the detailed
-    description. It is welcome if additional tags are like @param or
-    @returns are use to further enhance the documentation. These 
-    tags are documented in the manual of the Doxygen software package.
-    The format is largely compatible to Javadoc. Do not try to use HTML.
+    description. It is welcome if additional tags like @param or
+    @returns are used to further enhance the documentation. These 
+    tags are documented in the manual of the Doxygen software package
+    (see http://www.doxygen.org). The format is largely compatible to Javadoc.
+    Do not try to use HTML.
 
 2.3  Block comments must be formatted as:
 
