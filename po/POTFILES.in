@@ -13,6 +13,7 @@ src/ui/gtk/drop.c
 src/ui/gtk/filter.c
 src/ui/gtk/filter_core.c
 src/ui/gtk/gnet_stats_common.c
+src/ui/gtk/gtkcolumnchooser.c
 src/ui/gtk/gtk-shared/callbacks.c
 src/ui/gtk/gtk1/callbacks.c
 src/ui/gtk/gtk1/downloads.c
@@ -31,6 +32,7 @@ src/ui/gtk/gtk2/fileinfo.c
 src/ui/gtk/gtk2/gnet_stats.c
 src/ui/gtk/gtk2/hcache.c
 src/ui/gtk/gtk2/interface-glade.c
+src/ui/gtk/gtk2/monitor.c
 src/ui/gtk/gtk2/nodes.c
 src/ui/gtk/gtk2/search.c
 src/ui/gtk/gtk2/search_cb.c
