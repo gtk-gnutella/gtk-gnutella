@@ -271,7 +271,8 @@ create_main_window (void)
   GtkWidget *label_monitor;
   GtkWidget *vbox12a;
   GtkWidget *hbox67;
-  GtkWidget *checkbutton_search_stats_enable;
+  GtkWidget *combo_search_stats_type;
+  GtkWidget *combo_entry1;
   GtkWidget *label101;
   GtkObject *spinbutton_search_stats_update_interval_adj;
   GtkWidget *spinbutton_search_stats_update_interval;
@@ -545,8 +546,9 @@ create_main_window (void)
   GtkWidget *label394;
   GtkWidget *label395;
   GtkWidget *label396;
-  GtkWidget *checkbutton_gnet_stats_perc_mode;
+  GtkWidget *checkbutton_gnet_stats_pkg_perc;
   GtkWidget *frame63;
+  GtkWidget *vbox92;
   GtkWidget *scrolledwindow30;
   GtkWidget *clist_gnet_stats_byte;
   GtkWidget *label397;
@@ -555,6 +557,7 @@ create_main_window (void)
   GtkWidget *label400;
   GtkWidget *label401;
   GtkWidget *label402;
+  GtkWidget *checkbutton_gnet_stats_byte_perc;
   GtkWidget *table44;
   GtkWidget *label9;
   GtkWidget *label8;
@@ -572,6 +575,7 @@ create_main_window (void)
   GtkWidget *clist_gnet_stats_drop_reasons;
   GtkWidget *label375;
   GtkWidget *label376;
+  GtkWidget *checkbutton_gnet_stats_drop_perc;
   GtkWidget *label346;
   GtkWidget *hbox_statusbar;
   GtkWidget *hbox145;
@@ -2771,13 +2775,21 @@ create_main_window (void)
   gtk_widget_show (hbox67);
   gtk_box_pack_start (GTK_BOX (vbox12a), hbox67, FALSE, TRUE, 0);
 
-  checkbutton_search_stats_enable = gtk_check_button_new_with_label ("Enable search stats");
-  gtk_widget_set_name (checkbutton_search_stats_enable, "checkbutton_search_stats_enable");
-  gtk_widget_ref (checkbutton_search_stats_enable);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_stats_enable", checkbutton_search_stats_enable,
+  combo_search_stats_type = gtk_combo_new ();
+  gtk_widget_set_name (combo_search_stats_type, "combo_search_stats_type");
+  gtk_widget_ref (combo_search_stats_type);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_search_stats_type", combo_search_stats_type,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_search_stats_enable);
-  gtk_box_pack_start (GTK_BOX (hbox67), checkbutton_search_stats_enable, TRUE, TRUE, 0);
+  gtk_widget_show (combo_search_stats_type);
+  gtk_box_pack_start (GTK_BOX (hbox67), combo_search_stats_type, TRUE, TRUE, 0);
+
+  combo_entry1 = GTK_COMBO (combo_search_stats_type)->entry;
+  gtk_widget_set_name (combo_entry1, "combo_entry1");
+  gtk_widget_ref (combo_entry1);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_entry1", combo_entry1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (combo_entry1);
+  gtk_entry_set_editable (GTK_ENTRY (combo_entry1), FALSE);
 
   label101 = gtk_label_new ("Update interval (sec)");
   gtk_widget_set_name (label101, "label101");
@@ -5065,13 +5077,13 @@ create_main_window (void)
   gtk_widget_show (label396);
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_pkg), 5, label396);
 
-  checkbutton_gnet_stats_perc_mode = gtk_check_button_new_with_label ("show percentages");
-  gtk_widget_set_name (checkbutton_gnet_stats_perc_mode, "checkbutton_gnet_stats_perc_mode");
-  gtk_widget_ref (checkbutton_gnet_stats_perc_mode);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_gnet_stats_perc_mode", checkbutton_gnet_stats_perc_mode,
+  checkbutton_gnet_stats_pkg_perc = gtk_check_button_new_with_label ("show percentages");
+  gtk_widget_set_name (checkbutton_gnet_stats_pkg_perc, "checkbutton_gnet_stats_pkg_perc");
+  gtk_widget_ref (checkbutton_gnet_stats_pkg_perc);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_gnet_stats_pkg_perc", checkbutton_gnet_stats_pkg_perc,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_gnet_stats_perc_mode);
-  gtk_box_pack_start (GTK_BOX (vbox91), checkbutton_gnet_stats_perc_mode, FALSE, FALSE, 0);
+  gtk_widget_show (checkbutton_gnet_stats_pkg_perc);
+  gtk_box_pack_start (GTK_BOX (vbox91), checkbutton_gnet_stats_pkg_perc, FALSE, FALSE, 0);
 
   frame63 = gtk_frame_new ("Message stats (bytes)");
   gtk_widget_set_name (frame63, "frame63");
@@ -5081,13 +5093,21 @@ create_main_window (void)
   gtk_widget_show (frame63);
   gtk_box_pack_start (GTK_BOX (vbox90), frame63, TRUE, TRUE, 0);
 
+  vbox92 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox92, "vbox92");
+  gtk_widget_ref (vbox92);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox92", vbox92,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox92);
+  gtk_container_add (GTK_CONTAINER (frame63), vbox92);
+
   scrolledwindow30 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow30, "scrolledwindow30");
   gtk_widget_ref (scrolledwindow30);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow30", scrolledwindow30,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (scrolledwindow30);
-  gtk_container_add (GTK_CONTAINER (frame63), scrolledwindow30);
+  gtk_box_pack_start (GTK_BOX (vbox92), scrolledwindow30, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow30), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
   clist_gnet_stats_byte = gtk_clist_new (6);
@@ -5153,6 +5173,14 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label402);
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_byte), 5, label402);
+
+  checkbutton_gnet_stats_byte_perc = gtk_check_button_new_with_label ("show percentages");
+  gtk_widget_set_name (checkbutton_gnet_stats_byte_perc, "checkbutton_gnet_stats_byte_perc");
+  gtk_widget_ref (checkbutton_gnet_stats_byte_perc);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_gnet_stats_byte_perc", checkbutton_gnet_stats_byte_perc,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_gnet_stats_byte_perc);
+  gtk_box_pack_start (GTK_BOX (vbox92), checkbutton_gnet_stats_byte_perc, FALSE, FALSE, 0);
 
   table44 = gtk_table_new (3, 2, FALSE);
   gtk_widget_set_name (table44, "table44");
@@ -5318,6 +5346,14 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label376);
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_drop_reasons), 1, label376);
+
+  checkbutton_gnet_stats_drop_perc = gtk_check_button_new_with_label ("show percentages");
+  gtk_widget_set_name (checkbutton_gnet_stats_drop_perc, "checkbutton_gnet_stats_drop_perc");
+  gtk_widget_ref (checkbutton_gnet_stats_drop_perc);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_gnet_stats_drop_perc", checkbutton_gnet_stats_drop_perc,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_gnet_stats_drop_perc);
+  gtk_box_pack_start (GTK_BOX (vbox82), checkbutton_gnet_stats_drop_perc, FALSE, FALSE, 0);
 
   label346 = gtk_label_new ("gNet stats");
   gtk_widget_set_name (label346, "label346");
