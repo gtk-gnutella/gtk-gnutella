@@ -153,6 +153,7 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	gm_snprintf(source_name, sizeof(source_name),
 		"%s/%s", download_path(d), download_outname(d));
 
+	md->d = we->d;
 	md->rd = open(source_name, O_RDONLY);
 
 	if (md->rd == -1) {
@@ -180,7 +181,6 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	}
 
 	md->start = time(NULL);
-	md->d = we->d;
 	md->size = (off_t) download_filesize(d);
 	md->copied = 0;
 	md->error = 0;
