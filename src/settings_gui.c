@@ -3090,7 +3090,7 @@ static gboolean update_clist_col_widths(property_t prop)
 
     switch (map_entry->type) {
         case PROP_TYPE_GUINT32: {
-            gint n = 0;
+            guint n = 0;
             prop_def_t *def;
 
             val = stub->guint32.get(prop, NULL, 0, 0);
@@ -5114,7 +5114,7 @@ static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
  */
 static void settings_gui_init_prop_map(void)
 {
-    gint n;
+    guint n;
 
     if (gui_debug >= 2) {
         printf("settings_gui_init_prop_map: property_map size: %u\n", 
@@ -5137,8 +5137,7 @@ static void settings_gui_init_prop_map(void)
         ) {
             property_map[n].stub = gui_prop_set_stub;
             property_map[n].init_list = gui_init_list;
-        } else
-        if (
+        } else if (
             (prop >= gnet_prop_set_stub->offset) && 
             (prop < gnet_prop_set_stub->offset+gnet_prop_set_stub->size)
         ) {
@@ -5267,7 +5266,7 @@ void settings_gui_init(void)
 
 void settings_gui_shutdown(void)
 {
-    gint n;
+    guint n;
 
     /*
      * Remove the listeners

@@ -48,6 +48,7 @@
  */
 
 enum dl_list {
+	DL_LIST_INVALID	= -1,
 	DL_LIST_RUNNING	= 0,
 	DL_LIST_WAITING = 1,
 	DL_LIST_STOPPED = 2,

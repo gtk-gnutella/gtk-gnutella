@@ -166,7 +166,7 @@ static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
 	gnet_upload_status_t status;
 	gchar size_tmp[256];
 	gchar range_tmp[256];
-	gint range_len;
+	guint range_len;
 
 
     clist_uploads = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
@@ -245,7 +245,7 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 {
  	gchar size_tmp[256];
 	gchar range_tmp[256];
-	gint range_len;
+	guint range_len;
     gint row;
 	gchar *titles[6];
     GtkWidget *clist_uploads;
@@ -300,7 +300,6 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 void uploads_gui_early_init(void)
 {
     popup_uploads = create_popup_uploads();
-    
 }
 
 void uploads_gui_init(void)
@@ -336,6 +335,7 @@ void uploads_gui_shutdown(void)
  */
 void uploads_gui_update_display(time_t now)
 {
+	static GtkNotebook *notebook = NULL;
     static time_t last_update = 0;
 	GtkCList *clist;
 	GList *l;
@@ -345,7 +345,6 @@ void uploads_gui_update_display(time_t now)
     GSList *sl;
 	gboolean all_removed = TRUE;
 	gint current_page;
-	static GtkNotebook *notebook = NULL;
 
 	/*
 	 * Usually don't perform updates if nobody is watching.  However,
@@ -404,7 +403,7 @@ static gboolean uploads_clear_helper(gpointer user_data) {
     GList *l;
     GSList *to_remove= NULL;
     GSList *sl;
-    gint row = 0;
+    guint row = 0;
     GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
 
     gtk_clist_freeze(clist);
@@ -449,4 +448,5 @@ void uploads_gui_clear_completed(void)
 	}
 }
 
+/* vi: set ts=4: */
 #endif	/* USE_GTK1 */

@@ -241,7 +241,7 @@ void gnet_stats_gui_init(void)
     GtkCList *clist_reason;
     GtkCombo *combo_types;
     gchar *titles[10];
-    gint n;
+    guint n;
 
     for (n = 0; n < G_N_ELEMENTS(titles); n ++)
         titles[n] = "-";
@@ -434,4 +434,5 @@ void gnet_stats_gui_update(time_t now)
     gtk_clist_thaw(clist_stats_fc_hops);
 }
 
+/* vi: set ts=4: */
 #endif	/* USE_GTK1 */

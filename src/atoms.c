@@ -363,7 +363,7 @@ static const gchar *int_str(gconstpointer v)
  */
 void atoms_init(void)
 {
-	gint i;
+	guint i;
 
 #ifdef PROTECT_ATOMS
 	g_assert(ARENA_OFFSET == PAGESIZE);
@@ -394,7 +394,7 @@ gpointer atom_get(gint type, gconstpointer key)
 	gint len;
 
     g_assert(key != NULL);
-	g_assert(type >= 0 && type < G_N_ELEMENTS(atoms));
+	g_assert(type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
 
 	td = &atoms[type];		/* Where atoms of this type are held */
 
@@ -448,7 +448,7 @@ void atom_free(gint type, gconstpointer key)
 	atom_t *a;
 
     g_assert(key != NULL);
-	g_assert(type >= 0 && type < G_N_ELEMENTS(atoms));
+	g_assert(type >= 0 && (guint) type < G_N_ELEMENTS(atoms));
 
 	td = &atoms[type];		/* Where atoms of this type are held */
 
@@ -649,7 +649,7 @@ static gboolean atom_warn_free(gpointer key, gpointer value, gpointer udata)
  */
 void atoms_close(void)
 {
-	gint i;
+	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
 		table_desc_t *td = &atoms[i];

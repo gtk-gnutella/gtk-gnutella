@@ -692,7 +692,7 @@ void download_gui_add(struct download *d)
 	      			c_queue_record, &drecord,
 		        	(-1));
 
-				if (DL_GUI_IS_HEADER != (guint32) drecord) {
+				if (DL_GUI_IS_HEADER != drecord) {
 					/* not a header entry*/
 
 					/* No header entry so we will create one */
@@ -795,7 +795,7 @@ void download_gui_add(struct download *d)
 	      			c_dl_record, &drecord,
 		        	(-1));
 
-				if (DL_GUI_IS_HEADER != (guint32) drecord) {
+				if (DL_GUI_IS_HEADER != drecord) {
 					/* No header entry so we will create one */
 					
 					/* Copy the old parents info into a new node */
@@ -1154,7 +1154,7 @@ void gui_update_download_column(struct download *d, GtkTreeView *tree_view,
 	
 	g_assert(d);
 
-	if (DL_GUI_IS_HEADER != (guint32) d) /*not a header */ {
+	if (DL_GUI_IS_HEADER != d) { /*not a header */
 
 		/* Find row that matches d */
 		temp_iter_global = NULL;
@@ -1298,7 +1298,7 @@ void gui_update_download(struct download *d, gboolean force)
     if (d->last_gui_update == now && !force)
 		return;
 
-	if (DL_GUI_IS_HEADER == (guint32) d)
+	if (DL_GUI_IS_HEADER == d)
 		return;			/* A header was sent here by mistake */ 		
 	
 	/*
@@ -1699,7 +1699,7 @@ void gui_update_download(struct download *d, gboolean force)
 	      			c_dl_record, &drecord,
 		        	(-1));
 
-				if (DL_GUI_IS_HEADER == (guint32) drecord) {
+				if (DL_GUI_IS_HEADER == drecord) {
 					/* There is a header entry, we need to update it */
 					
 					/* Download is done */
@@ -1806,9 +1806,9 @@ void gui_update_download_abort_resume(void)
 
 		for (; l; l = g_list_next(l)) {
 			gtk_tree_model_get_iter(model, &iter, l->data);
-			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
+			gtk_tree_model_get(model, &iter, c_dl_record, &d, (-1));
 		
-			if (DL_GUI_IS_HEADER == (guint32) d) {
+			if (DL_GUI_IS_HEADER == d) {
 				
 				abort_sha1 = TRUE;
 				continue;

@@ -50,7 +50,7 @@ void on_ctree_downloads_tree_select_row
 	gui_update_download_abort_resume();
 
 	d = gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));	
-	if (DL_GUI_IS_HEADER == GPOINTER_TO_INT(d))
+	if (DL_GUI_IS_HEADER == d)
 		return;
 
     activate = ((GTK_CLIST(ctree)->selection != NULL) &&
@@ -345,7 +345,7 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 	for (l = data_list; NULL != l; l = g_list_next(l)) {
 		d = (struct download *) l->data;
 
-		if (DL_GUI_IS_HEADER == GPOINTER_TO_INT(d))
+		if (DL_GUI_IS_HEADER == d)
 			continue;
 
 		if (!d) {
@@ -836,7 +836,7 @@ void on_ctree_downloads_queue_tree_select_row
 	d = gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));	
 	
 	/* If it's a header, there is more than one */
-	if (DL_GUI_IS_HEADER != GPOINTER_TO_INT(d)) {
+	if (DL_GUI_IS_HEADER != d) {
 	    only_one = ((GTK_CLIST(ctree)->selection != NULL) &&
     	    (GTK_CLIST(ctree)->selection->next == NULL));
 	}
@@ -920,7 +920,7 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
                 continue;
             }
 
-			if (DL_GUI_IS_HEADER == GPOINTER_TO_INT(d)) {
+			if (DL_GUI_IS_HEADER == d) {
 				/* A header node.  We expand it and check all of the children 
 				 * If one of the children get selected keep node expanded,
 				 * if it was initially collapsed, collapse it again

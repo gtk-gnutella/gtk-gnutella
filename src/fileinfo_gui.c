@@ -88,11 +88,11 @@ static gnet_fi_info_t *fi_gui_fill_info(
 static void fi_gui_fill_status(
     gnet_fi_t fih, gchar *titles[c_fi_num])
 {
-    gnet_fi_status_t s;
     static gchar fi_sources[32];
     static gchar fi_status[256];
     static gchar fi_done[SIZE_FIELD_MAX+10];
     static gchar fi_size[SIZE_FIELD_MAX];
+    gnet_fi_status_t s;
 
     fi_get_status(fih, &s);
 
@@ -109,7 +109,7 @@ static void fi_gui_fill_status(
         titles[c_fi_done] = "-";
     }
         
-    gm_snprintf(fi_size, sizeof(fi_size), "%s", short_size(s.size));
+    g_strlcpy(fi_size, short_size(s.size), sizeof(fi_size));
     titles[c_fi_size]    = fi_size;
 
     if (s.recvcount) {
@@ -162,7 +162,7 @@ static void fi_gui_set_details(gnet_fi_t fih)
 
     gtk_clist_freeze(cl_aliases);
     gtk_clist_clear(cl_aliases);
-    for(n = 0; aliases[n] != NULL; n++)
+    for (n = 0; aliases[n] != NULL; n++)
         gtk_clist_append(cl_aliases, &aliases[n]);
     gtk_clist_thaw(cl_aliases);
     
@@ -214,8 +214,7 @@ static inline gboolean fi_gui_match_filter(const gchar *s)
     n = regexec(&filter_re, s, 0, NULL, 0);
 
     if (n == REG_ESPACE) {
-        g_warning("fi_gui_match_filter: "
-            "regexp memory overflow");
+        g_warning("fi_gui_match_filter: regexp memory overflow");
     } 
 
     return n == 0;
@@ -233,7 +232,7 @@ static void fi_gui_add_row(gnet_fi_t fih)
 {
     GtkCList *clist;
     gint row;
-    gint n;
+    guint n;
     gchar *titles[c_fi_num];
 	gnet_fi_info_t *info;
 	gboolean filter_match;
@@ -328,8 +327,8 @@ static void fi_gui_set_filter_regex(gchar *s)
                   REG_EXTENDED|REG_NOSUB|(fi_regex_case ? 0 : REG_ICASE));
 
    	if (err) {
-        gchar buf[1000];
-		regerror(err, &filter_re, buf, 1000);
+        gchar buf[1024];
+		regerror(err, &filter_re, buf, sizeof buf);
         statusbar_gui_warning(15, "*** ERROR: %s", buf);
 
         /* If an error occurs turn filter off. If this doesn't work,
@@ -379,13 +378,11 @@ static void fi_gui_update(gnet_fi_t fih, gboolean full)
     GtkCList *clist;
 	gchar    *titles[c_fi_num];
     gint      row;
-    gint      n;
-
+    guint     n;
 
     clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
 
     row = gtk_clist_find_row_from_data(clist, GUINT_TO_POINTER(fih));
-
     if (row == -1) {
         /* This can happen if we get an update event for a hidden row. */
         return;
@@ -446,7 +443,6 @@ void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
         lookup_widget(main_window, "clist_fileinfo"));
 		
     sl = clist_collect_data(clist, TRUE, NULL);
-		    
     if (sl) {
         fi_purge_by_handle_list(sl);
     }
@@ -459,7 +455,6 @@ void on_entry_fi_regex_activate(GtkEditable *editable, gpointer user_data)
     gchar *regex;
 
     regex = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1));
-
     if (NULL == regex)
         return;
 
@@ -492,7 +487,9 @@ void fi_gui_shutdown(void)
 
     fi_remove_listener((GCallback)fi_gui_fi_removed, EV_FI_REMOVED);
     fi_remove_listener((GCallback)fi_gui_fi_added, EV_FI_ADDED);
-    fi_remove_listener((GCallback)fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
+    fi_remove_listener((GCallback)fi_gui_fi_status_changed,
+		EV_FI_STATUS_CHANGED);
+
     if (last_fi != NULL)
         fi_free_info(last_fi);
 
@@ -540,4 +537,5 @@ void fi_gui_update_display(time_t now)
 }
 */
 
+/* vi: set ts=4: */
 #endif	/* USE_GTK1 */

@@ -142,21 +142,19 @@ gchar *eval_subst(const gchar *str)
 	gchar buf[MAX_STRING];
 	gchar *p;
 	gchar *end = buf + sizeof(buf);
-	gint len;
+	size_t len;
 	gchar c;
 
 	if (str == NULL)
 		return NULL;
 
-	len = strlen(str);
-
-	if (len > sizeof(buf) - 1) {
+	len = g_strlcpy(buf, str, sizeof(buf));
+	if (len >= sizeof(buf)) {
 		g_warning("eval_subst: string too large for substitution (%d bytes)",
 			len);
 		return constant_make((gchar *) str);
 	}
 
-	strncpy(buf, str, sizeof(buf));
 
 	if (dbg > 3)
 		printf("eval_subst: on entry: \"%s\"\n", buf);
@@ -170,7 +168,7 @@ gchar *eval_subst(const gchar *str)
 			memmove(start, start + 1, len - (start - buf));
 			len--;
 
-			g_assert(len >= 0);
+			g_assert((ssize_t) len >= 0);
 
 		} else if (c == '$') {
 			gchar *after;
@@ -179,7 +177,7 @@ gchar *eval_subst(const gchar *str)
 			memmove(start, after, len + 1 - (after - buf));
 			len -= after - start;		/* Also removing leading '$' */
 
-			g_assert(len >= 0);
+			g_assert((ssize_t) len >= 0);
 		}
 
 
@@ -190,7 +188,7 @@ gchar *eval_subst(const gchar *str)
 			len += next - start;
 			p = next;
 
-			g_assert(len <= sizeof(buf) - 1);
+			g_assert(len < sizeof(buf));
 			g_assert(p < end);
 		}
 
@@ -285,3 +283,4 @@ static gchar *get_variable(gchar *s, gchar **end)
 	return value;
 }
 
+/* vi: set ts=4: */

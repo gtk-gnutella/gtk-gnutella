@@ -436,7 +436,7 @@ again:
  * Allocate a the "spill" buffer for the query, with `n' bytes being already
  * written into the pipe.  The query is cloned.
  */
-static adns_async_write_t *adns_async_write_alloc(adns_query_t *query, gint n)
+static adns_async_write_t *adns_async_write_alloc(adns_query_t *query, size_t n)
 {
 	adns_async_write_t *remain;
 
@@ -635,7 +635,7 @@ gboolean adns_resolve(
 
 	if (adns_helper_alive && 0 == adns_query_event_id) {
 		adns_query_t q;
-		gint written;
+		ssize_t written;
 
 		g_assert(adns_query_fd >= 0);
 		g_assert(hostname_len < sizeof(q.hostname));
@@ -651,7 +651,7 @@ gboolean adns_resolve(
 
 		written = write(adns_query_fd, &q, sizeof(q));
 
-		if (written == -1) {
+		if (written == (ssize_t) -1) {
 			if (errno != EINTR && errno != EAGAIN) {
 				g_warning("adns_resolve: write() failed: %s",
 					g_strerror(errno));
@@ -670,7 +670,7 @@ gboolean adns_resolve(
 		 * can absorb new data.
 		 */
 
-		if (written < sizeof(q)) {
+		if (written < (ssize_t) sizeof(q)) {
 			adns_async_write_t *aq = adns_async_write_alloc(&q, written);
 
 			adns_query_event_id = inputevt_add(adns_query_fd,
@@ -700,3 +700,5 @@ void adns_close(void)
 	inputevt_remove(adns_reply_event_id);
 	adns_cache = adns_cache_free(adns_cache);
 }
+
+/* vi: set ts=4: */

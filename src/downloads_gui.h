@@ -29,8 +29,8 @@
 #include "gui.h"
 #include "downloads_gui_common.h"
 
-#define DL_GUI_IS_HEADER -1		 /* Indicates that a dl node is a header node */
-
+/* Indicates that a dl node is a header node */
+#define DL_GUI_IS_HEADER GINT_TO_POINTER(0x1)
 
 /*
  * Global Functions
@@ -59,4 +59,5 @@ void downloads_gui_expand_all(GtkTreeView *tree_view);
 void downloads_gui_collapse_all(GtkTreeView *tree_view);
 #endif
 
+/* vi: set ts=4: */
 #endif /* _downloads_gui_h_ */

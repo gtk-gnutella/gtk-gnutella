@@ -163,10 +163,10 @@ const gchar *uploads_gui_status_str(
 			extern gint running_uploads;
 		
 			/*
-			 * Status: GTA_UL_QUEUED. When PARQ is enabled, and all upload slots are
-		 	 * full an upload is placed into the PARQ-upload. Clients supporting 
-			 * Queue 0.1 and 1.0 will get an active slot. We probably want to
-			 * display this information
+			 * Status: GTA_UL_QUEUED. When PARQ is enabled, and all upload
+			 * slots are full an upload is placed into the PARQ-upload. Clients
+			 * supporting Queue 0.1 and 1.0 will get an active slot. We
+			 * probably want to display this information
 			 *		-- JA, 06/02/2003
 			 */
 			if (u->parq_position <= max_uploads - running_uploads) {
@@ -275,3 +275,4 @@ gboolean upload_should_remove(time_t now, const upload_row_data_t *ul)
 	return FALSE;
 }
 
+/* vi: set ts=4: */

@@ -26,8 +26,6 @@
 #include "gnutella.h"
 #include "common.h"
 
-#include <ctype.h>
-
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -171,7 +169,7 @@ gchar *vendor_code_str(guint32 code)
 
 	for (i = 0; i < 4; i++) {
         guchar c = temp[i];
-		if (!isascii(c) || !isprint(c))
+		if (!is_ascii_print(c))
 			temp[i] = '.';
 	}
 
@@ -189,7 +187,7 @@ gchar *lookup_vendor_name(guchar raw[4])
 {
 	static gchar temp[5];
 	gchar *name;
-    gint i;
+    guint i;
 
     if (raw[0] == '\0')
         return NULL;
@@ -201,7 +199,7 @@ gchar *lookup_vendor_name(guchar raw[4])
 	/* Unknown type, look whether we have all printable ASCII */
 	for (i = 0; i < sizeof(raw); i++) {
         guchar c = raw[i];
-		if (isascii(c) && isprint(c))
+		if (is_ascii_print(c))
             temp[i] = c;
 		else {
             temp[0] = '\0';
@@ -213,3 +211,4 @@ gchar *lookup_vendor_name(guchar raw[4])
 	return temp[0] ? temp : NULL;
 }
 
+/* vi: set ts=4: */

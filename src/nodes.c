@@ -1005,7 +1005,7 @@ gint node_missing(void)
  * Returns this node's outdegree, i.e. the maximum amount of peer connections
  * that we can support.
  */
-gint node_outdegree(void)
+guint node_outdegree(void)
 {
 	switch (current_peermode) {
 	case NODE_P_LEAF:

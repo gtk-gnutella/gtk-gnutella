@@ -44,8 +44,8 @@ typedef struct cevent {
 	struct cevent *ce_bprev;	/* Prev item in hash bucket */
 	cq_service_t ce_fn;			/* Callback routine */
 	gpointer ce_arg;			/* Argument to pass to said callback */
-	time_t ce_time;			/* Absolute trigger time */
-	gint ce_magic;				/* Magic number */
+	time_t ce_time;				/* Absolute trigger time */
+	guint ce_magic;				/* Magic number */
 } cevent_t;
 
 /*

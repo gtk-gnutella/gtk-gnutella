@@ -209,7 +209,7 @@ static bgret_t d_step_compute(gpointer h, gpointer u, gint ticks)
 
 	amount = ticks << HASH_BLOCK_SHIFT;
 	remain = MIN(remain, HASH_BUF_SIZE);
-	amount = MIN(amount, remain);
+	amount = MIN((guint32) amount, remain);
 
 	g_assert(amount > 0);
 

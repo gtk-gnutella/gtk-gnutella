@@ -1996,10 +1996,12 @@ gboolean bsched_enough_up_bandwidth(void)
 		return FALSE;		/* 3. */
 
 	if (
-		bws_out_ema <
+		(guint) bws_out_ema <
 			(BW_OUT_GNET_MIN * max_connections + BW_OUT_LEAF_MIN * max_leaves)
 	)
 		return FALSE;		/* 4. */
 
 	return TRUE;
 }
+
+/* vi: set ts=4: */

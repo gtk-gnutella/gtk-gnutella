@@ -182,7 +182,7 @@ static void base32_encode_exactly(const gchar *buf, guint len,
 	g_assert(buf);
 	g_assert(encbuf);
 	g_assert(len > 0);
-	g_assert(enclen >= len * 8 / 5);
+	g_assert(enclen >= (gint) len * 8 / 5);
 
 	/*
 	 * In the following picture, we represent how the 5 bytes of input
@@ -552,3 +552,4 @@ gchar *base32_decode(const gchar *buf, gint len, gint *outlen)
 	return decbuf;
 }
 
+/* vi: set ts=4: */

@@ -531,9 +531,12 @@ void download_timer(time_t now)
 				 */
 				if (d->status == GTA_DL_ACTIVE_QUEUED)
 					parq_download_retry_active_queued(d);
-				else if (d->status == GTA_DL_CONNECTING && !(is_firewalled || !send_pushes))
+				else if (
+					d->status == GTA_DL_CONNECTING &&
+					!(is_firewalled || !send_pushes)
+				) {
 					download_fallback_to_push(d, TRUE, FALSE);
-				else if (d->status == GTA_DL_HEADERS)
+				} else if (d->status == GTA_DL_HEADERS)
 					download_incomplete_header(d);
 				else {
 					if (d->retries++ < download_max_retries)
@@ -1063,7 +1066,7 @@ static struct download *has_same_download(
 {
 	struct dl_server *server = get_server(guid, ip, port);
 	GList *l;
-	gint n;
+	guint n;
 	enum dl_list listnum[] = { DL_LIST_WAITING, DL_LIST_RUNNING };
 
 	if (server == NULL)
@@ -1453,7 +1456,7 @@ gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port,
 	GSList *to_remove = NULL;
 	GSList *sl;
 	gint i;
-	gint j;
+	guint j;
 
 	/*
 	 * There can be two distinct server entries for a given IP:port.
@@ -1711,8 +1714,8 @@ static void download_add_to_list(struct download *d, enum dl_list idx)
 {
 	struct dl_server *server = d->server;
 
-	g_assert(idx != -1);
-	g_assert(d->list_idx == -1);			/* Not in any list */
+	g_assert(idx != DL_LIST_INVALID);
+	g_assert(d->list_idx == DL_LIST_INVALID);			/* Not in any list */
 
 	d->list_idx = idx;
 
@@ -1737,7 +1740,7 @@ static void download_move_to_list(struct download *d, enum dl_list idx)
 	struct dl_server *server = d->server;
 	enum dl_list old_idx = d->list_idx;
 
-	g_assert(d->list_idx != -1);			/* In some list */
+	g_assert(d->list_idx != DL_LIST_INVALID);			/* In some list */
 	g_assert(d->list_idx != idx);			/* Not in the target list */
 
 	/*
@@ -1749,6 +1752,7 @@ static void download_move_to_list(struct download *d, enum dl_list idx)
 			dl_active--;
 		else {
 			g_assert(DOWNLOAD_IS_ESTABLISHING(d));
+			g_assert(dl_establishing > 0);
 			dl_establishing--;
 		}
 		downloads_with_name_dec(download_outname(d));
@@ -1848,7 +1852,7 @@ static void download_reclaim_server(struct download *d, gboolean delayed)
 
 	g_assert(d);
 	g_assert(d->server);
-	g_assert(d->list_idx == -1);
+	g_assert(d->list_idx == DL_LIST_INVALID);
 
 	server = d->server;
 	d->server = NULL;
@@ -1889,11 +1893,11 @@ static void download_remove_from_server(struct download *d, gboolean reclaim)
 
 	g_assert(d);
 	g_assert(d->server);
-	g_assert(d->list_idx != -1);
+	g_assert(d->list_idx != DL_LIST_INVALID);
 
 	idx = d->list_idx;
 	server = d->server;
-	d->list_idx = -1;
+	d->list_idx = DL_LIST_INVALID;
 
 	server->list[idx] = g_list_remove(server->list[idx], d);
 	server->count[idx]--;
@@ -1925,7 +1929,7 @@ static void download_reparent(struct download *d, struct dl_server *new_server)
 	 * Insert download in new server, in the same list.
 	 */
 
-	d->list_idx = -1;			/* Pre-condition for download_add_to_list() */
+	d->list_idx = DL_LIST_INVALID;	/* Pre-condition for download_add_to_list() */
 
 	download_add_to_list(d, list_idx);
 }
@@ -1977,7 +1981,8 @@ void download_redirect_to_server(struct download *d, guint32 ip, guint16 port)
 	 * Insert download in new server, in the same list.
 	 */
 
-	d->list_idx = -1;			/* Pre-condition for download_add_to_list() */
+	/* Pre-condition for download_add_to_list() */
+	d->list_idx = DL_LIST_INVALID;
 
 	download_add_to_list(d, list_idx);
 }
@@ -3363,7 +3368,7 @@ static struct download *create_download(
 
 	d->src_handle = idtable_new_id(src_handle_map, d);
 	d->server = server;
-	d->list_idx = -1;
+	d->list_idx = DL_LIST_INVALID;
 
 	/*
 	 * If we know that this server can be directly connected to, ignore
@@ -3559,7 +3564,7 @@ static struct download *download_clone(struct download *d)
 	cd->file_desc = -1;					/* File re-opened each time */
 	cd->socket->resource.download = cd;	/* Takes ownership of socket */
 	cd->file_info->lifecount++;			/* Both are still "alive" for now */
-	cd->list_idx = -1;
+	cd->list_idx = DL_LIST_INVALID;
 	cd->file_name = atom_str_get(d->file_name);
 	cd->visible = FALSE;
 	cd->push = FALSE;
@@ -4874,7 +4879,7 @@ guint extract_retry_after(const header_t *header)
 			time_t now = time((time_t *) NULL);
 			time_t retry = date2time(buf, &now);
 
-			if (retry == -1)
+			if (retry == (time_t) -1)
 				g_warning("cannot parse Retry-After: %s", buf);
 			else
 				delay = retry > now ? retry - now : 0;
@@ -4898,7 +4903,7 @@ static void check_date(const header_t *header, guint32 ip)
 		time_t now = time((time_t *) NULL);
 		time_t their = date2time(buf, &now);
 
-		if (their == -1)
+		if (their == (time_t) -1)
 			g_warning("cannot parse Date: %s", buf);
 		else
 			clock_update(their, 1, ip);
@@ -6131,7 +6136,13 @@ static void download_request(
 	 *		--RAM, 14/10/2003
 	 */
 
+#if 0
+	/* XXX:
+	 * d->size is of type guint32, and you can possibly request up to 4GB
+	 */
+
 	g_assert(d->size >= 0);
+#endif
 
 	if (d->size == 0) {
 		g_assert(d->flags & DL_F_SHRUNK_REPLY);

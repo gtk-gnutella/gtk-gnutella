@@ -463,13 +463,13 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		socket_destroy(s, "Requested URL too large");
 		return;
 	case READ_DONE:
-		if (s->pos != parsed)
+		if (s->pos != (guint) parsed)
 			memmove(s->buffer, s->buffer + parsed, s->pos - parsed);
 		s->pos -= parsed;
 		break;
 	case READ_MORE:		/* ok, but needs more data */
 	default:
-		g_assert(parsed == s->pos);
+		g_assert((guint) parsed == s->pos);
 		s->pos = 0;
 		return;
 	}
@@ -1580,7 +1580,7 @@ int recv_socks(struct gnutella_socket *s)
 		g_warning("Error attempting to receive SOCKS " "reply (%s)",
 				   g_strerror(errno));
 		rc = ECONNREFUSED;
-	} else if (rc < sizeof(struct sockrep)) {
+	} else if (rc < (gint) sizeof(struct sockrep)) {
 		g_warning("Short reply from SOCKS server");
 		/* Let the application try and see how they */
 		/* go										*/

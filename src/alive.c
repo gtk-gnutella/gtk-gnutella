@@ -167,12 +167,12 @@ static void ap_ack(struct alive_ping *ap, struct alive *a)
 	 * Update min-max roundtrips.
 	 */
 
-	if (delay < a->min_rt) {
+	if (delay < (gint) a->min_rt) {
 		if (a->min_rt == INFINITY)
 			a->avg_rt = delay;			/* First time */
 		a->min_rt = delay;
 	}
-	if (delay > a->max_rt)
+	if (delay > (gint) a->max_rt)
 		a->max_rt = delay;
 
 	/*
@@ -250,9 +250,10 @@ gboolean alive_ack_ping(gpointer obj, gchar *muid)
  */
 void alive_get_roundtrip_ms(gpointer obj, guint32 *avg, guint32 *last)
 {
-	struct alive *a = (struct alive *) obj;
+	const struct alive *a = (const struct alive *) obj;
 
 	if (avg)	*avg = a->avg_rt;
 	if (last)	*last = a->last_rt;
 }
 
+/* vi: set ts=4: */

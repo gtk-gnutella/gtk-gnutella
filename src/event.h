@@ -69,9 +69,10 @@ void event_remove_subscriber(struct event *evt, GCallback cb);
 #define T_VETO(sig, ...) if((*((sig)s->cb))(__VA_ARGS__)) break;
 #define T_NORMAL(sig, ...) (*((sig)s->cb))(__VA_ARGS__);
 
-#define event_trigger(evt, type) G_STMT_START {                    \
+#define event_trigger(ev, type) G_STMT_START {                     \
     GSList *sl;                                                    \
     time_t now = time(NULL);                                       \
+	event_t *evt = (ev);										   \
                                                                    \
     for (                                                          \
         sl = evt->subscribers;                                     \
@@ -83,12 +84,13 @@ void event_remove_subscriber(struct event *evt, GCallback cb);
                                                                    \
         t = s->f_interval == 0;                                    \
         if (!t) {                                                  \
-            switch(s->f_type) {                                    \
+            switch (s->f_type) {                                   \
             case FREQ_UPDATES:                                     \
                 t = (evt->triggered_count % s->f_interval) == 0;   \
                 break;                                             \
             case FREQ_SECS:                                        \
-                t = (now - s->last_call) > s->f_interval;          \
+                t = (guint32) difftime(now, s->last_call)		   \
+						> s->f_interval;   						   \
                 break;                                             \
             default:                                               \
                 g_assert_not_reached();                            \
@@ -125,4 +127,5 @@ void event_table_remove_event(struct event_table *t, struct event *evt);
 
 inline void event_table_remove_all(struct event_table *t);
 
+/* vi: set ts=4: */
 #endif	/* _event_h_ */

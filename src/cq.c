@@ -33,7 +33,7 @@ RCSID("$Id$");
 
 #define HASH_SIZE	1024			/* Hash list size, must be power of 2 */
 #define HASH_MASK	(HASH_SIZE - 1)
-#define EV_MAGIC	0xc0110172		/* Magic number for event marking */
+#define EV_MAGIC	0xc0110172U		/* Magic number for event marking */
 
 /*
  * The hashing function divides the time by 2^5 or 32, to avoid cq_clock()
@@ -44,7 +44,7 @@ RCSID("$Id$");
 #define EV_HASH(x) (((x) >> 5) & HASH_MASK)
 #define EV_OVER(x) (((x) >> 5) & ~HASH_MASK)
 
-#define valid_ptr(a)	(((gulong) (a)) > 100L)
+#define valid_ptr(a)	((gpointer) (a) > GUINT_TO_POINTER(100U))
 
 /*
  * cq_make
@@ -375,3 +375,5 @@ void cq_clock(cqueue_t *cq, gint elapsed)
 
 	} while (bucket != last_bucket);
 }
+
+/* vi: set ts=4: */

@@ -635,14 +635,13 @@ static void send_upload_error_v(
 {
 	gchar reason[1024];
 	gchar extra[1024];
-	gint slen = 0;
+	size_t slen = 0;
 	http_extra_desc_t hev[6];
-	gint hevcnt = 0;
+	guint hevcnt = 0;
 	struct upload_http_cb cb_arg;
 
 	if (msg) {
 		gm_vsnprintf(reason, sizeof(reason), msg, ap);
-		reason[sizeof(reason) - 1] = '\0';		/* May be truncated */
 	} else
 		reason[0] = '\0';
 
@@ -659,7 +658,7 @@ static void send_upload_error_v(
 	 */
 
 	if (ext) {
-		slen = gm_snprintf(extra, sizeof(extra), "%s", ext);
+		slen = g_strlcpy(extra, ext, sizeof(extra));
 		
 		if (slen < sizeof(extra)) {
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
@@ -781,7 +780,6 @@ static void upload_remove_v(
 
 	if (reason) {
 		gm_vsnprintf(errbuf, sizeof(errbuf), reason, ap);
-		errbuf[sizeof(errbuf) - 1] = '\0';		/* May be truncated */
 		logreason = errbuf;
 	} else {
 		if (u->error_sent) {
@@ -1308,8 +1306,6 @@ void upload_connect_conf(gnutella_upload_t *u)
 
 	rw = gm_snprintf(giv, sizeof(giv), "GIV %u:%s/%s\n\n",
 		u->index, guid_hex_str((gchar *) guid), u->name);
-	giv[sizeof(giv)-1] = '\0';			/* Might have been truncated */
-	rw = MIN(sizeof(giv)-1, rw);
 	
 	s = u->socket;
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, giv, rw))) {
@@ -1922,7 +1918,7 @@ static void upload_http_sha1_add(
 		 */
 
 		if (flags & HTTP_CBF_SMALL_REPLY)
-			maxlen = MIN(maxlen, sizeof(tmp));
+			maxlen = MIN((guint) maxlen, sizeof(tmp));
 
 		rw += dmesh_alternate_location(
 			sf->sha1_digest, &buf[rw], maxlen, u->socket->ip,
@@ -2030,7 +2026,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	gint http_code;
 	const gchar *http_msg;
 	http_extra_desc_t hev[7];
-	gint hevcnt = 0;
+	guint hevcnt = 0;
 	gchar *sha1;
 	gboolean is_followup =
 		(u->status == GTA_UL_WAITING || u->status == GTA_UL_PFSP_WAITING);
@@ -2533,7 +2529,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	if (!head_only) {
-		if (is_followup && parq_upload_lookup_position(u) == -1) {
+		if (is_followup && parq_upload_lookup_position(u) == (guint) -1) {
 			/*
 			 * Allthough the request is an follow up request, the last time the
 			 * upload didn't get a parq slot. There is probably a good reason 
@@ -2577,7 +2573,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		if (!parq_upload_request(u, u->parq_opaque, running_uploads - 1)) {
 			gboolean parq_allows = FALSE;
 			
-			if (parq_upload_lookup_position(u) == -1) {
+			if (parq_upload_lookup_position(u) == (guint) -1) {
 				time_t expire = parq_banned_source_expire(u->ip);
 				gchar retry_after[80];
 				time_t delay = expire - time(NULL);

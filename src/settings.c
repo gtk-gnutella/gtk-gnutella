@@ -778,8 +778,8 @@ static gboolean max_ultra_hosts_cached_changed(property_t prop)
 
 static gboolean listen_port_changed(property_t prop)
 {
-	gboolean random = FALSE;
 	static guint32 old_listen_port = (guint32) -1;
+	gboolean random = FALSE;
     guint32 listen_port;
 	guint num_tried = 0;
 	guint32 tried[65536 / (8 * sizeof(guint32))]; /* Use bits as bool flags */
@@ -793,7 +793,7 @@ static gboolean listen_port_changed(property_t prop)
 	if (listen_port == old_listen_port)
 		return FALSE;
 
-	if (old_listen_port != -1)
+	if (old_listen_port != (guint32) -1)
 		inet_firewalled();			/* Assume we're firewalled on port change */
 
 	random = listen_port == 0;
@@ -1520,7 +1520,7 @@ static gboolean init_list[GNET_PROPERTY_NUM];
 
 static void settings_callbacks_init(void)
 {
-    gint n;
+    guint n;
 
     for (n = 0; n < GNET_PROPERTY_NUM; n ++)
         init_list[n] = FALSE;
@@ -1532,7 +1532,7 @@ static void settings_callbacks_init(void)
 
     for (n = 0; n < PROPERTY_MAP_SIZE; n ++) {
         property_t prop = property_map[n].prop;
-        guint32 idx   = prop-GNET_PROPERTY_MIN;
+        guint32 idx = prop - GNET_PROPERTY_MIN;
 
         if (!init_list[idx])
            init_list[idx] = TRUE;

@@ -203,8 +203,8 @@ const gchar *tok_strerror(tok_error_t errnum)
 static const struct tokkey *find_tokkey(time_t now)
 {
 	time_t adjusted = now - VERSION_ANCIENT_BAN;
-	gint i;
 	const struct tokkey *tk;
+	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
 		tk = &token_keys[i];
@@ -299,7 +299,7 @@ static gchar *tok_generate(time_t now, const gchar *version)
 	klen = strlen(tk->keys[0]);
 
 	for (i = 0; i < lvlsize; i++, tk++) {
-		gint j;
+		guint j;
 		guint32 crc = now32;
 		const guchar *c = (const guchar *) &crc;
 
@@ -423,7 +423,7 @@ tok_error_t tok_version_valid(
 	gint lvllen;
 	gint lvlsize;
 	gint klen;
-	gint i;
+	guint i;
 	gchar *c = (gchar *) &stamp32;
 
 	end = strchr(tokenb64, ';');		/* After 25/02/2003 */
@@ -490,7 +490,7 @@ tok_error_t tok_version_valid(
 	lvllen = len - toklen - 2;				/* Forget about "; " */
 	end += 2;								/* Skip "; " */
 
-	if (lvllen >= sizeof(lvldigest) || lvllen <= 0)
+	if (lvllen >= (gint) sizeof(lvldigest) || lvllen <= 0)
 		return TOK_BAD_LEVEL_LENGTH;
 
 	if (lvllen & 0x3)

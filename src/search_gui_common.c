@@ -746,7 +746,7 @@ void search_matched(search_t *sch, results_set_t *rs)
     GSList *l;
     gboolean send_pushes;
     gboolean is_firewalled;
-	gint i;
+	guint i;
 
     g_assert(sch != NULL);
     g_assert(rs != NULL);

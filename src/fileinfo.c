@@ -717,11 +717,11 @@ static gboolean file_info_get_trailer(
 
 
 	/*
-	 * Don't continue if the number of bytes read is smaller then
+	 * Don't continue if the number of bytes read is smaller than
 	 * the minimum number of bytes needed.
 	 *		-- JA 12/02/2004
 	 */
-	if (r < sizeof(tr))
+	if (r < (ssize_t) sizeof(tr))
 		return FALSE;
 		
 	tb->filesize	= ntohl(tr[0]);
@@ -3993,3 +3993,5 @@ gboolean file_info_restrict_range(
 
 	return FALSE;	/* Sorry, cannot satisfy this request */
 }
+
+/* vi: set ts=4: */

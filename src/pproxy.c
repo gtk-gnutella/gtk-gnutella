@@ -115,7 +115,6 @@ static void send_pproxy_error_v(
 
 	if (msg) {
 		gm_vsnprintf(reason, sizeof(reason), msg, ap);
-		reason[sizeof(reason) - 1] = '\0';		/* May be truncated */
 	} else
 		reason[0] = '\0';
 
@@ -133,7 +132,7 @@ static void send_pproxy_error_v(
 	 */
 
 	if (ext) {
-		slen = gm_snprintf(extra, sizeof(extra), "%s", ext);
+		slen = g_strlcpy(extra, ext, sizeof(extra));
 		
 		if (slen < sizeof(extra)) {
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
@@ -180,7 +179,6 @@ static void pproxy_remove_v(
 
 	if (reason) {
 		gm_vsnprintf(errbuf, sizeof(errbuf), reason, ap);
-		errbuf[sizeof(errbuf) - 1] = '\0';		/* May be truncated */
 		logreason = errbuf;
 	} else {
 		if (pp->error_sent) {

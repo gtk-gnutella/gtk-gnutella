@@ -238,7 +238,7 @@ gpointer zlib_uncompress(gpointer data, gint len, gint uncompressed_len)
 	ret = uncompress(out, &retlen, data, len);
 
 	if (ret == Z_OK) {
-		if (retlen != uncompressed_len)
+		if (retlen != (gulong) uncompressed_len)
 			g_warning("expected %d bytes of decompressed data, got %ld",
 				uncompressed_len, retlen);
 		return out;

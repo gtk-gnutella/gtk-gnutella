@@ -88,7 +88,7 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 			g_list_free(l);
 			l = NULL;
 		
-			if (DL_GUI_IS_HEADER == (guint32) d) /* is header */
+			if (DL_GUI_IS_HEADER == d) /* is header */
 				break;
 			
             if (!d) {
@@ -143,7 +143,7 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
 			g_list_free(l);
 			l = NULL;
 		
-			if (DL_GUI_IS_HEADER == (guint32) d) /* is header */
+			if (DL_GUI_IS_HEADER == d) /* is header */
 				return;
 
 			if (!d) {
@@ -200,7 +200,7 @@ void on_popup_downloads_abort_host_activate
 			g_list_free(l);
 			l = NULL;
 		
-			if (DL_GUI_IS_HEADER == (guint32) d) /* is header */
+			if (DL_GUI_IS_HEADER == d) /* is header */
 				return;
 			
 			if (!d) {
@@ -236,7 +236,6 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem *menuitem,
 	struct download *d, *drecord = NULL;
     gint removed = 0;
 	gchar *sha1 = NULL;
-
 	GtkTreeIter iter, parent;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
@@ -248,7 +247,7 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem *menuitem,
 
 		/* Need to re-get selection list every time we modify the model */
 		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
-	
+
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
@@ -265,7 +264,7 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem *menuitem,
 				continue;
 			}
 
-			if (DL_GUI_IS_HEADER == (guint32) d) {
+			if (DL_GUI_IS_HEADER == d) {
 				/* This is a header. All children have the same SHA1 though
 				 * so we just grab the next one.
 				 */
@@ -328,7 +327,7 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 			gtk_tree_model_get(model, &iter, c_dl_record, &d, (-1));
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
-			if (DL_GUI_IS_HEADER == (guint32) d)
+			if (DL_GUI_IS_HEADER == d)
 				return;
 
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
@@ -393,7 +392,7 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
 			g_list_free(l);
 			l = NULL;
 
-			if (DL_GUI_IS_HEADER == (guint32) d)
+			if (DL_GUI_IS_HEADER == d)
 				return;
 
 	        if (!d) {
@@ -455,7 +454,7 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
 			g_list_free(l);
 			l = NULL;
 			
-			if (DL_GUI_IS_HEADER == (guint32) d)
+			if (DL_GUI_IS_HEADER == d)
 				return;
 
 	        if (!d) {
@@ -572,7 +571,7 @@ void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
 			g_list_free(l);
 			l = NULL;
 
-			if (DL_GUI_IS_HEADER == (guint32) d)
+			if (DL_GUI_IS_HEADER == d)
 				return;
 			
             if (!d) {
@@ -626,7 +625,7 @@ void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
 			g_list_free(l);
 			l = NULL;
 		
-			if (DL_GUI_IS_HEADER == (guint32) d) /* is header */
+			if (DL_GUI_IS_HEADER == d) /* is header */
 				return;
 
 			if (!d) {
@@ -680,7 +679,7 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
 			g_list_free(l);
 			l = NULL;
 			
-			if (DL_GUI_IS_HEADER == (guint32) d)
+			if (DL_GUI_IS_HEADER == d)
 				return;
 
 			if (!d) {
@@ -736,7 +735,7 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
 			g_list_free(l);
 			l = NULL;
 
-			if (DL_GUI_IS_HEADER == (guint32) d)
+			if (DL_GUI_IS_HEADER == d)
 				return;
 
 			if (!d) {
@@ -803,7 +802,7 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
 			}
 			
 			
-			if (DL_GUI_IS_HEADER == (guint32) d) {
+			if (DL_GUI_IS_HEADER == d) {
 			/* This is a header. All children have the same SHA1 though
 			 * so we just grab the next one.
 			 */
@@ -942,7 +941,7 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
 			g_list_free(l);
 			l = NULL;
 
-			if (DL_GUI_IS_HEADER == (guint32) d)
+			if (DL_GUI_IS_HEADER == d)
 				return;
 			
 			if (!d) {
@@ -1000,7 +999,7 @@ void on_button_downloads_abort_clicked(GtkButton * button, gpointer user_data)
 			g_list_free(l);
 			l = NULL;
 
-			if (DL_GUI_IS_HEADER != (guint32)d) {
+			if (DL_GUI_IS_HEADER != d) {
 				if (!d) {
 					g_warning("on_button_downloads_abort_clicked(): "
 						"row has NULL data");
@@ -1126,12 +1125,15 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
 			if (!gtk_tree_model_get_iter_first(model, &iter))
 				return; /* tree is empty */
 			
-			for (total_nodes = 0; gtk_tree_model_iter_next(model, &iter); 
-					total_nodes++) {
+			for (
+				total_nodes = 0;
+				gtk_tree_model_iter_next(model, &iter); 
+				total_nodes++
+			) {
 				
-				gtk_tree_model_get(model, &iter, c_queue_record, &d, -1);
+				gtk_tree_model_get(model, &iter, c_queue_record, &d, (-1));
 
-				if (DL_GUI_IS_HEADER == (guint32) d)
+				if (DL_GUI_IS_HEADER == d)
 					continue;				
 				
 				if (!d) {
@@ -1243,29 +1245,32 @@ void on_treeview_downloads_select_row(GtkTreeView * tree_view,
 	model = gtk_tree_view_get_model(tree_view);
 	modelp = &model;
 	
-	if (NULL != model) {		
-		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
-
-		if (NULL != l) {
-			if (gtk_tree_model_get_iter(model, &iter, l->data)) {
-
-				gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
-				activate = NULL == l->next && DL_GUI_IS_HEADER != (guint32) d;
-	
-			    gtk_widget_set_sensitive(lookup_widget(popup_downloads, 
-					"popup_downloads_copy_url"), activate);
-    			gtk_widget_set_sensitive(lookup_widget(popup_downloads, 
-					"popup_downloads_connect"), activate);
-	
-				/*Takes care of other widgets*/
-				gui_update_download_abort_resume();
-			}
-		}
-	
-		g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
-		g_list_free(l);
+	if (!model) {
+		return;
 	}
+
+	selection = gtk_tree_view_get_selection(tree_view);
+	l = gtk_tree_selection_get_selected_rows(selection, modelp);
+	if (!l) {
+		return;
+	}
+
+	if (gtk_tree_model_get_iter(model, &iter, l->data)) {
+
+		gtk_tree_model_get(model, &iter, c_dl_record, &d, (-1));
+		activate = NULL == l->next && DL_GUI_IS_HEADER != d;
+	
+	    gtk_widget_set_sensitive(lookup_widget(popup_downloads, 
+			"popup_downloads_copy_url"), activate);
+    	gtk_widget_set_sensitive(lookup_widget(popup_downloads, 
+			"popup_downloads_connect"), activate);
+	
+		/*Takes care of other widgets*/
+		gui_update_download_abort_resume();
+	}
+	
+	g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+	g_list_free(l);
 }
 
 
@@ -1306,9 +1311,9 @@ void on_treeview_downloads_queue_select_row(GtkTreeView * tree_view,
 		if (NULL != l) {		
 			if (gtk_tree_model_get_iter(model, &iter, l->data)) {
 
-				gtk_tree_model_get(model, &iter, c_queue_record, &d, -1);				
+				gtk_tree_model_get(model, &iter, c_queue_record, &d, (-1));				
 
-				is_header = (DL_GUI_IS_HEADER == (guint32) d);
+				is_header = (DL_GUI_IS_HEADER == d);
 				only_one = (NULL == l->next);
 				something = TRUE;
 			}
