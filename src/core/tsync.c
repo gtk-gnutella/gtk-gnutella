@@ -281,7 +281,7 @@ tsync_got_reply(struct gnutella_node *n,
 		precision = ntp ? (NODE_IS_UDP(n) ? 0 : 1) : 2;
 		precision += (gint) (rtt * 0.5);
 
-		clock_update(time(NULL) + (gint) clock_offset, precision,  n->ip);
+		clock_update(got->tv_sec + (gint) clock_offset, precision,  n->ip);
 
 		g_hash_table_remove(tsync_by_time, &ts->sent);
 		tsync_free(ts);
