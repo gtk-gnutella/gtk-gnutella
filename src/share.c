@@ -413,12 +413,11 @@ static time_t release_date;
 /* 
  * We don't want to include the same file several times in a reply (for
  * example, once because it matches an URN query and once because the file name
- * matches). So we keep track of what has been added in this tree. The file
- * index is used as the key.
+ * matches). So we keep track of what has been added in this hash table.
+ * The file index is used as the key.
  */
 
 static GHashTable *index_of_found_files = NULL;
-static gint index_of_found_files_count = 0;
 static struct gnutella_node *issuing_node;
 
 /* 
@@ -441,7 +440,6 @@ static gboolean shared_file_already_in_found_set(const struct shared_file *sf)
 
 static void put_shared_file_into_found_set(const struct shared_file *sf)
 {
-	index_of_found_files_count++;
 	g_hash_table_insert(index_of_found_files, 
 				  GUINT_TO_POINTER(sf->file_index), 
 				  GUINT_TO_POINTER(!NULL));
@@ -460,13 +458,12 @@ static void found_reset(struct gnutella_node *n)
 	issuing_node = n;
 
 	/*
-	 * We only destroy and recreate a new tree if we inserted something
+	 * We only destroy and recreate a new hash table if we inserted something
 	 * in the previous search.
 	 */
 
-	if (index_of_found_files && index_of_found_files_count) {
+	if (index_of_found_files && g_hash_table_size(index_of_found_files) > 0) {
 		g_hash_table_destroy(index_of_found_files);
-		index_of_found_files_count = 0;
 		index_of_found_files = NULL;
 	}
 
@@ -881,6 +878,12 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 
 				if (stat(full, &file_stat) == -1) {
 					g_warning("can't stat %s: %s", full, g_strerror(errno));
+					break;
+				}
+
+				if (file_stat.st_size > (guint64) 0xffffffffU) {
+					g_warning("File is too big to be shared: \"%s\"",
+						full, g_strerror(errno));
 					break;
 				}
 
@@ -2355,6 +2358,8 @@ static void reinit_sha1_table(void)
  * Set the SHA1 hash of a given shared_file. Take care of updating the
  * sha1_to_share structure. This function is called from inside the bowels of
  * sha1_server.c when it knows what the hash associated to a file is.
+ *
+ * FIXME: sha1_server.c?? There's no such file. Maybe it's about huge.c?
  */
 
 void set_sha1(struct shared_file *f, const char *sha1)
@@ -2542,4 +2547,4 @@ guint64 shared_files_scanned(void)
 	return files_scanned;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
