@@ -44,6 +44,7 @@
 #include "ignore.h"
 #include "ioheader.h"
 #include "verify.h"
+#include "move.h"
 
 #include "settings.h"
 #include "nodes.h"
@@ -63,6 +64,10 @@ GSList *sl_removed = NULL;			/* Removed downloads only */
 GSList *sl_removed_servers = NULL;	/* Removed servers only */
 static gchar dl_tmp[4096];
 static gint queue_frozen = 0;
+
+static gchar *DL_OK_EXT = ".OK";		/* Extension to mark OK files */
+static gchar *DL_BAD_EXT = ".BAD";		/* For "bad" files (SHA1 mismatch) */
+static gchar *DL_UNKN_EXT = ".UNKN";	/* For unchecked files */
 
 static GHashTable *pushed_downloads = 0;
 
@@ -229,8 +234,20 @@ static gboolean has_blank_guid(struct download *d)
  *
  * Returns whether download was faked to reparent a complete orphaned file.
  */
-static gboolean is_faked_download(struct download *d) {
+static gboolean is_faked_download(struct download *d)
+{
 	return download_ip(d) == 0 && download_port(d) == 0 && has_blank_guid(d);
+}
+
+/*
+ * has_good_sha1
+ */
+static gboolean has_good_sha1(struct download *d)
+{
+	struct dl_file_info *fi = d->file_info;
+	extern gint sha1_eq(gconstpointer a, gconstpointer b);
+
+	return fi->sha1 == NULL || sha1_eq(fi->sha1, fi->cha1);
 }
 
 /* ----------------------------------------- */
@@ -334,6 +351,7 @@ void download_timer(time_t now)
 				gui_update_download(d, FALSE);
 			break;
 		case GTA_DL_VERIFYING:
+		case GTA_DL_MOVING:
 			gui_update_download(d, FALSE);
 			break;
 		case GTA_DL_COMPLETED:
@@ -341,6 +359,8 @@ void download_timer(time_t now)
 		case GTA_DL_ERROR:
 		case GTA_DL_VERIFY_WAIT:
 		case GTA_DL_VERIFIED:
+		case GTA_DL_MOVE_WAIT:
+		case GTA_DL_DONE:
 		case GTA_DL_REMOVED:
 			break;
 		case GTA_DL_QUEUED:
@@ -629,6 +649,7 @@ void download_info_change_all(
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
+		gboolean is_running;
 
 		if (d->status == GTA_DL_REMOVED)
 			continue;
@@ -636,8 +657,10 @@ void download_info_change_all(
 		if (d->file_info != old_fi)
 			continue;
 
-		if (DOWNLOAD_IS_RUNNING(d))
-			download_queue(d, "Requeued by file info change");
+		is_running = DOWNLOAD_IS_RUNNING(d);
+
+		if (is_running)
+			download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
 
 		switch (d->status) {
 		case GTA_DL_COMPLETED:
@@ -646,6 +669,9 @@ void download_info_change_all(
 		case GTA_DL_VERIFY_WAIT:
 		case GTA_DL_VERIFYING:
 		case GTA_DL_VERIFIED:
+		case GTA_DL_MOVE_WAIT:
+		case GTA_DL_MOVING:
+		case GTA_DL_DONE:
 			break;
 		default:
 			g_assert(old_fi->lifecount > 0);
@@ -662,6 +688,9 @@ void download_info_change_all(
 		d->flags &= ~DL_F_SUSPENDED;
 		if (new_fi->flags & FI_F_SUSPEND)
 			d->flags |= DL_F_SUSPENDED;
+
+		if (is_running)
+			download_queue(d, "Requeued by file info change");
 	}
 }
 
@@ -719,8 +748,11 @@ static void queue_suspend_downloads_with_file(
 		case GTA_DL_COMPLETED:
 		case GTA_DL_VERIFY_WAIT:
 		case GTA_DL_VERIFYING:
+		case GTA_DL_VERIFIED:
+		case GTA_DL_MOVE_WAIT:
+		case GTA_DL_MOVING:
 			continue;
-		case GTA_DL_VERIFIED:		/* We want to be able to "un-suspend" */
+		case GTA_DL_DONE:		/* We want to be able to "un-suspend" */
 			break;
 		default:
 			break;
@@ -764,6 +796,9 @@ static void queue_remove_downloads_with_file(
 		case GTA_DL_VERIFY_WAIT:
 		case GTA_DL_VERIFYING:
 		case GTA_DL_VERIFIED:
+		case GTA_DL_MOVE_WAIT:
+		case GTA_DL_MOVING:
+		case GTA_DL_DONE:
 			continue;
 		default:
 			break;
@@ -1091,8 +1126,8 @@ void download_clear_stopped(gboolean all, gboolean now)
 	time_t current_time = 0;
 
 	/*
-	 * If all == TRUE: remove VERIFIED | ERROR | ABORTED,
-	 * else remove only VERIFIED.
+	 * If all == TRUE: remove DONE | COMPLETED | ERROR | ABORTED,
+	 * else remove only DONE | COMPLETED (partial chunk done).
 	 *
 	 * If now == TRUE: remove immediately, else remove only downloads
 	 * idle since at least 3 seconds
@@ -1108,16 +1143,20 @@ void download_clear_stopped(gboolean all, gboolean now)
 		if (d->status == GTA_DL_REMOVED)
 			continue;
 
-		if (!DOWNLOAD_IS_STOPPED(d))
+		switch (d->status) {
+		case GTA_DL_ERROR:
+		case GTA_DL_ABORTED:
+		case GTA_DL_COMPLETED:
+		case GTA_DL_DONE:
+			break;
+		default:
 			continue;
-
-		if (DOWNLOAD_IS_VERIFYING(d) && d->status != GTA_DL_VERIFIED)
-			continue;
+		}
 
 		if (all) {
 			if (now || (current_time - d->last_update) > 3)
 				download_free(d);
-		} else if (d->status == GTA_DL_VERIFIED) {
+		} else if (d->status == GTA_DL_DONE || d->status == GTA_DL_COMPLETED) {
 			if (now || (current_time - d->last_update) > 3)
 				download_free(d);
 		}
@@ -2832,6 +2871,9 @@ void download_resume(struct download *d)
 	case GTA_DL_VERIFY_WAIT:
 	case GTA_DL_VERIFYING:
 	case GTA_DL_VERIFIED:
+	case GTA_DL_MOVE_WAIT:
+	case GTA_DL_MOVING:
+	case GTA_DL_DONE:
 		return;
 	}
 
@@ -2872,146 +2914,6 @@ void download_requeue(struct download *d)
 /*
  * IO functions
  */
-
-/* Based on patch from Myers W. Carpenter <myers@fil.org> */
-
-void download_move_to_completed_dir(struct download *d)
-{
-	/* Move a complete file to move_file_path */
-
-	gchar dl_src[4096];
-	gchar dl_dest[4096];
-	gint return_tmp, return_tmp2;
-	struct stat buf;
-
-	file_info_strip_binary(d->file_info);
-	
-	if (0 == strcmp(d->file_info->path, move_file_path))
-		return;			/* Already in "completed dir" */
-
-	g_snprintf(dl_src, sizeof(dl_src), "%s/%s",
-		d->file_info->path, d->file_info->file_name);
-	g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s",
-		move_file_path, d->file_info->file_name);
-
-	dl_src[sizeof(dl_src)-1] = '\0';
-	dl_dest[sizeof(dl_dest)-1] = '\0';
-
-	/*
-	 * If, by extraordinary, there is already a file in the "completed dir"
-	 * with the same name, don't overwrite the existing file.
-	 *
-	 * NB: we assume either there is only one gnutella servent running, or if
-	 * several ones are running, that they are configured to use different
-	 * download and completed dirs.
-	 *
-	 *		--RAM, 03/11/2001
-	 */
-
-	if (-1 != stat(dl_dest, &buf)) {
-		gchar dl_tmp[4096];
-		int destlen = strlen(dl_dest);
-		int i;
-
-		/*
-		 * There must be enough room for us to append the ".xx" extensions.
-		 * That's 3 chars, plus the trailing NUL.
-		 */
-
-		if (destlen >= sizeof(dl_dest) - 4) {
-			g_warning("Found '%s' in completed dir, and path already too long",
-				d->file_info->file_name);
-			return;
-		}
-
-		strncpy(dl_tmp, dl_dest, destlen);
-
-		for (i = 1; i < 100; i++) {
-			gchar ext[4];
-
-			g_snprintf(ext, 4, ".%02d", i);
-			dl_tmp[destlen] = '\0';				/* Ignore prior attempt */
-			strncat(dl_tmp+destlen, ext, 3);	/* Append .01, .02, ...*/
-			if (-1 == stat(dl_tmp, &buf))
-				break;
-		}
-
-		if (i == 100) {
-			g_warning("Found '%s' in completed dir, "
-				"and was unable to find another unique name",
-				d->file_info->file_name);
-			return;
-		}
-
-		strncat(dl_dest+destlen, dl_tmp+destlen, 3);
-
-		g_warning("Moving completed file as '%s'", dl_dest);
-	}
-
-	/* First try and link it to the new locatation */
-
-	return_tmp = rename(dl_src, dl_dest);
-
-	if (return_tmp == -1 && (errno == EXDEV || errno == EPERM)) {
-		/* link failed becase either the two paths aren't on the */
-		/* same filesystem or the filesystem doesn't support hard */
-		/* links, so we have to do a copy. */
-
-		gint tmp_src, tmp_dest;
-		gboolean ok = FALSE;
-
-		if ((tmp_src = open(dl_src, O_RDONLY)) < 0) {
-			g_warning("Unable to open() file '%s' (%s) !", dl_src,
-					  g_strerror(errno));
-			return;
-		}
-
-		if ((tmp_dest =
-			 open(dl_dest, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0) {
-			close(tmp_src);
-			g_warning("Unable to create file '%s' (%s) !", dl_src,
-					  g_strerror(errno));
-			return;
-		}
-
-		for (;;) {
-			return_tmp = read(tmp_src, dl_tmp, sizeof(dl_tmp));
-
-			if (!return_tmp) {
-				ok = TRUE;
-				break;
-			}
-
-			if (return_tmp < 0) {
-				g_warning("download_move_to_completed_dir(): "
-					"error reading while moving file to save directory (%s)",
-					 g_strerror(errno));
-				break;
-			}
-
-			return_tmp2 = write(tmp_dest, dl_tmp, return_tmp);
-
-			if (return_tmp2 < 0) {
-				g_warning("download_move_to_completed_dir(): "
-					"error writing while moving file to save directory (%s)",
-					 g_strerror(errno));
-				break;
-			}
-
-			if (return_tmp < sizeof(dl_tmp)) {
-				ok = TRUE;
-				break;
-			}
-		}
-
-		close(tmp_dest);
-		close(tmp_src);
-		if (ok)
-			unlink(dl_src);
-	}
-
-	return;
-}
 
 /*
  * send_push_request
@@ -4941,7 +4843,7 @@ static void download_store(void)
 		struct download *d = (struct download *) l->data;
 		gchar *escaped;
 
-		if (d->status == GTA_DL_VERIFIED || d->status == GTA_DL_REMOVED)
+		if (d->status == GTA_DL_DONE || d->status == GTA_DL_REMOVED)
 			continue;
 		if (d->always_push)
 			continue;
@@ -5177,8 +5079,229 @@ out:
 	download_store();			/* Persist what we have retrieved */
 }
 
+/*
+ * download_moved_with_bad_sha1
+ *
+ * Post renaming/moving routine called when download had a bad SHA1.
+ */
+static void download_moved_with_bad_sha1(struct download *d)
+{
+	g_assert(d);
+	g_assert(d->status == GTA_DL_DONE);
+	g_assert(!has_good_sha1(d));
+
+	queue_suspend_downloads_with_file(d->file_info, FALSE);
+
+	/*
+	 * If it was a faked download, we cannot resume.
+	 */
+
+	if (is_faked_download(d)) {
+		g_warning("SHA1 mismatch for \"%s\", and cannot restart download",
+			download_outname(d));
+	} else {
+		g_warning("SHA1 mismatch for \"%s\", will be restarting download",
+			download_outname(d));
+
+		d->file_info->lifecount++;				/* Reactivate download */
+		file_info_reset(d->file_info);
+		download_queue(d, "SHA1 mismatch detected");
+	}
+}
+
 /***
- *** SHA1 verification routines
+ *** Download moving routines.
+ ***/
+
+/*
+ * download_move
+ *
+ * Main entry point to move the completed file `d' to target directory `dir'.
+ *
+ * In case the target directory is the same as the source, the file is
+ * simply renamed with the extension `ext' appended to it.
+ */
+static void download_move(struct download *d, gchar *dir, gchar *ext)
+{
+	struct dl_file_info *fi;
+	gchar *dest_name;
+	gchar src_name[2048];
+	gboolean common_dir;
+
+	g_assert(d);
+	g_assert(FILE_INFO_COMPLETE(d->file_info));
+	g_assert(DOWNLOAD_IS_STOPPED(d));
+
+	d->status = GTA_DL_MOVING;
+	fi = d->file_info;
+
+	g_snprintf(src_name, sizeof(src_name), "%s/%s", fi->path, fi->file_name);
+	src_name[sizeof(src_name)-1] = '\0';
+
+	/*
+	 * If the target directory is the asme as the source directory. we'll
+	 * use the supplied extension and simply rename the file.
+	 */
+
+	if (0 == strcmp(dir, fi->path)) {
+		dest_name = unique_filename(dir, fi->file_name, ext);
+		if (-1 == rename(src_name, dest_name))
+			goto error;
+		goto renamed;
+	}
+
+	/*
+	 * Try to rename() the file, in case both the source and the target
+	 * directory are on the same filesystem.  We usually ignore `ext' at
+	 * this point since we know the target directory is distinct from the
+	 * source, unless the good/bad directories are identical.
+	 */
+
+	common_dir = (0 == strcmp(move_file_path, bad_file_path));
+
+	dest_name = unique_filename(dir, fi->file_name, common_dir ? ext : "");
+
+	if (-1 != rename(src_name, dest_name))
+		goto renamed;
+
+	/*
+	 * The only error we allow is EXDEV, meaning the source and the
+	 * target are not on the same file system.
+	 */
+
+	if (errno != EXDEV)
+		goto error;
+
+	/*
+	 * Have to move the file asynchronously.
+	 */
+
+	d->status = GTA_DL_MOVE_WAIT;
+	move_queue(d, dir, common_dir ? ext : "");
+
+	if (!DOWNLOAD_IS_VISIBLE(d))
+		download_gui_add(d);
+
+	gui_update_download(d, TRUE);
+
+	return;
+
+error:
+	g_warning("cannot rename %s as %s: %s",
+		src_name, dest_name, g_strerror(errno));
+	download_move_error(d);
+	return;
+
+renamed:
+	file_info_strip_binary(fi);
+	download_move_done(d, 0);
+	return;
+}
+
+/*
+ * download_move_start
+ *
+ * Called when the moving daemon task starts processing a download.
+ */
+void download_move_start(struct download *d)
+{
+	g_assert(d->status == GTA_DL_MOVE_WAIT);
+
+	d->status = GTA_DL_MOVING;
+	d->file_info->copied = 0;
+
+	gui_update_download(d, TRUE);
+}
+
+/*
+ * download_move_progress
+ *
+ * Called to register the current moving progress.
+ */
+void download_move_progress(struct download *d, guint32 copied)
+{
+	g_assert(d->status == GTA_DL_MOVING);
+
+	d->file_info->copied = copied;
+}
+
+/*
+ * download_move_done
+ *
+ * Called when file has been moved/renamed with its fileinfo trailer stripped.
+ */
+void download_move_done(struct download *d, time_t elapsed)
+{
+	gchar src_name[2048];
+	struct dl_file_info *fi = d->file_info;
+
+	g_assert(d->status == GTA_DL_MOVING);
+
+	d->status = GTA_DL_DONE;
+	fi->copy_elapsed = elapsed;
+	gui_update_download(d, TRUE);
+
+	/*
+	 * We don't need to unlink the source file if `elpased' is 0: it means
+	 * we actually renamed the file inplace.
+	 */
+
+	if (elapsed) {
+		g_snprintf(src_name, sizeof(src_name),
+			"%s/%s", fi->path, fi->file_name);
+		src_name[sizeof(src_name)-1] = '\0';
+
+		if (-1 == unlink(src_name))
+			g_warning("could not unlink completed file \"%s\": %s",
+				src_name, g_strerror(errno));
+	}
+
+	if (!has_good_sha1(d))
+		download_moved_with_bad_sha1(d);
+}
+
+/*
+ * download_move_error
+ *
+ * Called when we cannot move the file (I/O error, etc...).
+ */
+void download_move_error(struct download *d)
+{
+	struct dl_file_info *fi = d->file_info;
+	gchar *ext;
+	gchar src_name[2048];
+	gchar *dest_name;
+	extern gint sha1_eq(gconstpointer a, gconstpointer b);
+
+	g_assert(d->status == GTA_DL_MOVING);
+
+	/*
+	 * If download is "good", rename it inplace as DL_OK_EXT, otherwise
+	 * rename it as DL_BAD_EXT.
+	 */
+
+	g_snprintf(src_name, sizeof(src_name), "%s/%s", fi->path, fi->file_name);
+	src_name[sizeof(src_name)-1] = '\0';
+
+	ext = has_good_sha1(d) ? DL_OK_EXT : DL_BAD_EXT;
+	dest_name = unique_filename(fi->path, fi->file_name, ext);
+
+	file_info_strip_binary(fi);
+
+	if (-1 == rename(src_name, dest_name)) {
+		g_warning("could not rename \"%s\" as \"%s\": %s",
+			src_name, dest_name, g_strerror(errno));
+		d->status = GTA_DL_DONE;
+		return;
+	}
+
+	g_warning("completed \"%s\" left at \"%s\"", fi->file_name, dest_name);
+
+	download_move_done(d, 0);
+}
+
+/***
+ *** SHA1 verification routines.
  ***/
 
 /*
@@ -5186,7 +5309,7 @@ out:
  *
  * Main entry point for verifying the SHA1 of a completed download.
  */
-static void download_verify_sha1(struct download * d)
+static void download_verify_sha1(struct download *d)
 {
 	g_assert(d);
 	g_assert(FILE_INFO_COMPLETE(d->file_info));
@@ -5196,10 +5319,10 @@ static void download_verify_sha1(struct download * d)
 
 	/*
 	 * Even if download was aborted or in error, we have a complete file
-	 * anyway, so start verifying its SHA1 and mark it complete.
+	 * anyway, so start verifying its SHA1.
 	 */
 
-	d->status = GTA_DL_COMPLETED;
+	d->status = GTA_DL_VERIFY_WAIT;
 
 	queue_suspend_downloads_with_file(d->file_info, TRUE);
 	verify_queue(d);
@@ -5259,29 +5382,13 @@ void download_verify_done(struct download *d, guchar *digest, time_t elapsed)
 
 	ignore_add_sha1(download_outname(d), fi->cha1);
 
-	if (fi->sha1 == NULL || sha1_eq(fi->sha1, fi->cha1)) {
+	if (has_good_sha1(d)) {
 		ignore_add_filesize(d->file_name, d->file_info->size);
 		queue_remove_downloads_with_file(d->file_info, d);
-		download_move_to_completed_dir(d);
+		download_move(d, move_file_path, DL_OK_EXT);
 	} else {
-		download_move_to_completed_dir(d);	// XXX asynchronous
-		queue_suspend_downloads_with_file(d->file_info, FALSE);	// XXX when moved
-
-		/*
-		 * If it was a faked download, we cannot resume.
-		 */
-
-		if (is_faked_download(d)) {
-			g_warning("SHA1 mismatch for \"%s\", and cannot restart download",
-				download_outname(d));
-		} else {
-			g_warning("SHA1 mismatch for \"%s\", will be restarting download",
-				download_outname(d));
-
-			fi->lifecount++;					/* Reactivate download */
-			file_info_reset(d->file_info);
-			download_queue(d, "SHA1 mismatch detected");
-		}
+		download_move(d, bad_file_path, DL_BAD_EXT);
+		/* Will go to download_moved_with_bad_sha1() upon completion */
 	}
 }
 
@@ -5292,13 +5399,17 @@ void download_verify_done(struct download *d, guchar *digest, time_t elapsed)
  */
 void download_verify_error(struct download *d)
 {
+	struct dl_file_info *fi = d->file_info;
+
 	g_assert(d->status == GTA_DL_VERIFYING);
+
+	g_warning("error while verifying SHA1 for \"%s\"", fi->file_name);
 
 	d->status = GTA_DL_VERIFIED;
 
-	ignore_add_filesize(d->file_name, d->file_info->size);
-	queue_remove_downloads_with_file(d->file_info, d);
-	download_move_to_completed_dir(d);
+	ignore_add_filesize(d->file_name, fi->size);
+	queue_remove_downloads_with_file(fi, d);
+	download_move(d, move_file_path, DL_UNKN_EXT);
 	gui_update_download(d, TRUE);
 }
 
@@ -5364,7 +5475,10 @@ static void download_resume_bg_tasks(void)
 			download_verify_sha1(d);
 		else {
 			d->status = GTA_DL_VERIFIED;		/* Does not mean good SHA1 */
-			download_move_to_completed_dir(d);
+			if (has_good_sha1(d))
+				download_move(d, move_file_path, DL_OK_EXT);
+			else
+				download_move(d, bad_file_path, DL_BAD_EXT);
 			to_remove = g_slist_prepend(to_remove, d->file_info);
 		}
 

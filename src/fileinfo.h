@@ -62,13 +62,23 @@ struct dl_file_info {
 	gboolean dirty;			/* Does it need saving? */
 	gboolean hashed;		/* In hash tables? */
 
-	time_t cha1_elapsed;	/* Time spent to compute the SHA1 */
-	guint32 cha1_hashed;	/* Amount of bytes hashed so far */
+	/*
+	 * The following group is used to compute the aggregated reception rate.
+	 */
 
 	gint32 recvcount;		/* Amount of "receiving" downloads referencing us */
 	guint32 recv_last_rate;	/* Last amount of bytes/sec received */
 	guint32 recv_amount;	/* Amount of bytes received this period */
 	time_t recv_last_time;	/* When did we last compute recv_last_rate? */
+
+	/*
+	 * This group of fields is used by the background SHA1 and moving daemons.
+	 */
+
+	time_t cha1_elapsed;	/* Time spent to compute the SHA1 */
+	guint32 cha1_hashed;	/* Amount of bytes hashed so far */
+	time_t copy_elapsed;	/* Time spent to copy the file */
+	guint32 copied;			/* Amount of bytes copied so far */
 };
 
 /*

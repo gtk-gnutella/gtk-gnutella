@@ -50,6 +50,7 @@
 #include "http.h"
 #include "gwcache.h"
 #include "verify.h"
+#include "move.h"
 
 #include "main_gui.h"
 #include "settings.h"
@@ -134,6 +135,7 @@ void gtk_gnutella_exit(gint n)
 	version_close();
 	ignore_close();
 	verify_close();
+	move_close();
 	bg_close();
 	atom_str_free(start_rfc822_date);
 	atoms_close();
@@ -310,6 +312,7 @@ gint main(gint argc, gchar ** argv)
 	guid_init();
 	gwc_init();
 	verify_init();
+	move_init();
 	ignore_init();
 	file_info_init();
 	matching_init();

@@ -44,7 +44,7 @@ void gui_update_download_clear(void)
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ERROR:
 		case GTA_DL_ABORTED:
-		case GTA_DL_VERIFIED:
+		case GTA_DL_DONE:
 			clear = TRUE;
 			break;
 		default:
@@ -139,6 +139,9 @@ void gui_update_download(struct download *d, gboolean force)
 		break;
 
 	case GTA_DL_VERIFIED:
+	case GTA_DL_MOVE_WAIT:
+	case GTA_DL_MOVING:
+	case GTA_DL_DONE:
 		g_assert(FILE_INFO_COMPLETE(fi));
 		g_assert(fi->cha1_hashed <= fi->size);
 		{
@@ -156,6 +159,27 @@ void gui_update_download(struct download *d, gboolean force)
 					" (%.1f k/s) %s",
 					(gfloat) (fi->cha1_hashed >> 10) / (elapsed ? elapsed : 1),
 					short_time(fi->cha1_elapsed));
+			}
+
+			switch (d->status) {
+			case GTA_DL_MOVE_WAIT:
+				g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					"; Waiting for moving...");
+				break;
+			case GTA_DL_MOVING:
+				g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					"; Moving (%.02f%%)", fi->copied * 100.0 / fi->size);
+				break;
+			case GTA_DL_DONE:
+				if (fi->copy_elapsed) {
+					g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+						"; Moved (%.1f k/s) %s",
+						(gfloat) (fi->copied >> 10) / fi->copy_elapsed,
+						short_time(fi->copy_elapsed));
+				}
+				break;
+			default:
+				break;
 			}
 		}
 		a = tmpstr;

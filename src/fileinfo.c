@@ -1411,9 +1411,14 @@ static void file_info_reparent_all(
 
 	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", from->path, from->file_name);
 
-	if (-1 == unlink(fi_tmp))
-		g_warning("cannot unlink \"%s\": %s", fi_tmp, g_strerror(errno));
-	else
+	if (-1 == unlink(fi_tmp)) {
+		/*
+		 * File may not exist yet if we have not started downloading anything.
+		 */
+
+		if (from->done)
+			g_warning("cannot unlink \"%s\": %s", fi_tmp, g_strerror(errno));
+	} else
 		g_warning("reparenting unlinked \"%s\" (%u/%u bytes done, %s SHA1%s%s)",
 			from->file_name, from->done, from->size,
 			from->sha1 ? "with" : "no",
@@ -2391,7 +2396,8 @@ again:
  * Go through all chunks that belong to the download,
  * and unmark them as busy.
  *
- * If `lifecount' is TRUE, the download is still counted as being "alive".
+ * If `lifecount' is TRUE, the download is still counted as being "alive",
+ * and this is only used for assertions.
  */
 void file_info_clear_download(struct download *d, gboolean lifecount)
 {

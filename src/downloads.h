@@ -182,11 +182,17 @@ struct download {
 	|| (d)->status == GTA_DL_VERIFYING	 \
 	|| (d)->status == GTA_DL_VERIFIED	 )
 
+#define DOWNLOAD_IS_MOVING(d)		 	\
+	(  (d)->status == GTA_DL_MOVE_WAIT	\
+	|| (d)->status == GTA_DL_MOVING		)
+
 #define DOWNLOAD_IS_STOPPED(d)			\
 	(  (d)->status == GTA_DL_ABORTED	\
 	|| (d)->status == GTA_DL_ERROR		\
 	|| (d)->status == GTA_DL_COMPLETED  \
-	|| DOWNLOAD_IS_VERIFYING(d)         )
+	|| DOWNLOAD_IS_VERIFYING(d)         \
+	|| DOWNLOAD_IS_MOVING(d)            \
+	|| (d)->status == GTA_DL_DONE       )
 
 #define DOWNLOAD_IS_ACTIVE(d)			\
 	((d)->status == GTA_DL_RECEIVING)
@@ -257,6 +263,11 @@ void download_verify_start(struct download *d);
 void download_verify_progress(struct download *d, guint32 hashed);
 void download_verify_done(struct download *d, guchar *digest, time_t elapsed);
 void download_verify_error(struct download *d);
+
+void download_move_start(struct download *d);
+void download_move_progress(struct download *d, guint32 copied);
+void download_move_done(struct download *d, time_t elapsed);
+void download_move_error(struct download *d);
 
 #endif /* __downloads_h__ */
 
