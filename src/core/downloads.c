@@ -2305,10 +2305,11 @@ download_retry_no_urires(struct download *d, gint delay, gint ack_code)
 
 		d->server->attrs |= DLS_A_NO_URIRES;
 
-		if (dbg > 3)
-			printf("Server %s (%s) does not support /uri-res/N2R?\n",
+		if (1) {
+			g_message("Server %s (%s) does not support /uri-res/N2R?\n",
 				ip_port_to_gchar(download_ip(d), download_port(d)),
 				download_vendor_str(d));
+		}
 
 		download_passively_queued(d, FALSE);
 
@@ -6631,9 +6632,7 @@ picked:
 	 */
 
 	if (d->sha1) {
-		if (d->record_index == URN_INDEX)
-			n2r = TRUE;
-		else if (!d->push && !(d->server->attrs & DLS_A_NO_URIRES)) {
+		if (!(d->server->attrs & DLS_A_NO_URIRES)) {
 			d->flags |= DL_F_URIRES;
 			n2r = TRUE;
 		}
@@ -6665,15 +6664,21 @@ picked:
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET %s HTTP/1.1\r\n",
 			d->uri);
-	} else
-	if (n2r)
+	} else if (n2r) {
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET /uri-res/N2R?urn:sha1:%s HTTP/1.1\r\n",
 			sha1_base32(d->sha1));
-	else
+	} else {
+		gchar *escaped = url_escape(d->file_name);
+
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET /get/%u/%s HTTP/1.1\r\n",
-			d->record_index, d->file_name);
+			d->record_index, escaped);
+
+		if (escaped != d->file_name) {
+			G_FREE_NULL(escaped);
+		}
+	}
 
 	/*
 	 * If URL is too large, abort.
@@ -6880,12 +6885,11 @@ picked:
 			download_write_request, (gpointer) d);
 
 		return;
-	} else if (dbg > 2) {
-		printf("----Sent Request (%s) to %s (%d bytes):\n%.*s----\n",
+	} else {
+		g_message("----Sent Request (%s) to %s (%d bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			(int) rw, (int) rw, dl_tmp);
-		fflush(stdout);
 	}
 
 	download_request_sent(d);
