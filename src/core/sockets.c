@@ -1076,9 +1076,9 @@ destroy:
 static void
 socket_read(gpointer data, gint source, inputevt_cond_t cond)
 {
-	gint r;
+	ssize_t r;
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
-	guint count;
+	size_t count;
 	gint parsed;
 	gchar *first;
 	time_t banlimit;
@@ -1141,14 +1141,18 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	}
 #endif /* USE_TLS */
 	
-	count = sizeof(s->buffer) - s->pos - 1;		/* -1 to allow trailing NUL */
-	if (count <= 0) {
+	g_assert(sizeof(s->buffer) >= s->pos);
+	count = sizeof(s->buffer) - s->pos;
+
+	/* 1 to allow trailing NUL */
+	if (count < 1) {
 		g_warning("socket_read(): incoming buffer full, disconnecting from %s",
 			 ip_to_gchar(s->ip));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
 		socket_destroy(s, "Incoming buffer full");
 		return;
 	}
+	count--; /* Account for trailing NUL */
 
 	/*
 	 * Don't read too much data.  We're solely interested in getting
@@ -1163,7 +1167,7 @@ socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	if (r == 0) {
 		socket_destroy(s, "Got EOF");
 		return;
-	} else if (r < 0) {
+	} else if ((ssize_t) -1 == r) {
 		if (errno != EAGAIN)
 			socket_destroy(s, "Read error");
 		return;
