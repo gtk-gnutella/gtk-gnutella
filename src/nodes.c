@@ -1575,8 +1575,10 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 	ack_ok = analyse_status(n, NULL);
 
-	if (!ack_ok)
+	if (!ack_ok) {
+		extract_header_pongs(head, n);
 		return;			/* s->getline will have been freed by node removal */
+	}
 
 	/*
 	 * Get rid of the acknowledgment status line.
@@ -1788,6 +1790,8 @@ static void node_process_handshake_header(
 			gint days, hours, mins;
 
 			if (3 == sscanf(field, "%dD %dH %dM", &days, &hours, &mins))
+				n->up_date = now - 86400 * days - 3600 * hours - 60 * mins;
+			else if (3 == sscanf(field, "%dDD %dHH %dMM", &days, &hours, &mins))
 				n->up_date = now - 86400 * days - 3600 * hours - 60 * mins;
 			else
 				g_warning("cannot parse Uptime \"%s\" from %s (%s)",
