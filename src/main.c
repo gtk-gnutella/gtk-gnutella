@@ -29,12 +29,6 @@
 #include <signal.h>
 #include <ctype.h>
 
-#ifdef ENABLE_NLS
-#include <libintl.h>
-#include <langinfo.h>
-#include <locale.h>
-#endif
-
 #include "search.h"
 #include "share.h"
 #include "sockets.h"
@@ -89,12 +83,6 @@ cqueue_t *callout_queue;
 
 static guint main_slow_update = 0;
 static gboolean exiting = FALSE;
-
-#ifdef ENABLE_NLS
-const gchar *codeset;
-#endif
-
-/* */
 
 /*
  * gtk_gnutella_exit
@@ -185,7 +173,6 @@ void gtk_gnutella_exit(gint n)
 
 	if (dbg)
 		printf("gtk-gnutella shut down cleanly.\n\n");
-
 	gtk_exit(n);
 }
 
@@ -390,31 +377,6 @@ static void log_init(void)
 	g_log_set_handler(G_LOG_DOMAIN,
 		G_LOG_LEVEL_ERROR | G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL,
 		&log_handler, NULL);
-}
-
-static void locale_init(void)
-{
-#ifdef ENABLE_NLS
-	setlocale(LC_ALL, "");
-
-#ifdef USE_GTK2
-	codeset = "UTF-8";
-#else
-	codeset = nl_langinfo(CODESET);
-	if (codeset == NULL) 
-		codeset = "ISO-8859-1";		/* Default locale codeset */
-#endif /* USE_GTK2 */
-
-	bindtextdomain(PACKAGE, LOCALEDIR);
-
-/* FIXME: bind_textdomain_codeset() is only necessary for GNU gettext.
-#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
-*/
-	bind_textdomain_codeset(PACKAGE, codeset);
-/* #endif */
-
-	textdomain(PACKAGE);
-#endif
 }
 
 gint main(gint argc, gchar **argv, gchar **env)

@@ -30,18 +30,34 @@
 
 #include "common.h"
 
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#include <langinfo.h>
+#include <locale.h>
+#endif
+
 #include <string.h>
 
 #include "utf8.h"
 #include "misc.h"
 
+RCSID("$Id$");
+
 #include "gnutella.h" /* dbg */
 
 #ifndef USE_GTK2
 #include <iconv.h>
-#endif
 
-RCSID("$Id$");
+#define GIConv iconv_t
+#define g_iconv_open(t, f) iconv_open(t, f) 
+#define g_iconv(c, i, n, o, m) iconv(c, i, n, o, m)
+#define g_get_charset(p) do { *(p) = codeset; } while (0)
+
+#endif /* !USE_GTK2 */
+
+static GIConv cd_locale_to_utf8	= (GIConv) -1;
+static GIConv cd_utf8_to_locale	= (GIConv) -1;
+static GIConv cd_latin_to_utf8	= (GIConv) -1;
 
 /*
  * How wide is an UTF-8 encoded char, depending on its first byte?
@@ -400,13 +416,88 @@ gint utf8_to_iso8859(gchar *s, gint len, gboolean space)
 	return xw - s;
 }
 
-#ifndef USE_GTK2
-#define GIConv iconv_t
-#define g_iconv_open iconv_open
-#define g_iconv iconv
+void locale_init(void)
+{
+	const gchar *charset;
+	const gchar *codeset;
 
-extern const gchar* codeset;
-#endif
+#ifdef ENABLE_NLS
+	setlocale(LC_ALL, "");
+
+#ifdef USE_GTK2
+	codeset = "UTF-8";
+#else
+	codeset = nl_langinfo(CODESET);
+	if (codeset == NULL) 
+		codeset = "ISO-8859-1";		/* Default locale codeset */
+#endif /* USE_GTK2 */
+
+	bindtextdomain(PACKAGE, LOCALEDIR);
+
+/* FIXME: bind_textdomain_codeset() is only necessary for GNU gettext.
+#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
+*/
+	bind_textdomain_codeset(PACKAGE, codeset);
+/* #endif */
+
+	textdomain(PACKAGE);
+#endif /* NLS */
+
+	g_get_charset(&charset);
+
+	if ((GIConv)-1 == (cd_latin_to_utf8 = g_iconv_open("UTF-8", "ISO-8859-1")))
+		g_warning("g_iconv_open(\"UTF-8\", \"ISO-8859-1\") failed.");
+	if (strcmp("ISO-8859-1", charset) > 0) {
+		if ((GIConv)-1 == (cd_locale_to_utf8 = g_iconv_open("UTF-8", charset)))
+			g_warning("g_iconv_open(\"UTF-8\", \"%s\") failed.", charset);
+	} else {
+		cd_locale_to_utf8 = cd_latin_to_utf8;
+	}
+	if ((GIConv)-1 == (cd_utf8_to_locale = g_iconv_open(charset, "UTF-8")))
+		g_warning("g_iconv_open(\"%s\", \"UTF-8\") failed.", charset);
+}
+
+
+static inline char *g_iconv_complete(GIConv cd,
+	char *inbuf, size_t inbytes_left,
+	char *outbuf, size_t outbytes_left)
+{
+	gchar *result = outbuf;
+
+	if ((GIConv) -1 == cd)
+		return NULL;
+
+	if (outbytes_left > 0)
+		outbuf[0] = '\0';
+
+	while (inbytes_left > 0 && outbytes_left > 0) {
+		size_t ret;
+
+		ret = g_iconv(cd, &inbuf, &inbytes_left, &outbuf, &outbytes_left);
+		if ((size_t) -1 == ret) {
+			switch (errno) {
+			case EILSEQ:
+			case EINVAL:
+				if (dbg > 1)
+					g_warning("g_iconv_complete: g_iconv() failed soft: %s",
+						g_strerror(errno));
+				*outbuf = '_';
+				outbuf++;
+				outbytes_left--;
+				inbuf++;
+				inbytes_left--;
+				break;
+			default:
+				if (dbg > 1)
+					g_warning("g_iconv_complete(): g_iconv() failed hard: %s",
+						g_strerror(errno));
+				return NULL;
+			}
+		}
+	}
+	*outbuf = '\0';
+	return result;
+}
 
 /*
  * locale_to_utf8
@@ -416,9 +507,10 @@ extern const gchar* codeset;
  * If the string is already valid UTF-8 it will be returned "as-is".
  * The function might return a pointer to a STATIC buffer! If the output
  * string is longer than 4095 characters it will be truncated.
- * Non-convertible characters will be replaced by '_'. In case of an
- * unrecoverable error, a special string will be returned. The returned
- * string WILL be NUL-terminated in any case.
+ * Non-convertible characters will be replaced by '_'. The returned string
+ * WILL be NUL-terminated in any case.
+ *
+ * In case of an unrecoverable error, NULL is returned.
  *
  * ATTENTION:	Don't use this function for anything but *uncritical*
  *				strings	e.g., to view strings in the GUI. The conversion
@@ -426,150 +518,26 @@ extern const gchar* codeset;
  */
 gchar *locale_to_utf8(gchar *str, size_t len)
 {
-	static gboolean initialized = FALSE;
-	static GIConv converter;
-	size_t ret;
-	gsize inbytes_left;
-	gsize outbytes_left;
-	gchar *inbuf;
-	gchar *outbuf;
-	static gchar outstr[4096 + 6]; /* an UTF-8 char is max. 6 bytes large */
-	static const gchar *charset = NULL;
+	static gchar outbuf[4096 + 6]; /* an UTF-8 char is max. 6 bytes large */
 
 	g_assert(NULL != str);
 
-	if (NULL == charset)
-#ifdef USE_GTK2
-	    g_get_charset(&charset);
-#else
-	    charset = codeset;
-#endif
-
-    if (0 == len)
-        len = strlen(str);
-
-	if (!initialized) {
-		converter = g_iconv_open("UTF-8", charset);
-		if ((GIConv) -1 == converter) {
-			if (dbg > 1)
-				g_warning("locale_to_utf8: g_iconv_open() failed:"
-				 	"charset=\"%s\"", charset);
-			goto error;
-		} else
-			initialized = TRUE;
-	}
-
-	inbuf = str;
-	outbuf = outstr;
-	inbytes_left = len;
-	outbytes_left = sizeof(outstr) - 7;
-	outstr[0] = '\0';
-
-	while (inbytes_left > 0 && outbytes_left > 0) {
-		ret = g_iconv(converter,
-				&inbuf, &inbytes_left, &outbuf, &outbytes_left);
-		if ((size_t) -1 == ret) {
-			switch (errno) {
-				case EILSEQ:
-				case EINVAL:
-					if (dbg > 1)
-						g_warning("locale_to_utf8: g_iconv() failed soft: %s",
-							g_strerror(errno));
-					*outbuf = '_';
-					outbuf++;
-					outbytes_left--;
-					inbuf++;
-					inbytes_left--;
-					break;
-				default:
-					if (dbg > 1)
-						g_warning("locale_to_utf8: g_iconv() failed hard: %s",
-							g_strerror(errno));
-					goto error;
-			}
-		}
-	}
-	*outbuf = '\0';
-	return outstr;
-
-error:
-	return "<Cannot convert to UTF-8>";
+	return g_iconv_complete(cd_locale_to_utf8,
+				str, len != 0 ? len : strlen(str), outbuf, sizeof(outbuf) - 7);
 }
 
 gchar *utf8_to_locale(gchar *str, size_t len)
 {
-	static gboolean initialized = FALSE;
-	static GIConv converter;
-	size_t ret;
-	gsize inbytes_left;
-	gsize outbytes_left;
-	gchar *inbuf;
-	gchar *outbuf;
-	static gchar outstr[4096 + 6]; /* a multibyte char is max. 6 bytes large */
-	static const gchar *charset = NULL;
+	static gchar outbuf[4096 + 6]; /* a multibyte char is max. 6 bytes large */
 
 	g_assert(NULL != str);
 
-	if (NULL == charset)
-#ifdef USE_GTK2
-	    g_get_charset(&charset);
-#else
-	    charset = codeset;
-#endif
-
-    if (0 == len)
-        len = strlen(str);
-
-	if (!initialized) {
-		converter = g_iconv_open(charset, "UTF-8");
-		if ((GIConv) -1 == converter) {
-			if (dbg > 1)
-				g_warning("utf8_to_locale: g_iconv_open() failed:"
-				 	"charset=\"%s\"", charset);
-			goto error;
-		} else
-			initialized = TRUE;
-	}
-
-	inbuf = str;
-	outbuf = outstr;
-	inbytes_left = len;
-	outbytes_left = sizeof(outstr) - 7;
-	outstr[0] = '\0';
-
-	while (inbytes_left > 0 && outbytes_left > 0) {
-		ret = g_iconv(converter,
-				&inbuf, &inbytes_left, &outbuf, &outbytes_left);
-		if ((size_t) -1 == ret) {
-			switch (errno) {
-				case EILSEQ:
-				case EINVAL:
-					if (dbg > 1)
-						g_warning("utf8_to_locale: g_iconv() failed soft: %s",
-							g_strerror(errno));
-					*outbuf = '_';
-					outbuf++;
-					outbytes_left--;
-					inbuf++;
-					inbytes_left--;
-					break;
-				default:
-					if (dbg > 1)
-						g_warning("utf8_to_locale: g_iconv() failed hard: %s",
-							g_strerror(errno));
-					goto error;
-			}
-		}
-	}
-	*outbuf = '\0';
-	return outstr;
-
-error:
-	return "<Cannot convert to locale>";
+	return g_iconv_complete(cd_utf8_to_locale,
+				str, len != 0 ? len : strlen(str), outbuf, sizeof(outbuf) - 7);
 }
 
 
-gboolean is_ascii_string(gchar *str)
+gboolean is_ascii_string(const gchar *str)
 {
 	while (*str)
 		if (*str++ & 0x80)
@@ -578,37 +546,24 @@ gboolean is_ascii_string(gchar *str)
     return TRUE;
 }
 
-gchar* iso_8859_1_to_utf8(gchar* fromstr) {
-    static gboolean initialized = FALSE;
-    static GIConv converter;
-	static gchar tostr[4096 + 6]; /* a multibyte char is max. 6 bytes large */
-    gsize fromsize;
-    gsize tosize;
-	gchar *inbuf;
-	gchar *outbuf;
+gchar *iso_8859_1_to_utf8(gchar *fromstr)
+{
+	static gchar outbuf[4096 + 6]; /* a multibyte char is max. 6 bytes large */
 
-    if (fromstr == NULL || *fromstr == '\0')
-	    return NULL;
+	g_assert(NULL != fromstr);
+ 
+	return g_iconv_complete(cd_utf8_to_locale,
+				fromstr, strlen(fromstr), outbuf, sizeof(outbuf) - 7);
+}
 
-	if (!initialized) {
-		converter = g_iconv_open("UTF-8", "ISO-8859-1");
-		if ((GIConv) -1 == converter) {
-			if (dbg > 1)
-				g_warning("iso_8859_1_to_utf8: g_iconv_open() failed.");
-			goto error;
-		} else
-			initialized = TRUE;
-	}
-	fromsize = strlen(fromstr);
-	tosize = 4096+6;
-	inbuf = fromstr;
-	outbuf = tostr;
+gchar *lazy_utf8_to_locale(gchar *str, size_t len)
+{
+	gchar *t = utf8_to_locale(str, len);
+	return NULL != t ? t : "<Cannot convert to locale>";
+}
 
-	g_iconv(converter, &inbuf, &fromsize, &outbuf, &tosize);
-
-	*outbuf = '\0';
-	return tostr;
-
-error:
-	return "<Cannot convert to utf8>";
+gchar *lazy_locale_to_utf8(gchar *str, size_t len)
+{
+	gchar *t = locale_to_utf8(str, len);
+	return NULL != t ? t : "<Cannot convert to UTF-8>";
 }

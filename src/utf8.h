@@ -30,6 +30,7 @@
 
 #include <glib.h>
 
+void locale_init(void);
 gint utf8_is_valid_char(const gchar *s);
 gint utf8_is_valid_string(const gchar *s, gint len);
 guint32 utf8_decode_char(gchar *s, gint len, gint *retlen, gboolean warn);
@@ -41,14 +42,17 @@ gint utf8_to_iso8859(gchar *s, gint len, gboolean space);
  */
 gchar *iso_8859_1_to_utf8(gchar *fromstr);
 gchar *locale_to_utf8(gchar *str, size_t len);
+gchar *lazy_locale_to_utf8(gchar *str, size_t len);
+
 
 /* 
  * Necessary for GTK+ 1.2 version because it expects almost any string
  * to be in locale, but xml is stored in utf-8
  */
 
-gboolean is_ascii_string(gchar *str);
+gboolean is_ascii_string(const gchar *str);
 gchar *utf8_to_locale(gchar *str, size_t len);
+gchar *lazy_utf8_to_locale(gchar *str, size_t len);
 
 #endif	/* _utf8_h_ */
 
