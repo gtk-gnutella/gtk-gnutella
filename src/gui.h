@@ -53,6 +53,7 @@ gboolean gui_search_update_tab_label(struct search *sch);
 void gui_init(void);
 void gui_update_all(void);
 void gui_close(void);
+void gui_shutdown(void);
 void gui_nodes_remove_selected();
 void gui_search_clear_results(void);
 void gui_search_history_add(gchar *s);

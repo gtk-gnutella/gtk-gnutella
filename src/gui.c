@@ -11,6 +11,7 @@
 #include "hosts.h" /* For pr_ref. (FIXME: ???) */
 #include "misc.h"
 #include "callbacks.h"
+#include "gtk-missing.h"
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -407,6 +408,7 @@ void gui_update_all()
 		gtk_clist_set_column_width(GTK_CLIST(clist_uploads), i,
 								   uploads_col_widths[i]);
 
+    // FIXME: I don't know what this is, but what should be fixed? BLUE
     // as soon as this is corrected in Glade, you can do this
 	// check the variable names and take out the stuff in
 	// search.c that sets this up
@@ -420,6 +422,9 @@ void gui_update_all()
 	for (i = 0; i < 5; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_ul_stats), i,
                                    ul_stats_col_widths[i]);
+
+    gtk_paned_set_position(GTK_PANED(vpaned_downloads),
+                           downloads_divider_pos);
 }
 
 void gui_nodes_remove_selected(void)
@@ -1700,6 +1705,12 @@ void gui_close(void)
 	if (shared_dirs_paths)
 		g_free(shared_dirs_paths);
 }
+
+void gui_shutdown(void)
+{
+    downloads_divider_pos =
+        gtk_paned_get_position(GTK_PANED(vpaned_downloads));
+} 
 
 void gui_update_search_stats_update_interval(void)
 {
