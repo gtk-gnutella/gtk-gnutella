@@ -407,7 +407,7 @@ handle_messages_supported(struct gnutella_node *n,
 
 		if (vm == NULL) {
 			if (vmsg_debug > 1)
-				g_warning("VMSG node %s <%s> supports unknown %s/%dv%d\n",
+				g_warning("VMSG node %s <%s> supports unknown %s/%dv%d",
 					node_ip(n), node_vendor(n),
 					vendor_code_str(vendor), id, version);
 			continue;
@@ -1044,7 +1044,7 @@ static void handle_oob_reply_ind(struct gnutella_node *n,
 	return;
 
 not_handling:
-	g_warning("Not handling %s/%uv%u from %s",
+	g_warning("not handling %s/%uv%u from %s",
 		vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version, node_ip(n));
 }
 
