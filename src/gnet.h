@@ -381,7 +381,7 @@ typedef struct gnet_stats {
 
     struct {
         guint32 received[MSG_TYPE_COUNT];
-        guint32 local[MSG_TYPE_COUNT];
+        guint32 generated[MSG_TYPE_COUNT];
         guint32 relayed[MSG_TYPE_COUNT];
         guint32 dropped[MSG_TYPE_COUNT];
         guint32 expired[MSG_TYPE_COUNT];
@@ -389,7 +389,7 @@ typedef struct gnet_stats {
 
     struct {
         guint32 received[MSG_TYPE_COUNT];
-        guint32 local[MSG_TYPE_COUNT];
+        guint32 generated[MSG_TYPE_COUNT];
         guint32 relayed[MSG_TYPE_COUNT];
         guint32 dropped[MSG_TYPE_COUNT];
         guint32 expired[MSG_TYPE_COUNT];

@@ -28,13 +28,13 @@
 static guint8 stats_lut[256];
 
 static guint32 stats_pkg_recv[MSG_TYPE_COUNT];
-static guint32 stats_pkg_locl[MSG_TYPE_COUNT];		/* Sent from local node */
-static guint32 stats_pkg_rely[MSG_TYPE_COUNT];		/* Relayed by node */
+static guint32 stats_pkg_genr[MSG_TYPE_COUNT];	/* Sent from local node */
+static guint32 stats_pkg_rely[MSG_TYPE_COUNT];	/* Relayed by node */
 static guint32 stats_pkg_expd[MSG_TYPE_COUNT];
 static guint32 stats_pkg_drop[MSG_TYPE_COUNT];
 
 static guint32 stats_byte_recv[MSG_TYPE_COUNT];
-static guint32 stats_byte_locl[MSG_TYPE_COUNT];
+static guint32 stats_byte_genr[MSG_TYPE_COUNT];
 static guint32 stats_byte_rely[MSG_TYPE_COUNT];
 static guint32 stats_byte_expd[MSG_TYPE_COUNT];
 static guint32 stats_byte_drop[MSG_TYPE_COUNT];
@@ -63,13 +63,13 @@ void gnet_stats_init(void)
     stats_lut[GTA_MSG_SEARCH_RESULTS] = MSG_SEARCH_RESULTS;
 
     memset(stats_pkg_recv, 0, sizeof(guint32)*sizeof(stats_pkg_recv));
-    memset(stats_pkg_locl, 0, sizeof(guint32)*sizeof(stats_pkg_locl));
+    memset(stats_pkg_genr, 0, sizeof(guint32)*sizeof(stats_pkg_genr));
     memset(stats_pkg_rely, 0, sizeof(guint32)*sizeof(stats_pkg_rely));
     memset(stats_pkg_expd, 0, sizeof(guint32)*sizeof(stats_pkg_expd));
     memset(stats_pkg_drop, 0, sizeof(guint32)*sizeof(stats_pkg_drop));
 
     memset(stats_byte_recv, 0, sizeof(guint32)*sizeof(stats_byte_recv));
-    memset(stats_byte_locl, 0, sizeof(guint32)*sizeof(stats_byte_locl));
+    memset(stats_byte_genr, 0, sizeof(guint32)*sizeof(stats_byte_genr));
     memset(stats_byte_rely, 0, sizeof(guint32)*sizeof(stats_byte_rely));
     memset(stats_byte_expd, 0, sizeof(guint32)*sizeof(stats_byte_expd));
     memset(stats_byte_drop, 0, sizeof(guint32)*sizeof(stats_byte_drop));
@@ -110,8 +110,8 @@ void gnet_stats_count_received_payload(gnutella_node_t *n)
 void gnet_stats_count_sent(
 	gnutella_node_t *n, guint8 type, guint8 hops, guint32 size)
 {
-	guint32 *stats_pkg = hops ? stats_pkg_rely : stats_pkg_locl;
-	guint32 *stats_byte = hops ? stats_byte_rely : stats_byte_locl;
+	guint32 *stats_pkg = hops ? stats_pkg_rely : stats_pkg_genr;
+	guint32 *stats_byte = hops ? stats_byte_rely : stats_byte_genr;
 
     stats_pkg[MSG_TOTAL]++;
     stats_pkg[stats_lut[type]]++;
@@ -177,13 +177,13 @@ void gnet_stats_get(gnet_stats_t *s)
     g_assert(s != NULL);
 
     memcpy(s->pkg.received, stats_pkg_recv, sizeof(guint32)*MSG_TYPE_COUNT);
-    memcpy(s->pkg.local, stats_pkg_locl, sizeof(guint32)*MSG_TYPE_COUNT);
+    memcpy(s->pkg.generated, stats_pkg_genr, sizeof(guint32)*MSG_TYPE_COUNT);
     memcpy(s->pkg.relayed, stats_pkg_rely, sizeof(guint32)*MSG_TYPE_COUNT);
     memcpy(s->pkg.expired, stats_pkg_expd, sizeof(guint32)*MSG_TYPE_COUNT);
     memcpy(s->pkg.dropped, stats_pkg_drop, sizeof(guint32)*MSG_TYPE_COUNT);
 
     memcpy(s->byte.received, stats_byte_recv, sizeof(guint32)*MSG_TYPE_COUNT);
-    memcpy(s->byte.local, stats_byte_locl, sizeof(guint32)*MSG_TYPE_COUNT);
+    memcpy(s->byte.generated, stats_byte_genr, sizeof(guint32)*MSG_TYPE_COUNT);
     memcpy(s->byte.relayed, stats_byte_rely, sizeof(guint32)*MSG_TYPE_COUNT);
     memcpy(s->byte.expired, stats_byte_expd, sizeof(guint32)*MSG_TYPE_COUNT);
     memcpy(s->byte.dropped, stats_byte_drop, sizeof(guint32)*MSG_TYPE_COUNT);
