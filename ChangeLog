@@ -1,5 +1,16 @@
 # since last version
 
+- (2002.06.15 - RAM)
+  * Propagate SHA1 from query hits to download requests.
+  * Now recognizes old base32 encoding, translated into new one.
+  * Had not properly plugged in the 301 Moved triggering for uploads.
+  * Until we have received a message from nodes, handle them with the
+	"connecting" timeout.  This works because of the handshaking ping.
+  * Reworked upload HTTP parsing so that we can handle HEAD requests on
+	/uri-res/N2R? queries as well.
+  * Download code will now honour 301 Moved replies from other nodes.
+  * Added debugging traces for queries/hits holding more than 32 extensions.
+
 - (2002.06.13 - RAM)
   * Added rigorous extension parsing.
   * Fixed hash table init for GUID/SHA1 atoms.
