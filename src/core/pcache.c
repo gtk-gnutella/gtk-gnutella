@@ -55,6 +55,7 @@ RCSID("$Id$");
 #include "if/core/hosts.h"
 #include "if/gnet_property_priv.h"
 
+#include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/walloc.h"
@@ -517,6 +518,7 @@ send_neighbouring_info(struct gnutella_node *n)
  */
 
 static time_t pcache_expire_time = 0;
+static gpointer udp_pings = NULL;
 
 struct cached_pong {		/* A cached pong */
 	gint refcount;			/* How many lists reference us? */
@@ -552,6 +554,8 @@ static struct recent recent_pongs[HOST_MAX];
 #define RECENT_PING_SIZE	50		/* remember last 50 pongs we saw */
 #define MIN_UP_PING			3		/* ping at least 3 neighbours */
 #define UP_PING_RATIO		20		/* ping 20% of UP, at random */
+
+#define UDP_PING_FREQ		60		/* answer to 1 ping per minute per IP */
 
 #define cache_lifespan(m)	\
 	((m) == NODE_P_LEAF ? CACHE_LEAF_LIFESPAN : CACHE_UP_LIFESPAN)
@@ -590,6 +594,12 @@ pcache_init(void)
 
 	memset(pong_cache, 0, sizeof(pong_cache));
 	memset(recent_pongs, 0, sizeof(recent_pongs));
+
+	/*
+	 * We limit UDP pings to 1 every UDP_PING_FREQ seconds.
+	 */
+
+	udp_pings = aging_make(UDP_PING_FREQ, NULL, NULL, NULL, NULL, NULL, NULL);
 
 	/*
 	 * The `local_meta' structure collects our meta data that we may send
@@ -903,6 +913,8 @@ pcache_close(void)
 		pcache_clear_recent(type);
 		g_hash_table_destroy(recent_pongs[type].ht_recent_pongs);
 	}
+
+	aging_destroy(udp_pings);
 }
 
 /**
@@ -1470,6 +1482,17 @@ pcache_udp_ping_received(struct gnutella_node *n)
 			printf("UDP got unsolicited PING matching our GUID!\n");
 		return;
 	}
+
+	/*
+	 * Don't answer to too frequent pings from the same IP.
+	 */
+
+	if (aging_lookup(udp_pings, GUINT_TO_POINTER(n->ip))) {
+        gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
+		return;
+	}
+
+	aging_insert(udp_pings, GUINT_TO_POINTER(n->ip), GUINT_TO_POINTER(1));
 
 	/*
 	 * We'll probe for UHC pings in send_personal_info().
