@@ -2670,7 +2670,8 @@ static gint extract_field_pongs(gchar *field, hcache_type_t type)
 
 		if (
             gchar_to_ip_port(tok, &ip, &port) && 
-            ip && port && !node_ip_is_bad(ip)
+            host_is_valid(ip, port) &&
+            !node_ip_is_bad(ip)
         ) {
 			if (type == HCACHE_ULTRA)
 				host_add_ultra(ip, port);
