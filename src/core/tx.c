@@ -195,7 +195,7 @@ tx_flush(txdrv_t *tx)
 {
 	g_assert(tx);
 
-	return TX_FLUSH(tx);
+	TX_FLUSH(tx);
 }
 
 /**
