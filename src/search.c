@@ -43,6 +43,7 @@
 #include "dmesh.h"
 #include "fileinfo.h"
 #include "guid.h"
+#include "dq.h"
 #include "gui_property.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -1283,6 +1284,8 @@ static void node_added_callback(gpointer data)
     g_assert(sch != NULL);
     g_assert(!sch->passive);
 
+	// XXX should only be used in normal/leaf mode, not UP mode with dq
+
 	if (
         !search_already_sent_to_node(sch, node_added) &&
         !sch->frozen
@@ -1515,6 +1518,13 @@ gboolean search_results(gnutella_node_t *n)
 	if (n->header.hops == 1)
 		update_neighbour_info(n, rs);
 
+	/*
+	 * Let dynamic querying know about the result count, in case
+	 * there is a dynamic query opened for this.
+	 */
+
+	dq_got_results(n->header.muid, rs->num_recs);
+
     /*
      * Look for records that match entries in the download queue.
 	 */
@@ -1534,7 +1544,10 @@ gboolean search_results(gnutella_node_t *n)
      * Look for records that should be ignored.
      */
 
-    if (search_handle_ignored_files != SEARCH_IGN_DISPLAY_AS_IS) {
+    if (
+		selected_searches != NULL &&
+		search_handle_ignored_files != SEARCH_IGN_DISPLAY_AS_IS
+	) {
         for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
             gnet_record_t *rc = (gnet_record_t *) sl->data;
             enum ignore_val ival;
