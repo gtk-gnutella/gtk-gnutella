@@ -61,16 +61,16 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
+GLADE =  $glade
+SOURCES =   getdate.y  \$(SRC)
 GUI_GLADE_SRC =  $gladesrc
 GTK_CFLAGS =  $gtkcflags
-SOURCES =   getdate.y  \$(SRC)
-GTK_LDFLAGS =  $gtkldflags
 GLADEFILE =  ../$gladefile
 XML2_LDFLAGS =  $xmlldflags
+GTK_LDFLAGS =  $gtkldflags
 GUI_GLADE_OBJ =  $gladeobj
-XML2_CFLAGS =  $xmlcflags
-GLADE =  $glade
 OBJECTS =   getdate.o  \$(OBJ) getdate.o
+XML2_CFLAGS =  $xmlcflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -100,7 +100,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.5 2003/08/15 22:56:24 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.7 2003/09/17 19:57:25 nonamer Exp $
 
 GUI_GTK2 = \
 	fileinfo_gui2.c \
@@ -182,6 +182,7 @@ CORE = \
 	gnet_stats.c \
 	guid.c \
 	gwcache.c \
+	hashtree.c \
 	hcache.c \
 	header.c \
 	hostiles.c \
@@ -208,10 +209,10 @@ CORE = \
 	prop.c \
 	qrp.c \
 	routing.c \
-	rxbuf.c \
 	rx.c \
 	rx_inflate.c \
 	rx_link.c \
+	rxbuf.c \
 	search.c \
 	search_xml.c \
 	settings.c \
@@ -222,13 +223,13 @@ CORE = \
 	sq.c \
 	tiger.c \
 	tigertree.c \
-	hashtree.c \
+	tm.c \
 	token.c \
 	tx.c \
 	tx_deflate.c \
 	tx_link.c \
-	uploads.c \
 	upload_stats.c \
+	uploads.c \
 	url.c \
 	utf8.c \
 	vendors.c \
@@ -320,6 +321,7 @@ OBJLIST = \
 	gnet_stats.o \
 	guid.o \
 	gwcache.o \
+	hashtree.o \
 	hcache.o \
 	header.o \
 	hostiles.o \
@@ -346,10 +348,10 @@ OBJLIST = \
 	prop.o \
 	qrp.o \
 	routing.o \
-	rxbuf.o \
 	rx.o \
 	rx_inflate.o \
 	rx_link.o \
+	rxbuf.o \
 	search.o \
 	search_xml.o \
 	settings.o \
@@ -360,13 +362,13 @@ OBJLIST = \
 	sq.o \
 	tiger.o \
 	tigertree.o \
-	hashtree.o \
+	tm.o \
 	token.o \
 	tx.o \
 	tx_deflate.o \
 	tx_link.o \
-	uploads.o \
 	upload_stats.o \
+	uploads.o \
 	url.o \
 	utf8.o \
 	vendors.o \
@@ -395,8 +397,8 @@ depend::
 	($(SED) '/^# DO NOT DELETE/q' Makefile && \
 	$(MKDEP) $(SOURCES) | \
 	$(SED) -e 's:/usr/lib[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
-	-e '/: / b print' -e 'H; d; n; : print' -e 'x; s/\\\n//g' \
-	-e 's/  */ /g; s/ :/:/;' -e '/: *$$/d' \
+		-e '/: / b print' -e 'H; d; n; : print' -e 'x; s/\\\n//g' \
+		-e 's/  */ /g; s/ :/:/;' -e '/: *$$/d' \
 	) > Makefile.new
 	cp Makefile Makefile.bak
 	cp Makefile.new Makefile
@@ -420,7 +422,7 @@ gtk-gnutella:  $(OBJ) getdate.o
 local_install:: gtk-gnutella
 	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
 	(set -x; test -d $(INSTALL_PREFIX)$(BINDIR) || \
-	$(INSTALLDIR) $(INSTALL_PREFIX)$(BINDIR)); \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$(BINDIR)); \
 	$(INSTALL) -c -s -m 555  gtk-gnutella $(INSTALL_PREFIX)$(BINDIR)
 
 local_deinstall::
@@ -429,21 +431,23 @@ local_deinstall::
 local_install.man:: gtk-gnutella.man
 	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
 	(set -x; test -d $(INSTALL_PREFIX)$(MANSRC) || \
-	$(INSTALLDIR) $(INSTALL_PREFIX)$(MANSRC)); \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$(MANSRC)); \
 	$(INSTALL) -c -m 444 gtk-gnutella.man $(INSTALL_PREFIX)$(MANSRC)/gtk-gnutella.$(L)
 
 local_deinstall.man::
 	$(RM) $(INSTALL_PREFIX)$(MANSRC)/gtk-gnutella.$(L)
 
-#Glade generates:
-#interface-glade[12].c interface-glade[12].h
-#support-glade[12].c support-glade[12].h
-
-#Depending on whether we compile for Gtk 1.2 or Gtk 2, the ones the others
-#will be linked and included. This can be tested by checking if USE_GTK2
-#is defined in the sourcecode files.
-#We let glade directly handle the callbacks.[ch] files so we can do without
-#any postprocessing of the glade output.
+#
+# Glade generates:
+#	interface-glade[12].c interface-glade[12].h
+#   support-glade[12].c support-glade[12].h
+#
+# Depending on whether we compile for Gtk 1.2 or Gtk 2, the ones the others
+# will be linked and included. This can be tested by checking if USE_GTK2
+# is defined in the sourcecode files.
+# We let glade directly handle the callbacks.[ch] files so we can do without
+# any postprocessing of the glade output.
+#
 
 glade_files:
 	$(GLADE) --write-source $(GLADEFILE)
@@ -492,12 +496,12 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 
 Makefile.SH: Jmakefile
 	-@if test -f $(TOP)/.package; then \
-	if test -f Makefile.SH; then \
-	echo "	$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~"; \
-	$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~; \
-	fi; \
-	echo "	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT)" ; \
-	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT) ; \
+		if test -f Makefile.SH; then \
+			echo "	$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~"; \
+			$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~; \
+		fi; \
+		echo "	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT)" ; \
+		$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT) ; \
 	else touch $@; exit 0; fi
 
 Makefile: Makefile.SH

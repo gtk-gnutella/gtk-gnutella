@@ -99,6 +99,7 @@ CORE = \
 	gnet_stats.c \
 	guid.c \
 	gwcache.c \
+	hashtree.c \
 	hcache.c \
 	header.c \
 	hostiles.c \
@@ -125,10 +126,10 @@ CORE = \
 	prop.c \
 	qrp.c \
 	routing.c \
-	rxbuf.c \
 	rx.c \
 	rx_inflate.c \
 	rx_link.c \
+	rxbuf.c \
 	search.c \
 	search_xml.c \
 	settings.c \
@@ -139,13 +140,13 @@ CORE = \
 	sq.c \
 	tiger.c \
 	tigertree.c \
-	hashtree.c \
+	tm.c \
 	token.c \
 	tx.c \
 	tx_deflate.c \
 	tx_link.c \
-	uploads.c \
 	upload_stats.c \
+	uploads.c \
 	url.c \
 	utf8.c \
 	vendors.c \
@@ -201,17 +202,18 @@ SimpleYaccTarget(gtk-gnutella, getdate)
 NormalProgramTarget(gtk-gnutella, $(SRC), $(OBJ) getdate.o)
 InstallProgram(gtk-gnutella, $(BINDIR))
 InstallManPage(gtk-gnutella, $(MANSRC))
-#
-# Glade generates:
-#	interface-glade[12].c interface-glade[12].h
-#   support-glade[12].c support-glade[12].h
-#
-# Depending on whether we compile for Gtk 1.2 or Gtk 2, the ones the others
-# will be linked and included. This can be tested by checking if USE_GTK2
-# is defined in the sourcecode files.
-# We let glade directly handle the callbacks.[ch] files so we can do without
-# any postprocessing of the glade output.
-#
+
+;#
+;# Glade generates:
+;#	interface-glade[12].c interface-glade[12].h
+;#   support-glade[12].c support-glade[12].h
+;#
+;# Depending on whether we compile for Gtk 1.2 or Gtk 2, the ones the others
+;# will be linked and included. This can be tested by checking if USE_GTK2
+;# is defined in the sourcecode files.
+;# We let glade directly handle the callbacks.[ch] files so we can do without
+;# any postprocessing of the glade output.
+;#
 
 glade_files:
 	$(GLADE) --write-source $(GLADEFILE)
