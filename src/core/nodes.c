@@ -375,7 +375,7 @@ node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
 	 * marked the node with NODE_F_TSYNC_TCP to use TCP instead of UDP.
 	 */
 	
-	if (!(n->flags & NODE_F_TSYNC_TCP) && n->gnet_ip)
+	if (enable_udp && !(n->flags & NODE_F_TSYNC_TCP) && n->gnet_ip)
 		udp = node_udp_get_ip_port(n->gnet_ip, n->gnet_port);
 
 	tsync_send(udp == NULL ? n : udp, n->id);
@@ -4634,10 +4634,6 @@ node_udp_get_ip_port(guint32 ip, guint16 port)
 {
 	gnutella_node_t *n = udp_node;
 
-	/* XXX: This is called by tsync_send() even if UDP is disabled
-	 *		Correct fix or not? */
-	g_return_val_if_fail(NULL != n->outq, NULL);
-		
 	n->ip = ip;
 	n->port = port;
 
