@@ -53,7 +53,8 @@
  * Make busy chunks stand out more, e.g. by drawing arrow: *graaff:
  * what about drawing an arrow centered at the start of the downloaded
  * part (beginning of the yellow chunk) of about 5 pixels height?
- * <ram> You'd draw 1, then 3, then 5 then 7 then 9 pixels.  Should be
+ *
+ * ram: You'd draw 1, then 3, then 5 then 7 then 9 pixels.  Should be
  * readable that way, no?
  *
  */
