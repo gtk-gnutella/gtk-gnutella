@@ -40,8 +40,6 @@
 
 #ifdef HAS_LIBXML2
 
-#include <stdlib.h>				/* strtof() */
-
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 
@@ -53,6 +51,8 @@
 
 #include "lib/atoms.h"
 #include "lib/getdate.h"	/* date2time() */
+#include "lib/glib-missing.h"
+#include "lib/walloc.h"
 #include "lib/override.h"	/* This file MUST be the last one included */
 
 /*
@@ -61,9 +61,11 @@
  *
  */
 
+static const gchar bitzi_url_fmt[] = "http://ticket.bitzi.com/rdf/urn:sha1:%s";
+
 typedef struct {
 	guchar *urnsha1;		/* urnsha1, atom */
-	guchar *bitzi_url;		/* request URL */
+	guchar bitzi_url[SHA1_BASE32_SIZE + sizeof bitzi_url_fmt]; /* request URL */
 
 	/*
 	 * xml related bits 
@@ -93,8 +95,6 @@ static gpointer	 current_bitzi_request_handle;
 static GHashTable *bitzi_cache_ht;
 static GList *bitzi_cache;
 
-#define BITZI_URL_FORMAT	"http://ticket.bitzi.com/rdf/urn:sha1:%s"
-
 /*
  * Function declarations
  */
@@ -115,7 +115,7 @@ static void bitzi_cache_clean(void);
 static bitzi_data_t *
 bitzi_create(void)
 {
-	bitzi_data_t *data = g_malloc(sizeof(bitzi_data_t));
+	bitzi_data_t *data = walloc(sizeof(bitzi_data_t));
 
 	/*
 	 * defaults 
@@ -131,7 +131,7 @@ bitzi_create(void)
 }
 
 static void
-bitzi_destroy(bitzi_data_t * data)
+bitzi_destroy(bitzi_data_t *data)
 {
 	if (dbg)
 		g_message("bitzi_destory: %p", data);
@@ -147,7 +147,7 @@ bitzi_destroy(bitzi_data_t * data)
 
 	if (dbg)
 		g_message("bitzi_destory: freeing data");
-	G_FREE_NULL(data);
+	wfree(data, sizeof *data);
 }
 
 
@@ -160,7 +160,7 @@ bitzi_destroy(bitzi_data_t * data)
  * the parsing of the document tree and processes the ticket.
  */
 static void
-bitzi_host_data_ind(gpointer unused_handle, gchar * data, gint len)
+bitzi_host_data_ind(gpointer unused_handle, gchar *data, gint len)
 {
 	gint result;
 
@@ -232,8 +232,7 @@ bitzi_host_error_ind(gpointer handle,
  * Although the other could be used to verify size data and such.
  */
 
-struct efj_t
-{
+struct efj_t {
 	const xmlChar *string;
 	bitzi_fj_t judgement;
 };
@@ -304,8 +303,10 @@ process_rdf_description(xmlNode * node, bitzi_data_t * data)
 
 	xml_string = xmlGetProp(node, "fileLength");
 
-	if (xml_string)
-		data->size = 0;
+	if (xml_string) {
+		gint error;
+		data->size = parse_uint64(xml_string, NULL, 10, &error);
+	}
 
 	/*
 	 * The multimedia type, bitrate etc is all built into one
@@ -444,8 +445,7 @@ process_meta_data(bitzi_request_t *request)
 	 */
 
 	atom_sha1_free(request->urnsha1);
-	G_FREE_NULL(request->bitzi_url);
-	G_FREE_NULL(request);
+	wfree(request, sizeof *request);
 }
 
 /**
@@ -523,12 +523,7 @@ bitzi_date_compare(gconstpointer p, gconstpointer q)
 {
 	const bitzi_data_t *a = p, *b = q;
 
-	if (a->expiry < b->expiry)
-		return -1;
-	else if (b->expiry > a->expiry)
-		return +1;
-
-	return 0;
+	return CMP(a->expiry, b->expiry);
 }
 
 static void
@@ -653,14 +648,16 @@ bitzi_query_byurnsha1(const gchar *urnsha1)
 		data = bitzi_querycache_byurnsha1(urnsha1);
 
 		if (data == NULL) {
-			request = g_malloc(sizeof *request);
+			size_t len;
+			request = walloc(sizeof *request);
 
 			/*
 			 * build the bitzi url 
 			 */
 			request->urnsha1 = atom_sha1_get(urnsha1);
-			request->bitzi_url =
-				g_strdup_printf(BITZI_URL_FORMAT, sha1_base32(urnsha1));
+			len = gm_snprintf(request->bitzi_url, sizeof request->bitzi_url,
+					bitzi_url_fmt, sha1_base32(urnsha1));
+			g_assert(len < sizeof request->bitzi_url);
 
 			bitzi_rq = g_slist_append(bitzi_rq, request);
 			if (dbg)
@@ -696,4 +693,4 @@ bitzi_init(void)
 
 #endif	/* HAS_LIBXML2 */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
