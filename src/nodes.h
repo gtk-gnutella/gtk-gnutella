@@ -95,9 +95,11 @@ typedef struct gnutella_node {
 	squeue_t *searchq;			/* TX Search queue */
 	rxdrv_t *rx;				/* RX stack top */
 
-	gpointer routing_data;		/* Opaque info, for packet routing */
-	gpointer query_routing;		/* Opaque info, for query routing */
+	gpointer routing_data;		/* Opaque info, for gnet message routing */
+	gpointer query_routing;		/* Opaque info, for query routing, if UP */
+	gpointer query_table;		/* Opaque info, last query table sent to UP */
 	gpointer alive_pings;		/* Opaque info, for alive ping checks */
+	gpointer qrt_update;		/* Opaque info, query routing update handle */
 	time_t last_alive_ping;		/* Last time we sent an alive ping */
 
 	/*
@@ -157,6 +159,8 @@ typedef struct gnutella_node {
 #define NODE_F_NOREAD		0x00000400	/* Prevent further reading from node */
 #define NODE_F_EOF_WAIT		0x00000800	/* During final shutdown, waiting EOF */
 #define NODE_F_CLOSING		0x00001000	/* Initiated bye or shutdown */
+#define NODE_F_ULTRA		0x00002000	/* Is one of our ultra nodes */
+#define NODE_F_LEAF			0x00004000	/* Is one of our leaves */
 
 /*
  * Node attributes.
@@ -168,6 +172,9 @@ typedef struct gnutella_node {
 #define NODE_A_QHD_NO_VTAG	0x00000008	/* Servent has no vendor tag in QHD */
 #define NODE_A_RX_INFLATE	0x00000010	/* Reading compressed data */
 #define NODE_A_TX_DEFLATE	0x00000020	/* Sending compressed data */
+#define NODE_A_CAN_ULTRA	0x00000040	/* Node is ultra capable */
+#define NODE_A_ULTRA		0x00000100	/* Node wants to be an Ultrapeer */
+#define NODE_A_NO_ULTRA		0x00000200	/* Node is NOT ultra capable */
 
 #define NODE_A_CAN_INFLATE	0x80000000	/* Node capable of inflating */
 
@@ -309,6 +316,7 @@ __inline__ void node_add_rxdrop(gnutella_node_t *n, gint x);
 inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
 
 void node_set_online_mode(gboolean on);
+void node_set_current_peermode(guint32 mode);
 gchar *node_ip(gnutella_node_t *n);
 
 #endif /* __nodes_h__ */

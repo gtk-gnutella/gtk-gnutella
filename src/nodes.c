@@ -63,6 +63,7 @@
 #include "ioheader.h"
 #include "ban.h"
 #include "hcache.h"
+#include "qrp.h"
 
 #include "settings.h"
 
@@ -126,6 +127,9 @@ static void node_disable_read(struct gnutella_node *n);
 static void node_data_ind(rxdrv_t *rx, pmsg_t *mb);
 static void node_bye_sent(struct gnutella_node *n);
 static void call_node_process_handshake_ack(gpointer obj, header_t *header);
+static void node_send_qrt(struct gnutella_node *n, gpointer query_table);
+static void node_send_patch_step(struct gnutella_node *n);
+static void node_bye_flags(guint32 mask, gint code, gchar *message);
 
 /***
  *** Callbacks
@@ -355,6 +359,13 @@ void node_timer(time_t now)
 					return;
 				}
 			}
+
+			/*
+			 * Check whether we need to send more QRT patch updates.
+			 */
+
+			if (n->qrt_update != NULL)
+				node_send_patch_step(n);
 		}
 	}
 }
@@ -515,6 +526,12 @@ static void node_remove_v(
 
 	if (n->routing_data)
 		routing_node_remove(n);
+
+	if (n->qrt_update)
+		qrt_update_free(n->qrt_update);
+
+	if (n->query_table)
+		qrt_unref(n->query_table);
 
 	if (n->status == GTA_NODE_CONNECTED) {		/* Already did if shutdown */
 		connected_node_cnt--;
@@ -1041,13 +1058,13 @@ static void send_connection_pongs(struct gnutella_node *n, guchar *muid)
  * basic formatting and splitting so that very long lines are dumped using
  * continuations. --RAM, 10/01/2002
  */
-static gchar *formatted_connection_pongs(gchar *field)
+static gchar *formatted_connection_pongs(gchar *field, hcache_type_t htype)
 {
 	static gchar fmt_line[MAX_LINE_SIZE];
 	struct gnutella_host hosts[CONNECT_PONGS_COUNT];
 	gint hcount;
 
-	hcount = hcache_fill_caught_array(HCACHE_ANY, hosts, CONNECT_PONGS_COUNT);
+	hcount = hcache_fill_caught_array(htype, hosts, CONNECT_PONGS_COUNT);
 	g_assert(hcount >= 0 && hcount <= CONNECT_PONGS_COUNT);
 
 	/*
@@ -1119,6 +1136,7 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 	/*
 	 * When sending a 503 (Busy) error to a node, send some hosts from
 	 * our cache list as well.  Likewise on 403 (Non-compressed, rejected).
+	 * If we're not a regular node, send out X-Try-Ultrapeers for 204 as well.
 	 */
 
 	rw = g_snprintf(gnet_response, sizeof(gnet_response),
@@ -1127,10 +1145,14 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 		"Remote-IP: %s\r\n"
 		"X-Live-Since: %s\r\n"
 		"%s"
+		"%s"
 		"\r\n",
 		code, msg_tmp, version_string, ip_to_gchar(s->ip), start_rfc822_date,
 		(code == 503 || code == 403) ?
-			formatted_connection_pongs("X-Try") : "");
+			formatted_connection_pongs("X-Try", HCACHE_ANY) : "",
+		(current_peermode != NODE_P_NORMAL &&
+				(code == 503 || code == 403 || code == 204)) ?
+			formatted_connection_pongs("X-Try-Ultrapeers", HCACHE_ULTRA) : "");
 
 	g_assert(rw < sizeof(gnet_response));
 
@@ -1188,7 +1210,35 @@ static void node_is_now_connected(struct gnutella_node *n)
 		n->socket->getline = NULL;
 	}
 
-	n->peermode = NODE_P_NORMAL;	/* XXX */
+	/*
+	 * Determine correct peer mode.
+	 *
+	 * If we're a leaf node and we connected to an ultranode, send it
+	 * our query routing table.
+	 */
+
+	n->peermode = NODE_P_NORMAL;
+
+	if (n->flags & NODE_F_ULTRA) {
+		if (current_peermode != NODE_P_NORMAL)
+			n->peermode = NODE_P_ULTRA;
+		if (current_peermode == NODE_P_LEAF) {
+			gpointer qrt = qrt_get_table();
+
+			/*
+			 * If we don't even have our first QRT computed yet, we
+			 * will send it to our ultranode when node_qrt_changed()
+			 * is called by the computation code.
+			 */
+
+			if (qrt)
+				node_send_qrt(n, qrt);
+		}
+	} else if (n->flags & NODE_F_LEAF)
+		n->peermode = NODE_P_LEAF;
+
+	g_assert(current_peermode != NODE_P_LEAF || NODE_IS_ULTRA(n));
+
 	n->status = GTA_NODE_CONNECTED;
 	n->flags |= NODE_F_VALID | NODE_F_READABLE;
 	n->last_update = n->connect_date = time((time_t *) NULL);
@@ -1354,6 +1404,37 @@ void node_set_online_mode(gboolean on)
 }
 
 /*
+ * node_set_current_peermode
+ *
+ * Called from the property system when current peermode is changed.
+ */
+void node_set_current_peermode(guint32 mode)
+{
+	gchar *msg;
+
+	switch (mode) {
+	case NODE_P_NORMAL:
+		msg = "normal";
+		node_bye_flags(NODE_F_ULTRA, 203, "Becoming a regular node");
+		break;
+	case NODE_P_ULTRA:
+		msg = "ultra";
+		node_bye_flags(NODE_F_ULTRA, 203, "Becoming an ultra node");
+		break;
+	case NODE_P_LEAF:
+		msg = "leaf";
+		node_bye_flags(0xffffffff, 203, "Becoming a leaf node");
+		break;
+	default:
+		g_error("unhandled mode %d", mode);
+		break;
+	}
+
+	if (dbg > 2)
+		printf("Switching to \"%s\" peer mode\n", msg);
+}
+
+/*
  * downgrade_handshaking
  *
  * For an outgoing *removed* node, retry the outgoing connection using
@@ -1404,7 +1485,7 @@ static void downgrade_handshaking(struct gnutella_node *n)
  *
  * i.e. we're very flexible about the separators which can be "," or ";".
  */
-static gint extract_field_pongs(guchar *field)
+static gint extract_field_pongs(guchar *field, hcache_type_t type)
 {
 	guchar *tok;
 	gint pong = 0;
@@ -1414,7 +1495,10 @@ static gint extract_field_pongs(guchar *field)
 		guint32 ip;
 
 		if (gchar_to_ip_port(tok, &ip, &port)) {
-			host_add(ip, port, FALSE);
+			if (type == HCACHE_ULTRA)
+				host_add_ultra(ip, port);
+			else
+				host_add(ip, port, FALSE);
 			pong++;
 		}
 	}
@@ -1442,7 +1526,7 @@ static void extract_header_pongs(header_t *header, struct gnutella_node *n)
 	if (!field) field = header_get(header, "Try");
 
 	if (field) {
-		pong = extract_field_pongs(field);
+		pong = extract_field_pongs(field, HCACHE_ANY);
 		if (dbg > 4)
 			printf("Node %s sent us %d pong%s in header\n",
 				node_ip(n), pong, pong == 1 ? "" : "s");
@@ -1461,7 +1545,7 @@ static void extract_header_pongs(header_t *header, struct gnutella_node *n)
 	if (!field) field = header_get(header, "Try-Ultrapeers");
 
 	if (field) {
-		pong = extract_field_pongs(field);
+		pong = extract_field_pongs(field, HCACHE_ULTRA);
 		if (dbg > 4)
 			printf("Node %s sent us %d ultranode pong%s in header\n",
 				node_ip(n), pong, pong == 1 ? "" : "s");
@@ -1827,6 +1911,16 @@ static void node_process_handshake_header(
 		}
 	}
 
+	/* X-Ultrapeer -- support for ultra peer mode */
+
+	field = header_get(head, "X-Ultrapeer");
+	if (field) {
+		n->attrs |= NODE_A_CAN_ULTRA;
+		if (0 == strcasecmp(field, "true"))
+			n->attrs |= NODE_A_ULTRA;
+	} else
+		n->attrs |= NODE_A_NO_ULTRA;
+
 	/*
 	 * If the connection is flagged as being temporary, it's time to deny
 	 * it with a 503 error code.
@@ -1834,9 +1928,15 @@ static void node_process_handshake_header(
 
 	if (n->flags & NODE_F_TMP) {
 		g_assert(incoming);
-		send_node_error(n->socket, 503,
-			"Too many Gnet connections (%d max)", max_connections);
-		node_remove(n, "Sent busy indication");
+		if (current_peermode == NODE_P_LEAF) {
+			send_node_error(n->socket, 204,
+				"Shielded leaf node (%d peers max)", max_ultrapeers);
+			node_remove(n, "Sent shielded indication");
+		} else {
+			send_node_error(n->socket, 503,
+				"Too many Gnet connections (%d max)", max_connections);
+			node_remove(n, "Sent busy indication");
+		}
 		return;					/* node_remove() has freed s->getline */
 	}
 
@@ -1915,6 +2015,19 @@ static void node_process_handshake_header(
 		}
 
 		/*
+		 * If we're a leaf node, we want to talk to an Ultra node.
+		 */
+
+		if (current_peermode == NODE_P_LEAF) {
+			if (!(n->attrs & NODE_A_ULTRA)) {
+				send_node_error(n->socket, 503, "Looking for an ultra node");
+				node_remove(n, "Not an ultra node");
+				return;
+			} else
+				n->flags |= NODE_F_ULTRA;		/* This is our ultranode */
+		}
+
+		/*
 		 * Prepare our final acknowledgment.
 		 */
 
@@ -1935,6 +2048,20 @@ static void node_process_handshake_header(
 				"Gnet connections currently disabled");
 			node_remove(n, "Gnet connections disabled");
 			return;
+		}
+
+		/*
+		 * If we're a leaf node, we can only accept incoming connections
+		 * from an ultra node.
+		 */
+
+		if (current_peermode == NODE_P_LEAF) {
+			if (!(n->attrs & NODE_A_ULTRA)) {
+				send_node_error(n->socket, 204, "Shielded leaf node");
+				node_remove(n, "Local node is shielded");
+				return;
+			} else
+				n->flags |= NODE_F_ULTRA;		/* This is our ultranode */
 		}
 
 		/*
@@ -2123,6 +2250,8 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	gboolean incoming = FALSE, already_connected = FALSE;
 	gint major = 0, minor = 0;
 	gboolean ponging_only = FALSE;
+	gint max_nodes;
+	gint up_nodes;
 
 	g_assert(s == NULL || s->resource.node == NULL);
 
@@ -2171,6 +2300,13 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	}
 #endif
 
+	if (current_peermode == NODE_P_LEAF)
+		max_nodes = up_nodes = max_ultrapeers;
+	else {
+		max_nodes = max_connections;
+		up_nodes = up_connections;
+	}
+
 	if (s && major == 0 && minor < 6) {
 		if (no_gnutella_04) {
 			socket_free(s);
@@ -2179,7 +2315,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		if (
 			!allow_gnet_connections ||
 			prefer_compressed_gnet ||
-			connected_nodes() >= up_connections
+			connected_nodes() >= up_nodes
 		)
             ponging_only = TRUE;	/* Will only send connection pongs */
 	}
@@ -2195,7 +2331,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	 * Too many gnutellaNet connections?
 	 */
 
-    if (node_count() >= max_connections) {
+    if (node_count() >= max_nodes) {
         if (!s)
             return;
         if (!already_connected) {
@@ -2553,9 +2689,10 @@ static void node_parse(struct gnutella_node *node)
 	if (!n)
 		return;				/* The node has been removed during processing */
 
-	if (!drop)
-		gmsg_sendto_route(n, &dest);	/* Propagate message, if needed */
-	else {
+	if (!drop) {
+		if (current_peermode != NODE_P_LEAF)
+			gmsg_sendto_route(n, &dest);	/* Propagate message, if needed */
+	} else {
 		if (dbg > 3)
 			gmsg_log_dropped(&n->header, "from %s", node_ip(n));
 
@@ -2595,11 +2732,15 @@ void node_init_outgoing(struct gnutella_node *n)
 			"Bye-Packet: 0.1\r\n"
 			"Accept-Encoding: deflate\r\n"
 			"X-Live-Since: %s\r\n"
+			"%s"
 			"\r\n",
 			n->proto_major, n->proto_minor,
 			ip_port_to_gchar(listen_ip(), listen_port),
 			ip_to_gchar(n->ip),
-			version_string, start_rfc822_date);
+			version_string, start_rfc822_date,
+			current_peermode == NODE_P_NORMAL ? "" :
+			current_peermode == NODE_P_LEAF ?
+				"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n");
 
 	g_assert(len < sizeof(buf));
 
@@ -3005,6 +3146,23 @@ gboolean node_sent_ttl0(struct gnutella_node *n)
 }
 
 /*
+ * node_bye_flags
+ *
+ * Send a BYE message to all the nodes matching the specified flags.
+ */
+static void node_bye_flags(guint32 mask, gint code, gchar *message)
+{
+	GSList *l;
+
+	for (l = sl_nodes; l; l = l->next) {
+		struct gnutella_node *n = l->data;
+
+		if (n->flags & mask)
+			node_bye_if_writable(n, code, message);
+	}
+}
+
+/*
  * node_bye_all
  *
  * Send a BYE message to all the nodes.
@@ -3112,14 +3270,99 @@ gboolean node_remove_worst(gboolean non_local)
 }
 
 /*
+ * node_send_qrt
+ *
+ * Initiate sending of the query routing table.
+ */
+static void node_send_qrt(struct gnutella_node *n, gpointer query_table)
+{
+	g_assert(current_peermode == NODE_P_LEAF);
+	g_assert(NODE_IS_ULTRA(n));
+	g_assert(query_table != NULL);
+
+	n->qrt_update = qrt_update_create(n, n->query_table);
+	n->query_table = qrt_ref(query_table);
+	node_send_patch_step(n);
+}
+
+/*
+ * node_send_patch_step
+ *
+ * Incrementally send the routing table patch to our Ultrapeer.
+ */
+static void node_send_patch_step(struct gnutella_node *n)
+{
+	gboolean ok;
+
+	g_assert(NODE_IS_ULTRA(n));
+	g_assert(n->qrt_update);
+
+	if (qrt_update_send_next(n->qrt_update))
+		return;
+
+	/*
+	 * Finished sending.
+	 */
+
+	ok = qrt_update_was_ok(n->qrt_update);
+
+	if (dbg > 2)
+		printf("QRP patch sending to %s done (%s)\n",
+			node_ip(n), ok ? "OK" : "FAILED");
+
+	if (!ok) {
+		qrt_unref(n->query_table);
+		n->query_table = NULL;			/* Table was not successfuly sent */
+	}
+
+	qrt_update_free(n->qrt_update);
+	n->qrt_update = NULL;
+}
+
+/*
  * node_qrt_changed
  *
  * Invoked when our Query Routing Table changed.
  */
-void node_qrt_changed(void)
+void node_qrt_changed(gpointer query_table)
 {
-	// XXX
-	g_warning("node_qrt_changed called!");
+	struct gnutella_node *n;
+	GSList *l;
+
+	/*
+	 * If we're not a leaf node, do nothing.
+	 */
+
+	if (current_peermode != NODE_P_LEAF)
+		return;
+
+	/*
+	 * Abort sending of any patch to ultranodes.
+	 */
+
+    for (l = sl_nodes; l; l = l->next) {
+        n = l->data;
+		if (n->qrt_update != NULL) {
+			qrt_update_free(n->qrt_update);
+			n->qrt_update = NULL;
+			qrt_unref(n->query_table);
+			n->query_table = NULL;		/* Sending did not complete */
+		}
+	}
+
+	/*
+	 * Start sending of patch wrt to the previous table to all ultranodes.
+	 * (n->query_table holds the last query table we successfully sent)
+	 */
+
+    for (l = sl_nodes; l; l = l->next) {
+        n = l->data;
+
+		if (!NODE_IS_WRITABLE(n) || !NODE_IS_ULTRA(n))
+			continue;
+
+		node_send_qrt(n, query_table);
+	}
 }
 
 void node_close(void)
@@ -3254,6 +3497,15 @@ void node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
 	gnutella_node_t *node = node_find_by_handle(n); 
 
 	flags->peermode = node->peermode;
+	if (node->peermode == NODE_P_UNKNOWN) {
+		if (node->attrs & NODE_A_ULTRA)
+			flags->peermode = NODE_P_ULTRA;
+		else if (node->attrs & NODE_A_CAN_ULTRA)
+			flags->peermode = NODE_P_LEAF;
+		else if (node->attrs & NODE_A_NO_ULTRA)
+			flags->peermode = NODE_P_NORMAL;
+	}
+
 	flags->incoming = node->flags & NODE_F_INCOMING;
 	flags->temporary = node->flags & NODE_F_TMP;
 	flags->writable = NODE_IS_WRITABLE(node);
