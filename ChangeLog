@@ -1,5 +1,12 @@
 # since last version
 
+- (2003.08.04 - RAM)
+ * Made a distinction between "connection timeout" and "data timeout" for
+   asynchronous HTTP requests.
+ * More endianness IP fixes.
+ * If we can't connect to a push-proxy, try swapping the IP as a temp hack.
+   (legacy servents were sending the IP in little-endian form in GGEP "PUSH".)
+
 - (2003.08.03 - RAM)
  * Only compute the "escaped filename" for downloads once, not at every
    saving of the download queue.
