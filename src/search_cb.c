@@ -28,17 +28,12 @@
 #include "gui.h"
 #include <gdk/gdkkeysyms.h>
 
+#include "gtkcolumnchooser.h"
 #include "search_cb.h"
 #include "search_gui.h"
 #include "statusbar_gui.h"
 
 RCSID("$Id$");
-
-#ifndef USE_GTK2
-#include "gtkcolumnchooser.h" 
-#endif
-
-
 
 static gchar tmpstr[4096];
 
@@ -919,16 +914,14 @@ void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
     g_return_if_fail(search != NULL);
     g_assert(search->clist != NULL);
 
-#ifndef USE_GTK2
     {
         GtkWidget * cc;
 
         /* FIXME: needs to work also in Gtk2 or be replaced. */
-        cc = gtk_column_chooser_new(GTK_CLIST(search->clist));
+        cc = gtk_column_chooser_new(GTK_WIDGET(search->clist));
         gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 
         /* GtkColumnChooser takes care of cleaning up itself */
     }
-#endif
 }
 
