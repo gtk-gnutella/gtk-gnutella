@@ -4,6 +4,7 @@ INCLUDES = \
 	@GTK_CFLAGS@
 
 bin_PROGRAMS = gtk-gnutella
+CLEANFILES = interface-glade.c interface-glade.h *.bak
 
 # interface.h must come before any .c files that include it so that it is built.
 gtk_gnutella_SOURCES = \
@@ -35,10 +36,18 @@ GLADE_WARNING2 = "  \"glade --write-source\" failed.  To ignore any changes to"
 GLADE_WARNING3 = "  gtk-gnutella.glade, cd to the src directory, and run"
 GLADE_WARNING4 = "  touch interface-glade.c interface-glade.h support.h support.c"
 
+#
+# Glade generates:
+#	interface-glade.c interface-glade.h
+#   callbacks-glade.c callbacks-glade.h (which we don't care about)
+#   support.c support.h
+#
+# We then generate interface.h and interface.h via ./extern.tcl
+#
 
-interface-glade.h interface-glade.c support.h support.c: ../gtk-gnutella.glade
+glade_files:
 	@echo glade --write-source ../gtk-gnutella.glade
 	@glade --write-source ../gtk-gnutella.glade || (echo $(GLADE_WARNING1);echo $(GLADE_WARNING2);echo $(GLADE_WARNING3);echo $(GLADE_WARNING4))
-
-interface.h interface.c: interface-glade.c interface-glade.h extern.tcl
+	rm -f callbacks-glade.c callbacks-glade.h
 	./extern.tcl 
+
