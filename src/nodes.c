@@ -492,7 +492,7 @@ void node_real_remove(gnutella_node_t *node)
 	if (node->rx)
 		rx_free(node->rx);
 
-	g_free(node);
+	wfree(node, sizeof(*node));
 }
 
 /*
@@ -2460,7 +2460,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	 * Create new node.
 	 */
 
-	n = (struct gnutella_node *) g_malloc0(sizeof(struct gnutella_node));
+	n = (struct gnutella_node *) walloc0(sizeof(struct gnutella_node));
     n->node_handle = node_request_handle(n);
     
     n->id = node_id++;

@@ -124,7 +124,7 @@ static gpointer rx_link_init(rxdrv_t *rx, gpointer args)
 
 	g_assert(rx);
 
-	attr = g_malloc(sizeof(*attr));
+	attr = walloc(sizeof(*attr));
 
 	attr->fd = rx->node->socket->file_desc;
 	attr->bio = NULL;
@@ -148,7 +148,7 @@ static void rx_link_destroy(rxdrv_t *rx)
 		attr->bio = NULL;					/* Paranoid */
 	}
 
-	g_free(rx->opaque);
+	wfree(attr, sizeof(*attr));
 }
 
 /*

@@ -410,12 +410,12 @@ static struct dl_server *allocate_server(guchar *guid, guint32 ip, guint16 port)
 	struct dl_key *key;
 	struct dl_server *server;
 
-	key = g_malloc(sizeof(*key));
+	key = walloc(sizeof(*key));
 	key->ip = ip;
 	key->port = port;
 	key->guid = atom_guid_get(guid);
 
-	server = g_malloc0(sizeof(*server));
+	server = walloc0(sizeof(*server));
 	server->key = key;
 
 	g_hash_table_insert(dl_by_host, key, server);
@@ -433,7 +433,7 @@ static struct dl_server *allocate_server(guchar *guid, guint32 ip, guint16 port)
 		gpointer x;					/* Don't care about freeing values */
 		gboolean existed;
 
-		ipk = g_malloc(sizeof(*ipk));
+		ipk = walloc(sizeof(*ipk));
 		ipk->ip = ip;
 		ipk->port = port;
 
@@ -441,7 +441,7 @@ static struct dl_server *allocate_server(guchar *guid, guint32 ip, guint16 port)
 		g_hash_table_insert(dl_by_ip, ipk, server);
 
 		if (existed)
-			g_free(ipkey);			/* Old key superseded by new one */
+			wfree(ipkey, sizeof(*ipk));	/* Old key superseded by new one */
 	}
 
 	return server;
@@ -477,12 +477,12 @@ static void free_server(struct dl_server *server)
 
 		if (g_hash_table_lookup_extended(dl_by_ip, &ipk, &ipkey, &x)) {
 			g_hash_table_remove(dl_by_ip, &ipk);
-			g_free(ipkey);
+			wfree(ipkey, sizeof(struct dl_ip));
 		}
 	}
 
-	g_free(server->key);
-	g_free(server);
+	wfree(server->key, sizeof(struct dl_key));
+	wfree(server, sizeof(*server));
 }
 
 /*
@@ -2397,7 +2397,7 @@ static void create_download(
 	 * Initialize download, creating new server if needed.
 	 */
 
-	d = (struct download *) g_malloc0(sizeof(struct download));
+	d = (struct download *) walloc0(sizeof(struct download));
 
 	server = get_server(guid, ip, port);
 	if (server == NULL)
@@ -2636,7 +2636,7 @@ abort_download:
  */
 static struct download *download_clone(struct download *d)
 {
-	struct download *cd = g_malloc(sizeof(struct download));
+	struct download *cd = walloc(sizeof(struct download));
 
 	*cd = *d;		/* Struct copy */
 
@@ -2818,7 +2818,7 @@ static void download_free_removed(void)
 		sl_downloads = g_slist_remove(sl_downloads, d);
 		sl_unqueued = g_slist_remove(sl_unqueued, d);
 
-		g_free(d);
+		wfree(d, sizeof(*d));
 	}
 
 	g_slist_free(sl_removed);
@@ -5665,7 +5665,7 @@ void download_close(void)
 		download_remove_from_server(d, TRUE);
 		atom_str_free(d->file_name);
 
-		g_free(d);
+		wfree(d, sizeof(*d));
 	}
 
 	g_slist_free(sl_downloads);

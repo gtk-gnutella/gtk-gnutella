@@ -57,7 +57,7 @@ squeue_t *sq_make(struct gnutella_node *node)
 {
     squeue_t	*sq;
 
-    sq = g_malloc(sizeof(*sq));
+    sq = walloc(sizeof(*sq));
 
 	/*
 	 * By initializing `last_sent' to the current time and not to `0', we
@@ -113,7 +113,7 @@ void sq_free(squeue_t *sq)
 	g_assert(sq);
 
 	sq_clear(sq);
-	g_free(sq);
+	wfree(sq, sizeof(*sq));
 }
 
 /*

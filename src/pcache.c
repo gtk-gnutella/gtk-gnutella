@@ -378,7 +378,7 @@ static void free_cached_pong(struct cached_pong *cp)
 	if (--(cp->refcount) != 0)
 		return;
 
-	g_free(cp);
+	wfree(cp, sizeof(*cp));
 }
 
 
@@ -882,7 +882,7 @@ static struct cached_pong *record_fresh_pong(
 
 	g_assert(type >= 0 && type < HCACHE_MAX);
 
-	cp = (struct cached_pong *) g_malloc(sizeof(struct cached_pong));
+	cp = (struct cached_pong *) walloc(sizeof(struct cached_pong));
 
 	cp->refcount = 1;
 	cp->node_id = n->id;

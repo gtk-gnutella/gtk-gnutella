@@ -521,7 +521,7 @@ static void fi_free(struct dl_file_info *fi)
 		atom_sha1_free(fi->cha1);
 	if (fi->chunklist) {
 		for (l = fi->chunklist; l; l = l->next)
-			g_free(l->data);
+			wfree(l->data, sizeof(struct dl_file_chunk));
 		g_slist_free(fi->chunklist);
 	}
 	if (fi->alias) {
@@ -529,7 +529,7 @@ static void fi_free(struct dl_file_info *fi)
 			atom_str_free(l->data);
 		g_slist_free(fi->alias);
 	}
-	g_free(fi);
+	wfree(fi, sizeof(*fi));
 }
 
 /*
@@ -549,7 +549,7 @@ static void fi_resize(struct dl_file_info *fi, guint32 size)
 	g_assert(fi->size < size);
 	g_assert(!fi->hashed);
 
-	fc = g_malloc0(sizeof(*fc));
+	fc = walloc0(sizeof(*fc));
 	fc->from = fi->size;
 	fc->to = size;
 	fc->status = DL_CHUNK_EMPTY;
@@ -920,7 +920,7 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 		goto eof;
 	}
 
-	fi = g_malloc0(sizeof(struct dl_file_info));
+	fi = walloc0(sizeof(struct dl_file_info));
    
 	fi->file_name = atom_str_get(file);
 	fi->path = atom_str_get(path);
@@ -980,7 +980,7 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 			break;
 		case FILE_INFO_FIELD_CHUNK:
 			memcpy(tmpchunk, tmp, sizeof(tmpchunk));
-			fc = g_malloc0(sizeof(*fc));
+			fc = walloc0(sizeof(*fc));
 			/*
 			 * In version 1, fields were written in native form.
 			 * Starting with version 2, they are written in network order.
@@ -1778,7 +1778,7 @@ void file_info_retrieve(void)
 		}
 
 		if (!fi) {
-			fi = g_malloc0(sizeof(struct dl_file_info));
+			fi = walloc0(sizeof(struct dl_file_info));
 			fi->refcount = 0;
 			aliases = NULL;
 		}
@@ -1806,7 +1806,7 @@ void file_info_retrieve(void)
 			fi->cha1 = extract_sha1(line);
 		else if (!strncmp(line, "CHNK ", 5)) {
 			if (sscanf(line + 5, "%u %u %u", &from, &to, &status)) {
-				fc = g_malloc0(sizeof(struct dl_file_chunk));
+				fc = walloc0(sizeof(struct dl_file_chunk));
 				fc->from = from;
 				fc->to = to;
 				if (status == DL_CHUNK_BUSY) status = DL_CHUNK_EMPTY;
@@ -1931,7 +1931,7 @@ static struct dl_file_info *file_info_create(
 	struct dl_file_chunk *fc;
 	struct stat st;
 
-	fi = g_malloc0(sizeof(struct dl_file_info));
+	fi = walloc0(sizeof(struct dl_file_info));
 	fi->file_name = file_info_new_outname(file);	/* Get unique file name */
 	fi->path = atom_str_get(path);
 	if (sha1)
@@ -1946,7 +1946,7 @@ static struct dl_file_info *file_info_create(
 		g_warning("file_info_create(): "
 			"assuming file \"%s\" is complete up to %lu bytes",
 			fi->file_name, (gulong) st.st_size);
-		fc = g_malloc0(sizeof(struct dl_file_chunk));
+		fc = walloc0(sizeof(struct dl_file_chunk));
 		fc->from = 0;
 		fi->size = fc->to = st.st_size;
 		fc->status = DL_CHUNK_DONE;
@@ -2325,7 +2325,7 @@ void file_info_merge_adjacent(struct dl_file_info *fi)
 			) {
 				fc1->to = fc2->to;
 				fi->chunklist = g_slist_remove(fi->chunklist, fc2);
-				g_free(fc2);
+				wfree(fc2, sizeof(*fc2));
 				restart = 1;
 				break;
 			}
@@ -2393,7 +2393,7 @@ again:
 
 		} else if ((fc->from == from) && (fc->to > to)) {
 
-			nfc = g_malloc(sizeof(struct dl_file_chunk));
+			nfc = walloc(sizeof(struct dl_file_chunk));
 			nfc->from = to;
 			nfc->to = fc->to;
 			nfc->status = fc->status;
@@ -2407,7 +2407,7 @@ again:
 
 		} else if ((fc->from < from) && (fc->to >= to)) {
 
-			nfc = g_malloc(sizeof(struct dl_file_chunk));
+			nfc = walloc(sizeof(struct dl_file_chunk));
 			nfc->from = from;
 			nfc->to = to;
 			nfc->status = status;
@@ -2415,7 +2415,7 @@ again:
 			g_slist_insert(fi->chunklist, nfc, n+1);
 
 			if (fc->to > to) {
-				nfc = g_malloc(sizeof(struct dl_file_chunk));
+				nfc = walloc(sizeof(struct dl_file_chunk));
 				nfc->from = to;
 				nfc->to = fc->to;
 				nfc->status = fc->status;
@@ -2432,7 +2432,7 @@ again:
 
 			guint32 tmp;
 
-			nfc = g_malloc(sizeof(struct dl_file_chunk));
+			nfc = walloc(sizeof(struct dl_file_chunk));
 			nfc->from = from;
 			nfc->to = fc->to;
 			nfc->status = status;

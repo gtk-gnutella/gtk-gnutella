@@ -574,7 +574,7 @@ static gpointer tx_deflate_init(txdrv_t *tx, gpointer args)
 
 	g_assert(tx);
 
-	outz = g_malloc(sizeof(*outz));
+	outz = walloc(sizeof(*outz));
 
 	outz->zalloc = NULL;
 	outz->zfree = NULL;
@@ -583,13 +583,13 @@ static gpointer tx_deflate_init(txdrv_t *tx, gpointer args)
 	ret = deflateInit(outz, Z_DEFAULT_COMPRESSION);
 
 	if (ret != Z_OK) {
-		g_free(outz);
+		wfree(outz, sizeof(*outz));
 		g_warning("unable to initialize compressor for node %s: %s",
 			node_ip(tx->node), zlib_strerror(ret));
 		return NULL;
 	}
 
-	attr = g_malloc(sizeof(*attr));
+	attr = walloc(sizeof(*attr));
 
 	attr->nd = targs->nd;
 	attr->cq = targs->cq;
@@ -656,12 +656,12 @@ static void tx_deflate_destroy(txdrv_t *tx)
 		g_warning("while freeing compressor for node %s: %s",
 			node_ip(tx->node), zlib_strerror(ret));
 
-	g_free(attr->outz);
+	wfree(attr->outz, sizeof(*attr->outz));
 
 	if (attr->tm_ev)
 		cq_cancel(attr->cq, attr->tm_ev);
 
-	g_free(tx->opaque);
+	wfree(attr, sizeof(*attr));
 }
 
 /*

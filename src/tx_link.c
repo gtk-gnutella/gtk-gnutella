@@ -90,7 +90,7 @@ static gpointer tx_link_init(txdrv_t *tx, gpointer args)
 
 	g_assert(tx);
 
-	attr = g_malloc(sizeof(*attr));
+	attr = walloc(sizeof(*attr));
 
 	/*
 	 * Because we handle servicing of the upper layers explicitely within
@@ -119,7 +119,7 @@ static void tx_link_destroy(txdrv_t *tx)
 
 	bsched_source_remove(attr->bio);
 
-	g_free(tx->opaque);
+	wfree(attr, sizeof(*attr));
 }
 
 /*

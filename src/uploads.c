@@ -234,7 +234,7 @@ static gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push
 {
 	gnutella_upload_t *u;
 
-	u = (gnutella_upload_t *) g_malloc0(sizeof(gnutella_upload_t));
+	u = (gnutella_upload_t *) walloc0(sizeof(gnutella_upload_t));
     u->upload_handle = upload_new_handle(u);
 
 	u->socket = s;
@@ -443,7 +443,7 @@ static void upload_free_resources(gnutella_upload_t *u)
  */
 static gnutella_upload_t *upload_clone(gnutella_upload_t *u)
 {
-	gnutella_upload_t *cu = g_malloc(sizeof(gnutella_upload_t));
+	gnutella_upload_t *cu = walloc(sizeof(gnutella_upload_t));
 
 	*cu = *u;		/* Struct copy */
 
@@ -677,7 +677,7 @@ static void upload_remove_v(
     upload_fire_upload_removed(u, reason ? errbuf : NULL);
 
 	upload_free_resources(u);
-	g_free(u);
+	wfree(u, sizeof(*u));
 
 	uploads = g_slist_remove(uploads, (gpointer) u);
 }
@@ -819,7 +819,7 @@ static struct mesh_info_key *mi_key_make(guint32 ip, guchar *sha1)
 {
 	struct mesh_info_key *mik;
 
-	mik = g_malloc(sizeof(*mik));
+	mik = walloc(sizeof(*mik));
 	mik->ip = ip;
 	mik->sha1 = atom_sha1_get(sha1);
 
@@ -831,7 +831,7 @@ static void mi_key_free(struct mesh_info_key *mik)
 	g_assert(mik);
 
 	atom_sha1_free(mik->sha1);
-	g_free(mik);
+	wfree(mik, sizeof(*mik));
 }
 
 static guint mi_key_hash(gconstpointer key)
@@ -856,7 +856,7 @@ static struct mesh_info_val *mi_val_make(guint32 stamp)
 {
 	struct mesh_info_val *miv;
 
-	miv = g_malloc(sizeof(*miv));
+	miv = walloc(sizeof(*miv));
 	miv->stamp = stamp;
 	miv->cq_ev = NULL;
 
@@ -870,7 +870,7 @@ static void mi_val_free(struct mesh_info_val *miv)
 	if (miv->cq_ev)
 		cq_cancel(callout_queue, miv->cq_ev);
 
-	g_free(miv);
+	wfree(miv, sizeof(*miv));
 }
 
 /*
@@ -2322,7 +2322,7 @@ void upload_close(void)
 		if (UPLOAD_IS_SENDING(u) && !u->accounted)
 			upload_stats_file_aborted(u);
 		upload_free_resources(u);
-		g_free(u);
+		wfree(u, sizeof(*u));
 	}
 
     idtable_destroy(upload_handle_map);
@@ -2340,15 +2340,15 @@ gnet_upload_info_t *upload_get_info(gnet_upload_t uh)
     gnutella_upload_t *u = upload_find_by_handle(uh); 
     gnet_upload_info_t *info;
 
-    info = g_new(gnet_upload_info_t, 1);
+    info = walloc(sizeof(*info));
 
-    info->name          = u->name ? g_strdup(u->name) : NULL;
+    info->name          = u->name ? atom_str_get(u->name) : NULL;
     info->ip            = u->ip;
     info->file_size     = u->file_size;
     info->range_start   = u->skip;
     info->range_end     = u->end;
     info->start_date    = u->start_date;
-    info->user_agent    = u->user_agent ? g_strdup(u->user_agent) : NULL;
+    info->user_agent    = u->user_agent ? atom_str_get(u->user_agent) : NULL;
     info->upload_handle = u->upload_handle;
 	info->push          = u->push;
 
@@ -2360,11 +2360,11 @@ void upload_free_info(gnet_upload_info_t *info)
     g_assert(info != NULL);
 
 	if (info->user_agent)
-		g_free(info->user_agent);
+		atom_str_free(info->user_agent);
 	if (info->name)
-		g_free(info->name);
+		atom_str_free(info->name);
 
-    g_free(info);
+    wfree(info, sizeof(*info));
 }
 
 void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)

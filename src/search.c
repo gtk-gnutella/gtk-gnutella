@@ -44,6 +44,8 @@ RCSID("$Id$");
 #define g_hash_table_thaw(x) /* The function is deprecated. It does nothing */
 #endif
 
+#define MUID_SIZE	16
+
 struct sent_node_data {
 	guint32 ip;
 	guint16 port;
@@ -164,7 +166,7 @@ static gint sent_node_compare(gconstpointer a, gconstpointer b)
 static gboolean search_free_sent_node(
 	gpointer node, gpointer value, gpointer udata)
 {
-	g_free(node);
+	wfree(node, sizeof(struct sent_node_data));
 	return TRUE;
 }
 
@@ -177,7 +179,7 @@ static void search_free_sent_nodes(search_ctrl_t *sch)
 static void mark_search_sent_to_node(
 	search_ctrl_t *sch, gnutella_node_t *n)
 {
-	struct sent_node_data *sd = g_new(struct sent_node_data, 1);
+	struct sent_node_data *sd = walloc(sizeof(*sd));
 	sd->ip = n->ip;
 	sd->port = n->port;
 	g_hash_table_insert(sch->sent_nodes, sd, (void *) 1);
@@ -1213,7 +1215,7 @@ void search_close(gnet_search_t sh)
 			g_source_remove(sch->reissue_timeout_id);
 
 		for (m = sch->muids; m; m = m->next)
-			g_free(m->data);
+			wfree(m->data, MUID_SIZE);
 
 		g_slist_free(sch->muids);
 		search_free_sent_nodes(sch);
@@ -1244,7 +1246,7 @@ void search_reissue(gnet_search_t sh)
 	if (dbg)
 		printf("reissuing search %s.\n", sch->query);
 
-	muid = (guchar *) g_malloc(16);
+	muid = (guchar *) walloc(MUID_SIZE);
 	guid_query_muid(muid, FALSE);
 
 	search_add_new_muid(sch, muid);
@@ -1392,7 +1394,7 @@ void search_start(gnet_search_t sh)
 		 */
 
 		if (sch->muids == NULL) {
-			guchar *muid = (guchar *) g_malloc(16);
+			guchar *muid = (guchar *) walloc(MUID_SIZE);
 
 			guid_query_muid(muid, TRUE);
 			search_add_new_muid(sch, muid);

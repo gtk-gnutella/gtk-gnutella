@@ -28,6 +28,7 @@
 
 #include "zlib_util.h"
 #include "misc.h"		/* For RCSID */
+#include "walloc.h"
 
 RCSID("$Id$");
 
@@ -70,7 +71,7 @@ zlib_deflater_t *zlib_deflater_make(gpointer data, gint len, gint level)
 	z_streamp outz;
 	gint ret;
 
-	outz = g_malloc(sizeof(*outz));
+	outz = walloc(sizeof(*outz));
 	outz->zalloc = NULL;
 	outz->zfree = NULL;
 	outz->opaque = NULL;
@@ -78,12 +79,12 @@ zlib_deflater_t *zlib_deflater_make(gpointer data, gint len, gint level)
 	ret = deflateInit(outz, level ? level : Z_DEFAULT_COMPRESSION);
 
 	if (ret != Z_OK) {
-		g_free(outz);
+		wfree(outz, sizeof(*outz));
 		g_warning("unable to initialize compressor: %s", zlib_strerror(ret));
 		return NULL;
 	}
 
-	zd = g_malloc(sizeof(*zd));
+	zd = walloc(sizeof(*zd));
 
 	zd->opaque = outz;
 
@@ -174,7 +175,7 @@ gint zlib_deflate(zlib_deflater_t *zd, gint amount)
 		if (ret != Z_OK)
 			g_warning("while freeing compressor: %s", zlib_strerror(ret));
 
-		g_free(outz);
+		wfree(outz, sizeof(*outz));
 		zd->opaque = NULL;
 
 		return 0;				/* Done */
@@ -185,7 +186,7 @@ gint zlib_deflate(zlib_deflater_t *zd, gint amount)
 		ret = deflateEnd(outz);
 		if (ret != Z_OK && ret != Z_DATA_ERROR)
 			g_warning("while freeing compressor: %s", zlib_strerror(ret));
-		g_free(outz);
+		wfree(outz, sizeof(*outz));
 		zd->opaque = NULL;
 
 		return -1;				/* Error! */
@@ -211,13 +212,13 @@ void zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
 		if (ret != Z_OK && ret != Z_DATA_ERROR)
 			g_warning("while freeing compressor: %s", zlib_strerror(ret));
 
-		g_free(outz);
+		wfree(outz, sizeof(*outz));
 	}
 
 	if (output)
 		g_free(zd->out);
 
-	g_free(zd);
+	wfree(zd, sizeof(*zd));
 }
 
 /*

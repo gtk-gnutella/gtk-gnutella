@@ -132,7 +132,7 @@ static gpointer rx_inflate_init(rxdrv_t *rx, gpointer args)
 
 	g_assert(rx);
 
-	inz = g_malloc(sizeof(*inz));
+	inz = walloc(sizeof(*inz));
 
 	inz->zalloc = NULL;
 	inz->zfree = NULL;
@@ -141,13 +141,13 @@ static gpointer rx_inflate_init(rxdrv_t *rx, gpointer args)
 	ret = inflateInit(inz);
 
 	if (ret != Z_OK) {
-		g_free(inz);
+		wfree(inz, sizeof(*inz));
 		g_warning("unable to initialize decompressor for node %s: %s",
 			node_ip(rx->node), zlib_strerror(ret));
 		return NULL;
 	}
 
-	attr = g_malloc(sizeof(*attr));
+	attr = walloc(sizeof(*attr));
 
 	attr->inz = inz;
 	attr->flags = 0;
@@ -174,8 +174,8 @@ static void rx_inflate_destroy(rxdrv_t *rx)
 		g_warning("while freeing decompressor for node %s: %s",
 			node_ip(rx->node), zlib_strerror(ret));
 
-	g_free(attr->inz);
-	g_free(rx->opaque);
+	wfree(attr->inz, sizeof(*attr->inz));
+	wfree(attr, sizeof(*attr));
 }
 
 /*

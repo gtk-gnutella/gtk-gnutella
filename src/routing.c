@@ -138,7 +138,7 @@ void init_routing_data(struct gnutella_node *node)
 	 * Allocate and link some routing data to it
 	 */
 
-	route = (struct route_data *) g_malloc(sizeof(struct route_data));
+	route = (struct route_data *) walloc(sizeof(struct route_data));
 
 	route->node = node;
 	route->saved_messages = 0;
@@ -342,7 +342,7 @@ static void remove_one_message_reference(struct route_data *rd)
 		 */
 
 		if (rd->node == NULL && rd->saved_messages == 0)
-			g_free(rd);
+			wfree(rd, sizeof(*rd));
 	} else
 		g_assert(rd == &fake_route);
 }
@@ -389,7 +389,7 @@ void routing_node_remove(struct gnutella_node *node)
 	 */
 
 	if (route->saved_messages == 0)
-		g_free(route);
+		wfree(route, sizeof(*route));
 }
 
 /* Adds a new message in the routing tables */
