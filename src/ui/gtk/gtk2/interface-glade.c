@@ -13615,24 +13615,23 @@ create_dlg_prefs_ul_tab (void)
   GtkWidget *table87;
   GtkWidget *label786;
   GtkWidget *label788;
-  GtkWidget *label790;
-  GtkWidget *viewport84;
-  GtkWidget *label_library_rescan_time;
   GtkWidget *viewport83;
   GtkWidget *label_library_rescan_timestamp;
+  GtkWidget *viewport84;
+  GtkWidget *label_library_rescan_time;
   GtkWidget *label785;
   GtkWidget *viewport112;
   GtkWidget *frame_qrp_table_info;
   GtkWidget *table89;
   GtkWidget *vseparator5;
-  GtkWidget *label808;
-  GtkWidget *label809;
-  GtkWidget *label810;
+  GtkWidget *label820;
+  GtkWidget *label821;
   GtkWidget *label814;
   GtkWidget *label815;
   GtkWidget *label816;
-  GtkWidget *label820;
-  GtkWidget *label821;
+  GtkWidget *label808;
+  GtkWidget *label809;
+  GtkWidget *label810;
   GtkWidget *viewport94;
   GtkWidget *label_qrp_generation;
   GtkWidget *viewport96;
@@ -13668,9 +13667,6 @@ create_dlg_prefs_ul_tab (void)
   GtkWidget *label_qrp_computation_time;
   GtkWidget *viewport90;
   GtkWidget *label_qrp_patch_computation_time;
-  GtkWidget *label799;
-  GtkWidget *label800;
-  GtkWidget *label798;
   GtkWidget *label791;
   GtkWidget *viewport113;
   GtkWidget *frame_qrp_patch_info;
@@ -13954,7 +13950,7 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_show (frame101);
   gtk_container_add (GTK_CONTAINER (viewport111), frame101);
 
-  table87 = gtk_table_new (2, 3, FALSE);
+  table87 = gtk_table_new (2, 2, FALSE);
   gtk_widget_set_name (table87, "table87");
   gtk_widget_show (table87);
   gtk_container_add (GTK_CONTAINER (frame101), table87);
@@ -13966,7 +13962,7 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_set_name (label786, "label786");
   gtk_widget_show (label786);
   gtk_table_attach (GTK_TABLE (table87), label786, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label786), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label786), 4, 0);
@@ -13975,51 +13971,42 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_set_name (label788, "label788");
   gtk_widget_show (label788);
   gtk_table_attach (GTK_TABLE (table87), label788, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label788), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label788), 4, 0);
 
-  label790 = gtk_label_new (_("seconds"));
-  gtk_widget_set_name (label790, "label790");
-  gtk_widget_show (label790);
-  gtk_table_attach (GTK_TABLE (table87), label790, 2, 3, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label790), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label790), 4, 0);
-
-  viewport84 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport84, "viewport84");
-  gtk_widget_show (viewport84);
-  gtk_table_attach (GTK_TABLE (table87), viewport84, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (GTK_FILL), 0, 0);
-  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport84), GTK_SHADOW_NONE);
-
-  label_library_rescan_time = gtk_label_new ("18");
-  gtk_widget_set_name (label_library_rescan_time, "label_library_rescan_time");
-  gtk_widget_show (label_library_rescan_time);
-  gtk_container_add (GTK_CONTAINER (viewport84), label_library_rescan_time);
-  gtk_label_set_justify (GTK_LABEL (label_library_rescan_time), GTK_JUSTIFY_CENTER);
-  gtk_misc_set_alignment (GTK_MISC (label_library_rescan_time), 1, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label_library_rescan_time), 5, 0);
-
   viewport83 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport83, "viewport83");
   gtk_widget_show (viewport83);
-  gtk_table_attach (GTK_TABLE (table87), viewport83, 1, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+  gtk_table_attach (GTK_TABLE (table87), viewport83, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport83), GTK_SHADOW_NONE);
 
-  label_library_rescan_timestamp = gtk_label_new ("2003-12-26 17:54:23");
+  label_library_rescan_timestamp = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_library_rescan_timestamp, "label_library_rescan_timestamp");
   gtk_widget_show (label_library_rescan_timestamp);
   gtk_container_add (GTK_CONTAINER (viewport83), label_library_rescan_timestamp);
   gtk_label_set_justify (GTK_LABEL (label_library_rescan_timestamp), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label_library_rescan_timestamp), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_library_rescan_timestamp), 5, 0);
+
+  viewport84 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport84, "viewport84");
+  gtk_widget_show (viewport84);
+  gtk_table_attach (GTK_TABLE (table87), viewport84, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport84), GTK_SHADOW_NONE);
+
+  label_library_rescan_time = gtk_label_new ("[place holder]");
+  gtk_widget_set_name (label_library_rescan_time, "label_library_rescan_time");
+  gtk_widget_show (label_library_rescan_time);
+  gtk_container_add (GTK_CONTAINER (viewport84), label_library_rescan_time);
+  gtk_label_set_justify (GTK_LABEL (label_library_rescan_time), GTK_JUSTIFY_CENTER);
+  gtk_misc_set_alignment (GTK_MISC (label_library_rescan_time), 1, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label_library_rescan_time), 5, 0);
 
   label785 = gtk_label_new (_("Library scanning:"));
   gtk_widget_set_name (label785, "label785");
@@ -14052,60 +14039,6 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
 
-  label808 = gtk_label_new (_("Keywords:"));
-  gtk_widget_set_name (label808, "label808");
-  gtk_widget_show (label808);
-  gtk_table_attach (GTK_TABLE (table89), label808, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label808), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label808), 4, 0);
-
-  label809 = gtk_label_new (_("Slots:"));
-  gtk_widget_set_name (label809, "label809");
-  gtk_widget_show (label809);
-  gtk_table_attach (GTK_TABLE (table89), label809, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label809), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label809), 4, 0);
-
-  label810 = gtk_label_new (_("Filled slots:"));
-  gtk_widget_set_name (label810, "label810");
-  gtk_widget_show (label810);
-  gtk_table_attach (GTK_TABLE (table89), label810, 0, 1, 2, 3,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label810), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label810), 4, 0);
-
-  label814 = gtk_label_new (_("Generation:"));
-  gtk_widget_set_name (label814, "label814");
-  gtk_widget_show (label814);
-  gtk_table_attach (GTK_TABLE (table89), label814, 3, 4, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label814), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label814), 4, 0);
-
-  label815 = gtk_label_new (_("Filled ratio:"));
-  gtk_widget_set_name (label815, "label815");
-  gtk_widget_show (label815);
-  gtk_table_attach (GTK_TABLE (table89), label815, 3, 4, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label815), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label815), 4, 0);
-
-  label816 = gtk_label_new (_("Conflict ratio:"));
-  gtk_widget_set_name (label816, "label816");
-  gtk_widget_show (label816);
-  gtk_table_attach (GTK_TABLE (table89), label816, 3, 4, 2, 3,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label816), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label816), 4, 0);
-
   label820 = gtk_label_new ("%");
   gtk_widget_set_name (label820, "label820");
   gtk_widget_show (label820);
@@ -14122,15 +14055,69 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label821), 0, 0.5);
 
+  label814 = gtk_label_new (_("Generation:"));
+  gtk_widget_set_name (label814, "label814");
+  gtk_widget_show (label814);
+  gtk_table_attach (GTK_TABLE (table89), label814, 3, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label814), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label814), 4, 0);
+
+  label815 = gtk_label_new (_("Filled ratio:"));
+  gtk_widget_set_name (label815, "label815");
+  gtk_widget_show (label815);
+  gtk_table_attach (GTK_TABLE (table89), label815, 3, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label815), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label815), 4, 0);
+
+  label816 = gtk_label_new (_("Conflict ratio:"));
+  gtk_widget_set_name (label816, "label816");
+  gtk_widget_show (label816);
+  gtk_table_attach (GTK_TABLE (table89), label816, 3, 4, 2, 3,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label816), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label816), 4, 0);
+
+  label808 = gtk_label_new (_("Keywords:"));
+  gtk_widget_set_name (label808, "label808");
+  gtk_widget_show (label808);
+  gtk_table_attach (GTK_TABLE (table89), label808, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label808), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label808), 4, 0);
+
+  label809 = gtk_label_new (_("Slots:"));
+  gtk_widget_set_name (label809, "label809");
+  gtk_widget_show (label809);
+  gtk_table_attach (GTK_TABLE (table89), label809, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label809), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label809), 4, 0);
+
+  label810 = gtk_label_new (_("Filled slots:"));
+  gtk_widget_set_name (label810, "label810");
+  gtk_widget_show (label810);
+  gtk_table_attach (GTK_TABLE (table89), label810, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label810), 0, 0.5);
+  gtk_misc_set_padding (GTK_MISC (label810), 4, 0);
+
   viewport94 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport94, "viewport94");
   gtk_widget_show (viewport94);
   gtk_table_attach (GTK_TABLE (table89), viewport94, 4, 5, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport94), GTK_SHADOW_NONE);
 
-  label_qrp_generation = gtk_label_new ("1");
+  label_qrp_generation = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_generation, "label_qrp_generation");
   gtk_widget_show (label_qrp_generation);
   gtk_container_add (GTK_CONTAINER (viewport94), label_qrp_generation);
@@ -14142,11 +14129,11 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_set_name (viewport96, "viewport96");
   gtk_widget_show (viewport96);
   gtk_table_attach (GTK_TABLE (table89), viewport96, 4, 5, 2, 3,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport96), GTK_SHADOW_NONE);
 
-  label_qrp_conflict_ratio = gtk_label_new ("25");
+  label_qrp_conflict_ratio = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_conflict_ratio, "label_qrp_conflict_ratio");
   gtk_widget_show (label_qrp_conflict_ratio);
   gtk_container_add (GTK_CONTAINER (viewport96), label_qrp_conflict_ratio);
@@ -14158,11 +14145,11 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_set_name (viewport95, "viewport95");
   gtk_widget_show (viewport95);
   gtk_table_attach (GTK_TABLE (table89), viewport95, 4, 5, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport95), GTK_SHADOW_NONE);
 
-  label_qrp_fill_ratio = gtk_label_new ("10");
+  label_qrp_fill_ratio = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_fill_ratio, "label_qrp_fill_ratio");
   gtk_widget_show (label_qrp_fill_ratio);
   gtk_container_add (GTK_CONTAINER (viewport95), label_qrp_fill_ratio);
@@ -14174,11 +14161,11 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_set_name (viewport92, "viewport92");
   gtk_widget_show (viewport92);
   gtk_table_attach (GTK_TABLE (table89), viewport92, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport92), GTK_SHADOW_NONE);
 
-  label_qrp_slots = gtk_label_new ("1M");
+  label_qrp_slots = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_slots, "label_qrp_slots");
   gtk_widget_show (label_qrp_slots);
   gtk_container_add (GTK_CONTAINER (viewport92), label_qrp_slots);
@@ -14189,11 +14176,11 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_set_name (viewport91, "viewport91");
   gtk_widget_show (viewport91);
   gtk_table_attach (GTK_TABLE (table89), viewport91, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport91), GTK_SHADOW_NONE);
 
-  label_qrp_hashed_keywords = gtk_label_new ("12345678");
+  label_qrp_hashed_keywords = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_hashed_keywords, "label_qrp_hashed_keywords");
   gtk_widget_show (label_qrp_hashed_keywords);
   gtk_container_add (GTK_CONTAINER (viewport91), label_qrp_hashed_keywords);
@@ -14205,11 +14192,11 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_set_name (viewport93, "viewport93");
   gtk_widget_show (viewport93);
   gtk_table_attach (GTK_TABLE (table89), viewport93, 1, 2, 2, 3,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport93), GTK_SHADOW_NONE);
 
-  label_qrp_slots_filled = gtk_label_new ("1234567");
+  label_qrp_slots_filled = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_slots_filled, "label_qrp_slots_filled");
   gtk_widget_show (label_qrp_slots_filled);
   gtk_container_add (GTK_CONTAINER (viewport93), label_qrp_slots_filled);
@@ -14238,7 +14225,7 @@ create_dlg_prefs_ul_tab (void)
   gtk_widget_show (frame_qrp_statistics);
   gtk_container_add (GTK_CONTAINER (viewport110), frame_qrp_statistics);
 
-  table88 = gtk_table_new (3, 5, FALSE);
+  table88 = gtk_table_new (3, 4, FALSE);
   gtk_widget_set_name (table88, "table88");
   gtk_widget_show (table88);
   gtk_container_add (GTK_CONTAINER (frame_qrp_statistics), table88);
@@ -14305,7 +14292,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport85), GTK_SHADOW_NONE);
 
-  label_qrp_indexing_timestamp = gtk_label_new ("2003-12-26 17:54:23");
+  label_qrp_indexing_timestamp = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_indexing_timestamp, "label_qrp_indexing_timestamp");
   gtk_widget_show (label_qrp_indexing_timestamp);
   gtk_container_add (GTK_CONTAINER (viewport85), label_qrp_indexing_timestamp);
@@ -14321,7 +14308,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport88), GTK_SHADOW_NONE);
 
-  label_qrp_indexing_time = gtk_label_new ("25");
+  label_qrp_indexing_time = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_indexing_time, "label_qrp_indexing_time");
   gtk_widget_show (label_qrp_indexing_time);
   gtk_container_add (GTK_CONTAINER (viewport88), label_qrp_indexing_time);
@@ -14337,7 +14324,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport86), GTK_SHADOW_NONE);
 
-  label_qrp_timestamp = gtk_label_new ("2003-12-26 17:54:23");
+  label_qrp_timestamp = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_timestamp, "label_qrp_timestamp");
   gtk_widget_show (label_qrp_timestamp);
   gtk_container_add (GTK_CONTAINER (viewport86), label_qrp_timestamp);
@@ -14353,7 +14340,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport87), GTK_SHADOW_NONE);
 
-  label_qrp_patch_timestamp = gtk_label_new ("2003-12-26 17:54:23");
+  label_qrp_patch_timestamp = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_patch_timestamp, "label_qrp_patch_timestamp");
   gtk_widget_show (label_qrp_patch_timestamp);
   gtk_container_add (GTK_CONTAINER (viewport87), label_qrp_patch_timestamp);
@@ -14369,7 +14356,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport89), GTK_SHADOW_NONE);
 
-  label_qrp_computation_time = gtk_label_new ("25");
+  label_qrp_computation_time = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_computation_time, "label_qrp_computation_time");
   gtk_widget_show (label_qrp_computation_time);
   gtk_container_add (GTK_CONTAINER (viewport89), label_qrp_computation_time);
@@ -14385,37 +14372,13 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport90), GTK_SHADOW_NONE);
 
-  label_qrp_patch_computation_time = gtk_label_new ("25");
+  label_qrp_patch_computation_time = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_patch_computation_time, "label_qrp_patch_computation_time");
   gtk_widget_show (label_qrp_patch_computation_time);
   gtk_container_add (GTK_CONTAINER (viewport90), label_qrp_patch_computation_time);
   gtk_label_set_justify (GTK_LABEL (label_qrp_patch_computation_time), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label_qrp_patch_computation_time), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_qrp_patch_computation_time), 5, 0);
-
-  label799 = gtk_label_new (_("seconds"));
-  gtk_widget_set_name (label799, "label799");
-  gtk_widget_show (label799);
-  gtk_table_attach (GTK_TABLE (table88), label799, 4, 5, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label799), 0, 0.5);
-
-  label800 = gtk_label_new (_("seconds"));
-  gtk_widget_set_name (label800, "label800");
-  gtk_widget_show (label800);
-  gtk_table_attach (GTK_TABLE (table88), label800, 4, 5, 2, 3,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label800), 0, 0.5);
-
-  label798 = gtk_label_new (_("seconds"));
-  gtk_widget_set_name (label798, "label798");
-  gtk_widget_show (label798);
-  gtk_table_attach (GTK_TABLE (table88), label798, 4, 5, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label798), 0, 0.5);
 
   label791 = gtk_label_new (_("Query Routing Protocol:"));
   gtk_widget_set_name (label791, "label791");
@@ -14425,7 +14388,7 @@ create_dlg_prefs_ul_tab (void)
   viewport113 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport113, "viewport113");
   gtk_widget_show (viewport113);
-  gtk_box_pack_start (GTK_BOX (hbox259), viewport113, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox259), viewport113, TRUE, TRUE, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport113), GTK_SHADOW_OUT);
 
   frame_qrp_patch_info = gtk_frame_new (NULL);
@@ -14481,7 +14444,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport97), GTK_SHADOW_NONE);
 
-  label_qrp_patch_raw_length = gtk_label_new ("954065");
+  label_qrp_patch_raw_length = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_patch_raw_length, "label_qrp_patch_raw_length");
   gtk_widget_show (label_qrp_patch_raw_length);
   gtk_container_add (GTK_CONTAINER (viewport97), label_qrp_patch_raw_length);
@@ -14497,7 +14460,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport98), GTK_SHADOW_NONE);
 
-  label_qrp_patch_length = gtk_label_new ("13456");
+  label_qrp_patch_length = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_patch_length, "label_qrp_patch_length");
   gtk_widget_show (label_qrp_patch_length);
   gtk_container_add (GTK_CONTAINER (viewport98), label_qrp_patch_length);
@@ -14513,7 +14476,7 @@ create_dlg_prefs_ul_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport99), GTK_SHADOW_NONE);
 
-  label_qrp_patch_comp_ratio = gtk_label_new ("10");
+  label_qrp_patch_comp_ratio = gtk_label_new ("[place holder]");
   gtk_widget_set_name (label_qrp_patch_comp_ratio, "label_qrp_patch_comp_ratio");
   gtk_widget_show (label_qrp_patch_comp_ratio);
   gtk_container_add (GTK_CONTAINER (viewport99), label_qrp_patch_comp_ratio);
@@ -14604,24 +14567,23 @@ create_dlg_prefs_ul_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table87, "table87");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label786, "label786");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label788, "label788");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label790, "label790");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, viewport84, "viewport84");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label_library_rescan_time, "label_library_rescan_time");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, viewport83, "viewport83");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label_library_rescan_timestamp, "label_library_rescan_timestamp");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, viewport84, "viewport84");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label_library_rescan_time, "label_library_rescan_time");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label785, "label785");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, viewport112, "viewport112");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame_qrp_table_info, "frame_qrp_table_info");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, table89, "table89");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, vseparator5, "vseparator5");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label808, "label808");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label809, "label809");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label810, "label810");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label820, "label820");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label821, "label821");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label814, "label814");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label815, "label815");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label816, "label816");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label820, "label820");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label821, "label821");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label808, "label808");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label809, "label809");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label810, "label810");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, viewport94, "viewport94");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label_qrp_generation, "label_qrp_generation");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, viewport96, "viewport96");
@@ -14657,9 +14619,6 @@ create_dlg_prefs_ul_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label_qrp_computation_time, "label_qrp_computation_time");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, viewport90, "viewport90");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label_qrp_patch_computation_time, "label_qrp_patch_computation_time");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label799, "label799");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label800, "label800");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label798, "label798");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, label791, "label791");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, viewport113, "viewport113");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ul_tab, frame_qrp_patch_info, "frame_qrp_patch_info");
