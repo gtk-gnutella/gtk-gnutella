@@ -35,6 +35,8 @@
 
 RCSID("$Id$");
 
+#define UPDATE_MIN	300		/* Update screen every 5 minutes at least */
+
 static gchar gui_tmp[4096];
 
 static void nodes_gui_update_node_info(gnet_node_info_t *n);
@@ -289,11 +291,19 @@ void nodes_gui_update_nodes_display(time_t now)
 	gint current_page;
 	static GtkNotebook *notebook = NULL;
 
+	/*
+	 * Usually don't perform updates if nobody is watching.  However,
+	 * we do need to perform periodic cleanup of dead entries or the
+	 * memory usage will grow.  Perform an update every UPDATE_MIN minutes
+	 * at least.
+	 *		--RAM, 28/12/2003
+	 */
+
 	if (notebook == NULL)
 		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
 
 	current_page = gtk_notebook_get_current_page(notebook);
-	if (current_page != nb_main_page_gnet)
+	if (current_page != nb_main_page_gnet && now - last_update < UPDATE_MIN)
 		return;
 
     if (last_update == now)
