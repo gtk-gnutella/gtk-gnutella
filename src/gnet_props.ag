@@ -1197,7 +1197,7 @@ prop = {
 		  "png;ps;pdf;"
 		  "ram;rm;rar;rpm;rom;"
 		  "s3m;smc;smd;stm;"
-		  "tar;tgz;txt;"
+		  "tar;tgz;torrent;txt;"
 		  "vob;voc;vqf;"
 		  "wav;wma;wmv;"
 		  "xm;"
