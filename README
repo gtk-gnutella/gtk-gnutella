@@ -1,17 +1,214 @@
+[This software is now maintained by Raphael_Manfredi@pobox.com]
+
+Gtk-Gnutella README
+
+Contents:
+
+Introduction
+Installation
+Quick Start
+Bug Reports
+Developers, Programmers and Other Tech Info
+Original Message from Olrick
+
+
+Introduction
+------------
+
+Gtk-Gnutella is a GUI based Gnutella Client. It's based upon the original
+look of Gnutella v0.5.
+
+It's a fully featured Gnutella Client designed to share any type of file
+the user wishes to share.
+
+It's a Unix clone, and it needs GTK+ (1.2 or above). Gnome is not needed. It
+is currently developed and tested under Linux (Redhat 6). It is known to run
+at least on Linux and FreeBSD (on 80x86 machines). It is released under the
+GNU Public License (GPL).
+
+For further information on Gnutella, try:
+http://gnutella.wego.com
+
+The Gtk-Gnutella Home Page is:
+http://gtk-gnutella.sourceforge.net
+
+The Project Page is:
+http://sourceforge.net/projects/gtk-gnutella/
+
+Open Discussion Forums, try:
+http://www.gnutellaforums.com/
+
+
+Installation
+------------
+
+You may need to obtain the latest version of Glade to compile this
+without warning messages. See freshmeat.net or other Linux sites for
+updates.
+
+See the file "INSTALL" for further information.
+
+
+Quick Start
+-----------
+
+Operation is fairly straight forward. Default values are set for getting
+started, unless you are behind a firewall. This section should get you
+started quickly.
+
+You should have two directories created to store your files, "downloads"
+and "done".
+
+Connect to the Internet, start the program and it will try to contact
+"gnutellums.com:6346" and obtain a few hosts to connect to. This is a
+service provided by dss.clip2.com, another is
+"router.limewire.com:6346".
+
+If you don't get a connection, quit the program and restart it to get a
+few more hosts from the server. If you still don't get connected, you
+may need to check your Internet connection and DNS (etc/resolv.conf)
+list. If your Netscape or Konqueror web browser isn't working, you
+got a problem. In normal operations you should be connected within
+30 or so seconds.
+
+Click on "Config" in the upper left hand box to get the Configuration
+Screen, then select your downloads and done directories. Select the
+"done" directory as "Paths to Files" also.
+
+Once you are connected to a few hosts (2 or 3 is good) you can perform
+a search. Click on "Search" in the upper left hand box to get the Search
+Screen, then type in a keyword or two. Gnutella uses "AND" for keyword
+searches, so if you type two words both will have to be in the file name
+to get a return. In most situations it takes 60 seconds for search
+results to be returned. Be patient! You are searching about 20,000 hosts.
+
+Once you see a file name you like, click on it and press the button at
+the bottom "Downloads Selected Files" and the file will be queued for
+download. Click on "Downloads" in the upper left hand box to see what's
+going on.
+
+In the Config Screen, "Paths to Files" is the shared directory, they
+are the files you will share to the network. You should always share
+your done directory. When downloaded files are complete, they are
+moved to the done directory and then can be uploaded by others. Sharing
+is the whole point of this program.
+
+The client is pretty smart and won't "hammer" a host, even if you select
+all the files a host has, if the host is busy it will only try that host
+every so often. Select as many files as you like.
+
+The default search selection option is "pick all", so when you click
+on a file that several other hosts have, it will automatically select
+any file in the list that is the same size or larger. This gives you
+a better chance of completing a file if a host drops off the
+network. Duplicate names are handled in the download manager, so
+don't worry about that. It's better to wait a little bit for all the
+search results to come in, then click on file names you like.
+
+Once a file is in the "done" directory, unless you pick a larger file,
+the download manager will not download that file again.
+
+There are more features, click around and get used to the program. Most
+things make sense. Visit Gnutella web sites for more information on
+Gnutella, the protocol and network etiquette.
+
+
+Bug Reports
+-----------
+
+This software will always be in a state of development, improvements
+being added all the time. Stable version will be posted from time
+to time, but your feedback is needed by developers in order to
+make a great program!
+
+Please post any Bug Reports to the Bug Manager on the sourceforge
+project page.
+
+
+Developers, Programmers and Other Tech Info
+-------------------------------------------
+
+The following information is for Developers only.
+
+* Run multi copies on the same computer:
+
+If you simply do a "make" rather than a "make install" a version
+of Gtk-Gnutella will appear in your "src" directory. Create a new
+directory called "test1", make a copy of the config file found in
+home dir/.gtk-gnutella called "config" and place it into the "test1"
+directory.
+
+Place the compiled version of Gtk-Gnutella into that directory,
+add a "download" and "done" directory if you like, and from a shell prompt
+type "./gtk-gnutella". The program will check for the local config file
+first and use it. The hosts file will now be read and saved to the local
+directory. If you change the port number in the config file, you can
+run as many copies as you want from different directories. You can also
+have them connect to each other by using IP 127.0.0.1:6346 (or whatever
+port).
+
+If you set the config variable "stop_host_get" the client will
+not try to connect to any outside hosts, thus you can manually connect to
+your local IP:port of the other client you have running for testing. It
+won't timeout the host because of inactivity like it normally would.
+
+* Debug variable use:
+
+A config variable called "dbg" is used to print debug information to
+the terminal window. It has 10 levels, the higher the level, the more
+information is printed. Don't set it to 10 unless you like to see way
+too much information! Data such as raw search packets are shown at level 7.
+Small warnings and other stuff is found at level 1 or 2.
+
+* Developer info:
+
+Feel free to sign up and participate in the mail list. To get up to
+speed, you might want to read some of the past messages in the archives
+and see what we have been up to lately.
+
+Watch out when modifying code that you un-allocate any allocated
+memory. The function "strdup()" will allocate memory that needs to be
+"free()" in some cases. maloc is used a lot.
+
+When editing the code, please turn off any options in your editor that
+replaces tabs with spaces. We use tabs that create 3 spaces in our source
+files. And turn off line wrapping!
+
+Please use the patch manager found on the main development page to post
+any patches you may have come up with. It allows you to upload the patch
+file as a binary. Posting to a email list usually wraps lines and messes
+up a patch file. You should let everyone on the mail list know that
+you posted a patch to the patch manager.
+
+If you find bugs, please use the bug manager on sourceforge (or fix them!).
+Once you get a copy from anon CVS (see the CVS page for instructions),
+and you make some modifications, from a shell make sure you cd into the
+"gtk-gnutella-current" directory, type "cvs diff -u > output-diff.txt"
+and a patch file will be created, referencing the current CVS version.
+You can then upload this file so others can patch their version with
+your changes. We use the "unified" format for patches, thus the "-u".
+If your patch requires other patches, you should include them also.
+Before starting a big project, you may want to ask the list if anyone
+else is working on that fix so you don't duplicate work.
+
+
+Original Message from Olrick
+----------------------------
+(this was the original README message from the original author)
 
 This is gtk-gnutella, a screen-shots-only-made clone of window$ gnutella.
 
 Why 'screen-shots-only' ? because I have ONLY linux installed on my box :)
-So I have never used or even seen a working window$ gnutella - only screenshots...
-(screenshots of gnutella version 0.50c)
+So I have never used or even seen a working window$ gnutella -
+only screenshots...  (screenshots of gnutella version 0.50c)
 
 I have used Glade 0.5.7 to create the interface.
 
-This soft is awfully written, I know... but I spent no more than a few days on it :) 
+This soft is awfully written, I know... but I spent no more than a few
+days on it :)
 So if you feel like improving it... there's no problem at all :)
-
 
 gnutella official "unofficial" web site is at http://gnutella.wego.com/
 
-Olrick <olrick@users.sourceforge.net>
+Olrick <olrick@users.sourceforge.NOSPAMnet>
 

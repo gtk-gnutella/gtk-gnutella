@@ -1,3 +1,55 @@
+# v 0.14   2001.09.12
+
+- New project admin Raphael Manfredi <Raphael_Manfredi@pobox.com>
+- Integrated all pending (to date) patches on sourceforge.
+- Fixed all memory leaks found by dmalloc.
+- Fixed segmentation faults.
+- Use more efficient pattern scanning to grep through the library file names
+- Searches in local library now use begining-of-word matchings
+- Configuration now saved in ~/.gtk-gnutella/config
+- Many new configuration variables, none settable through GUI yet
+- More efficient handling of host catching list to avoid long startup times
+- Can limit uploads per IP address (from config file only)
+- Better error reporting during read/write errors
+- Show more information about connected nodes (TX/RX/Drop/Bad)
+- Installed node kicking policies
+- Avoid hammering hosts from which we download via smarter scheduling
+- Handle upload and download resuming
+- Uses much less CPU under stable operation, but can still be improved.
+- Lots of other minor fixes and many hours of testing
+
+# v 0.13   2001.05.25
+
+- Searches now show client, busy and MP3 tag info
+- Columns now saved correctly
+- Downloads do not hammer host, wait 20 seconds+, same IP handled
+- Downloads behave better and I found the segfault bug!
+- Search select all feature added (config option)
+- Search strict AND filter feature added (config option)
+- Debug assist code added, prints hex, dbg variable added
+- Some readme doc updates
+- Client identifies itself properly as Gtk-Gnutella 'GTKG' to the net
+- 503 and other returns handled better, queue is better
+- Lots of other fixes and many hours testing
+
+ stuff from Goswin:
+
+- parse for any 2xx http header
+- recognise 5xx busy headers
+- check for non resuming clients
+- don't download the same filename twice
+- dequeue one download once a second in the main loop
+- download_pickup_queued disabled
+- move file from completed dir to partial dir when a bigger one with
+  the same name is downloaded (both dirs should be on the same drive,
+  otherwise the copying will take so long on big files that most
+  connections will timeout).
+- requeue on timeout
+- don't remember that you gone into push mode, try a direct connect
+  each time.
+- accept long urls on uploads such as a proxy would send
+
+
 # v 0.13	  2001.01.05
 
 - File Sharing (woohoo!)
