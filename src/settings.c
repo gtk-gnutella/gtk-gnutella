@@ -173,7 +173,7 @@ G_INLINE_FUNC glong settings_getpagesize(void)
  *
  * returns the amount of physical RAM in KB, or zero in case of failure
  */
-G_INLINE_FUNC glong settings_getphysmemsize(void)
+G_INLINE_FUNC gulong settings_getphysmemsize(void)
 {
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 /* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
