@@ -2237,17 +2237,28 @@ sha1_hash_is_uptodate(struct shared_file *sf)
 		return FALSE;
 	}
 
+	if (too_big_for_gnutella(buf.st_size)) {
+		g_warning("File is too big to be shared: \"%s\"", sf->file_path);
+		g_tree_remove(sha1_to_share, sf->sha1_digest);
+		sf->flags &= ~SHARE_F_HAS_DIGEST;
+		return FALSE;
+	}
+
 	/*
 	 * If file was modified since the last time we computed the SHA1,
 	 * recompute it and tell them that the SHA1 we have might not be
 	 * accurate.
 	 */
 
-	if (sf->mtime != buf.st_mtime) {
+	if (
+			sf->mtime != buf.st_mtime ||
+			sf->file_size != (filesize_t) buf.st_size
+	) {
 		g_warning("shared file #%d \"%s\" changed, recomputing SHA1",
 			sf->file_index, sf->file_path);
 		sf->flags |= SHARE_F_RECOMPUTING;
 		sf->mtime = buf.st_mtime;
+		sf->file_size = buf.st_size;
 		request_sha1(sf);
 		return FALSE;
 	}
