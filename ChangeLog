@@ -1,6 +1,9 @@
 # since last version
 
 - (2002.11.30 - RAM)
+ * Was passing 'len' as a macro argument, which was then copying this into
+   a local variable called 'len' => was getting garbage into that value.
+ * Do not store trailing NUL within aliases (in fileinfo trailer).
  * Regenerated configuration files via autogen.sh: was complaining that I
    needed automake-1.4 on my system, which I have!  Grr, I hate auto* tools.
  * First take at the separation between the regular "host" cache and the
