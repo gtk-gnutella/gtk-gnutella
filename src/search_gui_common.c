@@ -941,6 +941,62 @@ void search_matched(search_t *sch, results_set_t *rs)
   	g_string_free(vinfo, TRUE);
 }
 
+
+/*
+ * search_gui_autoselect_cmp:
+ *
+ * Determines wether two records are equal enough to warrant
+ * autoselection. fuzzy_threshold (etc) is an argument to avoid
+ * fetching the property too often.
+ */
+gboolean search_gui_autoselect_cmp(record_t *rc, record_t *rc2, 
+    gboolean search_autoselect,
+    gboolean search_autoselect_ident,
+    gboolean search_autoselect_fuzzy,
+    guint32 fuzzy_threshold)
+{
+    gboolean name_match;
+    gboolean size_match;
+    
+    if (NULL == rc || NULL == rc2)
+        return FALSE;
+
+    /* Ok, this should be obvious, right? */
+    if (rc == rc2)
+        return TRUE;
+
+    /* Records with the same SHA1 (if available) always match */
+    if (
+        rc->sha1 != NULL && 
+        rc2->sha1 != NULL &&
+        memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0
+    ) {
+        return TRUE;
+    }
+
+    if (!search_autoselect)
+        return FALSE;
+
+    /* Check wether sizes match */;
+    size_match = (search_autoselect_ident) ?
+        (rc->size == rc2->size) :
+        (rc2->size >= rc->size);
+    
+    if (!size_match)
+        return FALSE;
+
+    /* Check wether the names match */
+    name_match = (search_autoselect_fuzzy) ? (
+        fuzzy_compare(rc2->name, rc->name) * 100 >= 
+            (fuzzy_threshold << FUZZY_SHIFT)
+        ) : (
+            !strcmp(rc2->name, rc->name)
+        );
+
+    return name_match;
+}
+
+
 /***
  *** Callbacks
  ***/
