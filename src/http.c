@@ -119,9 +119,17 @@ gboolean http_send_status(
 	if		(code >= 500 && code <= 599)	header_size = 1024;
 	else if	(code >= 400 && code <= 499)	header_size = 512;
 
-	if (code == 416 && keep_alive) {
-		header_size = sizeof(header);
-		cb_flags |= HTTP_CBF_SHOW_RANGES;
+	/*
+	 * Activate X-Available-Ranges: emission on 416 and 2xx provided the
+	 * connection will be kept alive.
+	 */
+
+	if (keep_alive) {
+		if (code == 416) {
+			header_size = sizeof(header);		/* Was reduced above for 4xx */
+			cb_flags |= HTTP_CBF_SHOW_RANGES;
+		} else if (code >= 200 && code <= 299)
+			cb_flags |= HTTP_CBF_SHOW_RANGES;
 	}
 
 	/*
