@@ -1,5 +1,9 @@
 # since last version
 
+- (2002.11.23 - Richard)
+ * Added key != NULL assertion to atom_get and atom_free.
+ * Made dmesh cope with buggy alternate locations from LimeWire.
+
 - (2002.11.22 - RAM)
  * Will now ban gtk-gnutella/0.90 and gtk-gnutella/0.91u because they are
    harmful (could corrupt Gnutella traffic).
