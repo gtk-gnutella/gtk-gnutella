@@ -12,10 +12,10 @@
 ?X: and add the name of the unit desired to the ?MAKE: dependency line.
 ?X: 
 ?MAKE:End: $W cat gtkversion d_libxml2 libs d_iptos remotectrl \
-	d_deflate d_inflate i_zlib icu gtkgversion
+	d_deflate d_inflate i_zlib icu gtkgversion d_enablenls
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
-?T:frontend persistent zlib remote iptos unicode
+?T:frontend persistent zlib remote iptos unicode nls
 : end of configuration questions
 echo " "
 echo "End of configuration questions."
@@ -43,16 +43,21 @@ iptos=no
 case "$d_iptos" in
 "$define") iptos=yes;;
 esac
+nls=no
+case "$d_enablenls" in
+"$define") nls=yes;;
+esac
 $cat >&4 <<EOM
 
 Feature Summary (Version $gtkgversion):
 -------------------------------------------------
 GUI front-end                      : $frontend
 Persistent filters                 : $persistent
-Experimental remote control        : $remote
 Gnutella traffic compression       : $zlib
 IP TOS (Type of Service)           : $iptos
+NLS (Native Language Support)      : $nls
 Extended non-roman charset support : $unicode
+Experimental remote control        : $remote
 -------------------------------------------------
 EOM
 
