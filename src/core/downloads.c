@@ -7947,14 +7947,19 @@ const gchar *
 build_url_from_download(struct download *d) 
 {
 	static gchar url_tmp[1024];
+	const gchar *sha1;
 
 	g_return_val_if_fail(d, NULL);
    
-	if (d->sha1) {
+	sha1 = d->sha1;
+	if (sha1 == NULL)
+		sha1 = d->file_info->sha1;
+
+	if (sha1) {
 		gm_snprintf(url_tmp, sizeof(url_tmp),
 			"http://%s/uri-res/N2R?urn:sha1:%s",
 			 ip_port_to_gchar(download_ip(d), download_port(d)),
-			 sha1_base32(d->sha1));
+			 sha1_base32(sha1));
 	} else {
 		gchar *buf = url_escape(d->file_name);
 
@@ -7970,9 +7975,8 @@ build_url_from_download(struct download *d)
 	 	* -- Richard, 30 Apr 2002
 	 	*/
 
-		if (buf != d->file_name) {
+		if (buf != d->file_name)
 			G_FREE_NULL(buf);
-		}
 	}
 	
 	return url_tmp;
