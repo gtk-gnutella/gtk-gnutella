@@ -122,6 +122,24 @@ static void sig_alarm(int n)
 	}
 }
 
+#ifdef MALLOC_STATS
+static gint signal_malloc = 0;
+
+/*
+ * sig_malloc
+ *
+ * Record USR1 or USR2 signal in `signal_malloc'.
+ */
+static void sig_malloc(int n)
+{
+	switch (n) {
+	case SIGUSR1: signal_malloc = 1; break;
+	case SIGUSR2: signal_malloc = 2; break;
+	default: break;
+	}
+}
+#endif /* MALLOC_STATS */
+
 /*
  * gtk_gnutella_atexit
  *
@@ -356,6 +374,16 @@ static gboolean main_timer(gpointer p)
 		gtk_gnutella_exit(1);
 	}
 
+#ifdef MALLOC_STATS
+	if (signal_malloc) {
+		if (signal_malloc == 1)
+			alloc_dump(stdout, FALSE);
+		else if (signal_malloc == 2)
+			alloc_reset(stdout, FALSE);
+		signal_malloc = 0;
+	}
+#endif
+
 	bsched_timer();					/* Scheduling update */
 	host_timer();					/* Host connection */
     hcache_timer();
@@ -494,6 +522,11 @@ gint main(gint argc, gchar **argv, gchar **env)
 
 	signal(SIGINT, sig_ignore);		/* ignore SIGINT in adns (e.g. for gdb) */
 	signal(SIGPIPE, sig_ignore);	/* Not SIG_IGN, see comment */
+
+#ifdef MALLOC_STATS
+	signal(SIGUSR1, sig_malloc);
+	signal(SIGUSR2, sig_malloc);
+#endif
 
 	gm_savemain(argc, argv, env);	/* For gm_setproctitle() */
 

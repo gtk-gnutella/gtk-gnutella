@@ -43,6 +43,12 @@
 #error "TRACK_MALLOC and USE_DMALLOC are mutually exclusive"
 #endif
 
+#ifdef MALLOC_STATS
+#ifndef TRACK_MALLOC
+#define TRACK_MALLOC
+#endif
+#endif
+
 #if defined(TRACK_MALLOC) && !defined(MALLOC_SOURCE)
 
 #include "hashlist.h"
@@ -257,6 +263,11 @@ void leak_dump(gpointer o);
 void leak_close(gpointer o);
 
 #endif /* TRACK_MALLOC || TRACK_ZALLOC */
+
+#ifdef MALLOC_STATS
+void alloc_dump(FILE *f, gboolean total);
+void alloc_reset(FILE *f, gboolean total);
+#endif
 
 #endif /* _malloc_h_ */
 

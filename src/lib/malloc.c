@@ -34,11 +34,34 @@
 
 #if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC)
 RCSID("$Id$");
+
+/*
+ * When MALLOC_FRAMES is supplied, we keep information about the allocation
+ * stack frame and free stack frames.
+ *
+ * This turns on MALLOC_STATS automatically if not set.
+ *
+ * XXX need metaconfig checks for execinfo.h, backtrace() and
+ * backtrace_symbols().  Also, when GNU ld is used, -rdynamic must be
+ * added to the ld flags to get routine name information.
+ */
+
+#ifdef MALLOC_FRAMES
+#include <execinfo.h>
+
+#ifndef MALLOC_STATS
+#define MALLOC_STATS
 #endif
+
+#define FRAME_DEPTH		8	/* Size of allocation frame we keep around */
+
+#endif /* MALLOC_FRAMES */
+#endif /* TRACK_MALLOC || TRACK_ZALLOC */
 
 #ifdef TRACK_MALLOC
 
 #include "hashlist.h"
+#include "misc.h"
 #include "glib-missing.h"
 #define MALLOC_SOURCE	/* Avoid nasty remappings, but include signatures */
 #include "override.h"
@@ -63,6 +86,105 @@ struct block {
 
 static GHashTable *blocks = NULL;
 
+#ifdef MALLOC_FRAMES
+
+/*
+ * Structure keeping track of the allocation/free stack frames.
+ *
+ * Counts are signed because for realloc() frames, we count algebric
+ * quantities (in case the blocks are shrunk).
+ */
+struct frame {
+	void *stack[FRAME_DEPTH];	/* PC of callers */
+	gint len;					/* Number of valid entries in stack */
+	gint32 count;				/* Bytes allocated/freed since reset */
+	gint32 total_count;			/* Grand total for this stack frame */
+};
+
+/**
+ * Hashing routine for a "struct frame".
+ */
+static guint
+frame_hash(gconstpointer key)
+{
+	struct frame *f = (struct frame *) key;
+	extern guint binary_hash(const guchar *key, gint len);	/* in atoms.c */
+	
+	return binary_hash((gconstpointer) f->stack, f->len * sizeof(void *));
+}
+
+/**
+ * Comparison of two "struct frame" structures.
+ */
+static gint
+frame_eq(gconstpointer a, gconstpointer b)
+{
+	struct frame *fa = (struct frame *) a;
+	struct frame *fb = (struct frame *) b;
+
+	return fa->len == fb->len &&
+		0 == memcmp(fa->stack, fb->stack, fa->len * sizeof(void *));
+}
+
+#endif /* MALLOC_FRAMES */
+
+/*
+ * When MALLOC_STATS is supplied, we keep information about the amount
+ * of bytes allocated from a single point in the code, and the amount
+ * of it that has been freed.
+ *
+ * When compiling with MALLOC_STATS, it's best to use REMAP_ZALLOC
+ * as well since normally zalloc has its own block tracking features
+ * that will not be accounted for in the malloc stats.
+ */
+#ifdef MALLOC_STATS
+
+struct stats {
+	gchar *file;				/* Place where allocation took place */
+	gint line;					/* Line number */
+	gint blocks;				/* Live blocks since last "reset" */
+	gint total_blocks;			/* Total live blocks */
+	guint32 allocated;			/* Total allocated since last "reset" */
+	guint32 freed;				/* Total freed since last "reset" */
+	guint32 total_allocated;	/* Total allocated overall */
+	guint32 total_freed;		/* Total freed overall */
+	gint32 reallocated;			/* Total reallocated since last "reset" */
+	gint32 total_reallocated;	/* Total reallocated overall (algebric!) */
+#ifdef MALLOC_FRAMES
+	GHashTable *alloc_frames;	/* The frames where allocation took place */
+	GHashTable *free_frames;	/* The frames where free took place */
+	GHashTable *realloc_frames;	/* The frames where realloc took place */
+#endif /* MALLOC_FRAMES */
+};
+
+static GHashTable *stats = NULL; /* maps stats(file, line) -> stats */
+
+/**
+ * Hashing routine for "struct stats".
+ * Only the "file" and "line" fields are considered.
+ */
+static guint
+stats_hash(gconstpointer key)
+{
+	struct stats *s = (struct stats *) key;
+
+	return g_str_hash(s->file) ^ s->line;
+}
+
+/**
+ * Comparison of two "struct stats" structures.
+ * Only the "file" and "line" fields are considered.
+ */
+static gint
+stats_eq(gconstpointer a, gconstpointer b)
+{
+	struct stats *sa = (struct stats *) a;
+	struct stats *sb = (struct stats *) b;
+
+	return  sa->line == sb->line && 0 == strcmp(sa->file, sb->file);
+}
+#endif /* MALLOC_STATS */
+
 /*
  * malloc_init
  *
@@ -71,6 +193,10 @@ static GHashTable *blocks = NULL;
 static void malloc_init(void)
 {
 	blocks = g_hash_table_new(g_direct_hash, g_direct_equal);
+
+#ifdef MALLOC_STATS
+	stats = g_hash_table_new(stats_hash, stats_eq);
+#endif
 }
 
 /*
@@ -108,6 +234,11 @@ void malloc_close(void)
 	if (blocks == NULL)
 		return;
 
+#ifdef MALLOC_STATS
+	g_warning("aggregated memory usage statistics:");
+	alloc_dump(stderr, TRUE);
+#endif
+
 	leaksort = leak_init();
 
 	g_hash_table_foreach(blocks, malloc_log_block, leaksort);
@@ -122,15 +253,18 @@ void malloc_close(void)
  * Record object `o' allocated at `file' and `line' of size `s'.
  * Returns argument `o'.
  */
-gpointer malloc_record(gpointer o, guint32 s, gchar *file, gint line)
+gpointer malloc_record(gpointer o, guint32 sz, gchar *file, gint line)
 {
 	struct block *b;
+#ifdef MALLOC_STATS
+	struct stats *st;		/* Needed in case MALLOC_FRAMES is also set */
+#endif
 
 #ifdef TRANSPARENT
 	return o;
 #endif
 
-	if (o == NULL)				/* In case it's called externally */
+	if (o == NULL)			/* In case it's called externally */
 		return o;
 
 	if (blocks == NULL)
@@ -142,10 +276,59 @@ gpointer malloc_record(gpointer o, guint32 s, gchar *file, gint line)
 
 	b->file = file;
 	b->line = line;
-	b->size = s;
+	b->size = sz;
 	b->realloc = NULL;
 
+	if (g_hash_table_lookup(blocks, o))
+		g_warning("(%s:%d) reusing block 0x%lx, must have missed freeing",
+			file, line, (glong) o);
+
 	g_hash_table_insert(blocks, o, b);
+
+#ifdef MALLOC_STATS
+	{
+		struct stats s;
+
+		s.file = file;
+		s.line = line;
+
+		st = g_hash_table_lookup(stats, &s);
+
+		if (st == NULL) {
+			st = calloc(1, sizeof(*st));
+			st->file = file;
+			st->line = line;
+			g_hash_table_insert(stats, st, st);
+		}
+
+		st->total_blocks++;
+		st->blocks++;
+		st->allocated += sz;
+		st->total_allocated += sz;
+	}
+#endif /* MALLOC_STATS */
+#ifdef MALLOC_FRAMES
+	{
+		struct frame f;
+		struct frame *fr = NULL;
+
+		f.len = backtrace(f.stack, G_N_ELEMENTS(f.stack));
+
+		if (st->alloc_frames == NULL)
+			st->alloc_frames = g_hash_table_new(frame_hash, frame_eq);
+		else
+			fr = g_hash_table_lookup(st->alloc_frames, &f);
+
+		if (fr == NULL) {
+			fr = calloc(1, sizeof(*fr));
+			memcpy(fr->stack, f.stack, f.len * sizeof(void *));
+			g_hash_table_insert(st->alloc_frames, fr, fr);
+		}
+
+		fr->count += sz;
+		fr->total_count += sz;
+	}
+#endif /* MALLOC_FRAMES */
 
 	return o;
 }
@@ -192,6 +375,9 @@ static void free_record(gpointer o, gchar *file, gint line)
 	gpointer k;
 	gpointer v;
 	GSList *l;
+#ifdef MALLOC_STATS
+	struct stats *st;		/* Needed in case MALLOC_FRAMES is also set */
+#endif
 
 	if (blocks == NULL || !(g_hash_table_lookup_extended(blocks, o, &k, &v))) {
 		g_warning("(%s:%d) attempt to free block at 0x%lx twice?",
@@ -209,6 +395,63 @@ static void free_record(gpointer o, gchar *file, gint line)
 		free(r);
 	}
 	g_slist_free(b->realloc);
+
+#ifdef MALLOC_STATS
+	{
+		struct stats s;
+		guint32 alloc_size = b->size;
+
+		if (b->realloc != NULL) {
+			struct block *last = (struct block *) g_slist_last(b->realloc);
+			alloc_size = last->size;		/* Original allocation size */
+		}
+
+		s.file = b->file;
+		s.line = b->line;
+
+		st = g_hash_table_lookup(stats, &s);
+
+		if (st == NULL)
+			g_warning("(%s:%d) no allocation record of block 0x%lx from %s:%d?",
+				file, line, (gulong) o, b->file, b->line);
+		else {
+			st->freed += alloc_size;
+			st->total_freed += alloc_size;
+			if (st->total_blocks > 0)
+				st->total_blocks--;
+			else
+				g_warning("(%s:%d) live # of blocks was zero at free time?",
+					file, line);
+
+			/* We could free blocks allocated before "reset", don't warn */
+			if (st->blocks > 0)
+				st->blocks--;
+		}
+	}
+#endif /* MALLOC_STATS */
+#ifdef MALLOC_FRAMES
+	if (st != NULL) {
+		struct frame f;
+		struct frame *fr = NULL;
+
+		f.len = backtrace(f.stack, G_N_ELEMENTS(f.stack));
+
+		if (st->free_frames == NULL)
+			st->free_frames = g_hash_table_new(frame_hash, frame_eq);
+		else
+			fr = g_hash_table_lookup(st->free_frames, &f);
+
+		if (fr == NULL) {
+			fr = calloc(1, sizeof(*fr));
+			memcpy(fr->stack, f.stack, f.len * sizeof(void *));
+			g_hash_table_insert(st->free_frames, fr, fr);
+		}
+
+		fr->count += b->size;			/* Counts actual size, not original */
+		fr->total_count += b->size;
+	}
+#endif /* MALLOC_FRAMES */
+
 	free(b);
 }
 
@@ -251,6 +494,9 @@ gpointer realloc_track(gpointer o, guint32 s, gchar *file, gint line)
 	struct block *b;
 	struct block *r;
 	gpointer n;
+#ifdef MALLOC_STATS
+	struct stats *st;		/* Needed in case MALLOC_FRAMES is also set */
+#endif
 
 	if (o == NULL)
 		return malloc_track(s, file, line);
@@ -286,6 +532,48 @@ gpointer realloc_track(gpointer o, guint32 s, gchar *file, gint line)
 		g_hash_table_remove(blocks, o);
 		g_hash_table_insert(blocks, n, b);
 	}
+
+#ifdef MALLOC_STATS
+	{
+		struct stats s;
+
+		s.file = b->file;
+		s.line = b->line;
+
+		st = g_hash_table_lookup(stats, &s);
+
+		if (st == NULL)
+			g_warning("(%s:%d) no allocation record of block 0x%lx from %s:%d?",
+				file, line, (gulong) o, b->file, b->line);
+		else {
+			/* We store variations in size, as algebric quantities */
+			st->reallocated += b->size - r->size;
+			st->total_reallocated += b->size - r->size;
+		}
+	}
+#endif /* MALLOC_STATS */
+#ifdef MALLOC_FRAMES
+	if (st != NULL) {
+		struct frame f;
+		struct frame *fr = NULL;
+
+		f.len = backtrace(f.stack, G_N_ELEMENTS(f.stack));
+
+		if (st->realloc_frames == NULL)
+			st->realloc_frames = g_hash_table_new(frame_hash, frame_eq);
+		else
+			fr = g_hash_table_lookup(st->realloc_frames, &f);
+
+		if (fr == NULL) {
+			fr = calloc(1, sizeof(*fr));
+			memcpy(fr->stack, f.stack, f.len * sizeof(void *));
+			g_hash_table_insert(st->realloc_frames, fr, fr);
+		}
+
+		fr->count += b->size - r->size;
+		fr->total_count += b->size - r->size;
+	}
+#endif /* MALLOC_FRAMES */
 
 	return n;
 }
@@ -843,7 +1131,7 @@ static GString *string_str_track(GString *s, gchar *old, gchar *file, gint line)
 		free_record(old, file, line);
 		string_record(s->str, file, line);
 	} else
-		realloc_record(s->str, strlen(s->str) + 1, file, line);
+		realloc_record(s->str, s->len + 1, file, line);
 
 	return s;
 }
@@ -1154,4 +1442,243 @@ void leak_dump(gpointer o)
 }
 
 #endif /* TRACK_MALLOC || TRACK_ZALLOC */
+
+/***
+ *** This section contains general-purpose allocation summarizing routines that
+ *** are used when MALLOC_STATS is on.
+ ***
+ *** This is used to spot the places where allocation takes place, sorted
+ *** by decreasing allocation size.
+ ***/
+
+#ifdef MALLOC_STATS
+
+struct afiller {		/* Used by hash table iterator to fill alloc array */
+	struct stats **stats;
+	gint count;			/* Size of `stats' array */
+	gint idx;			/* Next index to be filled */
+};
+
+/**
+ * Compare two pointers to "struct stat" based on their allocation value,
+ * in reverse order. -- qsort() callback
+ */
+static gint stats_allocated_cmp(const void *p1, const void *p2)
+{
+	guint32 i1 = (*(struct stats **) p1)->allocated;
+	guint32 i2 = (*(struct stats **) p2)->allocated;
+
+	return
+		i1 == i2 ?  0 :
+		i1 < i2  ? +1 : -1;		/* Reverse order: largest first */
+}
+
+/**
+ * Compare two pointers to "struct stat" based on their total allocation value,
+ * in reverse order. -- qsort() callback
+ */
+static gint stats_total_allocated_cmp(const void *p1, const void *p2)
+{
+	guint32 i1 = (*(struct stats **) p1)->total_allocated;
+	guint32 i2 = (*(struct stats **) p2)->total_allocated;
+
+	return
+		i1 == i2 ?  0 :
+		i1 < i2  ? +1 : -1;		/* Reverse order: largest first */
+}
+
+/**
+ * Compare two pointers to "struct stat" based on their residual value,
+ * in reverse order. -- qsort() callback
+ */
+static gint stats_residual_cmp(const void *p1, const void *p2)
+{
+	struct stats *s1 = *(struct stats **) p1;
+	struct stats *s2 = *(struct stats **) p2;
+	gint32 i1 = s1->allocated + s1->reallocated - s1->freed;
+	gint32 i2 = s2->allocated + s2->reallocated - s2->freed;
+
+	return
+		i1 == i2 ?  0 :
+		i1 < i2  ? +1 : -1;		/* Reverse order: largest first */
+}
+
+/**
+ * Compare two pointers to "struct stat" based on their total residual value,
+ * in reverse order. -- qsort() callback
+ */
+static gint stats_total_residual_cmp(const void *p1, const void *p2)
+{
+	struct stats *s1 = *(struct stats **) p1;
+	struct stats *s2 = *(struct stats **) p2;
+	gint32 i1 = s1->total_allocated + s1->total_reallocated - s1->total_freed;
+	gint32 i2 = s2->total_allocated + s2->total_reallocated - s2->total_freed;
+
+	return
+		i1 == i2 ?  0 :
+		i1 < i2  ? +1 : -1;		/* Reverse order: largest first */
+}
+
+/**
+ * Append current hash table entry at the end of the "stats" array
+ * in the supplied filler structure.  -- hash table iterator
+ */
+static void stats_fill_array(gpointer key, gpointer value, gpointer user)
+{
+	struct afiller *filler = (struct afiller *) user;
+	struct stats *st = (struct stats *) value;
+	struct stats **e;
+
+	g_assert(filler->idx < filler->count);
+
+	e = &filler->stats[filler->idx++];
+	*e = st;
+}
+
+/**
+ * Dump the stats held in the specified array.
+ */
+static void stats_array_dump(FILE *f, struct afiller *filler)
+{
+	gint i;
+
+	fprintf(f, "%7s %7s %8s %8s %4s [%7s %7s %8s %8s %6s] #a #f #r %s:\n",
+		"alloc", "freed", "realloc", "remains", "live",
+		"alloc", "freed", "realloc", "remains", "live", "from");
+
+	for (i = 0; i < filler->count; i++) {
+		struct stats *st = filler->stats[i];
+		gint alloc_stacks;
+		gint free_stacks;
+		gint realloc_stacks;
+		gint remains = st->allocated + st->reallocated - st->freed;
+		gint total_remains =
+			st->total_allocated + st->total_reallocated - st->total_freed;
+		gchar *c_allocated = strdup(compact_size(st->allocated));
+		gchar *c_freed = strdup(compact_size(st->freed));
+		gchar *c_reallocated = strdup(compact_size(ABS(st->reallocated)));
+		gchar *c_remains = strdup(compact_size(ABS(remains)));
+		gchar *c_tallocated = strdup(compact_size(st->total_allocated));
+		gchar *c_tfreed = strdup(compact_size(st->total_freed));
+		gchar *c_treallocated =
+			strdup(compact_size(ABS(st->total_reallocated)));
+		gchar *c_tremains = strdup(compact_size(ABS(total_remains)));
+
+#ifdef MALLOC_FRAMES
+		alloc_stacks = st->alloc_frames == NULL ?
+			0 : g_hash_table_size(st->alloc_frames);
+		free_stacks = st->free_frames == NULL ?
+			0 : g_hash_table_size(st->free_frames);
+		realloc_stacks = st->realloc_frames == NULL ?
+			0 : g_hash_table_size(st->realloc_frames);
+#else
+		alloc_stacks = free_stacks = realloc_stacks = 0;
+#endif
+
+		fprintf(f, "%7s %7s %c%7s %c%7s %4d [%7s %7s %c%7s %c%7s %6d] "
+			"%2d %2d %2d \"%s:%d\"\n",
+			c_allocated, c_freed,
+			st->reallocated < 0 ? '-' : ' ', c_reallocated,
+			remains < 0 ? '-' : ' ', c_remains,
+			MIN(st->blocks, 9999),
+			c_tallocated, c_tfreed,
+			st->total_reallocated < 0 ? '-' : ' ', c_treallocated,
+			total_remains < 0 ? '-' : ' ', c_tremains,
+			MIN(st->total_blocks, 999999),
+			MIN(alloc_stacks, 99),
+			MIN(free_stacks, 99),
+			MIN(realloc_stacks, 99),
+			st->file, st->line);
+
+		free(c_allocated);
+		free(c_freed);
+		free(c_reallocated);
+		free(c_remains);
+		free(c_tallocated);
+		free(c_tfreed);
+		free(c_treallocated);
+		free(c_tremains);
+	}
+}
+
+/**
+ * Dump the allocation sorted by decreasing amount size on specified file.
+ * When `total' is TRUE, sorting is made on the total stats instead of
+ * the incremental ones.
+ */
+void alloc_dump(FILE *f, gboolean total)
+{
+	gint count;
+	struct afiller filler;
+
+	count = g_hash_table_size(stats);
+
+	if (count == 0)
+		return;
+
+	fprintf(f, "--- distinct allocation spots found: %d\n", count);
+
+	filler.stats = (struct stats **) malloc(sizeof(struct stats *) * count);
+	filler.count = count;
+	filler.idx = 0;
+
+	/*
+	 * Linearize hash table into an array before sorting it by
+	 * decreasing allocation size.
+	 */
+
+	g_hash_table_foreach(stats, stats_fill_array, &filler);
+	qsort(filler.stats, count, sizeof(struct stats *),
+		total ? stats_total_allocated_cmp : stats_allocated_cmp);
+
+	/*
+	 * Dump the allocation based on allocation sizes.
+	 */
+
+	fprintf(f, "--- summary by decreasing %s allocation size:\n",
+		total ? "total" : "incremental");
+	stats_array_dump(f, &filler);
+
+	/*
+	 * Now linearize hash table by decreasing residual allocation size.
+	 */
+
+	filler.idx = 0;
+
+	g_hash_table_foreach(stats, stats_fill_array, &filler);
+	qsort(filler.stats, count, sizeof(struct stats *),
+		total ? stats_total_residual_cmp : stats_residual_cmp);
+
+	fprintf(f, "--- summary by decreasing %s residual memory size:\n",
+		total ? "total" : "incremental");
+	stats_array_dump(f, &filler);
+
+	fprintf(f, "--- end summary\n");
+
+	free(filler.stats);
+}
+
+/**
+ * Reset incrementel allocation and free counters. -- hash table iterator
+ */
+static void stats_reset(gpointer key, gpointer value, gpointer user)
+{
+	struct stats *st = (struct stats *) value;
+
+	st->blocks = st->allocated = st->freed = st->reallocated = 0;
+}
+
+/**
+ * Atomically dump the allocation stats and reset the incremental allocation
+ * statistics.
+ */
+void alloc_reset(FILE *f, gboolean total)
+{
+	alloc_dump(f, total);
+	g_hash_table_foreach(stats, stats_reset, NULL);
+	fprintf(f, "--- incremental allocation stats reset.\n");
+}
+
+#endif /* MALLOC_STATS */
+
 /* vi: set ts=4:  */
