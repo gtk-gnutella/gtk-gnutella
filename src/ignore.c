@@ -33,8 +33,7 @@
 #include <sys/stat.h>
 
 #include "ignore.h"
-#include "atoms.h"
-#include "walloc.h"
+#include "namesize.h"
 #include "base32.h"
 #include "huge.h"
 
@@ -47,11 +46,6 @@
  */
 static GHashTable *by_sha1;			/* SHA1s to ignore */
 static GHashTable *by_namesize;		/* By filename + filesize */
-
-struct namesize {		/* Keys in the `by_namesize' hash */
-	guchar *name;		/* Filename (atom) */
-	guint32 size;		/* File size */
-};
 
 /*
  * We expect the initial ignore_sha1 and ignore_namesize files to be in
@@ -77,62 +71,6 @@ static gchar ign_tmp[1024];
 
 static void ignore_sha1_load(guchar *file, time_t *stamp);
 static void ignore_namesize_load(guchar *file, time_t *stamp);
-
-/*
- * namesize_hash
- *
- * Hash a `struct namesize' key.
- */
-static guint namesize_hash(gconstpointer key)
-{
-	struct namesize *k = (struct namesize *) key;
-	guint32 hash;
-
-	hash = g_str_hash(k->name);
-	hash ^= k->size;
-
-	return hash;
-}
-
-/*
- * namesize_eq
- *
- * Compare two `struct namesize' keys.
- */
-static gint namesize_eq(gconstpointer a, gconstpointer b)
-{
-	struct namesize *ka = (struct namesize *) a;
-	struct namesize *kb = (struct namesize *) b;
-
-	return ka->size == kb->size && 0 == strcmp(ka->name, kb->name);
-}
-
-/*
- * namesize_make
- *
- * Create a new namesize structure.
- */
-static struct namesize *namesize_make(guchar *name, guint32 size)
-{
-	struct namesize *ns;
-
-	ns = walloc(sizeof(*ns));
-	ns->name = atom_str_get(name);
-	ns->size = size;
-
-	return ns;
-}
-
-/*
- * namesize_free
- *
- * Free a namesize structure.
- */
-static void namesize_free(struct namesize *ns)
-{
-	atom_str_free(ns->name);
-	wfree(ns, sizeof(*ns));
-}
 
 /*
  * open_read_stamp
@@ -286,8 +224,8 @@ static void namesize_parse(FILE *f, guchar *file)
 	guint32 size;
 	guint8 c;
 	gchar *p, *q;
-	struct namesize *ns;
-	struct namesize nsk;
+	namesize_t *ns;
+	namesize_t nsk;
 
 	g_assert(f);
 
@@ -360,7 +298,7 @@ static void ignore_namesize_load(guchar *file, time_t *stamp)
  */
 enum ignore_val ignore_is_requested(guchar *file, guint32 size, guchar *sha1)
 {
-	struct namesize ns;
+	namesize_t ns;
 
 	g_assert(file != NULL);
 
@@ -383,8 +321,8 @@ enum ignore_val ignore_is_requested(guchar *file, guint32 size, guchar *sha1)
  */
 void ignore_add(guchar *file, guint32 size, guchar *sha1)
 {
-	struct namesize *ns;
-	struct namesize nsk;
+	namesize_t *ns;
+	namesize_t nsk;
 
 	if (sha1) {
 		if (!g_hash_table_lookup(by_sha1, sha1))
@@ -476,7 +414,7 @@ static gboolean free_sha1_kv(gpointer key, gpointer value, gpointer udata)
  */
 static gboolean free_namesize_kv(gpointer key, gpointer value, gpointer udata)
 {
-	namesize_free((struct namesize*) key);
+	namesize_free((namesize_t *) key);
 	return TRUE;
 }
 

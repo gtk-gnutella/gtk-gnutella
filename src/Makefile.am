@@ -81,6 +81,7 @@ gtk_gnutella_SOURCES = \
 	misc.c misc.h \
 	prop.c prop.h \
 	gnet_property.c gnet_property.h gnet_property_priv.h \
+	guid.c guid.h \
 	settings.c settings.h oldconfig.c oldconfig.h \
 	sockets.c sockets.h \
 	nodes.c nodes.h \
@@ -136,8 +137,8 @@ gtk_gnutella_SOURCES = \
 	walloc.c walloc.h \
 	vendors.c vendors.h \
 	idtable.c idtable.h \
-	ignore.c ignore.h \
-	guid.c guid.h
+	namesize.c namesize.h \
+	ignore.c ignore.h
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
 GLADE_WARNING2 = "  \"glade --write-source\" failed.  To ignore any changes to"
