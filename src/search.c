@@ -758,33 +758,64 @@ search_t *_new_search(guint16 speed, gchar * query, guint flags)
 
 /* Searches results */
 
-gint search_compare(gint sort_col, struct record * r1, struct record * r2)
+gint search_compare(gint sort_col, record_t *r1, record_t *r2)
 {
-	struct results_set *rs1 = r1->results_set;
-	struct results_set *rs2 = r2->results_set;
+    struct results_set *rs1;
+	struct results_set *rs2;
+    gint result = 0;
 
-	switch (sort_col) {
-	case 0:		/* File */
-		return strcmp(r1->name, r2->name);
-	case 1:		/* Size */
-		return
-			(r1->size == r2->size) ? 0 :
-			(r1->size > r2->size) ? +1 : -1;
-	case 2:		/* Speed */
-		return
-			(rs1->speed == rs2->speed) ? 0 :
-			(rs1->speed > rs2->speed) ? +1 : -1;
-	case 3:		/* Host */
-		return
-			(rs1->ip == rs2->ip) ?  (gint) rs1->port - (gint) rs2->port :
-			(rs1->ip > rs2->ip) ? +1 : -1;
-	case 4:		/* Info */
-		return
-			(rs1->trailer && rs2->trailer) ?
-				strcmp(rs1->trailer, rs2->trailer) :
-				rs1->trailer ? +1 : -1;
-	}
-	return 0;
+    if (r1 == r2)
+        result = 0;
+    else if (r1 == NULL)
+        result = -1;
+    else if (r2 == NULL)
+        result = +1;
+    else {
+        rs1 = r1->results_set;
+        rs2 = r2->results_set;
+
+        g_assert(rs1 != NULL);
+        g_assert(rs2 != NULL);
+
+        switch (sort_col) {
+        case c_sr_filename:
+            result = strcmp(r1->name, r2->name);
+            break;
+        case c_sr_size:
+            result = (r1->size == r2->size) ? 0 :
+                (r1->size > r2->size) ? +1 : -1;
+            break;
+        case c_sr_speed:
+            result = (rs1->speed == rs2->speed) ? 0 :
+                (rs1->speed > rs2->speed) ? +1 : -1;
+            break;
+        case c_sr_host:
+            result = (rs1->ip == rs2->ip) ?  
+                (gint) rs1->port - (gint) rs2->port :
+                (rs1->ip > rs2->ip) ? +1 : -1;
+            break;
+        case c_sr_info:
+            if (rs1->trailer && rs2->trailer)
+                result = strcmp(rs1->trailer, rs2->trailer);
+            else
+                result = (rs1->trailer != NULL) ? +1 : -1;
+            break;
+        case c_sr_urn:
+            if (r1->sha1 == r2->sha1)
+                result = 0;
+            else if (r1->sha1 == NULL)
+                result = -1;
+            else if (r2->sha1 == NULL)
+                result = +1;
+            else
+                result =  memcmp(r1->sha1, r2->sha1, SHA1_RAW_SIZE);  
+            break;
+        default:
+            g_assert_not_reached();
+        }
+    }
+
+	return result;
 }
 
 /*
@@ -1182,8 +1213,7 @@ gboolean search_result_is_dup(search_t * sch, struct record * rc)
  */
 static void search_gui_update(search_t *sch, struct results_set *rs)
 {
-	gchar *titles[5];
-    GSList* next;
+	gchar *titles[6];
     GSList* l;
 	guint32 row;
 	GString *vinfo = g_string_sized_new(40);
@@ -1228,10 +1258,9 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
     color = &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
                 ->bg[GTK_STATE_INSENSITIVE]);
 
-	for (l = rs->records; l; l = next) {
+	for (l = rs->records; l; l = l->next) {
 		struct record *rc = (struct record *) l->data;
         gint filter_result;
-		next = l->next;
 
         if (dbg > 7)
             printf("search_gui_update: [%s] considering %s (%s)\n",
@@ -1265,11 +1294,12 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
 		g_hash_table_insert(sch->dups, rc, (void *) 1);
 		rc->refcount++;
 
-		titles[0] = rc->name;
-		titles[1] = short_size(rc->size);
+		titles[c_sr_filename] = rc->name;
+		titles[c_sr_size] = short_size(rc->size);
 		g_snprintf(stmp_2, sizeof(stmp_2), "%u", rs->speed);
-		titles[2] = stmp_2;
-		titles[3] = ip_port_to_gchar(rs->ip, rs->port);
+		titles[c_sr_speed] = stmp_2;
+		titles[c_sr_host] = ip_port_to_gchar(rs->ip, rs->port);
+        titles[c_sr_urn] = (rc->sha1 != NULL) ? sha1_base32(rc->sha1) : "";
 
 		if (rc->tag) {
 			guint len = strlen(rc->tag);
@@ -1295,11 +1325,11 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
 				g_string_append(info, "; ");
 			g_string_append(info, vinfo->str);
 		}
-		titles[4] = info->str;
+		titles[c_sr_info] = info->str;
 
-		if (!sch->sort)
+        if (!sch->sort) {
 			row = gtk_clist_append(GTK_CLIST(sch->clist), titles);
-		else {
+		} else {
 			/*
 			 * gtk_clist_set_auto_sort() can't work for row data based sorts!
 			 * Too bad.
@@ -1310,28 +1340,34 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
 
 			row = 0;
 
-			work = GTK_CLIST(sch->clist)->row_list;
+            switch (sch->sort_order) {
+			case SORT_ASC:
+                for (
+                    work = GTK_CLIST(sch->clist)->row_list;
+                    work != NULL;
+                    work = work->next )
+                {
+                    record_t *rec = (record_t *)GTK_CLIST_ROW(work)->data;
 
-			if (sch->sort_order > 0) {
-				while (row < GTK_CLIST(sch->clist)->rows &&
-					   search_compare(sch->sort_col, rc,
-									  (struct record *)
-									  GTK_CLIST_ROW(work)->data) > 0) {
+                    if (search_compare(sch->sort_col, rc, rec) < 0)
+                        break;
 					row++;
-					work = work->next;
 				}
-			} else {
-				while (row < GTK_CLIST(sch->clist)->rows &&
-					   search_compare(sch->sort_col, rc,
-									  (struct record *)
-									  GTK_CLIST_ROW(work)->data) < 0) {
+                break;
+            case SORT_DESC:
+                for (
+                    work = GTK_CLIST(sch->clist)->row_list;
+                    work != NULL;
+                    work = work->next )
+                {
+                    record_t *rec = (record_t *)GTK_CLIST_ROW(work)->data;
+    
+                    if (search_compare(sch->sort_col, rc, rec) > 0)
+                        break;
 					row++;
-					work = work->next;
 				}
 			}
-
 			gtk_clist_insert(GTK_CLIST(sch->clist), row, titles);
-
 		}
 
         if (filter_result == 2)
@@ -1693,6 +1729,7 @@ static void download_selection_of_clist(GtkCList * c)
 
         if (search_remove_downloaded) {
             gtk_clist_remove(c, row);
+            // FIXME: should unref the record bound to this row.
             current_search->items --;
         } else
             gtk_clist_unselect_row(c, row, 0);
