@@ -6,7 +6,6 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <netdb.h>
 #include <string.h>
 #include <dlfcn.h>
@@ -14,6 +13,7 @@
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/tcp.h>
 
 #include "sockets.h"
 #include "downloads.h"
@@ -93,8 +93,11 @@ void socket_free(struct gnutella_socket *s)
 		gdk_input_remove(s->gdk_tag);
 	if (s->getline)
 		getline_free(s->getline);
-	if (s->file_desc != -1)
+	if (s->file_desc != -1) {
+		if (s->corked)
+			sock_cork(s, FALSE);
 		close(s->file_desc);
+	}
 	g_free(s);
 }
 
@@ -679,7 +682,34 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 	return s;
 }
 
+/*
+ * sock_cork
+ *
+ * Set/clear TCP_CORK on the socket.
+ *
+ * When set, TCP will only send out full TCP/IP frames.
+ * The exact size depends on your LAN interface, but on Ethernet,
+ * it's about 1500 bytes.
+ */
+void sock_cork(struct gnutella_socket *s, gboolean on)
+{
+#ifdef TCP_CORK
+	gint arg = on ? 1 : 0;
 
+	if (-1 == setsockopt(s->file_desc, SOL_TCP, TCP_CORK, &arg, sizeof(arg)))
+		g_warning("unable to %s TCP_CORK on fd#%d: %s",
+			on ? "set" : "clear", s->file_desc, g_strerror(errno));
+	else
+		s->corked = on;
+#else
+	static gboolean warned = FALSE;
+
+	if (!warned)
+		g_warning("TCP_CORK is not implemented on this system");
+
+	warned = TRUE;
+#endif /* TCP_CORK */
+}
 
 static void show_error(char *fmt, ...)
 {
