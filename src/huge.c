@@ -40,6 +40,7 @@
 #include "huge.h"
 #include "share.h"
 #include "misc.h"
+#include "atoms.h"
 
 /***
  *** Server side: computation of SHA1 hash digests and replies.
@@ -132,7 +133,7 @@ static void add_volatile_cache_entry(
 	gboolean known_to_be_shared)
 {
 	struct sha1_cache_entry *new_entry = g_new(struct sha1_cache_entry, 1);
-	new_entry->file_name = g_strdup(file_name); /* Sorry about that ! */
+	new_entry->file_name = atom_str_get(file_name);
 	new_entry->size = size;
 	new_entry->mtime = mtime;
 	copy_sha1(new_entry->digest, digest);
@@ -486,7 +487,6 @@ static void put_sha1_back_into_share_library(
 	const char *file_name,
 	const char *digest)
 {
-	char full_file_name[4096];
 	struct sha1_cache_entry *cached_sha1;
 
 	if (!sf) {
@@ -494,10 +494,7 @@ static void put_sha1_back_into_share_library(
 		return;
 	}
 
-	g_snprintf(full_file_name, sizeof(full_file_name),
-		"%s/%s", sf->file_directory, sf->file_name);
-
-	if (0 != strcmp(full_file_name, file_name)) {
+	if (0 != strcmp(sf->file_path, file_name)) {
 
 		/*
 		 * File name changed since last time
@@ -506,7 +503,7 @@ static void put_sha1_back_into_share_library(
 
 		if (dbg > 1)
 			printf("SHA1: name of file #%d changed from %s to %s (reload ?): "
-				"discarding\n", sf->file_index, file_name, full_file_name);
+				"discarding\n", sf->file_index, file_name, sf->file_path);
 
 		return;
 	}
@@ -516,15 +513,15 @@ static void put_sha1_back_into_share_library(
 	/* Update cache */
 
 	cached_sha1 = (struct sha1_cache_entry *)
-		g_hash_table_lookup(sha1_cache, (gconstpointer)full_file_name);
+		g_hash_table_lookup(sha1_cache, (gconstpointer) sf->file_path);
 
 	if (cached_sha1) {
 		update_volatile_cache(cached_sha1, sf->file_size, sf->mtime, digest);
 		cache_dirty = TRUE;
 	} else {
-		add_volatile_cache_entry(full_file_name,
+		add_volatile_cache_entry(sf->file_path,
 			sf->file_size, sf->mtime, digest, TRUE);
-		add_persistent_cache_entry(full_file_name,
+		add_persistent_cache_entry(sf->file_path,
 			sf->file_size, sf->mtime, digest);
 	}
 }
@@ -536,7 +533,7 @@ static void put_sha1_back_into_share_library(
  */
 static void free_cell(struct file_sha1 *cell)
 {
-	g_free(cell->file_name);
+	atom_str_free(cell->file_name);
 	g_free(cell);
 }
 
@@ -825,7 +822,7 @@ static void queue_shared_file_for_sha1_computation(
 {
 	struct file_sha1 *new_cell = g_malloc(sizeof(struct file_sha1));
 
-	new_cell->file_name = g_strdup(file_name);
+	new_cell->file_name = atom_str_get(file_name);
 	new_cell->file_index = file_index;
 	push(&waiting_for_sha1_computation, new_cell);
 
@@ -857,14 +854,10 @@ static gboolean cached_entry_up_to_date(
  */
 void request_sha1(struct shared_file *sf)
 {
-	char full_file_name[4096];
 	struct sha1_cache_entry *cached_sha1;
 
-	g_snprintf(full_file_name, sizeof(full_file_name),
-		"%s/%s", sf->file_directory, sf->file_name);
-
 	cached_sha1 = (struct sha1_cache_entry *)
-		g_hash_table_lookup(sha1_cache, (gconstpointer)full_file_name);
+		g_hash_table_lookup(sha1_cache, (gconstpointer) sf->file_path);
 
 	if (cached_sha1 && cached_entry_up_to_date(cached_sha1, sf)) {
 		set_sha1(sf, cached_sha1->digest);
@@ -872,7 +865,7 @@ void request_sha1(struct shared_file *sf)
 		return;
 	}
 
-	queue_shared_file_for_sha1_computation(sf->file_index, full_file_name);
+	queue_shared_file_for_sha1_computation(sf->file_index, sf->file_path);
 }
 
 /**
@@ -891,6 +884,21 @@ void huge_init(void)
 }
 
 /*
+ * cache_free_entry
+ *
+ * Free SHA1 cache entry.
+ */
+static gboolean cache_free_entry(gpointer k, gpointer v, gpointer udata)
+{
+	struct sha1_cache_entry *e = (struct sha1_cache_entry *) v;
+
+	atom_str_free(e->file_name);
+	g_free(e);
+
+	return TRUE;
+}
+
+/*
  * huge_close
  *
  * Called when servent is shutdown.
@@ -900,7 +908,21 @@ void huge_close(void)
 	if (sha1_timeout_tag)
 		g_source_remove(sha1_timeout_tag);
 
-	// XXX -- to be filled up
+	if (persistent_cache_file_name)
+		g_free(persistent_cache_file_name);
+
+	g_hash_table_foreach_remove(sha1_cache, cache_free_entry, NULL);
+	g_hash_table_destroy(sha1_cache);
+
+	while (waiting_for_sha1_computation) {
+		struct file_sha1 *l = waiting_for_sha1_computation;
+
+		waiting_for_sha1_computation = waiting_for_sha1_computation->next;
+		free_cell(l);
+	}
+
+	if (current_file)
+		free_cell(current_file);
 }
 
 /* 
