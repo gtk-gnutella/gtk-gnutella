@@ -455,9 +455,9 @@ static void fi_free(struct dl_file_info *fi)
 
 	g_assert(fi);
 	g_assert(!fi->hashed);
-	g_assert(fi->size_atom);
 
-	atom_int_free(fi->size_atom);
+	if (fi->size_atom)
+		atom_int_free(fi->size_atom);
 	if (fi->file_name)
 		atom_str_free(fi->file_name);
 	if (fi->path)
