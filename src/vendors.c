@@ -27,10 +27,12 @@
 
 #include <ctype.h>
 
-struct {
+struct vendor {
     guint32 code;
-    gchar * name;
+    gchar *name;
 } vendor_map[] = {
+	/* This array MUST be sorted, because it is searched dichotomically */
+
     { T_ACQX, "Acquisition" },
     { T_ARES, "Ares" },
     { T_ATOM, "AtomWire" },
@@ -40,8 +42,10 @@ struct {
     { T_EVIL, "Suicide" },
     { T_FIRE, "FireFly" },
     { T_FISH, "PEERahna" },
+    { T_GDNA, "Gnucleus DNA" },
     { T_GNEW, "Gnewtellium" },
     { T_GNOT, "Gnotella" },
+    { T_GNTD, "Gnet Daemon" },
     { T_GNUC, "Gnucleus" },
     { T_GNUT, "Gnut" },
     { T_GTKG, "gtk-gnutella" },
@@ -65,10 +69,70 @@ struct {
     { T_XOLO, "Xolox" },
     { T_XTLA, "Xtella" },
     { T_ZIGA, "Ziga" }
+
+	/* Above line intentionally left blank (for "!}sort" on vi) */
 };
+
+#define END(v)		(v - 1 + sizeof(v) / sizeof(v[0]))
 
 #define READ_GUINT32_BE(a,v) { memcpy(&v, a, 4); v = GUINT32_FROM_BE(v); }
 
+/*
+ * code_cmp
+ *
+ * Compare two codes, alphanumerically (i.e. "ACQX" < "GTKG").
+ * Returns -1/0/+1 depending on comparison's sign.
+ */
+static gint code_cmp(guint32 a, guint32 b)
+{
+	gint i;
+
+	if (a == b)
+		return 0;
+
+	for (i = 0; i < 4; i++) {
+		guint32 mask = 0xff << ((3 - i) << 3);		/* (3 - i) * 8 */
+		guint32 ax = a & mask;
+		guint32 bx = b & mask;
+
+		if (ax == bx)
+			continue;
+
+		return ax < bx ? -1 : +1;
+	}
+
+	g_assert(0);		/* Not reached */
+	return 0;			/* To shut up compiler warnings */
+}
+
+/*
+ * find_vendor
+ *
+ * Find vendor name, given vendor code.
+ * Returns vendor string if found, NULL otherwise.
+ */
+static gchar *find_vendor(guchar raw[4])
+{
+	struct vendor *low = vendor_map;
+	struct vendor *high = END(vendor_map);
+	guint32 code;
+
+    READ_GUINT32_BE(raw, code);
+
+	while (low <= high) {
+		struct vendor *mid = low + (high - low) / 2;
+		gint c = code_cmp(mid->code,  code);
+
+		if (c == 0)
+			return mid->name;
+		else if (c < 0)
+			low = mid + 1;
+		else
+			high = mid - 1;
+	}
+
+	return NULL;		/* Not found */
+}
 
 /*
  * is_vendor_known:
@@ -77,18 +141,10 @@ struct {
  */
 gboolean is_vendor_known(guchar raw[4])
 {
-    gint n;
-    guint32 code;
-    READ_GUINT32_BE(raw, code);
-
     if (raw[0] == '\0')
         return FALSE;
 
-    for (n = 0; n < (sizeof(vendor_map)/sizeof(vendor_map[0])); n++)
-        if (code == vendor_map[n].code)
-            return TRUE;
-
-    return FALSE;
+	return find_vendor(raw) != NULL;
 }
 
 /*
@@ -101,20 +157,18 @@ gboolean is_vendor_known(guchar raw[4])
 gchar *lookup_vendor_name(guchar raw[4])
 {
 	static gchar temp[5];
+	gchar *name;
     gint i;
-    guint32 code;
 
     if (raw[0] == '\0')
         return NULL;
 
-    READ_GUINT32_BE(raw, code);
-
-    for (i = 0; i < (sizeof(vendor_map)/sizeof(vendor_map[0])); i++)
-        if (code == vendor_map[i].code)
-            return vendor_map[i].name;
+	name = find_vendor(raw);
+	if (name != NULL)
+		return name;
 
 	/* Unknown type, look whether we have all printable ASCII */
-	for (i = 0; i < sizeof(code); i++) {
+	for (i = 0; i < sizeof(raw); i++) {
         guchar c = raw[i];
 		if (isascii(c) && isprint(c))
             temp[i] = c;
@@ -127,3 +181,4 @@ gchar *lookup_vendor_name(guchar raw[4])
 
 	return temp[0] ? temp : NULL;
 }
+
