@@ -703,6 +703,7 @@ void random_init(void)
 	guint32 sys[7];
 	gint i;
 	gint j;
+	gboolean is_pipe = TRUE;
 
 	/*
 	 * Get random entropy from the system.
@@ -712,7 +713,16 @@ void random_init(void)
 
 	SHA1Reset(&ctx);
 
-	if (-1 != stat("/bin/ps", &buf))
+	/*
+	 * If we have a /dev/urandom character device, use it.
+	 * Otherwise, launch ps and grab its output.
+	 */
+
+	if (-1 != stat("/dev/urandom", &buf) && S_ISCHR(buf.st_mode)) {
+		f = fopen("/dev/urandom", "r");
+		is_pipe = FALSE;
+	}
+	else if (-1 != stat("/bin/ps", &buf))
 		f = popen("/bin/ps -ef", "r");
 	else if (-1 != stat("/usr/bin/ps", &buf))
 		f = popen("/usr/bin/ps -ef", "r");
@@ -720,24 +730,29 @@ void random_init(void)
 		f = popen("/usr/ucb/ps aux", "r");
 
 	if (f == NULL)
-		g_warning("was unable to find the ps command on your system");
+		g_warning("was unable to %s on your system",
+			is_pipe ? "find the ps command" : "open /dev/urandom");
 	else {
 		/*
-		 * Compute SHA1 of ps's output.
+		 * Compute the SHA1 of the output (either ps or /dev/urandom).
 		 */
 
 		for (;;) {
 			guint8 data[1024];
 			gint r;
+			gint len = is_pipe ? sizeof(data) : 128;
 
-			r = fread(data, 1, sizeof(data), f);
+			r = fread(data, 1, len, f);
 			if (r)
 				SHA1Input(&ctx, data, r);
-			if (r < sizeof(data))
+			if (r < len || !is_pipe)		/* Read once from /dev/urandom */
 				break;
 		}
 
-		pclose(f);
+		if (is_pipe)
+			pclose(f);
+		else
+			fclose(f);
 	}
 
 	/*
