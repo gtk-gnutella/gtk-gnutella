@@ -6,6 +6,11 @@ PKG_NAME="the package."
 
 DIE=0
 
+(grep "^:ext:" $srcdir/CVS/Root >/dev/null) || {
+  echo Use configure, autogen.sh is for developers only!
+  DIE=1
+}
+
 (autoconf --version) < /dev/null > /dev/null 2>&1 || {
   echo
   echo "**Error**: You must have \`autoconf' installed to."
