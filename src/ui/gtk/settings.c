@@ -5418,4 +5418,10 @@ void settings_gui_shutdown(void)
     G_FREE_NULL(gnet_prop_set_stub);
 }
 
-/* vi: set ts=4: */
+GtkTooltips *
+settings_gui_tooltips(void)
+{
+	return tooltips;
+}
+
+/* vi: set ts=4 sw=4 cindent: */
