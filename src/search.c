@@ -114,7 +114,6 @@ gboolean on_clist_search_results_button_press_event(GtkWidget *widget, GdkEventB
 
 	gtk_widget_set_sensitive(popup_search_toggle_tabs, (gboolean) searches);
 	gtk_widget_set_sensitive(popup_search_close, (gboolean) searches);
-	gtk_widget_set_sensitive(popup_search_filters, (gboolean) searches);
 
 	if (current_search)
 	{
@@ -328,7 +327,6 @@ void search_close_current(void)
 	g_free(sch);
 
 	gtk_widget_set_sensitive(combo_searches, (gboolean) searches);
-	gtk_widget_set_sensitive(button_search_filter, (gboolean) searches);
 	gtk_widget_set_sensitive(button_search_close, (gboolean) searches);
 }
 
@@ -358,7 +356,7 @@ void new_search(guint16 speed, gchar *query)
 
 	m->header.function = GTA_MSG_SEARCH;
 	m->header.ttl = my_ttl;
-	m->header.hops = 0;
+	m->header.hops = (hops_random_factor)? (rand() % (hops_random_factor + 1)) : 0;
 
 	WRITE_GUINT32_LE(size - sizeof(struct gnutella_header), m->header.size);
 
@@ -417,7 +415,6 @@ void new_search(guint16 speed, gchar *query)
 	on_search_switch(sch);
 
 	gtk_widget_set_sensitive(combo_searches, TRUE);
-	gtk_widget_set_sensitive(button_search_filter, TRUE);
 	gtk_widget_set_sensitive(button_search_close, TRUE);
 
 	gtk_entry_set_text(GTK_ENTRY(entry_search), "");

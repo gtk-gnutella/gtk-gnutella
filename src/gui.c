@@ -206,7 +206,7 @@ void gui_update_stats(void)
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u files", files);
 	gtk_clist_set_text(GTK_CLIST(clist_stats), 1, 0, gui_tmp);
 
-	if (kbytes < 1024) g_snprintf(b, sizeof(b), "%qu KB", kbytes);
+	if (kbytes < 1024) g_snprintf(b, sizeof(b), "%u KB", (guint32) kbytes);
 	else if (kbytes < 1048576) g_snprintf(b, sizeof(b), "%.1fMB", (double) kbytes / 1024.0);
 	else if (kbytes < 1073741824) g_snprintf(b, sizeof(b), "%.1fGB", (double) kbytes / 1048576.0);
 	else g_snprintf(b, sizeof(b), "%.2fTB", (double) kbytes / 1073741824.0);

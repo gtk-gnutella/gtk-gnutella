@@ -39,6 +39,7 @@ guint32 search_queries_kick_size		= 512;
 guint32 search_answers_forward_size	= 32768;
 guint32 search_answers_kick_size		= 40960;
 guint32 other_messages_kick_size		= 40960;
+guint32 hops_random_factor				= 0;
 
 gchar *scan_extensions					= NULL;
 gchar *save_file_path					= NULL;
@@ -68,6 +69,7 @@ enum
 	k_other_messages_kick_size, k_save_file_path, k_move_file_path,
 	k_win_x, k_win_y, k_win_w, k_win_h, k_win_coords, k_widths_nodes, k_widths_uploads,
 	k_widths_dl_active, k_widths_dl_queued, k_widths_search_results, k_show_results_tabs,
+	k_hops_random_factor,
 	k_end
 };
 
@@ -116,6 +118,7 @@ gchar *keywords[] =
 	"widths_dl_queued",						/* k_width_dl_queued					*/
 	"widths_search_results",				/* k_width_search_results			*/
 	"show_results_tabs",						/* k_show_results_tabs				*/
+	"hops_random_factor",					/* k_hops_random_factor 			*/
 	NULL
 };
 
@@ -306,7 +309,7 @@ void config_set_param(guint32 keyword, gchar *value)
 		case k_monitor_max_items: { if (i > 0 && i < 512) monitor_max_items = i; return; }
 		case k_clear_uploads: { clear_uploads = (gboolean) !g_strcasecmp(value, "true"); return; }
 		case k_clear_downloads: { clear_downloads = (gboolean) !g_strcasecmp(value, "true"); return; }
-		case k_up_connections: { if (i > 0 && i < 512) up_connections = i; return; }
+		case k_up_connections: { if (i >= 0 && i < 512) up_connections = i; return; }
 		case k_max_downloads: { if (i > 0 && i < 512) max_downloads = i; return; }
 		case k_max_host_downloads: { if (i > 0 && i < 512) max_host_downloads = i; return; }
 		case k_minimum_speed: { minimum_speed = atol(value); return; }
@@ -345,6 +348,7 @@ void config_set_param(guint32 keyword, gchar *value)
 		case k_widths_search_results: { if ((a = config_parse_array(value, 4))) for (i=0; i < 3; i++) search_results_col_widths[i] = a[i]; return; }
 		case k_show_results_tabs: { search_results_show_tabs = (gboolean) !g_strcasecmp(value, "true"); return; }
 		case k_forced_local_ip: { forced_local_ip = gchar_to_ip(value); return; }
+		case k_hops_random_factor: { if (i >= 0 && i <= 3) hops_random_factor = i; return; }
 	}
 }
 
@@ -493,6 +497,10 @@ void config_save(void)
 	fprintf(config, "\n");
 
 	fprintf(config, "# Maximum size of the sendqueue for the nodes (in bytes)\n%s = %u\n\n", keywords[k_node_sendqueue_size], node_sendqueue_size);
+
+	fprintf(config, "# Random factor for the hops field in search packets we send (between 0 and 3 inclusive)\n%s = %u\n\n", keywords[k_hops_random_factor], hops_random_factor);
+
+	fprintf(config, "\n");
 
 	/* I'm not sure yet that the following variables are really useful...
 

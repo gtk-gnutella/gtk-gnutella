@@ -296,17 +296,18 @@ extern guint32 search_queries_kick_size;
 extern guint32 search_answers_forward_size;
 extern guint32 search_answers_kick_size;
 extern guint32 other_messages_kick_size;
-extern gchar *save_file_path;
-extern gchar *move_file_path;
-extern gchar *scan_extensions;
-extern gchar *shared_dirs_paths;
-extern gchar *completed_file_path;
-
 extern guint32 nodes_col_widths[];
 extern guint32 dl_active_col_widths[];
 extern guint32 dl_queued_col_widths[];
 extern guint32 uploads_col_widths[];
 extern guint32 search_results_col_widths[];
+extern guint32 hops_random_factor;
+
+extern gchar *save_file_path;
+extern gchar *move_file_path;
+extern gchar *scan_extensions;
+extern gchar *shared_dirs_paths;
+extern gchar *completed_file_path;
 
 /* sockets.c */
 

@@ -11,9 +11,10 @@
 set w_main_list {
 	notebook_main
 	clist_menu clist_stats clist_connections button_stats_update
-	clist_nodes button_nodes_add button_nodes_remove entry_host \
+	sw_menu sw_stats sw_connections
+	clist_nodes button_nodes_add button_nodes_remove entry_host
 	entry_up_connections
-	entry_global_messages entry_global_searches entry_routing_errors entry_dropped_messages \
+	entry_global_messages entry_global_searches entry_routing_errors entry_dropped_messages
 	entry_count_downloads entry_count_uploads
 	clist_host_catcher
 	button_host_catcher_connect button_host_catcher_get_more

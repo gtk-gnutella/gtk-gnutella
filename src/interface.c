@@ -25,6 +25,9 @@ GtkWidget *clist_menu;
 GtkWidget *clist_stats;
 GtkWidget *clist_connections;
 GtkWidget *button_stats_update;
+GtkWidget *sw_menu;
+GtkWidget *sw_stats;
+GtkWidget *sw_connections;
 GtkWidget *clist_nodes;
 GtkWidget *button_nodes_add;
 GtkWidget *button_nodes_remove;
@@ -119,16 +122,13 @@ create_main_window (void)
   GtkWidget *main_window;
   GtkWidget *hbox_main;
   GtkWidget *vbox_left;
-  GtkWidget *sw_menu;
   GtkWidget *vbox_connections;
   GtkWidget *hbox6;
   GtkWidget *label_connections;
-  GtkWidget *sw_connections;
   GtkWidget *label_blank_1;
   GtkWidget *vbox_stats;
   GtkWidget *hbox7;
   GtkWidget *label_stats;
-  GtkWidget *sw_stats;
   GtkWidget *vbox_right;
   GtkWidget *vbox_gnutellanet;
   GtkWidget *vbox6;
@@ -268,6 +268,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox_left);
   gtk_box_pack_start (GTK_BOX (hbox_main), vbox_left, FALSE, FALSE, 0);
+  gtk_widget_set_usize (vbox_left, 110, -2);
 
   sw_menu = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_ref (sw_menu);
@@ -1204,7 +1205,6 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table2), button_search_filter, 2, 3, 0, 1,
                     (GtkAttachOptions) (0),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_sensitive (button_search_filter, FALSE);
 
   label79 = gtk_label_new ("Active searches:");
   gtk_widget_ref (label79);

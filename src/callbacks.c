@@ -134,7 +134,7 @@ gboolean on_entry_up_connections_focus_out_event (GtkWidget *widget, GdkEventFoc
 	g_strstrip(e);
 	v = atol(e);
 	g_free(e);
-	if (v > 0 && v < 512) { up_connections = v; }
+	if (v >= 0 && v < 512) { up_connections = v; }
 	gui_update_up_connections();
 	return TRUE;
 }
