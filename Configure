@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Tue Aug 19 23:51:50 MEST 2003 [metaconfig 3.0 PL70]
+# Generated on Sat Nov  1 16:40:53 MET 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -3957,6 +3957,12 @@ case "$version" in
 		xmlcflags=`$xmlconfig --cflags`
 		xmlldflags=`$xmlconfig --libs`
 		d_libxml2="$define"
+		case " $xmlldflags " in
+		*" -lpthread "*)
+			echo "(Removing unneeded -lpthread from the list of libraries.)"
+			xmlldflags=`echo "$xmlldflags " | $sed -e 's/-lpthread //'`
+			;;
+		esac
 	fi
 	;;
 esac
