@@ -5,6 +5,7 @@
                         September, 11th 2001
                      Updated October, 5th 2001
                      Updated February, 4th 2002
+                      Updated March 15th, 2002
 
 
 1. Introduction
@@ -99,6 +100,8 @@ least the servent tried.
 A Bye packet must be sent with TTL=1 (to avoid accidental propagation by
 an unaware servent), and hop=0 (of course!).
 
+[Note on 15/03/2002: see Appendix 2 and Appendix 3 for slight amendments]
+
 
 4. Reception of a Bye (0x02) Packet
 
@@ -175,27 +178,103 @@ disconnection messages anytime soon.
 
 
 A. Appendix 1: Handshaking Headers
-
+       
 This proposal was initially made for the 0.4 protocol, but with 0.6 comes
 the ability for servents to exchange about supported features.
 
-There is no real need to declare any support for the Bye packet, since
-by construction this packet will be the last one in the stream.  However,
-doing so provides implicit information to the remote node:
+There is no real need to declare any support for the Bye packet, since by
+construction this packet will be the last one in the stream.  However, doing
+so provides implicit information to the remote node:
 
-    If a servent declaring support for the Bye packet does not send one
+    If a servent declaring support for the Bye packet does not send one 
     before the connection is broken, one can be fairly certain that the
     connection was closed unexpectedly (e.g. the process was killed).
-
+       
 This specification of the Bye packet therefore requires servents to emit
 the following header during handshaking:
 
     Bye-Packet: 0.1
-
+ 
 This advertising for Bye also allows possible extension of those
 specifications.  Further versions will be backward compatible, so the
 lowest version number should be retained when negotiating.  Even if the
-remote end advertises version 0.2, emitting support indication for 0.1
-will force the peer to limit itself to the 0.1 specifications.
+remote end advertises version 0.2, emitting support indication for 0.1 will
+force the peer to limit itself to the 0.1 specifications.
 
 --RAM, 04/02/2002
+
+
+B. Appendix 2: A Step Towards Controlled TIME_WAIT Penalty
+
+Although not originally designed for that purpose, the combination of 0.6
+handshaking and BYE gives the ability to avoid getting the TIME_WAIT state
+on a socket, for the party initiating the BYE.
+
+The TIME_WAIT problem stems from the TCP/IP state machine, whereby the side
+initiating the connection close (i.e. sending the first FIN) will end-up in
+a TIME_WAIT state where it will stay for twice the Maximum Segment Life,
+which is typically 2 minutes.  That means 4 minutes before the TCP/IP Transfer
+Control Block can be reclaimed, since TCP keeps it around to be able to send
+back an RST (reset) condition for any packet reaching the port.  After the
+4 minutes delay, TCP can rest assurred that the whole connection is cleared,
+and can therefore release the TCB, making the port available again.
+
+Look at:
+
+    http://www-old.ics.uci.edu/pub/ietf/http/draft-ietf-http-connection-00.txt
+
+for more detailed explainations.
+
+Since the amount of kernel memory and the amount of ports are both limited
+quantities, it can be important to not get too many TIME_WAIT.  The important
+thing to note is that it is the side initiating the close that will get the
+TIME_WAIT penalty.
+
+How is this related to BYE?  Simple:
+
+* A servent supporting BYE will have to close() the connection when receiving
+  the BYE packet.
+* Because of Bye-Packet advertising in the handshake, we know whether a servent
+  support BYE.
+
+Therefore, the following (optional) modification of the original specifications
+is added:
+
+* In section 3., after sending the BYE packet, a servent not willing to pay the
+  TIME_WAIT penalty can defer the close() operation for "some time".  This time
+  can be estimated to twice the typical round-trip for an "alive PING" message
+  (i.e. a PING with TTL=1, hops=0).  When "some time" has elapsed, a close()
+  is forced nonetheless to free the resources.
+
+Naturally, this deferring of close() only makes sense if the remote node gave
+explicit indication for BYE support in its handshaking.  A servent handshaking
+at 0.4 cannot advertise BYE support conveniently, but can nonetheless support
+BYE.  Therefore, although it makes sense to send a BYE to a 0.4 servent, for
+its original tracing purposes, it is almost a wasted bet to defer the close().
+
+The idea is that section 4. will be strictly followed: upon reception of BYE,
+the servent MUST close() the connection.  The receiving servent MUST NOT play
+tricks and try to avoid closing the connection itself to not pay the TIME_WAIT
+penalty, and that is irrespective of whether it initiated the connection or not
+to the remote node that is now sending the BYE packet.
+
+
+C. Appendix 3: Increasing Chances of BYE Getting Delivered
+
+To prevent having the stack of the receiving BYE packet discard it because
+further data sent reached a closed socket and were therefore rejected with
+a RST, thereby causing the yet-unacknowledged BYE to be discarded, the side
+sending BYE should refrain from calling close(), but instead use
+shutdown(SHUT_WR) to close the writing side, yet keep the reading side
+opened.  This is sending a FIN anyway, so it will not prevent TIME_WAIT, only
+increase the chances that the remote end will get the BYE payload.  After
+proper timeout, the reading side will be closed.
+
+The purpose here is simply to increase the chances that the remote application
+will read the BYE and therefore handle its payload.  An application combining
+the use of shutdown(SHUT_WR) with the deferred shutdown() scheme of Appendix 2
+will truly maximize the chances for BYE to be properly delivered.  Only true
+network congestion could prevent delivery before timouts are triggered.
+
+--RAM, 15/03/2002
+
