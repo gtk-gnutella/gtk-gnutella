@@ -34,6 +34,9 @@
 
 RCSID("$Id$");
 
+#define MAX_DELTA	86400		/* 1 day */
+#define MAX_ADJUST	9600		/* 3 hours */
+
 /*
  * clock_update
  *
@@ -48,8 +51,21 @@ void clock_update(time_t update, gint precision)
     guint32 new_skew;
     gint32 skew;
 
-    gnet_prop_get_guint32(PROP_CLOCK_SKEW, &new_skew, 0, 1);
+    gnet_prop_get_guint32_val(PROP_CLOCK_SKEW, &new_skew);
 	skew = *(gint32 *) &new_skew;	/* Casting not always works */
+
+	/*
+	 * It's not reasonable to have a delta of more than a day.  If people
+	 * accept to run with such a wrong clock (even if it's the local host),
+	 * then too bad but GTKG can't fix it.  It's broken beyond repair.
+	 */
+
+	if (ABS(skew) > MAX_DELTA) {
+		delta = skew > 0 ? +MAX_DELTA : -MAX_DELTA;
+		g_warning("truncating clock skew from %d to %d", skew, delta);
+		new_skew = (guint32) delta;
+		gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, new_skew);
+	}
 
 	/*
 	 * Compute how far we land from the absolute time given our present skew.
@@ -68,10 +84,18 @@ void clock_update(time_t update, gint precision)
 
 	delta = update - now;
 
-	if (delta < -9600)
-		delta = -9600;
-	else if (delta > 9600)
-		delta = 9600;
+	if (ABS(delta) > MAX_DELTA) {
+		if (dbg)
+			printf("CLOCK rejecting update=%u, precision=%d"
+				" (more than %d seconds off)\n",
+				(guint32) update, precision, MAX_DELTA);
+		return;
+	}
+
+	if (delta < -MAX_ADJUST)
+		delta = -MAX_ADJUST;
+	else if (delta > MAX_ADJUST)
+		delta = MAX_ADJUST;
 
 	/*
 	 * Update the clock_skew as a slow EMA.
@@ -79,7 +103,7 @@ void clock_update(time_t update, gint precision)
 
 	delta_skew = delta / 32 - skew / 32;
 	new_skew = (guint32) (skew + delta_skew);
-    gnet_prop_set_guint32(PROP_CLOCK_SKEW, &new_skew, 0, 1);
+    gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, new_skew);
 
 	if (dbg)
 		printf("CLOCK skew=%d, precision=%d, epsilon=%d\n",
