@@ -60,7 +60,7 @@ typedef struct pong_meta {
  */
 
 struct gnutella_msg_init *build_ping_msg(
-	const gchar *muid, guint8 ttl, guint32 *size);
+	const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size);
 
 /*
  * Public interface.
