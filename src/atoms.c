@@ -366,17 +366,21 @@ void atom_free(gint type, gconstpointer key)
 /*
  * atom_warn_free
  *
- * Free atom entry, warning about it.
+ * Warning about existing atom that should have been freed.
  */
 static gboolean atom_warn_free(gpointer key, gpointer value, gpointer udata)
 {
 	struct atom *a = (struct atom *) (key - ARENA_OFFSET);
 	struct table_desc *td = (struct table_desc *) udata;
 
-	g_warning("freeing remaining %s atom 0x%lx, refcnt=%d: \"%s\"",
+	g_warning("found remaining %s atom 0x%lx, refcnt=%d: \"%s\"",
 		td->type, (glong) key, a->refcnt, (*td->str_func)(key));
 
-	g_free(a);
+	/*
+	 * Don't free the entry, so that we know where the leak originates from
+	 * when running under -DUSE_DMALLOC or via valgrind.
+	 *		--RAM, 02/02/2003
+	 */
 
 	return TRUE;
 }
