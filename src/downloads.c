@@ -21,6 +21,8 @@
 #include <fcntl.h>
 #include <time.h>			/* For ctime() */
 
+#define DOWNLOAD_RECV_BUFSIZE		114688		/* 112K */
+
 struct download *selected_queued_download = (struct download *) NULL;
 struct download *selected_active_download = (struct download *) NULL;
 
@@ -569,6 +571,7 @@ static void download_queue_delay(struct download *d, guint32 delay)
 static void download_push_insert(struct download *d)
 {
 	gchar *key;
+	gpointer val;
 
 	g_assert(!d->push);
 
@@ -583,10 +586,19 @@ static void download_push_insert(struct download *d)
 	 * warning should not happen.  It will indicate a bug. --RAM, 01/01/2002
 	 */
 
-	if (0 != g_hash_table_lookup(pushed_downloads, (gpointer) key))
-		g_warning("BUG: duplicate push ignored for \"%s\"", d->file_name);
-	else
+	val = g_hash_table_lookup(pushed_downloads, (gpointer) key);
+	if (val == NULL)
 		g_hash_table_insert(pushed_downloads, (gpointer) key, (gpointer) d);
+	else {
+		struct download *ad = (struct download *) val;
+		g_warning("BUG: duplicate push ignored for \"%s\"", d->file_name);
+		g_warning("BUG: argument is 0x%lx, \"%s\", key = %s, state = %d",
+			(gulong) d, d->file_name, key, d->status);
+		g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
+			ad->record_index, guid_hex_str(ad->guid));
+		g_warning("BUG: in table has 0x%lx \"%s\", key = %s, state = %d",
+			(gulong) val, ad->file_name, dl_tmp, ad->status);
+	}
 
 	d->push = TRUE;
 }
@@ -610,6 +622,16 @@ static void download_push_remove(struct download *d)
 		g_hash_table_lookup_extended(pushed_downloads, (gpointer) dl_tmp,
 			&key, &value)
 	) {
+		if (value != d) {
+			struct download *ad = (struct download *) value;
+			g_warning("BUG: looked for 0x%lx \"%s\", key = %s, state = %d",
+				(gulong) d, d->file_name, dl_tmp, d->status);
+			g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
+				ad->record_index, guid_hex_str(ad->guid));
+			g_warning("BUG: got 0x%lx \"%s\", key = %s, state = %d",
+				(gulong) value, ad->file_name, dl_tmp, ad->status);
+		}
+
 		g_assert(value == d);
 		g_hash_table_remove(pushed_downloads, (gpointer) dl_tmp);
 		g_free(key);
@@ -1962,6 +1984,12 @@ static void download_request(struct download *d, header_t *header)
 
 	d->bio = bsched_source_add(bws_in, s->file_desc,
 		BIO_F_READ, download_read, (gpointer) d);
+
+	/*
+	 * Increase our reception window to maximize throughput.
+	 */
+
+	sock_recv_buf(s, DOWNLOAD_RECV_BUFSIZE, FALSE);
 
 	/*
 	 * If we have something in the input buffer, write the data to the
