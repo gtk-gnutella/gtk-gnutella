@@ -665,14 +665,13 @@ void search_gui_add_record(
 {
   	GString *info = g_string_sized_new(80);
   	gchar *titles[5];
-	guint32 row;
 	gint count;
 	gpointer key = NULL;
 	gboolean is_parent = FALSE;
     struct results_set *rs = rc->results_set;
 	record_t *parent_rc;
 
-	GtkCTreeNode *parent, *node, *temp_node;
+	GtkCTreeNode *parent, *node;
 	GtkCTree *ctree = GTK_CTREE(sch->ctree);
 	
 	info = g_string_assign(info, "");
@@ -702,16 +701,19 @@ void search_gui_add_record(
 		g_string_append(info, vinfo->str);
 	}
 	
-	if(NULL != rc->info)
+	if (NULL != rc->info)
 		atom_str_free(rc->info);
 	rc->info = atom_str_get(info->str);	
 	
 	g_string_free(info, TRUE);
 
 	/* Setup text for node.  Note only parent nodes will have # and size shown*/
-	titles[c_sr_filename] = (NULL != rc->name) ? atom_str_get(rc->name) : atom_str_get("");
-	titles[c_sr_info] = (NULL != rc->info) ? atom_str_get(rc->info) : atom_str_get("");
-	titles[c_sr_sha1] = (NULL != rc->sha1) ? atom_str_get(sha1_base32(rc->sha1)) : atom_str_get("");
+	titles[c_sr_filename] = (NULL != rc->name) ?
+		atom_str_get(rc->name) : atom_str_get("");
+	titles[c_sr_info] = (NULL != rc->info) ?
+		atom_str_get(rc->info) : atom_str_get("");
+	titles[c_sr_sha1] = (NULL != rc->sha1) ?
+		atom_str_get(sha1_base32(rc->sha1)) : atom_str_get("");
 	titles[c_sr_size] = atom_str_get("");
 	titles[c_sr_count] = atom_str_get("");
 
@@ -786,9 +788,7 @@ void search_gui_add_record(
 	atom_str_free(titles[c_sr_count]);
 	atom_str_free(titles[c_sr_size]);
 	
-	g_assert(rc->refcount == 1);
 	search_gui_ref_record(rc);
-	g_assert(rc->refcount == 2);
 
     gtk_ctree_node_set_row_data(ctree, node, (gpointer) rc);
 
@@ -843,11 +843,10 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 {
 	record_t *rc = NULL, *parent_rc, *child_rc;
 	gint n;
-	GtkCTreeRow *row, *child_row, *old_parent_row;
+	GtkCTreeRow *row, *child_row;
 	GtkCTreeNode *child_node, *old_parent;
-	gchar *filename, *info, *size, *count, *sha1, *host, *speed;
-	GdkColor fg, bg;
-	
+	gchar *filename, *info, *size, *sha1, *host, *speed;
+
 	search_t *current_search = search_gui_get_current_search();
     current_search->items--;
 
@@ -870,9 +869,12 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 			child_node = row->children;	/* The first child of node */
 
 			child_rc = gtk_ctree_node_get_row_data(ctree, child_node);
-			filename = (NULL != child_rc->name) ? atom_str_get(child_rc->name) : atom_str_get("");
-			info = (NULL != child_rc->info) ? atom_str_get(child_rc->info) : atom_str_get("");
-			sha1 = (NULL != child_rc->sha1) ? atom_str_get(sha1_base32(child_rc->sha1)) : atom_str_get("");
+			filename = (NULL != child_rc->name) ?
+				atom_str_get(child_rc->name) : atom_str_get("");
+			info = (NULL != child_rc->info) ?
+				atom_str_get(child_rc->info) : atom_str_get("");
+			sha1 = (NULL != child_rc->sha1) ?
+				atom_str_get(sha1_base32(child_rc->sha1)) : atom_str_get("");
 			size = atom_str_get(short_size(child_rc->size));
 
 			host = (NULL == child_rc->results_set->hostname) ?
@@ -890,7 +892,7 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 			if (1 < n)
 				gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n); 
 			else
-				gm_snprintf(tmpstr, sizeof(tmpstr), ""); 
+				*tmpstr = '\0';
 
 			/* Update record count, child_rc will become the rc for the parent*/
 			child_rc->count = n;
@@ -933,10 +935,10 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 		
 		/* Now update the "#" column of the parent */
 		n = count_node_children(ctree, old_parent) + 1;
-		if(1 < n)
+		if (1 < n)
 			gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n);
 		else
-			gm_snprintf(tmpstr, sizeof(tmpstr), "");
+			*tmpstr = '\0';
 		gtk_ctree_node_set_text(ctree, old_parent, c_sr_count, tmpstr);
 	
 		parent_rc = gtk_ctree_node_get_row_data(ctree, old_parent);
@@ -969,7 +971,6 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 	struct record *rc;
 	gboolean need_push;
 	GList *sel_list;
-    gint row;
     gboolean remove_downloaded;
 	guint created = 0;
 	guint count = 0;
@@ -993,7 +994,7 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 		 sel_list = GTK_CLIST(ctree)->selection) {
 
 		node = sel_list->data;
-		if(NULL == node)
+		if (NULL == node)
 			break;
 		
 		count++;
@@ -1006,7 +1007,7 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 
         if (!rc) {
 			g_warning("download_selection_of_ctree(): row has NULL data");
-			return;
+			continue;
         }
 
 		rs = rc->results_set;
