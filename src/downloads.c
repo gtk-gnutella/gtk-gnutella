@@ -583,6 +583,36 @@ static void free_proxies(struct dl_server *server)
 }
 
 /*
+ * remove_proxy
+ *
+ * Remove push proxy from server.
+ */
+static void remove_proxy(struct dl_server *server, guint32 ip, guint16 port)
+{
+	GSList *l;
+	
+	for (l = server->proxies; l; l = g_slist_next(l)) {
+		struct gnutella_host *h = (struct gnutella_host *) l->data;
+
+		if (h->ip == ip && h->port == port) {
+			server->proxies = g_slist_remove_link(server->proxies, l);
+			g_slist_free_1(l);
+			wfree(h, sizeof(*h));
+			return;
+		}
+	}
+
+	/*
+	 * The following could happen when we reset the list of push-proxies
+	 * for a host after having selected a push-proxy from the old stale list.
+	 */
+
+	if (dbg)
+		g_warning("did not find push-proxy %s in server %s",
+			ip_port_to_gchar(ip, port), ip_to_gchar(server->key->ip));
+}
+
+/*
  * allocate_server
  *
  * Allocate new server structure.
@@ -1663,17 +1693,21 @@ void download_stop(struct download *d, guint32 new_status,
 		socket_free(d->socket);
 		d->socket = NULL;
 	}
-	if (d->io_opaque)				/* I/O data */
+	if (d->io_opaque) {				/* I/O data */
 		io_free(d->io_opaque);
-
+		g_assert(d->io_opaque == NULL);
+	}
 	if (d->bio) {
 		bsched_source_remove(d->bio);
 		d->bio = NULL;
 	}
-
 	if (d->req) {
 		http_buffer_free(d->req);
 		d->req = NULL;
+	}
+	if (d->cproxy) {
+		cproxy_free(d->cproxy);
+		d->cproxy = NULL;
 	}
 
 	/* Don't clear ranges if simply queuing, or if completed */
@@ -3431,20 +3465,69 @@ void download_requeue(struct download *d)
 static gboolean use_push_proxy(struct download *d)
 {
 	struct dl_server *server = d->server;
-	gnet_host_t *host;
-
-	// XXXX
-	return FALSE;
 
 	g_assert(d->push);
 	g_assert(!has_blank_guid(d));
-	g_assert(d->cproxy == NULL);
 
-	if (server->proxies == NULL)
-		return FALSE;
+	if (d->cproxy != NULL) {
+		cproxy_free(d->cproxy);
+		d->cproxy = NULL;
+	}
 
-	host = (gnet_host_t *) server->proxies->data;	/* Pick the first */
-	d->cproxy = cproxy_create(d, host->ip, host->port, download_guid(d));
+	while (server->proxies != NULL) {
+		gnet_host_t *host;
+
+		host = (gnet_host_t *) server->proxies->data;	/* Pick the first */
+		d->cproxy = cproxy_create(d, host->ip, host->port, download_guid(d));
+
+		if (d->cproxy) {
+			gui_update_download(d, TRUE);	/* Will read status in d->cproxy */
+			return TRUE;
+		}
+
+		remove_proxy(server, host->ip, host->port);
+	}
+
+	return FALSE;
+}
+
+/*
+ * download_proxy_newstate
+ *
+ * Called when the status of the HTTP request made by the client push-proxy
+ * code changes.
+ */
+void download_proxy_newstate(struct download *d)
+{
+	gui_update_download(d, TRUE);	/* Will read status in d->cproxy */
+}
+
+/*
+ * download_proxy_sent
+ *
+ * Called by client push-proxy side when we got indication that the PUSH
+ * has been sent.
+ */
+void download_proxy_sent(struct download *d)
+{
+	gui_update_download(d, TRUE);	/* Will read status in d->cproxy */
+}
+
+/*
+ * download_proxy_failed
+ *
+ * Called by client push-proxy side to indicate that it could not send a PUSH.
+ */
+void download_proxy_failed(struct download *d)
+{
+	struct cproxy *cp = d->cproxy;
+
+	gui_update_download(d, TRUE);	/* Will read status in d->cproxy */
+
+	remove_proxy(d->server, cproxy_ip(cp), cproxy_port(cp));
+
+	if (!use_push_proxy(d))
+		download_retry(d);
 }
 
 /*
@@ -7070,6 +7153,8 @@ void download_close(void)
 			http_range_free(d->ranges);
 		if (d->req)
 			http_buffer_free(d->req);
+		if (d->cproxy)
+			cproxy_free(d->cproxy);
         
 		file_info_remove_source(d->file_info, d, TRUE);
 		parq_dl_remove(d);

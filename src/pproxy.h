@@ -28,6 +28,8 @@
 #ifndef _pproxy_h_
 #define _pproxy_h_
 
+#include "http.h"
+
 #include <glib.h>
 
 /***
@@ -49,7 +51,7 @@ struct pproxy {
 	gpointer io_opaque;		/* Opaque I/O callback information */
 };
 
-#define pproxy_vendor_str(pp)	((pp)->user_agent ? (pp)->user_agent : "")
+#define pproxy_vendor_str(p)	((p)->user_agent ? (p)->user_agent : "")
 
 void pproxy_add(struct gnutella_socket *s);
 void pproxy_remove(struct pproxy *pp, const gchar *reason, ...);
@@ -65,20 +67,30 @@ void pproxy_close();
  */
 struct cproxy {
 	struct download *d;		/* Which download triggered us */
-	struct gnutella_socket *socket;
-	time_t last_update;
 
 	guint32 ip;				/* IP of the proxy servent */
 	guint16 port;			/* Port of the proxy servent */
 	gchar *server;			/* Server string */
 	gchar *guid;			/* GUID (atom) to which push should be sent */
-	gpointer io_opaque;		/* Opaque I/O callback information */
+	gpointer http_handle;	/* Asynchronous HTTP request handle */
+
+	/*
+	 * For GUI.
+	 */
+
+	http_state_t state;		/* State of the HTTP request */
+	gboolean done;			/* We're done with request */
+	gboolean sent;			/* Whether push was sent */
+	gboolean directly;		/* Whether push was sent directly or via Gnet */
 };
 
-#define cproxy_vendor_str(cp)	((cp)->server ? (cp)->server : "")
+#define cproxy_vendor_str(c)	((c)->server ? (c)->server : "")
+#define cproxy_ip(c)			((c)->ip)
+#define cproxy_port(c)			((c)->port)
 
 struct cproxy *cproxy_create(struct download *d,
 	guint32 ip, guint16 port, gchar *guid);
+void cproxy_free(struct cproxy *cp);
 
 #endif	/* _pproxy_h_ */
 

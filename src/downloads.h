@@ -160,7 +160,7 @@ struct download {
 	gboolean got_giv;		/* Whether download created from GIV reception */
 
 	struct cproxy *cproxy;	/* Push proxy being used currently */
-	
+
 	gpointer queue_status;	/* Queuing status */
 };
 
@@ -320,4 +320,9 @@ gboolean is_faked_download(struct download *d);
 
 struct download *download_find_waiting_unparq(guint32 ip, guint16 port);
 
+void download_proxy_newstate(struct download *d);
+void download_proxy_sent(struct download *d);
+void download_proxy_failed(struct download *d);
+
 #endif /* _downloads_h_ */
+

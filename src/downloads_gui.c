@@ -28,6 +28,7 @@
 #include "downloads.h" /* FIXME: remove this dependency */
 #include "dmesh.h" /* FIXME: remove this dependency */
 #include "http.h" /* FIXME: remove this dependency */
+#include "pproxy.h" /* FIXME: remove this dependency */
 #include "statusbar_gui.h"
 #include "downloads_cb.h"
 #include "parq.h"
@@ -127,7 +128,52 @@ void gui_update_download(struct download *d, gboolean force)
 		break;
 
 	case GTA_DL_PUSH_SENT:
-		a = "Push sent";
+	case GTA_DL_FALLBACK:
+		{
+			if (d->cproxy != NULL) {
+				struct cproxy *cp = d->cproxy;
+
+				if (cp->done) {
+					if (cp->sent)
+						rw = gm_snprintf(tmpstr, sizeof(tmpstr),
+							"Sent push%s", cp->directly ? " directly" : "");
+					else
+						rw = gm_snprintf(tmpstr, sizeof(tmpstr),
+							"Failed to send push");
+				} else
+					rw = gm_snprintf(tmpstr, sizeof(tmpstr),
+						"Sending push");
+				
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, " via %s",
+						ip_port_to_gchar(cproxy_ip(cp), cproxy_port(cp)));
+
+				if (!cp->done) {
+					switch (cp->state) {
+					case HTTP_AS_CONNECTING:	a = "Connecting"; break;
+					case HTTP_AS_REQ_SENDING:	a = "Sending request"; break;
+					case HTTP_AS_REQ_SENT:		a = "Request sent"; break;
+					case HTTP_AS_HEADERS:		a = "Reading headers"; break;
+					default:					a = "..."; break;
+					}
+
+					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+						": %s", a);
+				}
+
+				a = tmpstr;
+			} else {
+				switch (d->status) {
+				case GTA_DL_PUSH_SENT:
+					a = "Push sent";
+					break;
+				case GTA_DL_FALLBACK:
+					a = "Falling back to push";
+					break;
+				default:
+					break;
+				}
+			}
+		}
 		break;
 
 	case GTA_DL_REQ_SENDING:
@@ -151,10 +197,6 @@ void gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_ABORTED:
 		a = "Aborted";
-		break;
-
-	case GTA_DL_FALLBACK:
-		a = "Falling back to push";
 		break;
 
 	case GTA_DL_COMPLETED:

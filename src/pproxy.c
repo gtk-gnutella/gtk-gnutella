@@ -28,17 +28,26 @@
 #include "gnutella.h"		/* For <string.h> + dbg */
 
 #include "pproxy.h"
-#include "sockets.h"
-#include "ioheader.h"
 #include "header.h"
 #include "http.h"
-#include "bsched.h"
 #include "atoms.h"
-#include "url.h"
-#include "routing.h"
 #include "version.h"
+#include "misc.h"
+
+/* Following extra needed for the server-side */
+
+#include "sockets.h"
+#include "ioheader.h"
+#include "bsched.h"
+#include "routing.h"
 #include "gmsg.h"
 #include "uploads.h"
+
+/* Following extra needed for the client-side */
+
+#include "settings.h"		/* For listen_ip() */
+#include "token.h"
+#include "downloads.h"
 
 RCSID("$Id$");
 
@@ -306,12 +315,6 @@ static gchar *get_guid(struct pproxy *pp, gchar *request)
 		uri++;
 
 	/*
-	 * URL-unescape the string in place.  One never knows...
-	 */
-
-	(void) url_unescape(uri, TRUE);
-
-	/*
 	 * Go patch the first space we encounter before HTTP to be a NUL.
 	 * Indeed, the requesst shoud be "GET /get/12/foo.txt HTTP/1.0".
 	 *
@@ -474,6 +477,32 @@ static void build_push(struct gnutella_msg_push_request *m,
 }
 
 /*
+ * validate_vendor
+ *
+ * Validate vendor.
+ * Returns atom, or NULL.
+ */
+static gchar *validate_vendor(gchar *vendor, gchar *token, guint32 ip)
+{
+	gboolean faked;
+	gchar *result;
+
+	if (vendor)
+		faked = !version_check(vendor, token, ip);
+
+	if (vendor) {
+		if (faked) {
+			gchar *name = g_strdup_printf("!%s", vendor);
+			result = atom_str_get(name);
+			g_free(name);
+		} else
+			result = atom_str_get(vendor);
+	}
+
+	return result;
+}
+
+/*
  * pproxy_request
  *
  * Called once all the HTTP headers have been read to proceed with
@@ -487,7 +516,6 @@ static void pproxy_request(struct pproxy *pp, header_t *header)
 	gchar *buf;
 	gchar *token;
 	gchar *user_agent;
-	gboolean faked;
 	struct gnutella_msg_push_request m;
 	GSList *nodes;
 
@@ -506,17 +534,7 @@ static void pproxy_request(struct pproxy *pp, header_t *header)
 	token = header_get(header, "X-Token");
 	user_agent = header_get(header, "User-Agent");
 
-	if (user_agent)
-		faked = !version_check(user_agent, token, s->ip);
-
-	if (user_agent) {
-		if (faked) {
-			gchar *name = g_strdup_printf("!%s", user_agent);
-			pp->user_agent = atom_str_get(name);
-			g_free(name);
-		} else
-			pp->user_agent = atom_str_get(user_agent);
-	}
+	pp->user_agent = validate_vendor(user_agent, token, s->ip);
 
 	/*
 	 * Determine the servent ID.
@@ -743,6 +761,173 @@ void pproxy_close(void)
  ***/
 
 /*
+ * cproxy_free
+ *
+ * Free the structure and all its dependencies.
+ */
+void cproxy_free(struct cproxy *cp)
+{
+	if (cp->guid != NULL) {
+		atom_guid_free(cp->guid);
+		cp->guid = NULL;
+	}
+	if (cp->http_handle != NULL) {
+		http_async_cancel(cp->http_handle);
+		cp->http_handle = NULL;
+	}
+	if (cp->server != NULL) {
+		atom_str_free(cp->server);
+		cp->server = NULL;
+	}
+
+	wfree(cp, sizeof(*cp));
+}
+
+/*
+ * cproxy_http_error_ind
+ *
+ * HTTP async callback for error notifications.
+ */
+static void cproxy_http_error_ind(
+	gpointer handle, http_errtype_t type, gpointer v)
+{
+	struct cproxy *cp = (struct cproxy *) http_async_get_opaque(handle);
+
+	g_assert(cp != NULL);
+
+	http_async_log_error(handle, type, v);
+
+	cp->http_handle = NULL;
+	cp->done = TRUE;
+
+	if (
+		type == HTTP_ASYNC_ERROR &&
+		GPOINTER_TO_INT(v) == HTTP_ASYNC_CANCELLED
+	)
+		return;		/* Was an explicit cancel */
+
+	cproxy_free(cp);
+}
+
+/*
+ * cproxy_http_header_ind
+ *
+ * HTTP async callback for header reception notification.
+ * Returns whether processing can continue.
+ */
+static gboolean cproxy_http_header_ind(
+	gpointer handle, header_t *header, gint code, const gchar *message)
+{
+	struct cproxy *cp = (struct cproxy *) http_async_get_opaque(handle);
+	gchar *token;
+	gchar *server;
+
+	g_assert(cp != NULL);
+	g_assert(cp->d != NULL);
+
+	/*
+	 * Extract vendor information.
+	 */
+
+	token = header_get(header, "X-Token");
+	server = header_get(header, "Server");
+	if (server == NULL)
+		server = header_get(header, "User-Agent");
+
+	cp->server = validate_vendor(server, token, cp->ip);
+
+	/*
+	 * Don't continue past headers, we don't expect data, and besides the
+	 * error codes are non-standard.
+	 */
+
+	g_assert(handle == cp->http_handle);
+
+	http_async_cancel(cp->http_handle);
+	cp->http_handle = NULL;
+
+	g_assert(cp->done);		/* Set by the error_ind callback during cancel */
+
+	/*
+	 * Analyze status.
+	 */
+
+	switch (code) {
+	case 202:
+		download_proxy_sent(cp->d);
+		cp->sent = TRUE;
+		cp->directly = TRUE;
+		break;
+	case 203:
+		download_proxy_sent(cp->d);
+		cp->sent = TRUE;
+		cp->directly = FALSE;
+		break;
+	case 400:
+		g_warning("push-proxy at %s (%s) for %s reported HTTP %d: %s",
+			ip_port_to_gchar(cp->ip, cp->port), cproxy_vendor_str(cp),
+			guid_hex_str(cp->guid), code, message);
+		/* FALL THROUGH */
+	case 410:
+		download_proxy_failed(cp->d);
+		break;
+	default:
+		g_warning("push-proxy at %s (%s) for %s sent unexpected HTTP %d: %s",
+			ip_port_to_gchar(cp->ip, cp->port), cproxy_vendor_str(cp),
+			guid_hex_str(cp->guid), code, message);
+		download_proxy_failed(cp->d);
+		break;
+	}
+
+	return FALSE;		/* Don't continue -- handle invalid now anyway */
+}
+
+/*
+ * cproxy_build_request
+ *
+ * Redefines the HTTP request building.
+ *
+ * See http_async_build_request() for the model and details about
+ * the various parameters.
+ *
+ * Returns length of generated request.
+ */
+static gint cproxy_build_request(gpointer handle, gchar *buf, gint len,
+	gchar *verb, gchar *path, gchar *host)
+{
+	/*
+	 * Note that we send an HTTP/1.0 request here, hence we need neither
+	 * the Host: nor the Connection: header.
+	 */
+
+	return gm_snprintf(buf, len,
+		"%s %s HTTP/1.0\r\n"
+		"User-Agent: %s\r\n"
+		"X-Token: %s\r\n"
+		"X-Node: %s\r\n"
+		"\r\n",
+		verb, path, version_string,
+		tok_version(),
+		ip_port_to_gchar(listen_ip(), listen_port));
+}
+
+/*
+ * cproxy_http_newstate
+ *
+ * Invoked when the state of the HTTP async request changes.
+ */
+static void cproxy_http_newstate(gpointer handle, http_state_t newstate)
+{
+	struct cproxy *cp = (struct cproxy *) http_async_get_opaque(handle);
+
+	g_assert(cp != NULL);
+	g_assert(cp->d != NULL);
+
+	cp->state = newstate;
+	download_proxy_newstate(cp->d);
+}
+
+/*
  * cproxy_create
  *
  * Create client proxy.
@@ -752,16 +937,42 @@ struct cproxy *cproxy_create(struct download *d,
 	guint32 ip, guint16 port, gchar *guid)
 {
 	struct cproxy *cp;
+	gpointer handle;
+	static gchar path[128];
+
+	(void) gm_snprintf(path, sizeof(path),
+		"/gnutella/push-proxy?ServerId=%s",
+		guid_base32_str(guid));
 
 	/*
-	 * Try to connect immediately.
+	 * Try to connect immediately: if we can't connect, no need to continue.
 	 */
+
+	handle = http_async_get_ip(path, ip, port,
+		cproxy_http_header_ind, NULL, cproxy_http_error_ind);
+
+	if (handle == NULL) {
+		g_warning("can't connect to push-proxy %s for GUID %s: %s",
+			ip_port_to_gchar(ip, port), guid_hex_str(guid),
+			http_async_strerror(http_async_errno));
+		return NULL;
+	}
 
 	cp = walloc0(sizeof(*cp));
 
+	cp->d = d;
 	cp->ip = ip;
 	cp->port = port;
 	cp->guid = atom_guid_get(guid);
+	cp->http_handle = handle;
+
+	/*
+	 * Customize async HTTP layer.
+	 */
+
+	http_async_set_opaque(handle, cp, NULL);
+	http_async_set_op_request(handle, cproxy_build_request);
+	http_async_on_state_change(handle, cproxy_http_newstate);
 
 	return cp;
 }
