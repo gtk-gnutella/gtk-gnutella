@@ -82,20 +82,6 @@ void on_spinbutton_search_reissue_timeout_changed
     lock = FALSE;
 }
 
-void on_spinbutton_minimum_speed_changed
-    (GtkEditable *editable, gpointer user_data)
-{
-    search_t *current_search;
-
-    current_search = search_gui_get_current_search();
-
-    if (!current_search)
-        return;
-
-    search_set_minimum_speed(current_search->search_handle,
-        gtk_spin_button_get_value(GTK_SPIN_BUTTON(editable)));
-}
-
 static void on_entry_config_proxy_ip_activate_helper(
 	guint32 ip, gpointer user_data)
 {

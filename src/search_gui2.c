@@ -228,12 +228,10 @@ gboolean search_gui_new_search(
 	const gchar *query, flag_t flags, search_t **search)
 {
     guint32 timeout;
-    guint32 speed;
     
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
-    gui_prop_get_guint32_val(PROP_DEFAULT_MINIMUM_SPEED, &speed);
 	return search_gui_new_search_full(
-        query, speed, timeout, SORT_NO_COL, SORT_NONE,
+        query, 0, timeout, SORT_NO_COL, SORT_NONE,
 		flags | SEARCH_ENABLED, search);
 }
 
@@ -497,7 +495,7 @@ static void search_gui_add_record(
 		g_string_append(info, vinfo->str);
 	}
 	/* strdup() info because it's normally shorter than filename */
-	info_utf8 = g_strdup(locale_to_utf8(info->str, info->len));
+	info_utf8 = g_strdup(lazy_locale_to_utf8(info->str, info->len));
 
 	if (NULL != rc->sha1) {
 		gpointer key;
@@ -521,7 +519,7 @@ static void search_gui_add_record(
 		gtk_tree_store_append(model, &iter, (parent = NULL));
 
 	gtk_tree_store_set(model, &iter,
-		      c_sr_filename, locale_to_utf8(rc->name, 0),
+		      c_sr_filename, lazy_locale_to_utf8(rc->name, 0),
 		      c_sr_size, NULL != parent ? NULL : short_size(rc->size),
 		      c_sr_info, info_utf8,
 		      c_sr_fg, fg,
@@ -1379,8 +1377,6 @@ void search_gui_remove_search(search_t * sch)
 		 * Keep the GtkTreeView of this search, clear it and make it the
 		 * default GtkTreeView 
 		 */
-        GtkWidget *spinbutton_minimum_speed =
-            lookup_widget(main_window, "spinbutton_minimum_speed");
 
 		gtk_tree_store_clear((GtkTreeStore *)
 			gtk_tree_view_get_model((GtkTreeView *) sch->tree_view));
@@ -1400,8 +1396,6 @@ void search_gui_remove_search(search_t * sch)
 
 		gtk_widget_set_sensitive
             (lookup_widget(main_window, "button_search_clear"), FALSE);
-        gtk_widget_set_sensitive(spinbutton_minimum_speed, FALSE);
-        gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_minimum_speed), 0);
 	}
     
     sensitive = searches != NULL;
@@ -1420,7 +1414,6 @@ void search_gui_remove_search(search_t * sch)
 void search_gui_set_current_search(search_t *sch) 
 {
 	search_t *old_sch = current_search;
-    GtkWidget *spinbutton_minimum_speed;
     GtkWidget *spinbutton_reissue_timeout;
     GtkTreeView *tree_view_search;
     static gboolean locked = FALSE;
@@ -1428,7 +1421,6 @@ void search_gui_set_current_search(search_t *sch)
     gboolean passive;
     gboolean frozen;
     guint32 reissue_timeout;
-    guint16 minimum_speed;
 
 	g_assert(sch != NULL);
 
@@ -1447,7 +1439,6 @@ void search_gui_set_current_search(search_t *sch)
     passive = search_is_passive(sch->search_handle);
     frozen = search_is_frozen(sch->search_handle);
     reissue_timeout = search_get_reissue_timeout(sch->search_handle);
-    minimum_speed = search_get_minimum_speed(sch->search_handle);
 
     /*
      * We now propagate the column visibility from the current_search
@@ -1474,8 +1465,6 @@ void search_gui_set_current_search(search_t *sch)
 	current_search = sch;
 	sch->unseen_items = 0;
 
-    spinbutton_minimum_speed = lookup_widget
-        (main_window, "spinbutton_minimum_speed");
     spinbutton_reissue_timeout= lookup_widget
         (main_window, "spinbutton_search_reissue_timeout");
     tree_view_search = GTK_TREE_VIEW
@@ -1485,9 +1474,6 @@ void search_gui_set_current_search(search_t *sch)
         gui_search_force_update_tab_label(sch, time(NULL));
         gui_search_update_items(sch);
 
-        gtk_spin_button_set_value
-            (GTK_SPIN_BUTTON(spinbutton_minimum_speed), minimum_speed);
-        gtk_widget_set_sensitive(spinbutton_minimum_speed, TRUE);
         gtk_spin_button_set_value
             (GTK_SPIN_BUTTON(spinbutton_reissue_timeout), reissue_timeout);
         gtk_widget_set_sensitive(spinbutton_reissue_timeout, !passive);
@@ -1513,7 +1499,6 @@ void search_gui_set_current_search(search_t *sch)
     } else {
         gtk_tree_selection_unselect_all(
 			gtk_tree_view_get_selection(tree_view_search));
-        gtk_widget_set_sensitive(spinbutton_minimum_speed, FALSE);
         gtk_widget_set_sensitive(spinbutton_reissue_timeout, FALSE);
         gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_download"), FALSE);

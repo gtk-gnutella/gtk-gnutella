@@ -8218,14 +8218,11 @@ create_main_window_search_tab (void)
   GtkWidget *hbox215;
   GtkWidget *viewport56;
   GtkWidget *label_items_found;
+  GtkWidget *label706;
   GtkWidget *label655;
   GtkObject *spinbutton_search_reissue_timeout_adj;
   GtkWidget *spinbutton_search_reissue_timeout;
   GtkWidget *label656;
-  GtkWidget *label657;
-  GtkObject *spinbutton_minimum_speed_adj;
-  GtkWidget *spinbutton_minimum_speed;
-  GtkWidget *label658;
   GtkAccelGroup *accel_group;
   GtkTooltips *tooltips;
 
@@ -8883,12 +8880,18 @@ create_main_window_search_tab (void)
   gtk_widget_show (viewport56);
   gtk_box_pack_start (GTK_BOX (hbox215), viewport56, FALSE, TRUE, 0);
 
-  label_items_found = gtk_label_new (_("No items found"));
+  label_items_found = gtk_label_new (_("No items found                                                                          "));
   gtk_widget_set_name (label_items_found, "label_items_found");
   gtk_widget_show (label_items_found);
   gtk_container_add (GTK_CONTAINER (viewport56), label_items_found);
   gtk_misc_set_alignment (GTK_MISC (label_items_found), 7.45058e-09, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_items_found), 5, 0);
+
+  label706 = gtk_label_new ("");
+  gtk_widget_set_name (label706, "label706");
+  gtk_widget_show (label706);
+  gtk_box_pack_start (GTK_BOX (hbox215), label706, TRUE, TRUE, 0);
+  gtk_label_set_justify (GTK_LABEL (label706), GTK_JUSTIFY_LEFT);
 
   label655 = gtk_label_new_with_mnemonic (_("Re_try search every"));
   gtk_widget_set_name (label655, "label655");
@@ -8908,24 +8911,6 @@ create_main_window_search_tab (void)
   gtk_widget_show (label656);
   gtk_box_pack_start (GTK_BOX (hbox215), label656, FALSE, FALSE, 0);
   gtk_label_set_justify (GTK_LABEL (label656), GTK_JUSTIFY_LEFT);
-
-  label657 = gtk_label_new_with_mnemonic (_("Minimum connection _speed (kbps)"));
-  gtk_widget_set_name (label657, "label657");
-  gtk_widget_show (label657);
-  gtk_box_pack_start (GTK_BOX (hbox215), label657, FALSE, FALSE, 0);
-
-  spinbutton_minimum_speed_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
-  spinbutton_minimum_speed = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_minimum_speed_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_minimum_speed, "spinbutton_minimum_speed");
-  gtk_widget_show (spinbutton_minimum_speed);
-  gtk_box_pack_start (GTK_BOX (hbox215), spinbutton_minimum_speed, FALSE, TRUE, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_minimum_speed), TRUE);
-
-  label658 = gtk_label_new (_("kbit/s"));
-  gtk_widget_set_name (label658, "label658");
-  gtk_widget_show (label658);
-  gtk_box_pack_start (GTK_BOX (hbox215), label658, FALSE, FALSE, 0);
-  gtk_label_set_justify (GTK_LABEL (label658), GTK_JUSTIFY_LEFT);
 
   g_signal_connect ((gpointer) entry_search, "changed",
                     G_CALLBACK (on_entry_search_changed),
@@ -8954,14 +8939,10 @@ create_main_window_search_tab (void)
   g_signal_connect_after ((gpointer) spinbutton_search_reissue_timeout, "changed",
                           G_CALLBACK (on_spinbutton_search_reissue_timeout_changed),
                           NULL);
-  g_signal_connect ((gpointer) spinbutton_minimum_speed, "changed",
-                    G_CALLBACK (on_spinbutton_minimum_speed_changed),
-                    NULL);
 
   gtk_label_set_mnemonic_widget (GTK_LABEL (label204), entry_search);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label557), spinbutton_search_max_results);
   gtk_label_set_mnemonic_widget (GTK_LABEL (label655), spinbutton_search_reissue_timeout);
-  gtk_label_set_mnemonic_widget (GTK_LABEL (label657), spinbutton_minimum_speed);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_search_tab, main_window_search_tab, "main_window_search_tab");
@@ -9062,12 +9043,10 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox215, "hbox215");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, viewport56, "viewport56");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label_items_found, "label_items_found");
+  GLADE_HOOKUP_OBJECT (main_window_search_tab, label706, "label706");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label655, "label655");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, spinbutton_search_reissue_timeout, "spinbutton_search_reissue_timeout");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label656, "label656");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, label657, "label657");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, spinbutton_minimum_speed, "spinbutton_minimum_speed");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, label658, "label658");
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_search_tab, tooltips, "tooltips");
 
   gtk_window_add_accel_group (GTK_WINDOW (main_window_search_tab), accel_group);

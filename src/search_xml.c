@@ -422,6 +422,7 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
 {
     xmlNodePtr newxml;
     GList *l;
+	gchar *t;
 
     g_assert(s != NULL);
     g_assert(s->query != NULL);
@@ -433,22 +434,22 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
         printf("  -- search is         : %p\n", s);
     }
 
-    newxml = xmlNewChild(parent, NULL, NODE_SEARCH, NULL);
-
+	t = s->query;
 #ifndef USE_GTK2   
-	if (!is_ascii_string(s->query) && !utf8_is_valid_string(s->query, 0))
-	    xmlSetProp(newxml, TAG_SEARCH_QUERY,
-			(const xmlChar *) locale_to_utf8(s->query, 0));
-	else
+	if (!is_ascii_string(s->query) && !utf8_is_valid_string(s->query, 0)) {
+		if (NULL == (t = locale_to_utf8(s->query, 0))) {
+			g_warning("search_to_xml: Cannot convert search string to UTF-8"
+				"Search won't be saved. query=\"%s\"", s->query);
+			return;
+		} 
+	}
 #endif
-	    xmlSetProp(newxml, TAG_SEARCH_QUERY, (const xmlChar *) s->query);
+
+    newxml = xmlNewChild(parent, NULL, NODE_SEARCH, NULL);
+    xmlSetProp(newxml, TAG_SEARCH_QUERY, (const xmlChar *) t);
 
     gm_snprintf(x_tmp, sizeof(x_tmp), "%u", s->enabled);
     xmlSetProp(newxml, TAG_SEARCH_ENABLED, (const xmlChar *) x_tmp);
-
-  	gm_snprintf(x_tmp, sizeof(x_tmp), "%u", 
-        search_get_minimum_speed(s->search_handle));
-    xmlSetProp(newxml, TAG_SEARCH_SPEED, (const xmlChar *) x_tmp);
 
     gm_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(s->passive));
     xmlSetProp(newxml, TAG_SEARCH_PASSIVE, (const xmlChar *) x_tmp);
@@ -726,7 +727,6 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
     gchar *buf;
     gchar *query;
     gint sort_col = SORT_NO_COL, sort_order = SORT_NONE;
-    guint32 speed;
     guint32 reissue_timeout;
     xmlNodePtr node;
     search_t * search;
@@ -737,7 +737,6 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
     g_assert(0 == g_ascii_strcasecmp((const gchar *) xmlnode->name,
 		(const gchar *) NODE_SEARCH));
 
-    gui_prop_get_guint32_val(PROP_DEFAULT_MINIMUM_SPEED, &speed);
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &reissue_timeout);
 
 	buf = (gchar *) xmlGetProp(xmlnode, TAG_SEARCH_QUERY);
@@ -745,12 +744,19 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
         g_warning("Ignored search without query");
         return;
     }
-#ifdef USE_GTK2
-	query = buf;
-#else
-    query = g_strdup(utf8_to_locale(buf, 0));
-	g_free(buf);
+#ifndef USE_GTK2
+	if (!is_ascii_string(buf)) {
+    	query = g_strdup(utf8_to_locale(buf, 0));
+		if (NULL == query) {
+			g_warning("xml_to_search: Cannot convert search string to UTF-8"
+                "Discarding search. buf=\"%s\"", buf);	
+			g_free(buf);
+			return;
+		}
+		g_free(buf);
+	} else
 #endif
+		query = buf;
 
     buf = (gchar *) xmlGetProp(xmlnode, TAG_SEARCH_ENABLED);
     if (buf) {
@@ -762,7 +768,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
 
     buf = (gchar *) xmlGetProp(xmlnode, TAG_SEARCH_SPEED);
     if (buf) {
-        speed = atol(buf);
+		g_warning("xml_to_search: Found deprecated speed attribute.");
         g_free(buf);
     }
 
@@ -797,7 +803,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
 			(flags & SEARCH_PASSIVE) ? "passive" : "active",
 			query);
 
-	search_gui_new_search_full(query, (gint32) speed, reissue_timeout,
+	search_gui_new_search_full(query, 0, reissue_timeout,
 		sort_col, sort_order, flags, &search);
 
     g_free(query);

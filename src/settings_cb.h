@@ -29,7 +29,6 @@
 #include "gui.h"
 
 void on_spinbutton_search_reissue_timeout_changed(GtkEditable *, gpointer);
-void on_spinbutton_minimum_speed_changed(GtkEditable *, gpointer);
 
 gboolean on_entry_config_proxy_ip_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
 void on_entry_config_proxy_ip_activate(GtkEditable *editable, gpointer user_data);

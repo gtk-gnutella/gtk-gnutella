@@ -761,14 +761,6 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_DEFAULT_MINIMUM_SPEED,
-        update_spinbutton,
-        TRUE,
-        "spinbutton_config_search_min_speed",
-        FREQ_UPDATES, 0
-    },
-    {
-        get_main_window,
         PROP_MAX_HOSTS_CACHED,
         update_spinbutton,
         TRUE,

@@ -324,9 +324,6 @@ gboolean search_is_frozen(gnet_search_t sh);
 void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout);
 guint32 search_get_reissue_timeout(gnet_search_t sh);
 
-void search_set_minimum_speed(gnet_search_t sh, guint16 speed);
-guint16 search_get_minimum_speed(gnet_search_t sh);
-
 void search_free_alt_locs(gnet_record_t *rc);
 
 /***

@@ -562,20 +562,6 @@ prop = {
 };
 
 prop = {
-    name = "default_minimum_speed";
-    cfgvar = "search_minimum_speed";
-    desc = "[NO LONGER USED] "
-		"This is the default minimum speed for new searches in kbit/s";
-	save = FALSE;
-    type = guint32;
-    data = {
-        default = 0;
-        min     = 0;
-        max     = 2000; 
-    }; 
-};
-
-prop = {
     name = "search_stats_mode";
     desc = "Collect statistics about searches that go through this node";
     type = multichoice;

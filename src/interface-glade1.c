@@ -339,10 +339,6 @@ create_main_window (void)
   GtkObject *spinbutton_search_reissue_timeout_adj;
   GtkWidget *spinbutton_search_reissue_timeout;
   GtkWidget *label246;
-  GtkWidget *label30;
-  GtkObject *spinbutton_minimum_speed_adj;
-  GtkWidget *spinbutton_minimum_speed;
-  GtkWidget *label293;
   GtkWidget *hbox52;
   GtkWidget *button_search_download;
   GtkWidget *button_search_clear;
@@ -3670,33 +3666,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label246);
   gtk_box_pack_start (GTK_BOX (hbox147), label246, FALSE, FALSE, 0);
-
-  label30 = gtk_label_new ("Minimum connection speed");
-  gtk_widget_set_name (label30, "label30");
-  gtk_widget_ref (label30);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label30", label30,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label30);
-  gtk_box_pack_start (GTK_BOX (hbox147), label30, FALSE, FALSE, 0);
-
-  spinbutton_minimum_speed_adj = gtk_adjustment_new (0, 0, 2e+06, 1, 10, 10);
-  spinbutton_minimum_speed = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_minimum_speed_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_minimum_speed, "spinbutton_minimum_speed");
-  gtk_widget_ref (spinbutton_minimum_speed);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_minimum_speed", spinbutton_minimum_speed,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_minimum_speed);
-  gtk_box_pack_start (GTK_BOX (hbox147), spinbutton_minimum_speed, FALSE, TRUE, 0);
-  gtk_widget_set_sensitive (spinbutton_minimum_speed, FALSE);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_minimum_speed), TRUE);
-
-  label293 = gtk_label_new ("kbps");
-  gtk_widget_set_name (label293, "label293");
-  gtk_widget_ref (label293);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label293", label293,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label293);
-  gtk_box_pack_start (GTK_BOX (hbox147), label293, FALSE, FALSE, 0);
 
   hbox52 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox52, "hbox52");
@@ -8104,9 +8073,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect_after (GTK_OBJECT (spinbutton_search_reissue_timeout), "changed",
                             GTK_SIGNAL_FUNC (on_spinbutton_search_reissue_timeout_changed),
-                            NULL);
-  gtk_signal_connect_after (GTK_OBJECT (spinbutton_minimum_speed), "changed",
-                            GTK_SIGNAL_FUNC (on_spinbutton_minimum_speed_changed),
                             NULL);
   gtk_signal_connect (GTK_OBJECT (button_search_download), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_download_clicked),

@@ -1540,36 +1540,6 @@ guint32 search_get_reissue_timeout(gnet_search_t sh)
 }
 
 /*
- * search_set_minimum_speed:
- *
- * Set the minimum speed of a search.
- */
-void search_set_minimum_speed(gnet_search_t sh, guint16 speed)
-{
-    search_ctrl_t *sch = search_find_by_handle(sh);
-
-    g_assert(sch != NULL);
-
-	// XXX remove callback and remove control from GUI --RAM, 06/07/2003
-}
-
-
-/*
- * search_get_minimum_speed:
- *
- * Get the minimum speed of a search.
- */
-guint16 search_get_minimum_speed(gnet_search_t sh)
-{
-    search_ctrl_t *sch = search_find_by_handle(sh);
-
-    g_assert(sch != NULL);
-
-	// XXX remove callback and remove control from GUI --RAM, 06/07/2003
-    return 0;
-}
-
-/*
  * search_new:
  *
  * Create a new suspended search and return a handle which identifies it.

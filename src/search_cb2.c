@@ -568,7 +568,7 @@ void on_tree_view_search_results_select_row(
 			tmpstr);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
-			rc->tag ? locale_to_utf8(rc->tag, 0) : "");
+			rc->tag ? lazy_locale_to_utf8(rc->tag, 0) : "");
 	}
 
 	g_return_if_fail(!autoselection_running);
@@ -794,8 +794,7 @@ void on_popup_search_duplicate_activate(
     /* FIXME: should call search_duplicate which has to be written. */
     /* FIXME: should properly duplicate passive searches. */
 
-	search_gui_new_search_full(search->query,
-		search_get_minimum_speed(search->search_handle), 
+	search_gui_new_search_full(search->query, 0,
 		timeout, search->sort_col, search->sort_order,
 		search->enabled ? SEARCH_ENABLED : 0, NULL);
 }
