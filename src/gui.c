@@ -16,6 +16,41 @@
 #include <arpa/inet.h>
 #include <math.h>
 
+#define NO_FUNC
+
+/*
+ * Creates an update function to set the value of the text entry w
+ * to the value of the config variable v
+ */
+#define UPDATE_ENTRY(w,v,f)\
+    void gui_update_##v ()\
+    {\
+        gtk_entry_set_text(GTK_ENTRY(w), v);\
+        f;\
+    }
+
+/*
+ * Creates an update function to set the state of the checkbox w
+ * to what the config variable v tells us. f is executed after that.
+ */
+#define UPDATE_CHECKBUTTON(w,v,f)\
+    void gui_update_##v ()\
+    {\
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON((w)), v);\
+        f;\
+    }
+
+/*
+ * Creates an update function to set the value of the spinbutton w
+ * to what the config variable v tells us. f is executed after that.
+ */
+#define UPDATE_SPINBUTTON(w,v,f)\
+    void gui_update_##v ()\
+    {\
+        gtk_spin_button_set_value(GTK_SPIN_BUTTON((w)), v);\
+        f;\
+    }
+
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 
 static gchar gui_tmp[4096];
@@ -97,7 +132,158 @@ void gui_init(void)
 	gtk_clist_column_titles_passive(GTK_CLIST(clist_monitor));
 
 	gtk_clist_set_reorderable(GTK_CLIST(clist_downloads_queue), TRUE);
+    
+    /* 
+     * Just hide the tabs so we can keep them displayed in glade
+     * which is easier for editing.
+     *      --BLUE, 11/05/2002
+     */
+    gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_main), FALSE);
+}
 
+void gui_update_all() 
+{
+    gint i;
+
+    /* update gui setting from config variables */
+
+    gui_update_guid();
+    
+	gui_update_count_downloads();
+	gui_update_count_uploads();
+
+	gui_update_minimum_speed(minimum_speed);
+	gui_update_up_connections();
+	gui_update_max_connections();
+	gui_update_config_port();
+	gui_update_config_force_ip();
+
+	gui_update_save_file_path();
+	gui_update_move_file_path();
+
+	gui_update_monitor_max_items();
+
+	gui_update_max_ttl();
+	gui_update_my_ttl();
+
+	gui_update_max_downloads();
+	gui_update_max_host_downloads();
+	gui_update_max_uploads();
+    gui_update_max_host_uploads();
+	gui_update_files_scanned();
+
+	gui_update_connection_speed();
+
+	gui_update_search_max_items();
+	/* PLACEHOLDER: gui_update_search_max_results(); */
+
+	gui_update_search_reissue_timeout();
+
+	gui_update_scan_extensions();
+	gui_update_shared_dirs();
+
+	gui_update_search_stats_delcoef();
+	gui_update_search_stats_update_interval();
+
+    gui_update_config_netmasks();
+
+	gtk_toggle_button_set_active(
+		GTK_TOGGLE_BUTTON(checkbutton_search_stats_enable),
+		search_stats_enabled);
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_monitor_enable),
+								 monitor_enabled);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
+								 (checkbutton_uploads_auto_clear),
+								 clear_uploads);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
+								 (checkbutton_downloads_auto_clear),
+								 clear_downloads);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
+								 (checkbutton_config_force_ip),
+								 force_local_ip);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_downloads_never_push),
+								 !send_pushes);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
+								 (checkbutton_search_jump_to_downloads),
+								 jump_to_downloads);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
+								 (checkbutton_autodownload),
+								 use_autodownload);
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
+								 (checkbutton_config_proxy_connections),
+								 proxy_connections);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
+								 (checkbutton_config_proxy_auth),
+								 proxy_auth);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_config_http),
+								 (proxy_protocol == 1) ? TRUE : FALSE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_config_socksv4),
+								 (proxy_protocol == 4) ? TRUE : FALSE);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_config_socksv5),
+								 (proxy_protocol == 5) ? TRUE : FALSE);
+
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_toolbar_visible),
+								   toolbar_visible);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_statusbar_visible),
+								   statusbar_visible);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_uploads_visible),
+								   progressbar_uploads_visible);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_downloads_visible),
+								   progressbar_downloads_visible);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_connections_visible),
+								   progressbar_connections_visible);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_bps_in_visible),
+								   progressbar_bps_in_visible);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_bps_out_visible),
+								   progressbar_bps_out_visible);
+
+	gui_update_proxy_ip();
+	gui_update_proxy_port();
+	gui_update_socks_user();
+	gui_update_socks_pass();
+
+	gui_update_input_bandwidth();
+	gui_update_output_bandwidth();
+    gui_update_bps_in_enabled();
+    gui_update_bps_out_enabled();
+    gui_update_queue_regex_case();
+    gui_update_search_remove_downloaded();
+    gui_update_download_delete_aborted();
+    gui_update_search_pick_all();
+
+    if (win_w && win_h) {
+		gtk_widget_set_uposition(main_window, win_x, win_y);
+		gtk_window_set_default_size(GTK_WINDOW(main_window), win_w, win_h);
+	}
+
+	for (i = 0; i < 5; i++)
+		gtk_clist_set_column_width(GTK_CLIST(clist_nodes), i,
+								   nodes_col_widths[i]);
+	for (i = 0; i < 4; i++)
+		gtk_clist_set_column_width(GTK_CLIST(clist_downloads), i,
+								   dl_active_col_widths[i]);
+	for (i = 0; i < 3; i++)
+		gtk_clist_set_column_width(GTK_CLIST(clist_downloads_queue), i,
+								   dl_queued_col_widths[i]);
+	for (i = 0; i < 5; i++)
+		gtk_clist_set_column_width(GTK_CLIST(clist_uploads), i,
+								   uploads_col_widths[i]);
+
+    // as soon as this is corrected in Glade, you can do this
+	// check the variable names and take out the stuff in
+	// search.c that sets this up
+	// for (i = 0; i < 5; i++)
+	//    gtk_clist_set_column_width(GTK_CLIST(clist_search_results),
+	//         i, search_results_col_widths[i]);
+
+	for (i = 0; i < 3; i++)
+		gtk_clist_set_column_width(GTK_CLIST(clist_search_stats), i,
+								   search_stats_col_widths[i]);
+	for (i = 0; i < 5; i++)
+		gtk_clist_set_column_width(GTK_CLIST(clist_ul_stats), i,
+								   ul_stats_col_widths[i]);
 }
 
 void gui_nodes_remove_selected(void)
@@ -217,10 +403,10 @@ void gui_update_config_port(void)
 
 	iport = ip_port_to_gchar(listen_ip(), listen_port);
 
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", listen_port);
-	gtk_entry_set_text(GTK_ENTRY(entry_config_port), gui_tmp);
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", iport);
-	gtk_label_set(GTK_LABEL(label_current_port), gui_tmp);
+	gtk_spin_button_set_value(
+        GTK_SPIN_BUTTON(spinbutton_config_port), listen_port);
+	gtk_label_set(GTK_LABEL(label_current_port), iport);
+    gtk_entry_set_text(GTK_ENTRY(entry_nodes_ip), iport);
 }
 
 void gui_update_max_ttl(void)
@@ -375,41 +561,88 @@ void gui_update_search_reissue_timeout(GtkEntry *
 }
 #endif
 
-void gui_update_socks_host()
+UPDATE_ENTRY(
+    entry_config_proxy_ip,
+    proxy_ip,
+    NO_FUNC)
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_proxy_port,
+    proxy_port,
+    NO_FUNC)
+
+UPDATE_ENTRY(
+    entry_config_socks_username,
+    socks_user,
+    NO_FUNC)
+
+UPDATE_ENTRY(
+    entry_config_socks_password,
+    socks_pass, 
+    NO_FUNC)
+
+UPDATE_CHECKBUTTON(
+    checkbutton_config_bps_in, 
+    bps_in_enabled,
+    gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bps_in),
+                             bps_in_enabled))
+
+void gui_update_input_bandwidth ()
 {
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", proxy_ip);
-	gtk_entry_set_text(GTK_ENTRY(entry_config_socks_host), gui_tmp);
+    gtk_spin_button_set_value(
+        GTK_SPIN_BUTTON(spinbutton_config_bps_in),
+        input_bandwidth / 1024);
 }
 
-void gui_update_socks_port()
+UPDATE_CHECKBUTTON(
+    checkbutton_config_bps_out, 
+    bps_out_enabled,
+    gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bps_out),
+                             bps_out_enabled);)
+
+void gui_update_output_bandwidth ()
 {
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", proxy_port);
-	gtk_entry_set_text(GTK_ENTRY(entry_config_socks_port), gui_tmp);
+    gtk_spin_button_set_value(
+        GTK_SPIN_BUTTON(spinbutton_config_bps_out),
+        output_bandwidth / 1024);
 }
 
-void gui_update_socks_user()
+UPDATE_CHECKBUTTON(
+    checkbutton_config_proxy_connections, 
+    proxy_connections,
+    NO_FUNC)
+
+UPDATE_CHECKBUTTON(
+    checkbutton_config_proxy_auth, 
+    proxy_auth,
+    NO_FUNC)
+
+void gui_update_guid()
 {
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", socksv5_user);
-	gtk_entry_set_text(GTK_ENTRY(entry_config_socks_username), gui_tmp);
+    gtk_entry_set_text(GTK_ENTRY(entry_nodes_guid),
+                       guid_hex_str(guid));
 }
 
-void gui_update_socks_pass()
-{
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", socksv5_pass);
-	gtk_entry_set_text(GTK_ENTRY(entry_config_socks_password), gui_tmp);
-}
+UPDATE_CHECKBUTTON(
+    checkbutton_queue_regex_case,
+    queue_regex_case,
+    NO_FUNC)
 
-void gui_update_bandwidth_input()
-{
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_config_bps_in),
-						      input_bandwidth);
-}
+UPDATE_CHECKBUTTON(
+    checkbutton_search_remove_downloaded,
+    search_remove_downloaded,
+    NO_FUNC)
 
-void gui_update_bandwidth_output()
-{
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_config_bps_out),
-						      output_bandwidth);
-}
+UPDATE_CHECKBUTTON(
+    checkbutton_download_delete_aborted,
+    download_delete_aborted,
+    NO_FUNC)
+
+UPDATE_CHECKBUTTON(
+    checkbutton_search_pick_all,
+    search_pick_all,
+    NO_FUNC)
+
 
 
 /*
