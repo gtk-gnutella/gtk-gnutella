@@ -1427,8 +1427,10 @@ gboolean search_request(struct gnutella_node *n)
     /*
      * Push the query string to interested ones.
      */
-
-	if (!*search && exv_sha1cnt) {
+    if (
+	(search[0] == '\0' || (search[0] == '\\' && search[1] == '\0'))
+	&& exv_sha1cnt
+    ) {
 		gint i;
 		for (i = 0; i < exv_sha1cnt; i++)
 			share_emit_search_request(QUERY_SHA1,
