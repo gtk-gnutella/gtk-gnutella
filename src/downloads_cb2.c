@@ -1017,13 +1017,15 @@ void on_button_downloads_abort_clicked(GtkButton * button, gpointer user_data)
 			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
 			g_list_free(l);
 
-			if (!d) {
-				g_warning("on_button_downloads_abort_clicked(): "
-					"row %d has NULL data\n", GPOINTER_TO_INT(l->data));
-				continue;
-			}
-
-			download_abort(d);
+			if (DL_GUI_IS_HEADER != (guint32)d) {
+				if (!d) {
+					g_warning("on_button_downloads_abort_clicked(): "
+						"row %d has NULL data\n", GPOINTER_TO_INT(l->data));
+					continue;
+				}
+	
+				download_abort(d);
+			}	
 		}
 		/* In the event that we broke out of the loop without freeing the list*/
 		if (NULL != l) {
