@@ -3742,8 +3742,8 @@ static gboolean parq_still_sharing(struct parq_ul_queued *parq_ul)
 	if (parq_ul->sha1) {
 		sf = shared_file_by_sha1(parq_ul->sha1);
 		if (sf != SHARE_REBUILDING && NULL == sf) {
-			printf("[PARQ UL] We no longer share this file: SHA1=%s \"%s\"\n",
-				sha1_base32(parq_ul->sha1), parq_ul->name);
+			g_message("[PARQ UL] We no longer share this file: "
+				"SHA1=%s \"%s\"", sha1_base32(parq_ul->sha1), parq_ul->name);
 			return FALSE;
 		} else
 			return TRUE;  /* Either we have the file or we are rebuilding */
@@ -3760,11 +3760,11 @@ static gboolean parq_still_sharing(struct parq_ul_queued *parq_ul)
 		if (sf != SHARE_REBUILDING) {
 			if (NULL != sf) {
 				parq_ul->sha1 = atom_sha1_get(sf->sha1_digest);
-				printf("[PARQ UL] Found SHA1=%s for \"%s\"\n",
+				g_message("[PARQ UL] Found SHA1=%s for \"%s\"",
 					sha1_base32(parq_ul->sha1), parq_ul->name);
 				return TRUE;
 			} else {
-				printf("[PARQ UL] We no longer share this file \"%s\"\n",
+				g_message("[PARQ UL] We no longer share this file \"%s\"",
 					parq_ul->name);
 				return FALSE;
 			}
