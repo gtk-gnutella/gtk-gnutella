@@ -781,6 +781,8 @@ static gboolean listen_port_changed(property_t prop)
 	gboolean random = FALSE;
 	static guint32 old_listen_port = (guint32) -1;
     guint32 listen_port;
+	guint num_tried = 0;
+	guint32 tried[65536 / (8 * sizeof(guint32))]; /* Use bits as bool flags */
 
     gnet_prop_get_guint32_val(prop, &listen_port);
 
@@ -795,10 +797,24 @@ static gboolean listen_port_changed(property_t prop)
 		inet_firewalled();			/* Assume we're firewalled on port change */
 
 	random = listen_port == 0;
+	memset(tried, 0, sizeof tried);
+	memset(tried, 0xff, 1024 / 8); /* Mark ports below 1024 as already tried */
 
 	do {
 		if (random) {
-			listen_port = random_value(65535);
+			guint32 i, b, r;
+
+			listen_port = r = random_value(65535 - 1024) + 1024;
+			/* Check whether this port was tried before */
+			do {
+				i = r / (8 * sizeof tried[0]);
+				b = 1 << (r % (8 * sizeof tried[0]));
+				if ((tried[i] & b) == 0) {
+					tried[i] |= b;
+					listen_port = r;
+					break;
+				}
+			} while (((r += 101) & 0xffff) != listen_port);
 		}
 	
 		old_listen_port = listen_port;
@@ -807,18 +823,19 @@ static gboolean listen_port_changed(property_t prop)
 		 * Close old port.
 		 */
 	
-		if (s_listen)
+		if (s_listen) {
 			socket_free(s_listen);
+			s_listen = NULL;
+		}
 	
 		/*
 		 * If the new port != 0, open the new port
 		 */
 	
-		if (listen_port != 0)
+		if (listen_port) {
 			s_listen = socket_listen(0, listen_port, SOCK_TYPE_CONTROL);
-		else
-			s_listen = NULL;
-	} while (s_listen == NULL);
+		}
+	} while (random && s_listen == NULL && ++num_tried < 65535 - 1024);
 	
     /*
      * If socket allocation failed, reset the property
