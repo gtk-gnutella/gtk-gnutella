@@ -78,12 +78,13 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.8 2004/10/03 16:25:26 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.9 2004/10/16 20:37:50 rmanfredi Exp $
 
 SRC = \
 	alive.c \
 	ban.c \
 	bitzi.c \
+	bogons.c \
 	bsched.c \
 	clock.c \
 	dh.c \
@@ -93,6 +94,7 @@ SRC = \
 	extensions.c \
 	features.c \
 	fileinfo.c \
+	geo_ip.c \
 	ggep.c \
 	ggep_type.c \
 	gmsg.c \
@@ -155,6 +157,7 @@ OBJ = \
 	alive.o \
 	ban.o \
 	bitzi.o \
+	bogons.o \
 	bsched.o \
 	clock.o \
 	dh.o \
@@ -164,6 +167,7 @@ OBJ = \
 	extensions.o \
 	features.o \
 	fileinfo.o \
+	geo_ip.o \
 	ggep.o \
 	ggep_type.o \
 	gmsg.o \

@@ -59,10 +59,12 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.7 2004/08/25 05:52:33 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.8 2004/10/16 20:36:23 rmanfredi Exp $
 
 EXTRA_FILES = \
+	bogons.txt \
 	gwcache.boot \
+	geo-ip.txt \
 	hostiles.txt
 
 all::
@@ -237,6 +239,11 @@ Makefiles.SH:: Makefile.SH
 
 all::
 	@$(MAKE) subdirs TARGET=all VERB="Making all" FLAGS=
+
+local_install::
+local_deinstall::
+local_install.man::
+local_deinstall.man::
 
 !NO!SUBS!
 chmod 644 Makefile
