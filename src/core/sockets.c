@@ -2085,8 +2085,10 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 	struct sockaddr_in addr;
 	struct gnutella_socket *s;
 
+ 	if (port < 1024)
+		return NULL;
+	
 	sd = socket(AF_INET, SOCK_STREAM, 0);
-
 	if (sd == -1) {
 		g_warning("Unable to create a socket (%s)", g_strerror(errno));
 		return NULL;
@@ -2115,7 +2117,6 @@ socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 	/* bind() the socket */
 
 	if (bind(sd, (struct sockaddr *) &addr, sizeof addr) == -1) {
-		g_assert(port > 1023);
 		g_warning("Unable to bind() the socket on port %u (%s)",
 				  (unsigned int) port, g_strerror(errno));
 		socket_destroy(s, "Unable to bind socket");
