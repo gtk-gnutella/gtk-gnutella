@@ -94,6 +94,9 @@ set w_main_list {
 
 	popup_dl_queued 
 	popup_queue_remove
+	popup_queue_remove_named
+	popup_queue_remove_host
+	popup_queue_search_again
 	popup_queue_start_now 
 	popup_queue_freeze
 	popup_queue_search_again
