@@ -206,9 +206,12 @@ parse_target(const gchar *buf, gint *error)
 	g_assert(buf != NULL);
 	g_assert(error != NULL);
 
-	if ('0' != *buf++ || 'x' != *buf++) {
-		*error = EINVAL;
-		return NULL;
+	if ('0' == buf[0] && 'x' == buf[1]) {
+		/* Targets are printed using "%p". This format is implementation
+		 * specific. We expect a hexadecimal value that is optionally
+		 * preceded by "0x".
+		 */
+		buf += 2;
 	}
 
 	ret = TO_TARGET(parse_uint64(buf, &ep, 16, error));
