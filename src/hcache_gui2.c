@@ -85,7 +85,7 @@ void hcache_gui_init(void)
 {
     GtkTreeModel *model;
     gint n;
-	guint32 *width;
+	guint32 width[HCACHE_STATS_VISIBLE_COLUMNS];
 
 	notebook_main = GTK_NOTEBOOK(
 		lookup_widget(main_window, "notebook_main"));
@@ -107,11 +107,10 @@ void hcache_gui_init(void)
             (-1));
 	}
 
-	width = gui_prop_get_guint32(PROP_HCACHE_COL_WIDTHS, NULL, 0, 0);
+	gui_prop_get_guint32(PROP_HCACHE_COL_WIDTHS, width, 0, G_N_ELEMENTS(width));
 	for (n = 0; (guint) n < G_N_ELEMENTS(hcache_col_labels); n++)
 		add_column(treeview_hcache, n, width[n], (gfloat) (n != 0),
 			_(hcache_col_labels[n]));
-	G_FREE_NULL(width);
 
     gtk_tree_view_set_model(treeview_hcache, model);
 	g_object_unref(model);
@@ -144,9 +143,6 @@ void hcache_gui_update(time_t now)
     hcache_get_stats(stats);
 
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview_hcache));
-	g_object_ref(store);
-	gtk_tree_view_set_model(treeview_hcache, NULL);
-
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
 	for (n = 0; n < HCACHE_MAX; n++) {
@@ -160,7 +156,6 @@ void hcache_gui_update(time_t now)
 	}
 
 	gtk_tree_view_set_model(treeview_hcache, GTK_TREE_MODEL(store));
-	g_object_unref(store);
 
 cleanup:
 	locked = FALSE;
