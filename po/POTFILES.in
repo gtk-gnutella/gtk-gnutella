@@ -4,6 +4,7 @@ src/downloads_cb.c
 src/downloads_cb2.c
 src/downloads_gui2.c
 src/drop.c
+src/fileinfo_gui.c
 src/fileinfo_gui2.c
 src/filter_gui.c
 src/gnet_property.c
