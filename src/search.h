@@ -41,7 +41,7 @@
 struct results_set {
 	gint refcount;				/* Numner of "struct search" this belongs to */
 
-	guchar guid[16];
+	guchar *guid;				/* Servent's GUID (atom) */
 	guint32 num_recs;
 	guint32 ip;
 	guint16 port;

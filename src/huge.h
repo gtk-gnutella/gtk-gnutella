@@ -46,6 +46,10 @@ void huge_close(void);		/* Call this when servent is shutdown */
 
 void request_sha1(struct shared_file *);
 
+gboolean huge_http_sha1_extract32(guchar *buf, guchar *retval);
+gboolean huge_sha1_extract32(guchar *buf, gint len, guchar *retval,
+	gpointer header, gboolean check_old);
+
 #endif	/* __huge_h__ */
 
 /* 

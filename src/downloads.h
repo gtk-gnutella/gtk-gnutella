@@ -35,7 +35,7 @@ struct download {
 	gchar *output_name;		/* Basename of the created output file */
 	bio_source_t *bio;		/* Bandwidth-limited source */
 
-	gchar guid[16];			/* GUID of server from which we download the file */
+	gchar *guid;			/* GUID of server of file (atom) */
 	guint32 record_index;	/* Index of the file on the Gnutella server */
 	gchar *file_name;		/* Name of the file on the Gnutella server */
 
@@ -60,7 +60,11 @@ struct download {
 
 	guint32 ip;
 	guint16 port;
-	gchar *server;			/* Remote server vendor string */
+	gchar *server;			/* Remote server vendor string (atom) */
+	gchar *sha1;			/* Known SHA1 (binary atom), NULL if none */
+
+	guint32 flags;
+	guint32 attrs;
 
 	gboolean visible;		/* The download is visible in the GUI */
 	gboolean push;			/* Currently in push mode */
@@ -83,6 +87,18 @@ struct download {
 #define GTA_DL_ABORTED			10	/* User used the 'Abort Download' button */
 #define GTA_DL_TIMEOUT_WAIT		11	/* Waiting to try connecting again */
 #define GTA_DL_STOPPED			12	/* Stopped, will restart shortly */
+
+/*
+ * Flags.
+ */
+
+#define DL_F_URIRES_N2R		0x00000001	/* Tried to GET "/uri-res/N2R?" */
+
+/*
+ * Attributes.
+ */
+
+#define DL_A_NO_URIRES_N2R	0x00000001	/* No support for "/uri-res/N2R?" */
 
 /*
  * State inspection macros.
@@ -135,9 +151,9 @@ extern gboolean send_pushes;
 void download_init(void);
 void download_timer(time_t now);
 void download_new(gchar *,
-	guint32, guint32, guint32, guint16, gchar *, gboolean);
+	guint32, guint32, guint32, guint16, gchar *, gchar *, gboolean);
 void auto_download_new(
-	gchar *, guint32, guint32, guint32, guint16, gchar *, gboolean);
+	gchar *, guint32, guint32, guint32, guint16, gchar *, gchar *, gboolean);
 void download_queue(struct download *d, const gchar *fmt, ...);
 void download_freeze_queue();
 void download_thaw_queue();

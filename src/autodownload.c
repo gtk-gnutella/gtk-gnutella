@@ -90,9 +90,9 @@ void autodownload_init()
 	fclose(f);
 }
 
-void autodownload_notify(gchar* file, guint32 size,
+void autodownload_notify(gchar *file, guint32 size,
 						 guint32 record_index, guint32 ip,
-						 guint16 port, gchar* guid, gboolean push)
+						 guint16 port, gchar *guid, gchar *sha1, gboolean push)
 {
 	GSList* l;
 
@@ -109,7 +109,8 @@ void autodownload_notify(gchar* file, guint32 size,
 			if (dbg > 3)
 				printf("*** AUTO-MATCHED '%s' pattern '%s'\n",
 					file, pattern->pattern);
-			auto_download_new(file, size, record_index, ip, port, guid, push);
+			auto_download_new(file, size, record_index, ip, port,
+				guid, sha1, push);
 			return;
 		}
 	}

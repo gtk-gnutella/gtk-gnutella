@@ -580,6 +580,25 @@ gboolean ext_is_printable(extvec_t *e)
 }
 
 /*
+ * ext_is_ascii
+ *
+ * Returns TRUE if extension is ASCII.
+ */
+gboolean ext_is_ascii(extvec_t *e)
+{
+	guchar *p = e->ext_payload;
+	gint len = e->ext_paylen;
+
+	while (len--) {
+		guchar c = *p++;
+		if (!isascii(c))
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+/*
  * ext_dump_one
  *
  * Dump an extension to specified stdio stream.

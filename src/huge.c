@@ -41,6 +41,7 @@
 #include "share.h"
 #include "misc.h"
 #include "atoms.h"
+#include "gmsg.h"
 
 /***
  *** Server side: computation of SHA1 hash digests and replies.
@@ -923,6 +924,85 @@ void huge_close(void)
 
 	if (current_file)
 		free_cell(current_file);
+}
+
+/*
+ * huge_http_sha1_extract32
+ *
+ * Validate SHA1 starting in NUL-terminated `buf' as a proper base32 encoding
+ * of a SHA1 hash, and write decoded value in `retval'.
+ *
+ * The SHA1 typically comes from HTTP, in a X-Gnutella-Content-URN header.
+ * Therefore, we unconditionally accept both old and new encodings.
+ *
+ * Returns TRUE if the SHA1 was valid and properly decoded, FALSE on error.
+ */
+gboolean huge_http_sha1_extract32(guchar *buf, guchar *retval)
+{
+	/*
+	 * NB: base32_decode_into() will stop when NUL is reached
+	 * and return FALSE.
+	 */
+
+	if (base32_decode_into(buf, SHA1_BASE32_SIZE, retval, SHA1_RAW_SIZE))
+		return TRUE;
+	
+	if (base32_decode_old_into(buf, SHA1_BASE32_SIZE, retval, SHA1_RAW_SIZE))
+		return TRUE;
+
+	g_warning("ignoring invalid SHA1 base32 encoding: %s", buf);
+
+	return FALSE;
+}
+
+/*
+ * huge_sha1_extract32
+ *
+ * Validate `len' bytes starting from `buf' as a proper base32 encoding
+ * of a SHA1 hash, and write decoded value in `retval'.
+ *
+ * `header' is the header of the packet where we found the SHA1, so that we
+ * may trace errors if needed.
+ *
+ * When `check_old' is true, check the encoding against an earlier version
+ * of the base32 alphabet.
+ *
+ * Returns TRUE if the SHA1 was valid and properly decoded, FALSE on error.
+ */
+gboolean huge_sha1_extract32(guchar *buf, gint len, guchar *retval,
+	gpointer header, gboolean check_old)
+{
+	if (len != SHA1_BASE32_SIZE) {
+		if (dbg) {
+			g_warning("%s has bad SHA1 (len=%d)", gmsg_infostr(header), len);
+			if (len)
+				dump_hex(stderr, "Base32 SHA1", buf, len);
+		}
+		return FALSE;
+	}
+
+	if (base32_decode_into(buf, len, retval, SHA1_RAW_SIZE))
+		return TRUE;
+
+	if (!check_old) {
+		if (dbg) {
+			if (base32_decode_old_into(buf, len, retval, SHA1_RAW_SIZE))
+				g_warning("%s old SHA1: %32s", gmsg_infostr(header), buf);
+			else
+				g_warning("%s bad SHA1: %32s", gmsg_infostr(header), buf);
+		}
+		return FALSE;
+	}
+
+	if (base32_decode_old_into(buf, len, retval, SHA1_RAW_SIZE))
+		return TRUE;
+
+	if (dbg) {
+		g_warning("%s bad SHA1: %32s", gmsg_infostr(header), buf);
+		dump_hex(stderr, "Base32 SHA1", buf, len);
+	}
+
+	return FALSE;
 }
 
 /* 

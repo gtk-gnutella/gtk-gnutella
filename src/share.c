@@ -895,35 +895,21 @@ gboolean search_request(struct gnutella_node *n)
 					continue;				/* A simple "urn:sha1:" */
 
 				if (sha1_query) {
-					if (dbg) g_warning(
-						"query (hops=%d, ttl=%d) %d byte%s has multiple SHA1",
-						n->header.hops, n->header.ttl, n->size - 2,
-						n->size == 3 ? "" : "s");
+					g_warning("%s has multiple SHA1 URNs, dropped",
+						gmsg_infostr(&n->header));
 					return TRUE;			/* Drop message! */
 				}
 
-				if (e->ext_paylen != SHA1_BASE32_SIZE) {
-					if (dbg) g_warning(
-						"query (hops=%d, ttl=%d) %d byte%s: bad SHA1 (len=%d)",
-						n->header.hops, n->header.ttl, n->size - 2,
-						n->size == 3 ? "" : "s", e->ext_paylen);
-					return TRUE;			/* Drop message! */
-				}
-
-				sha1_query = e->ext_payload;
 				if (
-					!base32_decode_into(e->ext_payload, SHA1_BASE32_SIZE,
-						sha1_digest, sizeof(sha1_digest))
-				) {
-					if (dbg) g_warning(
-						"query (hops=%d, ttl=%d) %d byte%s: bad SHA1: %32s",
-						n->header.hops, n->header.ttl, n->size - 2,
-						n->size == 3 ? "" : "s", e->ext_payload);
+					!huge_sha1_extract32(e->ext_payload, e->ext_paylen,
+						sha1_digest, &n->header, FALSE)
+				)
 					return TRUE;			/* Drop message! */
-				}
 
 				if (dbg > 4)
 					printf("Valid SHA1 in query: %32s\n", e->ext_payload);
+
+				sha1_query = e->ext_payload;
 			}
 		}
 	}
@@ -1040,7 +1026,7 @@ gboolean search_request(struct gnutella_node *n)
 
 			if (dbg > 4)
 				printf("UTF-8 query, len=%d, chars=%d, iso=%d: \"%s\"\n",
-					search_len, clen, isochars, search);
+					search_len, clen-1, isochars-1, search);
 		}
 
 		found_files = urn_match +

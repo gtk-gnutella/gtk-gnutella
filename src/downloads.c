@@ -40,6 +40,8 @@
 #include "regex.h"
 #include "getdate.h"
 #include "atoms.h"
+#include "huge.h"
+#include "base32.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1282,7 +1284,7 @@ static gchar *escape_filename(gchar *file)
  */
 static void create_download(
 	gchar *file, gchar *output, guint32 size, guint32 record_index,
-	guint32 ip, guint16 port, gchar *guid, gboolean push,
+	guint32 ip, guint16 port, gchar *guid, gchar *sha1, gboolean push,
 	gboolean interactive)
 {
 	struct download *d;
@@ -1325,9 +1327,11 @@ static void create_download(
 	d->ip = ip;
 	d->port = port;
 	d->file_desc = -1;
-	memcpy(d->guid, guid, 16);
+	d->guid = atom_guid_get(guid);
 	d->restart_timer_id = 0;
 	d->always_push = push;
+	if (sha1)
+		d->sha1 = atom_sha1_get(sha1);
 	if (push)
 		download_push_insert(d);
 	else
@@ -1351,8 +1355,9 @@ static void create_download(
 
 /* Automatic download request */
 
-void auto_download_new(gchar * file, guint32 size, guint32 record_index,
-					   guint32 ip, guint16 port, gchar * guid, gboolean push)
+void auto_download_new(gchar *file, guint32 size, guint32 record_index,
+					   guint32 ip, guint16 port, gchar *guid, gchar *sha1,
+					   gboolean push)
 {
 	gchar dl_tmp[4096];
 	gchar *output_name = escape_filename(file);
@@ -1418,7 +1423,7 @@ void auto_download_new(gchar * file, guint32 size, guint32 record_index,
 		output_name = file_name;	/* So must reuse file_name */
 
 	create_download(file_name, output_name,
-		size, record_index, ip, port, guid, push, FALSE);
+		size, record_index, ip, port, guid, sha1, push, FALSE);
 	return;
 
 abort_download:
@@ -1516,10 +1521,12 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 
 /* Create a new download */
 
-void download_new(gchar * file, guint32 size, guint32 record_index,
-				  guint32 ip, guint16 port, gchar * guid, gboolean push)
+void download_new(gchar *file, guint32 size, guint32 record_index,
+				  guint32 ip, guint16 port, gchar *guid, gchar *sha1,
+				  gboolean push)
 {
-	create_download(file, NULL, size, record_index, ip, port, guid, push, TRUE);
+	create_download(file, NULL, size, record_index, ip, port, guid, sha1,
+		push, TRUE);
 }
 
 /* Free a download. */
@@ -1547,6 +1554,7 @@ void download_free(struct download *d)
 	if (d->server)
 		atom_str_free(d->server);
 
+	atom_guid_free(d->guid);
 	atom_str_free(d->path);
 	atom_str_free(d->file_name);
 	if (d->output_name != d->file_name)
@@ -2231,6 +2239,32 @@ static void download_request(struct download *d, header_t *header)
 		return;
 	}
 
+	/*
+	 * Check for X-Gnutella-Content-URN.
+	 */
+	
+	if ((buf = header_get(header, "X-Gnutella-Content-Urn"))) {
+		gchar *sha1 = strcasestr(buf, "urn:sha1:");	/* Case-insensitive */
+		guchar digest[SHA1_RAW_SIZE];
+		
+		if (sha1) {
+			sha1 += 9;		/* Skip "urn:sha1:" */
+			if (!huge_http_sha1_extract32(sha1, digest))
+				sha1 = NULL;
+		}
+
+		if (sha1) {
+			if (d->sha1 && 0 != memcmp(digest, d->sha1, SHA1_RAW_SIZE)) {
+				download_stop(d, GTA_DL_ERROR, "URN mismatch detected");
+				return;
+			}
+			if (d->sha1 == NULL) {
+				d->sha1 = atom_sha1_get(digest);
+				download_store();		/* Save SHA1 */
+			}
+		}
+	}
+
 	if (ack_code >= 200 && ack_code <= 299) {
 		/* empty -- everything OK */
 	} else {
@@ -2256,7 +2290,28 @@ static void download_request(struct download *d, header_t *header)
 			}
 		}
 
+		// XXX handle 301
+
 		switch (ack_code) {
+		case 400:				/* Bad request */
+		case 404:				/* Could be sent if /uri-res not understood */
+		case 403:				/* Idem, /uri-res is not "authorized" */
+		case 410:				/* Idem, /uri-res is "gone" */
+		case 500:				/* Server error */
+			/*
+			 * If we sent a "GET /uri-res/N2R?" and we don't know the remote
+			 * server does not support it, then mark it here and retry.
+			 */
+			if (d->attrs & DL_A_NO_URIRES_N2R)
+				break;
+			if (d->flags & DL_F_URIRES_N2R) {
+				d->attrs |= DL_A_NO_URIRES_N2R;
+				if (dbg > 3)
+					printf("Server %s (%s) does not support /uri-res/N2R?\n",
+						ip_port_to_gchar(d->ip, d->port),
+						d->server ? d->server : "");
+			}
+			/* FALL THROUGH */
 		case 408:				/* Request timeout */
 		case 503:				/* Busy */
 			/* No hammering */
@@ -2511,6 +2566,7 @@ gboolean download_send_request(struct download *d)
 	struct io_header *ih;
 	gint rw;
 	gint sent;
+	gboolean n2r = FALSE;
 
 	g_return_val_if_fail(d, FALSE);
 
@@ -2522,23 +2578,56 @@ gboolean download_send_request(struct download *d)
 
 	g_assert(d->overlap_size < sizeof(s->buffer));
 
-	/* Send the HTTP Request */
+	/*
+	 * When we have a SHA1, the remote host normally supports HUGE, and
+	 * therefore should understand our "GET /uri-res/N2R?" query.
+	 * However, I'm suspicious, so we track our attempts and don't send
+	 * the /uri-res when we have evidence the remote host does not support it.
+	 *
+	 * When we got a GIV request, don't take the chance that /uri-res be
+	 * not understood and request the file.
+	 *
+	 *		--RAM, 14/06/2002
+	 */
 
-	if (d->skip)
+	if (d->sha1 && !d->push && !(d->attrs & DL_A_NO_URIRES_N2R)) {
+		d->flags |= DL_F_URIRES_N2R;
+		n2r = TRUE;
+	}
+
+	/*
+	 * Build the HTTP request.
+	 */
+
+	if (n2r)
 		rw = g_snprintf(dl_tmp, sizeof(dl_tmp),
-			"GET /get/%u/%s HTTP/1.0\r\n"
-			"Connection: close\r\n"
-			"Range: bytes=%u-\r\n"
-			"User-Agent: %s\r\n\r\n",
-			d->record_index, d->file_name, d->skip - d->overlap_size,
-			version_string);
+			"GET /uri-res/N2R?urn:sha1:%s HTTP/1.0\r\n",
+			sha1_base32(d->sha1));
 	else
 		rw = g_snprintf(dl_tmp, sizeof(dl_tmp),
-			"GET /get/%u/%s HTTP/1.0\r\n"
-			"Connection: close\r\n"
-			"User-Agent: %s\r\n\r\n",
-			d->record_index, d->file_name,
-			version_string);
+			"GET /get/%u/%s HTTP/1.0\r\n",
+			d->record_index, d->file_name);
+
+	rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+		"User-Agent: %s\r\n"
+		"Connection: close\r\n",
+		version_string);
+
+	if (d->skip)
+		rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			"Range: bytes=%u-\r\n",
+			d->skip - d->overlap_size);
+
+	if (d->sha1 && !n2r)
+		rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
+			sha1_base32(d->sha1));
+
+	rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw, "\r\n");
+
+	/*
+	 * Send the HTTP Request
+	 */
 
 	if (-1 == (sent = bws_write(bws.out, d->socket->file_desc, dl_tmp, rw))) {
 		download_stop(d, GTA_DL_ERROR, "Write failed: %s", g_strerror(errno));
@@ -2888,8 +2977,11 @@ static void download_store(void)
 	fputs("#\n# Format is:\n", out);
 	fputs("#   File name\n", out);
 	fputs("#   size, index:GUID, IP:port\n", out);
+	fputs("#   SHA1 or * if none\n", out);
 	fputs("#   <blank line>\n", out);
 	fputs("#\n\n", out);
+
+	fputs("RECLINES=3\n\n", out);
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
@@ -2903,10 +2995,12 @@ static void download_store(void)
 		escaped = url_escape_cntrl(d->file_name);	/* Protect against "\n" */
 
 		fprintf(out, "%s\n", escaped);
-		fprintf(out, "%u, %u:%s, %s\n\n",
+		fprintf(out, "%u, %u:%s, %s\n",
 			d->size,
 			d->record_index, guid_hex_str(d->guid),
 			ip_port_to_gchar(d->ip, d->port));
+		fprintf(out, "%s\n\n",
+			d->sha1 ? sha1_base32(d->sha1) : "*");
 
 		if (escaped != d->file_name)				/* Lazily dup'ed */
 			g_free(escaped);
@@ -2943,6 +3037,9 @@ static void download_retrieve(void)
 	gint recline;			/* Record line number */
 	gint line;				/* File line number */
 	gchar filename[1024];
+	guchar sha1_digest[SHA1_RAW_SIZE];
+	gboolean has_sha1 = FALSE;
+	gint maxlines = -1;
 
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", config_dir, download_file);
 
@@ -3006,9 +3103,20 @@ static void download_retrieve(void)
 		if (dl_tmp[0] == '#')
 			continue;				/* Skip comments */
 
+		/*
+		 * We emitted a "RECLINES=x" at store time to indicate the amount of
+		 * lines each record takes.
+		 */
+
+		if (maxlines < 0 && dl_tmp[0] == 'R') {
+			if (1 == sscanf(dl_tmp, "RECLINES=%d", &maxlines))
+				continue;
+		}
+
 		if (dl_tmp[0] == '\n') {
 			if (recline == 0)
 				continue;			/* Allow arbitrary blank lines */
+
 			g_warning("download_retrieve: "
 				"Unexpected empty line #%d, aborting", line);
 			goto out;
@@ -3021,8 +3129,59 @@ static void download_retrieve(void)
 			(void) str_chomp(dl_tmp, 0);
 			(void) url_unescape(dl_tmp, TRUE);	/* Un-escape in place */
 			d_name = atom_str_get(dl_tmp);
+
+			/*
+			 * Backward compatibility with 0.85, which did not have the
+			 * "RECLINE=x" line.  If we reached the first record line, then
+			 * either we saw that line in recent versions, or we did not and
+			 * we know we had only 2 lines per record.
+			 */
+
+			if (maxlines < 0)
+				maxlines = 2;
+
 			continue;
 		case 2:						/* Other information */
+			g_assert(d_name);
+
+			if (
+				sscanf(dl_tmp, "%u, %u:%32c, %22s",
+					&d_size, &d_index, d_hexguid, d_ipport) < 4
+			) {
+				(void) str_chomp(dl_tmp, 0);
+				g_warning("download_retrieve: "
+					"cannot parse line #%d: %s", line, dl_tmp);
+				goto out;
+			}
+
+			d_ipport[22] = '\0';
+			if (!gchar_to_ip_port(d_ipport, &d_ip, &d_port)) {
+				g_warning("download_retrieve: "
+					"bad IP:port '%s' at line #%d, aborting", d_ipport, line);
+				goto out;
+			}
+			if (maxlines == 2)
+				break;
+			continue;
+		case 3:
+			if (maxlines != 3) {
+				g_warning("download_retrieve: "
+					"can't handle %d lines in records, aborting", maxlines);
+				goto out;
+			}
+
+			if (dl_tmp[0] == '*')
+				break;
+			if (
+				strlen(dl_tmp) != (1+SHA1_BASE32_SIZE) ||	/* Final "\n" */
+				!base32_decode_into(dl_tmp, SHA1_BASE32_SIZE,
+					sha1_digest, sizeof(sha1_digest))
+			) {
+				g_warning("download_retrieve: "
+					"bad base32 SHA1 '%32s' at line #%d, ignoring",
+					dl_tmp, line);
+			} else
+				has_sha1 = TRUE;
 			break;
 		default:
 			g_warning("download_retrieve: "
@@ -3034,37 +3193,19 @@ static void download_retrieve(void)
 		 * At the last line of the record.
 		 */
 
-		recline = 0;				/* Mark the end */
-
-		g_assert(d_name);
-
-		if (
-			sscanf(dl_tmp, "%u, %u:%32c, %22s",
-				&d_size, &d_index, d_hexguid, d_ipport) < 4
-		) {
-			(void) str_chomp(dl_tmp, 0);
-			g_warning("download_retrieve: "
-				"Cannot parse line #%d: %s", line, dl_tmp);
-			goto out;
-		}
-
-		d_ipport[22] = '\0';
-		if (!gchar_to_ip_port(d_ipport, &d_ip, &d_port)) {
-			g_warning("download_retrieve: "
-				"Improper IP:port '%s' at line #%d, aborting", d_ipport, line);
-			goto out;
-		}
-
 		hex_to_guid(d_hexguid, d_guid);
 
 		create_download(d_name, NULL, d_size, d_index, d_ip, d_port, d_guid,
-			FALSE, FALSE);
+			has_sha1 ? sha1_digest : NULL, FALSE, FALSE);
 
 		/*
 		 * Don't free `d_name', we gave it to create_download()!
 		 */
 
 		d_name = NULL;
+		recline = 0;				/* Mark the end */
+		has_sha1 = FALSE;
+
 	}
 
 out:
@@ -3096,6 +3237,7 @@ void download_close(void)
 			bsched_source_remove(d->bio);
 		if (d->server)
 			atom_str_free(d->server);
+		atom_guid_free(d->guid);
 		atom_str_free(d->path);
 		atom_str_free(d->file_name);
 		if (d->output_name != d->file_name)

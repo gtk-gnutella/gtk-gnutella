@@ -39,6 +39,8 @@ void base32_encode_into(const guchar *buf, gint len,
 guchar *base32_decode(const guchar *buf, gint len);
 gboolean base32_decode_into(const guchar *buf, gint len,
 	guchar *decbuf, gint declen);
+gboolean base32_decode_old_into(const guchar *buf, gint len,
+	guchar *decbuf, gint declen);
 
 #endif	/* __base32_h__ */
 

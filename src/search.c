@@ -245,6 +245,9 @@ static void search_free_r_set(struct results_set *rs)
 
 	if (rs->trailer)
 		g_free(rs->trailer);
+	if (rs->guid)
+		atom_guid_free(rs->guid);
+
 	g_slist_free(rs->records);
 	g_free(rs);
 }
@@ -869,6 +872,7 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 	gchar *e, *s, *fname, *tag;
 	guint32 nr, size, index, taglen;
 	struct gnutella_search_results *r;
+	GString *info = g_string_sized_new(80);
 
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
@@ -980,53 +984,40 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 			 * Look for a valid SHA1 or a tag string we can display.
 			 */
 
+			g_string_truncate(info, 0);
+
 			for (i = 0; i < exvcnt; i++) {
 				extvec_t *e = &exv[i];
 				gchar sha1_digest[SHA1_RAW_SIZE];
 
 				switch (e->ext_token) {
 				case EXT_T_URN_SHA1:
-					if (e->ext_paylen != SHA1_BASE32_SIZE) {
-						if (dbg) g_warning(
-						"qhit (hops=%d, ttl=%d) %d byte%s: bad SHA1: (len=%d)",
-							n->header.hops, n->header.ttl, n->size,
-							n->size == 1 ? "" : "s", e->ext_paylen);
-						break;
-					}
-
 					if (
-						!base32_decode_into(e->ext_payload, SHA1_BASE32_SIZE,
-							sha1_digest, sizeof(sha1_digest))
-					) {
-						if (dbg) g_warning(
-						"qhit (hops=%d, ttl=%d) %d byte%s: bad SHA1: %32s",
-							n->header.hops, n->header.ttl, n->size,
-							n->size == 1 ? "" : "s", e->ext_payload);
-						break;
-					}
-
-					rc->sha1 = atom_sha1_get(sha1_digest);
+						huge_sha1_extract32(e->ext_payload, e->ext_paylen,
+							sha1_digest, &n->header, TRUE)
+					)
+						rc->sha1 = atom_sha1_get(sha1_digest);
 					break;
 				case EXT_T_UNKNOWN:
-					if (ext_is_printable(e)) {
-						if (rc->tag && dbg) g_warning(
-							"qhit (hops=%d, ttl=%d) %d byte%s: multiple tags",
-							n->header.hops, n->header.ttl, n->size,
-							n->size == 1 ? "" : "s");
+					if (ext_is_ascii(e)) {
+						guchar *p = e->ext_payload + e->ext_paylen;
+						guchar c = *p;
 
-						if (rc->tag == NULL) {
-							guchar *p = e->ext_payload + e->ext_paylen;
-							guchar c = *p;
-							*p = '\0';
-							rc->tag = atom_str_get(e->ext_payload);
-							*p = c;
-						}
+						if (info->len)
+							g_string_append(info, "; ");
+
+						*p = '\0';
+						g_string_append(info, e->ext_payload);
+						*p = c;
 					}
 					break;
 				default:
 					break;
 				}
 			}
+
+			if (info->len)
+				rc->tag = atom_str_get(info->str);
 		}
 
 		rc->results_set = rs;
@@ -1059,7 +1050,7 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 
 	/* We now have the guid of the node */
 
-	memcpy(rs->guid, e, 16);
+	rs->guid = atom_guid_get(e);
 
 	/*
 	 * Compute status bits, decompile trailer info, if present
@@ -1112,6 +1103,7 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 		}
 	}
 
+	g_string_free(info, TRUE);
 	return rs;
 
 	/*
@@ -1124,7 +1116,10 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 	if (dbg) g_warning(
 		"Bad Query Hit (hops=%d, ttl=%d) from %s (%u/%u records parsed)\n",
 		 n->header.hops, n->header.ttl, node_ip(n), nr, rs->num_recs);
+
 	search_free_r_set(rs);
+	g_string_free(info, TRUE);
+
 	return NULL;				/* Forget set, comes from a bad node */
 }
 
@@ -1375,7 +1370,7 @@ void search_matched(search_t *sch, struct results_set *rs)
 
 				/* Attempt to autodownload each result if desirable. */
 				autodownload_notify(rc->name, rc->size, rc->index, rs->ip,
-					rs->port, rs->guid, need_push);
+					rs->port, rs->guid, rc->sha1, need_push);
 			}
 		}
 	}
@@ -1687,7 +1682,7 @@ static void download_selection_of_clist(GtkCList * c)
 		need_push =
 			(rs->status & ST_FIREWALL) || !check_valid_host(rs->ip, rs->port);
 		download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-					 rs->guid, need_push);
+					 rs->guid, rc->sha1, need_push);
 
         /*
          * I'm not totally sure why we have to determine the row again,

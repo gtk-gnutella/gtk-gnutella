@@ -78,6 +78,43 @@ static gchar values[256] = {
 static gchar *b32_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 /*
+ * Older base32 alphabet: "ABCDEFGHIJK MN PQRSTUVWXYZ  23456789"
+ * We decode it only.
+ */
+static gchar old_values[256] = {
+/*  0  1  2  3  4  5  6  7  8  9  */	/* 0123456789              */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            -  00 ->  09 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            -  10 ->  19 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            -  20 ->  29 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            -  30 ->  39 */
+    -1,-1,-1,-1,-1,-1,-1,-1,			/*            -  40 ->  47 */
+
+    -1,-1,24,25,26,27,28,29,30,31,		/* 0123456789 -  48 ->  57 */
+    -1,-1,-1,-1,-1,-1,-1, 0, 1, 2,		/* :;<=>?@ABC -  58 ->  67 */
+     3, 4, 5, 6, 7, 8, 9,10,-1,11,		/* DEFGHIJKLM -  68 ->  77 */
+    12,-1,13,14,15,16,17,18,19,20,		/* NOPQRSTUVW -  78 ->  87 */
+    21,22,23,							/* XYZ        -  88 ->  90 */
+
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            -  91 -> 100 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 101 -> 110 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 111 -> 120 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 121 -> 130 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 131 -> 140 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 141 -> 150 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 151 -> 160 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 161 -> 170 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 171 -> 180 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 181 -> 190 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 191 -> 200 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 201 -> 210 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 211 -> 220 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 221 -> 230 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 231 -> 240 */
+    -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,		/*            - 241 -> 250 */
+    -1,-1,-1,-1,-1,						/*            - 251 -> 255 */
+};
+
+/*
  * encode_pad_length
  *
  * Compute the number of base32 digits and amount of padding necessary
@@ -243,15 +280,16 @@ guchar *base32_encode(const guchar *buf, gint len, gint *retpad)
 }
 
 /*
- * base32_decode_into
+ * base32_decode_alphabet
  *
  * Decode `len' bytes from `buf' into `declen' bytes starting from `decbuf'.
  * Caller must have ensured that there was sufficient room in decbuf.
+ * Uses the specified decoding alphabet.
  *
  * Return TRUE if successful, FALSE if the input was not valid base32.
  */
-gboolean base32_decode_into(const guchar *buf, gint len,
-	guchar *decbuf, gint declen)
+static gboolean base32_decode_alphabet(gchar valmap[256],
+	const guchar *buf, gint len, guchar *decbuf, gint declen)
 {
 	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */
 	guchar const *ip = buf + len;	/* Input pointer, one byte off end */
@@ -320,49 +358,49 @@ gboolean base32_decode_into(const guchar *buf, gint len,
 	switch ((ip - buf) % 8) {
 	case 0:
 		do {
-			i = values[*--ip];				/* Input #7 */
+			i = valmap[*--ip];				/* Input #7 */
 			if (i < 0) return FALSE;
 			/* FALLTHROUGH */
 	case 7:
-			v = values[*--ip];				/* Input #6 */
+			v = valmap[*--ip];				/* Input #6 */
 			if (v < 0) return FALSE;
 			i |= v << 5;					/* had 5 bits */
 			*--op = i & 0xff;				/* Output #4 */
 			i >>= 8;						/* lower <01> of output #3 */
 			/* FALLTHROUGH */
 	case 6:
-			v = values[*--ip];				/* Input #5 */
+			v = valmap[*--ip];				/* Input #5 */
 			if (v < 0) return FALSE;
 			i |= v << 2;					/* had 2 bits */
 			/* FALLTHROUGH */
 	case 5:
-			v = values[*--ip];				/* Input #4 */
+			v = valmap[*--ip];				/* Input #4 */
 			if (v < 0) return FALSE;
 			i |= v << 7;					/* had 7 bits */
 			*--op = i & 0xff;				/* Output #3 */
 			i >>= 8;						/* lower <0123> of output #2 */
 			/* FALLTHROUGH */
 	case 4:
-			v = values[*--ip];				/* Input #3 */
+			v = valmap[*--ip];				/* Input #3 */
 			if (v < 0) return FALSE;
 			i |= v << 4;					/* had 4 bits */
 			*--op = i & 0xff;				/* Output #2 */
 			i >>= 8;						/* lower <0> of output #1 */
 			/* FALLTHROUGH */
 	case 3:
-			v = values[*--ip];				/* Input #2 */
+			v = valmap[*--ip];				/* Input #2 */
 			if (v < 0) return FALSE;
 			i |= v << 1;					/* had 1 bit */
 			/* FALLTHROUGH */
 	case 2:
-			v = values[*--ip];				/* Input #1 */
+			v = valmap[*--ip];				/* Input #1 */
 			if (v < 0) return FALSE;
 			i |= v << 6;					/* had 6 bits */
 			*--op = i & 0xff;				/* Output #1 */
 			i >>= 8;						/* lower <012> of output #0 */
 			/* FALLTHROUGH */
 	case 1:
-			v = values[*--ip];				/* Input #0 */
+			v = valmap[*--ip];				/* Input #0 */
 			if (v < 0) return FALSE;
 			i |= v << 3;					/* had 3 bits */
 			*--op = i & 0xff;				/* Output #0 */
@@ -373,6 +411,35 @@ gboolean base32_decode_into(const guchar *buf, gint len,
 	}
 
 	return TRUE;
+}
+
+/*
+ * base32_decode_into
+ *
+ * Decode `len' bytes from `buf' into `declen' bytes starting from `decbuf'.
+ * Caller must have ensured that there was sufficient room in decbuf.
+ *
+ * Return TRUE if successful, FALSE if the input was not valid base32.
+ */
+gboolean base32_decode_into(const guchar *buf, gint len,
+	guchar *decbuf, gint declen)
+{
+	return base32_decode_alphabet(values, buf, len, decbuf, declen);
+}
+
+/*
+ * base32_decode_old_into
+ *
+ * Decode `len' bytes from `buf' into `declen' bytes starting from `decbuf'.
+ * Caller must have ensured that there was sufficient room in decbuf.
+ * The "old" base32 alphabet is used for decoding.
+ *
+ * Return TRUE if successful, FALSE if the input was not valid base32.
+ */
+gboolean base32_decode_old_into(const guchar *buf, gint len,
+	guchar *decbuf, gint declen)
+{
+	return base32_decode_alphabet(old_values, buf, len, decbuf, declen);
 }
 
 /*
