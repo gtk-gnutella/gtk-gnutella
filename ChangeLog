@@ -1,5 +1,52 @@
 # since last version
 
+# v 0.91.1  2002.11.22  [stable]
+
+Highlight of changes (user-visible):
+
+- Will now verify the SHA1 of downloaded files in the background.
+- New configuration parameter for the directory where "bad files" not
+  matching their advertised SHA1 should be put (don't forget to configure
+  it, as it defaults to /tmp).
+- Files are now copied in the background, so it is possible to setup the
+  various "download" directories on different filesystems.
+- Node connection time and remote node's uptime (if available) are now shown.
+- It is now possible to paste a "magnet:" URI in the search to launch a
+  SHA1 search.
+- The "connection indicator" at the bottom left is now a toggle.  Depressing
+  it will terminate any Gnet connection but will continue to serve uploads and
+  process downloads.
+- The active download status now shows how many sources are available and
+  how many are currently active (i.e. downloading).  It will also show the
+  estimated remaining time for the whole file, as well as the global reception
+  rate for the file, accounting for all currently active sources.
+- Fixed bug that prevented proper downloading from recent BearShare (4.1.x or
+  better) and Shareaza (1.6.0.x or better) nodes when the SHA1 of the file
+  is known.
+- Will now protect against "PUSH floods" by banning the relevant IPs.
+- At startup, scan the download "tmp" dir for orphan files and reintegrate
+  them into the fileinfo database, moving completed files to the relevant
+  directory (depending on whether its SHA1 checked OK).
+- Minor bug fixing: improper countdown for push timeout when falling back,
+  fixed corner-case processing that could lead to crashes or incorrect
+  behaviour, accidental localization on X-Live-Since headers, freezing of the
+  GUI when clearing many uploads, obscure portability fixes.
+
+- (2002.11.20 RAM)
+ * New `version_number' variable is now built to hold the version number string.
+ * Do not show them new development versions if they don't run one.
+ * Display message every 10 minutes in the status bar if they run an ancient
+   version, more than one year old.
+ * Added copyright statements for David Walker.
+ * Do strftime("%z") formatting ourselves, since %z is a GNU extension.
+
+- (2002.11.22 RAM)
+ * Moved sendfile() checks where they belong, i.e. in bio_sendfile(), with
+   additional paranoid checks.
+ * Unplugged QRT computation for 0.91.1.
+ * Fixed maximum random value computation when random() is being used on
+   other machines than Linux [With the help from Uros Bizjak].
+
 - (2002.11.17 Richard)
  * [Gtk2] Fix crash when removing a search and switching to a new search.
    [Patch from Christian Biere].
