@@ -214,6 +214,7 @@ guint32 ul_stats_col_widths[] = { 200, 80, 80, 80, 80 };
 guint32 search_list_col_widths[] = { 80, 20, 20 };
 guint32 filter_table_col_widths[] = { 10, 240, 80, 40 };
 guint32 filter_filters_col_widths[] = { 80,20,20 };
+guint32 search_column_visible[6] = { 1,1,1,1,0,1};
 
 gboolean jump_to_downloads = TRUE;
 
@@ -328,6 +329,7 @@ typedef enum {
     k_filter_default_policy,
     k_filter_dlg_coords,
     k_search_autoselect_ident,
+    k_search_column_visible,
 	k_end
 } keyword_t;
 
@@ -463,7 +465,8 @@ static gchar *keywords[k_end] = {
     "filter_main_divider_pos",
     "filter_default_policy",
     "filter_dlg_coords",
-    "search_autoselect_ident"
+    "search_autoselect_ident",
+    "search_column_visible"
 };
 
 static gchar cfg_tmp[4096];
@@ -874,6 +877,12 @@ void config_set_param(keyword_t keyword, gchar *value)
 		}
 		return;
 
+    case k_search_column_visible:
+		if ((a = config_parse_array(value, 6)))
+			for (i = 0; i < 6; i++)
+				search_column_visible[i] = a[i];
+		return;
+
 	case k_widths_nodes:
 		if ((a = config_parse_array(value, 5)))
 			for (i = 0; i < 5; i++)
@@ -1197,6 +1206,11 @@ static void config_save(void)
         CONFIG_WRITE_UINT(main_divider_pos)
         CONFIG_WRITE_UINT(side_divider_pos)
         CONFIG_WRITE_UINT(filter_main_divider_pos)
+        fprintf(config, "%s = %u,%u,%u,%u,%u,%u\n", 
+            keywords[k_search_column_visible],
+			search_column_visible[0], search_column_visible[1],
+			search_column_visible[2], search_column_visible[3],
+			search_column_visible[4], search_column_visible[5] );
         fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_nodes],
 			nodes_col_widths[0], nodes_col_widths[1],
 			nodes_col_widths[2], nodes_col_widths[3], nodes_col_widths[4]);

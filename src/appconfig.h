@@ -162,6 +162,7 @@ extern gchar *global_spam_filter_file;
 
 extern gboolean jump_to_downloads;
 
+extern guint32 search_column_visible[];
 extern gboolean proxy_connections;
 extern gint proxy_protocol;
 extern gchar *proxy_ip;

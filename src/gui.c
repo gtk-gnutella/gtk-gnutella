@@ -277,7 +277,7 @@ static void gui_init_menu()
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
     gtk_ctree_node_set_row_data(
 		GTK_CTREE(ctree_menu), last_node, 
-        (gpointer) nb_main_page_config); 
+        (gpointer) nb_main_page_config);
 
 	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
 
@@ -1827,6 +1827,22 @@ void gui_search_init(void)
 					   NULL);
 	gtk_signal_connect(GTK_OBJECT(notebook_search_results), "switch_page",
 					   GTK_SIGNAL_FUNC(on_search_notebook_switch), NULL);
+
+    /*
+     * Now we restore the column visibility
+     */
+    {
+        gint i;
+        GtkCList *clist;
+
+        clist = (current_search != NULL) ? 
+                GTK_CLIST(current_search->clist) : 
+                GTK_CLIST(default_search_clist);
+         
+        for (i = 0; i < clist->columns; i ++)
+            gtk_clist_set_column_visibility
+                (clist, i, (gboolean) search_column_visible[i]);
+    }
 }
 
 /* Like search_update_tab_label but always update the label */
@@ -1941,12 +1957,22 @@ void gui_close(void)
 
 void gui_shutdown(void)
 {
+    GtkCList *clist;
+    gint i;
+
     downloads_divider_pos =
         gtk_paned_get_position(GTK_PANED(vpaned_downloads));
     main_divider_pos = 
         gtk_paned_get_position(GTK_PANED(hpaned_main));
     side_divider_pos = 
         gtk_paned_get_position(GTK_PANED(vpaned_sidebar));
+
+    clist = (current_search != NULL) ? 
+        GTK_CLIST(current_search->clist) : 
+        GTK_CLIST(default_search_clist);
+
+    for (i = 0; i < clist->columns; i ++)
+        search_column_visible[i] =  clist->column[i].visible;
 } 
 
 void gui_update_search_stats_update_interval(void)
