@@ -1926,6 +1926,9 @@ void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist)
 	gtk_signal_connect(GTK_OBJECT(*clist), "resize-column",
 					   GTK_SIGNAL_FUNC
 					   (on_clist_search_results_resize_column), NULL);
+    gtk_signal_connect(GTK_OBJECT(*clist), "key_press_event",
+                       GTK_SIGNAL_FUNC
+                       (on_clist_search_results_key_press_event), NULL);
 }
 
 void gui_search_update_items(struct search *sch)
