@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
  *
- * GUI filtering functions.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,13 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @file
+ *
+ * GUI filtering functions.
+ *
  */
 
 #include "gtk/gui.h"
@@ -57,7 +62,6 @@ static GList *searches = NULL;		/* List of search structs */
 static GtkTreeView *tree_view_search = NULL;
 static GtkNotebook *notebook_search_results = NULL;
 static GtkButton *button_search_clear = NULL;
-static GtkLabel *label_items_found = NULL;
 
 static GList *list_search_history = NULL;
 static gboolean search_gui_shutting_down = FALSE;
@@ -77,13 +81,14 @@ GtkWidget *default_scrolled_window = NULL;
 
 /* ----------------------------------------- */
 
-static inline void add_parent_with_sha1(
-	GHashTable *ht, gpointer key, GtkTreeIter *iter)
+static inline void
+add_parent_with_sha1(GHashTable *ht, gpointer key, GtkTreeIter *iter)
 {
 	g_hash_table_insert(ht, key, w_tree_iter_copy(iter));
 }
 
-static inline void remove_parent_with_sha1(GHashTable *ht, const gchar *sha1)
+static inline void
+remove_parent_with_sha1(GHashTable *ht, const gchar *sha1)
 {
 	gpointer key;
  
@@ -92,7 +97,8 @@ static inline void remove_parent_with_sha1(GHashTable *ht, const gchar *sha1)
 	atom_sha1_free(key);
 }
 
-static inline GtkTreeIter *find_parent_with_sha1(GHashTable *ht, gpointer key)
+static inline GtkTreeIter *
+find_parent_with_sha1(GHashTable *ht, gpointer key)
 {
 	GtkTreeIter *iter = NULL;
 	gpointer *orig_key;
@@ -104,7 +110,8 @@ static inline GtkTreeIter *find_parent_with_sha1(GHashTable *ht, gpointer key)
 	return NULL;
 }
 
-static gboolean unref_record(
+static gboolean
+unref_record(
 	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
 {
 	record_t *rc = NULL;
@@ -123,7 +130,8 @@ static gboolean unref_record(
 	return FALSE;
 }
  
-static void	search_gui_clear_store(search_t *sch)
+static void
+search_gui_clear_store(search_t *sch)
 {
 	GtkTreeModel *model;
 
@@ -133,23 +141,22 @@ static void	search_gui_clear_store(search_t *sch)
 	g_assert(0 == g_hash_table_size(sch->dups));
 }
 
-void search_gui_restart_search(search_t *sch)
+/**
+ * Reset internal search model.
+ * Called when a search is restarted, for example.
+ */
+void
+search_gui_reset_search(search_t *sch)
 {
-	if (!sch->enabled)
-		gui_search_set_enabled(sch, TRUE);
 	search_gui_clear_store(sch);
 	search_gui_clear_search(sch);
-	sch->items = sch->unseen_items = 0;
-	gui_search_update_items(sch);
-	guc_search_update_items(sch->search_handle, sch->items);
-	guc_search_reissue(sch->search_handle);
 }
 
-
-/*
+/**
  *	always_true
  */
-gboolean always_true(gpointer key, gpointer value, gpointer x)
+gboolean
+always_true(gpointer key, gpointer value, gpointer x)
 {
 	(void) key;
 	(void) value;
@@ -158,23 +165,21 @@ gboolean always_true(gpointer key, gpointer value, gpointer x)
 }
 
 
-/*
- * dec_records_refcount
- *
+/**
  * Decrement refcount of hash table key entry.
  */
-void ht_unref_record(record_t *rc)
+void
+ht_unref_record(record_t *rc)
 {
 	g_assert(rc->refcount > 0);
 	search_gui_unref_record(rc);
 }
 
-/*
- * search_clear
- *
+/**
  * Clear all results from search.
  */
-void search_gui_clear_search(search_t *sch)
+void
+search_gui_clear_search(search_t *sch)
 {
 	g_assert(sch);
 	g_assert(sch->dups);
@@ -198,13 +203,12 @@ void search_gui_clear_search(search_t *sch)
 	guc_search_update_items(sch->search_handle, sch->items);
 }
 
-/* 
- * search_gui_close_search:
- *
+/* *
  * Remove the search from the list of searches and free all 
  * associated ressources (including filter and gui stuff).
  */
-void search_gui_close_search(search_t *sch)
+void
+search_gui_close_search(search_t *sch)
 {
     g_assert(sch != NULL);
 
@@ -234,9 +238,7 @@ void search_gui_close_search(search_t *sch)
 	G_FREE_NULL(sch);
 }
 
-/*
- * search_gui_new_search:
- * 
+/**
  * Create a new search and start it. Use default reissue timeout.
  */
 gboolean search_gui_new_search(
@@ -252,23 +254,20 @@ gboolean search_gui_new_search(
 }
 
 
-/*
- *	do_atom_sha1_free
- */
-void do_atom_sha1_free(gpointer sha1)
+void
+do_atom_sha1_free(gpointer sha1)
 {
 	atom_sha1_free(sha1);
 }
 
 
 /** 
- * Create a new search and start it.
- *
  * @returns TRUE if search was sucessfully created and FALSE if an error
  * happened. If the "search" argument is not NULL a pointer to the new
  * search is stored there.
  */
-gboolean search_gui_new_search_full(
+gboolean
+search_gui_new_search_full(
 	const gchar *querystr, guint16 speed,
 	guint32 reissue_timeout,
 	gint sort_col, gint sort_order, flag_t flags, search_t **search)
@@ -444,7 +443,8 @@ gboolean search_gui_new_search_full(
 }
 
 /* Searches results */
-static gint search_gui_compare_size_func(
+static gint
+search_gui_compare_size_func(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
 {
     record_t *rec_a = NULL;
@@ -456,7 +456,8 @@ static gint search_gui_compare_size_func(
 	return CMP(rec_b->size, rec_a->size);
 }
 
-static gint search_gui_compare_count_func(
+static gint
+search_gui_compare_count_func(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
 {
 	guint m = (guint) gtk_tree_model_iter_n_children(model, a);
@@ -467,7 +468,9 @@ static gint search_gui_compare_count_func(
 
 #if 0
 /* Who wants to see the IP addresses in the GtkTreeView, anyway? */
-static gint search_gui_compare_host_func(
+/* Me, allows to see all the hits from the same host groupped together --RAM */
+static gint
+search_gui_compare_host_func(
     GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
 {
     record_t *rec_a = NULL;
@@ -483,7 +486,8 @@ static gint search_gui_compare_host_func(
 }
 #endif
 
-void search_gui_add_record(
+void
+search_gui_add_record(
 	search_t *sch,
 	record_t *rc,
 	GString *vinfo,
@@ -595,7 +599,8 @@ void search_gui_add_record(
 		      (-1));
 }
 
-void search_gui_set_clear_button_sensitive(gboolean flag)
+void
+search_gui_set_clear_button_sensitive(gboolean flag)
 {
 	gtk_widget_set_sensitive(GTK_WIDGET(button_search_clear), flag);
 }
@@ -603,7 +608,8 @@ void search_gui_set_clear_button_sensitive(gboolean flag)
 /* ----------------------------------------- */
 
 
-static void download_selected_file(
+static void
+download_selected_file(
 	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
 {
 	struct results_set *rs;
@@ -640,8 +646,8 @@ static void download_selected_file(
 	g_assert(rc->refcount > 0);
 }
 
-static void remove_selected_file(
-	gpointer data, gpointer user_data)
+static void
+remove_selected_file(gpointer data, gpointer user_data)
 {
 	GtkTreeModel *model = (GtkTreeModel *) user_data;
 	GtkTreeIter *iter = data;
@@ -706,7 +712,8 @@ static void remove_selected_file(
 	w_tree_iter_free(iter);
 }
 
-static void download_selection_of_tree_view(GtkTreeView * tree_view)
+static void
+download_selection_of_tree_view(GtkTreeView * tree_view)
 {
     gboolean search_remove_downloaded;
 	GtkTreeSelection *selection;
@@ -731,7 +738,7 @@ static void download_selection_of_tree_view(GtkTreeView * tree_view)
 	}
 
     gui_search_force_update_tab_label(current_search, time(NULL));
-    gui_search_update_items(current_search);
+    search_gui_update_items(current_search);
     guc_search_update_items
 		(current_search->search_handle, current_search->items);
 }
@@ -741,7 +748,8 @@ struct menu_helper {
 	GtkTreeIter iter;
 };
 
-static gboolean search_gui_menu_select_helper(
+static gboolean
+search_gui_menu_select_helper(
 	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
 {
 	gint page = -1;
@@ -756,7 +764,8 @@ static gboolean search_gui_menu_select_helper(
 	return FALSE;
 }
 
-static void search_gui_menu_select(gint page)
+static void
+search_gui_menu_select(gint page)
 {
 	GtkTreeView *treeview;
 	GtkTreeModel *model;
@@ -774,7 +783,8 @@ static void search_gui_menu_select(gint page)
 	gtk_tree_selection_select_iter(selection, &mh.iter);
 }
 
-void search_gui_download_files(void)
+void
+search_gui_download_files(void)
 {
     GtkTreeSelection *selection;
 	search_t *current_search = search_gui_get_current_search();
@@ -801,7 +811,8 @@ void search_gui_download_files(void)
  *** Private functions
  ***/
 
-static void add_list_columns(GtkTreeView *treeview)
+static void
+add_list_columns(GtkTreeView *treeview)
 {
 	static const struct {
 		const gchar * const title;
@@ -823,7 +834,8 @@ static void add_list_columns(GtkTreeView *treeview)
 	}
 }
 
-static void add_results_column(
+static void
+add_results_column(
 	GtkTreeView *treeview,
 	const gchar *name,
 	gint id,
@@ -849,7 +861,8 @@ static void add_results_column(
  *** Public functions
  ***/
 
-void search_gui_init(void)
+void
+search_gui_init(void)
 {
     GtkTreeStore *store;
     GtkTreeView *tv;
@@ -861,8 +874,6 @@ void search_gui_init(void)
 								"notebook_search_results"));
     button_search_clear = GTK_BUTTON(lookup_widget(main_window,
 							"button_search_clear"));
-	label_items_found = GTK_LABEL(lookup_widget(main_window,
-							"label_items_found")); 
 
 	search_gui_common_init();
 
@@ -904,7 +915,8 @@ void search_gui_init(void)
     search_add_got_results_listener(search_gui_got_results);
 }
 
-void search_gui_shutdown(void)
+void
+search_gui_shutdown(void)
 {
 	GtkTreeView *tv;
 	search_t *current_search = search_gui_get_current_search();
@@ -932,12 +944,14 @@ void search_gui_shutdown(void)
 	search_gui_common_shutdown();
 }
 
-const GList *search_gui_get_searches(void)
+const GList *
+search_gui_get_searches(void)
 {
 	return (const GList *) searches;
 }
 
-static void selection_counter_helper(
+static void
+selection_counter_helper(
 	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
 {
 	gint *counter = data;
@@ -948,7 +962,8 @@ static void selection_counter_helper(
 	*counter += 1;
 }
 
-static gint selection_counter(GtkTreeView *tree_view)
+static gint
+selection_counter(GtkTreeView *tree_view)
 {
 	GtkTreeSelection *selection = NULL;
 	gint rows = 0;
@@ -964,7 +979,8 @@ static gint selection_counter(GtkTreeView *tree_view)
 	return rows;
 }
 
-static gboolean tree_view_search_remove(
+static gboolean
+tree_view_search_remove(
 	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
 {
 	gpointer sch;
@@ -980,12 +996,11 @@ static gboolean tree_view_search_remove(
 }
 
 
-/*
- * search_gui_remove_search:
- *
+/**
  * Remove the search from the gui and update all widget accordingly.
  */
-void search_gui_remove_search(search_t *sch)
+void
+search_gui_remove_search(search_t *sch)
 {
     GList *glist;
     gboolean sensitive;
@@ -1015,7 +1030,7 @@ void search_gui_remove_search(search_t *sch)
 		default_scrolled_window = sch->scrolled_window;
 
 		search_gui_forget_current_search();
-		gui_search_update_items(NULL);
+		search_gui_update_items(NULL);
 
 		gtk_label_set_text(GTK_LABEL(
 			lookup_widget(main_window, "label_search_current_search")), "");
@@ -1040,7 +1055,8 @@ void search_gui_remove_search(search_t *sch)
 		lookup_widget(popup_search, "popup_search_download"), sensitive);
 }
 
-void search_gui_set_current_search(search_t *sch) 
+void
+search_gui_set_current_search(search_t *sch) 
 {
 	search_t *old_sch = search_gui_get_current_search();
     GtkWidget *spinbutton_reissue_timeout;
@@ -1090,7 +1106,7 @@ void search_gui_set_current_search(search_t *sch)
 
     if (sch != NULL) {
         gui_search_force_update_tab_label(sch, time(NULL));
-        gui_search_update_items(sch);
+        search_gui_update_items(sch);
 
         gtk_spin_button_set_value
             (GTK_SPIN_BUTTON(spinbutton_reissue_timeout), reissue_timeout);
@@ -1148,12 +1164,13 @@ void search_gui_set_current_search(search_t *sch)
     locked = FALSE;
 }
 
-static GtkTreeModel *create_model(void)
+static GtkTreeModel *
+create_model(void)
 {
-  GtkTreeModel *model;
+	GtkTreeModel *model;
 
-  /* create tree store */
-  model = (GtkTreeModel *) gtk_tree_store_new(c_sr_num,
+	/* create tree store */
+	model = (GtkTreeModel *) gtk_tree_store_new(c_sr_num,
 	G_TYPE_STRING,		/* File */
 	G_TYPE_STRING,		/* Extension */
 	G_TYPE_STRING,		/* Size */
@@ -1163,11 +1180,12 @@ static GtkTreeModel *create_model(void)
 	GDK_TYPE_COLOR,		/* Background */
 	G_TYPE_POINTER);	/* (record_t *) */
 
-  return model;
+	return model;
 }
 
 
-static GtkTreeViewColumn *add_column(
+static GtkTreeViewColumn *
+add_column(
 	GtkTreeView *treeview,
 	const gchar *name,
 	gint id,
@@ -1207,7 +1225,8 @@ static GtkTreeViewColumn *add_column(
 	return column;
 }
 
-static void add_results_columns(GtkTreeView *treeview)
+static void
+add_results_columns(GtkTreeView *treeview)
 {
 	static const struct {
 		const gchar * const title;
@@ -1236,7 +1255,8 @@ static void add_results_columns(GtkTreeView *treeview)
 
 /* Create a new GtkTreeView for search results */
 
-void gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
+void
+gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 {
 	GtkTreeModel *model = create_model();
 	GtkTreeSelection *selection;
@@ -1274,24 +1294,8 @@ void gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 		G_CALLBACK(on_tree_view_search_results_key_press_event), NULL);
 }
 
-void gui_search_update_items(struct search *sch)
-{
-    if (sch) {
-        const gchar *str = sch->passive ? _("(passive search) ") : "";
-    
-        if (sch->items)
-            gm_snprintf(tmpstr, sizeof(tmpstr), _("%s%u %s found"),
-                str, sch->items, (sch->items > 1) ? _("items") : _("item"));
-        else
-            gm_snprintf(tmpstr, sizeof(tmpstr), _("%sNo items found"), str);
-    } else
-        g_strlcpy(tmpstr, _("No search"), sizeof(tmpstr));
-
-	gtk_label_set(label_items_found, tmpstr);
-}
-
-
-static gboolean tree_view_search_update(
+static gboolean
+tree_view_search_update(
 	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
 {
 	search_t *sch;
@@ -1328,7 +1332,8 @@ static gboolean tree_view_search_update(
 }
 
 /* Like search_update_tab_label but always update the label */
-void gui_search_force_update_tab_label(search_t *sch, time_t now)
+void
+gui_search_force_update_tab_label(search_t *sch, time_t now)
 {
     search_t *search;
 	GtkTreeModel *model;
@@ -1349,9 +1354,12 @@ void gui_search_force_update_tab_label(search_t *sch, time_t now)
 	sch->last_update_time = now;
 }
 
-/* Doesn't update the label if nothing's changed or if the last update was
-   recent. */
-gboolean gui_search_update_tab_label(struct search *sch)
+/**
+ * Doesn't update the label if nothing's changed or if the last update was
+ * recent.
+ */
+gboolean
+gui_search_update_tab_label(struct search *sch)
 {
 	static time_t now = 0;
 	if (sch->items != sch->last_update_items &&
@@ -1361,15 +1369,14 @@ gboolean gui_search_update_tab_label(struct search *sch)
 	return TRUE;
 }
 
-void gui_search_clear_results(void)
+void
+gui_search_clear_results(void)
 {
 	search_t *search;
 
 	search = search_gui_get_current_search();
-	search_gui_clear_store(search);
-	search_gui_clear_search(search);
 	gui_search_force_update_tab_label(search, time(NULL));
-	gui_search_update_items(search);
+	search_gui_update_items(search);
 }
 
 /*
@@ -1377,7 +1384,8 @@ void gui_search_clear_results(void)
  *
  * Extract the mark/ignore/download color.
  */
-void gui_search_get_colors(
+void
+gui_search_get_colors(
 	search_t *sch,
 	GdkColor **mark_color, GdkColor **ignore_color, GdkColor **download_color)
 {
@@ -1391,16 +1399,15 @@ void gui_search_get_colors(
         ->fg[GTK_STATE_ACTIVE]);
 }
 
-/*
- * gui_search_history_add:
- *
+/**
  * Adds a search string to the search history combo. Makes
  * sure we do not get more than 10 entries in the history.
  * Also makes sure we don't get duplicate history entries.
  * If a string is already in history and it's added again,
  * it's moved to the beginning of the history list.
  */
-void gui_search_history_add(gchar *s)
+void
+gui_search_history_add(gchar *s)
 {
     GList *new_hist = NULL;
     GList *cur_hist = list_search_history;
@@ -1434,12 +1441,11 @@ void gui_search_history_add(gchar *s)
 }
 
 
-/*
- * gui_search_set_enabled
- *
+/**
  * Flag whether search is enabled.
  */
-void gui_search_set_enabled(struct search *sch, gboolean enabled)
+void
+gui_search_set_enabled(struct search *sch, gboolean enabled)
 {
 	gboolean was_enabled = sch->enabled;
 
@@ -1458,30 +1464,29 @@ void gui_search_set_enabled(struct search *sch, gboolean enabled)
 }
 
 
-/*
- *	search_gui_expand_all
- *
+/**
  *	Expand all nodes in tree for current search
  */
-void search_gui_expand_all(void)
+void
+search_gui_expand_all(void)
 {
 	search_t *current_search = search_gui_get_current_search();
 	gtk_tree_view_expand_all(GTK_TREE_VIEW(current_search->tree_view));
 }
 
 
-/*
- *	search_gui_collapse_all
- *
+/**
  *	Collapse all nodes in tree for current search
  */
-void search_gui_collapse_all(void)
+void
+search_gui_collapse_all(void)
 {
 	search_t *current_search = search_gui_get_current_search();
 	gtk_tree_view_collapse_all(GTK_TREE_VIEW(current_search->tree_view));
 }
 
-void search_gui_start_massive_update(search_t *sch)
+void
+search_gui_start_massive_update(search_t *sch)
 {
 	g_assert(sch);
 
@@ -1493,7 +1498,8 @@ void search_gui_start_massive_update(search_t *sch)
 	sch->massive_update = TRUE;
 }
 
-void search_gui_end_massive_update(search_t *sch)
+void
+search_gui_end_massive_update(search_t *sch)
 {
 	g_assert(sch);
 

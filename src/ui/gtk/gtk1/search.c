@@ -162,22 +162,14 @@ void search_gui_free_gui_record(gpointer gui_rc)
 	wfree(gui_rc, sizeof(gui_record_t));
 }
 
-
-/*
- *	search_gui_restart_search
- *
+/**
+ * Reset the internal model of the search.
+ * Called when a search is restarted, for example.
  */
-void search_gui_restart_search(search_t *sch)
+void search_gui_reset_search(search_t *sch)
 {
-	if (!sch->enabled)
-		gui_search_set_enabled(sch, TRUE);
-	guc_search_reissue(sch->search_handle);	
 	search_gui_clear_search(sch);	
-	sch->items = sch->unseen_items = 0;
-	gui_search_update_items(sch);
-	guc_search_update_items(sch->search_handle, sch->items);
 }
-
 
 /*
  * dec_records_refcount
@@ -1680,7 +1672,7 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 	gtk_clist_thaw(GTK_CLIST(ctree));
 
     gui_search_force_update_tab_label(current_search);
-    gui_search_update_items(current_search);
+    search_gui_update_items(current_search);
     guc_search_update_items(current_search->search_handle, 
 		current_search->items);
 
@@ -1947,7 +1939,7 @@ void search_gui_remove_search(search_t * sch)
         search_selected = NULL;
 		search_gui_forget_current_search();
 
-		gui_search_update_items(NULL);
+		search_gui_update_items(NULL);
 
 		gtk_entry_set_text
             (GTK_ENTRY(lookup_widget(main_window, "combo_entry_searches")), "");
@@ -2045,7 +2037,7 @@ void search_gui_set_current_search(search_t *sch)
 
     if (sch != NULL) {
         gui_search_force_update_tab_label(sch);
-        gui_search_update_items(sch);
+        search_gui_update_items(sch);
 
         gtk_clist_select_row(
             clist_search, 
@@ -2249,29 +2241,6 @@ void gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 
 
 /*
- *	gui_search_update_items
- *
- *	Updates the # of items found label
- */
-void gui_search_update_items(struct search *sch)
-{
-    if (sch) {
-        gchar *str = sch->passive ? "(passive search) " : "";
-    
-        if (sch->items)
-            gm_snprintf(tmpstr, sizeof(tmpstr), _("%s%u item%s found"), 
-                str, sch->items, (sch->items > 1) ? "s" : "");
-        else
-            gm_snprintf(tmpstr, sizeof(tmpstr), _("%sNo items found"), str);
-    } else
-        g_strlcpy(tmpstr, _("No search"), sizeof(tmpstr));
-
-	gtk_label_set(GTK_LABEL(lookup_widget(main_window, "label_items_found")), 
-        tmpstr);
-}
-
-
-/*
  *	gui_search_force_update_tab_label
  *
  *	Like search_update_tab_label but always update the label
@@ -2346,7 +2315,7 @@ void gui_search_clear_results(void)
 
 	search_gui_clear_search(current_search);
 	gui_search_force_update_tab_label(current_search);
-    gui_search_update_items(current_search);
+    search_gui_update_items(current_search);
 }
 
 

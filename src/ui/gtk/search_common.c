@@ -50,6 +50,7 @@ RCSID("$Id$");
 #include "lib/atoms.h"
 #include "lib/fuzzy.h"
 #include "lib/file.h"
+#include "lib/glib-missing.h"
 #include "lib/vendors.h"
 #include "lib/utf8.h"
 #include "lib/zalloc.h"
@@ -66,6 +67,8 @@ static const gchar search_file[] = "searches"; /* "old" file to searches */
 static gchar tmpstr[1024];
 
 static GSList *accumulated_rs = NULL;
+
+static GtkLabel *label_items_found = NULL;
 
 /**
  * Human readable translation of servent trailer open flags.
@@ -90,7 +93,8 @@ void search_gui_current_search(search_t *sch)	{ current_search = sch; }
 /**
  * Free the alternate locations held within a file record.
  */
-void search_gui_free_alt_locs(record_t *rc)
+void
+search_gui_free_alt_locs(record_t *rc)
 {
 	gnet_host_vec_t *alt = rc->alt_locs;
 
@@ -105,7 +109,8 @@ void search_gui_free_alt_locs(record_t *rc)
 /**
  * Free the push proxies held within a result set.
  */
-void search_gui_free_proxies(results_set_t *rs)
+void
+search_gui_free_proxies(results_set_t *rs)
 {
 	gnet_host_vec_t *v = rs->proxies;
 
@@ -127,7 +132,8 @@ void search_gui_free_proxies(results_set_t *rs)
  * To ensure some level of sanity, we ask our callers to explicitely check
  * for a refcount to be zero before calling us.
  */
-void search_gui_free_record(record_t *rc)
+void
+search_gui_free_record(record_t *rc)
 {
 	g_assert(rc->refcount == 0);
 
@@ -153,7 +159,8 @@ void search_gui_free_record(record_t *rc)
  *
  * All the records that have not been used by a search are removed.
  */
-void search_gui_clean_r_set(results_set_t *rs)
+void
+search_gui_clean_r_set(results_set_t *rs)
 {
 	GSList *sl;
     GSList *sl_remove = NULL;
@@ -190,7 +197,8 @@ void search_gui_clean_r_set(results_set_t *rs)
  * Those records may be shared between several searches.  So while the refcount
  * is positive, we just decrement it and return without doing anything.
  */
-void search_gui_free_r_set(results_set_t *rs)
+void
+search_gui_free_r_set(results_set_t *rs)
 {
 	GSList *sl;
 
@@ -244,7 +252,8 @@ void search_gui_free_r_set(results_set_t *rs)
  * unreferenced by the searches.  The results_set is therefore an
  * empty shell, useless.
  */
-void search_gui_dispose_results(results_set_t *rs)
+void
+search_gui_dispose_results(results_set_t *rs)
 {
 	gint refs = 0;
 	const GList *l;
@@ -275,7 +284,8 @@ void search_gui_dispose_results(results_set_t *rs)
 /**
  * Add a reference to the record but don't dare to redeem it!
  */ 
-void search_gui_ref_record(record_t *rc)
+void
+search_gui_ref_record(record_t *rc)
 {
 	g_assert(rc->refcount >= 0);
 	rc->refcount++;
@@ -287,7 +297,8 @@ void search_gui_ref_record(record_t *rc)
  * If the record has no more references, remove it from its parent result
  * set and free the record physically.
  */
-void search_gui_unref_record(record_t *rc)
+void
+search_gui_unref_record(record_t *rc)
 {
 	results_set_t *rs;
 
@@ -319,13 +330,15 @@ void search_gui_unref_record(record_t *rc)
 /** 
  * Free all the results_set's of a search 
  */
-static inline void free_r_sets_helper(gpointer data, gpointer user_data)
+static inline void
+free_r_sets_helper(gpointer data, gpointer user_data)
 {
 	results_set_t *rs = data;
 	search_gui_free_r_set(rs);
 }
 
-void search_gui_free_r_sets(search_t *sch)
+void
+search_gui_free_r_sets(search_t *sch)
 {
 	g_assert(sch != NULL);
 	g_assert(sch->dups != NULL);
@@ -338,7 +351,8 @@ void search_gui_free_r_sets(search_t *sch)
 	}
 }
 
-guint search_gui_hash_func(const record_t *rc)
+guint
+search_gui_hash_func(const record_t *rc)
 {
 	/* Must use same fields as search_hash_key_compare() --RAM */
 	return
@@ -350,7 +364,8 @@ guint search_gui_hash_func(const record_t *rc)
 		rc->results_set->port;
 }
 
-gint search_gui_hash_key_compare(const record_t *rc1, const record_t *rc2)
+gint
+search_gui_hash_key_compare(const record_t *rc1, const record_t *rc2)
 {
 	/* Must compare same fields as search_hash_func() --RAM */
 	return rc1->size == rc2->size
@@ -365,7 +380,8 @@ gint search_gui_hash_key_compare(const record_t *rc1, const record_t *rc2)
  * Remove reference to results in our search.
  * Last one to remove it will trigger a free.
  */
-void search_gui_remove_r_set(search_t *sch, results_set_t *rs)
+void
+search_gui_remove_r_set(search_t *sch, results_set_t *rs)
 {
 	hash_list_remove(sch->r_sets, rs);
 	search_gui_free_r_set(rs);
@@ -378,7 +394,8 @@ void search_gui_remove_r_set(search_t *sch, results_set_t *rs)
  *
  * Returns true if the record is a duplicate.
  */
-gboolean search_gui_result_is_dup(search_t *sch, record_t *rc)
+gboolean
+search_gui_result_is_dup(search_t *sch, record_t *rc)
 {
 	union {
 		record_t *rc;
@@ -427,7 +444,8 @@ gboolean search_gui_result_is_dup(search_t *sch, record_t *rc)
  * Returns a pointer to gui_search_t from gui_searches which has
  * sh as search_handle. If none is found, return NULL.
  */
-search_t *search_gui_find(gnet_search_t sh) 
+search_t *
+search_gui_find(gnet_search_t sh) 
 {
     const GList *l;
     
@@ -448,7 +466,8 @@ search_t *search_gui_find(gnet_search_t sh)
 /**
  * Create a new GUI record within `rs' from a Gnutella record.
  */
-record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r) 
+record_t *
+search_gui_create_record(results_set_t *rs, gnet_record_t *r) 
 {
     record_t *rc;
 
@@ -502,8 +521,8 @@ record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 /**
  * Create a new GUI result set from a Gnutella one.
  */
-results_set_t *search_gui_create_results_set(
-    GSList *schl, const gnet_results_set_t *r_set)
+results_set_t *
+search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
 {
     results_set_t *rs;
     GSList *sl;
@@ -548,16 +567,21 @@ results_set_t *search_gui_create_results_set(
 /**
  * Initialize common structures.
  */
-void search_gui_common_init(void)
+void
+search_gui_common_init(void)
 {
 	rs_zone = zget(sizeof(results_set_t), 1024);
 	rc_zone = zget(sizeof(record_t), 1024);
+
+	label_items_found = GTK_LABEL(
+		lookup_widget(main_window, "label_items_found"));
 }
 
 /**
  * Destroy common structures.
  */
-void search_gui_common_shutdown(void)
+void
+search_gui_common_shutdown(void)
 {
 	zdestroy(rs_zone);
 	zdestroy(rc_zone);
@@ -569,7 +593,8 @@ void search_gui_common_shutdown(void)
  * Check for alternate locations in the result set, and enqueue the downloads
  * if there are any.  Then free the alternate location from the record.
  */
-void search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
+void
+search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 {
 	gint i;
 	gnet_host_vec_t *alt = rc->alt_locs;
@@ -597,7 +622,8 @@ void search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
  *
  * Store pending non-passive searches.
  */
-static void search_store_old(void)
+static void
+search_store_old(void)
 {
 	const GList *l;
 	FILE *out;
@@ -624,7 +650,8 @@ static void search_store_old(void)
 /**
  * Persist searches to disk.
  */
-void search_gui_store_searches(void)
+void
+search_gui_store_searches(void)
 {
 #ifdef HAS_LIBXML2
 	char *path;
@@ -661,7 +688,8 @@ void search_gui_store_searches(void)
  * Retrieve search list and restart searches.
  * The searches are normally retrieved from ~/.gtk-gnutella/searches.
  */
-static gboolean search_retrieve_old(void)
+static gboolean
+search_retrieve_old(void)
 {
 	FILE *in;
 	gint line;				/* File line number */
@@ -701,7 +729,8 @@ static gboolean search_retrieve_old(void)
 /**
  * Retrieve searches from disk.
  */
-void search_gui_retrieve_searches(void)
+void
+search_gui_retrieve_searches(void)
 {
 #ifdef HAS_LIBXML2
 	LIBXML_TEST_VERSION
@@ -722,7 +751,8 @@ void search_gui_retrieve_searches(void)
 /**
  * Called to dispatch results to the search window.
  */
-void search_matched(search_t *sch, results_set_t *rs)
+void
+search_matched(search_t *sch, results_set_t *rs)
 {
 	guint32 old_items = sch->items;
    	gboolean need_push;			/* Would need a push to get this file? */
@@ -767,6 +797,11 @@ void search_matched(search_t *sch, results_set_t *rs)
 		g_string_append(vinfo, _("<unparsed>"));
 	}
 
+	if (rs->status & ST_UDP)
+		sch->udp_qhits++;
+	else
+		sch->tcp_qhits++;
+
 	/*
 	 * If we're firewalled, or they don't want to send pushes, then don't
 	 * bother displaying results if they need a push request to succeed.
@@ -794,6 +829,9 @@ void search_matched(search_t *sch, results_set_t *rs)
             printf("search_matched: [%s] considering %s (%s)\n",
 				sch->query, rc->name, vinfo->str);
 
+        if (rc->flags & SR_DOWNLOADED)
+			sch->auto_downloaded++;
+
         /*
 	     * If the size is zero bytes,
 		 * or we don't send pushes and it's a private IP,
@@ -804,12 +842,20 @@ void search_matched(search_t *sch, results_set_t *rs)
 		 * we detect a change.
 		 */
 
-       	if (
-			search_gui_result_is_dup(sch, rc)	||
-			skip_records 	                    ||
-			rc->size == 0
-		)
+		if (search_gui_result_is_dup(sch, rc)) {
+			sch->duplicates++;
 			continue;
+		}
+
+       	if (skip_records) {
+			sch->skipped++;
+			continue;
+		}
+
+		if (rc->size == 0) {
+			sch->ignored++;
+			continue;
+		}
 
         flt_result = filter_record(sch, rc);
 
@@ -838,6 +884,7 @@ void search_matched(search_t *sch, results_set_t *rs)
 				search_gui_free_proxies(rs);
 
             downloaded = TRUE;
+			sch->auto_downloaded++;
         }
 
 		/*
@@ -847,6 +894,7 @@ void search_matched(search_t *sch, results_set_t *rs)
 		if (downloaded && search_hide_downloaded) {
             filter_free_result(flt_result);
 			results_kept++;
+			sch->hidden++;
 			continue;
         }
     
@@ -884,7 +932,8 @@ void search_matched(search_t *sch, results_set_t *rs)
 
             search_gui_add_record(sch, rc, vinfo, fg_color,
                 mark ? mark_color : NULL);
-        }
+        } else
+			sch->ignored++;
 
         filter_free_result(flt_result);
     }
@@ -930,11 +979,10 @@ void search_matched(search_t *sch, results_set_t *rs)
 	 * XXX we're not at the search pane.  Is this a problem?
 	 */
 
-	if (sch == current_search) {
-		gui_search_update_items(sch);
-	} else {
+	if (sch == current_search)
+		search_gui_update_items(sch);
+	else
 		sch->unseen_items += sch->items - old_items;
-	}
 
 	if (time(NULL) - sch->last_update_time < TAB_UPDATE_TIME)
 		gui_search_update_tab_label(sch);
@@ -942,13 +990,35 @@ void search_matched(search_t *sch, results_set_t *rs)
   	g_string_free(vinfo, TRUE);
 }
 
+/**
+ * Update the label string showing search stats.
+ */
+void
+search_gui_update_items(struct search *sch)
+{
+    if (sch) {
+        const gchar *str = sch->passive ? _("(passive search) ") : "";
+    
+		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s%u %s "
+			"(%u skipped, %u ignored, %u hidden, %u auto-downloaded, %u dups)"
+			" Hits: %u (%u TCP, %u UDP)"),
+			str, sch->items, (sch->items > 1) ? _("items") : _("item"),
+			sch->skipped, sch->ignored, sch->hidden, sch->auto_downloaded,
+			sch->duplicates,
+			sch->tcp_qhits + sch->udp_qhits, sch->tcp_qhits, sch->udp_qhits);
+    } else
+        g_strlcpy(tmpstr, _("No search"), sizeof(tmpstr));
+
+	gtk_label_set(label_items_found, tmpstr);
+}
 
 /**
  * Determines wether two records are equal enough to warrant
  * autoselection. fuzzy_threshold (etc) is an argument to avoid
  * fetching the property too often.
  */
-gboolean search_gui_autoselect_cmp(record_t *rc, record_t *rc2, 
+gboolean
+search_gui_autoselect_cmp(record_t *rc, record_t *rc2, 
     gboolean search_autoselect,
     gboolean search_autoselect_ident,
     gboolean search_autoselect_fuzzy,
@@ -1000,7 +1070,8 @@ gboolean search_gui_autoselect_cmp(record_t *rc, record_t *rc2,
  * Called when the core has finished parsing the result set, and the results
  * need to be dispatched to the searches listed in `schl'.
  */
-void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
+void
+search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
 {
     results_set_t *rs;
 
@@ -1021,7 +1092,8 @@ void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
  * Periodic timer to flush the accumulated hits during the period and
  * dispatch them to the GUI.
  */
-void search_gui_flush(time_t now)
+void
+search_gui_flush(time_t now)
 {
     GSList *sl;
     GSList *curs;
@@ -1072,11 +1144,8 @@ void search_gui_flush(time_t now)
                 search_gui_start_massive_update(sch);
                 frozen = g_slist_prepend(frozen, sch);
                 search_matched(sch, rs);
-            } else {
-                if (gui_debug >= 6) {
-                    printf("no search for cached search result while dispatching\n");
-                }
-            }
+            } else if (gui_debug >= 6) printf(
+				"no search for cached search result while dispatching\n");
         }
 
         /*
@@ -1118,13 +1187,10 @@ void search_gui_flush(time_t now)
                  * --BLUE, 4/1/2004
                  */
 
-                if (sch) {
+                if (sch)
                     search_gui_remove_r_set(sch, rs);
-                } else {
-                    if (gui_debug >= 6) {
-                        printf("no search for cached search result while cleaning\n");
-                    }
-                }
+                else if (gui_debug >= 6) printf(
+					"no search for cached search result while cleaning\n");
             }
         } 
 		g_slist_free(schl);
@@ -1146,7 +1212,8 @@ void search_gui_flush(time_t now)
  * Tries to extract the extenstion of a file from the filename.
  * The return value is only valid until the function is called again.
  */
-gchar *search_gui_extract_ext(gchar *filename) 
+gchar *
+search_gui_extract_ext(gchar *filename) 
 {
     static gchar ext[32];
 	const gchar *p;
@@ -1179,7 +1246,8 @@ gchar *search_gui_extract_ext(gchar *filename)
  * 
  * @author Andrew Meredith <andrew@anvil.org>
  */
-void search_gui_add_targetted_search(record_t *rec, filter_t *noneed)
+void
+search_gui_add_targetted_search(record_t *rec, filter_t *noneed)
 {
     search_t *new_search;
     rule_t *rule;
@@ -1201,6 +1269,24 @@ void search_gui_add_targetted_search(record_t *rec, filter_t *noneed)
     g_assert(rule != NULL);
 
     filter_append_rule(new_search->filter, rule);
+}
+
+/**
+ * Restart a search from scratch, clearing all existing content.
+ */
+void
+search_gui_restart_search(search_t *sch)
+{
+	if (!sch->enabled)
+		gui_search_set_enabled(sch, TRUE);
+	search_gui_reset_search(sch);	
+	sch->items = sch->unseen_items = sch->hidden = 0;
+	sch->tcp_qhits = sch->udp_qhits = 0;
+	sch->skipped = sch->ignored = sch->auto_downloaded = sch->duplicates = 0;
+
+	search_gui_update_items(sch);
+	guc_search_update_items(sch->search_handle, sch->items);
+	guc_search_reissue(sch->search_handle);	
 }
 
 /* vi: set ts=4 sw=4 cindent: */

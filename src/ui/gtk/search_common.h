@@ -130,6 +130,7 @@ record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r) ;
 void search_gui_check_alt_locs(results_set_t *rs, record_t *rc);
 void search_gui_store_searches(void);
 void search_gui_retrieve_searches(void);
+void search_gui_restart_search(search_t *sch);
 void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set);
 void search_gui_flush(time_t);
 gboolean search_gui_autoselect_cmp(record_t *rc, record_t *rc2,
@@ -140,5 +141,6 @@ gchar *search_gui_extract_ext(gchar *filename);
 struct filter;
 void search_gui_add_targetted_search(
     struct record *rec, struct filter *noneed);
+void search_gui_update_items(struct search *);
 
 #endif /* _gtk_search_common_h_ */

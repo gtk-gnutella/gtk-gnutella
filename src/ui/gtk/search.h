@@ -71,9 +71,21 @@ struct search {
 	hash_list_t *r_sets;		   /* The results sets of this search */
 
 	GHashTable *dups;			   /* keep a record of dups. */
-	guint32     items;			   /* Total number of items for this search */
 
     filter_t   *filter;				/* filter ruleset bound to this search */
+
+	/*
+	 * Search stats.
+	 */
+
+	guint32     items;				/* Total number of items for this search */
+	guint32		tcp_qhits;			/* Query hits received from TCP */
+	guint32		udp_qhits;			/* Query hits received from UDP */
+	guint32		skipped;			/* Ignored hits (skipped over) */
+	guint32		ignored;			/* Filtered out hits */
+	guint32		hidden;				/* Hidden hits, never shown */
+	guint32		auto_downloaded;	/* Auto-downloaded hits */
+	guint32		duplicates;			/* Duplicate hits ignored */
 };
 
 #include "search_common.h"
@@ -108,7 +120,7 @@ void search_gui_close_search(search_t *sch);
 
 void search_gui_clear_search(search_t *sch);
 void search_gui_remove_search(search_t * sch);
-void search_gui_restart_search(search_t *sch);
+void search_gui_reset_search(search_t *sch);
 void search_gui_download_files(void);
 
 void search_gui_sort_column(search_t *search, gint column);
@@ -132,7 +144,6 @@ void gui_search_force_update_tab_label(struct search *);
 void search_gui_expand_all();
 void search_gui_collapse_all();
 
-void gui_search_update_items(struct search *);
 void gui_search_set_enabled(struct search *sch, gboolean enabled);
 const GList *search_gui_get_searches(void);
 
