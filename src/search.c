@@ -1206,6 +1206,7 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	if (is_firewalled)
 		speed |= QUERY_SPEED_FIREWALLED;
 	speed |= QUERY_SPEED_GGEP_H;		/* GTKG understands GGEP "H" in hits */
+	speed |= QUERY_SPEED_NO_XML;		/* GTKG does not parse XML in hits */
 
 	WRITE_GUINT16_LE(speed, m->search.speed);
 
