@@ -113,7 +113,7 @@ static gboolean can_swarm = FALSE;		/* Set by file_info_retrieve() */
 static gchar fi_tmp[4096];
 
 #define FILE_INFO_MAGIC		0xD1BB1ED0
-#define FILE_INFO_VERSION	4
+#define FILE_INFO_VERSION	5
 
 enum dl_file_info_field {
 	FILE_INFO_FIELD_NAME = 1,	/* No longer used in version >= 3 */
@@ -181,6 +181,14 @@ static struct {
 		tbuf_extend(x, TRUE);			\
 } while (0)
 
+#define TBUF_GETCHAR(x) do {			\
+	if (tbuf.rptr + sizeof(guint8) <= tbuf.end) { \
+		*x = *(guint8 *) tbuf.rptr;		\
+		tbuf.rptr++;					\
+	} else								\
+		goto eof;						\
+} while (0)
+
 #define TBUF_GETINT32(x) do {			\
 	if (tbuf.rptr + sizeof(gint32) <= tbuf.end) { \
 		if (int32_aligned(tbuf.rptr))	\
@@ -198,6 +206,12 @@ static struct {
 		tbuf.rptr += s;					\
 	} else								\
 		goto eof;						\
+} while (0)
+
+#define TBUF_PUTCHAR(x) do {			\
+	TBUF_CHECK(sizeof(guint8));			\
+	*(guint8 *) tbuf.wptr = x;			\
+	tbuf.wptr++;						\
 } while (0)
 
 #define TBUF_PUTINT32(x) do {			\
@@ -219,6 +233,12 @@ static struct {
  * High-level write macros.
  */
 
+#define WRITE_CHAR(a) do {			\
+	guint8 val = a;					\
+	TBUF_PUTCHAR(val);				\
+	file_info_checksum(&checksum, (gchar *) &val, sizeof(val)); \
+} while (0)
+
 #define WRITE_INT32(a) do {			\
 	gint32 val = htonl(a);			\
 	TBUF_PUTINT32(val);				\
@@ -239,6 +259,12 @@ static struct {
 /*
  * High-level read macros.
  */
+
+#define READ_CHAR(a) do {			\
+	guint8 val;						\
+	TBUF_GETCHAR(&val);				\
+	file_info_checksum(&checksum, (gchar *) &val, sizeof(val)); \
+} while(0)
 
 #define READ_INT32(a) do {			\
 	gint32 val;						\
@@ -418,8 +444,9 @@ file_info_fd_store_binary(struct dl_file_info *fi, int fd, gboolean force)
 	 * Emit leading binary fields.
 	 */
 
-	WRITE_INT32(fi->ctime);		/* Introduced at: version 4 */
-	WRITE_INT32(fi->ntime);		/* version 4 */
+	WRITE_INT32(fi->ctime);				/* Introduced at: version 4 */
+	WRITE_INT32(fi->ntime);				/* version 4 */
+	WRITE_CHAR(fi->file_size_known);	/* Introduced at: version 5 */
 
 	/*
 	 * Emit variable-length fields.
@@ -1099,6 +1126,9 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 		READ_INT32(&fi->ntime);
 	}
 
+	if (version >= 5)
+		READ_CHAR(&fi->file_size_known);
+
 	/*
 	 * Read variable-length fields.
 	 */
@@ -1180,10 +1210,14 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 
 	/*
 	 * Pre-v4 trailers lacked the ctime and ntime fields.
+	 * Pre-v5 trailers lacked the fskn (file size known) indication.
 	 */
 
 	if (version < 4)
 		fi->ntime = fi->ctime = time(NULL);
+
+	if (version < 5)
+		fi->file_size_known = TRUE;
 
 	/*
 	 * If the fileinfo appendix was coherent sofar, we must have reached
@@ -1277,17 +1311,19 @@ file_info_store_one(FILE *f, struct dl_file_info *fi)
 		fprintf(f, "CHA1 %s\n", sha1_base32(fi->cha1));
 	fprintf(f,
 		"SIZE %u\n"
+		"FSKN %d\n"
 		"DONE %u\n"
 		"TIME %lu\n"
 		"CTIM %lu\n"
 		"NTIM %lu\n"
-		"SWRM %u\n",
+		"SWRM %d\n",
 		fi->size,
+		fi->file_size_known ? 1 : 0,
 		fi->done,
 		(gulong) fi->stamp,
 		(gulong) fi->ctime,
 		(gulong) fi->ntime,
-		fi->use_swarming);
+		fi->use_swarming ? 1 : 0);
   
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
@@ -1340,6 +1376,7 @@ file_info_store(void)
 		"#	GENR <generation number>\n"
 		"#	ALIA <alias file name>\n"
 		"#	SIZE <size>\n"
+		"#	FSKN <boolean; file_size_known>\n"
 		"#	SHA1 <server sha1>\n"
 		"#	CHA1 <computed sha1> [when done only]\n"
 		"#	DONE <bytes done>\n"
@@ -2083,13 +2120,7 @@ file_info_retrieve(void)
 		if (!fi) {
 			fi = walloc0(sizeof(struct dl_file_info));
 			fi->refcount = 0;
-			
-			/* FIXME: DOWNLOAD_SIZE: This should be saved and restored as well,
-			 * however, we should assume true by default, so this line should
-			 * stay
-			 *	-- Jeroen
-			 */
-			fi->file_size_known = TRUE;	
+			fi->file_size_known = TRUE;		/* Unless stated otherwise below */
 			aliases = NULL;
 		}
 
@@ -2104,7 +2135,10 @@ file_info_retrieve(void)
 		else if (!strncmp(line, "SIZE ", 5)) {
 			fi->size = atoi(line + 5);
 			fi->size_atom = atom_int_get(&fi->size);
-		} else if (!strncmp(line, "TIME ", 5))
+		}
+		else if (!strncmp(line, "FSKN ", 5))
+			fi->file_size_known = atoi(line + 5) ? TRUE : FALSE;
+		else if (!strncmp(line, "TIME ", 5))
 			fi->stamp = atoi(line + 5);
 		else if (!strncmp(line, "CTIM ", 5))
 			fi->ctime = atoi(line + 5);
@@ -2113,7 +2147,7 @@ file_info_retrieve(void)
 		else if (!strncmp(line, "DONE ", 5))
 			fi->done = atoi(line + 5);
 		else if (!strncmp(line, "SWRM ", 5))
-			fi->use_swarming = atoi(line + 5);
+			fi->use_swarming = atoi(line + 5) ? TRUE : FALSE;
 		else if (!strncmp(line, "SHA1 ", 5))
 			fi->sha1 = extract_sha1(line);
 		else if (!strncmp(line, "CHA1 ", 5))
@@ -2410,7 +2444,7 @@ file_info_get(
 	file_info_hash_insert(fi);
 
 	if (sha1)
-		dmesh_multiple_downloads(sha1, size, file_size_known, fi);
+		dmesh_multiple_downloads(sha1, size, fi);
 
 	atom_str_free(outname);
 
@@ -3441,7 +3475,8 @@ file_info_spot_completed_orphans(void)
 }
 
 void
-fi_add_listener(fi_listener_t cb, gnet_fi_ev_t ev, frequency_t t, guint32 interval)
+fi_add_listener(fi_listener_t cb, gnet_fi_ev_t ev,
+	frequency_t t, guint32 interval)
 {
     g_assert(ev < EV_FI_EVENTS);
 
