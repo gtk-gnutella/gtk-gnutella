@@ -1134,18 +1134,6 @@ void on_clist_downloads_queue_unselect_row(GtkCList * clist, gint row,
 	//						   (count_running_downloads() < max_downloads));
 }
 
-void on_button_queue_clear_clicked(GtkButton * button,
-                                   gpointer user_data)
-{
-    /* 
-     * First we select all items in the download queue and
-     * then we simulate a activation of popup_queue->abort.
-     *     --BLUE, 23/04/2002
-     */
-    gtk_clist_select_all(GTK_CLIST(clist_downloads_queue));
-    on_popup_queue_abort_activate(NULL, NULL);
-}
-
 void on_entry_queue_regex_activate(GtkEditable *editable, 
                                    gpointer user_data)
 {
