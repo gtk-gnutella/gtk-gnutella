@@ -220,7 +220,6 @@ find_node(gnet_node_t n)
 static inline void
 nodes_gui_update_node_info(gnet_node_info_t *n, GtkTreeIter *iter)
 {
-    time_t now = time((time_t *) NULL);
 	static gchar version[32];
     gnet_node_status_t status;
 
@@ -239,7 +238,7 @@ nodes_gui_update_node_info(gnet_node_info_t *n, GtkTreeIter *iter)
 		c_gnet_user_agent, n->vendor ? lazy_locale_to_utf8(n->vendor, 0) : NULL,
 		c_gnet_loc, iso3166_country_cc(n->country),
 		c_gnet_version, version,
-		c_gnet_info, nodes_gui_common_status_str(&status, now),
+		c_gnet_info, nodes_gui_common_status_str(&status),
 		(-1));
 }
 
@@ -556,13 +555,13 @@ update_row(gpointer key, gpointer value, gpointer user_data)
 			c_gnet_connected, timestr,
 			c_gnet_uptime, status.up_date
 				? short_uptime(delta_time(now, status.up_date)) : NULL,
-			c_gnet_info, nodes_gui_common_status_str(&status, now),
+			c_gnet_info, nodes_gui_common_status_str(&status),
 			(-1));
 	} else {
 		gtk_list_store_set(nodes_model, iter,
 			c_gnet_uptime, status.up_date
 				? short_uptime(delta_time(now, status.up_date)) : NULL,
-			c_gnet_info, nodes_gui_common_status_str(&status, now),
+			c_gnet_info, nodes_gui_common_status_str(&status),
 			(-1));
 	}
 }

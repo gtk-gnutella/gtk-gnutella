@@ -43,14 +43,13 @@ RCSID("$Id$");
 
 static gchar gui_tmp[4096];
 
-/*
- * nodes_gui_common_status_str
- *
+/**
  * Compute info string for node.
- * Returns pointer to static data.
+ *
+ * @return pointer to static data.
  */
-const gchar *nodes_gui_common_status_str(
-	const gnet_node_status_t *n, time_t now)
+const gchar *
+nodes_gui_common_status_str(const gnet_node_status_t *n)
 {
 	const gchar *a;
 
@@ -69,7 +68,7 @@ const gchar *nodes_gui_common_status_str(
 
 	case GTA_NODE_CONNECTED:
 		if (n->sent || n->received) {
-			gint slen = 0;
+			size_t slen = 0;
 
 			if (!node_show_detailed_info) {
 				gm_snprintf(gui_tmp, sizeof(gui_tmp),
@@ -84,9 +83,10 @@ const gchar *nodes_gui_common_status_str(
 
 			if (n->tx_compressed && show_gnet_info_txc)
 				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TXc=%d,%d%%",
-					n->sent, (gint) (n->tx_compression_ratio * 100));
+					(gint) n->sent, (gint) (n->tx_compression_ratio * 100));
 			else
-				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TX=%d", n->sent);
+				slen += gm_snprintf(gui_tmp, sizeof(gui_tmp), "TX=%d",
+							(gint) n->sent);
 
 			if (show_gnet_info_tx_speed || show_gnet_info_tx_wire) {
 				gboolean is_first = TRUE;
@@ -111,10 +111,10 @@ const gchar *nodes_gui_common_status_str(
 			if (n->rx_compressed && show_gnet_info_rxc)
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 					" RXc=%d,%d%%",
-					n->received, (gint) (n->rx_compression_ratio * 100));
+					(gint) n->received, (gint) (n->rx_compression_ratio * 100));
 			else
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" RX=%d", n->received);
+					" RX=%d", (gint) n->received);
 
 			if (show_gnet_info_rx_speed || show_gnet_info_rx_wire) {
 				gboolean is_first = TRUE;
@@ -313,7 +313,8 @@ const gchar *nodes_gui_common_status_str(
  *    |+          indicates connection type (Incoming, Outgoing, Ponging)
  *    +           indicates peer mode (Normal, Ultra, Leaf)
  */
-const gchar *nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
+const gchar *
+nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 {
 	static gchar status[] = "NIrwqTRPFhS";
 

@@ -33,8 +33,7 @@ void nodes_gui_common_init(void);
 void nodes_gui_common_shutdown(void);
 
 void nodes_gui_common_node_info_changed(void);
-const gchar *nodes_gui_common_status_str(
-	const gnet_node_status_t *n, time_t now);
+const gchar *nodes_gui_common_status_str(const gnet_node_status_t *n);
 const gchar *nodes_gui_common_flags_str(const gnet_node_flags_t *flags);
 void nodes_gui_common_connect_by_name(const gchar *addr);
 

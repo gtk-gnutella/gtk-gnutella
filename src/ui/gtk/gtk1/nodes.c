@@ -181,14 +181,15 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
 
 		if (status.status == GTA_NODE_CONNECTED)
 	        gtk_clist_set_text(clist, row, c_gnet_connected, 
-       			short_uptime(now - status.connect_date));
+       			short_uptime(delta_time(now, status.connect_date)));
 
 		if (status.up_date)
     	    gtk_clist_set_text(clist, row, c_gnet_uptime, 
-	        	status.up_date ?  short_uptime(now - status.up_date) : "...");
+	        	status.up_date
+					? short_uptime(delta_time(now, status.up_date)) : "...");
 
         gtk_clist_set_text(clist, row, c_gnet_info,
-			nodes_gui_common_status_str(&status, now));
+			nodes_gui_common_status_str(&status));
     } else {
         g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
     }
@@ -233,6 +234,8 @@ static void nodes_gui_update_node_flags(
 void nodes_gui_early_init(void)
 {
 	popup_nodes = create_popup_nodes();
+    gtk_widget_set_sensitive(lookup_widget(popup_nodes, "popup_nodes_remove"),
+		FALSE);
 }
 
 /*
@@ -256,9 +259,6 @@ void nodes_gui_init(void)
     gtk_clist_set_column_name(clist, c_gnet_uptime, _("Uptime"));
     gtk_clist_set_column_name(clist, c_gnet_info, _("Info"));
 	gtk_clist_restore_visibility(clist, PROP_NODES_COL_VISIBLE);
-
-    gtk_widget_set_sensitive(
-		lookup_widget(popup_nodes, "popup_nodes_remove"), FALSE);
 
     ht_node_info_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
     ht_node_flags_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
@@ -424,17 +424,17 @@ void nodes_gui_update_nodes_display(time_t now)
 		 */
 		if (status.status == GTA_NODE_CONNECTED) {
 	        gtk_clist_set_text(clist, row, c_gnet_connected, 
-        			short_uptime(now - status.connect_date));
+        			short_uptime(delta_time(now, status.connect_date)));
 		
 			if (status.up_date)
 				gtk_clist_set_text(clist, row, c_gnet_uptime, 
 					status.up_date ?
-						short_uptime(now - status.up_date) : "...");
+						short_uptime(delta_time(now, status.up_date)) : "...");
 		}
         gtk_clist_set_text(clist, row, c_gnet_info,
-			nodes_gui_common_status_str(&status, now));
+			nodes_gui_common_status_str(&status));
     }
     gtk_clist_thaw(clist);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
