@@ -7291,7 +7291,7 @@ node_crawl_fill(pmsg_t *mb,
 		gchar addr[6];
 
 		if (!gtkg != !(n->flags & NODE_F_GTKG))
-			continue;
+			goto next;
 
 		/*
 		 * Add node's address (IP:port).
@@ -7329,6 +7329,7 @@ node_crawl_fill(pmsg_t *mb,
 			node_crawl_append_vendor(ua, n->vendor ? n->vendor : "");
 
 		written++;			/* Completely written */
+	next:
 		i++;
 		if (i == len)		/* Wrap around index */
 			i = 0;
