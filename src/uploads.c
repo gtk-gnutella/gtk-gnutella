@@ -319,9 +319,12 @@ void handle_push_request(struct gnutella_node *n)
 	 * XXX maybe a configuration variable? --RAM, 31/12/2001
 	 *
 	 * Don't waste time and resources connecting to something that will fail.
+	 *
+	 * NB: we allow the PUSH if we're already connected to that node.  This
+	 * allows easy local testing. -- RAM, 11/11/2002
 	 */
 
-	if (!check_valid_host(ip, port)) {
+	if (!check_valid_host(ip, port) && !node_is_connected(ip, port, TRUE)) {
 		g_warning("PUSH request (hops=%d, ttl=%d) from invalid address %s",
 			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port));
 		return;
