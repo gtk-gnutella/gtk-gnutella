@@ -55,6 +55,7 @@ struct gnutella_node {
 	time_t last_update;			/* Last update of the node in the GUI */
 	time_t connect_date;		/* When we got connected (after handshake) */
 	time_t tx_flowc_date;		/* When we entered in TX flow control */
+	time_t shutdown_date;		/* When we entered in shutdown mode */
 
 	const gchar *remove_msg;	/* Reason of removing */
 
@@ -209,6 +210,7 @@ extern struct gnutella_node *node_added;
  */
 
 void network_init(void);
+void node_timer(time_t now);
 gboolean on_the_net(void);
 gint32 connected_nodes(void);
 gint32 node_count(void);

@@ -68,6 +68,81 @@ void download_init(void)
 	download_retrieve();
 }
 
+/* ----------------------------------------- */
+
+/*
+ * download_timer
+ *
+ * Download heartbeat timer.
+ */
+void download_timer(time_t now)
+{
+	GSList *l = sl_downloads;
+
+	while (l) {
+		struct download *d = (struct download *) l->data;
+		guint32 t;
+
+		l = l->next;
+
+		switch (d->status) {
+		case GTA_DL_RECEIVING:
+		case GTA_DL_HEADERS:
+		case GTA_DL_PUSH_SENT:
+		case GTA_DL_CONNECTING:
+		case GTA_DL_REQ_SENT:
+		case GTA_DL_FALLBACK:
+
+			switch (d->status) {
+			case GTA_DL_PUSH_SENT:
+			case GTA_DL_FALLBACK:
+				t = download_push_sent_timeout;
+				break;
+			case GTA_DL_CONNECTING:
+				t = download_connecting_timeout;
+				break;
+			default:
+				t = download_connected_timeout;
+				break;
+			}
+
+			if (now - d->last_update > t) {
+				if (d->status == GTA_DL_CONNECTING)
+					download_fallback_to_push(d, TRUE, FALSE);
+				else {
+					if (++d->retries <= download_max_retries)
+						download_retry(d);
+					else
+						download_stop(d, GTA_DL_ERROR, "Timeout");
+				}
+			} else if (now != d->last_gui_update)
+				gui_update_download(d, TRUE);
+			break;
+		case GTA_DL_TIMEOUT_WAIT:
+			if (now - d->last_update > d->timeout_delay)
+				download_start(d, TRUE);
+			else
+				gui_update_download(d, FALSE);
+			break;
+		case GTA_DL_QUEUED:
+		case GTA_DL_COMPLETED:
+		case GTA_DL_ABORTED:
+		case GTA_DL_ERROR:
+		case GTA_DL_STOPPED:
+			break;
+		default:
+			g_warning("Hmm... new download state %d not handled", d->status);
+			break;
+		}
+	}
+
+	if (clear_downloads)
+		downloads_clear_stopped(FALSE, FALSE);
+
+	/* Dequeuing */
+	download_pickup_queued();
+}
+
 /*
  * io_free
  *
@@ -1279,6 +1354,9 @@ static gboolean send_push_request(gchar *guid, guint32 file_id, guint16 port)
 
 	n = route_towards_guid(guid);
 	if (!n)
+		return FALSE;
+
+	if (!NODE_IS_WRITABLE(n))
 		return FALSE;
 
 	message_set_muid(&(m.header), FALSE);

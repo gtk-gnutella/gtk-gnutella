@@ -21,6 +21,7 @@ extern gboolean host_low_on_pongs;
  */
 
 void host_init(void);
+void host_timer(void);
 gboolean find_host(guint32, guint16);
 void host_remove(struct gnutella_host *);
 void host_save_valid(guint32 ip, guint16 port);

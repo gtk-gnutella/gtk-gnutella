@@ -34,15 +34,114 @@ gchar h_tmp[4096];
 
 gint hosts_idle_func = 0;
 
-#define MAX_PING_REQS 	64		/* How many ping requests we have to remember */
-#define HOST_READ_CNT	20		/* Amount of hosts to read each idle tick */
+#define MAX_PING_REQS 		64	/* How many ping requests we have to remember */
+#define HOST_READ_CNT		20	/* Amount of hosts to read each idle tick */
+#define HOST_CATCHER_DELAY	10	/* Delay between connections to same host */
 
 static void ping_reqs_clear(void);
 static gboolean get_recent_pong(guint32 *ip, guint16 *port);
 
+/***
+ *** Host timer.
+ ***/
+
 /*
- * Host hash table handling.
+ * auto_connect
+ *
+ * Round-robin selection of a host catcher, and addition to the list of
+ * nodes, if not already connected to it.
  */
+static void auto_connect(void)
+{
+	static gchar *host_catcher[] = {
+		"connect1.gnutellanet.com",
+		"gnotella.fileflash.com",
+		"connect2.gnutellanet.com",
+		"public.bearshare.net",
+		"connect3.gnutellanet.com",
+		"gnet2.ath.cx",
+		"connect1.bearshare.net",
+		"gnutella-again.hostscache.com",	/* Multiple IPs, oh well */
+	};
+	static struct host_catcher {
+		time_t tried;
+		guint32 ip;
+	} *host_tried = NULL;
+	static guint host_idx = 0;
+	guint32 ip = 0;
+	guint16 port = 6346;
+	gint host_count = sizeof(host_catcher) / sizeof(host_catcher[0]);
+	gint i;
+	time_t now = time((time_t *) NULL);
+	extern gboolean node_connected(guint32, guint16, gboolean);
+
+	/*
+	 * To avoid hammering the host caches, we don't allow connections to
+	 * each of them that are not at least HOST_CATCHER_DELAY seconds apart.
+	 * The `host_tried' array keeps track of our last attempts.
+	 *		--RAM, 30/12/2001
+	 *
+	 * To avoid continuous (blocking) DNS lookups when we are low on hosts,
+	 * cache the IP of each host catcher.  We assume those are fairly stable
+	 * hosts and that their IP will never change during the course of our
+	 * running time.
+	 *		--RAM, 14/01/2002
+	 */
+
+	if (host_tried == NULL)
+		host_tried = g_malloc0(sizeof(struct host_catcher) * host_count);
+
+	for (i = 0; i < host_count; i++, host_idx++) {
+		if (host_idx >= host_count)
+			host_idx = 0;
+
+		ip = host_tried[host_idx].ip;
+		if (ip == 0)
+			ip = host_tried[host_idx].ip = host_to_ip(host_catcher[host_idx]);
+
+		if (
+			ip != 0 &&
+			!node_connected(ip, port, FALSE) &&
+			(now - host_tried[host_idx].tried) >= HOST_CATCHER_DELAY
+		) {
+			node_add(NULL, ip, port);
+			host_tried[host_idx].tried = now;
+			return;
+		}
+	}
+}
+
+/*
+ * host_timer
+ *
+ * Periodic host heartbeat timer.
+ */
+void host_timer(void)
+{
+	int nodes_missing = up_connections - node_count();
+
+	/*
+	 * If we are under the number of connections wanted, we add hosts
+	 * to the connection list
+	 */
+
+	if (nodes_missing > 0 && !stop_host_get) {
+		if (sl_caught_hosts != NULL) {
+			while (nodes_missing-- > 0 && sl_caught_hosts) {
+				guint32 ip;
+				guint16 port;
+
+				host_get_caught(&ip, &port);
+				node_add(NULL, ip, port);
+			}
+		} else
+			auto_connect();
+	}
+}
+
+/***
+ *** Host hash table handling.
+ ***/
 
 static guint host_hash(gconstpointer key)
 {
@@ -131,9 +230,9 @@ void host_save_valid(guint32 ip, guint16 port)
 	gtk_widget_set_sensitive(button_host_catcher_clear, sl_valid_hosts != NULL);
 }
 
-/*
- * Hosts
- */
+/***
+ *** Hosts
+ ***/
 
 void host_init(void)
 {
@@ -425,9 +524,9 @@ void host_get_caught(guint32 *ip, guint16 *port)
 		gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
 }
 
-/*
- * Hosts text files
- */
+/***
+ *** Hosts text files
+ ***/
 
 gint hosts_reading_func(gpointer data)
 {
@@ -516,9 +615,9 @@ void hosts_write_to_file(gchar * path)
 	fclose(f);
 }
 
-/*
- * gnutellaNet stats
- */
+/***
+ *** gnutellaNet stats
+ ***/
 
 /* Registers a new ping request */
 
@@ -621,9 +720,9 @@ void ping_stats_update(void)
 	// send_init(NULL);
 }
 
-/*
- * Messages
- */
+/***
+ *** Messages
+ ***/
 
 /*
  * send_ping
@@ -643,8 +742,10 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
 	WRITE_GUINT32_LE(0, m.header.size);
 
 	if (n) {
-		n->n_ping_sent++;
-		gmsg_sendto_one(n, (guchar *) &m, sizeof(struct gnutella_msg_init));
+		if (NODE_IS_WRITABLE(n)) {
+			n->n_ping_sent++;
+			gmsg_sendto_one(n, (guchar *) &m, sizeof(struct gnutella_msg_init));
+		}
 	} else {
 		GSList *l;
 
@@ -714,6 +815,9 @@ static void send_pong(struct gnutella_node *n,
 	guint32 ip, guint16 port, guint32 files, guint32 kbytes)
 {
 	struct gnutella_msg_init_response *r;
+
+	if (!NODE_IS_WRITABLE(n))
+		return;
 
 	r = build_pong_msg(hops, ttl, muid, ip, port, files, kbytes);
 	n->n_pong_sent++;

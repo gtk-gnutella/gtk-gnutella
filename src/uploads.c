@@ -41,6 +41,51 @@ struct io_header {
 static void upload_request(struct upload *u, header_t *header);
 
 /*
+ * upload_timer
+ *
+ * Upload heartbeat timer.
+ */
+void upload_timer(time_t now)
+{
+	GSList *l;
+	GSList *remove = NULL;
+	guint32 t;
+
+	for (l = uploads; l; l = l->next) {
+		struct upload *u = (struct upload *) l->data;
+
+		if (UPLOAD_IS_COMPLETE(u))
+			continue;					/* Complete, no timeout possible */
+
+		if (UPLOAD_IS_VISIBLE(u))
+			gui_update_upload(u);
+
+		/*
+		 * Check for timeouts.
+		 */
+
+		t = UPLOAD_IS_CONNECTING(u) ?
+				upload_connecting_timeout :
+				upload_connected_timeout;
+
+		/*
+		 * We can't call upload_remove() since it will remove the upload
+		 * from the list we are traversing.
+		 */
+
+		if (now - u->last_update > t)
+			remove = g_slist_append(remove, u);
+	}
+
+	for (l = remove; l; l = l->next) {
+		struct upload *u = (struct upload *) l->data;
+		upload_remove(u, UPLOAD_IS_CONNECTING(u) ?
+			"Request timeout" : "Data timeout");
+	}
+	g_slist_free(remove);
+}
+
+/*
  * io_free
  *
  * Free the opaque I/O data.

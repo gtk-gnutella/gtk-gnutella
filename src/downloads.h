@@ -108,6 +108,7 @@ extern struct download *selected_active_download;
  */
 
 void download_init(void);
+void download_timer(time_t now);
 void download_new(gchar *,
 	guint32, guint32, guint32, guint16, gchar *, gboolean);
 void auto_download_new(

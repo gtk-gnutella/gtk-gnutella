@@ -18,10 +18,7 @@
 #include "autodownload.h"
 #include "gmsg.h"
 
-#define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
-#define HOST_CATCHER_DELAY		10	/* Delay between connections to same host */
-#define SHUTDOWN_GRACE_DELAY	300	/* Grace period for shutdowning nodes */
 
 /* */
 
@@ -86,244 +83,20 @@ static void init_constants(void)
 	start_rfc822_date = g_strdup(date_to_rfc822_gchar(start_time));
 }
 
-static void auto_connect(void)
-{
-	/*
-	 * Round-robin selection of a host catcher, and addition to the list of
-	 * nodes, if not already connected to it.
-	 */
-
-	static gchar *host_catcher[] = {
-		"connect1.gnutellanet.com",
-		"gnotella.fileflash.com",
-		"connect2.gnutellanet.com",
-		"public.bearshare.net",
-		"connect3.gnutellanet.com",
-		"gnet2.ath.cx",
-		"connect1.bearshare.net",
-		"gnutella-again.hostscache.com",	/* Multiple IPs, oh well */
-	};
-	static struct host_catcher {
-		time_t tried;
-		guint32 ip;
-	} *host_tried = NULL;
-	static guint host_idx = 0;
-	guint32 ip = 0;
-	guint16 port = 6346;
-	gint host_count = sizeof(host_catcher) / sizeof(host_catcher[0]);
-	gint i;
-	time_t now = time((time_t *) NULL);
-	extern gboolean node_connected(guint32, guint16, gboolean);
-
-	/*
-	 * To avoid hammering the host caches, we don't allow connections to
-	 * each of them that are not at least HOST_CATCHER_DELAY seconds apart.
-	 * The `host_tried' array keeps track of our last attempts.
-	 *		--RAM, 30/12/2001
-	 *
-	 * To avoid continuous (blocking) DNS lookups when we are low on hosts,
-	 * cache the IP of each host catcher.  We assume those are fairly stable
-	 * hosts and that their IP will never change during the course of our
-	 * running time.
-	 *		--RAM, 14/01/2002
-	 */
-
-	if (host_tried == NULL)
-		host_tried = g_malloc0(sizeof(struct host_catcher) * host_count);
-
-	for (i = 0; i < host_count; i++, host_idx++) {
-		if (host_idx >= host_count)
-			host_idx = 0;
-
-		ip = host_tried[host_idx].ip;
-		if (ip == 0)
-			ip = host_tried[host_idx].ip = host_to_ip(host_catcher[host_idx]);
-
-		if (
-			ip != 0 &&
-			!node_connected(ip, port, FALSE) &&
-			(now - host_tried[host_idx].tried) >= HOST_CATCHER_DELAY
-		) {
-			node_add(NULL, ip, port);
-			host_tried[host_idx].tried = now;
-			return;
-		}
-	}
-}
-
 gboolean main_timer(gpointer p)
 {
-	GSList *l;
-	struct gnutella_node *n;
-	struct download *d;
-	guint32 t;
 	time_t now = time((time_t *) NULL);
-	GSList *remove;
-	int nodes_missing = up_connections - node_count();
+
+	host_timer();					/* Host connection */
+	node_timer(now);				/* Node timeouts */
+	download_timer(now);			/* Download timeouts */
+	upload_timer(now);				/* Upload timeouts */
+	socket_monitor_incoming();		/* Expire connecting sockets */
+	pcache_possibly_expired(now);	/* Expire pong cache */
 
 	/*
-	 * If we are under the number of connections wanted, we add hosts
-	 * to the connection list
+	 * GUI update
 	 */
-
-	if (nodes_missing > 0 && !stop_host_get) {
-		if (sl_caught_hosts != NULL) {
-			while (nodes_missing-- > 0 && sl_caught_hosts) {
-				guint32 ip;
-				guint16 port;
-
-				host_get_caught(&ip, &port);
-				node_add(NULL, ip, port);
-			}
-		} else
-			auto_connect();
-	}
-
-	/* The nodes */
-
-	l = sl_nodes;
-
-	while (l && !stop_host_get) {		/* No timeout if stop_host_get is set */
-		n = (struct gnutella_node *) l->data;
-		l = l->next;
-
-		if (
-			n->status == GTA_NODE_REMOVING &&
-			now - n->last_update > NODE_ERRMSG_TIMEOUT
-		)
-			node_real_remove(n);
-		else if (
-			NODE_IS_CONNECTING(n) &&
-			now - n->last_update > node_connecting_timeout
-		)
-			node_remove(n, "Timeout");
-		else if (
-			n->status == GTA_NODE_SHUTDOWN &&
-			now - n->last_update > SHUTDOWN_GRACE_DELAY
-		) {
-			gchar *reason = g_strdup(n->error_str);
-			node_remove(n, "Shutdown Timeout (%s)", reason);
-			g_free(reason);
-		} else if (now - n->last_update > node_connected_timeout) {
-			if (NODE_IS_WRITABLE(n))
-				node_bye(n, 405, "Activity Timeout");
-			else
-				node_remove(n, "Activity Timeout");
-		} else if (
-			NODE_IN_TX_FLOW_CONTROL(n) &&
-			now - n->tx_flowc_date > node_tx_flowc_timeout
-		)
-			node_bye(n, 405, "Transmit Timeout");
-	}
-
-	/* The downloads */
-
-	l = sl_downloads;
-	while (l) {
-		d = (struct download *) l->data;
-		l = l->next;
-
-		switch (d->status) {
-		case GTA_DL_RECEIVING:
-		case GTA_DL_HEADERS:
-		case GTA_DL_PUSH_SENT:
-		case GTA_DL_CONNECTING:
-		case GTA_DL_REQ_SENT:
-		case GTA_DL_FALLBACK:
-
-			switch (d->status) {
-			case GTA_DL_PUSH_SENT:
-			case GTA_DL_FALLBACK:
-				t = download_push_sent_timeout;
-				break;
-			case GTA_DL_CONNECTING:
-				t = download_connecting_timeout;
-				break;
-			default:
-				t = download_connected_timeout;
-				break;
-			}
-
-			if (now - d->last_update > t) {
-				if (d->status == GTA_DL_CONNECTING)
-					download_fallback_to_push(d, TRUE, FALSE);
-				else {
-					if (++d->retries <= download_max_retries)
-						download_retry(d);
-					else
-						download_stop(d, GTA_DL_ERROR, "Timeout");
-				}
-			} else if (now != d->last_gui_update)
-				gui_update_download(d, TRUE);
-			break;
-		case GTA_DL_TIMEOUT_WAIT:
-			if (now - d->last_update > d->timeout_delay)
-				download_start(d, TRUE);
-			else
-				gui_update_download(d, FALSE);
-			break;
-		case GTA_DL_QUEUED:
-		case GTA_DL_COMPLETED:
-		case GTA_DL_ABORTED:
-		case GTA_DL_ERROR:
-		case GTA_DL_STOPPED:
-			break;
-		default:
-			g_warning("Hmm... new download state %d not handled", d->status);
-			break;
-		}
-	}
-
-	if (clear_downloads)
-		downloads_clear_stopped(FALSE, FALSE);
-
-	/* Dequeuing */
-	download_pickup_queued();
-
-	/* Uploads */
-
-	remove = NULL;
-
-	for (l = uploads; l; l = l->next) {
-		struct upload *u = (struct upload *) l->data;
-
-		if (UPLOAD_IS_COMPLETE(u))
-			continue;					/* Complete, no timeout possible */
-
-		if (UPLOAD_IS_VISIBLE(u))
-			gui_update_upload(u);
-
-		/*
-		 * Check for timeouts.
-		 */
-
-		t = UPLOAD_IS_CONNECTING(u) ?
-				upload_connecting_timeout :
-				upload_connected_timeout;
-
-		/*
-		 * We can't call upload_remove() since it will remove the upload
-		 * from the list we are traversing.
-		 */
-
-		if (now - u->last_update > t)
-			remove = g_slist_append(remove, u);
-	}
-
-	for (l = remove; l; l = l->next) {
-		struct upload *u = (struct upload *) l->data;
-		upload_remove(u, UPLOAD_IS_CONNECTING(u) ?
-			"Request timeout" : "Data timeout");
-	}
-	g_slist_free(remove);
-
-	/* Expire connecting sockets */
-	socket_monitor_incoming();
-
-	/* Expire pong cache */
-	pcache_possibly_expired(now);
-
-	/* GUI update */
 
 	gui_update_global();
 	gui_update_stats();

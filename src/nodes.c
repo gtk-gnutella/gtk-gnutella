@@ -32,6 +32,9 @@
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
 #define NODE_SEND_BUFSIZE		8192	/* TCP send buffer size */
 
+#define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
+#define SHUTDOWN_GRACE_DELAY	600	/* Grace period for shutdowning nodes */
+
 GSList *sl_nodes = (GSList *) NULL;
 
 static guint32 nodes_in_list = 0;
@@ -74,6 +77,53 @@ struct io_header {
 #define IO_STATUS_LINE		0x00000002	/* First line is a status line */
 
 static GHashTable *node_by_fd = 0;
+
+/***
+ *** Node timer.
+ ***/
+
+/*
+ * node_timer
+ *
+ * Periodic node heartbeat timer.
+ */
+void node_timer(time_t now)
+{
+	GSList *l = sl_nodes;
+
+	while (l && !stop_host_get) {		/* No timeout if stop_host_get is set */
+		struct gnutella_node *n = (struct gnutella_node *) l->data;
+		l = l->next;
+
+		if (
+			n->status == GTA_NODE_REMOVING &&
+			now - n->last_update > NODE_ERRMSG_TIMEOUT
+		)
+			node_real_remove(n);
+		else if (
+			NODE_IS_CONNECTING(n) &&
+			now - n->last_update > node_connecting_timeout
+		)
+			node_remove(n, "Timeout");
+		else if (
+			n->status == GTA_NODE_SHUTDOWN &&
+			now - n->shutdown_date > SHUTDOWN_GRACE_DELAY
+		) {
+			gchar *reason = g_strdup(n->error_str);
+			node_remove(n, "Shutdown Timeout (%s)", reason);
+			g_free(reason);
+		} else if (now - n->last_update > node_connected_timeout) {
+			if (NODE_IS_WRITABLE(n))
+				node_bye(n, 405, "Activity Timeout");
+			else
+				node_remove(n, "Activity Timeout");
+		} else if (
+			NODE_IN_TX_FLOW_CONTROL(n) &&
+			now - n->tx_flowc_date > node_tx_flowc_timeout
+		)
+			node_bye(n, 405, "Transmit Timeout");
+	}
+}
 
 /*
  * Network init
@@ -313,6 +363,7 @@ static void node_shutdown_mode(struct gnutella_node *n)
 
 	n->status = GTA_NODE_SHUTDOWN;
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE);
+	n->shutdown_date = time((time_t) NULL);
 	mq_shutdown(n->outq);
 
 	gui_update_node(n, TRUE);
@@ -418,7 +469,8 @@ void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
 	 * can atomically send the message plus the remaining queued data.
 	 */
 
-	sendbuf_len = NODE_SEND_BUFSIZE + mq_size(n->outq) + len + sizeof(head);
+	sendbuf_len = NODE_SEND_BUFSIZE + mq_size(n->outq) +
+		len + sizeof(head) + 1024;		/* Slightly larger, for flow-control */
 
 	if (
 		-1 == setsockopt(n->socket->file_desc, SOL_SOCKET, SO_SNDBUF,
