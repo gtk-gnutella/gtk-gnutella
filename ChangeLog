@@ -1,5 +1,13 @@
 # since last version
 
+- (2003.03.03 - RAM)
+ * Optimized guid_eq() and sha1_eq() to not call memcmp().
+ * Rewrote the callout queue to have a more efficient ev_link() routine, the
+   drawback being a slightly more costly cq_clock() call.
+ * Fixed GWC hammering bug.
+ * Avoid using / and % in macros from idtable.c.
+ * Removed spurious trailing "\n" in some warnings.
+
 - (2003.03.02 - cbiere)
  * [GTK2] gtk2-gnutella.glade:
     Added spinbutton_config_track_props (sync with GTK1)
