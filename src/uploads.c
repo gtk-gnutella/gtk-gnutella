@@ -2097,13 +2097,13 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	user_agent = header_get(header, "User-Agent");
 
 	/* Maybe they sent a Server: line, thinking they're a server? */
-	if (!user_agent)
+	if (user_agent != NULL)
 		user_agent = header_get(header, "Server");
 
-	if (user_agent)
+	if (user_agent != NULL)
 		faked = !version_check(user_agent, token, u->ip);
 
-	if (!is_followup && user_agent) {
+	if (u->user_agent == NULL && user_agent != NULL) {
 		if (faked) {
 			gchar *name = g_strdup_printf("!%s", user_agent);
 			u->user_agent = atom_str_get(name);
