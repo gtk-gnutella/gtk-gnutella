@@ -165,14 +165,14 @@ guint32  max_high_ttl_msg     = 10;
 guint32  max_high_ttl_msg_def = 10;
 guint32  max_high_ttl_radius     = 2;
 guint32  max_high_ttl_radius_def = 2;
-guint32  bw_http_in     = 0;
-guint32  bw_http_in_def = 0;
-guint32  bw_http_out     = 0;
-guint32  bw_http_out_def = 0;
-guint32  bw_gnet_in     = 0;
-guint32  bw_gnet_in_def = 0;
-guint32  bw_gnet_out     = 0;
-guint32  bw_gnet_out_def = 0;
+guint32  bw_http_in     = 1024;
+guint32  bw_http_in_def = 1024;
+guint32  bw_http_out     = 1024;
+guint32  bw_http_out_def = 1024;
+guint32  bw_gnet_in     = 1024;
+guint32  bw_gnet_in_def = 1024;
+guint32  bw_gnet_out     = 1024;
+guint32  bw_gnet_out_def = 1024;
 guint32  search_queries_forward_size     = 256;
 guint32  search_queries_forward_size_def = 256;
 guint32  search_queries_kick_size     = 1024;
@@ -1426,7 +1426,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[64].data.guint32.def   = &bw_http_in_def;
     gnet_property->props[64].data.guint32.value = &bw_http_in;
     gnet_property->props[64].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[64].data.guint32.min   = 0;
+    gnet_property->props[64].data.guint32.min   = 1024;
 
 
     /*
@@ -1445,7 +1445,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[65].data.guint32.def   = &bw_http_out_def;
     gnet_property->props[65].data.guint32.value = &bw_http_out;
     gnet_property->props[65].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[65].data.guint32.min   = 0;
+    gnet_property->props[65].data.guint32.min   = 1024;
 
 
     /*
@@ -1464,7 +1464,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[66].data.guint32.def   = &bw_gnet_in_def;
     gnet_property->props[66].data.guint32.value = &bw_gnet_in;
     gnet_property->props[66].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[66].data.guint32.min   = 0;
+    gnet_property->props[66].data.guint32.min   = 1024;
 
 
     /*
@@ -1483,7 +1483,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[67].data.guint32.def   = &bw_gnet_out_def;
     gnet_property->props[67].data.guint32.value = &bw_gnet_out;
     gnet_property->props[67].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[67].data.guint32.min   = 0;
+    gnet_property->props[67].data.guint32.min   = 1024;
 
 
     /*

@@ -730,8 +730,8 @@ prop = {
     desc = "Bandwidth limit for incoming HTTP traffic in bytes/sec";
     type = guint32;
     data = {
-        default = 0;
-        min     = 0;
+        default = 1024;
+        min     = 1024;
         max     = BS_BW_MAX;
     };
 };
@@ -742,8 +742,8 @@ prop = {
     desc = "Bandwidth limit for outgoing HTTP traffic in bytes/sec";
     type = guint32;
     data = {
-        default = 0;
-        min     = 0;
+        default = 1024;
+        min     = 1024;
         max     = BS_BW_MAX;
     };
 };
@@ -754,8 +754,8 @@ prop = {
      desc = "Bandwidth limit for incoming gNet traffic in bytes/sec";
      type = guint32;
      data = {
-        default = 0;
-        min     = 0;
+        default = 1024;
+        min     = 1024;
         max     = BS_BW_MAX;
     };
 };
@@ -766,8 +766,8 @@ prop = {
     desc = "Bandwidth limit for outgoing gNet traffic in bytes/sec";
     type = guint32;
     data = {
-        default = 0;
-        min     = 0;
+        default = 1024;
+        min     = 1024;
         max     = BS_BW_MAX;
     };
 };
