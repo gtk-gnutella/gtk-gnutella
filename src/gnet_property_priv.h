@@ -189,6 +189,8 @@ extern guint32  clock_skew;
 extern gboolean node_monitor_unstable_ip;
 extern gboolean node_monitor_unstable_servents;
 extern gboolean dl_remove_file_on_mismatch;
+extern gchar   *server_hostname;
+extern gboolean give_server_hostname;
 
 
 prop_set_t *gnet_prop_init(void);

@@ -1910,3 +1910,27 @@ prop = {
         default = FALSE;
     };
 };
+
+prop = {
+    name = "server_hostname";
+    desc = "The hostname of the server that can be used by downloaders "
+		"to find the IP address via a DNS resolution.  If you have a "
+		"dynamic IP address coupled with a dynamic DNS service, then this "
+		"is valuable to downloaders: they may find your node even after "
+		"a few rotation of your IP address.";
+    type = string;
+    data = {
+        default = "";
+    };
+};
+
+prop = {
+    name = "give_server_hostname";
+    desc = "Whether gtk-gnutella should advertise the hostname of your "
+		"server to downloaders and in query hits.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+

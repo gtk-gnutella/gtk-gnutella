@@ -382,6 +382,10 @@ gboolean node_monitor_unstable_servents     = FALSE;
 gboolean node_monitor_unstable_servents_def = FALSE;
 gboolean dl_remove_file_on_mismatch     = FALSE;
 gboolean dl_remove_file_on_mismatch_def = FALSE;
+gchar   *server_hostname     = "";
+gchar   *server_hostname_def = "";
+gboolean give_server_hostname     = FALSE;
+gboolean give_server_hostname_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -3434,6 +3438,44 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[158].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[158].data.boolean.def   = &dl_remove_file_on_mismatch_def;
     gnet_property->props[158].data.boolean.value = &dl_remove_file_on_mismatch;
+
+
+    /*
+     * PROP_SERVER_HOSTNAME:
+     *
+     * General data:
+     */
+    gnet_property->props[159].name = "server_hostname";
+    gnet_property->props[159].desc = _("The hostname of the server that can be used by downloaders to find the IP address via a DNS resolution.  If you have a dynamic IP address coupled with a dynamic DNS service, then this is valuable to downloaders: they may find your node even after a few rotation of your IP address.");
+    gnet_property->props[159].ev_changed = event_new("server_hostname_changed");
+    gnet_property->props[159].save = TRUE;
+    gnet_property->props[159].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[159].type               = PROP_TYPE_STRING;
+    gnet_property->props[159].data.string.def    = &server_hostname_def;
+    gnet_property->props[159].data.string.value  = &server_hostname;
+    if (gnet_property->props[159].data.string.def) {
+        *gnet_property->props[159].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[159].data.string.def));
+    }
+
+
+    /*
+     * PROP_GIVE_SERVER_HOSTNAME:
+     *
+     * General data:
+     */
+    gnet_property->props[160].name = "give_server_hostname";
+    gnet_property->props[160].desc = _("Whether gtk-gnutella should advertise the hostname of your server to downloaders and in query hits.");
+    gnet_property->props[160].ev_changed = event_new("give_server_hostname_changed");
+    gnet_property->props[160].save = TRUE;
+    gnet_property->props[160].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[160].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[160].data.boolean.def   = &give_server_hostname_def;
+    gnet_property->props[160].data.boolean.value = &give_server_hostname;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
