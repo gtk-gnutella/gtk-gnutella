@@ -358,6 +358,9 @@ gint main(gint argc, gchar ** argv)
 	for (i = 3; i < 256; i++)
 		close(i);				/* Just in case */
 
+	signal(SIGINT, sig_ignore);		/* ignore SIGINT in adns (e.g. for gdb) */
+	signal(SIGPIPE, sig_ignore);	/* Not SIG_IGN, see comment */
+
 	/* Our inits */
 	log_init();
 	adns_init();
@@ -402,10 +405,9 @@ gint main(gint argc, gchar ** argv)
 
 	signal(SIGTERM, sig_terminate);
 	signal(SIGINT, sig_terminate);
-	signal(SIGPIPE, sig_ignore);		/* Not SIG_IGN, see comment */
 
 #ifdef SIGXFSZ
-	signal(SIGXFSZ, SIG_IGN);
+	signal(SIGXFSZ, sig_ignore);
 #endif
 
 	/* Setup the main timers */
