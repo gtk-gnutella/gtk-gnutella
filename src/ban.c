@@ -413,6 +413,7 @@ void ban_close(void)
  ***/
 
 static gchar *harmful = "Harmful version banned, upgrade required";
+static gchar *refused = "Connection refused";
 
 /*
  * ban_vendor
@@ -448,19 +449,25 @@ gchar *ban_vendor(gchar *vendor)
 #undef GTKG_NAME
 #undef GTKG_LEN
 
+#define GTKG_NAME	"Gtk-Gnutella "
+#define GTKG_LEN	(sizeof(GTKG_NAME) - 1)
+
 #define GNUC_NAME	"Gnucleus "
 #define GNUC_LEN	(sizeof(GNUC_NAME) - 1)
 
-	if (
-		vendor[0] == 'G' &&
-		0 == strncmp(vendor, GNUC_NAME, GNUC_LEN)
-	) {
-		if (0 == strncmp(vendor + GNUC_LEN, "1.6.0.0", 7))
-			return harmful;
+	if (vendor[0] == 'G') {
+		if (0 == strncmp(vendor, GNUC_NAME, GNUC_LEN)) {
+			if (0 == strncmp(vendor + GNUC_LEN, "1.6.0.0", 7))
+				return harmful;
+		} else if (0 == strncmp(vendor, GTKG_NAME, GTKG_LEN))
+			return refused;
 	}
 
 #undef GNUC_NAME
 #undef GNUC_LEN
+
+#undef GTKG_NAME
+#undef GTKG_LEN
 
 	return NULL;
 }
