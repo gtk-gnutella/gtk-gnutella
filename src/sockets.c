@@ -133,6 +133,7 @@ static void socket_tos(struct gnutella_socket *s, gint tos)
 {
 	if (!use_ip_tos)
 		return;
+		
 	if (
 		-1 == setsockopt(s->file_desc, sol_ip(),
 				IP_TOS, (gpointer) &tos, sizeof(tos))
@@ -533,6 +534,7 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	if (parq_is_banned_source(s->ip)) {
 		g_warning("[sockets] PARQ has banned ip %s", ip_to_gchar(s->ip));
 		ban_force(s);
+		goto cleanup;
 	}
 
 	/*
