@@ -2112,6 +2112,8 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 	d->remove_msg = fmt ? d->error_str: NULL;
 	d->status = GTA_DL_QUEUED;
 
+	g_assert(d->socket == NULL);
+
 	if (d->list_idx != DL_LIST_WAITING)		/* Timeout wait is in "waiting" */
 		download_move_to_list(d, DL_LIST_WAITING);
 
@@ -2851,6 +2853,8 @@ void download_start(struct download *d, gboolean check_allowed)
 	} else {					/* We have to send a push request */
 		d->status = GTA_DL_PUSH_SENT;
 
+		g_assert(d->socket == NULL);
+
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
 
@@ -3142,6 +3146,10 @@ void download_fallback_to_push(struct download *d,
 		 * Due to the async nature of the DNS lookups, we must check for
 		 * a non-NULL hostname, in case we already detected it earlier for
 		 * this server, in another connection attempt.
+		 *
+		 * XXX we should allow for DNS failure and mark the hostname bad
+		 * XXX for a while only, then re-attempt periodically, instead of
+		 * XXX simply discarding it.
 		 */
 
 		if (socket_bad_hostname(d->socket) && d->server->hostname != NULL) {
