@@ -1,5 +1,12 @@
 # since last version
 
+- (2002.05.21 - RAM)
+  * huge.c: cast all file sizes to long before printf("%ld") since some
+	machines have 64-bit off_t (but Gnuetlla only has a 32-bit field for
+	propagating file sizes, so it does not matter).
+  * Forgot to emit initial header when appending values to disk SHA1 cache.
+  * Hacked a quick fix for the duplicate SHA1 work problem.
+
 - (2002.05.20 - RAM)
   * When queuing a download from the same GUID/file, check the IP:port in
 	case it changed since we queued it, and not solely reject it as a
@@ -15,6 +22,8 @@
     (if we have it) on 503 Busy errors.
   * Applied cleanup patch #557071 [From Uros Bizjak].
   * Applied Solaris compile patch #558202 [From Uros Bizjak].
+  * Applied structure packing, SOCKS error message fix, and cleanup patch
+	[From Michael Core].
 
 - (2002.05.20 - Richard)
   * Added "User agent" column to uploads
