@@ -99,9 +99,9 @@ void option_menu_select_item_by_data(GtkWidget *m, gpointer *d)
 
     menu = GTK_WIDGET(gtk_option_menu_get_menu(GTK_OPTION_MENU(m)));
 
-    for (l = GTK_MENU_SHELL(menu)->children; l != NULL; l = l->next) {
+    for (l = GTK_MENU_SHELL(menu)->children; l != NULL; l = g_list_next(l)) {
         if (l->data != NULL) {
-            if (gtk_object_get_user_data((GtkObject *)l->data) == d) {
+            if (gtk_object_get_user_data((GtkObject *) l->data) == d) {
                 gtk_option_menu_set_history(GTK_OPTION_MENU(m), n); 
                 break;
             }
@@ -165,7 +165,7 @@ GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb)
 
     g_assert(rb != NULL);
 
-    for (i = gtk_radio_button_group(rb); i != NULL; i = i->next) {
+    for (i = gtk_radio_button_group(rb); i != NULL; i = g_slist_next(i)) {
         GtkToggleButton *tb = GTK_TOGGLE_BUTTON(i->data);
 
         if (gtk_toggle_button_get_active(tb))
@@ -314,71 +314,85 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
 
 #ifdef USE_GTK2
 
-struct collect_data_struct_t {
+/*
+ * w_tree_iter_copy:
+ *
+ * Same as gtk_tree_iter_copy() but uses walloc(). Use w_tree_iter_free()
+ * to free the returned GtkTreeIter.
+ */
+GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter)
+{
+	GtkTreeIter *copy;
+
+	copy = walloc(sizeof(*copy));
+	memcpy(copy, iter, sizeof(*copy));
+	return copy;
+}
+
+/*
+ * w_tree_iter_free:
+ *
+ * Use this to free a GtkTreeIter returned by w_tree_iter_copy().
+ */
+void w_tree_iter_free(GtkTreeIter *iter)
+{
+	return wfree(iter, sizeof(*iter));
+}
+
+typedef struct collect_data_struct {
     GSList *results;
     GSList *to_unselect;
-	gboolean allow_null;
 	GCompareFunc cfn;
 	const gchar *name; /* name of the treeview widget (for debugging) */
-};
+} collect_data_struct_t;
 
 static void tree_selection_collect_data_helper(GtkTreeModel *model,
 	GtkTreePath *path, GtkTreeIter *iter, gpointer user_data)
 {
-	struct collect_data_struct_t *cdata = user_data;
+	collect_data_struct_t *cdata = user_data;
 	gpointer data = NULL;
 
 	g_assert(NULL != cdata);
-	gtk_tree_model_get(model, iter, c_sr_record, &data, -1);
-	if (NULL != data || cdata->allow_null) {
+	gtk_tree_model_get(model, iter, c_sr_record, &data, (-1));
+	g_assert(NULL != data);
 
-		cdata->to_unselect = g_slist_prepend(cdata->to_unselect,
-								gtk_tree_path_copy(path));
-		if (NULL != cdata->cfn &&
-			NULL != g_slist_find_custom(cdata->results, data, cdata->cfn)) {
-			if (gui_debug >= 3)
-				g_warning("%s has duplicate data: %p", cdata->name, data);
-			return;
-		}
-		cdata->results = g_slist_prepend(cdata->results, data);
-
-	} else if (gui_debug >= 3) {
-		gchar *tmp;
-	
-		tmp = gtk_tree_path_to_string(path);	
-		g_warning("%s contains NULL data at path \"%s\"", cdata->name, tmp);
-		G_FREE_NULL(tmp);
-    }
+	cdata->to_unselect = g_slist_prepend(cdata->to_unselect,
+								w_tree_iter_copy(iter));
+	if (NULL != cdata->cfn &&
+		NULL != g_slist_find_custom(cdata->results, data, cdata->cfn)) {
+		if (gui_debug >= 3)
+			g_warning("%s has duplicate data: %p", cdata->name, data);
+		return;
+	}
+	cdata->results = g_slist_prepend(cdata->results, data);
 }
 
 static void tree_selection_unselect_helper(gpointer data, gpointer user_data)
 {
-	gtk_tree_selection_unselect_path(GTK_TREE_SELECTION(user_data),
-		(GtkTreePath *) data);
-	gtk_tree_path_free((GtkTreePath *) data);
+	gtk_tree_selection_unselect_iter((GtkTreeSelection *) user_data,
+		(GtkTreeIter *) data);
+	w_tree_iter_free((GtkTreeIter *) data);
 }
 
 /*
  * tree_selection_collect_data:
  *
  * Fetch data from the selection of a treeview. Returns a GSList containing
- * the user_data pointers from the selected rows. If allow_null is TRUE,
- * the returned list may contain NULL pointers. If cfn != NULL, it will
+ * the user_data pointers from the selected rows. If cfn != NULL, it will
  * be used to determine wether two entries are equal and drop all duplicate
  * items from the result list. Using cfn will significantly increase runtime.
  */
 
 GSList *tree_selection_collect_data(GtkTreeSelection *selection,
-    gboolean allow_null, GCompareFunc cfn)
+	GCompareFunc cfn)
 {
-	struct collect_data_struct_t cdata;
+	collect_data_struct_t cdata;
 
     g_assert(NULL != selection);
 
 	cdata.results = NULL;
 	cdata.to_unselect = NULL;
-	cdata.allow_null = FALSE;
-	cdata.cfn = NULL;
+	cdata.cfn = cfn;
 	if (gui_debug >= 3) {
 		cdata.name = gtk_widget_get_name(
 			GTK_WIDGET(gtk_tree_selection_get_tree_view(selection)));
@@ -397,7 +411,7 @@ GSList *tree_selection_collect_data(GtkTreeSelection *selection,
      * Now unselect the rows from which we got data.
      */
 	g_slist_foreach(cdata.to_unselect,
-		(GFunc) &tree_selection_unselect_helper, (gpointer) selection);
+		tree_selection_unselect_helper, selection);
 
     /*
      * Cleanup before exit.
@@ -439,7 +453,8 @@ guint32 gtk_editable_get_value_as_uint(GtkEditable *editable)
  * choice number set as user_data.
  */
 void gtk_combo_init_choices(
-    GtkCombo *combo, GtkSignalFunc func, prop_def_t *def, gpointer user_data) {
+    GtkCombo *combo, GtkSignalFunc func, prop_def_t *def, gpointer user_data)
+{
 
     guint n;
     guint32 original;
