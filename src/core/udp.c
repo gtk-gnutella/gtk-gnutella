@@ -117,7 +117,8 @@ not:
 
 log:
 	if (udp_debug) {
-		g_warning("got invalid Gnutella packet from UDP: %s", msg);
+		g_warning("got invalid Gnutella packet from UDP (%s): %s",
+			ip_port_to_gchar(s->ip, s->port), msg);
 		if (s->pos)
 			dump_hex(stderr, "UDP datagram", s->buffer, s->pos);
 	}
