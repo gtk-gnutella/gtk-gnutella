@@ -120,6 +120,9 @@ struct parq_ul_queued {
 	time_t updated;			/* Time last upload request was sent */
 	time_t ban_timeout;		/* Time after which we won't kick out the upload out
 							   of the queue when retry isn't obeyed */
+	time_t disc_timeout;	/* Time after which we allow the upload to be
+							   disconnected again. */
+
 	time_t last_queue_sent;	/* When we last sent the QUEUE */
 
 	guint32 queue_sent;		/* Amount of QUEUE messages we tried to send */
@@ -1246,6 +1249,7 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
 	parq_ul->expire = parq_ul->retry + MIN_LIFE_TIME;
 	parq_ul->ban_timeout = 0;
+	parq_ul->disc_timeout = 0;
 	
 	/* Save into hash table so we can find the current parq ul later */
 	g_hash_table_insert(ul_all_parq_by_id, parq_ul->id, parq_ul);
@@ -2292,14 +2296,29 @@ void parq_upload_remove(gnutella_upload_t *u)
 	
 	g_assert(parq_ul->queue->active_uploads >= 0);	
 	
-#if 0
-	parq_upload_free(parq_ul);
-#else
-	/* Disconnected upload is allowed to reconnect immediatly */
-	parq_ul->has_slot = FALSE;
-	parq_ul->retry = now;
-	parq_ul->expire = now + MIN_LIFE_TIME;
-#endif
+	if (parq_ul->disc_timeout > now && parq_ul->has_slot) {
+		/* Client disconnects to often. This could block our upload
+		 * slots. Sorry, but we are going to remove this upload */
+		g_warning("[parq ul] "
+			"Removing %s (%s) for to many disconnections \"%s\" %d secs early",
+			ip_port_to_gchar(u->socket->ip, u->socket->port), 
+			upload_vendor_str(u),
+			u->name, (gint) (parq_ul->disc_timeout - now));
+		parq_upload_free(parq_ul);
+	} else {
+		/* Disconnected upload is allowed to reconnect immediatly */
+		parq_ul->has_slot = FALSE;
+		parq_ul->retry = now;
+		parq_ul->expire = now + MIN_LIFE_TIME;
+
+		/*
+		 * A client is not allowed to disconnect over and over again
+		 * (ie data write error). Set the time for which a client
+		 * should not disconnect
+		 */
+		if (parq_ul->has_slot)
+			parq_ul->disc_timeout = now + parq_upload_ban_window;
+	}
 }
 
 /*
