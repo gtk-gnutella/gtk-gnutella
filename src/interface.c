@@ -213,7 +213,9 @@ create_main_window (void)
   GtkWidget *label_size_range;
   GtkWidget *label_up_range;
   GtkWidget *label74;
-  GtkWidget *hbox47;
+  GtkWidget *vbox21;
+  GtkWidget *hbox72;
+  GtkWidget *hbox70;
   GtkWidget *label81;
   GtkObject *entry_max_uploads_adj;
   GtkWidget *label_uploads;
@@ -240,6 +242,7 @@ create_main_window (void)
   GtkObject *entry_max_downloads_adj;
   GtkWidget *label80;
   GtkObject *entry_max_host_downloads_adj;
+  GtkWidget *hbox73;
   GtkWidget *frame4;
   GtkWidget *vbox15;
   GtkWidget *scrolledwindow7;
@@ -263,7 +266,6 @@ create_main_window (void)
   GtkWidget *hbox63;
   GtkWidget *hbox64;
   GtkWidget *hbox62;
-  GtkWidget *hbuttonbox3;
   GtkWidget *search_reissue_label;
   GtkObject *entry_search_reissue_timeout_adj;
   GtkWidget *label_search;
@@ -312,6 +314,7 @@ create_main_window (void)
   GtkWidget *hbox49;
   GtkWidget *frame_connection_speed;
   GtkWidget *vbox_connection_speed;
+  GtkWidget *vbox22;
   GtkWidget *hbox_speed_kpbs;
   GtkWidget *label36;
   GtkWidget *frame_searches;
@@ -626,8 +629,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (notebook_main);
   gtk_box_pack_start (GTK_BOX (vbox_right), notebook_main, TRUE, TRUE, 0);
-  GTK_WIDGET_UNSET_FLAGS (notebook_main, GTK_CAN_FOCUS);
-  gtk_notebook_set_show_tabs (GTK_NOTEBOOK (notebook_main), FALSE);
   gtk_notebook_set_show_border (GTK_NOTEBOOK (notebook_main), FALSE);
 
   vbox_gnutellanet = gtk_vbox_new (FALSE, 6);
@@ -658,7 +659,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (sw_nodes);
   gtk_box_pack_start (GTK_BOX (vbox17), sw_nodes, TRUE, TRUE, 0);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_nodes), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_nodes), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
   clist_nodes = gtk_clist_new (5);
   gtk_widget_ref (clist_nodes);
@@ -1114,19 +1115,26 @@ create_main_window (void)
   gtk_widget_show (label74);
   gtk_clist_set_column_widget (GTK_CLIST (clist_uploads), 4, label74);
 
-  hbox47 = gtk_hbox_new (FALSE, 8);
-  gtk_widget_ref (hbox47);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox47", hbox47,
+  vbox21 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_ref (vbox21);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox21", vbox21,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox47);
-  gtk_box_pack_start (GTK_BOX (vbox18), hbox47, FALSE, TRUE, 0);
+  gtk_widget_show (vbox21);
+  gtk_box_pack_start (GTK_BOX (vbox18), vbox21, FALSE, TRUE, 0);
+
+  hbox72 = gtk_hbox_new (FALSE, 6);
+  gtk_widget_ref (hbox72);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox72", hbox72,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox72);
+  gtk_box_pack_start (GTK_BOX (vbox21), hbox72, TRUE, TRUE, 0);
 
   button_uploads_kill = gtk_button_new_with_label (" Kill selected ");
   gtk_widget_ref (button_uploads_kill);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "button_uploads_kill", button_uploads_kill,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_uploads_kill);
-  gtk_box_pack_start (GTK_BOX (hbox47), button_uploads_kill, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox72), button_uploads_kill, FALSE, FALSE, 0);
   gtk_widget_set_sensitive (button_uploads_kill, FALSE);
   gtk_tooltips_set_tip (tooltips, button_uploads_kill, "Abort and remove all selected uploads", NULL);
 
@@ -1135,23 +1143,30 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "button_uploads_clear_completed", button_uploads_clear_completed,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_uploads_clear_completed);
-  gtk_box_pack_start (GTK_BOX (hbox47), button_uploads_clear_completed, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox72), button_uploads_clear_completed, FALSE, FALSE, 0);
   gtk_widget_set_sensitive (button_uploads_clear_completed, FALSE);
   gtk_tooltips_set_tip (tooltips, button_uploads_clear_completed, "Clear already completed uploads from list", NULL);
+
+  hbox70 = gtk_hbox_new (FALSE, 6);
+  gtk_widget_ref (hbox70);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox70", hbox70,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox70);
+  gtk_box_pack_start (GTK_BOX (vbox21), hbox70, TRUE, TRUE, 0);
 
   checkbutton_uploads_auto_clear = gtk_check_button_new_with_label ("Auto clear completed uploads");
   gtk_widget_ref (checkbutton_uploads_auto_clear);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_uploads_auto_clear", checkbutton_uploads_auto_clear,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_uploads_auto_clear);
-  gtk_box_pack_start (GTK_BOX (hbox47), checkbutton_uploads_auto_clear, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox70), checkbutton_uploads_auto_clear, FALSE, FALSE, 0);
 
   label81 = gtk_label_new ("Maximum simultaneous uploads");
   gtk_widget_ref (label81);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label81", label81,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label81);
-  gtk_box_pack_start (GTK_BOX (hbox47), label81, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox70), label81, FALSE, FALSE, 0);
 
   entry_max_uploads_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   entry_max_uploads = gtk_spin_button_new (GTK_ADJUSTMENT (entry_max_uploads_adj), 1, 0);
@@ -1159,15 +1174,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_max_uploads", entry_max_uploads,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_max_uploads);
-  gtk_box_pack_start (GTK_BOX (hbox47), entry_max_uploads, FALSE, TRUE, 0);
-
-  checkbutton_config_throttle = gtk_check_button_new_with_label ("Throttle uploads");
-  gtk_widget_ref (checkbutton_config_throttle);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_throttle", checkbutton_config_throttle,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_config_throttle);
-  gtk_box_pack_start (GTK_BOX (hbox47), checkbutton_config_throttle, FALSE, FALSE, 0);
-  gtk_widget_set_sensitive (checkbutton_config_throttle, FALSE);
+  gtk_box_pack_start (GTK_BOX (hbox70), entry_max_uploads, FALSE, TRUE, 0);
 
   label_uploads = gtk_label_new ("Uploads");
   gtk_widget_ref (label_uploads);
@@ -1205,7 +1212,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (clist_ul_stats);
   gtk_container_add (GTK_CONTAINER (ul_stats_scrolledwindow), clist_ul_stats);
-  gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 0, 323);
+  gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 0, 277);
   gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 1, 41);
   gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 2, 60);
   gtk_clist_set_column_width (GTK_CLIST (clist_ul_stats), 3, 67);
@@ -1376,20 +1383,6 @@ create_main_window (void)
   gtk_widget_set_sensitive (button_downloads_clear_completed, FALSE);
   gtk_tooltips_set_tip (tooltips, button_downloads_clear_completed, "Remove completed downloads from list", NULL);
 
-  checkbutton_downloads_auto_clear = gtk_check_button_new_with_label ("Auto clear completed downloads");
-  gtk_widget_ref (checkbutton_downloads_auto_clear);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_auto_clear", checkbutton_downloads_auto_clear,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_downloads_auto_clear);
-  gtk_box_pack_start (GTK_BOX (hbox41), checkbutton_downloads_auto_clear, FALSE, FALSE, 0);
-
-  checkbutton_downloads_never_push = gtk_check_button_new_with_label ("Never send a push request");
-  gtk_widget_ref (checkbutton_downloads_never_push);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_never_push", checkbutton_downloads_never_push,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_downloads_never_push);
-  gtk_box_pack_start (GTK_BOX (hbox41), checkbutton_downloads_never_push, FALSE, FALSE, 0);
-
   hbox42 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox42);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox42", hbox42,
@@ -1427,6 +1420,27 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_max_host_downloads);
   gtk_box_pack_start (GTK_BOX (hbox42), entry_max_host_downloads, FALSE, TRUE, 0);
+
+  hbox73 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox73);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox73", hbox73,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox73);
+  gtk_box_pack_start (GTK_BOX (vbox16), hbox73, FALSE, TRUE, 0);
+
+  checkbutton_downloads_auto_clear = gtk_check_button_new_with_label ("Auto clear completed downloads");
+  gtk_widget_ref (checkbutton_downloads_auto_clear);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_auto_clear", checkbutton_downloads_auto_clear,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_downloads_auto_clear);
+  gtk_box_pack_start (GTK_BOX (hbox73), checkbutton_downloads_auto_clear, FALSE, FALSE, 0);
+
+  checkbutton_downloads_never_push = gtk_check_button_new_with_label ("Never send a push request");
+  gtk_widget_ref (checkbutton_downloads_never_push);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_never_push", checkbutton_downloads_never_push,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_downloads_never_push);
+  gtk_box_pack_start (GTK_BOX (hbox73), checkbutton_downloads_never_push, FALSE, FALSE, 0);
 
   frame4 = gtk_frame_new ("Download queue");
   gtk_widget_ref (frame4);
@@ -1744,13 +1758,6 @@ create_main_window (void)
   gtk_widget_show (hbox62);
   gtk_box_pack_start (GTK_BOX (hbox52), hbox62, TRUE, TRUE, 0);
 
-  hbuttonbox3 = gtk_hbutton_box_new ();
-  gtk_widget_ref (hbuttonbox3);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbuttonbox3", hbuttonbox3,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbuttonbox3);
-  gtk_box_pack_start (GTK_BOX (hbox62), hbuttonbox3, TRUE, TRUE, 0);
-
   search_reissue_label = gtk_label_new ("Retry search every (seconds, 0=never):");
   gtk_widget_ref (search_reissue_label);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "search_reissue_label", search_reissue_label,
@@ -1927,7 +1934,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (clist_search_stats);
   gtk_container_add (GTK_CONTAINER (scrolledwindow10), clist_search_stats);
-  gtk_clist_set_column_width (GTK_CLIST (clist_search_stats), 0, 498);
+  gtk_clist_set_column_width (GTK_CLIST (clist_search_stats), 0, 287);
   gtk_clist_set_column_width (GTK_CLIST (clist_search_stats), 1, 93);
   gtk_clist_set_column_width (GTK_CLIST (clist_search_stats), 2, 80);
   gtk_clist_column_titles_show (GTK_CLIST (clist_search_stats));
@@ -2262,12 +2269,19 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame_connection_speed), vbox_connection_speed);
   gtk_container_set_border_width (GTK_CONTAINER (vbox_connection_speed), 4);
 
+  vbox22 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_ref (vbox22);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox22", vbox22,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox22);
+  gtk_box_pack_start (GTK_BOX (vbox_connection_speed), vbox22, TRUE, TRUE, 0);
+
   hbox_speed_kpbs = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox_speed_kpbs);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_speed_kpbs", hbox_speed_kpbs,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox_speed_kpbs);
-  gtk_box_pack_start (GTK_BOX (vbox_connection_speed), hbox_speed_kpbs, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox22), hbox_speed_kpbs, TRUE, TRUE, 0);
 
   entry_config_speed = gtk_entry_new ();
   gtk_widget_ref (entry_config_speed);
@@ -2283,6 +2297,14 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label36);
   gtk_box_pack_start (GTK_BOX (hbox_speed_kpbs), label36, FALSE, FALSE, 0);
+
+  checkbutton_config_throttle = gtk_check_button_new_with_label ("Throttle uploads");
+  gtk_widget_ref (checkbutton_config_throttle);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_throttle", checkbutton_config_throttle,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_throttle);
+  gtk_box_pack_start (GTK_BOX (vbox22), checkbutton_config_throttle, FALSE, FALSE, 0);
+  gtk_widget_set_sensitive (checkbutton_config_throttle, FALSE);
 
   frame_searches = gtk_frame_new ("Searches");
   gtk_widget_ref (frame_searches);
@@ -2649,9 +2671,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (entry_max_uploads), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_max_uploads_focus_out_event),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_config_throttle), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_config_throttle_toggled),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (clist_ul_stats), "click_column",
                       GTK_SIGNAL_FUNC (on_clist_ul_stats_click_column),
                       NULL);
@@ -2688,12 +2707,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (button_downloads_clear_completed), "clicked",
                       GTK_SIGNAL_FUNC (on_button_downloads_clear_completed_clicked),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_downloads_auto_clear), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_downloads_auto_clear_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_downloads_never_push), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_downloads_never_push_toggled),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (entry_max_downloads), "activate",
                       GTK_SIGNAL_FUNC (on_entry_max_downloads_activate),
                       NULL);
@@ -2705,6 +2718,12 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_max_host_downloads), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_max_host_downloads_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_downloads_auto_clear), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_downloads_auto_clear_toggled),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_downloads_never_push), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_downloads_never_push_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_downloads_queue_select_row),
@@ -2855,6 +2874,9 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_speed), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_config_speed_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_config_throttle), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_config_throttle_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_search_items), "activate",
                       GTK_SIGNAL_FUNC (on_entry_config_search_items_activate),
