@@ -17,7 +17,7 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc.:
-	    59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+        59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ------------------------------------------------------------------------
 
 [This software is now maintained by Raphael_Manfredi@pobox.com]
@@ -25,22 +25,11 @@
 If you have problems, your best bet is to subscribe to the gtk-gnutella-users
 list on www.sf.net, and more precisely here:
 
-http://lists.sourceforge.net/lists/listinfo/gtk-gnutella-users
+    http://lists.sourceforge.net/lists/listinfo/gtk-gnutella-users
 
 Also visit the main website for news, updates, FAQ, and more at:
 
-http://gtk-gnutella.sf.net/
-
-
-Gtk-Gnutella README
-
-Contents:
-
-Introduction
-Installation
-Quick Start
-Bug Reports
-Developers, Programmers and Other Tech Info
+    http://gtk-gnutella.sf.net/
 
 
 Introduction
@@ -62,21 +51,21 @@ Solaris 8/SPARC, Tru64 Unix/Alpha, SGI IRIX 6.2/mips.  It is released under
 the GNU Public License (GPL).  
 
 For further information on Gnutella, try:
-http://gnutella.wego.com
-http://www.infoanarchy.org/wiki/wiki.pl?Gnutella
-http://rfc-gnutella.sourceforge.net/
+    http://gnutella.wego.com
+    http://www.infoanarchy.org/wiki/wiki.pl?Gnutella
+    http://rfc-gnutella.sourceforge.net/
 
 The Gtk-Gnutella Home Page is:
-http://gtk-gnutella.sourceforge.net
+    http://gtk-gnutella.sourceforge.net
 
 The Project Page is:
-http://sourceforge.net/projects/gtk-gnutella/
+    http://sourceforge.net/projects/gtk-gnutella/
 
 Open Discussion Forums, try:
-http://www.gnutellaforums.com/
+    http://www.gnutellaforums.com/
 
 There is an IRC channel for Gtk-gnutella on http://www.freenode.net:
-irc.freenode.net #gtk-gnutella
+    irc.freenode.net #gtk-gnutella
 
 
 Installation
@@ -87,26 +76,40 @@ documentation.
 
 To compile gtk-gnutella:  
 
-./configure [--options]
-make
-make install
+    Configure
+    make
+    make install
 
-For a full listing of available ./configure options:
-./configure --help
+The `Configure' shell script attempts to guess correct values for various
+system-dependent variables used during compilation.  It uses those values
+to create a `Makefile' in each directory of the package.  It may also
+create one or more `.h' files containing system-dependent definitions.
+Finally, it creates `config.sh' file that saves the results of its tests
+to speed up reconfiguring, reusing your previous values as defaults.
 
-Of particular interest:
---prefix=PREFIX (default /usr/local)
---enable-gtk2 (default=off) Build a GTK2 version instead of the GTK1 gui.
---enable-xml-store (default=on) Save searches and filters in XML (requires 
-    libxml2) Without this, filters will not be saved across restarts.  
---enable-tos (default=on) Use IP Type of Service.  Routers can use this 
-    information to better route the IP datagrams.
+If you need to do unusual things to compile the package, please try
+to figure out how `Configure' could check whether to do them, and mail
+diffs or instructions to the address given in the `README' so they can
+be considered for the next release.  If at some point `config.sh'
+contains results you don't want to keep, you may remove or edit it.
 
-See the file "INSTALL" for further information.
+You can remove the program binaries and object files from the
+source code directory by typing `make clean'.  To also remove the
+files that `Configure' created (so you can compile the package for
+a different kind of computer), type `make clobber'.
 
 
 Quick Start
 -----------
+
+To run gtk-gnutella, launch:
+
+    gtk-gnutella
+
+If you wish to keep track of errors/warning for later perusal,
+you may also do:
+
+    gtk-gnutella >gnutella.log 2>gnutella.warn &
 
 Operation is fairly straightforward.  Default values are set for getting 
 started, unless you are behind a firewall. This section should get you started 
