@@ -233,8 +233,12 @@ static void search_stats_gui_disable(void)
             (search_stats_notify_word);
         share_remove_search_request_listener
             (search_stats_notify_whole);
+        share_remove_search_request_listener
+            (search_stats_notify_routed);
         callback_registered = FALSE;
     }
+
+    empty_hash_table();
 }
 
 /*
