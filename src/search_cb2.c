@@ -312,7 +312,7 @@ gboolean on_tree_view_search_results_button_press_event
         gtk_label_set(GTK_LABEL((GTK_MENU_ITEM(
 			lookup_widget(popup_search, "popup_search_toggle_tabs"))
                 ->item.bin.child)),
-			search_results_show_tabs ? "Show search list" : "Show tabs");
+			search_results_show_tabs ? _("Show search list") : _("Show tabs"));
 		gtk_menu_popup(GTK_MENU(popup_search), NULL, NULL, NULL, NULL,
 			event->button, event->time);
 		return TRUE;
@@ -355,7 +355,7 @@ static guint32  as_fuzzy_threshold;
 /* Some static globals to collect the files and sources of all
  * autoselect_files_helper() runs and display them at the end in 
  * on_tree_view_search_results_select_row() */
-// FIXME: see below
+/* FIXME: see below */
 static guint32  sel_files;
 static guint32  sel_sources;
 
@@ -368,7 +368,7 @@ static void autoselect_files_helper(
 	GtkTreeSelection *selection;
     GtkTreeView *treeview = GTK_TREE_VIEW(data);
 
-    // FIXME: if we really accumulate, we'll get totally wrong numbers
+    /* FIXME: if we really accumulate, we'll get totally wrong numbers */
     sel_sources = 0;
     sel_files = 0;
 
@@ -490,7 +490,7 @@ void on_tree_view_search_results_select_row(
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_source")),
 			ip_port_to_gchar(rc->results_set->ip, rc->results_set->port));
-		gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%lu byte)",
+		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%lu byte)"),
 			short_size(rc->size), (gulong) rc->size);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_size")),
@@ -498,7 +498,8 @@ void on_tree_view_search_results_select_row(
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_guid")),
 			guid_hex_str(rc->results_set->guid));
-		g_strlcpy(tmpstr, ctime(&rc->results_set->stamp), 25); /* discard \n */
+		g_strlcpy(tmpstr, ctime(&rc->results_set->stamp),
+			MIN(25U, sizeof tmpstr)); /* discard trailing '\n' (see ctime(3) */
 		gtk_entry_set_text(GTK_ENTRY(
 			lookup_widget(main_window, "entry_result_info_timestamp")),
 			tmpstr);
@@ -535,24 +536,23 @@ void on_tree_view_search_results_select_row(
         PROP_FUZZY_THRESHOLD, 
         &as_fuzzy_threshold, 0, 1);
 
-    /* Unfortunately Gtk2 doesn't tell us which nodes were fresly added
+    /* Unfortunately Gtk2 doesn't tell us which nodes were freshly added
      * to the selection, so we have to iterate over the complete selection
      * Yikes!
      *     -- Richard, 18/04/2004
      */
-    // FIXME: there has to be a better way (see comment above)
+    /* FIXME: there has to be a better way (see comment above) */
 	gtk_tree_selection_selected_foreach(
         gtk_tree_view_get_selection(view),
         autoselect_files_helper,
 		view);
 
     if (sel_sources > 1) {
-        statusbar_gui_message(15, 
-            "%d files auto selected with %d sources %s",
-            sel_files, sel_sources, 
-            (as_similar) ? 
-                "by urn:sha1, filename and size." :
-                "by urn:sha1.");
+        statusbar_gui_message(15, (as_similar
+			?  _("%d files auto selected with %d sources "
+			     "by urn:sha1, filename and size.")
+            :  _("%d files auto selected with %d sources by urn:sha1.")),
+            sel_files, sel_sources);
     }
 
     g_signal_handlers_unblock_by_func(
@@ -577,7 +577,7 @@ void on_button_search_passive_clicked(
     default_filter = (filter_t *) option_menu_get_selected_data(
 		lookup_widget(main_window, "optionmenu_search_filter"));
 
-	search_gui_new_search("Passive", SEARCH_PASSIVE, &search);
+	search_gui_new_search(_("Passive"), SEARCH_PASSIVE, &search);
 
     /*
      * If we should set a default filter, we do that.
