@@ -3479,7 +3479,7 @@ static gboolean update_label_date(property_t prop)
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
     prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
-	time_t val;
+	guint32 val;
 
     if (!top)
         return FALSE;
@@ -3493,12 +3493,13 @@ static gboolean update_label_date(property_t prop)
         return FALSE;
     }
 
-	stub->guint32.get(prop, (guint32 *) &val, 0, 1);
+	stub->guint32.get(prop, &val, 0, 1);
 	if (val == 0)
 		gtk_label_set_text(GTK_LABEL(w), _("Never"));
 	else {
+		time_t stamp = val;
+		struct tm *ct = localtime(&stamp);
 		gchar buf[80];
-		struct tm *ct = localtime(&val);
 
 		gm_snprintf(buf, sizeof(buf), "%.2d/%.2d/%d %.2d:%.2d:%.2d",
 			ct->tm_mday, ct->tm_mon + 1, ct->tm_year + 1900,
