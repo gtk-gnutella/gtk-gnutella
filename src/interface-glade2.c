@@ -5104,6 +5104,7 @@ create_main_window (void)
 
   image_save = create_pixmap (main_window, "save.xpm");
   gtk_widget_set_name (image_save, "image_save");
+  gtk_widget_show (image_save);
   gtk_container_add (GTK_CONTAINER (eventbox_image_save), image_save);
   gtk_misc_set_padding (GTK_MISC (image_save), 1, 0);
 

@@ -7276,6 +7276,7 @@ ko &lt;junkpile@free.fr&gt;</property>
 
 		      <child>
 			<widget class="GtkImage" id="image_save">
+			  <property name="visible">True</property>
 			  <property name="pixbuf">save.xpm</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
