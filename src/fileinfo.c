@@ -3268,6 +3268,7 @@ void fi_purge(gnet_fi_t fih)
 	struct dl_file_info *fi = file_info_find_by_handle(fih); 
 
 	g_assert(fi != NULL);
+	g_assert(fi->hashed);
 
 	csl = g_slist_copy(fi->sources);	/* Clone list, orig can be modified */
 
