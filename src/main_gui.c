@@ -471,7 +471,7 @@ static GtkWidget *gui_create_dlg_about(void)
 
         gm_snprintf(s, sizeof(s), "%s%s", i > 0 ? "\n" : "", contributors[i]);
         gtk_text_buffer_insert_at_cursor(
-            textbuf, convert_to_utf8(s, 0, "ISO-8859-1"), (-1));
+            textbuf, iso_8859_1_to_utf8(s), (-1));
     }
 #else
     GtkText *text = GTK_TEXT(lookup_widget(dlg, "text_about_contributors"));
@@ -479,7 +479,7 @@ static GtkWidget *gui_create_dlg_about(void)
     for (i = 0; NULL != contributors[i]; i++) {
         if (i > 0)
             gtk_text_insert(text, NULL, NULL, NULL, "\n", (-1));
-        gtk_text_insert(text, NULL, NULL, NULL, contributors[i], (-1));
+        gtk_text_insert(text, NULL, NULL, NULL, utf8_to_locale(iso_8859_1_to_utf8((char*)contributors[i]),0), (-1));
     }
 #endif
 

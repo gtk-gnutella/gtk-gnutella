@@ -90,6 +90,10 @@ cqueue_t *callout_queue;
 static guint main_slow_update = 0;
 static gboolean exiting = FALSE;
 
+#ifdef ENABLE_NLS
+const gchar *codeset;
+#endif
+
 /* */
 
 /*
@@ -391,8 +395,6 @@ static void log_init(void)
 static void locale_init(void)
 {
 #ifdef ENABLE_NLS
-    const char *codeset;
-
 	setlocale(LC_ALL, "");
 
 #ifdef USE_GTK2

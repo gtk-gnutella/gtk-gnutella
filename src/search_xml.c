@@ -36,6 +36,7 @@
 #include "settings_gui.h"
 #include "search_gui.h"
 #include "version.h"
+#include "utf8.h"
 
 RCSID("$Id$");
 
@@ -422,6 +423,9 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
 {
     xmlNodePtr newxml;
     GList *l;
+#ifndef USE_GTK2
+	gboolean ascii, utf8;
+#endif
 
     g_assert(s != NULL);
     g_assert(s->query != NULL);
@@ -434,8 +438,20 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
     }
 
     newxml = xmlNewChild(parent, NULL, NODE_SEARCH, NULL);
-    
-    xmlSetProp(newxml, TAG_SEARCH_QUERY, (const xmlChar *) s->query);
+
+#ifndef USE_GTK2   
+	utf8 = utf8_is_valid_string(s->query, 0)?TRUE:FALSE;
+	ascii = is_ascii_string(s->query);
+
+	if (!ascii && !utf8) {
+	    gchar* tmp;
+
+	    tmp = locale_to_utf8(s->query, 0);
+	    xmlSetProp(newxml, TAG_SEARCH_QUERY, (const xmlChar *) tmp);
+	}
+	else
+#endif
+	    xmlSetProp(newxml, TAG_SEARCH_QUERY, (const xmlChar *) s->query);
 
     gm_snprintf(x_tmp, sizeof(x_tmp), "%u", s->enabled);
     xmlSetProp(newxml, TAG_SEARCH_ENABLED, (const xmlChar *) x_tmp);
@@ -731,7 +747,12 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
         g_warning("Ignored search without query");
         return;
     }
-    query = buf;
+#ifdef USE_GTK2
+	query = buf;
+#else
+    query = g_strdup(utf8_to_locale(buf, 0));
+	g_free(buf);
+#endif
 
     buf = (gchar *) xmlGetProp(xmlnode, TAG_SEARCH_ENABLED);
     if (buf) {
