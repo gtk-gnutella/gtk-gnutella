@@ -51,8 +51,8 @@ guint32  up_connections     = 3;
 guint32  up_connections_def = 3;
 guint32  normal_connections     = 0;
 guint32  normal_connections_def = 0;
-guint32  max_connections     = 9;
-guint32  max_connections_def = 9;
+guint32  max_connections     = 12;
+guint32  max_connections_def = 12;
 guint32  node_leaf_count     = 0;
 guint32  node_leaf_count_def = 0;
 guint32  node_normal_count     = 0;
@@ -608,7 +608,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[6].name = "max_connections";
-    gnet_property->props[6].desc = _("Don't allow more than this number of connections to other servents.  As a rule of thumb you should reserve 1kb/s bandwidth per connection. Never use up all your bandwidth, leave a little space for TCP/IP overhead. It's not advisable that you set this to a value larger than 10.");
+    gnet_property->props[6].desc = _("Don't allow more than this number of connections to other servents.  As a rule of thumb you should reserve 512 b/s bandwidth per connection. Never use up all your bandwidth, leave a little space for TCP/IP overhead. It's not advisable that you set this to a value larger than 20.");
     gnet_property->props[6].ev_changed = event_new("max_connections_changed");
     gnet_property->props[6].save = TRUE;
     gnet_property->props[6].vector_size = 1;
@@ -1436,7 +1436,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[47].data.guint32.value = &node_tx_flowc_timeout;
     gnet_property->props[47].data.guint32.choices = NULL;
     gnet_property->props[47].data.guint32.max   = 7200;
-    gnet_property->props[47].data.guint32.min   = 60;
+    gnet_property->props[47].data.guint32.min   = 90;
 
 
     /*
