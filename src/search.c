@@ -316,6 +316,7 @@ static gnet_results_set_t *get_results_set(
 	gboolean seen_ggep_h = FALSE;
 	gboolean seen_ggep_alt = FALSE;
 	gboolean seen_bitprint = FALSE;
+	gboolean multiple_sha1 = FALSE;
 
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
@@ -468,26 +469,61 @@ static gnet_results_set_t *get_results_set(
 				extvec_t *e = &exv[i];
 				gchar sha1_digest[SHA1_RAW_SIZE];
 				ggept_status_t ret;
+				gboolean unknown = TRUE;
+				gint urnlen;
 
 				switch (e->ext_token) {
 				case EXT_T_URN_BITPRINT:	/* first 32 chars is the SHA1 */
 					seen_bitprint = TRUE;
 					/* FALLTHROUGH */
-				case EXT_T_URN_SHA1:
+				case EXT_T_URN_SHA1:		/* SHA1 URN, the HUGE way */
+					urnlen = e->ext_paylen;
+					if (e->ext_token == EXT_T_URN_BITPRINT)
+						urnlen = MIN(urnlen, SHA1_BASE32_SIZE);
 					if (
-						huge_sha1_extract32((gchar *) e->ext_payload,
-								e->ext_paylen, sha1_digest, &n->header, TRUE)
+						huge_sha1_extract32(e->ext_payload,
+								urnlen, sha1_digest, &n->header, TRUE)
 					) {
-						if (!validate_only)
+						if (!validate_only) {
+							if (rc->sha1 != NULL) {
+								multiple_sha1 = TRUE;
+								atom_sha1_free(rc->sha1);
+							}
 							rc->sha1 = atom_sha1_get(sha1_digest);
+						}
 					} else
 						sha1_errors++;
 					break;
-				case EXT_T_GGEP_H:
+				case EXT_T_GGEP_u:			/* HUGE URN, wihtout leading urn: */
+					if (!validate_only) {
+						gchar *payload;
+
+						/* Must NUL-terminate the payload first */
+						payload = walloc(e->ext_paylen + 1);
+						memcpy(payload, e->ext_payload, e->ext_paylen);
+						payload[e->ext_paylen] = '\0';
+
+						if (huge_extract_sha1_no_urn(payload, sha1_digest)) {
+							if (rc->sha1 != NULL) {
+								multiple_sha1 = TRUE;
+								atom_sha1_free(rc->sha1);
+							}
+							rc->sha1 = atom_sha1_get(sha1_digest);
+						}
+
+						wfree(payload, e->ext_paylen + 1);
+					}
+					break;
+				case EXT_T_GGEP_H:			/* Expect SHA1 value only */
 					ret = ggept_h_sha1_extract(e, sha1_digest, SHA1_RAW_SIZE);
 					if (ret == GGEP_OK) {
-						if (!validate_only)
+						if (!validate_only) {
+							if (rc->sha1 != NULL) {
+								multiple_sha1 = TRUE;
+								atom_sha1_free(rc->sha1);
+							}
 							rc->sha1 = atom_sha1_get(sha1_digest);
+						}
 						seen_ggep_h = TRUE;
 					} else if (ret == GGEP_INVALID) {
 						sha1_errors++;
@@ -504,7 +540,7 @@ static gnet_results_set_t *get_results_set(
 						}
 					}
 					break;
-				case EXT_T_GGEP_ALT:
+				case EXT_T_GGEP_ALT:		/* Alternate locations */
 					ret = ggept_alt_extract(e, &hvec, &hvcnt);
 					if (ret == GGEP_OK)
 						seen_ggep_alt = TRUE;
@@ -516,10 +552,14 @@ static gnet_results_set_t *get_results_set(
 						}
 					}
 					break;
+				case EXT_T_GGEP_T:			/* Descriptive text */
+					unknown = FALSE;		/* Disables ext_has_ascii_word() */
+					/* FALLTHROUGH */
 				case EXT_T_UNKNOWN:
 					if (
 						!validate_only &&
-						e->ext_paylen && ext_has_ascii_word(e)
+						e->ext_paylen &&
+						(!unknown || ext_has_ascii_word(e))
 					) {
 						gchar *p = (gchar *) e->ext_payload + e->ext_paylen;
 						gchar c = *p;
@@ -528,7 +568,7 @@ static gnet_results_set_t *get_results_set(
 							g_string_append(info, "; ");
 
 						*p = '\0';
-						g_string_append(info, (gchar *) e->ext_payload);
+						g_string_append(info, e->ext_payload);
 						*p = c;
 					}
 					break;
@@ -757,6 +797,11 @@ static gnet_results_set_t *get_results_set(
 			if (seen_bitprint) {
 				gchar *vendor = lookup_vendor_name(rs->vendor);
 				g_warning("%s from %s used urn:bitprint",
+					 gmsg_infostr(&n->header), vendor ? vendor : "????");
+			}
+			if (multiple_sha1) {
+				gchar *vendor = lookup_vendor_name(rs->vendor);
+				g_warning("%s from %s had records with multiple SHA1",
 					 gmsg_infostr(&n->header), vendor ? vendor : "????");
 			}
 		}
