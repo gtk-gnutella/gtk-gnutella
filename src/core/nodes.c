@@ -2081,16 +2081,16 @@ node_bye_v(struct gnutella_node *n, gint code, const gchar *reason, va_list ap)
 	 */
 
 	if (mq_pending(n->outq) == 0) {
-		if (dbg > 4)
-			printf("successfully sent BYE \"%s\" to %s\n",
-				n->error_str, node_ip(n));
+		if (dbg)
+			g_message("successfully sent BYE %d \"%s\" to %s (%s)",
+				code, n->error_str, node_ip(n), node_vendor(n));
 
 			sock_tx_shutdown(n->socket);
 			node_shutdown_mode(n, BYE_GRACE_DELAY);
 	} else {
-		if (dbg > 4)
-			printf("delayed sending of BYE \"%s\" to %s\n",
-				n->error_str, node_ip(n));
+		if (dbg)
+			g_message("delayed sending of BYE %d \"%s\" to %s (%s)",
+				code, n->error_str, node_ip(n), node_vendor(n));
 
 		n->flags |= NODE_F_BYE_SENT;
 
@@ -2938,8 +2938,8 @@ extract_header_pongs(header_t *header, struct gnutella_node *n)
 			printf("Node %s sent us %d pong%s in header\n",
 				node_ip(n), pong, pong == 1 ? "" : "s");
 		if (pong == 0 && dbg)
-			g_warning("Node %s sent us unparseable X-Try: %s\n",
-				node_ip(n), field);
+			g_warning("Node %s (%s) sent us unparseable X-Try: \"%s\"",
+				node_ip(n), node_vendor(n), field);
 	}
 
 	/*
@@ -2957,8 +2957,9 @@ extract_header_pongs(header_t *header, struct gnutella_node *n)
 			printf("Node %s sent us %d ultranode pong%s in header\n",
 				node_ip(n), pong, pong == 1 ? "" : "s");
 		if (pong == 0 && dbg)
-			g_warning("Node %s sent us unparseable X-Try-Ultrapeers: %s\n",
-				node_ip(n), field);
+			g_warning(
+				"Node %s (%s) sent us unparseable X-Try-Ultrapeers: \"%s\"",
+				node_ip(n), node_vendor(n), field);
 	}
 }
 
@@ -5601,8 +5602,9 @@ node_disable_read(struct gnutella_node *n)
 static void
 node_bye_sent(struct gnutella_node *n)
 {
-	if (dbg > 4)
-		printf("finally sent BYE \"%s\" to %s\n", n->error_str, node_ip(n));
+	if (dbg)
+		g_message("finally sent BYE \"%s\" to %s (%s)",
+			n->error_str, node_ip(n), node_vendor(n));
 
 	/*
 	 * Shutdown the node.
