@@ -316,7 +316,7 @@ cleanup:
  * Sockets connection
  */
 
-void socket_connected(gpointer data, gint source, GdkInputCondition cond)
+static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 {
 	/* We are connected to somebody */
 
