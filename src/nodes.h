@@ -176,6 +176,12 @@ struct gnutella_node {
 #define NODE_SQUEUE_SENT(n) \
 	((n)->searchq ? sq_sent((n)->searchq) : 0)
 
+#define NODE_RX_COMPRESSED(n) \
+	((n)->attrs & NODE_A_RX_INFLATE)
+
+#define NODE_TX_COMPRESSED(n) \
+	((n)->attrs & NODE_A_TX_DEFLATE)
+
 /*
  * Macros.
  */
