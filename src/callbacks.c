@@ -225,8 +225,8 @@ void on_button_config_save_path_clicked(GtkButton * button,
 {
 	if (!save_path_filesel) {
 		save_path_filesel =
-			gtk_file_selection_new
-			("Please choose where to store files while downloading");
+			gtk_file_selection_new(
+				_("Please choose where to store files while downloading"));
 
 		gtk_signal_connect(GTK_OBJECT
 						   (GTK_FILE_SELECTION(save_path_filesel)->
@@ -282,8 +282,8 @@ void on_button_config_move_path_clicked(GtkButton * button,
 {
 	if (!move_path_filesel) {
 		move_path_filesel =
-			gtk_file_selection_new
-			("Please choose where to move files after download");
+			gtk_file_selection_new(
+				_("Please choose where to move files after download"));
 
 		gtk_signal_connect(GTK_OBJECT
 						   (GTK_FILE_SELECTION(move_path_filesel)->
@@ -339,8 +339,8 @@ void on_button_config_bad_path_clicked(
 {
 	if (!bad_path_filesel) {
 		bad_path_filesel =
-			gtk_file_selection_new
-			("Please choose where to move files corrupted files");
+			gtk_file_selection_new(
+				_("Please choose where to move files corrupted files"));
 
 		gtk_signal_connect(GTK_OBJECT
 						   (GTK_FILE_SELECTION(bad_path_filesel)->
@@ -393,7 +393,7 @@ void on_button_config_add_dir_clicked(GtkButton * button,
 {
 	if (!add_dir_filesel) {
 		add_dir_filesel =
-			gtk_file_selection_new("Please choose a directory to share");
+			gtk_file_selection_new(_("Please choose a directory to share"));
 
 		gtk_signal_connect(GTK_OBJECT
 						   (GTK_FILE_SELECTION(add_dir_filesel)->
@@ -533,4 +533,4 @@ on_hb_searches_child_detached          (GtkHandleBox    *handlebox,
 }
 
 #endif /* USE_GTK2 */
-
+/* vi: set ts=4 sw=4 cindent: */

@@ -271,7 +271,7 @@ void on_popup_downloads_abort_host_activate(GtkMenuItem * menuitem,
     gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
     gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
-    statusbar_gui_message(15, "Forgot %u downloads", removed);
+    statusbar_gui_message(15, _("Forgot %u downloads"), removed);
 }
 
 
@@ -319,7 +319,7 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem * menuitem,
     gtk_clist_thaw(GTK_CLIST(ctree_downloads_queue));
     gtk_clist_thaw(GTK_CLIST(ctree_downloads));
 
-    statusbar_gui_message(15, "Removed %u downloads", removed);
+    statusbar_gui_message(15, _("Removed %u downloads"), removed);
 }
 
 

@@ -284,7 +284,7 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem *menuitem,
 	}
 	g_slist_free(selected);
 
- 	statusbar_gui_message(15, "Removed %d downloads", removed);
+ 	statusbar_gui_message(15, _("Removed %d downloads"), removed);
 }
 
 
@@ -312,7 +312,7 @@ void on_popup_downloads_abort_host_activate(GtkMenuItem *menuitem,
 	}
 	g_slist_free(selected);
 
-    statusbar_gui_message(15, "Forgot %d downloads", removed);
+    statusbar_gui_message(15, _("Forgot %d downloads"), removed);
 }
 
 
@@ -338,7 +338,7 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem *menuitem,
 	}
 	g_slist_free(selected);
 
-    statusbar_gui_message(15, "Removed %d downloads", removed);
+    statusbar_gui_message(15, _("Removed %d downloads"), removed);
 }
 
 
@@ -537,7 +537,7 @@ void on_popup_queue_abort_named_activate(GtkMenuItem *menuitem,
 	}
 	g_slist_free(selected);
 
-    statusbar_gui_message(15, "Removed %d downloads", removed);
+    statusbar_gui_message(15, _("Removed %d downloads"), removed);
 }
 
 
@@ -565,7 +565,7 @@ void on_popup_queue_abort_host_activate(GtkMenuItem *menuitem,
 	}
 	g_slist_free(selected);
 
-    statusbar_gui_message(15, "Removed %d downloads", removed);
+    statusbar_gui_message(15, _("Removed %d downloads"), removed);
 }
 
 
@@ -593,7 +593,7 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem *menuitem,
 	}
 	g_slist_free(selected);
 
-    statusbar_gui_message(15, "Removed %d downloads", removed);
+    statusbar_gui_message(15, _("Removed %d downloads"), removed);
 }
 
 
@@ -782,8 +782,8 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
         	}
         
 			statusbar_gui_message(15, 
-        	    "Selected %u of %u queued downloads matching \"%s\".", 
-	           	 m, total_nodes, regex);
+				_("Selected %u of %u queued downloads matching \"%s\"."), 
+				m, total_nodes, regex);
 
 			regfree(&re);
 	    }
