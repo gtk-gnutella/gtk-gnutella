@@ -1,5 +1,23 @@
 # since last version
 
+- (2002.11.09 RAM)
+ * The BSD sendfile() requires that first two arguments be swapped (wrt linux).
+ * Now computes and displays the overall swarming downloading rate and the
+   time that remains to get the complete files.  Also shows how many sources
+   we're currently using out of the ones we know.
+ * New unique_filemame() routine.
+ * New "file_moving" property to indicate that we move files in the background.
+ * Default for dynamic upload slot allocation is now FALSE.
+ * Added logic to make the new "online mode" toggle actually work.
+ * Shortened retry delay to 2 seconds when server cannot understand /uri-res.
+   (unless server explicitly set a Retry-After, in which case we honour it).
+ * When we abort a download due to a header reception timeout, we might
+   not have got the full status line.
+ * Now computes the "startup date" for the nodes to which we connect, parsing
+   the X-Live-Since header.
+ * Ensure we have "LC_TIME=C" in our environment.  Some X-Live-Since headers
+   are still incorrectly localized by strftime().
+
 - (2002.11.07 RAM)
  * Fixed memory leak in search_stats_notify_word() [From Christian Biere].
  * Added new property "bad_file_path" to indicate where files which do not
