@@ -1,0 +1,163 @@
+?X:
+?X: Modified to make sure that we can link with the library.
+?X:		--RAM, 10/08/2003
+?X:
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:libs: test cat Myread Oldconfig Loc libpth package xlibpth so _a \
+	+cc +ccflags +ldflags rm
+?MAKE:	-pick add $@ %<
+?S:libs:
+?S:	This variable holds the additional libraries we want to use.
+?S: It is up to the Makefile to deal with it.
+?S:.
+?T:xxx thislib libswanted
+?D:libs=''
+?X:
+?X: This order is chosen so that libraries  -lndir, -ldir, -lucb, -lbsd,
+?X: -lBSD, -lPW, and -lx only get used if there are unresolved
+?X: routines at link time.  Usually, these are backwards compatability
+?X: libraries, and may not be as reliable as the standard c library.
+?X:
+?X: The -lsocket -linet -lnsl order has been reported to be necessary
+?X: for at least one SVR4 implementation.
+?X: -lc must proceed -lucb or -lbsd for most Solaris applications.
+?X: -lc_s proceeds -lc so we pick up the shared library version, if
+?X: it is available.
+?X:
+?X: The ordering of c, posix, and cposix is a guess and almost
+?X: certainly wrong on about half of all systems.
+?X:
+?X: Set proper libswanted in your private Myinit.U if needed.
+?X:
+?X:: default ordered library list
+?X:libswanted='net socket inet nsl nm sdbm gdbm ndbm dbm malloc dl'
+?X:libswanted="$libswanted dld sun m c_s c posix cposix ndir dir ucb"
+?X:libswanted="$libswanted bsd BSD PW x"
+?X:
+?F:lt.c lt
+?T:canlink
+?INIT:: default library list
+?INIT:libswanted=''
+: Looking for optional libraries
+echo " "
+echo "Checking for optional libraries..." >&4
+case "$libs" in
+' '|'') dflt='';;
+*) dflt="$libs";;
+esac
+case "$libswanted" in
+'') libswanted='c_s';;
+esac
+?X:
+?X: It is not sufficient to find a .so on the disk.  We must make sure
+?X: that we can indeed supply the -lfoo line on the cc line to link against
+?X: that library.
+?X:		--RAM, 10/10/2003
+?X:
+echo "extern char printf(); int main() { printf(); return 0; }" > lt.c
+canlink='$cc $ccflags $ldflags -o lt lt.c -l$thislib >/dev/null 2>&1'
+?X:
+for thislib in $libswanted; do
+?X:
+?X: Comparaisons via case statement use the string " $dflt " to ensure that
+?X: each library is separated by a space. That way, by looking to something
+?X: like *"-l$thislib "*, we ensure we find -lm and not -lmalloc (which was
+?X: the case with the old looking pattern *-l$thislib*.
+?X:
+	if xxx=`./loc lib$thislib.$so.[0-9]'*' X $libpth`; $test -f "$xxx"; then
+		if eval $canlink; then
+			echo "Found -l$thislib (shared)."
+			case " $dflt " in
+			*"-l$thislib "*);;
+			*) dflt="$dflt -l$thislib";;
+			esac
+		else
+			echo "Found -l$thislib (shared) but I can't link against it."
+		fi
+	elif xxx=`./loc lib$thislib.$so X $libpth` ; $test -f "$xxx"; then
+		if eval $canlink; then
+			echo "Found -l$thislib (shared)."
+			case " $dflt " in
+			*"-l$thislib "*);;
+			*) dflt="$dflt -l$thislib";;
+			esac
+		else
+			echo "Found -l$thislib (shared) but I can't link against it."
+		fi
+	elif xxx=`./loc lib$thislib$_a X $libpth`; $test -f "$xxx"; then
+		if eval $canlink; then
+			echo "Found -l$thislib."
+			case " $dflt " in
+			*"-l$thislib "*);;
+			*) dflt="$dflt -l$thislib";;
+			esac
+		else
+			echo "Found -l$thislib but I can't link against it."
+		fi
+?X: Don't forget about OS/2 where -lmalloc is spelled out malloc.a
+	elif xxx=`./loc $thislib$_a X $libpth`; $test -f "$xxx"; then
+		if eval $canlink; then
+			echo "Found -l$thislib."
+			case " $dflt " in
+			*"-l$thislib "*);;
+			*) dflt="$dflt -l$thislib";;
+			esac
+		else
+			echo "Found -l$thislib but I can't link against it."
+		fi
+	elif xxx=`./loc lib${thislib}_s$_a X $libpth`; $test -f "$xxx"; then
+		echo "Found -l${thislib}_s."
+		case " $dflt " in
+		*"-l$thislib "*);;
+		*) dflt="$dflt -l${thislib}_s";;
+		esac
+	elif xxx=`./loc Slib$thislib$_a X $xlibpth`; $test -f "$xxx"; then
+		if eval $canlink; then
+			echo "Found -l$thislib."
+			case " $dflt " in
+			*"-l$thislib "*);;
+			*) dflt="$dflt -l$thislib";;
+			esac
+		else
+			echo "Found -l$thislib but I can't link against it."
+		fi
+	else
+		echo "No -l$thislib."
+	fi
+done
+set X $dflt
+shift
+dflt="$*"
+case "$libs" in
+'') dflt="$dflt";;
+*) dflt="$libs";;
+esac
+case "$dflt" in
+' '|'') dflt='none';;
+esac
+
+$cat <<EOM
+ 
+Some versions of Unix support shared libraries, which make executables smaller
+but make load time slightly longer.
+
+On some systems, mostly System V Release 3's, the shared library is included
+by putting the option "-lc_s" as the last thing on the cc command line when
+linking.  Other systems use shared libraries by default.  There may be other
+libraries needed to compile $package on your machine as well.  If your system
+needs the "-lc_s" option, include it here.  Include any other special libraries
+here as well.  Say "none" for none.
+EOM
+
+echo " "
+rp="Any additional libraries?"
+. ./myread
+case "$ans" in
+none) libs=' ';;
+*) libs="$ans";;
+esac
+$rm -f lt.c lt
+

@@ -1,0 +1,22 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_deflate: Inlibc
+?MAKE:	-pick add $@ %<
+?S:d_deflate:
+?S:	This variable conditionally defines the HAS_DEFLATE symbol, which
+?S:	indicates to the C program that the deflate() routine from zlib is
+?S: available.
+?S:.
+?C:HAS_DEFLATE:
+?C:	This symbol, if defined, indicates that the zlib deflate() routine is
+?C:	available.
+?C:.
+?H:#$d_deflate HAS_DEFLATE		/**/
+?H:.
+?LINT:set d_deflate
+: see if deflate exists
+set deflate d_deflate
+eval $inlibc
+

@@ -1,0 +1,37 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:remotectrl d_remotectrl: Myread cat
+?MAKE:	-pick add $@ %<
+?S:remotectrl:
+?S:	This variable holds true or false depending on whether they want to
+?S: use the remote control services in gtk-gnuella.
+?S:.
+?S:d_remotectrl:
+?S:	This symbol conditionally defines USE_REMOTE_CTRL.
+?S:.
+?C:USE_REMOTE_CTRL:
+?C: This symbol is defined when they want remote control support.
+?C:.
+?H:#$d_remotectrl USE_REMOTE_CTRL    /**/
+?H:.
+?Y:TOP
+: ask them whether they want remote control support
+$cat <<'EOM'
+
+I have an experimental remote control service.  It is not currently
+functional, but you may choose to enable it if you're brave enough.
+
+EOM
+case "$remotectrl" in
+true) dflt=y;;
+*) dflt=n;;
+esac
+rp="Enable experimental remote control service"
+. ./myread
+case "$ans" in
+y) remotectrl=true; d_remotectrl="$define";;
+*) remotectrl=false; d_remotectrl="$undef";;
+esac
+

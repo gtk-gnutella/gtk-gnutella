@@ -1,0 +1,58 @@
+?X:
+?X: Modified to show a summary of the configuration options
+?X:
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?X: 
+?X: This unit serves as the goal which forces make to choose all the units that
+?X: ask questions.  The $W on the ?MAKE: line is the list of all symbols wanted.
+?X: To force any unit to be included, copy this unit to your private U directory
+?X: and add the name of the unit desired to the ?MAKE: dependency line.
+?X: 
+?MAKE:End: $W cat gtkversion d_libxml2 libs d_iptos remotectrl \
+	d_deflate d_inflate i_zlib icu
+?MAKE:	-pick add $@ %<
+?LINT:use $W
+?T:frontend persistent zlib remote iptos unicode
+: end of configuration questions
+echo " "
+echo "End of configuration questions."
+frontend="GTK1"
+case "$gtkversion" in
+2) frontend="GTK2";;
+esac
+persistent=no
+case "$d_libxml2" in
+"$define") persistent=yes;;
+esac
+zlib=no
+case " $libs " in
+*" -lz "*)
+	case "$i_zlib$d_deflate$d_inflate" in
+	"$define$define$define") zlib=yes;;
+	esac
+	;;
+esac
+remote=no
+if $remotectrl; then remote=yes; fi
+unicode=no
+if $icu; then unicode=yes; fi
+iptos=no
+case "$d_iptos" in
+"$define") iptos=yes;;
+esac
+$cat >&4 <<EOM
+
+Feature Summary:
+-------------------------------------------------
+GUI front-end                      : $frontend
+Persistent filters                 : $persistent
+Experimental remote control        : $remote
+Gnutella traffic compression       : $zlib
+IP TOS (Type of Service)           : $iptos
+Extended non-roman charset support : $unicode
+-------------------------------------------------
+EOM
+
