@@ -72,7 +72,7 @@ void hostiles_retrieve(void)
 #endif
 	};
 
-	f = file_config_open_read(hostiles_what, fp, G_N_ELEMENTS(fp));
+	f = file_config_open_read_norename(hostiles_what, fp, G_N_ELEMENTS(fp));
 	if (!f)
 	   return;
 

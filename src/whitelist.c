@@ -57,7 +57,7 @@ static void whitelist_retrieve(void)
     int linenum = 0;
 	const file_path_t fp = { settings_config_dir(), whitelist_file };
 
-	f = file_config_open_read("whitelist", &fp, 1);
+	f = file_config_open_read_norename("whitelist", &fp, 1);
 	if (!f)
 		return; 
 
