@@ -53,5 +53,6 @@ void gtk_mass_widget_set_sensitive(GtkWidget *tl, gchar *list[], gboolean b);
 GSList *clist_collect_data(GtkCList *clist, gboolean allow_null, 
     GCompareFunc cfn);
 gdouble _gtk_spin_button_get_value(GtkSpinButton *);
+guint32 gtk_editable_get_value_as_uint(GtkEditable *editable);
 
 #endif	/* __gtk_missing_h__ */

@@ -1075,14 +1075,12 @@ void filter_gui_edit_size_rule(rule_t *r)
         soft   = RULE_IS_SOFT(r);
     }
 
-    gtk_spin_button_set_value(
-        GTK_SPIN_BUTTON
-            (lookup_widget(filter_dialog, "spinbutton_filter_size_min")), 
-        min);
-    gtk_spin_button_set_value(
-        GTK_SPIN_BUTTON
-            (lookup_widget(filter_dialog, "spinbutton_filter_size_max")),
-        max);
+    gtk_entry_printf(
+        GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_size_min")), 
+        "%u", min);
+    gtk_entry_printf(
+        GTK_ENTRY(lookup_widget(filter_dialog, "entry_filter_size_max")),
+        "%u", max);
     option_menu_select_item_by_data(
         lookup_widget(filter_dialog, "optionmenu_filter_size_target"),
         target);
@@ -1583,13 +1581,13 @@ static rule_t *filter_gui_get_size_rule()
     if (filter_dialog == NULL)
         return NULL;
 
-    lower = gtk_spin_button_get_value
-        (GTK_SPIN_BUTTON
-            (lookup_widget(filter_dialog, "spinbutton_filter_size_min")));
+    lower = gtk_editable_get_value_as_uint
+        (GTK_EDITABLE
+            (lookup_widget(filter_dialog, "entry_filter_size_min")));
 
-    upper = gtk_spin_button_get_value
-        (GTK_SPIN_BUTTON
-            (lookup_widget(filter_dialog, "spinbutton_filter_size_max")));
+    upper = gtk_editable_get_value_as_uint
+        (GTK_EDITABLE
+            (lookup_widget(filter_dialog, "entry_filter_size_max")));
 
 	negate = gtk_toggle_button_get_active(
         GTK_TOGGLE_BUTTON

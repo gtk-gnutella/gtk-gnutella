@@ -431,6 +431,7 @@ create_main_window (void)
   GtkWidget *spinbutton_config_min_dup_msg;
   GtkObject *spinbutton_config_min_dup_ratio_adj;
   GtkWidget *spinbutton_config_min_dup_ratio;
+  GtkWidget *checkbutton_prefer_compressed_gnet;
   GtkWidget *frame_expert_gnet_other;
   GtkWidget *table33;
   GtkWidget *label290;
@@ -4062,7 +4063,7 @@ create_main_window (void)
   gtk_widget_show (frame_expert_gnet_quality);
   gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_quality, FALSE, TRUE, 0);
 
-  table30 = gtk_table_new (2, 3, FALSE);
+  table30 = gtk_table_new (3, 3, FALSE);
   gtk_widget_set_name (table30, "table30");
   gtk_widget_ref (table30);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table30", table30,
@@ -4140,6 +4141,16 @@ create_main_window (void)
                     (GtkAttachOptions) (0),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_min_dup_ratio), TRUE);
+
+  checkbutton_prefer_compressed_gnet = gtk_check_button_new_with_label ("prefer compressed connections");
+  gtk_widget_set_name (checkbutton_prefer_compressed_gnet, "checkbutton_prefer_compressed_gnet");
+  gtk_widget_ref (checkbutton_prefer_compressed_gnet);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_prefer_compressed_gnet", checkbutton_prefer_compressed_gnet,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_prefer_compressed_gnet);
+  gtk_table_attach (GTK_TABLE (table30), checkbutton_prefer_compressed_gnet, 0, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   frame_expert_gnet_other = gtk_frame_new ("Other");
   gtk_widget_set_name (frame_expert_gnet_other, "frame_expert_gnet_other");
@@ -6776,12 +6787,10 @@ create_dlg_filters (void)
   GtkWidget *table24;
   GtkWidget *label192;
   GtkWidget *label193;
-  GtkObject *spinbutton_filter_size_min_adj;
-  GtkWidget *spinbutton_filter_size_min;
-  GtkObject *spinbutton_filter_size_max_adj;
-  GtkWidget *spinbutton_filter_size_max;
   GtkWidget *label194;
   GtkWidget *label195;
+  GtkWidget *entry_filter_size_min;
+  GtkWidget *entry_filter_size_max;
   GtkWidget *hbox108;
   GtkWidget *frame21;
   GtkWidget *optionmenu_filter_size_target;
@@ -7885,32 +7894,6 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label193), 0, 0.5);
 
-  spinbutton_filter_size_min_adj = gtk_adjustment_new (1, 0, 2e+09, 1, 1024, 1024);
-  spinbutton_filter_size_min = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_filter_size_min_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_filter_size_min, "spinbutton_filter_size_min");
-  gtk_widget_ref (spinbutton_filter_size_min);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "spinbutton_filter_size_min", spinbutton_filter_size_min,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_filter_size_min);
-  gtk_table_attach (GTK_TABLE (table24), spinbutton_filter_size_min, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_filter_size_min), TRUE);
-  gtk_spin_button_set_wrap (GTK_SPIN_BUTTON (spinbutton_filter_size_min), TRUE);
-
-  spinbutton_filter_size_max_adj = gtk_adjustment_new (1, 0, 2e+09, 1, 1024, 1024);
-  spinbutton_filter_size_max = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_filter_size_max_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_filter_size_max, "spinbutton_filter_size_max");
-  gtk_widget_ref (spinbutton_filter_size_max);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "spinbutton_filter_size_max", spinbutton_filter_size_max,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_filter_size_max);
-  gtk_table_attach (GTK_TABLE (table24), spinbutton_filter_size_max, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_filter_size_max), TRUE);
-  gtk_spin_button_set_wrap (GTK_SPIN_BUTTON (spinbutton_filter_size_max), TRUE);
-
   label194 = gtk_label_new ("bytes");
   gtk_widget_set_name (label194, "label194");
   gtk_widget_ref (label194);
@@ -7932,6 +7915,26 @@ create_dlg_filters (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label195), 0, 0.5);
+
+  entry_filter_size_min = gtk_entry_new ();
+  gtk_widget_set_name (entry_filter_size_min, "entry_filter_size_min");
+  gtk_widget_ref (entry_filter_size_min);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "entry_filter_size_min", entry_filter_size_min,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_filter_size_min);
+  gtk_table_attach (GTK_TABLE (table24), entry_filter_size_min, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  entry_filter_size_max = gtk_entry_new ();
+  gtk_widget_set_name (entry_filter_size_max, "entry_filter_size_max");
+  gtk_widget_ref (entry_filter_size_max);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "entry_filter_size_max", entry_filter_size_max,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_filter_size_max);
+  gtk_table_attach (GTK_TABLE (table24), entry_filter_size_max, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   hbox108 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox108, "hbox108");

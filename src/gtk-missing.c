@@ -315,3 +315,15 @@ gdouble _gtk_spin_button_get_value(GtkSpinButton *spinbutton)
     g_free(e);
     return result;
 }
+
+guint32 gtk_editable_get_value_as_uint(GtkEditable *editable)
+{
+    gchar *e;
+    guint32 result;
+
+    e = gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1);
+    g_strstrip(e);
+    result = strtol(e, NULL, 10);
+    g_free(e);
+    return result;
+}
