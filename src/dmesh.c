@@ -289,7 +289,7 @@ gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info)
 	guchar q;
 	gchar *file;
 
-	if (!http_url_parse(url, &ip, &port, &file))
+	if (!http_url_parse(url, &ip, &port, NULL, &file))
 		return FALSE;
 
 	/*
