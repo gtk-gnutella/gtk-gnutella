@@ -344,7 +344,7 @@ gm_sanitize_filename(const gchar *filename,
 	s = q;
 #endif /* Mac OS X */
 
-/* Maximum bytes in filename i.e., including NUL */	
+/* Maximum bytes in filename i.e., including NUL */
 #define	FILENAME_MAXBYTES 256
 
 	/* Make sure the filename isn't too long */
@@ -353,7 +353,7 @@ gm_sanitize_filename(const gchar *filename,
 		size_t ext_size = 0;
 
 		buf = g_malloc(FILENAME_MAXBYTES);
-		
+
 		/* Try to preserve the filename extension */
 		ext = strrchr(s, '.');
 		if (ext) {

@@ -415,13 +415,13 @@ FOR prop =][=
     if ([=(. current-prop)=].data.string.def) {
         *[=(. current-prop)=].data.string.value =
             g_strdup(eval_subst(*[=(. current-prop)=].data.string.def));
-    }[= 
+    }[=
     ESAC =][=
 ENDFOR prop=]
 
     [=(. prop-set)=]->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < [=(. prop-num)=]; n ++) {
-        g_hash_table_insert([=(. prop-set)=]->byName, 
+        g_hash_table_insert([=(. prop-set)=]->byName,
             [=(. prop-array)=][n].name, GINT_TO_POINTER(n+[=offset=]));
     }
 
@@ -477,7 +477,7 @@ void [=(. func-prefix)=]_add_prop_changed_listener(
  * [=(. func-prefix)=]_add_prop_changed_listener_full:
  *
  * Add a change listener to a given property. If init is TRUE then
- * the listener is immediately called. 
+ * the listener is immediately called.
  */
 void [=(. func-prefix)=]_add_prop_changed_listener_full(
     property_t prop, prop_changed_listener_t l, gboolean init,

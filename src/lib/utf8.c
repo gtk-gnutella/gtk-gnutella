@@ -2217,7 +2217,7 @@ strlcpy_utf8(gchar *dst, const gchar *src, size_t dst_size)
 
 			if ('\0' == *s)
 				return i;
-			
+
 			clen = utf8_is_valid_char(s);
 			clen = MAX(1, clen);
 			if (dst_size - i <= clen)
