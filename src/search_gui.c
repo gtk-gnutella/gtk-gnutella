@@ -1505,8 +1505,12 @@ void search_gui_remove_search(search_t * sch)
 	gtk_widget_set_sensitive(
         lookup_widget(main_window, "button_search_close"), searches != NULL);
 
-    sensitive = (searches != NULL) && 
-        GTK_CLIST(current_search->clist)->selection;
+    sensitive = searches != NULL;
+
+	if (current_search != NULL)
+		sensitive = sensitive &&
+			GTK_CLIST(current_search->clist)->selection;
+
     gtk_widget_set_sensitive
         (lookup_widget(main_window, "button_search_download"), sensitive);
 }
