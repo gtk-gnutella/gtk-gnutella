@@ -305,7 +305,7 @@ static struct pproxy *pproxy_create(struct gnutella_socket *s)
  *
  * Fills the GUID atom into `guid_atom' and the file index into `file_idx'.
  *
- * Returns TRUE if OK, FLASE if we could not figure it out, in which case
+ * Returns TRUE if OK, FALSE if we could not figure it out, in which case
  * we also return an error to the calling party.
  */
 static gboolean get_params(struct pproxy *pp, gchar *request,
@@ -367,6 +367,11 @@ static gboolean get_params(struct pproxy *pp, gchar *request,
 	 */
 
 	up = url_params_parse(uri);
+	if (!up) {
+		pproxy_error_remove(pp, 400,
+			"Malformed push-proxy request: Bad URL encoding");
+		goto error;
+	}
 	value = url_params_get(up, attr);
 
 	if (value == NULL) {
@@ -1134,5 +1139,4 @@ void cproxy_reparent(struct download *d, struct download *cd)
 	g_assert(cd == cd->cproxy->d);
 }
 
-/* vi: set ts=4: */
 /* vi: set ts=4: */
