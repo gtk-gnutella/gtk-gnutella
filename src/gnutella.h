@@ -33,9 +33,9 @@
 /* Constants -------------------------------------------------------------------------------------- */
 
 #define GTA_VERSION 0
-#define GTA_SUBVERSION 14
-#define GTA_REVISION "pre-alpha"
-#define GTA_RELEASE "13.09.2001"
+#define GTA_SUBVERSION 15
+#define GTA_REVISION "alpha"
+#define GTA_RELEASE "20.09.2001"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #define GTA_MSG_INIT					0x00

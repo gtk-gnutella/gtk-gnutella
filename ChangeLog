@@ -1,5 +1,7 @@
-# Since last release:
+# v 0.15   2001.09.20
 
+- No longer depends on having "glade" or "tcl" for building
+- Try to simultaneously connect to as many hosts as permitted by min settings
 - Can now stop and resume passive searches as well.
 - Only resort to host catchers when host catch is empty
 - Now uses 4 host catchers: router.limewire.com, connect[1..3].gnutellanet.com
