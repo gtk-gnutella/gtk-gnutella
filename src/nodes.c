@@ -65,6 +65,7 @@
 #include "clock.h"
 #include "hsep.h"
 #include "dq.h"
+#include "dh.h"
 
 #include "settings.h"
 #include "override.h"		/* Must be the last header included */
@@ -4454,6 +4455,7 @@ static void node_parse(struct gnutella_node *node)
 	size_t regular_size = (size_t) -1;		/* -1 signals: regular size */
 	struct route_dest dest;
 	query_hashvec_t *qhv = NULL;
+	gint results = 0;						/* # of results in query hits */
 
 	g_return_if_fail(node);
 	g_assert(NODE_IS_CONNECTED(node));
@@ -4746,7 +4748,7 @@ static void node_parse(struct gnutella_node *node)
              * search_results takes care of telling the stats that
              * the message was dropped.
              */
-			drop = search_results(n);
+			drop = search_results(n, &results);
 			break;
 		default:
 			message_dump(n);
@@ -4806,6 +4808,34 @@ static void node_parse(struct gnutella_node *node)
 			)
 				gmsg_sendto_route(n, &dest);
 			break;
+
+		case GTA_MSG_SEARCH_RESULTS:
+			/*
+			 * Special handling for query hits.
+			 *
+			 * We don't want to blindly forward hits to the node, because
+			 * for popular queries, the send queue could become clogged.
+			 * Therefore, we control how many hits we deliver per query
+			 * to be able to intelligently throttle common hits and let
+			 * the rarest hit room to be sent, instead of having the flow
+			 * control algorithm blindly choose.
+			 *
+			 *		--RAM, 2004-08-06
+			 */
+
+			g_assert(results > 0);		/* Or message would be dropped */
+
+			switch (dest.type) {
+			case ROUTE_NONE:
+				break;
+			case ROUTE_ONE:
+				dh_route(n, dest.ur.u_node, results);
+				break;
+			default:
+				g_error("invalid destination for query hit: %d", dest.type);
+			}
+			break;
+
 		default:
 			if (has_ggep)
 				gmsg_sendto_route_ggep(n, &dest, regular_size);
