@@ -950,6 +950,7 @@ void on_popup_downloads_connect_activate(GtkMenuItem * menuitem,
 	    return;
     }
 
+    gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
     node_add(NULL, d->ip, d->port);
 }
 
@@ -1191,6 +1192,7 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
 	    return;
     }
 
+    gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
     node_add(NULL, d->ip, d->port);
 }
  
