@@ -249,6 +249,9 @@ void upload_timer(time_t now)
 					sock_cork(u->socket, TRUE);
 					socket_tos_throughput(u->socket);
 				}
+
+				if (stalled > 0)		/* It un-stalled, it's not too bad */
+					stalled--;
 			}
 			u->flags &= ~UPLOAD_F_STALLED;
 		}
