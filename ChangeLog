@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.12.30 - RAM)
+ * Added ability to share bandwidth between HTTP and Gnet.
+ * New property "bw_allow_stealing" to control bandwidth sharing.
+ * New flag q/Q to indicate query routing table sending/sent.
+ * Send query routing table faster, as bandwidth permits.
+
 - (2002.12.30 - cbiere)
  * Fixed phys. RAM detection so it should work with Linux, Free/Net/OpenBSD
    and Solaris (settings.c)
