@@ -850,6 +850,7 @@ void file_info_retrieve(void)
 	gchar filename[1024];
 	struct stat buf;
 	GHashTable *seen_file = g_hash_table_new(g_str_hash, g_str_equal);
+	gboolean empty = TRUE;
 
 	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", config_dir, file_info_file);
 
@@ -932,6 +933,7 @@ void file_info_retrieve(void)
 
 			file_info_merge_adjacent(fi);
 			sl_file_info = g_slist_append(sl_file_info, fi);
+			empty = FALSE;
 
 		discard:
 			fi = NULL;
@@ -984,7 +986,8 @@ void file_info_retrieve(void)
 
 	if (fi) {
 		fi_free(fi);
-		g_warning("file info repository was truncated!");
+		if (!empty)
+			g_warning("file info repository was truncated!");
 	}
 
 	fclose(f);
