@@ -313,16 +313,6 @@ static gboolean atom_warn_free(gpointer key, gpointer value, gpointer udata)
 }
 
 /*
- * atoms_free_all
- *
- * Remove all atoms from table, warning about problems.
- */
-static void atoms_free_all(GHashTable *ht, gchar *type)
-{
-	g_hash_table_foreach_remove(ht, atom_warn_free, type);
-}
-
-/*
  * atoms_close
  *
  * Shutdown atom structures, freeing all remaining atoms.
@@ -334,7 +324,7 @@ void atoms_close(void)
 	for (i = 0; i < COUNT(atoms); i++) {
 		struct table_desc *td = &atoms[i];
 
-		atoms_free_all(td->table, td->type);
+		g_hash_table_foreach_remove(td->table, atom_warn_free, td->type);
 		g_hash_table_destroy(td->table);
 	}
 }
