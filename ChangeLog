@@ -1,5 +1,24 @@
 # since last version
 
+- (2002.11.04 RAM)
+ * Restored broken support for sendfile(): configure was no longer setting
+   the proper variables, leading to sendfile() being ruled out everywhere
+   even when present.
+ * Inclusion of sys/sendfile.h now protected by HAVE_SYS_SENDFILE_H.
+ * Prevent concurrent downloads from being stuck in the "Waiting for SHA1..."
+   when another one finishes: requeue them as they are suspended.
+ * Will now say "SHA1 figure OK" instead of "SHA1 check OK" when we correctly
+   computed the SHA1 but none was originally known for the file.
+ * Skip non-plain files when scanning the "tmp" directory for orphan files
+   [From Uros Bizjak].
+ * Persist settings of the "prefer compressed connections" toggle button
+   [From Christian Biere].
+ * Will now protect against "PUSH floods" by banning the relevant IPs.
+ * Avoid doing some work if we are going to use the sendfile() system call.
+ * Added temporary sanity checking around sendfile(), just in case it does
+   not behave as advertised.
+ * Freeze GUI list when clearing completed uploads [From Christian Biere].
+
 - (2002.11.03 RAM)
  * Refuse to start a "suspended" download, requeuing it as "Suspended".
  * Moved settings of the DL_F_SUSPENDED after download is allocated
