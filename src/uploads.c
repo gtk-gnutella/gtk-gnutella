@@ -51,6 +51,7 @@
 #include "dmesh.h"
 #include "atoms.h"
 #include "http.h"
+#include "cq.h"
 
 GSList *uploads = NULL;
 gint running_uploads = 0;
@@ -70,6 +71,8 @@ struct io_header {
 	gint flags;
 };
 
+#define IO_STATUS_LINE		0x00000002	/* First line is a status line */
+
 /*
  * This structure is used for HTTP status printing callbacks.
  */
@@ -80,7 +83,26 @@ struct upload_http_cb {
 	struct shared_file *sf;
 };
 
-#define IO_STATUS_LINE		0x00000002	/* First line is a status line */
+/*
+ * This structure is the key used in the mesh_info hash table to record
+ * when we last sent mesh information to some IP about a given file
+ * (identified by its SHA1).
+ */
+struct mesh_info_key {
+	guint32 ip;						/* Remote host IP address */
+	guchar *sha1;					/* SHA1 atom */
+};
+
+struct mesh_info_val {
+	guint32 stamp;					/* When we last sent the mesh */
+	gpointer cq_ev;					/* Scheduled cleanup callout event */
+};
+
+#define MESH_INFO_TIMEOUT	600		/* Keep info 10 minutes */
+
+extern cqueue_t *callout_queue;
+
+static GHashTable *mesh_info = NULL;
 
 static void upload_request(struct upload *u, header_t *header);
 static void upload_error_remove(struct upload *u, struct shared_file *sf,
@@ -596,6 +618,147 @@ static void upload_error_remove_ext(
 	va_end(args);
 }
 
+/***
+ *** Upload mesh info tracking.
+ ***/
+
+static struct mesh_info_key *mi_key_make(guint32 ip, guchar *sha1)
+{
+	struct mesh_info_key *mik;
+
+	mik = g_malloc(sizeof(*mik));
+	mik->ip = ip;
+	mik->sha1 = atom_sha1_get(sha1);
+
+	return mik;
+}
+
+static void mi_key_free(struct mesh_info_key *mik)
+{
+	g_assert(mik);
+
+	atom_sha1_free(mik->sha1);
+	g_free(mik);
+}
+
+static guint mi_key_hash(gconstpointer key)
+{
+	struct mesh_info_key *mik = (struct mesh_info_key *) key;
+	extern guint sha1_hash(gconstpointer key);
+
+	return sha1_hash((gconstpointer) mik->sha1) ^ mik->ip;
+}
+
+static gint mi_key_eq(gconstpointer a, gconstpointer b)
+{
+	struct mesh_info_key *mika = (struct mesh_info_key *) a;
+	struct mesh_info_key *mikb = (struct mesh_info_key *) b;
+	extern gint sha1_eq(gconstpointer a, gconstpointer b);
+
+	return mika->ip == mikb->ip &&
+		sha1_eq((gconstpointer) mika->sha1, (gconstpointer) mikb->sha1);
+}
+
+static struct mesh_info_val *mi_val_make(guint32 stamp)
+{
+	struct mesh_info_val *miv;
+
+	miv = g_malloc(sizeof(*miv));
+	miv->stamp = stamp;
+	miv->cq_ev = NULL;
+
+	return miv;
+}
+
+static void mi_val_free(struct mesh_info_val *miv)
+{
+	g_assert(miv);
+
+	if (miv->cq_ev)
+		cq_cancel(callout_queue, miv->cq_ev);
+
+	g_free(miv);
+}
+
+/*
+ * mi_free_kv
+ *
+ * Hash table iterator callback.
+ */
+static void mi_free_kv(gpointer key, gpointer value, gpointer udata)
+{
+	mi_key_free((struct mesh_info_key *) key);
+	mi_val_free((struct mesh_info_val *) value);
+}
+
+/*
+ * mi_clean
+ *
+ * Callout queue callback invoked to clear the entry.
+ */
+static void mi_clean(cqueue_t *cq, gpointer obj)
+{
+	struct mesh_info_key *mik = (struct mesh_info_key *) obj;
+	gpointer key;
+	gpointer value;
+	gboolean found;
+	
+	found = g_hash_table_lookup_extended(mesh_info, mik, &key, &value);
+
+	g_assert(found);
+	g_assert(obj == key);
+
+	g_hash_table_remove(mesh_info, mik);
+	mi_free_kv(key, value, NULL);
+}
+
+/*
+ * mi_get_stamp
+ *
+ * Get timestamp at which we last sent download mesh information for (IP,SHA1).
+ * If we don't remember sending it, return 0.
+ * Always records `now' as the time we sent mesh information.
+ */
+static guint32 mi_get_stamp(guint32 ip, guchar *sha1, time_t now)
+{
+	struct mesh_info_key mikey;
+	struct mesh_info_val *miv;
+	struct mesh_info_key *mik;
+
+	mikey.ip = ip;
+	mikey.sha1 = sha1;
+	
+	miv = g_hash_table_lookup(mesh_info, &mikey);
+
+	/*
+	 * If we have an entry, reschedule the cleanup in MESH_INFO_TIMEOUT.
+	 * Then return the timestamp.
+	 */
+
+	if (miv) {
+		guint32 oldstamp;
+
+		g_assert(miv->cq_ev);
+		cq_resched(callout_queue, miv->cq_ev, MESH_INFO_TIMEOUT);
+
+		oldstamp = miv->stamp;
+		miv->stamp = (guint32) now;
+
+		return oldstamp;
+	}
+
+	/*
+	 * Create new entry.
+	 */
+
+	mik = mi_key_make(ip, sha1);
+	miv = mi_val_make((guint32) now);
+	miv->cq_ev = cq_insert(callout_queue, MESH_INFO_TIMEOUT, mi_clean, mik);
+
+	g_hash_table_insert(mesh_info, mik, miv);
+
+	return 0;			/* Don't remember sending info about this file */
+}
 
 /***
  *** Header parsing callbacks
@@ -1082,7 +1245,7 @@ static struct shared_file *get_file_to_upload_from_index(
 		 *		--RAM, 19/06/2002
 		 */
 
-		huge_alternate_location(digest, header);
+		huge_collect_locations(digest, header);
 
 		/*
 		 * They can share serveral clones of the same files, i.e. bearing
@@ -1224,7 +1387,7 @@ static struct shared_file *get_file_to_upload_from_urn(
 	if (!huge_http_sha1_extract32(hash, digest))
 		return NULL;
 
-	huge_alternate_location(digest, header);
+	huge_collect_locations(digest, header);
 
 	return shared_file_by_sha1(digest);
 }
@@ -1284,13 +1447,13 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
 			sha1_base32(a->sf->sha1_digest));
 
-	// XXX send download mesh only if no change
-	// XXX Keep hash {IP,sha1} -> stamp, expiring after 2 hours (say).
-	// XXX (IP may be dynamic)
+	if (rw < length) {
+		time_t now = time(NULL);
+		guint32 last_sent = mi_get_stamp(a->u->ip, a->sf->sha1_digest, now);
 
-	if (rw < length)
 		rw += dmesh_alternate_location(a->sf->sha1_digest,
-			&buf[rw], length - rw, a->u->ip, 0);
+			&buf[rw], length - rw, a->u->ip, last_sent);
+	}
 
 	*retval = rw;
 }
@@ -1841,6 +2004,16 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 	}
 }
 
+/*
+ * upload_init
+ *
+ * Initialize uploads.
+ */
+void upload_init(void)
+{
+	mesh_info = g_hash_table_new(mi_key_hash, mi_key_eq);
+}
+
 void upload_close(void)
 {
 	GSList *l;
@@ -1854,6 +2027,10 @@ void upload_close(void)
 	}
 
 	g_slist_free(uploads);
+
+	g_hash_table_foreach(mesh_info, mi_free_kv, NULL);
+	g_hash_table_destroy(mesh_info);
+
 }
 
 
