@@ -44,6 +44,7 @@
 #include "qrp.h"
 #include "base32.h"
 #include "atoms.h"
+#include "extensions.h"
 
 static guchar iso_8859_1[96] = {
 	' ', 			/* 160 - NO-BREAK SPACE */
@@ -494,6 +495,7 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 	GSList *directories = NULL;
 	gchar *dir_slash = NULL;
 	GSList *l;
+	gint i;
 
 	struct shared_file *found = NULL;
 	struct stat file_stat;
@@ -525,7 +527,7 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 			directories = g_slist_prepend(directories, full);
 	}
 
-	for (l = files; l; l = l->next) {
+	for (i = 0, l = files; l; i++, l = l->next) {
 		gchar *name;
 		gint name_len;
 
@@ -577,7 +579,7 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 		}
 		g_free(full);
 
-		if (!(files_scanned & 0x3f)) {
+		if (!(i & 0x3f)) {
 			gui_update_files_scanned();		/* Interim view */
 			gtk_main_flush();
 		}
@@ -798,98 +800,6 @@ static gboolean got_match(struct shared_file *sf)
 	return TRUE;		/* Hit entry accepted */
 }
 
-#define FS (0x1c) /* Field separator (used to separate query extensions) */
-
-/* A structure describing the extensions found in the query */
-
-struct query_extensions {
-	int unknown;       /* Number of unknown extensions   */
-	const gchar *urn;  /* Query by urn, only one for now */
-};
-
-/*
- * initialize_query_extension
- * 
- * Initialize a struct query_extension
- */
-static void initialize_query_extension(struct query_extensions *e)
-{
-	e->unknown = 0;
-	e->urn = NULL; 
-}
-
-/*
- * extension_embeds_binary
- * 
- * Return TRUE if string extension of length extension_length embeds a
- * non-printable char, FALSE otherwise
- */
-static gboolean extension_embeds_binary(
-	const unsigned char *extension, int extension_length)
-{
-	for(; extension_length; extension_length--, extension++)
-		if (!isprint(*extension)) return TRUE;
-	return FALSE;
-}
-
-/* 
- * check_query_extension
- * 
- * Take the extension extension of length extension_length, and update the
- * struct query_extensions with recognized extensions.
- */
-static void check_query_extension(
-	const char *extension, int extension_length, struct query_extensions *qe)
-{
-	if (extension_length == 9 + SHA1_BASE32_SIZE
-		&& 0 == strncmp(extension, "urn:sha1:", 9)) {
-
-		qe->urn = extension + 9;
-		if (dbg > 4) {
-			fprintf(stdout, "\tQuery by URN\t");
-			fwrite(extension, extension_length, 1, stdout);
-			fprintf(stdout, "\n");
-		}
-
-	} else if (extension_length == 4 && !strncmp(extension, "urn:", 4)) {
-		; /* We always send URN, whether we saw this or not */
-	} else {
-		qe->unknown++;
-		if (dbg > 4) {
-			if (!extension_embeds_binary(extension, extension_length)) {
-				fprintf(stdout, "<%d:", extension_length);
-				fwrite(extension, extension_length, 1, stdout);
-				fprintf(stdout, ">\n");
-			} else 
-				dump_hex(stdout, "Binary extension",
-					(char *)extension, extension_length);
-		}
-	}
-}
-
-/* 
- * scan_query_extensions
- * 
- * Scan extensions one by one (they're pointed to by extra and NUL-terminated)
- * and update the struct query_extensions with recognized extensions.
- */
-
-static void scan_query_extensions(
-	const char *extra,
-	struct query_extensions *extension)
-{
-	for(;;) {
-		const char *last_ext = extra;
-		while(*extra && *extra != FS) extra++;
-		check_query_extension(last_ext, extra - last_ext, extension);
-		if (!*extra)
-			break;
-		extra++;
-	}
-
-	return;
-}
-
 /*
  * Searches requests (from others nodes) 
  * Basic matching. The search request is made lowercase and
@@ -907,10 +817,13 @@ gboolean search_request(struct gnutella_node *n)
 	struct gnutella_search_results_out *search_head;
 	guint32 search_len;
 	gchar trailer[10];
-	struct query_extensions query_extension;
 	guint32 max_replies;
 	gint urn_match = 0;
 	gboolean skip_file_search = FALSE;
+	extvec_t exv[MAX_EXTVEC];
+	gint exvcnt = 0;
+	guchar *sha1_query = NULL;
+	gchar sha1_digest[SHA1_RAW_SIZE];
 
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
@@ -949,35 +862,69 @@ gboolean search_request(struct gnutella_node *n)
 	}
 
 	/*
-	 * We don't handle extra search data yet, but trace them.
-	 *
-	 * We ignore double-NULs on search (i.e. one extra byte and it's NUL).
-	 * This is not needed, but some servent do so.
+	 * If there are extra data after the first NUL, fill the extension vector.
 	 */
-
-	initialize_query_extension(&query_extension);
 
 	if (search_len + 3 != n->size) {
 		gint extra = n->size - 3 - search_len;		/* Amount of extra data */
-		if (extra != 1 && search[search_len+1] != '\0') {
-			/* Not a double NUL */
-			scan_query_extensions(search + search_len + 1, &query_extension);
+		gint i;
 
-			if (query_extension.unknown) {
-				if (dbg)
-					g_warning("query (hops=%d, ttl=%d) "
-						"has %d extra byte%s after NUL",
-						n->header.hops, n->header.ttl, extra,
-						extra == 1 ? "" : "s");
-				if (dbg > 4) {
-					printf("Search was: %s\n", search);
-					dump_hex(stdout, "Extra Query Data", &search[search_len+1],
-						MIN(extra, 256));
+		exvcnt = ext_parse(search + search_len + 1, extra, exv, MAX_EXTVEC);
+
+		if (exvcnt == MAX_EXTVEC)
+			g_warning(
+				"query (hops=%d, ttl=%d) %d byte%s has %d extensions!",
+				n->header.hops, n->header.ttl, n->size - 2,
+				n->size == 3 ? "" : "s", exvcnt);
+
+		if (dbg > 4) {
+			printf("Query with extensions: %s\n", search);
+			ext_dump(stdout, exv, exvcnt, "> ", "\n", dbg > 7);
+		}
+
+		/*
+		 * If there is a SHA1 URN, validate it and extract the binary digest
+		 * into sha1_digest[], and set `sha1_query' to the base32 value.
+		 */
+
+		for (i = 0; i < exvcnt; i++) {
+			extvec_t *e = &exv[i];
+
+			if (e->ext_token == EXT_T_URN_SHA1) {
+				if (e->ext_paylen == 0)
+					continue;				/* A simple "urn:sha1:" */
+
+				if (sha1_query) {
+					if (dbg) g_warning(
+						"query (hops=%d, ttl=%d) %d byte%s has multiple SHA1",
+						n->header.hops, n->header.ttl, n->size - 2,
+						n->size == 3 ? "" : "s");
+					return TRUE;			/* Drop message! */
 				}
-			}
 
-			if (dbg > 3 && query_extension.urn && !query_extension.unknown)
-				printf("URN search was: %s\n", search);
+				if (e->ext_paylen != SHA1_BASE32_SIZE) {
+					if (dbg) g_warning(
+						"query (hops=%d, ttl=%d) %d byte%s: bad SHA1 (len=%d)",
+						n->header.hops, n->header.ttl, n->size - 2,
+						n->size == 3 ? "" : "s", e->ext_paylen);
+					return TRUE;			/* Drop message! */
+				}
+
+				sha1_query = e->ext_payload;
+				if (
+					!base32_decode_into(e->ext_payload, SHA1_BASE32_SIZE,
+						sha1_digest, sizeof(sha1_digest))
+				) {
+					if (dbg) g_warning(
+						"query (hops=%d, ttl=%d) %d byte%s: bad SHA1: %32s",
+						n->header.hops, n->header.ttl, n->size - 2,
+						n->size == 3 ? "" : "s", e->ext_payload);
+					return TRUE;			/* Drop message! */
+				}
+
+				if (dbg > 4)
+					printf("Valid SHA1 in query: %32s\n", e->ext_payload);
+			}
 		}
 	}
 
@@ -1046,7 +993,7 @@ gboolean search_request(struct gnutella_node *n)
 	)
 		skip_file_search = TRUE;
 
-	if (!query_extension.urn && skip_file_search)
+	if (!sha1_query && skip_file_search)
 		return TRUE;					/* Drop this search message */
 
 	/*
@@ -1058,15 +1005,11 @@ gboolean search_request(struct gnutella_node *n)
 
 	max_replies = (search_max_items == -1) ? 255 : search_max_items;
 
-	if (query_extension.urn) {
-		struct shared_file *sf =
-			shared_file_by_sha1_base32(query_extension.urn);
+	if (sha1_query) {
+		struct shared_file *sf = shared_file_by_sha1(sha1_digest);
 
 		if (sf) {
 			got_match(sf);
-			if (dbg)
-				printf("********* YYYYEEEESSSS !!!! AN URN MATCH !!!! (%s)\n",
-					query_extension.urn);
 			max_replies--;
 			urn_match++;
 		}
@@ -1109,8 +1052,8 @@ gboolean search_request(struct gnutella_node *n)
 		if (dbg > 3) {
 			printf("Share HIT %u files '%s'%s ", (gint) found_files, search,
 				skip_file_search ? " (skipped)" : "");
-			if (query_extension.urn)
-				printf("%c(%s) ", urn_match ? '+' : '-', query_extension.urn);
+			if (sha1_query)
+				printf("%c(%32s) ", urn_match ? '+' : '-', sha1_query);
 			printf("req_speed=%u ttl=%u hops=%u\n",
 				   req_speed, (gint) n->header.ttl, (gint) n->header.hops);
 			fflush(stdout);
@@ -1279,8 +1222,10 @@ struct shared_file *shared_file_by_sha1_base32(const gchar *sha1_digest)
 	if (
 		!base32_decode_into(sha1_digest, SHA1_BASE32_SIZE,
 			digest, sizeof(digest))
-	)
+	) {
+		g_warning("got invalid base32 SHA1: %.32s", sha1_digest);
 		return NULL;
+	}
 
 	return shared_file_by_sha1(digest);
 }
