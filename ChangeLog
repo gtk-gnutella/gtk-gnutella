@@ -1,5 +1,9 @@
 # since last version
 
+- (2004.04.15 - Richard)
+ * [Gtk1] Changed layout of fileinfo pane to integrate progress indicator
+ * Made progess indicator use the complete drawing area.
+
 - (2004.04.15 - Jeroen)
  * Added cache.kicks-ass.net:8000 to the webcaches
  * Check for new version now only checks for newer releases of the current

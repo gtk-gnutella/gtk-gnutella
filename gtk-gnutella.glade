@@ -4211,7 +4211,7 @@
 		    <class>GtkVBox</class>
 		    <name>vbox111</name>
 		    <homogeneous>False</homogeneous>
-		    <spacing>0</spacing>
+		    <spacing>2</spacing>
 		    <child>
 		      <shrink>True</shrink>
 		      <resize>False</resize>
@@ -4408,7 +4408,7 @@
 			<class>GtkTable</class>
 			<name>table59</name>
 			<border_width>2</border_width>
-			<rows>2</rows>
+			<rows>3</rows>
 			<columns>2</columns>
 			<homogeneous>False</homogeneous>
 			<row_spacing>2</row_spacing>
@@ -4536,6 +4536,87 @@
 			    <ypad>0</ypad>
 			  </widget>
 			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label658</name>
+			  <label>Progress:</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <left_attach>0</left_attach>
+			    <right_attach>1</right_attach>
+			    <top_attach>2</top_attach>
+			    <bottom_attach>3</bottom_attach>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <xexpand>False</xexpand>
+			    <yexpand>False</yexpand>
+			    <xshrink>False</xshrink>
+			    <yshrink>False</yshrink>
+			    <xfill>True</xfill>
+			    <yfill>False</yfill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkFrame</class>
+			  <name>frame122</name>
+			  <label_xalign>0</label_xalign>
+			  <shadow_type>GTK_SHADOW_IN</shadow_type>
+			  <child>
+			    <left_attach>1</left_attach>
+			    <right_attach>2</right_attach>
+			    <top_attach>2</top_attach>
+			    <bottom_attach>3</bottom_attach>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <xexpand>False</xexpand>
+			    <yexpand>False</yexpand>
+			    <xshrink>False</xshrink>
+			    <yshrink>False</yshrink>
+			    <xfill>True</xfill>
+			    <yfill>True</yfill>
+			  </child>
+
+			  <widget>
+			    <class>GtkHBox</class>
+			    <name>hbox198</name>
+			    <homogeneous>False</homogeneous>
+			    <spacing>0</spacing>
+
+			    <widget>
+			      <class>GtkDrawingArea</class>
+			      <name>drawingarea_fi_progress</name>
+			      <height>16</height>
+			      <tooltip>Shows which parts are already downloaded. The colors are: green - downloaded   yellow - downloading   red - not available</tooltip>
+			      <signal>
+				<name>realize</name>
+				<handler>on_drawingarea_fi_progress_realize</handler>
+				<last_modification_time>Sat, 10 Apr 2004 15:41:00 GMT</last_modification_time>
+			      </signal>
+			      <signal>
+				<name>configure_event</name>
+				<handler>on_drawingarea_fi_progress_configure_event</handler>
+				<last_modification_time>Sun, 11 Apr 2004 07:41:16 GMT</last_modification_time>
+			      </signal>
+			      <signal>
+				<name>expose_event</name>
+				<handler>on_drawingarea_fi_progress_expose_event</handler>
+				<last_modification_time>Sun, 11 Apr 2004 08:04:56 GMT</last_modification_time>
+			      </signal>
+			      <child>
+				<padding>0</padding>
+				<expand>True</expand>
+				<fill>True</fill>
+			      </child>
+			    </widget>
+			  </widget>
+			</widget>
 		      </widget>
 
 		      <widget>
@@ -4581,41 +4662,6 @@
 			      <ypad>0</ypad>
 			    </widget>
 			  </widget>
-			</widget>
-		      </widget>
-
-		      <widget>
-			<class>GtkFrame</class>
-			<name>frame121</name>
-			<label>Download progress</label>
-			<label_xalign>0</label_xalign>
-			<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>True</fill>
-			</child>
-
-			<widget>
-			  <class>GtkDrawingArea</class>
-			  <name>drawingarea_fi_progress</name>
-			  <height>14</height>
-			  <tooltip>This bar shows the progress on downloading the file. Green parts have already been downloaded, with the bright green parts during this session. White parts are currently being downloaded.</tooltip>
-			  <signal>
-			    <name>realize</name>
-			    <handler>on_drawingarea_fi_progress_realize</handler>
-			    <last_modification_time>Sat, 10 Apr 2004 15:41:00 GMT</last_modification_time>
-			  </signal>
-			  <signal>
-			    <name>configure_event</name>
-			    <handler>on_drawingarea_fi_progress_configure_event</handler>
-			    <last_modification_time>Sun, 11 Apr 2004 07:41:16 GMT</last_modification_time>
-			  </signal>
-			  <signal>
-			    <name>expose_event</name>
-			    <handler>on_drawingarea_fi_progress_expose_event</handler>
-			    <last_modification_time>Sun, 11 Apr 2004 08:04:56 GMT</last_modification_time>
-			  </signal>
 			</widget>
 		      </widget>
 		    </widget>
@@ -22316,7 +22362,7 @@ for all filters</label>
     <last_modification_time>Thu, 06 Mar 2003 19:15:52 GMT</last_modification_time>
   </signal>
   <title>gtk-gnutella shutdown</title>
-  <type>GTK_WINDOW_TOPLEVEL</type>
+  <type>GTK_WINDOW_DIALOG</type>
   <position>GTK_WIN_POS_CENTER</position>
   <modal>False</modal>
   <allow_shrink>False</allow_shrink>
@@ -22386,7 +22432,7 @@ Grace time remaining:</label>
     <last_modification_time>Sun, 23 Jun 2002 12:24:09 GMT</last_modification_time>
   </signal>
   <title>About gtk-gnutella</title>
-  <type>GTK_WINDOW_TOPLEVEL</type>
+  <type>GTK_WINDOW_DIALOG</type>
   <position>GTK_WIN_POS_CENTER</position>
   <modal>False</modal>
   <allow_shrink>False</allow_shrink>

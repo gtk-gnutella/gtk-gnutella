@@ -719,9 +719,9 @@ void src_remove_listener(src_listener_t, gnet_src_ev_t);
  * These used to be in fileinfo.h, but we need them now at several places.
  */
 enum dl_chunk_status {
-        DL_CHUNK_EMPTY = 0,
-        DL_CHUNK_BUSY = 1,
-        DL_CHUNK_DONE = 2
+    DL_CHUNK_EMPTY = 0,
+    DL_CHUNK_BUSY  = 1,
+    DL_CHUNK_DONE  = 2
 };
 
 

@@ -327,12 +327,14 @@ create_main_window (void)
   GtkWidget *label_fi_filename;
   GtkWidget *frame119;
   GtkWidget *label_fi_size;
+  GtkWidget *label658;
+  GtkWidget *frame122;
+  GtkWidget *hbox198;
+  GtkWidget *drawingarea_fi_progress;
   GtkWidget *frame79;
   GtkWidget *scrolledwindow44;
   GtkWidget *clist_fi_aliases;
   GtkWidget *label526;
-  GtkWidget *frame121;
-  GtkWidget *drawingarea_fi_progress;
   GtkWidget *hbox197a;
   GtkWidget *button_fi_purge;
   GtkWidget *viewport43;
@@ -3651,7 +3653,7 @@ create_main_window (void)
   gtk_paned_set_gutter_size (GTK_PANED (vpaned_fileinfo), 10);
   gtk_paned_set_position (GTK_PANED (vpaned_fileinfo), 305);
 
-  vbox111 = gtk_vbox_new (FALSE, 0);
+  vbox111 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox111, "vbox111");
   gtk_widget_ref (vbox111);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox111", vbox111,
@@ -3773,7 +3775,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame78), vbox110);
   gtk_container_set_border_width (GTK_CONTAINER (vbox110), 2);
 
-  table59 = gtk_table_new (2, 2, FALSE);
+  table59 = gtk_table_new (3, 2, FALSE);
   gtk_widget_set_name (table59, "table59");
   gtk_widget_ref (table59);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table59", table59,
@@ -3846,6 +3848,46 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame119), label_fi_size);
   gtk_misc_set_alignment (GTK_MISC (label_fi_size), 0, 0.5);
 
+  label658 = gtk_label_new (_("Progress:"));
+  gtk_widget_set_name (label658, "label658");
+  gtk_widget_ref (label658);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label658", label658,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label658);
+  gtk_table_attach (GTK_TABLE (table59), label658, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label658), 0, 0.5);
+
+  frame122 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame122, "frame122");
+  gtk_widget_ref (frame122);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame122", frame122,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame122);
+  gtk_table_attach (GTK_TABLE (table59), frame122, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL), 0, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame122), GTK_SHADOW_IN);
+
+  hbox198 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox198, "hbox198");
+  gtk_widget_ref (hbox198);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox198", hbox198,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox198);
+  gtk_container_add (GTK_CONTAINER (frame122), hbox198);
+
+  drawingarea_fi_progress = gtk_drawing_area_new ();
+  gtk_widget_set_name (drawingarea_fi_progress, "drawingarea_fi_progress");
+  gtk_widget_ref (drawingarea_fi_progress);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "drawingarea_fi_progress", drawingarea_fi_progress,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (drawingarea_fi_progress);
+  gtk_box_pack_start (GTK_BOX (hbox198), drawingarea_fi_progress, TRUE, TRUE, 0);
+  gtk_widget_set_usize (drawingarea_fi_progress, -2, 16);
+  gtk_tooltips_set_tip (tooltips, drawingarea_fi_progress, _("Shows which parts are already downloaded. The colors are: green - downloaded   yellow - downloading   red - not available"), NULL);
+
   frame79 = gtk_frame_new (_("Alternate filenames"));
   gtk_widget_set_name (frame79, "frame79");
   gtk_widget_ref (frame79);
@@ -3881,24 +3923,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label526);
   gtk_clist_set_column_widget (GTK_CLIST (clist_fi_aliases), 0, label526);
-
-  frame121 = gtk_frame_new (_("Download progress"));
-  gtk_widget_set_name (frame121, "frame121");
-  gtk_widget_ref (frame121);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame121", frame121,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame121);
-  gtk_box_pack_start (GTK_BOX (vbox110), frame121, FALSE, TRUE, 0);
-
-  drawingarea_fi_progress = gtk_drawing_area_new ();
-  gtk_widget_set_name (drawingarea_fi_progress, "drawingarea_fi_progress");
-  gtk_widget_ref (drawingarea_fi_progress);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "drawingarea_fi_progress", drawingarea_fi_progress,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (drawingarea_fi_progress);
-  gtk_container_add (GTK_CONTAINER (frame121), drawingarea_fi_progress);
-  gtk_widget_set_usize (drawingarea_fi_progress, -2, 14);
-  gtk_tooltips_set_tip (tooltips, drawingarea_fi_progress, _("This bar shows the progress on downloading the file. Green parts have already been downloaded, with the bright green parts during this session. White parts are currently being downloaded."), NULL);
 
   hbox197a = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox197a, "hbox197a");
@@ -14688,7 +14712,7 @@ create_shutdown_window (void)
   GtkWidget *label184;
   GtkWidget *label_shutdown_count;
 
-  shutdown_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  shutdown_window = gtk_window_new (GTK_WINDOW_DIALOG);
   gtk_widget_set_name (shutdown_window, "shutdown_window");
   gtk_object_set_data (GTK_OBJECT (shutdown_window), "shutdown_window", shutdown_window);
   gtk_window_set_title (GTK_WINDOW (shutdown_window), _("gtk-gnutella shutdown"));
@@ -14770,7 +14794,7 @@ create_dlg_about (void)
   GtkWidget *hseparator9;
   GtkWidget *button_about_close;
 
-  dlg_about = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  dlg_about = gtk_window_new (GTK_WINDOW_DIALOG);
   gtk_widget_set_name (dlg_about, "dlg_about");
   gtk_object_set_data (GTK_OBJECT (dlg_about), "dlg_about", dlg_about);
   gtk_window_set_title (GTK_WINDOW (dlg_about), _("About gtk-gnutella"));

@@ -55,6 +55,7 @@ typedef struct vp_context {
     int offset_hor; 
     int offset_ver;
     int width;
+    int height;
     gnet_fi_t fih;
 } vp_context_t;
 
@@ -109,14 +110,14 @@ void vp_draw_chunk (gpointer data, gpointer user_data)
     }
 
     g_assert( v->context->width );
-    bpp = v->file_size / (v->context->width - 20);
+    bpp = v->file_size / (v->context->width);
     s_from = chunk->from / bpp; 
     s_to = chunk->to / bpp; 
     
     /* horizontal offset was 10 */
     gdk_draw_rectangle(v->context->drawable, v->context->gc, TRUE, 
         s_from + v->context->offset_hor, v->context->offset_ver, 
-		s_to - s_from, 10);
+		s_to - s_from, v->context->height);
 }
 
 void vp_draw_fi (gpointer key, gpointer value, gpointer user_data)
@@ -183,8 +184,8 @@ on_drawingarea_fi_progress_realize     (GtkWidget       *widget,
     g_assert( fi_context.drawable );
     fi_context.gc = gdk_gc_new(fi_context.drawable);
     g_assert( fi_context.gc );
-    fi_context.offset_hor = 2;
-    fi_context.offset_ver = 2;
+    fi_context.offset_hor = 0;
+    fi_context.offset_ver = 0;
 }
 
 gboolean
@@ -194,6 +195,7 @@ on_drawingarea_fi_progress_configure_event
                                         gpointer         user_data)
 {
     fi_context.width = event->width;
+    fi_context.height = event->height;
 
     return FALSE;
 }
@@ -283,7 +285,7 @@ on_visual_progress_expose_event        (GtkWidget       *widget,
      */
     gdk_gc_set_foreground(vp_context->gc, &black);
     gdk_draw_string(vp_context->drawable, vp_font, vp_context->gc, 10, 15, 
-        "Legend: dark green=done    bright green=done recently   white=active   grey=empty");
+        "Legend: dark green=done    bright green=done recently   yellow=active   red=empty");
 
     g_hash_table_foreach(vp_info_hash, &vp_draw_fi, NULL);
 
@@ -457,13 +459,13 @@ void vp_gui_init(void)
      */
     cmap = gdk_colormap_get_system();
     g_assert( cmap );
-    g_assert(gdk_color_parse("#00CC00", &done_old));
+    g_assert(gdk_color_parse("#00EE00", &done_old));
     g_assert(gdk_colormap_alloc_color(cmap, &done_old, FALSE, TRUE));
     g_assert(gdk_color_parse("#00FF00", &done));
     g_assert(gdk_colormap_alloc_color(cmap, &done, FALSE, TRUE));
-    g_assert(gdk_color_parse("white", &busy));
+    g_assert(gdk_color_parse("#FFFF00", &busy));
     g_assert(gdk_colormap_alloc_color(cmap, &busy, FALSE, TRUE));
-    g_assert(gdk_color_parse("#AAAAAA", &empty));
+    g_assert(gdk_color_parse("#FF0000", &empty));
     g_assert(gdk_colormap_alloc_color(cmap, &empty, FALSE, TRUE));
     g_assert(gdk_color_parse("black", &black));
     g_assert(gdk_colormap_alloc_color(cmap, &black, FALSE, TRUE));
