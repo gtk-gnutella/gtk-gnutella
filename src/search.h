@@ -106,6 +106,7 @@ struct search {
 	GtkWidget *clist;			/* GtkCList for this search */
 	GtkWidget *scrolled_window; /* GtkScrolledWindow containing the GtkCList */
 	GtkWidget *list_item;		/* The GtkListItem in combo for this search */
+    GtkWidget *arrow;           /* The arrow displaying sort order  */
 	gchar *query;				/* The search query */
 	guint16 speed;				/* Minimum speed for the results of query */
 	time_t time;				/* Time when this search was started */

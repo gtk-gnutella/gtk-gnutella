@@ -1623,6 +1623,8 @@ void gui_update_upload(struct upload *u)
 void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist)
 {
 	GtkWidget *label;
+    GtkWidget *hbox;
+
 	gint i;
 
 	*sw = gtk_scrolled_window_new(NULL, NULL);
@@ -1642,20 +1644,36 @@ void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist)
 	gtk_clist_column_titles_show(GTK_CLIST(*clist));
 
 	label = gtk_label_new("File");
-	gtk_clist_set_column_widget(GTK_CLIST(*clist), 0, label);
+    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_filename, hbox);
+    gtk_widget_show_all(hbox);
 
 	label = gtk_label_new("Size");
-	gtk_clist_set_column_widget(GTK_CLIST(*clist), 1, label);
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_size, hbox);
+    gtk_widget_show_all(hbox);
 
 	label = gtk_label_new("Speed");
-	gtk_widget_show(label);
-	gtk_clist_set_column_widget(GTK_CLIST(*clist), 2, label);
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_speed, hbox);
+    gtk_widget_show_all(hbox);
 
 	label = gtk_label_new("Host");
-	gtk_clist_set_column_widget(GTK_CLIST(*clist), 3, label);
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_host, hbox);
+    gtk_widget_show_all(hbox);
 
 	label = gtk_label_new("Info");
-	gtk_clist_set_column_widget(GTK_CLIST(*clist), 4, label);
+    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_info, hbox);
+    gtk_widget_show_all(hbox);
 
 	gtk_widget_show_all(*sw);
 
