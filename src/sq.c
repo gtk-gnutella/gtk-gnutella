@@ -129,10 +129,11 @@ static void sqh_put(squeue_t *sq, gnet_search_t sh)
  */
 static void sqh_remove(squeue_t *sq, gnet_search_t sh)
 {
-	g_assert(sq != NULL);
 	gpointer key;
 	gpointer value;
 	gboolean found;
+
+	g_assert(sq != NULL);
 
 	found = g_hash_table_lookup_extended(sq->handles, &sh, &key, &value);
 
