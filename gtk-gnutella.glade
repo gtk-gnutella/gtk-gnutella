@@ -14157,7 +14157,7 @@ Grace time remaining:</label>
   </signal>
   <title>About gtk-gnutella</title>
   <type>GTK_WINDOW_TOPLEVEL</type>
-  <position>GTK_WIN_POS_NONE</position>
+  <position>GTK_WIN_POS_CENTER</position>
   <modal>False</modal>
   <allow_shrink>False</allow_shrink>
   <allow_grow>True</allow_grow>
@@ -14654,7 +14654,7 @@ Meet us on #gtk-gnutella at irc.freenode.org.</label>
   </signal>
   <title>gtk-gnutella: Quit?</title>
   <type>GTK_WINDOW_DIALOG</type>
-  <position>GTK_WIN_POS_NONE</position>
+  <position>GTK_WIN_POS_MOUSE</position>
   <modal>True</modal>
   <allow_shrink>False</allow_shrink>
   <allow_grow>False</allow_grow>

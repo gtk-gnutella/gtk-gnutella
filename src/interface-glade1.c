@@ -9876,6 +9876,7 @@ create_dlg_about (void)
   gtk_widget_set_name (dlg_about, "dlg_about");
   gtk_object_set_data (GTK_OBJECT (dlg_about), "dlg_about", dlg_about);
   gtk_window_set_title (GTK_WINDOW (dlg_about), "About gtk-gnutella");
+  gtk_window_set_position (GTK_WINDOW (dlg_about), GTK_WIN_POS_CENTER);
 
   vbox67 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox67, "vbox67");
@@ -10168,6 +10169,7 @@ create_dlg_quit (void)
   gtk_object_set_data (GTK_OBJECT (dlg_quit), "dlg_quit", dlg_quit);
   gtk_window_set_title (GTK_WINDOW (dlg_quit), "gtk-gnutella: Quit?");
   GTK_WINDOW (dlg_quit)->type = GTK_WINDOW_DIALOG;
+  gtk_window_set_position (GTK_WINDOW (dlg_quit), GTK_WIN_POS_MOUSE);
   gtk_window_set_modal (GTK_WINDOW (dlg_quit), TRUE);
   gtk_window_set_policy (GTK_WINDOW (dlg_quit), FALSE, FALSE, TRUE);
 
