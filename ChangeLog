@@ -1,5 +1,9 @@
 # since last version
 
+- (2002.06.02 - RAM)
+  * Added build dependency on libxml2-dev in debian control.
+  * Force --enable-xml-store in debian's build.
+
 - (2002.06.01 - Richard)
   * Disabled xml backend by default. Use "configure --enable-xml-store"
     to enable it. You need libxml2 and libxml2-dev packages installed 
