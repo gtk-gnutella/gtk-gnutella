@@ -735,7 +735,7 @@ qrt_free(struct routing_table *rt)
  * returned.
  */
 static gpointer
-qrt_shrink_arena(guchar *arena, gint old_slots, gint new_slots, gint infinity)
+qrt_shrink_arena(gchar *arena, gint old_slots, gint new_slots, gint infinity)
 {
 	gint factor;		/* Shrink factor */
 	gint ratio;
@@ -761,7 +761,7 @@ qrt_shrink_arena(guchar *arena, gint old_slots, gint new_slots, gint infinity)
 		gint set = FALSE;
 
 		for (k = 0; k < factor && !set; k++) {
-			if (arena[j + k] != infinity)
+			if ((guchar) arena[j + k] != infinity)
 				set = TRUE;
 		}
 
@@ -3461,10 +3461,8 @@ qrt_receive_next(gpointer handle, gboolean *done)
 		break;
 	default:
 		gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
-		goto dropped;
+		/* FALL THROUGH */
 	}
-
-	return TRUE;
 
 dropped:
 	return TRUE;		/* Everything is fine, even if we dropped message */
