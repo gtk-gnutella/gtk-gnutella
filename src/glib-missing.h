@@ -32,6 +32,7 @@
 #ifndef _glib_missing_h_
 #define _glib_missing_h_
 
+#include <sys/types.h>
 #include <glib.h>
 
 /*
