@@ -2784,7 +2784,7 @@ void node_init_outgoing(struct gnutella_node *n)
 		 * Prepare parsing of the expected 0.6 reply.
 		 */
 
-		if (!no_gnutella_04)
+		if (!no_gnutella_04 && current_peermode != NODE_P_LEAF)
 			n->flags |= NODE_F_RETRY_04;	/* On failure, retry at 0.4 */
 
 
@@ -3108,6 +3108,17 @@ static void node_read_connecting(
 	}
 
 #undef TRACE_LIMIT
+
+	/*
+	 * When the peer mode is set to NODE_P_LEAF, we normally don't try
+	 * to downgrade the handshaking to 0.4.  However, to avoid any race
+	 * condition, redo the testing now.
+	 */
+
+	if (current_peermode == NODE_P_LEAF) {
+		node_remove(n, "Old 0.4 client cannot be an ultra node");
+		return;
+	}
 
 	/*
 	 * Okay, we are now really connected to a Gnutella node at the 0.4 level.
