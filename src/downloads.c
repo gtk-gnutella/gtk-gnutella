@@ -4978,7 +4978,7 @@ picked:
 	/*
 	 * Add X-Queue / X-Queued information into the header
 	 */
-	parq_download_add_header(dl_tmp, &rw, d);
+	parq_download_add_header(dl_tmp, sizeof(dl_tmp), &rw, d);
 
 	/*
 	 * If server is known to NOT support keepalives, then request only

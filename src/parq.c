@@ -272,9 +272,10 @@ gboolean parq_download_is_active_queued(struct download *d)
  * X-Queued: position=x; ID=xxxxx
  * to the HTTP GET request
  */
-void parq_download_add_header(gchar *buf, gint *rw, struct download *d)
+void parq_download_add_header(
+	gchar *buf, gint len, gint *rw, struct download *d)
 {
-	*rw += gm_snprintf(&(buf[*rw]), sizeof(buf)-*rw,
+	*rw += gm_snprintf(&buf[*rw], len - *rw,
 		"X-Queue: %d.%d\r\n", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
 
 	/*
@@ -282,7 +283,7 @@ void parq_download_add_header(gchar *buf, gint *rw, struct download *d)
 	 */
 
 	if (d->queue_status.ID[0] != '\0')
-		*rw += gm_snprintf(&(buf[*rw]), sizeof(buf)-*rw,
+		*rw += gm_snprintf(&buf[*rw], len - *rw,
 			"X-Queued: position=%d; ID=%s\r\n",
 			d->queue_status.position, d->queue_status.ID);
 }
