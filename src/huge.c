@@ -423,10 +423,10 @@ static void free_cell(struct file_sha1 *cell)
 
 /* The context of the SHA1 computation being performed */
 
-#define SHA1_MAGIC	0xa1a1a1a1
+#define SHA1_MAGIC	0xa1a1a1a1U
 
 struct sha1_computation_context {
-	gint magic;
+	guint magic;
 	SHA1Context context;
 	struct file_sha1 *file;
 	gchar *buffer;				/* Large buffer where data is read */
@@ -577,7 +577,7 @@ static void close_current_file(struct sha1_computation_context *ctx)
 	if (ctx->fd != -1) {
 		if (dbg > 1) {
 			struct stat buf;
-			time_t delta = time((time_t *) NULL) - ctx->start;
+			gint delta = delta_time(time((time_t *) NULL), ctx->start);
 
 			if (delta && -1 != fstat(ctx->fd, &buf))
 				printf("SHA1 computation rate: %lu bytes/sec\n",
