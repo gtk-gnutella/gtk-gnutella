@@ -1,0 +1,93 @@
+The 'LF' GGEP Extension
+==========================
+
+Name: LF (Large File)
+Where: Query Hit
+Status: Draft 
+Date: 2004-11-04
+Format: Variable-Length Integer 
+COBS-Encoding: No
+Deflate: No
+
+1. OVERVIEW
+
+Due to the wide use of broadband internet connections and increasing amount of
+huge content, the transfer of files larger than 4 GiB is no longer utopic. The
+standard Gnutella protocol is limited to 32-bit integers to express filesizes.
+This limit can easily be removed by a GGEP extension.
+
+2. USAGE
+
+In general, the value of the LF extension overrides the value in the legacy
+filesize field of the query hit. The extension should only be used if
+necessary. To prevent problems with older clients, using the extension should
+be considered if the filesize exceeds 2^31-1 bytes. If the LF extension is
+used, the legacy filesize should be set to ~0 i.e., all bits set. This may be
+used to detect clients that are not aware of this extension and assume a
+different filesize. In order to take advantage of this, all related routines
+(e.g., HTTP parsers) must be able to parse and emit at least 64-bit values and
+detect too large values that cannot be handled by them.
+
+3. SPECIFICATION
+
+There is no need to indicate support for this feature at any stage. This
+extension is defined as follows:
+
+Due to the location of the LF extension, there must be no NUL bytes in the
+the GGEP data. Therefore, each byte of the data contains only 7 data bits,
+the MSB is always set to 1. The ordering of the bytes is big-endian.
+
+4. CODE
+
+This example implementation in C use 64-bit integers, allowing filesizes up to
+(2 ^ 63) - 1 bytes. The maximum length for the GGEP data is therefore 9 bytes.
+On failure, -1 is returned.
+
+int64_t
+decode_lf(uint8_t *data, size_t length)
+{
+  size_t i;
+  uint64_t filesize;
+
+  if (length < 1 || length > 9)
+    return -1;
+
+  filesize = 0;
+  for (i = 0; i < length; i++) {
+    uint8_t b = data[i];
+    
+    if (!(b & 0x80))
+      return -1;
+    
+    filesize = (filesize << 7) | (b & 0x7f);
+  }
+
+  return filesize;
+}
+
+int
+encode_lf(int64_t filesize, uint8_t *data)
+{
+  uint64_t s;
+  int i, length;
+  uint8_t b[9];
+
+  if (filesize < 0)
+    return -1;
+
+  s = filesize;
+  i = 0;
+  do {
+    b[i++] = s;
+    s >>= 7;
+  } while (0 != s);
+  
+  length = i;
+  
+  while (i-- > 0)
+    *data++ = b[i] | 0x80;
+      
+  return length;
+}
+
+
