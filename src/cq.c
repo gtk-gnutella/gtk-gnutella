@@ -282,7 +282,7 @@ static void ev_link(cqueue_t *cq, cevent_t *ev)
 	 */
 ch_inserted:
 
-	g_assert(hev->ce_time > trigger);
+	g_assert(hev->ce_time >= trigger);
 
 	/*
 	 * Go back from hev until we reach the event right before ev, and insert
