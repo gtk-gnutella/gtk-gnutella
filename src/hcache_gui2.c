@@ -1,0 +1,170 @@
+/*
+ * $Id$
+ *
+ * Copyright (c) 2001-2003, Richard Eckart
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+#include "config.h"
+
+#ifdef USE_GTK2
+
+#include "hcache_gui.h"
+#include "gnutella.h" /* for sizeof(struct gnutella_header) */
+#include "override.h"		/* Must be the last header included */
+
+RCSID("$Id$");
+
+static GtkTreeView *treeview_hcache = NULL;
+static GtkNotebook *notebook_main = NULL;
+
+static const gchar *hcache_col_labels[] = {
+	"Cache contains",
+	"Hosts",
+	"Hits",
+	"Misses"
+};
+
+/***
+ *** Private functions
+ ***/
+
+static void add_column(
+	GtkTreeView *treeview,
+	gint column_id,
+	gint width,
+	gfloat xalign,
+	const gchar *label)
+{
+	GtkTreeViewColumn *column;
+	GtkCellRenderer *renderer;
+
+	renderer = gtk_cell_renderer_text_new();
+	gtk_cell_renderer_text_set_fixed_height_from_font(
+		GTK_CELL_RENDERER_TEXT(renderer), 1);
+	g_object_set(renderer,
+		"xalign", xalign,
+		"ypad", GUI_CELL_RENDERER_YPAD,
+		NULL);
+	column = gtk_tree_view_column_new_with_attributes(label, renderer,
+		"text", column_id,
+		NULL);
+	g_object_set(column,
+		"fixed-width", MAX(1, width),
+		"min-width", 1,
+		"reorderable", TRUE,
+		"resizable", TRUE,
+		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
+		NULL);
+	gtk_tree_view_append_column(treeview, column);
+}
+
+/***
+ *** Public functions
+ ***/
+
+void hcache_gui_init(void)
+{
+    GtkTreeModel *model;
+    gint n;
+	guint32 *width;
+
+	notebook_main = GTK_NOTEBOOK(
+		lookup_widget(main_window, "notebook_main"));
+    treeview_hcache = GTK_TREE_VIEW(
+        lookup_widget(main_window, "treeview_hcache"));
+	model = GTK_TREE_MODEL(gtk_list_store_new(4,
+							G_TYPE_STRING, G_TYPE_UINT, G_TYPE_UINT,
+							G_TYPE_UINT));
+
+	for (n = 0; n < HCACHE_MAX; n++) {
+		GtkTreeIter iter;
+
+		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+        gtk_list_store_set(GTK_LIST_STORE(model), &iter,
+            c_hcs_name,       get_hcache_name(n),
+            c_hcs_host_count, 0,
+            c_hcs_hits,       0,
+            c_hcs_misses,     0,
+            -1);
+	}
+
+	width = gui_prop_get_guint32(PROP_HCACHE_COL_WIDTHS, NULL, 0, 0);
+	for (n = 0; n < G_N_ELEMENTS(hcache_col_labels); n++)
+		add_column(treeview_hcache, n, width[n], (gfloat) (n != 0),
+			hcache_col_labels[n]);
+	G_FREE_NULL(width);
+
+    gtk_tree_view_set_model(treeview_hcache, model);
+	g_object_unref(model);
+}
+
+void hcache_gui_shutdown(void)
+{
+    tree_view_save_widths(treeview_hcache, PROP_HCACHE_COL_WIDTHS);
+}
+
+void hcache_gui_update(time_t now)
+{
+    hcache_stats_t stats[HCACHE_MAX];
+	static gboolean locked = FALSE;
+	static time_t last_update = 0;
+    gint current_page;
+    GtkListStore *store;
+    GtkTreeIter iter;
+    gint n;
+
+	if (last_update == now || locked)
+		return;
+	last_update = now;
+	locked = TRUE;
+	
+    current_page = gtk_notebook_get_current_page(notebook_main);
+    if (current_page != nb_main_page_hostcache)
+		goto cleanup;
+
+    hcache_get_stats(stats);
+
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview_hcache));
+	g_object_ref(store);
+	gtk_tree_view_set_model(treeview_hcache, NULL);
+
+	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+
+	for (n = 0; n < HCACHE_MAX; n++) {
+        gtk_list_store_set(store, &iter,
+            c_hcs_host_count, stats[n].host_count,
+            c_hcs_hits,       stats[n].hits,
+            c_hcs_misses,     stats[n].misses,
+            -1);
+
+		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
+	}
+
+	gtk_tree_view_set_model(treeview_hcache, GTK_TREE_MODEL(store));
+	g_object_unref(store);
+
+cleanup:
+	locked = FALSE;
+}
+
+/* vi: set ts=4: */
+#endif	/* USE_GTK2 */
