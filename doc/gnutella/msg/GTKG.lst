@@ -1,0 +1,10 @@
+#
+# List of vendor-messages in the GTKG namespace
+#
+# Messages tagged with [UNUSED] are not handled by GTKG.
+#
+# $Id$
+#
+
+GTKG/1v1	GSW proposal 			[UNUSED]
+GTKG/7v1	UDP Connect Back		[UNUSED]
