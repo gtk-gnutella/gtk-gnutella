@@ -1,5 +1,22 @@
 # since last version
 
+- (2004-10-31 - RAM)
+ * Changed the interface for hashlist iterators.
+ * Move bogons and hostiles closing after host_close() since the cache can be
+   updated during the closing, and the cache now uses bogons and hostiles.
+ * Periodically sync host cache to disk if dirty.
+ * Converted host cache to the use of hash lists, and added save routine.
+ * When inserting a host in the busy/unstable/timeout caches, remove it from
+   the other host/ultra caches.
+ * Don't add bogons/hostiles to the cache.
+ * Disallowed the choice of "legacy mode" as peer mode.
+
+- (2004-10-27 - RAM)
+ * New property "ntp_detected" to track whether we detected NTP or not.
+ * Raised default TCP RX buffers for downloads and gnet to 64K and 16K.
+ * When they say they're running NTP, trust them as far as the clock skew
+   goes, but don't advertise NTP unless we detect it.
+
 - (2004-10-26 - RAM)
  * Optimized SHA1 computation (~10% gains with -O2, 20% with -O0 on a P3).
 
