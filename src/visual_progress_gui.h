@@ -46,20 +46,6 @@ void vp_draw_fi_progress(gboolean valid, gnet_fi_t fih);
 /*
  * Glade-generated callbacks
  */
-gboolean
-on_visual_progress_configure_event     (GtkWidget       *widget,
-                                        GdkEventConfigure *event,
-                                        gpointer         user_data);
-
-gboolean
-on_visual_progress_expose_event        (GtkWidget       *widget,
-                                        GdkEventExpose  *event,
-                                        gpointer         user_data);
-
-void
-on_visual_progress_realize             (GtkWidget       *widget,
-                                        gpointer         user_data);
-
 void
 on_drawingarea_fi_progress_realize     (GtkWidget       *widget,
                                         gpointer         user_data);

@@ -34,6 +34,12 @@
  * 
  * Add progress data also to fileinfo table, so that the info is shown for 
  * all current files.
+ * 
+ * Move the ranges code to fileinfo so that it can be used there as well.
+ *
+ * Check out why only some requests provide a range
+ *
+ * Protect against the division by zero errors reported in drawing.
  */
 
 #include "gui.h"
@@ -102,6 +108,9 @@ void vp_draw_rectangle (vp_info_t *v, guint32 from, guint32 to, guint top, guint
     g_assert( v );
     g_assert( v->context );
     g_assert( v->context->drawable );
+
+	g_assert( v->context->width );
+	g_assert( v->file_size);
 
     bpp = v->file_size / v->context->width;
     s_from = from / bpp; 
@@ -241,88 +250,6 @@ on_drawingarea_fi_progress_expose_event
                                         gpointer         user_data)
 {
 	vp_draw_fi_progress(fi_context.fih_valid, fi_context.fih);
-
-    return FALSE;
-}
-
-
-/* 
- * Callbacks from the GtkDrawingArea.
- */
-void
-on_visual_progress_realize             (GtkWidget       *widget,
-                                        gpointer         user_data)
-{
-    /* 
-     * The drawing area now exists so we can fill some global
-     * variables about drawing.
-     */
-    vp_context = walloc0(sizeof(vp_context_t));
-
-    vp_context->drawable = widget->window;
-    g_assert( vp_context->drawable );
-
-    vp_context->gc = gdk_gc_new(vp_context->drawable);
-    g_assert( vp_context->gc );
-
-    vp_context->offset_hor = 10;
-
-    /*
-     * TODO: This font loading code is fragile and should be
-     * configurable or have a fallback
-     */
-    vp_font = gdk_font_load("-misc-fixed-medium-r-normal-*-*-120-*-*-*-*-iso8859-1");
-    g_assert( vp_font );
-    gdk_font_ref(vp_font);
-
-}
-
-
-gboolean
-on_visual_progress_configure_event     (GtkWidget       *widget,
-                                        GdkEventConfigure *event,
-                                        gpointer         user_data)
-{
-    g_assert( event );
-    g_assert( widget );
-
-    /*
-     * We seem to be getting many many configure events. This does not
-     * seem to be right, but it is hard to track down where they come
-     * from. We could put all kinds of checks in place to see if we
-     * really need to act on this configure event, but in the end it
-     * is probably easiest to just assign the values without
-     * additional checks.
-     */
-
-    if (vp_context) {
-		vp_context->width = event->width - 3;
-		vp_context->height = event->height - 1;
-	}
-
-    return FALSE;
-}
-
-
-gboolean
-on_visual_progress_expose_event        (GtkWidget       *widget,
-                                        GdkEventExpose  *event,
-                                        gpointer         user_data)
-{
-    /*
-     * We could be fancy here and parse the expose event for the
-     * region to redraw, but it will be more efficient to just draw
-     * the whole lot.
-     */
-    /*
-     * TODO: This legend could be a lot more attractive, but I am not
-     * sure it will remain
-     */
-    gdk_gc_set_foreground(vp_context->gc, &black);
-    gdk_draw_string(vp_context->drawable, vp_font, vp_context->gc, 10, 15, 
-        "Legend: dark green=done    bright green=done recently   yellow=active   red=empty");
-
-    g_hash_table_foreach(vp_info_hash, &vp_draw_fi, NULL);
 
     return FALSE;
 }
