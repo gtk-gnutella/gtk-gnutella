@@ -153,8 +153,9 @@ void hash_list_remove(hash_list_t *hl, gpointer data)
 
 	l = (GList *) g_hash_table_lookup(hl->ht, data);
 	g_assert(NULL != l);
-	if (NULL != hl->last && hl->last->data == data)
+	if (hl->last == l) {
 		hl->last = g_list_previous(hl->last);
+	}
 	hl->l = g_list_delete_link(hl->l, l);
 	g_hash_table_remove(hl->ht, data);
 	hl->len--;
