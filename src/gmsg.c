@@ -358,11 +358,11 @@ gchar *gmsg_infostr(gpointer head)
 {
 	static gchar a[80];
 	struct gnutella_header *h = (struct gnutella_header *) head;
-	gint size;
+	guint32 size;
 
-	size = *(gint *) h->size;
+	READ_GUINT32_LE(h->size, size);
 
-	g_snprintf(a, sizeof(a), "%s (%d byte%s) [hops=%d, TTL=%d]",
+	g_snprintf(a, sizeof(a), "%s (%u byte%s) [hops=%d, TTL=%d]",
 		gmsg_name(h->function), size, size == 1 ? "" : "s", h->hops, h->ttl);
 
 	return a;
@@ -377,11 +377,11 @@ static gchar *gmsg_infostr2(gpointer head)
 {
 	static gchar a[80];
 	struct gnutella_header *h = (struct gnutella_header *) head;
-	gint size;
+	guint32 size;
 
-	size = *(gint *) h->size;
+	READ_GUINT32_LE(h->size, size);
 
-	g_snprintf(a, sizeof(a), "%s (%d byte%s) [hops=%d, TTL=%d]",
+	g_snprintf(a, sizeof(a), "%s (%u byte%s) [hops=%d, TTL=%d]",
 		gmsg_name(h->function), size, size == 1 ? "" : "s", h->hops, h->ttl);
 
 	return a;
