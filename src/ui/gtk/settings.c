@@ -2162,7 +2162,7 @@ expert_mode_changed(property_t prop)
             gtk_widget_hide(w);
     }
 
-	gnet_prop_get_boolean_val(PROP_ALLOW_DANGEROUS_BUGS, &override);
+	gnet_prop_get_boolean_val(PROP_ALLOW_AUTO_REQUERIES, &override);
     w = lookup_widget(main_window, "hbox_expert_search_timeout");
     if (expert && override)
       gtk_widget_show(w);

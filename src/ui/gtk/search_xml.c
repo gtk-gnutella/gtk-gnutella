@@ -1015,7 +1015,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 					NODE_SEARCH));
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &reissue_timeout);
-	gnet_prop_get_boolean_val(PROP_ALLOW_DANGEROUS_BUGS, &override);
+	gnet_prop_get_boolean_val(PROP_ALLOW_AUTO_REQUERIES, &override);
 
 	buf = STRTRACK(xml_get_string(xmlnode, TAG_SEARCH_QUERY));
     if (!buf) {

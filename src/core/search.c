@@ -2513,7 +2513,7 @@ search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
         return;
     }
 
-    sch->reissue_timeout = timeout > 0 ? MAX(600, timeout) : 0;
+    sch->reissue_timeout = timeout > 0 ? MAX(SEARCH_MIN_RETRY, timeout) : 0;
     update_one_reissue_timeout(sch);
 }
 
@@ -2604,9 +2604,9 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 		 *		-- cbiere, 2005-03-22
 		 */
 
-		if (reissue_timeout != 0 && reissue_timeout < 600)
-			reissue_timeout = 600;
-		sch->reissue_timeout = allow_dangerous_bugs ? reissue_timeout : 0;
+		if (reissue_timeout != 0 && reissue_timeout < SEARCH_MIN_RETRY)
+			reissue_timeout = SEARCH_MIN_RETRY;
+		sch->reissue_timeout = allow_auto_requeries ? reissue_timeout : 0;
 
 		sch->sent_nodes =
 			g_hash_table_new(sent_node_hash_func, sent_node_compare);

@@ -4623,9 +4623,9 @@ allow_for_now:		/* XXX remove after 2005-01-31 */
 				"%s"		/* X-Ultrapeer-Query-Routing */
 				"%s"		/* X-Degree + X-Max-TTL */
 				"%s"		/* X-Dynamic-Querying */
+				"%s"		/* X-Requeries */
 				"X-Token: %s\r\n"
-				"X-Live-Since: %s\r\n"
-				"X-Requeries: False\r\n",
+				"X-Live-Since: %s\r\n",
 				version_string,
 				ip_to_gchar(n->socket->ip),
 				gnet_deflate_enabled ? "Accept-Encoding: deflate\r\n" : "",
@@ -4650,6 +4650,7 @@ allow_for_now:		/* XXX remove after 2005-01-31 */
 				degree,
 				current_peermode == NODE_P_ULTRA ?
 					"X-Dynamic-Querying: 0.1\r\n" : "",
+				allow_auto_requeries ? "" : "X-Requeries: False\r\n",
 				tok_version(), start_rfc822_date);
 
 			header_features_generate(&xfeatures.connections,
@@ -5792,7 +5793,7 @@ node_init_outgoing(struct gnutella_node *n)
 			"%s"		/* X-Ultrapeer-Query-Routing */
 			"%s"		/* X-Degree + X-Max-TTL */
 			"%s"		/* X-Dynamic-Querying */
-			"X-Requeries: False\r\n",
+			"%s",		/* X-Requeries: False */
 			GNUTELLA_HELLO,
 			n->proto_major, n->proto_minor,
 			ip_port_to_gchar(listen_ip(), listen_port),
@@ -5810,7 +5811,8 @@ node_init_outgoing(struct gnutella_node *n)
 				"X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
 			degree,
 			current_peermode == NODE_P_ULTRA ?
-				"X-Dynamic-Querying: 0.1\r\n" : ""
+				"X-Dynamic-Querying: 0.1\r\n" : "",
+			allow_auto_requeries ? "" : "X-Requeries: False\r\n"
 		);
 
 		header_features_generate(&xfeatures.connections,
