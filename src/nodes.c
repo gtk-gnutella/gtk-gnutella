@@ -1458,7 +1458,8 @@ static gchar *node_crawler_headers(struct gnutella_node *n)
  * Send error message to remote end, a node presumably.
  * NB: We don't need a node to call this routine, only a socket.
  */
-void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
+void send_node_error(
+	struct gnutella_socket *s, int code, const guchar *msg, ...)
 {
 	gchar gnet_response[2048];
 	gchar msg_tmp[256];
@@ -1957,7 +1958,7 @@ static void downgrade_handshaking(struct gnutella_node *n)
  */
 static gint extract_field_pongs(guchar *field, hcache_type_t type)
 {
-	guchar *tok;
+	const guchar *tok;
 	gint pong = 0;
 
 	for (tok = strtok(field, ",;"); tok; tok = strtok(NULL, ",;")) {
@@ -2033,7 +2034,7 @@ static void extract_header_pongs(header_t *header, struct gnutella_node *n)
  */
 static guint32 extract_my_ip(header_t *header)
 {
-	gchar *field;
+	const gchar *field;
 
 	field = header_get(header, "Remote-Ip");
 
@@ -2061,10 +2062,10 @@ static gboolean analyse_status(struct gnutella_node *n, gint *code)
 	gchar *status;
 	gint ack_code;
 	gint major = 0, minor = 0;
-	gchar *ack_message = "";
+	const gchar *ack_message = "";
 	gboolean ack_ok = FALSE;
 	gboolean incoming = (n->flags & NODE_F_INCOMING) ? TRUE : FALSE;
-	gchar *what = incoming ? "acknowledgment" : "reply";
+	const gchar *what = incoming ? "acknowledgment" : "reply";
 
 	status = getline_str(s->getline);
 
@@ -2345,7 +2346,7 @@ static gboolean node_can_accept_connection(
 static gboolean node_can_accept_protocol(
 	struct gnutella_node *n, header_t *head)
 {
-	gchar *field;
+	const gchar *field;
 
 	/*
 	 * Accept -- protocols supported
@@ -2387,7 +2388,7 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 {
 	struct gnutella_socket *s = n->socket;
 	gboolean ack_ok;
-	gchar *field;
+	const gchar *field;
 	gboolean qrp_final_set = FALSE;
 
 	if (dbg) {
@@ -2552,11 +2553,11 @@ static void node_process_handshake_header(
 	gchar gnet_response[2048];
 	gint rw;
 	gint sent;
-	gchar *field;
+	const gchar *field;
 	gboolean incoming = (n->flags & (NODE_F_INCOMING|NODE_F_TMP));
-	gchar *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
-	gchar *compressing = "Content-Encoding: deflate\r\n";
-	gchar *empty = "";
+	const gchar *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
+	const gchar *compressing = "Content-Encoding: deflate\r\n";
+	const gchar *empty = "";
 
 	g_assert(!(n->flags & NODE_F_TMP));	/* 0.6 connections no longer "tmp" */
 
@@ -2587,7 +2588,7 @@ static void node_process_handshake_header(
 
 	field = header_get(head, "User-Agent");
 	if (field) {
-		gchar *token = header_get(head, "X-Token");
+		const gchar *token = header_get(head, "X-Token");
 		if (!version_check(field, token))
 			n->flags |= NODE_F_FAKE_NAME;
         node_set_vendor(n, field);
@@ -2805,7 +2806,7 @@ static void node_process_handshake_header(
 	 */
 
 	if (n->vendor) {
-		gchar *msg = ban_vendor(n->vendor);
+		const gchar *msg = ban_vendor(n->vendor);
 
 		if (msg != NULL) {
 			send_node_error(n->socket, 403, msg);

@@ -64,7 +64,7 @@ struct route_data {
 
 struct route_data fake_route;		/* Our fake route_data */
 
-static gchar *debug_msg[256];
+static const gchar *debug_msg[256];
 
 #define MAX_STORED_MESSAGES 65536	/* Max messages we can remember */
 
@@ -86,7 +86,8 @@ struct message message_array[MAX_STORED_MESSAGES];
 GHashTable *messages_hashed; 	/* we hash the last MAX_STORED_MESSAGES */
 guint next_message_index;		/* next slot to use in message_array */
 
-static gboolean find_message(guchar *muid, guint8 function, struct message **m);
+static gboolean find_message(
+	const guchar *muid, guint8 function, struct message **m);
 
 /*
  * "banned" GUIDs for push routing.
@@ -94,7 +95,7 @@ static gboolean find_message(guchar *muid, guint8 function, struct message **m);
  * The following GUIDs are so common that it does not make sense to
  * route pushes to them (i.e. they are are NOT unique on the network!).
  */
-static guchar *banned_push[] = {
+static const guchar *banned_push[] = {
 	"20d262ff0e6fd6119734004005a207b1",		/* Morpheus, 29/06/2002 */
 };
 GHashTable *ht_banned_push = NULL;
@@ -227,7 +228,7 @@ void routing_init(void)
 
 	for (i = 0; i < BANNED_PUSH_COUNT; i++) {
 		guchar g[16];
-		guchar *hex = banned_push[i];
+		const guchar *hex = banned_push[i];
 
 		g_assert(strlen(hex) == 2*sizeof(g));
 
@@ -396,7 +397,7 @@ void routing_node_remove(struct gnutella_node *node)
 
 /* Adds a new message in the routing tables */
 
-void message_add(guchar * muid, guint8 function,
+void message_add(const guchar * muid, guint8 function,
 				 struct gnutella_node *node)
 {
 	static time_t last_rotation = 0;
@@ -517,7 +518,8 @@ static void purge_dangling_references(struct message *m)
  * If none of the nodes that sent us the message are still present, then
  * m->routes will be NULL.
  */
-static gboolean find_message(guchar *muid, guint8 function, struct message **m)
+static gboolean find_message(
+	const guchar *muid, guint8 function, struct message **m)
 {
 	/* Returns TRUE if the message is found */
 	/* Set *node to node if there is a connected node associated
@@ -1046,7 +1048,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
  * Returns NULL if we have no such route, or the node to which we should
  * send the packet otherwise.
  */
-struct gnutella_node *route_towards_guid(guchar *guid)
+struct gnutella_node *route_towards_guid(const guchar *guid)
 {
 	struct message *m;
 

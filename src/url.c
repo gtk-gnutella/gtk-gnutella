@@ -42,7 +42,7 @@ RCSID("$Id$");
  * Bit 0 encodes regular transparent set (pathnames, '/' is transparent).
  * Bit 1 encodes regular transparent set minus '+' (query string).
  */
-static guint8 is_transparent[96] = {
+static const guint8 is_transparent[96] = {
 /*  0 1 2 3 4 5 6 7 8 9 a b c d e f */	/* 0123456789abcdef -            */
     0,3,0,0,3,0,0,3,3,3,3,1,3,3,3,3,	/*  !"#$%&'()*+,-./ -  32 -> 47  */
     3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,0,	/* 0123456789:;<=>? -  48 -> 63  */
@@ -55,7 +55,7 @@ static guint8 is_transparent[96] = {
 #define PATH_MASK		0x1
 #define QUERY_MASK		0x2
 
-static char *hex_alphabet = "0123456789ABCDEF";
+static const char *hex_alphabet = "0123456789ABCDEF";
 
 /*
  * url_escape_mask
@@ -101,15 +101,15 @@ static guchar *url_escape_mask(guchar *url, guint8 mask)
  *
  * Escape undesirable characters using %xx, where xx is an hex code.
  * This is done in the `target' buffer, whose size is `len'.
- * `mask' tells us wether we're escaping an URL path or a query string.
+ * `mask' tells us whether we're escaping an URL path or a query string.
  *
  * Returns amount of characters written into buffer (not counting trailing
  * NUL), or -1 if the buffer was too small.
  */
 static gint url_escape_mask_into(
-	guchar *url, guchar *target, gint len, guint8 mask)
+	const guchar *url, guchar *target, gint len, guint8 mask)
 {
-	guchar *p;
+	const guchar *p;
 	guchar *q;
 	gint c;
 	guchar *end = target + len;
@@ -166,7 +166,7 @@ guchar *url_escape_query(guchar *url)
  * Returns amount of characters written into buffer (not counting trailing
  * NUL), or -1 if the buffer was too small.
  */
-gint url_escape_into(guchar *url, guchar *target, gint len)
+gint url_escape_into(const guchar *url, guchar *target, gint len)
 {
 	return url_escape_mask_into(url, target, len, PATH_MASK);
 }

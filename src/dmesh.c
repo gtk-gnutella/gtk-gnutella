@@ -80,7 +80,7 @@ struct dmesh_entry {
 /* If more than 80% alike, equal! */
 #define FUZZY_MATCH		((80 / 100) << FUZZY_SHIFT)
 
-static gchar *dmesh_file = "dmesh";
+static const gchar *dmesh_file = "dmesh";
 
 /*
  * If we get a "bad" URL into the mesh ("bad" = gives 404 or other error when
@@ -106,11 +106,11 @@ struct dmesh_banned {
 
 #define BAN_LIFETIME	7200		/* 2 hours */
 
-static gchar *dmesh_ban_file = "dmesh_ban";
+static const gchar *dmesh_ban_file = "dmesh_ban";
 
 static void dmesh_retrieve(void);
 static void dmesh_ban_retrieve(void);
-static gchar *dmesh_urlinfo_to_gchar(dmesh_urlinfo_t *info);
+static gchar *dmesh_urlinfo_to_gchar(const dmesh_urlinfo_t *info);
 
 /*
  * urlinfo_hash
@@ -288,7 +288,7 @@ static gboolean dmesh_is_banned(dmesh_urlinfo_t *info)
  *** Mesh URL parsing.
  ***/
 
-static gchar *parse_errstr[] = {
+static const gchar *parse_errstr[] = {
 	"OK",									/* DMESH_URL_OK */
 	"HTTP parsing error",					/* DMESH_URL_HTTP_PARSER */
 	"File prefix neither /uri-res nor /get",/* DMESH_URL_BAD_FILE_PREFIX */
@@ -296,18 +296,16 @@ static gchar *parse_errstr[] = {
 	"No filename after /get/index",			/* DMESH_URL_NO_FILENAME */
 };
 
-#define MAX_PARSE_ERRNUM (G_N_ELEMENTS(parse_errstr) - 1)
-
 /*
  * dmesh_url_strerror
  *
  * Return human-readable error string corresponding to error code `errnum'.
  */
-gchar *dmesh_url_strerror(dmesh_url_error_t errnum)
+const gchar *dmesh_url_strerror(dmesh_url_error_t errnum)
 {
 	static gchar http_error_str[128];
 
-	if (errnum < 0 || errnum > MAX_PARSE_ERRNUM)
+	if (errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
 		return "Invalid error code";
 
 	if (errnum == DMESH_URL_HTTP_PARSER) {
@@ -446,7 +444,8 @@ ok:
  * Expire entries older than `agemax' in a given mesh bucket `dm'.
  * `sha1' is only passed in case we want to log the removal.
  */
-static void dm_expire(struct dmesh *dm, guint32 agemax, guchar *sha1)
+static void dm_expire(
+	struct dmesh *dm, guint32 agemax, const guchar *sha1)
 {
 	GSList *l;
 	GSList *prev;
@@ -541,7 +540,7 @@ static gboolean dm_remove(struct dmesh *dm,
  *
  * Dispose of the entry slot, which must be empty.
  */
-static void dmesh_dispose(guchar *sha1)
+static void dmesh_dispose(const guchar *sha1)
 {
 	gpointer key;
 	gpointer value;
@@ -566,7 +565,7 @@ static void dmesh_dispose(guchar *sha1)
  * When `idx' is 0, then `name' is ignored, and we use the stringified SHA1.
  */
 static void dmesh_fill_info(dmesh_urlinfo_t *info,
-	guchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name)
+	const guchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name)
 {
 	static guchar sha1_urn[SHA1_BASE32_SIZE + sizeof("urn:sha1:")];
 
@@ -587,7 +586,7 @@ static void dmesh_fill_info(dmesh_urlinfo_t *info,
  *
  * Remove entry from mesh due to a failed download attempt.
  */
-void dmesh_remove(guchar *sha1,
+void dmesh_remove(const guchar *sha1,
 	guint32 ip, guint16 port, guint idx, gchar *name)
 {
 	struct dmesh *dm;
@@ -786,7 +785,7 @@ gboolean dmesh_add(guchar *sha1,
  * contains a "," character.
  */
 static gint dmesh_urlinfo(
-	dmesh_urlinfo_t *info, gchar *buf, gint len, gboolean *quoting)
+	const dmesh_urlinfo_t *info, gchar *buf, gint len, gboolean *quoting)
 {
 	gint rw;
 	gint maxslen = len - 1;			/* Account for trailing NUL */
@@ -843,7 +842,7 @@ static gint dmesh_urlinfo(
  *
  * Format the `info' URL and return pointer to static string.
  */
-static gchar *dmesh_urlinfo_to_gchar(dmesh_urlinfo_t *info)
+static gchar *dmesh_urlinfo_to_gchar(const dmesh_urlinfo_t *info)
 {
 	static gchar urlstr[1024];
 
@@ -862,7 +861,8 @@ static gchar *dmesh_urlinfo_to_gchar(dmesh_urlinfo_t *info)
  * Returns length of formatted entry, -1 if the URL would be larger than
  * the buffer.
  */
-static gint dmesh_entry_url_stamp(struct dmesh_entry *dme, gchar *buf, gint len)
+static gint dmesh_entry_url_stamp(
+	const struct dmesh_entry *dme, gchar *buf, gint len)
 {
 	gint rw;
 	gint maxslen = len - 1;			/* Account for trailing NUL */
@@ -872,7 +872,7 @@ static gint dmesh_entry_url_stamp(struct dmesh_entry *dme, gchar *buf, gint len)
 	 * Format the URL info first.
 	 */
 
-	rw = dmesh_urlinfo(&dme->url, buf, len, &quoting);
+	rw = dmesh_urlinfo((const dmesh_urlinfo_t *) &dme->url, buf, len, &quoting);
 
 	if (rw < 0)
 		return -1;
@@ -908,7 +908,7 @@ static gint dmesh_entry_url_stamp(struct dmesh_entry *dme, gchar *buf, gint len)
  * Format the `dme' mesh entry as "URL timestamp" and return pointer to
  * static string.
  */
-static gchar *dmesh_entry_to_gchar(struct dmesh_entry *dme)
+static const gchar *dmesh_entry_to_gchar(const struct dmesh_entry *dme)
 {
 	static gchar urlstr[1024];
 
@@ -933,7 +933,7 @@ static gchar *dmesh_entry_to_gchar(struct dmesh_entry *dme)
  *
  * Returns amount of generated data.
  */
-gint dmesh_alternate_location(guchar *sha1,
+gint dmesh_alternate_location(const guchar *sha1,
 	gchar *buf, gint size, guint32 ip, guint32 last_sent)
 {
 	gchar url[1024];
@@ -1119,7 +1119,7 @@ typedef struct {
  * urls are already "known" to be valid and hence we do not waste
  * potentially valid urls on a "all or nothing" approach.
  */
-static GSList *dmesh_get_nonurn_altlocs(guchar *sha1)
+static GSList *dmesh_get_nonurn_altlocs(const guchar *sha1)
 {
     struct dmesh *dm;
     GSList *l;
@@ -1223,7 +1223,7 @@ static void dmesh_check_deferred_against_existing(
     
 	for (def = deferred_urls; def; def = def->next) {
 		dmesh_deferred_url_t *d = def->data;
-		matches=0;
+		matches = 0;
 
 		if (dbg > 4)
 			printf("Checking deferred url 0x%lx (str=0x%lx:%s)\n",
@@ -1360,7 +1360,8 @@ static void dmesh_check_deferred_against_themselves(
  * using urn's for files is generally a better idea.
  *
  */
-static void dmesh_check_deferred_altlocs(guchar *sha1, GSList *deferred_urls)
+static void dmesh_check_deferred_altlocs(
+	guchar *sha1, GSList *deferred_urls)
 {
     GSList *existing_urls;
 
@@ -1686,7 +1687,8 @@ void dmesh_collect_locations(guchar *sha1, guchar *value, gboolean defer)
  * Fill buffer with at most `count' alternative locations for sha1.
  * Returns the amount of locations inserted.
  */
-static gint dmesh_alt_loc_fill(guchar *sha1, dmesh_urlinfo_t *buf, gint count)
+static gint dmesh_alt_loc_fill(
+	const guchar *sha1, dmesh_urlinfo_t *buf, gint count)
 {
 	struct dmesh *dm;
 	GSList *l;
@@ -1763,14 +1765,14 @@ void dmesh_multiple_downloads(
  */
 static void dmesh_store_kv(gpointer key, gpointer value, gpointer udata)
 {
-	struct dmesh *dm = (struct dmesh *) value;
+	const struct dmesh *dm = (const struct dmesh *) value;
 	GSList *l;
 	FILE *out = (FILE *) udata;
 
-	fprintf(out, "%s\n", sha1_base32((guchar *) key));
+	fprintf(out, "%s\n", sha1_base32((const guchar *) key));
 
 	for (l = dm->entries; l; l = l->next) {
-		struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
+		const struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
 		fprintf(out, "%s\n", dmesh_entry_to_gchar(dme));
 	}
 
@@ -1789,8 +1791,8 @@ typedef void (*header_func_t)(FILE *out);
  * The storing callback for each item is `store_cb'.
  */
 static void dmesh_store_hash(
-	gchar *what,
-	GHashTable *hash, gchar *file, header_func_t header_cb, GHFunc store_cb)
+	const gchar *what, GHashTable *hash, const gchar *file,
+	header_func_t header_cb, GHFunc store_cb)
 {
 	FILE *out;
 	file_path_t fp = { settings_config_dir(), file };
@@ -1907,9 +1909,10 @@ static void dmesh_retrieve(void)
  *
  * Store key/value pair in file.
  */
-static void dmesh_ban_store_kv(gpointer key, gpointer value, gpointer udata)
+static void dmesh_ban_store_kv(
+	gpointer key, gpointer value, gpointer udata)
 {
-	struct dmesh_banned *dmb = (struct dmesh_banned *) value;
+	const struct dmesh_banned *dmb = (const struct dmesh_banned *) value;
 	FILE *out = (FILE *) udata;
 
 	g_assert(key == (gpointer) dmb->info);

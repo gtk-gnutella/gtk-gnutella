@@ -66,15 +66,15 @@ GSList *sl_removed_servers = NULL;	/* Removed servers only */
 static gchar dl_tmp[4096];
 static gint queue_frozen = 0;
 
-static gchar *DL_OK_EXT = ".OK";		/* Extension to mark OK files */
-static gchar *DL_BAD_EXT = ".BAD";		/* For "bad" files (SHA1 mismatch) */
-static gchar *DL_UNKN_EXT = ".UNKN";	/* For unchecked files */
-static gchar *file_what = "downloads";	/* What we're persisting to file */
+static const gchar *DL_OK_EXT = ".OK";		/* Extension to mark OK files */
+static const gchar *DL_BAD_EXT = ".BAD"; 	/* "Bad" files (SHA1 mismatch) */
+static const gchar *DL_UNKN_EXT = ".UNKN";	/* For unchecked files */
+static const gchar *file_what = "downloads";/* What we're persisting to file */
 
 static GHashTable *pushed_downloads = 0;
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
-static gboolean send_push_request(gchar *, guint32, guint16);
+static gboolean send_push_request(const gchar *, guint32, guint16);
 static void download_read(gpointer data, gint source, inputevt_cond_t cond);
 static void download_request(struct download *d, header_t *header, gboolean ok);
 static void download_push_ready(struct download *d, getline_t *empty);
@@ -516,7 +516,8 @@ static void dl_by_time_remove(struct dl_server *server)
  *
  * Allocate new server structure.
  */
-static struct dl_server *allocate_server(guchar *guid, guint32 ip, guint16 port)
+static struct dl_server *allocate_server(
+	const guchar *guid, guint32 ip, guint16 port)
 {
 	struct dl_key *key;
 	struct dl_server *server;
@@ -696,7 +697,8 @@ static void downloads_with_name_dec(gchar *name)
  * Returns found active download, or NULL if we have no such download yet.
  */
 static struct download *has_same_download(
-	gchar *file, guchar *sha1, gchar *guid, guint32 ip, guint16 port)
+	const gchar *file, const guchar *sha1, gchar *guid,
+	guint32 ip, guint16 port)
 {
 	struct dl_server *server = get_server(guid, ip, port);
 	GList *l;
@@ -2649,11 +2651,11 @@ static void create_download(
 /* Automatic download request */
 
 void download_auto_new(gchar *file, guint32 size, guint32 record_index,
-					   guint32 ip, guint16 port, gchar *guid, guchar *sha1,
-					   time_t stamp, gboolean push, struct dl_file_info *fi)
+					guint32 ip, guint16 port, gchar *guid, guchar *sha1,
+		   			time_t stamp, gboolean push, struct dl_file_info *fi)
 {
 	gchar *file_name;
-	char *reason;
+	const char *reason;
 	enum ignore_val ign_reason;
 
 #if 0	/* DISABLED for now -- not sure we need it as-is any longer --RAM */
@@ -2923,8 +2925,8 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 /* Create a new download */
 
 void download_new(gchar *file, guint32 size, guint32 record_index,
-				  guint32 ip, guint16 port, gchar *guid, guchar *sha1,
-				  time_t stamp, gboolean push, struct dl_file_info *fi)
+			  guint32 ip, guint16 port, gchar *guid, guchar *sha1,
+			  time_t stamp, gboolean push, struct dl_file_info *fi)
 {
 	create_download(file, size, record_index, ip, port, guid, sha1,
 		stamp, push, TRUE, fi);
@@ -3143,7 +3145,8 @@ void download_requeue(struct download *d)
  *
  * Returns TRUE if the request could be sent, FALSE if we don't have the route.
  */
-static gboolean send_push_request(gchar *guid, guint32 file_id, guint16 port)
+static gboolean send_push_request(
+	const gchar *guid, guint32 file_id, guint16 port)
 {
 	struct gnutella_msg_push_request m;
 	struct gnutella_node *n;
@@ -3644,7 +3647,8 @@ done:
  *
  * Returns TRUE if we managed to parse the new location.
  */
-static gboolean download_moved_permanently(struct download *d, header_t *header)
+static gboolean download_moved_permanently(
+	struct download *d, header_t *header)
 {
 	gchar *buf;
 	dmesh_urlinfo_t info;
@@ -3725,9 +3729,10 @@ static gboolean download_moved_permanently(struct download *d, header_t *header)
  * Extract server name from headers.
  * Returns whether new server name was found.
  */
-static gboolean download_get_server_name(struct download *d, header_t *header)
+static gboolean download_get_server_name(
+	struct download *d, header_t *header)
 {
-	gchar *buf;
+	const gchar *buf;
 	gboolean got_new_server = FALSE;
 
 	buf = header_get(header, "Server");			/* Mandatory */
@@ -3855,9 +3860,9 @@ static gboolean download_convert_to_urires(struct download *d)
  *
  * Extract Retry-After delay from header, returning 0 if none.
  */
-guint extract_retry_after(header_t *header)
+guint extract_retry_after(const header_t *header)
 {
-	gchar *buf;
+	const gchar *buf;
 	guint delay = 0;
 
 	/*
@@ -3889,9 +3894,9 @@ guint extract_retry_after(header_t *header)
  *
  * We only pay attention to such headers for pushed downloads.
  */
-static void check_xhost(struct download *d, header_t *header)
+static void check_xhost(struct download *d, const header_t *header)
 {
-	gchar *buf;
+	const gchar *buf;
 	guint32 ip;
 	guint16 port;
 
@@ -4112,7 +4117,7 @@ collect_locations:
 static void update_available_ranges(struct download *d, header_t *header)
 {
 	gchar *buf;
-	gchar *available = "X-Available-Ranges";
+	const gchar *available = "X-Available-Ranges";
 
 	if (d->ranges != NULL) {
 		http_range_free(d->ranges);
@@ -4231,12 +4236,13 @@ static void download_sink_read(gpointer data, gint source, inputevt_cond_t cond)
  * Validate the reply, and begin saving the incoming data if OK.
  * Otherwise, stop the download.
  */
-static void download_request(struct download *d, header_t *header, gboolean ok)
+static void download_request(
+	struct download *d, header_t *header, gboolean ok)
 {
 	struct gnutella_socket *s = d->socket;
-	gchar *status;
+	const gchar *status;
 	gint ack_code;
-	gchar *ack_message = "";
+	const gchar *ack_message = "";
 	gchar *buf;
 	struct stat st;
 	gboolean got_content_length = FALSE;
@@ -4266,7 +4272,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	d->last_update = time(NULL);		/* Done reading headers */
 
 	if (dbg > 2) {
-		gchar *incomplete = ok ? "" : "INCOMPLETE ";
+		const gchar *incomplete = ok ? "" : "INCOMPLETE ";
 		printf("----Got %sreply from %s:\n", incomplete, ip_to_gchar(s->ip));
 		printf("%s\n", status);
 		header_dump(header, stdout);
@@ -4788,7 +4794,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	 */
 
 	if (!got_content_length) {
-		char *ua = header_get(header, "Server");
+		const char *ua = header_get(header, "Server");
 		ua = ua ? ua : header_get(header, "User-Agent");
 		if (ua)
 			g_warning("server \"%s\" did not send any length indication", ua);
@@ -5002,7 +5008,7 @@ void download_send_request(struct download *d)
 	gint rw;
 	gint sent;
 	gboolean n2r = FALSE;
-	guchar *sha1;
+	const guchar *sha1;
 
 	g_assert(d);
 	if (!s)
@@ -5589,7 +5595,7 @@ void download_retry(struct download *d)
  *** Queue persistency routines
  ***/
 
-static gchar *download_file = "downloads";
+static const gchar *download_file = "downloads";
 static gboolean retrieving = FALSE;
 
 /*
@@ -5867,7 +5873,8 @@ static void download_moved_with_bad_sha1(struct download *d)
  * In case the target directory is the same as the source, the file is
  * simply renamed with the extension `ext' appended to it.
  */
-static void download_move(struct download *d, gchar *dir, gchar *ext)
+static void download_move(
+	struct download *d, const gchar *dir, const gchar *ext)
 {
 	struct dl_file_info *fi;
 	gchar *dest = NULL;
@@ -6014,7 +6021,7 @@ void download_move_done(struct download *d, time_t elapsed)
 void download_move_error(struct download *d)
 {
 	struct dl_file_info *fi = d->file_info;
-	gchar *ext;
+	const gchar *ext;
 	gchar *src;
 	gchar *dest;
 
@@ -6301,8 +6308,11 @@ void download_close(void)
     src_close();
 
 	g_slist_free(sl_downloads);
+	sl_downloads = NULL;
 	g_slist_free(sl_unqueued);
+	sl_unqueued = NULL;
 	g_hash_table_destroy(pushed_downloads);
+	pushed_downloads = NULL;
 
 	/* XXX free & check other hash tables as well.
 	 * dl_by_ip, dl_by_host
@@ -6315,7 +6325,7 @@ void download_close(void)
  * creates a url which points to a downloads (e.g. you can move this to a
  * browser and download the file there with this url
  */
-gchar *build_url_from_download(struct download *d) 
+const gchar *build_url_from_download(struct download *d) 
 {
     static gchar url_tmp[1024];
     gchar *buf = NULL;

@@ -41,7 +41,7 @@ RCSID("$Id$");
 
 #define HEADER_SIZE	sizeof(struct gnutella_header)
 
-static gchar *msg_name[256];
+static const gchar *msg_name[256];
 static gint msg_weight[256];		/* For gmsg_cmp() */
 
 static void gmsg_dump(FILE *out, guchar *data, guint32 size);
@@ -85,9 +85,9 @@ void gmsg_init(void)
  *
  * Convert message function number into name.
  */
-gchar *gmsg_name(gint function)
+const gchar *gmsg_name(guint function)
 {
-	if (function < 0 || function > 255)
+	if (function > 255)
 		return "invalid";
 
 	return msg_name[function];

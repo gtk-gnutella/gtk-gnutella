@@ -36,7 +36,7 @@
 
 void move_init(void);
 void move_close(void);
-void move_queue(struct download *d, gchar *dest, gchar *ext);
+void move_queue(struct download *d, const gchar *dest, const gchar *ext);
 
 #endif	/* _move_h_ */
 

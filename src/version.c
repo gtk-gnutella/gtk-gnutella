@@ -47,7 +47,8 @@ static version_t last_dev_version;
  *
  * Dump original version string and decompiled form to stdout.
  */
-static void version_dump(guchar *str, version_t *ver, gchar *cmptag)
+static void version_dump(
+	const guchar *str, const version_t *ver, const gchar *cmptag)
 {
 	printf("VERSION%s \"%s\":\n"
 		"\tmajor=%u minor=%u patch=%u tag=%c taglevel=%u\n",
@@ -61,7 +62,7 @@ static void version_dump(guchar *str, version_t *ver, gchar *cmptag)
  * Return a user-friendly description of the version.
  * NB: returns pointer to static data.
  */
-gchar *version_str(version_t *ver)
+const gchar *version_str(const version_t *ver)
 {
 	static gchar str[80];
 	gint rw;
@@ -92,9 +93,10 @@ gchar *version_str(version_t *ver)
  * Parse gtk-gnutella's version number in User-Agent/Server string `str'
  * and extract timestamp into `ver'.
  */
-static void version_stamp(guchar *str, version_t *ver)
+static void version_stamp(const guchar *str, version_t *ver)
 {
-	guchar *p;
+	static gchar stamp[256];
+	const guchar *p;
 
 	ver->timestamp = 0;
 
@@ -108,7 +110,7 @@ static void version_stamp(guchar *str, version_t *ver)
 
 	p = strchr(str, '(');
 	if (p) {
-		guchar *end;
+		const guchar *end;
 
 		p++;
 		end = strchr(p, ';');
@@ -121,9 +123,8 @@ static void version_stamp(guchar *str, version_t *ver)
 			 * servents to parse it.
 			 */
 
-			*end = '\0';
-			ver->timestamp = date2time(p, &now);
-			*end = ';';
+			gm_snprintf(stamp, MIN(end - p + 1, sizeof(stamp)), "%s", p);
+			ver->timestamp = date2time(stamp, &now);
 
 			if (ver->timestamp == -1) {
 				ver->timestamp = 0;
@@ -144,9 +145,9 @@ static void version_stamp(guchar *str, version_t *ver)
  * Returns TRUE if we parsed a gtk-gnutella version correctly, FALSE if we
  * were not facing a gtk-gnutella version, or if we did not recognize it.
  */
-static gboolean version_parse(guchar *str, version_t *ver)
+static gboolean version_parse(const guchar *str, version_t *ver)
 {
-	guchar *v;
+	const guchar *v;
 
 	/*
 	 * Modern version numbers are formatted like this:
@@ -260,7 +261,7 @@ static gint version_tagcmp(guchar a, guchar b)
  * Compare two gtk-gnutella versions, timestamp not withstanding.
  * Returns -1, 0 or +1 depending on the sign of "a - b".
  */
-gint version_cmp(version_t *a, version_t *b)
+gint version_cmp(const version_t *a, const version_t *b)
 {
 	if (a->major == b->major) {
 		if (a->minor == b->minor) {
@@ -285,7 +286,7 @@ gint version_cmp(version_t *a, version_t *b)
  * Parse vendor string and fill supplied version structure `vs'.
  * Returns OK if we were able to parse correctly.
  */
-gboolean version_fill(gchar *version, version_t *vs)
+gboolean version_fill(const gchar *version, version_t *vs)
 {
 	if (!version_parse(version, vs))
 		return FALSE;
@@ -295,7 +296,7 @@ gboolean version_fill(gchar *version, version_t *vs)
 	return TRUE;
 }
 
-static void version_new_found(gchar *text, gboolean stable)
+static void version_new_found(const gchar *text, gboolean stable)
 {
     static gchar last_stable[256] = "";
     static gchar last_dev[256] = "";
@@ -330,12 +331,12 @@ static void version_new_found(gchar *text, gboolean stable)
  * Returns TRUE if we properly checked the version, FALSE if we got something
  * looking as gtk-gnutella but which failed the token-based sanity checks.
  */
-gboolean version_check(guchar *str, gchar *token)
+gboolean version_check(const guchar *str, const gchar *token)
 {
 	version_t their_version;
 	version_t *target_version;
 	gint cmp;
-	gchar *version;
+	const gchar *version;
 
 	if (!version_parse(str, &their_version))
 		return TRUE;			/* Not gtk-gnutella, or unparseable */
@@ -532,7 +533,7 @@ void version_ancient_warn(void)
  * Check the timestamp in the GTKG version string and returns TRUE if it
  * is too old or could not be parsed, FALSE if OK.
  */
-gboolean version_is_too_old(gchar *vendor)
+gboolean version_is_too_old(const gchar *vendor)
 {
 	version_t ver;
 	time_t now = time(NULL);

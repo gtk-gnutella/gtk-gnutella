@@ -83,7 +83,7 @@ guint32 count_uploads = 0;
  */
 struct mesh_info_key {
 	guint32 ip;						/* Remote host IP address */
-	guchar *sha1;					/* SHA1 atom */
+	const guchar *sha1;				/* SHA1 atom */
 };
 
 struct mesh_info_val {
@@ -99,9 +99,10 @@ static GHashTable *mesh_info = NULL;
 
 static void upload_request(gnutella_upload_t *u, header_t *header);
 static void upload_error_remove(gnutella_upload_t *u, struct shared_file *sf,
-	int code, guchar *msg, ...);
-static void upload_error_remove_ext(gnutella_upload_t *u, struct shared_file *sf,
-	gchar *extended, int code, guchar *msg, ...);
+	int code, const guchar *msg, ...);
+static void upload_error_remove_ext(gnutella_upload_t *u,
+	struct shared_file *sf, const gchar *extended, int code,
+	const guchar *msg, ...);
 static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg);
 static void upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg);
 static void upload_write(gpointer up, gint source, inputevt_cond_t cond);
@@ -490,9 +491,9 @@ static gnutella_upload_t *upload_clone(gnutella_upload_t *u)
 static void send_upload_error_v(
 	gnutella_upload_t *u,
 	struct shared_file *sf,
-	gchar *ext,
+	const gchar *ext,
 	int code,
-	guchar *msg, va_list ap)
+	const guchar *msg, va_list ap)
 {
 	gchar reason[1024];
 	gchar extra[1024];
@@ -582,7 +583,7 @@ static void send_upload_error(
 	gnutella_upload_t *u,
 	struct shared_file *sf,
 	int code,
-	guchar *msg, ...)
+	const guchar *msg, ...)
 {
 	va_list args;
 
@@ -599,7 +600,7 @@ static void send_upload_error(
 static void upload_remove_v(
 	gnutella_upload_t *u, const gchar *reason, va_list ap)
 {
-	gchar *logreason;
+	const gchar *logreason;
 	gchar errbuf[1024];
 
 	/*
@@ -731,7 +732,7 @@ static void upload_error_remove(
 	gnutella_upload_t *u,
 	struct shared_file *sf,
 	int code,
-	guchar *msg, ...)
+	const guchar *msg, ...)
 {
 	va_list args, errargs;
 
@@ -754,9 +755,9 @@ static void upload_error_remove(
 static void upload_error_remove_ext(
 	gnutella_upload_t *u,
 	struct shared_file *sf,
-	gchar *ext,
+	const gchar *ext,
 	int code,
-	guchar *msg, ...)
+	const guchar *msg, ...)
 {
 	va_list args, errargs;
 
@@ -838,7 +839,7 @@ static void call_upload_request(gpointer obj, header_t *header)
  *** Upload mesh info tracking.
  ***/
 
-static struct mesh_info_key *mi_key_make(guint32 ip, guchar *sha1)
+static struct mesh_info_key *mi_key_make(guint32 ip, const guchar *sha1)
 {
 	struct mesh_info_key *mik;
 
@@ -941,7 +942,7 @@ static void mi_clean(cqueue_t *cq, gpointer obj)
  * If we don't remember sending it, return 0.
  * Always records `now' as the time we sent mesh information.
  */
-static guint32 mi_get_stamp(guint32 ip, guchar *sha1, time_t now)
+static guint32 mi_get_stamp(guint32 ip, const guchar *sha1, time_t now)
 {
 	struct mesh_info_key mikey;
 	struct mesh_info_val *miv;
@@ -1483,10 +1484,10 @@ malformed:
  * When NULL is returned, we have sent the error back to the client.
  */
 static struct shared_file *get_file_to_upload(
-	gnutella_upload_t *u, header_t *header, gchar *request)
+	gnutella_upload_t *u, header_t *header, const gchar *request)
 {
 	guint idx = 0;
-	gchar *uri;
+	const gchar *uri;
 	gchar s;
 
 	/*
@@ -1507,9 +1508,9 @@ static struct shared_file *get_file_to_upload(
 	 */
 
 	if (2 == sscanf(uri, "/get/%u%c", &idx, &s) && s == '/')
-		return get_file_to_upload_from_index(u, header, uri, idx);
+		return get_file_to_upload_from_index(u, header, u->name, idx);
 	else if (0 == strncmp(uri, n2r_query, N2R_QUERY_LENGTH))
-		return get_file_to_upload_from_urn(u, header, uri);
+		return get_file_to_upload_from_urn(u, header, u->name);
 
 	upload_error_not_found(u, request);
 	return NULL;
@@ -1534,7 +1535,7 @@ static void upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg)
 	port = listen_port;
 
 	if (host_is_valid(ip, port)) {
-		gchar *xhost = ip_port_to_gchar(ip, port);
+		const gchar *xhost = ip_port_to_gchar(ip, port);
 		gint needed_room = strlen(xhost) + sizeof("X-Host: \r\n") - 1;
 		if (length > needed_room)
 			rw = gm_snprintf(buf, length, "X-Host: %s\r\n", xhost);
@@ -1605,8 +1606,8 @@ static void upload_416_extra(gchar *buf, gint *retval, gpointer arg)
 {
 	gint rw = 0;
 	gint length = *retval;
-	struct upload_http_cb *a = (struct upload_http_cb *) arg;
-	gnutella_upload_t *u = a->u;
+	const struct upload_http_cb *a = (const struct upload_http_cb *) arg;
+	const gnutella_upload_t *u = a->u;
 
 	rw = gm_snprintf(buf, length,
 		"Content-Range: bytes */%u\r\n", u->file_size);
@@ -1687,7 +1688,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	time_t mtime, now;
 	struct upload_http_cb cb_arg;
 	gint http_code;
-	gchar *http_msg;
+	const gchar *http_msg;
 	http_extra_desc_t hev[2];
 	gint hevcnt = 0;
 	guchar *sha1;
@@ -1808,7 +1809,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	if (user_agent) {
-		gchar *msg = ban_vendor(user_agent);
+		const gchar *msg = ban_vendor(user_agent);
 
 		if (msg != NULL) {
 			upload_error_remove(u, NULL, 403, msg);
@@ -1918,7 +1919,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	if (skip >= u->file_size || end >= u->file_size) {
-		gchar *msg = "Requested range not satisfiable";
+		const gchar *msg = "Requested range not satisfiable";
 
 		cb_arg.u = u;
 		cb_arg.sf = reqfile;
@@ -1943,7 +1944,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	if ((u->http_major == 1 && u->http_minor >= 1) || u->http_major > 1) {
-		gchar *host = header_get(header, "Host");
+		const gchar *host = header_get(header, "Host");
 
 		if (host == NULL) {
 			upload_error_remove(u, NULL, 400, "Missing Host Header");
@@ -2322,7 +2323,7 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 
 #endif	/* HAVE_SENDFILE */
 
-	if (written == -1) {
+	if (written ==  -1) {
 		if (errno != EAGAIN)
 			upload_remove(u, "Data write error: %s", g_strerror(errno));
 		return;

@@ -101,7 +101,7 @@ typedef enum {				/* Type of error reported by http_error_cb_t */
 typedef struct {
 	struct header *header;	/* Parsed HTTP header */
 	gint code;				/* HTTP status code */
-	gchar *message;			/* HTTP status message */
+	const gchar *message;	/* HTTP status message */
 } http_error_t;
 
 /*
@@ -137,7 +137,7 @@ typedef void (*http_user_free_t)(gpointer data);
 #define HTTP_ASYNC_NESTED			11	/* Nested redirections */
 #define HTTP_ASYNC_BAD_LOCATION_URI	12	/* Invalid URI in Location header */
 
-extern gint http_async_errno;
+extern guint http_async_errno;
 
 /*
  * Error codes from http_url_parse().
@@ -173,22 +173,22 @@ typedef struct http_range {
 void http_timer(time_t now);
 
 gboolean http_send_status(struct gnutella_socket *s,
-	gint code, http_extra_desc_t *hev, gint hevcnt, gchar *reason, ...);
+	gint code, http_extra_desc_t *hev, gint hevcnt, const gchar *reason, ...);
 
-gint http_status_parse(gchar *line,
-	gchar *proto, gchar **msg, gint *major, gint *minor);
+gint http_status_parse(const gchar *line,
+	const gchar *proto, const gchar **msg, gint *major, gint *minor);
 
 gboolean http_extract_version(
 	gchar *request, gint len, gint *major, gint *minor);
 
-guint32 http_range_size(GSList *list);
-gchar *http_range_to_gchar(GSList *list);
+guint32 http_range_size(const GSList *list);
+const gchar *http_range_to_gchar(const GSList *list);
 void http_range_free(GSList *list);
 GSList *http_range_parse(
-	gchar *field, gchar *value, guint32 size, gchar *vendor);
+	const gchar *field, gchar *value, guint32 size, const gchar *vendor);
 gboolean http_range_contains(GSList *ranges, guint32 from, guint32 to);
 
-gchar *http_url_strerror(http_url_error_t errnum);
+const gchar *http_url_strerror(http_url_error_t errnum);
 gboolean http_url_parse(
 	gchar *url, guint16 *port, gchar **host, gchar **path);
 
@@ -198,9 +198,10 @@ gpointer http_async_get(
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind);
 
-gchar *http_async_strerror(gint errnum);
-gchar *http_async_info(
-	gpointer handle, gchar **req, gchar **path, guint32 *ip, guint16 *port);
+const gchar *http_async_strerror(guint errnum);
+const gchar *http_async_info(
+	gpointer handle, const gchar **req, gchar **path,
+	guint32 *ip, guint16 *port);
 void http_async_connected(gpointer handle);
 void http_async_close(gpointer handle);
 void http_async_cancel(gpointer handle);

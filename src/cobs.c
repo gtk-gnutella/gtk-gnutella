@@ -89,11 +89,11 @@ guchar *cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen)
 } while (0)
 
 	for (i = iovcnt, xiov = iov; i--; xiov++) {
-		guchar *p = xiov->iov_base;				/* Iterates over buffer */
+		const guchar *p = xiov->iov_base;		/* Iterates over buffer */
 		const guchar *end = p + xiov->iov_len;	/* First byte off buffer */
 
 		while (p < end) {
-			guchar c = *p++;
+			const guchar c = *p++;
 			if (c == 0)
 				FINISH(code);
 			else {

@@ -38,7 +38,7 @@ RCSID("$Id$");
 
 #define HUGE_FS		0x1c		/* Field separator (HUGE) */
 
-static gchar *extype[] = {
+static const gchar *extype[] = {
 	"UNKNOWN",					/* EXT_UNKNOWN */
 	"XML",						/* EXT_XML */
 	"HUGE",						/* EXT_HUGE */
@@ -745,9 +745,9 @@ out:
  *
  * Returns TRUE if extension is printable.
  */
-gboolean ext_is_printable(extvec_t *e)
+gboolean ext_is_printable(const extvec_t *e)
 {
-	guchar *p = e->ext_payload;
+	const guchar *p = e->ext_payload;
 	gint len = e->ext_paylen;
 
 	while (len--) {
@@ -764,9 +764,9 @@ gboolean ext_is_printable(extvec_t *e)
  *
  * Returns TRUE if extension is ASCII.
  */
-gboolean ext_is_ascii(extvec_t *e)
+gboolean ext_is_ascii(const extvec_t *e)
 {
-	guchar *p = e->ext_payload;
+	const guchar *p = e->ext_payload;
 	gint len = e->ext_paylen;
 
 	while (len--) {
@@ -783,9 +783,9 @@ gboolean ext_is_ascii(extvec_t *e)
  *
  * Returns TRUE if extension is ASCII and contains at least a character.
  */
-gboolean ext_has_ascii_word(extvec_t *e)
+gboolean ext_has_ascii_word(const extvec_t *e)
 {
-	guchar *p = e->ext_payload;
+	const guchar *p = e->ext_payload;
 	gint len = e->ext_paylen;
 	gboolean has_alnum = FALSE;
 
@@ -806,7 +806,8 @@ gboolean ext_has_ascii_word(extvec_t *e)
  * Dump an extension to specified stdio stream.
  */
 static void ext_dump_one(FILE *fd,
-	extvec_t *e, gchar *prefix, gchar *postfix, gboolean payload)
+	const extvec_t *e, const gchar *prefix, const gchar *postfix,
+	gboolean payload)
 {
 	g_assert(e->ext_type <= EXT_MAXTYPE);
 
@@ -858,8 +859,8 @@ static void ext_dump_one(FILE *fd,
  * If `payload' is true, the payload is dumped in hexadecimal if it contains
  * non-printable characters, as text otherwise.
  */
-void ext_dump(FILE *fd, extvec_t *exv, gint exvcnt,
-	gchar *prefix, gchar *postfix, gboolean payload)
+void ext_dump(FILE *fd, const extvec_t *exv, gint exvcnt,
+	const gchar *prefix, const gchar *postfix, gboolean payload)
 {
 	while (exvcnt--)
 		ext_dump_one(fd, exv++, prefix, postfix, payload);

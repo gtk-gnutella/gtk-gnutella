@@ -75,7 +75,8 @@ struct work {
  *
  * Allocate work queue entry.
  */
-static struct work *we_alloc(struct download *d, gchar *dest, gchar *ext)
+static struct work *we_alloc(
+	struct download *d, const gchar *dest, const gchar *ext)
 {
 	struct work *we;
 
@@ -349,7 +350,7 @@ static bgret_t d_step_copy(gpointer h, gpointer u, gint ticks)
  *
  * Enqueue completed download file for verification.
  */
-void move_queue(struct download *d, gchar *dest, gchar *ext)
+void move_queue(struct download *d, const gchar *dest, const gchar *ext)
 {
 	struct work *we;
 

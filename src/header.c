@@ -47,7 +47,7 @@ RCSID("$Id$");
  *** Error code management
  ***/
 
-static char *error_str[] = {
+static const char *error_str[] = {
 	"OK",									/* HEAD_OK */
 	"Unexpected continuation line",			/* HEAD_CONTINUATION */
 	"Malformed header line",				/* HEAD_MALFORMED */
@@ -59,16 +59,14 @@ static char *error_str[] = {
 	"End of header",						/* HEAD_EOH */
 };
 
-#define MAX_ERRNUM (sizeof(error_str) / sizeof(error_str[0]) - 1)
-
 /*
  * header_strerror
  *
  * Return human-readable error string corresponding to error code `errnum'.
  */
-gchar *header_strerror(gint errnum)
+const gchar *header_strerror(guint errnum)
 {
-	if (errnum < 0 || errnum > MAX_ERRNUM)
+	if (errnum >= G_N_ELEMENTS(error_str))
 		return "Invalid error code";
 
 	return error_str[errnum];
@@ -119,7 +117,7 @@ static void normalize(guchar *field)
  * Create a new empty header field, whose normalized name is `name'.
  * A private copy of `name' is done.
  */
-static header_field_t *hfield_make(guchar *name)
+static header_field_t *hfield_make(const guchar *name)
 {
 	header_field_t *h;
 
@@ -152,7 +150,7 @@ static void hfield_free(header_field_t *h)
  * Append line of text to given header field.
  * A private copy of the data is made.
  */
-static void hfield_append(header_field_t *h, guchar *text)
+static void hfield_append(header_field_t *h, const guchar *text)
 {
 	h->lines = g_slist_append(h->lines, g_strdup(text));
 }
@@ -162,7 +160,7 @@ static void hfield_append(header_field_t *h, guchar *text)
  *
  * Dump field on specified file descriptor.
  */
-static void hfield_dump(header_field_t *h, FILE *out)
+static void hfield_dump(const header_field_t *h, FILE *out)
 {
 	GSList *l;
 
@@ -255,7 +253,7 @@ void header_reset(header_t *o)
  * The requested header field must be in normalized form since they are
  * stored that way.
  */
-gchar *header_get(header_t *o, gchar *field)
+gchar *header_get(const header_t *o, const gchar *field)
 {
 	GString *v;
 
@@ -271,7 +269,7 @@ gchar *header_get(header_t *o, gchar *field)
  * copy of the internal value, so it may be kept around, but must be
  * freed by the caller.
  */
-gchar *header_getdup(header_t *o, gchar *field)
+gchar *header_getdup(const header_t *o, const gchar *field)
 {
 	GString *v;
 
@@ -288,7 +286,7 @@ gchar *header_getdup(header_t *o, gchar *field)
  * Add header line to the `headers' hash for specified field name.
  * A private copy of the `field' name and of the `text' data is made.
  */
-static void add_header(header_t *o, guchar *field, guchar *text)
+static void add_header(header_t *o, const guchar *field, const guchar *text)
 {
 	GHashTable *h = o->headers;
 	GString *v;
@@ -323,7 +321,8 @@ static void add_header(header_t *o, guchar *field, guchar *text)
  * Add continuation line to the `headers' hash for specified field name.
  * A private copy of the data is made.
  */
-static void add_continuation(header_t *o, guchar *field, guchar *text)
+static void add_continuation(
+	header_t *o, const guchar *field, const guchar *text)
 {
 	GHashTable *h = o->headers;
 	GString *v;
@@ -342,10 +341,10 @@ static void add_continuation(header_t *o, guchar *field, guchar *text)
  *
  * Returns an error code, or HEAD_OK if appending was successful.
  */
-gint header_append(header_t *o, guchar *text, gint len)
+gint header_append(header_t *o, const guchar *text, gint len)
 {
 	guchar buf[MAX_LINE_SIZE];
-	guchar *p = text;
+	const guchar *p = text;
 	gint c;
 	header_field_t *hf;
 
@@ -520,7 +519,7 @@ gint header_append(header_t *o, guchar *text, gint len)
  *
  * Dump whole header on specified file.
  */
-void header_dump(header_t *o, FILE *out)
+void header_dump(const header_t *o, FILE *out)
 {
 	GSList *l;
 

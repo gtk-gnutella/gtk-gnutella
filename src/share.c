@@ -56,7 +56,7 @@ RCSID("$Id$");
 #define QHIT_SIZE_THRESHOLD	2016	/* Flush query hits larger than this */
 #define QHIT_MAX_RESULTS	255		/* Maximum amount of hits in a query hit */
 
-static guchar iso_8859_1[96] = {
+static const guchar iso_8859_1[96] = {
 	' ', 			/* 160 - NO-BREAK SPACE */
 	' ', 			/* 161 - INVERTED EXCLAMATION MARK */
 	' ', 			/* 162 - CENT SIGN */
@@ -271,7 +271,7 @@ static int compare_indexes(guint32 i1, guint32 i2)
  * Check if a given shared_file has been added to the QueryHit.
  * Return TRUE if the shared_file is in the QueryHit already, FALSE otherwise
  */
-static gboolean shared_file_already_in_found_set(struct shared_file *sf)
+static gboolean shared_file_already_in_found_set(const struct shared_file *sf)
 {
 	return NULL != g_tree_lookup(index_of_found_files,
 		GUINT_TO_POINTER(sf->file_index));
@@ -283,7 +283,7 @@ static gboolean shared_file_already_in_found_set(struct shared_file *sf)
  * Add the shared_file to the set of files already added to the QueryHit.
  */
 
-static void put_shared_file_into_found_set(struct shared_file *sf)
+static void put_shared_file_into_found_set(const struct shared_file *sf)
 {
 	index_of_found_files_count++;
 	g_tree_insert(index_of_found_files, 
@@ -423,7 +423,7 @@ struct shared_file *shared_file(guint idx)
  * we either don't have a unique filename or SHARE_REBUILDING if the library
  * is being rebuilt.
  */
-struct shared_file *shared_file_by_name(gchar *basename)
+struct shared_file *shared_file_by_name(const gchar *basename)
 {
 	guint idx;
 
@@ -465,7 +465,7 @@ static void free_extensions(void)
 
 /* Get the file extensions to scan */
 
-void parse_extensions(gchar * str)
+void parse_extensions(const gchar * str)
 {
 	gchar **exts = g_strsplit(str, ";", 0);
 	gchar *x, *s;
@@ -538,7 +538,7 @@ void shared_dirs_update_prop(void)
  * The given string was completely parsed, it returns TRUE, otherwise
  * it returns FALSE.
  */
-gboolean shared_dirs_parse(gchar *str)
+gboolean shared_dirs_parse(const gchar *str)
 {
 	gchar **dirs = g_strsplit(str, ":", 0);
 	guint i = 0;
@@ -559,7 +559,7 @@ gboolean shared_dirs_parse(gchar *str)
     return ret;
 }
 
-void shared_dir_add(gchar * path)
+void shared_dir_add(const gchar * path)
 {
 	if (is_directory(path))
         shared_dirs = g_slist_append(shared_dirs, atom_str_get(path));
@@ -574,7 +574,7 @@ void shared_dir_add(gchar * path)
  * including all files and directories. An entry of "/" would search the
  * the whole file system.
  */
-static void recurse_scan(gchar *dir, gchar *basedir)
+static void recurse_scan(gchar *dir, const gchar *basedir)
 {
 	GSList *exts = NULL;
 	DIR *directory;			/* Dir stream used by opendir, readdir etc.. */
@@ -1231,7 +1231,7 @@ guint compact_query(gchar *search, gint utf8_len)
  * Returns FALSE on bad UTF-8, TRUE otherwise.
  */
 static gboolean query_utf8_decode(
-	gchar *text, guint32 len, guint32 *retlen, guint *retoff)
+	const gchar *text, guint32 len, guint32 *retlen, guint *retoff)
 {
 	guint offset = 0;
 	guint32 utf8_len = -1;
@@ -1244,7 +1244,7 @@ static gboolean query_utf8_decode(
 	 */
 
 	if (len >= 3) {
-		guchar *p = (guchar *) text;
+		const guchar *p = (guchar *) text;
 		if (p[0] == 0xef && p[1] == 0xbb && p[2] == 0xbf) {
 			offset = 3;				/* Is UTF-8, skip BOM */
 			if (

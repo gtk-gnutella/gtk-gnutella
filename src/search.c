@@ -83,8 +83,8 @@ typedef struct search_ctrl {
  */
 static GSList *sl_search_ctrl = NULL;
 
-static zone_t *rs_zone;		/* Allocation of results_set */
-static zone_t *rc_zone;		/* Allocation of record */
+static zone_t *rs_zone = NULL;		/* Allocation of results_set */
+static zone_t *rc_zone = NULL;		/* Allocation of record */
 
 static idtable_t *search_handle_map = NULL;
 static query_hashvec_t *query_hashvec = NULL;

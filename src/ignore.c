@@ -312,7 +312,7 @@ enum ignore_val ignore_is_requested(
 	g_assert(file != NULL);
 
 	if (sha1) {
-		struct shared_file *sf;
+		const struct shared_file *sf;
 		if (g_hash_table_lookup(by_sha1, sha1))
 			return IGNORE_SHA1;
 		sf = shared_file_by_sha1(sha1);
@@ -334,7 +334,7 @@ enum ignore_val ignore_is_requested(
  *
  * Add `sha1' to the set of ignored entries.
  */
-void ignore_add_sha1(const guchar *file, guchar *sha1)
+void ignore_add_sha1(const guchar *file, const guchar *sha1)
 {
 	g_assert(sha1);
 

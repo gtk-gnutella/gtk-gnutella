@@ -74,7 +74,7 @@ extern dmesh_url_error_t dmesh_url_errno;
 void dmesh_init(void);
 void dmesh_close(void);
 
-gchar *dmesh_url_strerror(dmesh_url_error_t errnum);
+const gchar *dmesh_url_strerror(dmesh_url_error_t errnum);
 gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info);
 
 gboolean dmesh_add(
@@ -82,12 +82,12 @@ gboolean dmesh_add(
 	guint32 stamp);
 
 void dmesh_remove(
-	guchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name);
+	const guchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name);
 
 void dmesh_collect_locations(guchar *sha1, guchar *value, gboolean defer);
 
 gint dmesh_alternate_location(
-	guchar *sha1, gchar * buf, gint size, guint32 ip, guint32 last_sent);
+	const guchar *sha1, gchar * buf, gint size, guint32 ip, guint32 last_sent);
 
 void dmesh_multiple_downloads(
     guchar *sha1, guint32 size, struct dl_file_info *fi);

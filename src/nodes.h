@@ -362,7 +362,8 @@ void node_qrt_changed(gpointer query_table);
 void node_qrt_discard(struct gnutella_node *n);
 void node_qrt_install(struct gnutella_node *n, gpointer query_table);
 
-void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...);
+void send_node_error(
+	struct gnutella_socket *s, int code, const guchar *msg, ...);
 
 inline void node_add_sent(gnutella_node_t *n, gint x);
 inline void node_add_txdrop(gnutella_node_t *n, gint x);

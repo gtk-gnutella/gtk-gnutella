@@ -572,8 +572,8 @@ static void parse_dispatch_lines(
 
 		ctx->lines++;
 		if (ctx->lines >= ctx->maxlines) {
-			gchar *req;
-			gchar *url = http_async_info(handle, &req, NULL, NULL, NULL);
+			const gchar *req;
+			const gchar *url = http_async_info(handle, &req, NULL, NULL, NULL);
 			g_warning("got %d+ lines from \"%s %s\", stopping",
 				ctx->lines, req, url);
 			http_async_close(handle);

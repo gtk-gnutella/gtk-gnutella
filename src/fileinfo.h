@@ -114,10 +114,11 @@ enum dl_chunk_status file_info_chunk_status(
 void file_info_reset(struct dl_file_info *fi);
 void file_info_recreate(struct download *d);
 struct dl_file_info *file_info_get(
-	gchar *file, gchar *path, guint32 size, gchar *sha1);
+	gchar *file, const gchar *path, guint32 size, gchar *sha1);
 void file_info_strip_binary(struct dl_file_info *fi);
-void file_info_strip_binary_from_file(struct dl_file_info *fi, gchar *file);
-gboolean file_info_got_sha1(struct dl_file_info *fi, guchar *sha1);
+void file_info_strip_binary_from_file(
+	struct dl_file_info *fi, const gchar *file);
+gboolean file_info_got_sha1(struct dl_file_info *fi, const guchar *sha1);
 void file_info_update(
 	struct download *d, guint32 from, guint32 to, enum dl_chunk_status status);
 enum dl_chunk_status file_info_pos_status(struct dl_file_info *fi, guint32 pos);

@@ -500,7 +500,8 @@ void file_info_strip_binary(struct dl_file_info *fi)
  *
  * Strips the file metainfo trailer off specified file.
  */
-void file_info_strip_binary_from_file(struct dl_file_info *fi, gchar *file)
+void file_info_strip_binary_from_file(
+	struct dl_file_info *fi, const gchar *file)
 {
 	struct dl_file_info *dfi;
 
@@ -819,7 +820,7 @@ static gboolean file_info_has_filename(struct dl_file_info *fi, gchar *file)
  * Returns the fileinfo structure if found, NULL otherwise.
  */
 static struct dl_file_info *file_info_lookup(
-	guchar *name, guint32 size, guchar *sha1)
+	guchar *name, guint32 size, const guchar *sha1)
 {
 	struct dl_file_info *fi;
 	struct namesize nsk;
@@ -1234,8 +1235,8 @@ void file_info_store_if_dirty(void)
  */
 static void file_info_free_sha1_kv(gpointer key, gpointer val, gpointer x)
 {
-	guchar *sha1 = (guchar *) key;
-	struct dl_file_info *fi = (struct dl_file_info *) val;
+	const guchar *sha1 = (const guchar *) key;
+	const struct dl_file_info *fi = (const struct dl_file_info *) val;
 
 	g_assert(sha1 == fi->sha1);		/* SHA1 shared with fi's, don't free */
 
@@ -1275,9 +1276,10 @@ static void file_info_free_size_kv(gpointer key, gpointer val, gpointer x)
  *
  * Callback for hash table iterator. Used by file_info_close().
  */
-static void file_info_free_outname_kv(gpointer key, gpointer val, gpointer x)
+static void file_info_free_outname_kv(
+	gpointer key, gpointer val, gpointer x)
 {
-	gchar *name = (gchar *) key;
+	const gchar *name = (const gchar *) key;
 	struct dl_file_info *fi = (struct dl_file_info *) val;
 
 	g_assert(name == fi->file_name);	/* name shared with fi's, don't free */
@@ -1595,7 +1597,7 @@ static void file_info_reparent_all(
  *
  * Returns TRUE if OK, FALSE if a duplicate record with the same SHA1 exists.
  */
-gboolean file_info_got_sha1(struct dl_file_info *fi, guchar *sha1)
+gboolean file_info_got_sha1(struct dl_file_info *fi, const guchar *sha1)
 {
 	struct dl_file_info *xfi;
 
@@ -2000,7 +2002,7 @@ ok:
  * The `sha1' is the known SHA1 for the file (NULL if unknown).
  */
 static struct dl_file_info *file_info_create(
-	gchar *file, gchar *path, guint32 size, guchar *sha1)
+	gchar *file, const gchar *path, guint32 size, const guchar *sha1)
 {
 	struct dl_file_info *fi;
 	struct dl_file_chunk *fc;
@@ -2069,7 +2071,7 @@ void file_info_recreate(struct download *d)
 	 */
 
 	for (l = fi->alias; l; l = g_slist_next(l)) {
-		gchar *alias = (gchar *) l->data;
+		const gchar *alias = (const gchar *) l->data;
 		new_fi->alias = g_slist_append(new_fi->alias, atom_str_get(alias));
 	}
 
@@ -2108,7 +2110,7 @@ void file_info_recreate(struct download *d)
  * `file' is the file name on the server.
  */ 
 struct dl_file_info *file_info_get(
-	gchar *file, gchar *path, guint32 size, gchar *sha1)
+	gchar *file, const gchar *path, guint32 size, gchar *sha1)
 {
 	struct dl_file_info *fi;
 	guchar *outname;
@@ -2936,7 +2938,7 @@ found:
  *
  * Return a dl_file_info if there's an active one with the same sha1.
  */
-static struct dl_file_info *file_info_active(guchar *sha1)
+static struct dl_file_info *file_info_active(const guchar *sha1)
 {
 	return g_hash_table_lookup(fi_by_sha1, sha1);
 }
@@ -3053,7 +3055,7 @@ void file_info_scandir(const gchar *dir)
  */
 static void fi_spot_completed_kv(gpointer key, gpointer val, gpointer x)
 {
-	gchar *name = (gchar *) key;
+	const gchar *name = (const gchar *) key;
 	struct dl_file_info *fi = (struct dl_file_info *) val;
 
 	g_assert(name == fi->file_name);	/* name shared with fi's, don't free */

@@ -54,11 +54,7 @@ void routing_close(void);
 void message_set_muid(struct gnutella_header *header, guint8 function);
 gboolean route_message(struct gnutella_node **, struct route_dest *);
 void routing_node_remove(struct gnutella_node *);
-void sendto_one(struct gnutella_node *, guchar *, guchar *, guint32);
-void sendto_all_but_one(struct gnutella_node *, guchar *, guchar *,
-						guint32);
-void sendto_all(guchar *, guchar *, guint32);
-void message_add(guchar *, guint8, struct gnutella_node *);
-struct gnutella_node *route_towards_guid(guchar *guid);
+void message_add(const guchar *, guint8, struct gnutella_node *);
+struct gnutella_node *route_towards_guid(const guchar *guid);
 
 #endif /* _routing_h_ */

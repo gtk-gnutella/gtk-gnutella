@@ -1569,7 +1569,7 @@ int connect_socksv5(struct gnutella_socket *s)
 {
 	int rc = 0;
 	int offset = 0;
-	char *verstring = "\x05\x02\x02\x00";
+	const char *verstring = "\x05\x02\x02\x00";
 	char *uname, *upass;
 	struct passwd *nixuser;
 	char *buf;

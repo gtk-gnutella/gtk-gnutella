@@ -42,7 +42,7 @@ struct route_dest;
  */
 
 void gmsg_init(void);
-gchar *gmsg_name(gint function);
+const gchar *gmsg_name(guint function);
 
 void gmsg_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size);
 void gmsg_ctrl_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size);

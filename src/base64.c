@@ -88,7 +88,7 @@ static gint8 values[256] = {
     -1,-1,-1,-1,-1,						/*            - 251 -> 255 */
 };
 
-static gchar *b64_alphabet =
+static const gchar *b64_alphabet =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 /*
@@ -249,7 +249,7 @@ guchar *base64_encode(const guchar *buf, gint len, gint *retpad)
  *
  * Return decoded bytes if successful, 0 if the input was not valid base64.
  */
-static gint base64_decode_alphabet(gint8 valmap[256],
+static gint base64_decode_alphabet(const gint8 valmap[256],
 	const guchar *buf, gint len, guchar *decbuf, gint declen)
 {
 	guint32 i = 0;					/* Input accumulator, 0 for trailing pad */

@@ -25,9 +25,10 @@
  *----------------------------------------------------------------------
  */
 
+#include <arpa/inet.h>	/* For ntohl(), htonl() */
+
 #include "common.h"
 
-#include <arpa/inet.h>	/* For ntohl(), htonl() */
 #include "token.h"
 #include "version.h"
 #include "misc.h"
@@ -48,7 +49,7 @@ RCSID("$Id$");
  * There can be up to 2^5 = 32 keys per version.
  */
 
-gchar *keys_092u[] = {
+static const gchar *keys_092u[] = {
 	"0a8b f26f 57a1 aaac 2db3 c66c 9f7d 0b17",
 	"b59c 9807 a77c c40f c278 daa3 2389 450d",
 	"746f 28cc 8b35 100a f5c4 da9f 9888 06b3",
@@ -72,7 +73,7 @@ gchar *keys_092u[] = {
  */
 struct tokkey {
 	version_t ver;		/* Version number */
-	gchar **keys;		/* Keys to use */
+	const gchar **keys;	/* Keys to use */
 	gint count;			/* Amount of keys defined */
 } token_keys[] = {
 	{
@@ -85,7 +86,7 @@ struct tokkey {
  * Token validation errors.
  */
 
-static gchar *tok_errstr[] = {
+static const gchar *tok_errstr[] = {
 	"OK",							/* TOK_OK */
 	"Bad length",					/* TOK_BAD_LENGTH */
 	"Bad timestamp",				/* TOK_BAD_STAMP */
@@ -107,9 +108,9 @@ static gchar *tok_errstr[] = {
  *
  * Return human-readable error string corresponding to error code `errnum'.
  */
-gchar *tok_strerror(tok_error_t errnum)
+const gchar *tok_strerror(tok_error_t errnum)
 {
-	if (errnum < 0 || errnum > G_N_ELEMENTS(tok_errstr))
+	if (errnum < 0 || errnum >= G_N_ELEMENTS(tok_errstr))
 		return "Invalid error code";
 
 	return tok_errstr[errnum];
@@ -121,11 +122,11 @@ gchar *tok_strerror(tok_error_t errnum)
  * Based on the timestamp, determine the proper token keys to use.
  * Returns NULL if we cannot locate any suitable keys.
  */
-static struct tokkey *find_tokkey(time_t now)
+static const struct tokkey *find_tokkey(time_t now)
 {
 	time_t adjusted = now - VERSION_ANCIENT_BAN;
 	gint i;
-	struct tokkey *tk;
+	const struct tokkey *tk;
 
 	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
 		tk = &token_keys[i];
@@ -143,11 +144,12 @@ static struct tokkey *find_tokkey(time_t now)
  * Returns the key string and the index within the key array into `idx'
  * and the token key structure used in `tkused'.
  */
-static gchar *random_key(time_t now, gint *idx, struct tokkey **tkused)
+static const gchar *random_key(
+	time_t now, gint *idx, const struct tokkey **tkused)
 {
 	static gboolean warned = FALSE;
 	gint random_idx;
-	struct tokkey *tk;
+	const struct tokkey *tk;
 
 	tk = find_tokkey(now);
 
@@ -187,9 +189,9 @@ guchar *tok_version(void)
 	guchar lvldigest[LEVEL_SIZE];
 	guchar lvlbase64[LEVEL_BASE64_SIZE + 1];
 	time_t now = time(NULL);
-	struct tokkey *tk;
+	const struct tokkey *tk;
 	gint idx;
-	gchar *key;
+	const gchar *key;
 	SHA1Context ctx;
 	guint8 seed[3];
 	guint32 now32;
@@ -241,7 +243,7 @@ guchar *tok_version(void)
 	for (i = 0; i < lvlsize; i++, tk++) {
 		gint j;
 		guint32 crc = now32;
-		guchar *c = (guchar *) &crc;
+		const guchar *c = (const guchar *) &crc;
 
 		for (j = 0; j < tk->count; j++)
 			crc = crc32_update_crc(crc, tk->keys[j], klen);
@@ -275,15 +277,16 @@ guchar *tok_version(void)
  * Validate a base64-encoded version token `tokenb64' of `len' bytes.
  * Returns error code, or TOK_OK if token is valid.
  */
-tok_error_t tok_version_valid(gchar *version, guchar *tokenb64, gint len)
+tok_error_t tok_version_valid(
+	const gchar *version, const guchar *tokenb64, gint len)
 {
 	time_t now = time(NULL);
 	time_t stamp;
 	guint32 stamp32;
-	struct tokkey *tk;
-	struct tokkey *rtk;
+	const struct tokkey *tk;
+	const struct tokkey *rtk;
 	gint idx;
-	gchar *key;
+	const gchar *key;
 	SHA1Context ctx;
 	guchar lvldigest[1024];
 	guint8 token[TOKEN_VERSION_SIZE]; 

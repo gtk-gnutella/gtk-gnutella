@@ -372,7 +372,7 @@ static gpointer sha1_task = NULL;
  */
 
 struct file_sha1 {
-	char *file_name;
+	const char *file_name;
 	guint32 file_index;
 
 	/*
@@ -534,7 +534,7 @@ static void put_sha1_back_into_share_library(
  * because it wasn't available. We try again. This function is called from the
  * sha1_timer. 
  */
-static void try_to_put_sha1_back_into_share_library()
+static void try_to_put_sha1_back_into_share_library(void)
 {
 	struct shared_file *sf;
 
@@ -907,8 +907,8 @@ static void queue_shared_file_for_sha1_computation(
  * Returns true (in the C sense) if it is, or false otherwise.
  */
 static gboolean cached_entry_up_to_date(
-	struct sha1_cache_entry *cache_entry,
-	struct shared_file *sf)
+	const struct sha1_cache_entry *cache_entry,
+	const struct shared_file *sf)
 {
 	return cache_entry->size == sf->file_size
 		&& cache_entry->mtime == sf->mtime;
@@ -1006,7 +1006,7 @@ void huge_close(void)
 gboolean huge_http_sha1_extract32(guchar *buf, guchar *retval)
 {
 	gint i;
-	guchar *p;
+	const guchar *p;
 
 	/*
 	 * Make sure we have at least SHA1_BASE32_SIZE characters before the

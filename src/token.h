@@ -57,9 +57,10 @@ typedef enum {
  * Public interface.
  */
 
-gchar *tok_strerror(tok_error_t errnum);
+const gchar *tok_strerror(tok_error_t errnum);
 guchar *tok_version(void);
-tok_error_t tok_version_valid(gchar *version, guchar *tokenb64, gint len);
+tok_error_t tok_version_valid(
+	const gchar *version, const guchar *tokenb64, gint len);
 
 #endif	/* _token_h_ */
 

@@ -107,11 +107,11 @@ typedef struct {
 header_t *header_make(void);
 void header_free(header_t *o);
 void header_reset(header_t *o);
-gint header_append(header_t *o, guchar *text, gint len);
-void header_dump(header_t *o, FILE *out);
-gchar *header_strerror(gint errnum);
-gchar *header_get(header_t *o, gchar *field);
-gchar *header_getdup(header_t *o, gchar *field);
+gint header_append(header_t *o, const guchar *text, gint len);
+void header_dump(const header_t *o, FILE *out);
+const gchar *header_strerror(guint errnum);
+gchar *header_get(const header_t *o, const gchar *field);
+gchar *header_getdup(const header_t *o, const gchar *field);
 
 #endif	/* _header_h_ */
 

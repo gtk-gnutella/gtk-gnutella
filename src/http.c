@@ -71,7 +71,7 @@ static GSList *sl_outgoing = NULL;		/* To spot reply timeouts */
 gboolean http_send_status(
 	struct gnutella_socket *s, gint code,
 	http_extra_desc_t *hev, gint hevcnt,
-	gchar *reason, ...)
+	const gchar *reason, ...)
 {
 	gchar header[1536];			/* 1.5 K max */
 	gchar status_msg[512];
@@ -169,9 +169,9 @@ gboolean http_send_status(
  *
  * Returns status code, -1 on error.
  */
-static gint code_message_parse(gchar *line, gchar **msg)
+static gint code_message_parse(const gchar *line, const gchar **msg)
 {
-	guchar *p;
+	const guchar *p;
 	guchar code[4];
 	gint c;
 	gint i;
@@ -255,11 +255,11 @@ static gint code_message_parse(gchar *line, gchar **msg)
  * NB: this routine is also used to parse GNUTELLA status codes, since
  * they follow the same pattern as HTTP status codes.
  */
-gint http_status_parse(gchar *line,
-	gchar *proto, gchar **msg, gint *major, gint *minor)
+gint http_status_parse(const gchar *line,
+	const gchar *proto, const gchar **msg, gint *major, gint *minor)
 {
 	gint c;
-	guchar *p;
+	const guchar *p;
 
 	/*
 	 * Skip leading spaces.
@@ -453,16 +453,14 @@ static gchar *parse_errstr[] = {
 	"Could not resolve host into IP",		/* HTTP_URL_HOSTNAME_UNKNOWN */
 };
 
-#define MAX_PARSE_ERRNUM (sizeof(parse_errstr) / sizeof(parse_errstr[0]) - 1)
-
 /*
  * http_url_strerror
  *
  * Return human-readable error string corresponding to error code `errnum'.
  */
-gchar *http_url_strerror(http_url_error_t errnum)
+const gchar *http_url_strerror(http_url_error_t errnum)
 {
-	if (errnum < 0 || errnum > MAX_PARSE_ERRNUM)
+	if (errnum < 0 || errnum >= G_N_ELEMENTS(parse_errstr))
 		return "Invalid error code";
 
 	return parse_errstr[errnum];
@@ -610,7 +608,7 @@ gboolean http_url_parse(
  */
 static GSList *http_range_add(
 	GSList *list, guint32 start, guint32 end,
-	gchar *field, gchar *vendor, gboolean *ignored)
+	const gchar *field, const gchar *vendor, gboolean *ignored)
 {
 	GSList *l;
 	GSList *prev;
@@ -706,10 +704,10 @@ ignored:
  * Returns a sorted list of http_range_t objects.
  */
 GSList *http_range_parse(
-	gchar *field, gchar *value, guint32 size, gchar *vendor)
+	const gchar *field, gchar *value, guint32 size, const gchar *vendor)
 {
 	GSList *ranges = NULL;
-	guchar *str = value;
+	const guchar *str = value;
 	guchar c;
 	guint32 start;
 	guint32 end;
@@ -839,9 +837,10 @@ GSList *http_range_parse(
 			gchar *dend;
 			guint32 val = strtoul(str - 1, &dend, 10);
 
-			g_assert((guchar *) dend != (str - 1));	/* Started with digit! */
+			/* Started with digit! */
+			g_assert((const guchar *) dend != (str - 1));
 
-			str = (guchar *) dend;		/* Skip number */
+			str = (const guchar *) dend;		/* Skip number */
 
 			if (has_end) {
 				g_warning("weird %s header from <%s>, offset %d "
@@ -966,9 +965,9 @@ void http_range_free(GSList *list)
  *
  * Returns total size of all the ranges.
  */
-guint32 http_range_size(GSList *list)
+guint32 http_range_size(const GSList *list)
 {
-	GSList *l;
+	const GSList *l;
 	guint32 size = 0;
 
 	for (l = list; l; l = g_slist_next(l)) {
@@ -984,14 +983,14 @@ guint32 http_range_size(GSList *list)
  *
  * Returns a pointer to static data, containing the available ranges.
  */
-gchar *http_range_to_gchar(GSList *list)
+const gchar *http_range_to_gchar(const GSList *list)
 {
 	static gchar str[2048];
-	GSList *l;
+	const GSList *l;
 	gint rw;
 
 	for (l = list, rw = 0; l && rw < sizeof(str); l = g_slist_next(l)) {
-		http_range_t *r = (http_range_t *) l->data;
+		const http_range_t *r = (const http_range_t *) l->data;
 
 		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%u-%u", r->start, r->end);
 
@@ -1040,7 +1039,7 @@ gboolean http_range_contains(GSList *ranges, guint32 from, guint32 to)
  *** Asynchronous HTTP error code management.
  ***/
 
-static gchar *error_str[] = {
+static const gchar *error_str[] = {
 	"OK",									/* HTTP_ASYNC_OK */
 	"Invalid HTTP URL",						/* HTTP_ASYNC_BAD_URL */
 	"Connection failed",					/* HTTP_ASYNC_CONN_FAILED */
@@ -1056,18 +1055,16 @@ static gchar *error_str[] = {
 	"Invalid URI in Location header",		/* HTTP_ASYNC_BAD_LOCATION_URI */
 };
 
-gint http_async_errno;		/* Used to return error codes during setup */
-
-#define MAX_ERRNUM (sizeof(error_str) / sizeof(error_str[0]) - 1)
+guint http_async_errno;		/* Used to return error codes during setup */
 
 /*
  * http_async_strerror
  *
  * Return human-readable error string corresponding to error code `errnum'.
  */
-gchar *http_async_strerror(gint errnum)
+const gchar *http_async_strerror(guint errnum)
 {
-	if (errnum < 0 || errnum > MAX_ERRNUM)
+	if (errnum >= G_N_ELEMENTS(error_str))
 		return "Invalid error code";
 
 	return error_str[errnum];
@@ -1084,7 +1081,7 @@ enum http_reqtype {
 	HTTP_MAX_REQTYPE,
 };
 
-static gchar *http_verb[HTTP_MAX_REQTYPE] = {
+static const gchar *http_verb[HTTP_MAX_REQTYPE] = {
 	"HEAD",
 	"GET",
 	"POST",
@@ -1140,8 +1137,9 @@ static GSList *sl_ha_freed = NULL;		/* Pending physical removal */
  * if it is a non-NULL pointer, `path' with the request path, `ip' and `port'
  * with the server address/port.
  */
-gchar *http_async_info(
-	gpointer handle, gchar **req, gchar **path, guint32 *ip, guint16 *port)
+const gchar *http_async_info(
+	gpointer handle, const gchar **req, gchar **path,
+	guint32 *ip, guint16 *port)
 {
 	struct http_async *ha = (struct http_async *) handle;
 
@@ -1355,7 +1353,7 @@ static void http_async_headerr(gpointer handle, gint code)
  * Cancel request (HTTP error).
  */
 static void http_async_http_error(
-	gpointer handle, struct header *header, gint code, gchar *message)
+	gpointer handle, struct header *header, gint code, const gchar *message)
 {
 	http_error_t he;
 
@@ -1713,7 +1711,7 @@ static void http_got_header(struct http_async *ha, header_t *header)
 	struct gnutella_socket *s = ha->socket;
 	gchar *status = getline_str(s->getline);
 	gint ack_code;
-	gchar *ack_message = "";
+	const gchar *ack_message = "";
 	gchar *buf;
 	gint http_major = 0, http_minor = 0;
 
@@ -1905,8 +1903,8 @@ void http_async_connected(gpointer handle)
  */
 void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
 {
-	gchar *url;
-	gchar *req;
+	const gchar *url;
+	const gchar *req;
 	gint error = GPOINTER_TO_INT(v);
 	http_error_t *herror = (http_error_t *) v;
 

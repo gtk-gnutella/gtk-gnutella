@@ -67,7 +67,7 @@ struct dl_server {
 	struct dl_key *key;		/* Key properties */
 	GList *list[DL_LIST_SZ];	/* Download lists */
 	gint count[DL_LIST_SZ];		/* Amount of downloads in list */
-	gchar *vendor;			/* Remote server vendor string (atom) */
+	const gchar *vendor;		/* Remote server vendor string (atom) */
 	time_t retry_after;		/* Time at which we may retry from this host */
 	struct vernum parq_version;	/* Supported queueing version */
 	guint32 attrs;
@@ -92,7 +92,7 @@ struct dl_queued {
 	time_t ETA;				/* Estimated time till upload slot retrieved */
 	guint lifetime;			/* Max interval before loosing queue position */
 	guint retry_delay;		/* Interval between new attempt */
-	gchar ID[PARQ_MAX_ID_LENGTH+1];	/* PARQ Queue ID, +1 for trailing NUL */
+	gchar ID[PARQ_MAX_ID_LENGTH];	/* PARQ Queue ID, includes trailing NUL */
 };
 
 /*
@@ -312,7 +312,7 @@ gint download_remove_all_with_sha1(const guchar *sha1);
 void download_remove_file(struct download *d, gboolean reset);
 gboolean download_file_exists(struct download *d);
 gboolean download_server_nopush(guchar *guid, guint32 ip, guint16 port);
-gchar *build_url_from_download(struct download *d);
+const gchar *build_url_from_download(struct download *d);
 
 void download_verify_start(struct download *d);
 void download_verify_progress(struct download *d, guint32 hashed);
@@ -324,7 +324,7 @@ void download_move_progress(struct download *d, guint32 copied);
 void download_move_done(struct download *d, time_t elapsed);
 void download_move_error(struct download *d);
 
-guint extract_retry_after(header_t *header);
+guint extract_retry_after(const header_t *header);
 gboolean is_faked_download(struct download *d);
 
 #endif /* _downloads_h_ */

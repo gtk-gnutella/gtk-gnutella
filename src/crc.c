@@ -62,7 +62,7 @@ static guint32 crc_table[256];
  * Generates a 256-word table containing all CRC remainders for every
  * possible 8-bit byte.
  */
-static void crc32_gen_crc_table()
+static void crc32_gen_crc_table(void)
 {
 	gint i, j;
 	guint32 crc_accum;
@@ -84,7 +84,7 @@ static void crc32_gen_crc_table()
  *
  * Update the CRC on the data block one byte at a time
  */
-guint32 crc32_update_crc(guint32 crc_accum, gchar *data, gint len)
+guint32 crc32_update_crc(guint32 crc_accum, const gchar *data, gint len)
 {
 	gint i, j;
 	guchar *p = (guchar *) data;
@@ -102,7 +102,7 @@ guint32 crc32_update_crc(guint32 crc_accum, gchar *data, gint len)
  *
  * Initialize the CRC computations.
  */
-void crc_init()
+void crc_init(void)
 {
 	crc32_gen_crc_table();
 }

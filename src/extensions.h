@@ -111,12 +111,12 @@ void ext_close(void);
 
 gint ext_parse(guchar *buf, gint len, extvec_t *exv, gint extcnt);
 
-gboolean ext_is_printable(extvec_t *e);
-gboolean ext_is_ascii(extvec_t *e);
-gboolean ext_has_ascii_word(extvec_t *e);
+gboolean ext_is_printable(const extvec_t *e);
+gboolean ext_is_ascii(const extvec_t *e);
+gboolean ext_has_ascii_word(const extvec_t *e);
 
-void ext_dump(FILE *fd, extvec_t *extvec, gint extcnt,
-	gchar *prefix, gchar *postfix, gboolean payload);
+void ext_dump(FILE *fd, const extvec_t *extvec, gint extcnt,
+	const gchar *prefix, const gchar *postfix, gboolean payload);
 
 #endif	/* _extensions_h_ */
 

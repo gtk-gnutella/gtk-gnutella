@@ -426,9 +426,9 @@ void ban_close(void)
  *** Vendor-specific banning.
  ***/
 
-static gchar *harmful = "Harmful version banned, upgrade required";
-static gchar *refused = "Connection refused";
-static gchar *too_old = "Outdated version, please upgrade";
+static const gchar *harmful = "Harmful version banned, upgrade required";
+static const gchar *refused = "Connection refused";
+static const gchar *too_old = "Outdated version, please upgrade";
 
 /*
  * ban_vendor
@@ -440,7 +440,7 @@ static gchar *too_old = "Outdated version, please upgrade";
  *
  * Returns NULL if we shall not ban, a banning reason string otherwise.
  */
-gchar *ban_vendor(gchar *vendor)
+const gchar *ban_vendor(const gchar *vendor)
 {
 	gboolean is_gtkg = FALSE;
 

@@ -561,6 +561,7 @@ void download_gui_add(struct download *d)
 	gint row;
 	GdkColor *color;
 	GtkCList* clist_downloads;
+	static gchar vendor[256];
 
 	g_return_if_fail(d);
 
@@ -584,13 +585,14 @@ void download_gui_add(struct download *d)
 	 *		--RAM, 22/10/2002
 	 */
 
+	gm_snprintf(vendor, sizeof(vendor), "%s", download_vendor_str(d));
 	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
 		GtkCList* clist_downloads_queue;
 
         titles[c_queue_filename] = d->record_index == URN_INDEX ?
 			d->file_info->file_name : d->file_name;
-        titles[c_queue_server] = download_vendor_str(d);
-        titles[c_queue_status] = "";
+        titles[c_queue_server] = g_strdup(download_vendor_str(d));
+        titles[c_queue_status] = vendor;
 		titles[c_queue_size] = short_size(d->file_info->size);
         titles[c_queue_host] = is_faked_download(d) ? "" :
 			ip_port_to_gchar(download_ip(d), download_port(d));
@@ -606,7 +608,7 @@ void download_gui_add(struct download *d)
 
 		titles[c_dl_filename] = d->record_index == URN_INDEX ?
 			d->file_info->file_name : d->file_name;
-		titles[c_dl_server] = download_vendor_str(d);
+		titles[c_dl_server] = vendor;
 		titles[c_dl_status] = "";
 		titles[c_dl_size] = short_size(d->file_info->size);
 		titles[c_dl_range] = "";

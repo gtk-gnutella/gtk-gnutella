@@ -31,7 +31,7 @@
 #include <glib.h>
 
 void crc_init(void);
-guint32 crc32_update_crc(guint32 crc_accum, gchar *data, gint len);
+guint32 crc32_update_crc(guint32 crc_accum, const gchar *data, gint len);
 
 #endif	/* _crc_h_ */
 

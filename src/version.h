@@ -60,12 +60,12 @@ typedef struct version {
 void version_init(void);
 void version_close(void);
 void version_ancient_warn(void);
-gboolean version_check(guchar *str, gchar *token);
-gboolean version_is_too_old(gchar *vendor);
-gint version_cmp(version_t *a, version_t *b);
-gboolean version_fill(gchar *version, version_t *vs);
+gboolean version_check(const guchar *str, const gchar *token);
+gboolean version_is_too_old(const gchar *vendor);
+gint version_cmp(const version_t *a, const version_t *b);
+gboolean version_fill(const gchar *version, version_t *vs);
 
-gchar *version_str(version_t *ver);
+const gchar *version_str(const version_t *ver);
 
 extern gchar *version_string;
 extern gchar *version_number;
