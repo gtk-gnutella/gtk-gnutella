@@ -239,5 +239,6 @@ void gui_update_hosts_in_catcher();
 void gui_update_stats_frames();
 void gui_update_queue_frozen();
 void gui_address_changed();
+void gui_allow_rescan_dir(gboolean flag);
 
 #endif /* __gui_h__ */

@@ -1127,6 +1127,11 @@ void gui_update_shared_dirs(void)
 
 }
 
+void gui_allow_rescan_dir(gboolean flag)
+{
+	gtk_widget_set_sensitive (button_config_rescan_dir, flag);
+}
+
 void gui_update_global(void)
 {
 	static gboolean startupset = FALSE;

@@ -243,6 +243,20 @@ static gboolean callout_timer(gpointer p)
 	return TRUE;
 }
 
+/*
+ * scan_files_once
+ *
+ * Scan files when the GUI is up.
+ */
+static gboolean scan_files_once(gpointer p)
+{
+	gui_allow_rescan_dir(FALSE);
+	share_scan();
+	gui_allow_rescan_dir(TRUE);
+
+	return FALSE;
+}
+
 gint main(gint argc, gchar ** argv)
 {
 	gint i;
@@ -307,14 +321,13 @@ gint main(gint argc, gchar ** argv)
 
 	/* Setup the main timers */
 
-	gtk_timeout_add(1000, (GtkFunction) main_timer, NULL);
-	gtk_timeout_add(CALLOUT_PERIOD, (GtkFunction) callout_timer, NULL);
-
+	(void) g_timeout_add(1000, main_timer, NULL);
+	(void) g_timeout_add(CALLOUT_PERIOD, callout_timer, NULL);
+	(void) g_timeout_add(1000, scan_files_once, NULL);
 
 	/* Okay, here we go */
 
 	bsched_enable_all();
-	share_scan();			/* XXX Scan files when the GUI is up */
 	gtk_main();
 
 	return 0;
