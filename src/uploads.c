@@ -1111,39 +1111,47 @@ static void upload_request(struct upload *u, header_t *header)
 		return;
 
 	/*
-	 * Even though this test is less costly than the previous, doing it
-	 * afterwards allows them to be notified of a mismatch whilst they
-	 * wait for a download slot.  It would be a pity for them to get
-	 * a slot and be told about the mismatch only then.
-	 *		--RAM, 15/12/2001
+	 * We let all HEAD request go through, whether we're busy or not, since
+	 * we only send back the header.
 	 */
 
-	if (running_uploads > max_uploads) {
-		upload_error_remove(u, reqfile,
-			503, "Too many uploads (%d max)", max_uploads);
-		return;
-	}
+	if (!head_only) {
+		/*
+		 * Ensure that noone tries to download the same file twice, and
+		 * that they don't get beyond the max authorized downloads per IP.
+		 */
 
-	/*
-	 * Ensure that noone tries to download the same file twice, and
-	 * that they don't get beyond the max authorized downloads per IP.
-	 */
-
-	for (l = uploads; l; l = l->next) {
-		struct upload *up = (struct upload *) (l->data);
-		g_assert(up);
-		if (up == u)
-			continue;				/* Current upload is already in list */
-		if (!UPLOAD_IS_SENDING(up))
-			continue;
-		if (up->index == index && up->socket->ip == s->ip) {
-			upload_error_remove(u, NULL, 409, "Already downloading that file");
-			return;
+		for (l = uploads; l; l = l->next) {
+			struct upload *up = (struct upload *) (l->data);
+			g_assert(up);
+			if (up == u)
+				continue;				/* Current upload is already in list */
+			if (!UPLOAD_IS_SENDING(up))
+				continue;
+			if (up->index == index && up->socket->ip == s->ip) {
+				upload_error_remove(u, NULL, 409,
+					"Already downloading that file");
+				return;
+			}
+			if (up->socket->ip == s->ip && ++upcount >= max_uploads_ip) {
+				upload_error_remove(u, reqfile,
+					503, "Only %u download%s per IP address",
+					max_uploads_ip, max_uploads_ip == 1 ? "" : "s");
+				return;
+			}
 		}
-		if (up->socket->ip == s->ip && ++upcount >= max_uploads_ip) {
+
+		/*
+		 * Even though this test is less costly than the previous ones, doing
+		 * it afterwards allows them to be notified of a mismatch whilst they
+		 * wait for a download slot.  It would be a pity for them to get
+		 * a slot and be told about the mismatch only then.
+		 *		--RAM, 15/12/2001
+		 */
+
+		if (running_uploads > max_uploads) {
 			upload_error_remove(u, reqfile,
-				503, "Only %u download%s per IP address",
-				max_uploads_ip, max_uploads_ip == 1 ? "" : "s");
+				503, "Too many uploads (%d max)", max_uploads);
 			return;
 		}
 	}
