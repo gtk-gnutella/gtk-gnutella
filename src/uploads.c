@@ -383,7 +383,7 @@ void handle_push_request(struct gnutella_node *n)
 
 	upload_fire_upload_info_changed(u);
 
-	/* Now waiting for the connection CONF -- will call upload_push_conf() */
+	/* Now waiting for the connection CONF -- will call upload_connect_conf() */
 }
 
 void upload_real_remove(void)
@@ -616,12 +616,6 @@ static void upload_remove_v(
 	const gchar *logreason;
 	gchar errbuf[1024];
 
-	/*
-	 * Signal PARQ about a upload which is possibly ready.
-	 * 		-- JA, 06/03/'03
-	 */
-	gint previous_running = running_uploads;
-
 	g_assert(u != NULL);
 
 	if (reason) {
@@ -713,9 +707,7 @@ static void upload_remove_v(
     }
 
 
-	if (previous_running > running_uploads)
-		parq_upload_remove(u);
-	
+	parq_upload_remove(u);
     upload_fire_upload_removed(u, reason ? errbuf : NULL);
 
 	upload_free_resources(u);
@@ -1080,12 +1072,12 @@ static void upload_wait_new_request(gnutella_upload_t *u)
 }
 
 /*
- * upload_push_conf
+ * upload_connect_conf
  *
  * Got confirmation that the connection to the remote host was OK.
- * Send the GIV string, then prepare receiving back the HTTP request.
+ * Send the GIV/QUEUE string, then prepare receiving back the HTTP request.
  */
-void upload_push_conf(gnutella_upload_t *u)
+void upload_connect_conf(gnutella_upload_t *u)
 {
 	gchar giv[MAX_LINE_SIZE];
 	struct gnutella_socket *s;
@@ -1093,12 +1085,13 @@ void upload_push_conf(gnutella_upload_t *u)
 	gint sent;
 
 	g_assert(u);
+
+	/*
+	 * PARQ should send QUEUE information header here.
+	 *		-- JA, 13/04/2003
+	 */
 	
 	if (u->status == GTA_UL_QUEUE) {
-		/*
-		 * PARQ should send QUEUE information header here.
-	 	 *		-- JA, 13/04/2003
-	 	 */
 		parq_upload_send_queue_conf(u);
 		return;
 	}
@@ -1712,9 +1705,10 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	struct stat statbuf;
 	time_t mtime, now = time((time_t *) NULL);
 	struct upload_http_cb cb_arg;
+	struct upload_http_cb cb_parq_arg;
 	gint http_code;
 	const gchar *http_msg;
-	http_extra_desc_t hev[2];
+	http_extra_desc_t hev[3];
 	gint hevcnt = 0;
 	guchar *sha1;
 	gboolean is_followup = 
@@ -2256,6 +2250,10 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		http_msg = "OK";
 	}
 
+	/*
+	 * Date, Content-Length, etc...
+	 */
+
 	cb_arg.u = u;
 	cb_arg.now = now;
 	cb_arg.mtime = mtime;
@@ -2264,6 +2262,16 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 	hev[hevcnt].he_cb = upload_http_status;
 	hev[hevcnt++].he_arg = &cb_arg;
+
+	/*
+	 * PARQ ID, emitted if needed.
+	 */
+
+	cb_parq_arg.u = u;
+
+	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+	hev[hevcnt].he_cb = parq_upload_add_header_id;
+	hev[hevcnt++].he_arg = &cb_parq_arg;
 
 	if (!http_send_status(u->socket, http_code, FALSE, hev, hevcnt, http_msg)) {
 		upload_remove(u, "Cannot send whole HTTP status");
