@@ -142,6 +142,10 @@ gboolean on_entry_up_connections_focus_out_event (GtkWidget *widget, GdkEventFoc
 	g_free(e);
 	if (v >= 0 && v < 512) { up_connections = v; }
 	gui_update_up_connections();
+	if (up_connections > max_connections) {
+		max_connections = up_connections;
+		gui_update_max_connections();
+	}
 	return TRUE;
 }
 
@@ -1230,7 +1234,7 @@ gboolean on_entry_max_connections_focus_out_event (GtkWidget *widget, GdkEventFo
        g_strstrip(e);
        v = atol(e);
        g_free(e);
-       if (v >= 0 && v < 512 && max_connections >= up_connections) { max_connections = v; }
+       if (v >= 0 && v < 512 && v >= up_connections) { max_connections = v; }
        gui_update_max_connections();
        return TRUE;
 }
