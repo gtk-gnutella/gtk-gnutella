@@ -108,6 +108,7 @@ void monitor_gui_init(void)
     renderer = gtk_cell_renderer_text_new ();
     column = gtk_tree_view_column_new_with_attributes 
         ("Query", renderer, "text", QUERY_COLUMN, NULL);
+    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
 
     /* Add the column to the view. */
     gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
@@ -137,8 +138,8 @@ void share_gui_clear_monitor(void)
 void monitor_gui_enable_monitor(const gboolean val)
 {
     static gboolean registered = FALSE;
-    gtk_widget_set_sensitive
-        (lookup_widget(main_window, "treeview_monitor"), !val);
+//    gtk_widget_set_sensitive
+//        (lookup_widget(main_window, "treeview_monitor"), !val);
 
     if (val != registered) {
         if (val) {
