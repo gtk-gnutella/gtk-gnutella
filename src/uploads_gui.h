@@ -28,11 +28,21 @@
 
 #include "gui.h"
 
-struct upload;
+typedef struct upload_row_data {
+    gnet_upload_t handle;      /* upload handle in backend */
+    gboolean      valid;       /* handle still valid in backend */
+    time_t        start_date;
+    guint32       range_start;
+    guint32       range_end;
+    guint32       status;      /* last known status */
+} upload_row_data_t;
 
-void gui_update_upload(struct upload *);
-void gui_update_upload_kill(void);
+void uploads_gui_early_init(void);
+void uploads_gui_init(void);
+void uploads_gui_shutdown(void);
 
-void gui_update_c_uploads(void);
+void uploads_gui_update_display(time_t now);
+void uploads_gui_clear_completed(void);
+
 
 #endif /* __uploads_gui_h__ */
