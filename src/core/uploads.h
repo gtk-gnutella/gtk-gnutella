@@ -46,6 +46,7 @@ typedef struct upload {
 
 	gint file_desc;
 	bio_source_t *bio;				/* Bandwidth-limited source */
+	sendfile_ctx_t sendfile_ctx;
 
 	gchar *buffer;
 	gint bpos;
