@@ -121,6 +121,11 @@ gboolean on_clist_nodes_button_press_event
 	return TRUE;
 }
 
+static gint list_direct_equal(gconstpointer p1, gconstpointer p2)
+{
+    return p1 == p2 ? 0 : 1;
+}
+
 static void remove_selected_nodes(void)
 {
     GSList *node_list = NULL;
@@ -128,7 +133,7 @@ static void remove_selected_nodes(void)
 
     g_assert(clist != NULL);
 
-    node_list = clist_collect_data(clist, TRUE, g_direct_equal);
+    node_list = clist_collect_data(clist, TRUE, list_direct_equal);
     node_remove_nodes_by_handle(node_list);
     g_slist_free(node_list);
 }
