@@ -380,7 +380,7 @@ void gwc_init(void)
 		GTA_VERSION, GTA_SUBVERSION, GTA_REVCHAR);
 
 	/*
-	 * The following two URLs are there for bootstrapping purposes only.
+	 * The following URLs are there for bootstrapping purposes only.
 	 */
 
 	gwc_add("http://www.gnucleus.net/gcache/gcache.php");
