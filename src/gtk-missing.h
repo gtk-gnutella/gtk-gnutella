@@ -117,6 +117,8 @@ void w_tree_iter_free(GtkTreeIter *iter);
 GSList *tree_selection_collect_data(GtkTreeSelection *tsel, GCompareFunc cfn);
 void tree_view_save_widths(GtkTreeView *treeview, property_t prop);
 void tree_view_save_visibility(GtkTreeView *treeview, property_t prop);
+void tree_view_restore_visibility(GtkTreeView *treeview, property_t prop);
+void tree_view_restore_widths(GtkTreeView *treeview, property_t prop);
 #endif /* USE_GTK2 */
 
 /*
