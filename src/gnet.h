@@ -200,6 +200,7 @@ typedef guint32 gnet_search_t;
  */
 #define ST_KNOWN_VENDOR			0x8000		/* Found known vendor code */
 #define ST_PARSED_TRAILER		0x4000		/* Was able to parse trailer */
+#define ST_GGEP					0x0008		/* Trailer has a GGEP extension */
 #define ST_UPLOADED				0x0004		/* Is "stable", people downloaded */
 #define ST_BUSY					0x0002		/* Has currently no slots */
 #define ST_FIREWALL				0x0001		/* Is behind a firewall */
@@ -356,6 +357,7 @@ typedef enum msg_drop_reason {
     MSG_DROP_UNKNOWN_TYPE,
     MSG_DROP_TTL0,
     MSG_DROP_PING_THROTTLE,
+	MSG_DROP_PONG_UNUSABLE,
     MSG_DROP_HARD_TTL_LIMIT,
     MSG_DROP_MAX_HOP_COUNT,
     MSG_DROP_UNREQUESTED_REPLY,
@@ -365,13 +367,12 @@ typedef enum msg_drop_reason {
     MSG_DROP_BANNED,
     MSG_DROP_SHUTDOWN,
     MSG_DROP_FLOW_CONTROL,
-    MSG_DROP_QUERY_TOO_LONG,
+    MSG_DROP_QUERY_NO_NUL,
     MSG_DROP_QUERY_TOO_SHORT,
     MSG_DROP_MULTIPLE_SHA1,
     MSG_DROP_MISFORMED_SHA1_QUERY,
     MSG_DROP_MAX_TTL_EXCEEDED,
     MSG_DROP_BAD_RESULT,
-    MSG_DROP_RESULT_DOUBLE_NUL,
     MSG_DROP_RESULT_SHA1_ERROR,
     MSG_DROP_REASON_COUNT /* number of known reasons to drop a message */
 } msg_drop_reason_t;
