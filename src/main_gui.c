@@ -108,9 +108,18 @@ void main_gui_init(void)
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_search_stats")),
         c_st_total, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_downloads")),
+        c_dl_size, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_downloads_queue")),
+        c_queue_size, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_uploads")),
+        c_ul_size, GTK_JUSTIFY_RIGHT);
+
     gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_search_stats")));
-
     gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_search")));
     gtk_clist_column_titles_passive
