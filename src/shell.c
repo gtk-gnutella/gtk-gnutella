@@ -642,7 +642,7 @@ void shell_add(struct gnutella_socket *s)
 	sh = shell_new(s);
     
     s->gdk_tag = gdk_input_add(s->file_desc,
-        (GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+        GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
 		shell_handle_data, (gpointer) sh);
 
     sl_shells = g_slist_prepend(sl_shells, sh);
