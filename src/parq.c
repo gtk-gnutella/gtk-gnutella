@@ -175,7 +175,7 @@ static void parq_upload_update_ip_and_name(struct parq_ul_queued *parq_ul,
 
 void parq_upload_send_queue(struct parq_ul_queued *parq_ul);
 void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul);
-	
+
 /***
  ***  Generic non PARQ specific functions
  ***/
@@ -341,6 +341,7 @@ void parq_init(void)
 	ul_all_parq_by_ip_and_name = g_hash_table_new(g_str_hash, g_str_equal);
 	ul_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
 	dl_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
+
 	(void) parq_upload_new_queue();
 	
 	g_assert(ul_all_parq_by_ip_and_name != NULL);
@@ -618,20 +619,19 @@ gpointer parq_dl_create(struct download *d)
 void parq_dl_add_id(struct download *d, const gchar *new_id)
 {
 	struct parq_dl_queued *parq_dl = NULL;
-	
+
 	g_assert(d != NULL);
 	g_assert(new_id != NULL);
 	g_assert(d->queue_status != NULL);
-	
+
 	parq_dl = (struct parq_dl_queued *) d->queue_status;
-	
+
 	g_assert(parq_dl != NULL);
 	g_assert(parq_dl->id == NULL);	/* We don't expect an id here */
-	
+
 	parq_dl->id = g_strdup(new_id);
-	
 	g_hash_table_insert(dl_all_parq_by_id, parq_dl->id, d);
-	
+
 	g_assert(parq_dl->id != NULL);
 }
 
@@ -646,16 +646,15 @@ void parq_dl_del_id(struct download *d)
 	struct parq_dl_queued *parq_dl = NULL;
 
 	g_assert(d != NULL);
-	
+
 	parq_dl = (struct parq_dl_queued *) d->queue_status;
-	
+
 	g_assert(parq_dl != NULL);
 	g_assert(parq_dl->id != NULL);
-	
-	g_hash_table_remove(dl_all_parq_by_id, parq_dl->id);
 
+	g_hash_table_remove(dl_all_parq_by_id, parq_dl->id);
 	G_FREE_NULL(parq_dl->id);
-	
+
 	g_assert(parq_dl->id == NULL);	/* We don't expect an id here */
 }
 
