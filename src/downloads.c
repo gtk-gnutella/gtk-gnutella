@@ -2114,6 +2114,7 @@ void download_fallback_to_push(struct download *d,
 	else
 		d->status = GTA_DL_FALLBACK;
 
+	d->last_update = time(NULL);		/* Reset timeout if we send the push */
 	download_push(d, on_timeout);
 
 	gui_update_download(d, TRUE);
