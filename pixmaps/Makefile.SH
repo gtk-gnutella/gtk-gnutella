@@ -111,7 +111,8 @@ local_install:: $(PIXMAPS)
 	(set -x; test -d $(INSTALL_PREFIX)$(PRIVLIB)/pixmaps || \
 		$(INSTALLDIR) $(INSTALL_PREFIX)$(PRIVLIB)/pixmaps); \
 	for i in $(PIXMAPS); do \
-		(set -x; $(INSTALL) -c $(INSTALLFLAGS) $$i $(INSTALL_PREFIX)$(PRIVLIB)/pixmaps); \
+		(set -x; $(INSTALL) -c $(INSTALLFLAGS) \
+			$$i $(INSTALL_PREFIX)$(PRIVLIB)/pixmaps) || exit 1;\
 	done
 
 local_deinstall::

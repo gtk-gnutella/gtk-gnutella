@@ -63,7 +63,7 @@ depend::
 	for i in $(SUBDIRS) ;\
 	do \
 		(cd $$i ; echo "Depending" "in $(DIR)$$i..."; \
-			$(MAKE) $(MFLAGS)  depend); \
+			$(MAKE) $(MFLAGS)  depend) || exit 1; \
 	done
 
 ########################################################################
@@ -123,7 +123,7 @@ subdirs:
 	for i in $(SUBDIRS) ;\
 	do \
 		(cd $$i ; echo $(VERB) "in $(DIR)$$i..."; \
-			$(MAKE) $(MFLAGS) $(FLAGS) $(TARGET)); \
+			$(MAKE) $(MFLAGS) $(FLAGS) $(TARGET)) || exit 1; \
 	done
 
 sub_install::
@@ -157,7 +157,7 @@ tag::
 	for i in $(SUBDIRS) ;\
 	do \
 		(cd $$i ; echo "Tagging" "in $(DIR)$$i..."; \
-			$(MAKE) $(MFLAGS)  tag); \
+			$(MAKE) $(MFLAGS)  tag) || exit 1; \
 	done
 
 Makefiles::
@@ -167,7 +167,7 @@ Makefiles::
 		echo "Making "Makefiles" in $(DIR)$$i..."; \
 		(cd $$i || exit 1; \
 		if test ! -f Makefile; then /bin/sh Makefile.SH; fi; \
-		$(MAKE) $(MFLAGS) Makefiles) \
+		$(MAKE) $(MFLAGS) Makefiles) || exit 1;\
 	done
 
 Makefiles.SH:: Makefile.SH
@@ -184,9 +184,13 @@ Makefiles.SH:: Makefile.SH
 		/*) newtop="$(TOP)" ;; \
 		esac; \
 		echo "Making Makefiles.SH in $(DIR)$$i..."; \
-		(cd $$i || exit 1; $(MAKE) $(MFLAGS) -f ../Makefile \
-		Makefile TOP=$$newtop CURRENT=$(DIR)$$i;\
-		$(MAKE) $(MFLAGS) Makefiles.SH) \
+		(cd $$i || exit 1; \
+			if test -f Jmakefile; then \
+				$(MAKE) $(MFLAGS) -f ../Makefile \
+					Makefile TOP=$$newtop CURRENT=$(DIR)$$i && \
+				$(MAKE) $(MFLAGS) Makefiles.SH; \
+			fi; \
+		) || exit 1; \
 	done
 
 all::
