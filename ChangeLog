@@ -1,10 +1,29 @@
 # since last version
 
-- (2002.08.01 Richard)
+- (2002.09.06 RAM)
+ * Factored out handling of (name, size) tuples.
+ * Was wrongly forwarding query hits with bad SHA1s when debugging disabled.
+ * Made guid_random_fill() a public routine.
+ * Was badly computing position in queue when it holds more than 1024 entries.
+
+- (2002.09.02 RAM)
+ * Fixed duplicate server free bug (fixes bug #603365).
+
+- (2002.09.01 RAM)
+ * Made local_ip persistent, in case it takes time to determine dynamically.
+ * Fixed some English typos in the gnet properties ("then" -> "than").
+ * Was missing a trailing "\n" in whitelist.c debugging statement.
+ * Added workaround for sscanf() parsing bug: always end parsing with a
+   scanned parameter.
+ * If remote HTTP/1.1 does not honour keep-alive on the connection as promised,
+   mark it as not supporting keep-alives.
+ * Also defer reclaiming of the server structure when freeing a download.
+
+- (2002.09.01 Richard)
  * Search panel redesign
  * Minor cosmetic fixes
  * Adjust idtable to RAM's suggestions
- * Make search reissue timeout setting in GUI behave propertly again
+ * Make search reissue timeout setting in GUI behave properly again
 
 - (2002.08.31 RAM)
  * Changed the way GUID are generated for messages and servents.
