@@ -577,8 +577,11 @@ void on_button_search_expand_all_clicked(GtkButton *button, gpointer user_data)
 /* 
  * 	on_clist_search_results_key_press_event
  */
-gboolean on_clist_search_results_key_press_event
-    (GtkWidget *widget, GdkEventKey * event, gpointer user_data)
+gboolean 
+on_clist_search_results_key_press_event(
+	GtkWidget *widget, 
+	GdkEventKey * event, 
+	gpointer user_data)
 {
     g_assert(event != NULL);
 
@@ -586,6 +589,9 @@ gboolean on_clist_search_results_key_press_event
     case GDK_Return:
         search_gui_download_files();
         return TRUE;
+	case GDK_Delete:
+        search_gui_discard_files();
+		return TRUE;
     default:
         return FALSE;
     };

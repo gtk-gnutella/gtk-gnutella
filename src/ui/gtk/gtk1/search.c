@@ -1518,14 +1518,15 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 }
 
 
-/*
- * download_selection_of_ctree
- *
+/**
  * Create downloads for all the search results selected in the ctree.
  * Returns the amount of downloads actually created, and the amount of
  * items in the selection within `selected'.
  */
-static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
+static guint 
+download_selection_of_ctree(
+	GtkCTree *ctree, 
+	guint *selected)
 {
 	struct results_set *rs;
 	gui_record_t *grc;
@@ -1544,15 +1545,16 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
     gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
 		&remove_downloaded);
 
-
 	gtk_clist_freeze(GTK_CLIST(ctree));
 
 	/* Selection list changes after we process each selected node, so we have to 
 	 * "re-get" it each iteration.
 	 */
-	for (sel_list = GTK_CLIST(ctree)->selection; sel_list != NULL;
-		 sel_list = GTK_CLIST(ctree)->selection) {
-
+	for (
+		sel_list = GTK_CLIST(ctree)->selection; 
+		sel_list != NULL;
+		sel_list = GTK_CLIST(ctree)->selection
+	) {
 		node = sel_list->data;
 		if (NULL == node)
 			break;
@@ -1588,7 +1590,6 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 			search_gui_check_alt_locs(rs, rc);
 
         if (remove_downloaded) {
-	
 			/* Check if we should re-sort after we remove the download.  
 			 * Re-sorting for every remove is too laggy and unnecessary.  If the 
 			 * search is not sorted by count we don't re-sort.  If the 
@@ -1660,6 +1661,109 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 	return created;
 }
 
+/**
+ * Discard all the search results selected in the ctree.
+ * Returns the amount of discarded results.
+ */
+static guint 
+discard_selection_of_ctree(
+	GtkCTree *ctree)
+{
+	gui_record_t *grc;
+	record_t *rc;
+	GList *sel_list;
+	gboolean resort = FALSE;
+	guint discarded = 0;
+	GtkCTreeNode *node;
+	GtkCTreeRow *row;
+	search_t *current_search = search_gui_get_current_search();
+
+	gtk_clist_freeze(GTK_CLIST(ctree));
+
+	/* Selection list changes after we process each selected node, so we have to 
+	 * "re-get" it each iteration.
+	 */
+	for (
+		sel_list = GTK_CLIST(ctree)->selection; 
+		sel_list != NULL;
+		sel_list = GTK_CLIST(ctree)->selection
+	) {
+		node = sel_list->data;
+		if (NULL == node)
+			break;
+
+		grc = gtk_ctree_node_get_row_data(ctree, node);		
+		rc = grc->shared_record;
+		
+        if (!rc) {
+			g_warning("discard_selection_of_ctree(): row has NULL data");
+			continue;
+        }
+
+		discarded++;
+
+		/* Check if we should re-sort after we remove the entry.  
+		 * Re-sorting for every remove is too laggy and unnecessary.  If the 
+		 * search is not sorted by count we don't re-sort.  If the 
+		 * node is a parent we re-sort if the next node to be removed is not
+         * it's first child.  If the node is a child, we re-sort if the next
+		 * node to be removed is not the next sibling.  Finally, we re-sort
+		 * if the last child of a tree is selected.
+		 *
+		 * This assumes that the selection list will be in order, otherwise
+		 * it will re-sort on every remove in a tree (although it won't 
+		 * re-sort for parent nodes with no children).
+		 *
+		 * We need to check this before we actually remove the node.
+         *
+         * Finally it should only be necessary to determine once
+         * during the walk wether we need to resort and resort at the end.
+         *     -- Richard, 17/04/2004
+		 */
+	
+		if (!resort && c_sr_count == current_search->sort_col) {
+			row = GTK_CTREE_ROW(node);
+
+			if (NULL == row->parent) {
+				/* If it's a parent and the first child is not selected */
+				if (NULL != row->children) {
+					if (NULL == sel_list->next)		
+						resort = TRUE;	
+					else if (sel_list->next->data != row->children) 
+							resort = TRUE;	
+				}
+			} else {
+				/* If it's a child and the next sibling is not selected */
+				if (NULL != row->sibling) {
+					if (NULL == sel_list->next)
+						resort = TRUE;	
+					else if (sel_list->next->data != row->sibling)
+							resort = TRUE;	
+				}
+				
+				/* If it's a child and it has no sibling */
+				if (NULL == row->sibling)
+					resort = TRUE;	
+			}					
+		}
+
+		search_gui_remove_result(ctree, node);
+	}
+
+	if (resort) {
+		search_gui_sort_column(current_search, current_search->sort_col);
+	}
+	
+	gtk_clist_unselect_all(GTK_CLIST(ctree));
+	gtk_clist_thaw(GTK_CLIST(ctree));
+
+    gui_search_force_update_tab_label(current_search);
+    search_gui_update_items(current_search);
+    guc_search_update_items(current_search->search_handle, 
+		current_search->items);
+
+	return discarded;
+}
 
 /*
  *	search_gui_download_files
@@ -1690,6 +1794,36 @@ void search_gui_download_files(void)
 			selected, selected == 1 ? "" : "s");
 	} else {
 		g_warning("search_gui_download_files(): no possible search!\n");
+	}	
+}
+
+/*
+ *	search_gui_discard_files
+ *
+ *	Discard selected files
+ */
+void search_gui_discard_files(void)
+{
+    search_t *current_search = search_gui_get_current_search();
+
+	if (current_search) {
+        GtkWidget *notebook_main;
+        GtkWidget *ctree_menu;
+        guint discarded;
+
+        notebook_main = lookup_widget(main_window, "notebook_main");
+        ctree_menu = lookup_widget(main_window, "ctree_menu");
+
+		discarded = discard_selection_of_ctree(
+			GTK_CTREE(current_search->ctree));
+
+        gtk_clist_unselect_all(GTK_CLIST(current_search->ctree));
+
+		statusbar_gui_message(15,
+			"Discarded %u result%s",
+			discarded, discarded == 1 ? "" : "s");
+	} else {
+		g_warning("search_gui_discard_files(): no possible search!\n");
 	}	
 }
 
