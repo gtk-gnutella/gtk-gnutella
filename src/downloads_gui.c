@@ -27,6 +27,8 @@
 
 #ifdef USE_GTK1
 
+RCSID("$Id$");
+
 #include "downloads_gui.h"
 #include "downloads_gui_common.h"
 #include "downloads_cb.h"
@@ -37,7 +39,6 @@
 #include "pproxy.h" /* FIXME: remove this dependency */
 #include "statusbar_gui.h"
 #include "parq.h"
-
 
 static gchar tmpstr[4096];
 
@@ -52,7 +53,6 @@ void downloads_gui_init(void)
 void downloads_gui_shutdown(void)
 {
 }
-
 
 /* Add a download to the GUI */
 void download_gui_add(struct download *d)
@@ -82,21 +82,15 @@ void download_gui_add(struct download *d)
 
 	file_name = file_info_readable_filename(d->file_info);
 
-#ifdef USE_GTK2
-	file_name = lazy_locale_to_utf8(file_name, 0);
-#endif
-	
 	gm_snprintf(vendor, sizeof(vendor), "%s%s",
 		(d->server->attrs & DLS_A_BANNING) ? "*" : "",
 		download_vendor_str(d));
-	
 	
 	clist_downloads = GTK_CLIST
 		(lookup_widget(main_window, "clist_downloads"));
 
 	color = &(gtk_widget_get_style(GTK_WIDGET(clist_downloads))
 				->fg[GTK_STATE_INSENSITIVE]);
-
 
 	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
 		GtkCList* clist_downloads_queue;
@@ -164,8 +158,6 @@ void gui_update_download_server(struct download *d)
 	gtk_clist_set_text(clist_downloads, row, c_dl_server, tmpstr);
 }
 
-
-
 void gui_update_download_range(struct download *d)
 {
 	guint32 len;
@@ -200,8 +192,6 @@ void gui_update_download_range(struct download *d)
 	gtk_clist_set_text(clist_downloads, row, c_dl_range, tmpstr);
 }
 
-
-
 void gui_update_download_host(struct download *d)
 {
 	gchar *text;
@@ -221,8 +211,6 @@ void gui_update_download_host(struct download *d)
 	gtk_clist_set_text(clist_downloads, row, c_dl_host, text);
 }
 
-
-
 void gui_update_download(struct download *d, gboolean force)
 {
 	const gchar *a = NULL;
@@ -233,19 +221,22 @@ void gui_update_download(struct download *d, gboolean force)
 	struct dl_file_info *fi;
 	gint rw;
 	extern gint sha1_eq(gconstpointer a, gconstpointer b);
+    gint current_page;
+	static GtkNotebook *notebook = NULL;
 
     if (d->last_gui_update == now && !force)
 		return;
-	
-	/* Why update if no one's looking? */
-    gint current_page;
-    current_page = gtk_notebook_get_current_page(
-        GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
 
+	/*
+	 * Why update if no one's looking?
+	 */
+
+	if (notebook == NULL)
+		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
+
+    current_page = gtk_notebook_get_current_page(notebook);
     if (current_page != nb_main_page_downloads)
         return;
-
-
 	
     clist_downloads = GTK_CLIST
         (lookup_widget(main_window, "clist_downloads"));
@@ -676,9 +667,6 @@ void gui_update_download_abort_resume(void)
         (lookup_widget(popup_downloads, "popup_downloads_queue"), do_queue);
 }
 
-
-
-
 /*
  * download_gui_remove:
  *
@@ -729,6 +717,5 @@ void download_gui_remove(struct download *d)
 	gui_update_download_abort_resume();
 	gui_update_download_clear();
 }
-
 
 #endif
