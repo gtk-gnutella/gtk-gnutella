@@ -5240,7 +5240,22 @@ fi
 
 $rm -f try try.c
 
+: how can we find information about GTK?
+echo " "
+echo "Checking how we can gather information about GTK+..." >&4
+if pkg-config $gtkpackage --cflags >/dev/null 2>&1; then
+	gtkconfig="pkg-config $gtkpackage"
+	modver=--modversion
+elif gtk-config --cflags >/dev/null 2>&1; then
+	gtkconfig='gtk-config'
+	modver=--version
+else
+	echo "You've got problems!  Do you have GTK+ installed?" >&4
+	gtkconfig='false'
+	modver=''
+fi
 
+echo "(I'll use '$gtkconfig' to gather that information.)"
 version=`$gtkconfig $modver`
 case "$gtkversion" in
 1)
