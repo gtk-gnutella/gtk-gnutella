@@ -374,9 +374,9 @@ oob_deliver_hits(struct gnutella_node *n, gchar *muid, guint8 wanted)
 	 */
 
 	if (n->ip != r->dest.ip) {
-		g_warning("OOB query %s must have been proxied: it had IP %s, "
-			"but the LIME/11v2 ACK comes from %s",
-			guid_hex_str(muid), ip_to_gchar(r->dest.ip), node_ip(n));
+		g_warning("OOB query %s must have been proxied: it had IP %s:%u, "
+			"but the LIME/11v2 ACK comes from %s", guid_hex_str(muid),
+			ip_to_gchar(r->dest.ip), r->dest.port, node_ip(n));
 
 		/*
 		 * We'll send the hits to the host from where the ACK comes.
