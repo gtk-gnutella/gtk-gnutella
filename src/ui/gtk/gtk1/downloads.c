@@ -555,6 +555,9 @@ void downloads_gui_shutdown(void)
 	g_hash_table_destroy(parents_queue_children);
 }
 
+#define DL_VISIBLE_MAX \
+	MAX(DOWNLOADS_VISIBLE_COLUMNS, DOWNLOAD_QUEUE_VISIBLE_COLUMNS)
+
 /*
  *	download_gui_add
  *
@@ -563,12 +566,13 @@ void downloads_gui_shutdown(void)
 void download_gui_add(struct download *d)
 {
 	const gchar *UNKNOWN_SIZE_STR = "no size";
-	const gchar *titles[6], *titles_parent[6];
+	const gchar *titles[DL_VISIBLE_MAX];
+	const gchar *titles_parent[DL_VISIBLE_MAX];
 	GtkCTreeNode *new_node, *parent;
 	GdkColor *color;
 	gchar vendor[256];
 	const gchar *file_name, *filename;
-	gchar *size, *host, *range, *server, *status;
+	gchar *size, *host, *range, *server, *status, *country;
 	struct download *drecord;
 	gpointer key;
 	gint n;
@@ -608,6 +612,7 @@ void download_gui_add(struct download *d)
 		titles[c_queue_size] = UNKNOWN_SIZE_STR;				
 
  	titles[c_queue_host] = guc_download_get_hostname(d);
+ 	titles[c_queue_loc] = guc_download_get_country(d);
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		if (NULL != d->file_info) {
@@ -620,8 +625,7 @@ void download_gui_add(struct download *d)
 				drecord = gtk_ctree_node_get_row_data(ctree_downloads_queue, 
 					parent);		
 
-				if (DL_GUI_IS_HEADER != drecord)/*not a header entry*/
-				{
+				if (DL_GUI_IS_HEADER != drecord) {	/* not a header entry */
 					/* No header entry so we will create one */
 					/* Copy the old parents info into a new node */
 					
@@ -635,12 +639,15 @@ void download_gui_add(struct download *d)
 						c_queue_server, &server);
 					gtk_ctree_node_get_text(ctree_downloads_queue, parent,
 						c_queue_status, &status);
+					gtk_ctree_node_get_text(ctree_downloads_queue, parent,
+						c_queue_loc, &country);
 					
 					titles_parent[c_queue_filename] = filename;
 			        titles_parent[c_queue_server] = server;
        				titles_parent[c_queue_status] = status;
 					titles_parent[c_queue_size] = "\"";
         			titles_parent[c_queue_host] = host;
+        			titles_parent[c_queue_loc] = country;
 					
 					new_node = gtk_ctree_insert_node(ctree_downloads_queue, 
 						parent, NULL,
@@ -666,7 +673,9 @@ void download_gui_add(struct download *d)
 						c_queue_server, "");
 					gtk_ctree_node_set_text(ctree_downloads_queue, parent, 
 						c_queue_status, "");
-						
+					gtk_ctree_node_set_text(ctree_downloads_queue, parent, 
+						c_queue_loc, "");
+
 					gtk_ctree_node_set_row_data(ctree_downloads_queue, parent, 
 						DL_GUI_IS_HEADER);						
 				}
@@ -736,6 +745,7 @@ void download_gui_add(struct download *d)
 			titles[c_dl_size] = UNKNOWN_SIZE_STR;				
 		titles[c_dl_range] = "";
         titles[c_dl_host] = guc_download_get_hostname(d);
+        titles[c_dl_loc] = guc_download_get_country(d);
 		
 		if (NULL != d->file_info) {
 			key = (gpointer) &d->file_info->fi_handle;
@@ -763,12 +773,15 @@ void download_gui_add(struct download *d)
 						c_dl_status, &status);
 					gtk_ctree_node_get_text(ctree_downloads, parent,
 						c_dl_range, &range);
+					gtk_ctree_node_get_text(ctree_downloads, parent,
+						c_dl_loc, &country);
 					
 					titles_parent[c_dl_filename] = filename;
 			        titles_parent[c_dl_server] = server;
        				titles_parent[c_dl_status] = status;
 					titles_parent[c_dl_size] = "\"";
 					titles_parent[c_dl_host] = host;
+			        titles_parent[c_dl_loc] = country;
         			titles_parent[c_dl_range] = range;
 
 					new_node = gtk_ctree_insert_node(ctree_downloads, 
@@ -797,6 +810,8 @@ void download_gui_add(struct download *d)
 						c_dl_status, "");
 					gtk_ctree_node_set_text(ctree_downloads, parent, 
 						c_dl_range, "");
+					gtk_ctree_node_set_text(ctree_downloads, parent, 
+						c_dl_loc, "");
 						
 					gtk_ctree_node_set_row_data(ctree_downloads, parent, 
 						DL_GUI_IS_HEADER);						
@@ -1592,7 +1607,7 @@ void download_gui_remove(struct download *d)
 	GtkCTreeNode *node, *parent;
 	GtkCTreeRow *parent_row;
 	struct download *drecord;
-	gchar *host, *range, *server, *status;
+	gchar *host, *range, *server, *status, *country;
 	const gchar *filename;
 	gpointer key;
 	gint n;
@@ -1652,6 +1667,8 @@ void download_gui_remove(struct download *d)
 							c_queue_server, &server);
 						gtk_ctree_node_get_text(ctree_downloads_queue, node,
 							c_queue_status, &status);
+						gtk_ctree_node_get_text(ctree_downloads_queue, node,
+							c_queue_loc, &country);
 
 						gtk_ctree_node_set_row_data
 							(ctree_downloads_queue, parent, drecord);
@@ -1663,6 +1680,8 @@ void download_gui_remove(struct download *d)
 							c_queue_server, server);
 						gtk_ctree_node_set_text(ctree_downloads_queue,  parent,
 							c_queue_status, status);
+						gtk_ctree_node_set_text(ctree_downloads_queue,  parent,
+							c_queue_loc, country);
 					}
 				
 					if (0 == n) {
@@ -1739,6 +1758,8 @@ void download_gui_remove(struct download *d)
 							c_dl_status, &status);
 						gtk_ctree_node_get_text(ctree_downloads, node,
 							c_dl_range, &range);
+						gtk_ctree_node_get_text(ctree_downloads, node,
+							c_dl_loc, &country);
 
 						gtk_ctree_node_set_row_data(ctree_downloads, parent, 
 							drecord);
@@ -1752,6 +1773,8 @@ void download_gui_remove(struct download *d)
 							c_dl_status, status);
 						gtk_ctree_node_set_text(ctree_downloads,  parent,
 							c_dl_range, range);
+						gtk_ctree_node_set_text(ctree_downloads,  parent,
+							c_dl_loc, country);
 					}
 				
 					if (0 == n) {
