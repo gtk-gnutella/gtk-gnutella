@@ -2060,7 +2060,9 @@ gboolean node_is_connected(guint32 ip, guint16 port, gboolean incoming)
  */
 gboolean node_host_is_connected(guint32 ip, guint16 port)
 {
+#if 0
 	const GSList *sl;
+#endif
 
 	/* Check our local ip */
 
