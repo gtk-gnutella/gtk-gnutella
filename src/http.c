@@ -543,6 +543,7 @@ static gchar *parse_errstr[] = {
 	"Could not parse port",					/* HTTP_URL_BAD_PORT_PARSING */
 	"Port value is out of range",			/* HTTP_URL_BAD_PORT_RANGE */
 	"Could not resolve host into IP",		/* HTTP_URL_HOSTNAME_UNKNOWN */
+	"URL has no URI part",		/* HTTP_URL_MISSING_URI */
 };
 
 /*
@@ -580,8 +581,13 @@ gboolean http_url_parse(
 	gchar s;
 	guint32 portnum;
 	static gchar hostname[MAX_HOSTLEN + 1];
+	char *tmp_host, *tmp_path;
+	guint16 tmp_port;
 
 	g_assert(url != NULL);
+	if (!host) host = &tmp_host;
+	if (!path) path = &tmp_path;
+	if (!port) port = &tmp_port;
 
 	if (0 != strncasecmp(url, "http://", 7)) {
 		http_url_errno = HTTP_URL_NOT_HTTP;
@@ -623,12 +629,14 @@ gboolean http_url_parse(
 
 	p--;							/* Go back to trailing "/" */
 	if (*p != '/') {
-		http_url_errno = HTTP_URL_BAD_CREDENTIALS;
+		if (seen_upw)
+			http_url_errno = HTTP_URL_BAD_CREDENTIALS;
+		else
+			http_url_errno = HTTP_URL_MISSING_URI;
 		return FALSE;
 	}
 
-	if (path != NULL)
-		*path = p;					/* Start of path, at the "/" */
+	*path = p;					/* Start of path, at the "/" */
 
 	/*
 	 * Validate the port.
@@ -645,9 +653,7 @@ gboolean http_url_parse(
 		http_url_errno = HTTP_URL_BAD_PORT_RANGE;
 		return FALSE;
 	}
-
-	if (port != NULL)
-		*port = (guint16) portnum;
+	*port = (guint16) portnum;
 
 	hostname[0] = '\0';
 
@@ -668,12 +674,13 @@ gboolean http_url_parse(
 			*q++ = c;
 		}
 		hostname[MAX_HOSTLEN] = '\0';
-		if (host != NULL)
-			*host = hostname;				/* Static data! */
+		*host = hostname;				/* Static data! */
 	}
 
-	if (dbg > 4)
-		printf("URL \"%s\" -> host=%s, path=%s\n", url - 7, hostname, p);
+	if (dbg > 4) {
+		printf("URL \"%s\" -> host=\"%s\", port=%u, path=\"%s\"\n",
+			url - 7, *host, (unsigned) *port, *path);
+	}
 
 	http_url_errno = HTTP_URL_OK;
 

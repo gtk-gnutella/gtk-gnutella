@@ -171,6 +171,7 @@ typedef enum {
 	HTTP_URL_BAD_PORT_PARSING,			/* Could not parse port */
 	HTTP_URL_BAD_PORT_RANGE,			/* Port value is out of range */
 	HTTP_URL_HOSTNAME_UNKNOWN,			/* Could not resolve host into IP */
+	HTTP_URL_MISSING_URI,				/* URL has no URI part */
 } http_url_error_t;
 
 extern http_url_error_t http_url_errno;
