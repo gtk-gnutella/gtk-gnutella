@@ -324,7 +324,27 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 		printf("FLOWC end purge: %d bytes (count=%d) for node %s, need=%d\n",
 			q->size, q->count, node_ip(q->node), needed);
 
-	return needed <= 0;		/* Can be 0 if we breaked out loop above */
+	/*
+	 * In case we emptied the whole queue, disable servicing.
+	 *
+	 * This should only happen rarely, but it is conceivable if we
+	 * get a message larger than the queue size and yet more prioritary
+	 * than everything.  We'd empty the queue, and then call node_bye(),
+	 * which would send the message immediately (mq_clear() would have no
+	 * effect on an empty queue) and we would have an impossible condition:
+	 * an empty queue with servicing enabled.  A recipe for disaster, as
+	 * it breaks assertions.
+	 *
+	 * We know the queue was enabled because it was not empty initially
+	 * if we reached that point, or we'd have cut processing at entry.
+	 *
+	 *		--RAM, 22/03/2002
+	 */
+
+	if (q->count == 0)
+		node_disableq(q->node);
+
+	return needed <= 0;		/* Can be 0 if we broke out loop above */
 }
 
 /*
