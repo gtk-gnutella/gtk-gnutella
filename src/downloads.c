@@ -981,7 +981,47 @@ static void download_remove_from_server(struct download *d)
 static void download_redirect_to_server(struct download *d,
 	guint32 ip, guint16 port)
 {
+	struct dl_server *server;
+	guchar old_guid[16];
+	enum dl_list list_idx;
+	
+	g_assert(d);
+	g_assert(d->server);
+
+	/*
+	 * If neither the IP nor the port changed, do nothing.
+	 */
+
+	server = d->server;
+	if (server->key->ip == ip && server->key->port == port)
+		return;
+
+	/*
+	 * We have no way to know the GUID of the new IP:port server, so we
+	 * reuse the old one.  We must save it before removing the download
+	 * from the old server.
+	 */
+
+	memcpy(old_guid, download_guid(d), 16);
 	download_remove_from_server(d);
+
+	/*
+	 * Create new server.
+	 */
+
+	server = get_server(old_guid, ip, port);
+	if (server == NULL)
+		server = allocate_server(old_guid, ip, port);
+	d->server = server;
+
+	/*
+	 * Insert download in new server, in the same list.
+	 */
+
+	list_idx = d->list_idx;
+	d->list_idx = -1;			/* Pre-condition for download_add_to_list() */
+
+	download_add_to_list(d, list_idx);
 }
 
 /*
