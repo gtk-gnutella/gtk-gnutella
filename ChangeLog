@@ -1,5 +1,14 @@
 # since last version
 
+- (2002.09.09 Richard)
+ * Added drop statistics for every message type and accumulated traffic
+   statistics for every message type.
+ * Reduced number of drop reasons and use same reason for different
+   message types.
+ * Don't bother trying to find a hit if we don't share any file.
+ * Added stats for local query hits
+ * Again changed gNet pane update behaviour (once per second)
+
 - (2002.09.08 Richard)
  * Update nodes in gNet panel more often.
  * Added gnet statistics
