@@ -1183,98 +1183,72 @@ share_close(void)
 /**
  * Remove unnecessary ballast from a query before processing it. Works in
  * place on the given string. Removed are all consecutive blocks of
- * whitespace and all word shorter then MIN_WORD_LENGTH.
+ * whitespace and all words shorter then MIN_WORD_LENGTH.
  *
- * If `utf8_len' is non-zero, then we're facing an UTF-8 string.
+ * @param search	the search string to compact, modified in place.
+ * @return			the length in bytes of the compacted search string.
  */
-static guint
-compact_query_utf8(gchar *search, gint utf8_len)
+static size_t
+compact_query_utf8(gchar *search)
 {
 	gchar *s;
-	gchar *w;
-	gboolean skip_space = TRUE;
-	gint word_length = 0;
-	guint32 c;
-	gint clen;
-	gboolean is_utf8 = utf8_len != 0;
+	gchar *word = NULL, *p;
+	size_t word_length = 0;	/* length in bytes, not characters */
+
+#define APPEND_WORD()								\
+do {												\
+	/* Append a space unless it's the first word */	\
+	if (p != search) {								\
+		if (*p != ' ')								\
+			*p = ' ';								\
+		p++;										\
+	}												\
+	if (p != word)									\
+		memmove(p, word, word_length);				\
+	p += word_length;								\
+} while (0)
 
 	if (dbg > 4)
-		printf("original (%s): [%s]\n", is_utf8 ? "UTF-8" : "ASCII", search);
+		printf("original: [%s]\n", search);
 
-	w = s = search;
-	while (
-		(c = utf8_len ?
-			utf8_decode_char(s, utf8_len, &clen, FALSE) :
-			(guint32) *(guchar *) s)
-	) {
-		if (c == ' ') {
-			/*
-			 * Reduce consecutive spaces to a single space.
-			 */
-			if (!skip_space) {
-				if (word_length < MIN_WORD_LENGTH) {
-					/*
-					 * reached end of very short word in query. drop
-					 * that word by rewinding write position
-					 */
-					if (dbg > 4)
-						printf("w");
-					w -= word_length;
-				} else {
-					/* copy space to final position, reset word length */
-					*w++ = ' ';
-				}
-				skip_space = TRUE;
-				word_length = 0; /* count this space to the next word */
-			} else if (dbg > 4)
-				printf("s");
-		} else {
-			/*
-			 * Within a word now, copy character.
-			 */
-			skip_space = FALSE;
-			if (utf8_len) {
-				gint i;
-				for (i = 0; i < clen; i++)
-					*w++ = s[i];
-				word_length += clen;	/* Yes, count 3-wide char as 3 */
-			} else {
-				*w++ = c;
-				word_length++;
+	word = is_ascii_blank(*search) ? NULL : search;
+	p = s = search;
+	while ('\0' != *s) {
+		gint clen;
+
+		clen = utf8_is_valid_char(s);
+		clen = MAX(1, clen);	/* In case of invalid UTF-8 */
+
+		if (is_ascii_blank(*s)) {
+			if (word_length >= MIN_WORD_LENGTH) {
+				APPEND_WORD();
 			}
-		}
+			word_length = 0;
 
-		/* count the length of the original search string */
-		if (utf8_len) {
+			s = skip_ascii_blanks(s);
+			if ('\0' == *s) {
+				word = NULL;
+				break;
+			}
+			word = s;
+		} else {
+			word_length += clen;
 			s += clen;
-			utf8_len -= clen;
-			g_assert(utf8_len >= 0);
-		} else
-			s++;
+		}
 	}
 
-	/* maybe very short word at end of query, then drop */
-	if ((word_length > 0) && (word_length < MIN_WORD_LENGTH)) {
-		if (dbg > 4)
-			printf("e");
-		w -= word_length;
-		skip_space = TRUE;
+	if (word_length >= MIN_WORD_LENGTH) {
+		APPEND_WORD();
 	}
 
-	/* space left at end of query but query not empty, drop */
-	if (skip_space && (w != search)) {
-		if (dbg > 4)
-			printf("t");
-		w--;
-	}
+	if ('\0' != *p)
+		*p = '\0'; /* terminate mangled query */
 
-	*w = '\0'; /* terminate mangled query */
-
-	if (dbg > 4 && w != s)
-		printf("\nmangled (%s): [%s]\n", is_utf8 ? "UTF-8" : "ASCII", search);
+	if (dbg > 4)
+		printf("\nmangled: [%s]\n", search);
 
 	/* search does no longer contain unnecessary whitespace */
-	return w - search;
+	return p - search;
 }
 
 /**
@@ -1348,7 +1322,7 @@ compact_query(gchar *search)
 	 * gratuitous bloat).
 	 */
 
-	mangled_search_len = compact_query_utf8(search + offset, utf8_len);
+	mangled_search_len = compact_query_utf8(search + offset);
 
 	g_assert(mangled_search_len <= (size_t) search_len - offset);
 
@@ -1516,7 +1490,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		 * gratuitous bloat).
 		 */
 
-		mangled_search_len = compact_query_utf8(search + offset, utf8_len);
+		mangled_search_len = compact_query_utf8(search + offset);
 
 		g_assert(mangled_search_len <= search_len - offset);
 
