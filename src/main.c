@@ -169,8 +169,8 @@ void gtk_gnutella_exit(gint n)
 	bg_close();
 	eval_close();
 	atom_str_free(start_rfc822_date);
-	atoms_close();
 	adns_close();
+	atoms_close();
 	wdestroy();
 
 	if (dbg)
