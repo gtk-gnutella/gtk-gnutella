@@ -52,7 +52,7 @@
 
 #include "filter_cb.h"
 #include "filter.h"
-#include "callbacks.h" /* FIXME: remove this dependency (compare_ul_norm) */
+#include "upload_stats_cb.h" /* FIXME: remove dependency (compare_ul_norm) */
 
 #include "fileinfo_gui.h"
 
