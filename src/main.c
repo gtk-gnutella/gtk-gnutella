@@ -65,7 +65,9 @@ static void auto_connect(void)
 	static gchar *host_catcher[] = {
 		"router.limewire.com",
 		"connect1.gnutellanet.com",
+		"gnotella.fileflash.com",
 		"connect2.gnutellanet.com",
+		"public.bearshare.net",
 		"connect3.gnutellanet.com",
 	};
 	static guint host_idx = 0;
