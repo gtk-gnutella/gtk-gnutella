@@ -8,6 +8,7 @@ CLEANFILES = interface-glade.c interface-glade.h *.bak
 
 # interface.h must come before any .c files that include it so that it is built.
 gtk_gnutella_SOURCES = \
+	autodownload.h autodownload.c \
 	interface.c interface.h \
 	gnutella.h \
 	misc.c misc.h \

@@ -23,6 +23,7 @@ set w_main_list {
 	clist_downloads button_abort_download button_resume_download button_clear_download
 	entry_max_downloads entry_max_host_downloads checkbutton_clear_downloads clist_download_queue button_remove_download
 	checkbutton_never_push checkbutton_jump_to_downloads
+	checkbutton_autodownload
 	entry_search button_search label_items_found entry_minimum_speed
 	notebook_search_results button_search_download button_search_stream button_search_clear
 	combo_searches combo_entry_searches

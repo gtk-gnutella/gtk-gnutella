@@ -53,6 +53,7 @@ extern GtkWidget *clist_download_queue;
 extern GtkWidget *button_remove_download;
 extern GtkWidget *checkbutton_never_push;
 extern GtkWidget *checkbutton_jump_to_downloads;
+extern GtkWidget *checkbutton_autodownload;
 extern GtkWidget *entry_search;
 extern GtkWidget *button_search;
 extern GtkWidget *label_items_found;

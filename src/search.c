@@ -4,9 +4,7 @@
 /* Handle searches */
 
 #include "gnutella.h"
-
 #include "interface.h"
-
 #include "misc.h"
 #include "search.h"
 #include "filter.h"
@@ -14,6 +12,7 @@
 #include "gui.h"
 #include "dialog-filters.h"
 #include "routing.h"
+#include "autodownload.h"
 
 #define MAKE_CODE(a,b,c,d) ( \
 	((guint32) (a) << 24) | \
@@ -75,7 +74,6 @@ void on_clist_search_results_select_row(GtkCList * clist, gint row,
 										gpointer user_data)
 {
 	gtk_widget_set_sensitive(button_search_download, TRUE);
-
 
 	if (search_pick_all) {		// config setting select all is on
 		if (!select_all_lock) {
@@ -870,7 +868,7 @@ static void update_one_reissue_timeout(struct search *sch)
 {
 	g_source_remove(sch->reissue_timeout_id);
 	if (sch->reissue_timeout > 0) {
-		if (dbg)
+		if (dbg > 3)
 			printf("updating search %s with timeout %d.\n", sch->query,
 				   sch->reissue_timeout * 1000);
 		sch->reissue_timeout_id =
@@ -912,6 +910,12 @@ struct search *_new_search(guint16 speed, gchar * query, guint flags)
 
 	sch->query = g_strdup(query);
 	sch->speed = minimum_speed;
+
+	/*
+	 * If using autodownload, use this as an opportunity to reload the
+	 * autodownload file.
+	 */
+	autodownload_init();
 
 	if (flags & SEARCH_PASSIVE) {
 		sch->passive = 1;
@@ -1183,11 +1187,113 @@ gboolean search_result_is_dup(struct search * sch, struct record * rc)
 	return (gboolean) g_hash_table_lookup(sch->dups, rc);
 }
 
+static void search_gui_update(struct search * sch, struct results_set * rs,
+                              GString* info, GString* vinfo)
+{
+	gchar *titles[5];
+    GSList* next;
+    GSList* l;
+	guint32 row;
+
+	/* Update the GUI */
+
+	gtk_clist_freeze(GTK_CLIST(sch->clist));
+
+    l = rs->records;
+	for (l = rs->records; l; l = next) {
+		struct record *rc = (struct record *) l->data;
+		next = l->next;
+
+        if(dbg > 4)
+            printf("%s(): adding %s (%s)\n", __FUNCTION__,
+                   rc->name, vinfo->str);
+
+		if (search_result_is_dup(sch, rc) || !filter_record(sch, rc)) {
+			rs->records = g_slist_remove(rs->records, rc);
+			rs->num_recs--;
+			search_free_record(rc);
+			continue;
+		}
+
+		g_hash_table_insert(sch->dups, rc, (void *) 1);
+
+		titles[0] = rc->name;
+		titles[1] = short_size(rc->size);
+		g_snprintf(stmp_2, sizeof(stmp_2), "%u", rs->speed);
+		titles[2] = stmp_2;
+		titles[3] = ip_port_to_gchar(rs->ip, rs->port);
+
+		if (rc->tag) {
+			guint len = strlen(rc->tag);
+			if (len > MAX_TAG_SHOWN) {
+				/*
+				 * We want to limit the length of the tag shown, but we don't
+				 * want to loose that information.	I imagine to have a popup
+				 * "show file info" one day that will give out all the
+				 * information.
+				 *				--RAM, 09/09/2001
+				 */
+
+				gchar saved = rc->tag[MAX_TAG_SHOWN];
+				rc->tag[MAX_TAG_SHOWN] = '\0';
+				g_string_append(info, rc->tag);
+				rc->tag[MAX_TAG_SHOWN] = saved;
+			} else
+				g_string_append(info, rc->tag);
+		}
+		if (vinfo->len) {
+			if (info->len)
+				g_string_append(info, "; ");
+			g_string_append(info, vinfo->str);
+		}
+		titles[4] = info->str;
+
+		if (!sch->sort)
+			row = gtk_clist_append(GTK_CLIST(sch->clist), titles);
+		else {
+			/*
+			 * gtk_clist_set_auto_sort() can't work for row data based sorts!
+			 * Too bad.
+			 * So we need to find the place to put the result by ourselves.
+			 */
+
+			GList *work;
+
+			row = 0;
+
+			work = GTK_CLIST(sch->clist)->row_list;
+
+			if (sch->sort_order > 0) {
+				while (row < GTK_CLIST(sch->clist)->rows &&
+					   search_compare(sch->sort_col, rc,
+									  (struct record *)
+									  GTK_CLIST_ROW(work)->data) > 0) {
+					row++;
+					work = work->next;
+				}
+			} else {
+				while (row < GTK_CLIST(sch->clist)->rows &&
+					   search_compare(sch->sort_col, rc,
+									  (struct record *)
+									  GTK_CLIST_ROW(work)->data) < 0) {
+					row++;
+					work = work->next;
+				}
+			}
+
+			gtk_clist_insert(GTK_CLIST(sch->clist), row, titles);
+
+		}
+
+		gtk_clist_set_row_data(GTK_CLIST(sch->clist), row, (gpointer) rc);
+		g_string_truncate(info, 0);
+	}
+
+	gtk_clist_thaw(GTK_CLIST(sch->clist));
+}
+
 void search_matched(struct search *sch, struct results_set *rs)
 {
-	GSList *l, *next;
-	gchar *titles[5];
-	guint32 row;
 	GString *vinfo = g_string_sized_new(40);
 	GString *info = g_string_sized_new(80);
 
@@ -1284,96 +1390,20 @@ void search_matched(struct search *sch, struct results_set *rs)
 		}
 	}
 
-	/* Update the GUI */
+	if (use_autodownload) {
+		GSList *l;
 
-	gtk_clist_freeze(GTK_CLIST(sch->clist));
+		if ((rs->status & ST_UPLOADED) && !(rs->status & ST_FIREWALL)) {
+			for (l = rs->records; l; l = l->next) {
+				struct record *rc = (struct record *) l->data;
 
-	for (l = rs->records; l; l = next) {
-		struct record *rc = (struct record *) l->data;
-		next = l->next;
-
-		if (search_result_is_dup(sch, rc) || !filter_record(sch, rc)) {
-			rs->records = g_slist_remove(rs->records, rc);
-			rs->num_recs--;
-			search_free_record(rc);
-			continue;
-		}
-
-		g_hash_table_insert(sch->dups, rc, (void *) 1);
-
-		titles[0] = rc->name;
-		titles[1] = short_size(rc->size);
-		g_snprintf(stmp_2, sizeof(stmp_2), "%u", rs->speed);
-		titles[2] = stmp_2;
-		titles[3] = ip_port_to_gchar(rs->ip, rs->port);
-
-		if (rc->tag) {
-			guint len = strlen(rc->tag);
-			if (len > MAX_TAG_SHOWN) {
-				/*
-				 * We want to limit the length of the tag shown, but we don't
-				 * want to loose that information.	I imagine to have a popup
-				 * "show file info" one day that will give out all the
-				 * information.
-				 *				--RAM, 09/09/2001
-				 */
-
-				gchar saved = rc->tag[MAX_TAG_SHOWN];
-				rc->tag[MAX_TAG_SHOWN] = '\0';
-				g_string_append(info, rc->tag);
-				rc->tag[MAX_TAG_SHOWN] = saved;
-			} else
-				g_string_append(info, rc->tag);
-		}
-		if (vinfo->len) {
-			if (info->len)
-				g_string_append(info, "; ");
-			g_string_append(info, vinfo->str);
-		}
-		titles[4] = info->str;
-
-		if (!sch->sort)
-			row = gtk_clist_append(GTK_CLIST(sch->clist), titles);
-		else {
-			/*
-			 * gtk_clist_set_auto_sort() can't work for row data based sorts!
-			 * Too bad.
-			 * So we need to find the place to put the result by ourselves.
-			 */
-
-			GList *work;
-
-			row = 0;
-
-			work = GTK_CLIST(sch->clist)->row_list;
-
-			if (sch->sort_order > 0) {
-				while (row < GTK_CLIST(sch->clist)->rows &&
-					   search_compare(sch->sort_col, rc,
-									  (struct record *)
-									  GTK_CLIST_ROW(work)->data) > 0) {
-					row++;
-					work = work->next;
-				}
-			} else {
-				while (row < GTK_CLIST(sch->clist)->rows &&
-					   search_compare(sch->sort_col, rc,
-									  (struct record *)
-									  GTK_CLIST_ROW(work)->data) < 0) {
-					row++;
-					work = work->next;
-				}
+				/* Attempt to autodownload each result if desirable. */
+				autodownload_notify(rc->name, rc->size, rc->index, rs->ip,
+					rs->port, rs->guid);
 			}
-
-			gtk_clist_insert(GTK_CLIST(sch->clist), row, titles);
-
 		}
-
-		gtk_clist_set_row_data(GTK_CLIST(sch->clist), row, (gpointer) rc);
-		g_string_truncate(info, 0);
-	}
-
-	gtk_clist_thaw(GTK_CLIST(sch->clist));
+	} else
+        search_gui_update(sch, rs, info, vinfo);
 
 	g_string_free(info, TRUE);
 	g_string_free(vinfo, TRUE);

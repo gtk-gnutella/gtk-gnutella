@@ -14,6 +14,7 @@
 #include "hosts.h"
 #include "downloads.h"
 #include "misc.h"
+#include "autodownload.h"
 
 gchar c_tmp[2048];
 
@@ -1379,6 +1380,12 @@ void on_checkbutton_jump_to_downloads_toggled(GtkToggleButton *
 											  gpointer user_data)
 {
 	jump_to_downloads = gtk_toggle_button_get_active(togglebutton);
+}
+
+void on_checkbutton_autodownload_toggled(GtkToggleButton *togglebutton,
+										 gpointer user_data)
+{
+	use_autodownload = gtk_toggle_button_get_active(togglebutton);
 }
 
 void on_entry_max_uploads_activate(GtkEditable * editable,

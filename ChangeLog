@@ -1,5 +1,6 @@
 # since last release
 
+- Integrated auto-download.txt patch from Brian St. Pierre
 - Integrated patch from Brian St. Pierre to burst gnutella.h into small files
 
 # v 0.17   2001.10.24

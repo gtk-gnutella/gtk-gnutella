@@ -6,7 +6,6 @@
 #include "interface.h"
 #include "gui.h"
 #include "support.h"
-
 #include "search.h"
 #include "share.h"
 #include "sockets.h"
@@ -15,6 +14,7 @@
 #include "hosts.h"
 #include "filter.h"
 #include "misc.h"
+#include "autodownload.h"
 
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define DL_UPDATE_DELAY			10	/* Don't update downloads too often */
@@ -268,6 +268,7 @@ gint main(gint argc, gchar ** argv)
 	search_init();
 	share_init();
 	filters_init();
+	autodownload_init();
 
 	/* Some signal handlers */
 

@@ -60,6 +60,7 @@ GtkWidget *clist_download_queue;
 GtkWidget *button_remove_download;
 GtkWidget *checkbutton_never_push;
 GtkWidget *checkbutton_jump_to_downloads;
+GtkWidget *checkbutton_autodownload;
 GtkWidget *entry_search;
 GtkWidget *button_search;
 GtkWidget *label_items_found;
@@ -1482,6 +1483,13 @@ create_main_window (void)
   gtk_widget_show (hbox64);
   gtk_box_pack_start (GTK_BOX (hbox63), hbox64, TRUE, TRUE, 0);
 
+  checkbutton_autodownload = gtk_check_button_new_with_label ("Automatic Download");
+  gtk_widget_ref (checkbutton_autodownload);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_autodownload", checkbutton_autodownload,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_autodownload);
+  gtk_box_pack_start (GTK_BOX (hbox64), checkbutton_autodownload, FALSE, FALSE, 0);
+
   hbox62 = gtk_hbox_new (FALSE, 0);
   gtk_widget_ref (hbox62);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox62", hbox62,
@@ -2364,6 +2372,9 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (checkbutton_jump_to_downloads), "toggled",
                       GTK_SIGNAL_FUNC (on_checkbutton_jump_to_downloads_toggled),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_autodownload), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_autodownload_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_search_reissue_timeout), "activate",
                       GTK_SIGNAL_FUNC (on_entry_search_reissue_timeout_activate),
