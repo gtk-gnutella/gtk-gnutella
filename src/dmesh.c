@@ -1075,6 +1075,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 		dmesh_urlinfo_t info;
 		gboolean non_space_seen;
 		gboolean skip_date = FALSE;
+		gboolean in_quote = FALSE;
 
 		/*
 		 * Find next space, colon or EOS (End of String).
@@ -1092,6 +1093,23 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 				non_space_seen = TRUE;
 				url = p;
 			}
+
+			/*
+			 * Quoted identifiers are one big token.
+			 */
+
+			if (in_quote && c == '\\' && p[1] == '"')
+				g_warning("unsupported \\\" escape sequence in quoted section "
+					"for Alternate-Location: should use URL escaping instead!");
+
+			if (c == '"') {
+				in_quote = !in_quote;
+				if (!in_quote)
+					break;			/* Space MUST follow after end quote */
+			}
+
+			if (in_quote)
+				continue;
 
 			/*
 			 * The "," may appear un-escaped in the URL.
@@ -1138,6 +1156,13 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 
 		g_assert(*p == c);
 
+		if (*url == '"') {				/* URL enclosed in quotes? */
+			url++;						/* Skip that needless quote */
+			if (c != '"')
+				g_warning("Alternate-Location URL \"%s\" started with leading "
+					"quote, but did not end with one!", url);
+		}
+
 		*p = '\0';
 		ok = dmesh_url_parse(url, &info);
 
@@ -1149,6 +1174,9 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 				url, dmesh_url_strerror(dmesh_url_errno));
 
 		*p = c;
+
+		if (c == '"')				/* URL ended with a quote, skip it */
+			c = *p++;
 
 		/*
 		 * Maybe there is no date following the URL?
@@ -1176,7 +1204,14 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
              * we assume a new urn is starting with "http://"
              *      -Richard 23/11/2002
              */
-            if ((c == ',') || (g_ascii_strncasecmp(p, "http://", 7) == 0))
+
+            if (
+				(c == 'h' || c == 'H') &&
+				0 == g_ascii_strncasecmp(p, "http://", 7)
+			)
+				break;
+
+            if (c == ',')
 				break;
 			p++;
 		}
@@ -1185,7 +1220,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 		 * Disambiguate "Mon, 17 Jun 2002 07:53:14 +0200"
 		 */
 
-		if (c != '\0' && p - date == 3) {
+		if (c == ',' && p - date == 3) {
 			p++;
 			goto more_date;
 		}
