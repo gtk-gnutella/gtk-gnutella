@@ -3,9 +3,10 @@ Horizon size estimation on the Gnutella network
 
 The horizon size estimation protocol (HSEP)
 
+
      Version:  0.2
      Created:  November 21, 2003
- Last change:  April 2, 2004
+ Last change:  July 6, 2004
       Author:  Thomas Schürger (thomas@schuerger.com)
 Document URL:  http://www.menden.org/gnutella/hsep.html
 
@@ -16,7 +17,6 @@ collisions yet. Vendors are free to implement and test the suggested protocol,
 though.
 
 Comments and suggestions are welcome!
-
 
 Abstract
 
@@ -29,6 +29,20 @@ approach ([1]). Yet no proposal has been made so far on how to actually
 implement horizon size estimation into the Gnutella protocol. Here, I will give
 some additional comments about horizon size estimation and a specification on
 how to extend the Gnutella protocol to support this.
+
+
+Change log
+
+
+* 2004-07-06: Small minor changes in various positions.
+* 2004-06-25: The recommended value for n_max is now 7 instead of 10.
+* 2004-06-15: Added links to a HSEP_reference_implementation.
+* 2004-06-14: Added information about how to include horizon data from non-HSEP
+  nodes. This will make horizon statistics more accurate, at least when HSEP is
+  not in widespread use yet.
+
+The log is updated whenever changes/suggestions relevant to the protocol are
+added.
 
 
 Overview
@@ -212,12 +226,24 @@ For a connection N_i the servent sends a HSEP message to connection N_i along
 with the HSEP data suitable for that connection as specified below. The payload
 type of HSEP messages is 0xcd (205 in decimal), TTL is 1 and hops is 0.
 
+At first, the servent should collect all available data from all non-HSEP
+neighbors. This is the number of non-HSEP neighbors, the sum of the number of
+files they share and the sum of the number of KiB they share. The first value
+is trivial to obtain, the other ones can be extracted from received PONG
+replies from these neighbors (due to limitations in the shared library size
+data sent in a PONG, this is not very accurate, but good enough). This data can
+be packed into a triple (nodes, files, kibibytes), which we'll call OTHER. If a
+servent does not watch PONG replies this way, it can use OTHER := (n, 0, 0),
+with n being the number of non-HSEP neighbors. However, vendors are urged to
+support PONG watching to make horizon estimation more accurate.
+
 The payload looks as follows. It consists of n_max triples (nodes, files,
 kibibytes), where each value of the triples is an unsigned 64-bit integer sent
 in little-endian_byte-order. The n_max payload triples to send are OWN + H[0] -
-H_(N_i)[0], ..., OWN + H[n_max - 1] - H_(N_i)[n_max - 1] (let's call these
-triples V[0], ..., V[n_max - 1]). Note that a servent never uses H[n_max] or H_
-(N_i)[n_max] for sending.
+H_(N_i)[0], OWN + OTHER + H[1] - H_(N_i)[1], ..., OWN + OTHER + H[n_max - 1] -
+H_(N_i)[n_max - 1] (let's call these triples V[0], ..., V[n_max - 1]). Note
+that a servent never uses H[n_max] or H_(N_i)[n_max] for sending. Note also
+that OTHER is used in all triples except the first one.
 
 When a servent receives such message from connection N_i with payload triples V
 [0], ..., V[n_max - 1], the following sanity-check must be performed (where "*"
@@ -285,7 +311,9 @@ At any time, the servent can update its displayed horizon data in its GUI by
 displaying H[n] to the user, which contains the number of reachable nodes,
 files and kibibytes within a distance of n hops (with 1 <= n <= n_max). A
 servent might also display the per-connection data H_(N_i)[n] to the user for
-each connection, if desired.
+each connection, if desired. To each of the displayed triples the servent
+should add the current OTHER triple to reflect what all currently connected
+non-HSEP nodes share.
 
 
 Normal operation for leaf nodes
@@ -336,9 +364,9 @@ At any time (outside of update operations) the following conditions must hold
 * all per-connection triples for 1 hop must be (1,*,*)
 * for each connection its triples must be monotonically increasing for
   increasing number of hops (the same test as for incoming triples, see above)
-* the sum of all i-th per-connection triples must match the i-th global triple
-  for all 1 <= i <= n_max, i.e. sum(H_(N_i)[k] for all i) = H[k] for all k in
-  [0,n_max]
+* the sum of all k-th per-connection triples must match the k-th global triple
+  for all 1 <= k <= n_max, i.e. sum(H_(N_i)[k] for all i) = H[k] for all k in
+  [1,n_max]
 
 
 If the last two conditions are true, the global HSEP triples are automatically
@@ -347,28 +375,33 @@ being equal to (0,0,0) implicitly.
 
 A servent should check these invariants every now and then in order to detect
 internal implementation errors. Most implementation errors will lead to
-violation of these invariants.
+violation of these invariants. For debugging, the invariants should be checked
+after each update of any HSEP table. At runtime, the invariants could for
+example be checked at HSEP connection initialization time.
 
 
 Bandwidth requirements
 
-I propose n_max to be 10, which results in a payload of 10*3*8 = 240 bytes for
-a full HSEP message. Most leading bits of each 64-bit value will be zero,
+I propose n_max to be 7, which results in a payload of 7*3*8 = 168 bytes for a
+full HSEP message. Most leading bits of each 64-bit value will be zero,
 therefore good connection-stream compression is possible (e.g. by using the
-deflate algorithm).
+deflate algorithm). The value of 7 has been chosen to reflect the standard TTL
+used on the Gnutella network. Larger values don't make sense because of cycles
+in the network. When high out-degree support is implemented by most ultrapeers,
+the value should still be a good choice.
 
 For an ultrapeer maintaining 50 HSEP-capable connections (40 of them being leaf
 nodes sending in 3 minute and receiving in 30 second intervals, the rest being
 ultrapeers sending and receiving in 30 second intervals), this will result in
-an uncompressed bandwidth requirement of 85 bytes in and 400 bytes out per
+an uncompressed bandwidth requirement of 61 bytes in and 280 bytes out per
 second, which should be no problem for an ultrapeer. An expected 30% of that,
-25 bytes in and 120 out per second, will be remaining after compression.
+18 bytes in and 84 out per second, will be remaining after compression.
 
-For a leaf node connected to 4 ultrapeers this will be 32 uncompressed bytes in
-and 0.5 bytes out per second (which can be compressed to 10 bytes in and 0.15
-bytes out per second), so the bandwidth requirements for HSEP are very low. If
-a leaf node only sends a message whenever the number of shared files/KiB
-changes, bandwidth requirements drop even further.
+For a leaf node connected to 4 ultrapeers this will be 22 uncompressed bytes in
+and 0.5 bytes out per second (which can be compressed to 7 bytes in and 0.15
+bytes out per second), so the bandwidth requirements for HSEP are minimal. If a
+leaf node only sends a message whenever the number of shared files/KiB changes,
+bandwidth requirements drop even further.
 
 Note that this is the raw payload bandwidth requirement; each message also has
 a header, which is smaller than a single triple and therefore does not
@@ -382,9 +415,9 @@ look at the connection's last triple H_(N_i)[n_max]. Remember that because of
 cycles in the network the reliability of the H_(N_i)[k] triples drops with
 increasing k, so one should keep k low. The aim for good connectivity should be
 to maximize the number of nodes/files/kibibytes reachable within a small number
-of hops, which should lead to quicker response times for queries. To achieve
-this, something around k = 5 or k = 6 should be fine. This is just a rough
-guess, it should be determined empirically.
+of hops, which should, for example, lead to quicker response times for queries.
+To achieve this, something around k = 4 or k = 5 should be fine. This is just a
+rough guess, it should be determined empirically.
 
 
 Requirements for multi-threading
@@ -394,10 +427,9 @@ atomic process. This refers to reading and writing the values altogether (e.g.
 parallel read/write, write/read and write/write accesses), therefore such
 operations must be serialized. This may require proper locking-mechanisms in
 multi-threaded Gnutella clients, but can be ignored for single-threaded
-clients. As the required locking time is very short (for best concurrency
-simply lock, copy and unlock the data), it should suffice to use one global
-MUTEX lock, whenever the global or per-connection HSEP data is read or updated.
-
+clients. As the required locking time is very short, it should be sufficient to
+use one global MUTEX lock, whenever the global or per-connection HSEP data is
+read or updated.
 
 
 Further considerations
@@ -414,6 +446,26 @@ errors), these wrong values will accumulate on the peer's side and would be
 propagated through the network until the connection is closed.
 
 Due to these reasons no differential approach is used.
+
+
+Reference implementation
+
+The Gnutella servent gtk-gnutella contains a stable reference implementation of
+HSEP. The implementation is written in C, is well-documented and has been
+included since gtk-gnutella 0.94. The implementation contains all suggested
+implementation details from this document and will be kept in sync with it.
+Parts of the code is gtk-gnutella-specific, but it should be no problem to
+adapt the code to other servents or to port the implementation to other
+programming languages.
+
+The main files can be found here:
+
+* src/hsep.c
+* src/hsep.h
+* src/nodes.h
+
+Please refer to the CVS_repository (specifically, the src/ directory) if you
+need any other files.
 
 
 References
