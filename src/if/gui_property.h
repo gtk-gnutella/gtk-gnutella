@@ -214,8 +214,8 @@ guint64 *gui_prop_get_guint64(
 	gui_prop_get_guint64(p, v, 0, 1); \
 } while (0)
 
-void gui_prop_set_storage(property_t, const guint8 *, gsize);
-guint8 *gui_prop_get_storage(property_t, guint8 *, gsize);
+void gui_prop_set_storage(property_t, const gchar *, gsize);
+gchar *gui_prop_get_storage(property_t, gchar *, gsize);
 
 gchar *gui_prop_to_string(property_t prop);
 
