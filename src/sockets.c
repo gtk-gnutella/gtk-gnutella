@@ -65,6 +65,7 @@ static gboolean ip_computed = FALSE;
 static GSList *sl_incoming = (GSList *) NULL;	/* To spot inactive sockets */
 
 static void guess_local_ip(int sd);
+static void socket_destroy(struct gnutella_socket *s, gchar *reason);
 
 /*
  * socket_timer
@@ -88,7 +89,7 @@ void socket_timer(time_t now)
 					dump_hex(stderr, "Connection Header",
 						s->buffer, MIN(s->pos, 80));
 			}
-			socket_destroy(s);
+			socket_destroy(s, "Connection timeout");
 			goto retry;			/* Don't know the internals of lists, retry */
 		}
 	}
@@ -97,35 +98,56 @@ void socket_timer(time_t now)
 void socket_shutdown(void)
 {
 	while (sl_incoming)
-		socket_destroy((struct gnutella_socket *) sl_incoming->data);
+		socket_destroy((struct gnutella_socket *) sl_incoming->data, NULL);
 }
 
 /* ----------------------------------------- */
 
-/* Destroy a socket, and free its resource if needed */
-
-void socket_destroy(struct gnutella_socket *s)
+/*
+ * socket_destroy
+ *
+ * Destroy a socket.
+ *
+ * If there is an attached resource, call the resource's termination routine
+ * with the supplied reason.
+ */
+static void socket_destroy(struct gnutella_socket *s, gchar *reason)
 {
 	g_assert(s);
 
+	/*
+	 * If there is an attached resource, its removal routine is responsible
+	 * for calling back socket_free().
+	 */
+
 	if (s->type == SOCK_TYPE_CONTROL && s->resource.node) {
-		node_remove(s->resource.node, NULL);
+		node_remove(s->resource.node, reason);
 		return;
 	} else if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download) {
-		download_stop(s->resource.download, GTA_DL_ERROR, NULL);
+		download_stop(s->resource.download, GTA_DL_ERROR, reason);
 		return;
 
 	} else if (s->type == SOCK_TYPE_UPLOAD && s->resource.upload) {
-		upload_remove(s->resource.upload, NULL);
+		upload_remove(s->resource.upload, reason);
 		return;
 	} else if (s->type == SOCK_TYPE_HTTP && s->resource.handle) {
 		http_async_error(s->resource.handle, HTTP_ASYNC_IO_ERROR);
 		return;
 	}
 
+	/*
+	 * No attached resource, we can simply free this socket then.
+	 */
+
 	socket_free(s);
 }
 
+/*
+ * socket_free
+ *
+ * Dispose of socket, closing connection, removing input callback, and
+ * reclaiming attached getline buffer.
+ */
 void socket_free(struct gnutella_socket *s)
 {
 	g_assert(s);
@@ -160,7 +182,7 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 	//s->type = 0;
 
 	if (cond & GDK_INPUT_EXCEPTION) {
-		socket_destroy(s);
+		socket_destroy(s, "Input exception");
 		return;
 	}
 
@@ -171,7 +193,7 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 		g_warning("socket_read(): incoming buffer full, disconnecting from %s",
 			 ip_to_gchar(s->ip));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
-		socket_destroy(s);
+		socket_destroy(s, "Incoming buffer full");
 		return;
 	}
 
@@ -187,12 +209,12 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 	r = bws_read(bws.in, s->file_desc, s->buffer + s->pos, count);
 
 	if (r == 0) {
-		socket_destroy(s);
+		socket_destroy(s, "Got EOF");
 		return;
 	} else if (r < 0 && errno == EAGAIN)
 		return;
 	else if (r < 0) {
-		socket_destroy(s);
+		socket_destroy(s, "Read error");
 		return;
 	}
 
@@ -214,7 +236,7 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 			0 == strncmp(s->buffer, "HEAD ", 5)
 		)
 			http_send_status(s, 414, NULL, 0, "Requested URL Too Large");
-		socket_destroy(s);
+		socket_destroy(s, "Requested URL too large");
 		return;
 	case READ_DONE:
 		if (s->pos != parsed)
@@ -311,7 +333,7 @@ unknown:
 	/* FALL THROUGH */
 
 cleanup:
-	socket_destroy(s);
+	socket_destroy(s, NULL);
 }
 
 /*
@@ -325,14 +347,10 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
 
 	if (cond & GDK_INPUT_EXCEPTION) {	/* Error while connecting */
-		if (s->type == SOCK_TYPE_CONTROL && s->resource.node)
-			node_remove(s->resource.node, "Connection failed");
-		else if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download)
+		if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download)
 			download_fallback_to_push(s->resource.download, FALSE, FALSE);
-		else if (s->type == SOCK_TYPE_UPLOAD && s->resource.upload)
-			upload_remove(s->resource.upload, "Connection failed");
 		else
-			socket_destroy(s);
+			socket_destroy(s, "Connection failed");
 		return;
 	}
 
@@ -346,7 +364,7 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 
 			if (proxy_protocol == 4) {
 				if (recv_socks(s) != 0) {
-					socket_destroy(s);
+					socket_destroy(s, "Error receiving from SOCKS 4 proxy");
 					return;
 				}
 
@@ -360,7 +378,7 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 				return;
 			} else if (proxy_protocol == 5) {
 				if (connect_socksv5(s) != 0) {
-					socket_destroy(s);
+					socket_destroy(s, "Error conneting to SOCKS 5 proxy");
 					return;
 				}
 
@@ -385,7 +403,7 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 
 			} else if (proxy_protocol == 1) {
 				if (connect_http(s) != 0) {
-					socket_destroy(s);
+					socket_destroy(s, "Unable to connect to HTTP proxy");
 					return;
 				}
 
@@ -422,12 +440,10 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 					   (void *) &option, &size);
 
 		if (res == -1 || option) {
-			if (s->type == SOCK_TYPE_CONTROL && s->resource.node)
-				node_remove(s->resource.node, "Connection failed");
-			else if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download)
+			if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download)
 				download_fallback_to_push(s->resource.download, FALSE, FALSE);
 			else
-				socket_destroy(s);
+				socket_destroy(s, "Connection failed");
 			return;
 		}
 
@@ -436,18 +452,18 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 			if (proxy_protocol == 4) {
 
 				if (send_socks(s) != 0) {
-					socket_destroy(s);
+					socket_destroy(s, "Error sending to SOCKS proxy");
 					return;
 				}
 			} else if (proxy_protocol == 5) {
 				if (connect_socksv5(s) != 0) {
-					socket_destroy(s);
+					socket_destroy(s, "Error connecting to SOCKS 5 proxy");
 					return;
 				}
 
 			} else if (proxy_protocol == 1) {
 				if (connect_http(s) != 0) {
-					socket_destroy(s);
+					socket_destroy(s, "Error connecting to HTTP proxy");
 					return;
 				}
 			}
@@ -508,7 +524,7 @@ static void socket_connected(gpointer data, gint source, GdkInputCondition cond)
 
 		default:
 			g_warning("socket_connected(): Unknown socket type %d !", s->type);
-			socket_destroy(s);		/* ? */
+			socket_destroy(s, NULL);		/* ? */
 			break;
 		}
 	}
@@ -581,7 +597,7 @@ static void socket_accept(gpointer data, gint source,
 	default:
 		g_warning("socket_accept(): Unknown listning socket type %d !\n",
 				  s->type);
-		socket_destroy(s);
+		socket_destroy(s, NULL);
 		return;
 	}
 
@@ -728,7 +744,7 @@ struct gnutella_socket *socket_connect(
 	if (res == -1 && errno != EINPROGRESS) {
 		g_warning("Unable to connect to %s: (%s)",
 			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
-		socket_destroy(s);
+		socket_destroy(s, "Connection failed");
 		return NULL;
 	}
 
@@ -795,7 +811,7 @@ struct gnutella_socket *socket_listen(
 	if (bind(sd, (struct sockaddr *) &addr, l) == -1) {
 		g_warning("Unable to bind() the socket on port %u (%s)",
 				  port, g_strerror(errno));
-		socket_destroy(s);
+		socket_destroy(s, "Unable to bind socket");
 		return NULL;
 	}
 
@@ -803,7 +819,7 @@ struct gnutella_socket *socket_listen(
 
 	if (listen(sd, 5) == -1) {
 		g_warning("Unable to listen() the socket (%s)", g_strerror(errno));
-		socket_destroy(s);
+		socket_destroy(s, "Unable to listen on socket");
 		return NULL;
 	}
 
@@ -815,7 +831,7 @@ struct gnutella_socket *socket_listen(
 		if (getsockname(sd, (struct sockaddr *) &addr, &option) == -1) {
 			g_warning("Unable to get the port of the socket: "
 				"getsockname() failed (%s)", g_strerror(errno));
-			socket_destroy(s);
+			socket_destroy(s, "Can't probe socket for port");
 			return NULL;
 		}
 

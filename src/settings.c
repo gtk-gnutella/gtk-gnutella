@@ -455,12 +455,14 @@ static gboolean listen_port_changed(property_t prop)
     /*
      * Close old port.
      */
+
     if (s_listen)
-        socket_destroy(s_listen);
+        socket_free(s_listen);
 
     /*
      * If the new port != 0, open the new port
      */
+
 	if (listen_port != 0)
 		s_listen = socket_listen(0, listen_port, SOCK_TYPE_CONTROL);
     else
@@ -469,6 +471,7 @@ static gboolean listen_port_changed(property_t prop)
     /*
      * If socket allocation failed, reset the property
      */
+
     if ((s_listen == NULL) && (listen_port != 0)) {
         old_listen_port = listen_port = 0;
         gnet_prop_set_guint32(prop, &listen_port, 0, 1);

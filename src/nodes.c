@@ -1975,13 +1975,15 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	gint major = 0, minor = 0;
 	gboolean ponging_only = FALSE;
 
+	g_assert(s == NULL || s->resource.node == NULL);
+
 	/*
 	 * During shutdown, don't accept any new connection.
 	 */
 
 	if (in_shutdown) {
 		if (s)
-			socket_destroy(s);
+			socket_free(s);
 		return;
 	}
 
@@ -2007,14 +2009,14 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		if (s) {
 			if (major > 0 || minor > 4)
 				send_node_error(s, 404, "Denied access from private IP");
-			socket_destroy(s);
+			socket_free(s);
 		}
 		return;
 	}
 #endif
 
 	if (s && no_gnutella_04 && major == 0 && minor < 6) {
-		socket_destroy(s);
+		socket_free(s);
 		return;
 	}
 

@@ -2045,8 +2045,7 @@ void download_fallback_to_push(struct download *d,
 		g_warning("download_fallback_to_push(): no socket for '%s'",
 				  d->file_name);
 	else {
-		d->socket->resource.download = NULL;
-		socket_destroy(d->socket);
+		socket_free(d->socket);
 		d->socket = NULL;
 	}
 
@@ -4467,7 +4466,8 @@ void download_push_ack(struct gnutella_socket *s)
 
 	if (!sscanf(giv, "GIV %u:%32c/", &file_index, hex_guid)) {
 		g_warning("malformed GIV string: %s", giv);
-		socket_destroy(s);
+		g_assert(s->resource.download == NULL);	/* Hence socket_free() */
+		socket_free(s);
 		return;
 	}
 
@@ -4479,7 +4479,8 @@ void download_push_ack(struct gnutella_socket *s)
 	d = select_push_download(file_index, hex_guid);
 	if (!d) {
 		g_warning("discarded GIV string: %s", giv);
-		socket_destroy(s);
+		g_assert(s->resource.download == NULL);	/* Hence socket_free() */
+		socket_free(s);
 		return;
 	}
 

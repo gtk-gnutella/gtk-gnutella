@@ -100,7 +100,7 @@ void gtk_gnutella_exit(gint n)
 		g_source_remove(hosts_idle_func);
 
 	if (s_listen)
-		socket_destroy(s_listen);
+		socket_free(s_listen);
 	socket_shutdown();
 	search_shutdown(); 
 	bsched_shutdown();

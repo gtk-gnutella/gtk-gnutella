@@ -95,7 +95,6 @@ extern gboolean is_firewalled;
  * Global Functions
  */
 
-void socket_destroy(struct gnutella_socket *);
 void socket_free(struct gnutella_socket *);
 struct gnutella_socket *socket_connect(guint32, guint16, enum socket_type);
 struct gnutella_socket *socket_listen(guint32, guint16, enum socket_type);
