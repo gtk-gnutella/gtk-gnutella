@@ -163,6 +163,8 @@ static void send_pong(struct gnutella_node *n, gboolean control,
 {
 	struct gnutella_msg_init_response *r;
 
+	g_assert(ttl >= 1);
+
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
@@ -473,6 +475,25 @@ static void add_recent_pong(hcache_type_t type, struct cached_pong *cp)
 	rec->recent_pongs = g_list_prepend(rec->recent_pongs, cp);
 	g_hash_table_insert(rec->ht_recent_pongs, cp, (gpointer) 1);
 	cp->refcount++;		/* We don't refcount insertion in the hash table */
+}
+
+/*
+ * pong_type
+ *
+ * Determine the pong type (any, or of the ultra kind).
+ */
+static hcache_type_t pong_type(struct gnutella_init_response *pong)
+{
+	guint32 kbytes;
+
+	READ_GUINT32_LE(pong->kbytes_count, kbytes);
+
+	/*
+	 * Ultra pongs are marked by having their kbytes count be an
+	 * exact power of two.
+	 */
+
+	return is_pow2(kbytes) ? HCACHE_ULTRA : HCACHE_ANY;
 }
 
 /*
@@ -884,6 +905,7 @@ void pcache_ping_received(struct gnutella_node *n)
 	time_t now = time((time_t *) 0);
 	gint h;
 	guint8 ttl;
+	gint max_nodes;
 
 	g_assert(NODE_IS_CONNECTED(n));
 
@@ -964,9 +986,11 @@ void pcache_ping_received(struct gnutella_node *n)
 	 * not firewalled.
 	 */
 
+	max_nodes =
+		current_peermode == NODE_P_LEAF ? max_ultrapeers : max_connections;
+
 	if (
-		(node_count() < max_connections || is_firewalled)
-		&& inet_can_answer_ping()
+		(is_firewalled || node_count() < max_nodes) && inet_can_answer_ping()
 	) {
 		send_personal_info(n, FALSE);
 		if (!NODE_IS_CONNECTED(n))	/* Can be removed if send queue is full */
@@ -1026,6 +1050,7 @@ void pcache_pong_received(struct gnutella_node *n)
 	guint32 files_count;
 	guint32 kbytes_count;
 	struct cached_pong *cp;
+	hcache_type_t ptype;
 
 	n->n_pong_received++;
 
@@ -1125,13 +1150,18 @@ void pcache_pong_received(struct gnutella_node *n)
 	 * Insert pong within our cache.
 	 */
 
-	// XXX determine type
+	ptype = pong_type((struct gnutella_init_response *) n->data);
 
 	cp = record_fresh_pong(HCACHE_ANY, n, n->header.hops, ip, port,
 		files_count, kbytes_count);
 
+	if (ptype == HCACHE_ULTRA)
+		(void) record_fresh_pong(HCACHE_ULTRA, n, n->header.hops, ip, port,
+			files_count, kbytes_count);
+
 	if (dbg > 6)
-		printf("CACHED pong %s (hops=%d, TTL=%d) from %s %s\n",
+		printf("CACHED %s pong %s (hops=%d, TTL=%d) from %s %s\n",
+			ptype == HCACHE_ULTRA ? "ultra" : "normal",
 			ip_port_to_gchar(ip, port), n->header.hops, n->header.ttl,
 			(n->attrs & NODE_A_PONG_CACHING) ? "NEW" : "OLD", node_ip(n));
 
