@@ -95,45 +95,51 @@ static void add_node(void)
 
 void on_button_nodes_remove_clicked(GtkButton *button, gpointer user_data)
 {
+	(void) button;
+	(void) user_data;
 	nodes_gui_remove_selected();
 }
 
 gboolean on_popup_nodes_disconnect_activate(GtkItem *item, gpointer user_data)
 {
+	(void) item;
+	(void) user_data;
 	nodes_gui_remove_selected();
 	return TRUE;
 }
 
 void on_button_nodes_add_clicked(GtkButton * button, gpointer user_data)
 {
+	(void) button;
+	(void) user_data;
     add_node();
 }
 
 void on_entry_host_activate(GtkEditable * editable, gpointer user_data)
 {
+	(void) editable;
+	(void) user_data;
     add_node();
 }
 
 void on_entry_host_changed(GtkEditable * editable, gpointer user_data)
 {
-    gchar *p;
-	gchar *e = gtk_editable_get_chars(editable, 0, -1);
+	gchar *e;
+   
+	(void) editable;
+	(void) user_data;
+	e = gtk_editable_get_chars(editable, 0, -1);
 	g_strstrip(e);
-
-    /* Strip away port, if any. */
-    if((p = strchr(e, ':')) != NULL)
-        *p = '\0';
-    
-	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_nodes_add"),
-        is_string_ip(e));
-
+	gtk_widget_set_sensitive(lookup_widget(main_window, "button_nodes_add"),
+        e[0] != '\0');
 	G_FREE_NULL(e);
 }
 
 gboolean on_treeview_nodes_button_press_event(
 	GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
+	(void) widget;
+	(void) user_data;
     if (3 == event->button) {
         /* right click section (popup menu) */
         gtk_menu_popup(GTK_MENU(popup_nodes), NULL, NULL, NULL, NULL, 1, 0);
@@ -142,4 +148,5 @@ gboolean on_treeview_nodes_button_press_event(
 	return FALSE;
 }
 
+/* vi: set ts=4 sw=4 cindent: */
 #endif	/* USE_GTK2 */
