@@ -482,7 +482,7 @@ add_file(struct shared_file *sf)
 		guint8 buf[sizeof(guint64)];
 		gint len;
 
-		len = ggep_lf_encode(sf->file_size, buf); 
+		len = ggept_lf_encode(sf->file_size, buf); 
 
 		g_assert(len > 0 && len <= (gint) sizeof buf);
 
