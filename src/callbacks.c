@@ -2970,6 +2970,9 @@ void on_popup_search_autodownload_sha1_activate(GtkMenuItem * menuitem,
 		    continue;
         }
 
+		if (rec->sha1 == NULL)		/* This selected record has no SHA1 */
+			continue;
+
         rule = filter_new_sha1_rule(
             rec->sha1, rec->name,
             filter_get_download_target(), RULE_FLAG_ACTIVE);
