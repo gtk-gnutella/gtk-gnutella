@@ -7000,7 +7000,7 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
     status->tx_written  = node->tx_written;
     status->tx_compressed = NODE_TX_COMPRESSED(node);
     status->tx_compression_ratio = NODE_TX_COMPRESSION_RATIO(node);
-	status->tx_bps = node->outq ? bio_bps(mq_bio(node->outq)) / 1024.0 : 0.0;
+	status->tx_bps = node->outq ? bio_bps(mq_bio(node->outq)) : 0;
 
     status->rx_given    = node->rx_given;
     status->rx_inflated = node->rx_inflated;
@@ -7018,10 +7018,10 @@ node_get_status(const gnet_node_t n, gnet_node_status_t *status)
 	 */
 
 	if (NODE_IS_UDP(node))
-		status->rx_bps = bsched_bps(bws.gin_udp) / 1024.0;
+		status->rx_bps = bsched_bps(bws.gin_udp);
 	else {
 		bio_source_t *bio = node->rx ? rx_bio_source(node->rx) : NULL;
-		status->rx_bps = bio ? bio_bps(bio) / 1024.0 : 0.0;
+		status->rx_bps = bio ? bio_bps(bio) : 0;
 	}
 
 	status->qrp_efficiency =
