@@ -1,5 +1,8 @@
 # since last version
 
+- (2002.11.12 RAM)
+ * New file moving code was not properly stripping trailing fileinfo.
+
 - (2002.11.12 Richard)
  * [Gtk2] Add new widgets from Gtk1 frontend
  * [Gtk2] Filled in contributors to about box
