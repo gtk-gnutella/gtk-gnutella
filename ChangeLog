@@ -17,6 +17,8 @@
    (this is mainly for testing purposes but will not hurt).
  * Changed property descriptions of "download paths" to remove any constraint
    on them being on the same filesystem.
+ * Also parse the Uptime header instead of X-Live-Since (Gnucleus nodes).
+ * Show the server's uptime, even if we're not connected to the node.
 
 - (2002.11.09 RAM)
  * The BSD sendfile() requires that first two arguments be swapped (wrt linux).
