@@ -128,7 +128,10 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node,
 	GtkCTreeNode *auto_node;
 	GtkCTreeNode *parent, *child;
 	GtkCTreeRow *row;
-	record_t *rc, *rc2;
+	gui_record_t *grc;
+	gui_record_t *grc2;
+	record_t *rc;
+	record_t *rc2;
     guint32 fuzzy_threshold;
 	gboolean child_selected, node_expanded;
 	gint x = 0;
@@ -146,7 +149,8 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node,
      * is done.
      *      --BLUE, 20/06/2002
      */
-	rc = (record_t *) gtk_ctree_node_get_row_data(ctree, node);
+	grc = gtk_ctree_node_get_row_data(ctree, node);
+	rc = grc->shared_record;
 	gtk_clist_freeze(GTK_CLIST(ctree));
 	
     /* Search whole ctree for nodes to autoselect 
@@ -158,8 +162,8 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node,
 		if (NULL == auto_node)
 			continue;
 			
-		rc2 = (record_t *) gtk_ctree_node_get_row_data(ctree, auto_node);
-
+		grc2 = gtk_ctree_node_get_row_data(ctree, auto_node);
+		rc2 = grc2->shared_record;
         /*
          * Skip the line we selected in the first place.
          */
@@ -197,8 +201,8 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node,
 			for (; NULL != child; row = GTK_CTREE_ROW(child), 
 				child = row->sibling) {		
 
-				rc2 = gtk_ctree_node_get_row_data (ctree, child);
-		    
+				grc2 = gtk_ctree_node_get_row_data (ctree, child);
+		    	rc2 = grc2->shared_record;
 				if (rc == rc2)
 	        		continue;
 	
@@ -232,9 +236,9 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node,
 				gtk_ctree_collapse(ctree, parent);
 		}
 
-		/* Reget rc2 in case we overwrote it while parsing the children */
-		rc2 = (record_t *) gtk_ctree_node_get_row_data(ctree, auto_node);
-
+		/* Re-get rc2 in case we overwrote it while parsing the children */
+		grc2 = gtk_ctree_node_get_row_data(ctree, auto_node);
+		rc2 = grc2->shared_record;
         if (search_autoselect_ident) {
 			if ((
             	/*
@@ -659,7 +663,11 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
     gboolean search_autoselect;
     gboolean search_autoselect_ident;
     gboolean search_autoselect_fuzzy;
+	gpointer key = NULL;
+	GtkCTreeNode *parent;
+	GtkCTreeRow *parent_row;
     search_t *sch;
+	gui_record_t *grc;
 	record_t *rc;
 	gint x;
 
@@ -670,7 +678,8 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
 		return;
 	
     sch = search_gui_get_current_search();
-	rc = (record_t *) gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));
+	grc = gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));
+	rc = grc->shared_record;
 	
     gui_prop_get_boolean(
         PROP_SEARCH_AUTOSELECT, 
@@ -708,20 +717,11 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
         }
 	} 
 
-
-	/* The following code will select all the children of a parent, if that
-	 * parent is selected. This isn't necessary because when a node is closed
-	 * it's children are already selected.  This would only be useful if 
-	 * someone opened a node and then clicked on the parent... in which case
-	 * they likely wouldn't want to select all the children.  Regardless,
-	 * we may want this later --- Emile
-	 */
-
-#if 0
 	/* If a parent node is selected, select all children */
 	if (GTK_CLIST(ctree)->selection != NULL) {
 
-		rc = gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));
+		grc = gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));
+		rc = grc->shared_record;
 		if (NULL != rc->sha1) {
 
 			key = atom_sha1_get(rc->sha1);
@@ -741,7 +741,6 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
 			atom_sha1_free(key);
 		}	
 	}
-#endif
 }
 
 
@@ -820,19 +819,22 @@ void on_button_search_passive_clicked(
 /* 
  * 	search_cb_collect_ctree_data
  *
- *	Given a GList of GtkCTreeNodes, return a new list pointing to the row data 
+ *	Given a GList of GtkCTreeNodes, return a new list pointing to the shared
+ *	record contained by the row data.
  *	List will have to be freed later on.
  */
 GList *search_cb_collect_ctree_data(GtkCTree *ctree, GList *node_list)
 {
 	GList *data_list = NULL;
+	gui_record_t *grc;
 	record_t *rc;
 	
 	for(; node_list != NULL; node_list = g_list_next(node_list)) {
 	
 		if(node_list->data != NULL) {
-			rc = gtk_ctree_node_get_row_data(ctree, node_list->data);
-			data_list = g_list_append(data_list, rc);
+			grc = gtk_ctree_node_get_row_data(ctree, node_list->data);
+			rc = grc->shared_record;
+			data_list = g_list_append(data_list, rc);/* FIXME append is o(n) */
 		}
 	}
 	

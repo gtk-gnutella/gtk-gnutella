@@ -97,7 +97,6 @@ typedef struct record {
 	gchar  *name;				/* File name */
 	guint32 size;				/* Size of file, in bytes */
 	guint32 index;				/* Index for GET command */
-	guint32 count;				/* Number of children */
 	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
 	gchar  *tag;				/* Optional tag data string (atom) */
 	gchar  *info;				/* Short version of tag (atom) */

@@ -476,8 +476,7 @@ record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r)
     rc->sha1 = r->sha1 != NULL ? atom_sha1_get(r->sha1) : NULL;
     rc->tag = r->tag != NULL ? atom_str_get(r->tag) : NULL;
 	rc->info = NULL;
-	rc->count = 0;
-    rc->flags = r->flags;
+   	rc->flags = r->flags;
 	rc->alt_locs = NULL;
 
 	if (r->alt_locs != NULL) {
@@ -1103,4 +1102,3 @@ void search_gui_flush(time_t now)
     g_slist_free(accumulated_rs);
     accumulated_rs = NULL;
 }
-

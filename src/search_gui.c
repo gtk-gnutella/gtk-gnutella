@@ -157,6 +157,15 @@ gboolean search_gui_free_parent(gpointer key, gpointer value, gpointer x)
 
 
 /*
+ *	search_gui_free_gui_record
+ */
+void search_gui_free_gui_record(gpointer gui_rc)
+{
+	wfree(gui_rc, sizeof(gui_record_t));
+}
+
+
+/*
  *	count_node_children
  *
  *	Returns number of children under parent node in the given ctree
@@ -217,10 +226,10 @@ static gboolean dec_records_refcount(gpointer key, gpointer value, gpointer x)
  */
 void search_gui_ctree_unref(GtkCTree *ctree, GtkCTreeNode *node, gpointer data)
 {
-	record_t *rc;
+	gui_record_t *grc;
 
-	rc = gtk_ctree_node_get_row_data(ctree, node);
-	search_gui_unref_record(rc);	
+	grc = gtk_ctree_node_get_row_data(ctree, node);
+	search_gui_unref_record(grc->shared_record);	
 }
 
 
@@ -523,8 +532,10 @@ gboolean search_gui_new_search_full(
  * 0 if they're equal, and -1 if r1 is "less than" r2
  */
 gint search_gui_compare_records(
-	gint sort_col, const record_t *r1, const record_t *r2)
+	gint sort_col, const gui_record_t *g1, const gui_record_t *g2)
 {
+	record_t *r1 = g1->shared_record;
+	record_t *r2 = g2->shared_record;
     results_set_t *rs1;
 	results_set_t *rs2;
     gint result = 0;
@@ -571,10 +582,10 @@ gint search_gui_compare_records(
             break;
 			
         case c_sr_count:
-				if (r1->count == r2->count)
+				if (g1->num_children == g2->num_children)
 					result = 0;
 				else
-					result = (r1->count > r2->count) ? +1 : -1;
+					result = (g1->num_children > g2->num_children) ? +1 : -1;
             break;
 				
         case c_sr_speed:
@@ -633,8 +644,8 @@ GList *search_gui_insert_with_sort(GList *list, GtkCTreeNode *node,
 	GList *l;
 	gint i; 
 	gint result;	
-	record_t *rkey;
-	record_t *rlist;	
+	gui_record_t *rkey;
+	gui_record_t *rlist;	
 	
 	rkey = gtk_ctree_node_get_row_data(ctree, node);
     list = g_list_first(list);
@@ -764,8 +775,8 @@ void search_gui_quick_sort_array_swap(GArray *array, gint i1, gint i2)
 void search_gui_quick_sort(GArray *array, gint beg, gint end, 
 	GtkCTree *ctree, gboolean ascending, gint sort_col)
 {
-	record_t *rbeg;
-	record_t *ri;
+	gui_record_t *rbeg;
+	gui_record_t *ri;
 	gint i;
 	gint result;
 	gint pivot_index = (beg + end) / 2;		
@@ -829,9 +840,8 @@ gint search_gui_analyze_col_data(GtkCTree *ctree, gint sort_col)
 	gboolean random = FALSE;
 	gint i; 
 	gint result;
-	record_t *rcur;
-	record_t *rprev;	
-	
+	gui_record_t *rcur;
+	gui_record_t *rprev;	
 	
 	if (c_sr_count == sort_col)
 		return SEARCH_COL_SORT_DATA_COUNT;
@@ -1157,9 +1167,10 @@ void search_gui_add_record(
 	gint count;
 	gpointer key = NULL;
 	gboolean is_parent = FALSE;
-	record_t *parent_rc;
-	record_t *rc1;
-	record_t *rc2;
+	gui_record_t *gui_rc;
+	gui_record_t *parent_rc;
+	gui_record_t *grc1;
+	gui_record_t *grc2;
     struct results_set *rs = rc->results_set;
 	gchar *empty = "";
 
@@ -1168,7 +1179,8 @@ void search_gui_add_record(
 	GtkCTreeNode *cur_node;
 	GtkCTreeNode *sibling;
 	GtkCTreeNode *auto_node;
-	GtkCTreeRow *row, *parent_row;
+	GtkCTreeRow *row;
+	GtkCTreeRow	*parent_row;
 	GtkCTree *ctree = GTK_CTREE(sch->ctree);
 	
 	info = g_string_assign(info, "");
@@ -1218,7 +1230,15 @@ void search_gui_add_record(
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rs->speed);
 	titles[c_sr_speed] = atom_str_get(tmpstr);
 
+
 	/* Add the search result to the ctree */
+	
+	/* Record memory is freed automatically by function set later on using
+	 * gtk_ctree_node_set_row_data_full
+	 */
+	gui_rc = walloc(sizeof(gui_record_t));
+	gui_rc->shared_record = rc;
+
 	if (NULL != rc->sha1) {
 
 		/* We use the sch->parents hash table to store pointers to all the
@@ -1237,11 +1257,12 @@ void search_gui_add_record(
 			gtk_ctree_node_set_text(ctree, parent, c_sr_count, tmpstr); 
 
 			/* Update count in the records (use for column sorting) */
-			rc->count = count;
+			gui_rc->num_children = 0;
 			parent_rc = gtk_ctree_node_get_row_data(ctree, parent);
-			parent_rc->count = count;
+			parent_rc->num_children = count - 1;
 			is_parent = FALSE;
-		} else { 
+
+		} else { /* Add as a parent */
 			key = atom_sha1_get(rc->sha1);	/* New parent, need new atom ref */
 
 			titles[c_sr_size] = short_size(rc->size);
@@ -1252,7 +1273,7 @@ void search_gui_add_record(
 			add_parent_with_sha1(sch->parents, key, node);
 
 			/* Update count in the records (use for column sorting) */
-			rc->count = 1;
+			gui_rc->num_children = 0;
 			is_parent = TRUE;
 		}
 		
@@ -1262,15 +1283,15 @@ void search_gui_add_record(
 		node = gtk_ctree_insert_node(ctree, parent = NULL, NULL, titles, 5, 
 				NULL, NULL, NULL, NULL, 0, 0);
 		/* Update count in the records (use for column sorting) */
-		rc->count = 1;
+		gui_rc->num_children = 0;
 		is_parent = TRUE;
 	}
 	
 	atom_str_free(titles[c_sr_speed]);
 	
 	search_gui_ref_record(rc);
-
-    gtk_ctree_node_set_row_data(ctree, node, (gpointer) rc);
+    gtk_ctree_node_set_row_data_full(ctree, node, (gpointer) gui_rc,
+		search_gui_free_gui_record);
 
     if (sch->sort) {
 		/*
@@ -1291,10 +1312,10 @@ void search_gui_add_record(
 			is_parent = TRUE;
 			parent_row = GTK_CTREE_ROW(node);
 			auto_node = parent_row->parent;
-			rc1 = gtk_ctree_node_get_row_data(sch->ctree, node);
+			grc1 = gtk_ctree_node_get_row_data(sch->ctree, auto_node);
 		} else {
 			auto_node = node;
-			rc1 = rc;
+			grc1 = gui_rc;
 		}
 		
 		if (is_parent) {
@@ -1314,52 +1335,52 @@ void search_gui_add_record(
 				if (NULL != row->parent)
 					continue; 			
 		
-				rc2 = (record_t *) gtk_ctree_node_get_row_data(ctree, cur_node);
+				grc2 = gtk_ctree_node_get_row_data(ctree, cur_node);
 	
-				if (rc1 == rc2)
+				if (grc1 == grc2)
 					continue;
 				
 				if (SORT_ASC == sch->sort_order) {
- 	            	if (search_gui_compare_records(sch->sort_col, rc1, rc2) < 0){
+ 	            	if (search_gui_compare_records(sch->sort_col, grc1, grc2) < 0){
 						sibling = cur_node;
 						break;
 					} 
 				} else { /* SORT_DESC */
-					if (search_gui_compare_records(sch->sort_col, rc1, rc2) > 0){
+					if (search_gui_compare_records(sch->sort_col, grc1, grc2) > 0){
 						sibling = cur_node;
 						break;
 					}
 				}
 			}
+			
 		} else { /* Is a child node */
-		
 			row = GTK_CTREE_ROW(auto_node);
 			parent = row->parent;
 			g_assert(NULL != parent);
 			sibling = NULL;
 			
-			parent_row = GTK_CTREE_ROW(auto_node);
+			parent_row = GTK_CTREE_ROW(parent);
 			cur_node = parent_row->children; /* start looking at first child */
 
 			for (; NULL != cur_node; row = GTK_CTREE_ROW(cur_node), 
 					cur_node = row->sibling) {		
 
-				rc2 = (record_t *) gtk_ctree_node_get_row_data(ctree, cur_node);
+				grc2 = gtk_ctree_node_get_row_data(ctree, cur_node);
 	
 				if (SORT_ASC == sch->sort_order) {
- 	            	if (search_gui_compare_records(sch->sort_col, rc1, rc2) < 0){
+ 	            	if (search_gui_compare_records(sch->sort_col, grc1, grc2) < 0){
 						sibling = cur_node;
 						break;
 					}
 				} else { /* SORT_DESC */
-					if (search_gui_compare_records(sch->sort_col, rc1, rc2) > 0){
+					if (search_gui_compare_records(sch->sort_col, grc1, grc2) > 0){
 						sibling = cur_node;
 						break;
 					}
 				}
 			}
 		}
-
+		
 		gtk_ctree_move(ctree, auto_node, parent, sibling);
 	}
 
@@ -1394,26 +1415,26 @@ void search_gui_set_clear_button_sensitive(gboolean flag)
  */
 static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 {
-	record_t *rc = NULL;	
-	record_t *parent_rc;
+	gui_record_t *grc = NULL;	
+	gui_record_t *parent_grc;
+	gui_record_t *child_grc;
+	record_t *rc;
 	record_t *child_rc;
 	GtkCTreeRow *row;
 	GtkCTreeRow *child_row;
 	GtkCTreeNode *child_node;
 	GtkCTreeNode *old_parent;
-	gchar *filename;
-	gchar *info;
-	gchar *size;
-	gchar *sha1;
-	gchar *host;
-	gchar *speed;
+	GtkCTreeNode *old_parent_sibling;
+	GtkCTreeNode *child_sibling;
+	GtkCTreeNode *temp_node;
 	gint n;
 
 	search_t *current_search = search_gui_get_current_search();
     current_search->items--;
 
 	/* First get the record, it must be unreferenced at the end */
-	rc = gtk_ctree_node_get_row_data(ctree, node);
+	grc = gtk_ctree_node_get_row_data(ctree, node);
+	rc = grc->shared_record;
 
 	g_assert(rc->refcount > 1);
 
@@ -1427,49 +1448,43 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 		n = count_node_children(ctree, node);
 		if (0 < n) {
 
-			/* Copy data from first child into the parent node */
+			/* We move the first child into the position originally occupied
+			 * by the parent, then we move all the children of the parent into
+			 * that child node (making it a parent).  Finally we delete the 
+			 * old parent.
+			 */
+				
+			old_parent = node;
+			old_parent_sibling = row->sibling;			
+		
 			child_node = row->children;	/* The first child of node */
+			child_sibling = GTK_CTREE_NODE_SIBLING(child_node);		
+			
+			gtk_ctree_move(ctree, child_node, NULL, old_parent_sibling);
+			
+			while (NULL != child_sibling) {
+				temp_node = child_sibling;
+				child_sibling = GTK_CTREE_NODE_SIBLING(child_sibling);
+				gtk_ctree_move(ctree, temp_node, child_node, NULL);					
+			}
+			
+			gtk_ctree_remove_node(ctree, old_parent);
 
-			child_rc = gtk_ctree_node_get_row_data(ctree, child_node);
-			filename = (NULL != child_rc->name) ?  child_rc->name : "";
-			info = (NULL != child_rc->info) ?  child_rc->info : "";
-			sha1 = (NULL != child_rc->sha1) ?  sha1_base32(child_rc->sha1) :"";
-			size = short_size(child_rc->size);
-
-			host = (NULL == child_rc->results_set->hostname) ?
-				ip_port_to_gchar(child_rc->results_set->ip, 
-					child_rc->results_set->port) :
-				hostname_port_to_gchar(child_rc->results_set->hostname,
-					child_rc->results_set->port);
-
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%u", 
-				child_rc->results_set->speed);
-			speed = atom_str_get(tmpstr);
+			/* Now update the new parent (just promoted from child) */			
+			child_grc = gtk_ctree_node_get_row_data(ctree, child_node);
 			
 			/* Calculate # column */
-			n = count_node_children(ctree, node);
+			n = count_node_children(ctree, child_node);
 			if (1 < n)
 				gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n); 
 			else
 				*tmpstr = '\0';
 
 			/* Update record count, child_rc will become the rc for the parent*/
-			child_rc->count = n;
+			child_grc->num_children = n - 1; /* -1 because we're removing one */
 			
 			/* Now actually modify the old parent node */
-			gtk_ctree_node_set_text(ctree, node, c_sr_filename, filename);		
-			gtk_ctree_node_set_text(ctree, node, c_sr_info, info);		
-			gtk_ctree_node_set_text(ctree, node, c_sr_size, size);		
-			gtk_ctree_node_set_text(ctree, node, c_sr_sha1, sha1);		
-			gtk_ctree_node_set_text(ctree, node, c_sr_count, tmpstr);		
-			gtk_ctree_node_set_text(ctree, node, c_sr_speed, speed);		
-			gtk_ctree_node_set_text(ctree, node, c_sr_host, host);		
-			gtk_ctree_node_set_row_data(ctree, node, (gpointer) child_rc);
-
-			/* Delete the 1st child node, now that we've copied the data */
-			gtk_ctree_remove_node(ctree, child_node);
-
-			atom_str_free(speed);
+			gtk_ctree_node_set_text(ctree, child_node, c_sr_count, tmpstr);		
 			
 		} else {
 			/* The row has no children, remove it's sha1 and the row itself */
@@ -1495,8 +1510,8 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 			*tmpstr = '\0';
 		gtk_ctree_node_set_text(ctree, old_parent, c_sr_count, tmpstr);
 	
-		parent_rc = gtk_ctree_node_get_row_data(ctree, old_parent);
-		parent_rc->count = n;
+		parent_grc = gtk_ctree_node_get_row_data(ctree, old_parent);
+		parent_grc->num_children = n - 1;
 	}
 		
 	/*
@@ -1522,7 +1537,8 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 {
 	struct results_set *rs;
-	struct record *rc;
+	gui_record_t *grc;
+	record_t *rc;
 	GList *sel_list;
 	gboolean need_push;
     gboolean remove_downloaded;
@@ -1534,6 +1550,9 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 
     gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
 		&remove_downloaded);
+
+
+	gtk_clist_freeze(GTK_CLIST(ctree));
 
 	/* Selection list changes after we process each selected node, so we have to 
 	 * "re-get" it each iteration.
@@ -1551,8 +1570,9 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 		gtk_ctree_node_set_foreground(ctree, node,
 			&gtk_widget_get_style(GTK_WIDGET(ctree))->fg[GTK_STATE_ACTIVE]);
 
-		rc = (struct record *) gtk_ctree_node_get_row_data(ctree, node);		
-
+		grc = gtk_ctree_node_get_row_data(ctree, node);		
+		rc = grc->shared_record;
+		
         if (!rc) {
 			g_warning("download_selection_of_ctree(): row has NULL data");
 			continue;
@@ -1580,7 +1600,8 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 	}
 	
 	gtk_clist_unselect_all(GTK_CLIST(ctree));
-	
+	gtk_clist_thaw(GTK_CLIST(ctree));
+
     gui_search_force_update_tab_label(current_search);
     gui_search_update_items(current_search);
     search_update_items(current_search->search_handle, current_search->items);
@@ -1725,8 +1746,8 @@ gboolean search_gui_search_results_col_visible_changed(property_t prop)
 static gint search_results_compare_func
     (GtkCList * clist, gconstpointer ptr1, gconstpointer ptr2)
 {
-    const record_t *s1 = (const record_t *) ((const GtkCListRow *) ptr1)->data;
-	const record_t *s2 = (const record_t *) ((const GtkCListRow *) ptr2)->data;
+    const gui_record_t *s1 = (const gui_record_t *) ((const GtkCListRow *) ptr1)->data;
+	const gui_record_t *s2 = (const gui_record_t *) ((const GtkCListRow *) ptr2)->data;
 
     return search_gui_compare_records(clist->sort_column, s1, s2);
 }
