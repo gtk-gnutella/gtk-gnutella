@@ -70,6 +70,7 @@ RCSID("$Id$");
 
 #define DQ_LEAF_RESULTS		50		/* # of results targetted for leaves */
 #define DQ_LOCAL_RESULTS	150		/* # of results for local queries */
+#define DQ_SHA1_DECIMATOR	25		/* Divide expected by that much for SHA1 */
 #define DQ_PROBE_UP			3		/* Amount of UPs for initial probe */
 #define DQ_MAX_HORIZON		500000	/* Stop search after that many UP queried */
 #define DQ_MIN_HORIZON		3000	/* Min horizon before timeout adjustment */
@@ -1363,8 +1364,11 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		(guchar *) &n->header, n->data,
 		n->size + sizeof(struct gnutella_header));
 	dq->qhv = qhvec_clone(qhv);
-	dq->max_results = DQ_LEAF_RESULTS;
-	dq->fin_results = DQ_LEAF_RESULTS * 100 / DQ_PERCENT_KEPT;
+	if (qhvec_has_source(qhv, QUERY_H_URN))
+		dq->max_results = DQ_LEAF_RESULTS / DQ_SHA1_DECIMATOR;
+	else
+		dq->max_results = DQ_LEAF_RESULTS;
+	dq->fin_results = dq->max_results * 100 / DQ_PERCENT_KEPT;
 	dq->ttl = MIN(n->header.ttl, DQ_MAX_TTL);
 	dq->alive = n->alive_pings;
 
@@ -1440,8 +1444,11 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	dq->mb = mb;
 	dq->qhv = qhv;
 	dq->sh = handle;
-	dq->max_results = DQ_LOCAL_RESULTS;
-	dq->fin_results = DQ_LOCAL_RESULTS * 100 / DQ_PERCENT_KEPT;
+	if (qhvec_has_source(qhv, QUERY_H_URN))
+		dq->max_results = DQ_LOCAL_RESULTS / DQ_SHA1_DECIMATOR;
+	else
+		dq->max_results = DQ_LOCAL_RESULTS;
+	dq->fin_results = dq->max_results * 100 / DQ_PERCENT_KEPT;
 	dq->ttl = MIN(my_ttl, DQ_MAX_TTL);
 	dq->alive = NULL;
 
