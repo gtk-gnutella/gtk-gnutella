@@ -1,17 +1,17 @@
 This documents describes briefly the things we want to have in gtk-gnutella 
 
 0.94
-	* Tigertree support 					(JA: started)
-	* HTTP chunked / unknown filesize support		(JA: open)
+	* Implementation of horizon size estimation (HSEP 0.2)	(TNT: done)
 	* Faster connecting to the gnutella network by connecting to good /
 	  stable ultrapeers first
-	* Implementation of horizon size estimation (HSEP 0.2)	(TNT: done)
-	* Magnet URI support
-	* GUI: Add / remove of gwebcaches
-	* Keep track of long uptime ultrapeers
-	  - Add parsing of GGEP extension to help finding these
 
 0.95:
+	* Magnet URI support
+	* Keep track of long uptime ultrapeers
+	  - Add parsing of GGEP extension to help finding these
+	* GUI: Add / remove of gwebcaches
+	* Tigertree support 					(JA: started)
+	* HTTP chunked / unknown filesize support		(JA: open)
 	* Browse host support
 	* Smaller memory footprint by using sqlite for:
 	  - PARQ
