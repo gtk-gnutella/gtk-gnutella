@@ -188,7 +188,7 @@ void routing_init(void)
 }
 
 /* frees the routing data associated with a message */
-void free_routing_data(gpointer key, gpointer value, gpointer user_data)
+static void free_routing_data(gpointer key, gpointer value, gpointer udata)
 {
 	decrement_message_counters(((struct message *)value)->nodes);
 }
