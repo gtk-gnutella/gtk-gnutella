@@ -177,5 +177,5 @@ EOF
 - Initial build.
 
 !NO!SUBS!
-chmod 755 gtk-gnutella.spec
+chmod 644 gtk-gnutella.spec
 $eunicefix gtk-gnutella.spec
