@@ -2027,6 +2027,7 @@ void file_info_check_results_set(gnet_results_set_t *rs)
 				!check_valid_host(rs->ip, rs->port);
 			download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
 					rs->guid, rc->sha1, rs->stamp, need_push, fi);
+            set_flags(rc->flags, SR_DOWNLOADED);
 		}
 	}
 }
