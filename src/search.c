@@ -691,7 +691,7 @@ struct search *_new_search(guint16 speed, gchar * query, guint flags)
 	gtk_widget_set_sensitive(combo_searches, TRUE);
 	gtk_widget_set_sensitive(button_search_close, TRUE);
 
-	gtk_entry_set_text(GTK_ENTRY(entry_search), "");
+    gtk_entry_set_text(GTK_ENTRY(entry_search),"");
 
 	searches = g_slist_append(searches, (gpointer) sch);
 
@@ -1581,11 +1581,13 @@ static void download_selection_of_clist(GtkCList * c)
          */
         row = gtk_clist_find_row_from_data(c, rc);
 
-        if (search_remove_downloaded)
+        if (search_remove_downloaded) {
             gtk_clist_remove(c, row);
-        else
+            current_search->items --;
+        } else
             gtk_clist_unselect_row(c, row, 0);
 	}
+    gui_search_force_update_tab_label(current_search);
 }
 
 
