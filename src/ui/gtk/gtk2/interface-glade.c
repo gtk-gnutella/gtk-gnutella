@@ -5200,7 +5200,6 @@ create_main_window_search_tab (void)
 
   label655 = gtk_label_new_with_mnemonic (_("Re_try search every"));
   gtk_widget_set_name (label655, "label655");
-  gtk_widget_show (label655);
   gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), label655, FALSE, FALSE, 0);
   gtk_label_set_justify (GTK_LABEL (label655), GTK_JUSTIFY_CENTER);
   gtk_misc_set_alignment (GTK_MISC (label655), 1, 0.5);
@@ -5208,13 +5207,11 @@ create_main_window_search_tab (void)
   spinbutton_search_reissue_timeout_adj = gtk_adjustment_new (600, 600, 100000, 60, 600, 600);
   spinbutton_search_reissue_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_reissue_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_search_reissue_timeout, "spinbutton_search_reissue_timeout");
-  gtk_widget_show (spinbutton_search_reissue_timeout);
   gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), spinbutton_search_reissue_timeout, TRUE, TRUE, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_search_reissue_timeout), TRUE);
 
   label656 = gtk_label_new (_("secs   "));
   gtk_widget_set_name (label656, "label656");
-  gtk_widget_show (label656);
   gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), label656, FALSE, FALSE, 0);
 
   hbox154 = gtk_hbox_new (FALSE, 4);

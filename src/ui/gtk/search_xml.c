@@ -1007,8 +1007,9 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
 
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_SEARCH_ENABLED));
     if (buf) {
-        if (atoi(buf) == 1)
+        if (atoi(buf) == 1) {
 			flags |= SEARCH_ENABLED;
+		}
         G_FREE_NULL(buf);
     } else
 		flags |= SEARCH_ENABLED;	 /* Compatibility: searches always began */
@@ -1044,6 +1045,14 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
         G_FREE_NULL(buf);
     }
 
+	/**
+	 * LimeWire considers *any* form of requerying unacceptable.
+	 * Deactivate it for now.
+	 *		-- cbiere, 2005-03-22
+	 */
+	if (!(flags & SEARCH_PASSIVE))
+		flags &= ~SEARCH_ENABLED;
+	
     if (gui_debug >= 4) {
         g_message("adding new %s %s search: %s",
 			(flags & SEARCH_ENABLED) ? "enabled" : "disabled",

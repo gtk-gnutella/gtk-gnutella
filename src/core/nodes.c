@@ -4624,7 +4624,8 @@ allow_for_now:		/* XXX remove after 2005-01-31 */
 				"%s"		/* X-Degree + X-Max-TTL */
 				"%s"		/* X-Dynamic-Querying */
 				"X-Token: %s\r\n"
-				"X-Live-Since: %s\r\n",
+				"X-Live-Since: %s\r\n"
+				"X-Requeries: False\r\n",
 				version_string,
 				ip_to_gchar(n->socket->ip),
 				gnet_deflate_enabled ? "Accept-Encoding: deflate\r\n" : "",
@@ -5790,7 +5791,8 @@ node_init_outgoing(struct gnutella_node *n)
 			"%s"		/* X-Query-Routing */
 			"%s"		/* X-Ultrapeer-Query-Routing */
 			"%s"		/* X-Degree + X-Max-TTL */
-			"%s",		/* X-Dynamic-Querying */
+			"%s"		/* X-Dynamic-Querying */
+			"X-Requeries: False\r\n",
 			GNUTELLA_HELLO,
 			n->proto_major, n->proto_minor,
 			ip_port_to_gchar(listen_ip(), listen_port),
