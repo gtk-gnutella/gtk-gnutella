@@ -1056,29 +1056,20 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 		}
 	}
 
-	if (dl == NULL) {
-		g_assert(s->resource.download == NULL);	/* Hence socket_free() */
-		socket_free(s);
-		return;
-	}
+	if (dl == NULL)
+		goto ignore;
 
 	if (dl->list_idx != DL_LIST_WAITING) {
-
 		if (dl->list_idx == DL_LIST_RUNNING) {
-			if (dl->status == GTA_DL_ACTIVE_QUEUED) {
+			if (dl->status == GTA_DL_ACTIVE_QUEUED)
 				parq_download_retry_active_queued(dl);
-			}
 			g_warning("[PARQ DL] Watch it! Download already running.");
-		} else
-		if (dl->list_idx == DL_LIST_STOPPED) {	
+		} else if (dl->list_idx == DL_LIST_STOPPED)
 			g_warning("[PARQ DL] Watch it! Download was stopped (Hashing?)");
-		} else {
+		else
 			g_warning("[PARQ DL] Watch it! Unknown status");
-		}
 
-		g_assert(s->resource.download == NULL); /* Hence socket_free() */
-		socket_free(s);
-		return;
+		goto ignore;
 	}
 	
 	g_assert (dl->list_idx == DL_LIST_WAITING);
@@ -1122,6 +1113,13 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 		/* Resend request for download */
 		download_send_request(dl);
 	}
+
+	return;
+
+ignore:
+	g_assert(s->resource.download == NULL); /* Hence socket_free() allowed */
+	socket_free(s);
+	return;
 }
 
 /***
