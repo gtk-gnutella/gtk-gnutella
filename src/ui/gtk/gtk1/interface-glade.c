@@ -10275,6 +10275,9 @@ create_dlg_prefs (void)
   GtkWidget *label698;
   GtkObject *spinbutton_config_query_debug_adj;
   GtkWidget *spinbutton_config_query_debug;
+  GtkWidget *label699;
+  GtkObject *spinbutton_config_routing_debug_adj;
+  GtkWidget *spinbutton_config_routing_debug;
   GtkWidget *frame_expert_unmapped;
   GtkWidget *table57;
   guint label461_key;
@@ -15765,6 +15768,28 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_config_query_debug);
   gtk_table_attach (GTK_TABLE (table92), spinbutton_config_query_debug, 3, 4, 3, 4,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label699 = gtk_label_new (_("Message routing"));
+  gtk_widget_set_name (label699, "label699");
+  gtk_widget_ref (label699);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label699", label699,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label699);
+  gtk_table_attach (GTK_TABLE (table92), label699, 2, 3, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label699), 0, 0.5);
+
+  spinbutton_config_routing_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_routing_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_routing_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_routing_debug, "spinbutton_config_routing_debug");
+  gtk_widget_ref (spinbutton_config_routing_debug);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "spinbutton_config_routing_debug", spinbutton_config_routing_debug,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_routing_debug);
+  gtk_table_attach (GTK_TABLE (table92), spinbutton_config_routing_debug, 3, 4, 4, 5,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 

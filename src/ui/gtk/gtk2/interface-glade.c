@@ -15428,6 +15428,9 @@ create_dlg_prefs_dbg_tab (void)
   GtkObject *spinbutton_config_query_debug_adj;
   GtkWidget *spinbutton_config_query_debug;
   GtkWidget *label879;
+  GtkWidget *label891;
+  GtkObject *spinbutton_config_routing_debug_adj;
+  GtkWidget *spinbutton_config_routing_debug;
   GtkWidget *label883;
   GtkWidget *label375;
   GtkWidget *frame_expert_unmapped;
@@ -15760,6 +15763,22 @@ create_dlg_prefs_dbg_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label879), 0, 0.5);
 
+  label891 = gtk_label_new (_("Message routing"));
+  gtk_widget_set_name (label891, "label891");
+  gtk_widget_show (label891);
+  gtk_table_attach (GTK_TABLE (table98), label891, 2, 3, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label891), 0, 0.5);
+
+  spinbutton_config_routing_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_routing_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_routing_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_routing_debug, "spinbutton_config_routing_debug");
+  gtk_widget_show (spinbutton_config_routing_debug);
+  gtk_table_attach (GTK_TABLE (table98), spinbutton_config_routing_debug, 3, 4, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   label883 = gtk_label_new (_("Functionality"));
   gtk_widget_set_name (label883, "label883");
   gtk_widget_show (label883);
@@ -15963,6 +15982,8 @@ create_dlg_prefs_dbg_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label890, "label890");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_query_debug, "spinbutton_config_query_debug");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label879, "label879");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label891, "label891");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_routing_debug, "spinbutton_config_routing_debug");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label883, "label883");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label375, "label375");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, frame_expert_unmapped, "frame_expert_unmapped");
