@@ -306,6 +306,7 @@ gint main(gint argc, gchar ** argv)
     filter_update_targets(); /* Make sure the default filters are ok */
 	share_init();
 	download_init();
+	upload_init();
 	ban_init();
 	dmesh_init();
 

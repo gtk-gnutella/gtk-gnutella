@@ -113,6 +113,7 @@ void handle_push_request(struct gnutella_node *);
 void upload_add(struct gnutella_socket *s);
 void upload_push_conf(struct upload *u);
 void upload_write(gpointer up, gint, GdkInputCondition);
+void upload_init(void);
 void upload_close(void);
 
 #endif /* __uploads_h__ */
