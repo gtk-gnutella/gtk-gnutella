@@ -199,6 +199,7 @@ gint utf8_is_valid_string(const gchar *s, gint len)
 
 	if (!len)
 		len = strlen(s);
+	g_assert(len >= 0);
 	s_end = s + len;
 
 	while (x < s_end) {
@@ -617,7 +618,7 @@ void locale_init(void)
 
 	if ((GIConv)-1 == (cd_latin_to_utf8 = g_iconv_open("UTF-8", "ISO-8859-1")))
 		g_warning("g_iconv_open(\"UTF-8\", \"ISO-8859-1\") failed.");
-	if (strcmp("ISO-8859-1", charset) > 0) {
+	if (0 != strcmp("ISO-8859-1", charset)) {
 		if ((GIConv)-1 == (cd_locale_to_utf8 = g_iconv_open("UTF-8", charset)))
 			g_warning("g_iconv_open(\"UTF-8\", \"%s\") failed.", charset);
 	} else {
@@ -749,8 +750,10 @@ gchar *utf8_to_locale(gchar *str, size_t len)
 
 gboolean is_ascii_string(const gchar *str)
 {
-	while (*str)
-		if (*str++ & 0x80)
+	gint c;
+
+	while ((c = (guchar) *str++))
+		if (c & 0x80)
 	        return FALSE;
 
     return TRUE;
@@ -895,7 +898,7 @@ int unicode_filters(const UChar *source, gint32 len, UChar *result)
 	int space = 0;
 
 	for (i = 0, j = 0; i < len; i++) {
-		switch(u_charType(source[i])) {
+		switch (u_charType(source[i])) {
 		case U_LOWERCASE_LETTER :
 		case U_OTHER_LETTER :
 		case U_MODIFIER_LETTER :
@@ -1031,7 +1034,7 @@ gchar *unicode_canonize(const gchar *in)
 	gboolean latin_locale = is_latin_locale();
 
 	len = strlen(in);
-	maxlen = len*6; /* Max 6 bytes for one char in utf8 */
+	maxlen = len * 6; /* Max 6 bytes for one char in utf8 */
 
 	g_assert(utf8_is_valid_string(in, len));
 
@@ -1050,14 +1053,14 @@ gchar *unicode_canonize(const gchar *in)
 	len = unicode_filters(qtmp1, len, qtmp2);
 	len = unicode_NFC(qtmp2, len, qtmp1, maxlen);
 
-	out = g_malloc(len+1);
+	out = g_malloc(len + 1);
 
 	if (latin_locale) /* Should be pure ASCII now */
 		len = icu_to_utf8_conv(qtmp2, len, out, len);
 	else
-		len = icu_to_utf8_conv(qtmp2, len, out, len*6);
+		len = icu_to_utf8_conv(qtmp2, len, out, len * 6);
 
-	out[len]=0;
+	out[len] = 0;
 
 	g_free(qtmp1);
 	g_free(qtmp2);
@@ -1065,4 +1068,5 @@ gchar *unicode_canonize(const gchar *in)
 	return out;
 }
 
+/* vi: set ts=4: */
 #endif	/* USE_ICU */
