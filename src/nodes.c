@@ -718,9 +718,10 @@ void node_timer(time_t now)
 				}
 			} else if (n->status == GTA_NODE_SHUTDOWN) {
 				if (now - n->shutdown_date > n->shutdown_delay) {
-					gchar *reason = g_strdup(n->error_str);
+					gchar reason[1024];
+
+					g_strlcpy(reason, n->error_str, sizeof reason);
 					node_remove(n, "Shutdown (%s)", reason);
-					G_FREE_NULL(reason);
 				}
 			} else if (
 				current_peermode == NODE_P_ULTRA &&
@@ -1283,14 +1284,20 @@ static void node_remove_v(
  * in shutdown mode, processing the messages we might still read from the
  * socket.
  */
-static void node_recursive_shutdown_v(
-	struct gnutella_node *n, gchar *where, const gchar *reason, va_list ap)
+static void node_recursive_shutdown_v(struct gnutella_node *n,
+	const gchar *where, const gchar *reason, va_list ap)
 {
-	gchar *fmt;
+	gchar *fmt, *p;
 
 	g_assert(n->status == GTA_NODE_SHUTDOWN);
 	g_assert(n->error_str);
 	g_assert(reason);
+
+	/* XXX: Could n->error_str contain a format string? Rather make sure
+	 *		there isn't any. */
+	for (p = n->error_str; *p != '\0'; p++)
+		if (*p == '%')
+			*p = 'X';
 
 	fmt = g_strdup_printf("%s (%s) [within %s]", where, reason, n->error_str);
 	node_remove_v(n, fmt, ap);
@@ -1530,7 +1537,7 @@ static gboolean node_avoid_monopoly(struct gnutella_node *n)
 	guint normal_cnt = 0;
 	GSList *sl;
 
-	g_assert(unique_nodes >= 0 && unique_nodes <= 100);
+	g_assert((gint) unique_nodes >= 0 && unique_nodes <= 100);
 	if (!n->vendor || (n->flags & NODE_F_CRAWLER) || unique_nodes == 100)
 		return FALSE;
 
@@ -1616,9 +1623,9 @@ static gboolean node_reserve_slot(struct gnutella_node *n)
 	guint leaf_cnt = 0;		/* GTKG leafs */
 	guint normal_cnt = 0;	/* GTKG normal nodes */
 	GSList *sl;
-	gchar *gtkg_vendor = "gtk-gnutella";
+	const gchar gtkg_vendor[] = "gtk-gnutella";
 
-	g_assert(reserve_gtkg_nodes >= 0 && reserve_gtkg_nodes <= 100);	
+	g_assert((gint) reserve_gtkg_nodes >= 0 && reserve_gtkg_nodes <= 100);	
 	if (!n->vendor || (n->flags & NODE_F_CRAWLER) || !reserve_gtkg_nodes)
 		return FALSE;
 	
@@ -1643,7 +1650,7 @@ static gboolean node_reserve_slot(struct gnutella_node *n)
 	}	
 
 	/*
-	 * For a given max polulation `max', already filled by `x' nodes out
+	 * For a given max population `max', already filled by `x' nodes out
 	 * of which `y' are GTKG ones, we want to make sure that we can have
 	 * "reserve_gtkg_nodes" percent of the slots (i.e. `g' percent) used
 	 * by GTKG.
@@ -2060,10 +2067,6 @@ gboolean node_is_connected(guint32 ip, guint16 port, gboolean incoming)
  */
 gboolean node_host_is_connected(guint32 ip, guint16 port)
 {
-#if 0
-	const GSList *sl;
-#endif
-
 	/* Check our local ip */
 
 	if (ip == listen_ip())
@@ -2073,18 +2076,22 @@ gboolean node_host_is_connected(guint32 ip, guint16 port)
 
 #if 0
 	/* Check the nodes -- this is a small list, OK to traverse */
+	{
+		const GSList *sl;
 
-	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *node = (struct gnutella_node *) sl->data;
-		if (NODE_IS_REMOVING(node))
-			continue;
-		if (!node->gnet_ip)
-			continue;
-		if (node->gnet_ip == ip && node->gnet_port == port)
-			return TRUE;
+
+		for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+			struct gnutella_node *node = (struct gnutella_node *) sl->data;
+			if (NODE_IS_REMOVING(node))
+				continue;
+			if (!node->gnet_ip)
+				continue;
+			if (node->gnet_ip == ip && node->gnet_port == port)
+				return TRUE;
+		}
+
+		return FALSE;
 	}
-
-	return FALSE;
 #endif
 }
 
@@ -2120,7 +2127,7 @@ static gchar *formatted_connection_pongs(gchar *field, hcache_type_t htype)
 			PONG_LEN * CONNECT_PONGS_COUNT + 30);
 
 		for (i = 0; i < hcount; i++) {
-			gchar *ipstr = ip_port_to_gchar(hosts[i].ip, hosts[i].port);
+			const gchar *ipstr = ip_port_to_gchar(hosts[i].ip, hosts[i].port);
 			header_fmt_append_value(fmt, ipstr);
 		}
 
@@ -5511,9 +5518,11 @@ inline void node_add_rxdrop(gnutella_node_t *n, gint x)
 void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 {
 	if (n->flags & NODE_F_FAKE_NAME) {
-		gchar *name = g_strdup_printf("!%s", vendor);
+		gchar name[1024];
+
+		name[0] = '!';
+		g_strlcpy(&name[1], vendor, sizeof name - 1);
 		n->vendor = atom_str_get(name);
-		G_FREE_NULL(name);
 	} else
 		n->vendor = atom_str_get(vendor);
 
