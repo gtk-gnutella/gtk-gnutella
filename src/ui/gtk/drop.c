@@ -265,7 +265,7 @@ static gboolean handle_magnet(gchar *url)
 		
 		g_message("file=\"%s\"", dl.file);
 
-		filename = gm_sanitize_filename(dl.file, FALSE);
+		filename = gm_sanitize_filename(dl.file, FALSE, FALSE);
 		guc_download_new_unknown_size(filename, URN_INDEX, dl.ip, 
 			dl.port, blank_guid, dl.hostname, dl.sha1, time(NULL), 
 			FALSE, NULL, NULL);
