@@ -160,8 +160,6 @@ extern gboolean prefer_compressed_gnet;
 extern gboolean online_mode;
 extern gboolean download_require_urn;
 extern gboolean download_require_server_name;
-extern gboolean force_ultrapeer;
-extern gboolean force_leaf;
 extern guint32  max_ultrapeers;
 extern guint32  max_leaves;
 extern guint32  configured_peermode;

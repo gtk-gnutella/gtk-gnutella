@@ -1985,22 +1985,6 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_FORCE_ULTRAPEER,
-        update_entry,
-        TRUE,
-        "entry_force_ultrapeer",
-        FREQ_UPDATES, 0
-    },
-    {
-        get_main_window,
-        PROP_FORCE_LEAF,
-        update_entry,
-        TRUE,
-        "entry_force_leaf",
-        FREQ_UPDATES, 0
-    },
-    {
-        get_main_window,
         PROP_SYS_NOFILE,
         update_entry,
         TRUE,

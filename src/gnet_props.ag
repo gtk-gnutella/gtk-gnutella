@@ -1549,27 +1549,6 @@ prop = {
 };
 
 prop = {
-    name = "force_ultrapeer";
-    desc = "Whether gtk-gnutella should start up as an Ultrapeer regardless "
-			"of whether the node is capable of handling it.  This setting "
-			"is only valid for the first hour (debugging only).";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "force_leaf";
-    desc = "Whether gtk-gnutella should always act as a leaf node, regardless "
-			"of whether the node is capable of becoming an Ultrapeer.";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
     name = "max_ultrapeers";
     desc = "Maximum amount of Ultrapeers we should connect to as a leaf.";
     type = guint32;
@@ -1612,6 +1591,10 @@ prop = {
     choice = {
         name = "leaf node";
         value = 0;
+    };
+    choice = {
+        name = "legacy node (avoid)";
+        value = 1;
     };
 };
 
