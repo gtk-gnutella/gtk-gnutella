@@ -63,6 +63,7 @@ SRC = \
 	mq_udp.c \
 	namesize.c \
 	nodes.c \
+	ntp.c \
 	oob.c \
 	oob_proxy.c \
 	parq.c \
