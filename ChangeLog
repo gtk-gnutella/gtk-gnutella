@@ -3,6 +3,8 @@
 - (2004.01.19 - RAM)
  * Abort download_clear_stopped() if there's nothing in `sl_unqueued'.
  * Don't call downloads_gui_init() before settings_gui_init().
+ * Fix overwriting of already read data when parsing more than one line
+   [Patch from Thadeu Lima de Souza Cascardo, fixes bug #857075].
 
 - (2004.01.18 - RAM)
  * Changed minimum for "node_connected_timeout" to 120 and the default to 180,
