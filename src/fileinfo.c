@@ -3187,7 +3187,7 @@ inline void file_info_add_source(
 {
     g_assert(dl->file_info == NULL);
 
-    fi->refcount ++;
+    fi->refcount++;
     fi->dirty_status = TRUE;
     dl->file_info = fi;
     fi->sources = g_slist_prepend(fi->sources, dl);

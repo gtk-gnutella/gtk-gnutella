@@ -737,8 +737,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
         if (atoi(buf) == 1)
 			flags |= SEARCH_ENABLED;
         g_free(buf);
-    }
-    else
+    } else
 		flags |= SEARCH_ENABLED;	 /* Compatibility: searches always began */
 
     buf = xmlGetProp(xmlnode, TAG_SEARCH_SPEED);
