@@ -4358,7 +4358,10 @@ node_udp_enable(void)
 	txdrv_t *tx;
 
 	g_assert(n->outq == NULL);
+	g_assert(n->socket == NULL);
+	g_assert(s_udp_listen != NULL);
 
+	n->socket = s_udp_listen;
 	tx = tx_make(n, tx_dgram_get_ops(), 0);		/* Cannot fail */
 	n->outq = mq_udp_make(node_sendqueue_size, n, tx);
 }
@@ -4372,9 +4375,11 @@ node_udp_disable(void)
 	gnutella_node_t *n = udp_node;
 
 	g_assert(n->outq != NULL);
+	g_assert(n->socket != NULL);
 
 	mq_free(n->outq);
 	n->outq = NULL;
+	n->socket = NULL;
 }
 
 /**
@@ -4387,14 +4392,13 @@ node_udp_get(struct gnutella_socket *s)
 	struct gnutella_header *head;
 
 	g_assert(n != NULL);
-	g_assert(n->socket == NULL);
+	g_assert(n->socket == s);		/* Only one UDP socket */
 
 	head = (struct gnutella_header *) s->buffer;
 	READ_GUINT32_LE(head->size, n->size);
 
 	n->header = *head;		/* Struct copy */
-	n->socket = s;
-	n->data = s->buffer + sizeof(struct gnutella_header);
+	n->data = s->buffer + GTA_HEADER_SIZE;
 
 	n->ip = s->ip;
 	n->port = s->port;
@@ -4410,20 +4414,6 @@ mqueue_t *
 node_udp_get_outq(void)
 {
 	return udp_node->outq;
-}
-
-/**
- * Release "fake" node after processing of a datagram.
- */
-static void
-node_udp_release(struct gnutella_socket *s)
-{
-	gnutella_node_t *n = udp_node;
-
-	g_assert(n->socket == s);
-	g_assert(n->socket != NULL);
-
-	n->socket = NULL;
 }
 
 /**
@@ -5182,8 +5172,6 @@ node_udp_process(struct gnutella_socket *s)
 		node_parse(n);
 
 	g_assert(n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n));
-
-	node_udp_release(s);
 }
 
 /**
