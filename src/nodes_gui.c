@@ -90,15 +90,6 @@ static void nodes_gui_node_added(gnet_node_t n, const gchar *t)
 static void nodes_gui_node_info_changed(gnet_node_t n)
 {
     gnet_node_info_t info;
-	gint current_page;
-	static GtkNotebook *notebook = NULL;
-
-	if (notebook == NULL)
-		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
-
-	current_page = gtk_notebook_get_current_page(notebook);
-	if (current_page != nb_main_page_gnet)
-		return;
 
     node_fill_info(n, &info);
     nodes_gui_update_node_info(&info);
