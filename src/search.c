@@ -1336,6 +1336,26 @@ final_cleanup:
 	g_slist_free(selected_searches);
 }
 
+/*
+ * search_extract_host
+ *
+ * Extract IP/port information out of the Query Hit into `ip' and `port'.
+ */
+void search_extract_host(struct gnutella_node *n, guint32 *ip, guint16 *port)
+{
+	guint32 hip;
+	guint16 hport;
+	struct gnutella_search_results *r =
+		(struct gnutella_search_results *) n->data;
+
+	/* Read Query Hit info */
+
+	READ_GUINT32_BE(r->host_ip, hip);		/* IP address */
+	READ_GUINT16_LE(r->host_port, hport);	/* Port */
+
+	*ip = hip;
+	*port = hport;
+}
 
 void search_shutdown(void)
 {

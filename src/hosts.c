@@ -27,6 +27,7 @@ GSList *ping_reqs = NULL;
 guint32 n_ping_reqs = 0;
 struct ping_req *pr_ref = (struct ping_req *) NULL;
 guint32 hosts_in_catcher = 0;
+gboolean host_low_on_pongs = FALSE;			/* True when less than 12% full */
 
 gchar h_tmp[4096];
 
@@ -117,7 +118,8 @@ void host_save_valid(guint32 ip, guint16 port)
 
 	/*
 	 * We prepend to the list instead of appending because the day
-	 * we switch it as `sl_caught_hosts', we'll start reading from the end.
+	 * we switch it as `sl_caught_hosts', we'll start reading from there,
+	 * in effect using the most recent hosts we know about.
 	 */
 
 	if (host_ht_add(host))
@@ -202,22 +204,20 @@ gboolean check_valid_host(guint32 ip, guint16 port)
 }
 
 /*
- * host_add
+ * add_host_to_cache
  *
- * Add a new host to our pong reserve.
- * When `connect' is true, attempt to connect if we are low in Gnet links.
+ * Common processing for host_add() and host_add_semi_pong().
+ * Returns true when IP/port passed sanity checks.
  */
-void host_add(guint32 ip, guint16 port, gboolean connect)
+static gboolean add_host_to_cache(guint32 ip, guint16 port, gchar *type)
 {
 	struct gnutella_host *host;
-	gchar *titles[2];
-	gint extra;
 
 	if (!check_valid_host(ip, port))
-		return;					/* Is host valid? */
+		return FALSE;			/* Is host valid? */
 
 	if (find_host(ip, port))
-		return;					/* Do we have this host? */
+		return FALSE;			/* Do we have this host? */
 
 	/* Okay, we got a new host */
 
@@ -225,24 +225,6 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 
 	host->port = port;
 	host->ip = ip;
-
-	titles[0] = ip_port_to_gchar(ip, port);
-
-	/*
-	 * If we are under the number of connections wanted, we add this host
-	 * to the connection list.
-	 *
-	 * Note: we're not using `node_count()' for the comparison with
-	 * `up_connections' but connected_nodes().	The node_add() routine also
-	 * compare `node_count' with `max_connections' to ensure we don't
-	 * launch too many connections, but comparing here as well may help
-	 * avoid useless call to connected_nodes() and/or node_add().
-	 *				--RAM, 20/09/2001
-	 */
-
-	if (connect && node_count() < max_connections &&
-			connected_nodes() < up_connections)
-		node_add(NULL, host->ip, host->port);
 
 	if (!sl_caught_hosts)		/* Assume addition below will be a success */
 		gtk_widget_set_sensitive(button_host_catcher_clear, TRUE);
@@ -259,6 +241,44 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 
 	if (!sl_caught_hosts)
 		gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
+
+	host_low_on_pongs = (hosts_in_catcher < (max_hosts_cached >> 3));
+
+	if (dbg > 8)
+		printf("added %s %s (%s)\n", type, ip_port_to_gchar(ip, port),
+			host_low_on_pongs ? "LOW" : "OK");
+
+	return TRUE;
+}
+
+/*
+ * host_add
+ *
+ * Add a new host to our pong reserve.
+ * When `connect' is true, attempt to connect if we are low in Gnet links.
+ */
+void host_add(guint32 ip, guint16 port, gboolean connect)
+{
+	gint extra;
+
+	if (!add_host_to_cache(ip, port, "pong"))
+		return;
+
+	/*
+	 * If we are under the number of connections wanted, we add this host
+	 * to the connection list.
+	 *
+	 * Note: we're not using `node_count()' for the comparison with
+	 * `up_connections' but connected_nodes().	The node_add() routine also
+	 * compare `node_count' with `max_connections' to ensure we don't
+	 * launch too many connections, but comparing here as well may help
+	 * avoid useless call to connected_nodes() and/or node_add().
+	 *				--RAM, 20/09/2001
+	 */
+
+	if (connect && node_count() < max_connections &&
+			connected_nodes() < up_connections)
+		node_add(NULL, ip, port);
 
 	/*
 	 * Prune cache if we reached our limit.
@@ -281,6 +301,24 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 		}
 		host_remove(g_list_first(sl_caught_hosts)->data);
 	}
+}
+
+/*
+ * host_add_semi_pong
+ *
+ * Add a new host to our pong reserve, although the information here
+ * does not come from a pong but from a Query Hit packet, hence the port
+ * may be unsuitable for Gnet connections.
+ */
+void host_add_semi_pong(guint32 ip, guint16 port)
+{
+	g_assert(host_low_on_pongs);	/* Only used when low on pongs */
+
+	(void) add_host_to_cache(ip, port, "semi-pong");
+
+	/*
+	 * Don't attempt to prune cache, we know we're below the limit.
+	 */
 }
 
 static FILE *hosts_r_file = (FILE *) NULL;
@@ -348,6 +386,8 @@ void host_get_caught(guint32 *ip, guint16 *port)
 	GList *link;
 
 	g_assert(sl_caught_hosts);		/* Must not call if no host in list */
+
+	host_low_on_pongs = (hosts_in_catcher < (max_hosts_cached >> 3));
 
 	/*
 	 * Try the recent pong cache when `alternate' is odd.

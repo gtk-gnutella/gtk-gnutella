@@ -1654,6 +1654,15 @@ void node_parse(struct gnutella_node *node)
 		pcache_pong_received(n);
 		goto reset_header;
 		/* NOTREACHED */
+	case GTA_MSG_SEARCH_RESULTS:	/* "semi-pongs" */
+		if (host_low_on_pongs) {
+			guint32 ip;
+			guint16 port;
+
+			search_extract_host(n, &ip, &port);
+			host_add_semi_pong(ip, port);
+		}
+		break;
 	default:
 		break;
 	}

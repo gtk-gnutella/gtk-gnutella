@@ -14,6 +14,8 @@ extern GList *sl_caught_hosts;
 extern struct ping_req *pr_ref;
 extern gint hosts_idle_func;
 extern guint32 hosts_in_catcher;
+extern gboolean host_low_on_pongs;
+
 /*
  * Global Functions
  */
@@ -23,6 +25,7 @@ gboolean find_host(guint32, guint16);
 void host_remove(struct gnutella_host *);
 void host_save_valid(guint32 ip, guint16 port);
 void host_add(guint32, guint16, gboolean);
+void host_add_semi_pong(guint32 ip, guint16 port);
 gint host_fill_caught_array(struct gnutella_host *hosts, gint hcount);
 void host_get_caught(guint32 *ip, guint16 *port);
 void ping_stats_add(struct gnutella_node *);
