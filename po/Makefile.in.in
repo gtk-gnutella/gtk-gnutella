@@ -47,7 +47,7 @@ COMPILE = $(CC) -c $(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) $(XCFLAGS)
 
 POFILES = @POFILES@
 GMOFILES = @GMOFILES@
-DISTFILES = ChangeLog Makefile.in.in POTFILES.in $(PACKAGE).pot \
+DISTFILES = Makefile.in.in POTFILES.in $(PACKAGE).pot \
 $(POFILES) $(GMOFILES)
 
 POTFILES = \
@@ -161,8 +161,7 @@ dist distdir:
 dist2: $(DISTFILES)
 	dists="$(DISTFILES)"; \
 	for file in $$dists; do \
-	  if test -f $$file; then dir=.; else dir=$(srcdir); fi; \
-	  cp -p $$dir/$$file $(distdir); \
+	  cp -p `if test -f $$file; then echo $$file; else echo $(srcdir)/$$file; fi` $(distdir); \
 	done
 
 update-po: Makefile
