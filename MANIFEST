@@ -55,6 +55,7 @@ doc/public/GGEP/u
 doc/public/README
 gtk2-gnutella.glade
 gtk-gnutella.glade
+gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 gwcache.boot
 hostiles.txt
 install.SH                   BSD-compatible install program
@@ -377,6 +378,7 @@ U/new/i_syssendfile.U
 U/new/i_syssysctl.U
 U/new/i_uni_putil.U
 U/new/i_zlib.U
+U/new/official.U
 U/new/pkgsrc.U
 U/packages/glade.U
 U/packages/gtkconfig.U
