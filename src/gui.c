@@ -591,7 +591,7 @@ void gui_update_input_bandwidth ()
 {
     gtk_spin_button_set_value(
         GTK_SPIN_BUTTON(spinbutton_config_bps_in),
-        input_bandwidth / 1024);
+        (float)input_bandwidth / 1024.0);
 }
 
 UPDATE_CHECKBUTTON(
@@ -604,7 +604,7 @@ void gui_update_output_bandwidth ()
 {
     gtk_spin_button_set_value(
         GTK_SPIN_BUTTON(spinbutton_config_bps_out),
-        output_bandwidth / 1024);
+        (float)output_bandwidth / 1024.0);
 }
 
 UPDATE_CHECKBUTTON(
@@ -643,6 +643,13 @@ UPDATE_CHECKBUTTON(
     search_pick_all,
     NO_FUNC)
 
+void gui_update_is_firewalled()
+{
+    if (is_firewalled)
+        gtk_widget_show(GTK_WIDGET(pixmap_firewall));
+    else
+        gtk_widget_hide(GTK_WIDGET(pixmap_firewall));
+}
 
 
 /*
