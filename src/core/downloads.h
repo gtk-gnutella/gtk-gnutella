@@ -1,0 +1,98 @@
+/*
+ * $Id$
+ *
+ * Copyright (c) 2001-2003, Raphael Manfredi
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+#ifndef _core_downloads_h_
+#define _core_downloads_h_
+
+#include "lib/header.h"
+#include "fileinfo.h"
+
+#include "if/core/downloads.h"
+#include "if/core/search.h"			/* For gnet_host_vec_t */
+
+/* 
+ * Global Data
+ */
+
+extern GSList *sl_unqueued;
+
+/*
+ * Global Functions
+ */
+
+void download_init(void);
+void download_restore_state(void);
+void download_store_if_dirty(void);
+void download_timer(time_t now);
+void download_info_change_all(
+	struct dl_file_info *old_fi, struct dl_file_info *new_fi);
+void download_orphan_new(
+	gchar *file, guint32 size, gchar *sha1, struct dl_file_info *fi);
+void download_queue(struct download *d,
+	const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
+void download_stop(struct download *, guint32,
+	const gchar *, ...) G_GNUC_PRINTF(3, 4);
+void download_push_ack(struct gnutella_socket *);
+void download_fallback_to_push(struct download *, gboolean, gboolean);
+void download_pickup_queued(void);
+void download_forget(struct download *, gboolean unavailable);
+gboolean download_start_prepare(struct download *d);
+gboolean download_start_prepare_running(struct download *d);
+void download_send_request(struct download *);
+void download_retry(struct download *);
+void download_close(void);
+gboolean download_server_nopush(gchar *guid, guint32 ip, guint16 port);
+void download_free_removed(void);
+void download_redirect_to_server(struct download *d, guint32 ip, guint16 port);
+void download_actively_queued(struct download *d, gboolean queued);
+
+void download_verify_start(struct download *d);
+void download_verify_progress(struct download *d, guint32 hashed);
+void download_verify_done(struct download *d, gchar *digest, guint elapsed);
+void download_verify_error(struct download *d);
+
+void download_move_start(struct download *d);
+void download_move_progress(struct download *d, guint32 copied);
+void download_move_done(struct download *d, guint elapsed);
+void download_move_error(struct download *d);
+
+gboolean download_new_uri(gchar *file, gchar *uri, guint32 size,
+			  guint32 ip, guint16 port, gchar *guid, gchar *hostname,
+			  gchar *sha1, time_t stamp, gboolean push,
+			  struct dl_file_info *fi, gnet_host_vec_t *proxies);
+
+guint extract_retry_after(const header_t *header);
+gboolean is_faked_download(const struct download *d);
+
+struct download *download_find_waiting_unparq(guint32 ip, guint16 port);
+void download_set_socket_rx_size(gint rx_size);
+
+void download_proxy_newstate(struct download *d);
+void download_proxy_sent(struct download *d);
+void download_proxy_failed(struct download *d);
+
+#endif /* _core_downloads_h_ */
+
+/* vi: set ts=4: */
