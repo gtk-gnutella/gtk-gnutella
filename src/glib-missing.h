@@ -48,8 +48,8 @@ GList *g_list_delete_link(GList *l, GList *lnk);
 #endif /* !USE_GTK */
 
 size_t gm_vsnprintf(gchar *str, size_t n, gchar const *fmt, va_list args);
-size_t gm_snprintf(gchar *str, size_t n, gchar const *fmt, ...)
-	G_GNUC_PRINTF (3, 4);
+size_t gm_snprintf(gchar *str, size_t n,
+	gchar const *fmt, ...) G_GNUC_PRINTF (3, 4);
 
 gchar *gm_strconcatv(const gchar *s, va_list args);
 void gm_savemain(gint argc, gchar **argv, gchar **env);
@@ -58,48 +58,57 @@ unsigned long gm_atoul(const char *str, char **endptr, int *errorcode);
 
 #define GM_STRCONCAT_NULL(x, ...) g_strconcat(x, ## __VA_ARGS__, NULL)
 
+/*
+ * The G_*LIST_FOREACH_* macros are supposed to be used with ``func'' being
+ * a function declared ``static inline'' whereas the protoype MUST match
+ * ``GFunc''. ``func'' is not assigned to a variable so that the compiler
+ * can prevent any function call overhead along with ``inline''.
+ * These macros were rejected by the GLib maintainers so we can safely use
+ * the G_ prefix.
+ */
+
 /* NB: Sub-statement func is evaluated more than once! */
 #define G_LIST_FOREACH(list, func, user_data) \
 	do { \
-		GList *_l = (list); \
-		gpointer _user_data = (user_data); \
-		while (NULL != _l) { \
-			(*(func))(_l->data, _user_data); \
-			_l = g_list_next(_l); \
+		GList *l_ = (list); \
+		gpointer user_data_ = (user_data); \
+		while (NULL != l_) { \
+			func(l_->data, user_data_); \
+			l_ = g_list_next(l_); \
 		} \
 	} while(0)
 
 #define G_LIST_FOREACH_SWAPPED(list, func, user_data) \
 	do { \
-		GList *_l = (list); \
-		gpointer _user_data = (user_data); \
-		while (NULL != _l) { \
-			(*(func))(_user_data, _l->data); \
-			_l = g_list_next(_l); \
+		GList *l_ = (list); \
+		gpointer user_data_ = (user_data); \
+		while (NULL != l_) { \
+			func(user_data_, l_->data); \
+			l_ = g_list_next(l_); \
 		} \
 	} while(0)
 
 /* NB: Sub-statement func is evaluated more than once! */
 #define G_SLIST_FOREACH(slist, func, user_data) \
 	do { \
-		GSList *_sl = (slist); \
-		gpointer _user_data = (user_data); \
-		while (NULL != _sl) { \
-			(*(func))(_sl->data, _user_data); \
-			_sl = g_slist_next(_sl); \
+		GSList *sl_ = (slist); \
+		gpointer user_data_ = (user_data); \
+		while (NULL != sl_) { \
+			func(sl_->data, user_data_); \
+			sl_ = g_slist_next(sl_); \
 		} \
 	} while(0)
 
 /* NB: Sub-statement func is evaluated more than once! */
 #define G_SLIST_FOREACH_SWAPPED(slist, func, user_data) \
 	do { \
-		GSList *_sl = (slist); \
-		gpointer _user_data = (user_data); \
-		while (NULL != _sl) { \
-			(*(func))(_user_data, _sl->data); \
-			_sl = g_slist_next(_sl); \
+		GSList *sl_ = (slist); \
+		gpointer user_data_ = (user_data); \
+		while (NULL != sl_) { \
+			func(user_data_, sl_->data); \
+			sl_ = g_slist_next(sl_); \
 		} \
 	} while(0)
 
-
+/* vi: set ts=4 sw=4: */
 #endif	/* _glib_missing_h_ */
