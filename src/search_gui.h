@@ -65,6 +65,7 @@ struct search {
 	guint32     unseen_items;	   /* How many items haven't been seen yet. */
 
 	gboolean    passive;		   /* Is this a passive search? */
+	gboolean    massive_update;	   /* massive update in process */
 
 	hash_list_t *r_sets;		   /* The results sets of this search */
 

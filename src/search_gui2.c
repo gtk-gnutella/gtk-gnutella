@@ -255,11 +255,10 @@ void do_atom_sha1_free(gpointer sha1)
 }
 
 
-/* 
- * search_gui_new_search_full:
- *
+/** 
  * Create a new search and start it.
- * Returns TRUE if search was sucessfully created and FALSE if an error
+ *
+ * @returns TRUE if search was sucessfully created and FALSE if an error
  * happened. If the "search" argument is not NULL a pointer to the new
  * search is stored there.
  */
@@ -312,8 +311,9 @@ gboolean search_gui_new_search_full(
 		guchar raw[SHA1_RAW_SIZE];
 		gchar *b = query + 9;
 
-		if (strlen(b) < SHA1_BASE32_SIZE)
+		if (strlen(b) < SHA1_BASE32_SIZE) {
 			goto refused;
+		}
 
 		if (base32_decode_into(b, SHA1_BASE32_SIZE, raw, sizeof(raw)))
 			goto validated;
@@ -349,6 +349,7 @@ gboolean search_gui_new_search_full(
 	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
 	sch->search_handle = search_new(query, speed, reissue_timeout, flags);
 	sch->passive = (flags & SEARCH_PASSIVE) ? TRUE : FALSE;
+	sch->massive_update = FALSE;
 	sch->dups = g_hash_table_new_full(
 					(GHashFunc) search_gui_hash_func,
 					(GEqualFunc) search_gui_hash_key_compare,
@@ -1481,18 +1482,26 @@ void search_gui_start_massive_update(search_t *sch)
 {
 	g_assert(sch);
 
+   	if (sch == search_gui_get_current_search() || sch->massive_update)
+		return;
+		
 	g_object_ref(sch->model);
 	gtk_tree_view_set_model(GTK_TREE_VIEW(sch->tree_view), NULL);
+	sch->massive_update = TRUE;
 }
 
 void search_gui_end_massive_update(search_t *sch)
 {
 	g_assert(sch);
 
+	if (!sch->massive_update)
+		return;
+
     gui_search_force_update_tab_label(sch, time(NULL));
 	gtk_tree_view_set_model(GTK_TREE_VIEW(sch->tree_view),
 		GTK_TREE_MODEL(sch->model));
 	g_object_unref(GTK_TREE_MODEL(sch->model));
+	sch->massive_update = FALSE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
