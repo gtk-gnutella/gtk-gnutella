@@ -552,7 +552,7 @@ gchar *iso_8859_1_to_utf8(gchar *fromstr)
 
 	g_assert(NULL != fromstr);
  
-	return g_iconv_complete(cd_utf8_to_locale,
+	return g_iconv_complete(cd_latin_to_utf8,
 				fromstr, strlen(fromstr), outbuf, sizeof(outbuf) - 7);
 }
 
