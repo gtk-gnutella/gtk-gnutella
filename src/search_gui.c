@@ -1033,11 +1033,12 @@ static void search_store_old(void)
 	FILE *out;
 	time_t now = time((time_t *) NULL);
 
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s",
+		settings_gui_config_dir(), search_file);
 	out = fopen(tmpstr, "w");
 
 	if (!out) {
-		g_warning("Unable to create %s to persist serach: %s",
+		g_warning("Unable to create \"%s\" to persist search: %s",
 			tmpstr, g_strerror(errno));
 		return;
 	}
@@ -1052,7 +1053,7 @@ static void search_store_old(void)
 	}
 
 	if (0 != fclose(out))
-		g_warning("Could not flush %s: %s", tmpstr, g_strerror(errno));
+		g_warning("Could not flush \"%s\": %s", tmpstr, g_strerror(errno));
 }
 #endif /* USE_SEARCH_XML */
 
@@ -1066,7 +1067,8 @@ void search_gui_store_searches(void)
 #ifdef USE_SEARCH_XML
 	search_store_xml();
     
-  	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
+  	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s",
+		settings_gui_config_dir(), search_file);
     if (file_exists(tmpstr)) {
         gchar filename[1024];
 
@@ -1399,7 +1401,8 @@ static gboolean search_retrieve_old(void)
 	struct stat buf;
 	gint line;				/* File line number */
 
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s",
+		settings_gui_config_dir(), search_file);
 	if (-1 == stat(tmpstr, &buf))
 		return FALSE;
 
@@ -1487,7 +1490,7 @@ void search_gui_init(void)
     LIBXML_TEST_VERSION
 	if (search_retrieve_old()) {
        	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", 
-            gui_config_dir, search_file);
+            settings_gui_config_dir(), search_file);
         g_warning(
             _("Found old searches file. Loaded it.\n"
             "On exit the searches will be saved in the new XML format\n"

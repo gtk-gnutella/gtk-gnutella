@@ -5584,7 +5584,7 @@ static void download_store(void)
 {
 	FILE *out;
 	GSList *l;
-	file_path_t fp = { config_dir, download_file };
+	file_path_t fp = { settings_config_dir(), download_file };
 
 	if (retrieving)
 		return;
@@ -5653,7 +5653,7 @@ static void download_retrieve(void)
 	guchar sha1_digest[SHA1_RAW_SIZE];
 	gboolean has_sha1 = FALSE;
 	gint maxlines = -1;
-	file_path_t fp = { config_dir, download_file };
+	file_path_t fp = { settings_config_dir(), download_file };
 	gboolean allow_comments = TRUE;
 
 	in = file_config_open_read(file_what, &fp, 1);

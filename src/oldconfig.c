@@ -31,8 +31,6 @@
  * gui counterparts.
  */
 
-#include "gui.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <signal.h>
@@ -43,6 +41,8 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <netdb.h>
+
+#include "gui.h"
 
 #include "oldconfig.h"
 #include "settings_gui.h"
@@ -97,6 +97,7 @@ RCSID("$Id$");
     }
 
 static gchar *config_file = "config";
+static gchar *gui_config_dir = NULL;
 
 /* 
  * For backward compatibility these values are still read, but 

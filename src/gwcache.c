@@ -204,7 +204,7 @@ static void gwc_store(void)
 	FILE *out;
 	gint i;
 	gint j;
-	file_path_t fp = { config_dir, gwc_file };
+	file_path_t fp = { settings_config_dir(), gwc_file };
 
 	out = file_config_open_write(gwc_what, &fp);
 
@@ -257,7 +257,7 @@ static void gwc_retrieve(void)
 	gint line;
 	FILE *in;
 	file_path_t fpvec[] = {
-		{ config_dir, gwc_file },
+		{ settings_config_dir(), gwc_file },
 		{ PACKAGE_DATA_DIR, gwc_bootfile },
 #ifdef USE_SOURCE_DIR_AS_FALLBACK
 		{ PACKAGE_SOURCE_DIR, gwc_bootfile }

@@ -724,7 +724,7 @@ void shell_add(struct gnutella_socket *s)
 static void shell_dump_cookie()
 {
 	FILE *out;
-	file_path_t fp = { config_dir, "auth_cookie" };
+	file_path_t fp = { settings_config_dir(), "auth_cookie" };
 	mode_t mask;
 
 	mask = umask(S_IRWXG | S_IRWXO); /* umask 077 */

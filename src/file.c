@@ -33,10 +33,10 @@
 
 RCSID("$Id$");
 
-static gchar *orig_ext = ".orig";
-static gchar *new_ext = ".new";
-static gchar *instead_str = " instead";
-static gchar *empty_str = "";
+static const gchar *orig_ext = ".orig";
+static const gchar *new_ext = ".new";
+static const gchar *instead_str = " instead";
+static const gchar *empty_str = "";
 
 static gchar file_tmp[2048];
 
@@ -51,13 +51,14 @@ static gchar file_tmp[2048];
  *
  * Returns opened FILE, or NULL if we were unable to open any.
  */
-FILE *file_config_open_read(gchar *what, file_path_t *fv, gint fvcnt)
+FILE *file_config_open_read(
+	const gchar *what, const file_path_t *fv, gint fvcnt)
 {
 	FILE *in;
 	gchar tmp[2048];
 	const gchar *error;
 	struct stat buf;
-	gchar *instead = empty_str;
+	const gchar *instead = empty_str;
 
 	g_assert(fv != NULL);
 	g_assert(fvcnt >= 1);
@@ -69,7 +70,7 @@ FILE *file_config_open_read(gchar *what, file_path_t *fv, gint fvcnt)
 
 	if (in) {
 		if (-1 == rename(tmp, file_tmp))
-			g_warning("could not rename %s as %s: %s",
+			g_warning("could not rename \"%s\" as \"%s\": %s",
 				tmp, file_tmp, g_strerror(errno));
 		return in;
 	}
@@ -94,7 +95,7 @@ FILE *file_config_open_read(gchar *what, file_path_t *fv, gint fvcnt)
 	 */
 
 	if (in == NULL && fvcnt > 1) {
-		file_path_t *xfv;
+		const file_path_t *xfv;
 		gint xfvcnt;
 
 		instead = instead_str;
@@ -127,7 +128,7 @@ FILE *file_config_open_read(gchar *what, file_path_t *fv, gint fvcnt)
  *
  * Returns opened FILE if success, NULL on error.
  */
-FILE *file_config_open_write(gchar *what, file_path_t *fv)
+FILE *file_config_open_write(const gchar *what, const file_path_t *fv)
 {
 	FILE *out;
 
@@ -149,7 +150,7 @@ FILE *file_config_open_write(gchar *what, file_path_t *fv)
  * Close configuration file opened for writing, and rename it.
  * Returns TRUE on success.
  */
-gboolean file_config_close(FILE *out, file_path_t *fv)
+gboolean file_config_close(FILE *out, const file_path_t *fv)
 {
 	gchar tmp[2048];
 
@@ -177,7 +178,7 @@ gboolean file_config_close(FILE *out, file_path_t *fv)
  *
  * Emit the configuration preamble.
  */
-void file_config_preamble(FILE *out, gchar *what)
+void file_config_preamble(FILE *out, const gchar *what)
 {
 	time_t now = time((time_t *) NULL);
 

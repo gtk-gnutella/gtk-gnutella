@@ -34,19 +34,20 @@
  * This structure is used to identify a file to be saved/restored.
  */
 typedef struct {
-	gchar *dir;					/* File's directory */
-	gchar *name;				/* File's basename */
+	const gchar *dir;				/* File's directory */
+	const gchar *name;				/* File's basename */
 } file_path_t;
 
 /*
  * Public interface.
  */
 
-FILE *file_config_open_read(gchar *what, file_path_t *fv, gint fvcnt);
-FILE *file_config_open_write(gchar *what, file_path_t *fv);
-gboolean file_config_close(FILE *out, file_path_t *fv);
+FILE *file_config_open_read(
+	const gchar *what, const file_path_t *fv, gint fvcnt);
+FILE *file_config_open_write(const gchar *what, const file_path_t *fv);
+gboolean file_config_close(FILE *out, const file_path_t *fv);
 
-void file_config_preamble(FILE *out, gchar *what);
+void file_config_preamble(FILE *out, const gchar *what);
 
 #endif /* _file_ */
 

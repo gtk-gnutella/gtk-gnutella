@@ -325,18 +325,19 @@ static void parse_and_append_cache_entry(char *line)
  * 
  * Read the whole persistent cache into memory.
  */
-static void sha1_read_cache()
+static void sha1_read_cache(void)
 {
 	char buffer[4096];
 	FILE *persistent_cache_file;
 	char *fgets_return;
 
-	if (!config_dir) {
-		g_warning("No config dir");
+	if (!settings_config_dir()) {
+		g_warning("sha1_read_cache: No config dir");
 		return;
 	}
 
-	gm_snprintf(buffer, sizeof(buffer), "%s/sha1_cache", config_dir);
+	gm_snprintf(buffer, sizeof(buffer), "%s/sha1_cache",
+		settings_config_dir());
 	persistent_cache_file_name = g_strdup(buffer);
 	  
 	persistent_cache_file = fopen(persistent_cache_file_name, "r");
@@ -347,7 +348,7 @@ static void sha1_read_cache()
 		return;
 	}
 	  
-	for(;;) {
+	for (;;) {
 		fgets_return = fgets(buffer, sizeof(buffer), persistent_cache_file);
 		if (!fgets_return)
 			break;

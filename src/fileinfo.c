@@ -1158,7 +1158,7 @@ void file_info_store(void)
 	FILE *f;
 	time_t now = time((time_t *)NULL);
 
-	file = g_strdup_printf("%s/%s", config_dir, file_info_file);
+	file = g_strdup_printf("%s/%s", settings_config_dir(), file_info_file);
 	f = fopen(file, "w");
 	if (!f) {
 		g_warning("file_info_store(): "
@@ -1681,12 +1681,13 @@ void file_info_retrieve(void)
 
 	can_swarm = TRUE;			/* Allows file_info_try_to_swarm_with() */
 
-	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", config_dir, file_info_file);
+	gm_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", settings_config_dir(),
+		file_info_file);
 
 	f = fopen(fi_tmp, "r");
 
 	gm_snprintf(filename, sizeof(filename), "%s/%s.orig",
-		config_dir, file_info_file);
+		settings_config_dir(), file_info_file);
 
 	if (f) {
 		if (rename(fi_tmp, filename) == -1)
@@ -1707,13 +1708,13 @@ void file_info_retrieve(void)
 			return;
 
 		g_warning("retrieving file info from \"%s\"%s", filename, instead);
+		g_assert_not_reached();
 	}
 
 	line[sizeof(line)-1] = '\0';
 
 	while (fgets(line, sizeof(line), f)) {
 		gint len;
-		gboolean had_trailing_nl = FALSE;
 		gboolean truncated = FALSE;
 
 		if (*line == '#') continue;
@@ -1728,14 +1729,10 @@ void file_info_retrieve(void)
 		 * we'll be re-synchronized on the real end of the line.
 		 */
 
-		if (line[sizeof(line)-1] == '\n')
-			had_trailing_nl = TRUE;
-
-		line[sizeof(line)-1] = '\0';
-
 		len = strlen(line);
 		if (len == sizeof(line) - 1)
-			truncated = !had_trailing_nl;
+			truncated = '\n' != line[len - 1];
+		line[sizeof(line)-1] = '\0';
 
 		if (last_was_truncated) {
 			last_was_truncated = truncated;

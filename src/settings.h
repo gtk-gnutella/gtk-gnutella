@@ -31,8 +31,6 @@
  * Global Data
  */
 
-extern gchar *config_dir;
-
 extern struct in_addr *local_netmasks;
 
 /*
@@ -50,6 +48,7 @@ void settings_init(void);
 void settings_shutdown(void);
 void settings_ip_changed(guint32 new_ip);
 guint32 settings_max_msg_size(void);
+const gchar *settings_config_dir(void);
 void settings_close(void);
 
 #endif /* _settings_h_ */

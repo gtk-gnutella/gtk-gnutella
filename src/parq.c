@@ -50,7 +50,7 @@ RCSID("$Id$");
 #define PARQ_UL_LARGE_SIZE (300*1024*1024)
 
 guint parq_max_upload_size = 4000;
-static gchar *file_parq_file = "parq";
+static const gchar *file_parq_file = "parq";
 
 static GList *ul_parqs = NULL;
 GHashTable *ul_all_parq_by_IP_and_Name = NULL;
@@ -429,7 +429,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		value = get_header_value(buf, "ID", &header_value_length);
 		header_value_length = MIN(header_value_length, PARQ_MAX_ID_LENGTH - 1);
 		strncpy(d->queue_status.ID, value, header_value_length);
-		
+		d->queue_status.ID[sizeof(d->queue_status.ID) - 1] = '\0';
 		g_hash_table_insert(dl_all_parq_by_ID, d->queue_status.ID, d);
 		break;
 	default:
@@ -905,7 +905,7 @@ static void parq_upload_update_ETA(struct parq_ul_queue *which_ul_queue)
 			if (bw_http_out != 0 && bws_out_enabled) {
 				ETA += parq_ul->file_size / (bw_http_out / max_uploads);
 			} else {
-				// FIXME, should use average bandwith here
+				/* FIXME, should use average bandwith here */
 				/* Pessimistic: 1 bytes / sec */
 				ETA += parq_ul->file_size;
 			}
@@ -1360,7 +1360,7 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	if (parq_upload_continue(parq_ul, max_uploads - used_slots))
 		return TRUE;
 	else {
-		u->parq_status = TRUE;		// XXX would violate encapsulation
+		u->parq_status = TRUE;		/* XXX would violate encapsulation */
 		return FALSE;
 	}
 }
@@ -1374,7 +1374,7 @@ void parq_upload_busy(gnutella_upload_t *u, gpointer handle)
 {
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 	
-	u->parq_status = 0;			// XXX -- get rid of `parq_status'?
+	u->parq_status = 0;			/* XXX -- get rid of `parq_status'? */
 	
 	if (parq_ul->has_slot)
 		return;
@@ -1788,7 +1788,7 @@ void parq_upload_save_queue()
 	if (dbg > 3)
 		printf("PARQ UL: Trying to save all queue info\r\n");
 	
-	file = g_strdup_printf("%s/%s", config_dir, file_parq_file);
+	file = g_strdup_printf("%s/%s", settings_config_dir(), file_parq_file);
 	f = fopen(file, "w");	
 
 	if (!f) {
@@ -1890,7 +1890,7 @@ static void parq_upload_load_queue()
 	char ID[PARQ_MAX_ID_LENGTH];
 	char name[1024];
 	
-	file = g_strdup_printf("%s/%s", config_dir, file_parq_file);
+	file = g_strdup_printf("%s/%s", settings_config_dir(), file_parq_file);
 	f = fopen(file, "r");
 	
 	if (!f) {

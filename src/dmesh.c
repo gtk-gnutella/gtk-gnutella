@@ -1793,7 +1793,7 @@ static void dmesh_store_hash(
 	GHashTable *hash, gchar *file, header_func_t header_cb, GHFunc store_cb)
 {
 	FILE *out;
-	file_path_t fp = { config_dir, file };
+	file_path_t fp = { settings_config_dir(), file };
 
 	out = file_config_open_write(what, &fp);
 
@@ -1849,7 +1849,7 @@ static void dmesh_retrieve(void)
 	gboolean has_sha1 = FALSE;
 	gboolean skip = FALSE;
 	gint line = 0;
-	file_path_t fp = { config_dir, dmesh_file };
+	file_path_t fp = { settings_config_dir(), dmesh_file };
 
 	in = file_config_open_read("download mesh", &fp, 1);
 
@@ -1958,7 +1958,7 @@ static void dmesh_ban_retrieve(void)
 	time_t stamp;
 	gchar *p;
 	dmesh_urlinfo_t info;
-	file_path_t fp = { config_dir, dmesh_ban_file };
+	file_path_t fp = { settings_config_dir(), dmesh_ban_file };
 
 	in = file_config_open_read("banned mesh", &fp, 1);
 

@@ -65,11 +65,14 @@ RCSID("$Id$");
 
 #define debug dbg
 
-static gchar *config_file = "config_gnet";
-static gchar *ul_stats_file = "upload_stats";
+static const gchar *config_file = "config_gnet";
+static const gchar *ul_stats_file = "upload_stats";
+
+#define CONFIG_DIR_MODE	/* 0755 */ \
+	(S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 
 static gchar *home_dir = NULL;
-gchar *config_dir = NULL;
+static gchar *config_dir = NULL;
 
 static prop_set_t *properties = NULL;
 
@@ -234,7 +237,7 @@ void settings_init(void)
 		home_dir = g_strdup(getenv("HOME"));
 
 	if (!home_dir)
-		g_warning("can't find your home directory!");
+		g_warning(_("Can't find your home directory!"));
 
 	if (!config_dir) {
 		if (home_dir) {
@@ -242,37 +245,42 @@ void settings_init(void)
 				"%s/.gtk-gnutella", home_dir);
 			config_dir = g_strdup(cfg_tmp);
 		} else
-			g_warning("no home directory: prefs will not be saved!");
+			g_warning(_("No home directory: prefs will not be saved!"));
 	}
 
-	if (config_dir && !is_directory(config_dir)) {
-		g_warning("creating configuration directory '%s'\n", config_dir);
+	if (NULL == config_dir || '\0' == config_dir[0])
+		goto no_config_dir;
 
-		if (mkdir(config_dir, 0755) == -1) {
-			g_warning("mkdir(%s) failed: %s\n\n",
+	if (!is_directory(config_dir)) {
+		g_warning(_("creating configuration directory \"%s\""), config_dir);
+
+		if (mkdir(config_dir, CONFIG_DIR_MODE) == -1) {
+			g_warning("mkdir(\"%s\") failed: \"%s\"",
 				config_dir, g_strerror(errno));
+			goto no_config_dir;
+#if 0
 			g_free(config_dir);
 			config_dir = NULL;
+#endif
 		}
 	}
 
-	if (config_dir) {
-		/* Ensure we're the only instance running */
 
-		gm_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, pidfile);
-		ensure_unicity(cfg_tmp);
-		save_pid(cfg_tmp);
+	g_assert(NULL != config_dir);
+	/* Ensure we're the only instance running */
+
+	gm_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, pidfile);
+	ensure_unicity(cfg_tmp);
+	save_pid(cfg_tmp);
 
 		/* Parse the configuration */
-        prop_load_from_file(properties, config_dir, config_file);
+	prop_load_from_file(properties, config_dir, config_file);
     
-		hcache_retrieve(HCACHE_ANY);
-		hcache_retrieve(HCACHE_ULTRA);
+	hcache_retrieve(HCACHE_ANY);
+	hcache_retrieve(HCACHE_ULTRA);
 
-		gm_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s",
-			config_dir, ul_stats_file);
-		upload_stats_load_history(cfg_tmp);	/* Loads the upload statistics */
-	}
+	gm_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, ul_stats_file);
+	upload_stats_load_history(cfg_tmp);	/* Loads the upload statistics */
 
 	/* watch for filter_file defaults */
 
@@ -290,6 +298,18 @@ void settings_init(void)
 	}
 
     settings_callbacks_init();
+	return;
+
+no_config_dir: 
+	g_warning(_("Cannot proceed without valid "
+		"configuration directory"));
+	exit(EXIT_FAILURE); /* g_error() would dump core, that's ugly. */
+}
+
+const gchar *settings_config_dir(void)
+{
+	g_assert(NULL != config_dir);
+	return (const gchar *) config_dir;
 }
 
 #if 0

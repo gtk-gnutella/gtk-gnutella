@@ -36,7 +36,7 @@ static GtkTreeView *treeview_gnet_stats_general = NULL;
 static GtkNotebook *notebook_main = NULL;
 static GtkNotebook *notebook_gnet_stats = NULL;
 
-static gchar *msg_type_str[MSG_TYPE_COUNT] = {
+static const gchar *msg_type_str[MSG_TYPE_COUNT] = {
     "Unknown",
     "Ping",
     "Pong",
@@ -50,7 +50,7 @@ static gchar *msg_type_str[MSG_TYPE_COUNT] = {
     "Total"
 };
 
-static gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
+static const gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "Bad size",
     "Too small",
     "Too large",
@@ -79,7 +79,7 @@ static gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "Query hit had bad SHA1"
 };
 
-static gchar *general_type_str[GNR_TYPE_COUNT] = {
+static const gchar *general_type_str[GNR_TYPE_COUNT] = {
     "Routing errors",
     "Searches to local DB",
     "Hits on local DB",
@@ -89,7 +89,7 @@ static gchar *general_type_str[GNR_TYPE_COUNT] = {
     "SHA1 queries"
 };
 
-static gchar *msg_stats_label[] = {
+static const gchar *msg_stats_label[] = {
 	"Type",
 	"Received",
 	"Expired",

@@ -827,7 +827,7 @@ void hcache_retrieve(hcache_type_t type)
 	hc = caches[type];
 
 	{
-		file_path_t fp = { config_dir, hc->filename };
+		file_path_t fp = { settings_config_dir(), hc->filename };
 		fd = file_config_open_read("hosts", &fp, 1);
 	}
 
@@ -864,7 +864,7 @@ void hcache_store(hcache_type_t type)
 
 	hc = caches[type];
 
-	fp.dir = config_dir;
+	fp.dir = settings_config_dir();
 	fp.name = hc->filename;
 
 	f = file_config_open_write("hosts", &fp);

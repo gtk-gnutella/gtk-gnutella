@@ -29,10 +29,8 @@
 
 #include "downloads.h" /* FIXME: remove this dependency */
 
+#include "settings.h" /* For settings_config_dir() */
 #include "settings_gui.h"
-
-#include <pwd.h>
-#include <sys/stat.h>
 
 #include "monitor_gui.h"
 #include "statusbar_gui.h"
@@ -84,7 +82,6 @@ static gint gnet_init_list[GNET_PROPERTY_NUM];
 static GtkTooltips* tooltips = NULL;
 
 static gchar *home_dir = NULL;
-gchar *gui_config_dir = NULL;
 static const gchar *property_file = "config_gui";
 
 static gchar set_tmp[4096];
@@ -3952,47 +3949,15 @@ static void settings_gui_init_prop_map(void)
 
 void settings_gui_init(void)
 {
-    struct passwd *pwd = getpwuid(getuid());
     gint n;
 
     gui_prop_set_stub = gui_prop_get_stub();
     gnet_prop_set_stub = gnet_prop_get_stub();
 
     tooltips = gtk_tooltips_new();
-
     properties = gui_prop_init();
 
-    gui_config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
- 
-    if (pwd && pwd->pw_dir)
-		home_dir = g_strdup(pwd->pw_dir);
-	else
-		home_dir = g_strdup(getenv("HOME"));
-
-	if (!home_dir)
-		g_warning(_("can't find your home directory!"));
-
-	if (!gui_config_dir) {
-		if (home_dir) {
-			gm_snprintf(set_tmp, sizeof(set_tmp),
-				"%s/.gtk-gnutella", home_dir);
-			gui_config_dir = g_strdup(set_tmp);
-		} else
-			g_warning(_("no home directory: prefs will not be saved!"));
-	}
-
-	if (gui_config_dir && !is_directory(gui_config_dir)) {
-		g_warning(_("creating configuration directory '%s'\n"), gui_config_dir);
-
-		if (mkdir(gui_config_dir, 0755) == -1) {
-			g_warning(_("mkdir(%s) failed: %s\n\n"),
-				gui_config_dir, g_strerror(errno));
-			g_free(gui_config_dir);
-			gui_config_dir = NULL;
-		}
-	}
-
-    prop_load_from_file(properties, gui_config_dir, property_file);
+   	prop_load_from_file(properties, settings_gui_config_dir(), property_file);
 
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
         gui_init_list[n] = NOT_IN_MAP;
@@ -4082,7 +4047,7 @@ void settings_gui_shutdown(void)
     /*
      * Save properties to file
      */
-    prop_save_to_file(properties, gui_config_dir, property_file);
+    prop_save_to_file(properties, settings_gui_config_dir(), property_file);
 
     /*
      * Free allocated memory.
@@ -4090,7 +4055,11 @@ void settings_gui_shutdown(void)
     gui_prop_shutdown();
 
     G_FREE_NULL(home_dir);
-    G_FREE_NULL(gui_config_dir);
     G_FREE_NULL(gui_prop_set_stub);
     G_FREE_NULL(gnet_prop_set_stub);
+}
+
+const gchar *settings_gui_config_dir(void)
+{
+	return settings_config_dir();
 }

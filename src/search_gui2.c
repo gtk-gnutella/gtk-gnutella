@@ -1099,11 +1099,12 @@ static void search_store_old(void)
 	FILE *out;
 	time_t now = time((time_t *) NULL);
 
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s",
+		settings_gui_config_dir(), search_file);
 	out = fopen(tmpstr, "w");
 
 	if (!out) {
-		g_warning("Unable to create %s to persist search: %s",
+		g_warning("Unable to create \"%s\" to persist search: %s",
 			tmpstr, g_strerror(errno));
 		return;
 	}
@@ -1118,7 +1119,7 @@ static void search_store_old(void)
 	}
 
 	if (0 != fclose(out))
-		g_warning("Could not flush %s: %s", tmpstr, g_strerror(errno));
+		g_warning("Could not flush \"%s\": %s", tmpstr, g_strerror(errno));
 }
 #endif /* USE_SEARCH_XML */
 
@@ -1132,7 +1133,8 @@ void search_gui_store_searches(void)
 #ifdef USE_SEARCH_XML
 	search_store_xml();
     
-  	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
+  	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s",
+		settings_gui_config_dir(), search_file);
     if (file_exists(tmpstr)) {
         gchar filename[1024];
 
@@ -1517,7 +1519,8 @@ static gboolean search_retrieve_old(void)
 	FILE *in;
 	gint line;				/* File line number */
 
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
+	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s",
+		settings_gui_config_dir(), search_file);
 	in = fopen(tmpstr, "r");
 
 	if (!in) {
@@ -1631,6 +1634,9 @@ static void add_results_column(
 			GTK_TREE_SORTABLE(model), id, sortfunc, NULL, NULL);
 	g_signal_connect(G_OBJECT(column), "notify::width",
         G_CALLBACK(on_search_gui_results_column_resized), GINT_TO_POINTER(id));
+	g_signal_connect(G_OBJECT(column), "clicked",
+		G_CALLBACK(on_tree_view_search_results_click_column),
+		GINT_TO_POINTER(id));
 }
 
 
@@ -1704,7 +1710,7 @@ void search_gui_init(void)
     LIBXML_TEST_VERSION
 	if (search_retrieve_old()) {
        	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", 
-            gui_config_dir, search_file);
+            settings_gui_config_dir(), search_file);
         g_warning(
             "Found old searches file. Loaded it.\n"
             "On exit the searches will be saved in the new XML format\n"
@@ -1901,12 +1907,6 @@ void search_gui_set_current_search(search_t *sch)
 		) {
             gtk_tree_view_column_set_visible(c,
 				 gtk_tree_view_column_get_visible(old_c));
-
-	/* FIXME: This probably better than the property listener */
-#if 0
-            gtk_clist_set_column_width
-                (GTK_CLIST(sch->clist), i, list->column[i].width);
-#endif
         }
     }
 

@@ -37,7 +37,7 @@ RCSID("$Id$");
 
 GSList *sl_whitelist = NULL;
 
-static gchar *whitelist_file = "whitelist";
+static const gchar *whitelist_file = "whitelist";
 static time_t whitelist_mtime, whitelist_checked;
 
 static gchar wl_tmp[1024];
@@ -57,7 +57,8 @@ static void whitelist_retrieve(void)
     struct stat st;
     int linenum = 0;
 
-    gm_snprintf(wl_tmp, sizeof(wl_tmp), "%s/%s", config_dir, whitelist_file);
+    gm_snprintf(wl_tmp, sizeof(wl_tmp), "%s/%s",
+		settings_config_dir(), whitelist_file);
 
     if (stat(wl_tmp, &st) == -1) {
         if(dbg)
@@ -223,7 +224,8 @@ gboolean whitelist_check(guint32 ip)
 
         whitelist_checked = now;
 
-        gm_snprintf(wl_tmp, sizeof(wl_tmp), "%s/%s", config_dir, whitelist_file);
+        gm_snprintf(wl_tmp, sizeof(wl_tmp), "%s/%s",
+			settings_config_dir(), whitelist_file);
         if (stat(wl_tmp, &st) != -1) {
             if (st.st_mtime != whitelist_mtime) {
                 g_warning("whitelist_check(): "
