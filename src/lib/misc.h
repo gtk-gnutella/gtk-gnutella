@@ -127,9 +127,11 @@ gboolean gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port);
 gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
 gchar *  ip_to_gchar(guint32);
 gchar *  ip2_to_gchar(guint32);
+void ip_to_string(guint32 ip, gchar *buf, size_t size);
 gchar *  ip_port_to_gchar(guint32, guint16);
 gchar *hostname_port_to_gchar(const gchar *hostname, guint16 port);
 guint32  host_to_ip(const gchar *);
+const gchar *ip_to_host(guint32 addr);
 gchar *  host_name(void);
 #define port_is_valid(port) (port != 0)
 gboolean ip_is_valid(guint32);

@@ -126,6 +126,22 @@ ip2_to_gchar(guint32 ip)
 	return a;
 }
 
+void
+ip_to_string(guint32 ip, gchar *buf, size_t size)
+{
+	union {
+		guint32 ip_be;
+		guint8 p[4];
+	} addr;
+	
+	g_assert(buf != NULL);
+	g_assert(size <= INT_MAX);
+
+	addr.ip_be = htonl(ip);
+	gm_snprintf(buf, size, "%u.%u.%u.%u",
+		addr.p[0], addr.p[1], addr.p[2], addr.p[3]);
+}
+
 gchar *
 ip_port_to_gchar(guint32 ip, guint16 port)
 {
@@ -183,7 +199,7 @@ gchar_to_ip(const gchar *str)
 	gint r;
 
 	/* Skip leading spaces */
-	while (isspace((const guchar) *str))
+	while (isspace((guchar) *str))
 		str++;
 
 	r = inet_aton(str, &ia);
@@ -270,24 +286,9 @@ gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port)
 	return TRUE;
 }
 
-guint32
-host_to_ip(const gchar *host)
+static void
+gethostbyname_error(const gchar *host)
 {
-	struct hostent *he = gethostbyname(host);
-
-	if (he) {
-		if (AF_INET != he->h_addrtype) {
-			g_warning("host_to_ip: Wrong address type %d (host=%s).",
-				he->h_addrtype, host);
-			return 0;
-		}
-		if (4 != he->h_length) {
-			g_warning("host_to_ip: Wrong address length %d (host=%s).",
-				he->h_length, host);
-			return 0;
-		}
-		return ntohl(*(guint32 *) (he->h_addr_list[0]));
-	} else {
 #if defined(HAS_HSTRERROR)
 		g_warning("cannot resolve \"%s\": %s", host, hstrerror(h_errno));
 #elif defined(HAS_HERROR)
@@ -296,9 +297,70 @@ host_to_ip(const gchar *host)
 #else
 		g_warning("cannot resolve \"%s\": gethostbyname() failed!", host);
 #endif /* defined(HAS_HSTRERROR) */
+}
+
+const gchar *
+ip_to_host(guint32 ip)
+{
+	static const struct in_addr zero_addr;
+	struct in_addr addr;
+	const struct hostent *he;
+  
+	addr = zero_addr;
+	addr.s_addr = (guint32) htonl(ip);
+	he = gethostbyaddr((gchar *) &addr, sizeof addr, AF_INET);
+	if (!he) {
+		gchar host[32];
+
+		ip_to_string(ip, host, sizeof host);
+		gethostbyname_error(host);
+		return NULL;
 	}
 
-	return 0;
+#if 0
+	g_message("h_name=\"%s\"", NULL_STRING(he->h_name));
+	if (he->h_aliases) {
+		size_t i;
+
+		for (i = 0; he->h_aliases[i]; i++)
+			g_message("h_aliases[%u]=\"%s\"", (unsigned) i, he->h_aliases[i]);
+	}
+#endif
+
+	return he->h_name;
+}
+
+guint32
+host_to_ip(const gchar *host)
+{
+	const struct hostent *he = gethostbyname(host);
+
+	if (!he) {
+		gethostbyname_error(host);
+		return 0;
+	}
+
+#if 0
+	g_message("h_name=\"%s\"", NULL_STRING(he->h_name));
+	if (he->h_aliases) {
+		size_t i;
+
+		for (i = 0; he->h_aliases[i]; i++)
+			g_message("h_aliases[%u]=\"%s\"", (unsigned) i, he->h_aliases[i]);
+	}
+#endif
+
+	if (AF_INET != he->h_addrtype) {
+		g_warning("host_to_ip: Wrong address type %d (host=%s).",
+			he->h_addrtype, host);
+		return 0;
+	}
+	if (4 != he->h_length) {
+		g_warning("host_to_ip: Wrong address length %d (host=%s).",
+			he->h_length, host);
+		return 0;
+	}
+	return ntohl(*(guint32 *) (he->h_addr_list[0]));
 }
 
 /**
