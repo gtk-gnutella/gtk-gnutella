@@ -1600,23 +1600,6 @@ prop = {
     };
 };
 
-/*
- * XXX the followingo only kept for the GTK2 frontend which does not
- * XXX make use of the new "search_process_ignored_files" property.
- * XXX		--RAM, 06/08/2003
- */
-prop = {
-    name = "mark_ignored";
-    desc = "Mark files that would be ignored when downloaded. This uses a "
-           "little additional CPU power so it's off by default. If you "
-           "don't have a very slow box, you might want to turn this on.";
-	save = FALSE;
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
 prop = {
     name = "search_handle_ignored_files";
     desc = "What to do with files that will be ignored for downloading.";

@@ -207,7 +207,6 @@ static gboolean uploads_count_changed(property_t prop);
 static gboolean downloads_count_changed(property_t prop);
 static gboolean current_peermode_changed(property_t prop);
 static gboolean clock_skew_changed(property_t prop);
-static gboolean mark_ignored_changed(property_t prop);
 static gboolean update_monitor_unstable_ip(property_t prop);
 
 /* FIXME:
@@ -1702,14 +1701,6 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_MARK_IGNORED,		// XXX -- only until GTK2 frontend is updated
-        mark_ignored_changed,
-        TRUE,
-        "checkbutton_search_mark_ignored",
-        FREQ_UPDATES, 0
-    },
-    {
-        get_main_window,
         PROP_LIBRARY_REBUILDING,
         library_rebuilding_changed,
         TRUE,
@@ -2201,21 +2192,6 @@ static gchar *prop_to_string(property_t prop)
 
 #endif
 
-// XXX until "mark_ignored" is removed
-static gboolean mark_ignored_changed(property_t prop)
-{
-#ifdef USE_GTK2
-	gboolean val;
-
-    gnet_prop_get_boolean_val(prop, &val);
-
-	if (prop)
-		gnet_prop_set_guint32_val(PROP_SEARCH_HANDLE_IGNORED_FILES,
-			val ? SEARCH_IGN_DISPLAY_AS_IS : SEARCH_IGN_DISPLAY_MARKED);
-#endif
-
-	return FALSE;
-}
 
 static gboolean update_entry(property_t prop)
 {

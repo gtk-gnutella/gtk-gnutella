@@ -164,7 +164,6 @@ extern gboolean download_require_urn;
 extern gboolean download_require_server_name;
 extern guint32  max_ultrapeers;
 extern guint32  max_leaves;
-extern gboolean mark_ignored;
 extern guint32  search_handle_ignored_files;
 extern guint32  configured_peermode;
 extern guint32  current_peermode;
