@@ -43,6 +43,7 @@ gboolean progressbar_bps_in_avg = FALSE;
 gboolean progressbar_bps_out_avg = FALSE;
 gboolean use_netmasks = FALSE;
 gboolean download_delete_aborted = FALSE;
+gboolean queue_regex_case = FALSE;
 
 guint8 max_ttl = 7;
 guint8 my_ttl = 5;

@@ -22,6 +22,7 @@ extern gboolean search_remove_downloaded;
 extern gboolean clear_uploads;
 extern gboolean clear_downloads;
 extern gboolean download_delete_aborted;
+extern gboolean queue_regex_case;
 
 extern gboolean use_netmasks;
 extern struct in_addr *local_netmasks;
