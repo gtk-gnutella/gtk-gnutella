@@ -607,6 +607,7 @@ static void download_selected_file(
 	struct results_set *rs;
 	struct record *rc = NULL;
 	gboolean need_push;
+	gchar *filename;
 
 	(void) path;
 	gtk_tree_model_get(model, iter, c_sr_record, &rc, (-1));
@@ -615,9 +616,13 @@ static void download_selected_file(
 	rs = rc->results_set;
 	need_push = (rs->status & ST_FIREWALL) || !host_is_valid(rs->ip, rs->port);
 
-	download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
+	filename = gm_sanitize_filename(rc->name);
+	download_new(filename, rc->size, rc->index, rs->ip, rs->port,
 		rs->guid, rs->hostname,
 		rc->sha1, rs->stamp, need_push, NULL, rs->proxies);
+
+	if (filename != rc->name)
+		G_FREE_NULL(filename);
 
 	if (rs->proxies != NULL)
 		search_gui_free_proxies(rs);
