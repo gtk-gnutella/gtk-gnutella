@@ -635,9 +635,19 @@ static void socket_accept(gpointer data, gint source,
 	 */
 
 	if (is_firewalled) {
-		is_firewalled = FALSE;
-        gui_update_is_firewalled();
-		if (dbg) printf("Got evidence that we're not fully firewalled\n");
+		/*
+		 * Make sure we're not connecting locally.
+		 */
+
+		if (
+			t->ip != listen_ip() &&					/* Not ourselves */
+			(t->ip & 0xff000000) != 0x7f000000 &&	/* Not loopback 127.xxx */
+			t->ip != host_to_ip(host_name())		/* Not ourselves */
+		) {
+			is_firewalled = FALSE;
+			gui_update_is_firewalled();
+			if (dbg) printf("Got evidence that we're not fully firewalled\n");
+		}
 	}
 }
 
