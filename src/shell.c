@@ -262,7 +262,7 @@ static guint shell_exec_node(gnutella_shell_t *sh, const gchar *cmd)
     return REPLY_READY;
 error:
     G_FREE_NULL(tok);
-    if (sh->msg == NULL);
+    if (sh->msg == NULL)
         sh->msg = "Malformed command";
     return REPLY_ERROR;
 }
