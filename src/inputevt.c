@@ -97,7 +97,7 @@ static gboolean inputevt_dispatch(GIOChannel *source,
  * Behaves exactly the same, except destroy notification has
  * been removed (since gtkg does not use it).
  */
-gint inputevt_add(gint source, inputevt_cond_t condition,
+gint inputevt_add(guint source, inputevt_cond_t condition,
 	inputevt_handler_t handler, gpointer data)
 {
 	guint result;
