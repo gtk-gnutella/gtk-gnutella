@@ -1153,9 +1153,18 @@ forward_message(
 			 * NB: Account for the fact that we haven't decremented it yet.
 			 */
 
-			if (sender->header.ttl > max_ttl + 1) {	/* TTL too large */
-				sender->header.ttl = max_ttl + 1;	/* Trim down */
-				routing_log_extra(log, "TTL trimmed down to %d ", max_ttl);
+			if (sender->header.hops + sender->header.ttl > max_ttl) {
+				gint ttl_max = max_ttl - sender->header.hops;
+				sender->header.ttl = MAX(ttl_max, 1);	/* Trim down */
+
+				if (sender->header.ttl == 1) {
+					/* TTL expired, message stops here */
+					routing_log_extra(log, "TTL forcefully expired");
+					gnet_stats_count_expired(sender);
+					return TRUE;
+				} else
+					routing_log_extra(log,
+						"TTL trimmed down to %d ", sender->header.ttl);
 			}
 
 			dest->type = ROUTE_ALL_BUT_ONE;
@@ -1416,6 +1425,10 @@ route_query(struct route_log *log,
 	struct gnutella_node *sender = *node;
 	gboolean is_oob_query;
 
+	/*
+	 * Leaves process all the queries and don't route them.
+	 */
+
 	if (current_peermode == NODE_P_LEAF)
 		return TRUE;
 
@@ -1460,6 +1473,25 @@ route_query(struct route_log *log,
 	if (!is_oob_query && NODE_IN_TX_FLOW_CONTROL(sender)) {
 		gnet_stats_count_dropped(sender, MSG_DROP_FLOW_CONTROL);
 		return FALSE;
+	}
+
+	/*
+	 * If query was emitted by a host not supporting dynamic querying,
+	 * then this host is broadcasting.  We can't know for sure whether
+	 * hops=1 queries are not coming from a leaf node connected to our
+	 * neighbour.
+	 *
+	 * We limit the query so that hops + ttl < my_ttl, where my_ttl is our
+	 * own broadcasting TTL, but we're dynamic querying and they are not.
+	 */
+
+	if (
+		!(sender->flags & NODE_A_DYN_QUERY) &&
+		sender->header.ttl + sender->header.hops >= my_ttl
+	) {
+		gint ttl_max = my_ttl - sender->header.hops - 1;
+		sender->header.ttl = MAX(ttl_max, 1);	/* Trim down */
+		routing_log_extra(log, "No dyn. query, TTL forced to %d ", sender->header.ttl);
 	}
 
 	return forward_message(log, node, NULL, dest, NULL);	/* Broadcast */
