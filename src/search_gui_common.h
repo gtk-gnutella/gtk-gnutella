@@ -66,12 +66,12 @@ struct host {
 };
 
 /*
- * Alternate locations held in query hits.
+ * Host vector held in query hits.
  */
-typedef struct alt_locs {
+typedef struct host_vec {
 	struct host *hvec;			/* Vector of alternate locations */
 	gint hvcnt;					/* Amount of hosts in vector */
-} alt_locs_t;
+} host_vec_t;
 
 /*
  * An individual hit.  It referes to a file entry on the remote servent,
@@ -91,7 +91,7 @@ typedef struct record {
 	guint32 index;				/* Index for GET command */
 	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
 	gchar  *tag;				/* Optional tag data string (atom) */
-	alt_locs_t *alt_locs;		/* Optional alternate locations for record */
+	host_vec_t *alt_locs;		/* Optional alternate locations for record */
     flag_t  flags;              /* same flags as in gnet_record_t */
 } record_t;
 

@@ -55,7 +55,7 @@ static gchar tmpstr[1024];
  */
 void search_gui_free_alt_locs(record_t *rc)
 {
-	alt_locs_t *alt = rc->alt_locs;
+	host_vec_t *alt = rc->alt_locs;
 
 	g_assert(alt != NULL);
 
@@ -416,8 +416,8 @@ record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 	rc->alt_locs = NULL;
 
 	if (r->alt_locs != NULL) {
-		gnet_alt_locs_t *a = r->alt_locs;
-		alt_locs_t *alt = walloc(sizeof(*alt));
+		gnet_host_vec_t *a = r->alt_locs;
+		host_vec_t *alt = walloc(sizeof(*alt));
 		gint hlen = a->hvcnt * sizeof(*a->hvec);
 
 		alt->hvec = walloc(hlen);
@@ -501,7 +501,7 @@ void search_gui_common_shutdown(void)
 void search_gui_check_alt_locs(record_t *rc, time_t stamp)
 {
 	gint i;
-	alt_locs_t *alt = rc->alt_locs;
+	host_vec_t *alt = rc->alt_locs;
 
 	g_assert(alt != NULL);
 

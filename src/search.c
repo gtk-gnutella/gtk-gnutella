@@ -239,7 +239,7 @@ static gboolean search_has_muid(search_ctrl_t *sch, const gchar *muid)
  */
 void search_free_alt_locs(gnet_record_t *rc)
 {
-	gnet_alt_locs_t *alt = rc->alt_locs;
+	gnet_host_vec_t *alt = rc->alt_locs;
 
 	g_assert(alt != NULL);
 
@@ -606,7 +606,7 @@ static gnet_results_set_t *get_results_set(
 				 */
 
 				if (!validate_only && rc->sha1 != NULL) {
-					gnet_alt_locs_t *alt = walloc(sizeof(*alt));
+					gnet_host_vec_t *alt = walloc(sizeof(*alt));
 
 					alt->hvec = hvec;
 					alt->hvcnt = hvcnt;
@@ -1517,7 +1517,7 @@ static void search_check_alt_locs(
 	gnet_results_set_t *rs, gnet_record_t *rc, struct dl_file_info *fi)
 {
 	gint i;
-	gnet_alt_locs_t *alt = rc->alt_locs;
+	gnet_host_vec_t *alt = rc->alt_locs;
 	gint ignored = 0;
 
 	g_assert(alt != NULL);

@@ -270,12 +270,12 @@ typedef struct gnet_results_set {
 } gnet_results_set_t;
 
 /*
- * Alternate locations held in query hits.
+ * Host vectors held in query hits.
  */
-typedef struct gnet_alt_locs {
+typedef struct gnet_host_vec {
 	struct gnutella_host *hvec;	/* Vector of alternate locations */
 	gint hvcnt;					/* Amount of hosts in vector */
-} gnet_alt_locs_t;
+} gnet_host_vec_t;
 
 /*
  * Result record flags
@@ -293,7 +293,7 @@ typedef struct gnet_record {
 	guint32 index;				/* Index for GET command */
 	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
 	gchar  *tag;				/* Optional tag data string (atom) */
-	gnet_alt_locs_t *alt_locs;	/* Optional: known alternate locations */
+	gnet_host_vec_t *alt_locs;	/* Optional: known alternate locations */
     flag_t  flags;
 } gnet_record_t;
 

@@ -1810,7 +1810,7 @@ void dmesh_check_results_set(gnet_results_set_t *rs)
 
 			if (rc->alt_locs != NULL) {
 				gint i;
-				gnet_alt_locs_t *alt = rc->alt_locs;
+				gnet_host_vec_t *alt = rc->alt_locs;
 
 				for (i = alt->hvcnt - 1; i >= 0; i--) {
 					struct gnutella_host *h = &alt->hvec[i];
