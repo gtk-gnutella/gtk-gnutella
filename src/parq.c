@@ -2522,7 +2522,7 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 		 * we are not going to allow this download. Whether it could get an
 		 * upload slot or not. Neither are we going to active queue it.
 		 */
-		g_warning("[PARQ UL] "
+		if (dbg) g_warning("[PARQ UL] "
 			"host %s (%s) re-requested \"%s\" too soon (%d secs early)", 
 			ip_port_to_gchar(u->socket->ip, u->socket->port), 
 			upload_vendor_str(u),
