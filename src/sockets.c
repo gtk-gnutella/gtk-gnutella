@@ -748,8 +748,8 @@ int send_socks(struct gnutella_socket *s)
 	/* Create the request */
 	thisreq->version = 4;
 	thisreq->command = 1;
-	thisreq->dstport = s->port;
-	thisreq->dstip = s->ip;
+	thisreq->dstport = htons(s->port);
+	thisreq->dstip = htonl(s->ip);
 
 	/* Copy the username */
 	strcpy(realreq + sizeof(struct sockreq),
@@ -950,8 +950,8 @@ int connect_socksv5(struct gnutella_socket *s)
 		buf[1] = '\x01';		/* Connect request */
 		buf[2] = '\x00';		/* Reserved		*/
 		buf[3] = '\x01';		/* IP version 4	*/
-		memcpy(&buf[4], &s->ip, 4);
-		memcpy(&buf[8], &s->port, 2);
+		*(uint32_t *)(buf + 4) = htonl(s->ip);
+		*(uint16_t *)(buf + 8) = htons(s->port);
 
 		/* Now send the connection */
 		if ((rc = send(sockid, (void *) buf, 10, 0)) <= 0) {
