@@ -116,6 +116,9 @@
 - Compute IP address of public hostcaches once, to avoid many long DNS lookups.
 - When low on hosts in cache, collect "semi-pongs" from Query Hits
   (an idea from Mike Green).  The "low" threshold is 12.5% of maximum.
+- Added URL escaping routines.
+- Now supports URL-escaped requests, but still sends un-escaped requests to
+  remote servents.
 
 # v 0.18   2001.11.19
 
