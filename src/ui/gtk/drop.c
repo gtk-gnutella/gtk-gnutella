@@ -71,14 +71,18 @@ static const struct {
  * Private functions
  */
 
-static gboolean handle_not_implemented(gchar *url)
+static gboolean
+handle_not_implemented(gchar *unused_url)
 {
+	(void) unused_url;
+	
 	statusbar_gui_warning(10,
 			_("Support for this protocol is not yet implemented"));
 	return FALSE;
 }
 
-static void plus_to_space(gchar *s)
+static void
+plus_to_space(gchar *s)
 {
 	gint c;
 	gchar *p;
@@ -88,7 +92,8 @@ static void plus_to_space(gchar *s)
 			*p = ' ';
 }
 
-static gboolean handle_magnet(gchar *url)
+static gboolean
+handle_magnet(gchar *url)
 {
 	gchar *p, *q, *next;
 	struct {
@@ -105,7 +110,7 @@ static gboolean handle_magnet(gchar *url)
 	p++;
 
 	if (*p != '?') {
-		g_message("Invalid MAGNET URL");
+		g_message("Invalid MAGNET URI");
 		return FALSE;
 	}
 	p++;
@@ -115,7 +120,7 @@ static gboolean handle_magnet(gchar *url)
 		
 		q = strchr(p, '=');
 		if (!q || p == q) {
-			g_message("Invalid MAGNET URL");
+			g_message("Invalid MAGNET URI");
 			return FALSE;
 		}
 		name = p;
@@ -130,7 +135,7 @@ static gboolean handle_magnet(gchar *url)
 		}
 		plus_to_space(q);
 		if (!url_unescape(q, TRUE)) {
-			g_message("Invalidly encoded MAGNET URL");
+			g_message("Invalidly encoded MAGNET URI");
 			return FALSE;
 		}
 
@@ -161,7 +166,7 @@ static gboolean handle_magnet(gchar *url)
 			}
 			
 			if (0 != strncmp("http://", q, sizeof "http://" - 1)) {
-				statusbar_gui_warning(10, _("MAGNET URL contained source URL "
+				statusbar_gui_warning(10, _("MAGNET URI contained source URL "
 					"for an unsupported protocol"));
 				/* Skip this parameter */
 				continue;
@@ -175,9 +180,9 @@ static gboolean handle_magnet(gchar *url)
 				hostname = p;
 				p = strchr(p, ':');
 				if (!p)
-					p = strchr(p, ':');
+					p = strchr(p, '/');
 				if (!p) {
-					g_message("Missing slash in URL");
+					g_message("Missing path in HTTP URL");
 					continue;
 				}
 			}
@@ -223,15 +228,9 @@ static gboolean handle_magnet(gchar *url)
 				continue;
 			}
 			
-			p += sizeof "urn:sha1:" - 1;
-			if (strlen(p) != SHA1_BASE32_SIZE) {
-				g_message("Expected SHA1");
-				continue;
-			}
-			
 			hash = p;
 			if (!urn_get_sha1(hash, digest)) {
-				g_message("Bad SHA1 in MAGNET URL");
+				g_message("Bad SHA1 in MAGNET URI (%s)", hash);
 				continue;
 			}
 
@@ -245,7 +244,7 @@ static gboolean handle_magnet(gchar *url)
 		} else if (0 == strcmp(name, "xt")) {
 			/* eXact Topic search (by urn:sha1) */
 			if (0 != strncmp("urn:sha1:", q, sizeof "urn:sha1:" - 1)) {
-				statusbar_gui_warning(10, _("MAGNET URL contained exact topic "
+				statusbar_gui_warning(10, _("MAGNET URI contained exact topic "
 					"search other than urn:sha1:"));
 				/* Skip this parameter */
 				continue;
@@ -255,34 +254,41 @@ static gboolean handle_magnet(gchar *url)
 			/* Keyword Topic search */
 			search_gui_new_search(q, 0, NULL);
 		} else {
-			g_message("Unhandled parameter in MAGNET URL \"%s\"", name);
+			g_message("Unhandled parameter in MAGNET URI \"%s\"", name);
 		}
 
 	}
 	
+	/* FIXME:	As long as downloading of files without a known size is
+	 *			defective, we cannot initiate downloads this way. */
+#if 0
 	if (dl.ready) {
 		gchar *filename;
 		
-		g_message("file=\"%s\"", dl.file);
-
 		filename = gm_sanitize_filename(dl.file, FALSE, FALSE);
+		
 		guc_download_new_unknown_size(filename, URN_INDEX, dl.ip, 
 			dl.port, blank_guid, dl.hostname, dl.sha1, time(NULL), 
 			FALSE, NULL, NULL);
 		if (filename != dl.file)
 			G_FREE_NULL(filename);
 	}
+#endif
 
 	return TRUE;
 }
 
 
-static void drag_data_received(GtkWidget *widget, GdkDragContext *dc,
+static void
+drag_data_received(GtkWidget *unused_widget, GdkDragContext *dc,
 	gint x, gint y, GtkSelectionData *data, guint info, guint stamp,
-	gpointer user_data)
+	gpointer unused_udata)
 {
 	gboolean succ = FALSE;
 
+	(void) unused_widget;
+	(void) unused_udata;
+	
 	if (gui_debug > 0)
 		g_message("%s: x=%d, y=%d, info=%u, t=%u", __func__, x, y, info, stamp);
 	if (data->length > 0 && data->format == 8) {
