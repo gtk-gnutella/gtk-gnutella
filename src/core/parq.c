@@ -945,9 +945,9 @@ parq_download_parse_queue_status(struct download *d, header_t *header)
 
 	retry = parq_dl->position * PARQ_TIMER_BY_POS;
 
-	if (retry > (parq_dl->lifetime - PARQ_RETRY_SAFETY))
+	if (retry > (gint) (parq_dl->lifetime - PARQ_RETRY_SAFETY))
 		retry = parq_dl->lifetime - PARQ_RETRY_SAFETY;
-	if (retry < parq_dl->retry_delay)
+	if (retry < (gint) parq_dl->retry_delay)
 		retry = parq_dl->retry_delay;
 
 	if (dbg > 2)
@@ -1525,7 +1525,7 @@ parq_upload_create(gnutella_upload_t *u)
 	g_assert(parq_ul->queue->by_rel_pos != NULL);
 	g_assert(parq_ul->queue->by_position->data != NULL);
 	g_assert(parq_ul->relative_position > 0);
-	g_assert(parq_ul->relative_position <= parq_ul->queue->size);
+	g_assert(parq_ul->relative_position <= (guint) parq_ul->queue->size);
 	g_assert(parq_ul->by_ip != NULL);
 	g_assert(parq_ul->by_ip->uploading <= parq_ul->by_ip->total);
 
@@ -1975,7 +1975,7 @@ parq_upload_timer(time_t now)
 			 */
 			if (
 				now >= parq_ul->by_ip->last_queue_sent + 
-					upload_connecting_timeout &&
+					(gint) upload_connecting_timeout &&
 				parq_ul->by_ip->last_queue_sent >
 					parq_ul->by_ip->last_queue_connected &&
 				now - parq_ul->by_ip->last_queue_sent < QUEUE_PERIOD
@@ -1998,7 +1998,7 @@ parq_upload_timer(time_t now)
 			 * QUEUE.
 			 */
 			if (
-				parq_ul->by_ip->last_queue_sent + upload_connecting_timeout >= 
+				parq_ul->by_ip->last_queue_sent + (gint) upload_connecting_timeout >= 
 					now &&
 				parq_ul->by_ip->last_queue_sent >
 					parq_ul->by_ip->last_queue_connected
@@ -2044,7 +2044,7 @@ parq_upload_queue_full(gnutella_upload_t *u)
 	q_ul = parq_upload_which_queue(u);
 	g_assert(q_ul->size >= q_ul->alive);
 	
-	if (q_ul->size < parq_max_upload_size)
+	if ((guint32) q_ul->size < parq_max_upload_size)
 		return FALSE;
 	
 	if (q_ul->by_date_dead == NULL || 
@@ -2094,7 +2094,7 @@ parq_upload_ip_can_proceed(const gnutella_upload_t *u)
 
 	g_assert(uq != NULL);
 
-	return (uq->by_ip->uploading >= max_uploads_ip) ? FALSE : TRUE;
+	return ((guint32) uq->by_ip->uploading >= max_uploads_ip) ? FALSE : TRUE;
 }
 
 /**
@@ -2125,7 +2125,7 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	/*
 	 * Don't allow more than max_uploads_ip per single host (IP)
 	 */
-	if (uq->by_ip->uploading >= max_uploads_ip)
+	if ((guint32) uq->by_ip->uploading >= max_uploads_ip)
 		return FALSE;
 	
 	/*
@@ -2166,7 +2166,7 @@ parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) l->data;
 		if (queue->alive > queue->active_uploads) {
 			/* Queue would like to get another upload slot */
-			if ((guint) allowed_max_uploads > queue->active_uploads) {
+			if ((guint) allowed_max_uploads > (guint) queue->active_uploads) {
 				/*
 				 * Determine the current maximum of upload
 				 * slots allowed compared to other queus.
@@ -3225,7 +3225,7 @@ parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
 		g_assert(parq_ul != NULL);
 		parq_ul->position--;
 		
-		g_assert(parq_ul->position == pos_cnt);
+		g_assert((gint) parq_ul->position == pos_cnt);
 
 		pos_cnt++;
 		g_assert(parq_ul->position > 0);

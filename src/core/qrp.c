@@ -49,6 +49,7 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"
 #include "lib/endian.h"
 #include "lib/sha1.h"
+#include "lib/utf8.h"
 #include "lib/wordvec.h"
 #include "lib/walloc.h"
 #include "lib/zlib_util.h"

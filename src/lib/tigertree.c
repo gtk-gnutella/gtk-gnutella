@@ -139,7 +139,7 @@ void tt_update(TT_CONTEXT *ctx, gint8 *buffer, gint32 len)
 {
 	/* Try to fill partial block */
 	if (ctx->index) {
-		unsigned left = BLOCKSIZE - ctx->index;
+		gint32 left = BLOCKSIZE - ctx->index;
 		
 		if (len < left) {
 			memmove(ctx->block + ctx->index, buffer, len);
