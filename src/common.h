@@ -86,10 +86,12 @@ typedef void (*GCallback) (void);
  * to call another vararg routine, we need to copy the original args.
  * The __va_copy macro is a GNU extension.
  */
-#ifdef __va_copy
+#ifdef va_copy
+#define VA_COPY(dest, src) va_copy(dest, src)
+#elif defined(__va_copy)
 #define VA_COPY(dest, src)	__va_copy(dest, src)
 #else
-#define VA_COPY(dest, src)	dest = src
+#define VA_COPY(dest, src)	(dest) = (src)
 #endif
 
 /*
