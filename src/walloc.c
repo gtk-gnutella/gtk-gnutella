@@ -86,6 +86,21 @@ gpointer walloc(int size)
 }
 
 /*
+ * walloc0
+ *
+ * Same as walloc(), but zeroes the allocated memory before returning.
+ */
+gpointer walloc0(int size)
+{
+	gpointer p = walloc(size);
+
+	if (p != NULL)
+		memset(p, 0, size);
+
+	return p;
+}
+
+/*
  * wfree
  *
  * Free a block allocated via walloc().

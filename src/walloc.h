@@ -41,12 +41,14 @@
 #ifdef REMAP_ZALLOC
 
 #define walloc(s)			g_malloc(s)
+#define walloc0(s)			g_malloc0(s)
 #define wfree(p,s)			g_free(p)
 #define wrealloc(p,o,n)		g_realloc((p), (n));
 
 #else	/* !REMAP_ZALLOC */
 
 gpointer walloc(gint size);
+gpointer walloc0(int size);
 void wfree(gpointer ptr, gint size);
 gpointer wrealloc(gpointer old, gint old_size, gint new_size);
 
