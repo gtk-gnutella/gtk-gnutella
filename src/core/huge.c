@@ -1067,22 +1067,19 @@ gboolean huge_sha1_extract32(gchar *buf, gint len, gchar *retval,
 	if (!check_old) {
 		if (dbg) {
 			if (base32_decode_old_into(buf, len, retval, SHA1_RAW_SIZE))
-				g_warning("%s old SHA1: %32s", gmsg_infostr(header), buf);
+				g_warning("%s old SHA1 ignored: %32s",
+					gmsg_infostr(header), buf);
 			else
-				g_warning("%s bad SHA1: %32s", gmsg_infostr(header), buf);
+				goto bad;
 		}
 		return FALSE;
 	}
 
-	if (base32_decode_old_into(buf, len, retval, SHA1_RAW_SIZE))
-		goto ok;
+	if (!base32_decode_old_into(buf, len, retval, SHA1_RAW_SIZE))
+		goto bad;
 
-	if (dbg) {
-		g_warning("%s bad SHA1: %32s", gmsg_infostr(header), buf);
-		dump_hex(stderr, "Base32 SHA1", buf, len);
-	}
-
-	return FALSE;
+	if (dbg)
+		g_warning("%s old SHA1: %32s", gmsg_infostr(header), buf);
 
 ok:
 	/* 
@@ -1096,9 +1093,14 @@ ok:
 
 bad:
 	if (dbg) {
-		g_warning("%s has bad SHA1 (len=%d)", gmsg_infostr(header), len);
-		if (len)
-			dump_hex(stderr, "Base32 SHA1", buf, len);
+		if (is_printable(buf, len)) {
+			g_warning("%s has bad SHA1 (len=%d): %.*s",
+				gmsg_infostr(header), len, len, buf);
+		} else {
+			g_warning("%s has bad SHA1 (len=%d)", gmsg_infostr(header), len);
+			if (len)
+				dump_hex(stderr, "Base32 SHA1", buf, len);
+		}
 	}
 
 	return FALSE;
