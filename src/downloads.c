@@ -574,6 +574,51 @@ static void dl_by_time_remove(struct dl_server *server)
 }
 
 /*
+ * hostvec_to_slist
+ *
+ * Convert a vector of host to a single-linked list.
+ * Returns new list, with every item cloned.
+ */
+static GSList *hostvec_to_slist(gnet_host_vec_t *vec)
+{
+	GSList *l = NULL;
+	gint i;
+	
+	for (i = vec->hvcnt - 1; i >= 0; i--) {
+		gnet_host_t *h = &vec->hvec[i];
+		gnet_host_t *host = walloc(sizeof(*host));
+
+		host->ip = h->ip;
+		host->port = h->port;
+
+		l = g_slist_prepend(l, host);
+	}
+
+	return l;
+}
+
+/*
+ * free_proxies
+ *
+ * Get rid of the list of push proxies held in the server.
+ */
+static void free_proxies(struct dl_server *server)
+{
+	GSList *l;
+
+	g_assert(server);
+	g_assert(server->proxies);
+
+	for (l = server->proxies; l; l = g_slist_next(l)) {
+		struct gnutella_host *h = (struct gnutella_host *) l->data;
+		wfree(h, sizeof(*h));
+	}
+
+	g_slist_free(server->proxies);
+	server->proxies = NULL;
+}
+
+/*
  * allocate_server
  *
  * Allocate new server structure.
@@ -653,6 +698,13 @@ static void free_server(struct dl_server *server)
 			wfree(ipkey, sizeof(struct dl_ip));
 		}
 	}
+
+	/*
+	 * Get rid of the known push proxies, if any.
+	 */
+
+	if (server->proxies)
+		free_proxies(server);
 
 	wfree(server->key, sizeof(struct dl_key));
 	wfree(server, sizeof(*server));
@@ -2604,7 +2656,11 @@ attempt_retry:
 	 * Tell them so. -- RAM, 18/08/2002.
 	 */
 
-	if (d->always_push && ignore_push) {
+	if (
+		d->always_push &&						/* Normally requires a push */
+		(d->flags & DL_F_PUSH_IGN) &&			/* Started to ignore pushes */
+		!(d->server->attrs & DLS_A_PUSH_IGN)	/* But never connected yet */
+	) {
 		d->retries++;
 		if (on_timeout || d->retries > 5) {
 			/*
@@ -2713,18 +2769,43 @@ void download_fallback_to_push(struct download *d,
 static struct download *create_download(
 	gchar *file, guint32 size, guint32 record_index,
 	guint32 ip, guint16 port, gchar *guid, gchar *sha1, time_t stamp,
-	gboolean push, gboolean interactive, struct dl_file_info *file_info)
+	gboolean push, gboolean interactive, struct dl_file_info *file_info,
+	gnet_host_vec_t *proxies)
 {
 	struct dl_server *server;
 	struct download *d;
 	gchar *file_name = interactive ? atom_str_get(file) : file;
 	struct dl_file_info *fi;
+	gboolean server_created = FALSE;		/* For assertions only */
+
+	/*
+	 * Create server if none exists already.
+	 */
+
+	server = get_server(guid, ip, port);
+	if (server == NULL) {
+		server = allocate_server(guid, ip, port);
+		server_created = TRUE;
+	}
+
+	/*
+	 * If some push proxies are given, and provided the `stamp' argument
+	 * is recent enough, drop the existing list and replace it with the
+	 * one coming from the query hit.
+	 */
+
+	if (proxies != NULL && stamp > server->proxies_stamp) {
+		free_proxies(server);
+		server->proxies = hostvec_to_slist(proxies);
+		server->proxies_stamp = stamp;
+	}
 
 	/*
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
 	 */
 
 	if ((d = has_same_download(file_name, sha1, guid, ip, port))) {
+		g_assert(!server_created);		/* Obviously! */
 		if (interactive)
 			g_warning("rejecting duplicate download for %s", file_name);
 		atom_str_free(file_name);
@@ -2732,14 +2813,10 @@ static struct download *create_download(
 	}
 
 	/*
-	 * Initialize download, creating new server if needed.
+	 * Initialize download.
 	 */
 
 	d = (struct download *) walloc0(sizeof(struct download));
-
-	server = get_server(guid, ip, port);
-	if (server == NULL)
-		server = allocate_server(guid, ip, port);
 
     d->src_handle = idtable_new_id(src_handle_map, d);
 	d->server = server;
@@ -2852,7 +2929,8 @@ static struct download *create_download(
 
 void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 					guint32 ip, guint16 port, gchar *guid, gchar *sha1,
-		   			time_t stamp, gboolean push, struct dl_file_info *fi)
+		   			time_t stamp, gboolean push, struct dl_file_info *fi,
+					gnet_host_vec_t *proxies)
 {
 	gchar *file_name;
 	const char *reason;
@@ -2960,7 +3038,7 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 	file_name = atom_str_get(file);
 
 	(void) create_download(file_name, size, record_index, ip, port,
-		guid, sha1, stamp, push, FALSE, fi);
+		guid, sha1, stamp, push, FALSE, fi, proxies);
 	return;
 
 abort_download:
@@ -3137,10 +3215,11 @@ void download_index_changed(guint32 ip, guint16 port, gchar *guid,
  */
 gboolean download_new(gchar *file, guint32 size, guint32 record_index,
 			  guint32 ip, guint16 port, gchar *guid, gchar *sha1,
-			  time_t stamp, gboolean push, struct dl_file_info *fi)
+			  time_t stamp, gboolean push, struct dl_file_info *fi,
+			  gnet_host_vec_t *proxies)
 {
 	return NULL != create_download(file, size, record_index, ip, port, guid,
-		sha1, stamp, push, TRUE, fi);
+		sha1, stamp, push, TRUE, fi, proxies);
 }
 
 /*
@@ -3153,7 +3232,7 @@ void download_orphan_new(
 	gchar *file, guint32 size, gchar *sha1, struct dl_file_info *fi)
 {
 	(void) create_download(file, size, 0, 0, 0, blank_guid, sha1,
-		time(NULL), FALSE, TRUE, fi);
+		time(NULL), FALSE, TRUE, fi, NULL);
 }
 
 /*
@@ -6419,7 +6498,7 @@ static void download_retrieve(void)
 		 */
 
 		d = create_download(d_name, d_size, d_index, d_ip, d_port, d_guid,
-			has_sha1 ? sha1_digest : NULL, 1, FALSE, FALSE, NULL);
+			has_sha1 ? sha1_digest : NULL, 1, FALSE, FALSE, NULL, NULL);
 
 		if (d == NULL) {
 			g_warning("ignored dup download at line #%d (server %s)",

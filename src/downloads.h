@@ -71,6 +71,8 @@ struct dl_server {
 	time_t retry_after;			/* Time at which we may retry from this host */
 	struct vernum parq_version;	/* Supported queueing version */
 	guint32 attrs;
+	GSList *proxies;			/* Known push proxies (struct gnutella_host) */
+	time_t proxies_stamp;		/* Time when list was last updated */
 };
 
 struct dl_request {			/* Partial HTTP request */

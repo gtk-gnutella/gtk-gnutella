@@ -250,6 +250,23 @@ void search_free_alt_locs(gnet_record_t *rc)
 }
 
 /*
+ * search_free_proxies
+ *
+ * Free the push proxies held within a result set.
+ */
+void search_free_proxies(gnet_results_set_t *rs)
+{
+	gnet_host_vec_t *v = rs->proxies;
+
+	g_assert(v != NULL);
+
+	wfree(v->hvec, v->hvcnt * sizeof(*v->hvec));
+	wfree(v, sizeof(*v));
+
+	rs->proxies = NULL;
+}
+
+/*
  * search_free_record
  *
  * Free one file record.
@@ -283,6 +300,9 @@ static void search_free_r_set(gnet_results_set_t *rs)
 
 	if (rs->version)
 		atom_str_free(rs->version);
+
+	if (rs->proxies)
+		search_free_proxies(rs);
 
 	g_slist_free(rs->records);
 	zfree(rs_zone, rs);
@@ -319,6 +339,7 @@ static gnet_results_set_t *get_results_set(
 	gboolean seen_ggep_alt = FALSE;
 	gboolean seen_bitprint = FALSE;
 	gboolean multiple_sha1 = FALSE;
+	gint multiple_alt = 0;
 	gchar *vendor = NULL;
 
 	/* We shall try to detect malformed packets as best as we can */
@@ -340,6 +361,7 @@ static gnet_results_set_t *get_results_set(
 	rs->guid      = NULL;
 	rs->version   = NULL;
     rs->status    = 0;
+	rs->proxies   = NULL;
 
 	r = (struct gnutella_search_results *) n->data;
 
@@ -445,7 +467,7 @@ static gnet_results_set_t *get_results_set(
 			extvec_t exv[MAX_EXTVEC];
 			gint exvcnt;
 			gint i;
-			struct gnutella_host *hvec = NULL;		/* For GGEP "ALT" */
+			gnet_host_t *hvec = NULL;		/* For GGEP "ALT" */
 			gint hvcnt = 0;
 			gboolean has_hash = FALSE;
 
@@ -555,6 +577,10 @@ static gnet_results_set_t *get_results_set(
 					}
 					break;
 				case EXT_T_GGEP_ALT:		/* Alternate locations */
+					if (hvec != NULL) {		/* Already saw one for record! */
+						multiple_alt++;
+						break;
+					}
 					ret = ggept_alt_extract(e, &hvec, &hvcnt);
 					if (ret == GGEP_OK)
 						seen_ggep_alt = TRUE;
@@ -808,6 +834,32 @@ static gnet_results_set_t *get_results_set(
 						}
 					}
 					break;
+				case EXT_T_GGEP_PUSH:
+					if (rs->proxies != NULL) {
+						g_warning("%s has multiple GGEP \"PUSH\" (ignoring)",
+							gmsg_infostr(&n->header));
+						break;
+					}
+					if (!validate_only) {
+						gnet_host_t *hvec;
+						gint hvcnt = 0;
+
+						ret = ggept_push_extract(e, &hvec, &hvcnt);
+
+						if (ret == GGEP_OK) {
+							gnet_host_vec_t *v = walloc(sizeof(*v));
+							v->hvec = hvec;
+							v->hvcnt = hvcnt;
+							rs->proxies = v;
+						} else {
+							if (dbg) {
+								g_warning("%s bad GGEP \"PUSH\" (dumping)",
+									gmsg_infostr(&n->header));
+								ext_dump(stderr, e, 1, "....", "\n", TRUE);
+							}
+						}
+					}
+					break;
 				default:
 					break;
 				}
@@ -839,6 +891,9 @@ static gnet_results_set_t *get_results_set(
 					 gmsg_infostr(&n->header), vendor ? vendor : "????");
 			if (multiple_sha1)
 				g_warning("%s from %s had records with multiple SHA1",
+					 gmsg_infostr(&n->header), vendor ? vendor : "????");
+			if (multiple_alt)
+				g_warning("%s from %s had records with multiple ALT",
 					 gmsg_infostr(&n->header), vendor ? vendor : "????");
 		}
 
@@ -1531,7 +1586,10 @@ static void search_check_alt_locs(
 		}
 
 		download_auto_new(rc->name, rc->size, URN_INDEX, h->ip,
-			h->port, blank_guid, rc->sha1, rs->stamp, FALSE, fi);
+			h->port, blank_guid, rc->sha1, rs->stamp, FALSE, fi, rs->proxies);
+
+		if (rs->proxies != NULL)
+			search_free_proxies(rs);
 	}
 
 	search_free_alt_locs(rc);
@@ -1563,8 +1621,14 @@ static void search_check_results_set(gnet_results_set_t *rs)
 		if (fi) {
 			gboolean need_push = (rs->status & ST_FIREWALL) ||
 				!host_is_valid(rs->ip, rs->port);
+
 			download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-					rs->guid, rc->sha1, rs->stamp, need_push, fi);
+					rs->guid, rc->sha1, rs->stamp, need_push, fi, rs->proxies);
+
+
+			if (rs->proxies != NULL)
+				search_free_proxies(rs);
+
             set_flags(rc->flags, SR_DOWNLOADED);
 
 			/*

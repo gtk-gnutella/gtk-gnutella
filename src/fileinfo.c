@@ -2979,7 +2979,7 @@ void file_info_try_to_swarm_with(
 		return;
 
 	download_auto_new(file_name, fi->size, idx, ip, port, blank_guid, sha1,
-		time(NULL), FALSE, fi);
+		time(NULL), FALSE, fi, NULL);
 }
 
 /*
