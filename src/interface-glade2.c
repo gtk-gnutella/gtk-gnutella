@@ -1433,7 +1433,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label493 = gtk_label_new (_("Rapha\303«l Manfredi"));
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
@@ -1441,7 +1441,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label494 = gtk_label_new (_("Rapha\303«l Manfredi"));
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -5338,6 +5338,9 @@ create_main_window_config_ul_tab (void)
   GtkWidget *hbox27;
   GtkWidget *label41;
   GtkWidget *entry_config_extensions;
+  GtkWidget *hbox232;
+  GtkWidget *checkbutton_scan_ignore_symlink_dirs;
+  GtkWidget *checkbutton_scan_ignore_symlink_regfiles;
   GtkWidget *label300;
   GtkWidget *frame_expert_ul_timeout;
   GtkWidget *table12;
@@ -5466,6 +5469,21 @@ create_main_window_config_ul_tab (void)
   gtk_widget_show (entry_config_extensions);
   gtk_box_pack_start (GTK_BOX (hbox27), entry_config_extensions, TRUE, TRUE, 0);
 
+  hbox232 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox232, "hbox232");
+  gtk_widget_show (hbox232);
+  gtk_box_pack_start (GTK_BOX (vbox_path_to_files), hbox232, TRUE, TRUE, 0);
+
+  checkbutton_scan_ignore_symlink_dirs = gtk_check_button_new_with_mnemonic (_("Ignore symbolically linked directories"));
+  gtk_widget_set_name (checkbutton_scan_ignore_symlink_dirs, "checkbutton_scan_ignore_symlink_dirs");
+  gtk_widget_show (checkbutton_scan_ignore_symlink_dirs);
+  gtk_box_pack_start (GTK_BOX (hbox232), checkbutton_scan_ignore_symlink_dirs, FALSE, FALSE, 0);
+
+  checkbutton_scan_ignore_symlink_regfiles = gtk_check_button_new_with_mnemonic (_("Ignore symbolically linked regular files"));
+  gtk_widget_set_name (checkbutton_scan_ignore_symlink_regfiles, "checkbutton_scan_ignore_symlink_regfiles");
+  gtk_widget_show (checkbutton_scan_ignore_symlink_regfiles);
+  gtk_box_pack_start (GTK_BOX (hbox232), checkbutton_scan_ignore_symlink_regfiles, FALSE, FALSE, 0);
+
   label300 = gtk_label_new_with_mnemonic (_("_Path(s) to files"));
   gtk_widget_set_name (label300, "label300");
   gtk_widget_show (label300);
@@ -5571,6 +5589,9 @@ create_main_window_config_ul_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_ul_tab, hbox27, "hbox27");
   GLADE_HOOKUP_OBJECT (main_window_config_ul_tab, label41, "label41");
   GLADE_HOOKUP_OBJECT (main_window_config_ul_tab, entry_config_extensions, "entry_config_extensions");
+  GLADE_HOOKUP_OBJECT (main_window_config_ul_tab, hbox232, "hbox232");
+  GLADE_HOOKUP_OBJECT (main_window_config_ul_tab, checkbutton_scan_ignore_symlink_dirs, "checkbutton_scan_ignore_symlink_dirs");
+  GLADE_HOOKUP_OBJECT (main_window_config_ul_tab, checkbutton_scan_ignore_symlink_regfiles, "checkbutton_scan_ignore_symlink_regfiles");
   GLADE_HOOKUP_OBJECT (main_window_config_ul_tab, label300, "label300");
   GLADE_HOOKUP_OBJECT (main_window_config_ul_tab, frame_expert_ul_timeout, "frame_expert_ul_timeout");
   GLADE_HOOKUP_OBJECT (main_window_config_ul_tab, table12, "table12");
