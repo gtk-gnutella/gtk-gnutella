@@ -7,6 +7,8 @@ ChangeLog
 Configure                    Portability tool
 Jmakefile
 Makefile.SH
+gtk-gnutella.desktop
+gtk-gnutella.png
 U/modified/End.U
 U/modified/Loc.U
 U/modified/Myinit.U
