@@ -258,7 +258,8 @@ prop = {
 
 prop = {
     name = "connection_speed";
-    desc = "The connection bandwidth reported to other hosts";
+    desc = "The connection bandwidth reported to other hosts. "
+		"This is the speed at which you can upload things to others.";
     type = guint32;
     data = {
         default = 0;

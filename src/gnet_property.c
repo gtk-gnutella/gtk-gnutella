@@ -811,7 +811,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[21].name = "connection_speed";
-    gnet_property->props[21].desc = _("The connection bandwidth reported to other hosts");
+    gnet_property->props[21].desc = _("The connection bandwidth reported to other hosts. This is the speed at which you can upload things to others.");
     gnet_property->props[21].ev_changed = event_new("connection_speed_changed");
     gnet_property->props[21].save = TRUE;
     gnet_property->props[21].vector_size = 1;
