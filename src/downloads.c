@@ -1157,7 +1157,8 @@ void download_stop(struct download *d, guint32 new_status,
 		d->bio = NULL;
 	}
 
-	download_move_to_list(d, list_target);
+	if (d->list_idx != list_target)
+		download_move_to_list(d, list_target);
 
 	/* Register the new status, and update the GUI if needed */
 
@@ -1502,6 +1503,24 @@ static gboolean download_start_prepare(struct download *d)
 	g_assert(d->list_idx != DL_LIST_RUNNING);
 
 	/*
+	 * Updata global accounting data.
+	 */
+
+	download_move_to_list(d, DL_LIST_RUNNING);
+
+	/*
+	 * If the download is in the queue, we remove it from there.
+	 */
+
+	if (DOWNLOAD_IS_QUEUED(d)) {
+		if (DOWNLOAD_IS_VISIBLE(d))
+			download_gui_remove(d);
+		sl_unqueued = g_slist_prepend(sl_unqueued, d);
+	}
+
+	d->status = GTA_DL_CONNECTING;	/* Most common state if we succeed */
+
+	/*
 	 * If the output file already exists, we have to send a partial request
 	 * This is done here so multiple downloads of existing files drop out when
 	 * they are smaller than the existing file.
@@ -1582,22 +1601,15 @@ static gboolean download_start_prepare(struct download *d)
 
 		} else if (status == DL_CHUNK_BUSY) {
 
-			if (!DOWNLOAD_IS_QUEUED(d))
-				download_queue_delay(d, 10, "Waiting for a free slot");
+			download_queue_delay(d, 10, "Waiting for a free slot");
 			return FALSE;
 
 		} else if (status == DL_CHUNK_DONE) {
 
-			if (DOWNLOAD_IS_QUEUED(d))
-				if (DOWNLOAD_IS_VISIBLE(d))
-					download_gui_remove(d);
-
-			d->status = GTA_DL_CONNECTING;
-
 			if (!DOWNLOAD_IS_VISIBLE(d))
 				download_gui_add(d);
 
-			download_stop(d, GTA_DL_ERROR, "No more holes to fill");
+			download_stop(d, GTA_DL_ERROR, "No more gaps to fill");
 			queue_remove_downloads_with_file(d->file_info);
 			return FALSE;
 		}
@@ -1605,25 +1617,11 @@ static gboolean download_start_prepare(struct download *d)
 
 	g_assert(d->overlap_size == 0 || d->skip > d->overlap_size);
 
-	/* If the download is in the queue, we remove it from there */
-	if (DOWNLOAD_IS_QUEUED(d)) {
-		if (DOWNLOAD_IS_VISIBLE(d))
-			download_gui_remove(d);
-		sl_unqueued = g_slist_prepend(sl_unqueued, d);
-	}
-
-	/*
-	 * Updata global accounting data.
-	 */
-
-	download_move_to_list(d, DL_LIST_RUNNING);
-
 	/*
 	 * Is there anything to get at all?
 	 */
 
 	if (d->file_info->done == d->file_info->size) {
-		d->status = GTA_DL_CONNECTING;
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
 		download_stop(d, GTA_DL_ERROR, "Nothing more to get");
@@ -1668,6 +1666,17 @@ void download_start(struct download *d, gboolean check_allowed)
 
 	if (!send_pushes && d->push)
 		download_push_remove(d);
+
+	/*
+	 * If server is known to be reachable without pushes, reset the flag.
+	 */
+
+	if (d->always_push && (d->server->attrs & DLS_A_PUSH_IGN)) {
+		g_assert(check_valid_host(ip, port));	/* Or would not have set flag */
+		if (d->push)
+			download_push_remove(d);
+		d->always_push = FALSE;
+	}
 
 	if (!DOWNLOAD_IS_IN_PUSH_MODE(d) && check_valid_host(ip, port)) {
 		/* Direct download */
@@ -1773,9 +1782,14 @@ void download_pickup_queued(void)
 
 static void download_push(struct download *d, gboolean on_timeout)
 {
-	g_return_if_fail(d);
+	gboolean ignore_push = FALSE;
 
-	if (!send_pushes) {
+	g_assert(d);
+
+	if (d->flags & DL_F_PUSH_IGN)
+		ignore_push = TRUE;
+
+	if (!send_pushes || ignore_push) {
 		if (d->push)
 			download_push_remove(d);
 		goto attempt_retry;
@@ -1801,21 +1815,55 @@ static void download_push(struct download *d, gboolean on_timeout)
 		if (!d->always_push) {
 			download_push_remove(d);
 			goto attempt_retry;
-		} else
-			download_stop(d, GTA_DL_ERROR, "Push route lost");
+		} else {
+			/*
+			 * If the address is not a private IP, it is possible that the
+			 * servent set the "Push" flag incorrectly.
+			 *		-- RAM, 18/08/2002.
+			 */
+
+			if (!check_valid_host(download_ip(d), download_port(d)))
+				download_stop(d, GTA_DL_ERROR, "Push route lost");
+			else {
+				/*
+				 * Later on, if we manage to connect to the server, we'll
+				 * make sure to mark it so that we ignore pushes to it, and
+				 * we will clear the `always_push' indication.
+				 * (see download_send_request() for more information)
+				 */
+
+				download_push_remove(d);
+
+				if (dbg > 2)
+					printf("PUSH trying to ignore them for %s\n",
+						ip_port_to_gchar(download_ip(d), download_port(d)));
+
+				d->flags |= DL_F_PUSH_IGN;
+				download_queue(d, "Ignoring Push flag");
+			}
+		}
 	}
 
 	return;
 
 attempt_retry:
-	if (++d->retries <= download_max_retries) {
+	/*
+	 * If we're aboring a download flagged with "Push ignore" due to a
+	 * timeout reason, chances are great that this host is indeed firewalled!
+	 * Tell them so. -- RAM, 18/08/2002.
+	 */
+
+	if (on_timeout && (d->flags & DL_F_PUSH_IGN))
+		download_stop(d, GTA_DL_ERROR, "Can't reach host (Push or Direct)");
+	else if (++d->retries <= download_max_retries) {
 		if (on_timeout)
 			download_queue_delay(d, download_retry_timeout_delay,
 				"Timeout (%d retr%s)",
 				d->retries, d->retries == 1 ? "y" : "ies");
 		else
 			download_queue_delay(d, download_retry_refused_delay,
-				"Connection refused (%d retr%s)",
+				"Connection refused %s(%d retr%s)",
+				ignore_push ? "[No Push] " : "",
 				d->retries, d->retries == 1 ? "y" : "ies");
 	} else
 		download_stop(d, GTA_DL_ERROR, "Timeout (%d retr%s)",
@@ -1926,11 +1974,6 @@ static void create_download(
 	gchar *file_name = interactive ? atom_str_get(file) : file;
 	struct dl_file_info *file_info;
 
-	/* Fixme? Apparently, many of the servents that set the push flag
-	 * are perfectly capable of receiving direct connections as well, so
-	 * just for the heck of it, ignore them. --vidar, 31/07/2002 */
-	// push = 0;
-
 	/*
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
 	 */
@@ -1974,6 +2017,14 @@ static void create_download(
 
 	d->server = server;
 	d->list_idx = -1;
+
+	/*
+	 * If we know that this server can be directly connected to, ignore
+	 * the push flag. --RAM, 18/08/2002.
+	 */
+
+	if (d->server->attrs & DLS_A_PUSH_IGN)
+		push = FALSE;
 
 	//d->path = atom_str_get(save_file_path);
 	//d->output_name = file_info->file_name;
@@ -3475,6 +3526,20 @@ gboolean download_send_request(struct download *d)
 		g_warning("download_send_request(): No socket for '%s'", d->file_name);
 		download_stop(d, GTA_DL_ERROR, "Internal Error");
 		return FALSE;
+	}
+
+	/*
+	 * If we have d->always_push set, yet we did not use a Push, it means we
+	 * finally tried to connect directly to this server.  And we succeeded!
+	 *		-- RAM, 18/08/2002.
+	 */
+
+	if (d->always_push && !DOWNLOAD_IS_IN_PUSH_MODE(d)) {
+		if (dbg > 2)
+			printf("PUSH not necessary to reach %s\n",
+				ip_port_to_gchar(download_ip(d), download_port(d)));
+		d->server->attrs |= DLS_A_PUSH_IGN;
+		d->always_push = FALSE;
 	}
 
 	g_assert(d->overlap_size <= sizeof(s->buffer));
