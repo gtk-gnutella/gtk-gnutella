@@ -340,7 +340,7 @@ gboolean on_tree_view_search_results_button_press_event
                 return TRUE;
 
         default: ;
-        }
+    }
 
 	return FALSE;
 }
@@ -351,14 +351,15 @@ void on_button_search_filter_clicked(
 	filter_open_dialog();
 }
 
-void on_tree_view_search_results_click_column(
-    GtkTreeViewColumn *tree_view_column, gpointer user_data)
+gboolean on_tree_view_search_results_click_column(
+    GtkTreeViewColumn *column, gpointer user_data)
 {
 	/* FIXME:
 	 * 			+--> sort descending -> sort ascending -> unsorted -+
      *      	|                                                   |
      *      	+-----------------------<---------------------------+
      */
+	return FALSE;
 }
 
 static guint32 autoselect_files_fuzzy_threshold;
@@ -373,38 +374,41 @@ static void autoselect_files_helper(
 	GtkTreeIter	model_iter;
 	GtkTreeIter	child;
 	gboolean more_rows;
-	GtkTreeSelection	*selection;
+	GtkTreeSelection *selection;
+    GtkTreeView *treeview = GTK_TREE_VIEW(data);
 
 	if (autoselect_files_lock)
 		return;
 	autoselect_files_lock = TRUE;
 
-	/* 
-	 * Rows with NULL data can appear when inserting new rows
-	 * because the selection is resynced and the row data can not
-	 * be set until insertion (and therefore also selection syncing
-	 * is done.
-	 *      --BLUE, 20/06/2002
-	 */
+	selection = gtk_tree_view_get_selection(treeview);
+	gtk_tree_model_get(model, iter, c_sr_record, &rc, (-1));
 
-	selection = GTK_TREE_SELECTION(data);
-	gtk_tree_model_get(model, iter, c_sr_record, &rc, -1);
+    /* If only identical files should be auto-selected, exploit the
+     * fact that the results are grouped by SHA1 and simply select all
+     * children of the parent. */
+	if (search_autoselect_ident) {
 
-	if (!gtk_tree_model_iter_parent(model, &model_iter, iter))
-		model_iter = *iter;
+        /* If the selected iter is a children, move to the parent. */
+        if (!gtk_tree_model_iter_parent(model, &model_iter, iter))
+	        model_iter = *iter;
 
-	if (
-		search_autoselect_ident &&
-		gtk_tree_model_iter_children(model, &child, &model_iter)
-	) {
-		gtk_tree_selection_select_iter(selection, &model_iter);
-		do {
-			gtk_tree_selection_select_iter(selection, &child);
-			x++;
-		} while (gtk_tree_model_iter_next(model, &child));
-	}
+        /* If the iter has no children, we're already done. */
+	    if (gtk_tree_model_iter_children(model, &child, &model_iter)) {
+
+            /* Expand to the current path, otherwise any changes to
+             * the selection would be discarded. */
+            gtk_tree_view_expand_row(treeview, path, FALSE);
+
+            /* Now select all children. */
+		    gtk_tree_selection_select_iter(selection, &model_iter);
+		    do {
+			    gtk_tree_selection_select_iter(selection, &child);
+			    x++;
+		    } while (gtk_tree_model_iter_next(model, &child));
+	    }
 		
-	else
+	} else
 
 	/*
 	 * Note that rc != NULL is embedded in the "for condition".
@@ -418,7 +422,7 @@ static void autoselect_files_helper(
 			gboolean select_file;
 			record_t *rc2;
 
-			gtk_tree_model_get(model, &model_iter, c_sr_record, &rc2, -1);
+			gtk_tree_model_get(model, &model_iter, c_sr_record, &rc2, (-1));
 
 			/*
 		 	 * Skip the line we selected in the first place.
@@ -432,8 +436,10 @@ static void autoselect_files_helper(
 				continue;
 			}
 
-			sha1_ident = rc->sha1 != NULL && rc2->sha1 != NULL &&
-				0 == memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE);
+			sha1_ident = rc->sha1 != NULL
+                && rc2->sha1 != NULL
+                && (rc->sha1 == rc2->sha1 ||
+                    0 == memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE));
 
 			/*
 	 	 	* size check added to workaround buggy
@@ -465,6 +471,15 @@ static void autoselect_files_helper(
 					);
 
 				if (select_file) {
+                    GtkTreePath* p;
+
+                    /* Expand to the current path, otherwise any changes to
+                     * the selection would be discarded. */
+            
+                    path = gtk_tree_model_get_path(model, &model_iter);
+                    gtk_tree_view_expand_row(treeview, p, FALSE);
+                    gtk_tree_path_free(p);
+
 					gtk_tree_selection_select_iter(selection, &model_iter);
 					x++;
 				}	
@@ -477,12 +492,11 @@ static void autoselect_files_helper(
 		statusbar_gui_message(15, "none auto selected");
 }
 
-static void autoselect_files(GtkTreeView *tree_view)
+static void autoselect_files(GtkTreeView *treeview)
 {
     gboolean search_autoselect;
     gboolean search_autoselect_ident;
     gboolean search_autoselect_fuzzy;
-	GtkTreeSelection *selection;
 
     gui_prop_get_boolean(
         PROP_SEARCH_AUTOSELECT,
@@ -500,7 +514,7 @@ static void autoselect_files(GtkTreeView *tree_view)
      * Block this signal so we don't emit it for every autoselected item.
      */
     g_signal_handlers_block_by_func(
-        G_OBJECT(tree_view),
+        G_OBJECT(treeview),
         G_CALLBACK(on_tree_view_search_results_select_row),
         NULL);
 
@@ -514,14 +528,15 @@ static void autoselect_files(GtkTreeView *tree_view)
      * only one item is selected (no way to merge two autoselections)
      */
 
-	selection = gtk_tree_view_get_selection(tree_view);
 	autoselect_files_lock = FALSE;
 	if (search_autoselect)
-		gtk_tree_selection_selected_foreach(selection, autoselect_files_helper,
-			selection);
+		gtk_tree_selection_selected_foreach(
+            gtk_tree_view_get_selection(treeview),
+            autoselect_files_helper,
+			treeview);
 
     g_signal_handlers_unblock_by_func(
-        G_OBJECT(tree_view),
+        G_OBJECT(treeview),
         G_CALLBACK(on_tree_view_search_results_select_row),
         NULL);
 }
@@ -816,7 +831,7 @@ void on_popup_search_duplicate_activate(
 
 	search_gui_new_search_full(search->query,
 		search_get_minimum_speed(search->search_handle), 
-		timeout, 0, NULL);
+		timeout, search->sort_col, search->sort_order, 0, NULL);
 }
 
 void on_popup_search_restart_activate
@@ -837,12 +852,7 @@ void on_popup_search_resume_activate(GtkMenuItem * menuitem,
     search = search_gui_get_current_search();
 	g_return_if_fail(NULL != search);
 	search_start(search->search_handle);
-/*        gtk_clist_set_foreground(
-            GTK_CLIST(lookup_widget(main_window, "clist_search")),
-            gtk_notebook_get_current_page
-                GTK_NOTEBOOK
-                    (lookup_widget(main_window, "notebook_search_results")),
-					NULL);*/
+    /* FIXME: Mark this entry as active again in the searches list. */
 }
 
 void on_popup_search_stop_activate(
@@ -852,17 +862,9 @@ void on_popup_search_stop_activate(
 
     search = search_gui_get_current_search();
 	g_return_if_fail(NULL != search);
-/*		GtkTreeView *tree_view_search = GTK_TREE_VIEW
-			(lookup_widget(main_window, "tree_view_search"));*/
 
 	search_stop(search->search_handle);
-/*        gtk_clist_set_foreground(
-            tree_view_search,
-            gtk_notebook_get_current_page
-                GTK_NOTEBOOK
-                    (lookup_widget(main_window, "notebook_search_results")),
-            &gtk_widget_get_style(GTK_WIDGET(clist_search))
-                ->fg[GTK_STATE_INSENSITIVE]);*/
+    /* FIXME: Mark this entry as inactive in the searches list. */
 }
 
 void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
@@ -871,7 +873,6 @@ void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
 	GtkWidget * cc;
     search_t *search;
 
-    g_assert(NULL != menuitem);
     search = search_gui_get_current_search();
 	g_return_if_fail(NULL != search);
 
