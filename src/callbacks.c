@@ -3269,6 +3269,12 @@ void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem,
     gui_update_stats_frames();
 }
 
+void on_menu_about_activate(GtkMenuItem * menuitem,
+								       gpointer user_data)
+{
+    gtk_widget_show(dlg_about);
+}
+
 
 
 /***
@@ -3279,6 +3285,21 @@ void on_clist_search_resize_column(GtkCList * clist, gint column,
                                    gint width, gpointer user_data)
 {
     search_list_col_widths[column] = width;
+}
+
+/***
+ *** about dialog
+ ***/
+void on_button_about_close_clicked(GtkButton * button, gpointer user_data)
+{
+    gtk_widget_hide(dlg_about);
+}
+
+gboolean on_dlg_about_delete_event(GtkWidget *widget, GdkEvent *event,
+                                   gpointer user_data)
+{
+	gtk_widget_hide(dlg_about);
+	return TRUE;
 }
 
 /* vi: set ts=4: */

@@ -352,6 +352,7 @@ void on_menu_bws_in_visible_activate(GtkMenuItem * menuitem, gpointer user_data)
 void on_menu_bws_out_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_bws_gin_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_menu_about_activate(GtkMenuItem * menuitem, gpointer user_data);
 
 
 
@@ -360,5 +361,12 @@ void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem, gpointer user_dat
  ***/
 void on_clist_search_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 
+
+
+/***
+ *** about dialog
+ ***/
+void on_button_about_close_clicked(GtkButton *button, gpointer user_data);
+gboolean on_dlg_about_delete_event(GtkWidget *widget, GdkEvent *event, gpointer user_data);
 
 #endif	/* __callbacks_h__ */
