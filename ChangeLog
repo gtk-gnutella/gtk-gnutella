@@ -16,6 +16,8 @@
      look more similar.
  * [Gtk1] [Gtk2] Added option to automatically hide leaf bandwidth stats
    when not in ultrapeer mode (default: on).
+ * [Gtk1] Fix sidebar resizing when traffic stats are hidden (a hack, but 
+   it seems to work)
 
 - (2003.12.20 - RAM)
  * PARQ will no longer send QUEUE when uploads are disabled.
