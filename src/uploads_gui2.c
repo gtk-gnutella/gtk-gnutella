@@ -310,6 +310,7 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 	const gchar *titles[UPLOADS_GUI_VISIBLE_COLUMNS];
     upload_row_data_t *rd = walloc(sizeof(*rd));
 	gnet_upload_status_t status;
+	static gchar size_tmp[256];
 
 	memset(titles, 0, sizeof(titles));
 
@@ -328,13 +329,11 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 	upload_get_status(u->upload_handle, &status);
     rd->status = status.status;
 
-    if (u->range_start == 0 && u->range_end == 0) {
-        titles[c_ul_size] = titles[c_ul_range] =  "...";
-    } else {
+    if (u->range_start == 0 && u->range_end == 0)
+        titles[c_ul_range] =  "...";
+    else {
 		static gchar range_tmp[256];	/* MUST be static! */
- 		static gchar size_tmp[256];		/* MUST be static! */
 
-        g_strlcpy(size_tmp, short_size(u->file_size), sizeof(size_tmp)); 
         range_len = gm_snprintf(range_tmp, sizeof(range_tmp), "%s",
             compact_size(u->range_end - u->range_start + 1));
 
@@ -345,9 +344,11 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
     
         g_assert(range_len < sizeof(range_tmp));
 
-        titles[c_ul_size] = size_tmp;
         titles[c_ul_range] = range_tmp;
     }
+
+	g_strlcpy(size_tmp, short_size(u->file_size), sizeof(size_tmp)); 
+    titles[c_ul_size] = size_tmp;
 
 	if (NULL != u->user_agent) {
 		static gchar str[256];	/* MUST be static! */
