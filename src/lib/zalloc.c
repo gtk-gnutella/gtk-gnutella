@@ -65,7 +65,8 @@ RCSID("$Id$");
 #define BLOCK_USED			((gchar *) 0xff12aa35)	/* Tagging of used blocks */
 #endif
 
-#define DEFAULT_HINT		128	/* Default amount of blocks in a zone */
+#define DEFAULT_HINT		128		/* Default amount of blocks in a zone */
+#define MAX_ZONE_SIZE		16384	/* Maximum zone size */
 
 /*
  * Extra allocated zones.
@@ -350,12 +351,20 @@ static zone_t *zn_create(zone_t *zone, gint size, gint hint)
 
 	size = zalloc_round(size);
 
+	g_assert(size < MAX_ZONE_SIZE);	/* Must not request zones for big sizes */
+
 	/*
-	 * Make sure we have at least room for `hint' blocks in the zone.
+	 * Make sure we have at least room for `hint' blocks in the zone,
+	 * and that at the same time, the size is not greater than MAX_ZONE_SIZE.
 	 */
 
 	hint = (hint == 0) ? DEFAULT_HINT : hint;
 	asked = size * hint;
+
+	if (asked > MAX_ZONE_SIZE)
+		asked = (MAX_ZONE_SIZE / size) * size;
+
+	g_assert(asked <= MAX_ZONE_SIZE);
 
 	/*
 	 * Allocate the arena.
