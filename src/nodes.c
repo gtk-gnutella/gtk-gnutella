@@ -4757,41 +4757,66 @@ static void node_parse(struct gnutella_node *node)
 	if (!n)
 		goto clean_dest;	/* The node has been removed during processing */
 
-	if (!drop) {
-		if (qhv != NULL && n->header.hops == 0) {
+	if (drop)
+		goto dropped;
+
+	if (qhv != NULL && n->header.hops == 0) {
+		/*
+		 * A query with hops = 0 needs to be handled via the dynamic
+		 * query mechanism.  It is only possible to get one from the
+		 * network if we have leaves (due to the decrement done above),
+		 * which means we're in ultra mode.
+		 */
+
+		g_assert(current_peermode == NODE_P_ULTRA);
+		dq_launch_net(n, qhv);
+
+	} else if (current_peermode != NODE_P_LEAF) {
+		/*
+		 * Propagate message, if needed
+		 */
+
+		g_assert(regular_size == (size_t) -1 || has_ggep);
+
+		switch (n->header.function) {
+		case GTA_MSG_SEARCH:
 			/*
-			 * A query with hops = 0 needs to be handled via the dynamic
-			 * query mechanism.  It is only possible to get one from the
-			 * network if we have leaves (due to the decrement done above),
-			 * which means we're in ultra mode.
-			 */
-
-			g_assert(current_peermode == NODE_P_ULTRA);
-			dq_launch_net(n, qhv);
-
-		} else if (current_peermode != NODE_P_LEAF) {
-			/*
-			 * Propagate message, if needed
-			 */
-
-			g_assert(regular_size == (size_t) -1 || has_ggep);
-
-			if (has_ggep)
-				gmsg_sendto_route_ggep(n, &dest, regular_size);
-			else
-				gmsg_sendto_route(n, &dest);
-
-			/*
-			 * If message was a query, route it to the appropriate leaves
-			 * or to UPs that support last-hop QRP if TTL=1.
-			 * In that case, we have a non-NULL query hash vector `qhv'.
+			 * Route it to the appropriate leaves, and if TTL=1,
+			 * to UPs that support last-hop QRP and to all other
+			 * non-QRP awware UPs.
+			 *
+			 * (if running as ultra mode, in which case qhv is not NULL).
 			 */
 
 			if (qhv != NULL)
 				qrt_route_query(n, qhv);
+
+			/*
+			 * If normal node, or if the TTL is not 1, broadcast (to
+			 * non-leaf nodes).
+			 *
+			 * There's no need to test for GGEP here, as searches are
+			 * variable-length messages and the GGEP check is only for
+			 * fixed-sized message enriched with trailing GGEP extensions.
+			 */
+			
+			if (
+				current_peermode == NODE_P_NORMAL ||
+				n->header.ttl > 1
+			)
+				gmsg_sendto_route(n, &dest);
+			break;
+		default:
+			if (has_ggep)
+				gmsg_sendto_route_ggep(n, &dest, regular_size);
+			else
+				gmsg_sendto_route(n, &dest);
+			break;
 		}
-	} else
-		n->rx_dropped++;
+	}
+
+dropped:
+	n->rx_dropped++;
 
 reset_header:
 	n->have_header = FALSE;
