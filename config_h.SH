@@ -39,13 +39,11 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
 #ifndef _config_h_
 #define _config_h_
 
-/* BSD:
+/* LINUX_SYSTEM:
  *	This symbol, if defined, indicates that the program is running under
- *	a BSD system.
+ *	a Linux system.
  */
-#ifndef BSD
-#$d_bsd BSD		/**/
-#endif
+#$d_linux LINUX_SYSTEM		/**/
 
 /* CAT2:
  *	This macro catenates 2 tokens together.

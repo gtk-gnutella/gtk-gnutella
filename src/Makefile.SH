@@ -100,7 +100,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.13 2004/02/01 13:44:57 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.14 2004/02/01 14:32:37 rmanfredi Exp $
 
 GUI_GTK2 = \
 	downloads_cb2.c \
@@ -111,7 +111,6 @@ GUI_GTK2 = \
 	monitor_gui2.c \
 	nodes_cb2.c \
 	nodes_gui2.c \
-	pbarcellrenderer_gui2.c \
 	search_cb2.c \
 	search_gui2.c \
 	search_stats_gui2.c \
@@ -127,12 +126,14 @@ GUI_GTK1 = \
 	monitor_gui.c \
 	nodes_cb.c \
 	nodes_gui.c \
-	pbarcellrenderer_gui.c \
 	search_cb.c \
 	search_gui.c \
 	search_stats_gui.c \
 	uploads_gui.c \
 	upload_stats_gui.c 
+
+GUI_SPECIFIC = \
+	pbarcellrenderer_gui2.c
 
 GUI_COMMON = \
 	callbacks.c \
@@ -252,6 +253,7 @@ SRCLIST = \
 	$(GUI_GTK2) \
 	$(GUI_GTK1) \
 	$(GUI_COMMON) \
+	$(GUI_SPECIFIC) \
 	$(CORE)
 
 OBJLIST = \
@@ -263,7 +265,6 @@ OBJLIST = \
 	monitor_gui2.o \
 	nodes_cb2.o \
 	nodes_gui2.o \
-	pbarcellrenderer_gui2.o \
 	search_cb2.o \
 	search_gui2.o \
 	search_stats_gui2.o \
@@ -277,7 +278,6 @@ OBJLIST = \
 	monitor_gui.o \
 	nodes_cb.o \
 	nodes_gui.o \
-	pbarcellrenderer_gui.o \
 	search_cb.o \
 	search_gui.o \
 	search_stats_gui.o \
@@ -303,6 +303,7 @@ OBJLIST = \
 	uploads_cb.o \
 	uploads_gui_common.o \
 	upload_stats_cb.o \
+	pbarcellrenderer_gui2.o \
 	adns.o \
 	alive.o \
 	atoms.o \

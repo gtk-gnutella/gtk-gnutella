@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Sun Jan 25 20:23:03 MET 2004 [metaconfig 3.0 PL70]
+# Generated on Sun Feb  1 10:16:05 MET 2004 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -146,6 +146,7 @@ to=''
 usecrosscompile=''
 d_bsd=''
 d_eunice=''
+d_linux=''
 d_xenix=''
 eunicefix=''
 Mcc=''
@@ -442,7 +443,7 @@ libswanted=''
 : full support for void wanted by default
 defvoidused=15
 
-libswanted='sendfile z icuuc intl resolv'
+libswanted='sendfile z icuuc intl resolv iconv'
 
 : Find the basic shell for Bourne shell scripts
 case "$sh" in
@@ -1520,6 +1521,7 @@ case "$ans" in
 none)  osname='' ;;
 *) osname=`echo "$ans" | $sed -e 's/[ 	][	]*/_/g' | ./tr '[A-Z]' '[a-z]'`;;
 esac
+
 : who configured the system
 LC_ALL=C; export LC_ALL
 cf_time=`$date 2>&1`
@@ -2362,6 +2364,7 @@ then
 	echo exit 0 >gnu
 	echo "Looks kind of like a GNU/$xxx system, but we'll see..."
 	if $test X$xxx = XLinux; then
+		d_linux="$define"
 		echo exit 0 >linux
 	fi
 else
@@ -4697,7 +4700,7 @@ $rm -f dep.c dep.h dep$_o dep.out
 echo " "
 echo "Let's see whether your $msgmerge supports the --update flag..." >&4
 $msgmerge --help | $grep -- --update >msghelp
-if $contains update msghelp; then
+if $contains update msghelp >/dev/null 2>&1; then
 	echo "Good, it does."
 	msgmerge_update="$msgmerge --update"
 else
@@ -5150,6 +5153,7 @@ d_inflate='$d_inflate'
 d_iptos='$d_iptos'
 d_isascii='$d_isascii'
 d_libxml2='$d_libxml2'
+d_linux='$d_linux'
 d_memcpy='$d_memcpy'
 d_nls='$d_nls'
 d_official='$d_official'
