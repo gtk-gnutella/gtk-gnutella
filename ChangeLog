@@ -1,5 +1,31 @@
 # since last version
 
+- (2002.07.03 - RAM)
+  * Added atoms, allowing sharing of common constants.
+  * Made callbacks.c use new gui_allow_rescan_dir().
+  * Raised default TTL to 7 (was 5) and default max TTL to 10 (was 7) to
+	match what appears to be a common setting in other servents.
+  * Plugged in atom strings for downloads.c, huge.c, main.c, search.c,
+	share.c and uploads.c.
+  * Moved Gnutella query message definitions from search.h to gnutella.h.
+  * When non-local nodes are removed to favor local ones, send BYE 202 messages.
+  * Second stab at QRP: Computes routing table patches incrementally.
+  * Now requests URNs in all our queries.
+  * Reworked library scanning to use atoms, and in particular store the full
+	file path as an atom (shared with huge.c in the SHA1 cache).
+  * Added support for transparent index remapping for older servents sending
+	a request with an incorrect index.
+  * Made common warnings in sockets.c silent unless debugging enabled.
+  * Fixed improper dump of incoming data on first long lines.
+  * Send a 301 Moved with proper Location redirection when requesting a file
+	with an improper index and an X-Gnutella-Content-URN is given and does
+	not match the request, but another file we have.
+  * Added incremental deflating routines for QRP patch compression.
+
+- (2002.06.03 - RAM)
+  * Fixed improper semantics of the "contains words" filter.  ALL the
+	words must be present for a match to occur.
+
 - (2002.06.02 - Richard) 
   * Format of RULE_SIZE display string changed.
   * Added "Create filter" button to dialog.
