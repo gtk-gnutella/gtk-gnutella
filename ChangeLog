@@ -1,4 +1,5 @@
 # since last version
+- Added uptime of servent to statusbar. (Richard)
 - Modified multiple-selection handling in on_button_uploads_kill_clicked,
   on_button_downloads_queue_remove_clicked and on_download_start_now_activate.
   This should fix problems where the selection was not actually acted on.
