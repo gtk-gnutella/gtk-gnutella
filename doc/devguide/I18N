@@ -114,8 +114,21 @@ functionality there will be more messages that should be translated.
 Thus, translation isn't something static. Every few month there will
 be a few more sentences to be translated. 
 
+8. Add localised keys to gtk-gnutella.desktop:
+==============================================
 
-8. APPENDIX
+The Name, GenericName, and Comment keys should be translated. The 
+format is:
+
+Key[locale]=localestring
+
+For example:
+
+Name[nl]=Gtk-Gnutella
+
+Make sure the file stays UTF-8 encoded. 
+
+9. APPENDIX
 ===========
   
 The complete GNU gettext manual:
@@ -126,3 +139,6 @@ http://dict.leo.org/
 
 Country codes as standardized by the UNO (United Nations Organizations):
 http://ftp.ics.uci.edu/pub/websoft/wwwstat/country-codes.txt
+
+Freedesktop.org desktop entry spec:
+http://www.freedesktop.org/standards/desktop-entry-spec/
