@@ -24,7 +24,7 @@ echo "Extracting gtk-gnutella.spec (with variable substitutions)"
 : Protect any dollar signs and backticks that you do not want interpreted
 : by putting a backslash in front.  You may delete these comments.
 $spitshell >gtk-gnutella.spec <<!GROK!THIS!
-Summary: A GUI based Gnutella Client
+Summary: A GUI-based Gnutella Client
 Name: gtk-gnutella
 Version: $gtkgversion
 !GROK!THIS!
@@ -71,11 +71,12 @@ cp -f gtk-gnutella.png $RPM_BUILD_ROOT/%_datadir/pixmaps
 rm -rf $RPM_BUILD_ROOT
 
 %files
-%defattr(-,root,root)
+%defattr(-,root,root,0755)
 %{_bindir}/*
 %{_datadir}/gtk-gnutella
-%{_datadir}/applications
-%{_datadir}/pixmaps
+%{_datadir}/applications/gtk-gnutella.desktop
+%{_datadir}/pixmaps/gtk-gnutella.png
+%{_datadir}/locale
 %{_mandir)/man1
 
 %doc README TODO AUTHORS ChangeLog
