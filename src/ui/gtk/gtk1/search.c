@@ -2577,8 +2577,11 @@ search_gui_queue_bitzi_by_sha1(record_t *rec, void *unused_nothing)
 	GList *sr;
 	GtkCTreeNode *parent;
 
-	g_assert(rec != NULL);
 	(void) unused_nothing;
+	g_assert(rec != NULL);
+
+	if (!rec->sha1)
+		return;
 
 	guc_query_bitzi_by_urn(rec->sha1);
 

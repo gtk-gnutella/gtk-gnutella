@@ -884,15 +884,17 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 	g_message("on_search_meta_data: %d items", g_slist_length(sl_records));
 
 	for (sl = sl_records; sl; sl = g_slist_next(sl)) {
-		GtkTreeIter *parent;
 		record_t    *rec;
 
 		rec = sl->data;
-	    guc_query_bitzi_by_urn(rec->sha1);
+		if (rec->sha1) {
+			GtkTreeIter *parent;
+			
+	    	guc_query_bitzi_by_urn(rec->sha1);
 
-		/* set the feedback */
-		parent = find_parent_with_sha1(search->parents, rec->sha1);
-		if (parent != NULL) {
+			/* set the feedback */
+			parent = find_parent_with_sha1(search->parents, rec->sha1);
+			g_assert(parent != NULL);
 			gtk_tree_store_set(GTK_TREE_STORE(search->model), parent,
 				c_sr_meta, _("Query queued..."),
 				(-1));
