@@ -1059,11 +1059,10 @@ prop = {
 prop = {
     name = "gnet_compact_query";
     desc = "Remove unnecessary ballast from query string before processing "
-           "or forwarding them. Reduces traffic but increases CPU load. "
-           "If you enable this it may also destroy some UTF8 queries.";
+           "or forwarding them. Reduces traffic at the cost of little CPU time";
     type = boolean;
     data = {
-	    default = FALSE;
+	    default = TRUE;
     };
 };
 

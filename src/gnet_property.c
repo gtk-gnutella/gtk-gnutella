@@ -221,8 +221,8 @@ gboolean is_firewalled     = TRUE;
 gboolean is_firewalled_def = TRUE;
 gboolean is_inet_connected     = TRUE;
 gboolean is_inet_connected_def = TRUE;
-gboolean gnet_compact_query     = FALSE;
-gboolean gnet_compact_query_def = FALSE;
+gboolean gnet_compact_query     = TRUE;
+gboolean gnet_compact_query_def = TRUE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -1976,7 +1976,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[93].name = "gnet_compact_query";
-    gnet_property->props[93].desc = "Remove unnecessary ballast from query string before processing or forwarding them. Reduces traffic but increases CPU load. If you enable this it may also destroy some UTF8 queries.";
+    gnet_property->props[93].desc = "Remove unnecessary ballast from query string before processing or forwarding them. Reduces traffic at the cost of little CPU time";
     gnet_property->props[93].prop_changed_listeners = NULL;
     gnet_property->props[93].save = TRUE;
     gnet_property->props[93].vector_size = 1;
