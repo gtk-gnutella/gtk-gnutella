@@ -883,9 +883,25 @@ prop = {
     desc = "Only files with the given extensions will be shared";
     type = string;
     data = {
-        default = "asf;avi;bz2;divx;gif;gz;it;jpeg;jpg;mod;mov;mpg;mpeg;"
-                  "mp3;mp2;mp1;ogg;png;ps;pdf;rar;s3m;stm;txt;voc;vqf;wav;"
-                  "wma;xm;zip";
+        default = "asf;avi;"
+		  "bin;bz2;"
+		  "cue;"
+		  "divx;"
+		  "flc;fli;"
+		  "gif;gz;"
+		  "ifo;iso;it;"
+		  "jpeg;jpg;"
+		  "mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;"
+		  "ogg;"
+		  "qt;"
+		  "png;ps;pdf;"
+		  "ram;rm;rar;"
+		  "s3m;stm;"
+		  "txt;"
+		  "vob;voc;vqf;"
+		  "wav;wma;wmv;"
+		  "xm;"
+		  "zip";
     };
 };
 
@@ -990,3 +1006,85 @@ prop = {
     type = storage;
     vector_size = 16;
 };
+
+prop = {
+    name = "use_swarming";
+    desc = "Wether or not to use swarming";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "use_aggressive_swarming";
+    desc = "Wether or not to launch competing downloads when swarming";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "dl_minchunksize";
+    desc = "Minimum chunk size when swarming";
+    type = guint32;
+    data = {
+	min = "64*1024";
+	max = "10*1024*1024";
+        default = "512*1024";
+    };
+};
+
+prop = {
+    name = "dl_maxchunksize";
+    desc = "Maximum chunk size when swarming";
+    type = guint32;
+    data = {
+	min = "64*1024";
+	max = "10*1024*1024";
+        default = "5*1024*1024";
+    };
+};
+
+
+prop = {
+    name = "auto_download_identical";
+    desc = "Wether or not to automatically queue search results that "
+	   "match a file in the download queue";
+    type = boolean;
+    data = {
+	default = TRUE;
+    };
+};
+
+prop = {
+    name = "strict_sha1_matching";
+    desc = "When enabled, SHA1s must match. Otherwise, name and size will be sufficient";
+    type = boolean;
+    data = {
+	default = FALSE;
+    };
+};
+
+prop = {
+    name = "use_fuzzy_matching";
+    desc = "Use fuzzy file name matching";
+    type = boolean;
+    data = {
+	default = TRUE;
+    };
+};
+
+prop = {
+    name = "fuzzy_threshold";
+    desc = "Fuzziness threshold for filename matching (higher = stricter)";
+    type = guint32;
+    data = {
+	default = 70;
+	min = 0;
+	max = 100;
+    };
+};
+
+

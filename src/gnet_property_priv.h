@@ -116,6 +116,14 @@ extern guint32  search_stats_delcoef;
 extern guint32  total_downloads;
 extern guint32  total_uploads;
 extern guint8   guid[16];
+extern gboolean use_swarming;
+extern gboolean use_aggressive_swarming;
+extern guint32  dl_minchunksize;
+extern guint32  dl_maxchunksize;
+extern gboolean auto_download_identical;
+extern gboolean strict_sha1_matching;
+extern gboolean use_fuzzy_matching;
+extern guint32  fuzzy_threshold;
 
 
 prop_set_t *gnet_prop_init(void);

@@ -191,8 +191,8 @@ guint32  min_dup_msg     = 5;
 guint32  min_dup_msg_def = 5;
 guint32  min_dup_ratio     = 1;
 guint32  min_dup_ratio_def = 1;
-gchar   *scan_extensions     = "asf;avi;bz2;divx;gif;gz;it;jpeg;jpg;mod;mov;mpg;mpeg;mp3;mp2;mp1;ogg;png;ps;pdf;rar;s3m;stm;txt;voc;vqf;wav;wma;xm;zip";
-gchar   *scan_extensions_def = "asf;avi;bz2;divx;gif;gz;it;jpeg;jpg;mod;mov;mpg;mpeg;mp3;mp2;mp1;ogg;png;ps;pdf;rar;s3m;stm;txt;voc;vqf;wav;wma;xm;zip";
+gchar   *scan_extensions     = "asf;avi;bin;bz2;cue;divx;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;ogg;qt;png;ps;pdf;ram;rm;rar;s3m;stm;txt;vob;voc;vqf;wav;wma;wmv;xm;zip";
+gchar   *scan_extensions_def = "asf;avi;bin;bz2;cue;divx;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;ogg;qt;png;ps;pdf;ram;rm;rar;s3m;stm;txt;vob;voc;vqf;wav;wma;wmv;xm;zip";
 gchar   *save_file_path     = "/tmp";
 gchar   *save_file_path_def = "/tmp";
 gchar   *move_file_path     = ".";
@@ -212,6 +212,22 @@ guint32  total_downloads_def = 0;
 guint32  total_uploads     = 0;
 guint32  total_uploads_def = 0;
 guint8   guid[16];
+gboolean use_swarming     = TRUE;
+gboolean use_swarming_def = TRUE;
+gboolean use_aggressive_swarming     = TRUE;
+gboolean use_aggressive_swarming_def = TRUE;
+guint32  dl_minchunksize     = 512*1024;
+guint32  dl_minchunksize_def = 512*1024;
+guint32  dl_maxchunksize     = 5*1024*1024;
+guint32  dl_maxchunksize_def = 5*1024*1024;
+gboolean auto_download_identical     = TRUE;
+gboolean auto_download_identical_def = TRUE;
+gboolean strict_sha1_matching     = FALSE;
+gboolean strict_sha1_matching_def = FALSE;
+gboolean use_fuzzy_matching     = TRUE;
+gboolean use_fuzzy_matching_def = TRUE;
+guint32  fuzzy_threshold     = 70;
+guint32  fuzzy_threshold_def = 70;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -1858,6 +1874,148 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[87].type               = PROP_TYPE_STORAGE;
     gnet_property->props[87].data.storage.value = guid;
     memset(guid, 0, gnet_property->props[87].vector_size);
+
+
+    /*
+     * PROP_USE_SWARMING:
+     *
+     * General data:
+     */
+    gnet_property->props[88].name = "use_swarming";
+    gnet_property->props[88].desc = "Wether or not to use swarming";
+    gnet_property->props[88].prop_changed_listeners = NULL;
+    gnet_property->props[88].save = TRUE;
+    gnet_property->props[88].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[88].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[88].data.boolean.def   = &use_swarming_def;
+    gnet_property->props[88].data.boolean.value = &use_swarming;
+
+
+    /*
+     * PROP_USE_AGGRESSIVE_SWARMING:
+     *
+     * General data:
+     */
+    gnet_property->props[89].name = "use_aggressive_swarming";
+    gnet_property->props[89].desc = "Wether or not to launch competing downloads when swarming";
+    gnet_property->props[89].prop_changed_listeners = NULL;
+    gnet_property->props[89].save = TRUE;
+    gnet_property->props[89].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[89].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[89].data.boolean.def   = &use_aggressive_swarming_def;
+    gnet_property->props[89].data.boolean.value = &use_aggressive_swarming;
+
+
+    /*
+     * PROP_DL_MINCHUNKSIZE:
+     *
+     * General data:
+     */
+    gnet_property->props[90].name = "dl_minchunksize";
+    gnet_property->props[90].desc = "Minimum chunk size when swarming";
+    gnet_property->props[90].prop_changed_listeners = NULL;
+    gnet_property->props[90].save = TRUE;
+    gnet_property->props[90].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[90].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[90].data.guint32.def   = &dl_minchunksize_def;
+    gnet_property->props[90].data.guint32.value = &dl_minchunksize;
+    gnet_property->props[90].data.guint32.max   = 10*1024*1024;
+    gnet_property->props[90].data.guint32.min   = 64*1024;
+
+
+    /*
+     * PROP_DL_MAXCHUNKSIZE:
+     *
+     * General data:
+     */
+    gnet_property->props[91].name = "dl_maxchunksize";
+    gnet_property->props[91].desc = "Maximum chunk size when swarming";
+    gnet_property->props[91].prop_changed_listeners = NULL;
+    gnet_property->props[91].save = TRUE;
+    gnet_property->props[91].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[91].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[91].data.guint32.def   = &dl_maxchunksize_def;
+    gnet_property->props[91].data.guint32.value = &dl_maxchunksize;
+    gnet_property->props[91].data.guint32.max   = 10*1024*1024;
+    gnet_property->props[91].data.guint32.min   = 64*1024;
+
+
+    /*
+     * PROP_AUTO_DOWNLOAD_IDENTICAL:
+     *
+     * General data:
+     */
+    gnet_property->props[92].name = "auto_download_identical";
+    gnet_property->props[92].desc = "Wether or not to automatically queue search results that match a file in the download queue";
+    gnet_property->props[92].prop_changed_listeners = NULL;
+    gnet_property->props[92].save = TRUE;
+    gnet_property->props[92].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[92].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[92].data.boolean.def   = &auto_download_identical_def;
+    gnet_property->props[92].data.boolean.value = &auto_download_identical;
+
+
+    /*
+     * PROP_STRICT_SHA1_MATCHING:
+     *
+     * General data:
+     */
+    gnet_property->props[93].name = "strict_sha1_matching";
+    gnet_property->props[93].desc = "When enabled, SHA1s must match. Otherwise, name and size will be sufficient";
+    gnet_property->props[93].prop_changed_listeners = NULL;
+    gnet_property->props[93].save = TRUE;
+    gnet_property->props[93].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[93].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[93].data.boolean.def   = &strict_sha1_matching_def;
+    gnet_property->props[93].data.boolean.value = &strict_sha1_matching;
+
+
+    /*
+     * PROP_USE_FUZZY_MATCHING:
+     *
+     * General data:
+     */
+    gnet_property->props[94].name = "use_fuzzy_matching";
+    gnet_property->props[94].desc = "Use fuzzy file name matching";
+    gnet_property->props[94].prop_changed_listeners = NULL;
+    gnet_property->props[94].save = TRUE;
+    gnet_property->props[94].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[94].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[94].data.boolean.def   = &use_fuzzy_matching_def;
+    gnet_property->props[94].data.boolean.value = &use_fuzzy_matching;
+
+
+    /*
+     * PROP_FUZZY_THRESHOLD:
+     *
+     * General data:
+     */
+    gnet_property->props[95].name = "fuzzy_threshold";
+    gnet_property->props[95].desc = "Fuzziness threshold for filename matching (higher = stricter)";
+    gnet_property->props[95].prop_changed_listeners = NULL;
+    gnet_property->props[95].save = TRUE;
+    gnet_property->props[95].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[95].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[95].data.guint32.def   = &fuzzy_threshold_def;
+    gnet_property->props[95].data.guint32.value = &fuzzy_threshold;
+    gnet_property->props[95].data.guint32.max   = 100;
+    gnet_property->props[95].data.guint32.min   = 0;
     return gnet_property;
 }
 
