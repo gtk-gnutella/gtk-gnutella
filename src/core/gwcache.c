@@ -140,7 +140,6 @@ static const gchar * const boot_url[] = {
 	"http://cache.kicks-ass.net:8000/",
 	"http://galvatron.dyndns.org:59009/gwcache",
 	"http://gwebcache.bearshare.net/gcache.php",
-	"http://gwebcache2.limewire.com:9000/gwc",
 	"http://kisama.ath.cx:8080/",
 	"http://krill.shacknet.nu:20095/gwc",
 };
