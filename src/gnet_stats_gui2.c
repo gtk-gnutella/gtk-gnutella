@@ -77,7 +77,7 @@ static const gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "Malformed UTF-8 Query",
     "Malformed Query Hit",
     "Query hit had bad SHA1",
-	"Hostile IP address"
+	"Hostile IP address",
 };
 
 static const gchar *general_type_str[GNR_TYPE_COUNT] = {
@@ -87,7 +87,8 @@ static const gchar *general_type_str[GNR_TYPE_COUNT] = {
     "Compacted queries",
     "Bytes saved by compacting",
     "UTF8 queries",
-    "SHA1 queries"
+    "SHA1 queries",
+    "Broadcasted push messages",
 };
 
 static const gchar *msg_stats_label[] = {

@@ -554,12 +554,18 @@ static gboolean find_message(
  * The message is not physically sent yet, but the `dest' structure is filled
  * with proper routing information.
  *
+ * `routes' is normally NULL unless we're forwarding a PUSH request.  In that
+ * case, it must be sent to the whole list of routes we have, and `target' will
+ * be NULL.
+ *
  * Returns whether we should handle the message after routing.
  */
 static gboolean forward_message(struct gnutella_node **node,
-	struct gnutella_node *target, struct route_dest *dest)
+	struct gnutella_node *target, struct route_dest *dest, GSList *routes)
 {
 	struct gnutella_node *sender = *node;
+
+	g_assert(routes == NULL || target == NULL);
 
 	/* Drop messages that would travel way too many nodes --RAM */
 	if (sender->header.ttl + sender->header.hops > hard_ttl_limit) {
@@ -622,10 +628,33 @@ static gboolean forward_message(struct gnutella_node **node,
         gnet_stats_count_expired(sender);
 		/* don't increase rx_dropped, we'll handle this message */
 	} else {			/* Forward it to all others nodes */
-		if (target) {
+		if (routes != NULL) {
+			GSList *l;
+			GSList *nodes = NULL;
+			gint count;
+			
+			for (l = routes, count = 0; l; l = g_slist_next(l), count++) {
+				struct route_data *rd = (struct route_data *) l->data;
+				nodes = g_slist_prepend(nodes, rd->node);
+
+				routing_log("-> sendto_multi(%s) #%d\n",
+					node_ip(rd->node), count + 1);
+			}
+
+			/*
+			 * The `nodes' list will be freed by node_parse().
+			 */
+
+			dest->type = ROUTE_MULTI;
+			dest->ur.u_nodes = nodes;
+
+			if (count > 1)
+				gnet_stats_count_general(sender, GNR_BROADCASTED_PUSHES, 1);
+
+		} else if (target != NULL) {
 			routing_log("-> sendto_one(%s)\n", node_ip(target));
 			dest->type = ROUTE_ONE;
-			dest->node = target;
+			dest->ur.u_node = target;
 		} else {
 			/*
 			 * This message is broadcasted, ensure its TTL is "reasonable".
@@ -639,7 +668,7 @@ static gboolean forward_message(struct gnutella_node **node,
 
 			routing_log("-> sendto_all_but_one()\n");
 			dest->type = ROUTE_ALL_BUT_ONE;
-			dest->node = sender;
+			dest->ur.u_node = sender;
 		}
 	}
 
@@ -868,7 +897,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 		routing_log("-> sendto_one(%s)\n", node_ip(found));
 
 		dest->type = ROUTE_ONE;
-		dest->node = found;
+		dest->ur.u_node = found;
 
 		return handle_it;
 	} else {
@@ -1008,8 +1037,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 				return FALSE;
 			}
 
-			forward_message(node,
-				((struct route_data *) m->routes->data)->node, dest);
+			forward_message(node, NULL, dest, m->routes);
 
 			return FALSE;		/* We are not the target, don't handle it */
 		} else {
@@ -1050,7 +1078,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 				return FALSE;
 			}
 
-			return forward_message(node, NULL, dest);		/* Broadcast */
+			return forward_message(node, NULL, dest, NULL);	/* Broadcast */
 		}
 	}
 

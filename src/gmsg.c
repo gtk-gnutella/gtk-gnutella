@@ -392,19 +392,50 @@ static void gmsg_split_sendto_all_but_one_ggep(
  */
 void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 {
+	struct gnutella_node *rt_node = rt->ur.u_node;
+	GSList *l;
+
 	switch (rt->type) {
 	case ROUTE_NONE:
 		break;
 	case ROUTE_ONE:
-		gmsg_split_sendto_one(rt->node,
+		gmsg_split_sendto_one(rt_node,
 			(guchar *) &n->header, n->data, n->size + HEADER_SIZE);
 		break;
 	case ROUTE_ALL_BUT_ONE:
-		gmsg_split_sendto_all_but_one(sl_nodes, rt->node,
+		g_assert(n == rt_node);
+		gmsg_split_sendto_all_but_one(sl_nodes, rt_node,
 			(guchar *) &n->header, n->data, n->size + HEADER_SIZE);
+		break;
+	case ROUTE_MULTI:
+		for (l = rt->ur.u_nodes; l; l = g_slist_next(l)) {
+			rt_node = (struct gnutella_node *) l->data;
+			gmsg_split_sendto_one(rt_node,
+				(guchar *) &n->header, n->data, n->size + HEADER_SIZE);
+		}
 		break;
 	default:
 		g_error("unknown route destination: %d", rt->type);
+	}
+}
+
+/*
+ * sendto_ggep
+ *
+ * Send message from `n' to single node `sn'.  If target node cannot
+ * understand extra GGEP payloads, trim message before sending.
+ */
+static void sendto_ggep(
+	struct gnutella_node *n, struct gnutella_node *sn, gint regular_size)
+{
+	if (NODE_CAN_GGEP(sn))
+		gmsg_split_sendto_one(sn,
+			(guchar *) &n->header, n->data, n->size + HEADER_SIZE);
+	else {
+		WRITE_GUINT32_LE(regular_size, n->header.size);
+		gmsg_split_sendto_one(sn,
+			(guchar *) &n->header, n->data, regular_size + HEADER_SIZE);
+		WRITE_GUINT32_LE(n->size, n->header.size);
 	}
 }
 
@@ -418,26 +449,28 @@ void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 void gmsg_sendto_route_ggep(
 	struct gnutella_node *n, struct route_dest *rt, gint regular_size)
 {
+	struct gnutella_node *rt_node = rt->ur.u_node;
+	GSList *l;
+
 	g_assert(regular_size >= 0);
 
 	switch (rt->type) {
 	case ROUTE_NONE:
 		break;
 	case ROUTE_ONE:
-		if (NODE_CAN_GGEP(rt->node))
-			gmsg_split_sendto_one(rt->node,
-				(guchar *) &n->header, n->data, n->size + HEADER_SIZE);
-		else {
-			WRITE_GUINT32_LE(regular_size, n->header.size);
-			gmsg_split_sendto_one(rt->node,
-				(guchar *) &n->header, n->data, regular_size + HEADER_SIZE);
-			WRITE_GUINT32_LE(n->size, n->header.size);
-		}
+		sendto_ggep(n, rt_node, regular_size);
 		break;
 	case ROUTE_ALL_BUT_ONE:
-		gmsg_split_sendto_all_but_one_ggep(sl_nodes, rt->node,
+		g_assert(n == rt_node);
+		gmsg_split_sendto_all_but_one_ggep(sl_nodes, rt_node,
 			(guchar *) &n->header, n->data, n->size + HEADER_SIZE,
 			regular_size);
+		break;
+	case ROUTE_MULTI:
+		for (l = rt->ur.u_nodes; l; l = g_slist_next(l)) {
+			rt_node = (struct gnutella_node *) l->data;
+			sendto_ggep(n, rt_node, regular_size);
+		}
 		break;
 	default:
 		g_error("unknown route destination: %d", rt->type);

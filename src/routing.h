@@ -26,22 +26,30 @@
 #ifndef _routing_h_
 #define _routing_h_
 
-/*
- * Routing destination, as determined by route_message().
- */
-
-struct route_dest {
-	gint type;
-	struct gnutella_node *node;
-};
+#include <glib.h>
 
 /*
  * Route destination types.
  */
 
-#define ROUTE_NONE			0		/* No route, message stops here */
-#define ROUTE_ONE			1		/* Route to single node */
-#define ROUTE_ALL_BUT_ONE	2		/* Route to all nodes but one */
+typedef enum {
+	ROUTE_NONE = 0,		/* No route, message stops here */
+	ROUTE_ONE,			/* Route to single node */
+	ROUTE_ALL_BUT_ONE,	/* Route to all nodes but one */
+	ROUTE_MULTI,		/* Route to list of nodes */
+} route_type_t;
+
+/*
+ * Routing destination, as determined by route_message().
+ */
+
+struct route_dest {
+	route_type_t type;
+	union {
+		struct gnutella_node *u_node;
+		GSList *u_nodes;				/* For ROUTE_MULTI */
+	} ur;
+};
 
 /*
  * Global Functions

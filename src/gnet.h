@@ -433,6 +433,7 @@ enum {
     GNR_QUERY_COMPACT_SIZE,
     GNR_QUERY_UTF8,
     GNR_QUERY_SHA1,
+	GNR_BROADCASTED_PUSHES,
     GNR_TYPE_COUNT /* number of general stats */
 };
 

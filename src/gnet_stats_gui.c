@@ -78,7 +78,8 @@ gchar *general_type_str[GNR_TYPE_COUNT] = {
     "Compacted queries",
     "Bytes saved by compacting",
     "UTF8 queries",
-    "SHA1 queries"
+    "SHA1 queries",
+    "Broadcasted push messages",
 };
 
 static gint selected_type = MSG_TOTAL;
