@@ -328,7 +328,7 @@ struct hash_list_iter {
 	gulong stamp;
 };
 
-#if 1
+#if 0
 #define USE_HASH_LIST_REGRESSION 1
 #endif
 
