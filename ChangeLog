@@ -1,5 +1,16 @@
 # since last version
 
+- (2004-09-02 - RAM)
+ * Implemented dynamic querying for local queries, when running as an
+   ultra node.
+
+- (2004-09-01 - RAM)
+ * Made sure we keep the route on GTKG/21v1 reception, and that we simply
+   remove the new NODE_F_PROXIED flag on the node.
+ * Lowered the default maximum amount of results shown from 5000 to 1000 to
+   both save on memory and incite users to setup filters or emit more specific
+   queries.
+
 - (2004-08-30 - RAM)
  * Message queue now maintains whether queue is within the warn-zone range
    (between hiwat and lowat) to update node's flag as soon as the condition
