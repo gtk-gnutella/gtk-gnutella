@@ -32,7 +32,8 @@
 
 RCSID("$Id$");
 
-#define debug common_dbg
+#define debug track_props
+extern guint32 track_props;
 
 /*
  * Checks if a property is part of a property set.
@@ -190,7 +191,7 @@ prop_def_t *prop_get_def(prop_set_t *ps, property_t p)
     buf = g_memdup(&PROP(ps, p), sizeof(prop_def_t));
     buf->name = g_strdup(PROP(ps, p).name);
     buf->desc = g_strdup(PROP(ps, p).desc);
-    buf->prop_changed_listeners = NULL;
+    buf->ev_changed = NULL;
 
     switch(buf->type) {
     case PROP_TYPE_BOOLEAN:
@@ -294,41 +295,48 @@ void prop_free_def(prop_def_t *d)
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */
-void prop_add_prop_changed_listener
-    (prop_set_t *ps, property_t prop, prop_changed_listener_t l, gboolean init)
+void prop_add_prop_changed_listener(
+    prop_set_t *ps, property_t prop, prop_changed_listener_t l, gboolean init)
+{
+    prop_add_prop_changed_listener_full(ps, prop, l, init, FREQ_SECS, 0);
+}
+
+/*
+ * prop_add_prop_changed_listener_full:
+ *
+ * Add a change listener to a given property. If init is TRUE then
+ * the listener is immediately called.
+ */
+void prop_add_prop_changed_listener_full(
+    prop_set_t *ps, property_t prop, prop_changed_listener_t l, 
+    gboolean init, enum frequency_type freq, guint32 interval)
 {
     g_assert(ps != NULL);
     g_assert(prop_in_range(ps, prop));
     
-    LISTENER_ADD(PROP(ps,prop).prop_changed, l);
+    event_add_subscriber(
+        PROP(ps,prop).ev_changed, (GCallback) l, freq, interval);
     
     if (init)
         (*l)(prop);
 }
 
-void prop_remove_prop_changed_listener
-    (prop_set_t *ps, property_t prop, prop_changed_listener_t l)
+void prop_remove_prop_changed_listener(
+    prop_set_t *ps, property_t prop, prop_changed_listener_t l)
 {
     g_assert(ps != NULL);
     g_assert(prop_in_range(ps, prop));
     
-    LISTENER_REMOVE(PROP(ps,prop).prop_changed, l);
+    event_remove_subscriber(PROP(ps,prop).ev_changed, (GCallback) l);
 }
 
 static void prop_emit_prop_changed(prop_set_t *ps, property_t prop)
 {
-    GSList *l;
-
     g_assert(ps != NULL);
 
-    for (
-        l = PROP(ps,prop).prop_changed_listeners; 
-        l != NULL; l = g_slist_next(l)
-    ) {
-        prop_changed_listener_t fn = (prop_changed_listener_t) l->data;   
-        if ((*fn)(prop))
-            break;
-    }      
+    event_trigger(
+        PROP(ps,prop).ev_changed, 
+        T_VETO(prop_changed_listener_t, prop));
 }
 
 void prop_set_boolean(
@@ -694,8 +702,7 @@ void prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
  * returned. This memory must be free'ed later. The size parameter has
  * no effect in this case.
  */
-gchar *prop_get_string
-    (prop_set_t *ps, property_t prop, gchar *t, guint32 size)
+gchar *prop_get_string(prop_set_t *ps, property_t prop, gchar *t, guint32 size)
 {
     gchar *target;
     gchar *s;
@@ -735,6 +742,60 @@ gchar *prop_get_string
     }
         
     return target;
+}
+
+/* 
+ * prop_to_string:
+ *
+ * Helper function for update_label() and update_entry()
+ */
+gchar *prop_to_string(prop_set_t *ps, property_t prop)
+{
+    static gchar s[4096];
+
+    g_assert(ps != NULL);
+
+    if(!prop_in_range(ps, prop))
+        g_error("prop_get_gchar: unknown property %d", prop);
+
+    switch (PROP(ps,prop).type) {
+        case PROP_TYPE_GUINT32: {
+            guint32 val;
+        
+            prop_get_guint32(ps, prop, &val, 0, 1);
+
+            gm_snprintf(s, sizeof(s), "%u", val);
+            break;
+        }
+        case PROP_TYPE_STRING: {
+            gchar *buf = prop_get_string(ps, prop, NULL, 0);
+            gm_snprintf(s, sizeof(s), "%s", buf);
+            g_free(buf);
+            break;
+        }
+        case PROP_TYPE_IP: {
+            guint32 val;
+        
+            prop_get_guint32(ps, prop, &val, 0, 1);
+
+            gm_snprintf(s, sizeof(s), "%s", ip_to_gchar(val));
+            break;
+        }
+        case PROP_TYPE_BOOLEAN: {
+            gboolean val;
+       
+            prop_get_boolean(ps, prop, &val, 0, 1);
+
+            gm_snprintf(s, sizeof(s), "%s", val ? "TRUE" : "FALSE");
+            break;
+        }
+        default:
+            s[0] = '\0';
+            g_error("update_entry_gnet: incompatible type %s", 
+                prop_type_str[PROP(ps,prop).type]);
+    }
+
+    return s;
 }
 
 

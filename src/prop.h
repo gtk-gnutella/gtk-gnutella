@@ -27,7 +27,9 @@
 #define _prop_h_
 
 #include "common.h"
-#include "listener.h"
+#include "event.h"
+
+#define NO_PROP (0)
 
 /*
  * Use this macro access a property instead of ps->props[prop]. It will
@@ -62,10 +64,12 @@ extern gchar *prop_type_str[];
 typedef gboolean (*prop_changed_listener_t) (property_t);
 
 /*
- * Listener access call signatures.
+ * Event subscription control call signatures.
  */
 typedef void (*prop_add_prop_changed_listener_t)
     (property_t, prop_changed_listener_t, gboolean);
+typedef void (*prop_add_prop_changed_listener_full_t)
+    (property_t, prop_changed_listener_t, gboolean, enum frequency_type, guint32);
 typedef void (*prop_remove_prop_changed_listener_t)
     (property_t, prop_changed_listener_t);
 
@@ -77,6 +81,7 @@ typedef struct prop_def_choice {
     guint32 value;
 } prop_def_choice_t;
 
+
 typedef struct prop_def_guint32 {
     guint32 *def;    /* default value */
     guint32 *value;  /* current value */
@@ -84,28 +89,35 @@ typedef struct prop_def_guint32 {
     guint32 max;     /* maximal value */
     prop_def_choice_t *choices;
 } prop_def_guint32_t;
+
 typedef void (*prop_set_guint32_t)
     (property_t, const guint32 *, gsize, gsize);
 typedef guint32 *(*prop_get_guint32_t)
     (property_t, guint32 *, gsize, gsize);
 
+
 typedef struct prop_def_storage {
     guint8 *value;   /* current data */
 } prop_def_storage_t;
+
 typedef void (*prop_set_storage_t)(property_t, const guint8 *, gsize);
 typedef guint8 *(*prop_get_storage_t)(property_t, guint8 *, gsize);
+
 
 typedef struct prop_def_string {
     gchar **def;     /* default value */
     gchar **value;   /* current value */
 } prop_def_string_t;
+
 typedef void (*prop_set_string_t)(property_t, const gchar *);
 typedef gchar *(*prop_get_string_t)(property_t, gchar *, gsize);
+
 
 typedef struct prop_def_boolean {
     gboolean *def;   /* default value */
     gboolean *value; /* current value */
 } prop_def_boolean_t;
+
 typedef void (*prop_set_boolean_t)
     (property_t, const gboolean *, gsize, gsize);
 typedef gboolean *(*prop_get_boolean_t)
@@ -126,9 +138,8 @@ typedef struct prop_def {
     } data;
     gboolean save; /* persist across sessions */
     guint32  vector_size; /* number of items in array, 1 for non-vector */
-    listeners_t prop_changed_listeners;
+    struct event *ev_changed;
 } prop_def_t;
-typedef prop_def_t *(*prop_get_def_t)(property_t);
 
 /*
  * Property set stub to access property set.
@@ -136,9 +147,12 @@ typedef prop_def_t *(*prop_get_def_t)(property_t);
 typedef struct prop_set_stub {
     guint32 size;
     guint32 offset;
-    prop_get_def_t get_def;
+    prop_def_t *(*get_def)(property_t);
+    property_t (*get_by_name)(const char *);
+    gchar *(*to_string)(property_t);
     struct {
         prop_add_prop_changed_listener_t add;
+        prop_add_prop_changed_listener_full_t add_full;
         prop_remove_prop_changed_listener_t remove;
     } prop_changed_listener;
     struct {
@@ -173,6 +187,7 @@ typedef struct prop_set {
     guint32 size;      /* number of properties in the set */
     guint32 offset;    /* properties start numbering from here */
     prop_def_t *props; /* Pointer to first item in array of prop_def_t */
+    GHashTable *byName;/* hashtable to quickly look up props by name */
     time_t mtime;      /* modification time of the associated file */
     prop_set_get_stub_t get_stub;
 } prop_set_t;
@@ -188,36 +203,41 @@ void prop_parse_storage(const gchar *str, gsize size, guint8 *t);
 prop_def_t *prop_get_def(prop_set_t *, property_t);
 void prop_free_def(prop_def_t *);
 
-void prop_add_prop_changed_listener
-    (prop_set_t *, property_t, prop_changed_listener_t, gboolean);
-void prop_remove_prop_changed_listener
-    (prop_set_t *, property_t, prop_changed_listener_t);
+void prop_add_prop_changed_listener(
+    prop_set_t *, property_t, prop_changed_listener_t, gboolean);
+void prop_add_prop_changed_listener_full(
+    prop_set_t *, property_t, prop_changed_listener_t, gboolean,
+    enum frequency_type, guint32);
+void prop_remove_prop_changed_listener(
+    prop_set_t *, property_t, prop_changed_listener_t);
 
-void prop_save_to_file
-    (prop_set_t *ps, const gchar *dir, const gchar *filename);
-void prop_load_from_file
-    (prop_set_t *ps, const gchar *dir, const gchar *filename);
+void prop_save_to_file(
+    prop_set_t *ps, const gchar *dir, const gchar *filename);
+void prop_load_from_file(
+    prop_set_t *ps, const gchar *dir, const gchar *filename);
 
 /*
  * get/set functions
  */
-void prop_set_boolean
-    (prop_set_t *, property_t, const gboolean *, guint32, guint32);
-gboolean *prop_get_boolean
-    (prop_set_t *, property_t, gboolean *, guint32, guint32);
+void prop_set_boolean(
+    prop_set_t *, property_t, const gboolean *, guint32, guint32);
+gboolean *prop_get_boolean(
+    prop_set_t *, property_t, gboolean *, guint32, guint32);
 
 void prop_set_string(prop_set_t *, property_t, const gchar *);
 gchar *prop_get_string(prop_set_t *, property_t, gchar *, guint32);
 
-void prop_set_guint32
-    (prop_set_t *, property_t, const guint32 *, guint32, guint32);
-guint32 *prop_get_guint32
-    (prop_set_t *, property_t, guint32 *, guint32, guint32);
+void prop_set_guint32(
+    prop_set_t *, property_t, const guint32 *, guint32, guint32);
+guint32 *prop_get_guint32(
+    prop_set_t *, property_t, guint32 *, guint32, guint32);
 
-void prop_set_storage
-    (prop_set_t *, property_t, const guint8 *, gsize);
-guint8 *prop_get_storage
-    (prop_set_t *, property_t, guint8 *, gsize);
+void prop_set_storage(
+    prop_set_t *, property_t, const guint8 *, gsize);
+guint8 *prop_get_storage(
+    prop_set_t *, property_t, guint8 *, gsize);
+
+gchar *prop_to_string(prop_set_t *ps, property_t prop);
 
 #endif /* _prop_h_ */
 
