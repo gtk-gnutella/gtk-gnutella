@@ -533,7 +533,7 @@ gint ggep_ext_write(
  *
  * Mark extension starting at `start' as being the last one.
  */
-static void ggep_ext_mark_last(guchar *start)
+void ggep_ext_mark_last(guchar *start)
 {
 	g_assert(start);
 	g_assert(0 == (*start & GGEP_F_MBZ));		/* Sanity checks */
@@ -541,90 +541,5 @@ static void ggep_ext_mark_last(guchar *start)
 	g_assert(!(*start & GGEP_F_LAST));
 
 	*start |= GGEP_F_LAST;
-}
-
-/***
- *** GGEP type-specific routines.
- ***/
-
-/*
- * ggept_h_sha1_extract
- *
- * Extract the SHA1 hash of the "H" extension into the supplied buffer.
- *
- * Returns extraction status: only then GGEP_OK is returned will we have
- * the SHA1 in buf.
- */
-ggept_status_t ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len)
-{
-	gchar tmp[512];
-	gint tlen;
-
-	g_assert(exv->ext_type == EXT_GGEP);
-	g_assert(exv->ext_token == EXT_T_GGEP_H);
-	g_assert(len >= SHA1_RAW_SIZE);
-
-	/*
-	 * Try decoding as a SHA1 hash, which is <type> <sha1_digest>
-	 * for a total of 21 bytes.  We also allow BITRPINT hashes, since the
-	 * first 20 bytes of the binary bitprint is actually the SHA1.
-	 */
-
-	tlen = ggep_decode_into(exv, tmp, sizeof(tmp));
-
-#define TIGER_RAW_SIZE	24		/* XXX temporary, until we implement tiger */
-
-	if (tlen == -1)
-		return GGEP_NOT_FOUND;			/* Don't know what this is */
-
-	if (tlen <= 1)
-		return GGEP_INVALID;			/* Can't be a valid "H" payload */
-
-	if (tmp[0] == GGEP_H_SHA1) {
-		if (tlen != (SHA1_RAW_SIZE + 1))
-			return GGEP_INVALID;			/* Size is not right */
-	} else if (tmp[0] == GGEP_H_BITPRINT) {
-		if (tlen != (SHA1_RAW_SIZE + TIGER_RAW_SIZE + 1))
-			return GGEP_INVALID;			/* Size is not right */
-	} else
-		return GGEP_NOT_FOUND;
-
-	memcpy(buf, &tmp[1], SHA1_RAW_SIZE);
-
-	return GGEP_OK;
-}
-
-/*
- * ggept_gtkgv1_extract
- *
- * Extract payload information from "GTKGV1" into `info'.
- */
-ggept_status_t ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
-{
-	gchar tmp[16];
-	gchar *p = tmp;
-	gint tlen;
-
-	g_assert(exv->ext_type == EXT_GGEP);
-	g_assert(exv->ext_token == EXT_T_GGEP_GTKGV1);
-
-	tlen = ggep_decode_into(exv, tmp, sizeof(tmp));
-
-	if (tlen != 12)
-		return GGEP_INVALID;
-
-	info->major = *p++;
-	info->minor = *p++;
-	info->patch = *p++;
-	info->revchar = *p++;
-
-	READ_GUINT32_BE(p, info->release);
-	p += 4;
-	READ_GUINT32_BE(p, info->start);
-	p += 4;
-
-	g_assert(p - tmp == 12);
-
-	return GGEP_OK;
 }
 

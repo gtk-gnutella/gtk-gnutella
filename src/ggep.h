@@ -72,17 +72,6 @@
 #define GGEP_W_FIRST	0x00000008	/* First extension, write GGEP_MAGIC */
 
 /*
- * Extraction interface return types.
- */
-
-typedef enum ggept_status {
-	GGEP_OK = 0,					/* OK, extracted what was asked */
-	GGEP_NOT_FOUND = 1,				/* OK, but did not find it */
-	GGEP_INVALID = 2,				/* Error, found something invalid */
-	GGEP_BAD_SIZE = 3,				/* Error, buffer not correctly sized */
-} ggept_status_t;
-
-/*
  * Public interface.
  */
 
@@ -101,19 +90,6 @@ gint ggep_ext_writev(
 	guint32 wflags);
 
 void ggep_mark_last(gchar *start);
-
-ggept_status_t ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len);
-
-struct ggep_gtkgv1 {				/* Decompiled payload of "GTKGV1" */
-	guint8 major;
-	guint8 minor;
-	guint8 patch;
-	guint8 revchar;
-	guint32 release;
-	guint32 start;
-};
-
-ggept_status_t ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info);
 
 #endif	/* _ggep_h_ */
 
