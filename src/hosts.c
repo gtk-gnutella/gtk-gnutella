@@ -132,7 +132,7 @@ void host_timer(void)
 				hcache_get_caught(hctype, &ip, &port);
 				node_add(ip, port);
 			}
-			if (missing)
+			if (missing > 0)
 				gwc_get_hosts(); 		/* Fill hosts from web host cache */
 		}
 	}
