@@ -2018,3 +2018,100 @@ prop = {
 	};
 };
 
+prop = {
+	name = "node_last_ultra_check";
+	desc = "Last time at which we performed the ultrapeer requirement checks.";
+	type = guint32;
+	save = TRUE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "node_last_ultra_leaf_switch";
+	desc = "Last time an automatic switch between ultra and "
+		"leaf mode occurred.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
+prop = {
+	name = "up_req_avg_servent_uptime";
+	desc = "Whether we meet the sufficient average uptime requirement to "
+		"become an Ultra node.";
+	type = boolean;
+	save = TRUE;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "up_req_avg_ip_uptime";
+	desc = "Whether we meet the sufficient average IP address uptime "
+		"requirement to become an Ultra node.";
+	type = boolean;
+	save = TRUE;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "up_req_node_uptime";
+	desc = "Whether we meet the sufficient node uptime requirement to "
+		"become an Ultra node.";
+	type = boolean;
+	save = TRUE;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "up_req_not_firewalled";
+	desc = "Whether we meet the non-firewalled requirement to "
+		"become an Ultra node.";
+	type = boolean;
+	save = TRUE;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "up_req_enough_fd";
+	desc = "Whether we meet the amount of file descriptor "
+		"requirement to become an Ultra node.";
+	type = boolean;
+	save = TRUE;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "up_req_enough_mem";
+	desc = "Whether we meet the memory requirements to become an Ultra node.";
+	type = boolean;
+	save = TRUE;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "up_req_enough_bw";
+	desc = "Whether we meet the bandwidth requirements to "
+		"become an Ultra node.";
+	type = boolean;
+	save = TRUE;
+	data = {
+		default = FALSE;
+	};
+};
+

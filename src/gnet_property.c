@@ -398,6 +398,24 @@ guint32  node_rx_size     = 4;
 guint32  node_rx_size_def = 4;
 guint32  dl_http_latency     = 0;
 guint32  dl_http_latency_def = 0;
+guint32  node_last_ultra_check     = 0;
+guint32  node_last_ultra_check_def = 0;
+guint32  node_last_ultra_leaf_switch     = 0;
+guint32  node_last_ultra_leaf_switch_def = 0;
+gboolean up_req_avg_servent_uptime     = FALSE;
+gboolean up_req_avg_servent_uptime_def = FALSE;
+gboolean up_req_avg_ip_uptime     = FALSE;
+gboolean up_req_avg_ip_uptime_def = FALSE;
+gboolean up_req_node_uptime     = FALSE;
+gboolean up_req_node_uptime_def = FALSE;
+gboolean up_req_not_firewalled     = FALSE;
+gboolean up_req_not_firewalled_def = FALSE;
+gboolean up_req_enough_fd     = FALSE;
+gboolean up_req_enough_fd_def = FALSE;
+gboolean up_req_enough_mem     = FALSE;
+gboolean up_req_enough_mem_def = FALSE;
+gboolean up_req_enough_bw     = FALSE;
+gboolean up_req_enough_bw_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -3605,6 +3623,165 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[166].data.guint32.choices = NULL;
     gnet_property->props[166].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[166].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_NODE_LAST_ULTRA_CHECK:
+     *
+     * General data:
+     */
+    gnet_property->props[167].name = "node_last_ultra_check";
+    gnet_property->props[167].desc = _("Last time at which we performed the ultrapeer requirement checks.");
+    gnet_property->props[167].ev_changed = event_new("node_last_ultra_check_changed");
+    gnet_property->props[167].save = TRUE;
+    gnet_property->props[167].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[167].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[167].data.guint32.def   = &node_last_ultra_check_def;
+    gnet_property->props[167].data.guint32.value = &node_last_ultra_check;
+    gnet_property->props[167].data.guint32.choices = NULL;
+    gnet_property->props[167].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[167].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_NODE_LAST_ULTRA_LEAF_SWITCH:
+     *
+     * General data:
+     */
+    gnet_property->props[168].name = "node_last_ultra_leaf_switch";
+    gnet_property->props[168].desc = _("Last time an automatic switch between ultra and leaf mode occurred.");
+    gnet_property->props[168].ev_changed = event_new("node_last_ultra_leaf_switch_changed");
+    gnet_property->props[168].save = FALSE;
+    gnet_property->props[168].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[168].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[168].data.guint32.def   = &node_last_ultra_leaf_switch_def;
+    gnet_property->props[168].data.guint32.value = &node_last_ultra_leaf_switch;
+    gnet_property->props[168].data.guint32.choices = NULL;
+    gnet_property->props[168].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[168].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_UP_REQ_AVG_SERVENT_UPTIME:
+     *
+     * General data:
+     */
+    gnet_property->props[169].name = "up_req_avg_servent_uptime";
+    gnet_property->props[169].desc = _("Whether we meet the sufficient average uptime requirement to become an Ultra node.");
+    gnet_property->props[169].ev_changed = event_new("up_req_avg_servent_uptime_changed");
+    gnet_property->props[169].save = TRUE;
+    gnet_property->props[169].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[169].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[169].data.boolean.def   = &up_req_avg_servent_uptime_def;
+    gnet_property->props[169].data.boolean.value = &up_req_avg_servent_uptime;
+
+
+    /*
+     * PROP_UP_REQ_AVG_IP_UPTIME:
+     *
+     * General data:
+     */
+    gnet_property->props[170].name = "up_req_avg_ip_uptime";
+    gnet_property->props[170].desc = _("Whether we meet the sufficient average IP address uptime requirement to become an Ultra node.");
+    gnet_property->props[170].ev_changed = event_new("up_req_avg_ip_uptime_changed");
+    gnet_property->props[170].save = TRUE;
+    gnet_property->props[170].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[170].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[170].data.boolean.def   = &up_req_avg_ip_uptime_def;
+    gnet_property->props[170].data.boolean.value = &up_req_avg_ip_uptime;
+
+
+    /*
+     * PROP_UP_REQ_NODE_UPTIME:
+     *
+     * General data:
+     */
+    gnet_property->props[171].name = "up_req_node_uptime";
+    gnet_property->props[171].desc = _("Whether we meet the sufficient node uptime requirement to become an Ultra node.");
+    gnet_property->props[171].ev_changed = event_new("up_req_node_uptime_changed");
+    gnet_property->props[171].save = TRUE;
+    gnet_property->props[171].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[171].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[171].data.boolean.def   = &up_req_node_uptime_def;
+    gnet_property->props[171].data.boolean.value = &up_req_node_uptime;
+
+
+    /*
+     * PROP_UP_REQ_NOT_FIREWALLED:
+     *
+     * General data:
+     */
+    gnet_property->props[172].name = "up_req_not_firewalled";
+    gnet_property->props[172].desc = _("Whether we meet the non-firewalled requirement to become an Ultra node.");
+    gnet_property->props[172].ev_changed = event_new("up_req_not_firewalled_changed");
+    gnet_property->props[172].save = TRUE;
+    gnet_property->props[172].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[172].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[172].data.boolean.def   = &up_req_not_firewalled_def;
+    gnet_property->props[172].data.boolean.value = &up_req_not_firewalled;
+
+
+    /*
+     * PROP_UP_REQ_ENOUGH_FD:
+     *
+     * General data:
+     */
+    gnet_property->props[173].name = "up_req_enough_fd";
+    gnet_property->props[173].desc = _("Whether we meet the amount of file descriptor requirement to become an Ultra node.");
+    gnet_property->props[173].ev_changed = event_new("up_req_enough_fd_changed");
+    gnet_property->props[173].save = TRUE;
+    gnet_property->props[173].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[173].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[173].data.boolean.def   = &up_req_enough_fd_def;
+    gnet_property->props[173].data.boolean.value = &up_req_enough_fd;
+
+
+    /*
+     * PROP_UP_REQ_ENOUGH_MEM:
+     *
+     * General data:
+     */
+    gnet_property->props[174].name = "up_req_enough_mem";
+    gnet_property->props[174].desc = _("Whether we meet the memory requirements to become an Ultra node.");
+    gnet_property->props[174].ev_changed = event_new("up_req_enough_mem_changed");
+    gnet_property->props[174].save = TRUE;
+    gnet_property->props[174].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[174].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[174].data.boolean.def   = &up_req_enough_mem_def;
+    gnet_property->props[174].data.boolean.value = &up_req_enough_mem;
+
+
+    /*
+     * PROP_UP_REQ_ENOUGH_BW:
+     *
+     * General data:
+     */
+    gnet_property->props[175].name = "up_req_enough_bw";
+    gnet_property->props[175].desc = _("Whether we meet the bandwidth requirements to become an Ultra node.");
+    gnet_property->props[175].ev_changed = event_new("up_req_enough_bw_changed");
+    gnet_property->props[175].save = TRUE;
+    gnet_property->props[175].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[175].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[175].data.boolean.def   = &up_req_enough_bw_def;
+    gnet_property->props[175].data.boolean.value = &up_req_enough_bw;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

@@ -197,6 +197,15 @@ extern guint32  unique_nodes;
 extern guint32  download_rx_size;
 extern guint32  node_rx_size;
 extern guint32  dl_http_latency;
+extern guint32  node_last_ultra_check;
+extern guint32  node_last_ultra_leaf_switch;
+extern gboolean up_req_avg_servent_uptime;
+extern gboolean up_req_avg_ip_uptime;
+extern gboolean up_req_node_uptime;
+extern gboolean up_req_not_firewalled;
+extern gboolean up_req_enough_fd;
+extern gboolean up_req_enough_mem;
+extern gboolean up_req_enough_bw;
 
 
 prop_set_t *gnet_prop_init(void);

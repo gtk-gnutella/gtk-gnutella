@@ -427,6 +427,16 @@ static gboolean can_become_ultra(time_t now)
 
 #undef OK
 
+	gnet_prop_set_boolean_val(PROP_UP_REQ_AVG_SERVENT_UPTIME,
+                                                          avg_servent_uptime);
+	gnet_prop_set_boolean_val(PROP_UP_REQ_AVG_IP_UPTIME,  avg_ip_uptime);
+	gnet_prop_set_boolean_val(PROP_UP_REQ_NODE_UPTIME,    node_uptime);
+	gnet_prop_set_boolean_val(PROP_UP_REQ_NOT_FIREWALLED, not_firewalled);
+	gnet_prop_set_boolean_val(PROP_UP_REQ_ENOUGH_FD,      enough_fd);
+	gnet_prop_set_boolean_val(PROP_UP_REQ_ENOUGH_MEM,     enough_mem);
+	gnet_prop_set_boolean_val(PROP_UP_REQ_ENOUGH_BW,      enough_bw);
+	gnet_prop_set_guint32_val(PROP_NODE_LAST_ULTRA_CHECK, now);
+
 	return avg_servent_uptime && avg_ip_uptime && node_uptime &&
 		not_firewalled && enough_fd && enough_mem && enough_bw;
 }
@@ -438,7 +448,7 @@ static gboolean can_become_ultra(time_t now)
  */
 void node_slow_timer(time_t now)
 {
-	static time_t last_switch = 0;
+	time_t last_switch = (time_t) node_last_ultra_leaf_switch;	/* Property */
 	GSList *sl;
 	GSList *to_remove = NULL;
 	
@@ -475,7 +485,7 @@ void node_slow_timer(time_t now)
 	) {
 		g_warning("being promoted to Ultrapeer status");
 		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_ULTRA);
-		last_switch = now;
+		gnet_prop_set_guint32_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
 	}
 
 	/*
@@ -492,7 +502,7 @@ void node_slow_timer(time_t now)
 	) {
 		g_warning("being demoted from Ultrapeer status");
 		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
-		last_switch = now;
+		gnet_prop_set_guint32_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
 	}
 }
 
