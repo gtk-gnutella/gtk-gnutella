@@ -1301,9 +1301,6 @@ static void hcache_store(hcache_type_t type, gchar *filename, gboolean append)
         count ++;
     }
 
-    g_message("hcache_store: saved %d hosts from %s to %s", 
-        count, hc->name, filename);
-
 	file_config_close(f, &fp);
 }
 
@@ -1330,21 +1327,22 @@ void hcache_get_stats(hcache_stats_t *stats)
 void hcache_timer(void)
 {
     hcache_expire_all();
-/*
-    hcache_dump_info(caches[HCACHE_FRESH_ANY],   "timer");    
-    hcache_dump_info(caches[HCACHE_VALID_ANY],   "timer");    
 
-    hcache_dump_info(caches[HCACHE_FRESH_ULTRA], "timer");    
-    hcache_dump_info(caches[HCACHE_VALID_ULTRA], "timer");    
+    if (dbg >= 15) {
+        hcache_dump_info(caches[HCACHE_FRESH_ANY],   "timer");    
+        hcache_dump_info(caches[HCACHE_VALID_ANY],   "timer");    
 
-    hcache_dump_info(caches[HCACHE_TIMEOUT],  "timer");    
-    hcache_dump_info(caches[HCACHE_BUSY],     "timer");    
-    hcache_dump_info(caches[HCACHE_UNSTABLE], "timer");    
+        hcache_dump_info(caches[HCACHE_FRESH_ULTRA], "timer");    
+        hcache_dump_info(caches[HCACHE_VALID_ULTRA], "timer");    
 
-    g_message("Hcache global: local %d   alrdy connected %d   invalid %d",
-        stats[HCACHE_LOCAL_INSTANCE], stats[HCACHE_ALREADY_CONNECTED],
-        stats[HCACHE_INVALID_HOST]);
-*/
+        hcache_dump_info(caches[HCACHE_TIMEOUT],  "timer");    
+        hcache_dump_info(caches[HCACHE_BUSY],     "timer");    
+        hcache_dump_info(caches[HCACHE_UNSTABLE], "timer");    
+
+        g_message("Hcache global: local %d   alrdy connected %d   invalid %d",
+            stats[HCACHE_LOCAL_INSTANCE], stats[HCACHE_ALREADY_CONNECTED],
+            stats[HCACHE_INVALID_HOST]);
+    }
 }
 
 /**
