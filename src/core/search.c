@@ -2344,8 +2344,14 @@ search_new(const gchar *query, guint32 reissue_timeout, flag_t flags)
 		qdup = g_strdup(query);
 
 		/* Suppress accents, graphics, ... */
-		if (latin_locale)
+		if (latin_locale && !utf8_is_valid_string(qdup, 0))
 			use_map_on_query(qdup, qlen);
+
+		/* XXX: use_map_on_query() works for latin encodings only but
+		 *		UTF-8 queries should be canonicalized too. When using
+		 *		GTK+ 2.x, the query as entered by the user is always
+		 *		UTF-8 encoded.
+		 */
 	}
 
 	compact_query(qdup);
