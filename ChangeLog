@@ -1,5 +1,12 @@
 # since last version
 
+- (2003.02.03 - RAM)
+ * Added inclusion of "common.h" for FreeBSD 4.7 (utf8.c).
+ * Integrated PARQ patch: client-side is fully supported [from Jeroen Asselman].
+ * Raised minimal query routing table size to 128 K slots, and lowered the
+   sparseness and conflict ratios to check whether we can double the routing
+   table size.
+
 - (2003.02.02 - RAM)
  * No longer free remaining atoms in atom_warn_free(), for leak detectors.
  * When seeking to get the fileinfo trailer, don't use SEEK_END with a
@@ -18,7 +25,9 @@
    the gm_*snprintf() calls.
  * First experimental support for PARQ (active queuing only, client-side)
    [From Jeroen Asselman].
-
+ * Fixed parq_download_add_header(): now gets length of buffer explicitly.
+ * Fixed status display for remotely queued entries.
+ * Fixed get_header_value() to look for a ',' separator as well.
 
 - (2003.02.01 - RAM)
  * Limit lifetime of download mesh entries to 1 day.
