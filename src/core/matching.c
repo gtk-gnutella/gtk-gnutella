@@ -155,8 +155,11 @@ guint match_map_string(char_map_t map, gchar *string)
 	return ptr - string;
 }
 
-/* initialize permanent data in search table */
-void st_initialize(search_table_t *table, char_map_t map)
+/**
+ * Initialize permanent data in search table
+ */
+void
+st_initialize(search_table_t *table, char_map_t map)
 {
 	gint i;
 	guchar cur_char = '\0', map_char;
@@ -194,8 +197,11 @@ void st_initialize(search_table_t *table, char_map_t map)
 			table->nbins, table->nchars);
 }
 
-/* recreate variable parts of the search table */
-void st_create(search_table_t *table)
+/**
+ * Recreate variable parts of the search table
+ */
+void
+st_create(search_table_t *table)
 {
 	gint i;
 
@@ -206,8 +212,11 @@ void st_create(search_table_t *table)
     bin_initialize(&table->all_entries, ST_MIN_BIN_SIZE);
 }
 
-/* destroy a search table */
-void st_destroy(search_table_t *table)
+/**
+ * Destroy a search table
+ */
+void
+st_destroy(search_table_t *table)
 {
 	gint i;
 
@@ -231,13 +240,12 @@ void st_destroy(search_table_t *table)
 	}
 }
 
-/*
- * mask_hash
- *
+/**
  * Compute character mask "hash", using one bit per letter of the alphabet,
  * plus one for any digit.
  */
-static guint32 mask_hash(gchar *s) {
+static
+guint32 mask_hash(gchar *s) {
 	guchar c;
 	guint32 mask = 0;
 
@@ -256,15 +264,20 @@ static guint32 mask_hash(gchar *s) {
 	return mask;
 }
 
-/* get key of two-char pair */
-inline gint st_key(search_table_t *table, gchar k[2])
+/**
+ * Get key of two-char pair
+ */
+static inline gint
+st_key(search_table_t *table, gchar k[2])
 {
 	return table->index_map[(guchar) k[0]] * table->nchars +
 		table->index_map[(guchar) k[1]];
 }
 
-/* insert an item into the search_table
- * one-char strings are silently ignored */
+/**
+ * Insert an item into the search_table
+ * one-char strings are silently ignored
+ */
 void
 st_insert_item(search_table_t *table, const gchar *s, struct shared_file *sf)
 {
@@ -311,7 +324,9 @@ st_insert_item(search_table_t *table, const gchar *s, struct shared_file *sf)
 	g_hash_table_destroy(seen_keys);
 }
 
-/* minimize space consumption */
+/**
+ * minimize space consumption
+ */
 void st_compact(search_table_t *table)
 {
 	gint i;
@@ -325,14 +340,12 @@ void st_compact(search_table_t *table)
 			bin_compact(table->bins[i]);
 }
 
-/*
- * entry_match
- *
+/**
  * Apply pattern matching on text, matching at the *beginning* of words.
  * Patterns are lazily compiled as needed, using pattern_compile_fast().
  */
-static gboolean entry_match(
-	gchar *text, gint tlen,
+static gboolean
+entry_match(gchar *text, gint tlen,
 	cpattern_t **pw, word_vec_t *wovec, gint wn)
 {
 	gint i;
