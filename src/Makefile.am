@@ -46,7 +46,8 @@ gtk_gnutella_SOURCES = \
 	rx.c rx.h \
 	rx_link.c rx_link.h \
 	rx_inflate.c rx_inflate.h \
-	zlib_util.c zlib_util.h
+	zlib_util.c zlib_util.h \
+	gtk-missing.c gtk-missing.h
 
 gtk_gnutella_LDADD = @GTK_LIBS@ -lz
 
