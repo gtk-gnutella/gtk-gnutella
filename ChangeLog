@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.04.21 - Richard)
+  * click on bandwidth stats to toggle display mode (normal/average)
+  * added "authenticate to proxy" to network config. The associated
+    config variable is called proxy_auth.
+  * made bandwidth stats more readable
+
 - made reissue timeout spinbutton on search-pane wider. (Richard)
 - made config pane a tabbed pane. (Richard)
 - added bandwidth control to config pane. (Richard)
