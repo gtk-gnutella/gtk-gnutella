@@ -1437,6 +1437,7 @@ void search_matched(struct search *sch, struct results_set *rs)
 		case T_GNOT:
 		case T_GNUC:
 		case T_SNUT:
+		default:
 			if (rs->trailer[4] == 2) {
 				guint32 status =
 					((guint32) rs->trailer[5]) & ((guint32) rs-> trailer[6]);
@@ -1444,11 +1445,12 @@ void search_matched(struct search *sch, struct results_set *rs)
 				if (status & 0x01) rs->status |= ST_FIREWALL;
 				if (status & 0x08) rs->status |= ST_UPLOADED;
 				rs->status |= ST_PARSED_TRAILER;
-			} else
+			} else if (rs->status  & ST_KNOWN_VENDOR)
 				g_warning("vendor %s changed # of open data bytes to %d",
 						  vendor, rs->trailer[4]);
-			break;
-		default:
+			else if (vendor)
+				g_warning("ignoring %d open data byte%s from unknown vendor %s",
+					rs->trailer[4], rs->trailer[4] == 1 ? "" : "s", vendor);
 			break;
 		}
 
