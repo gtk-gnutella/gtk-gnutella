@@ -284,7 +284,7 @@ target_map_reset(void)
 /**
  * Creates a string representation of a ``target''.
  *
- * @target a filter target
+ * @param target a filter target
  * @return a static buffer holding the string representation
  */
 static const xmlChar *
@@ -314,7 +314,7 @@ target_to_string(gpointer target)
  * xmlSetProp() directly instead.
  *
  * @param node the node
- * @param the attribute name
+ * @param name the attribute name
  * @param fmt the format string
  * @return the result of xmlSetProp().
  */

@@ -428,7 +428,7 @@ gui_create_dlg_about(void)
  * - $HOME/.gtkrc
  * - $HOME/.gtk/gtkrc
  * - $HOME/.gtk1/gtkrc ($HOME/.gtk2/gtkrc if GTK2 interface is used)
- * - <GTK_GNUTELLA_SETTINGS_DIR>/gtkrc
+ * - $GTK_GNUTELLA_DIR/gtkrc
  * - ./gtkrc
  * Where the last one can overrule settings from earlier resource files.
  */
