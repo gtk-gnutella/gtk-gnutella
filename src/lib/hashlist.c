@@ -47,17 +47,23 @@ typedef enum {
 	HASH_LIST_MAGIC = 0x338954fdU
 } hash_list_magic_t;
 
+typedef enum {
+	HASH_LIST_ITER_MAGIC = 0x438954efU
+} hash_list_iter_magic_t;
+
+
 struct hash_list {
+	hash_list_magic_t magic;
 	GList *l;
 	GHashTable *ht; 
 	GList *last;
 	gint len;
 	gint refcount;
 	guint stamp;
-	hash_list_magic_t magic;
 };
 
 struct hash_list_iter {
+	hash_list_iter_magic_t magic;
 	hash_list_t *hl; 
 	GList *l;
 	gint pos;
@@ -72,7 +78,6 @@ struct hash_list_iter {
 #ifdef USE_HASH_LIST_REGRESSION
 static void inline hash_list_regression(const hash_list_t *hl)
 {
-	g_assert(HASH_LIST_MAGIC == hl->magic);
 	g_assert(NULL != hl->ht);
 	g_assert(g_list_first(hl->l) == hl->l);
 	g_assert(g_list_first(hl->last) == hl->l);
@@ -134,6 +139,7 @@ hash_list_t *hash_list_new(void)
 void hash_list_free(hash_list_t *hl)
 {
 	g_assert(NULL != hl);
+	g_assert(HASH_LIST_MAGIC == hl->magic);
 	hash_list_regression(hl);
 
 	if (--hl->refcount != 0) {
@@ -145,6 +151,7 @@ void hash_list_free(hash_list_t *hl)
 	hl->ht = NULL; 
 	hl->l = NULL;
 	hl->len = 0;
+	hl->magic = 0;
 
 	wfree(hl, sizeof(*hl));
 }
@@ -156,6 +163,7 @@ void hash_list_append(hash_list_t *hl, gpointer data)
 {
 	g_assert(NULL != data);
 	g_assert(NULL != hl);
+	g_assert(HASH_LIST_MAGIC == hl->magic);
 	g_assert(1 == hl->refcount);
 	hash_list_regression(hl);
 
@@ -177,6 +185,7 @@ void hash_list_prepend(hash_list_t *hl, gpointer data)
 {
 	g_assert(NULL != data);
 	g_assert(NULL != hl);
+	g_assert(HASH_LIST_MAGIC == hl->magic);
 	g_assert(1 == hl->refcount);
 	hash_list_regression(hl);
 
@@ -200,6 +209,7 @@ void hash_list_remove(hash_list_t *hl, gpointer data)
 
 	g_assert(NULL != data);
 	g_assert(1 == hl->refcount);
+	g_assert(HASH_LIST_MAGIC == hl->magic);
 	hash_list_regression(hl);
 
 	l = (GList *) g_hash_table_lookup(hl->ht, data);
@@ -222,6 +232,7 @@ gpointer hash_list_last(const hash_list_t *hl)
 {
 	g_assert(NULL != hl);
 	g_assert(hl->refcount > 0);
+	g_assert(HASH_LIST_MAGIC == hl->magic);
 	hash_list_regression(hl);
 
 	return NULL != hl->last ? hl->last->data : NULL;
@@ -234,6 +245,7 @@ gpointer hash_list_first(const hash_list_t *hl)
 {
 	g_assert(NULL != hl);
 	g_assert(hl->refcount > 0);
+	g_assert(HASH_LIST_MAGIC == hl->magic);
 	hash_list_regression(hl);
 
 	return NULL != hl->l ? hl->l->data : NULL;
@@ -246,6 +258,7 @@ gint hash_list_length(const hash_list_t *hl)
 {
 	g_assert(NULL != hl);
 	g_assert(hl->refcount > 0);
+	g_assert(HASH_LIST_MAGIC == hl->magic);
 	hash_list_regression(hl);
 
 	return hl->len;
@@ -261,9 +274,11 @@ hash_list_iter_t *hash_list_iterator(hash_list_t *hl)
 
 	g_assert(NULL != hl);
 	g_assert(hl->refcount > 0);
+	g_assert(HASH_LIST_MAGIC == hl->magic);
 
 	i = walloc(sizeof(*i));
 
+	i->magic = HASH_LIST_ITER_MAGIC;
 	i->hl = hl;
 	i->l = hl->l;
 	i->stamp = hl->stamp;
@@ -283,9 +298,12 @@ hash_list_iter_t *hash_list_iterator_last(hash_list_t *hl)
 	hash_list_iter_t *i;
 
 	g_assert(NULL != hl);
+	g_assert(HASH_LIST_MAGIC == hl->magic);
 	g_assert(hl->refcount > 0);
 
 	i = walloc(sizeof(*i));
+
+	i->magic = HASH_LIST_ITER_MAGIC;
 	i->hl = hl;
 	i->l = hl->last;
 	i->stamp = hl->stamp;
@@ -302,6 +320,7 @@ hash_list_iter_t *hash_list_iterator_last(hash_list_t *hl)
 gpointer hash_list_next(hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
+	g_assert(HASH_LIST_ITER_MAGIC == i->magic);
 	g_assert(NULL != i->hl);
 	g_assert(i->hl->refcount > 0);
 	g_assert(i->hl->stamp == i->stamp);
@@ -319,6 +338,7 @@ gpointer hash_list_next(hash_list_iter_t *i)
 gboolean hash_list_has_next(const hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
+	g_assert(HASH_LIST_ITER_MAGIC == i->magic);
 	g_assert(NULL != i->hl);
 	g_assert(i->hl->refcount > 0);
 	g_assert(i->hl->stamp == i->stamp);
@@ -332,6 +352,7 @@ gboolean hash_list_has_next(const hash_list_iter_t *i)
 gpointer hash_list_previous(hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
+	g_assert(HASH_LIST_ITER_MAGIC == i->magic);
 	g_assert(NULL != i->hl);
 	g_assert(i->hl->refcount > 0);
 	g_assert(i->hl->stamp == i->stamp);
@@ -349,6 +370,7 @@ gpointer hash_list_previous(hash_list_iter_t *i)
 gboolean hash_list_has_previous(const hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
+	g_assert(HASH_LIST_ITER_MAGIC == i->magic);
 	g_assert(NULL != i->hl);
 	g_assert(i->hl->refcount > 0);
 	g_assert(i->hl->stamp == i->stamp);
@@ -362,6 +384,7 @@ gboolean hash_list_has_previous(const hash_list_iter_t *i)
 gpointer hash_list_follower(hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
+	g_assert(HASH_LIST_ITER_MAGIC == i->magic);
 	g_assert(NULL != i->hl);
 
 	return i->move > 0 ? hash_list_next(i) : hash_list_previous(i);
@@ -374,6 +397,7 @@ gpointer hash_list_follower(hash_list_iter_t *i)
 gboolean hash_list_has_follower(const hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
+	g_assert(HASH_LIST_ITER_MAGIC == i->magic);
 	g_assert(NULL != i->hl);
 
 	return i->move > 0 ? hash_list_has_next(i) : hash_list_has_previous(i);
@@ -385,8 +409,11 @@ gboolean hash_list_has_follower(const hash_list_iter_t *i)
 void hash_list_release(hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
+	g_assert(HASH_LIST_ITER_MAGIC == i->magic);
 	g_assert(i->hl->refcount > 0);
+
 	i->hl->refcount--;
+	i->magic = 0;
 
 	wfree(i, sizeof(*i));
 }
@@ -397,7 +424,9 @@ void hash_list_release(hash_list_iter_t *i)
 gboolean hash_list_contains(hash_list_t *hl, gpointer data)
 {
 	GList *l;
+
 	g_assert(NULL != hl);
+	g_assert(HASH_LIST_MAGIC == hl->magic);
 	g_assert(NULL != hl->ht);
 	g_assert(NULL != data);
 	g_assert(hl->refcount > 0);
@@ -413,6 +442,7 @@ gboolean hash_list_contains(hash_list_t *hl, gpointer data)
 void hash_list_foreach(const hash_list_t *hl, GFunc func, gpointer user_data)
 {
 	g_assert(NULL != hl);
+	g_assert(HASH_LIST_MAGIC == hl->magic);
 	g_assert(NULL != func);
 	g_assert(hl->refcount > 0);
 	hash_list_regression(hl);
@@ -421,3 +451,4 @@ void hash_list_foreach(const hash_list_t *hl, GFunc func, gpointer user_data)
 
 	hash_list_regression(hl);
 }
+
