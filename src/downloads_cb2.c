@@ -970,7 +970,6 @@ void on_button_downloads_resume_clicked(GtkButton * button,
  */
 void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
 {
-    gint i;
   	gint n;
     gint m = 0;
 	gint total_nodes;
@@ -1059,9 +1058,6 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data)
 gboolean on_treeview_downloads_button_press_event 
 	(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
-	gint row;
-    gint col;
-
 	if (event->button != 3)
 		return FALSE;
 
@@ -1086,9 +1082,6 @@ gboolean on_treeview_downloads_button_press_event
 gboolean on_treeview_downloads_queue_button_press_event 
 	(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
-	gint row;
-    gint col;
-
 	if (event->button != 3)
 		return FALSE;
 
@@ -1119,6 +1112,7 @@ void on_treeview_downloads_select_row(GtkTreeView * tree_view,
 	GtkTreeIter iter;
 	GtkTreeModel *model;
 	GtkTreeModel **modelp;
+	GtkTreeSelection *selection;
 	
 	
 	/* The user selects a row(s) in the downloads treeview
@@ -1126,9 +1120,9 @@ void on_treeview_downloads_select_row(GtkTreeView * tree_view,
 	 */
 	tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads_queue"));
-	GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
+	selection = gtk_tree_view_get_selection(tree_view);
 	gtk_tree_selection_unselect_all(selection);
-		
+
 	tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
 	model = gtk_tree_view_get_model(tree_view);
@@ -1177,14 +1171,14 @@ void on_treeview_downloads_queue_select_row(GtkTreeView * tree_view,
 	GtkTreeIter iter;
 	GtkTreeModel *model;
 	GtkTreeModel **modelp;
-	
+	GtkTreeSelection *selection;
 	
 	/* The user selects a row(s) in the downloads_queue treeview
 	 * we unselect all rows in the downloads tree view
 	 */
 	tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
-	GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
+	selection = gtk_tree_view_get_selection(tree_view);
 	gtk_tree_selection_unselect_all(selection);
 
 

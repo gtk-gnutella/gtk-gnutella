@@ -522,6 +522,7 @@ void download_gui_add(struct download *d)
 
 	gint active_src = 0, tot_src = 0;
 	gfloat percent_done = 0;
+	guint n = 0;
 	
 	GtkTreeIter iter;
 	GtkTreeIter *parent;
@@ -612,7 +613,7 @@ void download_gui_add(struct download *d)
 				 */
 				gtk_tree_store_append(model, &iter, parent);
 			
-				guint n = (guint) gtk_tree_model_iter_n_children(
+				n = (guint) gtk_tree_model_iter_n_children(
 					(GtkTreeModel *) model, parent);
 
 				gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", n);
@@ -725,7 +726,7 @@ void download_gui_add(struct download *d)
 				 */
 				gtk_tree_store_append(model, &iter, parent);
 			
-				guint n = (guint) gtk_tree_model_iter_n_children(
+				n = (guint) gtk_tree_model_iter_n_children(
 					(GtkTreeModel *) model, parent);
 
 				gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", n);
@@ -778,15 +779,14 @@ void download_gui_add(struct download *d)
  *	Remove a download from the GUI.
  */
 void download_gui_remove(struct download *d)
-{	
-	gint row;
+{
 	gpointer key;
 
 	gchar *host, *range;
 	gchar *server, *status;
 	struct download *drecord = NULL;
 
-	GtkTreeIter iter, child;
+	GtkTreeIter iter;
 	GtkTreeIter *parent;
 	GtkTreeView *tree_view;
 	GtkTreeStore *model;
@@ -1080,8 +1080,6 @@ void gui_update_download_range(struct download *d)
 	guint32 len;
 	gchar *and_more = "";
 	gint rw;
-	gint row;
-	gpointer key;
 
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
@@ -1148,7 +1146,7 @@ void gui_update_download(struct download *d, gboolean force)
 	const gchar *a = NULL;
 	time_t now = time((time_t *) NULL);
 	struct dl_file_info *fi;
-	gint rw, row;
+	gint rw;
 	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 	gpointer key;
 
@@ -1478,8 +1476,7 @@ void gui_update_download(struct download *d, gboolean force)
 
 		tree_view = GTK_TREE_VIEW
 			(lookup_widget(main_window, "treeview_downloads"));
-		GtkTreeStore *model = 
-			(GtkTreeStore *) gtk_tree_view_get_model(tree_view);
+		model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
 	
 		/* Find row that matches d */
 		gtk_tree_model_foreach(
