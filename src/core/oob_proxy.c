@@ -113,6 +113,8 @@ oob_proxy_rec_free(struct oob_proxy_rec *opr)
 
 	atom_guid_free(opr->leaf_muid);
 	atom_guid_free(opr->proxied_muid);
+
+	wfree(opr, sizeof(*opr));
 }
 
 /**
