@@ -202,7 +202,7 @@ gboolean guid_is_gtkg(
 	guint16 xmark;
 	const guint8 *xuid = (const guint8 *) guid;
 
-	if (guid[0] != guid_hec(guid))
+	if (xuid[0] != guid_hec(guid))
 		return FALSE;
 
 	major = xuid[2] & 0x0f;
