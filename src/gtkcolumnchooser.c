@@ -58,7 +58,7 @@ static void on_column_popup_toggled(GtkCheckMenuItem * checkmenuitem,
     GtkColumnChooser * cc;
 
     g_assert(user_data != NULL);
-    g_assert(IS_GTK_COLUMN_CHOOSER(user_data));
+    g_assert(GTK_IS_COLUMN_CHOOSER(user_data));
 
     cc = GTK_COLUMN_CHOOSER(user_data);
 
@@ -71,7 +71,7 @@ static void on_column_popup_activate(GtkCheckMenuItem * checkmenuitem,
                                      gpointer user_data)
 {
     g_assert(user_data != NULL);
-    g_assert(IS_GTK_COLUMN_CHOOSER(user_data));
+    g_assert(GTK_IS_COLUMN_CHOOSER(user_data));
 
     gtk_menu_popdown(GTK_MENU(user_data));
 }
@@ -158,7 +158,7 @@ static void gtk_column_chooser_finalize(GtkObject * object)
     g_message("gtk_column_chooser_finalize");
 
     g_assert(object != NULL);
-    g_assert(IS_GTK_COLUMN_CHOOSER(object));
+    g_assert(GTK_IS_COLUMN_CHOOSER(object));
 
     cc = GTK_COLUMN_CHOOSER(object);
 
@@ -221,7 +221,7 @@ GtkType gtk_column_chooser_get_type()
 static void gtk_column_chooser_deactivate(GtkMenuShell *menu_shell)
 {
     g_assert(menu_shell != NULL);
-    g_assert(IS_GTK_COLUMN_CHOOSER(menu_shell));
+    g_assert(GTK_IS_COLUMN_CHOOSER(menu_shell));
 
     if (GTK_COLUMN_CHOOSER(menu_shell)->closed)
         GTK_MENU_SHELL_CLASS(parent_class)->deactivate(menu_shell);
@@ -231,7 +231,7 @@ static gint gtk_column_chooser_button_press(GtkWidget * widget,
                                             GdkEventButton *event)
 {
     g_return_val_if_fail(widget != NULL, FALSE);
-    g_return_val_if_fail(IS_GTK_COLUMN_CHOOSER(widget), FALSE);
+    g_return_val_if_fail(GTK_IS_COLUMN_CHOOSER(widget), FALSE);
     g_return_val_if_fail(event != NULL, FALSE);
 
 

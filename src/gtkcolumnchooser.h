@@ -35,7 +35,7 @@ extern "C" {
      GTK_CHECK_CAST (obj, gtk_column_chooser_get_type (), GtkColumnChooser)
 #define GTK_COLUMN_CHOOSER_CLASS(klass)\
      GTK_CHECK_CLASS_CAST (klass, gtk_column_chooser_get_type (), GtkColumnChooserClass)
-#define IS_GTK_COLUMN_CHOOSER(obj)\
+#define GTK_IS_COLUMN_CHOOSER(obj)\
      GTK_CHECK_TYPE (obj, gtk_column_chooser_get_type ()) 
 #define GTK_TYPE_COLUMN_CHOOSER (gtk_column_chooser_get_type())
 
