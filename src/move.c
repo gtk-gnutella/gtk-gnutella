@@ -142,41 +142,45 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	struct moved *md = (struct moved *) ctx;
 	struct work *we = (struct work *) item;
 	struct download *d = we->d;
-	gchar source_name[2048];
-	gchar *target_name;
+	char *source = NULL;
+	char *target = NULL;
 	struct stat buf;
 
 	g_assert(md->magic == MOVED_MAGIC);
 	g_assert(md->rd == -1);
 	g_assert(md->wd == -1);
 
-	gm_snprintf(source_name, sizeof(source_name),
-		"%s/%s", download_path(d), download_outname(d));
+	source = g_strdup_printf("%s/%s", download_path(d), download_outname(d));
+	g_return_if_fail(NULL != source);
 
 	md->d = we->d;
-	md->rd = open(source_name, O_RDONLY);
+	md->rd = open(source, O_RDONLY);
 
 	if (md->rd == -1) {
 		g_warning("can't open \"%s\" for reading to copy it into %s: %s",
-			source_name, we->dest, g_strerror(errno));
+			source, we->dest, g_strerror(errno));
+		G_FREE_NULL(source);
 		return;
 	}
 
 	if (-1 == fstat(md->rd, &buf)) {
-		g_warning("can't fstat \"%s\": %s", source_name, g_strerror(errno));
+		g_warning("can't fstat \"%s\": %s", source, g_strerror(errno));
 		goto abort_read;
 	}
 
 	if (!S_ISREG(buf.st_mode)) {
-		g_warning("file \"%s\" is not a regular file", source_name);
+		g_warning("file \"%s\" is not a regular file", source);
 		goto abort_read;
 	}
 
-	target_name = unique_filename(we->dest, download_outname(d), we->ext);
-	md->wd = open(target_name, O_WRONLY | O_CREAT | O_TRUNC, buf.st_mode);
+	target = unique_filename(we->dest, download_outname(d), we->ext);
+	if (NULL == target)
+		goto abort_read;
+
+	md->wd = open(target, O_WRONLY | O_CREAT | O_TRUNC, buf.st_mode);
 
 	if (md->wd == -1) {
-		g_warning("can't create \"%s\": %s", target_name, g_strerror(errno));
+		g_warning("can't create \"%s\": %s", target, g_strerror(errno));
 		goto abort_read;
 	}
 
@@ -186,8 +190,10 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	md->error = 0;
 
 	if (dbg > 1)
-		printf("Moving \"%s\" to %s\n", download_outname(d), target_name);
+		printf("Moving \"%s\" to %s\n", download_outname(d), target);
 
+	G_FREE_NULL(source);
+	G_FREE_NULL(target);
 	download_move_start(d);
 
 	return;
@@ -196,6 +202,10 @@ abort_read:
 	md->error = errno;
 	close(md->rd);
 	md->rd = -1;
+	if (NULL != source)
+		G_FREE_NULL(source);
+	if (NULL != target)
+		G_FREE_NULL(target);
 	return;
 }
 
@@ -208,7 +218,6 @@ static void d_end(gpointer h, gpointer ctx, gpointer item)
 {
 	struct moved *md = (struct moved *) ctx;
 	time_t elapsed;
-	gchar source_name[2048];
 	struct download *d = md->d;
 
 	g_assert(md->magic == MOVED_MAGIC);
@@ -224,14 +233,17 @@ static void d_end(gpointer h, gpointer ctx, gpointer item)
 	md->wd = -1;
 
 	if (md->error == 0) {
+		gchar *source;
+
 		g_assert(md->copied == md->size);
-
-		gm_snprintf(source_name, sizeof(source_name),
-			"%s/%s", download_path(md->d), download_outname(md->d));
-
-		if (-1 == unlink(source_name))
+		
+		source = g_strdup_printf("%s/%s",
+					download_path(md->d), download_outname(md->d));
+		if (NULL == source || -1 == unlink(source))
 			g_warning("cannot unlink \"%s\": %s",
-				source_name, g_strerror(errno));
+				download_outname(md->d), g_strerror(errno));
+		if (NULL != source)
+			G_FREE_NULL(source);
 	}
 
 	elapsed = time(NULL) - md->start;
