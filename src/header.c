@@ -527,3 +527,193 @@ void header_dump(const header_t *o, FILE *out)
 		hfield_dump((header_field_t *) l->data, out);
 }
 
+/***
+ *** Header formatting with continuations.
+ ***/
+
+#define HEADER_FMT_MAGIC		0xf7a91c
+#define HEADER_FMT_DFLT_LEN		256		/* Default line length if no hint */
+#define HEADER_FMT_LINE_LEN		72		/* Try to never emit longer lines */
+#define HEADER_FMT_MAX_SIZE		1024	/* Max line size for header */
+
+/*
+ * Header formatting context
+ */
+struct header_fmt {
+	guint32 magic;
+	GString *header;			/* Header being built */
+	gint current_len;			/* Length of currently built line */
+	gboolean data_emitted;		/* Whether data was ever emitted */
+	gboolean frozen;			/* Header terminated */
+};
+
+/*
+ * header_fmt_make
+ *
+ * Create a new formatting context for a header line.
+ *
+ * `field' is the header field name, without trailing ':'.
+ * `len_hint' is the expected line size, for pre-sizing purposes. (0 to guess).
+ *
+ * Returns opaque pointer.
+ */
+gpointer header_fmt_make(gchar *field, gint len_hint)
+{
+	struct header_fmt *hf;
+
+	hf = walloc(sizeof(*hf));
+	hf->magic = HEADER_FMT_MAGIC;
+	hf->header = g_string_sized_new(len_hint ? len_hint : HEADER_FMT_DFLT_LEN);
+	hf->data_emitted = FALSE;
+	hf->frozen = FALSE;
+
+	g_string_append(hf->header, field);
+	g_string_append(hf->header, ": ");
+
+	hf->current_len = hf->header->len;
+
+	return hf;
+}
+
+/*
+ * header_fmt_free
+ *
+ * Dispose of header formatting context.
+ */
+void header_fmt_free(gpointer o)
+{
+	struct header_fmt *hf = (struct header_fmt *) o;
+
+	g_assert(hf->magic == HEADER_FMT_MAGIC);
+
+	g_string_free(hf->header, TRUE);
+	wfree(hf, sizeof(*hf));
+}
+
+/*
+ * header_fmt_append
+ *
+ * Append data `str' to the header line, atomically.
+ *
+ * `separator' is an optional separator string that will be emitted BEFORE
+ * outputting the data, and only when nothing has been emitted already.
+ * Any trailing space will be stripped out of `separator' if emitting at the
+ * end of a line.
+ */
+void header_fmt_append(gpointer o, gchar *str, gchar *separator)
+{
+	struct header_fmt *hf = (struct header_fmt *) o;
+	gint len;
+	gint curlen;
+	gint seplen;
+
+	g_assert(hf->magic == HEADER_FMT_MAGIC);
+	g_assert(!hf->frozen);
+
+	len = strlen(str);
+	curlen = hf->current_len;
+	seplen = (separator == NULL) ? 0 : strlen(separator);
+
+	if (curlen + len + seplen > HEADER_FMT_LINE_LEN) {
+		/*
+		 * Emit sperator, if any and data was already emitted.
+		 */
+
+		if (separator != NULL && hf->data_emitted) {
+			gchar *end = separator + seplen;
+			gchar *p;
+			gint i;
+
+			/*
+			 * Locate last non-space char in separator.
+			 */
+
+			for (i = seplen - 1; i >= 0; i--) {
+				if (separator[i] == ' ')
+					end--;
+			}
+
+			for (p = separator; p < end; p++)
+				g_string_append_c(hf->header, *p);
+		}
+
+		g_string_append(hf->header, "\r\n    ");	/* Includes continuation */
+		curlen = 4;
+	} else if (hf->data_emitted) {
+		g_string_append(hf->header, separator);
+		curlen += seplen;
+	}
+
+	hf->data_emitted = TRUE;
+	g_string_append(hf->header, str);
+	hf->current_len = curlen + len;
+}
+
+/*
+ * header_fmt_length
+ *
+ * Returns length of currently formatted header.
+ */
+gint header_fmt_length(gpointer o)
+{
+	struct header_fmt *hf = (struct header_fmt *) o;
+
+	g_assert(hf->magic == HEADER_FMT_MAGIC);
+
+	return hf->header->len;
+}
+
+/*
+ * header_fmt_end
+ *
+ * Terminate header, emitting the trailing "\r\n".
+ * Further appending is forbidden.
+ */
+void header_fmt_end(gpointer o)
+{
+	struct header_fmt *hf = (struct header_fmt *) o;
+
+	g_assert(hf->magic == HEADER_FMT_MAGIC);
+	g_assert(!hf->frozen);
+
+	g_string_append(hf->header, "\r\n");
+	hf->frozen = TRUE;
+}
+
+/*
+ * header_fmt_string
+ *
+ * Return current header string.
+ */
+gchar *header_fmt_string(gpointer o)
+{
+	struct header_fmt *hf = (struct header_fmt *) o;
+
+	g_assert(hf->magic == HEADER_FMT_MAGIC);
+
+	return hf->header->str;		/* Guaranteed to be always NUL-terminated */
+}
+
+/*
+ * header_fmt_to_gchar
+ *
+ * Convert current header to a string.
+ * NB: returns pointer to static data!
+ */
+gchar *header_fmt_to_gchar(gpointer o)
+{
+	static gchar line[HEADER_FMT_MAX_SIZE + 1];
+	struct header_fmt *hf = (struct header_fmt *) o;
+
+	g_assert(hf->magic == HEADER_FMT_MAGIC);
+
+	if (hf->header->len > HEADER_FMT_MAX_SIZE)
+		g_warning("trying to format too long an HTTP line (%d bytes)",
+			hf->header->len);
+
+	strncpy(line, hf->header->str, HEADER_FMT_MAX_SIZE);
+	line[HEADER_FMT_MAX_SIZE] = '\0';
+
+	return line;
+}
+

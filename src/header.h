@@ -113,6 +113,14 @@ const gchar *header_strerror(guint errnum);
 gchar *header_get(const header_t *o, const gchar *field);
 gchar *header_getdup(const header_t *o, const gchar *field);
 
+gpointer header_fmt_make(gchar *field, gint len_hint);
+void header_fmt_free(gpointer o);
+void header_fmt_append(gpointer o, gchar *str, gchar *separator);
+gint header_fmt_length(gpointer o);
+void header_fmt_end(gpointer o);
+gchar *header_fmt_string(gpointer o);
+gchar *header_fmt_to_gchar(gpointer o);
+
 #endif	/* _header_h_ */
 
 /* vi: set ts=4: */
