@@ -87,21 +87,22 @@ void gui_allow_rescan_dir(gboolean flag)
 
 void gui_update_global(void)
 {
-	time_t now = time((time_t *) NULL);	
-	guint32 start_stamp;
+	time_t now = time((time_t *) NULL), start_stamp;
+	guint32 val;
 	GtkLabel *label = GTK_LABEL(lookup_widget(
 				main_window, "label_statusbar_uptime"));
 
-	gnet_prop_get_guint32_val(PROP_START_STAMP, &start_stamp);
+	gnet_prop_get_guint32_val(PROP_START_STAMP, &val);
+	start_stamp = val;
 
 #ifdef USE_GTK2
 	gm_snprintf(gui_tmp, sizeof gui_tmp, "<tt> %s </tt>",
-		short_uptime(difftime(now, start_stamp)));
+		short_uptime(delta_time(now, start_stamp)));
 	gtk_label_set_use_markup(label, TRUE);
 	gtk_label_set_markup(label, gui_tmp);
 #else
 
-	gtk_label_set_text(label, short_uptime(difftime(now, start_stamp)));
+	gtk_label_set_text(label, short_uptime(delta_time(now, start_stamp)));
 #endif
 
     /*
