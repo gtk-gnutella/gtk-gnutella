@@ -36,7 +36,7 @@ struct gnutella_node;
 typedef struct upload {
     gnet_upload_t upload_handle;
 
-	guint32 status;
+	upload_stage_t status;
 	struct gnutella_socket *socket;
 	gint error_sent;				/* HTTP error code sent back */
 	gpointer io_opaque;				/* Opaque I/O callback information */
