@@ -40,8 +40,8 @@ look of Gnutella v0.5.
 
 It's a fully featured Gnutella servent designed to share any type of file
 the user wishes to share.  Gtk-gnutella implements compressed gnutella net 
-connections, ultrapeer and leaf nodes and uses Passive/Active Remote 
-Queueing (PARQ).  
+connections, ultra and leaf nodes, Partial File Sharing, Push Proxies and 
+uses Passive/Active Remote Queueing (PARQ).  
 
 It's a Unix clone, and can be built with either a GTK+ (1.2 or above) or GTK2 
 GUI.  Gnome is not needed but libxml should be available for best performance. 
@@ -112,14 +112,15 @@ mode.  The following is a list of commonly used options with the defaults.
 -Dyacc='yacc'
 -Dgtkversion=1
 -Dofficial='false'
--Dremotectrl='false'
+-Dremotectrl='true'
 
 To disable nls:
 -Ud_enablenls
 
 For example, a fairly typical configuration for linux x86, gtk2 gui:
-./Configure -d -e -r -s -Dprefix=/usr -Dprivlib=/usr/share/gtk-gnutella \
-	-Dcc=gcc -Dccflags='-Wall' -Doptimize='-O2' -Dgtkversion=2
+
+    ./Configure -Dprefix=/usr -Dprivlib=/usr/share/gtk-gnutella -Dcc=gcc \
+	 -Dccflags='-Wall' -Doptimize='-O2' -Dgtkversion=2 -d -e -r -s
 
 Packagers who need to install gtk-gnutella to a special base directory can 
 do so with:
