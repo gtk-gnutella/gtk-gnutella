@@ -31,7 +31,7 @@
  *
  * This structure can quickly determine whether it contains some piece of
  * data, as well as quickly remove data.  It can be iterated over, in the
- * order of the items.
+ * order of the items or in reverse order.
  */
 
 #include "common.h"
@@ -51,16 +51,18 @@ struct hash_list {
 	GList *l;
 	GHashTable *ht; 
 	GList *last;
-	gulong len;
-	gulong refcount;
-	gulong stamp;
+	gint len;
+	gint refcount;
+	guint stamp;
 	hash_list_magic_t magic;
 };
 
 struct hash_list_iter {
 	hash_list_t *hl; 
 	GList *l;
-	gulong stamp;
+	gint pos;
+	gint move;
+	guint stamp;
 };
 
 #if 0
@@ -136,7 +138,7 @@ void hash_list_free(hash_list_t *hl)
 
 	if (--hl->refcount != 0) {
 		g_warning("hash_list_free: hash list is still referenced! "
-			"(hl=%p, hl->refcount=%lu)", hl, hl->refcount);
+			"(hl=%p, hl->refcount=%d)", hl, hl->refcount);
 	}
 	g_hash_table_destroy(hl->ht);
 	g_list_free(hl->l);
@@ -240,7 +242,7 @@ gpointer hash_list_first(const hash_list_t *hl)
 /**
  * Returns the length of the list.
  */
-gulong hash_list_length(const hash_list_t *hl)
+gint hash_list_length(const hash_list_t *hl)
 {
 	g_assert(NULL != hl);
 	g_assert(hl->refcount > 0);
@@ -250,19 +252,48 @@ gulong hash_list_length(const hash_list_t *hl)
 }
 
 /**
- * Get an iterator on the list, and return the first item.
+ * Get an iterator on the list, positionned before first item.
+ * Get items with hash_list_next().
  */
-gpointer hash_list_get_iter(hash_list_t *hl, hash_list_iter_t **i)
+hash_list_iter_t *hash_list_iterator(hash_list_t *hl)
 {
+	hash_list_iter_t *i;
+
 	g_assert(NULL != hl);
-	g_assert(NULL != i);
-	g_assert(NULL != *i);
 	g_assert(hl->refcount > 0);
-	(*i)->hl = hl;
-	(*i)->l = hl->l;
-	(*i)->stamp = hl->stamp;
+
+	i = walloc(sizeof(*i));
+
+	i->hl = hl;
+	i->l = hl->l;
+	i->stamp = hl->stamp;
+	i->pos = -1;				/* Before first item */
+	i->move = +1;
 	hl->refcount++;
-	return hash_list_first((*i)->hl);
+
+	return i;
+}
+
+/**
+ * Get an iterator on the list, positionned after last item.
+ * Get items with hash_list_previous().
+ */
+hash_list_iter_t *hash_list_iterator_last(hash_list_t *hl)
+{
+	hash_list_iter_t *i;
+
+	g_assert(NULL != hl);
+	g_assert(hl->refcount > 0);
+
+	i = walloc(sizeof(*i));
+	i->hl = hl;
+	i->l = hl->last;
+	i->stamp = hl->stamp;
+	i->pos = hl->len;			/* After last item */
+	i->move = -1;
+	hl->refcount++;
+
+	return i;
 }
 
 /**
@@ -274,7 +305,11 @@ gpointer hash_list_next(hash_list_iter_t *i)
 	g_assert(NULL != i->hl);
 	g_assert(i->hl->refcount > 0);
 	g_assert(i->hl->stamp == i->stamp);
-	i->l = g_list_next(i->l);
+	g_assert(i->pos < i->hl->len);
+
+	if (i->pos++ >= 0)					/* Special case if "before" first */
+		i->l = g_list_next(i->l);
+
 	return NULL != i->l ? i->l->data : NULL;
 }
 
@@ -288,7 +323,24 @@ gboolean hash_list_has_next(const hash_list_iter_t *i)
 	g_assert(i->hl->refcount > 0);
 	g_assert(i->hl->stamp == i->stamp);
 
-	return NULL != g_list_next(i->l);
+	return i->hl->len && i->pos < (i->hl->len - 1);
+}
+
+/**
+ * Get the previous data item from the iterator, or NULL if none.
+ */
+gpointer hash_list_previous(hash_list_iter_t *i)
+{
+	g_assert(NULL != i);
+	g_assert(NULL != i->hl);
+	g_assert(i->hl->refcount > 0);
+	g_assert(i->hl->stamp == i->stamp);
+	g_assert(i->pos >= 0);
+
+	if (i->pos-- < i->hl->len)			/* Special case if "after" last */
+		i->l = g_list_previous(i->l);
+
+	return NULL != i->l ? i->l->data : NULL;
 }
 
 /**
@@ -301,7 +353,30 @@ gboolean hash_list_has_previous(const hash_list_iter_t *i)
 	g_assert(i->hl->refcount > 0);
 	g_assert(i->hl->stamp == i->stamp);
 
-	return NULL != g_list_previous(i->l);
+	return i->pos > 0 && i->hl->len;
+}
+
+/**
+ * Move to next item in the direction of the iterator.
+ */
+gpointer hash_list_follower(hash_list_iter_t *i)
+{
+	g_assert(NULL != i);
+	g_assert(NULL != i->hl);
+
+	return i->move > 0 ? hash_list_next(i) : hash_list_previous(i);
+}
+
+/**
+ * Checks whether there is a following item in the iterator, in the
+ * direction chosen at creation time.
+ */
+gboolean hash_list_has_follower(const hash_list_iter_t *i)
+{
+	g_assert(NULL != i);
+	g_assert(NULL != i->hl);
+
+	return i->move > 0 ? hash_list_has_next(i) : hash_list_has_previous(i);
 }
 
 /**
@@ -311,8 +386,9 @@ void hash_list_release(hash_list_iter_t *i)
 {
 	g_assert(NULL != i);
 	g_assert(i->hl->refcount > 0);
-	g_assert(i->hl->stamp == i->stamp);
 	i->hl->refcount--;
+
+	wfree(i, sizeof(*i));
 }
 
 /**
