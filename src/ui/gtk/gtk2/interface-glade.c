@@ -1607,14 +1607,14 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label493 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label494 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -15497,6 +15497,9 @@ create_dlg_prefs_dbg_tab (void)
   GtkWidget *label891;
   GtkObject *spinbutton_config_routing_debug_adj;
   GtkWidget *spinbutton_config_routing_debug;
+  GtkWidget *label894;
+  GtkObject *spinbutton_config_ggep_debug_adj;
+  GtkWidget *spinbutton_config_ggep_debug;
   GtkWidget *label883;
   GtkWidget *label375;
   GtkWidget *frame_expert_unmapped;
@@ -15521,7 +15524,7 @@ create_dlg_prefs_dbg_tab (void)
   dlg_prefs_dbg_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_prefs_dbg_tab, "dlg_prefs_dbg_tab");
   gtk_window_set_title (GTK_WINDOW (dlg_prefs_dbg_tab), _("Debugging"));
-  gtk_window_set_default_size (GTK_WINDOW (dlg_prefs_dbg_tab), 600, 400);
+  gtk_window_set_default_size (GTK_WINDOW (dlg_prefs_dbg_tab), 640, 480);
 
   scrolledwindow44 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow44, "scrolledwindow44");
@@ -15555,7 +15558,7 @@ create_dlg_prefs_dbg_tab (void)
   viewport109 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport109, "viewport109");
   gtk_widget_show (viewport109);
-  gtk_box_pack_start (GTK_BOX (hbox280), viewport109, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox280), viewport109, FALSE, TRUE, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport109), GTK_SHADOW_OUT);
 
   frame125 = gtk_frame_new (NULL);
@@ -15614,7 +15617,7 @@ create_dlg_prefs_dbg_tab (void)
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label377), 0, 0.5);
 
-  label517 = gtk_label_new_with_mnemonic (_("_Shared code debug level"));
+  label517 = gtk_label_new_with_mnemonic (_("_Lib debug level"));
   gtk_widget_set_name (label517, "label517");
   gtk_widget_show (label517);
   gtk_table_attach (GTK_TABLE (table36), label517, 0, 1, 2, 3,
@@ -15639,7 +15642,7 @@ create_dlg_prefs_dbg_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_track_props), TRUE);
 
-  checkbutton_config_stop_host_get = gtk_check_button_new_with_mnemonic (_("_stop collecting hosts in host catcher"));
+  checkbutton_config_stop_host_get = gtk_check_button_new_with_mnemonic (_("_stop collecting hosts"));
   gtk_widget_set_name (checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
   gtk_widget_show (checkbutton_config_stop_host_get);
   gtk_table_attach (GTK_TABLE (table36), checkbutton_config_stop_host_get, 0, 2, 5, 6,
@@ -15669,7 +15672,7 @@ create_dlg_prefs_dbg_tab (void)
   gtk_widget_show (frame126);
   gtk_container_add (GTK_CONTAINER (viewport108), frame126);
 
-  table98 = gtk_table_new (5, 4, FALSE);
+  table98 = gtk_table_new (5, 6, FALSE);
   gtk_widget_set_name (table98, "table98");
   gtk_widget_show (table98);
   gtk_container_add (GTK_CONTAINER (frame126), table98);
@@ -15842,6 +15845,22 @@ create_dlg_prefs_dbg_tab (void)
   gtk_widget_set_name (spinbutton_config_routing_debug, "spinbutton_config_routing_debug");
   gtk_widget_show (spinbutton_config_routing_debug);
   gtk_table_attach (GTK_TABLE (table98), spinbutton_config_routing_debug, 3, 4, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label894 = gtk_label_new (_("GGEP extensions"));
+  gtk_widget_set_name (label894, "label894");
+  gtk_widget_show (label894);
+  gtk_table_attach (GTK_TABLE (table98), label894, 4, 5, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label894), 0, 0.5);
+
+  spinbutton_config_ggep_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_ggep_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_ggep_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_ggep_debug, "spinbutton_config_ggep_debug");
+  gtk_widget_show (spinbutton_config_ggep_debug);
+  gtk_table_attach (GTK_TABLE (table98), spinbutton_config_ggep_debug, 5, 6, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -16050,6 +16069,8 @@ create_dlg_prefs_dbg_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label879, "label879");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label891, "label891");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_routing_debug, "spinbutton_config_routing_debug");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label894, "label894");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, spinbutton_config_ggep_debug, "spinbutton_config_ggep_debug");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label883, "label883");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, label375, "label375");
   GLADE_HOOKUP_OBJECT (dlg_prefs_dbg_tab, frame_expert_unmapped, "frame_expert_unmapped");
