@@ -50,6 +50,43 @@ enum {
  */
 typedef guint32 gnet_node_t;
 
+typedef struct gnet_node_status {
+	guchar status;			    /* See possible values below */
+
+	guint32  sent;				/* Number of sent packets */
+	guint32  received;			/* Number of received packets */
+	guint32  tx_dropped;		/* Number of packets dropped at TX time */
+	guint32  rx_dropped;		/* Number of packets dropped at RX time */
+	guint32  n_bad;				/* Number of bad packets received */
+	guint16  n_dups;			/* Number of dup messages received (bad) */
+	guint16  n_hard_ttl;		/* Number of hard_ttl exceeded (bad) */
+	guint32  n_weird;			/* Number of weird messages from that node */
+
+    gint     squeue_sent;
+    gint     squeue_count;
+    gint     mqueue_count;
+    gint     mqueue_percent_used;
+    gboolean in_tx_flow_control;
+
+	/*
+	 * Traffic statistics -- RAM, 13/05/2002.
+	 */
+	gint32   tx_given;			/* Bytes fed to the TX stack (from top) */
+	gint32   tx_deflated;		/* Bytes deflated by the TX stack */
+	gint32   tx_written;		/* Bytes written by the TX stack */
+    gboolean tx_compressed;     /* Is tx traffic compressed */
+    gfloat   tx_compression_ratio; /* Tx compression ratio */
+	
+	gint32   rx_given;			/* Bytes fed to the RX stack (from bottom) */
+	gint32   rx_inflated;		/* Bytes inflated by the RX stack */
+	gint32   rx_read;			/* Bytes read from the RX stack */
+    gboolean rx_compressed;     /* Is rx traffic compressed */
+    gfloat   rx_compression_ratio;/* Rx compression ratio */
+
+    gint     shutdown_remain;   /* Number of seconds before shutdown */
+    gchar    message[128];       /* Additional information */
+} gnet_node_status_t;
+
 typedef struct gnet_node_info {
     gnet_node_t node_handle;    /* Internal node handle */
 
@@ -59,53 +96,8 @@ typedef struct gnet_node_info {
 	gchar *vendor;				/* Vendor information */
 	guchar vcode[4];			/* Vendor code (vcode[0] == NUL when unknown) */
 
-	guchar status;			    /* See possible values below */
-	guchar peermode;		    /* See possible values below */
-	guint32 flags;			    /* See possible values below */
-	guint32 attrs;			    /* See possible values below */
-
-	guint32 sent;				/* Number of sent packets */
-	guint32 received;			/* Number of received packets */
-	guint32 tx_dropped;			/* Number of packets dropped at TX time */
-	guint32 rx_dropped;			/* Number of packets dropped at RX time */
-	guint32 n_bad;				/* Number of bad packets received */
-	guint16 n_dups;				/* Number of dup messages received (bad) */
-	guint16 n_hard_ttl;			/* Number of hard_ttl exceeded (bad) */
-	guint32 n_weird;			/* Number of weird messages from that node */
-
-    gint squeue_sent;
-    gint squeue_count;
-    gint mqueue_count;
-    gint mqueue_percent_used;
-    gboolean in_tx_flow_control;
-
-	time_t last_update;			/* Last update of the node in the GUI */
-	time_t connect_date;		/* When we got connected (after handshake) */
-	time_t tx_flowc_date;		/* When we entered in TX flow control */
-	time_t shutdown_date;		/* When we entered in shutdown mode */
-	guint32 shutdown_delay;		/* How long we can stay in shutdown mode */
-
-    gchar *remove_msg;          /* Reason of removing */
-
 	guint32 ip;					/* ip of the node */
 	guint16 port;				/* port of the node */
-
-	/*
-	 * Traffic statistics -- RAM, 13/05/2002.
-	 */
-
-	gint32 tx_given;			/* Bytes fed to the TX stack (from top) */
-	gint32 tx_deflated;			/* Bytes deflated by the TX stack */
-	gint32 tx_written;			/* Bytes written by the TX stack */
-    gboolean tx_compressed;     /* Is tx traffic compressed */
-    float  tx_compression_ratio;/* Tx compression ratio */
-	
-	gint32 rx_given;			/* Bytes fed to the RX stack (from bottom) */
-	gint32 rx_inflated;			/* Bytes inflated by the RX stack */
-	gint32 rx_read;				/* Bytes read from the RX stack */
-    gboolean rx_compressed;     /* Is rx traffic compressed */
-    float  rx_compression_ratio;/* Rx compression ratio */
-
 } gnet_node_info_t;
 
 /*
@@ -126,8 +118,7 @@ typedef void (*node_added_listener_t) (
     gnet_node_t, const gchar *, guint32, guint32);
 typedef void (*node_removed_listener_t) (
     gnet_node_t, guint32, guint32);
-typedef void (*node_changed_listener_t) (
-    gnet_node_t, gboolean, guint32, guint32);
+typedef void (*node_info_changed_listener_t) (gnet_node_t);
 
 #define node_add_listener(signal, callback) \
     node_add_##signal##_listener(callback);
@@ -139,8 +130,8 @@ void node_add_node_added_listener(node_added_listener_t);
 void node_remove_node_added_listener(node_added_listener_t);
 void node_add_node_removed_listener(node_removed_listener_t);
 void node_remove_node_removed_listener(node_removed_listener_t);
-void node_add_node_changed_listener(node_changed_listener_t);
-void node_remove_node_changed_listener(node_changed_listener_t);
+void node_add_node_info_changed_listener(node_info_changed_listener_t);
+void node_remove_node_info_changed_listener(node_info_changed_listener_t);
 
 /*
  * Nodes public interface
@@ -148,6 +139,7 @@ void node_remove_node_changed_listener(node_changed_listener_t);
 void node_add(guint32, guint16);
 void node_remove_by_handle(gnet_node_t n);
 void node_remove_nodes_by_handle(GSList *node_list);
+void node_get_status(const gnet_node_t n, gnet_node_status_t *s);
 gnet_node_info_t *node_get_info(const gnet_node_t n);
 void node_free_info(gnet_node_info_t *info);
 
@@ -176,7 +168,8 @@ typedef enum {
 /*
  * Sharing callbacks
  */
-typedef void (*search_request_listener_t) (query_type_t, const gchar *);
+typedef void (*search_request_listener_t) (
+    query_type_t, const gchar *query, guint32, guint16);
 
 void share_add_search_request_listener(search_request_listener_t l);
 void share_remove_search_request_listener(search_request_listener_t l);
@@ -445,9 +438,110 @@ void download_new(gchar *,
 	guint32, guint32, guint32, guint16, gchar *, guchar *, time_t,
     gboolean, struct dl_file_info *);
 void download_auto_new(gchar *,
-	guint32, guint32, guint32, guint16, gchar *, guchar *, time_t,
+ 	guint32, guint32, guint32, guint16, gchar *, guchar *, time_t,
     gboolean, struct dl_file_info *);
 void download_index_changed(guint32, guint16, guchar *, guint32, guint32);
+
+
+
+/***
+ *** Uploads
+ ***/
+
+typedef guint32 gnet_upload_t;
+
+typedef struct gnet_upload_status {
+    guint32 status;
+	off_t   pos;		 /* Read position in file we're sending */
+    guint32 bps;         /* Current transfer rate */
+    guint32 avg_bps;     /* Average transfer rate */
+    time_t  last_update;
+} gnet_upload_status_t;
+
+typedef struct gnet_upload_info {
+    gnet_upload_t upload_handle;
+
+    gchar  *name;        /* Name of requested file */
+
+    guint32 ip;          /* remote IP address */
+
+    guint32 file_size;   /* Size of requested file */
+    guint32 range_start; /* First byte to send, inclusive */
+    guint32 range_end;   /* Last byte to send, inclusive */
+
+    time_t  start_date;
+
+    gchar  *user_agent;  /* remote user agent */
+} gnet_upload_info_t;
+
+/*
+ * Upload states.
+ */
+
+#define GTA_UL_PUSH_RECEIVED	1	/* We got a push request */
+#define GTA_UL_COMPLETE			2	/* The file has been sent completely */
+#define GTA_UL_SENDING			3	/* We are sending data */
+#define GTA_UL_HEADERS			4	/* Receiving the HTTP request headers */
+#define GTA_UL_WAITING			5	/* Waiting new HTTP request */
+#define GTA_UL_ABORTED          6   /* Upload removed during operation */
+#define GTA_UL_CLOSED           7   /* Upload removed while waiting */
+
+/*
+ * State inspection macros.
+ */
+
+#define UPLOAD_IS_CONNECTING(u)						\
+	(	(u)->status == GTA_UL_HEADERS				\
+	||	(u)->status == GTA_UL_PUSH_RECEIVED			\
+	||	(u)->status == GTA_UL_WAITING	)
+
+#define UPLOAD_IS_COMPLETE(u)	\
+	((u)->status == GTA_UL_COMPLETE)
+
+#define UPLOAD_IS_SENDING(u)	\
+	((u)->status == GTA_UL_SENDING)
+
+/*
+ * Until we got all the HTTP headers, the entry does not appear
+ * in the upload list on the GUI.
+ */
+/*
+#define UPLOAD_IS_VISIBLE(u) \
+	((u)->status != GTA_UL_HEADERS)
+*/
+
+/*
+ * Uploads callback definitions
+ */
+typedef void (*upload_added_listener_t) (
+    gnet_upload_t, guint32, guint32);
+typedef void (*upload_removed_listener_t) (
+    gnet_upload_t, const gchar *, guint32, guint32);
+typedef void (*upload_info_changed_listener_t) (
+    gnet_upload_t, guint32, guint32);
+
+#define upload_add_listener(signal, callback) \
+    upload_add_##signal##_listener(callback);
+
+#define upload_remove_listener(signal, callback) \
+    upload_remove_##signal##_listener(callback);
+
+void upload_add_upload_added_listener(upload_added_listener_t);
+void upload_remove_upload_added_listener(upload_added_listener_t);
+void upload_add_upload_removed_listener(upload_removed_listener_t);
+void upload_remove_upload_removed_listener(upload_removed_listener_t);
+void upload_add_upload_info_changed_listener
+    (upload_info_changed_listener_t);
+void upload_remove_upload_info_changed_listener
+    (upload_info_changed_listener_t);
+
+/*
+ * Uploads public interface
+ */
+gnet_upload_info_t *upload_get_info(gnet_upload_t);
+void upload_free_info(gnet_upload_info_t *);
+void upload_get_status(gnet_upload_t u, gnet_upload_status_t *s);
+void upload_kill(gnet_upload_t);
 
 
 
