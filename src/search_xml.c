@@ -105,11 +105,12 @@ static const gchar TAG_FILTER_GLOBAL[]          = "Global";
 static const gchar TAG_FILTER_UID[]             = "UID";
 static const gchar TAG_FILTER_ACTIVE[]          = "Active";
 static const gchar TAG_SEARCH_QUERY[]           = "Query";
+static const gchar TAG_SEARCH_ENABLED[]         = "Enabled";
 static const gchar TAG_SEARCH_SPEED[]           = "Speed";
 static const gchar TAG_SEARCH_PASSIVE[]         = "Passive";
 static const gchar TAG_SEARCH_REISSUE_TIMEOUT[] = "ReissueTimeout";
 static const gchar TAG_SEARCH_SORT_COL[]        = "SortCol";
-static const gchar TAG_SEARCH_SORT_ORDER[] 		= "SortOrder";
+static const gchar TAG_SEARCH_SORT_ORDER[]      = "SortOrder";
 static const gchar TAG_RULE_TEXT_CASE[]         = "Case";
 static const gchar TAG_RULE_TEXT_MATCH[]        = "Match";
 static const gchar TAG_RULE_TEXT_TYPE[]         = "Type";
@@ -427,7 +428,7 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
     g_assert(parent != NULL);
 
     if (gui_debug >= 6) {
-        printf("saving search: %s\n", s->query);
+        printf("saving search: %s (%p enabled=%d)\n", s->query, s, s->enabled);
         printf("  -- filter is bound to: %p\n", s->filter->search);
         printf("  -- search is         : %p\n", s);
     }
@@ -435,6 +436,9 @@ static void search_to_xml(xmlNodePtr parent, search_t *s)
     newxml = xmlNewChild(parent, NULL, NODE_SEARCH, NULL);
     
     xmlSetProp(newxml, TAG_SEARCH_QUERY, s->query);
+
+    gm_snprintf(x_tmp, sizeof(x_tmp), "%u", s->enabled);
+    xmlSetProp(newxml, TAG_SEARCH_ENABLED, x_tmp);
 
   	gm_snprintf(x_tmp, sizeof(x_tmp), "%u", 
         search_get_minimum_speed(s->search_handle));
@@ -707,7 +711,8 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
 {
     gchar *buf;
     gchar *query;
-	gint sort_col = SORT_NO_COL, sort_order = SORT_NONE;
+    gboolean enabled;
+    gint sort_col = SORT_NO_COL, sort_order = SORT_NONE;
     gint32 speed;
     guint32 reissue_timeout;
     xmlNodePtr node;
@@ -728,6 +733,14 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
         return;
     }
     query = buf;
+
+    buf = xmlGetProp(xmlnode, TAG_SEARCH_ENABLED);
+    if (buf) {
+        enabled = atoi(buf);
+        g_free(buf);
+    }
+    else
+      enabled = 1; /* Compatibility : Search began always */
 
     buf = xmlGetProp(xmlnode, TAG_SEARCH_SPEED);
     if (buf) {
@@ -763,8 +776,10 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
         (passive ? SEARCH_PASSIVE : 0);
 
     if (gui_debug >= 4)
-        printf("adding new search: %s\n", query);
-    search_gui_new_search_full(query, speed, reissue_timeout, sort_col, sort_order, flags, &search);
+        printf("adding new search: %s (enabled=%d)\n", query, enabled);
+
+	search_gui_new_search_full(query, enabled, speed, reissue_timeout,
+		sort_col, sort_order, flags, &search);
 
     g_free(query);
 

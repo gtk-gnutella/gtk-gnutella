@@ -85,6 +85,7 @@ typedef struct search {
     gnet_search_t search_handle; /* Search handle */
 
 	gchar      *query;			   /* The search query */
+	gboolean    enabled;
 
 #ifdef USE_GTK2
 	GtkWidget  *tree_view;			   /* GtkCList for this search */
@@ -92,7 +93,7 @@ typedef struct search {
 #else
 	GtkWidget  *clist;			   /* GtkCList for this search */
 #endif
-	GtkWidget  *scrolled_window;   /* GtkScrolledWindow containing the GtkCList */
+	GtkWidget  *scrolled_window;   /* GtkScrolledWindow, contains the GtkCList */
 	GtkWidget  *list_item;		   /* The GtkListItem in combo for this search */
     GtkWidget  *arrow;             /* The arrow displaying sort order  */
 
@@ -100,9 +101,9 @@ typedef struct search {
     gint        sort_order;
     gboolean    sort;
 
-	time_t      last_update_time;  /* the last time the notebook tab was updated */
+	time_t      last_update_time;  /* last time the notebook tab was updated */
 	guint32     last_update_items; /* Number of items included in last update */
-	gint        tab_updating;	   /* token for timeout function to be canceled. */
+	gint        tab_updating;	   /* token for timeout func. to be cancelled */
 	guint32     unseen_items;	   /* How many items haven't been seen yet. */
 
 	gboolean    passive;		   /* Is this a passive search? */
@@ -143,7 +144,8 @@ void search_gui_shutdown(void);
 gboolean search_gui_new_search(
 	const gchar *, flag_t flags, search_t **search);
 gboolean search_gui_new_search_full(
-	const gchar *query, guint16 speed, guint32 reissue_timeout, gint sort_col, 
+	const gchar *query, gboolean enabled, guint16 speed,
+	guint32 reissue_timeout, gint sort_col, 
 	gint sort_order, flag_t flags, search_t **search);
 struct search *search_new_full(const gchar *, guint16, guint32, flag_t flags);
 void search_gui_close_search(search_t *sch);

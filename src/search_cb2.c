@@ -823,13 +823,13 @@ void on_popup_search_duplicate_activate(
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
     search = search_gui_get_current_search();
-	g_return_if_fail(NULL != search);
+    g_return_if_fail(NULL != search);
 
     /* FIXME: should also duplicate filters! */
     /* FIXME: should call search_duplicate which has to be written. */
     /* FIXME: should properly duplicate passive searches. */
 
-	search_gui_new_search_full(search->query,
+	search_gui_new_search_full(search->query, search->enabled,
 		search_get_minimum_speed(search->search_handle), 
 		timeout, search->sort_col, search->sort_order, 0, NULL);
 }
@@ -850,9 +850,10 @@ void on_popup_search_resume_activate(GtkMenuItem * menuitem,
     search_t *search;
 
     search = search_gui_get_current_search();
-	g_return_if_fail(NULL != search);
-	search_start(search->search_handle);
-    /* FIXME: Mark this entry as active again in the searches list. */
+    g_return_if_fail(NULL != search);
+    search_start(search->search_handle);
+   /* FIXME: Mark graphicaly this entry as active again in the searches list. */
+	search->enabled = TRUE;
 }
 
 void on_popup_search_stop_activate(
@@ -861,10 +862,11 @@ void on_popup_search_stop_activate(
     search_t *search;
 
     search = search_gui_get_current_search();
-	g_return_if_fail(NULL != search);
+    g_return_if_fail(NULL != search);
 
-	search_stop(search->search_handle);
-    /* FIXME: Mark this entry as inactive in the searches list. */
+    search_stop(search->search_handle);
+    /* FIXME: Mark graphicaly this entry as inactive in the searches list. */
+    search->enabled = FALSE;
 }
 
 void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,

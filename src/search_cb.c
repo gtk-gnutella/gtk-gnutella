@@ -802,7 +802,8 @@ void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,
     /* FIXME: should properly duplicate passive searches. */
 	if (search)
 		search_gui_new_search_full(search->query, 
-            search_get_minimum_speed(search->search_handle), timeout,
+            search_get_minimum_speed(search->search_handle),
+			search->enabled, timeout,
             search->sort_col, search->sort_order, 0, NULL);
 }
 
@@ -823,7 +824,9 @@ void on_popup_search_resume_activate(GtkMenuItem * menuitem,
 
     search = search_gui_get_current_search();
 	if (search) {
-		search_start(search->search_handle);
+		search_start(search->search_handle, TRUE);
+		/* FIXME: Mark graphically this entry as active again in the list. */
+		search->enabled = TRUE;
 
         gtk_clist_set_foreground(
             GTK_CLIST(lookup_widget(main_window, "clist_search")),
@@ -845,6 +848,8 @@ void on_popup_search_stop_activate
             (lookup_widget(main_window, "clist_search"));
 
 		search_stop(search->search_handle);
+		/* FIXME: Mark graphically this entry as inactive in the searches */
+		search->enabled = FALSE;
         gtk_clist_set_foreground(
             clist_search,
             gtk_notebook_get_current_page

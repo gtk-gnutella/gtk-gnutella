@@ -305,7 +305,7 @@ gnet_search_t search_new
     (const gchar *, guint16 min_speed, guint32 timeout, flag_t flags);
 void search_close(gnet_search_t sh);
 
-void search_start(gnet_search_t sh);
+void search_start(gnet_search_t sh, gboolean enabled);
 void search_stop(gnet_search_t sh);
 gboolean search_is_stopped(gnet_search_t sh);
 void search_reissue(gnet_search_t sh);

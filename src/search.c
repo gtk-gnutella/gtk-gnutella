@@ -891,7 +891,7 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
     g_assert(sch != NULL);
     g_assert(!sch->passive);
-    g_assert(!sch->frozen);
+	g_assert(!sch->frozen);
 
 	/*
 	 * We'll do query routing only if in ultra mode and we're going to
@@ -1516,7 +1516,7 @@ gnet_search_t search_new(
 	extern guint compact_query(gchar *search, gint utf8_len);
 
 	sch = g_new0(search_ctrl_t, 1);
-    sch->search_handle = search_request_handle(sch);
+	sch->search_handle = search_request_handle(sch);
 
 	/*
 	 * Canonicalize the query we're sending.
@@ -1533,7 +1533,7 @@ gnet_search_t search_new(
 
 	sch->query = atom_str_get(qdup);
 	sch->speed = minimum_speed;
-    sch->frozen = TRUE;
+	sch->frozen = TRUE;
 
 	g_free(qdup);
 
@@ -1559,15 +1559,15 @@ gnet_search_t search_new(
  *
  * Start a newly created start or resume stopped search.
  */
-void search_start(gnet_search_t sh)
+void search_start(gnet_search_t sh, gboolean enabled)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch->frozen);
 
-    sch->frozen = FALSE;
+    sch->frozen = !enabled;
 
-    if (!sch->passive) {
+    if (!sch->passive && !sch->frozen) {
 		/*
 		 * If we just created the search with search_new(), there will be
 		 * no message ever sent, and sch->muids will be NULL.
