@@ -215,7 +215,7 @@ struct gnutella_node
 	guint16 n_dups;				/* Number of dup messages received (bad) */
 	guint16 n_hard_ttl;			/* Number of hard_ttl exceeded (bad) */
 
-	gboolean allocated;		/* TRUE if we have allocated extra memory for message data */
+	guint32 allocated;			/* Size of allocated buffer data, 0 for none */
 	gboolean have_header;	/* TRUE if we have got a full message header */
 
 	time_t last_update;		/* Timestamp of last update of the node in the GUI */
