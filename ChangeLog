@@ -1,5 +1,15 @@
 # since last version
 
+- (2003.06.12 - Jeroen)
+ * PARQ: Max uploads from single host is also detected and used in PARQ now.
+ * PARQ: Timesout small upload chunks sooner now. This should make sure people
+         who were unable to have all there upload slots used before, because
+	 they were only sharing relative small and popular files, to maximize
+	 their bandwith usage again if they want. This shouldn't affect PARQs 
+	 behaviour for small files.
+	 NOTE: This is:  #if 0 in the parq code, and thus actually disabled.
+ * PARQ: No more assertion failure on gtk-gnutella shutdown (I hope)
+
 - (2003.06.09 - RAM)
  * Raised default amount of downloads from 10 to 50.
  * Doubled max PARQ retry time, and lowered retry frequency for queued entries.
