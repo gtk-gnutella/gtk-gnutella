@@ -314,12 +314,14 @@ create_main_window (void)
   GtkWidget *label514;
   GtkWidget *label515;
   GtkWidget *label516;
+  GtkWidget *viewport43;
   GtkWidget *hbox175;
   GtkWidget *label546;
   GtkWidget *label_fi_all_count;
   GtkWidget *label542;
   GtkWidget *label_fi_with_source_count;
   GtkWidget *label545;
+  GtkWidget *label655;
   GtkWidget *frame78;
   GtkWidget *vbox110;
   GtkWidget *table59;
@@ -357,7 +359,7 @@ create_main_window (void)
   GtkWidget *table68;
   GtkWidget *label460;
   GtkWidget *label541;
-  GtkWidget *checkbutton_search_jump_to_downloads;
+  GtkWidget *checkbutton_search_sort_casesense;
   GtkWidget *alignment27;
   GtkObject *spinbutton_search_max_results_adj;
   GtkWidget *spinbutton_search_max_results;
@@ -1486,15 +1488,16 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (sw_menu), ctree_menu);
   gtk_clist_set_column_width (GTK_CLIST (ctree_menu), 0, 80);
   gtk_clist_set_selection_mode (GTK_CLIST (ctree_menu), GTK_SELECTION_BROWSE);
-  gtk_clist_column_titles_hide (GTK_CLIST (ctree_menu));
+  gtk_clist_column_titles_show (GTK_CLIST (ctree_menu));
 
-  label117 = gtk_label_new (_("Menu"));
+  label117 = gtk_label_new (_("Nagivator"));
   gtk_widget_set_name (label117, "label117");
   gtk_widget_ref (label117);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label117", label117,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label117);
   gtk_clist_set_column_widget (GTK_CLIST (ctree_menu), 0, label117);
+  gtk_misc_set_alignment (GTK_MISC (label117), 7.45058e-09, 0.5);
 
   vbox46 = gtk_vbox_new (FALSE, 4);
   gtk_widget_set_name (vbox46, "vbox46");
@@ -3707,13 +3710,21 @@ create_main_window (void)
   gtk_widget_show (label516);
   gtk_clist_set_column_widget (GTK_CLIST (clist_fileinfo), 4, label516);
 
+  viewport43 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport43, "viewport43");
+  gtk_widget_ref (viewport43);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport43", viewport43,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (viewport43);
+  gtk_box_pack_start (GTK_BOX (vbox111), viewport43, FALSE, TRUE, 0);
+
   hbox175 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox175, "hbox175");
   gtk_widget_ref (hbox175);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox175", hbox175,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox175);
-  gtk_box_pack_start (GTK_BOX (vbox111), hbox175, FALSE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (viewport43), hbox175);
 
   label546 = gtk_label_new ("");
   gtk_widget_set_name (label546, "label546");
@@ -3721,7 +3732,8 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label546", label546,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label546);
-  gtk_box_pack_start (GTK_BOX (hbox175), label546, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox175), label546, FALSE, TRUE, 0);
+  gtk_widget_set_usize (label546, 5, -2);
 
   label_fi_all_count = gtk_label_new (_("[all count]"));
   gtk_widget_set_name (label_fi_all_count, "label_fi_all_count");
@@ -3729,7 +3741,8 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_fi_all_count", label_fi_all_count,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_fi_all_count);
-  gtk_box_pack_start (GTK_BOX (hbox175), label_fi_all_count, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox175), label_fi_all_count, TRUE, TRUE, 0);
+  gtk_misc_set_alignment (GTK_MISC (label_fi_all_count), 1, 0.5);
 
   label542 = gtk_label_new (_(" registered, "));
   gtk_widget_set_name (label542, "label542");
@@ -3755,6 +3768,15 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label545);
   gtk_box_pack_start (GTK_BOX (hbox175), label545, FALSE, FALSE, 0);
+
+  label655 = gtk_label_new ("");
+  gtk_widget_set_name (label655, "label655");
+  gtk_widget_ref (label655);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label655", label655,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label655);
+  gtk_box_pack_start (GTK_BOX (hbox175), label655, FALSE, FALSE, 0);
+  gtk_widget_set_usize (label655, 5, -2);
 
   frame78 = gtk_frame_new (_("Detail information"));
   gtk_widget_set_name (frame78, "frame78");
@@ -4092,13 +4114,13 @@ create_main_window (void)
   gtk_label_set_justify (GTK_LABEL (label541), GTK_JUSTIFY_RIGHT);
   gtk_misc_set_alignment (GTK_MISC (label541), 0, 0.5);
 
-  checkbutton_search_jump_to_downloads = gtk_check_button_new_with_label (_("Jump to downloads"));
-  gtk_widget_set_name (checkbutton_search_jump_to_downloads, "checkbutton_search_jump_to_downloads");
-  gtk_widget_ref (checkbutton_search_jump_to_downloads);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_jump_to_downloads", checkbutton_search_jump_to_downloads,
+  checkbutton_search_sort_casesense = gtk_check_button_new_with_label (_("Case-sensitive sorting"));
+  gtk_widget_set_name (checkbutton_search_sort_casesense, "checkbutton_search_sort_casesense");
+  gtk_widget_ref (checkbutton_search_sort_casesense);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_sort_casesense", checkbutton_search_sort_casesense,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_search_jump_to_downloads);
-  gtk_table_attach (GTK_TABLE (table68), checkbutton_search_jump_to_downloads, 0, 2, 2, 3,
+  gtk_widget_show (checkbutton_search_sort_casesense);
+  gtk_table_attach (GTK_TABLE (table68), checkbutton_search_sort_casesense, 0, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
