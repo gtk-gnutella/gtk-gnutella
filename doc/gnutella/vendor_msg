@@ -4,6 +4,7 @@
                           Raphael Manfredi
                     <Raphael_Manfredi@pobox.com>
                         January 2nd, 2003
+                    Revised on January 5th, 2003
                 
 
 [These specifications are a summary of messages exchanged on the GDF.
@@ -105,7 +106,7 @@ or close the connection if the reply does not come after a timeout,
 for instance.
 
 Whenever a servent supporting vendor messages meets another servent that
-has advertised "Vendor-Messages" in its handshaking header, it MUST send
+has advertised "Vendor-Message" in its handshaking header, it MUST send
 it a "Messages Supported" message, guaranteed to be understood by all
 implementations, right after the initial "handshaking ping".
 
@@ -164,6 +165,13 @@ Ultrapeers that they should turn the forwarding of queries on and off
 the leaf has sharing of files turned on. Setting hops to 0 results in a
 substantial bandwidth reduction with modem users who have large shared
 file sets but turn sharing off to speed up downloads.
+
+Gtk-Gnutella also uses the Hops Flow feature between ultra nodes to
+inform the remote node about a flow-control condition locally and to
+request that the remote node no longer be sending queries that would
+immediately be dropped anyway upon reception.  In that case, the Hops
+Flow message is sent ahead of all the other messages in the queue to
+ensure prompt delivery.
 
 Here is a detailed description of the message payload within the 0x31
 Gnutella message:
