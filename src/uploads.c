@@ -556,7 +556,7 @@ static void upload_remove_v(
 		}
 	}
 
-	if (dbg > 1) {
+	if (!UPLOAD_IS_COMPLETE(u) && dbg > 1) {
 		if (u->name) {
 			printf("Cancelling upload for %s from %s: %s\n",
 				u->name,
@@ -1202,7 +1202,31 @@ static struct shared_file *get_file_to_upload_from_index(
 
 		if (sfn && sf != sfn) {
 			gchar location[1024];
-			gchar *escaped = url_escape(sfn->file_name);
+			gchar *escaped;
+
+			/*
+			 * Be nice to pushed downloads: returning a 301 currently means
+			 * a connection close, and they might not be able to reach us.
+			 * Transparently remap their request.
+			 *
+			 * We don't do it for regular connections though, because servents
+			 * MUST be prepared to deal with redirection requests.
+			 *
+			 *		--RAM, 14/10/2002
+			 */
+
+			if (u->push) {
+				if (dbg > 4) {
+					printf("INDEX FIXED (push, SHA1 = %s): "
+						"requested %u, serving %u: %s\n",
+						sha1_base32(digest), index,
+						sfn->file_index, sfn->file_path);
+				}
+				sf = sfn;
+				goto found;
+			}
+
+			escaped = url_escape(sfn->file_name);
 
 			g_snprintf(location, sizeof(location),
 				"Location: http://%s/get/%d/%s\r\n",
@@ -2091,8 +2115,6 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 
 	/* This upload is complete */
 	if (u->pos > u->end) {
-        guint32 val = total_uploads+1;
-
 		/*
 		 * We do the following before cloning, since this will reset most
 		 * of the information, including the upload name.  If they chose
@@ -2100,7 +2122,7 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 		 */
 		u->status = GTA_UL_COMPLETE;
 
-        gnet_prop_set_guint32(PROP_TOTAL_UPLOADS, &val, 0, 1);
+        gnet_prop_set_guint32_val(PROP_TOTAL_UPLOADS, total_uploads + 1);
 		ul_stats_file_complete(u);
         upload_fire_upload_info_changed(u); /* gui must update last state */
 		u->accounted = TRUE;			/* Called ul_stats_file_complete() */
