@@ -1302,7 +1302,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new ("Rapha\303«l Manfredi");
+  label493 = gtk_label_new ("RaphaÃ«l Manfredi");
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
@@ -1310,7 +1310,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new ("Rapha\303«l Manfredi");
+  label494 = gtk_label_new ("RaphaÃ«l Manfredi");
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -1362,7 +1362,7 @@ create_dlg_about (void)
   gtk_text_view_set_left_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_view_set_right_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_buffer_set_text (gtk_text_view_get_buffer (GTK_TEXT_VIEW (textview1)),
-	"Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRapha\303«l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>\nko <junkpile@free.fr>\nJeroen Asselman <jeroen@asselman.com>\nT'aZ <tazdev@altern.org>", -1);
+	"Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaÃ«l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>\nko <junkpile@free.fr>\nJeroen Asselman <jeroen@asselman.com>\nT'aZ <tazdev@altern.org>\nAndrew Barnert <barnert@myrealbox.com>", -1);
 
   label302 = gtk_label_new ("Contributors");
   gtk_widget_set_name (label302, "label302");
