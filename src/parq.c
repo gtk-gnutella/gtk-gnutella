@@ -2285,9 +2285,9 @@ cleanup:
 	g_assert(parq_ul != NULL);
 
 	if (parq_ul->u != NULL) {
-		if (parq_ul->u == u) {
-			g_warning("Request from ip %s (%s), requested a new upload %s while"
-				" another one is still active within PARQ",
+		if (parq_ul->u != u) {
+			g_warning("[PARQ UL] Request from ip %s (%s), requested a new "
+				"upload %s while another one is still active within PARQ",
 				ip_to_gchar(u->ip), upload_vendor_str(u), u->name);
 			return NULL;
 		}
