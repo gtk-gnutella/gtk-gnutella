@@ -9136,23 +9136,6 @@ for all filters</label>
 		</widget>
 	      </widget>
 	    </widget>
-
-	    <widget>
-	      <class>GtkLabel</class>
-	      <name>label206</name>
-	      <label>Rules are matched in order. Matching will end when &quot;display&quot; or &quot;don't display&quot; is reached. To avoid circles a filter will never be jumped to twice. If no rule matches, the default policy will be applied.</label>
-	      <justify>GTK_JUSTIFY_FILL</justify>
-	      <wrap>True</wrap>
-	      <xalign>0.5</xalign>
-	      <yalign>0.5</yalign>
-	      <xpad>0</xpad>
-	      <ypad>0</ypad>
-	      <child>
-		<padding>0</padding>
-		<expand>False</expand>
-		<fill>False</fill>
-	      </child>
-	    </widget>
 	  </widget>
 
 	  <widget>

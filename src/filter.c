@@ -1895,9 +1895,9 @@ void filter_adapt_order(void)
     (prop_count) ++;                                              \
     (r)->target->match_count ++;                                  \
                                                                   \
-    if(dbg >= 6)                                                  \
-        printf("matched rule: %s\n", filter_rule_to_gchar((r)));  \
-
+    if (dbg >= 6)                                                 \
+        printf("matched rule: %s\n", filter_rule_to_gchar((r)));
+   
 /*
  * filter_apply:
  *
@@ -1949,7 +1949,7 @@ static int filter_apply
             case RULE_JUMP:
                 match = TRUE;
                 break;
-                case RULE_TEXT:
+            case RULE_TEXT:
                 switch (r->u.text.type) {
                 case RULE_TEXT_EXACT:
                     if (strcmp(r->u.text.case_sensitive ? rec->name : l_name,
@@ -2085,46 +2085,59 @@ static int filter_apply
 		if (RULE_IS_NEGATED(r) && RULE_IS_ACTIVE(r))
 			match = !match;
 
+        /*
+         * Try to match the builtin rules, but don't act on matches
+         * that would change a result property that was already
+         * defined.
+         */
         if (match) {
             if (r->target == filter_return) {
                 abort = TRUE;
                 r->match_count ++;
                 r->target->match_count ++;
             } else
-            if ((r->target == filter_show) && 
-                (!res->props[FILTER_PROP_DISPLAY].state)) {
+            if ((r->target == filter_show)) {
+                if (!res->props[FILTER_PROP_DISPLAY].state) {
 
-                res->props[FILTER_PROP_DISPLAY].state =
-                    FILTER_PROP_STATE_DO;
+                    res->props[FILTER_PROP_DISPLAY].state =
+                        FILTER_PROP_STATE_DO;
 
-                MATCH_RULE(filter, r, res);
+                    MATCH_RULE(filter, r, res);
+                }
             } else 
-            if ((r->target == filter_drop) && 
-                (!res->props[FILTER_PROP_DISPLAY].state)) {
+            if (r->target == filter_drop) {
+                if (!res->props[FILTER_PROP_DISPLAY].state) {
 
-                res->props[FILTER_PROP_DISPLAY].state =
-                    FILTER_PROP_STATE_DONT;
-                res->props[FILTER_PROP_DISPLAY].user_data =
-                    (gpointer) (RULE_IS_SOFT(r) ? 1 : 0);
+                    res->props[FILTER_PROP_DISPLAY].state =
+                        FILTER_PROP_STATE_DONT;
+                    res->props[FILTER_PROP_DISPLAY].user_data =
+                        (gpointer) (RULE_IS_SOFT(r) ? 1 : 0);
 
-                MATCH_RULE(filter, r, res);
+                    MATCH_RULE(filter, r, res);
+                }
             } else 
-            if ((r->target == filter_download) &&
-                (!res->props[FILTER_PROP_DOWNLOAD].state)) {
+            if (r->target == filter_download){
+                if (!res->props[FILTER_PROP_DOWNLOAD].state) {
                 
-                res->props[FILTER_PROP_DOWNLOAD].state =
-                    FILTER_PROP_STATE_DO;
+                    res->props[FILTER_PROP_DOWNLOAD].state =
+                        FILTER_PROP_STATE_DO;
 
-                MATCH_RULE(filter, r, res);
+                    MATCH_RULE(filter, r, res);
+                }
             } else 
-            if ((r->target == filter_nodownload) &&
-                (!res->props[FILTER_PROP_DOWNLOAD].state)) {
+            if (r->target == filter_nodownload) {
+                if (!res->props[FILTER_PROP_DOWNLOAD].state) {
                 
-                res->props[FILTER_PROP_DOWNLOAD].state =
-                    FILTER_PROP_STATE_DONT;
+                    res->props[FILTER_PROP_DOWNLOAD].state =
+                        FILTER_PROP_STATE_DONT;
 
-                MATCH_RULE(filter, r, res);
+                    MATCH_RULE(filter, r, res);
+                }
             } else {
+                /*
+                 * We have a matched rule the target is not a builtin
+                 * rule, so it must be a subchain. We gosub.
+                 */
                 prop_count += filter_apply(r->target, rec, res);
                 r->match_count ++;
             }
@@ -2187,10 +2200,7 @@ filter_result_t *filter_record(search_t *sch, record_t *rec)
      */
 	if (result->props_set < MAX_FILTER_PROP)
 		filter_apply(filter_global_post, rec, result);
-
     
-    // FIXME: if no filter can decide, use the default.
-
     /* FIXME: this does no longer give useful output
     if (dbg >= 5) {
         printf("result %d for search \"%s\" matching \"%s\" (%s)\n",

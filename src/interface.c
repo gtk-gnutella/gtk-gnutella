@@ -5357,7 +5357,6 @@ create_dlg_filters (void)
   GtkWidget *vbox48;
   GtkWidget *hbox112;
   GtkWidget *table21;
-  GtkWidget *label206;
   GtkWidget *label136;
   GtkWidget *vbox52;
   GtkWidget *alignment12;
@@ -5859,15 +5858,6 @@ create_dlg_filters (void)
   gtk_table_attach (GTK_TABLE (table21), button_filter_add_rule_state, 1, 2, 2, 3,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-
-  label206 = gtk_label_new ("Rules are matched in order. Matching will end when \"display\" or \"don't display\" is reached. To avoid circles a filter will never be jumped to twice. If no rule matches, the default policy will be applied.");
-  gtk_widget_ref (label206);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label206", label206,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label206);
-  gtk_box_pack_start (GTK_BOX (vbox48), label206, FALSE, FALSE, 0);
-  gtk_label_set_justify (GTK_LABEL (label206), GTK_JUSTIFY_FILL);
-  gtk_label_set_line_wrap (GTK_LABEL (label206), TRUE);
 
   label136 = gtk_label_new ("Add/remove");
   gtk_widget_ref (label136);
