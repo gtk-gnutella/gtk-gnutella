@@ -62,6 +62,7 @@
 #include "gnet_stats.h"
 #include "ioheader.h"
 #include "ban.h"
+#include "hcache.h"
 
 #include "settings.h"
 
@@ -421,8 +422,10 @@ void node_real_remove(gnutella_node_t *node)
 	 *		--RAM, 13/01/2002
 	 */
 
+	// XXX if was ultrapeer, use HCACHE_ULTRA
+
 	if (node->gnet_ip && (node->flags & NODE_F_VALID))
-		host_save_valid(node->gnet_ip, node->gnet_port);
+		hcache_save_valid(HCACHE_ANY, node->gnet_ip, node->gnet_port);
 
 	/*
 	 * The io_opaque structure is not freed by node_remove(), so that code
@@ -973,7 +976,7 @@ static void send_connection_pongs(struct gnutella_node *n, guchar *muid)
 	gint hcount;
 	gint pongs = 0;		/* Pongs we sent */
 
-	hcount = host_fill_caught_array(hosts, CONNECT_PONGS_COUNT);
+	hcount = hcache_fill_caught_array(HCACHE_ANY, hosts, CONNECT_PONGS_COUNT);
 	g_assert(hcount >= 0 && hcount <= CONNECT_PONGS_COUNT);
 
 	if (hcount) {
@@ -1022,7 +1025,7 @@ static gchar *formatted_connection_pongs(gchar *field)
 	struct gnutella_host hosts[CONNECT_PONGS_COUNT];
 	gint hcount;
 
-	hcount = host_fill_caught_array(hosts, CONNECT_PONGS_COUNT);
+	hcount = hcache_fill_caught_array(HCACHE_ANY, hosts, CONNECT_PONGS_COUNT);
 	g_assert(hcount >= 0 && hcount <= CONNECT_PONGS_COUNT);
 
 	/*

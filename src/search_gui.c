@@ -886,7 +886,7 @@ void search_matched(search_t *sch, results_set_t *rs)
     gnet_prop_get_boolean(PROP_IS_FIREWALLED, &is_firewalled, 0, 1);
 
 	need_push = (rs->status & ST_FIREWALL) ||
-		!check_valid_host(rs->ip, rs->port);
+		!host_is_valid(rs->ip, rs->port);
 	skip_records = (!send_pushes || is_firewalled) && need_push;
 
 	if (gui_debug > 6)
@@ -1112,7 +1112,7 @@ static void download_selection_of_clist(GtkCList * c)
 
 		rs = rc->results_set;
 		need_push =
-			(rs->status & ST_FIREWALL) || !check_valid_host(rs->ip, rs->port);
+			(rs->status & ST_FIREWALL) || !host_is_valid(rs->ip, rs->port);
 		download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
 					 rs->guid, rc->sha1, rs->stamp, need_push, NULL);
 

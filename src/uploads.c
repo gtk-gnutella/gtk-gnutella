@@ -324,7 +324,7 @@ void handle_push_request(struct gnutella_node *n)
 	 * allows easy local testing. -- RAM, 11/11/2002
 	 */
 
-	if (!check_valid_host(ip, port) && !node_is_connected(ip, port, TRUE)) {
+	if (!host_is_valid(ip, port) && !node_is_connected(ip, port, TRUE)) {
 		g_warning("PUSH request (hops=%d, ttl=%d) from invalid address %s",
 			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port));
 		return;
@@ -1484,7 +1484,7 @@ static void upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg)
 	ip = listen_ip();
 	port = listen_port;
 
-	if (check_valid_host(ip, port)) {
+	if (host_is_valid(ip, port)) {
 		gchar *xhost = ip_port_to_gchar(ip, port);
 		gint needed_room = strlen(xhost) + sizeof("X-Host: \r\n") - 1;
 		if (length > needed_room)

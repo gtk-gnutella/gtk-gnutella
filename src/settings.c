@@ -44,6 +44,7 @@
 #include "upload_stats.h"
 #include "sockets.h"
 #include "inet.h"
+#include "hcache.h"
 
 #define debug dbg
 
@@ -198,8 +199,8 @@ void settings_init(void)
 		/* Parse the configuration */
         prop_load_from_file(properties, config_dir, config_file);
     
-		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, host_file);
-		hosts_read_from_file(cfg_tmp, TRUE);	/* Loads the catched hosts */
+		hcache_retrieve(HCACHE_ANY);
+		hcache_retrieve(HCACHE_ULTRA);
 
 		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s",
 			config_dir, ul_stats_file);
@@ -247,15 +248,27 @@ guint32 *settings_parse_array(gchar * str, guint32 n)
 
 void settings_hostcache_save(void)
 {
-	/* Save the catched hosts & upload history */
+	gboolean reading;
 
-	if (hosts_idle_func) {
+	/* Save the caught hosts */
+
+	gnet_prop_get_boolean_val(PROP_READING_HOSTFILE, &reading);
+
+	if (reading)
 		g_warning("exit() while still reading the hosts file, "
-			"catched hosts not saved !\n");
-	} else {
-		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, host_file);
-		hosts_write_to_file(cfg_tmp);
-	}
+			"caught hosts not saved !\n");
+	else
+		hcache_store(HCACHE_ANY);
+
+	/* Save the caught ultra hosts */
+
+	gnet_prop_get_boolean_val(PROP_READING_ULTRAFILE, &reading);
+
+	if (reading)
+		g_warning("exit() while still reading the ultrahosts file, "
+			"caught hosts not saved !\n");
+	else
+		hcache_store(HCACHE_ULTRA);
 }
 
 /*
@@ -425,17 +438,32 @@ static gboolean max_connections_changed(property_t prop)
 
 static gboolean max_hosts_cached_changed(property_t prop)
 {
-    guint32 max_hosts_cached;
-    guint32 hosts_in_catcher;
+    guint32 max_hosts;
+    guint32 host_count;
 
-    gnet_prop_get_guint32_val(PROP_MAX_HOSTS_CACHED, &max_hosts_cached);
-    gnet_prop_get_guint32_val(PROP_HOSTS_IN_CATCHER, &hosts_in_catcher);
+    gnet_prop_get_guint32_val(PROP_MAX_HOSTS_CACHED, &max_hosts);
+    gnet_prop_get_guint32_val(PROP_HOSTS_IN_CATCHER, &host_count);
 
-    if (max_hosts_cached < hosts_in_catcher)
-        host_prune_cache();
+    if (max_hosts < host_count)
+        hcache_prune(HCACHE_ANY);
 
     return FALSE;
 }
+
+static gboolean max_ultra_hosts_cached_changed(property_t prop)
+{
+    guint32 max_hosts;
+    guint32 host_count;
+
+    gnet_prop_get_guint32_val(PROP_MAX_ULTRA_HOSTS_CACHED, &max_hosts);
+    gnet_prop_get_guint32_val(PROP_HOSTS_IN_ULTRA_CATCHER, &host_count);
+
+    if (max_hosts < host_count)
+        hcache_prune(HCACHE_ULTRA);
+
+    return FALSE;
+}
+
 
 static gboolean listen_port_changed(property_t prop)
 {
@@ -766,6 +794,11 @@ static prop_map_t property_map[] = {
         max_hosts_cached_changed, 
         TRUE 
     },
+    {
+        PROP_MAX_ULTRA_HOSTS_CACHED, 
+        max_ultra_hosts_cached_changed, 
+        TRUE 
+	},
     {
         PROP_LISTEN_PORT, 
         listen_port_changed, 
