@@ -333,7 +333,7 @@
 		    <handler>on_menu_autohide_bws_gleaf_activate</handler>
 		    <last_modification_time>Wed, 24 Dec 2003 15:24:49 GMT</last_modification_time>
 		  </signal>
-		  <label>auto-hide leaf traffc stats</label>
+		  <label>auto-hide leaf traffic stats</label>
 		  <active>False</active>
 		  <always_show_toggle>True</always_show_toggle>
 		</widget>
@@ -1095,7 +1095,7 @@
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame_bws_glinout</name>
-	      <label>leaf traffic</label>
+	      <label>Leaf traffic</label>
 	      <label_xalign>0.5</label_xalign>
 	      <shadow_type>GTK_SHADOW_NONE</shadow_type>
 	      <child>

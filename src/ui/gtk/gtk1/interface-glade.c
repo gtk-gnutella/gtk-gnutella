@@ -935,7 +935,7 @@ create_main_window (void)
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_gnet_leaf_stats_visible), menu_gnet_leaf_stats_visible_menu);
   menu_gnet_leaf_stats_visible_menu_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (menu_gnet_leaf_stats_visible_menu));
 
-  menu_autohide_bws_gleaf = gtk_check_menu_item_new_with_label (_("auto-hide leaf traffc stats"));
+  menu_autohide_bws_gleaf = gtk_check_menu_item_new_with_label (_("auto-hide leaf traffic stats"));
   gtk_widget_set_name (menu_autohide_bws_gleaf, "menu_autohide_bws_gleaf");
   gtk_widget_ref (menu_autohide_bws_gleaf);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_autohide_bws_gleaf", menu_autohide_bws_gleaf,
