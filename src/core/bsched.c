@@ -34,8 +34,9 @@
 RCSID("$Id$");
 
 #include "bsched.h"
-#include "if/core/wrap.h"		/* wrapped_io_t */
+#include "uploads.h"
 
+#include "if/core/wrap.h"		/* wrapped_io_t */
 #include "if/gnet_property_priv.h"
 
 #include "lib/glib-missing.h"
@@ -2119,7 +2120,7 @@ bsched_timer(void)
  *
  * 1. There must be more than BW_OUT_UP_MIN outgoing bandwidth available.
  * 2. If bandwidth schedulers are enabled, leaf nodes must not be configured
- *    to steal all the HTTP outgoing bandwidth.
+ *    to steal all the HTTP outgoing bandwidth, unless they disabled uploads.
  * 3. If Gnet out scheduler is enabled, there must be at least BW_OUT_GNET_MIN
  *    bytes per gnet connection.
  * 4. Overall, there must be BW_OUT_LEAF_MIN bytes per configured leaf plus
@@ -2133,7 +2134,10 @@ bsched_enough_up_bandwidth(void)
 	if (ul_running && bws_out_ema < BW_OUT_UP_MIN)
 		return FALSE;		/* 1. */
 
-	if (bws_glout_enabled && bws_out_enabled && bw_gnet_lout >= bw_http_out)
+	if (
+		bws_glout_enabled && bws_out_enabled &&
+		bw_gnet_lout >= bw_http_out && upload_is_enabled()
+	)
 		return FALSE;		/* 2. */
 
 	if (
