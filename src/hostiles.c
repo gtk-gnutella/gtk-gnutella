@@ -67,7 +67,7 @@ void hostiles_retrieve(void)
 	file_path_t fp[] = {
 		{ settings_config_dir(), hostiles_file },
 		{ PACKAGE_DATA_DIR, hostiles_file },
-#ifdef PACKAGE_SOURCE_DIR
+#ifdef USE_SOURCE_DIR_AS_FALLBACK 
 		{ PACKAGE_SOURCE_DIR, hostiles_file },
 #endif
 	};
