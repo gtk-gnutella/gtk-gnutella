@@ -625,7 +625,7 @@ gboolean adns_resolve(
 		return FALSE; /* synchronous */
 	}
 
-	strlower(query.hostname, hostname);
+	ascii_strlower(query.hostname, hostname);
 	query.data = atom_str_get(query.hostname);
 	if (adns_cache_lookup(adns_cache, time(NULL), query.data, &reply.ip)) {
 		atom_str_free(query.data);

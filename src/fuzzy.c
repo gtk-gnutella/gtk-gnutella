@@ -38,42 +38,29 @@ typedef struct word_entry {
 	gchar s[1]; /* dynamically resized */
 } word_entry_t;
 
-static char *fuzzy_strlower(char *dst, const char *src, size_t len)
-{
-	guchar *p = (guchar *) dst;
-	size_t i = len;
-
-	g_assert(len > 0);
-	g_assert(NULL != dst);
-
-	while ('\0' != (*p = tolower((guchar) *src)) && --i > 0)
-		src++, p++;
-
-	g_assert((gchar *) p < dst + len);
-	*p = '\0'; /* The ``dst'' buffer could be smaller than src is long. */
-	return dst;
-}
 
 static GSList *fuzzy_make_word_list(const char *str)
 {
 	GSList *l = NULL;
-	const char *p;
-	size_t size;
 
 	while (*str) {
-		while (*str && !isalnum((guchar) *str)) str++;
-		p = str;
-		size = 1;
-		while (isalnum((guchar) *str)) {
+		const char *p;
+		size_t size;
+
+		while (*str && !is_ascii_alnum((guchar) *str))
 			str++;
-			size++;
+		p = str;
+		while (is_ascii_alnum((guchar) *str)) {
+			str++;
 		}
+		size = (str - p) + 1; /* Include space for the NUL-byte */
 		if (*p) {
 			size_t n = G_STRUCT_OFFSET(word_entry_t, s) + size;
 			word_entry_t *w = walloc(n);
 		
 			w->len = n;
-			fuzzy_strlower(w->s, p, size);
+			g_strlcpy(w->s, p, size);
+			ascii_strlower(w->s, w->s);
 			l = g_slist_append(l, w);
 		}
 	}
@@ -156,3 +143,4 @@ gulong fuzzy_compare(const char *str1, const char *str2)
 	return score;
 }
 
+/* vi: set ts=4: */

@@ -224,14 +224,6 @@ struct download *src_get_download(gnet_src_t src_handle)
 
 
 
-/***
- *** Traditional downloads API
- ***/
-
-#ifdef USE_GTK2
-#define g_strdown(s) strlower((s), (s))
-#endif
-
 /*
  * dl_key_hash
  *
@@ -6049,7 +6041,7 @@ static void download_request(
 	if (buf) {
 		guint32 start, end, total;
 
-		g_strdown(buf);				/* Normalize case */
+		ascii_strlower(buf, buf);				/* Normalize case */
 		if (
 			sscanf(buf, "bytes %d-%d/%d", &start, &end, &total) ||	/* Good */
 			sscanf(buf, "bytes=%d-%d/%d", &start, &end, &total)		/* Bad! */
@@ -6898,7 +6890,8 @@ static void download_push_ready(struct download *d, getline_t *empty)
  *
  * Returns the selected download, or NULL if we could not find one.
  */
-static struct download *select_push_download(guint file_index, gchar *hex_guid)
+static struct download *select_push_download(guint file_index,
+	const gchar *hex_guid)
 {
 	struct download *d = NULL;
 	GSList *list;
@@ -6906,7 +6899,6 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 	gint i;
 	time_t now;
 
-	g_strdown(hex_guid);
 	gm_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s", file_index, hex_guid);
 
 	list = (GSList *) g_hash_table_lookup(pushed_downloads, (gpointer) dl_tmp);
@@ -7133,6 +7125,7 @@ void download_push_ack(struct gnutella_socket *s)
 	 */
 
 	hex_guid[32] = '\0';
+	ascii_strlower(hex_guid, hex_guid);
 	d = select_push_download(file_index, hex_guid);
 	if (!d) {
 		g_warning("discarded GIV string: %s", giv);
