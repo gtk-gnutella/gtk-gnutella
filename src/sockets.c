@@ -23,6 +23,10 @@
 #include "getline.h"
 #include "bsched.h"
 
+#if !defined(SOL_TCP) && defined(IPPROTO_TCP)
+#define SOL_TCP IPPROTO_TCP
+#endif
+
 guint32 local_ip = 0;
 gboolean is_firewalled = TRUE;		/* Assume the worst --RAM, 20/12/2001 */
 
@@ -692,6 +696,10 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
  */
 void sock_cork(struct gnutella_socket *s, gboolean on)
 {
+#if !defined(TCP_CORK) && defined(TCP_NOPUSH)
+#define TCP_CORK TCP_NOPUSH		/* FreeBSD names it TCP_NOPUSH */
+#endif
+
 #ifdef TCP_CORK
 	gint arg = on ? 1 : 0;
 
