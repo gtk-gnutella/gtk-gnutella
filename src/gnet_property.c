@@ -360,10 +360,10 @@ guint32  fi_with_source_count     = 0;
 guint32  fi_with_source_count_def = 0;
 guint32  dl_qalive_count     = 0;
 guint32  dl_qalive_count_def = 0;
-guint32  dl_byte_count     = 0;
-guint32  dl_byte_count_def = 0;
-guint32  ul_byte_count     = 0;
-guint32  ul_byte_count_def = 0;
+guint64  dl_byte_count     = 0;
+guint64  dl_byte_count_def = 0;
+guint64  ul_byte_count     = 0;
+guint64  ul_byte_count_def = 0;
 gboolean pfsp_server     = TRUE;
 gboolean pfsp_server_def = TRUE;
 guint32  pfsp_first_chunk     = 524288;
@@ -3245,12 +3245,12 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[148].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[148].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[148].data.guint32.def   = &dl_byte_count_def;
-    gnet_property->props[148].data.guint32.value = &dl_byte_count;
-    gnet_property->props[148].data.guint32.choices = NULL;
-    gnet_property->props[148].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[148].data.guint32.min   = 0x00000000;
+    gnet_property->props[148].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[148].data.guint64.def   = &dl_byte_count_def;
+    gnet_property->props[148].data.guint64.value = &dl_byte_count;
+    gnet_property->props[148].data.guint64.choices = NULL;
+    gnet_property->props[148].data.guint64.max   = (guint64) -1;
+    gnet_property->props[148].data.guint64.min   = 0x0000000000000000;
 
 
     /*
@@ -3265,12 +3265,12 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[149].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[149].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[149].data.guint32.def   = &ul_byte_count_def;
-    gnet_property->props[149].data.guint32.value = &ul_byte_count;
-    gnet_property->props[149].data.guint32.choices = NULL;
-    gnet_property->props[149].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[149].data.guint32.min   = 0x00000000;
+    gnet_property->props[149].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[149].data.guint64.def   = &ul_byte_count_def;
+    gnet_property->props[149].data.guint64.value = &ul_byte_count;
+    gnet_property->props[149].data.guint64.choices = NULL;
+    gnet_property->props[149].data.guint64.max   = (guint64) -1;
+    gnet_property->props[149].data.guint64.min   = 0x0000000000000000;
 
 
     /*
@@ -3532,6 +3532,18 @@ guint32 *gnet_prop_get_guint32(
     return prop_get_guint32(gnet_property, prop, t, offset, length);
 }
 
+void gnet_prop_set_guint64(
+    property_t prop, const guint64 *src, gsize offset, gsize length)
+{
+    prop_set_guint64(gnet_property, prop, src, offset, length);
+}
+
+guint64 *gnet_prop_get_guint64(
+    property_t prop, guint64 *t, gsize offset, gsize length)
+{
+    return prop_get_guint64(gnet_property, prop, t, offset, length);
+}
+
 void gnet_prop_set_string(property_t prop, const gchar *val)
 {
     prop_set_string(gnet_property, prop, val);
@@ -3599,6 +3611,9 @@ prop_set_stub_t *gnet_prop_get_stub(void)
     stub->guint32.get = gnet_prop_get_guint32;
     stub->guint32.set = gnet_prop_set_guint32;
 
+    stub->guint64.get = gnet_prop_get_guint64;
+    stub->guint64.set = gnet_prop_set_guint64;
+
     stub->string.get = gnet_prop_get_string;
     stub->string.set = gnet_prop_set_string;
 
@@ -3607,4 +3622,3 @@ prop_set_stub_t *gnet_prop_get_stub(void)
 
     return stub;
 }
-

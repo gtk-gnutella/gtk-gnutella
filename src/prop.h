@@ -50,6 +50,7 @@ typedef guint32 property_set_t;
 typedef enum {
     PROP_TYPE_BOOLEAN,
     PROP_TYPE_GUINT32,
+    PROP_TYPE_GUINT64,
     PROP_TYPE_STRING,
     PROP_TYPE_IP,
     PROP_TYPE_STORAGE,
@@ -96,6 +97,20 @@ typedef guint32 *(*prop_get_guint32_t)
     (property_t, guint32 *, gsize, gsize);
 
 
+typedef struct prop_def_guint64 {
+    guint64 *def;    /* default value */
+    guint64 *value;  /* current value */
+    guint64 min;     /* minimal value */
+    guint64 max;     /* maximal value */
+    prop_def_choice_t *choices;
+} prop_def_guint64_t;
+
+typedef void (*prop_set_guint64_t)
+    (property_t, const guint64 *, gsize, gsize);
+typedef guint64 *(*prop_get_guint64_t)
+    (property_t, guint64 *, gsize, gsize);
+
+
 typedef struct prop_def_storage {
     guint8 *value;   /* current data */
 } prop_def_storage_t;
@@ -132,6 +147,7 @@ typedef struct prop_def {
     prop_type_t type;
     union {
         prop_def_guint32_t  guint32;
+        prop_def_guint64_t  guint64;
         prop_def_string_t   string;
         prop_def_boolean_t  boolean;
         prop_def_storage_t  storage;
@@ -164,6 +180,10 @@ typedef struct prop_set_stub {
         prop_set_guint32_t set;
     } guint32;
     struct {
+        prop_get_guint64_t get;
+        prop_set_guint64_t set;
+    } guint64;
+    struct {
         prop_get_storage_t get;
         prop_set_storage_t set;
     } storage;
@@ -195,6 +215,7 @@ typedef struct prop_set {
 /*
  * Helpers
  */
+void prop_parse_guint64_vector(const gchar *str, gsize size, guint64 *t);
 void prop_parse_guint32_vector(const gchar *str, gsize size, guint32 *t);
 void prop_parse_boolean_vector(const gchar *str, gsize size, gboolean *t);
 void prop_parse_storage(const gchar *str, gsize size, guint8 *t);
@@ -233,6 +254,11 @@ void prop_set_guint32(
 guint32 *prop_get_guint32(
     prop_set_t *, property_t, guint32 *, guint32, guint32);
 
+void prop_set_guint64(
+    prop_set_t *, property_t, const guint64 *, guint64, guint64);
+guint64 *prop_get_guint64(
+    prop_set_t *, property_t, guint64 *, guint64, guint64);
+
 void prop_set_storage(
     prop_set_t *, property_t, const guint8 *, gsize);
 guint8 *prop_get_storage(
@@ -242,4 +268,3 @@ gchar *prop_to_string(prop_set_t *ps, property_t prop);
 inline property_t prop_get_by_name(prop_set_t *ps, const char *name);
 
 #endif /* _prop_h_ */
-

@@ -85,6 +85,40 @@ static void prop_parse_ip_vector(const gchar *str, gsize size, guint32 *t)
 
 	g_strfreev(h);
 }
+/*
+ * prop_parse_guint64_vector:
+ *
+ * Parse comma delimited numeric vector.
+ */
+void prop_parse_guint64_vector(const gchar *str, gsize size, guint64 *t)
+{
+	/* Parse comma delimited settings */
+
+	gchar **h;
+	gsize i;
+
+    g_assert(str != NULL);
+    g_assert(t != NULL);
+
+    h = g_strsplit(str, ",", size + 1);
+
+	for (i = 0; i < size; i++) {
+        int error;
+		if (!h[i])
+			break;
+        
+		t[i] = gm_atoul(h[i], NULL, &error);
+        if (error)
+            g_warning("prop_parse_guint64_vector: h[i]=\"%s\": \"%s\"",
+                h[i], g_strerror(error));
+	}
+
+    if (i < size)
+        g_warning("prop_parse_guint64_vector: "
+            "target initialization incomplete!");
+
+	g_strfreev(h);
+}
 
 /*
  * prop_parse_guint32_vector:
@@ -238,6 +272,13 @@ prop_def_t *prop_get_def(prop_set_t *ps, property_t p)
             PROP(ps,p).data.guint32.value, 
             sizeof(guint32) * PROP(ps,p).vector_size);
         break;
+	case PROP_TYPE_GUINT64:
+        buf->data.guint64.def = g_memdup(
+            PROP(ps,p).data.guint64.def, 
+            sizeof(guint64) * PROP(ps,p).vector_size);
+        buf->data.guint64.value = g_memdup(
+            PROP(ps,p).data.guint64.value, 
+            sizeof(guint64) * PROP(ps,p).vector_size);
     case PROP_TYPE_STRING:
         buf->data.string.def    = g_new(gchar*, 1);
         *buf->data.string.def   = g_strdup(*PROP(ps,p).data.string.def);
@@ -277,6 +318,10 @@ void prop_free_def(prop_def_t *d)
         G_FREE_NULL(d->data.guint32.value);
         G_FREE_NULL(d->data.guint32.def);
         break;
+	case PROP_TYPE_GUINT64:
+        G_FREE_NULL(d->data.guint64.value);
+        G_FREE_NULL(d->data.guint64.def);
+		break;		
     case PROP_TYPE_STRING:
 		if (*d->data.string.value)
 			G_FREE_NULL(*d->data.string.value);
@@ -427,6 +472,125 @@ gboolean *prop_get_boolean(
 
     memcpy(target, &PROP(ps,prop).data.boolean.value[offset],
         sizeof(gboolean) * length);
+
+    return target;
+}
+
+void prop_set_guint64(
+    prop_set_t *ps, property_t prop, const guint64 *src,
+    guint64 offset, guint64 length)
+{
+    gboolean differ = FALSE;
+
+    g_assert(ps != NULL);
+    g_assert(src != NULL);
+
+    if(!prop_in_range(ps, prop))
+        g_error("prop_set_guint64: unknown property %d", prop);
+    if((PROP(ps,prop).type != PROP_TYPE_GUINT64) )
+        g_error("Type mismatch setting value for [%s] of type" 
+            " %s when %s, %s or %s was expected",
+            PROP(ps,prop).name,
+            prop_type_str[PROP(ps,prop).type],
+            prop_type_str[PROP_TYPE_GUINT64]);
+
+    if (length == 0)
+        length = PROP(ps,prop).vector_size;
+
+    g_assert(offset+length <= PROP(ps,prop).vector_size);
+
+    differ = (memcmp(&PROP(ps,prop).data.guint64.value[offset], src,
+        length * sizeof(guint64)) != 0);
+
+    if (!differ)
+        return;
+
+    /*
+     * Only do bounds-checking on non-vector properties.
+     */
+    if (PROP(ps,prop).vector_size == 1) {
+        /*
+         * Either check multiple choices or min/max.
+         */
+            g_assert(PROP(ps,prop).data.guint64.choices == NULL);
+
+            if (
+                (PROP(ps,prop).data.guint64.min <= *src) &&
+                (PROP(ps,prop).data.guint64.max >= *src)
+            ) {
+                *PROP(ps,prop).data.guint64.value = *src;
+            } else {
+                guint64 newval = *src;
+    
+                if (newval > PROP(ps,prop).data.guint64.max)
+                    newval = PROP(ps,prop).data.guint64.max;
+                if (newval < PROP(ps,prop).data.guint64.min)
+                    newval = PROP(ps,prop).data.guint64.min;
+    
+                g_warning("prop_set_guint64: [%s] new value out of bounds "
+                    "(%u/%u): %u (adjusting to %u)",
+                    PROP(ps,prop).name,
+                    PROP(ps,prop).data.guint64.min,
+                    PROP(ps,prop).data.guint64.max,
+                    *src, newval );
+    
+                *PROP(ps,prop).data.guint64.value = newval;
+            }
+    } else {
+        memcpy(&PROP(ps,prop).data.guint64.value[offset], src,
+            sizeof(guint64) * length);
+    }
+
+    if (debug >= 5) {
+        guint64 n;
+
+        printf("updated property [%s] = ( ", PROP(ps,prop).name);
+
+        for (n = 0; n < PROP(ps,prop).vector_size; n++) {
+            if (PROP(ps,prop).type == PROP_TYPE_IP) {
+                printf("%s%s ", ip_to_gchar(
+                    PROP(ps,prop).data.guint64.value[n]),
+                    (n < (PROP(ps,prop).vector_size-1)) ? "," : "");
+            } else {
+                printf("%u%s ", PROP(ps,prop).data.guint64.value[n],
+                    (n < (PROP(ps,prop).vector_size-1)) ? "," : "");
+            }
+        }
+    
+        printf(")\n");
+    }
+    
+    prop_emit_prop_changed(ps, prop);
+}
+
+guint64 *prop_get_guint64(
+    prop_set_t *ps, property_t prop, guint64 *t,
+    guint64 offset, guint64 length)
+{
+    guint64 *target;
+
+    g_assert(ps != NULL);
+
+    if(!prop_in_range(ps, prop))
+        g_error("prop_get_guint64: unknown property %d", prop);
+    if((PROP(ps,prop).type != PROP_TYPE_GUINT64))
+        g_error("Type mismatch setting value for [%s] of type" 
+            " %s when %s, %s or %s was expected",
+            PROP(ps,prop).name,
+            prop_type_str[PROP(ps,prop).type],
+            prop_type_str[PROP_TYPE_GUINT64]);
+
+   if (length == 0)
+        length = PROP(ps,prop).vector_size;
+
+    g_assert(offset+length <= PROP(ps,prop).vector_size);
+
+    target = t;
+    if (target == NULL)
+        target = g_new(guint64, length);
+
+    memcpy(target, &PROP(ps,prop).data.guint64.value[offset],
+        sizeof(guint64) * length);
 
     return target;
 }
@@ -782,6 +946,14 @@ gchar *prop_to_string(prop_set_t *ps, property_t prop)
             gm_snprintf(s, sizeof(s), "%u", val);
             break;
         }
+        case PROP_TYPE_GUINT64: {
+            guint64 val;
+        
+            prop_get_guint64(ps, prop, &val, 0, 1);
+
+            gm_snprintf(s, sizeof(s), "%u", val);
+            break;
+        }
         case PROP_TYPE_STRING: {
             gchar *buf = prop_get_string(ps, prop, NULL, 0);
             g_strlcpy(s, buf, sizeof(s));
@@ -988,6 +1160,16 @@ void prop_save_to_file
                 
             val = g_strjoinv(",", vbuf);
             break;
+        case PROP_TYPE_GUINT64:
+            for (i = 0; i < p->vector_size; i++) {
+                gm_snprintf(sbuf, sizeof(sbuf), "%u", 
+                        p->data.guint64.value[i]);
+                vbuf[i] = g_strdup(sbuf);
+            }
+            vbuf[p->vector_size] = NULL;
+                
+            val = g_strjoinv(",", vbuf);
+            break;
         case PROP_TYPE_STRING:
             val = g_strdup(*p->data.string.value);
             quotes = TRUE;
@@ -1057,6 +1239,7 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
     prop_set_stub_t *stub;
     static gboolean vecbuf_bool[100];
     static guint32 vecbuf_uint32[100];
+    static guint64 vecbuf_uint64[100];
 
     stub = ps->get_stub();
 
@@ -1073,6 +1256,12 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 
         prop_parse_guint32_vector(val, p->vector_size, vecbuf_uint32);
         stub->guint32.set(prop, vecbuf_uint32, 0, 0);
+        break;
+    case PROP_TYPE_GUINT64:
+        g_assert(p->vector_size * sizeof(guint64) < sizeof(vecbuf_uint64));
+
+        prop_parse_guint64_vector(val, p->vector_size, vecbuf_uint64);
+        stub->guint64.set(prop, vecbuf_uint64, 0, 0);
         break;
     case PROP_TYPE_STRING:
         stub->string.set(prop, val);

@@ -42,6 +42,7 @@
     (cond 
         ((= type "boolean") #t)
         ((= type "guint32") #t)
+        ((= type "guint64") #t)
         ((= type "ip") #t)
         ((= type "string") #t)
         ((= type "storage") #t)
@@ -143,6 +144,20 @@ guint32 *[=(. func-prefix)=]_get_guint32(
 	[=(. func-prefix)=]_get_guint32(p, v, 0, 1); \
 } while (0)
 
+void [=(. func-prefix)=]_set_guint64(
+    property_t, const guint64 *, gsize, gsize);
+guint64 *[=(. func-prefix)=]_get_guint64(
+    property_t, guint64 *, gsize, gsize);
+
+#define [=(. func-prefix)=]_set_guint64_val(p, v) do { \
+	guint64 value = v; \
+	[=(. func-prefix)=]_set_guint64(p, &value, 0, 1); \
+} while (0)
+
+#define [=(. func-prefix)=]_get_guint64_val(p, v) do { \
+	[=(. func-prefix)=]_get_guint64(p, v, 0, 1); \
+} while (0)
+
 void [=(. func-prefix)=]_set_storage(property_t, const guint8 *, gsize);
 guint8 *[=(. func-prefix)=]_get_storage(property_t, guint8 *, gsize);
 
@@ -169,6 +184,7 @@ ENDIF=][=
 CASE type=][= 
 = boolean=]extern gboolean [=(. item)=][= 
 = guint32=]extern guint32  [=(. item)=][= 
+= guint64=]extern guint64  [=(. item)=][= 
 = ip     =]extern guint32  [=(. item)=][= 
 = multichoice=]extern guint32  [=(. item)=][= 
 = string =]extern gchar   *[=(. item)=][= 
@@ -212,6 +228,9 @@ guint8   [=(. item)=][[=vector_size=]];[=
                 (define vdef (get "data.default")))
             ((= (get "type") "guint32") 
                 (define vtype "guint32  ")
+                (define vdef (get "data.default")))
+            ((= (get "type") "guint64") 
+                (define vtype "guint64  ")
                 (define vdef (get "data.default")))
             ((= (get "type") "ip") 
                 (define vtype "guint32  ")
@@ -342,7 +361,23 @@ FOR prop =][=
     [=(. current-prop)=].data.guint32.min   = 0x00000000;[= 
     ENDIF=][=
 
-    = ip =]
+    = guint64 =]
+    [=(. current-prop)=].type               = PROP_TYPE_GUINT64;
+    [=(. current-prop)=].data.guint64.def   = [=(. prop-def-var)=];
+    [=(. current-prop)=].data.guint64.value = [=(. prop-var)=];
+    [=(. current-prop)=].data.guint64.choices = NULL;[=
+    IF (exist? "data.max")=]
+    [=(. current-prop)=].data.guint64.max   = [=data.max=];[=
+    ELSE=]
+    [=(. current-prop)=].data.guint64.max   = (guint64) -1;[=
+    ENDIF=][=
+    IF (exist? "data.min")=]
+    [=(. current-prop)=].data.guint64.min   = [=data.min=];[= 
+    ELSE=]
+    [=(. current-prop)=].data.guint64.min   = 0x0000000000000000;[= 
+    ENDIF=][=
+
+	= ip =]
     [=(. current-prop)=].type               = PROP_TYPE_IP;
     [=(. current-prop)=].data.guint32.def   = [=(. prop-def-var)=];
     [=(. current-prop)=].data.guint32.value = [=(. prop-var)=];
@@ -468,6 +503,18 @@ guint32 *[=(. func-prefix)=]_get_guint32(
     return prop_get_guint32([=(. prop-set)=], prop, t, offset, length);
 }
 
+void [=(. func-prefix)=]_set_guint64(
+    property_t prop, const guint64 *src, gsize offset, gsize length)
+{
+    prop_set_guint64([=(. prop-set)=], prop, src, offset, length);
+}
+
+guint64 *[=(. func-prefix)=]_get_guint64(
+    property_t prop, guint64 *t, gsize offset, gsize length)
+{
+    return prop_get_guint64([=(. prop-set)=], prop, t, offset, length);
+}
+
 void [=(. func-prefix)=]_set_string(property_t prop, const gchar *val)
 {
     prop_set_string([=(. prop-set)=], prop, val);
@@ -535,6 +582,9 @@ prop_set_stub_t *[=(. func-prefix)=]_get_stub(void)
     stub->guint32.get = [=(. func-prefix)=]_get_guint32;
     stub->guint32.set = [=(. func-prefix)=]_set_guint32;
 
+    stub->guint64.get = [=(. func-prefix)=]_get_guint64;
+    stub->guint64.set = [=(. func-prefix)=]_set_guint64;
+
     stub->string.get = [=(. func-prefix)=]_get_string;
     stub->string.set = [=(. func-prefix)=]_set_string;
 
@@ -543,4 +593,3 @@ prop_set_stub_t *[=(. func-prefix)=]_get_stub(void)
 
     return stub;
 }
-
