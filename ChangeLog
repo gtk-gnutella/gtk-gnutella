@@ -1,5 +1,14 @@
 # since last version
 
+- (2003.02.21 - cbiere)
+ * Added socket_connect_prepare() to reduce double code
+ * Added adns_pending to which indicates whether the adns callback has been invoked
+ * Added socket type SOCK_TYPE_DESTROYING which is used free the socket after the
+   adns callback has been invoked; prevents accessing already free()d memory.
+ * Replaced assertion in socket_connect_finalize() because an event handler might have
+   been installed while resolving the hostname; this is only a temporarily work around
+   and not a solution!
+
 - (2003.02.21 - RAM)
  * Integrated Christian Biere's ADNS patch (fixes bug #662916).
  * Now uses G_N_ELEMENTS() to determine the amount of items in array.
