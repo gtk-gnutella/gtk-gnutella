@@ -1,5 +1,14 @@
 # since last version
 
+- (2004-06-25 - Richard)
+ * Reverted changes in hcache.c from last commit. Instead made those changes:
+ * No longer call hcache_remove_all() from hcache_free().
+ * Made hcache_free() fail if hostcache is not empty.
+ * Fail if for some obscure reason hosts are added during hcache_close. This
+   can normally only happen if we are multi-threaded, which we are afaik not.
+ * Check that hostlist and host_count are in sync when hcache_remove_all() is
+   done.
+
 - (2004-06-24 - Richard)
  * Fixed segfault in hcache.c on shutdown due to accessing hostcaches
    which had already been freed at that point. 
