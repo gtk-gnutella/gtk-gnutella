@@ -1,5 +1,45 @@
 # since last version
 
+- (2004-08-18 - RAM)
+ * (move.c) Fixed stupid floating point exception on a debug message
+   when elapsed == 0
+ * Removed dependency between file.c / sockets.c and ban_reclaim_fd().
+
+- (2004-08-16 - RAM)
+ * Added new properties for UDP support: "udp_debug", "enable_udp",
+   "is_udp_firewalled", "process_oob_queries", "send_oob_queries".
+ * Added support for UDP firewalling detection.
+ * Can now process incoming UDP Gnutella messages as if originating from
+   a "fake" UDP node.
+ * Will now recognize incoming UDP ping bearing our GUID as a sign that
+   we can receive unsollicited UDP traffic.
+ * pcache_pong_fake() now takes only ultranode addresses.
+ * Make sure we never route queries and query hits received from UDP.
+ * Added support for UDP sockets.
+ * Special-case display of vendor code with all zeroes as "null".
+ * Added support for GTKG/7v1 "UDP Connect Back" vendor message.
+ * [GTK1] Updated GUI to be able to configure UDP, OOB querying, and
+   debug levels.
+ * (settings_gui.c) Shuffled to move the propery table near the end to
+   avoid pre-declaration of most callbacks.  Added UDP configuration
+   and debug level settings.
+
+- (2004-08-14 - RAM)
+ * Added gmsg_infostr_full_split() and gmsg_infostr_full() that can
+   add extra information when logging vendor messages.
+ * New vmsg_infostr() to extract vendor message information for logging.
+ * (qrp.c) Fixed memory leak.
+ * Accept BYE, HSEP and vendor messages with TTL=0 or TTL=1.
+ * New properties "vmsg_debug" and "search_debug".
+ * Always reply to handshaking ping (first ping we accept) with personal info.
+ * Don't revitalize route entries for leaf nodes but for the PUSH routes we use
+   when we're sending PUSH messages.
+ * Parse (but ignore for now) the "features supported" NULL/10v0 message
+   which supplies extra capabilities without negotiating them via handshake
+   headers.
+ * If leaf queries us with OOB hits delivery and does not support guidance,
+   strip the OOB flag from the query to be able to monitor the hits they get.
+
 - (2004-08-13 - RAM)
  * Removed the "unrequest reply" drop reason, replaced by "no route".  It was
    used only by query hits, whilst "no route" was used only by "pushes".
