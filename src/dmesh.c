@@ -315,12 +315,14 @@ static void dmesh_ban_add(const gchar *sha1,
 		 * out X-Nalt locations.
 		 *		-- JA, 1/11/2003.
 		 */
+
 		if (sha1 != NULL) {
 			GSList *by_ip;
 			gboolean existed;
 
 			dmb->sha1 = atom_sha1_get(sha1);
 
+			// XXX replace this by a hash_list to avoid duplicate IP entries
 			by_ip = (GSList *) g_hash_table_lookup(ban_mesh_by_sha1, sha1);
 			existed = by_ip != NULL;
 			by_ip = g_slist_append(by_ip, dmb);
@@ -2518,6 +2520,8 @@ static gboolean dmesh_ban_free_kv(gpointer key, gpointer value, gpointer udata)
 
 	dmesh_urlinfo_free(dmb->info);
 	cq_cancel(callout_queue, dmb->cq_ev);
+	if (dmb->sha1)
+		atom_sha1_free(dmb->sha1);
 
 	wfree(dmb, sizeof(*dmb));
 
