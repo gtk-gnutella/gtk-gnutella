@@ -1,5 +1,31 @@
 # since last version
 
+- (2004-08-06 - RAM)
+ * Fixed some of the "file_size_known" madness.
+ * Whether the file size is known or not is now persisted in the fileinfo,
+   as the "FSKN" attribute in the ASCII file, and as part of the version 5
+   binary format in the file.
+ * Show "no size" when the size is unknown, shorter than "unknown size".
+ * Fixed qrp_route_query() to send query to all non-QRP aware UPs if TTL=1.
+ * Fixed improper routing of TTL=1 queries, which could be sent twice to
+   QRP-capable nodes: once if the QRP matched, and once via regular broadcast!
+ * Make dynamic queries that stopped linger for a while to see how many
+   extra results we get due to node latencies.  New statistics track the
+   amount of extra results we get that way.
+ * Don't send a TTL=1 dynamic query to a host whose QRP says it won't be
+   able to match.
+ * If a QRP-capable UP did not send its table yet, forward it everything.
+ * Introduced the "dynamic query hit" algorithm: this actively monitors
+   hits we relay, keeps track of how many hits we sent and can decide
+   to drop hits if we're in flow control or relayed too many hits already.
+ * New "dh_debug" property.
+ * Drop query hits with 0 results.
+ * Have search_results() indicate to caller the amount of hits held in the
+   query hit it parsed.
+ * The flow-control flag can now show 'D' if we're not in flow-control
+   yet but the queue is more full and bears a greater delay for sent
+   messages (queue size above the low watermark).
+
 - (2004-08-05 - RAM)
  * Implemented dynamic querying.  For now, it's only plugged for leaf queries.
  * Fixed re-entrance problem when an event was rescheduled before the current
