@@ -23,8 +23,8 @@
  *----------------------------------------------------------------------
  */
 
-#include <gnome-xml/tree.h>
-#include <gnome-xml/parser.h>
+#include <libxml/tree.h>
+#include <libxml/parser.h>
 
 #include "gnutella.h"
 #include "gmsg.h"
@@ -129,6 +129,7 @@ void search_store_xml(void)
 	GList *l;
 	time_t now = time((time_t *) NULL);
     xmlDocPtr doc;
+    xmlNodePtr root;
 
     /* 
      * create new xml document with version 1.0 
@@ -138,17 +139,18 @@ void search_store_xml(void)
     /* 
      *create a new root node "gtkGnutella searches" 
      */
-    doc->root = xmlNewDocNode(doc, NULL, "Searches", NULL);
-    xmlSetProp(doc->root,"Time", ctime(&now));
+    root = xmlNewDocNode(doc, NULL, "Searches", NULL);
+    xmlDocSetRootElement(doc, root);
+    xmlSetProp(root,"Time", ctime(&now));
 
 	g_snprintf(x_tmp, sizeof(x_tmp), "%u.%u", 
         GTA_VERSION, GTA_SUBVERSION);
-    xmlSetProp(doc->root,"Version", x_tmp);
+    xmlSetProp(root,"Version", x_tmp);
 
     /*
      * Store UIDs for the builtin targets
      */
-    builtin_to_xml(doc->root);
+    builtin_to_xml(root);
 
     /*
      * Iterate over the searches and add them to the tree
@@ -156,7 +158,7 @@ void search_store_xml(void)
     for (l = searches; l; l = l->next) {
 		search_t *sch = (search_t *) l->data;
 		if (!sch->passive)
-			search_to_xml(doc->root, sch);
+			search_to_xml(root, sch);
 	}
 
     /*
@@ -164,13 +166,14 @@ void search_store_xml(void)
      * Only those that are not bound to a search.
      */
     for (l = filters; l; l = l->next)
-        filter_to_xml(doc->root, (filter_t *) l->data);
+        filter_to_xml(root, (filter_t *) l->data);
 
     /* 
      *try to save the file 
      */
+    xmlKeepBlanksDefault(0);
     g_snprintf(x_tmp, sizeof(x_tmp), "%s/%s", config_dir, search_file_xml);
-    if(xmlSaveFile(x_tmp,doc) == -1) {
+    if(xmlSaveFormatFile(x_tmp, doc, TRUE) == -1) {
         g_warning("Unable to create %s to persist search: %s",
 			x_tmp, g_strerror(errno));
     } else {
@@ -193,6 +196,7 @@ gboolean search_retrieve_xml(void)
 {
 	xmlDocPtr doc;
     xmlNodePtr node;
+    xmlNodePtr root;
     GList *f;
     
   	g_snprintf(x_tmp, sizeof(x_tmp), "%s/%s", config_dir, search_file_xml);
@@ -209,6 +213,7 @@ gboolean search_retrieve_xml(void)
      * parse the new file and put the result into newdoc 
      */
 	doc = xmlParseFile(x_tmp);
+    root = xmlDocGetRootElement(doc);
 
 	/* 
      * in case something went wrong 
@@ -219,11 +224,11 @@ gboolean search_retrieve_xml(void)
     }
 
 	if (/* if there is no root element */
-        !doc->root ||
+        (root == NULL) ||
 	    /* if it doesn't have a name */
-	    !doc->root->name ||
+	    (root->name == NULL) ||
 	    /* if it isn't a Genealogy node */
-	    g_strcasecmp(doc->root->name,"Searches") != 0
+	    g_strcasecmp(root->name ,"Searches") != 0
     ) {
         g_warning("Searches file has invalid format: %s", x_tmp);
 		xmlFreeDoc(doc);
@@ -236,7 +241,7 @@ gboolean search_retrieve_xml(void)
      * find nodes and add them to the list, this just
 	 * loops through all the children of the root of the document 
      */
-	for (node = doc->root->childs; node != NULL; node = node->next)
+	for (node = root->children; node != NULL; node = node->next)
         parse_xml(node, NULL);
 
     /*
@@ -320,6 +325,7 @@ gboolean search_retrieve_xml(void)
     g_hash_table_destroy(id_map);
 
 	xmlFreeDoc(doc);
+    xmlCleanupParser();
 
 	return TRUE;
 }
@@ -484,6 +490,9 @@ static void parse_xml(xmlNodePtr xmlnode, gpointer user_data)
 
     g_assert(xmlnode != NULL);
 
+    if (xmlIsBlankNode(xmlnode))
+        return;
+
     if (!xmlnode->name) {
         g_warning("Unnamed node: ignored");
 	    return;
@@ -563,7 +572,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
     /*
      * Also parse all children.
      */
-	for(node = xmlnode->childs; node != NULL; node = node->next)
+	for(node = xmlnode->children; node != NULL; node = node->next)
         parse_xml(node, search->filter);
 }
 
@@ -624,7 +633,7 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
     /*
      * Also parse all children.
      */
-	for(node = xmlnode->childs; node != NULL; node = node->next)
+	for(node = xmlnode->children; node != NULL; node = node->next)
         parse_xml(node, filter);
 }
 
