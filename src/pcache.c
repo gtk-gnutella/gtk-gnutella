@@ -209,7 +209,7 @@ static void send_personal_info(struct gnutella_node *n, gboolean control)
 			kbytes = 8;
 		else
 			kbytes = next_pow2(kbytes_scanned);
-	} else
+	} else if (kbytes_scanned)
 		kbytes = kbytes_scanned | 0x1;		/* Ensure not a power of two */
 
 	/*
