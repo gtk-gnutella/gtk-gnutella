@@ -48,19 +48,22 @@
  *   add a listener that is informed whenever the global HSEP table changes.
  * - hsep_remove_global_table_listener(cb) can be used to remove an added
  *   listener for global HSEP table changes.
+ * - hsep_has_global_table_changed(since) can be used to check if the
+ *   global HSEP table has changed since the specified point in time.
  *
  * Obtaining horizon size information on demand:
  *
  * To obtain horizon size information, use the global HSEP table or the
  * per-connection HSEP table, obtained using hsep_get_global_table(...) or
  * hsep_get_connection_table (...), respectively (never access the internal
- * arrays directly). The usable array indexes are between 1 (for 1 hop) and
- * HSEP_N_MAX (for n_max hops). Note that the arrays only consider other
- * nodes (i.e. exclude what we share ourselves), so the array index 0 always
- * contains zeros. Note also that each triple represents the reachable
- * resources *within* the number of hops, not at *exactly* the number of hops.
- * To get the values for exactly the number of hops, simply subtract the
- * preceeding triple from the desired triple.
+ * arrays directly). To check if the global table has changed, use
+ * hsep_has_global_table_changed(...). The usable array indexes are between 1
+ * (for 1 hop) and HSEP_N_MAX (for n_max hops). Note that the arrays only
+ * consider other nodes (i.e. exclude what we share ourselves), so the array
+ * index 0 always contains zeros. Note also that each triple represents the
+ * reachable resources *within* the number of hops, not at *exactly* the number
+ * of hops. To get the values for exactly the number of hops, simply subtrac
+ * the preceeding triple from the desired triple.
  *
  * Obtaining horizon size information using event-driven callbacks (only
  * for the global HSEP table):
@@ -69,7 +72,7 @@
  * global HSEP table changes by calling hsep_add_global_table_listener(...).
  * On change of the global HSEP table the callback will be called with a pointer
  * to a copy of the HSEP table and the number of provided triples. You must
- * remove thae listener later using hsep_remove_global_table_listener(...).
+ * remove the listener later using hsep_remove_global_table_listener(...).
  */
 
 #include "common.h"
@@ -103,6 +106,7 @@ static hsep_triple hsep_global_table[HSEP_N_MAX+1];
 static hsep_triple hsep_own = {1, 0, 0};
 
 static event_t *hsep_global_table_changed_event;
+static time_t hsep_last_global_table_change = 0;
 
 /*
  * hsep_init
@@ -120,11 +124,7 @@ void hsep_init(void)
 	hsep_global_table_changed_event =
 	    event_new("hsep_global_table_changed");
 
-	/*
-	 * No need to fire up an initial change event here - we can't be
-	 * having any listeners yet. Listeners are triggered at
-	 * registration time anyway.
-	 */
+ 	hsep_fire_global_table_changed();
 }
 
 /*
@@ -926,18 +926,38 @@ void hsep_close(void)
 
 void hsep_fire_global_table_changed(void)
 {
-	hsep_triple table[HSEP_N_MAX + 1];
+	/* store global table change time */
+	hsep_last_global_table_change = time(NULL);
 
-	/*
-	 * Make a copy of the global HSEP table and give that
-	 * copy and the number of included triples to the
-	 * listeners.
-	 */
+	/* do nothing if we don't have any listeners */
 
-	hsep_get_global_table(table, G_N_ELEMENTS(table));
+	if (event_subscriber_count(hsep_global_table_changed_event) > 0) {
+		hsep_triple table[HSEP_N_MAX + 1];
 
-	event_trigger(hsep_global_table_changed_event,
-	    T_NORMAL(hsep_global_listener_t, table, G_N_ELEMENTS(table)));
+		/*
+		 * Make a copy of the global HSEP table and give that
+		 * copy and the number of included triples to the
+		 * listeners.
+		 */
+
+		hsep_get_global_table(table, G_N_ELEMENTS(table));
+
+		event_trigger(hsep_global_table_changed_event,
+		    T_NORMAL(hsep_global_listener_t, table, G_N_ELEMENTS(table)));
+	}
+}
+
+/*
+ * hsep_has_global_table_changed
+ *
+ * Checks whether the global HSEP table has changed since the
+ * specified point in time. Returns TRUE if this is the case,
+ * FALSE otherwise.
+ */
+
+gboolean hsep_has_global_table_changed(time_t since)
+{
+	return hsep_last_global_table_change > since;
 }
 
 /* vi: set ts=4: */

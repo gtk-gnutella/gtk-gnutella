@@ -67,6 +67,7 @@ void hsep_fire_global_table_changed(void);
 void hsep_add_global_table_listener(GCallback cb, frequency_t type,
 	guint32 interval);
 void hsep_remove_global_table_listener(GCallback cb);
+gboolean hsep_has_global_table_changed(time_t since);
 gboolean hsep_check_monotony(hsep_triple *table, unsigned int triples);
 unsigned int hsep_triples_to_send(const hsep_triple *table,
 	unsigned int triples);
