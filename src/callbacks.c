@@ -1227,6 +1227,21 @@ void on_clist_downloads_queue_resize_column(GtkCList * clist, gint column,
 	dl_queued_col_widths[column] = width;
 }
 
+void on_clist_downloads_queue_drag_begin(GtkWidget *widget, 
+                                         GdkDragContext *drag_context, 
+                                         gpointer user_data)
+{
+    g_message("drag starts");
+    download_freeze_queue(TRUE);
+}
+
+void on_clist_downloads_queue_drag_end(GtkWidget *widget, 
+                                       GdkDragContext *drag_context, 
+                                       gpointer user_data)
+{
+    g_message("drag ends");
+    download_freeze_queue(FALSE);
+}
 
 
 /***

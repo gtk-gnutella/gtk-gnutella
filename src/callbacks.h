@@ -105,6 +105,9 @@ void on_button_queue_clear_clicked(GtkButton *button, gpointer user_data);
 void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void on_entry_queue_regex_activate (GtkEditable *editable, gpointer user_data); 
 void on_checkbutton_queue_regex_case_toggled (GtkToggleButton *togglebutton, gpointer user_data);
+void on_clist_downloads_queue_drag_begin(GtkWidget *widget, GdkDragContext *drag_context, gpointer user_data);
+void on_clist_downloads_queue_drag_end(GtkWidget *widget, GdkDragContext *drag_context, gpointer user_data);
+
 
 
 /***

@@ -2677,6 +2677,16 @@
 			    <handler>on_clist_downloads_queue_resize_column</handler>
 			    <last_modification_time>Sun, 12 May 2002 16:25:25 GMT</last_modification_time>
 			  </signal>
+			  <signal>
+			    <name>drag_begin</name>
+			    <handler>on_clist_downloads_queue_drag_begin</handler>
+			    <last_modification_time>Thu, 16 May 2002 19:42:31 GMT</last_modification_time>
+			  </signal>
+			  <signal>
+			    <name>drag_end</name>
+			    <handler>on_clist_downloads_queue_drag_end</handler>
+			    <last_modification_time>Thu, 16 May 2002 19:55:34 GMT</last_modification_time>
+			  </signal>
 			  <columns>4</columns>
 			  <column_widths>80,80,80,80</column_widths>
 			  <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>

@@ -4080,6 +4080,12 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "resize_column",
                       GTK_SIGNAL_FUNC (on_clist_downloads_queue_resize_column),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "drag_begin",
+                      GTK_SIGNAL_FUNC (on_clist_downloads_queue_drag_begin),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "drag_end",
+                      GTK_SIGNAL_FUNC (on_clist_downloads_queue_drag_end),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_queue_clear), "clicked",
                       GTK_SIGNAL_FUNC (on_button_queue_clear_clicked),
                       NULL);
