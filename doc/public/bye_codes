@@ -40,10 +40,10 @@ Here are the officially registered BYE codes and their meaning:
 403		Relayed High TTL Message
 404		Too Many Unknown Messages [UNUSED]
 405		Activity Timeout
-406		No Reply to Pings [UNUSED]
+406		No Reply to Alive Pings
 407		Not Sharing Enough [UNUSED]
 408		Sent Message With TTL=0
-409		RESERVED
+409		Too Many Errors
 410		Excessive Messages [UNUSED]
 411		Invalid Payload [UNUSED]
 412		Security Violation
