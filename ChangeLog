@@ -1,5 +1,19 @@
 # since last version
 
+- (2004-09-26 - RAM)
+ * When debugging, always show bad SHA1 and old-style SHA1 in the logs.
+ * Force "auto mode" when they run as ultra mode and get firewalled.
+ * When bandwidth is not capped, adjust the maximum used to show the
+   used bandwidth so that sudden bursts don't cause subsequent display
+   to show negligeable percentage.
+ * Ensure we see either the yellow or the red bomb icons, but never the two
+   at the same time.
+ * Don't decrement TTL during routing if it was 0.
+ * Always send a PONG with personal information, even when the local IP
+   address is unknown.
+ * Raised max # of downloads to 5000, default auto-retry timeout to 300 secs, 
+   and default connecting timeout to 60 seconds.
+
 - (2004-09-25 - RAM)
  * Now assumes that all servers support the /uri-res/N2R? file requesting.
    We don't really want to download anything from older servents anyway.
