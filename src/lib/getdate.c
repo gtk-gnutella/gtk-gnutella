@@ -648,6 +648,9 @@ static TABLE const MilitaryTable[] = {
 static int yyerror(char *unused_s)
 {
 	(void) unused_s;
+#ifndef lint
+	(void) yysccsid;
+#endif
     return 0;
 }
 
@@ -1047,7 +1050,7 @@ yyparse()
     *yyssp = yystate = 0;
 
 yyloop:
-    if (yyn = yydefred[yystate]) goto yyreduce;
+    if (0 != (yyn = yydefred[yystate])) goto yyreduce;
     if (yychar < 0)
     {
         if ((yychar = yylex()) < 0) yychar = 0;
@@ -1090,12 +1093,16 @@ yyloop:
 #ifdef lint
     goto yynewerror;
 #endif
+#if lint 
 yynewerror:
+#endif
     yyerror("syntax error");
 #ifdef lint
     goto yyerrlab;
 #endif
+#ifdef lint
 yyerrlab:
+#endif
     ++yynerrs;
 yyinrecovery:
     if (yyerrflag < 3)
