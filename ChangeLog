@@ -1,5 +1,8 @@
 # since last version
 
+- (2004-11-14 - Hans)
+ * Added Japanese translation (ja.po) from Daichi Kawahata.
+	
 - (2004-11-13 - RAM)
  * As a leaf node, refuse to connect to "ancient" ultra nodes.
  * Most vendors now send small ~4K max query hits: lower max hit size to 16K.
