@@ -5461,8 +5461,9 @@ void download_push_ack(struct gnutella_socket *s)
 	guint file_index;		/* The requested file index */
 	gchar hex_guid[33];		/* The hexadecimal GUID */
 
-	g_assert(s->getline);
+	socket_tos_default(s);	/* Set proper Type of Service */
 
+	g_assert(s->getline);
 	giv = getline_str(s->getline);
 
 	if (dbg > 4) {

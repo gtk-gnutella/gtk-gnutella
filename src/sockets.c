@@ -194,6 +194,7 @@ void socket_tos_default(struct gnutella_socket *s)
 {
 	switch (s->type) {
 	case SOCK_TYPE_CONTROL:
+	case SOCK_TYPE_DOWNLOAD: /* ACKs w/ low latency => higher transfer rates */
 	case SOCK_TYPE_HTTP:
 		socket_tos_lowdelay(s);
 		break;
