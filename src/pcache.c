@@ -615,7 +615,7 @@ static void ping_all_neighbours(time_t now)
 	for (l = sl_nodes; l; l = l->next) {
 		struct gnutella_node *n = (struct gnutella_node *) l->data;
 
-		if (!NODE_IS_WRITABLE(n))
+		if (!NODE_IS_WRITABLE(n) || NODE_IS_LEAF(n))
 			continue;
 
 		if (n->attrs & NODE_A_PONG_CACHING)
@@ -923,7 +923,6 @@ void pcache_ping_received(struct gnutella_node *n)
 	time_t now = time((time_t *) 0);
 	gint h;
 	guint8 ttl;
-	gint max_nodes;
 
 	g_assert(NODE_IS_CONNECTED(n));
 
@@ -1008,11 +1007,8 @@ void pcache_ping_received(struct gnutella_node *n)
 	 * not firewalled.
 	 */
 
-	max_nodes =
-		current_peermode == NODE_P_LEAF ? max_ultrapeers : max_connections;
-
 	if (
-		(is_firewalled || node_count() < max_nodes) && inet_can_answer_ping()
+		(is_firewalled || node_missing() > 0) && inet_can_answer_ping()
 	) {
 		send_personal_info(n, FALSE);
 		if (!NODE_IS_CONNECTED(n))	/* Can be removed if send queue is full */
