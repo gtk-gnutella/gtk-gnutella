@@ -26,6 +26,8 @@
 #ifndef _gnutella_h_
 #define _gnutella_h_
 
+#include <sys/types.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>	/* For ntohl(), htonl() */
 
 #include "gnet.h"
