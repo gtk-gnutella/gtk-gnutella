@@ -43,9 +43,13 @@
 #include "share.h" /* For files_scanned and kbytes_scanned. */
 #include "routing.h"
 #include "gmsg.h"
+#include "alive.h"
+
+#define FW_STATUS_GRACE		300		/* Startup period where we send pongs */
 
 static GList *last_returned_pong = NULL;	/* Last returned from list */
 static GList *pcache_recent_pongs = NULL;	/* Recent pongs we got */
+
 
 /***
  *** Messages
@@ -60,7 +64,7 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
 {
 	struct gnutella_msg_init m;
 
-	message_set_muid(&(m.header), TRUE);
+	message_set_muid(&m.header, TRUE);
 
 	m.header.function = GTA_MSG_INIT;
 	m.header.ttl = ttl;
@@ -98,11 +102,30 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
  *
  * Send ping to immediate neighbour, to check its latency and the fact
  * that it is alive, or get its Gnet sharing information (ip, port).
+ * The message is sent as a "control" one, i.e. it's put ahead of the queue.
+ *
+ * The message ID used is copied back to `muid'.
+ *
+ * NB: this routine is only made visible for "alive.c".
  */
-void send_alive_ping(struct gnutella_node *n)
+void send_alive_ping(struct gnutella_node *n, guchar *muid)
 {
-	// XXX do that periodically to measure latency as well
-	send_ping(n, 1);
+	struct gnutella_msg_init m;
+
+	g_assert(NODE_IS_WRITABLE(n));
+	g_assert(muid);
+
+	message_set_muid(&m.header, TRUE);
+	memcpy(muid, &m.header, 16);
+
+	m.header.function = GTA_MSG_INIT;
+	m.header.ttl = 1;
+	m.header.hops = 0;
+
+	WRITE_GUINT32_LE(0, m.header.size);
+
+	n->n_ping_sent++;
+	gmsg_ctrl_sendto_one(n, (guchar *) &m, sizeof(struct gnutella_msg_init));
 }
 
 /*
@@ -469,9 +492,9 @@ void pcache_outgoing_connection(struct gnutella_node *n)
 	g_assert(NODE_IS_CONNECTED(n));
 
 	if (connected_nodes() < up_connections || host_cache_is_empty())
-		send_ping(n, my_ttl);			/* Regular ping, get fresh pongs */
+		send_ping(n, my_ttl);		/* Regular ping, get fresh pongs */
 	else
-		send_ping(n, 1);				/* Handshaking ping */
+		send_ping(n, 1);			/* Handshaking ping */
 }
 
 /*
@@ -759,7 +782,16 @@ static void pong_all_neighbours_but_one(
 		cn->pong_missing--;
 		cn->pong_needed[hops]--;
 
-		send_pong(cn, FALSE, hops, ttl, cn->ping_guid,
+		/*
+		 * When sending a cached pong, don't forget that its cached hop count
+		 * is the one we got when we received it, i.e. hops=0 means a pong
+		 * from one of our immediate neighbours.  However, we're now "routing"
+		 * it, so we must increase the hop count.
+		 */
+
+		g_assert(hops < 255);
+
+		send_pong(cn, FALSE, hops + 1, ttl, cn->ping_guid,
 			cp->ip, cp->port, cp->files_count, cp->kbytes_count);
 
 		if (dbg > 7)
@@ -799,6 +831,37 @@ static struct cached_pong *record_fresh_pong(struct gnutella_node *n,
 	add_recent_pong(cp);
 
 	return cp;
+}
+
+/*
+ * can_answer_ping
+ *
+ * Check whether we can answer a ping with a pong.
+ *
+ * Normally, when we're firewalled, we don't answer. However, if we have
+ * a non-private IP and are within the first FW_STATUS_GRACE seconds of
+ * startup time, act as if we were not: we can only know we're not
+ * firewalled when we get an incoming connection.
+ */
+static gboolean can_answer_ping(void)
+{
+	guint32 ip;
+
+	if (!is_firewalled)
+		return TRUE;
+
+	ip = listen_ip();
+
+	if (!ip)
+		return FALSE;		/* We don't know our local IP, we can't reply */
+
+	if (is_private_ip(ip))
+		return FALSE;
+
+	if (time(NULL) - start_time < FW_STATUS_GRACE)
+		return TRUE;
+
+	return FALSE;
 }
 
 /*
@@ -897,7 +960,7 @@ void pcache_ping_received(struct gnutella_node *n)
 	 * If we can accept an incoming connection, send a reply.
 	 */
 
-	if (node_count() < max_connections && !is_firewalled) {
+	if (node_count() < max_connections && can_answer_ping()) {
 		send_personal_info(n, FALSE);
 		if (!NODE_IS_CONNECTED(n))	/* Can be removed if send queue is full */
 			return;
@@ -999,10 +1062,16 @@ void pcache_pong_received(struct gnutella_node *n)
 				"node %s (%s) sent us a pong for new IP %s (used %s before)",
 				node_ip(n), n->vendor ? n->vendor : "",
 				ip_port_to_gchar(ip, port), ip_to_gchar(n->gnet_pong_ip));
-			n->n_weird++;
 		}
 
 		n->gnet_pong_ip = ip;
+
+		/*
+		 * If it was an acknowledge for one of our alive pings, don't cache.
+		 */
+
+		if (alive_ack_ping(n->alive_pings, n->header.muid))
+			return;
 	}
 
 	/*
