@@ -59,6 +59,7 @@ gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 gwcache.boot
 hostiles.txt
 install.SH                   BSD-compatible install program
+Jmakefile
 Makefile.SH
 pixmaps/arrow_down.xpm
 pixmaps/arrow_up.xpm
@@ -208,6 +209,7 @@ src/interface-glade2.c
 src/interface-glade2.h
 src/ioheader.c
 src/ioheader.h
+src/Jmakefile
 src/listener.h
 src/main.c
 src/main_cb.c
