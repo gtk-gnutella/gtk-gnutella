@@ -88,27 +88,11 @@ struct vendor {
  *
  * Compare two codes, alphanumerically (i.e. "ACQX" < "GTKG").
  * Returns -1/0/+1 depending on comparison's sign.
+ * Note that this comparison is case-sensitive.
  */
-gint vendor_code_cmp(guint32 a, guint32 b)
+inline gint vendor_code_cmp(guint32 a, guint32 b)
 {
-	gint i;
-
-	if (a == b)
-		return 0;
-
-	for (i = 0; i < 4; i++) {
-		guint32 mask = 0xff << ((3 - i) << 3);		/* (3 - i) * 8 */
-		guint32 ax = a & mask;
-		guint32 bx = b & mask;
-
-		if (ax == bx)
-			continue;
-
-		return ax < bx ? -1 : +1;
-	}
-
-	g_assert(0);		/* Not reached */
-	return 0;			/* To shut up compiler warnings */
+	return a < b ? -1 : a > b ? 1 : 0;
 }
 
 /*
