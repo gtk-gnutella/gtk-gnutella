@@ -1,5 +1,46 @@
 # since last version
 
+- (2002.05.24 - Richard)
+  * allow shrinking of main window to smaller then minimum size required
+    by the child widgets
+  * Added a optional search list to the sidebar. Displays: search name,
+    hits, new hits (number and color), paused searches (color)
+  * Made tree menu resizable in both directions.
+  * Added "copy url" item to queue popup
+  * Added "connect to host" item to queue and downloads popup
+  * Added "configure columns" item to search results popup.
+    Note: the visibility state of the colums is not persistent, this
+    is only a proof of concept for the selection widget yet.
+  * Carry information about which tab is associated with which menu item
+    from the tree menu directly in the user_data of the node instead
+    of in a static array.
+  * Freeze clists during all actions which take place on the the selection.
+  * Replaced g_assert(0) with g_assert_not_reached() where found.
+  * Made "unselect" signal callback for downloads and queue call the
+    "select" signal. Same actions needed.
+  * Instead of unrealizing and removing the arrow widget, just destroy
+    it. 
+  * If the tab in notebook_main is switched, the tree menu reflects the
+    change.
+  * Fixed bug which caused both, "firewalled" and "not firewalled" icons
+    to be displayed when hiding and then showing the statusbar again.
+  * Increased default sidebar size to 128 pixels. (closes #558890)
+  * Almost finished cleaning up config.c. The config file looks much
+    cleaner again.
+  * Use gtk_events_pending() instead of g_main_pending() in gtk_main_flush().
+  * Add hack to set the internal column name in a clist. Currently this is
+    needed for the GtkColumnChooser widget to work properly.
+  * Moved menu initialization from main.c to gui.c. This means most of
+    the gtk stuff is now removed from main.c
+  * Added more enums to gui.h to describe important gui values (like
+    giving names to notebook pages)
+  * Moved the updateing of the traffic stats from gui_update_global() to
+    gui_update_traffic_stats and only call it in the main timer. No need
+    to call it more often (gui_update_global is called from some callbacks
+    and stuff).
+  * Made notebook tabs in search results tab not hide if there is no search.
+    This had conflicted with either showing tabs or sidebar list.
+
 - (2002.05.21 - RAM)
   * huge.c: cast all file sizes to long before printf("%ld") since some
     machines have 64-bit off_t (but Gnuetlla only has a 32-bit field for
@@ -32,6 +73,7 @@
     [From Michael Core].
 
 - (2002.05.20 - Richard)
+  * Switched names of arrow_up.xpm and arrow_down.xpm (closes #558219)
   * Added "User agent" column to uploads
   * Added "Server" column to downloads and queue
   * Display sort order in searches in column header
