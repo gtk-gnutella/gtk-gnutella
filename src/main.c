@@ -67,7 +67,6 @@
 /* */
 
 struct gnutella_socket *s_listen = NULL;
-time_t start_time;
 gchar *start_rfc822_date = NULL;		/* RFC822 format of start_time */
 cqueue_t *callout_queue;
 
@@ -175,8 +174,9 @@ static void sig_ignore(int n)
 
 static void init_constants(void)
 {
-	start_time = time((time_t *) NULL);
-	start_rfc822_date = atom_str_get(date_to_rfc822_gchar(start_time));
+	time_t now = time(NULL);
+	start_rfc822_date = atom_str_get(date_to_rfc822_gchar(now));
+	gnet_prop_set_guint32_val(PROP_START_STAMP, (guint32) now);
 }
 
 // FIXME: this is declared in search_gui.c and should be called in the
@@ -319,9 +319,9 @@ gint main(gint argc, gchar ** argv)
     gnet_stats_init();
     main_gui_early_init(argc, argv);
 	callout_queue = cq_make(0);
-	init_constants();
 	hcache_init();
 	settings_init();
+	init_constants();
 	guid_init();
 	gwc_init();
 	verify_init();

@@ -107,18 +107,14 @@ void gui_allow_rescan_dir(gboolean flag)
 
 void gui_update_global(void)
 {
-	static gboolean startupset = FALSE;
-	static time_t   startup;
 	time_t now = time((time_t *) NULL);	
+	guint32 start_stamp;
 
-	if( !startupset ) {
-		startup = time((time_t *) NULL);
-		startupset = TRUE;
-	}
+	gnet_prop_get_guint32_val(PROP_START_STAMP, &start_stamp);
 
     gtk_label_printf(
         GTK_LABEL(lookup_widget(main_window, "label_statusbar_uptime")),
-        "Uptime: %s", short_uptime((guint32) difftime(now,startup)));
+        "Uptime: %s", short_uptime((guint32) difftime(now, start_stamp)));
 
     /*
      * Update the different parts of the GUI.
