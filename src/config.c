@@ -41,7 +41,7 @@ guint32 max_uploads = 5;
 guint32 minimum_speed = 0;
 guint32 monitor_max_items = 25;
 guint32 connection_speed = 28;	/* kbits/s */
-gint32 search_max_items = 30;	/* For now, this is limited to 255 anyway */
+gint32 search_max_items = 50;	/* For now, this is limited to 255 anyway */
 guint32 forced_local_ip = 0;
 guint32 download_connecting_timeout = 30;
 guint32 download_push_sent_timeout = 60;
@@ -85,8 +85,8 @@ gchar *config_dir = NULL;
 
 
 guint32 nodes_col_widths[] = { 140, 80, 80 };
-guint32 dl_active_col_widths[] = { 240, 80, 80 };
-guint32 dl_queued_col_widths[] = { 320, 80 };
+guint32 dl_active_col_widths[] = { 240, 80, 80, 80 };
+guint32 dl_queued_col_widths[] = { 320, 80, 80 };
 guint32 uploads_col_widths[] = { 200, 140, 80 };
 guint32 search_results_col_widths[] = { 210, 80, 50, 140, 140 };
 
@@ -393,10 +393,10 @@ void config_init(void)
 	for (i = 0; i < 3; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_nodes), i,
 								   nodes_col_widths[i]);
-	for (i = 0; i < 3; i++)
+	for (i = 0; i < 4; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_downloads), i,
 								   dl_active_col_widths[i]);
-	for (i = 0; i < 2; i++)
+	for (i = 0; i < 3; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_download_queue), i,
 								   dl_queued_col_widths[i]);
 	for (i = 0; i < 3; i++)
@@ -663,14 +663,14 @@ void config_set_param(guint32 keyword, gchar *value)
 		return;
 
 	case k_widths_dl_active:
-		if ((a = config_parse_array(value, 3)))
-			for (i = 0; i < 3; i++)
+		if ((a = config_parse_array(value, 4)))
+			for (i = 0; i < 4; i++)
 				dl_active_col_widths[i] = a[i];
 		return;
 
 	case k_widths_dl_queued:
-		if ((a = config_parse_array(value, 2)))
-			for (i = 0; i < 2; i++)
+		if ((a = config_parse_array(value, 3)))
+			for (i = 0; i < 3; i++)
 				dl_queued_col_widths[i] = a[i];
 		return;
 
@@ -985,11 +985,12 @@ void config_save(void)
 	fprintf(config, "%s = %u,%u,%u\n", keywords[k_widths_uploads],
 			uploads_col_widths[0], uploads_col_widths[1],
 			uploads_col_widths[2]);
-	fprintf(config, "%s = %u,%u,%u\n", keywords[k_widths_dl_active],
+	fprintf(config, "%s = %u,%u,%u,%u\n", keywords[k_widths_dl_active],
 			dl_active_col_widths[0], dl_active_col_widths[1],
-			dl_active_col_widths[2]);
-	fprintf(config, "%s = %u,%u\n", keywords[k_widths_dl_queued],
-			dl_queued_col_widths[0], dl_queued_col_widths[1]);
+			dl_active_col_widths[2], dl_active_col_widths[3]);
+	fprintf(config, "%s = %u,%u,%u\n", keywords[k_widths_dl_queued],
+			dl_queued_col_widths[0], dl_queued_col_widths[1],
+		dl_queued_col_widths[2]);
 	fprintf(config, "%s = %u,%u,%u,%u,%u\n",
 			keywords[k_widths_search_results],
 			search_results_col_widths[0], search_results_col_widths[1],

@@ -1685,8 +1685,8 @@
 		<handler>on_clist_downloads_resize_column</handler>
 		<last_modification_time>Tue, 09 May 2000 19:18:37 GMT</last_modification_time>
 	      </signal>
-	      <columns>3</columns>
-	      <column_widths>80,80,80</column_widths>
+	      <columns>4</columns>
+	      <column_widths>80,80,80,80</column_widths>
 	      <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 	      <show_titles>True</show_titles>
 	      <shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -1696,6 +1696,19 @@
 		<child_name>CList:title</child_name>
 		<name>label61</name>
 		<label>File</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<child_name>CList:title</child_name>
+		<name>label97</name>
+		<label>Host</label>
 		<justify>GTK_JUSTIFY_CENTER</justify>
 		<wrap>False</wrap>
 		<xalign>0.5</xalign>
@@ -2028,8 +2041,8 @@
 		<handler>on_clist_download_queue_resize_column</handler>
 		<last_modification_time>Tue, 09 May 2000 19:18:44 GMT</last_modification_time>
 	      </signal>
-	      <columns>2</columns>
-	      <column_widths>80,80</column_widths>
+	      <columns>3</columns>
+	      <column_widths>80,80,80</column_widths>
 	      <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 	      <show_titles>True</show_titles>
 	      <shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -2039,6 +2052,19 @@
 		<child_name>CList:title</child_name>
 		<name>label66</name>
 		<label>File</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<child_name>CList:title</child_name>
+		<name>label96</name>
+		<label>Host</label>
 		<justify>GTK_JUSTIFY_CENTER</justify>
 		<wrap>False</wrap>
 		<xalign>0.5</xalign>

@@ -752,12 +752,19 @@ gboolean on_entry_minimum_speed_focus_out_event(GtkWidget * widget,
 void on_button_search_clicked(GtkButton * button, gpointer user_data)
 {
 	gchar *e = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_search)));
-	if (on_the_net()) {
-		g_strstrip(e);
-		if (*e)
-			new_search(minimum_speed, e);
-		gtk_widget_grab_focus(clist_menu);
-	}
+
+	/*
+	 * Even though we might not be on_the_net() yet, record the search.
+	 * There is a callback mechanism when a new node is connected, which
+	 * will launch the search there if it has not been sent already.
+	 *		--patch from Mark Schreiber, 10/01/2002
+	 */
+
+	g_strstrip(e);
+	if (*e)
+		new_search(minimum_speed, e);
+	gtk_widget_grab_focus(clist_menu);
+
 	g_free(e);
 }
 

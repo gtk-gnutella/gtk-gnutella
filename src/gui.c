@@ -464,7 +464,7 @@ void gui_update_download_clear(void)
 	GSList *l;
 	gboolean clear = FALSE;
 
-	for (l = sl_downloads; l; l = l->next) {
+	for (l = sl_downloads; !clear && l; l = l->next) {
 		switch (((struct download *) l->data)->status) {
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ERROR:
@@ -597,7 +597,7 @@ void gui_update_download(struct download *d, gboolean force)
 	if (d->status != GTA_DL_QUEUED) {
 		row = gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads),
 			(gpointer) d);
-		gtk_clist_set_text(GTK_CLIST(clist_downloads), row, 2, a);
+		gtk_clist_set_text(GTK_CLIST(clist_downloads), row, 3, a);
 	}
 }
 

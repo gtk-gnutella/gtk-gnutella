@@ -205,6 +205,7 @@ create_main_window (void)
   GtkWidget *label60;
   GtkWidget *scrolledwindow6;
   GtkWidget *label61;
+  GtkWidget *label97;
   GtkWidget *label62;
   GtkWidget *label63;
   GtkWidget *hbox41;
@@ -216,6 +217,7 @@ create_main_window (void)
   GtkWidget *label65;
   GtkWidget *scrolledwindow7;
   GtkWidget *label66;
+  GtkWidget *label96;
   GtkWidget *label67;
   GtkWidget *hbox44;
   GtkWidget *label_downloads;
@@ -1071,7 +1073,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox_downloads), scrolledwindow6, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow6), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  clist_downloads = gtk_clist_new (3);
+  clist_downloads = gtk_clist_new (4);
   gtk_widget_ref (clist_downloads);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_downloads", clist_downloads,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -1080,6 +1082,7 @@ create_main_window (void)
   gtk_clist_set_column_width (GTK_CLIST (clist_downloads), 0, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_downloads), 1, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_downloads), 2, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_downloads), 3, 80);
   gtk_clist_set_selection_mode (GTK_CLIST (clist_downloads), GTK_SELECTION_EXTENDED);
   gtk_clist_column_titles_show (GTK_CLIST (clist_downloads));
 
@@ -1090,19 +1093,26 @@ create_main_window (void)
   gtk_widget_show (label61);
   gtk_clist_set_column_widget (GTK_CLIST (clist_downloads), 0, label61);
 
+  label97 = gtk_label_new ("Host");
+  gtk_widget_ref (label97);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label97", label97,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label97);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_downloads), 1, label97);
+
   label62 = gtk_label_new ("Size");
   gtk_widget_ref (label62);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label62", label62,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label62);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_downloads), 1, label62);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_downloads), 2, label62);
 
   label63 = gtk_label_new ("Status");
   gtk_widget_ref (label63);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label63", label63,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label63);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_downloads), 2, label63);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_downloads), 3, label63);
 
   hbox41 = gtk_hbox_new (FALSE, 8);
   gtk_widget_ref (hbox41);
@@ -1215,7 +1225,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox_downloads), scrolledwindow7, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow7), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  clist_download_queue = gtk_clist_new (2);
+  clist_download_queue = gtk_clist_new (3);
   gtk_widget_ref (clist_download_queue);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_download_queue", clist_download_queue,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -1223,6 +1233,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (scrolledwindow7), clist_download_queue);
   gtk_clist_set_column_width (GTK_CLIST (clist_download_queue), 0, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_download_queue), 1, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_download_queue), 2, 80);
   gtk_clist_set_selection_mode (GTK_CLIST (clist_download_queue), GTK_SELECTION_EXTENDED);
   gtk_clist_column_titles_show (GTK_CLIST (clist_download_queue));
 
@@ -1233,12 +1244,19 @@ create_main_window (void)
   gtk_widget_show (label66);
   gtk_clist_set_column_widget (GTK_CLIST (clist_download_queue), 0, label66);
 
+  label96 = gtk_label_new ("Host");
+  gtk_widget_ref (label96);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label96", label96,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label96);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_download_queue), 1, label96);
+
   label67 = gtk_label_new ("Size");
   gtk_widget_ref (label67);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label67", label67,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label67);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_download_queue), 1, label67);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_download_queue), 2, label67);
 
   hbox44 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox44);

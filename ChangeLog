@@ -95,6 +95,9 @@
   saves 2 MB of RAM plus avoids cost of updating it [From Mark Schreiber].
 - Be tolerant on servents that do not send a Content-Length but send
   a proper Content-Range line instead (which we tolerantly parse as well).
+- Accept searches even though we might not be connected to the net yet
+  [From Mark Schreiber].
+- Added Host indication in the download screen [From Mark Schreiber].
 
 # v 0.18   2001.11.19
 

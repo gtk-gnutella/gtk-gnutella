@@ -175,7 +175,7 @@ static void queue_remove_all_named(const gchar *name)
 
 void download_gui_add(struct download *d)
 {
-	gchar *titles[3];
+	gchar *titles[4];
 	gint row;
 
 	g_return_if_fail(d);
@@ -188,8 +188,9 @@ void download_gui_add(struct download *d)
 	}
 
 	titles[0] = d->file_name;
-	titles[1] = short_size(d->size);
-	titles[2] = "";
+	titles[1] = ip_port_to_gchar(d->ip, d->port);
+	titles[2] = short_size(d->size);
+	titles[3] = "";
 
 	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
 		row = gtk_clist_append(GTK_CLIST(clist_download_queue), titles);
@@ -381,13 +382,12 @@ void download_stop(struct download *d, guint32 new_status,
 	if (DOWNLOAD_IS_STOPPED(d) && DOWNLOAD_IS_IN_PUSH_MODE(d))
 		download_push_remove(d);
 
-	download_pickup_queued();
-
 	if (DOWNLOAD_IS_VISIBLE(d)) {
 		gui_update_download_abort_resume();
 		gui_update_download_clear();
 	}
 
+	download_pickup_queued();	/* Can recurse to here via download_stop() */
 	count_running_downloads();
 }
 
