@@ -713,6 +713,10 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			dropped_messages++;
 			sender->n_bad++;	/* Node shouldn't have forwarded this message */
 
+			if (dbg > 2)
+				gmsg_log_bad(sender, "got reply ID %s without matching request",
+					guid_hex_str(sender->header.muid));
+
 			return handle_it;	/* We don't have to handle the message */
 		}
 
@@ -833,8 +837,12 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 							100.0 * sender->n_dups / sender->received :
 							0.0);
 					(*node) = NULL;
-				} else
+				} else {
 					sender->n_bad++;
+					if (dbg > 2)
+						gmsg_log_bad(sender, "dup message ID %s from same node",
+							guid_hex_str(sender->header.muid));
+				}
 			} else {
 				struct route_data * route;
 

@@ -30,6 +30,7 @@ gboolean gmsg_can_drop(gpointer pdu, gint size);
 gint gmsg_cmp(gpointer pdu1, gpointer pdu2);
 gchar *gmsg_infostr(gpointer head);
 void gmsg_log_dropped(gpointer head, gchar *reason, ...);
+void gmsg_log_bad(struct gnutella_node *n, gchar *reason, ...);
 
 #endif	/* __gmsg_h__ */
 

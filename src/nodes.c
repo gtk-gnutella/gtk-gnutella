@@ -2113,6 +2113,8 @@ static void node_parse(struct gnutella_node *node)
 		break;
 	case GTA_MSG_BYE:
 		if (n->header.hops != 0 || n->header.ttl != 1) {
+			if (dbg > 2)
+				gmsg_log_bad(n, "bye message with improper hops/ttl");
 			n->n_bad++;
 			drop = TRUE;
 		}
@@ -2143,6 +2145,8 @@ static void node_parse(struct gnutella_node *node)
 
 	default:					/* Unknown message type - we drop it */
 		drop = TRUE;
+		if (dbg > 2)
+			gmsg_log_bad(n, "unknown message type");
 		n->n_bad++;
 		break;
 	}
@@ -2654,6 +2658,9 @@ gboolean node_sent_ttl0(struct gnutella_node *n)
 
 	n->rx_dropped++;
 	n->n_bad++;
+
+	if (dbg > 2)
+		gmsg_log_bad(n, "message received with TTL=0");
 
 	return FALSE;
 }
