@@ -1018,6 +1018,8 @@ void share_scan(void)
 	GSList *l;
 	gint i;
 	static gboolean in_share_scan = FALSE;
+	time_t now;
+	guint32 elapsed;
 
 	/*
 	 * We normally disable the "Rescan" button, so we should not enter here
@@ -1032,7 +1034,10 @@ void share_scan(void)
 	else
 		in_share_scan = TRUE;
 
+	now = time(NULL);
+
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, TRUE);
+	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_TIMESTAMP, (guint32) now);
 
 	files_scanned = 0;
 	bytes_scanned = 0;
@@ -1119,9 +1124,15 @@ void share_scan(void)
 
 	gui_update_files_scanned();		/* Final view */
 
+	now = time(NULL);
+	elapsed = (guint32) now - library_rescan_timestamp;
+	gnet_prop_set_guint32_val(PROP_LIBRARY_RESCAN_TIME, MAX(elapsed, 1));
+
 	/*
 	 * Query routing table update.
 	 */
+
+	gnet_prop_set_guint32_val(PROP_QRP_INDEXING_TIMESTAMP, (guint32) now);
 
 	qrp_prepare_computation();
 
@@ -1133,6 +1144,10 @@ void share_scan(void)
 	}
 
 	qrp_finalize_computation();
+
+	now = time(NULL);
+	elapsed = (guint32) now - qrp_indexing_timestamp;
+	gnet_prop_set_guint32_val(PROP_QRP_INDEXING_TIME, elapsed);
 
 	in_share_scan = FALSE;
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);

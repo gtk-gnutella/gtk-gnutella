@@ -598,6 +598,8 @@ static gpointer qrt_patch_compress(
 	ctx->usr_done = done_callback;
 	ctx->usr_arg = arg;
 
+	gnet_prop_set_guint32_val(PROP_QRP_PATCH_RAW_LENGTH, (guint32) rp->len);
+
 	task = bg_task_create("QRP patch compression",
 		&step, 1, ctx, qrt_compress_free, qrt_patch_compress_done, NULL);
 
@@ -627,6 +629,8 @@ static struct routing_table *qrt_create(gchar *arena, gint slots, gint max)
 	rt->infinity = max;
 	rt->compacted = FALSE;
 	rt->digest = NULL;
+
+	gnet_prop_set_guint32_val(PROP_QRP_GENERATION, (guint32) rt->generation);
 
 	qrt_compact(rt);
 
@@ -1135,6 +1139,14 @@ static bgret_t qrp_step_compute(gpointer h, gpointer u, gint ticks)
 		if (dbg)
 			printf("QRP final table size: %d bytes\n", slots);
 
+		gnet_prop_set_guint32_val(PROP_QRP_SLOTS, (guint32) slots);
+		gnet_prop_set_guint32_val(PROP_QRP_SLOTS_FILLED, (guint32) filled);
+		gnet_prop_set_guint32_val(PROP_QRP_HASHED_KEYWORDS, (guint32) hashed);
+		gnet_prop_set_guint32_val(PROP_QRP_FILL_RATIO,
+			(guint32) (100.0 * filled / slots));
+		gnet_prop_set_guint32_val(PROP_QRP_CONFLICT_RATIO,
+			(guint32) conflict_ratio);
+
 		/*
 		 * If we had already a table, compare it to the one we just built.
 		 * If they are identical, discard the new one.
@@ -1179,6 +1191,7 @@ static bgret_t qrp_step_compute(gpointer h, gpointer u, gint ticks)
 static bgret_t qrp_step_install(gpointer h, gpointer u, gint ticks)
 {
 	struct qrp_context *ctx = (struct qrp_context *) u;
+	guint32 elapsed;
 
 	g_assert(ctx->magic == QRP_MAGIC);
 
@@ -1202,6 +1215,9 @@ static bgret_t qrp_step_install(gpointer h, gpointer u, gint ticks)
 		qrt_patch_unref(routing_patch);
 		routing_patch = NULL;
 	}
+
+	elapsed = (guint32) time(NULL) - qrp_timestamp;
+	gnet_prop_set_guint32_val(PROP_QRP_COMPUTATION_TIME, elapsed);
 
 	qrt_patch_compute();				/* Default patch, done asynchronously */
 	node_qrt_changed(routing_table);
@@ -1236,6 +1252,8 @@ void qrp_finalize_computation(void)
 
 	ctx = walloc0(sizeof(*ctx));
 	ctx->magic = QRP_MAGIC;
+
+	gnet_prop_set_guint32_val(PROP_QRP_TIMESTAMP, (guint32) time(NULL));
 
 	qrp_comp = bg_task_create("QRP computation",
 		qrp_compute_steps,
@@ -1288,8 +1306,20 @@ static void qrt_patch_computed(
 
 	qrt_patch_ctx = NULL;			/* Indicates that we're done */
 
-	if (status == BGS_OK)
+	if (status == BGS_OK) {
+		time_t now = time(NULL);
+		guint32 elapsed;
+
 		routing_patch = ctx->rp;
+
+		elapsed = (guint32) now - qrp_patch_timestamp;
+		gnet_prop_set_guint32_val(PROP_QRP_PATCH_COMPUTATION_TIME, elapsed);
+		gnet_prop_set_guint32_val(PROP_QRP_PATCH_LENGTH,
+			(guint32) ctx->rp->len);
+		gnet_prop_set_guint32_val(PROP_QRP_PATCH_COMP_RATIO,
+			(guint32) (100.0 * (qrp_patch_raw_length - qrp_patch_length) /
+				MAX(qrp_patch_raw_length, 1)));
+	}
 
 	ctx->magic = 0;					/* Prevent accidental reuse */
 
@@ -1383,6 +1413,8 @@ static void qrt_patch_compute(void)
 	struct qrt_patch_context *ctx;
 
 	g_assert(qrt_patch_ctx == NULL);	/* No computation active */
+
+	gnet_prop_set_guint32_val(PROP_QRP_PATCH_TIMESTAMP, (guint32) time(NULL));
 
 	qrt_patch_ctx = ctx = walloc(sizeof(*ctx));
 
