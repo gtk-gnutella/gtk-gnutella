@@ -1,5 +1,16 @@
 # since last version
 
+- (2004.06.14 - TNT)
+ * Changed HSEP implementation to also send out information about all
+   our non-HSEP neighbors (PONG-based library size). This should make the
+   horizon stats more accurate, even though we don't know anything about
+   what non-HSEP neighbors see as their horizon.
+ * [Gtk1] [Gtk2] Changed statusbar and gnet stats panel to also include
+   horizon information about all non-HSEP neighbors. The horizon stats
+   on the gnet stats panel are now updated every 2 seconds.
+ * Updated .pot/.po file generation to include all source files that contain
+   translatable strings.
+
 - (2004.06.10 - Hans)
  * The blue line in visual progress indicating the bytes available on the
    network now also takes servents sharing the full file into account.
