@@ -1551,7 +1551,6 @@ void gui_update_download(struct download *d, gboolean force)
 							guint32 remain = 0;
 							guint32 s = 0;
 							gfloat bs = 0;
-							guint32 avg_bps = 0;
 
 	        			    if (download_filesize(d))
 		                		percent_done = ((download_filedone(d) * 100.0) 
@@ -1560,24 +1559,10 @@ void gui_update_download(struct download *d, gboolean force)
 							active_src = fi->recvcount;
 							tot_src = fi->lifecount;
 
-							if (d->bio)	
-								avg_bps = bio_avg_bps(d->bio);
+							if (fi->recv_last_rate)
+								s = (fi->size - fi->done) / fi->recv_last_rate;	
+							bs = fi->recv_last_rate / 1024;
 
-							if (avg_bps <= 10 && d->last_update 
-								!= d->start_date)
-								
-								avg_bps = (d->pos - d->skip) / 
-									(d->last_update - d->start_date);
-
-							if (avg_bps) {
-								
-			             	   if (d->file_size > d->pos)
-            			    	    remain = d->file_size - d->pos;
-
-				                s = remain / avg_bps;
-								bs = avg_bps / 1024.0;
-							}
-						
 							if (s)
 								gm_snprintf(tmpstr, sizeof(tmpstr),
 						"%.02f%%  (%.1f k/s)  [%d/%d]  TR:  %s", percent_done,
