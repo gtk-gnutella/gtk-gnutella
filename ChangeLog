@@ -1,5 +1,12 @@
 # since last version
 
+- (Richard)
+ * Added default extensions: doc, nes, smc, smd, rom
+ * Changed default sidebar width to 140
+ * Changed default filter-tree size in filter dialog to 140
+ * Changed default 'Jump to download' to FALSE
+ * Fixed tooltips of the firewalled/non-firewalled icons
+	
 - (2002.11.02 RAM)
  * Added asychronous SHA1 verification routines.
  * Extended the background task model to also support "daemon" tasks, which
