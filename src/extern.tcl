@@ -16,6 +16,8 @@ set w_main_list {
 	menu_uploads_visible
 	menu_downloads_visible
 	menu_connections_visible
+	menu_bps_in_visible
+	menu_bps_out_visible
 
 	hbox_statusbar
 	label_statusbar_uptime
@@ -42,6 +44,8 @@ set w_main_list {
 	radio_config_socksv4 
 	radio_config_socksv5
     entry_config_socks_port 
+	spinbutton_config_bps_in
+	spinbutton_config_bps_out
 
 	button_nodes_add 
 	button_nodes_remove 
@@ -53,15 +57,17 @@ set w_main_list {
 	checkbutton_uploads_auto_clear
 	clist_uploads 	
 
+	clist_downloads_queue 
+	button_queue_clear
+	button_queue_remove
+	togglebutton_queue_freeze
+
 	button_downloads_abort
 	button_downloads_clear_completed
-	button_downloads_queue_clear
 	button_downloads_resume
-	button_downloads_queue_remove
 	checkbutton_downloads_auto_clear 
 	checkbutton_downloads_never_push
-	clist_downloads 
-	clist_downloads_queue 
+	clist_downloads
 
 	button_search 
 	button_search_clear
@@ -93,12 +99,11 @@ set w_main_list {
 	popup_hosts_export
 
 	popup_dl_queued 
-	popup_queue_remove
-	popup_queue_remove_named
-	popup_queue_remove_host
+	popup_queue_abort
+	popup_queue_abort_named
+	popup_queue_abort_host
 	popup_queue_search_again
-	popup_queue_start_now 
-	popup_queue_freeze
+	popup_queue_start_now
 	popup_queue_search_again
 
 	popup_dl_active 
@@ -151,8 +156,12 @@ set w_main_list {
 	label_search_stats_count
 	notebook_main 
 	notebook_search_results 
+
 	progressbar_downloads
 	progressbar_uploads 
+	progressbar_bps_in
+	progressbar_bps_out
+
 	statusbar 
 	sw_connections
     progressbar_connections 
