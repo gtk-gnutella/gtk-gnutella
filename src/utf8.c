@@ -662,7 +662,7 @@ void locale_close(void)
 }
 
 static inline char *g_iconv_complete(GIConv cd,
-	char *inbuf, size_t inbytes_left,
+	const char *inbuf, size_t inbytes_left,
 	char *outbuf, size_t outbytes_left)
 {
 	gchar *result = outbuf;
@@ -748,9 +748,10 @@ gchar *locale_to_utf8(gchar *str, size_t len)
  * @returns a newly allocated string.
  */
 gchar *
-locale_to_utf8_nfd(gchar *str, size_t len)
+locale_to_utf8_nfd(const gchar *str, size_t len)
 {
-	gchar *s, *ret;
+	const gchar *s;
+	gchar *ret;
 	g_assert(NULL != str);
 
 	if (0 == len)
@@ -771,7 +772,7 @@ locale_to_utf8_nfd(gchar *str, size_t len)
 
 	ret = g_utf8_normalize(s, (gssize) -1, G_NORMALIZE_NFD);
 	if (s != str)
-		G_FREE_NULL(s);
+		G_FREE_NULL((gchar *) s); /* Override const */
 
 	return ret;
 }
