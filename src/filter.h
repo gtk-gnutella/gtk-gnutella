@@ -73,9 +73,6 @@ typedef struct filter {
  */
 #define FILTER_EXISTS 1
 
-extern const gchar * const filter_prop_names[];
-extern const gchar * const filter_prop_state_names[];
-
 /*
  * The following struct is used to hold the state information of filter
  * properties. A rule can set one or more of those properties to define

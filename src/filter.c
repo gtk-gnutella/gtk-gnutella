@@ -80,17 +80,6 @@ void dump_shadow(shadow_t *shadow);
  * Public variables
  */
 filter_t *work_filter = NULL;
-const gchar * const filter_prop_names[MAX_FILTER_PROP] = {
-    "DISPLAY",
-    "DOWNLOAD"
-};
-
-const gchar * const filter_prop_state_names[MAX_FILTER_PROP_STATE] = {
-    "undefined",
-    "do",
-    "don't"
-};
-
 
 /*
  * Private variables
@@ -760,15 +749,16 @@ void filter_close_search(search_t *s)
 
     shadow = shadow_find(s->filter);
     if (shadow != NULL) {
-        GList *r;
+		GList *copy;
 
-        for (r = g_list_copy(shadow->removed); r != NULL; r = r->next)
-            filter_append_rule_to_session(s->filter, r->data);
-        g_list_free(r);
+		copy = g_list_copy(shadow->removed);
+		G_LIST_FOREACH_SWAPPED(copy, filter_append_rule_to_session, s->filter);
+        g_list_free(copy);
 
-        for (r = g_list_copy(shadow->added); r != NULL; r = r->next)
-            filter_remove_rule_from_session(s->filter, r->data);
-        g_list_free(r);
+		copy = g_list_copy(shadow->added);
+		G_LIST_FOREACH_SWAPPED(copy,
+			filter_remove_rule_from_session, s->filter);
+        g_list_free(copy);
 
         shadow_cancel(shadow);
     }          
@@ -1318,7 +1308,7 @@ void filter_remove_from_session(filter_t *f)
  */
 static void filter_free(filter_t *f) 
 {
-    GList *l;
+    GList *copy;
 
     g_assert(f != NULL);
 
@@ -1342,10 +1332,9 @@ static void filter_free(filter_t *f)
     if (g_list_find(filters_removed, f) != NULL)
         filters_removed = g_list_remove(filters_removed, f);
 
-    for (l = g_list_copy(f->ruleset); l != NULL; l = l->next) {
-        filter_remove_rule(f, (rule_t *)l->data);
-    }
-    g_list_free(l);
+	copy = g_list_copy(f->ruleset);
+	G_LIST_FOREACH_SWAPPED(copy, filter_remove_rule, f);
+    g_list_free(copy);
 
     g_free(f->name);
     f->name = NULL;
@@ -2311,21 +2300,21 @@ void filter_shutdown(void)
      */
     for (f = filters; f != NULL; f = f->next) {
         filter_t *filter = (filter_t*) f->data;
-        GList *l;
+        GList *copy = g_list_copy(filter->ruleset);
 
         /*
          * Since filter_remove_rule modifies filter->ruleset, we
          * have to copy the ruleset before we start puring.
          */
-        for (l = g_list_copy(filter->ruleset); l != NULL; l=l->next) {
-            /*
-             * We don't want to create any shadows again since a
-             * shadowed filter may not be freed, so we use 
-             * filter_remove_rule. 
-             */
-            filter_remove_rule(filter, (rule_t *)l->data);
-        }
-        g_list_free(l);
+
+        /*
+         * We don't want to create any shadows again since a
+         * shadowed filter may not be freed, so we use 
+         * filter_remove_rule. 
+         */
+
+ 		G_LIST_FOREACH_SWAPPED(copy, filter_remove_rule, filter);
+        g_list_free(copy);
     }
 
     /*
