@@ -1147,7 +1147,7 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 		g_assert(g_list_length(parq_ul->by_ip->list) == 0);
 
 		/* No more uploads from this ip, cleaning up */
-		g_hash_table_remove(ul_all_parq_by_ip, &parq_ul->remote_ip);
+		g_hash_table_remove(ul_all_parq_by_ip, &parq_ul->by_ip->ip);
 		g_list_free(parq_ul->by_ip->list);
 		parq_ul->by_ip->list = NULL;
 	
@@ -1348,12 +1348,12 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 		/* The requesting client has no other PARQ entries yet, create an ip
 		 * reference structure */
 		parq_ul->by_ip = walloc0(sizeof(*parq_ul->by_ip));
+		parq_ul->by_ip->ip = parq_ul->remote_ip;
 		g_hash_table_insert(
-			ul_all_parq_by_ip, &parq_ul->remote_ip, parq_ul->by_ip);
+			ul_all_parq_by_ip, &parq_ul->by_ip->ip, parq_ul->by_ip);
 		parq_ul->by_ip->uploading = 0;
 		parq_ul->by_ip->total = 0;
 		parq_ul->by_ip->list = NULL;
-		parq_ul->by_ip->ip = parq_ul->remote_ip;
 	}
 	
 	g_assert(parq_ul->by_ip->ip == parq_ul->remote_ip);
