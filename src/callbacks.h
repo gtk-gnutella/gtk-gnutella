@@ -51,7 +51,6 @@ gboolean on_main_window_delete_event (GtkWidget *widget, GdkEvent *event, gpoint
 gboolean on_main_window_destroy_event (GtkWidget *widget, GdkEvent *event, gpointer user_data); 
 void on_button_extra_config_clicked (GtkButton *button, gpointer user_data); 
 void on_button_quit_clicked (GtkButton *button, gpointer user_data);
-void on_checkbutton_autodownload_toggled(GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_monitor_enable_toggled (GtkToggleButton *togglebutton, gpointer user_data); 
 void on_checkbutton_downloads_never_push_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_clist_nodes_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);

@@ -185,7 +185,6 @@ set w_main_list {
 
     button_ul_stats_clear_all
     button_ul_stats_clear_deleted 
-    checkbutton_autodownload
     checkbutton_search_stats_enable
     clist_nodes 
     clist_search_stats 

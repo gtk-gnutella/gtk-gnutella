@@ -2316,14 +2316,6 @@ void on_checkbutton_search_autoselect_ident_toggled
 	search_autoselect_ident = gtk_toggle_button_get_active(togglebutton);
 }
 
-void on_checkbutton_autodownload_toggled(GtkToggleButton *togglebutton,
-										 gpointer user_data)
-{
-	use_autodownload = gtk_toggle_button_get_active(togglebutton);
-	if (use_autodownload)
-		autodownload_init();
-}
-
 void on_entry_max_uploads_activate(GtkEditable * editable,
 								   gpointer user_data)
 {
