@@ -53,6 +53,7 @@
 #include "matching.h"
 #include "walloc.h"
 #include "nodes.h"
+#include "whitelist.h"
 
 #include "gnet_property_priv.h"
 #include "main_gui.h"
@@ -154,6 +155,7 @@ void gtk_gnutella_exit(gint n)
 	dmesh_close();
 	settings_close();
 	ban_close();
+    whitelist_close();
 	cq_free(callout_queue);
 	matching_close();
 	pmsg_close();
@@ -401,6 +403,7 @@ gint main(gint argc, gchar ** argv)
 	download_init();
 	upload_init();
 	ban_init();
+    whitelist_init();
 
     main_gui_init();
 
