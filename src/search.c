@@ -1463,16 +1463,40 @@ static void download_selection_of_clist(GtkCList * c)
 	struct record *rc;
 	gboolean need_push;
 	GList *l;
+    gint row;
 
-	for (l = c->selection; l; l = l->next) {
+	for (l = c->selection; l; 
+         l = c->selection) {
+
+        /* make it visibile that we already selected this for download */
 		gtk_clist_set_foreground(c, (gint) l->data, 
 								 &gtk_widget_get_style(GTK_WIDGET(c))->fg[GTK_STATE_ACTIVE]);
+
 		rc = (struct record *) gtk_clist_get_row_data(c, (gint) l->data);
+        
+        if (!rc) {
+			g_warning("download_selection_of_clist(): row %d has NULL data\n",
+			          (gint) l->data);
+		    continue;
+        }
+
 		rs = rc->results_set;
 		need_push =
 			(rs->status & ST_FIREWALL) || !check_valid_host(rs->ip, rs->port);
 		download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
 					 rs->guid, need_push);
+
+        /*
+         * I'm not totally sure why we have to determine the row again,
+         * but without this, it does not seem to work.
+         *     --BLUE, 01/05/2002
+         */
+        row = gtk_clist_find_row_from_data(c, rc);
+
+        if (search_remove_downloaded)
+            gtk_clist_remove(c, row);
+        else
+            gtk_clist_unselect_row(c, row, 0);
 	}
 }
 
