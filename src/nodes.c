@@ -60,6 +60,7 @@
 #include "bsched.h"
 #include "atoms.h"
 #include "http.h"
+#include "version.h"
 
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
@@ -1433,6 +1434,7 @@ static void node_process_handshake_header(struct io_header *ih)
 
 	field = header_get(ih->header, "User-Agent");
 	if (field) {
+		version_check(field);
 		n->vendor = atom_str_get(field);
 		gui_update_node_vendor(n);
 	}

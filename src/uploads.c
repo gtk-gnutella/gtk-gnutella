@@ -52,6 +52,7 @@
 #include "atoms.h"
 #include "http.h"
 #include "cq.h"
+#include "version.h"
 
 GSList *uploads = NULL;
 gint running_uploads = 0;
@@ -1727,6 +1728,7 @@ static void upload_request(struct upload *u, header_t *header)
 		user_agent = header_get(header, "Server");
 
 	if (user_agent) {
+		version_check(user_agent);
 		/* XXX match against web user agents, possibly */
 	}
 

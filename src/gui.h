@@ -157,6 +157,8 @@ void gui_search_init(void);
 void gui_search_update_items(struct search *sch);
 void gui_statusbar_add_timeout(guint scid, guint msgid, guint timeout);
 void gui_statusbar_clear_timeouts(time_t now);
+void gui_new_version_found(gchar *text, gboolean stable);
+void gui_ancient_warn(void);
 void gui_update_guid(void);
 void gui_update_c_downloads(gint, gint);
 void gui_update_c_gnutellanet(void);

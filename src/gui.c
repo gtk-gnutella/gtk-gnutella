@@ -111,6 +111,12 @@ GtkWidget * shutdown_window = NULL;
 GtkWidget * dlg_about = NULL;
 
 /*
+ * Status bar
+ */
+static gchar *statbar_botstr = NULL;
+static gchar *statbar_botstr_new = NULL;
+
+/*
  * Private functions
  */
 static void gui_init_menu();
@@ -166,8 +172,19 @@ void gui_init(void)
         gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar),
                                      "warning");
 
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", GTA_WEBSITE);
-	gui_statusbar_push(scid_bottom, gui_tmp);
+	/*
+	 * This message lies at the bottom of the statusbar, and is never removed,
+	 * but to be replaced by an updated message.
+	 *
+	 * The current string held at the bottom is stored in `statbar_botstr'.
+	 * If a new string is pending replacement in `statbar_botstr_new', then
+	 * it will replace the current one when the last timeout for pushed
+	 * messages expires, at which time we'll know the bottom message is shown.
+	 *		--RAM, 27/06/2002
+	 */
+
+	statbar_botstr = g_strdup(GTA_WEBSITE);
+	gui_statusbar_push(scid_bottom, statbar_botstr);
 
     /* search history combo stuff */
     gtk_combo_disable_activate(GTK_COMBO(combo_search));
@@ -593,6 +610,20 @@ void gui_statusbar_clear_timeouts(time_t now)
 		gui_statusbar_free_timeout((struct statusbar_timeout *) l->data);
 
 	g_slist_free(to_remove);
+
+	/*
+	 * When there are no more timeouts left, and there's a pending
+	 * new statusbar string to display, pop the old one and add the new.
+	 *		--RAM, 27/06/2002
+	 */
+
+	if (sl_statusbar_timeouts == NULL && statbar_botstr_new) {
+		gui_statusbar_pop(scid_bottom);
+		g_free(statbar_botstr);
+		statbar_botstr = statbar_botstr_new;
+		statbar_botstr_new = NULL;
+		gui_statusbar_push(scid_bottom, statbar_botstr);
+	}
 }
 
 /*
@@ -609,6 +640,38 @@ static void gui_statusbar_free_timeout_list()
 		
 		gui_statusbar_free_timeout(t);
 	}
+}
+
+/*
+ * gui_new_version_found
+ *
+ * Called when a new version is found.
+ * `text' is the textual version information.
+ * `stable' indicates whether we've seen more a stable version.
+ */
+void gui_new_version_found(gchar *text, gboolean stable)
+{
+	if (statbar_botstr_new)
+		g_free(statbar_botstr_new);
+
+	statbar_botstr_new = g_strdup_printf(
+		"%s - Newer %s version available%s: %s",
+		GTA_WEBSITE,
+		stable ? "stable" : "development",
+		stable ? "" : " (in CVS)", text);
+}
+
+/*
+ * gui_ancient_warn
+ *
+ * Warn them about the old version they're running.
+ */
+void gui_ancient_warn(void)
+{
+	gint msgid;
+
+	msgid = gui_statusbar_push(scid_warn, "*** RUNNING AN OLD VERSION! ***");
+	gui_statusbar_add_timeout(scid_warn, msgid, 15);
 }
 
 /*
@@ -1232,7 +1295,8 @@ void gui_update_traffic_stats() {
 	 *		--RAM, 16/04/2002
 	 */
 
-    current = progressbar_bws_in_avg ? bsched_avg_bps(bws.in) : bsched_bps(bws.in);
+    current = progressbar_bws_in_avg ?
+		bsched_avg_bps(bws.in) : bsched_bps(bws.in);
 
     if (max_bw.input < current)
         max_bw.input = current;
@@ -1247,7 +1311,8 @@ void gui_update_traffic_stats() {
     	MIN(current,bws.in->bw_per_second), 0, high_limit);
 
 
-    current = progressbar_bws_out_avg ? bsched_avg_bps(bws.out) : bsched_bps(bws.out);
+    current = progressbar_bws_out_avg ?
+		bsched_avg_bps(bws.out) : bsched_bps(bws.out);
 
     if (max_bw.output < current)
         max_bw.output = current;
@@ -1262,7 +1327,8 @@ void gui_update_traffic_stats() {
     	MIN(current, bws.out->bw_per_second), 0, high_limit);
 
 
-    current = progressbar_bws_gin_avg ? bsched_avg_bps(bws.gin) : bsched_bps(bws.gin);
+    current = progressbar_bws_gin_avg ?
+		bsched_avg_bps(bws.gin) : bsched_bps(bws.gin);
 
     if (max_bw.ginput < current)
         max_bw.ginput = current;
@@ -1277,7 +1343,8 @@ void gui_update_traffic_stats() {
     	MIN(current, bws.gin->bw_per_second), 0, high_limit);
 
 
-    current = progressbar_bws_gout_avg ? bsched_avg_bps(bws.gout) : bsched_bps(bws.gout);
+    current = progressbar_bws_gout_avg ?
+		bsched_avg_bps(bws.gout) : bsched_bps(bws.gout);
 
     if (max_bw.goutput < current)
         max_bw.goutput = current;
@@ -1980,6 +2047,10 @@ void gui_close(void)
 		g_free(scan_extensions);
 	if (shared_dirs_paths)
 		g_free(shared_dirs_paths);
+	if (statbar_botstr_new)
+		g_free(statbar_botstr_new);
+	if (statbar_botstr)
+		g_free(statbar_botstr);
 }
 
 void gui_shutdown(void)

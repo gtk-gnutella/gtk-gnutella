@@ -44,6 +44,7 @@
 #include "base32.h"
 #include "dmesh.h"
 #include "http.h"
+#include "version.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -2429,6 +2430,7 @@ static void download_request(struct download *d, header_t *header)
 		buf = header_get(header, "User-Agent");	/* Maybe they're confused */
 
 	if (buf) {
+		version_check(buf);
 		if (d->server == NULL) {
 			d->server = atom_str_get(buf);
 			got_new_server = TRUE;
@@ -2827,7 +2829,7 @@ gboolean download_send_request(struct download *d)
 		return FALSE;
 	}
 
-	g_assert(d->overlap_size < sizeof(s->buffer));
+	g_assert(d->overlap_size <= sizeof(s->buffer));
 
 	/*
 	 * When we have a SHA1, the remote host normally supports HUGE, and
