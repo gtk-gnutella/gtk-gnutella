@@ -31,6 +31,7 @@ struct gnutella_socket {
  */
 
 extern guint32 local_ip;
+extern gboolean is_firewalled;
 
 /*
  * Global Functions

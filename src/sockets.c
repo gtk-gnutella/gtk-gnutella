@@ -22,6 +22,7 @@
 #include "misc.h"
 
 guint32 local_ip = 0;
+gboolean is_firewalled = TRUE;		/* Assume the worst --RAM, 20/12/2001 */
 
 static GSList *sl_incoming = (GSList *) NULL;	/* Track incoming sockets */
 
@@ -114,6 +115,7 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 		g_warning
 			("socket_read(): incoming buffer full, disconnecting from %s",
 			 ip_to_gchar(s->ip));
+		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
 		socket_destroy(s);
 		return;
 	}
@@ -491,6 +493,17 @@ static void socket_accept(gpointer data, gint source,
 		g_assert(0);			/* Can't happen */
 		break;
 	}
+
+	/*
+	 * Since someone connected to us, we're not completely firewalled.
+	 * The Gnutella port has at least been opened.
+	 *		--RAM, 20/12/2001
+	 */
+
+	if (is_firewalled) {
+		is_firewalled = FALSE;
+		printf("Got evidence that we're not fully firewalled\n");
+	}
 }
 
 /*
@@ -508,7 +521,7 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 	sd = socket(AF_INET, SOCK_STREAM, 0);
 
 	if (sd == -1) {
-		g_warning("Unable to create a socket (%s)\n", g_strerror(errno));
+		g_warning("Unable to create a socket (%s)", g_strerror(errno));
 		return NULL;
 	}
 
@@ -568,7 +581,7 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 					sizeof(struct sockaddr_in));
 
 	if (res == -1 && errno != EINPROGRESS) {
-		g_warning("Unable to connect (%s)\n", g_strerror(errno));
+		g_warning("Unable to connect (%s)", g_strerror(errno));
 		socket_destroy(s);
 		return NULL;
 	}
@@ -577,7 +590,7 @@ struct gnutella_socket *socket_connect(guint32 ip, guint16 port, gint type)
 
 	/* Always keep our IP current, in case of dynamic address */
 	if (guess_local_ip(sd, &local_ip, &s->local_port) == -1) {
-		g_warning("Unable to guess our IP ! (%s)\n", g_strerror(errno));
+		g_warning("Unable to guess our IP ! (%s)", g_strerror(errno));
 		socket_destroy(s);
 		return NULL;
 	}
@@ -607,7 +620,7 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 	sd = socket(AF_INET, SOCK_STREAM, 0);
 
 	if (sd == -1) {
-		g_warning("Unable to create a socket (%s)\n", g_strerror(errno));
+		g_warning("Unable to create a socket (%s)", g_strerror(errno));
 		return NULL;
 	}
 
@@ -633,7 +646,7 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 	/* bind() the socket */
 
 	if (bind(sd, (struct sockaddr *) &addr, l) == -1) {
-		g_warning("Unable to bind() the socket on port %u (%s)\n",
+		g_warning("Unable to bind() the socket on port %u (%s)",
 				  port, g_strerror(errno));
 		socket_destroy(s);
 		return NULL;
@@ -642,8 +655,7 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 	/* listen() the socket */
 
 	if (listen(sd, 1) == -1) {
-		g_warning("Unable to listen() the socket (%s)\n",
-				  g_strerror(errno));
+		g_warning("Unable to listen() the socket (%s)", g_strerror(errno));
 		socket_destroy(s);
 		return NULL;
 	}
@@ -655,7 +667,7 @@ struct gnutella_socket *socket_listen(guint32 ip, guint16 port, gint type)
 
 		if (getsockname(sd, (struct sockaddr *) &addr, &option) == -1) {
 			g_warning("Unable to get the port of the socket: "
-				"getsockname() failed (%s).", g_strerror(errno));
+				"getsockname() failed (%s)", g_strerror(errno));
 			socket_destroy(s);
 			return NULL;
 		}
