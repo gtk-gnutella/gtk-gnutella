@@ -2642,10 +2642,25 @@ prop = {
 
 prop = {
 	name = "convert_evil_chars";
-	desc = "If set, meta shell characters in filenames are replaced with underscores. (This must also be enabled for FAT partitions.)";
+	desc = "If set, meta shell characters in filenames are replaced with "
+		"underscores. (This must also be enabled for FAT partitions.)";
 	type = boolean;
 	data = {
 		default = TRUE;
+	};
+};
+
+prop = {
+	name = "convert_old_filenames";
+	desc = "If set, gtk-gnutella will, upon startup, sanitize filenames by "
+		"converting spaces and/or evil characters in them, according to your "
+		"settings, on existing filenames in your temporary downloading "
+		"directory. "
+		"By default, the above settings apply only on newly created entries, "
+		"not existing ones.";
+	type = boolean;
+	data = {
+		default = FALSE;
 	};
 };
 

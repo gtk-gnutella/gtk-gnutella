@@ -266,6 +266,7 @@ extern const gboolean file_descriptor_runout;
 extern const gboolean enable_g2_support;
 extern const gboolean convert_spaces;
 extern const gboolean convert_evil_chars;
+extern const gboolean convert_old_filenames;
 extern const gboolean tls_enforce;
 extern const gboolean gnet_deflate_enabled;
 extern const gboolean enable_udp;
