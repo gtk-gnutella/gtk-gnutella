@@ -538,7 +538,7 @@ tree_view_restore_widths(GtkTreeView *treeview, property_t prop)
 		if (!c)
 			break;
 		gui_prop_get_guint32(prop, &width, i, 1);
-		g_object_set(G_OBJECT(c), "fixed-width", MAX(1, width), NULL);
+		g_object_set(G_OBJECT(c), "fixed-width", MAX(1, (gint32) width), NULL);
 	}
 }
 
@@ -594,7 +594,7 @@ _gtk_spin_button_get_value(GtkSpinButton *spinbutton)
 }
 
 guint32
-gtk_editable_get_value_as_uint(GtkEditable *editable)
+gtk_editable_get_value_as_uint32(GtkEditable *editable)
 {
     gchar *e;
     guint32 result;
