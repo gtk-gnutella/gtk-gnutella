@@ -560,7 +560,7 @@ search_update_details(GtkTreeView *tv, GtkTreePath *path)
 
 	gtk_entry_printf(GTK_ENTRY(
 				lookup_widget(main_window, "entry_result_info_timestamp")),
-			"%25.25s", ctime(&rc->results_set->stamp));
+			"%24.24s", ctime(&rc->results_set->stamp));
 			/* discard trailing '\n' (see ctime(3) */
 
 	gtk_entry_set_text(
