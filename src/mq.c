@@ -1234,6 +1234,7 @@ again:
 			guint8 function = gmsg_function(mb_start);
 			sent++;
 			pmsg_mark_sent(mb);
+			node_inc_sent(q->node);
             gnet_stats_count_sent(q->node,
 				function, gmsg_hops(mb_start), pmsg_size(mb));
 			switch (function) {
