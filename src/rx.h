@@ -1,0 +1,71 @@
+/*
+ * Copyright (c) 2002, Raphael Manfredi
+ *
+ * Network driver.
+ */
+
+#ifndef __rx_h__
+#define __rx_h__
+
+#include <stdarg.h>
+#include <glib.h>
+
+#include "pmsg.h"
+
+struct rxdrv_ops;
+struct rxdriver;
+
+typedef void (*rx_data_t)(struct rxdriver *, pmsg_t *mb);
+
+/*
+ * A network driver
+ *
+ */
+typedef struct rxdriver {
+	struct gnutella_node *node;		/* Node to which this driver belongs */
+	struct rxdrv_ops *ops;			/* Dynamically dispatched operations */
+	struct rxdriver *upper;			/* Layer above, NULL if none */
+	struct rxdriver *lower;			/* Layer underneath, NULL if none */
+	gint flags;						/* Driver flags */
+	rx_data_t data_ind;				/* Data indication routine */
+	gpointer opaque;				/* Used by heirs to store specific info */
+} rxdrv_t;
+
+#define rx_node(r)	((r)->node)
+
+/*
+ * Driver flags.
+ */
+
+/*
+ * Operations defined on all drivers.
+ */
+
+struct rxdrv_ops {
+	gpointer (*init)(rxdrv_t *tx, gpointer args);
+	void (*destroy)(rxdrv_t *tx);
+	void (*recv)(rxdrv_t *tx, pmsg_t *mb);
+	void (*enable)(rxdrv_t *tx);
+	void (*disable)(rxdrv_t *tx);
+};
+
+/*
+ * Public interface
+ */
+
+rxdrv_t *rx_make(
+	struct gnutella_node *n,
+	struct rxdrv_ops *ops,
+	rx_data_t data_ind,
+	gpointer args);
+rxdrv_t *rx_make_under(rxdrv_t *urx, struct rxdrv_ops *ops, gpointer args);
+void rx_free(rxdrv_t *d);
+void rx_recv(rxdrv_t *rx, pmsg_t *mb);
+void rx_enable(rxdrv_t *rx);
+void rx_disable(rxdrv_t *rx);
+rxdrv_t *rx_bottom(rxdrv_t *rx);
+
+#endif	/* __rx_h__ */
+
+/* vi: set ts=4: */
+
