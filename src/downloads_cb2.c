@@ -64,9 +64,17 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 	if (NULL != model) {
 
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
-		for (; l; l = l->next) {
+		/* For this and many of the other functions that deal with selected
+		 * rows: we have to get and free the list for every selected item.  This
+		 * is not ideal but there is no way to get only the first item in the 
+		 * list and once we remove an item, the selection list changes and we 
+		 * have to get a new one. It seems like we may be able to avoid this 
+		 * somewhat by using GtkTreeRowReferences but the implementation would
+		 * be messy and I think there would be no speed/memory advantage in the 
+		 * end.  --- Emile 30/12/2003 
+		 */		
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
@@ -74,8 +82,11 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
+		
 			if (DL_GUI_IS_HEADER == (guint32) d) /* is header */
-				return;
+				break;
 			
             if (!d) {
 				g_warning(
@@ -85,6 +96,12 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 	        }
     
 			download_fallback_to_push(d, FALSE, TRUE);
+		}
+
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 		}
 	}
 }
@@ -113,17 +130,20 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
 	if (NULL != model) {		
 
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
-		for (; l; l = l->next) {
+		/* Need to re-get selection list every time we modify the model */
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
 			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
 			gtk_tree_selection_unselect_iter(selection, &iter);	
-			
-			if (DL_GUI_IS_HEADER == (guint32) d) 
+
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
+		
+			if (DL_GUI_IS_HEADER == (guint32) d) /* is header */
 				return;
 
 			if (!d) {
@@ -134,6 +154,11 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
 			}
 		
 			removed += download_remove_all_named(d->file_name);
+		}
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 		}
 	}
 	
@@ -164,9 +189,9 @@ void on_popup_downloads_abort_host_activate
 	if (NULL != model) {		
 
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
-		for (; l; l = l->next) {
+		/* Need to re-get selection list every time we modify the model */
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
@@ -174,7 +199,10 @@ void on_popup_downloads_abort_host_activate
 			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
-			if (DL_GUI_IS_HEADER == (guint32) d) 
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
+		
+			if (DL_GUI_IS_HEADER == (guint32) d) /* is header */
 				return;
 			
 			if (!d) {
@@ -186,6 +214,11 @@ void on_popup_downloads_abort_host_activate
 			
 			removed += download_remove_all_from_peer(
 				download_guid(d), download_ip(d), download_port(d), FALSE);
+		}
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 		}
 	}
 		
@@ -205,7 +238,7 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem *menuitem,
 	GList *l;
 	struct download *d, *drecord = NULL;
     gint removed = 0;
-	gchar *sha1;
+	gchar *sha1 = NULL;
 
 	GtkTreeIter iter, parent;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
@@ -216,9 +249,9 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem *menuitem,
 	if (NULL != model) {		
 
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
-		for (; l; l = l->next) {
+		/* Need to re-get selection list every time we modify the model */
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 	
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
@@ -226,6 +259,9 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem *menuitem,
 			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
+	
 			if (!d) {
 				g_warning(
    	    	         "on_popup_downloads_abort_sha1_activate():"
@@ -253,6 +289,12 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem *menuitem,
 			
         	if (NULL != sha1)
             	removed += download_remove_all_with_sha1(sha1);
+		}
+
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 		}
 	}
 
@@ -282,9 +324,9 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 	if (NULL != model) {		
 	
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
-
-		for (; l; l = l->next) {
+	
+		/* Need to re-get selection list every time we modify the model */
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
@@ -294,6 +336,9 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 
 			if (DL_GUI_IS_HEADER == (guint32) d)
 				return;
+
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 
 			if (!d) {
 				g_warning(
@@ -311,6 +356,11 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
     	    if ((d->status == GTA_DL_ERROR || d->status == GTA_DL_ABORTED) &&
        				download_file_exists(d))
             	download_remove_file(d, TRUE);
+		}
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 		}
 	}	
 }
@@ -337,18 +387,21 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
 	if (NULL != model) {
 		
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
-		for (; l; l = l->next) {
+		/* Need to re-get selection list every time we modify the model */
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 
-			if (DL_GUI_IS_HEADER == (guint32) d)
-				return;
-			
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 	
 			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
 			gtk_tree_selection_unselect_iter(selection, &iter);	
+
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
+
+			if (DL_GUI_IS_HEADER == (guint32) d)
+				return;
 
 	        if (!d) {
     	        g_warning("on_popup_downloads_queue_activate():"
@@ -358,6 +411,11 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
 			
 			download_requeue(d);
     	}
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
+		}
 	}
 }
 
@@ -399,6 +457,9 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
 		
 			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
 
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
+			
 			if (DL_GUI_IS_HEADER == (guint32) d)
 				return;
 
@@ -447,17 +508,19 @@ void on_popup_downloads_connect_activate(GtkMenuItem * menuitem,
 	if (NULL != model) {		
 	
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
-		for (; l; l = l->next) {
+		/* Need to re-get selection list every time we modify the model */
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
 			gtk_tree_model_get_iter(model, &iter, l->data);
 			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
-
 			gtk_tree_selection_unselect_iter(selection, &iter);	
+
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 
 			if (!d) {
 		    	g_warning("on_popup_downloads_connect_activate():" 
@@ -466,6 +529,11 @@ void on_popup_downloads_connect_activate(GtkMenuItem * menuitem,
     		}
 
 	    	node_add(download_ip(d), download_port(d));
+		}
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 		}
 	}
 }
@@ -499,9 +567,9 @@ void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
 	if (NULL != model) {
 	
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
-		for (; l; l = l->next) {
+		/* Need to re-get selection list every time we modify the model */
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
@@ -509,6 +577,9 @@ void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
 			gtk_tree_model_get(model, &iter, c_queue_record, &d, -1);
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 	
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
+
 			if (DL_GUI_IS_HEADER == (guint32) d)
 				return;
 			
@@ -520,6 +591,11 @@ void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
     
 			if (d->status == GTA_DL_QUEUED)
 				download_start(d, TRUE);
+		}
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 		}
 	}
 }
@@ -547,9 +623,9 @@ void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
 	if (NULL != model) {		
 
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
-		for (; l; l = l->next) {
+		/* Need to re-get selection list every time we modify the model */
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 			
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
@@ -557,7 +633,10 @@ void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
 			gtk_tree_model_get(model, &iter, c_queue_record, &d, -1);
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
-			if (DL_GUI_IS_HEADER == (guint32) d) 
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
+		
+			if (DL_GUI_IS_HEADER == (guint32) d) /* is header */
 				return;
 
 			if (!d) {
@@ -567,6 +646,11 @@ void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
 			}
 			if (d->status == GTA_DL_QUEUED)
 				download_remove(d);
+		}
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 		}
 	}
 }
@@ -595,16 +679,19 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
 	if (NULL != model) {		
 	
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
-		for (; l; l = l->next) {
+		/* Need to re-get selection list every time we modify the model */
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
 			gtk_tree_model_get(model, &iter, c_queue_record, &d, -1);
 			gtk_tree_selection_unselect_iter(selection, &iter);	
-	
+
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
+			
 			if (DL_GUI_IS_HEADER == (guint32) d)
 				return;
 
@@ -615,6 +702,11 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
 			}
 		
 			removed += download_remove_all_named(d->file_name);
+		}
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 		}
 	}	
 
@@ -645,15 +737,18 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
 	if (NULL != model) {		
 
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
-		for (; l; l = l->next) {
+		/* Need to re-get selection list every time we modify the model */
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
 			gtk_tree_model_get(model, &iter, c_queue_record, &d, -1);
 			gtk_tree_selection_unselect_iter(selection, &iter);	
+
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 
 			if (DL_GUI_IS_HEADER == (guint32) d)
 				return;
@@ -666,6 +761,11 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
 			
 			removed += download_remove_all_from_peer(
 				download_guid(d), download_ip(d), download_port(d), FALSE);
+		}
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 		}
 	}
 	
@@ -686,7 +786,7 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
 	GList *l;
 	struct download *d;
     gint removed = 0;
-	gchar *sha1;
+	gchar *sha1 = NULL;
 	
 	GtkTreeIter iter, parent;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
@@ -698,15 +798,18 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
 	if (NULL != model) {		
 	
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
-		for (; l; l = l->next) {
+		/* Need to re-get selection list every time we modify the model */
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 	
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
 			gtk_tree_model_get(model, &iter, c_queue_record, &d, -1);
 			gtk_tree_selection_unselect_iter(selection, &iter);	
+
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 
 			if (!d) {
 				g_warning("on_popup_queue_abort_sha1_activate():"
@@ -737,6 +840,11 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
 			   	if (NULL != sha1)
             		removed += download_remove_all_with_sha1(sha1);
 		}
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
+		}
 	}
 
     statusbar_gui_message(15, "Removed %u downloads", removed);
@@ -760,8 +868,6 @@ void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
 
    	struct download * d = NULL;
     GList *l;
-
-    g_return_if_fail(l);
 
     /* 
      * note that we set the popup dialog as owner, because we can
@@ -790,6 +896,9 @@ void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
 
 			gtk_tree_model_get(model, &iter, c_queue_record, &d, -1);
 
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
+			
 	        if (!d) {
    	   		   	g_warning("on_popup_queue_copy_url(): row %d has NULL data\n",
 			        GPOINTER_TO_INT(l->data));
@@ -835,15 +944,18 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
 	if (NULL != model) {		
 
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
-		for (; l; l = l->next) {
+		/* Need to re-get selection list every time we modify the model */
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
 			gtk_tree_model_get(model, &iter, c_queue_record, &d, -1);
 			gtk_tree_selection_unselect_iter(selection, &iter);	
+
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 
 			if (DL_GUI_IS_HEADER == (guint32) d)
 				return;
@@ -855,6 +967,11 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
     		}
 
 	    	node_add(download_ip(d), download_port(d));
+		}
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 		}
 	}
 }
@@ -887,15 +1004,18 @@ void on_button_downloads_abort_clicked(GtkButton * button, gpointer user_data)
 	if (NULL != model) {		
 
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
-		for (; l; l = l->next) {
+		/* Need to re-get selection list every time we modify the model */
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 			
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;	
 
 			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
 			gtk_tree_selection_unselect_iter(selection, &iter);	
+
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 
 			if (!d) {
 				g_warning("on_button_downloads_abort_clicked(): "
@@ -904,6 +1024,11 @@ void on_button_downloads_abort_clicked(GtkButton * button, gpointer user_data)
 			}
 
 			download_abort(d);
+		}
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 		}
 	}
 }
@@ -932,9 +1057,9 @@ void on_button_downloads_resume_clicked(GtkButton * button,
 	if (NULL != model) {		
 	
 		GtkTreeSelection *selection = gtk_tree_view_get_selection(tree_view);
-		l = gtk_tree_selection_get_selected_rows(selection, modelp);
 
-		for (; l; l = l->next) {
+		/* Need to re-get selection list every time we modify the model */
+		while ((l = gtk_tree_selection_get_selected_rows(selection, modelp))) {
 
 			if (!gtk_tree_model_get_iter(model, &iter, l->data))
 				break;				
@@ -942,12 +1067,20 @@ void on_button_downloads_resume_clicked(GtkButton * button,
 			gtk_tree_model_get(model, &iter, c_dl_record, &d, -1);
 			gtk_tree_selection_unselect_iter(selection, &iter);	
 
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
+
 	        if (!d) {
     	        g_warning("on_button_downloads_resume_clicked(): "
 					"row %d has NULL data\n", GPOINTER_TO_INT(l->data));
             	continue;
         	}
         	download_resume(d);	
+		}
+		/* In the event that we broke out of the loop without freeing the list*/
+		if (NULL != l) {
+			g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+			g_list_free(l);
 		}
 	}
 
@@ -1148,7 +1281,10 @@ void on_treeview_downloads_select_row(GtkTreeView * tree_view,
 				/*Takes care of other widgets*/
 				gui_update_download_abort_resume();
 			}
-		}	
+		}
+	
+		g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+		g_list_free(l);
 	}
 }
 
@@ -1180,8 +1316,6 @@ void on_treeview_downloads_queue_select_row(GtkTreeView * tree_view,
 		(lookup_widget(main_window, "treeview_downloads"));
 	selection = gtk_tree_view_get_selection(tree_view);
 	gtk_tree_selection_unselect_all(selection);
-
-
 		
 	tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads_queue"));
@@ -1203,8 +1337,10 @@ void on_treeview_downloads_queue_select_row(GtkTreeView * tree_view,
 				something = TRUE;
 			}
 		}	
-	}
 	
+		g_list_foreach(l, (GFunc) gtk_tree_path_free, NULL);
+		g_list_free(l);		
+	}
 	
 	gtk_widget_set_sensitive
 		(lookup_widget(popup_queue, "popup_queue_copy_url"), only_one);

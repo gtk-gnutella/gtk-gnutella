@@ -631,6 +631,9 @@ static void remove_selected_file(
               c_sr_record, child_rc,
               (-1));
 
+		G_FREE_NULL(filename);
+		G_FREE_NULL(info);
+
 		/* And remove the child's row */
 		gtk_tree_store_remove((GtkTreeStore *) model, &child);
 		g_assert(child_rc->refcount > 0);

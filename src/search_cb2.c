@@ -541,6 +541,7 @@ void on_tree_view_search_results_select_row(
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
 			filename);
+		G_FREE_NULL(filename);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
 			rc->sha1 != NULL ? sha1_base32(rc->sha1) : _("<none>"));
