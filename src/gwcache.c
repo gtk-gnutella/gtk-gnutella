@@ -34,6 +34,7 @@
 #include "gwcache.h"
 #include "http.h"
 #include "hosts.h"
+#include "url.h"
 #include "version.h"
 
 #include "settings.h"
@@ -135,35 +136,40 @@ extern cqueue_t *callout_queue;
  *
  * Add new URL to cache, possibly pushing off an older one if cache is full.
  */
-static void gwc_add(gchar *url)
+static void gwc_add(const gchar *new_url)
 {
 	gchar *url_atom;
-	gchar *old_url = NULL;
+	gchar *url;
+	gchar *old_url;
 
-	for (;;) {
-		/*
-		 * Don't add duplicates in the cache.
-	  	 */
+	url = g_strdup(new_url); /* url_normalize() can modify the URL */
+	if (url) {
+		gchar *ret;
 
-		if (g_hash_table_lookup(gwc_known_url, url))
+		ret = url_normalize(url, URL_POLICY_GWC_RULES);
+		if (!ret) {
+			g_warning("ignoring bad web cache URL \"%s\"", new_url);
+			G_FREE_NULL(url);
 			return;
-
-		/*
-	 	 * Make sure the entry is well-formed.
-	 	 */
-
-		if (http_url_parse(url, NULL, NULL, NULL)) {
-			break;
-		} else {
-			if (http_url_errno == HTTP_URL_MISSING_URI && !old_url) {
-				old_url = url;
-				url = g_strconcat(old_url, "/", NULL);
-			} else {
-				g_warning("ignoring bad web cache URL \"%s\": %s",
-					url, http_url_strerror(http_url_errno));
-				return;
-			}
 		}
+		if (ret != url) {
+			G_FREE_NULL(url);
+			url = ret;
+		}
+	} else {
+		/* This is superfluous with GLib but this way the above ``ret'' is
+		 * is local and quitting isn't really appropriate anyway. */
+		g_warning("Out of memory");
+		return;
+	}
+
+	/*
+	 * Don't add duplicates to the cache.
+  	 */
+
+	if (g_hash_table_lookup(gwc_known_url, url)) {
+		G_FREE_NULL(url);
+		return;
 	}
 
 	/*
@@ -175,10 +181,7 @@ static void gwc_add(gchar *url)
 
 	g_assert(url != NULL);
 	url_atom = atom_str_get(url);
-	if (old_url) {
-		/* This means we've appended a "/" to the original URL "url" */
-		G_FREE_NULL(url);
-	}
+	G_FREE_NULL(url);
 
 	/*
 	 * Expire any entry present at the slot we're about to write into.
