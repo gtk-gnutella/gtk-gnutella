@@ -63,13 +63,15 @@ void hash_list_free(hash_list_t **hl);
 void hash_list_remove(hash_list_t *hl, gpointer data);
 void hash_list_append(hash_list_t *hl, gpointer data);
 void hash_list_prepend(hash_list_t *hl, gpointer data);
-gpointer hash_list_first(hash_list_t *hl);
-gpointer hash_list_last(hash_list_t *hl);
+gpointer hash_list_first(const hash_list_t *hl);
+gpointer hash_list_last(const hash_list_t *hl);
+gulong hash_list_length(const hash_list_t *hl);
 gpointer hash_list_get_iter(hash_list_t *hl, hash_list_iter_t **i);
 void hash_list_release(hash_list_iter_t *i);
-gboolean hash_list_has_next(hash_list_iter_t *i);
+gboolean hash_list_has_next(const hash_list_iter_t *i);
+gboolean hash_list_has_previous(const hash_list_iter_t *i);
 gboolean hash_list_contains(hash_list_t *hl, gpointer data);
-void hash_list_foreach(hash_list_t *hl, GFunc func, gpointer user_data);
+void hash_list_foreach(const hash_list_t *hl, GFunc func, gpointer user_data);
 
 /* NB: Sub-statement func is evaluated more than once! */
 #define G_LIST_FOREACH(list, func, user_data) \
