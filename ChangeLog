@@ -1,5 +1,13 @@
 # since last version
 
+- (2002.05.20 - Richard)
+  * Added "User agent" column to uploads
+  * Added "Server" column to downloads and queue
+  * Display sort order in searches in column header
+    (closes #557690)
+  * Remove "stop sorting" from search popup. This can now be achived
+    by clicking on the column headers.
+
 - (2002.05.19 - RAM)
   * Integrated SHA1 / HUGE patch [From Ch. Tronche].
   * Force creation of config directory if it does not exist
