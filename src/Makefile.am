@@ -33,7 +33,8 @@ GLADEFILE = gtk2-gnutella.glade
 GLADE_UI = \
 	interface-glade2.c interface-glade2.h \
 	support-glade2.c support-glade2.h
-ADDITIONAL_DROPIN =
+ADDITIONAL_DROPIN = \
+	share_gui2.c share_gui.h
 gtk_gnutella_LDADD = @GTK_GNUTELLA_LIBS@ -lz @XML_LIBS@
 else
 INCLUDES = \
@@ -45,7 +46,8 @@ GLADE_UI = \
 	interface-glade1.c interface-glade1.h \
 	support-glade1.c support-glade1.h
 ADDITIONAL_DROPIN = \
-	gtkcolumnchooser.c gtkcolumnchooser.h
+	gtkcolumnchooser.c gtkcolumnchooser.h \
+	share_gui.c share_gui.h
 gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
 endif
 
@@ -76,7 +78,7 @@ gtk_gnutella_SOURCES = \
 	search.c search.h search_gui.h \
 	search_stats.c search_stats.h search_stats_gui.h \
 	downloads.c downloads.h downloads_gui.h \
-	share.c share.h share_gui.c share_gui.h \
+	share.c share.h \
 	uploads.c uploads.h uploads_gui.h \
 	upload_stats.c upload_stats.h upload_stats_gui.h \
 	main.c \
