@@ -27,6 +27,7 @@
  *----------------------------------------------------------------------
  */
 
+#include "gnutella.h"
 #include <sys/types.h>
 
 #include "sockets.h"

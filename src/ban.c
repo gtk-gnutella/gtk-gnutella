@@ -23,6 +23,7 @@
  *----------------------------------------------------------------------
  */
 
+#include "gnutella.h"
 #include <stdio.h>			/* For debug printf() only */
 #include <time.h>
 #include <sys/time.h>

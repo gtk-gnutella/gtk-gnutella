@@ -104,13 +104,15 @@ gboolean http_send_status(
 		}
 	}
 
-	rw += g_snprintf(&header[rw], sizeof(header) - rw, "\r\n");
+	if (rw < sizeof(header))
+		rw += g_snprintf(&header[rw], sizeof(header) - rw, "\r\n");
 
-	if (rw == sizeof(header) && hev) {
+	if (rw >= sizeof(header) && hev) {
 		g_warning("HTTP status %d (%s) too big, ignoring extra information",
 			code, reason);
 
 		rw = mrw + g_snprintf(&header[mrw], sizeof(header) - mrw, "\r\n");
+		g_assert(rw < sizeof(header));
 	}
 
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, header, rw))) {
@@ -164,14 +166,31 @@ static gint code_message_parse(gchar *line, gchar **msg)
 	code[3] = '\0';
 
 	status = atoi(code);
+
+	/*
+	 * Make sure we have at least a space after the code, or that we
+	 * reached the end of the string.
+	 */
+
+	c = *p;
+
+	if (c == '\0') {			/* 3 digits followed by a space */
+		if (msg)
+			*msg = p;			/* Points to the trailing NUL */
+		return status;
+	}
+
+	if (!isspace(c))			/* 3 digits NOT followed by a space */
+		return -1;
+
 	if (!msg)
 		return status;			/* No need to point to start of message */
 
 	/*
-	 * Now skip any space.
+	 * Now skip any further space.
 	 */
 
-	for (c = *p; c; c = *(++p)) {
+	for (c = *(++p); c; c = *(++p)) {
 		if (!isspace(c))
 			break;
 	}

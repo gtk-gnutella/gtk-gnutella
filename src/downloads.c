@@ -818,6 +818,13 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 		return;
 	}
 
+	if (fmt) {
+		g_vsnprintf(d->error_str, sizeof(d->error_str), fmt, ap);
+		d->error_str[sizeof(d->error_str) - 1] = '\0';	/* May be truncated */
+		d->remove_msg = d->error_str;
+	} else
+		d->remove_msg = NULL;
+
 	if (DOWNLOAD_IS_VISIBLE(d))
 		download_gui_remove(d);
 
@@ -825,13 +832,6 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 		download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
 
 	d->status = GTA_DL_QUEUED;
-
-	if (fmt) {
-		g_vsnprintf(d->error_str, sizeof(d->error_str), fmt, ap);
-		d->error_str[sizeof(d->error_str) - 1] = '\0';	/* May be truncated */
-		d->remove_msg = d->error_str;
-	} else
-		d->remove_msg = NULL;
 
 	download_gui_add(d);
 	gui_update_download(d, TRUE);
@@ -2548,6 +2548,7 @@ static void download_request(struct download *d, header_t *header)
 			download_queue_delay(d,
 				delay ? delay : download_retry_refused_delay,
 				"HTTP %d %s", ack_code, ack_message);
+			return;
 		default:
 			break;
 		}
@@ -2846,8 +2847,17 @@ gboolean download_send_request(struct download *d)
 			"Range: bytes=%u-\r\n",
 			d->skip - d->overlap_size);
 
+	g_assert(rw + 3 < sizeof(dl_tmp));		/* Should not have filled yet! */
+
 	if (d->sha1) {
 		gint wmesh;
+		gint sha1_room;
+
+		/*
+		 * Leave room for the urn:sha1: possibly, plus final 2 * "\r\n".
+		 */
+
+		sha1_room = 33 + SHA1_BASE32_SIZE + 4;
 
 		/*
 		 * Send to the server any new alternate locations we may have
@@ -2855,7 +2865,7 @@ gboolean download_send_request(struct download *d)
 		 */
 
 		wmesh = dmesh_alternate_location(d->sha1,
-			&dl_tmp[rw], sizeof(dl_tmp)-rw, d->ip, d->last_dmesh);
+			&dl_tmp[rw], sizeof(dl_tmp)-(rw+sha1_room), d->ip, d->last_dmesh);
 		rw += wmesh;
 
 		d->last_dmesh = (guint32) time(NULL);

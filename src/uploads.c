@@ -415,10 +415,12 @@ static void send_upload_error_v(
 	if (ext) {
 		slen = g_snprintf(extra, sizeof(extra), "%s", ext);
 		
-		if (slen != sizeof(extra)) {
+		if (slen < sizeof(extra)) {
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
 			hev[hevcnt++].he_msg = extra;
-		}
+		} else
+			g_warning("send_upload_error_v: "
+				"ignoring too large extra header (%d bytes)", slen);
 	}
 
 	/*
@@ -850,6 +852,7 @@ void upload_push_conf(struct upload *u)
 	rw = g_snprintf(giv, sizeof(giv), "GIV %u:%s/%s\n\n",
 		u->index, guid_hex_str(guid), u->name);
 	giv[sizeof(giv)-1] = '\0';			/* Might have been truncated */
+	rw = MIN(sizeof(giv)-1, rw);
 	
 	s = u->socket;
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, giv, rw))) {
@@ -1285,8 +1288,9 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 	// XXX Keep hash {IP,sha1} -> stamp, expiring after 2 hours (say).
 	// XXX (IP may be dynamic)
 
-	rw += dmesh_alternate_location(a->sf->sha1_digest,
-		&buf[rw], length - rw, a->u->ip, 0);
+	if (rw < length)
+		rw += dmesh_alternate_location(a->sf->sha1_digest,
+			&buf[rw], length - rw, a->u->ip, 0);
 
 	*retval = rw;
 }
@@ -1312,9 +1316,13 @@ static void upload_http_status(gchar *buf, gint *retval, gpointer arg)
 			date_to_rfc822_gchar(a->now), date_to_rfc822_gchar2(a->mtime),
 			u->end - u->skip + 1);
 
+	g_assert(rw < length);
+
 	if (u->skip || u->end != (u->file_size - 1))
 	  rw += g_snprintf(&buf[rw], length - rw,
 		"Content-Range: bytes %u-%u/%u\r\n", u->skip, u->end, u->file_size);
+
+	g_assert(rw < length);
 
 	/*
 	 * Propagate the SHA1 information for the file, if we have it.
@@ -1323,8 +1331,10 @@ static void upload_http_status(gchar *buf, gint *retval, gpointer arg)
 	if (sha1_hash_available(a->sf)) {
 		gint remain = length - rw;
 
-		upload_http_sha1_add(&buf[rw], &remain, arg);
-		rw += remain;
+		if (remain > 0) {
+			upload_http_sha1_add(&buf[rw], &remain, arg);
+			rw += remain;
+		}
 	}
 
 	*retval = rw;
@@ -1691,6 +1701,8 @@ static void upload_request(struct upload *u, header_t *header)
 		range_len += g_snprintf(
 			&range_tmp[range_len], sizeof(range_tmp)-range_len,
 			" @ %s", compact_size(u->skip));
+
+	g_assert(range_len < sizeof(range_tmp));
 
 	titles[c_ul_filename] = u->name;
 	titles[c_ul_host] = ip_to_gchar(s->ip);

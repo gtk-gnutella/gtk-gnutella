@@ -23,8 +23,9 @@
  *----------------------------------------------------------------------
  */
 
-#include <zlib.h>
+#include "gnutella.h"
 #include <glib.h>
+#include <zlib.h>
 
 #include "nodes.h"
 #include "misc.h"

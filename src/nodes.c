@@ -893,6 +893,8 @@ void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 		code, msg_tmp, version_string, ip_to_gchar(s->ip), start_rfc822_date,
 		code == 503 ? formatted_connection_pongs("X-Try") : "");
 
+	g_assert(rw < sizeof(gnet_response));
+
 	if (-1 == (sent = bws_write(bws.gout, s->file_desc, gnet_response, rw)))
 		g_warning("Unable to send back error %d (%s) to node %s: %s",
 			code, msg_tmp, ip_to_gchar(s->ip), g_strerror(errno));
@@ -1588,7 +1590,8 @@ static void node_process_handshake_header(struct io_header *ih)
 			"%s"
 			"\r\n",
 			(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty);
-		
+	 	
+		g_assert(rw < sizeof(gnet_response));
 	} else {
 		/*
 		 * Welcome the incoming node.
@@ -1607,6 +1610,8 @@ static void node_process_handshake_header(struct io_header *ih)
 			version_string, ip_to_gchar(n->socket->ip),
 			(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
 			start_rfc822_date);
+
+		g_assert(rw < sizeof(gnet_response));
 	}
 
 	/*
@@ -2325,6 +2330,8 @@ void node_init_outgoing(struct gnutella_node *n)
 			ip_port_to_gchar(listen_ip(), listen_port),
 			ip_to_gchar(n->ip),
 			version_string, start_rfc822_date);
+
+	g_assert(len < sizeof(buf));
 
 	/*
 	 * We don't retry a connection from 0.6 to 0.4 if we fail to write the

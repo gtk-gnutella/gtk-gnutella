@@ -27,13 +27,13 @@
  *----------------------------------------------------------------------
  */
 
-#include <glib.h>				/* glib types and functions */
+#include "gnutella.h"
+#include <glib.h>
 
 #include "misc.h"
 #include "sq.h"					/* search_queue structures */
 #include "pmsg.h"
 #include "nodes.h"
-#include "gnutella.h"
 
 /* hack value for now */
 #define QUEUE_SPACING	10		/* Send a search every 10 seconds */

@@ -547,7 +547,7 @@ struct network_pair
 	struct in_addr net;
 };
 
-struct network_pair *local_networks;
+struct network_pair *local_networks = NULL;
 guint32 number_local_networks;
 
 /*
@@ -557,7 +557,8 @@ guint32 number_local_networks;
  */
 void free_networks()
 {
-	g_free(local_networks);
+	if (local_networks)
+		g_free(local_networks);
 }
 
 /* 
@@ -879,6 +880,7 @@ void host_close(void)
 	host_clear_cache();
 	pcache_close();
 	g_hash_table_destroy(ht_known_hosts);
+	free_networks();
 }
 
 /* vi: set ts=4: */

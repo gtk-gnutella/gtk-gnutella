@@ -31,7 +31,7 @@
 #include "zlib_util.h"
 
 #define MIN_SPARSE_RATIO	20		/* At most 20% of slots used */
-#define MAX_CONFLICT_RATIO	10		/* At most 10% of insertion conflicts */
+#define MAX_CONFLICT_RATIO	75		/* At most 75% of insertion conflicts */
 #define MIN_WORD_LENGTH		3		/* Minimal word length */
 #define LOCAL_INFINITY		2		/* We're one hop away, so 2 is infinity */
 #define MIN_TABLE_BITS		14		/* 16 KB */
