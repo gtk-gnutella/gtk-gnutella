@@ -385,33 +385,39 @@ static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc,
 	GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
 	guint32 width;
+	gboolean visible;
 
 	g_assert(column_id >= 0 && (guint) column_id < UPLOADS_GUI_VISIBLE_COLUMNS);
 	g_assert(NULL != treeview_uploads);
 	g_assert(NULL != store_uploads);
 
 	gui_prop_get_guint32(PROP_UPLOADS_COL_WIDTHS, &width, column_id, 1);
+	gui_prop_get_boolean(PROP_UPLOADS_COL_VISIBLE, &visible, column_id, 1);
 	if (column_type == GTK_TYPE_CELL_RENDERER_PROGRESS) {
 		renderer = gtk_cell_renderer_progress_new();
-		g_object_set(renderer,
-			"xalign", (gfloat) 0.0,
-			"ypad", GUI_CELL_RENDERER_YPAD,
-			NULL);
 		column = gtk_tree_view_column_new_with_attributes(
-			_(column_titles[column_id]), renderer, "value", column_id, NULL);
+					_(column_titles[column_id]), renderer,
+					"value", column_id,
+					NULL);
 	} else { /* if (column_type == GTK_TYPE_CELL_RENDERER_TEXT) { */
 		renderer = gtk_cell_renderer_text_new();
 		gtk_cell_renderer_text_set_fixed_height_from_font(
 			GTK_CELL_RENDERER_TEXT(renderer), 1);
 		g_object_set(renderer,
-			"xalign", (gfloat) 0.0,
-			"ypad", GUI_CELL_RENDERER_YPAD,
 			"foreground-set", TRUE,
 			NULL);
 		column = gtk_tree_view_column_new_with_attributes(
-			_(column_titles[column_id]), renderer, "text", column_id, 
-			"foreground-gdk", c_ul_fg, NULL);
+					_(column_titles[column_id]), renderer,
+					"foreground-gdk", c_ul_fg,
+					"text", column_id, 
+					NULL);
 	}
+
+	g_object_set(renderer,
+		"xalign", (gfloat) 0.0,
+		"xpad", GUI_CELL_RENDERER_XPAD,
+		"ypad", GUI_CELL_RENDERER_YPAD,
+		NULL);
 
 	g_object_set(G_OBJECT(column),
 		"min-width", 1,
@@ -419,6 +425,7 @@ static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc,
 		"reorderable", TRUE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
+		"visible", visible,
 		NULL);
 
 	gtk_tree_view_column_set_sort_column_id(column, column_id);
@@ -623,6 +630,7 @@ void uploads_gui_shutdown(void)
 	uploads_shutting_down = TRUE;
 	
 	tree_view_save_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
+	tree_view_save_visibility(treeview_uploads, PROP_UPLOADS_COL_VISIBLE);
 
     upload_remove_upload_added_listener(upload_added);
     upload_remove_upload_removed_listener(upload_removed);

@@ -96,6 +96,10 @@ void upload_stats_gui_init(void)
 {
 }
 
+void upload_stats_gui_shutdown(void)
+{
+}
+
 void upload_stats_gui_add(struct ul_stats *stat)
 {
 	gchar *rowdata[5];

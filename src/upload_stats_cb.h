@@ -32,17 +32,19 @@
  *** upload stats
  ***/
 
-gint compare_ul_norm(GtkCList *clist, gconstpointer ptr1,
-						 gconstpointer ptr2);
+void on_button_ul_stats_clear_all_clicked(GtkButton *, gpointer);
+void on_button_ul_stats_clear_deleted_clicked(GtkButton *, gpointer);
 
-void on_button_ul_stats_clear_all_clicked(
-	GtkButton * button, gpointer user_data);
-void on_button_ul_stats_clear_deleted_clicked(
-	GtkButton * button, gpointer user_data);
-void on_clist_ul_stats_click_column(
-	GtkCList * clist, gint column, gpointer user_data);
-void on_clist_ul_stats_resize_column(
-	GtkCList * clist, gint column, gint width, gpointer user_data);
+#ifdef USE_GTK1
+gint compare_ul_norm(GtkCList *, gconstpointer, gconstpointer);
+
+void on_clist_ul_stats_click_column(GtkCList *, gint, gpointer);
+void on_clist_ul_stats_resize_column(GtkCList *, gint, gint, gpointer);
+#endif /* USE_GTK1 */
+
+#ifdef USE_GTK2
+void on_popup_upload_stats_config_cols_activate(GtkMenuItem *, gpointer);
+#endif /* USE_GTK2 */
 
 #endif /* _upload_stats_cb_h_ */
 

@@ -28,15 +28,31 @@
 
 #include "upload_stats_cb.h"
 #include "uploads_gui.h"
+#include "gtkcolumnchooser.h"
+
 #include "upload_stats.h"	/* FIXME: remove this dependency */
 #include "override.h"			/* Must be the last header included */
 
 RCSID("$Id$");
 
+
 /***
  *** Upload Stats pane
  ***/
 
+void on_button_ul_stats_clear_all_clicked(GtkButton *button, gpointer data)
+{
+	upload_stats_clear_all();
+}
+
+void on_button_ul_stats_clear_deleted_clicked(
+	GtkButton * button, gpointer user_data)
+{
+	upload_stats_prune_nonexistent();
+}
+
+
+#ifdef USE_GTK1
 static gint compare_ul_size(GtkCList *clist, gconstpointer ptr1,
 						 gconstpointer ptr2)
 {
@@ -147,14 +163,17 @@ void on_clist_ul_stats_resize_column(GtkCList *clist,
 	ul_stats_col_widths[column] = width;
 }
 
-void on_button_ul_stats_clear_all_clicked(GtkButton *button, gpointer data)
-{
-	upload_stats_clear_all();
-}
+#endif /* USE_GTK1*/
 
-void on_button_ul_stats_clear_deleted_clicked(
-	GtkButton * button, gpointer user_data)
+#ifdef USE_GTK2
+void on_popup_upload_stats_config_cols_activate(
+	GtkMenuItem *menuitem, gpointer user_data)
 {
-	upload_stats_prune_nonexistent();
-}
+    GtkWidget *cc;
 
+    cc = gtk_column_chooser_new(lookup_widget(main_window, "treeview_uploads"));
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
+}
+#endif /* USE_GTK2 */
+
+/* vi: set ts=4 sw=4: */

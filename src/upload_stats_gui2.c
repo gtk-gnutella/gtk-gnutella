@@ -71,7 +71,7 @@ static GtkTreeView *upload_stats_treeview = NULL;
  * @param data user data passed to the function.
  *
  */
-static void upload_stats_cell_render_size_func(
+static void cell_render_size_func(
 	GtkTreeViewColumn *column,
 	GtkCellRenderer *cell,
 	GtkTreeModel *model,
@@ -102,7 +102,7 @@ static void upload_stats_cell_render_size_func(
  * @param data user data passed to the function.
  *
  */
-static void upload_stats_cell_render_norm_func(
+static void cell_render_norm_func(
 	GtkTreeViewColumn *column,
 	GtkCellRenderer *cell,
 	GtkTreeModel *model,
@@ -123,36 +123,6 @@ static void upload_stats_cell_render_norm_func(
 }
 
 /**
- * Sets the PROP_UL_STATS_COL_WIDTHS property.
- *
- * This sets the PROP_UL_STATS_COL_WIDTHS property when a 
- * column changes size.  This allows the column sizes to be
- * saved and restored when gtkg is restarted.
- *
- * @param column the GtkTreeViewcolumn which was resized.
- * @param param
- * @param data user data passed the function.
- */
-static void on_column_resized(
-	GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
-{
-	gint column_id = GPOINTER_TO_INT(data);
-	guint32 width;
-	static GStaticMutex mutex = G_STATIC_MUTEX_INIT; 
-
-	g_assert(column != NULL);
-	g_assert(column_id >= 0);
-	g_assert((guint) column_id < UPLOAD_STATS_GUI_VISIBLE_COLUMNS);
-	
-	g_static_mutex_lock(&mutex);
-    width = gtk_tree_view_column_get_width(column);
-	if ((gint) width < 1)
-		width = 1;
-	gui_prop_set_guint32(PROP_UL_STATS_COL_WIDTHS, &width, column_id, 1);
-	g_static_mutex_unlock(&mutex);
-}
-
-/**
  * Add a column to the GtkTreeView.
  *
  * This function adds a column to the treeview.
@@ -168,13 +138,13 @@ static void on_column_resized(
  * as appropriate for the type.
  *
  */
-static void upload_stats_gui_add_column(
+static void add_column(
     GtkTreeView *tree,
 	gint column_id,
 	const gchar *title,
 	gint width,
 	gfloat xalign,
-	gpointer cell_data_func)
+	GtkTreeCellDataFunc cell_data_func)
 {
     GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
@@ -193,18 +163,18 @@ static void upload_stats_gui_add_column(
 
 	g_object_set(renderer,
 		"xalign", xalign,
+		"xpad", GUI_CELL_RENDERER_XPAD,
 		"ypad", GUI_CELL_RENDERER_YPAD,
 		NULL);
-    gtk_tree_view_column_set_reorderable(column, TRUE);
-    gtk_tree_view_column_set_resizable(column, TRUE);
-    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_column_set_min_width(column, 1);
-    gtk_tree_view_column_set_fixed_width(column, MAX(1, width));
+	g_object_set(column,
+		"fixed-width", MAX(1, width),
+		"min-width", 1,
+		"resizable", TRUE,
+		"reorderable", TRUE,
+		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
+		NULL);
    	gtk_tree_view_column_set_sort_column_id(column, column_id);
     gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
-	g_object_notify(G_OBJECT(column), "width");
-	g_signal_connect(G_OBJECT(column), "notify::width",
-		G_CALLBACK(on_column_resized), GINT_TO_POINTER(column_id));
 }
 
 /**
@@ -247,6 +217,85 @@ static struct ul_stats *upload_stats_gui_find(
 	return NULL;
 }
 
+/**
+ * Initialize the upload statistics gui.
+ *
+ * Initialize the upload statistics gui.  Define the
+ * GtkTreeModel used to store the information as well
+ * as rendering and sorting functions to use on the
+ * cells and columns.
+ */
+static void upload_stats_gui_init_intern(gboolean intern)
+{
+	static const struct {
+		const gint id;
+		const gchar * const title;
+		const gint width;
+		const gfloat align;
+		const GtkTreeCellDataFunc func;
+	} columns[] = {
+		{ c_us_filename, N_("Filename"),   300, 0.0, NULL },
+		{ c_us_size,	 N_("Size"),	   60,  1.0, cell_render_size_func },
+		{ c_us_attempts, N_("Attempts"),   60,  1.0, NULL },
+		{ c_us_complete, N_("Complete"),   60,  1.0, NULL },
+    	{ c_us_norm, 	 N_("Normalized"), 60,  1.0, cell_render_norm_func }
+	};
+	static gboolean initialized = FALSE;
+	GtkTreeModel *model;
+	guint i;
+
+	STATIC_ASSERT(G_N_ELEMENTS(columns) == UPLOAD_STATS_GUI_VISIBLE_COLUMNS);
+
+	if (!initialized) {
+		model = GTK_TREE_MODEL(gtk_list_store_new(c_us_num,
+			G_TYPE_STRING,		/* Filename (UTF-8 encoded) */
+			G_TYPE_UINT,		/* Size */
+			G_TYPE_UINT,		/* Attempts */
+			G_TYPE_UINT,		/* Completed */  
+			G_TYPE_FLOAT,		/* Normalized */
+			G_TYPE_POINTER)); 	/* struct ul_stats */
+		upload_stats_treeview = GTK_TREE_VIEW(
+			lookup_widget(main_window, "treeview_ul_stats"));
+		gtk_tree_view_set_model(upload_stats_treeview, model);
+
+		for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+			add_column(upload_stats_treeview,
+				columns[i].id,
+				_(columns[i].title),
+				columns[i].width,
+				columns[i].align,
+				columns[i].func);
+		}
+
+		g_object_unref(model);
+		initialized = TRUE;
+	}
+
+	if (!intern) {
+		guint32 width[G_N_ELEMENTS(columns)];
+		gboolean visible[G_N_ELEMENTS(columns)];
+		
+		/* upload_stats_gui_init_intern() might be called internally before
+		 * settings_gui_init(). If it's called externally it's called from
+		 * main_gui_init() and the GUI properties are intialized. */
+
+		gui_prop_get_guint32(PROP_UL_STATS_COL_WIDTHS, width, 0,
+			G_N_ELEMENTS(width));
+		gui_prop_get_boolean(PROP_UL_STATS_COL_VISIBLE, visible, 0,
+			G_N_ELEMENTS(visible));
+
+		for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+			GtkTreeViewColumn *c;
+
+			c = gtk_tree_view_get_column(upload_stats_treeview, i);
+			g_object_set(G_OBJECT(c),
+        		"fixed-width", MAX(1, width[i]),
+        		"visible", visible[i],
+        		NULL);
+		}
+	}
+}
+
 /* Public functions */
 
 /**
@@ -266,7 +315,7 @@ void upload_stats_gui_add(struct ul_stats *us)
 
 	g_assert(us != NULL);
 
-	upload_stats_gui_init();
+	upload_stats_gui_init_intern(TRUE);
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(upload_stats_treeview));
 	gtk_list_store_append(store, &iter);
 	gtk_list_store_set(store, &iter,
@@ -279,60 +328,9 @@ void upload_stats_gui_add(struct ul_stats *us)
 		(-1));
 }
 
-/**
- * Initialize the upload statistics gui.
- *
- * Initialize the upload statistics gui.  Define the
- * GtkTreeModel used to store the information as well
- * as rendering and sorting functions to use on the
- * cells and columns.
- *
- */
 void upload_stats_gui_init(void)
 {
-	static gboolean initialized = FALSE;
-	static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
-	GtkTreeModel *model;
-/*	XXX: guint32 *width; */
-
-	g_static_mutex_lock(&mutex);
-	if (initialized)
-		return;
-
-	model = GTK_TREE_MODEL(gtk_list_store_new(c_us_num,
-		G_TYPE_STRING,		/* Filename (UTF-8 encoded) */
-		G_TYPE_UINT,		/* Size */
-		G_TYPE_UINT,		/* Attempts */
-		G_TYPE_UINT,		/* Completed */  
-		G_TYPE_FLOAT,		/* Normalized */
-		G_TYPE_POINTER)); 	/* struct ul_stats */
-	upload_stats_treeview = GTK_TREE_VIEW(
-		lookup_widget(main_window, "treeview_ul_stats"));
-	gtk_tree_view_set_model(upload_stats_treeview, model);
-/* FIXME: settings_gui_init() hasn't necessarily been called yet
-	width = gui_prop_get_guint32(PROP_UL_STATS_COL_WIDTHS, NULL, 0, 0);
-*/
-	upload_stats_gui_add_column(upload_stats_treeview,
-		c_us_filename, "Filename", 300, (gfloat) 0.0,
-		NULL);
-	upload_stats_gui_add_column(upload_stats_treeview,
-		c_us_size, "Size", 60, (gfloat) 1.0,
-		upload_stats_cell_render_size_func);
-	upload_stats_gui_add_column(upload_stats_treeview,
-		c_us_attempts, "Attempts", 60, (gfloat) 1.0,
-		NULL);
-	upload_stats_gui_add_column(upload_stats_treeview,
-	 	c_us_complete,"Complete", 60, (gfloat) 1.0,
-		NULL);
-	upload_stats_gui_add_column(upload_stats_treeview,
-		c_us_norm, "Normalized", 60, (gfloat) 1.0,
-		upload_stats_cell_render_norm_func);
-/* XXX:	G_FREE_NULL(width); */
-
-	g_object_unref(model);
-	
-	initialized = TRUE;
-	g_static_mutex_unlock(&mutex);
+	upload_stats_gui_init_intern(FALSE);
 }
 
 /**
@@ -373,5 +371,11 @@ void upload_stats_gui_clear_all(void)
 	gtk_list_store_clear(store);
 }
 
-/* vi: set ts=4: */
+void upload_stats_gui_shutdown(void)
+{
+	tree_view_save_widths(upload_stats_treeview, PROP_UL_STATS_COL_WIDTHS);
+	tree_view_save_visibility(upload_stats_treeview, PROP_UL_STATS_COL_VISIBLE);
+}
+
+/* vi: set ts=4 sw=4: */
 #endif	/* USE_GTK2 */
