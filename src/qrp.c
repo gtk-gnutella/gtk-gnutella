@@ -2530,8 +2530,11 @@ qrt_update_free(gpointer handle)
 
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
-	if (qup->compress != NULL)
-		bg_task_cancel(qup->compress);
+	if (qup->compress != NULL) {
+		gpointer task = qup->compress;
+		bg_task_cancel(task);
+		sl_compress_tasks = g_slist_remove(sl_compress_tasks, task);
+	}
 
 	g_assert(qup->compress == NULL);	/* Reset by qrt_compressed() */
 
