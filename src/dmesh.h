@@ -89,7 +89,7 @@ gint dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt);
 
 gint dmesh_alternate_location(
 	const gchar *sha1, gchar * buf, gint size, guint32 ip, guint32 last_sent,
-	const gchar *vendor, struct dl_file_info *fi);
+	const gchar *vendor, struct dl_file_info *fi, gboolean request);
 
 void dmesh_multiple_downloads(
     gchar *sha1, guint32 size, struct dl_file_info *fi);

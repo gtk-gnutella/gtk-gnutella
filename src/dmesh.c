@@ -1113,56 +1113,90 @@ gint dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
  * If there has been no change to the mesh since then, we'll return an empty
  * string.  Otherwise we return entries inserted after `last_sent'.
  *
- * The `vendor' is given to determine whether it is known to support the
- * more compact X-Alt form, in which case we emit that instead.
+ * The `vendor' is given to determine whether it is apt to read our
+ * X-Alt and X-Nalt fields formatted with continuations or not.
  *
  * When `fi' is non-NULL, it means we're sharing that file and we're sending
  * alternate locations to remote servers: include ourselves in the list of
  * alternate locations if PFSP-server is enabled.
  *
+ * If `request' is true, then the mesh entries are generated in an HTTP
+ * request; otherwise it's for an HTTP reply.
+ *
+ * unless the `vendor' is GTKG, don't use continuation: most
+ * servent authors don't bother with a proper HTTP header parsing layer.
+ *
  * Returns amount of generated data.
  */
 gint dmesh_alternate_location(const gchar *sha1,
 	gchar *buf, gint size, guint32 ip, guint32 last_sent, const gchar *vendor,
-	struct dl_file_info *fi)
+	struct dl_file_info *fi, gboolean request)
 {
 	gchar url[1024];
 	struct dmesh *dm;
 	gint len = 0;
 	GSList *l;
-	gint nurl = 0;
 	gint nselected = 0;
 	struct dmesh_entry *selected[MAX_ENTRIES];
 	gint i;
-	gint min_url_len;
-	gint maxslen = size - 1;		/* Account for trailing NUL */
-	gint linelen;
+	gint maxslen = size - 3;		/* Account for trailing NUL + "\r\n" */
 	GSList *by_ip;
-	
+	gint maxlinelen = 0;
+	gpointer fmt;
+	gboolean added;
+
 	g_assert(sha1);
 	g_assert(buf);
 	g_assert(size >= 0);
 
-	/* Find mesh entry for this SHA1 */
-	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
-	
+	if (maxslen <= 0)
+		return 0;
+
+	/*
+	 * Shall we emit continuations?
+	 *
+	 * When sending a request, unless we know the vendor is GTKG, don't.
+	 * When sending a reply, do so but be nice with older BearShare versions.
+	 *		--RAM, 04/01/2004.
+	 */
+
+	if (request) {
+		/* We're sending the request: assume they can't read continuations */
+		if (
+			vendor == NULL || *vendor != 'g' ||
+			0 != strncmp(vendor, "gtk-gnutella/", 13)
+		)
+			maxlinelen = 100000;	/* In practice, no continuations! */
+	} else {
+		/* We're sending a reply: assume they can read continuations */
+		if (
+			vendor != NULL && *vendor == 'B'
+			&& 0 == strncmp(vendor, "BearShare ", 10)
+		) {
+			/*
+			 * Only versions newer than (included) BS 4.3.4 and BS 4.4b25
+			 * will properly support continuations.
+			 *
+			 * XXX for now disable for all.
+			 */
+
+			maxlinelen = 100000;	/* In practice, no continuations! */
+		}
+	}
+
 	/*
 	 * Get the X-Nalts and fill this header. Only fill up to a maximum of 33%
 	 * of the total buffer size.
 	 *		 -- JA, 1/11/2003
 	 */
 
-	/*
-	 * Get the list with banned ips
-	 */
-
 	by_ip = (GSList *) g_hash_table_lookup(ban_mesh_by_sha1, sha1);
 
 	if (by_ip != NULL) {
-		gpointer fmt;
-		gboolean added = FALSE;
-
-		fmt = header_fmt_make("X-Nalt", size);
+		fmt = header_fmt_make("X-Nalt", ", ", size);
+		if (maxlinelen)
+			header_fmt_set_line_length(fmt, maxlinelen);
+		added = FALSE;
 
 		/* Loop through the X-Nalts */
 		for (l = by_ip; l != NULL; l = g_slist_next(l)) {
@@ -1173,15 +1207,16 @@ gint dmesh_alternate_location(const gchar *sha1,
 				continue;
 
 			if (banned->ctime > last_sent) {
-				added = TRUE;
-				header_fmt_append(
-					fmt, ip_port_to_gchar(info->ip, info->port), ", ");
+				gchar *value = ip_port_to_gchar(info->ip, info->port);
 
-				if (header_fmt_length(fmt) > size / 3)
+				if (!header_fmt_value_fits(fmt, strlen(value), size / 3))
 					break;
+
+				header_fmt_append_value(fmt, value);
+				added = TRUE;
 			}
 		}
-	
+
 		if (added) {
 			gint length;
 			header_fmt_end(fmt);
@@ -1194,11 +1229,18 @@ gint dmesh_alternate_location(const gchar *sha1,
 		header_fmt_free(fmt);
 	}
 
+	/* Find mesh entry for this SHA1 */
+	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
+	
 	/*
 	 * Start filling the buffer.
 	 */
 
-	len += linelen = gm_snprintf(&buf[len], size - len, "X-Alt: ");
+	fmt = header_fmt_make("X-Alt", ", ", size);
+	if (maxlinelen)
+		header_fmt_set_line_length(fmt, maxlinelen);
+	added = FALSE;
+	maxslen -= len;		/* `len' is non-zero if X-Nalt was generated */
 
 	/*
 	 * PFSP-server: If we have to list ourselves in the mesh, do so
@@ -1212,7 +1254,6 @@ gint dmesh_alternate_location(const gchar *sha1,
 		gint url_len;
 		struct dmesh_entry ourselves;
 		time_t now = time(NULL);
-		gint rw;
 
 		ourselves.inserted = now;
 		ourselves.stamp = now;
@@ -1223,18 +1264,12 @@ gint dmesh_alternate_location(const gchar *sha1,
 
 		url_len = dmesh_entry_compact(&ourselves, url, sizeof(url));
 
-		if (url_len + len + 2 >= maxslen)	/* Assume worst-case: non-compact */
-			return 0;
+		if (!header_fmt_value_fits(fmt, url_len, maxslen))
+			goto nomore;
 
-		rw = gm_snprintf(&buf[len], size - len, "%s", url);
-
-		linelen += rw;
-		len += rw;
-		nurl++;
+		header_fmt_append_value(fmt, url);
+		added = TRUE;
 	}
-
-	if (len >= maxslen)
-		return 0;
 
 	/*
 	 * Check whether we have anything (new).
@@ -1299,9 +1334,7 @@ gint dmesh_alternate_location(const gchar *sha1,
 	 * Second pass.
 	 */
 
-	min_url_len = sizeof("1.2.3.4, ");
-
-	for (i = 0; i < nselected && (size - len) > min_url_len; i++) {
+	for (i = 0; i < nselected; i++) {
 		struct dmesh_entry *dme;
 		gint nleft = nselected - i;
 		gint npick = random_value(nleft - 1);
@@ -1332,63 +1365,27 @@ gint dmesh_alternate_location(const gchar *sha1,
 
 		url_len = dmesh_entry_compact(dme, url, sizeof(url));
 
-		if (url_len < 0)				/* Too big for the buffer */
+		g_assert(url_len >= 0);			/* Buffer was large enough */
+
+		if (!header_fmt_value_fits(fmt, url_len, maxslen))
 			continue;
 
-		/*
-		 * We'll emit the address, prepended by ", " if we already emitted
-		 * something.  However, if the address cannot fit on the line,
-		 * we'll emit ",\r\n\t" instead.  Assume we need 4 (worst case).
-		 * At the end, we'll always need "\r\n" plus the trailing NUL.
-		 */
-
-		if (url_len + (nurl ? 4 : 0) + 3 >= size - len)
-			continue;
-
-		g_assert((url_len + 1 + len) < size);
-
-		if (linelen + url_len > 72) {
-			g_assert(nurl > 0);
-			len += gm_snprintf(&buf[len], size - len, ",\r\n\t%s", url);
-			linelen = 1 + strlen(url);		/* Accounts leading "\t" */
-		} else {
-			gint rw;
-			if (nurl) {
-				rw = gm_snprintf(&buf[len], size - len, ", ");
-				len += rw;
-				linelen += rw;
-			}
-			rw = gm_snprintf(&buf[len], size - len, "%s", url);
-			len += rw;
-			linelen += rw;
-		}
-
-		g_assert(len + 2 < size);
-
-		nurl++;
+		header_fmt_append_value(fmt, url);
+		added = TRUE;
 	}
-
-	g_assert(len < size);
-
-	if (nurl)
-		len += gm_snprintf(&buf[len], size - len, "\r\n");
-
-#if 0
-	g_assert(len < size);
-#endif /* 0 */
-	if (len >= size) {
-		g_error("BUG: dmesh_alternate_location: filled buffer completely "
-			"(size=%d, len=%d, nurl=%d)", size, len, nurl);
-		return 0;
-	}
-
-	return (nurl > 0) ? len : 0;
 
 nomore:
-	if (nurl)
-		len += gm_snprintf(&buf[len], size - len, "\r\n");
+	if (added) {
+		gint length;
+		header_fmt_end(fmt);
+		length = header_fmt_length(fmt);
+		g_assert(length + len < size);
+		/* Add +1 for final NUL */
+		strncpy(buf + len, header_fmt_string(fmt), length + 1);
+		len += length;
+	}
 
-	return (nurl > 0) ? len : 0;
+	return len;
 }
 
 /*
