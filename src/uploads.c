@@ -1484,10 +1484,10 @@ malformed:
  * When NULL is returned, we have sent the error back to the client.
  */
 static struct shared_file *get_file_to_upload(
-	gnutella_upload_t *u, header_t *header, const gchar *request)
+	gnutella_upload_t *u, header_t *header, gchar *request)
 {
 	guint idx = 0;
-	const gchar *uri;
+	gchar *uri;
 	gchar s;
 
 	/*
