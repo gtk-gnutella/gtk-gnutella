@@ -172,8 +172,6 @@ static gboolean in_shutdown = FALSE;
 
 static query_hashvec_t *query_hashvec = NULL;
 
-static void node_read_connecting(
-	gpointer data, gint source, inputevt_cond_t cond);
 static void node_disable_read(struct gnutella_node *n);
 static void node_data_ind(rxdrv_t *rx, pmsg_t *mb);
 static void node_bye_sent(struct gnutella_node *n);
@@ -4447,39 +4445,34 @@ void node_init_outgoing(struct gnutella_node *n)
 	gchar buf[MAX_LINE_SIZE];
 	gint len;
 	gint sent;
-	gboolean old_handshake = FALSE;
 
 	g_assert(s->gdk_tag == 0);
 
-	if (n->proto_major == 0 && n->proto_minor == 4) {
-		old_handshake = TRUE;
-		len = gm_snprintf(buf, sizeof(buf), "%s0.4\n\n", GNUTELLA_HELLO);
-	} else
-		len = gm_snprintf(buf, sizeof(buf),
-			"%s%d.%d\r\n"
-			"Node: %s\r\n"
-			"Remote-IP: %s\r\n"
-			"User-Agent: %s\r\n"
-			"Pong-Caching: 0.1\r\n"
-			"Bye-Packet: 0.1\r\n"
-			"GGEP: 0.5\r\n"
-			"Vendor-Message: 0.1\r\n"
-			"Accept-Encoding: deflate\r\n"
-			"X-Token: %s\r\n"
-			"X-Live-Since: %s\r\n"
-			"%s"		/* X-Ultrapeer */
-			"%s"		/* X-Query-Routing */
-			"\r\n",
-			GNUTELLA_HELLO,
-			n->proto_major, n->proto_minor,
-			ip_port_to_gchar(listen_ip(), listen_port),
-			ip_to_gchar(n->ip),
-			version_string, tok_version(), start_rfc822_date,
-			current_peermode == NODE_P_NORMAL ? "" :
-			current_peermode == NODE_P_LEAF ?
-				"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
-			current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.1\r\n" : ""
-		);
+	len = gm_snprintf(buf, sizeof(buf),
+		"%s%d.%d\r\n"
+		"Node: %s\r\n"
+		"Remote-IP: %s\r\n"
+		"User-Agent: %s\r\n"
+		"Pong-Caching: 0.1\r\n"
+		"Bye-Packet: 0.1\r\n"
+		"GGEP: 0.5\r\n"
+		"Vendor-Message: 0.1\r\n"
+		"Accept-Encoding: deflate\r\n"
+		"X-Token: %s\r\n"
+		"X-Live-Since: %s\r\n"
+		"%s"		/* X-Ultrapeer */
+		"%s"		/* X-Query-Routing */
+		"\r\n",
+		GNUTELLA_HELLO,
+		n->proto_major, n->proto_minor,
+		ip_port_to_gchar(listen_ip(), listen_port),
+		ip_to_gchar(n->ip),
+		version_string, tok_version(), start_rfc822_date,
+		current_peermode == NODE_P_NORMAL ? "" :
+		current_peermode == NODE_P_LEAF ?
+			"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
+		current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.1\r\n" : ""
+	);
 
 	header_features_generate(&xfeatures.connections, buf, sizeof(buf), &len);
 
@@ -4510,20 +4503,11 @@ void node_init_outgoing(struct gnutella_node *n)
 
 	/*
 	 * Setup I/O callback to read the reply to our HELLO.
+	 * Prepare parsing of the expected 0.6 reply.
 	 */
 
-	if (old_handshake) {
-		s->gdk_tag = inputevt_add(s->file_desc,
-			INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
-			node_read_connecting, (gpointer) n);
-	} else {
-		/*
-		 * Prepare parsing of the expected 0.6 reply.
-		 */
-
-		io_get_header(n, &n->io_opaque, bws.gin, s, IO_SAVE_FIRST|IO_HEAD_ONLY,
-			call_node_process_handshake_header, NULL, &node_io_error);
-	}
+	io_get_header(n, &n->io_opaque, bws.gin, s, IO_SAVE_FIRST|IO_HEAD_ONLY,
+		call_node_process_handshake_header, NULL, &node_io_error);
 
 	g_assert(s->gdk_tag != 0);		/* Leave with an I/O callback set */
 }
@@ -4803,97 +4787,6 @@ static void node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	}
 
 	pmsg_free(mb);
-}
-
-/*
- * node_read_connecting
- *
- * Reads an outgoing connecting CONTROL node handshaking at the 0.4 level.
- */
-static void node_read_connecting(
-	gpointer data, gint source, inputevt_cond_t cond)
-{
-	struct gnutella_node *n = (struct gnutella_node *) data;
-	struct gnutella_socket *s = n->socket;
-	gint r;
-
-	g_assert(n->proto_major == 0 && n->proto_minor == 4);
-
-	if (cond & INPUT_EVENT_EXCEPTION) {
-		socket_eof(s);
-		node_remove(n, "Failed (Input Exception)");
-		return;
-	}
-
-	r = bws_read(bws.gin, s->file_desc, s->buffer + s->pos,
-		GNUTELLA_WELCOME_LENGTH - s->pos);
-
-	if (!r) {
-		socket_eof(s);
-		node_remove(n, "Failed (EOF)");
-		return;
-	} else if (r < 0 && errno == EAGAIN)
-		return;
-	else if (r < 0) {
-		socket_eof(s);
-		node_remove(n, "Read error in HELLO: %s", g_strerror(errno));
-		return;
-	}
-
-	s->pos += r;
-
-	if (s->pos < GNUTELLA_WELCOME_LENGTH)
-		return;					/* We haven't read enough bytes yet */
-
-#define TRACE_LIMIT		256
-
-	if (strcmp(s->buffer, gnutella_welcome) != 0) {
-		/*
-		 * The node does not seem to be a valid gnutella server !?
-		 *
-		 * Try to read a little more data, so that we log more than just
-		 * the length of the expected welcome.
-		 */
-
-		if (s->pos < TRACE_LIMIT) {
-			gint more = TRACE_LIMIT - s->pos;
-			r = bws_read(bws.gin, s->file_desc, s->buffer + s->pos, more);
-			if (r > 0)
-				s->pos += r;
-		}
-
-		if (dbg) {
-			g_warning("node %s replied to our 0.4 HELLO strangely", node_ip(n));
-			dump_hex(stderr, "HELLO Reply",
-				s->buffer, MIN(s->pos, TRACE_LIMIT));
-		}
-		node_remove(n, "Failed (Not a Gnutella server?)");
-		return;
-	}
-
-#undef TRACE_LIMIT
-
-	/*
-	 * When the peer mode is set to NODE_P_LEAF, we normally don't try
-	 * to downgrade the handshaking to 0.4.  However, to avoid any race
-	 * condition, redo the testing now.
-	 */
-
-	if (current_peermode == NODE_P_LEAF) {
-		node_remove(n, "Old 0.4 client cannot be an ultra node");
-		return;
-	}
-
-	/*
-	 * Okay, we are now really connected to a Gnutella node at the 0.4 level.
-	 */
-
-	s->pos = 0;
-
-	g_source_remove(s->gdk_tag);
-	s->gdk_tag = 0;
-
-	node_is_now_connected(n);
 }
 
 /*
