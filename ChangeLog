@@ -1,5 +1,10 @@
 # since last version
 
+# v 0.93.2   2004.01.05  [stable]
+
+- (2004.01.05 - RAM)
+ * Fixed memory leak.
+
 # v 0.93.2   2004.01.04  [stable]
 
 - Numerous GUI updates:

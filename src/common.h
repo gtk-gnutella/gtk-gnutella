@@ -111,7 +111,7 @@ typedef void (*GCallback) (void);
 #define GTA_REVISION "stable"
 #define GTA_REVCHAR ""
 #define GTA_INTERFACE "X11"
-#define GTA_RELEASE "04/01/2004"
+#define GTA_RELEASE "05/01/2004"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #define GTA_PORT		6346	/* Default "standard" port */
