@@ -250,12 +250,35 @@ nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags,
 	}
 }
 
+static const gchar *
+peermode_to_string(node_peer_t m)
+{
+	switch (m) {
+	case NODE_P_LEAF:
+		return _("Leaf");
+	case NODE_P_ULTRA:
+		return _("Ultrapeer");
+	case NODE_P_NORMAL:
+		return _("Legacy");
+	case NODE_P_CRAWLER:
+		return _("Crawler");
+	case NODE_P_UDP:
+		return _("UDP");
+	case NODE_P_AUTO:
+	case NODE_P_UNKNOWN:
+		break;
+	}
+
+	return _("Unknown");
+}
+
 static void
 update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 {
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 	gnet_node_info_t info;
+	gnet_node_flags_t flags;
 	gnet_node_t n = 0xcafebabeU;
 	static gnet_node_t last_n;
 	gchar text[1024];
@@ -287,14 +310,19 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 	if (!find_node(n))
 		return;
 
+    guc_node_fill_flags(n, &flags);
 	guc_node_fill_info(n, &info);
 	g_assert(info.node_handle == n);
 	gm_snprintf(text, sizeof text,
 		"%s %s\n"
 		"%s %s (%s)\n"
+		"%s %s (%s)\n"
 		"%s %.64s",
 		_("Peer:"),
 		ip_port_to_gchar(info.ip, info.port),
+		_("Peermode:"),
+		peermode_to_string(flags.peermode),
+		flags.incoming ? _("incoming") : _("outgoing"),
 		_("Country:"),
 		iso3166_country_name(info.country),
 		iso3166_country_cc(info.country),
