@@ -86,10 +86,11 @@ gboolean http_send_status(
 	gint sent;
 	gint i;
 	va_list args;
-	gchar *conn_close = "Connection: close\r\n";
-	gchar *no_content = "Content-Length: 0\r\n";
-	gchar *version;
-	gchar *token;
+	const gchar *conn_close = keep_alive ? "" : "Connection: close\r\n";
+	const gchar *no_content = "Content-Length: 0\r\n";
+	const gchar *version;
+	const gchar *date;
+	const gchar *token;
 	gint header_size = sizeof(header);
 	gboolean saturated = bsched_saturated(bws.out);
 	gint cb_flags = 0;
@@ -148,22 +149,21 @@ gboolean http_send_status(
 		token = tok_version();
 	}
 
-	if (keep_alive)
-		conn_close = "";		/* Keep HTTP connection */
-
 	if (code < 300 || !keep_alive) 
 		no_content = "";
 
 	g_assert(header_size <= sizeof(header));
 
+	date = date_to_rfc1123_gchar(time(NULL));
 	rw = gm_snprintf(header, header_size,
 		"HTTP/1.1 %d %s\r\n"
 		"Server: %s\r\n"
+		"Date: %s\r\n"
 		"%s"			/* Connection */
 		"X-Token: %s\r\n"
 		"%s"			/* X-Live-Since */
 		"%s",			/* Content length */
-		code, status_msg, version, conn_close, token, xlive, no_content);
+		code, status_msg, version, date, conn_close, token, xlive, no_content);
 
 	mrw = rw;		/* Minimal header length */
 
@@ -221,9 +221,8 @@ gboolean http_send_status(
 			sent, rw, code, reason, ip_to_gchar(s->ip), g_strerror(errno));
 		return FALSE;
 	} else if (dbg > 2) {
-		printf("----Sent HTTP Status to %s (%d bytes):\n%.*s----\n",
+		g_message("----Sent HTTP Status to %s (%d bytes):\n%.*s----\n",
 			ip_to_gchar(s->ip), rw, rw, header);
-		fflush(stdout);
 	}
 
 	return TRUE;
@@ -2500,3 +2499,5 @@ void http_close(void)
 		http_async_error(
 			(struct http_async *) sl_outgoing->data, HTTP_ASYNC_CANCELLED);
 }
+
+/* vi: set ts=4: */
