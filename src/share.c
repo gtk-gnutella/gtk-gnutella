@@ -810,6 +810,7 @@ void share_scan(void)
 
 	gui_update_files_scanned();		/* Final view */
 
+#if 0		// XXX not ready yet
 	/*
 	 * Query routing table update.
 	 */
@@ -824,6 +825,7 @@ void share_scan(void)
 	}
 
 	qrp_finalize_computation();
+#endif
 
 	in_share_scan = FALSE;
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);
