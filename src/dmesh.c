@@ -2013,7 +2013,7 @@ void dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 			g_assert((guchar) *p == c);
 
 			*p = '\0';
-			stamp = date2time(date, &now);
+			stamp = date2time(date, now);
 
 			if (dbg > 6)
 				printf("MESH (stamp=%u): \"%s\"\n", (guint) stamp, date);
