@@ -1218,3 +1218,12 @@ prop = {
     };
 };
 
+prop = {
+    name = "lib_debug";
+    desc = "Debug level for code shared between gui and core";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+

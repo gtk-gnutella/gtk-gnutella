@@ -717,6 +717,12 @@ static gboolean node_online_mode_changed(property_t prop)
     return FALSE;
 }
 
+static gboolean lib_debug_changed(property_t prop)
+{
+	gnet_prop_get_guint32_val(prop, &common_dbg);
+    return FALSE;
+}
+
 /***
  *** Property-to-callback map
  ***/
@@ -844,7 +850,12 @@ static prop_map_t property_map[] = {
 		PROP_ONLINE_MODE,
 		node_online_mode_changed,
 		TRUE						/* Need to call callback at init time */
-	}
+	},
+    {
+        PROP_LIB_DEBUG,
+        lib_debug_changed,
+        TRUE
+    }
 };
 
 /***

@@ -241,6 +241,8 @@ gboolean prefer_compressed_gnet     = FALSE;
 gboolean prefer_compressed_gnet_def = FALSE;
 gboolean online_mode     = TRUE;
 gboolean online_mode_def = TRUE;
+guint32  lib_debug     = 0;
+guint32  lib_debug_def = 0;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -2162,6 +2164,25 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[102].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[102].data.boolean.def   = &online_mode_def;
     gnet_property->props[102].data.boolean.value = &online_mode;
+
+
+    /*
+     * PROP_LIB_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[103].name = "lib_debug";
+    gnet_property->props[103].desc = "Debug level for code shared between gui and core";
+    gnet_property->props[103].prop_changed_listeners = NULL;
+    gnet_property->props[103].save = TRUE;
+    gnet_property->props[103].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[103].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[103].data.guint32.def   = &lib_debug_def;
+    gnet_property->props[103].data.guint32.value = &lib_debug;
+    gnet_property->props[103].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[103].data.guint32.min   = 0x00000000;
     return gnet_property;
 }
 

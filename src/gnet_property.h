@@ -135,7 +135,8 @@ typedef enum {
     PROP_SHA1_VERIFYING,    
     PROP_FILE_MOVING,    
     PROP_PREFER_COMPRESSED_GNET,    
-    PROP_ONLINE_MODE,
+    PROP_ONLINE_MODE,    
+    PROP_LIB_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 
