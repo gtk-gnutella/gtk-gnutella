@@ -193,6 +193,7 @@ void search_gui_free_r_set(results_set_t *rs)
 
     g_assert(rs != NULL);
 
+
 	/*
 	 * It is conceivable that some records were used solely by the search
 	 * dropping the result set.  Therefore, if the refcount is not 0,  we
@@ -496,7 +497,7 @@ record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r)
  * Create a new GUI result set from a Gnutella one.
  */
 results_set_t *search_gui_create_results_set(
-    GSList *schl, gnet_results_set_t *r_set)
+    GSList *schl, const gnet_results_set_t *r_set)
 {
     results_set_t *rs;
     GSList *sl;
@@ -985,7 +986,7 @@ void search_gui_flush(time_t now)
 
     last = now;
 
-    if (accumulated_rs && (gui_debug >= 10)) {
+    if (accumulated_rs && (gui_debug >= 6)) {
         guint32 recs = 0;
         guint32 rscount = 0;
 
@@ -1024,6 +1025,10 @@ void search_gui_flush(time_t now)
                 frozen = g_slist_prepend(frozen, sch->ctree);
 #endif
                 search_matched(sch, rs);
+            } else {
+                if (gui_debug >= 6) {
+                    printf("no search for cached search result while dispatching\n");
+                }
             }
         }
 
@@ -1039,7 +1044,7 @@ void search_gui_flush(time_t now)
 
         if (rs->refcount == 0) {
             search_gui_free_r_set(rs);
-            return;
+            continue;
         }
 
         search_gui_clean_r_set(rs);
@@ -1065,8 +1070,13 @@ void search_gui_flush(time_t now)
                  * --BLUE, 4/1/2004
                  */
 
-                if (sch)
+                if (sch) {
                     search_gui_remove_r_set(sch, rs);
+                } else {
+                    if (gui_debug >= 6) {
+                        printf("no search for cached search result while cleaning\n");
+                    }
+                }
             }
         } 
     }
