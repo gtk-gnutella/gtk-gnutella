@@ -83,7 +83,7 @@ prop = {
 prop = {
     name = "max_host_downloads";
     cfgvar = "max_simultaneous_host_downloads";
-    desc = "Don't make more connections then given here to a single host "
+    desc = "Don't make more connections than given here to a single host "
            "to download a file";
     type = guint32;
     data = {
@@ -96,7 +96,7 @@ prop = {
 prop = {
     name = "max_uploads";
     cfgvar = "max_simultaneous_uploads";
-    desc = "Don't allow more then this number of uploads in total";
+    desc = "Don't allow more than this number of uploads in total";
     type = guint32;
     data = {
         default = 5;
@@ -108,7 +108,7 @@ prop = {
 
 prop = {
     name = "max_uploads_ip";
-    desc = "Don't upload more then this number of files in parallel to a "
+    desc = "Don't upload more than this number of files in parallel to a "
            "single host";
     type = guint32;
     data = {
@@ -120,8 +120,8 @@ prop = {
 
 prop = {
     name = "local_ip";
-    desc = "Local IP address";
-    save = FALSE;
+    desc = "Local IP address last determined";
+    save = TRUE;
     type = ip;
     data = {
         default = 0x00000000;

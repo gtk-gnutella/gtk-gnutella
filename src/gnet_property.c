@@ -353,7 +353,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[6].name = "max_simultaneous_host_downloads";
-    gnet_property->props[6].desc = "Don't make more connections then given here to a single host to download a file";
+    gnet_property->props[6].desc = "Don't make more connections than given here to a single host to download a file";
     gnet_property->props[6].prop_changed_listeners = NULL;
     gnet_property->props[6].save = TRUE;
     gnet_property->props[6].vector_size = 1;
@@ -372,7 +372,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[7].name = "max_simultaneous_uploads";
-    gnet_property->props[7].desc = "Don't allow more then this number of uploads in total";
+    gnet_property->props[7].desc = "Don't allow more than this number of uploads in total";
     gnet_property->props[7].prop_changed_listeners = NULL;
     gnet_property->props[7].save = TRUE;
     gnet_property->props[7].vector_size = 1;
@@ -391,7 +391,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[8].name = "max_uploads_ip";
-    gnet_property->props[8].desc = "Don't upload more then this number of files in parallel to a single host";
+    gnet_property->props[8].desc = "Don't upload more than this number of files in parallel to a single host";
     gnet_property->props[8].prop_changed_listeners = NULL;
     gnet_property->props[8].save = TRUE;
     gnet_property->props[8].vector_size = 1;
@@ -410,9 +410,9 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[9].name = "local_ip";
-    gnet_property->props[9].desc = "Local IP address";
+    gnet_property->props[9].desc = "Local IP address last determined";
     gnet_property->props[9].prop_changed_listeners = NULL;
-    gnet_property->props[9].save = FALSE;
+    gnet_property->props[9].save = TRUE;
     gnet_property->props[9].vector_size = 1;
 
     /* Type specific data: */
