@@ -312,6 +312,11 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
  */
 #$i_syssysctl I_SYS_SYSCTL		/**/
 
+/* USE_ICU:
+ * This symbol is defined when we have a working ICU library.
+ */
+#$d_icu USE_ICU
+
 /* LOCALE_EXP:
  *	This symbol holds the possibly ~name expanded place where localization
  *	files for the package are expected to be found.

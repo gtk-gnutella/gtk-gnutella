@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Sat Dec 27 23:19:38 MET 2003 [metaconfig 3.0 PL70]
+# Generated on Thu Jan  1 19:29:45 MET 2004 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -3854,6 +3854,55 @@ eval $inlibc
 set hstrerror d_hstrerror
 eval $inlibc
 
+: see if this is a unicode/putil.h system
+set unicode/putil.h i_uni_putil
+eval $inhdr
+
+: check to ensire unicode/putil.h compiles if present
+case "$i_uni_putil" in
+"$define") 
+	echo "#include <unicode/putil.h>" >t.c
+	if $cc -c $ccflags t.c >/dev/null 2>&1; then
+		: ok
+	else
+		echo "But it does not compile, sorry."
+		i_uni_putil="$undef"
+	fi
+	;;
+esac
+$rm -f t.c
+
+: see if ucnv_open_2_6 exists
+set ucnv_open_2_6 d_ucnv_open_2_6
+eval $inlibc
+
+: check whether we have a working ICU library
+echo " "
+case " $libs " in
+*" -licuuc "*)
+	case "$i_uni_putil$d_ucnv_open_2_6" in
+	"$define$define")
+		echo "Your ICU library is workable." >&4
+		val="$define"
+		;;
+	*)
+		echo "Your ICU library is present, but unworkable." >&4
+		val="$undef"
+		;;
+	esac
+	;;
+*)
+	echo "You have no ICU library installed." >&4
+	val="$undef"
+	;;
+esac
+set d_icu
+eval $setvar
+case "$d_icu" in
+"$define") icu=true;;
+*) icu=false;;
+esac
+
 : check whether inet_aton exists
 set inet_aton d_inetaton
 eval $inlibc
@@ -4916,55 +4965,6 @@ eval $inlibc
 : see if this is a zlib.h system
 set zlib.h i_zlib
 eval $inhdr
-
-: see if this is a unicode/putil.h system
-set unicode/putil.h i_uni_putil
-eval $inhdr
-
-: check to ensire unicode/putil.h compiles if present
-case "$i_uni_putil" in
-"$define") 
-	echo "#include <unicode/putil.h>" >t.c
-	if $cc -c $ccflags t.c >/dev/null 2>&1; then
-		: ok
-	else
-		echo "But it does not compile, sorry."
-		i_uni_putil="$undef"
-	fi
-	;;
-esac
-$rm -f t.c
-
-: see if ucnv_open_2_6 exists
-set ucnv_open_2_6 d_ucnv_open_2_6
-eval $inlibc
-
-: check whether we have a working ICU library
-echo " "
-case " $libs " in
-*" -licuuc "*)
-	case "$i_uni_putil$d_ucnv_open_2_6" in
-	"$define$define")
-		echo "Your ICU library is workable." >&4
-		val="$define"
-		;;
-	*)
-		echo "Your ICU library is present, but unworkable." >&4
-		val="$undef"
-		;;
-	esac
-	;;
-*)
-	echo "You have no ICU library installed." >&4
-	val="$undef"
-	;;
-esac
-set d_icu
-eval $setvar
-case "$d_icu" in
-"$define") icu=true;;
-*) icu=false;;
-esac
 
 : end of configuration questions
 echo " "
