@@ -1070,7 +1070,7 @@ void download_gui_remove(struct download *d)
 
 					if (2 < n){
 						gm_snprintf(tmpstr, sizeof(tmpstr), 
-                            "%u hosts (%u)", n-1);
+                            "%u hosts", n-1);
 
 						gtk_tree_store_set(model, parent,
 			  				c_dl_host, tmpstr,
