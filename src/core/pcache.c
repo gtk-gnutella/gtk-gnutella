@@ -171,7 +171,7 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 	 */
 
 	if (uhc || ttl > 1) {
-		guint8 spp;
+		gchar spp;
 
 		spp = (current_peermode == NODE_P_LEAF) ? 0x0 : 0x1;
 		ggep_stream_pack(&gs, "SCP", &spp, sizeof(spp), 0);
