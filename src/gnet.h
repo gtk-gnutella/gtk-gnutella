@@ -587,6 +587,7 @@ typedef struct gnet_upload_info {
 
     gchar  *user_agent;  /* remote user agent */
 	gboolean push;       /* Whether we're pushing or not */
+	gboolean partial;    /* Whether it's a partial file */
 } gnet_upload_info_t;
 
 /*

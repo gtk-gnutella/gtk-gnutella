@@ -230,9 +230,9 @@ static void uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 		if (u->range_start == 0 && u->range_end == 0)
 			g_strlcpy(str, "...", sizeof(str));
 		else {
-			range_len = g_strlcpy(str,
-							compact_size(u->range_end - u->range_start + 1),
-							sizeof(str));
+			range_len = gm_snprintf(str, sizeof(str), "%s%s",
+				u->partial ? "*" : "",
+				compact_size(u->range_end - u->range_start + 1));
 
 			if (range_len < sizeof(str)) {
 				if (u->range_start)
@@ -325,7 +325,8 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
     else {
 		static gchar range_tmp[256];	/* MUST be static! */
 
-        range_len = gm_snprintf(range_tmp, sizeof(range_tmp), "%s",
+        range_len = gm_snprintf(range_tmp, sizeof(range_tmp), "%s%s",
+			u->partial ? "*" : "",
             compact_size(u->range_end - u->range_start + 1));
 
         if (u->range_start)

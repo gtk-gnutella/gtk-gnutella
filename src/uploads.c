@@ -1620,6 +1620,7 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 	gnutella_upload_t *u = a->u;
 	shared_file_t *sf = a->sf;
 	gint needed_room;
+	gint range_length;
 
 	/*
 	 * Room for header + base32 SHA1 + crlf
@@ -1632,6 +1633,7 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
 			sha1_base32(a->sf->sha1_digest));
 
+
 	/*
 	 * PFSP-server: if they requested a partial file, let them know about
 	 * the set of available ranges.
@@ -1639,16 +1641,19 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 	 * We do that before sending the alt-locs, because we're filling up as
 	 * much space as we can with alt-locs, and we would not have much room
 	 * left to emit the range list if we did it afterwards.
+	 *
+	 * Leave at least 512 bytes for alt-locs, just in case.
 	 */
 
-	if (sf->fi != NULL && rw < length) {
+	range_length = length - 512;
+
+	if (sf->fi != NULL && rw < range_length) {
 		g_assert(pfsp_server);		/* Or we would not have a partial file */
-		rw += file_info_available_ranges(sf->fi, &buf[rw], length - rw);
+		rw += file_info_available_ranges(sf->fi, &buf[rw], range_length - rw);
 	}
 
 	if (rw < length) {
 		time_t now = time(NULL);
-
 		guint32 last_sent;
 
 		/*
@@ -1928,6 +1933,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
         atom_str_free(u->name);
 
     u->name = atom_str_get(reqfile->file_name);
+	u->partial = reqfile->fi != NULL;
 
 	/*
 	 * Range: bytes=10453-23456
@@ -2728,6 +2734,7 @@ gnet_upload_info_t *upload_get_info(gnet_upload_t uh)
     info->user_agent    = u->user_agent ? atom_str_get(u->user_agent) : NULL;
     info->upload_handle = u->upload_handle;
 	info->push          = u->push;
+	info->partial       = u->partial;
 	
     return info;
 }
