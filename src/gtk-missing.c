@@ -38,3 +38,21 @@ gint gtk_paned_get_position(GtkPaned *paned){
 
     return paned->child1_size;
 }
+
+/*
+ * gtk_main_flush:
+ *
+ * Process all pending gtk events (i.e. draw now!)
+ * Returns TRUE if gtk_main_quit has been called 
+ * for the innermost mainloop. Aborts flush if
+ * gtk_main_quit has been called.
+ */
+gint gtk_main_flush() 
+{
+    gint val = FALSE;
+
+    while (!val && g_main_pending())
+        val = gtk_main_iteration_do(FALSE);
+
+    return val;
+}
