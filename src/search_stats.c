@@ -68,7 +68,7 @@ void enable_search_stats()
 			GTK_SORT_DESCENDING);
 	}
 
-	g_timeout_add(100 * search_stats_update_interval,
+	g_timeout_add(1000 * search_stats_update_interval,
 		update_search_stats_display, NULL);
 }
 
