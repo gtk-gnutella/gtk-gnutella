@@ -773,9 +773,10 @@ prop = {
 	/* FIXME: This property is deprecated. Remove it after the next release */
     name = "proxy_connections";
     desc = "DEPRECATED and automatically set to TRUE. Use a proxy to connect to the internet";
+	save = FALSE;
     type = boolean;
     data = {
-        default = FALSE;
+        default = TRUE;
     };
 };
 

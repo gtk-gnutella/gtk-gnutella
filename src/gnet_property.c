@@ -168,8 +168,8 @@ gboolean use_netmasks     = FALSE;
 gboolean use_netmasks_def = FALSE;
 gboolean download_delete_aborted     = TRUE;
 gboolean download_delete_aborted_def = TRUE;
-gboolean proxy_connections     = FALSE;
-gboolean proxy_connections_def = FALSE;
+gboolean proxy_connections     = TRUE;
+gboolean proxy_connections_def = TRUE;
 gboolean proxy_auth     = FALSE;
 gboolean proxy_auth_def = FALSE;
 gchar   *socks_user     = "username";
@@ -1602,7 +1602,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[65].name = "proxy_connections";
     gnet_property->props[65].desc = "DEPRECATED and automatically set to TRUE. Use a proxy to connect to the internet";
     gnet_property->props[65].prop_changed_listeners = NULL;
-    gnet_property->props[65].save = TRUE;
+    gnet_property->props[65].save = FALSE;
     gnet_property->props[65].vector_size = 1;
 
     /* Type specific data: */
