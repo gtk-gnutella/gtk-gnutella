@@ -41,6 +41,7 @@ gboolean progressbar_bps_out_visible = TRUE;
 gboolean progressbar_bps_in_avg = FALSE;
 gboolean progressbar_bps_out_avg = FALSE;
 gboolean use_netmasks = FALSE;
+gboolean download_delete_aborted = FALSE;
 
 guint8 max_ttl = 7;
 guint8 my_ttl = 5;
@@ -141,7 +142,7 @@ gchar *socksv5_pass = NULL;
 enum {
 	k_up_connections = 0,
 	k_clear_uploads, k_max_downloads, k_max_host_downloads,
-	k_max_uploads, k_clear_downloads,
+	k_max_uploads, k_clear_downloads, k_download_delete_aborted,
 	k_minimum_speed, k_monitor_enabled, k_monitor_max_items,
 	k_old_save_file_path, k_scan_extensions,
 	k_listen_port, k_max_ttl, k_my_ttl, k_shared_dirs, k_forced_local_ip,
@@ -197,6 +198,7 @@ static gchar *keywords[] = {
 	"max_simultaneous_host_downloads",	/* k_max_host_downloads */
 	"max_simultaneous_uploads", /* k_max_uploads */
 	"auto_clear_completed_downloads",	/* k_clear_downloads */
+    "download_delete_aborted", /* k_download_delete_aborted */
 	"search_minimum_speed",		/* k_minimum_speed */
 	"monitor_enabled",			/* k_monitor_enabled */
 	"monitor_max_items",		/* k_monitor_max_items */
@@ -545,6 +547,11 @@ void config_init(void)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
 								 (checkbutton_downloads_auto_clear),
 								 clear_downloads);
+    // FIXME: enable when I have checked in the new glade stuff
+   	// gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
+	//							 (checkbutton_downloads_delete_aborted),
+	//							 download_delete_aborted);
+    //     --BLUE, 24/04/2002
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
 								 (checkbutton_config_force_ip),
 								 force_local_ip);
@@ -693,6 +700,10 @@ void config_set_param(guint32 keyword, gchar *value)
 
 	case k_clear_downloads:
 		clear_downloads = (gboolean) ! g_strcasecmp(value, "true");
+		return;
+
+    case k_download_delete_aborted:
+        download_delete_aborted = (gboolean) ! g_strcasecmp(value, "true");
 		return;
 
 	case k_up_connections:
@@ -1301,6 +1312,8 @@ static void config_save(void)
 	fprintf(config, "\n");
 	fprintf(config, "%s = %s\n", keywords[k_clear_downloads],
 			config_boolean(clear_downloads));
+   	fprintf(config, "%s = %s\n", keywords[k_download_delete_aborted],
+			config_boolean(download_delete_aborted));
 	fprintf(config, "\n");
 	fprintf(config, "%s = %u\n", keywords[k_minimum_speed], minimum_speed);
 	fprintf(config, "\n");
