@@ -254,6 +254,7 @@ done
 
 case "$dflt" in
 '') dflt='none' ;;
+*) set X $dflt; shift; dflt="$@";;
 esac
 
 $cat <<EOH
