@@ -1603,7 +1603,7 @@ void file_info_retrieve(void)
 				if (-1 != stat(fi_tmp, &buf)) {
 					g_warning("got metainfo in fileinfo cache, "
 						"but none in \"%s/%s\"", fi->path, fi->file_name);
-					file_info_store_binary(fi);
+					file_info_store_binary(fi);			/* Create metainfo */
 				} else {
 					file_info_merge_adjacent(fi);		/* Compute fi->done */
 					if (fi->done > 0) {
@@ -1622,7 +1622,7 @@ void file_info_retrieve(void)
 				g_warning("found OUTDATED metainfo in \"%s/%s\"",
 					fi->path, fi->file_name);
 				fi_free(dfi);
-				file_info_store_binary(fi);
+				file_info_store_binary(fi);		/* Resync metainfo */
 			} else {
 				g_assert(dfi->generation == fi->generation);
 				fi_free(dfi);
