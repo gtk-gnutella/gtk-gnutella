@@ -92,6 +92,8 @@ struct gnutella_node {
 
 	gpointer routing_data;		/* Opaque info, for packet routing */
 	gpointer query_routing;		/* Opaque info, for query routing */
+	gpointer alive_pings;		/* Opaque info, for alive ping checks */
+	time_t last_alive_ping;		/* Last time we sent an alive ping */
 
 	/*
 	 * Data structures used by the ping/pong reduction scheme.

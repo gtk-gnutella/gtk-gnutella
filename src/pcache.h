@@ -30,11 +30,13 @@
  * Global Functions
  */
 
-void send_alive_ping(struct gnutella_node *n);
-
 struct gnutella_msg_init_response *build_pong_msg(
 	guint8 hops, guint8 ttl, guchar *muid,
 	guint32 ip, guint16 port, guint32 files, guint32 kbytes);
+
+/*
+ * Public interface.
+ */
 
 void pcache_init(void);
 void pcache_close(void);

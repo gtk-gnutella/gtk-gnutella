@@ -61,6 +61,7 @@
 #include "atoms.h"
 #include "http.h"
 #include "version.h"
+#include "alive.h"
 
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
@@ -71,8 +72,10 @@
 #define SHUTDOWN_GRACE_DELAY	120	/* Grace period for shutdowning nodes */
 #define BYE_GRACE_DELAY			30	/* Bye sent, give time to propagate */
 #define MAX_WEIRD_MSG			5	/* Close connection after so much weirds */
-#define MAX_TX_RX_RATIO			100	/* Max TX/RX ratio */
-#define MIN_TX_FOR_RATIO		200	/* TX packets before enforcing ratio */
+#define MAX_TX_RX_RATIO			50	/* Max TX/RX ratio */
+#define MIN_TX_FOR_RATIO		500	/* TX packets before enforcing ratio */
+#define ALIVE_FREQUENCY			10	/* Seconds between each alive ping */
+#define ALIVE_MAX_PENDING		4	/* Max unanswered pings in a row */
 
 GSList *sl_nodes = (GSList *) NULL;
 
@@ -189,14 +192,28 @@ void node_timer(time_t now)
 		 */
 
 		if (n->status == GTA_NODE_CONNECTED) {
-			if (n->n_weird >= MAX_WEIRD_MSG)
+			if (n->n_weird >= MAX_WEIRD_MSG) {
 				node_bye_if_writable(n, 412, "Security violation");
+				return;
+			}
 
 			if (
 				n->sent > MIN_TX_FOR_RATIO &&
 				(n->received == 0 || n->sent / n->received > MAX_TX_RX_RATIO)
-			)
-				node_bye_if_writable(n, 405, "Receive timeout");
+			) {
+				node_bye_if_writable(n, 405, "Reception shortage");
+				return;
+			}
+
+			if (NODE_IS_WRITABLE(n)) {
+				if (
+					now - n->last_alive_ping > ALIVE_FREQUENCY &&
+					!alive_send_ping(n->alive_pings)
+				) {
+					node_bye(n, 406, "No reply to alive pings");
+					return;
+				}
+			}
 		}
 
 		gui_update_nodes_display(now);
@@ -406,6 +423,10 @@ static void node_remove_v(
 	if (n->gnet_guid) {
 		atom_guid_free(n->gnet_guid);
 		n->gnet_guid = NULL;
+	}
+	if (n->alive_pings) {
+		alive_free(n->alive_pings);
+		n->alive_pings = NULL;
 	}
 
 	n->status = GTA_NODE_REMOVING;
@@ -970,7 +991,6 @@ static void node_is_now_connected(struct gnutella_node *n)
 	 * Create RX stack, and enable reception of data.
 	 */
 
-
 	if (n->attrs & NODE_A_RX_INFLATE) {
 		rxdrv_t *rx;
 
@@ -1033,6 +1053,7 @@ static void node_is_now_connected(struct gnutella_node *n)
 
 		n->outq = mq_make(node_sendqueue_size, n, tx);
 		n->searchq = sq_make(n);
+		n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
 		n->flags |= NODE_F_WRITABLE;
 	}
 
@@ -1051,7 +1072,7 @@ static void node_is_now_connected(struct gnutella_node *n)
 	 */
 
 	if (n->flags & NODE_F_INCOMING)
-		send_alive_ping(n);
+		alive_send_ping(n->alive_pings);
 	else if (!NODE_IS_PONGING_ONLY(n))
 		pcache_outgoing_connection(n);	/* Will send proper handshaking ping */
 
@@ -2921,6 +2942,8 @@ void node_close(void)
 			atom_str_free(n->vendor);
 		if (n->gnet_guid)
 			atom_guid_free(n->gnet_guid);
+		if (n->alive_pings)
+			alive_free(n->alive_pings);
 		node_real_remove(n);
 	}
 
