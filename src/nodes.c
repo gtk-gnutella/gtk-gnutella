@@ -1257,7 +1257,7 @@ static gboolean node_avoid_monopoly(struct gnutella_node *n)
 		struct gnutella_node *node = (struct gnutella_node *) sl->data;
 		gchar *cur_vendor;
 		
-		if (node->status != GTA_NODE_CONNECTED) {
+		if (node->status != GTA_NODE_CONNECTED || node->vendor == NULL) {
 			continue;
 		}
 
