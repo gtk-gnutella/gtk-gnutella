@@ -1,5 +1,15 @@
 # since last version
 
+- (2004-11-11 - RAM)
+ * Refactored decoding of GGEP extensions: this is now done transparently
+   for compressed / COBS encoded extensions.  All accesses to payload length
+   and the actual (decoded) payload must now be done via routines.
+ * Got rid of false plural forms "source(s)", "upload(s)", etc...
+
+- (2004-11-10 - RAM)
+ * Fixed "completion test" in incremental deflater.
+ * When we don't have leaves, the UDP crawler pong builder would fail.
+
 - (2004-11-09 - RAM)
  * Forgot to alter host_count when moving hosts between caches.
  * Added support for LimeWire's UDP crawling.
