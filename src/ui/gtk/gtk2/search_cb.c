@@ -378,7 +378,6 @@ void on_tree_view_search_results_select_row(
 
 	gtk_tree_view_get_cursor(view, &path, NULL);
 	if (NULL != path) {
- 		GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(view));
 		GtkTreeModel *model;
 		const record_t *rc = NULL;
 		const gchar *vendor;
