@@ -101,6 +101,7 @@ typedef guint16 flag_t;
  */
 guint32  gchar_to_ip(const gchar *);
 gboolean gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port);
+gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
 gchar *  ip_to_gchar(guint32);
 gchar *  ip_port_to_gchar(guint32, guint16);
 guint32  host_to_ip(const gchar *);

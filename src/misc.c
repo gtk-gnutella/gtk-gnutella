@@ -1061,3 +1061,65 @@ gchar *hex_escape(const gchar *name, gboolean strict)
 
 	return new;
 }
+
+/*
+ * gchar_to_ip_and_mask:
+ *
+ * Extracts the IP address into `ip' and the netmask into `netmask'.
+ * Returns whether the supplied string represents a valid ip/mask combination.
+ *
+ * Accepted forms:
+ * "a.b.c.d"			implies /32
+ * "a.b.c.d/e"			whereas e [1..32]
+ * "a.b.c.d/w.x.y.z"
+ *
+ * If the IP address or the netmask is zero, the function will return FALSE.
+ */
+gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
+{
+	const gchar *mask_str = NULL;
+	gint error;
+	gulong b;
+	static gchar buf[64];
+
+	if ((mask_str = strchr(str, '/')) != NULL) {
+		size_t len = mask_str - str;
+
+		if (len >= sizeof(buf))
+			return FALSE;
+		memcpy(buf, str, len);
+		buf[len] = '\0';
+		mask_str++;
+		str = &buf[0];
+	}
+
+	*ip = host_to_ip(str);
+	if (!*ip)
+		return FALSE;
+
+	if (NULL == mask_str) {
+		*netmask = ~0;
+		return TRUE;
+	}		
+
+	if (strchr(mask_str, '.')) {
+		*netmask = gchar_to_ip(mask_str);
+		if (~0 != *netmask) {
+			if (*netmask != ~((1 << (highest_bit_set(~*netmask) + 1)) - 1))
+				return FALSE;
+		}
+		return 0 != *netmask;
+	}
+
+	b = gm_atoul(mask_str, NULL, &error);
+	if (error || b == 0 || b > 32)
+		return FALSE;
+		
+	if (32 == *netmask) {
+		*netmask = ~0;
+		return TRUE;
+	}
+
+	*netmask = ~(~0 >> b);
+	return TRUE;
+}
