@@ -12,6 +12,7 @@ U/modified/End.U
 U/modified/Loc.U
 U/modified/Myinit.U
 U/modified/prototype.U
+U/new/Largefile.U
 U/new/d_bindtxtcode.U
 U/new/d_deflate.U
 U/new/d_gettext.U
@@ -411,6 +412,7 @@ src/lib/file.c
 src/lib/file.h
 src/lib/fuzzy.c
 src/lib/fuzzy.h
+src/lib/getdate.c
 src/lib/getdate.h
 src/lib/getdate.y
 src/lib/getline.c
