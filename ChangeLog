@@ -1,5 +1,17 @@
 # since last version
 
+- (2002.09.09 RAM)
+ * Fixed reference count problem when resetting fileinfo.
+ * Made socket_connected() private.
+ * Count sent message size from queue accurately.
+ * Cleanup of statistics, separating reception: header and payload counted
+   separately.
+ * When reading back fileinfo cache, guard against duplicate ALIA entries.
+ * Split sent statistics into local and relayed.
+ * Requeue downloads with a SHA1 in the fileinfo but for which the server
+   gives no URN: it will wait for an overlap to resume, provided the user
+   has at least configured 64 bytes of overlap (fixes bug #606373).
+
 - (2002.09.09 Richard)
  * Added drop statistics for every message type and accumulated traffic
    statistics for every message type.
