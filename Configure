@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Dec 28 16:26:01 MET 2004 [metaconfig 3.0 PL70]
+# Generated on Mon Feb  7 12:33:42 MET 2005 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -305,7 +305,6 @@ d_inetaton=''
 d_inflate=''
 d_iptos=''
 d_isascii=''
-d_keepsig=''
 d_memcpy=''
 d_nls=''
 d_open3=''
@@ -5172,36 +5171,9 @@ echo "(I'll use '$glibconfig' to gather that information.)"
 glibcflags=`$glibconfig --cflags`
 glibldflags=`$glibconfig --libs`
 
-: "check that we've got the version they asked for"
-version=$gtkversion
-
-$cat >try.c <<EOC
-#include <glib.h>
-#ifndef GLIB_MAJOR_VERSION
-#error "glib.h not found?"
-#else
-#if GLIB_MAJOR_VERSION != $version 
-#error "Wrong glib.h?"
-#endif
-#endif
-int main(void)
-{
-  (void) g_malloc(23);
-  return 0;
-}
-EOC
-
-if $cc $ccflags $glibcflags -o try try.c $ldflags $glibldflags >/dev/null 2>&1;
-then
-	echo " "
-	echo "We'll be using glib version $version." >&4
-	echo "OK"
-else
-	echo "Cannot compile against glib version '$version'" >&4
-	exit 1
-fi
-
-$rm -f try try.c
+version=`$glibconfig $modver`
+echo " "
+echo "We'll be using glib version $version."
 
 : how can we find information about GTK?
 echo " "
@@ -5217,8 +5189,8 @@ else
 	gtkconfig='false'
 	modver=''
 fi
-
 echo "(I'll use '$gtkconfig' to gather that information.)"
+
 version=`$gtkconfig $modver`
 case "$gtkversion" in
 1)
@@ -6347,7 +6319,6 @@ d_inetaton='$d_inetaton'
 d_inflate='$d_inflate'
 d_iptos='$d_iptos'
 d_isascii='$d_isascii'
-d_keepsig='$d_keepsig'
 d_libxml2='$d_libxml2'
 d_linux='$d_linux'
 d_memcpy='$d_memcpy'

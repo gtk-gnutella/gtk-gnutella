@@ -127,12 +127,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_isascii HAS_ISASCII		/**/
 
-/* SIGNALS_KEPT:
- *	This symbol is defined if signal handlers needn't be reinstated after
- *	receipt of a signal.
- */
-#$d_keepsig SIGNALS_KEPT	/**/
-
 /* HAS_MEMCPY:
  *	This symbol, if defined, indicates that the memcpy routine is available
  *	to copy blocks of memory.
