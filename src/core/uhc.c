@@ -80,7 +80,7 @@ static const gchar * const boot_hosts[] = {
 	"uhc.udp-host-cache.com:9999",
 	"kisama.ath.cx:8080",
 	"krill.shacknet.nu:20095",
-	"starscream.dynalias.com:80",
+	"secondary.udp-host-cache.com:9999",
 };
 
 static gboolean uhc_connecting = FALSE;
