@@ -83,7 +83,6 @@ local_clobber::
 INSTALLFLAGS = -m 444
 
 local_install::
-
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for dir in $(PRIVLIB); do	\
 	(set -x; test -d $(INSTALL_PREFIX)$$dir || \
@@ -91,7 +90,6 @@ local_install::
 	done
 
 local_deinstall::
-
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for dir in $(PRIVLIB); do \
 		(set -x; test -d $$dir && $(RM) -r $(INSTALL_PREFIX)$$dir); \
