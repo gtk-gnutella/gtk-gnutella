@@ -420,7 +420,7 @@ void config_set_param(keyword_t keyword, gchar *value)
             bw_ul_usage_enabled, gnet, 
             PROP_BW_UL_USAGE_ENABLED)
         CONFIG_SET_BOOL(
-            clear_downloads, gnet, 
+            clear_downloads, gui, 
             PROP_AUTOCLEAR_DOWNLOADS )
         CONFIG_SET_BOOL(
             clear_uploads, gnet, 
