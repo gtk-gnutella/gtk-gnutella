@@ -160,6 +160,7 @@ tx_link_write_error(txdrv_t *tx, const char *func)
 	case ECONNRESET:
 	case ENETDOWN:
 	case ENETUNREACH:
+	case EHOSTUNREACH:
 	case ETIMEDOUT:
 	case EACCES:
 		socket_eof(tx->node->socket);
