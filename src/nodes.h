@@ -81,7 +81,12 @@ struct gnutella_node {
 
 #define NODE_IS_CONNECTING(n)						\
 	(	(n)->status == GTA_NODE_CONNECTING			\
+	||	(n)->status == GTA_NODE_HELLO_SENT			\
+	||	(n)->status == GTA_NODE_WELCOME_SENT		\
 	||	(n)->status == GTA_NODE_RECEIVING_HELLO	)
+
+#define NODE_IS_CONNECTED(n) \
+	((n)->status == GTA_NODE_CONNECTED)
 
 /*
  * Global Data
