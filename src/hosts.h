@@ -61,7 +61,6 @@ void host_get_caught(guint32 *ip, guint16 *port);
 gboolean check_valid_host(guint32, guint16);
 void hosts_read_from_file(const gchar *, gboolean);
 void hosts_write_to_file(const gchar *);
-void host_clear_cache(void);
 void host_shutdown(void);
 void host_close(void);
 
