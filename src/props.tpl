@@ -38,6 +38,15 @@
 (define prop-set (. set-name-down))
 (define prop-array (sprintf "%s->props" (. prop-set)))
 (define prop-offset (string->number (get "offset")))
+(define (type_ok? type)
+    (cond 
+        ((= type "boolean") #t)
+        ((= type "guint32") #t)
+        ((= type "ip") #t)
+        ((= type "string") #t)
+        ((= type "storage") #t)
+        ((= type "multichoice") #t) 
+        (else #f)))
 =][= 
 IF (exist? "func_prefix")=][=
     (define func-prefix (get "func_prefix"))=][=
@@ -158,6 +167,7 @@ CASE type=][=
 = boolean=]extern gboolean [=(. item)=][= 
 = guint32=]extern guint32  [=(. item)=][= 
 = ip     =]extern guint32  [=(. item)=][= 
+= multichoice=]extern guint32  [=(. item)=][= 
 = string =]extern gchar   *[=(. item)=][= 
 = storage=]extern guint8   [=(. item)=][= 
 ESAC =][= 
@@ -184,41 +194,46 @@ void [=(. func-prefix)=]_shutdown(void);
 [= FOR uses =]#include "[=uses=]"
 [= ENDFOR uses =]
 
-[= FOR prop =][= 
-IF (exist? "data.value") =][=
-(define item (get "data.value")) =][=
-ELSE =][=
-(define item (string-downcase (get "name"))) =][=
-ENDIF=][= 
-IF (= (get "type") "storage")=]
+[= 
+FOR prop =][= 
+    (if (exist? "data.value")
+        (define item (get "data.value"))
+        (define item (string-downcase (get "name"))))=][= 
+    IF (= (get "type") "storage")=]
 guint8   [=(. item)=][[=vector_size=]];[=
-ELSE=][=
-    CASE type =][= 
-    = boolean=][=
-        (define vtype "gboolean ")
-        (define vdef (get "data.default"))=][= 
-    = guint32=][=
-        (define vtype "guint32  ")
-        (define vdef (get "data.default"))=][=
-    = ip     =][=
-        (define vtype "guint32  ")
-        (define vdef (get "data.default"))=][=
-    = string =][=
-        (define vtype "gchar   *")=][=
-        IF (= (get "data.default") "NULL")=][=
-            (define vdef (sprintf "NULL"))=][=
-        ELSE=][=
-            (define vdef (sprintf "\"%s\"" (get "data.default")))=][=
-        ENDIF=][=
-    ESAC =][= 
-    IF (exist? "vector_size")=]
+    ELSE=][=
+        (cond
+            ((= (get "type") "boolean") 
+                (define vtype "gboolean ")
+                (define vdef (get "data.default")))
+            ((= (get "type") "guint32") 
+                (define vtype "guint32  ")
+                (define vdef (get "data.default")))
+            ((= (get "type") "ip") 
+                (define vtype "guint32  ")
+                (define vdef (get "data.default")))
+            ((= (get "type") "string") 
+                (define vtype "gchar   *")
+                (if (= (get "data.default") "NULL")
+                    (define vdef (sprintf "NULL"))
+                    (define vdef (sprintf "\"%s\"" (get "data.default"))))))
+        =][= 
+        IF (exist? "vector_size")=]
 [=  (. vtype)=][=(. item)=][[=vector_size=]]     = [=(. vdef)=];
 [=  (. vtype)=][=(. item)=]_def[[=vector_size=]] = [=(. vdef)=];[=
-    ELSE=]
+        ELSE=]
 [=  (. vtype)=][=(. item)=]     = [=(. vdef)=];
 [=  (. vtype)=][=(. item)=]_def = [=(. vdef)=];[=
+        ENDIF=][=
+        IF (= (get "type") "multichoice")=]
+prop_def_choice_t [=(. item)=]_choices[] = { [=    
+            FOR choice =]
+    {"[=name=]", [=value=]},[=
+            ENDFOR choice =]
+    {NULL, 0}
+};[=
+        ENDIF =][=
     ENDIF=][=
-ENDIF=][=
 ENDFOR prop =]
 
 static prop_set_t *[=(. prop-set)=] = NULL;
@@ -235,24 +250,27 @@ prop_set_t *[=(. func-prefix)=]_init(void) {
 
 FOR prop =][=
     (define current-prop (sprintf "%s[%u]" 
-        (. prop-array) (for-index))) =][=
-    IF (exist? "data.value") =][=
-        (define prop-var-name (get "data.value")) =][=
-    ELSE =][=
-        (define prop-var-name (string-downcase (get "name"))) =][=
-    ENDIF=][= 
-    IF (not (exist? "name"))=][=
-        (error "no name given")=][=
-    ENDIF=][=
-    IF (not (exist? "desc"))=][=
-        (error "no description given)=][=
-    ENDIF=][=
-    IF (and (not (exist? "data.default")) (not (= (get "type") "storage")))=][=
-        (error "no default value given")=][=
-    ENDIF=][=    
-    IF (and (not (exist? "vector_size")) (= (get "type") "storage")) =][=
-        (error "must give vector_size for a storage-type property")=][=
-    ENDIF=]
+        (. prop-array) (for-index)))
+
+    (if (not (and (exist? "type") (type_ok? (get "type"))))
+        (error "type missing or invalid"))
+
+    (if (not (exist? "name"))
+        (error "no name given"))
+
+    (if (not (exist? "desc"))
+        (error "no description given"))
+
+    (if (exist? "data.value")
+        (define prop-var-name (get "data.value"))        
+        (define prop-var-name (string-downcase (get "name"))))
+
+    (if (and (not (exist? "data.default")) (not (= (get "type") "storage")))
+        (error "no default value given"))
+    
+    (if (and (not (exist? "vector_size")) (= (get "type") "storage"))
+        (error "must give vector_size for a storage-type property"))
+    =]
 
 
     /*
@@ -301,7 +319,8 @@ FOR prop =][=
     = guint32 =]
     [=(. current-prop)=].type               = PROP_TYPE_GUINT32;
     [=(. current-prop)=].data.guint32.def   = [=(. prop-def-var)=];
-    [=(. current-prop)=].data.guint32.value = [=(. prop-var)=];[=
+    [=(. current-prop)=].data.guint32.value = [=(. prop-var)=];
+    [=(. current-prop)=].data.guint32.choices = NULL;[=
     IF (exist? "data.max")=]
     [=(. current-prop)=].data.guint32.max   = [=data.max=];[=
     ELSE=]
@@ -317,8 +336,18 @@ FOR prop =][=
     [=(. current-prop)=].type               = PROP_TYPE_IP;
     [=(. current-prop)=].data.guint32.def   = [=(. prop-def-var)=];
     [=(. current-prop)=].data.guint32.value = [=(. prop-var)=];
+    [=(. current-prop)=].data.guint32.choices = NULL;
     [=(. current-prop)=].data.guint32.max   = 0xFFFFFFFF;
     [=(. current-prop)=].data.guint32.min   = 0x00000000;[= 
+
+    = multichoice =]
+    [=(. current-prop)=].type               = PROP_TYPE_MULTICHOICE;
+    [=(. current-prop)=].data.guint32.def   = [=(. prop-def-var)=];
+    [=(. current-prop)=].data.guint32.value = [=(. prop-var)=];
+    [=(. current-prop)=].data.guint32.max   = 0xFFFFFFFF;
+    [=(. current-prop)=].data.guint32.min   = 0x00000000;
+    [=(. current-prop)=].data.guint32.choices = [=
+        (sprintf "%s_choices" (. prop-var-name    ))=];[=
 
     = string =]
     [=(. current-prop)=].type               = PROP_TYPE_STRING;
