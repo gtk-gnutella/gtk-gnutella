@@ -40,6 +40,9 @@
 #include "share.h"
 #include "routing.h"
 #include "hosts.h"
+#ifdef ENABLE_G2
+#include "g2nodes.h"
+#endif
 #include "nodes.h"
 #include "header.h"
 #include "gmsg.h"
@@ -1662,6 +1665,10 @@ node_remove(struct gnutella_node *n, const gchar *reason, ...)
 
 	g_assert(n);
 
+#ifdef ENABLE_G2
+	g2_node_disconnected(n);
+#endif
+	
 	if (n->status == GTA_NODE_REMOVING)
 		return;
 	
@@ -3257,6 +3264,28 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
 	}
 
+
+	if (enable_g2_support) {
+		/* Accept: Check for g2 support */
+		field = header_get(head, "Content-Type");
+		if (field) {
+			if (strstr(field, "application/x-gnutella2")) {
+					if (enable_g2_support) {
+						n->protocol_type = PROTOCOL_TYPE_G2;
+						g_warning("*** Enabling G2 support for node %s <%s>", node_ip(n), node_vendor(n));
+					} else {
+						node_bye(n, 206, "G2 not supported");
+					}
+			} else {
+				if (n->protocol_type != PROTOCOL_TYPE_GNUTELLA) {
+					g_warning("node %s <%s> advertised protocol type %d first \r\n",
+						node_ip(n), node_vendor(n), n->protocol_type);
+					n->protocol_type = PROTOCOL_TYPE_GNUTELLA;
+				}
+			}
+		}
+	}
+	
 	/* X-Ultrapeer -- support for ultra peer mode */
 
 	field = header_get(head, "X-Ultrapeer");
@@ -3476,6 +3505,22 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		n->attrs |= NODE_A_PONG_CACHING;
 	}
 
+	if (enable_g2_support) {
+		/* Assume gnutella traffic per default */
+		n->protocol_type = PROTOCOL_TYPE_GNUTELLA;
+		
+		/* Accept: Check for g2 support */
+		field = header_get(head, "Content-Type");
+		if (field) {
+			if (strstr(field, "application/x-gnutella2"))
+				// REM
+				g_warning("*** Got G2 support");
+				n->proto_major = 2;
+				n->proto_minor = 0;
+				n->protocol_type = PROTOCOL_TYPE_G2;
+		}
+	}
+	
 	/* X-Ultrapeer -- support for ultra peer mode */
 
 	field = header_get(head, "X-Ultrapeer");
@@ -3915,6 +3960,12 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"X-Ultrapeer-Needed header",
 				node_ip(n), node_vendor(n));
 
+		if (n->protocol_type == PROTOCOL_TYPE_G2) {
+			g_warning("*** Enabling G2 support (our request) ***");
+			n->proto_major = 2;
+			n->proto_minor = 0;
+		}
+		
 		/*
 		 * Prepare our final acknowledgment.
 		 */
@@ -3923,15 +3974,18 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 
 		rw = gm_snprintf(gnet_response, sizeof(gnet_response),
 			"GNUTELLA/0.6 200 OK\r\n"
+			"%s"			/* Content-Type */
 			"%s"			/* Content-Encoding */
 			"%s"			/* X-Ultrapeer */
 			"%s"			/* X-Query-Routing (tells version we'll use) */
 			"\r\n",
+			enable_g2_support && n->protocol_type == PROTOCOL_TYPE_G2 ? 
+				"Content-Type: application/x-gnutella2\r\n" : "",
 			(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
 			mode_changed ? "X-Ultrapeer: False\r\n" : "",
 			(n->qrp_major > 0 || n->qrp_minor > 2) ?
 				"X-Query-Routing: 0.2\r\n" : "");
-
+		
 		g_assert(rw < sizeof(gnet_response));
 	} else {
 		guint ultra_max;
@@ -3989,6 +4043,8 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"Remote-IP: %s\r\n"
 				"Accept-Encoding: deflate\r\n"
 				"%s"		/* Content-Encoding */
+				"%s"		/* Content-Type */
+				"%s"		/* Accept */
 				"%s"		/* X-Ultrapeer */
 				"%s"		/* X-Ultrapeer-Needed */
 				"%s"		/* X-Query-Routing */
@@ -4002,6 +4058,10 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				current_peermode == NODE_P_LEAF ?
 					"X-Ultrapeer: False\r\n" :
 					"X-Ultrapeer: True\r\n",
+				enable_g2_support && n->protocol_type == PROTOCOL_TYPE_G2 ? 
+					"Content-Type: application/x-gnutella2\r\n" : "",
+				enable_g2_support && n->protocol_type == PROTOCOL_TYPE_G2 ?
+					"Accept: application/x-gnutella2\r\n" : "",
 				current_peermode != NODE_P_ULTRA ? "" :
 				node_ultra_count < ultra_max ? "X-Ultrapeer-Needed: True\r\n" :
 				node_leaf_count < max_leaves ? "X-Ultrapeer-Needed: False\r\n" :
@@ -4019,6 +4079,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			rw += gm_snprintf(&gnet_response[rw],
 					sizeof(gnet_response) - rw, "\r\n");
 		}
+
 		g_assert(rw < sizeof(gnet_response));
 	}
 
@@ -4947,6 +5008,7 @@ node_init_outgoing(struct gnutella_node *n)
 		"Accept-Encoding: deflate\r\n"
 		"X-Token: %s\r\n"
 		"X-Live-Since: %s\r\n"
+		"%s"		/* G2 Support */
 		"%s"		/* X-Ultrapeer */
 		"%s"		/* X-Query-Routing */
 		"%s"		/* X-Ultrapeer-Query-Routing */
@@ -4956,6 +5018,7 @@ node_init_outgoing(struct gnutella_node *n)
 		ip_port_to_gchar(listen_ip(), listen_port),
 		ip_to_gchar(n->ip),
 		version_string, tok_version(), start_rfc822_date,
+		enable_g2_support ? "Accept: application/x-gnutella2\r\n" : "",
 		current_peermode == NODE_P_NORMAL ? "" :
 		current_peermode == NODE_P_LEAF ?
 			"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
@@ -5088,7 +5151,7 @@ node_disable_read(struct gnutella_node *n)
 	g_assert(n->rx);
 
 	if (n->flags & NODE_F_NOREAD)
-		return;						/* Already disabled */
+	return;						/* Already disabled */
 
 	n->flags |= NODE_F_NOREAD;
 	rx_disable(n->rx);
@@ -5124,6 +5187,13 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 {
 	gint r;
 
+#ifdef ENABLE_G2
+	if (n->protocol_type == PROTOCOL_TYPE_G2)
+	{
+		return g2_node_read(n, mb);
+	}
+#endif
+	
 	if (!n->have_header) {		/* We haven't got the header yet */
 		gchar *w = (gchar *) &n->header;
 		gboolean kick = FALSE;

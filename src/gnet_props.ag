@@ -2596,6 +2596,16 @@ prop = {
 };
 
 prop = {
+	name = "enable_g2_support";
+	desc = "When set, gtk-gnutella will accept and handle G2 connections. ";
+	type = boolean;
+	save = TRUE;
+	data = {
+		default = TRUE;
+	};
+};
+
+prop = {
 	name = "convert_spaces";
 	desc = "If set, spaces in filenames are replaced with underscores.";
 	type = boolean;
@@ -2647,4 +2657,5 @@ prop = {
 	};
 };
 
+>>>>>>> 1.130
 /* vi: set ts=4: */

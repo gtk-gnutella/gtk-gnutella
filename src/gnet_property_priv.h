@@ -249,6 +249,7 @@ extern gchar   *ancient_version_force;
 extern guint32  ancient_version_left_days;
 extern gboolean file_descriptor_shortage;
 extern gboolean file_descriptor_runout;
+extern gboolean enable_g2_support;
 extern gboolean convert_spaces;
 extern gboolean enable_udp;
 extern gboolean process_oob_queries;

@@ -44,6 +44,11 @@
 
 #define NODE_RX_FC_HALF_PERIOD	300		/* 5 minutes */
 
+typedef enum node_protocol_types {
+	PROTOCOL_TYPE_GNUTELLA = 0,
+	PROTOCOL_TYPE_G2
+} node_protocol_types_t;
+
 struct node_rxfc_mon {
 	time_t start_half_period;	/* When half period started */
 	time_t fc_last_half;		/* Time spent in FC last half period */
@@ -79,6 +84,8 @@ typedef struct gnutella_node {
 	struct gnutella_socket *socket;		/* Socket of the node */
 	guint8 proto_major;			/* Handshaking protocol major number */
 	guint8 proto_minor;			/* Handshaking protocol minor number */
+	node_protocol_types_t protocol_type;
+
 	guint8 qrp_major;			/* Query routing protocol major number */
 	guint8 qrp_minor;			/* Query routing protocol minor number */
 	guint8 uqrp_major;			/* UP Query routing protocol major number */
@@ -270,6 +277,7 @@ typedef struct gnutella_node {
 #define NODE_A_CAN_GGEP		0x20000000	/* Node supports big pongs, etc.. */
 #define NODE_A_CAN_ULTRA	0x40000000	/* Node is ultra capable */
 #define NODE_A_CAN_INFLATE	0x80000000	/* Node capable of inflating */
+
 
 /*
  * State inspection macros.

@@ -457,3 +457,7 @@ src/zalloc.c
 src/zalloc.h
 src/zlib_util.c
 src/zlib_util.h
+src/g2/Makefile.SH
+src/g2/packet.c
+src/g2/udp_transceiver.c
+

@@ -25,6 +25,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <glib.h>
 #include "packetstream.h"
  
 const int MAX_PACKET_SIZE = 1024 * 1024;	/**< Maximum packet size. */
@@ -44,6 +45,21 @@ struct g2packetstream_s
 	char header[5];				/**< Temp, control byte + max len length */
 };
 
+GHashTable *by_connection;
+
+void
+g2_packetstream_init()
+{
+	by_connection = g_hash_table_new(g_direct_hash, g_direct_equal);	
+}
+
+void
+g2_packetstream_close()
+{
+	/* FIXME: Cleanup all used resources in hashtable! */
+	g_hash_table_destroy(by_connection);
+}
+
 /** 
  * Allocate a new packet stream.
  *
@@ -61,6 +77,8 @@ g2_packetstream_new(gpointer *connection)
 	if (packetstream == NULL)
 		packetstream = calloc(1, sizeof(g2packetstream_t));
 
+	g_hash_table_insert(by_connection, connection, packetstream);
+	
 	return packetstream;
 }
 
@@ -76,7 +94,7 @@ g2_packetstream_new(gpointer *connection)
 g2packetstream_t *
 g2_packetstream_get(gpointer *connection)
 {
-	return NULL;
+	return g_hash_table_lookup(by_connection, connection);
 }
 
 /**
@@ -84,12 +102,16 @@ g2_packetstream_get(gpointer *connection)
  *
  */
 void
-g2_packetstream_free(g2packetstream_t *stream)
+g2_packetstream_free(gpointer *connection)
 {
+	g2packetstream_t *stream = g2_packetstream_get(connection);
+	
 	if (stream->data != NULL)
 		free(stream->data);
 
 	free(stream);
+	
+	g_hash_table_remove(by_connection, connection);
 }
 
 /**

@@ -70,10 +70,12 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 # Start of Jmakefile
 G2_SRC = \
 	packet.c \
+	packetstream.c \
 	udp_transceiver.c
 
 G2_OBJ = \
 packet.o \
+packetstream.o \
 udp_transceiver.o 
 
 CFLAGS = -I$(TOP) $(GTK_CFLAGS) $(XML2_CFLAGS)

@@ -101,6 +101,7 @@ CORE = \
 	file.c \
 	fileinfo.c \
 	fuzzy.c \
+	g2node.c \
 	getline.c \
 	ggep.c \
 	ggep_type.c \
@@ -215,6 +216,7 @@ LDFLAGS = $(GTK_LDFLAGS) $(XML2_LDFLAGS)
 >BINDIR
 >MANSRC		/* Tell jmake we use $(MANSRC)... */
 
+SetSubdirs(g2)
 DependTarget()
 SimpleYaccTarget(gtk-gnutella, getdate)
 NormalProgramTarget(gtk-gnutella, $(SRC), $(OBJ) getdate.o)
