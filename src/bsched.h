@@ -77,12 +77,15 @@ typedef struct bsched {
 	gint bw_max;						/* Max bandwidth per period */
 	gint bw_actual;						/* Bandwidth used so far in period */
 	gint bw_last_period;				/* Bandwidth used last period */
+	gint bw_last_capped;				/* Bandwidth capped last period */
 	gint bw_slot;						/* Basic per-source bandwidth lot */
 	gint bw_ema;						/* EMA of bandwidth really used */
 	gint bw_stolen;						/* Amount we stole this period */
 	gint bw_stolen_ema;					/* EMA of stolen bandwidth */
 	gint bw_delta;						/* Running diff of actual vs. theoric */
 	gint bw_unwritten;					/* Data that we could not write */
+	gint bw_capped;						/* Bandwidth we refused to sources */
+	gboolean looped;					/* True when looped once over sources */
 } bsched_t;
 
 /*

@@ -52,7 +52,7 @@ RCSID("$Id$");
 struct bws_set bws = { NULL, NULL, NULL, NULL, NULL, NULL };
 static GSList *bws_list = NULL;
 
-#define BW_SLOT_MIN		256		/* Minimum bandwidth/slot for realloc */
+#define BW_SLOT_MIN		64		/* Minimum bandwidth/slot for realloc */
 
 /*
  * Determine how large an I/O vector the kernel can accept.
@@ -527,7 +527,7 @@ static void bsched_begin_timeslice(bsched_t *bs)
 	bs->flags &= ~(BS_F_NOBW|BS_F_FROZEN_SLOT|BS_F_CHANGED_BW);
 
 	/*
-	 * On the first round of source dispatching, don't use the stolen
+	 * On the first round of source dispatching, don't use the stolen b/w.
 	 * Only introduce it when we come back to a source we already
 	 * scheduled, to avoid spending bandwidth too early when we have
 	 * many sources in various schedulers stealing each other some
@@ -536,10 +536,15 @@ static void bsched_begin_timeslice(bsched_t *bs)
 	 * In other words, don't distribute (bs->bw_max + bs->bw_stolen)
 	 * among all the slots, but only bs->bw_max.  The remaining
 	 * will be distributed by bw_available().
+	 *
+	 * We artificially raise the bandwidth per slot if we have some capped
+	 * bandwidth recorded for the previous timeslice, meaning we did not used
+	 * all our (writing) bandwidth and yet refused some bandwidth to active
+	 * sources.
 	 */
 
 	if (bs->count)
-		bs->bw_slot = bs->bw_max / bs->count;
+		bs->bw_slot = (bs->bw_max + bs->bw_last_capped) / bs->count;
 	else
 		bs->bw_slot = 0;
 
@@ -552,10 +557,14 @@ static void bsched_begin_timeslice(bsched_t *bs)
 		bs->flags |= BS_F_FROZEN_SLOT;
 
 	/*
-	 * Reset the amount of data we could not write due to kernel flow-control.
+	 * Reset the amount of data we could not write due to kernel flow-control,
+	 * and the amount of capped bandwidth for the period.
 	 */
 
 	bs->bw_unwritten = 0;			/* Even if `bs' is for read sources... */
+	bs->bw_capped = 0;
+
+	bs->looped = FALSE;
 }
 
 /*
@@ -711,6 +720,9 @@ static gint bw_available(bio_source_t *bio, gint len)
 {
 	bsched_t *bs = bio->bs;
 	gint available;
+	gint result;
+	gboolean capped = FALSE;
+	gboolean used;
 
 	if (!(bs->flags & BS_F_ENABLED))		/* Scheduler disabled */
 		return len;							/* Use amount requested */
@@ -728,12 +740,26 @@ static gint bw_available(bio_source_t *bio, gint len)
 	 *
 	 * At this point, we'll distribute the stolen bandwidth, which was
 	 * not initially distributed.  If the stolen bandwidth is an order of
-	 * magnitude larger that the regular bandwidth (bs->bw_max), distributing
-	 * everything.  Hence the MIN() below.
+	 * magnitude larger than the regular bandwidth (bs->bw_max), distribute
+	 * only the regular bandwidth for now.  Hence the test below.
 	 */
 
 	available = bs->bw_max + bs->bw_stolen - bs->bw_actual;
-	available = MIN(bs->bw_max, available);
+
+	if (available > bs->bw_max) {
+		available = bs->bw_max;
+		capped = TRUE;
+	}
+
+	/*
+	 * Set the `looped' flag the first time when we encounter a source that
+	 * was already marked active.  It means it is the second time we see
+	 * that source trigger during the period and it means we already gave
+	 * a chance to all the other sources to trigger.
+	 */
+
+	if (!bs->looped && (bio->flags & BIO_F_ACTIVE))
+		bs->looped = TRUE;
 
 	if (
 		!(bs->flags & BS_F_FROZEN_SLOT) &&
@@ -750,15 +776,22 @@ static gint bw_available(bio_source_t *bio, gint len)
 		 * We don't freeze when the amount available which was redistributed
 		 * is equal to the regular bandwidth for the scheduler.  This usually
 		 * happens when there is some stolen bandwidth that is not used yet.
+		 *
+		 * NB: we don't freeze the slots if we capped the redistribution above,
+		 * because we have more stolen bandwidth to possibly use.
 		 */
 
-		if (slot > BW_SLOT_MIN) {
+		if (capped || slot > BW_SLOT_MIN) {
 			bsched_clear_active(bs);
 			bs->bw_slot = slot;
 		} else {
 			bs->flags |= BS_F_FROZEN_SLOT;
 			bs->bw_slot = BW_SLOT_MIN;
 		}
+
+		if (dbg > 7)
+			printf("bw_availble: new slot=%d for \"%s\" (%scapped)\n",
+				bs->bw_slot, bs->name, capped ? "" : "un");
 	}
 
 	/*
@@ -770,7 +803,69 @@ static gint bw_available(bio_source_t *bio, gint len)
 		available = 0;
 	}
 
-	return MIN(bs->bw_slot, available);
+	result = MIN(bs->bw_slot, available);
+	available -= result;
+
+	/*
+	 * If `bw_last_capped' is not zero, we had to cap the traffic last period,
+	 * even though we did not use the whole allocated bandwidth.
+	 *
+	 * If the source is not flagged as `used', then we already looped through
+	 * the other active sources and consumed some bandwidth.
+	 *
+	 * So if we already looped through the sources, try to consume more data
+	 * this time.  The rationale is that we might not write enough data
+	 * for each active source, and we don't loop enough time over the sources
+	 * to be able to fill our bandwidth allocation.
+	 */
+
+	if (
+		result < len && available > 0 && bs->looped &&
+		(!(used = (bio->flags & BIO_F_USED)) || bs->bw_last_capped > 0)
+	) {
+		gint adj = len - result;
+		gint nominal;
+
+		/*
+		 * Try to stuff 2 slots worth of data
+		 *
+		 * If we never used that source, we use the nominal bandwidth for
+		 * each slot.  Otherwise we use the current per-slot bandwidth.
+		 */
+
+		if (used)
+			nominal = 2 * bs->bw_slot;
+		else
+			nominal = 2 * bs->bw_max / bs->count;
+
+		if (adj > nominal)
+			adj = nominal;
+
+		if (adj > available)
+			adj = available;
+
+		if (dbg > 4)
+			printf("bw_available: \"%s\" adding %d to %d"
+				" (capped=%d, available=%d, used=%c)\n",
+				bs->name, adj, result, bs->bw_last_capped, available,
+				(bio->flags & BIO_F_USED) ? 'y' : 'n');
+
+		result += adj;
+	}
+
+	/*
+	 * If we return less than the amount requested, we capped the bandwidth.
+	 *
+	 * Keep track of that bandwidth, because if we end-up having consumed
+	 * less that what we should and we have some capped bandwidth, it means
+	 * we're not distributing it correctly: the sources don't trigger "fast
+	 * enough" during the period.
+	 */
+
+	if (result < len)
+		bs->bw_capped += len - result;
+
+	return result;
 }
 
 /*
@@ -1171,6 +1266,8 @@ static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 	gint overused;
 	gint theoric;
 	gint correction;
+	gint last_bw_max;
+	gint last_capped;
 
 	/*
 	 * How much time elapsed since last call?
@@ -1246,6 +1343,9 @@ static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 	 * Recompute bandwidth for the next period.
 	 */
 
+	last_bw_max = bs->bw_max;
+	last_capped = bs->bw_capped;
+
 	theoric = bs->bw_per_second * delay / 1000;
 	overused = bs->bw_actual - theoric;
 	bs->bw_delta += overused;
@@ -1276,15 +1376,37 @@ static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 			bs->bw_max = 0;
 	}
 
+	/*
+	 * Disregard amount of capped bandwidth if we used all our
+	 * configured maximum, so that it is used more evenly during next slice.
+	 * This information is also only perused for writing sources.
+	 */
+
+	if (bs->bw_actual >= last_bw_max || !(bs->flags & BS_F_WRITE))
+		bs->bw_capped = 0;
+
+	/*
+	 * Any unwritten data must be removed from the amount of capped bandwidth.
+	 * If we start to be flow-controlled by the kernel, we have to be careful
+	 * not to write too much anyway.
+	 */
+
+	bs->bw_capped -= bs->bw_unwritten;
+	bs->bw_capped = MAX(0, bs->bw_capped);
+
 	if (dbg > 4) {
 		printf("bsched_timer(%s): delay=%d (EMA=%d), b/w=%d (EMA=%d), "
-			"overused=%d (EMA=%d) stolen=%d (EMA=%d) unwritten=%d\n",
+			"overused=%d (EMA=%d) stolen=%d (EMA=%d) unwritten=%d "
+			"capped=%d (%d)\n",
 			bs->name, delay, bs->period_ema, bs->bw_actual, bs->bw_ema,
 			overused, bs->bw_ema - bs->bw_stolen_ema - theoric,
-			bs->bw_stolen, bs->bw_stolen_ema, bs->bw_unwritten);
-		printf("    -> b/w delta=%d, max=%d, slot=%d "
+			bs->bw_stolen, bs->bw_stolen_ema, bs->bw_unwritten,
+			last_capped, bs->bw_capped);
+		printf("    -> b/w delta=%d, max=%d, slot=%d, first=%d "
 			"(target %d B/s, %d slot%s, real %.02f B/s)\n",
-			bs->bw_delta, bs->bw_max, bs->count ? bs->bw_max / bs->count : 0,
+			bs->bw_delta, bs->bw_max,
+			bs->count ? bs->bw_max / bs->count : 0,
+			bs->count ? (bs->bw_max + bs->bw_capped) / bs->count : 0,
 			bs->bw_per_second, bs->count,
 			bs->count == 1 ? "" : "s", bs->bw_actual * 1000.0 / delay);
 	}
@@ -1296,6 +1418,7 @@ static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 new_timeslice:
 
 	bs->bw_last_period = bs->bw_actual;
+	bs->bw_last_capped = bs->bw_capped;
 	bs->bw_actual = bs->bw_stolen = 0;
 }
 
