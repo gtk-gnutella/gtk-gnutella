@@ -344,7 +344,7 @@ gip_country(guint32 ip)
 {
 	gpointer code;
 
-	code = geo_db != NULL && iprange_get(geo_db, ip);
+	code = geo_db != NULL ? iprange_get(geo_db, ip) : NULL;
 	return NULL != code ? (GPOINTER_TO_INT(code) >> 1) - 1 : -1;
 }
 
