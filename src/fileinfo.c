@@ -2633,6 +2633,27 @@ static void fi_check_file(struct dl_file_info *fi)
 	}
 }
 
+/*
+ * fi_busy_count
+ *
+ * Count the about of BUSY chunks attached to a given download.
+ */
+static gint fi_busy_count(struct dl_file_info *fi, struct download *d)
+{
+	GSList *l;
+	gint count = 0;
+
+	for (l = fi->chunklist; l; l = g_slist_next(l)) {
+		struct dl_file_chunk *fc = l->data;
+
+		if (fc->download == d && fc->status == DL_CHUNK_BUSY)
+			count++;
+	}
+
+	g_assert(fi->lifecount >= count);
+
+	return count;
+}
 
 /*
  * file_info_find_hole
@@ -2654,6 +2675,7 @@ enum dl_chunk_status file_info_find_hole(
 
 	g_assert(fi->refcount > 0);
 	g_assert(fi->lifecount > 0);
+	g_assert(0 == fi_busy_count(fi, d));	/* No reservation for `d' yet */
 
 	/*
 	 * Ensure the file has not disappeared.
