@@ -329,27 +329,29 @@ static void add_column(
 
 }
 
-/* 
- * list_store_remove_and_free_list:
+/*
+ * tree_collect_iters:
  *
- * Removes the iters listed by `sl' from `store' and frees the list itself.
- * WARNING: The iters must have been allocated by w_tree_iter_copy()!
+ * Returns a list which contains copies of the GtkTreeIters of the
+ * `model'. If limit is not zero, tree_collect_iters() will return
+ * a list with not more than `limit' number of GtkTreeIters.
  */
-static void list_store_remove_and_free_list(
-	GtkListStore *store, GSList *to_remove)
+static GSList *tree_collect_iters(GtkTreeModel *model, guint limit)
 {
-	GSList *sl;
-	
-	g_assert(NULL != store);
-	g_assert(NULL != to_remove);
+    GSList *sl = NULL;
+    GtkTreeIter iter;
+    guint n = 0;
 
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
-		g_assert(NULL != sl->data);
-		gtk_list_store_remove(store, (GtkTreeIter *) sl->data);
-		w_tree_iter_free((GtkTreeIter *) sl->data);
-	}
+    if (!gtk_tree_model_get_iter_first(model, &iter))
+        return NULL;
 
-   	g_slist_free(to_remove);
+    do {
+        sl = g_slist_prepend(sl, w_tree_iter_copy(&iter));
+        if (limit && ++n >= limit)
+            break;
+    } while (gtk_tree_model_iter_next(model, &iter));
+
+    return sl;
 }
 
 /***
@@ -404,39 +406,6 @@ void uploads_gui_shutdown(void)
     upload_remove_upload_info_changed_listener(upload_info_changed);
 }
 
-typedef struct sweep_ctx {
-            GSList *to_remove;
-            gboolean all_removed;
-            time_t now;
-        } sweep_ctx_t;
-
-static gboolean sweep_row(GtkTreeModel *model, GtkTreePath *path,
-    GtkTreeIter *iter, gpointer user_data)
-{
-    upload_row_data_t *data = NULL;
-    sweep_ctx_t *ctx = user_data;
-    gnet_upload_status_t status;
-
-    gtk_tree_model_get(model, iter, c_ul_data, &data, (-1));
-    if (NULL == data)
-        return FALSE; /* Next, please. */
-
-    if (data->valid) {
-        data->last_update = ctx->now;
-        upload_get_status(data->handle, &status);
-        gtk_list_store_set(GTK_LIST_STORE(model), iter,
-            c_ul_status, uploads_gui_status_str(&status, data), (-1));
-    } else if (upload_should_remove(ctx->now, data)) {
-        gtk_list_store_set(GTK_LIST_STORE(model), iter, c_ul_data, NULL, (-1));
-        ctx->to_remove = g_slist_prepend(ctx->to_remove,
-                            w_tree_iter_copy(iter));
-        G_FREE_NULL(data);
-    } else
-        ctx->all_removed = FALSE;    /* Not removing all "expired" ones */
-
-    return FALSE;
-}
-
 /*
  * uploads_gui_update_display
  *
@@ -446,7 +415,8 @@ void uploads_gui_update_display(time_t now)
 {
     static time_t last_update = 0;
     static gboolean locked = FALSE;
-    sweep_ctx_t ctx = { NULL, TRUE, now };
+    gboolean all_removed = TRUE;
+    GSList *sl;
 
     if (last_update == now)
         return;
@@ -455,62 +425,73 @@ void uploads_gui_update_display(time_t now)
     g_return_if_fail(!locked);
     locked = TRUE;
 
-    gtk_tree_model_foreach(GTK_TREE_MODEL(store_uploads), sweep_row, &ctx);
-        
-	/* Remove the collected iters, free them and free the list itself */
-	if (NULL != ctx.to_remove) 
-		list_store_remove_and_free_list(store_uploads, ctx.to_remove);
+    sl = tree_collect_iters(GTK_TREE_MODEL(store_uploads), 0);
+    for (/* empty */; NULL != sl; sl = g_slist_next(sl)) { 
+        gnet_upload_status_t status;
+        upload_row_data_t *data = NULL;
+        GtkTreeIter *iter = (GtkTreeIter *) sl->data;
 
-	if (ctx.all_removed)
+        gtk_tree_model_get(GTK_TREE_MODEL(store_uploads), iter,
+            c_ul_data, &data, (-1));
+        g_assert(NULL != data);
+
+        if (data->valid) {
+            data->last_update = now;
+            upload_get_status(data->handle, &status);
+            gtk_list_store_set(store_uploads, iter,
+                c_ul_status, uploads_gui_status_str(&status, data), (-1));
+        } else if (upload_should_remove(now, data)) {
+            G_FREE_NULL(data);
+            gtk_list_store_remove(store_uploads, iter);
+        } else
+            all_removed = FALSE;    /* Not removing all "expired" ones */
+
+        w_tree_iter_free(iter);
+    }
+    if (NULL != sl)
+        g_slist_free(sl);
+        
+	if (all_removed)
 		gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
 
     locked = FALSE;
 }
 
-typedef struct clear_ctx {
-            GSList *to_remove;
-            guint rows_done;
-        } clear_ctx_t;
-
-static gboolean clear_row(GtkTreeModel *model, GtkTreePath *path,
-    GtkTreeIter *iter, gpointer user_data)
-{
-    clear_ctx_t *ctx = (clear_ctx_t *) user_data;
-    upload_row_data_t *data = NULL;
-
-    gtk_tree_model_get(model, iter, c_ul_data, &data, (-1));
-    if (NULL == data)
-        return FALSE;   /* Next, please. */
-    if (!data->valid) {
-        gtk_list_store_set(GTK_LIST_STORE(model), iter, c_ul_data, NULL, (-1));
-        ctx->to_remove = g_slist_prepend(ctx->to_remove,
-                            w_tree_iter_copy(iter));
-        G_FREE_NULL(data);
-    }
-    if (0 == (++ctx->rows_done & 0x7f))
-        return TRUE;    /* Come back later to increase responsiveness. */
-    return FALSE;   /* Next, please. */
-}
-
 static gboolean uploads_clear_helper(gpointer user_data)
 {
-    clear_ctx_t ctx = { 0, NULL };
+    guint removed = 0;
+    GSList *sl;
 
 	if (uploads_shutting_down)
 		return FALSE; /* Finished. */
 
-    gtk_tree_model_foreach(GTK_TREE_MODEL(user_data), clear_row, &ctx);
+    sl = tree_collect_iters(GTK_TREE_MODEL(store_uploads), 0x7f);
+    for (/* empty */; NULL != sl; sl = g_slist_next(sl)) {
+        upload_row_data_t *data = NULL;
+        GtkTreeIter *iter = (GtkTreeIter *) sl->data;
 
-    if (NULL != ctx.to_remove)
-		list_store_remove_and_free_list(GTK_LIST_STORE(user_data),
-            ctx.to_remove);
-	else {
+        gtk_tree_model_get(GTK_TREE_MODEL(store_uploads), iter,
+            c_ul_data, &data, (-1));
+        g_assert(NULL != data);
+
+        if (!data->valid) {
+            gtk_list_store_remove(store_uploads, iter);
+            G_FREE_NULL(data);
+            removed++;
+        }
+ 
+        w_tree_iter_free(iter);
+    }
+    if (NULL != sl)
+        g_slist_free(sl);
+
+    if (0 == removed) {
 		gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
     	uploads_remove_lock = FALSE;
     	return FALSE; /* Finished. */
     }
     
-    return TRUE; /* There are more rows to remove. */
+    return TRUE; /* More rows to remove. */
 }
 
 void uploads_gui_clear_completed(void)
