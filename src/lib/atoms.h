@@ -96,6 +96,7 @@ guint guid_hash(gconstpointer key);
 gint guid_eq(gconstpointer a, gconstpointer b);
 guint uint64_hash(gconstpointer key);
 gint uint64_eq(gconstpointer a, gconstpointer b);
+guint binary_hash(const guchar *key, gint len);
 
 #ifdef TRACK_ATOMS
 gpointer atom_get_track(gint type, gconstpointer key, gchar *file, gint line);
