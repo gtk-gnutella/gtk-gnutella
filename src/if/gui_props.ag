@@ -652,34 +652,6 @@ prop = {
 };
 
 prop = {
-    name = "search_autoselect_similar";
-    desc = "Autoselect similar files in searches";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "search_autoselect_samesize";
-    desc = "When enabled autoselection only takes place if filesize "
-           "matches exactly, otherwise it must be equal or greater";
-    type = boolean;
-    data = {
-        default = TRUE;
-    };
-};
-
-prop = {
-    name = "search_autoselect_fuzzy";
-    desc = "Use fuzzy name match for autoselection";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
     name = "search_stats_mode";
     desc = "Collect statistics about searches that go through this node";
     type = multichoice;
