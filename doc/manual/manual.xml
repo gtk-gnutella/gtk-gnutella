@@ -1,13 +1,14 @@
 <?xml version="1.0" standalone="no"?>
-<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN"
-"docbook/xml-dtd-4.3/docbookx.dtd">
-
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "docbook/xml-dtd-4.3/docbookx.dtd">
 <book>
 <bookinfo>
   <title>GTK-Gnutella manual</title>
   <author><firstname>Hans</firstname><surname>de
   Graaff</surname></author>
-  <copyright><year>2004</year><holder>Hans de Graaff</holder></copyright>
+  <copyright><year>2002</year><year>2004</year>
+    <holder>Hans de Graaff</holder>
+    <holder>Vidar Madsen and Markus Goetz</holder>
+  </copyright>
 </bookinfo>
 
 <preface>
@@ -98,7 +99,34 @@ internet.
 
 </chapter>
 
-<chapter id="ch2">
+<chapter id="getting"><title>Getting and installing GTK-Gnutella</title>
+
+<section><title>Getting GTK-Gnutella</title>
+
+<para>The easiest way to get GTK-Gnutella is to install it as part of
+your distribution. Most distributions carry GTK-Gnutella pre-packaged
+these days. This is not always the best option, though. Since the
+Gnutella sometimes undergoes significant change, and since buggy
+clients may cause many problems to the Gnutella network, GTK-Gnutella
+clients are coded with a maximum lifetime. After a pre-determined
+period GTK-Gnutella will start to complain and eventually will stop
+working. Distributions are not always quick to pick up new versions
+because stability is important to them, so you may be installing a
+version of GTK-Gnutella that is close to or already past its maximum
+lifetime date. This is true in particular if you install from offline
+media such as DVD.</para>
+
+<para>A better way to get GTK-Gnutella is to install it yourself. The
+GTK-Gnutella website contains several binary distributions and the
+source archive which allows you to compile GTK-Gnutella yourself. You
+can also use the website to check if your currently installed version
+is still the most recent version. The website address is
+<ulink url="http://gtk-gnutella.sourceforge.net/"></ulink></para>
+
+</section>
+</chapter>
+
+<chapter id="firsttime">
 <title>Starting GTK-Gnutella for the first time</title>
 <para>Placeholder</para>
 
@@ -333,15 +361,15 @@ to filter out a lot of bogus hits. Also, when doing a new search, you
 can select it on the default filter pulldown directly.</para>
 
 <informaltable>
-<tgroup cols='3'>
+<tgroup cols="3">
 <thead>
 <row><entry>!</entry><entry>Condition</entry><entry>Target</entry></row>
 </thead>
 <tbody>
-<row><entry></entry><entry>If filesize is smaller than 400000000 (381.5 MB)</entry><entry>DON'T DISPLAY</entry></row>
-<row><entry></entry><entry>If filename ends with ".avi"</entry><entry>RETURN</entry></row>
-<row><entry></entry><entry>If filename ends with ".mpg"</entry><entry>RETURN</entry></row>
-<row><entry></entry><entry>Always</entry><entry>DON'T DISPLAY</entry></row>
+<row><entry/><entry>If filesize is smaller than 400000000 (381.5 MB)</entry><entry>DON'T DISPLAY</entry></row>
+<row><entry/><entry>If filename ends with ".avi"</entry><entry>RETURN</entry></row>
+<row><entry/><entry>If filename ends with ".mpg"</entry><entry>RETURN</entry></row>
+<row><entry/><entry>Always</entry><entry>DON'T DISPLAY</entry></row>
 </tbody>
 </tgroup>
 </informaltable>
@@ -352,14 +380,14 @@ X'es in front), and the last rule that will mark all files that aren't
 flagged as DON'T DISPLAY with DOWNLOAD.</para>
 
 <informaltable>
-<tgroup cols='3'>
+<tgroup cols="3">
 <thead>
 <row><entry>!</entry><entry>Condition</entry><entry>Target</entry></row>
 </thead>
 <tbody>
 <row><entry>X</entry><entry>If filename contains the words "rammstein"</entry><entry>DON'T DISPLAY</entry></row>
 <row><entry>X</entry><entry>If filename ends with "mpg"</entry><entry>DON'T DISPLAY</entry></row>
-<row><entry></entry><entry>If filesize is smaller than 20000000 (19.1 MB)</entry><entry>DON'T DISPLAY</entry></row>
+<row><entry/><entry>If filesize is smaller than 20000000 (19.1 MB)</entry><entry>DON'T DISPLAY</entry></row>
 <row><entry>X</entry><entry>If flag DON'T
 DISPLAY</entry><entry>DOWNLOAD</entry></row>
 </tbody></tgroup></informaltable>
