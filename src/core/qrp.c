@@ -68,7 +68,18 @@ RCSID("$Id$");
 #define MAX_UP_TABLE_SIZE	131072	/* Max size for inter-UP QRP: 128 Kslots */
 #define EMPTY_TABLE_SIZE	8
 
-#define LEAF_MONITOR_PERIOD	(90 * 1000)	/* 1.5 minutes, in ms */
+/*
+ * Period between inter-UP QRP exchanges where we propagate a new QRP to our
+ * peers if the leaves changed their QRP, either through updating or through
+ * connection/disconnection.
+ *
+ * Used to do that every 90 secs, but raised the period to 5 minutes because
+ * inter-UP QRP exchanges consumed about 44% of the outgoing traffic, and it
+ * is not ultra critical if neighbours don't have the latest set of keywords,
+ * given that there will be important conflicts in the small 128K tables!
+ *		--RAM, 2004-09-09
+ */
+#define LEAF_MONITOR_PERIOD	(300 * 1000)	/* 5 minutes, in ms */
 
 #define QRP_ROUTE_MAGIC		0x30011ab1
 
