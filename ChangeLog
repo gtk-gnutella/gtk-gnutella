@@ -2,7 +2,6 @@
 
 - (2004.04.10 - RAM)
  * Will now parse up to 150 hosts in hostfile replies.
- * Try to not use a bootstrapping cache URL if we can avoid it.
 
 - (2004.04.07 - RAM)
  * Added my own web cache, now that I run GhostWhiteCrab/0.1.
