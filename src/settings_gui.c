@@ -246,6 +246,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "hpaned_main"
     },
+#ifndef USE_GTK2
     {
         get_main_window,
         PROP_GNET_STATS_DIVIDER_POS,
@@ -253,6 +254,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "hpaned_gnet_stats"
     },
+#endif
     {
         get_main_window,
         PROP_SIDE_DIVIDER_POS,
@@ -2871,10 +2873,10 @@ void settings_gui_shutdown(void)
     side_divider_pos = 
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_sidebar")));
+#ifndef USE_GTK2
     gnet_stats_divider_pos = 
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_gnet_stats")));
-#ifndef USE_GTK2
     clist = (current_search != NULL) ? 
         GTK_CLIST(current_search->clist) : 
         GTK_CLIST(default_search_clist);
