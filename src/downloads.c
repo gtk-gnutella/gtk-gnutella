@@ -47,6 +47,7 @@
 #include "parq.h"
 #include "token.h"
 #include "hostiles.h"
+#include "clock.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -3903,6 +3904,27 @@ guint extract_retry_after(const header_t *header)
 }
 
 /*
+ * check_date
+ *
+ * Look for a Date: header in the reply and use it to update our skew.
+ */
+static void check_date(const header_t *header)
+{
+	const gchar *buf;
+
+	buf = header_get(header, "Date");
+	if (buf) {
+		time_t now = time((time_t *) NULL);
+		time_t their = date2time(buf, &now);
+
+		if (their == -1)
+			g_warning("cannot parse Date: %s", buf);
+		else
+			clock_update(their, 1);
+	}
+}
+
+/*
  * check_xhost
  *
  * Look for an X-Host header in the reply.  If we get one, then it means
@@ -4342,6 +4364,8 @@ static void download_request(
 
 	ip = download_ip(d);
 	port = download_port(d);
+
+	check_date(header);			/* Update clock skew if we have a Date: */
 
 	/*
 	 * Do we have to keep the connection after this request?
