@@ -164,7 +164,8 @@ struct download {
 #define DL_F_OVERLAPPED		0x00000004	/* We went through overlap checking */
 #define DL_F_REPLIED		0x00000008	/* Servent replied to last request */
 #define DL_F_CHUNK_CHOSEN	0x00000010	/* Retrying with specific chunk */
-#define DL_F_SHRINKED_REPLY	0x00000020	/* Server sending less than we asked */
+#define DL_F_SHRUNK_REPLY	0x00000020	/* Server sending less than we asked */
+#define DL_F_SUNK_DATA		0x00000040	/* Whether we previously sunk data */
 #define DL_F_SUSPENDED		0x40000000	/* Suspended, do not schedule */
 #define DL_F_MARK			0x80000000	/* Marked in traversal */
 

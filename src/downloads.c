@@ -2000,7 +2000,8 @@ gboolean download_start_prepare_running(struct download *d)
 	d->keep_alive = FALSE;	/* Until proven otherwise by server's reply */
 
 	d->flags &= ~DL_F_OVERLAPPED;		/* Clear overlapping indication */
-	d->flags &= ~DL_F_SHRINKED_REPLY;	/* Clear server shrinking indication */
+	d->flags &= ~DL_F_SHRUNK_REPLY;		/* Clear server shrinking indication */
+	d->flags &= ~DL_F_SUNK_DATA;		/* Restarting, nothing sunk yet */
 
 	/*
 	 * If this file is swarming, the overlapping size and skipping offset
@@ -4246,7 +4247,7 @@ static void update_available_ranges(struct download *d, header_t *header)
  * Sink read data.
  * Used when waiting for the end of the previous HTTP reply.
  *
- * When all the data has been sank, issue the next HTTP request.
+ * When all the data has been sunk, issue the next HTTP request.
  */
 static void download_sink(struct download *d)
 {
@@ -4604,11 +4605,28 @@ static void download_request(
 					return;
 				}
 
+				/*
+				 * Avoid endless request/sinking cycles.  If we already sunk
+				 * data previously since we started the connection, requeue.
+				 */
+
+				if (d->flags & DL_F_SUNK_DATA) {
+					g_warning("would have to sink twice during session "
+						"from %s <%s>",
+						ip_port_to_gchar(download_ip(d), download_port(d)),
+						download_vendor_str(d));
+					download_queue_delay(d,
+						MAX(delay, download_retry_refused_delay),
+						"Partial file, no suitable range found yet");
+					return;
+				}
+
 				io_free(d->io_opaque);
 				getline_free(s->getline);	/* No longer need this */
 				s->getline = NULL;
 
 				d->flags |= DL_F_CHUNK_CHOSEN;
+				d->flags |= DL_F_SUNK_DATA;		/* Sink only once per session */
 
 				if (d->sinkleft == 0 || d->sinkleft == s->pos) {
 					s->pos = 0;
@@ -4905,7 +4923,7 @@ static void download_request(
 
 				d->range_end = end + 1;				/* The new end */
 				d->size = d->range_end - d->skip;	/* Don't count overlap */
-				d->flags |= DL_F_SHRINKED_REPLY;	/* Remember shrinking */
+				d->flags |= DL_F_SHRUNK_REPLY;		/* Remember shrinking */
 
 				gui_update_download_range(d);
 			}

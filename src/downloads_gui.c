@@ -382,7 +382,7 @@ void gui_update_download_range(struct download *d)
 		len = d->size;
 		if (d->range_end > d->skip + d->size)
 			and_more = "+";
-		if (d->flags & DL_F_SHRINKED_REPLY)		/* Chunk shrunk by server! */
+		if (d->flags & DL_F_SHRUNK_REPLY)		/* Chunk shrunk by server! */
 			and_more = "-";
 	} else
 		len = d->range_end - d->skip;
