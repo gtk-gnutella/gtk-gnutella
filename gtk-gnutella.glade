@@ -6586,7 +6586,7 @@ control</label>
 			<class>GtkCheckButton</class>
 			<name>checkbutton_prefer_compressed_gnet</name>
 			<can_focus>True</can_focus>
-			<label>prefer compressed connections</label>
+			<label>Prefer compressed connections</label>
 			<active>False</active>
 			<draw_indicator>True</draw_indicator>
 			<child>
@@ -14430,15 +14430,45 @@ Grace time remaining:</label>
       </child>
 
       <widget>
-	<class>GtkLabel</class>
-	<name>label_about_title</name>
-	<label>[name and version]</label>
-	<justify>GTK_JUSTIFY_CENTER</justify>
-	<wrap>False</wrap>
-	<xalign>0.5</xalign>
-	<yalign>0.5</yalign>
-	<xpad>10</xpad>
-	<ypad>10</ypad>
+	<class>GtkVBox</class>
+	<name>vbox98</name>
+	<border_width>10</border_width>
+	<homogeneous>False</homogeneous>
+	<spacing>0</spacing>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label_about_title</name>
+	  <label>[name and version]</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>0.5</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkLabel</class>
+	  <name>label_about_rcsid</name>
+	  <label>$Id$</label>
+	  <justify>GTK_JUSTIFY_CENTER</justify>
+	  <wrap>False</wrap>
+	  <xalign>0.5</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
       </widget>
     </widget>
 

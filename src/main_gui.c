@@ -52,8 +52,6 @@
 
 RCSID("$Id$");
 
-static gchar tmpstr[4096];
-
 /***
  *** Windows
  ***/
@@ -329,14 +327,9 @@ void main_gui_early_init(gint argc, gchar **argv)
 	gui_init_window_title();
 
     /* about box */
-#ifdef GTA_REVISION
-	g_snprintf(tmpstr, sizeof(tmpstr),
-		"gtk-gnutella %s %s", version_number, GTA_REVISION);
-#else
-	g_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %s", version_number);
-#endif
-    gtk_label_set_text
-        (GTK_LABEL(lookup_widget(dlg_about, "label_about_title")), tmpstr);
+    gtk_label_set_text(
+        GTK_LABEL(lookup_widget(dlg_about, "label_about_title")), 
+        version_string);
 
     /* search history combo stuff */
     gtk_combo_disable_activate

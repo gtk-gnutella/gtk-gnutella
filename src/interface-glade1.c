@@ -4363,7 +4363,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_min_dup_ratio), TRUE);
 
-  checkbutton_prefer_compressed_gnet = gtk_check_button_new_with_label ("prefer compressed connections");
+  checkbutton_prefer_compressed_gnet = gtk_check_button_new_with_label ("Prefer compressed connections");
   gtk_widget_set_name (checkbutton_prefer_compressed_gnet, "checkbutton_prefer_compressed_gnet");
   gtk_widget_ref (checkbutton_prefer_compressed_gnet);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_prefer_compressed_gnet", checkbutton_prefer_compressed_gnet,
@@ -9955,7 +9955,9 @@ create_dlg_about (void)
   GtkWidget *dlg_about;
   GtkWidget *vbox67;
   GtkWidget *frame44;
+  GtkWidget *vbox98;
   GtkWidget *label_about_title;
+  GtkWidget *label_about_rcsid;
   GtkWidget *hseparator7;
   GtkWidget *hbox161;
   GtkWidget *table28;
@@ -10000,14 +10002,30 @@ create_dlg_about (void)
   gtk_box_pack_start (GTK_BOX (vbox67), frame44, FALSE, FALSE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame44), 10);
 
+  vbox98 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox98, "vbox98");
+  gtk_widget_ref (vbox98);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "vbox98", vbox98,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox98);
+  gtk_container_add (GTK_CONTAINER (frame44), vbox98);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox98), 10);
+
   label_about_title = gtk_label_new ("[name and version]");
   gtk_widget_set_name (label_about_title, "label_about_title");
   gtk_widget_ref (label_about_title);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label_about_title", label_about_title,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_about_title);
-  gtk_container_add (GTK_CONTAINER (frame44), label_about_title);
-  gtk_misc_set_padding (GTK_MISC (label_about_title), 10, 10);
+  gtk_box_pack_start (GTK_BOX (vbox98), label_about_title, FALSE, FALSE, 0);
+
+  label_about_rcsid = gtk_label_new ("$Id$");
+  gtk_widget_set_name (label_about_rcsid, "label_about_rcsid");
+  gtk_widget_ref (label_about_rcsid);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label_about_rcsid", label_about_rcsid,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_about_rcsid);
+  gtk_box_pack_start (GTK_BOX (vbox98), label_about_rcsid, FALSE, FALSE, 0);
 
   hseparator7 = gtk_hseparator_new ();
   gtk_widget_set_name (hseparator7, "hseparator7");
@@ -10069,7 +10087,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new ("Rapha\353l Manfredi");
+  label267 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -10113,7 +10131,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
-  label273 = gtk_label_new ("Rapha\353l Manfredi");
+  label273 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
@@ -10174,7 +10192,7 @@ create_dlg_about (void)
   gtk_container_add (GTK_CONTAINER (scrolledwindow18), text1);
   gtk_widget_set_usize (text1, 213, -2);
   gtk_text_insert (GTK_TEXT (text1), NULL, NULL, NULL,
-                   "Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRapha\353l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>", 1182);
+                   "Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>", -1);
 
   label408 = gtk_label_new ("==> We are looking for people who want to contribute to this fine tool. <==\nVisit http://gtk-gnutella.sourceforge.net.\nJoin the users or developers mailing lists.\nMeet us on #gtk-gnutella at irc.freenode.net.");
   gtk_widget_set_name (label408, "label408");
