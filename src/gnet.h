@@ -543,6 +543,7 @@ typedef struct gnet_upload_status {
 	guint	parq_size;
 	guint32	parq_lifetime;
 	guint32	parq_retry;
+	guint	parq_queue_no;
 } gnet_upload_status_t;
 
 typedef struct gnet_upload_info {

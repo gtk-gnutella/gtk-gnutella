@@ -2475,6 +2475,28 @@ time_t parq_upload_lookup_retry(gnutella_upload_t *u)
 		return 0;
 	}	
 }
+
+/*
+ * parq_upload_lookup_queue_no
+ *
+ * Returns the queue number the current upload is queued in.
+ */
+guint parq_upload_lookup_queue_no(gnutella_upload_t *u)
+{
+	struct parq_ul_queued *parq_ul = NULL;
+	
+	parq_ul = parq_upload_find(u);
+	
+	if (parq_ul != NULL) {
+		return g_list_position(ul_parqs, 
+			  g_list_find(ul_parqs, parq_ul->queue)) + 1;
+	} else {
+		/* No queue created yet */
+		return 0;
+	}	
+}
+
+
 /*
  * parq_upload_update_relative_position
  *

@@ -127,28 +127,32 @@ const gchar *uploads_gui_status_str(
 				/* position 1 should always get an upload slot */
 				if (u->parq_retry > 0)
 					gm_snprintf(tmpstr, sizeof(tmpstr),
-						"Waiting (slot %4d / %4d) %ds, lifetime: %s", 
+						"Waiting [%d] (slot %d / %d) %ds, lifetime: %s", 
+						u->parq_queue_no,
 						u->parq_position,
 						u->parq_size,
 						u->parq_retry, 
 						short_time(u->parq_lifetime));
 				else
 					gm_snprintf(tmpstr, sizeof(tmpstr),
-						"Waiting (slot %4d / %4d) lifetime: %s", 
+						"Waiting [%d] (slot %d / %d) lifetime: %s", 
+						u->parq_queue_no,
 						u->parq_position,
 						u->parq_size,
 						short_time(u->parq_lifetime));
 			} else {
 				if (u->parq_retry > 0)
 					gm_snprintf(tmpstr, sizeof(tmpstr),
-						"Queued (slot %4d / %4d) %ds, lifetime: %s", 
+						"Queued [%d] (slot %d / %d) %ds, lifetime: %s", 
+						u->parq_queue_no,
 						u->parq_position,
 						u->parq_size,
 						u->parq_retry, 
 						short_time(u->parq_lifetime));
 				else
 					gm_snprintf(tmpstr, sizeof(tmpstr),
-						"Queued (slot %4d / %4d) lifetime: %s", 
+						"Queued [%d] (slot %d / %d) lifetime: %s", 
+						u->parq_queue_no,
 						u->parq_position,
 						u->parq_size,
 						short_time(u->parq_lifetime));
