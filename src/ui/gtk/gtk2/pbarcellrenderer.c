@@ -100,7 +100,7 @@ static void gtk_cell_renderer_progress_render(
 	GdkRectangle *,	/* background area */
 	GdkRectangle *,	/* cell area */
 	GdkRectangle *, /* expose area */
-	guint);			/* flags */
+	GtkCellRendererState);			/* flags */
 
 /*
  * Properties that this widget can have manipulated.
@@ -343,7 +343,7 @@ GtkCellRenderer* gtk_cell_renderer_progress_new(void)
  * @param background_area The background rectangle.
  * @param cell_area The rectange for the cell.
  * @param expose_area The area which received an expose event.
- * @param flags flags...
+ * @param unused_flags flags...
  * @return nothing
  */
 static void
@@ -354,7 +354,7 @@ gtk_cell_renderer_progress_render(
 	GdkRectangle *unused_background_area,
 	GdkRectangle *cell_area,
 	GdkRectangle *unused_expose_area,
-	guint unused_flags)
+	GtkCellRendererState unused_flags)
 {
 	GtkCellRendererProgress *cellprogress = (GtkCellRendererProgress *) cell;
 	GtkStateType state;
