@@ -71,11 +71,10 @@ void gui_init(void)
 
 	// FIXME: all the widget from here to end have empty callback functions
 	gtk_widget_set_sensitive(popup_queue_search_again, FALSE);
-	gtk_widget_set_sensitive(popup_downloads_remove_file, FALSE);
 	gtk_widget_set_sensitive(popup_downloads_search_again, FALSE);
-  	//gtk_widget_set_sensitive(popup_queue_search_again, FALSE);
 	// FIXME: end
 
+	gtk_widget_set_sensitive(popup_downloads_remove_file, FALSE);
     gtk_widget_set_sensitive(popup_downloads_copy_url, FALSE);
     gtk_widget_set_sensitive(popup_nodes_remove, FALSE);
 	gtk_widget_set_sensitive(popup_queue_abort, FALSE);
@@ -85,6 +84,14 @@ void gui_init(void)
                              !gtk_toggle_button_get_active(
 								 GTK_TOGGLE_BUTTON(checkbutton_downloads_never_push)));
 
+
+    gtk_clist_column_titles_passive(GTK_CLIST(clist_nodes));
+	gtk_clist_column_titles_passive(GTK_CLIST(clist_uploads));
+	gtk_clist_column_titles_passive(GTK_CLIST(clist_downloads));
+	gtk_clist_column_titles_passive(GTK_CLIST(clist_downloads_queue));
+	gtk_clist_column_titles_passive(GTK_CLIST(clist_monitor));
+
+	gtk_clist_set_reorderable(GTK_CLIST(clist_downloads_queue), TRUE);
 
 }
 
@@ -101,13 +108,14 @@ void gui_nodes_remove_selected(void)
         if (n) {
 			if (NODE_IS_WRITABLE(n)) {
 				node_bye(n, 201, "User manual removal");
-				gtk_clist_unselect_row(GTK_CLIST(clist_nodes), (gint) l->data, 0);
+				gtk_clist_unselect_row(GTK_CLIST(clist_nodes), 
+                                       (gint) l->data, 0);
             } else {
 				node_remove(n, NULL);
 				node_real_remove(n);
             }
         } else 
-			g_warning( "remove_selected_nodes(): row %d has NULL data\n", 
+			g_warning( "remove_selected_nodes(): row %d has NULL data\n",
                        (gint) l->data);
 			l = GTK_CLIST(clist_nodes)->selection;
 		}
@@ -286,7 +294,6 @@ void gui_update_c_gnutellanet(void)
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u gnutellaNet",
 		connected_nodes(), nodes);
-	gtk_clist_set_text(GTK_CLIST(clist_connections), 0, 0, gui_tmp);
     gtk_progress_configure(GTK_PROGRESS(progressbar_connections), 
                            connected_nodes(), 0, nodes);
 }
@@ -297,7 +304,6 @@ void gui_update_c_uploads(void)
 	gint t = registered_uploads;
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u upload%s", i, t,
 			   (i == 1 && t == 1) ? "" : "s");
-	gtk_clist_set_text(GTK_CLIST(clist_connections), 1, 0, gui_tmp);
     gtk_progress_configure(GTK_PROGRESS(progressbar_uploads), 
                            i, 0, t);
 }
@@ -306,7 +312,6 @@ void gui_update_c_downloads(gint c, gint ec)
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u download%s", c, ec,
 			   (c == 1 && ec == 1) ? "" : "s");
-	gtk_clist_set_text(GTK_CLIST(clist_connections), 2, 0, gui_tmp);
     gtk_progress_configure(GTK_PROGRESS(progressbar_downloads), 
                            c, 0, ec);
 }
@@ -328,6 +333,13 @@ void gui_update_max_uploads(void)
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", max_uploads);
 	gtk_entry_set_text(GTK_ENTRY(entry_max_uploads), gui_tmp);
 }
+
+void gui_update_max_host_uploads(void)
+{
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(spinbutton_uploads_max_ip),
+                              max_uploads_ip);
+}
+
 
 void gui_update_files_scanned(void)
 {
