@@ -356,10 +356,19 @@ get_next_entry(void)
  * @return the new location of the revitalized entry
  */
 void
-revitalize_entry(struct message *entry)
+revitalize_entry(struct message *entry, gboolean force)
 {
 	struct message **relocated;
 	struct message *prev;
+
+	/*
+	 * Leaves don't route anything, so we usually don't revitalize its
+	 * entries.  The only exception is when it makes use of the recorded
+	 * PUSH routes, i.e. when it initiates a PUSH.
+	 */
+
+	if (!force && current_peermode == NODE_P_LEAF)
+		return;
 
 	/*
 	 * Relocate at the end of the table, preventing early expiration.
@@ -1023,7 +1032,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 				 * query hit flow by.
 				 */
 
-				revitalize_entry(m);
+				revitalize_entry(m, FALSE);
 			}
 		}
 
@@ -1079,7 +1088,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		 * the "message_array[]" to augment its lifetime.
 		 */
 
-		revitalize_entry(m);
+		revitalize_entry(m, FALSE);
 
 		/*
 		 * If `m->routes' is NULL, we have seen the request, but unfortunately
@@ -1305,7 +1314,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 			 * at least TABLE_MIN_CYCLE secs more after seeing this PUSH.
 			 */
 
-			revitalize_entry(m);
+			revitalize_entry(m, FALSE);
 			forward_message(node, NULL, dest, m->routes);
 
 			return FALSE;		/* We are not the target, don't handle it */
@@ -1388,6 +1397,8 @@ route_towards_guid(const gchar *guid)
 
 	if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) || m->routes == NULL)
 		return NULL;
+
+	revitalize_entry(m, TRUE);
 
 	for (l = m->routes; l; l = g_slist_next(l)) {
 		struct route_data *rd = (struct route_data *) l->data;
