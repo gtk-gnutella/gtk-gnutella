@@ -79,7 +79,6 @@ typedef struct upload {
 	gboolean accounted;				/* True when upload was accounted for */
 	gboolean unavailable_range;		/* True when last request ended with 416 */
 
-	
 	gboolean parq_status;
 } gnutella_upload_t;
 
