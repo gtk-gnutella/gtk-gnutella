@@ -118,6 +118,7 @@ GtkWidget *button_search_filter;
 GtkWidget *checkbutton_search_jump_to_downloads;
 GtkWidget *checkbutton_search_remove_downloaded;
 GtkWidget *checkbutton_search_pick_all;
+GtkWidget *checkbutton_search_autoselect_ident;
 GtkWidget *entry_search;
 GtkWidget *combo_search;
 GtkWidget *entry_search_reissue_timeout;
@@ -436,6 +437,7 @@ create_main_window (void)
   GtkWidget *hbox52;
   GtkWidget *search_reissue_label;
   GtkObject *entry_search_reissue_timeout_adj;
+  GtkWidget *label246;
   GtkWidget *hbox20;
   GtkWidget *hbox80;
   GtkWidget *label_search;
@@ -2401,7 +2403,14 @@ create_main_window (void)
   gtk_widget_show (checkbutton_search_pick_all);
   gtk_box_pack_start (GTK_BOX (hbox52), checkbutton_search_pick_all, FALSE, FALSE, 0);
 
-  search_reissue_label = gtk_label_new ("Retry search every (seconds, 0=never)");
+  checkbutton_search_autoselect_ident = gtk_check_button_new_with_label ("Autoselect identical");
+  gtk_widget_ref (checkbutton_search_autoselect_ident);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_autoselect_ident", checkbutton_search_autoselect_ident,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_search_autoselect_ident);
+  gtk_box_pack_start (GTK_BOX (hbox52), checkbutton_search_autoselect_ident, FALSE, FALSE, 0);
+
+  search_reissue_label = gtk_label_new ("Retry search every");
   gtk_widget_ref (search_reissue_label);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "search_reissue_label", search_reissue_label,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -2418,6 +2427,13 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox52), entry_search_reissue_timeout, FALSE, TRUE, 0);
   gtk_widget_set_usize (entry_search_reissue_timeout, 70, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (entry_search_reissue_timeout), TRUE);
+
+  label246 = gtk_label_new ("sec (0 - off)");
+  gtk_widget_ref (label246);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label246", label246,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label246);
+  gtk_box_pack_start (GTK_BOX (hbox52), label246, FALSE, FALSE, 0);
 
   hbox20 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox20);
@@ -4421,6 +4437,9 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (checkbutton_search_pick_all), "toggled",
                       GTK_SIGNAL_FUNC (on_checkbutton_search_pick_all_toggled),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_search_autoselect_ident), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_search_autoselect_ident_toggled),
                       NULL);
   gtk_signal_connect_after (GTK_OBJECT (entry_search_reissue_timeout), "activate",
                             GTK_SIGNAL_FUNC (on_entry_search_reissue_timeout_activate),

@@ -113,6 +113,7 @@ extern GtkWidget *button_search_filter;
 extern GtkWidget *checkbutton_search_jump_to_downloads;
 extern GtkWidget *checkbutton_search_remove_downloaded;
 extern GtkWidget *checkbutton_search_pick_all;
+extern GtkWidget *checkbutton_search_autoselect_ident;
 extern GtkWidget *entry_search;
 extern GtkWidget *combo_search;
 extern GtkWidget *entry_search_reissue_timeout;

@@ -149,6 +149,7 @@ void on_button_search_filter_clicked (GtkButton *button, gpointer user_data);
 void on_button_search_passive_clicked (GtkButton *button, gpointer user_data);
 void on_checkbutton_search_jump_to_downloads_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_search_remove_downloaded_toggled (GtkToggleButton *togglebutton, gpointer user_data);
+void on_checkbutton_search_autoselect_ident_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_checkbutton_search_pick_all_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_clist_search_results_click_column(GtkCList * clist, gint column, gpointer user_data);
 void on_clist_search_results_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);

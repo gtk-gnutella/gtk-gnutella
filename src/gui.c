@@ -425,6 +425,7 @@ void gui_update_all()
     gui_update_bws_gout_enabled();
     gui_update_queue_regex_case();
     gui_update_search_remove_downloaded();
+    gui_update_search_autoselect_ident();
     gui_update_download_delete_aborted();
     gui_update_search_pick_all();
     gui_update_is_firewalled();
@@ -936,6 +937,11 @@ UPDATE_CHECKBUTTON(
 UPDATE_CHECKBUTTON(
     checkbutton_search_remove_downloaded,
     search_remove_downloaded,
+    NO_FUNC)
+
+UPDATE_CHECKBUTTON(
+    checkbutton_search_autoselect_ident,
+    search_autoselect_ident,
     NO_FUNC)
 
 UPDATE_CHECKBUTTON(

@@ -108,6 +108,7 @@ gboolean clear_uploads = FALSE;
 gboolean clear_downloads = FALSE;
 gboolean monitor_enabled = FALSE;
 gboolean search_remove_downloaded = FALSE;
+gboolean search_autoselect_ident = FALSE;
 gboolean force_local_ip = TRUE;
 gboolean toolbar_visible = FALSE;
 gboolean statusbar_visible = TRUE;
@@ -326,6 +327,7 @@ typedef enum {
     k_filter_main_divider_pos,
     k_filter_default_policy,
     k_filter_dlg_coords,
+    k_search_autoselect_ident,
 	k_end
 } keyword_t;
 
@@ -460,7 +462,8 @@ static gchar *keywords[k_end] = {
     "side_divider_pos",
     "filter_main_divider_pos",
     "filter_default_policy",
-    "filter_dlg_coords"
+    "filter_dlg_coords",
+    "search_autoselect_ident"
 };
 
 static gchar cfg_tmp[4096];
@@ -703,6 +706,7 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_BOOL(proxy_auth)
         CONFIG_SET_BOOL(queue_regex_case)
         CONFIG_SET_BOOL(search_remove_downloaded)
+        CONFIG_SET_BOOL(search_autoselect_ident)
         CONFIG_SET_BOOL(search_results_show_tabs)
         CONFIG_SET_BOOL(search_stats_enabled)
         CONFIG_SET_BOOL(statusbar_visible)
@@ -1457,6 +1461,7 @@ static void config_save(void)
         CONFIG_WRITE_UINT(search_reissue_timeout)
         CONFIG_WRITE_BOOL(search_results_show_tabs)
         CONFIG_WRITE_BOOL(search_remove_downloaded)
+        CONFIG_WRITE_BOOL(search_autoselect_ident)
         CONFIG_WRITE_INT(filter_default_policy)
         fprintf(config, "# Whether or not to jump to the "
             "downloads screen when a new download is selected.\n"
