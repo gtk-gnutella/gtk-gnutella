@@ -26,22 +26,23 @@
 SUBDIRS = intl po src
 
 EXTRA_GTK2 = \
-	src/monitor_gui2.c \
-	src/monitor_cb2.c \
-	src/nodes_gui2.c \
-	src/nodes_cb2.c \
-	src/nodes_cb2.h\
-	src/search_gui2.c \
-	src/search_cb2.c \
-	src/search_cb2.h \
-	src/uploads_gui2.c \
-	src/upload_stats_gui2.c \
+	src/fileinfo_gui2.c \
 	src/gnet_stats_gui2.c \
-	src/search_stats_gui2.c \
 	src/interface-glade2.c \
 	src/interface-glade2.h \
+	src/monitor_cb2.c \
+	src/monitor_gui2.c \
+	src/nodes_cb2.c \
+	src/nodes_gui2.c \
+	src/nodes_cb2.h\
+	src/search_cb2.c \
+	src/search_cb2.h \
+	src/search_gui2.c \
+	src/search_stats_gui2.c \
 	src/support-glade2.c \
-	src/support-glade2.h
+	src/support-glade2.h \
+	src/upload_stats_gui2.c \
+	src/uploads_gui2.c
 
 
 EXTRA_SHELL = \
