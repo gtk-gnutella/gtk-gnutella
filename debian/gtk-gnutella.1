@@ -244,15 +244,6 @@ This variable may not be implemented.
 .BI hc
 You shouldn't need to use this.
 .TP
-.BI auto_download_file
-The name of the file holding patterns for issuing automatic downloads.
-By default, it is set to "auto-downloads.txt".  You can use a full path
-or a relative one (as the default), in which case it is taken relative
-to the launch directory.  The file can use "#" comments, but any other line
-is taken as a verbatim pattern to match anywhere in the file name.  This file
-is automatically reloaded when it has changed.  This variable cannot be set
-through the GUI yet.  (EXPERIMENTAL, may change without notice)
-.TP
 .BI download_connecting_timeout
 This can not be set through the GUI.
 The number of seconds before timing out for a connecting download.
@@ -432,14 +423,6 @@ If this is "true" then
 .I gtk-gnutella
 will switch to the downloads tab whenever you select a file (or files)
 for downloading from the search tab.
-.TP
-.BI use_auto_downloads
-This is in the search tab.
-If this is "true", then
-.I gtk-gnutella
-will read the \fIauto_download_file\fR for file strings to match, and will
-automatically issue a download for each search that matches one of those
-strings.  (EXPERIMENTAL, may change without notice)
 .TP
 .BI max_connections
 This is in the gnutellaNet tab.
