@@ -321,6 +321,28 @@ static gboolean dm_remove(struct dmesh *dm,
 }
 
 /*
+ * dmesh_dispose
+ *
+ * Dispose of the entry slot, which must be empty.
+ */
+static void dmesh_dispose(guchar *sha1)
+{
+	gpointer key;
+	gpointer value;
+	gboolean found;
+
+	found = g_hash_table_lookup_extended(mesh, sha1, &key, &value);
+
+	g_assert(found);
+	g_assert(((struct dmesh *) value)->entries == NULL);
+
+	atom_sha1_free(key);
+	g_free(value);
+
+	g_hash_table_remove(mesh, sha1);
+}
+
+/*
  * dmesh_remove
  *
  * Remove entry from mesh.
@@ -346,21 +368,8 @@ void dmesh_remove(guchar *sha1,
 	 */
 
 	if (dm->count == 0) {
-		gpointer key;
-		gpointer value;
-		gboolean found;
-
 		g_assert(dm->entries == NULL);
-
-		found = g_hash_table_lookup_extended(mesh, sha1, &key, &value);
-
-		g_assert(found);
-		g_assert(value == (gpointer) dm);
-
-		atom_sha1_free(key);
-		g_free(dm);
-
-		g_hash_table_remove(mesh, sha1);
+		dmesh_dispose(sha1);
 	}
 }
 
@@ -402,7 +411,7 @@ gboolean dmesh_add(guchar *sha1,
 	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
 
 	if (dm == NULL) {
-		dm = g_malloc(sizeof(dm));
+		dm = g_malloc(sizeof(*dm));
 
 		dm->count = 0;
 		dm->entries = NULL;
@@ -475,7 +484,7 @@ static gint dmesh_urlinfo(dmesh_urlinfo_t *info, gchar *buf, gint len)
 		rw = g_snprintf(buf, len, "http://%s",
 			ip_port_to_gchar(info->ip, info->port));
 
-	if (rw == len)
+	if (rw >= len)
 		return -1;
 
 	if (info->idx == 0)
@@ -487,19 +496,19 @@ static gint dmesh_urlinfo(dmesh_urlinfo_t *info, gchar *buf, gint len)
 		 * Write filename, URL-escaping it directly into the buffer.
 		 */
 
-		if (rw != len) {
+		if (rw < len) {
 			gint re = url_escape_into(info->name, &buf[rw], len - rw);
 
 			if (re < 0)
 				return -1;
 
 			rw += re;
-			if (rw != len)
+			if (rw < len)
 				buf[rw] = '\0';
 		}
 	}
 
-	return (rw == len) ? -1 : rw;
+	return (rw >= len) ? -1 : rw;
 }
 
 /*
@@ -528,25 +537,25 @@ static gchar *dmesh_urlinfo_to_gchar(dmesh_urlinfo_t *info)
  */
 static gint dmesh_entry_url_stamp(struct dmesh_entry *dme, gchar *buf, gint len)
 {
-	gint written;
+	gint rw;
 
 	/*
 	 * Format the URL info first.
 	 */
 
-	written = dmesh_urlinfo(&dme->url, buf, len);
+	rw = dmesh_urlinfo(&dme->url, buf, len);
 
-	if (written < 0)
+	if (rw < 0)
 		return -1;
 
 	/*
 	 * Append timestamp.
 	 */
 
-	written += g_snprintf(&buf[written], len - written,
+	rw += g_snprintf(&buf[rw], len - rw,
 		" %s", date_to_iso_gchar((time_t) dme->stamp));
 
-	return (written == len) ? -1 : written;
+	return (rw >= len) ? -1 : rw;
 }
 
 /*
@@ -598,7 +607,7 @@ gint dmesh_alternate_location(guchar *sha1,
 	 */
 
 	len = g_snprintf(buf, size, "X-Gnutella-Alternate-Location:\r\n");
-	if (len == size)
+	if (len >= size)
 		return 0;
 
 	/*
@@ -614,6 +623,18 @@ gint dmesh_alternate_location(guchar *sha1,
 		return 0;
 
 	/*
+	 * Expire old entries.  If none remain, free entry and return.
+	 */
+
+	dm_expire(dm, MAX_LIFETIME);
+
+	if (dm->count == 0) {
+		g_assert(dm->entries == NULL);
+		dmesh_dispose(sha1);
+		return 0;
+	}
+
+	/*
 	 * Go through the list, selecting new entries that can fit.
 	 * We'll do two passes.  The first pass identifies the candidates.
 	 * The second pass randomly selects items until we fill the room
@@ -621,7 +642,6 @@ gint dmesh_alternate_location(guchar *sha1,
 	 */
 
 	memset(selected, 0, sizeof(selected));
-	dm_expire(dm, MAX_LIFETIME);
 
 	/*
 	 * First pass.
@@ -661,7 +681,6 @@ gint dmesh_alternate_location(guchar *sha1,
 		gint j;
 		gint n;
 		gint url_len;
-		gint written;
 
 		/*
 		 * The `npick' variable is the index of the selected entry, all
@@ -689,23 +708,26 @@ gint dmesh_alternate_location(guchar *sha1,
 		if (url_len < 0)				/* Too big for the buffer */
 			continue;
 
-		if (url_len + 3 >= size - len)	/* 3 to account for "\t" and "\r\n" */
-			continue;
-
-		if (nurl)
+		if (nurl) {
+			if (url_len + 5 >= size - len)	/* Needs "\t" and 2*"\r\n" + NUL */
+				continue;
 			len += g_snprintf(&buf[len], size - len, ",\r\n");
+		} else {
+			if (url_len + 3 >= size - len)	/* Needs "\t" and "\r\n" + NUL */
+				continue;
+		}
 
-		written = g_snprintf(&buf[len], size - len, "\t%s", url);
+		g_assert(len < size);			/* We checked for enough size above */
+		len += g_snprintf(&buf[len], size - len, "\t%s", url);
+		g_assert(len < size);
 
-		if (written + len == size)
-			break;
-
-		len += written;
 		nurl++;
 	}
 
 	if (nurl)
 		len += g_snprintf(&buf[len], size - len, "\r\n");
+
+	g_assert(len < size);
 
 	return (nurl > 0) ? len : 0;
 }
