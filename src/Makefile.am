@@ -91,7 +91,8 @@ gtk_gnutella_SOURCES = \
 	atoms.c atoms.h \
 	extensions.c extensions.h ggep.h \
 	dmesh.c dmesh.h \
-	http.c http.h
+	http.c http.h \
+	version.c version.h
 
 gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
 
