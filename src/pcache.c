@@ -27,6 +27,8 @@
 
 #include "gnutella.h"
 
+RCSID("$Id$");
+
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -51,7 +53,7 @@
 #include "settings.h"
 #include "override.h"		/* Must be the last header included */
 
-RCSID("$Id$");
+#define PCACHE_MAX_FILES	10000000	/* Arbitrarily large file count */
 
 /***
  *** Messages
@@ -1258,22 +1260,26 @@ void pcache_pong_received(struct gnutella_node *n)
 	 *		--RAM, 13/07/2004
 	 */
 
-	if (files_count > 10000000) {		/* Arbitrarily large constant */
+	if (files_count > PCACHE_MAX_FILES) {	/* Arbitrarily large constant */
 		gboolean fixed = FALSE;
 
 		swapped_count = swap_guint32(files_count);
 
-		if (swapped_count < files_count) {
+		if (swapped_count > PCACHE_MAX_FILES) {
+			if (dbg && ip == n->ip)
+				g_warning("node %s (%s) sent us a pong with "
+					"large file count %u (0x%x), dropped",
+					node_ip(n), node_vendor(n), files_count, files_count);
+			n->rx_dropped++;
+			return;
+		} else {
 			if (dbg && ip == n->ip) g_warning(
 				"node %s (%s) sent us a pong with suspect file count %u "
 				"(fixed to %u)",
 				node_ip(n), node_vendor(n), files_count, swapped_count);
 			files_count = swapped_count;
 			fixed = TRUE;
-		} else if (dbg && ip == n->ip)
-			g_warning("node %s (%s) sent us a pong with large file count %u",
-				node_ip(n), node_vendor(n), files_count);
-
+		}
 		/*
 		 * Maybe the kbytes_count is correct if the files_count was?
 		 */
