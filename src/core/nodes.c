@@ -5151,6 +5151,23 @@ node_udp_process(struct gnutella_socket *s)
 	node_add_rx_given(n, n->size + GTA_HEADER_SIZE);
 
 	/*
+	 * A little code duplication from node_read(), which we don't call
+	 * when receiving UDP traffic since the whole datagram has alrady
+	 * been read atomically.
+	 */
+
+	switch (n->header.function) {
+	case GTA_MSG_SEARCH:
+		node_inc_rx_query(n);
+		break;
+	case GTA_MSG_SEARCH_RESULTS:
+		node_inc_rx_qhit(n);
+		break;
+	default:
+		break;
+	}
+
+	/*
 	 * Discard incoming datagrams from registered hostile IP addresses.
 	 */
 
