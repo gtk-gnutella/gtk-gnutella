@@ -981,12 +981,6 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
     gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
 		&remove_downloaded);
 
-	/* So we don't screw up the selected list */
-    gtk_signal_handler_block_by_func(
-        GTK_OBJECT(ctree),
-        GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
-        NULL);
-
 	/* Selection list changes after we process each selected node, so we have to 
 	 * "re-get" it each iteration.
 	 */
@@ -1032,11 +1026,6 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 	}
 	
 	gtk_clist_unselect_all(GTK_CLIST(ctree));
-	
-    gtk_signal_handler_unblock_by_func(
-        GTK_OBJECT(ctree),
-        GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
-        NULL);
 	
     gui_search_force_update_tab_label(current_search);
     gui_search_update_items(current_search);
