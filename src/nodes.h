@@ -307,6 +307,7 @@ void node_bye_all(void);
 gboolean node_bye_pending(void);
 void node_close(void);
 gboolean node_remove_non_nearby(void);
+gboolean node_remove_worst(void);
 
 void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...);
 
