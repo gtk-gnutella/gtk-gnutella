@@ -110,7 +110,6 @@ void upload_stats_gui_add(struct ul_stats *stat)
 	GtkTreeIter iter;
 	gchar size_tmp[16];
 	gchar norm_tmp[16];
-    GError *error = NULL;
 	gchar *filename;
 
 	g_assert(NULL != stat);
@@ -119,14 +118,7 @@ void upload_stats_gui_add(struct ul_stats *stat)
 
 	upload_stats_gui_init();
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(upload_stats_treeview));
-    filename = g_locale_to_utf8(stat->filename, -1, NULL, NULL, &error);
-    if (NULL != error) {
-        g_warning("g_locale_to_utf8 failed in upload_stats_gui_add: %s",
-            error->message);
-        g_clear_error(&error);
-        filename = g_strdup("<Filename cannot be viewed>");
-    }
-	g_assert(NULL != filename);
+    filename = locale_to_utf8(stat->filename, -1);
 	gtk_list_store_append(store, &iter);
 	gtk_list_store_set(store, &iter,
 		c_us_filename, filename,
@@ -136,6 +128,7 @@ void upload_stats_gui_add(struct ul_stats *stat)
 		c_us_norm, norm_tmp,
 		c_us_stat, stat,
 		-1);
+	G_FREE_NULL(filename);
 }
 
 void upload_stats_gui_init(void)

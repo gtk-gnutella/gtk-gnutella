@@ -181,6 +181,7 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
     GtkTreeIter iter;
 	gchar proto_tmp[16];
     guint handle;
+	gchar *vendor;
 
     g_assert(n != NULL);
 
@@ -190,16 +191,18 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 		n->proto_major, n->proto_minor);
     handle = n->node_handle;
 
+	vendor = locale_to_utf8(n->vendor ? n->vendor : "...", -1);
     gtk_list_store_set(nodes_model, &iter, 
         COL_NODE_HOST,    ip_port_to_gchar(n->ip, n->port),
         COL_NODE_TYPE,    "...",
-        COL_NODE_VENDOR,  n->vendor ? n->vendor : "...",
+        COL_NODE_VENDOR,  vendor,
         COL_NODE_VERSION, proto_tmp,
         COL_NODE_CONNECTED, "...",
         COL_NODE_UPTIME,  "...",
         COL_NODE_INFO,    "...",
         COL_NODE_HANDLE,  handle,
         -1);
+	G_FREE_NULL(vendor);
 }
 
 
@@ -355,6 +358,7 @@ void nodes_gui_update_node_info(gnet_node_info_t *n)
     valid = nodes_gui_find_node(n->node_handle, &iter);
 
     if (valid) {
+		gchar *vendor;
 		gchar version[16];
         gnet_node_status_t status;
         time_t now = time((time_t *) NULL);
@@ -364,11 +368,13 @@ void nodes_gui_update_node_info(gnet_node_info_t *n)
         g_snprintf(version, sizeof(version), "%d.%d",
             n->proto_major, n->proto_minor);
 
+		vendor = locale_to_utf8(n->vendor ? n->vendor : "...", -1);
         gtk_list_store_set(nodes_model, &iter, 
-            COL_NODE_VENDOR,  n->vendor ? n->vendor : "...",
+            COL_NODE_VENDOR,  vendor,
             COL_NODE_VERSION, version,
             COL_NODE_INFO,    gui_node_status_str(&status, now),
             -1);
+		G_FREE_NULL(vendor);
     } else
         g_warning("nodes_gui_update_node: no matching row found");
 }
@@ -429,9 +435,7 @@ static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
 		else if (flags->hops_flow < 7)
 			status[8] = 'h';
 
-        gtk_list_store_set(nodes_model, &iter, 
-            COL_NODE_TYPE,  status,
-            -1);
+        gtk_list_store_set(nodes_model, &iter, COL_NODE_TYPE,  status, -1);
     } else
         g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
 }

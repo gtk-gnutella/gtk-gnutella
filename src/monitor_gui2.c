@@ -71,15 +71,9 @@ static void monitor_gui_append_to_monitor(
 	g_snprintf(tmpstr, sizeof(tmpstr),
 		type == QUERY_SHA1 ? "urn:sha1:%s" : "%s", item);
 
-	str = g_locale_to_utf8(tmpstr, -1, NULL, NULL, &error);
-	if (NULL != error) {
-		g_warning(
-			"g_locale_to_utf8 failed in monitor_gui_append_to_monitor: %s, "
-			"tmpstr=\"%s\"", error->message, tmpstr);
-		g_clear_error(&error);
-	}
-	else
-    	gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, str, -1);
+	str = locale_to_utf8(tmpstr, -1);
+   	gtk_list_store_set(monitor_model, &iter, QUERY_COLUMN, str, -1);
+	G_FREE_NULL(str);
 }
 
 

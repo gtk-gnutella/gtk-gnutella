@@ -157,4 +157,9 @@ char *strcasestr(const char *haystack, const char *needle);
 guchar *strcasestr(const guchar *haystack, const guchar *needle);
 #endif
 
+/* Only necessary for GTk+ 2 version */
+#ifdef USE_GTK2
+gchar *locale_to_utf8(const gchar *, gssize);
+#endif
+
 #endif /* _misc_h_ */

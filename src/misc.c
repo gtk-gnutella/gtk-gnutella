@@ -983,3 +983,23 @@ guchar *hex_escape(guchar *name)
 	return new;
 }
 
+#ifdef USE_GTK2
+gchar *locale_to_utf8(const gchar *str, gssize len)
+{
+	GError *error = NULL;
+	const gchar *local_charset = NULL;
+	gchar *ret;
+	
+	g_get_charset(&local_charset);
+	ret = g_convert_with_fallback(
+		str, len, "UTF-8", local_charset, NULL, NULL, NULL, &error);
+    if (NULL != error) {
+        g_warning("locale_to_utf8 failed: %s", error->message);
+        g_clear_error(&error);
+	}
+	if (NULL == ret)
+		ret = g_strdup("<Cannot convert to UTF-8>");
+	g_assert(NULL != ret);
+	return ret;
+}
+#endif

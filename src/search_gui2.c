@@ -553,16 +553,13 @@ gboolean search_gui_new_search_full(
 	/* Create the list item */
 
 	sch->list_item = gtk_list_item_new_with_label(sch->query);
-
 	gtk_widget_show(sch->list_item);
-
 	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
-
 	gtk_list_prepend_items(GTK_LIST(GTK_COMBO(combo_searches)->list),
 						   glist);
 
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree_view_search));
-	name = g_locale_to_utf8(sch->query, -1, NULL, NULL, NULL);
+	name = locale_to_utf8(sch->query, -1);
 	gtk_list_store_append (GTK_LIST_STORE (model), &iter);
 	gtk_list_store_set (GTK_LIST_STORE (model), &iter,
 		c_sl_name, name,
@@ -570,7 +567,6 @@ gboolean search_gui_new_search_full(
 		c_sl_new, GINT_TO_POINTER(0), 
 		c_sl_sch, sch,
 		-1);
-
 	G_FREE_NULL(name);
 
 	/* Create a new CList if needed, or use the default CList */
@@ -759,16 +755,8 @@ static void search_gui_add_record(
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW (sch->tree_view);
 	GtkTreeModel *model = gtk_tree_view_get_model (tree_view);
-	GError	*error = NULL;
 
-	titles[c_sr_filename] = 
-		g_locale_to_utf8(rc->name, -1, NULL, NULL, &error);
-	if (NULL != error) {
-		g_warning("g_locale_to_utf8 failed in search_gui_add_record: %s",
-			error->message);
-		g_clear_error(&error);
-		titles[c_sr_filename] = g_strdup("<Filename cannot be viewed>");
-	}
+	titles[c_sr_filename] = locale_to_utf8(rc->name, -1);
 	titles[c_sr_size] = short_size(rc->size);
 	titles[c_sr_speed] = GUINT_TO_POINTER((guint)rs->speed);
 	titles[c_sr_host] = ip_port_to_gchar(rs->ip, rs->port);
@@ -798,7 +786,7 @@ static void search_gui_add_record(
 			g_string_append(info, "; ");
 		g_string_append(info, vinfo->str);
 	}
-	titles[c_sr_info] = info->str;
+	titles[c_sr_info] = locale_to_utf8(info->str, -1);
 
 	gtk_list_store_append(GTK_LIST_STORE (model), &iter);
 	gtk_list_store_set(GTK_LIST_STORE (model), &iter,
@@ -810,7 +798,7 @@ static void search_gui_add_record(
 		      c_sr_info, titles[c_sr_info],
 		      c_sr_record, rc,
 		      -1);
-
+	G_FREE_NULL(titles[c_sr_info]);
 	G_FREE_NULL(titles[c_sr_filename]);
 
 
