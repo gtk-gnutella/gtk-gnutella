@@ -778,6 +778,7 @@ static gboolean max_ultra_hosts_cached_changed(property_t prop)
 
 static gboolean listen_port_changed(property_t prop)
 {
+	gboolean random = FALSE;;
 	static guint32 old_listen_port = (guint32) -1;
     guint32 listen_port;
 
@@ -792,6 +793,12 @@ static gboolean listen_port_changed(property_t prop)
 
 	if (old_listen_port != -1)
 		inet_firewalled();			/* Assume we're firewalled on port change */
+
+	if (listen_port == 0) {
+		random = TRUE;
+		listen_port = random_value(65536 - 1024) + 1024;
+		gnet_prop_set_guint32_val(prop, listen_port);
+	}
 
 	old_listen_port = listen_port;
 
@@ -810,7 +817,7 @@ static gboolean listen_port_changed(property_t prop)
 		s_listen = socket_listen(0, listen_port, SOCK_TYPE_CONTROL);
     else
 		s_listen = NULL;
-
+	
     /*
      * If socket allocation failed, reset the property
      */

@@ -4160,7 +4160,7 @@ Grace time remaining:</property>
 			  <child>
 			    <widget class="GtkLabel" id="label35">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Default: 6346, Disable: 0</property>
+			      <property name="label" translatable="yes">Default: 6346, Random: 0</property>
 			      <property name="use_underline">False</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_CENTER</property>

@@ -6068,7 +6068,7 @@
 			<widget>
 			  <class>GtkLabel</class>
 			  <name>label35</name>
-			  <label>Default: 6346, Disable: 0</label>
+			  <label>Default: 6346, Random: 0</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0.5</xalign>
