@@ -96,6 +96,8 @@ static GtkWidget *default_scrolled_window = NULL;
  *	Add the given tree node to the hashtable.
  *  The key is an atomized sha1 of the search result.
  *
+ *	FIXME: The "key" is an atom of the record's SHA1, why don't we create that
+ * 	atom here, as we free it in "remove_parent_with_sha1"?  Emile 02/15/2004
  */
 static inline void add_parent_with_sha1(GHashTable *ht, gpointer key, 
 	GtkCTreeNode *data)
@@ -1430,6 +1432,7 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 	GtkCTreeNode *old_parent;
 	GtkCTreeNode *old_parent_sibling;
 	GtkCTreeNode *child_sibling;
+	gpointer key;
 	gint n;
 
 	search_t *current_search = search_gui_get_current_search();
@@ -1495,6 +1498,15 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 			gtk_ctree_node_set_text(ctree, child_node, 
                 c_sr_size, short_size(rc->size));
 			
+			/* Our hashtable contains the hash for the original parent (which we
+			 * just removed) so we must remove that hash entry and create one
+			 * for the new parent.
+			 */
+			remove_parent_with_sha1(current_search->parents, rc->sha1);
+			key = atom_sha1_get(rc->sha1);
+			add_parent_with_sha1(current_search->parents, key, child_node);
+			
+			
 		} else {
 			/* The row has no children, remove it's sha1 and the row itself */
 			if (NULL != rc->sha1)
@@ -1522,7 +1534,7 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 		parent_grc = gtk_ctree_node_get_row_data(ctree, old_parent);
 		parent_grc->num_children = n;
 	}
-		
+	
 	/*
 	 * Remove two references to this record.
 	 *
@@ -1551,10 +1563,12 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 	GList *sel_list;
 	gboolean need_push;
     gboolean remove_downloaded;
+	gboolean resort;
 	guint created = 0;
 	guint count = 0;
 	GtkCTreeNode *node;
-
+	GtkCTreeRow *row;
+	
 	search_t *current_search = search_gui_get_current_search();
 
     gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
@@ -1599,7 +1613,55 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 			search_gui_check_alt_locs(rs, rc);
 
         if (remove_downloaded) {
+	
+			/* Check if we should re-sort after we remove the download.  
+			 * Re-sorting for every remove is too laggy and unnecessary.  If the 
+			 * search is not sorted by count we don't re-sort.  If the 
+			 * node is a parent we re-sort if the next node to be removed is not
+		     * it's first child.  If the node is a child, we re-sort if the next
+			 * node to be removed is not the next sibling.  Finally, we re-sort
+			 * if the last child of a tree is selected.
+			 *
+		     * This assumes that the selection list will be in order, otherwise
+			 * it will re-sort on every remove in a tree (although it won't 
+			 * re-sort for parent nodes with no children).
+			 *
+			 * We need to check this before we actually remove the node.
+			 */
+			resort = FALSE;
+	
+			if (c_sr_count == current_search->sort_col) {
+				row = GTK_CTREE_ROW(node);
+
+				if (NULL == row->parent) {
+					/* If it's a parent and the first child is not selected */
+					if (NULL != row->children) {
+						if (NULL == sel_list->next)		
+							resort = TRUE;	
+						else if (sel_list->next->data != row->children) 
+								resort = TRUE;	
+					}
+				} else {
+					/* If it's a child and the next sibling is not selected */
+					if (NULL != row->sibling) {
+						if (NULL == sel_list->next)
+							resort = TRUE;	
+						else if (sel_list->next->data != row->sibling)
+								resort = TRUE;	
+					}
+				
+					/* If it's a child and it has no sibling */
+					if (NULL == row->sibling)
+						resort = TRUE;	
+				}					
+			}
+
 			search_gui_remove_result(ctree, node);
+			
+			if (resort) {
+				search_gui_sort_column(current_search, current_search->sort_col);
+			}
+
 		} else {
             /* make it visibile that we already selected this for download */
             gtk_ctree_node_set_foreground(ctree, node, 
