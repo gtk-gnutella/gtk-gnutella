@@ -672,6 +672,8 @@ void main_gui_run(void)
 	}
 #endif
 
+    settings_gui_init_late();
+
     gtk_main();
 }
 

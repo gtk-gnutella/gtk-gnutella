@@ -417,6 +417,7 @@ static gboolean update_split_pane(property_t prop)
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
     prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
+    guint32 pos;
 
     if (!top)
         return FALSE;
@@ -441,6 +442,7 @@ static gboolean update_split_pane(property_t prop)
     }
 
     gtk_paned_set_position(GTK_PANED(w), val);
+    pos = gtk_paned_get_position(GTK_PANED(w));
 
     return FALSE;
 }
@@ -5387,6 +5389,28 @@ settings_gui_init_prop_map(void)
     }
 }
 
+/*
+ * settings_gui_init_prop_map_late:
+ *
+ * Must be called after settings_gui_init_prop_map() and initializes
+ * properties requiring update_split_pane. This is used to set up
+ * the positions _after_ the window is resized and visible.
+ */
+static void
+settings_gui_init_prop_map_late(void)
+{
+    guint n;
+
+    /*
+     * Now the map is complete and can be processed.
+     */
+    for (n = 0; n < G_N_ELEMENTS(property_map); n ++) {
+        if (property_map[n].cb == update_split_pane) {
+            update_split_pane(property_map[n].prop);
+        }        
+    }
+}
+
 void
 settings_gui_init(void)
 {
@@ -5430,6 +5454,12 @@ settings_gui_init(void)
 		gtk_widget_set_sensitive(w, FALSE);
 	}
 #endif
+}
+
+void
+settings_gui_init_late(void)
+{   
+    settings_gui_init_prop_map_late();
 }
 
 void
