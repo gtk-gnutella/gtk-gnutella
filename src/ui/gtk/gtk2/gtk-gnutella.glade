@@ -2675,7 +2675,32 @@ Grace time remaining:</property>
 		  <property name="border_width">2</property>
 		  <property name="visible">True</property>
 		  <property name="homogeneous">False</property>
-		  <property name="spacing">4</property>
+		  <property name="spacing">2</property>
+
+		  <child>
+		    <widget class="GtkEventBox" id="eventbox_image_warning">
+		      <property name="visible">True</property>
+		      <property name="tooltip" translatable="yes">Your uploads are stalling at an abnormal rate, indicating that your bandwidth is probably saturated. You should not run as an ultra node, and try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating both your incoming and outgoing paths.</property>
+		      <property name="visible_window">True</property>
+		      <property name="above_child">False</property>
+
+		      <child>
+			<widget class="GtkImage" id="image_warning">
+			  <property name="visible">True</property>
+			  <property name="pixbuf">warning.xpm</property>
+			  <property name="xalign">0.5</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">0</property>
+			  <property name="ypad">0</property>
+			</widget>
+		      </child>
+		    </widget>
+		    <packing>
+		      <property name="padding">0</property>
+		      <property name="expand">True</property>
+		      <property name="fill">True</property>
+		    </packing>
+		  </child>
 
 		  <child>
 		    <widget class="GtkEventBox" id="eventbox_image_fd_shortage">
@@ -2738,6 +2763,30 @@ Grace time remaining:</property>
 			  <property name="xalign">0.5</property>
 			  <property name="yalign">0.5</property>
 			  <property name="xpad">0</property>
+			  <property name="ypad">0</property>
+			</widget>
+		      </child>
+		    </widget>
+		    <packing>
+		      <property name="padding">0</property>
+		      <property name="expand">True</property>
+		      <property name="fill">True</property>
+		    </packing>
+		  </child>
+
+		  <child>
+		    <widget class="GtkEventBox" id="eventbox_image_save">
+		      <property name="visible">True</property>
+		      <property name="visible_window">True</property>
+		      <property name="above_child">False</property>
+
+		      <child>
+			<widget class="GtkImage" id="image_save">
+			  <property name="visible">True</property>
+			  <property name="pixbuf">save.xpm</property>
+			  <property name="xalign">0.5</property>
+			  <property name="yalign">0.5</property>
+			  <property name="xpad">1</property>
 			  <property name="ypad">0</property>
 			</widget>
 		      </child>
@@ -2822,30 +2871,6 @@ Grace time remaining:</property>
 		  </child>
 
 		  <child>
-		    <widget class="GtkEventBox" id="eventbox_image_save">
-		      <property name="visible">True</property>
-		      <property name="visible_window">True</property>
-		      <property name="above_child">False</property>
-
-		      <child>
-			<widget class="GtkImage" id="image_save">
-			  <property name="visible">True</property>
-			  <property name="pixbuf">save.xpm</property>
-			  <property name="xalign">0.5</property>
-			  <property name="yalign">0.5</property>
-			  <property name="xpad">1</property>
-			  <property name="ypad">0</property>
-			</widget>
-		      </child>
-		    </widget>
-		    <packing>
-		      <property name="padding">0</property>
-		      <property name="expand">True</property>
-		      <property name="fill">True</property>
-		    </packing>
-		  </child>
-
-		  <child>
 		    <widget class="GtkHBox" id="hbox147">
 		      <property name="visible">True</property>
 		      <property name="homogeneous">False</property>
@@ -2874,6 +2899,35 @@ Grace time remaining:</property>
 			<packing>
 			  <property name="padding">0</property>
 			  <property name="expand">False</property>
+			  <property name="fill">True</property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkEventBox" id="eventbox_image_firewall_punchable">
+			  <property name="width_request">16</property>
+			  <property name="height_request">16</property>
+			  <property name="visible">True</property>
+			  <property name="tooltip" translatable="yes">You appear to be firewalled, both TCP-wise and UDP-wise. You will not see any push results, which may prevent you from seeing a large amount of results. You will not be able to send queries requesting out-of-band delivery of query hits. However, it is possible to punch a hole into the UDP firewall, so you will be able to send out-of-band query hits.</property>
+			  <property name="visible_window">True</property>
+			  <property name="above_child">False</property>
+
+			  <child>
+			    <widget class="GtkImage" id="image_firewall_punchable">
+			      <property name="width_request">16</property>
+			      <property name="height_request">16</property>
+			      <property name="visible">True</property>
+			      <property name="pixbuf">firewall_punchable.xpm</property>
+			      <property name="xalign">0.5</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			    </widget>
+			  </child>
+			</widget>
+			<packing>
+			  <property name="padding">0</property>
+			  <property name="expand">True</property>
 			  <property name="fill">True</property>
 			</packing>
 		      </child>
@@ -2918,6 +2972,33 @@ Grace time remaining:</property>
 			      <property name="height_request">16</property>
 			      <property name="visible">True</property>
 			      <property name="pixbuf">firewall_udp.xpm</property>
+			      <property name="xalign">0.5</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			    </widget>
+			  </child>
+			</widget>
+			<packing>
+			  <property name="padding">0</property>
+			  <property name="expand">True</property>
+			  <property name="fill">True</property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkEventBox" id="eventbox_image_firewall_udp_punchable">
+			  <property name="visible">True</property>
+			  <property name="tooltip" translatable="yes">People can connect to you via TCP, but you are UDP-firewalled.  However, you can punch a hole into that firewall, allowing reception of replies to your UDP packets.  You will be able to send out-of-band query hits, but you won't be able to receive any.</property>
+			  <property name="visible_window">True</property>
+			  <property name="above_child">False</property>
+
+			  <child>
+			    <widget class="GtkImage" id="image_firewall_udp_punchable">
+			      <property name="width_request">16</property>
+			      <property name="height_request">16</property>
+			      <property name="visible">True</property>
+			      <property name="pixbuf">firewall_udp_punchable.xpm</property>
 			      <property name="xalign">0.5</property>
 			      <property name="yalign">0.5</property>
 			      <property name="xpad">0</property>

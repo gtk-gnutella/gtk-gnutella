@@ -1587,14 +1587,14 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label493 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label494 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -1788,27 +1788,33 @@ create_main_window (void)
   GtkWidget *menu_about;
   GtkWidget *image365;
   GtkWidget *hbox211;
+  GtkWidget *eventbox_image_warning;
+  GtkWidget *image_warning;
   GtkWidget *eventbox_image_fd_shortage;
   GtkWidget *image_fd_shortage;
   GtkWidget *eventbox_image_fd_runout;
   GtkWidget *image_fd_runout;
   GtkWidget *eventbox_image_ancient;
   GtkWidget *image_ancient;
+  GtkWidget *eventbox_image_save;
+  GtkWidget *image_save;
   GtkWidget *eventbox_image_sha;
   GtkWidget *image_sha;
   GtkWidget *eventbox_image_shav;
   GtkWidget *image_shav;
   GtkWidget *eventbox_image_lib;
   GtkWidget *image_lib;
-  GtkWidget *eventbox_image_save;
-  GtkWidget *image_save;
   GtkWidget *hbox147;
   GtkWidget *eventbox_image_firewall;
   GtkWidget *image_firewall;
+  GtkWidget *eventbox_image_firewall_punchable;
+  GtkWidget *image_firewall_punchable;
   GtkWidget *eventbox_image_tcp_firewall;
   GtkWidget *image_tcp_firewall;
   GtkWidget *eventbox_image_udp_firewall;
   GtkWidget *image_udp_firewall;
+  GtkWidget *eventbox_image_firewall_udp_punchable;
+  GtkWidget *image_firewall_udp_punchable;
   GtkWidget *eventbox_image_no_firewall;
   GtkWidget *image_no_firewall;
   GtkWidget *hbox228;
@@ -2111,13 +2117,24 @@ create_main_window (void)
   gtk_widget_show (image365);
   gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_about), image365);
 
-  hbox211 = gtk_hbox_new (FALSE, 4);
+  hbox211 = gtk_hbox_new (FALSE, 2);
   gtk_widget_set_name (hbox211, "hbox211");
   gtk_widget_show (hbox211);
   gtk_table_attach (GTK_TABLE (table70), hbox211, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
   gtk_container_set_border_width (GTK_CONTAINER (hbox211), 2);
+
+  eventbox_image_warning = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_warning, "eventbox_image_warning");
+  gtk_widget_show (eventbox_image_warning);
+  gtk_box_pack_start (GTK_BOX (hbox211), eventbox_image_warning, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_warning, _("Your uploads are stalling at an abnormal rate, indicating that your bandwidth is probably saturated. You should not run as an ultra node, and try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating both your incoming and outgoing paths."), NULL);
+
+  image_warning = create_pixmap (main_window, "warning.xpm");
+  gtk_widget_set_name (image_warning, "image_warning");
+  gtk_widget_show (image_warning);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_warning), image_warning);
 
   eventbox_image_fd_shortage = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
@@ -2148,6 +2165,17 @@ create_main_window (void)
   gtk_widget_set_name (image_ancient, "image_ancient");
   gtk_widget_show (image_ancient);
   gtk_container_add (GTK_CONTAINER (eventbox_image_ancient), image_ancient);
+
+  eventbox_image_save = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_save, "eventbox_image_save");
+  gtk_widget_show (eventbox_image_save);
+  gtk_box_pack_start (GTK_BOX (hbox211), eventbox_image_save, TRUE, TRUE, 0);
+
+  image_save = create_pixmap (main_window, "save.xpm");
+  gtk_widget_set_name (image_save, "image_save");
+  gtk_widget_show (image_save);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_save), image_save);
+  gtk_misc_set_padding (GTK_MISC (image_save), 1, 0);
 
   eventbox_image_sha = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_sha, "eventbox_image_sha");
@@ -2181,17 +2209,6 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_image_lib), image_lib);
   gtk_misc_set_padding (GTK_MISC (image_lib), 1, 0);
 
-  eventbox_image_save = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox_image_save, "eventbox_image_save");
-  gtk_widget_show (eventbox_image_save);
-  gtk_box_pack_start (GTK_BOX (hbox211), eventbox_image_save, TRUE, TRUE, 0);
-
-  image_save = create_pixmap (main_window, "save.xpm");
-  gtk_widget_set_name (image_save, "image_save");
-  gtk_widget_show (image_save);
-  gtk_container_add (GTK_CONTAINER (eventbox_image_save), image_save);
-  gtk_misc_set_padding (GTK_MISC (image_save), 1, 0);
-
   hbox147 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox147, "hbox147");
   gtk_widget_show (hbox147);
@@ -2208,6 +2225,19 @@ create_main_window (void)
   gtk_widget_show (image_firewall);
   gtk_container_add (GTK_CONTAINER (eventbox_image_firewall), image_firewall);
   gtk_widget_set_size_request (image_firewall, 16, 16);
+
+  eventbox_image_firewall_punchable = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_firewall_punchable, "eventbox_image_firewall_punchable");
+  gtk_widget_show (eventbox_image_firewall_punchable);
+  gtk_box_pack_start (GTK_BOX (hbox147), eventbox_image_firewall_punchable, TRUE, TRUE, 0);
+  gtk_widget_set_size_request (eventbox_image_firewall_punchable, 16, 16);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_firewall_punchable, _("You appear to be firewalled, both TCP-wise and UDP-wise. You will not see any push results, which may prevent you from seeing a large amount of results. You will not be able to send queries requesting out-of-band delivery of query hits. However, it is possible to punch a hole into the UDP firewall, so you will be able to send out-of-band query hits."), NULL);
+
+  image_firewall_punchable = create_pixmap (main_window, "firewall_punchable.xpm");
+  gtk_widget_set_name (image_firewall_punchable, "image_firewall_punchable");
+  gtk_widget_show (image_firewall_punchable);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_firewall_punchable), image_firewall_punchable);
+  gtk_widget_set_size_request (image_firewall_punchable, 16, 16);
 
   eventbox_image_tcp_firewall = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_tcp_firewall, "eventbox_image_tcp_firewall");
@@ -2232,6 +2262,18 @@ create_main_window (void)
   gtk_widget_show (image_udp_firewall);
   gtk_container_add (GTK_CONTAINER (eventbox_image_udp_firewall), image_udp_firewall);
   gtk_widget_set_size_request (image_udp_firewall, 16, 16);
+
+  eventbox_image_firewall_udp_punchable = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_firewall_udp_punchable, "eventbox_image_firewall_udp_punchable");
+  gtk_widget_show (eventbox_image_firewall_udp_punchable);
+  gtk_box_pack_start (GTK_BOX (hbox147), eventbox_image_firewall_udp_punchable, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_firewall_udp_punchable, _("People can connect to you via TCP, but you are UDP-firewalled.  However, you can punch a hole into that firewall, allowing reception of replies to your UDP packets.  You will be able to send out-of-band query hits, but you won't be able to receive any."), NULL);
+
+  image_firewall_udp_punchable = create_pixmap (main_window, "firewall_udp_punchable.xpm");
+  gtk_widget_set_name (image_firewall_udp_punchable, "image_firewall_udp_punchable");
+  gtk_widget_show (image_firewall_udp_punchable);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_firewall_udp_punchable), image_firewall_udp_punchable);
+  gtk_widget_set_size_request (image_firewall_udp_punchable, 16, 16);
 
   eventbox_image_no_firewall = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_no_firewall, "eventbox_image_no_firewall");
@@ -2874,27 +2916,33 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, menu_about, "menu_about");
   GLADE_HOOKUP_OBJECT (main_window, image365, "image365");
   GLADE_HOOKUP_OBJECT (main_window, hbox211, "hbox211");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_warning, "eventbox_image_warning");
+  GLADE_HOOKUP_OBJECT (main_window, image_warning, "image_warning");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
   GLADE_HOOKUP_OBJECT (main_window, image_fd_shortage, "image_fd_shortage");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_fd_runout, "eventbox_image_fd_runout");
   GLADE_HOOKUP_OBJECT (main_window, image_fd_runout, "image_fd_runout");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_ancient, "eventbox_image_ancient");
   GLADE_HOOKUP_OBJECT (main_window, image_ancient, "image_ancient");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_save, "eventbox_image_save");
+  GLADE_HOOKUP_OBJECT (main_window, image_save, "image_save");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_sha, "eventbox_image_sha");
   GLADE_HOOKUP_OBJECT (main_window, image_sha, "image_sha");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_shav, "eventbox_image_shav");
   GLADE_HOOKUP_OBJECT (main_window, image_shav, "image_shav");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_lib, "eventbox_image_lib");
   GLADE_HOOKUP_OBJECT (main_window, image_lib, "image_lib");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_save, "eventbox_image_save");
-  GLADE_HOOKUP_OBJECT (main_window, image_save, "image_save");
   GLADE_HOOKUP_OBJECT (main_window, hbox147, "hbox147");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_firewall, "eventbox_image_firewall");
   GLADE_HOOKUP_OBJECT (main_window, image_firewall, "image_firewall");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_firewall_punchable, "eventbox_image_firewall_punchable");
+  GLADE_HOOKUP_OBJECT (main_window, image_firewall_punchable, "image_firewall_punchable");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_tcp_firewall, "eventbox_image_tcp_firewall");
   GLADE_HOOKUP_OBJECT (main_window, image_tcp_firewall, "image_tcp_firewall");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_udp_firewall, "eventbox_image_udp_firewall");
   GLADE_HOOKUP_OBJECT (main_window, image_udp_firewall, "image_udp_firewall");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_firewall_udp_punchable, "eventbox_image_firewall_udp_punchable");
+  GLADE_HOOKUP_OBJECT (main_window, image_firewall_udp_punchable, "image_firewall_udp_punchable");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_no_firewall, "eventbox_image_no_firewall");
   GLADE_HOOKUP_OBJECT (main_window, image_no_firewall, "image_no_firewall");
   GLADE_HOOKUP_OBJECT (main_window, hbox228, "hbox228");

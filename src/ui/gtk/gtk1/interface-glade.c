@@ -545,6 +545,8 @@ create_main_window (void)
   GtkWidget *label_statusbar_horizon_kb_count;
   GtkWidget *frame123;
   GtkWidget *hbox199;
+  GtkWidget *eventbox_image_warning;
+  GtkWidget *image_warning;
   GtkWidget *eventbox_image_fd_shortage;
   GtkWidget *image_fd_shortage;
   GtkWidget *eventbox_image_fd_runout;
@@ -561,10 +563,14 @@ create_main_window (void)
   GtkWidget *image_lib;
   GtkWidget *eventbox_image_firewall;
   GtkWidget *image_firewall;
+  GtkWidget *eventbox_image_firewall_punchable;
+  GtkWidget *image_firewall_punchable;
   GtkWidget *eventbox_image_tcp_firewall;
   GtkWidget *image_tcp_firewall;
   GtkWidget *eventbox_image_udp_firewall;
   GtkWidget *image_udp_firewall;
+  GtkWidget *eventbox_image_firewall_udp_punchable;
+  GtkWidget *image_firewall_udp_punchable;
   GtkWidget *eventbox_image_no_firewall;
   GtkWidget *image_no_firewall;
   GtkWidget *eventbox_image_leaf;
@@ -5145,7 +5151,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame123", frame123,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame123);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame123, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame123, FALSE, FALSE, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame123), GTK_SHADOW_IN);
 
   hbox199 = gtk_hbox_new (FALSE, 0);
@@ -5155,6 +5161,24 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox199);
   gtk_container_add (GTK_CONTAINER (frame123), hbox199);
+
+  eventbox_image_warning = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_warning, "eventbox_image_warning");
+  gtk_widget_ref (eventbox_image_warning);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_warning", eventbox_image_warning,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_warning);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_warning, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_warning, _("Your uploads are stalling at an abnormal rate, indicating that your bandwidth is probably saturated. You should not run as an ultra node, and try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating both your incoming and outgoing paths."), NULL);
+
+  image_warning = create_pixmap (main_window, "warning.xpm");
+  gtk_widget_set_name (image_warning, "image_warning");
+  gtk_widget_ref (image_warning);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_warning", image_warning,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_warning);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_warning), image_warning);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_warning), FALSE);
 
   eventbox_image_fd_shortage = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_fd_shortage, "eventbox_image_fd_shortage");
@@ -5292,6 +5316,24 @@ create_main_window (void)
   gtk_misc_set_padding (GTK_MISC (image_firewall), 1, 0);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_firewall), FALSE);
 
+  eventbox_image_firewall_punchable = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_firewall_punchable, "eventbox_image_firewall_punchable");
+  gtk_widget_ref (eventbox_image_firewall_punchable);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_firewall_punchable", eventbox_image_firewall_punchable,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_firewall_punchable);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_firewall_punchable, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_firewall_punchable, _("You appear to be firewalled, both TCP-wise and UDP-wise. You will not see any push results, which may prevent you from seeing a large amount of results. You will not be able to send queries requesting out-of-band delivery of query hits. However, it is possible to punch a hole into the UDP firewall, so you will be able to send out-of-band query hits."), NULL);
+
+  image_firewall_punchable = create_pixmap (main_window, "firewall_punchable.xpm");
+  gtk_widget_set_name (image_firewall_punchable, "image_firewall_punchable");
+  gtk_widget_ref (image_firewall_punchable);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_firewall_punchable", image_firewall_punchable,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_firewall_punchable);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_firewall_punchable), image_firewall_punchable);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_firewall_punchable), FALSE);
+
   eventbox_image_tcp_firewall = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_tcp_firewall, "eventbox_image_tcp_firewall");
   gtk_widget_ref (eventbox_image_tcp_firewall);
@@ -5327,6 +5369,24 @@ create_main_window (void)
   gtk_widget_show (image_udp_firewall);
   gtk_container_add (GTK_CONTAINER (eventbox_image_udp_firewall), image_udp_firewall);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_udp_firewall), FALSE);
+
+  eventbox_image_firewall_udp_punchable = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_firewall_udp_punchable, "eventbox_image_firewall_udp_punchable");
+  gtk_widget_ref (eventbox_image_firewall_udp_punchable);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_firewall_udp_punchable", eventbox_image_firewall_udp_punchable,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_firewall_udp_punchable);
+  gtk_box_pack_start (GTK_BOX (hbox199), eventbox_image_firewall_udp_punchable, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_firewall_udp_punchable, _("People can connect to you via TCP, but you are UDP-firewalled.  However, you can punch a hole into that firewall, allowing reception of replies to your UDP packets.  You will be able to send out-of-band query hits, but you won't be able to receive any."), NULL);
+
+  image_firewall_udp_punchable = create_pixmap (main_window, "firewall_udp_punchable.xpm");
+  gtk_widget_set_name (image_firewall_udp_punchable, "image_firewall_udp_punchable");
+  gtk_widget_ref (image_firewall_udp_punchable);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_firewall_udp_punchable", image_firewall_udp_punchable,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_firewall_udp_punchable);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_firewall_udp_punchable), image_firewall_udp_punchable);
+  gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_firewall_udp_punchable), FALSE);
 
   eventbox_image_no_firewall = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_no_firewall, "eventbox_image_no_firewall");

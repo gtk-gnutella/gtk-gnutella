@@ -7439,7 +7439,7 @@
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
-	  <fill>True</fill>
+	  <fill>False</fill>
 	</child>
 
 	<widget>
@@ -7447,6 +7447,28 @@
 	  <name>hbox199</name>
 	  <homogeneous>False</homogeneous>
 	  <spacing>0</spacing>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_warning</name>
+	    <tooltip>Your uploads are stalling at an abnormal rate, indicating that your bandwidth is probably saturated. You should not run as an ultra node, and try to reduce the allocated bandwidth to gtk-gnutella to avoid saturating both your incoming and outgoing paths.</tooltip>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_warning</name>
+	      <filename>warning.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>False</build_insensitive>
+	    </widget>
+	  </widget>
 
 	  <widget>
 	    <class>GtkEventBox</class>
@@ -7619,6 +7641,28 @@
 
 	  <widget>
 	    <class>GtkEventBox</class>
+	    <name>eventbox_image_firewall_punchable</name>
+	    <tooltip>You appear to be firewalled, both TCP-wise and UDP-wise. You will not see any push results, which may prevent you from seeing a large amount of results. You will not be able to send queries requesting out-of-band delivery of query hits. However, it is possible to punch a hole into the UDP firewall, so you will be able to send out-of-band query hits.</tooltip>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_firewall_punchable</name>
+	      <filename>firewall_punchable.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>False</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
 	    <name>eventbox_image_tcp_firewall</name>
 	    <tooltip>You appear to be TCP-firewalled, i.e. others cannot connect to you to download files. You will not see push results, which may prevent you from seeing a large amount of results.</tooltip>
 	    <child>
@@ -7653,6 +7697,28 @@
 	      <class>GtkPixmap</class>
 	      <name>image_udp_firewall</name>
 	      <filename>firewall_udp.xpm</filename>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <build_insensitive>False</build_insensitive>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkEventBox</class>
+	    <name>eventbox_image_firewall_udp_punchable</name>
+	    <tooltip>People can connect to you via TCP, but you are UDP-firewalled.  However, you can punch a hole into that firewall, allowing reception of replies to your UDP packets.  You will be able to send out-of-band query hits, but you won't be able to receive any.</tooltip>
+	    <child>
+	      <padding>0</padding>
+	      <expand>True</expand>
+	      <fill>True</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkPixmap</class>
+	      <name>image_firewall_udp_punchable</name>
+	      <filename>firewall_udp_punchable.xpm</filename>
 	      <xalign>0.5</xalign>
 	      <yalign>0.5</yalign>
 	      <xpad>0</xpad>

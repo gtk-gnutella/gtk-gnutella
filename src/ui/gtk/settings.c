@@ -714,40 +714,56 @@ static gboolean bw_http_out_enabled_changed(property_t prop)
 static gboolean is_firewalled_changed(property_t prop)
 {
 	GtkWidget *icon_firewall;
+	GtkWidget *icon_firewall_punchable;
 	GtkWidget *icon_tcp_firewall;
 	GtkWidget *icon_udp_firewall;
+	GtkWidget *icon_udp_firewall_punchable;
 	GtkWidget *icon_open;
 	gboolean is_tcp_firewalled;
 	gboolean is_udp_firewalled;
+	gboolean recv_solicited_udp;
 	gboolean send_pushes;
 	gboolean enable_udp;
 
     icon_firewall = lookup_widget(main_window, "eventbox_image_firewall");
+    icon_firewall_punchable = lookup_widget(main_window,
+		"eventbox_image_firewall_punchable");
     icon_tcp_firewall = lookup_widget(main_window,
 		"eventbox_image_tcp_firewall");
     icon_udp_firewall = lookup_widget(main_window,
 		"eventbox_image_udp_firewall");
+    icon_udp_firewall_punchable = lookup_widget(main_window,
+		"eventbox_image_firewall_udp_punchable");
 	icon_open = lookup_widget(main_window, "eventbox_image_no_firewall");
 
     gnet_prop_get_boolean_val(PROP_IS_FIREWALLED, &is_tcp_firewalled);
     gnet_prop_get_boolean_val(PROP_IS_UDP_FIREWALLED, &is_udp_firewalled);
+    gnet_prop_get_boolean_val(PROP_RECV_SOLICITED_UDP, &recv_solicited_udp);
     gnet_prop_get_boolean_val(PROP_ENABLE_UDP, &enable_udp);
 
 	gtk_widget_hide(icon_open);
 	gtk_widget_hide(icon_tcp_firewall);
 	gtk_widget_hide(icon_udp_firewall);
+	gtk_widget_hide(icon_udp_firewall_punchable);
 	gtk_widget_hide(icon_firewall);
+	gtk_widget_hide(icon_firewall_punchable);
 
 	if (!enable_udp)
 		is_udp_firewalled = FALSE;	/* Ignore firewalled status if no UDP */
 
-	if (is_tcp_firewalled && is_udp_firewalled)
-		gtk_widget_show(icon_firewall);
-	else if (is_tcp_firewalled)
+	if (is_tcp_firewalled && is_udp_firewalled) {
+		if (recv_solicited_udp)
+			gtk_widget_show(icon_firewall_punchable);
+		else
+			gtk_widget_show(icon_firewall);
+	} else if (is_tcp_firewalled)
 		gtk_widget_show(icon_tcp_firewall);
-	else if (is_udp_firewalled)
-		gtk_widget_show(icon_udp_firewall);
-	else
+	else if (is_udp_firewalled) {
+		if (recv_solicited_udp)
+			gtk_widget_show(icon_udp_firewall_punchable);
+		else
+			gtk_widget_show(icon_udp_firewall);
+	} else
 		gtk_widget_show(icon_open);
 
 	gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
@@ -1261,6 +1277,29 @@ static gboolean ancient_version_changed(property_t prop)
 
     if (b) {
         statusbar_gui_message(15, _("*** RUNNING AN OLD VERSION! ***"));
+        gtk_widget_show(w);
+    } else {
+        gtk_widget_hide(w);
+    }
+
+    return FALSE;
+}
+
+static gboolean uploads_stalling_changed(property_t prop)
+{
+    gboolean b;
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    w = lookup_widget(top, map_entry->wid);
+
+    stub->boolean.get(prop, &b, 0, 1);
+
+    if (b) {
+        statusbar_gui_warning(15,
+			_("*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"));
         gtk_widget_show(w);
     } else {
         gtk_widget_hide(w);
@@ -4269,6 +4308,14 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
+        NULL,
+        PROP_RECV_SOLICITED_UDP,
+        is_firewalled_changed,
+        TRUE,
+        NULL,
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
         get_main_window,
         PROP_WINDOW_COORDS,
         update_window_geometry,
@@ -5028,6 +5075,15 @@ static prop_map_t property_map[] = {
         update_label,
         TRUE,
         "label_qrp_patch_comp_ratio",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_UPLOADS_STALLING,
+        uploads_stalling_changed,
+        TRUE,
+        "eventbox_image_warning", 
+        /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
