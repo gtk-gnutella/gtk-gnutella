@@ -1,0 +1,376 @@
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.0 PL70]
+: $X-Id: Jmake.tmpl,v 3.0.1.3 1997/02/28 14:56:16 ram Exp ram $
+
+case $CONFIG in
+'')
+	if test -f config.sh; then TOP=.;
+	elif test -f ../config.sh; then TOP=..;
+	elif test -f ../../config.sh; then TOP=../..;
+	elif test -f ../../../config.sh; then TOP=../../..;
+	elif test -f ../../../../config.sh; then TOP=../../../..;
+	else
+		echo "Can't find config.sh."; exit 1
+	fi
+	. $TOP/config.sh
+	;;
+esac
+case "$0" in
+*/*) cd `expr X$0 : 'X\(.*\)/'` ;;
+esac
+CURRENT=src/ui/gtk
+DIR=`echo $CURRENT/ | sed -e 's/\.\///g'`
+echo "Extracting ${DIR}Makefile (with variable substitutions)"
+
+DATE=`date`
+
+$spitshell >Makefile <<!GROK!THIS!
+########################################################################
+# Makefile generated from Makefile.SH on $DATE
+
+SHELL = /bin/sh
+JMAKE = jmake
+TOP = ../../..
+CURRENT = $CURRENT
+DIR = $DIR
+
+########################################################################
+# Parameters set by Configure -- edit config.sh if changes are needed
+
+AR = ar rc
+CC = $cc
+CTAGS = ctags
+JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
+LN = $ln
+MKDEP = $mkdep \$(DPFLAGS) --
+MV = $mv
+RANLIB = $ranlib
+RM = $rm -f
+SED = $sed
+
+########################################################################
+# Automatically generated parameters -- do not edit
+
+SUBDIRS = gtk1 gtk2
+USRINC = $usrinc
+GTK_LDFLAGS =  $gtkldflags
+SOURCES =   \$(LSRC)
+OBJECTS =   \$(LOBJ)
+GTK_CFLAGS =  $gtkcflags
+XML2_CFLAGS =  $xmlcflags
+XML2_LDFLAGS =  $xmlldflags
+
+########################################################################
+# New suffixes and associated building rules -- edit with care
+
+.c.o:
+	\$(RM) \$@
+	\$(CC) -c \$(JCFLAGS) \$<
+
+!GROK!THIS!
+$spitshell >>Makefile <<'!NO!SUBS!'
+########################################################################
+# Jmake rules for building libraries, programs, scripts, and data files
+# $X-Id: Jmake.rules,v 3.0.1.7 2004/08/22 08:28:58 ram Exp ram $
+
+########################################################################
+# Force 'make depend' to be performed first -- do not edit
+
+.FORCE_DEPEND::
+
+all:: .FORCE_DEPEND
+
+########################################################################
+# Start of Jmakefile
+
+# $X-Id: Jmakefile,v 1.28 2004/08/18 18:49:45 rmanfredi Exp $
+
+LSRC = \
+	downloads_common.c \
+	drop.c \
+	filter.c \
+	filter_cb.c \
+	filter_core.c \
+	gnet_stats_common.c \
+	gtk-missing.c \
+	gtkcolumnchooser.c \
+	hcache_common.c \
+	icon.c \
+	main.c \
+	main_cb.c \
+	misc.c \
+	nodes_common.c \
+	search_common.c \
+	search_xml.c \
+	settings.c \
+	settings_cb.c \
+	statusbar.c \
+	upload_stats_cb.c \
+	uploads_cb.c \
+	uploads_common.c \
+	visual_progress.c
+
+LOBJ = \
+	downloads_common.o \
+	drop.o \
+	filter.o \
+	filter_cb.o \
+	filter_core.o \
+	gnet_stats_common.o \
+	gtk-missing.o \
+	gtkcolumnchooser.o \
+	hcache_common.o \
+	icon.o \
+	main.o \
+	main_cb.o \
+	misc.o \
+	nodes_common.o \
+	search_common.o \
+	search_xml.o \
+	settings.o \
+	settings_cb.o \
+	statusbar.o \
+	upload_stats_cb.o \
+	uploads_cb.o \
+	uploads_common.o \
+	visual_progress.o 
+
+TOP_SRC = ../..
+TOP_GUI = ..
+
+# Those extra flags are expected to be user-defined
+CFLAGS = -I$(TOP) -I$(TOP_SRC) -I$(TOP_GUI) \
+	$(GTK_CFLAGS) $(XML2_CFLAGS) -DGUI_SOURCES
+DPFLAGS = $(CFLAGS)
+
+IF = ../../if
+GNET_PROPS = gnet_property.h
+
+.FORCE:
+
+$(IF)/$(GNET_PROPS): .FORCE
+	@echo "Checking "$(GNET_PROPS)" in "$(IF)"..."
+	cd $(IF); $(MAKE) $(GNET_PROPS)
+	@echo "Continuing in $(CURRENT)..."
+
+libgtk-common.a:  $(IF)/$(GNET_PROPS)
+
+#>SUBDIRS
+
+all:: libgtk-common.a
+
+local_realclean::
+	$(RM) libgtk-common.a
+
+libgtk-common.a:  $(LOBJ)
+	$(RM) $@
+	$(AR) $@  $(LOBJ)
+	$(RANLIB) $@
+
+depend::
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS) ;\
+	do \
+		(cd $$i ; echo "Depending" "in $(DIR)$$i..."; \
+			$(MAKE) $(MFLAGS)  depend); \
+	done
+
+depend:: ../../../mkdep
+
+../../../mkdep:
+	@echo "You have to run Configure in $(TOP) first."; exit 1
+
+depend::
+	($(SED) '/^# DO NOT DELETE/q' Makefile && \
+	$(MKDEP) $(SOURCES) | \
+	$(SED) -e 's:/usr/lib[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
+		-e '/: / b print' -e 'H; d; n; : print' -e 'x; s/\\\n//g' \
+		-e 's/  */ /g; s/ :/:/;' -e '/: *$$/d' \
+	) > Makefile.new
+	cp Makefile Makefile.bak
+	cp Makefile.new Makefile
+	$(RM) Makefile.new
+
+!NO!SUBS!
+case "$d_usegtk1" in
+define)
+	$spitshell >>Makefile <<'!NO!SUBS!'
+SDIR = gtk1
+LIBRARY = libgtk1.a
+!NO!SUBS!
+	;;
+esac
+$spitshell >>Makefile <<'!NO!SUBS!'
+!NO!SUBS!
+case "$d_usegtk2" in
+define)
+	$spitshell >>Makefile <<'!NO!SUBS!'
+SDIR = gtk2
+LIBRARY = libgtk2.a
+!NO!SUBS!
+	;;
+esac
+$spitshell >>Makefile <<'!NO!SUBS!'
+
+#SUBDIRS = $(SDIR)
+
+$(SDIR)/support-glade.h: .FORCE
+	@echo "Checking "support-glade.h" in "$(SDIR)"..."
+	cd $(SDIR); $(MAKE) support-glade.h
+	@echo "Continuing in $(CURRENT)..."
+
+libgtk-common.a:  $(SDIR)/support-glade.h
+
+all:: libgtkx.a
+
+local_realclean::
+	$(RM) libgtkx.a
+
+$(SDIR)/$(LIBRARY): .FORCE
+	@echo "Checking "$(LIBRARY)" in "$(SDIR)"..."
+	cd $(SDIR); $(MAKE) $(LIBRARY)
+	@echo "Continuing in $(CURRENT)..."
+
+libgtkx.a:  $(SDIR)/$(LIBRARY)
+
+libgtkx.a: $(SDIR)/$(LIBRARY)
+	$(RM) $@
+	$(LN) $(SDIR)/$(LIBRARY) $@
+	$(RANLIB) $@
+
+########################################################################
+# Common rules for all Makefiles -- do not edit
+
+emptyrule::
+
+clean: sub_clean local_clean
+realclean: sub_realclean local_realclean
+clobber: sub_clobber local_clobber
+
+local_clean::
+	if test -f core; then $(RM) core; fi
+	$(RM) *~ *.o
+
+local_realclean:: local_clean
+
+local_clobber:: local_realclean
+	$(RM) Makefile config.sh
+
+install: local_install sub_install
+install.man: maybe_install.man sub_install.man
+deinstall: sub_deinstall local_deinstall
+deinstall.man: sub_deinstall.man maybe_deinstall.man
+
+install.man-no:
+deinstall.man-no:
+
+maybe_install.man: install.man-no
+maybe_deinstall.man: deinstall.man-no
+
+Makefile.SH: Jmakefile
+	-@if test -f $(TOP)/.package; then \
+		if test -f Makefile.SH; then \
+			echo "	$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~"; \
+			$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~; \
+		fi; \
+		echo "	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT)" ; \
+		$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT) ; \
+	else touch $@; fi
+
+Makefile: Makefile.SH
+	/bin/sh Makefile.SH
+
+tags::
+	$(CTAGS) -w *.[ch]
+	$(CTAGS) -xw *.[ch] > tags
+
+local_clobber::
+	$(RM) tags
+
+########################################################################
+# Rules for building in sub-directories -- do not edit
+
+subdirs:
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS) ;\
+	do \
+		(cd $$i ; echo $(VERB) "in $(DIR)$$i..."; \
+			$(MAKE) $(MFLAGS) $(FLAGS) $(TARGET)); \
+	done
+
+sub_install::
+	@$(MAKE) subdirs TARGET=install VERB="Installing" FLAGS=
+
+sub_deinstall::
+	@$(MAKE) subdirs TARGET=deinstall VERB="Deinstalling" FLAGS=
+	@echo "Back to $(CURRENT) for "deinstall...
+
+sub_install.man::
+	@$(MAKE) subdirs TARGET=install.man VERB="Installing man pages" FLAGS=
+
+sub_deinstall.man::
+	@$(MAKE) subdirs TARGET=deinstall.man VERB="Deinstalling man pages" FLAGS=
+	@echo "Back to $(CURRENT) for "deinstall.man...
+
+sub_clean::
+	@$(MAKE) subdirs TARGET=clean VERB="Cleaning" FLAGS=
+	@echo "Back to $(CURRENT) for "clean...
+
+sub_realclean::
+	@$(MAKE) subdirs TARGET=realclean VERB="Real cleaning" FLAGS=
+	@echo "Back to $(CURRENT) for "realclean...
+
+sub_clobber::
+	@$(MAKE) subdirs TARGET=clobber VERB="Clobbering" FLAGS=
+	@echo "Back to $(CURRENT) for "clobber...
+
+tag::
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS) ;\
+	do \
+		(cd $$i ; echo "Tagging" "in $(DIR)$$i..."; \
+			$(MAKE) $(MFLAGS)  tag); \
+	done
+
+Makefiles::
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS);\
+	do \
+		echo "Making "Makefiles" in $(DIR)$$i..."; \
+		(cd $$i || exit 1; \
+		if test ! -f Makefile; then /bin/sh Makefile.SH; fi; \
+		$(MAKE) $(MFLAGS) Makefiles) \
+	done
+
+Makefiles.SH:: Makefile.SH
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS);\
+	do \
+		case "$(DIR)$$i/" in \
+		*/*/*/*/) newtop=../../../..;; \
+		*/*/*/) newtop=../../..;; \
+		*/*/) newtop=../..;; \
+		*/) newtop=..;; \
+		esac; \
+		case "$(TOP)" in \
+		/*) newtop="$(TOP)" ;; \
+		esac; \
+		echo "Making Makefiles.SH in $(DIR)$$i..."; \
+		(cd $$i || exit 1; $(MAKE) $(MFLAGS) -f ../Makefile \
+		Makefile TOP=$$newtop CURRENT=$(DIR)$$i;\
+		$(MAKE) $(MFLAGS) Makefiles.SH) \
+	done
+
+all::
+	@$(MAKE) subdirs TARGET=all VERB="Making all" FLAGS=
+
+########################################################################
+# Dependencies generated by make depend
+# DO NOT DELETE THIS LINE -- make depend relies on it
+
+# Put nothing here or make depend will gobble it up
+.FORCE_DEPEND::
+	@echo "You must run 'make depend' in $(TOP) first."; exit 1
+!NO!SUBS!
+chmod 644 Makefile
+$eunicefix Makefile
+

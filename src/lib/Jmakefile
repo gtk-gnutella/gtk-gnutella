@@ -1,0 +1,81 @@
+/*
+ * $Id$
+ *
+ * Copyright (c) 2004, Raphael Manfredi
+ *
+ * Jmakefile for common sources.
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+;# $Id$
+
+LSRC = \
+	adns.c \
+	atoms.c \
+	base32.c \
+	base64.c \
+	bg.c \
+	cobs.c \
+	cq.c \
+	crc.c \
+	eval.c \
+	event.c \
+	file.c \
+	fuzzy.c \
+	getline.c \
+	glib-missing.c \
+	hashlist.c \
+	header.c \
+	idtable.c \
+	inputevt.c \
+	malloc.c \
+	misc.c \
+	pattern.c \
+	prop.c \
+	sha1.c \
+	tiger.c \
+	tigertree.c \
+	tm.c \
+	url.c \
+	utf8.c \
+	vendors.c \
+	walloc.c \
+	wordvec.c \
+	zalloc.c \
+	zlib_util.c
+
+/* Object files are derived from source files */
+LOBJ = \
+|expand f!$(LSRC)!
+	!f:\.c=.o \
+-expand \\
+
+/* Additional flags for glib compilation, added in the substituted section */
+++GLIB_CFLAGS $glibcflags
+
+;# Those extra flags are expected to be user-defined
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS)
+DPFLAGS = -I$(TOP) -I .. $(GLIB_CFLAGS)
+
+SimpleYaccTarget(libshared.a, getdate)
+
+NormalLibraryTarget(shared,$(LSRC),$(LOBJ) getdate.o)
+DependTarget()

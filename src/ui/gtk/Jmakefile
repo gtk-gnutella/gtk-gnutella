@@ -1,0 +1,108 @@
+/*
+ * $Id$
+ *
+ * Copyright (c) 2003, Raphael Manfredi
+ *
+ * Jmakefile for the common files of the GTK+ GUI.
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+;# $Id$
+
+LSRC = \
+	downloads_common.c \
+	drop.c \
+	filter.c \
+	filter_cb.c \
+	filter_core.c \
+	gnet_stats_common.c \
+	gtk-missing.c \
+	gtkcolumnchooser.c \
+	hcache_common.c \
+	icon.c \
+	main.c \
+	main_cb.c \
+	misc.c \
+	nodes_common.c \
+	search_common.c \
+	search_xml.c \
+	settings.c \
+	settings_cb.c \
+	statusbar.c \
+	upload_stats_cb.c \
+	uploads_cb.c \
+	uploads_common.c \
+	visual_progress.c
+
+LOBJ = \
+|expand f!$(LSRC)!
+	!f:\.c=.o \
+-expand \\
+
+/* Additional flags for GTK compilation, added in the substituted section */
+++GTK_CFLAGS $gtkcflags
+++GTK_LDFLAGS $gtkldflags
+
+/* Add the libxml2 flags */
+++XML2_CFLAGS $xmlcflags
+++XML2_LDFLAGS $xmlldflags
+
+TOP_SRC = ../..
+TOP_GUI = ..
+
+;# Those extra flags are expected to be user-defined
+CFLAGS = -I$(TOP) -I$(TOP_SRC) -I$(TOP_GUI) \
+	$(GTK_CFLAGS) $(XML2_CFLAGS) -DGUI_SOURCES
+DPFLAGS = $(CFLAGS)
+
+IF = ../../if
+GNET_PROPS = gnet_property.h
+
+RemoteTargetDependency(libgtk-common.a, $(IF), $(GNET_PROPS))
+
+SetSubdirs(gtk1 gtk2)
+NormalLibraryTarget(gtk-common, $(LSRC), $(LOBJ))
+DependSubdirs()
+DependTarget()
+
+|case d_usegtk1 in define
+SDIR = gtk1
+LIBRARY = libgtk1.a
+-case
+|case d_usegtk2 in define
+SDIR = gtk2
+LIBRARY = libgtk2.a
+-case
+
+RemoteTargetDependency(libgtk-common.a, $(SDIR), support-glade.h)
+
+/*
+ * Copy the library for GTK1 or GTK2 to the current directory.
+ */
+
+AllTarget(libgtkx.a)
+RemoteTargetDependency(libgtkx.a, $(SDIR), $(LIBRARY))
+
+libgtkx.a: $(SDIR)/$(LIBRARY)
+	$(RM) $@
+	$(LN) $(SDIR)/$(LIBRARY) $@
+	$(RANLIB) $@
+

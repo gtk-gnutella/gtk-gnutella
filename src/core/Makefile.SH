@@ -1,0 +1,329 @@
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.0 PL70]
+: $X-Id: Jmake.tmpl,v 3.0.1.3 1997/02/28 14:56:16 ram Exp ram $
+
+case $CONFIG in
+'')
+	if test -f config.sh; then TOP=.;
+	elif test -f ../config.sh; then TOP=..;
+	elif test -f ../../config.sh; then TOP=../..;
+	elif test -f ../../../config.sh; then TOP=../../..;
+	elif test -f ../../../../config.sh; then TOP=../../../..;
+	else
+		echo "Can't find config.sh."; exit 1
+	fi
+	. $TOP/config.sh
+	;;
+esac
+case "$0" in
+*/*) cd `expr X$0 : 'X\(.*\)/'` ;;
+esac
+CURRENT=src/core
+DIR=`echo $CURRENT/ | sed -e 's/\.\///g'`
+echo "Extracting ${DIR}Makefile (with variable substitutions)"
+
+DATE=`date`
+
+$spitshell >Makefile <<!GROK!THIS!
+########################################################################
+# Makefile generated from Makefile.SH on $DATE
+
+SHELL = /bin/sh
+JMAKE = jmake
+TOP = ../..
+CURRENT = $CURRENT
+DIR = $DIR
+
+########################################################################
+# Parameters set by Configure -- edit config.sh if changes are needed
+
+AR = ar rc
+CC = $cc
+CTAGS = ctags
+JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
+MKDEP = $mkdep \$(DPFLAGS) --
+MV = $mv
+RANLIB = $ranlib
+RM = $rm -f
+SED = $sed
+
+########################################################################
+# Automatically generated parameters -- do not edit
+
+USRINC = $usrinc
+SOURCES =   \$(SRC)
+OBJECTS =   \$(OBJ)
+GLIB_CFLAGS =  $glibcflags
+XML2_CFLAGS =  $xmlcflags
+
+########################################################################
+# New suffixes and associated building rules -- edit with care
+
+.c.o:
+	\$(RM) \$@
+	\$(CC) -c \$(JCFLAGS) \$<
+
+!GROK!THIS!
+$spitshell >>Makefile <<'!NO!SUBS!'
+########################################################################
+# Jmake rules for building libraries, programs, scripts, and data files
+# $X-Id: Jmake.rules,v 3.0.1.7 2004/08/22 08:28:58 ram Exp ram $
+
+########################################################################
+# Force 'make depend' to be performed first -- do not edit
+
+.FORCE_DEPEND::
+
+all:: .FORCE_DEPEND
+
+########################################################################
+# Start of Jmakefile
+
+# $X-Id: Jmakefile,v 1.28 2004/08/18 18:49:45 rmanfredi Exp $
+
+SRC = \
+	alive.c \
+	ban.c \
+	bitzi.c \
+	bsched.c \
+	clock.c \
+	dh.c \
+	dmesh.c \
+	downloads.c \
+	dq.c \
+	extensions.c \
+	features.c \
+	fileinfo.c \
+	ggep.c \
+	ggep_type.c \
+	gmsg.c \
+	gnet_stats.c \
+	guid.c \
+	gwcache.c \
+	hashtree.c \
+	hcache.c \
+	hostiles.c \
+	hosts.c \
+	hsep.c \
+	http.c \
+	huge.c \
+	ignore.c \
+	inet.c \
+	ioheader.c \
+	matching.c \
+	move.c \
+	mq.c \
+	namesize.c \
+	nodes.c \
+	parq.c \
+	pcache.c \
+	pmsg.c \
+	pproxy.c \
+	qrp.c \
+	routing.c \
+	rx.c \
+	rx_inflate.c \
+	rx_link.c \
+	rxbuf.c \
+	search.c \
+	settings.c \
+	share.c \
+	shell.c \
+	sockets.c \
+	sq.c \
+	token.c \
+	tx.c \
+	tx_deflate.c \
+	tx_link.c \
+	udp.c \
+	upload_stats.c \
+	uploads.c \
+	verify.c \
+	verify_tth.c \
+	version.c \
+	vmsg.c \
+	whitelist.c
+
+OBJ = \
+	alive.o \
+	ban.o \
+	bitzi.o \
+	bsched.o \
+	clock.o \
+	dh.o \
+	dmesh.o \
+	downloads.o \
+	dq.o \
+	extensions.o \
+	features.o \
+	fileinfo.o \
+	ggep.o \
+	ggep_type.o \
+	gmsg.o \
+	gnet_stats.o \
+	guid.o \
+	gwcache.o \
+	hashtree.o \
+	hcache.o \
+	hostiles.o \
+	hosts.o \
+	hsep.o \
+	http.o \
+	huge.o \
+	ignore.o \
+	inet.o \
+	ioheader.o \
+	matching.o \
+	move.o \
+	mq.o \
+	namesize.o \
+	nodes.o \
+	parq.o \
+	pcache.o \
+	pmsg.o \
+	pproxy.o \
+	qrp.o \
+	routing.o \
+	rx.o \
+	rx_inflate.o \
+	rx_link.o \
+	rxbuf.o \
+	search.o \
+	settings.o \
+	share.o \
+	shell.o \
+	sockets.o \
+	sq.o \
+	token.o \
+	tx.o \
+	tx_deflate.o \
+	tx_link.o \
+	udp.o \
+	upload_stats.o \
+	uploads.o \
+	verify.o \
+	verify_tth.o \
+	version.o \
+	vmsg.o \
+	whitelist.o 
+
+# Those extra flags are expected to be user-defined
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(XML2_CFLAGS) -DCORE_SOURCES
+DPFLAGS = $(CFLAGS)
+
+IF = ../if
+GNET_PROPS = gnet_property.h
+
+.FORCE:
+
+$(IF)/$(GNET_PROPS): .FORCE
+	@echo "Checking "$(GNET_PROPS)" in "$(IF)"..."
+	cd $(IF); $(MAKE) $(GNET_PROPS)
+	@echo "Continuing in $(CURRENT)..."
+
+libcore.a:  $(IF)/$(GNET_PROPS)
+
+all:: libcore.a
+
+local_realclean::
+	$(RM) libcore.a
+
+libcore.a:  $(OBJ)
+	$(RM) $@
+	$(AR) $@  $(OBJ)
+	$(RANLIB) $@
+
+depend:: ../../mkdep
+
+../../mkdep:
+	@echo "You have to run Configure in $(TOP) first."; exit 1
+
+depend::
+	($(SED) '/^# DO NOT DELETE/q' Makefile && \
+	$(MKDEP) $(SOURCES) | \
+	$(SED) -e 's:/usr/lib[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
+		-e '/: / b print' -e 'H; d; n; : print' -e 'x; s/\\\n//g' \
+		-e 's/  */ /g; s/ :/:/;' -e '/: *$$/d' \
+	) > Makefile.new
+	cp Makefile Makefile.bak
+	cp Makefile.new Makefile
+	$(RM) Makefile.new
+
+########################################################################
+# Common rules for all Makefiles -- do not edit
+
+emptyrule::
+
+clean: local_clean
+realclean: local_realclean
+clobber: local_clobber
+
+local_clean::
+	if test -f core; then $(RM) core; fi
+	$(RM) *~ *.o
+
+local_realclean:: local_clean
+
+local_clobber:: local_realclean
+	$(RM) Makefile config.sh
+
+install: local_install
+install.man: maybe_install.man
+deinstall: local_deinstall
+deinstall.man: maybe_deinstall.man
+
+install.man-no:
+deinstall.man-no:
+
+maybe_install.man: install.man-no
+maybe_deinstall.man: deinstall.man-no
+
+Makefile.SH: Jmakefile
+	-@if test -f $(TOP)/.package; then \
+		if test -f Makefile.SH; then \
+			echo "	$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~"; \
+			$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~; \
+		fi; \
+		echo "	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT)" ; \
+		$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT) ; \
+	else touch $@; fi
+
+Makefile: Makefile.SH
+	/bin/sh Makefile.SH
+
+tags::
+	$(CTAGS) -w *.[ch]
+	$(CTAGS) -xw *.[ch] > tags
+
+local_clobber::
+	$(RM) tags
+
+########################################################################
+# Empty rules for directories with no sub-directories -- do not edit
+
+local_install::
+	@echo "install in $(CURRENT) done."
+
+local_deinstall::
+	@echo "deinstall in $(CURRENT) done."
+
+local_install.man::
+	@echo "install.man in $(CURRENT) done."
+
+local_deinstall.man::
+	@echo "deinstall.man in $(CURRENT) done."
+
+Makefiles::
+
+Makefiles.SH::
+
+########################################################################
+# Dependencies generated by make depend
+# DO NOT DELETE THIS LINE -- make depend relies on it
+
+# Put nothing here or make depend will gobble it up
+.FORCE_DEPEND::
+	@echo "You must run 'make depend' in $(TOP) first."; exit 1
+!NO!SUBS!
+chmod 644 Makefile
+$eunicefix Makefile
+

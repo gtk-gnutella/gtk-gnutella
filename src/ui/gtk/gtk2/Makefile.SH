@@ -1,0 +1,294 @@
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.0 PL70]
+: $X-Id: Jmake.tmpl,v 3.0.1.3 1997/02/28 14:56:16 ram Exp ram $
+
+case $CONFIG in
+'')
+	if test -f config.sh; then TOP=.;
+	elif test -f ../config.sh; then TOP=..;
+	elif test -f ../../config.sh; then TOP=../..;
+	elif test -f ../../../config.sh; then TOP=../../..;
+	elif test -f ../../../../config.sh; then TOP=../../../..;
+	else
+		echo "Can't find config.sh."; exit 1
+	fi
+	. $TOP/config.sh
+	;;
+esac
+case "$0" in
+*/*) cd `expr X$0 : 'X\(.*\)/'` ;;
+esac
+CURRENT=src/ui/gtk/gtk2
+DIR=`echo $CURRENT/ | sed -e 's/\.\///g'`
+echo "Extracting ${DIR}Makefile (with variable substitutions)"
+
+DATE=`date`
+
+$spitshell >Makefile <<!GROK!THIS!
+########################################################################
+# Makefile generated from Makefile.SH on $DATE
+
+SHELL = /bin/sh
+JMAKE = jmake
+TOP = ../../../..
+CURRENT = $CURRENT
+DIR = $DIR
+
+########################################################################
+# Parameters set by Configure -- edit config.sh if changes are needed
+
+AR = ar rc
+CC = $cc
+CHMOD = $chmod
+CP = $cp
+CTAGS = ctags
+JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
+MKDEP = $mkdep \$(DPFLAGS) --
+MV = $mv
+RANLIB = $ranlib
+RM = $rm -f
+SED = $sed
+
+########################################################################
+# Automatically generated parameters -- do not edit
+
+USRINC = $usrinc
+GLADE =  $glade
+GTK_LDFLAGS =  $gtkldflags
+SOURCES =   \$(SRC)
+OBJECTS =   \$(OBJ)
+GTK_CFLAGS =  $gtkcflags
+XML2_CFLAGS =  $xmlcflags
+XML2_LDFLAGS =  $xmlldflags
+
+########################################################################
+# New suffixes and associated building rules -- edit with care
+
+.c.o:
+	\$(RM) \$@
+	\$(CC) -c \$(JCFLAGS) \$<
+
+!GROK!THIS!
+$spitshell >>Makefile <<'!NO!SUBS!'
+########################################################################
+# Jmake rules for building libraries, programs, scripts, and data files
+# $X-Id: Jmake.rules,v 3.0.1.7 2004/08/22 08:28:58 ram Exp ram $
+
+########################################################################
+# Force 'make depend' to be performed first -- do not edit
+
+.FORCE_DEPEND::
+
+all:: .FORCE_DEPEND
+
+########################################################################
+# Start of Jmakefile
+
+# $X-Id: Jmakefile,v 1.28 2004/08/18 18:49:45 rmanfredi Exp $
+
+# Those files lie in the ../gtk-shared directory
+REMOTE_GLADE_C = callbacks.c
+REMOTE_GLADE_H = callbacks.h
+REMOTE_GLADE = $(REMOTE_GLADE_C) $(REMOTE_GLADE_H)
+
+LSRC = \
+	bitzi.c \
+	downloads.c \
+	downloads_cb.c \
+	fileinfo.c \
+	gnet_stats.c \
+	hcache.c \
+	monitor.c \
+	monitor_cb.c \
+	nodes.c \
+	nodes_cb.c \
+	pbarcellrenderer.c \
+	search.c \
+	search_cb.c \
+	search_stats.c \
+	upload_stats.c \
+	uploads.c
+
+LOBJ = \
+	bitzi.o \
+	downloads.o \
+	downloads_cb.o \
+	fileinfo.o \
+	gnet_stats.o \
+	hcache.o \
+	monitor.o \
+	monitor_cb.o \
+	nodes.o \
+	nodes_cb.o \
+	pbarcellrenderer.o \
+	search.o \
+	search_cb.o \
+	search_stats.o \
+	upload_stats.o \
+	uploads.o \
+	callbacks.o 
+
+GLADE_C = \
+	interface-glade.c \
+	support-glade.c
+
+GLADE_H = \
+	interface-glade.h \
+	support-glade.h 
+
+GLADE_O = \
+	interface-glade.o \
+	support-glade.o \
+	callbacks.o 
+
+GLADE_GEN = $(GLADE_C) $(GLADE_H)
+
+SRC = $(LSRC) $(GLADE_C) $(REMOTE_GLADE_C)
+OBJ = $(LOBJ) $(GLADE_O)
+
+TOP_SRC = ../../..
+TOP_GUI = ../..
+
+# Those extra flags are expected to be user-defined
+CFLAGS = -I$(TOP) -I$(TOP_SRC) -I$(TOP_GUI) \
+	$(GTK_CFLAGS) $(XML2_CFLAGS) -DGUI_SOURCES
+DPFLAGS = $(CFLAGS)
+
+GLADEFILE = gtk-gnutella.glade
+
+# We allow the target to fail since we're distribute the generated files
+# with the sources, so even if they don't have glade, it will work.
+$(GLADE_GEN): $(GLADEFILE) $(REMOTE_GLADE)
+	$(CHMOD) 0644 $(REMOTE_GLADE)
+	-$(GLADE) --write-source $(GLADEFILE)
+	$(CHMOD) 0444 $(REMOTE_GLADE)
+
+GTK_SHARED = ../gtk-shared
+
+callbacks.c: $(GTK_SHARED)/callbacks.c
+	$(RM) callbacks.c
+	$(CP) $(GTK_SHARED)/callbacks.c . && $(CHMOD) 0444 callbacks.c
+
+callbacks.h: $(GTK_SHARED)/callbacks.h
+	$(RM) callbacks.h
+	$(CP) $(GTK_SHARED)/callbacks.h . && $(CHMOD) 0444 callbacks.h
+
+
+depend:: $(REMOTE_GLADE)
+
+local_realclean::
+	$(RM) $(REMOTE_GLADE)
+
+!NO!SUBS!
+case "$d_usegtk2" in
+define)
+	$spitshell >>Makefile <<'!NO!SUBS!'
+
+all:: libgtk2.a
+
+local_realclean::
+	$(RM) libgtk2.a
+
+libgtk2.a:  $(OBJ)
+	$(RM) $@
+	$(AR) $@  $(OBJ)
+	$(RANLIB) $@
+!NO!SUBS!
+	;;
+esac
+$spitshell >>Makefile <<'!NO!SUBS!'
+
+depend:: ../../../../mkdep
+
+../../../../mkdep:
+	@echo "You have to run Configure in $(TOP) first."; exit 1
+
+depend::
+	($(SED) '/^# DO NOT DELETE/q' Makefile && \
+	$(MKDEP) $(SOURCES) | \
+	$(SED) -e 's:/usr/lib[^ ]*::g; s:$(USRINC)[^ ]*::g; ' \
+		-e '/: / b print' -e 'H; d; n; : print' -e 'x; s/\\\n//g' \
+		-e 's/  */ /g; s/ :/:/;' -e '/: *$$/d' \
+	) > Makefile.new
+	cp Makefile Makefile.bak
+	cp Makefile.new Makefile
+	$(RM) Makefile.new
+
+########################################################################
+# Common rules for all Makefiles -- do not edit
+
+emptyrule::
+
+clean: local_clean
+realclean: local_realclean
+clobber: local_clobber
+
+local_clean::
+	if test -f core; then $(RM) core; fi
+	$(RM) *~ *.o
+
+local_realclean:: local_clean
+
+local_clobber:: local_realclean
+	$(RM) Makefile config.sh
+
+install: local_install
+install.man: maybe_install.man
+deinstall: local_deinstall
+deinstall.man: maybe_deinstall.man
+
+install.man-no:
+deinstall.man-no:
+
+maybe_install.man: install.man-no
+maybe_deinstall.man: deinstall.man-no
+
+Makefile.SH: Jmakefile
+	-@if test -f $(TOP)/.package; then \
+		if test -f Makefile.SH; then \
+			echo "	$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~"; \
+			$(RM) Makefile.SH~; $(MV) Makefile.SH Makefile.SH~; \
+		fi; \
+		echo "	$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT)" ; \
+		$(JMAKE) -DTOPDIR=$(TOP) -DCURDIR=$(CURRENT) ; \
+	else touch $@; fi
+
+Makefile: Makefile.SH
+	/bin/sh Makefile.SH
+
+tags::
+	$(CTAGS) -w *.[ch]
+	$(CTAGS) -xw *.[ch] > tags
+
+local_clobber::
+	$(RM) tags
+
+########################################################################
+# Empty rules for directories with no sub-directories -- do not edit
+
+local_install::
+	@echo "install in $(CURRENT) done."
+
+local_deinstall::
+	@echo "deinstall in $(CURRENT) done."
+
+local_install.man::
+	@echo "install.man in $(CURRENT) done."
+
+local_deinstall.man::
+	@echo "deinstall.man in $(CURRENT) done."
+
+Makefiles::
+
+Makefiles.SH::
+
+########################################################################
+# Dependencies generated by make depend
+# DO NOT DELETE THIS LINE -- make depend relies on it
+
+# Put nothing here or make depend will gobble it up
+.FORCE_DEPEND::
+	@echo "You must run 'make depend' in $(TOP) first."; exit 1
+!NO!SUBS!
+chmod 644 Makefile
+$eunicefix Makefile
+

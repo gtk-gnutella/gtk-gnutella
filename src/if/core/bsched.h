@@ -1,0 +1,71 @@
+/*
+ * $Id$
+ *
+ * Copyright (c) 2001-2003, Raphael Manfredi
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+#ifndef _if_core_bsched_h_
+#define _if_core_bsched_h_
+
+#include "if/core/wrap.h"	/* For wrap_io_t */
+#include "lib/inputevt.h"	/* For inputevt_handler_t */
+
+#define BS_BW_MAX	(2*1024*1024)
+
+typedef struct bsched bsched_t;
+
+/*
+ * Source under bandwidth control.
+ */
+typedef struct bio_source {
+	bsched_t *bs;						/* B/w scheduler for this source */
+	wrap_io_t *wio;						/* Wrapped I/O object */
+	gint io_tag;						/* Recorded I/O callback tag */
+	guint io_flags;						/* Flags for I/O callback */
+	inputevt_handler_t io_callback;		/* I/O callback routine */
+	gpointer io_arg;					/* I/O callback argument */
+	guint32 flags;						/* Source flags */
+	guint bw_actual;					/* Actual bandwidth used in period */
+	guint bw_last_bps;					/* B/w used last period (bps) */
+	guint bw_fast_ema;					/* Fast EMA of actual bandwidth used */
+	guint bw_slow_ema;					/* Slow EMA of actual bandwidth used */
+} bio_source_t;
+
+/*
+ * Source flags.
+ */
+
+#define BIO_F_READ			0x00000001	/* Reading source */
+#define BIO_F_WRITE			0x00000002	/* Writing source */
+#define BIO_F_ACTIVE		0x00000004	/* Source active since b/w scheduled */
+#define BIO_F_USED			0x00000008	/* Source used this period */
+
+#define BIO_F_RW			(BIO_F_READ|BIO_F_WRITE)
+
+#define BIO_EMA_SHIFT	7
+
+#define bio_bps(b)		((b)->bw_last_bps)
+#define bio_avg_bps(b)	((b)->bw_slow_ema >> BIO_EMA_SHIFT)
+
+#endif /* _if_core_bsched_h_ */
+
+/* vi: set ts=4: */

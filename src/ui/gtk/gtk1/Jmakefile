@@ -1,0 +1,139 @@
+/*
+ * $Id$
+ *
+ * Copyright (c) 2003, Raphael Manfredi
+ *
+ * Jmakefile for the GTK1 GUI.
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
+;# $Id$
+
+;# Those files lie in the ../gtk-shared directory
+REMOTE_GLADE_C = callbacks.c
+REMOTE_GLADE_H = callbacks.h 
+REMOTE_GLADE = $(REMOTE_GLADE_C) $(REMOTE_GLADE_H)
+
+LSRC = \
+	downloads.c \
+	downloads_cb.c \
+	fileinfo.c \
+	gnet_stats.c \
+	hcache.c \
+	interface-glade.c \
+	monitor_cb.c \
+	monitor.c \
+	nodes_cb.c \
+	nodes.c \
+	search_cb.c \
+	search.c \
+	search_stats.c \
+	support-glade.c \
+	upload_stats.c \
+	uploads.c
+
+LOBJ = \
+|expand f!$(LSRC) $(REMOTE_GLADE_C)!
+	!f:\.c=.o \
+-expand \\
+
+GLADE_C = \
+	interface-glade.c \
+	support-glade.c
+
+GLADE_H = \
+|expand f!$(GLADE_C)!
+	!f:\.c=.h \
+-expand \\
+
+GLADE_O = \
+|expand f!$(GLADE_C) $(REMOTE_GLADE_C)!
+	!f:\.c=.o \
+-expand \\
+
+GLADE_GEN = $(GLADE_C) $(GLADE_H)
+
+SRC = $(LSRC) $(GLADE_C) $(REMOTE_GLADE_C)
+OBJ = $(LOBJ) $(GLADE_O)
+
+/* Additional flags for GTK compilation, added in the substituted section */
+++GTK_CFLAGS $gtkcflags
+++GTK_LDFLAGS $gtkldflags
+
+/* Add the glade command */
+++GLADE $glade
+
+/* Add the libxml2 flags */
+++XML2_CFLAGS $xmlcflags
+++XML2_LDFLAGS $xmlldflags
+
+TOP_SRC = ../../..
+TOP_GUI = ../..
+
+;# Those extra flags are expected to be user-defined
+CFLAGS = -I$(TOP) -I$(TOP_SRC) -I$(TOP_GUI) \
+	$(GTK_CFLAGS) $(XML2_CFLAGS) -DGUI_SOURCES
+DPFLAGS = $(CFLAGS)
+
+GLADEFILE = gtk-gnutella.glade
+
+;# We allow the target to fail since we're distribute the generated files
+;# with the sources, so even if they don't have glade, it will work.
+$(GLADE_GEN): $(GLADEFILE) $(REMOTE_GLADE)
+	$(CHMOD) 0644 $(REMOTE_GLADE)
+	-$(GLADE) --write-source $(GLADEFILE)
+	$(CHMOD) 0444 $(REMOTE_GLADE)
+	touch $(GLADE_GEN)
+
+GTK_SHARED = ../gtk-shared
+
+/*
+ * Files in the GTK_SHARED directory are copied locally, so that they can
+ * be compiled with the relevant -DUSE_GTK1 or -DUSE_GTK2 flag and be
+ * present when "glade" runs.
+ */
+
+|expand f!$(REMOTE_GLADE)!
+!f: $(GTK_SHARED)/!f
+	$(RM) !f
+	$(CP) $(GTK_SHARED)/!f . && $(CHMOD) 0444 !f
+
+-expand
+
+/*
+ * Since the copied files are compiled, they must be part of the dependency
+ * for the "depend" target.  It's a multiple target, hence the "::".
+ */
+
+depend:: $(REMOTE_GLADE)
+
+local_realclean::
+	$(RM) $(REMOTE_GLADE)
+
+/*
+ * Only generate the library if configured to build for GTK1
+ */
+
+|case d_usegtk1 in define
+NormalLibraryTarget(gtk1, $(SRC), $(OBJ))
+-case
+
+DependTarget()
