@@ -25,6 +25,7 @@
 
 #include "gnutella.h"
 
+#include <pwd.h>
 #include <signal.h>
 #include <locale.h>
 
@@ -51,6 +52,12 @@
 #include "version.h"
 #include "matching.h"
 #include "walloc.h"
+#include "nodes.h"
+
+#include "gnet_property_priv.h"
+#include "main_gui.h"
+#include "settings.h"
+#include "oldconfig.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 #define EXIT_GRACE				30	/* Seconds to wait before exiting */
@@ -89,7 +96,7 @@ void gtk_gnutella_exit(gint n)
 	exiting = TRUE;
 
 	node_bye_all();
-	upload_close();		/* Done before config_close() for stats update */
+	upload_close();		/* Done before settings_close() for stats update */
 	download_close();
     filter_cb_close();
 
@@ -99,11 +106,12 @@ void gtk_gnutella_exit(gint n)
 	 *      --BLUE, 16/05/2002
 	 */
 
+    main_gui_shutdown();
+
 	gui_shutdown();
 
 	if (hosts_idle_func)
 		g_source_remove(hosts_idle_func);
-	config_shutdown();
 
 	if (s_listen)
 		socket_destroy(s_listen);
@@ -111,6 +119,7 @@ void gtk_gnutella_exit(gint n)
 	search_shutdown(); /* must be done before filter_shutdown! */
 	filter_shutdown();
 	bsched_shutdown();
+	settings_shutdown();
 
 	/* 
 	 * Wait at most EXIT_GRACE seconds, so that BYE messages can go through.
@@ -142,7 +151,7 @@ void gtk_gnutella_exit(gint n)
 	bsched_close();
 	gui_close();
 	dmesh_close();
-	config_close();
+	settings_close();
 	ban_close();
 	cq_free(callout_queue);
 	matching_close();
@@ -225,7 +234,6 @@ static gboolean main_timer(gpointer p)
 	 */
 
 	if (!exiting) {
-		gui_statusbar_clear_timeouts(now);
 		gui_update_global();
         gui_update_traffic_stats();
         filter_timer(); /* Update the filter stats */
@@ -290,6 +298,54 @@ static gboolean scan_files_once(gpointer p)
 	return FALSE;
 }
 
+/*
+ * load_legacy_settings:
+ *
+ * If no configuration files are found for frontend and core, it tries
+ * to read in the old config file.
+ * FIXME: This should be removed as soon as possible, probably for 1.0.
+ */
+void load_legacy_settings(void)
+{
+    struct passwd *pwd = getpwuid(getuid());
+    gchar *config_dir;
+    gchar *home_dir;
+    gchar tmp[2000] = "";
+    gchar core_config_file[2000] = "";
+    gchar gui_config_file[2000] = "";
+
+    config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
+    if (pwd && pwd->pw_dir)
+		home_dir = g_strdup(pwd->pw_dir);
+	else
+		home_dir = g_strdup(getenv("HOME"));
+
+    if (!home_dir)
+		g_warning("can't find your home directory!");
+ 
+    if (!config_dir) {
+		if (home_dir) {
+			g_snprintf(tmp, sizeof(tmp),
+				"%s/.gtk-gnutella", home_dir);
+			config_dir = g_strdup(tmp);
+		} else
+			g_warning("no home directory: can't check legacy configuration!");
+	}
+
+    g_snprintf(core_config_file, sizeof(core_config_file), 
+        "%s/%s", config_dir, "config_gnet");
+    g_snprintf(gui_config_file, sizeof(gui_config_file), 
+        "%s/%s", config_dir, "config_gui");
+
+    if (!file_exists(core_config_file) && !file_exists(gui_config_file)) {
+        g_warning("No configuration found, trying legacy config file");
+        config_init();
+    }
+
+    g_free(config_dir);
+    g_free(home_dir);
+}
+
 gint main(gint argc, gchar ** argv)
 {
 	gint i;
@@ -317,9 +373,9 @@ gint main(gint argc, gchar ** argv)
 	atoms_init();
 	version_init();
 	callout_queue = cq_make(0);
-	gui_init();
 	init_constants();
-	config_init();
+	settings_init();
+    gui_init();
 	matching_init();
 	host_init();
 	pmsg_init();
@@ -335,6 +391,10 @@ gint main(gint argc, gchar ** argv)
 	upload_init();
 	ban_init();
 	dmesh_init();
+
+    main_gui_init();
+
+    load_legacy_settings();
 
    	gui_update_all();
 
