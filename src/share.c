@@ -1225,7 +1225,7 @@ static void flush_match(void)
 			) {
 				struct gnutella_node *n = (struct gnutella_node *) l->data;
 				
-				memcpy(p, &n->proxy_ip, 4);
+				WRITE_GUINT32_BE(n->proxy_ip, p);
 				p += 4;
 				WRITE_GUINT16_LE(n->proxy_port, p);
 				p += 2;
