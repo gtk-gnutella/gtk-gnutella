@@ -1,5 +1,20 @@
 # since last version
 
+- (2004-12-23 - RAM)
+ * Reject HTTP ranges for which start > end.
+ * If server gives us an inconsistent Content-Length compared to the total
+   file size found in Content-Range, abort the download and mark that source
+   as being bad.
+ * Use gm_slist_insert_after() to optimize new chunk insertion in list.
+ * Added file_info_check_chunklist() assertions right after modifying the
+   chunk list.
+ * Added contract in file_info_update() to require from < to.
+
+- (2004-12-04 - RAM)
+ * Provide empty bitzi_init() and bitzi_query_byurnsha1() when they don't
+   have libxml2-dev installed.  The GUI should disable the menu entry for
+   Bitzi searches as well.
+
 # v 0.95	2004.11.27	[stable]
 
 - Support for very old Gnutella features has been removed or deprecated
