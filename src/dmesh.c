@@ -1229,7 +1229,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 		if (skip_date) {				/* URL was not parsed, just skipping */
 			if (c == '\0')				/* Reached end of string */
 				return;
-            if (*p == ',')
+            if (c == ',')
                 p++;					/* Skip the "," separator */
 			continue;
 		}
@@ -1303,7 +1303,7 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 		if (c == '\0')				/* Reached end of string */
 			return;
 
-        if (*p == ',')
+        if (c == ',')
             p++;					/* Skip separator */
 	}
 }
