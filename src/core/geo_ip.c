@@ -36,7 +36,6 @@ RCSID("$Id$");
 #include "geo_ip.h"
 #include "settings.h"
 
-#include "lib/atoms.h"
 #include "lib/file.h"
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
@@ -60,31 +59,11 @@ static gpointer geo_db;		/* The database of bogus CIDR ranges */
 struct range_context {
 	guint32 ip1;				/* Original lower IP in global range */
 	guint32 ip2;				/* Original upper IP in global range */
-	gchar *country;				/* Country code (pointer within line) */
+	gint country;				/* Country code (numerical encoded) */
 	gint count;					/* Amount of ranges we added, for stats */
 	gchar *line;				/* The line from the input file */
 	gint linenum;				/* Line number in input file, for errors */
 };
-
-/**
- * Free callback for values we insert in the database (country codes).
- */
-static void
-gip_free_value(gpointer value, gpointer udata)
-{
-	gchar *ccode = (gchar *) value;
-
-	atom_str_free(ccode);
-}
-
-/**
- * Clone callback for values we insert.
- */
-static gpointer
-gip_clone_value(gpointer value)
-{
-	return atom_str_get(value);
-}
 
 /**
  * ip_range_split() callback.
@@ -96,13 +75,13 @@ gip_add_cidr(guint32 ip, guint8 bits, gpointer udata)
 {
 	struct range_context *ctx = (struct range_context *) udata;
 	iprange_err_t error;
-	gchar *ccode;
+	gpointer ccode;
 
 	if (dbg > 4)
 		printf("GEO adding %s/%d for \"%s\"\n",
 			ip_to_gchar(ip), bits, ctx->line);
 
-	ccode = atom_str_get(ctx->country);
+	ccode = GUINT_TO_POINTER(ctx->country);
 	error = iprange_add_cidr(geo_db, ip, bits, ccode);
 
 	switch (error) {
@@ -121,11 +100,62 @@ gip_add_cidr(guint32 ip, guint8 bits, gpointer udata)
 		g_warning("%s, line %d: rejected entry \"%s\" (%s/%d): %s",
 			gip_file, ctx->linenum, ctx->line, ip_to_gchar(ip), bits,
 			iprange_strerror(error));
-		atom_str_free(ccode);
 		return;
 	}
 
 	ctx->count++;
+}
+
+/**
+ * Decodes are valid 2-letter country code into an integer.
+ * @return NULL integer isn't a validly encoded country code.
+ */
+static inline const gchar *
+gip_decode_country(gint code)
+{
+	static gchar s[3];
+	gint i;
+
+	if (code < 2 || code > (36 * 35 + 35 + 1) << 1)
+		return NULL;
+
+	code = (code >> 1) - 1;
+	i = code / 36;
+	g_assert(i < 36);
+	s[0] = i + (i < 10 ? '0' : 'a' - 10);
+	i = code % 36;
+	s[1] = i + (i < 10 ? '0' : 'a' - 10);
+
+	return s;
+}
+
+/**
+ * Encodes are valid 2-letter country code into an integer.
+ * @return -1 if the given string is obviously not a 2-letter country code.
+ */
+static gint
+gip_encode_country(const char *s)
+{
+#define ENCODE(x) (is_ascii_digit(x) ? ((x) - '0') : (tolower(x) - 'a' + 10))
+	gint code;
+
+	g_assert(s != NULL);
+	if (is_ascii_alnum(s[0]) && is_ascii_alnum(s[1]) && '\0' == s[2]) {
+		const gchar *d;
+
+		code = ENCODE(s[0]) * 36;
+		code += ENCODE(s[1]);
+		g_assert(code >= 0 && code <= (36 * 35 + 35));
+		code++; /* Add one because zero would be interpreted as NULL in iprange.c */
+		code <<= 1;/* The LSB must be zero due to special handling iprange.c */
+
+		d = gip_decode_country(code);
+		g_assert(0 == strcasecmp(s, d));
+	} else {
+		code = -1;
+	}
+	return code;
+#undef ENCODE
 }
 
 /**
@@ -139,10 +169,10 @@ gip_load(FILE *f)
 	gchar *p;
 	gint linenum = 0;
 	gchar *end;
-	gint c;
+	gint c, code;
 	struct range_context ctx;
 
-	geo_db = iprange_make(gip_free_value, gip_clone_value);
+	geo_db = iprange_make(NULL, NULL);
 	ctx.count = 0;
 
 	while (fgets(line, sizeof(line), f)) {
@@ -232,13 +262,14 @@ gip_load(FILE *f)
 			continue;
 		}
 
-		if (strlen(end) != 2) {
+		code = gip_encode_country(end);
+		if (-1 == code) {
 			g_warning("%s, line %d: bad country code in \"%s\"",
 				gip_file, linenum, line);
 			continue;
 		}
 
-		ctx.country = end;
+		ctx.country = code;
 		ctx.line = line;
 		ctx.linenum = linenum;
 
@@ -269,11 +300,13 @@ gip_load(FILE *f)
  * geographic IP mappings changed.
  */
 static void
-gip_changed(const gchar *filename, gpointer udata)
+gip_changed(const gchar *filename, gpointer unused)
 {
 	FILE *f;
 	gchar buf[80];
 	gint count;
+
+	(void) unused;
 
 	f = file_fopen(filename, "r");
 	if (f == NULL)
@@ -354,11 +387,10 @@ gip_close(void)
 const gchar *
 gip_country(guint32 ip)
 {
-	const gchar *code;
+	gpointer code;
 
 	code = iprange_get(geo_db, ip);
-
-	return code == NULL ? "??" : code;
+	return NULL != code ? gip_decode_country(GPOINTER_TO_INT(code)) : "??";
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
