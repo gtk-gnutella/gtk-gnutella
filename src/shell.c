@@ -634,14 +634,16 @@ static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 
 			shell_write(sh, "\n");
 
-			gm_snprintf(buf, sizeof(buf),
-				_("Horizon size via HSEP node %s:"), node_ip(n));
+			gm_snprintf(buf, sizeof(buf), _("Horizon size via HSEP node %s (%s):"),
+				node_ip(n),
+				NODE_IS_LEAF(n) ? _("leaf") :
+					(NODE_IS_ULTRA(n) ? _("ultrapeer") : _("normal node")));
 
 			shell_write(sh, buf);
 			shell_write(sh, "\n\n");
 
 			hsep_get_connection_table(n, table, G_N_ELEMENTS(table));
-			print_hsep_table(sh, table, HSEP_N_MAX, NULL);
+			print_hsep_table(sh, table, NODE_IS_LEAF(n) ? 1 : HSEP_N_MAX, NULL);
 		}
 	}
 
