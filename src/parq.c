@@ -756,6 +756,13 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 
 		parq_dl->retry_delay = extract_retry_after(header);
 
+		/* Someone might not be playing nicely. */
+		if (parq_dl->lifetime < parq_dl->retry_delay) {
+			parq_dl->lifetime = MAX(300, parq_dl->retry_delay );
+			g_warning("PARQ: Invalid lifetime, using: %d\r\n",
+				  parq_dl->lifetime);
+		}
+		
 		value = get_header_value(buf, "ID", &header_value_length);
 		if (header_value_length > 0) {
 			temp = g_strndup(value, header_value_length);
@@ -1446,6 +1453,7 @@ void parq_upload_timer(time_t now)
 		for (dl = queue->by_rel_pos; dl != NULL; dl = dl->next) {	
 			struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) dl->data;
 
+			g_assert(parq_ul != NULL);
 			if (parq_ul == NULL)		// XXX how can this happen? -- RAM
 				break;
 			
@@ -1558,7 +1566,6 @@ void parq_upload_timer(time_t now)
 	}
 	
 	/* Send one QUEUE command at a time, until we have MAX_UPLOADS uploads */
-	/* XXX hardwired */
 
 	gnet_prop_get_boolean_val(PROP_LIBRARY_REBUILDING, &rebuilding);
 	
@@ -1941,7 +1948,9 @@ void parq_upload_add(gnutella_upload_t *u)
 void parq_upload_remove(gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = NULL;
-	
+#ifdef FIXTHIS
+	struct parq_ul_queued *parq_ul_next = NULL;
+#endif	
 	g_assert(u != NULL);
 
 	/*
@@ -1976,14 +1985,38 @@ void parq_upload_remove(gnutella_upload_t *u)
 				
 	
 	if (parq_ul->has_slot) {
+#ifdef FIXTHIS
+		GList *next = NULL;
+#endif
+		
 		if (dbg)
 			printf("PARQ UL: Freed an upload slot\n");
-		parq_ul->queue->active_uploads--;  
+
+		parq_ul->queue->active_uploads--;
+		
+#ifdef FIXTHIS
+		/* Search next waiting upload that an slot is avail using QUEUE */
+		for (next = g_list_first(parq_ul->queue->by_rel_pos); 
+			  next != NULL; next = next->next) {
+			parq_ul_next = (struct parq_ul_queued *) next->data;
+				
+			if (!parq_ul_next->has_slot)
+				break;
+		}
+		
+		g_list_free(next);
+#endif
 	}
 	
 	g_assert(parq_ul->queue->active_uploads >= 0);	
 	
 	parq_upload_free(parq_ul);
+
+#ifdef FIXTHIS
+	/* Signal next */
+	if (parq_ul_next != NULL && parq_ul_next->has_slot)
+		parq_upload_send_queue(parq_ul_next);	
+#endif
 }
 
 /*
@@ -2029,8 +2062,6 @@ void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
 				MAX((gint32) (parq_ul->retry - now), 0), 
 				MAX((gint32) (parq_ul->expire - now), 0));
 		} else {
-			gint lifetime = MAX(0, parq_upload_lookup_lifetime(a->u) - now);
-		
 			g_assert(length > 0);
 			rw = gm_snprintf(buf, length,
 				"X-Queue: %d.%d\r\n"
@@ -2056,7 +2087,7 @@ void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
 					"X-Queued: ID=%s; lifetime=%d\r\n",
 					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
 					parq_upload_lookup_id(a->u),
-					lifetime);
+					MAX((gint32)  (parq_ul->retry - now ), 0));
 		}
 	}
 
@@ -2322,7 +2353,7 @@ void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul)
 	parq_ul->last_queue_sent = time(NULL);		/* We tried... */
 	parq_ul->queue_sent++;
 
-	if (dbg)
+//	if (dbg)
 		printf("PARQ UL Q %d/%d (%3d[%3d]/%3d): "
 			"Sending QUEUE #%d to %s: '%s'\n\r",
 			  g_list_position(ul_parqs, 
@@ -2347,7 +2378,11 @@ void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul)
 	
 	u->status = GTA_UL_QUEUE;
 	u->name = atom_str_get(parq_ul->name);
+	u->ip = parq_ul->remote_ip;
 	upload_fire_upload_info_changed(u);
+	
+	/* Verify created upload entry */
+	g_assert(parq_upload_find(u) != NULL);
 }
 	
 /*
@@ -2369,7 +2404,6 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 	
 	parq_ul = parq_upload_find(u);
 	
-	/* FIXME: This could cause an invalid assert at the moment, could it? */
 	g_assert(parq_ul != NULL);
 		
 	/*
@@ -2389,7 +2423,7 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 			"Only sent %d out of %d bytes of QUEUE for \"%s\" to %s: %s",
 			  sent, rw, u->name, ip_port_to_gchar(s->ip, s->port),
 			  g_strerror(errno));
-	} else /* if (dbg > 2) */ {
+	} else if (dbg > 2) {
 		printf("PARQ UL: Sent #%d to %s: %s",
 			  parq_ul->queue_sent, ip_port_to_gchar(s->ip, s->port), queue);
 		fflush(stdout);
@@ -2554,6 +2588,7 @@ static void parq_upload_load_queue(void)
 		if (sscanf(line, "IP: -%u\n", &ip)) {
 			sscanf(line, "IP: %d\n", &signed_ip);
 			ip = (guint32) signed_ip;
+			g_warning("PARQ: Legacy import of IP: %d", signed_ip);
 		} else
 			sscanf(line, "IP: %u\n", &ip);
 
@@ -2561,6 +2596,7 @@ static void parq_upload_load_queue(void)
 		if (sscanf(line, "XIP: -%u\n", &xip)) {
 			sscanf(line, "XIP: %d\n", &signed_ip);
 			xip = (guint32) signed_ip;
+			g_warning("PARQ: Legacy import of XIP: %d", signed_ip);
 		} else
 			sscanf(line, "XIP: %u\n", &xip);
 
