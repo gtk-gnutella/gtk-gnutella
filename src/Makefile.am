@@ -91,6 +91,7 @@ gtk_gnutella_SOURCES = \
 	downloads.c downloads.h downloads_gui.h \
 	fileinfo.c fileinfo.h \
 	fuzzy.c fuzzy.h \
+	whitelist.c whitelist.h \
 	share.c share.h \
 	uploads.c uploads.h uploads_gui.h \
 	upload_stats.c upload_stats.h upload_stats_gui.h \
