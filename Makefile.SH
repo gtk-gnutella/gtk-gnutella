@@ -17,7 +17,7 @@ esac
 case "$0" in
 */*) cd `expr X$0 : 'X\(.*\)/'` ;;
 esac
-CURRENT=src/g2
+CURRENT=.
 DIR=`echo $CURRENT/ | sed -e 's/\.\///g'`
 echo "Extracting ${DIR}Makefile (with variable substitutions)"
 
@@ -31,7 +31,7 @@ $spitshell >Makefile <<!GROK!THIS!
 
 SHELL = /bin/sh
 JMAKE = jmake
-TOP = ../..
+TOP = .
 CURRENT = $CURRENT
 DIR = $DIR
 INSTALL = $INSTALL
@@ -84,8 +84,8 @@ INSTALLFLAGS = -m 444
 local_install::
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for dir in $(PRIVLIB); do	\
-	(set -x; test -d $(INSTALL_PREFIX)^$$dir || \
-		$(INSTALLDIR) $(INSTALL_PREFIX)^$$dir);	\
+	(set -x; test -d $(INSTALL_PREFIX)$$dir || \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$$dir);	\
 	done
 
 local_deinstall::
@@ -96,16 +96,16 @@ local_deinstall::
 
 local_install:: $(EXTRA_FILES)
 	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
-	(set -x; test -d $(INSTALL_PREFIX)^ $(PRIVLIB) || \
-		$(INSTALLDIR) $(INSTALL_PREFIX)^ $(PRIVLIB)); \
+	(set -x; test -d $(INSTALL_PREFIX)$(PRIVLIB) || \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$(PRIVLIB)); \
 	for i in $(EXTRA_FILES); do \
-		(set -x; $(INSTALL) -c $(INSTALLFLAGS) $$i $(INSTALL_PREFIX)^ $(PRIVLIB)); \
+		(set -x; $(INSTALL) -c $(INSTALLFLAGS) $$i $(INSTALL_PREFIX)$(PRIVLIB)); \
 	done
 
 local_deinstall::
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for i in $(EXTRA_FILES); do \
-		(set -x; $(RM) $(INSTALL_PREFIX)^ $(PRIVLIB)/$$i); \
+		(set -x; $(RM) $(INSTALL_PREFIX)$(PRIVLIB)/$$i); \
 	done
 
 ########################################################################
@@ -121,9 +121,12 @@ local_clean::
 	$(RM) core *~ *.o
 
 local_realclean:: local_clean
+	$(RM) -r UU
 
 local_clobber:: local_realclean
-	$(RM) Makefile config.sh
+	$(RM) config.sh config.h
+	$(RM) -r .config
+	$(RM) Makefile
 
 install: local_install sub_install
 install.man: maybe_install.man sub_install.man
@@ -167,29 +170,29 @@ subdirs:
 			$(MAKE) $(MFLAGS) $(FLAGS) $(TARGET)); \
 	done
 
-sub_^install::
+sub_install::
 	@$(MAKE) subdirs TARGET=install VERB="Installing" FLAGS=
 
-sub_^deinstall::
+sub_deinstall::
 	@$(MAKE) subdirs TARGET=deinstall VERB="Deinstalling" FLAGS=
 	@echo "Back to $(CURRENT) for "deinstall...
 
-sub_^install.man::
+sub_install.man::
 	@$(MAKE) subdirs TARGET=install.man VERB="Installing man pages" FLAGS=
 
-sub_^deinstall.man::
+sub_deinstall.man::
 	@$(MAKE) subdirs TARGET=deinstall.man VERB="Deinstalling man pages" FLAGS=
 	@echo "Back to $(CURRENT) for "deinstall.man...
 
-sub_^clean::
+sub_clean::
 	@$(MAKE) subdirs TARGET=clean VERB="Cleaning" FLAGS=
 	@echo "Back to $(CURRENT) for "clean...
 
-sub_^realclean::
+sub_realclean::
 	@$(MAKE) subdirs TARGET=realclean VERB="Real cleaning" FLAGS=
 	@echo "Back to $(CURRENT) for "realclean...
 
-sub_^clobber::
+sub_clobber::
 	@$(MAKE) subdirs TARGET=clobber VERB="Clobbering" FLAGS=
 	@echo "Back to $(CURRENT) for "clobber...
 
