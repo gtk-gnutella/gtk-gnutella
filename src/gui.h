@@ -185,7 +185,6 @@ enum {
     nb_main_page_search,
     nb_main_page_monitor,
     nb_main_page_search_stats,
-    nb_main_page_gnet_stats,
 #ifdef USE_GTK2
     nb_main_page_config_sel,
     nb_main_page_config_net,
@@ -198,6 +197,7 @@ enum {
 #else
     nb_main_page_config,
 #endif
+    nb_main_page_gnet_stats,
 
     nb_main_page_num
 };
