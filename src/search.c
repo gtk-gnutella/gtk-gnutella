@@ -312,11 +312,14 @@ static gnet_results_set_t *get_results_set(
 	struct gnutella_search_results *r;
 	GString *info = NULL;
 	gint sha1_errors = 0;
+	gint alt_errors = 0;
+	gint alt_without_hash = 0;
 	gchar *trailer = NULL;
 	gboolean seen_ggep_h = FALSE;
 	gboolean seen_ggep_alt = FALSE;
 	gboolean seen_bitprint = FALSE;
 	gboolean multiple_sha1 = FALSE;
+	gchar *vendor = NULL;
 
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
@@ -444,6 +447,7 @@ static gnet_results_set_t *get_results_set(
 			gint i;
 			struct gnutella_host *hvec = NULL;		/* For GGEP "ALT" */
 			gint hvcnt = 0;
+			gboolean has_hash = FALSE;
 
 			g_assert(taglen > 0);
 
@@ -477,6 +481,7 @@ static gnet_results_set_t *get_results_set(
 					seen_bitprint = TRUE;
 					/* FALLTHROUGH */
 				case EXT_T_URN_SHA1:		/* SHA1 URN, the HUGE way */
+					has_hash = TRUE;
 					urnlen = e->ext_paylen;
 					if (e->ext_token == EXT_T_URN_BITPRINT)
 						urnlen = MIN(urnlen, SHA1_BASE32_SIZE);
@@ -495,8 +500,14 @@ static gnet_results_set_t *get_results_set(
 						sha1_errors++;
 					break;
 				case EXT_T_GGEP_u:			/* HUGE URN, wihtout leading urn: */
-					if (!validate_only) {
+					if (
+						e->ext_paylen >= 9 &&
+						(0 == strncasecmp(e->ext_payload, "sha1:", 5) ||
+						 0 == strncasecmp(e->ext_payload, "bitprint:", 9))
+					) {
 						gchar *payload;
+
+						has_hash = TRUE;
 
 						/* Must NUL-terminate the payload first */
 						payload = walloc(e->ext_paylen + 1);
@@ -504,19 +515,22 @@ static gnet_results_set_t *get_results_set(
 						payload[e->ext_paylen] = '\0';
 
 						if (huge_extract_sha1_no_urn(payload, sha1_digest)) {
-							if (rc->sha1 != NULL) {
-								multiple_sha1 = TRUE;
-								atom_sha1_free(rc->sha1);
+							if (!validate_only) {
+								if (rc->sha1 != NULL) {
+									multiple_sha1 = TRUE;
+									atom_sha1_free(rc->sha1);
+								}
+								rc->sha1 = atom_sha1_get(sha1_digest);
 							}
-							rc->sha1 = atom_sha1_get(sha1_digest);
-						}
-
+						} else
+							sha1_errors++;
 						wfree(payload, e->ext_paylen + 1);
 					}
 					break;
 				case EXT_T_GGEP_H:			/* Expect SHA1 value only */
 					ret = ggept_h_sha1_extract(e, sha1_digest, SHA1_RAW_SIZE);
 					if (ret == GGEP_OK) {
+						has_hash = TRUE;
 						if (!validate_only) {
 							if (rc->sha1 != NULL) {
 								multiple_sha1 = TRUE;
@@ -545,6 +559,7 @@ static gnet_results_set_t *get_results_set(
 					if (ret == GGEP_OK)
 						seen_ggep_alt = TRUE;
 					else {
+						alt_errors++;
 						if (dbg) {
 							g_warning("%s bad GGEP \"ALT\" (dumping)",
 								gmsg_infostr(&n->header));
@@ -582,6 +597,9 @@ static gnet_results_set_t *get_results_set(
 
 			if (hvec != NULL) {
 				g_assert(hvcnt > 0);
+
+				if (!has_hash)
+					alt_without_hash++;
 
 				/*
 				 * GGEP "ALT" is only meaningful when there is a SHA1!
@@ -650,7 +668,6 @@ static gnet_results_set_t *get_results_set(
 	 */
 
 	if (trailer) {
-		gchar *vendor;
 		guint32 t;
 		guint open_size = trailer[4];
 		guint open_parsing_size = trailer[4];
@@ -708,13 +725,39 @@ static gnet_results_set_t *get_results_set(
 
 		if (sha1_errors) {
 			if (dbg) g_warning(
-				"%s (%s) from %s (%s) had %d SHA1 error%s over %u record%s",
+				"%s from %s (via \"%s\" at %s) "
+				"had %d SHA1 error%s over %u record%s",
 				 gmsg_infostr(&n->header), vendor ? vendor : "????",
-				 node_ip(n), node_vendor(n),
+				 node_vendor(n), node_ip(n),
 				 sha1_errors, sha1_errors == 1 ? "" : "s",
 				 nr, nr == 1 ? "" : "s");
             gnet_stats_count_dropped(n, MSG_DROP_RESULT_SHA1_ERROR);
 			goto bad_packet;		/* Will drop this bad query hit */
+		}
+
+		/*
+		 * If we have bad ALT locations, or ALT without hashes, warn but
+		 * do not drop.
+		 */
+
+		if (alt_errors && dbg) {
+			g_warning(
+				"%s from %s (via \"%s\" at %s) "
+				"had %d ALT error%s over %u record%s",
+				 gmsg_infostr(&n->header), vendor ? vendor : "????",
+				 node_vendor(n), node_ip(n),
+				 alt_errors, alt_errors == 1 ? "" : "s",
+				 nr, nr == 1 ? "" : "s");
+		}
+
+		if (alt_without_hash && dbg) {
+			g_warning(
+				"%s from %s (via \"%s\" at %s) "
+				"had %d ALT extension%s with no hash over %u record%s",
+				 gmsg_infostr(&n->header), vendor ? vendor : "????",
+				 node_vendor(n), node_ip(n),
+				 alt_without_hash, alt_without_hash == 1 ? "" : "s",
+				 nr, nr == 1 ? "" : "s");
 		}
 
 		/*
@@ -771,39 +814,32 @@ static gnet_results_set_t *get_results_set(
 			}
 
 			if (exvcnt == MAX_EXTVEC) {
-				g_warning("%s has %d extensions!",
-					gmsg_infostr(&n->header), exvcnt);
+				g_warning("%s from %s has %d trailer extensions!",
+					gmsg_infostr(&n->header), vendor ? vendor : "????", exvcnt);
 				if (dbg)
 					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 				if (dbg > 1)
 					dump_hex(stderr, "Query Hit private data", priv, privlen);
 			} else if (!seen_ggep) {
-				g_warning("%s claimed GGEP extensions in trailer, seen none",
-					gmsg_infostr(&n->header));
+				g_warning("%s from %s claimed GGEP extensions in trailer, "
+					"seen none",
+					gmsg_infostr(&n->header), vendor ? vendor : "????");
 			}
 		}
 
 		if (dbg) {
-			if (seen_ggep_h) {
-				gchar *vendor = lookup_vendor_name(rs->vendor);
+			if (seen_ggep_h)
 				g_warning("%s from %s used GGEP \"H\" extension",
 					 gmsg_infostr(&n->header), vendor ? vendor : "????");
-			}
-			if (seen_ggep_alt) {
-				gchar *vendor = lookup_vendor_name(rs->vendor);
+			if (seen_ggep_alt)
 				g_warning("%s from %s used GGEP \"ALT\" extension",
 					 gmsg_infostr(&n->header), vendor ? vendor : "????");
-			}
-			if (seen_bitprint) {
-				gchar *vendor = lookup_vendor_name(rs->vendor);
+			if (seen_bitprint)
 				g_warning("%s from %s used urn:bitprint",
 					 gmsg_infostr(&n->header), vendor ? vendor : "????");
-			}
-			if (multiple_sha1) {
-				gchar *vendor = lookup_vendor_name(rs->vendor);
+			if (multiple_sha1)
 				g_warning("%s from %s had records with multiple SHA1",
 					 gmsg_infostr(&n->header), vendor ? vendor : "????");
-			}
 		}
 
 		/*
@@ -833,8 +869,9 @@ static gnet_results_set_t *get_results_set(
   bad_packet:
 	if (dbg) {
 		g_warning(
-			"BAD %s from %s (%u/%u records parsed)",
-			 gmsg_infostr(&n->header), node_ip(n), nr, rs->num_recs);
+			"BAD %s from %s (via \"%s\" at %s) -- %u/%u records parsed",
+			 gmsg_infostr(&n->header), vendor ? vendor : "????",
+			 node_vendor(n), node_ip(n), nr, rs->num_recs);
 		if (dbg > 1)
 			dump_hex(stderr, "Query Hit Data (BAD)", n->data, n->size);
 	}
