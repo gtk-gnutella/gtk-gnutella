@@ -113,7 +113,7 @@ typedef void (*GCallback) (void);
 #define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"
 #define GTA_INTERFACE "X11"
-#define GTA_RELEASE "25/02/2003"
+#define GTA_RELEASE "28/02/2003"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 /*

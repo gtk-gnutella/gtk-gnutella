@@ -1,5 +1,24 @@
 # since last version
 
+- (2003.02.28 - RAM)
+ * The `dl_by_time' list was split into a hashed array, to cut down the number
+   of item comparisons we do when inserting, at the cost of more work when
+   traversing the list.
+ * Optimized filter_apply() by pre-computing the length of the matching text
+   at filter "compilation" time, to avoid endless strlen() calls.
+ * Optimized search_has_muid(): sent MUIDs are now stored in a hash table.
+ * Turned old g_return_if_fail() from legacy code into a g_assert() (tx_link.c).
+ * Added some debugging traces whilst chasing the "connection freeze" problem
+   (tx_deflate.c).
+ * Fixed mq_service(): need to saturate the lower layer whilst running, lest
+   we run the risk of never being called again when the lower layer has
+   finished flushing its data => the TX side freezes.
+
+- (2003.02.27 - RAM)
+ * Optimized message queue to avoid huge CPU utilization during flow-control.
+ * Optimized mq_service() to avoid useless I/O vector building.
+ * Don't encode '/' in the query portion of URLs.
+
 - (2003.02.27 - Richard)
  * event.[ch]: Added as a replacement for listener.h. For now it's used only
    in the property system. The bonus over listener.h: control of callback 
@@ -23,6 +42,7 @@
    amount of decoded bytes, padding not included.
  * Some servents send X-Try headers at every handshaking step, so process them.
  * Added token level.
+ * Restored old ban_vendor() signature.
 
 - (2003.02.23 - cbiere)
  * adns_do_transfer(): forgot to rename write to do_write
