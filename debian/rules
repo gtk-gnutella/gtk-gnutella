@@ -38,7 +38,7 @@ binary-arch: checkroot build
 	chown -R root.root debian/tmp
 	chmod -R go=rX debian/tmp
 # Next line removes spurious symlink -- RAM, 26/08/2001
-	rm debian/tmp/.so.
+	rm -f debian/tmp/.so.
 	dpkg --build debian/tmp ..
 
 define checkdir
