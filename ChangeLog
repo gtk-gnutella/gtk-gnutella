@@ -1,6 +1,21 @@
 # since last version
 
-- (2002.07.03 - RAM)
+- (2002.06.08 - Richard)
+  * Remove optionmenu widget for selecting filters from filter dialog
+    and added a tree instead.
+  * Filters can now be deactivated
+  * Added some buttons to reset filter/rule stats
+  * Started to split up callbacks.c/h and filter.c/h and created
+    filter.c (controller), filter_cb.c (callbacks) filtler_gui.c
+    (gui calls). This is a first attempt to seperate backend from
+    frontend calls so we don't fix something up now and tear it
+    apart later. Better try to do it right from the start.
+  * Fixed bug: bw_ul_usage_enabled was not properly persistant
+  * Added general macros to set/clear flags to misc.h
+  * Added a flag_t type for storing flags binary (use with above macros)
+  * Filter stats update periodically
+
+- (2002.06.07 - RAM)
   * Added atoms, allowing sharing of common constants.
   * Made callbacks.c use new gui_allow_rescan_dir().
   * Raised default TTL to 7 (was 5) and default max TTL to 10 (was 7) to
