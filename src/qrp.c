@@ -1394,9 +1394,9 @@ void qrt_update_free(gpointer handle)
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
 	if (qup->compress != NULL) {
-		bg_task_cancel(qup->compress);
-		// XXX the following should really be in a task signal handler
+		// XXX that removal should really be in a task signal handler
 		sl_compress_tasks = g_slist_remove(sl_compress_tasks, qup->compress);
+		bg_task_cancel(qup->compress);
 	}
 
 	g_assert(qup->compress == NULL);	/* Reset by qrt_compressed() */
