@@ -23,8 +23,7 @@
  *----------------------------------------------------------------------
  */
 
-#include <ctype.h> /* for isdigit() */
-#include "gnet_stats_gui2.h"
+#include "gnet_stats_gui.h"
 #include "gnutella.h" /* for sizeof(struct gnutella_header) */
 
 RCSID("$Id$");
@@ -695,17 +694,18 @@ void gnet_stats_gui_init(void)
 }
 
 
-void gnet_stats_gui_update(void)
+void gnet_stats_gui_update(time_t now)
 {
     static gnet_stats_t stats;
 	static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
+	static time_t last_update = 0;
     gint current_page;
 
 	if (!g_static_mutex_trylock(&mutex))
 		return;
 	
     current_page = gtk_notebook_get_current_page(notebook_main);
-    if (current_page != nb_main_page_gnet_stats)
+    if (current_page != nb_main_page_gnet_stats || last_update == now)
 		goto cleanup;
 
     gnet_stats_get(&stats);
@@ -730,5 +730,6 @@ void gnet_stats_gui_update(void)
 	}
 
 cleanup:
+	last_update = now;
 	g_static_mutex_unlock(&mutex);
 }

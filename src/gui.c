@@ -94,7 +94,7 @@ void gui_update_global(void)
     /*
      * Update the different parts of the GUI.
      */
-    gnet_stats_gui_update();
+    gnet_stats_gui_update(now);
     search_stats_gui_update(now);
     nodes_gui_update_nodes_display(now);
     uploads_gui_update_display(now);

@@ -168,7 +168,7 @@ void on_clist_gnet_stats_general_resize_column(
 static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
 {
     selected_type = GPOINTER_TO_INT(data);
-    gnet_stats_gui_update();
+    gnet_stats_gui_update(time(NULL));
 }
 
 
@@ -386,8 +386,9 @@ void gnet_stats_gui_init(void)
     }
 }
 
-void gnet_stats_gui_update(void)
+void gnet_stats_gui_update(time_t now)
 {
+	static time_t last_update = 0;
     GtkCList *clist_stats_msg;
     GtkCList *clist_reason;
     GtkCList *clist_general;
@@ -398,6 +399,9 @@ void gnet_stats_gui_update(void)
 
     gint current_page;
 
+	if (last_update == now)
+		return;
+	last_update = now;
     current_page = gtk_notebook_get_current_page(
         GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
 
