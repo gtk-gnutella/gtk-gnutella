@@ -1,5 +1,13 @@
 # since last version
 
+- (2002.05.08 - RAM)
+  * Ensured no line is longer than 80 characters in main.c and gui.c.
+  * Dynamically setting bandwidth to 0 prevented all traffic instead of
+	disabling bandwidth limiting.
+  * Even if bandwidth scheduler is disabled, go through the EMA computation
+	of the bandwidth actually used, for GUI display purposes.
+  * Added Roles section to the AUTHORS file.
+
 - (2002.05.07 - RAM)
   * Now that local_ip is persistent, we need to refresh it regularily in case
     it changes from one invocation to the other, and not always trust its
