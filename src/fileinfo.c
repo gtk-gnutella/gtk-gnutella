@@ -1945,6 +1945,34 @@ void file_info_retrieve(void)
 				goto discard;
 			}
 
+			/*
+			 * Allow reconstruction of missing information: if no CHNK
+			 * entry was found for the file, fake one, all empty, and reset
+			 * DONE and GENR to 0.
+			 *
+			 * If for instance the partition where temporary files are held
+			 * is lost, a single "grep -v ^CHNK fileinfo > fileinfo.new" will
+			 * be enough to restart without lossing the collected files.
+			 *
+			 *		--RAM, 31/12/2003
+			 */
+
+			if (fi->chunklist == NULL) {
+				g_warning("no CHNK info for \"%s\" -- assuming empty file",
+					fi->file_name);
+				fc = walloc0(sizeof(struct dl_file_chunk));
+				fc->from = 0;
+				fc->to = fi->size;
+				fc->status = DL_CHUNK_EMPTY;
+				fi->chunklist = g_slist_append(fi->chunklist, fc);
+				fi->generation = 0;		/* Restarting from scratch... */
+				fi->done = 0;
+				if (fi->cha1 != NULL) {
+					atom_sha1_free(fi->cha1);
+					fi->cha1 = NULL;
+				}
+			}
+
 			/* 
 			 * Check file trailer information.	The main file is only written
 			 * infrequently and the file's trailer can have more up-to-date
