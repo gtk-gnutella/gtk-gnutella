@@ -44,6 +44,7 @@
 #include "autodownload.h"
 #include "search_stats.h"
 #include "upload_stats.h"
+#include "filter.h"
 
 #define CONFIG_SET_BOOL(v)                           \
     case k_##v:                                      \
@@ -758,12 +759,23 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_NUM(search_stats_delcoef,           0,     100)
         CONFIG_SET_NUM(search_stats_update_interval,   0,   50000)
         CONFIG_SET_NUM(up_connections,                 1,     511)
-        CONFIG_SET_NUM(filter_default_policy,          0,       1)
         CONFIG_SET_STR(proxy_ip)
         CONFIG_SET_STR(socks_pass)
         CONFIG_SET_STR(socks_user)
         CONFIG_SET_STR_COMPAT(socks_pass, socksv5_pass)
         CONFIG_SET_STR_COMPAT(socks_user, socksv5_user)
+
+    case k_filter_default_policy:
+        /*
+         * Due to changes in the filter code we have to map
+         * 0 to FILTER_PROP_STATE_DONT;
+         */
+        if (i == 0)
+            i = FILTER_PROP_STATE_DONT;
+
+        if (i >= 1 && i <= 2)
+            filter_default_policy = i;
+		return;
 
 	case k_local_ip:
 		local_ip = gchar_to_ip(value);
