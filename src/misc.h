@@ -78,7 +78,11 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
  */
 #define is_ascii_alnum(c) (isascii(c) && isalnum(c))
 #define is_ascii_alpha(c) (isascii(c) && isalpha(c))
+#ifdef isblank
 #define is_ascii_blank(c) (isascii(c) && isblank(c))
+#else /* !isblank */
+#define is_ascii_blank(c) ((c) == ' ' || (c) == '\t')
+#endif /* isblank */
 #define is_ascii_cntrl(c) (isascii(c) && iscntrl(c))
 #define is_ascii_digit(c) (isascii(c) && isdigit(c))
 #define is_ascii_graph(c) (isascii(c) && isgraph(c))
