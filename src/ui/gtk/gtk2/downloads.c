@@ -297,13 +297,16 @@ add_column(GtkTreeView *treeview, GtkType column_type, const gchar *name,
 {
     GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
+	gint xpad;
 
 	if (column_type == GTK_TYPE_CELL_RENDERER_PROGRESS) {
+		xpad = 0;
 		renderer = gtk_cell_renderer_progress_new();
 		column = gtk_tree_view_column_new_with_attributes(name, renderer,
 					"value", id,
 					NULL);
 	} else { /* ie. (column_type == GTK_TYPE_CELL_RENDERER_TEXT) */
+		xpad = GUI_CELL_RENDERER_XPAD;
 		renderer = gtk_cell_renderer_text_new();
 		gtk_cell_renderer_text_set_fixed_height_from_font(
 			GTK_CELL_RENDERER_TEXT(renderer), 1);
@@ -321,7 +324,7 @@ add_column(GtkTreeView *treeview, GtkType column_type, const gchar *name,
 
 	g_object_set(G_OBJECT(renderer),
 		"mode",	GTK_CELL_RENDERER_MODE_INERT,
-		"xpad", GUI_CELL_RENDERER_XPAD,
+		"xpad", xpad,
 		"xalign", xalign,
 		"ypad", GUI_CELL_RENDERER_YPAD,
 		NULL);

@@ -424,18 +424,21 @@ add_column(gint column_id, GtkTreeIterCompareFunc sortfunc, GtkType column_type)
 {
 	GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
+	gint xpad;
 
 	g_assert(column_id >= 0 && (guint) column_id < UPLOADS_GUI_VISIBLE_COLUMNS);
 	g_assert(NULL != treeview_uploads);
 	g_assert(NULL != store_uploads);
 
 	if (column_type == GTK_TYPE_CELL_RENDERER_PROGRESS) {
+		xpad = 0;
 		renderer = gtk_cell_renderer_progress_new();
 		column = gtk_tree_view_column_new_with_attributes(
 					_(column_titles[column_id]), renderer,
 					"value", column_id,
 					NULL);
 	} else { /* if (column_type == GTK_TYPE_CELL_RENDERER_TEXT) { */
+		xpad = GUI_CELL_RENDERER_XPAD;
 		renderer = gtk_cell_renderer_text_new();
 		gtk_cell_renderer_text_set_fixed_height_from_font(
 			GTK_CELL_RENDERER_TEXT(renderer), 1);
@@ -451,7 +454,7 @@ add_column(gint column_id, GtkTreeIterCompareFunc sortfunc, GtkType column_type)
 
 	g_object_set(renderer,
 		"xalign", (gfloat) 0.0,
-		"xpad", GUI_CELL_RENDERER_XPAD,
+		"xpad", xpad,
 		"ypad", GUI_CELL_RENDERER_YPAD,
 		NULL);
 
