@@ -1,5 +1,17 @@
 # since last version
 
+- (2002.05.19 - RAM)
+  * Integrated SHA1 / HUGE patch [From Ch. Tronche].
+  * Force creation of config directory if it does not exist
+	(fixes bug #557114).
+  * Don't run file name searches on small query texts when there is an URN
+	match attempted.
+  * Keep track of User-Agent and Server in HTTP requests.
+  * Further adjustments in huge.c:
+	+ Use glib timeouts, not gtk ones to not needlessly tie to the GUI.
+    + Improved timer adjustment feedback to shoot for 3/2 of the max life.
+	+ Added debugging SHA1 computation rate traces.
+
 - (2002.05.19 - Richard)
   * Removed "clear queue" button. This is not necessary. To clear the
     whole queue, just use a empty regex to select all and then use
