@@ -70,7 +70,9 @@ void dmesh_collect_locations(guchar *sha1, guchar *value);
 gint dmesh_alternate_location(
 	guchar *sha1, gchar * buf, gint size, guint32 ip, guint32 last_sent);
 
-void dmesh_multiple_downloads(guchar *sha1, guint32 size);
+void dmesh_multiple_downloads(
+    guchar *sha1, guint32 size, struct dl_file_info *fi);
+
 void dmesh_store(void);
 
 #endif	/* __dmesh_h__ */

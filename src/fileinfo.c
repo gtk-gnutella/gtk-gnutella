@@ -1278,7 +1278,7 @@ struct dl_file_info *file_info_get(
     file_info_hash_insert(fi);
 
 	if (sha1)
-		dmesh_multiple_downloads(sha1, size);
+		dmesh_multiple_downloads(sha1, size, fi);
 
 	return fi;
 }
@@ -1286,15 +1286,18 @@ struct dl_file_info *file_info_get(
 /*
  * file_info_has_identical
  *
- * Returns TRUE if we have a file identical to the given properties
- * in the download queue already, and FALSE otherwise.
+ * Returns a pointer to the file info struct if we have a file
+ * identical to the given properties in the download queue already,
+ * and NULL otherwise.
  */
 
-static gboolean file_info_has_identical(gchar *file, guint32 size, gchar *sha1)
+static struct dl_file_info *file_info_has_identical(gchar *file, guint32 size, gchar *sha1)
 {
 	GSList *p;
 	struct dl_file_info *fi;
-	gint incomplete;
+
+    if (!sha1 && strict_sha1_matching)
+        return NULL;
 
 	for (p = g_hash_table_lookup(file_info_size_hash, &size); p; p = p->next) {
         
@@ -1317,22 +1320,20 @@ static gboolean file_info_has_identical(gchar *file, guint32 size, gchar *sha1)
 		 * Check whether file needs more data at all.
 		 */
 
-		incomplete = (fi->size != fi->done);
-
-		if (sha1 && fi->sha1) {
+        if (sha1 && fi->sha1) {
 
 			if (memcmp(sha1, fi->sha1, SHA1_RAW_SIZE) == 0)
-				return incomplete;	
+				return fi;
 
 			/* In strict mode, we require the SHA1s to be identical. */
 			if (strict_sha1_matching)
 				continue;
 		}
 
-		if (file_info_has_filename(fi, file))
-			return incomplete;
+        if (file_info_has_filename(fi, file))
+			return fi;
 	}
-	return FALSE;
+	return NULL;
 }
 
 /*
@@ -1344,6 +1345,7 @@ static gboolean file_info_has_identical(gchar *file, guint32 size, gchar *sha1)
 void file_info_check_results_set(struct results_set *rs)
 {
 	GSList *l;
+    struct dl_file_info *fi;
 
 	for (l = rs->records; l; l = l->next) {
 		struct record *rc = (struct record *) l->data;
@@ -1351,11 +1353,12 @@ void file_info_check_results_set(struct results_set *rs)
         if(!g_hash_table_lookup(file_info_size_hash, &rc->size))
             continue;
         
-		if (file_info_has_identical(rc->name, rc->size, rc->sha1)) {
-			gboolean need_push = (rs->status & ST_FIREWALL) ||
-				!check_valid_host(rs->ip, rs->port);
-			download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-				rs->guid, rc->sha1, rs->stamp, need_push);
+        fi = file_info_has_identical(rc->name, rc->size, rc->sha1);
+        if (fi) {
+            gboolean need_push = (rs->status & ST_FIREWALL) ||
+                !check_valid_host(rs->ip, rs->port);
+            download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
+                    rs->guid, rc->sha1, rs->stamp, need_push, fi);
 		}
 	}
 }
@@ -1791,6 +1794,6 @@ void file_info_try_to_swarm_with(
 		return;
 
 	download_auto_new(
-		file_name, fi->size, idx, ip, port, blank_guid, sha1, 0, FALSE);
+		file_name, fi->size, idx, ip, port, blank_guid, sha1, 0, FALSE, fi);
 }
 

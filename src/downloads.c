@@ -608,13 +608,17 @@ static void queue_remove_downloads_with_file(struct dl_file_info *fi)
 {
 	GSList *to_remove = NULL;
 	GSList *l;
+    static gboolean removing = FALSE;
+
+    if (removing) return;
+    removing = TRUE;
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
 
 		if (d->file_info != fi) continue;
 		
-		if ((d->status == GTA_DL_QUEUED) || (d->status == GTA_DL_TIMEOUT_WAIT))
+        if (d->status != GTA_DL_COMPLETED)
 			to_remove = g_slist_prepend(to_remove, d);
 	}
 	
@@ -622,6 +626,8 @@ static void queue_remove_downloads_with_file(struct dl_file_info *fi)
 		download_free((struct download *)l->data);
 
 	g_slist_free(to_remove);
+
+    removing = FALSE;
 }
 
 
@@ -2132,12 +2138,11 @@ static gchar *escape_filename(gchar *file)
 static void create_download(
 	gchar *file, gchar *output, guint32 size, guint32 record_index,
 	guint32 ip, guint16 port, gchar *guid, gchar *sha1, time_t stamp,
-	gboolean push, gboolean interactive)
+	gboolean push, gboolean interactive, struct dl_file_info *file_info)
 {
 	struct dl_server *server;
 	struct download *d;
 	gchar *file_name = interactive ? atom_str_get(file) : file;
-	struct dl_file_info *file_info;
 
 	/*
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
@@ -2165,14 +2170,18 @@ static void create_download(
 	 * arealdy done by caller.	--RAM, 12/01/2002
 	 */
 
-	if (output == NULL)
-		output = escape_filename(file_name);
+    if (!file_info) {
+        if (output == NULL)
+            output = escape_filename(file_name);
 
-	file_info = file_info_get(output, save_file_path, size, sha1);
+        file_info = file_info_get(output, save_file_path, size, sha1);
 
-	if (output != file_name)
-		g_free(output);
-	output = NULL;				/* No longer used */
+        if (output != file_name)
+            g_free(output);
+        output = NULL;				/* No longer used */
+    } else {
+        file_info->refcount++;
+    }
 
 	/*
 	 * Initialize download, creating new server if needed.
@@ -2241,7 +2250,7 @@ static void create_download(
 
 void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 					   guint32 ip, guint16 port, gchar *guid, gchar *sha1,
-					   time_t stamp, gboolean push)
+					   time_t stamp, gboolean push, struct dl_file_info *fi)
 {
 	gchar dl_tmp[4096];
 	gchar *output_name = escape_filename(file);
@@ -2250,76 +2259,84 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 	char *reason;
 	int tmplen;
 
-	/*
-	 * Make sure we have not got a bigger file in the "download dir".
-	 *
-	 * Because of swarming, we could have a trailer in the file, hence
-	 * we cannot blindly stat() it.  Call a specialized routine that will
-	 * figure this out.
-	 *		--RAM, 18/08/2002
-	 */
+    /* 
+     * If we already got a file_info pointer, all the testing has been
+     * done somewhere else.
+     */
+    if (!fi) {
+    
+        /*
+         * Make sure we have not got a bigger file in the "download dir".
+         *
+         * Because of swarming, we could have a trailer in the file, hence
+         * we cannot blindly stat() it.  Call a specialized routine that will
+         * figure this out.
+         *		--RAM, 18/08/2002
+         */
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", save_file_path, output_name);
-	dl_tmp[sizeof(dl_tmp)-1] = '\0';
+        g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", save_file_path, output_name);
+        dl_tmp[sizeof(dl_tmp)-1] = '\0';
 
-// XXX temporary -- RAM
-//	if (file_info_filesize(dl_tmp) >= size) {
-//		reason = "downloaded file bigger";
-//		goto abort_download;
-//	}
+        // XXX temporary -- RAM
+        //	if (file_info_filesize(dl_tmp) >= size) {
+        //		reason = "downloaded file bigger";
+        //		goto abort_download;
+        //	}
 
-	/*
-	 * Make sure we have not got a bigger file in the "completed dir".
-	 *
-	 * We must also check for bigger files bearing our renaming exts,
-	 * i.e. .01, .02, etc... and keep going while files exist.
-	 */
+        /*
+         * Make sure we have not got a bigger file in the "completed dir".
+         *
+         * We must also check for bigger files bearing our renaming exts,
+         * i.e. .01, .02, etc... and keep going while files exist.
+         */
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", move_file_path, output_name);
-	dl_tmp[sizeof(dl_tmp)-1] = '\0';
+        g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", move_file_path, output_name);
+        dl_tmp[sizeof(dl_tmp)-1] = '\0';
 
-	if (-1 != stat(dl_tmp, &buf) && buf.st_size >= size) {
-		reason = "complete file bigger";
-		goto abort_download;
-	}
+        if (-1 != stat(dl_tmp, &buf) && buf.st_size >= size) {
+            reason = "complete file bigger";
+            goto abort_download;
+        }
 
-	tmplen = strlen(dl_tmp);
-	if (tmplen >= sizeof(dl_tmp) - 4) {
-		g_warning("'%s' in completed dir is too long for further checks",
-			output_name);
-	} else {
-		int i;
-		for (i = 1; i < 100; i++) {
-			gchar ext[4];
+        tmplen = strlen(dl_tmp);
+        if (tmplen >= sizeof(dl_tmp) - 4) {
+            g_warning("'%s' in completed dir is too long for further checks",
+                    output_name);
+        } else {
+            int i;
+            for (i = 1; i < 100; i++) {
+                gchar ext[4];
 
-			g_snprintf(ext, 4, ".%02d", i);
-			dl_tmp[tmplen] = '\0';				/* Ignore prior attempt */
-			strncat(dl_tmp+tmplen, ext, 3);		/* Append .01, .02, ...*/
+                g_snprintf(ext, 4, ".%02d", i);
+                dl_tmp[tmplen] = '\0';				/* Ignore prior attempt */
+                strncat(dl_tmp+tmplen, ext, 3);		/* Append .01, .02, ...*/
 
-			if (-1 == stat(dl_tmp, &buf))
-				break;							/* No file, stop scanning */
+                if (-1 == stat(dl_tmp, &buf))
+                    break;							/* No file, stop scanning */
 
-			if (buf.st_size >= size) {
-				g_snprintf(dl_tmp, sizeof(dl_tmp),
-					"alternate complete file #%d bigger", i);
-				reason = dl_tmp;
-				goto abort_download;
-			}
-		}
-	}
+                if (buf.st_size >= size) {
+                    g_snprintf(dl_tmp, sizeof(dl_tmp),
+                            "alternate complete file #%d bigger", i);
+                    reason = dl_tmp;
+                    goto abort_download;
+                }
+            }
+        }
 
-	file_name = atom_str_get(file);
-	if (output_name == file)		/* Not duplicated, has no '/' inside */
-		output_name = file_name;	/* So must reuse file_name */
+    }
 
-	create_download(file_name, output_name,
-		size, record_index, ip, port, guid, sha1, stamp, push, FALSE);
-	return;
+    file_name = atom_str_get(file);
+    if (output_name == file)		/* Not duplicated, has no '/' inside */
+        output_name = file_name;	/* So must reuse file_name */
+
+    create_download(file_name, output_name,
+            size, record_index, ip, port, guid, sha1, stamp, push, FALSE, fi);
+    return;
 
 abort_download:
-	if (dbg > 4)
-		printf("ignoring auto download for '%s': %s\n", file, reason);
-	if (output_name != file)		/* Was allocated by escape_filename() */
+    if (dbg > 4)
+        printf("ignoring auto download for '%s': %s\n", file, reason);
+    if (output_name != file)		/* Was allocated by escape_filename() */
 		g_free(output_name);
 	return;
 }
@@ -2426,10 +2443,10 @@ void download_index_changed(guint32 ip, guint16 port, guchar *guid,
 
 void download_new(gchar *file, guint32 size, guint32 record_index,
 				  guint32 ip, guint16 port, gchar *guid, gchar *sha1,
-				  time_t stamp, gboolean push)
+				  time_t stamp, gboolean push, struct dl_file_info *fi)
 {
 	create_download(file, NULL, size, record_index, ip, port, guid, sha1,
-		stamp, push, TRUE);
+		stamp, push, TRUE, fi);
 }
 
 /* Free a download. */
@@ -3016,7 +3033,8 @@ static gboolean download_overlap_check(struct download *d)
 	}
 
 	if (0 != memcmp(s->buffer, data, d->overlap_size)) {
-		download_stop(d, GTA_DL_ERROR, "Resuming data mismatch");
+        download_stop(d, GTA_DL_ERROR, "Resuming data mismatch on pos %lu",
+                d->skip - d->overlap_size);
 		if (dbg > 3)
 			printf("%d overlapping bytes UNMATCHED at offset %d for \"%s\"\n",
 				d->overlap_size, d->skip - d->overlap_size, d->file_name);
@@ -4403,7 +4421,7 @@ static void download_retrieve(void)
 		 */
 
 		create_download(d_name, NULL, d_size, d_index, d_ip, d_port, d_guid,
-			has_sha1 ? sha1_digest : NULL, 1, FALSE, FALSE);
+			has_sha1 ? sha1_digest : NULL, 1, FALSE, FALSE, NULL);
 
 		/*
 		 * Don't free `d_name', we gave it to create_download()!

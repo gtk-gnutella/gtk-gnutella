@@ -32,6 +32,7 @@
 #include <time.h>
 #include <sys/time.h>
 
+#include "downloads.h"
 #include "dmesh.h"
 #include "atoms.h"
 #include "url.h"
@@ -1013,7 +1014,7 @@ static gint dmesh_alt_loc_fill(guchar *sha1, dmesh_urlinfo_t *buf, gint count)
  * `sha1': (atom) the SHA1 of the file
  * `size': the original file size
  */
-void dmesh_multiple_downloads(guchar *sha1, guint32 size)
+void dmesh_multiple_downloads(guchar *sha1, guint32 size, struct dl_file_info *fi)
 {
 	dmesh_urlinfo_t buffer[DMESH_MAX];
 	dmesh_urlinfo_t *p;
@@ -1028,7 +1029,7 @@ void dmesh_multiple_downloads(guchar *sha1, guint32 size)
 				dmesh_urlinfo_to_gchar(p));
 
 		download_auto_new(p->name, size, p->idx, p->ip, p->port,
-			blank_guid, sha1, 0, FALSE);
+			blank_guid, sha1, 0, FALSE, fi);
 	}
 }
 

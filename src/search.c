@@ -1664,7 +1664,7 @@ void search_matched(search_t *sch, struct results_set *rs)
         if (flt_result->props[FILTER_PROP_DOWNLOAD].state ==
             FILTER_PROP_STATE_DO) {
             download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-                rs->guid, rc->sha1, rs->stamp, need_push);
+                rs->guid, rc->sha1, rs->stamp, need_push, NULL);
             downloaded = TRUE;
         }
     
@@ -2154,7 +2154,7 @@ static void download_selection_of_clist(GtkCList * c)
 		need_push =
 			(rs->status & ST_FIREWALL) || !check_valid_host(rs->ip, rs->port);
 		download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-					 rs->guid, rc->sha1, rs->stamp, need_push);
+					 rs->guid, rc->sha1, rs->stamp, need_push, NULL);
 
         /*
          * I'm not totally sure why we have to determine the row again,
