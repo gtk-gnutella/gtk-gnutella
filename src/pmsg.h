@@ -31,15 +31,25 @@ typedef struct pdata {
  */
 
 typedef struct pmsg {
-	char *m_rptr;					/* First unread byte in buffer */
-	char *m_wptr;					/* First unwritten byte in buffer */
+	gchar *m_rptr;					/* First unread byte in buffer */
+	gchar *m_wptr;					/* First unwritten byte in buffer */
 	pdata_t *m_data;				/* Data buffer */
-	int m_prio;						/* Message priority (0 = normal) */
+	gint m_prio;					/* Message priority (0 = normal) */
 } pmsg_t;
 
 #define pmsg_start(x)		((x)->m_data->d_arena)
 #define pmsg_phys_len(x)	pdata_len((x)->m_data)
 #define pmsg_is_writable(x)	((x)->m_data->d_refcnt == 1)
+#define pmsg_prio(x)		((x)->m_prio)
+
+/*
+ * Message priorities.
+ */
+
+#define PMSG_P_DATA		0			/* Regular data, lowest priority */
+#define PMSG_P_CONTROL	1			/* Control message */
+#define PMSG_P_URGENT	2			/* Urgent message */
+#define PMSG_P_HIGHEST	3			/* Highest priority */
 
 /*
  * Public interface
