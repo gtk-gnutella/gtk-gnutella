@@ -13,7 +13,7 @@ GList *global_filters = NULL;
 /* returns 0 for hide, 1 for display, -1 for undecided */
 static int apply_filters(GList *list, struct record *rec)
 {
-#define FIRE	{ return f->positive ? 1 : 0; }
+#define FIRE	{ g_free(l_name); return f->positive ? 1 : 0; }
 	size_t namelen;
 	char *l_name;
 	namelen = strlen(rec->name);
@@ -89,6 +89,7 @@ static int apply_filters(GList *list, struct record *rec)
 		}
 		list = g_list_next(list);
 	}
+	g_free(l_name);
 	return -1;
 }
 
@@ -106,7 +107,12 @@ gboolean filter_record(struct search *sch, struct record *rec)
 		// XXX for now -- RAM
 	}
 
-	if ((r = apply_filters(sch->filters, rec)) != -1)
+	if (sch->filters && (r = apply_filters(sch->filters, rec)) != -1)
 		return r;
-	return apply_filters(global_filters, rec); /* -1 means display here */
+
+	if (global_filters)
+		return apply_filters(global_filters, rec); /* -1 means display here */
+
+	return -1;			/* TRUE => display (not filtered) */
 }
+

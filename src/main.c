@@ -12,6 +12,7 @@
 #include "routing.h"
 #include "downloads.h"
 #include "hosts.h"
+#include "dialog-filters.h"
 #include "filter.h"
 #include "misc.h"
 #include "autodownload.h"
@@ -44,6 +45,7 @@ void gtk_gnutella_exit(gint n)
 		socket_destroy(s_listen);
 	socket_shutdown();
 	search_shutdown();
+	filters_shutdown();
 	share_close();
 	node_close();
 	host_close();

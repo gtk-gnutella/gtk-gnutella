@@ -1375,6 +1375,7 @@ void search_shutdown(void)
 		g_hash_table_destroy(sch->dups);
 		sch->dups = NULL;
 		search_free_r_sets(sch);
+		filters_close_search(sch);
 		g_free(sch->query);
 		g_free(sch);
 	}

@@ -56,6 +56,8 @@ void on_button_add_ip_filter_clicked(GtkButton *, gpointer);
 void on_button_add_size_filter_clicked(GtkButton *, gpointer);
 void on_button_remove_filter_clicked(GtkButton *, gpointer);
 
+static void filter_free(struct filter *f, gpointer data);
+
 /* */
 
 struct filter_page *dialog_filters_new_page(struct search *sch)
@@ -256,12 +258,26 @@ void filters_close_search(struct search *sch)
 		g_free(fpl);
 	}
 
+	g_list_foreach(sch->filters, (GFunc)filter_free, NULL);
+	g_list_free(sch->filters);
+
 	gtk_notebook_remove_page(GTK_NOTEBOOK(f_notebook),
 							 gtk_notebook_page_num(GTK_NOTEBOOK
 												   (f_notebook),
 												   fp->table));
 
 	g_free(fp);
+}
+
+/*
+ * filters_shutdown
+ *
+ * Free global filters.
+ */
+void filters_shutdown(void)
+{
+	g_list_foreach(global_filters, (GFunc)filter_free, NULL);
+	g_list_free(global_filters);
 }
 
 /*
