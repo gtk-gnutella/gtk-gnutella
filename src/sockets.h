@@ -106,7 +106,7 @@ int proxy_connect(int, const struct sockaddr *, guint);
 int recv_socks(struct gnutella_socket *);
 int send_socks(struct gnutella_socket *);
 
-void socket_monitor_incoming(void);
+void socket_timer(time_t now);
 void socket_shutdown(void);
 
 #endif /* __sockets_h__ */

@@ -217,7 +217,7 @@ static gboolean main_timer(gpointer p)
 		download_timer(now);  	    /* Download timeouts */
 		upload_timer(now);			/* Upload timeouts */
 	}
-	socket_monitor_incoming();		/* Expire connecting sockets */
+	socket_timer(now);				/* Expire inactive sockets */
 	pcache_possibly_expired(now);	/* Expire pong cache */
 
 	/*

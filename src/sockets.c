@@ -64,16 +64,19 @@
 gboolean is_firewalled = TRUE;		/* Assume the worst --RAM, 20/12/2001 */
 static gboolean ip_computed = FALSE;
 
-static GSList *sl_incoming = (GSList *) NULL;	/* Track incoming sockets */
+static GSList *sl_incoming = (GSList *) NULL;	/* To spot inactive sockets */
 
 static void guess_local_ip(int sd);
 
-void socket_monitor_incoming(void)
+/*
+ * socket_timer
+ *
+ * Called by main timer.
+ * Expires inactive sockets.
+ */
+void socket_timer(time_t now)
 {
-	/* Did an incoming connection timout? */
-
 	GSList *l;
-	time_t now = time((time_t *) 0);
 
   retry:
 	for (l = sl_incoming; l; l = l->next) {
@@ -231,7 +234,7 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 	 * Whatever happens now, we're not going to use the existing read
 	 * callback, and we'll no longer monitor the socket via the `sl_incoming'
 	 * list: if it's a node connection, we'll monitor the node, if it's
-	 * an upload, we'll monitor the uplaod.
+	 * an upload, we'll monitor the upload.
 	 */
 
 	gdk_input_remove(s->gdk_tag);
@@ -239,11 +242,11 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 	sl_incoming = g_slist_remove(sl_incoming, s);
 	s->last_update = 0;
 
+	first = getline_str(s->getline);
+
 	/*
 	 * Always authorize replies for our PUSH requests!
 	 */
-
-	first = getline_str(s->getline);
 
 	if (0 == strncmp(first, "GIV ", 4)) {
 		download_push_ack(s);
@@ -292,17 +295,18 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 		upload_add(s);
 	else if (0 == strncmp(first, "HEAD ", 5))
 		upload_add(s);
-	else {
-		gint len = getline_length(s->getline);
-		if (dbg) {
-			g_warning("socket_read(): Got an unknown incoming connection, "
-				"dropping it.");
-			dump_hex(stderr, "First Line", first, MIN(len, 160));
-		}
-		goto cleanup;
-	}
+	else
+		goto unknown;
 
 	return;
+
+unknown:
+	if (dbg) {
+		gint len = getline_length(s->getline);
+		g_warning("socket_read(): got unknown incoming connection, dropping!");
+		dump_hex(stderr, "First Line", first, MIN(len, 160));
+	}
+	/* FALL THROUGH */
 
 cleanup:
 	socket_destroy(s);
