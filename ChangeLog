@@ -22,6 +22,11 @@
  * New property "bw_allow_stealing" to control bandwidth sharing.
  * New flag q/Q to indicate query routing table sending/sent.
  * Send query routing table faster, as bandwidth permits.
+ * Prevent bandwidth stealing from a disabled scheduler.
+ * Avoid overflow of signed integer when stealing bandwidth.
+ * Actually limit the memory size we figure by the max allowed size for
+   the data segment.
+ * Made the "is_firewalled" property persistent to accelerate warm startup.
 
 - (2002.12.30 - cbiere)
  * Fixed phys. RAM detection so it should work with Linux, Free/Net/OpenBSD
