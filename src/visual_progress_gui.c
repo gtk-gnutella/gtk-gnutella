@@ -30,11 +30,17 @@
  * TODO and other ideas to be implemented.
  *
  * Display more information.
- * Automatically move the fastest download to the top of the display.
  *
- * FIXME: instead of using -1 as "unallocated fih", there should be
- *        a separate flag stating if a fih is valid or not. There is
- *        no guarantee that fih can not become -1.
+ * - solve issues with redrawing at different widths, although I do
+ * not see this happening...
+
+ * - track down potential memory leak 
+ *
+ * make colors into properties so that they can be stored in config,
+ * should keep hardcoded backups.
+ * 
+ * Add progress data also to fileinfo table, so that the info is shown for 
+ * all current files.
  */
 
 #include "gui.h"
@@ -57,6 +63,7 @@ typedef struct vp_context {
     int width;
     int height;
     gnet_fi_t fih;
+	gboolean fih_valid;
 } vp_context_t;
 
 /*
@@ -79,7 +86,7 @@ GdkColor done_old;         /* Pre-filled color (dull green) for DONE chunks from
 GdkColor busy;             /* Pre-filled color (yellow) for BUSY chunks */
 GdkColor empty;            /* Pre-filled color (red) for EMPTY chunks */
 GdkColor black;            /* Pre-filled color (black) for general drawing */
-static int vp_height = 0;  /* Height of drawing area */
+GdkColor *base;            /* Theme-defined background color */
 
 vp_context_t fi_context;
 vp_context_t *vp_context;
@@ -147,30 +154,36 @@ void vp_draw_fi (gpointer key, gpointer value, gpointer user_data)
 
 /* 
  * Draws a progress bar for the given fi struct in the
- * DrawingArea. fih is expected to be a valid fih, or 0 in which case
- * the function returns instead of drawing something.
+ * DrawingArea. fih is expected to be a valid fih. Depending on the
+ * value of valid the area will be drawn or cleared.
  */
-void vp_draw_fi_progress(gnet_fi_t fih)
+void vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 {
     vp_info_t *v;
     gpointer atom;
+	gboolean found;
 
     /*
      * Remember the current fih handle so that we can redraw it later
      */
     fi_context.fih = fih;
+	fi_context.fih_valid = valid;
 
-    if (fih != -1) {
-        gboolean found;
+	if (fi_context.drawable) {
+		if (valid) {
+			found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, (gpointer *)&v);
+			g_assert( found );
+			g_assert( v );
+			
+			v->context = &fi_context;
 
-        found = g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, (gpointer *)&v);
-        g_assert( found );
-        g_assert( v );
-
-        v->context = &fi_context;
-
-        g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
-    }
+			g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
+		} else {
+			gdk_gc_set_foreground(fi_context.gc, base);
+			gdk_draw_rectangle(fi_context.drawable, fi_context.gc, TRUE,
+							   0, 0, fi_context.width, fi_context.height);
+		}
+	}
 }
 
 /* 
@@ -180,12 +193,17 @@ void
 on_drawingarea_fi_progress_realize     (GtkWidget       *widget,
                                         gpointer         user_data)
 {
+	GtkStyle *style;
+
     fi_context.drawable = widget->window;
     g_assert( fi_context.drawable );
     fi_context.gc = gdk_gc_new(fi_context.drawable);
     g_assert( fi_context.gc );
     fi_context.offset_hor = 0;
     fi_context.offset_ver = 0;
+
+	style = gtk_widget_get_style(widget);
+	base = gdk_color_copy(&(style->base[GTK_STATE_INSENSITIVE]));
 }
 
 gboolean
@@ -206,7 +224,7 @@ on_drawingarea_fi_progress_expose_event
                                         GdkEventExpose  *event,
                                         gpointer         user_data)
 {
-    vp_draw_fi_progress(fi_context.fih);
+	vp_draw_fi_progress(fi_context.fih_valid, fi_context.fih);
 
     return FALSE;
 }
@@ -261,9 +279,10 @@ on_visual_progress_configure_event     (GtkWidget       *widget,
      * additional checks.
      */
 
-    if (vp_context)
-	vp_context->width = event->width;
-    vp_height = event->height;
+    if (vp_context) {
+		vp_context->width = event->width - 3;
+		vp_context->height = event->height - 1;
+	}
 
     return FALSE;
 }
@@ -346,7 +365,7 @@ static void vp_gui_fi_removed(gnet_fi_t fih)
     /* 
      * Forget the fileinfo handle for which we displayed progress info
      */
-    fi_context.fih = -1;
+    fi_context.fih_valid = FALSE;
 }
 
 /* 
@@ -375,11 +394,8 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
     /* 
      * We will use the new list. We don't just copy it because we want
      * to mark new chunks in the new list as new. So we walk both
-     * trees in parallel to make this check, freeing the old list on
-     * the way.
+     * trees in parallel to make this check.
      */
-
-    // FIXME: maybe use fi_chunks_free here too?
     old = v->chunks_list;
     new = fi_get_chunks(fih);
     keep_new = new;
@@ -392,12 +408,10 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
                     new_chunk->old = old_chunk->old;
                 else
                     new_chunk->old = FALSE;
-                wfree(old->data, sizeof(gnet_fi_chunks_t));
                 old = g_slist_next(old);
                 new = g_slist_next(new);
             } else {
                 if (old_chunk->from < new_chunk->from) {
-                    wfree(old->data, sizeof(gnet_fi_chunks_t));
                     old = g_slist_next(old);
                 } else {
                     new_chunk->old = FALSE;
@@ -410,7 +424,6 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
              * proper next one to advance that list to the end.
              */
             if (old) {
-                wfree(old->data, sizeof(gnet_fi_chunks_t));
                 old = g_slist_next(old);
             }
             if (new)
@@ -418,7 +431,10 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
         }
     }
 
-    g_slist_free(v->chunks_list);
+	/*
+	 * Now that we have checked all old chunks we can discard them 
+	 */
+    fi_free_chunks(v->chunks_list);
     v->chunks_list = keep_new;
 
     /*
@@ -454,26 +470,23 @@ void vp_gui_init(void)
     fi_add_listener((GCallback)vp_gui_fi_status_changed, 
         EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
 
-    /*
-     * TODO: These colors should perhaps be configurable
-     */
     cmap = gdk_colormap_get_system();
     g_assert( cmap );
-    g_assert(gdk_color_parse("#00EE00", &done_old));
-    g_assert(gdk_colormap_alloc_color(cmap, &done_old, FALSE, TRUE));
-    g_assert(gdk_color_parse("#00FF00", &done));
-    g_assert(gdk_colormap_alloc_color(cmap, &done, FALSE, TRUE));
-    g_assert(gdk_color_parse("#FFFF00", &busy));
-    g_assert(gdk_colormap_alloc_color(cmap, &busy, FALSE, TRUE));
-    g_assert(gdk_color_parse("#FF0000", &empty));
-    g_assert(gdk_colormap_alloc_color(cmap, &empty, FALSE, TRUE));
-    g_assert(gdk_color_parse("black", &black));
-    g_assert(gdk_colormap_alloc_color(cmap, &black, FALSE, TRUE));
+    gdk_color_parse("#00EE00", &done_old);
+    gdk_colormap_alloc_color(cmap, &done_old, FALSE, TRUE);
+    gdk_color_parse("#00FF00", &done);
+    gdk_colormap_alloc_color(cmap, &done, FALSE, TRUE);
+    gdk_color_parse("#FFFF00", &busy);
+    gdk_colormap_alloc_color(cmap, &busy, FALSE, TRUE);
+    gdk_color_parse("#FF0000", &empty);
+    gdk_colormap_alloc_color(cmap, &empty, FALSE, TRUE);
+    gdk_color_parse("black", &black);
+    gdk_colormap_alloc_color(cmap, &black, FALSE, TRUE);
 
     /*
      * No progress fih has been seen yet
      */
-    fi_context.fih = -1;
+    fi_context.fih_valid = FALSE;
 }
 
 /* 

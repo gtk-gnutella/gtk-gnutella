@@ -109,10 +109,10 @@ static void fi_gui_set_details(gnet_fi_t fih)
     g_strfreev(aliases);
     fi_free_info(fi);
 
-    vp_draw_fi_progress(fih);
-
     last_shown = fih;
     last_shown_valid = TRUE;
+
+	vp_draw_fi_progress(last_shown_valid, last_shown);
 
     gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
 			     TRUE);
@@ -128,6 +128,8 @@ static void fi_gui_clear_details(void)
 
     gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
 			     FALSE);
+
+    vp_draw_fi_progress(last_shown_valid, last_shown);
 }
 
 void on_treeview_fileinfo_selected(
@@ -269,8 +271,7 @@ static void fi_gui_update(gnet_fi_t fih, gboolean full)
 
     fi_gui_update_row(store_fileinfo, iter, titles);
 
-    if (last_shown_valid)
-	vp_draw_fi_progress(last_shown);
+	vp_draw_fi_progress(last_shown_valid, last_shown);
 }
 
 static void fi_gui_fi_added(gnet_fi_t fih)

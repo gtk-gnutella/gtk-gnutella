@@ -40,7 +40,7 @@ void vp_gui_shutdown(void);
 /* 
  * External function for drawing information in supplied pixmap
  */
-void vp_draw_fi_progress(gnet_fi_t fih);
+void vp_draw_fi_progress(gboolean valid, gnet_fi_t fih);
 
 
 /*
