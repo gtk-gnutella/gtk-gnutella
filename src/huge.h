@@ -30,7 +30,8 @@
 
 #include <sys/types.h>
 
-#define SHA1_BASE32_SIZE (32)		/* 160 bits in base32 representation */
+#define SHA1_BASE32_SIZE 	32		/* 160 bits in base32 representation */
+#define SHA1_RAW_SIZE		20		/* 160 bits in binary representation */
 
 struct shared_file;
 

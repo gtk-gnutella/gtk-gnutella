@@ -39,6 +39,7 @@
 #include "sha1.h"
 #include "huge.h"
 #include "share.h"
+#include "misc.h"
 
 /***
  *** Server side: computation of SHA1 hash digests and replies.
@@ -68,7 +69,7 @@ struct sha1_cache_entry {
     gchar *file_name;                     /* Full path name                 */
     off_t  size;                          /* File size                      */
     time_t mtime;                         /* Last modification time         */
-    guchar digest[SHA1_BASE32_SIZE];      /* SHA1 digest as an ASCII string */
+    guchar digest[SHA1_RAW_SIZE];         /* SHA1 digest as a binary string */
     gboolean shared;                      /* There's a known entry for this
                                            * file in the share library
                                            */
@@ -93,7 +94,7 @@ static gboolean cache_dirty = FALSE;
  */
 static void copy_sha1(char *dest, const char *source)
 {
-	memcpy(dest, source, SHA1_BASE32_SIZE);
+	memcpy(dest, source, SHA1_RAW_SIZE);
 }
 
 /**
@@ -111,11 +112,11 @@ static void update_volatile_cache(
 	struct sha1_cache_entry *sha1_cached_entry,
 	off_t size,
 	time_t mtime, 
-	const char *sha1_digest_ascii)
+	const char *digest)
 {
 	sha1_cached_entry->size = size;
 	sha1_cached_entry->mtime = mtime;
-	copy_sha1(sha1_cached_entry->digest, sha1_digest_ascii);
+	copy_sha1(sha1_cached_entry->digest, digest);
 	sha1_cached_entry->shared = TRUE;
 }
 
@@ -127,14 +128,14 @@ static void add_volatile_cache_entry(
 	const char *file_name, 
 	off_t size,
 	time_t mtime,
-	const char *sha1_digest_ascii, 
+	const char *digest, 
 	gboolean known_to_be_shared)
 {
 	struct sha1_cache_entry *new_entry = g_new(struct sha1_cache_entry, 1);
 	new_entry->file_name = g_strdup(file_name); /* Sorry about that ! */
 	new_entry->size = size;
 	new_entry->mtime = mtime;
-	copy_sha1(new_entry->digest, sha1_digest_ascii);
+	copy_sha1(new_entry->digest, digest);
 	new_entry->shared = known_to_be_shared;
 	g_hash_table_insert(sha1_cache, new_entry->file_name, new_entry);
 }
@@ -161,7 +162,7 @@ static void add_persistent_cache_entry(
 	const char *file_name,
 	off_t size,
 	time_t mtime,
-	const char *sha1_digest_ascii)
+	const char *digest)
 {
 	FILE *persistent_cache;
 
@@ -183,9 +184,8 @@ static void add_persistent_cache_entry(
 	if (0 == ftell(persistent_cache))
 		fprintf(persistent_cache, "%s", sha1_persistent_cache_file_header);
 
-	fwrite(sha1_digest_ascii, SHA1_BASE32_SIZE, 1, persistent_cache);
-	fprintf(persistent_cache, "\t%lu\t%ld\t%s\n",
-		(gulong) size, mtime, file_name);
+	fprintf(persistent_cache, "%s\t%lu\t%ld\t%s\n",
+		sha1_base32(digest), (gulong) size, mtime, file_name);
 	fclose(persistent_cache);
 }
 
@@ -203,9 +203,8 @@ static void dump_cache_one_entry(
 	if (!e->shared)
 		return;
 
-	fwrite(e->digest, SHA1_BASE32_SIZE, 1, persistent_cache);
-	fprintf(persistent_cache,
-		"\t%lu\t%ld\t%s\n", (gulong) e->size, e->mtime, e->file_name);
+	fprintf(persistent_cache, "%s\t%lu\t%ld\t%s\n",
+		sha1_base32(e->digest), (gulong) e->size, e->mtime, e->file_name);
 }
 
 /*
@@ -242,12 +241,12 @@ static void dump_cache(void)
 static void parse_and_append_cache_entry(char *line)
 {
 	const char *sha1_digest_ascii;
-	char *sha1_digest_ascii_end;
 	const char *file_name;
 	char *file_name_end;
 	char *p, *end; /* pointers to scan the line */
 	off_t size;
 	time_t mtime;
+	char digest[SHA1_RAW_SIZE];
 
 	/* Skip comments and blank lines */
 	if (*line == '#' || *line == '\n') return;
@@ -258,13 +257,17 @@ static void parse_and_append_cache_entry(char *line)
 
 	p = line;
 	while(*p != '\t' && *p != '\n') p++;
-	if (*p != '\t') {
+
+	if (
+		*p != '\t' ||
+		(p - sha1_digest_ascii) != SHA1_BASE32_SIZE ||
+		!base32_decode_into(sha1_digest_ascii, SHA1_BASE32_SIZE,
+			digest, sizeof(digest))
+	) {
 		g_warning("Malformed line in SHA1 cache file %s[SHA1]: %s",
 			persistent_cache_file_name, line);
 		return;
 	}
-
-	sha1_digest_ascii_end = p++;  /* Set the end of the SHA1 digest string */
 
 	/* p is now supposed to point to the beginning of the file size */
 
@@ -303,10 +306,9 @@ static void parse_and_append_cache_entry(char *line)
 	}
 
 	/* Set string end markers */
-	*sha1_digest_ascii_end = '\0';
 	*file_name_end = '\0';
 
-	add_volatile_cache_entry(file_name, size, mtime, sha1_digest_ascii, FALSE);
+	add_volatile_cache_entry(file_name, size, mtime, digest, FALSE);
 }
 
 /*
@@ -384,7 +386,7 @@ struct file_sha1 {
 	 * in the waiting_for_library_build_complete list.
 	 */
 
-	gchar sha1_digest[SHA1_BASE32_SIZE];
+	gchar sha1_digest[SHA1_RAW_SIZE];
 	struct file_sha1 *next;
 };
 
@@ -524,6 +526,17 @@ static void put_sha1_back_into_share_library(
 	}
 }
 
+/*
+ * free_cell
+ *
+ * Free a working cell.
+ */
+static void free_cell(struct file_sha1 *cell)
+{
+	g_free(cell->file_name);
+	g_free(cell);
+}
+
 /* 
  * try_to_put_sha1_back_into_share_library
  *
@@ -551,20 +564,8 @@ static void try_to_put_sha1_back_into_share_library()
 		waiting_for_library_build_complete = f->next;
 		put_sha1_back_into_share_library(shared_file(f->file_index),
 			f->file_name, f->sha1_digest);
-		g_free(f->file_name);
-		g_free(f);
+		free_cell(f);
 	}
-}
-
-/*
- * free_cell
- *
- * Free a working cell.
- */
-static void free_cell(struct file_sha1 *cell)
-{
-	g_free(cell->file_name);
-	g_free(cell);
 }
 
 /* 
@@ -698,10 +699,7 @@ static void got_sha1_result(
 	const char *file_name,
 	char *digest)
 {
-	char digest_b32[SHA1_BASE32_SIZE];
 	struct shared_file *sf;
-
-	base32_encode_into(digest, SHA1HashSize, digest_b32, sizeof(digest_b32));
 
 	sf = shared_file(file_index);
 	if (sf == SHARE_REBUILDING) {
@@ -710,14 +708,14 @@ static void got_sha1_result(
 		 * get the shared_file yet.
 		 */
 
-		copy_sha1(current_file->sha1_digest, digest_b32);
+		copy_sha1(current_file->sha1_digest, digest);
 
 		/* Re-use the record to save some time and heap fragmentation */
 
 		push(&waiting_for_library_build_complete, current_file);
 		current_file = NULL;
 	} else
-		put_sha1_back_into_share_library(sf, file_name, digest_b32);
+		put_sha1_back_into_share_library(sf, file_name, digest);
 }
 
 /*

@@ -47,6 +47,7 @@
 #include "url.h"
 #include "bsched.h"
 #include "upload_stats.h"
+#include "base32.h"
 
 GSList *uploads = NULL;
 gint running_uploads = 0;
@@ -390,8 +391,8 @@ static void send_upload_error_v(
 
 	if (sf && sha1_hash_available(sf)) {
 		g_snprintf(extra, sizeof(extra),
-			"X-Gnutella-Content-URN: urn:sha1:%.*s\r\n",
-			SHA1_BASE32_SIZE, sf->sha1_digest);
+			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
+			sha1_base32(sf->sha1_digest));
 	} else
 		extra[0] = '\0';
 
@@ -1193,12 +1194,21 @@ static void upload_request(struct upload *u, header_t *header)
 	 *		--RAM, 20/05/2002
 	 */
 
-	if (reqfile->sha1_digest[0] != '\0') {
+	if (sha1_hash_available(reqfile)) {
 		if ((buf = header_get(header, "X-Gnutella-Content-Urn"))) {
 			gchar *sha1 = strstr(buf, "urn:sha1:");	// XXX case insensitive, RAM
+			gchar digest[SHA1_RAW_SIZE];
+
+			/*
+			 * NB: base32_decode_into() will stop when NUL is reached
+			 * and return FALSE.
+			 */
+
 			if (
 				sha1 &&
-				0 != strncmp(sha1 + 9, reqfile->sha1_digest, SHA1_BASE32_SIZE)
+				base32_decode_into(sha1 + 9, SHA1_BASE32_SIZE,
+					digest, sizeof(digest)) &&
+				0 != memcmp(digest, reqfile->sha1_digest, SHA1_RAW_SIZE)
 			) {
 				upload_error_remove(u, reqfile,
 					404, "URN mismatch for urn:sha1");
@@ -1361,8 +1371,8 @@ static void upload_request(struct upload *u, header_t *header)
 		sha1_hash_available(reqfile)
 	)
 		rw += g_snprintf(http_response + rw, sizeof(http_response) - rw,
-			"X-Gnutella-Content-URN: urn:sha1:%.*s\r\n",
-			SHA1_BASE32_SIZE, reqfile->sha1_digest);
+			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
+			sha1_base32(reqfile->sha1_digest));
 
 	rw += g_snprintf(http_response + rw, sizeof(http_response) - rw,
 			 "\r\n");
