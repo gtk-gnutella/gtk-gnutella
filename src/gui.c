@@ -228,7 +228,6 @@ void gui_update_all()
 	gui_update_c_downloads(0, 0);
     
 	gui_update_config_port(TRUE);
-	gui_update_config_force_ip(TRUE);
 
 	gui_update_save_file_path();
 	gui_update_move_file_path();
@@ -358,26 +357,6 @@ void gui_address_changed()
         gtk_label_set(label_current_port, iport);
         gtk_entry_set_text(entry_nodes_ip, iport);
     }
-}
-
-void gui_update_config_force_ip(gboolean force)
-{
-    /*
-     * Make sure we don't change the values if the user is
-     * currently editing them.
-     *      --BLUE, 15/05/2002
-     */ 
-
-    GtkWidget *entry_config_force_ip;
-
-    entry_config_force_ip = 
-        lookup_widget(main_window, "entry_config_force_ip");
-
-    if (!force || GTK_WIDGET_HAS_FOCUS(entry_config_force_ip))
-       return;
-
-    gtk_entry_set_text
-        (GTK_ENTRY(entry_config_force_ip), ip_to_gchar(forced_local_ip));
 }
 
 void gui_update_config_port(gboolean force)
