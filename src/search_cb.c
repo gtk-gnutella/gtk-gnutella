@@ -40,6 +40,7 @@ RCSID("$Id$");
 
 extern search_t *search_selected;
 
+static gboolean in_autoselect = FALSE;
 static gchar tmpstr[4096];
 
 /***
@@ -112,6 +113,169 @@ static void refresh_popup(void)
             lookup_widget(popup_search, "popup_search_resume"), FALSE);
     }
 }
+
+
+/* 
+ * 	search_cb_autoselect
+ *
+ *	Autoselects all searches matching given node in given tree
+ *	Uses the in_autosearch flag to prevent recursive autoselecting
+ */
+gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node, 
+	gboolean search_autoselect_ident)
+{
+	GtkCTreeNode *auto_node;
+	GtkCTreeNode *parent, *child;
+	GtkCTreeRow *row;
+	record_t *rc, *rc2;
+    guint32 fuzzy_threshold;
+	gboolean child_selected, node_expanded;
+	gint x = 0;
+	
+	if (in_autoselect)
+		return 0;	/* Prevent recursive autoselect */
+	
+	in_autoselect = TRUE;
+	gnet_prop_get_guint32(PROP_FUZZY_THRESHOLD, &fuzzy_threshold, 0, 1);
+
+	/* 
+     * Rows with NULL data can appear when inserting new rows
+     * because the selection is resynced and the row data cannot
+     * be set until insertion (and therefore also selection syncing
+     * is done.
+     *      --BLUE, 20/06/2002
+     */
+	rc = (record_t *) gtk_ctree_node_get_row_data(ctree, node);
+	gtk_clist_freeze(GTK_CLIST(ctree));
+	
+    /* Search whole ctree for nodes to autoselect 
+     */			
+	for (x = 1, auto_node = GTK_CTREE_NODE(GTK_CLIST(ctree)->row_list);
+		(NULL != auto_node) && (NULL != rc);
+		auto_node = GTK_CTREE_NODE_NEXT (auto_node)) {			
+       
+		if (NULL == auto_node)
+			continue;
+			
+		rc2 = (record_t *) gtk_ctree_node_get_row_data(ctree, auto_node);
+
+        /*
+         * Skip the line we selected in the first place.
+         */
+        if (rc == rc2)
+        	continue;
+
+        if (rc2 == NULL) {
+        	g_warning(" on_ctree_search_results_select_row: "
+            			"detected row with NULL data, skipping.");
+            continue;
+		}
+
+		parent = GTK_CTREE_NODE(auto_node);
+		row = GTK_CTREE_ROW(parent);
+		
+		/* If auto_node is a child node, we skip it cause it will be handled 
+		 * when we come to it's parent 
+		 */
+		if(NULL != row->parent)
+			continue; 			
+		
+		child = row->children;
+		if (NULL != child) /* If the node has children */
+		{
+			/* A header node.  We expand it and check all of the children 
+			 * If one of the children get selected keep node expanded,
+			 * if it was initially collapsed, collapse it again
+			 */				
+			child_selected = FALSE;
+			node_expanded = FALSE;
+
+			node_expanded = gtk_ctree_is_viewable(ctree, child);
+			gtk_ctree_expand(ctree, parent);
+			
+			for (; NULL != child; row = GTK_CTREE_ROW(child), 
+				child = row->sibling) {		
+
+				rc2 = gtk_ctree_node_get_row_data (ctree, child);
+		    
+				if (rc == rc2)
+	        		continue;
+	
+	            if (search_autoselect_ident) {
+       		    	if ((rc->size == rc2->size && rc->sha1 != NULL && 
+						rc2->sha1 != NULL &&
+                        memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0) 
+						|| ((rc->sha1 == NULL) && (rc2->size == rc->size) && 
+						((!search_autoselect_fuzzy && 
+						!strcmp(rc2->name, rc->name)) || 
+						(search_autoselect_fuzzy &&
+(fuzzy_compare(rc2->name, rc->name) * 100 >= (fuzzy_threshold << FUZZY_SHIFT)))
+                    	))) {
+							gtk_ctree_select(ctree, child);
+							child_selected = TRUE;	                      
+							x++;
+                    }
+                } else {
+                   	if (((rc->sha1 != NULL && rc2->sha1 != NULL &&
+                	    memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0) || 
+                        (rc2 && !strcmp(rc2->name, rc->name))) &&
+                        (rc2->size >= rc->size)) {
+							
+						gtk_ctree_select(ctree, child);
+						child_selected = TRUE;	                      
+   	                    x++;
+                   	}
+				}
+			}         				
+			if ((!child_selected) && (!node_expanded))
+				gtk_ctree_collapse(ctree, parent);
+		}
+
+		/* Reget rc2 in case we overwrote it while parsing the children */
+		rc2 = (record_t *) gtk_ctree_node_get_row_data(ctree, auto_node);
+
+        if (search_autoselect_ident) {
+			if ((
+            	/*
+				 * size check added to workaround buggy
+                 * servents. -vidar, 2002-08-08
+				 */
+                rc->size == rc2->size && 
+                rc->sha1 != NULL && rc2->sha1 != NULL &&
+                memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0
+			) || (
+                (rc->sha1 == NULL) && 
+                (rc2->size == rc->size) && (
+                (!search_autoselect_fuzzy &&
+				!strcmp(rc2->name, rc->name)) ||
+                (search_autoselect_fuzzy &&
+(fuzzy_compare(rc2->name, rc->name) * 100 >= (fuzzy_threshold << FUZZY_SHIFT)))
+                )
+                )) {
+                
+				gtk_ctree_select(ctree, auto_node);
+              	x++;
+			}
+		} else {
+            
+			if (((rc->sha1 != NULL && rc2->sha1 != NULL &&
+               	memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0) || 
+                (rc2 && !strcmp(rc2->name, rc->name))) &&
+                (rc2->size >= rc->size)) {
+				
+				gtk_ctree_select(ctree, auto_node);
+                x++;
+            }
+		}	
+	} /* for */
+	
+	gtk_clist_thaw(GTK_CLIST(ctree));
+	in_autoselect = FALSE;
+	return x;
+}
+
+
+
 
 /***
  *** Glade callbacks
@@ -323,7 +487,7 @@ void on_button_search_download_clicked(GtkButton * button, gpointer user_data)
 /* 
  * 	on_button_search_collapse_clicked
  */
-void on_button_search_collapse_clicked(GtkButton *button, gpointer user_data)
+void on_button_search_collapse_all_clicked(GtkButton *button, gpointer user_data)
 {
     search_gui_collapse_all();
 }
@@ -332,7 +496,7 @@ void on_button_search_collapse_clicked(GtkButton *button, gpointer user_data)
 /* 
  * 	on_button_search_expand_clicked
  */
-void on_button_search_expand_clicked(GtkButton *button, gpointer user_data)
+void on_button_search_expand_all_clicked(GtkButton *button, gpointer user_data)
 {
     search_gui_expand_all();
 }
@@ -493,18 +657,17 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
     gboolean search_autoselect_ident;
     gboolean search_autoselect_fuzzy;
     search_t *sch;
-	record_t *rc, *rc2;
+	record_t *rc;
+	gint x;
 
-	GList *row_list;
-	GtkCTreeNode *auto_node;
-	gint x, i;
-    guint32 fuzzy_threshold;
-
+	if (TRUE == in_autoselect)
+		return;
+	
 	if (NULL == node)
 		return;
 	
-	/* Add selected node to selected list for this search*/
     sch = search_gui_get_current_search();
+	rc = (record_t *) gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));
 	
     gui_prop_get_boolean(
         PROP_SEARCH_AUTOSELECT, 
@@ -518,19 +681,8 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
         PROP_SEARCH_AUTOSELECT_FUZZY, 
         &search_autoselect_fuzzy, 0, 1);
 
-    /*
-     * Block this signal so we don't emit it for every autoselected item.
-	 *
-	 * Note: this means we will have to manually add each autoselected item
-	 * to the selected list.
-	 */
-    gtk_signal_handler_block_by_func(
-        GTK_OBJECT(ctree),
-        GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
-        NULL);
 
     refresh_popup();
-
 
     /* 
      * check if config setting select all is on and only autoselect if
@@ -540,81 +692,9 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
         (GTK_CLIST(ctree)->selection != NULL) &&
         (GTK_CLIST(ctree)->selection->next == NULL)) {
 
-        gnet_prop_get_guint32(PROP_FUZZY_THRESHOLD, &fuzzy_threshold, 0, 1);
-
-        /* 
-         * Rows with NULL data can appear when inserting new rows
-         * because the selection is resynced and the row data cannot
-         * be set until insertion (and therefore also selection syncing
-         * is done.
-         *      --BLUE, 20/06/2002
-         */
-		rc = (record_t *) gtk_ctree_node_get_row_data
-			(ctree, GTK_CTREE_NODE(node));
-
-        /* Search whole ctree for nodes to autoselect 
-         * Note, the "row_list" of the ctree/clist contains the row number of
-		 * each node. The "selection" list (used elsewhere) contains 
-		 * GtkCTreeNode*'s.  This is undocumented but important. -- Emile
-		 */			
-		for (x = 1, row_list = GTK_CLIST(ctree)->row_list; 
-			(NULL != row_list) && (NULL != rc);
-			row_list = g_list_next(row_list)) {			
-       
-			/* Use the row number, to get the TreeNode */	
-			auto_node = gtk_ctree_node_nth(ctree, 
-				GPOINTER_TO_INT(row_list->data));
-			if (NULL == auto_node)
-				continue;
-			
-			rc2 = (record_t *)gtk_ctree_node_get_row_data(ctree, auto_node);
-
-            /*
-             * Skip the line we selected in the first place.
-             */
-            if (rc == rc2)
-                continue;
-
-            if (rc2 == NULL) {
-                g_warning(" on_clist_search_results_select_row: "
-                          "detected row with NULL data, skipping: %d", i);
-                continue;
-            }
-    
-            if (search_autoselect_ident) {
-                if ((
-                        /*
-						 * size check added to workaround buggy
-                         * servents. -vidar, 2002-08-08
-						 */
-                        rc->size == rc2->size && 
-                        rc->sha1 != NULL && rc2->sha1 != NULL &&
-                        memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0
-                    ) || (
-                        (rc->sha1 == NULL) && 
-                        (rc2->size == rc->size) && (
-                            (!search_autoselect_fuzzy &&
-								!strcmp(rc2->name, rc->name)) ||
-                            (search_autoselect_fuzzy &&
-(fuzzy_compare(rc2->name, rc->name) * 100 >= (fuzzy_threshold << FUZZY_SHIFT)))
-                        )
-                    )) {
-                        gtk_ctree_select(ctree, auto_node);
-                        x++;
-                    }
-                } else {
-                    if (
-                        ((rc->sha1 != NULL && rc2->sha1 != NULL &&
-                        memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0) || 
-                        (rc2 && !strcmp(rc2->name, rc->name))) &&
-                        (rc2->size >= rc->size)
-                    ) {
-                        gtk_ctree_select(ctree, auto_node);
-                        x++;
-                    }
-                }
-        }
-    
+		x =	search_cb_autoselect(ctree, GTK_CTREE_NODE(node), 
+			search_autoselect_ident); 
+   
         if (x > 1) {
             statusbar_gui_message(15, 
                 "%d auto selected %s",
@@ -659,13 +739,6 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
 		}	
 	}
 #endif
-
-    gtk_signal_handler_unblock_by_func(
-        GTK_OBJECT(ctree),
-        GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
-        NULL);
-g_warning("End select row");	
-	
 }
 
 
@@ -790,6 +863,7 @@ void on_popup_search_drop_name_activate(GtkMenuItem *menuitem,
 
     gtk_clist_thaw(GTK_CLIST(search->ctree));
 	g_list_free(data_list);
+	g_list_free(node_list);
 }
 
 
@@ -817,6 +891,7 @@ void on_popup_search_drop_sha1_activate(GtkMenuItem *menuitem,
 
     gtk_clist_thaw(GTK_CLIST(search->ctree));
 	g_list_free(data_list);
+	g_list_free(node_list);
 }
 
 
@@ -844,6 +919,7 @@ void on_popup_search_drop_host_activate(GtkMenuItem *menuitem,
 
     gtk_clist_thaw(GTK_CLIST(search->ctree));
 	g_list_free(data_list);
+	g_list_free(node_list);
 }
 
 
@@ -871,6 +947,7 @@ void on_popup_search_drop_name_global_activate(GtkMenuItem *menuitem,
 
     gtk_clist_thaw(GTK_CLIST(search->ctree));
 	g_list_free(data_list);
+	g_list_free(node_list);
 }
 
 
@@ -899,6 +976,7 @@ void on_popup_search_drop_sha1_global_activate(GtkMenuItem *menuitem,
 
     gtk_clist_thaw(GTK_CLIST(search->ctree));
 	g_list_free(data_list);
+	g_list_free(node_list);
 }
 
 
@@ -927,6 +1005,7 @@ void on_popup_search_drop_host_global_activate(GtkMenuItem *menuitem,
 
     gtk_clist_thaw(GTK_CLIST(search->ctree));
 	g_list_free(data_list);
+	g_list_free(node_list);
 }
 
 
@@ -955,6 +1034,7 @@ void on_popup_search_autodownload_name_activate(GtkMenuItem *menuitem,
 
     gtk_clist_thaw(GTK_CLIST(search->ctree));
 	g_list_free(data_list);
+	g_list_free(node_list);
 }
 
 
@@ -983,6 +1063,7 @@ void on_popup_search_autodownload_sha1_activate(GtkMenuItem *menuitem,
 
     gtk_clist_thaw(GTK_CLIST(search->ctree));
 	g_list_free(data_list);
+	g_list_free(node_list);
 }
 
 
@@ -1011,6 +1092,7 @@ void on_popup_search_new_from_selected_activate(GtkMenuItem *menuitem,
 
     gtk_clist_thaw(GTK_CLIST(search->ctree));
 	g_list_free(data_list);
+	g_list_free(node_list);
 }
 
 
