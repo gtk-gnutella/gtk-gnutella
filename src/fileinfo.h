@@ -57,6 +57,7 @@ struct dl_file_info {
 	gboolean dirty;		/* Does it need saving? */
 };
 
+void file_info_init(void);
 void file_info_retrieve(void);
 void file_info_store(void);
 void file_info_store_if_dirty(void);
