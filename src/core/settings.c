@@ -31,6 +31,8 @@
 #include <pwd.h>
 #include <netdb.h>
 
+#include "lib/eval.h"
+
 #include "settings.h"
 #include "search.h"
 #include "hosts.h"
@@ -977,12 +979,18 @@ static gboolean file_path_changed(property_t prop)
 
 	g_assert(s != NULL);
 
+	if (!is_directory(s)) {
+		g_message("Attempt to create directory \"%s\"", s);
+		if (create_directory(s))
+			g_message("Attempt failed: \"%s\"", g_strerror(errno));
+	}
+
     if (!is_directory(s)) {
 		gchar *path;
 
         if (prop == PROP_SAVE_FILE_PATH) {
 			prop_def_t *def = gnet_prop_get_def(prop);
-			path = g_strdup(home_dir ? home_dir : *def->data.string.def);
+			path = g_strdup(eval_subst(*def->data.string.def));
 			prop_free_def(def);
 		} else
 			path = gnet_prop_get_string(PROP_SAVE_FILE_PATH, NULL, 0);
