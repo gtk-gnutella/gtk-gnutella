@@ -132,7 +132,6 @@ gchar *hostname_port_to_gchar(const gchar *hostname, guint16 port);
 guint32  host_to_ip(const gchar *);
 gchar *  host_name(void);
 #define port_is_valid(port) (port != 0)
-#define host_is_valid(ip,port) (ip_is_valid(ip) && port != 0)
 gboolean ip_is_valid(guint32);
 
 /*
@@ -269,6 +268,15 @@ struct stat;
 extern gint do_errno;
 
 gint do_stat(const gchar *path, struct stat *buf);
+
+/*
+ * CIDR split of IP range.
+ */
+
+typedef void (*cidr_split_t)(guint32 ip, guint8 bits, gpointer udata);
+
+void ip_range_split(
+	guint32 lower_ip, guint32 upper_ip, cidr_split_t cb, gpointer udata);
 
 #endif /* _misc_h_ */
 
