@@ -310,8 +310,17 @@ gboolean on_clist_nodes_button_press_event(GtkWidget * widget,
 										   GdkEventButton * event,
 										   gpointer user_data)
 {
+    gint row, col;
+
     if (event->button != 3)
 		return FALSE;
+
+    if (!gtk_clist_get_selection_info
+		(GTK_CLIST(clist_nodes), event->x, event->y, &row, &col))
+		return FALSE;
+
+    if (GTK_CLIST(clist_nodes)->selection == NULL)
+        return FALSE;
 
     gtk_menu_popup(GTK_MENU(popup_nodes), NULL, NULL, NULL, NULL, 
                    event->button, event->time);
@@ -511,8 +520,16 @@ gboolean on_clist_uploads_button_press_event(GtkWidget * widget,
 	gint row, col;
 	/* struct upload *d; */
 
+    /*
+     * There are no actions in the uploads popup yet.
+     */
+    return FALSE;
+
 	if (event->button != 3)
 		return FALSE;
+
+    if (GTK_CLIST(clist_uploads)->selection == NULL)
+        return FALSE;
 
 	if (!gtk_clist_get_selection_info
 		(GTK_CLIST(clist_uploads), event->x, event->y, &row, &col))
@@ -652,6 +669,9 @@ gboolean on_clist_downloads_button_press_event(GtkWidget * widget,
 
 	if (event->button != 3)
 		return FALSE;
+
+    if (GTK_CLIST(clist_downloads)->selection == NULL)
+        return FALSE;
 
 	if (!gtk_clist_get_selection_info
 		(GTK_CLIST(clist_downloads), event->x, event->y, &row, &col))
@@ -1344,15 +1364,15 @@ void on_clist_downloads_queue_select_row(GtkCList * clist, gint row,
 
     only_one = ((clist->selection != NULL) &&
         (clist->selection->next == NULL));
-    
 
-    gtk_widget_set_sensitive(GTK_WIDGET(popup_downloads_copy_url), only_one);
-    gtk_widget_set_sensitive(GTK_WIDGET(popup_downloads_connect), only_one);
+    gtk_widget_set_sensitive(GTK_WIDGET(popup_queue_copy_url), only_one);
+    gtk_widget_set_sensitive(GTK_WIDGET(popup_queue_connect), only_one);
 	gui_update_download_abort_resume();
 
 	gtk_widget_set_sensitive(popup_queue_abort, one_or_more);
 	gtk_widget_set_sensitive(popup_queue_abort_named, one_or_more);
 	gtk_widget_set_sensitive(popup_queue_abort_host, one_or_more);
+    gtk_widget_set_sensitive(popup_queue_abort_sha1, one_or_more);
 	// FIXME: enable when code for popup_queue_search_again is written
 	// gtk_widget_set_sensitive(popup_queue_search_again, on_or_more);
 
@@ -1444,6 +1464,9 @@ gboolean on_clist_downloads_queue_button_press_event(GtkWidget * widget,
 
 	if (event->button != 3)
 		return FALSE;
+
+    if (GTK_CLIST(clist_downloads_queue)->selection == NULL)
+        return FALSE;
 
 	if (!gtk_clist_get_selection_info
 		(GTK_CLIST(clist_downloads_queue), event->x, event->y, &row, &col))
@@ -1658,7 +1681,16 @@ gboolean on_clist_monitor_button_press_event(GtkWidget * widget,
 											 GdkEventButton * event,
 											 gpointer user_data)
 {
+    gint row, col;
+
 	if (event->button != 3)
+		return FALSE;
+
+    if (GTK_CLIST(clist_monitor)->selection == NULL)
+        return FALSE;
+
+  	if (!gtk_clist_get_selection_info
+		(GTK_CLIST(clist_monitor), event->x, event->y, &row, &col))
 		return FALSE;
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_monitor_enable), FALSE);
