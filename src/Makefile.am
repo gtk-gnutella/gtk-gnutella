@@ -90,7 +90,9 @@ gtk_gnutella_SOURCES = \
 	qrp.c qrp.h \
 	getdate.y \
 	atoms.c atoms.h \
-	extensions.c extensions.h
+	extensions.c extensions.h ggep.h \
+	dmesh.c dmesh.h \
+	http.c http.h
 
 gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
 
