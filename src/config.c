@@ -44,6 +44,7 @@
 #include "search_stats.h"
 #include "upload_stats.h"
 #include "filter.h"
+#include "sockets.h"
 
 #define CONFIG_SET_BOOL(v)                           \
     case k_##v:                                      \
@@ -764,19 +765,19 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_STR_COMPAT(socks_pass, socksv5_pass)
         CONFIG_SET_STR_COMPAT(socks_user, socksv5_user)
 
-        CONFIG_SET_NUM(max_high_ttl_msg,               0,        99)
-        CONFIG_SET_NUM(max_high_ttl_radius,            0,        99)
-        CONFIG_SET_NUM(download_max_retries,           0,    100000)
-        CONFIG_SET_NUM(download_overlap_range,       128, 1024*1024)
-        CONFIG_SET_NUM(download_retry_timeout_delay,  15,    100000)
-        CONFIG_SET_NUM(download_retry_busy_delay,     15,    100000)
-        CONFIG_SET_NUM(download_retry_refused_delay,  15,    100000)
-        CONFIG_SET_NUM(download_retry_stopped,        15,    100000)
-        CONFIG_SET_NUM(upload_connecting_timeout,      1,    100000)
-        CONFIG_SET_NUM(upload_connected_timeout,       1,    100000)
-        CONFIG_SET_NUM(search_reissue_timeout,         0,      9999)
-        CONFIG_SET_NUM(ban_ratio_fds,                  0,      100)
-        CONFIG_SET_NUM(ban_max_fds,                    0,     10000)
+        CONFIG_SET_NUM(max_high_ttl_msg,               0,         99)
+        CONFIG_SET_NUM(max_high_ttl_radius,            0,         99)
+        CONFIG_SET_NUM(download_max_retries,           0,     100000)
+        CONFIG_SET_NUM(download_overlap_range,       128, SOCK_BUFSZ)
+        CONFIG_SET_NUM(download_retry_timeout_delay,  15,     100000)
+        CONFIG_SET_NUM(download_retry_busy_delay,     15,     100000)
+        CONFIG_SET_NUM(download_retry_refused_delay,  15,     100000)
+        CONFIG_SET_NUM(download_retry_stopped,        15,     100000)
+        CONFIG_SET_NUM(upload_connecting_timeout,      1,     100000)
+        CONFIG_SET_NUM(upload_connected_timeout,       1,     100000)
+        CONFIG_SET_NUM(search_reissue_timeout,         0,       9999)
+        CONFIG_SET_NUM(ban_ratio_fds,                  0,        100)
+        CONFIG_SET_NUM(ban_max_fds,                    0,      10000)
         
     case k_output_bandwidth:
         if ((i >= 0) && (i <= BS_BW_MAX))

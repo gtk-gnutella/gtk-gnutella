@@ -6645,7 +6645,7 @@ options</label>
 		      <wrap>False</wrap>
 		      <value>1</value>
 		      <lower>128</lower>
-		      <upper>1.04858e+06</upper>
+		      <upper>4096</upper>
 		      <step>1</step>
 		      <page>10</page>
 		      <page_size>10</page_size>
