@@ -509,6 +509,7 @@ static void forget_url(gchar *url)
 		}
 	}
 
+	gwc_url_slot = MAX(0, gwc_url_slot);	/* If we removed ALL entries */
 	gwc_file_dirty = TRUE;
 }
 
