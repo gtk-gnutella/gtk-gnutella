@@ -6,8 +6,8 @@ struct gnutella_socket {
 
 	gint gdk_tag;			/* gdk tag */
 
-	guchar direction;	/* GNUTELLA_INCOMING | GNUTELLA_OUTGOING */
-	guchar type;	/* GNUTELLA_CONTROL | GNUTELLA_DOWNLOAD | GNUTELLA_UPLOAD */
+	guchar direction;
+	guchar type;
 
 	guint32 ip;				/* IP	of our partner */
 	guint16 port;			/* Port of our partner */
@@ -22,9 +22,29 @@ struct gnutella_socket {
 		struct upload *upload;
 	} resource;
 
-	gchar buffer[4096];		/*		buffer to put in the data read */
+	struct getline *getline;	/* Line reader object */
+
+	gchar buffer[4096];		/* buffer to put in the data read */
 	guint32 pos;			/* write position in the buffer */
 };
+
+/*
+ * Connection directions.
+ */
+
+#define GTA_CONNECTION_INCOMING			1
+#define GTA_CONNECTION_OUTGOING			2
+#define GTA_CONNECTION_LISTENING		3
+#define GTA_CONNECTION_PROXY_OUTGOING	4
+
+/*
+ * Connection types.
+ */
+
+#define GTA_TYPE_UNKNOWN				0
+#define GTA_TYPE_CONTROL				1
+#define GTA_TYPE_DOWNLOAD				2
+#define GTA_TYPE_UPLOAD					3
 
 /*
  * Global Data
