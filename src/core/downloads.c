@@ -360,7 +360,7 @@ has_good_sha1(struct download *d)
 {
 	struct dl_file_info *fi = d->file_info;
 
-	return fi->sha1 == NULL || sha1_eq(fi->sha1, fi->cha1);
+	return fi->sha1 == NULL || (fi->cha1 && sha1_eq(fi->sha1, fi->cha1));
 }
 
 /* ----------------------------------------- */
@@ -7658,10 +7658,8 @@ download_move_error(struct download *d)
 		g_message("Completed \"%s\" left at \"%s\"", name, dest);
 		download_move_done(d, 0);
 	}
-	if (NULL != src)
-		G_FREE_NULL(src);
-	if (NULL != dest)
-		G_FREE_NULL(dest);
+	G_FREE_NULL(src);
+	G_FREE_NULL(dest);
 }
 
 /***
