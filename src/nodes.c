@@ -1237,177 +1237,177 @@ void node_mark_bad(struct gnutella_node *n)
 			n->vendor);
 }
 
+/*
+ * node_avoid_monopoly
+ *
+ * Make sure that the vendor of the connecting node does not already use
+ * more than "unique_nodes" percent of the slots of its kind.
+ *
+ * Returns TRUE if accepting the node would make the uses more slot that
+ */
 static gboolean node_avoid_monopoly(struct gnutella_node *n)
 {
-	guint node_up_count = 0;
-	guint node_leaf_count = 0;
-	guint node_normal_count = 0;
-	
+	guint up_cnt = 0;
+	guint leaf_cnt = 0;
+	guint normal_cnt = 0;
 	GSList *sl;
 
-	gchar *node_vendor;
-	
-	if (n->vendor == NULL)
+	if (n->vendor == NULL || (n->flags & NODE_F_CRAWLER))
 		return FALSE;
-	
-	node_vendor = g_strdup(n->vendor);
-	node_vendor = g_strdelimit(node_vendor, "1234567890/ ", '\0');
-	
+
 	for (sl = sl_nodes; sl; sl = sl->next) {
 		struct gnutella_node *node = (struct gnutella_node *) sl->data;
-		gchar *cur_vendor;
 		
-		if (node->status != GTA_NODE_CONNECTED || node->vendor == NULL) {
+		if (node->status != GTA_NODE_CONNECTED || node->vendor == NULL)
 			continue;
-		}
 
-		cur_vendor = g_strdup(node->vendor); 
-		cur_vendor = g_strdelimit(cur_vendor, "1234567890/ ", '\0');
+		/*
+		 * Node vendor strings are compared up to the specified delimitor,
+		 * i.e. we don't want to take the version number into account.
+		 *
+		 * The vendor name and the version are normally separated with a "/"
+		 * but some people wrongly use " " as the separator.
+		 */
 
-		if (strcmp(cur_vendor, node_vendor) != 0) { /* No match */
-			g_free(cur_vendor);
+		if (0 != strcmp_delimit(n->vendor, node->vendor, "/ "))
 			continue;
-		}
 				
-		if (node->attrs & NODE_A_ULTRA || node->attrs & NODE_F_ULTRA)
-			node_up_count++;
+		if ((node->attrs & NODE_A_ULTRA) || (node->flags & NODE_F_ULTRA))
+			up_cnt++;
+		else if (node->flags & NODE_F_LEAF)
+			leaf_cnt++;
 		else
-		if (node->flags & NODE_F_LEAF)
-			node_leaf_count++;
-		else
-			node_normal_count++;
-		
-		g_free(cur_vendor);
+			normal_cnt++;
 	}
-	
-	g_free(node_vendor);
-	
+
 	/* Include current node into counter as well */
-	if (n->attrs & NODE_A_ULTRA || n->attrs & NODE_F_ULTRA)
-		node_up_count++;
+	if ((n->attrs & NODE_A_ULTRA) || (n->flags & NODE_F_ULTRA))
+		up_cnt++;
+	else if (n->flags & NODE_F_LEAF)
+		leaf_cnt++;
 	else
-	if (n->flags & NODE_F_LEAF)
-		node_leaf_count++;
-	else
-		node_normal_count++;
+		normal_cnt++;
 			
 	switch (current_peermode) {
-		case NODE_P_ULTRA:
-			if (node_up_count * 100 > max_connections * unique_nodes)
-				return TRUE;	/* Dissallow */
-			if (node_leaf_count * 100 > max_leaves * unique_nodes)
+	case NODE_P_ULTRA:
+		if ((n->attrs & NODE_A_ULTRA) || (n->flags & NODE_F_ULTRA)) {
+			gint max = max_connections - normal_connections;
+			if (max > 1 && up_cnt * 100 > max * unique_nodes)
+				return TRUE;	/* Disallow */
+		} else if (n->flags & NODE_F_LEAF) {
+			if (max_leaves > 1 && leaf_cnt * 100 > max_leaves * unique_nodes)
 				return TRUE;
-			if (node_normal_count * 100 > normal_connections * unique_nodes)
+		} else {
+			if (
+				normal_connections > 1 &&
+				normal_cnt * 100 > normal_connections * unique_nodes
+			)
 				return TRUE;
-			break;
-		case NODE_P_LEAF:
-			if (node_up_count * 100 > max_ultrapeers * unique_nodes)
-				return TRUE;	/* Dissallow */
-			break;
-		case NODE_P_NORMAL:
-			if (node_normal_count * 100 > max_connections * unique_nodes)
-				return TRUE;
-			break;
-		default:
-			break;
+		}
+		break;
+	case NODE_P_LEAF:
+		if (max_ultrapeers > 1 && up_cnt * 100 > max_ultrapeers * unique_nodes)
+			return TRUE;	/* Dissallow */
+		break;
+	case NODE_P_NORMAL:
+		if (
+			max_connections > 1 &&
+			normal_cnt * 100 > max_connections * unique_nodes
+		)
+			return TRUE;
+		break;
+	default:
+		break;
 	}
 	
 	return FALSE;
 }
 
+/*
+ * node_reserve_slot
+ *
+ * When we only have "reserve_gtkg_nodes" percent slots left, make sure the
+ * connecting node is a GTKG node or refuse the connection.
+ *
+ * Returns TRUE if we should reserve the slot for GTKG, i.e. refuse `n'.
+ */
 static gboolean node_reserve_slot(struct gnutella_node *n)
 {
-	guint node_up_count = 0;		/* GTKG UPs */
-	guint node_leaf_count = 0;		/* GTKG leafs */
-	guint node_normal_count = 0;	/* GTKG normal nodes */
-	
+	guint up_cnt = 0;		/* GTKG UPs */
+	guint leaf_cnt = 0;		/* GTKG leafs */
+	guint normal_cnt = 0;	/* GTKG normal nodes */
 	GSList *sl;
-
 	gchar *gtkg_vendor = "gtk-gnutella";
-	gchar *node_vendor = NULL;
 	
-	if (n->vendor == NULL)
+	if (n->vendor == NULL || (n->flags & NODE_F_CRAWLER))
 		return FALSE;
 	
-	node_vendor = g_strdup(n->vendor);
-	node_vendor = g_strdelimit(node_vendor, "1234567890/ ", '\0');
-	
-	if (strcmp(gtkg_vendor, node_vendor) == 0) { /* Match */
-		g_free(node_vendor);
+	if (0 == strcmp_delimit(gtkg_vendor, n->vendor, "/ "))
 		return FALSE;
-	}
-	
-	g_free(node_vendor);
-	node_vendor = NULL;
-		
+
 	for (sl = sl_nodes; sl; sl = sl->next) {
 		struct gnutella_node *node = (struct gnutella_node *) sl->data;
-		gchar *cur_vendor;
-		
-		if (node->status != GTA_NODE_CONNECTED 
-			|| node->vendor == NULL
-			|| node->flags & NODE_F_CLOSING) {
-			if (node->status == GTA_NODE_CONNECTED ) {
-				g_warning("Got an empty vendor name, status: %d, flags: %d",
-					n->status, n->flags
-				);
-			}
-			continue;
-		}
 
-		cur_vendor = g_strdup(node->vendor); 
-		cur_vendor = g_strdelimit(cur_vendor, "1234567890/ ", '\0');
-
-		if (strcmp(cur_vendor, gtkg_vendor) != 0) { /* no match */
-			g_free(cur_vendor);
+		if (node->status != GTA_NODE_CONNECTED || node->vendor == NULL)
 			continue;
-		}
-				
-		if (node->attrs & NODE_A_ULTRA || node->attrs & NODE_F_ULTRA)
-			node_up_count++;
+
+		if (0 != strcmp_delimit(node->vendor, gtkg_vendor, "/ "))
+			continue;
+
+		if ((node->attrs & NODE_A_ULTRA) || (node->attrs & NODE_F_ULTRA))
+			up_cnt++;
+		else if (node->flags & NODE_F_LEAF)
+			leaf_cnt++;
 		else
-		if (node->flags & NODE_F_LEAF)
-			node_leaf_count++;
-		else
-			node_normal_count++;
-		
-		g_free(cur_vendor);
+			normal_cnt++;
 	}	
+
+	/*
+	 * For a given max polulation `max', already filled by `x' nodes out
+	 * of which `y' are GTKG ones, we want to make sure that we can have
+	 * "reserve_gtkg_nodes" percent of the slots (i.e. `g' percent) used
+	 * by GTKG.
+	 *
+	 * In other words, we want to ensure that we can have "g*max/100" slots
+	 * used by GTKG.  We have already `x' slots used, that leaves "max - x"
+	 * ones free.  To be able to have our quota of GTKG slots, we need to
+	 * reserve slots to GTKG when "max - x" <= "g*max/100 - y".  I.e.
+	 * when `x' >= max - g*max/100 + y.
+	 */
 	
 	switch (current_peermode) {
-		case NODE_P_ULTRA:
-			if (max_connections > 0 ) {
-				if ((max_connections - node_ultra_count) * 100 / 
-					max_connections <= 	reserve_gtkg_nodes)
-					return TRUE;
-			}
-			if (max_leaves > 0) {
-				if ((max_leaves - node_leaf_count) * 100 / 
-					max_leaves <= reserve_gtkg_nodes)
-					return TRUE;
-			}
-			if (normal_connections > 0) {
-				if ((normal_connections - node_normal_count) * 100 / 
-					normal_connections <= reserve_gtkg_nodes)
-					return TRUE;
-			}
-			break;
-		case NODE_P_LEAF:
-			if (max_ultrapeers > 0 ) {
-				if ((max_ultrapeers - node_ultra_count) * 100 / 
-					max_ultrapeers <= reserve_gtkg_nodes)
-						return TRUE;
-			}
-			break;
-		case NODE_P_NORMAL:
-			if (max_connections > 0) {
-				if ((max_connections - node_normal_count) * 100 / 
-					max_connections <= reserve_gtkg_nodes)
-					return TRUE;
-			}
-			break;
-		default:
-			break;
+	case NODE_P_ULTRA:
+		if ((n->attrs & NODE_A_ULTRA) || (n->flags & NODE_F_ULTRA)) {
+			gint max = max_connections - normal_connections;
+			gint gtkg_min = reserve_gtkg_nodes * max / 100;
+			if (node_ultra_count >= max + up_cnt - gtkg_min)
+				return TRUE;
+		} else if (n->flags & NODE_F_LEAF) {
+			gint gtkg_min = reserve_gtkg_nodes * max_leaves / 100;
+			if (node_leaf_count >= max_leaves + leaf_cnt - gtkg_min)
+				return TRUE;
+		} else {
+			gint gtkg_min = reserve_gtkg_nodes * normal_connections / 100;
+			if (node_normal_count >= normal_connections + normal_cnt - gtkg_min)
+				return TRUE;
+		}
+		break;
+	case NODE_P_LEAF:
+		if (max_ultrapeers > 0 ) {
+			gint gtkg_min = reserve_gtkg_nodes * max_ultrapeers / 100;
+			if (node_ultra_count >= max_ultrapeers + up_cnt - gtkg_min)
+				return TRUE;
+		}
+		break;
+	case NODE_P_NORMAL:
+		if (max_connections > 0) {
+			gint gtkg_min = reserve_gtkg_nodes * max_connections / 100;
+			if (node_normal_count >= max_connections + normal_cnt - gtkg_min)
+				return TRUE;
+		}
+		break;
+	default:
+		break;
 	}
 	
 	return FALSE;
@@ -3457,19 +3457,21 @@ static void node_process_handshake_header(
 		return;
 
 	/*
-	 * Avoid one servent to occupy all our slots
+	 * Avoid one vendor occupying all our slots
 	 *		-- JA, 21/11/2003
 	 */
+
 	if (node_avoid_monopoly(n)) {
 		send_node_error(n->socket, 403,
-			"Vendor code takes too many of our slots");
-		node_remove(n, "Vendor already took %d%% slots", unique_nodes);
+			"Vendor code already has %d%% of our slots", unique_nodes);
+		node_remove(n, "Vendor already has %d%% of our slots", unique_nodes);
 		return;
 	}
 	
 	/*
 	 * Wether we should reserve a slot for gtk-gnutella
 	 */
+
 	if (node_reserve_slot(n)) {
 		send_node_error(n->socket, 403, "Reserved slot");
 		node_remove(n, "Reserved slot");
