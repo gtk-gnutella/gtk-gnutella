@@ -1842,6 +1842,25 @@ struct dl_file_info *file_info_get(
 
 	if (fi) {
 		fi_alias(fi, file, TRUE);	/* Add alias if not conflicting */
+
+		/*
+		 * If download size is greater, we need to resize the output file.
+		 * This can only happen for a download with a SHA1, because otherwise
+		 * we perform a matching on name AND size.
+		 */
+
+		if (size > fi->size) {
+			g_assert(fi->sha1);
+			g_assert(sha1);
+
+			g_warning("file \"%s\" (SHA1 %s) was %u bytes, resizing to %u",
+				fi->file_name, sha1_base32(fi->sha1), fi->size, size);
+
+			file_info_hash_remove(fi);
+			fi_resize(fi, size);
+			file_info_hash_insert(fi);
+		}
+
 		return fi;
 	}
 
