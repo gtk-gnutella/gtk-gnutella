@@ -412,7 +412,7 @@ void nodes_gui_update_node_info(gnet_node_info_t *n)
  *    NIrwqTRFh
  *    ^^^^^^^^^
  *    ||||||||+ hops flow triggerd (h), or total query flow control (f)
- *    |||||||+  flow control
+ *    |||||||+  flow control (F), or pending data in queue (d)
  *    ||||||+   indicates whether RX is compressed
  *    |||||+    indicates whether TX is compressed
  *    ||||+     indicates whether we sent/received a QRT, or send/receive one
@@ -452,7 +452,9 @@ static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
 
 		if (flags->tx_compressed) status[5] = 'T';
 		if (flags->rx_compressed) status[6] = 'R';
+
 		if (flags->in_tx_flow_control) status[7] = 'F';
+		else if (!flags->mqueue_empty) status[7] = 'd';
 
 		if (flags->hops_flow == 0)
 			status[8] = 'f';

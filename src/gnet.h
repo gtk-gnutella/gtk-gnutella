@@ -146,6 +146,7 @@ typedef struct gnet_node_flags {
 	gboolean readable;
 	gboolean tx_compressed;
 	gboolean rx_compressed;
+	gboolean mqueue_empty;
 	gboolean in_tx_flow_control;
 } gnet_node_flags_t;
 
