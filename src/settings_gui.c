@@ -226,6 +226,7 @@ static gboolean update_toggle_node_show_handshake(property_t prop);
 static gboolean update_toggle_node_show_detailed_info(property_t prop);
 static gboolean update_label_date(property_t prop);
 static gboolean update_label_yes_or_no(property_t prop);
+static gboolean update_toggle_node_watch_similar_queries(property_t prop);
 #endif
 
 /* FIXME:
@@ -1782,6 +1783,62 @@ static prop_map_t property_map[] = {
         "label_up_req_enough_bw",
         FREQ_UPDATES, 0
     },
+    {
+        get_main_window,
+        PROP_ENABLE_SHELL,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_enable_shell",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SEARCH_QUEUE_SIZE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_search_queue_size",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_SEARCH_QUEUE_SPACING,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_search_queue_spacing",
+        FREQ_UPDATES, 0
+	},
+    {
+        get_main_window,
+        PROP_NODE_WATCH_SIMILAR_QUERIES,
+        update_toggle_node_watch_similar_queries,
+        TRUE,
+        "checkbutton_node_watch_similar_queries",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_NODE_QUERIES_HALF_LIFE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_node_queries_half_life",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_NODE_REQUERY_THRESHOLD,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_node_requery_threshold",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_ENTRY_REMOVAL_TIMEOUT,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_entry_removal_timeout",
+        FREQ_UPDATES, 0
+    },
 #endif	/* USE_GTK1 */
     {
         NULL,
@@ -3271,8 +3328,8 @@ static gboolean update_label_date(property_t prop)
 		gchar buf[80];
 		struct tm *ct = localtime(&val);
 
-		gm_snprintf(buf, sizeof(buf), "%.2d/%.2d/%.2d %.2d:%.2d:%.2d",
-			ct->tm_mday, ct->tm_mon + 1, ct->tm_year % 100,
+		gm_snprintf(buf, sizeof(buf), "%.2d/%.2d/%d %.2d:%.2d:%.2d",
+			ct->tm_mday, ct->tm_mon + 1, ct->tm_year + 1900,
 			ct->tm_hour, ct->tm_min, ct->tm_sec);
 		gtk_label_set_text(GTK_LABEL(w), buf);
 	}
@@ -3304,6 +3361,21 @@ static gboolean update_label_yes_or_no(property_t prop)
     gtk_label_set_text(GTK_LABEL(w), val ? "Yes" : "No");
 
     return FALSE;
+}
+
+static gboolean update_toggle_node_watch_similar_queries(property_t prop)
+{
+	GtkWidget *spin =
+		lookup_widget(main_window, "spinbutton_node_queries_half_life");
+	gboolean value;
+	gboolean ret;
+
+	ret = update_togglebutton(prop);
+	gnet_prop_get_boolean_val(prop, &value);
+
+	gtk_widget_set_sensitive(spin, value);
+
+	return ret;
 }
 #endif
 
@@ -4110,6 +4182,7 @@ static gboolean expert_mode_changed(property_t prop)
         "frame_expert_rx_buffers",
 #ifdef USE_GTK1
         "frame_expert_gnet_message_size",
+        "frame_expert_search_queue",
 #endif
         NULL
     };
@@ -4777,6 +4850,21 @@ void settings_gui_init(void)
      */
     gtk_notebook_set_show_tabs
         (GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")), FALSE);
+
+	/*
+	 * If they don't have requested compilation of the "remote shell", disable
+	 * the checkbutton controlling it but leave it in the GUI so that they
+	 * know they miss something...
+	 *		--RAM, 27/12/2003
+	 */
+#ifndef USE_REMOTE_CTRL
+#ifdef USE_GTK1
+	{
+		GtkWidget *w = lookup_widget(main_window, "checkbutton_enable_shell");
+		gtk_widget_set_sensitive(w, FALSE);
+	}
+#endif
+#endif
 }
 
 void settings_gui_shutdown(void)
