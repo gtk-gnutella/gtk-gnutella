@@ -196,7 +196,8 @@ static void gui_init_menu(void)
 
 	gtk_tree_store_append(store, &parent, NULL);
 	gtk_tree_store_set(store, &parent,
-		0, "Config", 1, nb_main_page_config_net, 2, TREEMENU_NODE_CFG_NET, -1);
+		0, "Config", 1, nb_main_page_config_sel,
+		2, TREEMENU_NODE_CFG_SEL, -1);
 	gtk_tree_store_append(store, &iter, &parent);
 	gtk_tree_store_set(store, &iter,
 		0, "Network", 1, nb_main_page_config_net,
@@ -279,6 +280,8 @@ static GtkWidget *gui_create_main_window()
 	tab_window[nb_main_page_monitor] = create_main_window_monitor_tab();
 	tab_window[nb_main_page_search_stats] = create_main_window_search_stats_tab();
 	tab_window[nb_main_page_gnet_stats] = create_main_window_gnet_stats_tab();
+
+	tab_window[nb_main_page_config_sel] = create_main_window_config_sel_tab();
 	tab_window[nb_main_page_config_net] = create_main_window_config_net_tab();
 	tab_window[nb_main_page_config_gnet] = create_main_window_config_gnet_tab();
 	tab_window[nb_main_page_config_bwc] = create_main_window_config_bwc_tab();

@@ -117,3 +117,40 @@ gint compare_ul_norm(GtkCList *clist, gconstpointer ptr1, gconstpointer ptr2);
 
 
 #endif	/* _callbacks_h_ */
+
+void
+on_menu_faq_activate                   (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+gboolean
+on_dlg_faq_delete_event                (GtkWidget       *widget,
+                                        GdkEvent        *event,
+                                        gpointer         user_data);
+
+void
+on_button_config_select_net_clicked    (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_button_config_select_gnet_clicked   (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_button_config_select_bwc_clicked    (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_button_config_select_dl_clicked     (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_button_config_select_ul_clicked     (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_button_config_select_ui_clicked     (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_button_config_select_dbg_clicked    (GtkButton       *button,
+                                        gpointer         user_data);

@@ -1302,7 +1302,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new ("Rapha\303«l Manfredi");
+  label493 = gtk_label_new ("Rapha\303\253l Manfredi");
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
@@ -1310,7 +1310,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new ("Rapha\303«l Manfredi");
+  label494 = gtk_label_new ("Rapha\303\253l Manfredi");
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -1362,7 +1362,7 @@ create_dlg_about (void)
   gtk_text_view_set_left_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_view_set_right_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_buffer_set_text (gtk_text_view_get_buffer (GTK_TEXT_VIEW (textview1)),
-	"Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRapha\303«l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>\nko <junkpile@free.fr>\nT'aZ <tazdev@altern.org>", -1);
+	"Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRapha\303\253l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>\nko <junkpile@free.fr>\nT'aZ <tazdev@altern.org>", -1);
 
   label302 = gtk_label_new ("Contributors");
   gtk_widget_set_name (label302, "label302");
@@ -11172,5 +11172,197 @@ create_dlg_filters_state_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_filters_state_tab, button22, "button22");
 
   return dlg_filters_state_tab;
+}
+
+GtkWidget*
+create_main_window_config_sel_tab (void)
+{
+  GtkWidget *main_window_config_sel_tab;
+  GtkWidget *table63;
+  GtkWidget *label592;
+  GtkWidget *label593;
+  GtkWidget *label594;
+  GtkWidget *label596;
+  GtkWidget *label597;
+  GtkWidget *label595;
+  GtkWidget *label598;
+  GtkWidget *button_config_select_net;
+  GtkWidget *button_config_select_gnet;
+  GtkWidget *button_config_select_bwc;
+  GtkWidget *button_config_select_dl;
+  GtkWidget *button_config_select_ul;
+  GtkWidget *button_config_select_ui;
+  GtkWidget *button_config_select_dbg;
+
+  main_window_config_sel_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_widget_set_name (main_window_config_sel_tab, "main_window_config_sel_tab");
+  gtk_window_set_title (GTK_WINDOW (main_window_config_sel_tab), "window1");
+
+  table63 = gtk_table_new (7, 2, FALSE);
+  gtk_widget_set_name (table63, "table63");
+  gtk_widget_show (table63);
+  gtk_container_add (GTK_CONTAINER (main_window_config_sel_tab), table63);
+  gtk_container_set_border_width (GTK_CONTAINER (table63), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table63), 8);
+  gtk_table_set_col_spacings (GTK_TABLE (table63), 4);
+
+  label592 = gtk_label_new ("Configuration of IP address, Port, Proxy settings etc. ");
+  gtk_widget_set_name (label592, "label592");
+  gtk_widget_show (label592);
+  gtk_table_attach (GTK_TABLE (table63), label592, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_label_set_justify (GTK_LABEL (label592), GTK_JUSTIFY_LEFT);
+  gtk_label_set_line_wrap (GTK_LABEL (label592), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label592), 0, 0.5);
+
+  label593 = gtk_label_new ("Peer mode selection, timeout and TTL settings, quality management regarding GnutellaNet traffic");
+  gtk_widget_set_name (label593, "label593");
+  gtk_widget_show (label593);
+  gtk_table_attach (GTK_TABLE (table63), label593, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_label_set_justify (GTK_LABEL (label593), GTK_JUSTIFY_LEFT);
+  gtk_label_set_line_wrap (GTK_LABEL (label593), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label593), 0, 0.5);
+
+  label594 = gtk_label_new ("Bandwidth limit configuration for HTTP, normal GnutellaNet and Ultrapeer traffic");
+  gtk_widget_set_name (label594, "label594");
+  gtk_widget_show (label594);
+  gtk_table_attach (GTK_TABLE (table63), label594, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_label_set_justify (GTK_LABEL (label594), GTK_JUSTIFY_LEFT);
+  gtk_label_set_line_wrap (GTK_LABEL (label594), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label594), 0, 0.5);
+
+  label596 = gtk_label_new ("Choose directories for completed files and downloads in progress");
+  gtk_widget_set_name (label596, "label596");
+  gtk_widget_show (label596);
+  gtk_table_attach (GTK_TABLE (table63), label596, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_label_set_justify (GTK_LABEL (label596), GTK_JUSTIFY_LEFT);
+  gtk_label_set_line_wrap (GTK_LABEL (label596), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label596), 0, 0.5);
+
+  label597 = gtk_label_new ("Selection of directories and filetypes to share");
+  gtk_widget_set_name (label597, "label597");
+  gtk_widget_show (label597);
+  gtk_table_attach (GTK_TABLE (table63), label597, 1, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_label_set_justify (GTK_LABEL (label597), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label597), 0, 0.5);
+
+  label595 = gtk_label_new ("Settings for the User Interface like toolbar appereance, expert settings");
+  gtk_widget_set_name (label595, "label595");
+  gtk_widget_show (label595);
+  gtk_table_attach (GTK_TABLE (table63), label595, 1, 2, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_label_set_justify (GTK_LABEL (label595), GTK_JUSTIFY_LEFT);
+  gtk_label_set_line_wrap (GTK_LABEL (label595), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label595), 0, 0.5);
+
+  label598 = gtk_label_new ("Debug level configuration");
+  gtk_widget_set_name (label598, "label598");
+  gtk_widget_show (label598);
+  gtk_table_attach (GTK_TABLE (table63), label598, 1, 2, 6, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 4, 0);
+  gtk_label_set_justify (GTK_LABEL (label598), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label598), 0, 0.5);
+
+  button_config_select_net = gtk_button_new_with_mnemonic ("Network Settings");
+  gtk_widget_set_name (button_config_select_net, "button_config_select_net");
+  gtk_widget_show (button_config_select_net);
+  gtk_table_attach (GTK_TABLE (table63), button_config_select_net, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  button_config_select_gnet = gtk_button_new_with_mnemonic ("GnutellaNet Settings");
+  gtk_widget_set_name (button_config_select_gnet, "button_config_select_gnet");
+  gtk_widget_show (button_config_select_gnet);
+  gtk_table_attach (GTK_TABLE (table63), button_config_select_gnet, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  button_config_select_bwc = gtk_button_new_with_mnemonic ("Bandwidth Control");
+  gtk_widget_set_name (button_config_select_bwc, "button_config_select_bwc");
+  gtk_widget_show (button_config_select_bwc);
+  gtk_table_attach (GTK_TABLE (table63), button_config_select_bwc, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  button_config_select_dl = gtk_button_new_with_mnemonic ("Download Settings");
+  gtk_widget_set_name (button_config_select_dl, "button_config_select_dl");
+  gtk_widget_show (button_config_select_dl);
+  gtk_table_attach (GTK_TABLE (table63), button_config_select_dl, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  button_config_select_ul = gtk_button_new_with_mnemonic ("Upload Settings");
+  gtk_widget_set_name (button_config_select_ul, "button_config_select_ul");
+  gtk_widget_show (button_config_select_ul);
+  gtk_table_attach (GTK_TABLE (table63), button_config_select_ul, 0, 1, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  button_config_select_ui = gtk_button_new_with_mnemonic ("User Interface");
+  gtk_widget_set_name (button_config_select_ui, "button_config_select_ui");
+  gtk_widget_show (button_config_select_ui);
+  gtk_table_attach (GTK_TABLE (table63), button_config_select_ui, 0, 1, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  button_config_select_dbg = gtk_button_new_with_mnemonic ("Debugging");
+  gtk_widget_set_name (button_config_select_dbg, "button_config_select_dbg");
+  gtk_widget_show (button_config_select_dbg);
+  gtk_table_attach (GTK_TABLE (table63), button_config_select_dbg, 0, 1, 6, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  g_signal_connect ((gpointer) button_config_select_net, "clicked",
+                    G_CALLBACK (on_button_config_select_net_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_config_select_gnet, "clicked",
+                    G_CALLBACK (on_button_config_select_gnet_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_config_select_bwc, "clicked",
+                    G_CALLBACK (on_button_config_select_bwc_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_config_select_dl, "clicked",
+                    G_CALLBACK (on_button_config_select_dl_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_config_select_ul, "clicked",
+                    G_CALLBACK (on_button_config_select_ul_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_config_select_ui, "clicked",
+                    G_CALLBACK (on_button_config_select_ui_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_config_select_dbg, "clicked",
+                    G_CALLBACK (on_button_config_select_dbg_clicked),
+                    NULL);
+
+  /* Store pointers to all widgets, for use by lookup_widget(). */
+  GLADE_HOOKUP_OBJECT_NO_REF (main_window_config_sel_tab, main_window_config_sel_tab, "main_window_config_sel_tab");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, table63, "table63");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label592, "label592");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label593, "label593");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label594, "label594");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label596, "label596");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label597, "label597");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label595, "label595");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label598, "label598");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, button_config_select_net, "button_config_select_net");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, button_config_select_gnet, "button_config_select_gnet");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, button_config_select_bwc, "button_config_select_bwc");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, button_config_select_dl, "button_config_select_dl");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, button_config_select_ul, "button_config_select_ul");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, button_config_select_ui, "button_config_select_ui");
+  GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, button_config_select_dbg, "button_config_select_dbg");
+
+  return main_window_config_sel_tab;
 }
 

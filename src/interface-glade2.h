@@ -36,3 +36,4 @@ GtkWidget* create_dlg_filters_jump_tab (void);
 GtkWidget* create_dlg_filters_sha1_tab (void);
 GtkWidget* create_dlg_filters_flags_tab (void);
 GtkWidget* create_dlg_filters_state_tab (void);
+GtkWidget* create_main_window_config_sel_tab (void);

@@ -404,3 +404,74 @@ void on_clist_search_resize_column(
 {
     search_list_col_widths[column] = width;
 }
+
+
+void
+on_button_config_select_net_clicked    (GtkButton       *button,
+                                        gpointer         user_data)
+{
+	gtk_notebook_set_page(
+		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+		nb_main_page_config_net);
+}
+
+
+void
+on_button_config_select_gnet_clicked   (GtkButton       *button,
+                                        gpointer         user_data)
+{
+	gtk_notebook_set_page(
+		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+		nb_main_page_config_gnet);
+}
+
+
+void
+on_button_config_select_bwc_clicked    (GtkButton       *button,
+                                        gpointer         user_data)
+{
+	gtk_notebook_set_page(
+		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+		nb_main_page_config_bwc);
+}
+
+
+void
+on_button_config_select_dl_clicked     (GtkButton       *button,
+                                        gpointer         user_data)
+{
+	gtk_notebook_set_page(
+		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+		nb_main_page_config_dl);
+}
+
+
+void
+on_button_config_select_ul_clicked     (GtkButton       *button,
+                                        gpointer         user_data)
+{
+	gtk_notebook_set_page(
+		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+		nb_main_page_config_ul);
+}
+
+
+void
+on_button_config_select_ui_clicked     (GtkButton       *button,
+                                        gpointer         user_data)
+{
+	gtk_notebook_set_page(
+		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+		nb_main_page_config_ui);
+}
+
+
+void
+on_button_config_select_dbg_clicked    (GtkButton       *button,
+                                        gpointer         user_data)
+{
+	gtk_notebook_set_page(
+		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
+		nb_main_page_config_dbg);
+}
+

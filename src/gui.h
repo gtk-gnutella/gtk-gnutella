@@ -187,6 +187,7 @@ enum {
     nb_main_page_search_stats,
     nb_main_page_gnet_stats,
 #ifdef USE_GTK2
+    nb_main_page_config_sel,
     nb_main_page_config_net,
     nb_main_page_config_gnet,
     nb_main_page_config_bwc,
@@ -213,6 +214,7 @@ enum {
     TREEMENU_NODE_SEARCH,
     TREEMENU_NODE_SEARCH_MON,
     TREEMENU_NODE_SEARCH_STATS,
+    TREEMENU_NODE_CFG_SEL,
     TREEMENU_NODE_CFG_NET,
     TREEMENU_NODE_CFG_GNET,
     TREEMENU_NODE_CFG_BWC,
