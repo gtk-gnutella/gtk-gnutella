@@ -56,7 +56,7 @@ static inline upload_row_data_t *find_upload(gnet_upload_t u);
 static void uploads_gui_update_upload_info(const gnet_upload_info_t *u);
 static void uploads_gui_add_upload(gnet_upload_info_t *u);
 
-static const char *column_titles[UPLOADS_GUI_VISIBLE_COLUMNS] = {
+static const char * const column_titles[UPLOADS_GUI_VISIBLE_COLUMNS] = {
 	N_("Filename"),
 	N_("Host"),
 	N_("Size"),
@@ -278,9 +278,7 @@ static void uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 	rd->status = status.status;
 
 	gtk_list_store_set(store_uploads, &rd->iter,
-		c_ul_progress, 
-			force_range(
-				uploads_gui_progress(&status, rd), 0.0, 1.0),
+		c_ul_progress, force_range(uploads_gui_progress(&status, rd), 0.0, 1.0),
 		c_ul_status, uploads_gui_status_str(&status, rd),
 		(-1));
 
@@ -400,8 +398,7 @@ static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc,
 			"ypad", GUI_CELL_RENDERER_YPAD,
 			NULL);
 		column = gtk_tree_view_column_new_with_attributes(
-			column_titles[column_id], renderer, "value",
-			column_id, NULL);
+			_(column_titles[column_id]), renderer, "value", column_id, NULL);
 	} else { /* if (column_type == GTK_TYPE_CELL_RENDERER_TEXT) { */
 		renderer = gtk_cell_renderer_text_new();
 		gtk_cell_renderer_text_set_fixed_height_from_font(
@@ -412,7 +409,7 @@ static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc,
 			"foreground-set", TRUE,
 			NULL);
 		column = gtk_tree_view_column_new_with_attributes(
-			column_titles[column_id], renderer, "text", column_id, 
+			_(column_titles[column_id]), renderer, "text", column_id, 
 			"foreground-gdk", c_ul_fg, NULL);
 	}
 
