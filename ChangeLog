@@ -1,5 +1,32 @@
 # since last version
 
+# v 0.93   2003.11.02  [stable]
+
+- GTK-Gnutella now support both Partial File serving, as a client as well
+  as a server. As soon as a download is started, can be used as an alternate 
+  source for others even though the download is not completed yet.
+- When a mismatch happens during downloading the file can now be automatically
+  removed and restarted again. 
+- Improved GUI to specify better which downloads should be cleared from the 
+  list (completed, failed, unavailable)
+- Collects alternate download locations aquired from query hits.
+- Support for hostname instead of only an ip. If you have a dynamic ip
+  but got a static hostname, for example a .dyndns.org address, gtk-gnutella
+  can try to connect to the ip associated with the hostname.
+- Sends out alternate locations which should not be tried.
+- Won't send full headers when short on bandwith.
+- Any changes in settings are now automatically saved, there is no need to quit
+  the client anymore to make sure the settings are saved.
+- Running gtk-gnutella in Auto peermode should no longer cause a crash.
+- New addresses in hostiles.txt to protected against malicious hosts.
+- gwcache.boot was cleaned up. Dead links were removed.
+- Remote control should actually work without crashing gtk-gnutella.
+- The build problems which occured in 0.92.1 due to the switch to metaconfig
+  should be (mostly) gone. 
+- Code cleanup to build on more platforms.
+- GTK2 interface currently does not have a maintainer, not all options which
+  are available in the GTK1 interface might have made it in the GTK2 interface.
+
 - (2003.11.02 - RAM)
  * Added the concept of "established" Gnutella connection: don't relay
    Gnutella traffic to non-established connections.  A connection becomes
