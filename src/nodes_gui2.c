@@ -40,6 +40,14 @@ RCSID("$Id$");
 
 #define UPDATE_MIN	300		/* Update screen every 5 minutes at least */
 
+/* 
+ * These hash tables record which information about which nodes has
+ * changed. By using this the number of updates to the gui can be
+ * significantly reduced.
+ */
+static GHashTable *ht_node_info_changed = NULL;
+static GHashTable *ht_node_flags_changed = NULL;
+
 #define pretty_node_vendor(n) ((n)->vendor != NULL ? (n)->vendor : "...")
 
 static GtkTreeView *treeview_nodes = NULL;
@@ -204,16 +212,18 @@ static inline GtkTreeIter *find_node(gnet_node_t n)
  *
  * Updates vendor, version and info column 
  */
-static inline void nodes_gui_update_node_info(gnet_node_info_t *n)
+static inline void nodes_gui_update_node_info(
+    gnet_node_info_t *n, GtkTreeIter *iter)
 {
     time_t now = time((time_t *) NULL);
-    GtkTreeIter *iter;
 	static gchar version[32];
     gnet_node_status_t status;
 
     g_assert(n != NULL);
 
-	iter = find_node(n->node_handle);
+    if (iter == NULL)
+        iter = find_node(n->node_handle);
+
 	g_assert(NULL != iter);
 
     node_get_status(n->node_handle, &status);
@@ -232,11 +242,11 @@ static inline void nodes_gui_update_node_info(gnet_node_info_t *n)
  *  
  */
 static inline void nodes_gui_update_node_flags(
-	gnet_node_t n, gnet_node_flags_t *flags)
+	gnet_node_t n, gnet_node_flags_t *flags, GtkTreeIter *iter)
 {
-    GtkTreeIter *iter;
+    if (iter == NULL)
+        iter = find_node(n);
 
-	iter = find_node(n);
 	g_assert(NULL != iter);
 	gtk_list_store_set(nodes_model, iter, c_gnet_flags,  
 			nodes_gui_common_flags_str(flags), (-1));
@@ -294,6 +304,10 @@ void nodes_gui_init(void)
 
 	nodes_handles = g_hash_table_new_full(
 		NULL, NULL, NULL, (gpointer) w_tree_iter_free);
+
+    ht_node_info_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
+    ht_node_flags_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
+
     node_add_node_added_listener(nodes_gui_node_added);
     node_add_node_removed_listener(nodes_gui_node_removed);
     node_add_node_info_changed_listener(nodes_gui_node_info_changed);
@@ -308,18 +322,28 @@ void nodes_gui_init(void)
 void nodes_gui_shutdown(void)
 {
 	tree_view_save_widths(treeview_nodes, PROP_NODES_COL_WIDTHS);
+
     node_remove_node_added_listener(nodes_gui_node_added);
     node_remove_node_removed_listener(nodes_gui_node_removed);
     node_remove_node_info_changed_listener(nodes_gui_node_info_changed);
     node_remove_node_flags_changed_listener(nodes_gui_node_flags_changed);
+
 	gtk_list_store_clear(nodes_model);
 	g_object_unref(G_OBJECT(nodes_model));
 	nodes_model = NULL;
 	gtk_tree_view_set_model(treeview_nodes, NULL);
+
 	g_hash_table_destroy(nodes_handles);
 	nodes_handles = NULL;
+
 	g_list_free(list_nodes);
 	list_nodes = NULL;
+
+    g_hash_table_destroy(ht_node_info_changed);
+    g_hash_table_destroy(ht_node_flags_changed);
+
+    ht_node_info_changed = NULL;
+    ht_node_flags_changed = NULL;
 }
 
 /*
@@ -330,6 +354,13 @@ void nodes_gui_shutdown(void)
 void nodes_gui_remove_node(gnet_node_t n)
 {
     GtkTreeIter *iter;
+
+    /* 
+     * Make sure node is remove from the "changed" hash tables so
+     * we don't try an update later. 
+     */
+    g_hash_table_remove(ht_node_info_changed, GUINT_TO_POINTER(n));
+    g_hash_table_remove(ht_node_flags_changed, GUINT_TO_POINTER(n));
 
 	iter = find_node(n);
 	g_assert(NULL != iter);
@@ -380,6 +411,26 @@ static inline void update_row(gpointer data, const time_t *now)
 	g_assert(NULL != iter);
 	node_get_status(n, &status);
 
+    /* 
+     * Update additional info too if it has recorded changes.
+     */
+    if (g_hash_table_lookup(ht_node_info_changed, GUINT_TO_POINTER(n))) {
+        gnet_node_info_t info;
+
+        g_hash_table_remove(ht_node_info_changed, GUINT_TO_POINTER(n));
+        node_fill_info(n, &info);
+        nodes_gui_update_node_info(&info, iter);
+        node_clear_info(&info);
+    }
+
+    if (g_hash_table_lookup(ht_node_flags_changed, GUINT_TO_POINTER(n))) {
+        gnet_node_flags_t flags;
+
+        g_hash_table_remove(ht_node_flags_changed, GUINT_TO_POINTER(n));
+        node_fill_flags(n, &flags);
+        nodes_gui_update_node_flags(n, &flags, iter);
+    }
+
 	if (status.connect_date) {
 		g_strlcpy(timestr, short_uptime(*now - status.connect_date),
 			sizeof(timestr));
@@ -416,6 +467,11 @@ void nodes_gui_update_nodes_display(time_t now)
     static time_t last_update = 0;
 	gint current_page;
 	static GtkNotebook *notebook = NULL;
+    GtkTreeModel *model;
+	GtkTreeView *treeview;
+
+    if (last_update == now)
+        return;
 
 	/*
 	 * Usually don't perform updates if nobody is watching.  However,
@@ -432,10 +488,19 @@ void nodes_gui_update_nodes_display(time_t now)
 	if (current_page != nb_main_page_gnet && now - last_update < UPDATE_MIN)
 		return;
 
-    if (last_update + 1 < now) {
-		last_update = now;
-		G_LIST_FOREACH(list_nodes, (GFunc) update_row, &now);
-	}
+    last_update = now;
+
+    /* "Freeze" view */
+	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
+    model = gtk_tree_view_get_model(treeview);
+    g_object_ref(model);
+    gtk_tree_view_set_model(treeview, NULL);
+
+	G_LIST_FOREACH(list_nodes, (GFunc) update_row, &now);
+
+    /* "Thaw" view */
+    gtk_tree_view_set_model(treeview, model);
+    g_object_unref(model);
 }
 
 /***
@@ -485,11 +550,15 @@ static void nodes_gui_node_added(gnet_node_t n, const gchar *type)
  */
 static void nodes_gui_node_info_changed(gnet_node_t n)
 {
+    g_hash_table_insert(ht_node_info_changed, 
+        GUINT_TO_POINTER(n), (gpointer) 0x1);
+#if 0
     gnet_node_info_t info;
 
     node_fill_info(n, &info);
-    nodes_gui_update_node_info(&info);
+    nodes_gui_update_node_info(&info, NULL);
     node_clear_info(&info);
+#endif
 }
 
 /*
@@ -499,10 +568,15 @@ static void nodes_gui_node_info_changed(gnet_node_t n)
  */
 static void nodes_gui_node_flags_changed(gnet_node_t n)
 {
+    g_hash_table_insert(ht_node_flags_changed, 
+        GUINT_TO_POINTER(n), (gpointer) 0x1);
+
+#if 0
     gnet_node_flags_t flags;
 
     node_fill_flags(n, &flags);
-    nodes_gui_update_node_flags(n, &flags);
+    nodes_gui_update_node_flags(n, &flags, NULL);
+#endif
 }
 
 /*
