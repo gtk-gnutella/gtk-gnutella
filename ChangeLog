@@ -1,6 +1,9 @@
 This is the stable 0.93.x branch.
 
-# since last version
+# v 0.93.4	2004.06.09	[stable]
+
+ - Improved stability. Memory corruption issues should be resolved.
+ - Better gwebcache support, will parse up to 150 host in a reply
 
 - (2004.04.16 - Richard)
  * [Gtk1] Added "Toolbar style" setting to the gui config pane.
