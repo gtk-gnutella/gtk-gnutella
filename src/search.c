@@ -924,7 +924,7 @@ static void __search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 		m->header.ttl = hard_ttl_limit - m->header.hops;
 
 	WRITE_GUINT32_LE(plen, m->header.size);
-	WRITE_GUINT16_LE(minimum_speed, m->search.speed);
+	WRITE_GUINT16_LE(sch->speed, m->search.speed);
 
 	if (is_urn_search) {
 		*m->search.query = '\0';
@@ -1324,7 +1324,7 @@ void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
     g_assert(sch != NULL);
 
     if (sch->passive) {
-        g_warning("Can't set reissue timeout on a passive search");
+        g_error("Can't set reissue timeout on a passive search");
         return;
     }
 
