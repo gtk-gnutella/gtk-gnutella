@@ -43,6 +43,7 @@ extern guint32 track_props;
 const gchar *prop_type_str[] = {
     "boolean",
     "guint32",
+	"guint64",
     "string",
     "ip",
     "storage",
@@ -979,6 +980,30 @@ gchar *prop_to_string(prop_set_t *ps, property_t prop)
             g_strlcpy(s, val ? "TRUE" : "FALSE", sizeof(s));
             break;
         }
+		case PROP_TYPE_MULTICHOICE: {
+			guint n = 0;
+			
+			while (
+				(PROP(ps, prop).data.guint32.choices[n].title != NULL) &&
+				(PROP(ps, prop).data.guint32.choices[n].value !=
+					*(PROP(ps, prop).data.guint32.value))
+				)
+				n++;
+			
+			if (PROP(ps, prop).data.guint32.choices[n].title != NULL) 
+				gm_snprintf(s, sizeof(s), "%d: %s",
+					*(PROP(ps, prop).data.guint32.value),
+					PROP(ps,prop).data.guint32.choices[n].title);
+			else
+				gm_snprintf(s, sizeof(s),
+					"%d: No descriptive string found for this value",
+					*(PROP(ps, prop).data.guint32.value));
+			break;
+		}
+		case PROP_TYPE_STORAGE: {
+			g_strlcpy(s, guid_hex_str(prop_get_storage(ps, prop, NULL, PROP(ps,prop).vector_size)), sizeof(s));
+			break;
+		}
         default:
             s[0] = '\0';
             g_error("update_entry_gnet: incompatible type %s", 
