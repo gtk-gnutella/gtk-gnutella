@@ -26,6 +26,8 @@
 #ifndef _matching_h_
 #define _matching_h_
 
+struct query_hashvec;
+
 void matching_init(void);
 void matching_close(void);
 
@@ -132,7 +134,8 @@ gint st_search(
 	search_table_t *table,
 	guchar *search,
 	st_search_callback callback,
-	gint max_res);
+	gint max_res,
+	struct query_hashvec *qhv);
 
 #endif	/* _matching_h_ */
 

@@ -65,6 +65,10 @@ struct routing_table {
 	gint slots;				/* Amount of slots in table */
 	gint infinity;			/* Value for "infinity" */
 	guint32 client_slots;	/* Only for received tables, for shrinking ctrl */
+	gint bits;				/* Amount of bits used in table size (received) */
+	gint set_count;			/* Amount of slots set in table (received) */
+	gint fill_ratio;		/* 100 * fill ratio for table (received) */
+	gint pass_throw;		/* Query must pass a d100 throw to be forwarded */
 	guchar *digest;			/* SHA1 digest of the whole table (atom) */
 	gboolean compacted;
 };
@@ -134,18 +138,18 @@ G_INLINE_FUNC guint32 qrp_hashcode(guchar *x)
  *
  * Restrict given hashcode to be a suitable index on `bits' bits.
  */
-guint32 qrp_hash_restrict(guint32 hashcode, gint bits)
+G_INLINE_FUNC guint32 qrp_hash_restrict(guint32 hashcode, gint bits)
 {
 	return hashcode >> (32 - bits);
 }
 
 /*
- * qrp_hash
+ * qrp_hash		-- for tests only
  *
  * The hashing function, defined by the QRP specifications.
  * Naturally, everyone must use the SAME hashing function!
  */
-guint32 qrp_hash(guchar *x, gint bits)
+static guint32 qrp_hash(guchar *x, gint bits)
 {
 	return qrp_hashcode(x) >> (32 - bits);
 }
@@ -2142,9 +2146,10 @@ static gboolean qrt_apply_patch(
 
 				g_assert(qrcv->current_index < rt->slots);
 
-				if (v)
+				if (v) {
 					RT_SLOT_SET(rt->arena, qrcv->current_index);
-				else
+					rt->set_count++;
+				} else
 					RT_SLOT_CLEAR(rt->arena, qrcv->current_index);
 
 				qrcv->current_index++;
@@ -2263,9 +2268,11 @@ static gboolean qrt_handle_reset(
 	qrcv->expansion = walloc(qrcv->shrink_factor);
 
 	rt->slots = rt->client_slots / qrcv->shrink_factor;
+	rt->bits = highest_bit_set(rt->slots);
 
 	g_assert(is_pow2(rt->slots));
 	g_assert(rt->slots <= MAX_TABLE_SIZE);
+	g_assert((1 << rt->bits) == rt->slots);
 
 	/*
 	 * Allocate the compacted area.
@@ -2330,6 +2337,7 @@ static gboolean qrt_handle_patch(
 		qrcv->deflated = patch->compressor == 0x1;
 		qrcv->entry_bits = patch->entry_bits;
 		qrcv->current_index = qrcv->current_slot = 0;
+		qrcv->table->set_count = 0;
 
 		switch (qrcv->entry_bits) {
 		case 8:
@@ -2444,10 +2452,26 @@ static gboolean qrt_handle_patch(
 		g_assert(qrcv->current_index == rt->slots);
 
 		rt->digest = atom_sha1_get(qrt_sha1(rt));
+		rt->fill_ratio = (gint) (100.0 * rt->set_count / rt->slots);
 
-		if (dbg > 4)
-			printf("QRP got whole patch (gen=%d) from %s <%s>: SHA1=%s\n",
-				rt->generation, node_ip(n), n->vendor ? n->vendor : "????",
+		/*
+		 * If table is more than 50% full, each query will go through a
+		 * random d100 throw, and will pass only if the score is below
+		 * the value of the pass throw threshold.
+		 */
+
+		if (rt->fill_ratio > 50)
+			rt->pass_throw = (gint) (190 - 9.0 * rt->fill_ratio / 5);
+		else
+			rt->pass_throw = 100;		/* Always forward if QRT says so */
+
+		if (dbg > 2)
+			printf("QRP got whole patch "
+				"(gen=%d, slots=%d (*%d), fill=%d%%, throw=%d) "
+				"from %s <%s>: SHA1=%s\n",
+				rt->generation, rt->slots, qrcv->shrink_factor,
+				rt->fill_ratio, rt->pass_throw,
+				node_ip(n), n->vendor ? n->vendor : "????",
 				sha1_base32(rt->digest));
 
 		/*
@@ -2634,6 +2658,179 @@ static guint32 qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
 		rt->generation, sha1_base32(digest), result);
 
 	return result;
+}
+
+/***
+ *** Query routing management.
+ ***/
+
+/*
+ * qhvec_alloc
+ *
+ * Allocate a query hash container for at most `size' entries.
+ */
+query_hashvec_t *qhvec_alloc(gint size)
+{
+	query_hashvec_t *qhvec;
+
+	qhvec = walloc(sizeof(*qhvec));
+
+	qhvec->count = 0;
+	qhvec->size = size;
+	qhvec->vec = walloc(size * sizeof(struct query_hash));
+
+	return qhvec;
+}
+
+/*
+ * qhvec_free
+ *
+ * Dispose of the query hash container.
+ */
+void qhvec_free(query_hashvec_t *qhvec)
+{
+	wfree(qhvec->vec, qhvec->size * sizeof(struct query_hash));
+	wfree(qhvec, sizeof(*qhvec));
+}
+
+/*
+ * qhvec_reset
+ *
+ * Empty query hash container.
+ */
+void qhvec_reset(query_hashvec_t *qhvec)
+{
+	qhvec->count = 0;
+}
+
+/*
+ * qhvec_add
+ *
+ * Add the `word' coming from `src' into the query hash vector.
+ * If the vector is already full, do nothing.
+ */
+void qhvec_add(query_hashvec_t *qhvec, gchar *word, enum query_hsrc src)
+{
+	struct query_hash *qh;
+
+	if (qhvec->count >= qhvec->size)
+		return;
+
+	qh = &qhvec->vec[qhvec->count++];
+	qh->hashcode = qrp_hashcode(word);
+	qh->source = src;
+}
+
+/*
+ * qrt_build_query_target
+ *
+ * Compute list of nodes to send the query to, based on node's QRT.
+ * The query is identified by its list of QRP hashes, and by its hop count.
+ *
+ * Returns list of nodes, a subset of the currently connected nodes.
+ * Once used, the list of nodes can be freed with g_slist_free().
+ */
+GSList *qrt_build_query_target(query_hashvec_t *qhvec, gint hops)
+{
+	GSList *nodes = NULL;		/* Targets for the query */
+	gint count = 0;				/* Amount of selected nodes so far */
+	GSList *l;
+
+	g_assert(qhvec != NULL);
+	g_assert(hops >= 0);
+
+	for (l = sl_nodes; l; l = l->next) {
+		struct gnutella_node *dn = (struct gnutella_node *) l->data;
+		struct routing_table *rt = (struct routing_table *) dn->query_table;
+		struct query_hash *qh;
+		gboolean can_route;
+		gint i;
+
+		if (rt == NULL)			/* Node has not sent its query routing table */
+			continue;
+
+		if (!NODE_IS_LEAF(dn) || !NODE_IS_WRITABLE(dn))
+			continue;
+
+		if (hops >= dn->hops_flow)		/* Hops-flow prevent sending */
+			continue;
+
+		/*
+		 * Look whether we can route the query to the leaf node.
+		 */
+
+		can_route = TRUE;
+
+		for (i = qhvec->count, qh = qhvec->vec; i > 0; i--, qh++) {
+			guint32 idx = qrp_hash_restrict(qh->hashcode, rt->bits);
+
+			/* 
+			 * If there is an entry in the table and the source is an URN,
+			 * we have to forward the query, as those are OR-ed.
+			 * Otherwise, ALL the keywords must be present.
+			 */
+
+			g_assert(idx < rt->slots);
+
+			if (RT_SLOT_READ(rt->arena, idx)) {
+				if (qh->source == QUERY_H_URN) {	/* URN present */
+					can_route = TRUE;				/* Force routing */
+					break;							/* Will forward */
+				}
+			} else {
+				if (qh->source == QUERY_H_WORD)		/* Word NOT present */
+					can_route = FALSE;				/* A priori, don't route */
+			}
+		}
+
+		if (!can_route)
+			continue;
+
+		/*
+		 * If table for the node is so full that we can't let all the queries
+		 * pass through, further restrict sending even though QRT says we
+		 * can let it go.
+		 */
+
+		if (rt->pass_throw < 100) {
+			if (random_value(99) >= rt->pass_throw)
+				continue;
+		}
+
+		/*
+		 * OK, can send the query to that node.
+		 */
+
+		nodes = g_slist_prepend(nodes, dn);
+		count++;
+	}
+
+	return nodes;
+}
+
+/*
+ * qrt_route_query
+ *
+ * Route query message to leaf nodes, based on their QRT.
+ */
+void qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
+{
+	GSList *nodes;				/* Targets for the query */
+
+	g_assert(qhvec != NULL);
+	g_assert(n->header.function == GTA_MSG_SEARCH);
+
+	nodes = qrt_build_query_target(qhvec, n->header.hops);
+
+	if (dbg > 8)
+		printf("QRP query %s (%d word/hash) forwarded to %d/%d leaves\n",
+			gmsg_infostr(&n->header), qhvec->count, g_slist_length(nodes),
+			node_leaf_count);
+
+	gmsg_split_sendto_leaves(nodes, (guchar *) &n->header, n->data,
+		n->size + sizeof(struct gnutella_header));
+
+	g_slist_free(nodes);
 }
 
 /***

@@ -166,7 +166,6 @@ static search_table_t search_table;
 static GHashTable *file_basenames = NULL;
 
 gchar stmp_1[4096];
-gchar stmp_2[4096];
 
 /***
  *** Callbacks
@@ -1252,9 +1251,12 @@ static gboolean query_utf8_decode(
  * Basic matching. The search request is made lowercase and
  * is matched to the filenames in the LL.
  *
+ * If `qhv' is not NULL, it is filled with hashes of URN or query words,
+ * so that we may later properly route the query among the leaf nodes.
+ *
  * Returns TRUE if the message should be dropped and not propagated further.
  */
-gboolean search_request(struct gnutella_node *n)
+gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 {
 	guchar found_files = 0;
 	guint16 req_speed;
@@ -1444,6 +1446,17 @@ gboolean search_request(struct gnutella_node *n)
 				if (dbg > 4)
 					printf("Valid SHA1 #%d in query: %32s\n",
 						exv_sha1cnt, e->ext_payload);
+
+				/*
+				 * Add valid URN query to the list of query hashes, if we
+				 * are to fill any for query routing.
+				 */
+
+				if (qhv != NULL) {
+					g_snprintf(stmp_1, sizeof(stmp_1),
+						"urn:sha1:%s", sha1_base32(sha1_digest));
+					qhvec_add(qhv, stmp_1, QUERY_H_URN);
+				}
 			}
 		}
 
@@ -1506,8 +1519,8 @@ gboolean search_request(struct gnutella_node *n)
      * Push the query string to interested ones.
      */
     if (
-	(search[0] == '\0' || (search[0] == '\\' && search[1] == '\0'))
-	&& exv_sha1cnt
+		(search[0] == '\0' || (search[0] == '\\' && search[1] == '\0'))
+		&& exv_sha1cnt
     ) {
 		gint i;
 		for (i = 0; i < exv_sha1cnt; i++)
@@ -1642,7 +1655,7 @@ gboolean search_request(struct gnutella_node *n)
 
 		if (!ignore)
 			found_files +=
-				st_search(&search_table, stmp_1, got_match, max_replies);
+				st_search(&search_table, stmp_1, got_match, max_replies, qhv);
 	}
 
 finish:

@@ -26,6 +26,7 @@
  */
 
 #include "common.h"
+#include "qrp.h"			/* For qhvec_add() */
 
 #include <ctype.h>
 
@@ -165,8 +166,9 @@ guint query_make_word_vec(guchar *query, word_vec_t **wovec)
 						wv = word_vec_zrealloc(wv, nv);
 				}
 				entry = &wv[n++];
-				entry->word = g_strdup(start);
 				entry->len = query - start;
+				entry->word = walloc(entry->len + 1);	/* For trailing NUL */
+				memcpy(entry->word, start, entry->len + 1);	/* Include NUL */
 				entry->amount = 1;
 				g_hash_table_insert(seen_word, entry->word,
 					GUINT_TO_POINTER(n));
@@ -196,7 +198,7 @@ void query_word_vec_free(word_vec_t *wovec, guint n)
 	guint i;
 
 	for (i = 0; i < n; i++)
-		g_free(wovec[i].word);
+		wfree(wovec[i].word, wovec[i].len + 1);
 
 	if (n > WOVEC_DFLT)
 		g_free(wovec);
@@ -669,7 +671,8 @@ gint st_search(
 	search_table_t *table,
 	guchar *search,
 	gboolean (*callback)(shared_file_t *),
-	gint max_res)
+	gint max_res,
+	query_hashvec_t *qhv)
 {
 	gint i, key, nres = 0;
 	guint len;
@@ -718,18 +721,36 @@ gint st_search(
 	 *		--RAM, 06/10/2001
 	 */
 
-	if (best_bin == NULL)
-		return 0;
+	if (best_bin == NULL) {
+		/*
+		 * If we have a `qhv', we need to compute the word vector anway,
+		 * for query routing...
+		 */
 
-	g_assert(best_bin_size > 0);	/* Allocated bin, it must hold something */
+		if (qhv == NULL)
+			return 0;
+	}
 
 	/*
 	 * Prepare matching patterns
 	 */
 
 	wocnt = query_make_word_vec(search, &wovec);
-	if (wocnt == 0)
+
+	/*
+	 * Compute the query hashing information for query routing, if needed.
+	 */
+
+	if (qhv != NULL) {
+		for (i = 0; i < wocnt; i++)
+			qhvec_add(qhv, wovec[i].word, QUERY_H_WORD);
+	}
+
+	if (wocnt == 0 || best_bin == NULL)
 		return 0;
+
+	g_assert(best_bin_size > 0);	/* Allocated bin, it must hold something */
+
 
 	pattern = (cpattern_t **) g_malloc0(wocnt * sizeof(cpattern_t *));
 

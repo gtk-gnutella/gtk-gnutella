@@ -30,6 +30,7 @@
 #include "huge.h"
 
 struct gnutella_node;
+struct query_hashvec;
 
 /* A file extension we have to share */
 struct extension {
@@ -87,7 +88,7 @@ struct shared_file *shared_file(guint idx);
 struct shared_file *shared_file_by_name(gchar *basename);
 void share_scan(void);
 void share_close(void);
-gboolean search_request(struct gnutella_node *n);
+gboolean search_request(struct gnutella_node *n, struct query_hashvec *qhv);
 void parse_extensions(gchar *);
 gchar *get_file_path(gint);
 void shared_dirs_update_prop(void);

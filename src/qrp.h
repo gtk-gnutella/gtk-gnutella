@@ -32,11 +32,34 @@
 
 #include "gnutella.h"
 
+/*
+ * Query routing: structures to keep track of all the query hashes,
+ * and where they come from..
+ */
+
+enum query_hsrc {
+	QUERY_H_WORD = 0,				/* Query word (AND-ed) */
+	QUERY_H_URN,					/* URN (OR-ed) */
+};
+
+struct query_hash {
+	guint32 hashcode;
+	enum query_hsrc source;
+};
+
+typedef struct query_hashvec {
+	gint count;				/* Amount of slots actually taken */
+	gint size;				/* Amount of slots in vector */
+	struct query_hash *vec;	/* Vector of at most `size' entries */
+} query_hashvec_t;
+
+/*
+ * Public interface.
+ */
+
 typedef void (*qrp_callback_t)(gpointer arg, gboolean cancelled);
 
-guint32 qrp_hash(guchar *x, gint bits);
 guint32 qrp_hashcode(guchar *x);
-guint32 qrp_hash_restrict(guint32 hashcode, gint bits);
 
 void qrp_init(char_map_t map);
 void qrp_close(void);
@@ -57,6 +80,14 @@ gboolean qrt_receive_next(gpointer handle, gboolean *done);
 gpointer qrt_get_table(void);
 gpointer qrt_ref(gpointer obj);
 void qrt_unref(gpointer obj);
+
+struct query_hashvec *qhvec_alloc(gint size);
+void qhvec_free(struct query_hashvec *qhvec);
+void qhvec_reset(struct query_hashvec *qhvec);
+void qhvec_add(struct query_hashvec *qhvec, gchar *word, enum query_hsrc src);
+
+GSList *qrt_build_query_target(query_hashvec_t *qhvec, gint hops);
+void qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec);
 
 #endif	/* _qrp_h_ */
 

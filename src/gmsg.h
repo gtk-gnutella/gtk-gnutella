@@ -65,6 +65,10 @@ gboolean gmsg_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize);
 void gmsg_sendto_route_ggep(
 	struct gnutella_node *n, struct route_dest *rt, gint regular_size);
 
+void gmsg_split_sendto_leaves(GSList *l,
+	guchar *head, guchar *data, guint32 size);
+void gmsg_search_sendto_all_nonleaf(GSList *l, guchar *msg, guint32 size);
+
 #endif	/* _gmsg_h_ */
 
 /* vi: set ts=4: */

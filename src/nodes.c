@@ -128,6 +128,8 @@ static gint pending_byes = 0;			/* Used when shutdowning servent */
 static gboolean in_shutdown = FALSE;
 static gboolean no_gnutella_04 = FALSE;
 
+static query_hashvec_t *query_hashvec = NULL;
+
 static void node_read_connecting(
 	gpointer data, gint source, inputevt_cond_t cond);
 static void node_disable_read(struct gnutella_node *n);
@@ -435,6 +437,8 @@ void node_init(void)
 	node_added_hook_list.seq_id = 1;
 	node_added = NULL;
 	no_gnutella_04 = time(NULL) >= 1057010400;	/* Tue Jul  1 00:00:00 2003 */
+
+	query_hashvec = qhvec_alloc(128);		/* Max: 128 unique words / URNs! */
 }
 
 /*
@@ -476,6 +480,36 @@ static void get_protocol_version(guchar *handshake, gint *major, gint *minor)
 
 	*major = 0;
 	*minor = 4;
+}
+
+/*
+ * node_type_count_dec
+ *
+ * Decrement the proper node count property, depending on the peermode.
+ */
+static void node_type_count_dec(struct gnutella_node *n)
+{
+	g_assert(!NODE_IS_PONGING_ONLY(n));		/* We don't count ponging nodes */
+
+	switch (n->peermode) {
+	case NODE_P_LEAF:
+		g_assert(node_leaf_count > 0);
+		gnet_prop_set_guint32_val(PROP_NODE_LEAF_COUNT,
+			node_leaf_count - 1);
+		break;
+	case NODE_P_NORMAL:
+		g_assert(node_normal_count > 0);
+		gnet_prop_set_guint32_val(PROP_NODE_NORMAL_COUNT,
+			node_normal_count - 1);
+		break;
+	case NODE_P_ULTRA:
+		g_assert(node_ultra_count > 0);
+		gnet_prop_set_guint32_val(PROP_NODE_ULTRA_COUNT,
+			node_ultra_count - 1);
+		break;
+	default:
+		break;
+	}
 }
 
 /*
@@ -596,6 +630,8 @@ static void node_remove_v(
             compressed_node_cnt--;
             g_assert(compressed_node_cnt >= 0);
         }
+		if (!NODE_IS_PONGING_ONLY(n))
+			node_type_count_dec(n);
 	}
 
 	if (n->status == GTA_NODE_SHUTDOWN)
@@ -781,6 +817,8 @@ static void node_shutdown_mode(struct gnutella_node *n, guint32 delay)
             compressed_node_cnt--;
             g_assert(compressed_node_cnt >= 0);
         }
+		if (!NODE_IS_PONGING_ONLY(n))
+			node_type_count_dec(n);
  	}
 
 	n->status = GTA_NODE_SHUTDOWN;
@@ -1369,6 +1407,27 @@ static void node_is_now_connected(struct gnutella_node *n)
 
 			if (qrt)
 				node_send_qrt(n, qrt);
+		}
+
+		/*
+		 * Count nodes by type only if not ponging.
+		 */
+
+		switch (n->peermode) {
+		case NODE_P_LEAF:
+			gnet_prop_set_guint32_val(PROP_NODE_LEAF_COUNT,
+				node_leaf_count + 1);
+			break;
+		case NODE_P_NORMAL:
+			gnet_prop_set_guint32_val(PROP_NODE_NORMAL_COUNT,
+				node_normal_count + 1);
+			break;
+		case NODE_P_ULTRA:
+			gnet_prop_set_guint32_val(PROP_NODE_ULTRA_COUNT,
+				node_ultra_count + 1);
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -2046,12 +2105,6 @@ static void node_process_handshake_header(
 	/* Vendor-Message -- support for vendor-specific messages */
 
 	field = header_get(head, "Vendor-Message");
-
-	// XXX I goofed, so support header name with a trailing 's' for a while
-	// XXX		-- RAM, 04/01/2003
-
-	if (field == NULL)
-		field = header_get(head, "Vendor-Messages");
 
 	if (field) {
 		guint major, minor;
@@ -2830,6 +2883,7 @@ static void node_parse(struct gnutella_node *node)
 	gboolean has_ggep = FALSE;
 	gint regular_size = -1;			/* -1 signals: regular size */
 	struct route_dest dest;
+	query_hashvec_t *qhv = NULL;
 
 	g_return_if_fail(node);
 	g_assert(NODE_IS_CONNECTED(node));
@@ -3069,7 +3123,14 @@ static void node_parse(struct gnutella_node *node)
              * search_request takes care of telling the stats that
              * the message was dropped.
              */
-			drop = search_request(n);
+
+			if (current_peermode == NODE_P_ULTRA) {
+				qhv = query_hashvec;
+				qhvec_reset(qhv);
+			} else
+				qhv = NULL;
+
+			drop = search_request(n, qhv);
 
 			/*
 			 * If node is a leaf, undo decrement of TTL: act as if we were
@@ -3118,9 +3179,10 @@ static void node_parse(struct gnutella_node *node)
 			if (
 				current_peermode == NODE_P_ULTRA &&
 				n->header.function == GTA_MSG_SEARCH
-			)
-				// XXX gmsg_query_route(n);
-				/* empty */;
+			) {
+				g_assert(qhv != NULL);
+				qrt_route_query(n, qhv);
+			}
 		}
 	} else {
 		if (dbg > 3)
@@ -3922,6 +3984,7 @@ void node_close(void)
 
     idtable_destroy(node_handle_map);
     node_handle_map = NULL;
+	qhvec_free(query_hashvec);
 
 	rxbuf_close();
 }

@@ -252,10 +252,37 @@ void gmsg_search_sendto_all(GSList *l, guchar *msg, guint32 size)
 }
 
 /*
+ * gmsg_search_sendto_all_nonleaf
+ *
+ * Broadcast our search message to all non-leaf nodes in the list.
+ */
+void gmsg_search_sendto_all_nonleaf(GSList *l, guchar *msg, guint32 size)
+{
+	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
+
+	g_assert(((struct gnutella_header *) msg)->ttl > 0);
+	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
+
+	if (dbg > 5 && gmsg_hops(msg) == 0)
+		gmsg_dump(stdout, msg, size);
+
+	for (/* empty */; l; l = l->next) {
+		struct gnutella_node *dn = (struct gnutella_node *) l->data;
+		if (!NODE_IS_WRITABLE(dn) || NODE_IS_LEAF(dn))
+			continue;
+		sq_putq(dn->searchq, pmsg_clone(mb));
+	}
+
+	pmsg_free(mb);
+}
+
+/*
  * gmsg_split_sendto_all_but_one
  *
  * Send message consisting of header and data to all nodes in the list
  * but one node.
+ *
+ * We never broadcast anything to a leaf node.  Those are handled specially.
  */
 void gmsg_split_sendto_all_but_one(GSList *l, struct gnutella_node *n,
 	guchar *head, guchar *data, guint32 size)
@@ -270,8 +297,35 @@ void gmsg_split_sendto_all_but_one(GSList *l, struct gnutella_node *n,
 		struct gnutella_node *dn = (struct gnutella_node *) l->data;
 		if (dn == n)
 			continue;
-		if (!NODE_IS_WRITABLE(dn))
+		if (!NODE_IS_WRITABLE(dn) || NODE_IS_LEAF(dn))
 			continue;
+		mq_putq(dn->outq, pmsg_clone(mb));
+	}
+
+	pmsg_free(mb);
+}
+
+/*
+ * gmsg_split_sendto_leaves
+ *
+ * Send message consisting of header and data to all the leaves in the list.
+ */
+void gmsg_split_sendto_leaves(GSList *l,
+	guchar *head, guchar *data, guint32 size)
+{
+	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
+
+	g_assert(((struct gnutella_header *) head)->ttl > 0);
+
+	/* relayed broadcasted message, cannot be sent with hops=0 */
+
+	for (/* empty */; l; l = l->next) {
+		struct gnutella_node *dn = (struct gnutella_node *) l->data;
+
+		/*
+		 * We have already tested that the node was being writable.
+		 */
+
 		mq_putq(dn->outq, pmsg_clone(mb));
 	}
 
@@ -284,6 +338,8 @@ void gmsg_split_sendto_all_but_one(GSList *l, struct gnutella_node *n,
  * Same as gmsg_split_sendto_all_but_one(), but the message must not be
  * forwarded as-is to nodes not supporting GGEP: it must be truncated to
  * its `regular_size' size first.
+ *
+ * We never broadcast anything to a leaf node.  Those are handled specially.
  */
 static void gmsg_split_sendto_all_but_one_ggep(
 	GSList *l,
@@ -302,7 +358,7 @@ static void gmsg_split_sendto_all_but_one_ggep(
 		struct gnutella_node *dn = (struct gnutella_node *) l->data;
 		if (dn == n)
 			continue;
-		if (!NODE_IS_WRITABLE(dn))
+		if (!NODE_IS_WRITABLE(dn) || NODE_IS_LEAF(dn))
 			continue;
 		if (NODE_CAN_GGEP(dn))
 			mq_putq(dn->outq, pmsg_clone(mb));

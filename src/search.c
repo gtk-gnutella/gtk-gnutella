@@ -35,6 +35,7 @@
 #include "ignore.h"
 #include "ggep.h"
 #include "version.h"
+#include "qrp.h"
 
 #include <ctype.h>
 
@@ -82,6 +83,7 @@ static zone_t *rs_zone;		/* Allocation of results_set */
 static zone_t *rc_zone;		/* Allocation of record */
 
 static idtable_t *search_handle_map = NULL;
+static query_hashvec_t *query_hashvec = NULL;
 
 #define search_find_by_handle(n) \
     (search_ctrl_t *) idtable_get_value(search_handle_map, n)
@@ -875,10 +877,27 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	gint plen;				/* Length of payload */
 	gint qlen;				/* Length of query text */
 	gboolean is_urn_search = FALSE;
+	query_hashvec_t *qhv;
 
     g_assert(sch != NULL);
     g_assert(!sch->passive);
     g_assert(!sch->frozen);
+
+	/*
+	 * We'll do query routing only if in ultra mode and we're going to
+	 * broadcast the query (i.e. n == NULL).
+	 *
+	 * Otherwise, we're sending the query after the initial node connection,
+	 * and this is our privilege as an ultra node to be able to query our
+	 * own leaves directly the first time they connect.
+	 *		--RAM, 17/01/2003
+	 */
+
+	if (current_peermode == NODE_P_ULTRA && n == NULL) {
+		qhv = query_hashvec;
+		qhvec_reset(qhv);
+	} else
+		qhv = NULL;
 
 	/*
 	 * Don't send on a temporary connection.
@@ -895,8 +914,9 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	 * Are we dealing with an URN search?
 	 */
 
-	if (0 == strncmp(sch->query, "urn:sha1:", 9))
+	if (0 == strncmp(sch->query, "urn:sha1:", 9)) {
 		is_urn_search = TRUE;
+	}
 
 	if (is_urn_search) {
 		/*
@@ -905,6 +925,13 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 		 */
 		qlen = 0;
 		size = sizeof(struct gnutella_msg_search) + 9+32 + 2;	/* 2 NULs */
+
+		/*
+		 * If query routing is on, hash the URN.
+		 */
+
+		if (qhv != NULL)
+			qhvec_add(qhv, sch->query, QUERY_H_URN);
 	} else {
 		/*
 		 * We're adding a trailing NUL after the query text.
@@ -916,6 +943,20 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 
 		qlen = strlen(sch->query);
 		size = sizeof(struct gnutella_msg_search) + qlen + 1;	/* 1 NUL */
+
+		/*
+		 * If query routing is on, hash each query word.
+		 */
+
+		if (qhv != NULL) {
+			word_vec_t *wovec;
+			guint wocnt;
+
+			wocnt = query_make_word_vec(sch->query, &wovec);
+			
+			while (wocnt > 0)
+				qhvec_add(qhv, wovec[--wocnt].word, QUERY_H_WORD);
+		}
 	}
 
 	plen = size - sizeof(struct gnutella_header);	/* Payload length */
@@ -955,14 +996,20 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 		gmsg_search_sendto_one(n, (guchar *) m, size);
 	} else {
 		mark_search_sent_to_connected_nodes(sch);
-		gmsg_search_sendto_all(sl_nodes, (guchar *) m, size);
+		if (qhv != NULL) {
+			GSList *nodes = qrt_build_query_target(qhv, 0);
+			gmsg_search_sendto_all(nodes, (guchar *) m, size);
+			g_slist_free(nodes);
+			gmsg_search_sendto_all_nonleaf(sl_nodes, (guchar *) m, size);
+		} else
+			gmsg_search_sendto_all(sl_nodes, (guchar *) m, size);
 	}
 
 	wfree(m, size);
 }
 
 /*
- * node_added_callback:
+ * node_added_callback
  *
  * Called when we connect to a new node and thus can send it our searches.
  * FIXME: uses node_added which is a global variable in nodes.c. This
@@ -1084,6 +1131,7 @@ void search_init(void)
 	rc_zone = zget(sizeof(gnet_record_t), 1024);
     
     search_handle_map = idtable_new(32,32);
+	query_hashvec = qhvec_alloc(128);	/* Max: 128 unique words / URNs! */
 }
 
 void search_shutdown(void)
@@ -1098,6 +1146,7 @@ void search_shutdown(void)
 
     idtable_destroy(search_handle_map);
     search_handle_map = NULL;
+	qhvec_free(query_hashvec);
 
 	zdestroy(rs_zone);
 	zdestroy(rc_zone);
