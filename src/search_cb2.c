@@ -544,9 +544,7 @@ void on_tree_view_search_results_click_column(
 }
 
 static guint32 autoselect_files_fuzzy_threshold;
-static guint32 autoselect_files_counter;
-static guint32 autoselect_files_called;
-static gboolean autoselect_files_done;
+static gboolean autoselect_files_lock;
 
 static void autoselect_files(
     GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data) 
@@ -558,11 +556,10 @@ static void autoselect_files(
 	gboolean more_rows;
 	GtkTreeSelection	*tree_selection;
 
-	autoselect_files_called++;
-	if (autoselect_files_done)
+	if (autoselect_files_lock)
 		return;
 
-	autoselect_files_done = TRUE;
+	autoselect_files_lock = TRUE;
 	tree_selection = GTK_TREE_SELECTION(data);
 	/* 
 	 * Rows with NULL data can appear when inserting new rows
@@ -573,7 +570,6 @@ static void autoselect_files(
 	 */
 
 	gtk_tree_model_get(model, iter, c_sr_record, &rc, -1);
-//	g_message("%s: name=\"%s'\"", __FUNCTION__, rc->name);
 
 	/*
 	 * Note that rc != NULL is embedded in the "for condition".
@@ -586,7 +582,6 @@ static void autoselect_files(
 	{
 		record_t *rc2;
 
-		autoselect_files_counter++;
 		gtk_tree_model_get(model, &model_iter, c_sr_record, &rc2, -1);
 
 		/*
@@ -649,7 +644,6 @@ gboolean autoselect_files_after_delay(gpointer data)
     gboolean search_autoselect_ident;
     gboolean search_autoselect_fuzzy;
 	GtkTreeSelection *tree_selection = gtk_tree_view_get_selection(tree_view);
-	time_t	start;
 
     gui_prop_get_boolean(
         PROP_SEARCH_AUTOSELECT,
@@ -680,20 +674,13 @@ gboolean autoselect_files_after_delay(gpointer data)
      * check if config setting select all is on and only autoselect if
      * only one item is selected (no way to merge two autoselections)
      */
-	g_warning("Starting autoselect...");
-	start = time(NULL);
-	autoselect_files_counter = 0;
-	autoselect_files_called = 0;
-	autoselect_files_done = FALSE;
+
+	autoselect_files_lock = FALSE;
 	if (search_autoselect)
 		gtk_tree_selection_selected_foreach(
 			tree_selection,
 			autoselect_files,
 			tree_selection);
-	g_warning(
-		"Autoselect done (%d sec., over %ld results, %ld times called).\n", 
-		(int)(time(NULL) - start), (gulong)autoselect_files_counter,
-		(gulong)autoselect_files_called);
 
     g_signal_handlers_unblock_by_func(
         G_OBJECT(tree_view),
@@ -715,7 +702,7 @@ void on_tree_view_search_results_select_row(
 {
 	if (!autoselection_running) {
 		autoselection_running = TRUE;
-		g_timeout_add(250, autoselect_files_after_delay, tree_view);
+		g_timeout_add(100, autoselect_files_after_delay, tree_view);
 	}
 }
 

@@ -1971,11 +1971,8 @@ void gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 {
 	GtkTreeModel	*tree_model = create_model();
 	GtkTreeSelection	*tree_selection;
-	GtkTreeModelSort	*tree_modelsort;
 	GtkTreeView	*tree_view;
 
-	tree_modelsort = 
-		GTK_TREE_MODEL_SORT(gtk_tree_model_sort_new_with_model(tree_model));
 	*sw = gtk_scrolled_window_new(NULL, NULL);
 
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(*sw),
