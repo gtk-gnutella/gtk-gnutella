@@ -1089,11 +1089,11 @@ static gboolean file_info_has_filename(struct dl_file_info *fi, gchar *file)
 {
 	GSList *a;
 
-	if (!strcasecmp(fi->file_name, file))
+	if (0 == strcasecmp(fi->file_name, file))
 		return TRUE;
 
 	for (a = fi->alias; a; a = a->next) {
-		if (!strcasecmp((gchar *)a->data, file))
+		if (0 == strcasecmp((gchar *)a->data, file))
 			return TRUE;
 	}
 
