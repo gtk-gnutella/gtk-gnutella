@@ -7,6 +7,9 @@
  * (move.c) Added termination signal handler to allow background task to
    remove the target file if GTKG is shutdown in the middle of a move
    operation.
+ * On restart, when re-queuing a file with a computed SHA1 for moving, don't
+   forget to suspend all the queued files.  Normally this is done when we
+   start the SHA1 computing process, but that can be bypassed when restarting.
 
 - (2004.03.02 - RAM)
  * As per RFE #906834, use ISO timestamps in User-Agent string.
