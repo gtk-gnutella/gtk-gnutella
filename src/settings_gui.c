@@ -140,6 +140,7 @@ typedef struct prop_map {
 static gboolean update_entry(property_t prop);
 static gboolean update_spinbutton(property_t prop);
 static gboolean update_togglebutton(property_t prop);
+static gboolean update_multichoice(property_t prop);
 static gboolean update_split_pane(property_t prop);
 static gboolean update_clist_col_widths(property_t prop);
 static gboolean update_bandwidth_spinbutton(property_t prop);
@@ -1180,28 +1181,7 @@ static prop_map_t property_map[] = {
     },
     {
         NULL,
-        PROP_BAN_RATIO_FDS,
-        IGNORE,
-        FALSE,
-        NULL
-    },
-    {
-        NULL,
-        PROP_BAN_MAX_FDS,
-        IGNORE,
-        FALSE,
-        NULL
-    },
-    {
-        NULL,
         PROP_NODE_SENDQUEUE_SIZE,
-        IGNORE,
-        FALSE,
-        NULL
-    },
-    {
-        NULL,
-        PROP_FILTER_DEFAULT_POLICY,
         IGNORE,
         FALSE,
         NULL
@@ -1457,6 +1437,44 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_config_req_srv_name"
     },
+#ifndef USE_GTK2
+// FIXME: Gtk2 should also have these controls
+    {
+        get_main_window,
+        PROP_ENABLE_ULTRAPEER,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_enable_ultrapeer"
+    },
+    {
+        get_main_window,
+        PROP_CURRENT_PEERMODE,
+        update_multichoice,
+        TRUE,
+        "combo_config_peermode"
+    },
+    {
+        get_main_window,
+        PROP_LIB_DEBUG,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_lib_debug"
+    },
+    {
+        get_main_window,
+        PROP_BAN_MAX_FDS,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_ban_max_fds"
+    },
+    {
+        get_main_window,
+        PROP_BAN_RATIO_FDS,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_ban_ratio_fds"
+    }
+#endif
 };
 
 /***
@@ -1616,6 +1634,54 @@ static gboolean update_togglebutton(property_t prop)
     }
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
+
+    return FALSE;
+}
+
+static gboolean update_multichoice(property_t prop)
+{
+    GtkWidget *w;
+    gboolean val = 0;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+    GList *l;
+
+    if (!top)
+        return FALSE;
+
+    w = lookup_widget(top, map_entry->wid);
+
+    if (w == NULL) {
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]", 
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
+   
+    switch (map_entry->type) {
+        case PROP_TYPE_MULTICHOICE:
+            stub->guint32.get(prop, &val, 0, 1);
+            break;
+        default:
+            val = 0;
+            g_error("update_multichoice: incompatible type %s", 
+                prop_type_str[map_entry->type]);
+    }
+
+    l = GTK_LIST(GTK_COMBO(w)->list)->children;
+    while (l) {
+        guint32 cur;
+
+        cur = GPOINTER_TO_UINT(gtk_object_get_user_data(GTK_OBJECT(l->data)));
+
+        if (cur == val) {
+            gtk_list_select_child(GTK_LIST(GTK_COMBO(w)->list), l->data);
+            break;
+        }
+
+        l = g_list_next(l);
+    }
 
     return FALSE;
 }
@@ -2492,6 +2558,7 @@ static gboolean expert_mode_changed(property_t prop)
 {
     gchar *expert_widgets[] = {
         "frame_expert_nw_local",
+        "frame_expert_nw_misc",
         "frame_expert_gnet_timeout",
         "frame_expert_gnet_ttl",
         "frame_expert_gnet_quality",
@@ -2511,6 +2578,9 @@ static gboolean expert_mode_changed(property_t prop)
     for (n = 0; expert_widgets[n] != NULL; n++) {
         GtkWidget *w = lookup_widget(main_window, expert_widgets[n]);
 
+        if (w == NULL)
+            continue;
+
         if (b)
             gtk_widget_show(w);
         else
@@ -2525,6 +2595,8 @@ static gboolean search_stats_mode_changed(property_t prop)
     guint32 val;
 
     gui_prop_get_guint32(prop, &val, 0, 1);
+
+    update_multichoice(prop);
 
     search_stats_gui_set_type(val);
     search_stats_gui_reset();
@@ -2690,6 +2762,15 @@ void togglebutton_state_changed(
     stub->boolean.set(map_entry->prop, &val, 0, 1);
 }
 
+void multichoice_item_selected(GtkItem *i, gpointer data)
+{
+    prop_map_t *map_entry = (prop_map_t *) data;
+    prop_set_stub_t *stub = map_entry->stub;
+    guint32 val = GPOINTER_TO_UINT(gtk_object_get_user_data(GTK_OBJECT(i)));
+
+    stub->guint32.set(map_entry->prop, &val, 0, 1);
+}
+
 /*
  * settings_gui_config_widget:
  *
@@ -2782,6 +2863,14 @@ static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                     GTK_OBJECT(w), "toggled",
                     (GtkSignalFunc) togglebutton_state_changed,
                     (gpointer) map);
+            }
+
+            if (top && GTK_IS_COMBO(w)) {
+                g_assert(def->type == PROP_TYPE_MULTICHOICE);
+
+                gtk_combo_init_choices(GTK_COMBO(w),
+                    GTK_SIGNAL_FUNC(multichoice_item_selected),
+                    def, (gpointer) map);
             }
         }
         if (gui_debug >= 10)
