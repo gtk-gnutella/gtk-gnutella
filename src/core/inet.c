@@ -42,6 +42,7 @@ RCSID("$Id$");
 #include "if/gnet_property_priv.h"
 
 #include "lib/cq.h"
+#include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 /***
@@ -72,7 +73,24 @@ static time_t fw_time = 0;				/* When we last became firewalled */
  * mode.
  */
 
-static gpointer incoming_ev = NULL;		/* Callout queue timer */
+static gpointer incoming_ev = NULL;			/* Callout queue timer */
+static gpointer incoming_udp_ev = NULL;		/* Idem */
+
+/*
+ * Unfortunately, to accurately detect true unsolicited UDP traffic, we have
+ * to keep a table listing all the IP addresses to whom we've recently
+ * sent traffic, in the last FW_UDP_WINDOW seconds.  We don't consider ports,
+ * only IPs.
+ */
+
+#define FW_UDP_WINDOW			120		/* 2 minutes, in most firewalls */
+
+static GHashTable *outgoing_udp = NULL;		/* Maps "IP" => "ip_record" */
+
+struct ip_record {
+	guint32 ip;					/* The IP address to which we sent data */
+	gpointer timeout_ev;		/* The expiration time for the fw breach */
+};
 
 /***
  *** External connection status management structures.
@@ -91,6 +109,66 @@ static guint32 outgoing_connected = 0;	/* Successful connections in period */
 static gpointer outgoing_ev = NULL;		/* Callout queue timer */
 
 static void inet_set_is_connected(gboolean val);
+
+/**
+ * Create a new ip_record structure.
+ */
+static struct ip_record *
+ip_record_make(guint32 ip)
+{
+	struct ip_record *ipr;
+
+	ipr = walloc(sizeof(*ipr));
+
+	ipr->ip = ip;
+	ipr->timeout_ev = NULL;
+
+	return ipr;
+}
+
+/**
+ * Free ip_record structure.
+ */
+static void
+ip_record_free(struct ip_record *ipr)
+{
+	if (ipr->timeout_ev)
+		cq_cancel(callout_queue, ipr->timeout_ev);
+	wfree(ipr, sizeof(*ipr));
+}
+
+/**
+ * Free ip_record structure and remove it from the `outgoing_udp' table.
+ */
+static void
+ip_record_free_remove(struct ip_record *ipr)
+{
+	g_hash_table_remove(outgoing_udp, &ipr->ip);
+	ip_record_free(ipr);
+}
+
+/**
+ * Touch ip_record when we send a new datagram to that IP.
+ */
+static void
+ip_record_touch(struct ip_record *ipr)
+{
+	g_assert(ipr->timeout_ev != NULL);
+
+	cq_resched(callout_queue, ipr->timeout_ev, FW_UDP_WINDOW * 1000);
+}
+
+/**
+ * Callout queue callback, invoked when it's time to destroy the record.
+ */
+static void
+ip_record_destroy(cqueue_t *cq, gpointer obj)
+{
+	struct ip_record *ipr = (struct ip_record *) obj;
+
+	ipr->timeout_ev = NULL;			/* The event that fired */
+	ip_record_free_remove(ipr);
+}
 
 /**
  * Returns whether ip is that of the local machine of in the same local
@@ -142,6 +220,11 @@ void
 inet_udp_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, TRUE);
+
+	if (incoming_udp_ev) {
+		cq_cancel(callout_queue, incoming_udp_ev);
+		incoming_udp_ev = NULL;
+	}
 }
 
 /**
@@ -158,6 +241,22 @@ got_no_connection(cqueue_t *cq, gpointer obj)
 	incoming_ev = NULL;
 	inet_firewalled();
 }
+
+/**
+ * This is a callback invoked when no unsolicited UDP datagrams have been
+ * received for some amount of time.  We conclude we became firewalled.
+ */
+static void
+got_no_udp_unsolicited(cqueue_t *cq, gpointer obj)
+{
+	if (dbg)
+		printf("FW: got no unsolicited UDP datagram to port %u for %d secs\n",
+			listen_port, FW_INCOMING_WINDOW);
+
+	incoming_udp_ev = NULL;
+	inet_udp_firewalled();
+}
+
 
 /**
  * Called when we have determined we are definitely not TCP-firewalled.
@@ -228,6 +327,30 @@ inet_got_incoming(guint32 ip)
 }
 
 /**
+ * Called when we got an incoming unsolicited datagram from another
+ * computer at `ip', i.e. the datagram was sent directly to our listening
+ * socket port, and not to a masqueraded port on the firewall opened because
+ * we previously sent out an UDP datagram to a host and got its reply.
+ */
+static void
+inet_udp_got_unsolicited_incoming(guint32 ip)
+{
+	/*
+	 * If we already know we're not firewalled, we have already scheduled
+	 * a callback in the future.  We need to reschedule it, since we just
+	 * got an incoming connection.
+	 */
+
+	if (!is_udp_firewalled) {
+		g_assert(incoming_udp_ev);
+		cq_resched(callout_queue, incoming_udp_ev, FW_INCOMING_WINDOW * 1000);
+		return;
+	}
+
+	inet_udp_not_firewalled();
+}
+
+/**
  * Called when we got an incoming datagram from another computer at `ip'.
  */
 void
@@ -239,26 +362,41 @@ inet_udp_got_incoming(guint32 ip)
 		outgoing_connected++;				/* In case we have a timer set */
 		inet_set_is_connected(TRUE);
 	}
-}
-
-/**
- * Called when we got an incoming unsolicited datagram from another
- * computer at `ip', i.e. the datagram was sent directly to our listening
- * socket port, and not to a masqueraded port on the firewall opened because
- * we previously sent out an UDP datagram to a host and got its reply.
- */
-void
-inet_udp_got_unsolicited_incoming(guint32 ip)
-{
-	inet_udp_got_incoming(ip);
 
 	/*
 	 * Make sure we're not connecting locally.
-	 * If we're not, then we're not firewalled.
+	 * If we're not, then we're not firewalled, unless we recently sent
+	 * some data to that IP address.
 	 */
 
-	if (!is_local_ip(ip))
-		inet_udp_not_firewalled();
+	if (!is_local_ip(ip)) {
+		gpointer ipr;
+
+		ipr = g_hash_table_lookup(outgoing_udp, &ip);
+		if (ipr == NULL)
+			inet_udp_got_unsolicited_incoming(ip);
+	}
+}
+
+/**
+ * Record that we sent an UDP datagram to some host, thereby opening a
+ * breach on the firewall for the UDP reply.
+ */
+void
+inet_udp_record_sent(guint32 ip)
+{
+	struct ip_record *ipr;
+
+	ipr = g_hash_table_lookup(outgoing_udp, &ip);
+
+	if (ipr != NULL)
+		ip_record_touch(ipr);
+	else {
+		ipr = ip_record_make(ip);
+		g_hash_table_insert(outgoing_udp, &ipr->ip, ipr);
+		ipr->timeout_ev = cq_insert(callout_queue, FW_UDP_WINDOW * 1000,
+			ip_record_destroy, ipr);
+	}
 }
 
 /**
@@ -412,6 +550,43 @@ inet_init(void)
 		incoming_ev = cq_insert(
 			callout_queue, FW_INCOMING_WINDOW * 1000,
 			got_no_connection, NULL);
+
+	/*
+	 * If we persisted "is_udp_firewalled" to FALSE, idem.
+	 */
+
+	if (!is_udp_firewalled)
+		incoming_udp_ev = cq_insert(
+			callout_queue, FW_INCOMING_WINDOW * 1000,
+			got_no_udp_unsolicited, NULL);
+
+	/*
+	 * Initialize the table used to record outgoing UDP traffic.
+	 */
+
+	outgoing_udp = g_hash_table_new(g_int_hash, g_int_equal);
+}
+
+/**
+ * Hash table iteration callback to free the "ip_record" structure.
+ */
+static void
+free_ip_record(gpointer key, gpointer value, gpointer udata)
+{
+	struct ip_record *ipr = (struct ip_record *) value;
+
+	g_assert(&ipr->ip == key);
+	ip_record_free(ipr);
+}
+
+/*
+ * Shutdown cleanup.
+ */
+void
+inet_close(void)
+{
+	g_hash_table_foreach(outgoing_udp, free_ip_record, NULL);
+	g_hash_table_destroy(outgoing_udp);
 }
 
 /* vi: set ts=4: */

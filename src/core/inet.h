@@ -35,6 +35,7 @@
  */
 
 void inet_init(void);
+void inet_close(void);
 
 void inet_firewalled(void);
 void inet_udp_firewalled(void);
@@ -43,7 +44,7 @@ gboolean inet_can_answer_ping(void);
 
 void inet_got_incoming(guint32 ip);
 void inet_udp_got_incoming(guint32 ip);
-void inet_udp_got_unsolicited_incoming(guint32 ip);
+void inet_udp_record_sent(guint32 ip);
 
 void inet_connection_attempted(guint32 ip);
 void inet_connection_succeeded(guint32 ip);
