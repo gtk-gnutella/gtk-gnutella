@@ -3,6 +3,9 @@ This is the stable 0.93.x branch.
 # since last version
 - (2004.04.15 - Jeroen)
  * Added cache.kicks-ass.net:8000 to the list of fallback caches
+ * When looking for a more up to date version, only look for newer releases
+   of the current version. And of course still look for newer released versions
+   This will avoid 0.93.4u to report 'There is a newer version from CVS:0.94u'
 
 - (2004.04.14 - Jeroen)
  * Don't write socket information in the socket structure if we just
