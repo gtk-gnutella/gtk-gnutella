@@ -196,7 +196,7 @@ static const gchar *str_str(gconstpointer v)
  *
  * Hash `len' bytes (multiple of 4) starting from `key'.
  */
-static guint binary_hash(const guchar *key, gint len)
+guint binary_hash(const guchar *key, gint len)
 {
 	const gchar *buf = (const gchar *) key;
 	gint i;
