@@ -449,7 +449,7 @@ glade_files:
 	$(MAKE) -C src glade_files
 
 properties:
-	$(MAKE) -C src gui_property.c gnet_property.c
+	$(MAKE) -C src properties
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -88,4 +88,4 @@ glade_files:
 	$(MAKE) -C src glade_files
 
 properties:
-	$(MAKE) -C src gui_property.c gnet_property.c
+	$(MAKE) -C src properties
