@@ -43,7 +43,7 @@ RCSID("$Id$");
 #define MIN_SPARSE_RATIO	1		/* At most 1% of slots used */
 #define MAX_CONFLICT_RATIO	20		/* At most 20% of insertion conflicts */
 #define LOCAL_INFINITY		2		/* We're one hop away, so 2 is infinity */
-#define MIN_TABLE_BITS		16		/* 64 KB */
+#define MIN_TABLE_BITS		14		/* 16 KB */
 #define MAX_TABLE_BITS		21		/* 2 MB */
 
 #define MAX_TABLE_SIZE		(1 << MAX_TABLE_BITS)
