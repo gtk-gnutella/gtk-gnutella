@@ -60,6 +60,7 @@ RCSID("$Id$");
 #define FW_GRACE_INTERVAL		3600	/* Every hour, new grace period */
 #define FW_PERIODIC_GRACE		120		/* We send pongs for 2 minutes */
 #define FW_INCOMING_WINDOW		3600	/* Incoming monitoring window */
+#define FW_SOLICITED_WINDOW		3600	/* Solicited UDP monitoring window */
 
 static time_t fw_time = 0;				/* When we last became firewalled */
 
@@ -75,6 +76,7 @@ static time_t fw_time = 0;				/* When we last became firewalled */
 
 static gpointer incoming_ev = NULL;			/* Callout queue timer */
 static gpointer incoming_udp_ev = NULL;		/* Idem */
+static gpointer solicited_udp_ev = NULL;	/* Idem */
 
 /*
  * Unfortunately, to accurately detect true unsolicited UDP traffic, we have
@@ -228,6 +230,40 @@ inet_udp_firewalled(void)
 }
 
 /**
+ * This is a callback invoked when no solicited UDP has been received
+ * for some amount of time.  We conclude we're no longer able to get
+ * solicited UDP traffic.
+ */
+static void
+got_no_udp_solicited(cqueue_t *cq, gpointer obj)
+{
+	if (dbg)
+		printf("FW: got no solicited UDP traffic for %d secs\n",
+			FW_SOLICITED_WINDOW);
+
+	solicited_udp_ev = NULL;
+	gnet_prop_set_boolean_val(PROP_RECV_SOLICITED_UDP, FALSE);
+}
+
+/**
+ * Called whenever we receive solicited UDP traffic.
+ */
+static void
+inet_udp_got_solicited(void)
+{
+	gnet_prop_set_boolean_val(PROP_RECV_SOLICITED_UDP, TRUE);
+
+	if (solicited_udp_ev == NULL) {
+		cq_insert(callout_queue,
+			FW_SOLICITED_WINDOW * 1000, got_no_udp_solicited, NULL);
+		if (dbg)
+			printf("FW: got solicited UDP traffic\n");
+	} else
+		cq_resched(callout_queue,
+			solicited_udp_ev, FW_SOLICITED_WINDOW * 1000);
+}
+
+/**
  * This is a callback invoked when no incoming connection has been received
  * for some amount of time.  We conclude we became firewalled.
  */
@@ -333,7 +369,7 @@ inet_got_incoming(guint32 ip)
  * we previously sent out an UDP datagram to a host and got its reply.
  */
 static void
-inet_udp_got_unsolicited_incoming(guint32 ip)
+inet_udp_got_unsolicited_incoming(void)
 {
 	/*
 	 * If we already know we're not firewalled, we have already scheduled
@@ -379,8 +415,9 @@ inet_udp_got_incoming(guint32 ip)
 		gpointer ipr;
 
 		ipr = g_hash_table_lookup(outgoing_udp, &ip);
+		inet_udp_got_solicited();
 		if (ipr == NULL)
-			inet_udp_got_unsolicited_incoming(ip);
+			inet_udp_got_unsolicited_incoming();
 	}
 }
 
@@ -567,6 +604,15 @@ inet_init(void)
 			got_no_udp_unsolicited, NULL);
 
 	/*
+	 * If we persisted "recv_solicited_udp" to TRUE, idem.
+	 */
+
+	if (recv_solicited_udp)
+		solicited_udp_ev = cq_insert(
+			callout_queue, FW_SOLICITED_WINDOW * 1000,
+			got_no_udp_solicited, NULL);
+
+	/*
 	 * Initialize the table used to record outgoing UDP traffic.
 	 */
 
@@ -593,6 +639,13 @@ inet_close(void)
 {
 	g_hash_table_foreach(outgoing_udp, free_ip_record, NULL);
 	g_hash_table_destroy(outgoing_udp);
+
+	if (incoming_ev)
+		cq_cancel(callout_queue, incoming_ev);
+	if (incoming_udp_ev)
+		cq_cancel(callout_queue, incoming_udp_ev);
+	if (solicited_udp_ev)
+		cq_cancel(callout_queue, solicited_udp_ev);
 }
 
 /* vi: set ts=4: */
