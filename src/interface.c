@@ -298,6 +298,9 @@ GtkWidget *radiobutton_filter_state_download_dont;
 GtkWidget *radiobutton_filter_state_download_ignore;
 GtkWidget *spinbutton_filter_size_max;
 GtkWidget *spinbutton_filter_size_min;
+GtkWidget *dlg_about;
+GtkWidget *button_about_close;
+GtkWidget *label_about_title;
 
 /* End of global widgets */
 
@@ -324,6 +327,7 @@ create_main_window (void)
   GtkWidget *menu_gnet_stats_visible;
   GtkWidget *menu_gnet_stats_visible_menu;
   GtkAccelGroup *menu_gnet_stats_visible_menu_accels;
+  GtkWidget *menu_about;
   GtkWidget *toolbar1;
   GtkWidget *button_quit;
   GtkWidget *label117;
@@ -835,6 +839,17 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (menu_gnet_stats_visible_menu), menu_bws_gout_visible);
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_bws_gout_visible), TRUE);
   gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_bws_gout_visible), TRUE);
+
+  menu_about = gtk_menu_item_new_with_label ("");
+  tmp_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (menu_about)->child),
+                                   "_About");
+  gtk_widget_add_accelerator (menu_about, "activate_item", accel_group,
+                              tmp_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_ref (menu_about);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_about", menu_about,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (menu_about);
+  gtk_container_add (GTK_CONTAINER (menubar1), menu_about);
 
   hb_toolbar = gtk_handle_box_new ();
   gtk_widget_ref (hb_toolbar);
@@ -4240,6 +4255,9 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (menu_bws_gout_visible), "activate",
                       GTK_SIGNAL_FUNC (on_menu_bws_gout_visible_activate),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (menu_about), "activate",
+                      GTK_SIGNAL_FUNC (on_menu_about_activate),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_quit), "clicked",
                       GTK_SIGNAL_FUNC (on_button_quit_clicked),
                       NULL);
@@ -7133,7 +7151,7 @@ create_dlg_filters (void)
   gtk_widget_show (checkbutton_filter_state_soft);
   gtk_box_pack_start (GTK_BOX (vbox74), checkbutton_filter_state_soft, FALSE, FALSE, 0);
 
-  frame42 = gtk_frame_new ("Condition: If file size matches");
+  frame42 = gtk_frame_new ("Condition: If current filter result properties match");
   gtk_widget_ref (frame42);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "frame42", frame42,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -7578,15 +7596,33 @@ create_shutdown_window (void)
 GtkWidget*
 create_dlg_about (void)
 {
-  GtkWidget *dlg_about;
   GtkWidget *vbox67;
-  GtkWidget *pixmap1;
+  GtkWidget *frame44;
   GtkWidget *hseparator7;
-  GtkWidget *label228;
+  GtkWidget *table28;
+  GtkWidget *label265;
+  GtkWidget *label264;
+  GtkWidget *label266;
+  GtkWidget *label267;
+  GtkWidget *frame45;
+  GtkWidget *table29;
+  GtkWidget *label269;
+  GtkWidget *label270;
+  GtkWidget *label271;
+  GtkWidget *label272;
+  GtkWidget *label273;
+  GtkWidget *label274;
+  GtkWidget *label268;
+  GtkWidget *label275;
+  GtkWidget *frame46;
+  GtkWidget *scrolledwindow18;
+  GtkWidget *text1;
+  GtkWidget *hbox137;
 
   dlg_about = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_object_set_data (GTK_OBJECT (dlg_about), "dlg_about", dlg_about);
   gtk_window_set_title (GTK_WINDOW (dlg_about), "About gtk-gnutella");
+  gtk_window_set_policy (GTK_WINDOW (dlg_about), FALSE, FALSE, FALSE);
 
   vbox67 = gtk_vbox_new (FALSE, 0);
   gtk_widget_ref (vbox67);
@@ -7595,12 +7631,21 @@ create_dlg_about (void)
   gtk_widget_show (vbox67);
   gtk_container_add (GTK_CONTAINER (dlg_about), vbox67);
 
-  pixmap1 = create_pixmap (dlg_about, NULL);
-  gtk_widget_ref (pixmap1);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "pixmap1", pixmap1,
+  frame44 = gtk_frame_new (NULL);
+  gtk_widget_ref (frame44);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "frame44", frame44,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (pixmap1);
-  gtk_box_pack_start (GTK_BOX (vbox67), pixmap1, TRUE, TRUE, 0);
+  gtk_widget_show (frame44);
+  gtk_box_pack_start (GTK_BOX (vbox67), frame44, FALSE, FALSE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame44), 10);
+
+  label_about_title = gtk_label_new ("[name and version]");
+  gtk_widget_ref (label_about_title);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label_about_title", label_about_title,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_about_title);
+  gtk_container_add (GTK_CONTAINER (frame44), label_about_title);
+  gtk_misc_set_padding (GTK_MISC (label_about_title), 10, 10);
 
   hseparator7 = gtk_hseparator_new ();
   gtk_widget_ref (hseparator7);
@@ -7609,12 +7654,203 @@ create_dlg_about (void)
   gtk_widget_show (hseparator7);
   gtk_box_pack_start (GTK_BOX (vbox67), hseparator7, FALSE, TRUE, 0);
 
-  label228 = gtk_label_new ("label228");
-  gtk_widget_ref (label228);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label228", label228,
+  table28 = gtk_table_new (2, 2, FALSE);
+  gtk_widget_ref (table28);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "table28", table28,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label228);
-  gtk_box_pack_start (GTK_BOX (vbox67), label228, FALSE, FALSE, 0);
+  gtk_widget_show (table28);
+  gtk_box_pack_start (GTK_BOX (vbox67), table28, TRUE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (table28), 4);
+  gtk_table_set_row_spacings (GTK_TABLE (table28), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table28), 4);
+
+  label265 = gtk_label_new ("Yann Grossel <olrick@users.sourceforge.net>");
+  gtk_widget_ref (label265);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label265", label265,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label265);
+  gtk_table_attach (GTK_TABLE (table28), label265, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label265), 0, 0.5);
+
+  label264 = gtk_label_new ("Original author");
+  gtk_widget_ref (label264);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label264", label264,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label264);
+  gtk_table_attach (GTK_TABLE (table28), label264, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label264), 0, 0.5);
+
+  label266 = gtk_label_new ("Current maintainer");
+  gtk_widget_ref (label266);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label266", label266,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label266);
+  gtk_table_attach (GTK_TABLE (table28), label266, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label266), 0, 0.5);
+
+  label267 = gtk_label_new ("");
+  gtk_label_parse_uline (GTK_LABEL (label267),
+                         "Raphael Manfredi <Raphael__Manfredi@pobox.com>");
+  gtk_widget_ref (label267);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label267);
+  gtk_table_attach (GTK_TABLE (table28), label267, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label267), 0, 0.5);
+
+  frame45 = gtk_frame_new ("Current roles");
+  gtk_widget_ref (frame45);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "frame45", frame45,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame45);
+  gtk_box_pack_start (GTK_BOX (vbox67), frame45, TRUE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame45), 3);
+
+  table29 = gtk_table_new (4, 2, FALSE);
+  gtk_widget_ref (table29);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "table29", table29,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table29);
+  gtk_container_add (GTK_CONTAINER (frame45), table29);
+  gtk_container_set_border_width (GTK_CONTAINER (table29), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table29), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table29), 4);
+
+  label269 = gtk_label_new ("Chief architect");
+  gtk_widget_ref (label269);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label269", label269,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label269);
+  gtk_table_attach (GTK_TABLE (table29), label269, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label269), 0, 0.5);
+
+  label270 = gtk_label_new ("Core development");
+  gtk_widget_ref (label270);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label270", label270,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label270);
+  gtk_table_attach (GTK_TABLE (table29), label270, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label270), 0, 0.5);
+
+  label271 = gtk_label_new ("GUI development");
+  gtk_widget_ref (label271);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label271", label271,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label271);
+  gtk_table_attach (GTK_TABLE (table29), label271, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label271), 0, 0.5);
+
+  label272 = gtk_label_new ("Richard Eckart");
+  gtk_widget_ref (label272);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label272", label272,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label272);
+  gtk_table_attach (GTK_TABLE (table29), label272, 1, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label272), 0, 0.5);
+
+  label273 = gtk_label_new ("Raphael Manfredi");
+  gtk_widget_ref (label273);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label273);
+  gtk_table_attach (GTK_TABLE (table29), label273, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label273), 0, 0.5);
+
+  label274 = gtk_label_new ("Raphael Manfredi");
+  gtk_widget_ref (label274);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label274", label274,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label274);
+  gtk_table_attach (GTK_TABLE (table29), label274, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label274), 0, 0.5);
+
+  label268 = gtk_label_new ("Project management");
+  gtk_widget_ref (label268);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label268", label268,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label268);
+  gtk_table_attach (GTK_TABLE (table29), label268, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label268), 0, 0.5);
+
+  label275 = gtk_label_new ("Raphael Manfredi");
+  gtk_widget_ref (label275);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label275", label275,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label275);
+  gtk_table_attach (GTK_TABLE (table29), label275, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label275), 0, 0.5);
+
+  frame46 = gtk_frame_new ("Contributors:");
+  gtk_widget_ref (frame46);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "frame46", frame46,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame46);
+  gtk_box_pack_start (GTK_BOX (vbox67), frame46, TRUE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (frame46), 3);
+
+  scrolledwindow18 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_ref (scrolledwindow18);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "scrolledwindow18", scrolledwindow18,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (scrolledwindow18);
+  gtk_container_add (GTK_CONTAINER (frame46), scrolledwindow18);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow18), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
+
+  text1 = gtk_text_new (NULL, NULL);
+  gtk_widget_ref (text1);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "text1", text1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (text1);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow18), text1);
+  gtk_widget_set_usize (text1, 146, 126);
+  gtk_text_insert (GTK_TEXT (text1), NULL, NULL, NULL,
+                   "Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphael Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>", -1);
+
+  hbox137 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox137);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "hbox137", hbox137,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox137);
+  gtk_box_pack_start (GTK_BOX (vbox67), hbox137, TRUE, TRUE, 0);
+
+  button_about_close = gtk_button_new_with_label ("Close");
+  gtk_widget_ref (button_about_close);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_about), "button_about_close", button_about_close,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_about_close);
+  gtk_box_pack_start (GTK_BOX (hbox137), button_about_close, TRUE, TRUE, 0);
+  GTK_WIDGET_SET_FLAGS (button_about_close, GTK_CAN_DEFAULT);
+
+  gtk_signal_connect (GTK_OBJECT (dlg_about), "delete_event",
+                      GTK_SIGNAL_FUNC (on_dlg_about_delete_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_about_close), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_about_close_clicked),
+                      NULL);
 
   return dlg_about;
 }

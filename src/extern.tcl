@@ -308,6 +308,10 @@ set w_main_list {
     radiobutton_filter_state_download_ignore
     spinbutton_filter_size_max
     spinbutton_filter_size_min
+
+    dlg_about
+    button_about_close
+    label_about_title
 }
 
 # interface.h ----------------------------------------------------------------------------------------

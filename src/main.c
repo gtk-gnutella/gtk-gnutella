@@ -285,8 +285,9 @@ gint main(gint argc, gchar ** argv)
 	add_pixmap_directory(PACKAGE_DATA_DIR "/pixmaps");
 	add_pixmap_directory(PACKAGE_SOURCE_DIR "/pixmaps");
 
-	main_window = create_main_window();
-	shutdown_window = create_shutdown_window();
+    main_window = create_main_window();
+    shutdown_window = create_shutdown_window();
+    dlg_about = create_dlg_about();
 
 	/* Our inits */
 

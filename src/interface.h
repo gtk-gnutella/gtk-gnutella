@@ -294,6 +294,9 @@ extern GtkWidget *radiobutton_filter_state_download_dont;
 extern GtkWidget *radiobutton_filter_state_download_ignore;
 extern GtkWidget *spinbutton_filter_size_max;
 extern GtkWidget *spinbutton_filter_size_min;
+extern GtkWidget *dlg_about;
+extern GtkWidget *button_about_close;
+extern GtkWidget *label_about_title;
 
 /* End of global widgets */
 
