@@ -185,9 +185,9 @@ static bgret_t tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 	
 	if (r < BLOCKSIZE) {
 		static gchar digest_b32[39 + 1];
+		guchar cur_hash[TIGERSIZE];
 		
 		printf("[tigertree] Done %d\n", r);
-		guchar cur_hash[TIGERSIZE];
 
 		tt_digest(ctx->tt_ctx, cur_hash);
 	
@@ -197,7 +197,7 @@ static bgret_t tigertree_step_compute(gpointer h, gpointer u, gint ticks)
 			printf("%.2X", (guchar) cur_hash[i]);
 	  	}
 
-		printf("  TT blocks processed: %d, index: %d\n",
+		printf("  TT blocks processed: %" PRId64 ", index: %d\n",
 			ctx->tt_ctx->count, ctx->tt_ctx->index);
 
 		hashtree_finish(ctx->tt_node);
