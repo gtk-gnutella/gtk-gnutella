@@ -116,6 +116,7 @@ extern gint win_x;
 extern gint win_y;
 extern gint win_w;
 extern gint win_h;
+extern gint downloads_divider_pos;
 
 extern gchar *save_file_path;
 extern gchar *move_file_path;

@@ -23,29 +23,50 @@
 #include "search_stats.h"
 #include "upload_stats.h"
 
-#define CONFIG_SET_BOOLEAN(v)                        \
+#define CONFIG_SET_BOOL(v)                           \
     case k_##v:                                      \
         v = (gboolean) ! g_strcasecmp(value, "true");\
         return;
 
-#define CONFIG_SET_BOOLEAN_COMPATIBLE(v,w)           \
+#define CONFIG_SET_BOOL_COMPAT(v,w)                  \
     case k_##w:                                      \
         v = (gboolean) ! g_strcasecmp(value, "true");\
         return;
 
-#define CONFIG_SET_STRING(v)                         \
+#define CONFIG_SET_STR(v)                            \
     case k_##v:                                      \
         v = g_strdup(value);                         \
         return;
 
-#define CONFIG_SET_STRING_COMPATIBLE(v,w)            \
+#define CONFIG_SET_STR_COMPAT(v,w)                   \
     case k_##w:                                      \
         v = g_strdup(value);                         \
         return;
 
-#define CONFIG_WRITE_BOOLEAN(v)\
+#define CONFIG_SET_NUM(v,min,max)                    \
+    case k_##v:                                      \
+		if (i >= min && i <= max) v = i;             \
+		return;
+
+#define CONFIG_WRITE_BOOL(v)                         \
   	fprintf(config, "%s = %s\n", keywords[k_##v],    \
 			config_boolean(v));
+
+#define CONFIG_WRITE_UINT(v)                         \
+    fprintf(config, "%s = %u\n", keywords[k_##v], v);
+
+#define CONFIG_WRITE_INT(v)                          \
+    fprintf(config, "%s = %d\n", keywords[k_##v], v);
+
+#define CONFIG_WRITE_STR(v)                          \
+    fprintf(config, "%s = \"%s\"\n",                 \
+            keywords[k_##v], v);
+
+#define CONFIG_COMMENT(v)                            \
+    fprintf(config, "# %s\n", v);
+
+#define CONFIG_SECTION(v)                            \
+    fprintf(config, "\n\n#\n# %s\n#\n\n", v);
 
 static gchar *config_file = "config";
 static gchar *host_file = "hosts";
@@ -137,6 +158,7 @@ gint enable_err_log = 0;		// enable writing to log file for errors
 gint search_strict_and = 0;		// search filter for strict AND of results
 gint search_pick_all = 1;		// enable picking all files alike in search
 gint max_uploads_ip = 2;		// maximum uploads per IP
+gint downloads_divider_pos = 160;
 
 time_t tab_update_time = 5;
 
@@ -257,6 +279,7 @@ typedef enum {
     k_progressbar_bps_out_visible,
     k_progressbar_bps_in_avg,
     k_progressbar_bps_out_avg,
+    k_downloads_divider_pos,
 	k_end
 } keyword_t;
 
@@ -381,6 +404,7 @@ static gchar *keywords[k_end] = {
     "progressbar_bps_out_visible",
     "progressbar_bps_in_avg",
     "progressbar_bps_out_avg",
+    "downloads_divider_pos"
 };
 
 static gchar cfg_tmp[4096];
@@ -620,70 +644,67 @@ void config_set_param(keyword_t keyword, gchar *value)
 	guint32 *a;
 
 	switch (keyword) {
-    CONFIG_SET_BOOLEAN(monitor_enabled)
-
-	case k_monitor_max_items:
-		if (i > 0 && i < 512) monitor_max_items = i;
-		return;
-
-    CONFIG_SET_BOOLEAN(clear_uploads)
-    CONFIG_SET_BOOLEAN(clear_downloads)
-    CONFIG_SET_BOOLEAN(download_delete_aborted)
-
-	case k_up_connections:
-		if (i >= 0 && i < 512) up_connections = i;
-		return;
-
-	case k_max_downloads:
-		if (i > 0 && i < 512) max_downloads = i;
-		return;
-
-	case k_max_host_downloads:
-		if (i > 0 && i < 512) max_host_downloads = i;
-		return;
-
-	case k_max_uploads:
-		if (i >= 0 && i < 512) max_uploads = i;
-		return;
-
-	case k_minimum_speed:
-		minimum_speed = atol(value);
-		return;
-
-	case k_listen_port:
-		listen_port = atoi(value);
-		return;
-
-	case k_hard_ttl_limit:
-		if (i >= 5 && i < 255) hard_ttl_limit = i;
-		return;
-
-	case k_max_ttl:
-		if (i > 0 && i < 255) max_ttl = i;
-		return;
-
-	case k_my_ttl:
-		if (i > 0 && i < 255) my_ttl = i;
-		return;
-
-	case k_search_max_items:
-		if (i >= -1 && i < 256) search_max_items = i;
-		return;
-
-	case k_search_max_results:
-		if (i > 0) search_max_results = i;
-		return;
-
-	case k_connection_speed:
-		if (i > 0 && i < 65535) connection_speed = i;
-		return;
+        CONFIG_SET_BOOL(bws_gin_enabled)
+        CONFIG_SET_BOOL(bws_gout_enabled)
+        CONFIG_SET_BOOL(bws_in_enabled)
+        CONFIG_SET_BOOL(bws_out_enabled)
+        CONFIG_SET_BOOL(clear_downloads)
+        CONFIG_SET_BOOL(clear_uploads)
+        CONFIG_SET_BOOL(download_delete_aborted)
+        CONFIG_SET_BOOL(force_local_ip)
+        CONFIG_SET_BOOL(monitor_enabled)
+        CONFIG_SET_BOOL(progressbar_bws_gin_avg)
+        CONFIG_SET_BOOL(progressbar_bws_gin_visible)
+        CONFIG_SET_BOOL(progressbar_bws_gout_avg)
+        CONFIG_SET_BOOL(progressbar_bws_gout_visible)
+        CONFIG_SET_BOOL(progressbar_bws_in_avg)
+        CONFIG_SET_BOOL(progressbar_bws_in_visible)
+        CONFIG_SET_BOOL(progressbar_bws_out_avg)
+        CONFIG_SET_BOOL(progressbar_bws_out_visible)
+        CONFIG_SET_BOOL(progressbar_connections_visible)
+        CONFIG_SET_BOOL(progressbar_downloads_visible)
+        CONFIG_SET_BOOL(progressbar_uploads_visible)
+        CONFIG_SET_BOOL(proxy_auth)
+        CONFIG_SET_BOOL(queue_regex_case)
+        CONFIG_SET_BOOL(search_remove_downloaded)
+        CONFIG_SET_BOOL(search_results_show_tabs)
+        CONFIG_SET_BOOL(statusbar_visible)
+        CONFIG_SET_BOOL(toolbar_visible)
+        CONFIG_SET_BOOL(use_netmasks)
+        CONFIG_SET_BOOL_COMPAT(progressbar_bws_in_avg,progressbar_bps_in_avg)
+        CONFIG_SET_BOOL_COMPAT(progressbar_bws_in_visible,progressbar_bps_in_visible)
+        CONFIG_SET_BOOL_COMPAT(progressbar_bws_out_avg,progressbar_bps_out_avg)
+        CONFIG_SET_BOOL_COMPAT(progressbar_bws_out_visible,progressbar_bps_out_visible)
+        CONFIG_SET_NUM(connection_speed,               0,    2000)
+        CONFIG_SET_NUM(download_connected_timeout,     1,  100000)
+        CONFIG_SET_NUM(download_connecting_timeout,    1,  100000)
+        CONFIG_SET_NUM(download_push_sent_timeout,     1,  100000)
+        CONFIG_SET_NUM(download_retry_timeout_max,    15,  100000)
+        CONFIG_SET_NUM(download_retry_timeout_min,    15,  100000)
+        CONFIG_SET_NUM(hard_ttl_limit,                 5,     254)
+        CONFIG_SET_NUM(listen_port,                    0,   65535)
+        CONFIG_SET_NUM(max_downloads,                  1,     511)
+        CONFIG_SET_NUM(max_host_downloads,             1,     511)
+        CONFIG_SET_NUM(max_ttl,                        1,     254)
+        CONFIG_SET_NUM(max_uploads,                    0,     511)
+        CONFIG_SET_NUM(minimum_speed,                  0,    2000)
+        CONFIG_SET_NUM(monitor_max_items,              1,     511)
+        CONFIG_SET_NUM(my_ttl,                         1,     254)
+        CONFIG_SET_NUM(node_connected_timeout,         1,  100000)
+        CONFIG_SET_NUM(node_connecting_timeout,        1,  100000)
+        CONFIG_SET_NUM(node_sendqueue_size,         4096, 1048576)
+        CONFIG_SET_NUM(node_tx_flowc_timeout,          1,  100000)
+        CONFIG_SET_NUM(search_max_items,              -1,     255)
+        CONFIG_SET_NUM(search_max_results,             1,    1000)
+        CONFIG_SET_NUM(up_connections,                 1,     511)
+        CONFIG_SET_STR(socks_pass)
+        CONFIG_SET_STR(socks_user)
+        CONFIG_SET_STR_COMPAT(socks_pass, socksv5_pass)
+        CONFIG_SET_STR_COMPAT(socks_user, socksv5_user)
+        CONFIG_SET_NUM(downloads_divider_pos,          0,    5000)
 
 	case k_local_ip:
 		local_ip = gchar_to_ip(value);
-		return;
-
-	case k_force_local_ip:
-		force_local_ip = (gboolean) ! g_strcasecmp(value, "true");
 		return;
 
 	case k_guid:
@@ -708,41 +729,7 @@ void config_set_param(keyword_t keyword, gchar *value)
 		shared_dirs_parse(value);
 		return;
 
-	case k_node_sendqueue_size:
-		if (i > 4096 && i < 1048576) node_sendqueue_size = i;
-		return;
-
-	case k_node_tx_flowc_timeout:
-		node_tx_flowc_timeout = i;
-		return;
-
-	case k_node_connecting_timeout:
-		if (i > 1 && i < 3600) node_connecting_timeout = i;
-		return;
-
-	case k_node_connected_timeout:
-		if (i > 1 && i < 3600) node_connected_timeout = i;
-		return;
-
-	case k_download_connecting_timeout:
-		if (i > 1 && i < 3600) download_connecting_timeout = i;
-		return;
-
-	case k_download_push_sent_timeout:
-		if (i > 1 && i < 3600) download_push_sent_timeout = i;
-		return;
-
-	case k_download_connected_timeout:
-		if (i > 1 && i < 3600) download_connected_timeout = i;
-		return;
-
-	case k_download_retry_timeout_min:
-		if (i >= 0) download_retry_timeout_min = i;
-		return;
-
-	case k_download_retry_timeout_max:
-		if (i >= 0) download_retry_timeout_max = i;
-		return;
+    
 
 	case k_download_retry_timeout_delay:
 		if (i >= 0) download_retry_timeout_delay = i;
@@ -796,25 +783,11 @@ void config_set_param(keyword_t keyword, gchar *value)
 		if (i >= 0 && i < BS_BW_MAX) bandwidth.ginput = i;
 		return;
 
-	case k_search_queries_forward_size:
-		if (i > 64 && i < 65535) search_queries_forward_size = i;
-		return;
-
-	case k_search_queries_kick_size:
-		if (i > 512 && i < 65535) search_queries_kick_size = i;
-		return;
-
-	case k_search_answers_forward_size:
-		if (i > 512 && i < 1048576) search_answers_forward_size = i;
-		return;
-
-	case k_search_answers_kick_size:
-		if (i > 512 && i < 1048576) search_answers_kick_size = i;
-		return;
-
-	case k_other_messages_kick_size:
-		if (i > 0 && i < 1048576) other_messages_kick_size = i;
-		return;
+    CONFIG_SET_NUM(search_queries_forward_size,65,65534)
+    CONFIG_SET_NUM(search_queries_kick_size,513,65534)
+    CONFIG_SET_NUM(search_answers_forward_size,513, 1048575)
+    CONFIG_SET_NUM(search_answers_kick_size,513, 1048575)
+    CONFIG_SET_NUM(other_messages_kick_size,513, 1048575)
 
 	case k_win_x:
 		win_x = i;
@@ -882,16 +855,11 @@ void config_set_param(keyword_t keyword, gchar *value)
 				ul_stats_col_widths[i] = a[i];
 		return;
 
-    CONFIG_SET_BOOLEAN(search_results_show_tabs)
-
 	case k_forced_local_ip:
 		forced_local_ip = gchar_to_ip(value);
 		return;
 
-	case k_hops_random_factor:
-		if (i >= 0 && i <= 3)
-			hops_random_factor = i;
-		return;
+    CONFIG_SET_NUM(hops_random_factor,0,3)
 
 	case k_send_pushes:
 		send_pushes = i ? 1 : 0;
@@ -909,23 +877,9 @@ void config_set_param(keyword_t keyword, gchar *value)
 		proxy_protocol = i;
 		return;
 
-    CONFIG_SET_STRING(proxy_ip)
-
-	case k_proxy_port:
-		proxy_port = i;
-		return;
-
-    CONFIG_SET_BOOLEAN(proxy_auth)
-
-    CONFIG_SET_STRING(socks_user)
-    CONFIG_SET_STRING_COMPATIBLE(socks_user, socksv5_user)
-
-    CONFIG_SET_STRING(socks_pass)
-    CONFIG_SET_STRING_COMPATIBLE(socks_pass, socksv5_pass)
-        
-	case k_max_connections:
-		if (i >= 0 && i < 512) max_connections = i;
-		return;
+    CONFIG_SET_STR(proxy_ip)
+    CONFIG_SET_NUM(proxy_port,0,65535)
+    CONFIG_SET_NUM(max_connections,0,511)
 
 	case k_search_reissue_timeout:
 		search_reissue_timeout = i;
@@ -943,10 +897,7 @@ void config_set_param(keyword_t keyword, gchar *value)
 		enable_err_log = i;
 		return;
 
-	case k_max_uploads_ip:
-		if (i >= 0 && i < 512)
-			max_uploads_ip = i;
-		return;
+    CONFIG_SET_NUM(max_uploads_ip,0,511)
 
 	case k_search_strict_and:
 		search_strict_and = i;
@@ -974,9 +925,7 @@ void config_set_param(keyword_t keyword, gchar *value)
 		if (min_dup_ratio > 100.0) min_dup_ratio = 100.0;
 		return;
 
-	case k_max_hosts_cached:
-		if (i >= 100) max_hosts_cached = i;
-		return;
+    CONFIG_SET_NUM(max_hosts_cached,100,100000)
 
 	case k_use_auto_download:
 		use_autodownload = i ? TRUE : FALSE;
@@ -986,49 +935,9 @@ void config_set_param(keyword_t keyword, gchar *value)
 		auto_download_file = g_strdup(value);
 		return;
 
-	case k_search_stats_enabled:
-		search_stats_enabled = (gboolean) ! g_strcasecmp(value, "true");
-		return;
-
-	case k_search_stats_delcoef:
-		if (i >= 0 && i <= 100)
-			search_stats_delcoef = i;
-		return;
-
-	case k_search_stats_update_interval:
-		if (i >= 0 && i <= 50000)
-			search_stats_update_interval = i;
-		return;
-
-    CONFIG_SET_BOOLEAN(toolbar_visible)
-    CONFIG_SET_BOOLEAN(statusbar_visible)
-    CONFIG_SET_BOOLEAN(progressbar_uploads_visible)
-    CONFIG_SET_BOOLEAN(progressbar_downloads_visible)
-    CONFIG_SET_BOOLEAN(progressbar_connections_visible)
-    CONFIG_SET_BOOLEAN(progressbar_bws_in_visible)
-    CONFIG_SET_BOOLEAN(progressbar_bws_out_visible)
-    CONFIG_SET_BOOLEAN(progressbar_bws_gin_visible)
-    CONFIG_SET_BOOLEAN(progressbar_bws_gout_visible)
-    CONFIG_SET_BOOLEAN(progressbar_bws_in_avg)
-    CONFIG_SET_BOOLEAN(progressbar_bws_out_avg)
-    CONFIG_SET_BOOLEAN(progressbar_bws_gin_avg)
-    CONFIG_SET_BOOLEAN(progressbar_bws_gout_avg)
-    CONFIG_SET_BOOLEAN_COMPATIBLE(progressbar_bws_in_visible,
-                                  progressbar_bps_in_visible)
-    CONFIG_SET_BOOLEAN_COMPATIBLE(progressbar_bws_out_visible,        
-                                  progressbar_bps_out_visible)
-    CONFIG_SET_BOOLEAN_COMPATIBLE(progressbar_bws_in_avg,
-                                  progressbar_bps_in_avg)
-    CONFIG_SET_BOOLEAN_COMPATIBLE(progressbar_bws_out_avg,
-                                  progressbar_bps_out_avg)
-    CONFIG_SET_BOOLEAN(use_netmasks)
-    CONFIG_SET_BOOLEAN(queue_regex_case)
-    CONFIG_SET_BOOLEAN(search_remove_downloaded)
-    CONFIG_SET_BOOLEAN(bws_in_enabled)
-    CONFIG_SET_BOOLEAN(bws_out_enabled)
-    CONFIG_SET_BOOLEAN(bws_gin_enabled)
-    CONFIG_SET_BOOLEAN(bws_gout_enabled)
-    
+    CONFIG_SET_BOOL(search_stats_enabled)
+    CONFIG_SET_NUM(search_stats_delcoef,0,100)
+    CONFIG_SET_NUM(search_stats_update_interval,0,50000)
     
  	case k_local_netmasks:
  		local_netmasks_string = g_strdup(value);
@@ -1203,70 +1112,45 @@ static void config_save(void)
 		"you may edit it if you're careful.\n");
 	fprintf(config, "# (only when the program is not running: "
 		"this file is saved on quit)\n#\n\n");
-	fprintf(config, "%s = %u\n", keywords[k_up_connections], up_connections);
-	fprintf(config, "\n");
-	fprintf(config, "%s = %u\n", keywords[k_max_connections], max_connections);
-	fprintf(config, "\n");
-	fprintf(config, "%s = %s\n", keywords[k_clear_uploads],
-			config_boolean(clear_uploads));
-	fprintf(config, "\n");
-	fprintf(config, "%s = %u\n", keywords[k_max_downloads], max_downloads);
-	fprintf(config, "\n");
-	fprintf(config, "%s = %u\n", keywords[k_max_host_downloads],
-			max_host_downloads);
-	fprintf(config, "\n");
-	fprintf(config, "%s = %u\n", keywords[k_max_uploads], max_uploads);
-	fprintf(config, "\n");
-	fprintf(config, "%s = %s\n", keywords[k_clear_downloads],
-			config_boolean(clear_downloads));
-   	fprintf(config, "%s = %s\n", keywords[k_download_delete_aborted],
-			config_boolean(download_delete_aborted));
-	fprintf(config, "\n");
-	fprintf(config, "%s = %u\n", keywords[k_minimum_speed], minimum_speed);
-	fprintf(config, "\n");
-	fprintf(config, "%s = %s\n", keywords[k_monitor_enabled],
-			config_boolean(monitor_enabled));
-	fprintf(config, "%s = %u\n", keywords[k_monitor_max_items],
-			monitor_max_items);
-	fprintf(config, "\n");
-	fprintf(config, "%s = \"%s\"\n", keywords[k_save_file_path],
-			save_file_path);
-	fprintf(config, "%s = \"%s\"\n", keywords[k_move_file_path],
-			move_file_path);
-	fprintf(config, "\n");
+
+    CONFIG_WRITE_UINT(up_connections)
+    CONFIG_WRITE_UINT(max_connections)
+    CONFIG_WRITE_BOOL(clear_uploads)
+    CONFIG_WRITE_UINT(max_downloads)
+    CONFIG_WRITE_UINT(max_host_downloads)
+    CONFIG_WRITE_UINT(max_uploads)
+    CONFIG_WRITE_BOOL(clear_downloads)
+    CONFIG_WRITE_BOOL(download_delete_aborted)
+    CONFIG_WRITE_UINT(minimum_speed)
+    CONFIG_WRITE_BOOL(monitor_enabled)
+    CONFIG_WRITE_UINT(monitor_max_items)
+    CONFIG_WRITE_STR(save_file_path)
+    CONFIG_WRITE_STR(move_file_path)
 	fprintf(config, "%s = \"%s\"\n", keywords[k_shared_dirs],
 			(shared_dirs_paths) ? shared_dirs_paths : "");
 	fprintf(config, "%s = \"%s\"\n", keywords[k_scan_extensions],
 			(scan_extensions) ? scan_extensions : "");
-	fprintf(config, "\n");
 	fprintf(config, "%s = \"%s\"\n", keywords[k_local_ip],
 			ip_to_gchar(local_ip));
-	fprintf(config, "%s = %s\n", keywords[k_force_local_ip],
-			config_boolean(force_local_ip));
+    CONFIG_WRITE_BOOL(force_local_ip)
 	fprintf(config, "%s = \"%s\"\n", keywords[k_forced_local_ip],
 			ip_to_gchar(forced_local_ip));
-	fprintf(config, "%s = %u\n", keywords[k_listen_port], listen_port);
+    CONFIG_WRITE_UINT(listen_port)
 	fprintf(config, "%s = \"%s\"\n", keywords[k_guid], guid_hex_str(guid));
-	fprintf(config, "\n");
-	fprintf(config, "%s = %u\n", keywords[k_connection_speed],
-			connection_speed);
-	fprintf(config, "\n");
-	fprintf(config, "%s = %d\n", keywords[k_search_max_items],
-			search_max_items);
-	fprintf(config, "\n");
-	fprintf(config, "%s = %u\n", keywords[k_max_ttl], max_ttl);
-	fprintf(config, "%s = %u\n\n", keywords[k_my_ttl], my_ttl);
-	fprintf(config, "%s = %u\n\n", keywords[k_search_reissue_timeout],
-			search_reissue_timeout);
+    CONFIG_WRITE_UINT(connection_speed)
+    CONFIG_WRITE_INT(search_max_items)
 
-    CONFIG_WRITE_BOOLEAN(search_results_show_tabs)
+    CONFIG_WRITE_UINT(max_ttl)
+    CONFIG_WRITE_UINT(my_ttl)
+    CONFIG_WRITE_UINT(search_reissue_timeout)
+    CONFIG_WRITE_BOOL(search_results_show_tabs)
 
 	fprintf(config, "\n\n# GUI values\n\n");
 
 	fprintf(config, "%s = %u,%u,%u,%u\n\n", keywords[k_win_coords], win_x,
 			win_y, win_w, win_h);
-
-	fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_nodes],
+    CONFIG_WRITE_UINT(downloads_divider_pos)
+    fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_nodes],
 			nodes_col_widths[0], nodes_col_widths[1],
 			nodes_col_widths[2], nodes_col_widths[3], nodes_col_widths[4]);
 	fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_uploads],
@@ -1293,41 +1177,35 @@ static void config_save(void)
 			ul_stats_col_widths[0], ul_stats_col_widths[1],
 			ul_stats_col_widths[2], ul_stats_col_widths[3],
 				ul_stats_col_widths[4]);
-    CONFIG_WRITE_BOOLEAN(toolbar_visible)
-    CONFIG_WRITE_BOOLEAN(statusbar_visible)
-    CONFIG_WRITE_BOOLEAN(progressbar_uploads_visible)
-    CONFIG_WRITE_BOOLEAN(progressbar_downloads_visible)
-    CONFIG_WRITE_BOOLEAN(progressbar_connections_visible)
-    CONFIG_WRITE_BOOLEAN(progressbar_bws_in_visible)
-    CONFIG_WRITE_BOOLEAN(progressbar_bws_out_visible)
-    CONFIG_WRITE_BOOLEAN(progressbar_bws_gin_visible)
-    CONFIG_WRITE_BOOLEAN(progressbar_bws_gout_visible)
-    CONFIG_WRITE_BOOLEAN(progressbar_bws_in_avg)
-    CONFIG_WRITE_BOOLEAN(progressbar_bws_out_avg)
-    CONFIG_WRITE_BOOLEAN(progressbar_bws_gin_avg)
-    CONFIG_WRITE_BOOLEAN(progressbar_bws_gout_avg)
-    CONFIG_WRITE_BOOLEAN(queue_regex_case)
-    CONFIG_WRITE_BOOLEAN(search_remove_downloaded)
-    CONFIG_WRITE_BOOLEAN(download_delete_aborted)
-    CONFIG_WRITE_BOOLEAN(bws_in_enabled)
-    CONFIG_WRITE_BOOLEAN(bws_out_enabled)
-    CONFIG_WRITE_BOOLEAN(bws_gin_enabled)
-    CONFIG_WRITE_BOOLEAN(bws_gout_enabled)
+    CONFIG_WRITE_BOOL(toolbar_visible)
+    CONFIG_WRITE_BOOL(statusbar_visible)
+    CONFIG_WRITE_BOOL(progressbar_uploads_visible)
+    CONFIG_WRITE_BOOL(progressbar_downloads_visible)
+    CONFIG_WRITE_BOOL(progressbar_connections_visible)
+    CONFIG_WRITE_BOOL(progressbar_bws_in_visible)
+    CONFIG_WRITE_BOOL(progressbar_bws_out_visible)
+    CONFIG_WRITE_BOOL(progressbar_bws_gin_visible)
+    CONFIG_WRITE_BOOL(progressbar_bws_gout_visible)
+    CONFIG_WRITE_BOOL(progressbar_bws_in_avg)
+    CONFIG_WRITE_BOOL(progressbar_bws_out_avg)
+    CONFIG_WRITE_BOOL(progressbar_bws_gin_avg)
+    CONFIG_WRITE_BOOL(progressbar_bws_gout_avg)
+    CONFIG_WRITE_BOOL(queue_regex_case)
+    CONFIG_WRITE_BOOL(search_remove_downloaded)
+    CONFIG_WRITE_BOOL(download_delete_aborted)
+    CONFIG_WRITE_BOOL(bws_in_enabled)
+    CONFIG_WRITE_BOOL(bws_out_enabled)
+    CONFIG_WRITE_BOOL(bws_gin_enabled)
+    CONFIG_WRITE_BOOL(bws_gout_enabled)
 
  	/* Mike Perry's netmask hack */
- 	fprintf(config, "%s = %s\n", keywords[k_use_netmasks],
- 			config_boolean(use_netmasks));
+    CONFIG_WRITE_BOOL(use_netmasks)
  
  	if (local_netmasks_string)
  		fprintf(config, "%s = %s\n", keywords[k_local_netmasks],
  				local_netmasks_string);
-
-	fprintf(config, "\n\n#\n# The following variables cannot "
-		"yet be configured with the GUI.\n#\n\n");
-
-	/* XXX Bandwidth management must be GUI-configurable */
-
-	fprintf(config, "# Output bandwidth, in bytes/sec (Gnet excluded) "
+    
+   	fprintf(config, "# Output bandwidth, in bytes/sec (Gnet excluded) "
 		"[0=nolimit, max=2 MB/s]\n"
 		"%s = %u\n\n", keywords[k_output_bandwidth], bandwidth.output);
 
@@ -1342,16 +1220,6 @@ static void config_save(void)
 	fprintf(config, "# Gnet input bandwidth, in bytes/sec "
 		"[0=nolimit, max=2 MB/s]\n"
 		"%s = %u\n\n", keywords[k_input_gnet_bandwidth], bandwidth.ginput);
-
-	fprintf(config, "# Name of file with auto-download strings "
-		"(relative is taken from launch dir)\n%s = \"%s\"\n\n",
-			keywords[k_auto_download_file],
-			auto_download_file);
-
-	fprintf(config, "# Max search results to show "
-		"(avoids running out of memory in passive searches)\n%s = %u\n\n",
-			keywords[k_search_max_results],
-			search_max_results);
 
 	fprintf(config, "# Number of seconds before timeout "
 		"for a connecting download\n%s = %u\n\n",
@@ -1382,6 +1250,71 @@ static void config_save(void)
 	fprintf(config, "# Maximum seconds node can remain in transmit "
 		"flow control\n%s = %u\n\n",
 			keywords[k_node_tx_flowc_timeout], node_tx_flowc_timeout);
+
+
+    CONFIG_SECTION("Proxy info") {
+        CONFIG_WRITE_UINT(proxy_connections)
+        CONFIG_WRITE_UINT(proxy_protocol)
+        CONFIG_WRITE_STR(proxy_ip)
+        CONFIG_WRITE_UINT(proxy_port)
+        CONFIG_WRITE_BOOL(proxy_auth)
+        CONFIG_WRITE_STR(socks_user)
+        CONFIG_WRITE_STR(socks_pass)
+    }
+
+    CONFIG_SECTION("Search stats gathering parameters") {
+        CONFIG_WRITE_BOOL(search_stats_enabled)
+        CONFIG_WRITE_UINT(search_stats_update_interval)
+        CONFIG_WRITE_UINT(search_stats_delcoef)
+    }
+
+    fprintf(config, "# Maximum uploads per IP address\n"
+		"%s = %u\n\n", keywords[k_max_uploads_ip], max_uploads_ip);
+
+	fprintf(config, "# Maximum amount of hosts to keep in cache "
+		"(minimum 100)\n%s = %u\n\n",
+			keywords[k_max_hosts_cached], max_hosts_cached);
+
+	fprintf(config, "# Whether or not to send pushes.\n%s = %u\n\n",
+			keywords[k_send_pushes], send_pushes);
+
+	fprintf(config, "# Whether or not to jump to the "
+		"downloads screen when a new download is selected.\n"
+			"%s = %u\n\n", keywords[k_jump_to_downloads],
+			jump_to_downloads);
+
+	fprintf(config, "# Whether auto downloading should be enabled.\n"
+			"%s = %u\n\n", keywords[k_use_auto_download],
+			use_autodownload);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	fprintf(config, "# Name of file with auto-download strings "
+		"(relative is taken from launch dir)\n%s = \"%s\"\n\n",
+			keywords[k_auto_download_file],
+			auto_download_file);
+
+	fprintf(config, "# Max search results to show "
+		"(avoids running out of memory in passive searches)\n%s = %u\n\n",
+			keywords[k_search_max_results],
+			search_max_results);
 
 	fprintf(config, "# Minimum seconds to wait on auto-retry timeouts"
 		"\n%s = %u\n\n",
@@ -1428,10 +1361,6 @@ static void config_save(void)
 		"per node (between 0.0 and 100.0)\n%s = %.2f\n\n",
 			keywords[k_min_dup_ratio], min_dup_ratio);
 
-	fprintf(config, "# Maximum amount of hosts to keep in cache "
-		"(minimum 100)\n%s = %u\n\n",
-			keywords[k_max_hosts_cached], max_hosts_cached);
-
 	fprintf(config, "# Maximum size of the sendqueue for the nodes (in bytes)\n"
 		"# Must be at least 150%% of max message size (currently %u bytes),\n"
 		"# which means minimal allowed value is %u bytes.\n"
@@ -1442,22 +1371,7 @@ static void config_save(void)
 	fprintf(config, "# Random factor for the hops field "
 		"in search packets we send (between 0 and 3 inclusive)\n%s = %u\n\n",
 			keywords[k_hops_random_factor], hops_random_factor);
-
 	fprintf(config, "\n");
-	fprintf(config, "# Whether or not to send pushes.\n%s = %u\n\n",
-			keywords[k_send_pushes], send_pushes);
-
-	fprintf(config, "# Whether or not to jump to the "
-		"downloads screen when a new download is selected.\n"
-			"%s = %u\n\n", keywords[k_jump_to_downloads],
-			jump_to_downloads);
-
-	fprintf(config, "# Whether auto downloading should be enabled.\n"
-			"%s = %u\n\n", keywords[k_use_auto_download],
-			use_autodownload);
-
-	fprintf(config, "# Maximum uploads per IP address\n"
-			"%s = %u\n\n", keywords[k_max_uploads_ip], max_uploads_ip);
 
 	fprintf(config,
 			"# Set to 1 to filter search results with a strict AND\n"
@@ -1466,18 +1380,6 @@ static void config_save(void)
 	fprintf(config, "# Set to 1 to select all same filenames with "
 		"greater or equal size\n"
 			"%s = %u\n\n", keywords[k_search_pick_all], search_pick_all);
-
-	fprintf(config, "# Proxy Info\n");
-	fprintf(config, "%s = %u\n", keywords[k_proxy_connections],
-			proxy_connections);
-	fprintf(config, "%s = %u\n", keywords[k_proxy_protocol], proxy_protocol);
-	fprintf(config, "%s = \"%s\"\n", keywords[k_proxy_ip], proxy_ip);
-	fprintf(config, "%s = %u\n", keywords[k_proxy_port], proxy_port);
-	fprintf(config, "%s = %s\n", keywords[k_proxy_auth],
-			config_boolean(proxy_auth));
-	fprintf(config, "%s = \"%s\"\n", keywords[k_socks_user], socks_user);
-	fprintf(config, "%s = \"%s\"\n", keywords[k_socks_pass], socks_pass);
-	fprintf(config, "\n");
 
 	fprintf(config, "# For developers only, debugging stuff\n\n");
 	fprintf(config, "# Debug level, each one prints more detail "
@@ -1490,14 +1392,6 @@ static void config_save(void)
 		"inspection, for developer improvements\n"
 			"%s = %u\n\n", keywords[k_enable_err_log], enable_err_log);
 
-	fprintf(config, "# Search stats gathering parameters\n");
-	fprintf(config, "%s = %s\n", keywords[k_search_stats_enabled],
-			config_boolean(search_stats_enabled));
-	fprintf(config, "%s = %u\n", keywords[k_search_stats_update_interval],
-		search_stats_update_interval);
-	fprintf(config, "%s = %u\n", keywords[k_search_stats_delcoef],
-		search_stats_delcoef);
-	fprintf(config, "\n");
 
 	/* The following are useful if you want to tweak your node --RAM */
 
