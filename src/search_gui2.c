@@ -102,20 +102,6 @@ GtkWidget *default_scrolled_window = NULL;
 
 /* ----------------------------------------- */
 
-static GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter)
-{
-	GtkTreeIter *copy;
-
-	copy = walloc(sizeof(*copy));
-	memcpy(copy, iter, sizeof(*copy));
-	return copy;
-}
-
-static void w_tree_iter_free(GtkTreeIter *iter)
-{
-	return wfree(iter, sizeof(*iter));
-}
-
 static void do_atom_sha1_free(gpointer key)
 {
 	atom_sha1_free(key);

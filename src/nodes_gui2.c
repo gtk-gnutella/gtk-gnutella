@@ -26,6 +26,7 @@
  */
 
 #include "gui.h"
+#include "gtk-missing.h"
 #include "nodes_gui_common.h"
 #include "nodes_gui.h"
 
@@ -173,11 +174,6 @@ static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
         g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
 }
 
-static void nodes_gui_free_iter(gpointer iter)
-{
-	wfree(iter, sizeof(GtkTreeIter));
-}
-
 /***
  *** Public functions
  ***/
@@ -238,7 +234,7 @@ void nodes_gui_init()
     nodes_gui_add_column(tree, COL_NODE_UPTIME, "Uptime");
     nodes_gui_add_column(tree, COL_NODE_INFO, "Info");
 	nodes_handles = g_hash_table_new_full(
-		NULL, NULL, NULL, (gpointer) &nodes_gui_free_iter);
+		NULL, NULL, NULL, (gpointer) w_tree_iter_free);
     node_add_node_added_listener(nodes_gui_node_added);
     node_add_node_removed_listener(nodes_gui_node_removed);
     node_add_node_info_changed_listener(nodes_gui_node_info_changed);
@@ -287,8 +283,7 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
     g_assert(n != NULL);
 
     gtk_list_store_append(nodes_model, &iter);
-	iter_cp = walloc(sizeof(GtkTreeIter));
-	memcpy(iter_cp, &iter, sizeof(*iter_cp));
+	iter_cp = w_tree_iter_copy(&iter);
 
    	gm_snprintf(proto_tmp, sizeof(proto_tmp), "%d.%d",
 		n->proto_major, n->proto_minor);

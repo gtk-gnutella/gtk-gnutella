@@ -489,7 +489,7 @@ void uploads_gui_update_display(time_t now)
 		} else {
 			if (clear_uploads && (now - data->last_update > REMOVE_DELAY))
 				to_remove =
-					g_slist_prepend(to_remove, gtk_tree_iter_copy(&iter));
+					g_slist_prepend(to_remove, w_tree_iter_copy(&iter));
 			else
 				all_removed = FALSE;    /* Not removing all "expired" ones */
 		}
@@ -504,7 +504,7 @@ void uploads_gui_update_display(time_t now)
 			g_assert(NULL != p);
 			G_FREE_NULL(p);
         	gtk_list_store_remove(GTK_LIST_STORE(model), i);
-        	gtk_tree_iter_free(i);
+        	w_tree_iter_free(i);
     	}
 
 	if (all_removed)
@@ -529,7 +529,7 @@ static gboolean uploads_clear_helper(gpointer user_data) {
 		gtk_tree_model_get(model, &iter, c_ul_data, &data, -1);
 		g_assert(NULL != data);
         if (!data->valid) {
-            to_remove = g_slist_prepend(to_remove, gtk_tree_iter_copy(&iter));
+            to_remove = g_slist_prepend(to_remove, w_tree_iter_copy(&iter));
 			G_FREE_NULL(data);
 		}
         
@@ -542,7 +542,7 @@ static gboolean uploads_clear_helper(gpointer user_data) {
 		GtkTreeIter *i = sl->data;
 
         gtk_list_store_remove(GTK_LIST_STORE(model), i);
-		gtk_tree_iter_free(i);
+		w_tree_iter_free(i);
 	}
     
     if (NULL != to_remove)
