@@ -2390,23 +2390,29 @@ static void download_request(struct download *d, header_t *header)
 			return;
 		case 400:				/* Bad request */
 		case 404:				/* Could be sent if /uri-res not understood */
-		case 403:				/* Idem, /uri-res is not "authorized" */
+		case 401:				/* Idem, /uri-res is "unauthorized" */
+		case 403:				/* Idem, /uri-res is "forbidden" */
 		case 410:				/* Idem, /uri-res is "gone" */
 		case 500:				/* Server error */
 			/*
 			 * If we sent a "GET /uri-res/N2R?" and we don't know the remote
 			 * server does not support it, then mark it here and retry.
 			 */
-			if (d->attrs & DL_A_NO_URIRES_N2R)
-				break;
-			if (d->flags & DL_F_URIRES_N2R) {
+			if (
+				!(d->attrs & DL_A_NO_URIRES_N2R) &&
+				(d->flags & DL_F_URIRES_N2R)			/* We sent /uri-res */
+			) {
 				d->attrs |= DL_A_NO_URIRES_N2R;
 				if (dbg > 3)
 					printf("Server %s (%s) does not support /uri-res/N2R?\n",
 						ip_port_to_gchar(d->ip, d->port),
 						d->server ? d->server : "");
+				download_queue_delay(d,
+					delay ? delay : download_retry_busy_delay,
+					"Server cannot handle /uri-res (%d)", ack_code);
+				return;
 			}
-			/* FALL THROUGH */
+			break;
 		case 408:				/* Request timeout */
 		case 503:				/* Busy */
 			/* No hammering */
