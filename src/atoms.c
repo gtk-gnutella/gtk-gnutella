@@ -161,6 +161,8 @@ guint guid_hash(gconstpointer key)
  */
 gint guid_eq(gconstpointer a, gconstpointer b)
 {
+/* FIXME: Disabled because of alignment problems */
+#if 0
 	const guint32 *ax = (const guint32 *) a;
 	const guint32 *bx = (const guint32 *) b;
 
@@ -169,6 +171,9 @@ gint guid_eq(gconstpointer a, gconstpointer b)
 		ax[1] == bx[1] &&
 		ax[2] == bx[2] &&
 		ax[3] == bx[3];
+#else
+	return memcmp(a, b, 16);
+#endif
 }
 
 /*
@@ -212,6 +217,8 @@ guint sha1_hash(gconstpointer key)
  */
 gint sha1_eq(gconstpointer a, gconstpointer b)
 {
+/* FIXME: Disabled because of alignment problems */
+#if 0
 	const guint32 *ax = (const guint32 *) a;
 	const guint32 *bx = (const guint32 *) b;
 
@@ -221,6 +228,9 @@ gint sha1_eq(gconstpointer a, gconstpointer b)
 		ax[2] == bx[2] &&
 		ax[3] == bx[3] &&
 		ax[4] == bx[4];
+#else
+	return memcmp(a, b, 20);
+#endif
 }
 
 /*
