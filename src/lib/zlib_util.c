@@ -248,13 +248,12 @@ zlib_deflate_step(zlib_deflater_t *zd, gint amount, gboolean may_close)
 
 		return 0;				/* Done */
 		/* NOTREACHED */
-
+		
 	default:
 		g_warning("error during compression: %s", zlib_strerror(ret));
-		goto error;
 	}
 
-	g_assert_not_reached();		/* Not reached */
+	/* FALL THROUGH */
 
 error:
 	ret = deflateEnd(outz);
