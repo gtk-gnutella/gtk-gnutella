@@ -45,6 +45,11 @@
 #include <stdarg.h>
 #include <regex.h>
 
+#ifndef USE_GTK2
+typedef void (*GCallback) (void);
+#else
+#include <glib-object.h>
+#endif
 
 #include "cq.h"
 #include "url.h"
@@ -70,6 +75,7 @@
 #include "file.h"
 #include "inputevt.h"
 #include "glib-missing.h"
+#include "event.h"
 
 #include "../config.h"
 
