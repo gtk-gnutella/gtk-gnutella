@@ -36,8 +36,6 @@
 #include "routing.h"
 #include "downloads.h"
 #include "hosts.h"
-#include "dialog-filters.h"
-#include "filter.h"
 #include "misc.h"
 #include "autodownload.h"
 #include "gmsg.h"
@@ -46,6 +44,7 @@
 #include "upload_stats.h"
 #include "pcache.h"
 #include "gtk-missing.h"
+#include "filter.h"
 #include "cq.h"
 #include "ban.h"
 
@@ -54,9 +53,6 @@
 #define CALLOUT_PERIOD			100	/* milliseconds */
 
 /* */
-
-GtkWidget *main_window;
-GtkWidget *shutdown_window;
 
 struct gnutella_socket *s_listen = NULL;
 gchar *version_string = NULL;
@@ -107,8 +103,8 @@ void gtk_gnutella_exit(gint n)
 	if (s_listen)
 		socket_destroy(s_listen);
 	socket_shutdown();
-	search_shutdown();
-	filters_shutdown();
+	search_shutdown(); /* must be done before filter_shutdown! */
+	filter_shutdown();
 	bsched_shutdown();
 
 	/* 
@@ -289,7 +285,7 @@ gint main(gint argc, gchar ** argv)
 	bsched_init();
 	network_init();
 	routing_init();
-	filters_init();	/* Must come before search_init() for retrieval */
+	filter_init();	/* Must come before search_init() for retrieval */
 	search_init();
 	share_init();
 	download_init();
