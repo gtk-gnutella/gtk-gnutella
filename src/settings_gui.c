@@ -1248,6 +1248,18 @@ void togglebutton_state_changed
     prop_set_stub_t *stub = map_entry->stub;
     gboolean val = gtk_toggle_button_get_active(tb);
     
+    /*
+     * Special handling for the special cases.
+     */
+    if (stub == gnet_prop_set_stub) {
+        /*
+         * PROP_SEND_PUSHES needs widget value inversed.
+         */
+        if (map_entry->prop == PROP_SEND_PUSHES) {
+            val = !val;
+        }
+    }
+
     stub->boolean.set(map_entry->prop, &val, 0, 1);
 }
 
@@ -1443,11 +1455,18 @@ static gboolean new_version_str_changed(property_t prop)
 
 static gboolean send_pushes_changed(property_t prop)
 {
-    gboolean b;
+    gboolean val;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
 
-    gnet_prop_get_boolean(prop, &b, 0, 1);
+    stub->boolean.get(prop, &val, 0, 1);
+
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
+        (lookup_widget(top, map_entry->wid)), !val);
+
   	gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_push"), b);
+        (lookup_widget(popup_downloads, "popup_downloads_push"), val);
 
     return FALSE;
 }
