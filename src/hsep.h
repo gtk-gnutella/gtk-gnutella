@@ -29,8 +29,7 @@
 #define HSEP_VERSION_MAJOR 0
 #define HSEP_VERSION_MINOR 2
 
-/* number of triples to consider */
-/* TODO: make this configurable? */
+/* number of hops to consider */
 #define HSEP_N_MAX 10
 
 /* average time in seconds before resending a */
@@ -40,6 +39,7 @@
 
 /* random skew in seconds for message interval */
 /* time is in the interval msg_interval +/- msg_skew */
+/* TODO: make this configurable? */
 #define HSEP_MSG_SKEW 10
 
 typedef guint64 hsep_triple[3];
