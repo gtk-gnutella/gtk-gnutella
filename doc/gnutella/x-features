@@ -1,0 +1,15 @@
+The X-Features header is used to indicate support for a certain type. The 
+format of the X-Features header is as follows:
+X-Features: feature/version [, feature/version]
+
+For example:
+X-Features: queue/1.0
+
+This header can be used in gnet handshake, http uploads and downloads.
+When this header is not present all features are assumed to be 
+available.
+
+references:
+http://groups.yahoo.com/group/the_gdf/message/14720
+
+
