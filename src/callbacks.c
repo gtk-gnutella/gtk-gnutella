@@ -500,3 +500,4 @@ on_button_config_select_dbg_clicked    (GtkButton       *button,
 		nb_main_page_config_dbg);
 }
 #endif /* USE_GTK2 */
+

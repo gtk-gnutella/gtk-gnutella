@@ -213,8 +213,8 @@ static gboolean spinbutton_input_bw_changed(property_t prop);
 static gboolean spinbutton_output_bw_changed(property_t prop);
 static void update_output_bw_display(void);
 static void update_input_bw_display(void);
-#ifdef USE_GTK1
 static gboolean dl_http_latency_changed(property_t prop);
+#ifdef USE_GTK1
 static gboolean compute_connection_speed_changed(property_t prop);
 #endif
 
@@ -1990,7 +1990,6 @@ static prop_map_t property_map[] = {
         "label_fi_with_source_count",
         FREQ_UPDATES, 0
     },
-#ifdef USE_GTK1
     {
         get_main_window,
         PROP_DL_HTTP_LATENCY,
@@ -1999,7 +1998,6 @@ static prop_map_t property_map[] = {
         "label_dl_http_latency",
         FREQ_SECS, 1
     },
-#endif
     {
         get_main_window,
         PROP_SEARCH_MAX_RESULTS,
@@ -2208,7 +2206,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "spinbutton_config_unique_nodes"
     },
-#ifdef USE_GTK1
     {
         get_main_window,
         PROP_DOWNLOAD_RX_SIZE,
@@ -2223,7 +2220,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "spinbutton_node_rx_size"
     },
-#endif
 };
 
 /***
@@ -3502,7 +3498,6 @@ static void update_input_bw_display(void)
 	guint32 val = 0;
 	guint32 bw;
 
-#ifdef USE_GTK1
 	gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_IN_ENABLED, &enabled);
 	if (enabled) {
 		gnet_prop_get_guint32_val(PROP_BW_GNET_LIN, &bw);
@@ -3528,7 +3523,6 @@ static void update_input_bw_display(void)
 	gtk_label_printf(
 		GTK_LABEL(lookup_widget(main_window, "label_input_bw_limit")),
 		"%.2f", val / 1024.0);
-#endif
 }
 
 static gboolean spinbutton_input_bw_changed(property_t prop)
@@ -3546,7 +3540,6 @@ static void update_output_bw_display(void)
 	guint32 val = 0;
 	guint32 bw;
 
-#ifdef USE_GTK1
 	gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_OUT_ENABLED, &enabled);
 	if (enabled) {
 		gnet_prop_get_guint32_val(PROP_BW_GNET_LOUT, &bw);
@@ -3572,7 +3565,6 @@ static void update_output_bw_display(void)
 	gtk_label_printf(
 		GTK_LABEL(lookup_widget(main_window, "label_output_bw_limit")),
 		"%.2f", val / 1024.0);
-#endif
 }
 
 static gboolean spinbutton_output_bw_changed(property_t prop)

@@ -147,4 +147,3 @@ on_button_config_select_dbg_clicked    (GtkButton       *button,
                                         gpointer         user_data);
 
 #endif	/* _callbacks_h_ */
-
