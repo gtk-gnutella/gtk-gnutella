@@ -1066,7 +1066,7 @@ void search_gui_remove_search(search_t *sch)
    	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
 	gtk_list_remove_items(GTK_LIST(combo_searches->list), glist);
 
-	model = GTK_TREE_MODEL(sch->model);
+	model = gtk_tree_view_get_model(tree_view_search);
     gtk_tree_model_foreach(model, tree_view_search_remove, sch);
 
     gtk_timeout_remove(sch->tab_updating);
