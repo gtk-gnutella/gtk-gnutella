@@ -22,7 +22,7 @@
  */
 
 #ifndef __url_h__
-#define __utl_h__
+#define __url_h__
 
 #include <glib.h>
 
