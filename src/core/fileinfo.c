@@ -2147,10 +2147,7 @@ void
 file_info_retrieve(void)
 {
 	FILE *f;
-	struct dl_file_chunk *fc = NULL;
 	gchar line[1024];
-	filesize_t from, to;
-	guint32 status;
 	struct dl_file_info *fi = NULL;
 	gboolean empty = TRUE;
 	gboolean last_was_truncated = FALSE;
@@ -2269,6 +2266,8 @@ file_info_retrieve(void)
 			 */
 
 			if (fi->chunklist == NULL) {
+				struct dl_file_chunk *fc;
+
 				g_warning("no CHNK info for \"%s\" -- assuming empty file",
 					fi->file_name);
 				fc = walloc0(sizeof(struct dl_file_chunk));
@@ -2544,33 +2543,38 @@ file_info_retrieve(void)
 			damaged = NULL == fi->cha1;
 			break;
 		case FI_TAG_CHNK:
-			from = v = parse_uint64(value, &ep, 10, &error);
-			damaged = error || *ep != ' ' || v >= ((guint64) 1UL << 63);
-			if (!damaged) {
-				const gchar *s = &ep[1];
+			{
+				filesize_t from, to;
+				guint32 status;
 
-				to = v = parse_uint64(s, &ep, 10, &error);
-				damaged = error
-					|| *ep != ' '
-					|| v >= ((guint64) 1UL << 63)
-					|| v < from;
-			}
-			if (!damaged) {
-				const gchar *s = &ep[1];
+				from = v = parse_uint64(value, &ep, 10, &error);
+				damaged = error || *ep != ' ' || v >= ((guint64) 1UL << 63);
+				if (!damaged) {
+					const gchar *s = &ep[1];
 
-				status = v = parse_uint64(s, &ep, 10, &error);
-				damaged = error || *ep != '\0' || v > 2U;
-			}
-			if (!damaged) {
-				fc = walloc0(sizeof(struct dl_file_chunk));
-				fc->from = from;
-				fc->to = to;
-				if (status == DL_CHUNK_BUSY) status = DL_CHUNK_EMPTY;
-				fc->status = status;
-				fi->chunklist = g_slist_append(fi->chunklist, fc);
-			}
-			if (damaged) {
-				from = to = status = 0;
+					to = v = parse_uint64(s, &ep, 10, &error);
+					damaged = error
+						|| *ep != ' '
+						|| v >= ((guint64) 1UL << 63)
+						|| v < from;
+				}
+				if (!damaged) {
+					const gchar *s = &ep[1];
+
+					status = v = parse_uint64(s, &ep, 10, &error);
+					damaged = error || *ep != '\0' || v > 2U;
+				}
+				if (!damaged) {
+					struct dl_file_chunk *fc;
+
+					fc = walloc0(sizeof(struct dl_file_chunk));
+					fc->from = from;
+					fc->to = to;
+					if (status == DL_CHUNK_BUSY)
+						status = DL_CHUNK_EMPTY;
+					fc->status = status;
+					fi->chunklist = g_slist_append(fi->chunklist, fc);
+				}
 			}
 			break;
 		case FI_TAG_UNKNOWN:
