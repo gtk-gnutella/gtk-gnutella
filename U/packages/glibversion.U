@@ -29,16 +29,10 @@
 ?H:.
 ?Y:TOP
 ?T:ver
-: decide which version of glib to use
-case "$glibversion" in
-'')
-	case "$gtkversion" in
-	1) ver=1;;
-	*) ver=2;;
-	esac
-	;;
-2) ver=2;;
-*) ver=1;;
+: decide which version of glib to use -- tied to the choice of GTK
+case "$gtkversion" in
+1) ver=1;;
+*) ver=2;;
 esac
 case "$ver" in
 2)
