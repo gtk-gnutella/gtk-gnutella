@@ -411,7 +411,7 @@ static void node_eof(struct gnutella_node *n, const gchar * reason, ...)
 			vprintf(reason, args);
 			printf("\n");
 		}
-		node_remove_v(n, NULL, NULL);		/* Reuse existing reason */
+		node_remove_v(n, NULL, args);		/* Reuse existing reason */
 	} else
 		node_remove_v(n, reason, args);
 
