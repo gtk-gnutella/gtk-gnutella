@@ -1,5 +1,29 @@
 # since last version
 
+- (2004-08-29 - RAM)
+ * Added count of bytes/packets queued to be able to monitor the amount of
+   bytes/packets dropped whilst in the TX queues.  New columns "queued" and
+   "gen. queued" will show the queued bytes/packets from received and locally
+   generated packets respectively.  Column "generated" renamed "gen. sent".
+ * Check for OOB queries in node_can_send(), since we need to forward them
+   regardless of whether there exists a route for replies.
+ * Split huge route_message() routine in smaller parts.
+ * When we get unsollicited guidance info for a dynamic query, there is no
+   need to query the leaf before proceeding with the next ultra node.
+ * Vendor message table was accidentally not sorted, messing the binary
+   search logic and causing valid messages to be ignored.
+ * Now sends BEAR/12v1 "query status response" as a prioritary message.
+ * Leaf nodes will now send unsollicited BEAR/12v1 to their ultranodes
+   reporting kept results each time they get new query hits from the network.
+
+- (2004-08-28 - RAM)
+ * Allow forwarding of queries and pushes that were already seen with a
+   lower TTL, but don't process them again.
+ * Raised max for "reserve_gtkg_nodes" to 90 and lowered min for
+   "unique_nodes" to 10.
+ * Forgot to tie the GUI button for "convert_spaces" to the property, hence
+   setting in the GUI had no effect.
+
 - (2004-08-18 - RAM)
  * (move.c) Fixed stupid floating point exception on a debug message
    when elapsed == 0
