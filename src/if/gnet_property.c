@@ -224,7 +224,7 @@ guint32  proxy_port_def = 0x0000;
 guint32  proxy_protocol     = PROXY_NONE;
 guint32  proxy_protocol_def = PROXY_NONE;
 prop_def_choice_t proxy_protocol_choices[] = { 
-    {N_("None"), PROXY_NONE},
+    {N_("No proxy"), PROXY_NONE},
     {N_("HTTP"), PROXY_HTTP},
     {N_("SOCKS v4"), PROXY_SOCKSV4},
     {N_("SOCKS v5"), PROXY_SOCKSV5},

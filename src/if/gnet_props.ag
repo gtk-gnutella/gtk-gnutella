@@ -1070,7 +1070,7 @@ prop = {
         default = PROXY_NONE;
     };
     choice = {
-        name = "None";
+        name = "No proxy";
         value = PROXY_NONE;
     };
     choice = {
