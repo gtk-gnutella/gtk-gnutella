@@ -222,8 +222,8 @@ static void parq_upload_update_relative_position(
 static void parq_upload_update_ip_and_name(struct parq_ul_queued *parq_ul, 
 	gnutella_upload_t *u);
 
+static void parq_upload_register_send_queue(struct parq_ul_queued *parq_ul);
 static void parq_upload_send_queue(struct parq_ul_queued *parq_ul);
-static void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul);
 
 void parq_add_banned_source(guint32 ip, time_t delay);
 void parq_del_banned_source(guint32 ip);
@@ -1735,7 +1735,6 @@ void parq_upload_timer(time_t now)
 	guint	queue_selected = 0;
 	gboolean rebuilding = FALSE;
 	
-	
 	/*
 	 * Don't do anything with parq during the first 10 seconds. Looks like
 	 * PROP_LIBRARY_REBUILDING is not set yet immediatly at the first time, so
@@ -1773,9 +1772,10 @@ void parq_upload_timer(time_t now)
 
 		/*
 		 * Infrequently scan the dead uploads as well to send QUEUE.
+		 * NB: if max_uploads == 0, they disabled sharing: don't send QUEUE.
 		 */
 
-		if ((now % 60) == 0) {
+		if ((now % 60) == 0 && max_uploads > 0) {
 			for (dl = queue->by_date_dead; dl != NULL; dl = dl->next) {	
 				struct parq_ul_queued *parq_ul =
 					(struct parq_ul_queued *) dl->data;
@@ -1791,7 +1791,7 @@ void parq_upload_timer(time_t now)
 					parq_ul->queue_refused < MAX_QUEUE_REFUSED &&
 					!ban_is_banned(parq_ul->remote_ip)
 				)
-					parq_upload_send_queue(parq_ul);
+					parq_upload_register_send_queue(parq_ul);
 			}
 		}
 			
@@ -1808,9 +1808,10 @@ void parq_upload_timer(time_t now)
 				now - parq_ul->last_queue_sent > QUEUE_PERIOD &&
 				parq_ul->queue_sent < MAX_QUEUE &&
 				parq_ul->queue_refused < MAX_QUEUE_REFUSED &&
+				max_uploads > 0 &&
 				!ban_is_banned(parq_ul->remote_ip)
 			)
-				parq_upload_send_queue(parq_ul);
+				parq_upload_register_send_queue(parq_ul);
 			
 			if (
 				parq_ul->is_alive &&
@@ -1913,11 +1914,14 @@ void parq_upload_timer(time_t now)
 		}
 	}
 	
-	/* Send one QUEUE command at a time, until we have MAX_UPLOADS uploads */
+	/*
+	 * Send one QUEUE command at a time, until we have MAX_UPLOADS uploads
+	 * NB: if max_uploads is 0, then they disabled sharing: don't send QUEUE.
+	 */
 
 	gnet_prop_get_boolean_val(PROP_LIBRARY_REBUILDING, &rebuilding);
 	
-	if (!rebuilding && ul_parq_queue != NULL) {
+	if (!rebuilding && ul_parq_queue != NULL && max_uploads > 0) {
 		GList *queue_cmd_remove = NULL;
 		GList *queue_cmd_list = NULL;
 		extern gint registered_uploads;			/* From uploads.c */
@@ -1970,7 +1974,7 @@ void parq_upload_timer(time_t now)
 					continue;
 			}
 			
-			parq_upload_do_send_queue(parq_ul);
+			parq_upload_send_queue(parq_ul);
 	
 			queue_cmd_remove = g_list_prepend(queue_cmd_remove, parq_ul);
 			
@@ -2746,7 +2750,7 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 			if (!parq_ul_next->has_slot) {
 				g_assert(parq_ul_next->queue->active <= 1);
 				if (!(parq_ul_next->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)))
-					parq_upload_send_queue(parq_ul_next);
+					parq_upload_register_send_queue(parq_ul_next);
 				break;
 			}
 		}
@@ -2756,7 +2760,7 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 	
 	if (u->status == GTA_UL_ABORTED && 
 			parq_ul->disc_timeout > now && parq_ul->has_slot) {
-		/* Client disconnects to often. This could block our upload
+		/* Client disconnects too often. This could block our upload
 		 * slots. Sorry, but we are going to remove this upload */
 		if (u->socket != NULL) {
 			g_warning("[PARQ UL] "
@@ -3191,7 +3195,12 @@ static void parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
 	}
 }
 
-void parq_upload_send_queue(struct parq_ul_queued *parq_ul)
+/*
+ * parq_upload_register_send_queue
+ *
+ * Possibly register the upload in the list for deferred QUEUE sending.
+ */
+static void parq_upload_register_send_queue(struct parq_ul_queued *parq_ul)
 {
 	g_assert(!(parq_ul->flags & PARQ_UL_QUEUE));
 
@@ -3219,11 +3228,11 @@ void parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 }
 
 /*
- * parq_upload_do_send_queue
+ * parq_upload_send_queue
  *
  * Sends a QUEUE to a parq enabled client
  */
-void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul)
+static void parq_upload_send_queue(struct parq_ul_queued *parq_ul)
 {
 	struct gnutella_socket *s;
 	gnutella_upload_t *u;
@@ -3582,7 +3591,8 @@ static void parq_upload_load_queue(void)
 					ip_to_gchar(parq_ul->remote_ip),
 					parq_ul->name);						
 			
-			parq_upload_send_queue(parq_ul);
+			if (max_uploads > 0)
+				parq_upload_register_send_queue(parq_ul);
 		}
 	}
 	
