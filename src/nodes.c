@@ -447,6 +447,19 @@ void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
 	}
 
 	/*
+	 * A "ponging" node is not expected to be sent traffic besides the initial
+	 * connection pongs.  Therefore, don't even try to send the Bye message,
+	 * there is no send queue.  Since a ponging node is a 0.4 client, it won't
+	 * understand our Bye message anyway.
+	 */
+
+	if (NODE_IS_PONGING_ONLY(n)) {
+		n->status = GTA_NODE_SHUTDOWN;	/* Ensure the reason propagates */
+		node_remove(n, NULL);
+		return;
+	}
+
+	/*
 	 * Discard all the queued entries, we're not going to send them.
 	 * The only message that may remain is the oldest partially sent.
 	 */
