@@ -170,8 +170,6 @@ static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
 static void on_gnet_stats_fc_toggled(GtkToggleButton *b, gpointer data) {
 const gchar *name = gtk_widget_get_name(GTK_WIDGET(b));
 
-	g_message("%s", __FUNCTION__);
-
 	if (!strcmp(name, "radio_fc_ttl") || !strcmp(name, "radio_fc_hops"))
 		selected_flowc ^= 1;
 	else if (!strcmp(name, "radio_fc_pkts") || !strcmp(name, "radio_fc_bytes"))
@@ -542,7 +540,7 @@ void gnet_stats_gui_update(void)
 			? stats.pkg.flowc_hops : stats.byte.flowc_hops
 		/* TTL mode */
 		:  (FLOWC_MODE_PKTS(selected_flowc))
-			? stats.pkg.flowc_ttl : stats.pkg.flowc_ttl;
+			? stats.pkg.flowc_ttl : stats.byte.flowc_ttl;
 
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
