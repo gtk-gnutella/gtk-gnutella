@@ -874,11 +874,12 @@ add_list_columns(GtkTreeView *treeview)
 	guint i;
 
 	STATIC_ASSERT(SEARCH_LIST_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
+
     gui_prop_get_guint32(PROP_SEARCH_LIST_COL_WIDTHS, width, 0,
 		G_N_ELEMENTS(width));
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 		add_column(treeview, _(columns[i].title), columns[i].id,
-			width[columns[i].id], columns[i].align, c_sl_fg, c_sl_bg);
+			width[i], columns[i].align, c_sl_fg, c_sl_bg);
 	}
 }
 
@@ -996,6 +997,7 @@ search_gui_shutdown(void)
     while (searches != NULL)
         search_gui_close_search((search_t *) searches->data);
 
+	tree_view_save_widths(tree_view_search, PROP_SEARCH_LIST_COL_WIDTHS);
 	search_gui_common_shutdown();
 }
 
