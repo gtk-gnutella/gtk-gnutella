@@ -551,7 +551,7 @@ struct header_fmt {
 	guint32 magic;
 	gint maxlen;				/* Maximum line length before continuation */
 	GString *header;			/* Header being built */
-	gchar *sep;					/* Optional separator (string NOT owned) */
+	gchar sep[257];				/* Optional separator */
 	gint seplen;				/* Length of separator string */
 	gint stripped_seplen;		/* Length of separator without trailing space */
 	gint current_len;			/* Length of currently built line */
@@ -565,15 +565,16 @@ struct header_fmt {
  * Compute the length of the string `s' whose length is `len' with trailing
  * whitespace ignored.
  */
-static gint stripped_strlen(gchar *s, gint len)
+static gint stripped_strlen(const gchar *s, gint len)
 {
-	gchar *end = s + len;
+	const gchar *end = s + len;
 	gint i;
 
 	/*
 	 * Locate last non-space char in separator.
 	 */
 
+	/* XXX: Shouldn't this allow at least \t or maybe use isspace()? */
 	for (i = len - 1; i >= 0; i--, end--) {
 		if (s[i] != ' ')
 			return end - s;
@@ -602,9 +603,12 @@ static gint stripped_strlen(gchar *s, gint len)
  *
  * Returns opaque pointer.
  */
-gpointer header_fmt_make(gchar *field, gchar *separator, gint len_hint)
+gpointer header_fmt_make(const gchar *field, const gchar *separator,
+	gint len_hint)
 {
 	struct header_fmt *hf;
+
+	g_assert(!separator || strlen(separator) < sizeof(hf->sep));
 
 	hf = walloc(sizeof(*hf));
 	hf->magic = HEADER_FMT_MAGIC;
@@ -612,11 +616,9 @@ gpointer header_fmt_make(gchar *field, gchar *separator, gint len_hint)
 	hf->maxlen = HEADER_FMT_LINE_LEN;
 	hf->data_emitted = FALSE;
 	hf->frozen = FALSE;
-	hf->sep = separator;
-	hf->seplen = (separator == NULL) ? 0 : strlen(separator);
-	hf->stripped_seplen = (separator == NULL) ? 0 :
-		stripped_strlen(hf->sep, hf->seplen);
-
+	g_strlcpy(hf->sep, separator ? separator : "", sizeof(hf->sep));
+	hf->seplen = strlen(hf->sep);
+	hf->stripped_seplen = stripped_strlen(hf->sep, hf->seplen);
 	g_string_append(hf->header, field);
 	g_string_append(hf->header, ": ");
 
@@ -645,9 +647,6 @@ void header_fmt_set_line_length(gpointer o, gint maxlen)
  *
  * Dispose of header formatting context.
  *
- * NB: the optional separator string given at make time is NOT owned by
- * this object and therefore not freed.  Most of the time, it will be
- * a static string anyway.
  */
 void header_fmt_free(gpointer o)
 {
@@ -700,8 +699,8 @@ gboolean header_fmt_value_fits(gpointer o, gint len, gint maxlen)
  * `slen' is the separator length, 0 if empty.
  * `sslen' is the stripped separator length, -1 if unknown yet.
  */
-static void header_fmt_append_full(
-	struct header_fmt *hf, gchar *str, gchar *separator, gint slen, gint sslen)
+static void header_fmt_append_full(struct header_fmt *hf, const gchar *str,
+	const gchar *separator, gint slen, gint sslen)
 {
 	gint len;
 	gint curlen;
@@ -716,7 +715,7 @@ static void header_fmt_append_full(
 
 		if (separator != NULL && hf->data_emitted) {
 			gint s = sslen >= 0 ? sslen : stripped_strlen(separator, slen);
-			gchar *p;
+			const gchar *p;
 
 			for (p = separator; s > 0; p++, s--)
 				g_string_append_c(hf->header, *p);
@@ -746,7 +745,7 @@ static void header_fmt_append_full(
  *
  * To use the standard separator, use header_fmt_append_value().
  */
-void header_fmt_append(gpointer o, gchar *str, gchar *separator)
+void header_fmt_append(gpointer o, const gchar *str, const gchar *separator)
 {
 	struct header_fmt *hf = (struct header_fmt *) o;
 	gint seplen;
@@ -770,7 +769,7 @@ void header_fmt_append(gpointer o, gchar *str, gchar *separator)
  *
  * To supersede the default separator, use header_fmt_append().
  */
-void header_fmt_append_value(gpointer o, gchar *str)
+void header_fmt_append_value(gpointer o, const gchar *str)
 {
 	struct header_fmt *hf = (struct header_fmt *) o;
 
@@ -914,21 +913,24 @@ void header_features_cleanup(struct xfeature_t *xfeatures)
 void header_features_generate(struct xfeature_t *xfeatures,
 	gchar *buf, gint len, gint *rw)
 {
+	static const char hdr[] = "X-Features";
 	GList *cur;
 	gpointer fmt;
+
 	
-	if (len - *rw < strlen("X-Features: \r\n"))
+	if (len - *rw < (sizeof(hdr) + sizeof(": \r\n") - 1))
 		return;
 		
 	if (g_list_first(xfeatures->features) == NULL)
 		return;
 	
-	fmt = header_fmt_make("X-Features", ", ", len - *rw);
+	fmt = header_fmt_make(hdr, ", ", len - *rw);
 	
-	for(cur = g_list_first(xfeatures->features);
+	for (
+		cur = g_list_first(xfeatures->features);
 		cur != NULL;
-		cur = g_list_next(cur)) {
-		
+		cur = g_list_next(cur)
+	) {
 		gchar feature_version[50];
 		struct header_x_feature *feature = 
 			(struct header_x_feature *) cur->data;
@@ -951,14 +953,16 @@ void header_features_generate(struct xfeature_t *xfeatures,
 /*
  * header_get_feature
  *
- * Retreives the major and minor version from a feature in the X-Features 
+ * Retrieves the major and minor version from a feature in the X-Features 
  * header, if no support was found both major and minor are 0.
  */
 void header_get_feature(const gchar *feature_name, const header_t *header,
 	int *feature_version_major, int *feature_version_minor)
 {
 	gchar *buf = NULL;
-	gchar *start;
+	gchar *start, *ep;
+	gint error;
+	gulong val;
 	
 	*feature_version_major = 0;
 	*feature_version_minor = 0;
@@ -1025,7 +1029,19 @@ void header_get_feature(const gchar *feature_name, const header_t *header,
 	if (*buf == '\0')
 		return;
 
-	/* XXX Is this exploitable? */
-	sscanf(buf, "%d.%d", feature_version_major, feature_version_minor);
+	val = gm_atoul(buf, &ep, &error);
+	if (error || val > INT_MAX)
+		return;
+	*feature_version_major = (gint) val;
+
+	if (*ep != '.')
+		return;
+
+	buf = ++ep;
+	val = gm_atoul(buf, &ep, &error);
+	if (error || val > INT_MAX)
+		return;
+	*feature_version_minor = (gint) val;
 }
 
+/* vi: set ts=4: */
