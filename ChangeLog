@@ -1,5 +1,12 @@
 # since last version
 
+- (2004.01.03 - Richard)
+ * [Gtk1] [Gtk2] Lots of layout changes to assimilate the gtk1 and gtk2 guis, to clean up
+   layout in general and to fix paddings and spacings.
+ * [Gtk1] [Gtk2] Unhid the "current search" entry in the search panel again as users
+   requested so.
+ * [Gtk2] Applied patch to fix column visibility on the gnet pane [from Clayton Rollins].
+ 
 - (2004.01.02 - RAM)
  * Fixed conflict ratio computation when they don't share anything.
  * New properties to control ancient versions.
