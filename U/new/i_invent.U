@@ -2,7 +2,7 @@
 ?RCS: @COPYRIGHT@
 ?RCS:
 ?MAKE:i_invent: Inhdr
-?MAKE: -pick add $@ %<
+?MAKE:	-pick add $@ %<
 ?S:i_invent:
 ?S:    This variable conditionally defines the I_INVENT symbol, and indicates
 ?S:    whether a C program should include <invent.h>.
