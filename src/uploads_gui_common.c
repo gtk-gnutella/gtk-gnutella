@@ -49,7 +49,7 @@ gfloat uploads_gui_progress(
 	const gnet_upload_status_t *u,
 	const upload_row_data_t *data)
 {
-	gfloat progress;
+	gfloat progress = 0.0;
 	guint32 requested;
 	
 	if (u->pos < data->range_start) /* No progress yet */
