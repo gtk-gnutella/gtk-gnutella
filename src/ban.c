@@ -34,6 +34,7 @@
 
 #include "ban.h"
 #include "sockets.h"
+#include "version.h" /* for version_is_too_old() */
 
 RCSID("$Id$");
 
