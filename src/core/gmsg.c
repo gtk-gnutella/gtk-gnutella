@@ -432,7 +432,14 @@ gmsg_search_sendto_all(
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
-		if (!NODE_IS_ESTABLISHED(dn))
+
+		/*
+		 * When switching UP -> leaf, it may happen that we try to send
+		 * a search to a leaf node without any search queue.  Hence
+		 * the explicit test.  --RAM, 2005-01-24
+		 */
+
+		if (!NODE_IS_ESTABLISHED(dn) || dn->searchq == NULL)
 			continue;
 		sq_putq(dn->searchq, sh, pmsg_clone(mb));
 	}
