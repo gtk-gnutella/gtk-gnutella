@@ -1829,14 +1829,30 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			(n->gnet_ip && ip != n->gnet_ip) ||
 			(n->gnet_port && port != n->gnet_port))
 		) {
+			gnet_stats_count_dropped(n, MSG_DROP_BAD_RETURN_ADDRESS);
+
+			if (query_debug)
+				printf("QUERY dropped from node %s <%s>: invalid OOB flag "
+					"(return address mismatch: %s, node: %s)\n",
+					node_ip(n), node_vendor(n),
+					ip_port_to_gchar(ip, port), node_gnet_ip(n));
+
+			return TRUE;		/* Drop the message! */
+		}
+
+		/*
+		 * If the query contains an invalid IP:port, clear the OOB flag.
+		 */
+
+		if (!host_is_valid(ip, port)) {
 			query_strip_oob_flag(n, n->data);
 			oob = FALSE;
 
 			if (query_debug)
 				printf("QUERY node %s <%s>: removed OOB flag "
-					"(return address mismatch: %s, node: %s)\n",
+					"(invalid return address: %s)\n",
 					node_ip(n), node_vendor(n),
-					ip_port_to_gchar(ip, port), node_gnet_ip(n));
+					ip_port_to_gchar(ip, port));
 		}
 	}
 
