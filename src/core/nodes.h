@@ -544,6 +544,8 @@ gnutella_node_t *node_active_by_id(guint32 id);
 void node_became_firewalled(void);
 void node_set_socket_rx_size(gint rx_size);
 
+void node_udp_enable(void);
+void node_udp_disable(void);
 void node_udp_process(struct gnutella_socket *s);
 gnutella_node_t *node_udp_get_ip_port(guint32 ip, guint16 port);
 

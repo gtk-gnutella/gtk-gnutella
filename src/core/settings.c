@@ -730,11 +730,13 @@ static gboolean enable_udp_changed(property_t prop)
 	if (enabled) {
 		if (s_udp_listen == NULL)
 			s_udp_listen = socket_udp_listen(0, listen_port);
+		node_udp_enable();
 	} else {
 		if (s_udp_listen) {
 			socket_free(s_udp_listen);
 			s_udp_listen = NULL;
 		}
+		node_udp_disable();
 	}
 
 	return FALSE;

@@ -933,8 +933,10 @@ node_init(void)
 void
 node_post_init(void)
 {
-	if (enable_udp)
+	if (enable_udp) {
+		node_udp_enable();
 		node_udp_gui_show();
+	}
 }
 
 /**
@@ -4320,7 +4322,6 @@ static gnutella_node_t *
 node_udp_create(void)
 {
 	gnutella_node_t *n;
-	txdrv_t *tx;
 
 	n = (struct gnutella_node *) walloc0(sizeof(struct gnutella_node));
 
@@ -4341,10 +4342,36 @@ node_udp_create(void)
 	n->up_date = start_stamp;
 	n->connect_date = start_stamp;
 
+	return n;
+}
+
+/**
+ * Enable UDP transmission via pseudo node.
+ */
+void
+node_udp_enable(void)
+{
+	gnutella_node_t *n = udp_node;
+	txdrv_t *tx;
+
+	g_assert(n->outq == NULL);
+
 	tx = tx_make(n, tx_dgram_get_ops(), 0);		/* Cannot fail */
 	n->outq = mq_udp_make(node_sendqueue_size, n, tx);
+}
 
-	return n;
+/**
+ * Disable UDP transmission via pseudo node.
+ */
+void
+node_udp_disable(void)
+{
+	gnutella_node_t *n = udp_node;
+
+	g_assert(n->outq != NULL);
+
+	mq_free(n->outq);
+	n->outq = NULL;
 }
 
 /**
