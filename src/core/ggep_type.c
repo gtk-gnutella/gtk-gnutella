@@ -48,7 +48,7 @@ RCSID("$Id$");
 ggept_status_t
 ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len)
 {
-	gchar tmp[512];
+	const gchar *payload;
 	gint tlen;
 
 	g_assert(exv->ext_type == EXT_GGEP);
@@ -61,7 +61,7 @@ ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len)
 	 * first 20 bytes of the binary bitprint is actually the SHA1.
 	 */
 
-	tlen = ggep_decode_into(exv, tmp, sizeof(tmp));
+	tlen = ext_paylen(exv);
 
 #define TIGER_RAW_SIZE	24		/* XXX temporary, until we implement tiger */
 
@@ -71,16 +71,18 @@ ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len)
 	if (tlen <= 1)
 		return GGEP_INVALID;			/* Can't be a valid "H" payload */
 
-	if (tmp[0] == GGEP_H_SHA1) {
+	payload = ext_payload(exv);
+
+	if (payload[0] == GGEP_H_SHA1) {
 		if (tlen != (SHA1_RAW_SIZE + 1))
 			return GGEP_INVALID;			/* Size is not right */
-	} else if (tmp[0] == GGEP_H_BITPRINT) {
+	} else if (payload[0] == GGEP_H_BITPRINT) {
 		if (tlen != (SHA1_RAW_SIZE + TIGER_RAW_SIZE + 1))
 			return GGEP_INVALID;			/* Size is not right */
 	} else
 		return GGEP_NOT_FOUND;
 
-	memcpy(buf, &tmp[1], SHA1_RAW_SIZE);
+	memcpy(buf, &payload[1], SHA1_RAW_SIZE);
 
 	return GGEP_OK;
 }
@@ -91,17 +93,19 @@ ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len)
 ggept_status_t
 ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 {
-	gchar tmp[16];
-	gchar *p = tmp;
+	const gchar *payload;
+	const gchar *p;
 	gint tlen;
 
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_GTKGV1);
 
-	tlen = ggep_decode_into(exv, tmp, sizeof(tmp));
+	tlen = ext_paylen(exv);
 
 	if (tlen != 12)
 		return GGEP_INVALID;
+
+	payload = p = ext_payload(exv);
 
 	info->major = *p++;
 	info->minor = *p++;
@@ -113,7 +117,7 @@ ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 	READ_GUINT32_BE(p, info->start);
 	p += 4;
 
-	g_assert(p - tmp == 12);
+	g_assert(p - payload == 12);
 
 	return GGEP_OK;
 }
@@ -130,8 +134,7 @@ ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
 ggept_status_t
 ggept_alt_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 {
-	gchar tmp[512];		/* Account for 85 alt-locs -- more than enough! */
-	gchar *p = tmp;
+	const gchar *p;
 	gint tlen;
 	gint cnt;
 	struct gnutella_host *vec;
@@ -141,13 +144,15 @@ ggept_alt_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_ALT);
 
-	tlen = ggep_decode_into(exv, tmp, sizeof(tmp));
+	tlen = ext_paylen(exv);
 
 	if (tlen <= 0)
 		return GGEP_INVALID;
 
 	if (tlen % 6 != 0)
 		return GGEP_INVALID;
+
+	p = ext_payload(exv);
 
 	cnt = tlen / 6;
 	vec = walloc(cnt * sizeof(struct gnutella_host));
@@ -177,8 +182,7 @@ ggept_alt_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 ggept_status_t
 ggept_push_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 {
-	gchar tmp[512];		/* Account for 85 entries -- more than enough! */
-	gchar *p = tmp;
+	const gchar *p;
 	gint tlen;
 	gint cnt;
 	struct gnutella_host *vec;
@@ -188,13 +192,15 @@ ggept_push_extract(extvec_t *exv, struct gnutella_host **hvec, gint *hvcnt)
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_PUSH);
 
-	tlen = ggep_decode_into(exv, tmp, sizeof(tmp));
+	tlen = ext_paylen(exv);
 
 	if (tlen <= 0)
 		return GGEP_INVALID;
 
 	if (tlen % 6 != 0)
 		return GGEP_INVALID;
+
+	p = ext_payload(exv);
 
 	cnt = tlen / 6;
 	vec = walloc(cnt * sizeof(struct gnutella_host));
@@ -221,22 +227,28 @@ ggept_status_t
 ggept_hname_extract(extvec_t *exv, gchar *buf, gint len)
 {
 	gint tlen;
+	gint slen;
+	const gchar *payload;
 
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_HNAME);
-	g_assert(len >= SHA1_RAW_SIZE);
 
 	/*
 	 * Leave out one character at the end to be able to store the trailing
 	 * NUL, which is not included in the extension.
 	 */
 
-	tlen = ggep_decode_into(exv, buf, len - 1);
+	tlen = ext_paylen(exv);
 
 	if (tlen <= 0)
 		return GGEP_INVALID;
 
-	buf[tlen] = '\0';
+	payload = ext_payload(exv);
+	slen = MIN(tlen, len - 1);
+
+	memcpy(buf, payload, slen);
+
+	buf[slen] = '\0';
 
 	return GGEP_OK;
 }
@@ -249,18 +261,21 @@ ggept_lf_extract(extvec_t *exv, guint64 *filesize)
 {
 	guint64 fs, b;
 	gint i, j, tlen;
-	guint8 buf[sizeof(guint64)];
+	const gchar *payload;
 
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_LF);
 	
-	tlen = ggep_decode_into(exv, buf, sizeof buf);
-	if (tlen < 1 || tlen > (int) sizeof buf)
+	tlen = ext_paylen(exv);
+
+	if (tlen < 1 || tlen > 8)
 		return GGEP_INVALID;
+
+	payload = ext_payload(exv);
 
 	fs = j = i = 0;
 	do {
-		b = buf[i];
+		b = payload[i];
 		fs |= b << j;
 		j += 8;
 	} while (++i < tlen);
@@ -301,18 +316,21 @@ ggept_du_extract(extvec_t *exv, guint32 *uptime)
 {
 	guint32 up, b;
 	gint i, j, tlen;
-	guint8 buf[sizeof(guint32)];
+	const gchar *payload;
 
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_DU);
 	
-	tlen = ggep_decode_into(exv, buf, sizeof buf);
-	if (tlen < 1 || tlen > (int) sizeof buf)
+	tlen = ext_paylen(exv);
+
+	if (tlen < 1 || tlen > 4)
 		return GGEP_INVALID;
+
+	payload = ext_payload(exv);
 
 	up = j = i = 0;
 	do {
-		b = buf[i];
+		b = payload[i];
 		up |= b << j;
 		j += 8;
 	} while (++i < tlen);

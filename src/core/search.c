@@ -580,6 +580,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 
 			g_assert(taglen > 0);
 
+			ext_prepare(exv, MAX_EXTVEC);
 			exvcnt = ext_parse(tag, taglen, exv, MAX_EXTVEC);
 
 			if (exvcnt == MAX_EXTVEC) {
@@ -607,7 +608,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 				gchar sha1_digest[SHA1_RAW_SIZE];
 				ggept_status_t ret;
 				gboolean unknown = TRUE;
-				gint urnlen;
+				gint paylen;
+				const gchar *payload;
 
 				switch (e->ext_token) {
 				case EXT_T_URN_BITPRINT:	/* first 32 chars is the SHA1 */
@@ -615,12 +617,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 					/* FALLTHROUGH */
 				case EXT_T_URN_SHA1:		/* SHA1 URN, the HUGE way */
 					has_hash = TRUE;
-					urnlen = e->ext_paylen;
+					paylen = ext_paylen(e);
 					if (e->ext_token == EXT_T_URN_BITPRINT)
-						urnlen = MIN(urnlen, SHA1_BASE32_SIZE);
+						paylen = MIN(paylen, SHA1_BASE32_SIZE);
 					if (
-						huge_sha1_extract32(e->ext_payload,
-								urnlen, sha1_digest, &n->header, TRUE)
+						huge_sha1_extract32(ext_payload(e),
+								paylen, sha1_digest, &n->header, TRUE)
 					) {
 						if (!validate_only) {
 							if (rc->sha1 != NULL) {
@@ -633,21 +635,23 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 						sha1_errors++;
 					break;
 				case EXT_T_GGEP_u:			/* HUGE URN, wihtout leading urn: */
+					paylen = ext_paylen(e);
+					payload = ext_payload(e);
 					if (
-						e->ext_paylen >= 9 &&
-						(0 == strncasecmp(e->ext_payload, "sha1:", 5) ||
-						 0 == strncasecmp(e->ext_payload, "bitprint:", 9))
+						paylen >= 9 &&
+						(0 == strncasecmp(payload, "sha1:", 5) ||
+						 0 == strncasecmp(payload, "bitprint:", 9))
 					) {
-						gchar *payload;
+						gchar *buf;
 
 						has_hash = TRUE;
 
 						/* Must NUL-terminate the payload first */
-						payload = walloc(e->ext_paylen + 1);
-						memcpy(payload, e->ext_payload, e->ext_paylen);
-						payload[e->ext_paylen] = '\0';
+						buf = walloc(paylen + 1);
+						memcpy(buf, payload, paylen);
+						buf[paylen] = '\0';
 
-						if (urn_get_sha1_no_prefix(payload, sha1_digest)) {
+						if (urn_get_sha1_no_prefix(buf, sha1_digest)) {
 							if (huge_improbable_sha1(sha1_digest, SHA1_RAW_SIZE))
 								sha1_errors++;
 							else if (!validate_only) {
@@ -659,7 +663,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 							}
 						} else
 							sha1_errors++;
-						wfree(payload, e->ext_paylen + 1);
+						wfree(buf, paylen + 1);
 					}
 					break;
 				case EXT_T_GGEP_H:			/* Expect SHA1 value only */
@@ -728,22 +732,33 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 				case EXT_T_UNKNOWN:
 					if (
 						!validate_only &&
-						e->ext_paylen &&
+						ext_paylen(e) &&
 						(!unknown || ext_has_ascii_word(e))
 					) {
-						gchar *p = (gchar *) e->ext_payload + e->ext_paylen;
-						gchar c = *p;
-
 						if (info->len)
 							g_string_append(info, "; ");
 
-						*p = '\0';
-						g_string_append(info, e->ext_payload);
-						*p = c;
+#ifdef USE_GLIB1
+						{
+							gint plen = ext_paylen(e);
+							const gchar *p = ext_payload(e);
+
+							while (plen--)
+								g_string_append_c(info, *p++);
+						}
+#else
+						g_string_append_len(info,
+							ext_payload(e), ext_paylen(e));
+#endif
 					}
+					break;
+				default:
 					break;
 				}
 			}
+
+			if (exvcnt)
+				ext_reset(exv, MAX_EXTVEC);
 
 			if (!validate_only && info->len)
 				rc->tag = atom_str_get(info->str);
@@ -930,8 +945,10 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 			gint i;
 			struct ggep_gtkgv1 info;
 
-			if (privlen > 0)
+			if (privlen > 0) {
+				ext_prepare(exv, MAX_EXTVEC);
 				exvcnt = ext_parse(priv, privlen, exv, MAX_EXTVEC);
+			}
 
 			if (exvcnt && search_debug > 2) {
 				printf("Query hit with trailer GGEP extensions:\n");
@@ -1032,6 +1049,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 					gmsg_infostr(&n->header), vendor ? vendor : "????", exvcnt);
 				ext_dump(stdout, exv, exvcnt, "> ", "\n", TRUE);
 			}
+
+			if (exvcnt)
+				ext_reset(exv, MAX_EXTVEC);
 		}
 
 		if (search_debug) {

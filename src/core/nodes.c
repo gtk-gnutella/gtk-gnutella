@@ -5370,6 +5370,7 @@ dropped:
 reset_header:
 	n->have_header = FALSE;
 	n->pos = 0;
+	ext_reset(n->extvec, n->extcount);
 	n->extcount = 0;
 
 clean_dest:

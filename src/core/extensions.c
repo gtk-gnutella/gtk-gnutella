@@ -34,9 +34,81 @@ RCSID("$Id$");
 
 #include "lib/atoms.h"
 #include "lib/misc.h"
+#include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define HUGE_FS		'\x1c'		/* Field separator (HUGE) */
+
+#define GGEP_MAXLEN	65535		/* Maximum decompressed length */
+#define GGEP_GROW	512			/* Minimum chunk growth when resizing */
+
+/*
+ * An extension descriptor.
+ *
+ * The extension block is structured thustly:
+ *
+ *    <.................len.......................>
+ *    <..headlen.><..........paylen...............>
+ *    +-----------+-------------------------------+
+ *    |   header  |      extension payload        |
+ *    +-----------+-------------------------------+
+ *    ^           ^
+ *    base        payload
+ *
+ * The <headlen> part is simply <len> - <paylen> so it is not stored.
+ * Likewise, we store only the beginning of the payload, the base can be
+ * computed if needed.
+ *
+ * All those pointers refer DIRECTLY to the message we received, so naturally
+ * one MUST NOT alter the data we can read or we would corrupt the messages
+ * before forwarding them.
+ *
+ * There is a slight complication introduced with GGEP extensions, since the
+ * data there can be COBS encoded, and even deflated.  Therefore, reading
+ * directly data from ext_phys_payload could yield compressed data, not
+ * something really usable.
+ *
+ * Therefore, the extension structure is mostly private, and routines are
+ * provided to access the data.  Decompression and decoding of COBS is lazily
+ * performed when they wish to access the extension data.
+ *
+ * The ext_phys_xxx fields refer to the physical information about the
+ * extension.  The ext_xxx() routines allow access to the virtual information
+ * after decompression and COBS decoding.  Naturally, if the extension is
+ * not compressed nor COBS-encoded, the ext_xxx() routine will return the
+ * physical data.
+ *
+ * The structure here refers to the opaque data that is dynamically allocated
+ * each time a new extension is found.
+ */
+typedef struct extdesc {
+	gchar *ext_phys_payload;	/* Start of payload buffer */
+	gchar *ext_payload;			/* "virtual" payload */
+	guint16 ext_phys_len;		/* Extension length (header + payload) */
+	guint16 ext_phys_paylen;	/* Extension payload length */
+	guint16 ext_paylen;			/* "virtual" payload length */
+	guint16 ext_rpaylen;		/* Length of buffer for "virtual" payload */
+
+	union {
+		struct {
+			gboolean extu_cobs;			/* Payload is COBS-encoded */
+			gboolean extu_deflate;		/* Payload is deflated */
+			const gchar *extu_id;		/* Extension ID */
+		} extu_ggep;
+	} ext_u;
+
+} extdesc_t;
+
+#define ext_phys_headlen(d)	((d)->ext_phys_len - (d)->ext_phys_paylen)
+#define ext_phys_base(d)	((d)->ext_phys_payload - ext_phys_headlen(d))
+
+/* 
+ * Union access shortcuts.
+ */
+
+#define ext_ggep_cobs		ext_u.extu_ggep.extu_cobs
+#define ext_ggep_deflate	ext_u.extu_ggep.extu_deflate
+#define ext_ggep_id			ext_u.extu_ggep.extu_id
 
 static const gchar * const extype[] = {
 	"UNKNOWN",					/* EXT_UNKNOWN */
@@ -52,7 +124,7 @@ static const gchar * const extype[] = {
 
 struct rwtable {			/* Reserved word description */
 	const gchar *rw_name;	/* Representation */
-	gint rw_token;			/* Token value */
+	ext_token_t rw_token;	/* Token value */
 };
 
 static const struct rwtable urntable[] =	/* URN name table (sorted) */
@@ -97,7 +169,7 @@ static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
  * @return the keyword token value upon success, EXT_T_UNKNOWN if not found.
  * If keyword was found, its static shared string is returned in `retkw'.
  */
-static gint
+static ext_token_t
 rw_screen(gboolean case_sensitive,
 	const struct rwtable *low, const struct rwtable *high,
 	const gchar *word, const gchar **retkw)
@@ -129,7 +201,7 @@ rw_screen(gboolean case_sensitive,
  * @return the GGEP token value upon success, EXT_T_UNKNOWN if not found.
  * If keyword was found, its static shared string is returned in `retkw'.
  */
-static gint
+static ext_token_t
 rw_ggep_screen(gchar *word, const gchar **retkw)
 {
 	return rw_screen(TRUE, ggeptable, END(ggeptable), word, retkw);
@@ -139,7 +211,7 @@ rw_ggep_screen(gchar *word, const gchar **retkw)
  * @return the URN token value upon success, EXT_T_UNKNOWN if not found.
  * If keyword was found, its static shared string is returned in `retkw'.
  */
-static gint
+static ext_token_t
 rw_urn_screen(gchar *word, const gchar **retkw)
 {
 	return rw_screen(FALSE, urntable, END(urntable), word, retkw);
@@ -242,6 +314,9 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 		gchar *ip = id;
 		gboolean length_ended = FALSE;
 		const gchar *name;
+		extdesc_t *d;
+
+		g_assert(exv->opaque == NULL);
 
 		/*
 		 * First byte is GGEP flags.
@@ -312,14 +387,23 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 		 * OK, at this point we have validated the GGEP header.
 		 */
 
-		exv->ext_payload = p;
-		exv->ext_paylen = data_length;
-		exv->ext_len = (p - lastp) + data_length;
-		exv->ext_type = EXT_GGEP;
-		exv->ext_ggep_cobs = flags & GGEP_F_COBS;
-		exv->ext_ggep_deflate = flags & GGEP_F_DEFLATE;
+		d = walloc(sizeof(*d));
 
-		g_assert(ext_headlen(exv) >= 0);
+		d->ext_phys_payload = p;
+		d->ext_phys_paylen = data_length;
+		d->ext_phys_len = (p - lastp) + data_length;
+		d->ext_ggep_cobs = flags & GGEP_F_COBS;
+		d->ext_ggep_deflate = flags & GGEP_F_DEFLATE;
+
+		if (0 == (flags & (GGEP_F_COBS|GGEP_F_DEFLATE))) {
+			d->ext_payload = d->ext_phys_payload;
+			d->ext_paylen = d->ext_phys_paylen;
+		} else
+			d->ext_payload = NULL;		/* Will lazily compute, if accessed */
+
+		exv->opaque = d;
+
+		g_assert(ext_phys_headlen(d) >= 0);
 
 		/*
 		 * Look whether we know about this extension.
@@ -328,13 +412,14 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 		 * and debugging purposes, save the name away, once.
 		 */
 
+		exv->ext_type = EXT_GGEP;
 		exv->ext_token = rw_ggep_screen(id, &name);
 		exv->ext_name = name;
 
 		if (name != NULL)
-			exv->ext_ggep_id = name;
+			d->ext_ggep_id = name;
 		else
-			exv->ext_ggep_id = ext_name_atom(id);
+			d->ext_ggep_id = ext_name_atom(id);
 
 		/*
 		 * One more entry, prepare next iteration.
@@ -369,12 +454,14 @@ ext_huge_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	gchar *end = p + len;
 	gchar *lastp = p;				/* Last parsed point */
 	gchar *name_start;
-	gint token;
+	ext_token_t token;
 	gchar *payload_start = NULL;
 	gint data_length = 0;
 	const gchar *name = NULL;
+	extdesc_t *d;
 
 	g_assert(exvcnt > 0);
+	g_assert(exv->opaque == NULL);
 
 	/*
 	 * Make sure we can at least read "urn:", i.e. that we have 4 chars.
@@ -450,15 +537,21 @@ ext_huge_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 found:
 	g_assert(payload_start);
 
-	exv->ext_payload = payload_start;
-	exv->ext_paylen = data_length;
-	exv->ext_len = (payload_start - lastp) + data_length;
+	d = walloc(sizeof(*d));
+
+	d->ext_phys_payload = payload_start;
+	d->ext_phys_paylen = data_length;
+	d->ext_phys_len = (payload_start - lastp) + data_length;
+	d->ext_payload = d->ext_phys_payload;
+	d->ext_paylen = d->ext_phys_paylen;
+
+	exv->opaque = d;
 	exv->ext_type = EXT_HUGE;
 	exv->ext_name = name;
 	exv->ext_token = token;
 
-	g_assert(ext_headlen(exv) >= 0);
-	g_assert(p - lastp == exv->ext_len);
+	g_assert(ext_phys_headlen(d) >= 0);
+	g_assert(p - lastp == d->ext_phys_len);
 
 	*retp = p;	/* Points to first byte after what we parsed */
 
@@ -474,8 +567,10 @@ ext_xml_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	gchar *p = *retp;
 	gchar *end = p + len;
 	gchar *lastp = p;				/* Last parsed point */
+	extdesc_t *d;
 
 	g_assert(exvcnt > 0);
+	g_assert(exv->opaque == NULL);
 
 	while (p < end) {
 		guchar c = *p++;
@@ -489,13 +584,19 @@ ext_xml_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	 * We don't analyze the XML, encapsulate as one big opaque chunk.
 	 */
 
-	exv->ext_payload = lastp;
-	exv->ext_len = exv->ext_paylen = p - lastp;
+	d = walloc(sizeof(*d));
+
+	d->ext_phys_payload = lastp;
+	d->ext_phys_len = d->ext_phys_paylen = p - lastp;
+	d->ext_payload = d->ext_phys_payload;
+	d->ext_paylen = d->ext_phys_paylen;
+
+	exv->opaque = d;
 	exv->ext_type = EXT_XML;
 	exv->ext_name = NULL;
 	exv->ext_token = EXT_T_XML;
 
-	g_assert(p - lastp == exv->ext_len);
+	g_assert(p - lastp == d->ext_phys_len);
 
 	*retp = p;			/* Points to first byte after what we parsed */
 
@@ -515,8 +616,10 @@ ext_unknown_parse(gchar **retp, gint len, extvec_t *exv,
 	gchar *p = *retp;
 	gchar *end = p + len;
 	gchar *lastp = p;				/* Last parsed point */
+	extdesc_t *d;
 
 	g_assert(exvcnt > 0);
+	g_assert(exv->opaque == NULL);
 
 	/*
 	 * Try to resync on a NUL byte, the HUGE_FS separator, "urn:" or what
@@ -547,13 +650,19 @@ ext_unknown_parse(gchar **retp, gint len, extvec_t *exv,
 	 * Encapsulate as one big opaque chunk.
 	 */
 
-	exv->ext_payload = lastp;
-	exv->ext_len = exv->ext_paylen = p - lastp;
+	d = walloc(sizeof(*d));
+
+	d->ext_phys_payload = lastp;
+	d->ext_phys_len = d->ext_phys_paylen = p - lastp;
+	d->ext_payload = d->ext_phys_payload;
+	d->ext_paylen = d->ext_phys_paylen;
+
+	exv->opaque = d;
 	exv->ext_type = EXT_UNKNOWN;
 	exv->ext_name = NULL;
 	exv->ext_token = EXT_T_UNKNOWN;
 
-	g_assert(p - lastp == exv->ext_len);
+	g_assert(p - lastp == d->ext_phys_len);
 
 	*retp = p;			/* Points to first byte after what we parsed */
 
@@ -574,8 +683,10 @@ ext_none_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	gchar *p = *retp;
 	gchar *end = p + len;
 	gchar *lastp = p;				/* Last parsed point */
+	extdesc_t *d;
 
 	g_assert(exvcnt > 0);
+	g_assert(exv->opaque == NULL);
 
 	while (p < end) {
 		guchar c = *p++;
@@ -597,13 +708,19 @@ ext_none_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	 * Encapsulate as one big opaque chunk.
 	 */
 
-	exv->ext_payload = lastp;
-	exv->ext_len = exv->ext_paylen = p - lastp;
+	d = walloc(sizeof(*d));
+
+	d->ext_phys_payload = lastp;
+	d->ext_phys_len = d->ext_phys_paylen = p - lastp;
+	d->ext_payload = d->ext_phys_payload;
+	d->ext_paylen = d->ext_phys_paylen;
+
+	exv->opaque = d;
 	exv->ext_type = EXT_NONE;
 	exv->ext_name = NULL;
 	exv->ext_token = EXT_T_OVERHEAD;
 
-	g_assert(p - lastp == exv->ext_len);
+	g_assert(p - lastp == d->ext_phys_len);
 
 	*retp = p;			/* Points to first byte after what we parsed */
 
@@ -621,12 +738,17 @@ ext_merge_adjacent(extvec_t *exv, extvec_t *next)
 	gchar *nend;
 	gchar *nbase;
 	guint16 added;
+	extdesc_t *d = exv->opaque;
+	extdesc_t *nd = next->opaque;
 
-	end = exv->ext_payload + exv->ext_paylen;
-	nbase = ext_base(next);
-	nend = next->ext_payload + next->ext_paylen;
+	g_assert(exv->opaque != NULL);
+	g_assert(next->opaque != NULL);
 
-	g_assert(nbase + next->ext_len == nend);
+	end = d->ext_phys_payload + d->ext_phys_paylen;
+	nbase = ext_phys_base(nd);
+	nend = nd->ext_phys_payload + nd->ext_phys_paylen;
+
+	g_assert(nbase + nd->ext_phys_len == nend);
 	g_assert(nend > end);
 
 	/*
@@ -643,8 +765,25 @@ ext_merge_adjacent(extvec_t *exv, extvec_t *next)
 	 * we catenate `next' at the tail of `exv'.
 	 */
 
-	exv->ext_len += added;
-	exv->ext_paylen += added;
+	d->ext_phys_len += added;
+	d->ext_phys_paylen += added;
+
+	if (d->ext_payload != NULL) {
+		g_assert(d->ext_payload == d->ext_phys_payload);
+
+		d->ext_paylen += added;
+	}
+
+	/*
+	 * Get rid of the `next' opaque descriptor.
+	 * We should not have computed any "virtual" payload at this point.
+	 */
+
+	g_assert(
+		nd->ext_payload == NULL || nd->ext_payload == nd->ext_phys_payload);
+
+	wfree(nd, sizeof(*nd));
+	next->opaque = NULL;
 }
 
 /**
@@ -664,6 +803,7 @@ ext_parse(gchar *buf, gint len, extvec_t *exv, gint exvcnt)
 	g_assert(len > 0);
 	g_assert(exv);
 	g_assert(exvcnt > 0);
+	g_assert(exv->opaque == NULL);
 
 	while (p < end && exvcnt > 0) {
 		gint found = 0;
@@ -763,13 +903,344 @@ out:
 }
 
 /**
+ * Inflate `len' bytes starting at `buf', up to GGEP_MAXLEN bytes.
+ * The payload `name' is given only in case there is an error to report.
+ *
+ * Returns the allocated inflated buffer, and its inflated length in `retlen'.
+ * Returns NULL on error.
+ */
+static gchar *
+ext_ggep_inflate(gchar *buf, gint len, guint16 *retlen, const gchar *name)
+{
+	gchar *result;					/* Inflated buffer */
+	gint rsize;						/* Result's buffer size */
+	z_streamp inz;
+	gint ret;
+	gint inflated;					/* Amount of inflated data so far */
+	gboolean failed = FALSE;
+
+	g_assert(buf);
+	g_assert(len > 0);
+	g_assert(retlen);
+
+	/*
+	 * Allocate decompressor.
+	 */
+
+	inz = walloc(sizeof(*inz));
+
+	inz->zalloc = NULL;
+	inz->zfree = NULL;
+	inz->opaque = NULL;
+
+	ret = inflateInit(inz);
+
+	if (ret != Z_OK) {
+		wfree(inz, sizeof(*inz));
+		g_warning("unable to setup decompressor for GGEP payload \"%s\": %s",
+			name, zlib_strerror(ret));
+		return NULL;
+	}
+
+	rsize = len * 2;				/* Assume a 50% compression ratio */
+	rsize = MIN(rsize, GGEP_MAXLEN);
+	result = g_malloc(rsize);
+
+	/*
+	 * Prepare call to inflate().
+	 */
+
+	inz->next_in = (gpointer) buf;
+	inz->avail_in = len;
+
+	inflated = 0;
+
+	for (;;) {
+		/*
+		 * Resize output buffer if needed.
+		 * Never grow the result buffer to more than MAX_PAYLOAD_LEN bytes.
+		 */
+
+		if (rsize == inflated) {
+			rsize += MAX(len, GGEP_GROW);
+			rsize = MIN(rsize, GGEP_MAXLEN);
+
+			if (rsize == inflated) {		/* Reached maximum size! */
+				g_warning("GGEP payload \"%s\" would be larger than %d bytes",
+					name, GGEP_MAXLEN);
+				failed = TRUE;
+				break;
+			}
+
+			g_assert(rsize > inflated);
+
+			result = g_realloc(result, rsize);
+		}
+
+		inz->next_out = (guchar *) result + inflated;
+		inz->avail_out = rsize - inflated;
+
+		/*
+		 * Decompress data.
+		 */
+
+		ret = inflate(inz, Z_SYNC_FLUSH);
+		inflated += rsize - inflated - inz->avail_out;
+
+		g_assert(inflated <= rsize);
+
+		if (ret == Z_STREAM_END)				/* All done! */
+			break;
+
+		if (ret != Z_OK) {
+			g_warning("decompression of GGEP payload \"%s\" failed: %s",
+				name, zlib_strerror(ret));
+			failed = TRUE;
+			break;
+		}
+	}
+
+	/*
+	 * Dispose of decompressor.
+	 */
+
+	ret = inflateEnd(inz);
+	if (ret != Z_OK)
+		g_warning("while freeing decompressor for GGEP payload \"%s\": %s",
+			name, zlib_strerror(ret));
+
+	wfree(inz, sizeof(*inz));
+
+	/*
+	 * Return NULL on error, fill `retlen' if OK.
+	 */
+
+	if (failed) {
+		G_FREE_NULL(result);
+		return NULL;
+	}
+
+	*retlen = inflated;
+
+	g_assert(*retlen == inflated);	/* Make sure it was not truncated */
+
+	return result;				/* OK, successfully inflated */
+}
+
+/**
+ * Decode the GGEP payload pointed at by `e', allocating a new buffer capable
+ * of holding the decoded data.
+ *
+ * This is performed only when the GGEP payload is either COBS-encoded or
+ * deflated.
+ */
+static void
+ext_ggep_decode(const extvec_t *e)
+{
+	gchar *pbase;					/* Current payload base */
+	gint plen;						/* Curernt payload length */
+	gchar *uncobs = NULL;			/* COBS-decoded buffer */
+	gint uncobs_len = 0;			/* Length of walloc()'ed buffer */
+	gint result;					/* Decoded length */
+	extdesc_t *d;
+
+	g_assert(e);
+	g_assert(e->ext_type == EXT_GGEP);
+	g_assert(e->opaque != NULL);
+
+	d = e->opaque;
+
+	g_assert(d->ext_ggep_cobs || d->ext_ggep_deflate);
+	g_assert(d->ext_payload == NULL);
+
+	pbase = d->ext_phys_payload;
+	plen = d->ext_phys_paylen;
+
+	/*
+	 * COBS decoding must be performed before inflation, if any.
+	 */
+
+	if (d->ext_ggep_cobs) {
+		uncobs = walloc(plen);		/* At worse slightly oversized */
+		uncobs_len = plen;
+
+		if (!d->ext_ggep_deflate) {
+			if (!cobs_decode_into(pbase, plen, uncobs, plen, &result))
+				goto out;
+
+			g_assert(result <= plen);
+
+			d->ext_payload = uncobs;
+			d->ext_paylen = result;
+			d->ext_rpaylen = plen;		/* Signals it was walloc()'ed */
+
+			return;
+		} else {
+			if (!cobs_decode_into(pbase, plen, uncobs, plen, &result))
+				goto out;
+
+			g_assert(result <= plen);
+
+			/*
+			 * Replace current payload base/length with the COBS buffer.
+			 */
+
+			pbase = uncobs;
+			plen = result;
+		}
+
+		/* FALL THROUGH */
+	}
+
+	/*
+	 * Payload is deflated, inflate it.
+	 */
+
+	g_assert(d->ext_ggep_deflate);
+
+	d->ext_rpaylen = 0;			/* Signals it was malloc()'ed */
+	d->ext_payload =
+		ext_ggep_inflate(pbase, plen, &d->ext_paylen, d->ext_ggep_id);
+
+	/* FALL THROUGH */
+out:
+	if (uncobs != NULL)
+		wfree(uncobs, uncobs_len);
+
+	/*
+	 * If something went wrong, allocate a small buffer so that we
+	 * don't go through this whole decoding again.
+	 */
+
+	if (d->ext_payload == NULL) {
+		g_warning("unable to get GGEP \"%s\" payload (%s)",
+			d->ext_ggep_id, 
+			(d->ext_ggep_deflate && d->ext_ggep_cobs) ? "COBS + deflated" :
+			d->ext_ggep_cobs ? "COBS" : "deflated");
+
+		d->ext_rpaylen = 1;		/* Signals it was walloc()'ed */
+		d->ext_paylen = 0;
+		d->ext_payload = walloc(d->ext_rpaylen);
+	}
+}
+
+/**
+ * Returns a pointer to the extension's payload.
+ */
+const gchar *
+ext_payload(const extvec_t *e)
+{
+	extdesc_t *d = e->opaque;
+
+	g_assert(e->opaque != NULL);
+
+	if (d->ext_payload != NULL)
+		return d->ext_payload;
+
+	/*
+	 * GGEP payload is COBS-ed and/or deflated.
+	 */
+
+	ext_ggep_decode(e);
+
+	return d->ext_payload;
+}
+
+/**
+ * Returns a pointer to the extension's payload length.
+ */
+guint16
+ext_paylen(const extvec_t *e)
+{
+	extdesc_t *d = e->opaque;
+
+	g_assert(e->opaque != NULL);
+
+	if (d->ext_payload != NULL)
+		return d->ext_paylen;
+
+	/*
+	 * GGEP payload is COBS-ed and/or deflated.
+	 */
+
+	ext_ggep_decode(e);
+
+	return d->ext_paylen;
+}
+
+/**
+ * Returns a pointer to the extension's header.
+ *
+ * WARNING: the actual "virtual" payload may not be contiguous to the end
+ * of the header: don't read past the ext_headlen() first bytes of the
+ * header.
+ */
+const gchar *
+ext_base(const extvec_t *e)
+{
+	extdesc_t *d = e->opaque;
+
+	g_assert(e->opaque != NULL);
+
+	return ext_phys_base(d);
+}
+
+/**
+ * Returns the length of the extensions's header.
+ */
+guint16
+ext_headlen(const extvec_t *e)
+{
+	extdesc_t *d = e->opaque;
+
+	g_assert(e->opaque != NULL);
+
+	return ext_phys_headlen(d);
+}
+
+/**
+ * Returns the total length of the extension (payload + extension header).
+ */
+guint16
+ext_len(const extvec_t *e)
+{
+	extdesc_t *d = e->opaque;
+	gint headlen;
+
+	g_assert(e->opaque != NULL);
+
+	headlen = ext_phys_headlen(d);
+
+	if (d->ext_payload != NULL)
+		return headlen + d->ext_paylen;
+
+	return headlen + ext_paylen(e);		/* Will decompress / COBS decode */
+}
+
+/**
+ * Returns extension's GGEP ID, or "" if not a GGEP one.
+ */
+const gchar *
+ext_ggep_idname(const extvec_t *e)
+{
+	extdesc_t *d = e->opaque;
+
+	g_assert(e->opaque != NULL);
+
+	if (e->ext_type != EXT_GGEP)
+		return "";
+
+	return d->ext_ggep_id;
+}
+
+/**
  * @return TRUE if extension is printable.
  */
 gboolean
 ext_is_printable(const extvec_t *e)
 {
-	const gchar *p = e->ext_payload;
-	gint len = e->ext_paylen;
+	const gchar *p = ext_payload(e);
+	gint len = ext_paylen(e);
 
 	g_assert(len >= 0);
 	while (len--) {
@@ -787,8 +1258,8 @@ ext_is_printable(const extvec_t *e)
 gboolean
 ext_is_ascii(const extvec_t *e)
 {
-	const gchar *p = e->ext_payload;
-	gint len = e->ext_paylen;
+	const gchar *p = ext_payload(e);
+	gint len = ext_paylen(e);
 
 	g_assert(len >= 0);
 	while (len--) {
@@ -806,8 +1277,8 @@ ext_is_ascii(const extvec_t *e)
 gboolean
 ext_has_ascii_word(const extvec_t *e)
 {
-	const gchar *p = e->ext_payload;
-	gint len = e->ext_paylen;
+	const gchar *p = ext_payload(e);
+	gint len = ext_paylen(e);
 	gboolean has_alnum = FALSE;
 
 	g_assert(len >= 0);
@@ -829,7 +1300,10 @@ static void
 ext_dump_one(FILE *f, const extvec_t *e, const gchar *prefix,
 	const gchar *postfix, gboolean payload)
 {
-	g_assert(e->ext_type <= EXT_MAXTYPE);
+	guint16 paylen;
+
+	g_assert(e->ext_type < EXT_TYPE_COUNT);
+	g_assert(e->opaque != NULL);
 
 	if (prefix)
 		fputs(prefix, f);
@@ -840,29 +1314,33 @@ ext_dump_one(FILE *f, const extvec_t *e, const gchar *prefix,
 	if (e->ext_name)
 		fprintf(f, "\"%s\" ", e->ext_name);
 
-	fprintf(f, "%d byte%s", e->ext_paylen, e->ext_paylen == 1 ? "" : "s");
+	paylen = ext_paylen(e);
 
-	if (e->ext_type == EXT_GGEP)
+	fprintf(f, "%d byte%s", paylen, paylen == 1 ? "" : "s");
+
+	if (e->ext_type == EXT_GGEP) {
+		extdesc_t *d = e->opaque;
 		fprintf(f, " (ID=\"%s\", COBS: %s, deflate: %s)",
-			e->ext_ggep_id,
-			e->ext_ggep_cobs ? "yes" : "no",
-			e->ext_ggep_deflate ? "yes" : "no");
+			d->ext_ggep_id,
+			d->ext_ggep_cobs ? "yes" : "no",
+			d->ext_ggep_deflate ? "yes" : "no");
+	}
 
 	if (postfix)
 		fputs(postfix, f);
 
-	if (payload && e->ext_paylen > 0) {
+	if (payload && paylen > 0) {
 		if (ext_is_printable(e)) {
 			if (prefix)
 				fputs(prefix, f);
 
 			fputs("Payload: ", f);
-			fwrite(e->ext_payload, e->ext_paylen, 1, f);
+			fwrite(ext_payload(e), paylen, 1, f);
 
 			if (postfix)
 				fputs(postfix, f);
 		} else
-			dump_hex(f, "Payload", e->ext_payload, e->ext_paylen);
+			dump_hex(f, "Payload", ext_payload(e), paylen);
 	}
 
 	fflush(f);
@@ -883,6 +1361,45 @@ ext_dump(FILE *fd, const extvec_t *exv, gint exvcnt,
 {
 	while (exvcnt--)
 		ext_dump_one(fd, exv++, prefix, postfix, payload);
+}
+
+/**
+ * Prepare the vector for parsing, by ensuring the `opaque' pointers are
+ * all set to NULL.
+ */
+void
+ext_prepare(extvec_t *exv, gint exvcnt)
+{
+	while (exvcnt--)
+		(exv++)->opaque = NULL;
+}
+
+/**
+ * Reset an extension vector by disposing of the opaque structures
+ * and of any allocated "virtual" payload.
+ */
+void
+ext_reset(extvec_t *exv, gint exvcnt)
+{
+	while (exvcnt--) {
+		extvec_t *e = exv++;
+		extdesc_t *d;
+
+		if (e->opaque == NULL)		/* No more allocated extensions */
+			break;
+
+		d = e->opaque;
+
+		if (d->ext_payload != NULL && d->ext_payload != d->ext_phys_payload) {
+			if (d->ext_rpaylen == 0)
+				g_free(d->ext_payload);
+			else
+				wfree(d->ext_payload, d->ext_rpaylen);
+		}
+
+		wfree(d, sizeof(*d));
+		e->opaque = NULL;
+	}
 }
 
 /***

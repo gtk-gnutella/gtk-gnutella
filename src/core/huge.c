@@ -1011,7 +1011,7 @@ huge_close(void)
  * improbable hashes.
  */
 gboolean
-huge_improbable_sha1(gchar *buf, size_t len)
+huge_improbable_sha1(const gchar *buf, size_t len)
 {
 	size_t i;
 	guchar previous;
@@ -1050,7 +1050,7 @@ huge_improbable_sha1(gchar *buf, size_t len)
  * @return TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
 gboolean
-huge_sha1_extract32(gchar *buf, size_t len, gchar *retval,
+huge_sha1_extract32(const gchar *buf, size_t len, gchar *retval,
 	gpointer header, gboolean check_old)
 {
 	if (len != SHA1_BASE32_SIZE || huge_improbable_sha1(buf, len))

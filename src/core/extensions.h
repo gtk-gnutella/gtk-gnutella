@@ -31,9 +31,54 @@
 #include <glib.h>
 
 /*
- * An extension descriptor.
+ * Known extension types.
+ */
+
+typedef enum ext_type {
+	EXT_UNKNOWN = 0,	/* Unknown extension */
+	EXT_XML,			/* XML extension */
+	EXT_HUGE,			/* Hash/URN Gnutella Extensions */
+	EXT_GGEP,			/* Gnutella Generic Extension Protocol */
+	EXT_NONE,			/* Not really an extension, only overhead */
+	EXT_TYPE_COUNT,
+} ext_type_t;
+
+/*
+ * Extension tokens.
+ */
+
+typedef enum ext_token {
+	EXT_T_UNKNOWN = 0,		/* Unknown */
+	EXT_T_URN_SHA1,			/* urn:sha1: */
+	EXT_T_URN_BITPRINT,		/* urn:bitprint: */
+	EXT_T_URN_EMPTY,		/* urn: */
+	EXT_T_XML,				/* XML payload */
+	EXT_T_GGEP_H,			/* GGEP binary hash value */
+	EXT_T_OVERHEAD,			/* Pure overhead */
+	EXT_T_GGEP_GTKGV1,		/* GTKG version indication #1 */
+	EXT_T_GGEP_ALT,			/* Alternate locations in query hits */
+	EXT_T_GGEP_u,			/* HUGE URN in ASCII */
+	EXT_T_GGEP_T,			/* Textual information in query hits */
+	EXT_T_GGEP_PUSH,		/* Push proxy info, in query hits */
+	EXT_T_GGEP_HNAME,		/* Hostname info, in query hits */
+	EXT_T_GGEP_LF,			/* Large File, in query hits */
+	EXT_T_GGEP_DU,			/* Daily Uptime */
+	EXT_T_GGEP_VC,			/* Vendor Code */
+	EXT_T_GGEP_UP,			/* UltraPeer information */
+	EXT_T_GGEP_LOC,			/* LOCale preferences */
+	EXT_T_GGEP_SCP,			/* Support Cached Pongs, in pings (UHC) */
+	EXT_T_GGEP_IPP,			/* IP:Port, in pongs (UHC) */
+	EXT_T_GGEP_PHC,			/* Packed HostCaches, in pongs (UHC) */
+	EXT_T_GGEP_UDPHC,		/* UDP HostCache, in pongs (UHC) */
+	EXT_T_GGEP_LIME_XML,	/* LimeWire XML metadata, in query hits */
+	EXT_T_GGEP_GUE,			/* GUESS support */
+	EXT_T_TOKEN_COUNT,
+} ext_token_t;
+
+/*
+ * A public extension descriptor.
  *
- * The extension block is structured thustly:
+ * An extension block is structured thustly:
  *
  *    <.................len.......................>
  *    <..headlen.><..........paylen...............>
@@ -43,80 +88,23 @@
  *    ^           ^
  *    base        payload
  *
- * The <headlen> part is simply <len> - <paylen> so it is not stored.
- * Likewise, we store only the beginning of the payload, the base can be
- * computed if needed.
+ * To be able to transparently handle decompression and COBS decoding of GGEP
+ * extensions, the public structure exposes no data fields.  Everything must
+ * be fetched through accessors, which will make COBS and decompression
+ * invisible.
+ *
+ * Each of the fields shown above can be accessed via ext_xxx().
+ * For instance, access to the payload must be made through ext_payload(),
+ * and access to the whole length via ext_len().
  */
 typedef struct extvec {
-	gchar *ext_payload;		/* Start of payload buffer */
 	const gchar *ext_name;	/* Extension name (may be NULL) */
-	gint ext_token;			/* Extension token */
-	guint16 ext_len;		/* Extension length (header + payload) */
-	guint16 ext_paylen;		/* Extension payload length */
-	guint8 ext_type;		/* Extension type */
-
-	union {
-		struct {
-			gboolean extu_cobs;			/* Payload is COBS-encoded */
-			gboolean extu_deflate;		/* Payload is deflated */
-			const gchar *extu_id;		/* Extension ID */
-		} extu_ggep;
-	} ext_u;
-
+	ext_token_t ext_token;	/* Extension token */
+	ext_type_t ext_type;	/* Extension type */
+	gpointer opaque;		/* Internal information */
 } extvec_t;
 
-#define ext_headlen(e)	((e)->ext_len - (e)->ext_paylen)
-#define ext_base(e)		((e)->ext_payload - ext_headlen(e))
-
-/* 
- * Union access shortcuts.
- */
-
-#define ext_ggep_cobs		ext_u.extu_ggep.extu_cobs
-#define ext_ggep_deflate	ext_u.extu_ggep.extu_deflate
-#define ext_ggep_id			ext_u.extu_ggep.extu_id
-
 #define MAX_EXTVEC		32	/* Maximum amount of extensions in vector */
-
-/*
- * Known extension types.
- */
-
-#define EXT_UNKNOWN		0	/* Unknown extension */
-#define EXT_XML			1	/* XML extension */
-#define EXT_HUGE		2	/* Hash/URN Gnutella Extensions */
-#define EXT_GGEP		3	/* Gnutella Generic Extension Protocol */
-#define EXT_NONE		4	/* Not really an extension, only overhead */
-#define EXT_MAXTYPE		4
-
-/*
- * Extension tokens.
- */
-
-#define EXT_T_UNKNOWN			0	/* Unknown */
-#define EXT_T_URN_SHA1			1	/* urn:sha1: */
-#define EXT_T_URN_BITPRINT		2	/* urn:bitprint: */
-#define EXT_T_URN_EMPTY			3	/* urn: */
-#define EXT_T_XML				4	/* XML payload */
-#define EXT_T_GGEP_H			5	/* GGEP binary hash value */
-#define EXT_T_OVERHEAD			6	/* Pure overhead */
-#define EXT_T_GGEP_GTKGV1		7	/* GTKG version indication #1 */
-#define EXT_T_GGEP_ALT			8	/* Alternate locations in query hits */
-#define EXT_T_GGEP_u			9	/* HUGE URN in ASCII */
-#define EXT_T_GGEP_T			10	/* Textual information in query hits */
-#define EXT_T_GGEP_PUSH			11	/* Push proxy info, in query hits */
-#define EXT_T_GGEP_HNAME		12	/* Hostname info, in query hits */
-#define EXT_T_GGEP_LF			13	/* Large File, in query hits */
-#define EXT_T_GGEP_DU			14	/* Daily Uptime */
-#define EXT_T_GGEP_VC			15	/* Vendor Code */
-#define EXT_T_GGEP_UP			16	/* UltraPeer information */
-#define EXT_T_GGEP_LOC			17	/* LOCale preferences */
-#define EXT_T_GGEP_SCP			18	/* Support Cached Pongs, in pings (UHC) */
-#define EXT_T_GGEP_IPP			19	/* IP:Port, in pongs (UHC) */
-#define EXT_T_GGEP_PHC			20	/* Packed HostCaches, in pongs (UHC) */
-#define EXT_T_GGEP_UDPHC		21	/* UDP HostCache, in pongs (UHC) */
-#define EXT_T_GGEP_LIME_XML		22	/* LimeWire XML metadata, in query hits */
-#define EXT_T_GGEP_GUE			23	/* GUESS support */
 
 /*
  * Public interface.
@@ -125,7 +113,9 @@ typedef struct extvec {
 void ext_init(void);
 void ext_close(void);
 
-gint ext_parse(gchar *buf, gint len, extvec_t *exv, gint extcnt);
+void ext_prepare(extvec_t *exv, gint exvcnt);
+gint ext_parse(gchar *buf, gint len, extvec_t *exv, gint exvcnt);
+void ext_reset(extvec_t *exv, gint exvcnt);
 
 gboolean ext_is_printable(const extvec_t *e);
 gboolean ext_is_ascii(const extvec_t *e);
@@ -133,6 +123,16 @@ gboolean ext_has_ascii_word(const extvec_t *e);
 
 void ext_dump(FILE *fd, const extvec_t *extvec, gint extcnt,
 	const gchar *prefix, const gchar *postfix, gboolean payload);
+
+const gchar *ext_payload(const extvec_t *e);
+guint16 ext_paylen(const extvec_t *e);
+const gchar *ext_base(const extvec_t *e);
+guint16 ext_headlen(const extvec_t *e);
+guint16 ext_len(const extvec_t *e);
+const gchar *ext_ggep_idname(const extvec_t *e);
+
+void ext_prepare(extvec_t *exv, gint exvcnt);
+void ext_reset(extvec_t *exv, gint exvcnt);
 
 #endif	/* _core_extensions_h_ */
 

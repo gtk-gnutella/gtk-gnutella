@@ -266,7 +266,14 @@ build_pong_msg(
 			gboolean ok;
 			gchar addr[6];
 
-			ok = ggep_stream_begin(&gs, "IPP", GGEP_W_DEFLATE);
+			/*
+			 * The binary data that makes up IPP does not deflate well.
+			 * The 180 bytes of data for 30 addresses typically end up
+			 * being 175 bytes after compression.  It's not worth the
+			 * pain and the CPU overhead.
+			 */
+
+			ok = ggep_stream_begin(&gs, "IPP", 0);
 
 			for (i = 0; ok && i < hcount; i++) {
 				WRITE_GUINT32_BE(host[i].ip, &addr[0]);
@@ -371,6 +378,7 @@ send_personal_info(struct gnutella_node *n, gboolean control)
 
 		for (i = 0; i < n->extcount; i++) {
 			extvec_t *e = &n->extvec[i];
+			guint16 paylen;
 
 			if (e->ext_token != EXT_T_GGEP_SCP)
 				continue;
@@ -379,8 +387,10 @@ send_personal_info(struct gnutella_node *n, gboolean control)
 			 * Look whether they want leaf slots, ultra slots, or don't care.
 			 */
 
-			if (e->ext_paylen >= 1) {
-				guint8 flags = e->ext_payload[0];
+			paylen = ext_paylen(e);
+
+			if (paylen >= 1) {
+				guint8 flags = ext_payload(e)[0];
 				uhc = (flags & 0x1) ? UHC_ULTRA : UHC_LEAF;
 			} else
 				uhc = UHC_ANY;
@@ -1296,6 +1306,9 @@ pong_extract_metadata(struct gnutella_node *n)
 
 	for (i = 0; i < n->extcount; i++) {
 		extvec_t *e = &n->extvec[i];
+		guint16 paylen;
+		const gchar *payload;
+
 		switch (e->ext_token) {
 		case EXT_T_GGEP_DU:
 			/*
@@ -1319,8 +1332,8 @@ pong_extract_metadata(struct gnutella_node *n)
 
 			ALLOCATE(GUE);
 			meta->guess = 0x1;
-			if (e->ext_paylen >= 1)
-				meta->guess = *e->ext_payload;
+			if (ext_paylen(e) >= 1)
+				meta->guess = *ext_payload(e);
 			break;
 		case EXT_T_GGEP_LOC:
 			/*
@@ -1336,12 +1349,15 @@ pong_extract_metadata(struct gnutella_node *n)
 			 * prefixed by a '_' separator.
 			 */
 
-			if (e->ext_paylen >= 2) {
+			paylen = ext_paylen(e);
+
+			if (paylen >= 2) {
+				payload = ext_payload(e);
 				ALLOCATE(LOC);
-				memcpy(meta->language, e->ext_payload, 2);
+				memcpy(meta->language, payload, 2);
 				meta->country[0] = '\0';		/* Signals no country code */
-				if (e->ext_paylen >= 5 && e->ext_payload[2] == '_')
-					memcpy(meta->country, e->ext_payload + 3, 2);
+				if (paylen >= 5 && payload[2] == '_')
+					memcpy(meta->country, payload + 3, 2);
 			}
 			break;
 		case EXT_T_GGEP_UP:
@@ -1352,11 +1368,14 @@ pong_extract_metadata(struct gnutella_node *n)
 			 * free leaf slots.
 			 */
 
-			if (e->ext_paylen >= 3) {
+			paylen = ext_paylen(e);
+
+			if (paylen >= 3) {
+				payload = ext_payload(e);
 				ALLOCATE(UP);
-				meta->version_up = e->ext_payload[0];
-				meta->up_slots = e->ext_payload[1];
-				meta->leaf_slots = e->ext_payload[2];
+				meta->version_up = payload[0];
+				meta->up_slots = payload[1];
+				meta->leaf_slots = payload[2];
 			}
 			break;
 		case EXT_T_GGEP_VC:
@@ -1364,18 +1383,24 @@ pong_extract_metadata(struct gnutella_node *n)
 			 * Vendor code.
 			 * The 4-letter vendor code, followed by the User-Agent version.
 			 */
-			if (e->ext_paylen >= 4) {
+
+			paylen = ext_paylen(e);
+
+			if (paylen >= 4) {
+				payload = ext_payload(e);
 				ALLOCATE(VC);
-				memcpy(meta->vendor, e->ext_payload, 4);
-				if (e->ext_paylen >= 5)
-					meta->version_ua = e->ext_payload[4];
+				memcpy(meta->vendor, payload, 4);
+				if (paylen >= 5)
+					meta->version_ua = payload[4];
 			}
 			break;
 		default:
-			if (ggep_debug && e->ext_type == EXT_GGEP)
+			if (ggep_debug && e->ext_type == EXT_GGEP) {
+				paylen = ext_paylen(e);
 				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
-					gmsg_infostr(&n->header), e->ext_ggep_id,
-					e->ext_paylen, e->ext_paylen == 1 ? "" : "s");
+					gmsg_infostr(&n->header), ext_ggep_idname(e),
+					paylen, paylen == 1 ? "" : "s");
+			}
 			break;
 		}
 	}

@@ -1568,6 +1568,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		gint extra = n->size - 3 - search_len;		/* Amount of extra data */
 		gint i;
 
+		ext_prepare(exv, MAX_EXTVEC);
 		exvcnt = ext_parse(search + search_len + 1, extra, exv, MAX_EXTVEC);
 
 		if (exvcnt == MAX_EXTVEC) {
@@ -1602,12 +1603,13 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 			if (e->ext_token == EXT_T_URN_SHA1) {
 				gchar *sha1_digest = exv_sha1[exv_sha1cnt].sha1_digest;
+				gint paylen = ext_paylen(e);
 
-				if (e->ext_paylen == 0)
+				if (paylen == 0)
 					continue;				/* A simple "urn:sha1:" */
 
 				if (
-					!huge_sha1_extract32(e->ext_payload, e->ext_paylen,
+					!huge_sha1_extract32(ext_payload(e), paylen,
 						sha1_digest, &n->header, FALSE)
                 ) {
                     gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
@@ -1619,7 +1621,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 				if (dbg > 4)
 					printf("Valid SHA1 #%d in query: %32s\n",
-						exv_sha1cnt, e->ext_payload);
+						exv_sha1cnt, ext_payload(e));
 
 				/*
 				 * Add valid URN query to the list of query hashes, if we
@@ -1638,6 +1640,9 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 		if (exv_sha1cnt)
 			gnet_stats_count_general(GNR_QUERY_SHA1, 1);
+
+		if (exvcnt)
+			ext_reset(exv, MAX_EXTVEC);
 	}
 
     /*

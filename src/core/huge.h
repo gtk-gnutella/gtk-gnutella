@@ -47,8 +47,8 @@ void huge_close(void);		/* Call this when servent is shutdown */
 void request_sha1(struct shared_file *);
 gboolean sha1_is_cached(const struct shared_file *sf);
 
-gboolean huge_improbable_sha1(gchar *buf, size_t len);
-gboolean huge_sha1_extract32(gchar *buf, size_t len, gchar *retval,
+gboolean huge_improbable_sha1(const gchar *buf, size_t len);
+gboolean huge_sha1_extract32(const gchar *buf, size_t len, gchar *retval,
 	gpointer header, gboolean check_old);
 void huge_collect_locations(gchar *sha1, struct header *header,
 	const gchar *vendor);
