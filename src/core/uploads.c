@@ -1531,7 +1531,7 @@ get_file_to_upload_from_index(
 		 *		--RAM, 19/06/2002
 		 */
 
-		huge_collect_locations(digest, header, u->user_agent);
+		huge_collect_locations(digest, header);
 
 		/*
 		 * They can share serveral clones of the same files, i.e. bearing
@@ -1739,7 +1739,7 @@ get_file_to_upload_from_urn(
 	if (!urn_get_http_sha1(hash, digest))
 		goto malformed;
 
-	huge_collect_locations(digest, header, u->user_agent);
+	huge_collect_locations(digest, header);
 
 	sf = shared_file_by_sha1(digest);
 

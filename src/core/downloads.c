@@ -5056,7 +5056,7 @@ check_content_urn(struct download *d, header_t *header)
 	 */
 
 collect_locations:
-	huge_collect_locations(d->sha1, header, download_vendor(d));
+	huge_collect_locations(d->sha1, header);
 
 	return TRUE;
 }

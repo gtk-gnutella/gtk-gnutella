@@ -1114,16 +1114,9 @@ bad:
 /**
  * Parse the "X-Gnutella-Alternate-Location" header if present to learn
  * about other sources for this file.
- *
- * Since 05/10/2003, we also parse the new compact "X-Alt" header which
- * is a more compact representation of alternate locations.  We also remember
- * which vendor gave us X-Alt locations, so that we can emit back X-Alt to
- * them the next time instead of the longer X-Gnutella-Alternate-Location.
- *
- * FIXME: Why ``vendor'' unused then? Fix the comment or remove the parameter.
  */
 void
-huge_collect_locations(gchar *sha1, header_t *header, const gchar *vendor)
+huge_collect_locations(gchar *sha1, header_t *header)
 {
 	gchar *alt = header_get(header, "X-Gnutella-Alternate-Location");
 
