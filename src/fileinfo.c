@@ -909,9 +909,9 @@ static gboolean looks_like_urn(const gchar *filename)
 		idx++;
 		if (isspace(c) || c == '_')
 			break;
-		if (!isalpha(c))
+		if (!isalnum(c))
 			break;
-		if (idx >= SHA1_BASE32_SIZE - 1)
+		if (idx >= SHA1_BASE32_SIZE)
 			return TRUE;
 	}
 
