@@ -420,13 +420,17 @@ settings_ip_changed(guint32 new_ip, guint32 peer_ip)
 	if (!ip_is_valid(new_ip) || !ip_is_valid(peer_ip))
 		return;
 
-	/* Don't accept updates for private addresses from non-private addresses
-	 * and vice-versa. */
+	/*
+	 * Don't accept updates for private addresses from non-private addresses
+	 * and vice-versa.
+	 */
 	if (is_private_ip(new_ip) ^ is_private_ip(peer_ip))
 		return;
 
-	/* Accept updates for private addresses only from peer in the same /16
-	 * network; addresses are in host byte order */
+	/*
+	 * Accept updates for private addresses only from peer in the same /16
+	 * network; addresses are in host byte order.
+	 */
 	if (
 		is_private_ip(new_ip) &&
 		is_private_ip(peer_ip) &&
