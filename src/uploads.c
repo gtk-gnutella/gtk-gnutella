@@ -2034,7 +2034,6 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean is_followup =
 		(u->status == GTA_UL_WAITING || u->status == GTA_UL_PFSP_WAITING);
 	gboolean was_actively_queued = u->status == GTA_UL_QUEUED;
-	gboolean faked = FALSE;
 	gboolean range_unavailable = FALSE;
 	gboolean replacing_stall = FALSE;
 	gchar *token;
@@ -2097,13 +2096,11 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	user_agent = header_get(header, "User-Agent");
 
 	/* Maybe they sent a Server: line, thinking they're a server? */
-	if (user_agent != NULL)
+	if (user_agent == NULL)
 		user_agent = header_get(header, "Server");
 
-	if (user_agent != NULL)
-		faked = !version_check(user_agent, token, u->ip);
-
 	if (u->user_agent == NULL && user_agent != NULL) {
+		gboolean faked = !version_check(user_agent, token, u->ip);
 		if (faked) {
 			gchar *name = g_strdup_printf("!%s", user_agent);
 			u->user_agent = atom_str_get(name);
