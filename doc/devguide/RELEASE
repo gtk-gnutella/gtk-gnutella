@@ -26,48 +26,42 @@ Quick Release Guide
    #define GTA_REVCHAR ""
    #define GTA_RELEASE "19/10/2002"
 
-   Comment out USE_SOURCE_DIR_AS_FALLBACK.
-
 4. Commit ChangeLog and src/common.h with comment:
 
 	"Release 0.91 stable."
 
 5. Update and commit debian/changelog.
 
-6. Update configure.in:
+6. NOTHING.
 
-	AM_INIT_AUTOMAKE(gtk-gnutella, 0.91)
+7. NOTHING.
 
-7. Regenerate all files configuration files:
-
-	./autogen.sh
-
-8. Check which files have changed and commit them:
-
-	cvs diff -u > ~/tmp/xxx
-	cvs commit Makefile.in aclocal.m4 config.h.in configure configure.in
-
-9. Tag whole CVS:
+8. Tag whole CVS:
 
 	cd "top directory"
 	cvs tag V-0-91
 
-10. Make a clean distribution package:
+9. Make a clean distribution package:
 
 	cd "top directory"
-	make -j4 -ki dist
+	makedist -q -c gtk-gnutella-0.92.1
 
-    This will generate file gtk-gnutella-0.91.tar.gz.
+   This will generate a directory gtk-gnutella-0.92.1
 
-11. Unpack the file somewhere, and move to it.
+10. Create the tar.bz2
 
-	cd gtk-gnutella-0.91
+	tar cvf gtk-gnutella-0.92.1.tar gtk-gnutella-0.92.1
+	bzip2 -v9 gtk-gnutella-0.92.1.tar
+
+11. Move into the directory.
+
+	cd gtk-gnutella-0.92.1
 
 12. Build the debian package:
 
 	fakeroot debian/rules binary
 
-	This will generate file ../gtk-gnutella_0.91.0-0_i386.deb
+	This will generate file ../gtk-gnutella_0.92.1-0_i386.deb
 
 13. Convert the file to an RPM package, keeping the same version number:
 
@@ -131,5 +125,7 @@ Quick Release Guide
 	$ cd /home/groups/g/gt/gtk-gnutella
 	$ ./update_homepage.sh
 
-30. That's all folks!
+30. Send a message to gtk-gnutella-announce telling about the release.
+
+31. That's all folks!
 
