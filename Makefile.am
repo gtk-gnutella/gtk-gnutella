@@ -23,6 +23,29 @@
 
 ## Process this file with automake to produce Makefile.in
 
+EXTRA_GTK2 = \
+	src/monitor_gui2.c \
+	src/monitor_cb2.c \
+	src/nodes_gui2.c \
+	src/nodes_cb2.c \
+	src/nodes_cb2.h\
+	src/search_gui2.c \
+	src/search_cb2.c \
+	src/search_cb2.h \
+	src/uploads_gui2.c \
+	src/upload_stats_gui2.c \
+	src/gnet_stats_gui2.c \
+	src/search_stats_gui2.c \
+	src/interface-glade2.c \
+	src/interface-glade2.h \
+	src/support-glade2.c \
+	src/support-glade2.h
+
+
+EXTRA_SHELL = \
+	src/shell.c \
+	src/shell.h
+
 SUBDIRS = src
 EXTRA_DIST = gtk-gnutella.spec	\
 	gwcache.boot \
@@ -34,7 +57,9 @@ EXTRA_DIST = gtk-gnutella.spec	\
 	debian/gtk-gnutella.1		\
 	debian/menu					\
 	debian/rules				\
-	debian/substvars
+	debian/substvars			\
+	$(EXTRA_GTK2) \
+	$(EXTRA_SHELL)
 
 install-data-local:
 	@$(NORMAL_INSTALL)
