@@ -1,4 +1,4 @@
-GTA_NODE_REMOVING/*
+/*
  * $Id$
  *
  * Copyright (c) 2001-2003, Raphael Manfredi
