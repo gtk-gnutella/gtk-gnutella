@@ -2,6 +2,10 @@ This is the stable 0.93.x branch.
 
 # since last version
 
+- (2004.04.10 - RAM)
+ * Will now parse up to 150 hosts in hostfile replies.
+ * Try to not use a bootstrapping cache URL if we can avoid it.
+
 - (2004.03.26 - Richard)
  * Make "purge" really remove file from disk so it doesn't come back
    to the fileinfo database on a restart when it was already partially
