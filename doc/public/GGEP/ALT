@@ -29,7 +29,7 @@ preferred, then the bitprint.  If neither is handed out, then the recipient
 can try the N2R resolver with the supplied URN, as given in the query hit.
 
 The payload is an array of 6-byte entries.  The first 4 bytes encode
-the IP of the server (in little-endian, watch out!), and the remaining
+the IP of the server (in big-endian, as usual), and the remaining
 2 bytes encode the port (in little-endian).
 
 There is no size indication for the array.  The length of the payload
