@@ -147,10 +147,9 @@ void search_init(void)
 	if (search_retrieve_old()) {
        	g_snprintf(stmp_2, sizeof(stmp_2), "%s/%s", config_dir, search_file);
         g_warning(
-            "Found old searches file. Loaded and deleted it.\n"
-            "On exit the searches will be saved in the new XML format");
-   
-        unlink(stmp_2);
+            "Found old searches file. Loaded it.\n"
+            "On exit the searches will be saved in the new XML format\n"
+            "and the old file will be renamed.");
     } else {
         search_retrieve_xml();
     }
@@ -1553,7 +1552,9 @@ void search_matched(search_t *sch, struct results_set *rs)
                 mark ? mark_color : NULL);
         }
 
-        if (use_autodownload) {
+        if (use_autodownload && 
+            (flt_result->props[FILTER_PROP_DISPLAY].state ==
+            FILTER_PROP_STATE_DO)) {
             /* Attempt to autodownload each result if desirable. */
 			autodownload_notify(rc->name, rc->size, rc->index, rs->ip,
 				rs->port, rs->guid, rc->sha1, rs->stamp, need_push);
@@ -1825,6 +1826,22 @@ void search_shutdown(void)
 {
 #ifdef USE_SEARCH_XML
 	search_store_xml();
+    
+  	g_snprintf(stmp_2, sizeof(stmp_2), "%s/%s", config_dir, search_file);
+    if (file_exists(stmp_2)) {
+        gchar filename[1024];
+
+      	g_snprintf(filename, sizeof(filename), "%s.old", stmp_2);
+
+        g_warning(
+            "Found old searches file. The search information has been\n"
+            "stored in the new XML format and the old file is renamed to\n"
+            "%s", filename);
+        if (-1 == rename(stmp_2, filename))
+          	g_warning("could not rename %s as %s: %s\n"
+                "The XML file will not be used unless this problem is resolved",
+                stmp_2, filename, g_strerror(errno));
+    }
 #else
     search_store_old();
 #endif
@@ -1894,6 +1911,7 @@ static void download_selection_of_clist(GtkCList * c)
     gtk_clist_thaw(c);
 
     gui_search_force_update_tab_label(current_search);
+    gui_search_update_items(current_search);
 }
 
 
