@@ -76,11 +76,11 @@
  * Creates a callback function for spinbutton w to change the
  * value of the gboolean v. f is executed afterwards
  */
-#define BIND_SPINBUTTON_CALL(w,v,f)\
+#define BIND_SPINBUTTON_CALL(w,v,m,f)\
     void on_##w##_activate(GtkEditable * editable,\
 						   gpointer user_data)\
     {\
-    v = gtk_spin_button_get_value_as_int(\
+    v = (float)m * gtk_spin_button_get_value_as_float(\
             GTK_SPIN_BUTTON(editable));\
     f;\
     }
@@ -1116,8 +1116,6 @@ void on_entry_queue_regex_activate(GtkEditable *editable,
 
 	g_return_if_fail(regex);
 	
-	//g_snprintf(c_tmp, sizeof(c_tmp), "%s", regex);
-    
     re = g_new(regex_t, 1);
 
     g_return_if_fail(re);
@@ -1133,6 +1131,8 @@ void on_entry_queue_regex_activate(GtkEditable *editable,
         msgid = gui_statusbar_push(scid_queue_remove_regex, buf);
         gui_statusbar_add_timeout(scid_queue_remove_regex, msgid, 15);
     } else {
+        gtk_clist_unselect_all(GTK_CLIST(clist_downloads_queue));
+
         for (i = 0; i < GTK_CLIST(clist_downloads_queue)->rows; i ++) {
 
             d = (struct download *) 
@@ -1161,12 +1161,6 @@ void on_entry_queue_regex_activate(GtkEditable *editable,
     }
 
     gtk_entry_set_text(GTK_ENTRY(entry_queue_regex), "");
-
-    /*
-    download_remove_all_regex
-        (gtk_entry_get_text(GTK_ENTRY(entry_queue_regex)));
-    gtk_entry_set_text(GTK_ENTRY(entry_queue_remove_regex), "");
-    */
 }
 
 void on_checkbutton_queue_regex_case_toggled(GtkToggleButton *togglebutton,
@@ -1422,20 +1416,16 @@ void on_clist_search_stats_resize_column(GtkCList * clist, gint column,
 BIND_SPINBUTTON_CALL(
     spinbutton_config_bps_in,
     input_bandwidth,
-    {
-        input_bandwidth = input_bandwidth * 1024;
-        bsched_set_bandwidth(bws_in, input_bandwidth);
-    }
+    1024,
+    bsched_set_bandwidth(bws_in, input_bandwidth)
 )
 FOCUS_TO_ACTIVATE(spinbutton_config_bps_in)
 
 BIND_SPINBUTTON_CALL(
     spinbutton_config_bps_out,
     output_bandwidth,
-    {
-        output_bandwidth = output_bandwidth * 1024;
-        bsched_set_bandwidth(bws_out, output_bandwidth);
-    }
+    1024,
+    bsched_set_bandwidth(bws_out, output_bandwidth)
 )
 FOCUS_TO_ACTIVATE(spinbutton_config_bps_out)
 
@@ -1882,6 +1872,7 @@ FOCUS_TO_ACTIVATE(entry_config_socks_host)
 BIND_SPINBUTTON_CALL(
     spinbutton_config_proxy_port,
     proxy_port,
+    1,
     NO_FUNC)
 
 /*
