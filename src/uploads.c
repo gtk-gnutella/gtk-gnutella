@@ -2106,6 +2106,17 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 					printf("Overriden slot limit because u/l b/w used at "
 						"%d%% (minimum set to %d%%)\n",
 						bsched_avg_pct(bws.out), ul_usage_min_percentage);
+				
+				if (u->status == GTA_UL_QUEUED) {
+					/*
+					 * Enable bandwith allocation is unknown to PARQ. So it
+					 * could be PARQ made it GTA_UL_QUEUED. However, the
+					 * download will continue anyway. Revert the status to
+					 * GTA_UL_SENDING
+					 * 		-- JA, 19/05/'03  (XXX this is a workaround only)
+					 */
+					u->status = GTA_UL_SENDING;
+				}
 			} else {
 				if (u->status == GTA_UL_QUEUED) {
 					/*
