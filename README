@@ -88,7 +88,7 @@ creates `config.sh' file that saves the results of its tests to speed up
 reconfiguring, reusing your previous values as defaults.  If you don't want to 
 reuse your previous values you can delete them with:
 
-make clobber
+	make clobber
 
 If you don't know how to answer a question, it is generally safe to use the 
 default.  
