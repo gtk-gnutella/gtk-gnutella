@@ -26,6 +26,7 @@
 
 #define T_BEAR	MAKE_CODE('B','E','A','R')
 #define T_CULT	MAKE_CODE('C','U','L','T')
+#define T_FISH	MAKE_CODE('F','I','S','H')
 #define T_GNEW	MAKE_CODE('G','N','E','W')
 #define T_GNOT	MAKE_CODE('G','N','O','T')
 #define T_GNUC	MAKE_CODE('G','N','U','C')
@@ -748,6 +749,7 @@ static gchar *extract_vendor_name(struct results_set * rs)
 	switch (t) {
 	case T_BEAR: vendor = "Bear";			break;
 	case T_CULT: vendor = "Cultiv8r";		break;
+	case T_FISH: vendor = "PEERahna";		break;
 	case T_GNEW: vendor = "Gnewtellium";	break;
 	case T_GNOT: vendor = "Gnotella";		break;
 	case T_GNUC: vendor = "Gnucleus";		break;
@@ -960,6 +962,7 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 			if (rs->trailer[4] == 4)
 				rs->trailer[4] = 2;		/* We ignore XML data size */
 				/* Fall through */
+		case T_FISH:
 		case T_GTKG:
 		case T_BEAR:
 		case T_GNOT:
@@ -1065,6 +1068,9 @@ static void search_gui_update(struct search *sch, struct results_set *rs)
 	GString *vinfo = g_string_sized_new(40);
 	GString *info = g_string_sized_new(80);
 	gchar *vendor;
+	gboolean need_push;			/* Would need a push to get this file? */
+	gboolean skip_records;		/* Shall we skip those records? */
+	extern gboolean is_firewalled;
 
 	vendor = extract_vendor_name(rs);
 
@@ -1081,9 +1087,21 @@ static void search_gui_update(struct search *sch, struct results_set *rs)
 		g_string_append(vinfo, ", <unparsed>");
 	}
 
-	/* Update the GUI */
+	/*
+	 * Update the GUI
+	 */
 
 	gtk_clist_freeze(GTK_CLIST(sch->clist));
+
+	/*
+	 * If we're firewalled, or they don't want to send pushes, then don't
+	 * bother displaying results if they need a push request to succeed.
+	 *		--RAM, 10/03/2002
+	 */
+
+	need_push = (rs->status & ST_FIREWALL) ||
+		!check_valid_host(rs->ip, rs->port);
+	skip_records = (!send_pushes || is_firewalled) && need_push;
 
 	for (l = rs->records; l; l = next) {
 		struct record *rc = (struct record *) l->data;
@@ -1106,10 +1124,10 @@ static void search_gui_update(struct search *sch, struct results_set *rs)
 		 */
 
 		if (
-			search_result_is_dup(sch, rc) ||
+			search_result_is_dup(sch, rc)    ||
+			skip_records                     ||
 			sch->items >= search_max_results ||
-			rc->size == 0 ||
-			(!send_pushes && !check_valid_host(rs->ip, rs->port)) ||
+			rc->size == 0                    ||
 			!filter_record(sch, rc)
 		)
 			continue;
