@@ -40,45 +40,6 @@ static gchar tmpstr[4096];
  *** Private functions
  ***/
 
-static gint search_results_compare_func
-    (GtkTreeView * tree_view, gconstpointer ptr1, gconstpointer ptr2)
-{
-/*
-	record_t *s1 = (record_t *) ((GtkCListRow *) ptr1)->data;
-	record_t *s2 = (record_t *) ((GtkCListRow *) ptr2)->data;
-
-	return search_gui_compare_records(clist->sort_column, s1, s2);*/
-	return 1;
-}
-
-static gint rec_name_eq(gconstpointer ptr1, gconstpointer ptr2)
-{ 
-    gint result;
-
-    result = g_str_equal(
-        ((record_t *)ptr1)->name, 
-        ((record_t *)ptr2)->name) ? 0 : 1;
-
-    printf("[%s] == [%s] -> %d\n",
-        ((record_t *)ptr1)->name, ((record_t *)ptr2)->name, result);
-
-    return result;
-}
-
-static gint rec_sha1_eq(gconstpointer ptr1, gconstpointer ptr2)
-{ 
-	guchar *s1 = ((record_t *)ptr1)->sha1; 
-    guchar *s2 = ((record_t *)ptr2)->sha1; 
-
-    if (s1 == s2)
-        return 0;
-
-    if (s1 == NULL || s2 == NULL)
-        return 1;
-
-    return memcmp(s1, s2, SHA1_RAW_SIZE);
-}
-
 static void add_drop_sha1_filter(
 	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
 {
