@@ -35,7 +35,6 @@
 #include "ggep.h"
 
 #define HUGE_FS		0x1c		/* Field separator (HUGE) */
-#define GGEP_MAGIC	0xc3		/* GGEP extension prefix */
 
 static gchar *extype[] = {
 	"UNKNOWN",					/* EXT_UNKNOWN */
