@@ -53,25 +53,6 @@ RCSID("$Id$");
  * There can be up to 2^5 = 32 keys per version.
  */
 
-static const gchar *keys_092u[] = {
-	"0a8b f26f 57a1 aaac 2db3 c66c 9f7d 0b17",
-	"b59c 9807 a77c c40f c278 daa3 2389 450d",
-	"746f 28cc 8b35 100a f5c4 da9f 9888 06b3",
-	"cf94 3375 b81d bd67 abf7 85c8 8a1e cbad",
-	"165e 0fb4 c08a b367 c970 9895 0818 0c1b",
-	"0920 5d33 c206 948a c2d9 1e07 da78 9661",
-	"7bc9 38b5 2c7f d392 8855 13af 245e 4441",
-	"d43d 6443 65b0 586e c38a 13ba 7515 cfd7",
-	"c208 83af 7b60 bf45 4c15 5fa7 cd58 873f",
-	"5c24 a272 2afc 1961 8af0 cf70 1d52 759b",
-	"3bbf 1e72 8d13 ca96 386d 13ce c2b2 d7c8",
-	"a773 a624 3240 2496 993a 5c18 6d73 16ae",
-	"f3d5 d302 10c5 5c69 17c2 15a5 8f29 effb",
-	"cf78 0a99 abc3 3295 d419 2121 a473 94bb",
-	"559d 7dc9 3c57 276f 0658 d51a dd52 2a77",
-	"8db8 81a9 1dc5 ee73 cdfa 97a1 a516 5cac",
-};
-
 static const gchar *keys_092c[] = {
 	"0d69 54ec e06a 47c4 ec25 cb35 4f3a ec74",
 	"c80f 10cd fbd6 85a9 69ef e724 c519 2997",
@@ -133,6 +114,29 @@ static const gchar *keys_093_1[] = {
 	"ee48 01f0 40d7 e57b fd0d d3be 84f8 fbe8",
 };
 
+static const gchar *keys_095u[] = {
+	"2f46 2dd9 4806 cf8a 9b5c 8aff bcdb 1bcd",
+	"5a70 0e24 4924 15b8 6f99 de62 15b6 ea58",
+	"2cbe fede 70fb bdf6 1e24 19f0 f656 db55",
+	"2b5a 1130 f91f 9c13 9ec3 0d56 6e09 a111",
+	"ff90 7a78 9b24 cb34 71d3 32e5 3541 d5af",
+	"bc2d cb6c 4bd2 c3c6 a3f8 7b33 32cf 2d46",
+	"4234 cc41 ca94 cf18 e8f0 6f7a 0379 13a9",
+	"102a 6c09 a835 454d 2fda f279 a3a2 5d10",
+	"54dd 2ff7 52f2 6bfc 4cc9 1b97 ef05 10e3",
+	"372f 124b 40ef 8812 b418 4dfc 4643 0007",
+	"5cc9 cd6a 5e64 736c 0a13 c900 3508 5136",
+	"0008 6978 d45b 81ae 8b69 dd51 d2ff 8743",
+	"1060 eba1 2ec2 82af 3128 716f 73d1 46d8",
+	"f034 605b 1f54 68c4 5adc 32e3 ff67 358d",
+	"903e 5405 ab52 3b5e 672f 7d89 b4d1 595c",
+	"83f9 b561 2070 9caf 1b7f 0548 4630 36f6",
+	"4680 7381 a8c4 7994 5f22 d8f4 6db5 c89a",
+	"292d 4921 f7bb e0c0 5c13 721f 62af 5670",
+	"144f 1e7c 0249 3217 936e 24b9 c630 3ee1",
+	"969a 39ec 1650 971b 17d2 294b e75c 1872",
+};
+
 /* 
  * Describes the keys to use depending on the version.
  */
@@ -142,10 +146,6 @@ struct tokkey {
 	guint count;		/* Amount of keys defined */
 } token_keys[] = {
 	/* Keep this array sorted by increasing timestamp */
-	{
-		{ 0, 92, 0, 'u', 0, 1045868400 },			/* 22/02/2003 */
-		keys_092u, G_N_ELEMENTS(keys_092u),
-	},
 	{
 		{ 0, 92, 0, 'c', 0, 1053813600 },			/* 25/05/2003 */
 		keys_092c, G_N_ELEMENTS(keys_092c),
@@ -157,6 +157,10 @@ struct tokkey {
 	{
 		{ 0, 93, 1, '\0', 0, 1072566000 },			/* 28/12/2003 */
 		keys_093_1, G_N_ELEMENTS(keys_093_1),
+	},
+	{
+		{ 0, 95, 0, 'u', 0, 1089756000 },			/* 14/07/2004 */
+		keys_095u, G_N_ELEMENTS(keys_095u),
 	},
 };
 
