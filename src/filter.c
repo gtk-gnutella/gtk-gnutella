@@ -2558,3 +2558,85 @@ inline filter_t *filter_get_global_post(void)
 {
     return filter_global_post;
 }
+
+/*
+ * Adds a drop SHA1 rule to specified filter.
+ */
+void filter_add_drop_sha1_rule(record_t *rec, filter_t *filter)
+{
+    rule_t *rule;
+
+    g_assert(rec != NULL);
+    g_assert(filter != NULL);
+
+    rule = filter_new_sha1_rule(rec->sha1, rec->name,
+        filter_get_drop_target(), RULE_FLAG_ACTIVE);
+
+    filter_append_rule(filter, rule);
+}
+
+/*
+ * Adds a drop filename rule to specified filter.
+ */
+void filter_add_drop_name_rule(record_t *rec, filter_t *filter)
+{
+    rule_t *rule;
+
+    g_assert(rec != NULL);
+    g_assert(filter != NULL);
+
+    rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE,
+        filter_get_drop_target(), RULE_FLAG_ACTIVE);
+
+    filter_append_rule(filter, rule);
+}
+
+/*
+ * Adds a drop host rule to specified filter.
+ */
+void filter_add_drop_host_rule(record_t *rec, filter_t *filter)
+{
+    rule_t *rule;
+
+    g_assert(rec != NULL);
+    g_assert(filter != NULL);
+
+    rule = filter_new_ip_rule(rec->results_set->ip, 0xFFFFFFFF,
+        filter_get_drop_target(), RULE_FLAG_ACTIVE);
+
+    filter_append_rule(filter, rule);
+}
+
+/*
+ * Adds a download SHA1 rule to specified filter.
+ */
+void filter_add_download_sha1_rule(record_t *rec, filter_t *filter)
+{
+    g_assert(rec != NULL);
+    g_assert(filter != NULL);
+
+    if (rec->sha1) {
+        rule_t *rule;
+
+        rule = filter_new_sha1_rule(rec->sha1, rec->name,
+            filter_get_download_target(), RULE_FLAG_ACTIVE);
+
+        filter_append_rule(filter, rule);
+    }
+}
+
+/*
+ * Adds a download filename rule to specified filter.
+ */
+void filter_add_download_name_rule(record_t *rec, filter_t *filter)
+{
+    rule_t *rule;
+
+    g_assert(rec != NULL);
+    g_assert(filter != NULL);
+
+    rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE,
+        filter_get_download_target(), RULE_FLAG_ACTIVE);
+
+    filter_append_rule(filter, rule);
+}

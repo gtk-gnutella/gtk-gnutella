@@ -205,4 +205,15 @@ inline filter_t *filter_get_nodownload_target(void);
 inline filter_t *filter_get_return_target(void);
 inline filter_t *filter_get_global_pre(void);
 inline filter_t *filter_get_global_post(void);
+
+/*
+ * Helper functions for adding filters.
+ */
+struct record;
+
+void filter_add_drop_sha1_rule(struct record *rec, filter_t *filter);
+void filter_add_drop_name_rule(struct record *rec, filter_t *filter);
+void filter_add_drop_host_rule(struct record *rec, filter_t *filter);
+void filter_add_download_sha1_rule(struct record *rec, filter_t *filter);
+void filter_add_download_name_rule(struct record *rec, filter_t *filter);
 #endif /* _filter_h_ */
