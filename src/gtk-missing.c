@@ -335,7 +335,7 @@ GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter)
 	GtkTreeIter *copy;
 
 	copy = walloc(sizeof(*copy));
-	memcpy(copy, iter, sizeof(*copy));
+	*copy = *iter;
 	return copy;
 }
 
