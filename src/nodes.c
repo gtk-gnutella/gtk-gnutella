@@ -186,6 +186,7 @@ static void node_bye_all_but_one(
 static void node_set_current_peermode(node_peer_t mode);
 static gboolean node_ip_is_bad(guint32 ip);
 static enum node_bad node_is_bad(struct gnutella_node *n);
+static void node_mark_bad_ip(struct gnutella_node *n);
 
 extern gint guid_eq(gconstpointer a, gconstpointer b);
 
@@ -583,7 +584,7 @@ void node_timer(time_t now)
 					node_real_remove(n);
 					continue;
 				}
-			} else if (NODE_IS_CONNECTING(n) || n->received == 0) {
+			} else if (NODE_IS_CONNECTING(n)) {
 				if (now - n->last_update > node_connecting_timeout)
 					node_remove(n, "Timeout");
 			} else if (n->status == GTA_NODE_SHUTDOWN) {
@@ -593,19 +594,30 @@ void node_timer(time_t now)
 					g_free(reason);
 				}
 			} else if (
-				!NODE_IS_LEAF(n) &&
-				now - n->last_update > node_connected_timeout
+				current_peermode == NODE_P_ULTRA &&
+				NODE_IS_ULTRA(n)
 			) {
-				node_mark_bad(n);
-				node_bye_if_writable(n, 405, "Activity timeout");
-			} else if (
-				!NODE_IS_LEAF(n) &&
-				NODE_IN_TX_FLOW_CONTROL(n) &&
-				now - n->tx_flowc_date > node_tx_flowc_timeout
-			)
-				node_bye(n, 405, "Flow-controlled for too long (%d sec%s)",
-					node_tx_flowc_timeout,
-					node_tx_flowc_timeout == 1 ? "" : "s");
+				/*
+				 * Ultra node connected to another ultra node.
+				 *
+				 * There is no longer any flow-control or activity
+				 * timeout between an ultra node and a leaf, as long
+				 * as they reply to eachother alive pings.
+				 *		--RAM, 11/12/2003
+				 */
+				if (now - n->last_update > node_connected_timeout) {
+					node_mark_bad_ip(n);
+					node_bye_if_writable(n, 405, "Activity timeout");
+				} else if (
+					NODE_IN_TX_FLOW_CONTROL(n) &&
+					now - n->tx_flowc_date > node_tx_flowc_timeout
+				) {
+					node_mark_bad_ip(n);
+					node_bye(n, 405, "Flow-controlled for too long (%d sec%s)",
+						node_tx_flowc_timeout,
+						node_tx_flowc_timeout == 1 ? "" : "s");
+				}
+			}
 		}
 
 		if (n->searchq != NULL)
@@ -4782,7 +4794,7 @@ static void node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	 * message buffer is empty.
 	 */
 
-	n->last_rx = time(NULL);
+	n->last_update = n->last_rx = time(NULL);
 	n->flags |= NODE_F_ESTABLISHED;		/* Since we've got Gnutella data */
 
 	while (n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n)) {
