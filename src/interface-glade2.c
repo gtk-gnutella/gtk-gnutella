@@ -1587,14 +1587,14 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new (_("Raphaël Manfredi"));
+  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new (_("Raphaël Manfredi"));
+  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -3640,6 +3640,9 @@ create_main_window_config_net_tab (void)
                     NULL);
   g_signal_connect ((gpointer) entry_server_hostname, "activate",
                     G_CALLBACK (on_entry_server_hostname_activate),
+                    NULL);
+  g_signal_connect ((gpointer) entry_server_hostname, "focus_out_event",
+                    G_CALLBACK (on_entry_server_hostname_focus_out_event),
                     NULL);
   g_signal_connect ((gpointer) entry_config_proxy_hostname, "activate",
                     G_CALLBACK (on_entry_config_proxy_hostname_activate),

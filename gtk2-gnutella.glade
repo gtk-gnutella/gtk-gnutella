@@ -4476,6 +4476,7 @@ Grace time remaining:</property>
 			      <property name="invisible_char" translatable="yes">*</property>
 			      <property name="activates_default">False</property>
 			      <signal name="activate" handler="on_entry_server_hostname_activate" last_modification_time="Tue, 29 Jun 2004 15:32:06 GMT"/>
+			      <signal name="focus_out_event" handler="on_entry_server_hostname_focus_out_event" last_modification_time="Sat, 07 Aug 2004 16:05:01 GMT"/>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
