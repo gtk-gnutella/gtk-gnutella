@@ -56,7 +56,7 @@ void on_spinbutton_search_reissue_timeout_changed
 
     current_search = search_gui_get_current_search();
 
-    if (!current_search)
+    if (!current_search || search_is_passive(current_search->search_handle))
         return;
 
     search_set_reissue_timeout(current_search->search_handle,
