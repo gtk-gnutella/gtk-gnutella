@@ -1,4 +1,4 @@
-# since last release
+# v 0.18   2001.11.19
 
 - Further improved auto-download to not request things we already got
 - Refuse to record a download if we still have an identical active one
