@@ -854,7 +854,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[22].name = "compute_connection_speed";
-    gnet_property->props[22].desc = _("Whether the connection bandwidth reported to other hosts should be computed based on the current average upload speed. The reported speed is the available speed for a new upload, not the theoretical maximum configured: it is the average bandwidth divided by the number of upload slots. When it is ON (recommended setting), the hardwired connection speed is not used.");
+    gnet_property->props[22].desc = _("Whether the connection bandwidth reported to other hosts should be computed based on the current average upload speed. The reported speed is the available speed for a new upload, not the theoretical maximum configured: it is the average bandwidth (or the max configured bandwidth if no traffic yet) divided by the number of upload slots. When it is ON (recommended setting), the hardwired connection speed is not used.");
     gnet_property->props[22].ev_changed = event_new("compute_connection_speed_changed");
     gnet_property->props[22].save = TRUE;
     gnet_property->props[22].vector_size = 1;
@@ -2183,7 +2183,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[91].data.guint32.def   = &search_queries_forward_size_def;
     gnet_property->props[91].data.guint32.value = &search_queries_forward_size;
     gnet_property->props[91].data.guint32.choices = NULL;
-    gnet_property->props[91].data.guint32.max   = 65536;
+    gnet_property->props[91].data.guint32.max   = 256;
     gnet_property->props[91].data.guint32.min   = 64;
 
 
@@ -2203,7 +2203,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[92].data.guint32.def   = &search_queries_kick_size_def;
     gnet_property->props[92].data.guint32.value = &search_queries_kick_size;
     gnet_property->props[92].data.guint32.choices = NULL;
-    gnet_property->props[92].data.guint32.max   = 65536;
+    gnet_property->props[92].data.guint32.max   = 1024;
     gnet_property->props[92].data.guint32.min   = 128;
 
 
@@ -2224,7 +2224,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[93].data.guint32.value = &search_answers_forward_size;
     gnet_property->props[93].data.guint32.choices = NULL;
     gnet_property->props[93].data.guint32.max   = 65536;
-    gnet_property->props[93].data.guint32.min   = 2048;
+    gnet_property->props[93].data.guint32.min   = 4096;
 
 
     /*
@@ -2244,7 +2244,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[94].data.guint32.value = &search_answers_kick_size;
     gnet_property->props[94].data.guint32.choices = NULL;
     gnet_property->props[94].data.guint32.max   = 65536;
-    gnet_property->props[94].data.guint32.min   = 2048;
+    gnet_property->props[94].data.guint32.min   = 4096;
 
 
     /*
@@ -2264,7 +2264,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[95].data.guint32.value = &other_messages_kick_size;
     gnet_property->props[95].data.guint32.choices = NULL;
     gnet_property->props[95].data.guint32.max   = 65536;
-    gnet_property->props[95].data.guint32.min   = 256;
+    gnet_property->props[95].data.guint32.min   = 1024;
 
 
     /*
