@@ -5,6 +5,10 @@
  *
  * Globally Unique ID (GUID) manager.
  *
+ * HEC generation code is courtesy of Charles Michael Heard (initially
+ * written for ATM, but adapted for GTKG, with leading coset leader
+ * changed).
+ *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
