@@ -206,15 +206,13 @@ static void node_fire_node_added(
     gnutella_node_t *n, const gchar *type)
 {
     n->last_update = time((time_t *)NULL);
-    LISTENER_EMIT(node_added, n->node_handle, type, 
-        connected_nodes(), node_count());;
+    LISTENER_EMIT(node_added, n->node_handle, type);
 }
 
 static void node_fire_node_removed(gnutella_node_t *n)
 {
     n->last_update = time((time_t *)NULL);
-    LISTENER_EMIT(node_removed, n->node_handle, 
-        connected_nodes(), node_count());
+    LISTENER_EMIT(node_removed, n->node_handle);
 }
 
 static void node_fire_node_info_changed
@@ -2163,15 +2161,16 @@ static gboolean node_can_accept_connection(
 		 * Enforce preference for compression only with non-leaf nodes.
 		 */
 
-		if (handshaking && !(n->flags & NODE_F_LEAF)) {
+		if (handshaking) {
 			gint connected = node_normal_count + node_ultra_count;
 
-			if (
+            if (
 				prefer_compressed_gnet &&
-				(n->flags & NODE_F_INCOMING) && 
 				!(n->attrs & NODE_A_CAN_INFLATE) &&
+				(((n->flags & NODE_F_INCOMING) && 
 				connected >= up_connections &&
-				connected - compressed_node_cnt > 0
+				connected - compressed_node_cnt > 0) ||
+                (n->flags & NODE_F_LEAF))
 			) {
 				send_node_error(n->socket, 403,
 					"Gnet connection not compressed");

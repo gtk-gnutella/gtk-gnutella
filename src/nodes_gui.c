@@ -32,7 +32,6 @@ RCSID("$Id$");
 
 static gchar gui_tmp[4096];
 
-static void nodes_gui_update_meter(guint32 cnodes, guint32 nodes);
 static void nodes_gui_update_node_info(gnet_node_info_t *n);
 static void nodes_gui_update_node_flags(
 	gnet_node_t n, gnet_node_flags_t *flags);
@@ -49,14 +48,12 @@ static void nodes_gui_update_node_flags(
  *
  * Removes all references to the node from the frontend.
  */
-static void nodes_gui_node_removed(
-    gnet_node_t n, guint32 connected, guint32 total)
+static void nodes_gui_node_removed(gnet_node_t n)
 {
     if (gui_debug >= 5)
         printf("nodes_gui_node_removed(%u)\n", n);
 
     nodes_gui_remove_node(n);
-    nodes_gui_update_meter(connected, total);
 }
 
 /*
@@ -66,8 +63,7 @@ static void nodes_gui_node_removed(
  *
  * Adds the node to the gui.
  */
-static void nodes_gui_node_added(
-    gnet_node_t n, const gchar *t, guint32 connected, guint32 total)
+static void nodes_gui_node_added(gnet_node_t n, const gchar *t)
 {
     gnet_node_info_t *info;
 
@@ -76,7 +72,6 @@ static void nodes_gui_node_added(
 
     info = node_get_info(n);
     nodes_gui_add_node(info, t);
-    nodes_gui_update_meter(connected, total);
     node_free_info(info);
 }
 
@@ -194,22 +189,6 @@ static gchar *nodes_gui_status_str(const gnet_node_status_t *n, time_t now)
 	}
 
 	return a;
-}
-
-
-
-static void nodes_gui_update_meter(guint32 cnodes, guint32 nodes)
-{
-    GtkProgressBar *pg = GTK_PROGRESS_BAR
-        (lookup_widget(main_window, "progressbar_connections"));
-    gfloat frac;
-    
-	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u gnutellaNet", cnodes, nodes);
-    gtk_progress_bar_set_text(pg, gui_tmp);
-
-    frac = MIN(cnodes, nodes) != 0 ? (float)MIN(cnodes, nodes) / nodes : 0;
-
-    gtk_progress_bar_set_fraction(pg, frac);
 }
 
 
@@ -342,8 +321,6 @@ void nodes_gui_init(void)
 
     gtk_widget_set_sensitive
         (lookup_widget(popup_nodes, "popup_nodes_remove"), FALSE);
-
-    nodes_gui_update_meter(0, 0);
 
     node_add_node_added_listener(nodes_gui_node_added);
     node_add_node_removed_listener(nodes_gui_node_removed);

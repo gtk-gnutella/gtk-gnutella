@@ -167,10 +167,8 @@ typedef struct gnet_node_flags {
 /*
  * Nodes callback definitions
  */
-typedef void (*node_added_listener_t) (
-    gnet_node_t, const gchar *, guint32, guint32);
-typedef void (*node_removed_listener_t) (
-    gnet_node_t, guint32, guint32);
+typedef void (*node_added_listener_t) (gnet_node_t, const gchar *);
+typedef void (*node_removed_listener_t) (gnet_node_t);
 typedef void (*node_info_changed_listener_t) (gnet_node_t);
 typedef void (*node_flags_changed_listener_t) (gnet_node_t);
 

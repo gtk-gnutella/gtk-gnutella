@@ -201,12 +201,9 @@ static gboolean sha1_rebuilding_changed(property_t prop);
 static gboolean library_rebuilding_changed(property_t prop);
 static gboolean sha1_verifying_changed(property_t prop);
 static gboolean file_moving_changed(property_t prop);
-
-/* FIXME: `dl_queue_count_changed' isn't defined anywhere */ 
-static gboolean dl_queue_count_changed(property_t prop);
-
 static gboolean dl_running_count_changed(property_t prop);
 static gboolean config_toolbar_style_changed(property_t prop);
+static gboolean gnet_connections_changed(property_t prop);
 
 // FIXME: move to separate file and autogenerate from high-level
 //        description.
@@ -647,6 +644,30 @@ static prop_map_t property_map[] = {
         update_spinbutton,
         TRUE,
         "spinbutton_max_ultrapeers",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_NODE_LEAF_COUNT,
+        gnet_connections_changed,
+        FALSE,
+        NULL,
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_NODE_NORMAL_COUNT,
+        gnet_connections_changed,
+        FALSE,
+        NULL,
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_NODE_ULTRA_COUNT,
+        gnet_connections_changed,
+        TRUE,
+        NULL,
         FREQ_UPDATES, 0
     },
     {
@@ -1812,30 +1833,6 @@ static prop_map_t property_map[] = {
         update_entry,
         TRUE,
         "entry_reading_ultrafile",
-        FREQ_UPDATES, 0
-    },
-    {
-        get_main_window,
-        PROP_NODE_LEAF_COUNT,
-        update_entry,
-        TRUE,
-        "entry_node_leaf_count",
-        FREQ_UPDATES, 0
-    },
-    {
-        get_main_window,
-        PROP_NODE_NORMAL_COUNT,
-        update_entry,
-        TRUE,
-        "entry_node_normal_count",
-        FREQ_UPDATES, 0
-    },
-    {
-        get_main_window,
-        PROP_NODE_ULTRA_COUNT,
-        update_entry,
-        TRUE,
-        "entry_node_ultra_count",
         FREQ_UPDATES, 0
     },
     {
@@ -3340,6 +3337,59 @@ static gboolean config_toolbar_style_changed(property_t prop)
    		GTK_TOOLBAR(lookup_widget(main_window, "toolbar_main")), style);
 	update_multichoice(prop);
 	return FALSE;
+}
+
+static gboolean gnet_connections_changed(property_t prop)
+{
+    guint32 leaf_count;
+    guint32 normal_count;
+    guint32 ultra_count;
+    guint32 max_connections;
+    guint32 max_leaves;
+    guint32 max_normal;
+    gfloat  frac;
+    guint32 cnodes;
+    guint32 nodes = 0;
+    guint32 peermode;
+
+    GtkProgressBar *pg = GTK_PROGRESS_BAR(
+        lookup_widget(main_window, "progressbar_connections"));
+
+    gnet_prop_get_guint32_val(PROP_NODE_LEAF_COUNT, &leaf_count);
+    gnet_prop_get_guint32_val(PROP_NODE_NORMAL_COUNT, &normal_count);
+    gnet_prop_get_guint32_val(PROP_NODE_ULTRA_COUNT, &ultra_count);
+    gnet_prop_get_guint32_val(PROP_MAX_CONNECTIONS, &max_connections);
+    gnet_prop_get_guint32_val(PROP_MAX_LEAVES, &max_leaves);
+    gnet_prop_get_guint32_val(PROP_NORMAL_CONNECTIONS, &max_normal);
+    gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &peermode);
+
+    cnodes = leaf_count + normal_count + ultra_count;
+    frac = MIN(cnodes, nodes) != 0 ? (float)MIN(cnodes, nodes) / nodes : 0;
+
+    switch(peermode) {
+    case 0: /* leaf */
+    case 1: /* normal */
+        nodes = max_connections;
+        gm_snprintf(set_tmp, sizeof(set_tmp), 
+            "%u/%u connection%s",
+            cnodes, nodes, (cnodes == 1 && nodes == 1) ? "" : "s");
+        break;
+    case 2: /* ultra */
+        nodes = max_connections + max_leaves + max_normal;
+        gm_snprintf(set_tmp, sizeof(set_tmp), 
+            "%u/%uU | %u/%uN | %u/%uL",
+            ultra_count, max_connections, 
+            normal_count, max_normal, 
+            leaf_count, max_leaves);
+        break;
+    default:
+        g_assert_not_reached();
+    }
+
+    gtk_progress_bar_set_text(pg, set_tmp);
+    gtk_progress_bar_set_fraction(pg, frac);
+
+    return FALSE;
 }
 
 /***

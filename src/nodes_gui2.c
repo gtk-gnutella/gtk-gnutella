@@ -49,8 +49,8 @@ static gchar gui_tmp[4096];
 static GtkListStore *nodes_model = NULL;
 static GtkCellRenderer *nodes_gui_cell_renderer = NULL;
 
-static void nodes_gui_node_removed(gnet_node_t, guint32, guint32);
-static void nodes_gui_node_added(gnet_node_t, const gchar *, guint32, guint32);
+static void nodes_gui_node_removed(gnet_node_t);
+static void nodes_gui_node_added(gnet_node_t, const gchar *);
 static void nodes_gui_node_info_changed(gnet_node_t);
 static void nodes_gui_node_flags_changed(gnet_node_t);
 static void nodes_gui_add_column(GtkTreeView *, gint, const gchar *);
@@ -309,22 +309,6 @@ static gchar *gui_node_status_str(const gnet_node_status_t *n, time_t now)
 
 
 
-void gui_update_c_gnutellanet(guint32 cnodes, guint32 nodes)
-{
-    GtkProgressBar *pg = GTK_PROGRESS_BAR
-        (lookup_widget(main_window, "progressbar_connections"));
-    gfloat frac;
-    
-	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u gnutellaNet", cnodes, nodes);
-    gtk_progress_bar_set_text(pg, gui_tmp);
-
-    frac = MIN(cnodes, nodes) != 0 ? (gfloat) MIN(cnodes, nodes) / nodes : 0;
-
-    gtk_progress_bar_set_fraction(pg, frac);
-}
-
-
-
 /*
  * gui_update_nodes_display
  *
@@ -480,14 +464,12 @@ static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
  *
  * Removes all references to the node from the frontend.
  */
-static void nodes_gui_node_removed(
-    gnet_node_t n, guint32 connected, guint32 total)
+static void nodes_gui_node_removed(gnet_node_t n)
 {
     if (gui_debug >= 5)
         printf("nodes_gui_node_removed(%u)\n", n);
 
     nodes_gui_remove_node(n);
-    gui_update_c_gnutellanet(connected, total);
 }
 
 /*
@@ -497,8 +479,7 @@ static void nodes_gui_node_removed(
  *
  * Adds the node to the gui.
  */
-static void nodes_gui_node_added(
-    gnet_node_t n, const gchar *t, guint32 connected, guint32 total)
+static void nodes_gui_node_added(gnet_node_t n, const gchar *t)
 {
     gnet_node_info_t *info;
 
@@ -507,7 +488,6 @@ static void nodes_gui_node_added(
 
     info = node_get_info(n);
     nodes_gui_add_node(info, t);
-    gui_update_c_gnutellanet(connected, total);
     node_free_info(info);
 }
 
