@@ -42,6 +42,7 @@
 #include "dmesh.h"
 #include "search.h"
 #include "guid.h"
+#include "share.h"
 
 #include "settings.h"
 #include "nodes.h"
@@ -574,6 +575,8 @@ static void fi_free(struct dl_file_info *fi)
 			atom_str_free(l->data);
 		g_slist_free(fi->alias);
 	}
+	if (fi->sf != NULL)
+		shared_file_free(fi->sf);
 	wfree(fi, sizeof(*fi));
 }
 
@@ -915,6 +918,63 @@ static struct dl_file_info *file_info_lookup_dup(struct dl_file_info *fi)
 	}
 
 	return NULL;
+}
+
+/*
+ * file_info_shared_sha1
+ *
+ * Look whether we have a partially downloaded file bearing the given SHA1.
+ * If we do, return a "shared_file" structure suitable for uploading the
+ * parts of the file we have (will happen only when PFSP-server is enabled).
+ *
+ * Return NULL if don't have any download with this SHA1, otherwise return
+ * a "shared_file" structure suitable for uploading the parts of the file
+ * we have (which will happen only when PFSP-server is enabled).
+ */
+shared_file_t *file_info_shared_sha1(const gchar *sha1)
+{
+	struct dl_file_info *fi;
+
+	fi = g_hash_table_lookup(fi_by_sha1, sha1);
+
+	if (fi == NULL || fi->done == 0)
+		return NULL;
+
+	g_assert(fi->sha1 != NULL);
+
+	/*
+	 * Build shared_file entry if not already present.
+	 */
+
+	if (fi->sf == NULL) {
+		shared_file_t *sf = walloc0(sizeof(*sf));
+		char *path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
+
+		/*
+		 * In regular "shared_file" structures built for complete files,
+		 * the sf->file_name field points within the sf->file_path field.
+		 * Therefore, the sf->file_name field is not freed separately.
+		 * Here, since the lifecycle of the structure is tied to its holding
+		 * fileinfo, it is perfectly acceptable to reuse fi->file_name.
+		 */
+
+		fi->sf = sf;
+		sf->fi = fi;			/* Signals it's a partially downloaded file */
+
+		sf->file_path = atom_str_get(path);
+		sf->file_name = fi->file_name;
+		sf->file_name_len = strlen(fi->file_name);
+		sf->file_size = fi->size;
+		sf->file_index = URN_INDEX;
+		sf->mtime = fi->last_flush;
+		sf->flags = SHARE_F_HAS_DIGEST;
+
+		memcpy(sf->sha1_digest, fi->sha1, SHA1_RAW_SIZE);
+
+		g_free(path);
+	}
+
+	return fi->sf;
 }
 
 /*
@@ -2790,6 +2850,104 @@ static gint fi_busy_count(struct dl_file_info *fi, struct download *d)
 }
 
 /*
+ * list_clone_shift
+ *
+ * Clone fileinfo's chunk list, shifting the origin of the list to a randomly
+ * selected offset within the file.  If the first chunk is not completed
+ * or not at least `pfsp_first_chunk' bytes long, the original list is
+ * returned.
+ */
+static GSList *list_clone_shift(struct dl_file_info *fi)
+{
+	struct dl_file_chunk *fc;
+	guint32 offset;
+	GSList *clone;
+	GSList *l;
+	GSList *tail;
+
+	fc = fi->chunklist->data;		/* First chunk */
+
+	if (fc->status != DL_CHUNK_DONE || fc->to < pfsp_first_chunk)
+		return fi->chunklist;
+
+	offset = random_value(fi->size - 1);
+
+	/*
+	 * First pass: clone the list starting at the first chunk whose start is
+	 * after the offset.
+	 */
+
+	clone = NULL;
+
+	for (l = fi->chunklist; l; l = g_slist_next(l)) {
+		fc = l->data;
+		if (fc->from < offset)
+			continue;
+		clone = g_slist_copy(l);
+	}
+
+	/*
+	 * If we have not cloned anything, it means we have a big chunk
+	 * at the end and the selected offset lies within that chunk.
+	 * Be smarter and break-up any free chunk into two at the selected offset.
+	 */
+
+	if (clone == NULL) {
+		for (l = fi->chunklist; l; l = g_slist_next(l)) {
+			fc = l->data;
+			if (fc->status == DL_CHUNK_EMPTY && fc->to - 1 > offset) {
+				struct dl_file_chunk *nfc;
+
+				g_assert(fc->from < offset);	/* Or we'd have cloned above */
+
+				/*
+				 * fc was [from, to[.  It becomes [from, offset[.
+				 * nfc is [offset, to[ and is inserted after fc.
+				 */
+
+				nfc = walloc(sizeof(struct dl_file_chunk));
+				nfc->from = offset;
+				nfc->to = fc->to;
+				nfc->status = fc->status;
+				nfc->download = fc->download;
+				fc->to = nfc->from;
+
+				fi->chunklist = gm_slist_insert_after(fi->chunklist, l, nfc);
+				clone = g_slist_copy(g_slist_next(l));
+				break;
+			}
+		}
+	}
+
+	/*
+	 * If still no luck, never mind.  Use original list.
+	 */
+
+	if (clone == NULL)
+		return fi->chunklist;
+
+	/*
+	 * Second pass: append to the `clone' list all the chunks that end
+	 * before the "from" of the first item in that list.
+	 */
+
+	fc = clone->data;
+	offset = fc->from;				/* Cloning point: start of first chunk */
+	tail = g_slist_last(clone);
+
+	for (l = fi->chunklist; l; l = g_slist_next(l)) {
+		fc = l->data;
+		if (fc->to >= offset)
+			break;					/* We've reached the cloning point */
+		g_assert(fc->from < offset);
+		clone = gm_slist_insert_after(clone, tail, fc);
+		tail = g_slist_next(tail);
+	}
+
+	return clone;
+}
+
+/*
  * file_info_find_hole
  *
  * Finds a range to download, and stores it in *from and *to.
@@ -2806,6 +2964,7 @@ enum dl_chunk_status file_info_find_hole(
 	struct dl_file_info *fi = d->file_info;
 	guint32 chunksize;
 	guint busy = 0;
+	GSList *cklist;
 
 	g_assert(fi->refcount > 0);
 	g_assert(fi->lifecount > 0);
@@ -2846,7 +3005,16 @@ enum dl_chunk_status file_info_find_hole(
 	if (chunksize < dl_minchunksize) chunksize = dl_minchunksize;
 	if (chunksize > dl_maxchunksize) chunksize = dl_maxchunksize;
 
-	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
+	/*
+	 * If PFSP-server is enabled, we can serve partially downloaded files.
+	 * Therefore, it is interesting to request chunks in random order, to
+	 * avoid everyone having the same chunks should full sources disappear.
+	 *		--RAM, 11/10/2003
+	 */
+
+	cklist = pfsp_server ? list_clone_shift(fi) : fi->chunklist;
+
+	for (fclist = cklist; fclist; fclist = g_slist_next(fclist)) {
 		fc = fclist->data;
 
 		if (fc->status != DL_CHUNK_EMPTY) {
@@ -2865,7 +3033,7 @@ enum dl_chunk_status file_info_find_hole(
 			*to = *from + chunksize;
 
 		file_info_update(d, *from, *to, DL_CHUNK_BUSY);
-		return DL_CHUNK_EMPTY;
+		goto selected;
 	}
 
 	g_assert(fi->lifecount > busy);		/* Or we'd found a chunk before */
@@ -2890,7 +3058,7 @@ enum dl_chunk_status file_info_find_hole(
 		if (minchunk < FI_MIN_CHUNK_SPLIT)
 			minchunk = FI_MIN_CHUNK_SPLIT;
 
-		for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
+		for (fclist = cklist; fclist; fclist = g_slist_next(fclist)) {
 			fc = fclist->data;
 
 			if (fc->status != DL_CHUNK_BUSY) continue;
@@ -2908,12 +3076,23 @@ enum dl_chunk_status file_info_find_hole(
 			*to = longest_to;
 
 			file_info_update(d, *from, *to, DL_CHUNK_BUSY);
-			return DL_CHUNK_EMPTY;
+			goto selected;
 		}
 	}
 	
 	/* No holes found. */
+
+	if (cklist != fi->chunklist)
+		g_slist_free(cklist);
+
 	return (fi->done == fi->size) ? DL_CHUNK_DONE : DL_CHUNK_BUSY;
+
+selected:	/* Selected a hole to download */
+
+	if (cklist != fi->chunklist)
+		g_slist_free(cklist);
+
+	return DL_CHUNK_EMPTY;
 }
 
 /*
@@ -2931,6 +3110,7 @@ gboolean file_info_find_available_hole(struct download *d,
 	GSList *fclist;
 	struct dl_file_info *fi;
 	guint32 chunksize;
+	GSList *cklist;
 
 	g_assert(d);
 	g_assert(ranges);
@@ -2950,7 +3130,16 @@ gboolean file_info_find_available_hole(struct download *d,
 
 	g_assert(fi->lifecount > 0);
 
-	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
+	/*
+	 * If PFSP-server is enabled, we can serve partially downloaded files.
+	 * Therefore, it is interesting to request chunks in random order, to
+	 * avoid everyone having the same chunks should full sources disappear.
+	 *		--RAM, 11/10/2003
+	 */
+
+	cklist = pfsp_server ? list_clone_shift(fi) : fi->chunklist;
+
+	for (fclist = cklist; fclist; fclist = g_slist_next(fclist)) {
 		GSList *l;
 		struct dl_file_chunk *fc = fclist->data;
 
@@ -2985,6 +3174,9 @@ gboolean file_info_find_available_hole(struct download *d,
 		}
 	}
 
+	if (cklist != fi->chunklist)
+		g_slist_free(cklist);
+
 	return FALSE;
 
 found:
@@ -2997,6 +3189,9 @@ found:
 		*to = *from + chunksize;
 
 	file_info_update(d, *from, *to, DL_CHUNK_BUSY);
+
+	if (cklist != fi->chunklist)
+		g_slist_free(cklist);
 
 	return TRUE;
 }
@@ -3363,5 +3558,182 @@ void fi_purge(gnet_fi_t fih)
 		file_info_hash_remove(fi);
 		fi_free(fi);
 	}
+}
+
+/*
+ * file_info_available_ranges
+ *
+ * Emit an X-Available-Ranges header listing the ranges within the file that
+ * we have on disk and we can share as a PFSP-server.  The header is emitted
+ * in `buf', which is `size' bytes long.
+ *
+ * If there is not enough room to emit all the ranges, emit a random subset
+ * of the ranges.
+ *
+ * Returns the size of the generated header.
+ */
+gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
+{
+	gpointer fmt;
+	gboolean is_first = TRUE;
+	gchar range[80];
+	GSList *l;
+	gint maxfmt = size - 3;		/* Leave room for trailing "\r\n" + NUL */
+	gint count;
+	gint nleft;
+	gint i;
+	struct dl_file_chunk **fc_ary;
+	gint length;
+
+	fmt = header_fmt_make("X-Available-Ranges", size);
+
+	for (
+		l = fi->chunklist;
+		l != NULL;
+		l = g_slist_next(l)
+	) {
+		struct dl_file_chunk *fc = l->data;
+		gint rw;
+
+		if (fc->status != DL_CHUNK_DONE)
+			continue;
+
+		rw = gm_snprintf(range, sizeof(range), "%s%u-%u",
+			is_first ? "bytes " : "",
+			fc->from, fc->to - 1);
+
+		if (header_fmt_length(fmt) + rw + 2 >= maxfmt)
+			break;			/* Will not fit, cannot emit all of it */
+
+		header_fmt_append(fmt, range, ", ");
+		is_first = FALSE;
+	}
+
+	if (l == NULL)
+		goto emit;
+
+	/*
+	 * Not everything fitted.  We have to be smarter and include only what
+	 * can fit in the size we were given.
+	 */
+
+	header_fmt_free(fmt);
+	fmt = header_fmt_make("X-Available-Ranges", size);
+	is_first = TRUE;
+
+	if (header_fmt_length(fmt) + sizeof("bytes 0-512\r\n") >= size) {
+		header_fmt_free(fmt);
+		return 0;				/* Sorry, not enough room for anything */
+	}
+
+	/*
+	 * See how many chunks we have.
+	 */
+
+	for (count = 0, l = fi->chunklist; l != NULL; l = g_slist_next(l)) {
+		struct dl_file_chunk *fc = l->data;
+		if (fc->status == DL_CHUNK_DONE)
+			count++;
+	}
+
+	/*
+	 * Reference all the "done" chunks in `fc_ary'.
+	 */
+
+	fc_ary = walloc(sizeof(struct dl_file_chunk) * count);
+
+	for (i = 0, l = fi->chunklist; l != NULL; l = g_slist_next(l)) {
+		struct dl_file_chunk *fc = l->data;
+		if (fc->status == DL_CHUNK_DONE)
+			fc_ary[i++] = fc;
+	}
+
+	/*
+	 * Now select chunks randomly from the set, and emit them if they fit.
+	 */
+
+	for (nleft = count; nleft > 0; nleft--) {
+		gint j = random_value(nleft - 1);
+		struct dl_file_chunk *fc = fc_ary[j];
+		gint rw;
+
+		g_assert(j >= 0 && j < nleft);
+		g_assert(fc->status == DL_CHUNK_DONE);
+
+		rw = gm_snprintf(range, sizeof(range), "%s%u-%u",
+			is_first ? "bytes " : "",
+			fc->from, fc->to - 1);
+
+		if (header_fmt_length(fmt) + rw + 2 < maxfmt) {
+			header_fmt_append(fmt, range, ", ");
+			is_first = FALSE;
+		}
+
+		/*
+		 * Shift upper (nleft - j - 1) items down 1 position.
+		 */
+
+		if (j != nleft - 1)
+			memmove(&fc_ary[j], &fc_ary[j+1],
+				(nleft - j - 1) * sizeof(fc_ary[0]));
+	}
+
+	wfree(fc_ary, sizeof(struct dl_file_chunk) * count);
+
+emit:
+	length = 0;
+
+	if (is_first)
+		goto empty;		/* No chunk was emitted */
+
+	header_fmt_end(fmt);
+	length = header_fmt_length(fmt);
+	g_assert(length < size);
+	strncpy(buf, header_fmt_string(fmt), length + 1);	/* Include final NUL */
+
+empty:
+	header_fmt_free(fmt);
+	return length;
+}
+
+/*
+ * file_info_restrict_range
+ *
+ * Given a request range `start' (included) and `end' (included) for the
+ * partially downloaded file represented by `fi', see whether we can
+ * satisfy it, even partially, without touching `start' but only only by
+ * possibly moving `end' down.
+ *
+ * Returns TRUE if the request is satisfiable, with `end' possibly adjusted,
+ * FALSE is the request cannot be satisfied because `start' is not within
+ * an available chunk.
+ */
+gboolean file_info_restrict_range(
+	struct dl_file_info *fi, guint32 start, guint32 *end)
+{
+	GSList *l;
+
+	for (l = fi->chunklist; l != NULL; l = g_slist_next(l)) {
+		struct dl_file_chunk *fc = l->data;
+
+		if (fc->status != DL_CHUNK_DONE)
+			continue;
+		
+		if (start < fc->from || start >= fc->to)
+			continue;		/* `start' is not in the range */
+
+		/*
+		 * We found an available chunk within which `start' falls.
+		 * Look whether we can serve their whole request, otherwise
+		 * shrink the end.
+		 */
+
+		if (*end >= fc->to)
+			*end = fc->to - 1;
+
+		return TRUE;
+	}
+
+	return FALSE;	/* Sorry, cannot satisfy this request */
 }
 

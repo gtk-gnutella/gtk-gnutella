@@ -31,6 +31,7 @@
 
 struct gnutella_node;
 struct query_hashvec;
+struct dl_file_info;
 
 /* A file extension we have to share */
 struct extension {
@@ -47,6 +48,7 @@ typedef struct shared_file {
 	gint file_name_len;
 	time_t mtime;			/* Last modification time, for SHA1 computation */
 	gchar sha1_digest[SHA1_RAW_SIZE];	/* SHA1 digest, binary form */
+	struct dl_file_info *fi;			/* PFSP-server: the holding fileinfo */
 } shared_file_t;
 
 /*
@@ -95,6 +97,8 @@ void shared_dirs_update_prop(void);
 gboolean shared_dirs_parse(const gchar *);
 void shared_dir_add(const gchar *);
 gint get_file_size(gint);
+
+void shared_file_free(shared_file_t *sf);
 
 void set_sha1(struct shared_file *, const gchar *sha1_digest);
 struct shared_file *shared_file_by_sha1(gchar *sha1_digest);

@@ -28,6 +28,8 @@
 #ifndef _fileinfo_h_
 #define _fileinfo_h_
 
+struct shared_file;
+
 enum dl_chunk_status {
 	DL_CHUNK_EMPTY = 0,
 	DL_CHUNK_BUSY = 1,
@@ -61,6 +63,7 @@ struct dl_file_info {
 	guint32 done;			/* Total number of bytes completed */
 	GSList *chunklist;		/* List of ranges within file */
 	guint32 generation;		/* Generation number, incremented on disk update */
+	struct shared_file *sf;	/* When PFSP-server is enabled, share this file */
 	gboolean use_swarming;	/* Use swarming? */
 	gboolean dirty;			/* Does it need saving? */
     gboolean dirty_status;  /* Notify about status change on next interval */
@@ -131,6 +134,11 @@ void file_info_add_source(
 void file_info_remove_source(
     struct dl_file_info *fi, struct download *dl, gboolean discard);
 void file_info_timer(void);
+
+shared_file_t *file_info_shared_sha1(const gchar *sha1);
+gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size);
+gboolean file_info_restrict_range(
+	struct dl_file_info *fi, guint32 start, guint32 *end);
 
 struct dl_file_info *file_info_has_identical(
 	gchar *file, guint32 size, gchar *sha1);

@@ -887,7 +887,7 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 				}
 
 				found = (struct shared_file *)
-					g_malloc0(sizeof(struct shared_file));
+					walloc0(sizeof(struct shared_file));
 
 				found->file_path = atom_str_get(full);
 				found->file_name = found->file_path + (name - full);
@@ -937,6 +937,17 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 	gtk_main_iteration_do(FALSE);
 }
 
+/*
+ * shared_file_free
+ *
+ * Dispose of a shared_file_t structure.
+ */
+void shared_file_free(shared_file_t *sf)
+{
+	atom_str_free(sf->file_path);
+	wfree(sf, sizeof(*sf));
+}
+
 static void share_free(void)
 {
 	GSList *l;
@@ -954,8 +965,7 @@ static void share_free(void)
 
 	for (l = shared_files; l; l = l->next) {
 		struct shared_file *sf = l->data;
-		atom_str_free(sf->file_path);
-		g_free(sf);
+		shared_file_free(sf);
 	}
 
 	g_slist_free(shared_files);
@@ -1314,6 +1324,8 @@ static gboolean got_match(struct shared_file *sf)
 	gboolean sha1_available;
 	gnet_host_t hvec[QHIT_MAX_ALT];
 	gint hcnt;
+
+	g_assert(sf->fi == NULL);	/* Cannot match partially downloaded files */
 
 	sha1_available = SHARE_F_HAS_DIGEST ==
 		(sf->flags & (SHARE_F_HAS_DIGEST | SHARE_F_RECOMPUTING));
@@ -1998,7 +2010,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			struct shared_file *sf;
 
 			sf = shared_file_by_sha1(exv_sha1[i].sha1_digest);
-			if (sf && sf != SHARE_REBUILDING) {
+			if (sf && sf != SHARE_REBUILDING && sf->fi == NULL) {
 				got_match(sf);
 				max_replies--;
 				found_files++;
@@ -2137,6 +2149,8 @@ static void reinit_sha1_table(void)
 
 void set_sha1(struct shared_file *f, const char *sha1)
 {
+	g_assert(f->fi == NULL);		/* Cannot be a partial file */
+
 	/*
 	 * If we were recomputing the SHA1, remove the old version.
 	 */
@@ -2194,6 +2208,15 @@ gboolean sha1_hash_is_uptodate(struct shared_file *sf)
 	}
 
 	/*
+	 * If there is a non-NULL `fi' entry, then this is a partially
+	 * downloaded file that we are sharing.  Don't try to update its
+	 * SHA1 by recomputing it!
+	 */
+
+	if (sf->fi != NULL)
+		return TRUE;
+
+	/*
 	 * If file was modified since the last time we computed the SHA1,
 	 * recompute it and tell them that the SHA1 we have might not be
 	 * accurate.
@@ -2212,12 +2235,13 @@ gboolean sha1_hash_is_uptodate(struct shared_file *sf)
 }
 
 /* 
- * shared_file_by_sha1
+ * shared_file_complete_by_sha1
  * 
- * Take a given binary SHA1 digest, and return the corresponding
- * shared_file if we have it.
+ * Returns the shared_file if we share a complete file bearing the given SHA1.
+ * Returns NULL if we don't share a complete file, or SHARE_REBUILDING if the
+ * set of shared file is being rebuilt.
  */
-struct shared_file *shared_file_by_sha1(gchar *sha1_digest)
+static struct shared_file *shared_file_complete_by_sha1(gchar *sha1_digest)
 {
 	struct shared_file *f;
 
@@ -2237,6 +2261,36 @@ struct shared_file *shared_file_by_sha1(gchar *sha1_digest)
 			return SHARE_REBUILDING;
 
 		return NULL;
+	}
+
+	return f;
+}
+
+/* 
+ * shared_file_by_sha1
+ * 
+ * Take a given binary SHA1 digest, and return the corresponding
+ * shared_file if we have it.
+ *
+ * NOTA BENE: if the returned "shared_file" structure holds a non-NULL `fi',
+ * then it means it is a partially shared file.
+ */
+struct shared_file *shared_file_by_sha1(gchar *sha1_digest)
+{
+	struct shared_file *f;
+
+	f = shared_file_complete_by_sha1(sha1_digest);
+
+	/*
+	 * If we don't share this file, or if we're rebuilding, and provided
+	 * PFSP-server is enabled, look whether we don't have a partially
+	 * downloaded file with this SHA1.
+	 */
+
+	if ((f == NULL || f == SHARE_REBUILDING) && pfsp_server) {
+		struct shared_file *pf = file_info_shared_sha1(sha1_digest);
+		if (pf != NULL)
+			f = pf;
 	}
 
 	return f;
