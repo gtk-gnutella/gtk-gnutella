@@ -277,6 +277,8 @@ void gui_update_stats(void)
 
 	if (pr_ref) {
 		hosts = pr_ref->hosts;
+		if (!hosts)
+			return;				/* Structure re-used --RAM, 21/01/2002 */
 		files = pr_ref->files;
 		kbytes = pr_ref->kbytes;
 		ping = pr_ref->delay / pr_ref->hosts;

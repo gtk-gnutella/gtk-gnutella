@@ -532,12 +532,11 @@ void register_ping_req(guchar * muid)
 		g_slist_free_1(l);
 	} else {
 		p = (struct ping_req *) g_malloc(sizeof(struct ping_req));
+		n_ping_reqs++;
 	}
 
 	memcpy(p->muid, muid, 16);
-
 	gettimeofday(&(p->tv), (struct timezone *) NULL);
-
 	p->delay = p->hosts = p->files = p->kbytes = 0;
 
 	ping_reqs = g_slist_prepend(ping_reqs, p);
@@ -601,15 +600,11 @@ static void ping_reqs_clear(void)
 {
 	GSList *l;
 
-	if ((l = ping_reqs)) {
-		while (l) {
-			g_free(l->data);
-			l = l->next;
-		}
-		g_slist_free(ping_reqs);
-		ping_reqs = NULL;
-	}
+	for (l = ping_reqs; l; l = l->next)
+		g_free(l->data);
+	g_slist_free(ping_reqs);
 
+	ping_reqs = NULL;
 	n_ping_reqs = 0;
 }
 
