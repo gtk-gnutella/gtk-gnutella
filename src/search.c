@@ -1453,6 +1453,9 @@ void search_matched(struct search *sch, struct results_set *rs)
 			for (l = rs->records; l; l = l->next) {
 				struct record *rc = (struct record *) l->data;
 
+				if (rc->size == 0)
+					continue;
+
 				/* Attempt to autodownload each result if desirable. */
 				autodownload_notify(rc->name, rc->size, rc->index, rs->ip,
 					rs->port, rs->guid);
