@@ -1,10 +1,7 @@
 RAM's TODO list:
 
-* Avoid kick on send queue limit: flow control, drop packets.
-* Separate drop-in / drop-out stats then.
 * Add reverse engineering notes.
 * Show node's in/out bandwidth (Exp. Moving Average)
-* Implement the Bye packet.
 * Add a regression test suite for the protocol.
 * Replace randomly when results > max_results in Query Hits
 
