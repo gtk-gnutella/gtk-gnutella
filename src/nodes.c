@@ -25,6 +25,8 @@
 #include "getline.h"
 #include "header.h"
 
+#define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
+
 GSList *sl_nodes = (GSList *) NULL;
 
 guint32 nodes_in_list = 0;
@@ -268,6 +270,99 @@ static gboolean have_node(struct gnutella_node *node, gboolean incoming)
 		return FALSE;
 
 	return node_connected(node->ip, node->port, incoming);
+}
+
+/*
+ * send_welcome
+ *
+ * Send the 0.4 welcoming string, and return true if OK.
+ * On error, the node is removed if given, or the connection closed.
+ */
+static gboolean send_welcome(
+	struct gnutella_socket *s, struct gnutella_node *n)
+{
+	gint sent;
+
+	g_assert(s);
+	g_assert(n == NULL || n->socket == s);	/* `n' is optional */
+
+	if (
+		-1 == (sent = write(s->file_desc, gnutella_welcome,
+			gnutella_welcome_length))
+	) {
+		if (n)
+			node_remove(n, "Write of 0.4 HELLO acknowledge failed: %s",
+				g_strerror(errno));
+		else
+			socket_destroy(s);
+		return FALSE;
+	}
+	else if (sent < gnutella_welcome_length) {
+		g_warning("wrote only %d out of %d bytes of HELLO ack to %s",
+			sent, gnutella_welcome_length, ip_to_gchar(s->ip));
+		if (n)
+			node_remove(n, "Partial write of 0.4 HELLO acknowledge");
+		else
+			socket_destroy(s);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/*
+ * send_connection_pongs
+ *
+ * Send welcome followed by CONNECT_PONGS_COUNT pongs to the remote node,
+ * then disconnect.
+ */
+static void send_connection_pongs(struct gnutella_socket *s)
+{
+	struct gnutella_host hosts[CONNECT_PONGS_COUNT];
+	gint hcount;
+
+	if (!send_welcome(s, NULL))
+		return;
+
+	hcount = host_fill_caught_array(hosts, CONNECT_PONGS_COUNT);
+	g_assert(hcount >= 0 && hcount <= CONNECT_PONGS_COUNT);
+
+	if (hcount) {
+		gint i;
+		for (i = 0; i < hcount; i++) {
+			struct gnutella_msg_init_response pong;
+			gint sent;
+
+			/*
+			 * Build pong packet.
+			 */
+
+			WRITE_GUINT16_LE(hosts[i].port, pong.response.host_port);
+			WRITE_GUINT32_BE(hosts[i].ip, pong.response.host_ip);
+			WRITE_GUINT32_LE(0, pong.response.files_count);
+			WRITE_GUINT32_LE(0, pong.response.kbytes_count);
+			pong.header.function = GTA_MSG_INIT_RESPONSE;
+			pong.header.ttl = 1;
+			pong.header.hops = 0;
+			memcpy(&pong.header.muid, guid, 16);	/* Our own GUID */
+			WRITE_GUINT32_LE(sizeof(struct gnutella_init_response),
+				pong.header.size);
+
+			/*
+			 * Send it, aborting on error or partial write.
+			 */
+
+			sent = write(s->file_desc, &pong, sizeof(pong));
+			if (sent != sizeof(pong))
+				break;
+		}
+
+		if (dbg > 4)
+			printf("Sent %d connection pong%s to %s\n",
+				i, i == 1 ? "" : "s", ip_to_gchar(s->ip));
+	}
+
+	socket_destroy(s);
 }
 
 /*
@@ -859,9 +954,11 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 	/* Too many gnutellaNet connections */
 	if (nodes_in_list >= max_connections) {
 		if (s) {
-			if (major > 0 || minor > 4)
+			if (major > 0 || minor > 4) {
 				send_node_error(s, 503, "Too many Gnet connections");
-			socket_destroy(s);
+				socket_destroy(s);
+			} else
+				send_connection_pongs(s);	/* Will close socket */
 		}
 		return;
 	}
@@ -931,26 +1028,12 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 		struct io_header *ih;
 
 		if (n->proto_major == 0 && n->proto_minor == 4) {
-			gint sent;
-
 			/*
-			 * Remote node uses the 0.4 protocol.
+			 * Remote node uses the 0.4 protocol, welcome it.
 			 */
 
-			if (
-				-1 == (sent = write(s->file_desc, gnutella_welcome,
-					gnutella_welcome_length))
-			) {
-				node_remove(n, "Write of 0.4 HELLO acknowledge failed: %s",
-					g_strerror(errno));
+			if (!send_welcome(s, n))
 				return;
-			}
-			else if (sent < gnutella_welcome_length) {
-				g_warning("wrote only %d out of %d bytes of HELLO ack to %s",
-					sent, gnutella_welcome_length, ip_to_gchar(n->ip));
-				node_remove(n, "Partial write of 0.4 HELLO acknowledge");
-				return;
-			}
 
 			/*
 			 * There's no more handshaking to perform, we're ready to
