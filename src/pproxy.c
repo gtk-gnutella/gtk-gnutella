@@ -755,8 +755,12 @@ void pproxy_close(void)
  *** Client-side of push-proxy
  ***/
 
+// XXX needed only because of the temporary hack below -- RAM, 05/08/2003
 static gboolean cproxy_http_header_ind(
 	gpointer handle, header_t *header, gint code, const gchar *message);
+static gint cproxy_build_request(gpointer handle, gchar *buf, gint len,
+	gchar *verb, gchar *path, gchar *host);
+static void cproxy_http_newstate(gpointer handle, http_state_t newstate);
 
 #define CPROXY_MAGIC	0xc8301
 
@@ -852,6 +856,15 @@ static void cproxy_http_error_ind(
 			g_warning("retrying with swapped push-proxy address %s (was %s)",
 				ip_to_gchar(new_ip), ip_port_to_gchar(cp->ip, cp->port));
 			cp->ip = new_ip;
+
+			/*
+			 * Customize async HTTP layer.
+			 */
+
+			http_async_set_opaque(cp->http_handle, cp, NULL);
+			http_async_set_op_request(cp->http_handle, cproxy_build_request);
+			http_async_on_state_change(cp->http_handle, cproxy_http_newstate);
+
 			return;
 		}
 
