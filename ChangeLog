@@ -1,5 +1,24 @@
 # since last version
 
+# v 0.92   2003.03.04  [beta2]
+
+Bugfixing release:
+
+- Fixed Gnutella web cache hammering.  A buggy test caused GTKG to query
+  the caches each time it was establishing an outgoing connection!
+- Domain name resolution for Gnutella web cache are now done asynchronously.
+  The GUI will no longer freeze due to a DNS request.
+- Some performance improvements: removed the most important bottlenecks.
+- Fixed flow-control bug, exercised mainly with compressed connections: they
+  could stall abruptly, no longer transmitting data.
+- Fixed assertion failure in PARQ client code.
+- Fixed incomplete clearing of downloads from a given host.
+
+- (2003.03.04 - RAM)
+ * Ban 0.92b as an hostile servent, due to its GWC hammering.
+ * Only emit the exec() argument size warning if lib_debug.
+ * Fixed version_tagcmp(): was not anti-symetric for 'b' and 'u'.
+
 - (2003.03.03 - RAM)
  * Optimized guid_eq() and sha1_eq() to not call memcmp().
  * Rewrote the callout queue to have a more efficient ev_link() routine, the
