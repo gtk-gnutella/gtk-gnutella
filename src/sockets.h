@@ -102,6 +102,12 @@ struct gnutella_socket {
 #define SOCK_F_EOF				0x00000002 /* Got an EOF condition */
 
 /*
+ * Access macros
+ */
+
+#define sock_is_corked(x)		((x)->corked)
+
+/*
  * Global Data
  */
 
@@ -124,6 +130,9 @@ void sock_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink);
 void sock_nodelay(struct gnutella_socket *s, gboolean on);
 void sock_tx_shutdown(struct gnutella_socket *s);
 void socket_tos_default(struct gnutella_socket *s);
+void socket_tos_throughput(struct gnutella_socket *s);
+void socket_tos_lowdelay(struct gnutella_socket *s);
+void socket_tos_normal(struct gnutella_socket *s);
 gboolean socket_bad_hostname(struct gnutella_socket *s);
 
 int connect_http(struct gnutella_socket *);

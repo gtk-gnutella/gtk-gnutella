@@ -29,6 +29,7 @@
 #include "gnutella.h"
 
 #include <fcntl.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -170,7 +171,7 @@ static void socket_tos(struct gnutella_socket *s, gint tos)
  * 
  * Set the Type of Service (TOS) field to "normal."
  */
-static void socket_tos_normal(struct gnutella_socket *s)
+void socket_tos_normal(struct gnutella_socket *s)
 {
 	socket_tos(s, 0);
 }
@@ -183,7 +184,7 @@ static void socket_tos_normal(struct gnutella_socket *s)
  * a higher-priority queue, and/or to route them along the lowest-
  * latency path without regard for bandwidth.
  */
-static void socket_tos_lowdelay(struct gnutella_socket *s)
+void socket_tos_lowdelay(struct gnutella_socket *s)
 {
 	socket_tos(s, IPTOS_LOWDELAY);
 }
@@ -196,7 +197,7 @@ static void socket_tos_lowdelay(struct gnutella_socket *s)
  * a lower-priority queue, and/or to route them along the highest-
  * bandwidth path without regard for latency.
  */
-static void socket_tos_throughput(struct gnutella_socket *s)
+void socket_tos_throughput(struct gnutella_socket *s)
 {
 	socket_tos(s, IPTOS_THROUGHPUT);
 }
