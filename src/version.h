@@ -53,6 +53,18 @@ typedef struct version {
 #define VERSION_UNSTABLE_WARN	(86400*60)		/* 2 months - 60 days */
 #define VERSION_UNSTABLE_BAN	(86400*90)		/* 3 months - 90 days */
 
+#define stringify(x) #x
+#define xstr(x) stringify(x)  
+
+#if defined(GTA_PATCHLEVEL) && (GTA_PATCHLEVEL != 0)
+#define GTA_VERSION_NUMBER \
+	xstr(GTA_VERSION) "." xstr(GTA_SUBVERSION) "." xstr(GTA_PATCHLEVEL) \
+		GTA_REVCHAR
+#else
+#define GTA_VERSION_NUMBER \
+	xstr(GTA_VERSION) "." xstr(GTA_SUBVERSION) GTA_REVCHAR
+#endif
+
 /*
  * Public interface.
  */
@@ -68,7 +80,6 @@ gboolean version_fill(const gchar *version, version_t *vs);
 const gchar *version_str(const version_t *ver);
 
 extern gchar *version_string;
-extern gchar *version_number;
 
 #endif	/* _version_h_ */
 

@@ -35,7 +35,6 @@
 
 RCSID("$Id$");
 
-gchar *version_number = NULL;
 gchar *version_string = NULL;
 
 static version_t our_version;
@@ -468,31 +467,15 @@ void version_init(void)
 	struct utsname un;
 	gchar buf[128];
 	gboolean ok;
-	gchar patch[80];
-
-#ifdef GTA_PATCHLEVEL
-	if (GTA_PATCHLEVEL)
-		gm_snprintf(patch, sizeof(patch), ".%u", GTA_PATCHLEVEL);
-	else
-		patch[0] = '\0';
-#else
-	patch[0] = '\0';
-#endif
 
 	(void) uname(&un);
 
 	gm_snprintf(buf, sizeof(buf) - 1,
-		"%u.%u%s%s", GTA_VERSION, GTA_SUBVERSION, patch, GTA_REVCHAR);
-
-	version_number = atom_str_get(buf);
-
-	gm_snprintf(buf, sizeof(buf) - 1,
 		"gtk-gnutella/%s (%s; %s; %s %s %s)",
-		version_number, GTA_RELEASE, GTA_INTERFACE,
+		GTA_VERSION_NUMBER, GTA_RELEASE, GTA_INTERFACE,
 		un.sysname, un.release, un.machine);
 
 	version_string = atom_str_get(buf);
-
 	ok = version_parse(version_string, &our_version);
 	g_assert(ok);
 
@@ -561,7 +544,6 @@ gboolean version_is_too_old(const gchar *vendor)
  */
 void version_close(void)
 {
-	atom_str_free(version_number);
 	atom_str_free(version_string);
 
 	if (version_cmp(&our_version, &last_rel_version) < 0)
