@@ -36,7 +36,7 @@
 #ifdef USE_GTK2
 #include "interface-glade2.h"
 #else
-#include "interface-glade.h"
+#include "interface-glade1.h"
 #endif
 
 RCSID("$Id$");

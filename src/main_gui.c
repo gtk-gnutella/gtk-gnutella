@@ -29,6 +29,12 @@
 
 #include "gui.h"
 
+#ifdef USE_GTK2
+#include "interface-glade2.h"
+#else
+#include "interface-glade1.h"
+#endif
+
 #include "main_gui.h"
 #include "nodes_gui.h"
 
@@ -259,7 +265,7 @@ static void gui_init_menu(void)
  * the main notebook.
  *
  */
-static GtkWidget *gui_create_main_window()
+static GtkWidget *gui_create_main_window(void)
 {
 	GtkWidget *window;
 	GtkWidget *notebook;

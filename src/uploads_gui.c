@@ -23,6 +23,8 @@
  *----------------------------------------------------------------------
  */
 
+#include "gui.h"
+#include "interface-glade1.h"
 #include "uploads_gui.h"
 #include "parq.h"
 

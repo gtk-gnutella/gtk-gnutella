@@ -26,7 +26,9 @@
 #ifndef _uploads_gui_h_
 #define _uploads_gui_h_
 
-#include "gui.h"
+#include <glib.h>
+#include <time.h>
+#include "uploads.h"
 
 typedef struct upload_row_data {
     gnet_upload_t handle;      /* upload handle in backend */

@@ -35,6 +35,8 @@
 
 #if USE_GTK2
 
+#include "interface-glade2.h"
+
 static GtkWidget *icon;
 static GtkWidget *canvas;
 static GdkPixbuf *con_pixbuf, *up_pixbuf, *down_pixbuf;
@@ -364,6 +366,7 @@ void icon_close(void)
 
 #else                           /*   !USE_GTK2  */
 
+#include "interface-glade1.h"
 #include "support-glade1.h"
 
 static GdkPixmap *icon_map;

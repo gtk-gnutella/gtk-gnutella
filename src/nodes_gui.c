@@ -26,6 +26,7 @@
  */
 
 #include "gui.h"
+#include "interface-glade1.h"
 #include "nodes_gui_common.h"
 #include "nodes_gui.h"
 

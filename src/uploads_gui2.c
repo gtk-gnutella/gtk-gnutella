@@ -23,6 +23,8 @@
  *----------------------------------------------------------------------
  */
 
+#include "gui.h"
+#include "interface-glade2.h"
 #include "uploads_gui.h"
 
 RCSID("$Id$");
