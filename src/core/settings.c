@@ -198,20 +198,54 @@ settings_getphysmemsize(void)
 		return 0;
 	}
 	return (pagesize >> 10) * (gulong) pages;
+	
 #elif defined(HAS_SYSCTL) && defined(CTL_HW) && defined(HW_USERMEM)
 /* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM };
 	int amount = 0;
 	size_t len = sizeof(amount);
 
-	if (-1 == sysctl(mib, 2, &amount, &len, NULL, 0))
+	if (-1 == sysctl(mib, 2, &amount, &len, NULL, 0)) {
 		g_warning(
 			"settings_getphysmemsize: sysctl() for HW_USERMEM failed: %s",
 			g_strerror(errno));
+		return 0;
+	}
+	
 	return amount / 1024;
-#else /* !(defined (_SC_PHYS_PAGES) || defined(HAS_SYSCTL)) */
+	
+#elif defined (HAS_GETINVENT)
+	inventory_t *inv;
+	long physmem = 0;
+
+	if (-1 == setinvent()) {
+		g_warning("settings_getphysmemsize: setinvent() failed: %s",
+			g_strerror(errno));
+		return 0;
+	}
+	
+	errno = 0;
+	while ((inv = getinvent()) != NULL) {
+		if (inv->inv_class == INV_MEMORY && inv->inv_type == INV_MAIN_MB) {
+			physmem = inv->inv_state;
+			break;
+		}
+	}
+	endinvent();
+
+	if (-1L == physmem && 0 != errno) {
+		g_warning("settings_getphysmemsize: "
+			"getinvent() for INV_MEMORY faild: %s", g_strerror(errno));
+		return 0;
+	}
+	
+	return physmem * 1024;
+
+#else /* ! _SC_PHYS_PAGES && ! HAS_SYSCTL && ! HAS_GETINVENT */
+	
 	g_warning("Unable to determine amount of physical RAM");
 	return 0;
+	
 #endif 	/* _SC_PHYS_PAGES */
 }
 
