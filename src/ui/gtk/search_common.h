@@ -142,8 +142,9 @@ void search_gui_restart_search(search_t *sch);
 void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set);
 void search_gui_flush(time_t);
 gchar *search_gui_extract_ext(gchar *filename);
-const gchar *search_gui_parse_query(const gchar *querystr, rule_t **rule,
+const gchar *search_gui_parse_query(const gchar *querystr, GList **rules,
 		const gchar **error);
+void search_gui_filter_new(search_t *sch, GList *rules);
 
 struct filter;
 void search_gui_add_targetted_search(

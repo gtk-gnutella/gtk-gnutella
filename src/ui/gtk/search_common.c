@@ -1263,7 +1263,7 @@ search_gui_restart_search(search_t *sch)
 
 struct query {
 	gchar *text;
-	gchar *neg;
+	GList *neg;
 };
 
 /**
@@ -1274,47 +1274,54 @@ search_gui_parse_text_query(const gchar *s, struct query *query)
 {
 	static const struct query zero_query;
 	const gchar *p, *q;
+	gchar *dst;
 
 	g_assert(s);
 	g_assert(query);
 
 	*query = zero_query;
+	dst = query->text = g_strdup(s);
 	
 	for (p = s; *p != '\0'; p = q) {
 		gboolean neg;
 		gint n;
-		gchar *dst, *src;
 
 		q = strchr(p, ' ');
 		if (!q)
 			q = strchr(p, '\0');
 
 		/* Treat word after '-' (if preceded by a blank) as negative pattern */
-		neg = *p == '-' && (p != s && ' ' == *(p - 1));
+		neg = *p == '-' && (p != s && ' ' == *(p - 1)) && p[1] != '-';
 		if (neg)
 			p++;
-		n = q - p + (*q != '\0' ? 1 : 0);
+
+		n = q - p;
 		g_assert(n >= 0);
-		src = neg ? query->neg : query->text;
-		dst = g_strdup_printf("%s%.*s", src ? src : "", n, p);
 		if (neg) {
-			g_free(query->neg);
-			query->neg = dst;
+			if (*p != '\0') {
+				gchar *w;
+
+				w = g_strndup(p, n + 1);
+				g_strchomp(w);
+				if (gui_debug)
+					g_message("neg: \"%s\"", w);
+				query->neg = g_list_prepend(query->neg, w);
+			}
 		} else {
-			g_free(query->text);
-			query->text = dst;
+			if (dst != query->text)
+				*dst++ = ' ';
+
+			g_strlcpy(dst, p, n + 1);
+			if (gui_debug)
+				g_message("pos: \"%s\"", dst);
+			dst += n;
 		}
 	
-#if 0 
-		g_message("%s: \"%.*s\"", neg ? "neg" : "pos", n, p);
-#endif
-		p = *q != '\0' ? ++q : q;
+		if (*q != '\0')
+			q = skip_ascii_blanks(++q);
 	}
 
-	if (query->text)
-		g_strchomp(query->text);
-	if (query->neg)
-		g_strchomp(query->neg);
+	query->neg = g_list_reverse(query->neg);
 }
 
 /**
@@ -1327,7 +1334,7 @@ search_gui_parse_text_query(const gchar *s, struct query *query)
  *			is returned.
  */
 const gchar *
-search_gui_parse_query(const gchar *querystr, rule_t **rule,
+search_gui_parse_query(const gchar *querystr, GList **rules,
 	const gchar **error)
 {
 	static const gchar magnet[] = "magnet:";
@@ -1340,8 +1347,8 @@ search_gui_parse_query(const gchar *querystr, rule_t **rule,
 	g_assert(error != NULL);
 
 	*error = NULL;
-	if (rule)
-		*rule = NULL;
+	if (rules)
+		*rules = NULL;
 
 	/*
 	 * If the text is a magnet link we extract the SHA1 urn
@@ -1409,18 +1416,60 @@ search_gui_parse_query(const gchar *querystr, rule_t **rule,
 	search_gui_parse_text_query(query, &qs);
 	g_assert(qs.text != NULL);
 	g_strlcpy(query, qs.text, sizeof query);
-	if (NULL != qs.neg && NULL != rule) {
+	if (qs.neg) {
 		filter_t *target;
+		GList *l;
 
 		target = filter_get_drop_target();
 		g_assert(target != NULL);
-		*rule = filter_new_text_rule(qs.neg, RULE_TEXT_WORDS, FALSE,
-					target, RULE_FLAG_ACTIVE);
+		for (l = qs.neg; l != NULL; l = g_list_next(l)) {		
+			gchar *w;
+		
+			w = l->data;
+			g_assert(w != NULL);
+			if (rules) {
+				/* recycle this list */
+				l->data = filter_new_text_rule(w, RULE_TEXT_WORDS, FALSE,
+							target, RULE_FLAG_ACTIVE);
+			}
+			G_FREE_NULL(w);
+		}
 	}
+
+	if (rules)
+		*rules = qs.neg;
+	else
+		g_list_free(qs.neg);
+
 	G_FREE_NULL(qs.text);
-	G_FREE_NULL(qs.neg);
 	
 	return query;
+}
+
+/**
+ * Initializes a new filter for the search ``sch'' and adds the rules
+ * from the rule list ``rules'' (if any).
+ *
+ * @param sch a new search
+ * @param rules a GList with items of type (rule_t *). ``rules'' may be NULL.
+ */
+void
+search_gui_filter_new(search_t *sch, GList *rules)
+{
+	GList *l;
+
+	g_assert(sch != NULL);
+
+  	filter_new_for_search(sch);
+	g_assert(sch->filter != NULL);
+
+	for (l = rules; l != NULL; l = g_list_next(l)) {
+		rule_t *r;
+
+		r = l->data;
+		g_assert(r != NULL);
+		filter_append_rule(sch->filter, r);
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */
