@@ -1589,16 +1589,16 @@ create_main_window (void)
   GtkWidget *eventbox_image_save;
   GtkWidget *image_save;
   GtkWidget *hbox147;
-  GtkWidget *eventbox2;
+  GtkWidget *eventbox_image_firewall;
   GtkWidget *image_firewall;
-  GtkWidget *eventbox3;
+  GtkWidget *eventbox_image_no_firewall;
   GtkWidget *image_no_firewall;
   GtkWidget *hbox228;
   GtkWidget *eventbox_image_ultra;
   GtkWidget *image_ultra;
   GtkWidget *eventbox_image_leaf;
   GtkWidget *image_leaf;
-  GtkWidget *eventbox_image_normal;
+  GtkWidget *eventbox_image_legacy;
   GtkWidget *image_legacy;
   GtkWidget *label_statusbar_uptime;
   GtkWidget *hb_toolbar;
@@ -1894,29 +1894,30 @@ create_main_window (void)
   gtk_widget_show (hbox147);
   gtk_box_pack_start (GTK_BOX (hbox211), hbox147, FALSE, TRUE, 0);
 
-  eventbox2 = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox2, "eventbox2");
-  gtk_widget_show (eventbox2);
-  gtk_box_pack_start (GTK_BOX (hbox147), eventbox2, FALSE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox2, _("Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results. "), NULL);
+  eventbox_image_firewall = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_firewall, "eventbox_image_firewall");
+  gtk_widget_show (eventbox_image_firewall);
+  gtk_box_pack_start (GTK_BOX (hbox147), eventbox_image_firewall, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_firewall, _("Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results. "), NULL);
 
   image_firewall = create_pixmap (main_window, "firewall.xpm");
   gtk_widget_set_name (image_firewall, "image_firewall");
   gtk_widget_show (image_firewall);
-  gtk_container_add (GTK_CONTAINER (eventbox2), image_firewall);
-  gtk_misc_set_padding (GTK_MISC (image_firewall), 1, 0);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_firewall), image_firewall);
+  gtk_widget_set_size_request (image_firewall, 16, 16);
 
-  eventbox3 = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox3, "eventbox3");
-  gtk_widget_show (eventbox3);
-  gtk_box_pack_start (GTK_BOX (hbox147), eventbox3, FALSE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox3, _("People can connect to you. Push should work."), NULL);
+  eventbox_image_no_firewall = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_no_firewall, "eventbox_image_no_firewall");
+  gtk_widget_show (eventbox_image_no_firewall);
+  gtk_box_pack_start (GTK_BOX (hbox147), eventbox_image_no_firewall, FALSE, TRUE, 0);
+  gtk_widget_set_size_request (eventbox_image_no_firewall, 16, 16);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_no_firewall, _("People can connect to you. Push should work."), NULL);
 
   image_no_firewall = create_pixmap (main_window, "no_firewall.xpm");
   gtk_widget_set_name (image_no_firewall, "image_no_firewall");
   gtk_widget_show (image_no_firewall);
-  gtk_container_add (GTK_CONTAINER (eventbox3), image_no_firewall);
-  gtk_misc_set_padding (GTK_MISC (image_no_firewall), 1, 0);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_no_firewall), image_no_firewall);
+  gtk_widget_set_size_request (image_no_firewall, 16, 16);
 
   hbox228 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox228, "hbox228");
@@ -1947,16 +1948,16 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_image_leaf), image_leaf);
   gtk_misc_set_padding (GTK_MISC (image_leaf), 1, 0);
 
-  eventbox_image_normal = gtk_event_box_new ();
-  gtk_widget_set_name (eventbox_image_normal, "eventbox_image_normal");
-  gtk_widget_show (eventbox_image_normal);
-  gtk_box_pack_start (GTK_BOX (hbox228), eventbox_image_normal, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_image_normal, _("Legacy mode is active. (Make sure there's an IRQ left!)"), NULL);
+  eventbox_image_legacy = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_legacy, "eventbox_image_legacy");
+  gtk_widget_show (eventbox_image_legacy);
+  gtk_box_pack_start (GTK_BOX (hbox228), eventbox_image_legacy, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox_image_legacy, _("Legacy mode is active. (Make sure there's an IRQ left!)"), NULL);
 
   image_legacy = create_pixmap (main_window, "legacy.xpm");
   gtk_widget_set_name (image_legacy, "image_legacy");
   gtk_widget_show (image_legacy);
-  gtk_container_add (GTK_CONTAINER (eventbox_image_normal), image_legacy);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_legacy), image_legacy);
   gtk_misc_set_padding (GTK_MISC (image_legacy), 1, 0);
 
   label_statusbar_uptime = gtk_label_new (_("[uptime]"));
@@ -2438,16 +2439,16 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_save, "eventbox_image_save");
   GLADE_HOOKUP_OBJECT (main_window, image_save, "image_save");
   GLADE_HOOKUP_OBJECT (main_window, hbox147, "hbox147");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox2, "eventbox2");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_firewall, "eventbox_image_firewall");
   GLADE_HOOKUP_OBJECT (main_window, image_firewall, "image_firewall");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox3, "eventbox3");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_no_firewall, "eventbox_image_no_firewall");
   GLADE_HOOKUP_OBJECT (main_window, image_no_firewall, "image_no_firewall");
   GLADE_HOOKUP_OBJECT (main_window, hbox228, "hbox228");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_ultra, "eventbox_image_ultra");
   GLADE_HOOKUP_OBJECT (main_window, image_ultra, "image_ultra");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_leaf, "eventbox_image_leaf");
   GLADE_HOOKUP_OBJECT (main_window, image_leaf, "image_leaf");
-  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_normal, "eventbox_image_normal");
+  GLADE_HOOKUP_OBJECT (main_window, eventbox_image_legacy, "eventbox_image_legacy");
   GLADE_HOOKUP_OBJECT (main_window, image_legacy, "image_legacy");
   GLADE_HOOKUP_OBJECT (main_window, label_statusbar_uptime, "label_statusbar_uptime");
   GLADE_HOOKUP_OBJECT (main_window, hb_toolbar, "hb_toolbar");
@@ -2660,6 +2661,7 @@ create_main_window_config_net_tab (void)
 
   main_window_config_net_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (main_window_config_net_tab, "main_window_config_net_tab");
+  gtk_widget_set_size_request (main_window_config_net_tab, 300, 200);
   gtk_window_set_title (GTK_WINDOW (main_window_config_net_tab), _("window1"));
 
   scrolledwindow38 = gtk_scrolled_window_new (NULL, NULL);
@@ -5562,15 +5564,11 @@ create_main_window_config_dbg_tab (void)
   GtkWidget *label565;
   GtkWidget *label566;
   GtkWidget *label567;
-  GtkWidget *label568;
-  GtkWidget *label569;
   GtkWidget *entry_current_ip_stamp;
   GtkWidget *entry_average_ip_uptime;
   GtkWidget *entry_start_stamp;
   GtkWidget *entry_average_servent_uptime;
   GtkWidget *entry_proxy_connections;
-  GtkWidget *entry_force_ultrapeer;
-  GtkWidget *entry_force_leaf;
   GtkWidget *label570;
   GtkWidget *label571;
   GtkWidget *label572;
@@ -5582,6 +5580,7 @@ create_main_window_config_dbg_tab (void)
   main_window_config_dbg_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (main_window_config_dbg_tab, "main_window_config_dbg_tab");
   gtk_window_set_title (GTK_WINDOW (main_window_config_dbg_tab), _("window7"));
+  gtk_window_set_default_size (GTK_WINDOW (main_window_config_dbg_tab), 300, 200);
 
   scrolledwindow44 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow44, "scrolledwindow44");
@@ -5704,7 +5703,7 @@ create_main_window_config_dbg_tab (void)
   gtk_widget_show (frame_expert_unmapped);
   gtk_box_pack_start (GTK_BOX (vbox81), frame_expert_unmapped, FALSE, TRUE, 0);
 
-  table60 = gtk_table_new (11, 8, FALSE);
+  table60 = gtk_table_new (9, 8, FALSE);
   gtk_widget_set_name (table60, "table60");
   gtk_widget_show (table60);
   gtk_container_add (GTK_CONTAINER (frame_expert_unmapped), table60);
@@ -5784,24 +5783,6 @@ create_main_window_config_dbg_tab (void)
   gtk_label_set_justify (GTK_LABEL (label567), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label567), 0, 0.5);
 
-  label568 = gtk_label_new (_("PROP_FORCE_ULTRAPEER"));
-  gtk_widget_set_name (label568, "label568");
-  gtk_widget_show (label568);
-  gtk_table_attach (GTK_TABLE (table60), label568, 0, 1, 6, 7,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 5, 0);
-  gtk_label_set_justify (GTK_LABEL (label568), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label568), 0, 0.5);
-
-  label569 = gtk_label_new (_("PROP_FORCE_LEAF"));
-  gtk_widget_set_name (label569, "label569");
-  gtk_widget_show (label569);
-  gtk_table_attach (GTK_TABLE (table60), label569, 0, 1, 7, 8,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 5, 0);
-  gtk_label_set_justify (GTK_LABEL (label569), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label569), 0, 0.5);
-
   entry_current_ip_stamp = gtk_entry_new ();
   gtk_widget_set_name (entry_current_ip_stamp, "entry_current_ip_stamp");
   gtk_widget_show (entry_current_ip_stamp);
@@ -5842,26 +5823,10 @@ create_main_window_config_dbg_tab (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_editable_set_editable (GTK_EDITABLE (entry_proxy_connections), FALSE);
 
-  entry_force_ultrapeer = gtk_entry_new ();
-  gtk_widget_set_name (entry_force_ultrapeer, "entry_force_ultrapeer");
-  gtk_widget_show (entry_force_ultrapeer);
-  gtk_table_attach (GTK_TABLE (table60), entry_force_ultrapeer, 1, 2, 6, 7,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_force_ultrapeer), FALSE);
-
-  entry_force_leaf = gtk_entry_new ();
-  gtk_widget_set_name (entry_force_leaf, "entry_force_leaf");
-  gtk_widget_show (entry_force_leaf);
-  gtk_table_attach (GTK_TABLE (table60), entry_force_leaf, 1, 2, 7, 8,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_force_leaf), FALSE);
-
   label570 = gtk_label_new (_("PROP_SYS_NOFILE"));
   gtk_widget_set_name (label570, "label570");
   gtk_widget_show (label570);
-  gtk_table_attach (GTK_TABLE (table60), label570, 0, 1, 8, 9,
+  gtk_table_attach (GTK_TABLE (table60), label570, 0, 1, 6, 7,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 5, 0);
   gtk_label_set_justify (GTK_LABEL (label570), GTK_JUSTIFY_LEFT);
@@ -5870,7 +5835,7 @@ create_main_window_config_dbg_tab (void)
   label571 = gtk_label_new (_("PROP_SYS_PHYSMEM"));
   gtk_widget_set_name (label571, "label571");
   gtk_widget_show (label571);
-  gtk_table_attach (GTK_TABLE (table60), label571, 0, 1, 9, 10,
+  gtk_table_attach (GTK_TABLE (table60), label571, 0, 1, 7, 8,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 5, 0);
   gtk_label_set_justify (GTK_LABEL (label571), GTK_JUSTIFY_LEFT);
@@ -5879,7 +5844,7 @@ create_main_window_config_dbg_tab (void)
   label572 = gtk_label_new (_("PROP_CRAWLER_VISIT_COUNT"));
   gtk_widget_set_name (label572, "label572");
   gtk_widget_show (label572);
-  gtk_table_attach (GTK_TABLE (table60), label572, 0, 1, 10, 11,
+  gtk_table_attach (GTK_TABLE (table60), label572, 0, 1, 8, 9,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 5, 0);
   gtk_label_set_justify (GTK_LABEL (label572), GTK_JUSTIFY_LEFT);
@@ -5888,7 +5853,7 @@ create_main_window_config_dbg_tab (void)
   entry_sys_nofile = gtk_entry_new ();
   gtk_widget_set_name (entry_sys_nofile, "entry_sys_nofile");
   gtk_widget_show (entry_sys_nofile);
-  gtk_table_attach (GTK_TABLE (table60), entry_sys_nofile, 1, 2, 8, 9,
+  gtk_table_attach (GTK_TABLE (table60), entry_sys_nofile, 1, 2, 6, 7,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_editable_set_editable (GTK_EDITABLE (entry_sys_nofile), FALSE);
@@ -5896,7 +5861,7 @@ create_main_window_config_dbg_tab (void)
   entry_sys_physmem = gtk_entry_new ();
   gtk_widget_set_name (entry_sys_physmem, "entry_sys_physmem");
   gtk_widget_show (entry_sys_physmem);
-  gtk_table_attach (GTK_TABLE (table60), entry_sys_physmem, 1, 2, 9, 10,
+  gtk_table_attach (GTK_TABLE (table60), entry_sys_physmem, 1, 2, 7, 8,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_editable_set_editable (GTK_EDITABLE (entry_sys_physmem), FALSE);
@@ -5904,7 +5869,7 @@ create_main_window_config_dbg_tab (void)
   entry_crawler_visit_count = gtk_entry_new ();
   gtk_widget_set_name (entry_crawler_visit_count, "entry_crawler_visit_count");
   gtk_widget_show (entry_crawler_visit_count);
-  gtk_table_attach (GTK_TABLE (table60), entry_crawler_visit_count, 1, 2, 10, 11,
+  gtk_table_attach (GTK_TABLE (table60), entry_crawler_visit_count, 1, 2, 8, 9,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_editable_set_editable (GTK_EDITABLE (entry_crawler_visit_count), FALSE);
@@ -5947,15 +5912,11 @@ create_main_window_config_dbg_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, label565, "label565");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, label566, "label566");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, label567, "label567");
-  GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, label568, "label568");
-  GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, label569, "label569");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, entry_current_ip_stamp, "entry_current_ip_stamp");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, entry_average_ip_uptime, "entry_average_ip_uptime");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, entry_start_stamp, "entry_start_stamp");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, entry_average_servent_uptime, "entry_average_servent_uptime");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, entry_proxy_connections, "entry_proxy_connections");
-  GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, entry_force_ultrapeer, "entry_force_ultrapeer");
-  GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, entry_force_leaf, "entry_force_leaf");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, label570, "label570");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, label571, "label571");
   GLADE_HOOKUP_OBJECT (main_window_config_dbg_tab, label572, "label572");
@@ -6033,9 +5994,11 @@ create_main_window_gnet_tab (void)
   GtkWidget *vbox34;
   GtkWidget *hbox151;
   GtkWidget *label150;
-  GtkWidget *entry_nodes_guid;
+  GtkWidget *eventbox11;
+  GtkWidget *label_nodes_guid;
   GtkWidget *label151;
-  GtkWidget *entry_nodes_ip;
+  GtkWidget *eventbox12;
+  GtkWidget *label_nodes_ip;
   GtkWidget *label282;
   GtkTooltips *tooltips;
 
@@ -6433,32 +6396,50 @@ create_main_window_gnet_tab (void)
   hbox151 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox151, "hbox151");
   gtk_widget_show (hbox151);
-  gtk_box_pack_start (GTK_BOX (vbox34), hbox151, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox34), hbox151, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (hbox151), 2);
 
-  label150 = gtk_label_new (_("GUID"));
+  label150 = gtk_label_new (_("GUID:"));
   gtk_widget_set_name (label150, "label150");
   gtk_widget_show (label150);
-  gtk_box_pack_start (GTK_BOX (hbox151), label150, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox151), label150, FALSE, TRUE, 0);
   gtk_misc_set_alignment (GTK_MISC (label150), 7.45058e-09, 0.5);
 
-  entry_nodes_guid = gtk_entry_new ();
-  gtk_widget_set_name (entry_nodes_guid, "entry_nodes_guid");
-  gtk_widget_show (entry_nodes_guid);
-  gtk_box_pack_start (GTK_BOX (hbox151), entry_nodes_guid, TRUE, TRUE, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_nodes_guid), FALSE);
+  eventbox11 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox11, "eventbox11");
+  gtk_widget_show (eventbox11);
+  gtk_box_pack_start (GTK_BOX (hbox151), eventbox11, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox11, _("The Global Unique IDentifier associated with this node. It's used for routing packets in the Gnutella network."), NULL);
 
-  label151 = gtk_label_new (_("IP:Port"));
+  label_nodes_guid = gtk_label_new ("");
+  gtk_widget_set_name (label_nodes_guid, "label_nodes_guid");
+  gtk_widget_show (label_nodes_guid);
+  gtk_container_add (GTK_CONTAINER (eventbox11), label_nodes_guid);
+  GTK_WIDGET_SET_FLAGS (label_nodes_guid, GTK_CAN_FOCUS);
+  gtk_label_set_justify (GTK_LABEL (label_nodes_guid), GTK_JUSTIFY_LEFT);
+  gtk_label_set_selectable (GTK_LABEL (label_nodes_guid), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label_nodes_guid), 0, 0.5);
+
+  label151 = gtk_label_new (_("Address/Port:"));
   gtk_widget_set_name (label151, "label151");
   gtk_widget_show (label151);
-  gtk_box_pack_start (GTK_BOX (hbox151), label151, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox151), label151, FALSE, TRUE, 0);
   gtk_misc_set_alignment (GTK_MISC (label151), 0, 0.5);
 
-  entry_nodes_ip = gtk_entry_new ();
-  gtk_widget_set_name (entry_nodes_ip, "entry_nodes_ip");
-  gtk_widget_show (entry_nodes_ip);
-  gtk_box_pack_start (GTK_BOX (hbox151), entry_nodes_ip, TRUE, TRUE, 0);
-  gtk_editable_set_editable (GTK_EDITABLE (entry_nodes_ip), FALSE);
+  eventbox12 = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox12, "eventbox12");
+  gtk_widget_show (eventbox12);
+  gtk_box_pack_start (GTK_BOX (hbox151), eventbox12, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox12, _("The current IP address and listening port for this node. To change these go to Config->Network."), NULL);
+
+  label_nodes_ip = gtk_label_new ("");
+  gtk_widget_set_name (label_nodes_ip, "label_nodes_ip");
+  gtk_widget_show (label_nodes_ip);
+  gtk_container_add (GTK_CONTAINER (eventbox12), label_nodes_ip);
+  GTK_WIDGET_SET_FLAGS (label_nodes_ip, GTK_CAN_FOCUS);
+  gtk_label_set_justify (GTK_LABEL (label_nodes_ip), GTK_JUSTIFY_LEFT);
+  gtk_label_set_selectable (GTK_LABEL (label_nodes_ip), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label_nodes_ip), 0, 0.5);
 
   label282 = gtk_label_new (_("Local node"));
   gtk_widget_set_name (label282, "label282");
@@ -6544,9 +6525,11 @@ create_main_window_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, vbox34, "vbox34");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, hbox151, "hbox151");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label150, "label150");
-  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, entry_nodes_guid, "entry_nodes_guid");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, eventbox11, "eventbox11");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label_nodes_guid, "label_nodes_guid");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label151, "label151");
-  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, entry_nodes_ip, "entry_nodes_ip");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, eventbox12, "eventbox12");
+  GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label_nodes_ip, "label_nodes_ip");
   GLADE_HOOKUP_OBJECT (main_window_gnet_tab, label282, "label282");
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_gnet_tab, tooltips, "tooltips");
 
