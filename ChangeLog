@@ -1,5 +1,13 @@
 # since last version
 
+- (2003.03.23 - Richard)
+ * Regenerated configure and friends.
+ * Fixed max-nodes calculation in the connection-odometer.
+ * Missing ";" in misc.h broke compilation when HAVE_STRLCPY was not set.
+ * Added means to fetch aliases of a file from fileinfo database.
+ * Show aliases in fileinfo screen.
+ * Added link between fileinfo and associated downloads (fi->dl).
+
 - (2003.03.16 - RAM)
  * Regenerated configure and friends.
  * Integrated icon patch from Mike Gray.
