@@ -1214,11 +1214,7 @@ static struct shared_file *get_file_to_upload_from_index(
 
 		sfn = shared_file_by_sha1(digest);
 
-		if (sfn == SHARE_REBUILDING) {
-			/* Retry-able by user, hence 503 */
-			upload_error_remove(u, NULL, 503, "Library being rebuilt");
-			return NULL;
-		}
+		g_assert(sfn != SHARE_REBUILDING);	/* Or we'd have trapped above */
 
 		if (sfn && sf != sfn) {
 			gchar location[1024];
@@ -1283,6 +1279,8 @@ static struct shared_file *get_file_to_upload_from_index(
 	if (sf == NULL) {
 		sf = shared_file_by_name(basename);
 
+		g_assert(sf != SHARE_REBUILDING);	/* Or we'd have trapped above */
+
 		if (dbg > 4) {
 			if (sf)
 				printf("BAD INDEX FIXED: requested %u, serving %u: %s\n",
@@ -1294,6 +1292,8 @@ static struct shared_file *get_file_to_upload_from_index(
 
 	} else if (0 != strncmp(basename, sf->file_name, sf->file_name_len)) {
 		struct shared_file *sfn = shared_file_by_name(basename);
+
+		g_assert(sfn != SHARE_REBUILDING);	/* Or we'd have trapped above */
 
 		if (dbg > 4) {
 			if (sfn)
