@@ -160,6 +160,10 @@ void on_radio_config_socksv5_toggled (GtkToggleButton *togglebutton, gpointer us
 void on_spinbutton_config_bps_in_changed(GtkSpinButton *spinbutton, gpointer user_data);
 void on_spinbutton_config_bps_out_changed(GtkSpinButton *spinbutton, gpointer user_data);
 
+void on_checkbutton_use_netmasks_toggled(GtkToggleButton * togglebutton, gpointer user_data);
+void on_entry_config_netmask_activate(GtkEditable * editable, gpointer user_data);
+gboolean on_entry_config_netmask_focus_out_event(GtkWidget * widget, GdkEventFocus * event, gpointer user_data);
+
 
 
 /***

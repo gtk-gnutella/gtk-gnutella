@@ -20,6 +20,11 @@ extern gboolean search_stats_enabled;
 extern gboolean clear_uploads;
 extern gboolean clear_downloads;
 
+extern gboolean use_netmasks;
+extern struct in_addr *local_netmasks;
+extern guint32 number_local_netmasks;
+extern gchar *local_netmasks_string;
+
 extern guint8 my_ttl;
 extern guint8 max_ttl;
 extern guint8 hard_ttl_limit;

@@ -1850,11 +1850,26 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 		s->getline = NULL;
 	}
 
+	/*
+	 * If we are preferring local hosts, try to remove a non-local host
+	 * if the new host is a local one.
+	 *		-- Mike Perry's netmask hack, 17/04/2002
+	 */
+
+	if (
+		use_netmasks &&
+		node_count() >= max_connections &&
+		host_is_nearby(ip)
+	)
+		node_remove_non_nearby();
+
 #define NO_RFC1918				/* XXX */
 
 #ifdef NO_RFC1918
-	/* This needs to be a runtime option.  I could see a need for someone
-	   * to want to run gnutella behind a firewall over on a private network. */
+	/*
+	 * This needs to be a runtime option.  I could see a need for someone
+	 * to want to run gnutella behind a firewall over on a private network.
+	 */
 	if (is_private_ip(ip)) {
 		if (s) {
 			if (major > 0 || minor > 4)

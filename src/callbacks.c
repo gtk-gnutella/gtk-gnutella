@@ -1431,6 +1431,35 @@ gboolean on_entry_config_path_focus_out_event(GtkWidget * widget,
 	return TRUE;
 }
 
+/***
+ *** Netmaks
+ ***/
+
+void on_entry_config_netmask_activate(GtkEditable * editable,
+										 gpointer user_data)
+{
+	/* This will generate a focus out event (next func) */
+	gtk_widget_grab_focus(ctree_menu);
+}
+
+gboolean on_entry_config_netmask_focus_out_event(GtkWidget * widget,
+													GdkEventFocus * event,
+													gpointer user_data)
+{
+	if (local_netmasks_string)
+		g_free(local_netmasks_string);
+	local_netmasks_string = g_strdup(gtk_entry_get_text(GTK_ENTRY(widget)));
+	parse_netmasks(gtk_entry_get_text(GTK_ENTRY(widget)));
+	return TRUE;
+}
+
+void on_checkbutton_use_netmasks_toggled(GtkToggleButton * togglebutton,
+											gpointer user_data)
+{
+	use_netmasks = gtk_toggle_button_get_active(togglebutton);
+}
+
+
 void on_entry_config_extensions_activate(GtkEditable * editable,
 										 gpointer user_data)
 {

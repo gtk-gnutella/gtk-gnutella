@@ -19,6 +19,7 @@
 #include "routing.h"
 #include "gmsg.h"
 
+static GList *last_returned_pong = NULL;	/* Last returned from list */
 GList *sl_caught_hosts = NULL;				/* Reserve list */
 static GList *sl_valid_hosts = NULL;		/* Validated hosts */
 static GHashTable *ht_known_hosts = NULL;	/* All known hosts */
@@ -115,23 +116,29 @@ static void auto_connect(void)
 void host_timer(void)
 {
 	int nodes_missing = up_connections - node_count();
+	guint32 ip;
+	guint16 port;
 
 	/*
 	 * If we are under the number of connections wanted, we add hosts
 	 * to the connection list
 	 */
 
-	if (nodes_missing > 0 && !stop_host_get) {
-		if (sl_caught_hosts != NULL) {
-			while (nodes_missing-- > 0 && sl_caught_hosts) {
-				guint32 ip;
-				guint16 port;
-
-				host_get_caught(&ip, &port);
-				node_add(NULL, ip, port);
-			}
-		} else
-			auto_connect();
+	if (nodes_missing > 0) {
+		if (!stop_host_get) {
+			if (sl_caught_hosts != NULL) {
+				while (nodes_missing-- > 0 && sl_caught_hosts) {
+					host_get_caught(&ip, &port);
+					node_add(NULL, ip, port);
+				}
+			} else
+				auto_connect();
+		}
+	}
+	else if (use_netmasks) {
+		/* Try to find better hosts */
+		if (find_nearby_host(&ip, &port) && node_remove_non_nearby())
+			node_add(NULL, ip, port); 
 	}
 }
 
@@ -376,10 +383,22 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 	 *				--RAM, 20/09/2001
 	 */
 
-	if (connect && node_count() < max_connections &&
-			connected_nodes() < up_connections)
-		node_add(NULL, ip, port);
 
+	if (connect) {
+		if (node_count() < max_connections) {
+			if (connected_nodes() < up_connections) {
+				node_add(NULL, ip, port);
+			}
+		}
+		else {
+			/* If we are above the max connections, delete a non-nearby 
+			 * connection before adding this better one
+			 */
+			if (use_netmasks && host_is_nearby(ip) && node_remove_non_nearby())
+				node_add(NULL, ip, port);
+		}
+
+	}
 	/*
 	 * Prune cache if we reached our limit.
 	 *
@@ -473,6 +492,162 @@ gint host_fill_caught_array(struct gnutella_host *hosts, gint hcount)
 	return hcount;				/* We  filled all the slots */
 }
 
+/* ---------- Netmask heuristic by Mike Perry -------- */
+struct network_pair
+{
+	struct in_addr mask;
+	struct in_addr net;
+};
+
+struct network_pair *local_networks;
+guint32 number_local_networks;
+
+/*
+ * free_networks()
+ *
+ * frees the local networks array
+ */
+void free_networks()
+{
+	g_free(local_networks);
+}
+
+/* 
+ * parse_netmaks
+ *
+ * Break the netmaks string and convert them into network_pair elements in 
+ * the local_networks array. IP's are in network order.
+ */
+void parse_netmasks(gchar * str)
+{
+	gchar **masks = g_strsplit(str, ";", 0);
+	gchar *p;
+	guint32 mask_div;
+	int i;
+
+	free_networks();
+
+	for (i = 0; masks[i]; i++)
+		;
+
+	local_networks = (struct network_pair *)g_malloc(sizeof(*local_networks)*i);
+	number_local_networks = i;
+
+	for (i = 0; masks[i]; i++) {
+		/* Network is of the form ip/mask or ip/bits */
+		if ((p = strchr(masks[i], '/')) && *p) {
+			*p = 0;
+			p++;
+			if (strchr(p, '.')) {
+				/* get the network address from the user */
+				if (inet_aton(p, &local_networks[i].mask) == 0)
+					perror("inet_nota on netmasks");
+			}
+			else {
+				errno = 0;
+				mask_div = strtol(p, NULL, 10);
+				if (mask_div > 32) {
+					mask_div = 32;
+				}
+				if (errno)
+					perror("netmask_div");
+				else
+					*(unsigned long *)&local_networks[i].mask = 
+						htonl(~((1<<(32-mask_div)) - 1));
+			}
+		}
+		else {
+			/* Assume single-host */
+			inet_aton("255.255.255.255", &local_networks[i].mask);
+		}
+		/* get the network address from the user */
+		if (inet_aton(masks[i], &local_networks[i].net) == 0)
+			perror("inet_nota on netmasks");
+	}
+
+	g_strfreev(masks);
+}
+
+/* 
+ * host_is_nearby
+ * 
+ * Returns true if the ip is inside one of the local networks  
+ */
+gboolean host_is_nearby(guint32 ip)
+{
+	int i;
+
+	for (i = 0; i < number_local_networks; i++) {
+		/* We store IP's in host byte order for some reason... */
+		if ((htonl(ip) & local_networks[i].mask.s_addr) == 
+				(local_networks[i].net.s_addr & local_networks[i].mask.s_addr))
+			return TRUE;
+	}
+	return FALSE;
+}
+
+/* 
+ * find_nearby_host
+ * 
+ * Finds a host in either the pong_cache or the host_cache that is in 
+ * one of the local networks. 
+ *
+ * returns true if host is found
+ */
+gboolean find_nearby_host(guint32 *ip, guint16 *port)
+{
+	struct gnutella_host *h;
+	static int alternate = 0;
+	guint32 first_ip;
+	guint16 first_port;
+	gboolean got_recent;
+	GList *link;
+
+	if (alternate++ & 1) {
+		/* Iterate through all recent pongs */
+		for (*ip = 0, got_recent = get_recent_pong(&first_ip, &first_port);
+				got_recent && (*ip != first_ip || *port != first_port); 
+				got_recent = get_recent_pong(ip, port)) {
+			if (host_is_nearby(*ip))
+				return TRUE;
+		}
+	}
+
+	/* iterate through whole list */
+	for (link = (hosts_r_file == NULL) ?
+			g_list_last(sl_caught_hosts) : g_list_first(sl_caught_hosts);
+			link; link = link->prev) {
+
+		h = (struct gnutella_host *) link->data;
+		if (host_is_nearby(h->ip)) {
+
+			sl_caught_hosts = g_list_remove_link(sl_caught_hosts, link);
+			g_list_free_1(link);
+			host_ht_remove(h);
+
+			*ip = h->ip;
+			*port = h->port;
+			g_free(h);
+
+			if (!sl_caught_hosts) {
+				sl_caught_hosts = sl_valid_hosts;
+				sl_valid_hosts = NULL;
+			}
+
+			if (!sl_caught_hosts)
+				gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
+
+			return TRUE;
+		}
+
+	}
+
+	return FALSE;
+
+}
+
+/* -------------------------- */
+
 /*
  * host_get_caught
  *
@@ -488,6 +663,12 @@ void host_get_caught(guint32 *ip, guint16 *port)
 	g_assert(sl_caught_hosts);		/* Must not call if no host in list */
 
 	host_low_on_pongs = (hosts_in_catcher < (max_hosts_cached >> 3));
+
+	/* 
+	 * First, try to find a local host 
+	 */
+	if (use_netmasks && number_local_networks && find_nearby_host(ip, port))
+		return;
 
 	/*
 	 * Try the recent pong cache when `alternate' is odd.
@@ -907,7 +1088,6 @@ static void free_cached_pong(struct cached_pong *cp)
 	g_free(cp);
 }
 
-static GList *last_returned_pong = NULL;	/* Last returned from list */
 
 /*
  * get_recent_pong

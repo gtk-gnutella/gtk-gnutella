@@ -3902,6 +3902,124 @@
 		  </widget>
 		</widget>
 	      </widget>
+
+	      <widget>
+		<class>GtkFrame</class>
+		<name>frame11</name>
+		<label>Local Networks</label>
+		<label_xalign>0</label_xalign>
+		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		<child>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkVBox</class>
+		  <name>vbox23_2</name>
+		  <border_width>4</border_width>
+		  <homogeneous>False</homogeneous>
+		  <spacing>4</spacing>
+
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox77</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_config_use_netmasks</name>
+		      <tooltip>This option can give peformance boosts to those on a large WAN with many peers (such as a university). Enter the networks of nearby dorms and peered networks to take advantage of this</tooltip>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>toggled</name>
+			<handler>on_checkbutton_use_netmasks_toggled</handler>
+			<last_modification_time>Thu, 11 Apr 2002 05:10:39 GMT</last_modification_time>
+		      </signal>
+		      <label>Try to connect to local networks first</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>Placeholder</class>
+		    </widget>
+		  </widget>
+
+		  <widget>
+		    <class>GtkHBox</class>
+		    <name>hbox78</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+
+		    <widget>
+		      <class>GtkEventBox</class>
+		      <name>eventbox1</name>
+		      <tooltip>Enter a semicolon separated list of networks that are local to you in the form of ip/bits or ip/netmask (eg 192.168.0.0/24 or 192.168.1.0/255.255.255.0)</tooltip>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+
+		      <widget>
+			<class>GtkLabel</class>
+			<name>label126_2</name>
+			<label>Addresses of Local Network(s): </label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+		      </widget>
+		    </widget>
+
+		    <widget>
+		      <class>GtkEntry</class>
+		      <name>entry_config_netmasks</name>
+		      <tooltip>Enter a semicolon separated list of networks that are local to you in the form of ip/bits or ip/netmask (eg 192.168.1.0/24 or 192.168.1.0/255.255.255.0)</tooltip>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>focus_out_event</name>
+			<handler>on_entry_config_netmask_focus_out_event</handler>
+			<last_modification_time>Thu, 11 Apr 2002 05:06:14 GMT</last_modification_time>
+		      </signal>
+		      <signal>
+			<name>activate</name>
+			<handler>on_entry_config_netmask_activate</handler>
+			<last_modification_time>Thu, 11 Apr 2002 05:05:58 GMT</last_modification_time>
+		      </signal>
+		      <editable>True</editable>
+		      <text_visible>True</text_visible>
+		      <text_max_length>0</text_max_length>
+		      <text></text>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
+		    </widget>
+		  </widget>
+		</widget>
+	      </widget>
 	    </widget>
 
 	    <widget>

@@ -38,6 +38,7 @@ gboolean progressbar_downloads_visible = TRUE;
 gboolean progressbar_connections_visible = TRUE;
 gboolean progressbar_bps_in_visible = TRUE;
 gboolean progressbar_bps_out_visible = TRUE;
+gboolean use_netmasks = FALSE;
 
 guint8 max_ttl = 7;
 guint8 my_ttl = 5;
@@ -87,6 +88,8 @@ gfloat min_dup_ratio = 1.5;
 guint32 max_hosts_cached = 20480;
 guint32 search_stats_update_interval = 200;
 guint32 search_stats_delcoef = 25;
+
+gchar *local_netmasks_string;
 
 gint dbg = 0;					// debug level, for development use
 gint stop_host_get = 0;			// stop get new hosts, non activity ok (debug)
@@ -176,6 +179,8 @@ enum {
 	k_progressbar_uploads_visible, k_progressbar_downloads_visible, 
 	k_progressbar_connections_visible, k_progressbar_bps_in_visible,
 	k_progressbar_bps_out_visible,
+	k_use_netmasks,
+	k_local_netmasks,
 	k_end
 };
 
@@ -275,6 +280,8 @@ static gchar *keywords[] = {
 	"progressbar_connections_visible",
 	"progressbar_bps_in_visible",
 	"progressbar_bps_out_visible",
+	"use_netmasks",
+	"local_netmasks",
 	NULL
 };
 
@@ -514,6 +521,8 @@ void config_init(void)
 
 	gui_update_search_stats_delcoef();
 	gui_update_search_stats_update_interval();
+
+    gui_update_config_netmasks();
 
 	gtk_toggle_button_set_active(
 		GTK_TOGGLE_BUTTON(checkbutton_search_stats_enable),
@@ -1034,20 +1043,45 @@ void config_set_param(guint32 keyword, gchar *value)
 		if (i >= 0 && i <= 50000)
 			search_stats_update_interval = i;
 		return;
+
 	case k_toolbar_visible:
 		toolbar_visible = (gboolean) ! g_strcasecmp(value, "true");
+		return;
+
 	case k_statusbar_visible:
 		statusbar_visible = (gboolean) ! g_strcasecmp(value, "true");
+		return;
+
 	case k_progressbar_uploads_visible:
 		progressbar_uploads_visible = (gboolean) ! g_strcasecmp(value, "true");
+		return;
+
 	case k_progressbar_downloads_visible:
-		progressbar_downloads_visible = (gboolean) ! g_strcasecmp(value, "true");
+		progressbar_downloads_visible =
+			(gboolean) ! g_strcasecmp(value, "true");
+		return;
+
 	case k_progressbar_connections_visible:
-		progressbar_connections_visible = (gboolean) ! g_strcasecmp(value, "true");
+		progressbar_connections_visible =
+			(gboolean) ! g_strcasecmp(value, "true");
+		return;
+
 	case k_progressbar_bps_in_visible:
 		progressbar_bps_in_visible = (gboolean) ! g_strcasecmp(value, "true");
+		return;
+
 	case k_progressbar_bps_out_visible:
 		progressbar_bps_out_visible = (gboolean) ! g_strcasecmp(value, "true");
+ 		return;
+
+ 	case k_local_netmasks:
+ 		local_netmasks_string = g_strdup(value);
+ 		parse_netmasks(value);
+ 		return;
+ 
+ 	case k_use_netmasks:
+ 		use_netmasks = (gboolean)!(g_strcasecmp(value, "true"));
+ 		return;
 	}
 }
 
@@ -1328,6 +1362,14 @@ static void config_save(void)
 			config_boolean(progressbar_bps_in_visible));
 	fprintf(config, "%s = %s\n", keywords[k_progressbar_bps_out_visible],
 			config_boolean(progressbar_bps_out_visible));
+
+ 	/* Mike Perry's netmask hack */
+ 	fprintf(config, "%s = %s\n", keywords[k_use_netmasks],
+ 			config_boolean(use_netmasks));
+ 
+ 	if (local_netmasks_string)
+ 		fprintf(config, "%s = %s\n", keywords[k_local_netmasks],
+ 				local_netmasks_string);
 
 	fprintf(config, "\n\n#\n# The following variables cannot "
 		"yet be configured with the GUI.\n#\n\n");

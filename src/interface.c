@@ -51,6 +51,8 @@ GtkWidget *entry_config_speed;
 GtkWidget *radio_config_http;
 GtkWidget *radio_config_socksv4;
 GtkWidget *radio_config_socksv5;
+GtkWidget *checkbutton_config_use_netmasks;
+GtkWidget *entry_config_netmasks;
 GtkWidget *entry_config_socks_port;
 GtkWidget *spinbutton_config_bps_in;
 GtkWidget *spinbutton_config_bps_out;
@@ -324,6 +326,12 @@ create_main_window (void)
   GtkWidget *hbox61;
   GtkWidget *label93;
   GtkWidget *label94;
+  GtkWidget *frame11;
+  GtkWidget *vbox23_2;
+  GtkWidget *hbox77;
+  GtkWidget *hbox78;
+  GtkWidget *eventbox1;
+  GtkWidget *label126_2;
   GtkWidget *label119;
   GtkWidget *vbox23;
   GtkWidget *frame_save_new_files;
@@ -2311,6 +2319,66 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox61), entry_config_socks_password, FALSE, FALSE, 0);
   gtk_widget_set_usize (entry_config_socks_password, 82, -2);
 
+  frame11 = gtk_frame_new ("Local Networks");
+  gtk_widget_ref (frame11);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame11", frame11,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame11);
+  gtk_box_pack_start (GTK_BOX (vbox24), frame11, TRUE, TRUE, 0);
+
+  vbox23_2 = gtk_vbox_new (FALSE, 4);
+  gtk_widget_ref (vbox23_2);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox23_2", vbox23_2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox23_2);
+  gtk_container_add (GTK_CONTAINER (frame11), vbox23_2);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox23_2), 4);
+
+  hbox77 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox77);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox77", hbox77,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox77);
+  gtk_box_pack_start (GTK_BOX (vbox23_2), hbox77, FALSE, FALSE, 0);
+
+  checkbutton_config_use_netmasks = gtk_check_button_new_with_label ("Try to connect to local networks first");
+  gtk_widget_ref (checkbutton_config_use_netmasks);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_use_netmasks", checkbutton_config_use_netmasks,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_use_netmasks);
+  gtk_box_pack_start (GTK_BOX (hbox77), checkbutton_config_use_netmasks, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, checkbutton_config_use_netmasks, "This option can give peformance boosts to those on a large WAN with many peers (such as a university). Enter the networks of nearby dorms and peered networks to take advantage of this", NULL);
+
+  hbox78 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox78);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox78", hbox78,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox78);
+  gtk_box_pack_start (GTK_BOX (vbox23_2), hbox78, FALSE, FALSE, 0);
+
+  eventbox1 = gtk_event_box_new ();
+  gtk_widget_ref (eventbox1);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox1", eventbox1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox1);
+  gtk_box_pack_start (GTK_BOX (hbox78), eventbox1, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, eventbox1, "Enter a semicolon separated list of networks that are local to you in the form of ip/bits or ip/netmask (eg 192.168.0.0/24 or 192.168.1.0/255.255.255.0)", NULL);
+
+  label126_2 = gtk_label_new ("Addresses of Local Network(s): ");
+  gtk_widget_ref (label126_2);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label126_2", label126_2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label126_2);
+  gtk_container_add (GTK_CONTAINER (eventbox1), label126_2);
+
+  entry_config_netmasks = gtk_entry_new ();
+  gtk_widget_ref (entry_config_netmasks);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_config_netmasks", entry_config_netmasks,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_config_netmasks);
+  gtk_box_pack_start (GTK_BOX (hbox78), entry_config_netmasks, TRUE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, entry_config_netmasks, "Enter a semicolon separated list of networks that are local to you in the form of ip/bits or ip/netmask (eg 192.168.1.0/24 or 192.168.1.0/255.255.255.0)", NULL);
+
   label119 = gtk_label_new ("Network\nsettings");
   gtk_widget_ref (label119);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label119", label119,
@@ -3048,6 +3116,15 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_socks_password), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_config_socks_password_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_config_use_netmasks), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_use_netmasks_toggled),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_config_netmasks), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_entry_config_netmask_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_config_netmasks), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_config_netmask_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_config_save_path), "clicked",
                       GTK_SIGNAL_FUNC (on_button_config_save_path_clicked),

@@ -44,5 +44,9 @@ void pcache_outgoing_connection(struct gnutella_node *n);
 void pcache_ping_received(struct gnutella_node *n);
 void pcache_pong_received(struct gnutella_node *n);
 void pcache_pong_fake(struct gnutella_node *n, guint32 ip, guint16 port);
+    
+void parse_netmasks(gchar *value);
+gboolean find_nearby_host(guint32 *ip, guint16 *port);
+gboolean host_is_nearby(guint32 ip);
 
 #endif /* __hosts_h__ */

@@ -111,5 +111,6 @@ void gui_update_stats(void);
 void gui_update_up_connections(void);
 void gui_update_upload(struct upload *);
 void gui_update_upload_kill(void);
+void gui_update_config_netmasks();
 
 #endif /* __gui_h__ */

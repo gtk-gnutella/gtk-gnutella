@@ -43,6 +43,9 @@ set w_main_list {
 	radio_config_http 
 	radio_config_socksv4 
 	radio_config_socksv5
+	checkbutton_config_use_netmasks
+	entry_config_netmasks
+        
     entry_config_socks_port 
 	spinbutton_config_bps_in
 	spinbutton_config_bps_out

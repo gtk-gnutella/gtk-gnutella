@@ -43,6 +43,8 @@ extern GtkWidget *entry_config_speed;
 extern GtkWidget *radio_config_http;
 extern GtkWidget *radio_config_socksv4;
 extern GtkWidget *radio_config_socksv5;
+extern GtkWidget *checkbutton_config_use_netmasks;
+extern GtkWidget *entry_config_netmasks;
 extern GtkWidget *entry_config_socks_port;
 extern GtkWidget *spinbutton_config_bps_in;
 extern GtkWidget *spinbutton_config_bps_out;
