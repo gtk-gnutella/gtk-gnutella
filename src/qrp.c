@@ -461,6 +461,8 @@ struct qrt_compress_context {
 	gint magic;						/* Magic number */
 	struct routing_patch *rp;		/* Routing table being compressed */
 	zlib_deflater_t *zd;			/* Incremental deflater */
+	bgdone_cb_t usr_done;			/* User-defined callback */
+	gpointer usr_arg;				/* Arg for user-defined callback */
 };
 
 static GSList *sl_compress_tasks = NULL;
@@ -545,10 +547,28 @@ static bgret_t qrt_step_compress(gpointer h, gpointer u, gint ticks)
 	return BGR_MORE;		/* More work required */
 
 done:
-	sl_compress_tasks = g_slist_remove(sl_compress_tasks, h);
 	bg_task_exit(h, status);
 
 	return BGR_ERROR;		/* Not reached */
+}
+
+/*
+ * qrt_patch_compress_done
+ *
+ * Called when the compress task is finished.
+ *
+ * This is really a wrapper on top of the user-supplied "done" callback
+ * which lets us remove the task from the list.
+ */
+static void qrt_patch_compress_done(
+	gpointer h, gpointer u, bgstatus_t status, gpointer arg)
+{
+	struct qrt_compress_context *ctx = (struct qrt_compress_context *) u;
+
+	g_assert(ctx->magic == QRT_COMPRESS_MAGIC);
+
+	sl_compress_tasks = g_slist_remove(sl_compress_tasks, h);
+	(*ctx->usr_done)(h, u, status, ctx->usr_arg);
 }
 
 /*
@@ -585,11 +605,14 @@ static gpointer qrt_patch_compress(
 	ctx->magic = QRT_COMPRESS_MAGIC;
 	ctx->rp = rp;
 	ctx->zd = zd;
+	ctx->usr_done = done_callback;
+	ctx->usr_arg = arg;
 
 	task = bg_task_create("QRP patch compression",
-		&step, 1, ctx, qrt_compress_free, done_callback, arg);
+		&step, 1, ctx, qrt_compress_free, qrt_patch_compress_done, NULL);
 
-	sl_compress_tasks = g_slist_prepend(sl_compress_tasks, task);
+	if (task != NULL)
+		sl_compress_tasks = g_slist_prepend(sl_compress_tasks, task);
 
 	return task;
 }
@@ -1649,11 +1672,8 @@ void qrt_update_free(gpointer handle)
 
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
-	if (qup->compress != NULL) {
-		// XXX that removal should really be in a task signal handler
-		sl_compress_tasks = g_slist_remove(sl_compress_tasks, qup->compress);
+	if (qup->compress != NULL)
 		bg_task_cancel(qup->compress);
-	}
 
 	g_assert(qup->compress == NULL);	/* Reset by qrt_compressed() */
 
