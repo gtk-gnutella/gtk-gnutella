@@ -25,14 +25,13 @@
  *----------------------------------------------------------------------
  */
 
-#include "gui.h"
-#include "filter_gui.h"
-
 /* For ntohl and inet_addr */
-
 #include <sys/types.h>
 #include <netinet/in.h> 
 #include <arpa/inet.h>
+
+#include "gui.h"
+#include "filter_gui.h"
 
 RCSID("$Id$");
 
