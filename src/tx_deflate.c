@@ -650,17 +650,21 @@ static gint tx_deflate_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 	struct attr *attr = (struct attr *) tx->opaque;
 	gint sent = 0;
 
-	/*
-	 * If we're flow controlled or shut down, don't accept anything.
-	 */
-
-	if (attr->flags & (DF_FLOWC|DF_SHUTDOWN))
-		return 0;
-
 	while (iovcnt--) {
-		gint ret = deflate_add(tx, iov->iov_base, iov->iov_len);
+		gint ret;
+
+		/*
+		 * If we're flow controlled or shut down, stop sending.
+		 */
+
+		if (attr->flags & (DF_FLOWC|DF_SHUTDOWN))
+			return sent;
+
+		ret = deflate_add(tx, iov->iov_base, iov->iov_len);
+
 		if (ret == -1)
 			return -1;
+
 		sent += ret;
 		if (ret < iov->iov_len)		/* Could not write all, flow-controlled */
 			break;
