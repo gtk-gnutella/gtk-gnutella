@@ -97,6 +97,26 @@ RCSID("$Id$");
 
 GSList *sl_nodes = (GSList *) NULL;
 
+GHashTable *unstable_ip = NULL;
+GSList *unstable_ips = (GSList *) NULL;
+
+struct node_bad_ip {
+	guint32 ip;
+	time_t time_added;
+};
+
+GHashTable *unstable_servent = NULL;
+GSList *unstable_servents = (GSList *) NULL;
+
+struct node_bad_client {
+	int	errors;
+	char *vendor;
+};
+
+static int node_error_threshhold = 12;	/* This requires an average uptime of
+										 * 2 hours for an ultrapeer */
+static time_t node_error_cleanup_timer = 24 * 60 * 60;	/* 1 day */
+
 static GSList *sl_proxies = (GSList *) NULL;	/* Our push proxies */
 static idtable_t *node_handle_map = NULL;
 
@@ -365,7 +385,28 @@ static gboolean can_become_ultra(time_t now)
 void node_slow_timer(time_t now)
 {
 	static time_t last_switch = 0;
+	GSList *sl;
+	GSList *sl_remove = NULL;
+	
+	for (sl = unstable_ips; sl != NULL; sl = sl->next) {
+		struct node_bad_ip *bad_ip = (struct node_bad_ip *) sl->data;
+		
+		if (bad_ip->time_added > node_error_cleanup_timer) {
+			sl_remove = g_slist_prepend(sl_remove, bad_ip);
+		} else
+			/* Should be sorted by time. */
+			break;
+	}
 
+	for (sl = sl_remove; sl != NULL; sl = sl->next) {
+		struct node_bad_ip *bad_ip = (struct node_bad_ip *) sl->data;		
+		
+		g_hash_table_remove(unstable_ip, bad_ip);
+		unstable_ips = g_slist_remove(unstable_ips, bad_ip);
+		
+		wfree(bad_ip, sizeof(*bad_ip));
+	}
+	
 	/*
 	 * If we're in "auto" mode and we're still running as a leaf node,
 	 * evaluate our ability to become an ultra node.
@@ -408,6 +449,39 @@ void node_slow_timer(time_t now)
 void node_timer(time_t now)
 {
 	GSList *l = sl_nodes;
+	GSList *sl = NULL;
+	GSList *slRemove = NULL;
+	
+	if ((now % node_error_cleanup_timer) == 0) {
+		for (sl = unstable_servents; sl != NULL; sl = sl->next) {
+			struct node_bad_client *bad_node = 
+				(struct node_bad_client *) sl->data;
+				
+			g_assert(bad_node != NULL);
+
+			bad_node->errors--;
+			if (bad_node->errors == 0)
+				slRemove = g_slist_prepend(slRemove, bad_node);
+		}
+		
+		for (sl = slRemove; sl != NULL; sl = sl->next) {
+			struct node_bad_client *bad_node = 
+				(struct node_bad_client *) sl->data;
+				
+			g_assert(bad_node != NULL);
+			g_assert(bad_node->vendor != NULL);
+			
+			g_warning("[nodes] Unbanning client: %s", bad_node->vendor);
+			
+			g_hash_table_remove(unstable_servent, bad_node);
+			unstable_servents = g_slist_remove(unstable_servents, bad_node);
+			
+			g_free(bad_node->vendor);
+			wfree(bad_node, sizeof(*bad_node));
+		}
+		
+		g_slist_free(slRemove);
+	}
 
 	/*
 	 * Asynchronously react to current peermode change.
@@ -457,6 +531,7 @@ void node_timer(time_t now)
 				!NODE_IS_LEAF(n) &&
 				now - n->last_update > node_connected_timeout
 			) {
+				node_mark_bad(n);
 				node_bye_if_writable(n, 405, "Activity timeout");
 			} else if (
 				!NODE_IS_LEAF(n) &&
@@ -582,6 +657,9 @@ void node_init(void)
 	no_gnutella_04 = time(NULL) >= 1057010400;	/* Tue Jul  1 00:00:00 2003 */
 
 	query_hashvec = qhvec_alloc(128);		/* Max: 128 unique words / URNs! */
+	
+	unstable_servent = g_hash_table_new(g_str_hash, g_str_equal);
+	unstable_ip = g_hash_table_new(g_int_hash, g_int_equal);
 }
 
 /*
@@ -951,6 +1029,140 @@ void node_remove_by_handle(gnet_node_t n)
 }
 
 /*
+ * ip_is_bad
+ *
+ * True when a certain IP has proven to be unstable
+ */
+gboolean node_ip_is_bad(guint32 ip) {
+	struct node_bad_ip *bad_ip = NULL;
+	
+	g_assert(ip != 0);
+	
+	bad_ip = g_hash_table_lookup(unstable_ip, &ip);
+	
+	if (bad_ip != NULL) {
+		g_warning("[nodes] Unstable ip %s", 
+			ip_to_gchar(ip));
+		return TRUE;
+	}
+		
+	return FALSE;
+}
+
+/*
+ * node_is_bad
+ */
+gboolean node_is_bad(struct gnutella_node *n)
+{
+	struct node_bad_client *bad_client = NULL;
+	struct node_bad_ip *bad_ip = NULL;
+	
+	g_assert(n != NULL);
+	
+	if (n->vendor == NULL) {
+		g_warning("[nodes] Got no vendor name!");
+		return TRUE;
+	}
+	
+	g_assert(n->vendor != NULL);
+	g_assert(n->ip != 0);
+	
+	bad_ip = g_hash_table_lookup(unstable_ip, &n->ip);
+	
+	if (bad_ip != NULL) {
+		g_warning("[nodes] Unstable ip %s (%s)", 
+			ip_to_gchar(n->ip),
+			n->vendor);
+		return TRUE;
+	
+	} else {
+		bad_client = g_hash_table_lookup(unstable_servent, n->vendor);
+	
+		if (bad_client == NULL)
+			return FALSE;
+	
+		if (bad_client->errors > node_error_threshhold) {
+			g_warning("[nodes] Banned client: %s", n->vendor);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+/*
+ * node_mark_bad
+ *
+ * Gives a specific vendor a bad mark. If a vendor + version gets to many
+ * marks, we won't try to connect to it anymore.
+ */
+void node_mark_bad(struct gnutella_node *n)
+{
+	struct node_bad_client *bad_client = NULL;
+	struct node_bad_ip *bad_ip = NULL;
+	time_t now = time((time_t *) NULL);
+	
+	if (in_shutdown) {
+		printf("[nodes] Shutting down, not marking bad\r\n");
+		return;
+	}
+	
+	g_assert(n != NULL);
+	g_assert(n->ip != 0);
+	
+	printf("[nodes] Entering mark bad\r\n");
+	
+	/* Don't mark a node as bad with whom we could stay a long time */
+	if (
+		now - n->connect_date >
+			node_error_cleanup_timer / node_error_threshhold
+	) {
+		printf("[nodes] %s not marking as bad. Connected for: %d (min: %d)\r\n",
+			ip_to_gchar(n->ip),
+			(gint) (now - n->connect_date), 
+			(gint) (node_error_cleanup_timer / node_error_threshhold));
+		return;
+	}
+	
+	bad_ip = g_hash_table_lookup(unstable_ip, &n->ip);
+	
+	if (bad_ip == NULL) {
+		bad_ip = walloc0(sizeof(*bad_ip));
+		bad_ip->ip = n->ip;
+		bad_ip->time_added = time((time_t) NULL);
+		
+		g_hash_table_insert(unstable_ip, &bad_ip->ip, bad_ip);
+		g_slist_append(unstable_ips, bad_ip);
+
+		g_warning("[nodes] Marked ip %s (%s) as a bad host",
+			ip_to_gchar(n->ip),
+			n->vendor);
+	}	
+	
+	if (n->vendor == NULL)
+		return;
+	
+	g_assert(n->vendor != NULL);
+	
+	bad_client =	g_hash_table_lookup(unstable_servent, n->vendor);
+	
+	if (bad_client == NULL) {
+		bad_client = walloc0(sizeof(*bad_client));
+		bad_client->errors = 0;
+		bad_client->vendor = strdup(n->vendor);
+		g_hash_table_insert(unstable_servent, bad_client->vendor, bad_client);
+		g_slist_append(unstable_servents, bad_client);
+	}
+
+	g_assert(bad_client != NULL);
+
+	bad_client->errors++;
+
+	g_warning("[nodes] Increased error counter (%d) for client: %s",
+		bad_client->errors,
+		n->vendor);
+}
+
+/*
  * node_remove
  *
  * Terminate connection with remote node, but keep structure around for a
@@ -967,7 +1179,7 @@ void node_remove(struct gnutella_node *n, const gchar *reason, ...)
 
 	if (n->status == GTA_NODE_REMOVING)
 		return;
-
+	
 	va_start(args, reason);
 	node_remove_v(n, reason, args);
 	va_end(args);
@@ -987,6 +1199,10 @@ void node_eof(struct gnutella_node *n, const gchar *reason, ...)
 
 	g_assert(n);
 
+	printf("[nodes] node eof\r\n");
+
+	node_mark_bad(n);
+
 	va_start(args, reason);
 
 	if (n->flags & NODE_F_BYE_SENT) {
@@ -1003,7 +1219,7 @@ void node_eof(struct gnutella_node *n, const gchar *reason, ...)
 			printf("\n");
 		}
 	}
-
+	
 	/*
 	 * Call node_remove_v() with supplied message unless we already sent a BYE
  	 * message, in which case we're done since the remote end most probably
@@ -2274,7 +2490,20 @@ static gboolean node_can_accept_connection(
 
 	if (n->flags & NODE_F_CRAWLER)
 		return TRUE;
+	/*
+	 * If a specific client version has proven to be very unstable during this
+	 * version, don't connect to it.
+	 *		-- JA 17/7/200
+	 */
 
+	if ((n->attrs & NODE_A_ULTRA) && node_is_bad(n)) {
+		send_node_error(n->socket, 403,
+			"Unstable servent or host");
+		node_remove(n, 
+			"Not connecting to node, host or servent proved to be unstable");
+		return FALSE;
+	}
+	
 	/*
 	 * If we are handshaking, we have not incremented the node counts yet.
 	 * Hence we can do >= tests against the limits.
@@ -3259,9 +3488,12 @@ static void err_header_read_eof(gpointer obj)
 {
 	struct gnutella_node *n = NODE(obj);
 
+	if (!(n->flags & NODE_F_CRAWLER))
+		node_mark_bad(n);
+
 	node_remove(n, (n->flags & NODE_F_CRAWLER) ?
 		"Sent crawling info" : "Failed (EOF)");
-
+	
 	maybe_downgrade_handshaking(n);
 }
 
@@ -3311,6 +3543,9 @@ static void call_node_04_connected(gpointer obj, header_t *header)
 
 void node_add(guint32 ip, guint16 port)
 {
+	if (node_ip_is_bad(ip))
+		return;
+	
 	if (0 != ip && 0 != port && !hostiles_check(ip))
     	node_add_socket(NULL, ip, port);
 }
@@ -4442,12 +4677,31 @@ static void node_bye_all_but_one(
 void node_bye_all(void)
 {
 	GSList *l;
-
+	GSList *sl;
+	
 	g_assert(!in_shutdown);		/* Meant to be called once */
 
 	in_shutdown = TRUE;
 	host_shutdown();
 
+	for (sl = unstable_servents; sl != NULL; sl = sl->next) {
+		struct node_bad_client *bad_node = (struct node_bad_client *) sl->data;
+			
+		g_hash_table_remove(unstable_servent, bad_node);
+		g_free(bad_node->vendor);
+		wfree(bad_node, sizeof(*bad_node));
+	}
+		
+	for (sl = unstable_ips; sl != NULL; sl = sl->next) {
+		struct node_bad_ip *bad_ip = (struct node_bad_ip *) sl->data;
+
+		g_hash_table_remove(unstable_ip, bad_ip);
+		wfree(bad_ip, sizeof(*bad_ip));
+	}
+
+	g_hash_table_destroy(unstable_servent);
+	g_hash_table_destroy(unstable_ip);
+	
 	for (l = sl_nodes; l; l = l->next) {
 		struct gnutella_node *n = l->data;
 

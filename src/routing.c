@@ -953,6 +953,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 					sender->n_dups > (guint16) 
                         (((float)min_dup_ratio) / 10000.0 * sender->received)
 				) {
+					node_mark_bad(sender);
 					node_bye(sender, 401, "Sent %d dups (%.1f%% of RX)",
 						sender->n_dups, sender->received ?
 							100.0 * sender->n_dups / sender->received :
@@ -1236,4 +1237,3 @@ void routing_close(void)
 }
 
 /* vi: set ts=4: */
-

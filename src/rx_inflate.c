@@ -87,6 +87,7 @@ static pmsg_t *inflate_data(rxdrv_t *rx, pmsg_t *mb)
 	ret = inflate(inz, Z_SYNC_FLUSH);
 
 	if (ret != Z_OK) {
+		node_mark_bad(rx->node);
 		node_bye(rx->node, 501, "Decompression failed: %s",
 			zlib_strerror(ret));
 		goto cleanup;
@@ -245,4 +246,3 @@ struct rxdrv_ops rx_inflate_ops = {
 	rx_inflate_disable,		/* disable */
 	rx_inflate_bio_source,	/* bio_source */
 };
-
