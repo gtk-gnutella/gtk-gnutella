@@ -2268,6 +2268,8 @@ static gboolean download_retry_no_urires(struct download *d,
 				ip_port_to_gchar(download_ip(d), download_port(d)),
 				download_vendor_str(d));
 
+		download_passively_queued(d, FALSE);
+
 		if (ack_code)
 			download_queue_delay(d, delay ? delay : DOWNLOAD_SHORT_DELAY,
 				"Server cannot handle /uri-res (%d)", ack_code);
@@ -2727,6 +2729,8 @@ static gboolean download_pick_available(struct download *d)
  */
 static void download_bad_source(struct download *d)
 {
+	download_passively_queued(d, FALSE);
+
 	if (!d->always_push && d->sha1)
 		dmesh_remove(d->sha1, download_ip(d), download_port(d),
 			d->record_index, d->file_name);
@@ -5648,6 +5652,7 @@ static void download_request(
 			if (!check_content_urn(d, header))
 				return;
 
+			download_passively_queued(d, FALSE);
 			download_queue_hold(d,
 				delay ? delay : download_retry_timeout_delay,
 				"%sRequested range unavailable yet", short_read);
@@ -5705,7 +5710,6 @@ static void download_request(
 		}
 
 		download_bad_source(d);
-		download_passively_queued(d, FALSE);
 
 		if (ancient_version)
 			goto report_error;		/* Old versions don't circumvent banning */
