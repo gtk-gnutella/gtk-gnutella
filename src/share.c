@@ -26,12 +26,58 @@ gchar stmp_2[4096];
 
 guint32 monitor_items = 0;
 
+/*
+ * Buffer where query hit packet is built.
+ *
+ * There is only one such packet, never freed.  At the beginning, one founds
+ * the gnutella header, followed by the query hit header: initial offsetting
+ * set by FOUND_RESET().
+ *
+ * The bufffer is logically (and possibly physically) extended via FOUND_GROW()
+ * FOUND_BUF and FOUND_SIZE are used within the building code to access the
+ * beginning of the query hit packet and the logical size of the packet.
+ *
+ *		--RAM, 25/09/2001
+ */
+
+struct {
+	guchar *d;		/* data */
+	guint32 l;		/* data length */
+	guint32 s;		/* size used by current search hit */
+} found_data;
+
+#define FOUND_CHUNK		1024	/* Minimal growing memory amount unit */
+
+#define FOUND_GROW(len) do {						\
+	gint missing;									\
+	found_data.s += (len);							\
+	missing = found_data.s - found_data.l;			\
+	if (missing > 0) {								\
+		missing = MAX(missing, FOUND_CHUNK);		\
+		found_data.l += missing;					\
+		found_data.d = (guchar *) g_realloc(found_data.d,	\
+			found_data.l * sizeof(guchar));			\
+	}												\
+} while (0)
+
+#define FOUND_RESET() do {							\
+	found_data.s = sizeof(struct gnutella_header) +	\
+		 sizeof(struct gnutella_search_results_out);\
+} while (0)
+
+#define FOUND_BUF	found_data.d
+#define FOUND_SIZE	found_data.s
+
 /* ----------------------------------------- */
 
 void share_init(void)
 {
 	share_scan();
+	found_data.l = FOUND_CHUNK;		/* must be > size after FOUND_RESET */
+	found_data.d = (guchar *) g_malloc(found_data.l * sizeof(guchar));
 }
+
+/* ----------------------------------------- */
 
 /* Free existing extensions */
 
@@ -276,6 +322,7 @@ void share_scan(void)
 
 void share_close(void)
 {
+	g_free(found_data.d);
 	free_extensions();
 	share_free();
 	shared_dirs_free();
@@ -347,12 +394,11 @@ void search_request(struct gnutella_node *n)
 
 	GSList *files = NULL;
 	guchar found_files = 0;
-	guint32 size = 0, pos = 0, pl = 0;
+	guint32 pos, pl;
 	guint16 req_speed;
 	gchar *search;
-	guchar *found_data = NULL, *final = NULL;
-	struct gnutella_header packet_head;
-	struct gnutella_search_results_out search_head;
+	struct gnutella_header *packet_head;
+	struct gnutella_search_results_out *search_head;
 	gchar *last_dir = NULL;
 	guint32 search_len;
 	gchar trailer[10];
@@ -440,7 +486,8 @@ void search_request(struct gnutella_node *n)
 	for (i = 0; i < wocnt; i++)
 		pattern[i] = pattern_compile(wovec[i].word);
 
-	found_data = (guchar *) g_malloc0(1 * sizeof(guchar));
+	FOUND_RESET();
+	pos = FOUND_SIZE;			/* Not zero: has packet + search headers */
 
 	for (files = shared_files; files; files = files->next) {
 		struct shared_file *sf = (struct shared_file *) files->data;
@@ -473,30 +520,25 @@ void search_request(struct gnutella_node *n)
 						pattern, wovec, wocnt)
 			) {
 
-			/* Add to calling nodes found list. */
-			found_data =
-				g_realloc(found_data,
-						  (size + 8 + sf->file_name_len +
-						   2) * sizeof(guchar));
-
-			WRITE_GUINT32_LE(sf->file_index, &found_data[pos]);
-
-			WRITE_GUINT32_LE(sf->file_size, &found_data[pos + 4]);
-
-			memcpy(&found_data[pos + 8], sf->file_name, sf->file_name_len);
-
 			/*
-			 * the size of the search results header 8 bytes, plus the
-			 * string length - NULL, plus two NULL's
+			 * Add to calling nodes found list.
+			 *
+			 * Grow buffer by the size of the search results header 8 bytes,
+			 * plus the string length - NULL, plus two NULL's
 			 */
 
-			size += 8 + sf->file_name_len + 2;
+			FOUND_GROW(8 + 2 + sf->file_name_len);
+
+			WRITE_GUINT32_LE(sf->file_index, &FOUND_BUF[pos]);
+			WRITE_GUINT32_LE(sf->file_size, &FOUND_BUF[pos + 4]);
+
+			memcpy(&FOUND_BUF[pos + 8], sf->file_name, sf->file_name_len);
 
 			/* Position equals the next byte to be writen to */
-			pos = size - 2;
+			pos = FOUND_SIZE - 2;
 
-			found_data[pos++] = '\0';
-			found_data[pos++] = '\0';
+			FOUND_BUF[pos++] = '\0';
+			FOUND_BUF[pos++] = '\0';
 			found_files++;
 
 			/* Allow -1 to mean unlimited, and 0 to avoid returning any results
@@ -535,26 +577,24 @@ void search_request(struct gnutella_node *n)
 		 */
 
 		strncpy(trailer, "GTKG", 4);	/* Vendor code */
-		trailer[4] = 2;			/* Open data size */
+		trailer[4] = 2;					/* Open data size */
 		trailer[5] = 0x04 | 0x08;		/* Valid flags we set */
-		trailer[6] = 0;			/* Our flags */
+		trailer[6] = 0;					/* Our flags */
 
 		if (running_uploads >= max_uploads)
-			trailer[6] |= 0x04; /* Busy flag */
+			trailer[6] |= 0x04;			/* Busy flag */
 		if (count_uploads > 0)
-			trailer[6] |= 0x08; /* One file uploaded, at least */
+			trailer[6] |= 0x08;			/* One file uploaded, at least */
 
-		found_data = g_realloc(found_data, size + 16 + 6);
-		memcpy(&found_data[pos], &trailer, 6);	/* Store trailer */
-		pos += 6;
-		memcpy(&found_data[pos], &guid, 16);	/* Store the GUID */
-		pos += 16;
-		size += 22;				/* Trailer + GUID */
+		FOUND_GROW(16 + 6);
+		memcpy(&FOUND_BUF[pos], &trailer, 6);	/* Store trailer */
+		memcpy(&FOUND_BUF[pos+6], &guid, 16);	/* Store the GUID */
 
 		/* Payload size including the search results header, actual results */
-		pl = size + sizeof(struct gnutella_search_results_out);
+		pl = FOUND_SIZE - sizeof(struct gnutella_header);
 
-		memcpy(&packet_head.muid, &(*n).header.muid, 16);
+		packet_head = (struct gnutella_header *) FOUND_BUF;
+		memcpy(&packet_head->muid, &n->header.muid, 16);
 
 		/*
 		 * We apply the same logic here as in reply_init(): we limit the TTL
@@ -568,44 +608,24 @@ void search_request(struct gnutella_node *n)
 			n->header.hops++;	/* Can't send message with TTL=0 */
 		}
 
-		packet_head.function = GTA_MSG_SEARCH_RESULTS;
-		packet_head.ttl = MIN(n->header.hops, max_ttl);
-		packet_head.hops = 0;
-		memcpy(&packet_head.size, &pl, 4);
+		packet_head->function = GTA_MSG_SEARCH_RESULTS;
+		packet_head->ttl = MIN(n->header.hops, max_ttl);
+		packet_head->hops = 0;
+		WRITE_GUINT32_LE(pl, packet_head->size);
 
+		search_head = (struct gnutella_search_results_out *)
+			&FOUND_BUF[sizeof(struct gnutella_header)];
 
-		memcpy(&search_head.num_recs, &found_files, 1);
+		search_head->num_recs = found_files;	/* One byte, little endian! */
 
-		WRITE_GUINT16_LE(listen_port, search_head.host_port);
-
+		WRITE_GUINT16_LE(listen_port, search_head->host_port);
 		WRITE_GUINT32_BE(force_local_ip ? forced_local_ip : local_ip,
-						 search_head.host_ip);
+						 search_head->host_ip);
+		WRITE_GUINT32_LE(connection_speed, search_head->host_speed);
 
-		WRITE_GUINT32_LE(connection_speed, search_head.host_speed);
-
-		final =
-			(guchar *) g_malloc0(size + sizeof(struct gnutella_header) +
-								 sizeof(struct
-										gnutella_search_results_out));
-
-		memcpy(final, &packet_head, sizeof(struct gnutella_header));
-
-		memcpy(&final[sizeof(struct gnutella_header)], &search_head,
-			   sizeof(struct gnutella_search_results_out));
-
-		memcpy(&final
-			   [sizeof(struct gnutella_header) +
-				sizeof(struct gnutella_search_results_out)], found_data,
-			   size);
-
-		sendto_one(n, (guchar *) final, NULL,
-				   size + sizeof(struct gnutella_header) +
-				   sizeof(struct gnutella_search_results_out));
-
-		g_free(final);
+		sendto_one(n, FOUND_BUF, NULL, FOUND_SIZE);
 	}
 
-	g_free(found_data);
 	for (i = 0; i < wocnt; i++)
 		pattern_free(pattern[i]);
 	g_free(pattern);
