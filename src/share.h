@@ -76,7 +76,7 @@ void share_init(void);
 struct shared_file *shared_file(guint idx);
 void share_scan(void);
 void share_close(void);
-void search_request(struct gnutella_node *n);
+gboolean search_request(struct gnutella_node *n);
 void parse_extensions(gchar *);
 gchar *get_file_path(gint);
 void shared_dirs_parse(gchar *);

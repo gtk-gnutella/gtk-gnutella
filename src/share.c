@@ -623,6 +623,7 @@ static void reinit_sha1_table();
 void share_scan(void)
 {
 	GSList *l;
+	gint i;
 
 	files_scanned = 0;
 	bytes_scanned = 0;
@@ -655,26 +656,20 @@ void share_scan(void)
 
 	gui_update_files_scanned();		/* Final view */
 
-/// XXX
-	{
-		struct timeval start, end;
+	/*
+	 * Query routing table update.
+	 */
 
-		gettimeofday(&start, NULL);
-		qrp_prepare_computation();
+	qrp_prepare_computation();
 
-		for (l = shared_files; l; l = l->next) {
-			struct shared_file *sf = l->data;
-			qrp_add_file(sf);
-		}
-
-		qrp_finalize_computation();
-		gettimeofday(&end, NULL);
-
-		if (dbg)
-			printf("QRP computation took: %d msec\n",
-				(gint) ((end.tv_sec - start.tv_sec) * 1000 +
-					(end.tv_usec - start.tv_usec) / 1000));
+	for (i = 0, l = shared_files; l; i++, l = l->next) {
+		struct shared_file *sf = l->data;
+		qrp_add_file(sf);
+		if (0 == (i & 0x7ff))
+			gtk_main_flush();
 	}
+
+	qrp_finalize_computation();
 }
 
 void share_close(void)
@@ -844,8 +839,10 @@ static void scan_query_extensions(
  * Searches requests (from others nodes) 
  * Basic matching. The search request is made lowercase and
  * is matched to the filenames in the LL.
+ *
+ * Returns TRUE if the message should be dropped and not propagated further.
  */
-void search_request(struct gnutella_node *n)
+gboolean search_request(struct gnutella_node *n)
 {
 	guchar found_files = 0;
 	guint32 pos, pl;
@@ -888,8 +885,8 @@ void search_request(struct gnutella_node *n)
 			g_assert(n->data[n->size - 1] != '\0');
 			if (dbg > 4)
 				dump_hex(stderr, "Search Text", search, MIN(n->size - 2, 256));
-			n->data[n->size - 1] = '\0';	/* Force a NUL */
-			search_len = max_len;			/* And we truncated it */
+
+			return TRUE;		/* Drop the message! */
 		}
 
 		/* We can now use `search' safely as a C string: it embeds a NUL */
@@ -948,7 +945,7 @@ void search_request(struct gnutella_node *n)
 	READ_GUINT16_LE(n->data, req_speed);
 
 	if (connection_speed < req_speed)
-		return;					/* We're not fast enough */
+		return FALSE;				/* We're not fast enough */
 
 	/*
 	 * If we aren't going to let the searcher download anything, then
@@ -957,14 +954,14 @@ void search_request(struct gnutella_node *n)
 	 */
 
 	if (max_uploads == 0)
-		return;
+		return FALSE;
 
 	/*
 	 * If the query comes from a node farther than our TTL (i.e. the TTL we'll
 	 * use to send our reply), don't bother processing it: the reply won't
 	 * be able to reach the issuing node.
 	 *
-	 * However, not that for replies, we use our maximum configured TTL, so
+	 * However, note that for replies, we use our maximum configured TTL, so
 	 * we compare to that, and not to my_ttl, which is the TTL used for
 	 * "standard" packets.
 	 *
@@ -972,7 +969,7 @@ void search_request(struct gnutella_node *n)
 	 */
 
 	if (n->header.hops > max_ttl)
-		return;
+		return TRUE;					/* Drop this long-lived search */
 
 	/*
 	 * When an URN search is present, there can be an empty search string.
@@ -993,7 +990,7 @@ void search_request(struct gnutella_node *n)
 		skip_file_search = TRUE;
 
 	if (!query_extension.urn && skip_file_search)
-		return;
+		return TRUE;					/* Drop this search message */
 
 	/*
 	 * Perform search...
@@ -1122,7 +1119,7 @@ void search_request(struct gnutella_node *n)
 		gmsg_sendto_one(n, FOUND_BUF, FOUND_SIZE);
 	}
 
-	return;
+	return FALSE;		/* Can propagate this message if needed */
 }
 
 /*

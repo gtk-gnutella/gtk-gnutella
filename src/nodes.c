@@ -2261,7 +2261,7 @@ static void node_parse(struct gnutella_node *node)
 			handle_push_request(n);
 			break;
 		case GTA_MSG_SEARCH:
-			search_request(n);
+			drop = search_request(n);
 			break;
 		case GTA_MSG_SEARCH_RESULTS:
 			search_results(n);
@@ -2275,7 +2275,15 @@ static void node_parse(struct gnutella_node *node)
 	if (!n)
 		return;				/* The node has been removed during processing */
 
-	gmsg_sendto_route(n, &dest);		/* Propagate message, if needed */
+	if (!drop)
+		gmsg_sendto_route(n, &dest);	/* Propagate message, if needed */
+	else {
+		if (dbg > 3)
+			gmsg_log_dropped(&n->header, "from %s", node_ip(n));
+
+		n->rx_dropped++;
+		dropped_messages++;
+	}
 
 reset_header:
 	n->have_header = FALSE;
