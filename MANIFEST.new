@@ -327,6 +327,8 @@ src/uploads_gui_common.h
 src/uploads_gui.h
 src/uploads.h
 src/upload_stats.c
+src/upload_stats_cb.c
+src/upload_stats_cb.h
 src/upload_stats_gui2.c
 src/upload_stats_gui.c
 src/upload_stats_gui.h
