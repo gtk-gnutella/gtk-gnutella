@@ -82,6 +82,7 @@ gchar *short_uptime(guint32 s);
 void random_init(void);
 guint32 random_value(guint32 max);
 void strlower(gchar *, gchar *);
+gchar *unique_filename(gchar *path, gchar *file, gchar *ext);
 
 #ifdef HAVE_STRCASESTR
 char *strcasestr(const char *haystack, const char *needle);

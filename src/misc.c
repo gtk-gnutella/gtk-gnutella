@@ -37,6 +37,8 @@
 #include <ctype.h>			/* For isalnum() and isspace() */
 #include <sys/times.h>		/* For times() */
 
+#include "guid.h"
+
 #if !defined(HAVE_SRANDOM) || !defined(HAVE_RANDOM)
 #define srandom(x)	srand(x)
 #define random(x)	rand(x)
@@ -714,3 +716,73 @@ void random_init(void)
 
 	srandom(seed);
 }
+
+/*
+ * unique_filemame
+ *
+ * Determine unique filename for `file' in `path', with optional trailing
+ * extension `ext'.  If no `ext' is wanted, one must supply an empty string.
+ *
+ * Returns the chosen unique complete filename as a pointer to static data.
+ */
+gchar *unique_filename(gchar *path, gchar *file, gchar *ext)
+{
+	static gchar filename[2048];
+	gint rw;
+	struct stat buf;
+	gint i;
+	guchar xuid[16];
+
+	/*
+	 * This is the basename.
+	 */
+
+	rw = g_snprintf(filename, sizeof(filename), "%s%s%s",
+		path, path[strlen(path) - 1] == '/' ? "" : "/", file);
+
+	/*
+	 * Append the extension, then try to see whether this file exists.
+	 */
+
+	g_snprintf(&filename[rw], sizeof(filename)-rw, "%s", ext);
+
+	if (-1 == stat(filename, &buf))
+		return filename;
+
+	/*
+	 * Looks like we need to make the filename more unique.  Append .00, then
+	 * .01, etc... until .99.
+	 */
+
+	for (i = 0; i < 100; i++) {
+		g_snprintf(&filename[rw], sizeof(filename)-rw, ".%02d%s", i, ext);
+		if (-1 == stat(filename, &buf))
+			return filename;
+	}
+
+	/*
+	 * OK, no luck.  Try with a few random numbers then.
+	 */
+
+	for (i = 0; i < 100; i++) {
+		guint32 rnum = random_value(RAND_MAX);
+		g_snprintf(&filename[rw], sizeof(filename)-rw, ".%x%s", rnum, ext);
+		if (-1 == stat(filename, &buf))
+			return filename;
+	}
+
+	/*
+	 * Bad luck.  Allocate a random GUID then.
+	 */
+
+	guid_random_fill(xuid);
+	g_snprintf(&filename[rw], sizeof(filename)-rw, ".%s%s",
+		guid_hex_str(xuid), ext);
+
+	if (-1 == stat(filename, &buf))
+		return filename;
+
+	g_error("no luck with random number generator");	/* Should NOT happen */
+	return NULL;
+}
+
