@@ -110,8 +110,9 @@ static vp_context_t fi_context;
 /**
  * Draw a rectangle for visual progress
  */
-void vp_draw_rectangle(vp_info_t *v,
-	guint32 from, guint32 to, guint top, guint bottom)
+void 
+vp_draw_rectangle(vp_info_t *v, guint32 from, guint32 to, 
+				  guint top, guint bottom)
 {
     guint s_from;
     guint s_to;
@@ -149,7 +150,8 @@ void vp_draw_rectangle(vp_info_t *v,
 /**
  * Draw a chunk for visual progress
  */
-void vp_draw_chunk (gpointer data, gpointer user_data)
+void 
+vp_draw_chunk (gpointer data, gpointer user_data)
 {
     gnet_fi_chunks_t *chunk = data;
     vp_info_t *v = user_data;
@@ -170,7 +172,8 @@ void vp_draw_chunk (gpointer data, gpointer user_data)
 		0, v->context->widget->allocation.height);
 }
 
-static void vp_draw_range (gpointer data, gpointer user_data)
+static void 
+vp_draw_range (gpointer data, gpointer user_data)
 {
 	http_range_t *range = data;
 	vp_info_t *v = user_data;
@@ -189,7 +192,8 @@ static void vp_draw_range (gpointer data, gpointer user_data)
  * fih is expected to be a valid fih. Depending on the
  * value of valid the area will be drawn or cleared.
  */
-void vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
+void 
+vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 {
     vp_info_t *v;
 	gboolean found;
@@ -262,7 +266,8 @@ on_drawingarea_fi_progress_expose_event(
  * it, give it a place on the screen, and create the initial graphical
  * representation.
  */
-static void vp_gui_fi_added(gnet_fi_t fih)
+static void 
+vp_gui_fi_added(gnet_fi_t fih)
 {
     gnet_fi_info_t *fi = NULL;
     vp_info_t *new_vp_info = NULL;
@@ -292,7 +297,8 @@ static void vp_gui_fi_added(gnet_fi_t fih)
  *
  * @param fih The fileinfo handle of the entry to be removed
  */
-static void vp_gui_fi_removed(gnet_fi_t fih)
+static void 
+vp_gui_fi_removed(gnet_fi_t fih)
 {
     gpointer value;
     gboolean found;
@@ -321,7 +327,8 @@ static void vp_gui_fi_removed(gnet_fi_t fih)
  * Fileinfo has been changed for a file. Update the information and 
  * draw the information so the changes are visible.
  */
-static void vp_gui_fi_status_changed(gnet_fi_t fih)
+static void 
+vp_gui_fi_status_changed(gnet_fi_t fih)
 {
     vp_info_t *v;
     GSList *old;
@@ -393,7 +400,8 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
  *
  * @param[in] size  File size to be used in range creation
  */
-static GSList *range_for_complete_file(guint32 size)
+static GSList *
+range_for_complete_file(guint32 size)
 {
 	http_range_t *range;
 
@@ -412,7 +420,8 @@ static GSList *range_for_complete_file(guint32 size)
  * information has become available for a download source.
  * @param[in] srcid  The abstract id of the source that had its ranges updated.
  */
-static void vp_update_ranges(gnet_src_t srcid)
+static void 
+vp_update_ranges(gnet_src_t srcid)
 {
     vp_info_t *v;
 	gboolean found;
@@ -465,7 +474,8 @@ static void vp_update_ranges(gnet_src_t srcid)
 /**
  * Free the vp_info_t structs in the vp_info_hash
  */
-void vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
+void 
+vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
 {
 	(void) key;
 	(void) user_data;
@@ -479,7 +489,8 @@ void vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
  * fileinfo structure so that we are notified of fileinfo events, and
  * get a permanent handle to the canvas for later reuse.
  */
-void vp_gui_init(void) 
+void 
+vp_gui_init(void) 
 {
     GdkColormap *cmap;
 
@@ -518,7 +529,8 @@ void vp_gui_init(void)
 /**
  * Undo everything set up in vp_gui_init
  */
-void vp_gui_shutdown(void)
+void 
+vp_gui_shutdown(void)
 {
     fi_remove_listener(vp_gui_fi_removed, EV_FI_REMOVED);
     fi_remove_listener(vp_gui_fi_added, EV_FI_ADDED);
