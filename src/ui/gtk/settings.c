@@ -1093,12 +1093,9 @@ static void set_host_progress(const gchar *w, guint32 cur, guint32 max)
 	if (frac != 0)
     	frac = frac * 100 / max;
 
-	if (max == 1)
-		gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u host (%u%%)"),
-			cur, max, frac);
-	else
-		gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u hosts (%u%%)"),
-			cur, max, frac);
+	gm_snprintf(set_tmp, sizeof(set_tmp),
+		NG_("%u/%u host (%u%%)", "%u/%u hosts (%u%%)", max),
+		cur, max, frac);
 
     gtk_progress_bar_set_text(pg, set_tmp);
     gtk_progress_bar_set_fraction(pg, frac / 100.0);
@@ -1328,12 +1325,11 @@ ancient_version_left_days_changed(property_t prop)
 
 	if (remain == 0)
 		statusbar_gui_message(15, _("*** VERSION WILL SOON BECOME OLD! ***"));
-	else if (remain == 1)
+	else 
 		statusbar_gui_message(15,
-			_("*** VERSION WILL BECOME OLD IN 1 DAY! ***"));
-	else
-		statusbar_gui_message(15,
-			_("*** VERSION WILL BECOME OLD IN %d DAYS! ***"), remain);
+			NG_("*** VERSION WILL BECOME OLD IN %d DAY! ***",
+				"*** VERSION WILL BECOME OLD IN %d DAYS! ***", remain),
+			remain);
 
     return FALSE;
 }
@@ -2115,14 +2111,10 @@ dl_running_count_changed(property_t prop)
         gtk_label_printf(
             GTK_LABEL(lookup_widget(main_window, "label_dl_running_count")),
             _("no sources"));
-    else if (val == 1)
-        gtk_label_printf(
-            GTK_LABEL(lookup_widget(main_window, "label_dl_running_count")),
-            _("1 source"));
 	else
         gtk_label_printf(
             GTK_LABEL(lookup_widget(main_window, "label_dl_running_count")),
-            _("%u sources"), val);
+            NG_("%u source", "%u sources", val), val);
 
 	downloads_count_changed(prop);
 
@@ -2285,12 +2277,9 @@ gnet_connections_changed(property_t unused_prop)
     case NODE_P_NORMAL: /* normal */
         nodes = (peermode == NODE_P_NORMAL) ?
             max_connections : max_ultrapeers;
-		if (nodes == 1)
-			gm_snprintf(set_tmp, sizeof(set_tmp),
-				_("%u/%u connection"), cnodes, nodes);
-		else
-			gm_snprintf(set_tmp, sizeof(set_tmp),
-				_("%u/%u connections"), cnodes, nodes);
+		gm_snprintf(set_tmp, sizeof(set_tmp),
+			NG_("%u/%u connection", "%u/%u connections", cnodes),
+			cnodes, nodes);
         break;
     case NODE_P_ULTRA: /* ultra */
         nodes = max_connections + max_leaves + max_normal;
@@ -2325,12 +2314,9 @@ uploads_count_changed(property_t unused_prop)
 	(void) unused_prop;
     gnet_prop_get_guint32_val(PROP_UL_REGISTERED, &registered);
     gnet_prop_get_guint32_val(PROP_UL_RUNNING, &running);
-	if (registered == 1)
-		gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u upload"),
-			running, registered);
-	else
-		gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u uploads"),
-			running, registered);
+	gm_snprintf(set_tmp, sizeof(set_tmp),
+		NG_("%u/%u upload", "%u/%u uploads", registered),
+		running, registered);
 
 	min = MIN(running, registered);
     frac = min != 0 ? (gfloat) min / registered : 0;
@@ -2353,12 +2339,9 @@ downloads_count_changed(property_t unused_prop)
 	(void) unused_prop;
     gnet_prop_get_guint32_val(PROP_DL_ACTIVE_COUNT, &active);
     gnet_prop_get_guint32_val(PROP_DL_RUNNING_COUNT, &running);
-	if (running == 1)
-		gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u download"),
-			active, running);
-	else
-		gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u downloads"),
-			active, running);
+	gm_snprintf(set_tmp, sizeof(set_tmp),
+		NG_("%u/%u download", "%u/%u downloads", running),
+		active, running);
 
     min = MIN(active, running);
     frac = min != 0 ? (gfloat) min / running : 0;

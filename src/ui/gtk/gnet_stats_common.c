@@ -26,18 +26,21 @@
 #include "gui.h"
 
 RCSID("$Id$");
+
 #include "gnet_stats_common.h"
+#include "gtk-missing.h"
+
 #include "if/core/net_stats.h"
 #include "if/bridge/ui2c.h"
+
 #include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-/*
- * msg_type_str
- *
+/**
  * Gets the string associated with the message type.
  */
-const gchar *msg_type_str(int value)
+const gchar *
+msg_type_str(gint value)
 {
 	static const char * const strs[] = {
 		N_("Unknown"),
@@ -64,17 +67,17 @@ const gchar *msg_type_str(int value)
 	return _(strs[value]);
 }
 
-int msg_type_str_size(void)
+gint
+msg_type_str_size(void)
 {
 	return MSG_TYPE_COUNT;
 }
 
-/*
- * msg_drop_str
- *
+/**
  * Gets the string associated with the drop reason.
  */
-const gchar *msg_drop_str(int value)
+const gchar *
+msg_drop_str(gint value)
 {
 	static const char * const strs[] = {
 		N_("Bad size"),
@@ -116,12 +119,11 @@ const gchar *msg_drop_str(int value)
 	return _(strs[value]);
 }
 
-/*
- * general_type_str
- *
+/**
  * Gets the string associated with the general message
  */
-const gchar *general_type_str(int value)
+const gchar *
+general_type_str(gint value)
 {
 	static const char * const strs[] = {
 		N_("Routing errors"),
@@ -174,13 +176,12 @@ const gchar *general_type_str(int value)
 	return _(strs[value]);
 }
 
-/*
- * horizon_stat_str
- *
+/**
  * Returns the cell contents for the horizon stats table.
  * NB: The static buffers for each column are disjunct.
  */
-const gchar *horizon_stat_str(gint row,	c_horizon_t column)
+const gchar *
+horizon_stat_str(gint row, c_horizon_t column)
 {
     switch (column) {
     case c_horizon_hops:
@@ -209,20 +210,18 @@ const gchar *horizon_stat_str(gint row,	c_horizon_t column)
     return NULL;
 }
 
-/*
- * gnet_stats_gui_horizon_update
- *
+/**
  * Updates the horizon statistics in the statusbar.
  * This is an event-driven callback called from the HSEP code
  * using the event listener framework. In addition to taking into account
  * the HSEP information, the number of established non-HSEP nodes and
  * their library size (if provided) are added to the values displayed.
  */
-
-void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
+void
+gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 {
 	const guint32 hops = 4U;      /* must be <= HSEP_N_MAX */
-	gchar s[64];
+	gchar buf[32];
 	guint64 val;
 	hsep_triple other;
 
@@ -238,21 +237,21 @@ void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 	 */
 
 	val = table[hops][HSEP_IDX_NODES] + other[HSEP_IDX_NODES];
-	gm_snprintf(s, sizeof(s),
-	            "%" PRIu64 " %s", val, val == 1 ? _("node") : _("nodes"));
-	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
-	                   "label_statusbar_horizon_node_count")), s);
+	gm_snprintf(buf, sizeof buf, "%" PRIu64, val);
+	gtk_label_printf(GTK_LABEL(
+			lookup_widget(main_window, "label_statusbar_horizon_node_count")),
+		"%s %s", buf, NG_("node", "nodes", val));
 
 	val = table[hops][HSEP_IDX_FILES] + other[HSEP_IDX_FILES];
-	gm_snprintf(s, sizeof(s), "%" PRIu64 " %s",
-	            val, val == 1 ? _("file") : _("files"));
-	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
-	                   "label_statusbar_horizon_file_count")), s);
+	gm_snprintf(buf, sizeof buf, "%" PRIu64, val);
+	gtk_label_printf(GTK_LABEL(
+			lookup_widget(main_window, "label_statusbar_horizon_file_count")),
+		"%s %s", buf, NG_("file", "files", val));
 
 	val = table[hops][HSEP_IDX_KIB] + other[HSEP_IDX_KIB];
-	gm_snprintf(s, sizeof(s), "%s", short_kb_size(val));
-	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
-	                   "label_statusbar_horizon_kb_count")), s);
+	gtk_label_printf(GTK_LABEL(
+			lookup_widget(main_window, "label_statusbar_horizon_kb_count")),
+		"%s", short_kb_size(val));
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -420,14 +420,11 @@ uhc_ipp_extract(gnutella_node_t *n, const gchar *payload, gint paylen)
 	if (replied) {
 		gchar msg[256];
 
-		if (cnt == 1)
-			gm_snprintf(msg, sizeof(msg),
-				_("Got %d host from UDP host cache %s:%u"),
-				cnt, uhc_ctx.host, uhc_ctx.port);
-		else
-			gm_snprintf(msg, sizeof(msg),
-				_("Got %d hosts from UDP host cache %s:%u"),
-				cnt, uhc_ctx.host, uhc_ctx.port);
+		gm_snprintf(msg, sizeof(msg),
+			NG_("Got %d host from UDP host cache %s:%u",
+				"Got %d hosts from UDP host cache %s:%u",
+				cnt),
+			cnt, uhc_ctx.host, uhc_ctx.port);
 
 		gcu_statusbar_message(msg);
 	}

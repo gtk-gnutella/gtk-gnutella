@@ -49,26 +49,24 @@ RCSID("$Id$");
 #include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-static gchar gui_tmp[4096];
-
 /*
  * Implementation
  */
 
-void gui_update_files_scanned(void)
+void
+gui_update_files_scanned(void)
 {
     GtkLabel *label_files_scanned =
         GTK_LABEL(lookup_widget(dlg_prefs, "label_files_scanned"));
+	gulong n = guc_shared_files_scanned();
 
-	gm_snprintf(gui_tmp, sizeof(gui_tmp),
-		(guc_shared_files_scanned() == 1) ?
-			_("%lu file shared (%s)") :_("%lu files shared (%s)"),
-		(gulong) guc_shared_files_scanned(),
-		short_kb_size(guc_shared_kbytes_scanned()));
-	gtk_label_set(label_files_scanned, gui_tmp);
+	gtk_label_printf(label_files_scanned,
+		NG_("%lu file shared (%s)", "%lu files shared (%s)", n),
+		n, short_kb_size(guc_shared_kbytes_scanned()));
 }
 
-void gui_allow_rescan_dir(gboolean flag)
+void
+gui_allow_rescan_dir(gboolean flag)
 {
 	gtk_widget_set_sensitive
         (lookup_widget(dlg_prefs, "button_config_rescan_dir"), flag);
@@ -77,7 +75,8 @@ void gui_allow_rescan_dir(gboolean flag)
 /**
  * Update some general information displayed in the gui.
  */
-void gui_general_timer(time_t now)
+void
+gui_general_timer(time_t now)
 {
     time_t start_stamp;
 	guint32 val;
@@ -88,23 +87,29 @@ void gui_general_timer(time_t now)
 	start_stamp = val;
 
 #ifdef USE_GTK2
-	gm_snprintf(gui_tmp, sizeof gui_tmp, "<tt> %s </tt>",
-		short_uptime(delta_time(now, start_stamp)));
-	gtk_label_set_use_markup(label, TRUE);
-	gtk_label_set_markup(label, gui_tmp);
+	{
+		gchar buf[128];
+		
+		gm_snprintf(buf, sizeof buf, "<tt> %s </tt>",
+			short_uptime(delta_time(now, start_stamp)));
+		gtk_label_set_use_markup(label, TRUE);
+		gtk_label_set_markup(label, buf);
+	}
 #else
 
 	gtk_label_set_text(label, short_uptime(delta_time(now, start_stamp)));
 #endif
 }
 
-static void update_stat(guint32 *max, GtkProgressBar *pg,
+static void
+update_stat(guint32 *max, GtkProgressBar *pg,
     gnet_bw_stats_t *stats, gboolean avg_mode, gboolean inout)
 {
     gfloat frac = 0;
     guint32 high_limit;
     guint32 current;
 	guint32 max_bw = *max;
+	gchar buf[128];
 
     current = avg_mode ? stats->average : stats->current;
     if (max_bw < current)
@@ -120,11 +125,11 @@ static void update_stat(guint32 *max, GtkProgressBar *pg,
         current);
     frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
 
-	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%s %s %s",
+	gm_snprintf(buf, sizeof buf, "%s %s %s",
         compact_rate(current),
         inout ? _("in") : _("out"),
         avg_mode ? _("(avg)") : "");
-	gtk_progress_bar_set_text(pg, gui_tmp);
+	gtk_progress_bar_set_text(pg, buf);
     gtk_progress_bar_set_fraction(pg, frac);
 }
 
@@ -140,7 +145,8 @@ gnet_bw_stats_sum(gnet_bw_stats_t *dest, gnet_bw_stats_t *other)
 }
 
 /* FIXME: stats that are turned off need not be calculated! */
-void gui_update_traffic_stats(void)
+void
+gui_update_traffic_stats(void)
 {
     static guint32 http_in_max = 0;
     static guint32 http_out_max = 0;
@@ -196,7 +202,8 @@ void gui_update_traffic_stats(void)
     update_stat(&leaf_out_max, pg_leaf_out, &s, progressbar_bws_glout_avg, 0);
 }
 
-void gui_update_stats_frames(void)
+void
+gui_update_stats_frames(void)
 {
     GtkWidget *frame_bws_inout =
         lookup_widget(main_window, "frame_bws_inout");
@@ -240,7 +247,8 @@ void gui_update_stats_frames(void)
 /**
  * Tells if two hit records have the same filename.
  */
-gint gui_record_name_eq(gconstpointer rec1, gconstpointer rec2)
+gint
+gui_record_name_eq(gconstpointer rec1, gconstpointer rec2)
 {
     gint result;
 
@@ -257,7 +265,8 @@ gint gui_record_name_eq(gconstpointer rec1, gconstpointer rec2)
 /**
  * Tells if two hit records have the same SHA1.
  */
-gint gui_record_sha1_eq(gconstpointer rec1, gconstpointer rec2)
+gint
+gui_record_sha1_eq(gconstpointer rec1, gconstpointer rec2)
 {
     const gchar *s1 = ((const record_t *) rec1)->sha1;
     const gchar *s2 = ((const record_t *) rec2)->sha1;
@@ -274,7 +283,8 @@ gint gui_record_sha1_eq(gconstpointer rec1, gconstpointer rec2)
 /**
  * Tells if two hit records come from the same host.
  */
-gint gui_record_host_eq(gconstpointer rec1, gconstpointer rec2)
+gint
+gui_record_host_eq(gconstpointer rec1, gconstpointer rec2)
 {
     return ((const record_t *) rec1)->results_set->ip
        == ((const record_t *) rec2)->results_set->ip
@@ -301,7 +311,8 @@ gint gui_record_host_eq(gconstpointer rec1, gconstpointer rec2)
  *   and the other doesn't, both rules (filename and SHA1) will be added.
  *
  */
-gint gui_record_sha1_or_name_eq(gconstpointer rec1, gconstpointer rec2)
+gint
+gui_record_sha1_or_name_eq(gconstpointer rec1, gconstpointer rec2)
 {
     if (((const record_t *) rec1)->sha1 || ((const record_t *) rec2)->sha1)
         return gui_record_sha1_eq(rec1, rec2);
@@ -330,8 +341,8 @@ typedef struct steal_dict_params {
  * itself on each child.
  *
  */
-static void gui_steal_widget_dict_recursive(
-	GtkWidget *widget, gpointer user_data)
+static void
+gui_steal_widget_dict_recursive(GtkWidget *widget, gpointer user_data)
 {
 	const gchar *name;
 	steal_dict_params_t *params = (steal_dict_params_t *) user_data;
@@ -359,8 +370,9 @@ static void gui_steal_widget_dict_recursive(
  * Also transfers the widget dictionary to specified toplevel
  * window so lookup_widget() is not broken afterwards.
  */
-void gui_merge_window_as_tab(GtkWidget *toplvl, GtkWidget *notebook,
-							 GtkWidget *window)
+void
+gui_merge_window_as_tab(GtkWidget *toplvl,
+	GtkWidget *notebook, GtkWidget *window)
 {
 	const gchar *title;
 	GList *children = NULL;

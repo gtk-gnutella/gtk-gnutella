@@ -248,7 +248,7 @@ static void
 show_removed(guint removed)
 {
     statusbar_gui_message(15,
-		removed == 1 ? _("Removed %u download") : _("Removed %u downloads"),
+		NG_("Removed %u download", "Removed %u downloads", removed),
 		removed);
 }
 
@@ -337,7 +337,7 @@ on_popup_downloads_abort_host_activate(GtkMenuItem *unused_menuitem,
 	g_slist_free(selected);
 
     statusbar_gui_message(15,
-		removed == 1 ? _("Forgot %u download") : _("Forgot %u downloads"),
+		NG_("Forgot %u download", "Forgot %u downloads", removed),
 		removed);
 }
 
@@ -832,9 +832,9 @@ on_entry_queue_regex_activate(GtkEditable *editable, gpointer unused_udata)
         	}
 
 			statusbar_gui_message(15,
-				total_nodes == 1
-					? _("Selected %u of %u queued download matching \"%s\".")
-					: _("Selected %u of %u queued downloads matching \"%s\"."),
+				NG_("Selected %u of %u queued download matching \"%s\".",
+					"Selected %u of %u queued downloads matching \"%s\".",
+					total_nodes),
 				m, total_nodes, regex);
 
 			regfree(&re);

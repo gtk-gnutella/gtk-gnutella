@@ -31,12 +31,12 @@
 #include "if/core/hsep.h"
 #include "if/ui/gtk/gnet_stats.h"
 
-const gchar *msg_type_str(int MSG_TYPE_COUNT);
-const gchar *msg_drop_str(int MSG_DROP_REASON_COUNT);
-const gchar *general_type_str(int GNR_TYPE_COUNT);
+const gchar *msg_type_str(gint MSG_TYPE_COUNT);
+const gchar *msg_drop_str(gint MSG_DROP_REASON_COUNT);
+const gchar *general_type_str(gint GNR_TYPE_COUNT);
 const gchar *horizon_stat_str(gint row,	c_horizon_t column);
 
-int msg_type_str_size(void);
+gint msg_type_str_size(void);
 void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples);
 
 #endif /* _gtk_gnet_stats_common_h_ */

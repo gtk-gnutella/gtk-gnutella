@@ -663,7 +663,7 @@ download_gui_add(struct download *d)
 
 				n = parent_children_add(ctree_downloads_queue, key, 1);
 				gm_snprintf(tmpstr, sizeof(tmpstr),
-					n == 1 ? _("%u host") : _("%u hosts"), n);
+					NG_("%u host", "%u hosts", n), n);
 
 				gtk_ctree_node_set_text(ctree_downloads_queue, parent,
 					c_queue_host, tmpstr);
@@ -800,7 +800,7 @@ download_gui_add(struct download *d)
 
 				n = parent_children_add(ctree_downloads, key, 1);
 				gm_snprintf(tmpstr, sizeof(tmpstr),
-						n == 1 ? _("%u host") : _("%u hosts"), n);
+					NG_("%u host", "%u hosts", n), n);
 
 				gtk_ctree_node_set_text(ctree_downloads, parent,
 					c_queue_host, tmpstr);
@@ -1660,7 +1660,7 @@ download_gui_remove(struct download *d)
 						guint v = n - 1;
 						
 						gm_snprintf(tmpstr, sizeof(tmpstr),
-							v == 1 ? _("%u host") : _("%u hosts"), v);
+							NG_("%u host", "%u hosts", v), v);
 
 						gtk_ctree_node_set_text(ctree_downloads_queue,  parent,
 							c_queue_host, tmpstr);
@@ -1751,7 +1751,7 @@ download_gui_remove(struct download *d)
 						guint v = n - 1;
 						
 						gm_snprintf(tmpstr, sizeof(tmpstr),
-							v == 1 ? _("%u host") : _("%u hosts"), v);
+							NG_("%u host", "%u hosts", v), v);
 						gtk_ctree_node_set_text(ctree_downloads,  parent,
 							c_dl_host, tmpstr);
 					}

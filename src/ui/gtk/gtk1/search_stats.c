@@ -392,7 +392,6 @@ void
 search_stats_gui_update(time_t now)
 {
 	static guint32 last_update = 0;
-	char tmpstr[32];
     GtkWidget *clist_search_stats;
     GtkWidget *label_search_stats_count;
 
@@ -416,10 +415,9 @@ search_stats_gui_update(time_t now)
 	gtk_clist_thaw(GTK_CLIST(clist_search_stats));
 
 	/* update the counter */
-	gm_snprintf(tmpstr, sizeof(tmpstr),
-		stat_count == 1 ? _("%u term counted") : _("%u terms counted"),
+	gtk_label_printf(GTK_LABEL(label_search_stats_count),
+		NG_("%u term counted", "%u terms counted", stat_count),
 		stat_count);
-	gtk_label_set_text(GTK_LABEL(label_search_stats_count), tmpstr);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -931,7 +931,8 @@ download_gui_add(download_t *d)
 		add_parent_with_fi_handle(ht, d->file_info->fi_handle, child);
 	} else {
 		g_assert(host_count > 0);
-		gm_snprintf(tmpstr, sizeof(tmpstr), _("%u hosts"), host_count);
+		gm_snprintf(tmpstr, sizeof(tmpstr),
+			NG_("%u host", "%u hosts", host_count), host_count);
 		gtk_tree_store_set(model, parent, c_dl_host, tmpstr, (-1));
 	}
 
@@ -992,8 +993,10 @@ download_gui_remove(download_t *d)
 		g_assert(iter == parent);
 		remove_parent_with_fi_handle(ht, d->file_info->fi_handle);
 	} else if (n > 2) {
+		guint count = n - 1;
 		g_assert(iter != parent);
-		gm_snprintf(tmpstr, sizeof(tmpstr), _("%u hosts"), (guint)n - 1);
+		gm_snprintf(tmpstr, sizeof(tmpstr),
+			NG_("%u host", "%u hosts", count), count);
 		gtk_tree_store_set(store, parent, host_column, tmpstr, (-1));
 	} else if (2 == n) {
 		GtkTreeIter *child_iter;
