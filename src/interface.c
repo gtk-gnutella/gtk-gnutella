@@ -68,6 +68,8 @@ GtkWidget *clist_downloads_queue;
 GtkWidget *button_queue_clear;
 GtkWidget *button_queue_remove;
 GtkWidget *togglebutton_queue_freeze;
+GtkWidget *entry_queue_remove_regex;
+GtkWidget *checkbutton_queue_regex_case;
 GtkWidget *button_downloads_abort;
 GtkWidget *button_downloads_clear_completed;
 GtkWidget *button_downloads_resume;
@@ -271,6 +273,8 @@ create_main_window (void)
   GtkWidget *label96;
   GtkWidget *label67;
   GtkWidget *hbox68;
+  GtkWidget *hbox86;
+  GtkWidget *label149;
   GtkWidget *label_downloads;
   GtkWidget *vbox_search;
   GtkWidget *hbox18;
@@ -1623,6 +1627,34 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (togglebutton_queue_freeze);
   gtk_box_pack_start (GTK_BOX (hbox68), togglebutton_queue_freeze, FALSE, FALSE, 0);
+
+  hbox86 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_ref (hbox86);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox86", hbox86,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox86);
+  gtk_box_pack_start (GTK_BOX (vbox15), hbox86, FALSE, TRUE, 0);
+
+  label149 = gtk_label_new ("Remove all matching regex from queue");
+  gtk_widget_ref (label149);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label149", label149,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label149);
+  gtk_box_pack_start (GTK_BOX (hbox86), label149, FALSE, FALSE, 0);
+
+  entry_queue_remove_regex = gtk_entry_new ();
+  gtk_widget_ref (entry_queue_remove_regex);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_queue_remove_regex", entry_queue_remove_regex,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_queue_remove_regex);
+  gtk_box_pack_start (GTK_BOX (hbox86), entry_queue_remove_regex, TRUE, TRUE, 0);
+
+  checkbutton_queue_regex_case = gtk_check_button_new_with_label ("case sensitive");
+  gtk_widget_ref (checkbutton_queue_regex_case);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_queue_regex_case", checkbutton_queue_regex_case,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_queue_regex_case);
+  gtk_box_pack_start (GTK_BOX (hbox86), checkbutton_queue_regex_case, FALSE, FALSE, 0);
 
   label_downloads = gtk_label_new ("Downloads");
   gtk_widget_ref (label_downloads);
@@ -3034,6 +3066,12 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (togglebutton_queue_freeze), "toggled",
                       GTK_SIGNAL_FUNC (on_togglebutton_queue_freeze_toggled),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_queue_remove_regex), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_queue_remove_regex_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_queue_regex_case), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_queue_regex_case_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_search), "changed",
                       GTK_SIGNAL_FUNC (on_entry_search_changed),

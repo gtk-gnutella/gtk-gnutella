@@ -61,6 +61,8 @@ extern GtkWidget *clist_downloads_queue;
 extern GtkWidget *button_queue_clear;
 extern GtkWidget *button_queue_remove;
 extern GtkWidget *togglebutton_queue_freeze;
+extern GtkWidget *entry_queue_remove_regex;
+extern GtkWidget *checkbutton_queue_regex_case;
 extern GtkWidget *button_downloads_abort;
 extern GtkWidget *button_downloads_clear_completed;
 extern GtkWidget *button_downloads_resume;
