@@ -201,9 +201,9 @@ void search_store_xml(void)
 
     xmlKeepBlanksDefault(0);
     gm_snprintf(x_tmp, sizeof(x_tmp), "%s/%s.new", 
-        gui_config_dir, search_file_xml);
+        settings_gui_config_dir(), search_file_xml);
 
-    if(xmlSaveFormatFile(x_tmp, doc, TRUE) == -1) {
+    if (xmlSaveFormatFile(x_tmp, doc, TRUE) == -1) {
         g_warning("Unable to create %s to persist search: %s",
 			x_tmp, g_strerror(errno));
     } else {
@@ -211,7 +211,7 @@ void search_store_xml(void)
             printf("saved searches file: %s\n", x_tmp);
 
 		gm_snprintf(filename, sizeof(filename), "%s/%s",
-			gui_config_dir, search_file_xml);
+			settings_gui_config_dir(), search_file_xml);
 
 		if (-1 == rename(x_tmp, filename))
 			g_warning("could not rename %s as %s: %s",
@@ -235,7 +235,8 @@ gboolean search_retrieve_xml(void)
     xmlNodePtr root;
     GList *f;
     
-  	gm_snprintf(x_tmp, sizeof(x_tmp), "%s/%s", gui_config_dir, search_file_xml);
+  	gm_snprintf(x_tmp, sizeof(x_tmp), "%s/%s",
+		settings_gui_config_dir(), search_file_xml);
 
 	/* 
      * if the file doesn't exist 
