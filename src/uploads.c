@@ -1844,8 +1844,10 @@ static void upload_request(struct upload *u, header_t *header)
 	hev.he_cb = upload_http_status;
 	hev.he_arg = &cb_arg;
 
-	if (!http_send_status(u->socket, http_code, &hev, 1, http_msg))
+	if (!http_send_status(u->socket, http_code, &hev, 1, http_msg)) {
 		upload_remove(u, "Cannot send whole HTTP status");
+		return;
+	}
 
 	/*
 	 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
