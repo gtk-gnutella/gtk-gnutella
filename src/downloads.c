@@ -6107,9 +6107,8 @@ static void download_request(
 	fi->recvcount++;
 	fi->dirty_status = TRUE;
 
-	g_assert(dl_establishing > 0);
-	dl_establishing--;
 	dl_active++;
+	download_move_to_list(d, DL_LIST_RUNNING);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gui_update_download(d, TRUE);
