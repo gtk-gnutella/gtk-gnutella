@@ -45,4 +45,5 @@ gboolean on_treeview_nodes_button_press_event(
 
 
 void nodes_gui_remove_selected(void);
+void nodes_gui_reverse_lookup_selected(void);
 #endif /* _gtk2_nodes_cb_h_ */

@@ -32,7 +32,6 @@ RCSID("$Id$");
 #include "nodes_cb.h"
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/nodes_common.h"
-#include "gtk/statusbar.h"
 
 #include "if/bridge/ui2c.h"
 
@@ -109,10 +108,12 @@ on_entry_host_changed(GtkEditable *editable, gpointer unused_udata)
 }
 
 gboolean
-on_treeview_nodes_button_press_event(GtkWidget *widget,
+on_treeview_nodes_button_press_event(GtkWidget *unused_widget,
 		GdkEventButton *event, gpointer unused_udata)
 {
+	(void) unused_widget;
 	(void) unused_udata;
+
     if (3 == event->button) {
         /* right click section (popup menu) */
 

@@ -40,9 +40,4 @@ void nodes_gui_update_nodes_display(time_t now);
 
 void nodes_gui_remove_selected(void);
 
-#ifdef USE_GTK2
-/* FIXME: Add this feature for GTK+ 1.2 too */
-void nodes_gui_reverse_lookup_selected(void);
-#endif /* USE_GTK2 */
-
 #endif /* _gtk_nodes_h_ */
