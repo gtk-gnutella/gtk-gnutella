@@ -694,8 +694,9 @@ gboolean node_connected(guint32 ip, guint16 port, gboolean incoming)
 
 	GSList *l;
 
-	if (ip == listen_ip())
+	if (ip == listen_ip())		/* Don't connect to yourself */
 		return TRUE;
+
 	for (l = sl_nodes; l; l = l->next) {
 		struct gnutella_node *n = (struct gnutella_node *) l->data;
 		if (n->status == GTA_NODE_REMOVING)
