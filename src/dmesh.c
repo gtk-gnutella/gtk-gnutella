@@ -1118,7 +1118,12 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 
 	more_date:
 		while ((c = *p)) {
-			if (c == ',')
+            /*
+             * Limewire has a bug not to use the ',' separator, so
+             * we assume a new urn is starting with "http://"
+             *      -Richard 23/11/2002
+             */
+            if ((c == ',') || (g_strncasecmp(p, "http://", 7) == 0))
 				break;
 			p++;
 		}
@@ -1135,7 +1140,8 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 		if (skip_date) {				/* URL was not parsed, just skipping */
 			if (c == '\0')				/* Reached end of string */
 				return;
-			p++;						/* Skip the "," separator */
+            if (*p == ',')
+                p++;					/* Skip the "," separator */
 			continue;
 		}
 
@@ -1175,12 +1181,14 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 				dmesh_urlinfo_to_gchar(&info), (guint32) stamp,
 				(guint32) (now - MIN(stamp, now)));
 
-		atom_str_free(info.name);
+        if (info.name)
+            atom_str_free(info.name);
 
 		if (c == '\0')				/* Reached end of string */
 			return;
 
-		p++;						/* Skip separator */
+        if (*p == ',')
+            p++;					/* Skip separator */
 	}
 }
 
