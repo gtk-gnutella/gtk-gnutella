@@ -718,7 +718,12 @@ void download_stop(struct download *d, guint32 new_status,
 	count_running_downloads();
 }
 
-void download_queue(struct download *d)
+/*
+ * download_queue_v
+ *
+ * The vectorized (message-wise) version of download_queue().
+ */
+static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 {
 	/*
 	 * Put a download in the queue :
@@ -727,7 +732,7 @@ void download_queue(struct download *d)
 	 * - the user requested it with the popup menu "Move back to the queue"
 	 */
 
-	g_return_if_fail(d);
+	g_assert(d);
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
 		g_warning("download_queue(): Download is already queued ?!");
@@ -742,6 +747,13 @@ void download_queue(struct download *d)
 
 	d->status = GTA_DL_QUEUED;
 
+	if (fmt) {
+		g_vsnprintf(d->error_str, sizeof(d->error_str), fmt, ap);
+		d->error_str[sizeof(d->error_str) - 1] = '\0';	/* May be truncated */
+		d->remove_msg = d->error_str;
+	} else
+		d->remove_msg = NULL;
+
 	download_gui_add(d);
 	gui_update_download(d, TRUE);
 
@@ -749,6 +761,22 @@ void download_queue(struct download *d)
 		g_source_remove(d->restart_timer_id);
 		d->restart_timer_id = 0;
 	}
+}
+
+/*
+ * download_queue
+ *
+ * Put download into queue.
+ */
+void download_queue(struct download *d, const gchar *fmt, ...)
+{
+	va_list args;
+
+	g_assert(d);
+
+	va_start(args, fmt);
+	download_queue_v(d, fmt, args);
+	va_end(args);
 }
 
 /*
@@ -771,14 +799,23 @@ gboolean download_queue_is_frozen(void)
 	return frozen_queue;
 }
 
-static void download_queue_delay(struct download *d, guint32 delay)
+/*
+ * download_queue_delay
+ *
+ * Put download back to queue, but don't reconsider it for starting
+ * before the next `delay' seconds. -- RAM, 03/09/2001
+ */
+static void download_queue_delay(struct download *d, guint32 delay,
+	const gchar *fmt, ...)
 {
-	/*
-	 * Put download back to queue, but don't reconsider it for starting
-	 * before the next `delay' seconds. -- RAM, 03/09/2001
-	 */
+	va_list args;
 
-	download_queue(d);
+	g_assert(d);
+
+	va_start(args, fmt);
+	download_queue_v(d, fmt, args);
+	va_end(args);
+
 	d->last_update = time((time_t *) NULL);
 	d->timeout_delay = delay;
 }
@@ -987,7 +1024,7 @@ void download_start(struct download *d, gboolean check_allowed)
 		count_running_downloads_with_name(d->file_name) != 0)
 	) {
 		if (!DOWNLOAD_IS_QUEUED(d))
-			download_queue(d);
+			download_queue(d, NULL);
 		return;
 	}
 
@@ -1107,11 +1144,16 @@ static void download_push(struct download *d, gboolean on_timeout)
 attempt_retry:
 	if (++d->retries <= download_max_retries) {
 		if (on_timeout)
-			download_queue_delay(d, download_retry_timeout_delay);
+			download_queue_delay(d, download_retry_timeout_delay,
+				"Timeout (%d retr%s)",
+				d->retries, d->retries == 1 ? "y" : "ies");
 		else
-			download_queue_delay(d, download_retry_refused_delay);
+			download_queue_delay(d, download_retry_refused_delay,
+				"Connection refused (%d retr%s)",
+				d->retries, d->retries == 1 ? "y" : "ies");
 	} else
-		download_stop(d, GTA_DL_ERROR, "Timeout");
+		download_stop(d, GTA_DL_ERROR, "Timeout (%d retr%s)",
+				d->retries, d->retries == 1 ? "y" : "ies");
 }
 
 /* Direct download failed, let's try it with a push request */
@@ -1255,7 +1297,7 @@ static void create_download(
 		download_start(d, FALSE);		/* Starts the download immediately */
 	} else {
 		/* Max number of downloads reached, we have to queue it */
-		download_queue(d);
+		download_queue(d, NULL);
 	}
 }
 
@@ -1689,9 +1731,11 @@ static gboolean send_push_request(gchar *guid, guint32 file_id, guint16 port)
 static gboolean download_queue_w(gpointer dp)
 {
 	struct download *d = (struct download *) dp;
-	download_queue(d);
-	//download_pickup_queued();
-	return TRUE;
+
+	d->restart_timer_id = 0;
+	download_queue(d, d->remove_msg);
+
+	return FALSE;			/* Called only once per download */
 }
 
 static void download_start_restart_timer(struct download *d)
@@ -2122,7 +2166,8 @@ static void download_request(struct download *d, header_t *header)
 		case 408:				/* Request timeout */
 		case 503:				/* Busy */
 			/* No hammering */
-			download_queue_delay(d, download_retry_busy_delay);
+			download_queue_delay(d, download_retry_busy_delay,
+				"HTTP %d %s", ack_code, ack_message);
 			return;
 		default:
 			break;

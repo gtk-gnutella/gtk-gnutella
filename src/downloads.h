@@ -114,7 +114,7 @@ void download_new(gchar *,
 	guint32, guint32, guint32, guint16, gchar *, gboolean);
 void auto_download_new(
 	gchar *, guint32, guint32, guint32, guint16, gchar *, gboolean);
-void download_queue(struct download *);
+void download_queue(struct download *d, const gchar *fmt, ...);
 void download_freeze_queue(gboolean t);
 gboolean download_queue_is_frozen();
 void download_stop(struct download *, guint32, const gchar *, ...);

@@ -1354,7 +1354,7 @@ void gui_update_download(struct download *d, gboolean force)
 
 	switch (d->status) {
 	case GTA_DL_QUEUED:
-		a = "QUEUED REQUEST ?!";
+		a = (gchar *) ((d->remove_msg) ? d->remove_msg : "");
 		break;
 
 	case GTA_DL_CONNECTING:
