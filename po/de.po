@@ -182,17 +182,17 @@ msgstr "Feindliche IP-Adresse"
 #: src/core/gwcache.c:912
 #, c-format
 msgid "Got %d host from %s"
-msgstr ""
+msgstr "%d Hostadresse von %s erhalten"
 
 #: src/core/gwcache.c:915
 #, c-format
 msgid "Got %d hosts from %s"
-msgstr ""
+msgstr "%d Hostadressen von %s erhalten"
 
 #: src/core/gwcache.c:1176
 #, c-format
 msgid "Updated web cache %s"
-msgstr ""
+msgstr "Update an Webcache %s gesendet"
 
 #: src/core/hcache.c:116
 msgid "fresh regular"
@@ -249,7 +249,7 @@ msgstr "Kann ohne gültiges Konfigurationsverzeichnis nicht fortfahren"
 
 #: src/core/settings.c:1239
 msgid "Can only run as a leaf when TCP-firewalled"
-msgstr ""
+msgstr "TCP-Verbindungen werden anscheined von einer Firewall blockiert, daher ist nur der \"Blatt\"-Modus möglich."
 
 #: src/core/shell.c:267
 msgid "Node added"
@@ -314,8 +314,9 @@ msgid "Unknown parameter"
 msgstr "Unbekannte Eigenschaft"
 
 #: src/core/shell.c:616
-#, fuzzy, c-format
-msgid "Total horizon size (%u/%u nodes support HSEP):"
+#, c-format
+msgid "Total horizon size (%u/%u nodes support HSEP):\n"
+"\n"
 msgstr ""
 "Horizontgröße (%u/%u Knoten unterstützen HSEP):\n"
 "\n"
@@ -326,19 +327,16 @@ msgid "Horizon size via HSEP node %s (%s):"
 msgstr ""
 
 #: src/core/shell.c:643
-#, fuzzy
 msgid "leaf"
-msgstr "Leeren"
+msgstr "Blatt"
 
 #: src/core/shell.c:644
-#, fuzzy
 msgid "ultrapeer"
-msgstr "Ultrapeers"
+msgstr "Ultrapeer"
 
 #: src/core/shell.c:644
-#, fuzzy
 msgid "normal node"
-msgstr "Eigener Knoten"
+msgstr "Normaler Knoten"
 
 #: src/core/shell.c:670 src/ui/gtk/gtk1/interface-glade.c:4993
 #: src/ui/gtk/gtk2/gnet_stats.c:471
@@ -422,7 +420,6 @@ msgstr ""
 "Informationen darüber"
 
 #: src/if/gnet_property.c:636
-#, fuzzy
 msgid ""
 "Try to keep at least this number of connections to other servents of the "
 "same kind as we are (normal or ultra nodes). This should be smaller than the "
@@ -435,7 +432,6 @@ msgstr ""
 "sein, um eingehende Verbindungen zu erlauben."
 
 #: src/if/gnet_property.c:656
-#, fuzzy
 msgid ""
 "When in ultrapeer mode, try to keep at least this number of connections to "
 "normal servents.  This should be smaller than the maximum amount of "
@@ -446,7 +442,6 @@ msgstr ""
 "maximale Anzahl sein, um eingehende Verbindungen zu erlauben."
 
 #: src/if/gnet_property.c:676
-#, fuzzy
 msgid ""
 "Don't allow more than this number of connections to other servents.  As a "
 "rule of thumb you should reserve 256 b/s bandwidth per connection. Never use "
@@ -470,7 +465,6 @@ msgid "Number of ultra nodes currently connected."
 msgstr "Anzahl der derzeit verbundenen Ultraknoten."
 
 #: src/if/gnet_property.c:756
-#, fuzzy
 msgid ""
 "Don't start more than this number of parallel downloads.  Others will remain "
 "in the queue waiting for a download slot."
@@ -479,7 +473,6 @@ msgstr ""
 "die Warteschlange gestellt, bis ein Download-Slot frei ist."
 
 #: src/if/gnet_property.c:776
-#, fuzzy
 msgid ""
 "Don't make more connections than given here to a single host to download a "
 "file.  Be nice to others, and leave it at the default value (1)."
@@ -521,7 +514,6 @@ msgid "Average servent uptime, in seconds"
 msgstr "Mittlere Servent-Uptime in Sekunden"
 
 #: src/if/gnet_property.c:936
-#, fuzzy
 msgid ""
 "Local TCP port gtk-gnutella is listening on. Your ISP may block or choke "
 "traffic on TCP port 6346 so it would be a good idea to change it to "
@@ -564,7 +556,6 @@ msgstr ""
 "nicht benutzt."
 
 #: src/if/gnet_property.c:1013
-#, fuzzy
 msgid ""
 "Return at most this number of results to a query, using as many query hit "
 "packets as necessary.  To avoid network flooding, keep this to a reasonable "
@@ -637,7 +628,6 @@ msgstr ""
 "wenn der Verbindungsaufbau abgelehnt wurde"
 
 #: src/if/gnet_property.c:1233
-#, fuzzy
 msgid ""
 "Delay in seconds before retrying after a retry stopped (timed out, "
 "connection reset by peer, etc...)"
@@ -656,7 +646,6 @@ msgstr ""
 "einen sicheren Download zu ermöglichen."
 
 #: src/if/gnet_property.c:1273
-#, fuzzy
 msgid ""
 "Number of seconds before an upload times out if no connection can be "
 "established during a push.  It is also the maximum amount of time we wait to "
@@ -674,7 +663,6 @@ msgstr ""
 "übertragen werden konnten."
 
 #: src/if/gnet_property.c:1313
-#, fuzzy
 msgid ""
 "Amount of seconds to wait before a search is issued again to see if new "
 "results are available.  Be very careful with this parameter, and do not set "
@@ -687,7 +675,6 @@ msgstr ""
 "einer halben Stunde reicht aus."
 
 #: src/if/gnet_property.c:1333
-#, fuzzy
 msgid ""
 "Maximum ratio of file descriptors reserved for banning. For instance, if "
 "your OS gives you 350 file descriptors, a ratio of 10 will reserve at most "
@@ -741,7 +728,6 @@ msgstr ""
 "keine Daten mehr übertragen werden"
 
 #: src/if/gnet_property.c:1473
-#, fuzzy
 msgid ""
 "Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150 "
 "percent of the maximum message size"
@@ -758,7 +744,6 @@ msgstr ""
 "im Flow-Control-Modus ist."
 
 #: src/if/gnet_property.c:1513
-#, fuzzy
 msgid ""
 "Maximum percentage of time over 5 minutes that our node can remain in flow "
 "control remotely before dropping the connection.  This only works with nodes "
@@ -770,7 +755,6 @@ msgstr ""
 "schicken, wenn der Flow-Control-Modus für uns aktiv ist."
 
 #: src/if/gnet_property.c:1533
-#, fuzzy
 msgid ""
 "Maximum TTL we allow in messages we broadcast.  If a query comes in with a "
 "TTL greater than that, it will be trimmed down to that value.  On Gnutella, "
@@ -782,7 +766,6 @@ msgstr ""
 "ist dies der minimal erlaubte Wert."
 
 #: src/if/gnet_property.c:1553
-#, fuzzy
 msgid ""
 "The TTL we use in messages we generate.  The default on Gnutella is TTL=4.  "
 "If you set it to too large a value, you run the risk of being trimmed down "
@@ -794,7 +777,6 @@ msgstr ""
 "sonstigen Servents wird die Verbindung geschlossen."
 
 #: src/if/gnet_property.c:1573
-#, fuzzy
 msgid ""
 "Maximum hard TTL limit (hops + TTL) on messages we relay.  This should be "
 "greater than the standard TTL=4, because it is also applied to routed-back "
@@ -850,27 +832,22 @@ msgid "Debug level for searches and search results management."
 msgstr ""
 
 #: src/if/gnet_property.c:1773
-#, fuzzy
 msgid "Debug level for the UDP traffic layer."
 msgstr "Debug-Level für die Oberfläche"
 
 #: src/if/gnet_property.c:1793
-#, fuzzy
 msgid "Debug level for the Query Routing Protocol."
 msgstr "Debug-Level für die Oberfläche"
 
 #: src/if/gnet_property.c:1813
-#, fuzzy
 msgid "Debug level for message routing."
 msgstr "Debug-Level für die Oberfläche"
 
 #: src/if/gnet_property.c:1833
-#, fuzzy
 msgid "Debug level for GGEP."
 msgstr "Debug-Level für die Oberfläche"
 
 #: src/if/gnet_property.c:1853
-#, fuzzy
 msgid "Debug level for pong caching."
 msgstr "Debug-Level für die Oberfläche"
 
@@ -911,7 +888,6 @@ msgid "Enable dynamic upload slots allocation"
 msgstr "Dynamisches Erzeugen von Upload-Slots aktivieren"
 
 #: src/if/gnet_property.c:2029
-#, fuzzy
 msgid ""
 "Allow HTTP and Gnutella to grab whatever bandwidth the other is not using.  "
 "If FALSE, unused bandwidth is lost."
@@ -924,14 +900,12 @@ msgid "Auto clear completed downloads"
 msgstr "Fertige Downloads automatisch entfernen"
 
 #: src/if/gnet_property.c:2063
-#, fuzzy
 msgid ""
 "Auto clear failed downloads (HTTP error, failure to resume, write error, "
 "etc...)."
 msgstr "Fehlgeschlagene Downloads automatisch entfernen."
 
 #: src/if/gnet_property.c:2080
-#, fuzzy
 msgid ""
 "Auto clear unavailable downloads (connection timeout, push route lost, "
 "etc...)."
@@ -5935,7 +5909,7 @@ msgid ""
 msgstr ""
 "==> Wir suchen Leute, die an diesem feinen Produkt mitwirken möchten. <==\n"
 "Besuche http://gtk-gnutella.sourceforge.net.\n"
-"Trete der Benutzer- oder Entwickler-Mailingliste bei.\n"
+"Trage Dich in die Benutzer- oder Entwickler-Mailingliste ein.\n"
 "Triff uns in #gtk-gnutella auf irc.freenode.net."
 
 #: src/ui/gtk/gtk1/interface-glade.c:9896
@@ -5943,6 +5917,8 @@ msgid ""
 "This product includes GeoIP data created by MaxMind, available from\n"
 "     http://maxmind.com/"
 msgstr ""
+"Gtk-Gnutella enthält GeoIP-Daten erstellet von MaxMind, verfügbar von\n"
+"     http://maxmind.com/"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9912
 msgid "Close"
@@ -5956,7 +5932,7 @@ msgstr "Regel kopieren"
 #: src/ui/gtk/gtk1/interface-glade.c:9952
 #: src/ui/gtk/gtk2/interface-glade.c:1432
 msgid "Paste rule"
-msgstr "Regel einführen"
+msgstr "Regel einfügen"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9984
 #: src/ui/gtk/gtk2/interface-glade.c:3088
@@ -5965,7 +5941,7 @@ msgstr "gtk-gnutella: Verlassen?"
 
 #: src/ui/gtk/gtk1/interface-glade.c:9995
 msgid "Please confirm:"
-msgstr "Bitte bestätigen:"
+msgstr "Bitte bestäigen:"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10004
 #: src/ui/gtk/gtk2/interface-glade.c:3109
@@ -5978,7 +5954,7 @@ msgstr "Ja"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10028
 msgid "No, take me back!"
-msgstr "Nein, zurück!"
+msgstr "Nein, zurüc!"
 
 #: src/ui/gtk/gtk1/interface-glade.c:10719
 #: src/ui/gtk/gtk2/interface-glade.c:10025
@@ -6066,7 +6042,7 @@ msgid ""
 "form of ip/bits or ip/netmask (eg 192.168.1.0/24 or "
 "192.168.1.0/255.255.255.0)"
 msgstr ""
-"Mit Semikolon getrennte Liste von lokalen Netzwerken in der Form IP/Bits "
+"Eine per Semikolon getrennte Liste von lokalen Netzwerken in der Form IP/Bits "
 "oder IP/Netzmaske (z.B. 192.168.1.0/24 oder 192.168.1.0/255.255.255.0)"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11144
@@ -6081,7 +6057,7 @@ msgstr "Max. Anzahl reservierter Dateideskriptoren"
 #: src/ui/gtk/gtk1/interface-glade.c:11174
 #, fuzzy
 msgid "Max. percentage  of file descriptors used"
-msgstr "Max. % benutzter Dateideskriptoren"
+msgstr "Maximaler Prozentanteil benutzter Dateideskriptoren"
 
 #: src/ui/gtk/gtk1/interface-glade.c:11210
 msgid "Hardlimit of file descriptors used"
@@ -7417,14 +7393,14 @@ msgid "<none>"
 msgstr "<keine>"
 
 #: src/ui/gtk/gtk1/search_stats.c:420
-#, fuzzy, c-format
+#, c-format
 msgid "%u term counted"
-msgstr "0 gezählte Begriffe"
+msgstr "%u gezählter Begriff"
 
 #: src/ui/gtk/gtk1/search_stats.c:420
-#, fuzzy, c-format
+#, c-format
 msgid "%u terms counted"
-msgstr "0 gezählte Begriffe"
+msgstr "%u gezählte Begriffe"
 
 #: src/ui/gtk/gtk1/support-glade.c:121 src/ui/gtk/gtk2/support-glade.c:90
 #: src/ui/gtk/gtk2/support-glade.c:114
@@ -7971,7 +7947,7 @@ msgstr "Such_monitor aktiviert"
 
 #: src/ui/gtk/gtk2/interface-glade.c:5969
 msgid "Show _last"
-msgstr "Letzte _anzeigen"
+msgstr "Zeige die _letzten"
 
 #: src/ui/gtk/gtk2/interface-glade.c:6050
 msgid "window14"
@@ -7996,7 +7972,7 @@ msgstr ""
 #: src/ui/gtk/gtk2/interface-glade.c:6302
 #: src/ui/gtk/gtk2/interface-glade.c:6446
 msgid "Show percentages"
-msgstr "Prozentzahlen anzeigen"
+msgstr "Prozentuale Anteile anzeigen"
 
 #: src/ui/gtk/gtk2/interface-glade.c:6373
 msgid "_Messages"
@@ -8708,9 +8684,8 @@ msgid "Show search list"
 msgstr "Suchliste anzeigen"
 
 #: src/ui/gtk/gtk2/search_cb.c:899
-#, fuzzy
 msgid "Query queued..."
-msgstr "%u in Warteschlange"
+msgstr "In Warteschlange gestellt"
 
 #: src/ui/gtk/hcache_common.c:39
 msgid "Fresh regular"
@@ -8756,11 +8731,11 @@ msgstr "%lu Dateien freigegeben (%s)"
 
 #: src/ui/gtk/misc.c:125
 msgid "in"
-msgstr "rein"
+msgstr "eingehend"
 
 #: src/ui/gtk/misc.c:125
 msgid "out"
-msgstr "raus"
+msgstr "ausgehend"
 
 #: src/ui/gtk/misc.c:126
 msgid "(avg)"
@@ -8793,7 +8768,7 @@ msgstr ""
 
 #: src/ui/gtk/nodes_common.c:410
 msgid "Port must be between 1 and 65535"
-msgstr ""
+msgstr "Die Portnummer muss im Bereich 1..65535 liegen"
 
 #: src/ui/gtk/search_common.c:84
 msgid "stable"
@@ -8801,11 +8776,11 @@ msgstr "stabil"
 
 #: src/ui/gtk/search_common.c:85
 msgid "push"
-msgstr ""
+msgstr "Push"
 
 #: src/ui/gtk/search_common.c:86
 msgid "proxy"
-msgstr ""
+msgstr "Proxy"
 
 #: src/ui/gtk/search_common.c:87
 #, fuzzy
@@ -8844,7 +8819,7 @@ msgstr ""
 
 #: src/ui/gtk/search_common.c:804
 msgid "<unparsed>"
-msgstr ""
+msgstr "<ignoriert>"
 
 #: src/ui/gtk/search_common.c:1015
 msgid "(passive search) "
@@ -8872,15 +8847,15 @@ msgstr "Keine Suche"
 
 #: src/ui/gtk/search_common.c:1289
 msgid "The entered query is too long"
-msgstr ""
+msgstr "Der eingebene Suchtext ist zu lang"
 
 #: src/ui/gtk/search_common.c:1301
 msgid "The SHA1 of the magnet is not validly encoded"
-msgstr ""
+msgstr "Die SHA1-Hashsumme im Magnet-Link ist nicht korrekt kodiert."
 
 #: src/ui/gtk/search_common.c:1339
 msgid "The SHA1 query is not validly encoded"
-msgstr ""
+msgstr "Die SHA1-Hashsumme im Suchtext ist nicht korrekt kodiert."
 
 #: src/ui/gtk/settings.c:933
 msgid "Never"
@@ -8891,14 +8866,14 @@ msgid "No"
 msgstr "Nein"
 
 #: src/ui/gtk/settings.c:1095
-#, fuzzy, c-format
+# c-format
 msgid "%u/%u host (%u%%)"
-msgstr "%v/%u (%P%%)"
+msgstr "%u/%u Host (%u%%)"
 
 #: src/ui/gtk/settings.c:1098
-#, fuzzy, c-format
+# c-format
 msgid "%u/%u hosts (%u%%)"
-msgstr "%v/%u (%P%%)"
+msgstr "%u/%u Hosts (u%%)"
 
 #: src/ui/gtk/settings.c:1184 src/ui/gtk/settings.c:1206
 msgid "loading..."
@@ -8975,34 +8950,34 @@ msgid "%u queued"
 msgstr "%u in Warteschlange"
 
 #: src/ui/gtk/settings.c:2280
-#, fuzzy, c-format
+# c-format
 msgid "%u/%u connection"
-msgstr "Gnet-Verbindungen"
+msgstr "%u/%u Verbindung"
 
 #: src/ui/gtk/settings.c:2283
-#, fuzzy, c-format
+# c-format
 msgid "%u/%u connections"
-msgstr "Gnet-Verbindungen"
+msgstr "%u/%u Verbindungen"
 
 #: src/ui/gtk/settings.c:2319
-#, fuzzy, c-format
+# c-format
 msgid "%u/%u upload"
-msgstr "%u/%u Upload%s"
+msgstr "%u/%u Upload"
 
 #: src/ui/gtk/settings.c:2322
-#, fuzzy, c-format
+# c-format
 msgid "%u/%u uploads"
-msgstr "%u/%u Upload%s"
+msgstr "%u/%u Uploads"
 
 #: src/ui/gtk/settings.c:2347
-#, fuzzy, c-format
+# c-format
 msgid "%u/%u download"
-msgstr "%u/%u Download%s"
+msgstr "%u/%u Download"
 
 #: src/ui/gtk/settings.c:2350
-#, fuzzy, c-format
+# c-format
 msgid "%u/%u downloads"
-msgstr "%u/%u Download%s"
+msgstr "%u/%u Downloads"
 
 #: src/ui/gtk/uploads_common.c:100
 msgid "No output yet..."
