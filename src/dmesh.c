@@ -542,7 +542,7 @@ static void dmesh_fill_info(dmesh_urlinfo_t *info,
 
 	if (idx == 0) {
 		g_snprintf(sha1_urn, sizeof(sha1_urn),
-			"urn:sha1:%s", base32_sha1(sha1));
+			"urn:sha1:%s", sha1_base32(sha1));
 		info->name = sha1_urn;
 	} else
 		info->name = name;
