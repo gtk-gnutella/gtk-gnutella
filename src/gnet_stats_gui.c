@@ -46,6 +46,7 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
 	"Way too large",
     "Unknown message type",
     "Message sent with TTL = 0",
+    "Max TTL exceeded",
     "Ping throttle",
 	"Unusable Pong",
     "Hard TTL limit reached",
@@ -62,7 +63,6 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "Query had unnecessary overhead",
     "Malformed SHA1 Query",
     "Malformed UTF-8 Query",
-    "Max TTL exceeded",
     "Malformed Query Hit",
     "Query hit had bad SHA1"
 };
