@@ -34,46 +34,9 @@
 #include "guid.h"
 #include "gnet_stats.h"
 #include "utf8.h"
+#include "vendors.h"
 
 #include <ctype.h>
-
-
-// FIXME: duplicate in search_gui.c
-#define MAKE_CODE(a,b,c,d) ( \
-	((guint32) (a) << 24) | \
-	((guint32) (b) << 16) | \
-	((guint32) (c) << 8)  | \
-	((guint32) (d)))
-
-#define T_BEAR	MAKE_CODE('B','E','A','R')
-#define T_CULT	MAKE_CODE('C','U','L','T')
-#define T_FIRE	MAKE_CODE('F','I','R','E')
-#define T_FISH	MAKE_CODE('F','I','S','H')
-#define T_GNEW	MAKE_CODE('G','N','E','W')
-#define T_GNOT	MAKE_CODE('G','N','O','T')
-#define T_GNUC	MAKE_CODE('G','N','U','C')
-#define T_GNUT	MAKE_CODE('G','N','U','T')
-#define T_GTKG	MAKE_CODE('G','T','K','G')
-#define T_HSLG	MAKE_CODE('H','S','L','G')
-#define T_LIME	MAKE_CODE('L','I','M','E')
-#define T_MACT	MAKE_CODE('M','A','C','T')
-#define T_MMMM	MAKE_CODE('M','M','M','M')
-#define T_MNAP	MAKE_CODE('M','N','A','P')
-#define T_MRPH	MAKE_CODE('M','R','P','H')
-#define T_MUTE	MAKE_CODE('M','U','T','E')
-#define T_NAPS	MAKE_CODE('N','A','P','S')
-#define T_OCFG	MAKE_CODE('O','C','F','G')
-#define T_OPRA	MAKE_CODE('O','P','R','A')
-#define T_PHEX	MAKE_CODE('P','H','E','X')
-#define T_QTEL	MAKE_CODE('Q','T','E','L')
-#define T_RAZA	MAKE_CODE('R','A','Z','A')
-#define T_SNUT	MAKE_CODE('S','N','U','T')
-#define T_SWAP	MAKE_CODE('S','W','A','P')
-#define T_SWFT	MAKE_CODE('S','W','F','T')
-#define T_TOAD	MAKE_CODE('T','O','A','D')
-#define T_XOLO	MAKE_CODE('X','O','L','O')
-#define T_XTLA	MAKE_CODE('X','T','L','A')
-#define T_ZIGA	MAKE_CODE('Z','I','G','A')
 
 struct sent_node_data {
 	guint32 ip;
