@@ -64,19 +64,17 @@ static gint mass_operation  = 0;
 
 static void start_mass_update(void)
 {
-    mass_operation ++;
+    mass_operation++;
 }
 
 static void end_mass_update(void) 
 {
-    guint32 val = hosts_in_catcher;
-
     g_assert(mass_operation > 0);
 
-    mass_operation --;
+    mass_operation--;
 
     if (mass_operation == 0)
-        gnet_prop_set_guint32(PROP_HOSTS_IN_CATCHER, &val, 0, 1);
+        gnet_prop_set_guint32_val(PROP_HOSTS_IN_CATCHER, hosts_in_catcher);
 }
 
 /***
@@ -167,11 +165,9 @@ static gboolean host_ht_add(struct gnutella_host *host)
 		return FALSE;
 	}
 
-    if (!mass_operation) {
-        guint32 val = hosts_in_catcher+1;
-
-        gnet_prop_set_guint32(PROP_HOSTS_IN_CATCHER, &val, 0, 1);
-    } else
+    if (!mass_operation)
+        gnet_prop_set_guint32_val(PROP_HOSTS_IN_CATCHER, hosts_in_catcher + 1);
+    else
         hosts_in_catcher ++;
 
 	g_hash_table_insert(ht_known_hosts, host, (gpointer) 1);
@@ -189,11 +185,9 @@ static void host_ht_remove(struct gnutella_host *host)
 		return;
 	}
 
-    if (!mass_operation) {
-        guint32 val = hosts_in_catcher-1;
-
-        gnet_prop_set_guint32(PROP_HOSTS_IN_CATCHER, &val, 0, 1);
-    } else
+    if (!mass_operation)
+        gnet_prop_set_guint32_val(PROP_HOSTS_IN_CATCHER, hosts_in_catcher - 1);
+    else
         hosts_in_catcher --;
 
 	g_hash_table_remove(ht_known_hosts, host);
@@ -774,11 +768,8 @@ done:
      * hosts in the catcher.
      *      -- Richard, 6/8/2002
      */
-    {
-        gboolean b = FALSE;
     
-        gnet_prop_set_boolean(PROP_READING_HOSTFILE, &b, 0, 1);
-    }
+    gnet_prop_set_boolean_val(PROP_READING_HOSTFILE, FALSE);
     end_mass_update();
 
 	return FALSE;
@@ -804,10 +795,7 @@ void hosts_read_from_file(const gchar * path, gboolean quiet)
 
 	hosts_idle_func = g_idle_add(hosts_reading_func, (gpointer) NULL);
 
-    {
-        gboolean b = TRUE;
-        gnet_prop_set_boolean(PROP_READING_HOSTFILE, &b, 0, 1);
-    }
+	gnet_prop_set_boolean_val(PROP_READING_HOSTFILE, TRUE);
 }
 
 void hosts_write_to_file(const gchar *path)

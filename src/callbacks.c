@@ -48,9 +48,8 @@
     void on_##w##_toggled(GtkToggleButton * togglebutton,               \
 						  gpointer user_data)                           \
     {                                                                   \
-        guint32 buf = i;                                                \
-        if(gtk_toggle_button_get_active(togglebutton))                  \
-            gnet_prop_set_guint32(v, &buf, 0, 1);                       \
+        if (gtk_toggle_button_get_active(togglebutton))                 \
+            gnet_prop_set_guint32_val(v, i);                            \
     }
 
 static GtkWidget *add_dir_filesel = NULL;

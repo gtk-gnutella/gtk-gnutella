@@ -113,8 +113,7 @@ static gboolean is_local_ip(guint32 ip)
  */
 void inet_firewalled(void)
 {
-	gboolean val = TRUE;
-	gnet_prop_set_boolean(PROP_IS_FIREWALLED, &val, 0, 1);
+	gnet_prop_set_boolean_val(PROP_IS_FIREWALLED, TRUE);
 	fw_time = time(NULL);
 
 	if (incoming_ev) {
@@ -146,9 +145,7 @@ static void got_no_connection(cqueue_t *cq, gpointer obj)
  */
 static void inet_not_firewalled(void)
 {
-	gboolean val = FALSE;
-
-	gnet_prop_set_boolean(PROP_IS_FIREWALLED, &val, 0, 1);
+	gnet_prop_set_boolean_val(PROP_IS_FIREWALLED, FALSE);
 
 	if (dbg)
 		printf("FW: we're not firewalled for port %u\n", listen_port);
@@ -250,7 +247,7 @@ gboolean inet_can_answer_ping(void)
 
 static void inet_set_is_connected(gboolean val)
 {
-	gnet_prop_set_boolean(PROP_IS_INET_CONNECTED, &val, 0, 1);
+	gnet_prop_set_boolean_val(PROP_IS_INET_CONNECTED, val);
 
 	if (dbg)
 		printf("FW: we're %sconnected to the Internet\n",
