@@ -679,12 +679,12 @@ static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
 	 */
 
 	if (delay < bs->min_period) {
-		g_warning("periodic timer noticed time jumped backwards (~%d ms)",
-			bs->period - delay);
+		g_warning("periodic timer (%s) noticed time jumped backwards (~%d ms)",
+			bs->name, bs->period - delay);
 		delay = bs->period;
 	} else if (delay > bs->max_period) {
-		g_warning("periodic timer noticed time jumped forwards (~%d ms)",
-			delay - bs->period);
+		g_warning("periodic timer (%s) noticed time jumped forwards (~%d ms)",
+			bs->name, delay - bs->period);
 		delay = bs->period;
 	}
 
