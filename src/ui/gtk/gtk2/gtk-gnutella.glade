@@ -1775,7 +1775,7 @@ Grace time remaining:</property>
 	  <child>
 	    <widget class="GtkLabel" id="label492">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">Yann Grossel</property>
+	      <property name="label">Yann Grossel</property>
 	      <property name="use_underline">False</property>
 	      <property name="use_markup">False</property>
 	      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -1823,7 +1823,7 @@ Grace time remaining:</property>
 	  <child>
 	    <widget class="GtkLabel" id="label494">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">Raphaël Manfredi</property>
+	      <property name="label">Raphaël Manfredi</property>
 	      <property name="use_underline">False</property>
 	      <property name="use_markup">False</property>
 	      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -1871,7 +1871,7 @@ Grace time remaining:</property>
 	  <child>
 	    <widget class="GtkLabel" id="label704">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">Jeroen Asselman</property>
+	      <property name="label">Jeroen Asselman</property>
 	      <property name="use_underline">False</property>
 	      <property name="use_markup">False</property>
 	      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -1895,7 +1895,7 @@ Grace time remaining:</property>
 	  <child>
 	    <widget class="GtkLabel" id="label493">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">Raphaël Manfredi</property>
+	      <property name="label">Raphaël Manfredi</property>
 	      <property name="use_underline">False</property>
 	      <property name="use_markup">False</property>
 	      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -1919,7 +1919,7 @@ Grace time remaining:</property>
 	  <child>
 	    <widget class="GtkLabel" id="label495">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">Richard Eckart</property>
+	      <property name="label">Richard Eckart</property>
 	      <property name="use_underline">False</property>
 	      <property name="use_markup">False</property>
 	      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -1943,7 +1943,7 @@ Grace time remaining:</property>
 	  <child>
 	    <widget class="GtkLabel" id="label496">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">Vidar Madsen</property>
+	      <property name="label">Vidar Madsen</property>
 	      <property name="use_underline">False</property>
 	      <property name="use_markup">False</property>
 	      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -7194,7 +7194,7 @@ http://maxmind.com/</property>
 			<widget class="GtkLabel" id="label_search_current_search">
 			  <property name="visible">True</property>
 			  <property name="can_focus">True</property>
-			  <property name="label" translatable="yes"></property>
+			  <property name="label"></property>
 			  <property name="use_underline">False</property>
 			  <property name="use_markup">False</property>
 			  <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -7878,7 +7878,7 @@ http://maxmind.com/</property>
 					  <property name="editable">False</property>
 					  <property name="visibility">True</property>
 					  <property name="max_length">0</property>
-					  <property name="text" translatable="yes"></property>
+					  <property name="text"></property>
 					  <property name="has_frame">False</property>
 					  <property name="invisible_char">*</property>
 					  <property name="activates_default">False</property>
@@ -7907,7 +7907,7 @@ http://maxmind.com/</property>
 					  <property name="editable">False</property>
 					  <property name="visibility">True</property>
 					  <property name="max_length">0</property>
-					  <property name="text" translatable="yes"></property>
+					  <property name="text"></property>
 					  <property name="has_frame">False</property>
 					  <property name="invisible_char">*</property>
 					  <property name="activates_default">False</property>
@@ -7936,7 +7936,7 @@ http://maxmind.com/</property>
 					  <property name="editable">False</property>
 					  <property name="visibility">True</property>
 					  <property name="max_length">0</property>
-					  <property name="text" translatable="yes"></property>
+					  <property name="text"></property>
 					  <property name="has_frame">False</property>
 					  <property name="invisible_char">*</property>
 					  <property name="activates_default">False</property>
@@ -7965,7 +7965,7 @@ http://maxmind.com/</property>
 					  <property name="editable">False</property>
 					  <property name="visibility">True</property>
 					  <property name="max_length">0</property>
-					  <property name="text" translatable="yes"></property>
+					  <property name="text"></property>
 					  <property name="has_frame">False</property>
 					  <property name="invisible_char">*</property>
 					  <property name="activates_default">False</property>
@@ -7994,7 +7994,7 @@ http://maxmind.com/</property>
 					  <property name="editable">False</property>
 					  <property name="visibility">True</property>
 					  <property name="max_length">0</property>
-					  <property name="text" translatable="yes"></property>
+					  <property name="text"></property>
 					  <property name="has_frame">False</property>
 					  <property name="invisible_char">*</property>
 					  <property name="activates_default">False</property>
@@ -8046,7 +8046,7 @@ http://maxmind.com/</property>
 					  <property name="editable">False</property>
 					  <property name="visibility">True</property>
 					  <property name="max_length">0</property>
-					  <property name="text" translatable="yes"></property>
+					  <property name="text"></property>
 					  <property name="has_frame">False</property>
 					  <property name="invisible_char">*</property>
 					  <property name="activates_default">False</property>
@@ -8076,7 +8076,7 @@ http://maxmind.com/</property>
 					  <property name="editable">False</property>
 					  <property name="visibility">True</property>
 					  <property name="max_length">0</property>
-					  <property name="text" translatable="yes"></property>
+					  <property name="text"></property>
 					  <property name="has_frame">False</property>
 					  <property name="invisible_char">*</property>
 					  <property name="activates_default">False</property>
@@ -8138,7 +8138,7 @@ http://maxmind.com/</property>
 					  <property name="left_margin">0</property>
 					  <property name="right_margin">0</property>
 					  <property name="indent">0</property>
-					  <property name="text" translatable="yes">
+					  <property name="text">
 
 
 </property>
@@ -8191,7 +8191,7 @@ http://maxmind.com/</property>
 					  <property name="editable">False</property>
 					  <property name="visibility">True</property>
 					  <property name="max_length">0</property>
-					  <property name="text" translatable="yes"></property>
+					  <property name="text"></property>
 					  <property name="has_frame">False</property>
 					  <property name="invisible_char">*</property>
 					  <property name="activates_default">False</property>
@@ -8220,7 +8220,7 @@ http://maxmind.com/</property>
 					  <property name="editable">False</property>
 					  <property name="visibility">True</property>
 					  <property name="max_length">0</property>
-					  <property name="text" translatable="yes"></property>
+					  <property name="text"></property>
 					  <property name="has_frame">False</property>
 					  <property name="invisible_char">*</property>
 					  <property name="activates_default">False</property>
@@ -8315,7 +8315,7 @@ http://maxmind.com/</property>
 		  <child>
 		    <widget class="GtkLabel" id="label_items_found">
 		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">                                                                     </property>
+		      <property name="label">                                                                     </property>
 		      <property name="use_underline">False</property>
 		      <property name="use_markup">False</property>
 		      <property name="justify">GTK_JUSTIFY_CENTER</property>

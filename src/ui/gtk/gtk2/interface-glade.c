@@ -1461,7 +1461,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label501), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label501), 10, 0);
 
-  label492 = gtk_label_new (_("Yann Grossel"));
+  label492 = gtk_label_new ("Yann Grossel");
   gtk_widget_set_name (label492, "label492");
   gtk_widget_show (label492);
   gtk_table_attach (GTK_TABLE (table105), label492, 1, 2, 0, 1,
@@ -1480,7 +1480,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label498), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label498), 10, 0);
 
-  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label494 = gtk_label_new ("Rapha\303\253l Manfredi");
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_table_attach (GTK_TABLE (table105), label494, 1, 2, 1, 2,
@@ -1498,7 +1498,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label703), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label703), 10, 0);
 
-  label704 = gtk_label_new (_("Jeroen Asselman"));
+  label704 = gtk_label_new ("Jeroen Asselman");
   gtk_widget_set_name (label704, "label704");
   gtk_widget_show (label704);
   gtk_table_attach (GTK_TABLE (table105), label704, 1, 2, 2, 3,
@@ -1507,7 +1507,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label704), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label704), 4, 0);
 
-  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label493 = gtk_label_new ("Rapha\303\253l Manfredi");
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_table_attach (GTK_TABLE (table105), label493, 4, 5, 0, 1,
@@ -1516,7 +1516,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 4, 0);
 
-  label495 = gtk_label_new (_("Richard Eckart"));
+  label495 = gtk_label_new ("Richard Eckart");
   gtk_widget_set_name (label495, "label495");
   gtk_widget_show (label495);
   gtk_table_attach (GTK_TABLE (table105), label495, 4, 5, 1, 2,
@@ -1525,7 +1525,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label495), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label495), 4, 0);
 
-  label496 = gtk_label_new (_("Vidar Madsen"));
+  label496 = gtk_label_new ("Vidar Madsen");
   gtk_widget_set_name (label496, "label496");
   gtk_widget_show (label496);
   gtk_table_attach (GTK_TABLE (table105), label496, 4, 5, 2, 3,
@@ -5121,7 +5121,7 @@ create_main_window_search_tab (void)
   gtk_text_view_set_editable (GTK_TEXT_VIEW (textview_result_info_xml), FALSE);
   gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (textview_result_info_xml), GTK_WRAP_WORD);
   gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (textview_result_info_xml), FALSE);
-  gtk_text_buffer_set_text (gtk_text_view_get_buffer (GTK_TEXT_VIEW (textview_result_info_xml)), _("\n\n\n"), -1);
+  gtk_text_buffer_set_text (gtk_text_view_get_buffer (GTK_TEXT_VIEW (textview_result_info_xml)), "\n\n\n", -1);
 
   label666 = gtk_label_new (_("Size:"));
   gtk_widget_set_name (label666, "label666");
@@ -5185,7 +5185,7 @@ create_main_window_search_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox215), viewport56, TRUE, TRUE, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport56), GTK_SHADOW_ETCHED_IN);
 
-  label_items_found = gtk_label_new (_("                                                                     "));
+  label_items_found = gtk_label_new ("                                                                     ");
   gtk_widget_set_name (label_items_found, "label_items_found");
   gtk_widget_show (label_items_found);
   gtk_container_add (GTK_CONTAINER (viewport56), label_items_found);
