@@ -1813,3 +1813,26 @@ prop = {
     };
 };
 
+prop = {
+    name = "node_monitor_unstable_ip";
+    desc = "Whether gtk-gnutella should keep track of the IP of unstable "
+		"servents it encounters, preventing further connections attempts "
+		"to/from them.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
+prop = {
+    name = "node_monitor_unstable_servents";
+    desc = "Whether gtk-gnutella should determine the servent types (as "
+		"identified by their vendor string) that are unstable, preventing "
+		"further connections to/from them.  This only works when gtk-gnutella "
+		"already keeps track of unstable IP addresses.";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+

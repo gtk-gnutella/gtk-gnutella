@@ -360,6 +360,10 @@ gboolean host_runs_ntp     = FALSE;
 gboolean host_runs_ntp_def = FALSE;
 guint32  clock_skew     = 0;
 guint32  clock_skew_def = 0;
+gboolean node_monitor_unstable_ip     = TRUE;
+gboolean node_monitor_unstable_ip_def = TRUE;
+gboolean node_monitor_unstable_servents     = TRUE;
+gboolean node_monitor_unstable_servents_def = TRUE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -3260,6 +3264,40 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[150].data.guint32.choices = NULL;
     gnet_property->props[150].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[150].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_NODE_MONITOR_UNSTABLE_IP:
+     *
+     * General data:
+     */
+    gnet_property->props[151].name = "node_monitor_unstable_ip";
+    gnet_property->props[151].desc = _("Whether gtk-gnutella should keep track of the IP of unstable servents it encounters, preventing further connections attempts to/from them.");
+    gnet_property->props[151].ev_changed = event_new("node_monitor_unstable_ip_changed");
+    gnet_property->props[151].save = TRUE;
+    gnet_property->props[151].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[151].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[151].data.boolean.def   = &node_monitor_unstable_ip_def;
+    gnet_property->props[151].data.boolean.value = &node_monitor_unstable_ip;
+
+
+    /*
+     * PROP_NODE_MONITOR_UNSTABLE_SERVENTS:
+     *
+     * General data:
+     */
+    gnet_property->props[152].name = "node_monitor_unstable_servents";
+    gnet_property->props[152].desc = _("Whether gtk-gnutella should determine the servent types (as identified by their vendor string) that are unstable, preventing further connections to/from them.  This only works when gtk-gnutella already keeps track of unstable IP addresses.");
+    gnet_property->props[152].ev_changed = event_new("node_monitor_unstable_servents_changed");
+    gnet_property->props[152].save = TRUE;
+    gnet_property->props[152].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[152].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[152].data.boolean.def   = &node_monitor_unstable_servents_def;
+    gnet_property->props[152].data.boolean.value = &node_monitor_unstable_servents;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

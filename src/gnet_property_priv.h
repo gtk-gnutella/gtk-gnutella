@@ -181,6 +181,8 @@ extern gboolean fuzzy_filter_dmesh;
 extern guint32  crawler_visit_count;
 extern gboolean host_runs_ntp;
 extern guint32  clock_skew;
+extern gboolean node_monitor_unstable_ip;
+extern gboolean node_monitor_unstable_servents;
 
 
 prop_set_t *gnet_prop_init(void);
