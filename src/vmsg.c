@@ -33,6 +33,7 @@
 #include "gmsg.h"
 #include "routing.h"	/* For message_set_muid() */
 #include "gnet_stats.h"
+#include "settings.h"	/* For listen_ip() */
 
 RCSID("$Id$");
 
@@ -41,13 +42,16 @@ static gchar v_tmp[256];
 /*
  * Vendor message handler.
  */
+
+struct vmsg;
+
 typedef void (*vmsg_handler_t)(struct gnutella_node *n,
-	guint16 version, gchar *payload, gint size);
+	struct vmsg *vmsg, gchar *payload, gint size);
 
 /*
  * Definition of vendor messages
  */
-struct vmsg_known {
+struct vmsg {
 	guint32 vendor;
 	guint16 id;
 	guint16 version;
@@ -56,21 +60,27 @@ struct vmsg_known {
 };
 
 static void handle_messages_supported(struct gnutella_node *n,
-	guint16 version, gchar *payload, gint size);
+	struct vmsg *vmsg, gchar *payload, gint size);
 static void handle_hops_flow(struct gnutella_node *n,
-	guint16 version, gchar *payload, gint size);
+	struct vmsg *vmsg, gchar *payload, gint size);
 static void handle_connect_back(struct gnutella_node *n,
-	guint16 version, gchar *payload, gint size);
+	struct vmsg *vmsg, gchar *payload, gint size);
+static void handle_proxy_req(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size);
+static void handle_proxy_ack(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size);
 
 /*
  * Known vendor-specific messages.
  */
-static struct vmsg_known vmsg_map[] = {
+static struct vmsg vmsg_map[] = {
 	/* This list MUST be sorted by vendor, id, version */
 
 	{ T_0000, 0x0000, 0x0000, handle_messages_supported, "Messages Supported" },
 	{ T_BEAR, 0x0004, 0x0001, handle_hops_flow, "Hops Flow" },
 	{ T_BEAR, 0x0007, 0x0001, handle_connect_back, "Connect Back" },
+	{ T_LIME, 0x0015, 0x0002, handle_proxy_req, "Push Proxy Request" },
+	{ T_LIME, 0x0016, 0x0002, handle_proxy_ack, "Push Proxy Acknowledgment" },
 
 	/* Above line intentionally left blank (for "!}sort" on vi) */
 };
@@ -99,14 +109,14 @@ struct vms_item {
  *
  * Returns handler callback if found, NULL otherwise.
  */
-static struct vmsg_known *find_message(
+static struct vmsg *find_message(
 	guint32 vendor, guint16 id, guint16 version)
 {
-	struct vmsg_known *low = vmsg_map;
-	struct vmsg_known *high = END(vmsg_map);
+	struct vmsg *low = vmsg_map;
+	struct vmsg *high = END(vmsg_map);
 
 	while (low <= high) {
-		struct vmsg_known *mid = low + (high - low) / 2;
+		struct vmsg *mid = low + (high - low) / 2;
 		gint c;
 
 		c = vendor_code_cmp(mid->vendor, vendor);
@@ -143,7 +153,7 @@ void vmsg_handle(struct gnutella_node *n)
 	guint32 vendor;
 	guint16 id;
 	guint16 version;
-	struct vmsg_known *vm;
+	struct vmsg *vm;
 
 	READ_GUINT32_BE(v->vendor, vendor);
 	READ_GUINT16_LE(v->selector_id, id);
@@ -172,7 +182,7 @@ void vmsg_handle(struct gnutella_node *n)
 		return;
 	}
 
-	(*vm->handler)(n, version, n->data + sizeof(*v), n->size - sizeof(*v));
+	(*vm->handler)(n, vm, n->data + sizeof(*v), n->size - sizeof(*v));
 }
 
 /*
@@ -181,15 +191,33 @@ void vmsg_handle(struct gnutella_node *n)
  * Fill common message header part for all vendor-specific messages.
  * The GUID is blanked (all zero bytes), TTL is set to 1 and hops to 0.
  * Those common values can be superseded by the caller if needed.
+ *
+ * `size' is only the size of the payload we filled so far.
+ * `maxsize' is the size of the already allocated vendor messsage.
+ *
+ * Returns the total size of the whole Gnutella message.
  */
-static void vmsg_fill_header(struct gnutella_header *header, guint32 size)
+static guint32 vmsg_fill_header(struct gnutella_header *header,
+	guint32 size, guint32 maxsize)
 {
+	guint32 msize;
+
 	memset(header->muid, 0, 16);				/* Default GUID: all blank */
 	header->function = GTA_MSG_VENDOR;
 	header->ttl = 1;
 	header->hops = 0;
 
-	WRITE_GUINT32_LE(size, header->size);
+	msize = size + sizeof(struct gnutella_vendor);
+
+	WRITE_GUINT32_LE(msize, header->size);
+
+	msize += sizeof(struct gnutella_header);
+
+	if (msize > maxsize)
+		g_error("allocated vendor message is only %u bytes, would need %u",
+			maxsize, msize);
+
+	return msize;
 }
 
 /*
@@ -216,7 +244,7 @@ static guchar *vmsg_fill_type(
  * Handle the "Messages Supported" message.
  */
 static void handle_messages_supported(struct gnutella_node *n,
-	guint16 version, gchar *payload, gint size)
+	struct vmsg *vmsg, gchar *payload, gint size)
 {
 	guint16 count;
 
@@ -251,17 +279,15 @@ static void handle_messages_supported(struct gnutella_node *n,
  */
 void vmsg_send_messages_supported(struct gnutella_node *n)
 {
-	struct gnutella_msg_vendor *vms = (struct gnutella_msg_vendor *) v_tmp;
+	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint16 count = G_N_ELEMENTS(vmsg_map) - 1;
-	guint32 paysize = sizeof(vms->data) + sizeof(count) + count * VMS_ITEM_SIZE;
-	guint32 msgsize = paysize + sizeof(vms->header);
+	guint32 paysize = sizeof(count) + count * VMS_ITEM_SIZE;
+	guint32 msgsize;
 	guchar *payload;
 	gint i;
 
-	g_assert(sizeof(v_tmp) >= msgsize);
-
-	vmsg_fill_header(&vms->header, paysize);
-	payload = vmsg_fill_type(&vms->data, T_0000, 0, 0);
+	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
+	payload = vmsg_fill_type(&m->data, T_0000, 0, 0);
 
 	/*
 	 * First 2 bytes is the number of entries in the vector.
@@ -275,7 +301,7 @@ void vmsg_send_messages_supported(struct gnutella_node *n)
 	 */
 
 	for (i = 0; i < G_N_ELEMENTS(vmsg_map); i++) {
-		struct vmsg_known *msg = &vmsg_map[i];
+		struct vmsg *msg = &vmsg_map[i];
 
 		if (msg->vendor == T_0000)		/* Don't send info about ourselves */
 			continue;
@@ -288,7 +314,7 @@ void vmsg_send_messages_supported(struct gnutella_node *n)
 		payload += 2;
 	}
 
-	gmsg_sendto_one(n, (gchar *) vms, msgsize);
+	gmsg_sendto_one(n, (gchar *) m, msgsize);
 }
 
 /*
@@ -297,15 +323,15 @@ void vmsg_send_messages_supported(struct gnutella_node *n)
  * Handle the "Hops Flow" message.
  */
 static void handle_hops_flow(struct gnutella_node *n,
-	guint16 version, gchar *payload, gint size)
+	struct vmsg *vmsg, gchar *payload, gint size)
 {
 	guint8 hops;
 
-	g_assert(version <= 1);
+	g_assert(vmsg->version <= 1);
 
 	if (size != 1) {
-		g_warning("got improper Hops Flow (payload has %d bytes) from %s <%s>",
-			size, node_ip(n), node_vendor(n));
+		g_warning("got improper %s (payload has %d bytes) from %s <%s>",
+			vmsg->name, size, node_ip(n), node_vendor(n));
 		return;
 	}
 
@@ -320,22 +346,21 @@ static void handle_hops_flow(struct gnutella_node *n,
  */
 void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
 {
-	struct gnutella_msg_vendor *hflow = (struct gnutella_msg_vendor *) v_tmp;
-	guint32 paysize = sizeof(hops) + sizeof(hflow->data);
-	guint32 msgsize = paysize + sizeof(hflow->header);
+	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
+	guint32 paysize = sizeof(hops);
+	guint32 msgsize;
 	guchar *payload;
 
-	g_assert(sizeof(v_tmp) >= msgsize);
+	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
+	payload = vmsg_fill_type(&m->data, T_BEAR, 4, 1);
 
-	vmsg_fill_header(&hflow->header, paysize);
-	payload = vmsg_fill_type(&hflow->data, T_BEAR, 4, 1);
 	*payload = hops;
 
 	/*
 	 * Send the message as a control message, so that it gets sent ASAP.
 	 */
 
-	gmsg_ctrl_sendto_one(n, (gchar *) hflow, msgsize);
+	gmsg_ctrl_sendto_one(n, (gchar *) m, msgsize);
 }
 
 /*
@@ -344,15 +369,15 @@ void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
  * Handle the "Connect Back" message.
  */
 static void handle_connect_back(struct gnutella_node *n,
-	guint16 version, gchar *payload, gint size)
+	struct vmsg *vmsg, gchar *payload, gint size)
 {
 	guint16 port;
 
-	g_assert(version <= 1);
+	g_assert(vmsg->version <= 1);
 
 	if (size != 2) {
-		g_warning("got improper Connect Back (payload has %d byte%ss) "
-			"from %s <%s>", size, size == 1 ? "" : "s",
+		g_warning("got improper %s (payload has %d byte%ss) "
+			"from %s <%s>", vmsg->name, size, size == 1 ? "" : "s",
 			node_ip(n), node_vendor(n));
 		return;
 	}
@@ -360,8 +385,8 @@ static void handle_connect_back(struct gnutella_node *n,
 	READ_GUINT16_LE(payload, port);
 
 	if (port == 0) {
-		g_warning("got improper port #%d in Connect Back from %s <%s>",
-			port, node_ip(n), node_vendor(n));
+		g_warning("got improper port #%d in %s from %s <%s>",
+			port, vmsg->name, node_ip(n), node_vendor(n));
 		return;
 	}
 
@@ -376,18 +401,141 @@ static void handle_connect_back(struct gnutella_node *n,
  */
 void vmsg_send_connect_back(struct gnutella_node *n, guint16 port)
 {
-	struct gnutella_msg_vendor *cbak = (struct gnutella_msg_vendor *) v_tmp;
-	guint32 paysize = sizeof(port) + sizeof(cbak->data);
-	guint32 msgsize = paysize + sizeof(cbak->header);
+	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
+	guint32 paysize = sizeof(port);
+	guint32 msgsize;
 	guchar *payload;
 
-	g_assert(sizeof(v_tmp) >= msgsize);
-
-	vmsg_fill_header(&cbak->header, paysize);
-	payload = vmsg_fill_type(&cbak->data, T_BEAR, 7, 1);
+	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
+	payload = vmsg_fill_type(&m->data, T_BEAR, 7, 1);
 
 	WRITE_GUINT16_LE(port, payload);
 
-	gmsg_sendto_one(n, (gchar *) cbak, msgsize);
+	gmsg_sendto_one(n, (gchar *) m, msgsize);
+}
+
+/*
+ * handle_proxy_req
+ *
+ * Handle reception of the "Push Proxy Request" message.
+ */
+static void handle_proxy_req(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size)
+{
+	if (size != 0) {
+		g_warning("got improper %s (payload has %d byte%ss) "
+			"from %s <%s>", vmsg->name, size, size == 1 ? "" : "s",
+			node_ip(n), node_vendor(n));
+		return;
+	}
+
+	/*
+	 * Normally, a firewalled host should be a leaf node, not an UP.
+	 * Warn if node is not a leaf, but accept to be the push proxy
+	 * nonetheless.
+	 */
+
+	if (!NODE_IS_LEAF(n))
+		g_warning("got %s from non-leaf node %s <%s>",
+			vmsg->name, node_ip(n), node_vendor(n));
+
+	/*
+	 * Add proxying info for this node.  On successful completion,
+	 * we'll send an acknowledgement.
+	 */
+
+	if (node_proxying_add(n, n->header.muid))	/* MUID is the node's GUID */
+		vmsg_send_proxy_ack(n, n->header.muid);
+}
+
+/*
+ * vmsg_send_proxy_req
+ *
+ * Send a "Push Proxy Request" message to specified node, using supplied
+ * `muid' as the message ID (which is our GUID).
+ */
+void vmsg_send_proxy_req(struct gnutella_node *n, gchar *muid)
+{
+	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
+	guint32 msgsize;
+
+	g_assert(!NODE_IS_LEAF(n));
+
+	msgsize = vmsg_fill_header(&m->header, 0, sizeof(v_tmp));
+	memcpy(m->header.muid, muid, 16);
+	(void) vmsg_fill_type(&m->data, T_LIME, 21, 2);
+
+	gmsg_sendto_one(n, (gchar *) m, msgsize);
+
+	// XXX
+	if (dbg)
+		g_warning("sent proxy REQ to %s <%s>", node_ip(n), node_vendor(n));
+}
+
+/*
+ * handle_proxy_ack
+ *
+ * Handle reception of the "Push Proxy Acknowledgment" message.
+ */
+static void handle_proxy_ack(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size)
+{
+	guint32 ip;
+	guint16 port;
+
+	g_assert(vmsg->version >= 2);
+
+	if (size != 6) {
+		g_warning("got improper %s (payload has %d byte%ss) "
+			"from %s <%s>", vmsg->name, size, size == 1 ? "" : "s",
+			node_ip(n), node_vendor(n));
+		return;
+	}
+
+	READ_GUINT32_BE(payload, ip);
+	payload += 4;
+	READ_GUINT16_LE(payload, port);
+
+	if (!host_is_valid(ip, port)) {
+		g_warning("got improper address %s in %s from %s <%s>",
+			ip_port_to_gchar(ip, port), vmsg->name,
+			node_ip(n), node_vendor(n));
+		return;
+	}
+
+	node_proxy_add(n, ip, port);
+
+	// XXX
+	if (dbg)
+		g_warning("got proxy ACK from %s <%s>", node_ip(n), node_vendor(n));
+}
+
+/*
+ * vmsg_send_proxy_ack
+ *
+ * Send a "Push Proxy Acknowledgment" message to specified node, using
+ * supplied `muid' as the message ID (which is the target node's GUID).
+ */
+void vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid)
+{
+	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
+	guint32 paysize = sizeof(guint32) + sizeof(guint16);
+	guint32 msgsize;
+	guchar *payload;
+
+	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
+	memcpy(m->header.muid, muid, 16);
+	payload = vmsg_fill_type(&m->data, T_LIME, 22, 2);
+
+	WRITE_GUINT16_BE(listen_ip(), payload);
+	WRITE_GUINT16_LE(listen_port, payload);
+
+	/*
+	 * Reply with a control message, so that the issuer knows that we can
+	 * proxyfy pushes to it ASAP.
+	 */
+
+	// XXX not yet!
+	//gmsg_ctrl_sendto_one(n, (gchar *) m, msgsize);
 }
 
