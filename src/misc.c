@@ -941,3 +941,45 @@ gchar *unique_filename(gchar *path, gchar *file, gchar *ext)
 	return NULL;
 }
 
+#define ESCAPE_CHAR		'\\'
+
+static char *hex_alphabet = "0123456789ABCDEF";
+
+/*
+ * hex_escape
+ *
+ * Escape all non-printable chars into the hexadecimal \xhh form.
+ * Returns new escaped string, or the original string if no escaping occurred.
+ */
+guchar *hex_escape(guchar *name)
+{
+	guchar *p;
+	guchar *q;
+	guchar c;
+	gint need_escape = 0;
+	guchar *new;
+
+	for (p = name, c = *p++; c; c = *p++)
+		if (!isprint(c))
+			need_escape++;
+
+	if (need_escape == 0)
+		return name;
+
+	new = g_malloc(p - name + 3 * need_escape);
+
+	for (p = name, q = new, c = *p++; c; c = *p++) {
+		if (isprint(c))
+			*q++ = c;
+		else {
+			*q++ = ESCAPE_CHAR;
+			*q++ = 'x';
+			*q++ = hex_alphabet[c >> 4];
+			*q++ = hex_alphabet[c & 0xf];
+		}
+	}
+	*q = '\0';
+
+	return new;
+}
+
