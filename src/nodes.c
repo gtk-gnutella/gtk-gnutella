@@ -137,6 +137,8 @@ static void call_node_process_handshake_ack(gpointer obj, header_t *header);
 static void node_send_qrt(struct gnutella_node *n, gpointer query_table);
 static void node_send_patch_step(struct gnutella_node *n);
 static void node_bye_flags(guint32 mask, gint code, gchar *message);
+static void node_bye_all_but_one(
+	struct gnutella_node *nskip, gint code, gchar *message);
 
 /***
  *** Callbacks
@@ -1286,8 +1288,10 @@ static void node_is_now_connected(struct gnutella_node *n)
 	if (n->flags & NODE_F_ULTRA) {
 		if (current_peermode != NODE_P_NORMAL)
 			n->peermode = NODE_P_ULTRA;
-	} else if (n->flags & NODE_F_LEAF)
-		n->peermode = NODE_P_LEAF;
+	} else if (n->flags & NODE_F_LEAF) {
+		if (current_peermode == NODE_P_ULTRA)
+			n->peermode = NODE_P_LEAF;
+	}
 
 	g_assert(current_peermode != NODE_P_LEAF ||
 		NODE_IS_ULTRA(n) || NODE_IS_PONGING_ONLY(n));
@@ -1776,6 +1780,7 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	struct gnutella_socket *s = n->socket;
 	gboolean ack_ok;
 	gchar *field;
+	gboolean qrp_final_set = FALSE;
 
 	if (dbg) {
 		printf("Got final acknowledgment headers from node %s:\n",
@@ -1812,6 +1817,42 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
 	}
 
+	/* X-Ultrapeer -- support for ultra peer mode */
+
+	field = header_get(head, "X-Ultrapeer");
+	if (field && 0 == strcasecmp(field, "false")) {
+		n->attrs &= ~NODE_A_ULTRA;
+		if (current_peermode == NODE_P_ULTRA) {
+			n->flags |= NODE_F_LEAF;		/* Remote accepted to become leaf */
+			if (dbg) g_warning("node %s <%s> accepted to become our leaf",
+				node_ip(n), n->vendor ? n->vendor : "????");
+		}
+	}
+
+	/*
+	 * X-Query-Routing -- QRP protocol in use by remote servent (negotiated)
+	 *
+	 * This header is present in the 3rd handshake only when the two servents
+	 * advertised different support.  This last indication is the highest
+	 * version supported by the remote end, that is less or equals to ours.
+	 *
+	 * If we don't support that version, we'll BYE the servent later.
+	 */
+
+	field = header_get(head, "X-Query-Routing");
+	if (field) {
+		guint major, minor;
+		sscanf(field, "%u.%u", &major, &minor);
+		if (major >= n->qrp_major || minor >= n->qrp_minor)
+			if (dbg) g_warning("node %s <%s> now claims QRP version %u.%u, "
+				"but advertised %u.%u earlier",
+				node_ip(n), n->vendor ? n->vendor : "????", major, minor,
+				(guint) n->qrp_major, (guint) n->qrp_minor);
+		n->qrp_major = (guint8) major;
+		n->qrp_minor = (guint8) minor;
+		qrp_final_set = TRUE;
+	}
+
 	/*
 	 * Install new node.
 	 */
@@ -1819,6 +1860,25 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	g_assert(s->gdk_tag == 0);		/* Removed before callback called */
 
 	node_is_now_connected(n);
+
+	/*
+	 * Now that the Gnutella stack is up, BYE the node if we don't really
+	 * support the right version for the necessary protocols.
+	 */
+
+	if (current_peermode != NODE_P_NORMAL) {
+		/* 
+		 * Only BYE them if they finally declared to use a protocol we
+		 * don't support yet, despite their knowing that we only support
+		 * the 0.1 version.
+		 */
+
+		if (qrp_final_set && (n->qrp_major > 0 || n->qrp_minor > 1)) {
+			node_bye(n, 505, "Query Routing protocol %u.%u not supported",
+				(guint) n->qrp_major, (guint) n->qrp_minor);
+			return;
+		}
+	}
 
 	/*
 	 * If we already have data following the final acknowledgment, feed it
@@ -2053,6 +2113,10 @@ static void node_process_handshake_header(
 		n->attrs |= NODE_A_CAN_ULTRA;
 		if (0 == strcasecmp(field, "true"))
 			n->attrs |= NODE_A_ULTRA;
+		else if (0 == strcasecmp(field, "false")) {
+			if (current_peermode == NODE_P_ULTRA)
+				n->flags |= NODE_F_LEAF;
+		}
 	} else
 		n->attrs |= NODE_A_NO_ULTRA;
 
@@ -2111,6 +2175,21 @@ static void node_process_handshake_header(
 	}
 
 	/*
+	 * X-Query-Routing -- QRP protocol in use
+	 */
+
+	field = header_get(head, "X-Query-Routing");
+	if (field) {
+		guint major, minor;
+		sscanf(field, "%u.%u", &major, &minor);
+		if (major > 0 || minor > 1)
+			if (dbg) g_warning("node %s <%s> claims QRP version %u.%u",
+				node_ip(n), n->vendor ? n->vendor : "????", major, minor);
+		n->qrp_major = (guint8) major;
+		n->qrp_minor = (guint8) minor;
+	}
+
+	/*
 	 * Vendor-specific banning.
 	 *
 	 * This happens at step #2 of the handshaking process for incoming
@@ -2145,6 +2224,8 @@ static void node_process_handshake_header(
 	 */
 
 	if (!incoming) {
+		gboolean mode_changed = FALSE;
+
 		if (!analyse_status(n, NULL)) {
 			/*
 			 * If we have the "retry at 0.4" flag set, re-initiate the
@@ -2176,15 +2257,66 @@ static void node_process_handshake_header(
 				n->flags |= NODE_F_ULTRA;		/* This is our ultranode */
 		}
 
+		/* X-Ultrapeer-Needed -- only defined for 2nd reply (outgoing) */
+
+		field = header_get(head, "X-Ultrapeer-Needed");
+		if (field && 0 == strcasecmp(field, "false")) {
+			/*
+			 * Remote ultrapeer node wants more leaves.
+			 * If we are an ultrapeer without any leaves yet, accept to
+			 * become a leaf node if the remote uptime of the node is
+			 * greater than ours.
+			 */
+
+			if (n->attrs & NODE_A_ULTRA) {
+				if (
+					current_peermode == NODE_P_ULTRA &&
+					node_leaf_count == 0 &&
+					n->up_date != 0 && n->up_date < start_stamp
+				) {
+					g_warning("accepting request from %s <%s> to become a leaf",
+						node_ip(n), n->vendor ? n->vendor : "????");
+
+					node_bye_all_but_one(n, 203, "Becoming a leaf node");
+					n->flags |= NODE_F_ULTRA;
+					current_peermode = NODE_P_LEAF;
+					mode_changed = TRUE;
+				} else if (dbg > 2)
+					g_warning("denied request from %s <%s> to become a leaf",
+						node_ip(n), n->vendor ? n->vendor : "????");
+			}
+		}
+		if (field && 0 == strcasecmp(field, "true")) {
+			/*
+			 * Remote ultrapeer node looking for more ultrapeers.
+			 * If we're a leaf node and meet the ultrapeer requirements,
+			 * maybe we should start thinking about promoting ourselves?
+			 */
+
+			// XXX
+		}
+
+		if (field && !(n->attrs & NODE_A_ULTRA))
+			g_warning("node %s <%s> is not an ultrapeer but sent the "
+				"X-Ultrapeer-Needed header",
+				node_ip(n), n->vendor ? n->vendor : "????");
+
 		/*
 		 * Prepare our final acknowledgment.
 		 */
 
+		g_assert(!mode_changed || current_peermode == NODE_P_LEAF);
+
 		rw = g_snprintf(gnet_response, sizeof(gnet_response),
 			"GNUTELLA/0.6 200 OK\r\n"
-			"%s"
+			"%s"			// Content-Encoding
+			"%s"			// X-Ultrapeer
+			"%s"			// X-Query-Routing (advertise version we'll use)
 			"\r\n",
-			(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty);
+			(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
+			mode_changed ? "X-Ultrapeer: False\r\n" : "",
+			(n->qrp_major > 0 || n->qrp_minor > 1) ?
+				"X-Query-Routing: 0.1\r\n" : "");
 	 	
 		g_assert(rw < sizeof(gnet_response));
 	} else {
@@ -2202,6 +2334,11 @@ static void node_process_handshake_header(
 		/*
 		 * If we're a leaf node, we can only accept incoming connections
 		 * from an ultra node.
+		 *
+		 * The Ultrapeer specs say that two leaf nodes not finding Ultrapeers
+		 * could connect to each other like two normal nodes, but I don't
+		 * want to support that.  It's insane.
+		 *		--RAM, 11/01/2003
 		 */
 
 		if (current_peermode == NODE_P_LEAF) {
@@ -2211,6 +2348,25 @@ static void node_process_handshake_header(
 				return;
 			} else
 				n->flags |= NODE_F_ULTRA;		/* This is our ultranode */
+		}
+
+		/*
+		 * If we're an ultra node, and we have already enough normal nodes,
+		 * reject a normal node.
+		 */
+
+		if (
+			current_peermode == NODE_P_ULTRA &&
+			node_normal_count >= normal_connections &&
+			(n->attrs & NODE_A_NO_ULTRA)
+		) {
+			if (normal_connections)
+				send_node_error(n->socket, 503,
+					"Too many normal nodes (% max)", normal_connections);
+			else
+				send_node_error(n->socket, 403, "Normal nodes refused");
+			node_remove(n, "Rejected normal node");
+			return;
 		}
 
 		/*
@@ -2226,11 +2382,21 @@ static void node_process_handshake_header(
 			"Vendor-Message: 0.1\r\n"
 			"Remote-IP: %s\r\n"
 			"Accept-Encoding: deflate\r\n"
-			"%s"
+			"%s"		// Content-Encoding
+			"%s"		// X-Ultrapeer
+			"%s"		// X-Ultrapeer-Needed
+			"%s"		// X-Query-Routing
 			"X-Live-Since: %s\r\n"
 			"\r\n",
 			version_string, ip_to_gchar(n->socket->ip),
 			(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
+			current_peermode == NODE_P_NORMAL ? "" :
+			current_peermode == NODE_P_LEAF ?
+				"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
+			current_peermode != NODE_P_ULTRA ? "" :
+			node_ultra_count < up_connections ? "X-Ultrapeer-Needed: True\r\n"
+				: "X-Ultrapeer-Needed: False\r\n",
+			current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.1\r\n" : "",
 			start_rfc822_date);
 
 		g_assert(rw < sizeof(gnet_response));
@@ -2451,9 +2617,12 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	}
 #endif
 
-	if (current_peermode == NODE_P_LEAF)
+	if (current_peermode == NODE_P_LEAF) {
 		max_nodes = up_nodes = max_ultrapeers;
-	else {
+		// XXX temporary hack until we revisit connections
+		if (dbg > 5)
+			max_nodes++;
+	} else {
 		max_nodes = max_connections;
 		up_nodes = up_connections;
 	}
@@ -3353,7 +3522,17 @@ gboolean node_sent_ttl0(struct gnutella_node *n)
 
 	gnet_stats_count_dropped(n, MSG_DROP_TTL0);
 
-	if (connected_nodes() > MAX(2, up_connections)) {
+	/*
+	 * Don't disconnect if we're a leaf node.
+	 * Some broken Ultrapeers out there do forward TTL=0 messages to their
+	 * leaves.  The harm is limited, since leaves don't forward messages.
+	 *		--RAM, 12/01/2003
+	 */
+
+	if (
+		current_peermode != NODE_P_LEAF &&
+		connected_nodes() > MAX(2, up_connections)
+	) {
 		node_bye(n, 408, "%s %s message with TTL=0",
 			n->header.hops ? "Relayed" : "Sent",
 			gmsg_name(n->header.function));
@@ -3385,6 +3564,27 @@ static void node_bye_flags(guint32 mask, gint code, gchar *message)
 			continue;
 
 		if (n->flags & mask)
+			node_bye_if_writable(n, code, message);
+	}
+}
+
+/*
+ * node_bye_all_but_one
+ *
+ * Send a BYE message to all the nodes but the one supplied as argument.
+ */
+static void node_bye_all_but_one(
+	struct gnutella_node *nskip, gint code, gchar *message)
+{
+	GSList *l;
+
+	for (l = sl_nodes; l; l = l->next) {
+		struct gnutella_node *n = l->data;
+
+		if (n->status == GTA_NODE_REMOVING || n->status == GTA_NODE_SHUTDOWN)
+			continue;
+
+		if (n != nskip)
 			node_bye_if_writable(n, code, message);
 	}
 }
@@ -3553,6 +3753,22 @@ static void node_send_patch_step(struct gnutella_node *n)
 	n->qrt_update = NULL;
 
 	node_fire_node_flags_changed(n);
+}
+
+/*
+ * node_qrt_discard
+ *
+ * Invoked when a leaf sends us a RESET message, making the existing
+ * routing table obsolete.
+ */
+void node_qrt_discard(struct gnutella_node *n)
+{
+	g_assert(n->peermode == NODE_P_LEAF);
+
+	if (n->query_table != NULL) {
+		qrt_unref(n->query_table);
+		n->query_table = NULL;
+	}
 }
 
 /*

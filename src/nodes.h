@@ -67,8 +67,10 @@ typedef struct gnutella_node {
 
 	gchar error_str[256];		/* To sprintf() error strings with vars */
 	struct gnutella_socket *socket;		/* Socket of the node */
-	gint proto_major;			/* Protocol major number */
-	gint proto_minor;			/* Protocol minor number */
+	guint8 proto_major;			/* Handshaking protocol major number */
+	guint8 proto_minor;			/* Handshaking protocol minor number */
+	guint8 qrp_major;			/* Query routing protocol major number */
+	guint8 qrp_minor;			/* Query routing protocol minor number */
 	gchar *vendor;				/* Vendor information */
 	guchar vcode[4];			/* Vendor code (vcode[0] == NUL when unknown) */
 	gpointer io_opaque;			/* Opaque I/O callback information */
@@ -118,6 +120,7 @@ typedef struct gnutella_node {
 	gpointer routing_data;		/* Opaque info, for gnet message routing */
 	gpointer query_table;		/* Opaque info, query table sent / used by UP */
 	gpointer qrt_update;		/* Opaque info, query routing update handle */
+	gpointer qrt_receive;		/* Opaque info, query routing reception */
 
 	gpointer alive_pings;		/* Opaque info, for alive ping checks */
 	time_t last_alive_ping;		/* Last time we sent an alive ping */
@@ -196,6 +199,7 @@ typedef struct gnutella_node {
 #define NODE_A_ULTRA		0x00000040	/* Node wants to be an Ultrapeer */
 #define NODE_A_NO_ULTRA		0x00000080	/* Node is NOT ultra capable */
 
+#define NODE_A_CAN_QRP		0x08000000	/* Node supports query routing */
 #define NODE_A_CAN_VENDOR	0x10000000	/* Node supports vendor messages */
 #define NODE_A_CAN_GGEP		0x20000000	/* Node supports big pongs, etc.. */
 #define NODE_A_CAN_ULTRA	0x40000000	/* Node is ultra capable */
@@ -341,6 +345,7 @@ void node_close(void);
 gboolean node_remove_worst(gboolean non_local);
 
 void node_qrt_changed(gpointer query_table);
+void node_qrt_discard(struct gnutella_node *n);
 
 void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...);
 
