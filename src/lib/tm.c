@@ -1,9 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2003, Raphael Manfredi
- *
- * Time manipulation routines.
+ * Copyright (c) 2003-2004, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -25,6 +23,12 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ * Time manipulation routines.
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -32,24 +36,22 @@ RCSID("$Id$");
 #include "tm.h"
 #include "override.h"		/* Must be the last header included */
 
-/*
- * f2tm
- *
+/**
  * Convert floating point time description into a struct timeval by filling
  * in the supplied structure.
  */
-void f2tm(double t, tm_t *tm)
+void
+f2tm(double t, tm_t *tm)
 {
 	tm->tv_sec = (unsigned long) t;
 	tm->tv_usec = (long) ((t - (double) tm->tv_sec) * 1000000.0);
 }
 
-/*
- * tm_elapsed
- *
+/**
  * Computes the elapsed time (last - old) in the supplied structure.
  */
-void tm_elapsed(tm_t *elapsed, tm_t *last, tm_t *old)
+void
+tm_elapsed(tm_t *elapsed, tm_t *last, tm_t *old)
 {
 	elapsed->tv_sec = last->tv_sec - old->tv_sec;
 	elapsed->tv_usec = last->tv_usec - old->tv_usec;
@@ -59,12 +61,11 @@ void tm_elapsed(tm_t *elapsed, tm_t *last, tm_t *old)
 	}
 }
 
-/*
- * tm_sub
- *
+/**
  * In-place substract dec from tm.
  */
-void tm_sub(tm_t *tm, tm_t *dec)
+void
+tm_sub(tm_t *tm, tm_t *dec)
 {
 	tm->tv_sec -= dec->tv_sec;
 	tm->tv_usec -= dec->tv_usec;
@@ -74,12 +75,11 @@ void tm_sub(tm_t *tm, tm_t *dec)
 	}
 }
 
-/*
- * tm_add
- *
+/**
  * In-place add inc to tm.
  */
-void tm_add(tm_t *tm, tm_t *inc)
+void
+tm_add(tm_t *tm, tm_t *inc)
 {
 	tm->tv_sec += inc->tv_sec;
 	tm->tv_usec += inc->tv_usec;
@@ -89,12 +89,11 @@ void tm_add(tm_t *tm, tm_t *inc)
 	}
 }
 
-/*
- * tm_cmp
- *
+/**
  * Compare two times and return -1, 0 or +1 depending on their relative order.
  */
-int tm_cmp(tm_t *a, tm_t *b)
+int
+tm_cmp(tm_t *a, tm_t *b)
 {
 	if (a->tv_sec != b->tv_sec)
 		return (a->tv_sec > b->tv_sec) ? +1 : -1;
@@ -103,15 +102,37 @@ int tm_cmp(tm_t *a, tm_t *b)
 	return (a->tv_usec > b->tv_usec) ? +1 : -1;
 }
 
-/*
- * tm_now
- *
+/**
  * Fill supplied structure with current time.
  */
-void tm_now(tm_t *tm)
+void
+tm_now(tm_t *tm)
 {
 	struct timezone tzp;
 
 	gettimeofday(tm, &tzp);
+}
+
+/**
+ * Hash a tm_t time structure.
+ */
+guint
+tm_hash(gconstpointer key)
+{
+	tm_t *tm = (tm_t *) key;
+
+	return tm->tv_sec ^ (tm->tv_usec << 10) ^ (tm->tv_usec & 0x3ff);
+}
+
+/**
+ * Test two tm_t for equality.
+ */
+gint
+tm_equal(gconstpointer a, gconstpointer b)
+{
+	tm_t *ta = (tm_t *) a;
+	tm_t *tb = (tm_t *) b;
+
+	return ta->tv_sec == tb->tv_sec && ta->tv_usec == tb->tv_usec;
 }
 

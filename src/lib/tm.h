@@ -60,4 +60,7 @@ void tm_add(tm_t *tm, tm_t *inc);
 int tm_cmp(tm_t *a, tm_t *b);
 void tm_now(tm_t *tm);
 
-#endif
+guint tm_hash(gconstpointer key);
+gint tm_equal(gconstpointer a, gconstpointer b);
+
+#endif /* _tm_h_ */
