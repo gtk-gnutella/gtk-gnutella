@@ -1,6 +1,6 @@
 # since last version
 
-- (2003.12.24 - Richard)
+- (2003.12.25 - Richard)
  * Increased similarity between gtk1 and gtk2 interfaces.
  * [Gtk1] [Gtk2] More padding fixes.
  * [Gtk1] In bandwidth config panel changed layout to match that of the 
@@ -9,6 +9,11 @@
  * [Gtk1] [Gtk2] Changed label of expert mode toggle to
    "Show additional information and settings for advanced and expert users"
  * [Gtk2] Added "Compute upload connection speed" setting to config pane.
+ * [Gtk2] Socket recieve buffer size settings visible only in expert mode.
+ * [Gtk2] No more Gtk-Critical when loading gtkrc file. rc-file loading code
+   now uses ~/gtkrc for gtk1 and ~/.gtkrc-2.0 for gtkg. This is correct 
+   on my Debian system and hopefully also on other systems. (Analogous for
+   the rc files in the gtkg config dir.)
 
 - (2003.12.24 - Richard)
  * [Gtk2] Changed lots of paddings and spacings so they are more uniform.
