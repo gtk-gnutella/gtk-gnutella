@@ -2487,28 +2487,22 @@ void on_clist_search_results_select_row(GtkCList * clist, gint row,
 				if (i == row)
 					continue;	// skip this one
 				rc2 = (struct record *) gtk_clist_get_row_data(clist, i);
-				// if name match and file is same or larger, select it
+				// if name or urn match and file is same or larger, select it
 
-                if (rc->sha1 != NULL) {
-                    if (rc2 && (rc2->sha1 != NULL) && 
-                        (memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0)) {
-                        if (rc2->size >= rc->size) {
-                            gtk_clist_select_row(clist, i, 0);
-                            x++;
-                        }
-                    }
-                } else {
-                    if (rc2 && !strcmp(rc2->name, rc->name)) {
-                        if (rc2->size >= rc->size) {
-                            gtk_clist_select_row(clist, i, 0);
-                            x++;
-                        }
+                if ((rc2 && !strcmp(rc2->name, rc->name)) ||
+                    (rc->sha1 != NULL && rc2->sha1 != NULL &&
+                     memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0)) {
+                    if (rc2->size >= rc->size) {
+                        gtk_clist_select_row(clist, i, 0);
+                        x++;
                     }
                 }
 			}
 
             if (x > 1) {
-                g_snprintf(c_tmp, sizeof(c_tmp), "%d auto selected", x);
+                g_snprintf(c_tmp, sizeof(c_tmp), "%d auto selected %s", 
+                    x, (rc->sha1 != NULL) ? 
+                        "by urn:sha1 and filename" : "by filename");
                 msgid = gui_statusbar_push(scid_search_autoselected, c_tmp);
                 gui_statusbar_add_timeout(scid_search_autoselected, msgid, 15);
                 select_all_lock = 0;	 
