@@ -54,7 +54,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.6 2004/09/12 13:03:26 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.7 2004/09/23 17:14:25 rmanfredi Exp $
 
 PIXMAPS = \
 	arrow_down.xpm \
@@ -68,8 +68,10 @@ PIXMAPS = \
 	exit.xpm \
 	filter.xpm \
 	firewall.xpm \
+	firewall_punchable.xpm \
 	firewall_tcp.xpm \
 	firewall_udp.xpm \
+	firewall_udp_punchable.xpm \
 	freeze.xpm \
 	icon.xpm \
 	leaf.xpm \
@@ -82,7 +84,8 @@ PIXMAPS = \
 	stock_form-time-field-16.xpm \
 	thaw.xpm \
 	ultra.xpm \
-	upload.xpm
+	upload.xpm \
+	warning.xpm
 
 all::
 
