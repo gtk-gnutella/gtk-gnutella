@@ -58,7 +58,7 @@ RCSID("$Id$");
  * the time the range was added to the database.
  */
 
-#define IPRANGE_MARK	0x00000001		/* Magic tagging of user values */
+#define IPRANGE_MARK	1		/* Magic tagging of user values */
 
 /*
  * A "database" descriptor, holding the CIDR networks and their attached value.
@@ -179,8 +179,8 @@ iprange_free_each(gpointer db, gpointer udata)
 		if (lvl2 == NULL)
 			continue;
 
-		if ((gulong) lvl2 & IPRANGE_MARK) {
-			gpointer value = (gpointer) ((gulong) lvl2 & ~IPRANGE_MARK);
+		if (GPOINTER_TO_UINT(lvl2) & IPRANGE_MARK) {
+			gpointer value = (gchar *) lvl2 - IPRANGE_MARK;
 			(*idb->free)(value, udata);
 			continue;
 		}
@@ -192,8 +192,8 @@ iprange_free_each(gpointer db, gpointer udata)
 			if (head == NULL)
 				continue;
 
-			if ((gulong) head & IPRANGE_MARK) {
-				gpointer value = (gpointer) ((gulong) head & ~IPRANGE_MARK);
+			if (GPOINTER_TO_UINT(head) & IPRANGE_MARK) {
+				gpointer value = (gchar *) head - IPRANGE_MARK;
 				(*idb->free)(value, udata);
 				continue;
 			}
@@ -256,7 +256,7 @@ iprange_add_level1(
 			continue;
 		if (i != first)
 			udata = (*idb->clone)(udata);
-		idb->lvl1[i] = (gpointer) ((gulong) udata | IPRANGE_MARK);
+		idb->lvl1[i] = (gchar *) udata + IPRANGE_MARK;
 		added = TRUE;
 	}
 
@@ -309,7 +309,7 @@ iprange_add_level2(
 			continue;
 		if (i != second)
 			udata = (*idb->clone)(udata);
-		lvl2[i] = (gpointer) ((gulong) udata | IPRANGE_MARK);
+		lvl2[i] = (gchar *) udata + IPRANGE_MARK;
 		added = TRUE;
 	}
 
@@ -351,7 +351,7 @@ iprange_add_cidr_internal(
 
 	g_assert(idb->magic == IPRANGE_MAGIC);
 	g_assert(bits >= 1 && bits <= 32);
-	g_assert(0 == ((gulong) udata & IPRANGE_MARK));
+	g_assert(0 == (GPOINTER_TO_UINT(udata) & IPRANGE_MARK));
 
 	/*
 	 * Ensure network range is properly given: trailing bits must be zero.
@@ -381,7 +381,7 @@ iprange_add_cidr_internal(
 	first = net >> 24;
 	lvl2 = idb->lvl1[first];
 
-	if ((gulong) lvl2 & IPRANGE_MARK)
+	if (GPOINTER_TO_UINT(lvl2) & IPRANGE_MARK)
 		return force ? IPR_ERR_OK : IPR_ERR_RANGE_CLASH;
 
 	/*
@@ -409,7 +409,7 @@ iprange_add_cidr_internal(
 	second = (net & 0x00ff0000) >> 16;
 	head = lvl2[second];
 
-	if ((gulong) head & IPRANGE_MARK)
+	if (GPOINTER_TO_UINT(head) & IPRANGE_MARK)
 		return force ? IPR_ERR_OK : IPR_ERR_RANGE_CLASH;
 
 	/*
@@ -570,8 +570,8 @@ iprange_get(gpointer db, guint32 ip)
 	 * Held within a known /8 network?
 	 */
 
-	if ((gulong) lvl2 & IPRANGE_MARK)
-		return (gpointer) ((gulong) lvl2 & ~IPRANGE_MARK);
+	if (GPOINTER_TO_UINT(lvl2) & IPRANGE_MARK)
+		return (gchar *) lvl2 - IPRANGE_MARK;
 
 	/*
 	 * Held within a known /16 network?
@@ -580,8 +580,8 @@ iprange_get(gpointer db, guint32 ip)
 	second = (ip & 0x00ff0000) >> 16;
 	head = lvl2[second];
 
-	if ((gulong) head & IPRANGE_MARK)
-		return (gpointer) ((gulong) head & ~IPRANGE_MARK);
+	if (GPOINTER_TO_UINT(head) & IPRANGE_MARK)
+		return (gchar *) head - IPRANGE_MARK;
 
 	/*
 	 * Look in sub-networks registered below this /16 range...
