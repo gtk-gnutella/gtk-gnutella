@@ -182,9 +182,12 @@ void filter_gui_show_dialog(void)
 void filter_gui_filter_clear_list(void)
 {
     gchar *titles[3];
-    GdkColor *color;
+    GdkColor *fg_color;
+    GdkColor *bg_color;
     
-    color = &(gtk_widget_get_style(GTK_WIDGET(ctree_filter_filters))
+    fg_color = &(gtk_widget_get_style(GTK_WIDGET(ctree_filter_filters))
+        ->fg[GTK_STATE_ACTIVE]);
+    bg_color = &(gtk_widget_get_style(GTK_WIDGET(ctree_filter_filters))
         ->bg[GTK_STATE_ACTIVE]);
 
     if (fl_node_global != NULL)
@@ -232,14 +235,23 @@ void filter_gui_filter_clear_list(void)
     gtk_ctree_node_set_selectable
         (GTK_CTREE(ctree_filter_filters), fl_node_free, FALSE);
 
+    gtk_ctree_node_set_foreground(GTK_CTREE(ctree_filter_filters),
+        fl_node_builtin, fg_color);
+    gtk_ctree_node_set_foreground(GTK_CTREE(ctree_filter_filters),
+        fl_node_global, fg_color);
+    gtk_ctree_node_set_foreground(GTK_CTREE(ctree_filter_filters),
+        fl_node_bound, fg_color);
+    gtk_ctree_node_set_foreground(GTK_CTREE(ctree_filter_filters),
+        fl_node_free, fg_color);
+
     gtk_ctree_node_set_background(GTK_CTREE(ctree_filter_filters),
-        fl_node_builtin, color);
+        fl_node_builtin, bg_color);
     gtk_ctree_node_set_background(GTK_CTREE(ctree_filter_filters),
-        fl_node_global, color);
+        fl_node_global, bg_color);
     gtk_ctree_node_set_background(GTK_CTREE(ctree_filter_filters),
-        fl_node_bound, color);
+        fl_node_bound, bg_color);
     gtk_ctree_node_set_background(GTK_CTREE(ctree_filter_filters),
-        fl_node_free, color);
+        fl_node_free, bg_color);
 }
 
 
@@ -292,6 +304,10 @@ void filter_gui_filter_add(filter_t *f, GList *ruleset)
                 (GTK_CTREE(ctree_filter_filters), node,
                  &(gtk_widget_get_style(GTK_WIDGET(ctree_filter_filters))
                     ->bg[GTK_STATE_INSENSITIVE]));
+            gtk_ctree_node_set_foreground
+                (GTK_CTREE(ctree_filter_filters), node,
+                 &(gtk_widget_get_style(GTK_WIDGET(ctree_filter_filters))
+                    ->fg[GTK_STATE_INSENSITIVE]));
         }
     
         g_free(titles[1]);
