@@ -190,8 +190,8 @@ static void add_persistent_cache_entry(
 	if (0 == ftell(persistent_cache))
 		fputs(sha1_persistent_cache_file_header, persistent_cache);
 
-	fprintf(persistent_cache, "%s\t%lu\t%ld\t%s\n",
-		sha1_base32(digest), (gulong) size, (glong) mtime, file_name);
+	fprintf(persistent_cache, "%s\t%lu\t%lu\t%s\n",
+		sha1_base32(digest), (gulong) size, (gulong) mtime, file_name);
 	fclose(persistent_cache);
 }
 
@@ -913,6 +913,22 @@ static gboolean cached_entry_up_to_date(
 	return cache_entry->size == sf->file_size
 		&& cache_entry->mtime == sf->mtime;
 }
+
+/* 
+ * sha1_is_cached
+ * 
+ * External interface to check whether the sha1 for shared_file is known.
+ */
+gboolean sha1_is_cached(const struct shared_file *sf)
+{
+	const struct sha1_cache_entry *cached_sha1;
+
+	cached_sha1 = (const struct sha1_cache_entry *)
+		g_hash_table_lookup(sha1_cache, (gconstpointer) sf->file_path);
+
+	return cached_sha1 && cached_entry_up_to_date(cached_sha1, sf);
+}
+
 
 /* 
  * requested_sha1

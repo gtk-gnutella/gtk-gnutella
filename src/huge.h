@@ -48,6 +48,7 @@ void huge_close(void);		/* Call this when servent is shutdown */
  */
 
 void request_sha1(struct shared_file *);
+gboolean sha1_is_cached(const struct shared_file *sf);
 
 gboolean huge_http_sha1_extract32(gchar *buf, gchar *retval);
 gboolean huge_sha1_extract32(gchar *buf, gint len, gchar *retval,
