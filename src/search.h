@@ -32,12 +32,12 @@
  * Special marking of the "connection speed" field in queries.
  */
 
-#define QUERY_SPEED_MARK		0x8000		/* Field is special: not a speed */
-#define QUERY_SPEED_FIREWALLED	0x4000		/* Issuing servent is firewalled */
-#define QUERY_SPEED_NO_XML		0x2000		/* No XML in result set, please */
-#define QUERY_SPEED_LEAF_GUIDED	0x1000		/* Leaf-guided query */
-#define QUERY_SPEED_GGEP_H		0x0800		/* Recipient understands GGEP "H" */
-#define QUERY_SPEED_OOB_REPLY	0x0400		/* Out-of-band reply possible */
+#define QUERY_SPEED_MARK		0x0080		/* Field is special: not a speed */
+#define QUERY_SPEED_FIREWALLED	0x0040		/* Issuing servent is firewalled */
+#define QUERY_SPEED_NO_XML		0x0020		/* No XML in result set, please */
+#define QUERY_SPEED_LEAF_GUIDED	0x0010		/* Leaf-guided query */
+#define QUERY_SPEED_GGEP_H		0x0008		/* Recipient understands GGEP "H" */
+#define QUERY_SPEED_OOB_REPLY	0x0004		/* Out-of-band reply possible */
 
 /*
  * Global Functions
