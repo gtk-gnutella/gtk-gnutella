@@ -45,9 +45,11 @@ void clock_update(time_t update, gint precision)
 	gint epsilon;
 	gint32 delta_skew;
 	gint32 delta;
-    guint32 clock_skew;
+    guint32 new_skew;
+    gint32 skew;
 
-    gnet_prop_get_guint32(PROP_CLOCK_SKEW, &clock_skew, 0, 1);
+    gnet_prop_get_guint32(PROP_CLOCK_SKEW, &new_skew, 0, 1);
+	skew = *(gint32 *) &new_skew;	/* Casting not always works */
 
 	/*
 	 * Compute how far we land from the absolute time given our present skew.
@@ -55,7 +57,7 @@ void clock_update(time_t update, gint precision)
 	 * further update the skew.
 	 */
 
-	epsilon = now + (gint32) clock_skew - update;
+	epsilon = now + skew - update;
 
 	if (2 * ABS(epsilon) <= precision)
 		return;
@@ -75,9 +77,9 @@ void clock_update(time_t update, gint precision)
 	 * Update the clock_skew as a slow EMA.
 	 */
 
-	delta_skew = delta / 32 - (gint32) clock_skew / 32;
-	clock_skew = (guint32) ((gint32) clock_skew + delta_skew);
-    gnet_prop_set_guint32(PROP_CLOCK_SKEW, &clock_skew, 0, 1);
+	delta_skew = delta / 32 - skew / 32;
+	new_skew = (guint32) (skew + delta_skew);
+    gnet_prop_set_guint32(PROP_CLOCK_SKEW, &new_skew, 0, 1);
 
 	if (dbg)
 		printf("CLOCK skew=%d, precision=%d, epsilon=%d\n",
