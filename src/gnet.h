@@ -27,6 +27,7 @@
 #include "gnutella.h"
 #include "listener.h"
 #include "prop.h"
+#include "misc.h"
 
 /***
  *** Proxy protocols
@@ -174,28 +175,82 @@ void share_remove_search_request_listener(search_request_listener_t l);
  ***/
 typedef guint32 gnet_search_t;
 
-typedef struct gnet_search_info {
-    gnet_search_t search_handle;
+/* 
+ * Flags for search_new()
+ */
+#define SEARCH_PASSIVE	 0x01 /* start a passive ssearch */
 
-	gchar *query;				/* The search query */
-	guint16 speed;				/* Minimum speed for the results of query */
-	time_t time;				/* Time when this search was started */
-	guint32 items;				/* Total number of items for this search */
+/*
+ * Result sets `status' flags.
+ */
+#define ST_KNOWN_VENDOR			0x8000		/* Found known vendor code */
+#define ST_PARSED_TRAILER		0x4000		/* Was able to parse trailer */
+#define ST_UPLOADED				0x0004		/* Is "stable", people downloaded */
+#define ST_BUSY					0x0002		/* Has currently no slots */
+#define ST_FIREWALL				0x0001		/* Is behind a firewall */
 
-	time_t last_update_time;	/* the last time the notebook tab was updated */
-	guint32 last_update_items;	/* Number of items included in last update */
+/*
+ * A results_set structure factorizes the common information from a Query Hit
+ * packet, and then has a list of individual records, one for each hit.
+ *
+ * A single structure is created for each Query Hit packet we receive, but
+ * then it can be dispatched for displaying some of its records to the
+ * various searches in presence.
+ */
+typedef struct gnet_results_set {
+	guchar *guid;				/* Servent's GUID (atom) */
+	guint32 ip;
+	guint16 port;
+	guint16 status;				/* Parsed status bits from trailer */
+	guint32 speed;
+	time_t  stamp;				/* Reception time of the hit */
+	guchar  vendor[4];			/* Vendor code */
 
-	gboolean passive;			/* Is this a passive search? */
-	gboolean frozen;			/* True => don't update window */
+	GSList *records;
+	guint32 num_recs;
+} gnet_results_set_t;
 
-	guint reissue_timeout;		/* timeout per search, 0 = search stopped */
-} gnet_search_info_t;
+/*
+ * An individual hit.  It referes to a file entry on the remote servent,
+ * as identified by the parent results_set structure that contains this hit.
+ */
+typedef struct gnet_record {
+	gchar  *name;				/* File name */
+	guint32 size;				/* Size of file, in bytes */
+	guint32 index;				/* Index for GET command */
+	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
+	gchar  *tag;				/* Optional tag data string (atom) */
+} gnet_record_t;
 
-gnet_search_info_t *search_get_info(const gnet_search_t);
-void search_free_info(gnet_search_info_t *);
+/*
+ * Search callbacks
+ */
+typedef void (*search_got_results_listener_t) 
+    (GSList *, const gnet_results_set_t *);
 
+void search_add_got_results_listener(search_got_results_listener_t l);
+void search_remove_got_results_listener(search_got_results_listener_t l);
 
+/*
+ * Search public interface
+ */
+gnet_search_t search_new
+    (const gchar *, guint16 min_speed, guint32 timeout, flag_t flags);
+void search_close(gnet_search_t sh);
 
+void search_start(gnet_search_t sh);
+void search_stop(gnet_search_t sh);
+gboolean search_is_stopped(gnet_search_t sh);
+void search_reissue(gnet_search_t sh);
+
+gboolean search_is_passive(gnet_search_t sh);
+gboolean search_is_frozen(gnet_search_t sh);
+
+void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout);
+guint32 search_get_reissue_timeout(gnet_search_t sh);
+
+void search_set_minimum_speed(gnet_search_t sh, guint16 speed);
+guint16 search_get_minimum_speed(gnet_search_t sh);
 
 
 /***

@@ -32,7 +32,7 @@
 #include "filter.h"
 #include "filter_gui.h"
 #include "misc.h"
-#include "search.h"
+#include "search_gui.h"
 #include "gtk-missing.h"
 
 #include "gnet_property_priv.h"
