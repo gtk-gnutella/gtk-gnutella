@@ -57,9 +57,12 @@ gchar *get_header_value(
 	gchar *lowercase_header = s;
 	gchar *end;
 	gboolean found_right_attribute = FALSE;
+	gboolean found_equal_sign = FALSE;
 	size_t attrlen;
 	gchar e;
 	gchar b;
+	gchar es;
+	
 	
 	g_assert(s != NULL);
 	g_assert(attribute != NULL);
@@ -96,26 +99,64 @@ gchar *get_header_value(
 					e == ' ' || e == '=' || e == '\0'
 				);
 		}
-		
+
 		/* 
 		 * If we weren't looking at the right value. Move on to the next.
 		 * If there are no valid values, the while loop will abort with 
 		 * lowercase_header == NULL
+		 * If we did find a valid position we want to make sure the next
+		 * char is an '='. So we need to move ahead anyway.
 		 */
-		if (!found_right_attribute)
-			lowercase_header++;
-
-	} while (!found_right_attribute && lowercase_header != NULL);	
-	
-	
-	if (lowercase_header == NULL)
-		return NULL;
 		
-	lowercase_header = strchr(lowercase_header, '=');
-	if (lowercase_header == NULL)
-		return NULL;
+		lowercase_header += attrlen;
+		
+		if (found_right_attribute) {
+			
+			/*
+			 * OK, so we found a possible valid attribute. Now make sure the
+			 * first character is an '=', ignoring white spaces.
+			 * If we don't, we didn't find a valid attribute.
+			 */
+			
+			es = *lowercase_header;
+			
+			do {
+				found_right_attribute = es == '=' || es == ' ' || es == '\0';
+				found_equal_sign = es == '=';
+								
+				if (!found_equal_sign)
+					es = *(++lowercase_header);		/* Skip spaces */
+				
+			} while (!found_equal_sign && found_right_attribute && es != '\0');
 
-	lowercase_header += sizeof(gchar);
+			/*
+			 * If we did not find the right attribute, it means we did not
+			 * encounter an '=' sign before the start of the next attribute
+			 * or the end of the string.
+			 *
+			 * For instance, we stumbled on `var2' in:
+			 *
+			 *   var1 = foo; var2 ; var3=bar
+			 *
+			 * Clearly, this is incorrect for our purposes, as all attributes
+			 * are expected to have a value.
+			 */
+
+			g_assert(!found_equal_sign || found_right_attribute);
+
+			if (!found_right_attribute) {
+				g_assert(!found_equal_sign);
+				g_warning("attribute '%s' has no value in string: %s",
+					attribute, s);
+			}
+		}		
+	} while (!found_right_attribute);	
+	
+	g_assert(lowercase_header != NULL);
+	g_assert(found_equal_sign);
+	g_assert(*lowercase_header == '=');
+	
+	lowercase_header++;			/* Skip the '=' sign */
 
 	/*
 	 * If we need to compute the length of the attribute's value, look for
@@ -128,21 +169,16 @@ gchar *get_header_value(
 		end = strchr(lowercase_header, ';');		/* PARQ style */
 		if (end == NULL)
 			end = strchr(lowercase_header, ',');	/* Active queuing style */
-		
-		if (end == NULL) {
-			/* 
-			 * We still couldn't find a delimiter. If there are no other
-			 * values after the current one, 'the end' is just the end of
-			 * this value
-			 */
-			if (strchr(lowercase_header, '=') == NULL) {
-				*length = strlen(lowercase_header);
-			}
-		} else 
-			*length = end - lowercase_header;
+
+		/* 
+		 * If we couldn't find a delimiter, then this value is the last one.
+		 */
+
+		*length = (end == NULL) ?
+			strlen(lowercase_header) : end - lowercase_header;
 	}
 
-	return lowercase_header;		/* Could be NULL */
+	return lowercase_header;
 }
 
 /*
