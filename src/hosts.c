@@ -56,6 +56,26 @@ gboolean host_low_on_pongs = FALSE;			/* True when less than 12% full */
 static gboolean in_shutdown = FALSE;
 
 /***
+ *** Host hashing.
+ ***/
+
+guint host_hash(gconstpointer key)
+{
+	const gnet_host_t *host = (const gnet_host_t *) key;
+
+	return (guint) (host->ip ^ ((host->port << 16) | host->port));
+}
+
+gint host_eq(gconstpointer v1, gconstpointer v2)
+{
+	const gnet_host_t *h1 = (const gnet_host_t *) v1;
+	const gnet_host_t *h2 = (const gnet_host_t *) v2;
+
+	return h1->ip == h2->ip && h1->port == h2->port;
+}
+
+
+/***
  *** Host periodic timer.
  ***/
 

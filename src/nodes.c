@@ -95,13 +95,17 @@ RCSID("$Id$");
 #define NODE_UPLOAD_QUEUE_FD	5		/* # of fds/upload slot we can queue */
 #define NODE_AUTO_SWITCH_MIN	1800	/* Don't switch too often UP <-> leaf */
 
-static GSList *sl_nodes = NULL;
+static GSList *    sl_nodes = NULL;
 
-static GHashTable *unstable_ip = NULL;
-static GSList *unstable_ips = NULL;
+/* These two contain connected and connectING(!) nodes. */
+static GHashTable *ht_connected_nodes   = NULL;
+static guint32     connected_node_count = 0;
+#define NO_METADATA			((gpointer) 0x1)	/* No metadata for host */
 
-static guint32 unstable_hits = 0;
 
+static GHashTable *unstable_ip   = NULL;
+static GSList *    unstable_ips  = NULL;
+static guint32     unstable_hits = 0;
 
 typedef struct node_bad_ip {
 	guint32 ip;
@@ -133,7 +137,6 @@ static idtable_t *node_handle_map = NULL;
     idtable_free_id(node_handle_map, n);
 
 
-static guint32 nodes_in_list = 0;
 static guint32 shutdown_nodes = 0;
 static guint32 node_id = 0;
 
@@ -315,6 +318,93 @@ static void string_table_free(GHashTable *ht)
 /***
  *** Private functions
  ***/
+
+/*
+ * node_ht_connected_nodes_has
+ *
+ * Check whether we already have the host.
+ */
+static gboolean node_ht_connected_nodes_has(guint32 ip, guint16 port)
+{
+	gnet_host_t  host;
+    gboolean     found;
+    gnet_host_t *orig_host;
+    gpointer     metadata;
+
+	host.ip   = ip;
+	host.port = port;
+
+	found = g_hash_table_lookup_extended(
+        ht_connected_nodes, &host, (gpointer) &orig_host, &metadata);
+
+    return found;
+}
+
+/*
+ * node_ht_connected_nodes_find
+ *
+ * Check whether we already have the host.
+ */
+static gnet_host_t *node_ht_connected_nodes_find(guint32 ip, guint16 port)
+{
+	gnet_host_t  host;
+    gboolean     found;
+    gnet_host_t *orig_host;
+    gpointer     metadata;
+
+	host.ip   = ip;
+	host.port = port;
+
+	found = g_hash_table_lookup_extended(
+        ht_connected_nodes, &host, (gpointer) &orig_host, &metadata);
+
+    return found ? orig_host : NULL;
+}
+
+/*
+ * node_ht_connected_nodes_add
+ *
+ * Add host to the hash table host cache.
+ */
+static void node_ht_connected_nodes_add(guint32 ip, guint16 port)
+{
+    gnet_host_t *host;
+
+    if (node_ht_connected_nodes_has(ip, port))
+        return;
+
+ 	host = (gnet_host_t *) walloc(sizeof(*host));
+
+    host->ip   = ip;
+    host->port = port;
+
+	g_hash_table_insert(ht_connected_nodes, host, NO_METADATA);
+	connected_node_count ++;
+}
+
+/*
+ * node_ht_connected_nodes_remove
+ *
+ * Remove host from the hash table host cache.
+ */
+static void node_ht_connected_nodes_remove(guint32 ip, guint16 port)
+{
+	gnet_host_t  host;
+    gnet_host_t *orig_host;
+
+    host.ip   = ip;
+    host.port = port;
+
+    orig_host = node_ht_connected_nodes_find(ip, port);
+
+    if (NULL == orig_host)
+        return;
+
+	g_hash_table_remove(ht_connected_nodes, orig_host);
+	connected_node_count --;
+
+	wfree(orig_host, sizeof(*orig_host));
+}
 
 /* 
  * message_dump:
@@ -820,8 +910,9 @@ void node_init(void)
 
 	query_hashvec = qhvec_alloc(128);		/* Max: 128 unique words / URNs! */
 	
-	unstable_servent = g_hash_table_new(NULL, NULL);
-	unstable_ip = g_hash_table_new(NULL, NULL);
+	unstable_servent   = g_hash_table_new(NULL, NULL);
+	unstable_ip        = g_hash_table_new(NULL, NULL);
+    ht_connected_nodes = g_hash_table_new(host_hash, host_eq);
 }
 
 /*
@@ -854,7 +945,7 @@ gint32 connected_nodes(void)
 
 gint32 node_count(void)
 {
-	return nodes_in_list - shutdown_nodes - node_leaf_count;
+	return connected_node_count - shutdown_nodes - node_leaf_count;
 }
 
 /*
@@ -1160,7 +1251,8 @@ static void node_remove_v(
 	n->flags &= ~(NODE_F_WRITABLE|NODE_F_READABLE|NODE_F_BYE_SENT);
 	n->last_update = time((time_t *) NULL);
 
-	nodes_in_list--;
+    node_ht_connected_nodes_remove(n->gnet_ip, n->gnet_port);
+
 	if (n->flags & NODE_F_EOF_WAIT)
 		pending_byes--;
 
@@ -1937,18 +2029,28 @@ gboolean node_is_connected(guint32 ip, guint16 port, gboolean incoming)
 	if (ip == listen_ip() && port == listen_port)	/* yourself */
 		return TRUE;
 
-	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
-		struct gnutella_node *n = (struct gnutella_node *) sl->data;
-		if (n->status == GTA_NODE_REMOVING || n->status == GTA_NODE_SHUTDOWN)
-			continue;
-		if (n->ip == ip) {
-			if (incoming)
-				return TRUE;	/* Only one per host */
-			if (n->port == port)
-				return TRUE;
-		}
-	}
-	return FALSE;
+    /*
+     * If incoming is TRUE we have to do an exhaustive search because
+     * we have to ignore the port. Otherwise we can use the fast
+     * hashtable lookup.
+     *     -- Richard, 29/04/2004
+     */
+    if (incoming) {
+        for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+            struct gnutella_node *n = (struct gnutella_node *) sl->data;
+            if (n->status == GTA_NODE_REMOVING || n->status == GTA_NODE_SHUTDOWN)
+                continue;
+            if (n->ip == ip) {
+                if (incoming)
+                    return TRUE;	/* Only one per host */
+                if (n->port == port)
+                    return TRUE;
+            }
+        }
+        return FALSE;
+    } else {
+        return node_ht_connected_nodes_has(ip, port);
+    }
 }
 
 /*
@@ -1965,6 +2067,9 @@ gboolean node_host_is_connected(guint32 ip, guint16 port)
 	if (ip == listen_ip())
 		return TRUE;
 
+    return node_ht_connected_nodes_has(ip, port);
+
+#if 0
 	/* Check the nodes -- this is a small list, OK to traverse */
 
 	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
@@ -1978,6 +2083,7 @@ gboolean node_host_is_connected(guint32 ip, guint16 port)
 	}
 
 	return FALSE;
+#endif
 }
 
 /*
@@ -3477,10 +3583,14 @@ static void node_process_handshake_header(
 			 */
 
 			if (ip == n->ip) {
+                node_ht_connected_nodes_remove(n->gnet_ip, n->gnet_port);
+
 				n->gnet_ip = ip;				/* Signals: we know the port */
 				n->gnet_port = port;
 				n->gnet_pong_ip = ip;			/* Cannot lie about its IP */
 				n->flags |= NODE_F_VALID;
+
+                node_ht_connected_nodes_add(n->gnet_ip, n->gnet_port);
 			}
 		}
 	}
@@ -4214,7 +4324,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 
 	sl_nodes = g_slist_prepend(sl_nodes, n);
 	if (n->status != GTA_NODE_REMOVING)
-		nodes_in_list++;
+        node_ht_connected_nodes_add(n->gnet_ip, n->gnet_port);
 
 	if (already_connected) {
 		if (incoming && (n->proto_major > 0 || n->proto_minor > 4))
@@ -5365,8 +5475,9 @@ void node_close(void)
 		node_real_remove(n);
 	}
 
-	g_slist_free(sl_nodes);
 	g_slist_free(sl_proxies);
+    g_hash_table_destroy(ht_connected_nodes);
+    ht_connected_nodes = NULL;
 
     g_assert(idtable_ids(node_handle_map) == 0);
 

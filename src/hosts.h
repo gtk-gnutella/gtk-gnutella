@@ -51,4 +51,7 @@ void host_close(void);
 void parse_netmasks(gchar *value);
 gboolean host_is_nearby(guint32 ip);
 
+guint host_hash(gconstpointer key);
+gint host_eq(gconstpointer v1, gconstpointer v2);
+
 #endif /* _hosts_h_ */

@@ -44,17 +44,17 @@ RCSID("$Id$");
  * A hostcache table.
  */
 struct hostcache {
-	gchar *name;						/* Cache name, for debugging */
-	gchar *filename;					/* Filename where cache is persisted */
-	hcache_type_t type;					/* Cache type */
-	GList *sl_caught_hosts;				/* Reserve list */
-	GList *sl_valid_hosts;				/* Validated hosts */
-	GHashTable *ht_known_hosts;			/* All known hosts */
-    gint host_count;					/* Amount of hosts in cache */
+	gchar *         name;				/* Cache name, for debugging */
+	gchar *         filename;		    /* Filename where cache is persisted */
+	hcache_type_t   type;				/* Cache type */
+	GList *         sl_caught_hosts;	/* Reserve list */
+	GList *         sl_valid_hosts;		/* Validated hosts */
+	GHashTable *    ht_known_hosts;		/* All known hosts */
+    gint            host_count;			/* Amount of hosts in cache */
 	gnet_property_t hosts_in_catcher;	/* Property to update */
 	gnet_property_t reading;			/* Property to signal reading */
-	guint32 *max_hosts;					/* Maximum amount of hosts */
-	gint mass_operation;
+	guint32 *       max_hosts;			/* Maximum amount of hosts */
+	gint            mass_operation;
 };
 
 /*
@@ -65,9 +65,9 @@ struct hostcache {
  * the host.
  */
 struct hostcache_entry {
-	gint refcount;				/* Can be shared among the caches */
+    gint    refcount;			/* Can be shared among the caches */
 	guint32 avg_uptime;			/* Reported average uptime (seconds) */
-	gchar *vendor;				/* Latest known vendor name (atom) */
+	gchar * vendor;				/* Latest known vendor name (atom) */
 };
 
 #define NO_METADATA			((gpointer) 0x1)	/* No metadata for host */
@@ -129,25 +129,6 @@ static void end_mass_update(struct hostcache *hc)
 
     if (hc->mass_operation == 0)
         gnet_prop_set_guint32_val(hc->hosts_in_catcher, hc->host_count);
-}
-
-/***
- *** Host hashing.
- ***/
-
-static guint host_hash(gconstpointer key)
-{
-	const struct gnutella_host *host = (const struct gnutella_host *) key;
-
-	return (guint) (host->ip ^ ((host->port << 16) | host->port));
-}
-
-static gint host_eq(gconstpointer v1, gconstpointer v2)
-{
-	const struct gnutella_host *h1 = (const struct gnutella_host *) v1;
-	const struct gnutella_host *h2 = (const struct gnutella_host *) v2;
-
-	return h1->ip == h2->ip && h1->port == h2->port;
 }
 
 /***
@@ -222,7 +203,7 @@ static void hcache_free(hcache_type_t type)
  */
 static gboolean hcache_ht_has(struct hostcache *hc, guint32 ip, guint16 port)
 {
-	struct gnutella_host host;
+	gnet_host_t host;
 
 	host.ip = ip;
 	host.port = port;
@@ -235,7 +216,7 @@ static gboolean hcache_ht_has(struct hostcache *hc, guint32 ip, guint16 port)
  *
  * Add host to the hash table host cache.
  */
-static void hcache_ht_add(struct hostcache *hc, struct gnutella_host *host)
+static void hcache_ht_add(struct hostcache *hc, gnet_host_t *host)
 {
 	if (g_hash_table_lookup(hc->ht_known_hosts, (gconstpointer) host)) {
 		g_error("attempt to add existing %s to hostcache list (%s nodes)",
@@ -255,7 +236,7 @@ static void hcache_ht_add(struct hostcache *hc, struct gnutella_host *host)
  *
  * Remove host from the hash table host cache.
  */
-static void hcache_ht_remove(struct hostcache *hc, struct gnutella_host *host)
+static void hcache_ht_remove(struct hostcache *hc, gnet_host_t *host)
 {
 	union {
 		struct hostcache_entry *hce;
@@ -296,7 +277,7 @@ static void hcache_ht_remove(struct hostcache *hc, struct gnutella_host *host)
  */
 void hcache_save_valid(hcache_type_t type, guint32 ip, guint16 port)
 {
-	struct gnutella_host *host;
+	gnet_host_t *host;
 	struct hostcache *hc;
 
 	g_assert(type >= 0 && type < HCACHE_MAX);
@@ -309,7 +290,7 @@ void hcache_save_valid(hcache_type_t type, guint32 ip, guint16 port)
 	if (hcache_ht_has(hc, ip, port))
 		return;
 
-	host = (struct gnutella_host *) walloc(sizeof(*host));
+	host = (gnet_host_t *) walloc(sizeof(*host));
 
 	host->ip = ip;
 	host->port = port;
@@ -336,7 +317,7 @@ void hcache_save_valid(hcache_type_t type, guint32 ip, guint16 port)
 gboolean hcache_add(hcache_type_t type, guint32 ip, guint16 port, gchar *what)
 {
 	struct hostcache *hc;
-	struct gnutella_host *host;
+	gnet_host_t *host;
 
 	g_assert(type >= 0 && type < HCACHE_MAX);
 
@@ -350,7 +331,7 @@ gboolean hcache_add(hcache_type_t type, guint32 ip, guint16 port, gchar *what)
 
 	/* Okay, we got a new host */
 
-	host = (struct gnutella_host *) walloc(sizeof(*host));
+	host = (gnet_host_t *) walloc(sizeof(*host));
 
 	host->port = port;
 	host->ip = ip;
@@ -371,7 +352,7 @@ gboolean hcache_add(hcache_type_t type, guint32 ip, guint16 port, gchar *what)
 /*
  * hcache_remove
  */
-static void hcache_remove(struct hostcache *hc, struct gnutella_host *h)
+static void hcache_remove(struct hostcache *hc, gnet_host_t *h)
 {
 	hc->sl_caught_hosts = g_list_remove(hc->sl_caught_hosts, h);
 	hcache_ht_remove(hc, h);
@@ -412,7 +393,7 @@ static void hcache_remove_all(struct hostcache *hc)
 	 */
 
 	while (hc->sl_caught_hosts)
-		hcache_remove(hc, (struct gnutella_host *) hc->sl_caught_hosts->data);
+		hcache_remove(hc, (gnet_host_t *) hc->sl_caught_hosts->data);
 
     end_mass_update(hc);
 }
@@ -494,7 +475,7 @@ void hcache_prune(hcache_type_t type)
  * Returns the amount of hosts filled.
  */
 gint hcache_fill_caught_array(
-	hcache_type_t type, struct gnutella_host *hosts, gint hcount)
+	hcache_type_t type, gnet_host_t *hosts, gint hcount)
 {
 	GList *l;
 	gint i;
@@ -509,7 +490,7 @@ gint hcache_fill_caught_array(
 	 */
 
 	for (i = 0; i < hcount; i++) {
-		struct gnutella_host host;
+		gnet_host_t host;
 
 		if (!pcache_get_recent(type, &host.ip, &host.port))
 			break;
@@ -532,12 +513,12 @@ gint hcache_fill_caught_array(
 	hc = caches[type];
 
 	for (l = g_list_last(hc->sl_caught_hosts); i < hcount; i++, l = l->prev) {
-		struct gnutella_host *h;
+		gnet_host_t *h;
 
 		if (l == NULL)
 			break;
 		
-		h = (struct gnutella_host *) l->data;
+		h = (gnet_host_t *) l->data;
 
 		if (g_hash_table_lookup(seen_host, h))
 			continue;
@@ -563,7 +544,7 @@ done:
  */
 gboolean hcache_find_nearby(hcache_type_t type, guint32 *ip, guint16 *port)
 {
-	struct gnutella_host *h;
+	gnet_host_t *h;
 	static int alternate = 0;
 	guint32 first_ip;
 	guint16 first_port;
@@ -597,7 +578,7 @@ gboolean hcache_find_nearby(hcache_type_t type, guint32 *ip, guint16 *port)
 		lnk; lnk = lnk->prev
 	) {
 
-		h = (struct gnutella_host *) lnk->data;
+		h = (gnet_host_t *) lnk->data;
 		if (host_is_nearby(h->ip)) {
 
 			hc->sl_caught_hosts = g_list_remove_link(hc->sl_caught_hosts, lnk);
@@ -630,7 +611,7 @@ gboolean hcache_find_nearby(hcache_type_t type, guint32 *ip, guint16 *port)
 void hcache_get_caught(hcache_type_t type, guint32 *ip, guint16 *port)
 {
 	static guint alternate = 0;
-	struct gnutella_host *h;
+	gnet_host_t *h;
 	GList *lnk;
 	struct hostcache *hc;
 	gboolean reading;
@@ -676,7 +657,7 @@ void hcache_get_caught(hcache_type_t type, guint32 *ip, guint16 *port)
 	lnk = reading ?
 		g_list_first(hc->sl_caught_hosts) : g_list_last(hc->sl_caught_hosts);
 
-	h = (struct gnutella_host *) lnk->data;
+	h = (gnet_host_t *) lnk->data;
 	hc->sl_caught_hosts = g_list_remove_link(hc->sl_caught_hosts, lnk);
 	g_list_free_1(lnk);
 	hcache_ht_remove(hc, h);
@@ -891,13 +872,13 @@ void hcache_store(hcache_type_t type)
 
 	for (l = hc->sl_valid_hosts; l; l = l->next)
 		fprintf(f, "%s\n",
-				ip_port_to_gchar(((struct gnutella_host *) l->data)->ip,
-								 ((struct gnutella_host *) l->data)->port));
+				ip_port_to_gchar(((gnet_host_t *) l->data)->ip,
+								 ((gnet_host_t *) l->data)->port));
 
 	for (l = hc->sl_caught_hosts; l; l = l->next)
 		fprintf(f, "%s\n",
-				ip_port_to_gchar(((struct gnutella_host *) l->data)->ip,
-								 ((struct gnutella_host *) l->data)->port));
+				ip_port_to_gchar(((gnet_host_t *) l->data)->ip,
+								 ((gnet_host_t *) l->data)->port));
 
 	file_config_close(f, &fp);
 }

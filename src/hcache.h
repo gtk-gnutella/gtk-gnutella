@@ -28,15 +28,7 @@
 #ifndef _hcache_h_
 #define _hcache_h_
 
-#include <glib.h>
-
-struct gnutella_host;
-
-typedef enum {
-	HCACHE_ANY = 0,				/* Any node */
-	HCACHE_ULTRA,				/* Ultra nodes */
-	HCACHE_MAX,
-} hcache_type_t;
+#include "gnet.h"
 
 /*
  * Global Functions
@@ -57,7 +49,7 @@ gint hcache_size(hcache_type_t type);
 gboolean hcache_is_low(hcache_type_t type);
 
 gint hcache_fill_caught_array(
-	hcache_type_t type, struct gnutella_host *hosts, gint hcount);
+	hcache_type_t type, gnet_host_t *hosts, gint hcount);
 
 void hcache_get_caught(hcache_type_t type, guint32 *ip, guint16 *port);
 gboolean hcache_find_nearby(hcache_type_t type, guint32 *ip, guint16 *port);
