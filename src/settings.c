@@ -1011,8 +1011,12 @@ static gboolean configured_peermode_changed(property_t prop)
 
     gnet_prop_get_guint32_val(prop, &val);
 
-	if (val == NODE_P_AUTO)
-		return FALSE;
+	if (val == NODE_P_AUTO) {
+		if (connected_nodes() > 0)		/* Already connected */
+			return FALSE;				/* Keep our current operating mode */
+		val = NODE_P_LEAF;				/* Force leaf mode */
+		/* FALL THROUGH */
+	}
 
 	gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, val);
 
