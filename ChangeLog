@@ -1,5 +1,31 @@
 # since last version
 
+- (2002.11.30 - RAM)
+ * Regenerated configuration files via autogen.sh: was complaining that I
+   needed automake-1.4 on my system, which I have!  Grr, I hate auto* tools.
+ * First take at the separation between the regular "host" cache and the
+   new "ultra" cache which will store ultranode pongs.
+ * Renamed check_valid_host() into host_is_valid().
+ * Would fail to parse saved downloads whose filename starts with a '#'.
+   We now forbid comments in the file passed the preamble.
+ * Allow file moving and SHA1 verification tasks to process zero-sized files.
+
+- (2002.11.29 - RAM)
+ * Added "Gnucleus 1.6.0.0" to the servent ban list (broken Morpheus version).
+ * Safely handle very long lines when parsing the fileinfo text file.
+ * Do not write aliases larger than 1024 bytes to the trailer.
+
+- (2002.11.25 - RAM)
+ * When considering whether a download has a SHA1 for abortion, use the
+   SHA1 information in the fileinfo, not the one in the download structure.
+ * Factorized configuration file opening/creating logic into "file.c".
+ * Will now allow HTTP headers of up to 8K in size, before failing with
+   a "header line too long" error.
+
+- (2002.11.24 - RAM)
+ * Parse Mutella's Uptime header (xDD xHH xMM).
+ * Also collect pongs from X-Try lines if the third handshaking step fails.
+
 - (2002.11.26 - cbiere)
  * Fixed detection of zlib because it could accidently default to "yes"
 
