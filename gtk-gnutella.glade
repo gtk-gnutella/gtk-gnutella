@@ -17282,6 +17282,27 @@ interface</label>
 
       <widget>
 	<class>GtkEventBox</class>
+	<name>eventbox_image_ancient</name>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>True</fill>
+	</child>
+
+	<widget>
+	  <class>GtkPixmap</class>
+	  <name>image_ancient</name>
+	  <filename>stock_form-time-field-16.xpm</filename>
+	  <xalign>0.5</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>0</xpad>
+	  <ypad>0</ypad>
+	  <build_insensitive>True</build_insensitive>
+	</widget>
+      </widget>
+
+      <widget>
+	<class>GtkEventBox</class>
 	<name>eventbox_image_save</name>
 	<child>
 	  <padding>0</padding>
@@ -17344,10 +17365,8 @@ interface</label>
       </widget>
 
       <widget>
-	<class>GtkHBox</class>
-	<name>hbox89</name>
-	<homogeneous>False</homogeneous>
-	<spacing>0</spacing>
+	<class>GtkEventBox</class>
+	<name>eventbox_image_lib</name>
 	<child>
 	  <padding>0</padding>
 	  <expand>False</expand>
@@ -17355,46 +17374,36 @@ interface</label>
 	</child>
 
 	<widget>
-	  <class>GtkEventBox</class>
-	  <name>eventbox_image_lib</name>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>True</fill>
-	  </child>
-
-	  <widget>
-	    <class>GtkPixmap</class>
-	    <name>image_lib</name>
-	    <filename>booklib.xpm</filename>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>1</xpad>
-	    <ypad>0</ypad>
-	    <build_insensitive>True</build_insensitive>
-	  </widget>
+	  <class>GtkPixmap</class>
+	  <name>image_lib</name>
+	  <filename>booklib.xpm</filename>
+	  <xalign>0.5</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>1</xpad>
+	  <ypad>0</ypad>
+	  <build_insensitive>True</build_insensitive>
 	</widget>
+      </widget>
+
+      <widget>
+	<class>GtkEventBox</class>
+	<name>eventbox_image_firewall</name>
+	<tooltip>Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results.</tooltip>
+	<child>
+	  <padding>0</padding>
+	  <expand>False</expand>
+	  <fill>True</fill>
+	</child>
 
 	<widget>
-	  <class>GtkEventBox</class>
-	  <name>eventbox_image_firewall</name>
-	  <tooltip>Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results.</tooltip>
-	  <child>
-	    <padding>0</padding>
-	    <expand>False</expand>
-	    <fill>True</fill>
-	  </child>
-
-	  <widget>
-	    <class>GtkPixmap</class>
-	    <name>image_firewall</name>
-	    <filename>firewall.xpm</filename>
-	    <xalign>0.5</xalign>
-	    <yalign>0.5</yalign>
-	    <xpad>1</xpad>
-	    <ypad>0</ypad>
-	    <build_insensitive>False</build_insensitive>
-	  </widget>
+	  <class>GtkPixmap</class>
+	  <name>image_firewall</name>
+	  <filename>firewall.xpm</filename>
+	  <xalign>0.5</xalign>
+	  <yalign>0.5</yalign>
+	  <xpad>1</xpad>
+	  <ypad>0</ypad>
+	  <build_insensitive>False</build_insensitive>
 	</widget>
       </widget>
 
@@ -17494,7 +17503,7 @@ interface</label>
 	<wrap>False</wrap>
 	<xalign>0.5</xalign>
 	<yalign>0.5</yalign>
-	<xpad>0</xpad>
+	<xpad>5</xpad>
 	<ypad>0</ypad>
 	<child>
 	  <padding>0</padding>

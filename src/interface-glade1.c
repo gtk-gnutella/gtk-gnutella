@@ -1077,13 +1077,14 @@ create_main_window (void)
   GtkWidget *image_offline;
   GtkWidget *alignment25;
   GtkWidget *statusbar;
+  GtkWidget *eventbox_image_ancient;
+  GtkWidget *image_ancient;
   GtkWidget *eventbox_image_save;
   GtkWidget *image_save;
   GtkWidget *eventbox_image_sha;
   GtkWidget *image_sha;
   GtkWidget *eventbox_image_shav;
   GtkWidget *image_shav;
-  GtkWidget *hbox89;
   GtkWidget *eventbox_image_lib;
   GtkWidget *image_lib;
   GtkWidget *eventbox_image_firewall;
@@ -10474,6 +10475,22 @@ create_main_window (void)
   gtk_widget_show (statusbar);
   gtk_container_add (GTK_CONTAINER (alignment25), statusbar);
 
+  eventbox_image_ancient = gtk_event_box_new ();
+  gtk_widget_set_name (eventbox_image_ancient, "eventbox_image_ancient");
+  gtk_widget_ref (eventbox_image_ancient);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_ancient", eventbox_image_ancient,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (eventbox_image_ancient);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_ancient, FALSE, TRUE, 0);
+
+  image_ancient = create_pixmap (main_window, "stock_form-time-field-16.xpm");
+  gtk_widget_set_name (image_ancient, "image_ancient");
+  gtk_widget_ref (image_ancient);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "image_ancient", image_ancient,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (image_ancient);
+  gtk_container_add (GTK_CONTAINER (eventbox_image_ancient), image_ancient);
+
   eventbox_image_save = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_save, "eventbox_image_save");
   gtk_widget_ref (eventbox_image_save);
@@ -10524,21 +10541,13 @@ create_main_window (void)
   gtk_widget_show (image_shav);
   gtk_container_add (GTK_CONTAINER (eventbox_image_shav), image_shav);
 
-  hbox89 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox89, "hbox89");
-  gtk_widget_ref (hbox89);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox89", hbox89,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox89);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), hbox89, FALSE, TRUE, 0);
-
   eventbox_image_lib = gtk_event_box_new ();
   gtk_widget_set_name (eventbox_image_lib, "eventbox_image_lib");
   gtk_widget_ref (eventbox_image_lib);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_lib", eventbox_image_lib,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_lib);
-  gtk_box_pack_start (GTK_BOX (hbox89), eventbox_image_lib, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_lib, FALSE, TRUE, 0);
 
   image_lib = create_pixmap (main_window, "booklib.xpm");
   gtk_widget_set_name (image_lib, "image_lib");
@@ -10555,7 +10564,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox_image_firewall", eventbox_image_firewall,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox_image_firewall);
-  gtk_box_pack_start (GTK_BOX (hbox89), eventbox_image_firewall, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), eventbox_image_firewall, FALSE, TRUE, 0);
   gtk_tooltips_set_tip (tooltips, eventbox_image_firewall, _("Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results."), NULL);
 
   image_firewall = create_pixmap (main_window, "firewall.xpm");
@@ -10648,6 +10657,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_statusbar_uptime);
   gtk_box_pack_start (GTK_BOX (hbox_statusbar), label_statusbar_uptime, FALSE, FALSE, 0);
+  gtk_misc_set_padding (GTK_MISC (label_statusbar_uptime), 5, 0);
 
   gtk_signal_connect (GTK_OBJECT (main_window), "delete_event",
                       GTK_SIGNAL_FUNC (on_main_window_delete_event),

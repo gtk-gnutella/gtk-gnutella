@@ -1207,7 +1207,7 @@ static prop_map_t property_map[] = {
         PROP_ANCIENT_VERSION,
         ancient_version_changed,
         TRUE,
-        NULL,
+        "eventbox_image_ancient", /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
     },
     {
@@ -3711,10 +3711,21 @@ static gboolean reading_hostfile_changed(property_t prop)
 static gboolean ancient_version_changed(property_t prop)
 {
     gboolean b;
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
 
-    gnet_prop_get_boolean_val(prop, &b);
-    if (b)
+    w = lookup_widget(top, map_entry->wid);
+
+    stub->boolean.get(prop, &b, 0, 1);
+
+    if (b) {
         statusbar_gui_warning(15, _("*** RUNNING AN OLD VERSION! ***"));
+        gtk_widget_show(w);
+    } else {
+        gtk_widget_hide(w);
+    }
 
     return FALSE;
 }
