@@ -186,25 +186,32 @@ search_gui_set_details(record_t *rc)
 	}
 
 	gtk_entry_set_text(info_filename, lazy_locale_to_utf8(rc->name, 0));
+
 	gtk_entry_set_text(info_sha1,
 		rc->sha1 != NULL ? sha1_base32(rc->sha1) : _("<none>"));
+
 	if (rc->results_set->hostname)
 		gtk_entry_set_text(info_source, hostname_port_to_gchar(
 			rc->results_set->hostname, rc->results_set->port));
 	else
 		gtk_entry_set_text(info_source, ip_port_to_gchar(
 			rc->results_set->ip, rc->results_set->port));
+
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%s)",
 		iso3166_country_name(rc->results_set->country),
 		iso3166_country_cc(rc->results_set->country));
 	gtk_entry_set_text(info_country, tmpstr);
+
 	gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%" PRIu64 " bytes)"),
 		short_size(rc->size), (guint64) rc->size);
 	gtk_entry_set_text(info_size, tmpstr);
+
 	gtk_entry_set_text(info_guid, guid_hex_str(rc->results_set->guid));
+
 	g_strlcpy(tmpstr, ctime(&rc->results_set->stamp),
 		MIN(25U, sizeof tmpstr));	/* discard trailing '\n' (see ctime(3) */
 	gtk_entry_set_text(info_timestamp, tmpstr);
+
 	vendor = lookup_vendor_name(rc->results_set->vendor);
 	if (vendor == NULL)
 		*tmpstr = '\0';
@@ -214,10 +221,13 @@ search_gui_set_details(record_t *rc)
 	else
 		g_strlcpy(tmpstr, vendor, sizeof tmpstr);
 	gtk_entry_set_text(info_vendor, tmpstr);
+
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) rc->index);
 	gtk_entry_set_text(info_index, tmpstr);
+
 	gtk_entry_set_text(info_tag,
 		rc->tag ? lazy_locale_to_utf8(rc->tag, 0) : "");
+
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rc->results_set->speed);
 	gtk_entry_set_text(info_speed, tmpstr);
 }
