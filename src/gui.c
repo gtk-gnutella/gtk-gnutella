@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2001-2003, Raphael Manfredi & Richard Eckart
  *
- * GUI functions.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -24,19 +22,20 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
+/**
+ * @file
+ *
+ * General GUI functions and stuff which doesn't fit in anywhere else.
+ */
+
 
 #include "gui.h"
 #include "callbacks.h"
 
-#include "search_gui.h"
-#include "filter_gui.h"
 #include "nodes_gui.h"
 #include "downloads_gui.h"
-#include "uploads_gui.h"
-#include "statusbar_gui.h"
 #include "settings_gui.h"
-#include "search_stats_gui.h"
-#include "hcache_gui.h"
+#include "search_gui_common.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -47,24 +46,6 @@ static gchar gui_tmp[4096];
 /*
  * Implementation
  */
-
-void gui_update_all() 
-{
-	gui_update_files_scanned();
-    gui_update_stats_frames();
-
-    {
-        guint32 coord[4] = {0, 0, 0, 0};
-
-        gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, 4);
-
-        if (coord[0] && coord[1]) {
-            gtk_widget_set_uposition(main_window, coord[0], coord[1]);
-            gtk_window_set_default_size
-                (GTK_WINDOW(main_window), coord[2], coord[3]);
-        }
-    }
-}
 
 void gui_update_files_scanned(void)
 {
@@ -85,9 +66,12 @@ void gui_allow_rescan_dir(gboolean flag)
         (lookup_widget(main_window, "button_config_rescan_dir"), flag);
 }
 
-void gui_update_global(void)
+/**
+ * Update some general information displayed in the gui.
+ */
+void gui_general_timer(time_t now)
 {
-	time_t now = time((time_t *) NULL), start_stamp;
+    time_t start_stamp;
 	guint32 val;
 	GtkLabel *label = GTK_LABEL(lookup_widget(
 				main_window, "label_statusbar_uptime"));
@@ -104,17 +88,6 @@ void gui_update_global(void)
 
 	gtk_label_set_text(label, short_uptime(delta_time(now, start_stamp)));
 #endif
-
-    /*
-     * Update the different parts of the GUI.
-     */
-    hcache_gui_update(now);
-    gnet_stats_gui_update(now);
-    search_stats_gui_update(now);
-    nodes_gui_update_nodes_display(now);
-    uploads_gui_update_display(now);
-    statusbar_gui_clear_timeouts(now);
-    search_gui_flush(now);
 }
 
 static void update_stat(guint32 *max, GtkProgressBar *pg, 
@@ -233,40 +206,7 @@ void gui_update_stats_frames(void)
 #endif
 }
 
-/*
- * search_gui_add_targetted_search:
- *
- * Creates a new search based on the filename found and adds a filter
- * to it based on the sha1 hash if it has one or the exact filename if
- * it hasn't.
- * (patch by Andrew Meredith <andrew@anvil.org>)
- */
-void gui_add_targetted_search(record_t *rec, filter_t *noneed)
-{
-    search_t *new_search;
-    rule_t *rule;
-
-    g_assert(rec != NULL);
-    g_assert(rec->name != NULL);
-
-    /* create new search item with search string set to filename */
-    search_gui_new_search(rec->name, 0, &new_search);
-    g_assert(new_search != NULL);
-
-    if (rec->sha1) {
-        rule = filter_new_sha1_rule(rec->sha1, rec->name,
-            filter_get_download_target(), RULE_FLAG_ACTIVE);
-    } else {
-        rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE,
-            filter_get_download_target(), RULE_FLAG_ACTIVE);
-    }
-    g_assert(rule != NULL);
-
-    filter_append_rule(new_search->filter, rule);
-}
-
-
-/*
+/**
  * Tells if two hit records have the same filename.
  */
 gint gui_record_name_eq(gconstpointer rec1, gconstpointer rec2)
@@ -283,7 +223,7 @@ gint gui_record_name_eq(gconstpointer rec1, gconstpointer rec2)
     return result;
 }
 
-/*
+/**
  * Tells if two hit records have the same SHA1.
  */
 gint gui_record_sha1_eq(gconstpointer rec1, gconstpointer rec2)
@@ -300,7 +240,7 @@ gint gui_record_sha1_eq(gconstpointer rec1, gconstpointer rec2)
     return memcmp(s1, s2, SHA1_RAW_SIZE);
 }
 
-/*
+/**
  * Tells if two hit records come from the same host.
  */
 gint gui_record_host_eq(gconstpointer rec1, gconstpointer rec2)
@@ -310,7 +250,7 @@ gint gui_record_host_eq(gconstpointer rec1, gconstpointer rec2)
        ? 0 : 1;
 }
 
-/*
+/**
  * Tells if two hit records have the same SHA1 or the same name.
  *
  * The targetted search feature by Andrew Meredith (andrew@anvil.org)
@@ -352,9 +292,7 @@ typedef struct steal_dict_params {
 	GtkWidget *source;
 } steal_dict_params_t;
 
-/*
- * gui_steal_widget_dict_recursive:
- *
+/**
  * Transfers the widget dictionary for specified widget
  * from specified window to the main window.
  * If the widget is a container, recursively calls
@@ -383,15 +321,12 @@ static void gui_steal_widget_dict_recursive(
 			gui_steal_widget_dict_recursive, user_data);
 }
 
-/*
- * gui_merge_window_as_tab:
- *
- * 2003-02-08 ko [junkpile@free.fr]
+/**
+ * @author 2003-02-08 ko [junkpile@free.fr]
  *
  * Reparents children of specified window into a new notebook tab.
  * Also transfers the widget dictionary to specified toplevel
  * window so lookup_widget() is not broken afterwards.
- * 
  */
 void gui_merge_window_as_tab(GtkWidget *toplvl, GtkWidget *notebook,
 							 GtkWidget *window)

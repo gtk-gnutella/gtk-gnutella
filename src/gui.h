@@ -358,20 +358,12 @@ extern GtkWidget *popup_queue;
  * Public interface.
  */
 void gui_init(void);
-void gui_update_all(void);
 void gui_update_files_scanned(void);
-void gui_update_global(void);
+void gui_general_timer(time_t now);
 void gui_update_traffic_stats(void);
 void gui_update_stats(void);
 void gui_update_stats_frames(void);
 void gui_allow_rescan_dir(gboolean flag);
-
-/*
- * Create a new search based on a search result record.
- */
-struct record;
-struct filter;
-void gui_add_targetted_search(struct record *rec, struct filter *noneed);
 
 /*
  * Hit record comparison functions.
