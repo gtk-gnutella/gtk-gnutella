@@ -37,7 +37,7 @@ typedef struct upload_row_data {
     time_t        last_update; /* last time the gui updated */
     guint32       range_start;
     guint32       range_end;
-    guint32       status;      /* last known status */
+    upload_stage_t status;      /* last known status */
 } upload_row_data_t;
 
 void uploads_gui_early_init(void);
