@@ -77,8 +77,10 @@ typedef struct {
  * http_header_cb_t
  *
  * Callback used from asynchronous request to indicate that we got headers.
+ * Indicates whether we should continue or not, given the HTTP response code.
  */
-typedef void (*http_header_cb_t)(gpointer h, struct header *header);
+typedef gboolean (*http_header_cb_t)(
+	gpointer h, struct header *header, gint code);
 
 /*
  * http_data_cb_t
@@ -91,7 +93,7 @@ typedef enum {				/* Type of error reported by http_error_cb_t */
 	HTTP_ASYNC_SYSERR,		/* System error, value is errno */
 	HTTP_ASYNC_ERROR,		/* Internal error, value is error code */
 	HTTP_ASYNC_HEADER,		/* Internal header error, value is error code */
-	HTTP_ASYNC_HERR,		/* HTTP error, value is http_error_t pointer */
+	HTTP_ASYNC_HTTP,		/* HTTP error, value is http_error_t pointer */
 } http_errtype_t;
 
 typedef struct {
@@ -120,6 +122,8 @@ typedef void (*http_error_cb_t)(gpointer h, http_errtype_t error, gpointer val);
 #define HTTP_ASYNC_HEAD2BIG		5	/* Header too big */
 #define HTTP_ASYNC_CANCELLED	6	/* User cancel */
 #define HTTP_ASYNC_EOF			7	/* Got EOF */
+#define HTTP_ASYNC_BAD_STATUS	8	/* Unparseable HTTP status */
+#define HTTP_ASYNC_NO_LOCATION	9	/* Got moved status, but no location */
 
 extern gint http_async_errno;
 

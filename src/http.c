@@ -40,6 +40,7 @@
 #include "http.h"
 #include "sockets.h"
 #include "bsched.h"
+#include "getline.h"
 #include "header.h"
 #include "walloc.h"
 #include "ioheader.h"
@@ -394,6 +395,9 @@ gboolean http_extract_version(
 
 	limit = sizeof("GET / HTTP/1.0") - 1;
 
+	if (dbg > 4)
+		printf("HTTP req (%d bytes): %s\n", len, request);
+
 	if (len < limit)
 		return FALSE;
 
@@ -409,6 +413,9 @@ gboolean http_extract_version(
 			break;
 	}
 
+	if (dbg > 4)
+		printf("HTTP i = %d, limit = %d\n", i, limit);
+
 	if (i == limit)
 		return FALSE;		/* Reached our limit without finding a space */
 
@@ -418,8 +425,14 @@ gboolean http_extract_version(
 
 	g_assert(*p == ' ');
 
-	if (2 != sscanf(p+1, "HTTP/%d.%d", major, minor))
+	if (2 != sscanf(p+1, "HTTP/%d.%d", major, minor)) {
+		if (dbg > 1)
+			printf("HTTP req (%d bytes): no protocol tag: %s\n", len, request);
 		return FALSE;
+	}
+
+	if (dbg > 4)
+		printf("HTTP req OK (%d.%d)\n", *major, *minor);
 
 	/*
 	 * We don't check trailing chars after the HTTP/x.x indication.
@@ -559,6 +572,8 @@ static gchar *error_str[] = {
 	"Header too large",						/* HTTP_ASYNC_HEAD2BIG */
 	"User cancel",							/* HTTP_ASYNC_CANCELLED */
 	"Got EOF",								/* HTTP_ASYNC_EOF */
+	"Unparseable HTTP status",				/* HTTP_ASYNC_BAD_STATUS */
+	"Got moved status, but no location",	/* HTTP_ASYNC_NO_LOCATION */
 };
 
 gint http_async_errno;		/* Used to return error codes during setup */
@@ -607,6 +622,7 @@ struct http_async {					/* An asynchronous HTTP request */
 	http_error_cb_t error_ind;		/* Callback for errors */
 	time_t last_update;				/* Time of last activity */
 	gpointer io_opaque;				/* Opaque I/O callback information */
+	bio_source_t *bio;				/* Bandwidth-limited source */
 };
 
 /*
@@ -621,6 +637,8 @@ static void http_async_free(struct http_async *ha)
 	atom_str_free(ha->path);
 	if (ha->io_opaque)
 		io_free(ha->io_opaque);
+	if (ha->bio)
+		bsched_source_remove(ha->bio);
 
 	wfree(ha, sizeof(*ha));
 }
@@ -630,13 +648,14 @@ static void http_async_free(struct http_async *ha)
  *
  * Cancel request (internal call).
  */
-static void http_async_remove(gpointer handle, http_errtype_t type, gint code)
+static void http_async_remove(
+	gpointer handle, http_errtype_t type, gpointer code)
 {
 	struct http_async *ha = (struct http_async *) handle;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
-	(*ha->error_ind)(handle, type, (gpointer) code);
+	(*ha->error_ind)(handle, type, code);
 	http_async_free(ha);
 }
 
@@ -647,7 +666,7 @@ static void http_async_remove(gpointer handle, http_errtype_t type, gint code)
  */
 void http_async_cancel(gpointer handle)
 {
-	http_async_remove(handle, HTTP_ASYNC_ERROR, HTTP_ASYNC_CANCELLED);
+	http_async_remove(handle, HTTP_ASYNC_ERROR, (gpointer) HTTP_ASYNC_CANCELLED);
 }
 
 /*
@@ -657,7 +676,7 @@ void http_async_cancel(gpointer handle)
  */
 void http_async_error(gpointer handle, gint code)
 {
-	http_async_remove(handle, HTTP_ASYNC_ERROR, code);
+	http_async_remove(handle, HTTP_ASYNC_ERROR, (gpointer) code);
 }
 
 /*
@@ -667,7 +686,7 @@ void http_async_error(gpointer handle, gint code)
  */
 static void http_async_syserr(gpointer handle, gint code)
 {
-	http_async_remove(handle, HTTP_ASYNC_SYSERR, code);
+	http_async_remove(handle, HTTP_ASYNC_SYSERR, (gpointer) code);
 }
 
 /*
@@ -677,7 +696,24 @@ static void http_async_syserr(gpointer handle, gint code)
  */
 static void http_async_headerr(gpointer handle, gint code)
 {
-	http_async_remove(handle, HTTP_ASYNC_HEADER, code);
+	http_async_remove(handle, HTTP_ASYNC_HEADER, (gpointer) code);
+}
+
+/*
+ * http_async_http_error
+ *
+ * Cancel request (HTTP error).
+ */
+static void http_async_http_error(
+	gpointer handle, struct header *header, gint code, gchar *message)
+{
+	http_error_t he;
+
+	he.header = header;
+	he.code = code;
+	he.message = message;
+
+	http_async_remove(handle, HTTP_ASYNC_HTTP, &he);
 }
 
 /*
@@ -747,9 +783,85 @@ gpointer http_async_get(
 	ha->data_ind = data_ind;
 	ha->error_ind = error_ind;
 	ha->io_opaque = NULL;
+	ha->bio = NULL;
 	ha->last_update = time(NULL);
 
 	return ha;
+}
+
+/*
+ * http_redirect
+ *
+ * Redirect current HTTP request to some other URL.
+ */
+static void http_redirect(struct http_async *ha, gchar *url)
+{
+	// XXX
+}
+
+/*
+ * http_got_data
+ *
+ * Tell the user that we got new data for his request.
+ * If `eof' is TRUE, this is the last data we'll get.
+ */
+static void http_got_data(struct http_async *ha, gboolean eof)
+{
+	struct gnutella_socket *s = ha->socket;
+
+	g_assert(eof || s->pos > 0);		/* If not EOF, there must be data */
+
+	if (s->pos > 0) {
+		(*ha->data_ind)(ha, s->buffer, s->pos);
+		s->pos = 0;
+	}
+
+	if (eof) {
+		(*ha->data_ind)(ha, NULL, 0);	/* Indicates EOF */
+		http_async_free(ha);
+	}
+}
+
+/*
+ * http_data_read
+ *
+ * Called when data are available on the socket.
+ * Read them and pass them to http_got_data().
+ */
+static void http_data_read(gpointer data, gint source, GdkInputCondition cond)
+{
+	struct http_async *ha = (struct http_async *) data;
+	struct gnutella_socket *s = ha->socket;
+	gint r;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+
+	if (cond & GDK_INPUT_EXCEPTION) {
+		http_async_error(ha, HTTP_ASYNC_IO_ERROR);
+		return;
+	}
+
+	g_assert(s->pos >= 0 && s->pos <= sizeof(s->buffer));
+
+	if (s->pos == sizeof(s->buffer)) {
+		http_async_error(ha, HTTP_ASYNC_IO_ERROR);
+		return;
+	}
+
+	r = bio_read(ha->bio, s->buffer + s->pos, sizeof(s->buffer) - s->pos);
+	if (r == 0) {
+		http_got_data(ha, TRUE);			/* Signals EOF */
+		return;
+	} else if (r < 0 && errno == EAGAIN)
+		return;
+	else if (r < 0) {
+		http_async_syserr(ha, errno);
+		return;
+	}
+
+	s->pos += r;
+
+	http_got_data(ha, FALSE);				/* EOF not reached yet */
 }
 
 /*
@@ -759,7 +871,80 @@ gpointer http_async_get(
  */
 static void http_got_header(struct http_async *ha, header_t *header)
 {
-	// XXX
+	struct gnutella_socket *s = ha->socket;
+	gchar *status = getline_str(s->getline);
+	gint ack_code;
+	gchar *ack_message = "";
+	gchar *buf;
+	gint http_major = 0, http_minor = 0;
+
+	ha->last_update = time(NULL);		/* Done reading headers */
+
+	if (dbg > 2) {
+		printf("----Got HTTP reply from %s:\n", ip_to_gchar(s->ip));
+		printf("%s\n", status);
+		header_dump(header, stdout);
+		printf("----\n");
+		fflush(stdout);
+	}
+
+	/*
+	 * Check status.
+	 */
+
+	ack_code = http_status_parse(status, "HTTP",
+		&ack_message, &http_major, &http_minor);
+
+	if (ack_code == -1) {
+		http_async_error(ha, HTTP_ASYNC_BAD_STATUS);
+		return;
+	}
+
+	/*
+	 * Notify them that we got the headers.
+	 * Don't continue if the callback returns FALSE.
+	 */
+
+	if (ha->header_ind && !(*ha->header_ind)(ha, header, ack_code))
+		return;
+
+	/*
+	 * Deal with return code.
+	 */
+
+	switch (ack_code) {
+	case 200:					/* OK */
+		break;
+	case 301:					/* Moved */
+		buf = header_get(header, "Location");
+		if (buf == NULL) {
+			http_async_error(ha, HTTP_ASYNC_NO_LOCATION);
+			return;
+		}
+		http_redirect(ha, buf);
+		return;
+	default:					/* Error */
+		http_async_http_error(ha, header, ack_code, ack_message);
+		return;
+	}
+
+	/*
+	 * Prepare reception of data.
+	 */
+
+	g_assert(s->gdk_tag == 0);
+	g_assert(ha->bio == NULL);
+
+	ha->bio = bsched_source_add(bws.in, s->file_desc,
+		BIO_F_READ, http_data_read, (gpointer) ha);
+
+	/*
+	 * We may have something left in the input buffer.
+	 * Give them the data immediately.
+	 */
+
+	if (s->pos > 0)
+		http_got_data(ha, FALSE);
 }
 
 /**
