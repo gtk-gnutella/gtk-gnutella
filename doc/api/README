@@ -1,5 +1,5 @@
-This directory contains the configuration file for Doxygen used to generate
-various formatted documents.
+This directory contains the configuration file for Doxygen used to
+generate various formatted documents.
 
 Required Installation
 ---------------------
@@ -57,3 +57,5 @@ For Developers
 See also section 2.2 of STYLE file in the doc/devguide directory.
 It's pleasant if you have doxygen-aware commenting :-)
 
+You can edit the contents of the gtkg-apidoc.main file, which becomes
+the front page later, as you like but you have to use the proper format.
