@@ -1617,6 +1617,8 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 	gint rw = 0;
 	gint length = *retval;
 	struct upload_http_cb *a = (struct upload_http_cb *) arg;
+	gnutella_upload_t *u = a->u;
+	shared_file_t *sf = a->sf;
 	gint needed_room;
 
 	/*
@@ -1630,9 +1632,22 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
 			sha1_base32(a->sf->sha1_digest));
 
+	/*
+	 * PFSP-server: if they requested a partial file, let them know about
+	 * the set of available ranges.
+	 *
+	 * We do that before sending the alt-locs, because we're filling up as
+	 * much space as we can with alt-locs, and we would not have much room
+	 * left to emit the range list if we did it afterwards.
+	 */
+
+	if (sf->fi != NULL && rw < length) {
+		g_assert(pfsp_server);		/* Or we would not have a partial file */
+		rw += file_info_available_ranges(sf->fi, &buf[rw], length - rw);
+	}
+
 	if (rw < length) {
 		time_t now = time(NULL);
-		gnutella_upload_t *u = a->u;
 
 		guint32 last_sent;
 
@@ -1645,10 +1660,11 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 
 		last_sent = u->last_dmesh ?
 			u->last_dmesh :
-			mi_get_stamp(u->socket->ip, a->sf->sha1_digest, now);
+			mi_get_stamp(u->socket->ip, sf->sha1_digest, now);
 
-		rw += dmesh_alternate_location(a->sf->sha1_digest,
-			&buf[rw], length - rw, u->socket->ip, last_sent, u->user_agent);
+		rw += dmesh_alternate_location(
+			sf->sha1_digest, &buf[rw], length - rw, u->socket->ip,
+			last_sent, u->user_agent, NULL);
 
 		u->last_dmesh = now;
 	}
@@ -1736,7 +1752,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 {
 	struct gnutella_socket *s = u->socket;
 	struct shared_file *reqfile = NULL;
-    guint idx = 0, skip = 0, end = 0;
+    guint32 idx = 0, skip = 0, end = 0;
 	gchar *fpath = NULL;
 	gchar *user_agent = 0;
 	gchar *buf;
@@ -1756,6 +1772,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean is_followup = u->status == GTA_UL_WAITING;
 	gboolean was_actively_queued = u->status == GTA_UL_QUEUED;
 	gboolean faked = FALSE;
+	gboolean range_unavailable = FALSE;
 	gchar *token;
 	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
@@ -1963,6 +1980,22 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	if (!has_end)
 		end = u->file_size - 1;
 
+	/*
+	 * PFSP-server: restrict the end of the requested range if the file
+	 * we're about to upload is only partially available.  If the range
+	 * is not yet available, signal it but don't break the connection.
+	 *		--RAM, 11/10/2003
+	 */
+
+	if (
+		reqfile->fi != NULL &&
+		!file_info_restrict_range(reqfile->fi, skip, &end)
+	) {
+		g_assert(pfsp_server);
+		range_unavailable = TRUE;
+	} else
+		u->unavailable_range = FALSE;
+
 	u->skip = skip;
 	u->end = end;
 	u->pos = skip;
@@ -1993,6 +2026,11 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 * When requested range is invalid, the HTTP 416 reply should contain
 	 * a Content-Range header giving the total file size, so that they
 	 * know the limits of what they can request.
+	 *
+	 * XXX due to the use of http_range_parse() above, the following can
+	 * XXX no longer trigger here.  However, http_range_parse() should be
+	 * XXX able to report out-of-range errors so we can report a true 416
+	 * XXX here.  Hence I'm not removing this code.  --RAM, 11/10/2003
 	 */
 
 	if (skip >= u->file_size || end >= u->file_size) {
@@ -2067,6 +2105,64 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		return;
 	}
 
+	/*
+	 * Do we have to keep the connection after this request?
+	 */
+
+	buf = header_get(header, "Connection");
+
+	if (u->http_major > 1 || (u->http_major == 1 && u->http_minor >= 1)) {
+		/* HTTP/1.1 or greater -- defaults to persistent connections */
+		u->keep_alive = TRUE;
+		if (buf && 0 == strcasecmp(buf, "close"))
+			u->keep_alive = FALSE;
+	} else {
+		/* HTTP/1.0 or lesser -- must request persistence */
+		u->keep_alive = FALSE;
+		if (buf && 0 == strcasecmp(buf, "keep-alive"))
+			u->keep_alive = TRUE;
+	}
+
+	/*
+	 * If the requested range was determined to be unavailable, signal it
+	 * to them.  Break the connection if it was a HEAD request, but allow
+	 * them an extra request if the last one was for a valid range.
+	 *		--RAM, 11/10/2003
+	 */
+
+	if (range_unavailable) {
+		const gchar *msg = "Requested range not available yet";
+
+		g_assert(sha1_hash_available(reqfile));
+		g_assert(pfsp_server);
+
+		cb_arg.u = u;
+		cb_arg.sf = reqfile;
+
+		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+		hev[hevcnt].he_cb = upload_http_sha1_add;
+		hev[hevcnt++].he_arg = &cb_arg;
+
+		if (!head_only && u->keep_alive && !u->unavailable_range) {
+			/*
+			 * Cleanup data structures.
+			 */
+
+			io_free(u->io_opaque);
+			u->io_opaque = NULL;
+
+			getline_free(s->getline);
+			s->getline = NULL;
+
+			u->unavailable_range = TRUE;
+			(void) http_send_status(u->socket, 416, TRUE, hev, hevcnt, msg);
+			expect_http_header(u, GTA_UL_PFSP_WAITING);
+		} else {
+			(void) http_send_status(u->socket, 416, FALSE, hev, hevcnt, msg);
+			upload_remove(u, msg);
+		}
+		return;
+	}
 	
 	if (!head_only) {
 		/*
@@ -2241,24 +2337,6 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	if (!head_only)
 		parq_upload_busy(u, u->parq_opaque);
 	
-	/*
-	 * Do we have to keep the connection after this request?
-	 */
-
-	buf = header_get(header, "Connection");
-
-	if (u->http_major > 1 || (u->http_major == 1 && u->http_minor >= 1)) {
-		/* HTTP/1.1 or greater -- defaults to persistent connections */
-		u->keep_alive = TRUE;
-		if (buf && 0 == strcasecmp(buf, "close"))
-			u->keep_alive = FALSE;
-	} else {
-		/* HTTP/1.0 or lesser -- must request persistence */
-		u->keep_alive = FALSE;
-		if (buf && 0 == strcasecmp(buf, "keep-alive"))
-			u->keep_alive = TRUE;
-	}
-
 	if (-1 == stat(fpath, &statbuf)) {
 		upload_error_not_found(u, request);
 		return;
