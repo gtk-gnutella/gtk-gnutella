@@ -543,7 +543,7 @@ static gchar *parse_errstr[] = {
 	"Could not parse port",					/* HTTP_URL_BAD_PORT_PARSING */
 	"Port value is out of range",			/* HTTP_URL_BAD_PORT_RANGE */
 	"Could not resolve host into IP",		/* HTTP_URL_HOSTNAME_UNKNOWN */
-	"URL has no URI part",		/* HTTP_URL_MISSING_URI */
+	"URL has no URI part",					/* HTTP_URL_MISSING_URI */
 };
 
 /**
