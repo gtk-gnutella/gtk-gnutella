@@ -47,9 +47,6 @@
 
 #define NO_FUNC
 
-#define SORT_ASC  1
-#define SORT_DESC -1
-#define SORT_NONE 0
  
 /* 
  * Create a function for the focus out signal and make it call
@@ -2329,40 +2326,13 @@ FOCUS_TO_ACTIVATE(entry_max_connections)
  *** Search pane
  ***/ 
 
-static gint search_results_compare_size(GtkCList * clist, gconstpointer ptr1,
-								 gconstpointer ptr2)
-{
-	guint32 s1 = ((struct record *) ((GtkCListRow *) ptr1)->data)->size;
-	guint32 s2 = ((struct record *) ((GtkCListRow *) ptr2)->data)->size;
-
-	return (s1 == s2) ? 0 :
-		(s1 > s2) ? +1 : -1;
-}
-
-static gint search_results_compare_speed(GtkCList * clist, gconstpointer ptr1,
-								         gconstpointer ptr2)
-{
-	struct results_set *rs1 =
-		((struct record *) ((GtkCListRow *) ptr1)->data)->results_set;
-	struct results_set *rs2 =
-		((struct record *) ((GtkCListRow *) ptr2)->data)->results_set;
-
-	return (rs1->speed == rs2->speed) ? 0 :
-		(rs1->speed > rs2->speed) ? +1 : -1;
-}
-
-static gint search_results_compare_host(GtkCList * clist, gconstpointer ptr1,
+static gint search_results_compare_func(GtkCList * clist, gconstpointer ptr1,
 							            gconstpointer ptr2)
 {
-	struct results_set *rs1 =
-		((struct record *) ((GtkCListRow *) ptr1)->data)->results_set;
-	struct results_set *rs2 =
-		((struct record *) ((GtkCListRow *) ptr2)->data)->results_set;
+    record_t *s1 = (record_t *) ((GtkCListRow *) ptr1)->data;
+	record_t *s2 = (record_t *) ((GtkCListRow *) ptr2)->data;
 
-	if (rs1->ip == rs2->ip)
-		return (gint) rs1->port - (gint) rs2->port;
-	else
-		return (rs1->ip > rs2->ip) ? +1 : -1;
+    return search_compare(clist->sort_column, s1, s2);
 }
 
 BIND_CHECKBUTTON_CALL(
@@ -2459,22 +2429,8 @@ void on_clist_search_results_click_column(GtkCList * clist, gint column,
     }     
 
     /* set compare function */
-	switch (column) {
-	case c_sr_size:		
-		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist),
-								   search_results_compare_size);
-		break;
-	case c_sr_speed:	
-		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist),
-								   search_results_compare_speed);
-		break;
-	case c_sr_host:		
-		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist),
-								   search_results_compare_host);
-		break;
-	default:
-		gtk_clist_set_compare_func(GTK_CLIST(current_search->clist), NULL);
-	}
+	gtk_clist_set_compare_func
+        (GTK_CLIST(current_search->clist), search_results_compare_func);
 
     /* rotate or initialize search order */
 	if (column == current_search->sort_col) {
@@ -2513,7 +2469,7 @@ void on_clist_search_results_click_column(GtkCList * clist, gint column,
         g_assert_not_reached();
     }
 
-    /* display arrow if necessary */
+    /* display arrow if necessary and set sorting parameters*/
     if (current_search->sort_order != SORT_NONE) {
         cw = gtk_clist_get_column_widget
                  (GTK_CLIST(current_search->clist), column);
@@ -2525,10 +2481,10 @@ void on_clist_search_results_click_column(GtkCList * clist, gint column,
         }
         gtk_clist_set_sort_column(GTK_CLIST(current_search->clist), column);
         gtk_clist_sort(GTK_CLIST(current_search->clist));
-    } 
-
-    /* set wether list is sorted */
-    current_search->sort = current_search->sort_order != SORT_NONE;
+        current_search->sort = TRUE;
+    } else {
+        current_search->sort = FALSE;
+    }
 }
 
 void on_clist_search_select_row(GtkCList * clist, gint row,
