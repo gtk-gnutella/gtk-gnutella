@@ -47,7 +47,7 @@ ADDITIONAL_DROPIN = \
 	statusbar_gui.c statusbar_gui.h \
 	search_gui2.c search_gui.h search_cb2.c search_cb2.h \
 	downloads_gui.c downloads_gui.h downloads_cb.c downloads_cb.h \
-	uploads_gui.c uploads_gui.h uploads_cb2.c uploads_cb.h \
+	uploads_gui.c uploads_gui.h uploads_cb.c uploads_cb.h \
 	upload_stats_gui2.c upload_stats_gui.h \
 	gnet_stats_gui2.c gnet_stats_gui2.h \
 	search_stats_gui.c search_stats_gui.h \
