@@ -61,6 +61,9 @@
 
 #define GGEP_H_SHA1		0x01		/* Binary SHA1 */
 #define GGEP_H_BITPRINT	0x02		/* Bitprint (SHA1 + Tiger tree root) */
+#define GGEP_H_MD5		0x03		/* Binary MD5 */
+#define GGEP_H_UUID		0x04		/* Binary UUID (GUID-like) */
+#define GGEP_H_MD4		0x05		/* Binary MD4 */
 
 /*
  * Flags for ggep_ext_write() and friends.
