@@ -346,7 +346,7 @@ KNOWN BUGS/PROBLEMS:
  * Fixed bug: hostcatcher does not update properly in gui if no hosts 
    file was found.
  * Added "prefer compressed connections" option to gnet config pane.
-   (expert mode)
+   (expert mode) [thanks to Markus "guruz" Goetz]
  * Replaced GtkSpinButtons with GtkEntry in the size-rule part of the
    filter dialog. Should give the full range of sized up to 2GB.
 
