@@ -1,5 +1,20 @@
 # since last version
 
+- (2004.02.01 - RAM)
+ * Don't include a partial file in the mesh if we don't have 512K of it, or
+   at least 10% of it.
+ * Added IP:port + vendor string to warning about weird HTTP status.
+ * Fixed looks_like_urn() which was not detecting names made out of a
+   single SHA1.
+
+- (2004.01.31 - RAM)
+ * Reopening the 0.94u line.
+ * Allow main window to shrink width below 933 pixels (fixes bug #885659).
+ * When moving files, don't leave the target file around when an error occurs.
+
+- (2004.01.27 - RAM)
+ * Security fix in proxy code [Found by Leonardo H. Liporati].
+
 - (2004.01.27 - Hans)
  * [Gtk2] Show progress bars in the up- and download lists to indicate
    progress [from Russell Francis, patches 873182 and 874590].
