@@ -524,10 +524,13 @@ static void bsched_clear_active(bsched_t *bs)
 static void bsched_begin_timeslice(bsched_t *bs)
 {
 	GList *l;
+	GList *last = NULL;
 
 	for (l = bs->sources; l; l = g_list_next(l)) {
 		bio_source_t *bio = (bio_source_t *) l->data;
 		guint32 actual;
+
+		last = l;			/* Remember last seen source  for rotation */
 
 		bio->flags &= ~(BIO_F_ACTIVE | BIO_F_USED);
 		if (bio->io_tag == 0 && bio->io_callback)
@@ -555,6 +558,21 @@ static void bsched_begin_timeslice(bsched_t *bs)
 		bio->bw_fast_ema += (actual >> 1) - (bio->bw_fast_ema >> 1);
 		bio->bw_slow_ema += (actual >> 6) - (bio->bw_slow_ema >> 6);
 		bio->bw_actual = 0;
+	}
+
+	/*
+	 * Rotate sources, since we don't know how glib handles callbacks on
+	 * the registered sources.  We don't want to always have the same
+	 * sources get most of the bandwidth because they simply get added
+	 * first as I/O sources.
+	 */
+
+	if (last != NULL && last != bs->sources) {
+		bio_source_t *bio;
+		g_assert(bs->sources != NULL);
+		bio = (bio_source_t *) bs->sources->data;
+		bs->sources = g_list_remove(bs->sources, bio);
+		bs->sources = gm_list_insert_after(bs->sources, last, bio);
 	}
 
 	bs->flags &= ~(BS_F_NOBW|BS_F_FROZEN_SLOT|BS_F_CHANGED_BW);
