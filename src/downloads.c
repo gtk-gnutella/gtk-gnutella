@@ -4038,6 +4038,16 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 
 	buf = header_get(header, "X-Gnutella-Content-Urn");
 
+	/*
+	 * Clueless Shareaza chose to blindly and secretly change the header
+	 * into X-Content-Urn, which can also contain a list of URNs and not
+	 * a single URN (the latter being a good thing actually).
+	 *		--RAM, 16/06/2003
+	 */
+
+	if (buf == NULL)
+		buf = header_get(header, "X-Content-Urn");
+
 	if (buf == NULL) {
 		gboolean n2r = FALSE;
 
@@ -4098,7 +4108,7 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 		return TRUE;		/* Nothing to check against, continue */
 	}
 
-	found_sha1 = huge_extract_sha1(buf, digest);
+	found_sha1 = dmesh_collect_sha1(buf, digest);
 
 	if (!found_sha1)
 		return TRUE;
@@ -4752,11 +4762,18 @@ static void download_request(
 		 * If server is a gtk-gnutella, it's not banning us based on that.
 		 * Note that if the remote server is a fake GTKG, then its name
 		 * will begin with a '!'.
+		 *
+		 * When remote host is a GTKG, it can't be banning us based on
+		 * our user-agent.  So clear the DLS_A_BANNING flag, which could
+		 * have been activated previously because the remote host was
+		 * looking as a fake GTKG due to a de-synchronized clock.
 		 */
+
+		if (0 == strncmp(download_vendor_str(d), "gtk-gnutella/", 13))
+			d->server->attrs &= ~DLS_A_BANNING;
 
 		if (
 			!(d->server->attrs & DLS_A_BANNING) &&
-			*download_vendor_str(d) != '\0' &&
 			0 != strncmp(download_vendor_str(d), "gtk-gnutella/", 13)
 		) {
 			switch (ack_code) {
