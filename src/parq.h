@@ -45,7 +45,8 @@ void parq_upload_queue_init();
 void parq_upload_timer(time_t now);
 void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg);
 gpointer parq_upload_get(gnutella_upload_t *u, header_t *header);
-gboolean parq_upload_request(gpointer handle, guint used_slots);
+gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle, 
+	  guint used_slots);
 guint parq_upload_lookup_position(gnutella_upload_t *u);
 gchar* parq_upload_lookup_id(gnutella_upload_t *u);
 guint parq_upload_lookup_ETA(gnutella_upload_t *u);

@@ -494,11 +494,17 @@ void parq_download_add_header(
 	 * add X-Queued if there is no ID available. This could be because it is
 	 * a first request.
 	 */
-
-	if (d->server->parq_version.major == 1 && d->queue_status.ID[0] != '\0')
+	if (d->server->parq_version.major == 1) {
+		if (d->queue_status.ID[0] != '\0')
+			*rw += gm_snprintf(&buf[*rw], len - *rw,
+				  "X-Queued: position=%d; ID=%s\r\n",
+				  d->queue_status.position, d->queue_status.ID);
+	}
+	
+	if (!is_firewalled)
 		*rw += gm_snprintf(&buf[*rw], len - *rw,
-			"X-Queued: position=%d; ID=%s\r\n",
-			d->queue_status.position, d->queue_status.ID);
+		  	  "X-Listen-IP: %s\r\n", 
+			  ip_port_to_gchar(listen_ip(), listen_port));
 }
 
 
@@ -789,7 +795,7 @@ static struct parq_ul_queued *parq_upload_find(gnutella_upload_t *u)
 	
 	rw = gm_snprintf(buf, sizeof(buf),
 		"%d %s", u->ip, u->name);
-
+	
 	return g_hash_table_lookup(ul_all_parq_by_IP_and_Name, buf);
 }
 
@@ -895,6 +901,19 @@ void parq_upload_timer(time_t now)
 		}
 			
 		parq_upload_save_queue();
+		
+		
+		for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
+    	    struct parq_ul_queue *queue = (struct parq_ul_queue *)  queues->data;
+			
+			printf("PARQ UL: Queue %d/%d contains %d items, "
+					"%d uploading, queue is marked %s \r\n",
+					g_list_position(ul_parqs, g_list_find(ul_parqs, queue)) + 1,
+					g_list_length(ul_parqs),
+					queue->size,
+					queue->active_uploads,
+					queue->active ? "active" : "inactive");
+		}
 	}
 	
 	/*
@@ -958,14 +977,6 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 
 	if (free_slots <= 0)
 		return FALSE;
-	
-	/*
-	 * If the current queued position is too large to receive an upload slot
-	 * we don't need to continue.
-	 */
-	if (uq->position > free_slots)
-		return FALSE;
-	
 
 	/*
 	 * XXX: If the number of upload slots have been decreased, an old queue
@@ -1083,7 +1094,7 @@ gpointer parq_upload_get(gnutella_upload_t *u, header_t *header)
 			goto missing;
 		}
 
-		return parq_ul;
+		goto exit;
 	}
 	
 missing:
@@ -1102,7 +1113,7 @@ missing:
 
 		g_assert(parq_ul != NULL);
 
-//		if (dbg)
+		if (dbg)
 			printf("PARQ UL Q %d/%d (%3d/%3d) ETA: %s Added:  '%s'\r\n",
 				g_list_position(ul_parqs,
 					g_list_find(ul_parqs, parq_ul->queue)) + 1,
@@ -1113,6 +1124,7 @@ missing:
 				parq_ul->IP_and_name);
 	}
 
+exit:
 	g_assert(parq_ul != NULL);
 
 	/*
@@ -1132,7 +1144,8 @@ missing:
  * If the download may continue, true is returned. False otherwise (which 
  * probably means the upload is queued).
  */
-gboolean parq_upload_request(gpointer handle, guint used_slots)
+gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle, 
+	  guint used_slots)
 {
 	struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) handle;
 	time_t now = time((time_t *) NULL);
@@ -1159,7 +1172,7 @@ gboolean parq_upload_request(gpointer handle, guint used_slots)
 	if (parq_upload_continue(parq_ul, max_uploads - used_slots))
 		return TRUE;
 	else {
-		// u->parq_status = TRUE;		// XXX would violate encapsulation
+		u->parq_status = TRUE;		// XXX would violate encapsulation
 		return FALSE;
 	}
 }
@@ -1175,7 +1188,7 @@ void parq_upload_busy(gnutella_upload_t *u, gpointer handle)
 	
 	g_assert(parq_ul != NULL);
 
-	// u->parq_status = 0;			// XXX -- get rid of `parq_status'?
+	u->parq_status = 0;			// XXX -- get rid of `parq_status'?
 	
 	if (parq_ul->position == 0)
 		return;
@@ -1265,7 +1278,7 @@ void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
 	if (parq_upload_queued(a->u)) {
 		guint neededlength = gm_snprintf(lbuf, length,
 			"X-Queue: %d.%d\r\n"
-			"X-Queued: position=%d; ID=%s; length=%d ETA=%dl lifetime=%d\r\n",
+			"X-Queued: position=%d; ID=%s; length=%d; ETA=%d; lifetime=%d\r\n",
 			PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
 			parq_upload_lookup_position(a->u),
 			parq_upload_lookup_id(a->u),
@@ -1276,7 +1289,7 @@ void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
 		if (neededlength < length) {
 			rw = gm_snprintf(buf, length,
 			"X-Queue: %d.%d\r\n"
-			"X-Queued: position=%d; ID=%s; length=%d ETA=%dl lifetime=%d\r\n",
+			"X-Queued: position=%d; ID=%s; length=%d; ETA=%d; lifetime=%d\r\n",
 			PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
 			parq_upload_lookup_position(a->u),
 			parq_upload_lookup_id(a->u),

@@ -2035,7 +2035,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		 *
 		 */		
 
-		if (!parq_upload_request(parq_handle, running_uploads - 1)) {
+		if (!parq_upload_request(u, parq_handle, running_uploads - 1)) {
 			/*
 		 	* Support for bandwith-dependent number of upload slots.
 		 	* The upload bandwith limitation has to be enabled, otherwise
