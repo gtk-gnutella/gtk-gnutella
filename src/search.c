@@ -616,12 +616,13 @@ static gnet_results_set_t *get_results_set(
 		if (rs->status & ST_GGEP) {
 			guchar *priv = &trailer[5] + open_size;
 			gint privlen = (guchar *) e - priv;
-			gint exvcnt;
+			gint exvcnt = 0;
 			extvec_t exv[MAX_EXTVEC];
 			gboolean seen_ggep = FALSE;
 			gint i;
 
-			exvcnt = ext_parse(priv, privlen, exv, MAX_EXTVEC);
+			if (privlen > 0)
+				exvcnt = ext_parse(priv, privlen, exv, MAX_EXTVEC);
 
 			// XXX for now we don't do anything with the information we
 			// XXX collected: we just validate it
