@@ -49,6 +49,7 @@
 #include "gnet_stats.h"
 #include "http.h"
 #include "gwcache.h"
+#include "verify.h"
 
 #include "main_gui.h"
 #include "settings.h"
@@ -132,6 +133,8 @@ void gtk_gnutella_exit(gint n)
 	pmsg_close();
 	version_close();
 	ignore_close();
+	verify_close();
+	bg_close();
 	atom_str_free(start_rfc822_date);
 	atoms_close();
 	wdestroy();
@@ -308,6 +311,7 @@ gint main(gint argc, gchar ** argv)
 	settings_init();
 	guid_init();
 	gwc_init();
+	verify_init();
 	ignore_init();
 	file_info_init();
 	matching_init();
