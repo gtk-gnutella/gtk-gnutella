@@ -514,16 +514,10 @@ static void add_queue_downloads_columns(GtkTreeView *treeview)
  */
 void downloads_gui_init(void)
 {
-	GtkTreeModel *model;
+	GtkTreeStore *model;
 	GtkTreeSelection *selection;
 	GtkTreeView	*treeview;
-
-	parents = g_hash_table_new(NULL, NULL);
-	parents_queue = g_hash_table_new(NULL, NULL);
-	ht_dl_iters = g_hash_table_new(NULL, NULL);
-	
-	/* Create and setup the active downloads treeview */
-	model = (GtkTreeModel *) gtk_tree_store_new(c_dl_num,
+	GType dl_cols[] = {
 		G_TYPE_STRING,		/* File */
 		G_TYPE_STRING,		/* Size */
 		G_TYPE_STRING,		/* Host */
@@ -534,10 +528,30 @@ void downloads_gui_init(void)
 		G_TYPE_STRING,		/* Status */
 		GDK_TYPE_COLOR,		/* Foreground */
 		GDK_TYPE_COLOR,		/* Background */
-		G_TYPE_POINTER);	/* (record_t *) */
+		G_TYPE_POINTER		/* (record_t *) */
+	};
+	GType queue_cols[] = {
+		G_TYPE_STRING,		/* File */
+		G_TYPE_STRING,		/* Size */
+		G_TYPE_STRING,		/* Host */
+		G_TYPE_STRING,		/* Loc */
+		G_TYPE_STRING,		/* Server */
+		G_TYPE_STRING,		/* Status */
+		GDK_TYPE_COLOR,		/* Foreground */
+		GDK_TYPE_COLOR,		/* Background */
+		G_TYPE_POINTER		/* (record_t *) */
+	};
+
+	parents = g_hash_table_new(NULL, NULL);
+	parents_queue = g_hash_table_new(NULL, NULL);
+	ht_dl_iters = g_hash_table_new(NULL, NULL);
+	
+	/* Create and setup the active downloads treeview */
+	STATIC_ASSERT(c_dl_num == G_N_ELEMENTS(dl_cols));
+	model = gtk_tree_store_newv(G_N_ELEMENTS(dl_cols), dl_cols);
 	
 	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_downloads"));
-	gtk_tree_view_set_model(treeview, model);
+	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(model));
 	treeview_downloads = treeview;
 
 	selection = gtk_tree_view_get_selection(treeview);
@@ -569,20 +583,12 @@ void downloads_gui_init(void)
 		G_CALLBACK(on_treeview_downloads_button_press_event), NULL);
 
 	/* Create and setup the queued downloads treeview */	
-	model = (GtkTreeModel *) gtk_tree_store_new(c_queue_num,
-		G_TYPE_STRING,		/* File */
-		G_TYPE_STRING,		/* Size */
-		G_TYPE_STRING,		/* Host */
-		G_TYPE_STRING,		/* Loc */
-		G_TYPE_STRING,		/* Server */
-		G_TYPE_STRING,		/* Status */
-		GDK_TYPE_COLOR,		/* Foreground */
-		GDK_TYPE_COLOR,		/* Background */
-		G_TYPE_POINTER);	/* (record_t *) */
+	STATIC_ASSERT(c_queue_num == G_N_ELEMENTS(queue_cols));
+	model = gtk_tree_store_newv(G_N_ELEMENTS(queue_cols), queue_cols);
 	
 	treeview = GTK_TREE_VIEW(lookup_widget
 		(main_window, "treeview_downloads_queue"));
-	gtk_tree_view_set_model(treeview, model);
+	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(model));
 	treeview_downloads_queue = treeview;
 
 	selection = gtk_tree_view_get_selection(treeview);
@@ -720,18 +726,18 @@ void download_gui_add(download_t *d)
 					(GtkTreeModel *) model, parent);
 				g_assert(host_count > 0);
 			} else {
-				gchar *filename, *host, *size, *server, *status, *country;
+				gchar *filename, *host, *country, *size, *server, *status;
 				GtkTreeIter *iter;
 
 				g_assert(find_download(drecord) != NULL);
 
 				gtk_tree_model_get((GtkTreeModel *) model, parent,
 		      		c_queue_filename, &filename,
-					c_queue_host, &host,
-					c_queue_loc, &country,
-					c_queue_size, &size,
-					c_queue_server, &server,
-					c_queue_status, &status,
+		      		c_queue_host, &host,
+		      		c_queue_loc, &country,
+		      		c_queue_size, &size,
+		      		c_queue_server, &server,
+		      		c_queue_status, &status,
 					(-1));
 
 				/* No header entry so we will create one */
@@ -744,7 +750,7 @@ void download_gui_add(download_t *d)
 					c_queue_filename, "\"",
 					c_queue_host, host,
 					c_queue_loc, country,
-					c_queue_size, NULL,
+					c_queue_size, NULL,	
 					c_queue_server, server,
 					c_queue_status, status,
 					c_queue_record, drecord,
@@ -763,6 +769,7 @@ void download_gui_add(download_t *d)
 
 				G_FREE_NULL(filename);
 				G_FREE_NULL(host);
+				G_FREE_NULL(country);
 				G_FREE_NULL(size);
 				G_FREE_NULL(server);
 				G_FREE_NULL(status);
@@ -875,6 +882,7 @@ void download_gui_add(download_t *d)
 
 				G_FREE_NULL(filename);
 				G_FREE_NULL(host);
+				G_FREE_NULL(country);
 				G_FREE_NULL(size);
 				G_FREE_NULL(server);
 				G_FREE_NULL(range);
@@ -1034,6 +1042,7 @@ void download_gui_remove(download_t *d)
 				(-1));
 
 			G_FREE_NULL(host);
+			G_FREE_NULL(country);
 			G_FREE_NULL(server);
 			G_FREE_NULL(status);
 		} else {
@@ -1062,6 +1071,7 @@ void download_gui_remove(download_t *d)
 				(-1));
 
 			G_FREE_NULL(host);
+			G_FREE_NULL(country);
 			G_FREE_NULL(range);
 			G_FREE_NULL(server);
 			G_FREE_NULL(status);
