@@ -16,5 +16,6 @@ void sendto_all_but_one(struct gnutella_node *, guchar *, guchar *,
 						guint32);
 void sendto_all(guchar *, guchar *, guint32);
 void message_add(guchar *, guint8, struct gnutella_node *);
+struct gnutella_node *route_towards_guid(guchar *guid);
 
 #endif /* __routing_h__ */
