@@ -75,7 +75,7 @@ prop = {
 		   "the maximum amount of connections to allow incoming connections.";
     type = guint32;
     data = {
-        default = 2;
+        default = 0;
         min     = 0;
         max     = 100;
     };
