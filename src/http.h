@@ -160,6 +160,7 @@ gpointer http_async_get(
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind);
 
+gchar *http_async_strerror(gint errnum);
 gchar *http_async_info(
 	gpointer handle, gchar **req, gchar **path, guint32 *ip, guint16 *port);
 void http_async_connected(gpointer handle);
