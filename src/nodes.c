@@ -2636,12 +2636,39 @@ static void node_process_handshake_header(
 	}
 
 	/*
+	 * Content-Encoding -- compression accepted by the remote side
+	 */
+
+	field = header_get(head, "Content-Encoding");
+	if (field) {
+		if (strstr(field, "deflate"))		// XXX needs more rigourous parsing
+			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
+	}
+
+	/*
 	 * Crawler -- LimeWire's Gnutella crawler
 	 */
 
 	field = header_get(head, "Crawler");
 	if (field)
 		n->flags |= NODE_F_CRAWLER;
+
+	/*
+	 * Vendor-specific banning.
+	 *
+	 * This happens at step #2 of the handshaking process for incoming
+	 * connections, at at step #3 for outgoing ones.
+	 */
+
+	if (n->vendor) {
+		gchar *msg = ban_vendor(n->vendor);
+
+		if (msg != NULL) {
+			send_node_error(n->socket, 403, msg);
+			node_remove(n, msg);
+			return;
+		}
+	}
 
 	/*
 	 * We no longer flag incoming 0.6 connections as NODE_F_TMP, so we
@@ -2666,16 +2693,6 @@ static void node_process_handshake_header(
 	}
 
 	/*
-	 * Content-Encoding -- compression accepted by the remote side
-	 */
-
-	field = header_get(head, "Content-Encoding");
-	if (field) {
-		if (strstr(field, "deflate"))		// XXX needs more rigourous parsing
-			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
-	}
-
-	/*
 	 * X-Query-Routing -- QRP protocol in use
 	 */
 
@@ -2688,23 +2705,6 @@ static void node_process_handshake_header(
 				node_ip(n), n->vendor ? n->vendor : "????", major, minor);
 		n->qrp_major = (guint8) major;
 		n->qrp_minor = (guint8) minor;
-	}
-
-	/*
-	 * Vendor-specific banning.
-	 *
-	 * This happens at step #2 of the handshaking process for incoming
-	 * connections, at at step #3 for outgoing ones.
-	 */
-
-	if (n->vendor) {
-		gchar *msg = ban_vendor(n->vendor);
-
-		if (msg != NULL) {
-			send_node_error(n->socket, 403, msg);
-			node_remove(n, msg);
-			return;
-		}
 	}
 
 	/*
@@ -2738,6 +2738,16 @@ static void node_process_handshake_header(
 				extract_header_pongs(head, n);
 
 			return;				/* node_remove() has freed s->getline */
+		}
+
+		/* Make sure we only receive incoming connections from crawlers */
+
+		if (n->flags & NODE_F_CRAWLER) {
+			gchar *msg = "Cannot connect to a crawler";
+
+			send_node_error(n->socket, 403, msg);
+			node_remove(n, msg);
+			return;
 		}
 
 		/* X-Ultrapeer-Needed -- only defined for 2nd reply (outgoing) */
@@ -2794,14 +2804,12 @@ static void node_process_handshake_header(
 			"GNUTELLA/0.6 200 OK\r\n"
 			"%s"			// Content-Encoding
 			"%s"			// X-Ultrapeer
-			"%s"			// X-Query-Routing (advertise version we'll use)
-			"%s"			// Peers & Leaves
+			"%s"			// X-Query-Routing (tells version we'll use)
 			"\r\n",
 			(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
 			mode_changed ? "X-Ultrapeer: False\r\n" : "",
 			(n->qrp_major > 0 || n->qrp_minor > 1) ?
-				"X-Query-Routing: 0.1\r\n" : "",
-			(n->flags & NODE_F_CRAWLER) ? node_crawler_headers(n) : "");
+				"X-Query-Routing: 0.1\r\n" : "");
 	 	
 		g_assert(rw < sizeof(gnet_response));
 	} else {
@@ -2814,33 +2822,43 @@ static void node_process_handshake_header(
 		ultra_max = max_connections - normal_connections;
 		ultra_max = MAX(ultra_max, 0);
 
-		rw = g_snprintf(gnet_response, sizeof(gnet_response),
-			"GNUTELLA/0.6 200 OK\r\n"
-			"User-Agent: %s\r\n"
-			"Pong-Caching: 0.1\r\n"
-			"Bye-Packet: 0.1\r\n"
-			"GGEP: 0.5\r\n"
-			"Vendor-Message: 0.1\r\n"
-			"Remote-IP: %s\r\n"
-			"Accept-Encoding: deflate\r\n"
-			"%s"		// Content-Encoding
-			"%s"		// X-Ultrapeer
-			"%s"		// X-Ultrapeer-Needed
-			"%s"		// X-Query-Routing
-			"%s"		// Peers & Leaves
-			"X-Live-Since: %s\r\n"
-			"\r\n",
-			version_string, ip_to_gchar(n->socket->ip),
-			(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
-			current_peermode == NODE_P_NORMAL ? "" :
-			current_peermode == NODE_P_LEAF ?
-				"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
-			current_peermode != NODE_P_ULTRA ? "" :
-			node_ultra_count < ultra_max ? "X-Ultrapeer-Needed: True\r\n"
-				: "X-Ultrapeer-Needed: False\r\n",
-			current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.1\r\n" : "",
-			(n->flags & NODE_F_CRAWLER) ? node_crawler_headers(n) : "",
-			start_rfc822_date);
+		if (n->flags & NODE_F_CRAWLER)
+			rw = g_snprintf(gnet_response, sizeof(gnet_response),
+				"GNUTELLA/0.6 200 OK\r\n"
+				"User-Agent: %s\r\n"
+				"%s"		// Peers & Leaves
+				"X-Live-Since: %s\r\n"
+				"\r\n",
+				version_string, node_crawler_headers(n), start_rfc822_date);
+		else
+			rw = g_snprintf(gnet_response, sizeof(gnet_response),
+				"GNUTELLA/0.6 200 OK\r\n"
+				"User-Agent: %s\r\n"
+				"Pong-Caching: 0.1\r\n"
+				"Bye-Packet: 0.1\r\n"
+				"GGEP: 0.5\r\n"
+				"Vendor-Message: 0.1\r\n"
+				"Remote-IP: %s\r\n"
+				"Accept-Encoding: deflate\r\n"
+				"%s"		// Content-Encoding
+				"%s"		// X-Ultrapeer
+				"%s"		// X-Ultrapeer-Needed
+				"%s"		// X-Query-Routing
+				"X-Live-Since: %s\r\n"
+				"\r\n",
+				version_string, ip_to_gchar(n->socket->ip),
+				(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
+				current_peermode == NODE_P_NORMAL ? "" :
+				current_peermode == NODE_P_LEAF ?
+					"X-Ultrapeer: False\r\n" :
+					"X-Ultrapeer: True\r\n",
+				current_peermode != NODE_P_ULTRA ? "" :
+				node_ultra_count < ultra_max ?
+					"X-Ultrapeer-Needed: True\r\n" :
+					"X-Ultrapeer-Needed: False\r\n",
+				current_peermode != NODE_P_NORMAL ?
+					"X-Query-Routing: 0.1\r\n" : "",
+				start_rfc822_date);
 
 		g_assert(rw < sizeof(gnet_response));
 	}
