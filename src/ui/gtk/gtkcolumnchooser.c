@@ -168,7 +168,7 @@ gtk_column_chooser_new(GtkWidget *widget)
     gtk_widget_show(menuitem);
     gtk_menu_append(menu, menuitem);
 
-    menuitem = gtk_menu_item_new_with_label("Done");
+    menuitem = gtk_menu_item_new_with_label(_("Done"));
 
     /*
      * Set the GtkColumnChooser instance as user_data, so
