@@ -18,6 +18,9 @@
   "force local IP" parameter is true by default.
 - Could be sending pongs with TTL=0 by mistake.
 - Was always sending pings with TTL=1 by mistake.
+- Initial take at bandwidth management -- can only be configured via the
+  config file, i.e. once and for all.  Only output bandwidth limit for now.
+  Gnet traffic does not count.
 
 # v 0.80   2002.01.31  [stable]
 # v 0.80   2002.01.22  [beta2]
