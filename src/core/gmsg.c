@@ -726,7 +726,7 @@ gmsg_install_presend(pmsg_t *mb)
 	struct gnutella_header *head = (struct gnutella_header *) start;
 
 	if (head->function == GTA_MSG_SEARCH) {
-		gpointer old = pmsg_set_check(mb, gmsg_query_can_send);
+		pmsg_check_t old = pmsg_set_check(mb, gmsg_query_can_send);
 		g_assert(old == NULL);
 	}
 }
@@ -827,7 +827,7 @@ gmsg_infostr_full(gpointer message)
 	gpointer data;
 
 	READ_GUINT32_LE(h->size, size);
-	data = message + sizeof(*h);
+	data = (gchar *) message + sizeof(*h);
 
 	switch (h->function) {
 	case GTA_MSG_VENDOR:
@@ -996,7 +996,7 @@ gboolean
 gmsg_is_oob_query(gpointer msg)
 {
 	struct gnutella_header *h = (struct gnutella_header *) msg;
-	gpointer data = msg + GTA_HEADER_SIZE;
+	gpointer data = (gchar *) msg + GTA_HEADER_SIZE;
 	guint16 req_speed;
 
 	g_assert(h->function == GTA_MSG_SEARCH);
