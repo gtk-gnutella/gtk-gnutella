@@ -525,6 +525,7 @@ create_main_window (void)
   GtkWidget *spinbutton_config_speed;
   GtkWidget *label36;
   GtkWidget *hseparator8;
+  GtkWidget *checkbutton_compute_connection_speed;
   GtkWidget *frame_expert_rx_buffers;
   GtkWidget *table67;
   GtkWidget *label553;
@@ -5196,7 +5197,7 @@ create_main_window (void)
   gtk_widget_show (frame12);
   gtk_box_pack_start (GTK_BOX (vbox29), frame12, FALSE, TRUE, 0);
 
-  table4 = gtk_table_new (5, 3, FALSE);
+  table4 = gtk_table_new (6, 3, FALSE);
   gtk_widget_set_name (table4, "table4");
   gtk_widget_ref (table4);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table4", table4,
@@ -5354,6 +5355,16 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table4), hseparator8, 0, 3, 3, 4,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  checkbutton_compute_connection_speed = gtk_check_button_new_with_label (_("Compute upload connection speed"));
+  gtk_widget_set_name (checkbutton_compute_connection_speed, "checkbutton_compute_connection_speed");
+  gtk_widget_ref (checkbutton_compute_connection_speed);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_compute_connection_speed", checkbutton_compute_connection_speed,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_compute_connection_speed);
+  gtk_table_attach (GTK_TABLE (table4), checkbutton_compute_connection_speed, 0, 1, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   frame_expert_rx_buffers = gtk_frame_new (_("Socket Receive Buffer Size"));
   gtk_widget_set_name (frame_expert_rx_buffers, "frame_expert_rx_buffers");

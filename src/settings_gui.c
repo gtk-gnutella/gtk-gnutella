@@ -215,6 +215,7 @@ static void update_output_bw_display(void);
 static void update_input_bw_display(void);
 #ifdef USE_GTK1
 static gboolean dl_http_latency_changed(property_t prop);
+static gboolean compute_connection_speed_changed(property_t prop);
 #endif
 
 /* FIXME:
@@ -826,6 +827,16 @@ static prop_map_t property_map[] = {
         "spinbutton_config_speed",
         FREQ_UPDATES, 0
     },
+#ifdef USE_GTK1
+    {
+        get_main_window,
+        PROP_COMPUTE_CONNECTION_SPEED,
+		compute_connection_speed_changed,
+        TRUE,
+        "checkbutton_compute_connection_speed",
+        FREQ_UPDATES, 0
+    },
+#endif
     {
         get_main_window,
         PROP_QUERY_RESPONSE_MAX_ITEMS,
@@ -3339,6 +3350,20 @@ static gboolean traffic_stats_mode_changed(property_t prop)
 
     return FALSE;
 }
+
+#ifdef USE_GTK1
+static gboolean compute_connection_speed_changed(property_t prop)
+{
+    gboolean b;
+    
+    gnet_prop_get_boolean_val(prop, &b);
+    update_togglebutton(prop);
+    gtk_widget_set_sensitive(
+        lookup_widget(main_window, "spinbutton_config_speed"), !b);
+
+    return FALSE;
+}
+#endif
 
 static gboolean min_dup_ratio_changed(property_t prop)
 {
