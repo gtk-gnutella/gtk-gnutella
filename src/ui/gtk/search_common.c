@@ -852,16 +852,16 @@ void search_matched(search_t *sch, results_set_t *rs)
         /*
          * We start with FILTER_PROP_DISPLAY:
          */
-        if (!((flt_result->props[FILTER_PROP_DISPLAY].state == 
-                FILTER_PROP_STATE_DONT) &&
-            (flt_result->props[FILTER_PROP_DISPLAY].user_data == 0)) &&
-            (sch->items < search_max_results))
+        if (!(flt_result->props[FILTER_PROP_DISPLAY].state == 
+                FILTER_PROP_STATE_DONT &&
+            flt_result->props[FILTER_PROP_DISPLAY].user_data == 0) &&
+			results_kept++ >= 0 &&	/* Count as kept even if max results */
+            sch->items < search_max_results)
         {
             GdkColor *fg_color = NULL;
             gboolean mark;
 
             sch->items++;
-			results_kept++;
             g_hash_table_insert(sch->dups, rc, GINT_TO_POINTER(1));
             search_gui_ref_record(rc);
 
