@@ -19,6 +19,21 @@
   GUI stuff and the program logic, requiring further fine tuning.
 - Rewrote NUL detection logic in search query, and now dumps yet unhandled
   extra query data
+- Constant refactoring: moved download/upload/socket constants and state
+  inspection predicates into their respective headers
+- Now scan uploads for timeouts, and added configuration of the various
+  time limits via two new config variables: "upload_connected_timeout" and
+  "upload_connecting_timeout"
+- Proxy connection errors were not reported (show_error() was not implemented)
+- Now parses HTTP headers correctly
+- Handles HTTP "HEAD" requests correctly
+- Handles incoming Gnet handshaking at the 0.6 level
+  (but does not issue outgoing 0.6 handshakes yet)
+- Cancelled uploads are now logged with details, since they don't appear
+  in the GUI currently
+- Mark upload/download as stalled if no I/O within the last minute
+- The amount of seconds between two automatic re-queries of the network
+  now has to be at least of 600 seconds.
 
 # v 0.18   2001.11.19
 
