@@ -14,8 +14,8 @@
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 
-#include "callbacks.h"
-#include "interface.h"
+#include "callbacks-glade.h"
+#include "interface-glade.h"
 #include "support.h"
 
 /* Global Widgets (added by extern.tcl) */
@@ -67,6 +67,7 @@ GtkWidget *entry_minimum_speed;
 GtkWidget *notebook_search_results;
 GtkWidget *button_search_download;
 GtkWidget *button_search_stream;
+GtkWidget *button_search_clear;
 GtkWidget *combo_searches;
 GtkWidget *combo_entry_searches;
 GtkWidget *button_search_filter;
@@ -92,6 +93,16 @@ GtkWidget *button_config_update_port;
 GtkWidget *button_config_rescan_dir;
 GtkWidget *label_left;
 GtkWidget *label_right;
+GtkWidget *entry_config;
+GtkWidget *radio_socksv4;
+GtkWidget *radio_socksv5;
+GtkWidget *checkbutton_proxy_connections;
+GtkWidget *config_entry_socks_host;
+GtkWidget *config_entry_socks_port;
+GtkWidget *config_entry_socks_username;
+GtkWidget *config_entry_socks_password;
+GtkWidget *entry_max_connections;
+GtkWidget *entry_search_reissue_timeout;
 GtkWidget *popup_hosts;
 GtkWidget *popup_hosts_title;
 GtkWidget *popup_hosts_export;
@@ -111,14 +122,13 @@ GtkWidget *popup_search_close;
 GtkWidget *popup_search_toggle_tabs;
 GtkWidget *popup_search_restart;
 GtkWidget *popup_search_duplicate;
+GtkWidget *popup_search_clear_results;
 GtkWidget *popup_monitor;
 GtkWidget *popup_monitor_title;
 GtkWidget *popup_nodes;
 GtkWidget *popup_nodes_title;
 GtkWidget *popup_uploads;
 GtkWidget *popup_uploads_title;
-GtkWidget *button_search_clear;
-GtkWidget *popup_search_clear_results;
 
 /* End of global widgets */
 
@@ -152,7 +162,9 @@ create_main_window (void)
   GtkWidget *hbox3;
   GtkWidget *label2;
   GtkWidget *label3;
-  GtkWidget *label4;
+  GtkWidget *hbox54;
+  GtkWidget *label82;
+  GtkWidget *label83;
   GtkWidget *hbox5;
   GtkWidget *frame_network;
   GtkWidget *table1;
@@ -216,6 +228,11 @@ create_main_window (void)
   GtkWidget *hbox20;
   GtkWidget *button_search_passive;
   GtkWidget *hbox52;
+  GtkWidget *hbox63;
+  GtkWidget *hbox64;
+  GtkWidget *hbox62;
+  GtkWidget *hbuttonbox3;
+  GtkWidget *search_reissue_label;
   GtkWidget *label_search;
   GtkWidget *vbox_monitor;
   GtkWidget *hbox45;
@@ -257,10 +274,23 @@ create_main_window (void)
   GtkWidget *label37;
   GtkWidget *label38;
   GtkWidget *label39;
-  GtkWidget *frame_TTL;
-  GtkWidget *hbox_TTL;
-  GtkWidget *label32;
-  GtkWidget *label33;
+  GtkWidget *hbox55;
+  GtkWidget *frame1;
+  GtkWidget *hbox56;
+  GtkWidget *label84;
+  GtkWidget *label85;
+  GtkWidget *frame2;
+  GtkWidget *hbox57;
+  GtkWidget *vbox10;
+  GtkWidget *hbox59;
+  GtkWidget *label90;
+  GSList *socks_version_group = NULL;
+  GtkWidget *hbox60;
+  GtkWidget *label91;
+  GtkWidget *label92;
+  GtkWidget *hbox61;
+  GtkWidget *label93;
+  GtkWidget *label94;
   GtkWidget *label_config;
   GtkWidget *hbox_copyright;
   GtkAccelGroup *accel_group;
@@ -571,12 +601,34 @@ create_main_window (void)
   gtk_widget_show (label3);
   gtk_box_pack_start (GTK_BOX (hbox3), label3, FALSE, FALSE, 0);
 
-  label4 = gtk_label_new ("");
-  gtk_widget_ref (label4);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label4", label4,
+  hbox54 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox54);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox54", hbox54,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label4);
-  gtk_box_pack_start (GTK_BOX (hbox3), label4, TRUE, TRUE, 0);
+  gtk_widget_show (hbox54);
+  gtk_box_pack_start (GTK_BOX (hbox3), hbox54, TRUE, TRUE, 0);
+
+  label82 = gtk_label_new ("Maximum of");
+  gtk_widget_ref (label82);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label82", label82,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label82);
+  gtk_box_pack_start (GTK_BOX (hbox54), label82, FALSE, FALSE, 0);
+
+  entry_max_connections = gtk_entry_new ();
+  gtk_widget_ref (entry_max_connections);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_max_connections", entry_max_connections,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_max_connections);
+  gtk_box_pack_start (GTK_BOX (hbox54), entry_max_connections, FALSE, FALSE, 4);
+  gtk_widget_set_usize (entry_max_connections, 32, -2);
+
+  label83 = gtk_label_new ("total connections.");
+  gtk_widget_ref (label83);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label83", label83,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label83);
+  gtk_box_pack_start (GTK_BOX (hbox54), label83, FALSE, FALSE, 0);
 
   hbox5 = gtk_hbox_new (TRUE, 6);
   gtk_widget_ref (hbox5);
@@ -1357,7 +1409,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox20", hbox20,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox20);
-  gtk_box_pack_start (GTK_BOX (vbox_search), hbox20, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox_search), hbox20, FALSE, TRUE, 0);
 
   button_search_download = gtk_button_new_with_label (" Download selected files ");
   gtk_widget_ref (button_search_download);
@@ -1413,6 +1465,49 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_jump_to_downloads);
   gtk_box_pack_start (GTK_BOX (hbox52), checkbutton_jump_to_downloads, FALSE, FALSE, 0);
+
+  hbox63 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox63);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox63", hbox63,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox63);
+  gtk_box_pack_start (GTK_BOX (hbox52), hbox63, TRUE, TRUE, 0);
+
+  hbox64 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox64);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox64", hbox64,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox64);
+  gtk_box_pack_start (GTK_BOX (hbox63), hbox64, TRUE, TRUE, 0);
+
+  hbox62 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox62);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox62", hbox62,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox62);
+  gtk_box_pack_start (GTK_BOX (hbox52), hbox62, TRUE, TRUE, 0);
+
+  hbuttonbox3 = gtk_hbutton_box_new ();
+  gtk_widget_ref (hbuttonbox3);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbuttonbox3", hbuttonbox3,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbuttonbox3);
+  gtk_box_pack_start (GTK_BOX (hbox62), hbuttonbox3, TRUE, TRUE, 0);
+
+  search_reissue_label = gtk_label_new ("Search Reissue Timeout (seconds):");
+  gtk_widget_ref (search_reissue_label);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "search_reissue_label", search_reissue_label,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (search_reissue_label);
+  gtk_box_pack_start (GTK_BOX (hbox62), search_reissue_label, FALSE, FALSE, 2);
+
+  entry_search_reissue_timeout = gtk_entry_new ();
+  gtk_widget_ref (entry_search_reissue_timeout);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_search_reissue_timeout", entry_search_reissue_timeout,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_search_reissue_timeout);
+  gtk_box_pack_start (GTK_BOX (hbox62), entry_search_reissue_timeout, FALSE, FALSE, 0);
+  gtk_widget_set_usize (entry_search_reissue_timeout, 32, -2);
 
   label_search = gtk_label_new ("Search");
   gtk_widget_ref (label_search);
@@ -1859,50 +1954,191 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox_searches), label39, TRUE, TRUE, 0);
   gtk_label_set_line_wrap (GTK_LABEL (label39), TRUE);
 
-  frame_TTL = gtk_frame_new ("gnutellaNet TTL settings (both default to 5)");
-  gtk_widget_ref (frame_TTL);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_TTL", frame_TTL,
+  hbox55 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox55);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox55", hbox55,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame_TTL);
-  gtk_box_pack_start (GTK_BOX (vbox_config), frame_TTL, TRUE, TRUE, 0);
+  gtk_widget_show (hbox55);
+  gtk_box_pack_start (GTK_BOX (vbox_config), hbox55, TRUE, TRUE, 0);
 
-  hbox_TTL = gtk_hbox_new (FALSE, 4);
-  gtk_widget_ref (hbox_TTL);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_TTL", hbox_TTL,
+  frame1 = gtk_frame_new ("gnutellaNet TTL settings");
+  gtk_widget_ref (frame1);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame1", frame1,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox_TTL);
-  gtk_container_add (GTK_CONTAINER (frame_TTL), hbox_TTL);
-  gtk_container_set_border_width (GTK_CONTAINER (hbox_TTL), 4);
+  gtk_widget_show (frame1);
+  gtk_box_pack_start (GTK_BOX (hbox55), frame1, TRUE, TRUE, 2);
+  gtk_widget_set_usize (frame1, 178, -2);
 
-  label32 = gtk_label_new ("Max TTL:");
-  gtk_widget_ref (label32);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label32", label32,
+  hbox56 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox56);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox56", hbox56,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label32);
-  gtk_box_pack_start (GTK_BOX (hbox_TTL), label32, FALSE, FALSE, 0);
+  gtk_widget_show (hbox56);
+  gtk_container_add (GTK_CONTAINER (frame1), hbox56);
+
+  label84 = gtk_label_new ("Max TTL:");
+  gtk_widget_ref (label84);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label84", label84,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label84);
+  gtk_box_pack_start (GTK_BOX (hbox56), label84, FALSE, FALSE, 2);
 
   entry_config_maxttl = gtk_entry_new ();
   gtk_widget_ref (entry_config_maxttl);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_config_maxttl", entry_config_maxttl,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_config_maxttl);
-  gtk_box_pack_start (GTK_BOX (hbox_TTL), entry_config_maxttl, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox56), entry_config_maxttl, FALSE, FALSE, 0);
   gtk_widget_set_usize (entry_config_maxttl, 32, -2);
 
-  label33 = gtk_label_new ("My TTL:");
-  gtk_widget_ref (label33);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label33", label33,
+  label85 = gtk_label_new ("My TTL:");
+  gtk_widget_ref (label85);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label85", label85,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label33);
-  gtk_box_pack_start (GTK_BOX (hbox_TTL), label33, FALSE, FALSE, 0);
+  gtk_widget_show (label85);
+  gtk_box_pack_start (GTK_BOX (hbox56), label85, FALSE, FALSE, 7);
+  gtk_widget_set_usize (label85, 46, -2);
 
   entry_config_myttl = gtk_entry_new ();
   gtk_widget_ref (entry_config_myttl);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_config_myttl", entry_config_myttl,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_config_myttl);
-  gtk_box_pack_start (GTK_BOX (hbox_TTL), entry_config_myttl, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox56), entry_config_myttl, FALSE, FALSE, 0);
   gtk_widget_set_usize (entry_config_myttl, 32, -2);
+
+  frame2 = gtk_frame_new ("Proxy Options");
+  gtk_widget_ref (frame2);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame2", frame2,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame2);
+  gtk_box_pack_start (GTK_BOX (hbox55), frame2, TRUE, TRUE, 2);
+  gtk_widget_set_usize (frame2, 301, 91);
+
+  hbox57 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox57);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox57", hbox57,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox57);
+  gtk_container_add (GTK_CONTAINER (frame2), hbox57);
+
+  vbox10 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_ref (vbox10);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox10", vbox10,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox10);
+  gtk_box_pack_start (GTK_BOX (hbox57), vbox10, TRUE, TRUE, 0);
+
+  hbox59 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox59);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox59", hbox59,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox59);
+  gtk_box_pack_start (GTK_BOX (vbox10), hbox59, TRUE, TRUE, 0);
+
+  label90 = gtk_label_new ("Socks Version:");
+  gtk_widget_ref (label90);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label90", label90,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label90);
+  gtk_box_pack_start (GTK_BOX (hbox59), label90, FALSE, FALSE, 0);
+
+  radio_socksv4 = gtk_radio_button_new_with_label (socks_version_group, "v4");
+  socks_version_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radio_socksv4));
+  gtk_widget_ref (radio_socksv4);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "radio_socksv4", radio_socksv4,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (radio_socksv4);
+  gtk_box_pack_start (GTK_BOX (hbox59), radio_socksv4, FALSE, FALSE, 0);
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (radio_socksv4), TRUE);
+
+  radio_socksv5 = gtk_radio_button_new_with_label (socks_version_group, "v5");
+  socks_version_group = gtk_radio_button_group (GTK_RADIO_BUTTON (radio_socksv5));
+  gtk_widget_ref (radio_socksv5);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "radio_socksv5", radio_socksv5,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (radio_socksv5);
+  gtk_box_pack_start (GTK_BOX (hbox59), radio_socksv5, FALSE, FALSE, 0);
+
+  checkbutton_proxy_connections = gtk_check_button_new_with_label ("Proxy Connections?");
+  gtk_widget_ref (checkbutton_proxy_connections);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_proxy_connections", checkbutton_proxy_connections,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_proxy_connections);
+  gtk_box_pack_start (GTK_BOX (hbox59), checkbutton_proxy_connections, FALSE, FALSE, 0);
+
+  hbox60 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox60);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox60", hbox60,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox60);
+  gtk_box_pack_start (GTK_BOX (vbox10), hbox60, TRUE, TRUE, 0);
+
+  label91 = gtk_label_new ("Socks Host:");
+  gtk_widget_ref (label91);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label91", label91,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label91);
+  gtk_box_pack_start (GTK_BOX (hbox60), label91, FALSE, FALSE, 0);
+
+  config_entry_socks_host = gtk_entry_new ();
+  gtk_widget_ref (config_entry_socks_host);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "config_entry_socks_host", config_entry_socks_host,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (config_entry_socks_host);
+  gtk_box_pack_start (GTK_BOX (hbox60), config_entry_socks_host, FALSE, FALSE, 0);
+
+  label92 = gtk_label_new ("Port:");
+  gtk_widget_ref (label92);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label92", label92,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label92);
+  gtk_box_pack_start (GTK_BOX (hbox60), label92, FALSE, FALSE, 0);
+
+  config_entry_socks_port = gtk_entry_new ();
+  gtk_widget_ref (config_entry_socks_port);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "config_entry_socks_port", config_entry_socks_port,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (config_entry_socks_port);
+  gtk_box_pack_start (GTK_BOX (hbox60), config_entry_socks_port, FALSE, FALSE, 0);
+  gtk_widget_set_usize (config_entry_socks_port, 43, -2);
+
+  hbox61 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox61);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox61", hbox61,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox61);
+  gtk_box_pack_start (GTK_BOX (vbox10), hbox61, TRUE, TRUE, 0);
+
+  label93 = gtk_label_new ("Username:");
+  gtk_widget_ref (label93);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label93", label93,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label93);
+  gtk_box_pack_start (GTK_BOX (hbox61), label93, FALSE, FALSE, 4);
+
+  config_entry_socks_username = gtk_entry_new ();
+  gtk_widget_ref (config_entry_socks_username);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "config_entry_socks_username", config_entry_socks_username,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (config_entry_socks_username);
+  gtk_box_pack_start (GTK_BOX (hbox61), config_entry_socks_username, FALSE, FALSE, 0);
+  gtk_widget_set_usize (config_entry_socks_username, 82, -2);
+
+  label94 = gtk_label_new ("Password:");
+  gtk_widget_ref (label94);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label94", label94,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label94);
+  gtk_box_pack_start (GTK_BOX (hbox61), label94, FALSE, FALSE, 2);
+
+  config_entry_socks_password = gtk_entry_new ();
+  gtk_widget_ref (config_entry_socks_password);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "config_entry_socks_password", config_entry_socks_password,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (config_entry_socks_password);
+  gtk_box_pack_start (GTK_BOX (hbox61), config_entry_socks_password, FALSE, FALSE, 0);
+  gtk_widget_set_usize (config_entry_socks_password, 82, -2);
 
   label_config = gtk_label_new ("Config");
   gtk_widget_ref (label_config);
@@ -1973,6 +2209,12 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_up_connections), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_up_connections_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_max_connections), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_max_connections_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_max_connections), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_entry_max_connections_focus_out_event),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_host_catcher), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_host_catcher_select_row),
@@ -2121,6 +2363,12 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (checkbutton_jump_to_downloads), "toggled",
                       GTK_SIGNAL_FUNC (on_checkbutton_jump_to_downloads_toggled),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_search_reissue_timeout), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_search_reissue_timeout_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_search_reissue_timeout), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_entry_search_reissue_timeout_focus_out_event),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (checkbutton_monitor), "toggled",
                       GTK_SIGNAL_FUNC (on_checkbutton_monitor_toggled),
                       NULL);
@@ -2204,6 +2452,39 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_myttl), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_config_myttl_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (radio_socksv4), "toggled",
+                      GTK_SIGNAL_FUNC (on_radio_socksv4_toggled),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (radio_socksv5), "toggled",
+                      GTK_SIGNAL_FUNC (on_radio_socksv5_toggled),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_proxy_connections), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_proxy_connections_toggled),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (config_entry_socks_host), "activate",
+                      GTK_SIGNAL_FUNC (on_config_entry_socks_host_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (config_entry_socks_host), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_config_entry_socks_host_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (config_entry_socks_port), "activate",
+                      GTK_SIGNAL_FUNC (on_config_entry_socks_port_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (config_entry_socks_port), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_config_entry_socks_port_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (config_entry_socks_username), "activate",
+                      GTK_SIGNAL_FUNC (on_config_entry_socks_username_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (config_entry_socks_username), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_config_entry_socks_username_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (config_entry_socks_password), "activate",
+                      GTK_SIGNAL_FUNC (on_config_entry_socks_password_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (config_entry_socks_password), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_config_entry_socks_password_focus_out_event),
                       NULL);
 
   gtk_object_set_data (GTK_OBJECT (main_window), "tooltips", tooltips);
