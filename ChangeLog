@@ -75,6 +75,18 @@
 - Created new "Stopped" state, which is used on retry-able error conditions,
   such as EOF or "Connection reset by peer" errors.  The retry timer was
   shortened from 60 to 15 seconds, awaiting to make it configurable.
+- Detect and print as such a failed outgoing connection that sent us
+  connection pongs nonetheless.
+- Fixed improper trailer generation in query hits: the last flag byte was
+  not copied at all.
+- Suppressed md5 from the source, it's no longer used.
+- Refactoring in routing logic, mainly for push packet handling.
+- Push packets are now routed correctly, and no longer widely broadcasted.
+- Pushed downloads will abort when the route to the remote servent is lost.
+- Forgot to detect TTL=0 pings in our new ping/pong handling logic.
+- In case the handshaking fails with a remote strange server, read more data
+  to be able to trace more of their reply.
+- Now parses the Query Hit packets only once, no matter how many searches open.
 
 # v 0.18   2001.11.19
 
