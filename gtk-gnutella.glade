@@ -2383,7 +2383,7 @@
 		    <class>GtkScrolledWindow</class>
 		    <name>scrolledwindow6</name>
 		    <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-		    <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+		    <vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
 		    <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
 		    <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 		    <child>
@@ -2795,7 +2795,7 @@
 			<class>GtkScrolledWindow</class>
 			<name>scrolledwindow13</name>
 			<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-			<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
+			<vscrollbar_policy>GTK_POLICY_ALWAYS</vscrollbar_policy>
 			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
 			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
 			<child>
@@ -12161,7 +12161,7 @@ Grace time remaining:</label>
       <widget>
 	<class>GtkLabel</class>
 	<name>label267</name>
-	<label>Raphael Manfredi &lt;Raphael__Manfredi@pobox.com&gt;</label>
+	<label>Raphaël Manfredi &lt;Raphael__Manfredi@pobox.com&gt;</label>
 	<justify>GTK_JUSTIFY_CENTER</justify>
 	<wrap>False</wrap>
 	<xalign>0</xalign>
@@ -12315,7 +12315,7 @@ Grace time remaining:</label>
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label273</name>
-	  <label>Raphael Manfredi</label>
+	  <label>Raphaël Manfredi</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0</xalign>
@@ -12341,7 +12341,7 @@ Grace time remaining:</label>
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label274</name>
-	  <label>Raphael Manfredi</label>
+	  <label>Raphaël Manfredi</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0</xalign>
@@ -12393,7 +12393,7 @@ Grace time remaining:</label>
 	<widget>
 	  <class>GtkLabel</class>
 	  <name>label275</name>
-	  <label>Raphael Manfredi</label>
+	  <label>Raphaël Manfredi</label>
 	  <justify>GTK_JUSTIFY_CENTER</justify>
 	  <wrap>False</wrap>
 	  <xalign>0</xalign>
@@ -12468,7 +12468,8 @@ Noel T.Nunkovich &lt;ntnunk@earthlink.net&gt;
 Michael Tesch &lt;tesch@users.sourceforge.net&gt;
 Markus 'guruz' Goetz &lt;guruz@guruz.info&gt;
 Richard Eckart &lt;wyldfire@users.sourceforge.net&gt;
-Christophe Tronche &lt;ch.tronche@computer.org&gt;</text>
+Christophe Tronche &lt;ch.tronche@computer.org&gt;
+Alex Bennee &lt;alex@bennee.com&gt;</text>
 	</widget>
       </widget>
     </widget>

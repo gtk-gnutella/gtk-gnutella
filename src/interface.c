@@ -1930,7 +1930,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (scrolledwindow6);
   gtk_box_pack_start (GTK_BOX (vbox16), scrolledwindow6, TRUE, TRUE, 0);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow6), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow6), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
 
   clist_downloads = gtk_clist_new (5);
   gtk_widget_ref (clist_downloads);
@@ -2125,7 +2125,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (scrolledwindow13);
   gtk_box_pack_start (GTK_BOX (vbox15), scrolledwindow13, TRUE, TRUE, 0);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow13), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow13), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
 
   clist_downloads_queue = gtk_clist_new (5);
   gtk_widget_ref (clist_downloads_queue);
@@ -7658,7 +7658,7 @@ create_dlg_about (void)
 
   label267 = gtk_label_new ("");
   gtk_label_parse_uline (GTK_LABEL (label267),
-                         "Raphael Manfredi <Raphael__Manfredi@pobox.com>");
+                         "Raphaël Manfredi <Raphael__Manfredi@pobox.com>");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -7726,7 +7726,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label272), 0, 0.5);
 
-  label273 = gtk_label_new ("Raphael Manfredi");
+  label273 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -7736,7 +7736,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label273), 0, 0.5);
 
-  label274 = gtk_label_new ("Raphael Manfredi");
+  label274 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_ref (label274);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label274", label274,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -7756,7 +7756,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label268), 0, 0.5);
 
-  label275 = gtk_label_new ("Raphael Manfredi");
+  label275 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_ref (label275);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label275", label275,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -7791,7 +7791,7 @@ create_dlg_about (void)
   gtk_container_add (GTK_CONTAINER (scrolledwindow18), text1);
   gtk_widget_set_usize (text1, 146, 126);
   gtk_text_insert (GTK_TEXT (text1), NULL, NULL, NULL,
-                   "Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphael Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>", -1);
+                   "Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphael Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>", -1);
 
   hbox137 = gtk_hbox_new (FALSE, 0);
   gtk_widget_ref (hbox137);
