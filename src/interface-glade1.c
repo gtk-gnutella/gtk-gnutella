@@ -666,6 +666,10 @@ create_main_window (void)
   GtkWidget *button_config_add_dir;
   GtkWidget *label_files_scanned;
   GtkWidget *button_config_rescan_dir;
+  GtkWidget *hbox173;
+  GtkWidget *hbox174;
+  GtkWidget *checkbutton_scan_ignore_symlink_dirs;
+  GtkWidget *checkbutton_scan_ignore_symlink_regfiles;
   GtkWidget *hbox27;
   GtkWidget *label41;
   GtkWidget *entry_config_extensions;
@@ -6467,6 +6471,38 @@ create_main_window (void)
   gtk_widget_show (button_config_rescan_dir);
   gtk_box_pack_start (GTK_BOX (hbox_path_buttons), button_config_rescan_dir, FALSE, FALSE, 0);
 
+  hbox173 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox173, "hbox173");
+  gtk_widget_ref (hbox173);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox173", hbox173,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox173);
+  gtk_box_pack_start (GTK_BOX (vbox_path_to_files), hbox173, TRUE, TRUE, 0);
+
+  hbox174 = gtk_hbox_new (FALSE, 4);
+  gtk_widget_set_name (hbox174, "hbox174");
+  gtk_widget_ref (hbox174);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox174", hbox174,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox174);
+  gtk_box_pack_start (GTK_BOX (hbox173), hbox174, TRUE, TRUE, 0);
+
+  checkbutton_scan_ignore_symlink_dirs = gtk_check_button_new_with_label ("Ignore symbolically linked directories");
+  gtk_widget_set_name (checkbutton_scan_ignore_symlink_dirs, "checkbutton_scan_ignore_symlink_dirs");
+  gtk_widget_ref (checkbutton_scan_ignore_symlink_dirs);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_scan_ignore_symlink_dirs", checkbutton_scan_ignore_symlink_dirs,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_scan_ignore_symlink_dirs);
+  gtk_box_pack_start (GTK_BOX (hbox174), checkbutton_scan_ignore_symlink_dirs, FALSE, FALSE, 0);
+
+  checkbutton_scan_ignore_symlink_regfiles = gtk_check_button_new_with_label ("Ignore symbolically linked regular files");
+  gtk_widget_set_name (checkbutton_scan_ignore_symlink_regfiles, "checkbutton_scan_ignore_symlink_regfiles");
+  gtk_widget_ref (checkbutton_scan_ignore_symlink_regfiles);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_scan_ignore_symlink_regfiles", checkbutton_scan_ignore_symlink_regfiles,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_scan_ignore_symlink_regfiles);
+  gtk_box_pack_start (GTK_BOX (hbox174), checkbutton_scan_ignore_symlink_regfiles, FALSE, FALSE, 0);
+
   hbox27 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox27, "hbox27");
   gtk_widget_ref (hbox27);
@@ -11759,7 +11795,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new ("Rapha\353l Manfredi");
+  label267 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -11803,7 +11839,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
-  label273 = gtk_label_new ("Rapha\353l Manfredi");
+  label273 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,

@@ -10393,6 +10393,58 @@ settings</label>
 
 		      <widget>
 			<class>GtkHBox</class>
+			<name>hbox173</name>
+			<homogeneous>False</homogeneous>
+			<spacing>0</spacing>
+			<child>
+			  <padding>0</padding>
+			  <expand>True</expand>
+			  <fill>True</fill>
+			</child>
+
+			<widget>
+			  <class>GtkHBox</class>
+			  <name>hbox174</name>
+			  <homogeneous>False</homogeneous>
+			  <spacing>4</spacing>
+			  <child>
+			    <padding>0</padding>
+			    <expand>True</expand>
+			    <fill>True</fill>
+			  </child>
+
+			  <widget>
+			    <class>GtkCheckButton</class>
+			    <name>checkbutton_scan_ignore_symlink_dirs</name>
+			    <can_focus>True</can_focus>
+			    <label>Ignore symbolically linked directories</label>
+			    <active>False</active>
+			    <draw_indicator>True</draw_indicator>
+			    <child>
+			      <padding>0</padding>
+			      <expand>False</expand>
+			      <fill>False</fill>
+			    </child>
+			  </widget>
+
+			  <widget>
+			    <class>GtkCheckButton</class>
+			    <name>checkbutton_scan_ignore_symlink_regfiles</name>
+			    <can_focus>True</can_focus>
+			    <label>Ignore symbolically linked regular files</label>
+			    <active>False</active>
+			    <draw_indicator>True</draw_indicator>
+			    <child>
+			      <padding>0</padding>
+			      <expand>False</expand>
+			      <fill>False</fill>
+			    </child>
+			  </widget>
+			</widget>
+		      </widget>
+
+		      <widget>
+			<class>GtkHBox</class>
 			<name>hbox27</name>
 			<homogeneous>False</homogeneous>
 			<spacing>4</spacing>

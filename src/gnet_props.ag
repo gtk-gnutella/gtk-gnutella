@@ -1201,6 +1201,26 @@ prop = {
 };
 
 prop = {
+    name = "scan_ignore_symlink_dirs";
+    desc = "Ignore symbolically linked directories when scanning files to "
+           "share.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "scan_ignore_symlink_regfiles";
+    desc = "Ignore symbolically linked regular files when scanning files to "
+           "share.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
     name = "save_file_path";
     cfgvar = "store_downloading_files_to";
     desc = "Store incomplete files in this directory";

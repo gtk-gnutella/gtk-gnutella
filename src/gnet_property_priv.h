@@ -129,6 +129,8 @@ extern gboolean send_pushes;
 extern guint32  min_dup_msg;
 extern guint32  min_dup_ratio;
 extern gchar   *scan_extensions;
+extern gboolean scan_ignore_symlink_dirs;
+extern gboolean scan_ignore_symlink_regfiles;
 extern gchar   *save_file_path;
 extern gchar   *move_file_path;
 extern gchar   *bad_file_path;
