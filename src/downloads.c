@@ -542,28 +542,18 @@ static void download_push_remove(struct download *d)
 	d->push = FALSE;
 }
 
-/* (Re)start a stopped or queued download */
-
-void download_start(struct download *d, gboolean check_allowed)
+/*
+ * download_start_prepare
+ *
+ * Setup the download structure with proper range offset, and check that the
+ * download is not otherwise completed.
+ *
+ * Returns TRUE if we may continue with the download, FALSE if it has been
+ * stopped due to a problem.
+ */
+static gboolean download_start_prepare(struct download *d)
 {
 	struct stat st;
-
-	g_return_if_fail(d);
-
-	/*
-	 * If caller did not check whether we were allowed to start downloading
-	 * this file, do it now. --RAM, 03/09/2001
-	 */
-
-	if (check_allowed && (
-		count_running_downloads() >= max_downloads ||
-		count_running_downloads_with_guid(d->guid) >= max_host_downloads ||
-		count_running_downloads_with_name(d->file_name) != 0)
-	) {
-		if (!DOWNLOAD_IS_QUEUED(d))
-			download_queue(d);
-		return;
-	}
 
 	/*
 	 * If the output file already exists, we have to send a partial request
@@ -606,8 +596,35 @@ void download_start(struct download *d, gboolean check_allowed)
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
 		download_stop(d, GTA_DL_COMPLETED, "Nothing more to get");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/* (Re)start a stopped or queued download */
+
+void download_start(struct download *d, gboolean check_allowed)
+{
+	g_return_if_fail(d);
+
+	/*
+	 * If caller did not check whether we were allowed to start downloading
+	 * this file, do it now. --RAM, 03/09/2001
+	 */
+
+	if (check_allowed && (
+		count_running_downloads() >= max_downloads ||
+		count_running_downloads_with_guid(d->guid) >= max_host_downloads ||
+		count_running_downloads_with_name(d->file_name) != 0)
+	) {
+		if (!DOWNLOAD_IS_QUEUED(d))
+			download_queue(d);
 		return;
 	}
+
+	if (!download_start_prepare(d))
+		return;
 
 	if (!send_pushes && d->push)
 		download_push_remove(d);
@@ -635,9 +652,6 @@ void download_start(struct download *d, gboolean check_allowed)
 
 		download_push(d);
 	}
-
-	if (!DOWNLOAD_IS_VISIBLE(d))
-		download_gui_add(d);
 
 	gui_update_download(d, TRUE);
 
@@ -1388,14 +1402,13 @@ nextline:
 	if (ih->flags & IO_ONE_LINE) {
 		/*
 		 * Call processing routine immediately, then terminate processing.
-		 * Remove the I/O callback input before invoking the callback.
+		 * It is up to the callback to cleanup the I/O structure.
 		 */
 
 		gdk_input_remove(s->gdk_tag);
 		s->gdk_tag = 0;
 
 		ih->process_header(ih);
-		io_free(d->io_opaque);
 		return;
 	}
 
@@ -1440,9 +1453,6 @@ nextline:
 	s->gdk_tag = 0;
 
 	ih->process_header(ih);
-
-	if (d->io_opaque)			/* Could be NULL if we stopped download */
-		io_free(d->io_opaque);
 }
 
 /*
@@ -1852,6 +1862,8 @@ static void download_request(struct download *d, header_t *header)
 	 * We're ready to receive.
 	 */
 
+	io_free(d->io_opaque);
+
 	d->start_date = time((time_t *) NULL);
 	d->status = GTA_DL_RECEIVING;
 	gui_update_download(d, TRUE);
@@ -1998,6 +2010,8 @@ gboolean download_send_request(struct download *d)
 	 * Now prepare to read the status line and the headers.
 	 */
 
+	g_assert(d->io_opaque == NULL);
+
 	ih = (struct io_header *) g_malloc(sizeof(struct io_header));
 	ih->download = d;
 	ih->header = header_make();
@@ -2043,7 +2057,135 @@ static void download_push_ready(struct download *d, getline_t *empty)
 	getline_free(d->socket->getline);
 	d->socket->getline = NULL;
 
-	download_send_request(d);
+	io_free(d->io_opaque);
+	download_send_request(d);		/* Will install new I/O data */
+}
+
+/*
+ * select_push_download
+ *
+ * On reception of a "GIV index:GUID" string, select the appropriate download
+ * to request.
+ *
+ * Returns the selected download, or NULL if we could not find one.
+ */
+static struct download *select_push_download(guint file_index, gchar *hex_guid)
+{
+	struct download *d = NULL;
+	gpointer val;
+	guchar rguid[16];		/* Remote GUID */
+	GSList *l;
+
+	g_strdown(hex_guid);
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s", file_index, hex_guid);
+
+	val = g_hash_table_lookup(pushed_downloads, (gpointer) dl_tmp);
+	if (val) {
+		d = (struct download *) val;
+		g_assert(d->record_index == file_index);
+	} else if (dbg > 3)
+		printf("got unexpected GIV: nothing pending currently\n");
+
+	/*
+	 * We might get another GIV for the same download: we send two pushes
+	 * in a row, and with the propagation delay, the first gets handled
+	 * after we sent the second push.  We'll get a GIV for an already
+	 * connected download.
+	 *
+	 * We check two things: that we're not already connected (has a socket)
+	 * and that we're in a state where we can expect a GIV string.  Doing
+	 * the two tests add robustness, since they are overlapping, but not
+	 * completely equivalent (if we're in the queued state, for instance).
+	 */
+
+	if (d) {
+		if (d->socket) {
+			if (dbg > 3)
+				printf("got concurrent GIV: download is connected, state %d",
+					d->status);
+			d = NULL;
+		} else if (!DOWNLOAD_IS_EXPECTING_GIV(d)) {
+			if (dbg > 3)
+				printf("got GIV string for download in state %d",
+					d->status);
+			d = NULL;
+		}
+	}
+
+	if (d)
+		return d;
+
+	/*
+	 * Whilst we are connected to that servent, find a suitable download
+	 * we could request.
+	 */
+
+	hex_to_guid(hex_guid, rguid);
+
+	/*
+	 * If we have already reached our maximum amount of concurrent downloads,
+	 * or if we have reached our maximum amount of downloads for this host,
+	 * then abort: this connection is wasted.
+	 *
+	 * XXX As a future enhancement, we could instead "kill" a non-active
+	 * XXX download for which no push is done, to give priority to the
+	 * XXX push, which is precious since we need a route to the remote
+	 * XXX servent to initiate the requests. --RAM, 20/01/2002
+	 */
+
+	if (count_running_downloads() >= max_downloads) {
+		g_warning("discarding GIV from %s: no more download slot",
+			guid_hex_str(rguid));
+		return NULL;
+	}
+
+	if (count_running_downloads_with_guid(rguid) >= max_host_downloads) {
+		g_warning("discarding GIV from %s: no more slot for this host",
+			guid_hex_str(rguid));
+		return NULL;
+	}
+
+	/*
+	 * Look for a queued download on this host that we could request.
+	 */
+
+	for (l = sl_downloads; l; l = l->next) {
+		d = (struct download *) l->data;
+
+		if (DOWNLOAD_IS_RUNNING(d))
+			continue;
+
+		if (0 != memcmp(rguid, d->guid, sizeof(d->guid)))
+			continue;
+
+		if (dbg > 4)
+			printf("GIV: trying alternate download '%s' from %s\n",
+				d->file_name, guid_hex_str(rguid));
+
+		/*
+		 * Only prepare the download, don't call download_start(): we already
+		 * have the connection, and simply need to prepare the range offset.
+		 */
+
+		g_assert(d->socket == NULL);
+
+		if (download_start_prepare(d)) {
+			d->status = GTA_DL_CONNECTING;
+			if (!DOWNLOAD_IS_VISIBLE(d))
+				download_gui_add(d);
+
+			gui_update_download(d, TRUE);
+			count_running_downloads();
+
+			if (dbg > 4)
+				printf("GIV: selected alternate download '%s' from %s\n",
+					d->file_name, guid_hex_str(rguid));
+
+			return d;
+		}
+	}
+
+	return NULL;
 }
 
 /*
@@ -2056,7 +2198,7 @@ static void download_push_ready(struct download *d, getline_t *empty)
  */
 void download_push_ack(struct gnutella_socket *s)
 {
-	struct download *d;
+	struct download *d = NULL;
 	gchar *giv;
 	guint file_index;		/* The requested file index */
 	gchar hex_guid[33];		/* The hexadecimal GUID */
@@ -2078,48 +2220,22 @@ void download_push_ack(struct gnutella_socket *s)
 	 * GIV request, which is stored in "s->getline".
 	 */
 
-	if (sscanf(giv, "GIV %u:%32c/", &file_index, hex_guid)) {
-		gpointer val;
-
-		hex_guid[32] = '\0';
-		g_strdown(hex_guid);
-		g_snprintf(dl_tmp, sizeof(dl_tmp), "%u:%s",
-			file_index, hex_guid);
-
-		val = g_hash_table_lookup(pushed_downloads, (gpointer) dl_tmp);
-		if (!val) {
-			g_warning("got a GIV without matching download request");
-			goto error;
-		}
-		d = (struct download *) val;
-		g_assert(d->record_index == file_index);
-	} else {
-		g_warning("malformed GIV string");
-		goto error;
+	if (!sscanf(giv, "GIV %u:%32c/", &file_index, hex_guid)) {
+		g_warning("malformed GIV string: %s", giv);
+		socket_destroy(s);
+		return;
 	}
 
 	/*
-	 * We might get another GIV for the same download: we send two pushes
-	 * in a row, and with the propagation delay, the first gets handled
-	 * after we sent the second push.  We'll get a GIV for an already
-	 * connected download.
-	 *
-	 * We check two things: that we're not already connected (has a socket)
-	 * and that we're in a state where we can expect a GIV string.  Doing
-	 * the two tests add robustness, since they are overlapping, but not
-	 * completely equivalent (if we're in the queued state, for instance).
+	 * Look for a recorded download.
 	 */
 
-	if (d->socket) {
-		g_warning("got spurious GIV string: download is connected, state %d",
-			d->status);
-		goto error;
-	}
-
-	if (!DOWNLOAD_IS_EXPECTING_GIV(d)) {
-		g_warning("got GIV string in unexpected state (%d), ignoring",
-			d->status);
-		goto error;
+	hex_guid[32] = '\0';
+	d = select_push_download(file_index, hex_guid);
+	if (!d) {
+		g_warning("discarded GIV string: %s", giv);
+		socket_destroy(s);
+		return;
 	}
 
 	/*
@@ -2128,9 +2244,9 @@ void download_push_ack(struct gnutella_socket *s)
 
 	g_assert(d->socket == NULL);
 
+	d->last_update = time((time_t *) NULL);
 	d->socket = s;
 	s->resource.download = d;
-	d->last_update = time((time_t *) NULL);
 
 	/*
 	 * Now we have to read that trailing "\n" which comes right afterwards.
@@ -2151,17 +2267,6 @@ void download_push_ack(struct gnutella_socket *s)
 		download_header_read, (gpointer) ih);
 
 	download_header_parse(ih);		/* Data might already be there */
-	return;
-
-	/*
-	 * We come here on error to log the "faulty" GIV string and close the
-	 * connection.
-	 */
-error:
-	dump_hex(stderr, "GIV string", giv,
-		MIN(getline_length(s->getline), 128));
-	socket_destroy(s);
-	return;
 }
 
 void download_retry(struct download *d)
