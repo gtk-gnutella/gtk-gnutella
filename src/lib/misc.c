@@ -1355,13 +1355,15 @@ ascii_strcasecmp(const gchar *s1, const gchar *s2)
 	g_assert(s2 != NULL);
 
 	do {
-		a = ascii_tolower((guchar) *s1++);
-		b = ascii_tolower((guchar) *s2++);
-		if (a != b)
-			return a - b;
-	} while (a != '\0');
+		a = (guchar) *s1++;
+		b = (guchar) *s2++;
+		if (a != b) {
+			a = ascii_tolower(a);
+			b = ascii_tolower(b);
+		}
+	} while (a != '\0' && a == b);
 	
-	return 0;
+	return a - b;
 }
 
 /**
@@ -1376,16 +1378,19 @@ ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len)
 	g_assert(s2 != NULL);
 	g_assert(len <= INT_MAX);
 
-	while (len-- > 0) {
-		a = ascii_tolower((guchar) *s1++);
-		b = ascii_tolower((guchar) *s2++);
-		if (a != b)
-			return a - b;
-		if (a == '\0')
-			break;
-	}
-	
-	return 0;
+	if (len <= 0)
+		return 0;
+
+	do {
+		a = (guchar) *s1++;
+		b = (guchar) *s2++;
+		if (a != b) {
+			a = ascii_tolower(a);
+			b = ascii_tolower(b);
+		}
+	} while (a != '\0' && a == b && --len > 0);
+		
+	return a - b;
 }
 
 
