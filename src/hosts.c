@@ -702,16 +702,16 @@ static void pcache_init(void)
  * Called when a new outgoing connection has been made.
  *
  * + If we need a connection, or have less than MAX_PONGS entries in our caught
- *   list, send a ping at max TTL value.
+ *   list, send a ping at normal TTL value.
  * + Otherwise, send a handshaking ping with TTL=1
  */
 void pcache_outgoing_connection(struct gnutella_node *n)
 {
 	if (
-		up_connections - node_count() > 0 ||
+		connected_nodes() < up_connections ||
 		g_hash_table_size(ht_catched_hosts) < MIN_RESERVE_SIZE
 	)
-		send_ping(NULL, max_ttl);		/* Broadcast ping at max TTL */
+		send_ping(n, my_ttl);			/* Regular ping, get fresh pongs */
 	else
 		send_ping(n, 1);				/* Handshaking ping */
 }
@@ -764,9 +764,9 @@ static void ping_all_neighbours(time_t now)
 			continue;
 
 		if (n->flags & NODE_F_PING_LIMIT)
-			send_ping(n, max_ttl);
+			send_ping(n, my_ttl);
 		else if (now > n->next_ping) {
-			send_ping(n, max_ttl);
+			send_ping(n, my_ttl);
 			n->next_ping = now + OLD_PING_PERIOD;
 		}
 	}
