@@ -7,8 +7,7 @@ ChangeLog
 Configure                    Portability tool
 Jmakefile
 Makefile.SH
-gtk-gnutella.desktop
-gtk-gnutella.png
+U/modified/Config_sh.U
 U/modified/End.U
 U/modified/Loc.U
 U/modified/Myinit.U
@@ -48,6 +47,7 @@ U/packages/gtkconfig.U
 U/packages/gtkversion.U
 U/packages/remotectrl.U
 U/packages/xmlconfig.U
+U/specific/gtkgversion.U
 config_h.SH                  Produces config.h
 debian/README.debian
 debian/changelog
@@ -95,7 +95,9 @@ doc/public/GGEP/bin_format
 doc/public/GGEP/u
 doc/public/README
 doc/public/bye_codes
+gtk-gnutella.desktop
 gtk-gnutella.glade
+gtk-gnutella.png
 gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 gtk2-gnutella.glade
 gwcache.boot
@@ -172,8 +174,12 @@ src/downloads.c
 src/downloads.h
 src/downloads_cb.c
 src/downloads_cb.h
+src/downloads_cb2.c
 src/downloads_gui.c
 src/downloads_gui.h
+src/downloads_gui2.c
+src/downloads_gui_common.c
+src/downloads_gui_common.h
 src/eval.c
 src/eval.h
 src/event.c
