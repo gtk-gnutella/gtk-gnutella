@@ -1295,6 +1295,7 @@ static void
 download_info_reget(struct download *d)
 {
 	struct dl_file_info *fi = d->file_info;
+	gboolean file_size_known;
 
 	g_assert(fi);
 	g_assert(fi->lifecount > 0);
@@ -1302,13 +1303,14 @@ download_info_reget(struct download *d)
 
 	downloads_with_name_dec(fi->file_name);		/* File name can change! */
 	file_info_clear_download(d, TRUE);			/* `d' might be running */
+	file_size_known = fi->file_size_known;		/* This should not change */
 
 	fi->lifecount--;
 	file_info_remove_source(fi, d, FALSE);		/* Keep it around for others */
 
 	fi = file_info_get(
 		d->file_name, save_file_path, d->file_size, d->sha1, 
-		d->file_size_known);
+		file_size_known);
 	file_info_add_source(fi, d);
 	fi->lifecount++;
 
@@ -3349,7 +3351,7 @@ create_download(
 	d->file_name = file_name;
 	d->escaped_name = url_escape_cntrl(file_name);
 
-	if (FALSE == file_size_known)	
+	if (!file_size_known)	
 		size = 1; /* Dummy value to prevent divide by zero errors, etc. */
 
 	d->file_size_known = file_size_known;
