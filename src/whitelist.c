@@ -36,7 +36,7 @@
 
 RCSID("$Id$");
 
-GSList *sl_whitelist = NULL;
+static GSList *sl_whitelist = NULL;
 
 static const gchar whitelist_file[] = "whitelist";
 static time_t whitelist_mtime, whitelist_checked;
@@ -56,14 +56,17 @@ static void whitelist_retrieve(void)
     FILE *f;
     struct stat st;
     int linenum = 0;
-	file_path_t fp;
+	file_path_t fp[1];
 
-	file_path_set(&fp, settings_config_dir(), whitelist_file);
-	f = file_config_open_read_norename("whitelist", &fp, 1);
+	file_path_set(fp, settings_config_dir(), whitelist_file);
+	f = file_config_open_read_norename("Host Whitelist", fp, G_N_ELEMENTS(fp));
 	if (!f)
 		return; 
 
-	fstat(fileno(f), &st);
+	if (fstat(fileno(f), &st)) {
+		g_warning("whitelist_retrieve: fstat() failed: %s", g_strerror(errno));
+		return;
+	}
     whitelist_checked = time(NULL);
     whitelist_mtime = st.st_mtime;
 
@@ -71,10 +74,15 @@ static void whitelist_retrieve(void)
         linenum++;
         if (*line == '#') continue;
 
-        while (*line && line[strlen(line)-1] <= ' ')
-            line[strlen(line)-1] = '\0';
-
-        if (!*line)
+		/* Remove trailing spaces */
+		p = strchr(line, '\0');
+        while (--p >= line) {
+			if (!is_ascii_space((guchar) *p))
+				break;
+           	*p = '\0';
+		}
+			
+        if ('\0' == *line)
             continue;
 
         sport = snetmask = NULL;
@@ -100,31 +108,40 @@ static void whitelist_retrieve(void)
         else
             port = 0;
 
+        netmask = 0xffffffffU; /* Default mask */
         if (snetmask) {
             if (strchr(snetmask, '.')) {
                 netmask = gchar_to_ip(snetmask);
+            	if (!netmask) {
+                	netmask = 0xffffffff;
+                	g_warning("whitelist_retrieve(): "
+						"Line %d: Invalid netmask \"%s\", "
+						"using 255.255.255.255 instead.", linenum, snetmask);
+            	}
             } else {
-                int n = atoi(snetmask);
-                netmask = ~(0xffffffff >> n);
+				gint error;
+				gulong v;
+			
+				v = gm_atoul(snetmask, NULL, &error);
+                if (!error && v > 0 && v <= 32) {
+                	netmask = ~(0xffffffffU >> v);
+				} else {
+					g_warning("whitelist_retrieve(): "
+						"Line %d: Invalid netmask \"%s\", "
+						"using /32 instead.", linenum, snetmask);
+				}
             }
-            if(!netmask) {
-                netmask = 0xffffffff;
-                g_warning("whitelist_retrieve(): "
-					"Line %d: Invalid netmask \"%s\", "
-					"using 255.255.255.255 instead.", linenum, snetmask);
-            }
-        } else
-            netmask = 0xffffffff;
+		}
 
         n = g_malloc0(sizeof(*n));
         n->ip = ip;
         n->port = port;
         n->netmask = netmask;
 
-        sl_whitelist = g_slist_append(sl_whitelist, n);
-
+        sl_whitelist = g_slist_prepend(sl_whitelist, n);
     }
                                                 
+    sl_whitelist = g_slist_reverse(sl_whitelist);
 }
 
 /*
@@ -136,19 +153,19 @@ static void whitelist_retrieve(void)
  */
 int whitelist_connect(void)
 {
-    GSList *l;
+    GSList *sl;
     struct whitelist *n;
     time_t now = time(NULL);
     int num = 0;
 
-    for (l = sl_whitelist; l; l = l->next) {
-        n = l->data;
+    for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) {
+        n = sl->data;
         if (!n->port)
             continue;
         if (node_is_connected(n->ip, n->port, TRUE))
             continue;
 
-        if ((now - n->last_try) > WHITELIST_RETRY_DELAY) {
+        if (delta_time(now, n->last_try) > WHITELIST_RETRY_DELAY) {
             n->last_try = now;
             node_add(n->ip, n->port);
             num++;
@@ -177,10 +194,10 @@ void whitelist_init(void)
  */
 void whitelist_close(void)
 {
-    GSList *l;
+    GSList *sl;
 
-    for (l = sl_whitelist; l; l = l->next) 
-        g_free(l->data);
+    for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) 
+        g_free(sl->data);
 
     g_slist_free(sl_whitelist);
     sl_whitelist = NULL;
@@ -209,17 +226,17 @@ void whitelist_reload(void)
  */
 gboolean whitelist_check(guint32 ip)
 {
-    GSList *l;
     struct whitelist *n;
     time_t now = time(NULL);
+    GSList *sl;
 
     /* Check if the file has changed on disk, and reload it if necessary. */
-    if ((now - whitelist_checked) > WHITELIST_CHECK_INTERVAL) {
+    if (delta_time(now, whitelist_checked) > WHITELIST_CHECK_INTERVAL) {
         struct stat st;
 
         whitelist_checked = now;
 
-        if (NULL != whitelist_path && stat(whitelist_path, &st) != -1) {
+        if (NULL != whitelist_path && 0 == stat(whitelist_path, &st)) {
             if (st.st_mtime != whitelist_mtime) {
                 g_warning("whitelist_check(): "
 					"Whitelist changed on disk. Reloading.");
@@ -228,8 +245,8 @@ gboolean whitelist_check(guint32 ip)
         }
     }
     
-    for (l = sl_whitelist; l; l = l->next) {
-        n = l->data;
+    for (sl = sl_whitelist; sl; sl = g_slist_next(sl)) {
+        n = sl->data;
         if ((ip & n->netmask) == (n->ip & n->netmask))
             return TRUE;
     }
@@ -237,3 +254,4 @@ gboolean whitelist_check(guint32 ip)
     return FALSE;
 }
 
+/* vi: set ts=4: */
