@@ -86,6 +86,7 @@ static filter_t *filter_drop = NULL;
 static filter_t *filter_show = NULL;
 static filter_t *filter_download = NULL;
 static filter_t *filter_nodownload = NULL;
+static filter_t *filter_return = NULL;
 
 /* global filters */
 static filter_t *filter_global_pre = NULL;
@@ -1817,6 +1818,7 @@ static int filter_apply
 	char *l_name;
     GList *list;
     gint prop_count = 0;
+    gboolean abort = FALSE;
 
     g_assert(filter != NULL);
     g_assert(rec != NULL);
@@ -1838,7 +1840,7 @@ static int filter_apply
 	strlower(l_name, rec->name);
 
 	list = g_list_first(list);
-	while ((list != NULL) && (res->props_set < MAX_FILTER_PROP)) {
+	while ((list != NULL) && (res->props_set < MAX_FILTER_PROP) && !abort) {
 		size_t n;
 		int i;
 		rule_t *r; 
@@ -1973,6 +1975,10 @@ static int filter_apply
 			match = !match;
 
         if (match) {
+            if (r->target == filter_return) {
+                abort = TRUE;
+                r->match_count ++;
+            } else
             if ((r->target == filter_show) && 
                 (!res->props[FILTER_PROP_DISPLAY].state)) {
 
@@ -2178,6 +2184,7 @@ void filter_init(void)
     filter_drop        = filter_new("DON'T DISPLAY");
     filter_download    = filter_new("DOWNLOAD");
     filter_nodownload  = filter_new("DON'T DOWNLOAD");
+    filter_return      = filter_new("RETURN");
 
     filters = g_list_append(filters, filter_global_pre);
     filters = g_list_append(filters, filter_global_post);
@@ -2185,6 +2192,7 @@ void filter_init(void)
     filters = g_list_append(filters, filter_drop);
     filters = g_list_append(filters, filter_download);
     filters = g_list_append(filters, filter_nodownload);
+    filters = g_list_append(filters, filter_return);
 
     create_popup_filter_rule();
 }
@@ -2337,7 +2345,8 @@ inline gboolean filter_is_global(filter_t *f)
 inline gboolean filter_is_builtin(filter_t *f)
 {
     return ((f == filter_show) || (f == filter_drop) || 
-            (f == filter_download) || (f == filter_nodownload));
+            (f == filter_download) || (f == filter_nodownload) ||
+            (f == filter_return));
 }
 
 inline filter_t *filter_get_drop_target(void)
@@ -2358,6 +2367,11 @@ inline filter_t *filter_get_download_target(void)
 inline filter_t *filter_get_nodownload_target(void)
 {
     return filter_nodownload;
+}
+
+inline filter_t *filter_get_return_target(void)
+{
+    return filter_return;
 }
 
 inline filter_t *filter_get_global_pre(void)

@@ -90,6 +90,7 @@ static const gchar PROP_BUILTIN_SHOW_UID[]       = "ShowUID";
 static const gchar PROP_BUILTIN_DROP_UID[]       = "DropUID";
 static const gchar PROP_BUILTIN_DOWNLOAD_UID[]   = "DownloadUID";
 static const gchar PROP_BUILTIN_NODOWNLOAD_UID[] = "NoDownloadUID";
+static const gchar PROP_BUILTIN_RETURN_UID[]     = "ReturnUID";
 static const gchar PROP_FILTER_NAME[]            = "Name";
 static const gchar PROP_FILTER_GLOBAL[]          = "Global";
 static const gchar PROP_FILTER_UID[]             = "UID";
@@ -362,6 +363,9 @@ static void builtin_to_xml(xmlNodePtr parent)
 
     g_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_nodownload_target());
     xmlSetProp(newxml,PROP_BUILTIN_NODOWNLOAD_UID, x_tmp);
+
+    g_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_return_target());
+    xmlSetProp(newxml,PROP_BUILTIN_RETURN_UID, x_tmp);
 }
 
 static void search_to_xml(xmlNodePtr parent, search_t *s)
@@ -602,7 +606,7 @@ static void xml_to_builtin(xmlNodePtr xmlnode, gpointer user_data)
         g_free(buf);
         g_hash_table_insert(id_map, target, filter_get_download_target());
     } else {
-        g_warning("xml_to_builtin: no \"download\" target");
+        g_warning("xml_to_builtin: no \"DOWNLOAD\" target");
     }
     
     buf = xmlGetProp(xmlnode, PROP_BUILTIN_NODOWNLOAD_UID);
@@ -614,7 +618,19 @@ static void xml_to_builtin(xmlNodePtr xmlnode, gpointer user_data)
         g_free(buf);
         g_hash_table_insert(id_map, target, filter_get_nodownload_target());
     } else {
-        g_warning("xml_to_builtin: no \"don't download\" target");
+        g_warning("xml_to_builtin: no \"DON'T DOWNLOAD\" target");
+    }
+
+    buf = xmlGetProp(xmlnode, PROP_BUILTIN_RETURN_UID);
+    if (buf != NULL) {
+        errno = 0;
+        target = (gpointer) strtoul(buf, 0, 16);
+        if (errno != 0)
+            g_error( "xml_to_builtin: %s", g_strerror(errno));
+        g_free(buf);
+        g_hash_table_insert(id_map, target, filter_get_return_target());
+    } else {
+        g_warning("xml_to_builtin: no \"RETURN\" target");
     }
 }
 

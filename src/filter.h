@@ -232,6 +232,7 @@ inline filter_t *filter_get_drop_target(void);
 inline filter_t *filter_get_show_target(void);
 inline filter_t *filter_get_download_target(void);
 inline filter_t *filter_get_nodownload_target(void);
+inline filter_t *filter_get_return_target(void);
 inline filter_t *filter_get_global_pre(void);
 inline filter_t *filter_get_global_post(void);
 #endif /* __filter_h__ */
