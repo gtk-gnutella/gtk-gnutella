@@ -545,8 +545,29 @@ prop = {
 };
 
 prop = {
-    name = "gnet_stats_perc_mode";
-    desc = "Show percentages instead of absolute values in the gnet stats";
+    name = "gnet_stats_pkg_perc";
+    desc = "Show percentages instead of absolute values in the gnet stats "
+           "(packet display";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_byte_perc";
+    desc = "Show percentages instead of absolute values in the gnet stats "
+           "(bytes display)";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "gnet_stats_drop_perc";
+    desc = "Show percentages instead of absolute values in the gnet stats "
+           "(drop reasons)";
     type = boolean;
     data = {
         default = FALSE;

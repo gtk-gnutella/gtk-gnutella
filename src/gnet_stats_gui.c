@@ -132,14 +132,14 @@ static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
  *** Private functions
  ***/
 static __inline__ gchar *pkt_stat_str(
-    guint32 *val_tbl, gint type, gboolean perc)
+    guint32 *val_tbl, gint type)
 {
-    static gchar strbuf[10];
+    static gchar strbuf[20];
 
     if (val_tbl[type] == 0)
-        return perc ? "-  " : "-";
+        return gnet_stats_pkg_perc ? "-  " : "-";
 
-    if (perc)
+    if (gnet_stats_pkg_perc)
         g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
             (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
     else
@@ -152,10 +152,35 @@ static __inline__ gchar *pkt_stat_str(
 static __inline__ gchar *byte_stat_str(
     guint32 *val_tbl, gint type)
 {
-    if (val_tbl[type] == 0)
-        return "-";
+    static gchar strbuf[20];
 
-    return compact_size(val_tbl[type]);
+    if (val_tbl[type] == 0)
+        return gnet_stats_byte_perc ? "-  " : "-";
+
+    if (gnet_stats_byte_perc) {
+        g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
+            (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
+        return strbuf;
+    } else
+        return compact_size(val_tbl[type]);
+}
+
+static __inline__ gchar *drop_stat_str(gnet_stats_t *stats, gint reason)
+{
+    static gchar strbuf[20];
+    guint32 total = stats->pkg.dropped[MSG_TOTAL];
+
+    if (stats->drop_reason[reason][selected_type] == 0)
+        return gnet_stats_drop_perc ? "-  " : "-";
+
+    if (gnet_stats_drop_perc)
+        g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
+            (float)stats->drop_reason[reason][selected_type]/total*100);
+    else
+        g_snprintf(strbuf, sizeof(strbuf), "%u", 
+            stats->drop_reason[reason][selected_type]);
+
+    return strbuf;
 }
 
 /***
@@ -168,10 +193,10 @@ void gnet_stats_gui_init(void)
     GtkCList *clist_stats_byte;
     GtkCList *clist_reason;
     GtkCombo *combo_types;
-    gchar *titles[5];
+    gchar *titles[6];
     gint n;
 
-    titles[1] = titles[2] = titles[3] = titles[4] = "-";
+    titles[1] = titles[2] = titles[3] = titles[4] = titles[5] = "-";
 
     clist_stats_pkg = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_pkg"));
@@ -225,13 +250,17 @@ void gnet_stats_gui_update(void)
     GtkCList *clist_stats_byte;
     GtkCList *clist_reason;
     gint n;
-    gchar strbuf[10];
-    gboolean perc;
- 
     gnet_stats_t stats;
 
+    gint current_page;
+
+    current_page = gtk_notebook_get_current_page(
+        GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")));
+
+    if (current_page != nb_main_page_gnet_stats)
+        return;
+
     gnet_stats_get(&stats);
-    gui_prop_get_boolean(PROP_GNET_STATS_PERC_MODE, &perc, 0, 1);
 
     gtk_label_printf(
         GTK_LABEL(lookup_widget(main_window, "label_routing_errors")),
@@ -250,17 +279,21 @@ void gnet_stats_gui_update(void)
     clist_reason = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_drop_reasons"));
 
+    gtk_clist_freeze(clist_reason);
+    gtk_clist_freeze(clist_stats_byte);
+    gtk_clist_freeze(clist_stats_pkg);
+
     for (n = 0; n < MSG_TYPE_COUNT; n ++) {
         gtk_clist_set_text(clist_stats_pkg, n, c_gs_recieved, 
-            pkt_stat_str(stats.pkg.received, n, perc));
+            pkt_stat_str(stats.pkg.received, n));
         gtk_clist_set_text(clist_stats_pkg, n, c_gs_generated, 
-            pkt_stat_str(stats.pkg.generated, n, perc));
+            pkt_stat_str(stats.pkg.generated, n));
         gtk_clist_set_text(clist_stats_pkg, n, c_gs_dropped,
-            pkt_stat_str(stats.pkg.dropped, n, perc));
+            pkt_stat_str(stats.pkg.dropped, n));
         gtk_clist_set_text(clist_stats_pkg, n, c_gs_expired,
-            pkt_stat_str(stats.pkg.expired, n, perc));
+            pkt_stat_str(stats.pkg.expired, n));
         gtk_clist_set_text(clist_stats_pkg, n, c_gs_relayed,
-            pkt_stat_str(stats.pkg.relayed, n, perc));
+            pkt_stat_str(stats.pkg.relayed, n));
 
         gtk_clist_set_text(clist_stats_byte, n, c_gs_recieved, 
             byte_stat_str(stats.byte.received, n));
@@ -274,13 +307,11 @@ void gnet_stats_gui_update(void)
             byte_stat_str(stats.byte.relayed, n));
     }
 
-    for (n = 0; n < MSG_DROP_REASON_COUNT; n ++) {
-        if (stats.drop_reason[n][selected_type] == 0)
-            gtk_clist_set_text(clist_reason, n, 1, "-");
-        else {
-            g_snprintf(strbuf, sizeof(strbuf), "%u", 
-                stats.drop_reason[n][selected_type]);
-            gtk_clist_set_text(clist_reason, n, 1, strbuf);
-        }
-    }
+
+    for (n = 0; n < MSG_DROP_REASON_COUNT; n ++)
+        gtk_clist_set_text(clist_reason, n, 1, drop_stat_str(&stats, n));
+
+    gtk_clist_thaw(clist_reason);
+    gtk_clist_thaw(clist_stats_byte);
+    gtk_clist_thaw(clist_stats_pkg);
 }

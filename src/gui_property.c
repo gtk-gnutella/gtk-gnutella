@@ -140,8 +140,12 @@ gboolean show_tooltips     = TRUE;
 gboolean show_tooltips_def = TRUE;
 gboolean expert_mode     = FALSE;
 gboolean expert_mode_def = FALSE;
-gboolean gnet_stats_perc_mode     = FALSE;
-gboolean gnet_stats_perc_mode_def = FALSE;
+gboolean gnet_stats_pkg_perc     = FALSE;
+gboolean gnet_stats_pkg_perc_def = FALSE;
+gboolean gnet_stats_byte_perc     = FALSE;
+gboolean gnet_stats_byte_perc_def = FALSE;
+gboolean gnet_stats_drop_perc     = FALSE;
+gboolean gnet_stats_drop_perc_def = FALSE;
 
 static prop_set_t *gui_property = NULL;
 
@@ -1114,20 +1118,54 @@ prop_set_t *gui_prop_init(void) {
 
 
     /*
-     * PROP_GNET_STATS_PERC_MODE:
+     * PROP_GNET_STATS_PKG_PERC:
      *
      * General data:
      */
-    gui_property->props[53].name = "gnet_stats_perc_mode";
-    gui_property->props[53].desc = "Show percentages instead of absolute values in the gnet stats";
+    gui_property->props[53].name = "gnet_stats_pkg_perc";
+    gui_property->props[53].desc = "Show percentages instead of absolute values in the gnet stats (packet display";
     gui_property->props[53].prop_changed_listeners = NULL;
     gui_property->props[53].save = TRUE;
     gui_property->props[53].vector_size = 1;
 
     /* Type specific data: */
     gui_property->props[53].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[53].data.boolean.def   = &gnet_stats_perc_mode_def;
-    gui_property->props[53].data.boolean.value = &gnet_stats_perc_mode;
+    gui_property->props[53].data.boolean.def   = &gnet_stats_pkg_perc_def;
+    gui_property->props[53].data.boolean.value = &gnet_stats_pkg_perc;
+
+
+    /*
+     * PROP_GNET_STATS_BYTE_PERC:
+     *
+     * General data:
+     */
+    gui_property->props[54].name = "gnet_stats_byte_perc";
+    gui_property->props[54].desc = "Show percentages instead of absolute values in the gnet stats (bytes display)";
+    gui_property->props[54].prop_changed_listeners = NULL;
+    gui_property->props[54].save = TRUE;
+    gui_property->props[54].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[54].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[54].data.boolean.def   = &gnet_stats_byte_perc_def;
+    gui_property->props[54].data.boolean.value = &gnet_stats_byte_perc;
+
+
+    /*
+     * PROP_GNET_STATS_DROP_PERC:
+     *
+     * General data:
+     */
+    gui_property->props[55].name = "gnet_stats_drop_perc";
+    gui_property->props[55].desc = "Show percentages instead of absolute values in the gnet stats (drop reasons)";
+    gui_property->props[55].prop_changed_listeners = NULL;
+    gui_property->props[55].save = TRUE;
+    gui_property->props[55].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[55].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[55].data.boolean.def   = &gnet_stats_drop_perc_def;
+    gui_property->props[55].data.boolean.value = &gnet_stats_drop_perc;
     return gui_property;
 }
 

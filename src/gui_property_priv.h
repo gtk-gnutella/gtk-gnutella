@@ -81,7 +81,9 @@ extern guint32  search_stats_delcoef;
 extern gboolean confirm_quit;
 extern gboolean show_tooltips;
 extern gboolean expert_mode;
-extern gboolean gnet_stats_perc_mode;
+extern gboolean gnet_stats_pkg_perc;
+extern gboolean gnet_stats_byte_perc;
+extern gboolean gnet_stats_drop_perc;
 
 
 prop_set_t *gui_prop_init(void);

@@ -38,10 +38,10 @@
 #include "statusbar_gui.h"
 #include "search_gui.h"
 #include "filter_gui.h"
+#include "search_stats_gui.h"
 
 #include "settings_cb.h"
 
-#include "search_stats.h" // FIXME: remove this dependency
 
 /* Uncomment to override debug level for this file. */
 //#define gui_debug 10
@@ -170,7 +170,6 @@ static gboolean progressbar_uploads_visible_changed(property_t prop);
 static gboolean progressbar_connections_visible_changed(property_t prop);
 static gboolean search_results_show_tabs_changed(property_t prop);
 static gboolean autoclear_downloads_changed(property_t prop);
-static gboolean search_stats_enabled_changed(property_t prop);
 static gboolean socks_user_changed(property_t prop);
 static gboolean socks_pass_changed(property_t prop);
 static gboolean traffic_stats_mode_changed(property_t prop);
@@ -820,13 +819,6 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_SEARCH_STATS_ENABLED,
-        search_stats_enabled_changed,
-        TRUE,
-        "checkbutton_search_stats_enable"
-    },
-    {
-        get_main_window,
         PROP_AUTOCLEAR_UPLOADS,
         update_togglebutton,
         TRUE,
@@ -1198,10 +1190,24 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_GNET_STATS_PERC_MODE,
+        PROP_GNET_STATS_PKG_PERC,
         update_togglebutton,
         TRUE,
-        "checkbutton_gnet_stats_perc_mode"
+        "checkbutton_gnet_stats_pkg_perc"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_BYTE_PERC,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_stats_byte_perc"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_DROP_PERC,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_stats_drop_perc"
     }
 };
 
@@ -1951,26 +1957,6 @@ static gboolean autoclear_downloads_changed(property_t prop)
 
     if(val)
         download_clear_stopped(FALSE, TRUE);
-
-    return FALSE;
-}
-
-static gboolean search_stats_enabled_changed(property_t prop)
-{
-    gboolean val;
-    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    prop_set_stub_t *stub = map_entry->stub;
-    GtkWidget *top = map_entry->fn_toplevel();
-
-    stub->boolean.get(prop, &val, 0, 1);
-
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-        (lookup_widget(top, map_entry->wid)), val);
-
-    if(val)
-		search_stats_enable();
-	else
-		search_stats_disable();
 
     return FALSE;
 }
