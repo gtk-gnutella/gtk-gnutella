@@ -173,16 +173,21 @@ static void qrt_compact(struct routing_table *rt)
 	 * Because we're compacting an ultranode -> leafnode routing table,
 	 * items in the original table that are not "infinity" are replaced
 	 * by 1 bits (i.e. present).  A keyword is either present or not.
+	 *
+	 * Compaction of byte 0 (the first byte) is done in bit 7.
+	 * Compaction of byte 7 (the 8th byte) is done in bit 0.
+	 *
+	 * Therefore, the sequence of bits mimics the slots in the original table.
 	 */
 
 	for (mask = 0, i = rt->slots - 1, p = &rt->arena[i]; i >= 0; i--, p--) {
 		if (*p != rt->infinity)
-			mask |= 0x1;
+			mask |= 0x80;
 		if (0 == (i & 0x7)) {			/* Reached "bit 0" */
 			*q-- = mask;
 			mask = 0;
 		} else
-			mask <<= 1;
+			mask >>= 1;					/* Starting from end of table */
 	}
 
 	g_assert((q + 1) == narena);		/* Filled 1st byte at last iteration */
@@ -1100,6 +1105,9 @@ static gint qrp_step_install(struct qrp_context *ctx)
 	{
 		struct routing_patch *rp = qrt_diff_4(NULL, routing_table);
 		qrt_patch_compress(rp, compressed, 0);
+		
+		g_free(rp->arena);
+		g_free(rp);
 	}
 
 	return 0;			/* Done! */
@@ -1179,6 +1187,9 @@ void qrp_close(void)
 {
 	if (routing_table)
 		qrt_unref(routing_table);
+
+	if (buffer.arena)
+		g_free(buffer.arena);
 }
 
 /***
