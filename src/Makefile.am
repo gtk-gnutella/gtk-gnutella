@@ -89,7 +89,8 @@ gtk_gnutella_SOURCES = \
 	ban.c han.h \
 	qrp.c qrp.h \
 	getdate.y \
-	atoms.c atoms.h
+	atoms.c atoms.h \
+	extensions.c extensions.h
 
 gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
 
