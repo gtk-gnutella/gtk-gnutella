@@ -1214,7 +1214,7 @@ static prop_map_t property_map[] = {
         get_main_window,
         PROP_ANCIENT_VERSION_LEFT_DAYS,
         ancient_version_left_days_changed,
-        TRUE,
+        FALSE,
         NULL,
         FREQ_UPDATES, 0
     },
