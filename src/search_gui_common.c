@@ -894,6 +894,14 @@ void search_matched(search_t *sch, results_set_t *rs)
 		search_gui_set_clear_button_sensitive(TRUE);
 
 	/*
+	 * Disable search when the maximum amount of items is shown: they need
+	 * to make some room to allow the search to continue.
+	 */
+
+	if (sch->items >= search_max_results && !sch->passive)
+		gui_search_set_enabled(sch, FALSE);
+
+	/*
 	 * XXX When not for current_search, unseen_items is increased even if
 	 * XXX we're not at the search pane.  Is this a problem?
 	 */

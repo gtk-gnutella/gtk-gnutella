@@ -1341,4 +1341,45 @@ void gui_search_history_add(gchar *s)
     list_search_history = new_hist;
 }
 
+/*
+ * gui_search_set_enabled
+ *
+ * Flag whether search is enabled.
+ */
+void gui_search_set_enabled(struct search *sch, gboolean enabled)
+{
+	gboolean was_enabled = sch->enabled;
+	GtkCList * clist_search;
+
+	if (was_enabled == enabled)
+		return;
+
+	sch->enabled = enabled;
+
+	if (enabled)
+		search_start(sch->search_handle);
+	else
+		search_stop(sch->search_handle);
+
+	clist_search = GTK_CLIST(
+		lookup_widget(main_window, "clist_search"));
+
+	if (enabled) {
+        gtk_clist_set_foreground(
+            clist_search,
+            gtk_notebook_get_current_page
+                GTK_NOTEBOOK
+                    (lookup_widget(main_window, "notebook_search_results")),
+            NULL);
+	} else {
+        gtk_clist_set_foreground(
+            clist_search,
+            gtk_notebook_get_current_page
+                GTK_NOTEBOOK
+                    (lookup_widget(main_window, "notebook_search_results")),
+            &gtk_widget_get_style(GTK_WIDGET(clist_search))
+                ->fg[GTK_STATE_INSENSITIVE]);
+	}
+}
+
 #endif	/* USE_GTK1 */

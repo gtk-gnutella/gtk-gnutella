@@ -830,18 +830,8 @@ void on_popup_search_resume_activate(GtkMenuItem * menuitem,
     search_t *search;
 
     search = search_gui_get_current_search();
-	if (search) {
-		search_start(search->search_handle);
-		/* FIXME: Mark graphically this entry as active again in the list. */
-		search->enabled = TRUE;
-
-        gtk_clist_set_foreground(
-            GTK_CLIST(lookup_widget(main_window, "clist_search")),
-            gtk_notebook_get_current_page
-                GTK_NOTEBOOK
-                    (lookup_widget(main_window, "notebook_search_results")),
-            NULL);
-	}
+	if (search)
+		gui_search_set_enabled(search, TRUE);
 }
 
 void on_popup_search_stop_activate
@@ -854,16 +844,7 @@ void on_popup_search_stop_activate
         GtkCList * clist_search = GTK_CLIST
             (lookup_widget(main_window, "clist_search"));
 
-		search_stop(search->search_handle);
-		/* FIXME: Mark graphically this entry as inactive in the searches */
-		search->enabled = FALSE;
-        gtk_clist_set_foreground(
-            clist_search,
-            gtk_notebook_get_current_page
-                GTK_NOTEBOOK
-                    (lookup_widget(main_window, "notebook_search_results")),
-            &gtk_widget_get_style(GTK_WIDGET(clist_search))
-                ->fg[GTK_STATE_INSENSITIVE]);
+		gui_search_set_enabled(search, FALSE);
 	}
 }
 

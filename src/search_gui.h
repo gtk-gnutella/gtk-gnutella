@@ -110,6 +110,7 @@ void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist);
 void gui_search_force_update_tab_label(struct search *);
 #endif
 void gui_search_update_items(struct search *);
+void gui_search_set_enabled(struct search *sch, gboolean enabled);
 const GList *search_gui_get_searches(void);
 
 void search_gui_set_clear_button_sensitive(gboolean flag);

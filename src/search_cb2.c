@@ -805,9 +805,7 @@ void on_popup_search_resume_activate(GtkMenuItem * menuitem,
 
     search = search_gui_get_current_search();
     g_return_if_fail(NULL != search);
-    search_start(search->search_handle);
-   /* FIXME: Mark graphicaly this entry as active again in the searches list. */
-	search->enabled = TRUE;
+	gui_search_set_enabled(search, TRUE);
 }
 
 void on_popup_search_stop_activate(
@@ -817,10 +815,7 @@ void on_popup_search_stop_activate(
 
     search = search_gui_get_current_search();
     g_return_if_fail(NULL != search);
-
-    search_stop(search->search_handle);
-    /* FIXME: Mark graphicaly this entry as inactive in the searches list. */
-    search->enabled = FALSE;
+	gui_search_set_enabled(search, FALSE);
 }
 
 void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,

@@ -1449,4 +1449,26 @@ void gui_search_history_add(gchar *s)
     list_search_history = new_hist;
 }
 
+/*
+ * gui_search_set_enabled
+ *
+ * Flag whether search is enabled.
+ */
+void gui_search_set_enabled(struct search *sch, gboolean enabled)
+{
+	gboolean was_enabled = sch->enabled;
+
+	if (was_enabled == enabled)
+		return;
+
+	sch->enabled = enabled;
+
+	if (enabled)
+		search_start(sch->search_handle);
+	else
+		search_stop(sch->search_handle);
+
+   /* FIXME: Mark this entry as active/inactive in the searches list. */
+}
+
 #endif	/* USE_GTK2 */
