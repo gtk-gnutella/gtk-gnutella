@@ -708,6 +708,7 @@ static gchar *config_comment(const gchar *s)
     }
 
     g_snprintf(result, sizeof(result), "%s", out->str);
+    g_strfreev(sv);
 
     g_string_free(out, TRUE);
     
