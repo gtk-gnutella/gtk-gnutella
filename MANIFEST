@@ -177,6 +177,8 @@ src/cq.c
 src/cq.h
 src/crc.c
 src/crc.h
+src/dh.c
+src/dh.h
 src/dmesh.c
 src/dmesh.h
 src/downloads.c
