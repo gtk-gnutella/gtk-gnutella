@@ -1,5 +1,8 @@
 # since last version
 
+- (2004.06.16 - JA)
+ * Hopefully fixed phantom downloads due to PARQ callback
+
 - (2004.06.14 - TNT)
  * Changed HSEP implementation to also send out information about all
    our non-HSEP neighbors (PONG-based library size). This should make the
