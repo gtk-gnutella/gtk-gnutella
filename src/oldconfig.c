@@ -31,6 +31,8 @@
  * gui counterparts.
  */
 
+#include "gui.h"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <signal.h>
@@ -42,11 +44,8 @@
 #include <unistd.h>
 #include <netdb.h>
 
-#include "gnutella.h"
-#include "settings.h"
 #include "gnet.h"
-#include "gui_property.h"
-#include "misc.h"
+#include "settings_gui.h"
 
 #define CONFIG_SET_BOOL(v,pref,prop)                 \
     case k_##v: {                                    \
@@ -340,7 +339,7 @@ void config_init(void)
 	struct passwd *pwd = NULL;
     gchar *home_dir = NULL;
 
-	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
+	gui_config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
 
 	pwd = getpwuid(getuid());
 
@@ -352,27 +351,27 @@ void config_init(void)
 	if (!home_dir)
 		g_warning("can't find your home directory!");
 
-	if (!config_dir) {
+	if (!gui_config_dir) {
 		if (home_dir) {
 			g_snprintf(cfg_tmp, sizeof(cfg_tmp),
 				"%s/.gtk-gnutella", home_dir);
-			config_dir = g_strdup(cfg_tmp);
+			gui_config_dir = g_strdup(cfg_tmp);
 		} else
 			g_warning("no home directory: prefs will not be saved!");
 	}
 
-	if (config_dir && !is_directory(config_dir)) {
-		g_warning("creating configuration directory '%s'\n", config_dir);
+	if (gui_config_dir && !is_directory(gui_config_dir)) {
+		g_warning("creating configuration directory '%s'\n", gui_config_dir);
 
-		if (mkdir(config_dir, 0755) == -1) {
+		if (mkdir(gui_config_dir, 0755) == -1) {
 			g_warning("mkdir(%s) failed: %s\n\n",
-				config_dir, g_strerror(errno));
-			g_free(config_dir);
-			config_dir = NULL;
+				gui_config_dir, g_strerror(errno));
+			g_free(gui_config_dir);
+			gui_config_dir = NULL;
 		}
 	}
 
-	if (config_dir) {
+	if (gui_config_dir) {
 		/* Parse the configuration */
 
 		config_read();
@@ -850,10 +849,10 @@ static void config_read(void)
 
 	static gchar *err = "Bad line %u in config file, ignored\n";
 
-	if (!is_directory(config_dir))
+	if (!is_directory(gui_config_dir))
 		return;
 
-	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, config_file);
+	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", gui_config_dir, config_file);
 
 	config = fopen(cfg_tmp, "r");
 	if (!config)
