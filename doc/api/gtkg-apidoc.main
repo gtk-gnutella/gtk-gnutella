@@ -1,0 +1,52 @@
+/** @mainpage Gtk-Gnutella
+ *
+ * @section intro Introduction
+ *
+ * Gtk-Gnutella is a GUI based Gnutella servent, which features:
+ *  - Share files on the gnutella network (LimeWire, BearShare, Xolox,
+ *    Gnucleus, Shareaza, Morpheus ...)
+ *  - Compressed Gnet connections
+ *  - Simultaneous downloading of files from multiple hosts (swarming)
+ *  - Passive searches
+ *  - Searching by urn:sha1: and magnet:
+ *  - Automatic aquisition of additional sources via download mesh and
+ *    watching searches
+ *  - Powerful filtering engine
+ *  - Bandwidth management/limiting
+ *  - A lot of settings
+ *  - A lot of statistics
+ *  - Compliant to:
+ *       - HTTP/1.1
+ *       - Gnutella 0.6 (Vendor Code GTKG and soon GNTD)
+ *       - Gnet compression
+ *       - BYE packet
+ *       - GWebCache Proposal
+ *       - HUGE (Hash/URN Gnutella Extensions)
+ *       - Ping/Pong reduction
+ *       - PARQ (Passive/Active Remote Queueing)
+ *       - PFSP (Partial File Sharing Protocol)
+ *       - Vendor Messages
+ *       - Ultrapeers
+ *       - QRP (Query Routing Proposal)
+ *       - Push Proxies
+ *
+ * These pages document the source code of gtk-gnutella.
+ *
+ * @section sects Main sections of the gtk-gnutella code
+ *
+ *  The following sections are the broad categories into which the
+ *  various modules belong.
+ *
+ *  - @ref core
+ *  - @ref lib
+ *  - @ref gui
+ *
+ * @section Miscellaneous
+ *  - @ref undoc
+ */
+
+/** @defgroup core Core Module */
+/** @defgroup lib Common Library */
+/** @defgroup gui User Interface */
+
+/** @defgroup undoc Undocumented */
