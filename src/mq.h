@@ -84,6 +84,8 @@ typedef struct mqueue {
 #define mq_is_swift_controlled(q)	((q)->flags & MQ_SWIFT)
 #define mq_maxsize(q)				((q)->maxsize)
 #define mq_size(q)					((q)->size)
+#define mq_lowat(q)					((q)->lowat)
+#define mq_hiwat(q)					((q)->hiwat)
 #define mq_count(q)					((q)->count)
 #define mq_pending(q)				((q)->size + tx_pending((q)->tx_drv))
 #define mq_bio(q)					(tx_bio_source((q)->tx_drv))
