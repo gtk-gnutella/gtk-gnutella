@@ -1,5 +1,70 @@
 # since last version
 
+- (2003.07.19 - RAM)
+ * Added server-side push-proxy support.
+ * New routine base32_encode_str_into().
+ * Added optional padding emission to base32_encode().
+ * Factorized dl_request handling code into http.c, as http_buffer_t.
+ * Fixed pushed download selection on GIV reception to also consider running
+   downloads expecting a GIV when no exact fileindex is found.
+ * Check for X-Push-Proxies lines in HTTP replies from firewalled hosts.
+ * Allow http async users to customize the building of the HTTP request.
+ * Now handles partial sending of the HTTP request for async http.
+ * Added calls to pproxy_close() and pproxy_timer().
+ * Fixed hex2dec() to report -1 on invalid hex char.
+ * hex_to_guid() now returns boolean indicating proper decoding.
+ * New guid_base32_str() and base32_to_guid() routines.
+ * Added node_http_proxies_add() so we can send them our known push-proxies
+   when we are firewalled.
+ * Added paranoid sanity checks on reception of push-proxy request messages.
+ * Added route_proxy_find() so that we can resolve push-proxy HTTP requests.
+ * Added two new socket types: SOCK_TYPE_PPROXY and SOCK_TYPE_CPROXY.
+ * Redirect incoming HTTP requests to /gnutella or /gnet to push-proxy.
+ * Added upload_send_giv() to be able to send a GIV string directly.
+ * Allow sending of push-proxy ACK (LIME/22v2) messages now that the
+   server-side works and we can act as a push-proxy.
+ * Replace all control characters in filename by '_'.
+ * Added client-side push proxy support, with GUI feedback.
+ * Added node_became_firewalled(), called whenever we are becoming firewalled
+   to send push-proxy requests to non-leaf servents that we are connected to.
+ * Made "data_ind" callback optional in HTTP aync.
+ * Added message argument to the "header_ind" callback in HTTP async.
+ * Added new optional callback to monitor HTTP async state changes.
+ * Disable redirections by default, unless specified otherwise.
+ * Added ip and port to http_async_get(), for when we know them.
+ * Added new 'p' or 'P' node flag to indicate either our push-proxy or a
+   node for which we are push-proxy, respectively.
+ * Disabled broken equlity fix in qrp_step_compute(), pending later fix.
+ * Now always send the GGEP "GTKGV1" in query hits, regardless of query sender.
+ * Added sending of GGEP "PUSH" in query hits to list our push proxies.
+
+- (2003.07.18 - RAM)
+ * Always set QUERY_SPEED_NO_XML since GTKG does not parse XML in query hits.
+ * Removed the "[No Push]" indication in download status: was misleading.
+ * Added generic header formatting routines: header_fmt_xxx().
+ * Rewrote formatted_connection_pongs() to use generic header_fmt_xxx().
+ * Added state indication in HTTP async requests, for external monitoring.
+
+- (2003.07.17 - RAM)
+ * Reserved bit 10 of "min speed" for out-of-band reply delivery.
+ * Added more debugging warning when parsing "ALT" in query hits.
+ * Only open "u" in query hits if it looks like a sha1 or a bitprint URN.
+ * Renamed alt_locs_t into host_vec_t and gnet_alt_locs_t into gnet_host_vec_t.
+ * Added knowledge about the GGEP "PUSH" extension for push-proxy, and created
+   new READ_GUINT16_BE() and WRITE_GUINT16_BE() supporting macros, required
+   by "PUSH".
+ * Changed signature of download_new() and download_auto_new() to include
+   the known push proxies.
+ * Moved search_gui_got_results() to search_gui_common.c
+ * GUI now uses gnet_host_vec_t instead of host_vec_t: no need to make a
+   particular data structure.
+ * Result set now stores push-proxies given in query hit.
+ * Finally, the IP is stored in big-endian within GGEP "PUSH".
+ * Added logic for processing LIME/21v2 and LIME/22v2 messages (push proxy
+   request and ack, respectively).
+ * Heavy callback signature and message building refactoring in vmsg.c.
+ * Can now send and receive LIME/21v2 and LIME/22v2.
+
 - (2003.07.17 - Jeroen)
  * Made GtkG compile when xml was disabled
 
