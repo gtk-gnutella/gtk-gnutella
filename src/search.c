@@ -1739,9 +1739,9 @@ static void update_neighbour_info(
 	 *
 	 * Otherwise, make sure the address is a private IP one, or that the hit
 	 * has the "firewalled" bit.  Otherwise, the IP must match the one the
-	 * servent thinks it has, which we know from its pongs with hops=0.
-	 * If we never got a pong from that servent, check against last IP
-	 * we saw in hit.
+	 * servent thinks it has, which we know from its previous query hits
+	 * with hops=0. If we never got a query hit from that servent, check
+	 * against last IP we saw in pong.
 	 */
 
 	if (
@@ -1750,8 +1750,8 @@ static void update_neighbour_info(
 		!is_private_ip(rs->ip)				/* Address not private */
 	) {
 		if (
-			(n->gnet_pong_ip && n->gnet_pong_ip != rs->ip) ||
-			(n->gnet_qhit_ip && n->gnet_qhit_ip != rs->ip)
+			(n->gnet_qhit_ip && n->gnet_qhit_ip != rs->ip) ||
+			(n->gnet_pong_ip && n->gnet_pong_ip != rs->ip)
 		) {
 			if (dbg) g_warning(
 				"node %s (%s) advertised %s but now says Query Hits from %s",
