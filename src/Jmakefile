@@ -36,7 +36,6 @@ GUI_GTK2 = \
 	monitor_gui2.c \
 	nodes_cb2.c \
 	nodes_gui2.c \
-	pbarcellrenderer_gui2.c \
 	search_cb2.c \
 	search_gui2.c \
 	search_stats_gui2.c \
@@ -47,6 +46,9 @@ GUI_GTK1 = \
 |expand f!$(GUI_GTK2)!
 	!f:2.c=.c \
 -expand \\
+
+GUI_SPECIFIC = \
+	pbarcellrenderer_gui2.c
 
 GUI_COMMON = \
 	callbacks.c \
@@ -166,6 +168,7 @@ SRCLIST = \
 	$(GUI_GTK2) \
 	$(GUI_GTK1) \
 	$(GUI_COMMON) \
+	$(GUI_SPECIFIC) \
 	$(CORE)
 
 OBJLIST = \
