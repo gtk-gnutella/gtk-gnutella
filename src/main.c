@@ -3,6 +3,7 @@
 
 #include <signal.h>
 #include <locale.h>
+#include <sys/utsname.h>		/* For uname() */
 
 #include "interface.h"
 #include "gui.h"
@@ -76,9 +77,13 @@ static void SIG_Ignore(int n)
 static void init_constants(void)
 {
 	gchar buf[128];
+	struct utsname un;
 
-	g_snprintf(buf, sizeof(buf), "gtk-gnutella/%u.%u %s - %s",
-		GTA_VERSION, GTA_SUBVERSION, GTA_REVISION, GTA_RELEASE);
+	(void) uname(&un);
+
+	g_snprintf(buf, sizeof(buf), "gtk-gnutella/%u.%u%s (%s; %s; %s %s %s)",
+		GTA_VERSION, GTA_SUBVERSION, GTA_REVCHAR, GTA_RELEASE,
+		GTA_INTERFACE, un.sysname, un.release, un.machine);
 
 	version_string = g_strdup(buf);
 
