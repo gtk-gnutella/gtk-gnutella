@@ -347,7 +347,7 @@ date	: tUNUMBER '/' tUNUMBER {
 	    yyDay = $3;
 	}
 	| tUNUMBER '/' tUNUMBER '/' tUNUMBER {
-	  /* Interpret as YYYY/MM/DD if $1 >= 1000, otherwise as MM/DD/YY.
+	  /* Interpret as YYYY/MM/DD if $1 >= 1000, otherwise as DD/MM/YYYY.
 	     The goal in recognizing YYYY/MM/DD is solely to support legacy
 	     machine-generated dates like those in an RCS log listing.  If
 	     you want portability, use the ISO 8601 format.  */
@@ -359,8 +359,8 @@ date	: tUNUMBER '/' tUNUMBER {
 	    }
 	  else
 	    {
-	      yyMonth = $1;
-	      yyDay = $3;
+	      yyDay = $1;
+	      yyMonth = $3;
 	      yyYear = $5;
 	    }
 	}
@@ -1065,7 +1065,7 @@ int main(int ac, char *av[])
 	if (d == -1)
 	    (void) printf("Bad format - couldn't convert.\n");
 	else
-	    (void) printf("%s", ctime(&d));
+	    (void) printf("%d - %s", (int) d, ctime(&d));
 	(void) printf("\t> ");
 	(void) fflush(stdout);
     }
