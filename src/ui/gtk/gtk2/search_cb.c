@@ -35,7 +35,6 @@ RCSID("$Id$");
 
 #include "gtk/gtkcolumnchooser.h"
 #include "gtk/search.h"
-#include "gtk/statusbar.h"
 #include "gtk/misc.h"
 #include "gtk/columns.h"
 #include "gtk/notebooks.h"
@@ -461,12 +460,9 @@ void on_tree_view_search_results_select_row(
 			short_size(rc->size),
 			_("(Press Control-F1 to toggle view)"));
 
-  			if (GTK_IS_WINDOW (toplevel)) {
-      			g_object_set_data(G_OBJECT(toplevel),
-					"gtk-tooltips-keyboard-mode", GUINT_TO_POINTER (TRUE));
-			}
-			gtk_tooltips_set_tip(settings_gui_tooltips(),
+		gtk_tooltips_set_tip(settings_gui_tooltips(),
 				GTK_WIDGET(view), text, NULL);
+		set_tooltips_keyboard_mode(GTK_WIDGET(view), TRUE);
 	}
 
     refresh_popup();

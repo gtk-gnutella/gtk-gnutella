@@ -270,21 +270,23 @@ nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags,
 }
 
 static gboolean
-on_focus_in(GtkWidget *widget, GdkEventFocus *unused_event,
+on_enter_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 		gpointer unused_udata)
 {
 	(void) unused_event;
 	(void) unused_udata;
-	set_tooltips_keyboard_mode(widget, TRUE);
+
+	widget_force_tooltip(widget);
 	return FALSE;
 }
 
 static gboolean
-on_focus_out(GtkWidget *widget, GdkEventFocus *unused_event,
+on_leave_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 		gpointer unused_udata)
 {
 	(void) unused_event;
 	(void) unused_udata;
+
 	set_tooltips_keyboard_mode(widget, FALSE);
 	return FALSE;
 }
@@ -414,8 +416,8 @@ void nodes_gui_init(void)
 	nodes_handles = g_hash_table_new_full(
 		NULL, NULL, NULL, (GDestroyNotify) w_tree_iter_free);
 
-    ht_node_info_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
-    ht_node_flags_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
+    ht_node_info_changed = g_hash_table_new(NULL, NULL);
+    ht_node_flags_changed = g_hash_table_new(NULL, NULL);
 
     guc_node_add_node_added_listener(nodes_gui_node_added);
     guc_node_add_node_removed_listener(nodes_gui_node_removed);
@@ -424,15 +426,13 @@ void nodes_gui_init(void)
 
 	g_signal_connect(GTK_OBJECT(treeview_nodes), "cursor-changed",
 		G_CALLBACK(on_cursor_changed), treeview_nodes);
-	g_signal_connect(GTK_OBJECT(treeview_nodes), "focus-out-event",
-		G_CALLBACK(on_focus_out), treeview_nodes);
-	g_signal_connect(GTK_OBJECT(treeview_nodes), "focus-in-event",
-		G_CALLBACK(on_focus_in), treeview_nodes);
+	g_signal_connect(GTK_OBJECT(treeview_nodes), "leave-notify-event",
+		G_CALLBACK(on_leave_notify), treeview_nodes);
+	g_signal_connect(GTK_OBJECT(treeview_nodes), "enter-notify-event",
+		G_CALLBACK(on_enter_notify), treeview_nodes);
 }
 
-/*
- * nodes_gui_shutdown:
- *
+/**
  * Unregister callbacks in the backend and clean up.
  */
 void nodes_gui_shutdown(void)

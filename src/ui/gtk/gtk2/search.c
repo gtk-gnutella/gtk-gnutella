@@ -169,21 +169,23 @@ always_true(gpointer key, gpointer value, gpointer x)
 }
 
 static gboolean
-on_focus_in(GtkWidget *widget, GdkEventFocus *unused_event,
+on_enter_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 		gpointer unused_udata)
 {
 	(void) unused_event;
 	(void) unused_udata;
-	set_tooltips_keyboard_mode(widget, TRUE);
+
+	widget_force_tooltip(widget);
 	return FALSE;
 }
 
 static gboolean
-on_focus_out(GtkWidget *widget, GdkEventFocus *unused_event,
+on_leave_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 		gpointer unused_udata)
 {
 	(void) unused_event;
 	(void) unused_udata;
+
 	set_tooltips_keyboard_mode(widget, FALSE);
 	return FALSE;
 }
@@ -1357,10 +1359,10 @@ gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 		G_CALLBACK(on_tree_view_search_results_button_press_event), NULL);
     g_signal_connect(GTK_OBJECT(treeview), "key_press_event",
 		G_CALLBACK(on_tree_view_search_results_key_press_event), NULL);
-    g_signal_connect(GTK_OBJECT(treeview), "focus-in-event",
-		G_CALLBACK(on_focus_in), NULL);
-    g_signal_connect(GTK_OBJECT(treeview), "focus-out-event",
-		G_CALLBACK(on_focus_out), NULL);
+    g_signal_connect(GTK_OBJECT(treeview), "enter-notify-event",
+		G_CALLBACK(on_enter_notify), NULL);
+    g_signal_connect(GTK_OBJECT(treeview), "leave-notify-event",
+		G_CALLBACK(on_leave_notify), NULL);
 }
 
 static gboolean
