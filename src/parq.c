@@ -38,13 +38,16 @@ RCSID("$Id$");
 #define PARQ_RETRY_SAFETY	40		/* 40 seconds before lifetime */
 #define PARQ_TIMER_BY_POS	30		/* 30 seconds for each queue position */
 
-#define PARQ_UL_RETRY_DELAY 300		/* 5 minutes timeout. FIXME: Don't set hard! */
+#define PARQ_UL_RETRY_DELAY 300		/* 5 minutes timeout. XXX -- hardwired!! */
 
+/*
+ * Queues:
+ *
+ * 1 ul: 0 < q1
+ * 2 ul: 0 < q1 < 300, 300 < q2 < oo
+ * 3 ul: 0 < q1 < 150, 150 < q2 < 300, 300 < q2 < oo
+ */
 #define PARQ_UL_LARGE_SIZE (300*1024*1024)
-									/* 1 ul: 0 < q1
-									 * 2 ul: 0 < q1 < 300, 300 < q2 < oo
-									 * 3 ul: 0 < q1 < 150, 150 < q2 < 300, 300 < q2 < oo
-									 */
 
 guint parq_max_upload_size = 2000;
 static gchar *file_parq_file = "parq";
@@ -52,8 +55,12 @@ static gchar *file_parq_file = "parq";
 static GList *ul_parqs = NULL;
 GHashTable *ul_all_parq_by_IP_and_Name = NULL;
 GHashTable *ul_all_parq_by_ID = NULL;
+
+#define PARQ_UL_MAGIC	0x6a3900a1
  
-/* Holds status of current queue. */
+/*
+ * Holds status of current queue.
+ */
 struct parq_ul_queue {
 	GList *by_Position;		/* Queued items sorted on position. Newest is 
 							   added to the end. */
@@ -69,6 +76,7 @@ struct parq_ul_queue {
 
 /* Contains the queued upload */
 struct parq_ul_queued {	
+	guint32 magic;			/* Magic number */
 	guint position;			/* Current position in the queue */
 	guint ETA;				/* Expected time in seconds till an upload slot is
 							   reached */
@@ -95,7 +103,7 @@ static struct parq_ul_queue *parq_upload_new_queue();
 static void parq_upload_free_queue(struct parq_ul_queue *queue);
 static void parq_upload_update_ETA(struct parq_ul_queue *which_ul_queue);
 static struct parq_ul_queued *parq_upload_find(gnutella_upload_t *u);
-static gboolean parq_upload_continue(gnutella_upload_t *u, gint free_slots);
+static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots);
 static void parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul);
 static void parq_store(gpointer data, gpointer x);
 static void parq_upload_load_queue();
@@ -609,6 +617,7 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	g_assert(parq_ul->ID != NULL);
 		
 	/* Fill parq_ul structure */
+	parq_ul->magic = PARQ_UL_MAGIC;
 	parq_ul->position = ++parq_ul_queue->size;
 	parq_ul->ETA = ETA;
 	parq_ul->enter = now;
@@ -935,27 +944,26 @@ gboolean parq_upload_queued(gnutella_upload_t *u)
  * 
  * Returns true if the current upload is allowed to get an upload slot.
  */
-static gboolean parq_upload_continue(gnutella_upload_t *u, gint free_slots)
+static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 {
 	GList *l = NULL;
 	guint needed = 0;
-	struct parq_ul_queued *parq_ul = NULL;	
+
+	g_assert(uq != NULL);
 		
 	/*
 	 * If there are no free upload slots the queued upload isn't allowed an 
 	 * upload slot anyway. So we might just as well abort here
 	 */
+
 	if (free_slots <= 0)
 		return FALSE;
-	
-	parq_ul = parq_upload_find(u);
-	g_assert(parq_ul != NULL);
 	
 	/*
 	 * If the current queued position is too large to receive an upload slot
 	 * we don't need to continue.
 	 */
-	if (parq_ul->position > free_slots)
+	if (uq->position > free_slots)
 		return FALSE;
 	
 
@@ -971,7 +979,7 @@ static gboolean parq_upload_continue(gnutella_upload_t *u, gint free_slots)
 	{
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) l->data;
 		if (!queue->active) {
-			if (parq_ul->queue->active)
+			if (uq->queue->active)
 				return FALSE;
 		}
 	}
@@ -981,11 +989,11 @@ static gboolean parq_upload_continue(gnutella_upload_t *u, gint free_slots)
 	 * If the current position = 1 and the current queue hasn't already an item
 	 * uploading than the upload is allowed by default.
 	 */
-	if (parq_ul->position == 1 && parq_ul->queue->active_uploads == 0)
+	if (uq->position == 1 && uq->queue->active_uploads == 0)
 		return TRUE;
 	
 	/* If position is zero the download is already downloading */
-	g_assert(parq_ul->position != 0);
+	g_assert(uq->position != 0);
 		
 	/* See wether the other queues are allowed to get an upload position */
 	for (l = ul_parqs; l ; l = l->next) {
@@ -1029,25 +1037,23 @@ static void parq_upload_update_IP_and_name(struct parq_ul_queued *parq_ul,
 		parq_ul);
 
 }
+
 /*
- * parq_upload_request
+ * parq_upload_get
  *
- * Looks up an upload in the queue, to see if it is already queued, if it isn't
- * it will be added.
- * If the download may continue, true is returned. False otherwise (which 
- * probably means the upload is queued).
+ * Get a queue slot, either existing or new.
+ * Return slot as an opaque handle, NULL if slot cannot be created.
  */
-gboolean parq_upload_request(gnutella_upload_t *u, header_t *header, 
-	  guint used_slots)
+gpointer parq_upload_get(gnutella_upload_t *u, header_t *header)
 {
 	struct parq_ul_queued *parq_ul = NULL;
-	time_t now = time((time_t *) NULL);
 	gchar *buf;
-	
+
 	g_assert(u != NULL);
 	g_assert(header != NULL);
-	
-	/* Try to locate by ID first. If this fails, try to locate by IP and file
+
+	/*
+	 * Try to locate by ID first. If this fails, try to locate by IP and file
 	 * name. We want to locate on ID first as a client may reuse an ID.
 	 */
 	
@@ -1055,29 +1061,38 @@ gboolean parq_upload_request(gnutella_upload_t *u, header_t *header,
 	
 	if (buf != NULL) {
 		gint length;
-		parq_ul = g_hash_table_lookup(ul_all_parq_by_ID,
-			get_header_value(
-				buf, "ID", &length));
-	
-		if (parq_ul == NULL) {
-			g_warning("Client send ID with PARQ request, however ID could not"
-				"be located\r\n");
+		gchar *id = get_header_value(buf, "ID", &length);
+
+		if (id == NULL) {
+			g_warning("missing ID in PARQ request");
 			if (dbg) {
 				g_warning("header dump:");
 				header_dump(header, stderr);
 			}
-		} else
-			g_assert(length > PARQ_MAX_ID_LENGTH);
+			goto missing;
+		}	
+
+		parq_ul = g_hash_table_lookup(ul_all_parq_by_ID, id);
+	
+		if (parq_ul == NULL) {
+			g_warning("could not locate PARQ slot for ID %s", id);
+			if (dbg) {
+				g_warning("header dump:");
+				header_dump(header, stderr);
+			}
+			goto missing;
+		}
+
+		return parq_ul;
 	}
 	
-	if (parq_ul == NULL)
-		parq_ul = parq_upload_find(u);
+missing:
+	parq_ul = parq_upload_find(u);
 
 	if (parq_ul == NULL) {
-		
 		/*
-		 * Current upload is not queued yet. If the queue isn't full yet, always
-		 * add the upload in the queue. 
+		 * Current upload is not queued yet. If the queue isn't full yet,
+		 * always add the upload in the queue. 
 		 */
 		
 		if (parq_upload_queue_full(u))
@@ -1097,35 +1112,54 @@ gboolean parq_upload_request(gnutella_upload_t *u, header_t *header,
 				short_time(parq_upload_lookup_ETA(u)),
 				parq_ul->IP_and_name);
 	}
+
+	g_assert(parq_ul != NULL);
+
+	/*
+     * It is possible the client reused its ID for another file name, which is
+	 * a valid thing to do. So make sure we have still got the IP and name
+	 * in sync
+	 */
+
+	parq_upload_update_IP_and_name(parq_ul, u);
+	
+	return parq_ul;
+}
+
+/*
+ * parq_upload_request
+ *
+ * If the download may continue, true is returned. False otherwise (which 
+ * probably means the upload is queued).
+ */
+gboolean parq_upload_request(gpointer handle, guint used_slots)
+{
+	struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) handle;
+	time_t now = time((time_t *) NULL);
+	
 	g_assert(parq_ul != NULL);
 	
 	parq_ul->updated = now;
 	parq_ul->expire = now + PARQ_UL_RETRY_DELAY;
 	
 	/*
-     * It is possible the client reused its ID for another file name, which is
-	 * a valid thing to do. So make sure we have still got the IP and name
-	 * in sync
-	 */
-	parq_upload_update_IP_and_name(parq_ul, u);
-	
-	/*
 	 * Client was already downloading a segment, segment was finished and 
 	 * just did a follow up request.
 	 */
-	if (parq_ul->position == 0) {
+
+	if (parq_ul->position == 0)
 		return TRUE;
-	}
 	
 	/*
 	 * Check wether the current upload is allowed to get an upload slot. If so
 	 * move other queued items after the current item up one position in the
 	 * queue
 	 */
-	if (parq_upload_continue(u, max_uploads - used_slots)) {
+
+	if (parq_upload_continue(parq_ul, max_uploads - used_slots))
 		return TRUE;
-	} else {
-		u->parq_status = TRUE;
+	else {
+		// u->parq_status = TRUE;		// XXX would violate encapsulation
 		return FALSE;
 	}
 }
@@ -1135,15 +1169,13 @@ gboolean parq_upload_request(gnutella_upload_t *u, header_t *header,
  *
  * Mark an upload as really being active instead of just being queued.
  */
-void parq_upload_busy(gnutella_upload_t *u)
+void parq_upload_busy(gnutella_upload_t *u, gpointer handle)
 {
-	struct parq_ul_queued *parq_ul = NULL;
-	
-	u->parq_status = 0;
-	
-	parq_ul = parq_upload_find(u);
+	struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) handle;
 	
 	g_assert(parq_ul != NULL);
+
+	// u->parq_status = 0;			// XXX -- get rid of `parq_status'?
 	
 	if (parq_ul->position == 0)
 		return;

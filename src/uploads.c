@@ -1680,6 +1680,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	gboolean is_followup = u->status == GTA_UL_WAITING;
 	gboolean faked = FALSE;
 	gchar *token;
+	gpointer parq_handle;
 	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 
 	if (dbg > 2) {
@@ -1981,6 +1982,15 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 * Follow-up requests already have their slots.
 	 */
 
+	if (!head_only) {
+		parq_handle = parq_upload_get(u, header);
+
+		if (parq_handle == NULL) {
+			upload_error_remove(u, reqfile, 503, "Queue full");
+			return;
+		}
+	}
+
 	if (!(head_only || is_followup)) {
 		/*
 		 * Ensure that noone tries to download the same file twice, and
@@ -2024,7 +2034,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		 *		--JA, 05/02/2003
 		 *
 		 */		
-		if (!parq_upload_request(u, header, running_uploads - 1)) {
+
+		if (!parq_upload_request(parq_handle, running_uploads - 1)) {
 			/*
 		 	* Support for bandwith-dependent number of upload slots.
 		 	* The upload bandwith limitation has to be enabled, otherwise
@@ -2058,13 +2069,10 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 						bsched_avg_pct(bws.out), ul_usage_min_percentage);
 			} else {	
 				if (parq_upload_queue_full(u)) {
-					upload_error_remove(u, reqfile,
-						503, "Too many uploads (%d max) Queue full", 
-						max_uploads);
+					upload_error_remove(u, reqfile, 503, "Queue full");
 				} else {
 					upload_error_remove(u, reqfile,	503, 
-						"Too many uploads (%d max) Queued at: %d, ETA: %s", 
-						max_uploads,
+						"Queued (slot %d, ETA: %s)", 
 						parq_upload_lookup_position(u), 
 						short_time(parq_upload_lookup_ETA(u)));
 				}
@@ -2074,7 +2082,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	}
 
 	if (!head_only)
-		parq_upload_busy(u);
+		parq_upload_busy(u, parq_handle);
 
 	/*
 	 * Do we have to keep the connection after this request?
