@@ -593,6 +593,7 @@ void config_set_param(guint32 keyword, gchar *value)
 
 	case k_download_push_sent_timeout:
 		if (i > 1 && i < 3600) download_push_sent_timeout = i;
+		return;
 
 	case k_download_connected_timeout:
 		if (i > 1 && i < 3600) download_connected_timeout = i;
