@@ -143,16 +143,40 @@ void node_remove(struct gnutella_node *n, const gchar *reason, ...)
 	if (!on) gtk_widget_set_sensitive(button_search, FALSE);
 }
 
-gboolean have_node(guint32 ip)
+gboolean node_connected(guint32 ip, guint16 port, gboolean incoming)
 {
+	/*
+	 * Is there a node connected with this IP/port?
+	 *
+     * The port is tested only when `incoming' is FALSE, i.e. we allow
+	 * only one incoming connection per IP, even when there are several
+	 * instances, all on different ports.
+	 */
+
 	GSList *l;
 
+	if (ip == local_ip || (force_local_ip && ip == forced_local_ip)) return TRUE;
+	for (l = sl_nodes; l; l = l->next) {
+		struct gnutella_node *n = (struct gnutella_node *) l->data;
+		if (n->status == GTA_NODE_REMOVING)
+			continue;
+		if (n->ip == ip) {
+			if (incoming) return TRUE;			/* Only one per host */
+			if (n->port == port) return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+static gboolean have_node(struct gnutella_node *node, gboolean incoming)
+{
 	if (stop_host_get)		/* Useful for testing */
 		return FALSE;
 
-	if (ip == local_ip || (force_local_ip && ip == forced_local_ip)) return TRUE;
-	for (l = sl_nodes; l; l = l->next) if (((struct gnutella_node *) l->data)->ip == ip) return TRUE;
-	return FALSE;
+	if (node->status == GTA_NODE_REMOVING)
+		return FALSE;
+
+	return node_connected(node->ip, node->port, incoming);
 }
 
 struct gnutella_node *node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
@@ -225,7 +249,7 @@ struct gnutella_node *node_add(struct gnutella_socket *s, guint32 ip, guint16 po
 
 	/* Check wether we have already a connection to this node before adding the node to the list */
 
-	already_connected = have_node(n->ip);
+	already_connected = have_node(n, incoming);
 
 	sl_nodes = g_slist_prepend(sl_nodes, n);
 	if (n->status != GTA_NODE_REMOVING)
