@@ -117,7 +117,9 @@ enum {
 enum {
     c_sr_filename = 0,
     c_sr_size,
-#ifndef USE_GTK2
+#ifdef USE_GTK2
+	c_sr_count,
+#else	
     c_sr_speed,
     c_sr_host,
     c_sr_urn,
@@ -250,7 +252,7 @@ void gui_update_files_scanned(void);
 void gui_update_global(void);
 void gui_update_traffic_stats(void);
 void gui_update_stats(void);
-void gui_update_stats_frames();
+void gui_update_stats_frames(void);
 void gui_allow_rescan_dir(gboolean flag);
 
 /*
