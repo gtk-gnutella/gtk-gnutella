@@ -123,7 +123,7 @@ deflate_send(txdrv_t *tx)
 
 	if (dbg > 9)
 		printf("deflate_send: (%s) wrote %d bytes (buffer #%d) [%c%c]\n",
-			node_ip(tx->node), r, attr->send_idx,
+			node_ip(tx->node), (gint) r, attr->send_idx,
 			(attr->flags & DF_FLOWC) ? 'C' : '-',
 			(attr->flags & DF_FLUSH) ? 'f' : '-');
 

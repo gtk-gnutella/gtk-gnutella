@@ -2458,14 +2458,15 @@ http_async_connected(gpointer handle)
 
 	http_async_newstate(ha, HTTP_AS_REQ_SENDING);
 	
-	if ((ssize_t) -1 == (sent = bws_write(bws.out, &s->wio, req, rw))) {
+	sent = bws_write(bws.out, &s->wio, req, rw);
+	if ((ssize_t) -1 == sent) {
 		g_warning("HTTP request sending to %s failed: %s",
 			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
 		http_async_syserr(ha, errno);
 		return;
 	} else if ((size_t) sent < rw) {
 		g_warning("partial HTTP request write to %s: only %d of %d bytes sent",
-			ip_port_to_gchar(s->ip, s->port), sent, rw);
+			ip_port_to_gchar(s->ip, s->port), (gint) sent, (gint) rw);
 
 		g_assert(ha->delayed == NULL);
 

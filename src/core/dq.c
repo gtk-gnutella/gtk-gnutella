@@ -1006,9 +1006,9 @@ dq_send_query(dquery_t *dq, gnutella_node_t *n, gint ttl)
 
 	if (dq_debug > 19)
 		printf("DQ[%d] (%d secs) queuing ttl=%d to #%d %s <%s> Q=%d bytes\n",
-			dq->qid, (gint) (time(NULL) - dq->start),
+			dq->qid, (gint) delta_time(time(NULL), dq->start),
 			pmi->ttl, n->id, node_ip(n), node_vendor(n),
-			NODE_MQUEUE_PENDING(n));
+			(gint) NODE_MQUEUE_PENDING(n));
 
 	dq->pending++;
 	gmsg_mb_sendto_one(n, mb);

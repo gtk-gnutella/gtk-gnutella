@@ -1265,7 +1265,7 @@ bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 
 	if (dbg > 7)
 		printf("bio_writev(fd=%d, len=%d) available=%d\n",
-			bio->wio->fd(bio->wio), len, available);
+			bio->wio->fd(bio->wio), (gint) len, (gint) available);
 
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_writev(bio->wio, iov, iovcnt);
