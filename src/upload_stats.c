@@ -142,7 +142,7 @@ done:
 }
 
 /*
- * ul_stats_dump_history
+ * upload_stats_dump_history
  *
  * Save upload statistics to file.
  * When `cleanup' is TRUE, we release the memory used by the statistics.
@@ -184,6 +184,7 @@ void upload_stats_dump_history(
 		struct ul_stats *stat;
 
 		stat = l->data;
+		g_assert(NULL != stat);
 		escaped = url_escape_cntrl(stat->filename);
 		fprintf(out, "%s\t%u\t%u\t%u\t%u\t%u\n", escaped,
 			stat->size, stat->attempts, stat->complete,
@@ -309,7 +310,7 @@ void upload_stats_file_aborted(const struct upload *u)
 }
 
 /*
- * ul_stats_file_complete
+ * upload_stats_file_complete
  *
  * Called when an upload completes
  */
@@ -335,6 +336,7 @@ void upload_stats_clear_all(void)
 	}
 
 	g_list_free(upload_stats_list);
+	upload_stats_list = NULL;
 	dirty = TRUE;
 }
 
