@@ -35,6 +35,10 @@
 #include <sys/types.h>
 #include <glib.h>
 
+#ifdef USE_GLIB1
+typedef gboolean (*GEqualFunc)(gconstpointer a, gconstpointer b);
+#endif
+
 /*
  * Public interface.
  */
