@@ -36,10 +36,10 @@
 
 RCSID("$Id$");
 
-static const gchar *orig_ext = ".orig";
-static const gchar *new_ext = ".new";
-static const gchar *instead_str = " instead";
-static const gchar *empty_str = "";
+static const gchar orig_ext[] = "orig";
+static const gchar new_ext[] = "new";
+static const gchar instead_str[] = " instead";
+static const gchar empty_str[] = "";
 
 /*
  * open_read
@@ -67,7 +67,7 @@ static FILE *open_read(
 	path = g_strdup_printf("%s/%s", fv->dir, fv->name);
 	g_return_val_if_fail(NULL != path, NULL);
 
-	path_orig = g_strdup_printf("%s%s", path, orig_ext);
+	path_orig = g_strdup_printf("%s.%s", path, orig_ext);
 	if (NULL == path_orig)
         G_FREE_NULL(path);
     g_return_val_if_fail(NULL != path_orig, NULL);
@@ -191,7 +191,7 @@ FILE *file_config_open_write(const gchar *what, const file_path_t *fv)
 	FILE *out = NULL;
 	char *path;
 
-	path = g_strdup_printf("%s/%s%s", fv->dir, fv->name, new_ext);
+	path = g_strdup_printf("%s/%s.%s", fv->dir, fv->name, new_ext);
 	g_return_val_if_fail(NULL != path, NULL);
 
 	out = file_fopen(path, "w");
@@ -219,7 +219,7 @@ gboolean file_config_close(FILE *out, const file_path_t *fv)
 
 	path = g_strdup_printf("%s/%s", fv->dir, fv->name);
 	g_return_val_if_fail(NULL != path, FALSE);
-	path_new = g_strdup_printf("%s%s", path, new_ext);
+	path_new = g_strdup_printf("%s.%s", path, new_ext);
 	if (NULL == path_new)
 		goto failed;
 
@@ -279,7 +279,7 @@ void file_path_set(file_path_t *fp, const char *dir, const char *name)
 static gint do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 {
 	gint fd;
-	gchar *what;
+	const gchar *what;
 
 	fd = open(path, flags, mode);
 	if (fd >= 0)
@@ -370,7 +370,7 @@ static FILE *do_fopen(const gchar *path, const gchar *mode, gboolean missing)
 {
 	gchar m;
 	FILE *f;
-	gchar *what;
+	const gchar *what;
 
 	f = fopen(path, mode);
 	if (f != NULL)
@@ -428,3 +428,4 @@ FILE *file_fopen_missing(const gchar *path, const gchar *mode)
 	return do_fopen(path, mode, TRUE);
 }
 
+/* vi: set ts=4: */
