@@ -202,12 +202,12 @@ void upload_fire_upload_info_changed
  */
 void upload_timer(time_t now)
 {
-	GSList *l;
+	GSList *sl;
 	GSList *to_remove = NULL;
 	time_t t;
 
-	for (l = uploads; l; l = g_slist_next(l)) {
-		gnutella_upload_t *u = (gnutella_upload_t *) l->data;
+	for (sl = uploads; sl; sl = g_slist_next(sl)) {
+		gnutella_upload_t *u = (gnutella_upload_t *) sl->data;
 		gboolean is_connecting;
 
 		g_assert(u != NULL);
@@ -231,7 +231,7 @@ void upload_timer(time_t now)
 		if (!UPLOAD_IS_SENDING(u))
 			goto not_sending;		/* Avoid deep nesting level */
 
-		if (now - u->last_update > IO_STALLED) {
+		if (delta_time(now, u->last_update) > IO_STALLED) {
 			if (!(u->flags & UPLOAD_F_STALLED)) {
 				if (stalled++ == STALL_THRESH)
 					g_warning("frequent stalling detected, using workarounds");
@@ -280,10 +280,10 @@ void upload_timer(time_t now)
 		 * if we are no longer transmitting.
 		 */
 
-		if (now - u->last_update > t)
+		if (delta_time(now, u->last_update) > t)
 			to_remove = g_slist_prepend(to_remove, u);
 		else if (UPLOAD_IS_SENDING(u)) {
-			if (now - u->last_update > IO_PRE_STALL) {
+			if (delta_time(now, u->last_update) > IO_PRE_STALL) {
 				if (sock_is_corked(u->socket)) {
 					g_warning("connection to %s (%s) may be stalled,"
 						" disabling TCP_CORK",
@@ -297,7 +297,7 @@ void upload_timer(time_t now)
 		}
 	}
 
-	if (now - last_stalled > STALL_CLEAR) {
+	if (delta_time(now, last_stalled) > STALL_CLEAR) {
 		if (stalled > 0) {
 			stalled /= 2;			/* Exponential decrease */
 			last_stalled = now;
@@ -308,8 +308,8 @@ void upload_timer(time_t now)
 		}
 	}
 
-	for (l = to_remove; l; l = g_slist_next(l)) {
-		gnutella_upload_t *u = (gnutella_upload_t *) l->data;
+	for (sl = to_remove; sl; sl = g_slist_next(sl)) {
+		gnutella_upload_t *u = (gnutella_upload_t *) sl->data;
 		if (UPLOAD_IS_CONNECTING(u)) {
 			if (u->status == GTA_UL_PUSH_RECEIVED || u->status == GTA_UL_QUEUE)
 				upload_remove(u, "Connect back timeout");
@@ -356,7 +356,7 @@ gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push)
 	 * from now on within the main loop for timeouts.
 	 */
 
-	uploads = g_slist_append(uploads, u);
+	uploads = g_slist_prepend(uploads, u);
 
 	/*
 	 * Add upload to the GUI
@@ -611,7 +611,7 @@ static gnutella_upload_t *upload_clone(gnutella_upload_t *u)
 	 * from now on within the main loop for timeouts.
 	 */
 
-	uploads = g_slist_append(uploads, cu);
+	uploads = g_slist_prepend(uploads, cu);
 
 	/*
 	 * Add upload to the GUI
@@ -1886,7 +1886,7 @@ static void upload_http_sha1_add(
 			sf->sha1_digest, tmp, sizeof(tmp), u->socket->ip,
 			last_sent, u->user_agent, NULL, FALSE);
 
-		if (mesh_len < sizeof(tmp) - 5)
+		if ((guint) mesh_len < sizeof(tmp) - 5)
 			range_length = length - mesh_len;	/* Leave more room for ranges */
 	} else
 		mesh_len = 1;			/* Try to emit alt-locs later */
@@ -3135,8 +3135,8 @@ void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 	si->parq_queue_no = parq_upload_lookup_queue_no(u);
 	si->parq_position = parq_upload_lookup_position(u);
 	si->parq_size = parq_upload_lookup_size(u);
-	si->parq_lifetime = MAX(0, (gint32) (parq_upload_lookup_lifetime(u) - now));
-	si->parq_retry = MAX(0, (gint32) (parq_upload_lookup_retry(u) - now));
+	si->parq_lifetime = MAX(0, delta_time(parq_upload_lookup_lifetime(u), now));
+	si->parq_retry = MAX(0, delta_time(parq_upload_lookup_retry(u), now));
 
     if (u->bio) {
         si->bps = bio_bps(u->bio);
@@ -3144,7 +3144,8 @@ void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 	}
 
     if (si->avg_bps <= 10 && u->last_update != u->start_date)
-        si->avg_bps = (u->pos - u->skip) / (u->last_update - u->start_date);
+        si->avg_bps = (u->pos - u->skip)
+			/ delta_time(u->last_update, u->start_date);
 	if (si->avg_bps == 0)
         si->avg_bps++;
 }
