@@ -1728,6 +1728,8 @@ static void download_selection_of_clist(GtkCList * c)
 	GList *l;
     gint row;
 
+    gtk_clist_freeze(c);
+
 	for (l = c->selection; l; 
          l = c->selection) {
 
@@ -1764,6 +1766,9 @@ static void download_selection_of_clist(GtkCList * c)
         } else
             gtk_clist_unselect_row(c, row, 0);
 	}
+    
+    gtk_clist_thaw(c);
+
     gui_search_force_update_tab_label(current_search);
 }
 
