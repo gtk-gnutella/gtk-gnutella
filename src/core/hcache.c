@@ -115,19 +115,19 @@ static gboolean hcache_close_running = FALSE;
  *       in gnet_nodes.h.
  */
 static const gchar * const names[HCACHE_MAX] = {
-    N_("fresh regular"),
-    N_("valid regular"),
-    N_("fresh ultra"),
-    N_("valid ultra"),
-    N_("timeout"),
-    N_("busy"),
-    N_("unstable"),
+    "fresh regular",
+    "valid regular",
+    "fresh ultra",
+    "valid ultra",
+    "timeout",
+    "busy",
+    "unstable",
     "none",
 };
 
 static const gchar * const host_type_names[HOST_MAX] = {
-    N_("any"),
-    N_("ultra"),
+    "any",
+    "ultra",
 };
 
 
@@ -473,7 +473,7 @@ hcache_type_to_gchar(hcache_type_t type)
 {
 	g_assert((guint) type < HCACHE_MAX);
 
-	return _(names[type]);
+	return names[type];
 }
 
 /**
@@ -484,7 +484,7 @@ host_type_to_gchar(hcache_type_t type)
 {
 	g_assert((guint) type < HOST_MAX);
 
-	return _(host_type_names[type]);
+	return host_type_names[type];
 }
 
 
