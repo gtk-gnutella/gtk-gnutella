@@ -576,6 +576,7 @@ void download_gui_add(struct download *d)
 	GdkColor *color;
 	GtkCList* clist_downloads;
 	static gchar vendor[256];
+	guchar *file_name;
 
 	g_return_if_fail(d);
 
@@ -599,6 +600,13 @@ void download_gui_add(struct download *d)
 	 *		--RAM, 22/10/2002
 	 */
 
+	file_name = d->record_index == URN_INDEX ?
+		d->file_info->file_name : d->file_name;
+
+#ifdef USE_GTK2
+	file_name = locale_to_utf8(file_name, 0);
+#endif
+
 	gm_snprintf(vendor, sizeof(vendor), "%s%s",
 		(d->server->attrs & DLS_A_BANNING) ? "*" : "",
 		download_vendor_str(d));
@@ -606,8 +614,7 @@ void download_gui_add(struct download *d)
 	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
 		GtkCList* clist_downloads_queue;
 
-        titles[c_queue_filename] = d->record_index == URN_INDEX ?
-			d->file_info->file_name : d->file_name;
+        titles[c_queue_filename] = file_name;
         titles[c_queue_server] = vendor;
         titles[c_queue_status] = "";
 		titles[c_queue_size] = short_size(d->file_info->size);
@@ -623,8 +630,7 @@ void download_gui_add(struct download *d)
 			 gtk_clist_set_foreground(clist_downloads_queue, row, color);
 	} else {					/* This is an active download */
 
-		titles[c_dl_filename] = d->record_index == URN_INDEX ?
-			d->file_info->file_name : d->file_name;
+		titles[c_dl_filename] = file_name;
 		titles[c_dl_server] = vendor;
 		titles[c_dl_status] = "";
 		titles[c_dl_size] = short_size(d->file_info->size);

@@ -109,7 +109,8 @@ static void fi_gui_set_details(gnet_fi_t fih)
     gtk_tree_store_clear(store_aliases);
 	for (i = 0; NULL != aliases[i]; i++) {
 		gtk_tree_store_append(store_aliases, &iter, NULL);
-		gtk_tree_store_set(store_aliases, &iter, 0, aliases[i], (-1));
+		gtk_tree_store_set(store_aliases, &iter, 0,
+			locale_to_utf8(aliases[i]), (-1));
 	}
     g_strfreev(aliases);
     fi_free_info(fi);
