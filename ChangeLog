@@ -1,5 +1,9 @@
 # since last version
 
+- (2004.04.11 - Hans)
+ * [Gtk1] [Gtk2] Fileinfo pane now contains a visual indication of the
+   download progress for the selected file.
+	
 - (2004.04.10 - RAM)
  * Will now parse up to 150 hosts in hostfile replies.
 

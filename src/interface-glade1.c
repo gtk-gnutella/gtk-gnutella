@@ -331,6 +331,8 @@ create_main_window (void)
   GtkWidget *scrolledwindow44;
   GtkWidget *clist_fi_aliases;
   GtkWidget *label526;
+  GtkWidget *frame121;
+  GtkWidget *drawingarea_fi_progress;
   GtkWidget *hbox197a;
   GtkWidget *button_fi_purge;
   GtkWidget *viewport43;
@@ -3872,6 +3874,24 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label526);
   gtk_clist_set_column_widget (GTK_CLIST (clist_fi_aliases), 0, label526);
+
+  frame121 = gtk_frame_new (_("Download progress"));
+  gtk_widget_set_name (frame121, "frame121");
+  gtk_widget_ref (frame121);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame121", frame121,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame121);
+  gtk_box_pack_start (GTK_BOX (vbox110), frame121, FALSE, TRUE, 0);
+
+  drawingarea_fi_progress = gtk_drawing_area_new ();
+  gtk_widget_set_name (drawingarea_fi_progress, "drawingarea_fi_progress");
+  gtk_widget_ref (drawingarea_fi_progress);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "drawingarea_fi_progress", drawingarea_fi_progress,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (drawingarea_fi_progress);
+  gtk_container_add (GTK_CONTAINER (frame121), drawingarea_fi_progress);
+  gtk_widget_set_usize (drawingarea_fi_progress, -2, 14);
+  gtk_tooltips_set_tip (tooltips, drawingarea_fi_progress, _("This bar shows the progress on downloading the file. Green parts have already been downloaded, with the bright green parts during this session. White parts are currently being downloaded."), NULL);
 
   hbox197a = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox197a, "hbox197a");
@@ -10979,6 +10999,15 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (clist_fileinfo), "unselect_row",
                       GTK_SIGNAL_FUNC (on_clist_fileinfo_unselect_row),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (drawingarea_fi_progress), "realize",
+                      GTK_SIGNAL_FUNC (on_drawingarea_fi_progress_realize),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (drawingarea_fi_progress), "configure_event",
+                      GTK_SIGNAL_FUNC (on_drawingarea_fi_progress_configure_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (drawingarea_fi_progress), "expose_event",
+                      GTK_SIGNAL_FUNC (on_drawingarea_fi_progress_expose_event),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (button_fi_purge), "clicked",
                       GTK_SIGNAL_FUNC (on_button_fi_purge_clicked),
                       NULL);
@@ -14795,7 +14824,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new (_("Raphaël Manfredi"));
+  label267 = gtk_label_new (_("Rapha\353l Manfredi"));
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -14839,7 +14868,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
-  label273 = gtk_label_new (_("Raphaël Manfredi"));
+  label273 = gtk_label_new (_("Rapha\353l Manfredi"));
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,

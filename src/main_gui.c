@@ -56,6 +56,7 @@
 #include "filter.h"
 #include "upload_stats_cb.h" /* FIXME: remove dependency (compare_ul_norm) */
 #include "fileinfo_gui.h"
+#include "visual_progress_gui.h"
 #include "override.h"			/* Must be the last header included */
 
 RCSID("$Id$");
@@ -603,6 +604,7 @@ void main_gui_init(void)
     settings_gui_init();
 	downloads_gui_init();
     fi_gui_init();
+    vp_gui_init();
     nodes_gui_init();
     gui_init_menu();
     gnet_stats_gui_init();

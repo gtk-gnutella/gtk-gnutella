@@ -35,6 +35,7 @@
 #include "uploads_cb.h"
 #include "gnet_stats_gui.h"
 #include "fileinfo_gui.h"
+#include "visual_progress_gui.h"
 #include "upload_stats_cb.h"
 
 #ifdef USE_GTK2

@@ -30,12 +30,6 @@
 
 struct shared_file;
 
-enum dl_chunk_status {
-	DL_CHUNK_EMPTY = 0,
-	DL_CHUNK_BUSY = 1,
-	DL_CHUNK_DONE = 2
-};
-
 struct dl_file_chunk {
 	guint32 from;					/* Range offset start (byte included) */
 	guint32 to;						/* Range offset end (byte EXCLUDED) */

@@ -27,6 +27,7 @@
 
 #include "gui.h"
 #include "fileinfo.h"
+#include "visual_progress_gui.h"
 #include "override.h"		/* Must be the last header included */
 
 #ifdef USE_GTK2
@@ -107,6 +108,8 @@ static void fi_gui_set_details(gnet_fi_t fih)
 	}
     g_strfreev(aliases);
     fi_free_info(fi);
+
+    vp_draw_fi_progress(fih);
 
     last_shown = fih;
     last_shown_valid = TRUE;
@@ -265,6 +268,9 @@ static void fi_gui_update(gnet_fi_t fih, gboolean full)
     fi_gui_fill_status(fih, titles);
 
     fi_gui_update_row(store_fileinfo, iter, titles);
+
+    if (last_shown_valid)
+	vp_draw_fi_progress(last_shown);
 }
 
 static void fi_gui_fi_added(gnet_fi_t fih)

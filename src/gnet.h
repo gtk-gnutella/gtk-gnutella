@@ -714,6 +714,17 @@ void src_remove_listener(src_listener_t, gnet_src_ev_t);
  *** Fileinfo
  ***/
 
+
+/*
+ * These used to be in fileinfo.h, but we need them now at several places.
+ */
+enum dl_chunk_status {
+        DL_CHUNK_EMPTY = 0,
+        DL_CHUNK_BUSY = 1,
+        DL_CHUNK_DONE = 2
+};
+
+
 typedef guint32 gnet_fi_t;
 
 typedef struct gnet_fi_info {
@@ -741,10 +752,18 @@ typedef enum {
 	EV_FI_REMOVED,         /* fi_listener */
 	EV_FI_INFO_CHANGED,    /* fi_listener */
 	EV_FI_STATUS_CHANGED,  /* fi_listener */
+	EV_FI_STATUS_CHANGED_TRANSIENT, /* fi_listener */
 	EV_FI_SRC_ADDED,       /* fi_src_listener */
 	EV_FI_SRC_REMOVED,     /* fi_src_listener */
 	EV_FI_EVENTS           /* Number of events in this domain */
 } gnet_fi_ev_t;
+
+typedef struct gnet_fi_chunks {
+    guint32  from;
+    guint32  to;
+    enum dl_chunk_status status;
+    gboolean old;
+} gnet_fi_chunks_t;
 
 void fi_add_listener(GCallback, gnet_fi_ev_t, frequency_t, guint32);
 void fi_remove_listener(GCallback, gnet_fi_ev_t);
@@ -752,6 +771,7 @@ void fi_remove_listener(GCallback, gnet_fi_ev_t);
 gnet_fi_info_t *fi_get_info(gnet_fi_t);
 void fi_free_info(gnet_fi_info_t *);
 void fi_get_status(gnet_fi_t, gnet_fi_status_t *);
+GSList *fi_get_chunks(gnet_fi_t);
 gchar **fi_get_aliases(gnet_fi_t fih);
 
 void fi_purge_by_handle_list(GSList *list);

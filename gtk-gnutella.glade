@@ -4583,6 +4583,41 @@
 			  </widget>
 			</widget>
 		      </widget>
+
+		      <widget>
+			<class>GtkFrame</class>
+			<name>frame121</name>
+			<label>Download progress</label>
+			<label_xalign>0</label_xalign>
+			<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+			<child>
+			  <padding>0</padding>
+			  <expand>False</expand>
+			  <fill>True</fill>
+			</child>
+
+			<widget>
+			  <class>GtkDrawingArea</class>
+			  <name>drawingarea_fi_progress</name>
+			  <height>14</height>
+			  <tooltip>This bar shows the progress on downloading the file. Green parts have already been downloaded, with the bright green parts during this session. White parts are currently being downloaded.</tooltip>
+			  <signal>
+			    <name>realize</name>
+			    <handler>on_drawingarea_fi_progress_realize</handler>
+			    <last_modification_time>Sat, 10 Apr 2004 15:41:00 GMT</last_modification_time>
+			  </signal>
+			  <signal>
+			    <name>configure_event</name>
+			    <handler>on_drawingarea_fi_progress_configure_event</handler>
+			    <last_modification_time>Sun, 11 Apr 2004 07:41:16 GMT</last_modification_time>
+			  </signal>
+			  <signal>
+			    <name>expose_event</name>
+			    <handler>on_drawingarea_fi_progress_expose_event</handler>
+			    <last_modification_time>Sun, 11 Apr 2004 08:04:56 GMT</last_modification_time>
+			  </signal>
+			</widget>
+		      </widget>
 		    </widget>
 		  </widget>
 		</widget>

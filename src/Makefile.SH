@@ -155,7 +155,8 @@ GUI_COMMON = \
 	statusbar_gui.c \
 	uploads_cb.c \
 	uploads_gui_common.c \
-	upload_stats_cb.c
+	upload_stats_cb.c \
+	visual_progress_gui.c
 
 CORE = \
 	adns.c \
@@ -304,6 +305,7 @@ OBJLIST = \
 	uploads_cb.o \
 	uploads_gui_common.o \
 	upload_stats_cb.o \
+	visual_progress_gui.o \
 	pbarcellrenderer_gui2.o \
 	adns.o \
 	alive.o \

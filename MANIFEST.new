@@ -418,6 +418,8 @@ src/verify.c
 src/verify.h
 src/version.c
 src/version.h
+src/visual_progress_gui.c
+src/visual_progress_gui.h
 src/vmsg.c
 src/vmsg.h
 src/walloc.c

@@ -361,6 +361,7 @@ void file_info_init(void)
     fi_events[EV_FI_REMOVED]        = event_new("fi_removed");
     fi_events[EV_FI_INFO_CHANGED]   = event_new("fi_info_changed");	/* UNUSED */
     fi_events[EV_FI_STATUS_CHANGED] = event_new("fi_status_changed");
+    fi_events[EV_FI_STATUS_CHANGED_TRANSIENT] = event_new("fi_status_changed_transient");
     fi_events[EV_FI_SRC_ADDED]      = event_new("fi_src_added");
     fi_events[EV_FI_SRC_REMOVED]    = event_new("fi_src_removed");
 }
@@ -2828,16 +2829,23 @@ void file_info_clear_download(struct download *d, gboolean lifecount)
 		if (fc->status == DL_CHUNK_BUSY)
 			busy++;
 		if (fc->download == d) {
-			if (fc->status == DL_CHUNK_BUSY)
-				fc->status = DL_CHUNK_EMPTY;
-			fc->download = NULL;
+		    if (fc->status == DL_CHUNK_BUSY)
+			fc->status = DL_CHUNK_EMPTY;
+		    fc->download = NULL;
 		}
 	}
 	file_info_merge_adjacent(d->file_info);
 
 	g_assert(fi->lifecount >= (lifecount ? busy : (busy - 1)));
 
-	/* No need to flush data to disk, those are transient changes */
+	/*
+	 * No need to flush data to disk, those are transient
+	 * changes. However, we do need to trigger a status change,
+	 * because other parts of gtkg, i.e. the visual progress view,
+	 * needs to know about them.
+	 */
+	event_trigger(fi_events[EV_FI_STATUS_CHANGED_TRANSIENT], 
+		      T_NORMAL(fi_listener_t, fi->fi_handle));    
 }
 
 /*
@@ -3566,6 +3574,35 @@ void fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
     s->size           = fi->size;
     s->aqueued_count  = fi->aqueued_count;
     s->pqueued_count  = fi->pqueued_count;
+}
+
+/*
+ * Get a list with information about each chunk and status. Returns a
+ * linked list of chunks with just the end byte and the status. The
+ * list is fully allocated and the receiver is responsible for freeing
+ * up the memory.
+ */
+GSList *fi_get_chunks(gnet_fi_t fih) 
+{
+    struct dl_file_info *fi = file_info_find_by_handle(fih); 
+    gnet_fi_chunks_t *chunk = NULL;
+    GSList *l = NULL;
+    GSList *chunks = NULL;
+    
+    g_assert( fi );
+
+    for (l = fi->chunklist; l != NULL; l = g_slist_next(l)) {
+	struct dl_file_chunk *fc = l->data;
+	chunk = (gnet_fi_chunks_t *) walloc(sizeof(gnet_fi_chunks_t));
+	chunk->from = fc->from;
+	chunk->to = fc->to;
+	chunk->status = fc->status;
+	chunk->old = TRUE;
+
+	chunks = g_slist_append(chunks, chunk);
+    }
+
+    return chunks;
 }
 
 
