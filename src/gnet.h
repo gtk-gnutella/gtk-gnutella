@@ -608,13 +608,47 @@ void upload_kill(gnet_upload_t);
 // FIXME: temporaily located here:
 
 struct ul_stats {
-	gchar *filename;
+	gchar  *filename;
 	guint32 size;
 	guint32 attempts;
 	guint32 complete;
 	guint64 bytes_sent;
-	gfloat norm;		/* bytes sent / file size */
+	gfloat  norm;		/* bytes sent / file size */
 };
+
+
+
+typedef guint32 gnet_fi_t;
+
+typedef struct gnet_fi_info {
+    gnet_fi_t fi_handle;
+
+    gchar    *file_name;        /* Name of the file on disk */
+} gnet_fi_info_t;
+
+typedef struct gnet_fi_status {
+    guint32  recvcount;
+    guint32  refcount;
+    guint32  lifecount;
+    guint32  size;
+    guint32  done;
+    guint32  recv_last_rate;
+} gnet_fi_status_t;
+
+typedef void (*fi_listener_t) (gnet_fi_t);
+
+void fi_add_fi_added_listener(fi_listener_t);
+void fi_remove_fi_added_listener(fi_listener_t);
+void fi_add_fi_removed_listener(fi_listener_t);
+void fi_remove_fi_removed_listener(fi_listener_t);
+void fi_add_fi_info_changed_listener(fi_listener_t);
+void fi_remove_fi_info_changed_listener(fi_listener_t);
+void fi_add_fi_status_changed_listener(fi_listener_t);
+void fi_remove_fi_status_changed_listener(fi_listener_t);
+
+gnet_fi_info_t *fi_get_info(gnet_fi_t);
+void fi_free_info(gnet_fi_info_t *);
+void fi_get_status(gnet_fi_t, gnet_fi_status_t *);
 
 #endif /* _gnet_h_ */
 
