@@ -802,6 +802,9 @@ create_main_window (void)
   GtkWidget *checkbutton_gnet_info_qrp_stats;
   GtkWidget *checkbutton_gnet_info_dbw;
   GtkWidget *checkbutton_gnet_info_rt;
+  GtkWidget *label576_empty;
+  GtkWidget *label577_empty;
+  GtkWidget *label578_empty;
   GtkWidget *label287;
   GtkWidget *scrolledwindow37;
   GtkWidget *viewport9;
@@ -7580,7 +7583,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame84", frame84,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame84);
-  gtk_box_pack_start (GTK_BOX (vbox77), frame84, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox77), frame84, FALSE, TRUE, 0);
 
   table70 = gtk_table_new (6, 2, FALSE);
   gtk_widget_set_name (table70, "table70");
@@ -7787,6 +7790,39 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table71), checkbutton_gnet_info_rt, 2, 3, 4, 5,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+
+  label576_empty = gtk_label_new ("");
+  gtk_widget_set_name (label576_empty, "label576_empty");
+  gtk_widget_ref (label576_empty);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label576_empty", label576_empty,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label576_empty);
+  gtk_table_attach (GTK_TABLE (table70), label576_empty, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label576_empty), 0, 0.5);
+
+  label577_empty = gtk_label_new ("");
+  gtk_widget_set_name (label577_empty, "label577_empty");
+  gtk_widget_ref (label577_empty);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label577_empty", label577_empty,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label577_empty);
+  gtk_table_attach (GTK_TABLE (table70), label577_empty, 0, 1, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label577_empty), 0, 0.5);
+
+  label578_empty = gtk_label_new ("");
+  gtk_widget_set_name (label578_empty, "label578_empty");
+  gtk_widget_ref (label578_empty);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label578_empty", label578_empty,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label578_empty);
+  gtk_table_attach (GTK_TABLE (table70), label578_empty, 0, 1, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label578_empty), 0, 0.5);
 
   label287 = gtk_label_new (_("User\ninterface"));
   gtk_widget_set_name (label287, "label287");
