@@ -2033,8 +2033,8 @@ ip_range_split(
  * TODO: Add Configure check for SA_INTERRUPT
  *
  */
-void (*
-set_signal(gint signo, void (*handler)(gint)))(gint)
+signal_handler_t
+set_signal(gint signo, signal_handler_t handler)
 {
 	struct sigaction sa, osa;
 
