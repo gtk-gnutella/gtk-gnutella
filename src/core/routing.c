@@ -1082,15 +1082,17 @@ forward_message(
 		 * after too many offenses, which should have given the
 		 * relaying node ample time to kick the offender out,
 		 * according to our standards.
-		 *				--RAM, 08/09/2001
+		 *		--RAM, 08/09/2001
+		 *
+		 * Don't kick if message is not a query, but simply a routed message.
+		 *		--RAM, 2004-11-01
 		 */
-
-		/* XXX max_high_ttl_radius & max_high_ttl_msg XXX */
 
 		sender->n_hard_ttl++;
         gnet_stats_count_dropped(sender, MSG_DROP_HARD_TTL_LIMIT);
 
 		if (
+			sender->header.function == GTA_MSG_SEARCH &&
 			sender->header.hops <= max_high_ttl_radius &&
 			sender->n_hard_ttl > max_high_ttl_msg &&
 			!NODE_IS_UDP(sender)
