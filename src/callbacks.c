@@ -1389,7 +1389,7 @@ void on_entry_queue_regex_activate(GtkEditable *editable,
    	if (err) {
         char buf[1000];
 		regerror(err, &re, buf, 1000);
-        g_error("on_entry_queue_regex_activate: regex error %s",buf);
+        g_warning("on_entry_queue_regex_activate: regex error %s",buf);
         msgid = gui_statusbar_push(scid_warn, buf);
         gui_statusbar_add_timeout(scid_warn, msgid, 15);
     } else {
