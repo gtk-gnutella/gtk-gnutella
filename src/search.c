@@ -38,6 +38,7 @@
 #include "qrp.h"
 #include "search.h"
 #include "hostiles.h"
+#include "dmesh.h"
 
 #include <ctype.h>
 
