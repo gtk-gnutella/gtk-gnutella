@@ -134,8 +134,8 @@ YACC = @YACC@
 @ENABLE_GTK2_FALSE@GLADE_UI = 	interface-glade1.c interface-glade1.h 	support-glade1.c support-glade1.h
 @ENABLE_GTK2_TRUE@ADDITIONAL_DROPIN = 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h 	glib-missing.c glib-missing.h 	gtk-missing.c gtk-missing.h 	gui.c gui.h 	callbacks.c callbacks.h 	gtkcolumnchooser.c gtkcolumnchooser.h 	monitor_gui2.c monitor_gui.h monitor_cb2.c monitor_cb.h 	nodes_gui2.c nodes_gui.h nodes_cb2.c nodes_cb2.h	gui_property.c gui_property.h gui_property_priv.h 	settings_gui.c settings_gui.h settings_cb.c settings_cb.h 	statusbar_gui.c statusbar_gui.h 	search_gui2.c search_gui.h search_cb2.c search_cb2.h 	downloads_gui.c downloads_gui.h downloads_cb.c downloads_cb.h 	uploads_gui2.c uploads_gui.h uploads_cb.c uploads_cb.h 	upload_stats_gui2.c upload_stats_gui.h 	gnet_stats_gui2.c gnet_stats_gui.h 	search_stats_gui2.c search_stats_gui.h 	fileinfo_gui2.c fileinfo_gui.h 	main_gui.c main_gui.h main_cb.c main_cb.h 
 @ENABLE_GTK2_FALSE@ADDITIONAL_DROPIN = 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h 	glib-missing.c glib-missing.h 	gtk-missing.c gtk-missing.h 	gui.c gui.h 	callbacks.c callbacks.h 	gtkcolumnchooser.c gtkcolumnchooser.h 	monitor_gui.c monitor_gui.h monitor_cb.c monitor_cb.h 	nodes_gui.c nodes_gui.h nodes_cb.c nodes_cb.h 	gui_property.c gui_property.h gui_property_priv.h 	settings_gui.c settings_gui.h settings_cb.c settings_cb.h 	statusbar_gui.c statusbar_gui.h 	search_gui.c search_gui.h search_cb.c search_cb.h 	downloads_gui.c downloads_gui.h downloads_cb.c downloads_cb.h 	uploads_gui.c uploads_gui.h uploads_cb.c uploads_cb.h 	upload_stats_gui.c upload_stats_gui.h 	gnet_stats_gui.c gnet_stats_gui.h 	search_stats_gui.c search_stats_gui.h 	main_gui.c main_gui.h main_cb.c main_cb.h 	fileinfo_gui.c fileinfo_gui.h
-@ENABLE_GTK2_TRUE@gtk_gnutella_LDADD = @GTK_GNUTELLA_LIBS@ -lz @XML_LIBS@
-@ENABLE_GTK2_FALSE@gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
+@ENABLE_GTK2_TRUE@gtk_gnutella_LDADD = @INTLLIBS@ @GTK_GNUTELLA_LIBS@ -lz @XML_LIBS@
+@ENABLE_GTK2_FALSE@gtk_gnutella_LDADD = @INTLLIBS@ @GTK_LIBS@ -lz @XML_LIBS@
 
 bin_PROGRAMS = gtk-gnutella
 CLEANFILES = *.bak
@@ -1075,7 +1075,7 @@ LIBS = @LIBS@
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@hostiles.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@clock.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@nodes_gui_common.o \
-@ENABLE_REMOTE_SHELL_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_GTK2_FALSE@uploads_gui_common.o
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@@ENABLE_REMOTE_SHELL_TRUE@uploads_gui_common.o
 @ENABLE_GTK2_FALSE@gtk_gnutella_DEPENDENCIES = 
 @ENABLE_GTK2_TRUE@gtk_gnutella_DEPENDENCIES = 
 gtk_gnutella_LDFLAGS = 

@@ -55,7 +55,7 @@ ADDITIONAL_DROPIN = \
 	search_stats_gui2.c search_stats_gui.h \
 	fileinfo_gui2.c fileinfo_gui.h \
 	main_gui.c main_gui.h main_cb.c main_cb.h 
-gtk_gnutella_LDADD = @GTK_GNUTELLA_LIBS@ -lz @XML_LIBS@
+gtk_gnutella_LDADD = @INTLLIBS@ @GTK_GNUTELLA_LIBS@ -lz @XML_LIBS@
 else
 INCLUDES = \
 	@GTK_CFLAGS@ \
@@ -85,7 +85,7 @@ ADDITIONAL_DROPIN = \
 	search_stats_gui.c search_stats_gui.h \
 	main_gui.c main_gui.h main_cb.c main_cb.h \
 	fileinfo_gui.c fileinfo_gui.h
-gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
+gtk_gnutella_LDADD = @INTLLIBS@ @GTK_LIBS@ -lz @XML_LIBS@
 endif
 
 bin_PROGRAMS = gtk-gnutella
