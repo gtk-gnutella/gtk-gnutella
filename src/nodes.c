@@ -139,6 +139,7 @@ static struct {
 
 static gint32 connected_node_cnt = 0;
 static gint32 compressed_node_cnt = 0;
+static gint32 compressed_leaf_cnt = 0;
 static gint pending_byes = 0;			/* Used when shutdowning servent */
 static gboolean in_shutdown = FALSE;
 static gboolean no_gnutella_04 = FALSE;
@@ -836,8 +837,11 @@ static void node_remove_v(
 		connected_node_cnt--;
 		g_assert(connected_node_cnt >= 0);
         if (n->attrs & NODE_A_RX_INFLATE) {
+			if (n->flags & NODE_F_LEAF)
+				compressed_leaf_cnt--;
             compressed_node_cnt--;
             g_assert(compressed_node_cnt >= 0);
+			g_assert(compressed_leaf_cnt >= 0);
         }
 		if (!NODE_IS_PONGING_ONLY(n))
 			node_type_count_dec(n);
@@ -1025,8 +1029,11 @@ static void node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 		connected_node_cnt--;
 		g_assert(connected_node_cnt >= 0);
         if (n->attrs & NODE_A_RX_INFLATE) {
+			if (n->flags & NODE_F_LEAF)
+				compressed_leaf_cnt--;
             compressed_node_cnt--;
             g_assert(compressed_node_cnt >= 0);
+			g_assert(compressed_leaf_cnt >= 0);
         }
 		if (!NODE_IS_PONGING_ONLY(n))
 			node_type_count_dec(n);
@@ -1688,6 +1695,8 @@ static void node_is_now_connected(struct gnutella_node *n)
 		n->rx = rx_make(n, &rx_inflate_ops, node_data_ind, 0);
 		rx = rx_make_under(n->rx, &rx_link_ops, 0);
 		g_assert(rx);			/* Cannot fail */
+		if (n->flags & NODE_F_LEAF)
+			compressed_leaf_cnt++;
         compressed_node_cnt++;
 	} else
 		n->rx = rx_make(n, &rx_link_ops, node_data_ind, 0);
@@ -2256,6 +2265,21 @@ static gboolean node_can_accept_connection(
 		 */
 
 		if (n->flags & NODE_F_LEAF) {
+			/*
+			 * Try to preference compressed leaf nodes too
+			 * 		-- JA, 08/06/2003
+			 */
+			if (
+				prefer_compressed_gnet &&
+				up_connections <= node_leaf_count - compressed_leaf_cnt &&
+				!(n->attrs & NODE_A_CAN_INFLATE)
+			) {
+				send_node_error(n->socket, 403,
+					"Compressed connection prefered");
+				node_remove(n, "Connection not compressed");
+				return FALSE;
+			}
+
 			if (handshaking && node_leaf_count >= max_leaves) {
 				send_node_error(n->socket, 503,
 					"Too many leaf connections (%d max)", max_leaves);
@@ -2268,6 +2292,22 @@ static gboolean node_can_accept_connection(
 				return FALSE;
 			}
 		} else if (n->attrs & NODE_A_ULTRA) {
+			/*
+			 * Try to preference compressed ultrapeer connections too
+			 * 		-- JA, 08/06/2003
+			 */
+			if (
+				prefer_compressed_gnet &&
+				up_connections <= node_ultra_count - 
+					(compressed_node_cnt - compressed_leaf_cnt) &&
+				!(n->attrs & NODE_A_CAN_INFLATE)
+			) {
+				send_node_error(n->socket, 403,
+					"Compressed connection prefered");
+				node_remove(n, "Connection not compressed");
+				return FALSE;
+			}
+			
 			gint ultra_max = max_connections - normal_connections;
 
 			ultra_max = MAX(ultra_max, 0);
