@@ -4771,11 +4771,7 @@ static void download_request(
 
 		if (0 == strncmp(download_vendor_str(d), "gtk-gnutella/", 13))
 			d->server->attrs &= ~DLS_A_BANNING;
-
-		if (
-			!(d->server->attrs & DLS_A_BANNING) &&
-			0 != strncmp(download_vendor_str(d), "gtk-gnutella/", 13)
-		) {
+		else if (!(d->server->attrs & DLS_A_BANNING)) {
 			switch (ack_code) {
 			case 401:
 				if (0 != strncmp(download_vendor_str(d), "BearShare", 9))
