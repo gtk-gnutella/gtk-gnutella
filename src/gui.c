@@ -326,13 +326,10 @@ void gui_update_global(void)
 	gtk_entry_set_text(GTK_ENTRY(entry_hosts_in_catcher), gui_tmp);
 }
 
-void gui_update_node(struct gnutella_node *n, gboolean force)
+void gui_update_node_display(struct gnutella_node *n)
 {
 	gchar *a = (gchar *) NULL;
 	gint row;
-
-	if (n->last_update == time((time_t *) NULL) && !force)
-		return;
 
 	switch (n->status) {
 	case GTA_NODE_CONNECTING:
@@ -358,10 +355,11 @@ void gui_update_node(struct gnutella_node *n, gboolean force)
 		if (n->sent || n->received)
 			g_snprintf(gui_tmp, sizeof(gui_tmp),
 				"[%d.%d] %s: "
-				"TX=%d RX=%d Drop(TX=%d, RX=%d) Bad=%d%s",
+				"TX=%d RX=%d Drop(TX=%d, RX=%d) Bad=%d Q=%d,%d%% %s",
 				n->proto_major, n->proto_minor,
 				n->status == GTA_NODE_SHUTDOWN ? "Shutdown" : "Connected",
 				n->sent, n->received, n->tx_dropped, n->rx_dropped, n->n_bad,
+				NODE_QUEUE_COUNT(n), NODE_QUEUE_PERCENT_USED(n),
 				NODE_IN_TX_FLOW_CONTROL(n) ? " [FC]" : "");
 		else
 			g_snprintf(gui_tmp, sizeof(gui_tmp), "[%d.%d] Connected",
@@ -383,13 +381,22 @@ void gui_update_node(struct gnutella_node *n, gboolean force)
 		a = "UNKNOWN STATUS";
 	}
 
-	n->last_update = time((time_t *) NULL);
-
 	row =
 		gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes), (gpointer) n);
 	gtk_clist_freeze(GTK_CLIST(clist_nodes));
 	gtk_clist_set_text(GTK_CLIST(clist_nodes), row, 2, a);
 	gtk_clist_thaw(GTK_CLIST(clist_nodes));
+}
+
+void gui_update_node(struct gnutella_node *n, gboolean force)
+{
+	time_t now = time((time_t *) NULL);
+
+	if (n->last_update == now && !force)
+		return;
+	n->last_update = now;
+
+	gui_update_node_display(n);
 }
 
 /* */

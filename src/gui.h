@@ -19,6 +19,7 @@ void gui_update_count_uploads(void);
 void gui_update_save_file_path(void);
 void gui_update_move_file_path(void);
 void gui_update_node(struct gnutella_node *, gboolean);
+void gui_update_node_display(struct gnutella_node *n);
 void gui_update_download(struct download *, gboolean);
 void gui_update_c_gnutellanet(void);
 void gui_update_c_uploads(void);
