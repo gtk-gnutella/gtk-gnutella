@@ -426,6 +426,7 @@ void ban_close(void)
 
 static gchar *harmful = "Harmful version banned, upgrade required";
 static gchar *refused = "Connection refused";
+static gchar *too_old = "Outdated version, please upgrade";
 
 /*
  * ban_vendor
@@ -442,6 +443,11 @@ gchar *ban_vendor(gchar *vendor)
 	/*
 	 * Ban gtk-gnutella/0.90 from the network.  This servent had
 	 * bugs that could corrupt the traffic.  Also ban 0.91u.
+	 *
+	 * Versions of GKTG deemed too old are also banned: the Gnutella
+	 * network is far from being mature, and we need to ensure newer
+	 * features are deployed reasonably quickly.
+	 *		--RAM, 03/01/2002.
 	 */
 
 #define GTKG_NAME	"gtk-gnutella/"
@@ -456,6 +462,9 @@ gchar *ban_vendor(gchar *vendor)
 			0 == strncmp(vendor + GTKG_LEN, "0.91u", 5)
 		)
 			return harmful;
+
+		if (version_is_too_old(vendor))
+			return too_old;
 	}
 
 #undef GTKG_NAME
