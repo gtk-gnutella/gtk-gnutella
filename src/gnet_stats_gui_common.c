@@ -199,18 +199,18 @@ void gnet_stats_gui_horizon_update(hsep_triple *table, guint32 triples)
 
 	val = table[hops][HSEP_IDX_NODES];
 	gm_snprintf(s, sizeof(s),
-	            " %llu %s ", val, val == 1 ? _("node") : _("nodes"));
+	            "%llu %s", val, val == 1 ? _("node") : _("nodes"));
 	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
 	                   "label_statusbar_horizon_node_count")), s);
 
 	val = table[hops][HSEP_IDX_FILES];
-	gm_snprintf(s, sizeof(s), " %llu %s ",
+	gm_snprintf(s, sizeof(s), "%llu %s",
 	            val, val == 1 ? _("file") : _("files"));
 	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
 	                   "label_statusbar_horizon_file_count")), s);
 
 	val = table[hops][HSEP_IDX_KIB];
-	gm_snprintf(s, sizeof(s), " %s ", short_kb_size64(val));
+	gm_snprintf(s, sizeof(s), "%s", short_kb_size64(val));
 	gtk_label_set_text(GTK_LABEL(lookup_widget(main_window,
 	                   "label_statusbar_horizon_kb_count")), s);
 }
