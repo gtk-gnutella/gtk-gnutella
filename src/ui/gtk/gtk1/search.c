@@ -1722,8 +1722,8 @@ void search_gui_download_files(void)
 		gm_snprintf(buf, sizeof buf,
 			NG_("Created %u download", "Created %u downloads", created),
 			created);
-		statusbar_gui_message(15, "%s %s"
-			NG_("from the %u selected item", "from the %u selected items",
+		statusbar_gui_message(15,
+			NG_("%s from the %u selected item", "%s from the %u selected items",
 				selected),
 			buf, selected);
 	} else {
