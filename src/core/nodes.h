@@ -142,6 +142,7 @@ typedef struct gnutella_node {
 	struct node_rxfc_mon *rxfc;	/* Optional, time spent in RX flow control */
 	time_t shutdown_date;		/* When we entered in shutdown mode */
 	time_t up_date;				/* When remote server started (0 if unknown) */
+	time_t leaf_flowc_start;	/* Time when leaf flow-controlled queries */
 	guint32 shutdown_delay;		/* How long we can stay in shutdown mode */
 
 	const gchar *remove_msg;	/* Reason of removing */

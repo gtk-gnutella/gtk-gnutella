@@ -217,7 +217,8 @@ static void node_bye_all_but_one(
 	struct gnutella_node *nskip, gint code, gchar *message);
 static void node_set_current_peermode(node_peer_t mode);
 static enum node_bad node_is_bad(struct gnutella_node *n);
-static gnutella_node_t * node_udp_create(void);
+static gnutella_node_t *node_udp_create(void);
+static gboolean node_remove_useless_leaf(void);
 
 extern gint guid_eq(gconstpointer a, gconstpointer b);
 
@@ -3168,6 +3169,14 @@ node_can_accept_connection(struct gnutella_node *n, gboolean handshaking)
 				return FALSE;
 			}
 
+			/*
+			 * Remove leaves that do not allow queries when we are
+			 * running out of slots.
+			 */
+
+			if (node_leaf_count >= max_leaves)
+				(void) node_remove_useless_leaf();
+
 			if (handshaking && node_leaf_count >= max_leaves) {
 				send_node_error(n->socket, 503,
 					"Too many leaf connections (%d max)", max_leaves);
@@ -5885,6 +5894,66 @@ node_bye_pending(void)
 }
 
 /**
+ * Try to spot a "useless" leaf node, i.e. one that is either not sharing
+ * anything or which is preventing us from sending queries via hops-flow.
+ * We remove the ones flow-controlling for the greatest amount of time,
+ * or which are not sharing anything, based on the QRP.
+ *
+ * @return TRUE if we were able to remove one connection.
+ */
+static gboolean
+node_remove_useless_leaf(void)
+{
+    GSList *sl;
+	struct gnutella_node *worst = NULL;
+	gint greatest = 0;
+	time_t now = time(NULL);
+
+    for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *n = sl->data;
+		time_t target = 0;
+		gint diff;
+
+		if (n->status != GTA_NODE_CONNECTED)
+			continue;
+
+		if (!NODE_IS_LEAF(n))
+			continue;
+
+        /* Don't kick whitelisted nodes. */
+        if (whitelist_check(n->ip))
+            continue;
+
+		/*
+		 * Our targets are non-sharing leaves, or leaves preventing
+		 * any querying via hops-flow.
+		 */
+
+		if (n->gnet_files_count == 0)
+			target = n->connect_date;
+
+		if (n->leaf_flowc_start != 0)
+			target = n->leaf_flowc_start;
+
+		if (target == 0)
+			continue;
+
+		diff = delta_time(now, target);
+		if (diff > greatest) {
+			greatest = diff;
+			worst = n;
+		}
+	}
+
+	if (worst == NULL)
+		return FALSE;
+
+	node_bye_if_writable(worst, 202, "Making room for another leaf");
+
+	return TRUE;
+}
+
+/**
  * Removes the node with the worst stats, considering the
  * number of weird, bad and duplicate packets.
  *
@@ -6287,10 +6356,17 @@ node_set_hops_flow(gnutella_node_t *n, guint8 hops)
 	 * There is no monitoring of flow control when the remote node is
 	 * a leaf node: it is permitted for the leaf to send us an hops-flow
 	 * to disable all query sending if it is not sharing anything.
+	 *
+	 * We're recording the time at which the flow-control happens though.
+	 * When we're running out of leaf slots, we may want to close connections
+	 * to leaves under flow-control for a long time, since they are not
+	 * searchable.  We consider that hops <= 1 is very restrictive.
 	 */
 
-	if (n->peermode == NODE_P_LEAF)
+	if (n->peermode == NODE_P_LEAF) {
+		n->leaf_flowc_start = hops <= 1 ? time(NULL) : 0;
 		goto fire;
+	}
 
 	/*
 	 * If we're starting flow control (hops < GTA_NORMAL_TTL), make sure
