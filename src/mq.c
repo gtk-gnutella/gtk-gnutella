@@ -82,11 +82,16 @@ mqueue_t *mq_make(gint maxsize, struct gnutella_node *n, struct txdriver *nd)
 void mq_free(mqueue_t *q)
 {
 	GList *l;
+	gint n;
 
 	tx_free(q->tx_drv);		/* Get rid of lower layers */
 
-	for (l = q->qhead; l; l = g_list_next(l))
+	for (n = 0, l = q->qhead; l; l = g_list_next(l)) {
+		n++;
 		pmsg_free((pmsg_t *) l->data);
+	}
+
+	g_assert(n == q->count);
 
 	if (q->qlink)
 		qlink_free(q);
