@@ -48,6 +48,16 @@ prop = {
 };
     
 prop = {
+    name = "search_hide_downloaded";
+    desc = "Whether to hide hits that have been considered "
+		"for auto-downloading based on the SHA1 or your filters.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
     name = "nodes_col_widths";
     cfgvar = "widths_nodes";
     desc = "Widths of the columns in the nodes table";
