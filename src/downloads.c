@@ -708,7 +708,7 @@ void auto_download_new(gchar * file, guint32 size, guint32 record_index,
 		goto abort_download;
 	}
 
-	create_download(file, size, record_index, ip, port, guid, FALSE);
+	create_download(file_name, size, record_index, ip, port, guid, FALSE);
 	return;
 
 abort_download:
