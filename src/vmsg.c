@@ -205,7 +205,7 @@ vmsg_handle(struct gnutella_node *n)
 
 	if (n->size < sizeof(*v)) {
 		gnet_stats_count_dropped(n, MSG_DROP_TOO_SMALL);
-		if (dbg)
+		if (dbg || vmsg_debug)
 			gmsg_log_bad(n, "message has only %d bytes, needs at least %d",
 				n->size, sizeof(*v));
 		return;
@@ -217,7 +217,7 @@ vmsg_handle(struct gnutella_node *n)
 
 	vm = find_message(vendor, id, version);
 
-	if (dbg > 4)
+	if (vmsg_debug > 4)
 		printf("VMSG %s \"%s\": vendor=%s, id=%u, version=%u\n",
 			gmsg_infostr(&n->header), vm == NULL ? "UNKNOWN" : vm->name,
 			vendor_code_str(vendor), id, version);
@@ -232,7 +232,7 @@ vmsg_handle(struct gnutella_node *n)
 
 	if (vm == NULL) {
 		gnet_stats_count_dropped(n, MSG_DROP_UNKNOWN_TYPE);
-		if (dbg)
+		if (dbg || vmsg_debug)
 			gmsg_log_bad(n, "unknown vendor message");
 		return;
 	}
@@ -301,7 +301,7 @@ vmsg_bad_payload(
 	n->n_bad++;
 	gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
 
-	if (dbg)
+	if (dbg || vmsg_debug)
 		gmsg_log_bad(n, "Bad payload size %d for %s/%dv%d (%s), expected %d",
 			size, vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version,
 			vmsg->name, expected);
@@ -321,7 +321,7 @@ handle_messages_supported(struct gnutella_node *n,
 
 	READ_GUINT16_LE(payload, count);
 
-	if (dbg)
+	if (vmsg_debug)
 		printf("VMSG node %s <%s> supports %u vendor message%s\n",
 			node_ip(n), node_vendor(n), count,
 			count == 1 ? "" : "s");
@@ -355,7 +355,7 @@ handle_messages_supported(struct gnutella_node *n,
 		vm = find_message(vendor, id, version);
 
 		if (vm == NULL) {
-			if (dbg > 1)
+			if (vmsg_debug > 1)
 				printf("VMSG node %s <%s> supports unknown %s/%dv%d\n",
 					node_ip(n), node_vendor(n),
 					vendor_code_str(vendor), id, version);
@@ -565,7 +565,7 @@ vmsg_send_proxy_req(struct gnutella_node *n, gchar *muid)
 
 	gmsg_sendto_one(n, (gchar *) m, msgsize);
 
-	if (dbg > 2)
+	if (vmsg_debug > 2)
 		g_warning("sent proxy REQ to %s <%s>", node_ip(n), node_vendor(n));
 }
 
@@ -590,7 +590,7 @@ handle_proxy_ack(struct gnutella_node *n,
 	payload += 4;
 	READ_GUINT16_LE(payload, port);
 
-	if (dbg > 2)
+	if (vmsg_debug > 2)
 		g_warning("got proxy ACK from %s <%s>: proxy at %s",
 			node_ip(n), node_vendor(n), ip_port_to_gchar(ip, port));
 
@@ -722,6 +722,10 @@ vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits)
 	payload = vmsg_fill_type(&m->data, T_BEAR, 12, 1);
 
 	WRITE_GUINT16_LE(hits, payload);
+
+	if (vmsg_debug > 1)
+		printf("VMSG sending %s with hits=%d to %s <%s>\n",
+			gmsg_infostr_full(m), hits, node_ip(n), node_vendor(n));
 
 	gmsg_sendto_one(n, (gchar *) m, msgsize);
 }
