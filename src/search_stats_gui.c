@@ -83,8 +83,9 @@ static void search_stats_tally(const word_vec_t * vec);
 
 static void on_search_stats_type_selected(GtkItem *i, gpointer data)
 {
-    search_stats_gui_set_type((gint) data);
-    search_stats_gui_reset();
+    guint32 val = (guint32) data;
+
+    gui_prop_set_guint32(PROP_SEARCH_STATS_MODE, &val, 0, 1);
 }
 
 static void search_stats_notify_word(query_type_t type, const gchar *search)
@@ -116,8 +117,8 @@ static void search_stats_notify_whole(
     if (type == QUERY_SHA1)
         return;
 
-    wovec.word = g_strdup(search);
-    wovec.len = strlen(search);
+    wovec.word = g_strdup_printf("[%s]", search);
+    wovec.len = strlen(wovec.word);
     wovec.amount = 1;
 
     search_stats_tally(&wovec);
@@ -291,9 +292,16 @@ void search_stats_gui_init(void)
     GtkWidget *clist_search_stats = 
         lookup_widget(main_window, "clist_search_stats");
     gint n;
+    guint32 original_mode;
 
     combo_types = GTK_COMBO(
         lookup_widget(main_window, "combo_search_stats_type"));
+
+    /*
+     * Save search_stats_mode because it will be overridden
+     * when we create the menu.
+     */
+    original_mode = search_stats_mode;
 
     for (n = 0; n < 3; n ++) {
         GtkWidget *list_item;
@@ -311,7 +319,7 @@ void search_stats_gui_init(void)
         l = g_list_prepend(NULL, (gpointer) list_item);
         gtk_list_append_items(GTK_LIST(GTK_COMBO(combo_types)->list), l);
 
-        if (n == NO_SEARCH_STATS)
+        if (n == original_mode)
             gtk_list_select_child(
                 GTK_LIST(GTK_COMBO(combo_types)->list), list_item);
     }
