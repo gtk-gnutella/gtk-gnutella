@@ -459,6 +459,20 @@ void gui_update_download_hostcount(struct download *d)
  */
 void downloads_gui_init(void)
 {
+    GtkCList *clist = 
+        GTK_CLIST(lookup_widget(main_window, "ctree_downloads_queue"));
+
+    gtk_clist_column_titles_passive(clist);
+//	gtk_clist_set_reorderable(clist, TRUE);
+//	gtk_clist_set_use_drag_icons(clist, FALSE);
+
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "ctree_downloads_queue")),
+        c_queue_size, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "ctree_downloads")),
+        c_queue_size, GTK_JUSTIFY_RIGHT);
+
 	parents = g_hash_table_new(g_int_hash, g_int_equal);
 	parents_queue = g_hash_table_new(g_int_hash, g_int_equal);
 	parents_gui_time = g_hash_table_new(g_int_hash, g_int_equal);

@@ -479,12 +479,12 @@ void main_gui_gtkrc_init(void)
 	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, rchfn,
 		  NULL);
 	gtk_rc_parse(userrc);
-	g_free(userrc);
+	G_FREE_NULL(userrc);
 
 	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, ".gtk",
 		  G_DIR_SEPARATOR_S, "gtkrc", NULL);
 	gtk_rc_parse(userrc);
-	g_free(userrc);
+	G_FREE_NULL(userrc);
 
 #ifdef USE_GTK2
 	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, ".gtk2",
@@ -494,12 +494,12 @@ void main_gui_gtkrc_init(void)
 		  G_DIR_SEPARATOR_S, "gtkrc", NULL);
 #endif
 	gtk_rc_parse(userrc);
-	g_free(userrc);
+	G_FREE_NULL(userrc);
 
 	userrc = g_strconcat(settings_config_dir(), G_DIR_SEPARATOR_S, rcfn, 
 		  NULL);
 	gtk_rc_parse(userrc);
-	g_free(userrc);
+	G_FREE_NULL(userrc);
 
 	gtk_rc_parse("./gtkrc");
 }
@@ -574,18 +574,6 @@ void main_gui_init(void)
     gtk_clist_set_compare_func(
         GTK_CLIST(lookup_widget(main_window, "clist_ul_stats")), 
         compare_ul_norm);
-    gtk_clist_set_column_justification(
-        GTK_CLIST(lookup_widget(main_window, "ctree_downloads_queue")),
-        c_queue_size, GTK_JUSTIFY_RIGHT);
-
-	{
-		GtkCList *clist = 
-			GTK_CLIST(lookup_widget(main_window, "ctree_downloads_queue"));
-
-		gtk_clist_column_titles_passive(clist);
-		gtk_clist_set_reorderable(clist, TRUE);
-		gtk_clist_set_use_drag_icons(clist, FALSE);
-	}
 #endif
 
     /* FIXME: those gtk_widget_set_sensitive should become obsolete when
