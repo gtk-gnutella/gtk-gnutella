@@ -1,5 +1,13 @@
 # since last version
 
+- (2003.10.31 - RAM)
+ * Disable non-passive searches that became full (max configured amount
+   of result displayed).
+ * Let the GUI side tell the core side how much items were found and are
+   still listed in the search window.
+ * Added a bunch of new addresses to hostiles.txt, collected from a
+   .htaccess and converted to our format.
+
 - (2003.10.31 - Jeroen)
  * Added support for X-Features header parsing.
  * Added support for X-Features generation.
