@@ -186,14 +186,15 @@ create_main_window (void)
   GtkWidget *hbox72;
   GtkWidget *button_uploads_kill;
   GtkWidget *button_uploads_clear_completed;
-  GtkWidget *hbox81;
+  GtkWidget *table61;
+  GtkWidget *checkbutton_uploads_auto_clear_complete;
+  GtkWidget *checkbutton_uploads_auto_clear_failed;
   GtkWidget *label81;
+  GtkWidget *label130;
   GtkObject *spinbutton_max_uploads_adj;
   GtkWidget *spinbutton_max_uploads;
-  GtkWidget *label130;
   GtkObject *spinbutton_max_uploads_ip_adj;
   GtkWidget *spinbutton_max_uploads_ip;
-  GtkWidget *checkbutton_uploads_auto_clear;
   GtkWidget *label_uploads;
   GtkWidget *frame7;
   GtkWidget *vbox19;
@@ -2324,13 +2325,35 @@ create_main_window (void)
   gtk_widget_set_sensitive (button_uploads_clear_completed, FALSE);
   gtk_tooltips_set_tip (tooltips, button_uploads_clear_completed, "Clear already completed uploads from list", NULL);
 
-  hbox81 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox81, "hbox81");
-  gtk_widget_ref (hbox81);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox81", hbox81,
+  table61 = gtk_table_new (2, 4, FALSE);
+  gtk_widget_set_name (table61, "table61");
+  gtk_widget_ref (table61);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "table61", table61,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox81);
-  gtk_box_pack_start (GTK_BOX (vbox18), hbox81, FALSE, FALSE, 0);
+  gtk_widget_show (table61);
+  gtk_box_pack_start (GTK_BOX (vbox18), table61, FALSE, FALSE, 0);
+  gtk_table_set_row_spacings (GTK_TABLE (table61), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table61), 4);
+
+  checkbutton_uploads_auto_clear_complete = gtk_check_button_new_with_label ("Auto clear completed uploads");
+  gtk_widget_set_name (checkbutton_uploads_auto_clear_complete, "checkbutton_uploads_auto_clear_complete");
+  gtk_widget_ref (checkbutton_uploads_auto_clear_complete);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_uploads_auto_clear_complete", checkbutton_uploads_auto_clear_complete,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_uploads_auto_clear_complete);
+  gtk_table_attach (GTK_TABLE (table61), checkbutton_uploads_auto_clear_complete, 0, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_uploads_auto_clear_failed = gtk_check_button_new_with_label ("Auto clear failed uploads");
+  gtk_widget_set_name (checkbutton_uploads_auto_clear_failed, "checkbutton_uploads_auto_clear_failed");
+  gtk_widget_ref (checkbutton_uploads_auto_clear_failed);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_uploads_auto_clear_failed", checkbutton_uploads_auto_clear_failed,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_uploads_auto_clear_failed);
+  gtk_table_attach (GTK_TABLE (table61), checkbutton_uploads_auto_clear_failed, 2, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label81 = gtk_label_new ("Maximum simultaneous uploads");
   gtk_widget_set_name (label81, "label81");
@@ -2338,7 +2361,20 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label81", label81,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label81);
-  gtk_box_pack_start (GTK_BOX (hbox81), label81, FALSE, FALSE, 0);
+  gtk_table_attach (GTK_TABLE (table61), label81, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label130 = gtk_label_new ("Max uploads from single host");
+  gtk_widget_set_name (label130, "label130");
+  gtk_widget_ref (label130);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label130", label130,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label130);
+  gtk_table_attach (GTK_TABLE (table61), label130, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label130), 1, 0.5);
 
   spinbutton_max_uploads_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_max_uploads = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_uploads_adj), 1, 0);
@@ -2347,17 +2383,10 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_max_uploads", spinbutton_max_uploads,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_max_uploads);
-  gtk_box_pack_start (GTK_BOX (hbox81), spinbutton_max_uploads, FALSE, TRUE, 0);
+  gtk_table_attach (GTK_TABLE (table61), spinbutton_max_uploads, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_uploads), TRUE);
-
-  label130 = gtk_label_new ("Max uploads from single host");
-  gtk_widget_set_name (label130, "label130");
-  gtk_widget_ref (label130);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label130", label130,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label130);
-  gtk_box_pack_start (GTK_BOX (hbox81), label130, FALSE, FALSE, 0);
-  gtk_misc_set_alignment (GTK_MISC (label130), 1, 0.5);
 
   spinbutton_max_uploads_ip_adj = gtk_adjustment_new (1, 1, 100, 1, 10, 10);
   spinbutton_max_uploads_ip = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_uploads_ip_adj), 1, 0);
@@ -2366,16 +2395,10 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_max_uploads_ip", spinbutton_max_uploads_ip,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_max_uploads_ip);
-  gtk_box_pack_start (GTK_BOX (hbox81), spinbutton_max_uploads_ip, FALSE, TRUE, 0);
+  gtk_table_attach (GTK_TABLE (table61), spinbutton_max_uploads_ip, 3, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_uploads_ip), TRUE);
-
-  checkbutton_uploads_auto_clear = gtk_check_button_new_with_label ("Auto clear completed uploads");
-  gtk_widget_set_name (checkbutton_uploads_auto_clear, "checkbutton_uploads_auto_clear");
-  gtk_widget_ref (checkbutton_uploads_auto_clear);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_uploads_auto_clear", checkbutton_uploads_auto_clear,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_uploads_auto_clear);
-  gtk_box_pack_start (GTK_BOX (vbox18), checkbutton_uploads_auto_clear, FALSE, FALSE, 0);
 
   label_uploads = gtk_label_new ("Uploads");
   gtk_widget_set_name (label_uploads, "label_uploads");

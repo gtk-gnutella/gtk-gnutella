@@ -369,6 +369,25 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
         data, g_free);
 }
 
+static gboolean upload_should_remove(time_t now, upload_row_data_t *ul) 
+{
+	g_assert(NULL != ul);
+	if (now - ul->last_update <= REMOVE_DELAY)
+		return FALSE;
+
+	if (clear_uploads_complete && GTA_UL_COMPLETE == ul->status)
+		return TRUE;
+	
+	if (
+		clear_uploads_failed &&
+		(GTA_UL_CLOSED == ul->status || GTA_UL_ABORTED == ul->status)
+	) {
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 
 
 /***
@@ -441,19 +460,17 @@ void uploads_gui_update_display(time_t now)
             gtk_clist_set_text(clist, row, c_ul_status, 
                 uploads_gui_status_str(&status, data));
         } else {
-            if (clear_uploads && (now - data->last_update > REMOVE_DELAY))
+            if (upload_should_remove(now, data))
                 to_remove = g_slist_prepend(to_remove, GINT_TO_POINTER(row));
 			else
 				all_removed = FALSE;	/* Not removing all "expired" ones */
         }
     }
 
-    if (clear_uploads) {
-        for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
-            gtk_clist_remove(clist, GPOINTER_TO_INT(sl->data));
+    for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
+        gtk_clist_remove(clist, GPOINTER_TO_INT(sl->data));
 
-        g_slist_free(to_remove);
-    }
+    g_slist_free(to_remove);
 
     gtk_clist_thaw(clist);
 
