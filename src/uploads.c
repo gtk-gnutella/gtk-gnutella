@@ -687,11 +687,14 @@ static void upload_remove_v(
 	if (!UPLOAD_IS_COMPLETE(u))
 		registered_uploads--;
 
-	if (!UPLOAD_IS_COMPLETE(u) && !UPLOAD_IS_CONNECTING(u)) {
-		running_uploads--;
-	} else if (u->keep_alive && UPLOAD_IS_CONNECTING(u)) {
-		running_uploads--;
+	if (u->status != GTA_UL_QUEUED) {
+		if (!UPLOAD_IS_COMPLETE(u) && !UPLOAD_IS_CONNECTING(u)) {
+			running_uploads--;
+		} else if (u->keep_alive && UPLOAD_IS_CONNECTING(u)) {
+			running_uploads--;
+		}
 	}
+	
 	
 	/*
 	 * If we were sending data, and we have not accounted the download yet,
@@ -1746,6 +1749,10 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 * is already accounted for.
 	 */
 
+	/* This is for the moment being done if the upload really seems to be 
+	 * getting an upload slot. This is to avoid messing with active queuing
+	 *		-- JA, 09/05/03
+	 */
 	if (!is_followup)
 		running_uploads++;
 
@@ -2117,21 +2124,20 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 					getline_free(s->getline);
 					s->getline = NULL;
 
-					u->error_sent = FALSE;
-
 					send_upload_error(u, reqfile, 503, 
 						  "Queued (slot %d, ETA: %s)", 
 						  parq_upload_lookup_position(u), 
 						  short_time(parq_upload_lookup_eta(u)));
+
+					u->error_sent = 0;	/* Any new request should be allowed
+										   to retreive an error code */
 	
+					/* Avoid data timeout */
+					u->last_update = parq_upload_lookup_lifetime(u) -
+						  upload_connected_timeout;
+
 					running_uploads--;	/* will get increased next time
 										   upload_request is called */
-
-					/* Avoid data timeout */
-					u->socket->last_update = 
-						  parq_upload_lookup_lifetime(u) -
-						  upload_connected_timeout;
-					u->last_update = u->socket->last_update;
 
 					expect_http_header(u, GTA_UL_QUEUED);
 					return;
@@ -2151,7 +2157,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 	if (!head_only)
 		parq_upload_busy(u, parq_handle);
-
+	
 	/*
 	 * Do we have to keep the connection after this request?
 	 */
