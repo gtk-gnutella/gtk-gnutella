@@ -30,6 +30,8 @@
 #include "downloads.h"
 #include "uploads.h"
 
+#include "if/core/parq.h"
+
 #define PARQ_MAX_UL_RETRY_DELAY 1200	/* 20 minutes retry rate max. */
 #define PARQ_GRACE_TIME			90		/* Grace period after life expired */
 
@@ -40,10 +42,6 @@
 void parq_init(void);
 void parq_close(void);
 
-gint get_parq_dl_position(const struct download *d);
-gint get_parq_dl_queue_length(const struct download *d);
-gint get_parq_dl_eta(const struct download *d);
-gint get_parq_dl_retry_delay(const struct download *d);
 gchar *get_parq_dl_id(const struct download *d);
 void parq_dl_reparent_id(struct download *d, struct download *cd);
 
