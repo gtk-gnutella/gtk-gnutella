@@ -87,7 +87,7 @@ static const gchar pidfile[] = "gtk-gnutella.pid";
 
 static void settings_callbacks_init(void);
 static void settings_callbacks_shutdown(void);
-static void update_servent_uptime(void);
+static void update_uptimes(void);
 
 /* ----------------------------------------- */
 
@@ -463,7 +463,7 @@ void settings_ask_for_property(gchar *name, gchar *value)
 void
 settings_shutdown(void)
 {
-	update_servent_uptime();
+	update_uptimes();
     settings_callbacks_shutdown();
 
     prop_save_to_file(properties, config_dir, config_file);
@@ -571,9 +571,8 @@ get_average_ip_lifetime(time_t now)
 		lifetime = delta_time(now, current_ip_stamp);
 		if (lifetime < 0)
 			lifetime = 0;
-	} else {
+	} else
 		lifetime = 0;
-	}
 
 	/*
 	 * The average lifetime is computed as an EMA on 3 terms.
@@ -666,12 +665,15 @@ get_average_servent_uptime(time_t now)
  * saving the properties to disk.
  */
 static void
-update_servent_uptime(void)
+update_uptimes(void)
 {
 	time_t now = time(NULL);
 
 	gnet_prop_set_guint32_val(PROP_AVERAGE_SERVENT_UPTIME,
 		get_average_servent_uptime(now));
+
+	gnet_prop_set_guint32_val(PROP_AVERAGE_IP_UPTIME,
+		get_average_ip_lifetime(now));
 }
 
 /***
