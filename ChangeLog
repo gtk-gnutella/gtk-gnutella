@@ -1,5 +1,20 @@
 # since last version
 
+- (2002.12.27 - RAM)
+ * Only report compression error when there is actually an error, not when
+   the task is cancelled.
+ * Forgot to send the X-Query-Routing header when not in "normal" mode.
+ * Fixed hcache_get_caught() to swap the caught/valid lists if necessary.
+ * Fixed bad trailing assertion in qrt_update_send_next().
+ * Was sending QRP patch messages with wrong length -> desynchronizing.
+ * Forgot that we could still get 0.4 connections whilst in leaf mode.
+ * Was returning bad status in qrt_update_send_next(), not sending last patch.
+ * Wrong signature for node_qrt_changed().
+ * Fixed wrong complaint from bg tasks about user code forgetting exit status.
+ * When in leaf mode, pong all 0.4 connections.
+ * Fixed cleanup order in qrp update to avoid crash at exit time.
+ * Fixed wrong complaint about error whilst freeing compressor.
+
 - (2002.12.26 - RAM)
  * New properties: "current_ip_stamp", "average_ip_uptime", "start_stamp",
    "average_servent_uptime", "force_ultrapeer", "force_leaf",
