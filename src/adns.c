@@ -503,7 +503,7 @@ prefork_failure:
 gboolean adns_resolve(
 	const gchar *hostname, adns_callback_t user_callback, gpointer user_data)
 {
-	gsize len = 0;
+	gsize len;
 	static struct adns_query_t query;
 	static struct adns_reply_t reply;
 
@@ -542,7 +542,7 @@ gboolean adns_resolve(
 		return TRUE; /* asynchronous */ 
 	}
 	/* FALL THROUGH */
-	g_strlcpy(query.hostname, hostname, sizeof(query.hostname));
+	len = g_strlcpy(query.hostname, hostname, sizeof(query.hostname));
 	if (len >= sizeof(query.hostname)) {
 		/* truncation detected */
 		query.user_callback(0, query.user_data);
