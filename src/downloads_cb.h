@@ -79,6 +79,10 @@ void on_popup_queue_copy_url_activate(GtkMenuItem *menuitem, gpointer user_data)
 void on_popup_queue_connect_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_queue_expand_all_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_queue_collapse_all_activate(GtkMenuItem *menuitem, gpointer user_data);
-
+void on_popup_downloads_selection_get(GtkWidget *widget,
+	GtkSelectionData *data, guint info, guint eventtime,
+	gpointer user_data);
+gint on_popup_downloads_selection_clear_event(GtkWidget *widget,
+	GdkEventSelection *event);
 
 #endif /* _downloads_cb_h_ */

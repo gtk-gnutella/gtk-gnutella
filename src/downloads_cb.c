@@ -38,6 +38,8 @@
 RCSID("$Id$");
 
 
+static gchar *selected_url = NULL;
+
 /***
  *** Downloads pane
  ***/
@@ -1103,6 +1105,34 @@ void on_popup_queue_collapse_all_activate(GtkMenuItem *menuitem,
 
     downloads_gui_collapse_all(ctree_downloads_queue);
 }
+
+/*
+ *	on_popup_downloads_selection_get
+ *
+ */
+void on_popup_downloads_selection_get(GtkWidget * widget, 
+	GtkSelectionData * data, guint info, guint eventtime, gpointer user_data) 
+{
+    g_return_if_fail(selected_url);
+
+    gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING,
+		8 /* CHAR_BIT */, (guchar *) selected_url, strlen(selected_url));
+}
+
+
+/*
+ *	on_popup_downloads_selection_clear_event
+ *
+ */
+gint on_popup_downloads_selection_clear_event(GtkWidget *widget,
+	GdkEventSelection *event)
+{
+    if (selected_url != NULL) {
+        G_FREE_NULL(selected_url);
+    }
+    return TRUE;
+}
+
 
 /* vi: set ts=4: */
 #endif	/* USE_GTK1 */
