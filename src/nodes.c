@@ -28,7 +28,6 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <string.h>
-#include <ctype.h>		/* For isspace() */
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
