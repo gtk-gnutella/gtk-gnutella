@@ -1433,7 +1433,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new (_("Raphaël Manfredi"));
+  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
@@ -1441,7 +1441,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new (_("Raphaël Manfredi"));
+  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -8092,7 +8092,7 @@ create_main_window_downloads_tab (void)
                     G_CALLBACK (on_button_downloads_resume_clicked),
                     NULL);
   g_signal_connect ((gpointer) button_downloads_clear_stopped, "clicked",
-                    G_CALLBACK (on_button_downloads_clear_stopped),
+                    G_CALLBACK (on_button_downloads_clear_stopped_clicked),
                     NULL);
   g_signal_connect ((gpointer) clist_downloads_queue, "resize_column",
                     G_CALLBACK (on_clist_downloads_queue_resize_column),
