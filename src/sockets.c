@@ -489,6 +489,13 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
     else
 		goto unknown;
 
+	/*
+	 * Set the proper IP TOS bits for this socket type, now that we really
+	 * know what the socket is going to be used for.
+	 */
+
+	socket_tos_default(s);
+
 	return;
 
 unknown:
@@ -1132,8 +1139,6 @@ struct gnutella_socket *socket_listen(
 	s->gdk_tag =
 		inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
 					  socket_accept, s);
-
-	socket_tos_default(s);
 
 	return s;
 }
