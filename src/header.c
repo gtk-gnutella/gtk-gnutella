@@ -917,8 +917,10 @@ void header_features_generate(struct xfeature_t *xfeatures,
 	GList *cur;
 	gpointer fmt;
 
-	
-	if (len - *rw < (sizeof(hdr) + sizeof(": \r\n") - 1))
+	g_assert(len >= 0);
+	g_assert(*rw >= 0);
+
+	if ((size_t) (len - *rw) < (sizeof(hdr) + sizeof(": \r\n") - 1))
 		return;
 		
 	if (g_list_first(xfeatures->features) == NULL)
