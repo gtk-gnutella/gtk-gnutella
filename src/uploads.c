@@ -1151,9 +1151,32 @@ static void upload_request(struct upload *u, header_t *header)
 		 */
 
 		if (running_uploads > max_uploads) {
-			upload_error_remove(u, reqfile,
-				503, "Too many uploads (%d max)", max_uploads);
-			return;
+
+			/*
+			 * Support for bandwith-dependent number of upload slots.
+			 * The upload bandwith limitation has to be enabled, otherwise
+			 * we can not be sure that we have reasonable values for the
+			 * outgoing bandwith set.
+			 *		--TF 30/05/2002
+			 *
+			 * NB: if max_uploads is 0, then we disable sharing, period.
+			 */
+
+			if (
+				max_uploads &&
+				bw_ul_usage_enabled &&
+				bws_out_enabled &&
+				bsched_avg_pct(bws.out) < ul_usage_min_percentage
+			) {
+				if (dbg > 4)
+					printf("Overriden slot limit because u/l b/w used at %d%% "
+						"(minimum set to %d%%)\n",
+						bsched_avg_pct(bws.out), ul_usage_min_percentage);
+			} else {
+				upload_error_remove(u, reqfile,
+					503, "Too many uploads (%d max)", max_uploads);
+				return;
+			}
 		}
 	}
 

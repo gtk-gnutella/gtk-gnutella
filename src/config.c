@@ -99,10 +99,11 @@ static gchar *host_file = "hosts";
 static gchar *ul_stats_file = "upload_stats";
 
 
-gboolean bws_in_enabled;
-gboolean bws_out_enabled;
-gboolean bws_gin_enabled;
-gboolean bws_gout_enabled;
+gboolean bws_in_enabled = FALSE;
+gboolean bws_out_enabled = FALSE;
+gboolean bws_gin_enabled = FALSE;
+gboolean bws_gout_enabled = FALSE;
+gboolean bw_ul_usage_enabled = TRUE;
 gboolean clear_uploads = FALSE;
 gboolean clear_downloads = FALSE;
 gboolean monitor_enabled = FALSE;
@@ -137,6 +138,7 @@ guint32 max_connections = 10;
 guint32 max_downloads = 10;
 guint32 max_host_downloads = 4;
 guint32 max_uploads = 5;
+guint8 ul_usage_min_percentage = 70;	/* Use at least 70% of available b/w */
 guint32 minimum_speed = 0;
 guint32 monitor_max_items = 25;
 guint32 connection_speed = 28;	/* kbits/s */
@@ -306,6 +308,8 @@ typedef enum {
     k_bws_out_enabled,
     k_bws_gin_enabled,
     k_bws_gout_enabled,
+	k_ul_usage_min_percentage,
+	k_bw_ul_usage_enabled,
     k_socksv5_user,
     k_socksv5_pass,
     k_progressbar_bps_in_visible,
@@ -436,6 +440,8 @@ static gchar *keywords[k_end] = {
     "bandwidth_output_limit",
     "bandwidth_ginput_limit",
     "bandwidth_goutput_limit",
+	"upload_bandwith_min_percentage",		/* k_ul_usage_min_percentage */
+	"upload_bandwith_usage_enabled",		/* k_bw_ul_usage_enabled */
     "socksv5_user",
     "socksv5_pass",
     "progressbar_bps_in_visible",
@@ -668,6 +674,7 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_BOOL(bws_gout_enabled)
         CONFIG_SET_BOOL(bws_in_enabled)
         CONFIG_SET_BOOL(bws_out_enabled)
+		CONFIG_SET_BOOL(bw_ul_usage_enabled)
         CONFIG_SET_BOOL(clear_downloads)
         CONFIG_SET_BOOL(clear_uploads)
         CONFIG_SET_BOOL(download_delete_aborted)
@@ -715,6 +722,7 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_NUM(max_ttl,                        1,     254)
         CONFIG_SET_NUM(max_uploads,                    0,     511)
         CONFIG_SET_NUM(max_uploads_ip,                 0,     511)
+		CONFIG_SET_NUM(ul_usage_min_percentage,        0,     100)
         CONFIG_SET_NUM(minimum_speed,                  0,    2000)
         CONFIG_SET_NUM(monitor_max_items,              1,     511)
         CONFIG_SET_NUM(my_ttl,                         1,     254)
@@ -1389,7 +1397,9 @@ static void config_save(void)
         fprintf(config, "# Maximum uploads per IP address\n"
             "%s = %u\n", keywords[k_max_uploads_ip], max_uploads_ip);
 
-    
+		CONFIG_WRITE_BOOL(bw_ul_usage_enabled)
+		CONFIG_WRITE_UINT(ul_usage_min_percentage)
+
         CONFIG_SUBSECTION("Sharing") {
             fprintf(config, "%s = \"%s\"\n", keywords[k_shared_dirs],
                 (shared_dirs_paths) ? shared_dirs_paths : "");

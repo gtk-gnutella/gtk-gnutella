@@ -30,6 +30,7 @@ extern gboolean bws_in_enabled;
 extern gboolean bws_out_enabled;
 extern gboolean bws_gin_enabled;
 extern gboolean bws_gout_enabled;
+extern gboolean bw_ul_usage_enabled;
 
 extern gchar *config_dir;
 
@@ -108,6 +109,7 @@ struct conf_bandwidth {
 };
 
 extern struct conf_bandwidth bandwidth;
+extern guint8 ul_usage_min_percentage;
 
 extern guint32 nodes_col_widths[];
 extern guint32 dl_active_col_widths[];
