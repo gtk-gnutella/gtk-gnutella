@@ -85,11 +85,12 @@ void on_button_config_add_dir_clicked (GtkButton *button, gpointer user_data);
 void on_button_config_move_path_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_rescan_dir_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_save_path_clicked (GtkButton *button, gpointer user_data);
+void on_button_config_bad_path_clicked (GtkButton *button, gpointer user_data);
 void on_entry_config_maxttl_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_config_maxttl_changed (GtkEditable *editable, gpointer user_data);
 void on_entry_config_myttl_activate (GtkEditable *editable, gpointer user_data);
 void on_entry_config_myttl_changed (GtkEditable *editable, gpointer user_data);
-void on_entry_config_netmask_activate(GtkEditable * editable, gpointer user_data);
+void on_entry_config_netmask_activate(GtkEditable *editable, gpointer user_data);
 void on_entry_config_search_items_activate (GtkEditable *editable, gpointer user_data);
 void on_entry_config_speed_activate (GtkEditable *editable, gpointer user_data);
 void on_radio_config_http_toggled (GtkToggleButton *togglebutton, gpointer user_data);
@@ -119,3 +120,4 @@ gint compare_ul_norm(GtkCList *clist, gconstpointer ptr1, gconstpointer ptr2);
 
 #endif	/* __callbacks_h__ */
  
+

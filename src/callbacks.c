@@ -267,6 +267,63 @@ void on_button_config_move_path_clicked(GtkButton * button,
 	}
 }
 
+/* Move bad files to */
+
+GtkWidget *bad_path_filesel = (GtkWidget *) NULL;
+
+gboolean fs_save_bad_delete_event(
+	GtkWidget *widget, GdkEvent *event, gpointer user_data)
+{
+	gtk_widget_destroy(bad_path_filesel);
+	bad_path_filesel = (GtkWidget *) NULL;
+	return TRUE;
+}
+
+void button_fs_bad_path_clicked(GtkButton *button, gpointer user_data)
+{
+	if (user_data) {
+		gchar *name;
+
+        name = g_strdup(gtk_file_selection_get_filename
+            (GTK_FILE_SELECTION(bad_path_filesel)));
+
+		if (is_directory(name)) {
+            gnet_prop_set_string(PROP_BAD_FILE_PATH, name);
+        } else {
+            g_free(name);
+        }
+	}
+
+	gtk_widget_destroy(bad_path_filesel);
+	move_path_filesel = (GtkWidget *) NULL;
+}
+
+void on_button_config_bad_path_clicked(
+	GtkButton *button, gpointer user_data)
+{
+	if (!bad_path_filesel) {
+		bad_path_filesel =
+			gtk_file_selection_new
+			("Please choose where to move files corrupted files");
+
+		gtk_signal_connect(GTK_OBJECT
+						   (GTK_FILE_SELECTION(bad_path_filesel)->
+							ok_button), "clicked",
+						   GTK_SIGNAL_FUNC(button_fs_bad_path_clicked),
+						   (gpointer) 1);
+		gtk_signal_connect(GTK_OBJECT
+						   (GTK_FILE_SELECTION(bad_path_filesel)->
+							cancel_button), "clicked",
+						   GTK_SIGNAL_FUNC(button_fs_bad_path_clicked),
+						   NULL);
+		gtk_signal_connect(GTK_OBJECT(bad_path_filesel), "delete_event",
+						   GTK_SIGNAL_FUNC(fs_save_bad_delete_event),
+						   NULL);
+
+		gtk_widget_show(bad_path_filesel);
+	}
+}
+
 /* Local File DB Managment */
 
 gboolean fs_add_dir_delete_event(GtkWidget * widget, GdkEvent * event,
