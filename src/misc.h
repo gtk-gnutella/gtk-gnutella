@@ -29,10 +29,6 @@
 #include <time.h>
 #include <stdio.h>
 
-#include "downloads.h"
-
-struct gnutella_node;
-
 #define SIZE_FIELD_MAX 64		/* Max size of sprintf-ed size quantity */
 
 
@@ -66,8 +62,6 @@ guint32 host_to_ip(gchar *);
 gchar *host_name(void);
 gint str_chomp(gchar *str, gint len);
 gboolean is_private_ip(guint32 ip);
-gchar *node_ip(struct gnutella_node *);
-void message_dump(struct gnutella_node *);
 gboolean is_directory(const gchar *);
 gchar *guid_hex_str(guchar *guid);
 gint hex2dec(gchar c);
@@ -86,7 +80,6 @@ gchar *short_uptime(guint32 s);
 void random_init(void);
 guint32 random_value(guint32 max);
 void strlower(gchar *, gchar *);
-gchar *build_url_from_download(struct download *d);
 
 #ifdef HAVE_STRCASESTR
 char *strcasestr(const char *haystack, const char *needle);
