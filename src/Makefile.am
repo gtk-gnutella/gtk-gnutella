@@ -90,7 +90,7 @@ gtk_gnutella_LDADD = @INTLLIBS@ @GTK_LIBS@ -lz @XML_LIBS@
 endif
 
 bin_PROGRAMS = gtk-gnutella
-CLEANFILES = *.bak
+CLEANFILES = *.bak *~
 
 XML_STORE_FILES = search_xml.c search_xml.h
 

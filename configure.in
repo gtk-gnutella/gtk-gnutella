@@ -1,6 +1,10 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(configure.in)
+
+dnl Delete the old cache
+rm -f config.cache
+
 AM_INIT_AUTOMAKE(gtk-gnutella, 0.92.1c)
 AM_MAINTAINER_MODE
 AM_CONFIG_HEADER(config.h)
@@ -21,7 +25,11 @@ dnl ---------------------------------------------------------------------------
 dnl Check configure command line options
 dnl ---------------------------------------------------------------------------
 
-test_icu=0
+test_icu=no
+
+CPPFLAGS="-I/usr/local/include $CPPFLAGS"
+LDFLAGS="-L/usr/local/lib $LDFLAGS"
+
 
 AC_ARG_ENABLE(xml-store,[
   --enable-xml-store              save searches and filters in XML (default=on)], , 
@@ -46,6 +54,7 @@ then
 			AC_MSG_ERROR(Cannot find GLib: Is glib-config in path?))
     frontend="GTK+ 1.2"
 else
+    PKG_CHECK_MODULES(GTK_GNUTELLA, gtk+-2.0 >= 2.2.0 glib-2.0 >= 2.2.0, oldgtk2=no, oldgtk2=yes)
     PKG_CHECK_MODULES(GTK_GNUTELLA, gtk+-2.0 >= 2.0.0 glib-2.0 >= 2.0.0)
     AC_SUBST(GTK_GNUTELLA_CFLAGS)
     AC_DEFINE(USE_GTK2, 1, [Define if you want to use GTK+ 2.x.])
@@ -207,12 +216,16 @@ fi
 
 dnl Checks for ICU
 
-AC_CHECK_HEADER(unicode/pos400.h,
-AC_CHECK_LIB(icuuc, ucnv_open_2_6, [have_icu=yes], [have_icu=no]))
+if test "x$test_icu" = "xyes" ; then
+	AC_CHECK_HEADER(unicode/putil.h,
+		AC_CHECK_LIB(icuuc, ucnv_open_2_6, [have_icu=yes], [have_icu=no]))
 
-if test "x$have_icu" = "xyes"; then
-	AC_DEFINE(HAVE_ICU, 1,
-		[Define if you have ICU (for non roman charset support).])
+	if test "x$have_icu" = "xyes"; then
+		AC_DEFINE(HAVE_ICU, 1,
+			[Define if you have ICU (for non roman charset support).])
+		LIBS="-licuuc $LIBS"
+
+	fi
 fi
 
 dnl Checks for IP_TOS in netinet/ip.h
@@ -261,7 +274,7 @@ else
     have_tos=no
 fi
 
-AC_OUTPUT([ po/Makefile.in intl/Makefile 
+AC_OUTPUT([ po/Makefile.in m4/Makefile 
 Makefile
 src/Makefile
 gtk-gnutella.spec
@@ -273,6 +286,14 @@ echo "Feature summary:"
 echo "---------------"
 echo
 echo "Frontend                           :   $frontend"
+if  test "x$enable_gtk2" = "xyes" ; then
+	if test "x$oldgtk2" = "xyes" ; then
+		echo "NOTE: Your version of GTK+2 is old, please consider to update :"
+		echo "		http://www.gtk.org/download"
+		echo ""
+	fi
+fi
+
 msg="Persistant filters                 :  "
 if test "x$enable_xml_store" = "xno" ; then
     if test "x$XML_CONFIG" = "xno" ; then
@@ -304,15 +325,17 @@ else
     echo "$msg no (you need to install zlib from www.zlib.org)"
 fi
 
-msg="Extended non roman charset support :  "
-if test "x$have_icu" = "xyes" ; then
-	echo "$msg yes"
-else
-	echo "$msg no"
-	echo
-	echo "********************************* NOTE ****************************************"
+if test "x$test_icu" = "xyes" ; then
+	msg="Extended non roman charset support :  "
+	if test "x$have_icu" = "xyes" ; then
+		echo "$msg yes"
+	else
+		echo "$msg no"
+		echo ""
+		echo "********************************* NOTE ****************************************"
 	echo "**** You should install ICU from http://oss.software.ibm.com/icu/download/ ****"
-	echo
+	echo ""
+	fi
 fi
 
 msg="IP TOS (Type of Service)           :  "

@@ -23,7 +23,7 @@
 
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = intl po src
+SUBDIRS = po src
 
 EXTRA_GTK2 = \
 	src/fileinfo_gui2.c \
@@ -49,7 +49,7 @@ EXTRA_SHELL = \
 	src/shell.c \
 	src/shell.h
 
-EXTRA_DIST = gtk-gnutella.spec	\
+EXTRA_DIST = config.rpath  gtk-gnutella.spec	\
 	gwcache.boot \
 	hostiles.txt \
 	debian/README.debian		\
@@ -91,3 +91,5 @@ glade_files:
 
 properties:
 	$(MAKE) -C src properties
+
+ACLOCAL_AMFLAGS = -I m4
