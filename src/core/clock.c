@@ -185,15 +185,15 @@ clock_adjust(void)
 	if (dbg > 1)
 		printf("CLOCK adjusting from n=%d avg=%.2f sdev=%.2f\n", n, avg, sdev);
 
-	min = avg - sdev;
-	max = avg + sdev;
-
 	statx_clear(datapoints);
 
 	/*
 	 * Remove aberration points: keep only the sigma range around the
 	 * average.
 	 */
+
+	min = avg - sdev;
+	max = avg + sdev;
 
 	for (i = 0; i < n; i++) {
 		gdouble v = value[i];
@@ -216,7 +216,7 @@ clock_adjust(void)
 
 	new_skew = clock_skew + (gint32) avg;
 
-	if (dbg > 1)
+	if (dbg)
 		printf("CLOCK kept n=%d avg=%.2f sdev=%.2f => SKEW old=%d new=%d\n",
 			n, avg, sdev, (gint32) clock_skew, (gint32) new_skew);
 
@@ -262,7 +262,7 @@ clock_update(time_t update, gint precision, guint32 ip)
 	statx_add(datapoints, (gdouble) (delta + precision));
 	statx_add(datapoints, (gdouble) (delta - precision));
 
-	if (dbg)
+	if (dbg > 1)
 		printf("CLOCK skew=%d delta=%d +/-%d [%s] (n=%d avg=%.2f sdev=%.2f)\n",
 			(gint32) clock_skew, delta, precision, ip_to_gchar(ip),
 			statx_n(datapoints), statx_avg(datapoints), statx_sdev(datapoints));
