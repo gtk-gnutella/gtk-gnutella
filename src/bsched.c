@@ -51,8 +51,14 @@ RCSID("$Id$");
 
 struct bws_set bws = { NULL, NULL, NULL, NULL, NULL, NULL };
 static GSList *bws_list = NULL;
+static GSList *bws_out_list = NULL;
+static gint bws_out_ema = 0;
 
 #define BW_SLOT_MIN		64		/* Minimum bandwidth/slot for realloc */
+
+#define BW_OUT_UP_MIN	8192	/* Minimum out bandwidth for becoming ultra */
+#define BW_OUT_GNET_MIN	512		/* Minimum out bandwidth per Gnet connection */
+#define BW_OUT_LEAF_MIN	128		/* Minimum out bandwidth per leaf connection */
 
 /*
  * Determine how large an I/O vector the kernel can accept.
@@ -229,6 +235,10 @@ void bsched_init(void)
 	bws_list = g_slist_prepend(bws_list, bws.gout);
 	bws_list = g_slist_prepend(bws_list, bws.out);
 
+	bws_out_list = g_slist_prepend(bws_out_list, bws.glout);
+	bws_out_list = g_slist_prepend(bws_out_list, bws.gout);
+	bws_out_list = g_slist_prepend(bws_out_list, bws.out);
+
 	/*
 	 * Allow cross-stealing of unused bandwidth between HTTP/gnet.
 	 */
@@ -265,6 +275,9 @@ void bsched_close(void)
 
 	for (l = bws_list; l; l = g_slist_next(l))
 		bsched_free(l->data);
+
+	g_slist_free(bws_list);
+	g_slist_free(bws_out_list);
 
 	bws.out = bws.in = bws.gout = bws.gin = bws.glin = bws.glout = NULL;
 }
@@ -592,6 +605,7 @@ static void bsched_begin_timeslice(bsched_t *bs)
 	bs->bw_unwritten = 0;			/* Even if `bs' is for read sources... */
 	bs->bw_capped = 0;
 
+	bs->current_used = 0;
 	bs->looped = FALSE;
 }
 
@@ -751,6 +765,7 @@ static gint bw_available(bio_source_t *bio, gint len)
 	gint result;
 	gboolean capped = FALSE;
 	gboolean used;
+	gboolean active;
 
 	if (!(bs->flags & BS_F_ENABLED))		/* Scheduler disabled */
 		return len;							/* Use amount requested */
@@ -780,19 +795,39 @@ static gint bw_available(bio_source_t *bio, gint len)
 	}
 
 	/*
+	 * The BIO_F_USED flag is set only once during a period, and is used
+	 * to identify sources that already triggered.
+	 *
+	 * The BIO_F_ACTIVE flag is used to mark a source as being used as well,
+	 * but can be cleared during a period, when we redistribute bandwidth
+	 * among the slots.  So the flag is set when the source was already
+	 * used since we recomputed the bandwidth per slot.
+	 */
+
+	used = bio->flags & BIO_F_USED;
+	active = bio->flags & BIO_F_ACTIVE;
+
+	if (!used) {
+		bs->current_used++;
+		bio->flags |= BIO_F_USED;
+	}
+
+	bio->flags |= BIO_F_ACTIVE;
+
+	/*
 	 * Set the `looped' flag the first time when we encounter a source that
-	 * was already marked active.  It means it is the second time we see
+	 * was already marked used.  It means it is the second time we see
 	 * that source trigger during the period and it means we already gave
 	 * a chance to all the other sources to trigger.
 	 */
 
-	if (!bs->looped && (bio->flags & BIO_F_ACTIVE))
+	if (!bs->looped && used)
 		bs->looped = TRUE;
 
 	if (
 		!(bs->flags & BS_F_FROZEN_SLOT) &&
 		available > BW_SLOT_MIN &&
-		(bio->flags & BIO_F_ACTIVE)
+		active
 	) {
 		gint slot = available / bs->count;
 
@@ -849,22 +884,43 @@ static gint bw_available(bio_source_t *bio, gint len)
 
 	if (
 		result < len && available > 0 && bs->looped &&
-		(!(used = (bio->flags & BIO_F_USED)) || bs->bw_last_capped > 0)
+		(!used || bs->bw_last_capped > 0)
 	) {
 		gint adj = len - result;
 		gint nominal;
 
-		/*
-		 * Try to stuff 2 slots worth of data
-		 *
-		 * If we never used that source, we use the nominal bandwidth for
-		 * each slot.  Otherwise we use the current per-slot bandwidth.
-		 */
+		if (bs->bw_last_capped > 0 && bs->bw_last_period < bs->bw_max) {
+			gint distribute = MAX(bs->bw_last_capped, available);
 
-		if (used)
-			nominal = 2 * bs->bw_slot;
-		else
-			nominal = 2 * bs->bw_max / bs->count;
+			/*
+			 * We have capped bandwidth last period, yet we consumed less
+			 * than what we were allowed to.
+			 *
+			 * When source was not used yet, we rely on the previously used
+			 * source count, since we don't know how many more sources will
+			 * trigger this period.
+			 */
+
+			if (used) {
+				g_assert(bs->current_used != 0);	/* This source is used! */
+				nominal = distribute / bs->current_used;
+			} else {
+				g_assert(bs->last_used != 0);	/* We capped => 1 source used */
+				nominal = distribute / MAX(bs->last_used, bs->current_used);
+			}
+		} else {
+			/*
+			 * Try to stuff 2 slots worth of data
+			 *
+			 * If we never used that source, we use the nominal bandwidth for
+			 * each slot.  Otherwise we use the current per-slot bandwidth.
+			 */
+
+			if (used)
+				nominal = 2 * bs->bw_slot;
+			else
+				nominal = 2 * bs->bw_max / bs->count;
+		}
 
 		if (adj > nominal)
 			adj = nominal;
@@ -874,9 +930,10 @@ static gint bw_available(bio_source_t *bio, gint len)
 
 		if (dbg > 4)
 			printf("bw_available: \"%s\" adding %d to %d"
-				" (capped=%d, available=%d, used=%c)\n",
-				bs->name, adj, result, bs->bw_last_capped, available,
-				(bio->flags & BIO_F_USED) ? 'y' : 'n');
+				" (len=%d, capped=%d [%d-%d/%d], available=%d, used=%c)\n",
+				bs->name, adj, result, len, bs->bw_last_capped,
+				bs->last_used, bs->current_used, bs->count,
+				available, (bio->flags & BIO_F_USED) ? 'y' : 'n');
 
 		result += adj;
 	}
@@ -974,7 +1031,6 @@ gint bio_write(bio_source_t *bio, gconstpointer data, gint len)
 		printf("bsched_write(fd=%d, len=%d) available=%d\n",
 			bio->fd, len, available);
 
-	bio->flags |= BIO_F_ACTIVE | BIO_F_USED;
 	r = write(bio->fd, data, amount);
 
 	if (r > 0) {
@@ -1073,8 +1129,6 @@ gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 		printf("bsched_writev(fd=%d, len=%d) available=%d\n",
 			bio->fd, len, available);
 
-	bio->flags |= BIO_F_ACTIVE | BIO_F_USED;
-
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_writev(bio->fd, iov, iovcnt);
 	else
@@ -1140,8 +1194,6 @@ gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 	if (dbg > 7)
 		printf("bsched_write(fd=%d, len=%d) available=%d\n",
 			bio->fd, len, available);
-
-	bio->flags |= BIO_F_ACTIVE | BIO_F_USED;
 
 #ifdef USE_BSD_SENDFILE
 	/*
@@ -1228,7 +1280,6 @@ gint bio_read(bio_source_t *bio, gpointer data, gint len)
 		printf("bsched_read(fd=%d, len=%d) available=%d\n",
 			bio->fd, len, available);
 
-	bio->flags |= BIO_F_ACTIVE | BIO_F_USED;
 	r = read(bio->fd, data, amount);
 
 	if (r > 0) {
@@ -1443,6 +1494,8 @@ static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 			last_used++;
 	}
 
+	g_assert(last_used <= bs->current_used);	/* May have removed a source */
+
 	bs->last_used = last_used;
 
 	if (dbg > 4) {
@@ -1606,6 +1659,7 @@ void bsched_timer(void)
 {
 	GTimeVal tv;
 	GSList *l;
+	gint out_used = 0;
 
 	g_get_current_time(&tv);
 
@@ -1632,5 +1686,53 @@ void bsched_timer(void)
 
 	for (l = bws_list; l; l = g_slist_next(l))
 		bsched_begin_timeslice(l->data);
+
+	/*
+	 * Fourth pass: update the average outgoing bandwidth used.
+	 */
+
+	for (l = bws_out_list; l; l = g_slist_next(l)) {
+		bsched_t *bs = (bsched_t *) l->data;
+		out_used += (gint) (bs->bw_last_period * 1000.0 / bs->period_ema);
+	}
+
+	bws_out_ema += (out_used >> 6) - (bws_out_ema >> 6);	/* Slow EMA */
+
+	if (dbg > 4)
+		printf("Outgoing b/w EMA = %d bytes/s\n", bws_out_ema);
+}
+
+/*
+ * bsched_enough_up_bandwidth
+ *
+ * Determine whether we have enough bandwidth to possibly become an
+ * ultra node:
+ *
+ * 1. There must be more than BW_OUT_UP_MIN outgoing bandwidth available.
+ * 2. If bandwidth schedulers are enabled, leaf nodes must not be configured
+ *    to steal all the HTTP outgoing bandwidth.
+ * 3. If Gnet out scheduler is enabled, there must be at least BW_OUT_GNET_MIN
+ *    bytes per gnet connection.
+ * 4. Overall, there must be BW_OUT_LEAF_MIN bytes per configured leaf plus
+ *    BW_OUT_GNET_MIN bytes per gnet connection available.
+ */
+gboolean bsched_enough_up_bandwidth(void)
+{
+	if (bws_out_ema < BW_OUT_UP_MIN)
+		return FALSE;		/* 1. */
+
+	if (bws_glout_enabled && bws_out_enabled && bw_gnet_lout >= bw_http_out)
+		return FALSE;		/* 2. */
+
+	if (bws_gout_enabled && bw_gnet_out < BW_OUT_GNET_MIN * max_connections)
+		return FALSE;		/* 3. */
+
+	if (
+		bws_out_ema <
+			(BW_OUT_GNET_MIN * max_connections + BW_OUT_GNET_MIN * max_leaves)
+	)
+		return FALSE;		/* 4. */
+
+	return TRUE;
 }
 

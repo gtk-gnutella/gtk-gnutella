@@ -86,6 +86,7 @@ typedef struct bsched {
 	gint bw_unwritten;					/* Data that we could not write */
 	gint bw_capped;						/* Bandwidth we refused to sources */
 	gint last_used;						/* Nb of active sources last period */
+	gint current_used;					/* Nb of active sources this period */
 	gboolean looped;					/* True when looped once over sources */
 } bsched_t;
 
@@ -192,6 +193,8 @@ gint bio_read(bio_source_t *bio, gpointer data, gint len);
 gint bws_write(bsched_t *bs, gint fd, gconstpointer data, gint len);
 gint bws_read(bsched_t *bs, gint fd, gpointer data, gint len);
 void bsched_timer(void);
+
+gboolean bsched_enough_up_bandwidth(void);
 
 #endif	/* _bsched_h_ */
 
