@@ -105,6 +105,7 @@ gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
 gchar *  ip_to_gchar(guint32);
 gchar *  ip2_to_gchar(guint32);
 gchar *  ip_port_to_gchar(guint32, guint16);
+gchar *hostname_port_to_gchar(gchar *hostname, guint16 port);
 guint32  host_to_ip(const gchar *);
 gchar *  host_name(void);
 gboolean host_is_valid(guint32, guint16);

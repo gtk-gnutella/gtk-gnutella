@@ -131,6 +131,15 @@ gchar *ip_port_to_gchar(guint32 ip, guint16 port)
 	return a;
 }
 
+gchar *hostname_port_to_gchar(gchar *hostname, guint16 port)
+{
+	static gchar a[300];
+	size_t len;
+
+	gm_snprintf(a, sizeof(a), "%.255s:%u", hostname, port);
+	return a;
+}
+
 #ifndef HAS_INET_ATON
 /* 
  * Copied from icecast.
@@ -1043,6 +1052,11 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	len = strlen(extra_bytes);
 	filename[size - len] = '\0';
 	len = size - len;
+
+	// XXX -- temporary, tracking wrong errno returns --RAM, 26/10/2003
+	if (-1 == stat(filename, &buf) && ENOENT != errno)
+		g_warning("NOTICE stat failed for \"%s\" : errno=%d (%s)",
+			filename, errno, g_strerror(errno));
 
 	/*
 	 * Append file and extension, then try to see whether this file exists.
