@@ -113,7 +113,6 @@ static void parq_upload_update_IP_and_name(struct parq_ul_queued *parq_ul,
  ***  Generic non PARQ specific functions
  ***/
 
-
 /*
  * get_header_version
  * 
@@ -520,6 +519,21 @@ void parq_download_add_header(
  * - Save queue status
  * - 1 active download from the same IP at once.
  */
+
+/*
+ * handle_to_queued
+ *
+ * Convert an handle to a `parq_ul_queued' structure.
+ */
+G_INLINE_FUNC struct parq_ul_queued *handle_to_queued(gpointer handle)
+{
+	struct parq_ul_queued *uq = (struct parq_ul_queued *) handle;
+
+	g_assert(handle != NULL);
+	g_assert(uq->magic == PARQ_UL_MAGIC);
+
+	return uq;
+}
 
 /*
  * parq_upload_free
@@ -1147,10 +1161,8 @@ exit:
 gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle, 
 	  guint used_slots)
 {
-	struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) handle;
+	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 	time_t now = time((time_t *) NULL);
-	
-	g_assert(parq_ul != NULL);
 	
 	parq_ul->updated = now;
 	parq_ul->expire = now + PARQ_UL_RETRY_DELAY;
@@ -1184,10 +1196,8 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
  */
 void parq_upload_busy(gnutella_upload_t *u, gpointer handle)
 {
-	struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) handle;
+	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 	
-	g_assert(parq_ul != NULL);
-
 	u->parq_status = 0;			// XXX -- get rid of `parq_status'?
 	
 	if (parq_ul->position == 0)
