@@ -12,10 +12,9 @@
 ?C:.
 ?H:#define PACKAGE_SOURCE_DIR "$pkgsrc"
 ?H:.
-?T:relsrc
-: define pakcage source directory
+: define absolute package source directory
 case "$src" in
 /*) pkgsrc=$src;;
-*) pkgsrc=`relsrc=$rsrc; export relsrc; $sh -c "cd $relsrc; pwd" 2>/dev/null`;;
+*) pkgsrc=`cd $rsrc; pwd`;;
 esac
 
