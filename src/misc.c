@@ -201,6 +201,24 @@ gchar *short_kb_size(guint32 size)
 	return b;
 }
 
+/* Return time spent in seconds in a consise short readable form */
+
+gchar *short_time(guint32 s)
+{
+	static gchar b[64];
+
+	if (s > 86400)
+		g_snprintf(b, sizeof(b), "%ud %uh", s / 86400, (s % 86400) / 3600);
+	else if (s > 3600)
+		g_snprintf(b, sizeof(b), "%uh %um", s / 3600, (s % 3600) / 60);
+	else if (s > 60)
+		g_snprintf(b, sizeof(b), "%um %us", s / 60, s % 60);
+	else
+		g_snprintf(b, sizeof(b), "%us", s);
+
+	return b;
+}
+
 /* Returns the ip:port of a node */
 
 gchar *node_ip(struct gnutella_node * n)

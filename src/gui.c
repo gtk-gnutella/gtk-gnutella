@@ -519,10 +519,12 @@ void gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_COMPLETED:
 		if (d->last_update != d->start_date) {
-			gfloat rate = ((d->size - d->skip + d->overlap_size) / 1024.0) /
-				(d->last_update - d->start_date);
-			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed (%.1f k/s)",
-					   rate);
+			guint32 spent = d->last_update - d->start_date;
+
+			gfloat rate = ((d->size - d->skip + d->overlap_size) /
+				1024.0) / spent;
+			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed (%.1f k/s) %s",
+				rate, short_time(spent));
 		} else {
 			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed (< 1s)");
 		}
@@ -561,18 +563,8 @@ void gui_update_download(struct download *d, gboolean force)
 					slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"(%.1f k/s) ", bs);
 
-				if (s > 86400)
-					g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						"TR: %ud %uh", s / 86400, (s % 86400) / 3600);
-				else if (s > 3600)
-					g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						"TR: %uh %um", s / 3600, (s % 3600) / 60);
-				else if (s > 60)
-					g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						"TR: %um %us", s / 60, s % 60);
-				else
-					g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						"TR: %us", s);
+				g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					"TR: %s", short_time(s));
 			} else
 				g_snprintf(gui_tmp, sizeof(gui_tmp), "%.02f%%%s", p,
 					(now - d->last_update > IO_STALLED) ? " (stalled)" : "");
@@ -652,25 +644,16 @@ void gui_update_upload(struct upload *u)
 			slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 				"(%.1f k/s) ", rate);
 
-		if (tr > 86400)
-			g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-				"TR: %ud %uh", tr / 86400, (tr % 86400) / 3600);
-		else if (tr > 3600)
-			g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-				"TR: %uh %um", tr / 3600, (tr % 3600) / 60);
-		else if (tr > 60)
-			g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-				"TR: %um %us", tr / 60, tr % 60);
-		else
-			g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-				"TR: %us", tr);
-
+		g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+			"TR: %s", short_time(tr));
 	} else {
 		if (u->last_update != u->start_date) {
-			rate = ((u->end - u->skip + 1) / 1024.0) /
-				(u->last_update - u->start_date);
-			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed [%s] (%.1f k/s)",
-				short_size(requested), rate);
+			guint32 spent = u->last_update - u->start_date;
+
+			rate = ((u->end - u->skip + 1) / 1024.0) / spent;
+			g_snprintf(gui_tmp, sizeof(gui_tmp),
+				"Completed [%s] (%.1f k/s) %s",
+				short_size(requested), rate, short_time(spent));
 		} else {
 			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed [%s] (< 1s)",
 				short_size(requested));
