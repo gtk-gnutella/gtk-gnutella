@@ -1,5 +1,10 @@
 # since last version
 
+- (2003.06.08 - Jeroen)
+ * Prefer compressed connections should now also work in Ultrapeer mode
+ * PARQ: Should not block anymore when a queued upload is not allowed to continue
+         due to 'max allowed uploads per ip'
+
 - (2004.06.05 - RAM)
  * Don't parse incoming X-Node headers for PARQ if requestor did not advertise
    support for PARQ, since X-Node is not necessarily PARQ-specific.
