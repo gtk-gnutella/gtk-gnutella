@@ -1384,6 +1384,7 @@ nomore:
 		strncpy(buf + len, header_fmt_string(fmt), length + 1);
 		len += length;
 	}
+	header_fmt_free(fmt);
 
 	return len;
 }
