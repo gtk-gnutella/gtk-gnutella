@@ -2006,7 +2006,12 @@ static gboolean hosts_in_catcher_changed(property_t prop)
     frac = MIN(hosts_in_catcher, max_hosts_cached) != 0 ? 
         (float)MIN(hosts_in_catcher, max_hosts_cached) / max_hosts_cached : 0;
 
-	g_snprintf(set_tmp, sizeof(set_tmp), "%u/%u host%s (%u%%)", 
+	g_snprintf(set_tmp, sizeof(set_tmp), 
+#ifdef USE_GTK2
+		"%u/%u host%s (%u%%)",
+#else
+		"%u/%u host%s (%u%%%%)",
+#endif
         hosts_in_catcher, max_hosts_cached, 
         (hosts_in_catcher == 1 && max_hosts_cached == 1) ? "" : "s",
         (guint)(frac*100));
