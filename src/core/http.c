@@ -1295,19 +1295,21 @@ http_range_merge(GSList *old_list, GSList *new_list)
 
 			/*
 			 * If there are no chunks left in one of the lists we just
-			 * copy the other one.
+			 * copy the other ones unless they are below the highest mark.
 			 */
 
 			if (old) {
 				old_range = (http_range_t *) old->data;
-				result_list = 
-					g_slist_append(result_list, http_range_clone(old_range));
+				if (old_range->end > highest) 
+					result_list = g_slist_append(result_list, 
+								  http_range_clone(old_range));
 				old = g_slist_next(old);
 			}
 			if (new) {
 				new_range = (http_range_t *) new->data;
-				result_list = 
-					g_slist_append(result_list, http_range_clone(new_range));
+				if (new_range->end > highest) 
+					result_list = g_slist_append(result_list,
+								  http_range_clone(new_range));
 				new = g_slist_next(new);
 			}
 		}
