@@ -50,7 +50,6 @@
 
 /* Private variables */
 static GtkTreeView *upload_stats_treeview = NULL;
-static gboolean upload_stats_gui_initialized = FALSE;
 
 /* Private functions */
 
@@ -118,8 +117,7 @@ void upload_stats_gui_add(struct ul_stats *stat)
 	g_snprintf(complete_tmp, sizeof(complete_tmp), "%u", stat->complete);
 	g_snprintf(norm_tmp, sizeof(norm_tmp), "%.3f", stat->norm);
 
-	if (!upload_stats_gui_initialized)
-		upload_stats_gui_init();
+	upload_stats_gui_init();
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(upload_stats_treeview));
 
 	gtk_list_store_append(store, &iter);
@@ -135,7 +133,11 @@ void upload_stats_gui_add(struct ul_stats *stat)
 
 void upload_stats_gui_init(void)
 {
+	static gboolean initialized = FALSE;
 	GtkTreeModel *model;
+
+	if (initialized)
+		return;
 
 	model = GTK_TREE_MODEL(gtk_list_store_new(6,
 		G_TYPE_STRING,
@@ -159,7 +161,7 @@ void upload_stats_gui_init(void)
 		upload_stats_treeview, c_us_complete, "Complete");
 	upload_stats_gui_add_column(
 		upload_stats_treeview, c_us_norm, "Normalized");
-	upload_stats_gui_initialized = TRUE;
+	initialized = TRUE;
 }
 
 void upload_stats_gui_update(const gchar *name, guint64 size)
