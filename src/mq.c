@@ -606,9 +606,10 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 	if (q->qhead == NULL) {
 		gint written = node_write(q->node, pmsg_start(mb), size);
 
-		if (written < 0)
+		if (written < 0) {
+			pmsg_free(mb);
 			return;					/* Node removed */
-		else if (written == size) {
+		} else if (written == size) {
 			pmsg_free(mb);
 			node_inc_sent(q->node);
 			return;
