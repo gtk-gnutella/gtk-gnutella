@@ -54,6 +54,7 @@ gchar *version_short_string = NULL;
 static version_t our_version;
 static version_t last_rel_version;
 static version_t last_dev_version;
+static guint8 version_code;
 
 /**
  * Get version string.
@@ -62,6 +63,15 @@ const gchar *
 version_get_string(void)
 {
 	return version_string;
+}
+
+/**
+ * Get version code (year/month coded in one byte).
+ */
+guint8
+version_get_code(void)
+{
+	return version_code;
 }
 
 /**
@@ -550,6 +560,19 @@ version_init(void)
 
 	last_rel_version = our_version;		/* struct copy */
 	last_dev_version = our_version;		/* struct copy */
+
+	/*
+	 * The version code is a one-byte encoding of the year/month, since
+	 * what matters is not much the version number as to the age of the
+	 * servent...  The version code is transmitted in pongs via GGEP "VC".
+	 */
+
+	if (our_version.timestamp) {
+		struct tm *tmp = localtime(&our_version.timestamp);
+		version_code =
+			(((tmp->tm_year + 1900 - 2000) & 0x0f) << 4) | (tmp->tm_mon + 1);
+	} else
+		version_code = 0;
 
 	/*
 	 * The property system is not up when this is called, but we need

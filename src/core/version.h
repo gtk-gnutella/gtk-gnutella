@@ -75,6 +75,8 @@ const gchar *version_str(const version_t *ver);
 extern gchar *version_string;
 extern gchar *version_short_string;
 
+guint8 version_get_code(void);
+
 #endif	/* _core_version_h_ */
 
 /* vi: set ts=4: */
