@@ -12,6 +12,7 @@
 #include "gnutella.h"
 #include "nodes.h"
 #include "misc.h"
+#include "url.h"
 
 gchar *ip_to_gchar(guint32 ip)
 {
@@ -352,7 +353,7 @@ gchar *date_to_rfc822_gchar2(time_t date)
 }
 
 /*
- * random_value
+ * random_value:
  *
  * Return random value between (0..max).
  */
@@ -414,6 +415,8 @@ static void dump_hex_header(FILE *out)
 }
 
 /* 
+ * dump_hex:
+ *
  * Displays hex & ascii lines to the terminal (for debug)
  * Displays the "title" then the characters in "s", # of bytes to print in "b"
  */
@@ -476,7 +479,8 @@ void strlower(gchar *dst, gchar *src)
 	} while (*src++);
 }
 
-/* build_url_from_download
+/* 
+ * build_url_from_download:
  *
  * creates a url which points to a downloads (e.g. you can move this to a
  * browser and download the file there with this url
@@ -484,14 +488,28 @@ void strlower(gchar *dst, gchar *src)
 gchar * build_url_from_download(struct download * d) 
 {
     static gchar url_tmp[256];
+    gchar *buf = NULL;
 
     if (d == NULL)
         return NULL;
+   
+    buf = url_escape(d->file_name);
 
     g_snprintf(url_tmp, sizeof(url_tmp),
                "http://%s/get/%u/%s",
                ip_port_to_gchar(d->ip, d->port),
-			   d->record_index, d->file_name);
+			   d->record_index, buf);
+
+    /*
+     * Since url_escape_cntrl creates a new string ONLY if
+     * escaping is necessary, we have to check this and
+     * free memory accordingly.
+     *     --BLUE, 30/04/2002
+     */
+
+    if (buf != d->file_name) {
+        g_free(buf);
+    }
     
     return url_tmp;
 }
