@@ -619,6 +619,8 @@ void node_remove_by_handle(gnet_node_t n)
 {
     gnutella_node_t *node = node_find_by_handle(n);
 
+    g_assert(node != NULL);
+
     if (NODE_IS_WRITABLE(node)) {
         node_bye(node, 201, "User manual removal");
     } else {
