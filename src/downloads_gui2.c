@@ -908,7 +908,7 @@ void download_gui_remove(struct download *d)
 
 	gchar *host, *range;
 	gchar *server, *status;
-	gfloat progress, percent_done;
+	gfloat progress;
 	struct download *drecord = NULL;
 
 	GtkTreeIter *iter;
