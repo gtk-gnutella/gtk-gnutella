@@ -199,27 +199,33 @@ const gchar *uploads_gui_status_str(
 gboolean upload_should_remove(time_t now, const upload_row_data_t *ul) 
 {
 	g_assert(NULL != ul);
+
 	if (now - ul->last_update <= REMOVE_DELAY)
 		return FALSE;
 
-    
-	if (GTA_UL_COMPLETE == ul->status) {
-        gboolean val;
+	switch (ul->status) {
+	case GTA_UL_COMPLETE:
+		{
+			gboolean val;
 
-        gui_prop_get_boolean_val(PROP_AUTOCLEAR_COMPLETED_UPLOADS, &val);
-		return val;
-    }
-	
-	if (GTA_UL_CLOSED == ul->status || GTA_UL_ABORTED == ul->status) {
-        gboolean val;
+			gui_prop_get_boolean_val(PROP_AUTOCLEAR_COMPLETED_UPLOADS, &val);
+			return val;
+		}
+		break;
+	case GTA_UL_CLOSED:
+	case GTA_UL_ABORTED:
+	case GTA_UL_PARQ_BAN:
+		{
+			gboolean val;
 
-        gui_prop_get_boolean_val(PROP_AUTOCLEAR_FAILED_UPLOADS, &val);
-		return val;
-	}
-
-	if (GTA_UL_PARQ_BAN == ul->status) {
-		return TRUE;
+			gui_prop_get_boolean_val(PROP_AUTOCLEAR_FAILED_UPLOADS, &val);
+			return val;
+		}
+		break;
+	default:
+		break;
 	}
 	
 	return FALSE;
 }
+
