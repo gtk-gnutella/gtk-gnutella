@@ -32,53 +32,18 @@ RCSID("$Id$");
 
 #define HASH_SIZE	1024			/* Hash list size, must be power of 2 */
 #define HASH_MASK	(HASH_SIZE - 1)
-#define EV_HASH(x) ((x) & HASH_MASK)
 #define EV_MAGIC	0xc0110172		/* Magic number for event marking */
 
+/*
+ * The hashing function divides the time by 2^5 or 32, to avoid cq_clock()
+ * scanning too many hash buckets each time.  This means our time resolution
+ * is at least 32 units.  If we increment cq_clock() with milliseconds, we
+ * won't trigger any queue run unless at least 32 milliseconds have elapsed.
+ */
+#define EV_HASH(x) (((x) >> 5) & HASH_MASK)
+#define EV_OVER(x) (((x) >> 5) & ~HASH_MASK)
+
 #define valid_ptr(a)	(((gulong) (a)) > 100L)
-
-/*
- * Insert n at the head of the empty hash bucket c.
- */
-#define CH_INSERT_HEAD(c,n)						\
-do {											\
-	(n)->ce_bnext = (n)->ce_bprev = 0;			\
-	(c)->ch_head = (c)->ch_tail = (n);			\
-} while (0)
-	
-/*
- * Insert n before i in hash bucket c.
- * If i is null, insert at the head of the list.
- */
-#define CH_INSERT_BEFORE(c,i,n)					\
-do {											\
-	if (i) {									\
-		(n)->ce_bnext = i;						\
-		if (((n)->ce_bprev = (i)->ce_bprev))	\
-			(i)->ce_bprev->ce_bnext = (n);		\
-		(i)->ce_bprev = (n);					\
-		if ((c)->ch_head == (i))				\
-			(c)->ch_head = (n);					\
-	} else										\
-		CH_INSERT_HEAD(c,n);					\
-} while (0)
-
-/*
- * Insert n after i in hash bucket c.
- * If i is null, insert at the head of the list.
- */
-#define CH_INSERT_AFTER(c,i,n)					\
-do {											\
-	if (i) {									\
-		(n)->ce_bprev = i;						\
-		if (((n)->ce_bnext = (i)->ce_bnext))	\
-			(i)->ce_bnext->ce_bprev = (n);		\
-		(i)->ce_bnext = (n);					\
-		if ((c)->ch_tail == (i))				\
-			(c)->ch_tail = (n);					\
-	} else										\
-		CH_INSERT_HEAD(c,n);					\
-} while (0)
 
 /*
  * cq_make
@@ -97,10 +62,9 @@ cqueue_t *cq_make(guint32 now)
 	 */
 
 	cq->cq_hash = (struct chash *) g_malloc0(HASH_SIZE * sizeof(struct chash));
-
-	cq->cq_head = cq->cq_tail = (cevent_t *) 0;
 	cq->cq_items = 0;
 	cq->cq_time = now;
+	cq->cq_last_bucket = EV_HASH(now);
 
 	return cq;
 }
@@ -114,12 +78,16 @@ void cq_free(cqueue_t *cq)
 {
 	cevent_t *ev;
 	cevent_t *ev_next;
+	gint i;
+	struct chash *ch;
 
 	g_assert(valid_ptr(cq));
 
-	for (ev = cq->cq_head; ev; ev = ev_next) {
-		ev_next = ev->ce_next;
-		wfree(ev, sizeof(*ev));
+	for (ch = cq->cq_hash, i = 0; i < HASH_SIZE; i++, ch++) {
+		for (ev = ch->ch_head; ev; ev = ev_next) {
+			ev_next = ev->ce_bnext;
+			wfree(ev, sizeof(*ev));
+		}
 	}
 
 	g_free(cq->cq_hash);
@@ -136,198 +104,64 @@ static void ev_link(cqueue_t *cq, cevent_t *ev)
 	struct chash *ch;			/* Hashing bucket */
 	guint32 trigger;			/* Trigger time */
 	cevent_t *hev;				/* To loop through the hash bucket */
-	gint idx;					/* Hash index where insertion must be done */
-	gint hidx;					/* To loop through hash list indices */
-	gint mindist;				/* Minimum time distance so far */
-	gint i;
 
 	g_assert(valid_ptr(cq));
 	g_assert(valid_ptr(ev));
 
 	trigger = ev->ce_time;
-	ch = &cq->cq_hash[idx = EV_HASH(trigger)];
+	ch = &cq->cq_hash[EV_HASH(trigger)];
 	cq->cq_items++;
 
 	/*
-	 * Handle easy shortcuts... First, if the queue is empty...
+	 * If bucket is empty, the event is the new head.
 	 */
 
-	if (cq->cq_head == NULL) {
-		g_assert(cq->cq_tail == NULL);
-		cq->cq_head = cq->cq_tail = ev;
-		ev->ce_next = ev->ce_prev = (cevent_t *) 0;
-		g_assert(ch->ch_head == NULL);
-		g_assert(ch->ch_tail == NULL);
-		CH_INSERT_HEAD(ch, ev);
+	if (ch->ch_head == NULL) {
+		ch->ch_tail = ch->ch_head = ev;
+		ev->ce_bnext = ev->ce_bprev = NULL;
+		return;
+	}
+
+	g_assert(valid_ptr(ch->ch_tail));
+
+	/*
+	 * If item is larger than the tail, insert at the end right away.
+	 */
+
+	hev = ch->ch_tail;
+
+	if (trigger >= hev->ce_time) {
+		hev->ce_bnext = ev;
+		ev->ce_bnext = NULL;
+		ev->ce_bprev = hev;
+		ch->ch_tail = ev;
 		return;
 	}
 
 	/*
-	 * If time is less than the first recorded item, insert as new head.
-	 * This must be the case in the hash bucket as well...
+	 * If item is smaller than the head...
 	 */
 
-	if (trigger <= cq->cq_head->ce_time) {
-		g_assert(ch->ch_head == NULL || trigger <= ch->ch_head->ce_time);
-		ev->ce_prev = (cevent_t *) 0;
-		ev->ce_next = cq->cq_head;
-		cq->cq_head->ce_prev = ev;
-		cq->cq_head = ev;
-		CH_INSERT_BEFORE(ch, ch->ch_head, ev);
+	hev = ch->ch_head;
+
+	if (trigger < hev->ce_time) {
+		hev->ce_bprev = ev;
+		ev->ce_bnext = hev;
+		ev->ce_bprev = NULL;
+		ch->ch_head = ev;
 		return;
 	}
 
 	/*
-	 * Likewise, if time is larger than that of last item, insert at the end.
-	 * This must be the case in the hash bucket as well if not empty.
+	 * Insert before the first item whose trigger will come after ours.
 	 */
 
-	g_assert(valid_ptr(cq->cq_tail));
-
-	if (trigger >= cq->cq_tail->ce_time) {
-		g_assert(ch->ch_tail == NULL || trigger >= ch->ch_tail->ce_time);
-		ev->ce_next = (cevent_t *) 0;
-		ev->ce_prev = cq->cq_tail;
-		cq->cq_tail->ce_next = ev;
-		cq->cq_tail = ev;
-		CH_INSERT_AFTER(ch, ch->ch_tail, ev);
-		return;
-	}
-
-	/*
-	 * If current hash bucket is not empty, find the place where we have
-	 * to insert the current event, and, once we found it, insert it.
-	 * Have to special case the tail insertion since we will insert AFTER
-	 * an event, not BEFORE.
-	 */
-
-	if ((hev = ch->ch_tail) && trigger >= hev->ce_time) {
-		CH_INSERT_AFTER(ch, hev, ev);
-		goto ch_tail;						/* Insertion occurred AFTER hev */
-	}
-
-	for (hev = ch->ch_head; hev; hev = hev->ce_bnext) {
-		if (trigger <= hev->ce_time) {		/* Bucket list is sorted */
-			CH_INSERT_BEFORE(ch, hev, ev);
-			goto ch_inserted;				/* Insertion occurred BEFORE hev */
-		}
-	}
-
-	/*
-	 * Coming here means that ch was an empty bucket. Bad luck.
-	 * We insert the event at the head of the list, that's no problem.
-	 * But we need to find an 'hev' somewhere so that we can link the
-	 * item in the callout queue list itself (fields ce_next and ce_prev).
-	 */
-
-	g_assert(ch->ch_head == NULL && ch->ch_tail == NULL);
-	CH_INSERT_HEAD(ch, ev);					/* First item in bucket list */
-
-	/*
-	 * We could use hev = cq->cq_tail, but that's suboptimal. Look forward
-	 * in the hash list by rolling over the indices, starting at the current
-	 * one, and locate the closest event (in the time space) by probing all
-	 * the head and tails of non-empty buckets.
-	 *
-	 * Naturally, for this "optimization" to be worth it, there needs to be
-	 * a fair amount of items in the queue. We approximate that limit with the
-	 * number of hash buckets (HASH_SIZE) since this is going to be the average
-	 * amount ot time difference (and thus possibly chained events) between
-	 * two consecutives items in a hash bucket list.
-	 */
-
-	hev = cq->cq_tail;						/* Used to keep track of min */
-	if (cq->cq_items < HASH_SIZE)			/* Not enough items in queue */
-		goto ch_inserted;					/* Don't bother optimizing */
-	mindist = hev->ce_time - trigger;		/* Worst distance we'll find */
-	g_assert(mindist > 0);
-
-	/*
-	 * Start the loop at i=1 and at the next index, since we've just inserted
-	 * the event as the sole item of the current bucket!
-	 */
-
-	for (
-		i = 1, hidx = EV_HASH(idx+1);	/* i counts our iterations */
-		mindist && i < HASH_SIZE;		/* mindist == 0 or all buckets seen */
-		i++, hidx = EV_HASH(hidx+1)		/* EV_HASH ensures we wrap around */
-	) {
-		gint distance;
-		struct chash *curh = &cq->cq_hash[hidx];
-
-		if (curh->ch_head == NULL)
-			continue;						/* Empty bucket */
-		
-		/*
-		 * If distance below becomes <0, this means the latest event recorded
-		 * in the bucket is earlier than us, so it is located before us in
-		 * the callout queue list chain.
-		 */
-
-		distance = curh->ch_tail->ce_time - trigger;
-		if (distance < 0)
-			continue;						/* Highest is earlier than us! */
-
-		if (distance < mindist) {
-			mindist = distance;
-			hev = curh->ch_tail;
-		}
-
-		/*
-		 * Maybe first item in the bucket list is closer to us than its last?
-		 */
-
-		distance = curh->ch_head->ce_time - trigger;
-
-		if (distance > 0 && distance < mindist) {
-			mindist = distance;
-			hev = curh->ch_head;
-		}
-	}
-
-	/*
-	 * Insertion of 'ev' occurred before 'hev', with the ce_bnext and ce_bprev
-	 * fields updated. Now we need to link the item in the callout queue
-	 * itself (fields ce_next and ce_prev).
-	 */
-ch_inserted:
-
-	g_assert(hev->ce_time >= trigger);
-
-	/*
-	 * Go back from hev until we reach the event right before ev, and insert
-	 * ev after that event. It must occur since we know the event is at least
-	 * after the head of the callout list...
-	 */
-
-	for (hev = hev->ce_prev; hev; hev = hev->ce_prev) {
-		if (hev->ce_time <= trigger) {		/* Ok, insert after hev then */
-			hev->ce_next->ce_prev = ev;
-			ev->ce_next = hev->ce_next;
-			hev->ce_next = ev;
-			ev->ce_prev = hev;
-			return;
-		}
-	}
-
-	g_assert(0);		/* Must have found an event to insert after */
-
-	/*
-	 * Come here directly if insertion was done at the tail of the non-empty
-	 * bucket lost.  We don't have a "next" event in 'hev', but one after
-	 * which the insertion was made. So insetead of moving backward as we do
-	 * above, move forward towards the current event we're inserting.
-	 */
-ch_tail:
-
-	g_assert(hev->ce_time <= trigger);
-
-	for (; hev; hev = hev->ce_next) {
-		if (hev->ce_time >= trigger) {		/* Ok, insert before hev then */
-			hev->ce_prev->ce_next = ev;
-			ev->ce_prev = hev->ce_prev;
-			hev->ce_prev = ev;
-			ev->ce_next = hev;
+	for (hev = hev->ce_bnext; hev; hev = hev->ce_bnext) {
+		if (trigger < hev->ce_time) {
+			hev->ce_bprev->ce_bnext = ev;
+			ev->ce_bprev = hev->ce_bprev;
+			hev->ce_bprev = ev;
+			ev->ce_bnext = hev;
 			return;
 		}
 	}
@@ -354,20 +188,10 @@ static void ev_unlink(cqueue_t *cq, cevent_t *ev)
 	 * Unlinking the item is straigthforward, unlike insertion!
 	 */
 
-	if (cq->cq_head == ev)
-		cq->cq_head = ev->ce_next;
-	if (cq->cq_tail == ev)
-		cq->cq_tail = ev->ce_prev;
-
 	if (ch->ch_head == ev)
 		ch->ch_head = ev->ce_bnext;
 	if (ch->ch_tail == ev)
 		ch->ch_tail = ev->ce_bprev;
-
-	if (ev->ce_prev)
-		ev->ce_prev->ce_next = ev->ce_next;
-	if (ev->ce_next)
-		ev->ce_next->ce_prev = ev->ce_prev;
 
 	if (ev->ce_bprev)
 		ev->ce_bprev->ce_bnext = ev->ce_bnext;
@@ -487,21 +311,67 @@ static void cq_expire(cqueue_t *cq, cevent_t *ev)
  *
  * Called to notify us about the elapsed "time" so that we can expire timeouts
  * and maintain our notion of "current time".
- *
- * If elapsed is <0, the time goes backwards and simply delays further all
- * pending events.
  */
 void cq_clock(cqueue_t *cq, gint elapsed)
 {
-	cevent_t *ev;
 	guint32 now;
+	gint bucket;
+	gint last_bucket;
+	struct chash *ch;
+	cevent_t *ev;
 
 	g_assert(valid_ptr(cq));
+	g_assert(elapsed >= 0);
 
 	cq->cq_time += elapsed;
 	now = cq->cq_time;
 
-	while ((ev = cq->cq_head) && ev->ce_time <= now)
+	bucket = cq->cq_last_bucket;		/* Bucket we traversed last time */
+	ch = &cq->cq_hash[bucket];
+	last_bucket = EV_HASH(now);			/* Last bucket to traverse now */
+
+	/*
+	 * If `elapsed' has overflowed the hash size, then we'll need to look at
+	 * all the buckets in the table (wrap around).
+	 */
+
+	if (EV_OVER(elapsed))
+		last_bucket = bucket;
+
+
+	/*
+	 * Since the hashed time is a not a strictly monotonic function of time,
+	 * we have to rescan the last bucket, in case the earliest event have
+	 * expired now, before moving forward.
+	 */
+
+	while ((ev = ch->ch_head) && ev->ce_time <= now)
 		cq_expire(cq, ev);
+
+	/*
+	 * If we don't have to move forward (elapsed is too small), we're done.
+	 */
+
+	if (cq->cq_last_bucket == last_bucket && !EV_OVER(elapsed))
+		return;
+
+	cq->cq_last_bucket = last_bucket;
+
+	do {
+		ch++;
+		if (++bucket >= HASH_SIZE) {
+			bucket = 0;
+			ch = cq->cq_hash;
+		}
+
+		/*
+		 * Since each bucket is sorted, we can stop our walkthrough as
+		 * soon as we reach an event scheduled after `now'.
+		 */
+
+		while ((ev = ch->ch_head) && ev->ce_time <= now)
+			cq_expire(cq, ev);
+
+	} while (bucket != last_bucket);
 }
 

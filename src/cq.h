@@ -40,8 +40,6 @@ typedef void (*cq_service_t)(struct cqueue *cq, gpointer obj);
  * Callout queue event.
  */
 typedef struct cevent {
-	struct cevent *ce_next;		/* Next item in callout queue */
-	struct cevent *ce_prev;		/* Prev item in callout queue */
 	struct cevent *ce_bnext;	/* Next item in hash bucket */
 	struct cevent *ce_bprev;	/* Prev item in hash bucket */
 	cq_service_t ce_fn;			/* Callback routine */
@@ -79,11 +77,10 @@ struct chash {
 };
 
 typedef struct cqueue {
-	cevent_t *cq_head;			/* Callout queue list head */
-	cevent_t *cq_tail;			/* Callout queue list tail */
 	struct chash *cq_hash;		/* Array of buckets for hash list */
 	guint32 cq_time;			/* "current time" */
 	gint cq_items;				/* Amount of recorded events */
+	gint cq_last_bucket;		/* Last bucket slot we were at */
 } cqueue_t;
 
 /*
