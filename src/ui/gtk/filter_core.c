@@ -45,6 +45,7 @@ RCSID("$Id$");
 #include "if/gui_property_priv.h"
 
 #include "lib/walloc.h"
+#include "lib/utf8.h"
 #include "lib/glib-missing.h"
 #include "lib/override.h"	/* Must be the last header included */
 
@@ -70,17 +71,8 @@ typedef struct shadow {
 /*
  * Private functions prototypes
  */
-static gint shadow_filter_eq(const shadow_t *a, const filter_t *b);
-static shadow_t *shadow_new(filter_t *s);
-static shadow_t *shadow_find(filter_t *s);
-static int filter_apply(filter_t *, record_t *, filter_result_t *);
-static void filter_remove_rule(filter_t *f, rule_t *r);
+void filter_remove_rule(filter_t *f, rule_t *r);
 static void filter_free(filter_t *f);
-static void filter_refresh_display(GList *filter_list);
-
-void dump_ruleset(GList *ruleset);
-void dump_filter(filter_t *filter);
-void dump_shadow(shadow_t *shadow);
 
 /*
  * Public variables
@@ -91,20 +83,19 @@ filter_t *work_filter = NULL;
  * Private variables
  */
 static GList *shadow_filters = NULL;
-static gchar f_tmp[1024];
 static GList *filters_added = NULL;
 static GList *filters_removed = NULL;
 
 /* built-in targets */
-filter_t *filter_drop = NULL;
-filter_t *filter_show = NULL;
-filter_t *filter_download = NULL;
-filter_t *filter_nodownload = NULL;
-filter_t *filter_return = NULL;
+static filter_t *filter_drop = NULL;
+static filter_t *filter_show = NULL;
+static filter_t *filter_download = NULL;
+static filter_t *filter_nodownload = NULL;
+static filter_t *filter_return = NULL;
 
 /* global filters */
-filter_t *filter_global_pre = NULL;
-filter_t *filter_global_post = NULL;
+static filter_t *filter_global_pre = NULL;
+static filter_t *filter_global_post = NULL;
 
 /* not static because needed in search_xml. */
 GList *filters = NULL;
@@ -114,16 +105,18 @@ GList *filters_current = NULL;
 /***
  *** Implementation
  ***/
-void dump_ruleset(GList *ruleset)
+void
+dump_ruleset(GList *ruleset)
 {
     GList *r;
     gint n = 0;
 
-    for (r = ruleset; r != NULL; r=r->next)
+    for (r = ruleset; r != NULL; r = g_list_next(r))
         g_message("       rule %3d : %s", n, filter_rule_to_gchar(r->data));
 }
 
-void dump_filter(filter_t *filter)
+void
+dump_filter(filter_t *filter)
 {
     g_assert(filter != NULL);
     g_message(
@@ -136,7 +129,8 @@ void dump_filter(filter_t *filter)
     dump_ruleset(filter->ruleset);
 }
 
-void dump_shadow(shadow_t *shadow)
+void
+dump_shadow(shadow_t *shadow)
 {
     g_assert(shadow != NULL);
     g_message(
@@ -161,38 +155,29 @@ void dump_shadow(shadow_t *shadow)
 
 
 
-/*
- * shadow_filter_eq:
- *
+/**
  * Comparator function to match a shadow and a filter.
  */
-static gint shadow_filter_eq(const shadow_t *a, const filter_t *b)
+static gint
+shadow_filter_eq(gconstpointer a, gconstpointer b)
 {
-    if((a != NULL) && (b != NULL)) {
-        if(a->filter == b)
-            return 0;
-    }
-
-    return 1;
+	return a == NULL || b == NULL || ((const shadow_t *) a)->filter != b;
 }
 
 
 
-/*
- * shadow_find:
- *
+/**
  * Get the shadow for the given filter. Returns NULL if the filter
  * does not have a shadow yet.
  */
-static shadow_t *shadow_find(filter_t *f)
+static shadow_t *
+shadow_find(filter_t *f)
 {
     GList * l;
 
     g_assert(f != NULL);
 
-    l = g_list_find_custom
-        (shadow_filters, f, (GCompareFunc) shadow_filter_eq);
-
+    l = g_list_find_custom(shadow_filters, f, shadow_filter_eq);
     if (l != NULL) {
         if (gui_debug >= 6)
             g_message("shadow found for: %s", f->name);
@@ -206,13 +191,12 @@ static shadow_t *shadow_find(filter_t *f)
 
 
 
-/*
- * shadow_new:
- *
+/**
  * Creates a new shadow for a given filter and registers it with
  * our current shadow list.
  */
-static shadow_t *shadow_new(filter_t *f)
+static shadow_t *
+shadow_new(filter_t *f)
 {
     shadow_t *shadow;
 
@@ -238,9 +222,7 @@ static shadow_t *shadow_new(filter_t *f)
 
 
 
-/*
- * shadow_cancel:
- *
+/**
  * Forgets all about a given shadow and free's ressourcs for it.
  * At this point we can no longer assume that the shadow->current
  * field contains a valid pointer. We may have been called to
@@ -248,7 +230,8 @@ static shadow_t *shadow_new(filter_t *f)
  * cleared. We don't clean up any memory that is owned by the
  * associated filter.
  */
-static void shadow_cancel(shadow_t *shadow)
+static void
+shadow_cancel(shadow_t *shadow)
 {
     GList *r;
 
@@ -277,13 +260,12 @@ static void shadow_cancel(shadow_t *shadow)
 
 
 
-/*
- * shadow_commit:
- *
+/**
  * Commit all the changes for a given shadow and then forget and free
  * it.
  */
-static void shadow_commit(shadow_t *shadow)
+static void
+shadow_commit(shadow_t *shadow)
 {
     GList *f;
     filter_t *realf;
@@ -354,12 +336,11 @@ static void shadow_commit(shadow_t *shadow)
 
 
 
-/*
- * filter_refresh_display:
- *
+/**
  * Regenerates the filter tree and rules display from after a apply/revert.
  */
-static void filter_refresh_display(GList *filter_list)
+static void
+filter_refresh_display(GList *filter_list)
 {
     GList *l;
 
@@ -385,12 +366,12 @@ static void filter_refresh_display(GList *filter_list)
 
 
 
-/*
- * filter_open_dialog:
- *
+/**
  * Open and initialize the filter dialog.
  */
-void filter_open_dialog(void) {
+void
+filter_open_dialog(void)
+{
     search_t *current_search;
 
     current_search = search_gui_get_current_search();
@@ -403,12 +384,7 @@ void filter_open_dialog(void) {
         filter_refresh_display(filters_current);
     }
 
-    if (current_search != NULL) {
-        filter_set(current_search->filter);
-    } else {
-        filter_set(NULL);
-    }
-
+    filter_set(current_search ? current_search->filter : NULL);
     filter_gui_show_dialog();
 }
 
@@ -420,7 +396,8 @@ void filter_open_dialog(void) {
  * Close the filter dialog. If commit is TRUE the changes
  * are committed, otherwise dropped.
  */
-void filter_close_dialog(gboolean commit)
+void
+filter_close_dialog(gboolean commit)
 {
     if (commit) {
         filter_apply_changes();
@@ -450,14 +427,13 @@ void filter_close_dialog(gboolean commit)
 
 
 
-/*
- * filter_duplicate_rule:
- *
+/**
  * returns a new rule created with information based on the given rule
  * with the appropriate filter_new_*_rule call. Defaults set by those
  * calls (like RULE_FLAG_VALID) will also apply to the the returned rule.
  */
-rule_t *filter_duplicate_rule(rule_t *r)
+rule_t *
+filter_duplicate_rule(rule_t *r)
 {
     g_assert(r != NULL);
 
@@ -492,7 +468,8 @@ rule_t *filter_duplicate_rule(rule_t *r)
 
 
 
-rule_t *filter_new_text_rule(gchar *match, gint type,
+rule_t *
+filter_new_text_rule(gchar *match, gint type,
     gboolean case_sensitive, filter_t *target, guint16 flags)
 {
   	rule_t *r;
@@ -512,8 +489,17 @@ rule_t *filter_new_text_rule(gchar *match, gint type,
     r->u.text.matchlen       = strlen(match);
     set_flags(r->flags, RULE_FLAG_VALID);
 
-    if (!r->u.text.case_sensitive)
-        strlower(r->u.text.match, r->u.text.match);
+    if (!r->u.text.case_sensitive) {
+		if (0 != utf8_is_valid_string(r->u.text.match, 0)) {
+			/* XXX: utf8_strlower() would be better since non-ASCII characters
+			 * are not modified. However, utf8_strcasecmp() would be more
+			 * appropriate. */
+        	ascii_strlower(r->u.text.match, r->u.text.match);
+		} else {
+			/* Assume the string is encoded for the current locale */
+        	strlower(r->u.text.match, r->u.text.match);
+		}
+	}
 
     buf = g_strdup(r->u.text.match);
 
@@ -522,9 +508,9 @@ rule_t *filter_new_text_rule(gchar *match, gint type,
 		GList *l = NULL;
 
 		for (s = strtok(buf, " \t\n"); s; s = strtok(NULL, " \t\n"))
-			l = g_list_append(l, pattern_compile(s));
+			l = g_list_prepend(l, pattern_compile(s));
 
-		r->u.text.u.words = l;
+		r->u.text.u.words = g_list_reverse(l);
 	} else
     if (r->u.text.type == RULE_TEXT_REGEXP) {
 		int err;
@@ -560,8 +546,8 @@ rule_t *filter_new_text_rule(gchar *match, gint type,
 
 
 
-rule_t *filter_new_ip_rule
-    (guint32 addr, guint32 mask, filter_t *target, guint16 flags)
+rule_t *
+filter_new_ip_rule(guint32 addr, guint32 mask, filter_t *target, guint16 flags)
 {
 	rule_t *r;
 
@@ -583,8 +569,9 @@ rule_t *filter_new_ip_rule
 
 
 
-rule_t *filter_new_size_rule
-    (filesize_t lower, filesize_t upper, filter_t *target, guint16 flags)
+rule_t *
+filter_new_size_rule(filesize_t lower, filesize_t upper,
+	filter_t *target, guint16 flags)
 {
    	rule_t *f;
 
@@ -612,7 +599,8 @@ rule_t *filter_new_size_rule
 
 
 
-rule_t *filter_new_jump_rule(filter_t *target, guint16 flags)
+rule_t *
+filter_new_jump_rule(filter_t *target, guint16 flags)
 {
    	rule_t *f;
 
@@ -632,8 +620,9 @@ rule_t *filter_new_jump_rule(filter_t *target, guint16 flags)
 
 
 
-rule_t *filter_new_sha1_rule
-    (gchar *sha1, gchar *filename, filter_t *target, guint16 flags)
+rule_t *
+filter_new_sha1_rule(gchar *sha1, gchar *filename,
+	filter_t *target, guint16 flags)
 {
    	rule_t *f;
 
@@ -656,8 +645,8 @@ rule_t *filter_new_sha1_rule
 
 
 
-rule_t *filter_new_flag_rule
-    (enum rule_flag_action stable, enum rule_flag_action busy,
+rule_t *
+filter_new_flag_rule(enum rule_flag_action stable, enum rule_flag_action busy,
      enum rule_flag_action push, filter_t *target, guint16 flags)
 {
    	rule_t *f;
@@ -680,9 +669,9 @@ rule_t *filter_new_flag_rule
 
 
 
-rule_t *filter_new_state_rule
-    (enum filter_prop_state display, enum filter_prop_state download,
-    filter_t *target, guint16 flags)
+rule_t *
+filter_new_state_rule(enum filter_prop_state display,
+	enum filter_prop_state download, filter_t *target, guint16 flags)
 {
        	rule_t *f;
 
@@ -703,14 +692,13 @@ rule_t *filter_new_state_rule
 
 
 
-/*
- * filter_set:
- *
+/**
  * Start working on the given filter. Set this filter as
  * work_filter so we can commit the changed rules to this
  * filter.
  */
-void filter_set(filter_t *f)
+void
+filter_set(filter_t *f)
 {
     if (f != NULL) {
         shadow_t *shadow;
@@ -747,13 +735,12 @@ void filter_set(filter_t *f)
 
 
 
-/*
- * filter_close_search:
- *
+/**
  * Clear the searches shadow, update the combobox and the filter
  * bound to this search (search->ruleser).
  */
-void filter_close_search(search_t *s)
+void
+filter_close_search(search_t *s)
 {
     shadow_t *shadow;
 
@@ -793,9 +780,7 @@ void filter_close_search(search_t *s)
 
 
 
-/*
- * filter_apply_changes:
- *
+/**
  * Go through all the shadow filters, and commit the recorded
  * changes to the assosicated filter. We walk through the
  * shadow->current list. Every item in shadow->removed will be
@@ -803,7 +788,8 @@ void filter_close_search(search_t *s)
  * Then shadow->current will be set as the new filter for that
  * search.
  */
-void filter_apply_changes(void)
+void
+filter_apply_changes(void)
 {
     GList *s;
 
@@ -840,16 +826,14 @@ void filter_apply_changes(void)
 
 
 
-/*
- * filter_revert_changes:
- *
+/**
  * Free the ressources for all added filters and forget all shadows.
  * A running session will not be ended by this.
  */
-void filter_revert_changes(void)
+void
+filter_revert_changes(void)
 {
     GList *s;
-    gint n;
 
     if (gui_debug >= 5)
         g_message("Canceling all changes to filters/rules");
@@ -861,7 +845,7 @@ void filter_revert_changes(void)
      * Free memory for all added filters and for the shadows.
      */
     for (s = shadow_filters; s != NULL; s = shadow_filters)
-        shadow_cancel((shadow_t *)s->data);
+        shadow_cancel((shadow_t *) s->data);
 
     if (g_list_find(filters, work_filter) != NULL)
         filter_set(work_filter);
@@ -876,7 +860,6 @@ void filter_revert_changes(void)
      * because filter_free removes the added filter from filters_added
      * for us.
      */
-    n = 0;
     for (s = filters_added; s != NULL; s = filters_added) {
         filter_t *filter = (filter_t *) s->data;
 
@@ -888,7 +871,7 @@ void filter_revert_changes(void)
     /*
      * Restore all removed filters.
      */
-    for (s = filters_removed; s != NULL; s = s->next) {
+    for (s = filters_removed; s != NULL; s = g_list_next(s)) {
         filter_t *filter = (filter_t *) s->data;
 
         filter_gui_filter_add(filter, filter->ruleset);
@@ -916,12 +899,11 @@ void filter_revert_changes(void)
 
 
 
-/*
- * filter_rule_condition_to_gchar:
- *
+/**
  * Convert a rule condition to a human readable string.
  */
-gchar *filter_rule_condition_to_gchar(const rule_t *r)
+gchar *
+filter_rule_condition_to_gchar(const rule_t *r)
 {
     static gchar tmp[256];
 
@@ -979,17 +961,12 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
         break;
     case RULE_IP:
         {
-            gchar *mask;
-            gchar *addr;
+            const gchar *addr, *mask;
 
-            mask = g_strdup(ip_to_gchar(r->u.ip.mask));
-            addr = g_strdup(ip_to_gchar(r->u.ip.addr));
-
+            addr = ip_to_gchar(r->u.ip.addr);
+            mask = ip2_to_gchar(r->u.ip.mask);
             gm_snprintf(tmp, sizeof(tmp),
                 _("If IP address matches %s/%s"), addr, mask);
-
-            G_FREE_NULL(addr);
-            G_FREE_NULL(mask);
         }
         break;
     case RULE_SIZE:
@@ -1166,38 +1143,32 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
 
 
 
-/*
- * filter_rule_to_gchar:
- *
+/**
  * Convert the filter to a human readable string.
  */
-gchar *filter_rule_to_gchar(rule_t *r)
+gchar *
+filter_rule_to_gchar(rule_t *r)
 {
-    gchar *cond;
+	static gchar tmp[1024];
 
     g_assert(r != NULL);
 
-    cond = g_strdup(filter_rule_condition_to_gchar(r));
-
-	gm_snprintf(f_tmp, sizeof(f_tmp), _("%s%s %s jump to \"%s\""),
+	gm_snprintf(tmp, sizeof(tmp), _("%s%s %s jump to \"%s\""),
         RULE_IS_NEGATED(r) ? _("(Negated) ") : "",
         RULE_IS_ACTIVE(r) ? "" : _("(deactivated)"),
-        cond,
+        filter_rule_condition_to_gchar(r),
         RULE_IS_VALID(r) ? r->target->name : _("(invalid)"));
 
-    G_FREE_NULL(cond);
-
-    return f_tmp;
+    return tmp;
 }
 
 
 
-/*
- * filter_new:
- *
+/**
  * Create a new filter with the given name.
  */
-filter_t *filter_new(gchar *name)
+filter_t *
+filter_new(gchar *name)
 {
     filter_t *f;
 
@@ -1215,13 +1186,12 @@ filter_t *filter_new(gchar *name)
 
 
 
-/*
- * filter_add_to_session:
- *
+/**
  * Add a filter to the current editing session. Never try to add
  * a filter twice. Returns a error code on failure and 0 on success.
  */
-void filter_add_to_session(filter_t *f)
+void
+filter_add_to_session(filter_t *f)
 {
     g_assert(g_list_find(filters_current, f) == NULL);
     g_assert(f != NULL);
@@ -1249,12 +1219,11 @@ void filter_add_to_session(filter_t *f)
 
 
 
-/*
- * filter_new_for_search:
- *
+/**
  * Create a new filter bound to a search and register it.
  */
-void filter_new_for_search(search_t *s)
+void
+filter_new_for_search(search_t *s)
 {
     filter_t *f;
 
@@ -1289,13 +1258,12 @@ void filter_new_for_search(search_t *s)
 
 
 
-/*
- * filter_remove_from_session:
- *
+/**
  * Mark the given filter as removed and delete it when the
  * dialog changes are committed.
  */
-void filter_remove_from_session(filter_t *f)
+void
+filter_remove_from_session(filter_t *f)
 {
     g_assert(g_list_find(filters_removed, f) == NULL);
     g_assert(g_list_find(filters_current, f) != NULL);
@@ -1321,13 +1289,12 @@ void filter_remove_from_session(filter_t *f)
 
 
 
-/*
- * filter_free:
- *
+/**
  * Frees a filter and the filters assiciated with it and
  * unregisters it from current and session filter lists.
  */
-static void filter_free(filter_t *f)
+static void
+filter_free(filter_t *f)
 {
     GList *copy;
 
@@ -1363,12 +1330,11 @@ static void filter_free(filter_t *f)
 
 
 
-/*
- * filter_free_rule:
- *
+/**
  * Free memory reserved by rule respecting the type of the rule.
  */
-void filter_free_rule(rule_t *r)
+void
+filter_free_rule(rule_t *r)
 {
     g_assert(r != NULL);
 
@@ -1420,14 +1386,13 @@ void filter_free_rule(rule_t *r)
 
 
 
-/*
- * filter_append_rule:
- *
+/**
  * Append a new rule to a filter. If necessary also update the shadow.
  * The addition of the rule cannot be cancelled by canceling the
  * shadow. If no shadow for the filters exists, none is created.
  */
-void filter_append_rule(filter_t *f, rule_t * const r)
+void
+filter_append_rule(filter_t *f, rule_t * const r)
 {
     shadow_t *shadow;
     shadow_t *target_shadow;
@@ -1488,14 +1453,13 @@ void filter_append_rule(filter_t *f, rule_t * const r)
 
 
 
-/*
- * filter_append_rule_to_session:
- *
+/**
  * Append a new rule to the filter shadow. This call will fail
  * with an assertion error if the rule is already existing in
  * the shadow.
  */
-void filter_append_rule_to_session(filter_t *f, rule_t * const r)
+void
+filter_append_rule_to_session(filter_t *f, rule_t * const r)
 {
     shadow_t *shadow = NULL;
     shadow_t *target_shadow = NULL;
@@ -1556,15 +1520,14 @@ void filter_append_rule_to_session(filter_t *f, rule_t * const r)
 
 
 
-/*
- * filter_remove_rule:
- *
+/**
  * Removes a rule directly. The removal cannot be reversed by
  * cancelling the shadow. The filter is removed from the active
  * filter and from a potentially existing shadow as well.
  * If no shadow exists, no shadow is created.
  */
-void filter_remove_rule(filter_t *f, rule_t *r)
+void
+filter_remove_rule(filter_t *f, rule_t *r)
 {
     shadow_t *shadow;
     shadow_t *target_shadow;
@@ -1703,15 +1666,14 @@ void filter_remove_rule(filter_t *f, rule_t *r)
 }
 
 
-/*
- * filter_remove_rule_from_session:
- *
+/**
  * Remove rule from a filter shadow. This call will fail
  * with an assertion error if the rule has already been
  * removed from the shadow or if it never was in the shadow.
  * The memory associated with the rule will be freed.
  */
-void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
+void
+filter_remove_rule_from_session(filter_t *f, rule_t * const r)
 {
     shadow_t *shadow;
     shadow_t *target_shadow;
@@ -1785,9 +1747,7 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
 
 
 
-/*
- * filter_replace_rule_in_session:
- *
+/**
  * Replaces filter rule A with filter rule B in filter . A
  * must already be in the shadow and B must not!
  *
@@ -1795,7 +1755,8 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
  *
  * The memory for A is freed in the process.
  */
-void filter_replace_rule_in_session(filter_t *f,
+void
+filter_replace_rule_in_session(filter_t *f,
     rule_t * const old_rule, rule_t * const new_rule)
 {
     GList *filter;
@@ -1822,13 +1783,13 @@ void filter_replace_rule_in_session(filter_t *f,
     g_assert(filter != NULL);
 
     if (gui_debug >= 4) {
-        gchar * f1 = g_strdup(filter_rule_to_gchar(old_rule));
-        gchar * f2 = g_strdup(filter_rule_to_gchar(new_rule));
+        gchar f1[1024];
+		const gchar *f2;
+	   
+		g_strlcpy(f1, filter_rule_to_gchar(old_rule), sizeof f1);
+        f2 = filter_rule_to_gchar(new_rule);
 
         g_message("replacing rules (old <- new): %s <- %s", f1, f2);
-
-        G_FREE_NULL(f1);
-        G_FREE_NULL(f2);
     }
 
     /*
@@ -1898,9 +1859,7 @@ void filter_replace_rule_in_session(filter_t *f,
 
 
 
-/*
- * filter_adapt_order:
- *
+/**
  * Reorders the filter according to the order in the user's
  * table in the gui. This should only be used after the
  * user has reordered the table. It cannot properly cope
@@ -1909,7 +1868,8 @@ void filter_replace_rule_in_session(filter_t *f,
  * If the filter dialog has not been initialized or not
  * filter is currently worked on, it will silently fail.
  */
-void filter_adapt_order(void)
+void
+filter_adapt_order(void)
 {
     GList *neworder = NULL;
     gint row;
@@ -1959,15 +1919,13 @@ do {																\
         g_message("matched rule: %s", filter_rule_to_gchar((r)));	\
 } while (0)
 
-/*
- * filter_apply:
- *
+/**
  * returns the number of properties set with this filter chain.
  * a property which was already set is not set again. The res
  * argument is changed depending on the rules that match.
  */
-static int filter_apply
-    (filter_t *filter, struct record *rec, filter_result_t *res)
+static int
+filter_apply(filter_t *filter, struct record *rec, filter_result_t *res)
 {
     size_t namelen;
 	char *l_name;
@@ -1978,6 +1936,8 @@ static int filter_apply
     g_assert(filter != NULL);
     g_assert(rec != NULL);
     g_assert(res != NULL);
+	g_assert(rec->magic == RECORD_MAGIC);
+	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
     /*
      * We only try to prevent circles or the filter is inactive.
@@ -1992,7 +1952,15 @@ static int filter_apply
 
 	namelen = strlen(rec->name);
 	l_name = g_malloc(sizeof(char) * (namelen + 1));
-	strlower(l_name, rec->name);
+	if (0 != utf8_is_valid_string(rec->name, 0)) {
+		/* XXX: utf8_strlower() would be better since non-ASCII characters
+		 * are not modified. However, utf8_strcasecmp() would be more
+		 * appropriate. */
+		ascii_strlower(l_name, rec->name);
+	} else {
+		/* Assume the string is encoded for the current locale */
+		strlower(l_name, rec->name);
+	}
 
 	list = g_list_first(list);
 	while ((list != NULL) && (res->props_set < MAX_FILTER_PROP) && !do_abort) {
@@ -2219,14 +2187,13 @@ static int filter_apply
 
 
 
-/*
- * filter_record:
- *
+/**
  * Check a particular record against the search filter and the global
  * filters. Returns a filter_property_t array with MAX_FILTER_PROP
  * rows. This must be freed with filter_free_properties.
  */
-filter_result_t *filter_record(search_t *sch, record_t *rec)
+filter_result_t *
+filter_record(search_t *sch, record_t *rec)
 {
     gboolean filtered;
     filter_result_t *result;
@@ -2234,6 +2201,8 @@ filter_result_t *filter_record(search_t *sch, record_t *rec)
 
     g_assert(sch != NULL);
     g_assert(rec != NULL);
+	g_assert(rec->magic == RECORD_MAGIC);
+	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
     /*
      * Initialize all properties with FILTER_PROP_STATE_UNKNOWN and
@@ -2298,12 +2267,11 @@ filter_result_t *filter_record(search_t *sch, record_t *rec)
 
 
 
-/*
- * filters_shutdown
- *
+/**
  * Free global filters and save state.
  */
-void filter_shutdown(void)
+void
+filter_shutdown(void)
 {
     GList *f;
 
@@ -2350,12 +2318,11 @@ void filter_shutdown(void)
 
 
 
-/*
- * filter_init
- *
+/**
  * Initialize global filters.
  */
-void filter_init(void)
+void
+filter_init(void)
 {
     filter_global_pre  = filter_new(_("Global (pre)"));
     filter_global_post = filter_new(_("Global (post)"));
@@ -2380,24 +2347,22 @@ void filter_init(void)
 
 
 
-/*
- * filter_update_targets:
- *
+/**
  * Trigger a rebuild of the target combos.
  */
-void filter_update_targets(void)
+void
+filter_update_targets(void)
 {
     filter_gui_rebuild_target_combos(filters_current);
 }
 
 
 
-/*
- * filter_timer:
- *
+/**
  * Periodically update the filter display with current data
  */
-void filter_timer(void)
+void
+filter_timer(void)
 {
     filter_gui_update_filter_stats();
     filter_gui_update_rule_stats();
@@ -2405,12 +2370,11 @@ void filter_timer(void)
 
 
 
-/*
- * filter_rule_reset_stats:
- *
+/**
  * Reset the rule stats for a given rule.
  */
-inline void filter_rule_reset_stats(rule_t *rule)
+void
+filter_rule_reset_stats(rule_t *rule)
 {
     g_assert(rule != NULL);
 
@@ -2419,12 +2383,11 @@ inline void filter_rule_reset_stats(rule_t *rule)
 
 
 
-/*
- * filter_reset_stats:
- *
+/**
  * Reset the stats for a given filter.
  */
-inline void filter_reset_stats(filter_t *filter)
+void
+filter_reset_stats(filter_t *filter)
 {
     g_assert(filter != NULL);
 
@@ -2433,12 +2396,11 @@ inline void filter_reset_stats(filter_t *filter)
 
 
 
-/*
- * filter_set_enabled:
- *
+/**
  * Change the "enabled" flag of a filter.
  */
-void filter_set_enabled(filter_t *filter, gboolean active)
+void
+filter_set_enabled(filter_t *filter, gboolean active)
 {
     shadow_t *shadow;
     static gboolean locked = FALSE;
@@ -2465,13 +2427,12 @@ void filter_set_enabled(filter_t *filter, gboolean active)
     locked = FALSE;
 }
 
-/*
- * filter_free_properties:
- *
+/**
  * Free a filter_result returned by filter_record
  * after it has been processed.
  */
-void filter_free_result(filter_result_t *res)
+void
+filter_free_result(filter_result_t *res)
 {
     gint i;
 
@@ -2496,29 +2457,24 @@ void filter_free_result(filter_result_t *res)
     wfree(res, sizeof(*res));
 }
 
-/*
- * filter_is_valid_in_session:
- *
+/**
  * Checks wether a filter is existant in a filter editing session.
  * If no session is started it checks wether the filter is valid
  * in outside the session.
  */
-gboolean filter_is_valid_in_session(filter_t *f)
+gboolean
+filter_is_valid_in_session(filter_t *f)
 {
-    if (f == NULL)
-        return FALSE;
-    else
-        return g_list_find(filters_current, f) != NULL;
+    return f != NULL && g_list_find(filters_current, f) != NULL;
 }
 
-/*
- * filter_find_by_name_in_session:
- *
+/**
  * Returns the filter with the given name in the session if it
  * exists, otherwise returns NULL. If no session is started, it
  * looks in the normal filter list.
  */
-filter_t *filter_find_by_name_in_session(gchar *name)
+filter_t *
+filter_find_by_name_in_session(gchar *name)
 {
     GList *l;
 
@@ -2531,62 +2487,74 @@ filter_t *filter_find_by_name_in_session(gchar *name)
     return NULL;
 }
 
-gboolean filter_is_global(filter_t *f)
+gboolean
+filter_is_global(filter_t *f)
 {
     return ((f == filter_global_pre) || (f == filter_global_post));
 }
 
-gboolean filter_is_builtin(filter_t *f)
+gboolean
+filter_is_builtin(filter_t *f)
 {
     return ((f == filter_show) || (f == filter_drop) ||
             (f == filter_download) || (f == filter_nodownload) ||
             (f == filter_return));
 }
 
-inline filter_t *filter_get_drop_target(void)
+filter_t *
+filter_get_drop_target(void)
 {
     return filter_drop;
 }
 
-inline filter_t *filter_get_show_target(void)
+filter_t *
+filter_get_show_target(void)
 {
     return filter_show;
 }
 
-inline filter_t *filter_get_download_target(void)
+filter_t *
+filter_get_download_target(void)
 {
     return filter_download;
 }
 
-inline filter_t *filter_get_nodownload_target(void)
+filter_t *
+filter_get_nodownload_target(void)
 {
     return filter_nodownload;
 }
 
-inline filter_t *filter_get_return_target(void)
+filter_t *
+filter_get_return_target(void)
 {
     return filter_return;
 }
 
-inline filter_t *filter_get_global_pre(void)
+filter_t *
+filter_get_global_pre(void)
 {
     return filter_global_pre;
 }
 
-inline filter_t *filter_get_global_post(void)
+filter_t *
+filter_get_global_post(void)
 {
     return filter_global_post;
 }
 
-/*
+/**
  * Adds a drop SHA1 rule to specified filter.
  */
-void filter_add_drop_sha1_rule(record_t *rec, filter_t *filter)
+void
+filter_add_drop_sha1_rule(record_t *rec, filter_t *filter)
 {
     rule_t *rule;
 
     g_assert(rec != NULL);
     g_assert(filter != NULL);
+	g_assert(rec->magic == RECORD_MAGIC);
+	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
     rule = filter_new_sha1_rule(rec->sha1, rec->name,
         filter_get_drop_target(), RULE_FLAG_ACTIVE);
@@ -2594,15 +2562,18 @@ void filter_add_drop_sha1_rule(record_t *rec, filter_t *filter)
     filter_append_rule(filter, rule);
 }
 
-/*
+/**
  * Adds a drop filename rule to specified filter.
  */
-void filter_add_drop_name_rule(record_t *rec, filter_t *filter)
+void
+filter_add_drop_name_rule(record_t *rec, filter_t *filter)
 {
     rule_t *rule;
 
     g_assert(rec != NULL);
     g_assert(filter != NULL);
+	g_assert(rec->magic == RECORD_MAGIC);
+	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
     rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE,
         filter_get_drop_target(), RULE_FLAG_ACTIVE);
@@ -2610,15 +2581,18 @@ void filter_add_drop_name_rule(record_t *rec, filter_t *filter)
     filter_append_rule(filter, rule);
 }
 
-/*
+/**
  * Adds a drop host rule to specified filter.
  */
-void filter_add_drop_host_rule(record_t *rec, filter_t *filter)
+void
+filter_add_drop_host_rule(record_t *rec, filter_t *filter)
 {
     rule_t *rule;
 
     g_assert(rec != NULL);
     g_assert(filter != NULL);
+	g_assert(rec->magic == RECORD_MAGIC);
+	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
     rule = filter_new_ip_rule(rec->results_set->ip, 0xFFFFFFFF,
         filter_get_drop_target(), RULE_FLAG_ACTIVE);
@@ -2626,13 +2600,16 @@ void filter_add_drop_host_rule(record_t *rec, filter_t *filter)
     filter_append_rule(filter, rule);
 }
 
-/*
+/**
  * Adds a download SHA1 rule to specified filter.
  */
-void filter_add_download_sha1_rule(record_t *rec, filter_t *filter)
+void
+filter_add_download_sha1_rule(record_t *rec, filter_t *filter)
 {
     g_assert(rec != NULL);
     g_assert(filter != NULL);
+	g_assert(rec->magic == RECORD_MAGIC);
+	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
     if (rec->sha1) {
         rule_t *rule;
@@ -2644,15 +2621,18 @@ void filter_add_download_sha1_rule(record_t *rec, filter_t *filter)
     }
 }
 
-/*
+/**
  * Adds a download filename rule to specified filter.
  */
-void filter_add_download_name_rule(record_t *rec, filter_t *filter)
+void
+filter_add_download_name_rule(record_t *rec, filter_t *filter)
 {
     rule_t *rule;
 
     g_assert(rec != NULL);
     g_assert(filter != NULL);
+	g_assert(rec->magic == RECORD_MAGIC);
+	g_assert(rec->refcount >= 0 && rec->refcount < INT_MAX);
 
     rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE,
         filter_get_download_target(), RULE_FLAG_ACTIVE);
