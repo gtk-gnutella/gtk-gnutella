@@ -36,6 +36,9 @@ RCSID("$Id$");
 #define VERSION_ANCIENT_WARN	(86400*365)		/* 1 year */
 #define VERSION_ANCIENT_BAN		(86400*365)		/* 1 year */
 
+#define VERSION_UNSTABLE_WARN	(86400*60)		/* 2 months - 60 days */
+#define VERSION_UNSTABLE_BAN	(86400*90)		/* 3 months - 90 days */
+
 gchar *version_number = NULL;
 gchar *version_string = NULL;
 
@@ -445,6 +448,8 @@ void version_init(void)
  *
  * Called after GUI initialized to warn them about an ancient version.
  * (over a year old).
+ *
+ * If the version being ran is not a stable one, warn after 60 days.
  */
 void version_ancient_warn(void)
 {
@@ -452,6 +457,14 @@ void version_ancient_warn(void)
 
 	if (time(NULL) - our_version.timestamp > VERSION_ANCIENT_WARN) {
 		g_warning("version of gtk-gnutella is too old, you should upgrade!");
+        gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, TRUE);
+	}
+
+	if (
+		our_version.tag &&
+		time(NULL) - our_version.timestamp > VERSION_UNSTABLE_WARN
+	) {
+		g_warning("unstable version of gtk-gnutella is aging, please upgrade!");
         gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, TRUE);
 	}
 }
@@ -465,10 +478,20 @@ void version_ancient_warn(void)
 gboolean version_is_too_old(gchar *vendor)
 {
 	version_t ver;
+	time_t now = time(NULL);
 
 	version_stamp(vendor, &ver);		/* Fills ver->timestamp */
 
-	return time(NULL) - ver.timestamp > VERSION_ANCIENT_BAN;
+	if (now - ver.timestamp > VERSION_ANCIENT_BAN)
+		return TRUE;
+
+	if (!version_parse(vendor, &ver))	/* Fills ver->tag */
+		return TRUE;					/* Unable to parse */
+
+	if (ver.tag && now - ver.timestamp > VERSION_UNSTABLE_BAN)
+		return TRUE;
+
+	return FALSE;
 }
 
 /*
