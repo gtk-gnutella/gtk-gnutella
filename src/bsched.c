@@ -1209,6 +1209,9 @@ static void bsched_stealbeat(bsched_t *bs)
 	if (bs->stealers == NULL)		/* No stealers */
 		return;
 
+	if (!(bs->flags & BS_F_ENABLED))	/* Scheduler disabled */
+		return;
+
 	/*
 	 * Note that we do not use the theoric bandwidth, but bs->bw_max to
 	 * estimate the amount of underused bandwidth.  The reason is that
