@@ -2819,20 +2819,6 @@ node_is_now_connected(struct gnutella_node *n)
 	}
 
 	/*
-	 * Spot remote GTKG nodes.
-	 */
-
-	if (n->vendor != NULL) {
-		const gchar gtkg_vendor[] = "gtk-gnutella/";
-		gint len = sizeof(gtkg_vendor) - 1;		/* Without trailing NUL */
-		if (
-			0 == strncmp(gtkg_vendor, n->vendor, len) ||
-			(*n->vendor == '!' && 0 == strncmp(gtkg_vendor, n->vendor + 1, len))
-		)
-			n->flags |= NODE_F_GTKG;
-	}
-
-	/*
 	 * Update the GUI.
 	 */
 
@@ -4150,6 +4136,20 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	}
 
 	/*
+	 * Spot remote GTKG nodes.
+	 */
+
+	if (n->vendor != NULL) {
+		const gchar gtkg_vendor[] = "gtk-gnutella/";
+		gint len = sizeof(gtkg_vendor) - 1;		/* Without trailing NUL */
+		if (
+			0 == strncmp(gtkg_vendor, n->vendor, len) ||
+			(*n->vendor == '!' && 0 == strncmp(gtkg_vendor, n->vendor + 1, len))
+		)
+			n->flags |= NODE_F_GTKG;
+	}
+
+	/*
 	 * Enforce our connection count here.
 	 *
 	 * This must come after parsing of "Accept-Encoding", since we're
@@ -4211,10 +4211,11 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		guint major = 0, minor = 0;
 		sscanf(field, "%u.%u", &major, &minor);
 		if (major > 0 || minor > 1)
-			if (dbg) g_warning("node %s <%s> claims dynamic querying version %u.%u",
-				node_ip(n), node_vendor(n), major, minor);
+			if (dbg)
+				g_warning("node %s <%s> claims dynamic querying version %u.%u",
+					node_ip(n), node_vendor(n), major, minor);
 		if (n->attrs & NODE_A_ULTRA)
-			n->attrs |= NODE_A_DYN_QUERY;	/* Only makes sense for ultra nodes */
+			n->attrs |= NODE_A_DYN_QUERY;	/* Only used by ultra nodes */
 	}
 
 	/* X-Max-TTL -- max initial TTL for dynamic querying */
@@ -4276,7 +4277,6 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		return;
 	}
 
-	
 	/* 
 	 * Test for HSEP X-Features header version. According to the specs,
 	 * different version of HSEP are not necessarily compatible to each
@@ -4294,6 +4294,32 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			/* first HSEP message will be sent on next hsep_timer() call */
 		}
 	}
+
+	/*
+	 * If we're a leaf node, only accept connections to "modern" ultra nodes.
+	 * A modern ultra node supports high outdegree and dynamic querying.
+	 *
+	 * NB: gtk-gnutella/0.94 is not an ancient node by our standards.  However,
+	 * to enable bootstrapping the new 0.95 base, we let 0.95 leaves connect
+	 * to older GTKGs until 0.95 widespreads a little.
+	 *		--RAM, 2004-11-13
+	 */
+
+	if (
+		current_peermode == NODE_P_LEAF &&
+		(n->degree < 2 * NODE_LEGACY_DEGREE || !(n->attrs & NODE_A_DYN_QUERY))
+	) {
+		gchar msg[] = "Too ancient Gnutella protocol";
+
+		if ((n->flags & NODE_F_GTKG) && time(NULL) < 1107126000)
+			goto allow_for_now;		/* Up to Mon Jan 31 00:00:00 2005 */
+
+		send_node_error(n->socket, 403, msg);
+		node_remove(n, msg);
+		return;
+	}
+allow_for_now:		/* XXX remove after 2005-01-31 */
+
 	
 	/*
 	 * If this is an outgoing connection, we're processing the remote
