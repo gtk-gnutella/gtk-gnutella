@@ -113,6 +113,9 @@
 - Will now automatically determine that the forced local IP is obsolete
   and change it on the fly, provided we're connecting to modern servents,
   which make use of the Remote-IP header during handshaking.
+- Compute IP address of public hostcaches once, to avoid many long DNS lookups.
+- When low on hosts in cache, collect "semi-pongs" from Query Hits
+  (an idea from Mike Green).  The "low" threshold is 12.5% of maximum.
 
 # v 0.18   2001.11.19
 
