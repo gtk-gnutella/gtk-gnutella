@@ -25,7 +25,6 @@
 
 #include <sys/stat.h>
 #include <stdio.h>
-#include <ctype.h>
 
 #include "prop.h"
 #include "common.h"
@@ -84,8 +83,7 @@ static void prop_parse_ip_vector(const gchar *str, gsize size, guint32 *t)
 	}
 
 	if (i < size)
-		g_warning("prop_parse_ip_vector: "
-			"target initialization incomplete!");
+		g_warning("prop_parse_ip_vector: target initialization incomplete!");
 
 	g_strfreev(h);
 }
@@ -1356,9 +1354,7 @@ void prop_load_from_file(
 {
 	static const char fmt[] = "Bad line %u in config file, ignored";
 	FILE *config;
-	gchar *s, *k, *v;
 	gchar *path;
-	property_t i;
 	guint32 n = 0;
 	struct stat buf;
 
@@ -1386,52 +1382,96 @@ void prop_load_from_file(
 
 	G_FREE_NULL(path);
 
+	/*
+	 * Lines should match the following expression:
+	 *
+	 * ^<keyword>=<value>
+	 *
+	 * whereas:
+	 * 
+	 * <keyword> matches
+	 *
+	 * ([[:blank:]]*)[[:alpha:]](([[:alnum:]]|_)*)([[:blank:]]*)
+	 *
+	 * and <value> matches
+	 *
+	 * ([[:blank:]]*)(("[^"]*")|([^[:space:]]*))
+	 *
+	 */
 	while (fgets(prop_tmp, sizeof(prop_tmp), config)) {
+		property_t i;
+		gchar *s, *k, *v;
 		gint c;
 
-		n++;
+		n++; /* Increase line counter */
+		k = v = NULL;
 		s = prop_tmp;
-		while ((c = (guchar) *s) != '\0' && isascii(c) && isblank(c))
+		/* Skip leading blanks */
+		while ((c = (guchar) *s) != '\0' && is_ascii_blank(c))
 			s++;
 		
-		if (!isascii(c) || !isalpha(c))
+		if (!is_ascii_alpha(c))	/* <keyword> must start with a letter */
 			continue;
+
+		/* Here starts the <keyword> */
 		k = s;
-		while ((c = (guchar) *s) == '_' || (isascii(c) && isalnum(c)))
+		while ((c = (guchar) *s) == '_' || is_ascii_alnum(c))
 			s++;
-		if (c != '=' && !(isascii(c) && isblank(c))) {
+		*s = '\0'; /* Terminate <keyword>, original value is stored in c */
+
+		if (c != '=' && !is_ascii_blank(c)) {
+			/* <keyword> must be followed by a '=' and optional blanks */
 			g_warning(fmt, n);
 			continue;
 		}
-		v = s;
-		while ((c = (guchar) *s) != '\0' && isascii(c) && isblank(c))
-			s++;
+		while (c != '\0' && is_ascii_blank(c))
+			c = *(++s);
+
 		if (c != '=') {
+			/* <keyword> must be followed by a '=' and optionally blanks */
 			g_warning(fmt, n);
 			continue;
 		}
-		*v = 0;
-		s++;
-		while ((c = (guchar) *s) != '\0' && isascii(c) && isblank(c))
+
+		g_assert(c == '=' && (*s == '\0' || *s == '='));
+		s++; /* Skip '=' (maybe already overwritten with a '\0') */
+
+		/* Skip optional blanks */	
+		while ((c = (guchar) *s) != '\0' && is_ascii_blank(c))
 			s++;
+
 		if (c == '"') {
-			v = ++s;
+			/* Here starts the <value> part (quoted) */
+			v = ++s; /* Skip double-quote '"' */
+
+			/* Scan for terminating double-quote '"' */
 			while ((c = (guchar) *s) != '\0' && c != '\n' && c != '"')
 				s++;
+
+			/* Check for proper quote termination */
 			if (c == '\0' || c == '\n') {
+				/* Missing terminating double-quote '"' */
 				g_warning(fmt, n);
 				continue;
 			}
+			g_assert(*s == '"');
 		} else {
+			/* Here starts the <value> part (unquoted) */
 			v = s;
-			while ((c = (guchar) *s) != '\0' && !(isascii(c) && isspace(c)))
+			/* The first space terminates the value */
+			while ((c = (guchar) *s) != '\0' && !is_ascii_space(c))
 				s++;
 		}
-		*s = '\0';
+
+		g_assert(*s == '\0' || *s == '"' || is_ascii_space(c));
+		*s = '\0'; /* Terminate value in case of trailing characters */
+
+		if (common_dbg > 5)
+			g_message("k=\"%s\", v=\"%s\"", k, v);
 
 		for (i = 0; i < ps->size; i++)
 			if (!g_ascii_strcasecmp(k, (ps->props[i]).name)) {
-				load_helper(ps, i+ps->offset, v);
+				load_helper(ps, i + ps->offset, v);
 				break;
 			}
 
