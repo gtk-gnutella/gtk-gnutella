@@ -71,6 +71,7 @@ RCSID("$Id$");
 #define DQ_MAX_RESULTS		10		/* After DQ_MIN_HORIZON queried for adj. */
 
 #define DQ_MAX_TTL			5		/* Max TTL we can use */
+#define DQ_AVG_ULTRA_NODES	2		/* Average # of ultranodes a leaf queries */
 
 #define DQ_MQ_EPSILON		2048	/* Queues identical at +/- 2K */
 #define DQ_FUZZY_FACTOR		0.80	/* Corrector for theoretical horizon */
@@ -247,13 +248,20 @@ dq_get_horizon(gint degree, gint ttl)
 static gint
 dq_select_ttl(dquery_t *dq, gnutella_node_t *node, gint connections)
 {
-	guint32 needed = dq->max_results - dq->results;
+	guint32 needed;
+	guint32 results;
 	gdouble results_per_up;
 	gdouble hosts_to_reach;
 	gdouble hosts_to_reach_via_node;
 	gint ttl;
 
 	g_assert(connections > 0);
+
+	results = (dq->flags & DQ_F_LEAF_GUIDED) ?
+		(dq->kept_results / DQ_AVG_ULTRA_NODES) : dq->results;
+
+	needed = dq->max_results - results;
+
 	g_assert(needed > 0);		/* Or query would have been stopped */
 
 	results_per_up = dq->results / MAX(dq->horizon, 1);
@@ -970,9 +978,16 @@ dq_send_next(dquery_t *dq)
 	/*
 	 * Terminate query if we reached the amount of results we wanted or
 	 * if we reached the maximum theoretical horizon.
+	 *
+	 * We artificially reduce the kept results by a factor of
+	 * DQ_AVG_ULTRA_NODES since the leaf node will report the total
+	 * number of hits it got and kept from the other ultrapeers it is
+	 * querying, and we assume it filtered out about the same proportion
+	 * of hits everywhere.
 	 */
 
-	results = (dq->flags & DQ_F_LEAF_GUIDED) ? dq->kept_results : dq->results;
+	results = (dq->flags & DQ_F_LEAF_GUIDED) ?
+		(dq->kept_results / DQ_AVG_ULTRA_NODES) : dq->results;
 
 	if (dq->horizon >= DQ_MAX_HORIZON || results >= dq->max_results) {
 		dq_terminate(dq);
