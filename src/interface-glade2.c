@@ -1467,7 +1467,7 @@ create_main_window (void)
   GtkWidget *menu_file;
   GtkWidget *menu_file_menu;
   GtkWidget *quit;
-  GtkWidget *image124;
+  GtkWidget *image135;
   GtkWidget *menu_view;
   GtkWidget *menu_view_menu;
   GtkWidget *menu_toolbar_visible;
@@ -1484,10 +1484,14 @@ create_main_window (void)
   GtkWidget *menu_gnet_stats_visible_menu;
   GtkWidget *menu_bws_gin_visible;
   GtkWidget *menu_bws_gout_visible;
+  GtkWidget *menu_gnet_leaf_stats_visible;
+  GtkWidget *menu_gnet_leaf_stats_visible_menu;
+  GtkWidget *menu_bws_glin_visible;
+  GtkWidget *menu_bws_glout_visible;
   GtkWidget *menu_help;
   GtkWidget *menu_help_menu;
   GtkWidget *menu_about;
-  GtkWidget *image125;
+  GtkWidget *image136;
   GtkWidget *hbox211;
   GtkWidget *eventbox_image_sha;
   GtkWidget *image_sha;
@@ -1547,7 +1551,7 @@ create_main_window (void)
   GtkWidget *progressbar_bws_gin;
   GtkWidget *progressbar_bws_gout;
   GtkWidget *label278;
-  GtkWidget *frame80;
+  GtkWidget *frame_bws_glinout;
   GtkWidget *vbox104;
   GtkWidget *progressbar_bws_lin;
   GtkWidget *progressbar_bws_lout;
@@ -1612,10 +1616,10 @@ create_main_window (void)
                               GDK_q, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
 
-  image124 = gtk_image_new_from_stock ("gtk-quit", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image124, "image124");
-  gtk_widget_show (image124);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (quit), image124);
+  image135 = gtk_image_new_from_stock ("gtk-quit", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image135, "image135");
+  gtk_widget_show (image135);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (quit), image135);
 
   menu_view = gtk_menu_item_new_with_mnemonic ("_View");
   gtk_widget_set_name (menu_view, "menu_view");
@@ -1704,6 +1708,25 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (menu_gnet_stats_visible_menu), menu_bws_gout_visible);
   gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_bws_gout_visible), TRUE);
 
+  menu_gnet_leaf_stats_visible = gtk_menu_item_new_with_mnemonic ("gNet leaf traffic stats");
+  gtk_widget_set_name (menu_gnet_leaf_stats_visible, "menu_gnet_leaf_stats_visible");
+  gtk_widget_show (menu_gnet_leaf_stats_visible);
+  gtk_container_add (GTK_CONTAINER (menu_view_menu), menu_gnet_leaf_stats_visible);
+
+  menu_gnet_leaf_stats_visible_menu = gtk_menu_new ();
+  gtk_widget_set_name (menu_gnet_leaf_stats_visible_menu, "menu_gnet_leaf_stats_visible_menu");
+  gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_gnet_leaf_stats_visible), menu_gnet_leaf_stats_visible_menu);
+
+  menu_bws_glin_visible = gtk_check_menu_item_new_with_mnemonic ("show leaf incoming traffic");
+  gtk_widget_set_name (menu_bws_glin_visible, "menu_bws_glin_visible");
+  gtk_widget_show (menu_bws_glin_visible);
+  gtk_container_add (GTK_CONTAINER (menu_gnet_leaf_stats_visible_menu), menu_bws_glin_visible);
+
+  menu_bws_glout_visible = gtk_check_menu_item_new_with_mnemonic ("show leaf outgoing traffic");
+  gtk_widget_set_name (menu_bws_glout_visible, "menu_bws_glout_visible");
+  gtk_widget_show (menu_bws_glout_visible);
+  gtk_container_add (GTK_CONTAINER (menu_gnet_leaf_stats_visible_menu), menu_bws_glout_visible);
+
   menu_help = gtk_menu_item_new_with_mnemonic ("Help");
   gtk_widget_set_name (menu_help, "menu_help");
   gtk_widget_show (menu_help);
@@ -1718,10 +1741,10 @@ create_main_window (void)
   gtk_widget_show (menu_about);
   gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_about);
 
-  image125 = gtk_image_new_from_stock ("gtk-dialog-info", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image125, "image125");
-  gtk_widget_show (image125);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_about), image125);
+  image136 = gtk_image_new_from_stock ("gtk-dialog-info", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image136, "image136");
+  gtk_widget_show (image136);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_about), image136);
 
   hbox211 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox211, "hbox211");
@@ -2076,17 +2099,17 @@ create_main_window (void)
   gtk_frame_set_label_widget (GTK_FRAME (frame_bws_ginout), label278);
   gtk_label_set_justify (GTK_LABEL (label278), GTK_JUSTIFY_LEFT);
 
-  frame80 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame80, "frame80");
-  gtk_widget_show (frame80);
-  gtk_box_pack_start (GTK_BOX (vbox31), frame80, TRUE, TRUE, 0);
-  gtk_frame_set_label_align (GTK_FRAME (frame80), 0.5, 0.5);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame80), GTK_SHADOW_NONE);
+  frame_bws_glinout = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame_bws_glinout, "frame_bws_glinout");
+  gtk_widget_show (frame_bws_glinout);
+  gtk_box_pack_start (GTK_BOX (vbox31), frame_bws_glinout, TRUE, TRUE, 0);
+  gtk_frame_set_label_align (GTK_FRAME (frame_bws_glinout), 0.5, 0.5);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame_bws_glinout), GTK_SHADOW_NONE);
 
   vbox104 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox104, "vbox104");
   gtk_widget_show (vbox104);
-  gtk_container_add (GTK_CONTAINER (frame80), vbox104);
+  gtk_container_add (GTK_CONTAINER (frame_bws_glinout), vbox104);
 
   progressbar_bws_lin = gtk_progress_bar_new ();
   gtk_widget_set_name (progressbar_bws_lin, "progressbar_bws_lin");
@@ -2101,7 +2124,7 @@ create_main_window (void)
   label605 = gtk_label_new ("Leaf traffic");
   gtk_widget_set_name (label605, "label605");
   gtk_widget_show (label605);
-  gtk_frame_set_label_widget (GTK_FRAME (frame80), label605);
+  gtk_frame_set_label_widget (GTK_FRAME (frame_bws_glinout), label605);
   gtk_label_set_justify (GTK_LABEL (label605), GTK_JUSTIFY_LEFT);
 
   vbox_right = gtk_vbox_new (FALSE, 4);
@@ -2196,6 +2219,12 @@ create_main_window (void)
   g_signal_connect ((gpointer) menu_bws_gout_visible, "activate",
                     G_CALLBACK (on_menu_bws_gout_visible_activate),
                     NULL);
+  g_signal_connect ((gpointer) menu_bws_glin_visible, "activate",
+                    G_CALLBACK (on_menu_bws_glin_visible_activate),
+                    NULL);
+  g_signal_connect ((gpointer) menu_bws_glout_visible, "activate",
+                    G_CALLBACK (on_menu_bws_glout_visible_activate),
+                    NULL);
   g_signal_connect ((gpointer) menu_about, "activate",
                     G_CALLBACK (on_menu_about_activate),
                     NULL);
@@ -2227,7 +2256,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, menu_file, "menu_file");
   GLADE_HOOKUP_OBJECT (main_window, menu_file_menu, "menu_file_menu");
   GLADE_HOOKUP_OBJECT (main_window, quit, "quit");
-  GLADE_HOOKUP_OBJECT (main_window, image124, "image124");
+  GLADE_HOOKUP_OBJECT (main_window, image135, "image135");
   GLADE_HOOKUP_OBJECT (main_window, menu_view, "menu_view");
   GLADE_HOOKUP_OBJECT (main_window, menu_view_menu, "menu_view_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_toolbar_visible, "menu_toolbar_visible");
@@ -2244,10 +2273,14 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, menu_gnet_stats_visible_menu, "menu_gnet_stats_visible_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_bws_gin_visible, "menu_bws_gin_visible");
   GLADE_HOOKUP_OBJECT (main_window, menu_bws_gout_visible, "menu_bws_gout_visible");
+  GLADE_HOOKUP_OBJECT (main_window, menu_gnet_leaf_stats_visible, "menu_gnet_leaf_stats_visible");
+  GLADE_HOOKUP_OBJECT (main_window, menu_gnet_leaf_stats_visible_menu, "menu_gnet_leaf_stats_visible_menu");
+  GLADE_HOOKUP_OBJECT (main_window, menu_bws_glin_visible, "menu_bws_glin_visible");
+  GLADE_HOOKUP_OBJECT (main_window, menu_bws_glout_visible, "menu_bws_glout_visible");
   GLADE_HOOKUP_OBJECT (main_window, menu_help, "menu_help");
   GLADE_HOOKUP_OBJECT (main_window, menu_help_menu, "menu_help_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_about, "menu_about");
-  GLADE_HOOKUP_OBJECT (main_window, image125, "image125");
+  GLADE_HOOKUP_OBJECT (main_window, image136, "image136");
   GLADE_HOOKUP_OBJECT (main_window, hbox211, "hbox211");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_sha, "eventbox_image_sha");
   GLADE_HOOKUP_OBJECT (main_window, image_sha, "image_sha");
@@ -2306,7 +2339,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, progressbar_bws_gin, "progressbar_bws_gin");
   GLADE_HOOKUP_OBJECT (main_window, progressbar_bws_gout, "progressbar_bws_gout");
   GLADE_HOOKUP_OBJECT (main_window, label278, "label278");
-  GLADE_HOOKUP_OBJECT (main_window, frame80, "frame80");
+  GLADE_HOOKUP_OBJECT (main_window, frame_bws_glinout, "frame_bws_glinout");
   GLADE_HOOKUP_OBJECT (main_window, vbox104, "vbox104");
   GLADE_HOOKUP_OBJECT (main_window, progressbar_bws_lin, "progressbar_bws_lin");
   GLADE_HOOKUP_OBJECT (main_window, progressbar_bws_lout, "progressbar_bws_lout");

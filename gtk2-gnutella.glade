@@ -1980,7 +1980,7 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 			      <accelerator key="q" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			      <child internal-child="image">
-				<widget class="GtkImage" id="image124">
+				<widget class="GtkImage" id="image135">
 				  <property name="visible">True</property>
 				  <property name="stock">gtk-quit</property>
 				  <property name="icon_size">1</property>
@@ -2127,6 +2127,39 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 			      </child>
 			    </widget>
 			  </child>
+
+			  <child>
+			    <widget class="GtkMenuItem" id="menu_gnet_leaf_stats_visible">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">gNet leaf traffic stats</property>
+			      <property name="use_underline">True</property>
+
+			      <child>
+				<widget class="GtkMenu" id="menu_gnet_leaf_stats_visible_menu">
+
+				  <child>
+				    <widget class="GtkCheckMenuItem" id="menu_bws_glin_visible">
+				      <property name="visible">True</property>
+				      <property name="label" translatable="yes">show leaf incoming traffic</property>
+				      <property name="use_underline">True</property>
+				      <property name="active">False</property>
+				      <signal name="activate" handler="on_menu_bws_glin_visible_activate" last_modification_time="Thu, 06 Mar 2003 15:30:21 GMT"/>
+				    </widget>
+				  </child>
+
+				  <child>
+				    <widget class="GtkCheckMenuItem" id="menu_bws_glout_visible">
+				      <property name="visible">True</property>
+				      <property name="label" translatable="yes">show leaf outgoing traffic</property>
+				      <property name="use_underline">True</property>
+				      <property name="active">False</property>
+				      <signal name="activate" handler="on_menu_bws_glout_visible_activate" last_modification_time="Thu, 06 Mar 2003 15:30:21 GMT"/>
+				    </widget>
+				  </child>
+				</widget>
+			      </child>
+			    </widget>
+			  </child>
 			</widget>
 		      </child>
 		    </widget>
@@ -2149,7 +2182,7 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 			      <signal name="activate" handler="on_menu_about_activate"/>
 
 			      <child internal-child="image">
-				<widget class="GtkImage" id="image125">
+				<widget class="GtkImage" id="image136">
 				  <property name="visible">True</property>
 				  <property name="stock">gtk-dialog-info</property>
 				  <property name="icon_size">1</property>
@@ -2904,7 +2937,7 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 			  </child>
 
 			  <child>
-			    <widget class="GtkFrame" id="frame80">
+			    <widget class="GtkFrame" id="frame_bws_glinout">
 			      <property name="visible">True</property>
 			      <property name="label_xalign">0.5</property>
 			      <property name="label_yalign">0.5</property>
