@@ -50,12 +50,10 @@ static GHashTable *ht_dl_iters;		/* table of iters to find downloads */
 static GtkTreeView *treeview_downloads;
 static GtkTreeView *treeview_downloads_queue;
 
-static gboolean downloads_gui2_initialized = FALSE;
-
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 
 
-#if 0 
+#if 0
 #define REGRESSION(x) { x }
 #define TREE_ITER_NEW() g_malloc(sizeof (GtkTreeIter))
 #define TREE_ITER_FREE(x) g_free(x)
@@ -277,7 +275,7 @@ gboolean downloads_gui_update_parent_status(download_t *d,
  */
 static GtkTreeViewColumn *add_column(
 	GtkTreeView *treeview, GtkType column_type, const gchar *name,
-	gint id, gint width, guint xpad, gfloat xalign,
+	gint id, gint width, gboolean visible, gfloat xalign,
 	gint fg_column, gint bg_column)
 {
     GtkTreeViewColumn *column;
@@ -285,21 +283,15 @@ static GtkTreeViewColumn *add_column(
 
 	if (column_type == GTK_TYPE_CELL_RENDERER_PROGRESS) {
 		renderer = gtk_cell_renderer_progress_new();
-		column = gtk_tree_view_column_new_with_attributes(
-			name, renderer, "value", id, NULL);
-		g_object_set(G_OBJECT(renderer),
-			"mode", GTK_CELL_RENDERER_MODE_INERT,
-			"xpad", xpad,
-			"xalign", xalign,
-			"ypad", (guint) GUI_CELL_RENDERER_YPAD,
-			NULL);
+		column = gtk_tree_view_column_new_with_attributes(name, renderer,
+					"value", id,
+					NULL);
 	} else { /* ie. (column_type == GTK_TYPE_CELL_RENDERER_TEXT) */
 		renderer = gtk_cell_renderer_text_new();
 		gtk_cell_renderer_text_set_fixed_height_from_font(
 			GTK_CELL_RENDERER_TEXT(renderer), 1);
 
-		column = gtk_tree_view_column_new_with_attributes(name,
-			renderer,
+		column = gtk_tree_view_column_new_with_attributes(name, renderer,
 			"background-gdk", bg_column,
 			"foreground-gdk", fg_column,
 			"text", id,
@@ -307,12 +299,15 @@ static GtkTreeViewColumn *add_column(
 		g_object_set(G_OBJECT(renderer),
 			"background-set", TRUE,
 			"foreground-set", TRUE,
-			"mode", GTK_CELL_RENDERER_MODE_INERT,
-			"xpad", xpad,
-			"xalign", xalign,
-			"ypad", (guint) GUI_CELL_RENDERER_YPAD,
 			NULL);
 	}
+
+	g_object_set(G_OBJECT(renderer),
+		"mode",	GTK_CELL_RENDERER_MODE_INERT,
+		"xpad", GUI_CELL_RENDERER_XPAD,
+		"xalign", xalign,
+		"ypad", GUI_CELL_RENDERER_YPAD,
+		NULL);
 
 	g_object_set(G_OBJECT(column),
 		"fixed-width", MAX(1, width),
@@ -320,6 +315,7 @@ static GtkTreeViewColumn *add_column(
 		"reorderable", TRUE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
+		"visible", visible,
 		NULL);
 
 	gtk_tree_view_column_set_sort_column_id(column, id);
@@ -337,7 +333,7 @@ static GtkTreeViewColumn *add_column(
  */
 static void add_active_downloads_column(GtkTreeView *treeview,
 	GtkType column_type, const gchar *name,
-	gint id, gint width, guint xpad, gfloat xalign,
+	gint id, gint width, gboolean visible, gfloat xalign,
 	const GtkTreeIterCompareFunc sortfunc)
 {
     GtkTreeViewColumn *column;
@@ -345,7 +341,7 @@ static void add_active_downloads_column(GtkTreeView *treeview,
 
 	model = gtk_tree_view_get_model(treeview);
 	column = add_column(treeview, column_type,
-		name, id, width, xpad, xalign, c_dl_fg, c_dl_bg);
+		name, id, width, visible, xalign, c_dl_fg, c_dl_bg);
 
 	if (NULL != sortfunc)
 		gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(model), id,
@@ -359,7 +355,7 @@ static void add_active_downloads_column(GtkTreeView *treeview,
  *	Note: Usable only for downloads queue treeview.
  */
 static void add_queue_downloads_column(GtkTreeView *treeview,
-	const gchar *name, gint id, gint width, guint xpad, gfloat xalign,
+	const gchar *name, gint id, gint width, gboolean visible, gfloat xalign,
 	const GtkTreeIterCompareFunc sortfunc)
 {
     GtkTreeViewColumn *column;
@@ -367,7 +363,7 @@ static void add_queue_downloads_column(GtkTreeView *treeview,
 
 	model = gtk_tree_view_get_model(treeview);
 	column = add_column(treeview, GTK_TYPE_CELL_RENDERER_TEXT,
-		name, id, width, xpad, xalign, 
+		name, id, width, visible, xalign, 
 		c_queue_fg, c_queue_bg);
 
 	if (NULL != sortfunc)
@@ -418,6 +414,7 @@ static void add_active_downloads_columns(GtkTreeView *treeview)
 		{ N_("Size"),	  0, c_dl_size,	    1.0, compare_size_func },
 		{ N_("Host"),	  0, c_dl_host,	    0.0, NULL },
 		{ N_("Range"),	  0, c_dl_range,	0.0, NULL },
+		{ N_("Server"),	  0, c_dl_server,	0.0, NULL },
 		{ N_("Progress"), 1, c_dl_progress, 0.0, NULL },
 		{ N_("Status"),	  0, c_dl_status,   0.0, NULL }
 	};
@@ -425,23 +422,26 @@ static void add_active_downloads_columns(GtkTreeView *treeview)
 		GTK_TYPE_CELL_RENDERER_TEXT,
 		GTK_TYPE_CELL_RENDERER_PROGRESS
 	};
-	guint32 *width;
+	guint32 width[G_N_ELEMENTS(columns)];
+	gboolean visible[G_N_ELEMENTS(columns)];
 	guint i;
 
-    width = gui_prop_get_guint32(PROP_DL_ACTIVE_COL_WIDTHS, NULL, 0, 0);
+	STATIC_ASSERT(G_N_ELEMENTS(width) == DOWNLOADS_VISIBLE_COLUMNS);
+    gui_prop_get_guint32(PROP_DL_ACTIVE_COL_WIDTHS, width, 0,
+		G_N_ELEMENTS(width));
+    gui_prop_get_boolean(PROP_DL_ACTIVE_COL_VISIBLE, visible, 0,
+		G_N_ELEMENTS(visible));
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
 		add_active_downloads_column(treeview,
 			renderer_types[columns[i].renderer],
 			_(columns[i].title),
 			columns[i].id,
-			width[columns[i].id],
-			4,
+			width[i],
+			visible[i],
 			columns[i].align,
 			columns[i].func);
 	}
-
-	G_FREE_NULL(width);
 }
 
 
@@ -468,22 +468,25 @@ static void add_queue_downloads_columns(GtkTreeView *treeview)
 		{ N_("Server"),	  0, c_queue_server,   0.0, NULL },
 		{ N_("Status"),	  0, c_queue_status,   0.0, NULL }
 	};
-	guint32 *width;
+	guint32 width[G_N_ELEMENTS(columns)];
+	gboolean visible[G_N_ELEMENTS(columns)];
 	guint i;
 
-    width = gui_prop_get_guint32(PROP_DL_QUEUED_COL_WIDTHS, NULL, 0, 0);
+	STATIC_ASSERT(G_N_ELEMENTS(width) == DOWNLOAD_QUEUE_VISIBLE_COLUMNS);
+    gui_prop_get_guint32(PROP_DL_QUEUED_COL_WIDTHS, width, 0,
+		G_N_ELEMENTS(columns));
+    gui_prop_get_boolean(PROP_DL_QUEUED_COL_VISIBLE, visible, 0,
+		G_N_ELEMENTS(columns));
 
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {	
 		add_queue_downloads_column(treeview,
 			_(columns[i].title),
 			columns[i].id, 
-			width[columns[i].id],
-			4,
+			width[i],
+			visible[i],
 			columns[i].align,
 			columns[i].func);
 	}
-
-	G_FREE_NULL(width);
 }
 
 
@@ -595,8 +598,6 @@ void downloads_gui_init(void)
 		G_CALLBACK(on_treeview_downloads_queue_select_row), treeview);
 	g_signal_connect(GTK_OBJECT(treeview), "button_press_event",
 		G_CALLBACK(on_treeview_downloads_queue_button_press_event), NULL);
-
-	downloads_gui2_initialized = TRUE;
 }
 
 /*
@@ -606,7 +607,10 @@ void downloads_gui_init(void)
 void downloads_gui_shutdown(void)
 {
 	tree_view_save_widths(treeview_downloads, PROP_DL_ACTIVE_COL_WIDTHS);
+	tree_view_save_visibility(treeview_downloads, PROP_DL_ACTIVE_COL_VISIBLE);
 	tree_view_save_widths(treeview_downloads_queue, PROP_DL_QUEUED_COL_WIDTHS);
+	tree_view_save_visibility(treeview_downloads_queue,
+		PROP_DL_QUEUED_COL_VISIBLE);
 
 	g_hash_table_foreach(ht_dl_iters, ht_dl_iter_destroy, NULL);
 	g_hash_table_destroy(ht_dl_iters);
@@ -1103,9 +1107,11 @@ void gui_update_download_server(download_t *d)
 	 */
 	server = download_vendor(d);
 	if (d->server->attrs & DLS_A_BANNING) {
-		tmpstr[0] = '*';
-		g_strlcpy(&tmpstr[1], server, sizeof tmpstr - 1); /* Mind the -1 */
-		server = tmpstr;
+		static gchar buf[256]; /* MUST be static to survive this frame */
+
+		buf[0] = '*';
+		g_strlcpy(&buf[1], server, sizeof buf - 1); /* Mind the -1 */
+		server = buf;
 	}
 	gui_update_download_column(d, treeview_downloads, c_dl_server, server);
 }
