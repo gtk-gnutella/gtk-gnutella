@@ -29,6 +29,7 @@
 #include "hosts.h"
 #include "misc.h"
 #include "gmsg.h"
+#include "atoms.h"
 
 #include <stdarg.h>
 #include <assert.h>
@@ -89,6 +90,19 @@ GHashTable *messages_hashed; 	/* we hash the last MAX_STORED_MESSAGES */
 guint next_message_index;		/* next slot to use in message_array */
 
 static gboolean find_message(guchar *muid, guint8 function, struct message **m);
+
+/*
+ * "banned" GUIDs for push routing.
+ *
+ * The following GUIDs are so common that it does not make sense to
+ * route pushes to them (i.e. they are are NOT unique on the network!).
+ */
+static guchar *banned_push[] = {
+	"20d262ff0e6fd6119734004005a207b1",		/* Morpheus, 29/06/2002 */
+};
+GHashTable *ht_banned_push = NULL;
+
+#define BANNED_PUSH_COUNT	(sizeof(banned_push) / sizeof(banned_push[0]))
 
 /*
  * Log function
@@ -217,6 +231,8 @@ void routing_init(void)
 {
 	guint32 i;
 	gboolean need_guid = TRUE;
+	extern guint guid_hash(gconstpointer key);		/* from atoms.c */
+	extern gint guid_eq(gconstpointer a, gconstpointer b);
 
 	/*
 	 * Make sure it segfaults if we try to access it, but it must be
@@ -227,6 +243,22 @@ void routing_init(void)
 	fake_route.node = fake_node;
 
 	srand(time((time_t *) NULL) ^ getpid());
+
+	/*
+	 * Initialize the banned GUID hash.
+	 */
+
+	ht_banned_push = g_hash_table_new(guid_hash, guid_eq);
+
+	for (i = 0; i < BANNED_PUSH_COUNT; i++) {
+		guchar g[16];
+		guchar *hex = banned_push[i];
+
+		g_assert(strlen(hex) == 2*sizeof(g));
+
+		hex_to_guid(hex, g);
+		g_hash_table_insert(ht_banned_push, atom_guid_get(g), (gpointer) 1);
+	}
 
 	/*
 	 * Only generate a new GUID for this servent if all entries are 0.
@@ -243,6 +275,7 @@ void routing_init(void)
 		}
 	}
 
+retry:
 	if (need_guid) {
 		for (i = 0; i < 15; i++)
 			guid[i] = random_value(0xff);
@@ -257,6 +290,15 @@ void routing_init(void)
 	 */
 
 	patch_muid_for_modern_node(guid);
+
+	/*
+	 * If by extraordinary, we have generated a banned GUID, retry.
+	 */
+
+	if (g_hash_table_lookup(ht_banned_push, guid)) {
+		need_guid = TRUE;
+		goto retry;
+	}
 
 	/*
 	 * Initialize message type array for routing logs.
@@ -707,9 +749,11 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m)) {
 				/*
 				 * We've never seen any Query Hit from that servent.
+				 * Ensure it's not a banned GUID though.
 				 */
 
-				message_add(guid, QUERY_HIT_ROUTE_SAVE, sender);
+				if (!g_hash_table_lookup(ht_banned_push, guid))
+					message_add(guid, QUERY_HIT_ROUTE_SAVE, sender);
 			} else if (m->routes == NULL || !node_sent_message(sender, m)) {
 				struct route_data *route;
 
@@ -891,12 +935,28 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 		 */
 
 		if (sender->header.function == GTA_MSG_PUSH_REQUEST) {
+			g_assert(sender->size > 16);	/* Must be a valid push */
+
+			/*
+			 * If the GUID is banned, drop it immediately.
+			 */
+
+			if (g_hash_table_lookup(ht_banned_push, sender->data)) {
+				if (dbg > 3)
+					gmsg_log_dropped(&sender->header,
+						"from %s, banned GUID %s",
+						node_ip(sender), guid_hex_str(sender->data));
+
+				dropped_messages++;
+				sender->rx_dropped++;
+
+				return FALSE;
+			}
+
 			/*
 			 * The GUID of the target are the leading bytes of the Push
 			 * message, hence we pass `sender->data' to find_message().
 			 */
-
-			g_assert(sender->size > 16);	/* Must be a valid push */
 
 			if (
 				!find_message(sender->data, QUERY_HIT_ROUTE_SAVE, &m) ||
@@ -985,6 +1045,9 @@ struct gnutella_node *route_towards_guid(guchar *guid)
 {
 	struct message *m;
 
+	if (g_hash_table_lookup(ht_banned_push, guid))	/* Banned for PUSH */
+		return NULL;
+
 	if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) || m->routes == NULL)
 		return NULL;
 
@@ -995,8 +1058,14 @@ struct gnutella_node *route_towards_guid(guchar *guid)
 static void free_routing_data(gpointer key, gpointer value, gpointer udata)
 {
 	struct message *m = (struct message *) value;
-
 	free_route_list(m);
+}
+
+/* frees the banned GUID atom keys */
+static void free_banned_push(gpointer key, gpointer value, gpointer udata)
+{
+	guchar *g = (guchar *) key;
+	atom_guid_free(g);
 }
 
 void routing_close(void)
@@ -1006,6 +1075,10 @@ void routing_close(void)
 	g_hash_table_foreach(messages_hashed, free_routing_data, NULL);
 	g_hash_table_destroy(messages_hashed);
 	messages_hashed = NULL;
+
+	g_hash_table_foreach(ht_banned_push, free_banned_push, NULL);
+	g_hash_table_destroy(ht_banned_push);
+	ht_banned_push = NULL;
 }
 
 /* vi: set ts=4: */

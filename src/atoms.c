@@ -61,8 +61,8 @@ struct table_desc {
 #define public
 
 static gint str_len(gconstpointer v);
-static guint guid_hash(gconstpointer key);
-static gint guid_eq(gconstpointer a, gconstpointer b);
+public guint guid_hash(gconstpointer key);
+public gint guid_eq(gconstpointer a, gconstpointer b);
 static gint guid_len(gconstpointer v);
 public guint sha1_hash(gconstpointer key);
 public gint sha1_eq(gconstpointer a, gconstpointer b);
@@ -127,7 +127,7 @@ static guint binary_hash(gconstpointer key, gint len)
  *
  * Hash a GUID (16 bytes).
  */
-static guint guid_hash(gconstpointer key)
+guint guid_hash(gconstpointer key)
 {
 	return binary_hash(key, 16);
 }
@@ -137,7 +137,7 @@ static guint guid_hash(gconstpointer key)
  *
  * Test two GUIDs for equality.
  */
-static gint guid_eq(gconstpointer a, gconstpointer b)
+gint guid_eq(gconstpointer a, gconstpointer b)
 {
 	return 0 == memcmp(a, b, 16);
 }
