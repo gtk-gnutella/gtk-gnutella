@@ -754,6 +754,8 @@ void shell_timer(time_t now)
 
     for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) 
         shell_destroy((gnutella_shell_t *) sl->data);
+
+	g_slist_free(to_remove);
 }
 
 void shell_init(void)
@@ -769,7 +771,12 @@ void shell_init(void)
 void shell_close(void)
 {
     GSList *sl;
+    GSList *to_remove;
 
-    for (sl = sl_shells; sl; sl = sl_shells)
-        shell_destroy((gnutella_shell_t *)sl->data);
-}
+	to_remove = g_slist_copy(sl_shells);
+    for (sl = to_remove; sl; sl = g_slist_next(sl))
+        shell_destroy((gnutella_shell_t *) sl->data);
+
+	g_slist_free(to_remove);
+	g_assert(NULL == sl_shells);
+};
