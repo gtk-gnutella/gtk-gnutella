@@ -80,6 +80,7 @@ set w_main_list {
 	button_search_stream 
 	checkbutton_search_jump_to_downloads
 	entry_search 
+    combo_search
 	entry_search_reissue_timeout
 	entry_search_stats_delcoef 
 	entry_search_stats_update_interval 
@@ -111,6 +112,8 @@ set w_main_list {
 
 	popup_dl_active 
 	popup_downloads_abort
+    popup_downloads_abort_named
+    popup_downloads_abort_host
 	popup_downloads_resume
 	popup_downloads_kill 
 	popup_downloads_push 
