@@ -150,6 +150,12 @@ void node_free_info(gnet_node_info_t *info);
 
 
 
+/***
+ *** Host cache
+ ***/
+void host_clear_cache(void);
+
+
 
 
 /***
@@ -157,9 +163,17 @@ void node_free_info(gnet_node_info_t *info);
  ***/
 
 /*
+ * Search query types
+ */
+typedef enum {
+    QUERY_STRING,
+    QUERY_SHA1
+} query_type_t;
+
+/*
  * Sharing callbacks
  */
-typedef void (*search_request_listener_t) (const gchar *);
+typedef void (*search_request_listener_t) (query_type_t, const gchar *);
 
 void share_add_search_request_listener(search_request_listener_t l);
 void share_remove_search_request_listener(search_request_listener_t l);
