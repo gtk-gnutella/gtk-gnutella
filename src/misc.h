@@ -63,6 +63,7 @@
 #define g_ascii_strcasecmp g_strcasecmp
 #define g_ascii_strncasecmp g_strncasecmp
 #define g_string_printf g_string_sprintf
+#define g_strlcpy strlcpy
 #endif
 
 /*

@@ -732,27 +732,29 @@ void strlower(gchar *dst, gchar *src)
 	} while (*src++);
 }
 
-#ifndef USE_GTK2
-/* FIXME: Use autoconf and HAVE_STRLCPY */
-size_t g_strlcpy(gchar *dst, const gchar *src, size_t dst_size)
+#ifndef HAVE_STRLCPY
+size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 {
 	gchar *d = dst;
-	gchar *s = src;
+	const gchar *s = src;
 	size_t i = 0;
 
 	g_assert(NULL != dst);
 	g_assert(NULL != src);
 
 	if (dst_size) {
-		while ((*d++ = *s++) && i < dst_size)
+		while (i < dst_size - 1) {
+			if (!(*d++ = *s++))
+				return i;
 			i++;
+		}
 		dst[dst_size - 1] = '\0';
 	}
  	while (*s++)
 		i++;
 	return i;
 }
-#endif
+#endif /* HAVE_STRLCPY */
 
 #ifndef HAVE_STRCASESTR
 /*
