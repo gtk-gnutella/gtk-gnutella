@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Sun Aug 10 00:03:27 MEST 2003 [metaconfig 3.0 PL70]
+# Generated on Sun Aug 10 01:08:13 MEST 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -245,20 +245,30 @@ cpprun=''
 cppstdin=''
 d_attribut=''
 d_bcopy=''
+d_bindtxtcode=''
 d_const=''
 d_gnulibc=''
+d_herror=''
+d_hstrerror=''
+d_inetaton=''
 d_isascii=''
 d_memcpy=''
 d_open3=''
 d_portable=''
+d_random=''
+d_sendfile=''
 d_oldsock=''
 d_socket=''
 d_sockpair=''
 sockethdr=''
 socketlib=''
+d_srandom=''
+d_strcasestr=''
 d_index=''
 d_strchr=''
+d_sysctl=''
 d_volatile=''
+d_vsnprintf=''
 glade=''
 gladefile=''
 gladeobj=''
@@ -272,8 +282,13 @@ gtkpackage=''
 gtkversion=''
 h_fcntl=''
 h_sysfile=''
+i_langinfo=''
+i_libcharset=''
 i_string=''
 strings=''
+i_sysparam=''
+i_syssendfile=''
+i_syssysctl=''
 libc=''
 glibpth=''
 libpth=''
@@ -377,6 +392,7 @@ libswanted=''
 : full support for void wanted by default
 defvoidused=15
 
+libswanted='sendfile'
 
 : Find the basic shell for Bourne shell scripts
 case "$sh" in
@@ -3139,6 +3155,10 @@ esac'
 set bcopy d_bcopy
 eval $inlibc
 
+: see if bind_textdomain_codeset exists
+set bind_textdomain_codeset d_bindtxtcode
+eval $inlibc
+
 : check for const keyword
 echo " "
 echo 'Checking to see if your C compiler knows about "const"...' >&4
@@ -3159,6 +3179,18 @@ else
 fi
 set d_const
 eval $setvar
+
+: see if herror exists
+set herror d_herror
+eval $inlibc
+
+: see if hstrerror exists
+set hstrerror d_hstrerror
+eval $inlibc
+
+: check whether inet_aton exists
+set inet_aton d_inetaton
+eval $inlibc
 
 : Look for isascii
 echo " "
@@ -3342,6 +3374,14 @@ set d_open3
 eval $setvar
 $rm -f open3*
 
+: see if random exists
+set random d_random
+eval $inlibc
+
+: see if sendfile exists
+set sendfile d_sendfile
+eval $inlibc
+
 socketlib=''
 sockethdr=''
 : see whether socket exists
@@ -3390,6 +3430,14 @@ else
 		fi
 	fi
 fi
+
+: see if srandom exists
+set srandom d_srandom
+eval $inlibc
+
+: see if strcasestr exists
+set strcasestr d_strcasestr
+eval $inlibc
 
 : see which of string.h or strings.h is needed
 echo " "
@@ -3446,6 +3494,10 @@ set d_strchr; eval $setvar
 val="$vali"
 set d_index; eval $setvar
 
+: see if sysctl exists
+set sysctl d_sysctl
+eval $inlibc
+
 : ask them wich GTK+ version they want
 $cat <<'EOM'
 
@@ -3501,6 +3553,10 @@ fi
 set d_volatile
 eval $setvar
 $rm -f try.*
+
+: see if vsnprintf exists
+set vsnprintf d_vsnprintf
+eval $inlibc
 
 : derive which glade to use based on the configure GTK+
 echo " "
@@ -3937,6 +3993,56 @@ none) yaccflags='';;
 *) yaccflags="$ans";;
 esac
 
+: define an alternate in-header-list? function
+inhdr='echo " "; td=$define; tu=$undef; yyy=$@;
+cont=true; xxf="echo \"<\$1> found.\" >&4";
+case $# in 2) xxnf="echo \"<\$1> NOT found.\" >&4";;
+*) xxnf="echo \"<\$1> NOT found, ...\" >&4";;
+esac;
+case $# in 4) instead=instead;; *) instead="at last";; esac;
+while $test "$cont"; do
+	xxx=`./findhdr $1`
+	var=$2; eval "was=\$$2";
+	if $test "$xxx" && $test -r "$xxx";
+	then eval $xxf;
+	eval "case \"\$$var\" in $undef) . ./whoa; esac"; eval "$var=\$td";
+		cont="";
+	else eval $xxnf;
+	eval "case \"\$$var\" in $define) . ./whoa; esac"; eval "$var=\$tu"; fi;
+	set $yyy; shift; shift; yyy=$@;
+	case $# in 0) cont="";;
+	2) xxf="echo \"but I found <\$1> $instead.\" >&4";
+		xxnf="echo \"and I did not find <\$1> either.\" >&4";;
+	*) xxf="echo \"but I found <\$1\> instead.\" >&4";
+		xxnf="echo \"there is no <\$1>, ...\" >&4";;
+	esac;
+done;
+while $test "$yyy";
+do set $yyy; var=$2; eval "was=\$$2";
+	eval "case \"\$$var\" in $define) . ./whoa; esac"; eval "$var=\$tu";
+	set $yyy; shift; shift; yyy=$@;
+done'
+
+: see if this is a langinfo system
+set langinfo.h i_langinfo
+eval $inhdr
+
+: see if this is a libcharset system
+set libcharset.h i_libcharset
+eval $inhdr
+
+: see if this is a sys/param system
+set sys/param.h i_sysparam
+eval $inhdr
+
+: see if this is a sys/sendfile system
+set sys/sendfile.h i_syssendfile
+eval $inhdr
+
+: see if this is a sys/sysctl system
+set sys/sysctl.h i_syssysctl
+eval $inhdr
+
 : end of configuration questions
 echo " "
 echo "End of configuration questions."
@@ -4031,23 +4137,33 @@ cppstdin='$cppstdin'
 csh='$csh'
 d_attribut='$d_attribut'
 d_bcopy='$d_bcopy'
+d_bindtxtcode='$d_bindtxtcode'
 d_bsd='$d_bsd'
 d_const='$d_const'
 d_eunice='$d_eunice'
 d_gnulibc='$d_gnulibc'
+d_herror='$d_herror'
+d_hstrerror='$d_hstrerror'
 d_index='$d_index'
+d_inetaton='$d_inetaton'
 d_isascii='$d_isascii'
 d_libxml2='$d_libxml2'
 d_memcpy='$d_memcpy'
 d_oldsock='$d_oldsock'
 d_open3='$d_open3'
 d_portable='$d_portable'
+d_random='$d_random'
+d_sendfile='$d_sendfile'
 d_socket='$d_socket'
 d_sockpair='$d_sockpair'
+d_srandom='$d_srandom'
+d_strcasestr='$d_strcasestr'
 d_strchr='$d_strchr'
+d_sysctl='$d_sysctl'
 d_usegtk1='$d_usegtk1'
 d_usegtk2='$d_usegtk2'
 d_volatile='$d_volatile'
+d_vsnprintf='$d_vsnprintf'
 d_xenix='$d_xenix'
 date='$date'
 defvoidused='$defvoidused'
@@ -4077,7 +4193,12 @@ h_fcntl='$h_fcntl'
 h_sysfile='$h_sysfile'
 hint='$hint'
 huge='$huge'
+i_langinfo='$i_langinfo'
+i_libcharset='$i_libcharset'
 i_string='$i_string'
+i_sysparam='$i_sysparam'
+i_syssendfile='$i_syssendfile'
+i_syssysctl='$i_syssysctl'
 incpath='$incpath'
 inews='$inews'
 installprivlib='$installprivlib'

@@ -71,6 +71,13 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
 #define const
 #endif
 
+/* HAS_INET_ATON:
+ *	This symbol, if defined, indicates to the C program that the
+ *	inet_aton() function is available to parse IP address "dotted-quad"
+ *	strings.
+ */
+#$d_inetaton HAS_INET_ATON		/**/
+
 /* HAS_ISASCII:
  *	This manifest constant lets the C program know that isascii 
  *	is available.
@@ -97,6 +104,12 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
 #ifndef HASVOLATILE
 #define volatile
 #endif
+
+/* I_SYS_PARAM:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/param.h>.
+ */
+#$i_sysparam I_SYS_PARAM		/**/
 
 /* PRIVLIB_EXP:
  *	This symbol contains the ~name expanded version of PRIVLIB, to be used
@@ -146,6 +159,84 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
 #else
 #define	P(args) ()
 #endif
+
+/* HAS_BIND_TEXTDOMAIN_CODESET:
+ *	This symbol, if defined, indicates that the bind_textdomain_codeset routine
+ *	is available.
+ */
+#$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
+
+/* HAS_HERROR:
+ *	This symbol, if defined, indicates that the herror routine is
+ *	available.
+ */
+#$d_herror HAS_HERROR		/**/
+
+/* HAS_HSTRERROR:
+ *	This symbol, if defined, indicates that the hstrerror routine is
+ *	available.
+ */
+#$d_hstrerror HAS_HSTRERROR		/**/
+
+/* HAS_RANDOM:
+ *	This symbol, if defined, indicates that the random routine is
+ *	available.
+ */
+#$d_random HAS_RANDOM		/**/
+
+/* HAS_SENDFILE:
+ *	This symbol, if defined, indicates that the sendfile routine is
+ *	available.
+ */
+#$d_sendfile HAS_SENDFILE		/**/
+
+/* HAS_SRANDOM:
+ *	This symbol, if defined, indicates that the srandom routine is
+ *	available.
+ */
+#$d_srandom HAS_SRANDOM		/**/
+
+/* HAS_STRCASESTR:
+ *	This symbol, if defined, indicates that the strcasestr routine is
+ *	available.
+ */
+#$d_strcasestr HAS_STRCASESTR		/**/
+
+/* HAS_SYSCTL:
+ *	This symbol, if defined, indicates that the sysctl routine is
+ *	available.
+ */
+#$d_sysctl HAS_SYSCTL		/**/
+
+/* HAS_VSNPRINTF:
+ *	This symbol, if defined, indicates that the vsnprintf routine is
+ *	available.
+ */
+#$d_vsnprintf HAS_VSNPRINTF		/**/
+
+/* I_LANGINFO:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <langinfo.h>.
+ */
+#$i_langinfo I_LANGINFO		/**/
+
+/* I_LIBCHARSET:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <libcharset.h>.
+ */
+#$i_libcharset I_LIBCHARSET		/**/
+
+/* I_SYS_SENDFILE:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/sendfile.h>.
+ */
+#$i_syssendfile I_SYS_SENDFILE		/**/
+
+/* I_SYS_SYSCTL:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <sys/sysctl.h>.
+ */
+#$i_syssysctl I_SYS_SYSCTL		/**/
 
 /* PACKAGE_SOURCE_DIR:
  * Holds the directory name holding the package source.
