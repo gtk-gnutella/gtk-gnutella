@@ -63,7 +63,7 @@ typedef struct upload {
 
 	guint32 ip;						/* Remote IP address */
 	gchar *user_agent;				/* Remote user agent */
-	gchar *country;					/* Country of origin -- 2-char ISO code */
+	gint country;					/* Country of origin -- encoded ISO3166 code */
 	guint skip;						/* First byte to send, inclusive */
 	guint end;						/* Last byte to send, inclusive */
 	off_t pos;						/* Read position in file we're sending */

@@ -58,7 +58,7 @@ typedef struct results_set {
 	time_t  stamp;				/* Reception time of the hit */
 	guchar  vendor[4];			/* Vendor code */
 	gchar *version;				/* Version information (atom) */
-	gchar *country;				/* Country code -- 2-char ISO (atom) */
+	gint country;				/* Country code -- encoded ISO3166 */
 	gnet_host_vec_t *proxies;	/* Optional: known push proxies */
 	gchar *hostname;			/* Optional: server's hostname */
 	guint32 udp_ip;				/* IP of delivering node, if hit from UDP */
@@ -146,3 +146,4 @@ void search_gui_add_targetted_search(
 void search_gui_update_items(struct search *);
 
 #endif /* _gtk_search_common_h_ */
+/* vi: set ts=4 sw=4 cindent: */

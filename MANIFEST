@@ -418,6 +418,8 @@ src/lib/idtable.c
 src/lib/idtable.h 
 src/lib/inputevt.c 
 src/lib/inputevt.h 
+src/lib/iso3166.c 
+src/lib/iso3166.h 
 src/lib/listener.h 
 src/lib/malloc.c 
 src/lib/malloc.h 

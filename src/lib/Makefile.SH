@@ -108,6 +108,7 @@ LSRC = \
 	idtable.c \
 	inputevt.c \
 	iprange.c \
+	iso3166.c \
 	malloc.c \
 	misc.c \
 	pattern.c \
@@ -148,6 +149,7 @@ LOBJ = \
 	idtable.o \
 	inputevt.o \
 	iprange.o \
+	iso3166.o \
 	malloc.o \
 	misc.o \
 	pattern.o \

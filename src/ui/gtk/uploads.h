@@ -44,7 +44,7 @@ typedef struct upload_row_data {
 	gboolean      push; 
 	gchar         *user_agent;	/* atom */
 	gchar         *name;		/* atom */
-	gchar         *country;		/* atom */
+	gint          country;
 #endif
 } upload_row_data_t;
 
@@ -56,3 +56,4 @@ void uploads_gui_update_display(time_t now);
 void uploads_gui_clear_completed(void);
 
 #endif /* _gtk_uploads_h_ */
+/* vi: set ts=4 sw=4 cindent: */

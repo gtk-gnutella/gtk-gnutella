@@ -41,6 +41,7 @@
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/glib-missing.h"
+#include "lib/iso3166.h"
 #include "lib/urn.h"
 #include "lib/walloc.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -144,11 +145,14 @@ GtkCTreeNode *find_parent_with_sha1(GHashTable *ht, gpointer key)
 }
 
 
-/*
+/**
  *	search_gui_free_parent
  */
-gboolean search_gui_free_parent(gpointer key, gpointer value, gpointer x)
+gboolean
+search_gui_free_parent(gpointer key, gpointer unused_value, gpointer unused_x)
 {
+	(void) unused_value;
+	(void) unused_x;
 	atom_sha1_free(key);
 	return TRUE;
 }
@@ -171,30 +175,32 @@ void search_gui_reset_search(search_t *sch)
 	search_gui_clear_search(sch);	
 }
 
-/*
- * dec_records_refcount
- *
+/**
  * Decrement refcount of hash table key entry.
  */
-static gboolean dec_records_refcount(gpointer key, gpointer value, gpointer x)
+static gboolean
+dec_records_refcount(gpointer key, gpointer unused_value, gpointer unused_x)
 {
 	struct record *rc = (struct record *) key;
 
+	(void) unused_value;
+	(void) unused_x;
 	g_assert(rc->refcount > 0);
 
 	rc->refcount--;
 	return TRUE;
 }
 
-/*
- *	search_gui_ctree_unref
- * 
+/**
  *	Removes a reference to the record stored in the given tree node
  */
-void search_gui_ctree_unref(GtkCTree *ctree, GtkCTreeNode *node, gpointer data)
+void
+search_gui_ctree_unref(GtkCTree *ctree, GtkCTreeNode *node,
+		gpointer unused_data)
 {
 	gui_record_t *grc;
 
+	(void) unused_data;
 	grc = gtk_ctree_node_get_row_data(ctree, node);
 	search_gui_unref_record(grc->shared_record);	
 }
@@ -580,14 +586,7 @@ static gint search_gui_compare_records(
             break;
 
         case c_sr_loc:
-            if (rs1->country == rs2->country)
-                result = 0;
-            else if (rs1->country == NULL)
-                result = -1;
-            else if (rs2->country == NULL)
-                result = +1;
-            else
-                result =  strcmp(rs1->country, rs2->country);  
+            result = CMP(rs1->country, rs2->country);
             break;
 
         case c_sr_meta:
@@ -1174,7 +1173,7 @@ void search_gui_add_record(
 	search_t *sch, record_t *rc, GString *vinfo, GdkColor *fg, GdkColor *bg)
 {
   	GString *info = g_string_sized_new(80);
-  	gchar *titles[c_sr_num];
+  	const gchar *titles[c_sr_num];
 	gint count;
 	gpointer key = NULL;
 	gboolean is_parent = FALSE;
@@ -1241,7 +1240,7 @@ void search_gui_add_record(
 	titles[c_sr_sha1] = (NULL != rc->sha1) ?  sha1_base32(rc->sha1) : empty;
 	titles[c_sr_size] = empty;
 	titles[c_sr_count] = empty;
-	titles[c_sr_loc] = rs->country;
+	titles[c_sr_loc] = iso3166_country_cc(rs->country);
 
 	titles[c_sr_host] = (NULL == rs->hostname) ?
 		ip_port_to_gchar(rs->ip, rs->port) :
@@ -1268,8 +1267,9 @@ void search_gui_add_record(
 
 		if (NULL != parent) {
 			/* A parent exists with that sha1, add as child to that parent */
-			node = gtk_ctree_insert_node(ctree, parent, NULL, titles, 5, 
-				NULL, NULL, NULL, NULL, 0, 0);
+			node = gtk_ctree_insert_node(ctree, parent, NULL,
+						(gchar **) titles, /* override const */
+						5, NULL, NULL, NULL, NULL, 0, 0);
 			
 			/*Update the "#" column of the parent, +1 for parent */			
 			count = gtk_ctree_count_node_children(ctree, parent);			
@@ -1288,8 +1288,9 @@ void search_gui_add_record(
 			titles[c_sr_size] = short_size(rc->size);
 
 			/* Add node as a parent */
-			node = gtk_ctree_insert_node(ctree, parent = NULL, NULL, titles, 5, 
-				NULL, NULL, NULL, NULL, 0, 0);
+			node = gtk_ctree_insert_node(ctree, parent = NULL, NULL,
+						(gchar **) titles, /* override const */
+						5, NULL, NULL, NULL, NULL, 0, 0);
 			add_parent_with_sha1(sch->parents, key, node);
 
 			/* Update count in the records (use for column sorting) */
@@ -1300,8 +1301,9 @@ void search_gui_add_record(
 	} else { /* Add node as a parent with no SHA1 */ 
 		titles[c_sr_size] = short_size(rc->size);
 
-		node = gtk_ctree_insert_node(ctree, parent = NULL, NULL, titles, 5, 
-				NULL, NULL, NULL, NULL, 0, 0);
+		node = gtk_ctree_insert_node(ctree, parent = NULL, NULL,
+					(gchar **) titles, /* override */
+					5, NULL, NULL, NULL, NULL, 0, 0);
 		/* Update count in the records (use for column sorting) */
 		gui_rc->num_children = 0;
 		is_parent = TRUE;
@@ -1741,24 +1743,24 @@ void search_gui_download_files(void)
  *** Callbacks
  ***/
 
-/*
- * search_gui_search_results_col_widths_changed:
- *
+/**
  * Callback to update the columns withs in the currently visible search.
  * This is not in settings_gui because the current search should not be
  * known outside this file.
  */
-gboolean search_gui_search_results_col_widths_changed(property_t prop)
+gboolean
+search_gui_search_results_col_widths_changed(property_t prop)
 {
     guint32 *val;
     GtkCTree *ctree;
 	gint i;
     search_t *current_search = search_gui_get_current_search();
 
+	g_assert(prop == PROP_SEARCH_RESULTS_COL_WIDTHS);
     if ((current_search == NULL) && (default_search_ctree == NULL))
         return FALSE;
 
-    val = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, NULL, 0, 0);
+    val = gui_prop_get_guint32(prop, NULL, 0, 0);
 
     ctree = (current_search != NULL) ? 
 		GTK_CTREE(current_search->ctree) : default_search_ctree;
@@ -1772,9 +1774,7 @@ gboolean search_gui_search_results_col_widths_changed(property_t prop)
 }
 
 
-/*
- * search_gui_search_results_col_widths_changed:
- *
+/**
  * Callback to update the columns withs in the currently visible search.
  * This is not in settings_gui because the current search should not be
  * known outside this file.
@@ -1786,10 +1786,11 @@ gboolean search_gui_search_results_col_visible_changed(property_t prop)
  	GtkCTree *ctree;
     search_t *current_search = search_gui_get_current_search();
 
+	g_assert(prop == PROP_SEARCH_RESULTS_COL_VISIBLE);
     if ((current_search == NULL) && (default_search_ctree == NULL))
         return FALSE;
 
-    val = gui_prop_get_boolean(PROP_SEARCH_RESULTS_COL_VISIBLE, NULL, 0, 0);
+    val = gui_prop_get_boolean(prop, NULL, 0, 0);
 
     ctree = (current_search != NULL) ? 
         GTK_CTREE(current_search->ctree) : default_search_ctree;

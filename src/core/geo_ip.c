@@ -40,6 +40,7 @@ RCSID("$Id$");
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
 #include "lib/iprange.h"
+#include "lib/iso3166.h"
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 
@@ -104,58 +105,6 @@ gip_add_cidr(guint32 ip, guint8 bits, gpointer udata)
 	}
 
 	ctx->count++;
-}
-
-/**
- * Decodes are valid 2-letter country code into an integer.
- * @return NULL integer isn't a validly encoded country code.
- */
-static inline const gchar *
-gip_decode_country(gint code)
-{
-	static gchar s[3];
-	gint i;
-
-	if (code < 2 || code > (36 * 35 + 35 + 1) << 1)
-		return NULL;
-
-	code = (code >> 1) - 1;
-	i = code / 36;
-	g_assert(i < 36);
-	s[0] = i + (i < 10 ? '0' : 'a' - 10);
-	i = code % 36;
-	s[1] = i + (i < 10 ? '0' : 'a' - 10);
-
-	return s;
-}
-
-/**
- * Encodes are valid 2-letter country code into an integer.
- * @return -1 if the given string is obviously not a 2-letter country code.
- */
-static gint
-gip_encode_country(const char *s)
-{
-#define ENCODE(x) (is_ascii_digit(x) ? ((x) - '0') : (tolower(x) - 'a' + 10))
-	gint code;
-
-	g_assert(s != NULL);
-	if (is_ascii_alnum(s[0]) && is_ascii_alnum(s[1]) && '\0' == s[2]) {
-		const gchar *d;
-
-		code = ENCODE(s[0]) * 36;
-		code += ENCODE(s[1]);
-		g_assert(code >= 0 && code <= (36 * 35 + 35));
-		code++; /* Add 1 because 0 would be interpreted as NULL in iprange.c */
-		code <<= 1;/* The LSB must be zero due to special handling iprange.c */
-
-		d = gip_decode_country(code);
-		g_assert(0 == strcasecmp(s, d));
-	} else {
-		code = -1;
-	}
-	return code;
-#undef ENCODE
 }
 
 /**
@@ -262,14 +211,16 @@ gip_load(FILE *f)
 			continue;
 		}
 
-		code = gip_encode_country(end);
+		code = iso3166_encode_cc(end);
 		if (-1 == code) {
 			g_warning("%s, line %d: bad country code in \"%s\"",
 				gip_file, linenum, line);
 			continue;
 		}
 
-		ctx.country = code;
+		/* code must no be zero and the LSB must be zero due to using it as
+		 * as key for ipranges */
+		ctx.country = (code + 1) << 1;
 		ctx.line = line;
 		ctx.linenum = linenum;
 
@@ -381,16 +332,16 @@ gip_close(void)
 }
 
 /**
- * Returns the country mapped to this IP address, as a two-letter ISO code,
- * or "??" when unknown.
+ * Returns the country mapped to this IP address, as an numerical encoded country code,
+ * or -1 when unknown.
  */
-const gchar *
+gint
 gip_country(guint32 ip)
 {
 	gpointer code;
 
 	code = iprange_get(geo_db, ip);
-	return NULL != code ? gip_decode_country(GPOINTER_TO_INT(code)) : "??";
+	return NULL != code ? (GPOINTER_TO_INT(code) >> 1) - 1 : -1;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -97,7 +97,7 @@ typedef struct gnutella_node {
 	guint8 uqrp_major;			/* UP Query routing protocol major number */
 	guint8 uqrp_minor;			/* UP Query routing protocol minor number */
 	gchar *vendor;				/* Vendor information */
-	gchar *country;				/* Country of origin -- 2-char ISO (atom) */
+	gint country;				/* Country of origin -- encoded ISO3166 */
 	guchar vcode[4];			/* Vendor code (vcode[0] == NUL when unknown) */
 	gpointer io_opaque;			/* Opaque I/O callback information */
 

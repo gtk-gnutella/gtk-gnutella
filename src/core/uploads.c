@@ -347,7 +347,7 @@ gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push)
 
 	u->socket = s;
     u->ip = s->ip;
-	u->country = atom_str_get(gip_country(u->ip));
+	u->country = gip_country(u->ip);
 	s->resource.upload = u;
 
 	u->push = push;
@@ -542,10 +542,6 @@ static void upload_free_resources(gnutella_upload_t *u)
 		atom_str_free(u->name);
 		u->name = NULL;
 	}
-	if (u->country != NULL) {
-		atom_str_free(u->country);
-		u->country = NULL;
-	}
 	if (u->file_desc != -1) {
 		close(u->file_desc);
 		u->file_desc = -1;
@@ -618,7 +614,7 @@ static gnutella_upload_t *upload_clone(gnutella_upload_t *u)
 	u->socket = NULL;
 	u->buffer = NULL;
 	u->user_agent = NULL;
-	u->country = NULL;
+	u->country = -1;
 	u->sha1 = NULL;
 	
 	/*
@@ -3151,7 +3147,7 @@ gnet_upload_info_t *upload_get_info(gnet_upload_t uh)
     info->range_end     = u->end;
     info->start_date    = u->start_date;
     info->user_agent    = u->user_agent ? atom_str_get(u->user_agent) : NULL;
-    info->country       = u->country ? atom_str_get(u->country) : NULL;
+    info->country       = u->country;
     info->upload_handle = u->upload_handle;
 	info->push          = u->push;
 	info->partial       = u->file_info != NULL;
@@ -3167,8 +3163,6 @@ void upload_free_info(gnet_upload_info_t *info)
 		atom_str_free(info->user_agent);
 	if (info->name)
 		atom_str_free(info->name);
-	if (info->country)
-		atom_str_free(info->country);
 
     wfree(info, sizeof(*info));
 }

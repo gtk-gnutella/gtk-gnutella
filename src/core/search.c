@@ -386,9 +386,6 @@ search_free_r_set(gnet_results_set_t *rs)
 	if (rs->hostname)
 		atom_str_free(rs->hostname);
 
-	if (rs->country)
-		atom_str_free(rs->country);
-
 	g_slist_free(rs->records);
 	zfree(rs_zone, rs);
 }
@@ -447,7 +444,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
     rs->status    = 0;
 	rs->proxies   = NULL;
 	rs->hostname  = NULL;
-	rs->country   = NULL;
+	rs->country   = -1;
 
 	r = (struct gnutella_search_results *) n->data;
 
@@ -1067,7 +1064,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 		 */
 
 		cip = (rs->status & ST_UDP) ? rs->udp_ip : rs->ip;
-		rs->country = atom_str_get(gip_country(cip));
+		rs->country = gip_country(cip);
 	}
 
 	return rs;

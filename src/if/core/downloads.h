@@ -89,7 +89,7 @@ struct dl_server {
 	guint count[DL_LIST_SZ];	/* Amount of downloads in list */
 	const gchar *vendor;		/* Remote server vendor string (atom) */
 	const gchar *hostname;		/* Remote hostname, if known (atom) */
-	const gchar *country;		/* Country of origin -- 2-char ISO (atom) */
+	gint country;				/* Country of origin -- encoded ISO3166 */
 	time_t retry_after;			/* Time at which we may retry from this host */
 	time_t dns_lookup;			/* Last DNS lookup for hostname */
 	struct vernum parq_version;	/* Supported queueing version */

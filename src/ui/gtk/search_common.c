@@ -242,8 +242,6 @@ search_gui_free_r_set(results_set_t *rs)
 		search_gui_free_proxies(rs);
 	if (rs->hostname)
 		atom_str_free(rs->hostname);
-	if (rs->country)
-		atom_str_free(rs->country);
 
 	g_slist_free(rs->records);
 	zfree(rs_zone, rs);
@@ -544,7 +542,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
     memcpy(rs->vendor, r_set->vendor, sizeof(rs->vendor));
 	rs->version = r_set->version ? atom_str_get(r_set->version) : NULL;
 	rs->hostname = r_set->hostname ? atom_str_get(r_set->hostname) : NULL;
-	rs->country = r_set->country ? atom_str_get(r_set->country) : NULL;
+	rs->country = r_set->country;
 	rs->udp_ip = r_set->udp_ip;
 
     rs->num_recs = 0;

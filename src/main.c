@@ -79,6 +79,7 @@
 #include "lib/crc.h"
 #include "lib/eval.h"
 #include "lib/glib-missing.h"
+#include "lib/iso3166.h"
 #include "lib/pattern.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -290,6 +291,7 @@ void gtk_gnutella_exit(gint n)
 	ignore_close();
 	bg_close();
 	eval_close();
+	iso3166_close();
 	atom_str_free(start_rfc822_date);
 	adns_close();
 	atoms_close();
@@ -556,6 +558,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	version_init();
 	socket_init();
 	gnet_stats_init();
+	iso3166_init();
 	main_gui_early_init(argc, argv);
 	cq_init();
 	tsync_init();

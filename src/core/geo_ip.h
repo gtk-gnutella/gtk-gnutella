@@ -30,7 +30,7 @@
 
 #include <glib.h>
 
-const gchar *gip_country(guint32 ip);
+gint gip_country(guint32 ip);
 void gip_init(void);
 void gip_close(void);
 

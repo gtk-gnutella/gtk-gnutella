@@ -40,6 +40,7 @@
 
 /* includes ui needs to access core */
 #include "lib/adns.h"
+#include "lib/iso3166.h"
 #include "if/core/bitzi.h"
 #include "if/core/downloads.h"
 #include "if/core/fileinfo.h"
@@ -193,7 +194,7 @@ const gchar *guc_download_get_hostname(const struct download *d)
 
 const gchar *guc_download_get_country(const struct download *d)
 {
-	return download_country(d);
+	return iso3166_country_cc(download_country(d));
 }
 
 gfloat guc_download_source_progress(struct download *d)

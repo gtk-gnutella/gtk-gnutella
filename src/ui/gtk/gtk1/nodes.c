@@ -39,6 +39,7 @@ RCSID("$Id$");
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"
+#include "lib/iso3166.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define UPDATE_MIN	300		/* Update screen every 5 minutes at least */
@@ -170,7 +171,7 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
 			n->vendor ? n->vendor : "...");
 
         gtk_clist_set_text(clist, row, c_gnet_loc,
-			n->country ? n->country : "..");
+			(char *) iso3166_country_cc(n->country)); /* override const */
 
         gm_snprintf(gui_tmp, sizeof(gui_tmp), "%d.%d",
             n->proto_major, n->proto_minor);
@@ -323,7 +324,7 @@ void nodes_gui_add_node(gnet_node_info_t *n)
     titles[c_gnet_host]       = ip_port_to_gchar(n->ip, n->port);
     titles[c_gnet_flags]      = "...";
     titles[c_gnet_user_agent] = n->vendor ? n->vendor : "...";
-    titles[c_gnet_loc]        = n->country ? n->country : "..";
+    titles[c_gnet_loc]        = iso3166_country_cc(n->country);
     titles[c_gnet_version]    = proto_tmp;
     titles[c_gnet_connected]  = "...";
     titles[c_gnet_uptime]     = "...";

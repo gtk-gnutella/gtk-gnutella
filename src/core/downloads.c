@@ -720,7 +720,7 @@ allocate_server(const gchar *guid, guint32 ip, guint16 port)
 	server = walloc0(sizeof(*server));
 	server->key = key;
 	server->retry_after = time(NULL);
-	server->country = atom_str_get(gip_country(ip));
+	server->country = gip_country(ip);
 
 	g_hash_table_insert(dl_by_host, key, server);
 	dl_by_time_insert(server);
@@ -764,7 +764,6 @@ free_server(struct dl_server *server)
 	if (server->vendor)
 		atom_str_free(server->vendor);
 	atom_guid_free(server->key->guid);
-	atom_str_free(server->country);
 
 	/*
 	 * We only inserted the server in the `dl_ip' table if it was "reachable".

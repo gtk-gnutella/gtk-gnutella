@@ -313,8 +313,10 @@ node_fire_node_flags_changed(gnutella_node_t *n)
  * Free atom string key from hash table.
  */
 static void
-free_key(gpointer key, gpointer val, gpointer x)
+free_key(gpointer key, gpointer unused_val, gpointer unused_x)
 {
+	(void) unused_val;
+	(void) unused_x;
 	atom_str_free(key);
 }
 
@@ -322,8 +324,10 @@ free_key(gpointer key, gpointer val, gpointer x)
  * Free atom string key from hash table and return TRUE.
  */
 static gboolean
-free_key_true(gpointer key, gpointer val, gpointer x)
+free_key_true(gpointer key, gpointer unused_val, gpointer unused_x)
 {
+	(void) unused_val;
+	(void) unused_x;
 	atom_str_free(key);
 	return TRUE;
 }
@@ -359,11 +363,12 @@ string_table_free(GHashTable *ht)
  * Send "Time Sync" via UDP if we know the remote IP:port, via TCP otherwise.
  */
 static void
-node_tsync_udp(cqueue_t *cq, gpointer obj)
+node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
 {
 	gnutella_node_t *n = (gnutella_node_t *) obj;
 	gnutella_node_t *udp = NULL;
 
+	(void) unused_cq;
 	g_assert(!NODE_IS_UDP(n));
 	g_assert(n->attrs & NODE_A_TIME_SYNC);
 
@@ -819,7 +824,7 @@ node_timer(time_t now)
 				current_peermode == NODE_P_ULTRA &&
 				NODE_IS_ULTRA(n)
 			) {
-				time_t quiet = delta_time(now, n->last_tx);
+				glong quiet = delta_time(now, n->last_tx);
 
 				/*
 				 * Ultra node connected to another ultra node.
@@ -1251,14 +1256,11 @@ node_real_remove(gnutella_node_t *node)
 	/*
 	 * The freeing of the vendor string is delayed, because the GUI update
 	 * code reads it.  When this routine is called, the GUI line has been
-	 * removed, so it's safe to do it now.  Ditto for the country code.
+	 * removed, so it's safe to do it now.
 	 */
 
 	if (node->vendor)
 		atom_str_free(node->vendor);
-
-	if (node->country)
-		atom_str_free(node->country);
 
 	/*
 	 * The RX stack needs to be dismantled asynchronously, to not be freed
@@ -1387,7 +1389,7 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 	}
 
 	/* n->io_opaque will be freed by node_real_remove() */
-	/* n->vendor and n->country will be freed by node_real_remove() */
+	/* n->vendor will be freed by node_real_remove() */
 
 	if (n->allocated) {
 		G_FREE_NULL(n->data);
@@ -4486,7 +4488,7 @@ node_udp_create(void)
 	n->up_date = start_stamp;
 	n->connect_date = start_stamp;
 	n->alive_pings = alive_make(n, ALIVE_MAX_PENDING);
-	n->country = atom_str_get(gip_country(n->ip));
+	n->country = gip_country(n->ip);
 
 	return n;
 }
@@ -4713,7 +4715,7 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	n->start_peermode = (node_peer_t) current_peermode;
 	n->hops_flow = MAX_HOP_COUNT;
 	n->last_update = n->last_tx = n->last_rx = time(NULL);
-	n->country = atom_str_get(gip_country(ip));
+	n->country = gip_country(ip);
 
 	n->hello.ptr = NULL;
     n->hello.size =	0;
@@ -5510,8 +5512,9 @@ node_unflushq(struct gnutella_node *n)
  * Called when the queue service routine is switched ON/OFF.
  */
 void
-node_tx_service(struct gnutella_node *n, gboolean on)
+node_tx_service(struct gnutella_node *n, gboolean unused_on)
 {
+	(void) unused_on;
     node_fire_node_flags_changed(n);
 }
 
@@ -6430,10 +6433,6 @@ node_clear_info(gnet_node_info_t *info)
 		info->vendor = NULL;
 	}
 
-	if (info->country) {
-		atom_str_free(info->country);
-		info->country = NULL;
-	}
 }
 
 /**
@@ -6459,7 +6458,7 @@ node_fill_info(const gnet_node_t n, gnet_node_info_t *info)
     info->proto_major = node->proto_major;
     info->proto_minor = node->proto_minor;
     info->vendor = node->vendor ? atom_str_get(node->vendor) : NULL;
-    info->country = node->country ? atom_str_get(node->country) : NULL;
+    info->country = node->country;
     memcpy(info->vcode, node->vcode, 4);
 
     info->ip   = node->ip;
@@ -6904,11 +6903,15 @@ node_proxy_cancel_all(void)
  * know about them via the X-Push-Proxy header.
  */
 void
-node_http_proxies_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
+node_http_proxies_add(gchar *buf, gint *retval,
+		gpointer unused_arg, guint32 unused_flags)
 {
 	gint rw = 0;
 	gint length = *retval;		/* Space available, starting at `buf' */
 
+	(void) unused_arg;
+	(void) unused_flags;
+	
 	if (is_firewalled && sl_proxies != NULL) {
 		gpointer fmt = header_fmt_make("X-Push-Proxy", ", ", 0);
 		GSList *sl;

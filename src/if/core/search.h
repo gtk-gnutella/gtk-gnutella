@@ -87,7 +87,7 @@ typedef struct gnet_results_set {
 	time_t  stamp;				/* Reception time of the hit */
 	guchar  vendor[4];			/* Vendor code */
 	gchar *version;				/* Version information (atom) */
-	gchar *country;				/* Country code -- 2-char ISO (atom) */
+	gint country;				/* Country code -- encoded ISO3166 */
     flag_t  flags;
 	gnet_host_vec_t *proxies;	/* Optional: known push proxies */
 	gchar *hostname;			/* Optional: server's hostname */

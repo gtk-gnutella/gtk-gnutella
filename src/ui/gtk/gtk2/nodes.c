@@ -44,6 +44,7 @@ RCSID("$Id$");
 
 #include "lib/utf8.h"
 #include "lib/glib-missing.h"
+#include "lib/iso3166.h"
 #include "lib/override.h"		/* Must be the last header included */
 
 #define UPDATE_MIN	300		/* Update screen every 5 minutes at least */
@@ -245,7 +246,7 @@ static inline void nodes_gui_update_node_info(
 
 	gtk_list_store_set(nodes_model, iter, 
 		c_gnet_user_agent, n->vendor ? lazy_locale_to_utf8(n->vendor, 0) : NULL,
-		c_gnet_loc, n->country ? lazy_locale_to_utf8(n->country, 0) : NULL,
+		c_gnet_loc, iso3166_country_cc(n->country),
 		c_gnet_version, version,
 		c_gnet_info, nodes_gui_common_status_str(&status, now),
 		(-1));
@@ -402,7 +403,7 @@ void nodes_gui_add_node(gnet_node_info_t *n)
         c_gnet_host,    ip_port_to_gchar(n->ip, n->port),
         c_gnet_flags,    NULL,
         c_gnet_user_agent, n->vendor ? lazy_locale_to_utf8(n->vendor, 0) : NULL,
-        c_gnet_loc, 	n->country ? lazy_locale_to_utf8(n->country, 0) : NULL,
+        c_gnet_loc, 	iso3166_country_cc(n->country),
         c_gnet_version, proto_tmp,
         c_gnet_connected, NULL,
         c_gnet_uptime,  NULL,

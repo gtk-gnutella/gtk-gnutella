@@ -50,6 +50,7 @@
 #include "lib/base32.h"
 #include "lib/misc.h"
 #include "lib/glib-missing.h"
+#include "lib/iso3166.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -602,7 +603,7 @@ search_gui_add_record(
 		      c_sr_filename, name_utf8,
 		      c_sr_ext, ext_utf8[0] != '\0' ? ext_utf8 : NULL,
 		      c_sr_size, NULL != parent ? NULL : short_size(rc->size),
-			  c_sr_loc, rs->country,
+			  c_sr_loc, iso3166_country_cc(rs->country),
 			  c_sr_meta, NULL,
 		      c_sr_info, info[0] != '\0' ? info : NULL,
 		      c_sr_fg, fg,
@@ -1194,14 +1195,14 @@ create_model(void)
 		GDK_TYPE_COLOR,		/* Background */
 		G_TYPE_POINTER		/* (record_t *) */
 	};
-	GtkTreeModel *model;
+	GtkTreeStore *model;
 
 	STATIC_ASSERT(c_sr_num == G_N_ELEMENTS(columns));
 
 	/* create tree store */
-	model = (GtkTreeModel *) gtk_tree_store_newv(c_sr_num, columns);
+	model = gtk_tree_store_newv(G_N_ELEMENTS(columns), columns);
 
-	return model;
+	return (GtkTreeModel *) model;
 }
 
 
