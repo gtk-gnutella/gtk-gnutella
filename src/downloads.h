@@ -103,6 +103,11 @@ gboolean download_new_uri(gchar *file, gchar *uri, guint32 size,
 			  gchar *sha1, time_t stamp, gboolean push,
 			  struct dl_file_info *fi, gnet_host_vec_t *proxies);
 
+gboolean download_new_uri(gchar *file, gchar *uri, guint32 size,
+			  guint32 ip, guint16 port, gchar *guid, gchar *hostname,
+			  gchar *sha1, time_t stamp, gboolean push,
+			  struct dl_file_info *fi, gnet_host_vec_t *proxies);
+
 guint extract_retry_after(const header_t *header);
 gboolean is_faked_download(const struct download *d);
 
