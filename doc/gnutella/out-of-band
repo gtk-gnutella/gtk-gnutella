@@ -1,0 +1,113 @@
+                Out-of-Band Query Hit Delivery For Gnutella
+                -------------------------------------------
+
+In an effort to decrease the amount of Query Hit relay traffic on
+Gnutella, the following document describes a methodology for delivering
+query hits 'out-of-band'.  An 'out-of-band' query hit is delivered from
+the source of the result directly to the sink, thereby dispensing with
+any unnecessary relay traffic.  UDP is used as the transport protocol for
+point-to-point delivery of query hits.
+
+A. Prerequisites:
+
+A servent must establish the following capabilities in order to follow
+the out-of-band query hit delivery protocol.
+
+  1. Solicited UDP support: A servent must be able to participate in
+     solicited UDP exchanges, where UDP traffic is allowed between 2
+     points after an initial UDP datagram is sent from your servent.
+  2. Unsolicited UDP support: A servent must be able to accept unsolicited
+     UDP datagrams.
+  3. This mechanism MUST be implemented WITH Leaf-Guided Dynamic Querying.
+     Not doing so can result in huge bandwidth costs for any proxying
+     Ultrapeer and/or yourself.
+
+In unison, capabilities 1 and 2 denote a servent to be 'GUESS-capable'.
+For more information on establishing capability 1, see sections 3.3 and 5
+of the GUESS proposal (GDF->Files->Proposals->Pending Proposals->GUESS).
+Servents can utilize the UDP ConnectBack message to establish capability
+2 (GDF->Files->Proposals->Working Proposals->Vendor Messages).
+More info about Leaf Guided Dynamic Querying can be found at the GDF
+(GDF->Files->Proposals->Working Proposals->Leaf Guided Dynamic Querying)
+
+B. Communicating Out-of-Band support in Queries
+
+After a servent has verified that it is GUESS-capable, it should query
+the network with a query that communicates to other nodes that it can
+accept query hits 'out-of-band' via UDP delivery.  To do so, the query
+must be marked in the following way:
+
+  1. The minspeed field of the query must be marked according to
+     GDF->Files->Proposals->Working Proposals->MinSpeed.html, and it must
+     have bit 10 set.
+  2. The GUID of the query must have the ip and port of the originating
+     servent encoded within.  Bytes 0 to 3 of the guid are the 4 octet
+     bytes of the IP address.  Bytes 13 and 14 are the little endian
+     representation of the port.
+
+C. Responding to Out-of-Band Queries
+
+When a GUESS-capable servent receives a query marked for out-of-band
+delivery of query hits (as described above) and the servent has a set of
+files that match the query, the following steps should be taken:
+
+  1. The servent should extract the IP and port of the originating
+     servent (the querier) from the guid of the query.
+  2. The servent should send a LIME/12v1 Vendor Message (VM) to the
+     querier via UDP.  The LIME/12v1 VM should set its guid to the guid of
+     the original query, and it has a 1 byte payload.  The 1 byte payload
+     is an unsigned integer (from 1 to 255) that represents the number of
+     hits the servent has for the query.  If the payload is 255, that
+     means that the servent has either 255 or more responses.
+  3. The servent waits for a response from the querier (the response is
+     described below).  If no response is received in a timely fashion,
+     the servent can forget about the query.
+
+D. Responding to LIME/12v1 (Reply Number) Vendor Messages
+
+When a GUESS-capable servent that has sent an 'out-of-band' capable query
+receives a LIME/12v1, or Reply Number, VM, it should do the following:
+
+  1. If the guid contained in the Reply Number VM is old or unknown, just
+     ignore the message.
+  2. If the guid contained in the Reply Number VM is current and hits are
+     still desired (see Dynamic Querying, Leaf Guided Dynamic Querying)
+     the servent should reply with a LIME/11v1 (Ack) VM via UDP.  The Ack
+     VM should have a guid that is the same as the original query guid
+     (also the Reply Number VM guid) in addition to a 1 byte payload.  The
+     1 byte payload is an unsigned integer (from 1 to 255) that represents
+     the number of query hits that the servent wants.  If the payload is
+     255, that means that the servent wants 255 or more responses.  Note
+     that the servent can lift the originator's IP address and port from
+     the LIME/12v1 datagram packet.
+
+E. Responding to LIME/11v1 (Ack) Vendor Messages
+
+When a GUESS-capable servent receives a LIME/11v1, or Ack, VM, it should
+do the following:
+
+  1. If the guid contained in the Ack VM is old or unknown, just ignore
+     the message.
+  2. If the guid contained in the Ack VM is current, then the servent
+     consults the payload of the Ack VM (an unsigned integer from 1 to
+     255, lets call it N) and deliver via UDP up to N Query Hits (up to N
+     because some hits contain more than 1 response).  The guid of the
+     hits should be the guid of the Ack VM (also, the same as the
+     original query, and the same as the Reply Number VM).  Note
+     that the servent can lift the originator's IP address and port from
+     the LIME/11v1 datagram packet.
+
+F. Consuming Query Hits received over UDP
+
+GUESS-capable servents that receive hits via UDP should consume them as
+normal.
+
+G. Notes:
+
+  1. A servent that receives a query that denotes 'out-of-band' delivery
+     support should only send any results via UDP if the query is of
+     sufficiently high hops (2 or more), i.e. if the hops value is 1,
+     there probably exists a TCP connection that is better used for query
+     hit delivery.
+
+
