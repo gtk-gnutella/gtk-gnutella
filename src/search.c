@@ -33,6 +33,7 @@
 #define T_LIME	MAKE_CODE('L','I','M','E')
 #define T_MACT	MAKE_CODE('M','A','C','T')
 #define T_MNAP	MAKE_CODE('M','N','A','P')
+#define T_MUTE	MAKE_CODE('M','U','T','E')
 #define T_NAPS	MAKE_CODE('N','A','P','S')
 #define T_OCFG	MAKE_CODE('O','C','F','G')
 #define T_OPRA	MAKE_CODE('O','P','R','A')
@@ -813,8 +814,8 @@ static void search_gui_update(struct search * sch, struct results_set * rs,
 		next = l->next;
 
         if (dbg > 7)
-            printf("%s(): adding %s (%s)\n", __FUNCTION__,
-                   rc->name, vinfo->str);
+            printf("search_gui_update: adding %s (%s)\n",
+				rc->name, vinfo->str);
 
 		/*
 		 * If we have too many results in this search already,
@@ -944,6 +945,7 @@ void search_matched(struct search *sch, struct results_set *rs)
 		case T_LIME: vendor = "Lime";			break;
 		case T_MACT: vendor = "Mactella";		break;
 		case T_MNAP: vendor = "MyNapster";		break;
+		case T_MUTE: vendor = "Mutella";		break;
 		case T_NAPS: vendor = "NapShare";		break;
 		case T_OCFG: vendor = "OpenCola";		break;
 		case T_OPRA: vendor = "Opera";			break;
@@ -1025,11 +1027,10 @@ void search_matched(struct search *sch, struct results_set *rs)
 
 	if (use_autodownload) {
 		GSList *l;
+		gboolean need_push =
+			(rs->status & ST_FIREWALL) || !check_valid_host(rs->ip, rs->port);
 
-		if (
-			send_pushes ||
-			!((rs->status & ST_FIREWALL) || is_private_ip(rs->ip))
-		) {
+		if (send_pushes || !need_push) {
 			for (l = rs->records; l; l = l->next) {
 				struct record *rc = (struct record *) l->data;
 
@@ -1038,7 +1039,7 @@ void search_matched(struct search *sch, struct results_set *rs)
 
 				/* Attempt to autodownload each result if desirable. */
 				autodownload_notify(rc->name, rc->size, rc->index, rs->ip,
-					rs->port, rs->guid, rs->status & ST_FIREWALL);
+					rs->port, rs->guid, need_push);
 			}
 		}
 	}
@@ -1163,13 +1164,16 @@ void download_selection_of_clist(GtkCList * c)
 {
 	struct results_set *rs;
 	struct record *rc;
+	gboolean need_push;
 	GList *l;
 
 	for (l = c->selection; l; l = l->next) {
 		rc = (struct record *) gtk_clist_get_row_data(c, (gint) l->data);
 		rs = rc->results_set;
+		need_push =
+			(rs->status & ST_FIREWALL) || !check_valid_host(rs->ip, rs->port);
 		download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-					 rs->guid, rs->status & ST_FIREWALL);
+					 rs->guid, need_push);
 	}
 }
 
