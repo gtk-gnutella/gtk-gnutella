@@ -419,7 +419,7 @@
 	      <class>GtkLabel</class>
 	      <child_name>CTree:title</child_name>
 	      <name>label117</name>
-	      <label>Nagivator</label>
+	      <label>Navigator</label>
 	      <justify>GTK_JUSTIFY_CENTER</justify>
 	      <wrap>False</wrap>
 	      <xalign>7.45058e-09</xalign>

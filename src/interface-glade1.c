@@ -1509,7 +1509,7 @@ create_main_window (void)
   gtk_clist_set_selection_mode (GTK_CLIST (ctree_menu), GTK_SELECTION_BROWSE);
   gtk_clist_column_titles_show (GTK_CLIST (ctree_menu));
 
-  label117 = gtk_label_new (_("Nagivator"));
+  label117 = gtk_label_new (_("Navigator"));
   gtk_widget_set_name (label117, "label117");
   gtk_widget_ref (label117);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label117", label117,
