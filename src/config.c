@@ -1,7 +1,9 @@
 
 /* gtk-gnutella configuration */
 
+#include <sys/types.h>
 #include <sys/stat.h>
+#include <signal.h>
 #include <pwd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -163,7 +165,7 @@ enum {
 	k_end
 };
 
-gchar *keywords[] = {
+static gchar *keywords[] = {
 	"up_connections",			/* k_up_connections */
 	"auto_clear_completed_uploads",		/* k_clear_uploads */
 	"max_simultaneous_downloads",		/* k_max_downloads */
@@ -254,8 +256,10 @@ gchar *keywords[] = {
 	NULL
 };
 
-gchar cfg_tmp[4096];
-gboolean cfg_use_local_file = FALSE;	// use config file in same dir
+static gchar cfg_tmp[4096];
+static gboolean cfg_use_local_file = FALSE;	// use config file in same dir
+static time_t cfg_mtime = 0;
+static gchar *pidfile = "gtk-gnutella.pid";
 
 static gchar *file_extensions =
 	"asf;avi;"
@@ -276,7 +280,75 @@ static gchar *file_extensions =
 	"zip"	/* no trailing ";" */
 	;
 
-void config_read(void);
+static void config_read(void);
+
+/* ----------------------------------------- */
+
+/*
+ * ensure_unicity
+ *
+ * Look for any existing PID file. If found, look at the pid recorded
+ * there and make sure it has died. Abort operations if it hasn't...
+ */
+static void ensure_unicity(gchar *file)
+{
+	FILE *fd;
+	pid_t pid = (pid_t) 0;
+	gchar buf[16];
+
+	fd = fopen(file, "r");
+	if (fd == NULL)
+		return;				/* Assume it's missing if can't be opened */
+
+	buf[0] = '\0';
+	fgets(buf, sizeof(buf) - 1, fd);
+	sscanf(buf, "%d", &pid);
+	fclose(fd);
+
+	if (pid == 0)
+		return;				/* Can't read it back correctly */
+
+	/*
+	 * Existence check relies on the existence of signal 0. The kernel
+	 * won't actually send anything, but will perform all the existence
+	 * checks inherent to the kill() syscall for us...
+	 */
+
+	if (-1 == kill(pid, 0)) {
+		if (errno != ESRCH)
+			g_warning("kill() return unexpected error: %s", g_strerror(errno));
+		return;
+	}
+
+	fprintf(stderr,
+		"You seem to have left another gtk-gnutella running (pid = %d)\n",
+		pid);
+	exit(1);
+}
+
+/*
+ * save_pid
+ *
+ * Write our pid to the pidfile.
+ */
+static void save_pid(gchar *file)
+{
+	FILE *fd;
+
+	fd = fopen(file, "w");
+
+	if (fd == NULL) {
+		g_warning("unable to create pidfile \"%s\": %s",
+			file, g_strerror(errno));
+		return;
+	}
+
+	fprintf(fd, "%d\n", (gint) getpid());
+
+	if (0 != fclose(fd))
+		g_warning("could not flush pidfile \"%s\": %s",
+			file, g_strerror(errno));
+}
 
 /* ----------------------------------------- */
 
@@ -298,13 +370,10 @@ void config_init(void)
 		home_dir = g_strdup(getenv("HOME"));
 
 	if (!home_dir)
-		fprintf(stderr,
-				"\nWARNING - Can't find your home directory !\n\n");
+		g_warning("can't find your home directory!");
 
 	if (config_dir && !is_directory(config_dir)) {
-		fprintf(stderr,
-				"\nWARNING - '%s' does not exists or is not a directory !\n\n",
-				config_dir);
+		g_warning("'%s' does not exists or is not a directory!", config_dir);
 		g_free(config_dir);
 		config_dir = NULL;
 	}
@@ -315,11 +384,21 @@ void config_init(void)
 					   home_dir);
 			config_dir = g_strdup(cfg_tmp);
 		} else
-			fprintf(stderr, "\nWARNING - No configuration directory: "
-				"Prefs will not be saved !\n\n");
+			g_warning("no configuration directory: prefs will not be saved!");
 	}
 
 	if (config_dir) {
+		/* Ensure we're the only instance running */
+
+		if (cfg_use_local_file) {
+			ensure_unicity(pidfile);
+			save_pid(pidfile);
+		} else {
+			g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, pidfile);
+			ensure_unicity(cfg_tmp);
+			save_pid(cfg_tmp);
+		}
+
 		/* Parse the configuration */
 
 		config_read();
@@ -890,11 +969,12 @@ void config_set_param(guint32 keyword, gchar *value)
 	}
 }
 
-void config_read(void)
+static void config_read(void)
 {
 	FILE *config;
 	gchar *s, *k, *v;
 	guint32 i, n = 0;
+	struct stat buf;
 
 	static gchar *err = "Bad line %u in config file, ignored\n";
 
@@ -917,6 +997,12 @@ void config_read(void)
 
 	if (!config)
 		return;
+
+	if (-1 == fstat(fileno(config), &buf))
+		g_warning("could open but not fstat \"%s\" (fd #%d): %s",
+			cfg_tmp, fileno(config), g_strerror(errno));
+	else
+		cfg_mtime = buf.st_mtime;
 
 	while (fgets(cfg_tmp, sizeof(cfg_tmp), config)) {
 		n++;
@@ -985,19 +1071,41 @@ void config_save(void)
 {
 	FILE *config;
 	gint win_x, win_y, win_w, win_h;
+	gchar *filename;
+	time_t mtime = 0;
+	struct stat buf;
 
 	if (!config_dir) {
-		fprintf(stderr, "\nNo configuration directory !\n"
-			"\nPreferences have not been saved.\n\n");
+		g_warning("no configuration directory: preferences were not saved");
 		return;
 	}
 
 	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, config_file);
 
 	if (cfg_use_local_file)
-		config = fopen(config_file, "w");
+		filename = config_file;
 	else
-		config = fopen(cfg_tmp, "w");
+		filename = cfg_tmp;
+
+	if (-1 == stat(filename, &buf))
+		g_warning("could not stat \"%s\": %s", filename, g_strerror(errno));
+	else
+		mtime = buf.st_mtime;
+
+	/*
+	 * Rename old config file if they changed it whilst we were running.
+	 */
+
+	if (cfg_mtime && mtime > cfg_mtime) {
+		gchar *old = g_strconcat(filename, ".old", NULL);
+		g_warning("config file \"%s\" changed whilst I was running", filename);
+		if (-1 == rename(filename, old))
+			g_warning("unable to rename as \"%s\": %s", old, g_strerror(errno));
+		else
+			g_warning("renamed old copy as \"%s\"", old);
+	}
+
+	config = fopen(filename, "w");
 
 	if (!config) {
 		fprintf(stderr, "\nfopen(): %s\n"
@@ -1012,17 +1120,18 @@ void config_save(void)
 
 #ifdef GTA_REVISION
 	fprintf(config,
-			"\n# Gtk-Gnutella %u.%u %s (%s) by Olrick & Co. - %s\n\n",
+			"#\n# Gtk-Gnutella %u.%u %s (%s) by Olrick & Co.\n# %s\n#\n",
 			GTA_VERSION, GTA_SUBVERSION, GTA_REVISION, GTA_RELEASE,
 			GTA_WEBSITE);
 #else
-	fprintf(config, "\n# Gtk-Gnutella %u.%u (%s) by Olrick & Co. - %s\n\n",
+	fprintf(config,
+			"#\n# Gtk-Gnutella %u.%u (%s) by Olrick & Co.\n# %s\n#\n",
 			GTA_VERSION, GTA_SUBVERSION, GTA_RELEASE, GTA_WEBSITE);
 #endif
 	fprintf(config, "# This is Gtk-Gnutella configuration file - "
 		"you may edit it if you're careful.\n");
 	fprintf(config, "# (only when the program is not running: "
-		"this file is saved on quit)\n\n");
+		"this file is saved on quit)\n#\n\n");
 	fprintf(config, "%s = %u\n", keywords[k_up_connections], up_connections);
 	fprintf(config, "\n");
 	fprintf(config, "%s = %u\n", keywords[k_max_connections], max_connections);
@@ -1317,6 +1426,21 @@ void config_save(void)
 			hosts_write_to_file(cfg_tmp);
 		}
 	}
+
+	/*
+	 * Remove pidfile.
+	 */
+
+	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, pidfile);
+
+	if (cfg_use_local_file)
+		filename = pidfile;
+	else
+		filename = cfg_tmp;
+
+	if (-1 == unlink(filename))
+		g_warning("could not remove pidfile \"%s\": %s",
+			filename, g_strerror(errno));
 }
 
 /*
