@@ -186,7 +186,7 @@ void gui_update_monitor_max_items(void);
 void gui_update_move_file_path(void);
 void gui_update_my_ttl(void);
 void gui_update_node(struct gnutella_node *, gboolean);
-void gui_update_node_display(struct gnutella_node *n, time_t now);
+void gui_update_nodes_display(time_t now);
 void gui_update_node_proto(struct gnutella_node *n);
 void gui_update_node_vendor(struct gnutella_node *n);
 void gui_update_save_file_path(void);

@@ -180,7 +180,7 @@ void node_timer(time_t now)
 		if (n->searchq != NULL)
 			sq_process(n->searchq, now);
 
-		gui_update_node_display(n, now);
+		gui_update_nodes_display(now);
 	}
 }
 

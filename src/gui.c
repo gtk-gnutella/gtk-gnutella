@@ -1359,10 +1359,15 @@ void gui_update_traffic_stats() {
     	MIN(current, bws.gout->bw_per_second), 0, high_limit);
 }
 
-void gui_update_node_display(struct gnutella_node *n, time_t now)
+/*
+ * gui_node_info_str
+ *
+ * Compute info string for node.
+ * Returns pointer to static data.
+ */
+static gchar *gui_node_info_str(struct gnutella_node *n, time_t now)
 {
-	gchar *a = (gchar *) NULL;
-	gint row;
+	gchar *a;
 
 	switch (n->status) {
 	case GTA_NODE_CONNECTING:
@@ -1431,6 +1436,40 @@ void gui_update_node_display(struct gnutella_node *n, time_t now)
 	default:
 		a = "UNKNOWN STATUS";
 	}
+
+	return a;
+}
+
+/*
+ * gui_update_nodes_display
+ *
+ * Update all the nodes at the same time.
+ */
+void gui_update_nodes_display(time_t now)
+{
+	GtkCList *clist = GTK_CLIST(clist_nodes);
+	GList *l;
+	gchar *a;
+	gint row = 0;
+
+	gtk_clist_freeze(clist);
+
+	for (l = clist->row_list, row = 0; l; l = l->next, row++) {
+		struct gnutella_node *n =
+			(struct gnutella_node *) ((GtkCListRow *) l->data)->data;
+		a = gui_node_info_str(n, now);
+		gtk_clist_set_text(clist, row, 4, a);
+	}
+
+	gtk_clist_thaw(clist);
+}
+
+static void gui_update_node_display(struct gnutella_node *n, time_t now)
+{
+	gchar *a;
+	gint row;
+
+	a = gui_node_info_str(n, now);
 
 	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes), (gpointer) n);
 	gtk_clist_freeze(GTK_CLIST(clist_nodes));
