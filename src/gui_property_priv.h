@@ -31,7 +31,7 @@
 extern gboolean monitor_enabled;
 extern guint32  monitor_max_items;
 extern gboolean queue_regex_case;
-extern gboolean search_pick_all;
+extern gboolean search_autoselect;
 extern guint32  nodes_col_widths[5];
 extern guint32  dl_active_col_widths[5];
 extern guint32  dl_queued_col_widths[5];

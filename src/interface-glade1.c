@@ -249,11 +249,11 @@ create_main_window (void)
   GtkWidget *label190;
   GtkWidget *frame_search_results_settings;
   GtkWidget *table34;
-  GtkWidget *checkbutton_search_pick_all;
+  GtkWidget *checkbutton_search_autoselect;
   GtkWidget *checkbutton_search_autoselect_ident;
   GtkWidget *checkbutton_search_jump_to_downloads;
   GtkWidget *checkbutton_search_remove_downloaded;
-  GtkWidget *checkbutton_search_results_use_fuzzy;
+  GtkWidget *checkbutton_search_autoselect_fuzzy;
   GtkWidget *hbox52;
   GtkWidget *button_search_download;
   GtkWidget *button_search_clear;
@@ -2365,15 +2365,15 @@ create_main_window (void)
   gtk_table_set_row_spacings (GTK_TABLE (table34), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table34), 4);
 
-  checkbutton_search_pick_all = gtk_check_button_new_with_label ("Enable autoselect");
-  gtk_widget_ref (checkbutton_search_pick_all);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_pick_all", checkbutton_search_pick_all,
+  checkbutton_search_autoselect = gtk_check_button_new_with_label ("Enable autoselect");
+  gtk_widget_ref (checkbutton_search_autoselect);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_autoselect", checkbutton_search_autoselect,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_search_pick_all);
-  gtk_table_attach (GTK_TABLE (table34), checkbutton_search_pick_all, 0, 1, 0, 1,
+  gtk_widget_show (checkbutton_search_autoselect);
+  gtk_table_attach (GTK_TABLE (table34), checkbutton_search_autoselect, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, checkbutton_search_pick_all, "Automatically select all other results with the same name or urn:sha1.", NULL);
+  gtk_tooltips_set_tip (tooltips, checkbutton_search_autoselect, "Automatically select all other results with the same name or urn:sha1.", NULL);
 
   checkbutton_search_autoselect_ident = gtk_check_button_new_with_label ("Autoselect identical");
   gtk_widget_ref (checkbutton_search_autoselect_ident);
@@ -2403,12 +2403,12 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  checkbutton_search_results_use_fuzzy = gtk_check_button_new_with_label ("Use fuzzy matching");
-  gtk_widget_ref (checkbutton_search_results_use_fuzzy);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_results_use_fuzzy", checkbutton_search_results_use_fuzzy,
+  checkbutton_search_autoselect_fuzzy = gtk_check_button_new_with_label ("Use fuzzy matching");
+  gtk_widget_ref (checkbutton_search_autoselect_fuzzy);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_autoselect_fuzzy", checkbutton_search_autoselect_fuzzy,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_search_results_use_fuzzy);
-  gtk_table_attach (GTK_TABLE (table34), checkbutton_search_results_use_fuzzy, 2, 3, 0, 1,
+  gtk_widget_show (checkbutton_search_autoselect_fuzzy);
+  gtk_table_attach (GTK_TABLE (table34), checkbutton_search_autoselect_fuzzy, 2, 3, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 

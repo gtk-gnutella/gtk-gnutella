@@ -206,10 +206,10 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_SEARCH_PICK_ALL,
+        PROP_SEARCH_AUTOSELECT,
         update_togglebutton,
         TRUE,
-        "checkbutton_search_pick_all",
+        "checkbutton_search_autoselect",
     },
     {
         get_main_window,
@@ -217,6 +217,13 @@ static prop_map_t property_map[] = {
         update_togglebutton,
         TRUE,
         "checkbutton_search_autoselect_ident",
+    },
+    {
+        get_main_window,
+        PROP_SEARCH_AUTOSELECT_FUZZY,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_search_autoselect_fuzzy",
     },
     {
         get_main_window,

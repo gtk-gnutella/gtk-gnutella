@@ -37,7 +37,7 @@ prop = {
 };
 
 prop = {
-    name = "search_pick_all";
+    name = "search_autoselect";
     desc = "Autoselect similar files in searches";
     type = boolean;
     data = {

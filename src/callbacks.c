@@ -1858,7 +1858,7 @@ void on_clist_search_results_select_row
      * check if config setting select all is on and only autoselect if
      * only one item is selected (no way to merge two autoselections)
      */
-	if (search_pick_all && 
+	if (search_autoselect && 
        (clist->selection->next == NULL)) {
 		record_t *rc;
 		gint x, i;

@@ -830,7 +830,7 @@ void config_set_param(keyword_t keyword, gchar *value)
 	case k_search_pick_all: {
         gboolean b = (gboolean) i;
 
-		gui_prop_set_boolean(PROP_SEARCH_PICK_ALL, &b, 0, 1);
+		gui_prop_set_boolean(PROP_SEARCH_AUTOSELECT, &b, 0, 1);
 		return;
     }
 

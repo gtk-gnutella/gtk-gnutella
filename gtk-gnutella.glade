@@ -3362,7 +3362,7 @@
 
 		<widget>
 		  <class>GtkCheckButton</class>
-		  <name>checkbutton_search_pick_all</name>
+		  <name>checkbutton_search_autoselect</name>
 		  <tooltip>Automatically select all other results with the same name or urn:sha1.</tooltip>
 		  <can_focus>True</can_focus>
 		  <label>Enable autoselect</label>
@@ -3456,7 +3456,7 @@
 
 		<widget>
 		  <class>GtkCheckButton</class>
-		  <name>checkbutton_search_results_use_fuzzy</name>
+		  <name>checkbutton_search_autoselect_fuzzy</name>
 		  <can_focus>True</can_focus>
 		  <label>Use fuzzy matching</label>
 		  <active>False</active>

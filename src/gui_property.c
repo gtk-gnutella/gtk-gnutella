@@ -40,8 +40,8 @@ guint32  monitor_max_items     = 25;
 guint32  monitor_max_items_def = 25;
 gboolean queue_regex_case     = TRUE;
 gboolean queue_regex_case_def = TRUE;
-gboolean search_pick_all     = TRUE;
-gboolean search_pick_all_def = TRUE;
+gboolean search_autoselect     = TRUE;
+gboolean search_autoselect_def = TRUE;
 guint32  nodes_col_widths[5]     = { 130, 50, 120, 20, 80 };
 guint32  nodes_col_widths_def[5] = { 130, 50, 120, 20, 80 };
 guint32  dl_active_col_widths[5]     = { 240, 80, 80, 80, 80 };
@@ -184,11 +184,11 @@ prop_set_t *gui_prop_init(void) {
 
 
     /*
-     * PROP_SEARCH_PICK_ALL:
+     * PROP_SEARCH_AUTOSELECT:
      *
      * General data:
      */
-    gui_property->props[3].name = "search_pick_all";
+    gui_property->props[3].name = "search_autoselect";
     gui_property->props[3].desc = "Autoselect similar files in searches";
     gui_property->props[3].prop_changed_listeners = NULL;
     gui_property->props[3].save = TRUE;
@@ -196,8 +196,8 @@ prop_set_t *gui_prop_init(void) {
 
     /* Type specific data: */
     gui_property->props[3].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[3].data.boolean.def   = &search_pick_all_def;
-    gui_property->props[3].data.boolean.value = &search_pick_all;
+    gui_property->props[3].data.boolean.def   = &search_autoselect_def;
+    gui_property->props[3].data.boolean.value = &search_autoselect;
 
 
     /*
