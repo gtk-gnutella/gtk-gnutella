@@ -719,7 +719,6 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
 
 	/* If a parent node is selected, select all children */
 	if (GTK_CLIST(ctree)->selection != NULL) {
-
 		grc = gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));
 		rc = grc->shared_record;
 		if (NULL != rc->sha1) {
@@ -728,13 +727,24 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
 			parent = find_parent_with_sha1(sch->parents, key);
 		
 			if (NULL != parent) {
-			
 				parent_row = GTK_CTREE_ROW(parent);
 								
 				/* A parent exists with that sha1, is it the selected node? */
 				if ((parent == GTK_CTREE_NODE(node)) 
 					&& (NULL != parent_row->children)) {
-					gtk_ctree_select_recursive(ctree, GTK_CTREE_NODE(node));				
+
+					    gtk_signal_handler_block_by_func(GTK_OBJECT(ctree), 
+							GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
+        					NULL);
+
+						gtk_ctree_select_recursive(ctree, GTK_CTREE_NODE(node));
+
+						/* Force redraw, needed. - Emile Feb 02, 2004 */
+						gtk_widget_queue_draw((GtkWidget *) ctree); 
+
+					    gtk_signal_handler_unblock_by_func(GTK_OBJECT(ctree),
+        					GTK_SIGNAL_FUNC(on_ctree_search_results_select_row),
+        					NULL);
 				}
 			}
 			

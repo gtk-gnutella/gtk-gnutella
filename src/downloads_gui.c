@@ -299,6 +299,7 @@ static inline gint count_node_children(GtkCTree *ctree, GtkCTreeNode *parent)
  *	List will have to be freed later on.
  *
  * FIXME: Worst case approaches O(n*n) ensuring no duplicate children are added
+ * FIXME: There are a lot of glist "appends" in here => unneccesary O(n)
  */
 GList *downloads_gui_collect_ctree_data(GtkCTree *ctree, GList *node_list, 
 	gboolean unselect, gboolean add_children)
@@ -313,15 +314,27 @@ GList *downloads_gui_collect_ctree_data(GtkCTree *ctree, GList *node_list,
 		if (node_list->data != NULL) {
 			d = gtk_ctree_node_get_row_data(ctree, node_list->data);
 
-			if ((DL_GUI_IS_HEADER == GPOINTER_TO_INT(d)) && add_children){
-				/* Do not add parent, but add all children of parent */
+			if (DL_GUI_IS_HEADER == GPOINTER_TO_INT(d)) { /* Is a parent */
+				
 				parent = GTK_CTREE_NODE(node_list->data);
 				row = GTK_CTREE_ROW(parent);
 				node = row->children;
-				for (; NULL != node; row = GTK_CTREE_ROW(node), 
-					node = row->sibling) {		
-					dtemp = gtk_ctree_node_get_row_data(ctree, node);
 
+				if (add_children) {
+					/* Do not add parent, but add all children of parent */
+					for (; NULL != node; row = GTK_CTREE_ROW(node), 
+						node = row->sibling) {		
+						dtemp = gtk_ctree_node_get_row_data(ctree, node);
+
+						data_list = g_list_append(data_list, dtemp);
+						dup_list = g_list_append(dup_list, dtemp);
+					}
+				} else {
+					/* We only want to add one download struct to represent  all 
+					 * the nodes under this parent node.  We choose the download
+					 * struct of the first child.   
+					 */
+					dtemp = gtk_ctree_node_get_row_data(ctree, node);
 					data_list = g_list_append(data_list, dtemp);
 					dup_list = g_list_append(dup_list, dtemp);
 				}
