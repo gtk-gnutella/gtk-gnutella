@@ -686,7 +686,6 @@ bgsig_cb_t bg_task_signal(gpointer h, bgsig_t sig, bgsig_cb_t handler)
 
 	g_assert(bt);
 	g_assert(bt->magic == BT_MAGIC);
-	g_assert(bt->flags & TASK_F_RUNNING);	/* Called from running task */
 
 	oldhandler = bt->sigh[sig];
 	bt->sigh[sig] = handler;
