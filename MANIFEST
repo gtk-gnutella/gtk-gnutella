@@ -120,6 +120,8 @@ pixmaps/download.xpm
 pixmaps/exit.xpm
 pixmaps/filter.xpm
 pixmaps/firewall.xpm
+pixmaps/firewall_tcp.xpm
+pixmaps/firewall_udp.xpm
 pixmaps/freeze.xpm
 pixmaps/icon.xpm
 pixmaps/leaf.xpm
