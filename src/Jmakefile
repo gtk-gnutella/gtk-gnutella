@@ -90,6 +90,7 @@ CORE = \
 	common.c \
 	cq.c \
 	crc.c \
+	dh.c \
 	dmesh.c \
 	downloads.c \
 	dq.c \
