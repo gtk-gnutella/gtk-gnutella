@@ -84,9 +84,6 @@ struct sent_node_data {
 	guint16 port;
 };
 
-#define find_search_ctrl(s) ((search_ctrl_t *) s)
-#define new_search_handle(s) ((gnet_search_t) s)
-
 /* 
  * Structure for search results 
  */
@@ -115,6 +112,9 @@ static GSList *sl_search_ctrl = NULL;
 
 static zone_t *rs_zone;		/* Allocation of results_set */
 static zone_t *rc_zone;		/* Allocation of record */
+
+static GHashTable *search_handle_map = NULL;
+static gnet_search_t next_search_handle = 0;
 
 guint32   search_passive  = 0;		/* Amount of passive searches */
 
@@ -1063,7 +1063,61 @@ static void search_dequeue_all_nodes(gchar *qtext)
 	}
 }
 
+/*
+ * search_find_by_handle:
+ *
+ * Return a pointer to the search_ctrl struct which has the given
+ * search handle. Since the search_handle_map may not include NULL values
+ * and we don't want to allow outdated search handles, we assert that
+ * we find a non-NULL value to return.
+ */
+search_ctrl_t *search_find_by_handle(gnet_search_t sh)
+{
+    search_ctrl_t *result;
 
+    /* handle must have been assigned */
+    g_assert(sh < next_search_handle);
+
+    result = (search_ctrl_t *) g_hash_table_lookup
+        (search_handle_map, (gpointer) sh);
+
+    g_assert(result);
+
+    return result;
+}
+
+/*
+ * search_request_handle:
+ *
+ * Fetch a new search handle and register the the search/handle pair
+ * in the search_handle_map. The handle is also stored in the given
+ * search_ctrl_t struct.
+ */
+gnet_search_t search_request_handle(search_ctrl_t *sch)
+{
+    gnet_search_t sh = next_search_handle;
+
+    g_assert(sch != NULL);
+    sch->search_handle = sh;
+
+    next_search_handle ++;
+
+    g_hash_table_insert(search_handle_map, (gpointer) sh, sch);
+
+    return sh;
+}
+
+/*
+ * search_drop_handle:
+ *
+ * Drop handle from the search_handle_map. 
+ */
+void search_drop_handle(gnet_search_t sh)
+{
+    g_assert(g_hash_table_lookup(search_handle_map, (gpointer) sh) != NULL);
+
+    g_hash_table_remove(search_handle_map, (gpointer) sh);
+}
 
 
 /***
@@ -1075,6 +1129,8 @@ void search_init(void)
     printf("search_init\n");
 	rs_zone = zget(sizeof(gnet_results_set_t), 1024);
 	rc_zone = zget(sizeof(gnet_record_t), 1024);
+    
+    search_handle_map = g_hash_table_new(g_direct_hash, g_direct_equal);
 }
 
 void search_shutdown(void)
@@ -1084,6 +1140,11 @@ void search_shutdown(void)
             ((search_ctrl_t *)sl_search_ctrl->data)->query);
         search_close(((search_ctrl_t *)sl_search_ctrl->data)->search_handle);
     }
+
+    g_assert(g_hash_table_size(search_handle_map) == 0);
+
+    g_hash_table_destroy(search_handle_map);
+    search_handle_map = NULL;
 
 	zdestroy(rs_zone);
 	zdestroy(rc_zone);
@@ -1192,7 +1253,7 @@ final_cleanup:
 void search_close(gnet_search_t sh)
 {
 	GSList *m;
-    search_ctrl_t *sch = find_search_ctrl(sh);
+    search_ctrl_t *sch = search_find_by_handle(sh);
 
 	g_return_if_fail(sch);
 
@@ -1205,6 +1266,7 @@ void search_close(gnet_search_t sh)
      *      --BLUE 26/05/2002
      */
 	sl_search_ctrl = g_slist_remove(sl_search_ctrl, (gpointer) sch);
+    search_drop_handle(sch->search_handle);
 
 	if (!sch->passive) {
 		g_hook_destroy_link(&node_added_hook_list, sch->new_node_hook);
@@ -1235,7 +1297,7 @@ void search_close(gnet_search_t sh)
  */
 void search_reissue(gnet_search_t sh)
 {
-    search_ctrl_t *sch = find_search_ctrl(sh);
+    search_ctrl_t *sch = search_find_by_handle(sh);
 
     if (sch->frozen) {
         g_warning("trying to reissue a frozen search, aborted");
@@ -1257,7 +1319,7 @@ void search_reissue(gnet_search_t sh)
  */
 void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
 {
-    search_ctrl_t *sch = find_search_ctrl(sh);
+    search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
 
@@ -1277,7 +1339,7 @@ void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
  */
 guint32 search_get_reissue_timeout(gnet_search_t sh)
 {
-    search_ctrl_t *sch = find_search_ctrl(sh);
+    search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
 
@@ -1291,7 +1353,7 @@ guint32 search_get_reissue_timeout(gnet_search_t sh)
  */
 void search_set_minimum_speed(gnet_search_t sh, guint16 speed)
 {
-    search_ctrl_t *sch = find_search_ctrl(sh);
+    search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
 
@@ -1305,7 +1367,7 @@ void search_set_minimum_speed(gnet_search_t sh, guint16 speed)
  */
 guint16 search_get_minimum_speed(gnet_search_t sh)
 {
-    search_ctrl_t *sch = find_search_ctrl(sh);
+    search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
 
@@ -1324,10 +1386,10 @@ gnet_search_t search_new(
 	search_ctrl_t *sch;
 
 	sch = g_new0(search_ctrl_t, 1);
+    search_request_handle(sch);
 
 	sch->query = atom_str_get(query);
 	sch->speed = minimum_speed;
-    sch->search_handle = new_search_handle(sch);
     sch->frozen = TRUE;
 
 	if (flags & SEARCH_PASSIVE) {
@@ -1358,7 +1420,7 @@ gnet_search_t search_new(
  */
 void search_start(gnet_search_t sh)
 {
-    search_ctrl_t *sch = find_search_ctrl(sh);
+    search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch->frozen);
 
@@ -1375,7 +1437,7 @@ void search_start(gnet_search_t sh)
  */
 void search_stop(gnet_search_t sh)
 {
-    search_ctrl_t *sch = find_search_ctrl(sh);
+    search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
     g_assert(!sch->frozen);
@@ -1388,7 +1450,7 @@ void search_stop(gnet_search_t sh)
 
 gboolean search_is_frozen(gnet_search_t sh)
 {
-    search_ctrl_t *sch = find_search_ctrl(sh);
+    search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
     
@@ -1397,7 +1459,7 @@ gboolean search_is_frozen(gnet_search_t sh)
 
 gboolean search_is_passive(gnet_search_t sh)
 {
-    search_ctrl_t *sch = find_search_ctrl(sh);
+    search_ctrl_t *sch = search_find_by_handle(sh);
 
     g_assert(sch != NULL);
     

@@ -82,10 +82,10 @@
 #define ALIVE_FREQUENCY			10	/* Seconds between each alive ping */
 #define ALIVE_MAX_PENDING		4	/* Max unanswered pings in a row */
 
-#define find_node(n) ((gnutella_node_t *) n)
-#define node_new_handle(n) ((gnet_node_t) n)
-
 GSList *sl_nodes = (GSList *) NULL;
+
+static GHashTable *node_handle_map = NULL;
+static gnet_search_t next_node_handle = 0;
 
 static guint32 nodes_in_list = 0;
 static guint32 ponging_nodes = 0;
@@ -198,6 +198,62 @@ static void node_emit_node_changed
     LISTENER_EMIT(node_changed, n->node_handle, force);
 }
 
+/*
+ * node_find_by_handle:
+ *
+ * Return a pointer to the gnutella_node_t struct which has the given
+ * node handle. Since the node_handle_map may not include NULL values
+ * and we don't want to allow outdated node handles, we assert that
+ * we find a non-NULL value to return.
+ */
+gnutella_node_t *node_find_by_handle(gnet_node_t nh)
+{
+    gnutella_node_t *result;
+
+    /* handle must have been assigned */
+    g_assert(nh < next_node_handle);
+
+    result = (gnutella_node_t *) g_hash_table_lookup
+        (node_handle_map, (gpointer) nh);
+
+    g_assert(result);
+
+    return result;
+}
+
+/*
+ * node_request_handle:
+ *
+ * Fetch a new node handle and register the the node/handle pair
+ * in the node_handle_map. The node_handle field in the given
+ * gnutella_node_t struct is also filled in.
+ */
+gnet_node_t node_request_handle(gnutella_node_t *n)
+{
+    gnet_node_t nh = next_node_handle;
+
+    g_assert(n != NULL);
+    n->node_handle = nh;
+
+    next_node_handle ++;
+
+    g_hash_table_insert(node_handle_map, (gpointer) nh, n);
+
+    return nh;
+}
+
+/*
+ * node_drop_handle:
+ *
+ * Drop handle from the node_handle_map. 
+ */
+void node_drop_handle(gnet_node_t nh)
+{
+    g_assert(g_hash_table_lookup(node_handle_map, (gpointer) nh) != NULL);
+
+    g_hash_table_remove(node_handle_map, (gpointer) nh);
+}
+
 /***
  *** Node timer.
  ***/
@@ -296,6 +352,8 @@ void network_init(void)
 {
 	rxbuf_init();
 
+    node_handle_map = g_hash_table_new(g_direct_hash, g_direct_equal);
+
 	gnutella_welcome_length = strlen(gnutella_welcome);
 	gnutella_hello_length = strlen(gnutella_hello);
 	g_hook_list_init(&node_added_hook_list, sizeof(GHook));
@@ -382,6 +440,7 @@ void node_real_remove(gnutella_node_t *node)
     node_emit_node_removed(node);
 
 	sl_nodes = g_slist_remove(sl_nodes, node);
+    node_drop_handle(node->node_handle);
 
 	/*
 	 * Now that the node was removed from the list of known nodes, we
@@ -547,7 +606,7 @@ static void node_recursive_shutdown_v(
  */
 void node_remove_by_handle(gnet_node_t n)
 {
-    gnutella_node_t *node = find_node(n);
+    gnutella_node_t *node = node_find_by_handle(n);
 
     if (NODE_IS_WRITABLE(node)) {
         node_bye(node, 201, "User manual removal");
@@ -2164,9 +2223,8 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	 */
 
 	n = (struct gnutella_node *) g_malloc0(sizeof(struct gnutella_node));
-
-    n->node_handle = node_new_handle(n);
-
+    node_request_handle(n);
+    
     n->id = node_id++;
 	n->ip = ip;
 	n->port = port;
@@ -3061,6 +3119,11 @@ void node_close(void)
 
 	g_slist_free(sl_nodes);
 
+    g_assert(g_hash_table_size(node_handle_map) == 0);
+
+    g_hash_table_destroy(node_handle_map);
+    node_handle_map = NULL;
+
 	rxbuf_close();
 }
 
@@ -3106,7 +3169,7 @@ inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor)
  */
 gnet_node_info_t *node_get_info(const gnet_node_t n)
 {
-    gnutella_node_t  *node = find_node(n); 
+    gnutella_node_t  *node = node_find_by_handle(n); 
     gnet_node_info_t *info = g_new(gnet_node_info_t, 1);
 
     info->node_handle = n;
