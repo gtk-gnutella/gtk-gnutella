@@ -266,8 +266,10 @@ void on_popup_nodes_remove_activate (GtkMenuItem *menuitem, gpointer user_data);
 /***
  *** popup-search
  ***/
-void on_popup_search_dont_show_name_activate (GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_search_dont_show_sha1_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_drop_name_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_drop_sha1_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_drop_name_global_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_drop_sha1_global_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_edit_filter_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_clear_results_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_close_activate (GtkMenuItem *menuitem, gpointer user_data);
