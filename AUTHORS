@@ -11,7 +11,7 @@ Current Roles:
 	Project management: Raphael Manfredi
 	Chief architect: Raphael Manfredi
 	Core development: Raphael Manfredi
-	GUI development: Richard Eckart
+	GUI development: Richard Eckart [GTK1] / Christian Biere [GTK2]
 	Swarming development: Vidar Madsen
 	PARQ development: Jeroen Asselman
 
@@ -48,12 +48,13 @@ Contributors:
 	Jeroen Asselman <jeroen@asselman.com>
 	T'aZ <tazdev@altern.org>
 	Andrew Barnert <barnert@myrealbox.com>
-	Michael Gray <mrgray01@louisville.edu>
+	Michael Gray <mrgray01@kappa.slug.louisville.edu>
 	Nicolas Lichtmaier <niqueco@users.sf.net>
 	Emile le Vivre <emile@struggle.ca>
 	Rafael R. Reilova <rreilova@magepr.net>
 	Stephane Corbe <noubi@users.sourceforge.net>
 	Angelo Cano <angelo_cano@fastmail.fm>
+	Thomas Schuerger <schuerge@wjpserver.cs.uni-sb.de>
 
 Artwork:
 	Taken from the gtop package:
