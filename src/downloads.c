@@ -719,9 +719,11 @@ static void queue_suspend_downloads_with_file(
 		if (d->file_info != fi)
 			continue;
 
-		if (suspend)
+		if (suspend) {
+			if (!DOWNLOAD_IS_QUEUED(d))
+				download_queue(d, "Suspended (SHA1 checking)");
 			d->flags |= DL_F_SUSPENDED;		/* Can no longer be scheduled */
-		else
+		} else
 			d->flags &= ~DL_F_SUSPENDED;
 	}
 
@@ -1766,7 +1768,7 @@ static gboolean download_start_prepare(struct download *d)
 	 */
 
 	if (d->flags & DL_F_SUSPENDED) {
-		download_queue(d, "Suspended");
+		download_queue(d, "Suspended (SHA1 checking)");
 		return FALSE;
 	}
 
@@ -3227,6 +3229,7 @@ static void download_write_data(struct download *d)
 			d->pos, error);
 		download_stop(d, GTA_DL_ERROR, "Can't seek to offset %u: %s",
 			d->pos, error);
+		return;
 	}
 
 	/*
@@ -3255,15 +3258,20 @@ static void download_write_data(struct download *d)
 			  d->file_desc, s->buffer, s->pos);
 		download_stop(d, GTA_DL_ERROR, "Can't save data: %s", error);
 		return;
-	} else if (written < s->pos) {
+	}
+
+	file_info_update(d, d->pos, d->pos + written, DL_CHUNK_DONE);
+
+	if (written < s->pos) {
 		g_warning("partial write of %d out of %d bytes to file '%s'",
 			written, s->pos, d->file_info->file_name);
 		download_stop(d, GTA_DL_ERROR, "Partial write to file");
 		return;
 	}
-	file_info_update(d, d->pos, d->pos + s->pos, DL_CHUNK_DONE);
 
-	d->pos += s->pos;
+	g_assert(written == s->pos);
+
+	d->pos += written;
 	s->pos = 0;
 
 	/*
@@ -4315,6 +4323,8 @@ void download_send_request(struct download *d)
 	 * we may request the next chunk, if needed.
 	 */
 
+	g_assert(d->skip >= d->overlap_size);
+
 	d->range_end = download_filesize(d);
 
 	if (
@@ -5050,6 +5060,7 @@ static void download_verify_sha1(struct download * d)
 	g_assert(FILE_INFO_COMPLETE(d->file_info));
 	g_assert(DOWNLOAD_IS_STOPPED(d));
 	g_assert(!DOWNLOAD_IS_VERIFYING(d));
+	g_assert(!(d->flags & DL_F_SUSPENDED));
 
 	/*
 	 * Even if download was aborted or in error, we have a complete file
