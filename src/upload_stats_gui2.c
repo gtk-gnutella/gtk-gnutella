@@ -64,8 +64,8 @@ static gint upload_stats_gui_compare_values_func(
 
 	g_assert(column_id >= 0 && column_id <= c_us_num);
 
-	gtk_tree_model_get(GTK_TREE_MODEL(model), a, column_id, &size_a, -1);
-	gtk_tree_model_get(GTK_TREE_MODEL(model), b, column_id, &size_b, -1);
+	gtk_tree_model_get(GTK_TREE_MODEL(model), a, column_id, &size_a, (-1));
+	gtk_tree_model_get(GTK_TREE_MODEL(model), b, column_id, &size_b, (-1));
     return size_a == size_b ? 0 : size_a > size_b ? 1 : -1;
 }
 
@@ -78,7 +78,7 @@ static void upload_stats_cell_render_name_func(
 {
 	gchar *val;
 
-	gtk_tree_model_get(model, iter, c_us_filename, &val, -1);
+	gtk_tree_model_get(model, iter, c_us_filename, &val, (-1));
 	g_object_set(cell, "text", val, NULL);
 	G_FREE_NULL(val);
 }
@@ -93,7 +93,7 @@ static void upload_stats_cell_render_attempts_func(
 	guint val = 0;
 	gchar tmpstr[16];
 
-	gtk_tree_model_get(model, iter, c_us_attempts, &val, -1);
+	gtk_tree_model_get(model, iter, c_us_attempts, &val, (-1));
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) val);
 	g_object_set(cell, "text", tmpstr, NULL);
 }
@@ -108,7 +108,7 @@ static void upload_stats_cell_render_complete_func(
 	guint val = 0;
 	gchar tmpstr[16];
 
-	gtk_tree_model_get(model, iter, c_us_complete, &val, -1);
+	gtk_tree_model_get(model, iter, c_us_complete, &val, (-1));
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) val);
 	g_object_set(cell, "text", tmpstr, NULL);
 }
@@ -122,7 +122,7 @@ static void upload_stats_cell_render_size_func(
 {
 	guint val = 0;
 
-	gtk_tree_model_get(model, iter, c_us_size, &val, -1);
+	gtk_tree_model_get(model, iter, c_us_size, &val, (-1));
 	g_object_set(cell, "text", short_size(val), NULL);
 }
 
@@ -136,20 +136,20 @@ static void upload_stats_cell_render_norm_func(
 	guint val = 0;
 	gchar tmpstr[16];
 
-	gtk_tree_model_get(model, iter, c_us_norm, &val, -1);
+	gtk_tree_model_get(model, iter, c_us_norm, &val, (-1));
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%lu.%lu",
 		(gulong) val / 1000, (gulong) val % 1000);
 	g_object_set(cell, "text", tmpstr, NULL);
 }
 
-static void upload_stats_gui_column_resized(
+static void on_column_resized(
 	GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
 {
 	gint column_id = GPOINTER_TO_INT(data);
 	guint32 width;
 	static GStaticMutex mutex = G_STATIC_MUTEX_INIT; 
 
-	g_assert(column_id >= 0 && column_id <= 5);
+	g_assert(column_id >= 0 && column_id < UPLOAD_STATS_GUI_VISIBLE_COLUMNS);
 	g_static_mutex_lock(&mutex);
     width = gtk_tree_view_column_get_width(column);
 	if ((gint) width < 1)
@@ -189,8 +189,7 @@ static void upload_stats_gui_add_column(
     gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
 	g_object_notify(G_OBJECT(column), "width");
 	g_signal_connect(G_OBJECT(column), "notify::width",
-		G_CALLBACK(&upload_stats_gui_column_resized),
-		GINT_TO_POINTER(column_id));
+		G_CALLBACK(on_column_resized), GINT_TO_POINTER(column_id));
 }
 
 static struct ul_stats *upload_stats_gui_find(
@@ -205,7 +204,7 @@ static struct ul_stats *upload_stats_gui_find(
 	while (valid) {
 		struct ul_stats *us = NULL;
 
-		gtk_tree_model_get(GTK_TREE_MODEL(model), iter, c_us_stat, &us, -1);
+		gtk_tree_model_get(GTK_TREE_MODEL(model), iter, c_us_stat, &us, (-1));
 		if (us->size == size && g_str_equal(us->filename, name)) {
 			return us;
 		}
@@ -233,7 +232,7 @@ void upload_stats_gui_add(struct ul_stats *us)
 		c_us_size, (guint) us->size,
 		c_us_norm, (guint) us->norm * 1000,
 		c_us_stat, us,
-		-1);
+		(-1));
 }
 
 void upload_stats_gui_init(void)
@@ -308,7 +307,7 @@ void upload_stats_gui_update(const gchar *name, guint64 size)
 		c_us_attempts, (guint) us->attempts,
 		c_us_complete, (guint) us->complete,
 		c_us_norm, (guint) (us->norm * 1000),
-		-1);
+		(-1));
 }
 
 void upload_stats_gui_clear_all(void)

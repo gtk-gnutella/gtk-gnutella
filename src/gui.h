@@ -57,9 +57,10 @@ enum {
     c_ul_range,
     c_ul_agent,
     c_ul_status,
-#ifdef USE_GTK2	
-	c_ul_fg,
-	c_ul_data,
+#ifdef USE_GTK2
+#define UPLOADS_GUI_VISIBLE_COLUMNS 6
+    c_ul_fg,
+    c_ul_data,
 #endif
 
 	c_ul_num
@@ -68,7 +69,7 @@ enum {
 
 
 /*
- * Uploads table columns
+ * Upload stats columns
  */
 enum {
     c_us_filename = 0,
@@ -76,6 +77,7 @@ enum {
     c_us_attempts,
     c_us_complete,
     c_us_norm,
+#define UPLOAD_STATS_GUI_VISIBLE_COLUMNS 5
 	c_us_stat,
 
 	c_us_num
