@@ -5901,10 +5901,10 @@ static void download_write_request(
 		http_buffer_add_read(r, sent);
 		return;
 	} else if (dbg > 2) {
-		printf("----Sent Request (%s) completely to %s:\n%.*s----\n",
+		printf("----Sent Request (%s) completely to %s (%d bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
-			http_buffer_length(r), http_buffer_base(r));
+			http_buffer_length(r), http_buffer_length(r), http_buffer_base(r));
 		fflush(stdout);
 	}
 
@@ -6256,10 +6256,10 @@ picked:
 
 		return;
 	} else if (dbg > 2) {
-		printf("----Sent Request (%s) to %s:\n%.*s----\n",
+		printf("----Sent Request (%s) to %s (%d bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
-				(int) rw, dl_tmp);
+			(int) rw, (int) rw, dl_tmp);
 		fflush(stdout);
 	}
 
