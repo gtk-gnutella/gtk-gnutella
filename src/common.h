@@ -87,6 +87,8 @@
 #include <netinet/ip.h>
 #endif
 
+#include <glib.h>
+
 /*
  * Macro to print signed 64-bit integers
  */
@@ -128,7 +130,6 @@
 #include <stdarg.h>
 #include <regex.h>
 
-#include <glib.h>
 #include <zlib.h>
 
 #ifdef USE_GLIB1
