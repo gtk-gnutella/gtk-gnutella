@@ -1221,6 +1221,18 @@ gboolean huge_has_xalt_support(const gchar *vendor)
 		return TRUE;
 
 	/*
+	 * After 01/01/2004, we blindly emit X-Alt.
+	 *
+	 * After that date, the x_alt hash and the logic for recording vendors
+	 * supporting X-Alt will have to be removed.  GTKG will always emit
+	 * alt-locs using X-Alt BUT will continue to parse the old-fashionned
+	 * alternate locations given by other servents.
+	 */
+
+	if (time(NULL) >= 1072911600)		/* Thu Jan  1 00:00:00 2004 */
+		return TRUE;
+
+	/*
 	 * Look for GTKG version of 05/10/2003 or greater, which is the cut-off
 	 * date after which we started parsing X-Alt.
 	 */
