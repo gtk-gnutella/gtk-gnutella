@@ -1711,8 +1711,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	http_extra_desc_t hev[3];
 	gint hevcnt = 0;
 	guchar *sha1;
-	gboolean is_followup = 
-		u->status == GTA_UL_WAITING;
+	gboolean is_followup = u->status == GTA_UL_WAITING;
+	gboolean was_actively_queued = u->status == GTA_UL_QUEUED;
 	gboolean faked = FALSE;
 	gchar *token;
 	gpointer parq_handle = NULL;
@@ -2083,9 +2083,10 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 				 * only happens when a client got banned. Bye bye!
 			 	 *		-- JA, 19/05/'03
 				 */
-				upload_error_remove(u, reqfile, 403, 
-					"Minimum retry delay not honoured. "
-					"Removed from PARQ queue");
+				upload_error_remove(u, reqfile, 403,
+					"%s not honoured; removed from PARQ queue",
+					was_actively_queued ?
+						"Minimum retry delay" : "Retry-After");
 				return;
 			}
 
