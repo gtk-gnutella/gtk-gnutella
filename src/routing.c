@@ -283,6 +283,8 @@ retry:
 	debug_msg[GTA_MSG_SEARCH_RESULTS] = "Q-Hit";
 	debug_msg[GTA_MSG_PUSH_REQUEST]   = "Push ";
 	debug_msg[GTA_MSG_VENDOR]         = "Vndor";
+	debug_msg[GTA_MSG_STANDARD]       = "V-Std";
+	debug_msg[GTA_MSG_QRP]            = "QRP  ";
 
 	/*
 	 * Should be around for life of program, so should *never*
@@ -839,15 +841,26 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 
 		sender->header.hops++;
 
-		if (!--sender->header.ttl) {
-			/* TTL expired, message stops here */
-			routing_log("(TTL expired)\n");
-            gnet_stats_count_expired(sender);
-			sender->rx_dropped++;
-			return handle_it;
-		}
+		/*
+		 * If the TTL expired, drop the message, unless the target is a
+		 * leaf node, in which case we'll forward it the reply.
+		 */
 
 		found = ((struct route_data *) m->routes->data)->node;
+
+		if (!--sender->header.ttl) {
+			if (NODE_IS_LEAF(found)) {
+				/* TTL expired, but target is a leaf node */
+				routing_log("(expired TTL bumped)\n");
+				sender->header.ttl = 1;
+			} else {
+				/* TTL expired, message stops here */
+				routing_log("(TTL expired)\n");
+				gnet_stats_count_expired(sender);
+				sender->rx_dropped++;
+				return handle_it;
+			}
+		}
 
 		routing_log("-> sendto_one(%s)\n", node_ip(found));
 
