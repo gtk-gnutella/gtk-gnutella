@@ -845,10 +845,11 @@ void pcache_ping_received(struct gnutella_node *n)
 		(n->attrs & (NODE_A_PONG_CACHING|NODE_A_PONG_ALIEN)) ==
 			NODE_A_PONG_CACHING
 	) {
-		g_warning("node %s (%s) [%d.%d] claimed ping reduction, "
-			"got ping with hops=%d", node_ip(n),
-			n->vendor ? n->vendor : "????",
-			n->proto_major, n->proto_minor, n->header.hops);
+		if (dbg)
+			g_warning("node %s (%s) [%d.%d] claimed ping reduction, "
+				"got ping with hops=%d", node_ip(n),
+				n->vendor ? n->vendor : "????",
+				n->proto_major, n->proto_minor, n->header.hops);
 		n->attrs |= NODE_A_PONG_ALIEN;		/* Warn only once */
 	}
 
@@ -968,8 +969,10 @@ void pcache_pong_received(struct gnutella_node *n)
 				n->gnet_ip = ip;		/* Signals: we have figured it out */
 				n->gnet_port = port;
 			} else if (!(n->flags & NODE_F_ALIEN_IP)) {
-				g_warning("node %s sent us a pong for itself with alien IP %s",
-					node_ip(n), ip_to_gchar(ip));
+				if (dbg)
+					g_warning(
+						"node %s sent us a pong for itself with alien IP %s",
+						node_ip(n), ip_to_gchar(ip));
 				n->flags |= NODE_F_ALIEN_IP;	/* Probably firewalled */
 			}
 		}
