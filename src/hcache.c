@@ -183,7 +183,7 @@ static GHashTable * ht_known_hosts = NULL;
 
 static void hcache_update_low_on_pongs(void)
 {
-    host_low_on_pongs = ( 
+    host_low_on_pongs = (guint) ( 
             caches[HCACHE_FRESH_ANY]->host_count +
             caches[HCACHE_VALID_ANY]->host_count 
         ) < (max_hosts_cached >> 3);
@@ -1449,7 +1449,7 @@ void hcache_shutdown(void)
  */
 void hcache_close(void)
 {
-	static hcache_type_t types[] = { 
+	static const hcache_type_t types[] = { 
         HCACHE_FRESH_ANY, 
         HCACHE_FRESH_ULTRA,
         HCACHE_VALID_ANY,
@@ -1458,7 +1458,7 @@ void hcache_close(void)
         HCACHE_BUSY,
         HCACHE_UNSTABLE
     };
-	gint i;
+	guint i;
 
     /*
      * First we stop all background processes and remove all hosts, 
@@ -1474,7 +1474,7 @@ void hcache_close(void)
         hcache_remove_all(caches[type]);
 	}
 
-	for (i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
+	for (i = 0; i < G_N_ELEMENTS(types); i++) {
 		hcache_type_t type = types[i];
 
 		hcache_free(caches[type]);

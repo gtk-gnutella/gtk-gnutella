@@ -73,14 +73,13 @@ static gchar *guint_to_str(guint32 i)
 void hcache_gui_init(void)
 {
     GtkCList *clist_hcache;
-    gchar *titles[5];
-    gint n;
+    const gchar *titles[5];
+    guint n;
 
     for (n = 0; n < G_N_ELEMENTS(titles); n ++)
         titles[n] = "-";
 
-    clist_hcache = GTK_CLIST(
-        lookup_widget(main_window, "clist_hcache"));
+    clist_hcache = GTK_CLIST(lookup_widget(main_window, "clist_hcache"));
 
     /*
      * Stats can't be sorted: make column headers insensitive.
@@ -93,9 +92,10 @@ void hcache_gui_init(void)
     for (n = 0; n < HCACHE_MAX; n ++) {
         gint row;
 
-        titles[0] = (gchar *) get_hcache_name(n);
+        titles[0] = get_hcache_name(n);
 
-        row = gtk_clist_append(clist_hcache, titles);
+	/* Override const */
+        row = gtk_clist_append(clist_hcache, (gchar **) titles);
         gtk_clist_set_selectable(clist_hcache, row, FALSE);
     }
 
