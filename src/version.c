@@ -32,6 +32,8 @@
 
 #include "version.h"
 #include "token.h"
+#include "gnet_property.h"
+#include "settings.h"
 
 RCSID("$Id$");
 
@@ -526,16 +528,55 @@ void version_init(void)
 }
 
 /*
+ * version_maybe_refuse
+ *
+ * Called when the version has expired since the indicated amount.
+ * If that amount is greater than our grace period, refuse to run unless
+ * they set the "ancient_version_force" property explicitly.
+ */
+static void version_maybe_refuse(time_t overtime)
+{
+	gchar *force;
+	property_t prop = PROP_ANCIENT_VERSION_FORCE;
+
+printf("overtime = %d\n", overtime);
+
+	if (overtime < VERSION_ANCIENT_GRACE)
+		return;
+
+	force = gnet_prop_get_string(prop, NULL, 0);
+
+	if (0 == strcmp(force, version_string)) {
+		g_free(force);
+		return;
+	}
+
+	/*
+	 * Sorry, they must explicitly allow us to run, we're too ancient.
+	 */
+
+	settings_ask_for_property(gnet_prop_name(prop), version_string);
+
+	/* NOTREACHED */
+}
+
+/*
  * version_ancient_warn
  *
  * Called after GUI initialized to warn them about an ancient version.
  * (over a year old).
  *
- * If the version being ran is not a stable one, warn after 60 days.
+ * If the version being ran is not a stable one, warn after 60 days, otherwise
+ * warn after a year.  If we're not "expired" yet but are approaching the
+ * deadline, start to remind them.  After the deadline plus some grace period,
+ * refuse to run unless a special property is set.
  */
 void version_ancient_warn(void)
 {
 	time_t now = time(NULL);
+	time_t lifetime;
+	time_t remain;
+	time_t elapsed;
 
 	g_assert(our_version.timestamp > 0);	/* version_init() called */
 
@@ -548,21 +589,37 @@ void version_ancient_warn(void)
 
 	gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, FALSE);
 
-	if (
-		now - our_version.timestamp > VERSION_ANCIENT_WARN ||
-		tok_is_ancient(now)
-	) {
+	elapsed = now - our_version.timestamp;
+
+printf("elapsed = %d\n", elapsed);
+
+	if (elapsed > VERSION_ANCIENT_WARN || tok_is_ancient(now)) {
+		version_maybe_refuse(elapsed - VERSION_ANCIENT_WARN);
 		g_warning("version of gtk-gnutella is too old, you should upgrade!");
         gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, TRUE);
+		return;
 	}
 
-	if (
-		our_version.tag &&
-		now - our_version.timestamp > VERSION_UNSTABLE_WARN
-	) {
+	if (our_version.tag && elapsed > VERSION_UNSTABLE_WARN) {
+		version_maybe_refuse(elapsed - VERSION_UNSTABLE_WARN);
 		g_warning("unstable version of gtk-gnutella is aging, please upgrade!");
         gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, TRUE);
+		return;
 	}
+
+	/*
+	 * Check whether we're nearing ancient version status, to warn them
+	 * beforehand that the version will become old soon.
+	 */
+
+	lifetime = our_version.tag ? VERSION_UNSTABLE_WARN : VERSION_ANCIENT_WARN;
+	remain = lifetime - elapsed;
+
+	g_assert(remain >= 0);		/* None of the checks above have fired */
+
+	if (remain < VERSION_ANCIENT_REMIND)
+        gnet_prop_set_guint32_val(PROP_ANCIENT_VERSION_LEFT_DAYS,
+			remain / 86400);
 }
 
 /*

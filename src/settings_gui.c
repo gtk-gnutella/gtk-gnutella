@@ -163,6 +163,7 @@ static gboolean proxy_ip_changed(property_t prop);
 static gboolean monitor_enabled_changed(property_t prop);
 static gboolean reading_hostfile_changed(property_t prop);
 static gboolean ancient_version_changed(property_t prop);
+static gboolean ancient_version_left_days_changed(property_t prop);
 static gboolean new_version_str_changed(property_t prop);
 static gboolean send_pushes_changed(property_t prop);
 static gboolean statusbar_visible_changed(property_t prop);
@@ -1196,6 +1197,14 @@ static prop_map_t property_map[] = {
         get_main_window,
         PROP_ANCIENT_VERSION,
         ancient_version_changed,
+        TRUE,
+        NULL,
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_ANCIENT_VERSION_LEFT_DAYS,
+        ancient_version_left_days_changed,
         TRUE,
         NULL,
         FREQ_UPDATES, 0
@@ -3673,6 +3682,24 @@ static gboolean ancient_version_changed(property_t prop)
     gnet_prop_get_boolean_val(prop, &b);
     if (b)
         statusbar_gui_warning(15, _("*** RUNNING AN OLD VERSION! ***"));
+
+    return FALSE;
+}
+
+static gboolean ancient_version_left_days_changed(property_t prop)
+{
+    guint32 remain;
+
+    gnet_prop_get_guint32_val(prop, &remain);
+
+	if (remain == 0)
+		statusbar_gui_warning(15, _("*** VERSION WILL SOON BECOME OLD! ***"));
+	else if (remain == 1)
+		statusbar_gui_warning(15,
+			_("*** VERSION WILL BECOME OLD IN 1 DAY! ***"));
+	else
+		statusbar_gui_warning(15,
+			_("*** VERSION WILL BECOME OLD IN %d DAYS! ***"), remain);
 
     return FALSE;
 }

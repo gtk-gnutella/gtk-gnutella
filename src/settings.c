@@ -480,6 +480,36 @@ guint32 settings_max_msg_size(void)
 	return maxsize;
 }
 
+/*
+ * settings_ask_for_property
+ *
+ * Ask them to set a property to be able to run.
+ */
+void settings_ask_for_property(gchar *name, gchar *value)
+{
+	extern void gtk_gnutella_exit(gint);
+
+	fprintf(stderr, "\n*** ANCIENT VERSION DETECTED! ***\n\n");
+	fprintf(stderr,
+		"Sorry, this program is too ancient to run without\n"
+		"an explicit user action: please edit the file\n\n"
+		"\t%s/%s\n\n"
+		"and set the variable \"%s\" to\n\"%s\".\n\n"
+		"You will then be able to run this version forever, but\n"
+		"please consider upgrading, as Gnutella is an evolving\n"
+		"network, where ancient versions are less performant, if\n"
+		"not harmful!\n\n",
+		config_dir, config_file, name, value);
+	fprintf(stderr, "*** EXITING ***\n\n");
+
+	gtk_gnutella_exit(1);
+}
+
+/*
+ * settings_shutdown
+ *
+ * Called at exit time to flush the property files.
+ */
 void settings_shutdown(void)
 {
 	update_servent_uptime();

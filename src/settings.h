@@ -52,6 +52,7 @@ guint32 settings_max_msg_size(void);
 const gchar *settings_config_dir(void);
 const gchar *settings_home_dir(void);
 void settings_close(void);
+void settings_ask_for_property(gchar *name, gchar *value);
 
 time_t get_average_servent_uptime(time_t now);
 time_t get_average_ip_lifetime(time_t now);
