@@ -55,6 +55,20 @@ static void nodes_gui_node_info_changed(gnet_node_t);
 static void nodes_gui_node_flags_changed(gnet_node_t);
 static void nodes_gui_add_column(GtkTreeView *, gint, const gchar *);
 
+static void on_nodes_gui_column_resized(
+	GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
+{
+    guint32 width;
+    gint column_id = GPOINTER_TO_INT(data);
+    static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
+
+	g_assert(column_id >= 0 && column_id <= 6);
+	g_static_mutex_lock(&mutex);
+	width = gtk_tree_view_column_get_width(column);
+	gui_prop_set_guint32(PROP_NODES_COL_WIDTHS, &width, column_id, 1);
+	g_static_mutex_unlock(&mutex);
+}
+
 /*
  * nodes_gui_find_node:
  *
@@ -127,6 +141,8 @@ void nodes_gui_init()
 		GTK_SELECTION_MULTIPLE);
 
     nodes_gui_cell_renderer = gtk_cell_renderer_text_new();
+	gtk_cell_renderer_text_set_fixed_height_from_font(
+		GTK_CELL_RENDERER_TEXT(nodes_gui_cell_renderer), 1);
     g_object_set(nodes_gui_cell_renderer,
 		"ypad", (gint) GUI_CELL_RENDERER_YPAD, NULL);
     nodes_gui_add_column(tree, COL_NODE_HOST, "Host");
@@ -193,7 +209,7 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 		n->proto_major, n->proto_minor);
     handle = n->node_handle;
 
-	vendor = locale_to_utf8(n->vendor ? n->vendor : "...", -1);
+	vendor = g_strdup(locale_to_utf8(n->vendor ? n->vendor : "...", -1));
     gtk_list_store_set(nodes_model, &iter, 
         COL_NODE_HOST,    ip_port_to_gchar(n->ip, n->port),
         COL_NODE_TYPE,    "...",
@@ -370,7 +386,7 @@ void nodes_gui_update_node_info(gnet_node_info_t *n)
         g_snprintf(version, sizeof(version), "%d.%d",
             n->proto_major, n->proto_minor);
 
-		vendor = locale_to_utf8(n->vendor ? n->vendor : "...", -1);
+		vendor = g_strdup(locale_to_utf8(n->vendor ? n->vendor : "...", -1));
         gtk_list_store_set(nodes_model, &iter, 
             COL_NODE_VENDOR,  vendor,
             COL_NODE_VERSION, version,
@@ -531,8 +547,11 @@ static void nodes_gui_add_column(
     gtk_tree_view_column_set_reorderable(column, TRUE);
     gtk_tree_view_column_set_resizable(column, TRUE);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
-    gtk_tree_view_column_set_min_width(column, 0);
-    gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
+    gtk_tree_view_column_set_min_width(column, 1);
+    gtk_tree_view_append_column(GTK_TREE_VIEW (tree), column);
+	g_object_notify(G_OBJECT(column), "width");
+	g_signal_connect(G_OBJECT(column), "notify::width",
+		G_CALLBACK(on_nodes_gui_column_resized), GINT_TO_POINTER(column_id));
 }
 
 static void nodes_gui_remove_selected_helper(
