@@ -660,15 +660,15 @@ msgstr "Sta toe dat HTTP en Gnutella elkaars bandbreedte gebruiken dat de ander 
 
 #: src/gnet_property.c:1749
 msgid "Auto clear completed downloads"
-msgstr "Automatisch opschonen: afgeronde downloads"
+msgstr "Afgeronde downloads automatisch opschonen"
 
 #: src/gnet_property.c:1766
 msgid "Auto clear failed downloads (HTTP error, failure to resume, write error, etc...)."
-msgstr "Automatisch opschonen van mislukte downloads (HTTP fouten, niet verder kunnen gaan, schrijffouten, etc...)."
+msgstr "Mislukte downloads (HTTP fouten, niet verder kunnen gaan, schrijffouten, etc...) automatisch opschonen."
 
 #: src/gnet_property.c:1783
 msgid "Auto clear unavailable downloads (connection timeout, push route lost, etc...)."
-msgstr "Automatisch opschonen van niet beschikbare downloads (timeout van verbinding, push route verdwenen, etc...)."
+msgstr "Niet beschikbare downloads (timeout van verbinding, push route verdwenen, etc...) automatisch opschonen."
 
 #: src/gnet_property.c:1800
 msgid "Remove downloaded files from the search result"
