@@ -1768,7 +1768,8 @@ static void node_process_handshake_header(
             settings_ip_changed(ip);
 	}
 
-	 /* X-Live-Since -- time at which the remote node started. */
+	/* X-Live-Since -- time at which the remote node started. */
+	/* Uptime -- the remote host uptime.  Only used by Gnucleus. */
 
 	field = header_get(head, "X-Live-Since");
 	if (field) {
@@ -1778,8 +1779,21 @@ static void node_process_handshake_header(
 		if (up == -1)
 			g_warning("cannot parse X-Live-Since \"%s\" from %s (%s)",
 				field, node_ip(n), n->vendor ? n->vendor : "<unkown vendor>");
-		else
-			n->up_date = up;
+		else 
+			n->up_date = MIN(up, now);
+	} else {
+		field = header_get(head, "Uptime");
+		if (field) {
+			time_t now = time(NULL);
+			gint days, hours, mins;
+
+			if (3 == sscanf(field, "%dD %dH %dM", &days, &hours, &mins))
+				n->up_date = now - 86400 * days - 3600 * hours - 60 * mins;
+			else
+				g_warning("cannot parse Uptime \"%s\" from %s (%s)",
+					field, node_ip(n),
+					n->vendor ? n->vendor : "<unkown vendor>");
+		}
 	}
 
 	/*
