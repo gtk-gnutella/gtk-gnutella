@@ -1679,8 +1679,6 @@ http_async_build_request(gpointer handle, gchar *buf, gint len,
 		"\r\n",
 		verb, path, host, port_str, version_string);
 	
-	header_features_generate(&xfeatures.downloads, buf, len, &rw);
-	
 	return rw;
 }
 
