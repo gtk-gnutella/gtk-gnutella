@@ -159,6 +159,17 @@ typedef void (*GCallback) (void);
 
 #define SRC_PREFIX	"src/"		/* Common prefix to remove in filenames */
 
+/*
+ * Sources should use _WHERE_ instead of __FILE__ and call short_filename()
+ * on the resulting string before perusing it to remove the common prefix
+ * defined by SRC_PREFIX.
+ */
+#ifdef CURDIR					/* Set by makefile */
+#define _WHERE_	STRINGIFY(CURDIR) "/" __FILE__
+#else
+#define _WHERE_	__FILE__
+#endif
+
 #define G_FREE_NULL(p)		\
 do {				\
 	if (p) {		\
