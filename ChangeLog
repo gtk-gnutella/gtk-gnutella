@@ -1,5 +1,10 @@
 # since last version
 
+- (2002.11.11 Richard)
+ * Added entry for PROP_BAD_FILE_PATH to download config
+ * Added icons to reflect state of PROP_FILE_MOVING
+ * Added uptime and connected time columns to nodes table
+
 - (2002.11.11 RAM)
  * New http://gwebcache.bearshare.net/gcache.php replaces the old zero-g.net
    hardwired bootstrapping web cache, which was shutdown due to traffic.
