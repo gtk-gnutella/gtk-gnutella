@@ -74,6 +74,8 @@ public guint sha1_hash(gconstpointer key);
 public gint sha1_eq(gconstpointer a, gconstpointer b);
 static gint sha1_len(gconstpointer v);
 static gchar *sha1_str(gconstpointer v);
+static gint int_len(gconstpointer v);
+static gchar *int_str(gconstpointer v);
 
 #undef public
 
@@ -84,6 +86,7 @@ struct table_desc atoms[] = {
 	{ "String",	NULL,	g_str_hash,	g_str_equal, str_len,	str_str	},	/* 0 */
 	{ "GUID",	NULL,	guid_hash,	guid_eq,	 guid_len,	guid_str},	/* 1 */
 	{ "SHA1",	NULL,	sha1_hash,	sha1_eq,	 sha1_len,	sha1_str},	/* 2 */
+	{ "int",	NULL,	g_int_hash,	g_int_equal, int_len,	int_str},	/* 3 */
 };
 
 #define COUNT(x)	(sizeof(x) / sizeof(x[0]))
@@ -221,6 +224,31 @@ static gint sha1_len(gconstpointer v)
 static gchar *sha1_str(gconstpointer v)
 {
 	return sha1_base32((guchar *) v);
+}
+
+/*
+ * int_len
+ *
+ * Returns length of an int.
+ */
+static gint int_len(gconstpointer v)
+{
+	return sizeof(gint);
+}
+
+/*
+ * int_str
+ *
+ * Returns printable form of an int, as pointer to static data.
+ */
+static gchar *int_str(gconstpointer v)
+{
+	static gchar fmt[32];
+
+	g_snprintf(fmt, sizeof(fmt), "%d/%u", *(gint *) v, *(guint *) v);
+	fmt[sizeof(fmt)-1] = '\0';
+
+	return fmt;
 }
 
 /*

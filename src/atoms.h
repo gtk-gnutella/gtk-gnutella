@@ -37,6 +37,7 @@
 #define ATOM_STRING		0		/* Strings */
 #define ATOM_GUID		1		/* GUIDs (binary, 16 bytes) */
 #define ATOM_SHA1		2		/* SHA1 (binary, 20 bytes) */
+#define ATOM_INT		3		/* integers (binary, 4 bytes) */
 
 /*
  * Convenience macros.
@@ -50,6 +51,9 @@
 
 #define atom_sha1_get(k)	atom_get(ATOM_SHA1, k)
 #define atom_sha1_free(k)	atom_free(ATOM_SHA1, k)
+
+#define atom_int_get(k)		atom_get(ATOM_INT, k)
+#define atom_int_free(k)	atom_free(ATOM_INT, k)
 
 /*
  * Public interface.
