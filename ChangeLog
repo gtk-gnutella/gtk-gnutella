@@ -1,5 +1,13 @@
 # since last version
 
+- (2003.10.04 - Jeroen)
+ * Closed bug #784574 Transferred files byte counter rollover. Transfer counter
+   is now a 64 bit counter.
+ * Added GUIN64 to the props.tpl and corresponding files.
+ 
+- (2003.10.03 - Jeroen)
+ * Don't assert when u->name == NULL. EG, when a file is not found
+
 - (2003.10.02 - Jeroen)
  * Added extra assertions to parq to verify u->name != NULL. Trying to track
    a porting problem
