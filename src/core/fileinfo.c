@@ -4071,6 +4071,7 @@ fi_get_info(gnet_fi_t fih)
 
     info = walloc(sizeof(*info));
 
+    info->path = fi->path ? atom_str_get(fi->path) : NULL;
     info->file_name = fi->file_name ? atom_str_get(fi->file_name) : NULL;
     info->sha1 = fi->sha1 ? atom_sha1_get(fi->sha1) : NULL;
     info->fi_handle = fi->fi_handle;
@@ -4091,6 +4092,8 @@ fi_free_info(gnet_fi_info_t *info)
 
     g_assert(info != NULL);
 
+	if (info->path)
+		atom_str_free(info->path);
 	if (info->file_name)
 		atom_str_free(info->file_name);
 	if (info->sha1)

@@ -46,6 +46,7 @@ typedef guint32 gnet_fi_t;
 
 typedef struct gnet_fi_info {
 	gnet_fi_t fi_handle;
+	gchar *path;				/* Path of the directory of the file on disk */
 	gchar *file_name;			/* Name of the file on disk */
 	gchar *sha1;				/* SHA1 (binary) of the file or NULL */
 	GSList *aliases;			/* List of aliases (NULL if none) */
