@@ -999,9 +999,7 @@ static gboolean proxy_protocol_changed(property_t prop)
 
 	gnet_prop_get_boolean_val(PROP_PROXY_CONNECTIONS, &use_proxy);
 	if (!use_proxy) {
-    	guint32 val = PROXY_NONE;
-
-    	gnet_prop_set_guint32_val(prop, val);
+    	gnet_prop_set_guint32_val(prop, PROXY_NONE);
 		/*
 		 * set the deprecated property to TRUE, otherwise we could not enable
 		 * the proxy because after the next start, PROP_PROXY_PROTOCOL would
