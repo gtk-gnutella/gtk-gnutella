@@ -498,30 +498,58 @@ static void shared_dirs_free(void)
 	}
 }
 
-void shared_dirs_parse(gchar * str)
+void shared_dirs_update_prop(void)
+{
+    GSList *sl;
+    GString *s;
+
+    s = g_string_new("");
+
+    for (sl = shared_dirs; sl != NULL; sl = g_slist_next(sl)) {
+        g_string_append(s, sl->data);
+        if (g_slist_next(sl) != NULL)
+            g_string_append(s, ":");
+    }
+
+    gnet_prop_set_string(PROP_SHARED_DIRS_PATHS, s->str);
+
+    g_string_free(s, TRUE);
+}
+
+/*
+ * shared_dirs_parse:
+ *
+ * Parses the given string and updated the internal list of shared dirs.
+ * The given string was completely parsed, it returns TRUE, otherwise
+ * it returns FALSE.
+ */
+gboolean shared_dirs_parse(gchar *str)
 {
 	gchar **dirs = g_strsplit(str, ":", 0);
-	guint i;
+	guint i = 0;
+    gboolean ret = TRUE;
 
 	shared_dirs_free();
-
-	i = 0;
 
 	while (dirs[i]) {
 		if (is_directory(dirs[i]))
 			shared_dirs = g_slist_append(shared_dirs, atom_str_get(dirs[i]));
+        else 
+            ret = FALSE;
 		i++;
 	}
 
 	g_strfreev(dirs);
+
+    return ret;
 }
 
 void shared_dir_add(gchar * path)
 {
-	if (!is_directory(path))
-		return;
+	if (is_directory(path))
+        shared_dirs = g_slist_append(shared_dirs, atom_str_get(path));
 
-	shared_dirs = g_slist_append(shared_dirs, atom_str_get(path));
+    shared_dirs_update_prop();
 }
 
 /*

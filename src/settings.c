@@ -613,12 +613,14 @@ static gboolean shared_dirs_paths_changed(property_t prop)
 {
     gchar *s = gnet_prop_get_string(prop, NULL, 0);
 
-    // FIXME: should give notification or reset prop if parsing fails
-    shared_dirs_parse(s);
-
-    g_free(s);
-
-    return FALSE;
+    if (!shared_dirs_parse(s)) {
+        g_free(s);
+        shared_dirs_update_prop();
+        return TRUE;
+    } else {
+        g_free(s);
+        return FALSE;
+    }
 }
 
 static gboolean local_netmasks_string_changed(property_t prop)

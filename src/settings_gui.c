@@ -1273,7 +1273,7 @@ static prop_map_t *settings_gui_get_map_entry(property_t prop)
 static gboolean update_entry(property_t prop)
 {
     GtkWidget *w;
-    gchar s[100];
+    gchar s[4096];
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
     prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
