@@ -1,5 +1,16 @@
 # since last version
 
+- (2003.08.19 - RAM)
+ * Escape leading '.' in filenames as '_' to avoid downloading "hidden" files.
+ * Flag aborted downloads with server unavailable as "Aborted (Server down)".
+ * When removing downloads from a peer that is unavailable, flag all those
+   downloads as unavailable as well.
+ * Fixed endless "Request" -> "Sinking" -> "Request" cycle.
+ * Changed jmake so that all install directories are made if they don't exist.
+ * Regenerated Configure with newer units.
+ * Fixed wrong Configure flags in gtk-gnutella_spec.SH.
+ * Configure will now ignore your xgettext if it does not support --from-code.
+
 - (2003.08.16 - Jeroen)
  * PARQ: Update all IP / Port info for all PARQ entries for this servent
    when a servent sends his new IP / Port.
