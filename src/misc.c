@@ -431,16 +431,45 @@ gchar *compact_size(guint32 size)
 			gm_snprintf(b, sizeof(b), "%.1fK", (float) size / 1024.0);
 		else
 			gm_snprintf(b, sizeof(b), "%dK", size >> 10);
-	} else if (size < 1073741824)
+	} else if (size < 1073741824) {
 		if (size & 0xfffff)
 			gm_snprintf(b, sizeof(b), "%.1fM", (float) size / 1048576.0);
 		else
 			gm_snprintf(b, sizeof(b), "%dM", size >> 20);
-	else {
+	} else {
 		if (size & 0x3fffffff)
 			gm_snprintf(b, sizeof(b), "%.1fG", (float) size / 1073741824.0);
 		else
 			gm_snprintf(b, sizeof(b), "%dG", size >> 30);
+	}
+
+	return b;
+}
+
+gchar *compact_size64(guint64 size)
+{
+	static gchar b[64];
+
+	if (size < 1024)
+		gm_snprintf(b, sizeof(b), "%uB", (guint32) size);
+	else if (size < 1048576) {
+		if (size & 0x3ff)
+			gm_snprintf(b, sizeof(b), "%.1fK", (float) (guint32) size / 1024.0);
+		else
+			gm_snprintf(b, sizeof(b), "%uK", (guint32) size >> 10);
+	} else if (size < 1073741824) {
+		if (size & 0xfffff)
+			gm_snprintf(b, sizeof(b), "%.1fM",
+				(float) (guint32) size / 1048576.0);
+		else
+			gm_snprintf(b, sizeof(b), "%uM", (guint32) size >> 20);
+	} else if ((size >> 10)  < 1073741824) {
+		if (size & 0x3fffffff)
+			gm_snprintf(b, sizeof(b), "%.1fG", (float) size / 1073741824.0);
+		else
+			gm_snprintf(b, sizeof(b), "%uG", (guint32) (size >> 30));
+	} else {
+		gm_snprintf(b, sizeof(b), "%.1fT", (float) (size >> 10) / 1073741824.0);
 	}
 
 	return b;
