@@ -2316,6 +2316,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		if (
 			!allow_gnet_connections ||
 			prefer_compressed_gnet ||
+			current_peermode == NODE_P_LEAF ||
 			connected_nodes() >= up_nodes
 		)
             ponging_only = TRUE;	/* Will only send connection pongs */
