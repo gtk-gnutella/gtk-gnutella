@@ -198,15 +198,15 @@ static gchar *uploads_gui_status_str(
 
     switch(u->status) {
     case GTA_UL_ABORTED:
-        return "transmission aborted";
+        return "Transmission aborted";
     case GTA_UL_CLOSED:
-        return "transmission complete";
+        return "Transmission complete";
     case GTA_UL_HEADERS:
-        return "waiting for headers";
+        return "Waiting for headers...";
     case GTA_UL_WAITING:
-        return "waiting for further requests";
+        return "Waiting for further request...";
     case GTA_UL_PUSH_RECEIVED:
-        return "got push request";
+        return "Got push request";
     case GTA_UL_COMPLETE:
 		if (u->last_update != data->start_date) {
 			guint32 spent = u->last_update - data->start_date;
@@ -217,32 +217,33 @@ static gchar *uploads_gui_status_str(
 		} else
 			g_snprintf(tmpstr, sizeof(tmpstr), "Completed (< 1s)");
         break;
-    case GTA_UL_SENDING: {
-		gint slen;
-		/*
-		 * position divided by 1 percentage point, found by dividing
-		 * the total size by 100
-		 */
-		pc = (u->pos - data->range_start) * 100.0 / requested;
+    case GTA_UL_SENDING:
+		{
+			gint slen;
+			/*
+			 * position divided by 1 percentage point, found by dividing
+			 * the total size by 100
+			 */
+			pc = (u->pos - data->range_start) * 100.0 / requested;
 
-		rate = u->bps / 1024.0;
+			rate = u->bps / 1024.0;
 
-		/* Time Remaining at the current rate, in seconds  */
-		tr = (data->range_end + 1 - u->pos) / u->avg_bps;
+			/* Time Remaining at the current rate, in seconds  */
+			tr = (data->range_end + 1 - u->pos) / u->avg_bps;
 
-		slen = g_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ", pc);
+			slen = g_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ", pc);
 
-		if (time((time_t *) 0) - u->last_update > IO_STALLED)
-			slen += g_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-				"(stalled) ");
-		else
-			slen += g_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-				"(%.1f k/s) ", rate);
+			if (time((time_t *) 0) - u->last_update > IO_STALLED)
+				slen += g_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
+					"(stalled) ");
+			else
+				slen += g_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
+					"(%.1f k/s) ", rate);
 
-		g_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-			"TR: %s", short_time(tr));
-        break;
-    } 
+			g_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
+				"TR: %s", short_time(tr));
+		} 
+		break;
 	}
 
     return tmpstr;
@@ -253,59 +254,66 @@ static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
     gint row;
     GtkCList *clist_uploads;
     upload_row_data_t *rd;
+	gnet_upload_status_t status;
+	gchar size_tmp[256];
+	gchar range_tmp[256];
+	gint range_len;
+
 
     clist_uploads = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
 
     row =  find_row(u->upload_handle, &rd);
-    
-    if (row != -1) {
-        gnet_upload_status_t status;
-        gchar size_tmp[256];
-        gchar range_tmp[256];
-        gint range_len;
 
-        rd->range_start  = u->range_start;
-        rd->range_end    = u->range_end;
-        rd->start_date   = u->start_date;
-        rd->last_update  = time((time_t *) NULL);	
-
-        if ((u->range_start == 0) && (u->range_end == 0)) {
-            gtk_clist_set_text(clist_uploads, row, c_ul_size, "...");
-            gtk_clist_set_text(clist_uploads, row, c_ul_range, "...");
-        } else {
-            g_snprintf(size_tmp, sizeof(size_tmp), "%s", 
-                short_size(u->file_size));
-
-            range_len = g_snprintf(range_tmp, sizeof(range_tmp), "%s",
-                compact_size(u->range_end - u->range_start + 1));
-
-            if (u->range_start)
-                range_len += g_snprintf(
-                    &range_tmp[range_len], sizeof(range_tmp)-range_len,
-                        " @ %s", compact_size(u->range_start));
-    
-            g_assert(range_len < sizeof(range_tmp));
-    
-            gtk_clist_set_text(clist_uploads, row, c_ul_size, size_tmp);
-            gtk_clist_set_text(clist_uploads, row, c_ul_range, range_tmp);
-        }
-
-        gtk_clist_set_text(clist_uploads, row, c_ul_filename, 
-            (u->name != NULL) ? u->name : "...");
-        gtk_clist_set_text(clist_uploads, row, c_ul_host, ip_to_gchar(u->ip));
-        gtk_clist_set_text(clist_uploads, row, c_ul_agent, 
-            (u->user_agent != NULL) ? u->user_agent : "...");
-
-        upload_get_status(u->upload_handle, &status);
-
-        rd->status = status.status;
-    
-        gtk_clist_set_text(clist_uploads, row, c_ul_status,
-            uploads_gui_status_str(&status, rd));
-    } else {
+	if (row == -1) {
         g_warning("%s: no matching row found [handle=%u]", 
             G_GNUC_PRETTY_FUNCTION, u->upload_handle);
-    }
+		return;
+	}
+    
+	rd->range_start  = u->range_start;
+	rd->range_end    = u->range_end;
+	rd->start_date   = u->start_date;
+	rd->last_update  = time((time_t *) NULL);	
+
+	if ((u->range_start == 0) && (u->range_end == 0)) {
+		gtk_clist_set_text(clist_uploads, row, c_ul_size, "...");
+		gtk_clist_set_text(clist_uploads, row, c_ul_range, "...");
+	} else {
+		g_snprintf(size_tmp, sizeof(size_tmp), "%s", 
+			short_size(u->file_size));
+
+		range_len = g_snprintf(range_tmp, sizeof(range_tmp), "%s",
+			compact_size(u->range_end - u->range_start + 1));
+
+		if (u->range_start)
+			range_len += g_snprintf(
+				&range_tmp[range_len], sizeof(range_tmp)-range_len,
+					" @ %s", compact_size(u->range_start));
+
+		g_assert(range_len < sizeof(range_tmp));
+
+		gtk_clist_set_text(clist_uploads, row, c_ul_size, size_tmp);
+		gtk_clist_set_text(clist_uploads, row, c_ul_range, range_tmp);
+	}
+
+	gtk_clist_set_text(clist_uploads, row, c_ul_filename, 
+		(u->name != NULL) ? u->name : "...");
+	gtk_clist_set_text(clist_uploads, row, c_ul_host, ip_to_gchar(u->ip));
+	gtk_clist_set_text(clist_uploads, row, c_ul_agent, 
+		(u->user_agent != NULL) ? u->user_agent : "...");
+
+	upload_get_status(u->upload_handle, &status);
+
+	rd->status = status.status;
+
+	gtk_clist_set_text(clist_uploads, row, c_ul_status,
+		uploads_gui_status_str(&status, rd));
+
+	if (u->push) {
+		GdkColor *color = &(gtk_widget_get_style(GTK_WIDGET(clist_uploads))
+			->fg[GTK_STATE_INSENSITIVE]);
+		gtk_clist_set_foreground(clist_uploads, row, color);
+	}
 }
 
 

@@ -473,6 +473,7 @@ typedef struct gnet_upload_info {
     time_t  start_date;
 
     gchar  *user_agent;  /* remote user agent */
+	gboolean push;       /* Whether we're pushing or not */
 } gnet_upload_info_t;
 
 /*
