@@ -16,6 +16,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#define DL_RUN_DELAY		5	/* To avoid hammering host --RAM */
+#define DL_RETRY_TIMER		15	/* Seconds to wait after EOF or ECONNRESET */
+
 struct download *selected_queued_download = (struct download *) NULL;
 struct download *selected_active_download = (struct download *) NULL;
 
@@ -32,8 +35,6 @@ static void download_read(gpointer data, gint source, GdkInputCondition cond);
 static void download_request(struct download *d, header_t *header);
 static void download_push_ready(struct download *d, getline_t *empty);
 static void download_push_remove(struct download *d);
-
-#define DL_RUN_DELAY	5		/* To avoid hammering host --RAM */
 
 /*
  * This structure is used to encapsulate the various arguments required
@@ -123,7 +124,7 @@ static gboolean has_same_active_download(gchar *file, gchar *guid)
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
-		if (DOWNLOAD_IS_STOPPED(d))
+		if (DOWNLOAD_IS_STOPPED(d) || DOWNLOAD_IS_WAITING(d))
 			continue;
 		if (0 == strcmp(file, d->file_name) && 0 == memcmp(guid, d->guid, 16))
 			return TRUE;
@@ -310,17 +311,31 @@ void download_stop(struct download *d, guint32 new_status,
 		return;
 	}
 
-	if (new_status != GTA_DL_ERROR && new_status != GTA_DL_ABORTED
-		&& new_status != GTA_DL_COMPLETED
-		&& new_status != GTA_DL_TIMEOUT_WAIT) {
-		g_warning("download_stop(): unexpected new status %d !",
-				  new_status);
-		return;
-	}
-
 	if (d->status == new_status) {
 		g_warning("download_stop(): download '%s' already in state %d",
 				  d->file_name, new_status);
+		return;
+	}
+
+	if (d->restart_timer_id) {
+		if (d->status != GTA_DL_STOPPED)
+			g_warning("download_stop: download \"%s\" has a restart_timer_id.",
+				  d->file_name);
+		g_source_remove(d->restart_timer_id);
+		d->restart_timer_id = 0;
+	}
+
+	switch (new_status) {
+	case GTA_DL_ERROR:
+	case GTA_DL_ABORTED:
+	case GTA_DL_COMPLETED:
+	case GTA_DL_TIMEOUT_WAIT:
+		break;
+	case GTA_DL_STOPPED:
+		download_start_restart_timer(d);
+		break;
+	default:
+		g_warning("download_stop(): unexpected new status %d !", new_status);
 		return;
 	}
 
@@ -373,13 +388,6 @@ void download_stop(struct download *d, guint32 new_status,
 	}
 
 	count_running_downloads();
-
-	if (d->restart_timer_id) {
-		g_warning("download_stop: download %s has a restart_timer_id.",
-				  d->file_name);
-		g_source_remove(d->restart_timer_id);
-		d->restart_timer_id = 0;
-	}
 }
 
 void download_kill(struct download *d)
@@ -893,8 +901,7 @@ void download_index_changed(guint32 ip, guint16 port, guint32 from, guint32 to)
 				 */
 				g_warning("Stopping request for '%s': index changed",
 					d->file_name);
-				download_stop(d, GTA_DL_ERROR, "Stopped (Index changed)");
-				download_start_restart_timer(d);
+				download_stop(d, GTA_DL_STOPPED, "Stopped (Index changed)");
 				break;
 			case GTA_DL_RECEIVING:
 				/*
@@ -1174,7 +1181,8 @@ static gboolean download_queue_w(gpointer dp)
 
 static void download_start_restart_timer(struct download *d)
 {
-	d->restart_timer_id = g_timeout_add(60 * 1000, download_queue_w, d);
+	d->restart_timer_id = g_timeout_add(DL_RETRY_TIMER * 1000,
+		download_queue_w, d);
 }
 
 /***
@@ -1369,14 +1377,17 @@ static void download_header_read(
 
 	r = read(s->file_desc, s->buffer + s->pos, count);
 	if (r == 0) {
-		download_stop(d, GTA_DL_ERROR, "Failed (EOF)");
-		download_start_restart_timer(d);
+		download_stop(d, GTA_DL_STOPPED, "Stopped (EOF)");
 		goto final_cleanup;
 	} else if (r < 0 && errno == EAGAIN)
 		return;
 	else if (r < 0) {
-		download_stop(d, GTA_DL_ERROR,
-			"Failed (Read error: %s)", g_strerror(errno));
+		if (errno == ECONNRESET)
+			download_stop(d, GTA_DL_STOPPED, "Stopped (%s)",
+				g_strerror(errno));
+		else
+			download_stop(d, GTA_DL_ERROR, "Failed (Read error: %s)",
+				g_strerror(errno));
 		goto final_cleanup;
 	}
 
@@ -1636,8 +1647,7 @@ static void download_read(gpointer data, gint source, GdkInputCondition cond)
 	g_assert(s->pos >= 0 && s->pos <= sizeof(s->buffer));
 
 	if (s->pos == sizeof(s->buffer)) {
-		download_stop(d, GTA_DL_ERROR, "Failed (Read buffer full)");
-		download_start_restart_timer(d);
+		download_stop(d, GTA_DL_STOPPED, "Stopped (Read buffer full)");
 		return;
 	}
 
@@ -1657,11 +1667,14 @@ static void download_read(gpointer data, gint source, GdkInputCondition cond)
 
 	if (r <= 0) {
 		if (r == 0) {
-			download_stop(d, GTA_DL_ERROR, "Failed (EOF)");
-			download_start_restart_timer(d);
+			download_stop(d, GTA_DL_STOPPED, "Stopped (EOF)");
 		} else if (errno != EAGAIN) {
-			download_stop(d, GTA_DL_ERROR,
-				"Failed (Read error: %s)", g_strerror(errno));
+			if (errno == ECONNRESET)
+				download_stop(d, GTA_DL_STOPPED,
+					"Stopped (%s)", g_strerror(errno));
+			else
+				download_stop(d, GTA_DL_ERROR,
+					"Failed (Read error: %s)", g_strerror(errno));
 		}
 		return;
 	}
@@ -1700,16 +1713,16 @@ gboolean download_send_request(struct download *d)
 			"GET /get/%u/%s HTTP/1.0\r\n"
 			"Connection: Keep-Alive\r\n"
 			"Range: bytes=%u-\r\n"
-			"User-Agent: gtk-gnutella/%d.%d\r\n\r\n",
+			"User-Agent: %s\r\n\r\n",
 			d->record_index, d->file_name, d->skip,
-			GTA_VERSION, GTA_SUBVERSION);
+			version_string);
 	else
 		rw = g_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET /get/%u/%s HTTP/1.0\r\n"
 			"Connection: Keep-Alive\r\n"
-			"User-Agent: gtk-gnutella/%d.%d\r\n\r\n",
+			"User-Agent: %s\r\n\r\n",
 			d->record_index, d->file_name,
-			GTA_VERSION, GTA_SUBVERSION);
+			version_string);
 
 	if (-1 == (sent = write(d->socket->file_desc, dl_tmp, rw))) {
 		download_stop(d, GTA_DL_ERROR, "Write failed: %s", g_strerror(errno));

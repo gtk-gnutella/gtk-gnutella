@@ -51,6 +51,7 @@ struct download {
 #define GTA_DL_ERROR			9	/* Download is stopped due to error */
 #define GTA_DL_ABORTED			10	/* User used the 'Abort Download' button */
 #define GTA_DL_TIMEOUT_WAIT		11	/* Waiting to try connecting again */
+#define GTA_DL_STOPPED			12	/* Stopped, will restart shortly */
 
 /*
  * State inspection macros.
@@ -65,6 +66,10 @@ struct download {
 
 #define DOWNLOAD_IS_ACTIVE(d)			\
 	((d)->status == GTA_DL_RECEIVING)
+
+#define DOWNLOAD_IS_WAITING(d)			\
+	(  (d)->status == GTA_DL_STOPPED 	\
+	|| (d)->status == GTA_DL_TIMEOUT_WAIT)
 
 #define DOWNLOAD_IS_ESTABLISHING(d)		\
 	(  (d)->status == GTA_DL_CONNECTING \

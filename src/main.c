@@ -227,6 +227,7 @@ gboolean main_timer(gpointer p)
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ABORTED:
 		case GTA_DL_ERROR:
+		case GTA_DL_STOPPED:
 			break;
 		default:
 			g_warning("Hmm... new download state %d not handled", d->status);

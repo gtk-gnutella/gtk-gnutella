@@ -407,30 +407,26 @@ void gui_update_download_abort_resume(void)
 
 		switch (d->status) {
 		case GTA_DL_QUEUED:
-			{
-				fprintf(stderr, "gui_update_download_abort_resume(): "
-					"found queued download '%s' in active download list !\n",
-						d->file_name);
-				continue;
-			}
-
+			fprintf(stderr, "gui_update_download_abort_resume(): "
+				"found queued download '%s' in active download list !\n",
+				d->file_name);
+			continue;
 		case GTA_DL_CONNECTING:
 		case GTA_DL_PUSH_SENT:
 		case GTA_DL_FALLBACK:
 		case GTA_DL_REQ_SENT:
 		case GTA_DL_HEADERS:
 		case GTA_DL_RECEIVING:
-			{
-				abort = TRUE;
-				break;
-			}
-
+			abort = TRUE;
+			break;
 		case GTA_DL_ERROR:
 		case GTA_DL_ABORTED:
-			{
-				resume = TRUE;
-				break;
-			}
+			resume = TRUE;
+			break;
+		case GTA_DL_TIMEOUT_WAIT:
+		case GTA_DL_STOPPED:
+			abort = resume = TRUE;
+			break;
 		}
 
 		if (abort & resume)
@@ -576,14 +572,14 @@ void gui_update_download(struct download *d, gboolean force)
 			a = "Connected";
 		break;
 
+	case GTA_DL_STOPPED:
 	case GTA_DL_ERROR:
 		a = (gchar *) ((d->remove_msg) ? d->remove_msg : "Unknown Error");
 		break;
 
 	case GTA_DL_TIMEOUT_WAIT:
 		g_snprintf(gui_tmp, sizeof(gui_tmp), "Retry in %lds",
-				   d->timeout_delay - (time((time_t *) NULL) -
-									   d->last_update));
+				   d->timeout_delay - (now - d->last_update));
 		a = gui_tmp;
 		break;
 	default:
@@ -593,12 +589,11 @@ void gui_update_download(struct download *d, gboolean force)
 	}
 
 	if (d->status != GTA_DL_TIMEOUT_WAIT)
-		d->last_gui_update = time((time_t *) NULL);
+		d->last_gui_update = now;
 
 	if (d->status != GTA_DL_QUEUED) {
-		row =
-			gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads),
-										 (gpointer) d);
+		row = gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads),
+			(gpointer) d);
 		gtk_clist_set_text(GTK_CLIST(clist_downloads), row, 2, a);
 	}
 }
