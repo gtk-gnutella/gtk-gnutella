@@ -42,6 +42,7 @@ RCSID("$Id$");
 #define MAX_PAYLOAD_LEN		65536	/* Max length for deflated payload */
 #define MIN_GROW			256		/* Minimum grow size for inflated buffer */
 
+#if 0	/* UNUSED for now */
 /*
  * ggep_inflate
  *
@@ -161,6 +162,7 @@ static gchar *ggep_inflate(gchar *buf, gint len, gint *retlen, gint token)
 
 	return result;				/* OK, successfully inflated */
 }
+#endif
 
 /*
  * ggep_inflate_into
