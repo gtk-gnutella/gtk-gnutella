@@ -27,9 +27,8 @@
 
 #include "gui.h"
 
-#include "gnet.h"
 #include "monitor_gui.h"
-#include "gui_property_priv.h"
+
 
 /***
  *** Private variables
@@ -43,10 +42,11 @@ static guint32 monitor_items = 0;
  *** Callbacks
  ***/
 
-static void monitor_gui_append_to_monitor(const gchar *item)
+static void monitor_gui_append_to_monitor(query_type_t type, const gchar *item)
 {
     char *titles[1];
     static GtkWidget *clist_monitor = NULL;
+    gchar tmpstr[100];
 
     if (clist_monitor == NULL) {
         clist_monitor = lookup_widget(main_window, "clist_monitor");
@@ -61,13 +61,19 @@ static void monitor_gui_append_to_monitor(const gchar *item)
         gtk_clist_remove(GTK_CLIST(clist_monitor),
             GTK_CLIST(clist_monitor)->rows - 1);
 
-	titles[0] = g_strdup(item);
+    if (type == QUERY_SHA1) {
+        /* If the query is empty and we have a SHA1 extension,
+         * we print a urn:sha1-query instead. */
+        g_snprintf(tmpstr, sizeof(tmpstr), "urn:sha1:%s", item);
+    } else {
+        g_snprintf(tmpstr, sizeof(tmpstr), "%s", item);
+    }
+
+    titles[0] = tmpstr;
 
 	gtk_clist_prepend(GTK_CLIST(clist_monitor), titles);
 
 	gtk_clist_thaw(GTK_CLIST(clist_monitor));
-
-    g_free(titles[0]);
 }
 
 
