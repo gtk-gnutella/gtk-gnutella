@@ -15050,12 +15050,6 @@ create_dlg_prefs_ui_tab (void)
   GtkWidget *checkbutton_expert_mode;
   GtkWidget *label374;
   GtkWidget *frame94;
-  GtkWidget *hbox260;
-  GtkWidget *vbox128;
-  GtkWidget *checkbutton_node_show_uptime;
-  GtkWidget *checkbutton_node_show_handshake_version;
-  GtkWidget *checkbutton_node_show_detailed_info;
-  GtkWidget *vbox127;
   GtkWidget *frame_gnet_detailed_traffic;
   GtkWidget *table81;
   GtkWidget *checkbutton_gnet_info_txc;
@@ -15077,7 +15071,7 @@ create_dlg_prefs_ui_tab (void)
   GtkWidget *checkbutton_gnet_info_shared_files;
   GtkWidget *checkbutton_gnet_info_tx_wire;
   GtkWidget *checkbutton_gnet_info_rx_wire;
-  GtkWidget *label748;
+  GtkWidget *checkbutton_node_show_detailed_info;
   GtkWidget *label747;
 
   dlg_prefs_ui_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -15234,41 +15228,11 @@ create_dlg_prefs_ui_tab (void)
   gtk_widget_show (frame94);
   gtk_box_pack_start (GTK_BOX (vbox80), frame94, FALSE, FALSE, 0);
 
-  hbox260 = gtk_hbox_new (FALSE, 2);
-  gtk_widget_set_name (hbox260, "hbox260");
-  gtk_widget_show (hbox260);
-  gtk_container_add (GTK_CONTAINER (frame94), hbox260);
-  gtk_container_set_border_width (GTK_CONTAINER (hbox260), 2);
-
-  vbox128 = gtk_vbox_new (FALSE, 2);
-  gtk_widget_set_name (vbox128, "vbox128");
-  gtk_widget_show (vbox128);
-  gtk_box_pack_start (GTK_BOX (hbox260), vbox128, TRUE, TRUE, 0);
-
-  checkbutton_node_show_uptime = gtk_check_button_new_with_mnemonic (_("Show node uptime"));
-  gtk_widget_set_name (checkbutton_node_show_uptime, "checkbutton_node_show_uptime");
-  gtk_widget_show (checkbutton_node_show_uptime);
-  gtk_box_pack_start (GTK_BOX (vbox128), checkbutton_node_show_uptime, FALSE, FALSE, 0);
-
-  checkbutton_node_show_handshake_version = gtk_check_button_new_with_mnemonic (_("Show handshaking version"));
-  gtk_widget_set_name (checkbutton_node_show_handshake_version, "checkbutton_node_show_handshake_version");
-  gtk_widget_show (checkbutton_node_show_handshake_version);
-  gtk_box_pack_start (GTK_BOX (vbox128), checkbutton_node_show_handshake_version, FALSE, FALSE, 0);
-
-  checkbutton_node_show_detailed_info = gtk_check_button_new_with_mnemonic (_("Display detailed traffic information"));
-  gtk_widget_set_name (checkbutton_node_show_detailed_info, "checkbutton_node_show_detailed_info");
-  gtk_widget_show (checkbutton_node_show_detailed_info);
-  gtk_box_pack_start (GTK_BOX (vbox128), checkbutton_node_show_detailed_info, FALSE, FALSE, 0);
-
-  vbox127 = gtk_vbox_new (FALSE, 0);
-  gtk_widget_set_name (vbox127, "vbox127");
-  gtk_widget_show (vbox127);
-  gtk_box_pack_start (GTK_BOX (hbox260), vbox127, FALSE, TRUE, 0);
-
   frame_gnet_detailed_traffic = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_gnet_detailed_traffic, "frame_gnet_detailed_traffic");
   gtk_widget_show (frame_gnet_detailed_traffic);
-  gtk_box_pack_start (GTK_BOX (vbox127), frame_gnet_detailed_traffic, FALSE, TRUE, 0);
+  gtk_container_add (GTK_CONTAINER (frame94), frame_gnet_detailed_traffic);
+  gtk_container_set_border_width (GTK_CONTAINER (frame_gnet_detailed_traffic), 2);
   gtk_frame_set_shadow_type (GTK_FRAME (frame_gnet_detailed_traffic), GTK_SHADOW_OUT);
 
   table81 = gtk_table_new (7, 3, FALSE);
@@ -15412,10 +15376,10 @@ create_dlg_prefs_ui_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
-  label748 = gtk_label_new (_("Detailed traffic information to display"));
-  gtk_widget_set_name (label748, "label748");
-  gtk_widget_show (label748);
-  gtk_frame_set_label_widget (GTK_FRAME (frame_gnet_detailed_traffic), label748);
+  checkbutton_node_show_detailed_info = gtk_check_button_new_with_mnemonic (_("Display detailed traffic information"));
+  gtk_widget_set_name (checkbutton_node_show_detailed_info, "checkbutton_node_show_detailed_info");
+  gtk_widget_show (checkbutton_node_show_detailed_info);
+  gtk_frame_set_label_widget (GTK_FRAME (frame_gnet_detailed_traffic), checkbutton_node_show_detailed_info);
 
   label747 = gtk_label_new (_("gnutellaNet display"));
   gtk_widget_set_name (label747, "label747");
@@ -15446,12 +15410,6 @@ create_dlg_prefs_ui_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, checkbutton_expert_mode, "checkbutton_expert_mode");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, label374, "label374");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, frame94, "frame94");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, hbox260, "hbox260");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, vbox128, "vbox128");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, checkbutton_node_show_uptime, "checkbutton_node_show_uptime");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, checkbutton_node_show_handshake_version, "checkbutton_node_show_handshake_version");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, checkbutton_node_show_detailed_info, "checkbutton_node_show_detailed_info");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, vbox127, "vbox127");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, frame_gnet_detailed_traffic, "frame_gnet_detailed_traffic");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, table81, "table81");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, checkbutton_gnet_info_txc, "checkbutton_gnet_info_txc");
@@ -15473,7 +15431,7 @@ create_dlg_prefs_ui_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, checkbutton_gnet_info_shared_files, "checkbutton_gnet_info_shared_files");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, checkbutton_gnet_info_tx_wire, "checkbutton_gnet_info_tx_wire");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, checkbutton_gnet_info_rx_wire, "checkbutton_gnet_info_rx_wire");
-  GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, label748, "label748");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, checkbutton_node_show_detailed_info, "checkbutton_node_show_detailed_info");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, label747, "label747");
 
   return dlg_prefs_ui_tab;

@@ -32,7 +32,6 @@ RCSID("$Id$");
 #include "interface-glade.h"
 
 #include "gtk/gtk-missing.h"
-#include "gtk/gtkcolumnchooser.h"
 #include "gtk/nodes_common.h"
 #include "gtk/nodes.h"
 #include "gtk/columns.h"
@@ -73,15 +72,6 @@ static void nodes_gui_node_removed(gnet_node_t);
 static void nodes_gui_node_added(gnet_node_t);
 static void nodes_gui_node_info_changed(gnet_node_t);
 static void nodes_gui_node_flags_changed(gnet_node_t);
-
-void on_popup_nodes_config_cols_activate(
-	GtkMenuItem *menuitem, gpointer user_data)
-{
-    GtkWidget *cc;
-
-    cc = gtk_column_chooser_new(GTK_WIDGET(treeview_nodes));
-    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
-}
 
 /*
  * add_column

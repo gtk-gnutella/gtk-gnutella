@@ -30,6 +30,7 @@
 RCSID("$Id$");
 
 #include "nodes_cb.h"
+#include "gtk/gtkcolumnchooser.h"
 #include "gtk/settings.h"
 #include "gtk/statusbar.h"
 
@@ -142,10 +143,28 @@ gboolean on_treeview_nodes_button_press_event(
 	(void) user_data;
     if (3 == event->button) {
         /* right click section (popup menu) */
+
         gtk_menu_popup(GTK_MENU(popup_nodes), NULL, NULL, NULL, NULL, 1, 0);
         return TRUE;
 	}
 	return FALSE;
+}
+
+/* 
+ * 	on_popup_search_config_cols_activate
+ *
+ *	Please add comment
+ */
+gboolean on_popup_nodes_config_cols_activate(GtkItem *menuitem, 
+	gpointer user_data)
+{
+    GtkWidget *cc;
+
+    cc = gtk_column_chooser_new(lookup_widget(main_window, "treeview_nodes"));
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
+
+    /* GtkColumnChooser takes care of cleaning up itself */
+	return TRUE;
 }
 
 /* vi: set ts=4 sw=4 cindent: */
