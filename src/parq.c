@@ -1435,9 +1435,9 @@ void parq_upload_timer(time_t now)
 				/* Entry can't have a slot, and we know it expired! */
 
 				if (
-					!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE) &&
+					!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
 					now - parq_ul->last_queue_sent > QUEUE_PERIOD &&
-					parq_ul->queue_sent < MAX_QUEUE)
+					parq_ul->queue_sent < MAX_QUEUE
 				)
 					parq_upload_send_queue(parq_ul);
 			}
@@ -1452,9 +1452,9 @@ void parq_upload_timer(time_t now)
 			if (
 				parq_ul->expire <= now &&
 				!parq_ul->has_slot &&
-				!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE) &&
+				!(parq_ul->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)) &&
 				now - parq_ul->last_queue_sent > QUEUE_PERIOD &&
-				parq_ul->queue_sent < MAX_QUEUE)
+				parq_ul->queue_sent < MAX_QUEUE
 			)
 				parq_upload_send_queue(parq_ul);
 			
