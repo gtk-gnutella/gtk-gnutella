@@ -190,6 +190,7 @@ void upload_fire_upload_info_changed
 /***
  *** Private functions
  ***/
+
 /*
  * upload_timer
  *
