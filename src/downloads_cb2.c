@@ -398,48 +398,41 @@ void on_popup_downloads_queue_activate(GtkMenuItem *menuitem,
 }
 
 
-/*
- *	on_popup_downloads_copy_url_activate
- *
- *	For selected download, copy URL into selected_url
- *
- */
-void on_popup_downloads_copy_url_activate(GtkMenuItem *menuitem,
-	gpointer user_data) 
+static void copy_selection_to_clipboard(const gchar *treeview_name,
+	dl_action_type_t action)
 {
 	GSList *sl, *selected;
 
-    /* 
-     * note that we set the popup dialog as owner, because we can
-     * connect the selection_* signals to that using glade.
-     *      --BLUE, 24/04/2002
-     */
-    if (
-		!gtk_selection_owner_set(GTK_WIDGET(popup_downloads),
-			GDK_SELECTION_PRIMARY, GDK_CURRENT_TIME)
-	) {
-		return;
-	}
-
-   	selected = dl_action_select("treeview_downloads", DL_ACTION_COPY_URL);
+   	selected = dl_action_select(treeview_name, action);
 	if (!selected)
 		return;
 
 	for (sl = selected; sl; sl = g_slist_next(sl)) {
 		struct download *d = sl->data;
+		const gchar *url;
 
-       /* 
-		* If "copy url" is done repeatedly, we have to make sure the
-   		* memory of the previous selection is freed, because we may not
-   		* receive a "selection_clear" signal.
-   		*      --BLUE, 24/04/2002
-   		*/
-      	if (selected_url != NULL) {
-       	    G_FREE_NULL(selected_url);
-	    }
-       	selected_url = g_strdup(build_url_from_download(d));
+       	url = build_url_from_download(d);
+		gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_PRIMARY));
+		gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_PRIMARY),
+			url, -1);
+		gtk_clipboard_clear(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD));
+		gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_CLIPBOARD),
+			url, -1);
 	}
 	g_slist_free(selected);
+
+}
+
+/*
+ *	on_popup_downloads_copy_url_activate
+ *
+ *	For selected download, copy URL to clipboard 
+ *
+ */
+void on_popup_downloads_copy_url_activate(GtkMenuItem *menuitem,
+	gpointer user_data) 
+{
+	copy_selection_to_clipboard("treeview_downloads", DL_ACTION_COPY_URL);
 }
 
 
@@ -605,52 +598,13 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem *menuitem,
 /*
  *	on_popup_queue_copy_url_activate
  *
- *	For all selected queued download, copy url into selected_url file 
+ *	For all selected queued download, copy url to clipboard
  *
  */
 void on_popup_queue_copy_url_activate(GtkMenuItem *menuitem, gpointer user_data) 
 {
-	GSList *sl, *selected;
-
-	/* FIXME: This is more or less copy/paste from the downloads_copy_url
-     * handler. There should be a more general function to call which
-     * takes the string to copy as an arguments and handles the rest.
-     *      --BLUE, 24/05/2002
-     */
-
-    /* 
-     * Note that we set the popup dialog as owner, because we can
-     * connect the selection_* signals to that using glade.
-     *      --BLUE, 24/04/2002
-     */
-    if (
-		!gtk_selection_owner_set(GTK_WIDGET(popup_downloads),
-			GDK_SELECTION_PRIMARY, GDK_CURRENT_TIME)
-	) {
-		return;
-	}
-
-   	selected = dl_action_select("treeview_downloads_queue",
-					DL_ACTION_QUEUED_COPY_URL);
-	if (!selected)
-		return;
-
-	for (sl = selected; sl; sl = g_slist_next(sl)) {
-		struct download *d = sl->data;
-
-       /* 
-		* If "copy url" is done repeatedly, we have to make sure the
-   		* memory of the previous selection is freed, because we may not
-   		* receive a "selection_clear" signal.
-   		*      --BLUE, 24/04/2002
-   		*/
-
-      	if (selected_url != NULL) {
-       	    G_FREE_NULL(selected_url);
-	    }
-       	selected_url = g_strdup(build_url_from_download(d));
-	}
-	g_slist_free(selected);
+	copy_selection_to_clipboard("treeview_downloads_queue",
+		DL_ACTION_QUEUED_COPY_URL);
 }
 
 

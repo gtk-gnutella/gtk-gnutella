@@ -186,12 +186,6 @@ create_popup_dl_active (void)
   gtk_widget_show (image300);
   gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_downloads_collapse_all), image300);
 
-  g_signal_connect ((gpointer) popup_dl_active, "selection_get",
-                    G_CALLBACK (on_popup_downloads_selection_get),
-                    NULL);
-  g_signal_connect ((gpointer) popup_dl_active, "selection_clear_event",
-                    G_CALLBACK (on_popup_downloads_selection_clear_event),
-                    NULL);
   g_signal_connect ((gpointer) popup_downloads_abort, "activate",
                     G_CALLBACK (on_button_downloads_abort_clicked),
                     NULL);

@@ -5,8 +5,6 @@
 
 <widget class="GtkMenu" id="popup_dl_active">
   <property name="visible">True</property>
-  <signal name="selection_get" handler="on_popup_downloads_selection_get"/>
-  <signal name="selection_clear_event" handler="on_popup_downloads_selection_clear_event"/>
 
   <child>
     <widget class="GtkImageMenuItem" id="popup_downloads_abort">
