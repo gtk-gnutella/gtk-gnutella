@@ -24,27 +24,27 @@
 #include "upload_stats.h"
 
 #define CONFIG_SET_BOOLEAN(v)                        \
-    case k_##v##:                                    \
+    case k_##v:                                      \
         v = (gboolean) ! g_strcasecmp(value, "true");\
         return;
 
 #define CONFIG_SET_BOOLEAN_COMPATIBLE(v,w)           \
-    case k_##w##:                                    \
+    case k_##w:                                      \
         v = (gboolean) ! g_strcasecmp(value, "true");\
         return;
 
 #define CONFIG_SET_STRING(v)                         \
-    case k_##v##:                                    \
+    case k_##v:                                      \
         v = g_strdup(value);                         \
         return;
 
 #define CONFIG_SET_STRING_COMPATIBLE(v,w)            \
-    case k_##w##:                                    \
+    case k_##w:                                      \
         v = g_strdup(value);                         \
         return;
 
 #define CONFIG_WRITE_BOOLEAN(v)\
-  	fprintf(config, "%s = %s\n", keywords[k_##v##],\
+  	fprintf(config, "%s = %s\n", keywords[k_##v],    \
 			config_boolean(v));
 
 static gchar *config_file = "config";
@@ -191,7 +191,7 @@ gchar *socks_pass = NULL;
  * progressbar_bps_out_avg     0.90u 15/05/2002 progressbar_bws_out_avg
  */
 
-enum {
+typedef enum {
 	k_up_connections = 0,
 	k_clear_uploads, k_max_downloads, k_max_host_downloads,
 	k_max_uploads, k_clear_downloads, k_download_delete_aborted,
@@ -258,9 +258,9 @@ enum {
     k_progressbar_bps_in_avg,
     k_progressbar_bps_out_avg,
 	k_end
-};
+} keyword_t;
 
-static gchar *keywords[] = {
+static gchar *keywords[k_end] = {
 	"up_connections",			/* k_up_connections */
 	"auto_clear_completed_uploads",		/* k_clear_uploads */
 	"max_simultaneous_downloads",		/* k_max_downloads */
@@ -381,7 +381,6 @@ static gchar *keywords[] = {
     "progressbar_bps_out_visible",
     "progressbar_bps_in_avg",
     "progressbar_bps_out_avg",
-	NULL
 };
 
 static gchar cfg_tmp[4096];
@@ -615,7 +614,7 @@ guint32 *config_parse_array(gchar * str, guint32 n)
 	return r;
 }
 
-void config_set_param(guint32 keyword, gchar *value)
+void config_set_param(keyword_t keyword, gchar *value)
 {
 	gint32 i = atol(value);
 	guint32 *a;
@@ -1035,6 +1034,10 @@ void config_set_param(guint32 keyword, gchar *value)
  		local_netmasks_string = g_strdup(value);
  		parse_netmasks(value);
  		return;
+
+	case k_end:
+		g_assert(0);		/* Cannot happen */
+		return;
  	}
 }
 
@@ -1042,7 +1045,8 @@ static void config_read(void)
 {
 	FILE *config;
 	gchar *s, *k, *v;
-	guint32 i, n = 0;
+	keyword_t i;
+	guint32 n = 0;
 	struct stat buf;
 
 	static gchar *err = "Bad line %u in config file, ignored\n";
