@@ -3567,6 +3567,7 @@ static void node_parse(struct gnutella_node *node)
 	g_return_if_fail(node);
 	g_assert(NODE_IS_CONNECTED(node));
 
+	dest.type = ROUTE_NONE;
 	n = node;
 
 	/*
@@ -3839,7 +3840,7 @@ static void node_parse(struct gnutella_node *node)
 	}
 
 	if (!n)
-		return;				/* The node has been removed during processing */
+		goto clean_dest;	/* The node has been removed during processing */
 
 	if (!drop) {
 		if (current_peermode != NODE_P_LEAF) {
@@ -3875,6 +3876,10 @@ static void node_parse(struct gnutella_node *node)
 reset_header:
 	n->have_header = FALSE;
 	n->pos = 0;
+
+clean_dest:
+	if (dest.type == ROUTE_MULTI)
+		g_slist_free(dest.ur.u_nodes);
 }
 
 /*
