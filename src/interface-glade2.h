@@ -13,3 +13,4 @@ GtkWidget* create_shutdown_window (void);
 GtkWidget* create_popup_filter_rule (void);
 GtkWidget* create_dlg_about (void);
 GtkWidget* create_main_window (void);
+GtkWidget* create_dlg_quit (void);
