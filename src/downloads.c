@@ -4865,8 +4865,12 @@ static void download_read(gpointer data, gint source, inputevt_cond_t cond)
 }
 
 /*
+ * download_send_request
+ *
  * Send the HTTP request for a download, then prepare I/O reading callbacks
  * to read the incoming status line and following headers.
+ *
+ * NB: can stop the download, but does not return anything.
  */
 void download_send_request(struct download *d)
 {
@@ -4969,6 +4973,15 @@ picked:
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET /get/%u/%s HTTP/1.1\r\n",
 			d->record_index, d->file_name);
+
+	/*
+	 * If URL is too large, abort.
+	 */
+
+	if (rw >= MAX_LINE_SIZE) {
+		download_stop(d, GTA_DL_ERROR, "URL too large");
+		return;
+	}
 
 	rw += gm_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
 		"Host: %s\r\n"
