@@ -33,6 +33,8 @@ PIXMAPS = \
 	booklib.xpm \
 	booksha.xpm \
 	bookshav.xpm \
+	clanbomber_red.xpm \
+	clanbomber_yellow.xpm \
 	download.xpm \
 	exit.xpm \
 	filter.xpm \
