@@ -31,9 +31,12 @@
 
 static gchar gui_tmp[4096];
 
-static void nodes_gui_node_removed(gnet_node_t n);
-static void nodes_gui_node_added(gnet_node_t n, const gchar *t);
-static void nodes_gui_node_changed(gnet_node_t, gboolean);
+static void nodes_gui_node_removed(
+    gnet_node_t n, guint32, guint32);
+static void nodes_gui_node_added(
+    gnet_node_t n, const gchar *t, guint32, guint32);
+static void nodes_gui_node_changed(
+    gnet_node_t, gboolean, guint32, guint32);
 
 /*
  * nodes_gui_init:
@@ -192,6 +195,22 @@ static gchar *gui_node_info_str(const gnet_node_info_t *n, time_t now)
 
 
 
+void gui_update_c_gnutellanet(guint32 cnodes, guint32 nodes)
+{
+    GtkProgressBar *pg = GTK_PROGRESS_BAR
+        (lookup_widget(main_window, "progressbar_connections"));
+    gfloat frac;
+    
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u gnutellaNet", cnodes, nodes);
+    gtk_progress_bar_set_text(pg, gui_tmp);
+
+    frac = MIN(cnodes, nodes) != 0 ? (float)MIN(cnodes, nodes) / nodes : 0;
+
+    gtk_progress_bar_set_fraction(pg, frac);
+}
+
+
+
 /*
  * gui_update_nodes_display
  *
@@ -202,7 +221,6 @@ void nodes_gui_update_nodes_display(time_t now)
     static time_t last_update = 0;
 	GtkCList *clist;
 	GList *l;
-	gchar *a;
 	gint row = 0;
 
     if (last_update == now)
@@ -218,11 +236,14 @@ void nodes_gui_update_nodes_display(time_t now)
 		gnet_node_t n = (gnet_node_t) ((GtkCListRow *) l->data)->data;
         gnet_node_info_t *info;
 
+        // FIXME: we should remember for every node when it was last
+        //        updated and only refresh every node at most once every
+        //        second. This information should be kept in a struct pointed
+        //        to by the row user_data and should be automatically freed
+        //        when removing the row (see upload stats code).
+
         info = node_get_info(n);
-        if (info->last_update != now) {
-            a = gui_node_info_str(info, now);
-            gtk_clist_set_text(clist, row, 4, a);
-        }
+        gtk_clist_set_text(clist, row, 4, gui_node_info_str(info, now));
         node_free_info(info);
 	}
 
@@ -231,22 +252,16 @@ void nodes_gui_update_nodes_display(time_t now)
 void nodes_gui_update_node(gnet_node_info_t *n, gboolean force)
 {
 	gint row;
-	time_t now = time((time_t *) NULL);
     GtkCList *clist = GTK_CLIST
         (lookup_widget(main_window, "clist_nodes"));
 
     g_assert(n != NULL);
 
-    /*
-     * Only update once every second when not forced.
-     */
-	if (n->last_update == now && !force)
-		return;
-	n->last_update = now;
-
 	row = gtk_clist_find_row_from_data(clist, (gpointer) n->node_handle);
 
     if (row != -1) {
+        time_t now = time((time_t *) NULL);
+
         gtk_clist_set_text(clist, row, 2, n->vendor ? n->vendor : "...");
 
         g_snprintf(gui_tmp, sizeof(gui_tmp), "%d.%d",
@@ -272,13 +287,14 @@ void nodes_gui_update_node(gnet_node_info_t *n, gboolean force)
  *
  * Removes all references to the node from the frontend.
  */
-static void nodes_gui_node_removed(gnet_node_t n)
+static void nodes_gui_node_removed(
+    gnet_node_t n, guint32 connected, guint32 total)
 {
     if (gui_debug >= 5)
         printf("nodes_gui_node_removed(%u)\n", n);
 
     nodes_gui_remove_node(n);
-    gui_update_c_gnutellanet();
+    gui_update_c_gnutellanet(connected, total);
 }
 
 /*
@@ -288,7 +304,8 @@ static void nodes_gui_node_removed(gnet_node_t n)
  *
  * Adds the node to the gui.
  */
-static void nodes_gui_node_added(gnet_node_t n, const gchar *t)
+static void nodes_gui_node_added(
+    gnet_node_t n, const gchar *t, guint32 connected, guint32 total)
 {
     gnet_node_info_t *info;
 
@@ -297,7 +314,7 @@ static void nodes_gui_node_added(gnet_node_t n, const gchar *t)
 
     info = node_get_info(n);
     nodes_gui_add_node(info, t);
-    gui_update_c_gnutellanet();
+    gui_update_c_gnutellanet(connected, total);
     node_free_info(info);
 }
 
@@ -309,15 +326,15 @@ static void nodes_gui_node_added(gnet_node_t n, const gchar *t)
  * This updates the node information in the gui. If important is TRUE,
  * the update is forced and the connection stats are refreshed.
  */
-static void nodes_gui_node_changed
-    (gnet_node_t n, gboolean important)
+static void nodes_gui_node_changed(
+    gnet_node_t n, gboolean force, guint32 connected, guint32 total)
 {
     gnet_node_info_t *info;
 
     info = node_get_info(n);
 
-    nodes_gui_update_node(info, important);
-    if (important)
-        gui_update_c_gnutellanet();
+    nodes_gui_update_node(info, force);
+    if (force)
+        gui_update_c_gnutellanet(connected, total);
     node_free_info(info);
 }

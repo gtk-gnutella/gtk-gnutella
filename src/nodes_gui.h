@@ -36,4 +36,6 @@ void nodes_gui_remove_node(gnet_node_t n);
 void nodes_gui_update_node(gnet_node_info_t *, gboolean);
 void nodes_gui_update_nodes_display(time_t now);
 
+void gui_update_c_gnutellanet(guint32, guint32);
+
 #endif /* __nodes_gui_h__ */
