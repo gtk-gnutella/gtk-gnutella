@@ -72,8 +72,8 @@ static void init_constants(void)
 {
 	gchar buf[128];
 
-	g_snprintf(buf, sizeof(buf), "gtk-gnutella/%u.%u %s",
-		GTA_VERSION, GTA_SUBVERSION, GTA_REVISION);
+	g_snprintf(buf, sizeof(buf), "gtk-gnutella/%u.%u %s - %s",
+		GTA_VERSION, GTA_SUBVERSION, GTA_REVISION, GTA_RELEASE);
 
 	version_string = g_strdup(buf);
 

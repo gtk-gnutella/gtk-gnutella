@@ -1,3 +1,9 @@
+gtk-gnutella (0.80.0-0) unstable; urgency=low
+
+  * initial 0.80 beta version
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Sat, 19 Jan 2002 10:16:17 +0100
+
 gtk-gnutella (0.18.0-0) unstable; urgency=low
 
   * new upstream CVS

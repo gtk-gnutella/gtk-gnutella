@@ -1,4 +1,23 @@
-# since last version
+# v 0.80   2002.19.02  [beta]
+
+Summary of changes (user-visible):
+
+- Download queue made persistent: your pending downloads will be saved and
+  resumed the next time gtk-gnutella is started.
+- The download queue will now show the Host information.
+- Pushes now work correctly, and gtk-gnutella can also serve push requests to
+  others, so people behind firewalls may now share as well.
+- Search results filtering has been implemented: until now, there was only
+  the GUI part without any real work done.
+- Sorting by host now works on search results.
+- Supports the 0.6 handshaking protocol, both for incoming and outgoing
+  connections.  Still accepts 0.4 incoming requests, or issues 0.4 outgoing if
+  the remote node does not appear to support 0.6.
+- Ping/pong traffic is now limited to a few hundred bytes per second on each
+  connection, lowering the bandwidth usage: you should be able to open more
+  connections than before for the same bandwidth used.
+
+Detailed changes:
 
 - gtk-gnutella.spec now generated at configure time. [From: Sam Varshavchik]
 - LimeWire shut down their router.limewire.com pong cache.
@@ -119,6 +138,11 @@
 - Added URL escaping routines.
 - Now supports URL-escaped requests, but still sends un-escaped requests to
   remote servents.
+- Advertise our node address/port using the Node: header on all outgoing
+  handshakes.
+- Minor reformatting of config file comments, and raising of default max
+  messages to be more tolerent on replies, whilst reducing greatly the max
+  size of queries to limit potential of abuse.
 
 # v 0.18   2001.11.19
 
