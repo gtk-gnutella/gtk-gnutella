@@ -135,11 +135,11 @@ Release steps
 
 	VERSION=0.91
 
-29. Manually update the web site by logging in to gtk-gnutella.sf.net via SSH.
+29. Manually update the web site by logging in to projects.sourceforge.net via
+    SSH:
 
-	ssh -l rmanfredi gtk-gnutella.sf.net
-	$ cd /home/groups/g/gt/gtk-gnutella
-	$ ./update_homepage.sh
+	ssh USER@projects.sourceforge.net \
+		"cd /home/groups/g/gt/gtk-gnutella && ./update_homepage.sh"
 
 30. Send a message to gtk-gnutella-announce telling about the release.
 
