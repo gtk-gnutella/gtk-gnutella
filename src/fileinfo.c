@@ -54,6 +54,7 @@
 #include <time.h>			/* For ctime() */
 #include <arpa/inet.h>		/* For ntohl() and friends... */
 #include <dirent.h>
+#include <ctype.h>			/* For iscntrl() */
 
 RCSID("$Id$");
 
@@ -1932,6 +1933,8 @@ void file_info_retrieve(void)
  * be done, a copy of the original argument is made first.	Otherwise,
  * no change nor allocation occur.
  *
+ * All the control characters are also replaced with '_'.
+ *
  * Returns the pointer to the escaped filename, or the original argument if
  * no escaping needed to be performed.
  */
@@ -1939,15 +1942,15 @@ static gchar *escape_filename(gchar *file)
 {
 	gchar *escaped = NULL;
 	gchar *s;
-	gchar c;
+	guchar c;
 
 	s = file;
-	while ((c = *s)) {
-		if (c == '/') {
+	while ((c = *(guchar *) s)) {
+		if (c == '/' || iscntrl(c)) {
 			if (escaped == NULL) {
 				escaped = g_strdup(file);
 				s = escaped + (s - file);	/* s now refers to escaped string */
-				g_assert(*s == '/');
+				g_assert(*(guchar *) s == c);
 			}
 			*s = '_';
 		}
