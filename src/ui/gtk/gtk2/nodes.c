@@ -364,10 +364,16 @@ on_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
    	guc_node_fill_info(n, &info);
 	g_assert(info.node_handle == n);
 	gm_snprintf(text, sizeof text,
-		_("Peer: %s\nCountry: %s (%s)\nVendor: %.64s\n%s"),
+		"%s %s\n"
+		"%s %s (%s)\n"
+		"%s %.64s\n"
+		"%s",
+		_("Peer:"),
 		ip_port_to_gchar(info.ip, info.port),
+		_("Country:"),
 		iso3166_country_name(info.country),
 		iso3166_country_cc(info.country),
+		_("Vendor:"),
 		info.vendor ? lazy_locale_to_utf8(info.vendor, 0) : _("Unknown"),
 		_("(Press Control-F1 to toggle view)"));
 
