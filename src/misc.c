@@ -36,6 +36,14 @@
 #include "misc.h"
 #include "url.h"
 
+gboolean file_exists(gchar *f)
+{
+  	struct stat st;
+
+    g_assert(f != NULL);
+    return stat(f, &st) != -1;
+}
+
 gchar *ip_to_gchar(guint32 ip)
 {
 	static gchar a[32];

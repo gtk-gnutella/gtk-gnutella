@@ -34,6 +34,7 @@
  * Global Functions
  */
 
+gboolean file_exists(gchar *);
 gchar *ip_to_gchar(guint32);
 gchar *ip_port_to_gchar(guint32, guint16);
 guint32 gchar_to_ip(gchar *);
