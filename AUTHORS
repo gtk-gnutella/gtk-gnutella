@@ -50,6 +50,9 @@ Contributors:
 Artwork:
 	Taken from the gtop package:
 	arrow_up.xpm, arrow_down.xpm
+
+    Taken from eMule:
+    upload.xpm, download.xpm, smallserver.xpm
 	
 	Taken from Evolution:
 	online.xpm, offline.xpm
