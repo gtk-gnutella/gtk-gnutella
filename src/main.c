@@ -84,6 +84,29 @@ cqueue_t *callout_queue;
 
 static guint main_slow_update = 0;
 static gboolean exiting = FALSE;
+static gboolean from_atexit = FALSE;
+
+/*
+ * gtk_gnutella_atexit
+ *
+ * Invoked as an atexit() callback when someone does an exit().
+ */
+static void gtk_gnutella_atexit()
+{
+	/*
+	 * There's no way the gtk_gnutella_exit() routine can have its signature
+	 * changed, so we use the `from_atexit' global to indicate that we're
+	 * coming from the atexit() callback, mainly to suppress the final
+	 * gtk_exit() call, as well as the shutdown countdown.
+	 */
+
+	if (!exiting) {
+		g_warning("trapped foreign exit(), cleaning up...");
+		from_atexit = TRUE;
+		gtk_gnutella_exit(1);	/* Won't exit() since from_atexit is set */
+		g_warning("cleanup all done.");
+	}
+}
 
 /*
  * gtk_gnutella_exit
@@ -139,6 +162,9 @@ void gtk_gnutella_exit(gint n)
 	if (current_peermode == NODE_P_ULTRA)
 		exit_grace *= 2;
 
+	if (from_atexit)
+		exit_grace = 0;
+
 	while (
 		node_bye_pending() && 
 		(tick = time((time_t *) NULL)) - now < exit_grace
@@ -175,7 +201,9 @@ void gtk_gnutella_exit(gint n)
 
 	if (dbg)
 		printf("gtk-gnutella shut down cleanly.\n\n");
-	gtk_exit(n);
+
+	if (!from_atexit)
+		gtk_exit(n);
 }
 
 static void sig_terminate(int n)
@@ -239,6 +267,8 @@ static void slow_main_timer(time_t now)
 		i = 0;
 
 	download_store_if_dirty();		/* Important, so always attempt it */
+	settings_save_if_dirty();		/* Nice to have, and file is small */
+	settings_gui_save_if_dirty();	/* Ditto */
 	node_slow_timer(now);
 	ignore_timer(now);
 
@@ -471,6 +501,10 @@ gint main(gint argc, gchar **argv, gchar **env)
 	(void) g_timeout_add(1000, main_timer, NULL);
 	(void) g_timeout_add(CALLOUT_PERIOD, callout_timer, NULL);
 	(void) g_timeout_add(1000, scan_files_once, NULL);
+
+	/* Prepare against X connection losses -> exit() */
+
+	atexit(gtk_gnutella_atexit);
 
 	/* Okay, here we go */
 
