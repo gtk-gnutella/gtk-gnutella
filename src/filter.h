@@ -109,9 +109,10 @@ typedef struct rule {
     filter_t *target;
     union {
         struct _f_text {
-            int case_sensitive:1;	    /* case sensitive (true) or not (false) */
-            enum rule_text_type type; /* type of match, see above */
+            int case_sensitive:1;	    /* case sensitive (true) or not */
+            enum rule_text_type type;	/* type of match, see above */
             char *match; 	            /* match string */
+			gint matchlen;				/* length of match string */
             union {
                 cpattern_t *pattern;	/* substring pattern */
                 GList *words;		    /* a list of substring patterns */

@@ -497,6 +497,7 @@ rule_t *filter_new_text_rule(gchar *match, gint type,
     r->u.text.case_sensitive = case_sensitive;
     r->u.text.type           = type;
     r->u.text.match          = g_strdup(match);
+    r->u.text.matchlen       = strlen(match);
     set_flags(r->flags, RULE_FLAG_VALID);
 
     if (!r->u.text.case_sensitive)
@@ -2001,7 +2002,7 @@ static int filter_apply
                     break;
                 case RULE_TEXT_PREFIX:
                     if (strncmp(r->u.text.case_sensitive ? rec->name : l_name,
-                            r->u.text.match, strlen(r->u.text.match)) == 0)
+                            r->u.text.match, r->u.text.matchlen) == 0)
                         match = TRUE;
                     break;
                 case RULE_TEXT_WORDS:	/* Contains ALL the words */
@@ -2026,7 +2027,7 @@ static int filter_apply
                     }
                     break;
                 case RULE_TEXT_SUFFIX:
-                    n = strlen(r->u.text.match);
+                    n = r->u.text.matchlen;
                     if (namelen > n
                         && strcmp((r->u.text.case_sensitive
                                ? rec->name : l_name) + namelen
