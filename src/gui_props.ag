@@ -90,6 +90,16 @@ prop = {
 };
 
 prop = {
+    name = "dl_active_col_visible";
+    desc = "Which columns are visible in the active downloads table";
+    type = boolean;
+    vector_size = 7;
+    data = {
+        default = "{ 1, 1, 1, 1, 1, 1, 1 }";
+    };
+};
+
+prop = {
     name = "dl_queued_col_widths";
     cfgvar = "widths_dl_queued";
     desc = "Widths of the columns in the queued downloads table";
@@ -97,6 +107,16 @@ prop = {
     vector_size = 5;
     data = {
         default = "{ 240, 80, 80, 80, 80 }";
+    };
+};
+
+prop = {
+    name = "dl_queued_col_visible";
+    desc = "Which columns are visible in the queued downloads table";
+    type = boolean;
+    vector_size = 5;
+    data = {
+        default = "{ 1, 1, 1, 1, 1 }";
     };
 };
 
@@ -166,6 +186,16 @@ prop = {
 };
 
 prop = {
+    name = "ul_stats_col_visible";
+    desc = "Which columns are visible in the upload stats table";
+    type = boolean;
+    vector_size = 5;
+    data = {
+        default = "{ 1, 1, 1, 1, 1 }";
+    };
+};
+
+prop = {
     name = "uploads_col_widths";
     cfgvar = "widths_uploads";
     desc = "Widths of the columns in the uploads table";
@@ -173,6 +203,16 @@ prop = {
     vector_size = 7;
     data = {
         default = "{ 200, 120, 36, 80, 80, 80, 80 }";
+    };
+};
+
+prop = {
+    name = "uploads_col_visible";
+    desc = "Which columns are visible in the uploads table";
+    type = boolean;
+    vector_size = 7;
+    data = {
+        default = "{ 1, 1, 1, 1, 1, 1, 1 }";
     };
 };
 
