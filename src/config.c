@@ -55,9 +55,9 @@ guint32 node_connected_timeout = 45;
 guint32 node_connecting_timeout = 5;
 guint32 node_sendqueue_size = 20480;	/* was 10240 */
 guint32 search_queries_forward_size = 256;
-guint32 search_queries_kick_size = 5120;
-guint32 search_answers_forward_size = 32768;
-guint32 search_answers_kick_size = 40960;
+guint32 search_queries_kick_size = 1024;
+guint32 search_answers_forward_size = 65536;
+guint32 search_answers_kick_size = 65536;
 guint32 other_messages_kick_size = 40960;
 guint32 hops_random_factor = 0;
 guint32 max_high_ttl_msg = 10;
@@ -1124,7 +1124,8 @@ void config_save(void)
 			keywords[k_search_queries_forward_size],
 			search_queries_forward_size);
 	fprintf(config, "# Maximum size of search queries messages "
-		"we allow, otherwise close the connection (in bytes)\n%s = %u\n\n",
+		"we allow, otherwise close the\n"
+		"# connection (in bytes)\n%s = %u\n\n",
 			keywords[k_search_queries_kick_size],
 			search_queries_kick_size);
 	fprintf(config, "# Maximum size of search answers messages "
@@ -1132,11 +1133,13 @@ void config_save(void)
 			keywords[k_search_answers_forward_size],
 			search_answers_forward_size);
 	fprintf(config, "# Maximum size of search answers messages "
-		"we allow, otherwise close the connection (in bytes)\n%s = %u\n\n",
+		"we allow, otherwise close the\n"
+		"# connection (in bytes)\n%s = %u\n\n",
 			keywords[k_search_answers_kick_size],
 			search_answers_kick_size);
 	fprintf(config, "# Maximum size of unknown messages we allow, "
-		"otherwise close the connection (in bytes)\n%s = %u\n\n",
+		"otherwise close the\n"
+		"# connection (in bytes)\n%s = %u\n\n",
 			keywords[k_other_messages_kick_size],
 			other_messages_kick_size);
 
