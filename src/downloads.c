@@ -7836,9 +7836,13 @@ static void download_resume_bg_tasks(void)
 		 * its SHA1 started.
 		 *
 		 * In that case, the fileinfo of the file is marked as "suspended".
+		 *
+		 * It can also happen that the download has been scheduled for moving
+		 * already, when the SHA1-computing step was already performed, i.e.
+		 * we had a fi->cha1 in the record...
 		 */
 
-		if (fi->flags & FI_F_SUSPEND)	/* Already computing SHA1 */
+		if (fi->flags & FI_F_SUSPEND)	/* Already computing SHA1 or moving */
 			continue;
 
 		if (DOWNLOAD_IS_QUEUED(d))
@@ -7858,7 +7862,15 @@ static void download_resume_bg_tasks(void)
 		if (fi->cha1 == NULL)
 			download_verify_sha1(d);
 		else {
+			/*
+			 * Bypassed SHA1 checking, so we must suspend explicitly here.
+			 * Normally, this is done when we enter download_verify_sha1(),
+			 * which happens before download_move() is called.
+			 */
+
 			d->status = GTA_DL_VERIFIED;		/* Does not mean good SHA1 */
+			queue_suspend_downloads_with_file(fi, TRUE);
+
 			if (has_good_sha1(d))
 				download_move(d, move_file_path, DL_OK_EXT);
 			else
