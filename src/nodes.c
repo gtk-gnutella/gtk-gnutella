@@ -719,10 +719,14 @@ static gboolean analyse_status(struct gnutella_node *n, gint *code)
 		fflush(stdout);
 	}
 	if (ack_code == -1) {
-		g_warning("weird GNUTELLA %s status line from %s",
-			what, ip_to_gchar(n->ip));
-		dump_hex(stderr, "Status Line", status,
-			MIN(getline_length(s->getline), 80));
+		if (incoming || 0 != strcmp(status, "GNUTELLA OK")) {
+			g_warning("weird GNUTELLA %s status line from %s",
+				what, ip_to_gchar(n->ip));
+			dump_hex(stderr, "Status Line", status,
+				MIN(getline_length(s->getline), 80));
+		} else
+			g_warning("node %s gave a 0.4 reply to our 0.6 HELLO, dropping",
+				node_ip(n));
 	} else
 		ack_ok = TRUE;
 
@@ -2039,7 +2043,7 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 		if (r > 0)
 			s->pos += r;
 
-		g_warning("node %s replied to our HELLO strangely", node_ip(n));
+		g_warning("node %s replied to our 0.4 HELLO strangely", node_ip(n));
 		dump_hex(stderr, "HELLO Reply", s->buffer, MIN(s->pos, 256));
 		node_remove(n, "Failed (Not a Gnutella server?)");
 		return;
