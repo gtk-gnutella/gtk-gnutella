@@ -34,7 +34,12 @@
 #include <libintl.h>
 #include <langinfo.h>
 #include <locale.h>
+
+#ifdef HAVE_LIBCHARSET_H
+#include <libcharset.h>
 #endif
+
+#endif /* ENABLE_NLS */
 
 #include <string.h>
 
@@ -427,18 +432,21 @@ void locale_init(void)
 #ifdef USE_GTK2
 	codeset = "UTF-8";
 #else
+
+#ifdef HAVE_LIBCHARSET_H
+	codeset = locale_charset();
+#else
 	codeset = nl_langinfo(CODESET);
+#endif /* HAVE_LIBCHARSET_H */
 	if (codeset == NULL) 
 		codeset = "ISO-8859-1";		/* Default locale codeset */
 #endif /* USE_GTK2 */
 
 	bindtextdomain(PACKAGE, LOCALEDIR);
 
-/* FIXME: bind_textdomain_codeset() is only necessary for GNU gettext.
 #ifdef HAVE_BIND_TEXTDOMAIN_CODESET
-*/
 	bind_textdomain_codeset(PACKAGE, codeset);
-/* #endif */
+#endif
 
 	textdomain(PACKAGE);
 #endif /* NLS */
