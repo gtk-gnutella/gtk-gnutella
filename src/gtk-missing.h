@@ -138,5 +138,6 @@ gint gtk_main_flush(void);
 GtkWidget *menu_new_item_with_data(GtkMenu *m, gchar *l, gpointer d );
 GtkWidget *radiobutton_get_active_in_group(GtkRadioButton *rb);
 
+void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra);
 
 #endif	/* _gtk_missing_h_ */

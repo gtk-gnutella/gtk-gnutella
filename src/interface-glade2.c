@@ -1546,14 +1546,14 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label493 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
+  label494 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -1845,7 +1845,7 @@ create_main_window (void)
   GtkWidget *frame118;
   GtkWidget *alignment101;
   GtkWidget *label_statusbar_horizon_kb_count;
-  GtkWidget *frame119;
+  GtkWidget *frame_statusbar_uptime;
   GtkWidget *alignment102;
   GtkWidget *label_statusbar_uptime;
   GtkAccelGroup *accel_group;
@@ -2553,6 +2553,7 @@ create_main_window (void)
   gtk_widget_set_name (hbox_statusbar, "hbox_statusbar");
   gtk_widget_show (hbox_statusbar);
   gtk_box_pack_start (GTK_BOX (vbox12), hbox_statusbar, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (hbox_statusbar), 2);
 
   togglebutton_online = gtk_toggle_button_new ();
   gtk_widget_set_name (togglebutton_online, "togglebutton_online");
@@ -2640,23 +2641,21 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (alignment101), label_statusbar_horizon_kb_count);
   gtk_misc_set_padding (GTK_MISC (label_statusbar_horizon_kb_count), 5, 0);
 
-  frame119 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame119, "frame119");
-  gtk_widget_show (frame119);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame119, FALSE, TRUE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame119), GTK_SHADOW_IN);
+  frame_statusbar_uptime = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame_statusbar_uptime, "frame_statusbar_uptime");
+  gtk_widget_show (frame_statusbar_uptime);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame_statusbar_uptime, FALSE, TRUE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame_statusbar_uptime), GTK_SHADOW_IN);
 
   alignment102 = gtk_alignment_new (0.5, 0.5, 1, 1);
   gtk_widget_set_name (alignment102, "alignment102");
   gtk_widget_show (alignment102);
-  gtk_container_add (GTK_CONTAINER (frame119), alignment102);
+  gtk_container_add (GTK_CONTAINER (frame_statusbar_uptime), alignment102);
 
   label_statusbar_uptime = gtk_label_new (_("[uptime]"));
   gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");
   gtk_widget_show (label_statusbar_uptime);
   gtk_container_add (GTK_CONTAINER (alignment102), label_statusbar_uptime);
-  gtk_misc_set_alignment (GTK_MISC (label_statusbar_uptime), 0, 0.5);
-  gtk_misc_set_padding (GTK_MISC (label_statusbar_uptime), 5, 0);
 
   g_signal_connect ((gpointer) main_window, "delete_event",
                     G_CALLBACK (on_main_window_delete_event),
@@ -2869,7 +2868,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, frame118, "frame118");
   GLADE_HOOKUP_OBJECT (main_window, alignment101, "alignment101");
   GLADE_HOOKUP_OBJECT (main_window, label_statusbar_horizon_kb_count, "label_statusbar_horizon_kb_count");
-  GLADE_HOOKUP_OBJECT (main_window, frame119, "frame119");
+  GLADE_HOOKUP_OBJECT (main_window, frame_statusbar_uptime, "frame_statusbar_uptime");
   GLADE_HOOKUP_OBJECT (main_window, alignment102, "alignment102");
   GLADE_HOOKUP_OBJECT (main_window, label_statusbar_uptime, "label_statusbar_uptime");
   GLADE_HOOKUP_OBJECT_NO_REF (main_window, tooltips, "tooltips");

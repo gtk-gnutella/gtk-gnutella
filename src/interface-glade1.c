@@ -1151,7 +1151,7 @@ create_main_window (void)
   GtkWidget *image_legacy;
   GtkWidget *eventbox_image_ultra;
   GtkWidget *image_ultra;
-  GtkWidget *frame124;
+  GtkWidget *frame_statusbar_uptime;
   GtkWidget *label_statusbar_uptime;
   GtkAccelGroup *accel_group;
   GtkTooltips *tooltips;
@@ -10816,13 +10816,14 @@ create_main_window (void)
   gtk_widget_show (label672);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 9), label672);
 
-  hbox_statusbar = gtk_hbox_new (FALSE, 0);
+  hbox_statusbar = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox_statusbar, "hbox_statusbar");
   gtk_widget_ref (hbox_statusbar);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_statusbar", hbox_statusbar,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox_statusbar);
   gtk_box_pack_start (GTK_BOX (vbox12), hbox_statusbar, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (hbox_statusbar), 1);
 
   togglebutton_online = gtk_toggle_button_new ();
   gtk_widget_set_name (togglebutton_online, "togglebutton_online");
@@ -10867,7 +10868,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox5), image_offline);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_offline), FALSE);
 
-  alignment25 = gtk_alignment_new (0.5, 0.5, 1, 0);
+  alignment25 = gtk_alignment_new (0.5, 0.5, 1, 1);
   gtk_widget_set_name (alignment25, "alignment25");
   gtk_widget_ref (alignment25);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "alignment25", alignment25,
@@ -11163,14 +11164,14 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (eventbox_image_ultra), image_ultra);
   gtk_pixmap_set_build_insensitive (GTK_PIXMAP (image_ultra), FALSE);
 
-  frame124 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame124, "frame124");
-  gtk_widget_ref (frame124);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame124", frame124,
+  frame_statusbar_uptime = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame_statusbar_uptime, "frame_statusbar_uptime");
+  gtk_widget_ref (frame_statusbar_uptime);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_statusbar_uptime", frame_statusbar_uptime,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (frame124);
-  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame124, FALSE, FALSE, 0);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame124), GTK_SHADOW_IN);
+  gtk_widget_show (frame_statusbar_uptime);
+  gtk_box_pack_start (GTK_BOX (hbox_statusbar), frame_statusbar_uptime, FALSE, FALSE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame_statusbar_uptime), GTK_SHADOW_IN);
 
   label_statusbar_uptime = gtk_label_new (_("Uptime"));
   gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");
@@ -11178,7 +11179,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_statusbar_uptime", label_statusbar_uptime,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_statusbar_uptime);
-  gtk_container_add (GTK_CONTAINER (frame124), label_statusbar_uptime);
+  gtk_container_add (GTK_CONTAINER (frame_statusbar_uptime), label_statusbar_uptime);
   gtk_misc_set_padding (GTK_MISC (label_statusbar_uptime), 5, 0);
 
   gtk_signal_connect (GTK_OBJECT (main_window), "delete_event",
@@ -15217,7 +15218,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 1, 0.5);
 
-  label267 = gtk_label_new (_("Rapha\353l Manfredi"));
+  label267 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label267, "label267");
   gtk_widget_ref (label267);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label267", label267,
@@ -15261,7 +15262,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label291), 1, 0.5);
 
-  label273 = gtk_label_new (_("Rapha\353l Manfredi"));
+  label273 = gtk_label_new (_("Raphaël Manfredi"));
   gtk_widget_set_name (label273, "label273");
   gtk_widget_ref (label273);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label273", label273,

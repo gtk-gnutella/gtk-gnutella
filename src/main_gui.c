@@ -562,6 +562,11 @@ void main_gui_run(void)
         gdk_window_move_resize(main_window->window, 
 	    coord[0], coord[1], coord[2], coord[3]);
 
+    gtk_widget_fix_width(
+        lookup_widget(main_window, "frame_statusbar_uptime"),
+        lookup_widget(main_window, "label_statusbar_uptime"),
+        8, 20);
+
     gtk_main();
 }
 

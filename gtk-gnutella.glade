@@ -17743,8 +17743,9 @@ interface</label>
     <widget>
       <class>GtkHBox</class>
       <name>hbox_statusbar</name>
+      <border_width>1</border_width>
       <homogeneous>False</homogeneous>
-      <spacing>0</spacing>
+      <spacing>4</spacing>
       <child>
 	<padding>0</padding>
 	<expand>False</expand>
@@ -17815,7 +17816,7 @@ interface</label>
 	<xalign>0.5</xalign>
 	<yalign>0.5</yalign>
 	<xscale>1</xscale>
-	<yscale>0</yscale>
+	<yscale>1</yscale>
 	<child>
 	  <padding>0</padding>
 	  <expand>True</expand>
@@ -18178,7 +18179,7 @@ interface</label>
 
       <widget>
 	<class>GtkFrame</class>
-	<name>frame124</name>
+	<name>frame_statusbar_uptime</name>
 	<label_xalign>0</label_xalign>
 	<shadow_type>GTK_SHADOW_IN</shadow_type>
 	<child>

@@ -758,7 +758,73 @@ inline gint gtk_ctree_count_node_children(GtkCTree *ctree, GtkCTreeNode *parent)
 	
 	return num_children;	
 }
-
 #endif /* USE_GTK1 */
+
+/**
+ * Adjust the width of one widget based on the font information of another
+ * widget. 
+ *
+ * Currently this function sets the width of the target widget so it can
+ * accomodate a string of the given length which contains only digits.
+ * 
+ * @param extra additional number of pixels to add
+ */
+#ifdef USE_GTK1
+void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra)
+{
+    GtkStyle *style;
+    GdkFont *font;
+    gchar c;
+    gint max_width;
+
+    style = gtk_widget_get_style(l);
+    font = style->font;
+
+    for (c = 1; c != 0; c ++) {
+        gint width;
+
+        if (isdigit(c)) {
+            width = gdk_char_width(font, c);
+            if (max_width < width) {
+                max_width = width;
+            }
+        }
+    }
+
+    g_message("gtk_label_fix_width: width %d (%d)", 
+        max_width, (max_width * chars) + extra);
+
+    max_width = max_width * chars + extra;
+ 
+    gtk_widget_set_usize(w, max_width, -1);
+}
+#endif
+
+#ifdef USE_GTK2
+void gtk_widget_fix_width(GtkWidget *w, GtkWidget *l, guint chars, guint extra)
+{
+    gint max_width;
+    PangoContext *pctx;
+    PangoFontDescription *pfd;
+    PangoFontMetrics *pfm;
+    PangoLanguage * plang;
+
+    pctx = gtk_widget_get_pango_context(l);
+    pfd = pango_context_get_font_description(pctx);
+    plang = pango_context_get_language(pctx);
+    pfm = pango_context_get_metrics(pctx, pfd, plang);
+
+    max_width = PANGO_PIXELS(
+        (pango_font_metrics_get_approximate_digit_width(pfm) * chars)
+        + extra);
+
+    g_message("gtk_label_fix_width: width %d", max_width);
+
+    gtk_widget_set_size_request(w, max_width, -1);
+
+    pango_font_metrics_unref(pfm);
+}
+#endif
+
 
 /* vi: set ts=4: */
