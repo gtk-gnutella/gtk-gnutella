@@ -244,28 +244,25 @@ ggept_hname_extract(extvec_t *exv, gchar *buf, gint len)
 ggept_status_t
 ggept_lf_extract(extvec_t *exv, guint64 *filesize)
 {
-	guint64 fs, b = 0;
+	guint64 fs, b;
 	gint i, j, tlen;
-	guint8 buf[63 / 7];
+	guint8 buf[sizeof(guint64)];
 
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_LF);
 	
 	tlen = ggep_decode_into(exv, buf, sizeof buf);
-	if (tlen < 1 || tlen > 9)
+	if (tlen < 1 || tlen > (int) sizeof buf)
 		return GGEP_INVALID;
 
-	fs = 0;
-	j = 0;
-	for (i = 0; i < tlen; i++, j += 7) {
+	fs = j = i = 0;
+	do {
 		b = buf[i];
-		if ((b ^= 0x80) & 0x80)
-			return GGEP_INVALID;
-
 		fs |= b << j;
-	}
+		j += 8;
+	} while (++i < tlen);
 
-	if (0 == b && tlen != 1)
+	if (0 == b)
 		return GGEP_INVALID;
 
 	if (filesize)
@@ -277,18 +274,16 @@ ggept_lf_extract(extvec_t *exv, guint64 *filesize)
 gint
 ggep_lf_encode(guint64 filesize, guint8 *data)
 {
-  guint64 s = filesize;
   guint8 *p = data;
 
-  if ((gint64) filesize < 0)
-    return -1;
+  if (0 == filesize)
+    return 0;
   
   do {
-    *p++ = s | 0x80;
-  } while (0 != (s >>= 7));
+    *p++ = filesize;
+  } while (0 != (filesize >>= 8));
 
   return p - data;
 }
-
 
 /* vi: set ts=4 sw=4 cindent: */

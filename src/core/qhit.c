@@ -489,11 +489,11 @@ add_file(struct shared_file *sf)
 		}
 
 		if (sf->file_size > ((1U << 31) - 1)) {
-			guint8 buf[63 / 7];
+			guint8 buf[sizeof(guint64)];
 			gint len, w;
-			guint32 flags;
+			guint32 flags = GGEP_W_COBS;
 			
-			flags = last_ggep ? 0 : GGEP_W_FIRST;
+			flags |= last_ggep ? 0 : GGEP_W_FIRST;
 			len = ggep_lf_encode(sf->file_size, buf); 
 			g_assert(len > 0 && len <= (gint) sizeof buf);
 
