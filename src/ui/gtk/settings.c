@@ -417,13 +417,11 @@ static gboolean update_split_pane(property_t prop)
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
     prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
-    guint32 pos;
 
     if (!top)
         return FALSE;
 
     w = lookup_widget(top, map_entry->wid);
-
     if (w == NULL) {
 		if (gui_debug)
 			g_warning("%s - widget not found: [%s]",
@@ -442,7 +440,6 @@ static gboolean update_split_pane(property_t prop)
     }
 
     gtk_paned_set_position(GTK_PANED(w), val);
-    pos = gtk_paned_get_position(GTK_PANED(w));
 
     return FALSE;
 }
