@@ -33,9 +33,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-/* fixme: from nodes.c */
-gboolean node_connected(guint32 ip, guint16 port, gboolean incoming);
-
 GSList *sl_whitelist = NULL;
 
 static gchar *whitelist_file = "whitelist";
@@ -154,7 +151,7 @@ int whitelist_connect(void)
         n = l->data;
         if (!n->port)
             continue;
-        if (node_connected(n->ip, n->port, TRUE))
+        if (node_is_connected(n->ip, n->port, TRUE))
             continue;
 
         if ((now - n->last_try) > WHITELIST_RETRY_DELAY) {

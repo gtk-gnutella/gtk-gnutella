@@ -286,6 +286,7 @@ void node_timer(time_t now);
 gboolean on_the_net(void);
 gint32 connected_nodes(void);
 gint32 node_count(void);
+gboolean node_is_connected(guint32 ip, guint16 port, gboolean incoming);
 void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port);
 void node_remove(struct gnutella_node *, const gchar * reason, ...);
 void node_bye(gnutella_node_t *, gint code, const gchar * reason, ...);
@@ -315,6 +316,7 @@ __inline__ void node_add_rxdrop(gnutella_node_t *n, gint x);
 
 inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
 
+void node_set_online_mode(gboolean on);
 gchar *node_ip(gnutella_node_t *n);
 
 #endif /* __nodes_h__ */

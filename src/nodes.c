@@ -897,16 +897,17 @@ void node_bye_if_writable(
 		node_remove_v(n, reason, args);
 }
 
-gboolean node_connected(guint32 ip, guint16 port, gboolean incoming)
+/*
+ * node_is_connected
+ *
+ * Is there a node connected with this IP/port?
+ *
+ * The port is tested only when `incoming' is FALSE, i.e. we allow
+ * only one incoming connection per IP, even when there are several
+ * instances, all on different ports.
+ */
+gboolean node_is_connected(guint32 ip, guint16 port, gboolean incoming)
 {
-	/*
-	 * Is there a node connected with this IP/port?
-	 *
-	 * The port is tested only when `incoming' is FALSE, i.e. we allow
-	 * only one incoming connection per IP, even when there are several
-	 * instances, all on different ports.
-	 */
-
 	GSList *l;
 
 	if (ip == listen_ip() && port == listen_port)	/* yourself */
@@ -2126,7 +2127,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	 */
 
 	incoming = s != NULL;
-	already_connected = node_connected(ip, port, incoming);
+	already_connected = node_is_connected(ip, port, incoming);
 
 	/*
 	 * Too many gnutellaNet connections?
