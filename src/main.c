@@ -27,8 +27,11 @@
 #include "gui.h"
 
 #include <signal.h>
-#include <locale.h>
 #include <ctype.h>
+
+#ifdef ENABLE_NLS
+#include <libintl.h>
+#endif
 
 #include "search.h"
 #include "share.h"
