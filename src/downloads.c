@@ -307,6 +307,9 @@ void download_stop(struct download *d, guint32 new_status,
 	if (IS_DOWNLOAD_VISIBLE(d))
 		gui_update_download(d, TRUE);
 
+	if (new_status == GTA_DL_COMPLETED)
+		queue_remove_all_named(d->file_name);
+
 	download_pickup_queued();
 
 	if (IS_DOWNLOAD_VISIBLE(d)) {
@@ -439,7 +442,6 @@ void download_start(struct download *d, gboolean check_allowed)
 		if (!IS_DOWNLOAD_VISIBLE(d))
 			download_gui_add(d);
 		download_stop(d, GTA_DL_COMPLETED, "Nothing more to get");
-		queue_remove_all_named(d->file_name);
 		return;
 	}
 
@@ -1133,7 +1135,6 @@ void download_read(gpointer data, gint source, GdkInputCondition cond)
 		if (d->pos >= d->size) {
 			download_stop(d, GTA_DL_COMPLETED, NULL);
 			download_move_to_completed_dir(d);
-			queue_remove_all_named(d->file_name);
 			count_downloads++;
 			gui_update_count_downloads();
 			return;
