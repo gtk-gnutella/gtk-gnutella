@@ -45,41 +45,28 @@ CC = $cc
 CTAGS = ctags
 JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
 JLDFLAGS = \$(LDFLAGS) $optimize $ldflags
-JYFLAGS = \$(YFLAGS) $yaccflags
 L = $manext
 LIBS = $libs
 MANSRC = $installmansrc
-$make_set_make
 MKDEP = $mkdep \$(DPFLAGS) --
 MV = $mv
-PRIVLIB = $installprivlib
 RM = $rm -f
 SED = $sed
-YACC = $yacc
 
 ########################################################################
 # Automatically generated parameters -- do not edit
 
+SUBDIRS = core lib ui if
 USRINC = $usrinc
-GLADE =  $glade
-SOURCES =   getdate.y  \$(SRC)
-GUI_GLADE_SRC =  $gladesrc
-GTK_CFLAGS =  $gtkcflags
-GLADEFILE =  ../$gladefile
-XML2_LDFLAGS =  $xmlldflags
 GTK_LDFLAGS =  $gtkldflags
-GUI_GLADE_OBJ =  $gladeobj
-OBJECTS =   getdate.o  \$(OBJ) getdate.o
+SOURCES =   \$(SRC)
+OBJECTS =   \$(OBJ) \$(EXTRA)
+GTK_CFLAGS =  $gtkcflags
 XML2_CFLAGS =  $xmlcflags
+XML2_LDFLAGS =  $xmlldflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
-
-.SUFFIXES: .y
-
-.y.c:
-	\$(YACC) \$(JYFLAGS) \$<
-	\$(MV) y.tab.c \$@
 
 .c.o:
 	\$(CC) -c \$(JCFLAGS) \$<
@@ -88,7 +75,7 @@ XML2_CFLAGS =  $xmlcflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules,v 3.0.1.6 1997/02/28 14:56:01 ram Exp ram $
+# $X-Id: Jmake.rules,v 3.0.1.7 2004/08/22 08:28:58 ram Exp ram $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -100,334 +87,107 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.28 2004/08/18 18:49:45 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.6 2004/01/11 11:55:11 rmanfredi Exp $
 
-GUI_GTK2 = \
-	downloads_cb2.c \
-	downloads_gui2.c \
-	fileinfo_gui2.c \
-	gnet_stats_gui2.c \
-	hcache_gui2.c \
-	monitor_cb2.c\
-	monitor_gui2.c \
-	nodes_cb2.c \
-	nodes_gui2.c \
-	search_cb2.c \
-	search_gui2.c \
-	search_stats_gui2.c \
-	uploads_gui2.c \
-	upload_stats_gui2.c
+all::
 
-GUI_GTK1 = \
-	downloads_cb.c \
-	downloads_gui.c \
-	fileinfo_gui.c \
-	gnet_stats_gui.c \
-	hcache_gui.c \
-	monitor_cb.c \
-	monitor_gui.c \
-	nodes_cb.c \
-	nodes_gui.c \
-	search_cb.c \
-	search_gui.c \
-	search_stats_gui.c \
-	uploads_gui.c \
-	upload_stats_gui.c 
+depend::
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS) ;\
+	do \
+		(cd $$i ; echo "Depending" "in $(DIR)$$i..."; \
+			$(MAKE) $(MFLAGS)  depend); \
+	done
 
-GUI_SPECIFIC = \
-	pbarcellrenderer_gui2.c
+SRC = main.c
+OBJ = main.o
 
-GUI_COMMON = \
-	callbacks.c \
-	downloads_gui_common.c \
-	filter.c \
-	filter_cb.c \
-	filter_gui.c \
-	gnet_stats_gui_common.c \
-	gtkcolumnchooser.c \
-	gtk-missing.c \
-	gui.c \
-	gui_property.c \
-	hcache_gui_common.c \
-	main_cb.c \
-	main_gui.c \
-	nodes_gui_common.c \
-	search_gui_common.c \
-	settings_cb.c \
-	settings_gui.c \
-	statusbar_gui.c \
-	uploads_cb.c \
-	uploads_gui_common.c \
-	upload_stats_cb.c \
-	visual_progress_gui.c
+EXTRA = \
+	if/bridge/ui2c.o \
+	if/bridge/c2ui.o \
+	if/gnet_property.o \
+	if/gui_property.o
 
-CORE = \
-	adns.c \
-	alive.c \
-	atoms.c \
-	ban.c \
-	base32.c \
-	base64.c \
-	bg.c \
-	bitzi.c \
-	bsched.c \
-	clock.c \
-	cobs.c \
-	common.c \
-	cq.c \
-	crc.c \
-	dh.c \
-	dmesh.c \
-	downloads.c \
-	dq.c \
-	drop.c \
-	eval.c \
-	event.c \
-	extensions.c \
-	file.c \
-	fileinfo.c \
-	fuzzy.c \
-	g2node.c \
-	getline.c \
-	ggep.c \
-	ggep_type.c \
-	glib-missing.c \
-	gmsg.c \
-	gnet_property.c \
-	gnet_stats.c \
-	guid.c \
-	ui_core_interface.c \
-	gwcache.c \
-	hashlist.c \
-	hashtree.c \
-	hcache.c \
-	header.c \
-	hostiles.c \
-	hosts.c \
-	hsep.c \
-	http.c \
-	huge.c \
-	icon.c \
-	idtable.c \
-	ignore.c \
-	inet.c \
-	inputevt.c \
-	ioheader.c \
-	main.c \
-	malloc.c \
-	matching.c \
-	misc.c \
-	move.c \
-	mq.c \
-	namesize.c \
-	nodes.c \
-	parq.c \
-	pcache.c \
-	pmsg.c \
-	pproxy.c \
-	prop.c \
-	qrp.c \
-	routing.c \
-	rx.c \
-	rx_inflate.c \
-	rx_link.c \
-	rxbuf.c \
-	search.c \
-	search_xml.c \
-	settings.c \
-	sha1.c \
-	share.c \
-	shell.c \
-	sockets.c \
-	sq.c \
-	tiger.c \
-	tigertree.c \
-	tm.c \
-	token.c \
-	tx.c \
-	tx_deflate.c \
-	tx_link.c \
-	udp.c \
-	upload_stats.c \
-	uploads.c \
-	url.c \
-	utf8.c \
-	vendors.c \
-	verify.c \
-	verify-tigertree.c \
-	version.c \
-	vmsg.c \
-	walloc.c \
-	whitelist.c \
-	zalloc.c \
-	zlib_util.c
+CFLAGS = -I.. -I. $(GTK_CFLAGS) $(XLM2_CFLAGS)
+DPFLAGS = $(CFLAGS)
+LDFLAGS = \
+	-Lcore -lcore \
+	-Lui/gtk \
+	-lgtk-common -lgtkx -lgtk-common -lcore \
+	-Llib -lshared \
+	$(GTK_LDFLAGS) $(XML2_LDFLAGS)
 
-SRCLIST = \
-	$(GUI_GTK2) \
-	$(GUI_GTK1) \
-	$(GUI_COMMON) \
-	$(GUI_SPECIFIC) \
-	$(CORE)
+.FORCE:
 
-OBJLIST = \
-	downloads_cb2.o \
-	downloads_gui2.o \
-	fileinfo_gui2.o \
-	gnet_stats_gui2.o \
-	hcache_gui2.o \
-	monitor_cb2.o \
-	monitor_gui2.o \
-	nodes_cb2.o \
-	nodes_gui2.o \
-	search_cb2.o \
-	search_gui2.o \
-	search_stats_gui2.o \
-	uploads_gui2.o \
-	upload_stats_gui2.o \
-	downloads_cb.o \
-	downloads_gui.o \
-	fileinfo_gui.o \
-	gnet_stats_gui.o \
-	hcache_gui.o \
-	monitor_cb.o \
-	monitor_gui.o \
-	nodes_cb.o \
-	nodes_gui.o \
-	search_cb.o \
-	search_gui.o \
-	search_stats_gui.o \
-	uploads_gui.o \
-	upload_stats_gui.o \
-	callbacks.o \
-	downloads_gui_common.o \
-	filter.o \
-	filter_cb.o \
-	filter_gui.o \
-	gnet_stats_gui_common.o \
-	gtkcolumnchooser.o \
-	gtk-missing.o \
-	gui.o \
-	gui_property.o \
-	hcache_gui_common.o \
-	main_cb.o \
-	main_gui.o \
-	nodes_gui_common.o \
-	search_gui_common.o \
-	settings_cb.o \
-	settings_gui.o \
-	statusbar_gui.o \
-	uploads_cb.o \
-	uploads_gui_common.o \
-	upload_stats_cb.o \
-	visual_progress_gui.o \
-	pbarcellrenderer_gui2.o \
-	adns.o \
-	alive.o \
-	atoms.o \
-	ban.o \
-	base32.o \
-	base64.o \
-	bg.o \
-	bitzi.o \
-	bsched.o \
-	clock.o \
-	cobs.o \
-	common.o \
-	cq.o \
-	crc.o \
-	dh.o \
-	dmesh.o \
-	downloads.o \
-	dq.o \
-	drop.o \
-	eval.o \
-	event.o \
-	extensions.o \
-	file.o \
-	fileinfo.o \
-	fuzzy.o \
-	g2node.o \
-	getline.o \
-	ggep.o \
-	ggep_type.o \
-	glib-missing.o \
-	gmsg.o \
-	gnet_property.o \
-	gnet_stats.o \
-	guid.o \
-	ui_core_interface.o \
-	gwcache.o \
-	hashlist.o \
-	hashtree.o \
-	hcache.o \
-	header.o \
-	hostiles.o \
-	hosts.o \
-	hsep.o \
-	http.o \
-	huge.o \
-	icon.o \
-	idtable.o \
-	ignore.o \
-	inet.o \
-	inputevt.o \
-	ioheader.o \
-	main.o \
-	malloc.o \
-	matching.o \
-	misc.o \
-	move.o \
-	mq.o \
-	namesize.o \
-	nodes.o \
-	parq.o \
-	pcache.o \
-	pmsg.o \
-	pproxy.o \
-	prop.o \
-	qrp.o \
-	routing.o \
-	rx.o \
-	rx_inflate.o \
-	rx_link.o \
-	rxbuf.o \
-	search.o \
-	search_xml.o \
-	settings.o \
-	sha1.o \
-	share.o \
-	shell.o \
-	sockets.o \
-	sq.o \
-	tiger.o \
-	tigertree.o \
-	tm.o \
-	token.o \
-	tx.o \
-	tx_deflate.o \
-	tx_link.o \
-	udp.o \
-	upload_stats.o \
-	uploads.o \
-	url.o \
-	utf8.o \
-	vendors.o \
-	verify.o \
-	verify-tigertree.o \
-	version.o \
-	vmsg.o \
-	walloc.o \
-	whitelist.o \
-	zalloc.o \
-	zlib_util.o 
+lib/libshared.a: .FORCE
+	@echo "Checking "libshared.a" in "lib"..."
+	cd lib; $(MAKE) libshared.a
+	@echo "Continuing in $(CURRENT)..."
 
-SRC = $(SRCLIST) $(GUI_GLADE_SRC)
-OBJ = $(OBJLIST) $(GUI_GLADE_OBJ)
+gtk-gnutella:  lib/libshared.a
 
-# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) $(GTK_CFLAGS) $(XML2_CFLAGS)
-DPFLAGS = -I$(TOP) $(GTK_CFLAGS) $(XML2_CFLAGS)
-LDFLAGS = $(GTK_LDFLAGS) $(XML2_LDFLAGS)
+core/libcore.a: .FORCE
+	@echo "Checking "libcore.a" in "core"..."
+	cd core; $(MAKE) libcore.a
+	@echo "Continuing in $(CURRENT)..."
+
+gtk-gnutella:  core/libcore.a
+
+ui/gtk/libgtk-common.a: .FORCE
+	@echo "Checking "libgtk-common.a" in "ui/gtk"..."
+	cd ui/gtk; $(MAKE) libgtk-common.a
+	@echo "Continuing in $(CURRENT)..."
+
+gtk-gnutella:  ui/gtk/libgtk-common.a
+
+ui/gtk/libgtkx.a: .FORCE
+	@echo "Checking "libgtkx.a" in "ui/gtk"..."
+	cd ui/gtk; $(MAKE) libgtkx.a
+	@echo "Continuing in $(CURRENT)..."
+
+gtk-gnutella:  ui/gtk/libgtkx.a
+
+if/bridge/ui2c.o: .FORCE
+	@echo "Checking "ui2c.o" in "if/bridge"..."
+	cd if/bridge; $(MAKE) ui2c.o
+	@echo "Continuing in $(CURRENT)..."
+
+gtk-gnutella:  if/bridge/ui2c.o
+
+if/bridge/c2ui.o: .FORCE
+	@echo "Checking "c2ui.o" in "if/bridge"..."
+	cd if/bridge; $(MAKE) c2ui.o
+	@echo "Continuing in $(CURRENT)..."
+
+gtk-gnutella:  if/bridge/c2ui.o
+
+if/gnet_property.o: .FORCE
+	@echo "Checking "gnet_property.o" in "if"..."
+	cd if; $(MAKE) gnet_property.o
+	@echo "Continuing in $(CURRENT)..."
+
+gtk-gnutella:  if/gnet_property.o
+
+if/gui_property.o: .FORCE
+	@echo "Checking "gui_property.o" in "if"..."
+	cd if; $(MAKE) gui_property.o
+	@echo "Continuing in $(CURRENT)..."
+
+gtk-gnutella:  if/gui_property.o
+
+if/gnet_property.h: .FORCE
+	@echo "Checking "gnet_property.h" in "if"..."
+	cd if; $(MAKE) gnet_property.h
+	@echo "Continuing in $(CURRENT)..."
+
+main.o:  if/gnet_property.h
+
+if/gui_property.h: .FORCE
+	@echo "Checking "gui_property.h" in "if"..."
+	cd if; $(MAKE) gui_property.h
+	@echo "Continuing in $(CURRENT)..."
+
+main.o:  if/gui_property.h
 
 depend:: ../mkdep
 
@@ -445,20 +205,16 @@ depend::
 	cp Makefile.new Makefile
 	$(RM) Makefile.new
 
-gtk-gnutella:  getdate.c
-
-local_realclean::
-	$(RM)  getdate.c
-
 all:: gtk-gnutella
 
 local_realclean::
 	$(RM) gtk-gnutella
 
-gtk-gnutella:  $(OBJ) getdate.o
+gtk-gnutella:  $(OBJ) $(EXTRA)
+
 	$(RM) $@
 	if test -f $@; then $(MV) $@ $@~; fi
-	$(CC) -o $@  $(OBJ) getdate.o $(JLDFLAGS) $(LIBS)
+	$(CC) -o $@  $(OBJ) $(EXTRA) $(JLDFLAGS) $(LIBS)
 
 local_install:: gtk-gnutella
 	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
@@ -478,46 +234,28 @@ local_install.man:: gtk-gnutella.man
 local_deinstall.man::
 	$(RM) $(INSTALL_PREFIX)$(MANSRC)/gtk-gnutella.$(L)
 
-#
-# Glade generates:
-#	interface-glade[12].c interface-glade[12].h
-#   support-glade[12].c support-glade[12].h
-#
-# Depending on whether we compile for Gtk 1.2 or Gtk 2, the ones the others
-# will be linked and included. This can be tested by checking if USE_GTK2
-# is defined in the sourcecode files.
-# We let glade directly handle the callbacks.[ch] files so we can do without
-# any postprocessing of the glade output.
-#
-
-glade_files:
-	$(GLADE) --write-source $(GLADEFILE)
-
-properties:
-	autogen gui_props.ag
-	autogen gnet_props.ag
-
 ########################################################################
 # Common rules for all Makefiles -- do not edit
 
 emptyrule::
 
-clean: local_clean
-realclean: local_realclean
-clobber: local_clobber
+clean: sub_clean local_clean
+realclean: sub_realclean local_realclean
+clobber: sub_clobber local_clobber
 
 local_clean::
-	$(RM) core *~ *.o
+	if test -f core; then $(RM) core; fi
+	$(RM) *~ *.o
 
 local_realclean:: local_clean
 
 local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
-install: local_install
-install.man: maybe_install.man
-deinstall: local_deinstall
-deinstall.man: maybe_deinstall.man
+install: local_install sub_install
+install.man: maybe_install.man sub_install.man
+deinstall: sub_deinstall local_deinstall
+deinstall.man: sub_deinstall.man maybe_deinstall.man
 
 install.man-yes: local_install.man
 install.man-no:
@@ -556,23 +294,81 @@ local_clobber::
 	$(RM) tags
 
 ########################################################################
-# Empty rules for directories with no sub-directories -- do not edit
+# Rules for building in sub-directories -- do not edit
 
-local_install::
-	@echo "install in $(CURRENT) done."
+subdirs:
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS) ;\
+	do \
+		(cd $$i ; echo $(VERB) "in $(DIR)$$i..."; \
+			$(MAKE) $(MFLAGS) $(FLAGS) $(TARGET)); \
+	done
 
-local_deinstall::
-	@echo "deinstall in $(CURRENT) done."
+sub_install::
+	@$(MAKE) subdirs TARGET=install VERB="Installing" FLAGS=
 
-local_install.man::
-	@echo "install.man in $(CURRENT) done."
+sub_deinstall::
+	@$(MAKE) subdirs TARGET=deinstall VERB="Deinstalling" FLAGS=
+	@echo "Back to $(CURRENT) for "deinstall...
 
-local_deinstall.man::
-	@echo "deinstall.man in $(CURRENT) done."
+sub_install.man::
+	@$(MAKE) subdirs TARGET=install.man VERB="Installing man pages" FLAGS=
+
+sub_deinstall.man::
+	@$(MAKE) subdirs TARGET=deinstall.man VERB="Deinstalling man pages" FLAGS=
+	@echo "Back to $(CURRENT) for "deinstall.man...
+
+sub_clean::
+	@$(MAKE) subdirs TARGET=clean VERB="Cleaning" FLAGS=
+	@echo "Back to $(CURRENT) for "clean...
+
+sub_realclean::
+	@$(MAKE) subdirs TARGET=realclean VERB="Real cleaning" FLAGS=
+	@echo "Back to $(CURRENT) for "realclean...
+
+sub_clobber::
+	@$(MAKE) subdirs TARGET=clobber VERB="Clobbering" FLAGS=
+	@echo "Back to $(CURRENT) for "clobber...
+
+tag::
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS) ;\
+	do \
+		(cd $$i ; echo "Tagging" "in $(DIR)$$i..."; \
+			$(MAKE) $(MFLAGS)  tag); \
+	done
 
 Makefiles::
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS);\
+	do \
+		echo "Making "Makefiles" in $(DIR)$$i..."; \
+		(cd $$i || exit 1; \
+		if test ! -f Makefile; then /bin/sh Makefile.SH; fi; \
+		$(MAKE) $(MFLAGS) Makefiles) \
+	done
 
-Makefiles.SH::
+Makefiles.SH:: Makefile.SH
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
+	for i in $(SUBDIRS);\
+	do \
+		case "$(DIR)$$i/" in \
+		*/*/*/*/) newtop=../../../..;; \
+		*/*/*/) newtop=../../..;; \
+		*/*/) newtop=../..;; \
+		*/) newtop=..;; \
+		esac; \
+		case "$(TOP)" in \
+		/*) newtop="$(TOP)" ;; \
+		esac; \
+		echo "Making Makefiles.SH in $(DIR)$$i..."; \
+		(cd $$i || exit 1; $(MAKE) $(MFLAGS) -f ../Makefile \
+		Makefile TOP=$$newtop CURRENT=$(DIR)$$i;\
+		$(MAKE) $(MFLAGS) Makefiles.SH) \
+	done
+
+all::
+	@$(MAKE) subdirs TARGET=all VERB="Making all" FLAGS=
 
 ########################################################################
 # Dependencies generated by make depend

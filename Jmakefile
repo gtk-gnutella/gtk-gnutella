@@ -27,8 +27,6 @@
 
 ;# $Id$
 
-/* >MANSRC		/* This should really become automated */
-
 EXTRA_FILES = \
 	gwcache.boot \
 	hostiles.txt
@@ -38,8 +36,6 @@ all::		/* So that default target is not clobber! */
 SetSubdirs(src pixmaps po)
 DependDirs(src)
 AddedByConfigure(install gtk-gnutella.spec)
-
->PRIVLIB	/* Grrr... figure this one automatically */
 
 INSTALLFLAGS = -m 444
 

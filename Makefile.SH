@@ -41,7 +41,6 @@ INSTALLDIR = $INSTALLDIR
 # Parameters set by Configure -- edit config.sh if changes are needed
 
 CTAGS = ctags
-$make_set_make
 MV = $mv
 PRIVLIB = $installprivlib
 RM = $rm -f
@@ -55,7 +54,7 @@ SUBDIRS = src pixmaps po
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules,v 3.0.1.6 1997/02/28 14:56:01 ram Exp ram $
+# $X-Id: Jmake.rules,v 3.0.1.7 2004/08/22 08:28:58 ram Exp ram $
 
 ########################################################################
 # Start of Jmakefile
@@ -82,6 +81,7 @@ local_clobber::
 INSTALLFLAGS = -m 444
 
 local_install::
+
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for dir in $(PRIVLIB); do	\
 	(set -x; test -d $(INSTALL_PREFIX)$$dir || \
@@ -89,6 +89,7 @@ local_install::
 	done
 
 local_deinstall::
+
 	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
 	for dir in $(PRIVLIB); do \
 		(set -x; test -d $$dir && $(RM) -r $(INSTALL_PREFIX)$$dir); \

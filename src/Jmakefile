@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2003, Raphael Manfredi
  *
- * Jmakefile for gtk-gnutella sources.
+ * Jmakefile for gtk-gnutella.
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -27,217 +27,55 @@
 
 ;# $Id$
 
-GUI_GTK2 = \
-	downloads_cb2.c \
-	downloads_gui2.c \
-	fileinfo_gui2.c \
-	gnet_stats_gui2.c \
-	hcache_gui2.c \
-	monitor_cb2.c\
-	monitor_gui2.c \
-	nodes_cb2.c \
-	nodes_gui2.c \
-	search_cb2.c \
-	search_gui2.c \
-	search_stats_gui2.c \
-	uploads_gui2.c \
-	upload_stats_gui2.c
+all::		/* So that default target is not clobber! */
 
-GUI_GTK1 = \
-|expand f!$(GUI_GTK2)!
-	!f:2.c=.c \
--expand \\
+SetSubdirs(core lib ui if)
+DependSubdirs()
 
-GUI_SPECIFIC = \
-	pbarcellrenderer_gui2.c
-
-GUI_COMMON = \
-	callbacks.c \
-	downloads_gui_common.c \
-	filter.c \
-	filter_cb.c \
-	filter_gui.c \
-	gnet_stats_gui_common.c \
-	gtkcolumnchooser.c \
-	gtk-missing.c \
-	gui.c \
-	gui_property.c \
-	hcache_gui_common.c \
-	main_cb.c \
-	main_gui.c \
-	nodes_gui_common.c \
-	search_gui_common.c \
-	settings_cb.c \
-	settings_gui.c \
-	statusbar_gui.c \
-	uploads_cb.c \
-	uploads_gui_common.c \
-	upload_stats_cb.c \
-	visual_progress_gui.c
-
-CORE = \
-	adns.c \
-	alive.c \
-	atoms.c \
-	ban.c \
-	base32.c \
-	base64.c \
-	bg.c \
-	bitzi.c \
-	bsched.c \
-	clock.c \
-	cobs.c \
-	common.c \
-	cq.c \
-	crc.c \
-	dh.c \
-	dmesh.c \
-	downloads.c \
-	dq.c \
-	drop.c \
-	eval.c \
-	event.c \
-	extensions.c \
-	file.c \
-	fileinfo.c \
-	fuzzy.c \
-	g2node.c \
-	getline.c \
-	ggep.c \
-	ggep_type.c \
-	glib-missing.c \
-	gmsg.c \
-	gnet_property.c \
-	gnet_stats.c \
-	guid.c \
-	ui_core_interface.c \
-	gwcache.c \
-	hashlist.c \
-	hashtree.c \
-	hcache.c \
-	header.c \
-	hostiles.c \
-	hosts.c \
-	hsep.c \
-	http.c \
-	huge.c \
-	icon.c \
-	idtable.c \
-	ignore.c \
-	inet.c \
-	inputevt.c \
-	ioheader.c \
-	main.c \
-	malloc.c \
-	matching.c \
-	misc.c \
-	move.c \
-	mq.c \
-	namesize.c \
-	nodes.c \
-	parq.c \
-	pcache.c \
-	pmsg.c \
-	pproxy.c \
-	prop.c \
-	qrp.c \
-	routing.c \
-	rx.c \
-	rx_inflate.c \
-	rx_link.c \
-	rxbuf.c \
-	search.c \
-	search_xml.c \
-	settings.c \
-	sha1.c \
-	share.c \
-	shell.c \
-	sockets.c \
-	sq.c \
-	tiger.c \
-	tigertree.c \
-	tm.c \
-	token.c \
-	tx.c \
-	tx_deflate.c \
-	tx_link.c \
-	udp.c \
-	upload_stats.c \
-	uploads.c \
-	url.c \
-	utf8.c \
-	vendors.c \
-	verify.c \
-	verify-tigertree.c \
-	version.c \
-	vmsg.c \
-	walloc.c \
-	whitelist.c \
-	zalloc.c \
-	zlib_util.c
-
-SRCLIST = \
-	$(GUI_GTK2) \
-	$(GUI_GTK1) \
-	$(GUI_COMMON) \
-	$(GUI_SPECIFIC) \
-	$(CORE)
-
-OBJLIST = \
-|expand f!$(SRCLIST)!
-	!f:\.c=.o \
--expand \\
-
-SRC = $(SRCLIST) $(GUI_GLADE_SRC)
-OBJ = $(OBJLIST) $(GUI_GLADE_OBJ)
+SRC = main.c
+OBJ = main.o
 
 /* Additional flags for GTK compilation, added in the substituted section */
 ++GTK_CFLAGS $gtkcflags
 ++GTK_LDFLAGS $gtkldflags
 
-/* Add glade-generated source files and derived objects */
-++GUI_GLADE_SRC $gladesrc
-++GUI_GLADE_OBJ $gladeobj
-
-/* Add the glade command and the glade source file */
-++GLADE $glade
-++GLADEFILE ../$gladefile
-
 /* Add the libxml2 flags */
 ++XML2_CFLAGS $xmlcflags
 ++XML2_LDFLAGS $xmlldflags
 
-;# Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) $(GTK_CFLAGS) $(XML2_CFLAGS)
-DPFLAGS = -I$(TOP) $(GTK_CFLAGS) $(XML2_CFLAGS)
-LDFLAGS = $(GTK_LDFLAGS) $(XML2_LDFLAGS)
+/*
+ * Due to cross-referencing between the GUI and the core, libcore.a wraps
+ * the GUI libraries and the libgtk-common.a library wraps the libgtkx.a
+ * so that all functions can be resolved properly.
+ */
 
->PRIVLIB	/* Force metaconfig to ask for privlib location */
->BINDIR
->MANSRC		/* Tell jmake we use $(MANSRC)... */
+EXTRA = \
+	if/bridge/ui2c.o \
+	if/bridge/c2ui.o \
+	if/gnet_property.o \
+	if/gui_property.o
 
-/* SetSubdirs(g2) -- not yet */
+CFLAGS = -I.. -I. $(GTK_CFLAGS) $(XLM2_CFLAGS)
+DPFLAGS = $(CFLAGS)
+LDFLAGS = \
+	-Lcore -lcore \
+	-Lui/gtk \
+	-lgtk-common -lgtkx -lgtk-common -lcore \
+	-Llib -lshared \
+	$(GTK_LDFLAGS) $(XML2_LDFLAGS)
+
+RemoteTargetDependency(gtk-gnutella, lib, libshared.a)
+RemoteTargetDependency(gtk-gnutella, core, libcore.a)
+RemoteTargetDependency(gtk-gnutella, ui/gtk, libgtk-common.a)
+RemoteTargetDependency(gtk-gnutella, ui/gtk, libgtkx.a)
+RemoteTargetDependency(gtk-gnutella, if/bridge, ui2c.o)
+RemoteTargetDependency(gtk-gnutella, if/bridge, c2ui.o)
+RemoteTargetDependency(gtk-gnutella, if, gnet_property.o)
+RemoteTargetDependency(gtk-gnutella, if, gui_property.o)
+RemoteTargetDependency(main.o, if, gnet_property.h)
+RemoteTargetDependency(main.o, if, gui_property.h)
+
 DependTarget()
-SimpleYaccTarget(gtk-gnutella, getdate)
-NormalProgramTarget(gtk-gnutella, $(SRC), $(OBJ) getdate.o)
+NormalProgramTarget(gtk-gnutella, $(SRC), $(OBJ) $(EXTRA))
 InstallProgram(gtk-gnutella, $(BINDIR))
 InstallManPage(gtk-gnutella, $(MANSRC))
-
-;#
-;# Glade generates:
-;#	interface-glade[12].c interface-glade[12].h
-;#   support-glade[12].c support-glade[12].h
-;#
-;# Depending on whether we compile for Gtk 1.2 or Gtk 2, the ones the others
-;# will be linked and included. This can be tested by checking if USE_GTK2
-;# is defined in the sourcecode files.
-;# We let glade directly handle the callbacks.[ch] files so we can do without
-;# any postprocessing of the glade output.
-;#
-
-glade_files:
-	$(GLADE) --write-source $(GLADEFILE)
-
-properties:
-	autogen gui_props.ag
-	autogen gnet_props.ag
