@@ -84,7 +84,7 @@ static inline void remove_parent_with_fi_handle(
 	GtkCTreeNode *data = NULL;
 	gpointer orig_key;
  
-	key = fi_handle;
+	key = (gpointer) fi_handle;
 
 	if (g_hash_table_lookup_extended(ht, key,
 			(gpointer) &orig_key, (gpointer) &data)) {
@@ -329,8 +329,8 @@ gboolean downloads_gui_update_parent_status(struct download *d,
 void downloads_gui_init(void)
 {
 	/* Create parents hash tables, with functions to auto-free keys and data */
-	parents = g_hash_table_new(NULL, NULL);
-	parents_queue = g_hash_table_new(NULL, NULL);
+	parents = g_hash_table_new(g_int_hash, g_int_equal);
+	parents_queue = g_hash_table_new(g_int_hash, g_int_equal);
 }
 
 void downloads_gui_shutdown(void)
@@ -340,7 +340,6 @@ void downloads_gui_shutdown(void)
 	g_hash_table_destroy(parents);
 	g_hash_table_destroy(parents_queue);
 }
-
 
 /*
  *	download_gui_add
@@ -1483,7 +1482,7 @@ void download_gui_remove(struct download *d)
 			if (NULL != d->file_info) {
 		
 				key = &d->file_info->fi_handle;
-				parent =  find_parent_with_fi_handle(parents, key);
+				parent = find_parent_with_fi_handle(parents, key);
 
 				if (NULL != parent) {
 	
