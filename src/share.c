@@ -764,9 +764,15 @@ void share_scan(void)
 	 * of all shared files.  This table is only accessible via shared_file().
 	 * NB: file indicies start at 1, but indexing in table start at 0.
 	 *		--RAM, 08/10/2001
+	 *
+	 * We over-allocate the file_table by one entry so that even when they
+	 * don't share anything, the `file_table' pointer is not NULL.
+	 * This will prevent us giving back "rebuilding library" when we should
+	 * actually return "not found" for user download requests.
+	 *		--RAM, 23/10/2002
 	 */
 
-	file_table = g_malloc0(files_scanned * sizeof(struct shared_file *));
+	file_table = g_malloc0((files_scanned + 1) * sizeof(struct shared_file *));
 
 	for (i = 0, l = shared_files; l; i++, l = l->next) {
 		struct shared_file *sf = l->data;
@@ -1631,7 +1637,7 @@ struct shared_file *shared_file_by_sha1(const gchar *sha1_digest)
 {
 	struct shared_file *f;
 
-	if (sha1_to_share == NULL)			/* Not even began share_scan() yet */
+	if (sha1_to_share == NULL)			/* Not even begun share_scan() yet */
 		return SHARE_REBUILDING;
 
 	f = g_tree_lookup(sha1_to_share, (gpointer) sha1_digest);
