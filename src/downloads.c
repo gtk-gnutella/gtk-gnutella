@@ -1535,6 +1535,9 @@ void download_free(struct download *d)
 	if (d->push)
 		download_push_remove(d);
 
+	if (d->server)
+		g_free(d->server);
+
 	g_free(d->path);
 	g_free(d->file_name);
 	if (d->output_name != d->file_name)
@@ -2187,6 +2190,28 @@ static void download_request(struct download *d, header_t *header)
 	}
 
 	ack_code = parse_status_line(status, "HTTP", &ack_message, NULL, NULL);
+
+	/*
+	 * Extract Server: header string, if present, and store it unless
+	 * we already have it.
+	 */
+
+	buf = header_get(header, "Server");			/* Mandatory */
+	if (!buf)
+		buf = header_get(header, "User-Agent");	/* Maybe they're confused */
+
+	if (buf) {
+		if (d->server == NULL)
+			d->server = g_strdup(buf);
+		else if (0 != strcmp(d->server, buf)) {	/* Server name changed? */
+			g_free(d->server);
+			d->server = g_strdup(buf);
+		}
+	}
+
+	/*
+	 * Check status.
+	 */
 
 	if (ack_code == -1) {
 		g_warning("weird HTTP acknowledgment status line from %s",
@@ -3034,6 +3059,8 @@ void download_close(void)
 			io_free(d->io_opaque);
 		if (d->bio)
 			bsched_source_remove(d->bio);
+		if (d->server)
+			g_free(d->server);
 		g_free(d->path);
 		g_free(d->file_name);
 		if (d->output_name != d->file_name)

@@ -51,6 +51,7 @@ struct upload {
 	time_t start_date;
 	time_t last_update;
 
+	gchar *user_agent;				/* Remote user agent */
 	guint skip;						/* First byte to send, inclusive */
 	guint end;						/* Last byte to send, inclusive */
 	off_t pos;						/* Read position in file we're sending */

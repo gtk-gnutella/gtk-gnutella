@@ -60,6 +60,7 @@ struct download {
 
 	guint32 ip;
 	guint16 port;
+	gchar *server;			/* Remote server vendor string */
 
 	gboolean visible;		/* The download is visible in the GUI */
 	gboolean push;			/* Currently in push mode */

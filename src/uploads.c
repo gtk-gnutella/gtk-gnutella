@@ -351,6 +351,8 @@ static void upload_free_resources(struct upload *u)
 		bsched_source_remove(u->bio);
 		u->bio = NULL;
 	}
+	if (u->user_agent)
+		g_free(u->user_agent);
 }
 
 /*
@@ -1232,6 +1234,9 @@ static void upload_request(struct upload *u, header_t *header)
 
 	if (u->name == NULL)
 		u->name = g_strdup(reqfile->file_name);
+
+	if (user_agent)
+		u->user_agent = g_strdup(user_agent);
 
 	u->skip = skip;
 	u->end = end;
