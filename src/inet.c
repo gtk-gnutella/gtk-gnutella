@@ -171,8 +171,10 @@ void inet_got_incoming(guint32 ip)
 	 * connected to the Internet.
 	 */
 
-	if (!is_inet_connected && !is_local)
+	if (!is_inet_connected && !is_local) {
+		outgoing_connected++;				/* In case we have a timer set */
 		inet_set_is_connected(TRUE);
+	}
 
 	/*
 	 * If we already know we're not firewalled, we have already scheduled
@@ -292,10 +294,12 @@ void inet_connection_attempted(guint32 ip)
 	 * Start timer if not already done.
 	 */
 
-	if (!outgoing_ev)
+	if (!outgoing_ev) {
+		outgoing_connected = 0;
 		outgoing_ev = cq_insert(
 			callout_queue, OUTGOING_WINDOW * 1000,
 			check_outgoing_connection, NULL);
+	}
 }
 
 /*
