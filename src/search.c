@@ -673,7 +673,7 @@ static gnet_results_set_t *get_results_set(
 		guint32 tlen = e - s;			/* Trailer length, starts at `s' */
 		guchar *x = (guchar *) s;
 
-		if ((gint) tlen >= 5 && x[4] + 5 <= tlen)
+		if ((gint) tlen >= 5 && x[4] + 5 <= (gint) tlen)
 			trailer = s;
 
 		if (trailer)
