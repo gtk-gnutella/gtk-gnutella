@@ -45,7 +45,7 @@
 typedef struct getline {
 	guint maxlen;					/* Maximum authorized length */
 	guint size;						/* Current allocated size for `line' */
-	guchar *line;					/* Accumulator, NUL terminated when done */
+	gchar *line;					/* Accumulator, NUL terminated when done */
 	guint pos;						/* Next writing position in line[] */
 } getline_t;
 
@@ -58,8 +58,8 @@ typedef struct getline {
 getline_t *getline_make(gint maxsize);
 void getline_free(getline_t *o);
 void getline_reset(getline_t *o);
-gint getline_read(getline_t *o, guchar *data, gint len, gint *used);
-guchar *getline_str(getline_t *o);
+gint getline_read(getline_t *o, gchar *data, gint len, gint *used);
+gchar *getline_str(getline_t *o);
 gint getline_length(getline_t *o);
 void getline_copy(getline_t *source, getline_t *dest);
 

@@ -104,9 +104,9 @@ void getline_reset(getline_t *o)
  *
  * The trailing "\r\n" or "\n" is stripped from the accumulated line.
  */
-gint getline_read(getline_t *o, guchar *data, gint len, gint *used)
+gint getline_read(getline_t *o, gchar *data, gint len, gint *used)
 {
-	guchar c;
+	gchar c;
 	gint orig_len = len;
 	gint used_bytes;
 	gint needed;
@@ -171,7 +171,7 @@ gint getline_read(getline_t *o, guchar *data, gint len, gint *used)
  * Returns a C string (NUL-terminated) corresponding to the line we currently
  * have in the buffer.
  */
-guchar *getline_str(getline_t *o)
+gchar *getline_str(getline_t *o)
 {
 	g_assert(o->pos < o->size);
 
