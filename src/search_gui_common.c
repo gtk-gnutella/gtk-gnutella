@@ -544,7 +544,7 @@ static void search_store_old(void)
 			fprintf(out, "%s\n", sch->query);
 	}
 
-	file_config_close(f, &fp);
+	file_config_close(out, &fp);
 }
 #endif /* USE_SEARCH_XML */
 
@@ -650,4 +650,3 @@ void search_gui_retrieve_searches(void)
     search_retrieve_old();
 #endif /* USE_SEARCH_XML */
 }
-
