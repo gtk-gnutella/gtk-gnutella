@@ -415,14 +415,16 @@ static gint ext_huge_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	*p++ = ':';
 
 	/*
-	 * Now extract the payload (must be made of alphanum chars).
+	 * Now extract the payload (must be made of alphanum chars),
+	 * until we reach a delimiter (NUL byte, GGEP header, GEM separator).
+	 * NB: of those, only GGEP_MAGIC could be "alnum" under some locales.
 	 */
 
 	payload_start = p;
 
 	while (p < end) {
 		guchar c = *p++;
-		if (!isalnum(c)) {
+		if (!isalnum(c) || c == (guchar) GGEP_MAGIC) {
 			p--;
 			break;
 		}
