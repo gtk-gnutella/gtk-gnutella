@@ -34,9 +34,13 @@
 #include "search_gui.h"
 #include "gtk-missing.h"
 
-RCSID("$Id$");
+#ifdef USE_GTK2
+#include "interface-glade2.h"
+#else
+#include "interface-glade.h"
+#endif
 
-#define BIT_TO_BOOL(m) ((m == 0) ? FALSE : TRUE)
+RCSID("$Id$");
 
 /*
  * If FILTER_HIDE_ON_CLOSE is defined, the filter dialog is only hidden
