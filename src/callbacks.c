@@ -355,10 +355,8 @@ BIND_RADIOBUTTON(radio_config_socksv5, PROP_PROXY_PROTOCOL, 5)
 /***
  *** search list (sidebar)
  ***/
-void on_clist_search_resize_column(GtkCList * clist, gint column, 
-                                   gint width, gpointer user_data)
+void on_clist_search_resize_column(
+    GtkCList * clist, gint column, gint width, gpointer user_data)
 {
     search_list_col_widths[column] = width;
 }
-
-

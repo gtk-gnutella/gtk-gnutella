@@ -86,14 +86,11 @@ void on_radio_config_socksv5_toggled (GtkToggleButton *togglebutton, gpointer us
 
 
 
-
-
-
 /*** 
  *** search stats
  ***/
-void     on_button_search_stats_reset_clicked(GtkButton * button, gpointer user_data);
-void     on_clist_search_stats_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
+void on_button_search_stats_reset_clicked(GtkButton * button, gpointer user_data);
+void on_clist_search_stats_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 
 
 
@@ -109,4 +106,3 @@ gint compare_ul_norm(GtkCList *clist, gconstpointer ptr1, gconstpointer ptr2);
 
 
 #endif	/* __callbacks_h__ */
-
