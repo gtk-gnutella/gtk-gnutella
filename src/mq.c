@@ -449,8 +449,36 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 	needed = q->size + msize - q->maxsize;
 
 	if (needed > 0 && !make_room(q, mb, needed)) {
+
+		/*
+		 * Close the connection only if the message is a prioritary one
+		 * and yet there is no less prioritary message to remove!
+		 *
+		 * Otherwise, we simply drop the message and pray no havoc will
+		 * result (like loosing a QRP PATCH message in the sequence).
+		 *
+		 *		--RAM, 18/01/2003
+		 */
+
+		gnet_stats_count_flowc(pmsg_start(mb));
+
+		if (has_normal_prio) {
+			if (dbg > 4)
+				gmsg_log_dropped(pmsg_start(mb),
+					"to FLOWC node %s, %d bytes queued [FULL]",
+					node_ip(q->node), q->size);
+
+			node_inc_txdrop(q->node);		/* Dropped during TX */
+		} else {
+			if (dbg > 4)
+				gmsg_log_dropped(pmsg_start(mb),
+					"to FLOWC node %s, %d bytes queued [KILLING]",
+					node_ip(q->node), q->size);
+
+			node_bye(q->node, 502, "Send queue reached %d bytes", q->maxsize);
+		}
+
 		pmsg_free(mb);
-		node_bye(q->node, 502, "Send queue reached %d bytes", q->maxsize);
 		return;
 	}
 
