@@ -408,9 +408,22 @@ void node_timer(time_t now)
 
 			if (n->rxfc != NULL) {
 				struct node_rxfc_mon *rxfc = n->rxfc;
+
 				if (now - rxfc->start_half_period > NODE_RX_FC_HALF_PERIOD) {
 					time_t total;
 					gdouble fc_ratio;
+					guint32 max_ratio;
+
+					/*
+					 * If we're a leaf node, we allow the ultrapeer to flow
+					 * control our incoming connection for 95% of the time.
+					 * Being flow controlled means we're not getting that much
+					 * queries, and we can't send ours, but as long as we have
+					 * a non-null window to send our queries, that's fine.
+					 */
+
+					max_ratio = current_peermode == NODE_P_LEAF ? 95 :
+						node_rx_flowc_ratio;
 
 					if (rxfc->fc_start) {		/* In flow control */
 						rxfc->fc_accumulator += now - rxfc->fc_start;
