@@ -518,6 +518,7 @@ void gui_update_download_abort_resume(void)
 		case GTA_DL_HEADERS:
 		case GTA_DL_RECEIVING:
 		case GTA_DL_ACTIVE_QUEUED:
+		case GTA_DL_SINKING:
 			do_abort = TRUE;
 			break;
 		case GTA_DL_ERROR:
@@ -530,8 +531,8 @@ void gui_update_download_abort_resume(void)
 		case GTA_DL_TIMEOUT_WAIT:
 			do_abort = do_resume = TRUE;
 			break;
-        default: ;
-        /* FIXME: Is this fallthrough alright or not? */
+        default:
+			break;
 		}
 
 		if (do_abort & do_resume & do_remove)
