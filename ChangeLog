@@ -6,6 +6,9 @@
   * Added download_remove_file() and download_file_exists().
   * Check for new "download_delete_aborted" condition in download_abort() to
 	remove file when it is set.
+  * Added debug logging of bad packets, to help diagnose why we receive
+	bad packets from gtk-gnutella.
+  * Made nodes.c compile on the Alpha, where varargs objects are different.
 
 - (2002.04.25 - Richard)
   * moved more code from main.c to gui_init() in gui.c.
