@@ -546,11 +546,6 @@ gboolean on_clist_downloads_button_press_event(GtkWidget * widget,
 	d = (struct download *)
 		gtk_clist_get_row_data(GTK_CLIST(clist_downloads), row);
 
-	gtk_widget_set_sensitive(popup_downloads_queue,
-							 d->status != GTA_DL_COMPLETED);
-	gtk_widget_set_sensitive(popup_downloads_kill,
-							 d->status != GTA_DL_COMPLETED);
-
 	gtk_menu_popup(GTK_MENU(popup_dl_active), NULL, NULL, NULL, NULL, 
                   event->button, event->time);
 
@@ -656,7 +651,28 @@ void on_popup_downloads_abort_host_activate(GtkMenuItem * menuitem,
 void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 			 							     gpointer user_data) 
 {
-	// FIXME
+	GList *l;
+	struct download *d;
+
+	for (l = GTK_CLIST(clist_downloads)->selection; l; 
+         l = GTK_CLIST(clist_downloads)->selection ) {		
+     
+		d = (struct download *) 
+			gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
+								   (gint) l->data);
+		gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
+     
+		if (!d) {
+			g_warning("on_popup_downloads_remove_file_activate(): row %d has NULL data\n",
+					  (gint) l->data);
+			continue;
+		}
+        
+        if (((d->status == GTA_DL_ERROR) ||
+            (d->status == GTA_DL_ABORTED)) &&
+            download_file_exists(d))
+            download_remove_file(d);
+	}
 }
 
 void on_popup_downloads_search_again_activate(GtkMenuItem * menuitem,
@@ -700,7 +716,7 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
     /* 
      * note that we set the popup dialog as owner, because we can
      * connect the selection_* signals to that using glade.
-     *      -BLUE, 24/04/2002
+     *      --BLUE, 24/04/2002
      */
     if (gtk_selection_owner_set(GTK_WIDGET(popup_dl_active),
                                 GDK_SELECTION_PRIMARY,
@@ -719,12 +735,13 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
          * if "copy url" is done repeatedly, we have to make sure the
          * memory of the previous selection is freed, because we may not
          * recieve a "selection_clear" signal.
-         *      --BLUE. 24/04/2002
+         *      --BLUE, 24/04/2002
          */
         if (selected_url != NULL) {
             g_free(selected_url);
             selected_url = NULL;
         }
+
         selected_url = g_strdup(build_url_from_download(d));
     } 
 }
@@ -1139,6 +1156,11 @@ void on_button_search_clicked(GtkButton * button, gpointer user_data)
 
 void on_entry_search_activate(GtkEditable * editable, gpointer user_data)
 {
+    /*
+     * Delegate to: on_button_search_clicked.
+     *      --BLUE, 30/04/2002
+     */
+
 	on_button_search_clicked(NULL, user_data);
 }
 
