@@ -110,6 +110,7 @@ following is a list of commonly used options with the defaults.
 -D locale=/usr/local/share/locale
 -D cc=cc
 -D ccflags=''
+-D ldflags=''
 -D optimize='-O'
 -D yacc='yacc'
 -D gtkversion=1
@@ -123,6 +124,13 @@ For example, a fairly typical configuration for linux x86, gtk2 gui:
 
     ./Configure -D prefix=/usr -D privlib=/usr/share/gtk-gnutella -D cc=gcc \
 	 -D ccflags='-Wall' -D optimize='-O2' -D gtkversion=2 -d -e -r -s
+
+If you're used to Autoconf with CFLAGS and LDFLAGS, you can use
+-D ccflags="$CFLAGS" respectively -D ldflags="$LDFLAGS" for Configure.
+Hint: A common pitfall is to miss the double-c in ccflags. The option
+ldflags is passed to the linker. Thus, use it to supply additional linker
+flags (e.g., library paths, libraries) which might be necessary for a
+given platform.
 
 Packagers who need to install gtk-gnutella to a special base directory can 
 do so with:
