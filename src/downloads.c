@@ -7650,7 +7650,7 @@ void download_move_error(struct download *d)
 
 	name = file_info_readable_filename(fi);
 
-	src = g_strdup_printf("%s/%s", fi->path, name);
+	src = g_strdup_printf("%s/%s", fi->path, fi->file_name);
 	ext = has_good_sha1(d) ? DL_OK_EXT : DL_BAD_EXT;
 	dest = unique_filename(fi->path, name, ext);
 
