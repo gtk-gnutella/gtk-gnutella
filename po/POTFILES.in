@@ -1,0 +1,12 @@
+src/downloads.c
+src/downloads_gui.c
+src/gui.c
+src/gnet_property.c
+src/gui_property.c
+src/interface-glade2.c
+src/main_gui.c
+src/nodes.c
+src/search_gui.c
+src/settings_gui.c
+src/uploads.c
+src/version.c
