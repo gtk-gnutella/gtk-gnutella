@@ -1,4 +1,4 @@
-# since last version
+# v 0.80   2002.01.22  [beta2]
 
 - Fixed I/O memory leaks.
 - Fixed filter memory leaks.
@@ -8,6 +8,8 @@
 - Don't try to open local "config" directory as a file.
 - Improved the download selection logic on pushes.
 - Be sure to reinstall the SIGPIPE signal handler within the handler
+- Fixed bug in header parsing when NUL is the first char on the line.
+- Stop filling our Query Hit packets when we reach our own max size limit.
 
 # v 0.80   2002.01.19  [beta]
 

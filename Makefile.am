@@ -1,7 +1,16 @@
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = src
-EXTRA_DIST = gtk-gnutella.spec
+EXTRA_DIST = gtk-gnutella.spec	\
+	debian/README.debian		\
+	debian/changelog			\
+	debian/control				\
+	debian/copyright			\
+	debian/dirs					\
+	debian/gtk-gnutella.1		\
+	debian/menu					\
+	debian/rules				\
+	debian/substvars
 
 install-data-local:
 	@$(NORMAL_INSTALL)

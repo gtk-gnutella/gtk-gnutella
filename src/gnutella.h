@@ -41,8 +41,8 @@
 
 #define GTA_VERSION 0
 #define GTA_SUBVERSION 80
-#define GTA_REVISION "beta"
-#define GTA_RELEASE "19.01.2002"
+#define GTA_REVISION "beta2"
+#define GTA_RELEASE "22/01/2002"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #define GTA_MSG_INIT					0x00
