@@ -1404,7 +1404,7 @@ void filter_free_rule(rule_t *r)
  * filter_append_rule:
  *
  * Append a new rule to a filter. If necessary also update the shadow.
- * The addition of the rule can not be cancelled by canceling the
+ * The addition of the rule cannot be cancelled by canceling the
  * shadow. If no shadow for the filters exists, none is created.
  */
 void filter_append_rule(filter_t *f, rule_t * const r)
@@ -1539,7 +1539,7 @@ void filter_append_rule_to_session(filter_t *f, rule_t * const r)
 /*
  * filter_remove_rule:
  *
- * Removes a rule directly. The removal can not be reversed by
+ * Removes a rule directly. The removal cannot be reversed by
  * cancelling the shadow. The filter is removed from the active
  * filter and from a potentially existing shadow as well.
  * If no shadow exists, no shadow is created.
@@ -1633,7 +1633,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
      * Failures:
      * A) a rule can never be in shadow->added and shadow->removed at 
      *    the same time.
-     * B) a rule can not be in added but not in current
+     * B) a rule cannot be in added but not in current
      * C) a rule can't be added if it was already in the original filter
      * D) a rule can't be in current and also in removed
      * E) if a rule is in the original filter but not in current it 
@@ -1883,7 +1883,7 @@ void filter_replace_rule_in_session(filter_t *f,
  *
  * Reorders the filter according to the order in the user's
  * table in the gui. This should only be used after the
- * user has reordered the table. It can not properly cope
+ * user has reordered the table. It cannot properly cope
  * with added or deleted items. This will also only work
  * if a filter is currently being displayed in the table.
  * If the filter dialog has not been initialized or not
