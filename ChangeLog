@@ -1,5 +1,31 @@
 # since last version
 
+- (2004-09-10 - RAM)
+ * UDP listening is now enabled by default.
+ * Strip OOB flag of OOB queries from leaves where the IP:port encoded in
+   the GUID of the message does not match the leave's ones.
+ * Dropped stats did not update the TCP-only and UDP-only stats.
+ * Smarter UDP-firewall (unsolicited traffic) detection: now keeps track of
+   the IP to which we sent datagrams for 2 minutes to avoid falsely marking
+   the node as not-firewalled when we receive data from those IPs.
+ * Added node_gnet_ip() and node_udp_get_outq().
+ * Will now drop UDP messages coming from hostile IP addresses.
+ * Added an "alive_ping" object to the pseudo UDP node for proper display
+   of round-trip stats for that node.
+ * Adapted the query hit generation process to OOB hits, since we must not
+   deliver those immediately but need to buffer them instead.
+ * Can now honour the OOB flag in queries and deliver hits out-of-band.
+ * Added support for vendor messages LIME/12v2 and LIME/11v2, delivered via
+   UDP to negotiate delivery of OOB query hits.
+ * New property "query_debug" for debugging queries.
+ * GUI was not reporting Gnet b/w properly: it needs to sum the TCP and UDP
+   traffic shapers since allocated b/w is halved between those two.
+ * [GTK1] [GTK2] Added spinbutton for "query_debug" setting.
+ * Skip messages that cause an error during UDP write, but continue processing
+   remaining messages.
+ * Allow EINVAL as a legitimate error cause for sendto(), since apparently
+   linux returns this for weird IP addresses, like "0.76.207.219".
+
 - (2004-09-08 - RAM)
  * Moved query hit generation from share.c to new qhit.c.
  * Changed process for generating query hits: the matching code now generates
