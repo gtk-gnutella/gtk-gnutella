@@ -1,5 +1,36 @@
 # since last version
 
+- (2002.08.13 - Richard)
+ * Introduced property system. A property can be monitored for changes.
+   They are defined in the gui_props.ag and gnet_props.ag files. From those
+   the actual C sources are generated with autoconf. Properties can be 
+   persistent and thus make the old config.c obsolete. oldconfig.c acts
+   as a legacy config loader. If none of the new config files are found,
+   it will read in the old config file and save to the new ones on exit.
+   The tooltips of widgets and (where applicable) the bounds of values
+   enterd into the widgets are also read from the property definitions.
+ * Creating a separation layer between GUI and core. The property system is
+   part of this. gnet.h contains the core API and common definitions.
+ * Added 'properties' target to Makefile to regenerate the property source
+   files.
+ * Changed all GtkSpinbutton callbacks to react on the "changed" signal 
+   instead of the "focus lost" and "activate" signals. (Closes #558906)
+ * Changed some more GtkEntries to GtkSpinbuttons
+ * Added "Default reissue timeout" to gnet config pane
+ * Reissue timeout is configurable individually for every search and
+   persistent.
+ * Recoded a lot of the callbacks and moved them from callbacks.c to
+   various other _cb files, mainly to settings_cb.c
+ * Recoded a lot of the update calls from gui.c which were responsible
+   of updating the GUI when a config variable was changed. This is done
+   via callbacks by the property system now. Moved most of the property-
+   change callbacks to settings_gui.c.
+ * Moved other calls which update the GUI when something in the core has
+   changes from gui.c to nodes_gui.c, search_gui.c or statusbar_gui.c.
+ * Small changes to various files to make them work with the property system.
+ * Created custom gtk_spin_button_get_value which parses the value to a 
+   double instead of a float.
+
 - (2002.08.11 - RAM)
  * We know that gtk-gnutella hosts support /uri-res if they returned HUGE data.
  * Renamed socket_monitor_incoming() as socket_timer().
