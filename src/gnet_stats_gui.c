@@ -177,7 +177,7 @@ static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
 /***
  *** Private functions
  ***/
-G_INLINE_FUNC gchar *pkt_stat_str(
+gchar *pkt_stat_str(
     guint32 *val_tbl, gint type)
 {
     static gchar strbuf[20];
@@ -195,7 +195,7 @@ G_INLINE_FUNC gchar *pkt_stat_str(
 }
 
 
-G_INLINE_FUNC gchar *byte_stat_str(
+gchar *byte_stat_str(
     guint32 *val_tbl, gint type)
 {
     static gchar strbuf[20];
@@ -211,7 +211,7 @@ G_INLINE_FUNC gchar *byte_stat_str(
         return compact_size(val_tbl[type]);
 }
 
-G_INLINE_FUNC gchar *drop_stat_str(gnet_stats_t *stats, gint reason)
+gchar *drop_stat_str(gnet_stats_t *stats, gint reason)
 {
     static gchar strbuf[20];
     guint32 total = stats->pkg.dropped[MSG_TOTAL];
@@ -229,7 +229,7 @@ G_INLINE_FUNC gchar *drop_stat_str(gnet_stats_t *stats, gint reason)
     return strbuf;
 }
 
-G_INLINE_FUNC gchar *general_stat_str(gnet_stats_t *stats, gint type)
+gchar *general_stat_str(gnet_stats_t *stats, gint type)
 {
     static gchar strbuf[20];
 
@@ -244,7 +244,7 @@ G_INLINE_FUNC gchar *general_stat_str(gnet_stats_t *stats, gint type)
     }
 }
 
-G_INLINE_FUNC gchar *flowc_stat_str_pkg(guint32 *val_tbl, gint type)
+gchar *flowc_stat_str_pkg(guint32 *val_tbl, gint type)
 {
     static gchar strbuf[20];
 
@@ -261,7 +261,7 @@ G_INLINE_FUNC gchar *flowc_stat_str_pkg(guint32 *val_tbl, gint type)
     return strbuf;
 }
 
-G_INLINE_FUNC gchar *flowc_stat_str_byte(guint32 *val_tbl, gint type)
+gchar *flowc_stat_str_byte(guint32 *val_tbl, gint type)
 {
     static gchar strbuf[20];
 
