@@ -366,7 +366,7 @@ gm_sanitize_filename(const gchar *filename)
 	gnet_prop_get_boolean_val(PROP_CONVERT_SPACES, &no_spaces);
 	
 #if defined(__APPLE__) && defined(__MACH__) /* Mac OS X*/
-	s = locale_to_utf8_nfd(filename, len);
+	s = locale_to_utf8_nfd(filename, 0);
 	q = s;
 #endif /* Mac OS X */
 
