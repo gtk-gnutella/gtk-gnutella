@@ -130,7 +130,7 @@ remove_parent_with_fi_handle(GHashTable *ht, const gnet_fi_t fi_handle)
 
 
 /**
- * @eturn the tree iterator corresponding to the given key, an atomized
+ * @return the tree iterator corresponding to the given key, an atomized
  * fi_handle.
  */
 static inline
