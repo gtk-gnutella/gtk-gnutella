@@ -28,6 +28,7 @@
 #include "downloads.h" // FIXME: remove this dependency
 #include "statusbar_gui.h"
 #include "downloads_cb.h"
+#include "parq.h"
 
 RCSID("$Id$");
 
@@ -83,6 +84,37 @@ void gui_update_download(struct download *d, gboolean force)
 	fi = d->file_info;
 
 	switch (d->status) {
+	case GTA_DL_ACTIVE_QUEUED:	// JA, 31 jan 2003 Active queueing
+		{
+			gint when = d->timeout_delay - (now - d->last_update);
+			rw = gm_snprintf(tmpstr, sizeof(tmpstr),
+				"Retry in %ds ", MAX(0, when));
+
+			if (d->queue_status.position > 0) {
+				time_t elapsed = now - d->last_update;
+
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					"Remotely queued (position %d",		/* ) */
+					d->queue_status.position);
+				
+				if (d->queue_status.length > 0) {
+					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+						" / %d",	d->queue_status.length);
+				}
+
+				if (d->queue_status.ETA > 0) {
+					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+						", ETA: %ds",
+						(gint) (d->queue_status.ETA  - elapsed));
+				}
+
+				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					/* ( */ ") retry in %ds",
+					(gint) (d->queue_status.retry_delay - elapsed));
+			}
+		a = tmpstr;
+		}
+		break;
 	case GTA_DL_QUEUED:
 		a = (gchar *) ((d->remove_msg) ? d->remove_msg : "");
 		break;

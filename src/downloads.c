@@ -30,7 +30,6 @@
 #include "sockets.h"
 #include "downloads.h"
 #include "hosts.h"
-#include "header.h"
 #include "routing.h"
 #include "routing.h"
 #include "gmsg.h"
@@ -43,9 +42,9 @@
 #include "ioheader.h"
 #include "verify.h"
 #include "move.h"
-
 #include "settings.h"
 #include "nodes.h"
+#include "parq.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -313,6 +312,7 @@ void download_timer(time_t now)
 		l = l->next;
 
 		switch (d->status) {
+		case GTA_DL_ACTIVE_QUEUED:
 		case GTA_DL_RECEIVING:
 		case GTA_DL_HEADERS:
 		case GTA_DL_PUSH_SENT:
@@ -327,6 +327,9 @@ void download_timer(time_t now)
 			}
 
 			switch (d->status) {
+			case GTA_DL_ACTIVE_QUEUED:
+ 				t = d->queue_status.retry_delay;
+ 				break;
 			case GTA_DL_PUSH_SENT:
 			case GTA_DL_FALLBACK:
 				t = download_push_sent_timeout;
@@ -342,7 +345,15 @@ void download_timer(time_t now)
 			}
 
 			if (now - d->last_update > t) {
-				if (d->status == GTA_DL_CONNECTING)
+				/*
+				 * When the 'timeout' has expired, first check wether the
+				 * download was activly queued. If so, tell parq to retry the
+				 * download in which case the HTTP connection wasn't closed
+				 *   --JA 31 jan 2003
+				 */
+				if (d->status == GTA_DL_ACTIVE_QUEUED)
+					parq_download_retry_active_queued(d);
+				else if (d->status == GTA_DL_CONNECTING)
 					download_fallback_to_push(d, TRUE, FALSE);
 				else if (d->status == GTA_DL_HEADERS)
 					download_incomplete_header(d);
@@ -1902,7 +1913,7 @@ static void download_unqueue(struct download *d)
  * Returns TRUE if we may continue with the download, FALSE if it has been
  * stopped due to a problem.
  */
-static gboolean download_start_prepare_running(struct download *d)
+gboolean download_start_prepare_running(struct download *d)
 {
 	struct dl_file_info *fi = d->file_info;
 
@@ -3784,7 +3795,7 @@ static gboolean download_convert_to_urires(struct download *d)
  *
  * Extract Retry-After delay from header, returning 0 if none.
  */
-static guint extract_retry_after(header_t *header)
+guint extract_retry_after(header_t *header)
 {
 	gchar *buf;
 	guint delay = 0;
@@ -4051,6 +4062,9 @@ static void update_available_ranges(struct download *d, header_t *header)
 	if (!d->file_info->use_swarming)
 		return;
 
+	g_assert(header != NULL);
+	g_assert(header->headers != NULL);
+	
 	buf = header_get(header, available);
 
 	if (buf == NULL)
@@ -4284,20 +4298,58 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 			"[short %d line%s header] ", count, count == 1 ? "" : "s");
 	}
 
-	/*
-	 * If we made a /uri-res/N2R? request, yet if the download still
-	 * has the old index/name indication, convert it to a /uri-res/.
-	 */
-
+	
 	if (ack_code == 503 || (ack_code >= 200 && ack_code <= 299)) {
+
+		/*
+		 * If we made a /uri-res/N2R? request, yet if the download still
+		 * has the old index/name indication, convert it to a /uri-res/.
+	 	 */
 		if (d->record_index != URN_INDEX && (d->flags & DL_F_URIRES))
 			if (!download_convert_to_urires(d))
 				return;
+		
+		/*
+		 * The download could be remotely queued. Check this now before
+		 * continuing at all.
+		 *   --JA, 31 jan 2003
+		 */			
+		if (ack_code == 503) {
+			
+			/* Check for queued status */
+			if (
+				parq_download_supports_parq(header) &&
+				parq_download_parse_queue_status(d, header)
+			) {
+				/* If we are queued, there is nothing else we can do for now */
+				if (parq_download_is_active_queued(d)) {
+					
+					/* Make sure we're waiting for the right file, 
+					   collect alt-locs */
+					if (check_content_urn(d, header)) {
+
+						/* Update mesh */
+						if (!d->always_push && d->sha1)
+							dmesh_add(d->sha1, ip, port, d->record_index,
+								d->file_name, 0);
+			
+						return;
+						
+					} /* Check content urn failed */
+
+					return;
+					
+				} /* Download not active queued, continue as normal */
+				d->status = GTA_DL_HEADERS;
+			}
+		} /* ack_code was not 503 */
 	}
 
 	update_available_ranges(d, header);		/* Updates `d->ranges' */
 	delay = extract_retry_after(header);
 
+
+		
 	/*
 	 * Partial File Sharing Protocol (PFSP) -- client-side
 	 *
@@ -4411,11 +4463,13 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 					gui_update_download(d, TRUE);
 				}
 			} else {
+				/* Host might support queueing. If so, retreive queue status */
 				/* Server has nothing for us yet, give it time */
 				download_queue_delay(d,
 					MAX(delay, download_retry_refused_delay),
 					"Partial file on server, waiting");
 			}
+			
 			return;
 		default:
 			break;
@@ -4459,11 +4513,10 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 			if (download_retry_no_urires(d, delay, ack_code))
 				return;
 			break;
-		case 503:				/* Busy */
+		case 503:				/* Busy */			
 			/* Make sure we're waiting for the right file, collect alt-locs */
 			if (!check_content_urn(d, header))
 				return;
-
 			/*
 			 * If we made a follow-up request, mark host as not reliable.
 			 *
@@ -4509,10 +4562,11 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 
 	/*
 	 * If an URN is present, validate that we can continue this download.
-	 */
+ 	 */
+ 
+ 	if (!check_content_urn(d, header))
+ 		return;
 
-	if (!check_content_urn(d, header))
-		return;
 
 	/*
 	 * If they configured us to require a server name, and we have none
@@ -4920,6 +4974,11 @@ picked:
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n",
 		ip_port_to_gchar(download_ip(d), download_port(d)), version_string);
+	
+	/*
+	 * Add X-Queue / X-Queued information into the header
+	 */
+	parq_download_add_header(dl_tmp, &rw, d);
 
 	/*
 	 * If server is known to NOT support keepalives, then request only

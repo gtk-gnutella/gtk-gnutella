@@ -28,6 +28,9 @@
 
 #include "bsched.h"
 #include "fileinfo.h"
+#include "header.h"
+
+#define PARQ_MAX_ID_LENGTH 40
 
 /*
  * We keep a list of all the downloads queued per GUID+IP:port (host).  Indeed
@@ -64,6 +67,18 @@ struct dl_server {
 	gchar *vendor;			/* Remote server vendor string (atom) */
 	time_t retry_after;		/* Time at which we may retry from this host */
 	guint32 attrs;
+};
+
+/* 
+ * Download dependent queuing status.
+ */
+struct dl_queued {	
+	guint position;			/* Current position in the queue */
+	guint length;			/* Current queue length */
+	time_t ETA;				/* Estimated time till upload slot retrieved */
+	guint lifetime;			/* Max interval before loosing queue position */
+	guint retry_delay;		/* Interval between new attempt */
+	gchar ID[PARQ_MAX_ID_LENGTH+1];	/* PARQ Queue ID, +1 for trailing NUL */
 };
 
 struct download {
@@ -113,6 +128,8 @@ struct download {
 	gboolean visible;		/* The download is visible in the GUI */
 	gboolean push;			/* Currently in push mode */
 	gboolean always_push;	/* Always use the push method for this download */
+	
+	struct dl_queued queue_status;	/* Queuing status */
 };
 
 /*
@@ -138,6 +155,8 @@ struct download {
 #define GTA_DL_MOVING			17	/* Being moved to "done/bad" dir */
 #define GTA_DL_DONE				18	/* All done! */
 #define GTA_DL_SINKING			19	/* Sinking HTML reply */
+#define GTA_DL_ACTIVE_QUEUED	20	/* Actively queued */
+#define GTA_DL_PASSIVE_QUEUED	21	/* Passively queued */
 
 /*
  * Download flags.
@@ -209,11 +228,13 @@ struct download {
 #define DOWNLOAD_IS_WAITING(d)			\
 	(  (d)->status == GTA_DL_TIMEOUT_WAIT)
 
+// JA, 31 jan 2003 GTA_DL_ACTIVE_QUEUED
 #define DOWNLOAD_IS_ESTABLISHING(d)		\
 	(  (d)->status == GTA_DL_CONNECTING \
 	|| (d)->status == GTA_DL_PUSH_SENT	\
 	|| (d)->status == GTA_DL_FALLBACK	\
 	|| (d)->status == GTA_DL_REQ_SENT	\
+	|| (d)->status == GTA_DL_ACTIVE_QUEUED \
 	|| (d)->status == GTA_DL_HEADERS	)
 
 #define DOWNLOAD_IS_EXPECTING_GIV(d)	\
@@ -256,6 +277,7 @@ void download_clear_stopped(gboolean, gboolean);
 void download_abort(struct download *);
 void download_resume(struct download *);
 void download_start(struct download *, gboolean);
+gboolean download_start_prepare_running(struct download *d);
 void download_requeue(struct download *);
 void download_send_request(struct download *);
 void download_retry(struct download *);
@@ -277,6 +299,8 @@ void download_move_start(struct download *d);
 void download_move_progress(struct download *d, guint32 copied);
 void download_move_done(struct download *d, time_t elapsed);
 void download_move_error(struct download *d);
+
+guint extract_retry_after(header_t *header);
 
 #endif /* _downloads_h_ */
 
