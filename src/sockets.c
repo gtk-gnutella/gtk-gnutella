@@ -307,6 +307,8 @@ unknown:
 		g_warning("socket_read(): got unknown incoming connection, dropping!");
 		dump_hex(stderr, "First Line", first, MIN(len, 160));
 	}
+	if (strstr(first, "HTTP"))
+		http_send_status(s, 501, NULL, 0, "Method Not Implemented");
 	/* FALL THROUGH */
 
 cleanup:
