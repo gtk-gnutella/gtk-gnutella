@@ -73,6 +73,7 @@ struct vendor {
     { T_SNUT, "SwapNut" },
     { T_SWAP, "Swapper" },
     { T_SWFT, "Swift" },
+    { T_TFLS, "TrustyFiles" },
     { T_TOAD, "ToadNode" },
     { T_XOLO, "Xolox" },
     { T_XTLA, "Xtella" },

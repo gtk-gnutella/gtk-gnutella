@@ -75,6 +75,7 @@
 #define T_SNUT	MAKE_CODE('S','N','U','T')
 #define T_SWAP	MAKE_CODE('S','W','A','P')
 #define T_SWFT	MAKE_CODE('S','W','F','T')
+#define T_TFLS	MAKE_CODE('T','F','L','S')
 #define T_TOAD	MAKE_CODE('T','O','A','D')
 #define T_XOLO	MAKE_CODE('X','O','L','O')
 #define T_XTLA	MAKE_CODE('X','T','L','A')
