@@ -19,8 +19,10 @@ struct download {
 	struct gnutella_socket *socket;
 	gint file_desc;
 
-	time_t start_date;
-	time_t last_update;
+	time_t start_date;		/* Download start date */
+	time_t last_update;		/* Last status update or I/O */
+	time_t last_gui_update;	/* Last stats update on the GUI */
+
 	guint32 retries;
 	guint32 timeout_delay;
 	guint restart_timer_id;
@@ -31,11 +33,48 @@ struct download {
 	guint16 port;
 
 	gboolean visible;		/* The download is visible in the GUI */
-
 	gboolean push;			/* Always use the push method for this download */
-
 	gboolean ok;			/* We have got 200 OK */
 };
+
+/*
+ * Download states.
+ */
+
+#define GTA_DL_QUEUED			1	/* Download queued, will start later */
+#define GTA_DL_CONNECTING		2	/* We are connecting to the server */
+#define GTA_DL_PUSH_SENT		3	/* Sent a push, waiting connection */
+#define GTA_DL_FALLBACK			4	/* Direct request failed, using push */
+#define GTA_DL_REQ_SENT			5	/* Request sent, waiting for HTTP headers */
+#define GTA_DL_HEADERS			6	/* We are receiving the HTTP headers */
+#define GTA_DL_RECEIVING		7	/* We are receiving the data of the file */
+#define GTA_DL_COMPLETED		8	/* Download is completed */
+#define GTA_DL_ERROR			9	/* Download is stopped due to error */
+#define GTA_DL_ABORTED			10	/* User used the 'Abort Download' button */
+#define GTA_DL_TIMEOUT_WAIT		11	/* Waiting to try connecting again */
+
+/*
+ * State inspection macros.
+ */
+
+#define DOWNLOAD_IS_QUEUED(d)  ((d)->status == GTA_DL_QUEUED)
+
+#define DOWNLOAD_IS_STOPPED(d) \
+	(  (d)->status == GTA_DL_ABORTED \
+	|| (d)->status == GTA_DL_ERROR \
+	|| (d)->status == GTA_DL_COMPLETED	)
+
+#define DOWNLOAD_IS_RUNNING(d) \
+	(  (d)->status == GTA_DL_CONNECTING \
+	|| (d)->status == GTA_DL_PUSH_SENT \
+	|| (d)->status == GTA_DL_FALLBACK \
+	|| (d)->status == GTA_DL_REQ_SENT \
+	|| (d)->status == GTA_DL_HEADERS \
+	|| (d)->status == GTA_DL_RECEIVING \
+    || (d)->status == GTA_DL_TIMEOUT_WAIT  )
+
+#define DOWNLOAD_IS_IN_PUSH_MODE(d) (d->push)
+#define DOWNLOAD_IS_VISIBLE(d)		(d->visible)
 
 /* 
  * Global Data
