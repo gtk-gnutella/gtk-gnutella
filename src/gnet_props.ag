@@ -1173,7 +1173,7 @@ prop = {
 		  "jpeg;jpg;"
 		  "mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;"
           "nes;"
-		  "ogg;"
+		  "ogg;ogm;"
 		  "qt;"
 		  "png;ps;pdf;"
 		  "ram;rm;rar;rpm;rom;"
