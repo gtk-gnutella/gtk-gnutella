@@ -82,7 +82,7 @@ void autodownload_notify(gchar* file, guint32 size,
 		result = pattern_qsearch(pattern, file, 0, 0, qs_any);
 
 		if (result != NULL) {
-			download_new(file, size, record_index, ip, port, guid);
+			auto_download_new(file, size, record_index, ip, port, guid);
 			return;
 		}
 

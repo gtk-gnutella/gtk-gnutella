@@ -92,7 +92,7 @@ static guint32 count_running_downloads_with_name(const char *name)
 	return n;
 }
 
-static gboolean has_same_active_download(struct download *dn)
+static gboolean has_same_active_download(gchar *file, gchar *guid)
 {
 	/*
 	 * Check whether we already have an identical (same file, same GUID)
@@ -106,10 +106,7 @@ static gboolean has_same_active_download(struct download *dn)
 		struct download *d = (struct download *) l->data;
 		if (IS_DOWNLOAD_STOPPED(d))
 			continue;
-		if (
-			0 == strcmp(dn->file_name, d->file_name) &&
-			0 == memcmp(dn->guid, d->guid, 16)
-		)
+		if (0 == strcmp(file, d->file_name) && 0 == memcmp(guid, d->guid, 16))
 			return TRUE;
 	}
 
@@ -604,22 +601,54 @@ void download_fallback_to_push(struct download *d, gboolean user_request)
 	gui_update_download(d, TRUE);
 }
 
+static void escape_filename(gchar *file)
+{
+	/* Inline substitution of all "/" by "_" within file name */
+
+	gchar *s;
+
+	s = file;
+	while (*s) {
+		if (*s == '/')
+			*s = '_';
+		s++;
+	}
+}
+
 /*
  * Downloads creation and destruction
  */
 
 /* Create a new download */
 
-void download_new(gchar * file, guint32 size, guint32 record_index,
-				  guint32 ip, guint16 port, gchar * guid)
+static void create_download(
+	gchar *file, guint32 size, guint32 record_index,
+	guint32 ip, guint16 port, gchar *guid,
+	gboolean interactive)
 {
 	struct download *d;
-	gchar *s;
+	gchar *file_name = interactive ? g_strdup(file) : file;
+
+	/* Replace all slashes by underscores in the file name */
+
+	if (interactive) 		/* Was already done in auto_download_new() */
+		escape_filename(file_name);
+
+	/*
+	 * Refuse to queue the same download twice. --RAM, 04/11/2001
+	 */
+
+	if (has_same_active_download(file_name, guid)) {
+		if (interactive)
+			g_warning("rejecting duplicate download for %s", file_name);
+		g_free(file_name);
+		return;
+	}
 
 	d = (struct download *) g_malloc0(sizeof(struct download));
 
 	d->path = g_strdup(save_file_path);
-	d->file_name = g_strdup(file);
+	d->file_name = file_name;
 	d->size = size;
 	d->record_index = record_index;
 	d->ip = ip;
@@ -627,27 +656,6 @@ void download_new(gchar * file, guint32 size, guint32 record_index,
 	d->file_desc = -1;
 	memcpy(d->guid, guid, 16);
 	d->restart_timer_id = 0;
-
-	/* Replace all slashes by underscores in the file name */
-
-	s = d->file_name;
-	while (*s) {
-		if (*s == '/')
-			*s = '_';
-		s++;
-	}
-
-	/*
-	 * Refuse to queue the same download twice. --RAM, 04/11/2001
-	 */
-
-	if (has_same_active_download(d)) {
-		g_warning("rejecting duplicate download for %s", d->file_name);
-		g_free(d->file_name);
-		g_free(d->path);
-		g_free(d);
-		return;
-	}
 
 	sl_downloads = g_slist_prepend(sl_downloads, (gpointer) d);
 
@@ -662,6 +670,63 @@ void download_new(gchar * file, guint32 size, guint32 record_index,
 		download_queue(d);
 	}
 }
+
+
+/* Automatic download request */
+
+void auto_download_new(gchar * file, guint32 size, guint32 record_index,
+					   guint32 ip, guint16 port, gchar * guid)
+{
+	gchar dl_tmp[4096];
+	gchar *file_name = g_strdup(file);
+	struct stat buf;
+	char *reason;
+
+	escape_filename(file_name);
+
+	/*
+	 * Make sure we have not got a bigger file in the "completed dir".
+	 */
+
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", move_file_path, file_name);
+	dl_tmp[sizeof(dl_tmp)-1] = '\0';
+
+	if (-1 != stat(dl_tmp, &buf) && buf.st_size >= size) {
+		reason = "complete file bigger";
+		goto abort_download;
+	}
+
+	/*
+	 * Make sure we have not got a bigger file in the "download dir".
+	 */
+
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", save_file_path, file_name);
+	dl_tmp[sizeof(dl_tmp)-1] = '\0';
+
+	if (-1 != stat(dl_tmp, &buf) && buf.st_size >= size) {
+		reason = "downloaded file bigger";
+		goto abort_download;
+	}
+
+	create_download(file, size, record_index, ip, port, guid, FALSE);
+	return;
+
+abort_download:
+	if (dbg > 4)
+		printf("ignoring auto download for '%s': %s\n", file_name, reason);
+	g_free(file_name);
+	return;
+}
+
+
+/* Create a new download */
+
+void download_new(gchar * file, guint32 size, guint32 record_index,
+				  guint32 ip, guint16 port, gchar * guid)
+{
+	create_download(file, size, record_index, ip, port, guid, TRUE);
+}
+
 
 /* Free a download. */
 
