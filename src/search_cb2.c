@@ -476,7 +476,7 @@ static void autoselect_files_helper(
                     /* Expand to the current path, otherwise any changes to
                      * the selection would be discarded. */
             
-                    path = gtk_tree_model_get_path(model, &model_iter);
+                    p = gtk_tree_model_get_path(model, &model_iter);
                     gtk_tree_view_expand_row(treeview, p, FALSE);
                     gtk_tree_path_free(p);
 
