@@ -516,14 +516,14 @@ void prop_set_boolean(
 		length * sizeof(gboolean));
 
 	if (debug >= 5) {
-		guint32 n;
+		guint32 i;
 
 		printf("updated property [%s] = ( ", PROP(ps,prop).name);
 			
-		for(n = 0; n < PROP(ps,prop).vector_size; n++)
+		for (i = 0; i < PROP(ps,prop).vector_size; i++)
 			printf("%s%s ", 
-				*PROP(ps,prop).data.boolean.value ? "TRUE" : "FALSE",
-				(n < (PROP(ps,prop).vector_size-1)) ? "," : "");
+				PROP(ps,prop).data.boolean.value[i] ? "TRUE" : "FALSE",
+				(i < (PROP(ps,prop).vector_size-1)) ? "," : "");
 
 		printf(")\n");
 	}
