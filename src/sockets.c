@@ -1006,10 +1006,24 @@ static struct gnutella_socket *socket_connect_prepare(
 	sd = socket(AF_INET, SOCK_STREAM, 0);
 
 	if (sd == -1) {
-		g_warning("Unable to create a socket (%s)", g_strerror(errno));
+		/*
+		 * If we ran out of file descriptors, try to reclaim one from the
+		 * banning pool and retry.
+		 */
+
+		if ((errno == EMFILE || errno == ENFILE) && ban_reclaim_fd()) {
+			sd = socket(AF_INET, SOCK_STREAM, 0);
+			if (sd >= 0) {
+				g_warning("had to close a banned fd to prepare new connection");
+				goto created;
+			}
+		}
+
+		g_warning("unable to create a socket (%s)", g_strerror(errno));
 		return NULL;
 	}
 
+created:
 	s = (struct gnutella_socket *) walloc0(sizeof(struct gnutella_socket));
 
 	s->type = type;
@@ -1136,7 +1150,8 @@ struct gnutella_socket *socket_connect(
 	struct gnutella_socket *s;
 	
 	s = socket_connect_prepare(port, type);
-	g_return_val_if_fail(NULL != s, NULL);
+	if (s == NULL)
+		return NULL;
 	return socket_connect_finalize(s, ip_addr);
 }
 
