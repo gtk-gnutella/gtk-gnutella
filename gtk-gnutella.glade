@@ -263,6 +263,7 @@
     <widget>
       <class>GtkHandleBox</class>
       <name>hb_toolbar</name>
+      <border_width>1</border_width>
       <shadow_type>GTK_SHADOW_OUT</shadow_type>
       <handle_position>GTK_POS_LEFT</handle_position>
       <snap_edge>GTK_POS_TOP</snap_edge>
@@ -278,8 +279,8 @@
 	<orientation>GTK_ORIENTATION_HORIZONTAL</orientation>
 	<type>GTK_TOOLBAR_BOTH</type>
 	<space_size>5</space_size>
-	<space_style>GTK_TOOLBAR_SPACE_EMPTY</space_style>
-	<relief>GTK_RELIEF_NORMAL</relief>
+	<space_style>GTK_TOOLBAR_SPACE_LINE</space_style>
+	<relief>GTK_RELIEF_NONE</relief>
 	<tooltips>True</tooltips>
 
 	<widget>
@@ -292,6 +293,137 @@
 	    <last_modification_time>Wed, 24 Apr 2002 09:49:45 GMT</last_modification_time>
 	  </signal>
 	  <label>Quit</label>
+	  <icon>exit.xpm</icon>
+	</widget>
+
+	<widget>
+	  <class>GtkButton</class>
+	  <child_name>Toolbar:button</child_name>
+	  <name>button_search_filter</name>
+	  <signal>
+	    <name>clicked</name>
+	    <handler>on_button_search_filter_clicked</handler>
+	    <last_modification_time>Tue, 12 Nov 2002 22:52:01 GMT</last_modification_time>
+	  </signal>
+	  <label>Filters</label>
+	  <icon>filter.xpm</icon>
+	  <child>
+	    <new_group>True</new_group>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkToggleButton</class>
+	  <name>togglebutton_queue_freeze</name>
+	  <can_focus>True</can_focus>
+	  <signal>
+	    <name>toggled</name>
+	    <handler>on_togglebutton_queue_freeze_toggled</handler>
+	    <last_modification_time>Thu, 14 Nov 2002 12:23:14 GMT</last_modification_time>
+	  </signal>
+	  <relief>GTK_RELIEF_NONE</relief>
+	  <active>False</active>
+	  <child>
+	    <new_group>True</new_group>
+	  </child>
+
+	  <widget>
+	    <class>GtkHBox</class>
+	    <name>hbox159</name>
+	    <homogeneous>False</homogeneous>
+	    <spacing>0</spacing>
+
+	    <widget>
+	      <class>GtkVBox</class>
+	      <name>vbox_queue_freeze</name>
+	      <homogeneous>False</homogeneous>
+	      <spacing>0</spacing>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkPixmap</class>
+		<name>pixmap1</name>
+		<filename>freeze.xpm</filename>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<build_insensitive>False</build_insensitive>
+		<child>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
+		</child>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<name>label406</name>
+		<label>Freeze queue</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+	      </widget>
+	    </widget>
+
+	    <widget>
+	      <class>GtkVBox</class>
+	      <name>vbox_queue_thaw</name>
+	      <visible>False</visible>
+	      <homogeneous>False</homogeneous>
+	      <spacing>0</spacing>
+	      <child>
+		<padding>0</padding>
+		<expand>True</expand>
+		<fill>True</fill>
+	      </child>
+
+	      <widget>
+		<class>GtkPixmap</class>
+		<name>pixmap2</name>
+		<filename>thaw.xpm</filename>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<build_insensitive>False</build_insensitive>
+		<child>
+		  <padding>0</padding>
+		  <expand>True</expand>
+		  <fill>True</fill>
+		</child>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<name>label407</name>
+		<label>Thaw queue</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>False</fill>
+		</child>
+	      </widget>
+	    </widget>
+	  </widget>
 	</widget>
       </widget>
     </widget>
@@ -2633,37 +2765,6 @@
 
 		      <widget>
 			<class>GtkHBox</class>
-			<name>hbox68</name>
-			<homogeneous>False</homogeneous>
-			<spacing>4</spacing>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-
-			<widget>
-			  <class>GtkToggleButton</class>
-			  <name>togglebutton_queue_freeze</name>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>toggled</name>
-			    <handler>on_togglebutton_queue_freeze_toggled</handler>
-			    <last_modification_time>Thu, 11 Apr 2002 17:20:40 GMT</last_modification_time>
-			  </signal>
-			  <label>Freeze queue</label>
-			  <relief>GTK_RELIEF_NORMAL</relief>
-			  <active>False</active>
-			  <child>
-			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
-			  </child>
-			</widget>
-		      </widget>
-
-		      <widget>
-			<class>GtkHBox</class>
 			<name>hbox86</name>
 			<homogeneous>False</homogeneous>
 			<spacing>4</spacing>
@@ -3428,24 +3529,6 @@
 		  <padding>0</padding>
 		  <expand>True</expand>
 		  <fill>True</fill>
-		</child>
-	      </widget>
-
-	      <widget>
-		<class>GtkButton</class>
-		<name>button_search_filter</name>
-		<can_focus>True</can_focus>
-		<signal>
-		  <name>clicked</name>
-		  <handler>on_button_search_filter_clicked</handler>
-		  <last_modification_time>Sat, 06 May 2000 20:41:27 GMT</last_modification_time>
-		</signal>
-		<label>Configure filters</label>
-		<relief>GTK_RELIEF_NORMAL</relief>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>False</fill>
 		</child>
 	      </widget>
 
@@ -7405,7 +7488,7 @@ options</label>
 		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		    <child>
 		      <padding>0</padding>
-		      <expand>True</expand>
+		      <expand>False</expand>
 		      <fill>True</fill>
 		    </child>
 
@@ -9015,7 +9098,7 @@ interface</label>
 	<class>GtkToggleButton</class>
 	<name>togglebutton_online</name>
 	<can_focus>True</can_focus>
-	<relief>GTK_RELIEF_NORMAL</relief>
+	<relief>GTK_RELIEF_NONE</relief>
 	<active>False</active>
 	<child>
 	  <padding>0</padding>
@@ -9070,13 +9153,22 @@ interface</label>
       </widget>
 
       <widget>
-	<class>GtkStatusbar</class>
-	<name>statusbar</name>
+	<class>GtkAlignment</class>
+	<name>alignment25</name>
+	<xalign>0.5</xalign>
+	<yalign>0.5</yalign>
+	<xscale>1</xscale>
+	<yscale>0</yscale>
 	<child>
 	  <padding>0</padding>
 	  <expand>True</expand>
 	  <fill>True</fill>
 	</child>
+
+	<widget>
+	  <class>GtkStatusbar</class>
+	  <name>statusbar</name>
+	</widget>
       </widget>
 
       <widget>
@@ -13919,7 +14011,7 @@ Grace time remaining:</label>
 
     <widget>
       <class>GtkHBox</class>
-      <name>hbox159</name>
+      <name>hbox160</name>
       <homogeneous>False</homogeneous>
       <spacing>0</spacing>
       <child>
@@ -14238,8 +14330,7 @@ Grace time remaining:</label>
 	  <widget>
 	    <class>GtkText</class>
 	    <name>text1</name>
-	    <width>146</width>
-	    <height>126</height>
+	    <width>213</width>
 	    <can_focus>True</can_focus>
 	    <editable>False</editable>
 	    <text>Steven Wilcoxon &lt;swilcoxon@users.sourceforge.net&gt;
@@ -14276,7 +14367,7 @@ Christian Biere &lt;christianbiere@gmx.de&gt;</text>
 
     <widget>
       <class>GtkLabel</class>
-      <name>label405</name>
+      <name>label408</name>
       <label>==&gt; We are looking for people who want to contribute to this fine tool. &lt;==
 Vist http://gtk-gnutella.sourceforge.net.
 Join the users or developers mailing lists.
@@ -14295,13 +14386,25 @@ Meet us on #gtk-gnutella at irc.openprojects.org.</label>
     </widget>
 
     <widget>
-      <class>GtkHSeparator</class>
-      <name>hseparator9</name>
+      <class>GtkHBox</class>
+      <name>hbox137</name>
+      <homogeneous>False</homogeneous>
+      <spacing>0</spacing>
       <child>
 	<padding>0</padding>
 	<expand>False</expand>
 	<fill>True</fill>
       </child>
+
+      <widget>
+	<class>GtkHSeparator</class>
+	<name>hseparator9</name>
+	<child>
+	  <padding>0</padding>
+	  <expand>True</expand>
+	  <fill>True</fill>
+	</child>
+      </widget>
     </widget>
 
     <widget>

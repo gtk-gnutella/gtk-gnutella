@@ -4204,7 +4204,17 @@ create_main_window (void)
   GtkWidget *image5;
   GtkWidget *hb_toolbar;
   GtkWidget *toolbar1;
+  GtkWidget *tmp_toolbar_icon;
   GtkWidget *button_quit;
+  GtkWidget *button_search_filter;
+  GtkWidget *togglebutton_queue_freeze;
+  GtkWidget *hbox202;
+  GtkWidget *vbox_queue_freeze;
+  GtkWidget *image113;
+  GtkWidget *label473;
+  GtkWidget *vbox_queue_thaw;
+  GtkWidget *image114;
+  GtkWidget *label474;
   GtkWidget *hpaned_main;
   GtkWidget *vpaned_sidebar;
   GtkWidget *scrolledwindow25;
@@ -4399,8 +4409,6 @@ create_main_window (void)
   GtkWidget *label331;
   GtkWidget *label332;
   GtkWidget *label333;
-  GtkWidget *hbox145;
-  GtkWidget *togglebutton_queue_freeze;
   GtkWidget *hbox146;
   GtkWidget *label334;
   GtkWidget *entry_queue_regex;
@@ -4467,7 +4475,6 @@ create_main_window (void)
   GtkWidget *image26;
   GtkWidget *label407;
   GtkWidget *label361;
-  GtkWidget *button_search_filter;
   GtkWidget *checkbutton_search_results_show_settings;
   GtkWidget *alignment26;
   GtkWidget *hbox157;
@@ -5023,12 +5030,72 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (hb_toolbar), toolbar1);
   gtk_toolbar_set_style (GTK_TOOLBAR (toolbar1), GTK_TOOLBAR_BOTH);
 
-  button_quit = gtk_toolbar_insert_stock (GTK_TOOLBAR (toolbar1),
-                                "gtk-quit",
+  tmp_toolbar_icon = gtk_image_new_from_stock ("gtk-quit", gtk_toolbar_get_icon_size (GTK_TOOLBAR (toolbar1)));
+  button_quit = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
+                                GTK_TOOLBAR_CHILD_BUTTON,
                                 NULL,
-                                NULL, NULL, NULL, -1);
+                                "_Quit",
+                                NULL, NULL,
+                                tmp_toolbar_icon, NULL, NULL);
+  gtk_label_set_use_underline (GTK_LABEL (((GtkToolbarChild*) (g_list_last (GTK_TOOLBAR (toolbar1)->children)->data))->label), TRUE);
   gtk_widget_set_name (button_quit, "button_quit");
   gtk_widget_show (button_quit);
+
+  gtk_toolbar_append_space (GTK_TOOLBAR (toolbar1));
+
+  tmp_toolbar_icon = create_pixmap (main_window, "filter.xpm");
+  button_search_filter = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
+                                GTK_TOOLBAR_CHILD_BUTTON,
+                                NULL,
+                                "Filters",
+                                NULL, NULL,
+                                tmp_toolbar_icon, NULL, NULL);
+  gtk_label_set_use_underline (GTK_LABEL (((GtkToolbarChild*) (g_list_last (GTK_TOOLBAR (toolbar1)->children)->data))->label), TRUE);
+  gtk_widget_set_name (button_search_filter, "button_search_filter");
+  gtk_widget_show (button_search_filter);
+
+  togglebutton_queue_freeze = gtk_toggle_button_new ();
+  gtk_widget_set_name (togglebutton_queue_freeze, "togglebutton_queue_freeze");
+  gtk_widget_show (togglebutton_queue_freeze);
+  gtk_toolbar_append_space (GTK_TOOLBAR (toolbar1));
+
+  gtk_toolbar_append_widget (GTK_TOOLBAR (toolbar1), togglebutton_queue_freeze, NULL, NULL);
+
+  hbox202 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox202, "hbox202");
+  gtk_widget_show (hbox202);
+  gtk_container_add (GTK_CONTAINER (togglebutton_queue_freeze), hbox202);
+
+  vbox_queue_freeze = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox_queue_freeze, "vbox_queue_freeze");
+  gtk_widget_show (vbox_queue_freeze);
+  gtk_box_pack_start (GTK_BOX (hbox202), vbox_queue_freeze, TRUE, TRUE, 0);
+
+  image113 = create_pixmap (main_window, "freeze.xpm");
+  gtk_widget_set_name (image113, "image113");
+  gtk_widget_show (image113);
+  gtk_box_pack_start (GTK_BOX (vbox_queue_freeze), image113, TRUE, TRUE, 0);
+
+  label473 = gtk_label_new ("Freeze queue");
+  gtk_widget_set_name (label473, "label473");
+  gtk_widget_show (label473);
+  gtk_box_pack_start (GTK_BOX (vbox_queue_freeze), label473, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label473), GTK_JUSTIFY_LEFT);
+
+  vbox_queue_thaw = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox_queue_thaw, "vbox_queue_thaw");
+  gtk_box_pack_start (GTK_BOX (hbox202), vbox_queue_thaw, TRUE, TRUE, 0);
+
+  image114 = create_pixmap (main_window, "thaw.xpm");
+  gtk_widget_set_name (image114, "image114");
+  gtk_widget_show (image114);
+  gtk_box_pack_start (GTK_BOX (vbox_queue_thaw), image114, TRUE, TRUE, 0);
+
+  label474 = gtk_label_new ("Thaw queue");
+  gtk_widget_set_name (label474, "label474");
+  gtk_widget_show (label474);
+  gtk_box_pack_start (GTK_BOX (vbox_queue_thaw), label474, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label474), GTK_JUSTIFY_LEFT);
 
   hpaned_main = gtk_hpaned_new ();
   gtk_widget_set_name (hpaned_main, "hpaned_main");
@@ -6152,16 +6219,6 @@ create_main_window (void)
   gtk_clist_set_column_widget (GTK_CLIST (clist_downloads_queue), 4, label333);
   gtk_label_set_justify (GTK_LABEL (label333), GTK_JUSTIFY_LEFT);
 
-  hbox145 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox145, "hbox145");
-  gtk_widget_show (hbox145);
-  gtk_box_pack_start (GTK_BOX (vbox78), hbox145, FALSE, FALSE, 0);
-
-  togglebutton_queue_freeze = gtk_toggle_button_new_with_mnemonic ("Freeze queue");
-  gtk_widget_set_name (togglebutton_queue_freeze, "togglebutton_queue_freeze");
-  gtk_widget_show (togglebutton_queue_freeze);
-  gtk_box_pack_start (GTK_BOX (hbox145), togglebutton_queue_freeze, FALSE, FALSE, 0);
-
   hbox146 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox146, "hbox146");
   gtk_widget_show (hbox146);
@@ -6531,11 +6588,6 @@ create_main_window (void)
   gtk_widget_show (label361);
   gtk_box_pack_start (GTK_BOX (hbox154), label361, TRUE, TRUE, 0);
   gtk_label_set_justify (GTK_LABEL (label361), GTK_JUSTIFY_LEFT);
-
-  button_search_filter = gtk_button_new_with_mnemonic ("Filter results");
-  gtk_widget_set_name (button_search_filter, "button_search_filter");
-  gtk_widget_show (button_search_filter);
-  gtk_box_pack_start (GTK_BOX (hbox154), button_search_filter, FALSE, FALSE, 0);
 
   checkbutton_search_results_show_settings = gtk_toggle_button_new ();
   gtk_widget_set_name (checkbutton_search_results_show_settings, "checkbutton_search_results_show_settings");
@@ -8857,6 +8909,12 @@ create_main_window (void)
   g_signal_connect ((gpointer) button_quit, "clicked",
                     G_CALLBACK (on_button_quit_clicked),
                     NULL);
+  g_signal_connect ((gpointer) button_search_filter, "clicked",
+                    G_CALLBACK (on_button_search_filter_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) togglebutton_queue_freeze, "toggled",
+                    G_CALLBACK (on_togglebutton_queue_freeze_toggled),
+                    NULL);
   g_signal_connect ((gpointer) ctree_menu, "tree_select_row",
                     G_CALLBACK (on_ctree_menu_tree_select_row),
                     NULL);
@@ -8956,9 +9014,6 @@ create_main_window (void)
   g_signal_connect ((gpointer) clist_downloads_queue, "button_press_event",
                     G_CALLBACK (on_clist_downloads_queue_button_press_event),
                     NULL);
-  g_signal_connect ((gpointer) togglebutton_queue_freeze, "toggled",
-                    G_CALLBACK (on_togglebutton_queue_freeze_toggled),
-                    NULL);
   g_signal_connect ((gpointer) entry_queue_regex, "activate",
                     G_CALLBACK (on_entry_queue_regex_activate),
                     NULL);
@@ -8988,9 +9043,6 @@ create_main_window (void)
                     NULL);
   g_signal_connect ((gpointer) button_search_clear, "clicked",
                     G_CALLBACK (on_button_search_clear_clicked),
-                    NULL);
-  g_signal_connect ((gpointer) button_search_filter, "clicked",
-                    G_CALLBACK (on_button_search_filter_clicked),
                     NULL);
   g_signal_connect ((gpointer) clist_search_stats, "resize_column",
                     G_CALLBACK (on_clist_search_stats_resize_column),
@@ -9112,6 +9164,15 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, hb_toolbar, "hb_toolbar");
   GLADE_HOOKUP_OBJECT (main_window, toolbar1, "toolbar1");
   GLADE_HOOKUP_OBJECT (main_window, button_quit, "button_quit");
+  GLADE_HOOKUP_OBJECT (main_window, button_search_filter, "button_search_filter");
+  GLADE_HOOKUP_OBJECT (main_window, togglebutton_queue_freeze, "togglebutton_queue_freeze");
+  GLADE_HOOKUP_OBJECT (main_window, hbox202, "hbox202");
+  GLADE_HOOKUP_OBJECT (main_window, vbox_queue_freeze, "vbox_queue_freeze");
+  GLADE_HOOKUP_OBJECT (main_window, image113, "image113");
+  GLADE_HOOKUP_OBJECT (main_window, label473, "label473");
+  GLADE_HOOKUP_OBJECT (main_window, vbox_queue_thaw, "vbox_queue_thaw");
+  GLADE_HOOKUP_OBJECT (main_window, image114, "image114");
+  GLADE_HOOKUP_OBJECT (main_window, label474, "label474");
   GLADE_HOOKUP_OBJECT (main_window, hpaned_main, "hpaned_main");
   GLADE_HOOKUP_OBJECT (main_window, vpaned_sidebar, "vpaned_sidebar");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow25, "scrolledwindow25");
@@ -9299,8 +9360,6 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label331, "label331");
   GLADE_HOOKUP_OBJECT (main_window, label332, "label332");
   GLADE_HOOKUP_OBJECT (main_window, label333, "label333");
-  GLADE_HOOKUP_OBJECT (main_window, hbox145, "hbox145");
-  GLADE_HOOKUP_OBJECT (main_window, togglebutton_queue_freeze, "togglebutton_queue_freeze");
   GLADE_HOOKUP_OBJECT (main_window, hbox146, "hbox146");
   GLADE_HOOKUP_OBJECT (main_window, label334, "label334");
   GLADE_HOOKUP_OBJECT (main_window, entry_queue_regex, "entry_queue_regex");
@@ -9362,7 +9421,6 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image26, "image26");
   GLADE_HOOKUP_OBJECT (main_window, label407, "label407");
   GLADE_HOOKUP_OBJECT (main_window, label361, "label361");
-  GLADE_HOOKUP_OBJECT (main_window, button_search_filter, "button_search_filter");
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_search_results_show_settings, "checkbutton_search_results_show_settings");
   GLADE_HOOKUP_OBJECT (main_window, alignment26, "alignment26");
   GLADE_HOOKUP_OBJECT (main_window, hbox157, "hbox157");
