@@ -57,13 +57,13 @@ void hsep_reset(void);
 void hsep_close(void);
 void hsep_connection_init(struct gnutella_node *n);
 void hsep_connection_close(struct gnutella_node *n);
-void hsep_send_msg(struct gnutella_node *);
-void hsep_process_msg(struct gnutella_node *);
+void hsep_send_msg(struct gnutella_node *, time_t now);
+void hsep_process_msg(struct gnutella_node *, time_t now);
 void hsep_dump_table(void);
-void hsep_timer(void);
+void hsep_timer(time_t now);
 void hsep_notify_shared(guint64 ownfiles, guint64 ownkibibytes);
 void hsep_sanity_check(void);
-void hsep_fire_global_table_changed(void);
+void hsep_fire_global_table_changed(time_t now);
 void hsep_add_global_table_listener(GCallback cb, frequency_t type,
 	guint32 interval);
 void hsep_remove_global_table_listener(GCallback cb);
