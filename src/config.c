@@ -3,6 +3,8 @@
 
 #include "gnutella.h"
 #include "interface.h"
+#include "search.h"
+
 
 #include <sys/stat.h>
 #include <pwd.h>
@@ -21,9 +23,10 @@ gboolean force_local_ip					= FALSE;
 guint8 max_ttl								= 5;
 guint8 my_ttl								= 5;
 
-guint16 listen_port						= 6346;
+guint16 listen_port	     				= 6346;
 
 guint32 up_connections					= 4;
+guint32 max_connections             = 10;
 guint32 max_downloads					= 10;
 guint32 max_host_downloads				= 4;
 guint32 max_uploads						= 10;
@@ -58,6 +61,7 @@ gchar *completed_file_path				= NULL;
 gchar *home_dir		  					= NULL;
 gchar *config_dir							= NULL;
 
+
 guint32 nodes_col_widths[]          = { 140, 80, 80 };
 guint32 dl_active_col_widths[]      = { 180, 80, 80 };
 guint32 dl_queued_col_widths[]      = { 320, 80 };
@@ -67,6 +71,16 @@ guint32 search_results_col_widths[] = { 290, 80, 50, 140 };
 gboolean jump_to_downloads = TRUE;
 
 gint w_x = 0, w_y = 0, w_w = 0, w_h = 0;
+
+guint32 search_reissue_timeout = 600; /* 10 minutes */
+
+gboolean proxy_connections = FALSE;
+gint socks_protocol = 4;
+gchar *proxy_ip = "0.0.0.0";
+gint proxy_port = 1080;
+
+gchar *socksv5_user = "proxyuser";
+gchar *socksv5_pass = "proxypass";
 
 enum
 {
@@ -80,7 +94,8 @@ enum
 	k_other_messages_kick_size, k_save_file_path, k_move_file_path,
 	k_win_x, k_win_y, k_win_w, k_win_h, k_win_coords, k_widths_nodes, k_widths_uploads,
 	k_widths_dl_active, k_widths_dl_queued, k_widths_search_results, k_show_results_tabs,
-	k_hops_random_factor, k_send_pushes, k_jump_to_downloads,
+        k_hops_random_factor, k_send_pushes, k_jump_to_downloads, k_max_connections,  k_proxy_connections,
+        k_socks_protocol, k_proxy_ip, k_proxy_port, k_socksv5_user, k_socksv5_pass, k_search_reissue_timeout,
 	k_end
 };
 
@@ -132,7 +147,15 @@ gchar *keywords[] =
 	"show_results_tabs",						/* k_show_results_tabs				*/
 	"hops_random_factor",					/* k_hops_random_factor 			*/
 	"send_pushes",							/* k_send_pushes					*/
-    "jump_to_downloads",                    /* k_jump_to_downloads              */
+        "jump_to_downloads",                    /* k_jump_to_downloads              */
+	"max_connections",
+        "proxy_connections",
+        "socks_protocol",
+        "proxy_ip",
+        "proxy_port",
+        "socksv5_user",
+        "socksv5_pass",
+	"search_reissue_timeout",
 	NULL
 };
 
@@ -196,7 +219,8 @@ void config_init(void)
 	if (!shared_dirs_paths) shared_dirs_paths = g_strdup("");
 
 	if (!scan_extensions) scan_extensions = g_strdup("mp3;mp2;mp1;vqf;avi;mpg;mpeg;wav;mod;voc;it;xm;s3m;stm;wma;mov;asf;zip;rar");
-
+        /* watch for filter_file defaults */
+     
 	if (0 && !local_ip)	/* We need our local address */
 	  {
 	    char hostname[255];
@@ -214,6 +238,7 @@ void config_init(void)
 
 	gui_update_minimum_speed(minimum_speed);
 	gui_update_up_connections();
+	gui_update_max_connections();
 	gui_update_config_port();
 	gui_update_config_force_ip();
 
@@ -234,6 +259,8 @@ void config_init(void)
 
 	gui_update_search_max_items();
 
+	gui_update_search_reissue_timeout();
+
 	gui_update_scan_extensions();
 	gui_update_shared_dirs();
 
@@ -243,6 +270,15 @@ void config_init(void)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_config_force_ip), force_local_ip);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_never_push), !send_pushes);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_jump_to_downloads), jump_to_downloads);
+
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_proxy_connections), proxy_connections);
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_socksv4), (socks_protocol == 4)? TRUE:FALSE);
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_socksv5), (socks_protocol == 5)? TRUE:FALSE);  
+ 
+        gui_update_socks_host();
+        gui_update_socks_port();
+        gui_update_socks_user();
+        gui_update_socks_pass();
 
 	if (w_w && w_h)
 	{
@@ -379,6 +415,14 @@ void config_set_param(guint32 keyword, gchar *value)
 		case k_hops_random_factor: { if (i >= 0 && i <= 3) hops_random_factor = i; return; }
 		case k_send_pushes: { send_pushes = i ? 1 : 0; return; }
 		case k_jump_to_downloads: { jump_to_downloads = i ? TRUE : FALSE; return; }
+                case k_proxy_connections: { proxy_connections = i ? TRUE : FALSE; return; }
+                case k_socks_protocol: { socks_protocol = i; return;}
+                case k_proxy_ip: { proxy_ip = g_strdup(value); return;}
+                case k_proxy_port: { proxy_port = i; return; }
+                case k_socksv5_user: { socksv5_user = g_strdup(value); return; }
+                case k_socksv5_pass: { socksv5_pass = g_strdup(value); return; }
+ 		case k_max_connections: { if (i >= 0 && i < 512) max_connections = i; return; }
+	        case k_search_reissue_timeout: { search_reissue_timeout = i; return; }
 	}
 }
 
@@ -408,7 +452,7 @@ void config_read(void)
 		while (*s && (*s == ' ' || *s == '\t')) s++;
 		if (!((*s >= 'A' && *s <= 'Z') || (*s >= 'a' && *s <= 'z'))) continue;
 		k = s;
-		while (*s =='_' || (*s >= 'A' && *s <= 'Z') || (*s >= 'a' && *s <= 'z')) s++;
+		while (*s =='_' || (*s >= 'A' && *s <= 'Z') || (*s >= 'a' && *s <= 'z') || (*s >= '0' && *s <= '9')) s++;
 		if (*s != '=' && *s != ' ' && *s != '\t') { fprintf(stderr, err, n); continue; }
 		v = s;
 		while (*s == ' ' || *s == '\t') s++;
@@ -471,8 +515,9 @@ void config_save(void)
 	fprintf(config, "\n# Gtk-Gnutella %u.%u (%s) by Olrick - %s\n\n", GTA_VERSION, GTA_SUBVERSION, GTA_RELEASE, GTA_WEBSITE);
 	#endif
 	fprintf(config, "# This is Gtk-Gnutella configuration file - you may edit it if you're careful.\n\n");
-
 	fprintf(config, "%s = %u\n", keywords[k_up_connections], up_connections);
+	fprintf(config, "\n");
+	fprintf(config, "%s = %u\n", keywords[k_max_connections], max_connections);
 	fprintf(config, "\n");
 	fprintf(config, "%s = %s\n", keywords[k_clear_uploads], config_boolean(clear_uploads));
 	fprintf(config, "\n");
@@ -505,6 +550,7 @@ void config_save(void)
 	fprintf(config, "\n");
 	fprintf(config, "%s = %u\n", keywords[k_max_ttl], max_ttl);
 	fprintf(config, "%s = %u\n\n", keywords[k_my_ttl], my_ttl);
+	fprintf(config, "%s = %u\n\n", keywords[k_search_reissue_timeout], search_reissue_timeout);
 
 	fprintf(config, "%s = %s\n", keywords[k_show_results_tabs], config_boolean(search_results_show_tabs));
 
@@ -537,7 +583,21 @@ void config_save(void)
 	fprintf(config, "# Whether or not to jump to the downloads screen when a new download is selected.\n"
 			"%s = %u\n\n", keywords[k_jump_to_downloads], jump_to_downloads);
 
-	fprintf(config, "\n");
+        fprintf(config, "# Proxy Info\n\n");
+ 
+        fprintf(config, "%s = %u\n\n", keywords[k_proxy_connections], proxy_connections);
+ 
+        fprintf(config, "%s = %u\n\n", keywords[k_socks_protocol], socks_protocol);
+ 
+        fprintf(config, "%s = \"%s\"\n\n", keywords[k_proxy_ip], proxy_ip);
+ 
+        fprintf(config, "%s = %u\n\n", keywords[k_proxy_port], proxy_port);
+ 
+        fprintf(config, "%s = \"%s\"\n\n", keywords[k_socksv5_user], socksv5_user);
+ 
+        fprintf(config, "%s = \"%s\"\n\n", keywords[k_socksv5_pass], socksv5_pass);
+ 
+        fprintf(config, "\n\n");
 
 	/* I'm not sure yet that the following variables are really useful...
 
