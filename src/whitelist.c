@@ -55,8 +55,9 @@ static void whitelist_retrieve(void)
     FILE *f;
     struct stat st;
     int linenum = 0;
-	const file_path_t fp = { settings_config_dir(), whitelist_file };
+	file_path_t fp;
 
+	file_path_set(&fp, settings_config_dir(), whitelist_file);
 	f = file_config_open_read_norename("whitelist", &fp, 1);
 	if (!f)
 		return; 
