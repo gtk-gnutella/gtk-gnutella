@@ -562,7 +562,8 @@ gint main(gint argc, gchar **argv, gchar **env)
 	log_init();
 #ifndef OFFICIAL_BUILD
 	g_warning("%s \"%s\"",
-		_("This is an unofficial build and will access files in"),
+		_("This is an unofficial build which accesses "
+			"files in this directory:"),
 		PACKAGE_SOURCE_DIR);
 #endif
 
