@@ -1317,6 +1317,7 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 
 	g_assert(q);
 	g_assert(!pmsg_was_sent(mb));
+	g_assert(pmsg_is_unread(mb));
 
 	if (size == 0) {
 		g_warning("mq_putq: called with empty message");
