@@ -369,9 +369,6 @@ void gui_update_all()
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
 								 (checkbutton_search_jump_to_downloads),
 								 jump_to_downloads);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
-								 (checkbutton_autodownload),
-								 use_autodownload);
 
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
 								 (checkbutton_config_proxy_connections),
@@ -1900,6 +1897,7 @@ void gui_search_clear_results(void)
 	gtk_clist_clear(GTK_CLIST(current_search->clist));
 	search_clear(current_search);
 	gui_search_force_update_tab_label(current_search);
+    gui_search_update_items(current_search);
 }
 
 /*
