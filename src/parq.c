@@ -75,6 +75,7 @@ static const gchar *file_parq_file = "parq";
 GList *ul_parqs = NULL;			/* List of all queued uploads */
 GList *ul_parq_queue = NULL;	/* To whom we need to send a QUEUE */
 GHashTable *ul_all_parq_by_ip_and_name = NULL;
+GHashTable *ul_all_parq_by_ip = NULL;
 GHashTable *ul_all_parq_by_id = NULL;
 gboolean enable_real_passive = TRUE;	/* If TRUE, a dead upload is only marked
 										 * dead, if FALSE, a dead upload is 
@@ -99,6 +100,13 @@ struct parq_ul_queue {
 							   all queued items are finished / removed. */
 	gint active_uploads;
 	gint alive;
+};
+
+struct parq_ul_queued_by_ip {
+	gint	uploading;		/* Number of uploads uploading */
+	gint	total;			/* Total queued items for this ip */
+	guint32 ip;
+	GList	*list;		/* List or queued items for this ip */
 };
 
 /* Contains the queued upload */
@@ -145,6 +153,7 @@ struct parq_ul_queued {
 	gint minor;
 	
 	struct parq_ul_queue *queue;	/* In which queue this entry is listed */
+	struct parq_ul_queued_by_ip *by_ip;
 };
 
 /*
@@ -193,6 +202,19 @@ static void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul);
 /***
  ***  Generic non PARQ specific functions
  ***/
+
+/*
+ * ip_eq
+ *
+ * Comparison of `ip' structures.
+ */
+static gint ip_eq(gconstpointer a, gconstpointer b)
+{
+	guint32 aip = * (guint32 *) a;
+	guint32 bip = * (guint32 *) b;
+
+	return aip == bip;
+}
 
 /*
  * get_header_version
@@ -353,6 +375,7 @@ static gchar *get_header_value(
 void parq_init(void)
 {
 	ul_all_parq_by_ip_and_name = g_hash_table_new(g_str_hash, g_str_equal);
+	ul_all_parq_by_ip = g_hash_table_new(g_str_hash, ip_eq);
 	ul_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
 	dl_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
 
@@ -360,6 +383,7 @@ void parq_init(void)
 	
 	g_assert(ul_all_parq_by_ip_and_name != NULL);
 	g_assert(ul_all_parq_by_id != NULL);
+	g_assert(ul_all_parq_by_ip != NULL);
 	g_assert(dl_all_parq_by_id != NULL);
 	
 	parq_upload_load_queue();
@@ -1091,11 +1115,6 @@ void parq_download_queue_ack(struct gnutella_socket *s)
  ***/
 
 /*
- * TODO:
- * Send QUEUE when upload reaches an upload slot
- */
-
-/*
  * handle_to_queued
  *
  * Convert an handle to a `parq_ul_queued' structure.
@@ -1116,18 +1135,41 @@ inline struct parq_ul_queued *handle_to_queued(gpointer handle)
  * removes an parq_ul from the parq list and frees all its memory
  */
 static void parq_upload_free(struct parq_ul_queued *parq_ul)
-{
+{		
 	g_assert(parq_ul != NULL);
+	g_assert(parq_ul->by_ip != NULL);
 	g_assert(parq_ul->ip_and_name != NULL);
 	g_assert(parq_ul->queue != NULL);
 	g_assert(parq_ul->queue->size > 0);
 	g_assert(parq_ul->queue->by_position != NULL);
+	g_assert(parq_ul->by_ip != NULL);
+	g_assert(parq_ul->by_ip->total > 0);
+	g_assert(parq_ul->by_ip->uploading <= parq_ul->by_ip->total);
+	g_assert(g_list_length(parq_ul->by_ip->list) > 0);
 	
 	parq_upload_decrease_all_after(parq_ul);	
 
 	if (parq_ul->flags & PARQ_UL_QUEUE)
 		ul_parq_queue = g_list_remove(ul_parq_queue, parq_ul);
+		
+	parq_ul->by_ip->list = g_list_remove(parq_ul->by_ip->list, parq_ul);
 	
+	parq_ul->by_ip->total--;
+
+	if (parq_ul->by_ip->total == 0) {
+		g_assert(parq_ul->remote_ip == parq_ul->by_ip->ip);
+		g_assert(g_list_length(parq_ul->by_ip->list) == 0);
+		
+		/* No more uploads from this ip, cleaning up */
+		g_hash_table_remove(ul_all_parq_by_ip, &parq_ul->remote_ip);
+		
+		g_list_free(parq_ul->by_ip->list);
+		parq_ul->by_ip->list = NULL;
+		
+		wfree(parq_ul->by_ip, sizeof(*parq_ul->by_ip));
+		parq_ul->by_ip = NULL;
+	}
+
 	/*
 	 * Tell parq_upload_update_relative_position not to take this
 	 * upload into account when updating the relative position
@@ -1309,6 +1351,24 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 			parq_ul->id);
 	}	
 	
+	parq_ul->by_ip = (struct parq_ul_queued_by_ip *)
+		g_hash_table_lookup(ul_all_parq_by_ip, &parq_ul->remote_ip);
+	
+	if (parq_ul->by_ip == NULL) {
+		parq_ul->by_ip = walloc0(sizeof(*parq_ul->by_ip));
+		g_hash_table_insert(
+			ul_all_parq_by_ip, &parq_ul->remote_ip, parq_ul->by_ip);
+		parq_ul->by_ip->uploading = 0;
+		parq_ul->by_ip->total = 0;
+		parq_ul->by_ip->list = NULL;
+		parq_ul->by_ip->ip = parq_ul->remote_ip;
+	}
+	
+	g_assert(parq_ul->by_ip->ip == parq_ul->remote_ip);
+	
+	parq_ul->by_ip->total++;
+	parq_ul->by_ip->list = g_list_prepend(parq_ul->by_ip->list, parq_ul);
+	
 	g_assert(parq_ul != NULL);
 	g_assert(parq_ul->position > 0);
 	g_assert(parq_ul->id != NULL);
@@ -1320,7 +1380,9 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	g_assert(parq_ul->queue->by_position->data != NULL);
 	g_assert(parq_ul->relative_position > 0);
 	g_assert(parq_ul->relative_position <= parq_ul->queue->size);
-	
+	g_assert(parq_ul->by_ip != NULL);
+	g_assert(parq_ul->by_ip->uploading <= parq_ul->by_ip->total);
+
 	return parq_ul;
 }
 
@@ -1778,7 +1840,6 @@ gboolean parq_upload_queue_full(gnutella_upload_t *u)
 		return TRUE;
 	}
 	
-	g_assert(q_ul->size >= parq_max_upload_size);
 	g_assert(q_ul->by_date_dead != NULL);
 	
 	if (dbg > 2)
@@ -1891,13 +1952,14 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	/*
 	 * Step 3. Check if current upload may have this slot
 	 *         That is when the current upload is the first upload in its
-	 *         queue which has no upload slot.
+	 *         queue which has no upload slot. Or if a earlier queued item is
+	 *		   allready downloading something in another queue.
 	 */
 	
 	for (l = g_list_first(uq->queue->by_rel_pos); l; l = l->next) {
 		struct parq_ul_queued *parq_ul = (struct parq_ul_queued*) l->data;
 	
-		if (!parq_ul->has_slot && parq_ul != uq)
+		if (!parq_ul->has_slot && parq_ul != uq && !parq_ul->by_ip->uploading)
 			/* Another upload in the current queue is allowed first */
 			return FALSE;
 		else
@@ -2212,6 +2274,16 @@ void parq_upload_busy(gnutella_upload_t *u, gpointer handle)
 	
 	if (parq_ul->has_slot)
 		return;
+
+	/* XXX Perhaps it is wise to update the parq_ul->remote_ip here.
+	 * XXX However, we should also update the parq_by_ip and all related
+	 * XXX uploads.
+	 */
+	
+	g_assert(parq_ul->by_ip != NULL);
+	
+	if (!parq_ul->has_slot)
+		parq_ul->by_ip->uploading++;
 	
 	parq_ul->has_slot = TRUE;
 	parq_ul->had_slot = TRUE;
@@ -2319,6 +2391,11 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 		
 		if (dbg > 2)
 			printf("PARQ UL: Freed an upload slot\n");
+
+		g_assert(parq_ul->by_ip != NULL);
+		g_assert(parq_ul->by_ip->uploading > 0);
+
+		parq_ul->by_ip->uploading--;
 
 		parq_ul->queue->active_uploads--;
 		
@@ -2584,10 +2661,6 @@ guint parq_upload_lookup_size(gnutella_upload_t *u)
 	if (parq_ul != NULL) {
 		g_assert(parq_ul->queue != NULL);
 		
-		/* XXX This assert will actually prevent dynamic parq sizes. This will
-		 * XXX be removed when PARQ has proven stable */
-		g_assert(parq_max_upload_size >= parq_ul->queue->size);
-		
 		return parq_ul->queue->alive;
 	} else {
 		/* No queue created yet */
@@ -2716,11 +2789,6 @@ static void parq_upload_decrease_all_after(struct parq_ul_queued *cur_parq_ul)
 	g_assert(cur_parq_ul->queue != NULL);
 	g_assert(cur_parq_ul->queue->by_position != NULL);
 	g_assert(cur_parq_ul->queue->size > 0);
-	
-	/* XXX This assert will actually prevent dynamic parq sizes. This will
-	 * XXX be removed when PARQ has proven stable */
-	g_assert(g_list_length(cur_parq_ul->queue->by_position) <= 
-		  parq_max_upload_size);
 	
 	l = g_list_find(cur_parq_ul->queue->by_position, cur_parq_ul);
 	pos_cnt = ((struct parq_ul_queued *) l->data)->position;
