@@ -342,6 +342,7 @@ create_main_window (void)
   GtkWidget *label651;
   GtkWidget *combo_searches;
   GtkWidget *combo_entry_searches;
+  GtkWidget *button_search_close;
   GtkWidget *notebook_search_results;
   GtkWidget *empty_notebook_page;
   GtkWidget *label190;
@@ -382,7 +383,6 @@ create_main_window (void)
   GtkWidget *button_search_collapse_all;
   GtkWidget *label650;
   GtkWidget *button_search_clear;
-  GtkWidget *button_search_close;
   GtkWidget *label_search;
   GtkWidget *vbox_monitor;
   GtkWidget *hbox45;
@@ -3959,6 +3959,15 @@ create_main_window (void)
   gtk_widget_show (combo_entry_searches);
   gtk_entry_set_editable (GTK_ENTRY (combo_entry_searches), FALSE);
 
+  button_search_close = gtk_button_new_with_label (_("Close search"));
+  gtk_widget_set_name (button_search_close, "button_search_close");
+  gtk_widget_ref (button_search_close);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_close", button_search_close,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_search_close);
+  gtk_box_pack_start (GTK_BOX (hbox146), button_search_close, FALSE, FALSE, 0);
+  gtk_widget_set_sensitive (button_search_close, FALSE);
+
   notebook_search_results = gtk_notebook_new ();
   gtk_widget_set_name (notebook_search_results, "notebook_search_results");
   gtk_widget_ref (notebook_search_results);
@@ -4303,15 +4312,6 @@ create_main_window (void)
   gtk_widget_add_accelerator (button_search_clear, "clicked", accel_group,
                               GDK_c, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
-
-  button_search_close = gtk_button_new_with_label (_("Close search"));
-  gtk_widget_set_name (button_search_close, "button_search_close");
-  gtk_widget_ref (button_search_close);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_close", button_search_close,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_search_close);
-  gtk_box_pack_start (GTK_BOX (hbox181), button_search_close, FALSE, FALSE, 0);
-  gtk_widget_set_sensitive (button_search_close, FALSE);
 
   label_search = gtk_label_new (_("Search"));
   gtk_widget_set_name (label_search, "label_search");
@@ -10925,6 +10925,9 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (combo_entry_searches), "activate",
                       GTK_SIGNAL_FUNC (on_combo_entry_searches_activate),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (button_search_close), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_search_close_clicked),
+                      NULL);
   gtk_signal_connect_after (GTK_OBJECT (spinbutton_search_reissue_timeout), "changed",
                             GTK_SIGNAL_FUNC (on_spinbutton_search_reissue_timeout_changed),
                             NULL);
@@ -10942,9 +10945,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_search_clear), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_clear_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_search_close), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_search_close_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_monitor), "button_press_event",
                       GTK_SIGNAL_FUNC (on_clist_monitor_button_press_event),
