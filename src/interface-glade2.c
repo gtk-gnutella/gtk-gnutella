@@ -4263,7 +4263,7 @@ create_main_window (void)
   GtkWidget *image34;
   GtkWidget *label415;
   GtkWidget *entry_host;
-  GtkWidget *hbox3;
+  GtkWidget *hbox_normal_or_ultrapeer;
   GtkWidget *label2;
   GtkObject *spinbutton_up_connections_adj;
   GtkWidget *spinbutton_up_connections;
@@ -4272,6 +4272,11 @@ create_main_window (void)
   GtkObject *spinbutton_max_connections_adj;
   GtkWidget *spinbutton_max_connections;
   GtkWidget *label83;
+  GtkWidget *hbox_leaf;
+  GtkWidget *label519;
+  GtkObject *spinbutton_max_ultrapeers_adj;
+  GtkWidget *spinbutton_max_ultrapeers;
+  GtkWidget *label520;
   GtkWidget *label279;
   GtkWidget *vbox33;
   GtkWidget *hbox149;
@@ -5480,45 +5485,71 @@ create_main_window (void)
   gtk_widget_show (entry_host);
   gtk_box_pack_start (GTK_BOX (hbox2), entry_host, TRUE, TRUE, 0);
 
-  hbox3 = gtk_hbox_new (FALSE, 6);
-  gtk_widget_set_name (hbox3, "hbox3");
-  gtk_widget_show (hbox3);
-  gtk_box_pack_start (GTK_BOX (vbox17), hbox3, FALSE, TRUE, 0);
+  hbox_normal_or_ultrapeer = gtk_hbox_new (FALSE, 6);
+  gtk_widget_set_name (hbox_normal_or_ultrapeer, "hbox_normal_or_ultrapeer");
+  gtk_widget_show (hbox_normal_or_ultrapeer);
+  gtk_box_pack_start (GTK_BOX (vbox17), hbox_normal_or_ultrapeer, FALSE, TRUE, 0);
 
   label2 = gtk_label_new ("Try to keep at least");
   gtk_widget_set_name (label2, "label2");
   gtk_widget_show (label2);
-  gtk_box_pack_start (GTK_BOX (hbox3), label2, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), label2, FALSE, FALSE, 0);
+  gtk_misc_set_padding (GTK_MISC (label2), 5, 0);
 
   spinbutton_up_connections_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_up_connections = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_up_connections_adj), 1, 0);
   gtk_widget_set_name (spinbutton_up_connections, "spinbutton_up_connections");
   gtk_widget_show (spinbutton_up_connections);
-  gtk_box_pack_start (GTK_BOX (hbox3), spinbutton_up_connections, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), spinbutton_up_connections, FALSE, TRUE, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_up_connections), TRUE);
 
   label3 = gtk_label_new ("connections up");
   gtk_widget_set_name (label3, "label3");
   gtk_widget_show (label3);
-  gtk_box_pack_start (GTK_BOX (hbox3), label3, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), label3, FALSE, FALSE, 0);
 
   label82 = gtk_label_new ("Maximum of");
   gtk_widget_set_name (label82, "label82");
   gtk_widget_show (label82);
-  gtk_box_pack_start (GTK_BOX (hbox3), label82, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), label82, TRUE, TRUE, 0);
   gtk_misc_set_alignment (GTK_MISC (label82), 1, 0.5);
 
   spinbutton_max_connections_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_max_connections = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_connections_adj), 1, 0);
   gtk_widget_set_name (spinbutton_max_connections, "spinbutton_max_connections");
   gtk_widget_show (spinbutton_max_connections);
-  gtk_box_pack_start (GTK_BOX (hbox3), spinbutton_max_connections, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), spinbutton_max_connections, FALSE, FALSE, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_connections), TRUE);
 
   label83 = gtk_label_new ("total connections");
   gtk_widget_set_name (label83, "label83");
   gtk_widget_show (label83);
-  gtk_box_pack_start (GTK_BOX (hbox3), label83, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (hbox_normal_or_ultrapeer), label83, FALSE, FALSE, 0);
+
+  hbox_leaf = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox_leaf, "hbox_leaf");
+  gtk_widget_show (hbox_leaf);
+  gtk_box_pack_start (GTK_BOX (vbox17), hbox_leaf, FALSE, TRUE, 0);
+
+  label519 = gtk_label_new ("Connect to");
+  gtk_widget_set_name (label519, "label519");
+  gtk_widget_show (label519);
+  gtk_box_pack_start (GTK_BOX (hbox_leaf), label519, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label519), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_padding (GTK_MISC (label519), 5, 0);
+
+  spinbutton_max_ultrapeers_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
+  spinbutton_max_ultrapeers = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_ultrapeers_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_max_ultrapeers, "spinbutton_max_ultrapeers");
+  gtk_widget_show (spinbutton_max_ultrapeers);
+  gtk_box_pack_start (GTK_BOX (hbox_leaf), spinbutton_max_ultrapeers, FALSE, TRUE, 0);
+
+  label520 = gtk_label_new ("ultrapeers");
+  gtk_widget_set_name (label520, "label520");
+  gtk_widget_show (label520);
+  gtk_box_pack_start (GTK_BOX (hbox_leaf), label520, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label520), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_padding (GTK_MISC (label520), 5, 0);
 
   label279 = gtk_label_new ("gnutellaNet connections");
   gtk_widget_set_name (label279, "label279");
@@ -9804,13 +9835,17 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image34, "image34");
   GLADE_HOOKUP_OBJECT (main_window, label415, "label415");
   GLADE_HOOKUP_OBJECT (main_window, entry_host, "entry_host");
-  GLADE_HOOKUP_OBJECT (main_window, hbox3, "hbox3");
+  GLADE_HOOKUP_OBJECT (main_window, hbox_normal_or_ultrapeer, "hbox_normal_or_ultrapeer");
   GLADE_HOOKUP_OBJECT (main_window, label2, "label2");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_up_connections, "spinbutton_up_connections");
   GLADE_HOOKUP_OBJECT (main_window, label3, "label3");
   GLADE_HOOKUP_OBJECT (main_window, label82, "label82");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_max_connections, "spinbutton_max_connections");
   GLADE_HOOKUP_OBJECT (main_window, label83, "label83");
+  GLADE_HOOKUP_OBJECT (main_window, hbox_leaf, "hbox_leaf");
+  GLADE_HOOKUP_OBJECT (main_window, label519, "label519");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_max_ultrapeers, "spinbutton_max_ultrapeers");
+  GLADE_HOOKUP_OBJECT (main_window, label520, "label520");
   GLADE_HOOKUP_OBJECT (main_window, label279, "label279");
   GLADE_HOOKUP_OBJECT (main_window, vbox33, "vbox33");
   GLADE_HOOKUP_OBJECT (main_window, hbox149, "hbox149");

@@ -2034,18 +2034,16 @@ static gboolean proxy_ip_changed(property_t prop)
 
 static gboolean current_peermode_changed(property_t prop)
 {
-#ifndef USE_GTK2
 	GtkWidget *hbox_normal_or_ultrapeer;
 	GtkWidget *hbox_leaf;
 	guint32 val;
 
-	hbox_normal_or_ultrapeer = lookup_widget(main_window, "hbox_normal_or_ultrapeer");
+	hbox_normal_or_ultrapeer = lookup_widget(
+		main_window, "hbox_normal_or_ultrapeer");
 	hbox_leaf = lookup_widget(main_window, "hbox_leaf");
-#endif
 
 	update_multichoice(prop);
 
-#ifndef USE_GTK2
 	gnet_prop_get_guint32(prop, &val, 0, 1);
 
 	switch (val) {
@@ -2065,7 +2063,6 @@ static gboolean current_peermode_changed(property_t prop)
 	default:
 		g_assert_not_reached();
 	};
-#endif
 
 	return FALSE;
 };
