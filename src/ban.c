@@ -45,7 +45,7 @@
 #define BAN_DELAY		300		/* Initial ban delay: 5 minutes */
 #define MAX_REQUEST		10		/* Maximum of 10 requests... */
 #define MAX_PERIOD		60		/* ...per minute */
-#define MAX_BAN			86400	/* One day */
+#define MAX_BAN			10800	/* 3 hours */
 
 static GHashTable *info;		/* Info by IP address */
 static gfloat decay_coeff;		/* Decay coefficient, per second */
