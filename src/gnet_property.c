@@ -1702,7 +1702,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[77].name = "move_downloading_files_to";
-    gnet_property->props[77].desc = "Move complete files to this directory.  It should be on the same filesystem as the directory where incomplete files are saved, because the move of files between the two is a synchronous operation that will take a looong time if the kernel needs to physically copy the file... If this is set to the SAME directory as the incomplete files, completed files will be renamed with a trailing .DONE";
+    gnet_property->props[77].desc = "Move complete files to this directory. If this is set to the SAME directory as the incomplete or corrupted files, files will be renamed with a trailing .OK";
     gnet_property->props[77].prop_changed_listeners = NULL;
     gnet_property->props[77].save = TRUE;
     gnet_property->props[77].vector_size = 1;
@@ -1723,7 +1723,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[78].name = "move_corrupted_files_to";
-    gnet_property->props[78].desc = "Move corrupted downloaded files in this directory. It should be on the same filesystem as the directory where incomplete files are saved. If this is set to the SAME directory as the incomplete files, corrupted files will be renamed with a trailing .BAD";
+    gnet_property->props[78].desc = "Move corrupted downloaded files in this directory. If this is set to the SAME directory as the incomplete or completed files, files will be renamed with a trailing .BAD";
     gnet_property->props[78].prop_changed_listeners = NULL;
     gnet_property->props[78].save = TRUE;
     gnet_property->props[78].vector_size = 1;
