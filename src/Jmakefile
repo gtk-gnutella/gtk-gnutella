@@ -170,19 +170,19 @@ OBJLIST = \
 SRC = $(GUI_GLADE_SRC) $(SRCLIST)
 OBJ = $(GUI_GLADE_OBJ) $(OBJLIST)
 
-;# Additional flags for GTK compilation, added in the substituted section
+/* Additional flags for GTK compilation, added in the substituted section */
 ++GTK_CFLAGS $gtkcflags
 ++GTK_LDFLAGS $gtkldflags
 
-;# Add glade-generated source files and derived objects
+/* Add glade-generated source files and derived objects */
 ++GUI_GLADE_SRC $gladesrc
 ++GUI_GLADE_OBJ $gladeobj
 
-;# Add the glade command and the glade source file
+/* Add the glade command and the glade source file */
 ++GLADE $glade
 ++GLADEFILE ../$gladefile
 
-;# Add the libxml2 flags
+/* Add the libxml2 flags */
 ++XML2_CFLAGS $xmlcflags
 ++XML2_LDFLAGS $xmlldflags
 
@@ -193,12 +193,13 @@ LDFLAGS = $(GTK_LDFLAGS) $(XML2_LDFLAGS)
 
 >PRIVLIB	/* Force metaconfig to ask for privlib location */
 >BINDIR
+>MANSRC		/* Tell jmake we use $(MANSRC)... */
 
 DependTarget()
 SimpleYaccTarget(gtk-gnutella, getdate)
 NormalProgramTarget(gtk-gnutella, $(SRC), $(OBJ) getdate.o)
 InstallProgram(gtk-gnutella, $(BINDIR))
-
+InstallManPage(gtk-gnutella, $(MANSRC))
 #
 # Glade generates:
 #	interface-glade[12].c interface-glade[12].h
@@ -212,7 +213,6 @@ InstallProgram(gtk-gnutella, $(BINDIR))
 #
 
 glade_files:
-	@echo $(GLADE) --write-source $(GLADEFILE)
 	$(GLADE) --write-source $(GLADEFILE)
 
 properties:

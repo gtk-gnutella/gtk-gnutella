@@ -44,8 +44,10 @@ CTAGS = ctags
 JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
 JLDFLAGS = \$(LDFLAGS) $optimize $ldflags
 JYFLAGS = \$(YFLAGS) $yaccflags
+L = $manext
 LIBS = $libs
-MAKE = make
+MANSRC = $installmansrc
+$make_set_make
 MKDEP = $mkdep \$(DPFLAGS) --
 MV = $mv
 PRIVLIB = $installprivlib
@@ -96,7 +98,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.3 2003/08/10 23:07:04 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.4 2003/08/15 18:01:46 rmanfredi Exp $
 
 GUI_GTK2 = \
 	fileinfo_gui2.c \
@@ -375,14 +377,6 @@ OBJLIST = \
 SRC = $(GUI_GLADE_SRC) $(SRCLIST)
 OBJ = $(GUI_GLADE_OBJ) $(OBJLIST)
 
-# Additional flags for GTK compilation, added in the substituted section
-
-# Add glade-generated source files and derived objects
-
-# Add the glade command and the glade source file
-
-# Add the libxml2 flags
-
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) $(GTK_CFLAGS) $(XML2_CFLAGS)
 DPFLAGS = -I$(TOP) $(GTK_CFLAGS) $(XML2_CFLAGS)
@@ -425,6 +419,12 @@ local_install:: gtk-gnutella
 local_deinstall::
 	$(RM) $(INSTALL_PREFIX)$(BINDIR)/gtk-gnutella
 
+local_install.man:: gtk-gnutella.man
+	$(INSTALL) -c -m 444 gtk-gnutella.man $(INSTALL_PREFIX)$(MANSRC)/gtk-gnutella.$(L)
+
+local_deinstall.man::
+	$(RM) $(INSTALL_PREFIX)$(MANSRC)/gtk-gnutella.$(L)
+
 #Glade generates:
 #interface-glade[12].c interface-glade[12].h
 #support-glade[12].c support-glade[12].h
@@ -436,7 +436,6 @@ local_deinstall::
 #any postprocessing of the glade output.
 
 glade_files:
-	@echo $(GLADE) --write-source $(GLADEFILE)
 	$(GLADE) --write-source $(GLADEFILE)
 
 properties:
@@ -461,9 +460,25 @@ local_clobber:: local_realclean
 	$(RM) Makefile config.sh
 
 install: local_install
-install.man: local_install.man
+install.man: maybe_install.man
 deinstall: local_deinstall
-deinstall.man: local_deinstall.man
+deinstall.man: maybe_deinstall.man
+
+install.man-yes: local_install.man
+install.man-no:
+deinstall.man-yes: local_deinstall.man
+deinstall.man-no:
+
+!NO!SUBS!
+case "$installmansrc" in
+'') man=no;;
+*) man=yes;;
+esac
+$spitshell >>Makefile <<!GROK!THIS!
+maybe_install.man: install.man-$man
+maybe_deinstall.man: deinstall.man-$man
+!GROK!THIS!
+$spitshell >>Makefile <<'!NO!SUBS!'
 
 Makefile.SH: Jmakefile
 	-@if test -f $(TOP)/.package; then \
