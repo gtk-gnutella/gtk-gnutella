@@ -2153,7 +2153,7 @@ static void node_parse(struct gnutella_node *node)
 
 		if (n->header.ttl == 0) {
 			if (node_sent_ttl0(n))
-				return;					/* Node was kicked out */
+				return;				/* Node was kicked out */
 		} else {
 			n->rx_dropped++;
 			dropped_messages++;
@@ -2833,7 +2833,8 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
  * node_sent_ttl0
  *
  * Called when a node sends a message with TTL=0
- * Returns true if node was kicked.
+ * Returns TRUE if node was removed (due to a duplicate bye, probably),
+ * FALSE otherwise.
  */
 gboolean node_sent_ttl0(struct gnutella_node *n)
 {
@@ -2845,7 +2846,7 @@ gboolean node_sent_ttl0(struct gnutella_node *n)
 		node_bye(n, 408, "%s %s message with TTL=0",
 			n->header.hops ? "Relayed" : "Sent",
 			gmsg_name(n->header.function));
-		return TRUE;
+		return n->status == GTA_NODE_REMOVING;
 	}
 
 	n->rx_dropped++;
