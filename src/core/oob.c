@@ -44,6 +44,7 @@ RCSID("$Id$");
 #include "vmsg.h"
 #include "qhit.h"
 #include "gmsg.h"
+#include "gnet_stats.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -185,6 +186,8 @@ results_destroy(cqueue_t *cq, gpointer obj)
 			guid_hex_str(r->muid), ip_port_to_gchar(r->dest.ip, r->dest.port),
 			r->count, r->count == 1 ? "" : "s");
 
+	gnet_stats_count_general(NULL, GNR_UNCLAIMED_OOB_HITS, 1);
+
 	r->ev_expire = NULL;		/* The timer which just triggered */
 	results_free_remove(r);
 }
@@ -201,6 +204,8 @@ results_timeout(cqueue_t *cq, gpointer obj)
 		printf("OOB query %s, no ACK from %s to claim %d hit%s\n",
 			guid_hex_str(r->muid), ip_port_to_gchar(r->dest.ip, r->dest.port),
 			r->count, r->count == 1 ? "" : "s");
+
+	gnet_stats_count_general(NULL, GNR_UNCLAIMED_OOB_HITS, 1);
 
 	r->ev_timeout = NULL;		/* The timer which just triggered */
 	results_free_remove(r);
@@ -408,6 +413,9 @@ oob_deliver_hits(struct gnutella_node *n, gchar *muid, guint8 wanted)
 	if (deliver_count)
 		qhit_build_results(oob_record_hit, s,
 			r->muid, r->files, deliver_count, r->use_ggep_h);
+
+	if (wanted < r->count)
+		gnet_stats_count_general(n, GNR_PARTIALLY_CLAIMED_OOB_HITS, 1);
 
 	/*
 	 * We're now done with the "oob_results" structure, since all the

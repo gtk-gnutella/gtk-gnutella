@@ -134,6 +134,8 @@ const gchar *general_type_str(int value)
 		N_("Duplicate OOB-proxied queries"),
 		N_("OOB hits received for OOB-proxied queries"),
 		N_("OOB hits bearing alien IP address"),
+		N_("Unclaimed locally-generated OOB hits"),
+		N_("Partially claimed locally-generated OOB hits"),
 		N_("Compacted queries"),
 		N_("Bytes saved by compacting"),
 		N_("UTF8 queries"),
