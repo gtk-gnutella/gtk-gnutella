@@ -10,7 +10,6 @@ http://bobsmith.kicks-ass.org/gwebcache/gcache.php
 http://broneer.free.fr/gcache/gcache.php
 http://cache.mynapster.com/index.php
 http://cgi.rz.tu-ilmenau.de/~mifl-ii/gcache.php
-http://cs-people.bu.edu/leith/gnuCache/gcache.php
 http://cmt.homeip.net/gwebcache-0.7.5/gcache.php
 http://deftone.free.fr/elinul/gcache.php
 http://dlaikar.de/gcache/gcache.php
@@ -63,7 +62,6 @@ http://utenti.lycos.it/gcache/gcache.php
 http://www.allforwebmaster.net/gnutella/gcache.php
 http://www.apexo.de/gnucache/gcache.php
 http://www.arach.net.au/~holmesd6/gcache.php
-http://www.asiinfo.net/gwebcache/gcache.php
 http://www.bstsystems.com/gwebcache/gcache.php
 http://www.celeborn.dnsalias.org/gwebcache/gcache.php
 http://www.cgs-services.de/gwebcache/gcache.php
