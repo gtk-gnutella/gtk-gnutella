@@ -31,19 +31,21 @@ RCSID("$Id$");
 /*
  * Slot block size and number of slot blocks in a table.
  */
-#define BLOCK_SIZE 32
-#define BLOCK_COUNT(tbl) (((tbl->size-1)/BLOCK_SIZE)+1)
+#define BLOCK_BITS 5
+#define BLOCK_SIZE (1 << BLOCK_BITS)
+#define BLOCK_MASK (BLOCK_SIZE - 1)
+#define BLOCK_COUNT(tbl) (((tbl->size - 1) >> BLOCK_BITS) + 1)
 
-#define ID_BLOCK(id) (id/BLOCK_SIZE)
+#define ID_BLOCK(id) (id >> BLOCK_BITS)
 
 #define MARK_ID(tbl, s) \
-    (tbl->used_ids[s/BLOCK_SIZE] |= (guint32)0x80000000 >> (s % BLOCK_SIZE))
+    (tbl->used_ids[ID_BLOCK(s)] |= (guint32)0x80000000 >> (s & BLOCK_MASK))
 
 #define CLEAR_ID(tbl, s) \
-    (tbl->used_ids[s/BLOCK_SIZE] &= ~((guint32)0x80000000 >> (s % BLOCK_SIZE)))
+    (tbl->used_ids[ID_BLOCK(s)] &= ~((guint32)0x80000000 >> (s & BLOCK_MASK)))
 
 #define IS_ID_TAKEN(tbl, s) \
-    (tbl->used_ids[s/BLOCK_SIZE] & ((guint32)0x80000000 >> (s % BLOCK_SIZE)))
+    (tbl->used_ids[ID_BLOCK(s)] & ((guint32)0x80000000 >> (s & BLOCK_MASK)))
 
 /***
  *** Private functions
