@@ -675,8 +675,8 @@ guint32
 get_average_servent_uptime(time_t now)
 {
 	time_t start_stamp;
-	gint32 uptime, val;
-	guint32 avg_servent_uptime;
+	gint32 uptime;
+	guint32 val, avg_servent_uptime;
 
 	gnet_prop_get_guint32_val(PROP_AVERAGE_SERVENT_UPTIME, &avg_servent_uptime);
 	gnet_prop_get_guint32_val(PROP_START_STAMP, &val);
