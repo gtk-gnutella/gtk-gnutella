@@ -593,7 +593,7 @@ void node_timer(time_t now)
 					g_free(reason);
 				}
 			} else if (
-				!NODE_IS_LEAF(n) &&
+				current_peermode != NODE_P_LEAF && !NODE_IS_LEAF(n) &&
 				now - n->last_update > node_connected_timeout
 			) {
 				node_mark_bad(n);
@@ -2449,6 +2449,10 @@ static void node_got_bye(struct gnutella_node *n)
 			printf("----Bye Message from %s:\n%.*s----\n",
 				node_ip(n), (gint) n->size - 2, message);
 	}
+
+	if (dbg)
+		g_warning("node %s (%s) sent us BYE %d %.*s",
+			node_ip(n), node_vendor(n), code, MIN(80, message_len), message);
 
 	node_remove(n, "Got BYE %d %.*s", code, MIN(80, message_len), message);
 }
