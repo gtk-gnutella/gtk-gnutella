@@ -156,7 +156,9 @@ prop = {
 prop = {
     name = "max_uploads";
     cfgvar = "max_simultaneous_uploads";
-    desc = "Don't allow more than this number of uploads in total";
+    desc = "Don't allow more than this number of uploads in total. "
+		"This also defines the amount of PARQ queues that will be used. "
+		"You should at least set it to 2.";
     type = guint32;
     data = {
         default = 4;
@@ -1756,7 +1758,8 @@ prop = {
 
 prop = {
     name = "host_runs_ntp";
-    desc = "Whether the clock of this host is kept accurate via NTP";
+    desc = "Whether the clock of this host is kept accurate via NTP. "
+		"When you enable this, the computed clock skew is ignored.";
     type = boolean;
     data = {
         default = FALSE;

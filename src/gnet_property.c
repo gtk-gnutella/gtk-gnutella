@@ -608,7 +608,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[12].name = "max_simultaneous_uploads";
-    gnet_property->props[12].desc = _("Don't allow more than this number of uploads in total");
+    gnet_property->props[12].desc = _("Don't allow more than this number of uploads in total. This also defines the amount of PARQ queues that will be used. You should at least set it to 2.");
     gnet_property->props[12].ev_changed = event_new("max_uploads_changed");
     gnet_property->props[12].save = TRUE;
     gnet_property->props[12].vector_size = 1;
@@ -3173,7 +3173,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[146].name = "host_runs_ntp";
-    gnet_property->props[146].desc = _("Whether the clock of this host is kept accurate via NTP");
+    gnet_property->props[146].desc = _("Whether the clock of this host is kept accurate via NTP. When you enable this, the computed clock skew is ignored.");
     gnet_property->props[146].ev_changed = event_new("host_runs_ntp_changed");
     gnet_property->props[146].save = TRUE;
     gnet_property->props[146].vector_size = 1;
