@@ -1050,9 +1050,6 @@ void download_gui_remove(download_t *d)
 				c_dl_status, &status,
 				(-1));
 
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%%  %s",
-				progress * 100.0, status ? status : "");
-
 			gtk_tree_store_set(store, parent,
 				c_dl_host, host,
 				c_dl_loc, country,
@@ -1219,6 +1216,8 @@ void gui_update_download_host(download_t *d)
  */
 void gui_update_download(download_t *d, gboolean force)
 {
+	static GtkNotebook *notebook = NULL;
+	static GtkNotebook *dl_notebook = NULL;
 	const gchar *a = NULL;
 	time_t now = time((time_t *) NULL);
 	struct dl_file_info *fi;
@@ -1227,14 +1226,62 @@ void gui_update_download(download_t *d, gboolean force)
 	GtkTreeIter *parent;
 	GtkTreeStore *model;
     gint current_page;
-	static GtkNotebook *notebook = NULL;
-	static GtkNotebook *dl_notebook = NULL;
 	gboolean looking = TRUE;
+	gboolean has_header = FALSE;
 
     if (d->last_gui_update == now && !force)
 		return;
 
 	g_return_if_fail(DL_GUI_IS_HEADER != d);
+
+	fi = d->file_info;
+	g_return_if_fail(fi);
+
+	model = (GtkTreeStore *) gtk_tree_view_get_model(treeview_downloads);
+	parent = find_parent_with_fi_handle(parents, d->file_info->fi_handle);
+	if (parent) {
+		gtk_tree_model_get(GTK_TREE_MODEL(model), parent,
+   			c_dl_record, &drecord,
+       		(-1));
+
+		if (DL_GUI_IS_HEADER == drecord) {
+			/* There is a header entry, we need to update it */
+			const gchar *status = NULL;
+			gfloat progress = 0.0;
+
+			has_header = TRUE;
+
+			/* Download is done */
+			if (GTA_DL_DONE == d->status) {
+				progress = 1.0;
+				status = _("Complete");
+			} else /* if (GTA_DL_RECEIVING == d->status && d->pos > d->skip)*/ {
+				gfloat percent_done = guc_download_total_progress(d);
+
+				if (fi->recvcount && fi->recv_last_rate) {
+					guint s = (fi->size - fi->done) / fi->recv_last_rate;
+
+					gm_snprintf(tmpstr, sizeof(tmpstr),
+						"%.02f%%  (%.1f k/s)  [%d/%d]  TR:  %s",
+						percent_done * 100.0, fi->recv_last_rate / 1024.0,
+						fi->recvcount, fi->lifecount, short_time(s));
+				} else {
+					gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% [%d/%d]",
+					percent_done * 100.0, fi->recvcount, fi->lifecount);
+				}
+
+				progress = force_range(percent_done, 0.0, 1.0);
+   				status = tmpstr;
+			}
+
+			if (status) {
+				gtk_tree_store_set(model, parent,
+					c_dl_status, status,
+					c_dl_progress, progress,
+       				(-1));
+			}
+		}
+	}
 
 	/*
 	 * Why update if no one's looking?
@@ -1282,10 +1329,6 @@ void gui_update_download(download_t *d, gboolean force)
 	}
 
 	d->last_gui_update = now;
-	fi = d->file_info;
-	g_return_if_fail(fi);
-
-	model = (GtkTreeStore *) gtk_tree_view_get_model(treeview_downloads);
 
 	switch (d->status) {
 	case GTA_DL_ACTIVE_QUEUED:	/* JA, 31 jan 2003 Active queueing */
@@ -1523,11 +1566,15 @@ void gui_update_download(download_t *d, gboolean force)
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr) - rw,
 						"(%.1f k/s) ", bs);
 
+				if (!has_header) {
+					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+						"[%d/%d]", fi->recvcount, fi->lifecount);
+				}
+					
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					"[%d/%d] TR: %s", fi->recvcount, fi->lifecount,
-					s ? short_time(s) : "-");
+					" TR: %s", s ? short_time(s) : "-");
 
-				if (fi->recv_last_rate) {
+				if (!has_header && fi->recv_last_rate) {
 					s = (fi->size - fi->done) / fi->recv_last_rate;
 
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
@@ -1641,46 +1688,6 @@ void gui_update_download(download_t *d, gboolean force)
 		return;
 	}
 
-	parent = find_parent_with_fi_handle(parents, d->file_info->fi_handle);
-	gtk_tree_model_get(GTK_TREE_MODEL(model), parent,
-   		c_dl_record, &drecord,
-       	(-1));
-
-	if (DL_GUI_IS_HEADER == drecord) {
-		/* There is a header entry, we need to update it */
-		const gchar *status = NULL;
-		gfloat progress = 0.0;
-
-		/* Download is done */
-		if (GTA_DL_DONE == d->status) {
-			progress = 1.0;
-			status = _("Complete");
-		} else if (GTA_DL_RECEIVING == d->status && d->pos > d->skip) {
-			gfloat percent_done = guc_download_total_progress(d);
-
-			if (fi->recv_last_rate) {
-				guint s = (fi->size - fi->done) / fi->recv_last_rate;
-
-				gm_snprintf(tmpstr, sizeof(tmpstr),
-					"%.02f%%  (%.1f k/s)  [%d/%d]  TR:  %s",
-					percent_done * 100.0, fi->recv_last_rate / 1024.0,
-					fi->recvcount, fi->lifecount, short_time(s));
-			} else {
-				gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% [%d/%d]",
-					percent_done * 100.0, fi->recvcount, fi->lifecount);
-			}
-
-			progress = force_range(percent_done, 0.0, 1.0);
-   			status = tmpstr;
-		}
-
-		if (status) {
-			gtk_tree_store_set(model, parent,
-				c_dl_status, status,
-				c_dl_progress, progress,
-       			(-1));
-		}
-	}
 
 }
 
