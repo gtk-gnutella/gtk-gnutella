@@ -114,15 +114,15 @@ static void nodes_gui_node_added(gnet_node_t n, const gchar *t)
 static void nodes_gui_node_info_changed(gnet_node_t n)
 {
     g_hash_table_insert(ht_node_info_changed, 
-        GUINT_TO_POINTER(n), (gpointer) 0x1);
+        GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
 #if 0
-{
-    gnet_node_info_t info;
+	{
+    	gnet_node_info_t info;
 
-    node_fill_info(n, &info);
-    nodes_gui_update_node_info(&info, -1);
-    node_clear_info(&info);
-}
+    	node_fill_info(n, &info);
+    	nodes_gui_update_node_info(&info, -1);
+    	node_clear_info(&info);
+	}
 #endif
 }
 
@@ -134,14 +134,14 @@ static void nodes_gui_node_info_changed(gnet_node_t n)
 static void nodes_gui_node_flags_changed(gnet_node_t n)
 {
     g_hash_table_insert(ht_node_flags_changed, 
-        GUINT_TO_POINTER(n), (gpointer) 0x1);
+        GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
 #if 0
-{
-    gnet_node_flags_t flags;
+	{
+    	gnet_node_flags_t flags;
 
-    node_fill_flags(n, &flags);
-    nodes_gui_update_node_flags(n, &flags, -1);
-}
+    	node_fill_flags(n, &flags);
+    	nodes_gui_update_node_flags(n, &flags, -1);
+	}
 #endif
 }
 
@@ -421,4 +421,5 @@ void nodes_gui_update_nodes_display(time_t now)
     gtk_clist_thaw(clist);
 }
 
+/* vi: set ts=4: */
 #endif	/* USE_GTK1 */
