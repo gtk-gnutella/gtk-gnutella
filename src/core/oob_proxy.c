@@ -219,6 +219,7 @@ oob_proxy_pending_results(
 	gchar *msg = NULL;
 
 	g_assert(NODE_IS_UDP(n));
+	g_assert(hits > 0);
 
 	opr = g_hash_table_lookup(proxied_queries, muid);
 	if (opr == NULL)
@@ -242,6 +243,17 @@ oob_proxy_pending_results(
 	}
 
 	/*
+	 * Let the dynamic query know about pending hits, to help it
+	 * measure its popularity.  This also enables us to see whether
+	 * the query was cancelled by the user.
+	 */
+
+	if (!dq_oob_results_ind(muid, hits)) {
+		msg = "dynamic query cancelled";
+		goto ignore;
+	}
+
+	/*
 	 * Lookup the dynamic query, to see whether it has not already
 	 * received the maximum amout of results, or whether the search
 	 * was not cancelled by the leaf.
@@ -253,8 +265,7 @@ oob_proxy_pending_results(
 	}
 
 	/*
-	 * Claim the results (all of it) if something is wanted and the
-	 * leaf's TX queue is not in flow-control already.
+	 * Sanity checks.
 	 */
 
 	if (!wanted) {
@@ -267,6 +278,21 @@ oob_proxy_pending_results(
 		goto ignore;
 	}
 
+
+	/*
+	 * If we would not route the hits should we get them, there's no
+	 * need to claim them at all.
+	 */
+
+	if (!dh_would_route(opr->leaf_muid, leaf)) {
+		msg = "would not route hits to leaf";
+		goto ignore;
+	}
+
+	/*
+	 * Claim the results (all of it).
+	 */
+
 	vmsg_send_oob_reply_ack(n, muid, MIN(hits, 254));
 
 	if (query_debug > 5)
@@ -277,8 +303,10 @@ oob_proxy_pending_results(
 
 ignore:
 	if (query_debug > 5)
-		printf("QUERY OOB-proxied %s notified of %d hits at %s, ignored (%s)\n",
-			guid_hex_str(muid), hits, node_ip(n), msg);
+		printf("QUERY OOB-proxied %s "
+			"notified of %d hits at %s for %s, ignored (%s)\n",
+			guid_hex_str(muid), hits, node_ip(n),
+			leaf == NULL ? "???" : ip_to_gchar(leaf->ip), msg);
 
 	return TRUE;
 }
@@ -325,6 +353,14 @@ oob_proxy_got_results(gnutella_node_t *n, gint results)
 	}
 
 	g_assert(NODE_IS_LEAF(leaf));		/* By construction */
+
+	/*
+	 * Let the dynamic query know that we finally got some valid OOB hits.
+	 * Those hits were accounted as unclaimed when dq_oob_results_ind()
+	 * was called earlier.
+	 */
+
+	dq_oob_results_got(opr->proxied_muid, results);
 
 	/*
 	 * Let the DH layer know we got the hits, using the original MUID.
