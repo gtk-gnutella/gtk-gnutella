@@ -23,9 +23,19 @@
 #include "search_stats.h"
 #include "upload_stats.h"
 
-#define CONFIG_SET_BOOLEAN(v) \
-    case k_##v##:\
+#define CONFIG_SET_BOOLEAN(v)                        \
+    case k_##v##:                                    \
         v = (gboolean) ! g_strcasecmp(value, "true");\
+        return;
+
+#define CONFIG_SET_STRING(v)                         \
+    case k_##v##:                                    \
+        v = g_strdup(value);                         \
+        return;
+
+#define CONFIG_SET_STRING_COMPATIBLE(v,w)            \
+    case k_##w##:                                    \
+        v = g_strdup(value);                         \
         return;
 
 #define CONFIG_WRITE_BOOLEAN(v)\
@@ -155,6 +165,16 @@ static gchar *socks[] = { "proxyuser", "proxypass" };
 gchar *socks_user = NULL;
 gchar *socks_pass = NULL;
 
+/* 
+ * For backward compatibility these values are still read, but 
+ * no longer written to the config file:
+ *
+ * Variable            Changed at           New name
+ * ----------------    ------------------   -------------
+ * socksv5_user        0.90u 12/05/2002     socks_user
+ * socksv5_pass        0.90u 12/05/2002     socks_pass
+ */
+
 enum {
 	k_up_connections = 0,
 	k_clear_uploads, k_max_downloads, k_max_host_downloads,
@@ -208,6 +228,8 @@ enum {
     k_search_remove_downloaded,
     k_bps_in_enabled,
     k_bps_out_enabled,
+    k_socksv5_user,
+    k_socksv5_pass,
 	k_end
 };
 
@@ -318,6 +340,8 @@ static gchar *keywords[] = {
     "search_remove_downloaded",
     "bandwidth_input_limit",
     "bandwidth_output_limit",
+    "socksv5_user",
+    "socksv5_pass",
 	NULL
 };
 
@@ -837,9 +861,7 @@ void config_set_param(guint32 keyword, gchar *value)
 		proxy_protocol = i;
 		return;
 
-	case k_proxy_ip:
-		proxy_ip = g_strdup(value);
-		return;
+    CONFIG_SET_STRING(proxy_ip)
 
 	case k_proxy_port:
 		proxy_port = i;
@@ -847,14 +869,12 @@ void config_set_param(guint32 keyword, gchar *value)
 
     CONFIG_SET_BOOLEAN(proxy_auth)
 
-	case k_socks_user:
-		socks_user = g_strdup(value);
-		return;
+    CONFIG_SET_STRING(socks_user)
+    CONFIG_SET_STRING_COMPATIBLE(socks_user, socksv5_user)
 
-	case k_socks_pass:
-		socks_pass = g_strdup(value);
-		return;
-
+    CONFIG_SET_STRING(socks_pass)
+    CONFIG_SET_STRING_COMPATIBLE(socks_pass, socksv5_pass)
+        
 	case k_max_connections:
 		if (i >= 0 && i < 512) max_connections = i;
 		return;
