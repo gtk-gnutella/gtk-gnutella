@@ -139,6 +139,8 @@ static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
    	
 	{ "<", EXT_T_GGEP_LIME_XML },	/* '<' is less that 'A' */
 	GGEP_ID(ALT),					/* Alt-locs in qhits */
+	GGEP_ID(BH),					/* Browseable host indication */
+	GGEP_ID(CT),					/* Resource creation time */
 	GGEP_ID(DU),					/* Average servent uptime */
 	GGEP_ID(GTKGV1),				/* GTKG complete version number (binary) */
 	GGEP_ID(GUE),					/* GUESS support */
@@ -155,7 +157,7 @@ static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 	GGEP_ID(UP),					/* Ultrapeer information about free slots */
 	GGEP_ID(VC),					/* Vendor code, in pongs */
 	GGEP_ID(u),						/* HUGE URN in ASCII */
-	
+
 #undef GGEP_ID
 };
 
@@ -198,13 +200,17 @@ rw_screen(gboolean case_sensitive,
 }
 
 /**
- * @return the GGEP token value upon success, EXT_T_UNKNOWN if not found.
+ * @return the GGEP token value upon success, EXT_T_UNKNOWN_GGEP if not found.
  * If keyword was found, its static shared string is returned in `retkw'.
  */
 static ext_token_t
 rw_ggep_screen(gchar *word, const gchar **retkw)
 {
-	return rw_screen(TRUE, ggeptable, END(ggeptable), word, retkw);
+	ext_token_t t;
+
+	t = rw_screen(TRUE, ggeptable, END(ggeptable), word, retkw);
+
+	return (t == EXT_T_UNKNOWN) ? EXT_T_UNKNOWN_GGEP : t;
 }
 
 /**
@@ -1244,7 +1250,7 @@ ext_len(const extvec_t *e)
  * Returns extension's GGEP ID, or "" if not a GGEP one.
  */
 const gchar *
-ext_ggep_idname(const extvec_t *e)
+ext_ggep_id_str(const extvec_t *e)
 {
 	extdesc_t *d = e->opaque;
 

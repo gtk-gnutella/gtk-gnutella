@@ -53,25 +53,28 @@ typedef enum ext_token {
 	EXT_T_URN_BITPRINT,		/* urn:bitprint: */
 	EXT_T_URN_EMPTY,		/* urn: */
 	EXT_T_XML,				/* XML payload */
-	EXT_T_GGEP_H,			/* GGEP binary hash value */
+	EXT_T_UNKNOWN_GGEP,		/* Unknown GGEP extension */
 	EXT_T_OVERHEAD,			/* Pure overhead */
-	EXT_T_GGEP_GTKGV1,		/* GTKG version indication #1 */
 	EXT_T_GGEP_ALT,			/* Alternate locations in query hits */
-	EXT_T_GGEP_u,			/* HUGE URN in ASCII */
-	EXT_T_GGEP_T,			/* Textual information in query hits */
-	EXT_T_GGEP_PUSH,		/* Push proxy info, in query hits */
-	EXT_T_GGEP_HNAME,		/* Hostname info, in query hits */
-	EXT_T_GGEP_LF,			/* Large File, in query hits */
+	EXT_T_GGEP_BH,			/* Browseable host indication */
+	EXT_T_GGEP_CT,			/* Resource creation time */
 	EXT_T_GGEP_DU,			/* Daily Uptime */
-	EXT_T_GGEP_VC,			/* Vendor Code */
-	EXT_T_GGEP_UP,			/* UltraPeer information */
-	EXT_T_GGEP_LOC,			/* LOCale preferences */
-	EXT_T_GGEP_SCP,			/* Support Cached Pongs, in pings (UHC) */
-	EXT_T_GGEP_IPP,			/* IP:Port, in pongs (UHC) */
-	EXT_T_GGEP_PHC,			/* Packed HostCaches, in pongs (UHC) */
-	EXT_T_GGEP_UDPHC,		/* UDP HostCache, in pongs (UHC) */
-	EXT_T_GGEP_LIME_XML,	/* LimeWire XML metadata, in query hits */
+	EXT_T_GGEP_GTKGV1,		/* GTKG version indication #1 */
 	EXT_T_GGEP_GUE,			/* GUESS support */
+	EXT_T_GGEP_H,			/* GGEP binary hash value */
+	EXT_T_GGEP_HNAME,		/* Hostname info, in query hits */
+	EXT_T_GGEP_IPP,			/* IP:Port, in pongs (UHC) */
+	EXT_T_GGEP_LF,			/* Large File, in query hits */
+	EXT_T_GGEP_LIME_XML,	/* LimeWire XML metadata, in query hits */
+	EXT_T_GGEP_LOC,			/* LOCale preferences */
+	EXT_T_GGEP_PHC,			/* Packed HostCaches, in pongs (UHC) */
+	EXT_T_GGEP_PUSH,		/* Push proxy info, in query hits */
+	EXT_T_GGEP_SCP,			/* Support Cached Pongs, in pings (UHC) */
+	EXT_T_GGEP_T,			/* Textual information in query hits */
+	EXT_T_GGEP_UDPHC,		/* UDP HostCache, in pongs (UHC) */
+	EXT_T_GGEP_UP,			/* UltraPeer information */
+	EXT_T_GGEP_VC,			/* Vendor Code */
+	EXT_T_GGEP_u,			/* HUGE URN in ASCII */
 	EXT_T_TOKEN_COUNT,
 } ext_token_t;
 
@@ -129,7 +132,7 @@ guint16 ext_paylen(const extvec_t *e);
 const gchar *ext_base(const extvec_t *e);
 guint16 ext_headlen(const extvec_t *e);
 guint16 ext_len(const extvec_t *e);
-const gchar *ext_ggep_idname(const extvec_t *e);
+const gchar *ext_ggep_id_str(const extvec_t *e);
 
 void ext_prepare(extvec_t *exv, gint exvcnt);
 void ext_reset(extvec_t *exv, gint exvcnt);
