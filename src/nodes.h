@@ -169,6 +169,13 @@ struct gnutella_node {
 #define NODE_IS_READABLE(n) \
 	((n)->flags & NODE_F_READABLE)
 
+#define NODE_QUEUE_PERCENT_USED(n) \
+	((n)->outq ? mq_size((n)->outq) * 100 / mq_maxsize((n)->outq) : 0)
+
+#define NODE_QUEUE_COUNT(n) \
+	((n)->outq ? mq_count((n)->outq) : 0)
+
+
 /*
  * Macros.
  */

@@ -30,7 +30,8 @@
 
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
-#define NODE_SEND_BUFSIZE		8192	/* TCP send buffer size */
+#define NODE_SEND_BUFSIZE		4096	/* TCP send buffer size - 4K*/
+#define NODE_RECV_BUFSIZE		49152	/* TCP receive buffer size - 48K */
 
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define SHUTDOWN_GRACE_DELAY	600	/* Grace period for shutdowning nodes */
@@ -92,32 +93,38 @@ void node_timer(time_t now)
 {
 	GSList *l = sl_nodes;
 
-	while (l && !stop_host_get) {		/* No timeout if stop_host_get is set */
+	while (l) {
 		struct gnutella_node *n = (struct gnutella_node *) l->data;
 		l = l->next;
 
-		if (n->status == GTA_NODE_REMOVING) {
-			if (now - n->last_update > NODE_ERRMSG_TIMEOUT)
-				node_real_remove(n);
-		} else if (NODE_IS_CONNECTING(n)) {
-			if (now - n->last_update > node_connecting_timeout)
-				node_remove(n, "Timeout");
-		} else if (n->status == GTA_NODE_SHUTDOWN) {
-			if (now - n->shutdown_date > SHUTDOWN_GRACE_DELAY) {
-				gchar *reason = g_strdup(n->error_str);
-				node_remove(n, "Shutdown timeout (%s)", reason);
-				g_free(reason);
-			}
-		} else if (now - n->last_update > node_connected_timeout) {
-			if (NODE_IS_WRITABLE(n))
-				node_bye(n, 405, "Activity timeout");
-			else
-				node_remove(n, "Activity timeout");
-		} else if (
-			NODE_IN_TX_FLOW_CONTROL(n) &&
-			now - n->tx_flowc_date > node_tx_flowc_timeout
-		)
-			node_bye(n, 405, "Transmit timeout");
+		if (!stop_host_get) {		/* No timeout if stop_host_get is set */
+			if (n->status == GTA_NODE_REMOVING) {
+				if (now - n->last_update > NODE_ERRMSG_TIMEOUT) {
+					node_real_remove(n);
+					continue;
+				}
+			} else if (NODE_IS_CONNECTING(n)) {
+				if (now - n->last_update > node_connecting_timeout)
+					node_remove(n, "Timeout");
+			} else if (n->status == GTA_NODE_SHUTDOWN) {
+				if (now - n->shutdown_date > SHUTDOWN_GRACE_DELAY) {
+					gchar *reason = g_strdup(n->error_str);
+					node_remove(n, "Shutdown timeout (%s)", reason);
+					g_free(reason);
+				}
+			} else if (now - n->last_update > node_connected_timeout) {
+				if (NODE_IS_WRITABLE(n))
+					node_bye(n, 405, "Activity timeout");
+				else
+					node_remove(n, "Activity timeout");
+			} else if (
+				NODE_IN_TX_FLOW_CONTROL(n) &&
+				now - n->tx_flowc_date > node_tx_flowc_timeout
+			)
+				node_bye(n, 405, "Transmit timeout");
+		}
+
+		gui_update_node_display(n);
 	}
 }
 
@@ -492,13 +499,7 @@ void node_bye(struct gnutella_node *n, gint code, const gchar * reason, ...)
 	sendbuf_len = NODE_SEND_BUFSIZE + mq_size(n->outq) +
 		len + sizeof(head) + 1024;		/* Slightly larger, for flow-control */
 
-	if (
-		-1 == setsockopt(n->socket->file_desc, SOL_SOCKET, SO_SNDBUF,
-			&sendbuf_len, sizeof(sendbuf_len))
-	)
-		g_warning("unable to grow socket send buffer size to %d for %s: %s",
-			sendbuf_len, node_ip(n), g_strerror(errno));
-
+	sock_send_buf(n->socket, sendbuf_len, FALSE);
 	gmsg_split_sendto_one(n,
 		(guchar *) &head, (guchar *) payload, len + sizeof(head));
 
@@ -767,7 +768,6 @@ static void send_node_error(struct gnutella_socket *s, int code, guchar *msg)
 static void node_is_now_connected(struct gnutella_node *n)
 {
 	struct gnutella_socket *s = n->socket;
-	gint sendbuf_len = NODE_SEND_BUFSIZE;
 
 	/*
 	 * Install reading callback.
@@ -805,15 +805,12 @@ static void node_is_now_connected(struct gnutella_node *n)
 
 	/*
 	 * Set the socket's send buffer size to a small value, to make sure we
-	 * flow control early.
+	 * flow control early.  Increase the receive buffer to allow a larger
+	 * reception window (assuming an original default 8K buffer size).
 	 */
 
-	if (
-		-1 == setsockopt(s->file_desc, SOL_SOCKET, SO_SNDBUF,
-			&sendbuf_len, sizeof(sendbuf_len))
-	)
-		g_warning("unable to set socket send buffer size to %d for %s: %s",
-			sendbuf_len, node_ip(n), g_strerror(errno));
+	sock_send_buf(s, NODE_SEND_BUFSIZE, TRUE);
+	sock_recv_buf(s, NODE_RECV_BUFSIZE, FALSE);
 
 	/*
 	 * If we have an incoming connection, send an "alive" ping.
@@ -1256,19 +1253,28 @@ static void node_process_handshake_ack(struct io_header *ih)
 		/*
 		 * Call node_read() until all the data have been read from the
 		 * memory buffer.
+		 *
+		 * During processing, it is possible that the node be removed, at which
+		 * point `membuf' would be cleaned up.  We therefore escape out of
+		 * the loop as soon as we're not connected.
 		 */
 
-		while (mbuf->rptr < mbuf->end)
+		g_assert(n->status == GTA_NODE_CONNECTED);
+
+		while (n->status == GTA_NODE_CONNECTED && mbuf->rptr < mbuf->end)
 			node_read((gpointer) n, s->file_desc, GDK_INPUT_READ);
 
 		/*
-		 * Cleanup the memory buffer data structures.
+		 * Cleanup the memory buffer data structures, if not already
+		 * done by node removal.
 		 */
 
-		g_hash_table_remove(node_by_fd, (gpointer) s->file_desc);
-		g_free(mbuf->data);
-		g_free(mbuf);
-		n->membuf = 0;
+		if (n->membuf) {
+			g_hash_table_remove(node_by_fd, (gpointer) s->file_desc);
+			g_free(mbuf->data);
+			g_free(mbuf);
+			n->membuf = 0;
+		}
 	}
 
 	/*
@@ -1356,27 +1362,27 @@ static void node_process_handshake_header(struct io_header *ih)
 	}
 
 	/*
+	 * Remote-IP -- IP address of this node as seen from remote node
+	 *
+	 * Modern nodes include our own IP, as they see it, in the
+	 * handshake headers and reply, whether it indicates a success or not.
+	 * Use it as an opportunity to automatically detect changes.
+	 *		--RAM, 13/01/2002
+	 */
+
+	if (force_local_ip) {
+		guint32 ip = extract_my_ip(ih->header);
+		if (ip && ip != forced_local_ip)
+			config_ip_changed(ip);
+	}
+
+	/*
 	 * If this is an outgoing connection, we're processing the remote
 	 * acknowledgment to our initial handshake.
 	 */
 
 	if (!incoming) {
-		gboolean ok = analyse_status(n, NULL);
-
-		/*
-		 * Modern nodes include our own IP, as they see it, in the
-		 * handshake reply whether it is a success or not.  Use it
-		 * as an opportunity to automatically detect changes.
-		 *		--RAM, 13/01/2002
-		 */
-
-		if (force_local_ip) {
-			guint32 ip = extract_my_ip(ih->header);
-			if (ip && ip != forced_local_ip)
-				config_ip_changed(ip);
-		}
-
-		if (!ok) {
+		if (!analyse_status(n, NULL)) {
 			/*
 			 * If we have the "retry at 0.4" flag set, re-initiate the
 			 * connection at the 0.4 level.
@@ -2088,6 +2094,7 @@ void node_init_outgoing(struct gnutella_node *n)
 		len = g_snprintf(buf, sizeof(buf),
 			"GNUTELLA CONNECT/%d.%d\r\n"
 			"Node: %s\r\n"
+			"Remote-IP: %s\r\n"
 			"User-Agent: %s\r\n"
 			"Pong-Caching: 0.1\r\n"
 			"Bye-Packet: 0.1\r\n"
@@ -2095,6 +2102,7 @@ void node_init_outgoing(struct gnutella_node *n)
 			"\r\n",
 			n->proto_major, n->proto_minor,
 			ip_port_to_gchar(listen_ip(), listen_port),
+			ip_to_gchar(n->ip),
 			version_string, start_rfc822_date);
 
 	/*
