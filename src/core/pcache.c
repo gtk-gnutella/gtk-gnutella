@@ -199,9 +199,6 @@ send_personal_info(struct gnutella_node *n, gboolean control)
 
 	g_assert(n->header.function == GTA_MSG_INIT);	/* Replying to a ping */
 
-	if (!force_local_ip && !local_ip)
-		return;		/* If we don't know yet our local IP, we can't reply */
-
 	files = MIN(shared_files_scanned(), ~((guint32) 0U));
 
 	/*
