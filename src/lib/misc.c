@@ -325,12 +325,10 @@ ip_is_valid(guint32 ip)
 {
 	if ((!ip) ||			/* IP == 0 */
 		(is_private_ip(ip)) ||
-		/* 1.2.3.4 || 1.1.1.1 */
-		(ip == (guint32) 0x01020304 || ip == (guint32) 0x01010101) ||
+		/* 0.0.0.0 / 7 */
+		((ip & (guint32) 0xFE000000) == (guint32) 0x00000000) ||
 		/* 224..239.0.0 / 8 (multicast) */
 		((ip & (guint32) 0xF0000000) == (guint32) 0xE0000000) ||
-		/* 0.0.0.0 / 8 */
-		((ip & (guint32) 0xFF000000) == (guint32) 0x00000000) ||
 		/* 127.0.0.0 / 8 */
 		((ip & (guint32) 0xFF000000) == (guint32) 0x7F000000) ||
 		/* 192.0.2.0 -- (192.0.2/24 prefix) TEST-NET [RFC 3330] */
@@ -1538,7 +1536,7 @@ gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 	gint error;
 	glong v;
 
-	if (!gchar_to_ip_strict(s, ip, &ep) || 0 == *ip)
+	if (!gchar_to_ip_strict(s, ip, &ep))
 		return FALSE;
 
 	s = ep;
@@ -1828,5 +1826,113 @@ parse_uint64(const gchar *src, gchar **endptr, gint base, gint *errorptr)
 	return v;
 }
 
+/**
+ * Find amount of common leading bits between two IP addresses
+ */
+static guint8
+find_common_leading(guint32 ip1, guint32 ip2)
+{
+	guint8 n;
+	guint32 mask;
+
+	for (n = 0, mask = 0x80000000; n < 32; n++, mask |= (mask >> 1)) {
+		if ((ip1 & mask) != (ip2 & mask))
+			return n;
+	}
+
+	return n;
+}
+
+/**
+ * Computes the set of CIDR ranges that make up the set of IPs between
+ * two boundary IPs, included.
+ *
+ * For instance, for the range 2.0.0.0 - 2.138.24.150, we have:
+ *
+ * 2.0.0.0/9, 2.128.0.0/13, 2.136.0.0/15, 2.138.0.0/20, 2.138.16.0/21,
+ * 2.138.24.0/25, 2.138.24.128/28, 2.138.24.144/30, 2.138.24.148,
+ * 2.138.24.149 and 2.138.24.150.
+ *
+ * For each identified CIDR range, invoke the supplied callback, along
+ * with the trailing user-supplied `udata' pointer.
+ *
+ * @param lower_ip	the lower-bound IP
+ * @param upper_ip	the upper-bound IP
+ * @param callback	the callback, invoked as callback(ip, bits, udata)
+ * @param udata		the trailing parameter passed as-is to the callbacks
+ */
+void
+ip_range_split(
+	guint32 lower_ip, guint32 upper_ip, cidr_split_t cb, gpointer udata)
+{
+	guint8 bits;
+	guint32 mask;
+	guint32 trailing;
+
+	g_assert(lower_ip <= upper_ip);
+
+	bits = find_common_leading(lower_ip, upper_ip);
+	mask = 1 << (32 - bits);
+	trailing = mask - 1;
+
+	if (bits == 32) {
+		g_assert(lower_ip == upper_ip);
+		(*cb)(lower_ip, bits, udata);
+	} else if (trailing == (upper_ip & trailing)) {
+		/*
+		 * All the trailing bits of upper_ip are 1s.
+		 */
+
+		if (0 == (lower_ip & trailing)) {
+			/*
+			 * All the trailing bits of lower_ip are 0s -- we're done
+			 */
+
+			(*cb)(lower_ip, bits, udata);
+		} else {
+			guint32 cut;
+
+			/*
+			 * Start filling after the first 1 bit in lower_ip.
+			 */
+
+			mask = 1;
+			while (0 == (lower_ip & mask))
+				mask <<= 1;
+			cut = (mask - 1) | lower_ip;
+
+			/*
+			 * Recurse on sub-ranges [lower_ip, cut] and ]cut, upper_ip].
+			 */
+
+			ip_range_split(lower_ip, cut, cb, udata);
+			ip_range_split(cut + 1, upper_ip, cb, udata);
+		}
+	} else {
+		guint32 cut;
+
+		/*
+		 * We can't cover the full range.
+		 *
+		 * We know that bits #(32-bits) in lower_ip and upper_ip differ.
+		 * Since lower_ip <= upper_ip, the bit is necessary 0 in lower_ip.
+		 */
+
+		mask >>= 1;					/* First bit that differs */
+
+		g_assert(0 == (lower_ip & mask));
+		g_assert(0 != (upper_ip & mask));
+
+		cut = upper_ip & ~mask;		/* Reset that bit in upper_ip */
+		cut |= mask - 1;			/* And set the trailing bits to 1s */
+
+		/*
+		 * Recurse on sub-ranges [lower_ip, cut] and ]cut, upper_ip].
+		 */
+
+		ip_range_split(lower_ip, cut, cb, udata);
+		ip_range_split(cut + 1, upper_ip, cb, udata);
+	}
+}
 
 /* vi: set ts=4 sw=4 cindent: */
