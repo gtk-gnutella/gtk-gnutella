@@ -66,7 +66,7 @@
 #define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"
 #define GTA_INTERFACE "X11"
-#define GTA_RELEASE "02/06/2002"
+#define GTA_RELEASE "07/06/2002"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #define GTA_MSG_INIT					0x00
@@ -112,6 +112,26 @@ struct gnutella_init_response {
 struct gnutella_msg_init_response {
 	struct gnutella_header header;
 	struct gnutella_init_response response;
+} __attribute__((__packed__));
+
+struct gnutella_search {
+	guchar speed[2];
+	guchar query[0];
+} __attribute__((__packed__));
+
+struct gnutella_search_results {
+	guchar num_recs;
+	guchar host_port[2];
+	guchar host_ip[4];
+	guchar host_speed[4];
+	guchar records[0];
+
+	/* Last 16 bytes = client_id */
+} __attribute__((__packed__));
+
+struct gnutella_msg_search {
+	struct gnutella_header header;
+	struct gnutella_search search;
 } __attribute__((__packed__));
 
 struct gnutella_push_request {
