@@ -34,8 +34,10 @@
 
 void gwc_init(void);
 void gwc_close(void);
+
 void gwc_store_if_dirty(void);
 void gwc_get_hosts(void);
+gboolean gwc_is_waiting(void);
 
 #endif /* _core_gwcache_h_ */
 
