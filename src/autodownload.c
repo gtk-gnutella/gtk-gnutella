@@ -36,7 +36,7 @@ void autodownload_init()
 		return;
 	auto_last_mtime = sbuf.st_mtime;
 
-	while(auto_strings != NULL) {
+	while (auto_strings != NULL) {
 		pattern = auto_strings->data;
 		auto_strings = g_slist_remove(auto_strings, pattern);
 		pattern_free(pattern);
@@ -54,7 +54,7 @@ void autodownload_init()
 		printf("*** reloading %s\n", auto_download_file);
 
 	i = 0;
-	while(fgets(buf, LINELEN, f) != NULL) {
+	while (fgets(buf, LINELEN, f) != NULL) {
 		buf[strlen(buf)-1] = 0;			/* Zap the trailing newline */
 		if (buf[0] == '#')				/* Comment, ignore line */
 			continue;
