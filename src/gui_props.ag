@@ -226,7 +226,7 @@ prop = {
     desc = "Position of the divider in the downloads panel";
     type = guint32;
     data = {
-        default = 0x0000;
+        default = 220;
         min     = 0x0000;
         max     = 0xFFFF;
     };
