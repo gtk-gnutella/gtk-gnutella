@@ -1,5 +1,22 @@
 # since last version
 
+- (2002.06.27 - RAM)
+  * Added configure check for glib >= 1.2.10 [From Richard].
+  * Make sure GUI configuration for download overlap does not exceed the
+	size of the socket's buffer [From Richard].
+  * Added version checking: gtk-gnutella will now warn when it sees a newer
+	version than itself.
+  * Fixed base32 decoding to use gint8 instead of gchar to be sure to
+	get signed characters.
+  * Removed heartbeat warnings about skewed clock when not debugging.
+  * Fixed dynamic upload slots spinbutton sensitivity (fixes bug #574592)
+	[From Richard].
+  * Changed getdate to parse dates as DD/MM/YYYY, not as MM/DD/YYYY.
+  * Fixed Gnutella size reading in message headers: alignment constraints
+	would cause a bus error on some CPUs.
+  * Added configure check for strcasestr(), which is present on some systems.
+  * Better seed the random number generator.
+
 - (2002.06.25 - RAM)
   * Did not include proper gui.c version in 0.90 beta.
   * Do not abort when regular expression in queue matching is invalid!
