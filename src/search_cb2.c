@@ -320,12 +320,12 @@ gboolean on_tree_view_search_results_button_press_event
 				 */
 				gtk_signal_emit_stop_by_name(GTK_OBJECT(widget),
 					"button_press_event");
-					search_gui_download_files();
+				search_gui_download_files();
 
-					return TRUE;
+				return TRUE;
 			} else {
-					click_time = event->time;
-					return FALSE;
+				click_time = event->time;
+				return FALSE;
 			}
 		}
 		return FALSE;
@@ -342,8 +342,9 @@ gboolean on_tree_view_search_results_button_press_event
                 PROP_SEARCH_RESULTS_SHOW_TABS,
                 &search_results_show_tabs, 0, 1);
 
-            gm_snprintf(tmpstr, sizeof(tmpstr), (search_results_show_tabs) ?
-                "Show search list" : "Show tabs");
+            g_strlcpy(tmpstr,
+				search_results_show_tabs ?  "Show search list" : "Show tabs",
+				sizeof(tmpstr));
         }
 
         gtk_label_set(GTK_LABEL((GTK_MENU_ITEM
@@ -353,8 +354,7 @@ gboolean on_tree_view_search_results_button_press_event
                      event->button, event->time);
                 return TRUE;
 
-        default:
-                break;
+        default: ;
         }
 
 	return FALSE;
@@ -383,17 +383,17 @@ static void autoselect_files_helper(
     GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data) 
 {
 	record_t *rc;
-	gint x;
+	gint x = 1;
 	guint32 fuzzy_threshold = autoselect_files_fuzzy_threshold;
 	GtkTreeIter	model_iter;
+	GtkTreeIter	child;
 	gboolean more_rows;
-	GtkTreeSelection	*tree_selection;
+	GtkTreeSelection	*selection;
 
 	if (autoselect_files_lock)
 		return;
 	autoselect_files_lock = TRUE;
 
-	tree_selection = GTK_TREE_SELECTION(data);
 	/* 
 	 * Rows with NULL data can appear when inserting new rows
 	 * because the selection is resynced and the row data can not
@@ -402,72 +402,94 @@ static void autoselect_files_helper(
 	 *      --BLUE, 20/06/2002
 	 */
 
+	selection = GTK_TREE_SELECTION(data);
 	gtk_tree_model_get(model, iter, c_sr_record, &rc, -1);
+
+	if (!gtk_tree_model_iter_parent(model, &model_iter, iter))
+		model_iter = *iter;
+
+	if (
+		search_autoselect_ident &&
+		gtk_tree_model_iter_children(model, &child, &model_iter)
+	) {
+		gtk_tree_selection_select_iter(selection, &model_iter);
+		do {
+			gtk_tree_selection_select_iter(selection, &child);
+			x++;
+		} while (gtk_tree_model_iter_next(model, &child));
+	}
+		
+	else
 
 	/*
 	 * Note that rc != NULL is embedded in the "for condition".
-	 * No need to copy row_list since we do not modify it.
 	 */
-	x = 1;
-	for (more_rows = gtk_tree_model_get_iter_first(model, &model_iter);
-		(rc != NULL) && more_rows;
-		more_rows = gtk_tree_model_iter_next(model, &model_iter)) 
-	{
-		record_t *rc2;
 
-		gtk_tree_model_get(model, &model_iter, c_sr_record, &rc2, -1);
+		for (more_rows = gtk_tree_model_get_iter_first(model, &model_iter);
+			rc != NULL && more_rows;
+			more_rows = gtk_tree_model_iter_next(model, &model_iter)) 
+		{
+			gboolean sha1_ident;
+			gboolean select_file;
+			record_t *rc2;
 
-		/*
-		 * Skip the line we selected in the first place.
-		 */
-		if (rc == rc2)
+			gtk_tree_model_get(model, &model_iter, c_sr_record, &rc2, -1);
+
+			/*
+		 	 * Skip the line we selected in the first place.
+		 	 */
+			if (rc == rc2)
 				continue;
 
-		if (rc2 == NULL) {
-			g_warning(" on_tree_view_search_results_select_row: "
+			if (rc2 == NULL) {
+				g_warning(" on_tree_view_search_results_select_row: "
 					"detected row with NULL data, skipping");
-			continue;
+				continue;
+			}
+
+			sha1_ident = rc->sha1 != NULL && rc2->sha1 != NULL &&
+				0 == memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE);
+
+			/*
+	 	 	* size check added to workaround buggy
+	 	 	* servents. -vidar, 2002-08-08
+	 	 	*/
+			select_file = search_autoselect_ident
+				? (
+					sha1_ident && rc->size == rc2->size
+				) ||
+				(
+					rc->sha1 == NULL && rc2->size == rc->size &&
+					(
+						(
+							!search_autoselect_fuzzy &&
+							0 == strcmp(rc2->name, rc->name)
+						)
+					|| (
+						search_autoselect_fuzzy &&
+						fuzzy_compare(rc2->name, rc->name) * 100
+				 			>= (fuzzy_threshold << FUZZY_SHIFT)
+						)
+					)
+				)
+
+				: sha1_ident ||
+					(
+						rc2 && rc2->size >= rc->size &&
+						0 == strcmp(rc2->name, rc->name)
+					);
+
+				if (select_file) {
+					gtk_tree_selection_select_iter(selection, &model_iter);
+					x++;
+				}	
 		}
 
-		if (search_autoselect_ident) {
-				if ((
-					/*
-					 * size check added to workaround buggy
-					 * servents. -vidar, 2002-08-08
-					 */
-                        rc->size == rc2->size &&
-                        rc->sha1 != NULL && rc2->sha1 != NULL &&
-                        memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0
-                    ) || (
-                        (rc->sha1 == NULL) &&
-                        (rc2->size == rc->size) && (
-                            (!search_autoselect_fuzzy && !strcmp(rc2->name, rc->name)) ||
-                            (search_autoselect_fuzzy && (fuzzy_compare(rc2->name, rc->name) * 100 >= (fuzzy_threshold << FUZZY_SHIFT)))
-                        )
-                    )) {
-                        gtk_tree_selection_select_iter(tree_selection, &model_iter);
-                        x++;
-                    }
-                } else {
-                    if (
-                        ((rc->sha1 != NULL && rc2->sha1 != NULL &&
-                        memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0) ||
-                        (rc2 && !strcmp(rc2->name, rc->name))) &&
-                        (rc2->size >= rc->size)
-                    ) {
-                        gtk_tree_selection_select_iter(	tree_selection, 
-														&model_iter);
-                        x++;
-                    }
-                }
-        }
-
     if (x > 1) {
-		statusbar_gui_message(15, "%d auto selected %s", x, 
-			(rc->sha1 != NULL) ? "by urn:sha1 and filename" : "by filename");
-    } else if (x == 1) {
-        statusbar_gui_message(15, "none auto selected");
-    }
+		statusbar_gui_message(15, "%d auto selected by filename%s", x, 
+			NULL != rc->sha1 ? " and urn:sha1" : "");
+	} else if (x == 1)
+		statusbar_gui_message(15, "none auto selected");
 }
 
 static void autoselect_files(GtkTreeView *tree_view)
@@ -489,8 +511,6 @@ static void autoselect_files(GtkTreeView *tree_view)
         PROP_SEARCH_AUTOSELECT_FUZZY,
         &search_autoselect_fuzzy, 0, 1);
 
- 	selection = gtk_tree_view_get_selection(tree_view);
-
     /*
      * Block this signal so we don't emit it for every autoselected item.
      */
@@ -509,11 +529,10 @@ static void autoselect_files(GtkTreeView *tree_view)
      * only one item is selected (no way to merge two autoselections)
      */
 
+	selection = gtk_tree_view_get_selection(tree_view);
 	autoselect_files_lock = FALSE;
 	if (search_autoselect)
-		gtk_tree_selection_selected_foreach(
-			selection,
-			autoselect_files_helper,
+		gtk_tree_selection_selected_foreach(selection, autoselect_files_helper,
 			selection);
 
     g_signal_handlers_unblock_by_func(
@@ -532,6 +551,41 @@ void on_tree_view_search_results_select_row(
     GtkTreeView *tree_view, gpointer user_data)
 {
 	static gboolean autoselection_running = FALSE;
+	GtkTreePath *path;
+
+	gtk_tree_view_get_cursor(tree_view, &path, NULL);
+	if (NULL != path) {
+		GtkTreeModel *model;
+		record_t *rc;
+		gchar *filename;
+		GtkTreeIter iter;
+
+		model = gtk_tree_view_get_model(tree_view);
+		gtk_tree_model_get_iter(model, &iter, path);
+		gtk_tree_model_get(model, &iter,
+			c_sr_filename, &filename,
+			c_sr_record, &rc,
+			-1);
+		gtk_label_set_text(
+			GTK_LABEL(lookup_widget(main_window, "label_result_info_filename")),
+			filename);
+		gtk_label_set_text(
+			GTK_LABEL(lookup_widget(main_window, "label_result_info_sha1")),
+			rc->sha1 != NULL ? sha1_base32(rc->sha1) : "<none>");
+		gtk_label_set_text(
+			GTK_LABEL(lookup_widget(main_window, "label_result_info_source")),
+			ip_port_to_gchar(rc->results_set->ip, rc->results_set->port));
+		gm_snprintf(tmpstr, sizeof(tmpstr), "%u",
+			(guint) rc->results_set->speed);
+		gtk_label_set_text(
+			GTK_LABEL(lookup_widget(main_window, "label_result_info_speed")),
+			tmpstr);
+		gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%lu byte)",
+			short_size(rc->size), (gulong) rc->size);
+		gtk_label_set_text(
+			GTK_LABEL(lookup_widget(main_window, "label_result_info_size")),
+			tmpstr);
+	}
 
 	if (!autoselection_running) {
 		autoselection_running = TRUE;
