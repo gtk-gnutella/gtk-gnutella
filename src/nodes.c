@@ -1263,7 +1263,6 @@ static void node_mark_bad_ip(struct gnutella_node *n)
 void node_mark_bad(struct gnutella_node *n)
 {
 	struct node_bad_client *bad_client = NULL;
-	struct node_bad_ip *bad_ip = NULL;
 	time_t now;
 	
 	if (in_shutdown)
