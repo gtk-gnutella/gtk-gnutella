@@ -111,14 +111,13 @@ static void gwc_add(gchar *url)
 	}
 
 	/*
-	 * OK, record new entry.
+	 * OK, record new entry at the `gwc_url_slot'.
 	 */
-
-	url_atom = atom_str_get(url);
-	g_hash_table_insert(gwc_known_url, url_atom, (gpointer) 0x1);
 
 	if (++gwc_url_slot >= MAX_GWC_URLS)
 		gwc_url_slot = 0;
+
+	url_atom = atom_str_get(url);
 
 	/*
 	 * Expire any entry present at the slot we're about to write into.
@@ -131,6 +130,8 @@ static void gwc_add(gchar *url)
 		g_hash_table_remove(gwc_known_url, old_url);
 		atom_str_free(old_url);
 	}
+
+	g_hash_table_insert(gwc_known_url, url_atom, (gpointer) 0x1);
 
 	gwc_url[gwc_url_slot] = url_atom;
 	gwc_file_dirty = TRUE;
