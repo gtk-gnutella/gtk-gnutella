@@ -2075,6 +2075,17 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		 */		
 
 		if (!parq_upload_request(u, parq_handle, running_uploads - 1)) {
+			if (parq_upload_lookup_position(u) == -1) {
+				/*
+				 * Looks like upload got removed from PARQ queue. For now this only 
+				 * happens when a client got banned. Bye bye!
+			 	 *		-- JA, 19/05/'03
+				 */
+				upload_error_remove(u, reqfile, 403, 
+					"Retry-After not honoured. Removed from PARQ queue");
+				return;
+			}
+
 			/*
 		 	* Support for bandwith-dependent number of upload slots.
 		 	* The upload bandwith limitation has to be enabled, otherwise

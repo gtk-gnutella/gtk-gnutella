@@ -112,10 +112,13 @@ struct parq_ul_queued {
 							   reached */
 
 	time_t expire;			/* Time at which the queue position will be lost */
-	time_t retry;			/* Time at which the first retry-after is expected */
+	time_t retry;			/* Time at which the first retry-after is expected*/
 	time_t enter;			/* Time upload entered parq */
 	time_t updated;			/* Time last upload request was sent */
+	time_t ban_timeout;		/* Time after which we won't kick out the upload out
+							   of the queue when retry isn't obeyed */
 	time_t last_queue_sent;	/* When we last sent the QUEUE */
+
 	guint32 queue_sent;		/* Amount of QUEUE messages we tried to send */
 	guint32 queue_refused;	/* Amount of QUEUE messages refused remotely */
 	 
@@ -300,7 +303,7 @@ static gchar *get_header_value(
 
 			if (!found_right_attribute) {
 				g_assert(!found_equal_sign);
-				g_warning("attribute '%s' has no value in string: %s",
+				g_warning(__FILE__ ": attribute '%s' has no value in string: %s",
 					attribute, s);
 			}
 		}		
@@ -745,11 +748,12 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		buf = header_get(header, "X-Queued");
 
 		if (buf == NULL) {
-			g_warning("host %s advertised PARQ %d.%d but did not send X-Queued",
+			g_warning(__FILE__ "host %s advertised PARQ %d.%d but did not"
+				" send X-Queued",
 				ip_port_to_gchar(download_ip(d), download_port(d)),
 				major, minor);
 			if (dbg) {
-				g_warning("header dump:");
+				g_warning(__FILE__ ": header dump:");
 				header_dump(header, stderr);
 			}
 			return FALSE;
@@ -763,7 +767,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		/* Someone might not be playing nicely. */
 		if (parq_dl->lifetime < parq_dl->retry_delay) {
 			parq_dl->lifetime = MAX(300, parq_dl->retry_delay );
-			g_warning("PARQ: Invalid lifetime, using: %d\r\n",
+			g_warning(__FILE__ ": PARQ: Invalid lifetime, using: %d\r\n",
 				  parq_dl->lifetime);
 		}
 		
@@ -777,7 +781,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		}
 		break;
 	default:
-		g_warning("unhandled queuing version %d.%d from %s <%s>",
+		g_warning(__FILE__ ": unhandled queuing version %d.%d from %s <%s>",
 			major, minor, ip_port_to_gchar(download_ip(d), download_port(d)),
 			download_vendor_str(d));
 		return FALSE;
@@ -952,7 +956,7 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 	ip_str = strchr(id, ' ');
 
 	if (ip_str == NULL || !gchar_to_ip_port(ip_str + 1, &ip, &port)) {
-		g_warning("missing IP:port in \"%s\" from %s",
+		g_warning(__FILE__ ": missing IP:port in \"%s\" from %s",
 			queue, ip_to_gchar(s->ip));
 		has_ip_port = FALSE;
 	}
@@ -973,14 +977,14 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 	 */
 
 	if (dl == NULL) {
-		g_warning("could not locate QUEUE id '%s' from %s",
+		g_warning(__FILE__ ": could not locate QUEUE id '%s' from %s",
 			id, ip_port_to_gchar(ip, port));
 
 		if (has_ip_port) {
 			dl = download_find_waiting_unparq(ip, port);
 
 			if (dl != NULL) {
-				g_warning("elected '%s' from %s for QUEUE id '%s'",
+				g_warning(__FILE__ ": elected '%s' from %s for QUEUE id '%s'",
 					dl->file_name, ip_port_to_gchar(ip, port), id);
 
 				g_assert(dl->queue_status == NULL);		/* unparq'ed */
@@ -1000,7 +1004,7 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 	}
 
 	if (dl->list_idx == DL_LIST_RUNNING) {
-		g_warning("PARQ UL: Watch it! Download already running.");
+		g_warning(__FILE__ ": PARQ UL: Watch it! Download already running.");
 		g_assert(s->resource.download == NULL); /* Hence socket_free() */
 		socket_free(s);
 		return;
@@ -1236,6 +1240,7 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	parq_ul->queue->alive++;
 	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
 	parq_ul->expire = parq_ul->retry + MIN_LIFE_TIME;
+	parq_ul->ban_timeout = 0;
 	
 	/* Save into hash table so we can find the current parq ul later */
 	g_hash_table_insert(ul_all_parq_by_id, parq_ul->id, parq_ul);
@@ -1427,9 +1432,9 @@ static struct parq_ul_queued *parq_upload_find_id(gnutella_upload_t *u,
 		gchar *id = get_header_value(buf, "ID", &length);
 
 		if (id == NULL) {
-			g_warning("missing ID in PARQ request");
+			g_warning(__FILE__ ": missing ID in PARQ request");
 			if (dbg) {
-				g_warning("header dump:");
+				g_warning(__FILE__ ": header dump:");
 				header_dump(header, stderr);
 			}
 			return NULL;
@@ -1472,9 +1477,21 @@ void parq_upload_timer(time_t now)
 	GSList *sl;
 	GSList *remove = NULL;
 	static guint print_q_size = 0;
+	static guint startup_delay = 0;
 	guint	queue_selected = 0;
 	gboolean rebuilding = FALSE;
 	
+	
+	/*
+	 * Don't do anything with parq during the first 10 seconds. Looks like
+	 * PROP_LIBRARY_REBUILDING is not set yet immediatly at the first time, so
+	 * there may be some other things not set properly yet neither.
+	 */
+	if (startup_delay < 10) {
+		startup_delay++;
+		return;
+	}
+
 	for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) queues->data;
 
@@ -1726,7 +1743,7 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 		struct parq_ul_queue *queue = (struct parq_ul_queue *) l->data;
 		if (!queue->active && queue->alive > 0) {
 			if (uq->queue->active) {
-				g_warning("PARQ UL: Upload in inactive queue first");
+				g_warning(__FILE__ ": PARQ UL: Upload in inactive queue first");
 				return FALSE;
 			}
 		}
@@ -1923,6 +1940,7 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 {
 	struct parq_ul_queued *parq_ul = handle_to_queued(handle);
 	time_t now = time((time_t *) NULL);
+	time_t org_retry = parq_ul->retry; 
 	
 	parq_ul->updated = now;
 	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
@@ -1931,6 +1949,32 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	
 	parq_ul->expire = MIN_LIFE_TIME + parq_ul->retry;
 	
+	if (org_retry > now && !(parq_ul->flags & PARQ_UL_QUEUE_SENT ||
+							 u->status & GTA_UL_QUEUE_WAITING)) {
+		/*
+		 * Bad bad client, re-requested within the Retry-After interval.
+		 * we are not going to allow this download. Wether it could get an
+		 * upload slot or not. Neither are we going to active queue it.
+		 *
+		 * FIXME: Kick host out of queue when it does do it again!
+		 */
+		g_warning(__FILE__ ": Host %s re-requested to soon %d", 
+			  ip_port_to_gchar(u->socket->ip, u->socket->port), 
+		 	  (gint) (org_retry - now));
+
+		if (parq_ul->ban_timeout > now) {
+			/*
+			 * Bye bye, the client did it again, and is removed from the PARQ
+		 	 * queue now.
+			 */
+			parq_upload_remove(u);
+			return FALSE;
+		}
+		
+		parq_ul->ban_timeout = parq_ul->retry;
+		return FALSE;
+	}
+
 	/*
 	 * Client was already downloading a segment, segment was finished and 
 	 * just did a follow up request.
@@ -2494,7 +2538,7 @@ void parq_upload_do_send_queue(struct parq_ul_queued *parq_ul)
 	s = socket_connect(parq_ul->ip, parq_ul->port, SOCK_TYPE_UPLOAD);
 	
 	if (!s) {
-		g_warning("could not send QUEUE #%d to %s (can't connect)",
+		g_warning(__FILE__ ":could not send QUEUE #%d to %s (can't connect)",
 			parq_ul->queue_sent, ip_port_to_gchar(parq_ul->ip, parq_ul->port));
 		return;
 	}
@@ -2541,10 +2585,11 @@ void parq_upload_send_queue_conf(gnutella_upload_t *u)
 	s = u->socket;
 
 	if (-1 == (sent = bws_write(bws.out, s->file_desc, queue, rw))) {
-		g_warning("PARQ UL: Unable to send back QUEUE for \"%s\" to %s: %s",
+		g_warning(__FILE__ ": PARQ UL: "
+			"Unable to send back QUEUE for \"%s\" to %s: %s",
 			  u->name, ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
 	} else if (sent < rw) {
-		g_warning("PARQ UL: "
+		g_warning(__FILE__ ": PARQ UL: "
 			"Only sent %d out of %d bytes of QUEUE for \"%s\" to %s: %s",
 			  sent, rw, u->name, ip_port_to_gchar(s->ip, s->port),
 			  g_strerror(errno));
@@ -2588,7 +2633,7 @@ void parq_upload_save_queue()
 	f = fopen(file, "w");	
 
 	if (!f) {
-		g_warning("parq_upload_save_queue(): "
+		g_warning(__FILE__ ":parq_upload_save_queue(): "
 			  "unable to open file \"%s\" for writing: %s",
 			  file, g_strerror(errno));
 		g_free(file);
@@ -2699,7 +2744,7 @@ static void parq_upload_load_queue(void)
 
 	f = fopen(file, "r");
 	if (!f) {
-		g_warning("parq_upload_load_queue(): "
+		g_warning(__FILE__ ": parq_upload_load_queue(): "
 			"unable to open file \"%s\" for reading: %s",
 			file, g_strerror(errno));
 		G_FREE_NULL(file);
@@ -2721,7 +2766,7 @@ static void parq_upload_load_queue(void)
 		if (sscanf(line, "IP: -%u\n", &ip)) {
 			sscanf(line, "IP: %d\n", &signed_ip);
 			ip = (guint32) signed_ip;
-			g_warning("PARQ: Legacy import of IP: %d", signed_ip);
+			g_warning(__FILE__ ": PARQ: Legacy import of IP: %d", signed_ip);
 		} else
 			sscanf(line, "IP: %u\n", &ip);
 
@@ -2729,7 +2774,7 @@ static void parq_upload_load_queue(void)
 		if (sscanf(line, "XIP: -%u\n", &xip)) {
 			sscanf(line, "XIP: %d\n", &signed_ip);
 			xip = (guint32) signed_ip;
-			g_warning("PARQ: Legacy import of XIP: %d", signed_ip);
+			g_warning(__FILE__ ": PARQ: Legacy import of XIP: %d", signed_ip);
 		} else
 			sscanf(line, "XIP: %u\n", &xip);
 
