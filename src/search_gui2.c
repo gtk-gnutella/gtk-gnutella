@@ -1286,7 +1286,7 @@ static void search_gui_menu_select(gint page)
 		lookup_widget(main_window, "treeview_menu"));
 	model = GTK_TREE_MODEL(gtk_tree_view_get_model(treeview));
 	gtk_tree_model_foreach(
-		model, (gpointer) search_gui_menu_select_helper, &mh);
+		model, search_gui_menu_select_helper, &mh);
 	selection = gtk_tree_view_get_selection(treeview);
 	gtk_tree_selection_select_iter(selection, &mh.iter);
 }
@@ -1416,23 +1416,22 @@ gboolean search_gui_search_results_col_widths_changed(property_t prop)
 gboolean search_gui_search_results_col_visible_changed(property_t prop)
 {
     guint32 *val;
-    GtkTreeView *tree_view;
+    GtkTreeView *treeview;
 
     if ((current_search == NULL) && (default_search_tree_view == NULL))
         return FALSE;
 
     val = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_VISIBLE, NULL, 0, 0);
 
-    tree_view = GTK_TREE_VIEW((current_search != NULL) ? 
+    treeview = GTK_TREE_VIEW((current_search != NULL) ? 
         current_search->tree_view : default_search_tree_view);
-/*
-    if (tree_view != NULL) {
-        gint i;
-    
-        for (i = 0; i < clist->columns; i ++)
-            gtk_clist_set_column_visibility(clist, i, val[i]);
+    if (NULL != treeview) {
+		GtkTreeViewColumn *c;
+        gint i = 0;
+  
+		for (i = 0; NULL != (c = gtk_tree_view_get_column(treeview, i)); i++) 
+            gtk_tree_view_column_set_visible(c, val[i]);
     }
-*/
     G_FREE_NULL(val);
     return FALSE;
 }
@@ -1636,7 +1635,7 @@ static void add_results_column(
 	gint id,
 	gint width,
 	gfloat xalign,
-	gpointer sortfunc)
+	gint (*sortfunc)(GtkTreeModel *, GtkTreeIter *, GtkTreeIter *, gpointer))
 {
     GtkTreeViewColumn *column;
 	GtkTreeModel *model;
@@ -1700,23 +1699,22 @@ void search_gui_init(void)
 	g_signal_connect(GTK_OBJECT(notebook_search_results), "focus_tab",
 		G_CALLBACK(on_search_notebook_focus_tab), NULL);
 
-#if 0
     /*
      * Now we restore the column visibility
      */
     {
         gint i;
-        GtkTreeView *tree_view;
+        GtkTreeView *treeview;
+        GtkTreeViewColumn *c;
 
-        tree_view = (current_search != NULL) ? 
+        treeview = (current_search != NULL) ? 
                 GTK_TREE_VIEW(current_search->tree_view) : 
                 GTK_TREE_VIEW(default_search_tree_view);
-         
-        for (i = 0; i < clist->columns; i ++)
-            gtk_clist_set_column_visibility
-                (tree_view, i, (gboolean) search_results_col_visible[i]);
+      
+		for (i = 0; NULL != (c = gtk_tree_view_get_column(treeview, i)); i++) 
+            gtk_tree_view_column_set_visible(c,
+				 (gboolean) search_results_col_visible[i]);
     }
-#endif /* 0 */
 
 #ifdef USE_SEARCH_XML
     LIBXML_TEST_VERSION
@@ -1900,25 +1898,33 @@ void search_gui_set_current_search(search_t *sch)
     reissue_timeout = search_get_reissue_timeout(sch->search_handle);
     minimum_speed = search_get_minimum_speed(sch->search_handle);
 
-#if 0
     /*
      * We now propagate the column visibility from the current_search
      * to the new current_search.
      */
     if (current_search != NULL) {
         gint i;
-        GtkCList *list;
+        GtkTreeView *treeview = GTK_TREE_VIEW(sch->tree_view);
+        GtkTreeView *treeview_old = GTK_TREE_VIEW(current_search->tree_view);
+		GtkTreeViewColumn *c;
+		GtkTreeViewColumn *old_c;
         
-        list = GTK_CLIST(current_search->clist);
+		for (
+			i = 0;
+			NULL != (c = gtk_tree_view_get_column(treeview, i)) &&
+			NULL != (old_c = gtk_tree_view_get_column(treeview_old, i));
+			i++
+		) {
+            gtk_tree_view_column_set_visible(c,
+				 gtk_tree_view_column_get_visible(old_c));
 
-        for (i = 0; i < list->columns; i ++) {
-            gtk_clist_set_column_visibility
-                (GTK_CLIST(sch->clist), i, list->column[i].visible);
+	/* FIXME: This probably better than the property listener */
+#if 0
             gtk_clist_set_column_width
                 (GTK_CLIST(sch->clist), i, list->column[i].width);
+#endif
         }
     }
-#endif /* 0 */
 
 	current_search = sch;
 	sch->unseen_items = 0;
@@ -2069,7 +2075,7 @@ static void add_results_columns (GtkTreeView *treeview)
 	add_results_column(treeview, "File", c_sr_filename, width[c_sr_filename],
 		(gfloat) 0.0, NULL);
 	add_results_column(treeview, "Size", c_sr_size, width[c_sr_size],
-		(gfloat) 1.0, (gpointer) &search_gui_compare_size_func);
+		(gfloat) 1.0, search_gui_compare_size_func);
 /*
 	add_results_column(treeview, "Speed", c_sr_speed, width[c_sr_speed],
 		(gfloat) 1.0, NULL);

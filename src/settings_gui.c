@@ -3905,9 +3905,7 @@ void settings_gui_init(void)
 
 void settings_gui_shutdown(void)
 {
-#ifndef USE_GTK2	
-    GtkCList *clist;
-#endif
+    GtkWidget *widget;
     gint n;
     search_t *current_search;
 
@@ -3940,18 +3938,37 @@ void settings_gui_shutdown(void)
     gnet_stats_divider_pos = 
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_gnet_stats")));
-#ifndef USE_GTK2
-    clist = (current_search != NULL) ? 
-        GTK_CLIST(current_search->clist) : 
-        GTK_CLIST(default_search_clist);
+#ifdef USE_GTK2
 
-    for (n = 0; n < clist->columns; n ++)
-        search_results_col_visible[n] =  clist->column[n].visible;
-#else
     results_divider_pos = 
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_results")));
-#endif 
+
+	widget = (current_search != NULL) ? 
+			GTK_WIDGET(current_search->tree_view) : 
+			GTK_WIDGET(default_search_tree_view);
+      
+	for (n = 0; /* empty */; n++) {
+		GtkTreeViewColumn *c;
+
+		c = gtk_tree_view_get_column(GTK_TREE_VIEW(widget), n);
+		if (NULL == c)
+			break;
+
+		search_results_col_visible[n] = gtk_tree_view_column_get_visible(c);
+	}
+
+#else
+
+    widget = (current_search != NULL) ? 
+        GTK_WIDGET(current_search->clist) : 
+        GTK_WIDGET(default_search_clist);
+
+    for (n = 0; n < GTK_CLIST(widget)->columns; n ++)
+        search_results_col_visible[n] =  GTK_CLIST(widget)->column[n].visible;
+
+#endif /* USE_GTK2 */
+
     /*
      * Save properties to file
      */

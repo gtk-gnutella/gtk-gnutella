@@ -26,8 +26,13 @@
 #ifndef _gtk_column_chooser_h_
 #define _gtk_column_chooser_h_ 
 
-#include <gtk/gtkclist.h>
+#include <gtk/gtk.h>
 #include <gtk/gtkmenu.h>
+#if (GTK_MAJOR_VERSION >= 2)  
+#include <gtk/gtktreeview.h>
+#else
+#include <gtk/gtkclist.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,7 +53,7 @@ typedef struct _GtkColumnChooserClass  GtkColumnChooserClass;
 struct _GtkColumnChooser {
     GtkMenu menu;
 
-    GtkCList * list;
+    GtkWidget * widget;
     GHashTable * col_map;
     gboolean closed;
 }; 
@@ -58,7 +63,7 @@ struct _GtkColumnChooserClass {
 }; 
 
 GtkType gtk_column_chooser_get_type(void);
-GtkWidget* gtk_column_chooser_new(GtkCList * list);
+GtkWidget* gtk_column_chooser_new(GtkWidget *widget);
 
 #ifdef __cplusplus
 }

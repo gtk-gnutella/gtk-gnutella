@@ -28,6 +28,7 @@
 #include "gui.h"
 #include <gdk/gdkkeysyms.h>
 
+#include "gtkcolumnchooser.h"
 #include "search_cb2.h"
 #include "search_gui.h"
 #include "statusbar_gui.h"
@@ -907,24 +908,19 @@ void on_popup_search_stop_activate
 void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
 										  gpointer user_data)
 {
-    search_t *current_search;
+    search_t *search;
 
-    current_search = search_gui_get_current_search();
-    g_return_if_fail(current_search != NULL);
-    g_assert(current_search->tree_view != NULL);
+    g_assert(NULL != menuitem);
+    search = search_gui_get_current_search();
 
-	/* FIXME: needs to work also in Gtk2 or be replaced. */
-#if 0
-    {
-        GtkWidget * cc;
+	if (NULL != search) {
+     	GtkWidget * cc;
 
-        cc = gtk_column_chooser_new(GTK_TREE_VIEW(current_search->tree_view));
+        cc = gtk_column_chooser_new(GTK_TREE_VIEW(search->tree_view));
         gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 
-        GtkColumnChooser takes care of cleaing up itself 
+        /* GtkColumnChooser takes care of cleaning up itself */
     }
-#endif
-
 }
 
 void search_callbacks_shutdown(void)
