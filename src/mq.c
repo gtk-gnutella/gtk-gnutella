@@ -17,6 +17,8 @@
 
 #define MQ_MAXIOV	256		/* Our limit on the I/O vectors we build */
 
+static void qlink_free(mqueue_t *q);
+
 /*
  * mq_make
  *
@@ -32,7 +34,7 @@ mqueue_t *mq_make(gint maxsize, struct gnutella_node *n)
 	q->node = n;
 	q->maxsize = maxsize;
 	q->lowat = maxsize >> 2;		/* 25% of max size */
-	q->hiwat = maxsize - q->lowat;	/* 75% of max size */
+	q->hiwat = maxsize >> 1;		/* 50% of max size */
 
 	return q;
 }
@@ -48,6 +50,9 @@ void mq_free(mqueue_t *q)
 
 	for (l = q->qhead; l; l = g_list_next(l))
 		pmsg_free((pmsg_t *) l->data);
+
+	if (q->qlink)
+		qlink_free(q);
 
 	g_list_free(q->qhead);
 	g_free(q);
@@ -143,14 +148,70 @@ void mq_shutdown(mqueue_t *q)
 /*
  * qlink_cmp		-- qsort() callback
  *
- * Compare two pointers to links based on their held Gnutella messages.
+ * Compare two pointers to links based on their relative priorities, then
+ * based on their held Gnutella messages.
  */
 static gint qlink_cmp(const void *lp1, const void *lp2)
 {
 	pmsg_t *m1 = (pmsg_t *) (*(GList **) lp1)->data;
 	pmsg_t *m2 = (pmsg_t *) (*(GList **) lp2)->data;
 
-	return gmsg_cmp(pmsg_start(m1), pmsg_start(m2));
+	if (pmsg_prio(m1) == pmsg_prio(m2))
+		return gmsg_cmp(pmsg_start(m1), pmsg_start(m2));
+
+	return pmsg_prio(m1) < pmsg_prio(m2) ? -1 : +1;
+}
+
+/*
+ * qlink_create
+ *
+ * Create the `qlink' sorted array of queued items.
+ */
+static void qlink_create(mqueue_t *q)
+{
+	GList **qlink;
+	GList *l;
+	gint n;
+
+	g_assert(q->qlink == NULL);
+
+	qlink = q->qlink = (GList **) g_malloc(q->count * sizeof(GList *));
+
+	/*
+	 * Prepare sorting of queued messages.
+	 *
+	 * What's sorted is queue links, but the comparison factor is the
+	 * gmsg_cmp() routine to compare the Gnutella messages.
+	 */
+
+	for (l = q->qhead, n = 0; l && n < q->count; l = g_list_next(l), n++)
+		qlink[n] = l;
+
+	if (l || n != q->count)
+		g_warning("BUG: queue count of %d for 0x%lx is wrong (found %d)",
+			q->count, (gulong) q, n);
+
+	/*
+	 * We use `n' and not `q->count' in case the warning above is emitted,
+	 * in which case we have garbage after the `n' first items.
+	 */
+
+	q->qlink_count = n;
+	qsort(qlink, n, sizeof(GList *), qlink_cmp);
+}
+
+/*
+ * qlink_free
+ *
+ * Free the `qlink' sorted array of queued items.
+ */
+static void qlink_free(mqueue_t *q)
+{
+	g_assert(q->qlink);
+
+	g_free(q->qlink);
+	q->qlink = NULL;
+	q->qlink_count = 0;
 }
 
 /*
@@ -163,11 +224,10 @@ static gint qlink_cmp(const void *lp1, const void *lp2)
  */
 static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 {
-	gint dropped = 0;
 	gchar *mb_start = pmsg_start(mb);
-	GList *l;
-	GList **qlink;
+	gint mb_prio = pmsg_prio(mb);
 	gint n;
+	gint dropped = 0;				/* Amount of messages dropped */
 
 	g_assert(needed > 0);
 
@@ -178,32 +238,19 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 	if (q->qhead == NULL)			/* Queue is empty */
 		return FALSE;
 
-	/*
-	 * Prepare sorting of queued messages.
-	 *
-	 * What's sorted is queue links, but the comparison factor is the
-	 * gmsg_cmp() routine to compare the Gnutella messages.
-	 */
+	if (q->qlink == NULL)			/* No cached sorted queue links */
+		qlink_create(q);
 
-	qlink = (GList **) g_malloc(q->count * sizeof(GList *));
-
-	for (l = q->qhead, n = 0; l && n < q->count; l = g_list_next(l), n++)
-		qlink[n] = l;
-
-	if (l)
-		g_warning("BUG: queue count of %d for 0x%lx is inaccurate",
-			q->count, (gulong) q);
-
-	qsort(qlink, q->count, sizeof(GList *), qlink_cmp);
+	g_assert(q->qlink);
 
 	/*
-	 * Now traverse the sorted links and prune as many messages as necessary.
+	 * Traverse the sorted links and prune as many messages as necessary.
 	 * Note that we try to prune at least one byte more than needed, hence
 	 * we stay in the loop even when needed reaches 0.
 	 */
 
-	for (n = 0; needed >= 0 && n < q->count; n++) {
-		pmsg_t *cmb = (pmsg_t *) qlink[n]->data;
+	for (n = 0; needed >= 0 && n < q->qlink_count; n++) {
+		pmsg_t *cmb = (pmsg_t *) q->qlink[n]->data;
 		gchar *cmb_start = pmsg_start(cmb);
 		gint cmb_size;
 
@@ -228,6 +275,15 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 			break;
 
 		/*
+		 * If we reach a message whose priority is higher than ours, stop.
+		 * A less prioritary message cannot supersed a higher priority one,
+		 * even if its embedded Gnet message is deemed less important.
+		 */
+
+		if (pmsg_prio(cmb) > mb_prio)
+			break;
+
+		/*
 		 * Drop message.
 		 */
 
@@ -239,12 +295,18 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 		cmb_size = pmsg_size(cmb);
 
 		needed -= cmb_size;
-		(void) mq_rmlink_prev(q, qlink[n], cmb_size);
+		(void) mq_rmlink_prev(q, q->qlink[n], cmb_size);
 		dropped++;
 	}
 
-	node_add_txdrop(q->node, dropped);	/* Dropped during TX */
-	g_free(qlink);
+	/*
+	 * We dispose of the `qlink' array only if we dropped something.
+	 */
+
+	if (dropped) {
+		node_add_txdrop(q->node, dropped);	/* Dropped during TX */
+		qlink_free(q);
+	}
 
 	if (dbg > 5)
 		printf("FLOWC end purge: %d bytes (count=%d) for node %s, need=%d\n",
@@ -261,6 +323,7 @@ static gboolean make_room(mqueue_t *q, pmsg_t *mb, gint needed)
 static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 {
 	gint needed;
+	gboolean has_normal_prio = (pmsg_prio(mb) == PMSG_P_DATA);
 
 	/*
 	 * If we're flow-controlled and the message can be dropped, acccept it
@@ -270,6 +333,7 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 
 	if (
 		(q->flags & MQ_FLOWC) &&
+		has_normal_prio &&
 		gmsg_can_drop(pmsg_start(mb), msize) &&
 		!make_room(q, mb, msize)
 	) {
@@ -300,20 +364,85 @@ static void mq_puthere(mqueue_t *q, pmsg_t *mb, gint msize)
 
 	/*
 	 * Enqueue message.
+	 *
+	 * A normal priority message (the large majority of messages we deal with)
+	 * is always enqueued at the tail.
+	 *
+	 * A higher priority message needs to be inserted at the right place,
+	 * near the *head* but after any partially sent message, and of course
+	 * after all enqueued messages with the same priority.
 	 */
 
-	q->qhead = g_list_prepend(q->qhead, mb);
-	if (q->qtail == NULL)
-		q->qtail = q->qhead;
+	if (has_normal_prio) {
+		q->qhead = g_list_prepend(q->qhead, mb);
+		if (q->qtail == NULL)
+			q->qtail = q->qhead;
+	} else {
+		GList *l;
+		gint prio = pmsg_prio(mb);
+		gboolean inserted = FALSE;
+
+		/*
+		 * Unfortunately, there's no g_list_insert_after() or equivalent,
+		 * so we break the GList encapsulation.
+		 */
+
+		for (l = q->qtail; l; l = l->prev) {
+			pmsg_t *m = (pmsg_t *) l->data;
+			
+			if (
+				m->m_rptr == pmsg_start(m) &&	/* Not partially written */
+				pmsg_prio(m) < prio				/* Reached insert point */
+			) {
+				/*
+				 * Insert after current item, which is less prioritary than
+				 * we are, then leave the loop.
+				 */
+
+				GList *new = g_list_alloc();
+
+				new->data = mb;
+				new->prev = l;
+				new->next = l->next;
+
+				if (l->next)
+					l->next->prev = new;
+				else {
+					g_assert(l == q->qtail);	/* Inserted at tail */
+					q->qtail = new;				/* New tail */
+				}
+				l->next = new;
+
+				inserted = TRUE;
+				break;
+			}
+		}
+
+		/*
+		 * If we haven't inserted anything, then we've reached the
+		 * head of the list.
+		 */
+
+		if (!inserted) {
+			g_assert(l == NULL);
+
+			q->qhead = g_list_prepend(q->qhead, mb);
+			if (q->qtail == NULL)
+				q->qtail = q->qhead;
+		}
+	}
+
 	q->size += msize;
 	q->count++;
 
 	/*
-	 * Check flow control indication.
+	 * Update flow control indication, and enable node.
 	 */
 
-	mq_update_flowc(q);
+	if (q->qlink)			/* Inserted something, `qlink' is stale */
+		qlink_free(q);
 
+	mq_update_flowc(q);
 	node_enableq(q->node);
 }
 
@@ -386,7 +515,11 @@ void mq_service(mqueue_t *q)
 	g_assert(r == 0 || iovsize > 0);
 	g_assert(q->size >= 0 && q->count >= 0);
 
-	node_add_sent(q->node, sent);
+	if (sent) {
+		node_add_sent(q->node, sent);
+		if (q->qlink)			/* Sent something, `qlink' is stale */
+			qlink_free(q);
+	}
 
 	/*
 	 * Update flow-control information.

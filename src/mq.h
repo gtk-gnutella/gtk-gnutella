@@ -21,11 +21,17 @@
  * Flow control is triggered when the size reaches the high watermark,
  * and remains in effect until we reach the low watermark, thereby providing
  * the necessary hysteresis.
+ *
+ * The `qlink' field is used during flow-control.  It contains a sorted (by
+ * priority) array of all the items in the list.  It is dynamically allocated
+ * and freed as needed.
  */
 typedef struct mqueue {
 	struct gnutella_node *node;		/* Node to which this queue belongs */
 	GList *qhead;			/* The queue head, new messages are prepended */
 	GList *qtail;			/* The queue tail, oldest message to send first */
+	GList **qlink;			/* Sorted array of (GList *) entries, or NULL */
+	gint qlink_count;		/* Amount of entries in `qlink' */
 	gint maxsize;			/* Maximum size of this queue (total queued) */
 	gint count;				/* Amount of messages queued */
 	gint hiwat;				/* High watermark */
@@ -38,10 +44,11 @@ typedef struct mqueue {
  * Queue flags.
  */
 
-#define MQ_FLOWC	0x00000001		/* In flow control */
-#define MQ_DISCARD	0x00000002		/* No writing, discard message */
+#define MQ_FLOWC		0x00000001	/* In flow control */
+#define MQ_DISCARD		0x00000002	/* No writing, discard message */
 
 #define mq_is_flow_controlled(q)	((q)->flags & MQ_FLOWC)
+#define mq_maxsize(q)				((q)->maxsize)
 #define mq_size(q)					((q)->size)
 #define mq_count(q)					((q)->count)
 
