@@ -4537,7 +4537,7 @@ utf8_decode_lookahead(const gchar *s, size_t len)
  *        ``size'' with the return value. The value of ``size'' MUST NOT
  *        exceed INT_MAX.
  *
- * @returns the length of completely converted string.
+ * @returns the length in characters of completely converted string.
  */
 size_t
 utf8_to_utf32(const gchar *in, guint32 *out, size_t size)
@@ -5120,10 +5120,10 @@ utf8_strupper_copy(const gchar *src)
 #ifdef USE_ICU
 
 /**
- * Convert a string from the locale encoding to internal ICU encoding (UTF32)
+ * Convert a string from the locale encoding to internal ICU encoding (UTF-16)
  */
 int
-to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout)
+locale_to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout)
 {
 	UErrorCode error = U_ZERO_ERROR;
 	int r;
@@ -5135,7 +5135,22 @@ to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout)
 }
 
 /**
- * Convert a string from ICU encoding (UTF32) to UTF8 encoding (fast)
+ * Convert a string from UTF-8 encoding to internal ICU encoding (UTF-16)
+ */
+int
+utf8_to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout)
+{
+	UErrorCode error = U_ZERO_ERROR;
+	int r;
+
+	g_assert(use_icu);
+	r = ucnv_toUChars(conv_icu_utf8, out, lenout, in, lenin, &error);
+
+	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
+}
+
+/**
+ * Convert a string from ICU encoding (UTF-16) to UTF8 encoding (fast)
  */
 int
 icu_to_utf8_conv(const UChar *in, int lenin, gchar *out, int lenout)
@@ -5366,19 +5381,14 @@ unicode_canonize(const gchar *in)
 	g_assert(use_icu);
 
 	len = strlen(in);
-	maxlen = len * 6; /* Max 6 bytes for one char in utf8 */
+	maxlen = (len + 1) * 6; /* Max 6 bytes for one char in utf8 */
 
 	g_assert(utf8_is_valid_string(in, len));
 
-	qtmp1 = (UChar *) g_malloc(maxlen*sizeof(UChar));
-	qtmp2 = (UChar *) g_malloc(maxlen*sizeof(UChar));
+	qtmp1 = (UChar *) g_malloc(maxlen * sizeof(UChar));
+	qtmp2 = (UChar *) g_malloc(maxlen * sizeof(UChar));
 
-	if (latin) {
-		len = to_icu_conv(in, len, qtmp1, maxlen);
-		len = unicode_NFC(qtmp1, len, qtmp2, maxlen);
-	} else
-		len = to_icu_conv(in, len, qtmp2, maxlen);
-
+	len = utf8_to_icu_conv(in, qtmp2, maxlen);
 	len = unicode_NFKD(qtmp2, len, qtmp1, maxlen);
 	len = unicode_upper(qtmp1, len, qtmp2, maxlen);
 	len = unicode_lower(qtmp2, len, qtmp1, maxlen);
