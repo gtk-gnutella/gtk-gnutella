@@ -110,10 +110,10 @@ typedef void (*GCallback) (void);
 #define GTA_VERSION 0
 #define GTA_SUBVERSION 93
 #define GTA_PATCHLEVEL 0
-#define GTA_REVISION "Unstable"
+#define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"
 #define GTA_INTERFACE "X11"
-#define GTA_RELEASE "20/07/2003"
+#define GTA_RELEASE "22/07/2003"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 /* If we compile from CVS (aka "unstable") we want to run from $srcdir
