@@ -150,11 +150,6 @@ tsync_got_reply(struct gnutella_node *n,
 	 * The delay for the round-trip is: (got - sent) + (received - replied)
 	 * Since we know we can't compute the reception time accurately, we
 	 * multiply the remote (negative) processing time "received - replied" by 3.
-	 *
-	 * XXX record it as TCP or UDP delay, but we need to remember the
-	 * XXX node_id of the original TCP host to which we send an UDP dgram
-	 * XXX if we want to compare TCP and UDP RTT.
-	 *		--RAM, 2004-09-28
 	 */
 
 	delay = *got;				/* Struct copy */
