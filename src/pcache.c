@@ -930,6 +930,9 @@ static void pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 		if (!NODE_IS_LEAF(cn))
 			continue;
 
+		if (NODE_IN_TX_FLOW_CONTROL(cn))	/* Already overwhelmed */
+			continue;
+
 		/*
 		 * Randomly select one leaf.
 		 *
