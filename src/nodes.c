@@ -59,6 +59,7 @@
 #include "pcache.h"
 #include "bsched.h"
 #include "atoms.h"
+#include "http.h"
 
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
@@ -1241,7 +1242,7 @@ static gboolean analyse_status(struct gnutella_node *n, gint *code)
 
 	status = getline_str(s->getline);
 
-	ack_code = parse_status_line(status, "GNUTELLA",
+	ack_code = http_status_parse(status, "GNUTELLA",
 		&ack_message, &major, &minor);
 
 	if (code)
