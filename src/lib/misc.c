@@ -588,8 +588,8 @@ compact_size(guint64 size)
 	static gchar buf[64];
 	gchar sizebuf[48];
 
-	gm_snprintf(buf, sizeof buf, "%s%s",
-		compact_value(sizebuf, sizeof sizebuf, size), size < 1024 ? "B" : "");
+	gm_snprintf(buf, sizeof buf, "%sB",
+		compact_value(sizebuf, sizeof sizebuf, size));
 	return buf;
 }
 
