@@ -44,6 +44,7 @@
 #include "fileinfo.h"
 #include "guid.h"
 #include "dq.h"
+#include "dh.h"
 #include "gui_property.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -386,6 +387,13 @@ static gnet_results_set_t *get_results_set(
                 ip_to_gchar(rs->ip));
         }
 		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
+		goto bad_packet;
+	}
+
+	/* Drop if no results in Query Hit */
+
+	if (rs->num_recs == 0) {
+        gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
 		goto bad_packet;
 	}
 
@@ -1454,14 +1462,19 @@ void search_shutdown(void)
  * search_results
  *
  * This routine is called for each Query Hit packet we receive.
+ *
  * Returns whether the message should be dropped, i.e. FALSE if OK.
+ * If the message should not be dropped, `results' is filled with the
+ * amount of results contained in the query hit.
  */
-gboolean search_results(gnutella_node_t *n)
+gboolean search_results(gnutella_node_t *n, gint *results)
 {
 	gnet_results_set_t *rs;
 	GSList *selected_searches = NULL;
 	GSList *sl;
 	gboolean drop_it = FALSE;
+
+	g_assert(results != NULL);
 
 	/*
 	 * Look for all the searches, and put the ones we need to possibly
@@ -1507,6 +1520,8 @@ gboolean search_results(gnutella_node_t *n)
 		goto final_cleanup;
 	}
 
+	*results = rs->num_recs;
+
 	/*
 	 * If we're handling a message from our immediate neighbour, grab the
 	 * vendor code from the QHD.  This is useful for 0.4 handshaked nodes
@@ -1521,9 +1536,13 @@ gboolean search_results(gnutella_node_t *n)
 	/*
 	 * Let dynamic querying know about the result count, in case
 	 * there is a dynamic query opened for this.
+	 *
+	 * Also pass the results to the dynamic query hit monitoring
+	 * to be able to throttle messages if we get too many hits.
 	 */
 
 	dq_got_results(n->header.muid, rs->num_recs);
+	dh_got_results(n->header.muid, rs->num_recs);
 
     /*
      * Look for records that match entries in the download queue.
