@@ -669,6 +669,17 @@ prop = {
 };
 
 prop = {
+    name = "bw_gnet_leaf_in_enabled";
+    cfgvar = "bandwidth_glinput_limit";
+    desc = "Enable bandwidth limitation for incoming Gnet leaf traffic";
+    type = boolean;
+    data = {
+        default = FALSE;
+        value   = bws_glin_enabled;
+    };
+};
+
+prop = {
     name = "bw_gnet_out_enabled";
     cfgvar = "bandwidth_goutput_limit";
     desc = "Enable bandwidth limitation for outgoing Gnet traffic";
@@ -676,6 +687,17 @@ prop = {
     data = {
         default = FALSE;
         value   = bws_gout_enabled;
+    };
+};
+
+prop = {
+    name = "bw_gnet_leaf_out_enabled";
+    cfgvar = "bandwidth_gloutput_limit";
+    desc = "Enable bandwidth limitation for outgoing Gnet leaf traffic";
+    type = boolean;
+    data = {
+        default = FALSE;
+        value   = bws_glout_enabled;
     };
 };
 
@@ -905,7 +927,7 @@ prop = {
     desc = "Bandwidth limit for incoming HTTP traffic in bytes/sec";
     type = guint32;
     data = {
-        default = 1024;
+        default = 8192;
         min     = 1024;
         max     = BS_BW_MAX;
     };
@@ -917,7 +939,7 @@ prop = {
     desc = "Bandwidth limit for outgoing HTTP traffic in bytes/sec";
     type = guint32;
     data = {
-        default = 1024;
+        default = 8192;
         min     = 1024;
         max     = BS_BW_MAX;
     };
@@ -929,7 +951,7 @@ prop = {
      desc = "Bandwidth limit for incoming gNet traffic in bytes/sec";
      type = guint32;
      data = {
-        default = 1024;
+        default = 8192;
         min     = 1024;
         max     = BS_BW_MAX;
     };
@@ -941,7 +963,37 @@ prop = {
     desc = "Bandwidth limit for outgoing gNet traffic in bytes/sec";
     type = guint32;
     data = {
-        default = 1024;
+        default = 8192;
+        min     = 1024;
+        max     = BS_BW_MAX;
+    };
+};
+
+prop = {
+     name = "bw_gnet_lin";
+     cfgvar = "input_gnet_leaf_bandwidth";
+     desc = "Bandwidth limit for incoming gNet leaf traffic in bytes/sec. "
+			"When not running as an ultra node, this bandwidth is given "
+			"to the regular gNet traffic, whether or not the shaper for "
+			"leaves is enabled.";
+     type = guint32;
+     data = {
+        default = 3072;
+        min     = 1024;
+        max     = BS_BW_MAX;
+    };
+};
+
+prop = {
+    name = "bw_gnet_lout";
+    cfgvar = "output_gnet_leaf_bandwidth";
+    desc = "Bandwidth limit for outgoing gNet leaf traffic in bytes/sec. "
+			"When not running as an ultra node, this bandwidth is given "
+			"to the regular gNet traffic, whether or not the shaper for "
+			"leaves is enabled.";
+    type = guint32;
+    data = {
+        default = 2048;
         min     = 1024;
         max     = BS_BW_MAX;
     };
