@@ -4,7 +4,7 @@
 
 package=gtk-gnutella
 
-OPTFLAGS=-O2 -g -Wall
+OPTFLAGS=-O2 -g
 EXTRA_FLAGS=
 
 ifeq ($(DEB_BUILD_ARCH), alpha)
@@ -12,11 +12,11 @@ ifeq ($(DEB_BUILD_ARCH), alpha)
 endif
 
 
-BUILDFLAGS=$(OPTFLAGS) $(EXTRA_FLAGS)
-
 build:
 	$(checkdir)
-	CFLAGS="$(BUILDFLAGS)" ./configure --enable-xml-store --prefix=/usr
+	rm -f config.sh
+	./Configure -Dccflags="-Wall $(EXTRA_FLAGS)" -Doptimize="$(OPTFLAGS)" \
+		-Dprefix=/usr -Dprivlib=/usr/share/gtk-gnutella -ders
 	$(MAKE)
 #	cp menu.ex debian/tmp/usr/lib/menu/xtranslate 
 	touch build
@@ -24,7 +24,7 @@ build:
 clean:
 	$(checkdir)
 	-rm -f build
-	-$(MAKE) distclean
+	-$(MAKE) clobber
 	-rm -f `find . -name "*~"`
 	-rm -rf debian/tmp debian/files* core debian/substvars
 
@@ -39,7 +39,7 @@ binary-arch: checkroot build
 	-rm -rf debian/tmp
 	install -d debian/tmp
 	cd debian/tmp && install -d `cat ../dirs`
-	$(MAKE) install prefix=`pwd`/debian/tmp/usr
+	$(MAKE) install INSTALL_PREFIX=`pwd`/debian/tmp
 	strip --remove-section=.comment --remove-section=.note `pwd`/debian/tmp/usr/bin/gtk-gnutella
 # Must have debmake installed for this to work. Otherwise please copy
 # /usr/bin/debstd into the debian directory and change debstd to debian/debstd
