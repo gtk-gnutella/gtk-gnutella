@@ -46,14 +46,6 @@
 
 RCSID("$Id$");
 
-static hashtree *recurse_find_free_node(hashtree *parent);
-static void		 recurse_build_hash_tree(hashtree *parent);
-static void		 build_empty_tree(hashtree *parent);
-static hashtree *find_or_create_free_leaf_node(hashtree *parent);
-static void		 recurse_free_node(hashtree *node);
-static void		 hashtree_free_node(hashtree *node);
-static hashtree *create_free_leaf_node(hashtree *parent);
-
 node_t *node_new();
 void node_destroy(node_t *node);
 node_t *find_free_leaf_node(node_t *node);

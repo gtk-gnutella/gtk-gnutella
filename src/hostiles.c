@@ -58,7 +58,6 @@ static GSList *hostiles_narrow[256];	/* Indexed by FIRST byte */
 static guint hostile_hash(gconstpointer key)
 {
 	const struct hostile *h = key;
-	guint32 hash;
 
 	return (guint) (h->ip_masked ^ h->netmask);
 }
@@ -266,4 +265,3 @@ gboolean hostiles_check(guint32 ip)
 
 	return FALSE;
 }
-

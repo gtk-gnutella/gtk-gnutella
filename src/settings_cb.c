@@ -177,7 +177,7 @@ void on_entry_server_hostname_activate
     (GtkEditable *editable, gpointer user_data)
 {
    	gchar *e;
-	guint32 ip;
+
 	e = gtk_editable_get_chars(
         GTK_EDITABLE(lookup_widget(main_window, "entry_server_hostname")), 
         0, -1);
@@ -277,4 +277,3 @@ void on_popup_search_toggle_tabs_activate
     val = !val;
     gui_prop_set_boolean(PROP_SEARCH_RESULTS_SHOW_TABS, &val, 0, 1);
 }
-

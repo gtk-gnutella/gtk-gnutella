@@ -1069,7 +1069,7 @@ gint bio_write(bio_source_t *bio, gconstpointer data, gint len)
 
 	if (r == -1 && errno == 0) {
 		g_warning("write(fd=%d, len=%d) returned -1 with errno = 0, "
-			"assuming EAGAIN", bio->fd, data);
+			"assuming EAGAIN", bio->fd, len);
 		errno = EAGAIN;
 	}
 
@@ -1794,4 +1794,3 @@ gboolean bsched_enough_up_bandwidth(void)
 
 	return TRUE;
 }
-

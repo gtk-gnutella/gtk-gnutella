@@ -227,7 +227,6 @@ gboolean http_send_status(
 void http_hostname_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
-	gchar host_tmp[256];
 	gint length = *retval;
 	gint rw;
 

@@ -134,7 +134,6 @@ gchar *ip_port_to_gchar(guint32 ip, guint16 port)
 gchar *hostname_port_to_gchar(const gchar *hostname, guint16 port)
 {
 	static gchar a[300];
-	size_t len;
 
 	gm_snprintf(a, sizeof(a), "%.255s:%u", hostname, port);
 	return a;
@@ -1256,7 +1255,7 @@ gint do_stat(const gchar *path, struct stat *buf)
 			"assuming ENOENT", path, do_errno, g_strerror(do_errno));
 		do_errno = errno = ENOENT;
 		break;
-	defaul:
+	default:
 		break;
 	}
 
@@ -1266,4 +1265,3 @@ gint do_stat(const gchar *path, struct stat *buf)
 
 	return ret;
 }
-

@@ -40,6 +40,9 @@
 #include "settings_gui.h"
 #include "statusbar_gui.h"
 
+/* Core includes */
+#include "search.h"
+
 /* System includes */
 #include <ctype.h>
 #include <gtk/gtk.h>

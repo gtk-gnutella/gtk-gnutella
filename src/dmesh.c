@@ -1069,7 +1069,6 @@ gint dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
 		gint npick = random_value(nleft - 1);
 		gint k;
 		gint n;
-		gint url_len;
 
 		/*
 		 * The `npick' variable is the index of the selected entry, all

@@ -840,12 +840,8 @@ void on_popup_search_stop_activate
     search_t *search;
 
     search = search_gui_get_current_search();
-	if (search) {
-        GtkCList * clist_search = GTK_CLIST
-            (lookup_widget(main_window, "clist_search"));
-
+	if (search)
 		gui_search_set_enabled(search, FALSE);
-	}
 }
 
 void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,

@@ -469,7 +469,6 @@ static void adns_async_write_free(adns_async_write_t *remain)
 static void adns_query_callback(
 		gpointer data, gint dest, inputevt_cond_t condition)
 {
-	static size_t n = 0;
 	adns_async_write_t *remain = data;
 
 	g_assert(NULL != remain);
@@ -672,7 +671,7 @@ gboolean adns_resolve(
 
 fallback:
 	g_warning("adns_resolve: using synchronous resolution for \"%s\"",
-		query.data);
+		(gchar *) query.data);
 
 	adns_fallback(&query);
 
@@ -689,4 +688,3 @@ void adns_close(void)
 	inputevt_remove(adns_reply_event_id);
 	adns_cache = adns_cache_free(adns_cache);
 }
-

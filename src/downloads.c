@@ -1783,7 +1783,6 @@ static void download_remove_from_server(struct download *d, gboolean reclaim)
  */
 static void download_reparent(struct download *d, struct dl_server *new_server)
 {
-	struct dl_server *server;
 	enum dl_list list_idx;
 
 	g_assert(d);
@@ -7020,7 +7019,6 @@ static void download_retrieve(void)
 	gboolean allow_comments = TRUE;
 	gchar *parq_id = NULL;
 	struct download *d;
-	gchar *p;
 
 	file_path_set(&fp, settings_config_dir(), download_file);
 	in = file_config_open_read(file_what, &fp, 1);

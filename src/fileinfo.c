@@ -32,6 +32,7 @@
 #include "downloads_gui.h"
 #include "sockets.h"
 #include "downloads.h"
+#include "uploads.h"
 #include "hosts.h"
 #include "header.h"
 #include "routing.h"
@@ -597,7 +598,6 @@ static void fi_free(struct dl_file_info *fi)
 static void fi_resize(struct dl_file_info *fi, guint32 size)
 {
 	struct dl_file_chunk *fc;
-	struct dl_file_info *xfi;
 
 	g_assert(fi);
 	g_assert(fi->size < size);
@@ -630,7 +630,6 @@ static void fi_resize(struct dl_file_info *fi, guint32 size)
 static void fi_alias(struct dl_file_info *fi, gchar *name, gboolean record)
 {
 	namesize_t nsk;
-	struct dl_file_info *xfi;
 	GSList *list;
 
 	g_assert(fi);
@@ -741,7 +740,7 @@ static gboolean file_info_get_trailer(
 gboolean file_info_has_trailer(const gchar *path)
 {
 	gint fd;
-	struct stat buf;
+	struct stat;
 	struct trailer trailer;
 	gboolean valid;
 
@@ -1040,8 +1039,7 @@ static struct dl_file_info *file_info_retrieve_binary(
 	gint fd;
 	guint32 version;
 	struct trailer trailer;
-	guint32 toffset;
-	struct stat buf;
+	struct stat;
 
 	pathname = g_strdup_printf("%s/%s", path, file);
 	g_return_val_if_fail(NULL != pathname, NULL);

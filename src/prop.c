@@ -493,7 +493,7 @@ void prop_set_guint64(
 		g_error("prop_set_guint64: unknown property %d", prop);
 	if((PROP(ps,prop).type != PROP_TYPE_GUINT64) )
 		g_error("Type mismatch setting value for [%s] of type" 
-			" %s when %s, %s or %s was expected",
+			" %s when %s was expected",
 			PROP(ps,prop).name,
 			prop_type_str[PROP(ps,prop).type],
 			prop_type_str[PROP_TYPE_GUINT64]);
@@ -532,7 +532,7 @@ void prop_set_guint64(
 					newval = PROP(ps,prop).data.guint64.min;
 	
 				g_warning("prop_set_guint64: [%s] new value out of bounds "
-					"(%u/%u): %u (adjusting to %u)",
+					"(%llu/%llu): %llu (adjusting to %llu)",
 					PROP(ps,prop).name,
 					PROP(ps,prop).data.guint64.min,
 					PROP(ps,prop).data.guint64.max,
@@ -556,7 +556,7 @@ void prop_set_guint64(
 					PROP(ps,prop).data.guint64.value[n]),
 					(n < (PROP(ps,prop).vector_size-1)) ? "," : "");
 			} else {
-				printf("%u%s ", PROP(ps,prop).data.guint64.value[n],
+				printf("%llu%s ", PROP(ps,prop).data.guint64.value[n],
 					(n < (PROP(ps,prop).vector_size-1)) ? "," : "");
 			}
 		}
@@ -579,7 +579,7 @@ guint64 *prop_get_guint64(
 		g_error("prop_get_guint64: unknown property %d", prop);
 	if((PROP(ps,prop).type != PROP_TYPE_GUINT64))
 		g_error("Type mismatch setting value for [%s] of type" 
-			" %s when %s, %s or %s was expected",
+			" %s when %s was expected",
 			PROP(ps,prop).name,
 			prop_type_str[PROP(ps,prop).type],
 			prop_type_str[PROP_TYPE_GUINT64]);
@@ -955,7 +955,7 @@ gchar *prop_to_string(prop_set_t *ps, property_t prop)
 		
 			prop_get_guint64(ps, prop, &val, 0, 1);
 
-			gm_snprintf(s, sizeof(s), "%u", val);
+			gm_snprintf(s, sizeof(s), "%llu", val);
 			break;
 		}
 		case PROP_TYPE_STRING: {
@@ -1205,7 +1205,7 @@ void prop_save_to_file(
 			break;
 		case PROP_TYPE_GUINT64:
 			for (i = 0; i < p->vector_size; i++) {
-				gm_snprintf(sbuf, sizeof(sbuf), "%u", 
+				gm_snprintf(sbuf, sizeof(sbuf), "%llu", 
 						p->data.guint64.value[i]);
 				vbuf[i] = g_strdup(sbuf);
 			}

@@ -34,6 +34,9 @@
 #include "search_gui.h"
 #include "settings_gui.h"
 
+/* Core includes */
+#include "search.h"
+
 #ifdef HAS_LIBXML2
 #include "search_xml.h"
 #include <libxml/parser.h>
@@ -973,4 +976,3 @@ void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
 		}
 	}
 }
-

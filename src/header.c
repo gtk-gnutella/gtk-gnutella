@@ -835,10 +835,6 @@ void header_get_feature(const gchar *feature_name, const header_t *header,
 {
 	gchar *buf = NULL;
 	
-	gchar *end = NULL;
-	gchar *major = NULL;
-	gchar *minor = NULL;
-	
 	*feature_version_major = 0;
 	*feature_version_minor = 0;
 
