@@ -226,7 +226,7 @@ static void fi_gui_fill_status(
         titles[c_fi_status] = _("No sources");
     } else if (s.aqueued_count || s.pqueued_count) {
         gm_snprintf(fi_status, sizeof(fi_status), 
-            _("Queued (%d active/ %d passive)"),
+            _("Queued (%d active, %d passive)"),
             s.aqueued_count, s.pqueued_count);
         titles[c_fi_status] = fi_status;
     } else {
