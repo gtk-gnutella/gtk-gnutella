@@ -1447,7 +1447,6 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 	gui_record_t *parent_grc;
 	gui_record_t *child_grc;
 	record_t *rc;
-	record_t *child_rc;
 	GtkCTreeRow *row;
 	GtkCTreeRow *child_row;
 	GtkCTreeNode *child_node;
