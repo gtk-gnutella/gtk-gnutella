@@ -7,6 +7,7 @@ AM_CONFIG_HEADER(config.h)
 
 AC_ISC_POSIX
 AC_PROG_CC
+AC_PROG_CPP
 AM_PROG_CC_STDC
 AC_HEADER_STDC
 AC_PROG_YACC
@@ -125,10 +126,8 @@ AC_CHECK_FUNCS(strcasestr)
 AC_CHECK_FUNCS(srandom random)
 
 dnl Checks for sys/sendfile.h
-AC_CHECK_HEADER(sys/sendfile.h, [have_sendfile_h=yes], [have_sendfile_h=no])
-if test "$have_sendfile_h" = yes; then
-    AC_DEFINE(HAVE_SENDFILE_H)
-fi
+AC_CHECK_FUNC(sendfile, , AC_CHECK_LIB(sendfile, sendfile,
+        [LIBS="-lsendfile $LIBS"]))
 
 dnl Checks for ctype.h
 AC_CHECK_HEADER(ctype.h, [have_ctype_h=yes], [have_ctype_h=no])
@@ -137,7 +136,10 @@ if test "$have_ctype_h" = yes; then
 fi
 
 dnl Checks for zlib.h
-AC_CHECK_HEADER(zlib.h, [have_zlib_h=yes], [have_zlib_h=no])
+
+  AC_CHECK_HEADER(zlib.h,
+      AC_CHECK_LIB(z, deflate, [have_zlib_h=yes], [have_zlib_h=no]))
+
 if test "$have_zlib_h" = no; then
     echo "Missing zlib.h -- you need to install zlib from www.zlib.org"
 fi
@@ -148,12 +150,16 @@ src/Makefile
 gtk-gnutella.spec
 ])
 
-echo -e "\n\nFeature summary:\n---------------\n"
-echo -e "Frontend                 :   $frontend"
-echo -n "Persistant filters       :   "
+echo ""
+echo ""
+echo "Feature summary:"
+echo "---------------"
+echo ""
+echo "Frontend                 :   $frontend"
+msg="Persistant filters       :  "
 if test "x$enable_xml_store" = "xno" ; then
     if test "x$XML_CONFIG" = "xno" ; then
-        echo "no (libxml2 missing)"
+        echo "$msg no (libxml2 missing)"
 	echo "NOTE: filters will not be persisted. You should seriously consider"
 	echo "      installing libxml2 as the filters are a central element of"
 	echo "      gtk-gnutella and you WILL want that they are kept across"
@@ -161,26 +167,25 @@ if test "x$enable_xml_store" = "xno" ; then
 	echo "      development package, you can get the sources here:"
 	echo "      http://www.libxml.org"
     else
-	echo "no (you must know)"
+	echo "$msg no (you must know)"
     fi
 else
-    echo "yes"
+    echo "$msg yes"
 fi	
 
-echo -n "RFC1918 avoidance        :   "
+msg="RFC1918 avoidance        :  "
 if test "x$enable_no_rfc1918" = "xno" ; then
-    echo "no"
+    echo "$msg no"
 else
-    echo "yes"
+    echo "$msg yes"
 fi
 
-echo -n "gNet traffic compression :   "
+msg="gNet traffic compression :  "
 if test "$have_zlib_h" = no ; then
-    echo "no (you need to install zlib from www.zlib.org)"
+    echo "$msg no (you need to install zlib from www.zlib.org)"
 else
-    echo "yes"
+    echo "$msg yes"
 fi
 
-echo -e "\n\n"
-
-    
+echo ""
+echo ""

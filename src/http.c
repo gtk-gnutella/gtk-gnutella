@@ -460,6 +460,8 @@ gboolean http_url_parse(
 	static gchar hostname[MAX_HOSTLEN + 1];
 	gboolean numeric_host = FALSE;
 
+	g_assert(url != NULL);
+
 	if (0 != strncasecmp(url, "http://", 7))
 		return FALSE;
 

@@ -272,7 +272,8 @@ void on_button_filter_add_rule_clicked(
 
         /* modify row */
         oldrule = (rule_t *) 
-            gtk_clist_get_row_data(clist_filter_rules, (gint)l->data);
+            gtk_clist_get_row_data(clist_filter_rules, 
+					(gint) l->data);
         g_assert(oldrule != NULL);
         
         filter_replace_rule_in_session(work_filter, oldrule, r);

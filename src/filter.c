@@ -984,11 +984,11 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
 		if (r->u.size.lower == 0)
 			g_snprintf(tmp, sizeof(tmp),
 				"If filesize is smaller than %d (%s)",
-				r->u.size.upper, short_size(r->u.size.upper));
+				(gint) r->u.size.upper, short_size(r->u.size.upper));
 		else if (r->u.size.upper == r->u.size.lower)
 			g_snprintf(tmp, sizeof(tmp),
 				"If filesize is exactly %d (%s)",
-				r->u.size.upper, short_size(r->u.size.upper));
+				(gint) r->u.size.upper, short_size(r->u.size.upper));
         else {
             gchar *s1;
             gchar *s2;
@@ -998,7 +998,7 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
     
 			g_snprintf(tmp, sizeof(tmp),
 				"If filesize is between %d and %d (%s - %s)",
-				r->u.size.lower, r->u.size.upper, s1, s2);
+				(gint) r->u.size.lower, (int)r->u.size.upper, s1, s2);
 
             g_free(s1);
             g_free(s2);

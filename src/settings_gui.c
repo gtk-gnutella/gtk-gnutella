@@ -2522,7 +2522,7 @@ static void settings_gui_init_prop_map(void)
 
     if (gui_debug >= 2) {
         printf("settings_gui_init_prop_map: property_map size: %u\n", 
-            PROP_MAP_SIZE);
+            (guint) PROP_MAP_SIZE);
     }
 
     /*

@@ -1036,7 +1036,7 @@ static void file_info_store_one(FILE *f, struct dl_file_info *fi)
 		fprintf(f, "CHA1 %s\n", sha1_base32(fi->cha1));
 	fprintf(f, "SIZE %u\n", fi->size);
 	fprintf(f, "DONE %u\n", fi->done);
-	fprintf(f, "TIME %lu\n", fi->stamp);
+	fprintf(f, "TIME %lu\n", (gulong) fi->stamp);
 	fprintf(f, "SWRM %u\n", fi->use_swarming);
   
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {

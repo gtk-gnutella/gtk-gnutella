@@ -151,6 +151,7 @@ static void gwc_add(gchar *url)
 	if (++gwc_url_slot >= MAX_GWC_URLS)
 		gwc_url_slot = 0;
 
+	g_assert(url != NULL);
 	url_atom = atom_str_get(url);
 
 	/*
@@ -412,8 +413,10 @@ void gwc_init(void)
  *
  * Ensures that we have a valid `current_url' or pick a new one.
  * Also force change a the current URL after too many uses.
+ *
+ * Returns TRUE if we got a valid URL.
  */
-static void check_current_url(void)
+static gboolean check_current_url(void)
 {
 	if (current_url == NULL || current_reused >= MAX_GWC_REUSE) {
 		/*
@@ -421,10 +424,14 @@ static void check_current_url(void)
 		 * in the cache at any time: we could be using a cache even after
 		 * its entry has been superseded.
 		 */
-		current_url = atom_str_get(gwc_pick());
+		gchar *ptr = gwc_pick();
+
+		current_url = ptr == NULL ? NULL : atom_str_get(ptr);
 		current_reused = 0;
 	} else
 		current_reused++;
+
+	return current_url != NULL;
 }
 
 /*
@@ -707,7 +714,8 @@ static void gwc_get_urls(void)
 
 	g_assert(urlfile_retry_ev == NULL);
 
-	check_current_url();
+	if (!check_current_url())
+		return;
 
 	g_snprintf(gwc_tmp, sizeof(gwc_tmp),
 		"%s?urlfile=1&%s", current_url, client_info);
@@ -825,7 +833,8 @@ void gwc_get_hosts(void)
 	if (hostfile_running)
 		return;
 
-	check_current_url();
+	if (!check_current_url())
+		return;
 
 	g_snprintf(gwc_tmp, sizeof(gwc_tmp),
 		"%s?hostfile=1&%s", current_url, client_info);
@@ -1027,7 +1036,8 @@ static void gwc_seed_cache(gchar *cache_url)
  */
 static void gwc_update_ip_url(void)
 {
-	check_current_url();
+	if (!check_current_url())
+		return;
 	gwc_update_this(current_url);
 }
 

@@ -189,7 +189,7 @@ static void add_persistent_cache_entry(
 		fprintf(persistent_cache, "%s", sha1_persistent_cache_file_header);
 
 	fprintf(persistent_cache, "%s\t%lu\t%ld\t%s\n",
-		sha1_base32(digest), (gulong) size, mtime, file_name);
+		sha1_base32(digest), (gulong) size, (glong) mtime, file_name);
 	fclose(persistent_cache);
 }
 
@@ -208,7 +208,8 @@ static void dump_cache_one_entry(
 		return;
 
 	fprintf(persistent_cache, "%s\t%lu\t%ld\t%s\n",
-		sha1_base32(e->digest), (gulong) e->size, e->mtime, e->file_name);
+		sha1_base32(e->digest), (gulong) e->size, (glong) e->mtime, 
+			e->file_name);
 }
 
 /*

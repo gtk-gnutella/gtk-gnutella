@@ -1033,18 +1033,18 @@ struct socksent {
 } __attribute__((__packed__));
 
 struct sockreq {
-	int8_t version;
-	int8_t command;
-	int16_t dstport;
-	int32_t dstip;
+	gint8 version;
+	gint8 command;
+	gint16 dstport;
+	gint32 dstip;
 	/* A null terminated username goes here */
 } __attribute__((__packed__));
 
 struct sockrep {
-	int8_t version;
-	int8_t result;
-	int16_t ignore1;
-	int32_t ignore2;
+	gint8 version;
+	gint8 result;
+	gint16 ignore1;
+	gint32 ignore2;
 } __attribute__((__packed__));
 
 int send_socks(struct gnutella_socket *s)
@@ -1341,11 +1341,11 @@ int connect_socksv5(struct gnutella_socket *s)
 		offset = 0;
 		buf[offset] = '\x01';
 		offset++;
-		buf[offset] = (int8_t) strlen(uname);
+		buf[offset] = (gint8) strlen(uname);
 		offset++;
 		memcpy(&buf[offset], uname, strlen(uname));
 		offset = offset + strlen(uname);
-		buf[offset] = (int8_t) strlen(upass);
+		buf[offset] = (gint8) strlen(upass);
 		offset++;
 		memcpy(&buf[offset], upass, strlen(upass));
 		offset = offset + strlen(upass);
@@ -1419,7 +1419,7 @@ int connect_socksv5(struct gnutella_socket *s)
 		/* See the connection succeeded */
 		if (buf[1] != '\x00') {
 			show_error("SOCKS connect failed: ");
-			switch ((int8_t) buf[1]) {
+			switch ((gint8) buf[1]) {
 			case 1:
 				show_error("General SOCKS server failure\n");
 				return (ECONNABORTED);

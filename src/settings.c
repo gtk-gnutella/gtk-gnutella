@@ -88,7 +88,8 @@ static void settings_callbacks_shutdown(void);
 static void ensure_unicity(gchar *file)
 {
 	FILE *fd;
-	pid_t pid = (pid_t) 0;
+	pid_t pid;
+	glong  pid_value = 0; 
 	gchar buf[16];
 
 	fd = fopen(file, "r");
@@ -97,7 +98,8 @@ static void ensure_unicity(gchar *file)
 
 	buf[0] = '\0';
 	fgets(buf, sizeof(buf) - 1, fd);
-	sscanf(buf, "%d", &pid);
+	sscanf(buf, "%ld", &pid_value);
+	pid = pid_value; 
 	fclose(fd);
 
 	if (pid == 0)
@@ -116,8 +118,8 @@ static void ensure_unicity(gchar *file)
 	}
 
 	fprintf(stderr,
-		"You seem to have left another gtk-gnutella running (pid = %d)\n",
-		pid);
+		"You seem to have left another gtk-gnutella running (pid = %ld)\n",
+		(glong) pid);
 	exit(1);
 }
 
@@ -847,7 +849,7 @@ static void settings_callbacks_init(void)
 
     if (debug >= 2) {
         printf("settings_callbacks_init: property_map size: %u\n", 
-            PROPERTY_MAP_SIZE);
+            (guint) PROPERTY_MAP_SIZE);
     }
 
     for (n = 0; n < PROPERTY_MAP_SIZE; n ++) {
@@ -898,6 +900,5 @@ static void settings_callbacks_shutdown(void)
     }
 }
 
- 
-
 /* vi: set ts=4: */
+
