@@ -1343,12 +1343,17 @@ static void node_is_now_connected(struct gnutella_node *n)
 		pcache_outgoing_connection(n);	/* Will send proper handshaking ping */
 
 	/*
+	 * If node supports vendor-specific messages, advertise the set we support.
+	 * 
 	 * If we are firewalled, and remote node supports vendor-specific
 	 * messages, send a connect back, to see whether we are firewalled.
 	 */
 
-	if (is_firewalled && (n->attrs & NODE_A_CAN_VENDOR))
-		vmsg_send_connect_back(n, listen_port);
+	if (n->attrs & NODE_A_CAN_VENDOR) {
+		vmsg_send_messages_supported(n);
+		if (is_firewalled)
+			vmsg_send_connect_back(n, listen_port);
+	}
 
 	/*
 	 * Update the GUI.

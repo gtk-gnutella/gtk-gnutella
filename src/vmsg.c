@@ -75,6 +75,17 @@ static struct vmsg_known vmsg_map[] = {
 #define END(v)		(v - 1 + sizeof(v) / sizeof(v[0]))
 
 /*
+ * Items in the "Message Supported" vector.
+ */
+struct vms_item {
+	guint32 vendor;
+	guint16 selector_id;
+	guint16 version;
+};
+
+#define VMS_ITEM_SIZE	8		/* Each entry is 8 bytes (4+2+2) */
+
+/*
  * find_message
  *
  * Find message, given vendor code, and id, version.
@@ -189,8 +200,76 @@ static guchar *vmsg_fill_type(
 static void handle_messages_supported(struct gnutella_node *n,
 	guint16 version, guchar *payload, gint size)
 {
+	guint16 count;
+
+	READ_GUINT16_LE(payload, count);
+
+	if (dbg > 2)
+		printf("VMSG node %s <%s> supports %u vendor message%s\n",
+			node_ip(n), n->vendor ? n->vendor : "????", count,
+			count == 1 ? "" : "s");
+
+	if (size != sizeof(count) + count * VMS_ITEM_SIZE) {
+		g_warning("bad payload length in \"Messages Supported\" from %s <%s>: "
+			"expected %d bytes in vector for %d item%s, got %d",
+			node_ip(n), n->vendor ? n->vendor : "????",
+			count * VMS_ITEM_SIZE, count, count == 1 ? "" : "s",
+			size - sizeof(count));
+		return;
+	}
+
 	// XXX
 	g_warning("handle_messages_supported not implemented yet!");
+}
+
+/*
+ * vmsg_send_messages_supported
+ *
+ * Send a "Messages Supported" message to specified node, telling it which
+ * subset of the vendor messages we can understand.  We don't send information
+ * about the "Messages Supported" message itself, since this one is guarateeed
+ * to be always understood
+ */
+void vmsg_send_messages_supported(struct gnutella_node *n)
+{
+	struct gnutella_msg_vendor *vms = (struct gnutella_msg_vendor *) v_tmp;
+	guint16 count = G_N_ELEMENTS(vmsg_map) - 1;
+	guint32 paysize = sizeof(vms->data) + sizeof(count) + count * VMS_ITEM_SIZE;
+	guint32 msgsize = paysize + sizeof(vms->header);
+	guchar *payload;
+	gint i;
+
+	g_assert(sizeof(v_tmp) >= msgsize);
+
+	vmsg_fill_header(&vms->header, paysize);
+	payload = vmsg_fill_type(&vms->data, T_0000, 0, 0);
+
+	/*
+	 * First 2 bytes is the number of entries in the vector.
+	 */
+
+	WRITE_GUINT16_LE(count, payload);
+	payload += 2;
+
+	/*
+	 * Fill one entry per message type supported, excepted ourselves.
+	 */
+
+	for (i = 0; i < G_N_ELEMENTS(vmsg_map); i++) {
+		struct vmsg_known *msg = &vmsg_map[i];
+
+		if (msg->vendor == T_0000)		/* Don't send info about ourselves */
+			continue;
+
+		WRITE_GUINT32_BE(msg->vendor, payload);
+		payload += 4;
+		WRITE_GUINT16_LE(msg->id, payload);
+		payload += 2;
+		WRITE_GUINT16_LE(msg->version, payload);
+		payload += 2;
+	}
+
+	gmsg_sendto_one(n, (guchar *) vms, msgsize);
 }
 
 /*

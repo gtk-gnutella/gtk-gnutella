@@ -38,6 +38,7 @@ struct gnutella_node;
 
 void vmsg_handle(struct gnutella_node *n);
 
+void vmsg_send_messages_supported(struct gnutella_node *n);
 void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops);
 void vmsg_send_connect_back(struct gnutella_node *n, guint16 port);
 
