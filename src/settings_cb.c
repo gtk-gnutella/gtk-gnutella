@@ -195,7 +195,7 @@ void on_entry_server_hostname_changed
 
 	gtk_widget_set_sensitive(
         lookup_widget(main_window, "checkbutton_give_server_hostname"),
-        strlen(e) > 4);		/* Minimum: "a.com" */
+        strlen(e) > 3);		/* Minimum: "x.cx" */
 
 	g_free(e);
 }
@@ -286,3 +286,5 @@ void on_popup_search_toggle_tabs_activate
     val = !val;
     gui_prop_set_boolean(PROP_SEARCH_RESULTS_SHOW_TABS, &val, 0, 1);
 }
+
+/* vi: set ts=4 sw=4 cindent: */
