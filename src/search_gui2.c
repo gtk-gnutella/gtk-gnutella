@@ -417,8 +417,14 @@ gboolean search_gui_new_search_full(
     gtk_entry_set_text(GTK_ENTRY(entry_search), "");
 	searches = g_list_append(searches, (gpointer) sch);
 
-	if (sch->enabled)
-		search_start(sch->search_handle);
+/* FIXME:	This might be suboptimal but if search_start() isn't called
+ *			"search_handle"->sent_nodes will not be initialized and
+ *			the function in search.c accessing this hashtable, will warn
+ *			it's NULL (or raise a SIGSEGV in case of NODEBUG).
+ */
+	search_start(sch->search_handle);
+	if (!sch->enabled)
+		search_stop(sch->search_handle);
 
 	if (NULL != search)
 		*search = sch;
