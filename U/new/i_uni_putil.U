@@ -19,7 +19,6 @@
 ?H:.
 ?F:!t.c
 ?Y:BOTTOM
-?LINT:set i_uni_putil
 ?LINT:usefile t.c
 : see if this is a unicode/putil.h system
 set unicode/putil.h i_uni_putil

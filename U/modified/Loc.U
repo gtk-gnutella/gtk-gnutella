@@ -3,6 +3,9 @@
 ?RCS: @COPYRIGHT@
 ?RCS:
 ?RCS: $Log$
+?RCS: Revision 1.2  2003/08/19 22:13:54  rmanfredi
+?RCS: Modified for metalint.
+?RCS:
 ?RCS: Revision 1.1  2003/08/14 20:16:35  rmanfredi
 ?RCS: Created.
 ?RCS:
@@ -61,16 +64,16 @@
 ?MAKE:Loc Mcc awk ar bash bison byacc cat chgrp chmod chown \
 	comm compress cp cpio cpp csh date echo egrep emacs expr find flex \
 	gcc gzip grep inews ksh less line lint ln lp lpr ls mail mailx \
-	make mkdir more mv nroff perl pg pmake pr rm rmail sed sendmail \
+	make mkdir more mv nm nroff perl pg pmake pr rm rmail sed sendmail \
 	shar sleep smail sort submit tail tar tbl test touch tr troff \
 	gmsgfmt msgfmt msgmerge xgettext \
 	uname uniq uuname vi zcat zip:  eunicefix n c Instruct Myread \
 	startsh
 ?MAKE:	-pick weed $@ %<
-?LINT:describe Loc Mcc awk ar bash bison byacc cat chgrp chmod chown \
+?LINT:describe Mcc awk ar bash bison byacc cat chgrp chmod chown \
 	comm compress cp cpio cpp csh date echo egrep emacs expr find flex \
 	gcc gzip grep inews ksh less line lint ln lp lpr ls mail mailx \
-	make mkdir more mv nroff perl pg pmake pr rm rmail sed sendmail \
+	make mkdir more mv nm nroff perl pg pmake pr rm rmail sed sendmail \
 	shar sleep smail sort submit tail tar tbl test touch tr troff \
 	gmsgfmt msgfmt msgmerge xgettext \
 	uname uniq uuname vi zcat zip
@@ -181,6 +184,7 @@ trylist="
 ?more:more
 ?msgfmt:msgfmt
 ?msgmerge:msgmerge
+?nm:nm
 ?nroff:nroff
 ?perl:perl
 ?pg:pg
@@ -202,12 +206,12 @@ trylist="
 ?zcat:zcat
 ?zip:zip
 "
-?LINT:set Loc Mcc awk ar bash bison byacc cat chgrp chmod chown \
-	comm compress cp cpio cpp csh date echo egrep emacs expr find flex \
-	gcc gzip grep inews ksh less line lint ln lp lpr ls mail mailx \
-	make mkdir more mv nroff perl pg pmake pr rm rmail sed sendmail \
-	shar sleep smail sort submit tail tar tbl test touch tr troff \
-	gmsgfmt msgfmt msgmerge xgettext \
+?LINT:set awk ar bash bison byacc cat chgrp chmod chown \
+	comm compress cp cpio cpp csh date echo emacs expr find flex \
+	gcc gzip grep inews ksh less line lint lp lpr ls mail mailx \
+	make mkdir more mv nm nroff perl pg pmake pr rm rmail sed sendmail \
+	shar sleep smail sort submit tail tar tbl touch tr troff \
+	msgfmt msgmerge \
 	uname uniq uuname vi zcat zip
 pth=`echo $PATH | sed -e "s/$p_/ /g"`
 pth="$pth /lib /usr/lib"
@@ -298,7 +302,8 @@ ln)
 esac
 @end
 @if gmsgfmt && msgfmt
-?LINT: define _msgfmt _gmsgfmt
+?LINT: extern _msgfmt
+?LINT: change _gmsgfmt
 case "$gmsgfmt" in
 gmsgfmt)
 	echo "Substituting msgfmt for gmsgfmt."
@@ -318,7 +323,7 @@ gmsgfmt)
 esac
 @end
 @if xgettext
-?LINT: define _xgettext
+?LINT: change _xgettext
 case "$xgettext" in
 xgettext)
 	xgettext=":"
@@ -331,6 +336,12 @@ xgettext)
 			grep usage >/dev/null; then exit 0; else exit 1; fi)
 	then
 		echo "Your $xgettext is not GNU xgettext; ignoring it."
+		xgettext=":"
+		_xgettext=":"
+	elif $xgettext --from-code=UTF-8 /dev/null >/dev/null 2>&1; then
+		: ok
+	else
+		echo "Your $xgettext does not support --from-code; ignoring it."
 		xgettext=":"
 		_xgettext=":"
 	fi
