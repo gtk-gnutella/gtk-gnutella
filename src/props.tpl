@@ -212,7 +212,7 @@ void [=(. func-prefix)=]_shutdown(void);
  */
 [= FOR uses =]#include "[=uses=]"
 [= ENDFOR uses =]
-#include "malloc.h"		/* Must be the last header included */
+#include "override.h"		/* Must be the last header included */
 
 [= 
 FOR prop =][= 
