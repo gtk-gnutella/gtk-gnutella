@@ -1832,7 +1832,7 @@ prop = {
 		"already keeps track of unstable IP addresses.";
     type = boolean;
     data = {
-        default = TRUE;
+        default = FALSE;
     };
 };
 

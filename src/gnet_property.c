@@ -362,8 +362,8 @@ guint32  clock_skew     = 0;
 guint32  clock_skew_def = 0;
 gboolean node_monitor_unstable_ip     = TRUE;
 gboolean node_monitor_unstable_ip_def = TRUE;
-gboolean node_monitor_unstable_servents     = TRUE;
-gboolean node_monitor_unstable_servents_def = TRUE;
+gboolean node_monitor_unstable_servents     = FALSE;
+gboolean node_monitor_unstable_servents_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
