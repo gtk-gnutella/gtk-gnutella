@@ -1175,6 +1175,9 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 
 		/* Resend request for download */
 		download_send_request(dl);
+
+		if (!DOWNLOAD_IS_VISIBLE(dl))
+			download_gui_add(dl);
 	}
 
 	return;
