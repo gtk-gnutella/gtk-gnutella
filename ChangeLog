@@ -1,5 +1,11 @@
 # since last version
 
+- (2003.06.17 - Richard
+ * [Gtk2] No longer disable antialiasing. This confuses people who are 
+   using Gtk2 and get font problems. If they want better performance, they
+   should turn off AA manually using "export GDK_USE_XFT=0".
+   (closes 754998).
+
 - (2003.06.17 - RAM)
  * Now supports collection of multiple URNs from X-Gnutella-Content-URN,
    but still only look at ones containing a SHA1.
