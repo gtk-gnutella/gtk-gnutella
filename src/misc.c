@@ -202,6 +202,8 @@ gboolean host_is_valid(guint32 ip, guint16 port)
 		((ip & (guint32) 0xFF000000) == (guint32) 0x00000000) ||
 		/* 127.0.0.0 / 8 */
 		((ip & (guint32) 0xFF000000) == (guint32) 0x7F000000) ||
+		/* 192.0.2.0 -- (192.0.2/24 prefix) TEST-NET [RFC 3330] */
+		((ip & 0xFFFFFF00) == 0xC0000200) ||
 		/* 255.255.255.0 / 24 */
 		((ip & (guint32) 0xFFFFFF00) == (guint32) 0xFFFFFF00))
 			return FALSE;
