@@ -333,8 +333,18 @@ void ping_stats_add(struct gnutella_node *n)
 
 	p->hosts++;
 
-	READ_GUINT32_LE(r->files_count, v); p->files += v;
-	READ_GUINT32_LE(r->kbytes_count, v); p->kbytes += v;
+	/*
+	 * Both bits 31 and 30 must be clear, or either we have an improper
+	 * little-endian encoding, or it's an obvious "fake" count.
+	 *		--RAM, 14/09/2001
+	 */
+
+	READ_GUINT32_LE(r->files_count, v);
+	if (0 == (v & 0xc0000000))
+		p->files += v;
+	READ_GUINT32_LE(r->kbytes_count, v);
+	if (0 == (v & 0xc0000000))
+		p->kbytes += v;
 
 	gettimeofday(&tv, (struct timezone *) NULL);
 
@@ -405,8 +415,20 @@ void reply_init(struct gnutella_node *n)
 	WRITE_GUINT32_LE(files_scanned, r.response.files_count);
 	WRITE_GUINT32_LE(kbytes_scanned, r.response.kbytes_count);
 
+	/*
+	 * Pongs are sent with a TTL just large enough to reach the pinging host,
+	 * up to a maximum of max_ttl.  Note that we rely on the hop count being
+	 * accurate.
+	 *		--RAM, 15/09/2001
+	 */
+
+	if (n->header.hops == 0) {
+		g_warning("reply_init(): hops=0, bug in route_message()?\n");
+		n->header.hops++;		/* Can't send message with TTL=0 */
+	}
+
 	r.header.function = GTA_MSG_INIT_RESPONSE;
-	r.header.ttl      = my_ttl;
+	r.header.ttl      = MIN(n->header.hops, max_ttl);
 	r.header.hops     = 0;
 
 	memcpy(&r.header.muid, n->header.muid, 16);
