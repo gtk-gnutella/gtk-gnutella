@@ -10223,6 +10223,8 @@ create_dlg_prefs (void)
   GtkWidget *checkbutton_gnet_info_rt;
   GtkWidget *checkbutton_gnet_info_shared_size;
   GtkWidget *checkbutton_gnet_info_shared_files;
+  GtkWidget *checkbutton_gnet_info_rx_wire;
+  GtkWidget *checkbutton_gnet_info_tx_wire;
   GtkWidget *label687;
   GtkWidget *scrolledwindow37;
   GtkWidget *viewport9;
@@ -15176,7 +15178,7 @@ create_dlg_prefs (void)
   gtk_box_pack_start (GTK_BOX (vbox123), frame_gnet_detailed_traffic, FALSE, TRUE, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame_gnet_detailed_traffic), GTK_SHADOW_OUT);
 
-  table71 = gtk_table_new (6, 3, FALSE);
+  table71 = gtk_table_new (7, 3, FALSE);
   gtk_widget_set_name (table71, "table71");
   gtk_widget_ref (table71);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table71", table71,
@@ -15343,7 +15345,7 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_gnet_info_shared_size", checkbutton_gnet_info_shared_size,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_gnet_info_shared_size);
-  gtk_table_attach (GTK_TABLE (table71), checkbutton_gnet_info_shared_size, 0, 1, 5, 6,
+  gtk_table_attach (GTK_TABLE (table71), checkbutton_gnet_info_shared_size, 0, 1, 6, 7,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -15353,7 +15355,27 @@ create_dlg_prefs (void)
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_gnet_info_shared_files", checkbutton_gnet_info_shared_files,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_gnet_info_shared_files);
-  gtk_table_attach (GTK_TABLE (table71), checkbutton_gnet_info_shared_files, 1, 2, 5, 6,
+  gtk_table_attach (GTK_TABLE (table71), checkbutton_gnet_info_shared_files, 1, 2, 6, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_gnet_info_rx_wire = gtk_check_button_new_with_label (_("RX wire bytes"));
+  gtk_widget_set_name (checkbutton_gnet_info_rx_wire, "checkbutton_gnet_info_rx_wire");
+  gtk_widget_ref (checkbutton_gnet_info_rx_wire);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_gnet_info_rx_wire", checkbutton_gnet_info_rx_wire,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_gnet_info_rx_wire);
+  gtk_table_attach (GTK_TABLE (table71), checkbutton_gnet_info_rx_wire, 1, 2, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_gnet_info_tx_wire = gtk_check_button_new_with_label (_("TX wire bytes"));
+  gtk_widget_set_name (checkbutton_gnet_info_tx_wire, "checkbutton_gnet_info_tx_wire");
+  gtk_widget_ref (checkbutton_gnet_info_tx_wire);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_gnet_info_tx_wire", checkbutton_gnet_info_tx_wire,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_gnet_info_tx_wire);
+  gtk_table_attach (GTK_TABLE (table71), checkbutton_gnet_info_tx_wire, 0, 1, 5, 6,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
