@@ -246,10 +246,14 @@ gchar *short_uptime(guint32 s)
 {
 	static gchar b[SIZE_FIELD_MAX];
 
-	if (s > 86400)
-		g_snprintf(b, sizeof(b), "%ud %uh", s / 86400, (s % 86400) / 3600);
-	else
-		g_snprintf(b, sizeof(b), "%u:%02u:%02u", s / 3600, (s % 3600) / 60, (s % 3600) % 60);
+	if (s > 86400) {
+		guint32 d = s % 86400;
+		g_snprintf(b, sizeof(b), "%ud %02u%c%02u",
+			s / 86400, d / 3600, (s & 0x1) ? '.' : ':', (d % 3600) / 60);
+	} else {
+		guint32 h = s % 3600;
+		g_snprintf(b, sizeof(b), "%02u:%02u:%02u", s / 3600, h / 60, h % 60);
+	}
 
 	return b;
 }
