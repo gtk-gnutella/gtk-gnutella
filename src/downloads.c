@@ -5741,7 +5741,7 @@ static void download_request(
 				) &&
 				NULL != strstr(ack_message, "removed from PARQ")
 			) {
-				download_queue_delay(d,
+				download_queue_hold(d,
 					delay == 0 ?  1200 : delay,
 					"%sHTTP %d %s", short_read, ack_code, ack_message);
 				return;
