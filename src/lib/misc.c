@@ -2044,11 +2044,12 @@ ip_range_split(
 signal_handler_t
 set_signal(gint signo, signal_handler_t handler)
 {
+	static const struct sigaction zero_sa;
 	struct sigaction sa, osa;
 
 	g_assert(handler != SIG_ERR);
 
-	memset(&sa, 0, sizeof sa);
+	sa = zero_sa;
 	sa.sa_handler = handler;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = signo != SIGALRM ? SA_RESTART
