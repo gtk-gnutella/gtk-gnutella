@@ -3557,9 +3557,11 @@ qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
 	guint8 digest[SHA1HashSize];
 	guint32 result;
 
-	fprintf(f, "------ Query Routing Table \"%s\" "
-		"(gen=%d, slots=%d, %scompacted)\n",
-		rt->name, rt->generation, rt->slots, rt->compacted ? "" : "not ");
+	if (qrp_debug > 0) {
+		fprintf(f, "------ Query Routing Table \"%s\" "
+			"(gen=%d, slots=%d, %scompacted)\n",
+			rt->name, rt->generation, rt->slots, rt->compacted ? "" : "not ");
+	}
 
 	SHA1Reset(&ctx);
 
@@ -3611,9 +3613,11 @@ qrt_dump(FILE *f, struct routing_table *rt, gboolean full)
 	}
 
 
-	fprintf(f, "------ End Routing Table \"%s\" "
-		"(gen=%d, SHA1=%s, token=0x%x)\n",
-		rt->name, rt->generation, sha1_base32((gchar *) digest), result);
+	if (qrp_debug > 0) {
+		fprintf(f, "------ End Routing Table \"%s\" "
+			"(gen=%d, SHA1=%s, token=0x%x)\n",
+			rt->name, rt->generation, sha1_base32((gchar *) digest), result);
+	}
 
 	return result;
 }
