@@ -5,6 +5,8 @@
  * Global Data
  */
 
+extern gchar *config_dir;
+
 extern gboolean force_local_ip;
 extern gboolean monitor_enabled;
 extern gboolean clear_uploads;
@@ -67,7 +69,6 @@ extern gchar *shared_dirs_paths;
 extern gchar *completed_file_path;
 extern gchar *global_spam_filter_file;
 extern gchar *global_IP_filter_file;
-
 
 extern gboolean jump_to_downloads;
 
