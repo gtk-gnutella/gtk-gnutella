@@ -1,5 +1,8 @@
 # since last version
 
+- (2003.11.07 - Jeroen)
+ * Added Hungarian translation from Sulyok Péter
+
 - (2003.11.06 - Jeroen)
  * Intergrated shell patch from Thadeu Cascardo.
  * Fixed assertion bug for GTK2.
