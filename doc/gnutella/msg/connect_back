@@ -30,7 +30,7 @@ think they are firewalled, right after a connection to a remote servent
 has been established (but after the initial handshaking ping).
 
 This message carries a single 16-bit unsigned integer representing the
-port to which the receiver of the message should try to connect to.
+port to which the receiver of the message should try to connect to via TCP.
 The target IP address for the connection is based on the IP address
 determined from the connection endpoint from which the message is
 received.
