@@ -27,7 +27,6 @@
 #define __nodes_h__
 
 #include "gnutella.h"
-#include "gnet.h"
 #include "mq.h"
 #include "sq.h"
 #include "rx.h"
@@ -316,6 +315,8 @@ inline void node_add_txdrop(gnutella_node_t *n, gint x);
 inline void node_add_rxdrop(gnutella_node_t *n, gint x);
 
 inline void node_set_vendor(gnutella_node_t *n, const gchar *vendor);
+
+gchar *node_ip(gnutella_node_t *n);
 
 #endif /* __nodes_h__ */
 
