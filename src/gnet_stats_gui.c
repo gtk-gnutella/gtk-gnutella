@@ -245,6 +245,45 @@ void gnet_stats_gui_init(void)
     combo_types = GTK_COMBO(
         lookup_widget(main_window, "combo_gnet_stats_type"));
 
+    /*
+     * Set column justification for numeric columns to GTK_JUSTIFY_RIGHT.
+     */
+    gtk_clist_set_column_justification(
+        clist_stats_pkg, c_gs_relayed, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        clist_stats_pkg, c_gs_generated, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        clist_stats_pkg, c_gs_dropped, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        clist_stats_pkg, c_gs_expired, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        clist_stats_pkg, c_gs_recieved, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        clist_stats_byte, c_gs_generated, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        clist_stats_byte, c_gs_dropped, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        clist_stats_byte, c_gs_expired, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        clist_stats_byte, c_gs_recieved, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        clist_stats_byte, c_gs_relayed, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        clist_general, 1, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        clist_reason, 1, GTK_JUSTIFY_RIGHT);
+
+    /*
+     * Stats can't be sorted: make column headers insensitive.
+     */
+	gtk_clist_column_titles_passive(clist_stats_pkg);
+	gtk_clist_column_titles_passive(clist_stats_byte);
+	gtk_clist_column_titles_passive(clist_reason);
+	gtk_clist_column_titles_passive(clist_general);
+
+    /*
+     * Initialize stats tables.
+     */
     for (n = 0; n < MSG_TYPE_COUNT; n ++) {
         GtkWidget *list_item;
         GList *l;
