@@ -12,7 +12,7 @@
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
  *  (at your option) any later version.
- *s
+ *
  *  gtk-gnutella is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -26,7 +26,6 @@
  */
 
 #include "gui.h"
-#include "search_gui.h"
 #include "callbacks.h"
 
 #include "filter_gui.h"
@@ -35,14 +34,7 @@
 #include "uploads_gui.h"
 #include "statusbar_gui.h"
 #include "settings_gui.h"
-#include "gnet_stats_gui.h"
 #include "search_stats_gui.h"
-
-#include <arpa/inet.h>
-#include <math.h>
-
-
-#define NO_FUNC
 
 static gchar gui_tmp[4096];
 
