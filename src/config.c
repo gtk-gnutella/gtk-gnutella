@@ -223,6 +223,25 @@ gchar *keywords[] = {
 gchar cfg_tmp[4096];
 gboolean cfg_use_local_file = FALSE;	// use config file in same dir
 
+static gchar *file_extensions =
+	"asf;avi;"
+	"bz2;"
+	"divx;"
+	"gif;gz;"
+	"it;"
+	"jpeg;jpg;"
+	"mod;mov;mpg;mpeg;mp3;mp2;mp1;"
+	"ogg;"
+	"png;ps;pdf;"
+	"rar;"
+	"s3m;stm;"
+	"txt;"
+	"voc;vqf;"
+	"wav;wma;"
+	"xm;"
+	"zip"	/* no trailing ";" */
+	;
+
 void config_read(void);
 
 /* ----------------------------------------- */
@@ -295,25 +314,11 @@ void config_init(void)
 		shared_dirs_paths = g_strdup("");
 
 	if (!extensions)
-		parse_extensions
-			("mp3;mp2;mp1;vqf;avi;mpg;mpeg;wav;mod;voc;it;xm;s3m;"
-			 "stm;wma;mov;asf;zip;rar;txt;jpg;pdf");
+		parse_extensions(file_extensions);
 
 	if (!scan_extensions)
-		scan_extensions = g_strdup(
-			"mp3;mp2;mp1;vqf;avi;mpg;mpeg;wav;mod;voc;"
-			"it;xm;s3m;stm;wma;mov;asf;zip;rar");
+		scan_extensions = g_strdup(file_extensions);
 	/* watch for filter_file defaults */
-
-	/* XXX -- Why is this disabled? -- RAM */
-	if (0 && !local_ip) {		/* We need our local address */
-		char hostname[255];
-		struct hostent *hostinfo;
-		gethostname(hostname, 255);
-		hostinfo = gethostbyname(hostname);
-		local_ip =
-			g_ntohl(((struct in_addr *) (hostinfo->h_addr))->s_addr);
-	}
 
 	if (hard_ttl_limit < max_ttl)
 		hard_ttl_limit = max_ttl;
