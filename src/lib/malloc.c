@@ -256,6 +256,7 @@ void malloc_close(void)
 gpointer malloc_record(gpointer o, guint32 sz, gchar *file, gint line)
 {
 	struct block *b;
+	struct block *ob;
 #ifdef MALLOC_STATS
 	struct stats *st;		/* Needed in case MALLOC_FRAMES is also set */
 #endif
@@ -274,14 +275,14 @@ gpointer malloc_record(gpointer o, guint32 sz, gchar *file, gint line)
 	if (b == NULL)
 		g_error("unable to allocate %u bytes", sizeof(*b));
 
-	b->file = file;
+	b->file = short_filename(file);
 	b->line = line;
 	b->size = sz;
 	b->realloc = NULL;
 
-	if (g_hash_table_lookup(blocks, o))
-		g_warning("(%s:%d) reusing block 0x%lx, must have missed freeing",
-			file, line, (glong) o);
+	if ((ob = (struct block *) g_hash_table_lookup(blocks, o)))
+		g_warning("(%s:%d) reusing block 0x%lx from %s:%d, missed its freeing",
+			file, line, (glong) o, ob->file, ob->line);
 
 	g_hash_table_insert(blocks, o, b);
 
@@ -289,14 +290,14 @@ gpointer malloc_record(gpointer o, guint32 sz, gchar *file, gint line)
 	{
 		struct stats s;
 
-		s.file = file;
+		s.file = b->file;
 		s.line = line;
 
 		st = g_hash_table_lookup(stats, &s);
 
 		if (st == NULL) {
 			st = calloc(1, sizeof(*st));
-			st->file = file;
+			st->file = b->file;
 			st->line = line;
 			g_hash_table_insert(stats, st, st);
 		}
@@ -322,6 +323,7 @@ gpointer malloc_record(gpointer o, guint32 sz, gchar *file, gint line)
 		if (fr == NULL) {
 			fr = calloc(1, sizeof(*fr));
 			memcpy(fr->stack, f.stack, f.len * sizeof(void *));
+			fr->len = f.len;
 			g_hash_table_insert(st->alloc_frames, fr, fr);
 		}
 
@@ -388,14 +390,6 @@ static void free_record(gpointer o, gchar *file, gint line)
 	b = (struct block *) v;
 	g_assert(o == k);
 
-	g_hash_table_remove(blocks, o);
-	for (l = b->realloc; l; l = g_slist_next(l)) {
-		struct block *r = l->data;
-		g_assert(r->realloc == NULL);
-		free(r);
-	}
-	g_slist_free(b->realloc);
-
 #ifdef MALLOC_STATS
 	{
 		struct stats s;
@@ -444,6 +438,7 @@ static void free_record(gpointer o, gchar *file, gint line)
 		if (fr == NULL) {
 			fr = calloc(1, sizeof(*fr));
 			memcpy(fr->stack, f.stack, f.len * sizeof(void *));
+			fr->len = f.len;
 			g_hash_table_insert(st->free_frames, fr, fr);
 		}
 
@@ -451,6 +446,15 @@ static void free_record(gpointer o, gchar *file, gint line)
 		fr->total_count += b->size;
 	}
 #endif /* MALLOC_FRAMES */
+
+	g_hash_table_remove(blocks, o);
+
+	for (l = b->realloc; l; l = g_slist_next(l)) {
+		struct block *r = l->data;
+		g_assert(r->realloc == NULL);
+		free(r);
+	}
+	g_slist_free(b->realloc);
 
 	free(b);
 }
@@ -485,42 +489,31 @@ void strfreev_track(gchar **v, gchar *file, gint line)
 }
 
 /*
- * realloc_track
+ * realloc_record
  *
- * Realloc object `o' to `s' bytes.
+ * Update data structures to record that block `o' was re-alloced into
+ * a block of `s' bytes at `n'.
  */
-gpointer realloc_track(gpointer o, guint32 s, gchar *file, gint line)
+static gpointer
+realloc_record(gpointer o, gpointer n, guint32 s, gchar *file, gint line)
 {
 	struct block *b;
 	struct block *r;
-	gpointer n;
 #ifdef MALLOC_STATS
 	struct stats *st;		/* Needed in case MALLOC_FRAMES is also set */
-#endif
-
-	if (o == NULL)
-		return malloc_track(s, file, line);
-
-#ifdef TRANSPARENT
-	return realloc(o, s);
 #endif
 
 	if (blocks == NULL || !(b = g_hash_table_lookup(blocks, o))) {
 		g_warning("(%s:%d) attempt to realloc freed block at 0x%lx?",
 			file, line, (gulong) o);
-		return malloc_track(s, file, line);
+		return malloc_record(n, s, file, line);
 	}
-
-	n = realloc(o, s);
-
-	if (n == NULL)
-		g_error("cannot realloc %u-byte block into %u-byte one", b->size, s);
 
 	r = calloc(sizeof(*r), 1);
 	if (r == NULL)
 		g_error("unable to allocate %u bytes", sizeof(*r));
 
-	r->file = file;
+	r->file = short_filename(file);
 	r->line = line;
 	r->size = b->size;			/* Previous size before realloc */
 	r->realloc = NULL;
@@ -567,6 +560,7 @@ gpointer realloc_track(gpointer o, guint32 s, gchar *file, gint line)
 		if (fr == NULL) {
 			fr = calloc(1, sizeof(*fr));
 			memcpy(fr->stack, f.stack, f.len * sizeof(void *));
+			fr->len = f.len;
 			g_hash_table_insert(st->realloc_frames, fr, fr);
 		}
 
@@ -578,24 +572,26 @@ gpointer realloc_track(gpointer o, guint32 s, gchar *file, gint line)
 	return n;
 }
 
-/*
- * realloc_record
- *
- * Update size of already recorded object.
- * Returns object.
+/**
+ * Realloc object `o' to `s' bytes.
  */
-static gpointer realloc_record(gpointer o, guint32 s, gchar *file, gint line)
+gpointer realloc_track(gpointer o, guint32 s, gchar *file, gint line)
 {
-	struct block *b;
+	gpointer n;
 
-	if (blocks == NULL || !(b = g_hash_table_lookup(blocks, o))) {
-		g_warning("(%s:%d) attempt to realloc freed block at 0x%lx?",
-			file, line, (gulong) o);
-		return o;
-	}
+	if (o == NULL)
+		return malloc_track(s, file, line);
 
-	b->size = s;
-	return o;
+#ifdef TRANSPARENT
+	return realloc(o, s);
+#endif
+
+	n = realloc(o, s);
+
+	if (n == NULL)
+		g_error("cannot realloc block into a %u-byte one", s);
+
+	return realloc_record(o, n, s, file, line);
 }
 
 /*
@@ -676,6 +672,31 @@ gchar *strjoinv_track(const gchar *s, gchar **vec, gchar *file, gint line)
 }
 
 /*
+ * m_strconcatv
+ *
+ * The internal implementation of a vectorized g_strconcat().
+ */
+static gchar *m_strconcatv(const gchar *s, va_list args)
+{
+	gchar *res;
+	gchar *add;
+	gint size;
+
+	size = strlen(s) + 1;
+	res = g_malloc(size);
+	memcpy(res, s, size);
+
+	while ((add = va_arg(args, gchar *))) {
+		gint len = strlen(add);
+		res = g_realloc(res, size + len);
+		memcpy(res + size - 1, add, len + 1);	/* Includes trailing NULL */
+		size += len;
+	}
+
+	return res;
+}
+
+/*
  * strconcat_track
  *
  * Perform string concatenation, returning newly allocated string.
@@ -686,7 +707,7 @@ gchar *strconcat_track(gchar *file, gint line, const gchar *s, ...)
 	gchar *o;
 
 	va_start(args, s);
-	o = gm_strconcatv(s, args);
+	o = m_strconcatv(s, args);
 	va_end(args);
 
 	return malloc_record(o, strlen(o) + 1, file, line);
@@ -1131,7 +1152,7 @@ static GString *string_str_track(GString *s, gchar *old, gchar *file, gint line)
 		free_record(old, file, line);
 		string_record(s->str, file, line);
 	} else
-		realloc_record(s->str, s->len + 1, file, line);
+		realloc_record(s->str, s->str, s->len + 1, file, line);
 
 	return s;
 }
