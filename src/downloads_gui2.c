@@ -221,7 +221,7 @@ gboolean downloads_gui_download_eq(GtkTreeModel *model, GtkTreePath *path,
 {
 	gpointer download_from_treeview;
 
-	gtk_tree_model_get(model, iter, c_dl_record, &download_from_treeview, -1);
+	gtk_tree_model_get(model, iter, c_dl_record, &download_from_treeview, (-1));
 	
 	if (download_from_treeview == download){		
 		temp_iter_global = w_tree_iter_copy(iter);
@@ -250,7 +250,8 @@ gboolean downloads_gui_download_queue_eq(GtkTreeModel *model,
 {
 	gpointer download_from_treeview;
 
-	gtk_tree_model_get(model, iter, c_queue_record, &download_from_treeview,-1);
+	gtk_tree_model_get(model, iter, c_queue_record,
+		&download_from_treeview, (-1));
 	
 	if (download_from_treeview == download){		
 		temp_iter_global = w_tree_iter_copy(iter);
@@ -629,7 +630,6 @@ void downloads_gui_shutdown(void)
  */
 void download_gui_add(struct download *d)
 {
-
 	static gchar vendor[256];
 	gchar *d_file_name, *d_file_size;
 	gchar *filename, *host, *size, *server, *status, *range;
@@ -647,7 +647,7 @@ void download_gui_add(struct download *d)
 
 	if (DOWNLOAD_IS_VISIBLE(d)) {
 		g_warning
-			("download_gui_add() called on already visible download '%s' !",
+			("download_gui_add() called on already visible download '%s'!",
 			 d->file_name);
 		return;
 	}
@@ -692,8 +692,9 @@ void download_gui_add(struct download *d)
 	      			c_queue_record, &drecord,
 		        	(-1));
 
-				if (DL_GUI_IS_HEADER != (guint32) drecord)/*not a header entry*/
-				{
+				if (DL_GUI_IS_HEADER != (guint32) drecord) {
+					/* not a header entry*/
+
 					/* No header entry so we will create one */
 					/* Copy the old parents info into a new node */
 					gtk_tree_store_append(model, &iter, parent);
@@ -794,8 +795,7 @@ void download_gui_add(struct download *d)
 	      			c_dl_record, &drecord,
 		        	(-1));
 
-				if (DL_GUI_IS_HEADER != (guint32) drecord)/*not a header entry*/
-				{
+				if (DL_GUI_IS_HEADER != (guint32) drecord) {
 					/* No header entry so we will create one */
 					
 					/* Copy the old parents info into a new node */
@@ -917,8 +917,7 @@ void download_gui_remove(struct download *d)
 	g_return_if_fail(d);
 	
 	if (!DOWNLOAD_IS_VISIBLE(d)){
-		g_warning
-			("download_gui_remove() called on invisible download '%s' !",
+		g_warning("download_gui_remove() called on invisible download '%s' !",
 			 d->file_name);
 		return;
 	}
@@ -984,11 +983,11 @@ void download_gui_remove(struct download *d)
 							G_FREE_NULL(host);
 							G_FREE_NULL(server);
 							G_FREE_NULL(status);
-						}
-						else
+						} else {
 							g_warning("download_gui_remove() (Queued): "
 								"We've created a parent with only"
-								" one child!!");								
+								" one child!!");
+						}
 					}
 				
 					if (0 == n) {
@@ -1009,16 +1008,20 @@ void download_gui_remove(struct download *d)
 					/* Note: this line IS correct for cases n=0, n>=2 */
 					gtk_tree_store_remove(store, iter);
 					
-				} else 
+				} else {
 					g_warning("download_gui_remove(): "
 						"Download '%s' has no parent", d->file_name);
+				}
 			} 
-		} else
+		} else {
 			g_warning("download_gui_remove(): "
 				"Queued download '%s' not found in treeview !?", d->file_name);
+		}
 		
-		if (NULL != temp_iter_global)
+		if (NULL != temp_iter_global) {
 			w_tree_iter_free(temp_iter_global);
+			temp_iter_global = NULL;
+		}
 
 	} else { /* This is an active download */
 
@@ -1125,8 +1128,10 @@ void download_gui_remove(struct download *d)
 				"Active download '%s' not found in treeview !?", d->file_name);
 		}
 
-		if (NULL != temp_iter_global)
+		if (NULL != temp_iter_global) {
 			w_tree_iter_free(temp_iter_global);
+			temp_iter_global = NULL;
+		}
 	}
 
 	d->visible = FALSE;
@@ -1145,7 +1150,6 @@ void download_gui_remove(struct download *d)
 void gui_update_download_column(struct download *d, GtkTreeView *tree_view,
 	gint column, gchar *value)
 {
-	GtkTreeIter *iter;
 	GtkTreeStore *model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
 	
 	g_assert(d);
@@ -1158,9 +1162,7 @@ void gui_update_download_column(struct download *d, GtkTreeView *tree_view,
 			(GtkTreeModel *)model, downloads_gui_download_eq, d);
 	
 		if (NULL != temp_iter_global) {		
-			
-			iter = temp_iter_global;
-			gtk_tree_store_set(model, iter, column, tmpstr, (-1));
+			gtk_tree_store_set(model, temp_iter_global, column, tmpstr, (-1));
 		} else {
 			g_warning("gui_update_download_column: couldn't find"
 					" download updating column %d", column);	
@@ -1169,6 +1171,7 @@ void gui_update_download_column(struct download *d, GtkTreeView *tree_view,
 
 	if (NULL != temp_iter_global) {
 		w_tree_iter_free(temp_iter_global);
+		temp_iter_global = NULL;
 	}
 }
 
@@ -1678,8 +1681,10 @@ void gui_update_download(struct download *d, gboolean force)
 		else
 			return;
 			
-		if (NULL != temp_iter_global)
+		if (NULL != temp_iter_global) {
 			w_tree_iter_free(temp_iter_global);
+			temp_iter_global = NULL;
+		}
 		
 		/*  Update header for downloads with multiple hosts */
 		if (NULL != d->file_info) {
@@ -1763,8 +1768,10 @@ void gui_update_download(struct download *d, gboolean force)
 		else
 			return;
 
-		if (NULL != temp_iter_global)
+		if (NULL != temp_iter_global) {
 			w_tree_iter_free(temp_iter_global);
+			temp_iter_global = NULL;
+		}
 	}
 }
 
