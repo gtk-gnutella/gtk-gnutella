@@ -494,6 +494,7 @@ gint hcache_fill_caught_array(
 	GList *l;
 	gint i;
 	struct hostcache *hc;
+	GHashTable *seen_host = g_hash_table_new(host_hash, host_eq);
 
 	g_assert(type >= 0 && type < HCACHE_MAX);
 
@@ -503,18 +504,21 @@ gint hcache_fill_caught_array(
 	 */
 
 	for (i = 0; i < hcount; i++) {
-		guint32 ip;
-		guint16 port;
+		struct gnutella_host host;
 
-		if (!pcache_get_recent(type, &ip, &port))
+		if (!pcache_get_recent(type, &host.ip, &host.port))
 			break;
 
-		hosts[i].ip = ip;
-		hosts[i].port = port;
+		if (g_hash_table_lookup(seen_host, &host))
+			break;
+
+		hosts[i] = host;		/* struct copy */
+
+		g_hash_table_insert(seen_host, &hosts[i], (gpointer) 0x1);
 	}
 
 	if (i == hcount)
-		return hcount;
+		goto done;
 
 	/*
 	 * Not enough fresh pongs, get some from our reserve.
@@ -525,14 +529,23 @@ gint hcache_fill_caught_array(
 	for (l = g_list_last(hc->sl_caught_hosts); i < hcount; i++, l = l->prev) {
 		struct gnutella_host *h;
 
-		if (!l)
-			return i;			/* Amount of hosts we filled */
+		if (l == NULL)
+			break;
 		
 		h = (struct gnutella_host *) l->data;
+
+		if (g_hash_table_lookup(seen_host, h))
+			continue;
+
 		hosts[i] = *h;			/* struct copy */
+
+		g_hash_table_insert(seen_host, &hosts[i], (gpointer) 0x1);
 	}
 
-	return hcount;				/* We  filled all the slots */
+done:
+	g_hash_table_destroy(seen_host);	/* Keys point directly into vector */
+
+	return i;				/* Amount of hosts we filled */
 }
 
 /* 
