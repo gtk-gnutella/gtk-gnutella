@@ -6304,6 +6304,7 @@ for all filters</property>
   <property name="modal">False</property>
   <property name="resizable">True</property>
   <property name="destroy_with_parent">False</property>
+  <signal name="delete_event" handler="gtk_true" last_modification_time="Mon, 03 Feb 2003 00:16:54 GMT"/>
 
   <child>
     <widget class="GtkFrame" id="frame30">

@@ -3827,6 +3827,10 @@ create_shutdown_window (void)
   gtk_widget_show (label_shutdown_count);
   gtk_box_pack_start (GTK_BOX (vbox44), label_shutdown_count, FALSE, FALSE, 0);
 
+  g_signal_connect ((gpointer) shutdown_window, "delete_event",
+                    G_CALLBACK (gtk_true),
+                    NULL);
+
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (shutdown_window, shutdown_window, "shutdown_window");
   GLADE_HOOKUP_OBJECT (shutdown_window, frame30, "frame30");
