@@ -148,9 +148,6 @@ static guint32 node_id = 1;				/* Reserve 0 for the local node */
 
 static gboolean allow_gnet_connections = FALSE;
 
-static const gchar gnutella_welcome[] = "GNUTELLA OK\n\n";
-#define GNUTELLA_WELCOME_LENGTH (sizeof(gnutella_welcome) - 1)
-
 GHookList node_added_hook_list;
 /*
  * For use by node_added_hook_list hooks, since we can't add a parameter
@@ -1225,6 +1222,11 @@ node_remove_v(struct gnutella_node *n, const gchar *reason, va_list ap)
 		n->socket = NULL;
 	}
 
+	if (n->hello.ptr) {
+		wfree(n->hello.ptr, n->hello.size);
+		n->hello.ptr = NULL;
+	}
+
 	/* n->io_opaque will be freed by node_real_remove() */
 	/* n->vendor will be freed by node_real_remove() */
 
@@ -2206,7 +2208,7 @@ send_node_error(struct gnutella_socket *s, int code, const gchar *msg, ...)
 
 	g_assert(rw < sizeof(gnet_response));
 
-	sent = bws_write(bws.gout, s->file_desc, gnet_response, rw);
+	sent = bws_write(bws.gout, &s->wio, gnet_response, rw);
 	if ((ssize_t) -1 == sent) {
 		if (dbg) g_warning("Unable to send back error %d (%s) to node %s: %s",
 			code, msg_tmp, ip_to_gchar(s->ip), g_strerror(errno));
@@ -3254,14 +3256,17 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	getline_free(s->getline);
 	s->getline = NULL;
 
-	/*
-	 * Content-Encoding -- compression accepted by the remote side
-	 */
+	if (gnet_deflate_enabled) {
+		/*
+	 	 * Content-Encoding -- compression accepted by the remote side
+	 	 */
 
-	field = header_get(head, "Content-Encoding");
-	if (field) {
-		if (strstr(field, "deflate"))	/* XXX needs more rigourous parsing */
-			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
+		field = header_get(head, "Content-Encoding");
+		if (field) {
+			/* XXX needs more rigourous parsing */
+			if (strstr(field, "deflate"))
+				n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
+		}
 	}
 
 
@@ -3513,7 +3518,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		field = header_get(head, "Content-Type");
 		if (field) {
 			if (strstr(field, "application/x-gnutella2"))
-				// REM
+				/* REM */
 				g_warning("*** Got G2 support");
 				n->proto_major = 2;
 				n->proto_minor = 0;
@@ -3659,7 +3664,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	field = header_get(head, "X-Live-Since");
 	if (field) {
 		time_t now = time(NULL);
-		time_t up = date2time(field, &now);
+		time_t up = date2time(field, now);
 
 		/*
 		 * We'll be comparing the up_date we compute to our local timestamp
@@ -3670,7 +3675,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		 *		--RAM, 05/08/2003
 		 */
 
-		if (up == -1)
+		if (up == (time_t) -1)
 			g_warning("cannot parse X-Live-Since \"%s\" from %s (%s)",
 				field, node_ip(n), node_vendor(n));
 		else 
@@ -3691,26 +3696,56 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		}
 	}
 
-	/*
-	 * Accept-Encoding -- decompression support on the remote side
-	 */
+	/* X-Ultrapeer -- support for ultra peer mode */
 
-	field = header_get(head, "Accept-Encoding");
+	field = header_get(head, "X-Ultrapeer");
 	if (field) {
-		if (strstr(field, "deflate")) {	/* XXX needs more rigourous parsing */
-			n->attrs |= NODE_A_CAN_INFLATE;
-			n->attrs |= NODE_A_TX_DEFLATE;	/* We accept! */
+		n->attrs |= NODE_A_CAN_ULTRA;
+		if (0 == strcasecmp(field, "true"))
+			n->attrs |= NODE_A_ULTRA;
+		else if (0 == strcasecmp(field, "false")) {
+			if (current_peermode == NODE_P_ULTRA)
+				n->flags |= NODE_F_LEAF;
 		}
+	} else {
+		/*
+		 * BearShare 4.3.x decided to no longer send X-Ultrapeer on connection,
+		 * but rather include the X-Ultrapeer-Needed header.  Hopefully, only
+		 * their UPs will send back such a header.
+		 *		--RAM, 01/11/2003
+		 */
+
+		field = header_get(head, "X-Ultrapeer-Needed");
+		if (field)
+			n->attrs |= NODE_A_CAN_ULTRA | NODE_A_ULTRA;
+		else
+			n->attrs |= NODE_A_NO_ULTRA;
 	}
 
-	/*
-	 * Content-Encoding -- compression accepted by the remote side
-	 */
+	if (gnet_deflate_enabled) {
+		/*
+	 	 * Accept-Encoding -- decompression support on the remote side
+	 	 */
 
-	field = header_get(head, "Content-Encoding");
-	if (field) {
-		if (strstr(field, "deflate"))	/* XXX needs more rigourous parsing */
-			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
+		field = header_get(head, "Accept-Encoding");
+		if (field) {
+			/* XXX needs more rigourous parsing */
+			if (strstr(field, "deflate")) {
+				n->attrs |= NODE_A_CAN_INFLATE;
+				n->attrs |= NODE_A_TX_DEFLATE;	/* We accept! */
+			}
+		}
+
+		/*
+	 	 * Content-Encoding -- compression accepted by the remote side
+	 	 */
+
+		field = header_get(head, "Content-Encoding");
+		if (field) {
+			/* XXX needs more rigourous parsing */
+			if (strstr(field, "deflate"))
+				n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
+		}
 	}
 
 	/*
@@ -3981,11 +4016,12 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 			"\r\n",
 			enable_g2_support && n->protocol_type == PROTOCOL_TYPE_G2 ? 
 				"Content-Type: application/x-gnutella2\r\n" : "",
-			(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
+			gnet_deflate_enabled && (n->attrs & NODE_A_TX_DEFLATE)
+				? compressing : empty,
 			mode_changed ? "X-Ultrapeer: False\r\n" : "",
 			(n->qrp_major > 0 || n->qrp_minor > 2) ?
 				"X-Query-Routing: 0.2\r\n" : "");
-		
+
 		g_assert(rw < sizeof(gnet_response));
 	} else {
 		guint ultra_max;
@@ -4041,7 +4077,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"GGEP: 0.5\r\n"
 				"Vendor-Message: 0.1\r\n"
 				"Remote-IP: %s\r\n"
-				"Accept-Encoding: deflate\r\n"
+				"%s"
 				"%s"		/* Content-Encoding */
 				"%s"		/* Content-Type */
 				"%s"		/* Accept */
@@ -4052,8 +4088,11 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 				"%s"		/* X-Degree + X-Max-TTL */
 				"X-Token: %s\r\n"
 				"X-Live-Since: %s\r\n",
-				version_string, ip_to_gchar(n->socket->ip),
-				(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
+				version_string,
+				ip_to_gchar(n->socket->ip),
+				gnet_deflate_enabled ? "Accept-Encoding: deflate\r\n" : "",
+				(gnet_deflate_enabled && (n->attrs & NODE_A_TX_DEFLATE))
+					? compressing : empty,
 				current_peermode == NODE_P_NORMAL ? "" :
 				current_peermode == NODE_P_LEAF ?
 					"X-Ultrapeer: False\r\n" :
@@ -4089,7 +4128,7 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	 * Simply log it and close the connection.
 	 */
 
-	sent = bws_write(bws.gout, n->socket->file_desc, gnet_response, rw);
+	sent = bws_write(bws.gout, &n->socket->wio, gnet_response, rw);
 	if ((ssize_t) -1 == sent) {
 		int errcode = errno;
 		if (dbg) g_warning("Unable to send back %s to node %s: %s",
@@ -4390,8 +4429,11 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		(current_peermode != NODE_P_LEAF &&
 			node_ultra_count + node_normal_count >= max_connections)
 	) {
+#if 1
+		/* XXX: Interferes with manually adding outgoing connections */
         if (!s)
             return;
+#endif
         if (!already_connected) {
 			if (whitelist_check(ip)) {
 				/* Incoming whitelisted IP, and we're full. Remove one node. */
@@ -4420,6 +4462,11 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	n->hops_flow = MAX_HOP_COUNT;
 	n->last_update = n->last_tx = n->last_rx = time(NULL);
 
+	n->hello.ptr = NULL;
+    n->hello.size =	0;
+    n->hello.pos = 0;
+    n->hello.len = 0;
+
 	n->routing_data = NULL;
 	n->flags = NODE_F_HDSK_PING;
 
@@ -4446,6 +4493,9 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		 *
 		 *		--RAM, 17/01/2003
 		 */
+
+		if (SOCKET_USES_TLS(s))
+			n->flags |= NODE_F_TLS;
 
 		n->flags |= NODE_F_INCOMING;
 		connection_type = "Incoming";
@@ -4928,6 +4978,30 @@ clean_dest:
 		g_slist_free(dest.ur.u_nodes);
 }
 
+static void
+node_drain_hello(gpointer data, gint source, inputevt_cond_t cond)
+{
+	struct gnutella_node *n = data;
+
+	g_assert(n->socket->file_desc == source);
+	g_assert(n->hello.ptr != NULL);
+	g_assert(n->hello.size > 0);
+	g_assert(n->hello.len < n->hello.size);
+	g_assert(n->hello.pos < n->hello.size);
+	g_assert(n->hello.pos + n->hello.len < n->hello.size);
+
+	if (cond & INPUT_EVENT_EXCEPTION) {
+		gint error;
+		socklen_t error_len = sizeof error;
+
+		getsockopt(source, SOL_SOCKET, SO_ERROR, &error, &error_len);
+		node_remove(n, "Write error during HELLO: %s", g_strerror(error));
+		return;
+	}
+
+	node_init_outgoing(n);
+}
+
 /**
  * Process incoming Gnutella datagram.
  */
@@ -4966,12 +5040,8 @@ void
 node_init_outgoing(struct gnutella_node *n)
 {
 	struct gnutella_socket *s = n->socket;
-	gchar buf[MAX_LINE_SIZE];
-	size_t len;
 	ssize_t sent;
 	gchar degree[80];
-
-	g_assert(s->gdk_tag == 0);
 
 	/*
 	 * Special hack for LimeWire, which insists on the presence of dynamic
@@ -4984,79 +5054,131 @@ node_init_outgoing(struct gnutella_node *n)
 	 *		--RAM, 2004-08-05
 	 */
 
-	if (current_peermode == NODE_P_ULTRA)
-		gm_snprintf(degree, sizeof(degree),
-			"X-Degree: %d\r\n"
-			"X-Max-TTL: %d\r\n",
-			(up_connections + max_connections - normal_connections) / 2,
-			my_ttl);
-	else
-		gm_snprintf(degree, sizeof(degree),
-			"X-Ultrapeer-Query-Routing: 0.1\r\n"
-			"X-Degree: 32\r\n"
-			"X-Max-TTL: 4\r\n");
+	if (!n->hello.ptr) {
+		g_assert(s->gdk_tag == 0);
 
-	len = gm_snprintf(buf, sizeof(buf),
-		"%s%d.%d\r\n"
-		"Node: %s\r\n"
-		"Remote-IP: %s\r\n"
-		"User-Agent: %s\r\n"
-		"Pong-Caching: 0.1\r\n"
-		"Bye-Packet: 0.1\r\n"
-		"GGEP: 0.5\r\n"
-		"Vendor-Message: 0.1\r\n"
-		"Accept-Encoding: deflate\r\n"
-		"X-Token: %s\r\n"
-		"X-Live-Since: %s\r\n"
-		"%s"		/* G2 Support */
-		"%s"		/* X-Ultrapeer */
-		"%s"		/* X-Query-Routing */
-		"%s"		/* X-Ultrapeer-Query-Routing */
-		"%s",		/* X-Degree + X-Max-TTL */
-		GNUTELLA_HELLO,
-		n->proto_major, n->proto_minor,
-		ip_port_to_gchar(listen_ip(), listen_port),
-		ip_to_gchar(n->ip),
-		version_string, tok_version(), start_rfc822_date,
-		enable_g2_support ? "Accept: application/x-gnutella2\r\n" : "",
-		current_peermode == NODE_P_NORMAL ? "" :
-		current_peermode == NODE_P_LEAF ?
-			"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
-		current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.2\r\n" : "",
-		current_peermode == NODE_P_ULTRA ?
-			"X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
-		degree
-	);
+		n->hello.pos = 0;
+		n->hello.len = 0;
+		n->hello.ptr = walloc((n->hello.size = MAX_LINE_SIZE));
+		if (!n->hello.ptr) {
+			node_remove(n, "Out of memory");
+			return;
+		}
 
-	header_features_generate(&xfeatures.connections, buf, sizeof(buf), &len);
+		if (current_peermode == NODE_P_ULTRA)
+			gm_snprintf(degree, sizeof(degree),
+				"X-Degree: %d\r\n"
+				"X-Max-TTL: %d\r\n",
+				(up_connections + max_connections - normal_connections) / 2,
+				my_ttl);
+		else
+			gm_snprintf(degree, sizeof(degree),
+				"X-Ultrapeer-Query-Routing: 0.1\r\n"
+				"X-Degree: 32\r\n"
+				"X-Max-TTL: 4\r\n");
 
-	len += gm_snprintf(&buf[len], sizeof(buf) - len, "\r\n");
+		n->hello.len = gm_snprintf(n->hello.ptr, n->hello.size,
+			"%s%d.%d\r\n"
+			"Node: %s\r\n"
+			"Remote-IP: %s\r\n"
+			"User-Agent: %s\r\n"
+			"Pong-Caching: 0.1\r\n"
+			"Bye-Packet: 0.1\r\n"
+			"GGEP: 0.5\r\n"
+			"Vendor-Message: 0.1\r\n"
+			"%s"		/* "Accept-Encoding: deflate */
+			"X-Token: %s\r\n"
+			"X-Live-Since: %s\r\n"
+			"%s"		/* G2 Support */
+			"%s"		/* X-Ultrapeer */
+			"%s"		/* X-Query-Routing */
+			"%s"		/* X-Ultrapeer-Query-Routing */
+			"%s",		/* X-Degree + X-Max-TTL */
+			GNUTELLA_HELLO,
+			n->proto_major, n->proto_minor,
+			ip_port_to_gchar(listen_ip(), listen_port),
+			ip_to_gchar(n->ip),
+			version_string,
+			gnet_deflate_enabled ? "Accept-Encoding: deflate\r\n" : "",
+			tok_version(),
+			start_rfc822_date,
+			enable_g2_support ? "Accept: application/x-gnutella2\r\n" : "",
+			current_peermode == NODE_P_NORMAL ? "" :
+				current_peermode == NODE_P_LEAF ?
+				"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
+			current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.2\r\n" : "",
+			current_peermode == NODE_P_ULTRA ?
+				"X-Ultrapeer-Query-Routing: 0.1\r\n" : "",
+			degree
+		);
+
+		header_features_generate(&xfeatures.connections,
+			n->hello.ptr, n->hello.size, &n->hello.len);
+
+		n->hello.len += gm_snprintf(&n->hello.ptr[n->hello.len],
+							n->hello.size - n->hello.len, "\r\n");
 	
-	g_assert(len < sizeof(buf));
+		g_assert(n->hello.len < n->hello.size);
 
-	/*
-	 * We don't retry a connection from 0.6 to 0.4 if we fail to write the
-	 * initial HELLO.
-	 */
+		/*
+		 * We don't retry a connection from 0.6 to 0.4 if we fail to write the
+		 * initial HELLO.
+		 */
 
-	sent = bws_write(bws.gout, n->socket->file_desc, buf, len);
-	if ((ssize_t) -1 == sent) {
-		node_remove(n, "Write error during HELLO: %s", g_strerror(errno));
-		return;
-	} else if ((size_t) sent < len) {
-		node_remove(n, "Partial write during HELLO");
-		return;
+		if (SOCKET_USES_TLS(n->socket))
+			n->flags |= NODE_F_TLS;
+
 	} else {
-		n->status = GTA_NODE_HELLO_SENT;
-		n->last_update = time((time_t *)NULL);
-        node_fire_node_info_changed(n);
-
-		if (dbg > 2) {
-			printf("----Sent HELLO request to %s (%d bytes):\n%.*s----\n",
-				ip_to_gchar(n->ip), len, (int) len, buf);
-			fflush(stdout);
+		if (s->gdk_tag) {
+			g_source_remove(s->gdk_tag);
+			s->gdk_tag = 0;
 		}
 	}
+
+	g_assert(n->hello.ptr != NULL);
+	g_assert(n->hello.pos < n->hello.size);
+	g_assert(n->hello.len > 0);
+
+	sent = bws_write(bws.gout, &n->socket->wio,
+				&n->hello.ptr[n->hello.pos], n->hello.len);
+
+	if ((ssize_t) -1 == sent) {
+		g_message("bws_write() failed: %s", g_strerror(errno));
+		if (errno != EAGAIN) {
+			node_remove(n, "Write error during HELLO: %s",
+				g_strerror(errno));
+			return;
+		}
+	} else if (sent == 0) {
+			node_remove(n, "Connection reset during HELLO");
+			return;
+	} else {
+		n->hello.pos += sent;
+		n->hello.len -= sent;
+	}
+
+	if (n->hello.len > 0 && !s->gdk_tag) {
+		g_assert(!s->gdk_tag);
+		s->gdk_tag = inputevt_add(s->wio.fd(&s->wio),
+						INPUT_EVENT_EXCEPTION | INPUT_EVENT_WRITE,
+						node_drain_hello, n);
+		return;
+	}
+	
+	n->status = GTA_NODE_HELLO_SENT;
+	n->last_update = time((time_t *)NULL);
+	node_fire_node_info_changed(n);
+
+	if (dbg > 2) {
+		gint len = strlen(n->hello.ptr);
+
+		printf("----Sent HELLO request to %s (%d bytes):\n%.*s----\n",
+			ip_to_gchar(n->ip), len, len, n->hello.ptr);
+		fflush(stdout);
+	}
+
+	wfree(n->hello.ptr, n->hello.size);
+	n->hello.ptr = NULL;
 
 	/*
 	 * Setup I/O callback to read the reply to our HELLO.
@@ -5266,6 +5388,7 @@ node_read(struct gnutella_node *n, pmsg_t *mb)
 
 			gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
 			node_disable_read(n);
+			message_dump(n);
 			node_bye(n, 400, "Too large %s message (%u bytes)",
 				gmsg_name(n->header.function), n->size);
 			return FALSE;
@@ -5985,6 +6108,7 @@ node_fill_flags(const gnet_node_t n, gnet_node_flags_t *flags)
 
 	flags->is_push_proxied = node->guid != 0;
 	flags->is_proxying = node->proxy_ip != 0;
+	flags->tls = (node->flags & NODE_F_TLS) != 0;
 
 	flags->qrt_state = QRT_S_NONE;
 	flags->uqrt_state = QRT_S_NONE;
@@ -6182,10 +6306,13 @@ node_connect_back(const gnutella_node_t *n, guint16 port)
 void
 node_connected_back(struct gnutella_socket *s)
 {
+	static gchar msg[] = "\n\n";
+
 	if (dbg > 4)
 		printf("Connected back to %s\n", ip_port_to_gchar(s->ip, s->port));
 
-	(void) bws_write(bws.out, s->file_desc, "\n\n", 2);
+	(void) bws_write(bws.out, &s->wio, msg, sizeof msg - 1);
+
 	socket_free(s);
 }
 
@@ -6374,4 +6501,4 @@ gnutella_node_t *node_active_by_id(guint32 id)
 	return n;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

@@ -117,4 +117,4 @@ void node_udp_process(struct gnutella_socket *s);
 
 #endif /* _nodes_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
