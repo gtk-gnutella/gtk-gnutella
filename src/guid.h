@@ -37,6 +37,7 @@
 void guid_init(void);
 gboolean guid_is_gtkg(guchar *xuid, guint8 *majp, guint8 *minp, gboolean *relp);
 gboolean guid_is_requery(guchar *xuid);
+void guid_random_fill(guchar *xuid);
 void guid_random_muid(guchar *muid);
 void guid_ping_muid(guchar *muid);
 void guid_query_muid(guchar *muid, gboolean initial);

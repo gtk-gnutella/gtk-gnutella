@@ -238,7 +238,7 @@ gboolean guid_is_requery(guchar *xuid)
  *
  * Generate a new random GUID within given `xuid'.
  */
-static void guid_random_fill(guchar *xuid)
+void guid_random_fill(guchar *xuid)
 {
 	gint i;
 
