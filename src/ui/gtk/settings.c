@@ -5234,6 +5234,17 @@ static prop_map_t property_map[] = {
         "checkbutton_config_convert_spaces",
         FREQ_UPDATES, 0
     ),
+#ifdef USE_GTK2
+/* FIXME: Add the button to the GTK+ 1.2 frontend */	
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_CONVERT_EVIL_CHARS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_convert_evil_chars",
+        FREQ_UPDATES, 0
+    ),
+#endif /* USE_GTK2 */
 #ifdef USE_GTK1
     PROP_ENTRY(
         get_main_window,
