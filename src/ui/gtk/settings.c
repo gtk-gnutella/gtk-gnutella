@@ -1953,7 +1953,9 @@ static gboolean expert_mode_changed(property_t prop)
     static const gchar *expert_widgets_main[] = {
         "button_search_passive",
         "frame_expert_node_info",
+#ifdef USE_GTK1
         "frame_expert_search_autoselect",
+#endif /* USE_GTK1 */
         "hbox_expert_search_timeout",
 		NULL
 	};
@@ -2608,6 +2610,7 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
 #endif
+#ifdef USE_GTK1
     PROP_ENTRY(
         get_main_window,
         PROP_SEARCH_AUTOSELECT_SIMILAR,
@@ -2632,6 +2635,7 @@ static prop_map_t property_map[] = {
         "checkbutton_search_autoselect_fuzzy",
         FREQ_UPDATES, 0
     ),
+#endif /* USE_GTK1 */
     PROP_ENTRY(
         get_main_window,
         PROP_MAIN_DIVIDER_POS,
@@ -5403,9 +5407,6 @@ void settings_gui_shutdown(void)
     *(guint32 *) &results_divider_pos = 
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_results")));
-    *(guint32 *) &filter_main_divider_pos = 
-        gtk_paned_get_position(GTK_PANED
-            (lookup_widget(filter_dialog, "hpaned_filter_main")));
 
     /*
      * Save properties to file
