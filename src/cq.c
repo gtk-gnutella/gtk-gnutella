@@ -352,9 +352,8 @@ static void ev_unlink(cqueue_t *cq, cevent_t *ev)
  * can be used to cancel the event.
  *
  * The event is specified to occur in some "delay" amount of time, at which
- * time we shall call fn(arg, handle, cq), where cq is the callout queue from
- * where we triggered, handle is the opaque handle we returned and arg is an
- * additional argument.
+ * time we shall call fn(cq, arg), where cq is the callout queue from
+ * where we triggered, and arg is an additional argument.
  *
  * Returns the handle, or NULL on error.
  */
