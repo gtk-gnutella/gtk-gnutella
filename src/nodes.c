@@ -212,12 +212,12 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 		n->remove_msg = NULL;
 
 	if (dbg > 3)
-		printf("Node %s removed: %s\n", ip_port_to_gchar(n->ip, n->port),
+		printf("Node %s removed: %s\n", node_ip(n),
 			n->remove_msg ? n->remove_msg : "<no reason>");
 
 	if (dbg > 4)
 		printf("NODE [%d.%d] %s TX=%d RX=%d Drop=%d Bad=%d\n",
-			n->proto_major, n->proto_minor, ip_port_to_gchar(n->ip, n->port),
+			n->proto_major, n->proto_minor, node_ip(n),
 			n->sent, n->received, n->dropped, n->n_bad);
 
 	nodes_in_list--;
@@ -1000,7 +1000,7 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 		titles[1] = (gchar *) "Outgoing";
 	}
 
-	titles[0] = ip_port_to_gchar(n->ip, n->port);
+	titles[0] = node_ip(n);
 	titles[2] = (gchar *) "";
 
 	row = gtk_clist_append(GTK_CLIST(clist_nodes), titles);
@@ -1513,8 +1513,7 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 	if (strcmp(s->buffer, gnutella_welcome)) {
 		/* The node does not seem to be a valid gnutella server !? */
 
-		g_warning("node %s replied to our HELLO strangely",
-			ip_port_to_gchar(s->ip, s->port));
+		g_warning("node %s replied to our HELLO strangely", node_ip(n));
 		dump_hex(stderr, "HELLO Reply", s->buffer, MIN(s->pos, 80));
 		node_remove(n, "Failed (Not a Gnutella server?)");
 		return;
