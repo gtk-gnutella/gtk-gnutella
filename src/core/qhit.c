@@ -194,7 +194,7 @@ flush_match(void)
 
 	if (ul_running >= max_uploads)
 		trailer[6] |= 0x04;			/* Busy flag */
-	if (count_uploads > 0)
+	if (total_uploads > 0)
 		trailer[6] |= 0x08;			/* One file uploaded, at least */
 	if (is_firewalled)
 		trailer[5] |= 0x01;			/* Firewall bit set in enabling byte */
@@ -674,3 +674,4 @@ qhit_close(void)
 	G_FREE_NULL(found_data.d);
 }
 
+/* vi: set ts=4 sw=4 cindent: */
