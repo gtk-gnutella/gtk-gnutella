@@ -62,6 +62,7 @@
 #include "vmsg.h"
 #include "token.h"
 #include "hostiles.h"
+#include "clock.h"
 
 #include "settings.h"
 
@@ -3081,11 +3082,20 @@ static void node_process_handshake_header(
 		time_t now = time(NULL);
 		time_t up = date2time(field, &now);
 
+		/*
+		 * We'll be comparing the up_date we compute to our local timestamp
+		 * for displaying the node's uptime.  Since our clock could be
+		 * offset wrt GMT, we use our current clock skew to offset the remote
+		 * timestamp to our local time, so that we can substract the two
+		 * quantities to get "meaningful" results.
+		 *		--RAM, 05/08/2003
+		 */
+
 		if (up == -1)
 			g_warning("cannot parse X-Live-Since \"%s\" from %s (%s)",
 				field, node_ip(n), node_vendor(n));
 		else 
-			n->up_date = MIN(up, now);
+			n->up_date = MIN(clock_gmt2loc(up), now);
 	} else {
 		field = header_get(head, "Uptime");
 		if (field) {
