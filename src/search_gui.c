@@ -68,6 +68,7 @@ static GList *list_search_history = NULL;
  */
 static gint search_results_compare_func
     (GtkCList * clist, gconstpointer ptr1, gconstpointer ptr2);
+static void set_search_color(struct search *sch);
 
 /*
  * If no search are currently allocated 
@@ -358,6 +359,8 @@ gboolean search_gui_new_search_full(
 	search_start(sch->search_handle);
 	if (!sch->enabled)
 		search_stop(sch->search_handle);
+
+	set_search_color(sch);
 
 	if (search)
 		*search = sch;
@@ -1367,33 +1370,23 @@ void gui_search_history_add(gchar *s)
 }
 
 /*
- * gui_search_set_enabled
+ * set_search_color
  *
- * Flag whether search is enabled.
+ * Set proper search color in list depending on whether it is enabled.
  */
-void gui_search_set_enabled(struct search *sch, gboolean enabled)
+static void set_search_color(struct search *sch)
 {
-	gboolean was_enabled = sch->enabled;
 	GtkCList * clist_search;
-	GtkNotebook *notebook_search_results;
-
-	if (was_enabled == enabled)
-		return;
-
-	sch->enabled = enabled;
-
-	if (enabled)
-		search_start(sch->search_handle);
-	else
-		search_stop(sch->search_handle);
+	static GtkNotebook *notebook_search_results = NULL;
 
 	clist_search = GTK_CLIST(
 		lookup_widget(main_window, "clist_search"));
 
-	notebook_search_results = GTK_NOTEBOOK(
-		lookup_widget(main_window, "notebook_search_results"));
+	if (notebook_search_results == NULL)
+		notebook_search_results =
+			GTK_NOTEBOOK(lookup_widget(main_window, "notebook_search_results"));
 
-	if (enabled) {
+	if (sch->enabled) {
         gtk_clist_set_foreground(
             clist_search,
 			gtk_notebook_page_num(notebook_search_results,
@@ -1407,6 +1400,28 @@ void gui_search_set_enabled(struct search *sch, gboolean enabled)
             &gtk_widget_get_style(GTK_WIDGET(clist_search))
                 ->fg[GTK_STATE_INSENSITIVE]);
 	}
+}
+
+/*
+ * gui_search_set_enabled
+ *
+ * Flag whether search is enabled.
+ */
+void gui_search_set_enabled(struct search *sch, gboolean enabled)
+{
+	gboolean was_enabled = sch->enabled;
+
+	if (was_enabled == enabled)
+		return;
+
+	sch->enabled = enabled;
+
+	if (enabled)
+		search_start(sch->search_handle);
+	else
+		search_stop(sch->search_handle);
+
+	set_search_color(sch);
 }
 
 #endif	/* USE_GTK1 */
