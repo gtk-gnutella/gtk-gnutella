@@ -9412,21 +9412,69 @@ for all filters</label>
 		</widget>
 
 		<widget>
-		  <class>GtkButton</class>
-		  <name>button_filter_text_remove</name>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>clicked</name>
-		    <handler>on_button_filter_remove_rule_clicked</handler>
-		    <last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
-		  </signal>
-		  <label>Remove this rule</label>
-		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <class>GtkHBox</class>
+		  <name>hbox138</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>0</spacing>
 		  <child>
 		    <padding>0</padding>
 		    <expand>True</expand>
 		    <fill>True</fill>
 		  </child>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button_filter_text_add</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_add_rule_clicked</handler>
+		      <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
+		    </signal>
+		    <label>Add/Replace</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button_filter_text_remove</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_remove_rule_clicked</handler>
+		      <last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
+		    </signal>
+		    <label>Remove</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button16</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_abort_rule_clicked</handler>
+		      <last_modification_time>Tue, 02 Jul 2002 11:04:25 GMT</last_modification_time>
+		    </signal>
+		    <label>Abort</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
 		</widget>
 	      </widget>
 	    </widget>
@@ -9737,21 +9785,69 @@ for all filters</label>
 		</widget>
 
 		<widget>
-		  <class>GtkButton</class>
-		  <name>button_filter_ip_remove</name>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>clicked</name>
-		    <handler>on_button_filter_remove_rule_clicked</handler>
-		    <last_modification_time>Tue, 28 May 2002 22:37:46 GMT</last_modification_time>
-		  </signal>
-		  <label>Remove this rule</label>
-		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <class>GtkHBox</class>
+		  <name>hbox139</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>0</spacing>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
 		    <fill>False</fill>
 		  </child>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button4</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_add_rule_clicked</handler>
+		      <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
+		    </signal>
+		    <label>Add/Replace</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button5</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_remove_rule_clicked</handler>
+		      <last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
+		    </signal>
+		    <label>Remove</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button17</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_abort_rule_clicked</handler>
+		      <last_modification_time>Tue, 02 Jul 2002 11:04:25 GMT</last_modification_time>
+		    </signal>
+		    <label>Abort</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
 		</widget>
 	      </widget>
 	    </widget>
@@ -10130,21 +10226,69 @@ for all filters</label>
 		</widget>
 
 		<widget>
-		  <class>GtkButton</class>
-		  <name>button_filter_size_remove</name>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>clicked</name>
-		    <handler>on_button_filter_remove_rule_clicked</handler>
-		    <last_modification_time>Tue, 28 May 2002 22:37:53 GMT</last_modification_time>
-		  </signal>
-		  <label>Remove this rule</label>
-		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <class>GtkHBox</class>
+		  <name>hbox140</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>0</spacing>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
 		    <fill>False</fill>
 		  </child>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button6</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_add_rule_clicked</handler>
+		      <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
+		    </signal>
+		    <label>Add/Replace</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button7</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_remove_rule_clicked</handler>
+		      <last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
+		    </signal>
+		    <label>Remove</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button18</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_abort_rule_clicked</handler>
+		      <last_modification_time>Tue, 02 Jul 2002 11:04:25 GMT</last_modification_time>
+		    </signal>
+		    <label>Abort</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
 		</widget>
 	      </widget>
 	    </widget>
@@ -10337,21 +10481,69 @@ for all filters</label>
 		  </widget>
 
 		  <widget>
-		    <class>GtkButton</class>
-		    <name>button_filter_jump_remove</name>
-		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>clicked</name>
-		      <handler>on_button_filter_remove_rule_clicked</handler>
-		      <last_modification_time>Tue, 28 May 2002 22:37:53 GMT</last_modification_time>
-		    </signal>
-		    <label>Remove this rule</label>
-		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <class>GtkHBox</class>
+		    <name>hbox141</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
 		    <child>
 		      <padding>0</padding>
 		      <expand>False</expand>
 		      <fill>False</fill>
 		    </child>
+
+		    <widget>
+		      <class>GtkButton</class>
+		      <name>button8</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>clicked</name>
+			<handler>on_button_filter_add_rule_clicked</handler>
+			<last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
+		      </signal>
+		      <label>Add/Replace</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkButton</class>
+		      <name>button9</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>clicked</name>
+			<handler>on_button_filter_remove_rule_clicked</handler>
+			<last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
+		      </signal>
+		      <label>Remove</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
+
+		    <widget>
+		      <class>GtkButton</class>
+		      <name>button19</name>
+		      <can_focus>True</can_focus>
+		      <signal>
+			<name>clicked</name>
+			<handler>on_button_filter_abort_rule_clicked</handler>
+			<last_modification_time>Tue, 02 Jul 2002 11:04:25 GMT</last_modification_time>
+		      </signal>
+		      <label>Abort</label>
+		      <relief>GTK_RELIEF_NORMAL</relief>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
 		  </widget>
 		</widget>
 	      </widget>
@@ -10670,21 +10862,69 @@ for all filters</label>
 		</widget>
 
 		<widget>
-		  <class>GtkButton</class>
-		  <name>button_filter_sha1_remove</name>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>clicked</name>
-		    <handler>on_button_filter_remove_rule_clicked</handler>
-		    <last_modification_time>Tue, 28 May 2002 22:37:53 GMT</last_modification_time>
-		  </signal>
-		  <label>Remove this rule</label>
-		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <class>GtkHBox</class>
+		  <name>hbox142</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>0</spacing>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
 		    <fill>False</fill>
 		  </child>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button10</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_add_rule_clicked</handler>
+		      <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
+		    </signal>
+		    <label>Add/Replace</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button11</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_remove_rule_clicked</handler>
+		      <last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
+		    </signal>
+		    <label>Remove</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button20</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_abort_rule_clicked</handler>
+		      <last_modification_time>Tue, 02 Jul 2002 11:04:25 GMT</last_modification_time>
+		    </signal>
+		    <label>Abort</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
 		</widget>
 	      </widget>
 	    </widget>
@@ -11274,21 +11514,69 @@ for all filters</label>
 		</widget>
 
 		<widget>
-		  <class>GtkButton</class>
-		  <name>button_filter_flag_remove</name>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>clicked</name>
-		    <handler>on_button_filter_remove_rule_clicked</handler>
-		    <last_modification_time>Tue, 28 May 2002 22:37:53 GMT</last_modification_time>
-		  </signal>
-		  <label>Remove this rule</label>
-		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <class>GtkHBox</class>
+		  <name>hbox143</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>0</spacing>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
 		    <fill>False</fill>
 		  </child>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button12</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_add_rule_clicked</handler>
+		      <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
+		    </signal>
+		    <label>Add/Replace</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button13</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_remove_rule_clicked</handler>
+		      <last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
+		    </signal>
+		    <label>Remove</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button21</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_abort_rule_clicked</handler>
+		      <last_modification_time>Tue, 02 Jul 2002 11:04:25 GMT</last_modification_time>
+		    </signal>
+		    <label>Abort</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
 		</widget>
 	      </widget>
 	    </widget>
@@ -11828,21 +12116,69 @@ for all filters</label>
 		</widget>
 
 		<widget>
-		  <class>GtkButton</class>
-		  <name>button_filter_state_remove</name>
-		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>clicked</name>
-		    <handler>on_button_filter_remove_rule_clicked</handler>
-		    <last_modification_time>Tue, 28 May 2002 22:37:53 GMT</last_modification_time>
-		  </signal>
-		  <label>Remove this rule</label>
-		  <relief>GTK_RELIEF_NORMAL</relief>
+		  <class>GtkHBox</class>
+		  <name>hbox144</name>
+		  <homogeneous>False</homogeneous>
+		  <spacing>0</spacing>
 		  <child>
 		    <padding>0</padding>
 		    <expand>False</expand>
 		    <fill>False</fill>
 		  </child>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button14</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_add_rule_clicked</handler>
+		      <last_modification_time>Sun, 30 Jun 2002 19:48:52 GMT</last_modification_time>
+		    </signal>
+		    <label>Add/Replace</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button15</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_remove_rule_clicked</handler>
+		      <last_modification_time>Tue, 28 May 2002 22:37:36 GMT</last_modification_time>
+		    </signal>
+		    <label>Remove</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkButton</class>
+		    <name>button22</name>
+		    <can_focus>True</can_focus>
+		    <signal>
+		      <name>clicked</name>
+		      <handler>on_button_filter_abort_rule_clicked</handler>
+		      <last_modification_time>Tue, 02 Jul 2002 11:04:25 GMT</last_modification_time>
+		    </signal>
+		    <label>Abort</label>
+		    <relief>GTK_RELIEF_NORMAL</relief>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>False</fill>
+		    </child>
+		  </widget>
 		</widget>
 	      </widget>
 	    </widget>
@@ -11868,7 +12204,7 @@ for all filters</label>
       <class>GtkHSeparator</class>
       <name>hseparator5</name>
       <child>
-	<padding>0</padding>
+	<padding>4</padding>
 	<expand>False</expand>
 	<fill>True</fill>
       </child>
@@ -11882,13 +12218,52 @@ for all filters</label>
       <child>
 	<padding>0</padding>
 	<expand>False</expand>
-	<fill>True</fill>
+	<fill>False</fill>
       </child>
+
+      <widget>
+	<class>GtkButton</class>
+	<name>button_filter_apply</name>
+	<can_default>True</can_default>
+	<can_focus>True</can_focus>
+	<signal>
+	  <name>clicked</name>
+	  <handler>on_button_filter_apply_clicked</handler>
+	  <last_modification_time>Sun, 30 Jun 2002 19:32:18 GMT</last_modification_time>
+	</signal>
+	<label>Apply</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
+	<child>
+	  <padding>0</padding>
+	  <expand>True</expand>
+	  <fill>True</fill>
+	</child>
+      </widget>
+
+      <widget>
+	<class>GtkButton</class>
+	<name>button_filter_revert</name>
+	<can_default>True</can_default>
+	<can_focus>True</can_focus>
+	<signal>
+	  <name>clicked</name>
+	  <handler>on_button_filter_revert_clicked</handler>
+	  <last_modification_time>Sun, 30 Jun 2002 19:32:23 GMT</last_modification_time>
+	</signal>
+	<label>Revert</label>
+	<relief>GTK_RELIEF_NORMAL</relief>
+	<child>
+	  <padding>0</padding>
+	  <expand>True</expand>
+	  <fill>True</fill>
+	</child>
+      </widget>
 
       <widget>
 	<class>GtkButton</class>
 	<name>button_filter_ok</name>
 	<can_default>True</can_default>
+	<has_default>True</has_default>
 	<can_focus>True</can_focus>
 	<signal>
 	  <name>clicked</name>

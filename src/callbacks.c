@@ -27,6 +27,8 @@
 
 #include "gnutella.h"
 
+#include <gdk/gdkkeysyms.h>
+
 #include "callbacks.h"
 #include "interface.h"
 #include "gui.h"
@@ -3064,9 +3066,22 @@ void on_popup_search_resume_activate(GtkMenuItem * menuitem,
 	}
 }
 
-gboolean on_clist_search_results_button_press_event(GtkWidget * widget,
-													GdkEventButton * event,
-													gpointer user_data)
+gboolean on_clist_search_results_key_press_event
+    (GtkWidget *widget, GdkEventKey * event, gpointer user_data)
+{
+    g_assert(event != NULL);
+
+    switch(event->keyval) {
+    case GDK_Return:
+        search_download_files();
+        return TRUE;
+    default:
+        return FALSE;
+    };
+}
+
+gboolean on_clist_search_results_button_press_event
+    (GtkWidget *widget, GdkEventButton * event, gpointer user_data)
 {
 	gint row = 0;
 	gint column = 0;

@@ -138,7 +138,8 @@ void on_clist_downloads_queue_drag_end(GtkWidget *widget, GdkDragContext *drag_c
 /***
  *** search panel
  ***/
-gboolean on_clist_search_results_button_press_event(GtkWidget * widget, GdkEventButton * event, gpointer user_data);
+gboolean on_clist_search_results_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data);
+gboolean on_clist_search_results_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer user_data);
 void on_button_search_clear_clicked (GtkButton *button, gpointer user_data);
 void on_button_search_clear_clicked(GtkButton * button, gpointer user_data);
 void on_button_search_clicked (GtkButton *button, gpointer user_data); 
