@@ -279,6 +279,8 @@ parse_and_append_cache_entry(char *line)
 		return;
 	}
 
+	p++; /* Skip \t */
+
 	/* p is now supposed to point to the beginning of the file size */
 
 	size = parse_uint64(p, &end, 10, &error);
