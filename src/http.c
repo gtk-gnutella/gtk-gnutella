@@ -879,6 +879,7 @@ gpointer http_async_get(
 	ha->path = atom_str_get(path);
 	ha->host = host ? atom_str_get(host) : NULL;
 	ha->socket = s;
+	ha->header_ind = header_ind;
 	ha->data_ind = data_ind;
 	ha->error_ind = error_ind;
 	ha->io_opaque = NULL;
