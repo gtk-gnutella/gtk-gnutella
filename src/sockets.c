@@ -259,9 +259,15 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 		if (0 == strncmp(first, gnutella_hello, gnutella_hello_length))
 			send_node_error(s, 550, "Banned for %s",
 				short_time(ban_delay(s->ip)));
-		else
-			socket_http_error(s, 550, NULL, "Banned for %s",
-				short_time(ban_delay(s->ip)));
+		else {
+			gint delay = ban_delay(s->ip);
+			gchar msg[80];
+
+			g_snprintf(msg, sizeof(msg)-1, "Retry-After: %d\r\n", delay);
+
+			socket_http_error(s, 550, msg, "Banned for %s",
+				short_time(delay));
+		}
 		goto cleanup;
 	default:
 		g_assert(0);			/* Not reached */
