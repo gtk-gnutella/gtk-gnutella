@@ -1,5 +1,10 @@
 # since last version
 
+- (2003.08.02 - RAM)
+ * Rolled back invalid change wrt reading/writing of IP addresses from/to Gnet.
+ * Added magic number at the head of the cproxy structure.
+ * Was writing the IP addess in LIME/22v2 as a 16-bit quantity!
+
 - (2003.08.01 - Jeroen)
  * When an IP got banned by PARQ, it won't be added to the upload
    list anymore
@@ -28,7 +33,8 @@
  * Initial import of tigertree source code.
  
 # v 0.92.1c 2003.06.20 [candidate]
-These are some changes since 0.92 stable:
+
+These are some of the changes made since 0.92 stable:
 
  * Support for push proxies was added which reduces problems with
    firewalled servents.
