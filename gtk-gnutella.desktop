@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Encoding=UTF-8
+Name=Gtk-Gnutella
+Comment=A GUI based Gnutella Servent
+GenericName=P2P Client
+TryExec=gtk-gnutella
+Exec=gtk-gnutella
+Terminal=false
+Type=Application
+Categories=GTK;Application;Network;
+Icon=gtk-gnutella.png
+
