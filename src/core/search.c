@@ -644,7 +644,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 						payload[e->ext_paylen] = '\0';
 
 						if (urn_get_sha1_no_prefix(payload, sha1_digest)) {
-							if (!validate_only) {
+							if (huge_improbable_sha1(sha1_digest, SHA1_RAW_SIZE))
+								sha1_errors++;
+							else if (!validate_only) {
 								if (rc->sha1 != NULL) {
 									multiple_sha1 = TRUE;
 									atom_sha1_free(rc->sha1);
@@ -660,7 +662,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 					ret = ggept_h_sha1_extract(e, sha1_digest, SHA1_RAW_SIZE);
 					if (ret == GGEP_OK) {
 						has_hash = TRUE;
-						if (!validate_only) {
+						if (huge_improbable_sha1(sha1_digest, SHA1_RAW_SIZE))
+							sha1_errors++;
+						else if (!validate_only) {
 							if (rc->sha1 != NULL) {
 								multiple_sha1 = TRUE;
 								atom_sha1_free(rc->sha1);
