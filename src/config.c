@@ -1184,17 +1184,17 @@ void config_save(void)
 			search_strict_and);
 	fprintf(config, "# Set to 1 to select all same filenames with "
 		"greater or equal size\n"
-			"%s = %u\n", keywords[k_search_pick_all], search_pick_all);
+			"%s = %u\n\n", keywords[k_search_pick_all], search_pick_all);
 
-	fprintf(config, "# Proxy Info\n\n");
-	fprintf(config, "%s = %u\n\n", keywords[k_proxy_connections],
+	fprintf(config, "# Proxy Info\n");
+	fprintf(config, "%s = %u\n", keywords[k_proxy_connections],
 			proxy_connections);
-	fprintf(config, "%s = %u\n\n", keywords[k_proxy_protocol], proxy_protocol);
-	fprintf(config, "%s = \"%s\"\n\n", keywords[k_proxy_ip], proxy_ip);
-	fprintf(config, "%s = %u\n\n", keywords[k_proxy_port], proxy_port);
-	fprintf(config, "%s = \"%s\"\n\n", keywords[k_socksv5_user], socksv5_user);
-	fprintf(config, "%s = \"%s\"\n\n", keywords[k_socksv5_pass], socksv5_pass);
-	fprintf(config, "\n\n");
+	fprintf(config, "%s = %u\n", keywords[k_proxy_protocol], proxy_protocol);
+	fprintf(config, "%s = \"%s\"\n", keywords[k_proxy_ip], proxy_ip);
+	fprintf(config, "%s = %u\n", keywords[k_proxy_port], proxy_port);
+	fprintf(config, "%s = \"%s\"\n", keywords[k_socksv5_user], socksv5_user);
+	fprintf(config, "%s = \"%s\"\n", keywords[k_socksv5_pass], socksv5_pass);
+	fprintf(config, "\n");
 
 	fprintf(config, "# For developers only, debugging stuff\n\n");
 	fprintf(config, "# Debug level, each one prints more detail "
