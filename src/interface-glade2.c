@@ -1067,6 +1067,7 @@ create_dlg_filters (void)
   dlg_filters = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_filters, "dlg_filters");
   gtk_window_set_title (GTK_WINDOW (dlg_filters), "Ruleset editor");
+  gtk_window_set_position (GTK_WINDOW (dlg_filters), GTK_WIN_POS_MOUSE);
   gtk_window_set_default_size (GTK_WINDOW (dlg_filters), 450, 300);
 
   vbox_filter_main = gtk_vbox_new (FALSE, 0);
@@ -3828,6 +3829,7 @@ create_shutdown_window (void)
   shutdown_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (shutdown_window, "shutdown_window");
   gtk_window_set_title (GTK_WINDOW (shutdown_window), "gtk-gnutella shutdown");
+  gtk_window_set_position (GTK_WINDOW (shutdown_window), GTK_WIN_POS_MOUSE);
 
   frame30 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame30, "frame30");
@@ -3944,6 +3946,7 @@ create_dlg_about (void)
   dlg_about = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (dlg_about, "dlg_about");
   gtk_window_set_title (GTK_WINDOW (dlg_about), "About gtk-gnutella");
+  gtk_window_set_position (GTK_WINDOW (dlg_about), GTK_WIN_POS_MOUSE);
 
   vbox67 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox67, "vbox67");
@@ -4857,16 +4860,23 @@ create_main_window (void)
   GtkWidget *label399;
   GtkWidget *checkbutton_gnet_stats_byte_perc;
   GtkWidget *label479;
+  GtkWidget *frame61;
   GtkWidget *vbox83;
-  GtkWidget *scrolledwindow45;
-  GtkWidget *viewport9;
   GtkWidget *vbox89;
-  GtkWidget *hbox209;
-  GtkWidget *label502;
-  GtkWidget *combo_gnet_stats_flowc;
-  GtkWidget *combo_entry3;
   GtkWidget *treeview_gnet_stats_flowc;
-  GtkWidget *_;
+  GtkWidget *frame62;
+  GtkWidget *table41;
+  GtkWidget *radio_fc_ttl;
+  GSList *radio_fc_ttl_group = NULL;
+  GtkWidget *radio_fc_pkts;
+  GSList *radio_fc_pkts_group = NULL;
+  GtkWidget *radio_fc_hops;
+  GtkWidget *radio_fc_byte;
+  GtkWidget *radio_fc_abs;
+  GSList *radio_fc_abs_group = NULL;
+  GtkWidget *radio_fc_rel;
+  GtkWidget *label503;
+  GtkWidget *label502;
   GtkWidget *label378;
   GtkWidget *hbox_statusbar;
   GtkWidget *togglebutton_online;
@@ -4899,6 +4909,7 @@ create_main_window (void)
   main_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (main_window, "main_window");
   gtk_window_set_title (GTK_WINDOW (main_window), "gtk-gnutella");
+  gtk_window_set_position (GTK_WINDOW (main_window), GTK_WIN_POS_MOUSE);
 
   vbox12 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox12, "vbox12");
@@ -8883,51 +8894,22 @@ create_main_window (void)
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 3), label479);
   gtk_label_set_justify (GTK_LABEL (label479), GTK_JUSTIFY_LEFT);
 
-  vbox83 = gtk_vbox_new (TRUE, 2);
+  frame61 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame61, "frame61");
+  gtk_widget_show (frame61);
+  gtk_container_add (GTK_CONTAINER (notebook2), frame61);
+  gtk_container_set_border_width (GTK_CONTAINER (frame61), 2);
+
+  vbox83 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox83, "vbox83");
   gtk_widget_show (vbox83);
-  gtk_container_add (GTK_CONTAINER (notebook2), vbox83);
-  gtk_container_set_border_width (GTK_CONTAINER (vbox83), 2);
-
-  scrolledwindow45 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow45, "scrolledwindow45");
-  gtk_widget_show (scrolledwindow45);
-  gtk_box_pack_start (GTK_BOX (vbox83), scrolledwindow45, TRUE, TRUE, 0);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow45), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-
-  viewport9 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport9, "viewport9");
-  gtk_widget_show (viewport9);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow45), viewport9);
+  gtk_container_add (GTK_CONTAINER (frame61), vbox83);
+  gtk_container_set_border_width (GTK_CONTAINER (vbox83), 1);
 
   vbox89 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox89, "vbox89");
   gtk_widget_show (vbox89);
-  gtk_container_add (GTK_CONTAINER (viewport9), vbox89);
-
-  hbox209 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox209, "hbox209");
-  gtk_widget_show (hbox209);
-  gtk_box_pack_start (GTK_BOX (vbox89), hbox209, FALSE, FALSE, 0);
-
-  label502 = gtk_label_new ("Select mode");
-  gtk_widget_set_name (label502, "label502");
-  gtk_widget_show (label502);
-  gtk_box_pack_start (GTK_BOX (hbox209), label502, FALSE, FALSE, 5);
-  gtk_label_set_justify (GTK_LABEL (label502), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label502), 0, 0.5);
-
-  combo_gnet_stats_flowc = gtk_combo_new ();
-  g_object_set_data (G_OBJECT (GTK_COMBO (combo_gnet_stats_flowc)->popwin),
-                     "GladeParentKey", combo_gnet_stats_flowc);
-  gtk_widget_set_name (combo_gnet_stats_flowc, "combo_gnet_stats_flowc");
-  gtk_widget_show (combo_gnet_stats_flowc);
-  gtk_box_pack_start (GTK_BOX (hbox209), combo_gnet_stats_flowc, TRUE, TRUE, 0);
-
-  combo_entry3 = GTK_COMBO (combo_gnet_stats_flowc)->entry;
-  gtk_widget_set_name (combo_entry3, "combo_entry3");
-  gtk_widget_show (combo_entry3);
-  gtk_editable_set_editable (GTK_EDITABLE (combo_entry3), FALSE);
+  gtk_box_pack_start (GTK_BOX (vbox83), vbox89, TRUE, TRUE, 0);
 
   treeview_gnet_stats_flowc = gtk_tree_view_new ();
   gtk_widget_set_name (treeview_gnet_stats_flowc, "treeview_gnet_stats_flowc");
@@ -8935,11 +8917,88 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox89), treeview_gnet_stats_flowc, TRUE, TRUE, 0);
   gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_gnet_stats_flowc), FALSE);
 
-  _ = gtk_label_new_with_mnemonic ("Flow _control");
-  gtk_widget_set_name (_, "_");
-  gtk_widget_show (_);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 4), _);
-  gtk_label_set_justify (GTK_LABEL (_), GTK_JUSTIFY_LEFT);
+  frame62 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame62, "frame62");
+  gtk_widget_show (frame62);
+  gtk_box_pack_start (GTK_BOX (vbox89), frame62, FALSE, TRUE, 2);
+  gtk_container_set_border_width (GTK_CONTAINER (frame62), 1);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame62), GTK_SHADOW_IN);
+
+  table41 = gtk_table_new (2, 3, FALSE);
+  gtk_widget_set_name (table41, "table41");
+  gtk_widget_show (table41);
+  gtk_container_add (GTK_CONTAINER (frame62), table41);
+  gtk_container_set_border_width (GTK_CONTAINER (table41), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table41), 10);
+
+  radio_fc_ttl = gtk_radio_button_new_with_mnemonic (NULL, "TTL");
+  gtk_widget_set_name (radio_fc_ttl, "radio_fc_ttl");
+  gtk_widget_show (radio_fc_ttl);
+  gtk_table_attach (GTK_TABLE (table41), radio_fc_ttl, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_ttl), radio_fc_ttl_group);
+  radio_fc_ttl_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_ttl));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (radio_fc_ttl), TRUE);
+
+  radio_fc_pkts = gtk_radio_button_new_with_mnemonic (NULL, "Packets");
+  gtk_widget_set_name (radio_fc_pkts, "radio_fc_pkts");
+  gtk_widget_show (radio_fc_pkts);
+  gtk_table_attach (GTK_TABLE (table41), radio_fc_pkts, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_pkts), radio_fc_pkts_group);
+  radio_fc_pkts_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_pkts));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (radio_fc_pkts), TRUE);
+
+  radio_fc_hops = gtk_radio_button_new_with_mnemonic (NULL, "Hops");
+  gtk_widget_set_name (radio_fc_hops, "radio_fc_hops");
+  gtk_widget_show (radio_fc_hops);
+  gtk_table_attach (GTK_TABLE (table41), radio_fc_hops, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_hops), radio_fc_ttl_group);
+  radio_fc_ttl_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_hops));
+
+  radio_fc_byte = gtk_radio_button_new_with_mnemonic (NULL, "Bytes");
+  gtk_widget_set_name (radio_fc_byte, "radio_fc_byte");
+  gtk_widget_show (radio_fc_byte);
+  gtk_table_attach (GTK_TABLE (table41), radio_fc_byte, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_byte), radio_fc_pkts_group);
+  radio_fc_pkts_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_byte));
+
+  radio_fc_abs = gtk_radio_button_new_with_mnemonic (NULL, "Absolute");
+  gtk_widget_set_name (radio_fc_abs, "radio_fc_abs");
+  gtk_widget_show (radio_fc_abs);
+  gtk_table_attach (GTK_TABLE (table41), radio_fc_abs, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_abs), radio_fc_abs_group);
+  radio_fc_abs_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_abs));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (radio_fc_abs), TRUE);
+
+  radio_fc_rel = gtk_radio_button_new_with_mnemonic (NULL, "Relative");
+  gtk_widget_set_name (radio_fc_rel, "radio_fc_rel");
+  gtk_widget_show (radio_fc_rel);
+  gtk_table_attach (GTK_TABLE (table41), radio_fc_rel, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_rel), radio_fc_abs_group);
+  radio_fc_abs_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_rel));
+
+  label503 = gtk_label_new ("View mode selection");
+  gtk_widget_set_name (label503, "label503");
+  gtk_widget_show (label503);
+  gtk_frame_set_label_widget (GTK_FRAME (frame62), label503);
+  gtk_label_set_justify (GTK_LABEL (label503), GTK_JUSTIFY_LEFT);
+
+  label502 = gtk_label_new_with_mnemonic ("Flow _control");
+  gtk_widget_set_name (label502, "label502");
+  gtk_widget_show (label502);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 4), label502);
+  gtk_label_set_justify (GTK_LABEL (label502), GTK_JUSTIFY_LEFT);
 
   label378 = gtk_label_new ("gNet stats");
   gtk_widget_set_name (label378, "label378");
@@ -9989,16 +10048,20 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label399, "label399");
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_gnet_stats_byte_perc, "checkbutton_gnet_stats_byte_perc");
   GLADE_HOOKUP_OBJECT (main_window, label479, "label479");
+  GLADE_HOOKUP_OBJECT (main_window, frame61, "frame61");
   GLADE_HOOKUP_OBJECT (main_window, vbox83, "vbox83");
-  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow45, "scrolledwindow45");
-  GLADE_HOOKUP_OBJECT (main_window, viewport9, "viewport9");
   GLADE_HOOKUP_OBJECT (main_window, vbox89, "vbox89");
-  GLADE_HOOKUP_OBJECT (main_window, hbox209, "hbox209");
-  GLADE_HOOKUP_OBJECT (main_window, label502, "label502");
-  GLADE_HOOKUP_OBJECT (main_window, combo_gnet_stats_flowc, "combo_gnet_stats_flowc");
-  GLADE_HOOKUP_OBJECT (main_window, combo_entry3, "combo_entry3");
   GLADE_HOOKUP_OBJECT (main_window, treeview_gnet_stats_flowc, "treeview_gnet_stats_flowc");
-  GLADE_HOOKUP_OBJECT (main_window, _, "_");
+  GLADE_HOOKUP_OBJECT (main_window, frame62, "frame62");
+  GLADE_HOOKUP_OBJECT (main_window, table41, "table41");
+  GLADE_HOOKUP_OBJECT (main_window, radio_fc_ttl, "radio_fc_ttl");
+  GLADE_HOOKUP_OBJECT (main_window, radio_fc_pkts, "radio_fc_pkts");
+  GLADE_HOOKUP_OBJECT (main_window, radio_fc_hops, "radio_fc_hops");
+  GLADE_HOOKUP_OBJECT (main_window, radio_fc_byte, "radio_fc_byte");
+  GLADE_HOOKUP_OBJECT (main_window, radio_fc_abs, "radio_fc_abs");
+  GLADE_HOOKUP_OBJECT (main_window, radio_fc_rel, "radio_fc_rel");
+  GLADE_HOOKUP_OBJECT (main_window, label503, "label503");
+  GLADE_HOOKUP_OBJECT (main_window, label502, "label502");
   GLADE_HOOKUP_OBJECT (main_window, label378, "label378");
   GLADE_HOOKUP_OBJECT (main_window, hbox_statusbar, "hbox_statusbar");
   GLADE_HOOKUP_OBJECT (main_window, togglebutton_online, "togglebutton_online");
@@ -10043,6 +10106,7 @@ create_dlg_quit (void)
   dlg_quit = gtk_dialog_new ();
   gtk_widget_set_name (dlg_quit, "dlg_quit");
   gtk_window_set_title (GTK_WINDOW (dlg_quit), "gtk-gnutella: Quit?");
+  gtk_window_set_position (GTK_WINDOW (dlg_quit), GTK_WIN_POS_MOUSE);
   gtk_window_set_resizable (GTK_WINDOW (dlg_quit), FALSE);
 
   dialog_vbox1 = GTK_DIALOG (dlg_quit)->vbox;
