@@ -487,6 +487,7 @@ void version_init(void)
 	struct utsname un;
 	gchar buf[128];
 	gboolean ok;
+	time_t now = time(NULL);
 
 	(void) uname(&un);
 
@@ -510,6 +511,17 @@ void version_init(void)
 
 	last_rel_version = our_version;		/* struct copy */
 	last_dev_version = our_version;		/* struct copy */
+
+	/*
+	 * The property system is not up when this is called, but we need
+	 * to set this variable correctly.
+	 */
+
+	if (
+		now - our_version.timestamp > VERSION_ANCIENT_WARN ||
+		(our_version.tag && now - our_version.timestamp > VERSION_UNSTABLE_WARN)
+	)
+		ancient_version = TRUE;
 }
 
 /*
@@ -523,6 +535,15 @@ void version_init(void)
 void version_ancient_warn(void)
 {
 	g_assert(our_version.timestamp > 0);	/* version_init() called */
+
+	/*
+	 * Must reset the property to FALSE so that if it changes and becomes
+	 * TRUE, then the necessary GUI callbacks will get triggered.  Indeed,
+	 * setting a property to its ancient value is not considered a change,
+	 * and rightfully so!
+	 */
+
+	gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, FALSE);
 
 	if (time(NULL) - our_version.timestamp > VERSION_ANCIENT_WARN) {
 		g_warning("version of gtk-gnutella is too old, you should upgrade!");

@@ -366,6 +366,10 @@ void gwc_init(void)
 	gwc_add("http://raphael.manfredi.free.fr/gwc/gcache.php");
 
 	gwc_retrieve();
+
+	if (ancient_version)
+		return;				/* Older versions must have a harder time */
+
 	gwc_get_urls();
 
 	/*

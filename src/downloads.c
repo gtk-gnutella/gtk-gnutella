@@ -5602,6 +5602,9 @@ static void download_request(
 		download_bad_source(d);
 		download_passively_queued(d, FALSE);
 
+		if (ancient_version)
+			goto report_error;		/* Old versions don't circumvent banning */
+
 		/*
 		 * Check whether server is banning us based on our user-agent.
 		 *
@@ -5691,6 +5694,7 @@ static void download_request(
 			upload_kill_ip(download_ip(d));
 		}
 
+	report_error:
 		download_stop(d, GTA_DL_ERROR,
 			"%sHTTP %d %s", short_read, ack_code, ack_message);
 		return;
