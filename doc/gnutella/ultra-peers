@@ -1,0 +1,365 @@
+[HTML reformatted by RAM -- 04/01/2001]
+
+          Ultrapeers: Another Step Towards Gnutella Scalability
+
+                             Working Draft
+                                         
+                             Anurag Singla
+                           Christopher Rohrs
+                             Lime Wire LLC
+                           December 18, 2001
+                     {anurag, crohrs}@limewire.com
+ 
+  Abstract: We propose a scheme to have a hierarchical gnutella
+  network by categorizing the nodes on the network as client-nodes and
+  super-nodes. A client-node keeps only one connection open, and that is
+  to a super-node. A super-node acts as a proxy to the gnutella network
+  for the client nodes connected to it. This has a effect of making
+  the gnutella network scale, by reducing the number of nodes on the
+  network involved in message handling and routing, as well as reducing
+  the actual traffic among them.
+ 
+
+
+1. Introduction
+
+The Gnutella network is a peer-to-peer network, all the hosts on the
+network are treated equal regardless of their bandwidth capabilities or
+computation power or other properties (like uptime, connection capability
+etc). Nodes on the network communicate using either of Gnutella Protocol
+0.4 [PROT04], or an enhanced version that uses new Connection Handshaking
+mechanism [GC01], both of which have many interesting properties. New
+hosts can join any time, and the current hosts on the network may leave
+the network any time. The ability to have a dependable network, without
+dependence on any particular host (or set of hosts), is a remarkable
+feature of gnutella that has led to its immense popularity.  Along with
+this there are many other remarkable features of gnutella network
+[WHYGNUT01] that distinguish it from other systems.
+ 
+But along with all the good features that gnutella possesses, there have
+always been doubts cast upon the scalability of gnutella network. That?s
+primarily because of the overabundance of messages flowing thru the
+gnutella network including broadcast pings and queries, as well as the
+inability to assure content availability close enough to the searching
+host. Queries are sent to large number of hosts in an attempt to secure
+a hit from few of them. This has led to bandwidth problems in the past
+as well as in the present.
+ 
+Gnutella developers have taken a number of very promising initiatives to
+reduce the number of messages flowing in the gnutella network, by making
+the methods more directed as well as carry more information. Notable among
+these are Ping Pong Scheme Proposal [CV01] which reduces the number of
+messages by eliminating the ones not contributing much to the system,
+Meta Information Search Proposal (S01) which attempts to make search
+more specific, and Query Routing Proposal [C00] which reduces the query
+traffic by doing selective broadcast.
+ 
+Although the above initiatives are a promising step towards making the
+network efficient, there definitely exist other supplementary schemes,
+one of which is the scheme proposed in this paper that has a major
+potential of making network scalable and efficient. We propose a scheme
+which if implemented will create a two level hierarchy of nodes in the
+gnutella network, where faster nodes (ones having better networking
+capabilities and CPU power) take charge of much of the load on slower
+nodes. In the proposed scheme this restructuring of the network takes
+place automatically and dynamically, and works in unison with the other
+initiatives mentioned above. The restructured network will have a effect
+of significant reduction in the number of messages flowing thru the
+gnutella network.
+
+At the same point, we would like to mention that the concept of
+the ultrapeers is not new, and has been in existence in variety of
+applications (including proxy access to web which has static ultrapeer
+selection, as well as distributed transaction processing which has
+dynamic ultrapeer selection algorithm). Also it has been applied to
+recent peer-to-peer applications using FastTrack [FTRACK], or other
+such similar technologies. The application of the ultrapeer concept in
+Peer-to-Peer application has been done using proprietary algorithms and
+protocols. Our contribution in this paper is to come up with a scheme
+to implement the dynamic ultrapeer selection mechanism in the Gnutella
+network. No such scheme has been published as yet. Our approach may or
+may not be similar to the proprietary ones in existence, with which we
+have no way to compare.
+ 
+We present our scheme as follows.  First we describe how ultrapeers work
+in an ideal network with a static topology.  In doing so, we discuss
+options for ultrapeers to index [xyz1]leaf nodes.  Next we tackle the
+more difficult problem of ?ultrapeer election?, i.e., of dynamically
+constructing a tiered network.  We describe a handshaking mechanism
+based on the recent Gnutella 0.6 protocol in detail and the concept
+of ?ultrapeer guidance?.  Finally, we conclude with some performance
+observations and directions for future work.
+ 
+
+2. Routing with Ultrapeers
+
+Nodes in this network can be divided into leaf nodes and ultrapeers.
+Leaf nodes maintain only a single connection to a ultrapeer.  Ultrapeers
+maintain many (10-100) leaf connections, as well as a small (<10)
+number of connections to other ultrapeers.  Ultrapeers shield leaf nodes
+from virtually all ping and query traffic.  This can be done in one of
+two ways:
+ 
+
+    * Reflector indexing: in the style of the Clip2 Reflector[xyz2],
+      ultrapeers periodically send an indexing query (four spaces,
+      i.e., ?    ?) to leaf nodes.  Leaf nodes respond with a query
+      reply naming all shared files.  (The leaf can send multiple query
+      reply messages if sharing more than 255 messages.)  The ultrapeer
+      uses these replies to build an index of its leaves? contents.
+      The ultrapeer then responds to queries on behalf of leaf nodes,
+      shielding them from all query traffic.
+
+    * QRP routing: leaf nodes periodically send ultrapeers query
+      routing tables using LimeWire?s proposed Query Routing Protocol
+      [xyz3](QRP).  Ultrapeers then forward queries only to those leaf
+      nodes whose QRP table has a corresponding entry.  Leaves respond
+      in the normal manner.  Ultrapeers do not propogate QRP tables
+      amongst themselves.[1]
+
+ 
+Hybrid schemes are of course possible.  However, we recommend QRP routing
+for several reasons[xyz4]:
+ 
+    * Better QHD support: because leaf nodes are given the chance
+      to respond to all queries, they can provide up-to-the-minute
+      information in the QHD, such as estimated download speed and
+      busy status.
+
+    * Update efficiency: because QRP tables eliminate redundant keywords
+      and add compression, they are likely to be significantly smaller
+      than replies to indexing queries.  Furthermore, a leaf node only
+      needs to send incremental QRP updates when its shared files
+      have changed.  In contrast, a reflector-style ultrapeer would
+      need to periodically re-index all of the leaves? files-this takes
+      more bandwidth.
+
+    * CPU efficiency: it is very cheap (constant time) for a ultrapeer
+      to decide whether to forward a query to a leaf node with the
+      QRP proposal.  The reflector-style scheme can be implemented
+      efficiently, but it is considerably more difficult.
+
+    * Privacy: ultrapeers do not actually know what files are shared by
+      leaf nodes-only those files?  hashes.
+
+    * Ease of implementation: LimeWire has already implemented QRP,
+      and the code is available to the public under the GNU Public
+      License (GPL).  Maintaing a single QRP table per connection is
+      easier to implement than building a ?virtual file manager? for
+      all connections.
+
+ 
+A more difficult question is how ultrapeers communicate amongst
+themselves.  Initially we recommend simple broadcast as with the current
+Gnutella protocol. Eventually ultrapeers may use more complicated
+protocols.  One idea is for a ultrapeer to not forward a query if it
+receives a large number of replies from its leaf nodes.  QRP could also
+be used between ultrapeers.
+ 
+The proposed scheme is backward compatible with older clients.  From the
+perspective of newer clients, old clients are simply ultrapeers that
+do not maintain any shielded leaf connections.  The scheme benefits the
+network even in the presence of old clients, though of course it would
+be better if all clients supported ultrapeers.
+ 
+
+3. Ultrapeer Election
+
+
+Now we return to the question of how the ultrapeer-leaf hiearchy is
+created in a distributed manner.  Hosts regularly determine whether they
+are eligible to be ultrapeers (?ultrapeer capable?) by looking at uptime,
+operating system, bandwidth, etc.  We recommend the following requirements
+for all ultrapeers:
+ 
+
+    * Not firewalled.  This can usually be approximated by looking at
+      whether the host has received incoming connections.
+
+    * Suitable operating system.  Some operating systems handle large
+      numbers of sockets better than others.  Linux, Windows 2000/NT/XP,
+      and Mac OS/X will typically make better ultrapeers than Windows
+      95/98/ME or Mac Classic.
+
+    * Sufficient bandwidth.  We recommend at least 15KB/s downstream and
+      10KB/s upstream bandwidth.  This can be approximated by looking
+      at the maximum upload and download throughput.
+
+    * Sufficient uptime.  Ultrapeers should have long expected uptimes.
+      A reasonable heuristic is that the expected future uptime is
+      proportional to the current uptime.  That is, nodes should not
+      become ultrapeers until they have been running for several minutes.
+
+ 
+It is important to distinguish between hosts that are ultrapeer capable
+and hosts that are actually ultrapeers:
+ 
+
+    * Ultrapeer: hosts that are ultrapeer capable and not a shielded leaf
+      node to an ultrapeer.  Note that an ultrapeer does not necessarily
+      have leaf connections.
+
+    * Leaf: hosts that have only a single, routed connection to an
+      ultrapeer.  Note that leaves may actually be ultrapeer capable.
+
+ 
+When hosts connect, they express their capabilities and intents using
+Gnutella 0.6 [xyz5] connection headers.  In some cases, this will require
+some negotiation to prevent too many nodes from becoming ultrapeers.
+There are five possible cases, shown below.
+
+
+
+3.1. Leaf to Ultrapeer
+
+The simplest case is a leaf node connecting to a ultrapeer.  The key
+header here is "X-Ultrapeer", which tells whether a host plans on acting
+as a ultrapeer (if true) or a shielded node (if false).  When this
+interaction is over, the leaf is a shielded node of the ultrapeer.
+The leaf should drop any Gnutella 0.4 connection it has and send a QRP
+routing table.
+ 
+       Client
+                                        Server
+ GNUTELLA CONNECT/0.6
+ X-Ultrapeer: False
+ User-Agent: LimeWire 1.9
+ X-Query-Routing: 0.1
+ X-My-Address: 10.254.0.16:6349
+  
+                                GNUTELLA/0.6 200 OK
+                                X-Ultrapeer: True
+                                X-Ultrapeer-Needed: false
+                                User-Agent: LimeWire 1.9
+                                X-Try-Ultrapeers: 23.35.1.146:6346,
+                                    18.207.63.25:6347
+                                X-Try: 24.37.144:6346, 193.205.63.22:6346
+                                X-My-Address: 10.254.0.16:6346
+                                X-Query-Routing: 0.1
+
+ GNUTELLA/0.6 200 OK
+                                    
+ 
+The meaning of the other headers are as follows:
+
+    User-Agent: the identity of the vendor
+
+    X-Ultrapeer-Needed: used to balance the number of ultrapeers.
+    This is discussed in detail in section 5 below.
+
+    X-Query-Routing: the version of query routing to be used between leaf
+    and ultrapeer, IF a shielded leaf/ultrapeer connection is established
+
+    X-My-Address: the host's address and port reported in query replies
+    and pongs
+
+    X-Try: addresses of non-ultrapeer hosts to try if the connection
+    is lost
+
+    X-Try-Ultrapeers: addresses of ultrapeer to try if the connection
+    is lost
+
+
+These headers are sent in almost all interactions.  However, for clarity,
+non-essential headers will be ommitted in the remaining examples.
+It is important to note that headers can be sent in any order.  Also,
+case is ignored in "True" and "False".
+
+3.2. Leaf to Shielded Leaf
+
+ 
+The next case we consider is a ultrapeer-incapable node A connecting to
+a leaf node B who happens to have a connection to a ultrapeer S.  In this
+case, B will refuse to accept the connection, redirecting A instead to S.
+Note that B does not send "200 OK" in its response.
+ 
+ GNUTELLA CONNECT/0.6
+ X-Ultrapeer: False
+
+                                GNUTELLA/0.6 503 I am a shielded leaf node
+                                X-Ultrapeer: False
+                                X-Try-Ultrapeers: 18.2.3.14:6346,
+                                   18.1.17.2:6346
+                                [terminates connection]
+
+                                       
+At this point, A should should try to establish a connection to S,
+as in case (1) above.
+
+[Note by RAM: should send a "204" error here, since there's no content]
+
+3.3. Leaf to Unshielded Leaf
+
+ 
+Sometimes nodes will be ultrapeer-incapable but unable to find
+a ultrapeer.  In this case, they behave exactly like old, unrouted
+Gnutella 0.4 connections.
+ 
+ GNUTELLA CONNECT/0.6
+ X-Ultrapeer: False
+  
+                                GNUTELLA/0.6 200 OK
+                                X-Ultrapeer: False
+
+ GNUTELLA/0.6 200 OK
+                                             
+
+The original ultrapeer proposal involved two TCP connections in this case.
+This version is much simpler.
+
+
+3.4. Ultrapeer to Ultrapeer
+
+ 
+When two ultrapeers meet, both set X-Ultrapeer true.  If both have leaf
+nodes, they will remain ultrapeers after the interaction.  Note that
+no QRP route table is sent between ultrapeers after the connection
+is established.
+ 
+ GNUTELLA CONNECT/0.6
+ X-Ultrapeer: True
+                                GNUTELLA/0.6 200 OK
+                                X-Ultrapeer: True
+
+ GNUTELLA/0.6 200 OK
+                                             
+
+Note that the X-Ultrapeer-Needed header is ignored in this case.  This is
+discussed in the next section.
+
+3.5. Ultrapeer to Ultrapeer, with Leaf Guidance
+
+ 
+Sometimes there will be too many ultrapeer-capable nodes on the network.
+Consider the case of an ultrapeer A connecting to an ultrapeer B.
+If B doesn't have enough leaves, it may direct A to become a leaf node.
+If A has no leaf connections, it stops fetching new connections, drops
+any Gnutella 0.4 connections, and sends a QRP table to B.  (If A has
+leaf connections, it obeys the guidance, as in the above case.)  Then B
+will shield A from all traffic.
+ 
+ GNUTELLA CONNECT/0.6
+ X-Ultrapeer: True
+  
+                                GNUTELLA/0.6 200 OK
+                                X-Ultrapeer: True
+                                X-Ultrapeer-Needed: false
+
+ GNUTELLA/0.6 200 OK
+ X-Ultrapeer: False
+                                             
+The original ultrapeer proposal involved two TCP connections in this case.
+This version is much simpler.
+ 
+----------------------
+[1] Readers familiar with the QRP protocol will note that only some of
+the protocol is actually used.  In particular, all route table entries
+will be limited to INFINITY or 1.
+
+[xyz1] I don't like using this word.  It's not accurate.
+[xyz2] Cite...except it doesn't exists any more.
+[xyz3] Expand this section...perhaps discuss XML.
+[xyz4] Bullet points over-simplifies here.  For example up-to-dateness
+       and efficiency are related.   There are tradeoffs.
+[xyz5] Cite this.
+

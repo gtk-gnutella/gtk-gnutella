@@ -1,0 +1,144 @@
+                    Gnutella Traffic Compression
+
+                          Raphael Manfredi
+                    <Raphael_Manfredi@pobox.com>
+                        January, 1st 2003
+
+[These specifications are a summary of messages I have already sent.
+ Based on my implementation experience, I would like to emphasize on
+ the criticity of getting the compression stack right.  There are no
+ specific issues with the decompression stack, which is trivial to do.]
+
+1. OVERVIEW
+
+Compression of the message traffic over a Gnutella connection is 
+OPTIONAL. The following assumes the "deflate" scheme is used, but any
+compression algorithm MAY be used.
+
+Compression is meant to be done on a per-connection basis.  The 
+"deflate" scheme is handled by the www.zlib.org library (the deflate/
+inflate routines). This means there will be a compression dictionary 
+and history per connection on both ends, meaning a good compression 
+ability (compared to compressing each message individually).
+
+However, this stream compression of the traffic means that we need to
+individually compress the same packet on each connection, using a 
+dedicated compressing state maintained per connection.
+
+2. COMPRESSING DATA
+
+Because compression algorithms don't necessarily produce output when 
+fed input (e.g. if you feed them with "aaaaa", they'll wait for the 
+next char, and will do so until it's a "b" for instance), it is 
+necessary to periodically direct them to flush output.  However, this
+comes at a cost, because once flushed, data is inflatable by the 
+decompressor, and this is done at the expense of sending the 
+necessary dictionary information.
+
+The following algorithm is strongly suggested for the transmission
+of compressed data, to minimize latency yet achieve a decent compressing
+ratio:
+
+* Every 4K or so of data sent, issue a synchronization flush (called
+  Z_SYNC_FLUSH in the zlib implementation).
+
+* After having compressed a message, arm a 200 ms timer.  Unless you
+  have opportunity to send data out before the timer expires (because
+  more data comes in, and you the internal buffer of compressed data
+  fills out), flush the data (Z_SYNC_FLUSH) and send whatever you
+  have at expiration time.
+
+Experiments have shown that the Z_DEFAULT_COMPRESSION compression
+level (6) was optimal in terms of performance and CPU time required.
+Increasing compression level above 6 only gives limited gains (a few
+percents) at the expense of much more CPU time (almost doubles).
+
+Typical compression ratios have been measured to be between 40%-50%.
+If you achieve less than that, it probably means you are flushing too
+often.  There should not be any measurable latency increase thanks
+to the Nagle-like algorithm.
+
+3. HANDSHAKING NEGOTIATION
+
+To negotiate compression, we're making full use of the 3-way 
+handshaking. The idea is that decompression is fast, so it's OK to be
+sent compressed data, but the compressing side must decide based on 
+the resources it has available whether it will compress or not.
+
+Basically, the side supporting decompression will say:
+
+   Accept-Encoding: deflate<cr><lf>
+
+Note that although we only specify "deflate" here, the servant MAY
+advertise the set of various compression algorithms it knows,
+subsequent items being separated by a ",".
+
+And to accept compression, the other side acknowledges by sending:
+
+   Content-Encoding: deflate<cr><lf>
+
+The servant just picks the compression scheme it supports amongst
+the ones advertised by the remote end in the Accept-Encoding line.
+The Content-Encoding MUST contain only one value.
+
+This also means that compression settings is asymmetric: a node can
+send compressed data but receive uncompressed data.
+
+Here's an example where both nodes support compression, comments
+starting with "--", and ending <cr><lf> removed for clarity:
+
+   GNUTELLA CONNECT/0.6
+   Accept-Encoding: deflate       -- OK for reception of compressed data
+
+       GNUTELLA/0.6 200 OK
+       Accept-Encoding: deflate   -- I can also receive compressed data
+       Content-Encoding: deflate  -- And I will send compressed data
+
+   GNUTELLA/0.6 200 OK
+   Content-Encoding: deflate      -- OK, will also compress data
+
+   <compressed stream of Gnet messages>
+
+Here's an example where compression will only be made on the 
+transmission side of the first node (A is the node initiating the 
+handshake, B is the node replying):
+
+   GNUTELLA CONNECT/0.6
+   Accept-Encoding: deflate      -- OK for reception of compressed data
+
+       GNUTELLA/0.6 200 OK
+       Accept-Encoding: deflate  -- I can also receive compressed data
+                                 -- I refuse to compress data, sorry
+
+   GNUTELLA/0.6 200 OK
+   Content-Encoding: deflate     -- OK, I will compress data sent
+                                 -- But I will receive uncompressed data
+
+   <flow from A->B is compressed, flow from B->A is not>
+
+4. NON-HANDLING OF GGEP EXTENSIONS
+
+Even though GGEP payloads can be compressed, and this information is
+visible in the GGEP header, it is not advisable to decompress those
+payloads before sending them to the compressing layer.  The deflate
+algorithm does not expand already-compressed data by a large factor
+and emits them as clearly marked non-compressible data (the overhead is
+limited to roughly 0.1%).
+
+When connection compression is widely used on the Gnutella network,
+individual GGEP extensions SHOULD NOT be compressed.
+
+5. ULTRAPEER SUPPORT
+
+Connection between an ultra node and its leaf nodes can be compressed
+both ways as well.  However, each compression context will take roughly
+32K of memory.  This means that you will need 64K of memory to compress
+each connection both ways.  If you can afford it, it's nice to have,
+especially for the leaf -> ultra path, where all the query hits generated
+can use up a lot of bandwidth.
+
+Because the proposed handshaking protocol is fully symetric, each side
+can opt for compressing or not based on the resources it has, and the
+role it is going to play (hence the need for 3-way handshaking).
+
+Raphael
