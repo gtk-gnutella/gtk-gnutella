@@ -1,3 +1,26 @@
+# v 0.85   2002.03.30  [beta2]
+
+Summary of changes (user-visible):
+
+- Portability fixes.
+- Memory leak fixes.
+- Was moving to wrong pane when "jump-to-downloads" enabled.
+
+Detailed changes:
+
+- Define SOL_TCP as IPPROTO_TCP for non-linux machines.
+- Added a return to shut up compiler warnings in bio_sendfile().
+- Fixed memory leaks in queue.
+- Shutdown TX side of socket after having sent Bye.
+- Fixed memory leak in uploads, in push request handling (bug #534434).
+- Was moving to wrong pane when "jump-to-downloads" enabled
+  (bug #535000, with fix from Steven Walter).
+- Increased receive buffer size for nodes from 48K to 112K.
+- Fixed node_sent_ttl0(), which assumed node was kicked-out when Bye is sent,
+  although it is no longer the case, unless Bye was already sent.
+- Will now report error 414, "Requested URL Too Large", when encountered.
+- Could mistakenly report 404, "Not Found" when rebuilding library.
+
 # v 0.85   2002.03.23  [beta1]
 
 Summary of changes (user-visible):
