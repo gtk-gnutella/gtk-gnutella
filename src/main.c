@@ -158,7 +158,7 @@ void gtk_gnutella_exit(gint n)
 #define DO(fn) 	do { exit_step = STRINGIFY(fn); fn(); } while (0)
 
 #ifdef USE_REMOTE_CTRL
-    DO(shell_close);
+	DO(shell_close);
 #endif
 
 	DO(node_bye_all);
@@ -187,15 +187,15 @@ void gtk_gnutella_exit(gint n)
 #undef DO
 
 	main_gui_update_coords();
-    main_gui_shutdown();
+	main_gui_shutdown();
 
 	settings_shutdown();
 	socket_shutdown();
-	search_shutdown(); 
+	search_shutdown();
 	bsched_shutdown();
 	settings_gui_shutdown();
 
-	/* 
+	/*
 	 * Wait at most EXIT_GRACE seconds, so that BYE messages can go through.
 	 * This amount of time is doubled when running in Ultra mode since we
 	 * have more connections to flush.
@@ -210,15 +210,16 @@ void gtk_gnutella_exit(gint n)
 	}
 
 	while (
-		node_bye_pending() && 
+		node_bye_pending() &&
 		(tick = time((time_t *) NULL)) - now < exit_grace
 	) {
-        main_gui_shutdown_tick(exit_grace - (gint) difftime(tick, now));
+		main_gui_shutdown_tick(exit_grace - (gint) difftime(tick, now));
 		usleep(200000);					/* 200 ms */
 	}
 
+	hsep_close();
 	hostiles_close();
-    file_info_close();
+	file_info_close();
 	ext_close();
 	share_close();
 	node_close();
@@ -229,7 +230,7 @@ void gtk_gnutella_exit(gint n)
 	hcache_close();		/* After host_close() */
 	settings_close();	/* Must come after hcache_close() */
 	ban_close();
-    whitelist_close();
+	whitelist_close();
 	header_features_close();
 	clock_close();
 	cq_free(callout_queue);
@@ -348,12 +349,12 @@ static gboolean main_timer(gpointer p)
 	http_timer(now);				/* HTTP request timeouts */
 	if (!exiting) {
 #ifdef USE_REMOTE_CTRL
-        shell_timer(now);
+		shell_timer(now);
 #endif
 		download_timer(now);  	    /* Download timeouts */
 		parq_upload_timer(now);		/* PARQ upload timeouts/removal */
 		upload_timer(now);			/* Upload timeouts */
-        file_info_timer();          /* Notify about changes */
+		file_info_timer();          /* Notify about changes */
 		hsep_timer();				/* HSEP notify message timer */
 		pproxy_timer(now);			/* Push-proxy requests */
 	}
@@ -365,7 +366,7 @@ static gboolean main_timer(gpointer p)
 	 */
 
 	if (!exiting) {
-        main_gui_timer();
+		main_gui_timer();
 
 		/* Update for things that change slowly */
 		if (main_slow_update++ > SLOW_UPDATE_PERIOD) {
@@ -442,22 +443,22 @@ static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 
 	switch (log_level) {
 	case G_LOG_LEVEL_CRITICAL:
-		level = "CRITICAL"; 
+		level = "CRITICAL";
 		break;
 	case G_LOG_LEVEL_ERROR:
-		level = "ERROR"; 
+		level = "ERROR";
 		break;
 	case G_LOG_LEVEL_WARNING:
-		level = "WARNING"; 
+		level = "WARNING";
 		break;
 	case G_LOG_LEVEL_MESSAGE:
-		level = "MESSAGE"; 
+		level = "MESSAGE";
 		break;
 	case G_LOG_LEVEL_INFO:
-		level = "INFO"; 
+		level = "INFO";
 		break;
 	case G_LOG_LEVEL_DEBUG:
-		level = "DEBUG"; 
+		level = "DEBUG";
 		break;
 	default:
 		level = "UNKNOWN";
@@ -472,7 +473,7 @@ static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 	if (safer != message)
 		G_FREE_NULL(safer);
 }
- 
+
 static void log_init(void)
 {
 	g_log_set_handler(G_LOG_DOMAIN,
@@ -487,7 +488,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 
 	if (0 == getuid() || 0 == geteuid()) {
 		fprintf(stderr, "Never ever run this as root!\n");
-		exit(EXIT_FAILURE); 
+		exit(EXIT_FAILURE);
 	}
 
 	for (i = 3; i < 256; i++)
@@ -506,8 +507,8 @@ gint main(gint argc, gchar **argv, gchar **env)
 	eval_init();
 	version_init();
 	random_init();
-    gnet_stats_init();
-    main_gui_early_init(argc, argv);
+	gnet_stats_init();
+	main_gui_early_init(argc, argv);
 	callout_queue = cq_make(0);
 	hcache_init();
 	settings_init();
@@ -531,10 +532,10 @@ gint main(gint argc, gchar **argv, gchar **env)
 	download_init();
 	upload_init();
 #ifdef USE_REMOTE_CTRL
-    shell_init();
+	shell_init();
 #endif
 	ban_init();
-    whitelist_init();
+	whitelist_init();
 	ext_init();
 	inet_init();
 	crc_init();
@@ -543,9 +544,9 @@ gint main(gint argc, gchar **argv, gchar **env)
 	hsep_init();
 	clock_init();
 
-    main_gui_init();
+	main_gui_init();
 
-    download_restore_state();
+	download_restore_state();
 
 	/* Some signal handlers */
 
@@ -570,7 +571,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 
 	bsched_enable_all();
 	version_ancient_warn();
-    main_gui_run();
+	main_gui_run();
 
 	return 0;
 }
