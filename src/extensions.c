@@ -758,6 +758,7 @@ gboolean ext_is_printable(const extvec_t *e)
 	const gchar *p = e->ext_payload;
 	gint len = e->ext_paylen;
 
+	g_assert(len >= 0);
 	while (len--) {
 		guchar c = *p++;
 		if (!isprint(c))
@@ -777,6 +778,7 @@ gboolean ext_is_ascii(const extvec_t *e)
 	const gchar *p = e->ext_payload;
 	gint len = e->ext_paylen;
 
+	g_assert(len >= 0);
 	while (len--) {
 		guchar c = *p++;
 		if (!isascii(c))
@@ -797,6 +799,7 @@ gboolean ext_has_ascii_word(const extvec_t *e)
 	gint len = e->ext_paylen;
 	gboolean has_alnum = FALSE;
 
+	g_assert(len >= 0);
 	while (len--) {
 		guchar c = *p++;
 		if (!isascii(c))
@@ -813,47 +816,47 @@ gboolean ext_has_ascii_word(const extvec_t *e)
  *
  * Dump an extension to specified stdio stream.
  */
-static void ext_dump_one(FILE *fd,
+static void ext_dump_one(FILE *f,
 	const extvec_t *e, const gchar *prefix, const gchar *postfix,
 	gboolean payload)
 {
 	g_assert(e->ext_type <= EXT_MAXTYPE);
 
 	if (prefix)
-		fputs(prefix, fd);
+		fputs(prefix, f);
 
-	fputs(extype[e->ext_type], fd);
-	fprintf(fd, " (token=%d) ", e->ext_token);
+	fputs(extype[e->ext_type], f);
+	fprintf(f, " (token=%d) ", e->ext_token);
 	
 	if (e->ext_name)
-		fprintf(fd, "\"%s\" ", e->ext_name);
+		fprintf(f, "\"%s\" ", e->ext_name);
 
-	fprintf(fd, "%d byte%s", e->ext_paylen, e->ext_paylen == 1 ? "" : "s");
+	fprintf(f, "%d byte%s", e->ext_paylen, e->ext_paylen == 1 ? "" : "s");
 
 	if (e->ext_type == EXT_GGEP)
-		fprintf(fd, " (ID=\"%s\", COBS: %s, deflate: %s)",
+		fprintf(f, " (ID=\"%s\", COBS: %s, deflate: %s)",
 			e->ext_ggep_id,
 			e->ext_ggep_cobs ? "yes" : "no",
 			e->ext_ggep_deflate ? "yes" : "no");
 
 	if (postfix)
-		fputs(postfix, fd);
+		fputs(postfix, f);
 
 	if (payload && e->ext_paylen > 0) {
 		if (ext_is_printable(e)) {
 			if (prefix)
-				fputs(prefix, fd);
+				fputs(prefix, f);
 
-			fputs("Payload: ", fd);
-			fwrite(e->ext_payload, e->ext_paylen, 1, fd);
+			fputs("Payload: ", f);
+			fwrite(e->ext_payload, e->ext_paylen, 1, f);
 
 			if (postfix)
-				fputs(postfix, fd);
+				fputs(postfix, f);
 		} else
-			dump_hex(fd, "Payload", e->ext_payload, e->ext_paylen);
+			dump_hex(f, "Payload", e->ext_payload, e->ext_paylen);
 	}
 
-	fflush(fd);
+	fflush(f);
 }
 
 /*
@@ -899,3 +902,4 @@ void ext_close(void)
 	g_hash_table_destroy(ext_names);
 }
 
+/* vi: set ts=4: */
