@@ -98,8 +98,6 @@ void hsep_init(void)
 		"HSEP", HSEP_VERSION_MAJOR, HSEP_VERSION_MINOR);
 
 	memset(hsep_global_table, 0, sizeof(hsep_global_table));
-
-	hsep_dump_table();
 }
 
 /*
@@ -130,13 +128,13 @@ void hsep_reset()
 			continue;
 
 		memset(n->hsep_table, 0, sizeof(n->hsep_table));
-		memset(n->hsep_previous_table, 0, sizeof(n->hsep_previous_table));
+		memset(n->hsep_sent_table, 0, sizeof(n->hsep_sent_table));
 
 		/* this is what we know before receiving the first message */
 		
 		for (i = 1; i <= HSEP_N_MAX; i++) {
-			n->hsep_table[i][HSEP_IDX_HOSTS] = 1;
-			hsep_global_table[i][HSEP_IDX_HOSTS]++;
+			n->hsep_table[i][HSEP_IDX_NODES] = 1;
+			hsep_global_table[i][HSEP_IDX_NODES]++;
 		}
 
 		/*
@@ -159,18 +157,24 @@ void hsep_connection_init(struct gnutella_node *n)
 	int i;
 
 	g_assert(n);
+
+	printf("HSEP: Node %p initialized\n", n);
 	
 	memset(n->hsep_table, 0, sizeof(n->hsep_table));
-	memset(n->hsep_previous_table, 0, sizeof(n->hsep_previous_table));
+	memset(n->hsep_sent_table, 0, sizeof(n->hsep_sent_table));
 
 	/* this is what we know before receiving the first message */
 		
 	for (i = 1; i <= HSEP_N_MAX; i++) {
-		n->hsep_table[i][HSEP_IDX_HOSTS] = 1;
-		hsep_global_table[i][HSEP_IDX_HOSTS]++;
+		n->hsep_table[i][HSEP_IDX_NODES] = 1;
+		hsep_global_table[i][HSEP_IDX_NODES]++;
 	}
 
+	n->hsep_msgs_received = 0;
+	n->hsep_triples_received = 0;
 	n->hsep_last_received = 0;
+	n->hsep_msgs_sent = 0;
+	n->hsep_triples_sent = 0;
 	n->hsep_last_sent = 0;
 
 	hsep_send_msg(n);
@@ -227,7 +231,7 @@ void hsep_connection_close(struct gnutella_node *n)
 
 	connectiont = (guint64 *) &n->hsep_table[1];
 	
-	printf("Deinitializing HSEP connection %p\n", n);
+	printf("HSEP: Deinitializing node %p\n", n);
 
 	for (i = 0; i < HSEP_N_MAX; i++) {
 		*globalt++ -= *connectiont;
@@ -255,7 +259,7 @@ void hsep_connection_close(struct gnutella_node *n)
 void hsep_process_msg(struct gnutella_node *n)
 {
 	unsigned int length;
-	unsigned int i, max;
+	unsigned int i, max, msgmax;
 	guint64 *messaget;
 	guint64 *connectiont;
 	guint64 *globalt = (guint64 *) &hsep_global_table[1];
@@ -276,12 +280,14 @@ void hsep_process_msg(struct gnutella_node *n)
 		return;
 
 	/* get N_MAX of peer servent (other_n_max) */
-	max = length / 24;
+	msgmax = length / 24;
 
 	/* truncate if peer servent sent more triples than we need */
-	if (max > HSEP_N_MAX)
+	if (msgmax > HSEP_N_MAX)
 		max = HSEP_N_MAX;
-
+	else
+		max = msgmax;
+	
 	/*
 	 * Convert message from little endian to native byte order
 	 * only the part of the message we are using is converted
@@ -305,16 +311,14 @@ void hsep_process_msg(struct gnutella_node *n)
 
 	/* sanity check */
 
-	if (*messaget != 1)  /* number of hosts for 1 hop must be 1 */
+	if (*messaget != 1)  /* number of nodes for 1 hop must be 1 */
 		return;
 
-	if (0 == hsep_check_monotony((hsep_triple *) messaget, max))
+	if (!hsep_check_monotony((hsep_triple *) messaget, max))
 		return;
 
-	/* output info with the message's host values */
-
-	printf("Received %d HSEP %s from node %p: ", max,
-	    max == 1 ? "triple" : "triples", n);
+	printf("HSEP: Received %d %s from node %p (msg #%u): ", max,
+	    max == 1 ? "triple" : "triples", n, n->hsep_msgs_received + 1);
 
 	/*
 	 * Update global and per-connection tables
@@ -348,6 +352,9 @@ void hsep_process_msg(struct gnutella_node *n)
 		*globalt++ += *messaget - *connectiont;
 		*connectiont++ = *messaget++;
 	}
+
+	n->hsep_msgs_received++;
+	n->hsep_triples_received += msgmax;
 
 	n->hsep_last_received = time(NULL);
 
@@ -405,17 +412,10 @@ void hsep_send_msg(struct gnutella_node *n)
 	messaget = (guint64 *) ((&m->header)+1);
 
 	/*
-	 * Collect HSEP data to send. Output hosts to send.
+	 * Collect HSEP data to send.
 	 */
 	
-	printf("Collecting %d HSEP %s for node %p: ", triples,
-	    triples == 1 ? "triple" : "triples", n);
-
 	for (i = 0; i < triples; i++) {
-		printf("(%llu,%llu,%llu) ", ownt[0] + globalt[0] - connectiont[0],
-			ownt[1] + globalt[1] - connectiont[1],
-			ownt[2] + globalt[2] - connectiont[2]);
-		
 		#if G_BYTE_ORDER == G_BIG_ENDIAN
 			*messaget++ = GUINT64_SWAP_LE_BE(*ownt++ +
 			    *globalt++ - *connectiont++);
@@ -434,11 +434,9 @@ void hsep_send_msg(struct gnutella_node *n)
 		ownt -= 3;  /* back to start of own triple */
 	}
 
-	printf("\n");
-
 	/* check if the table differs from the previously sent table */
 	if (0 == memcmp((char *) ((&m->header) + 1), 
-					(char *) n->hsep_previous_table, 
+					(char *) n->hsep_sent_table, 
 					triples * 24))
 	{
 		G_FREE_NULL(m);
@@ -455,9 +453,17 @@ void hsep_send_msg(struct gnutella_node *n)
 	opttriples = hsep_triples_to_send(
 		(hsep_triple *) ((&m->header) + 1), triples);
 
-	printf("Sending %d %s to node %p\n", opttriples,
-	    opttriples == 1 ? "triple" : "triples", n);
-	
+	printf("HSEP: Sending %d %s to node %p (msg #%u): ", opttriples,
+	    opttriples == 1 ? "triple" : "triples", n, n->hsep_msgs_sent + 1);
+
+	for (i = 0; i < opttriples; i++) {
+		printf("(%llu,%llu,%llu) ", ownt[0] + globalt[0] - connectiont[0],
+			ownt[1] + globalt[1] - connectiont[1],
+			ownt[2] + globalt[2] - connectiont[2]);
+	}
+
+	printf("\n");
+
 	/* write message size */
 	WRITE_GUINT32_LE(opttriples * 24, m->header.size);
 	
@@ -467,11 +473,14 @@ void hsep_send_msg(struct gnutella_node *n)
 	gmsg_sendto_one(n, (gchar *) m, msglen);
 
 	/* store the table for later comparison */
-	memcpy((char *) n->hsep_previous_table, 
+	memcpy((char *) n->hsep_sent_table, 
 		   (char *) ((&m->header) + 1),
 		   triples * 24);
 
 	G_FREE_NULL(m);
+
+	n->hsep_msgs_sent++;
+	n->hsep_triples_sent += opttriples;
 
 	/*
 	 * Set the last_sent timestamp to the current time +/- some
@@ -490,15 +499,17 @@ charge_timer:
  * change. The values are checked for changes, nothing is done if nothing
  * has changed. Note that kibibytes are determined by shifting the number
  * of bytes right by 10 bits, not by dividing by 1000.
- *
- * TODO: need to call this!
  */
 
 void hsep_notify_shared(guint64 ownfiles, guint64 ownkibibytes)
 {
+	/* check for change */
 	if(ownfiles != hsep_own[HSEP_IDX_FILES] ||
 		ownkibibytes != hsep_own[HSEP_IDX_KIB])
 	{
+		printf("HSEP: Shared files changed to %llu (%llu KiB)\n",
+		    ownfiles, ownkibibytes);
+		
 		hsep_own[HSEP_IDX_FILES] = ownfiles;
 		hsep_own[HSEP_IDX_KIB] = ownkibibytes;
 
@@ -527,8 +538,6 @@ void hsep_notify_shared(guint64 ownfiles, guint64 ownkibibytes)
  * - per-connection triples must be monotonically increasing
  * - the sum of the nth triple of each connection must match the
  *   nth global table triple for all n
- *
- * TODO: need to call this!
  */
 
 void hsep_sanity_check()
@@ -541,8 +550,8 @@ void hsep_sanity_check()
 
 	memset(sum, 0, sizeof(sum));
 
-	g_assert(hsep_own[HSEP_IDX_HOSTS] == 1);
-	g_assert(hsep_global_table[0][HSEP_IDX_HOSTS] == 0);
+	g_assert(hsep_own[HSEP_IDX_NODES] == 1);
+	g_assert(hsep_global_table[0][HSEP_IDX_NODES] == 0);
 	g_assert(hsep_global_table[0][HSEP_IDX_FILES] == 0);
 	g_assert(hsep_global_table[0][HSEP_IDX_KIB] == 0);
 
@@ -563,10 +572,10 @@ void hsep_sanity_check()
 		sumt = (guint64 *) sum;
 		connectiont = (guint64 *) n->hsep_table;
   
-		g_assert(connectiont[HSEP_IDX_HOSTS] == 0);      /* check hosts */
+		g_assert(connectiont[HSEP_IDX_NODES] == 0);      /* check nodes */
 		g_assert(connectiont[HSEP_IDX_FILES] == 0);      /* check files */
 		g_assert(connectiont[HSEP_IDX_KIB] == 0);        /* check KiB */
-		g_assert(connectiont[HSEP_IDX_HOSTS + 3] == 1);  /* check hosts */
+		g_assert(connectiont[HSEP_IDX_NODES + 3] == 1);  /* check nodes */
 
 		/* check if values are monotonously increasing (skip first) */
 		g_assert(
@@ -621,17 +630,17 @@ void hsep_dump_table()
 {
 	unsigned int i;
 
-	printf("Reachable hosts (1-%d hops): ", HSEP_N_MAX);
+	printf("HSEP: Reachable nodes (1-%d hops): ", HSEP_N_MAX);
 
 	for (i = 1; i <= HSEP_N_MAX; i++)
-		printf("%llu ", hsep_global_table[i][HSEP_IDX_HOSTS]);
+		printf("%llu ", hsep_global_table[i][HSEP_IDX_NODES]);
 
-	printf("\nReachable files (1-%d hops): ", HSEP_N_MAX);
+	printf("\nHSEP: Reachable files (1-%d hops): ", HSEP_N_MAX);
 
 	for (i = 1; i <= HSEP_N_MAX; i++)
 		printf("%llu ", hsep_global_table[i][HSEP_IDX_FILES]);
 
-	printf("\n  Reachable KiB (1-%d hops): ", HSEP_N_MAX);
+	printf("\nHSEP:   Reachable KiB (1-%d hops): ", HSEP_N_MAX);
 
 	for (i = 1; i <= HSEP_N_MAX; i++)
 		printf("%llu ", hsep_global_table[i][HSEP_IDX_KIB]);
@@ -701,7 +710,7 @@ unsigned int hsep_triples_to_send(hsep_triple *table, unsigned int triples)
 
 	c = *--ptr;  /* get KiB of last triple */
 	b = *--ptr;  /* get files of last triple */
-	a = *--ptr;  /* get hosts of last triple */
+	a = *--ptr;  /* get nodes of last triple */
 
 	/*
 	 * ptr now points to start of last triple
@@ -713,6 +722,72 @@ unsigned int hsep_triples_to_send(hsep_triple *table, unsigned int triples)
 		triples--;
 
 	return triples;
+}
+
+/**
+ * hsep_get_table
+ *
+ * Copies the first maxtriples triples from the global HSEP table into
+ * the specified buffer. If maxtriples is larger than the number of
+ * triples in the table, it is truncated appropriately.
+ *
+ * The number of copied triples is returned.
+ */
+
+unsigned int hsep_get_table(hsep_triple *buffer, unsigned int maxtriples)
+{
+	unsigned int i;
+	guint64 *src = (guint64 *) hsep_global_table;
+	guint64 *dest = (guint64 *) buffer;
+
+	g_assert(buffer);
+
+	if(maxtriples > HSEP_N_MAX + 1)
+		maxtriples = HSEP_N_MAX + 1;
+
+	for (i = 0; i < maxtriples; i++)
+	{
+		*dest++ = *src++;
+		*dest++ = *src++;
+		*dest++ = *src++;
+	}
+
+	return maxtriples;
+}
+
+/**
+ * hsep_get_connection_table
+ *
+ * Copies the first maxtriples triples from the connection's HSEP table into
+ * the specified buffer. If maxtriples is larger than the number of
+ * triples in the table, it is truncated appropriately.
+ *
+ * The number of copied triples is returned.
+ */
+
+unsigned int hsep_get_connection_table(struct gnutella_node *n,
+    hsep_triple *buffer, unsigned int maxtriples)
+{
+	unsigned int i;
+	guint64 *src;
+	guint64 *dest = (guint64 *) buffer;
+	
+	g_assert(n);
+	g_assert(buffer);
+
+	src = (guint64 *) n->hsep_table;
+
+	if(maxtriples > HSEP_N_MAX + 1)
+		maxtriples = HSEP_N_MAX + 1;
+
+	for (i = 0; i < maxtriples; i++)
+	{
+		*dest++ = *src++;
+		*dest++ = *src++;
+		*dest++ = *src++;
+	}
+
+	return maxtriples;
 }
 
 /*

@@ -208,10 +208,14 @@ typedef struct gnutella_node {
 	 * Horizon size estimation (HSEP) -- TSC, 11/02/2004.
 	 */
 
-        hsep_triple hsep_table[HSEP_N_MAX+1];
-        hsep_triple hsep_previous_table[HSEP_N_MAX+1];
-        time_t hsep_last_received;
-        time_t hsep_last_sent;
+	hsep_triple hsep_table[HSEP_N_MAX+1];        /* Connection's HSEP table */
+	hsep_triple hsep_sent_table[HSEP_N_MAX];     /* Previous table sent */
+	guint32 hsep_msgs_received;                  /* # of msgs received */
+	guint32 hsep_triples_received;               /* # of triples received */
+	time_t hsep_last_received;                   /* When last msg was rcvd */
+	guint32 hsep_msgs_sent;                      /* # of msgs sent */
+	guint32 hsep_triples_sent;                   /* # of triples sent */
+	time_t hsep_last_sent;                       /* When last msg was sent */
 } gnutella_node_t;
 
 /*

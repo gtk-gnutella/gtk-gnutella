@@ -45,12 +45,10 @@
 typedef guint64 hsep_triple[3];
 
 enum {
-	HSEP_IDX_HOSTS = 0,
+	HSEP_IDX_NODES = 0,
 	HSEP_IDX_FILES = 1,
 	HSEP_IDX_KIB = 2
 };
-
-extern hsep_triple hsep_global_table[HSEP_N_MAX+1];
 
 void hsep_init(void);
 void hsep_reset(void);
@@ -65,5 +63,9 @@ void hsep_notify_shared(guint64 ownfiles, guint64 ownkibibytes);
 void hsep_sanity_check(void);
 gboolean hsep_check_monotony(hsep_triple *table, unsigned int triples);
 unsigned int hsep_triples_to_send(hsep_triple *table, unsigned int triples);
+unsigned int hsep_get_table(hsep_triple *buffer, unsigned int maxtriples);
+unsigned int hsep_get_connection_table(struct gnutella_node *n,
+    hsep_triple *buffer, unsigned int maxtriples);
+
 
 #endif

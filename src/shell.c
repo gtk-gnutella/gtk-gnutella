@@ -35,6 +35,8 @@
 #include "sockets.h"
 #include "settings.h"
 #include "gnet_property_priv.h"
+#include "nodes.h"
+#include "hsep.h"
 
 #include "search_gui.h" /* FIXME: remove this dependency */
 #include "override.h"		/* Must be the last header included */
@@ -78,7 +80,8 @@ enum {
 	CMD_HELP,
 	CMD_PRINT,
 	CMD_SET,
-	CMD_WHATIS
+	CMD_WHATIS,
+	CMD_HORIZON
 };
 
 static struct {
@@ -92,7 +95,8 @@ static struct {
 	{CMD_HELP,   "HELP"},
 	{CMD_PRINT,  "PRINT"},
 	{CMD_SET,    "SET"},
-	{CMD_WHATIS, "WHATIS"}
+	{CMD_WHATIS, "WHATIS"},
+	{CMD_HORIZON, "HORIZON"}
 };
 
 
@@ -568,6 +572,94 @@ error:
 	return REPLY_ERROR;
 }
 
+/*
+ * shell_exec_horizon
+ *
+ * Displays horizon size information.
+ */
+static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd) 
+{
+	guint i;
+	gchar buf[200];
+	guint maxlen[3];
+	hsep_triple globaltable[HSEP_N_MAX + 1];
+	guint64 *globalt;
+	guint nodes = 0;
+	guint hsep_nodes = 0;
+	GSList *sl;
+	
+	g_assert(sh);
+	g_assert(cmd);
+	g_assert(!IS_PROCESSING(sh));
+
+	sh->msg = "";
+
+	for (sl = (GSList *) node_all_nodes() ; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *n = (struct gnutella_node *) sl->data;
+
+		nodes++;
+		
+		if (!(n->attrs & NODE_A_CAN_HSEP))
+			continue;
+
+		hsep_nodes ++;
+	}
+
+	gm_snprintf(buf, sizeof(buf) - 1,
+		"Horizon size (%d/%d nodes support HSEP):\n\n", hsep_nodes,nodes);
+
+	shell_write(sh, buf);
+
+	if (hsep_nodes == 0)
+	{
+		shell_write(sh, "No horizon information available.\n");
+		return REPLY_READY;
+	}
+	
+	hsep_get_table(globaltable, HSEP_N_MAX + 1);	
+	globalt = (gint64 *)&globaltable[1];
+
+	/*
+	 * Determine maximum width of each column.
+	 */
+	
+	maxlen[0] = 5;   /* length of Nodes */
+	maxlen[1] = 5;   /* length of Files */
+	maxlen[2] = 3;   /* length of KiB */
+
+	for (i=0; i < HSEP_N_MAX * 3; i++)
+	{
+		int n = gm_snprintf(buf, sizeof(buf) - 1, "%llu", *globalt++);		
+
+		if(n > maxlen[i % 3])
+			maxlen[i % 3] = n;
+	}
+
+	gm_snprintf(buf, sizeof(buf) - 1, "Hops  %*s  %*s  %*s\n----------",
+		maxlen[0], "Nodes", maxlen[1], "Files", maxlen[2], "KiB");
+
+	shell_write(sh, buf);
+
+	for (i = maxlen[0] + maxlen[1] + maxlen[2];i > 0;i--)
+		shell_write(sh, "-");
+
+	shell_write(sh, "\n");
+
+	globalt = (gint64 *)&globaltable[1];
+	
+	for (i = 0; i < HSEP_N_MAX; i++)
+	{
+		gm_snprintf(buf, sizeof(buf) - 1, "%4d  %*llu  %*llu  %*llu\n", i+1,
+			maxlen[0], globalt[HSEP_IDX_NODES],
+			maxlen[1], globalt[HSEP_IDX_FILES],
+			maxlen[2], globalt[HSEP_IDX_KIB]);
+
+		shell_write(sh, buf);
+		globalt += 3;
+	}		
+	
+	return REPLY_READY; 
+}
 
 /*
  * shell_exec:
@@ -597,6 +689,7 @@ static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 			"100-PRINT <property>\n"
 			"100-SET <property> <value>\n"
 			"100-WHATIS <property>\n"
+			"100-HORIZON\n"
 			"100-QUIT\n"
 			"100-HELP\n");
 		reply_code = REPLY_READY;
@@ -620,6 +713,9 @@ static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 		break;
 	case CMD_WHATIS:
 		reply_code = shell_exec_whatis(sh, cmd+pos);
+		break;
+	case CMD_HORIZON:
+		reply_code = shell_exec_horizon(sh, cmd+pos);
 		break;
 	default:
 		goto error;

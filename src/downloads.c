@@ -4355,7 +4355,7 @@ static gboolean download_overlap_check(struct download *d)
 				begin = 0;
 			file_info_update(d, begin, end, DL_CHUNK_EMPTY);
 			g_warning("Resuming data mismatch on %s, backed out %d bytes block "
-				"from %u to %u\n", 
+				"from %u to %u", 
 				 d->file_name, backout, (guint32) begin, (guint32) end);
 
 			/*
