@@ -334,8 +334,6 @@ void download_stop(struct download *d, guint32 new_status,
 
 	switch (new_status) {
 	case GTA_DL_COMPLETED:
-		download_store();			/* Refresh copy */
-		break;
 	case GTA_DL_ERROR:
 	case GTA_DL_ABORTED:
 	case GTA_DL_TIMEOUT_WAIT:
@@ -383,8 +381,10 @@ void download_stop(struct download *d, guint32 new_status,
 	if (DOWNLOAD_IS_VISIBLE(d))
 		gui_update_download(d, TRUE);
 
-	if (new_status == GTA_DL_COMPLETED)
+	if (new_status == GTA_DL_COMPLETED) {
 		queue_remove_all_named(d->file_name);
+		download_store();			/* Refresh copy */
+	}
 
 	if (DOWNLOAD_IS_STOPPED(d) && DOWNLOAD_IS_IN_PUSH_MODE(d))
 		download_push_remove(d);
