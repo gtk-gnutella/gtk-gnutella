@@ -175,6 +175,8 @@ static gboolean progressbar_bws_in_visible_changed(property_t prop);
 static gboolean progressbar_bws_out_visible_changed(property_t prop);
 static gboolean progressbar_bws_gin_visible_changed(property_t prop);
 static gboolean progressbar_bws_gout_visible_changed(property_t prop);
+static gboolean progressbar_bws_glin_visible_changed(property_t prop);
+static gboolean progressbar_bws_glout_visible_changed(property_t prop);
 static gboolean progressbar_downloads_visible_changed(property_t prop);
 static gboolean progressbar_uploads_visible_changed(property_t prop);
 static gboolean progressbar_connections_visible_changed(property_t prop);
@@ -549,6 +551,22 @@ static prop_map_t property_map[] = {
         progressbar_bws_gout_visible_changed,
         TRUE,
         "menu_bws_gout_visible",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_PROGRESSBAR_BWS_GLIN_VISIBLE,
+        progressbar_bws_glin_visible_changed,
+        TRUE,
+        "menu_bws_glin_visible",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_PROGRESSBAR_BWS_GLOUT_VISIBLE,
+        progressbar_bws_glout_visible_changed,
+        TRUE,
+        "menu_bws_glout_visible",
         FREQ_UPDATES, 0
     },
     {
@@ -2877,6 +2895,34 @@ static gboolean progressbar_bws_gout_visible_changed(property_t prop)
     GtkWidget *w = lookup_widget(main_window, "progressbar_bws_gout");
     GtkCheckMenuItem *cm = GTK_CHECK_MENU_ITEM
         (lookup_widget(main_window, "menu_bws_gout_visible"));
+
+    gui_prop_get_boolean(prop, &val, 0, 1);
+
+    update_stats_visibility(cm, w, val);
+
+    return FALSE;
+}
+
+static gboolean progressbar_bws_glin_visible_changed(property_t prop)
+{
+    gboolean val;
+    GtkWidget *w = lookup_widget(main_window, "progressbar_bws_lin");
+    GtkCheckMenuItem *cm = GTK_CHECK_MENU_ITEM
+        (lookup_widget(main_window, "menu_bws_glin_visible"));
+
+    gui_prop_get_boolean(prop, &val, 0, 1);
+
+    update_stats_visibility(cm, w, val);
+
+    return FALSE;
+}
+
+static gboolean progressbar_bws_glout_visible_changed(property_t prop)
+{
+    gboolean val;
+    GtkWidget *w = lookup_widget(main_window, "progressbar_bws_lout");
+    GtkCheckMenuItem *cm = GTK_CHECK_MENU_ITEM
+        (lookup_widget(main_window, "menu_bws_glout_visible"));
 
     gui_prop_get_boolean(prop, &val, 0, 1);
 

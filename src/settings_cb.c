@@ -240,6 +240,18 @@ void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem,
 	checkmenu_changed(gui, PROP_PROGRESSBAR_BWS_GOUT_VISIBLE, menuitem);
 }
 
+void on_menu_bws_glin_visible_activate(GtkMenuItem * menuitem,
+						 		      gpointer user_data)
+{
+	checkmenu_changed(gui, PROP_PROGRESSBAR_BWS_GLIN_VISIBLE, menuitem);
+}
+
+void on_menu_bws_glout_visible_activate(GtkMenuItem * menuitem,
+								       gpointer user_data)
+{
+	checkmenu_changed(gui, PROP_PROGRESSBAR_BWS_GLOUT_VISIBLE, menuitem);
+}
+
 void on_popup_search_toggle_tabs_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {

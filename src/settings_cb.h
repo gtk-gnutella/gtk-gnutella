@@ -59,6 +59,8 @@ void on_menu_bws_in_visible_activate(GtkMenuItem * menuitem, gpointer user_data)
 void on_menu_bws_out_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_bws_gin_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_menu_bws_glin_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_menu_bws_glout_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 
 void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_data);
 
