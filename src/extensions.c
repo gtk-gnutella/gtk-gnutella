@@ -42,6 +42,7 @@ static gchar *extype[] = {
 	"XML",						/* EXT_XML */
 	"HUGE",						/* EXT_HUGE */
 	"GGEP",						/* EXT_GGEP */
+	"NONE",						/* EXT_NONE */
 };
 
 /***
@@ -132,7 +133,7 @@ static gint rw_urn_screen(gchar *word, gchar **retkw)
  ***
  *** They extract one extension, as guessed by the leading byte introducing
  *** those extensions and return the amount of entries they added to the
- *** supplied extension vector (this will be typically 1, but for GGEP which
+ *** supplied extension vector (this will be typically 1 but for GGEP which
  *** is structured and can therefore grab more than one extension in one call).
  ***
  *** Upon entry, `*retp' points to the start of the extension, and there are
@@ -470,6 +471,55 @@ static gint ext_unknown_parse(
 }
 
 /*
+ * ext_none_parse
+ *
+ * Parses a "no extension" block, made of NUL bytes or HUGE field separators
+ * exclusively.  Obviously, this is unneeded stuff that simply accounts
+ * for overhead!
+ *
+ * If more that one separator in a row is found, they are all wrapped as a
+ * "none" extension.
+ */
+static gint ext_none_parse(guchar **retp, gint len, extvec_t *exv, gint exvcnt)
+{
+	guchar *p = *retp;
+	guchar *end = p + len;
+	guchar *lastp = p;				/* Last parsed point */
+
+	while (p < end) {
+		guchar c = *p++;
+		if (c == '\0' || c == HUGE_FS)
+			continue;
+		p--;						/* Point back to the non-NULL char */
+		break;
+	}
+
+	/*
+	 * If we're still at the beginning, it means there was no separator
+	 * at all, so we did not find any "null" extension.
+	 */
+
+	if (p == lastp)
+		return 0;
+
+	/*
+	 * Encapsulate as one big opaque chunk.
+	 */
+
+	exv->ext_payload = lastp;
+	exv->ext_len = exv->ext_paylen = p - lastp;
+	exv->ext_type = EXT_NONE;
+	exv->ext_name = NULL;
+	exv->ext_token = EXT_T_OVERHEAD;
+
+	g_assert(p - lastp == exv->ext_len);
+
+	*retp = p;			/* Points to first byte after what we parsed */
+
+	return 1;
+}
+
+/*
  * ext_parse
  *
  * Parse extension block of `len' bytes starting at `buf' and fill the
@@ -496,7 +546,7 @@ gint ext_parse(guchar *buf, gint len, extvec_t *exv, gint exvcnt)
 
 		/* 
 		 * From now on, all new Gnutella extensions will be done via GGEP.
-		 * However, we have to be backward compatible with historic extensions
+		 * However, we have to be backward compatible with legacy extensions
 		 * that predate GGEP (HUGE and XML) and were not properly encapsulated.
 		 */
 
@@ -517,8 +567,14 @@ gint ext_parse(guchar *buf, gint len, extvec_t *exv, gint exvcnt)
 		case HUGE_FS:
 		case '\0':
 			p++;
-			len--;
-			continue;
+			if (p == end)
+				goto out;
+			found = ext_none_parse(&p, len-1, exv, exvcnt);
+			if (!found) {
+				len--;
+				continue;			/* Single separator, no bloat then */
+			}
+			break;
 		default:
 			found = ext_unknown_parse(&p, len, exv, exvcnt, FALSE);
 			break;
@@ -637,7 +693,7 @@ static void ext_dump_one(FILE *fd,
 		fputs(prefix, fd);
 
 	fputs(extype[e->ext_type], fd);
-	fputc(' ', fd);
+	fprintf(fd, " (token=%d) ", e->ext_token);
 	
 	if (e->ext_name)
 		fprintf(fd, "\"%s\" ", e->ext_name);

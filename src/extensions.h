@@ -84,7 +84,8 @@ typedef struct extvec {
 #define EXT_XML			1	/* XML extension */
 #define EXT_HUGE		2	/* Hash/URN Gnutella Extensions */
 #define EXT_GGEP		3	/* Gnutella Generic Extension Protocol */
-#define EXT_MAXTYPE		3
+#define EXT_NONE		4	/* Not really an extension, only overhead */
+#define EXT_MAXTYPE		4
 
 /*
  * Extension tokens.
@@ -96,6 +97,7 @@ typedef struct extvec {
 #define EXT_T_URN_EMPTY			3	/* urn: */
 #define EXT_T_XML				4	/* XML payload */
 #define EXT_T_GGEP_H			5	/* GGEP binary hash value */
+#define EXT_T_OVERHEAD			6	/* Pure overhead */
 
 /*
  * Public interaface.
