@@ -1405,12 +1405,26 @@ static struct shared_file *get_file_to_upload_from_index(
 			 */
 
 			if (u->push) {
-				if (dbg > 4) {
-					printf("INDEX FIXED (push, SHA1 = %s): "
-						"requested %u, serving %u: %s\n",
-						sha1_base32(digest), idx,
-						sfn->file_index, sfn->file_path);
-				}
+				if (dbg > 4) printf("INDEX FIXED (push, SHA1 = %s): "
+					"requested %u, serving %u: %s\n",
+					sha1_base32(digest), idx,
+					sfn->file_index, sfn->file_path);
+				sf = sfn;
+				goto found;
+			}
+
+			/*
+			 * Be nice for PFSP as well.  They must have learned about
+			 * this from an alt-loc, and alt-locs we emit for those partially
+			 * shared files are URNs.  Why did they request it by name?
+			 *		--RAM, 12/10/2003
+			 */
+
+			if (sfn->fi != NULL) {
+				if (dbg > 4) printf("REQUEST FIXED (partial, SHA1 = %s): "
+					"requested \"%s\", serving \"%s\"\n",
+					sha1_base32(digest), basename,
+					sfn->file_path);
 				sf = sfn;
 				goto found;
 			}
