@@ -621,63 +621,97 @@ gint search_gui_compare_records(
  *
  * Inserts the given node into the given list in the proper position.  Assumes
  * list has at least one item already and is sorted.  Note: this is extremely 
- * time critical code, some code duplication is intentional. 
+ * time critical code, some code duplication is intentional.
  */
 GList *search_gui_insert_with_sort(GList *list, GtkCTreeNode *node,
 	GtkCTree *ctree, gboolean ascending, gint sort_col)
 {
-	GList *temp_list;
+	GList *l;
 	gint i; 
 	gint result;	
 	record_t *rkey;
 	record_t *rlist;	
 	
 	rkey = gtk_ctree_node_get_row_data(ctree, node);
+    list = g_list_first(list);
 
 	if (ascending) {	
 		
-		list = g_list_first(list);
-		temp_list = list;
-		for (i = 0;; temp_list = g_list_next(temp_list), i++) {
+		for (i = 0, l=list;; l = g_list_next(l), i++) {
 				
-			rlist = gtk_ctree_node_get_row_data(ctree, temp_list->data);
+			rlist = gtk_ctree_node_get_row_data(ctree, l->data);
 			result = search_gui_compare_records(sort_col, rkey, rlist);
 
-			if (result <= 0) { /* Our entry is "less" than the next */
+			if (result <= 0) {
+                /* Our entry is "less" than the current (l)*/
 					
-				if (0 == i)
-					/* Inserting at the beginning.  Cheaper to use prepend */
-					list = g_list_prepend(list, node);
-				else 
-					list = g_list_insert(list, node, i);
-				break;
-			}
+                /* 
+                 * FIXME? g_list_insert is O(n). It might be possible
+                 * to speed this up using the GList internals and a
+                 * proper insertion funtion in glib-missing.c
+                 *    -- BLUE 17/01/2004
+                 */
 
-			if (NULL == temp_list->next) {
-				list = g_list_append(list, node);
-				break;				
-			}
+                /* Prepends if i == 0 */
+				list = g_list_insert(list, node, i);
+                break;
+			} else {
+                /* Our entry is "greater" than the current (l).
+                 *
+                 * If we are the the end, then we append the node,
+                 * otherwise we go on... 
+                 */
+    			if (NULL == l->next) {
+                    /*
+                     * FIXME? g_list_append is also O(n). Since we are
+                     * at the last listitem anyway, why not append a new
+                     * item directly using a custom function from 
+                     * glib-missing.c?
+                     *    -- BLUE 17/01/2004
+                     */
+                    list = g_list_append(list, node);
+                    break;
+                }
+            }
 		}
-		
 	} else { /* sort descending */
 	
-		list = g_list_first(list);
-		temp_list = list;		
-		for (i = 0;; temp_list = g_list_next(temp_list), i++) {
+		for (i = 0, l=list;; l = g_list_next(l), i++) {
 
-			rlist = gtk_ctree_node_get_row_data(ctree, temp_list->data);
+			rlist = gtk_ctree_node_get_row_data(ctree, l->data);
 			result = search_gui_compare_records(sort_col, rkey, rlist);
 
-			if (result >= 0) { /* Entry is "greater" than the next */
+			if (result >= 0) { 
+                /* Entry is "greater" than the current (l)*/
 
-				list = g_list_insert(list, node, i); /* Prepends if i == 0 */
-				break;
-			}
+                /* 
+                 * FIXME? g_list_insert is O(n). It might be possible
+                 * to speed this up using the GList internals and a
+                 * proper insertion funtion in glib-missing.c
+                 *    -- BLUE 17/01/2004
+                 */
 
-			if (NULL == temp_list->next) {
-				list = g_list_append(list, node);
-				break;				
-			}
+                /* Prepends if i == 0 */
+				list = g_list_insert(list, node, i); 
+                break;
+			} else {
+                /* Our entry is "less" than the current (l).
+                 *
+                 * If we are the the end, then we append the node,
+                 * otherwise we go on... 
+                 */
+                if (NULL == l->next) {
+                    /*
+                     * FIXME? g_list_append is also O(n). Since we are
+                     * at the last listitem anyway, why not append a new
+                     * item directly using a custom function from 
+                     * glib-missing.c?
+                     *    -- BLUE 17/01/2004
+                     */
+                    list = g_list_append(list, node);
+                    break;
+                }
+            }
 		}					
 	}
 
@@ -792,11 +826,22 @@ gint search_gui_analyze_col_data(GtkCTree *ctree, gint sort_col)
 	rcur = gtk_ctree_node_get_row_data(ctree, prev_node);
 
 	/* No point anaylzing without enough data */
+    // FIXME: this counts the number of rows, but not the number of top-level
+    // nodes. The number can only be seen as an estimation.
+    //     -- BLUE 17/01/2004
 	if (50 > g_list_length((GList *) prev_node)) 
 		return SEARCH_COL_SORT_DATA_DEFAULT;
 		
-	for (cur_node = GTK_CTREE_NODE_NEXT (prev_node), i = 0; i < 50; i++,
-		prev_node = cur_node, cur_node = GTK_CTREE_NODE_NEXT (cur_node)) {	
+    /*
+     * Since the sorting later will also only take place on the top-level
+     * nodes, we will only analyze them.
+     *    -- BLUE 17/01/2004
+     */
+	for (
+        cur_node = GTK_CTREE_NODE_SIBLING(prev_node), i = 0; 
+        i < 50; 
+        i++, prev_node = cur_node, cur_node = GTK_CTREE_NODE_SIBLING(cur_node)
+    ) {	
 
 		rprev = rcur;
 		rcur = gtk_ctree_node_get_row_data(ctree, cur_node);
@@ -877,36 +922,62 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 	case SEARCH_COL_SORT_DATA_SORTED_ASC:
 	case SEARCH_COL_SORT_DATA_SORTED_DES:
 	case SEARCH_COL_SORT_DATA_COUNT:
-	case SEARCH_COL_SORT_DATA_INFO: {
-	
-		GList *temp_list;
+	case SEARCH_COL_SORT_DATA_INFO:	
+        /* 
+         * Use an insertion sort:  
+         *   O(n) for ordered data, 
+         *   <O(n*n) for unordered 
+         */
 
-	/* Use an insertion sort:  O(n) for ordered data, <O(n*n) for unordered */
-
-		temp_list = NULL;
 		cur_node = GTK_CTREE_NODE(GTK_CLIST(ctree)->row_list);
+        g_assert(NULL == GTK_CTREE_ROW(cur_node)->parent);
 		
-		/* We add 1st node outside of the loop to get rid of N comparisons */
 		if (NULL != cur_node) {
-			temp_list = g_list_append(temp_list, cur_node);
+            GList *temp_list;
+            GList *l;
+
+            /* 
+             * We add 1st node outside of the loop to get rid of 
+             * N comparisons.
+             */
+			temp_list = g_list_append(NULL, cur_node);
 		
-			
 			/*
 			 * Sort into a glist:
 			 *   O(n) for ordered data,
 			 *  <O(n*n) for unordered data.
 			 */
 
+            /*
+             * We fetch all the top-level nodes from the tree and using 
+             * insertion-sort add it to the temp_list.
+             */
+    
+            /* It is  necessary to interate over the 
+             * GTK_CTREE_NODE_SIBLINGs here. Using GTK_CTREE_NODE_NEXT
+             * doesn't work with fast_move because it also iterates
+             * over expanded children.
+             *    -- BLUE 17/01/2004
+             */
+
+            // FIXME: It might be possible to use fast_mode only when
+            // moving top-level nodes around and also sort the children,
+            // or to simply iterate over all nodes (also chilren), purge
+            // the tree content are create it from scratch. How fast would
+            // that be? Should be like <O(n^2) for iteration and sorting and
+            // O(n) for purging and rebuilding.
+            // A couple of other places in the code would need to be changed
+            // too (search for GTK_CTREE_NODE_SIBLING).
+            //    -- BLUE 17/01/2004
 			for (
-				cur_node = GTK_CTREE_NODE_NEXT (cur_node);
+				cur_node = GTK_CTREE_NODE_SIBLING(cur_node);
 				(NULL != cur_node);
-				cur_node = GTK_CTREE_NODE_NEXT (cur_node)
+				cur_node = GTK_CTREE_NODE_SIBLING(cur_node)
 			) {	
 				temp_list = search_gui_insert_with_sort(temp_list, 
 					cur_node, ctree, ascending, sort_col); 
 			}
 
-			
 			/* Now order the CTree using the list O(n) */
 			gtk_clist_freeze(GTK_CLIST(ctree));
 			
@@ -914,10 +985,12 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 			 * is because "move" has optimized this way.
 			 */
 			prev_node = GTK_CTREE_NODE(GTK_CLIST(ctree)->row_list);
-			for (temp_list = g_list_last(temp_list); NULL != temp_list;
-				temp_list = g_list_previous(temp_list)) {
-			
-				cur_node = temp_list->data;
+			for (
+                l = g_list_last(temp_list); /* g_list_last is O(n) */
+                NULL != l;
+				l = g_list_previous(l)
+            ) {
+                cur_node = l->data;
 	
 				if (prev_node == cur_node)
 					continue;
@@ -925,14 +998,12 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 				gtk_ctree_fast_move(ctree, cur_node, prev_node);
 				prev_node = cur_node;
 			}
+
 			gtk_clist_thaw(GTK_CLIST(ctree));
 
+            g_list_free(g_list_first(temp_list)); temp_list = NULL;
 		}
-
-		g_list_free(temp_list);
 		break; /* End of all cases using insertion sort */
-	}
-		
 	case SEARCH_COL_SORT_DATA_RANDOM:
 	case SEARCH_COL_SORT_DATA_DEFAULT: {
 
@@ -940,13 +1011,21 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 
 		/* Use a quick sort:  Average of O(nlogn) for random data */
 
-		/* Convert the search tree into an array O(n) */
-		for (cur_node = GTK_CTREE_NODE(GTK_CLIST(ctree)->row_list);
-			(NULL != cur_node); cur_node = GTK_CTREE_NODE_NEXT (cur_node)) 			
-				g_array_append_val(array, cur_node);
+		/* 
+         * Convert the search tree into an array O(n)... actually only
+         * the top-level nodes, otherwise fast_move will fail.
+         */
+		for (
+            cur_node = GTK_CTREE_NODE(GTK_CLIST(ctree)->row_list);
+			(NULL != cur_node); 
+            cur_node = GTK_CTREE_NODE_SIBLING(cur_node)
+        ) {
+            g_array_append_val(array, cur_node);
+        }
 
 		/* Sort the array O(nlogn) */
-		search_gui_quick_sort(array, 0, array->len - 1, ctree, ascending, sort_col);
+		search_gui_quick_sort(
+            array, 0, array->len - 1, ctree, ascending, sort_col);
 	
 		/* Use the sorted array to sort the ctree widget O(n) */
 		gtk_clist_freeze(GTK_CLIST(ctree));
@@ -1206,8 +1285,11 @@ void search_gui_add_record(
 			sibling = NULL;
 			
 			/* Traverse the entire search tree */
-			for (cur_node = GTK_CTREE_NODE(GTK_CLIST(sch->ctree)->row_list);
-				(NULL != cur_node); cur_node = GTK_CTREE_NODE_NEXT (cur_node)) {			
+			for (
+                cur_node = GTK_CTREE_NODE(GTK_CLIST(sch->ctree)->row_list);
+				(NULL != cur_node); 
+                cur_node = GTK_CTREE_NODE_NEXT (cur_node)
+            ) {			
 
 				row = GTK_CTREE_ROW(cur_node);
 
