@@ -1900,3 +1900,14 @@ prop = {
     };
 };
 
+prop = {
+    name = "dl_remove_file_on_mismatch";
+    desc = "Whether gtk-gnutella should automatically remove the file "
+		"whenever it gets a resuming mismatch and retry from scratch. "
+		"Until Tiger Tree Hashes are widespread, this is the easiest option.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+

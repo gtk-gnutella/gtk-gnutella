@@ -380,6 +380,8 @@ gboolean node_monitor_unstable_ip     = TRUE;
 gboolean node_monitor_unstable_ip_def = TRUE;
 gboolean node_monitor_unstable_servents     = FALSE;
 gboolean node_monitor_unstable_servents_def = FALSE;
+gboolean dl_remove_file_on_mismatch     = FALSE;
+gboolean dl_remove_file_on_mismatch_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -3414,6 +3416,23 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[157].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[157].data.boolean.def   = &node_monitor_unstable_servents_def;
     gnet_property->props[157].data.boolean.value = &node_monitor_unstable_servents;
+
+
+    /*
+     * PROP_DL_REMOVE_FILE_ON_MISMATCH:
+     *
+     * General data:
+     */
+    gnet_property->props[158].name = "dl_remove_file_on_mismatch";
+    gnet_property->props[158].desc = _("Whether gtk-gnutella should automatically remove the file whenever it gets a resuming mismatch and retry from scratch. Until Tiger Tree Hashes are widespread, this is the easiest option.");
+    gnet_property->props[158].ev_changed = event_new("dl_remove_file_on_mismatch_changed");
+    gnet_property->props[158].save = TRUE;
+    gnet_property->props[158].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[158].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[158].data.boolean.def   = &dl_remove_file_on_mismatch_def;
+    gnet_property->props[158].data.boolean.value = &dl_remove_file_on_mismatch;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
