@@ -28,6 +28,8 @@
 
 struct sockaddr;
 
+#define SOCK_BUFSZ	4096
+
 struct gnutella_socket {
 	gint file_desc;			/* file descriptor */
 
@@ -52,8 +54,8 @@ struct gnutella_socket {
 
 	struct getline *getline;	/* Line reader object */
 
-	gchar buffer[4096];		/* buffer to put in the data read */
-	guint32 pos;			/* write position in the buffer */
+	gchar buffer[SOCK_BUFSZ];	/* buffer to put in the data read */
+	guint32 pos;				/* write position in the buffer */
 };
 
 /*
