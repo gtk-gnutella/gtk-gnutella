@@ -829,7 +829,7 @@ vmsg_send_qstat_req(struct gnutella_node *n, gchar *muid)
 	memcpy(m->header.muid, muid, 16);
 	(void) vmsg_fill_type(&m->data, T_BEAR, 11, 1);
 
-	gmsg_sendto_one(n, (gchar *) m, msgsize);
+	gmsg_ctrl_sendto_one(n, (gchar *) m, msgsize);	/* Send ASAP */
 }
 
 /**
@@ -967,6 +967,12 @@ static void handle_oob_reply_ind(struct gnutella_node *n,
 		break;
 	default:
 		goto not_handling;
+	}
+
+	if (hits == 0) {
+		g_warning("no results advertised in %s/%uv%u from %s",
+			vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version, node_ip(n));
+		return;
 	}
 
 	search_oob_pending_results(n, n->header.muid, hits, can_recv_unsolicited);
