@@ -33,7 +33,7 @@
 #include <sys/types.h>
 #include <sys/uio.h>	/* struct iovec */
 
-#ifdef HAVE_SENDFILE_H
+#ifdef HAVE_SYS_SENDFILE_H
 #include <sys/sendfile.h>
 #endif
 
@@ -842,7 +842,7 @@ gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
  */
 gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 {
-#ifndef HAVE_SENDFILE_H
+#ifndef HAVE_SENDFILE
 	g_error("missing sendfile(2), should not have been called");
 	return EOPNOTSUPP;		/* g_error() is fatal, just shut warnings */
 #else
@@ -880,7 +880,7 @@ gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 	}
 
 	return r;
-#endif	/* HAVE_SENDFILE_H */
+#endif	/* HAVE_SENDFILE */
 }
 
 /*
