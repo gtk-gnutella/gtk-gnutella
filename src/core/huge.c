@@ -207,6 +207,8 @@ dump_cache_one_entry(gpointer unused_key, gpointer value, gpointer udata)
 	struct sha1_cache_entry *e = value;
 	FILE *persistent_cache = udata;
 
+	(void) unused_key;
+
 	if (!e->shared)
 		return;
 
@@ -248,7 +250,7 @@ parse_and_append_cache_entry(char *line)
 	const char *file_name;
 	char *file_name_end;
 	char *p, *end; /* pointers to scan the line */
-	gint c;
+	gint c, error;
 	filesize_t size;
 	time_t mtime;
 	char digest[SHA1_RAW_SIZE];
@@ -279,29 +281,28 @@ parse_and_append_cache_entry(char *line)
 
 	/* p is now supposed to point to the beginning of the file size */
 
-	size = strtoul(p, &end, 10);
-	if (end == p || *end != '\t') {
+	size = parse_uint64(p, &end, 10, &error);
+	if (error || *end != '\t') {
 		g_warning("Malformed line in SHA1 cache file %s[size]: %s",
 			persistent_cache_file_name, line);
 		return;
 	}
 
-	p = end + 1;
+	p = ++end;
 
 	/*
 	 * p is now supposed to point to the beginning of the file last
 	 * modification time.
 	 */
 
-	errno = 0;
-	mtime = strtoul(p, &end, 10);
-	if (end == p || *end != '\t' || errno) {
+	mtime = parse_uint64(p, &end, 10, &error);
+	if (error || *end != '\t') {
 		g_warning("Malformed line in SHA1 cache file %s[mtime]: %s", 
 			persistent_cache_file_name, line);
 		return;
 	}
 
-	p = end + 1;
+	p = ++end;
 
 	/* p is now supposed to point to the file name */
 
@@ -718,7 +719,7 @@ sha1_timer_one_step(struct sha1_computation_context *ctx,
 {
 	ssize_t r;
 	int res;
-	gint amount;
+	size_t amount;
 
 	if (!ctx->file && !open_next_file(ctx)) {
 		*used = 1;
@@ -735,7 +736,7 @@ sha1_timer_one_step(struct sha1_computation_context *ctx,
 
 	r = read(ctx->fd, ctx->buffer, amount);
 
-	if (r < 0) {
+	if ((ssize_t) -1 == r) {
 		g_warning("Error while reading %s for computing SHA1 hash: %s\n",
 			ctx->file->file_name, g_strerror(errno));
 		close_current_file(ctx);
@@ -760,7 +761,7 @@ sha1_timer_one_step(struct sha1_computation_context *ctx,
 		}
 	}
 
-	if (r < amount) {					/* EOF reached */
+	if ((size_t) r < amount) {					/* EOF reached */
 		guint8 digest[SHA1HashSize];
 		SHA1Result(&ctx->context, digest);
 		got_sha1_result(ctx, (gchar *) digest);
@@ -832,8 +833,12 @@ sha1_step_compute(gpointer h, gpointer u, gint ticks)
  * Dump SHA1 cache if it is dirty.
  */
 static bgret_t
-sha1_step_dump(gpointer h, gpointer u, gint ticks)
+sha1_step_dump(gpointer unused_h, gpointer unused_u, gint unused_ticks)
 {
+	(void) unused_h;
+	(void) unused_u;
+	(void) unused_ticks;
+
 	if (cache_dirty)
 		dump_cache();
 
@@ -958,9 +963,12 @@ huge_init(void)
  * Free SHA1 cache entry.
  */
 static gboolean
-cache_free_entry(gpointer k, gpointer v, gpointer udata)
+cache_free_entry(gpointer unused_key, gpointer v, gpointer unused_udata)
 {
 	struct sha1_cache_entry *e = (struct sha1_cache_entry *) v;
+
+	(void) unused_key;
+	(void) unused_udata;
 
 	atom_str_free(e->file_name);
 	G_FREE_NULL(e);
@@ -1001,13 +1009,13 @@ huge_close(void)
  * improbable hashes.
  */
 gboolean
-huge_improbable_sha1(gchar *buf, gint len)
+huge_improbable_sha1(gchar *buf, size_t len)
 {
-	gint i;
+	size_t i;
 	guchar previous;
 	guchar *p;
-	gint ilen = 0;			/* Length of the improbable sequence */
-	gint longest = 0;
+	size_t ilen = 0;			/* Length of the improbable sequence */
+	size_t longest = 0;
 
 	previous = (guchar) buf[0];
 	for (i = 1, p = (guchar *) &buf[1]; i < len; i++, p++) {
@@ -1040,7 +1048,7 @@ huge_improbable_sha1(gchar *buf, gint len)
  * @return TRUE if the SHA1 was valid and properly decoded, FALSE on error.
  */
 gboolean
-huge_sha1_extract32(gchar *buf, gint len, gchar *retval,
+huge_sha1_extract32(gchar *buf, size_t len, gchar *retval,
 	gpointer header, gboolean check_old)
 {
 	if (len != SHA1_BASE32_SIZE || huge_improbable_sha1(buf, len))
@@ -1075,7 +1083,7 @@ ok:
 		if (dbg) {
 			if (is_printable(buf, len)) {
 				g_warning("%s has bad SHA1 (len=%d): %.*s, hex: %s",
-					gmsg_infostr(header), len, len, buf,
+					gmsg_infostr(header), (gint) len, (gint) len, buf,
 					data_hex_str(retval, SHA1_RAW_SIZE));
 			} else
 				goto bad;		/* SHA1 should be printable originally */
@@ -1089,9 +1097,10 @@ bad:
 	if (dbg) {
 		if (is_printable(buf, len)) {
 			g_warning("%s has bad SHA1 (len=%d): %.*s",
-				gmsg_infostr(header), len, len, buf);
+				gmsg_infostr(header), (gint) len, (gint) len, buf);
 		} else {
-			g_warning("%s has bad SHA1 (len=%d)", gmsg_infostr(header), len);
+			g_warning("%s has bad SHA1 (len=%d)",
+					gmsg_infostr(header), (gint) len);
 			if (len)
 				dump_hex(stderr, "Base32 SHA1", buf, len);
 		}
@@ -1108,6 +1117,8 @@ bad:
  * is a more compact representation of alternate locations.  We also remember
  * which vendor gave us X-Alt locations, so that we can emit back X-Alt to
  * them the next time instead of the longer X-Gnutella-Alternate-Location.
+ *
+ * FIXME: Why ``vendor'' unused then? Fix the comment or remove the parameter.
  */
 void
 huge_collect_locations(gchar *sha1, header_t *header, const gchar *vendor)
