@@ -1,16 +1,19 @@
 		GUI Hacking Hints
 		$Id$
 
-1. To regenerate the GUI source code from the Glade file, type
+1. Regenerating the GUI source code from the Glade file
 2. Some simple guidelines to add a net setting to the GUI
 3. Layout guidelines
 4. Widget naming
 
 
-1. To regenerate the GUI source code from the Glade file, type
+1. To regenerate the GUI source code from the Glade file,
 
-    make glade_files
-    
+    use the "Build" button in Glade
+or
+    just type "make" in the shell. The source code will be
+    regenerated if the gtk-gnutella.glade file is newer.
+
 
 2. Some simple guidelines to add a net setting to the GUI:
 
