@@ -280,7 +280,7 @@ extern struct gnutella_node *node_added;
  * Global Functions
  */
 
-void network_init(void);
+void node_init(void);
 void node_timer(time_t now);
 gboolean on_the_net(void);
 gint32 connected_nodes(void);
