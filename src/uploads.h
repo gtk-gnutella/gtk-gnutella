@@ -91,6 +91,7 @@ typedef struct upload {
  */
 
 #define UPLOAD_F_STALLED		0x00000001	/* Stall condition present */
+#define UPLOAD_F_EARLY_STALL	0x00000002	/* Pre-stalling condition */
 
 /*
  * This structure is used for HTTP status printing callbacks.

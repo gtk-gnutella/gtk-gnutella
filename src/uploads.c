@@ -238,7 +238,7 @@ void upload_timer(time_t now)
 			}
 		} else {
 			if (u->flags & UPLOAD_F_STALLED) {
-				g_warning("connection to %s (%s) alive again, %u bytes sent",
+				g_warning("connection to %s (%s) un-stalled, %u bytes sent",
 					ip_to_gchar(u->ip), upload_vendor_str(u), u->sent);
 
 				if (stalled <= STALL_THRESH && !sock_is_corked(u->socket)) {
@@ -274,15 +274,18 @@ void upload_timer(time_t now)
 
 		if (now - u->last_update > t)
 			to_remove = g_slist_prepend(to_remove, u);
-		else if (
-			UPLOAD_IS_SENDING(u) &&
-			now - u->last_update > IO_PRE_STALL && sock_is_corked(u->socket)
-		) {
-			g_warning(
-				"connection to %s (%s) may be stalled, disabling TCP_CORK",
-				ip_to_gchar(u->ip), upload_vendor_str(u));
-			sock_cork(u->socket, FALSE);
-			socket_tos_lowdelay(u->socket);		/* To have ACKs come faster */
+		else if (UPLOAD_IS_SENDING(u)) {
+			if (now - u->last_update > IO_PRE_STALL) {
+				if (sock_is_corked(u->socket)) {
+					g_warning("connection to %s (%s) may be stalled,"
+						" disabling TCP_CORK",
+						ip_to_gchar(u->ip), upload_vendor_str(u));
+					sock_cork(u->socket, FALSE);
+					socket_tos_lowdelay(u->socket); /* Have ACKs come faster */
+				}
+				u->flags |= UPLOAD_F_EARLY_STALL;
+			} else
+				u->flags &= ~UPLOAD_F_EARLY_STALL;
 		}
 	}
 
@@ -2454,6 +2457,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	}
 	
 	if (!head_only) {
+		GSList *to_remove = NULL;
+
 		/*
 		 * Ensure that noone tries to download the same file twice, and
 		 * that they don't get beyond the max authorized downloads per IP.
@@ -2477,10 +2482,38 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 				up->socket->ip == s->ip &&
 				(up->index == idx || (u->sha1 && up->sha1 == u->sha1))
 			) {
-				upload_error_remove(u, NULL, 503,
-					"Already downloading that file");
-				return;
+				/*
+				 * If the duplicate upload we have is stalled or showed signs
+				 * of early stalling, the remote end might have seen no data
+				 * and is trying to reconnect.  Kill that old upload.
+				 *		--RAM, 07/12/2003
+				 */
+
+				if (up->flags & (UPLOAD_F_STALLED|UPLOAD_F_EARLY_STALL))
+					to_remove = g_slist_prepend(to_remove, up);
+				else {
+					upload_error_remove(u, NULL, 503,
+						"Already downloading that file");
+					return;
+				}
 			}
+		}
+
+		/*
+		 * Kill pre-stalling or stalling uploads we spotted as being
+		 * identical to their current request.  There should be only one
+		 * at most.
+		 */
+
+		for (l = to_remove; l; l = g_slist_next(l)) {
+			gnutella_upload_t *up = (gnutella_upload_t *) (l->data);
+			g_assert(up);
+
+			g_warning("stalling connection to %s (%s) replaced "
+				"after %u bytes sent, stall counter at %d",
+				ip_to_gchar(up->ip), upload_vendor_str(up), up->sent, stalled);
+
+			upload_remove(up, "Stalling upload replaced");
 		}
 	}
 		
