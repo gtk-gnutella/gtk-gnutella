@@ -231,7 +231,7 @@ void on_clist_nodes_select_row
 	gtk_widget_set_sensitive
         (lookup_widget(main_window, "button_nodes_remove"), TRUE);
 	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "popup_nodes_remove"), TRUE);
+        (lookup_widget(popup_nodes, "popup_nodes_remove"), TRUE);
 }
 
 void on_clist_nodes_unselect_row
@@ -241,7 +241,7 @@ void on_clist_nodes_unselect_row
 	gtk_widget_set_sensitive
         (lookup_widget(main_window, "button_nodes_remove"), sensitive);
     gtk_widget_set_sensitive
-        (lookup_widget(main_window, "popup_nodes_remove"), sensitive);
+        (lookup_widget(popup_nodes, "popup_nodes_remove"), sensitive);
 }
 
 void on_clist_nodes_resize_column
@@ -1521,6 +1521,8 @@ void on_clist_downloads_queue_drag_end(GtkWidget *widget,
  *** Searches
  ***/
 
+
+
 void on_entry_minimum_speed_activate(GtkEditable *editable, gpointer user_data)
 {
     gchar *e;
@@ -1662,6 +1664,13 @@ void on_button_search_close_clicked(GtkButton * button, gpointer user_data)
 void on_button_search_download_clicked(GtkButton * button, gpointer user_data)
 {
     search_download_files();
+}
+
+
+void on_combo_entry_searches_activate
+    (GtkEditable *editable, gpointer user_data)
+{
+    // FIXME
 }
 
 
@@ -3523,3 +3532,4 @@ gboolean on_dlg_about_delete_event(GtkWidget *widget, GdkEvent *event,
 }
 
 /* vi: set ts=4: */
+
