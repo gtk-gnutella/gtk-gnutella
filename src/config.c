@@ -185,7 +185,6 @@ gchar *local_netmasks_string = NULL;
 gint dbg = 0;					// debug level, for development use
 gint stop_host_get = 0;			// stop get new hosts, non activity ok (debug)
 gint enable_err_log = 0;		// enable writing to log file for errors
-gint search_strict_and = 0;		// search filter for strict AND of results
 gint search_pick_all = 1;		// enable picking all files alike in search
 gint max_uploads_ip = 2;		// maximum uploads per IP
 gint filter_default_policy = 1; // default to "display"
@@ -290,7 +289,7 @@ typedef enum {
 	k_socks_pass, k_search_reissue_timeout,
 	k_hard_ttl_limit,
 	k_dbg, k_stop_host_get, k_enable_err_log, k_max_uploads_ip,
-	k_search_strict_and, k_search_pick_all,
+	k_search_pick_all,
 	k_max_high_ttl_msg, k_max_high_ttl_radius,
 	k_min_dup_msg, k_min_dup_ratio, k_max_hosts_cached,
 	k_use_auto_download, k_auto_download_file, 
@@ -419,7 +418,6 @@ static gchar *keywords[k_end] = {
 	"stop_host_get",
 	"enable_err_log",
 	"max_uploads_ip",
-	"search_strict_and",
 	"search_pick_all",
 	"max_high_ttl_msg",
 	"max_high_ttl_radius",
@@ -967,10 +965,6 @@ void config_set_param(keyword_t keyword, gchar *value)
 		enable_err_log = i;
 		return;
 
-	case k_search_strict_and:
-		search_strict_and = i;
-		return;
-
 	case k_search_pick_all:
 		search_pick_all = i;
 		return;
@@ -1479,11 +1473,6 @@ static void config_save(void)
                 "(avoids running out of memory in passive searches)\n%s = %u\n\n",
                 keywords[k_search_max_results],
                 search_max_results);
-            fprintf(config,
-                "# Set to 1 to filter search results with a strict AND\n"
-                "%s = %u\n\n", keywords[k_search_strict_and],
-                search_strict_and);
-            
         }
 
         CONFIG_SUBSECTION("Search stats") {

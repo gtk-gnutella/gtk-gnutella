@@ -136,7 +136,6 @@ extern guint32 search_stats_delcoef;
 extern gint dbg;
 extern gint stop_host_get;
 extern gint enable_err_log;
-extern gint search_strict_and;
 extern gint search_pick_all;
 extern gint max_uploads_ip;
 extern gint win_x;
