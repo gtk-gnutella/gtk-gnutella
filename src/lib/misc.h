@@ -193,6 +193,7 @@ gchar *base32_to_guid(const gchar *base32);
  */
 gboolean is_string_ip(const gchar *);
 gboolean is_private_ip(guint32 ip);
+gboolean is_absolute_path(const char *);
 gboolean is_directory(const gchar *);
 gboolean is_regular(const gchar *);
 gboolean is_symlink(const gchar *);
@@ -229,6 +230,7 @@ gfloat force_range(gfloat value, gfloat min, gfloat max);
 gchar *make_pathname(const gchar *dir, const gchar *file);
 gchar *short_filename(gchar *fullname);
 gchar *data_hex_str(const gchar *data, size_t len);
+gint create_directory(const gchar *dir);
 
 #ifdef HAVE_STRCASESTR
 char *strcasestr(const char *haystack, const char *needle);

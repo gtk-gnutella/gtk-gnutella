@@ -396,6 +396,16 @@ is_private_ip(guint32 ip)
 }
 
 /**
+ * Check whether path is an absolute path
+ */
+gboolean
+is_absolute_path(const char *path)
+{
+	g_assert(path != NULL);
+	return '/' == path[0];
+}
+
+/**
  * Check whether path is a directory
  */
 gboolean
@@ -1643,4 +1653,77 @@ short_filename(gchar *fullname)
 	return fullname;
 }
 
-/* vi: set ts=4: */
+/**
+ * Creates the given directory including sub-directories if necessary. The
+ * path must be absolute.
+ *
+ * FIXME: This might fail with ``fancy'' file permissions. The directories
+ *        should be created from leaf to root instead of vice-versa.
+ *
+ * @param dir the pathname of the directory to create.
+ *
+ * @return On success, zero is returned. On failure, -1 is returned and
+ *         errno indicates the reason.
+ */
+gint
+create_directory(const gchar *dir)
+{
+	static const mode_t mode =
+		S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH; /* 0755 */
+	gchar *path = NULL;
+	size_t len, i;
+
+	g_assert(dir != NULL);
+
+	if (*dir != '/') {
+		errno = EPERM;
+		goto failure;
+	}
+
+	len = strlen(dir);
+	path = g_malloc0(len + 1);
+	memcpy(path, dir, len);
+	path[len] = '\0';
+	i = 0;
+
+	do {
+		const gchar *p;
+
+		path[i++] = '/';
+		p = strchr(&path[i], '/');
+		if (p != NULL) {
+			i = p - path;
+			g_assert(i > 0 && i < len);
+			g_assert(path[i] == '/');
+			path[i] = '\0';
+		} else {
+			i = len;
+			g_assert(path[i] == '\0');
+		}
+
+		g_message("stat(\"%s\")", path); 
+		if (!is_directory(path)) {
+			g_message("stat() failed: %s", g_strerror(errno)); 
+			if (errno != ENOENT)
+				goto failure;
+
+			g_message("mkdir(\"%s\")", path); 
+			if (mkdir(path, mode)) {
+				g_message("mkdir() failed: %s", g_strerror(errno)); 
+				goto failure;
+			}
+		}
+
+	} while (i < len);
+
+	G_FREE_NULL(path);
+	return is_directory(dir) ? 0 : -1;
+
+failure:
+
+	G_FREE_NULL(path);
+	return -1;
+}
+
+
+/* vi: set ts=4 sw=4 cindent: */
