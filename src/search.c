@@ -78,6 +78,7 @@
 #define T_HSLG	MAKE_CODE('H','S','L','G')
 #define T_LIME	MAKE_CODE('L','I','M','E')
 #define T_MACT	MAKE_CODE('M','A','C','T')
+#define T_MMMM	MAKE_CODE('M','M','M','M')
 #define T_MNAP	MAKE_CODE('M','N','A','P')
 #define T_MRPH	MAKE_CODE('M','R','P','H')
 #define T_MUTE	MAKE_CODE('M','U','T','E')
@@ -1040,6 +1041,7 @@ static gchar *extract_vendor_name(struct results_set * rs)
 	case T_LIME: vendor = "Lime";			break;
 	case T_MACT: vendor = "Mactella";		break;
 	case T_MNAP: vendor = "MyNapster";		break;
+	case T_MMMM: vendor = "Morpheus-v2";	break;
 	case T_MRPH: vendor = "Morpheus";		break;
 	case T_MUTE: vendor = "Mutella";		break;
 	case T_NAPS: vendor = "NapShare";		break;
@@ -1377,6 +1379,19 @@ static struct results_set *get_results_set(
 				dump_hex(stderr, "Query Hit Data (BAD)", n->data, n->size);
 			goto bad_packet;		/* Will drop this bad query hit */
 		}
+
+		/*
+		 * If we're not only validating (i.e. we're going to peruse this hit),
+		 * and if the server is marking its hits with the Push flag, check
+		 * whether it is already known to wrongly set that bit.
+		 *		--RAM, 18/08/2002.
+		 */
+
+		if (
+			!validate_only && (rs->status & ST_FIREWALL) &&
+			download_server_nopush(rs->guid, rs->ip, rs->port)
+		)
+			rs->status &= ~ST_FIREWALL;		/* Clear "Push" indication */
 	}
 
 	if (!validate_only)

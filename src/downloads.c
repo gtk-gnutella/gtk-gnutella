@@ -345,6 +345,7 @@ static void free_server(struct dl_server *server)
  * get_server
  *
  * Fetch server entry identified by GUID, IP:port.
+ * Returns NULL if not found.
  */
 static struct dl_server *get_server(guchar *guid, guint32 ip, guint16 port)
 {
@@ -357,6 +358,26 @@ static struct dl_server *get_server(guchar *guid, guint32 ip, guint16 port)
 	key.port = port;
 
 	return (struct dl_server *) g_hash_table_lookup(dl_by_host, &key);
+}
+
+/*
+ * download_server_nopush
+ *
+ * Check whether we can safely ignore Push indication for this server,
+ * identified by its GUID, IP and port.
+ */
+gboolean download_server_nopush(guchar *guid, guint32 ip, guint16 port)
+{
+	struct dl_server *server = get_server(guid, ip, port);
+
+	if (server == NULL)
+		return FALSE;
+
+	/* 
+	 * Returns true if we already made a direct connection to this server.
+	 */
+
+	return server->attrs & DLS_A_PUSH_IGN;
 }
 
 /*

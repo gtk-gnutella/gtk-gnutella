@@ -234,5 +234,6 @@ gint download_remove_all_named(const gchar *name);
 gint download_remove_all_with_sha1(const guchar *sha1);
 void download_remove_file(struct download *d);
 gboolean download_file_exists(struct download *d);
+gboolean download_server_nopush(guchar *guid, guint32 ip, guint16 port);
 
 #endif /* __downloads_h__ */
