@@ -1078,21 +1078,17 @@ static gboolean monitor_enabled_changed(property_t prop)
 static void set_host_progress(const gchar *w, guint32 cur, guint32 max)
 {
     GtkProgressBar *pg = GTK_PROGRESS_BAR(lookup_widget(main_window, w));
-    gfloat frac;
+    guint frac;
 
-    frac = MIN(cur, max) != 0 ? (float)MIN(cur, max) / max : 0;
+    frac = MIN(cur, max);
+	if (frac != 0)
+    	frac = frac * 100 / max;
 
-	gm_snprintf(set_tmp, sizeof(set_tmp), 
-#ifdef USE_GTK2
-		_("%u/%u host%s (%u%%)"),
-#else
-		_("%u/%u host%s (%u%%%%)"),
-#endif
-        cur, max, (cur == 1 && max == 1) ? "" : "s",
-        (guint)(frac*100));
+	gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u host(s) (%u%%)"),
+        cur, max, frac);
 
     gtk_progress_bar_set_text(pg, set_tmp);
-    gtk_progress_bar_set_fraction(pg, frac);
+    gtk_progress_bar_set_fraction(pg, frac / 100.0);
 }
 
 static gboolean hosts_in_catcher_changed(property_t prop)
@@ -1730,10 +1726,8 @@ static gboolean _update_address_information(void)
 			(PROP_LOCAL_IP, &current_ip);
    
     if (old_address != current_ip || old_port != listen_port) {
-        const gchar * iport;
-
-      	iport = ip_port_to_gchar(current_ip, listen_port);
-
+		const gchar *iport = ip_port_to_gchar(current_ip, listen_port);
+		
         old_address = current_ip;
         old_port = listen_port;
         statusbar_gui_message(15, _("Address/port changed to: %s"), iport);
@@ -2048,7 +2042,7 @@ static gboolean dl_running_count_changed(property_t prop)
     } else {
         gtk_label_printf(
             GTK_LABEL(lookup_widget(main_window, "label_dl_running_count")),
-            _("%u source%s"), val, (val != 1) ? "s" : "");
+            _("%u source(s)"), val);
     }
 
 	downloads_count_changed(prop);
@@ -2205,8 +2199,8 @@ static gboolean gnet_connections_changed(property_t prop)
         nodes = (peermode == NODE_P_NORMAL) ? 
             max_connections : max_ultrapeers;
         gm_snprintf(set_tmp, sizeof(set_tmp), 
-            _("%u/%u connection%s"),
-            cnodes, nodes, (cnodes == 1 && nodes == 1) ? "" : "s");
+            _("%u/%u connection(s)"),
+            cnodes, nodes);
         break;
     case NODE_P_ULTRA: /* ultra */
         nodes = max_connections + max_leaves + max_normal;
@@ -2239,8 +2233,8 @@ static gboolean uploads_count_changed(property_t prop)
 
     gnet_prop_get_guint32_val(PROP_UL_REGISTERED, &registered);
     gnet_prop_get_guint32_val(PROP_UL_RUNNING, &running);
-	gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u upload%s"),
-		running, registered, (1 == running && 1 == registered) ? "" : "s");
+	gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u upload(s)"),
+		running, registered);
 
 	min = MIN(running, registered);
     frac = min != 0 ? (gfloat) min / registered : 0;
@@ -2261,8 +2255,8 @@ static gboolean downloads_count_changed(property_t prop)
 
     gnet_prop_get_guint32_val(PROP_DL_ACTIVE_COUNT, &active);
     gnet_prop_get_guint32_val(PROP_DL_RUNNING_COUNT, &running);
-    gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u download%s"),
-        active, running, (1 == running && 1 == active) ? "" : "s");
+    gm_snprintf(set_tmp, sizeof(set_tmp), _("%u/%u download(s)"),
+        active, running);
 
     min = MIN(active, running);
     frac = min != 0 ? (gfloat) min / running : 0;
