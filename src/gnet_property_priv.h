@@ -234,6 +234,8 @@ extern guint32  qrp_patch_length;
 extern guint32  qrp_patch_comp_ratio;
 extern gchar   *ancient_version_force;
 extern guint32  ancient_version_left_days;
+extern gboolean file_descriptor_shortage;
+extern gboolean file_descriptor_runout;
 
 
 prop_set_t *gnet_prop_init(void);

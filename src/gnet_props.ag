@@ -2427,3 +2427,29 @@ prop = {
     };
 };
 
+prop = {
+	name = "file_descriptor_shortage";
+	desc = "When set, gtk-gnutella is running short on file descriptors, "
+		"but normal operations are still possible. "
+		"The condition automatically clears itself after 10 minutes without "
+		"any more shortage.";
+	type = boolean;
+	save = FALSE;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "file_descriptor_runout";
+	desc = "When set, gtk-gnutella has running out of file descriptors, "
+		"and operations are necessarily degraded, if not impossible. "
+		"The condition automatically clears itself after 10 minutes past "
+		"the last occurance.";
+	type = boolean;
+	save = FALSE;
+	data = {
+		default = FALSE;
+	};
+};
+

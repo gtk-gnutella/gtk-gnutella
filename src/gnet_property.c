@@ -472,6 +472,10 @@ gchar   *ancient_version_force     = "";
 gchar   *ancient_version_force_def = "";
 guint32  ancient_version_left_days     = 365;
 guint32  ancient_version_left_days_def = 365;
+gboolean file_descriptor_shortage     = FALSE;
+gboolean file_descriptor_shortage_def = FALSE;
+gboolean file_descriptor_runout     = FALSE;
+gboolean file_descriptor_runout_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -4393,6 +4397,40 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[203].data.guint32.choices = NULL;
     gnet_property->props[203].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[203].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_FILE_DESCRIPTOR_SHORTAGE:
+     *
+     * General data:
+     */
+    gnet_property->props[204].name = "file_descriptor_shortage";
+    gnet_property->props[204].desc = _("When set, gtk-gnutella is running short on file descriptors, but normal operations are still possible. The condition automatically clears itself after 10 minutes without any more shortage.");
+    gnet_property->props[204].ev_changed = event_new("file_descriptor_shortage_changed");
+    gnet_property->props[204].save = FALSE;
+    gnet_property->props[204].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[204].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[204].data.boolean.def   = &file_descriptor_shortage_def;
+    gnet_property->props[204].data.boolean.value = &file_descriptor_shortage;
+
+
+    /*
+     * PROP_FILE_DESCRIPTOR_RUNOUT:
+     *
+     * General data:
+     */
+    gnet_property->props[205].name = "file_descriptor_runout";
+    gnet_property->props[205].desc = _("When set, gtk-gnutella has running out of file descriptors, and operations are necessarily degraded, if not impossible. The condition automatically clears itself after 10 minutes past the last occurance.");
+    gnet_property->props[205].ev_changed = event_new("file_descriptor_runout_changed");
+    gnet_property->props[205].save = FALSE;
+    gnet_property->props[205].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[205].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[205].data.boolean.def   = &file_descriptor_runout_def;
+    gnet_property->props[205].data.boolean.value = &file_descriptor_runout;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
