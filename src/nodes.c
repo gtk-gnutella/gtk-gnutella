@@ -390,6 +390,7 @@ static gchar *formatted_connection_pongs(gchar *field)
 		GString *line = g_string_sized_new(PONG_LEN * CONNECT_PONGS_COUNT + 30);
 		gint i;
 		gint curlen;
+		gboolean is_first = TRUE;
 
 		g_string_append(line, field);
 		g_string_append(line, ": ");
@@ -402,10 +403,11 @@ static gchar *formatted_connection_pongs(gchar *field)
 			if (curlen + plen + 2 > LINE_LENGTH) {	/* 2 for ", " */
 				g_string_append(line, ",\r\n    ");
 				curlen = 4;
-			} else {
+			} else if (!is_first) {
 				g_string_append(line, ", ");
 				curlen += 2;
 			}
+			is_first = FALSE;
 			g_string_append(line, ipstr);
 			curlen += plen;
 		}
@@ -1163,6 +1165,9 @@ nextline:
 			(n->flags & NODE_F_INCOMING) ? "incoming" : "outgoing",
 			ip_to_gchar(s->ip));
 		dump_hex(stderr, "Extra HELLO Data", s->buffer, MIN(s->pos, 256));
+		fprintf(stderr, "------ HELLO Header Dump:\n");
+		header_dump(ih->header, stderr);
+		fprintf(stderr, "\n------\n");
 		node_remove(n, "Failed (Extra HELLO data)");
 		goto final_cleanup;
 	}
