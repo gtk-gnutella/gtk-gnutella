@@ -86,16 +86,12 @@ extern GSList *extensions, *shared_dirs;
 void share_init(void);
 struct shared_file *shared_file(guint idx);
 struct shared_file *shared_file_by_name(const gchar *basename);
-void share_scan(void);
 void share_close(void);
-guint64 shared_kbytes_scanned(void);
-guint64 shared_files_scanned(void);
 gboolean search_request(struct gnutella_node *n, struct query_hashvec *qhv);
 void parse_extensions(const gchar *);
 gchar *get_file_path(gint);
 void shared_dirs_update_prop(void);
 gboolean shared_dirs_parse(const gchar *);
-void shared_dir_add(const gchar *);
 gint get_file_size(gint);
 
 void shared_file_free(shared_file_t *sf);
