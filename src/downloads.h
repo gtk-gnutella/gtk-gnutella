@@ -290,7 +290,7 @@ void download_push_ack(struct gnutella_socket *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
 void download_pickup_queued(void);
 void download_clear_stopped(gboolean, gboolean, gboolean, gboolean);
-void download_forget(struct download *);
+void download_forget(struct download *, gboolean unavailable);
 void download_abort(struct download *);
 void download_resume(struct download *);
 void download_start(struct download *, gboolean);
@@ -300,7 +300,8 @@ void download_requeue(struct download *);
 void download_send_request(struct download *);
 void download_retry(struct download *);
 void download_close(void);
-gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port);
+gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port,
+	gboolean unavailable);
 gint download_remove_all_named(const gchar *name);
 gint download_remove_all_with_sha1(const gchar *sha1);
 void download_remove_file(struct download *d, gboolean reset);

@@ -93,6 +93,8 @@ static gboolean has_blank_guid(const struct download *d);
 static void download_verify_sha1(struct download *d);
 static gboolean download_get_server_name(struct download *d, header_t *header);
 static gboolean use_push_proxy(struct download *d);
+static void download_unavailable(
+	struct download *d, guint32 new_status, const gchar * reason, ...);
 
 static gboolean download_dirty = FALSE;
 static void download_store(void);
@@ -453,9 +455,10 @@ void download_timer(time_t now)
 						 * queued for that host as well.
 						 */
 
-						download_stop(d, GTA_DL_ERROR, "Timeout");
+						download_unavailable(d, GTA_DL_ERROR, "Timeout");
 						download_remove_all_from_peer(
-							download_guid(d), download_ip(d), download_port(d));
+							download_guid(d), download_ip(d), download_port(d),
+							TRUE);
 					}
 				}
 			} else if (now != d->last_gui_update)
@@ -1188,9 +1191,14 @@ static void queue_remove_downloads_with_file(
  *
  * Remove all downloads to a given peer from the download queue
  * and abort all connections to peer in the active download list.
+ *
+ * When `unavailable' is TRUE, the downloads are marked unavailable,
+ * so that they can be cleared up differently by the GUI .
+ *
  * Return the number of removed downloads.
  */
-gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port)
+gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port,
+	gboolean unavailable)
 {
 	struct dl_server *server[2];
 	gint n = 0;
@@ -1248,7 +1256,7 @@ gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port)
 
 	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
-		download_forget(d);
+		download_forget(d, unavailable);
 	}
 
 	g_slist_free(to_remove);
@@ -2296,7 +2304,6 @@ gboolean download_start_prepare_running(struct download *d)
 
 	d->flags &= ~DL_F_OVERLAPPED;		/* Clear overlapping indication */
 	d->flags &= ~DL_F_SHRUNK_REPLY;		/* Clear server shrinking indication */
-	d->flags &= ~DL_F_SUNK_DATA;		/* Restarting, nothing sunk yet */
 
 	/*
 	 * If this file is swarming, the overlapping size and skipping offset
@@ -2357,6 +2364,18 @@ gboolean download_start_prepare(struct download *d)
 
 	if (DOWNLOAD_IS_QUEUED(d))
 		download_unqueue(d);
+
+	/*
+	 * Reset flags that must be cleared only once per session, i.e. when
+	 * we start issuing requests for a queued download, or after we cloned
+	 * a completed download.
+	 *
+	 * Since download_start_prepare_running() is called from download_request(),
+	 * we must reset DL_F_SUNK_DATA here, since we want to sink only ONCE
+	 * per session.
+	 */
+
+	d->flags &= ~DL_F_SUNK_DATA;		/* Restarting, nothing sunk yet */
 
 	return download_start_prepare_running(d);
 }
@@ -2729,7 +2748,7 @@ static void download_push(struct download *d, gboolean on_timeout)
 		if (!host_is_valid(download_ip(d), download_port(d))) {
 			download_unavailable(d, GTA_DL_ERROR, "Push route lost");
 			download_remove_all_from_peer(
-				download_guid(d), download_ip(d), download_port(d));
+				download_guid(d), download_ip(d), download_port(d), TRUE);
 		} else {
 			/*
 			 * Later on, if we manage to connect to the server, we'll
@@ -2773,7 +2792,7 @@ attempt_retry:
 			download_unavailable(d, GTA_DL_ERROR,
 				"Can't reach host (Push or Direct)");
 			download_remove_all_from_peer(
-				download_guid(d), download_ip(d), download_port(d));
+				download_guid(d), download_ip(d), download_port(d), TRUE);
 		} else
 			download_queue_hold(d, download_retry_refused_delay,
 				"No direct connection yet (%d retr%s)",
@@ -2798,7 +2817,7 @@ attempt_retry:
 				d->retries, d->retries == 1 ? "y" : "ies");
 
 		download_remove_all_from_peer(
-			download_guid(d), download_ip(d), download_port(d));
+			download_guid(d), download_ip(d), download_port(d), TRUE);
 	}
 
 	/*
@@ -3486,8 +3505,9 @@ void download_remove(struct download *d)
  * download_forget
  *
  * Forget about download: stop it if running.
+ * When `unavailable' is TRUE, mark the download as unavailable.
  */
-void download_forget(struct download *d)
+void download_forget(struct download *d, gboolean unavailable)
 {
 	g_assert(d);
 
@@ -3499,7 +3519,10 @@ void download_forget(struct download *d)
 		download_gui_add(d);
 	}
 
-	download_stop(d, GTA_DL_ABORTED, NULL);
+	if (unavailable)
+		download_unavailable(d, GTA_DL_ABORTED, NULL);
+	else
+		download_stop(d, GTA_DL_ABORTED, NULL);
 }
 
 /*
@@ -3512,7 +3535,7 @@ void download_abort(struct download *d)
 {
 	g_assert(d);
 
-	download_forget(d);
+	download_forget(d, FALSE);
 
 	/* 
 	 * The refcount isn't decreased until "Clear completed", so
@@ -4780,6 +4803,7 @@ static void download_sink(struct download *d)
 	g_assert(s->pos >= 0 && s->pos <= sizeof(s->buffer));
 	g_assert(d->status == GTA_DL_SINKING);
 	g_assert(d->flags & DL_F_CHUNK_CHOSEN);
+	g_assert(d->flags & DL_F_SUNK_DATA);
 
 	if (s->pos > d->sinkleft) {
 		g_warning("got more data to sink than expected from %s <%s>",
