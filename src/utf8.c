@@ -632,13 +632,13 @@ void locale_init(void)
 
 		/* set up the locale converter */
 		conv_icu_locale = ucnv_open(charset, &errorCode);
-		if (errorCode != U_ZERO_ERROR)
-			g_warning("ucnv_open : %s", U_SUCCESS(errorCode));
+		if (U_FAILURE(errorCode))
+			g_warning("ucnv_open for locale failed with %d", errorCode);
 
 		/* set up the UTF-8 converter */
 		conv_icu_utf8 = ucnv_open("utf8", &errorCode);
-		if (errorCode != U_ZERO_ERROR)
-			g_warning("ucnv_open : %s", U_SUCCESS(errorCode));
+		if (U_FAILURE(errorCode))
+			g_warning("ucnv_open for utf-8 failed with %d", errorCode);
 	}
 #endif
 }
