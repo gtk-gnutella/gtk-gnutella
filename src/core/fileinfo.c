@@ -2233,7 +2233,7 @@ file_info_retrieve(void)
 				gchar *pathname;
 
 				pathname = make_pathname(fi->path, fi->file_name);
-				if (!is_regular(pathname)) {
+				if (is_regular(pathname)) {
 					g_warning("got metainfo in fileinfo cache, "
 						"but none in \"%s\"", pathname);
 					file_info_store_binary(fi);			/* Create metainfo */
