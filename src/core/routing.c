@@ -1480,6 +1480,7 @@ route_query_hit(struct route_log *log,
 	struct message *m;
 	gboolean node_is_target = FALSE;
 	struct gnutella_node *found;
+	gboolean is_oob_proxied;
 
 	/*
 	 * We have to record we have seen a hit reply from the GUID held at
@@ -1528,7 +1529,16 @@ route_query_hit(struct route_log *log,
 		}
 	}
 
-	if (!check_hops_ttl(log, sender))
+	/*
+	 * It's important to handle query hits for OOB-proxied queries
+	 * differently: they appear to come from ourselves, but they are
+	 * not destined to us, and we'll forward them to the leaf who sent
+	 * the initial query, regardless of the hops/TTL value of the hit.
+	 */
+	
+	is_oob_proxied = oob_proxy_muid_proxied(sender->header.muid);
+
+	if (!is_oob_proxied && !check_hops_ttl(log, sender))
 		goto handle;				/* We will handle the hit nonetheless */
 
 	if (!find_message(sender->header.muid, GTA_MSG_SEARCH, &m)) {
@@ -1540,8 +1550,9 @@ route_query_hit(struct route_log *log,
 		sender->n_bad++;	/* Node shouldn't have forwarded this message */
 
 		if (routing_debug)
-			gmsg_log_bad(sender, "got reply without matching request %s",
-				guid_hex_str(sender->header.muid));
+			gmsg_log_bad(sender, "got reply without matching request %s%s",
+				guid_hex_str(sender->header.muid),
+				is_oob_proxied ? " (OOB-proxied)" : "");
 
 		goto handle;
 	}
@@ -1565,12 +1576,14 @@ route_query_hit(struct route_log *log,
 
 	if (node_sent_message(fake_node, m)) {
 		node_is_target = TRUE;		/* We are the target of the reply */
-		if (oob_proxy_muid_proxied(sender->header.muid))
+		if (is_oob_proxied)
 			gnet_stats_count_general(sender, GNR_OOB_PROXIED_QUERY_HITS, 1);
 		else
 			gnet_stats_count_general(sender, GNR_LOCAL_QUERY_HITS, 1);
 		goto handle;
 	}
+
+	g_assert(!is_oob_proxied);		/* Or we would have sent the message */
 
 	/*
 	 * Look for a route different from the one we received the
@@ -1624,7 +1637,8 @@ route_lost:
 
 handle:
 	if (node_is_target)
-		routing_log_extra(log, "we are the target");
+		routing_log_extra(log, "we are the target%s",
+			is_oob_proxied ? " (OOB-proxy)" : "");
 
 	/* FALL THROUGH */
 final:

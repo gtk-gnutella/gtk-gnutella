@@ -1845,7 +1845,7 @@ search_results(gnutella_node_t *n, gint *results)
 	 * call dh_got_results() when oob_proxy_got_results() returns FALSE.
 	 */
 
-	if (oob_proxy_got_results(n, rs->num_recs))
+	if (proxy_oob_queries && oob_proxy_got_results(n, rs->num_recs))
 		forward_it = FALSE;
 	else
 		dh_got_results(n->header.muid, rs->num_recs);
@@ -2439,12 +2439,21 @@ search_oob_pending_results(
 		 * Maybe it's an OOB-proxied search?
 		 */
 
-		if (oob_proxy_pending_results(n, muid, hits, udp_firewalled))
+		if (
+			proxy_oob_queries &&
+			oob_proxy_pending_results(n, muid, hits, udp_firewalled)
+		)
 			return;
 
 		if (search_debug)
 			g_warning("got OOB indication of %d hit%s for unknown search %s",
 				hits, hits == 1 ? "" : "s", guid_hex_str(muid));
+
+		if (search_debug > 1)
+			gmsg_log_bad(n, "unexpected OOB hit indication");
+
+		gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
+
 		return;
 	}
 
