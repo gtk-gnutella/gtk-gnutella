@@ -403,10 +403,8 @@ gint utf8_to_iso8859(guchar *s, gint len, gboolean space)
 /*
  * locale_to_utf8
  *
- * Converts the string ``str'' assuming it's encoded in the current
- * locale (see setlocale(3) and LC_CTYPE for details) to a string
- * encoded in UTF-8. If ``len'' is 0 the length will be calculated
- * using strlen(), otherwise only ``len'' characters will be converted.
+ * If ``len'' is 0 the length will be calculated using strlen(), otherwise
+ * only ``len'' characters will be converted.
  * The function returns a pointer to a STATIC buffer! If the output
  * string is longer than 4095 characters it will be truncated.
  * Non-convertible characters will be replaced by '_'. In case of an
@@ -417,11 +415,10 @@ gint utf8_to_iso8859(guchar *s, gint len, gboolean space)
  *				strings	e.g., to view strings in the GUI. The conversion
  *				MAY be inappropriate!
  */
-gchar *locale_to_utf8(gchar *str, size_t len)
+gchar *convert_to_utf8(gchar *str, size_t len, const char *charset)
 {
-	static const gchar *local_charset = NULL;
-	static GIConv converter;
 	static gboolean initialized = FALSE;
+	static GIConv converter;
 	size_t ret;
 	gsize inbytes_left;
 	gsize outbytes_left;
@@ -432,12 +429,11 @@ gchar *locale_to_utf8(gchar *str, size_t len)
 	g_assert(NULL != str);
 	
 	if (!initialized) {
-		g_get_charset(&local_charset);
-		converter = g_iconv_open("UTF-8", local_charset);
+		converter = g_iconv_open("UTF-8", charset);
 		if ((GIConv) -1 == converter) {
 			if (dbg > 1)
 				g_warning("locale_to_utf8: g_iconv_open() failed:"
-				 	"charset=\"%s\"", local_charset);
+				 	"charset=\"%s\"", charset);
 			goto error;
 		} else
 			initialized = TRUE;
@@ -479,5 +475,22 @@ gchar *locale_to_utf8(gchar *str, size_t len)
 error:
 	return "<Cannot convert to UTF-8>";
 }
+
+/*
+ * locale_to_utf8
+ *
+ * Converts the string ``str'' assuming it's encoded in the current
+ * locale (see setlocale(3) and LC_CTYPE for details) to a string
+ * encoded in UTF-8. See convert_to_utf8() for further details.
+ */
+gchar *locale_to_utf8(gchar *str, size_t len)
+{
+	static const gchar *local_charset = NULL;
+
+    if (NULL == local_charset)
+		g_get_charset(&local_charset);
+    return convert_to_utf8(str, len, local_charset);
+}
+
 #endif
 
