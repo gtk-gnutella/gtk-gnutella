@@ -138,7 +138,8 @@ static void gwc_add(gchar *url)
 	 */
 
 	if (!http_url_parse(url, NULL, NULL, NULL, NULL)) {
-		g_warning("ignoring bad web cache URL: %s", url);
+		g_warning("ignoring bad web cache URL \"%s\": %s",
+			url, http_url_strerror(http_url_errno));
 		return;
 	}
 

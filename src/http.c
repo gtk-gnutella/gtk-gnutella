@@ -48,6 +48,8 @@ RCSID("$Id$");
 
 #define MAX_HOSTLEN		256		/* Max length for FQDN host */
 
+http_url_error_t http_url_errno;		/* Error from http_url_parse() */
+
 static GSList *sl_outgoing = NULL;		/* To spot reply timeouts */
 
 /*
@@ -435,6 +437,34 @@ gboolean http_extract_version(
 	return TRUE;			/* Parsed HTTP/x.x OK */
 }
 
+/***
+ *** HTTP URL parsing.
+ ***/
+
+static gchar *parse_errstr[] = {
+	"OK",									/* HTTP_URL_OK */
+	"Not an http URI",						/* HTTP_URL_NOT_HTTP */
+	"More than one <user>:<password>",		/* HTTP_URL_MULTIPLE_CREDENTIALS */
+	"Truncated <user>:<password>",			/* HTTP_URL_BAD_CREDENTIALS */
+	"Could not parse port",					/* HTTP_URL_BAD_PORT_PARSING */
+	"Port value is out of range",			/* HTTP_URL_BAD_PORT_RANGE */
+	"Could not resolve host into IP",		/* HTTP_URL_HOSTNAME_UNKNOWN */
+};
+
+#define MAX_PARSE_ERRNUM (sizeof(parse_errstr) / sizeof(parse_errstr[0]) - 1)
+
+/*
+ * http_url_strerror
+ *
+ * Return human-readable error string corresponding to error code `errnum'.
+ */
+gchar *http_url_strerror(http_url_error_t errnum)
+{
+	if (errnum < 0 || errnum > MAX_PARSE_ERRNUM)
+		return "Invalid error code";
+
+	return parse_errstr[errnum];
+}
 
 /*
  * http_url_parse
@@ -444,6 +474,7 @@ gboolean http_extract_version(
  *
  * Returns TRUE if the URL was correctly parsed, with `ip', `port', 'host'
  * and `path' filled if they are non-NULL, FALSE otherwise.
+ * The variable `http_url_errno' is set accordingly.
  *
  * NOTE: `host' is only filled if a non-numeric host was given in the URL,
  * and the pointer returned is to STATIC data.
@@ -463,8 +494,10 @@ gboolean http_url_parse(
 
 	g_assert(url != NULL);
 
-	if (0 != strncasecmp(url, "http://", 7))
+	if (0 != strncasecmp(url, "http://", 7)) {
+		http_url_errno = HTTP_URL_NOT_HTTP;
 		return FALSE;
+	}
 
 	url += 7;
 
@@ -486,8 +519,10 @@ gboolean http_url_parse(
 
 	while ((c = *p++)) {
 		if (c == '@') {
-			if (seen_upw)			/* There can be only ONE user/password */
+			if (seen_upw) {			/* There can be only ONE user/password */
+				http_url_errno = HTTP_URL_MULTIPLE_CREDENTIALS;
 				return FALSE;
+			}
 			seen_upw = TRUE;
 			host_start = p;			/* Right after the '@' */
 			port_start = NULL;
@@ -498,8 +533,10 @@ gboolean http_url_parse(
 	}
 
 	p--;							/* Go back to trailing "/" */
-	if (*p != '/')
+	if (*p != '/') {
+		http_url_errno = HTTP_URL_BAD_CREDENTIALS;
 		return FALSE;
+	}
 
 	if (path != NULL)
 		*path = p;					/* Start of path, at the "/" */
@@ -510,11 +547,15 @@ gboolean http_url_parse(
 
 	if (port_start == NULL)
 		portnum = HTTP_PORT;
-	else if (2 != sscanf(port_start, "%u%c", &portnum, &s) || s != '/')
+	else if (2 != sscanf(port_start, "%u%c", &portnum, &s) || s != '/') {
+		http_url_errno = HTTP_URL_BAD_PORT_PARSING;
 		return FALSE;
+	}
 
-	if ((guint32) (guint16) portnum != portnum)
+	if ((guint32) (guint16) portnum != portnum) {
+		http_url_errno = HTTP_URL_BAD_PORT_RANGE;
 		return FALSE;
+	}
 
 	if (port != NULL)
 		*port = (guint16) portnum;
@@ -559,8 +600,10 @@ gboolean http_url_parse(
 
 		if (ip != NULL) {
 			*ip = host_to_ip(hostname);
-			if (*ip == 0)					/* Unable to resolve name */
+			if (*ip == 0) {					/* Unable to resolve name */
+				http_url_errno = HTTP_URL_HOSTNAME_UNKNOWN;
 				return FALSE;
+			}
 		}
 
 		if (host != NULL)
@@ -574,6 +617,8 @@ gboolean http_url_parse(
 				ip_port_to_gchar(*ip, *port) : "<not remembered>",
 			(host != NULL) ? (*host ? *host : "<none>") : "<not remembered>",
 			(path != NULL) ? *path : "<not remembered>");
+
+	http_url_errno = HTTP_URL_OK;
 
 	return TRUE;
 }

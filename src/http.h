@@ -138,6 +138,22 @@ typedef void (*http_user_free_t)(gpointer data);
 extern gint http_async_errno;
 
 /*
+ * Error codes from http_url_parse().
+ */
+
+typedef enum {
+	HTTP_URL_OK = 0,					/* All OK */
+	HTTP_URL_NOT_HTTP,					/* Not an http URI */
+	HTTP_URL_MULTIPLE_CREDENTIALS,		/* More than one <user>:<password> */
+	HTTP_URL_BAD_CREDENTIALS,			/* Truncated <user>:<password> */
+	HTTP_URL_BAD_PORT_PARSING,			/* Could not parse port */
+	HTTP_URL_BAD_PORT_RANGE,			/* Port value is out of range */
+	HTTP_URL_HOSTNAME_UNKNOWN,			/* Could not resolve host into IP */
+} http_url_error_t;
+
+extern http_url_error_t http_url_errno;
+
+/*
  * Public interface
  */
 
@@ -152,6 +168,7 @@ gint http_status_parse(gchar *line,
 gboolean http_extract_version(
 	gchar *request, gint len, gint *major, gint *minor);
 
+gchar *http_url_strerror(http_url_error_t errnum);
 gboolean http_url_parse(
 	gchar *url, guint32 *ip, guint16 *port, gchar **host, gchar **path);
 
