@@ -3439,6 +3439,9 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 
 		if (d->file_info->sha1) {
 			if (download_overlap_range >= DOWNLOAD_MIN_OVERLAP) {
+                if (download_optimistic_start && (d->pos == 0))
+                    return TRUE;
+
 				if (d->overlap_size == 0) {
 					download_queue_delay(d, download_retry_busy_delay,
 						"No URN on server, waiting for overlap");

@@ -1233,6 +1233,13 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_gnet_stats_general"
     },
+    {
+        get_main_window,
+        PROP_DOWNLOAD_OPTIMISTIC_START,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_download_optimistic_start"
+    },
 };
 
 /***
