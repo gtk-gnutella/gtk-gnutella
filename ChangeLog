@@ -1,5 +1,20 @@
 # since last version
 
+- (2002.09.22 RAM)
+ * Forgot to initialize a field when starting an aync HTTP request.
+ * QRP hash code no longer uses tolower() and only translates [A-Z] to [a-z].
+ * Adapted zalloc/walloc code to be usable under dmalloc.
+ * Added support for transparent redirection in async HTTP requests.
+ * Unplugged all support for the now-dead public hostcaches.
+ * Fixed a few "free(NULL)" calls spotted by dmalloc.
+ * Save URLs in gwcache starting with the oldest ones.
+ * Rotate the web cache used after a few updates.
+ * Downloads were still using obsolete index==0 convention to indicate the
+   /uri-res URLs.  It is now index==URN_INDEX that must be used.
+ * Fixed embarrassing bug: we were bluntly changing the query text on the
+   fly by calling st_search() on the original query text!
+ * Fixed memory leak in fileinfo.c.
+
 - (2002.09.21 RAM)
  * Removed hostcache "gnutella-again.hostscache.com": no longer resolves.
  * Added http_async_close() to cleanly request connection close.
