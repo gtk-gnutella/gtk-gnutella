@@ -22,7 +22,7 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  */
- 
+
 #include "gui.h"
 
 RCSID("$Id$");
@@ -69,7 +69,7 @@ gui_update_download_clear_now(void)
 		return;
 
 	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_downloads_clear_stopped"), 
+        lookup_widget(main_window, "button_downloads_clear_stopped"),
         guc_download_something_to_clear());
 }
 
@@ -89,7 +89,7 @@ gui_update_queue_frozen(void)
         lookup_widget(main_window, "togglebutton_queue_freeze");
 
     if (gui_debug >= 3)
-		g_message("frozen %i, msg %i\n", 
+		g_message("frozen %i, msg %i\n",
 			guc_download_queue_is_frozen(),
 	    	(gint) msg_displayed);
 
@@ -121,7 +121,7 @@ gui_update_queue_frozen(void)
             msg_displayed = FALSE;
             statusbar_gui_remove(id);
         }
-	} 
+	}
 
     gtk_signal_handler_block_by_func(
         GTK_OBJECT(togglebutton_queue_freeze),
@@ -131,7 +131,7 @@ gui_update_queue_frozen(void)
     gtk_toggle_button_set_active(
         GTK_TOGGLE_BUTTON(togglebutton_queue_freeze),
         guc_download_queue_is_frozen() > 0);
-    
+
     gtk_signal_handler_unblock_by_func(
         GTK_OBJECT(togglebutton_queue_freeze),
         GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled),
@@ -172,7 +172,7 @@ on_button_downloads_clear_stopped_clicked(GtkButton *unused_button,
  *	Freeze the downloads queue
  */
 void on_togglebutton_queue_freeze_toggled(GtkToggleButton *togglebutton,
-	gpointer unused_udata) 
+	gpointer unused_udata)
 {
 	(void) unused_udata;
 

@@ -22,7 +22,7 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  *
- * search_stats.c - keep track of what search terms we have seen, and 
+ * search_stats.c - keep track of what search terms we have seen, and
  *					how frequently each has been seen.
  *
  *		this uses the glib hash tables and lists, but a much more efficient
@@ -73,9 +73,9 @@ static gboolean
 delete_hash_entry(gpointer key, gpointer value, gpointer unused_data)
 {
 	struct term_counts *val = (struct term_counts *) value;
-	
+
 	(void) unused_data;
-	
+
 	/* free the key str (was atomized below) */
 	atom_str_free(key);
 	wfree(val, sizeof *val);
@@ -264,7 +264,7 @@ search_stats_tally(const word_vec_t *vec)
 
 
 /***
- *** Public functions 
+ *** Public functions
  ***/
 
 /**
@@ -322,7 +322,7 @@ add_column(GtkTreeView *treeview, gint id, gint width, gfloat xalign,
 
     column = gtk_tree_view_column_new_with_attributes(
                 label, renderer, "text", id, NULL);
-	
+
 	g_object_set(G_OBJECT(column),
 		"fixed-width", MAX(1, width),
 		"min-width", 1,
@@ -360,8 +360,8 @@ search_stats_gui_init(void)
     GtkTreeView *treeview;
 
 	STATIC_ASSERT(G_N_ELEMENTS(cols) == G_N_ELEMENTS(types));
-	
-	treeview_search_stats = 
+
+	treeview_search_stats =
         GTK_TREE_VIEW(lookup_widget(main_window, "treeview_search_stats"));
 	label_search_stats_count =
 		GTK_LABEL(lookup_widget(main_window, "label_search_stats_count"));
@@ -373,7 +373,7 @@ search_stats_gui_init(void)
     search_stats_mode_def = gui_prop_get_def(PROP_SEARCH_STATS_MODE);
 
     gtk_combo_init_choices(
-        combo_types, 
+        combo_types,
         GTK_SIGNAL_FUNC(on_search_stats_type_selected),
         search_stats_mode_def);
 
@@ -392,7 +392,7 @@ search_stats_gui_init(void)
 
         list_item = gtk_list_item_new_with_label(type_str[n]);
         gtk_widget_show(list_item);
-        
+
         gtk_signal_connect(
             GTK_OBJECT(list_item), "select",
             GTK_SIGNAL_FUNC(on_search_stats_type_selected),

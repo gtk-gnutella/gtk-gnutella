@@ -53,7 +53,7 @@ void on_button_filter_cancel_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_clear_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_abort_rule_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_remove_rule_clicked(GtkButton *button, gpointer user_data);
-void on_entry_filter_new_activate (GtkEditable *editable, gpointer user_data); 
+void on_entry_filter_new_activate (GtkEditable *editable, gpointer user_data);
 void on_button_filter_remove_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_create_clicked(GtkButton *button, gpointer user_data);
 void on_button_filter_reset_all_rules_clicked(GtkButton *button, gpointer user_data);
@@ -68,7 +68,7 @@ gboolean on_clist_filter_rules_button_press_event(GtkWidget * widget, GdkEventBu
  * Filter popup for rule list
  */
 void on_popup_filter_rule_copy_activate(GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_filter_rule_paste_activate(GtkMenuItem *menuitem, gpointer user_data); 
+void on_popup_filter_rule_paste_activate(GtkMenuItem *menuitem, gpointer user_data);
 
 
 #endif /* _gtk_filter_cb_h_ */

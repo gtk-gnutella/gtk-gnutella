@@ -54,9 +54,9 @@ on_clist_monitor_button_press_event(GtkWidget *widget,
 
 	gtk_toggle_button_set_active(
         GTK_TOGGLE_BUTTON
-            (lookup_widget(main_window, "checkbutton_monitor_enable")), 
+            (lookup_widget(main_window, "checkbutton_monitor_enable")),
         FALSE);
-	gtk_menu_popup(GTK_MENU(popup_monitor), NULL, NULL, NULL, NULL, 
+	gtk_menu_popup(GTK_MENU(popup_monitor), NULL, NULL, NULL, NULL,
                   event->button, event->time);
 
 	return TRUE;
@@ -76,15 +76,15 @@ on_popup_monitor_add_search_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_udata;
 
 	for (
-        l = GTK_CLIST(clist_monitor)->selection; 
-        l != NULL; 
-        l = GTK_CLIST(clist_monitor)->selection 
-    ) {		
+        l = GTK_CLIST(clist_monitor)->selection;
+        l != NULL;
+        l = GTK_CLIST(clist_monitor)->selection
+    ) {
         gtk_clist_get_text(GTK_CLIST(clist_monitor), GPOINTER_TO_INT(l->data),
 			0, titles);
         gtk_clist_unselect_row(GTK_CLIST(clist_monitor),
 			GPOINTER_TO_INT(l->data), 0);
-     
+
 		e = g_strdup(titles[0]);
 
 		g_strstrip(e);
@@ -92,7 +92,7 @@ on_popup_monitor_add_search_activate(GtkMenuItem *unused_menuitem,
             search_gui_new_search(e, 0, NULL);
 
 		G_FREE_NULL(e);
-	}	
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

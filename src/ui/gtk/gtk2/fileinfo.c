@@ -60,11 +60,11 @@ static void
 fi_gui_fi_removed(gnet_fi_t fih)
 {
 	GtkTreeIter *iter;
-	
+
 	g_hash_table_remove(fi_updates, GUINT_TO_POINTER(fih));
 	if (fih == last_shown)
 		last_shown_valid = FALSE;
-	
+
 	if (
 		!g_hash_table_lookup_extended(fi_gui_handles, GUINT_TO_POINTER(fih),
 			NULL, (gpointer) &iter)
@@ -79,7 +79,7 @@ fi_gui_fi_removed(gnet_fi_t fih)
 
 static void
 fi_gui_update_row(GtkTreeStore *store, GtkTreeIter *iter, gchar **titles)
-{		
+{
 	if (NULL != titles[c_fi_filename]) {
 		gtk_tree_store_set(store, iter,
 			c_fi_filename, lazy_locale_to_utf8(titles[c_fi_filename], 0),
@@ -172,7 +172,7 @@ on_treeview_fileinfo_cursor_changed(GtkTreeView *tv,
 	}
 }
 
-static void 
+static void
 fi_purge_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 	GtkTreeIter *iter, gpointer data)
 {
@@ -197,7 +197,7 @@ on_button_fi_purge_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
 	GtkTreeSelection *s;
 	GSList *sl_fih = NULL;
-	
+
 	(void) unused_button;
 	(void) unused_udata;
 
@@ -230,12 +230,12 @@ fi_gui_fill_info(gnet_fi_t fih, gchar *titles[c_fi_num])
     static gnet_fi_info_t *fi = NULL;
 
     /* Clear info from last call. We keep this around so we don't
-     * have to strdup entries from it when passing them to the 
+     * have to strdup entries from it when passing them to the
      * outside through titles[]. */
     if (fi != NULL) {
         guc_fi_free_info(fi);
     }
-        
+
     /* Fetch new info */
     fi = guc_fi_get_info(fih);
     g_assert(fi != NULL);
@@ -263,8 +263,8 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
 
     if (s.done && s.size) {
 		gfloat done = ((gfloat) s.done / s.size) * 100.0;
- 
-        gm_snprintf(fi_done, sizeof(fi_done), "%s (%.1f%%)", 
+
+        gm_snprintf(fi_done, sizeof(fi_done), "%s (%.1f%%)",
             short_size(s.done), done);
         titles[c_fi_done] = fi_done;
 		idone = done * ((1 << 30) / 101);
@@ -272,7 +272,7 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
         titles[c_fi_done] = "-";
 		idone = 0;
     }
-        
+
     g_strlcpy(fi_size, short_size(s.size), sizeof(fi_size));
 	titles[c_fi_size]  = fi_size;
 	isize = s.size;
@@ -280,7 +280,7 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
     titles[c_fi_idone] = GUINT_TO_POINTER(idone);
 
     if (s.recvcount) {
-		gm_snprintf(fi_status, sizeof(fi_status), 
+		gm_snprintf(fi_status, sizeof(fi_status),
             _("Downloading (%.1f k/s)"), s.recv_last_rate / 1024.0);
         titles[c_fi_status] = fi_status;
     } else if (s.done == s.size) {
@@ -288,7 +288,7 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
     } else if (s.lifecount == 0) {
         titles[c_fi_status] = _("No sources");
     } else if (s.aqueued_count || s.pqueued_count) {
-        gm_snprintf(fi_status, sizeof(fi_status), 
+        gm_snprintf(fi_status, sizeof(fi_status),
             _("Queued (%d active, %d passive)"),
             s.aqueued_count, s.pqueued_count);
         titles[c_fi_status] = fi_status;
@@ -340,7 +340,7 @@ fi_gui_fi_status_changed(gnet_fi_t fih)
 	g_hash_table_insert(fi_updates, GUINT_TO_POINTER(fih), GINT_TO_POINTER(1));
 }
 
-static gboolean 
+static gboolean
 fi_gui_update_queued(gpointer key, gpointer unused_value, gpointer unused_udata)
 {
 	gnet_fi_t fih = GPOINTER_TO_UINT(key);
@@ -407,7 +407,7 @@ static void add_column(
 }
 
 void
-fi_gui_update_display(time_t now) 
+fi_gui_update_display(time_t now)
 {
 	static time_t last;
 
@@ -419,7 +419,7 @@ fi_gui_update_display(time_t now)
 }
 
 void
-fi_gui_init(void) 
+fi_gui_init(void)
 {
 	static const struct {
 		const gint id;
@@ -469,7 +469,7 @@ fi_gui_init(void)
 	gtk_tree_view_set_model(treeview_fileinfo, GTK_TREE_MODEL(store_fileinfo));
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(treeview_fileinfo),
 		GTK_SELECTION_MULTIPLE);
-		
+
 	g_signal_connect(GTK_OBJECT(treeview_fileinfo), "cursor-changed",
         G_CALLBACK(on_treeview_fileinfo_cursor_changed), NULL);
 

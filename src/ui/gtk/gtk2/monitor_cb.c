@@ -43,9 +43,9 @@ on_treeview_monitor_button_press_event(GtkWidget *widget,
 
 	gtk_toggle_button_set_active(
         GTK_TOGGLE_BUTTON
-            (lookup_widget(main_window, "checkbutton_monitor_enable")), 
+            (lookup_widget(main_window, "checkbutton_monitor_enable")),
         FALSE);
-	gtk_menu_popup(GTK_MENU(popup_monitor), NULL, NULL, NULL, NULL, 
+	gtk_menu_popup(GTK_MENU(popup_monitor), NULL, NULL, NULL, NULL,
                   event->button, event->time);
 
 	return TRUE;

@@ -233,9 +233,9 @@ static shadow_t *shadow_new(filter_t *f)
  *
  * Forgets all about a given shadow and free's ressourcs for it.
  * At this point we can no longer assume that the shadow->current
- * field contains a valid pointer. We may have been called to 
+ * field contains a valid pointer. We may have been called to
  * clean up a shadow for a filter whose ruleset has already been
- * cleared. We don't clean up any memory that is owned by the 
+ * cleared. We don't clean up any memory that is owned by the
  * associated filter.
  */
 static void shadow_cancel(shadow_t *shadow)
@@ -251,7 +251,7 @@ static void shadow_cancel(shadow_t *shadow)
     for (r = shadow->added; r != NULL; r = r->next)
         filter_free_rule(r->data);
 
-    /* 
+    /*
      * Since we cancel the shadow, we also free the added,
      * removed and current lists now. Then we remove the shadow
      * kill it also.
@@ -279,7 +279,7 @@ static void shadow_commit(shadow_t *shadow)
     filter_t *realf;
 
     g_assert(shadow != NULL);
-    g_assert(shadow->filter != NULL); 
+    g_assert(shadow->filter != NULL);
 
     realf = shadow->filter;
 
@@ -300,7 +300,7 @@ static void shadow_commit(shadow_t *shadow)
     for (f = shadow->added; f != NULL; f = f->next)
         clear_flags(((rule_t*) f->data)->flags, RULE_FLAG_SHADOW);
 
-    /* 
+    /*
      * We also free the memory of the filter->ruleset GList.
      * We don't need them anymore.
      */
@@ -309,7 +309,7 @@ static void shadow_commit(shadow_t *shadow)
     /*
      * Now the actual filter is corrupted, because
      * we have freed memory its rules.
-     * But we have a copy of the ruleset without exactly those 
+     * But we have a copy of the ruleset without exactly those
      * rules we freed now. We use this as new ruleset.
      */
     shadow->filter->ruleset = shadow->current;
@@ -321,9 +321,9 @@ static void shadow_commit(shadow_t *shadow)
      */
     shadow->filter->refcount = shadow->refcount;
 
-    shadow->filter->flags = shadow->flags; 
-    
-    /* 
+    shadow->filter->flags = shadow->flags;
+
+    /*
      * Now that we have actually commited the changes for this
      * shadow, we remove this shadow from our shadow list
      * and free it's ressources. Note that we do not free
@@ -333,7 +333,7 @@ static void shadow_commit(shadow_t *shadow)
     g_list_free(shadow->removed);
     shadow->added = shadow->removed = shadow->current = NULL;
     shadow->filter = NULL;
-    shadow_filters = g_list_remove(shadow_filters, shadow); 
+    shadow_filters = g_list_remove(shadow_filters, shadow);
     G_FREE_NULL(shadow);
 
     if (gui_debug >= 6) {
@@ -360,13 +360,13 @@ static void filter_refresh_display(GList *filter_list)
         shadow_t *shadow;
         GList *ruleset;
         gboolean enabled;
-    
+
         shadow = shadow_find(filter);
         ruleset = (shadow != NULL) ? shadow->current : filter->ruleset;
-        enabled = (shadow != NULL) ? 
-            filter_is_active(shadow) : 
+        enabled = (shadow != NULL) ?
+            filter_is_active(shadow) :
             filter_is_active(filter);
-                        
+
         filter_gui_filter_add(filter, ruleset);
         filter_gui_filter_set_enabled(filter, enabled);
     }
@@ -388,11 +388,11 @@ void filter_open_dialog(void) {
     if (filter_dialog == NULL) {
         filter_dialog = filter_gui_create_dlg_filters();
         g_assert(filter_dialog != NULL);
-   
+
         filter_gui_init();
         filter_refresh_display(filters_current);
     }
-    
+
     if (current_search != NULL) {
         filter_set(current_search->filter);
     } else {
@@ -424,12 +424,12 @@ void filter_close_dialog(gboolean commit)
         gdk_drawable_get_size(filter_dialog->window, &coord[2], &coord[3]);
 
         gui_prop_set_guint32(PROP_FILTER_DLG_COORDS, (guint32 *) coord, 0, 4);
-        
+
         *(guint32 *) &filter_main_divider_pos =
             gtk_paned_get_position
                 (GTK_PANED(lookup_widget(filter_dialog, "hpaned_filter_main")));
 
-#ifdef FILTER_HIDE_ON_CLOSE        
+#ifdef FILTER_HIDE_ON_CLOSE
         gtk_widget_hide(filter_dialog);
 #else
         gtk_object_destroy(GTK_OBJECT(filter_dialog));
@@ -469,7 +469,7 @@ rule_t *filter_duplicate_rule(rule_t *r)
             (r->u.sha1.hash, r->u.sha1.filename, r->target, r->flags);
     case RULE_FLAG:
         return filter_new_flag_rule
-            (r->u.flag.stable, r->u.flag.busy, r->u.flag.push, 
+            (r->u.flag.stable, r->u.flag.busy, r->u.flag.push,
             r->target, r->flags);
     case RULE_STATE:
         return filter_new_state_rule
@@ -482,7 +482,7 @@ rule_t *filter_duplicate_rule(rule_t *r)
 
 
 
-rule_t *filter_new_text_rule(gchar *match, gint type, 
+rule_t *filter_new_text_rule(gchar *match, gint type,
     gboolean case_sensitive, filter_t *target, guint16 flags)
 {
   	rule_t *r;
@@ -515,7 +515,7 @@ rule_t *filter_new_text_rule(gchar *match, gint type,
 			l = g_list_append(l, pattern_compile(s));
 
 		r->u.text.u.words = l;
-	} else 
+	} else
     if (r->u.text.type == RULE_TEXT_REGEXP) {
 		int err;
 		regex_t *re;
@@ -696,7 +696,7 @@ rule_t *filter_new_state_rule
 /*
  * filter_set:
  *
- * Start working on the given filter. Set this filter as 
+ * Start working on the given filter. Set this filter as
  * work_filter so we can commit the changed rules to this
  * filter.
  */
@@ -707,28 +707,28 @@ void filter_set(filter_t *f)
         gboolean removable;
         gboolean active;
         GList *ruleset;
-    
+
         shadow = shadow_find(f);
         if (shadow != NULL) {
-            removable = 
-                (shadow->refcount == 0) && !filter_is_builtin(f) && 
+            removable =
+                (shadow->refcount == 0) && !filter_is_builtin(f) &&
                 !filter_is_global(f) && !filter_is_bound(f);
             active = filter_is_active(shadow);
             ruleset = shadow->current;
         } else {
-            removable = 
-                (f->refcount == 0) && !filter_is_builtin(f) && 
+            removable =
+                (f->refcount == 0) && !filter_is_builtin(f) &&
                 !filter_is_global(f) && !filter_is_bound(f);
             active = filter_is_active(f);
             ruleset = f->ruleset;
         }
-    
+
         filter_gui_filter_set(f, removable, active, ruleset);
     } else {
         filter_gui_filter_set(NULL, FALSE, FALSE, NULL);
     }
 
-    /* 
+    /*
      * don't want the work_filter to be selectable as a target
      * so we changed it... we have to rebuild.
      */
@@ -767,7 +767,7 @@ void filter_close_search(search_t *s)
         g_list_free(copy);
 
         shadow_cancel(shadow);
-    }          
+    }
 
     /*
      * If this is the filter currently worked on, clear the display.
@@ -787,13 +787,13 @@ void filter_close_search(search_t *s)
  * filter_apply_changes:
  *
  * Go through all the shadow filters, and commit the recorded
- * changes to the assosicated filter. We walk through the 
+ * changes to the assosicated filter. We walk through the
  * shadow->current list. Every item in shadow->removed will be
  * removed from the searchs filter and the memory will be freed.
  * Then shadow->current will be set as the new filter for that
  * search.
  */
-void filter_apply_changes(void) 
+void filter_apply_changes(void)
 {
     GList *s;
 
@@ -814,7 +814,7 @@ void filter_apply_changes(void)
 
     g_list_free(filters_added);
     filters_added = NULL;
-    
+
     /*
      * Free all removed filters. Don't iterate since filter_free removes
      * the filter from filters_removed.
@@ -860,7 +860,7 @@ void filter_revert_changes(void)
 
     g_list_free(filters_current);
     filters_current = g_list_copy(filters);
-    
+
     /*
      * Free and remove all added filters. We don't iterate explicitly,
      * because filter_free removes the added filter from filters_added
@@ -869,7 +869,7 @@ void filter_revert_changes(void)
     n = 0;
     for (s = filters_added; s != NULL; s = filters_added) {
         filter_t *filter = (filter_t *) s->data;
-    
+
         filter_gui_filter_remove(filter);
         filter_free(filter);
     }
@@ -900,7 +900,7 @@ void filter_revert_changes(void)
 
     filter_gui_thaw_rules();
     filter_gui_thaw_filters();
-    
+
     filter_update_targets();
 }
 
@@ -916,54 +916,54 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
     static gchar tmp[256];
 
     g_assert(r != NULL);
-    
+
     switch (r->type) {
     case RULE_TEXT:
         switch (r->u.text.type) {
         case RULE_TEXT_PREFIX:
            	gm_snprintf(
-                tmp, sizeof(tmp), 
+                tmp, sizeof(tmp),
                 "If filename begins with \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_WORDS:
            	gm_snprintf(
-                tmp, sizeof(tmp), 
+                tmp, sizeof(tmp),
                 "If filename contains the words \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_SUFFIX:
           	gm_snprintf(
-                tmp, sizeof(tmp), 
+                tmp, sizeof(tmp),
                 "If filename ends with \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_SUBSTR:
            	gm_snprintf(
-                tmp, sizeof(tmp), 
+                tmp, sizeof(tmp),
                 "If filename contains the substring \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_REGEXP:
            	gm_snprintf(
-                tmp, sizeof(tmp), 
+                tmp, sizeof(tmp),
                 "If filename matches the regex \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         case RULE_TEXT_EXACT:
            	gm_snprintf(
-                tmp, sizeof(tmp), 
+                tmp, sizeof(tmp),
                 "If filename is \"%s\" %s",
                 r->u.text.match,
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         default:
-            g_error("filter_rule_condition_to_gchar:" 
+            g_error("filter_rule_condition_to_gchar:"
                     "unknown text rule type: %d", r->u.text.type);
         };
         break;
@@ -975,7 +975,7 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             mask = g_strdup(ip_to_gchar(r->u.ip.mask));
             addr = g_strdup(ip_to_gchar(r->u.ip.addr));
 
-            gm_snprintf(tmp, sizeof(tmp), 
+            gm_snprintf(tmp, sizeof(tmp),
                 "If IP address matches %s/%s", addr, mask);
 
             G_FREE_NULL(addr);
@@ -997,7 +997,7 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
 
             s1 = g_strdup(short_size(r->u.size.lower));
             s2 = g_strdup(short_size(r->u.size.upper));
-    
+
 			gm_snprintf(tmp, sizeof(tmp),
 				"If filesize is between %d and %d (%s - %s)",
 				(gint) r->u.size.lower, (int)r->u.size.upper, s1, s2);
@@ -1010,12 +1010,12 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
         if (r->u.sha1.hash != NULL) {
             gm_snprintf(tmp, sizeof(tmp), "If urn:sha1 is same as for \"%s\"",
                 r->u.sha1.filename);
-        } else 
+        } else
             gm_snprintf(tmp, sizeof(tmp), "If urn:sha1 is not available");
         break;
     case RULE_JUMP:
        	gm_snprintf(
-            tmp, sizeof(tmp), 
+            tmp, sizeof(tmp),
             "Always");
         break;
     case RULE_FLAG:
@@ -1039,7 +1039,7 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             case RULE_FLAG_IGNORE:
                 break;
             }
-    
+
             switch (r->u.flag.push) {
             case RULE_FLAG_SET:
                 if (b) s1 = ", ";
@@ -1054,7 +1054,7 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             case RULE_FLAG_IGNORE:
                 break;
             }
-    
+
             switch (r->u.flag.stable) {
             case RULE_FLAG_SET:
                 if (b) s2 = ", ";
@@ -1073,7 +1073,7 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             if (b)
                 gm_snprintf(
                     tmp, sizeof(tmp),
-                    "If flag %s%s%s%s%s", 
+                    "If flag %s%s%s%s%s",
                     busy_str, s1, push_str, s2, stable_str);
             else
                  gm_snprintf(
@@ -1106,7 +1106,7 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             default:
                 g_assert_not_reached();
             }
-    
+
             switch (r->u.state.download) {
             case FILTER_PROP_STATE_UNKNOWN:
                 if (b) s1 = ", ";
@@ -1128,11 +1128,11 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             default:
                 g_assert_not_reached();
             }
-     
+
             if (b)
                 gm_snprintf(
                     tmp, sizeof(tmp),
-                    "If flag %s%s%s", 
+                    "If flag %s%s%s",
                     display_str, s1, download_str);
             else
                  gm_snprintf(
@@ -1156,7 +1156,7 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
  *
  * Convert the filter to a human readable string.
  */
-gchar *filter_rule_to_gchar(rule_t *r) 
+gchar *filter_rule_to_gchar(rule_t *r)
 {
     gchar *cond;
 
@@ -1164,14 +1164,14 @@ gchar *filter_rule_to_gchar(rule_t *r)
 
     cond = g_strdup(filter_rule_condition_to_gchar(r));
 
-	gm_snprintf(f_tmp, sizeof(f_tmp), "%s%s %s jump to \"%s\"", 
+	gm_snprintf(f_tmp, sizeof(f_tmp), "%s%s %s jump to \"%s\"",
         RULE_IS_NEGATED(r) ? "(Negated) " : "",
         RULE_IS_ACTIVE(r) ? "" : "(deactivated)",
         cond,
         RULE_IS_VALID(r) ? r->target->name : "(invalid)");
 
     G_FREE_NULL(cond);
-  
+
     return f_tmp;
 }
 
@@ -1210,7 +1210,7 @@ void filter_add_to_session(filter_t *f)
 {
     g_assert(g_list_find(filters_current, f) == NULL);
     g_assert(f != NULL);
-   
+
 
     /*
      * Either remove from removed or add to added list.
@@ -1280,7 +1280,7 @@ void filter_new_for_search(search_t *s)
  * Mark the given filter as removed and delete it when the
  * dialog changes are committed.
  */
-void filter_remove_from_session(filter_t *f) 
+void filter_remove_from_session(filter_t *f)
 {
     g_assert(g_list_find(filters_removed, f) == NULL);
     g_assert(g_list_find(filters_current, f) != NULL);
@@ -1298,7 +1298,7 @@ void filter_remove_from_session(filter_t *f)
     /*
      * If this is the filter currently worked on, clear the display.
      */
-    if (work_filter == f) 
+    if (work_filter == f)
         filter_set(NULL);
 
     filter_gui_filter_remove(f);
@@ -1312,7 +1312,7 @@ void filter_remove_from_session(filter_t *f)
  * Frees a filter and the filters assiciated with it and
  * unregisters it from current and session filter lists.
  */
-static void filter_free(filter_t *f) 
+static void filter_free(filter_t *f)
 {
     GList *copy;
 
@@ -1325,7 +1325,7 @@ static void filter_free(filter_t *f)
     if (f->refcount != 0)
         g_error("Unable to free referenced filter \"%s\" with refcount %d",
             f->name, f->refcount);
-    
+
     /*
      * Remove the filter from current and session data
      */
@@ -1455,7 +1455,7 @@ void filter_append_rule(filter_t *f, rule_t * const r)
             printf("increased refcount on shadow of \"%s\" to %d\n",
                 target_shadow->filter->name, target_shadow->refcount);
     }
-    
+
     /*
      * Update dialog if necessary.
      */
@@ -1574,10 +1574,10 @@ void filter_remove_rule(filter_t *f, rule_t *r)
         in_shadow_removed = g_list_find(shadow->removed, r) != NULL;
     } else {
         /*
-         * If there is no shadow, we pretend that the shadow is 
+         * If there is no shadow, we pretend that the shadow is
          * equal to the filter, so we set in_shadow_current to in_filter.
          */
-        in_shadow_current = in_filter; 
+        in_shadow_current = in_filter;
         in_shadow_removed = FALSE;
     }
 
@@ -1618,7 +1618,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
      *   no      no           yes        no       |   - failure B -
      *   no      no           no         yes      |   - failure G -
      * 4 no      no           no         no       |   no        no
-     *   
+     *
      * Possibilities:
      * 1) the rule has been there when the shadow was created and
      *    has not been removed since then. (Or has been removed and
@@ -1635,12 +1635,12 @@ void filter_remove_rule(filter_t *f, rule_t *r)
      *    issue a warning and do nothing.
      *
      * Failures:
-     * A) a rule can never be in shadow->added and shadow->removed at 
+     * A) a rule can never be in shadow->added and shadow->removed at
      *    the same time.
      * B) a rule cannot be in added but not in current
      * C) a rule can't be added if it was already in the original filter
      * D) a rule can't be in current and also in removed
-     * E) if a rule is in the original filter but not in current it 
+     * E) if a rule is in the original filter but not in current it
      *    must have been removed
      * F) if the rule is in current but not in the original filter, it
      *    must have been added.
@@ -1658,7 +1658,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
     if (in_shadow_current) {
         if (target_shadow != NULL) {
             target_shadow->refcount --;
-        
+
             if (gui_debug >= 6)
                 printf("decreased refcount on shadow of \"%s\" to %d\n",
                     target_shadow->filter->name, target_shadow->refcount);
@@ -1671,7 +1671,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
     }
 
     filter_free_rule(r);
-    
+
     /*
      * Update dialog if necessary.
      */
@@ -1691,7 +1691,7 @@ void filter_remove_rule(filter_t *f, rule_t *r)
  * filter_remove_rule_from_session:
  *
  * Remove rule from a filter shadow. This call will fail
- * with an assertion error if the rule has already been 
+ * with an assertion error if the rule has already been
  * removed from the shadow or if it never was in the shadow.
  * The memory associated with the rule will be freed.
  */
@@ -1700,12 +1700,12 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
     shadow_t *shadow;
     shadow_t *target_shadow;
     GList *l = NULL;
-       
+
     g_assert(r != NULL);
     g_assert(f != NULL);
 
     if (gui_debug >= 4)
-        printf("removing rule in filter: %s -> %s\n", 
+        printf("removing rule in filter: %s -> %s\n",
             f->name, filter_rule_to_gchar(r));
 
     /*
@@ -1755,7 +1755,7 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
         if (gui_debug >= 4)
             printf("while removing from %s: adding to removed: %s\n",
                 f->name, filter_rule_to_gchar(r));
-      
+
         shadow->removed = g_list_append(shadow->removed, r);
     }
 
@@ -1773,13 +1773,13 @@ void filter_remove_rule_from_session(filter_t *f, rule_t * const r)
  * filter_replace_rule_in_session:
  *
  * Replaces filter rule A with filter rule B in filter . A
- * must already be in the shadow and B must not! 
+ * must already be in the shadow and B must not!
  *
  * CAUTION: ACTUALLY B MUST NOT BE IN ANY OTHER SEARCH !!!
  *
  * The memory for A is freed in the process.
  */
-void filter_replace_rule_in_session(filter_t *f, 
+void filter_replace_rule_in_session(filter_t *f,
     rule_t * const old_rule, rule_t * const new_rule)
 {
     GList *filter;
@@ -1829,7 +1829,7 @@ void filter_replace_rule_in_session(filter_t *f,
             target_shadow->filter->name, target_shadow->refcount);
 
     /*
-     * Find wether the node to be replaced is in shadow->added. 
+     * Find wether the node to be replaced is in shadow->added.
      * If so, we may free the memory of the old rule.
      */
     added = g_list_find(shadow->added, old_rule);
@@ -1847,7 +1847,7 @@ void filter_replace_rule_in_session(filter_t *f,
          */
         shadow->removed = g_list_append(shadow->removed, old_rule);
     }
-     
+
     /*
      * The new rule can't be in the original filter, so we mark it
      * as added.
@@ -1867,12 +1867,12 @@ void filter_replace_rule_in_session(filter_t *f,
     if (gui_debug >= 6)
         printf("increased refcount on shadow of \"%s\" to %d\n",
             target_shadow->filter->name, target_shadow->refcount);
-        
+
     /*
      * In shadow->current we just replace the rule.
      */
     filter->data = new_rule;
-    
+
     /*
      * Update dialog if necessary.
      */
@@ -1902,7 +1902,7 @@ void filter_adapt_order(void)
 
     if (!work_filter || filter_dialog == NULL)
         return;
-   
+
     clist = GTK_CLIST(lookup_widget(filter_dialog, "clist_filter_rules"));
 
     /*
@@ -1925,7 +1925,7 @@ void filter_adapt_order(void)
 
         f = gtk_clist_get_row_data(clist, row);
         g_assert(f != NULL);
-        
+
         neworder = g_list_append(neworder, f);
     }
 
@@ -1941,7 +1941,7 @@ void filter_adapt_order(void)
                                                                   \
     if (gui_debug >= 10)                                                 \
         printf("matched rule: %s\n", filter_rule_to_gchar((r)));
-   
+
 /*
  * filter_apply:
  *
@@ -1981,7 +1981,7 @@ static int filter_apply
 	while ((list != NULL) && (res->props_set < MAX_FILTER_PROP) && !do_abort) {
 		size_t n;
 		int i;
-		rule_t *r; 
+		rule_t *r;
         gboolean match = FALSE;
 
         r = (rule_t *)list->data;
@@ -2009,10 +2009,10 @@ static int filter_apply
                     {
                         GList *l;
 						gboolean failed = FALSE;
-        
+
                         for (
                             l = g_list_first(r->u.text.u.words);
-                            l && !failed; 
+                            l && !failed;
                             l = g_list_next(l)
                         ) {
                             if (
@@ -2034,7 +2034,7 @@ static int filter_apply
                               - n, r->u.text.match) == 0)
                         match = TRUE;
                     break;
-                case RULE_TEXT_SUBSTR: 
+                case RULE_TEXT_SUBSTR:
                     if (
 						pattern_qsearch(r->u.text.u.pattern,
                                 r->u.text.case_sensitive ? rec->name : l_name,
@@ -2059,7 +2059,7 @@ static int filter_apply
                     match = TRUE;
                 break;
             case RULE_SIZE:
-                if (rec->size >= r->u.size.lower && 
+                if (rec->size >= r->u.size.lower &&
                     rec->size <= r->u.size.upper)
                     match = TRUE;
                 break;
@@ -2075,8 +2075,8 @@ static int filter_apply
                     gboolean stable_match;
                     gboolean busy_match;
                     gboolean push_match;
-    
-                    stable_match = 
+
+                    stable_match =
                         ((r->u.flag.busy == RULE_FLAG_SET) &&
                          (rec->results_set->status & ST_BUSY)) ||
                         ((r->u.flag.busy == RULE_FLAG_UNSET) &&
@@ -2089,14 +2089,14 @@ static int filter_apply
                         ((r->u.flag.push == RULE_FLAG_UNSET) &&
                          !(rec->results_set->status & ST_FIREWALL)) ||
                         (r->u.flag.push == RULE_FLAG_IGNORE);
-                
-                    push_match = 
+
+                    push_match =
                         ((r->u.flag.stable == RULE_FLAG_SET) &&
                          (rec->results_set->status & ST_UPLOADED)) ||
                         ((r->u.flag.stable == RULE_FLAG_UNSET) &&
                          !(rec->results_set->status & ST_UPLOADED)) ||
                         (r->u.flag.stable == RULE_FLAG_IGNORE);
-                     
+
                     match = stable_match && busy_match && push_match;
                 }
                 break;
@@ -2107,14 +2107,14 @@ static int filter_apply
 
                     display_match =
                         (r->u.state.display == FILTER_PROP_STATE_IGNORE) ||
-                        (res->props[FILTER_PROP_DISPLAY].state 
+                        (res->props[FILTER_PROP_DISPLAY].state
                             == r->u.state.display);
-                    
-                    download_match = 
+
+                    download_match =
                         (r->u.state.download == FILTER_PROP_STATE_IGNORE) ||
                         (res->props[FILTER_PROP_DOWNLOAD].state
                             == r->u.state.download);
-            
+
                     match = display_match && download_match;
                 }
                 break;
@@ -2149,7 +2149,7 @@ static int filter_apply
 
                     MATCH_RULE(filter, r, res);
                 }
-            } else 
+            } else
             if (r->target == filter_drop) {
                 if (!res->props[FILTER_PROP_DISPLAY].state) {
 
@@ -2160,19 +2160,19 @@ static int filter_apply
 
                     MATCH_RULE(filter, r, res);
                 }
-            } else 
+            } else
             if (r->target == filter_download){
                 if (!res->props[FILTER_PROP_DOWNLOAD].state) {
-                
+
                     res->props[FILTER_PROP_DOWNLOAD].state =
                         FILTER_PROP_STATE_DO;
 
                     MATCH_RULE(filter, r, res);
                 }
-            } else 
+            } else
             if (r->target == filter_nodownload) {
                 if (!res->props[FILTER_PROP_DOWNLOAD].state) {
-                
+
                     res->props[FILTER_PROP_DOWNLOAD].state =
                         FILTER_PROP_STATE_DONT;
 
@@ -2224,10 +2224,10 @@ filter_result_t *filter_record(search_t *sch, record_t *rec)
      */
     result = walloc0(sizeof(*result));
 
-    filtered =  
-        ((sch->filter->ruleset != NULL) && 
+    filtered =
+        ((sch->filter->ruleset != NULL) &&
             filter_is_active(sch->filter)) ||
-        ((filter_global_pre->ruleset != NULL) && 
+        ((filter_global_pre->ruleset != NULL) &&
             filter_is_active(filter_global_pre)) ||
         ((filter_global_post->ruleset != NULL) &&
             filter_is_active(sch->filter));
@@ -2245,11 +2245,11 @@ filter_result_t *filter_record(search_t *sch, record_t *rec)
      */
 	if (result->props_set < MAX_FILTER_PROP)
 		filter_apply(filter_global_post, rec, result);
-    
+
     /* FIXME: this does no longer give useful output
     if (gui_debug >= 5) {
         printf("result %d for search \"%s\" matching \"%s\" (%s)\n",
-            r, sch->query, rec->name, 
+            r, sch->query, rec->name,
             filtered ? "filtered" : "unfiltered");
     }
     */
@@ -2261,14 +2261,14 @@ filter_result_t *filter_record(search_t *sch, record_t *rec)
         switch(i) {
         case FILTER_PROP_DISPLAY:
             if (!result->props[i].state) {
-                result->props[i].state = 
+                result->props[i].state =
                     FILTER_PROP_STATE_DO;
                 result->props_set ++;
             }
             break;
         case FILTER_PROP_DOWNLOAD:
             if (!result->props[i].state) {
-                result->props[i].state = 
+                result->props[i].state =
                     FILTER_PROP_STATE_DONT;
                 result->props_set ++;
             }
@@ -2299,7 +2299,7 @@ void filter_shutdown(void)
      * a bound filter will always have a refcount of 0. So it is
      * not a problem just closing the searches.
      * But for the free filters, we have to prune all rules before
-     * we may free the filers, because we have to reduce the 
+     * we may free the filers, because we have to reduce the
      * refcount on every filter to 0 before we are allowed to free it.
      */
     for (f = filters; f != NULL; f = f->next) {
@@ -2313,8 +2313,8 @@ void filter_shutdown(void)
 
         /*
          * We don't want to create any shadows again since a
-         * shadowed filter may not be freed, so we use 
-         * filter_remove_rule. 
+         * shadowed filter may not be freed, so we use
+         * filter_remove_rule.
          */
 
  		G_LIST_FOREACH_SWAPPED(copy, filter_remove_rule, filter);
@@ -2436,7 +2436,7 @@ void filter_set_enabled(filter_t *filter, gboolean active)
     shadow = shadow_find(filter);
     if (shadow == NULL)
         shadow = shadow_new(filter);
-    
+
     if (active) {
         set_flags(shadow->flags, FILTER_FLAG_ACTIVE);
     } else {
@@ -2497,7 +2497,7 @@ gboolean filter_is_valid_in_session(filter_t *f)
 /*
  * filter_find_by_name_in_session:
  *
- * Returns the filter with the given name in the session if it 
+ * Returns the filter with the given name in the session if it
  * exists, otherwise returns NULL. If no session is started, it
  * looks in the normal filter list.
  */
@@ -2521,7 +2521,7 @@ gboolean filter_is_global(filter_t *f)
 
 gboolean filter_is_builtin(filter_t *f)
 {
-    return ((f == filter_show) || (f == filter_drop) || 
+    return ((f == filter_show) || (f == filter_drop) ||
             (f == filter_download) || (f == filter_nodownload) ||
             (f == filter_return));
 }

@@ -54,7 +54,7 @@ static void gdk_draw_pixbuf(GdkDrawable *drawable, GdkGC *gc, GdkPixbuf *pixbuf,
 	gdk_pixbuf_render_to_drawable(pixbuf, drawable, gc, src_x, src_y,
 		dest_x, dest_y, width, height, dither, x_dither, y_dither);
 }
-#endif 
+#endif
 
 /*
  * These macros set the default icon window dimensions.  The

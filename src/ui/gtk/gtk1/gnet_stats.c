@@ -53,7 +53,7 @@ on_clist_gnet_stats_msg_resize_column(GtkCList *unused_clist, gint column,
 
 	(void) unused_clist;
 	(void) unused_udata;
-	
+
     if (lock)
         return;
 
@@ -77,7 +77,7 @@ on_clist_gnet_stats_fc_ttl_resize_column(GtkCList *unused_clist,
 	(void) unused_clist;
 	(void) unused_column;
 	(void) unused_udata;
-	
+
     if (lock)
         return;
 
@@ -103,7 +103,7 @@ on_clist_gnet_stats_fc_hops_resize_column(GtkCList *unused_clist,
 	(void) unused_clist;
 	(void) unused_column;
 	(void) unused_udata;
-	
+
     if (lock)
         return;
 
@@ -127,7 +127,7 @@ on_clist_gnet_stats_horizon_resize_column(GtkCList *unused_clist,
 
 	(void) unused_clist;
 	(void) unused_udata;
-	
+
     if (lock)
         return;
 
@@ -147,9 +147,9 @@ on_clist_gnet_stats_drop_reasons_resize_column(GtkCList *unused_clist,
 
 	(void) unused_clist;
 	(void) unused_udata;
-	
+
     /* remember the width for storing it to the config file later */
-    gui_prop_set_guint32(PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS, 
+    gui_prop_set_guint32(PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
         &buf, column, 1);
 }
 
@@ -161,9 +161,9 @@ on_clist_gnet_stats_general_resize_column(GtkCList *unused_clist, gint column,
 
 	(void) unused_clist;
 	(void) unused_udata;
-	
+
     /* remember the width for storing it to the config file later */
-    gui_prop_set_guint32(PROP_GNET_STATS_GENERAL_COL_WIDTHS, 
+    gui_prop_set_guint32(PROP_GNET_STATS_GENERAL_COL_WIDTHS,
         &buf, column, 1);
 }
 
@@ -190,7 +190,7 @@ pkt_stat_str(const guint64 *val_tbl, gint type)
         return gnet_stats_perc ? "-  " : "-";
 
     if (gnet_stats_perc)
-        gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
+        gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%",
             (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     else
         gm_snprintf(strbuf, sizeof(strbuf), "%" PRIu64, val_tbl[type]);
@@ -215,7 +215,7 @@ byte_stat_str(const guint64 *val_tbl, const guint64 *nb_packets, gint type)
 		guint64 total_size = val_tbl[MSG_TOTAL];
 		if (!gnet_stats_with_headers)
 			size -= nb_packets[MSG_TOTAL] * GTA_HEADER_SIZE;
-        gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
+        gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%",
             (gfloat) size / total_size * 100.0);
         return strbuf;
     } else
@@ -232,10 +232,10 @@ drop_stat_str(const gnet_stats_t *stats, gint reason)
         return gnet_stats_drop_perc ? "-  " : "-";
 
     if (gnet_stats_drop_perc)
-        gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
+        gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%",
             (gfloat) stats->drop_reason[reason][selected_type] / total * 100);
     else
-        gm_snprintf(strbuf, sizeof(strbuf), "%" PRIu64, 
+        gm_snprintf(strbuf, sizeof(strbuf), "%" PRIu64,
             stats->drop_reason[reason][selected_type]);
 
     return strbuf;
@@ -266,7 +266,7 @@ flowc_stat_str_pkg(const guint64 *val_tbl, gint type)
         return gnet_stats_perc ? "-  " : "-";
 
 	if (gnet_stats_perc) {
-		gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
+		gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%",
             (gfloat) val_tbl[type]/val_tbl[MSG_TOTAL] * 100.0);
     } else {
        	gm_snprintf(strbuf, sizeof(strbuf), "%" PRIu64, val_tbl[type]);
@@ -284,7 +284,7 @@ flowc_stat_str_byte(const guint64 *val_tbl, gint type)
         return gnet_stats_perc ? "-  " : "-";
 
 	if (gnet_stats_perc) {
-		gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
+		gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%",
             (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     } else {
        	return compact_size(val_tbl[type]);
@@ -345,7 +345,7 @@ gnet_stats_gui_init(void)
         gtk_clist_set_column_justification(
             clist_stats_msg, n, GTK_JUSTIFY_RIGHT);
     }
-    
+
     for (n = 1; n < 10; n ++) {
         gtk_clist_set_column_justification(
             clist_stats_fc_ttl, n, GTK_JUSTIFY_RIGHT);
@@ -498,46 +498,46 @@ gnet_stats_gui_update(time_t now)
     for (n = 0; n < MSG_TYPE_COUNT; n ++) {
         int m;
 
-        gtk_clist_set_text(clist_stats_msg, n, c_gs_received, 
-            gnet_stats_bytes ? 
-                byte_stat_str(xstats->byte.received, xstats->pkg.received, n) : 
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_received,
+            gnet_stats_bytes ?
+                byte_stat_str(xstats->byte.received, xstats->pkg.received, n) :
                 pkt_stat_str(xstats->pkg.received, n));
-        gtk_clist_set_text(clist_stats_msg, n, c_gs_gen_queued, 
-            gnet_stats_bytes ? 
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_gen_queued,
+            gnet_stats_bytes ?
                 byte_stat_str(xstats->byte.gen_queued,
-					xstats->pkg.gen_queued, n) : 
+					xstats->pkg.gen_queued, n) :
                 pkt_stat_str(xstats->pkg.gen_queued, n));
-        gtk_clist_set_text(clist_stats_msg, n, c_gs_generated, 
-            gnet_stats_bytes ? 
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_generated,
+            gnet_stats_bytes ?
                 byte_stat_str(xstats->byte.generated,
-					xstats->pkg.generated, n) : 
+					xstats->pkg.generated, n) :
                 pkt_stat_str(xstats->pkg.generated, n));
-        gtk_clist_set_text(clist_stats_msg, n, c_gs_dropped, 
-            gnet_stats_bytes ? 
-                byte_stat_str(xstats->byte.dropped, xstats->pkg.dropped, n) : 
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_dropped,
+            gnet_stats_bytes ?
+                byte_stat_str(xstats->byte.dropped, xstats->pkg.dropped, n) :
                 pkt_stat_str(xstats->pkg.dropped, n));
-        gtk_clist_set_text(clist_stats_msg, n, c_gs_expired, 
-            gnet_stats_bytes ? 
-                byte_stat_str(xstats->byte.expired, xstats->pkg.expired, n) : 
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_expired,
+            gnet_stats_bytes ?
+                byte_stat_str(xstats->byte.expired, xstats->pkg.expired, n) :
                 pkt_stat_str(xstats->pkg.expired, n));
-        gtk_clist_set_text(clist_stats_msg, n, c_gs_queued, 
-            gnet_stats_bytes ? 
-                byte_stat_str(xstats->byte.queued, xstats->pkg.queued, n) : 
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_queued,
+            gnet_stats_bytes ?
+                byte_stat_str(xstats->byte.queued, xstats->pkg.queued, n) :
                 pkt_stat_str(xstats->pkg.queued, n));
-        gtk_clist_set_text(clist_stats_msg, n, c_gs_relayed, 
-            gnet_stats_bytes ? 
-                byte_stat_str(xstats->byte.relayed, xstats->pkg.relayed, n) : 
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_relayed,
+            gnet_stats_bytes ?
+                byte_stat_str(xstats->byte.relayed, xstats->pkg.relayed, n) :
                 pkt_stat_str(xstats->pkg.relayed, n));
 
         for (m = 0; m < 9; m ++)
             gtk_clist_set_text(clist_stats_fc_ttl, n, m+1,
-                gnet_stats_bytes ? 
+                gnet_stats_bytes ?
                     flowc_stat_str_byte(stats.byte.flowc_ttl[m], n) :
                     flowc_stat_str_pkg(stats.pkg.flowc_ttl[m], n));
 
         for (m = 0; m < 9; m ++)
             gtk_clist_set_text(clist_stats_fc_hops, n, m+1,
-                gnet_stats_bytes ? 
+                gnet_stats_bytes ?
                     flowc_stat_str_byte(stats.byte.flowc_hops[m], n) :
                     flowc_stat_str_pkg(stats.pkg.flowc_hops[m], n));
     }
@@ -550,24 +550,24 @@ gnet_stats_gui_update(time_t now)
 
 	/*
 	 * Update horizon statistics table, but only if the values have changed.
-	 *		-- TNT 09/06/2004 
+	 *		-- TNT 09/06/2004
 	 *
 	 * Changed this check to update the table every 2 seconds, because not
 	 * only the HSEP table but also the PONG-based library sizes of direct
 	 * non-HSEP neighbors may have changed.
-	 *		-- TNT 14/06/2004 
+	 *		-- TNT 14/06/2004
 	 */
 
 	if (delta_time(now, last_horizon_update) >= 2) {
-		
+
 		gtk_clist_freeze(clist_horizon);
 
 		global_table_size = guc_hsep_get_table_size();
-		
+
 		for (n = 0; n < global_table_size; n ++) {
-			/* 
-			 * Note that we output hsep_table[1..global_table_size] 
-			 *		-- TNT 02/06/2004 
+			/*
+			 * Note that we output hsep_table[1..global_table_size]
+			 *		-- TNT 02/06/2004
 			 */
 			gtk_clist_set_text(clist_horizon, n, 1,
 			    horizon_stat_str(n + 1, 1));

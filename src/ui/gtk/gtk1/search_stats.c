@@ -22,7 +22,7 @@
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
  *
- * search_stats.c - keep track of what search terms we have seen, and 
+ * search_stats.c - keep track of what search terms we have seen, and
  *					how frequently each has been seen.
  *
  *		this uses the glib hash tables and lists, but a much more efficient
@@ -212,9 +212,9 @@ stats_hash_to_clist(gpointer key, gpointer value, gpointer unused_udata)
 	text[2] = total_tmp;
 
     {
-        GtkWidget *clist_search_stats = 
+        GtkWidget *clist_search_stats =
             lookup_widget(main_window, "clist_search_stats");
-        
+
         gtk_clist_insert(GTK_CLIST(clist_search_stats), 0, text);
     }
 
@@ -278,7 +278,7 @@ search_stats_tally(const word_vec_t * vec)
 
 
 /***
- *** Public functions 
+ *** Public functions
  ***/
 
 /**
@@ -324,7 +324,7 @@ void
 search_stats_gui_init(void)
 {
     GtkCombo *combo_types;
-    GtkWidget *clist_search_stats = 
+    GtkWidget *clist_search_stats =
         lookup_widget(main_window, "clist_search_stats");
 
     combo_types = GTK_COMBO(
@@ -334,7 +334,7 @@ search_stats_gui_init(void)
     search_stats_mode_def = gui_prop_get_def(PROP_SEARCH_STATS_MODE);
 
     gtk_combo_init_choices(
-        combo_types, 
+        combo_types,
         GTK_SIGNAL_FUNC(on_search_stats_type_selected),
         search_stats_mode_def);
 
@@ -353,7 +353,7 @@ search_stats_gui_init(void)
 
         list_item = gtk_list_item_new_with_label(type_str[n]);
         gtk_widget_show(list_item);
-        
+
         gtk_signal_connect(
             GTK_OBJECT(list_item), "select",
             GTK_SIGNAL_FUNC(on_search_stats_type_selected),
@@ -402,7 +402,7 @@ search_stats_gui_update(time_t now)
     last_update = now;
 
     clist_search_stats = lookup_widget(main_window, "clist_search_stats");
-    label_search_stats_count = 
+    label_search_stats_count =
         lookup_widget(main_window, "label_search_stats_count");
 
 	stat_count = 0;

@@ -91,7 +91,7 @@ gchar *
 bitzi_gui_get_metadata(const bitzi_data_t *data)
 {
 	g_assert(data != NULL);
-	
+
 	/*
 	 * Build string
 	 */
@@ -108,7 +108,7 @@ bitzi_gui_get_metadata(const bitzi_data_t *data)
 					bitzi_fjtostring(data->judgement),
 					data->goodness,
 					data->mime_type);
-		}	    
+		}
 	} else {
 		if (data->judgement != UNKNOWN) {
 			return g_strdup_printf("%s (%1.1f): No other data",

@@ -27,14 +27,14 @@
 
 /**
  * @file
- * 
+ *
  * Visual progress indicator for files in the download queue.
- * 
+ *
  * TODO and other ideas to be implemented.
  *
  * - The current availability info (blue line) is not accurate,
  * because it only aggregates. It should also take into account when
- * we loose a source. As ram mentioned on IRC: 
+ * we loose a source. As ram mentioned on IRC:
  *
  *  right, that's why it's better to construct it dynamically when
  *  needed, and have a "one more alive source", "lost one alive
@@ -43,10 +43,10 @@
  *
  * make colors into properties so that they can be stored in config,
  * should keep hardcoded backups.
- * 
- * Add progress data also to fileinfo table, so that the info is shown for 
+ *
+ * Add progress data also to fileinfo table, so that the info is shown for
  * all current files.
- * 
+ *
  * Do not redraw the bar too often, only on event for actual file and
  * perhaps max once a second.
  *
@@ -86,7 +86,7 @@ typedef struct vp_context {
 } vp_context_t;
 
 /**
- * Locally cached information from fileinfo needed for drawing the graphics 
+ * Locally cached information from fileinfo needed for drawing the graphics
  */
 typedef struct vp_info {
     gnet_fi_t fi_handle;
@@ -123,8 +123,8 @@ static vp_context_t fi_context;
 /**
  * Draw a rectangle for visual progress
  */
-void 
-vp_draw_rectangle(vp_info_t *v, filesize_t from, filesize_t to, 
+void
+vp_draw_rectangle(vp_info_t *v, filesize_t from, filesize_t to,
 				  guint top, guint bottom)
 {
     guint s_from;
@@ -134,7 +134,7 @@ vp_draw_rectangle(vp_info_t *v, filesize_t from, filesize_t to,
     g_assert(v->context);
     g_assert(v->context->drawable);
 
-	/* 
+	/*
 	 * Both these variables should be set to a value, otherwise we get
 	 * a division by zero below. We could protect for that, but
 	 * neither should be zero when we end up here, so this can be
@@ -146,19 +146,19 @@ vp_draw_rectangle(vp_info_t *v, filesize_t from, filesize_t to,
 	 */
 	g_assert(v->file_size);
 
-	s_from = (gfloat) from * v->context->widget->allocation.width 
+	s_from = (gfloat) from * v->context->widget->allocation.width
 		/ v->file_size;
-	s_to   = (gfloat) to   * v->context->widget->allocation.width 
+	s_to   = (gfloat) to   * v->context->widget->allocation.width
 		/ v->file_size;
 
-    gdk_draw_rectangle(v->context->drawable, v->context->gc, TRUE, 
+    gdk_draw_rectangle(v->context->drawable, v->context->gc, TRUE,
         s_from, top, s_to - s_from, bottom);
 }
 
 /**
  * Draw a chunk for visual progress
  */
-void 
+void
 vp_draw_chunk (gpointer data, gpointer user_data)
 {
     gnet_fi_chunks_t *chunk = data;
@@ -176,7 +176,7 @@ vp_draw_chunk (gpointer data, gpointer user_data)
     }
 
     vp_draw_rectangle(v,
-		chunk->from, chunk->to, 
+		chunk->from, chunk->to,
 		0, v->context->widget->allocation.height);
 }
 
@@ -226,7 +226,7 @@ vp_draw_arrows (gpointer data, gpointer user_data)
  * @param data       The HTTP range to draw.
  * @param user_data  A pointer to the vp_info_t structure.
  */
-static void 
+static void
 vp_draw_range (gpointer data, gpointer user_data)
 {
 	http_range_t *range = data;
@@ -234,19 +234,19 @@ vp_draw_range (gpointer data, gpointer user_data)
 
 	gdk_gc_set_foreground(v->context->gc, &available);
 	vp_draw_rectangle(v,
-		range->start, range->end, 
-        v->context->widget->allocation.height - 3, 
+		range->start, range->end,
+        v->context->widget->allocation.height - 3,
         v->context->widget->allocation.height);
 }
 
 
 
 /**
- * Draws a progress bar for the given fi struct in the DrawingArea. 
+ * Draws a progress bar for the given fi struct in the DrawingArea.
  * fih is expected to be a valid fih. Depending on the
  * value of valid the area will be drawn or cleared.
  */
-void 
+void
 vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 {
     vp_info_t *v;
@@ -266,7 +266,7 @@ vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 				GUINT_TO_POINTER(fih), NULL, &value);
 			g_assert(found);
 			g_assert(value);
-			
+
 			v = value;
 			v->context = &fi_context;
 
@@ -277,22 +277,22 @@ vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 			} else {
 				gdk_gc_set_foreground(fi_context.gc, &nosize);
 				gdk_draw_rectangle(fi_context.drawable, fi_context.gc, TRUE,
-								   0, 0, 
-								   fi_context.widget->allocation.width, 
+								   0, 0,
+								   fi_context.widget->allocation.width,
 								   fi_context.widget->allocation.height);
 			}
 		} else {
 			gdk_gc_set_foreground(fi_context.gc, base);
 			gdk_draw_rectangle(fi_context.drawable, fi_context.gc, TRUE,
-							   0, 0, 
-							   fi_context.widget->allocation.width, 
+							   0, 0,
+							   fi_context.widget->allocation.width,
 							   fi_context.widget->allocation.height);
 		}
 	}
 }
 
-/** 
- * Callback for the fileinfo pane GtkDrawingArea 
+/**
+ * Callback for the fileinfo pane GtkDrawingArea
  */
 void
 on_drawingarea_fi_progress_realize(GtkWidget *widget, gpointer user_data)
@@ -358,7 +358,7 @@ vp_get_chunks_initial(gnet_fi_t fih) {
  *
  * @param fih The fileinfo handle of the entry being added.
  */
-static void 
+static void
 vp_gui_fi_added(gnet_fi_t fih)
 {
     gnet_fi_info_t *fi = NULL;
@@ -367,7 +367,7 @@ vp_gui_fi_added(gnet_fi_t fih)
 
     fi = guc_fi_get_info(fih);
     guc_fi_get_status(fih, &s);
-    
+
     new_vp_info = walloc0(sizeof(*new_vp_info));
     new_vp_info->fi_handle = fih;
     new_vp_info->file_name = g_strdup(fi->file_name);
@@ -375,7 +375,7 @@ vp_gui_fi_added(gnet_fi_t fih)
     new_vp_info->chunks_list = guc_fi_get_chunks(fih);
 	new_vp_info->ranges_list = guc_fi_get_ranges(fih);
 
-	/* 
+	/*
 	 * Keep an optimized copy of the initial chunks list. Also
 	 * remember the amount of data already downloaded. This helps to
 	 * detect cheaply if the file download had restarted due to SHA1
@@ -383,9 +383,9 @@ vp_gui_fi_added(gnet_fi_t fih)
 	 */
 	new_vp_info->chunks_initial = vp_get_chunks_initial(fih);
 	new_vp_info->done_initial = s.done;
-	
+
     g_hash_table_insert(vp_info_hash, GUINT_TO_POINTER(fih), new_vp_info);
-    
+
     guc_fi_free_info(fi);
 }
 
@@ -394,7 +394,7 @@ vp_gui_fi_added(gnet_fi_t fih)
  *
  * @param fih The fileinfo handle of the entry to be removed
  */
-static void 
+static void
 vp_gui_fi_removed(gnet_fi_t fih)
 {
     gpointer value;
@@ -466,7 +466,7 @@ vp_create_chunk(filesize_t from, filesize_t to,
 	enum dl_chunk_status status, gboolean old)
 {
 	gnet_fi_chunks_t *chunk;
-	
+
 	chunk = walloc(sizeof(gnet_fi_chunks_t));
 	chunk->from = from;
 	chunk->to = to;
@@ -504,13 +504,13 @@ vp_assert_chunks_list(GSList *list)
 	return TRUE;
 }
 
-/** 
- * Fileinfo has been changed for a file. Update the information and 
+/**
+ * Fileinfo has been changed for a file. Update the information and
  * draw the information so the changes are visible.
- * 
+ *
  * @param fih Handle for fileinfo data that has been changed.
  */
-static void 
+static void
 vp_gui_fi_status_changed(gnet_fi_t fih)
 {
     vp_info_t *v;
@@ -543,7 +543,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	if (v->done_initial > s.done) {
 		guc_fi_free_chunks(v->chunks_initial);
 		v->chunks_initial = vp_get_chunks_initial(fih);
-		v->done_initial = s.done; 
+		v->done_initial = s.done;
 	}
 	guc_fi_free_info(fi);
 
@@ -556,7 +556,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	new = guc_fi_get_chunks(fih);
 	keep_new = new;	/* So that we can free this list later */
 
-	/* 
+	/*
 	 * Check if this chunks list is valid. If not then skip building a
 	 * new list, and do housekeeping stuff here. We may get an invalid
 	 * list due to an obscure bug in the fileinfo core which has not
@@ -566,7 +566,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 		guc_fi_free_chunks(keep_new);
 		return;
 	}
-		
+
 	guc_fi_free_chunks(v->chunks_list);
 	v->chunks_list = NULL;
 
@@ -574,7 +574,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 		if (old && new) {
 			oc = (gnet_fi_chunks_t *) old->data;
 			nc = (gnet_fi_chunks_t *) new->data;
-			
+
 			/*
 			 * Skip over chunks below the highest mark, they are no longer
 			 * relevant.
@@ -609,7 +609,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 			 */
 			if (oc->from == nc->from && oc->to == nc->to) {
 				highest = nc->to;
-				v->chunks_list = g_slist_append(v->chunks_list, 
+				v->chunks_list = g_slist_append(v->chunks_list,
 				    vp_create_chunk(nc->from, nc->to, nc->status, TRUE));
 				old = g_slist_next(old);
 				new = g_slist_next(new);
@@ -623,7 +623,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 			 */
 			if (oc->from >= nc->to) {
 				highest = nc->to;
-				v->chunks_list = g_slist_append(v->chunks_list, 
+				v->chunks_list = g_slist_append(v->chunks_list,
  					vp_create_chunk(nc->from, nc->to, nc->status, FALSE));
 				new = g_slist_next(new);
 				continue;
@@ -646,11 +646,11 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 			 * because we had to back out some data, e.g. on a resume
 			 * mismatch.
 			 */
-			if (oc->from >= nc->from && oc->to <= nc->to) 
+			if (oc->from >= nc->from && oc->to <= nc->to)
 				v->chunks_list = g_slist_append(v->chunks_list,
 				    vp_create_chunk(oc->from, oc->to, oc->status, TRUE));
 			else {
-				/* 
+				/*
 				 * The new chunk we are considering covers a smaller
 				 * area than the old chunk, so some data got lost. To
 				 * cope with this we follow two paths.
@@ -664,7 +664,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 					v->chunks_list = g_slist_append(v->chunks_list,
 						vp_create_chunk(nc->from, oc->to, nc->status, TRUE));
 				else {
-					/* 
+					/*
 					 * In this case we copy the chunk and skip
 					 * it. Depending on the situation the next
 					 * iteration will deal with the remainder of this
@@ -683,7 +683,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 				v->chunks_list = g_slist_append(v->chunks_list,
 					vp_create_chunk(oc->to, nc->to, nc->status, FALSE));
 			}
-			
+
 			old = g_slist_next(old);
 			new = g_slist_next(new);
 		} else {
@@ -697,7 +697,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 					vp_create_chunk(oc->from, oc->to, oc->status, TRUE));
 				old = g_slist_next(old);
 			}
-				
+
 			if (new) {
 				nc = (gnet_fi_chunks_t *) new->data;
 				v->chunks_list = g_slist_append(v->chunks_list,
@@ -706,29 +706,29 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 			}
 		}
 	}
-	
-	/* 
+
+	/*
 	 * Now that the new list of chunks is merged with the old chunks we
 	 * can safely throw away the new list itself.
 	 */
 	guc_fi_free_chunks(keep_new);
 
-	/* 
+	/*
 	 * This code is not needed right now because we already dump
 	 * debugging info as soon as we detect a problem.
-	 * vp_assert_chunks_list(v->chunks_list); 
+	 * vp_assert_chunks_list(v->chunks_list);
      */
 }
 
 
-/** 
+/**
  * The available ranges information has been changed for a
  * file. Update the information and draw the information so the
  * changes are visible.
- * 
+ *
  * @param fih Handle for fileinfo data that has been changed.
  */
-static void 
+static void
 vp_gui_fi_ranges_changed(gnet_fi_t fih)
 {
     vp_info_t *v;
@@ -742,7 +742,7 @@ vp_gui_fi_ranges_changed(gnet_fi_t fih)
 	v = value;
 
 	/*
-	 * Copy the ranges. These can simply be copied as we do not need to 
+	 * Copy the ranges. These can simply be copied as we do not need to
 	 * apply our own logic to them.
 	 */
 	guc_fi_free_ranges(v->ranges_list);
@@ -753,7 +753,7 @@ vp_gui_fi_ranges_changed(gnet_fi_t fih)
 /**
  * Free the vp_info_t structs in the vp_info_hash
  */
-void 
+void
 vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
 {
 	(void) key;
@@ -772,20 +772,20 @@ vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
  * notified of fileinfo events, and get a permanent handle to the
  * drawing area for later reuse.
  */
-void 
-vp_gui_init(void) 
+void
+vp_gui_init(void)
 {
     GdkColormap *cmap;
 
     vp_info_hash = g_hash_table_new(NULL, NULL);
 
-    guc_fi_add_listener(vp_gui_fi_added, EV_FI_ADDED, 
+    guc_fi_add_listener(vp_gui_fi_added, EV_FI_ADDED,
 		FREQ_SECS, 0);
-    guc_fi_add_listener(vp_gui_fi_removed, EV_FI_REMOVED, 
+    guc_fi_add_listener(vp_gui_fi_removed, EV_FI_REMOVED,
 		FREQ_SECS, 0);
-    guc_fi_add_listener(vp_gui_fi_status_changed, 
+    guc_fi_add_listener(vp_gui_fi_status_changed,
 		EV_FI_STATUS_CHANGED, FREQ_SECS, 0);
-    guc_fi_add_listener(vp_gui_fi_status_changed, 
+    guc_fi_add_listener(vp_gui_fi_status_changed,
 		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
     guc_fi_add_listener(vp_gui_fi_ranges_changed,
 						EV_FI_RANGES_CHANGED, FREQ_SECS, 0);
@@ -818,14 +818,14 @@ vp_gui_init(void)
 /**
  * Undo everything set up in vp_gui_init
  */
-void 
+void
 vp_gui_shutdown(void)
 {
     guc_fi_remove_listener(vp_gui_fi_removed, EV_FI_REMOVED);
     guc_fi_remove_listener(vp_gui_fi_added, EV_FI_ADDED);
-    guc_fi_remove_listener(vp_gui_fi_status_changed, 
+    guc_fi_remove_listener(vp_gui_fi_status_changed,
 		EV_FI_STATUS_CHANGED);
-    guc_fi_remove_listener(vp_gui_fi_status_changed, 
+    guc_fi_remove_listener(vp_gui_fi_status_changed,
 		EV_FI_STATUS_CHANGED_TRANSIENT);
     guc_fi_remove_listener(vp_gui_fi_ranges_changed, EV_FI_RANGES_CHANGED);
 
@@ -836,7 +836,7 @@ vp_gui_shutdown(void)
 
 
 
-/* 
+/*
  * Local Variables:
  * tab-width:4
  * End:

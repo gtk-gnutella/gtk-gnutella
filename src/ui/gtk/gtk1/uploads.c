@@ -61,7 +61,7 @@ static void uploads_gui_add_upload(gnet_upload_info_t *u);
  * try to use the handle to communicate with the backend.
  */
 static void
-upload_removed(gnet_upload_t uh, const gchar *reason, 
+upload_removed(gnet_upload_t uh, const gchar *reason,
     guint32 unused_running, guint32 unused_registered)
 {
     gint row;
@@ -73,12 +73,12 @@ upload_removed(gnet_upload_t uh, const gchar *reason,
     /* Invalidate row and remove it from the gui if autoclear is on */
     row = find_row(uh, &data);
     if (row != -1) {
-        GtkCList *clist = 
+        GtkCList *clist =
             GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
         data->valid = FALSE;
 
         gtk_widget_set_sensitive(
-            lookup_widget(main_window, "button_uploads_clear_completed"), 
+            lookup_widget(main_window, "button_uploads_clear_completed"),
             TRUE);
 
         if (reason != NULL)
@@ -139,14 +139,14 @@ find_row(gnet_upload_t u, upload_row_data_t **data)
     GList *l;
     upload_row_data_t fake;
     gint row = 0;
-    
+
     fake.handle = u;
     fake.valid  = TRUE;
 
     clist = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
 
     for (l = clist->row_list; l != NULL; l = g_list_next(l)) {
-		upload_row_data_t *rd = (upload_row_data_t *) 
+		upload_row_data_t *rd = (upload_row_data_t *)
             ((GtkCListRow *) l->data)->data;
 
         if (rd->valid && (rd->handle == u)) {
@@ -159,7 +159,7 @@ find_row(gnet_upload_t u, upload_row_data_t **data)
 
         row ++;
     }
-    
+
     g_warning("%s: upload not found [handle=%u]",
         G_GNUC_PRETTY_FUNCTION, u);
 
@@ -180,15 +180,15 @@ uploads_gui_update_upload_info(gnet_upload_info_t *u)
     clist_uploads = GTK_CLIST(lookup_widget(main_window, "clist_uploads"));
     row =  find_row(u->upload_handle, &rd);
 	if (row == -1) {
-        g_warning("%s: no matching row found [handle=%u]", 
+        g_warning("%s: no matching row found [handle=%u]",
             G_GNUC_PRETTY_FUNCTION, u->upload_handle);
 		return;
 	}
-    
+
 	rd->range_start  = u->range_start;
 	rd->range_end    = u->range_end;
 	rd->start_date   = u->start_date;
-	rd->last_update  = time((time_t *) NULL);	
+	rd->last_update  = time((time_t *) NULL);
 
 	if ((u->range_start == 0) && (u->range_end == 0)) {
 		gtk_clist_set_text(clist_uploads, row, c_ul_size, "...");
@@ -211,10 +211,10 @@ uploads_gui_update_upload_info(gnet_upload_info_t *u)
 		gtk_clist_set_text(clist_uploads, row, c_ul_range, range_tmp);
 	}
 
-	gtk_clist_set_text(clist_uploads, row, c_ul_filename, 
+	gtk_clist_set_text(clist_uploads, row, c_ul_filename,
 		(u->name != NULL) ? u->name : "...");
 	gtk_clist_set_text(clist_uploads, row, c_ul_host, ip_to_gchar(u->ip));
-	gtk_clist_set_text(clist_uploads, row, c_ul_agent, 
+	gtk_clist_set_text(clist_uploads, row, c_ul_agent,
 		(u->user_agent != NULL) ? u->user_agent : "...");
 
 	guc_upload_get_status(u->upload_handle, &status);
@@ -272,7 +272,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
             range_len += gm_snprintf(
                 &range_tmp[range_len], sizeof(range_tmp)-range_len,
                 " @ %s", compact_size(u->range_start));
-    
+
         g_assert(range_len < sizeof(range_tmp));
 
         titles[c_ul_size]     = size_tmp;
@@ -294,7 +294,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 
     row = gtk_clist_append(GTK_CLIST(clist_uploads),
 			(gchar **) titles); /* override const */
-    gtk_clist_set_row_data_full(GTK_CLIST(clist_uploads), row, 
+    gtk_clist_set_row_data_full(GTK_CLIST(clist_uploads), row,
         data, free_data);
 }
 
@@ -328,7 +328,7 @@ uploads_gui_init(void)
  * Unregister callbacks in the backend and clean up.
  */
 void
-uploads_gui_shutdown(void) 
+uploads_gui_shutdown(void)
 {
     guc_upload_remove_upload_added_listener(upload_added);
     guc_upload_remove_upload_removed_listener(upload_removed);
@@ -377,13 +377,13 @@ uploads_gui_update_display(time_t now)
     gtk_clist_freeze(clist);
 
 	for (l = clist->row_list, row = 0; l; l = l->next, row++) {
-		upload_row_data_t *data = (upload_row_data_t *) 
+		upload_row_data_t *data = (upload_row_data_t *)
             ((GtkCListRow *) l->data)->data;
 
         if (data->valid) {
             data->last_update = now;
             guc_upload_get_status(data->handle, &status);
-            gtk_clist_set_text(clist, row, c_ul_status, 
+            gtk_clist_set_text(clist, row, c_ul_status,
                 uploads_gui_status_str(&status, data));
         } else {
             if (upload_should_remove(now, data))
@@ -417,17 +417,17 @@ uploads_clear_helper(gpointer unused_udata)
 
 	(void) unused_udata;
     gtk_clist_freeze(clist);
-   
+
     for (l = clist->row_list; l != NULL; l = g_list_next(l)) {
-		upload_row_data_t *rd = (upload_row_data_t *) 
+		upload_row_data_t *rd = (upload_row_data_t *)
             ((GtkCListRow *) l->data)->data;
 
         if (!rd->valid)
             to_remove = g_slist_prepend(to_remove, GINT_TO_POINTER(row));
-        
+
         row ++;
-		if (row > uploads_rows_done) { 
-			uploads_rows_done++;	
+		if (row > uploads_rows_done) {
+			uploads_rows_done++;
        		if (0 == (uploads_rows_done & 0x7f))
        			break;
 		}
@@ -435,17 +435,17 @@ uploads_clear_helper(gpointer unused_udata)
 
     for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
         gtk_clist_remove(clist, GPOINTER_TO_INT(sl->data));
-    
+
     g_slist_free(to_remove);
     gtk_clist_thaw(clist);
-    
+
     if (l == NULL) {
 		gtk_widget_set_sensitive(lookup_widget(
 			main_window, "button_uploads_clear_completed"), FALSE);
     	uploads_remove_lock = FALSE;
     	return FALSE;
     }
-    
+
     return TRUE;
 }
 

@@ -24,19 +24,19 @@
  *
  * upload_stats.c - keep track of which files we send away, and how often.
  *
- *		Statistics are kept by _FILENAME_ and file size, 
+ *		Statistics are kept by _FILENAME_ and file size,
  *		not by actual path, so two files with the same
- *		name and size will be counted in the same bin.  
+ *		name and size will be counted in the same bin.
  *		I dont see this as a limitation because the
  *		user wouldn't be able to differentiate the files anyway.
- *		This could be extended to keep the entire path to 
+ *		This could be extended to keep the entire path to
  *		each file and optionally show the entire path, but..
- *		
+ *
  *		the 'upload_history' file has the following format:
  *		<url-escaped filename> <file size> <attempts> <completions>
  *
  *		TODO: add a check to make sure that all of the files still exist(?)
- *			grey them out if they dont, optionally remove them from the 
+ *			grey them out if they dont, optionally remove them from the
  *			stats list (when 'Clear Non-existant Files' is clicked)
  *
  *		(C) 2002 Michael Tesch, released with gtk-gnutella & its license
@@ -65,7 +65,7 @@ static gint ul_find_row_by_upload(
 	const gchar *name, guint64 size, struct ul_stats **s)
 {
 	gint i;
-    GtkCList *clist = 
+    GtkCList *clist =
         GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
 
 	/* go through the clist_ul_stats, looking for the file...
@@ -155,7 +155,7 @@ void upload_stats_gui_update(const gchar *name, guint64 size)
 	stat->norm = (gfloat) stat->bytes_sent / (gfloat) stat->size;
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%.3f", stat->norm);
 	gtk_clist_set_text(clist, row, c_us_norm, tmpstr);
-        
+
 	/* FIXME: use auto-sort? */
 	gtk_clist_sort(clist);
 }

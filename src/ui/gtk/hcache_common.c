@@ -43,7 +43,7 @@ const gchar *get_hcache_name(hcache_type_t type)
 		case HCACHE_TIMEOUT:     return _("Timeout");
 		case HCACHE_BUSY:        return _("Busy");
 		case HCACHE_UNSTABLE:    return _("Unstable");
-		default: 
+		default:
 			g_warning("get_hcache_name: unknown hcache %d", type);
 			return "";
 	}

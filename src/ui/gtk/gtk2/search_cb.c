@@ -82,7 +82,7 @@ refresh_popups(void)
 
     if (search) {
         gtk_widget_set_sensitive(
-            lookup_widget(popup_search_list, "popup_search_stop"), 
+            lookup_widget(popup_search_list, "popup_search_stop"),
 			!guc_search_is_frozen(search->search_handle));
 		gtk_widget_set_sensitive(
 			lookup_widget(popup_search_list, "popup_search_resume"),
@@ -147,7 +147,7 @@ on_search_notebook_focus_tab(GtkNotebook *notebook, GtkNotebookTab unused_tab,
 	(void) unused_tab;
 	(void) unused_udata;
 	page_num = gtk_notebook_get_current_page(notebook);
-	widget = gtk_notebook_get_nth_page(notebook, page_num); 
+	widget = gtk_notebook_get_nth_page(notebook, page_num);
 	sch = (search_t *) gtk_object_get_user_data(GTK_OBJECT(widget));
 
 	g_return_if_fail(sch);
@@ -239,11 +239,11 @@ on_button_search_clicked(GtkButton *unused_button, gpointer unused_udata)
 			 * the "ok" button in the dialog, we add the rule
 			 * manually.
 			 */
-			search->filter->ruleset = 
+			search->filter->ruleset =
                 g_list_append(search->filter->ruleset, rule);
 			rule->target->refcount ++;
 		}
-         
+
 		if (!res)
 			gdk_beep();
 	}
@@ -916,7 +916,7 @@ on_popup_search_metadata_activate(GtkMenuItem *unused_menuitem,
 		rec = sl->data;
 		if (rec->sha1) {
 			GtkTreeIter *parent;
-			
+
 	    	guc_query_bitzi_by_urn(rec->sha1);
 
 			/* set the feedback */

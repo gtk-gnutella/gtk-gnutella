@@ -39,7 +39,7 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-/* 
+/*
  * Create a function for the focus out signal and make it call
  * the callback for the activate signal.
  */
@@ -172,11 +172,11 @@ on_entry_config_force_ip_activate(GtkEditable *unused_editable,
 {
    	gchar *e;
 	guint32 ip;
-	
+
 	(void) unused_editable;
 	(void) unused_udata;
 	e = STRTRACK(gtk_editable_get_chars(
-        GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_config_force_ip")), 
+        GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_config_force_ip")),
         0, -1));
 	g_strstrip(e);
 	ip = gchar_to_ip(e);
@@ -207,7 +207,7 @@ on_entry_server_hostname_activate(GtkEditable *unused_editable,
 	(void) unused_editable;
 	(void) unused_udata;
 	e = STRTRACK(gtk_editable_get_chars(
-        GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_server_hostname")), 
+        GTK_EDITABLE(lookup_widget(dlg_prefs, "entry_server_hostname")),
         0, -1));
 	g_strstrip(e);
 	gnet_prop_set_string(PROP_SERVER_HOSTNAME, e);
@@ -323,7 +323,7 @@ on_popup_search_toggle_tabs_activate(GtkMenuItem *unused_menuitem,
 
 	(void) unused_menuitem;
 	(void) unused_udata;
-	
+
     gui_prop_get_boolean_val(PROP_SEARCH_RESULTS_SHOW_TABS, &val);
     val = !val;
     gui_prop_set_boolean_val(PROP_SEARCH_RESULTS_SHOW_TABS, val);

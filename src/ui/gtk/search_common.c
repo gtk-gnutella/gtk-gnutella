@@ -218,7 +218,7 @@ search_gui_free_r_set(results_set_t *rs)
 		return;
 	}
 
-    /* 
+    /*
      * Free list of searches set was intended for.
      */
 
@@ -270,7 +270,7 @@ search_gui_dispose_results(results_set_t *rs)
 
 	for (l = search_gui_get_searches(); NULL != l; l = g_list_next(l)) {
 		search_t *sch = (search_t *) l->data;
-	
+
 		if (NULL != sch->r_sets && hash_list_contains(sch->r_sets, rs)) {
 			refs++;			/* Found one more reference to this search */
 			hash_list_remove(sch->r_sets, rs);
@@ -285,7 +285,7 @@ search_gui_dispose_results(results_set_t *rs)
 
 /**
  * Add a reference to the record but don't dare to redeem it!
- */ 
+ */
 void
 search_gui_ref_record(record_t *rc)
 {
@@ -329,14 +329,14 @@ search_gui_unref_record(record_t *rc)
 		search_gui_dispose_results(rs);
 }
 
-/** 
- * Free all the results_set's of a search 
+/**
+ * Free all the results_set's of a search
  */
 static inline void
 free_r_sets_helper(gpointer data, gpointer unused_udata)
 {
 	results_set_t *rs = data;
-	
+
 	(void) unused_udata;
 
 	search_gui_free_r_set(rs);
@@ -450,10 +450,10 @@ search_gui_result_is_dup(search_t *sch, record_t *rc)
  * sh as search_handle. If none is found, return NULL.
  */
 search_t *
-search_gui_find(gnet_search_t sh) 
+search_gui_find(gnet_search_t sh)
 {
     const GList *l;
-    
+
     for (l = search_gui_get_searches(); l != NULL; l = g_list_next(l)) {
 		search_t *s = l->data;
 
@@ -472,7 +472,7 @@ search_gui_find(gnet_search_t sh)
  * Create a new GUI record within `rs' from a Gnutella record.
  */
 record_t *
-search_gui_create_record(results_set_t *rs, gnet_record_t *r) 
+search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 {
     record_t *rc;
 
@@ -487,7 +487,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 #ifdef USE_GTK2
     rc->name = atom_str_get(r->name);
     /* Gtk2 extracts this in search_gui2.c because of UTF8 issues. */
-    rc->ext  = NULL; 
+    rc->ext  = NULL;
 #else
 	rc->name = NULL;
 	if (!is_ascii_string(r->name)) {
@@ -519,7 +519,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 
 		rc->alt_locs = alt;
 	}
-	
+
     return rc;
 }
 
@@ -532,7 +532,7 @@ search_gui_create_results_set(GSList *schl, const gnet_results_set_t *r_set)
     results_set_t *rs;
     GSList *sl;
 	gint ignored = 0;
-    
+
     rs = (results_set_t *) zalloc(rs_zone);
 
     rs->refcount = 0;
@@ -615,7 +615,7 @@ search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 		if (h->port == 0 || !ip_is_valid(h->ip))
 			continue;
 
-		guc_download_auto_new(rc->name, rc->size, URN_INDEX, 
+		guc_download_auto_new(rc->name, rc->size, URN_INDEX,
 			h->ip, h->port, blank_guid, rs->hostname,
 			rc->sha1, rs->stamp, FALSE, TRUE, NULL, NULL);
 	}
@@ -643,7 +643,7 @@ search_store_old(void)
 		return;
 
 	file_config_preamble(out, "Searches");
-	
+
 	for (l = search_gui_get_searches(); l; l = g_list_next(l)) {
 		const search_t *sch = (const search_t *) l->data;
 		if (!sch->passive)
@@ -664,7 +664,7 @@ search_gui_store_searches(void)
 	char *path;
 
 	search_store_xml();
-    
+
 	path = make_pathname(settings_gui_config_dir(), search_file);
 	g_return_if_fail(NULL != path);
 
@@ -879,7 +879,7 @@ search_matched(search_t *sch, results_set_t *rs)
          * download by the backend.
          */
         downloaded = rc->flags & SR_DOWNLOADED;
-        
+
         /*
          * Now we check for the different filter result properties.
          */
@@ -891,8 +891,8 @@ search_matched(search_t *sch, results_set_t *rs)
             (flt_result->props[FILTER_PROP_DOWNLOAD].state ==
 				FILTER_PROP_STATE_DO)
 		) {
-            guc_download_auto_new(rc->name, rc->size, rc->index, 
-				rs->ip, rs->port, rs->guid, rs->hostname, rc->sha1, rs->stamp, 
+            guc_download_auto_new(rc->name, rc->size, rc->index,
+				rs->ip, rs->port, rs->guid, rs->hostname, rc->sha1, rs->stamp,
 				need_push, TRUE, NULL, rs->proxies);
 
 			if (rs->proxies != NULL)
@@ -912,11 +912,11 @@ search_matched(search_t *sch, results_set_t *rs)
 			sch->hidden++;
 			continue;
         }
-    
+
         /*
          * We start with FILTER_PROP_DISPLAY:
          */
-        if (!(flt_result->props[FILTER_PROP_DISPLAY].state == 
+        if (!(flt_result->props[FILTER_PROP_DISPLAY].state ==
                 FILTER_PROP_STATE_DONT &&
             flt_result->props[FILTER_PROP_DISPLAY].user_data == 0) &&
 			(int) results_kept++ >= 0 && /* Count as kept even if max results */
@@ -929,10 +929,10 @@ search_matched(search_t *sch, results_set_t *rs)
             g_hash_table_insert(sch->dups, rc, GINT_TO_POINTER(1));
             search_gui_ref_record(rc);
 
-            mark = 
-                (flt_result->props[FILTER_PROP_DISPLAY].state == 
+            mark =
+                (flt_result->props[FILTER_PROP_DISPLAY].state ==
                     FILTER_PROP_STATE_DONT) &&
-                (flt_result->props[FILTER_PROP_DISPLAY].user_data == 
+                (flt_result->props[FILTER_PROP_DISPLAY].user_data ==
 					GINT_TO_POINTER(1));
 
             if (rc->flags & SR_IGNORED) {
@@ -960,7 +960,7 @@ search_matched(search_t *sch, results_set_t *rs)
 	if (NULL != sch->r_sets)
     	g_assert(!hash_list_contains(sch->r_sets, rs));
 	else
-		sch->r_sets = hash_list_new(); 
+		sch->r_sets = hash_list_new();
 
 	/* Adds the set to the list */
 	hash_list_prepend(sch->r_sets, (gpointer) rs);
@@ -1013,7 +1013,7 @@ search_gui_update_items(struct search *sch)
 {
     if (sch) {
         const gchar *str = sch->passive ? _("(passive search) ") : "";
-    
+
 		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s%s%u %s "
 			"(%u skipped, %u ignored, %u hidden, %u auto-d/l, %u dups)"
 			" Hits: %u (%u TCP, %u UDP)"),
@@ -1082,14 +1082,14 @@ search_gui_flush(time_t now)
             rscount ++;
         }
 
-        printf("flushing %d rsets (%d recs, %d recs avg)...\n", 
+        printf("flushing %d rsets (%d recs, %d recs avg)...\n",
             rscount, recs, recs / rscount);
     }
 
     for (curs = accumulated_rs; curs != NULL; curs = g_slist_next(curs)) {
         results_set_t *rs = (results_set_t *) curs->data;
         GSList *schl = g_slist_copy(rs->schl);
- 
+
         /*
          * Dispatch to all searches and freeze display where necessary
          * remembering what was frozen.
@@ -1101,7 +1101,7 @@ search_gui_flush(time_t now)
 
             /*
              * Since we keep results around for a while, the search may have
-             * been closed until they get dispatched... so we need to check 
+             * been closed until they get dispatched... so we need to check
              * that.
              *     --BLUE, 4/1/2004
              */
@@ -1131,13 +1131,13 @@ search_gui_flush(time_t now)
         }
 
         search_gui_clean_r_set(rs);
-    
+
         if (gui_debug >= 15)
             printf("trash phase\n");
 
         /*
          * If the record set does not contain any records after the cleansing,
-         * we have only an empty shell left which we can safely remove from 
+         * we have only an empty shell left which we can safely remove from
          * all the searches.
          */
 
@@ -1147,8 +1147,8 @@ search_gui_flush(time_t now)
                     (gnet_search_t) GPOINTER_TO_UINT(sl->data));
 
                 /*
-                 * Since we keep results around for a while, the search may 
-                 * have been closed until they get dispatched... so we need to 
+                 * Since we keep results around for a while, the search may
+                 * have been closed until they get dispatched... so we need to
                  * check that.
                  * --BLUE, 4/1/2004
                  */
@@ -1158,7 +1158,7 @@ search_gui_flush(time_t now)
                 else if (gui_debug >= 6) printf(
 					"no search for cached search result while cleaning\n");
             }
-        } 
+        }
 		g_slist_free(schl);
     }
 
@@ -1179,14 +1179,14 @@ search_gui_flush(time_t now)
  * The return value is only valid until the function is called again.
  */
 gchar *
-search_gui_extract_ext(gchar *filename) 
+search_gui_extract_ext(gchar *filename)
 {
     static gchar ext[32];
 	const gchar *p;
 	size_t rw = 0;
 
     g_assert(NULL != filename);
-    
+
     ext[0] = '\0';
     p = strrchr(filename, '.');
 
@@ -1196,8 +1196,8 @@ search_gui_extract_ext(gchar *filename)
 		 * part after the dot isn't an extension at all. */
 		ext[0] = '\0';
 	} else {
-		/* Using g_utf8_strdown() (for GTK2) would be cleaner but it 
-         * allocates a new string which is ugly. Nobody uses such file 
+		/* Using g_utf8_strdown() (for GTK2) would be cleaner but it
+         * allocates a new string which is ugly. Nobody uses such file
          * extensions anyway. */
 		ascii_strlower(ext, ext);
 	}
@@ -1209,7 +1209,7 @@ search_gui_extract_ext(gchar *filename)
  * Creates a new search based on the filename found and adds a filter
  * to it based on the sha1 hash if it has one or the exact filename if
  * it hasn't.
- * 
+ *
  * @author Andrew Meredith <andrew@anvil.org>
  */
 void
@@ -1246,14 +1246,14 @@ search_gui_restart_search(search_t *sch)
 {
 	if (!sch->enabled)
 		gui_search_set_enabled(sch, TRUE);
-	search_gui_reset_search(sch);	
+	search_gui_reset_search(sch);
 	sch->items = sch->unseen_items = sch->hidden = 0;
 	sch->tcp_qhits = sch->udp_qhits = 0;
 	sch->skipped = sch->ignored = sch->auto_downloaded = sch->duplicates = 0;
 
 	search_gui_update_items(sch);
 	guc_search_update_items(sch->search_handle, sch->items);
-	guc_search_reissue(sch->search_handle);	
+	guc_search_reissue(sch->search_handle);
 }
 
 /**
@@ -1275,8 +1275,8 @@ search_gui_parse_query(const gchar *querystr, const gchar **error)
 	g_assert(querystr != NULL);
 	g_assert(error != NULL);
 
-	*error = NULL;	
-	
+	*error = NULL;
+
 	/*
 	 * If the text is a magnet link we extract the SHA1 urn
 	 * and put it back into the search field string so that the
@@ -1297,7 +1297,7 @@ search_gui_parse_query(const gchar *querystr, const gchar **error)
 			gm_snprintf(query, sizeof query, "%s%s", urnsha1, sha1_base32(raw));
 			return query;
 		}
-		
+
 		*error = _("The SHA1 of the magnet is not validly encoded");
 		return NULL;		/* Entry refused */
 	}
@@ -1332,7 +1332,7 @@ search_gui_parse_query(const gchar *querystr, const gchar **error)
 			}
 
 		}
-		
+
 		/*
 	 	 * Entry refused.
 	 	 */

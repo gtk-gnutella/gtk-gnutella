@@ -95,7 +95,7 @@ typedef struct filter_result {
 
 
 
-/* 
+/*
  * Definition of a filter rule
  */
 typedef struct rule {
@@ -167,7 +167,7 @@ rule_t *filter_new_size_rule(size_t, size_t, filter_t *, guint16);
 rule_t *filter_new_text_rule(gchar *, gint, gboolean, filter_t *, guint16);
 rule_t *filter_new_sha1_rule(gchar *, gchar *, filter_t *, guint16);
 rule_t *filter_new_flag_rule
-    (enum rule_flag_action stable, enum rule_flag_action busy, 
+    (enum rule_flag_action stable, enum rule_flag_action busy,
     enum rule_flag_action push, filter_t *target, guint16 flags);
 rule_t *filter_new_state_rule
     (enum filter_prop_state display, enum filter_prop_state download,

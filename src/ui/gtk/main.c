@@ -130,7 +130,7 @@ static gboolean gui_init_menu_helper(
 {
 	guint32 expanded;
 	gint id;
-	
+
 	gtk_tree_model_get(model, iter, 2, &id, (-1));
 	gui_prop_get_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
 	if (expanded)
@@ -138,7 +138,7 @@ static gboolean gui_init_menu_helper(
 	return FALSE;
 }
 
-static void gui_init_menu(void) 
+static void gui_init_menu(void)
 {
 	static GType types[] = {
 		G_TYPE_STRING,	/* Label */
@@ -180,7 +180,7 @@ static void gui_init_menu(void)
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
     gtk_tree_view_append_column(treeview, column);
 	gtk_tree_view_columns_autosize(treeview);
-	
+
 	gtk_tree_model_foreach(GTK_TREE_MODEL(store),
 		(GtkTreeModelForeachFunc) gui_init_menu_helper, treeview);
 	g_object_unref(store);
@@ -253,10 +253,10 @@ static GtkWidget *gui_create_main_window(void)
 
 #define gui_create_main_window() create_main_window()
 
-static void gui_init_menu(void) 
+static void gui_init_menu(void)
 {
     GtkCTree *ctree_menu = GTK_CTREE(lookup_widget(main_window, "ctree_menu"));
-	GtkCTreeNode *parent_node = NULL;    
+	GtkCTreeNode *parent_node = NULL;
 	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
@@ -269,7 +269,7 @@ static void gui_init_menu(void)
 					0, NULL, NULL, NULL, NULL, FALSE, TRUE);
 		if (menu[i].parent)
 			parent_node = node;
-		
+
     	gtk_ctree_node_set_row_data(ctree_menu, node,
 			GINT_TO_POINTER(menu[i].page));
 	}
@@ -288,7 +288,7 @@ static GtkWidget *gui_create_dlg_prefs(void)
     GtkWidget *tab_window[nb_prefs_num];
 	gint i;
 #endif
-	
+
     dialog = create_dlg_prefs();
 #ifdef USE_GTK2
 
@@ -384,7 +384,7 @@ static GtkWidget *gui_create_dlg_about(void)
 
     textbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(
         lookup_widget(dlg, "textview_about_contributors")));
-    
+
     for (i = 0; NULL != contributors[i]; i++) {
         if (i > 0)
             gtk_text_buffer_insert_at_cursor(textbuf, "\n", (-1));
@@ -404,7 +404,7 @@ static GtkWidget *gui_create_dlg_about(void)
 #endif
 
     gtk_label_set_text(
-        GTK_LABEL(lookup_widget(dlg, "label_about_title")), 
+        GTK_LABEL(lookup_widget(dlg, "label_about_title")),
         guc_version_get_version_string());
 
     return dlg;
@@ -437,16 +437,16 @@ void main_gui_gtkrc_init(void)
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
 
-	userrc = g_strconcat(guc_settings_home_dir(), 
+	userrc = g_strconcat(guc_settings_home_dir(),
 		G_DIR_SEPARATOR_S, ".gtk", G_DIR_SEPARATOR_S, "gtkrc", NULL);
 	gtk_rc_parse(userrc);
 	G_FREE_NULL(userrc);
 
 #ifdef USE_GTK2
-	userrc = g_strconcat(guc_settings_home_dir(), 
+	userrc = g_strconcat(guc_settings_home_dir(),
 		G_DIR_SEPARATOR_S, ".gtk2", G_DIR_SEPARATOR_S, "gtkrc", NULL);
 #else
-	userrc = g_strconcat(guc_settings_home_dir(), 
+	userrc = g_strconcat(guc_settings_home_dir(),
 		G_DIR_SEPARATOR_S, ".gtk1", G_DIR_SEPARATOR_S, "gtkrc", NULL);
 #endif
 	gtk_rc_parse(userrc);
@@ -473,7 +473,7 @@ void main_gui_gtkrc_init(void)
  *      -- Richard, 6/9/2002
  */
 void main_gui_early_init(gint argc, gchar **argv)
-{	
+{
 	/* Glade inits */
 
 	gtk_set_locale();
@@ -496,10 +496,10 @@ void main_gui_early_init(gint argc, gchar **argv)
 	/* XXX: Create the equivalent popup for GTK+ 1.2 */
 	popup_search_list = create_popup_search_list();
 #endif /* USE_GTK2 */
-	
+
 	popup_monitor = create_popup_monitor();
 	popup_downloads = create_popup_dl_active();
-	popup_queue = create_popup_dl_queued();	
+	popup_queue = create_popup_dl_queued();
 
     nodes_gui_early_init();
     uploads_gui_early_init();
@@ -519,7 +519,7 @@ void main_gui_early_init(gint argc, gchar **argv)
 void main_gui_init(void)
 {
 	main_gui_gtkrc_init();
-	
+
 #ifdef USE_GTK1
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_search_stats")),
@@ -533,7 +533,7 @@ void main_gui_init(void)
     gtk_clist_column_titles_passive(
         GTK_CLIST(lookup_widget(main_window, "clist_search")));
     gtk_clist_set_compare_func(
-        GTK_CLIST(lookup_widget(main_window, "clist_ul_stats")), 
+        GTK_CLIST(lookup_widget(main_window, "clist_ul_stats")),
         compare_ul_norm);
 #endif
 
@@ -549,7 +549,7 @@ void main_gui_init(void)
     gtk_widget_set_sensitive
         (lookup_widget(popup_downloads, "popup_downloads_copy_url"), FALSE);
 	gtk_widget_set_sensitive
-        (lookup_widget(popup_queue, "popup_queue_abort"), FALSE); 
+        (lookup_widget(popup_queue, "popup_queue_abort"), FALSE);
 	gtk_widget_set_sensitive
         (lookup_widget(popup_queue, "popup_queue_abort_named"), FALSE);
 	gtk_widget_set_sensitive
@@ -558,7 +558,7 @@ void main_gui_init(void)
         lookup_widget(popup_downloads, "popup_downloads_push"),
     	!gtk_toggle_button_get_active(
             GTK_TOGGLE_BUTTON
-                (lookup_widget(main_window, 
+                (lookup_widget(main_window,
                                "checkbutton_downloads_never_push"))));
 
     settings_gui_init();
@@ -573,7 +573,7 @@ void main_gui_init(void)
     uploads_gui_init();
     upload_stats_gui_init();
     /* Must come before search_init() so searches/filters can be loaded.*/
-	filter_init(); 
+	filter_init();
     search_gui_init();
     filter_update_targets(); /* Make sure the default filters are ok */
     monitor_gui_init();
@@ -582,13 +582,13 @@ void main_gui_init(void)
 }
 
 void main_gui_run(void)
-{	
+{
     guint32 coord[4] = { 0, 0, 0, 0 };
 
     gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
     main_gui_timer();
     gtk_widget_show(main_window);		/* Display the main window */
-    
+
     /*
      * We need to tell Gtk the size of the window, otherwise we'll get
      * strange side effects when the window is shown (like implicitly
@@ -757,7 +757,7 @@ void main_gui_shutdown_tick(guint left)
 	gchar tmp[256];
 
     GtkLabel *label_shutdown_count;
- 
+
     if (!notice_visible) {
         gtk_widget_show(shutdown_window);
         notice_visible = TRUE;

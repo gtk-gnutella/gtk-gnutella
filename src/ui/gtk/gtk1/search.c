@@ -78,7 +78,7 @@ static void set_search_color(struct search *sch);
 
 
 /*
- * If no searches are currently allocated 
+ * If no searches are currently allocated
  */
 GtkCTree *default_search_ctree = NULL;
 static GtkWidget *default_scrolled_window = NULL;
@@ -96,7 +96,7 @@ static GtkWidget *default_scrolled_window = NULL;
  *	FIXME: The "key" is an atom of the record's SHA1, why don't we create that
  * 	atom here, as we free it in "remove_parent_with_sha1"?  Emile 02/15/2004
  */
-static inline void add_parent_with_sha1(GHashTable *ht, gpointer key, 
+static inline void add_parent_with_sha1(GHashTable *ht, gpointer key,
 	GtkCTreeNode *data)
 {
 	g_hash_table_insert(ht, key, data);
@@ -115,14 +115,14 @@ static inline void remove_parent_with_sha1(GHashTable *ht, const gchar *sha1)
 	gpointer key;
 	GtkCTreeNode *data = NULL;
 	gpointer orig_key;
- 
+
 	key = atom_sha1_get(sha1);
 
 	if (g_hash_table_lookup_extended(ht, key,
 			(gpointer) &orig_key, (gpointer) &data)) {
 		/* Must first free memory used by the original key */
 		atom_sha1_free(orig_key);
-	
+
 		/* Then remove the key */
 		g_hash_table_remove(ht, key);
 	} else
@@ -172,7 +172,7 @@ void search_gui_free_gui_record(gpointer gui_rc)
  */
 void search_gui_reset_search(search_t *sch)
 {
-	search_gui_clear_search(sch);	
+	search_gui_clear_search(sch);
 }
 
 /**
@@ -202,7 +202,7 @@ search_gui_ctree_unref(GtkCTree *ctree, GtkCTreeNode *node,
 
 	(void) unused_data;
 	grc = gtk_ctree_node_get_row_data(ctree, node);
-	search_gui_unref_record(grc->shared_record);	
+	search_gui_unref_record(grc->shared_record);
 }
 
 
@@ -215,7 +215,7 @@ search_gui_ctree_unref(GtkCTree *ctree, GtkCTreeNode *node,
 void search_gui_clear_ctree(GtkCTree *ctree)
 {
 	/* Unreference all records */
-	gtk_ctree_post_recursive(ctree, NULL, search_gui_ctree_unref, NULL);	
+	gtk_ctree_post_recursive(ctree, NULL, search_gui_ctree_unref, NULL);
 	gtk_clist_clear(GTK_CLIST(ctree));
 }
 
@@ -248,10 +248,10 @@ void search_gui_clear_search(search_t *sch)
 }
 
 
-/* 
+/*
  * search_gui_close_search:
  *
- * Remove the search from the list of searches and free all 
+ * Remove the search from the list of searches and free all
  * associated ressources (including filter and gui stuff).
  */
 void search_gui_close_search(search_t *sch)
@@ -260,9 +260,9 @@ void search_gui_close_search(search_t *sch)
 
     /*
      * We remove the search immeditaly from the list of searches,
-     * because some of the following calls (may) depend on 
-     * "searches" holding only the remaining searches. 
-     * We may not free any ressources of "sch" yet, because 
+     * because some of the following calls (may) depend on
+     * "searches" holding only the remaining searches.
+     * We may not free any ressources of "sch" yet, because
      * the same calls may still need them!.
      *      --BLUE 26/05/2002
      */
@@ -271,7 +271,7 @@ void search_gui_close_search(search_t *sch)
 	search_gui_clear_search(sch);
     search_gui_remove_search(sch);
 	filter_close_search(sch);
-	
+
 	g_hash_table_destroy(sch->dups);
 	sch->dups = NULL;
 	g_hash_table_destroy(sch->parents);
@@ -286,7 +286,7 @@ void search_gui_close_search(search_t *sch)
 
 /*
  * search_gui_new_search:
- * 
+ *
  * Create a new search and start it. Use default reissue timeout.
  */
 gboolean search_gui_new_search(
@@ -295,7 +295,7 @@ gboolean search_gui_new_search(
     guint32 timeout;
     gint sort_col = SORT_NO_COL;
 	gint sort_order = SORT_NONE;
-	
+
     gnet_prop_get_guint32_val
 		(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
@@ -304,7 +304,7 @@ gboolean search_gui_new_search(
 }
 
 
-/* 
+/*
  * search_gui_new_search_full:
  *
  * Create a new search and start it.
@@ -313,7 +313,7 @@ gboolean search_gui_new_search(
  * search is stored there.
  */
 gboolean search_gui_new_search_full(const gchar *querystr,
-	guint32 reissue_timeout, gint sort_col, 
+	guint32 reissue_timeout, gint sort_col,
 	gint sort_order, flag_t flags, search_t **search)
 {
     search_t *sch;
@@ -323,9 +323,9 @@ gboolean search_gui_new_search_full(const gchar *querystr,
     const gchar *query, *error;
     GtkWidget *combo_searches = lookup_widget(main_window, "combo_searches");
     GtkWidget *clist_search = lookup_widget(main_window, "clist_search");
-    GtkWidget *notebook_search_results = 
+    GtkWidget *notebook_search_results =
         lookup_widget(main_window, "notebook_search_results");
-    GtkWidget *button_search_close = 
+    GtkWidget *button_search_close =
         lookup_widget(main_window, "button_search_close");
     GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
 
@@ -334,7 +334,7 @@ gboolean search_gui_new_search_full(const gchar *querystr,
 		statusbar_gui_message(5, "%s", error);
 		return FALSE;
 	}
-	
+
 	sch = g_new0(search_t, 1);
 	sch->sort_col = sort_col;
 	sch->sort_order = sort_order;
@@ -347,8 +347,8 @@ gboolean search_gui_new_search_full(const gchar *querystr,
 	if (!sch->dups) {
 		g_error("new_search: unable to allocate hash table.\n");
 	}
-    
-	sch->parents = g_hash_table_new(NULL, NULL);	
+
+	sch->parents = g_hash_table_new(NULL, NULL);
   	filter_new_for_search(sch);
 
 	/* Create the list item */
@@ -396,9 +396,9 @@ gboolean search_gui_new_search_full(const gchar *querystr,
         (GtkFunction)gui_search_update_tab_label, sch);
 
     if (!searches) {
-        GtkWidget * w = gtk_notebook_get_nth_page( 
+        GtkWidget * w = gtk_notebook_get_nth_page(
             GTK_NOTEBOOK(notebook_search_results), 0);
-    
+
 		gtk_notebook_set_tab_label_text(
             GTK_NOTEBOOK(notebook_search_results),
             w, _("(no search)"));
@@ -436,7 +436,7 @@ gboolean search_gui_new_search_full(const gchar *querystr,
 /* Searches results */
 
 
-/* 
+/*
  * search_gui_compare_records:
  *
  * If the value in sort_col for r1 is "greater than" r2 returns +1
@@ -473,7 +473,7 @@ static gint search_gui_compare_records(
         case c_sr_ext:
             result = strcmp(r1->ext, r2->ext);
             break;
-		
+
         case c_sr_size:
 			/*
 			 * Sort by size, then by identical SHA1.
@@ -486,14 +486,14 @@ static gint search_gui_compare_records(
 			else
 				result = (r1->size > r2->size) ? +1 : -1;
             break;
-			
+
         case c_sr_info:
 			result = strncmp(rs1->vendor, rs2->vendor, sizeof(rs1->vendor));
 			if (result)
 				break;
             result = CMP(rs1->status, rs2->status);
             break;
-			
+
         case c_sr_count:
 			/*
 			 * Sort by count (#), then by size.
@@ -503,7 +503,7 @@ static gint search_gui_compare_records(
 			else
 				result = CMP(g1->num_children, g2->num_children);
             break;
-				
+
         case c_sr_loc:
             result = CMP(rs1->country, rs2->country);
             break;
@@ -519,48 +519,48 @@ static gint search_gui_compare_records(
 	return result;
 }
 
-/* 
+/*
  * search_gui_insert_with_sort:
  *
  * Inserts the given node into the given list in the proper position.  Assumes
- * list has at least one item already and is sorted.  Note: this is extremely 
+ * list has at least one item already and is sorted.  Note: this is extremely
  * time critical code, some code duplication is intentional.
  */
 GList *search_gui_insert_with_sort(GList *list, GtkCTreeNode *node,
 	GtkCTree *ctree, gboolean ascending, gint sort_col)
 {
 	GList *l;
-	gint i; 
-	gint result;	
+	gint i;
+	gint result;
 	gui_record_t *rkey;
-	gui_record_t *rlist;	
-	
+	gui_record_t *rlist;
+
 	rkey = gtk_ctree_node_get_row_data(ctree, node);
     list = g_list_first(list);
 
-	if (ascending) {	
-		
+	if (ascending) {
+
 		for (i = 0, l=list;; l = g_list_next(l), i++) {
-				
+
 			rlist = gtk_ctree_node_get_row_data(ctree, l->data);
 			result = search_gui_compare_records(sort_col, rkey, rlist);
 
 			if (result <= 0) {
                 /* Our entry is "less" than the current (l)*/
-					
-                /* 
+
+                /*
                  * FIXME? g_list_insert is O(n). It might be possible
                  * to speed this up using the GList internals and a
                  * proper insertion funtion in glib-missing.c
                  *    -- BLUE 17/01/2004
                  */
-				
+
 				/*
 				 * The purpose of using this sort hinges upon the assumption
 				 * that this insert will be O(1) if i == 0, ie. if we're working
 				 * with already ordered data
 				 * 	 -- Emile
-				 */				
+				 */
 
                 /* Prepends if i == 0 */
 				list = g_list_insert(list, node, i);
@@ -569,13 +569,13 @@ GList *search_gui_insert_with_sort(GList *list, GtkCTreeNode *node,
                 /* Our entry is "greater" than the current (l).
                  *
                  * If we are the the end, then we append the node,
-                 * otherwise we go on... 
+                 * otherwise we go on...
                  */
     			if (NULL == l->next) {
                     /*
                      * FIXME? g_list_append is also O(n). Since we are
                      * at the last listitem anyway, why not append a new
-                     * item directly using a custom function from 
+                     * item directly using a custom function from
                      * glib-missing.c?
                      *    -- BLUE 17/01/2004
                      */
@@ -585,16 +585,16 @@ GList *search_gui_insert_with_sort(GList *list, GtkCTreeNode *node,
             }
 		}
 	} else { /* sort descending */
-	
+
 		for (i = 0, l=list;; l = g_list_next(l), i++) {
 
 			rlist = gtk_ctree_node_get_row_data(ctree, l->data);
 			result = search_gui_compare_records(sort_col, rkey, rlist);
 
-			if (result >= 0) { 
+			if (result >= 0) {
                 /* Entry is "greater" than the current (l)*/
 
-                /* 
+                /*
                  * FIXME? g_list_insert is O(n). It might be possible
                  * to speed this up using the GList internals and a
                  * proper insertion funtion in glib-missing.c
@@ -606,22 +606,22 @@ GList *search_gui_insert_with_sort(GList *list, GtkCTreeNode *node,
 				 * that this insert will be O(1) if i == 0, ie. if we're working
 				 * with already ordered data
 				 * 	 -- Emile
-				 */				
+				 */
 
                 /* Prepends if i == 0 */
-				list = g_list_insert(list, node, i); 
+				list = g_list_insert(list, node, i);
                 break;
 			} else {
                 /* Our entry is "less" than the current (l).
                  *
                  * If we are the the end, then we append the node,
-                 * otherwise we go on... 
+                 * otherwise we go on...
                  */
                 if (NULL == l->next) {
                     /*
                      * FIXME? g_list_append is also O(n). Since we are
                      * at the last listitem anyway, why not append a new
-                     * item directly using a custom function from 
+                     * item directly using a custom function from
                      * glib-missing.c?
                      *    -- BLUE 17/01/2004
                      */
@@ -629,14 +629,14 @@ GList *search_gui_insert_with_sort(GList *list, GtkCTreeNode *node,
                     break;
                 }
             }
-		}					
+		}
 	}
 
-	return list;				
+	return list;
 }
 
 
-/* 
+/*
  * search_gui_quick_sort_array_swap:
  *
  * Swaps the values in the given array for the given indicies
@@ -650,12 +650,12 @@ void search_gui_quick_sort_array_swap(GArray *array, gint i1, gint i2)
  *    -- Richard, 6/2/2004
  *
  *	GtkCTreeNode *n1;
- *	
+ *
  *	n1 = g_array_index(array, GtkCTreeNode *, i1);
  *	g_array_remove_index(array, i1);
- *	g_array_insert_val(array, i1, g_array_index(array, GtkCTreeNode *, i2));	
+ *	g_array_insert_val(array, i1, g_array_index(array, GtkCTreeNode *, i2));
  *	g_array_remove_index(array, i2);
- *	g_array_insert_val(array, i2, n1);	
+ *	g_array_insert_val(array, i2, n1);
 */
     GtkCTreeNode *buf;
 
@@ -665,26 +665,26 @@ void search_gui_quick_sort_array_swap(GArray *array, gint i1, gint i2)
 }
 
 
-/* 
+/*
  * search_gui_quick_sort:
  *
- * Performs a recursive quick sort on the given array between indicies beg and 
+ * Performs a recursive quick sort on the given array between indicies beg and
  * end.  Note: this is extremely time critical code, some code duplication is
  * intentional.
  */
-void search_gui_quick_sort(GArray *array, gint beg, gint end, 
+void search_gui_quick_sort(GArray *array, gint beg, gint end,
 	GtkCTree *ctree, gboolean ascending, gint sort_col)
 {
 	gui_record_t *pivot_record;
     GtkCTreeNode *pivot_node;
     gint pivot_index;
-	
+
     /* terminate recursion */
-	if (beg >= end) 
-		return;	
+	if (beg >= end)
+		return;
 
 	/* Choose the item in the middle for the pivot, swap it to the end */
-	search_gui_quick_sort_array_swap(array, end, (beg + end) / 2);	
+	search_gui_quick_sort_array_swap(array, end, (beg + end) / 2);
 
     /* Fetch the value of the pivot element for later comparison */
     pivot_node   = g_array_index(array, GtkCTreeNode *, end);
@@ -699,8 +699,8 @@ void search_gui_quick_sort(GArray *array, gint beg, gint end,
 
         /* only go up to the second last element as the last is the pivot */
 	    for (i = beg; i < end; i++) {
-		
-			ri = gtk_ctree_node_get_row_data(ctree, 
+
+			ri = gtk_ctree_node_get_row_data(ctree,
 				g_array_index(array, GtkCTreeNode *, i));
 			result = search_gui_compare_records(sort_col, pivot_record, ri);
 
@@ -716,8 +716,8 @@ void search_gui_quick_sort(GArray *array, gint beg, gint end,
         gui_record_t *ri;
 
 	    for (i = beg; i < end; i++) {
-		
-			ri = gtk_ctree_node_get_row_data(ctree, 
+
+			ri = gtk_ctree_node_get_row_data(ctree,
 				g_array_index(array, GtkCTreeNode *, i));
 			result = search_gui_compare_records(sort_col, pivot_record, ri);
 
@@ -728,24 +728,24 @@ void search_gui_quick_sort(GArray *array, gint beg, gint end,
 		}
 	}
 
-	
+
 	/* move pivot from end to its final place */
 	search_gui_quick_sort_array_swap(array, end, pivot_index);
 
-	search_gui_quick_sort(array, beg, pivot_index - 1, ctree, 
+	search_gui_quick_sort(array, beg, pivot_index - 1, ctree,
 		ascending, sort_col);
-	search_gui_quick_sort(array, pivot_index + 1, end, ctree, 
+	search_gui_quick_sort(array, pivot_index + 1, end, ctree,
 		ascending, sort_col);
 }
 
 
-/* 
+/*
  * search_gui_analyze_col_data:
  *
  * Analyze the data in the given column to decide what type of search should
- * be performed.  This function detects whether the data is alreadt sorted 
+ * be performed.  This function detects whether the data is alreadt sorted
  * ascending, descending, appears to be random, is sorting via tha count column,
- * or via the info column.  
+ * or via the info column.
  */
 gint search_gui_analyze_col_data(GtkCTree *ctree, gint sort_col)
 {
@@ -754,18 +754,18 @@ gint search_gui_analyze_col_data(GtkCTree *ctree, gint sort_col)
 	gboolean ascending = TRUE;
 	gboolean descending = TRUE;
 	gboolean random = FALSE;
-	gint i; 
+	gint i;
 	gint result;
 	gui_record_t *rcur;
-	gui_record_t *rprev;	
-	
+	gui_record_t *rprev;
+
 	if (c_sr_count == sort_col)
 		return SEARCH_COL_SORT_DATA_COUNT;
 
 	if (c_sr_info == sort_col)
 		return SEARCH_COL_SORT_DATA_INFO;
-	
-	
+
+
 	prev_node = GTK_CTREE_NODE(GTK_CLIST(ctree)->row_list);
 	rcur = gtk_ctree_node_get_row_data(ctree, prev_node);
 
@@ -774,46 +774,46 @@ gint search_gui_analyze_col_data(GtkCTree *ctree, gint sort_col)
      * nodes. The number can only be seen as an estimation.
      *     -- BLUE 17/01/2004
 	 */
-	if (50 > g_list_length((GList *) prev_node)) 
+	if (50 > g_list_length((GList *) prev_node))
 		return SEARCH_COL_SORT_DATA_DEFAULT;
-		
+
     /*
      * Since the sorting later will also only take place on the top-level
      * nodes, we will only analyze them.
      *    -- BLUE 17/01/2004
      */
 	for (
-        cur_node = GTK_CTREE_NODE_SIBLING(prev_node), i = 0; 
-        i < 50 && NULL != cur_node; 
+        cur_node = GTK_CTREE_NODE_SIBLING(prev_node), i = 0;
+        i < 50 && NULL != cur_node;
         i++, prev_node = cur_node, cur_node = GTK_CTREE_NODE_SIBLING(cur_node)
-    ) {	
+    ) {
 
 		rprev = rcur;
 		rcur = gtk_ctree_node_get_row_data(ctree, cur_node);
 		result = search_gui_compare_records(sort_col, rcur, rprev);
 
-		if (0 < result) 
+		if (0 < result)
 			descending = FALSE;
-		
-		if (0 > result) 
+
+		if (0 > result)
 			ascending = FALSE;
 
 		if (!ascending && !descending) {
-			random = TRUE;		
+			random = TRUE;
 			break;
 		}
 	}
-	
-	if (random)	
+
+	if (random)
 		return SEARCH_COL_SORT_DATA_RANDOM;
 
-	if (ascending)	
+	if (ascending)
 		return SEARCH_COL_SORT_DATA_SORTED_ASC;
 
-	if (descending)	
+	if (descending)
 		return SEARCH_COL_SORT_DATA_SORTED_DES;
 
-	return SEARCH_COL_SORT_DATA_DEFAULT;	
+	return SEARCH_COL_SORT_DATA_DEFAULT;
 }
 
 
@@ -822,31 +822,31 @@ gint search_gui_analyze_col_data(GtkCTree *ctree, gint sort_col)
  *
  *	Sorts the given ctree using a quicksort algorithm.
  *  Theoretically this should be O(nlogn)
- *	
+ *
  *	The default GtkCTree sort is a mergesort which works fine for small data
- *	sets.  Due to the nature of GtkCTree's and the size of the structures being 
+ *	sets.  Due to the nature of GtkCTree's and the size of the structures being
  *	passed around, the speed is unacceptable for larger sets (>2000).
- *	
+ *
  *	We therefore implement an analytical approach to minimize sort times.  We
  *	examine the first few elements of a list and try to determine the nature of
  *	the data set and then choose the best of the following algorithms.
- *	
+ *
  *	1. Default Mergesort: The built-in merge sort works fine for random sets
  *	of varied data.  eg. Sorting by name after retreiving fresh results.  If the
- *	data seems random and we're not sorting by count or info, we use this 
- *	algorithm.  
- *	
+ *	data seems random and we're not sorting by count or info, we use this
+ *	algorithm.
+ *
  *	2. Insertion Sort: Performs stunningly on ordered or almost ordered data
  *	with a complexity of about O(n).  Fortunately for us it is a common case.
- *	Users will often sort a column ascending and then resort it descending.  
+ *	Users will often sort a column ascending and then resort it descending.
  *	Merge/quicksort do not to so well with ordered data (besides which most of
  *	the work is done already).
- *	
+ *
  *	3. ??? sort.  The info and count columns contain very few different
  *	elements with a large amount of repetition.  Insertion sort seems to work
  *	acceptably for count, but marginly for the info column.  Quicksort performs
- *  dismally for both info and count.  Probably some sort of pseudeo intelligent 
- *  insertion sort will be needed, ie. one that makes an almost ordered list 
+ *  dismally for both info and count.  Probably some sort of pseudeo intelligent
+ *  insertion sort will be needed, ie. one that makes an almost ordered list
  *  followed by a cleanup algorithm.
  */
 void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
@@ -856,37 +856,37 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 	gint n;
 	gint col_data;
 
-	/* Nothing to sort */	
+	/* Nothing to sort */
 	if (NULL == GTK_CLIST(ctree)->row_list)
 		return;
-	
+
 	col_data = search_gui_analyze_col_data(ctree, sort_col);
 
 	switch (col_data) {
-		
+
 	case SEARCH_COL_SORT_DATA_SORTED_ASC:
 	case SEARCH_COL_SORT_DATA_SORTED_DES:
 	case SEARCH_COL_SORT_DATA_COUNT:
-	case SEARCH_COL_SORT_DATA_INFO:	
-        /* 
-         * Use an insertion sort:  
-         *   O(n) for ordered data, 
-         *   <O(n*n) for unordered 
+	case SEARCH_COL_SORT_DATA_INFO:
+        /*
+         * Use an insertion sort:
+         *   O(n) for ordered data,
+         *   <O(n*n) for unordered
          */
 
 		cur_node = GTK_CTREE_NODE(GTK_CLIST(ctree)->row_list);
         g_assert(NULL == GTK_CTREE_ROW(cur_node)->parent);
-		
+
 		if (NULL != cur_node) {
             GList *temp_list;
             GList *l;
 
-            /* 
-             * We add 1st node outside of the loop to get rid of 
+            /*
+             * We add 1st node outside of the loop to get rid of
              * N comparisons.
              */
 			temp_list = g_list_append(NULL, cur_node);
-		
+
 			/*
 			 * Sort into a glist:
 			 *   O(n) for ordered data,
@@ -894,11 +894,11 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 			 */
 
             /*
-             * We fetch all the top-level nodes from the tree and using 
+             * We fetch all the top-level nodes from the tree and using
              * insertion-sort add it to the temp_list.
              */
-    
-            /* It is  necessary to interate over the 
+
+            /* It is  necessary to interate over the
              * GTK_CTREE_NODE_SIBLINGs here. Using GTK_CTREE_NODE_NEXT
              * doesn't work with fast_move because it also iterates
              * over expanded children.
@@ -919,15 +919,15 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 				cur_node = GTK_CTREE_NODE_SIBLING(cur_node);
 				(NULL != cur_node);
 				cur_node = GTK_CTREE_NODE_SIBLING(cur_node)
-			) {	
-				temp_list = search_gui_insert_with_sort(temp_list, 
-					cur_node, ctree, ascending, sort_col); 
+			) {
+				temp_list = search_gui_insert_with_sort(temp_list,
+					cur_node, ctree, ascending, sort_col);
 			}
 
 			/* Now order the CTree using the list O(n) */
 			gtk_clist_freeze(GTK_CLIST(ctree));
-			
-			/* We move everything to the top of the old tree, backwards.  This 
+
+			/* We move everything to the top of the old tree, backwards.  This
 			 * is because "move" has optimized this way.
 			 */
 			prev_node = GTK_CTREE_NODE(GTK_CLIST(ctree)->row_list);
@@ -937,7 +937,7 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 				l = g_list_previous(l)
             ) {
                 cur_node = l->data;
-	
+
 				if (prev_node == cur_node)
 					continue;
 
@@ -957,13 +957,13 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 
 		/* Use a quick sort:  Average of O(nlogn) for random data */
 
-		/* 
+		/*
          * Convert the search tree into an array O(n)... actually only
          * the top-level nodes, otherwise fast_move will fail.
          */
 		for (
             cur_node = GTK_CTREE_NODE(GTK_CLIST(ctree)->row_list);
-			NULL != cur_node; 
+			NULL != cur_node;
             cur_node = GTK_CTREE_NODE_SIBLING(cur_node)
         ) {
             g_array_append_val(array, cur_node);
@@ -981,37 +981,37 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 			cur_node = g_array_index(array, GtkCTreeNode *, n);
 			gtk_ctree_fast_move(ctree, cur_node, prev_node);
 			prev_node = cur_node;
-		}	
-		gtk_clist_thaw(GTK_CLIST(ctree));	
+		}
+		gtk_clist_thaw(GTK_CLIST(ctree));
 
 		g_array_free(array, TRUE);
 		break; /* End of all cases using quicksort */
-	}	
+	}
 
 #if 0
 	/* Use GTK's default sort functionality (a merge sort I think) */
-		
+
 		/* set compare function */
-		gtk_clist_set_compare_func(GTK_CLIST(ctree), 
+		gtk_clist_set_compare_func(GTK_CLIST(ctree),
 			search_results_compare_func);
-   
+
 		/* set sort type */
 		switch (ascending) {
 		case SORT_ASC:
     	   	gtk_clist_set_sort_type(GTK_CLIST(ctree), GTK_SORT_ASCENDING);
-        	break;  
+        	break;
 
 		case SORT_DESC:
     	   	gtk_clist_set_sort_type(GTK_CLIST(ctree), GTK_SORT_DESCENDING);
         	break;
-		}	
+		}
 
 		gtk_clist_set_sort_column(GTK_CLIST(ctree), sort_col);
 	    gtk_ctree_sort_node(ctree, NULL);
 		break;
 #endif
-	
-		
+
+
 	default:
         g_assert_not_reached();
 	}
@@ -1021,8 +1021,8 @@ void search_gui_perform_sort(GtkCTree *ctree, gboolean ascending, gint sort_col)
 /*
  * search_gui_sort_column
  *
- * Draws arrows for the given column of the GtkCTree and 
- * sorts the contents of the GtkCTree according to the 
+ * Draws arrows for the given column of the GtkCTree and
+ * sorts the contents of the GtkCTree according to the
  * sorting parameters set in search
  */
 void search_gui_sort_column(search_t *search, gint column)
@@ -1031,17 +1031,17 @@ void search_gui_sort_column(search_t *search, gint column)
 	gboolean ascending = TRUE;
 
    /* destroy existing arrow */
-    if (search->arrow != NULL) { 
+    if (search->arrow != NULL) {
         gtk_widget_destroy(search->arrow);
         search->arrow = NULL;
-    }     
+    }
 
     /* create new arrow */
     switch (search->sort_order) {
     case SORT_ASC:
         search->arrow = create_pixmap(main_window, "arrow_up.xpm");
 		ascending = TRUE;
-        break;  
+        break;
     case SORT_DESC:
         search->arrow = create_pixmap(main_window, "arrow_down.xpm");
 		ascending = FALSE;
@@ -1057,7 +1057,7 @@ void search_gui_sort_column(search_t *search, gint column)
         cw = gtk_clist_get_column_widget
                  (GTK_CLIST(search->ctree), column);
         if (cw != NULL) {
-            gtk_box_pack_start(GTK_BOX(cw), search->arrow, 
+            gtk_box_pack_start(GTK_BOX(cw), search->arrow,
                                FALSE, FALSE, 0);
             gtk_box_reorder_child(GTK_BOX(cw), search->arrow, 0);
             gtk_widget_show(search->arrow);
@@ -1100,7 +1100,7 @@ void search_gui_add_record(
 	GtkCTreeRow *row;
 	GtkCTreeRow	*parent_row;
 	GtkCTree *ctree = GTK_CTREE(sch->ctree);
-	
+
 	info = g_string_assign(info, "");
 	if (rc->tag) {
 		guint len = strlen(rc->tag);
@@ -1136,8 +1136,8 @@ void search_gui_add_record(
 
 	if (NULL != rc->info)
 		atom_str_free(rc->info);
-	rc->info = atom_str_get(info->str);	
-	
+	rc->info = atom_str_get(info->str);
+
 	g_string_free(info, TRUE);
 
 	/* Setup text for node.  Note only parent nodes will have # and size shown*/
@@ -1152,7 +1152,7 @@ void search_gui_add_record(
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rs->speed);
 
 	/* Add the search result to the ctree */
-	
+
 	/* Record memory is freed automatically by function set later on using
 	 * gtk_ctree_node_set_row_data_full
 	 */
@@ -1171,11 +1171,11 @@ void search_gui_add_record(
 			node = gtk_ctree_insert_node(ctree, parent, NULL,
 						(gchar **) titles, /* override const */
 						5, NULL, NULL, NULL, NULL, 0, 0);
-			
-			/*Update the "#" column of the parent, +1 for parent */			
-			count = gtk_ctree_count_node_children(ctree, parent);			
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%u", count+1); 
-			gtk_ctree_node_set_text(ctree, parent, c_sr_count, tmpstr); 
+
+			/*Update the "#" column of the parent, +1 for parent */
+			count = gtk_ctree_count_node_children(ctree, parent);
+			gm_snprintf(tmpstr, sizeof(tmpstr), "%u", count+1);
+			gtk_ctree_node_set_text(ctree, parent, c_sr_count, tmpstr);
 
 			/* Update count in the records (use for column sorting) */
 			gui_rc->num_children = 0;
@@ -1198,8 +1198,8 @@ void search_gui_add_record(
 			gui_rc->num_children = 0;
 			is_parent = TRUE;
 		}
-		
-	} else { /* Add node as a parent with no SHA1 */ 
+
+	} else { /* Add node as a parent with no SHA1 */
 		titles[c_sr_size] = short_size(rc->size);
 
 		node = gtk_ctree_insert_node(ctree, parent = NULL, NULL,
@@ -1209,7 +1209,7 @@ void search_gui_add_record(
 		gui_rc->num_children = 0;
 		is_parent = TRUE;
 	}
-	
+
 	search_gui_ref_record(rc);
     gtk_ctree_node_set_row_data_full(ctree, node, (gpointer) gui_rc,
 		search_gui_free_gui_record);
@@ -1223,11 +1223,11 @@ void search_gui_add_record(
          * work.
 		 * So we need to find the place to put the result by ourselves.
 		 */
-		
+
 		/* If the node added was a child and the column is sorted by count we
 		 * have to re-sort the parent node (it's count was just updated)
 		 * moving the parent will move the children too so we just pretend that
-		 * the parent node was actually the node that was added, not the child. 
+		 * the parent node was actually the node that was added, not the child.
 		 */
 		if (!is_parent && (c_sr_count == sch->sort_col)) {
 			is_parent = TRUE;
@@ -1238,34 +1238,34 @@ void search_gui_add_record(
 			auto_node = node;
 			grc1 = gui_rc;
 		}
-		
+
 		if (is_parent) {
 			parent = NULL;
 			sibling = NULL;
-			
+
 			/* Traverse the entire search tree */
 			for (
                 cur_node = GTK_CTREE_NODE(GTK_CLIST(sch->ctree)->row_list);
-				(NULL != cur_node); 
+				(NULL != cur_node);
                 cur_node = GTK_CTREE_NODE_NEXT (cur_node)
-            ) {			
+            ) {
 
 				row = GTK_CTREE_ROW(cur_node);
 
 				/* If node is a child node, we skip it */
 				if (NULL != row->parent)
-					continue; 			
-		
+					continue;
+
 				grc2 = gtk_ctree_node_get_row_data(ctree, cur_node);
-	
+
 				if (grc1 == grc2)
 					continue;
-				
+
 				if (SORT_ASC == sch->sort_order) {
  	            	if (search_gui_compare_records(sch->sort_col, grc1, grc2) < 0){
 						sibling = cur_node;
 						break;
-					} 
+					}
 				} else { /* SORT_DESC */
 					if (search_gui_compare_records(sch->sort_col, grc1, grc2) > 0){
 						sibling = cur_node;
@@ -1273,21 +1273,21 @@ void search_gui_add_record(
 					}
 				}
 			}
-			
+
 		} else { /* Is a child node */
 			row = GTK_CTREE_ROW(auto_node);
 			parent = row->parent;
 			g_assert(NULL != parent);
 			sibling = NULL;
-			
+
 			parent_row = GTK_CTREE_ROW(parent);
 			cur_node = parent_row->children; /* start looking at first child */
 
-			for (; NULL != cur_node; row = GTK_CTREE_ROW(cur_node), 
-					cur_node = row->sibling) {		
+			for (; NULL != cur_node; row = GTK_CTREE_ROW(cur_node),
+					cur_node = row->sibling) {
 
 				grc2 = gtk_ctree_node_get_row_data(ctree, cur_node);
-	
+
 				if (SORT_ASC == sch->sort_order) {
  	            	if (search_gui_compare_records(sch->sort_col, grc1, grc2) < 0){
 						sibling = cur_node;
@@ -1301,7 +1301,7 @@ void search_gui_add_record(
 				}
 			}
 		}
-		
+
 		gtk_ctree_move(ctree, auto_node, parent, sibling);
 	}
 
@@ -1331,11 +1331,11 @@ void search_gui_set_clear_button_sensitive(gboolean flag)
 /*
  * search_gui_remove_result
  *
- * Removes the given node from the ctree 
+ * Removes the given node from the ctree
  */
 static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 {
-	gui_record_t *grc = NULL;	
+	gui_record_t *grc = NULL;
 	gui_record_t *parent_grc;
 	gui_record_t *child_grc;
 	record_t *rc;
@@ -1360,57 +1360,57 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 	row = GTK_CTREE_ROW(node);
 	if (NULL == row->parent) {
 
-		/* 
+		/*
          * It has no parents, therefore it must be a parent.
 		 * If it has children, then we are removing the parent but not the
-		 * children 
-		 */		
+		 * children
+		 */
 		if (NULL != row->children) {
 
-			/* 
+			/*
              * We move the first child into the position originally occupied
 			 * by the parent, then we move all the children of the parent into
-			 * that child node (making it a parent).  Finally we delete the 
+			 * that child node (making it a parent).  Finally we delete the
 			 * old parent.
 			 */
-				
+
 			old_parent = node;
-			old_parent_sibling = row->sibling;			
-		
+			old_parent_sibling = row->sibling;
+
 			child_node = row->children;	/* The first child of node */
-			child_sibling = GTK_CTREE_NODE_SIBLING(child_node);		
-			
+			child_sibling = GTK_CTREE_NODE_SIBLING(child_node);
+
 			gtk_ctree_move(ctree, child_node, NULL, old_parent_sibling);
-			
+
 			while (NULL != child_sibling) {
                 GtkCTreeNode *temp_node = child_sibling;
 
 				child_sibling = GTK_CTREE_NODE_SIBLING(child_sibling);
-				gtk_ctree_move(ctree, temp_node, child_node, NULL);					
+				gtk_ctree_move(ctree, temp_node, child_node, NULL);
 			}
-			
+
 			gtk_ctree_remove_node(ctree, old_parent);
 
-			/* Now update the new parent (just promoted from child) */			
+			/* Now update the new parent (just promoted from child) */
 			child_grc = gtk_ctree_node_get_row_data(ctree, child_node);
-			
+
 			/* Calculate # column */
 			n = gtk_ctree_count_node_children(ctree, child_node);
 			if (0 < n) {
-				gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n+1); 
+				gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n+1);
 			} else {
 				*tmpstr = '\0';
             }
 
 			/* Update record count, child_rc will become the rc for the parent*/
 			child_grc->num_children = n;
-			
+
 			/* Now actually modify the new parent node */
-			gtk_ctree_node_set_text(ctree, child_node, 
-                c_sr_count, tmpstr);		
-			gtk_ctree_node_set_text(ctree, child_node, 
+			gtk_ctree_node_set_text(ctree, child_node,
+                c_sr_count, tmpstr);
+			gtk_ctree_node_set_text(ctree, child_node,
                 c_sr_size, short_size(rc->size));
-			
+
 			/* Our hashtable contains the hash for the original parent (which we
 			 * just removed) so we must remove that hash entry and create one
 			 * for the new parent.
@@ -1418,8 +1418,8 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 			remove_parent_with_sha1(current_search->parents, rc->sha1);
 			key = atom_sha1_get(rc->sha1);
 			add_parent_with_sha1(current_search->parents, key, child_node);
-			
-			
+
+
 		} else {
 			/* The row has no children, remove it's sha1 and the row itself */
 			if (NULL != rc->sha1)
@@ -1435,7 +1435,7 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 		/* Now remove the row */
 		gtk_ctree_remove_node(ctree, node);
 
-		
+
 		/* Now update the "#" column of the parent */
 		n = gtk_ctree_count_node_children(ctree, old_parent);
 		if (0 < n)
@@ -1443,11 +1443,11 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 		else
 			*tmpstr = '\0';
 		gtk_ctree_node_set_text(ctree, old_parent, c_sr_count, tmpstr);
-	
+
 		parent_grc = gtk_ctree_node_get_row_data(ctree, old_parent);
 		parent_grc->num_children = n;
 	}
-	
+
 	/*
 	 * Remove two references to this record.
 	 *
@@ -1456,7 +1456,7 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 	 *  not so with GTK1, so we have to do it ourselves)
 	*/
 	g_hash_table_remove(current_search->dups, rc);
-	search_gui_unref_record(rc);	
+	search_gui_unref_record(rc);
 	search_gui_unref_record(rc);
 }
 
@@ -1466,9 +1466,9 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
  * Returns the amount of downloads actually created, and the amount of
  * items in the selection within `selected'.
  */
-static guint 
+static guint
 download_selection_of_ctree(
-	GtkCTree *ctree, 
+	GtkCTree *ctree,
 	guint *selected)
 {
 	struct results_set *rs;
@@ -1490,23 +1490,23 @@ download_selection_of_ctree(
 
 	gtk_clist_freeze(GTK_CLIST(ctree));
 
-	/* Selection list changes after we process each selected node, so we have to 
+	/* Selection list changes after we process each selected node, so we have to
 	 * "re-get" it each iteration.
 	 */
 	for (
-		sel_list = GTK_CLIST(ctree)->selection; 
+		sel_list = GTK_CLIST(ctree)->selection;
 		sel_list != NULL;
 		sel_list = GTK_CLIST(ctree)->selection
 	) {
 		node = sel_list->data;
 		if (NULL == node)
 			break;
-		
+
 		count++;
 
-		grc = gtk_ctree_node_get_row_data(ctree, node);		
+		grc = gtk_ctree_node_get_row_data(ctree, node);
 		rc = grc->shared_record;
-		
+
         if (!rc) {
 			g_warning("download_selection_of_ctree(): row has NULL data");
 			continue;
@@ -1516,7 +1516,7 @@ download_selection_of_ctree(
 		need_push = (rs->status & ST_FIREWALL) != 0;
 
 		filename = gm_sanitize_filename(rc->name, FALSE, FALSE);
-		if (guc_download_new(filename, rc->size, rc->index, 
+		if (guc_download_new(filename, rc->size, rc->index,
 				rs->ip, rs->port, rs->guid, rs->hostname,
 				rc->sha1, rs->stamp, need_push, NULL, rs->proxies)
 		) {
@@ -1533,16 +1533,16 @@ download_selection_of_ctree(
 			search_gui_check_alt_locs(rs, rc);
 
         if (remove_downloaded) {
-			/* Check if we should re-sort after we remove the download.  
-			 * Re-sorting for every remove is too laggy and unnecessary.  If the 
-			 * search is not sorted by count we don't re-sort.  If the 
+			/* Check if we should re-sort after we remove the download.
+			 * Re-sorting for every remove is too laggy and unnecessary.  If the
+			 * search is not sorted by count we don't re-sort.  If the
 			 * node is a parent we re-sort if the next node to be removed is not
 		     * it's first child.  If the node is a child, we re-sort if the next
 			 * node to be removed is not the next sibling.  Finally, we re-sort
 			 * if the last child of a tree is selected.
 			 *
 		     * This assumes that the selection list will be in order, otherwise
-			 * it will re-sort on every remove in a tree (although it won't 
+			 * it will re-sort on every remove in a tree (although it won't
 			 * re-sort for parent nodes with no children).
 			 *
 			 * We need to check this before we actually remove the node.
@@ -1551,37 +1551,37 @@ download_selection_of_ctree(
              * during the walk wether we need to resort and resort at the end.
              *     -- Richard, 17/04/2004
 			 */
-	
+
 			if (!resort && c_sr_count == current_search->sort_col) {
 				row = GTK_CTREE_ROW(node);
 
 				if (NULL == row->parent) {
 					/* If it's a parent and the first child is not selected */
 					if (NULL != row->children) {
-						if (NULL == sel_list->next)		
-							resort = TRUE;	
-						else if (sel_list->next->data != row->children) 
-								resort = TRUE;	
+						if (NULL == sel_list->next)
+							resort = TRUE;
+						else if (sel_list->next->data != row->children)
+								resort = TRUE;
 					}
 				} else {
 					/* If it's a child and the next sibling is not selected */
 					if (NULL != row->sibling) {
 						if (NULL == sel_list->next)
-							resort = TRUE;	
+							resort = TRUE;
 						else if (sel_list->next->data != row->sibling)
-								resort = TRUE;	
+								resort = TRUE;
 					}
-				
+
 					/* If it's a child and it has no sibling */
 					if (NULL == row->sibling)
-						resort = TRUE;	
-				}					
+						resort = TRUE;
+				}
 			}
 
 			search_gui_remove_result(ctree, node);
 		} else {
             /* make it visibile that we already selected this for download */
-            gtk_ctree_node_set_foreground(ctree, node, 
+            gtk_ctree_node_set_foreground(ctree, node,
                 &gtk_widget_get_style(
                     GTK_WIDGET(ctree))->fg[GTK_STATE_ACTIVE]);
 			gtk_ctree_unselect(ctree, node);
@@ -1591,13 +1591,13 @@ download_selection_of_ctree(
 	if (resort) {
 		search_gui_sort_column(current_search, current_search->sort_col);
 	}
-	
+
 	gtk_clist_unselect_all(GTK_CLIST(ctree));
 	gtk_clist_thaw(GTK_CLIST(ctree));
 
     gui_search_force_update_tab_label(current_search);
     search_gui_update_items(current_search);
-    guc_search_update_items(current_search->search_handle, 
+    guc_search_update_items(current_search->search_handle,
 		current_search->items);
 
 	*selected = count;
@@ -1608,7 +1608,7 @@ download_selection_of_ctree(
  * Discard all the search results selected in the ctree.
  * Returns the amount of discarded results.
  */
-static guint 
+static guint
 discard_selection_of_ctree(
 	GtkCTree *ctree)
 {
@@ -1623,11 +1623,11 @@ discard_selection_of_ctree(
 
 	gtk_clist_freeze(GTK_CLIST(ctree));
 
-	/* Selection list changes after we process each selected node, so we have to 
+	/* Selection list changes after we process each selected node, so we have to
 	 * "re-get" it each iteration.
 	 */
 	for (
-		sel_list = GTK_CLIST(ctree)->selection; 
+		sel_list = GTK_CLIST(ctree)->selection;
 		sel_list != NULL;
 		sel_list = GTK_CLIST(ctree)->selection
 	) {
@@ -1635,9 +1635,9 @@ discard_selection_of_ctree(
 		if (NULL == node)
 			break;
 
-		grc = gtk_ctree_node_get_row_data(ctree, node);		
+		grc = gtk_ctree_node_get_row_data(ctree, node);
 		rc = grc->shared_record;
-		
+
         if (!rc) {
 			g_warning("discard_selection_of_ctree(): row has NULL data");
 			continue;
@@ -1645,16 +1645,16 @@ discard_selection_of_ctree(
 
 		discarded++;
 
-		/* Check if we should re-sort after we remove the entry.  
-		 * Re-sorting for every remove is too laggy and unnecessary.  If the 
-		 * search is not sorted by count we don't re-sort.  If the 
+		/* Check if we should re-sort after we remove the entry.
+		 * Re-sorting for every remove is too laggy and unnecessary.  If the
+		 * search is not sorted by count we don't re-sort.  If the
 		 * node is a parent we re-sort if the next node to be removed is not
          * it's first child.  If the node is a child, we re-sort if the next
 		 * node to be removed is not the next sibling.  Finally, we re-sort
 		 * if the last child of a tree is selected.
 		 *
 		 * This assumes that the selection list will be in order, otherwise
-		 * it will re-sort on every remove in a tree (although it won't 
+		 * it will re-sort on every remove in a tree (although it won't
 		 * re-sort for parent nodes with no children).
 		 *
 		 * We need to check this before we actually remove the node.
@@ -1663,31 +1663,31 @@ discard_selection_of_ctree(
          * during the walk wether we need to resort and resort at the end.
          *     -- Richard, 17/04/2004
 		 */
-	
+
 		if (!resort && c_sr_count == current_search->sort_col) {
 			row = GTK_CTREE_ROW(node);
 
 			if (NULL == row->parent) {
 				/* If it's a parent and the first child is not selected */
 				if (NULL != row->children) {
-					if (NULL == sel_list->next)		
-						resort = TRUE;	
-					else if (sel_list->next->data != row->children) 
-							resort = TRUE;	
+					if (NULL == sel_list->next)
+						resort = TRUE;
+					else if (sel_list->next->data != row->children)
+							resort = TRUE;
 				}
 			} else {
 				/* If it's a child and the next sibling is not selected */
 				if (NULL != row->sibling) {
 					if (NULL == sel_list->next)
-						resort = TRUE;	
+						resort = TRUE;
 					else if (sel_list->next->data != row->sibling)
-							resort = TRUE;	
+							resort = TRUE;
 				}
-				
+
 				/* If it's a child and it has no sibling */
 				if (NULL == row->sibling)
-					resort = TRUE;	
-			}					
+					resort = TRUE;
+			}
 		}
 
 		search_gui_remove_result(ctree, node);
@@ -1696,13 +1696,13 @@ discard_selection_of_ctree(
 	if (resort) {
 		search_gui_sort_column(current_search, current_search->sort_col);
 	}
-	
+
 	gtk_clist_unselect_all(GTK_CLIST(ctree));
 	gtk_clist_thaw(GTK_CLIST(ctree));
 
     gui_search_force_update_tab_label(current_search);
     search_gui_update_items(current_search);
-    guc_search_update_items(current_search->search_handle, 
+    guc_search_update_items(current_search->search_handle,
 		current_search->items);
 
 	return discarded;
@@ -1737,7 +1737,7 @@ void search_gui_download_files(void)
 			selected, selected == 1 ? "" : "s");
 	} else {
 		g_warning("search_gui_download_files(): no possible search!\n");
-	}	
+	}
 }
 
 /*
@@ -1767,7 +1767,7 @@ void search_gui_discard_files(void)
 			discarded, discarded == 1 ? "" : "s");
 	} else {
 		g_warning("search_gui_discard_files(): no possible search!\n");
-	}	
+	}
 }
 
 
@@ -1795,7 +1795,7 @@ search_gui_search_results_col_widths_changed(property_t prop)
 
     val = gui_prop_get_guint32(prop, NULL, 0, 0);
 
-    ctree = (current_search != NULL) ? 
+    ctree = (current_search != NULL) ?
 		GTK_CTREE(current_search->ctree) : default_search_ctree;
 
     if (NULL != ctree)
@@ -1825,13 +1825,13 @@ gboolean search_gui_search_results_col_visible_changed(property_t prop)
 
     val = gui_prop_get_boolean(prop, NULL, 0, 0);
 
-    ctree = (current_search != NULL) ? 
+    ctree = (current_search != NULL) ?
         GTK_CTREE(current_search->ctree) : default_search_ctree;
 
     if (ctree != NULL)
         for (i = 0; i < GTK_CLIST(ctree)->columns; i++)
             gtk_clist_set_column_visibility(GTK_CLIST(ctree), i, val[i]);
- 
+
     g_free(val);
     return FALSE;
 }
@@ -1871,7 +1871,7 @@ void search_gui_init(void)
 
 	GtkCTree *ctree;
 	search_t *current_search;
-	
+
 	search_gui_common_init();
 
 	gui_search_create_ctree(&default_scrolled_window, &default_search_ctree);
@@ -1881,7 +1881,7 @@ void search_gui_init(void)
         (notebook_search_results, default_scrolled_window, NULL);
   	gtk_notebook_set_tab_label_text
         (notebook_search_results, default_scrolled_window, _("(no search)"));
-    
+
 	gtk_signal_connect(GTK_OBJECT(combo_searches->popwin),
 					   "hide", GTK_SIGNAL_FUNC(on_search_popdown_switch),
 					   NULL);
@@ -1893,9 +1893,9 @@ void search_gui_init(void)
      */
 	current_search = search_gui_get_current_search();
 
-    ctree = (current_search != NULL) ? 
+    ctree = (current_search != NULL) ?
 		GTK_CTREE(current_search->ctree) : default_search_ctree;
-        
+
 	gtk_clist_restore_visibility(
 		GTK_CLIST(ctree), PROP_SEARCH_RESULTS_COL_VISIBLE);
 
@@ -1915,7 +1915,7 @@ void search_gui_shutdown(void)
     search_remove_got_results_listener(search_gui_got_results);
 	search_gui_store_searches();
 
-    ctree = (current_search != NULL) ? 
+    ctree = (current_search != NULL) ?
 		GTK_CTREE(current_search->ctree) : default_search_ctree;
 
 	gtk_clist_save_visibility(
@@ -1969,14 +1969,14 @@ void search_gui_remove_search(search_t * sch)
     gtk_timeout_remove(sch->tab_updating);
 
     /* remove column header arrow if it exists */
-    if (sch->arrow != NULL) { 
+    if (sch->arrow != NULL) {
         gtk_widget_destroy(sch->arrow);
         sch->arrow = NULL;
-    }     
+    }
 
     if (searches) {				/* Some other searches remain. */
 		gtk_notebook_remove_page(notebook_search_results,
-			gtk_notebook_page_num(notebook_search_results, 
+			gtk_notebook_page_num(notebook_search_results,
 				sch->scrolled_window));
 	} else {
 		/*
@@ -2002,15 +2002,15 @@ void search_gui_remove_search(search_t * sch)
 		gtk_widget_set_sensitive
             (lookup_widget(main_window, "button_search_clear"), FALSE);
 	}
-    
+
 	gtk_widget_set_sensitive(
-        GTK_WIDGET(combo_searches), 
+        GTK_WIDGET(combo_searches),
         searches != NULL);
 	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_search_close"), 
+        lookup_widget(main_window, "button_search_close"),
         searches != NULL);
     gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_search_expand_all"), 
+        lookup_widget(main_window, "button_search_expand_all"),
         searches != NULL);
     gtk_widget_set_sensitive(
         lookup_widget(main_window, "button_search_collapse_all"),
@@ -2031,10 +2031,10 @@ void search_gui_remove_search(search_t * sch)
 /*
  *	search_gui_set_current_search
  *
- *	
+ *
  *
  */
-void search_gui_set_current_search(search_t *sch) 
+void search_gui_set_current_search(search_t *sch)
 {
     search_t *old_sch = search_gui_get_current_search();
     GtkCTree *ctree;
@@ -2068,7 +2068,7 @@ void search_gui_set_current_search(search_t *sch)
      * to the new current_search.
      */
     if (current_search != NULL) {
-        
+
         ctree = GTK_CTREE(current_search->ctree);
 
         for (i = 0; i < GTK_CLIST(ctree)->columns; i++) {
@@ -2092,17 +2092,17 @@ void search_gui_set_current_search(search_t *sch)
         search_gui_update_items(sch);
 
         gtk_clist_select_row(
-            clist_search, 
-            gtk_clist_find_row_from_data(clist_search, sch), 
+            clist_search,
+            gtk_clist_find_row_from_data(clist_search, sch),
             0);
         gtk_spin_button_set_value
             (GTK_SPIN_BUTTON(spinbutton_reissue_timeout), reissue_timeout);
         gtk_widget_set_sensitive(spinbutton_reissue_timeout, !passive);
         gtk_widget_set_sensitive(
-            lookup_widget(main_window, "button_search_download"), 
+            lookup_widget(main_window, "button_search_download"),
             GTK_CLIST(sch->ctree)->selection != NULL);
         gtk_widget_set_sensitive(
-            lookup_widget(main_window, "button_search_clear"), 
+            lookup_widget(main_window, "button_search_clear"),
             sch->items != 0);
         gtk_widget_set_sensitive(
             lookup_widget(popup_search, "popup_search_restart"), !passive);
@@ -2157,7 +2157,7 @@ void search_gui_set_current_search(search_t *sch)
             ctree_menu,
             gtk_ctree_node_nth(ctree_menu,0),
             GINT_TO_POINTER(nb_main_page_search));
-    
+
         if (node != NULL)
             gtk_ctree_select(ctree_menu,node);
     }
@@ -2169,7 +2169,7 @@ void search_gui_set_current_search(search_t *sch)
 /*
  *	gui_search_create_ctree
  *
- * Create a new GtkCTree for search results 
+ * Create a new GtkCTree for search results
  */
 void gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 {
@@ -2188,9 +2188,9 @@ void gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 	*ctree = GTK_CTREE(ctree_widget);
 
 	gtk_container_add(GTK_CONTAINER(*sw), ctree_widget);
-	
+
 	for (i = 0; i < c_sr_num; i++)
-		gtk_clist_set_column_width(GTK_CLIST(*ctree), i, 
+		gtk_clist_set_column_width(GTK_CLIST(*ctree), i,
 			search_results_col_widths[i]);
 
 	gtk_clist_set_selection_mode(GTK_CLIST(*ctree), GTK_SELECTION_EXTENDED);
@@ -2315,7 +2315,7 @@ void gui_search_force_update_tab_label(struct search *sch)
 
     if (sch->unseen_items > 0) {
         gtk_clist_set_background(
-            clist_search, row, 
+            clist_search, row,
             &gtk_widget_get_style(GTK_WIDGET(clist_search))
                 ->bg[GTK_STATE_ACTIVE]);
     } else {
@@ -2323,7 +2323,7 @@ void gui_search_force_update_tab_label(struct search *sch)
     }
 
 	sch->last_update_time = time(NULL);
-    
+
 }
 
 
@@ -2419,7 +2419,7 @@ void gui_search_history_add(gchar *s)
 
     /* free old list structure */
     g_list_free(list_search_history);
-    
+
     list_search_history = new_hist;
 }
 
@@ -2496,7 +2496,7 @@ void search_gui_expand_all(void)
 
     ctree = current_search->ctree;
 
-	gtk_ctree_expand_recursive(ctree, NULL);	
+	gtk_ctree_expand_recursive(ctree, NULL);
 }
 
 
@@ -2515,7 +2515,7 @@ void search_gui_collapse_all(void)
 
     ctree = current_search->ctree;
 
-	gtk_ctree_collapse_recursive(ctree, NULL);		
+	gtk_ctree_collapse_recursive(ctree, NULL);
 }
 
 void search_gui_start_massive_update(search_t *sch)
@@ -2560,7 +2560,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 		parent = find_parent_with_sha1(search->parents, data->urnsha1);
 		if (parent)
 			gtk_ctree_node_set_text(ctree, parent,
-					c_sr_meta, text ? text : _("Not in database")); 
+					c_sr_meta, text ? text : _("Not in database"));
 	}
 
 	/* free the string */

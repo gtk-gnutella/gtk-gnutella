@@ -107,7 +107,7 @@ const gchar *msg_drop_str(int value)
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == MSG_DROP_REASON_COUNT);
-	
+
 	if ((guint) value >= G_N_ELEMENTS(strs)) {
 		g_warning("Requested general_type_str %d is invalid", value);
 		return "";
@@ -165,7 +165,7 @@ const gchar *general_type_str(int value)
 	};
 
 	STATIC_ASSERT(G_N_ELEMENTS(strs) == GNR_TYPE_COUNT);
-	
+
 	if ((guint) value >= G_N_ELEMENTS(strs)) {
 		g_warning("Requested general_type_str %d is invalid", value);
 		return "";

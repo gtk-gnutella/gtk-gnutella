@@ -26,7 +26,7 @@
 #ifndef _gtk_gnet_stats_common_h_
 #define _gtk_gnet_stats_common_h_
 
-#include "gui.h" 
+#include "gui.h"
 #include "columns.h"
 #include "if/core/hsep.h"
 #include "if/ui/gtk/gnet_stats.h"

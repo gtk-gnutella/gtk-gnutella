@@ -85,7 +85,7 @@ on_clist_nodes_button_press_event(GtkWidget *unused_widget,
 
 	(void) unused_widget;
 	(void) unused_udata;
-	
+
     if (event->button != 3)
 		return FALSE;
 
@@ -98,7 +98,7 @@ on_clist_nodes_button_press_event(GtkWidget *unused_widget,
 		return FALSE;
 
     gtk_menu_popup(
-        GTK_MENU(popup_nodes), NULL, NULL, NULL, NULL, 
+        GTK_MENU(popup_nodes), NULL, NULL, NULL, NULL,
         event->button, event->time);
 
 	return TRUE;
@@ -193,7 +193,7 @@ on_popup_nodes_config_cols_activate(GtkMenuItem *unused_menuitem,
 
 	(void) unused_menuitem;
 	(void) unused_udata;
-	
+
     cc = gtk_column_chooser_new(lookup_widget(main_window, "clist_nodes"));
     gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 

@@ -98,7 +98,7 @@ void gui_general_timer(time_t now)
 #endif
 }
 
-static void update_stat(guint32 *max, GtkProgressBar *pg, 
+static void update_stat(guint32 *max, GtkProgressBar *pg,
     gnet_bw_stats_t *stats, gboolean avg_mode, gboolean inout)
 {
     gfloat frac = 0;
@@ -120,8 +120,8 @@ static void update_stat(guint32 *max, GtkProgressBar *pg,
         current);
     frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
 
-	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s %s %s", 
-        compact_size(current), 
+	gm_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s %s %s",
+        compact_size(current),
         inout ? _("in") : _("out"),
         avg_mode ? _("(avg)") : "");
 	gtk_progress_bar_set_text(pg, gui_tmp);
@@ -170,7 +170,7 @@ void gui_update_traffic_stats(void)
      * update.
 	 *      --BLUE, 21/04/2002
 	 */
-	
+
    	/*
 	 * If the bandwidth usage peaks above the maximum, then GTK will not
 	 * update the progress bar, so we have to cheat and limit the value
@@ -198,18 +198,18 @@ void gui_update_traffic_stats(void)
 
 void gui_update_stats_frames(void)
 {
-    GtkWidget *frame_bws_inout = 
+    GtkWidget *frame_bws_inout =
         lookup_widget(main_window, "frame_bws_inout");
-    GtkWidget *frame_bws_ginout = 
+    GtkWidget *frame_bws_ginout =
         lookup_widget(main_window, "frame_bws_ginout");
-    GtkWidget *frame_bws_glinout = 
+    GtkWidget *frame_bws_glinout =
         lookup_widget(main_window, "frame_bws_glinout");
 #ifdef USE_GTK1
-    GtkWidget *handlebox_traffic = 
+    GtkWidget *handlebox_traffic =
         lookup_widget(main_window, "handlebox_traffic");
 #endif
     guint32 peermode;
-    
+
    	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &peermode);
 
     if (progressbar_bws_in_visible || progressbar_bws_out_visible) {
@@ -300,7 +300,7 @@ gint gui_record_host_eq(gconstpointer rec1, gconstpointer rec2)
  * - If two selected hits have the same filename, but one has an SHA1
  *   and the other doesn't, both rules (filename and SHA1) will be added.
  *
- */ 
+ */
 gint gui_record_sha1_or_name_eq(gconstpointer rec1, gconstpointer rec2)
 {
     if (((const record_t *) rec1)->sha1 || ((const record_t *) rec2)->sha1)
@@ -335,7 +335,7 @@ static void gui_steal_widget_dict_recursive(
 {
 	const gchar *name;
 	steal_dict_params_t *params = (steal_dict_params_t *) user_data;
-	
+
 	g_assert(widget != NULL);
 	g_assert(user_data != NULL);
 

@@ -100,9 +100,9 @@ hide_column_by_title(GtkTreeView *treeview, const gchar *header_title,
 	GList *list, *l;
 	const gchar *title;
 
-	g_assert(NULL != header_title); 
+	g_assert(NULL != header_title);
 	list = gtk_tree_view_get_columns(treeview);
-	g_assert(NULL != list); 
+	g_assert(NULL != list);
 
 	for (l = list; NULL != l; l = g_list_next(l))
 		if (NULL != l->data) {
@@ -127,7 +127,7 @@ pkt_stat_str(gchar *strbuf, gulong n, const guint64 *val_tbl,
 		if (!perc)
 			gm_snprintf(strbuf, n, "%" PRIu64, val_tbl[type]);
 		else
-			gm_snprintf(strbuf, n, "%.2f%%", 
+			gm_snprintf(strbuf, n, "%.2f%%",
 			    (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
 	}
 
@@ -144,7 +144,7 @@ byte_stat_str(gchar *strbuf, gulong n, const guint64 *val_tbl,
 	else if (!perc)
 		g_strlcpy(strbuf, compact_size(val_tbl[type]), n);
 	else
-		gm_snprintf(strbuf, n, "%.2f%%", 
+		gm_snprintf(strbuf, n, "%.2f%%",
 		    (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
 
 	return strbuf;
@@ -159,7 +159,7 @@ drop_stat_str(gchar *str, gulong n, const gnet_stats_t *stats, gint reason,
 	if (stats->drop_reason[reason][selected_type] == 0)
 		g_strlcpy(str, "-", n);
 	else if (gnet_stats_drop_perc)
-		gm_snprintf(str, n, "%.2f%%", 
+		gm_snprintf(str, n, "%.2f%%",
 		    (gfloat) stats->drop_reason[reason][selected_type] / total * 100);
 	else
 		gm_snprintf(str, n, "%" PRIu64,
@@ -288,7 +288,7 @@ gnet_stats_update_messages(const gnet_stats_t *stats)
 		if (!bytes) {
 			gtk_list_store_set(store, &iter,
 				c_gs_received,	 pkt_stat_str(str[c_gs_received],
-									len, stats->pkg.received, n, perc), 
+									len, stats->pkg.received, n, perc),
 				c_gs_expired,	 pkt_stat_str(str[c_gs_expired],
 									len, stats->pkg.expired, n, perc),
 				c_gs_dropped,	 pkt_stat_str(str[c_gs_dropped],
@@ -363,7 +363,7 @@ gnet_stats_update_types(
 			for (i = 0; i < columns; i++) {
 				gulong	value;
 				gulong	total;
-		
+
 				value = byte_counters[i][n];
 				total = byte_counters[i][MSG_TOTAL];
 				if (!with_headers) {
@@ -409,7 +409,7 @@ gnet_stats_update_recv(const gnet_stats_t *stats)
 	const guint64 (*pkg_counters)[MSG_TYPE_COUNT];
 	GtkTreeView *treeview = treeview_gnet_stats_recv;
 	gboolean hops = FALSE;
-	
+
 	gui_prop_get_boolean_val(PROP_GNET_STATS_HOPS, &hops);
 	if (hops) {
 		pkg_counters = stats->pkg.received_hops;
@@ -433,7 +433,7 @@ gnet_stats_update_horizon(void)
 	static time_t last_horizon_update = 0;
 	time_t now = time(NULL);
 	gint global_table_size;
-	
+
 	/*
 	 * Update horizon statistics table, but only if the values have changed.
 	 *      -- TNT 09/06/2004
@@ -441,12 +441,12 @@ gnet_stats_update_horizon(void)
 	 * Changed this check to update the table every 2 seconds, because not
 	 * only the HSEP table but also the PONG-based library sizes of direct
 	 * non-HSEP neighbors may have changed.
-	 *      -- TNT 14/06/2004 
+	 *      -- TNT 14/06/2004
 	 */
 
     if (delta_time(now, last_horizon_update) < 2)
 		return;
-	
+
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
 	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
 
@@ -834,7 +834,7 @@ gnet_stats_gui_update(time_t now)
 		return;
 	last_update = now;
 	locked = TRUE;
-	
+
 	current_page = gtk_notebook_get_current_page(notebook_main);
 	if (current_page != nb_main_page_gnet_stats)
 		goto cleanup;

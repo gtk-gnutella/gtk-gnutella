@@ -98,7 +98,7 @@ void
 on_entry_host_changed(GtkEditable *editable, gpointer unused_udata)
 {
 	gchar *e;
-   
+
 	(void) unused_udata;
 	e = gtk_editable_get_chars(editable, 0, -1);
 	g_strstrip(e);

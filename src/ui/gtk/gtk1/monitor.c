@@ -57,7 +57,7 @@ monitor_gui_append_to_monitor(query_type_t type, const gchar *item,
 
 	(void) unused_ip;
 	(void) unused_port;
-	
+
     if (clist_monitor == NULL) {
         clist_monitor = lookup_widget(main_window, "clist_monitor");
         g_assert(clist_monitor != NULL);
@@ -77,7 +77,7 @@ monitor_gui_append_to_monitor(query_type_t type, const gchar *item,
 	if (monitor_max_items > 0) {
     	gchar *titles[1];
     	gchar tmpstr[100];
-		
+
     	if (type == QUERY_SHA1) {
         	/* If the query is empty and we have a SHA1 extension,
         	 * we print a urn:sha1-query instead. */
@@ -105,7 +105,7 @@ void
 monitor_gui_init(void)
 {
     gtk_clist_column_titles_passive
-        (GTK_CLIST(lookup_widget(main_window, "clist_monitor")));  
+        (GTK_CLIST(lookup_widget(main_window, "clist_monitor")));
 }
 
 void
@@ -118,7 +118,7 @@ monitor_gui_shutdown(void)
  * Remove all but the first n items from the monitor.
  */
 void
-monitor_gui_clear_monitor(void) 
+monitor_gui_clear_monitor(void)
 {
     GtkWidget *clist_monitor;
 

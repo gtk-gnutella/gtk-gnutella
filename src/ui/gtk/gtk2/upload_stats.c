@@ -24,19 +24,19 @@
  *
  * upload_stats.c - keep track of which files we send away, and how often.
  *
- *		Statistics are kept by _FILENAME_ and file size, 
+ *		Statistics are kept by _FILENAME_ and file size,
  *		not by actual path, so two files with the same
- *		name and size will be counted in the same bin.  
+ *		name and size will be counted in the same bin.
  *		I dont see this as a limitation because the
  *		user wouldn't be able to differentiate the files anyway.
- *		This could be extended to keep the entire path to 
+ *		This could be extended to keep the entire path to
  *		each file and optionally show the entire path, but..
- *		
+ *
  *		the 'upload_history' file has the following format:
  *		<url-escaped filename> <file size> <attempts> <completions>
  *
  *		TODO: add a check to make sure that all of the files still exist(?)
- *			grey them out if they dont, optionally remove them from the 
+ *			grey them out if they dont, optionally remove them from the
  *			stats list (when 'Clear Non-existent Files' is clicked)
  *
  *		(C) 2002 Michael Tesch, released with gtk-gnutella & its license
@@ -128,7 +128,7 @@ cell_render_norm_func(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 {
 	gfloat val = 0.0;
 	gchar tmpstr[32];
-	
+
 	(void) unused_data;
 	g_assert(column != NULL);
 	g_assert(cell != NULL);
@@ -149,7 +149,7 @@ cell_render_norm_func(GtkTreeViewColumn *column, GtkCellRenderer *cell,
  * @param column_id The numerical tag for this column.
  * @param title The title displayed in the column header.
  * @param width The width of the column.
- * @param xalign A number between 0.0 (left) and 1.0 (right) 
+ * @param xalign A number between 0.0 (left) and 1.0 (right)
  * horizontal alignment.
  * @param cell_data_func The function which will render that data
  * to show in the cell.  If, NULL gtk will try to render the data
@@ -177,7 +177,7 @@ static void add_column(
 	if (cell_data_func != NULL) {
 		gtk_tree_view_column_set_cell_data_func(column, renderer,
 			cell_data_func, GINT_TO_POINTER(column_id), NULL);
-	}		
+	}
 
 	g_object_set(renderer,
 		"xalign", xalign,
@@ -217,7 +217,7 @@ static struct ul_stats *upload_stats_gui_find(
 	GtkTreeIter *iter)
 {
 	gboolean valid;
-	
+
 	g_assert(name != NULL);
 	g_assert(iter != NULL);
 	g_assert(model != NULL);
@@ -270,7 +270,7 @@ static void upload_stats_gui_init_intern(gboolean intern)
 			G_TYPE_STRING,		/* Filename (UTF-8 encoded) */
 			G_TYPE_UINT,		/* Size */
 			G_TYPE_UINT,		/* Attempts */
-			G_TYPE_UINT,		/* Completed */  
+			G_TYPE_UINT,		/* Completed */
 			G_TYPE_FLOAT,		/* Normalized */
 			G_TYPE_POINTER)); 	/* struct ul_stats */
 		upload_stats_treeview = GTK_TREE_VIEW(
@@ -298,7 +298,7 @@ static void upload_stats_gui_init_intern(gboolean intern)
 	if (!intern) {
 		guint32 width[G_N_ELEMENTS(columns)];
 		gboolean visible[G_N_ELEMENTS(columns)];
-		
+
 		/* upload_stats_gui_init_intern() might be called internally before
 		 * settings_gui_init(). If it's called externally it's called from
 		 * main_gui_init() and the GUI properties are intialized. */
@@ -331,7 +331,7 @@ static void upload_stats_gui_init_intern(gboolean intern)
  * upload statistics pane.
  *
  * @param us A ul_stats structure with new upload stats to add.
- * 
+ *
  */
 void upload_stats_gui_add(struct ul_stats *us)
 {
@@ -369,7 +369,7 @@ void upload_stats_gui_update(const gchar *name, guint64 size)
 {
 	GtkListStore *store;
 	GtkTreeIter iter;
-	struct ul_stats *us; 
+	struct ul_stats *us;
 
 	g_assert(name != NULL);
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(upload_stats_treeview));

@@ -83,7 +83,7 @@ on_clist_uploads_select_row(GtkCList *clist, gint unused_row,
     gtk_widget_set_sensitive(button, clist->selection != NULL);
 }
 
-void on_clist_uploads_unselect_row(GtkCList *clist, 
+void on_clist_uploads_unselect_row(GtkCList *clist,
     gint unused_row, gint unused_column, GdkEvent *unused_event,
 	gpointer unused_udata)
 {
@@ -98,12 +98,12 @@ void on_clist_uploads_unselect_row(GtkCList *clist,
 }
 
 void
-on_clist_uploads_resize_column(GtkCList *unused_clist, 
+on_clist_uploads_resize_column(GtkCList *unused_clist,
     gint column, gint width, gpointer unused_udata)
 {
 	(void) unused_clist;
 	(void) unused_udata;
-	
+
     /* FIXME: use properties */
 	*(gint *) &uploads_col_widths[column] = width;
 }
@@ -151,7 +151,7 @@ on_clist_uploads_button_press_event(GtkWidget *unused_widget,
 		(GTK_CLIST(clist_uploads), event->x, event->y, &row, &col))
 		return FALSE;
 
-    gtk_menu_popup(GTK_MENU(popup_uploads), NULL, NULL, NULL, NULL, 
+    gtk_menu_popup(GTK_MENU(popup_uploads), NULL, NULL, NULL, NULL,
                   event->button, event->time);
 
 	return TRUE;
@@ -159,7 +159,7 @@ on_clist_uploads_button_press_event(GtkWidget *unused_widget,
 
 void
 on_popup_uploads_title_activate(GtkMenuItem *unused_menuitem,
-	gpointer unused_udata) 
+	gpointer unused_udata)
 {
 	(void) unused_menuitem;
 	(void) unused_udata;

@@ -32,7 +32,7 @@ RCSID("$Id$");
 #include "gtkcolumnchooser.h"
 #include "lib/override.h"				/* Must be the last header included */
 
-#if (GTK_MAJOR_VERSION >= 2) 
+#if (GTK_MAJOR_VERSION >= 2)
 #define signal_connect g_signal_connect
 #else
 #define signal_connect gtk_signal_connect
@@ -49,11 +49,11 @@ on_popup_hide(GtkWidget *widget, gpointer unused_udata)
 {
 	(void) unused_udata;
 
-    /* 
+    /*
      * We remove the last reference to the widget and cause it
      * to be destroyed and finalized.
      */
-#if (GTK_MAJOR_VERSION >= 2) 
+#if (GTK_MAJOR_VERSION >= 2)
     gtk_object_sink(GTK_OBJECT(widget));
 #else
     gtk_object_unref(GTK_OBJECT(widget));
@@ -79,7 +79,7 @@ on_column_popup_toggled(GtkCheckMenuItem *checkmenuitem, gpointer user_data)
 
     cc = GTK_COLUMN_CHOOSER(user_data);
 
-#if (GTK_MAJOR_VERSION >= 2) 
+#if (GTK_MAJOR_VERSION >= 2)
     gtk_tree_view_column_set_visible(
 		(GtkTreeViewColumn *) gtk_column_chooser_get_column(cc,
 									GTK_WIDGET(checkmenuitem)),
@@ -109,7 +109,7 @@ gtk_column_chooser_new(GtkWidget *widget)
     GtkColumnChooser * cc;
     GtkMenu * menu;
     GtkWidget * menuitem;
-#if (GTK_MAJOR_VERSION >= 2) 
+#if (GTK_MAJOR_VERSION >= 2)
 	GtkTreeViewColumn *col;
 #endif
 	gint i;
@@ -121,7 +121,7 @@ gtk_column_chooser_new(GtkWidget *widget)
 
     menu = GTK_MENU(cc);
 
-#if (GTK_MAJOR_VERSION >= 2) 
+#if (GTK_MAJOR_VERSION >= 2)
 	for (
 		i = 0;
 		(col = gtk_tree_view_get_column(GTK_TREE_VIEW(widget), i));
@@ -131,7 +131,7 @@ gtk_column_chooser_new(GtkWidget *widget)
 			gtk_tree_view_column_get_title(col));
         gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menuitem),
 			gtk_tree_view_column_get_visible(col));
-    
+
 #else
     for (i = 0; i < GTK_CLIST(widget)->columns; i ++) {
         gchar * title = gtk_clist_get_column_title(GTK_CLIST(widget), i);
@@ -142,7 +142,7 @@ gtk_column_chooser_new(GtkWidget *widget)
 #endif
 
 
-        /* 
+        /*
          * Set the GtkColumnChooser instance as user_data, so
          * on_column_popup_toggled knows which instance it
          * has to call to get data from.
@@ -154,14 +154,14 @@ gtk_column_chooser_new(GtkWidget *widget)
         gtk_menu_append(menu, menuitem);
 
         /* map the menu item to the corresponding column */
-#if (GTK_MAJOR_VERSION >= 2) 
+#if (GTK_MAJOR_VERSION >= 2)
         g_hash_table_insert(cc->col_map, menuitem, col);
 #else
         g_hash_table_insert(cc->col_map, menuitem, GINT_TO_POINTER(i));
 #endif
     }
 
-    /* 
+    /*
      * Add separator and "Done" button.
      */
     menuitem = gtk_menu_item_new();
@@ -169,8 +169,8 @@ gtk_column_chooser_new(GtkWidget *widget)
     gtk_menu_append(menu, menuitem);
 
     menuitem = gtk_menu_item_new_with_label("Done");
-    
-    /* 
+
+    /*
      * Set the GtkColumnChooser instance as user_data, so
      * on_column_popup_pressed knows which instance it
      * has to call to get data from.
@@ -204,7 +204,7 @@ gtk_column_chooser_finalize(GtkObject *object)
 
     cc = GTK_COLUMN_CHOOSER(object);
     g_hash_table_destroy(cc->col_map);
-#if (GTK_MAJOR_VERSION >= 2) 
+#if (GTK_MAJOR_VERSION >= 2)
 	G_OBJECT_CLASS(parent_class)->finalize(G_OBJECT(object));
 #else
 	GTK_OBJECT_CLASS(parent_class)->finalize(object);
@@ -232,7 +232,7 @@ gtk_column_chooser_class_init(GtkColumnChooserClass *klass)
 
     parent_class = gtk_type_class(GTK_TYPE_MENU);
 
-#if (GTK_MAJOR_VERSION >= 2) 
+#if (GTK_MAJOR_VERSION >= 2)
     object_class = GTK_OBJECT_CLASS(G_OBJECT_CLASS(klass));
 #else
     object_class = GTK_OBJECT_CLASS(klass);
@@ -242,7 +242,7 @@ gtk_column_chooser_class_init(GtkColumnChooserClass *klass)
 
     widget_class->button_press_event = gtk_column_chooser_button_press;
     menu_shell_class->deactivate = gtk_column_chooser_deactivate;
-#if (GTK_MAJOR_VERSION >= 2) 
+#if (GTK_MAJOR_VERSION >= 2)
 	G_OBJECT_CLASS(object_class)->finalize =
 		(gpointer) gtk_column_chooser_finalize;
 #else
@@ -253,7 +253,7 @@ gtk_column_chooser_class_init(GtkColumnChooserClass *klass)
 GtkType
 gtk_column_chooser_get_type(void)
 {
-    static guint cct_type = 0;   
+    static guint cct_type = 0;
 
     if (!cct_type) {
         GtkTypeInfo cct_info = {
@@ -265,9 +265,9 @@ gtk_column_chooser_get_type(void)
             NULL,
             NULL,
             (GtkClassInitFunc) NULL
-        };       
+        };
         cct_type = gtk_type_unique(GTK_TYPE_MENU, &cct_info);
-    }   
+    }
 
     return cct_type;
 }
@@ -297,7 +297,7 @@ gtk_column_chooser_button_press(GtkWidget * widget, GdkEventButton *event)
         if ((event->x < 0) || (event->x >= widget->allocation.width) ||
             (event->y < 0) || (event->y >= widget->allocation.height))
 
-            /* 
+            /*
              * We accept that the window should be closed and let
              * GtkMenuShell do the actual work of closing and freeing.
              */

@@ -44,9 +44,9 @@ RCSID("$Id$");
 static gnet_fi_t last_shown = 0;
 static gboolean  last_shown_valid = FALSE;
 
-/* 
+/*
  * Together visible_fi and hidden_fi are a list of all fileinfo handles
- * the the gui knows about. 
+ * the the gui knows about.
  */
 static GSList *visible_fi = NULL;
 static GSList *hidden_fi  = NULL;
@@ -79,12 +79,12 @@ static gnet_fi_info_t *
 fi_gui_fill_info(gnet_fi_t fih, gchar *titles[c_fi_num])
 {
     /* Clear info from last call. We keep this around so we don't
-     * have to strdup entries from it when passing them to the 
+     * have to strdup entries from it when passing them to the
      * outside through titles[]. */
 
     if (last_fi != NULL)
         guc_fi_free_info(last_fi);
-        
+
     /* Fetch new info */
     last_fi = guc_fi_get_info(fih);
     g_assert(last_fi != NULL);
@@ -110,18 +110,18 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
     titles[c_fi_sources] = fi_sources;
 
     if (s.done) {
-        gm_snprintf(fi_done, sizeof(fi_done), "%s (%.1f%%)", 
+        gm_snprintf(fi_done, sizeof(fi_done), "%s (%.1f%%)",
             short_size(s.done), ((float) s.done / s.size)*100.0);
         titles[c_fi_done] = fi_done;
     } else {
         titles[c_fi_done] = "-";
     }
-        
+
     g_strlcpy(fi_size, short_size(s.size), sizeof(fi_size));
     titles[c_fi_size]    = fi_size;
 
     if (s.recvcount) {
-        gm_snprintf(fi_status, sizeof(fi_status), 
+        gm_snprintf(fi_status, sizeof(fi_status),
             _("Downloading (%.1f k/s)"), s.recv_last_rate / 1024.0);
         titles[c_fi_status] = fi_status;
     } else if (s.done == s.size){
@@ -129,7 +129,7 @@ fi_gui_fill_status(gnet_fi_t fih, gchar *titles[c_fi_num])
     } else if (s.lifecount == 0) {
         titles[c_fi_status] = _("No sources");
     } else if (s.aqueued_count || s.pqueued_count) {
-        gm_snprintf(fi_status, sizeof(fi_status), 
+        gm_snprintf(fi_status, sizeof(fi_status),
             _("Queued (%d active/ %d passive)"),
             s.aqueued_count, s.pqueued_count);
         titles[c_fi_status] = fi_status;
@@ -175,7 +175,7 @@ fi_gui_set_details(gnet_fi_t fih)
     gtk_clist_thaw(cl_aliases);
 
 	in_progress = (fis.done != fis.size);
-    
+
     g_strfreev(aliases);
     guc_fi_free_info(fi);
 
@@ -223,7 +223,7 @@ fi_gui_match_filter(const gchar *s)
 
     if (n == REG_ESPACE) {
         g_warning("fi_gui_match_filter: regexp memory overflow");
-    } 
+    }
 
     return n == 0;
 }
@@ -321,12 +321,12 @@ fi_gui_set_filter_regex(gchar *s)
     gint row;
     GSList *old_hidden = g_slist_copy(hidden_fi);
     GtkCList *clist_fi;
-    char *fallback_re = ".";	
+    char *fallback_re = ".";
 
     if (s == NULL) {
         s = fallback_re;
     }
- 
+
     /* Recompile the row filter*/
     err = regcomp(&filter_re, s,
                   REG_EXTENDED|REG_NOSUB|(fi_regex_case ? 0 : REG_ICASE));
@@ -367,14 +367,14 @@ fi_gui_set_filter_regex(gchar *s)
             row ++;
         }
     }
-		
+
     /* now add matching hidden to list */
     for (sl = old_hidden; NULL != sl; sl = g_slist_next(sl)) {
         /* We simply try to add all hidden rows. If they match
          * the new filter they will be unhidden */
         fi_gui_add_row(GPOINTER_TO_UINT(sl->data));
     }
-    
+
     gtk_clist_thaw(clist_fi);
 }
 
@@ -404,7 +404,7 @@ fi_gui_update(gnet_fi_t fih, gboolean full)
             gtk_clist_set_text(clist, row, n, titles[n]);
     }
 
-    /* 
+    /*
      * If this entry is currently selected we should also update the progress
      */
 	vp_draw_fi_progress(last_shown_valid, last_shown);
@@ -437,7 +437,7 @@ on_clist_fileinfo_select_row(GtkCList *clist, gint row, gint unused_column,
     GdkEvent *unused_event, gpointer unused_udata)
 {
     gnet_fi_t fih;
-    
+
 	(void) unused_column;
 	(void) unused_event;
 	(void) unused_udata;
@@ -448,7 +448,7 @@ on_clist_fileinfo_select_row(GtkCList *clist, gint row, gint unused_column,
 void
 on_clist_fileinfo_unselect_row(GtkCList *clist, gint unused_row,
 	gint unused_column, GdkEvent *unused_event, gpointer unused_udata)
-{ 
+{
 	(void) unused_row;
 	(void) unused_column;
 	(void) unused_event;
@@ -463,7 +463,7 @@ on_button_fi_purge_clicked(GtkButton *unused_button, gpointer unused_udata)
     GSList *sl_handles = NULL;
     GtkCList *clist = GTK_CLIST(
         lookup_widget(main_window, "clist_fileinfo"));
-		
+
 	(void) unused_button;
 	(void) unused_udata;
     sl_handles = clist_collect_data(clist, TRUE, NULL);
@@ -475,10 +475,10 @@ on_button_fi_purge_clicked(GtkButton *unused_button, gpointer unused_udata)
 				last_shown_valid = FALSE;
 				break;
 			}
-			
+
         guc_fi_purge_by_handle_list(sl_handles);
     }
-				    
+
     g_slist_free(sl_handles);
 }
 
@@ -496,7 +496,7 @@ on_entry_fi_regex_activate(GtkEditable *editable, gpointer unused_udata)
 }
 
 void
-fi_gui_init(void) 
+fi_gui_init(void)
 {
     GtkCList *clist;
 
@@ -507,7 +507,7 @@ fi_gui_init(void)
 
     clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
 
-    gtk_clist_set_column_justification(clist, 
+    gtk_clist_set_column_justification(clist,
         c_fi_size, GTK_JUSTIFY_RIGHT);
 
     gtk_clist_column_titles_passive(clist);

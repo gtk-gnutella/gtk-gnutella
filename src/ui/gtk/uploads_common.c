@@ -51,9 +51,9 @@ gfloat uploads_gui_progress(
 {
 	gfloat progress = 0.0;
 	filesize_t requested;
-	
+
 	if (u->pos < data->range_start) /* No progress yet */
-		return 0.0; 
+		return 0.0;
 
 	switch (u->status) {
     case GTA_UL_HEADERS:
@@ -80,7 +80,7 @@ gfloat uploads_gui_progress(
 			progress = (gfloat) (u->pos - data->range_start) / requested;
 		} else {
 			progress = 0.0;
-		}	
+		}
 		break;
 	}
 	return progress;
@@ -122,7 +122,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			/* Time Remaining at the current rate, in seconds  */
 			filesize_t tr = (data->range_end + 1 - u->pos) / u->avg_bps;
 
-			slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ", 
+			slen = gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%% ",
 				uploads_gui_progress(u, data) * 100.0);
 
 			if (time((time_t *) NULL) - u->last_update > IO_STALLED)
@@ -134,7 +134,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 
 			gm_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
 				"TR: %s", short_time(tr));
-		} 
+		}
 		break;
 
     case GTA_UL_HEADERS:
@@ -171,15 +171,15 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 				/* position 1 should always get an upload slot */
 				if (u->parq_retry > 0)
 					gm_snprintf(tmpstr, sizeof(tmpstr),
-						_("Waiting [%d] (slot %d / %d) %ds, lifetime: %s"), 
+						_("Waiting [%d] (slot %d / %d) %ds, lifetime: %s"),
 						u->parq_queue_no,
 						u->parq_position,
 						u->parq_size,
-						u->parq_retry, 
+						u->parq_retry,
 						short_time(u->parq_lifetime));
 				else
 					gm_snprintf(tmpstr, sizeof(tmpstr),
-						_("Waiting [%d] (slot %d / %d) lifetime: %s"), 
+						_("Waiting [%d] (slot %d / %d) lifetime: %s"),
 						u->parq_queue_no,
 						u->parq_position,
 						u->parq_size,
@@ -191,11 +191,11 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 						u->parq_queue_no,
 						u->parq_position,
 						u->parq_size,
-						u->parq_retry, 
+						u->parq_retry,
 						short_time(u->parq_lifetime));
 				else
 					gm_snprintf(tmpstr, sizeof(tmpstr),
-						_("Queued [%d] (slot %d / %d) lifetime: %s"), 
+						_("Queued [%d] (slot %d / %d) lifetime: %s"),
 						u->parq_queue_no,
 						u->parq_position,
 						u->parq_size,
@@ -207,18 +207,18 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
         /*
          * PARQ wants to inform a client that action from the client its side
          * is wanted. So it is trying to connect back.
-         *      -- JA, 15/04/2003 
+         *      -- JA, 15/04/2003
          */
         return _("Sending QUEUE, connecting back...");
 
     case GTA_UL_QUEUE_WAITING:
         /*
-         * PARQ made a connect back because some action from the client is 
+         * PARQ made a connect back because some action from the client is
          * wanted. The connection is established and now waiting for some action
          *      -- JA, 15/04/2003
          */
 		return _("Sent QUEUE, waiting for headers...");
-	
+
         g_assert_not_reached();
 	}
 
@@ -226,11 +226,11 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 }
 
 /**
- * @return whether the entry for the upload `ul' should be removed 
+ * @return whether the entry for the upload `ul' should be removed
  * from the UI with respect to the configured behaviour.
  */
 gboolean
-upload_should_remove(time_t now, const upload_row_data_t *ul) 
+upload_should_remove(time_t now, const upload_row_data_t *ul)
 {
 	property_t prop = 0;
 

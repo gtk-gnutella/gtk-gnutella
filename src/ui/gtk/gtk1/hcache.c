@@ -150,13 +150,13 @@ void hcache_gui_update(time_t now)
 		if (n == HCACHE_NONE)
 			continue;
 
-        gtk_clist_set_text( clist_hcache, n, 
+        gtk_clist_set_text( clist_hcache, n,
             c_hcs_host_count, guint_to_str(stats[n].host_count));
 
-        gtk_clist_set_text( clist_hcache, n, 
+        gtk_clist_set_text( clist_hcache, n,
             c_hcs_hits, guint_to_str(stats[n].hits));
 
-        gtk_clist_set_text( clist_hcache, n, 
+        gtk_clist_set_text( clist_hcache, n,
             c_hcs_misses, guint_to_str(stats[n].misses));
     }
 

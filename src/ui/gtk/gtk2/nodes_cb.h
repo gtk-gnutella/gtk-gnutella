@@ -32,9 +32,9 @@
  *** nodes panel
  ***/
 
-void on_button_nodes_add_clicked (GtkButton *button, gpointer user_data); 
+void on_button_nodes_add_clicked (GtkButton *button, gpointer user_data);
 void on_button_nodes_remove_clicked (GtkButton *button, gpointer user_data);
-void on_entry_host_activate (GtkEditable *editable, gpointer user_data); 
+void on_entry_host_activate (GtkEditable *editable, gpointer user_data);
 void on_entry_host_changed (GtkEditable *editable, gpointer user_data);
 gboolean on_popup_nodes_disconnect_activate(GtkItem *item, gpointer user_data);
 gboolean on_popup_nodes_reverse_lookup_activate(GtkItem *unused_item,

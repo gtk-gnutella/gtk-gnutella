@@ -48,7 +48,7 @@ RCSID("$Id$");
 
 static gchar gui_tmp[4096];
 
-/* 
+/*
  * These hash tables record which information about which nodes has
  * changed. By using this the number of updates to the gui can be
  * significantly reduced.
@@ -118,11 +118,11 @@ static void nodes_gui_node_added(gnet_node_t n)
  * Callback: called when node information was changed by the backend.
  *
  * This schedules an update of the node information in the gui at the
- * next tick. 
+ * next tick.
  */
 static void nodes_gui_node_info_changed(gnet_node_t n)
 {
-    g_hash_table_insert(ht_node_info_changed, 
+    g_hash_table_insert(ht_node_info_changed,
         GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
 }
 
@@ -132,11 +132,11 @@ static void nodes_gui_node_info_changed(gnet_node_t n)
  * Callback invoked when the node's user-visible flags are changed.
  *
  * This schedules an update of the node information in the gui at the
- * next tick. 
+ * next tick.
  */
 static void nodes_gui_node_flags_changed(gnet_node_t n)
 {
-    g_hash_table_insert(ht_node_flags_changed, 
+    g_hash_table_insert(ht_node_flags_changed,
         GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
 }
 
@@ -180,11 +180,11 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
         gtk_clist_set_text(clist, row, c_gnet_version, gui_tmp);
 
 		if (status.status == GTA_NODE_CONNECTED)
-	        gtk_clist_set_text(clist, row, c_gnet_connected, 
+	        gtk_clist_set_text(clist, row, c_gnet_connected,
        			short_uptime(delta_time(now, status.connect_date)));
 
 		if (status.up_date)
-    	    gtk_clist_set_text(clist, row, c_gnet_uptime, 
+    	    gtk_clist_set_text(clist, row, c_gnet_uptime,
 	        	status.up_date
 					? short_uptime(delta_time(now, status.up_date)) : "...");
 
@@ -243,7 +243,7 @@ void nodes_gui_early_init(void)
  *
  * Initialize the nodes controller. Register callbacks in the backend.
  */
-void nodes_gui_init(void) 
+void nodes_gui_init(void)
 {
 	GtkCList *clist;
 
@@ -266,7 +266,7 @@ void nodes_gui_init(void)
     guc_node_add_node_added_listener(nodes_gui_node_added);
     guc_node_add_node_removed_listener(nodes_gui_node_removed);
     guc_node_add_node_info_changed_listener(nodes_gui_node_info_changed);
-    guc_node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);	
+    guc_node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
 }
 
 /*
@@ -274,7 +274,7 @@ void nodes_gui_init(void)
  *
  * Unregister callbacks in the backend and clean up.
  */
-void nodes_gui_shutdown() 
+void nodes_gui_shutdown()
 {
 	GtkCList *clist;
 
@@ -305,9 +305,9 @@ void nodes_gui_remove_node(gnet_node_t n)
 
     clist_nodes = lookup_widget(main_window, "clist_nodes");
 
-    /* 
+    /*
      * Make sure node is remove from the "changed" hash table so
-     * we don't try an update. 
+     * we don't try an update.
      */
     g_assert(NULL != ht_node_info_changed);
     g_assert(NULL != ht_node_flags_changed);
@@ -319,7 +319,7 @@ void nodes_gui_remove_node(gnet_node_t n)
 		GUINT_TO_POINTER(n));
     if (row != -1)
         gtk_clist_remove(GTK_CLIST(clist_nodes), row);
-    else 
+    else
         g_warning("nodes_gui_remove_node: no matching row found");
 }
 
@@ -399,7 +399,7 @@ void nodes_gui_update_nodes_display(time_t now)
 
         guc_node_get_status(n, &status);
 
-        /* 
+        /*
          * Update additional info too if it has recorded changes.
          */
         if (g_hash_table_lookup(ht_node_info_changed, GUINT_TO_POINTER(n))) {
@@ -418,16 +418,16 @@ void nodes_gui_update_nodes_display(time_t now)
             guc_node_fill_flags(n, &flags);
             nodes_gui_update_node_flags(n, &flags, -1);
         }
-    
+
 		/*
 		 * Don't update times if we've already disconnected.
 		 */
 		if (status.status == GTA_NODE_CONNECTED) {
-	        gtk_clist_set_text(clist, row, c_gnet_connected, 
+	        gtk_clist_set_text(clist, row, c_gnet_connected,
         			short_uptime(delta_time(now, status.connect_date)));
-		
+
 			if (status.up_date)
-				gtk_clist_set_text(clist, row, c_gnet_uptime, 
+				gtk_clist_set_text(clist, row, c_gnet_uptime,
 					status.up_date ?
 						short_uptime(delta_time(now, status.up_date)) : "...");
 		}

@@ -111,7 +111,7 @@ gpointer option_menu_get_selected_data(GtkWidget *m);
  */
 void gtk_mass_widget_set_sensitive(GtkWidget *tl, gchar *list[], gboolean b);
 
-/* 
+/*
  * GtkTreeView
  */
 #ifdef USE_GTK2

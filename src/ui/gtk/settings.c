@@ -52,7 +52,7 @@ RCSID("$Id$");
 /* Uncomment to override debug level for this file. */
 /* #define gui_debug 10 */
 
-/* 
+/*
  * This file has five parts:
  *
  * I.     General variables/defines used in this module
@@ -63,7 +63,7 @@ RCSID("$Id$");
  *
  * To add another property change listener, just define the callback
  * in the callback section (IV), or use a standard call like
- * update_spinbutton (from part III) and add an entry to 
+ * update_spinbutton (from part III) and add an entry to
  * the property_map table. The rest will be done automatically.
  * If debugging is activated, you will get a list of unmapped and
  * ignored properties on startup.
@@ -92,7 +92,7 @@ typedef struct prop_map {
     const gchar *wid;                 /* name of the widget for tooltip */
     enum frequency_type f_type;
     guint32 f_interval;
-    
+
     /*
      * Automatic field filled in by settings_gui_init_prop_map
      */
@@ -167,13 +167,13 @@ static prop_map_t *settings_gui_get_map_entry(property_t prop)
     gint entry = NOT_IN_MAP;
 
     if (
-        (prop >= gui_prop_set_stub->offset) && 
+        (prop >= gui_prop_set_stub->offset) &&
         (prop < gui_prop_set_stub->offset+gui_prop_set_stub->size)
     ) {
         entry = gui_init_list[prop-GUI_PROPERTY_MIN];
     } else
     if (
-        (prop >= gnet_prop_set_stub->offset) && 
+        (prop >= gnet_prop_set_stub->offset) &&
         (prop < gnet_prop_set_stub->offset+gnet_prop_set_stub->size)
     ) {
         entry = gnet_init_list[prop-GNET_PROPERTY_MIN];
@@ -186,7 +186,7 @@ static prop_map_t *settings_gui_get_map_entry(property_t prop)
     return &property_map[entry];
 }
 
-/* 
+/*
  * prop_to_string:
  *
  * Helper function for update_label() and update_entry()
@@ -201,7 +201,7 @@ static gchar *prop_to_string(property_t prop)
     switch (map_entry->type) {
         case PROP_TYPE_GUINT32: {
             guint32 val;
-        
+
             stub->guint32.get(prop, &val, 0, 1);
 
             gm_snprintf(s, sizeof(s), "%u", val);
@@ -215,7 +215,7 @@ static gchar *prop_to_string(property_t prop)
         }
         case PROP_TYPE_IP: {
             guint32 val;
-        
+
             stub->guint32.get(prop, &val, 0, 1);
 
             gm_snprintf(s, sizeof(s), "%s", ip_to_gchar(val));
@@ -223,7 +223,7 @@ static gchar *prop_to_string(property_t prop)
         }
         case PROP_TYPE_BOOLEAN: {
             gboolean val;
-        
+
             stub->boolean.get(prop, &val, 0, 1);
 
             gm_snprintf(s, sizeof(s), "%s", val ? "TRUE" : "FALSE");
@@ -231,7 +231,7 @@ static gchar *prop_to_string(property_t prop)
         }
         default:
             s[0] = '\0';
-            g_error("update_entry_gnet: incompatible type %s", 
+            g_error("update_entry_gnet: incompatible type %s",
                 prop_type_str[map_entry->type]);
     }
 
@@ -255,7 +255,7 @@ static gboolean update_entry(property_t prop)
 
     if (w == NULL) {
 		if (gui_debug)
-			g_warning("%s - widget not found: [%s]", 
+			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
@@ -279,7 +279,7 @@ static gboolean update_label(property_t prop)
 
     if (w == NULL) {
 		if (gui_debug)
-			g_warning("%s - widget not found: [%s]", 
+			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
@@ -306,24 +306,24 @@ static gboolean update_spinbutton(property_t prop)
 
     if (w == NULL) {
 		if (gui_debug)
-			g_warning("%s - widget not found: [%s]", 
+			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
-   
+
     switch (map_entry->type) {
         case PROP_TYPE_GUINT32:
             stub->guint32.get(prop, &val, 0, 1);
             break;
          default:
             val = 0;
-            g_error("update_spinbutton: incompatible type %s", 
+            g_error("update_spinbutton: incompatible type %s",
                 prop_type_str[map_entry->type]);
     }
 
     adj = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(w));
     gtk_adjustment_set_value(adj, val);
-    
+
     return FALSE;
 }
 
@@ -342,18 +342,18 @@ static gboolean update_togglebutton(property_t prop)
 
     if (w == NULL) {
 		if (gui_debug)
-			g_warning("update_togglebutton - widget not found: [%s]", 
+			g_warning("update_togglebutton - widget not found: [%s]",
 				 map_entry->wid);
         return FALSE;
     }
-   
+
     switch (map_entry->type) {
         case PROP_TYPE_BOOLEAN:
             stub->boolean.get(prop, &val, 0, 1);
             break;
         default:
             val = 0;
-            g_error("update_togglebutton: incompatible type %s", 
+            g_error("update_togglebutton: incompatible type %s",
                 prop_type_str[map_entry->type]);
     }
 
@@ -378,18 +378,18 @@ static gboolean update_multichoice(property_t prop)
 
     if (w == NULL) {
 		if (gui_debug)
-			g_warning("%s - widget not found: [%s]", 
+			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
-   
+
     switch (map_entry->type) {
         case PROP_TYPE_MULTICHOICE:
             stub->guint32.get(prop, &val, 0, 1);
             break;
         default:
             val = 0;
-            g_error("update_multichoice: incompatible type %s", 
+            g_error("update_multichoice: incompatible type %s",
                 prop_type_str[map_entry->type]);
     }
 
@@ -426,18 +426,18 @@ static gboolean update_split_pane(property_t prop)
 
     if (w == NULL) {
 		if (gui_debug)
-			g_warning("%s - widget not found: [%s]", 
+			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
-    
+
     switch (map_entry->type) {
         case PROP_TYPE_GUINT32:
             stub->guint32.get(prop, &val, 0, 1);
             break;
         default:
             val = 0;
-            g_error("update_split_pane: incompatible type %s", 
+            g_error("update_split_pane: incompatible type %s",
                 prop_type_str[map_entry->type]);
     }
 
@@ -463,7 +463,7 @@ static gboolean update_clist_col_widths(property_t prop)
 
     if (w == NULL) {
 		if (gui_debug)
-			g_warning("%s - widget not found: [%s]", 
+			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
@@ -484,7 +484,7 @@ static gboolean update_clist_col_widths(property_t prop)
         }
         default:
             val = 0;
-            g_error("update_clist_col_widths: incompatible type %s", 
+            g_error("update_clist_col_widths: incompatible type %s",
                 prop_type_str[map_entry->type]);
     }
 
@@ -504,14 +504,14 @@ static gboolean update_window_geometry(property_t prop)
         return FALSE;
 
     w = top;
-    
+
     if (!w->window) {
 		if (gui_debug)
-			g_warning("%s - top level window not available (NULL)", 
+			g_warning("%s - top level window not available (NULL)",
 				 G_GNUC_PRETTY_FUNCTION);
         return FALSE;
     }
- 
+
     switch (map_entry->type) {
         case PROP_TYPE_GUINT32: {
             guint32 geo[4];
@@ -522,7 +522,7 @@ static gboolean update_window_geometry(property_t prop)
             break;
         }
         default:
-            g_error("update_window_geometry: incompatible type %s", 
+            g_error("update_window_geometry: incompatible type %s",
                 prop_type_str[map_entry->type]);
     }
 
@@ -552,18 +552,18 @@ static gboolean update_bandwidth_spinbutton(property_t prop)
 
     if (w == NULL) {
 		if (gui_debug)
-			g_warning("%s - widget not found: [%s]", 
+			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
-   
+
     switch (map_entry->type) {
         case PROP_TYPE_GUINT32:
             stub->guint32.get(prop, &val, 0, 1);
             break;
          default:
             val = 0;
-            g_error("update_spinbutton: incompatible type %s", 
+            g_error("update_spinbutton: incompatible type %s",
                 prop_type_str[map_entry->type]);
     }
 
@@ -831,7 +831,7 @@ static gboolean plug_icon_changed(property_t unused_prop)
 
     gnet_prop_get_boolean_val(PROP_IS_INET_CONNECTED, &val_is_connected);
     gnet_prop_get_boolean_val(PROP_ONLINE_MODE, &val_online_mode);
-	
+
 	if (val_is_connected && val_online_mode) {
 		gtk_widget_show(image_online);
 		gtk_widget_hide(image_offline);
@@ -839,7 +839,7 @@ static gboolean plug_icon_changed(property_t unused_prop)
 		gtk_widget_hide(image_online);
 		gtk_widget_show(image_offline);
 	}
-	
+
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), val_online_mode);
 
 	return FALSE;
@@ -861,7 +861,7 @@ static gboolean update_byte_size_entry(property_t prop)
 
     if (w == NULL) {
 		if (gui_debug)
-			g_warning("%s - widget not found: [%s]", 
+			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
@@ -880,7 +880,7 @@ static gboolean update_toggle_remove_on_mismatch(property_t prop)
 {
     gboolean value;
     gboolean ret;
-    
+
     ret = update_togglebutton(prop);
     gnet_prop_get_boolean_val(prop, &value);
 
@@ -925,7 +925,7 @@ static gboolean update_label_date(property_t prop)
 
     if (w == NULL) {
 		if (gui_debug)
-			g_warning("%s - widget not found: [%s]", 
+			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
@@ -962,7 +962,7 @@ static gboolean update_label_yes_or_no(property_t prop)
 
     if (w == NULL) {
 		if (gui_debug)
-			g_warning("%s - widget not found: [%s]", 
+			g_warning("%s - widget not found: [%s]",
 				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
         return FALSE;
     }
@@ -1060,17 +1060,17 @@ static gboolean current_peermode_changed(property_t prop)
 		break;
 	default:
 		g_assert_not_reached();
-	}	
+	}
 
     /*
 	 * We need to update the bw stats because leaf bw autohiding may be on.
 	 */
     gui_update_stats_frames();
-    
+
 	return FALSE;
 }
 
-static gboolean monitor_enabled_changed(property_t prop) 
+static gboolean monitor_enabled_changed(property_t prop)
 {
     gboolean val;
     GtkWidget *w = lookup_widget(main_window, "checkbutton_monitor_enable");
@@ -1137,12 +1137,12 @@ hosts_in_ultra_catcher_changed(property_t unused_prop)
     gnet_prop_get_guint32_val(PROP_MAX_ULTRA_HOSTS_CACHED, &max_hosts);
 
     gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_ultra_catcher_clear"), 
+        lookup_widget(main_window, "button_ultra_catcher_clear"),
         hosts != 0);
 
     set_host_progress(
-        "progressbar_hosts_in_ultra_catcher", 
-        hosts, 
+        "progressbar_hosts_in_ultra_catcher",
+        hosts,
         max_hosts);
 
     return FALSE;
@@ -1159,10 +1159,10 @@ hosts_in_bad_catcher_changed(property_t unused_prop)
     gnet_prop_get_guint32_val(PROP_MAX_BAD_HOSTS_CACHED, &max_hosts);
 
     gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_hostcache_clear_bad"), 
+        lookup_widget(main_window, "button_hostcache_clear_bad"),
         hosts != 0);
 
-    /* 
+    /*
      * Multiply by 3 because the three bad hostcaches can't steal slots
      * from each other.
      */
@@ -1178,7 +1178,7 @@ reading_hostfile_changed(property_t prop)
     gboolean state;
 
 	g_return_val_if_fail(PROP_READING_HOSTFILE == prop, FALSE);
-	
+
     gnet_prop_get_boolean_val(prop, &state);
     if (state) {
         GtkProgressBar *pg = GTK_PROGRESS_BAR
@@ -1232,7 +1232,7 @@ hostcache_size_changed(property_t prop)
     default:
         g_error("hostcache_size_changed: unknown hostcache property %d", prop);
     }
-    
+
     return FALSE;
 }
 
@@ -1344,7 +1344,7 @@ new_version_str_changed(property_t prop)
     gchar *str;
 
 	g_return_val_if_fail(PROP_NEW_VERSION_STR == prop, FALSE);
-	
+
     str = gnet_prop_get_string(prop, NULL, 0);
 	if (!str)
 		str = g_strdup(GTA_WEBSITE);
@@ -1387,7 +1387,7 @@ statusbar_visible_changed(property_t prop)
     gui_prop_get_boolean_val(prop, &b);
     gtk_check_menu_item_set_active(
         GTK_CHECK_MENU_ITEM
-            (lookup_widget(main_window, "menu_statusbar_visible")), 
+            (lookup_widget(main_window, "menu_statusbar_visible")),
         b);
 
    	if (b) {
@@ -1516,7 +1516,7 @@ autohide_bws_gleaf_changed(property_t prop)
     gtk_check_menu_item_set_state(GTK_CHECK_MENU_ITEM
         (lookup_widget(top, map_entry->wid)), val);
 
-    /* The actual evaluation of the property takes place in 
+    /* The actual evaluation of the property takes place in
        gui_update_stats_frames() */
     gui_update_stats_frames();
 
@@ -1651,7 +1651,7 @@ static gboolean
 compute_connection_speed_changed(property_t prop)
 {
     gboolean b;
-    
+
     gnet_prop_get_boolean_val(prop, &b);
     update_togglebutton(prop);
     gtk_widget_set_sensitive(
@@ -1701,13 +1701,13 @@ show_search_results_settings_changed(property_t prop)
 
     if (val) {
         gtk_label_set_text(
-            GTK_LABEL(lookup_widget(top, 
+            GTK_LABEL(lookup_widget(top,
                 "label_search_results_show_settings")),
             _("Hide settings"));
         gtk_widget_show(frame);
     } else {
         gtk_label_set_text(
-            GTK_LABEL(lookup_widget(top, 
+            GTK_LABEL(lookup_widget(top,
                 "label_search_results_show_settings")),
             _("Show settings"));
         gtk_widget_hide(frame);
@@ -1738,13 +1738,13 @@ show_dl_settings_changed(property_t prop)
 
     if (val) {
         gtk_label_set_text(
-            GTK_LABEL(lookup_widget(top, 
+            GTK_LABEL(lookup_widget(top,
                 "label_dl_show_settings")),
             _("Hide settings"));
         gtk_widget_show(frame);
     } else {
         gtk_label_set_text(
-            GTK_LABEL(lookup_widget(top, 
+            GTK_LABEL(lookup_widget(top,
                 "label_dl_show_settings")),
             _("Show settings"));
         gtk_widget_hide(frame);
@@ -1773,15 +1773,15 @@ update_address_information(void)
     else
         gnet_prop_get_guint32_val
 			(PROP_LOCAL_IP, &current_ip);
-   
+
     if (old_address != current_ip || old_port != listen_port) {
 		const gchar *iport = ip_port_to_gchar(current_ip, listen_port);
-		
+
         old_address = current_ip;
         old_port = listen_port;
         statusbar_gui_message(15, _("Address/port changed to: %s"), iport);
         gtk_label_set_text(
-            GTK_LABEL(lookup_widget(dlg_prefs, "label_current_port")) , 
+            GTK_LABEL(lookup_widget(dlg_prefs, "label_current_port")) ,
             iport);
 
 #ifdef USE_GTK2
@@ -1916,7 +1916,7 @@ static gboolean
 use_netmasks_changed(property_t prop)
 {
     gboolean b;
-    
+
     gnet_prop_get_boolean_val(prop, &b);
     update_togglebutton(prop);
     gtk_widget_set_sensitive(
@@ -1929,7 +1929,7 @@ static gboolean
 guid_changed(property_t prop)
 {
     gchar guid_buf[16];
-   
+
     gnet_prop_get_storage(prop, (guint8 *) guid_buf, sizeof(guid_buf));
 
 #ifdef USE_GTK2
@@ -2014,7 +2014,7 @@ expert_mode_changed(property_t prop)
         "frame_expert_oob_queries",
         NULL
     };
-	
+
     gint n;
     gboolean b;
 
@@ -2070,7 +2070,7 @@ widget_set_sensitive(const gchar *name, property_t prop)
 
     gnet_prop_get_boolean_val(prop, &val);
     gtk_widget_set_sensitive(lookup_widget(main_window, name), val);
-	
+
 	return FALSE;
 }
 
@@ -2173,7 +2173,7 @@ config_toolbar_style_changed(property_t prop)
 	GtkToolbarStyle style;
 
 	gui_prop_get_guint32_val(PROP_CONFIG_TOOLBAR_STYLE, &val);
-	
+
 	switch (val) {
 		case 1:
 			style = GTK_TOOLBAR_ICONS;
@@ -2275,22 +2275,22 @@ gnet_connections_changed(property_t unused_prop)
     switch (peermode) {
     case NODE_P_LEAF: /* leaf */
     case NODE_P_NORMAL: /* normal */
-        nodes = (peermode == NODE_P_NORMAL) ? 
+        nodes = (peermode == NODE_P_NORMAL) ?
             max_connections : max_ultrapeers;
 		if (nodes == 1)
-			gm_snprintf(set_tmp, sizeof(set_tmp), 
+			gm_snprintf(set_tmp, sizeof(set_tmp),
 				_("%u/%u connection"), cnodes, nodes);
 		else
-			gm_snprintf(set_tmp, sizeof(set_tmp), 
+			gm_snprintf(set_tmp, sizeof(set_tmp),
 				_("%u/%u connections"), cnodes, nodes);
         break;
     case NODE_P_ULTRA: /* ultra */
         nodes = max_connections + max_leaves + max_normal;
-        gm_snprintf(set_tmp, sizeof(set_tmp), 
+        gm_snprintf(set_tmp, sizeof(set_tmp),
             "%u/%uU | %u/%uN | %u/%uL",
             ultra_count,
-			max_connections < max_normal ? 0 : max_connections - max_normal, 
-            normal_count, max_normal, 
+			max_connections < max_normal ? 0 : max_connections - max_normal,
+            normal_count, max_normal,
             leaf_count, max_leaves);
         break;
     default:
@@ -2378,8 +2378,8 @@ clock_skew_changed(property_t prop)
  ***/
 
 /**
- * This callbacks is called when a GtkSpinbutton which is referenced in 
- * the property_map changed. It reacts to the "value_changed" signal of 
+ * This callbacks is called when a GtkSpinbutton which is referenced in
+ * the property_map changed. It reacts to the "value_changed" signal of
  * the GtkAdjustement associated with the GtkSpinbutton.
  */
 static void
@@ -2415,7 +2415,7 @@ spinbutton_adjustment_value_changed(GtkAdjustment *adj, gpointer user_data)
         ) {
             val = adj->value * 100.0;
         }
-        
+
         /*
          * When MAX_DOWNLOADS or MAX_HOST_DOWNLOADS are changed, we
          * have some ancient workaround which may still be necessary.
@@ -2425,15 +2425,15 @@ spinbutton_adjustment_value_changed(GtkAdjustment *adj, gpointer user_data)
             (map_entry->prop == PROP_MAX_HOST_DOWNLOADS)
         ) {
             /*
-             * XXX If the user modifies the max simultaneous download 
-             * XXX and click on a queued download, gtk-gnutella segfaults 
+             * XXX If the user modifies the max simultaneous download
+             * XXX and click on a queued download, gtk-gnutella segfaults
              * XXX in some cases. This unselected_all() is a first attempt
              * XXX to work around the problem.
              *
              * It's unknown whether this ancient workaround is still
              * needed.
              *      -- Richard, 13/08/2002
-             */             
+             */
 
 #ifdef USE_GTK1
             gtk_clist_unselect_all(GTK_CLIST(
@@ -2458,7 +2458,7 @@ togglebutton_state_changed(GtkToggleButton *tb, gpointer user_data)
     prop_map_t *map_entry = (prop_map_t *) user_data;
     prop_set_stub_t *stub = map_entry->stub;
     gboolean val = gtk_toggle_button_get_active(tb);
-    
+
     /*
      * Special handling for the special cases.
      */
@@ -2502,7 +2502,7 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
          */
         if (map->wid != NULL) {
             GtkWidget *top = NULL;
-            GtkWidget *w; 
+            GtkWidget *w;
 
             /*
              * If can't determine the toplevel widget or the target
@@ -2535,9 +2535,9 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                 GtkAdjustment *adj =
                     gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(w));
                 gdouble divider = 1.0;
-            
+
                 g_assert(def->type == PROP_TYPE_GUINT32);
-        
+
                 /*
                  * Bandwidth spinbuttons need the value divided by
                  * 1024.
@@ -2554,7 +2554,7 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                 ) {
                     divider = 1024.0;
                 }
-    
+
                 /*
                  * Some others need the value divided by 100.
                  */
@@ -3029,8 +3029,8 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_main_window,
-        PROP_UP_CONNECTIONS, 
-        update_spinbutton, 
+        PROP_UP_CONNECTIONS,
+        update_spinbutton,
         TRUE,
         "spinbutton_up_connections",
         FREQ_UPDATES, 0
@@ -4777,7 +4777,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "spinbutton_config_max_leaves",
         FREQ_UPDATES, 0
-    ), 
+    ),
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_MAX_BANNED_FD,
@@ -5079,7 +5079,7 @@ static prop_map_t property_map[] = {
         PROP_UPLOADS_STALLING,
         uploads_stalling_changed,
         TRUE,
-        "eventbox_image_warning", 
+        "eventbox_image_warning",
         /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
     ),
@@ -5088,7 +5088,7 @@ static prop_map_t property_map[] = {
         PROP_FILE_DESCRIPTOR_SHORTAGE,
         file_descriptor_warn_changed,
         TRUE,
-        "eventbox_image_fd_shortage", 
+        "eventbox_image_fd_shortage",
         /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
     ),
@@ -5097,7 +5097,7 @@ static prop_map_t property_map[] = {
         PROP_FILE_DESCRIPTOR_RUNOUT,
         file_descriptor_warn_changed,
         TRUE,
-        "eventbox_image_fd_runout", 
+        "eventbox_image_fd_runout",
         /* need eventbox because image has no tooltip */
         FREQ_UPDATES, 0
     ),
@@ -5272,10 +5272,10 @@ static prop_map_t property_map[] = {
  * settings_gui_init_prop_map:
  *
  * Use information from property_map to connect callbacks to
- * signals from the backend. 
+ * signals from the backend.
  * You can't connect more then one callback to a single property change.
- * You can however IGNORE a property change to suppress a warning in 
- * debugging mode. This is done by settings the cb field (callback) in 
+ * You can however IGNORE a property change to suppress a warning in
+ * debugging mode. This is done by settings the cb field (callback) in
  * property_map to IGNORE.
  * The tooltips for the widgets are set from to the description from the
  * property definition.
@@ -5286,7 +5286,7 @@ settings_gui_init_prop_map(void)
     guint n;
 
     if (gui_debug >= 2) {
-        printf("settings_gui_init_prop_map: property_map size: %u\n", 
+        printf("settings_gui_init_prop_map: property_map size: %u\n",
             (guint) G_N_ELEMENTS(property_map));
     }
 
@@ -5301,13 +5301,13 @@ settings_gui_init_prop_map(void)
          * Fill in prop_set_stub
          */
         if (
-            (prop >= gui_prop_set_stub->offset) && 
+            (prop >= gui_prop_set_stub->offset) &&
             (prop < gui_prop_set_stub->offset+gui_prop_set_stub->size)
         ) {
             property_map[n].stub = gui_prop_set_stub;
             property_map[n].init_list = gui_init_list;
         } else if (
-            (prop >= gnet_prop_set_stub->offset) && 
+            (prop >= gnet_prop_set_stub->offset) &&
             (prop < gnet_prop_set_stub->offset+gnet_prop_set_stub->size)
         ) {
             property_map[n].stub = gnet_prop_set_stub;
@@ -5338,14 +5338,14 @@ settings_gui_init_prop_map(void)
         if (init_list[idx] == NOT_IN_MAP) {
             init_list[idx] = n;
         } else {
-            g_error("settings_gui_init_prop_map:" 
-                " property %s already mapped to %d", 
+            g_error("settings_gui_init_prop_map:"
+                " property %s already mapped to %d",
                 def->name, init_list[idx]);
         }
-    
+
         if (property_map[n].cb != IGNORE) {
             settings_gui_config_widget(&property_map[n], def);
-        
+
             /*
              * Add listener
              */
@@ -5362,7 +5362,7 @@ settings_gui_init_prop_map(void)
                 printf("settings_gui_init_prop_map: adding changes listener "
                     "[%s][done]\n", def->name);
         } else if (gui_debug >= 10) {
-            printf("settings_gui_init_prop_map: " 
+            printf("settings_gui_init_prop_map: "
                 "property ignored: %s\n", def->name);
         }
         prop_free_def(def);
@@ -5381,7 +5381,7 @@ settings_gui_init_prop_map(void)
     if (gui_debug >= 1) {
         for (n = 0; n < GNET_PROPERTY_NUM; n++) {
             if (gnet_init_list[n] == NOT_IN_MAP) {
-                printf("settings_gui_init_prop_map:" 
+                printf("settings_gui_init_prop_map:"
                     " [GNET] unmapped property: %s\n",
 					gnet_prop_name(n+GNET_PROPERTY_MIN));
             }
@@ -5407,7 +5407,7 @@ settings_gui_init_prop_map_late(void)
     for (n = 0; n < G_N_ELEMENTS(property_map); n ++) {
         if (property_map[n].cb == update_split_pane) {
             update_split_pane(property_map[n].prop);
-        }        
+        }
     }
 }
 
@@ -5431,10 +5431,10 @@ settings_gui_init(void)
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
         gnet_init_list[n] = NOT_IN_MAP;
     }
-    
+
     settings_gui_init_prop_map();
 
-    /* 
+    /*
      * Just hide the tabs so we can keep them displayed in glade
      * which is easier for editing.
      *      --BLUE, 11/05/2002
@@ -5458,7 +5458,7 @@ settings_gui_init(void)
 
 void
 settings_gui_init_late(void)
-{   
+{
     settings_gui_init_prop_map_late();
 }
 
@@ -5488,16 +5488,16 @@ settings_gui_shutdown(void)
 	*(guint32 *) &fileinfo_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_fileinfo")));
-    *(guint32 *) &main_divider_pos = 
+    *(guint32 *) &main_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_main")));
-    *(guint32 *) &side_divider_pos = 
+    *(guint32 *) &side_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_sidebar")));
-    *(guint32 *) &gnet_stats_divider_pos = 
+    *(guint32 *) &gnet_stats_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_gnet_stats")));
-    *(guint32 *) &results_divider_pos = 
+    *(guint32 *) &results_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_results")));
 

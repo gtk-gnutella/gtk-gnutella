@@ -30,7 +30,7 @@
  * Copyright (C) 2002 Naba Kumar <kh_naba@users.sourceforge.net>
  * heavily modified by Jörgen Scheibengruber <mfcn@gmx.de>
  * and yet more modifications by Russell Francis <rf358197@ohiou.edu>
- * 
+ *
  * Originally found in gnome-system-monitor and imported Jan 2004. It
  * may be useful to check for updates in the upstream version every
  * now and then.
@@ -72,13 +72,13 @@ static void gtk_cell_renderer_progress_get_property(
 	guint,
 	GValue *,
 	GParamSpec *);
-	
+
 static void gtk_cell_renderer_progress_set_property(
 	GObject *,
 	guint,
 	const GValue *,
 	GParamSpec *);
-	
+
 static void gtk_cell_renderer_progress_get_size(
 	GtkCellRenderer *,
 	GtkWidget *,
@@ -87,7 +87,7 @@ static void gtk_cell_renderer_progress_get_size(
 	gint *,		/* y_offset */
 	gint *,		/* width */
     gint *);	/* height */
-	
+
 static void gtk_cell_renderer_progress_render(
 	GtkCellRenderer *,
 	GdkWindow *,
@@ -103,7 +103,7 @@ static void gtk_cell_renderer_progress_render(
 enum {
   PROP_0,		/* Placeholder, empty property */
   PROP_VALUE	/* The position of the progress bar [0:1] */
-}; 
+};
 
 struct _GtkCellRendererProgressPriv {
 	double   value;
@@ -163,9 +163,9 @@ gtk_cell_renderer_progress_get_type(void)
 static void
 gtk_cell_renderer_progress_init(GtkCellRendererProgress *cellprogress)
 {
-    cellprogress->priv = 
+    cellprogress->priv =
 		(GtkCellRendererProgressPriv*) g_new0(GtkCellRendererProgressPriv, 1);
-    
+
 	cellprogress->priv->value = 0;
 }
 
@@ -184,15 +184,15 @@ gtk_cell_renderer_progress_class_init (GtkCellRendererProgressClass *class)
 	GtkCellRendererClass *cell_class = GTK_CELL_RENDERER_CLASS(class);
 
 	parent_class = g_type_class_peek_parent(class);
-  
+
 	object_class->finalize = gtk_cell_renderer_progress_finalize;
-  
+
 	object_class->get_property = gtk_cell_renderer_progress_get_property;
 	object_class->set_property = gtk_cell_renderer_progress_set_property;
 
 	cell_class->get_size = gtk_cell_renderer_progress_get_size;
 	cell_class->render = gtk_cell_renderer_progress_render;
-  
+
 	g_object_class_install_property(
 		object_class,
 		PROP_VALUE,
@@ -274,14 +274,14 @@ gtk_cell_renderer_progress_set_property(
  * Get the size of the cell here.
  *
  * @param cell The GtkCellRenderer we are getting the size of.
- * @param widget 
+ * @param widget
  * @param cell_area The cell area that we have.
  * @param x_offset The xoffset for the packed widget.
  * @param y_offset The yoffset for the packed widget.
  * @param width The minimum width of the widget.
  * @param height The minimum height of the widget.
  * @return nothing
- */ 
+ */
 static void
 gtk_cell_renderer_progress_get_size(
 	GtkCellRenderer *unused_cell,
@@ -298,7 +298,7 @@ gtk_cell_renderer_progress_get_size(
 	(void) unused_x_offset;
 	(void) unused_y_offset;
 
-	/* 
+	/*
 	 * Always return 1 here. Doesn't make to much sense,
 	 * but providing the real width would make it
 	 * impossible for the bar to shrink again.
@@ -356,10 +356,10 @@ gtk_cell_renderer_progress_render(
 	GdkGC *gc;
 	PangoLayout *layout;
 	PangoRectangle logical_rect;
-	char text[32]; 
+	char text[32];
 	int x, y, w, h, perc_w, pos;
 	int val;
-	
+
 	(void) unused_background_area;
 	(void) unused_expose_area;
 	(void) unused_flags;
@@ -370,7 +370,7 @@ gtk_cell_renderer_progress_render(
 	y = cell_area->y + 2;
 	w = cell_area->width - 8;
 	h = cell_area->height - 4;
-	
+
 	gdk_gc_set_rgb_fg_color(gc, &widget->style->fg[GTK_STATE_NORMAL]);
 	gdk_draw_rectangle(window, gc, TRUE, x, y, w, h);
 
@@ -379,7 +379,7 @@ gtk_cell_renderer_progress_render(
 	gdk_gc_set_rgb_fg_color(gc, &widget->style->bg[GTK_STATE_SELECTED]);
 	perc_w = (int)((w - 4) * cellprogress->priv->value);
 	gdk_draw_rectangle(window, gc, TRUE, x + 2, y + 2, perc_w, h - 4);
-	
+
 	val = cellprogress->priv->value * 100;
 	gm_snprintf(text, sizeof text, "%d", val);
 	layout = gtk_widget_create_pango_layout(widget, text);
@@ -387,14 +387,14 @@ gtk_cell_renderer_progress_render(
 	g_object_unref(G_OBJECT (layout));
 	gm_snprintf(text, sizeof text, "%d %%", val);
 	layout = gtk_widget_create_pango_layout(widget, text);
-	
+
 	pos = (w - logical_rect.width) / 2;
-	
+
 	if (perc_w < pos + logical_rect.width / 2)
 		state = GTK_STATE_NORMAL;
 	else
 		state = GTK_STATE_SELECTED;
-		
+
 	gtk_paint_layout(
 		widget->style,
 		window,
@@ -406,7 +406,7 @@ gtk_cell_renderer_progress_render(
 		x + pos,
 		y + (h - logical_rect.height) / 2,
 		layout);
-		
+
 	g_object_unref(G_OBJECT(layout));
 	g_object_unref(G_OBJECT(gc));
 }
@@ -416,7 +416,7 @@ gtk_cell_renderer_progress_render(
  *
  * Finalize the object.
  *
- * @param object The object which we will finalize.	
+ * @param object The object which we will finalize.
  * @return nothing
  */
 static void

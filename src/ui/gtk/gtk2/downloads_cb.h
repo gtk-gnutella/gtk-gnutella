@@ -47,15 +47,15 @@ void on_popup_queue_config_cols_activate(GtkMenuItem *menuitem,
  ***/
 
 /* active downloads */
-void on_button_downloads_abort_clicked(GtkButton *button, gpointer user_data); 
+void on_button_downloads_abort_clicked(GtkButton *button, gpointer user_data);
 void on_button_downloads_clear_stopped_clicked(
 	GtkButton *button, gpointer user_data);
-void on_button_downloads_resume_clicked(GtkButton *button, gpointer user_data); 
+void on_button_downloads_resume_clicked(GtkButton *button, gpointer user_data);
 
 /* queued downloads */
 void on_togglebutton_queue_freeze_toggled(
 	GtkToggleButton *togglebutton, gpointer user_data);
-void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data); 
+void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data);
 
 
 /***
@@ -65,15 +65,15 @@ void on_entry_queue_regex_activate(GtkEditable *editable, gpointer user_data);
 void on_popup_downloads_push_activate(
 	GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_abort_named_activate(
-	GtkMenuItem *menuitem, gpointer user_data); 
+	GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_abort_host_activate(
-	GtkMenuItem *menuitem, gpointer user_data); 
+	GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_abort_sha1_activate(
-	GtkMenuItem *menuitem, gpointer user_data); 
+	GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_remove_file_activate(
-	GtkMenuItem *menuitem, gpointer user_data); 
+	GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_search_again_activate(
-	GtkMenuItem *menuitem, gpointer user_data); 
+	GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_queue_activate(
 	GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_copy_url_activate(
@@ -92,7 +92,7 @@ void on_popup_queue_freeze_activate(
 void on_popup_queue_search_again_activate(
 	GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_queue_abort_host_activate(
-	GtkMenuItem * menuitem, gpointer user_data); 
+	GtkMenuItem * menuitem, gpointer user_data);
 void on_popup_queue_abort_named_activate(
 	GtkMenuItem * menuitem, gpointer user_data);
 void on_popup_queue_abort_sha1_activate(

@@ -37,7 +37,7 @@ RCSID("$Id$");
 
 #include "lib/override.h"		/* Must be the last header included */
 
-/* 
+/*
  * Create a function for the focus out signal and make it call
  * the callback for the activate signal.
  */
@@ -82,7 +82,7 @@ on_progressbar_bws_in_button_press_event(GtkWidget *unused_widget,
 		GdkEventButton *unused_event, gpointer unused_udata)
 {
     gboolean val;
-    
+
 	(void) unused_widget;
 	(void) unused_event;
 	(void) unused_udata;
@@ -96,7 +96,7 @@ on_progressbar_bws_out_button_press_event(GtkWidget *unused_widget,
 	GdkEventButton *unused_event, gpointer unused_udata)
 {
     gboolean val;
-    
+
 	(void) unused_widget;
 	(void) unused_event;
 	(void) unused_udata;
@@ -106,11 +106,11 @@ on_progressbar_bws_out_button_press_event(GtkWidget *unused_widget,
 }
 
 gboolean
-on_progressbar_bws_gin_button_press_event(GtkWidget *unused_widget, 
+on_progressbar_bws_gin_button_press_event(GtkWidget *unused_widget,
 	GdkEventButton *unused_event, gpointer unused_udata)
 {
     gboolean val;
-    
+
 	(void) unused_widget;
 	(void) unused_event;
 	(void) unused_udata;
@@ -120,11 +120,11 @@ on_progressbar_bws_gin_button_press_event(GtkWidget *unused_widget,
 }
 
 gboolean
-on_progressbar_bws_gout_button_press_event(GtkWidget *unused_widget, 
+on_progressbar_bws_gout_button_press_event(GtkWidget *unused_widget,
 	GdkEventButton *unused_event, gpointer unused_udata)
 {
     gboolean val;
-    
+
 	(void) unused_widget;
 	(void) unused_event;
 	(void) unused_udata;
@@ -134,11 +134,11 @@ on_progressbar_bws_gout_button_press_event(GtkWidget *unused_widget,
 }
 
 gboolean
-on_progressbar_bws_lin_button_press_event(GtkWidget *unused_widget, 
+on_progressbar_bws_lin_button_press_event(GtkWidget *unused_widget,
 	GdkEventButton *unused_event, gpointer unused_udata)
 {
     gboolean val;
-    
+
 	(void) unused_widget;
 	(void) unused_event;
 	(void) unused_udata;
@@ -152,7 +152,7 @@ on_progressbar_bws_lout_button_press_event(GtkWidget *unused_widget,
 		GdkEventButton *unused_event, gpointer unused_udata)
 {
     gboolean val;
-    
+
 	(void) unused_widget;
 	(void) unused_event;
 	(void) unused_udata;
@@ -198,7 +198,7 @@ on_button_hostcache_clear_bad_clicked(GtkButton *unused_button,
 
 /***
  *** Search Stats
- ***/ 
+ ***/
 
 void
 on_button_search_stats_reset_clicked(GtkButton *unused_button,
@@ -220,7 +220,7 @@ on_clist_search_stats_resize_column(GtkCList *unused_clist, gint column,
 
 /***
  *** Config pane
- ***/ 
+ ***/
 
 
 /* While downloading, store files to */
@@ -378,7 +378,7 @@ void
 button_fs_bad_path_clicked(GtkButton *unused_button, gpointer user_data)
 {
 	(void) unused_button;
-	
+
 	if (user_data) {
 		gchar *name;
 
@@ -402,7 +402,7 @@ on_button_config_bad_path_clicked(GtkButton *unused_button,
 {
 	(void) unused_button;
 	(void) unused_udata;
-	
+
 	if (!bad_path_filesel) {
 		bad_path_filesel =
 			gtk_file_selection_new(
@@ -444,10 +444,10 @@ void
 button_fs_add_dir_clicked(GtkButton *unused_button, gpointer user_data)
 {
 	(void) unused_button;
-	
+
 	if (user_data) {
 		gchar *name;
-     
+
         name = g_strdup(gtk_file_selection_get_filename
             (GTK_FILE_SELECTION(add_dir_filesel)));
 
@@ -467,7 +467,7 @@ on_button_config_add_dir_clicked(GtkButton *unused_button,
 {
 	(void) unused_button;
 	(void) unused_udata;
-	
+
 	if (!add_dir_filesel) {
 		add_dir_filesel =
 			gtk_file_selection_new(_("Please choose a directory to share"));
@@ -495,7 +495,7 @@ on_button_config_rescan_dir_clicked(GtkButton *unused_button,
 {
 	(void) unused_button;
 	(void) unused_udata;
-	
+
 	gui_allow_rescan_dir(FALSE);
 	guc_share_scan();
 	gui_allow_rescan_dir(TRUE);
@@ -506,7 +506,7 @@ void
 on_entry_config_netmask_activate(GtkEditable *editable, gpointer unused_data)
 {
     gchar *buf;
-    
+
 	(void) unused_data;
     buf = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
     gnet_prop_set_string(PROP_LOCAL_NETMASKS_STRING, buf);
@@ -536,7 +536,7 @@ on_hb_searches_child_detached(GtkHandleBox *unused_handlebox,
 
 	(void) unused_handlebox;
 	(void) unused_udata;
-	
+
 	/*
 	 * Before the GtkHandleBox is detached, request the current size
 	 * of the widget inside to preserve dimensions. Otherwise, the

@@ -170,13 +170,13 @@ search_store_xml(void)
     xmlNodePtr root;
 	gchar *filename_new;
 
-    /* 
-     * Create new xml document with version 1.0 
+    /*
+     * Create new xml document with version 1.0
      */
     doc = xmlNewDoc((const xmlChar *) "1.0");
 
-    /* 
-     * Create a new root node "gtkGnutella searches" 
+    /*
+     * Create a new root node "gtkGnutella searches"
      */
     root = xmlNewDocNode(doc, NULL, (const xmlChar *) "Searches", NULL);
     xmlDocSetRootElement(doc, root);
@@ -203,8 +203,8 @@ search_store_xml(void)
     for (l = filters; l; l = g_list_next(l))
         filter_to_xml(root, (filter_t *) l->data);
 
-    /* 
-     * Try to save the file 
+    /*
+     * Try to save the file
      */
 
     xmlKeepBlanksDefault(0);
@@ -264,7 +264,7 @@ search_retrieve_xml(void)
 	 * stream!  Unbelievable.
 	 *		--RAM, 16/07/2003
 	 */
-	
+
   	path = make_pathname(settings_gui_config_dir(), search_file_xml);
 	if (NULL == path)
 		goto out;
@@ -273,7 +273,7 @@ search_retrieve_xml(void)
 	if (NULL == path_orig)
 		goto out;
 
-	/* 
+	/*
      * If the file doesn't exist, try retrieving from the .orig version.
      */
 
@@ -296,14 +296,14 @@ search_retrieve_xml(void)
 		g_warning("retrieving searches from %s instead", path_orig);
     }
 
-	/* 
-     * parse the file and put the result into newdoc 
+	/*
+     * parse the file and put the result into newdoc
      */
 	doc = xmlParseFile(path_orig);
     root = xmlDocGetRootElement(doc);
 
-	/* 
-     * in case something went wrong 
+	/*
+     * in case something went wrong
      */
     if(!doc) {
         g_warning("error parsing searches file: %s", path_orig);
@@ -325,17 +325,17 @@ search_retrieve_xml(void)
 
     id_map = g_hash_table_new(NULL, NULL);
 
-    /* 
+    /*
      * find nodes and add them to the list, this just
-	 * loops through all the children of the root of the document 
+	 * loops through all the children of the root of the document
      */
 	for (node = root->children; node != NULL; node = node->next)
         parse_xml(node, NULL);
 
     /*
-     * We should have collected all ruleset UIDs now. So we can 
+     * We should have collected all ruleset UIDs now. So we can
      * now resolve the UIDs to the actual pointers we use now.
-     * We need to commit before we do this, because we want to 
+     * We need to commit before we do this, because we want to
      * interate over the rulesets and don't want to cope with
      * shadows.
      */
@@ -352,7 +352,7 @@ search_retrieve_xml(void)
             printf("\n\nresolving on filter:\n");
             dump_filter(filter);
         }
-        
+
         if (!filter_is_builtin(filter)) {
             for (r = filter->ruleset; r != NULL; r = g_list_next(r)) {
                 rule_t *rule = (rule_t *)r->data;
@@ -366,7 +366,7 @@ search_retrieve_xml(void)
                         n, filter->name, filter_rule_to_gchar(rule));
                 rule->target = new_target;
                 set_flags(rule->flags, RULE_FLAG_VALID);
-            
+
                 /*
                  * We circumwent the shadows, so we must do refcounting
                  * manually here.
@@ -433,11 +433,11 @@ static void
 builtin_to_xml(xmlNodePtr parent)
 {
     xmlNodePtr newxml;
-    
+
     g_assert(parent != NULL);
 
     newxml = xmlNewChild(parent,NULL,NODE_BUILTIN, NULL);
-    
+
   	gm_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_show_target());
     xmlSetProp(newxml, TAG_BUILTIN_SHOW_UID, (const xmlChar *) x_tmp);
 
@@ -472,13 +472,13 @@ search_to_xml(xmlNodePtr parent, search_t *s)
     }
 
 	t = s->query;
-#ifndef USE_GTK2   
+#ifndef USE_GTK2
 	if (!is_ascii_string(s->query) && !utf8_is_valid_string(s->query, 0)) {
 		if (NULL == (t = locale_to_utf8(s->query, 0))) {
 			g_warning("search_to_xml: Cannot convert search string to UTF-8"
 				"Search won't be saved. query=\"%s\"", s->query);
 			return;
-		} 
+		}
 	}
 #endif
 
@@ -491,7 +491,7 @@ search_to_xml(xmlNodePtr parent, search_t *s)
     gm_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(s->passive));
     xmlSetProp(newxml, TAG_SEARCH_PASSIVE, (const xmlChar *) x_tmp);
 
-  	gm_snprintf(x_tmp, sizeof(x_tmp), "%u", 
+  	gm_snprintf(x_tmp, sizeof(x_tmp), "%u",
         guc_search_get_reissue_timeout(s->search_handle));
     xmlSetProp(newxml, TAG_SEARCH_REISSUE_TIMEOUT, (const xmlChar *) x_tmp);
 
@@ -531,7 +531,7 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
     }
 
     newxml = xmlNewChild(parent, NULL, NODE_FILTER, NULL);
-    
+
     xmlSetProp(newxml, TAG_FILTER_NAME, (const xmlChar *) f->name);
 
     gm_snprintf(x_tmp, sizeof(x_tmp), "%u", TO_BOOL(filter_is_active(f)));
@@ -547,15 +547,15 @@ filter_to_xml(xmlNodePtr parent, filter_t *f)
 
     if (filter_get_global_pre() == f) {
     	gm_snprintf(x_tmp, sizeof(x_tmp), "%u", GLOBAL_PRE);
-        xmlSetProp(newxml, TAG_FILTER_GLOBAL, (const xmlChar *) x_tmp); 
+        xmlSetProp(newxml, TAG_FILTER_GLOBAL, (const xmlChar *) x_tmp);
     }
 
     if (filter_get_global_post() == f) {
     	gm_snprintf(x_tmp, sizeof(x_tmp), "%u", GLOBAL_POST);
-        xmlSetProp(newxml, TAG_FILTER_GLOBAL, (const xmlChar *) x_tmp); 
+        xmlSetProp(newxml, TAG_FILTER_GLOBAL, (const xmlChar *) x_tmp);
     }
 
-    /* 
+    /*
      * Since free rulesets don't have bound searches,
      * we need not save the ->search member.
      * Visited is only used internally during filter
@@ -571,7 +571,7 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
     xmlNodePtr newxml = NULL;
 
     g_assert(parent != NULL);
-    
+
     /*
      * We create no node when there is no filter rule.
      */
@@ -582,7 +582,7 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
     case RULE_TEXT:
         newxml = xmlNewChild(parent, NULL, NODE_RULE_TEXT, NULL);
 
-        xmlSetProp(newxml, TAG_RULE_TEXT_CASE, 
+        xmlSetProp(newxml, TAG_RULE_TEXT_CASE,
             (const xmlChar *) (r->u.text.case_sensitive ? "1" : "0"));
         xmlSetProp(newxml, TAG_RULE_TEXT_MATCH,
 			(const xmlChar *) r->u.text.match);
@@ -600,7 +600,7 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
         break;
     case RULE_SIZE:
         newxml = xmlNewChild(parent, NULL, NODE_RULE_SIZE, NULL);
-        
+
         gm_snprintf(x_tmp, sizeof(x_tmp), "%lu", (gulong) r->u.size.lower);
         xmlSetProp(newxml, TAG_RULE_SIZE_LOWER, (const xmlChar *) x_tmp);
 
@@ -609,7 +609,7 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
         break;
     case RULE_JUMP:
         newxml = xmlNewChild(parent, NULL, NODE_RULE_JUMP, NULL);
-        
+
         /*
          * Only need target to this rule and that's done below.
          */
@@ -623,14 +623,14 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
 
         xmlSetProp(newxml, TAG_RULE_SHA1_FILENAME,
 			(const xmlChar *) r->u.sha1.filename);
-        
+
         /*
          * r->u.sha1.hash is NULL, we just omit the hash.
          */
         break;
     case RULE_FLAG:
         newxml = xmlNewChild(parent, NULL, NODE_RULE_FLAG, NULL);
-        
+
         gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.flag.stable);
         xmlSetProp(newxml, TAG_RULE_FLAG_STABLE, (const xmlChar *) x_tmp);
 
@@ -642,7 +642,7 @@ rule_to_xml(xmlNodePtr parent, rule_t *r)
         break;
     case RULE_STATE:
          newxml = xmlNewChild(parent, NULL, NODE_RULE_STATE, NULL);
-        
+
         gm_snprintf(x_tmp, sizeof(x_tmp), "%u", r->u.state.display);
         xmlSetProp(newxml, TAG_RULE_STATE_DISPLAY, (const xmlChar *) x_tmp);
 
@@ -679,7 +679,7 @@ parse_xml(xmlNodePtr xmlnode, gpointer user_data)
     if (!xmlnode->name) {
         g_warning("Unnamed node: ignored");
 	    return;
-    } 
+    }
 
     for (n = 0; parser_map[n].name != NULL; n ++) {
         if (
@@ -690,7 +690,7 @@ parse_xml(xmlNodePtr xmlnode, gpointer user_data)
             return;
         }
     }
-    
+
     g_error("Unknown node: %s", xmlnode->name);
 }
 
@@ -738,7 +738,7 @@ xml_to_builtin(xmlNodePtr xmlnode, gpointer unused_udata)
     } else {
         g_warning("xml_to_builtin: no \"DOWNLOAD\" target");
     }
-    
+
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_BUILTIN_NODOWNLOAD_UID));
     if (buf != NULL) {
         errno = 0;
@@ -793,7 +793,7 @@ xml_to_search(xmlNodePtr xmlnode, gpointer unused_udata)
     	query = g_strdup(utf8_to_locale(buf, 0));
 		if (NULL == query) {
 			g_warning("xml_to_search: Cannot convert search string to UTF-8"
-                "Discarding search. buf=\"%s\"", buf);	
+                "Discarding search. buf=\"%s\"", buf);
 			G_FREE_NULL(buf);
 			return;
 		}
@@ -1061,14 +1061,14 @@ xml_to_size_rule(xmlNodePtr xmlnode, gpointer filter)
         g_error("xml_to_size_rule: rule without upper bound");
     upper = atol(buf);
     G_FREE_NULL(buf);
- 
+
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_TARGET));
     errno = 0;
     target = (gpointer) strtoul(buf, 0, 16);
     if (errno != 0)
         g_error( "xml_to_size_rule: %s (%p)", g_strerror(errno), target);
     G_FREE_NULL(buf);
-       
+
     flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_size_rule(lower, upper, target, flags);
     clear_flags(rule->flags, RULE_FLAG_VALID);
@@ -1102,7 +1102,7 @@ xml_to_jump_rule(xmlNodePtr xmlnode, gpointer filter)
     if (errno != 0)
         g_error( "xml_to_jump_rule: %s", g_strerror(errno));
     G_FREE_NULL(buf);
-       
+
     flags = get_rule_flags_from_xml(xmlnode);
     rule = filter_new_jump_rule(target,flags);
     clear_flags(rule->flags, RULE_FLAG_VALID);
@@ -1282,12 +1282,12 @@ get_rule_flags_from_xml(xmlNodePtr xmlnode)
     gboolean negate = FALSE;
     gboolean active = TRUE;
     gboolean soft   = FALSE;
-    guint16 flags;  
+    guint16 flags;
     gchar *buf;
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
-    
+
     buf = (gchar *) STRTRACK(xmlGetProp(xmlnode, TAG_RULE_NEGATE));
     if (buf != NULL) {
         negate = atol(buf) == 1 ? TRUE : FALSE;

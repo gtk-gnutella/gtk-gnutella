@@ -50,7 +50,7 @@ RCSID("$Id$");
 
 #define UPDATE_MIN	300		/* Update screen every 5 minutes at least */
 
-/* 
+/*
  * These hash tables record which information about which nodes has
  * changed. By using this the number of updates to the gui can be
  * significantly reduced.
@@ -92,7 +92,7 @@ static void add_column(
 
    	column = gtk_tree_view_column_new_with_attributes(
 		title, nodes_gui_cell_renderer,
-		attr, column_id, 
+		attr, column_id,
 		"foreground-gdk", c_gnet_fg,
 		NULL);
 	g_object_set(G_OBJECT(column),
@@ -215,7 +215,7 @@ find_node(gnet_node_t n)
 }
 
 /**
- * Updates vendor, version and info column 
+ * Updates vendor, version and info column
  */
 static inline void
 nodes_gui_update_node_info(gnet_node_info_t *n, GtkTreeIter *iter)
@@ -234,7 +234,7 @@ nodes_gui_update_node_info(gnet_node_info_t *n, GtkTreeIter *iter)
     gm_snprintf(version, sizeof(version), "%d.%d",
 		n->proto_major, n->proto_minor);
 
-	gtk_list_store_set(nodes_model, iter, 
+	gtk_list_store_set(nodes_model, iter,
 		c_gnet_user_agent, n->vendor ? lazy_locale_to_utf8(n->vendor, 0) : NULL,
 		c_gnet_loc, iso3166_country_cc(n->country),
 		c_gnet_version, version,
@@ -243,7 +243,7 @@ nodes_gui_update_node_info(gnet_node_info_t *n, GtkTreeIter *iter)
 }
 
 /**
- *  
+ *
  */
 static inline void
 nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags,
@@ -270,7 +270,7 @@ on_enter_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 		gpointer unused_udata)
 {
 	GtkTreePath *path;
-	
+
 	(void) unused_event;
 	(void) unused_udata;
 
@@ -309,7 +309,7 @@ host_lookup_callback(const gchar *hostname, gpointer data)
 		return;
 
 	g_hash_table_remove(ht_pending_lookups, data);
-	
+
 	tv = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(tv));
 	iter = find_node(n);
@@ -349,18 +349,18 @@ on_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 	gtk_tree_view_get_cursor(tv, &path, NULL);
 	if (!path)
 		return;
-	
+
 	text[0] = '\0';
 	model = gtk_tree_view_get_model(tv);
 	if (!gtk_tree_model_get_iter(model, &iter, path)) {
 		g_warning("gtk_tree_model_get_iter() failed");
 		return;
 	}
-	
+
 	gtk_tree_model_get(model, &iter, c_gnet_handle, &n, (-1));
 	if (!find_node(n))
 		return;
-	
+
    	guc_node_fill_info(n, &info);
 	g_assert(info.node_handle == n);
 	gm_snprintf(text, sizeof text,
@@ -370,7 +370,7 @@ on_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
 		iso3166_country_cc(info.country),
 		info.vendor ? lazy_locale_to_utf8(info.vendor, 0) : _("Unknown"),
 		_("(Press Control-F1 to toggle view)"));
-	
+
 	guc_node_clear_info(&info);
 
 	gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv), text, NULL);
@@ -397,7 +397,7 @@ nodes_gui_early_init(void)
  * Initialize the nodes controller. Register callbacks in the backend.
  */
 void
-nodes_gui_init(void) 
+nodes_gui_init(void)
 {
     GtkTreeView *tree;
 	guint32 width[NODES_VISIBLE_COLUMNS];
@@ -479,9 +479,9 @@ nodes_gui_remove_node(gnet_node_t n)
 {
     GtkTreeIter *iter;
 
-    /* 
+    /*
      * Make sure node is remove from the "changed" hash tables so
-     * we don't try an update later. 
+     * we don't try an update later.
      */
     g_hash_table_remove(ht_node_info_changed, GUINT_TO_POINTER(n));
     g_hash_table_remove(ht_node_flags_changed, GUINT_TO_POINTER(n));
@@ -507,7 +507,7 @@ nodes_gui_add_node(gnet_node_info_t *n)
    	gm_snprintf(proto_tmp, sizeof(proto_tmp), "%d.%d",
 		n->proto_major, n->proto_minor);
     gtk_list_store_append(nodes_model, iter);
-    gtk_list_store_set(nodes_model, iter, 
+    gtk_list_store_set(nodes_model, iter,
         c_gnet_host,    ip_port_to_gchar(n->ip, n->port),
         c_gnet_flags,    NULL,
         c_gnet_user_agent, n->vendor ? lazy_locale_to_utf8(n->vendor, 0) : NULL,
@@ -534,7 +534,7 @@ update_row(gpointer key, gpointer value, gpointer user_data)
 	g_assert(NULL != iter);
 	guc_node_get_status(n, &status);
 
-    /* 
+    /*
      * Update additional info too if it has recorded changes.
      */
     if (g_hash_table_lookup(ht_node_info_changed, GUINT_TO_POINTER(n))) {
@@ -557,7 +557,7 @@ update_row(gpointer key, gpointer value, gpointer user_data)
 	if (status.connect_date) {
 		g_strlcpy(timestr, short_uptime(delta_time(now, status.connect_date)),
 			sizeof(timestr));
-		gtk_list_store_set(nodes_model, iter, 
+		gtk_list_store_set(nodes_model, iter,
 			c_gnet_connected, timestr,
 			c_gnet_uptime, status.up_date
 				? short_uptime(delta_time(now, status.up_date)) : NULL,
@@ -678,12 +678,12 @@ static void nodes_gui_node_added(gnet_node_t n)
 /**
  * Callback: called when node information was changed by the backend.
  *
- * This updates the node information in the gui. 
+ * This updates the node information in the gui.
  */
 static void
 nodes_gui_node_info_changed(gnet_node_t n)
 {
-    g_hash_table_insert(ht_node_info_changed, 
+    g_hash_table_insert(ht_node_info_changed,
         GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
 }
 
@@ -693,12 +693,12 @@ nodes_gui_node_info_changed(gnet_node_t n)
 static void
 nodes_gui_node_flags_changed(gnet_node_t n)
 {
-    g_hash_table_insert(ht_node_flags_changed, 
+    g_hash_table_insert(ht_node_flags_changed,
         GUINT_TO_POINTER(n), GUINT_TO_POINTER(1));
 }
 
 /**
- * Removes all selected nodes from the treeview and disconnects them 
+ * Removes all selected nodes from the treeview and disconnects them
  */
 void
 nodes_gui_remove_selected(void)
@@ -726,14 +726,14 @@ nodes_gui_reverse_lookup_selected_helper(GtkTreeModel *model,
 
 	(void) unused_path;
 	(void) unused_data;
-	
+
 	gtk_tree_model_get(model, iter, c_gnet_handle, &n, (-1));
 	g_assert(NULL != find_node(n));
 
 	key = GUINT_TO_POINTER(n);
 	if (NULL != g_hash_table_lookup(ht_pending_lookups, key))
 		return;
-	
+
 	guc_node_fill_info(n, &info);
 	g_assert(n == info.node_handle);
 	gm_snprintf(buf, sizeof buf, "%s (%s)", _("Reverse lookup in progress..."),

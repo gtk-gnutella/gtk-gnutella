@@ -42,7 +42,7 @@ void downloads_gui_init(void);
 void downloads_gui_shutdown(void);
 
 #ifdef USE_GTK1
-GList *downloads_gui_collect_ctree_data(GtkCTree *ctree, GList *node_list, 
+GList *downloads_gui_collect_ctree_data(GtkCTree *ctree, GList *node_list,
 	gboolean unselect, gboolean add_children);
 void downloads_gui_expand_all(GtkCTree *ctree);
 void downloads_gui_collapse_all(GtkCTree *ctree);

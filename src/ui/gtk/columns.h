@@ -59,7 +59,7 @@ enum {
     c_ul_agent,
 #ifdef USE_GTK2
 	c_ul_progress,
-#endif /* USE_GTK2 */	
+#endif /* USE_GTK2 */
     c_ul_status,
 #define UPLOADS_GUI_VISIBLE_COLUMNS ((guint) c_ul_status + 1)
 #ifdef USE_GTK2

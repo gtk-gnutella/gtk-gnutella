@@ -24,11 +24,11 @@
  */
 
 #ifndef _gtk_gtk_column_chooser_h_
-#define _gtk_gtk_column_chooser_h_ 
+#define _gtk_gtk_column_chooser_h_
 
 #include <gtk/gtk.h>
 #include <gtk/gtkmenu.h>
-#if (GTK_MAJOR_VERSION >= 2)  
+#if (GTK_MAJOR_VERSION >= 2)
 #include <gtk/gtktreeview.h>
 #else
 #include <gtk/gtkclist.h>
@@ -36,19 +36,19 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif /* __cplusplus */ 
+#endif /* __cplusplus */
 
 #define GTK_COLUMN_CHOOSER(obj)\
      GTK_CHECK_CAST (obj, gtk_column_chooser_get_type (), GtkColumnChooser)
 #define GTK_COLUMN_CHOOSER_CLASS(klass)\
      GTK_CHECK_CLASS_CAST (klass, gtk_column_chooser_get_type (), GtkColumnChooserClass)
 #define GTK_IS_COLUMN_CHOOSER(obj)\
-     GTK_CHECK_TYPE (obj, gtk_column_chooser_get_type ()) 
+     GTK_CHECK_TYPE (obj, gtk_column_chooser_get_type ())
 #define GTK_TYPE_COLUMN_CHOOSER (gtk_column_chooser_get_type())
 
 typedef struct _GtkColumnChooser GtkColumnChooser;
 
-typedef struct _GtkColumnChooserClass  GtkColumnChooserClass; 
+typedef struct _GtkColumnChooserClass  GtkColumnChooserClass;
 
 struct _GtkColumnChooser {
     GtkMenu menu;
@@ -56,17 +56,17 @@ struct _GtkColumnChooser {
     GtkWidget * widget;
     GHashTable * col_map;
     gboolean closed;
-}; 
+};
 
 struct _GtkColumnChooserClass {
     GtkMenuClass parent_class;
-}; 
+};
 
 GtkType gtk_column_chooser_get_type(void);
 GtkWidget* gtk_column_chooser_new(GtkWidget *widget);
 
 #ifdef __cplusplus
 }
-#endif /* __cplusplus */ 
+#endif /* __cplusplus */
 
 #endif /* _gtk_gtk_column_chooser_h_ */

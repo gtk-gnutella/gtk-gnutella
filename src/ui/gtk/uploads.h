@@ -41,7 +41,7 @@ typedef struct upload_row_data {
     GtkTreeIter   iter;
 	guint32       ip;
 	filesize_t    size;
-	gboolean      push; 
+	gboolean      push;
 	gchar         *user_agent;	/* atom */
 	gchar         *name;		/* atom */
 	gint          country;

@@ -346,7 +346,7 @@ nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 		default:				status[5] = '-';
 	}
 
-	status[6] = 
+	status[6] =
 		flags->tx_compressed && flags->rx_compressed ? 'Z' :
 		flags->tx_compressed ? 'T' :
 		flags->rx_compressed ? 'R' : '-';
@@ -385,13 +385,13 @@ add_node_helper(guint32 ip, gpointer port)
  * [ip]:[port]. Port may be omitted.
  */
 void
-nodes_gui_common_connect_by_name(const gchar *addr) 
+nodes_gui_common_connect_by_name(const gchar *addr)
 {
     guint32 port = GTA_PORT;
     gchar *e, *p;
 
     g_assert(addr != NULL);
-    
+
     e = g_strdup(addr);
 	g_strstrip(e);
 
@@ -400,7 +400,7 @@ nodes_gui_common_connect_by_name(const gchar *addr)
 		gchar *ep;
 		guint64 v;
 		gint error;
-		
+
 		*p++ = '\0';
 		v = parse_uint64(p, &ep, 10, &error);
 		port = (v > 0 && v < 65536 && *ep == '\0') ? v : 0;

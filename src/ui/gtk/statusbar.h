@@ -30,8 +30,8 @@
 
 #include "if/ui/gtk/statusbar.h"
 
-/* 
- * Context ids for the status bar 
+/*
+ * Context ids for the status bar
  */
 extern guint scid_hostsfile;
 extern guint scid_search_autoselected;

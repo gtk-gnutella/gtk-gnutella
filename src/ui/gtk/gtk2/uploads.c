@@ -77,11 +77,11 @@ static const char * const column_titles[UPLOADS_GUI_VISIBLE_COLUMNS] = {
 };
 
 typedef struct remove_row_ctx {
-	gboolean force;			/* If false, rows will only be removed, if 
+	gboolean force;			/* If false, rows will only be removed, if
 							 * their `entry_removal_timeout' has expired. */
 	time_t now; 			/* Current time, used to decide whether row
 							 * should be finally removed. */
-	GSList *sl_remaining;	/* Contains row data for not yet removed rows. */	
+	GSList *sl_remaining;	/* Contains row data for not yet removed rows. */
 } remove_row_ctx_t;
 
 
@@ -96,7 +96,7 @@ on_button_press_event(GtkWidget *unused_widget, GdkEventButton *event,
 	(void) unused_widget;
 	(void) unused_udata;
 
-	if (3 == event->button) { 
+	if (3 == event->button) {
         /* Right click section (popup menu) */
 		gtk_menu_popup(GTK_MENU(popup_uploads), NULL, NULL, NULL, NULL,
 			event->button, event->time);
@@ -121,7 +121,7 @@ upload_removed(gnet_upload_t uh, const gchar *reason,
 
 	(void) running;
 	(void) registered;
-	
+
     /* Invalidate row and remove it from the GUI if autoclear is on */
 	rd = find_upload(uh);
 	g_assert(NULL != rd);
@@ -156,10 +156,10 @@ upload_added(gnet_upload_t n, guint32 running, guint32 registered)
 
 /**
  * Callback: called when upload information was changed by the backend.
- * This updates the upload information in the gui. 
+ * This updates the upload information in the gui.
  */
 static void
-upload_info_changed(gnet_upload_t u, 
+upload_info_changed(gnet_upload_t u,
     guint32 running, guint32 registered)
 {
     gnet_upload_info_t *info;
@@ -197,7 +197,7 @@ COMPARE_FUNC(sizes, {
 COMPARE_FUNC(ranges, {
 	filesize_t u = rd_a->range_end - rd_a->range_start;
 	filesize_t v = rd_b->range_end - rd_b->range_start;
-	gint s = CMP(v, u); 
+	gint s = CMP(v, u);
 	return 0 != s ? s : CMP(rd_a->range_start, rd_b->range_start);
 });
 
@@ -239,8 +239,8 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 
 	rd = find_upload(u->upload_handle);
 	g_assert(NULL != rd);
- 
-	rd->last_update  = time(NULL);	
+
+	rd->last_update  = time(NULL);
 
 	if (u->ip != rd->ip) {
 		rd->ip = u->ip;
@@ -280,7 +280,7 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 			(-1));
 	}
 
-	/* Exploit that u->name is an atom! */ 
+	/* Exploit that u->name is an atom! */
 	if (u->name != rd->name) {
 		g_assert(NULL != u->name);
 		if (NULL != rd->name)
@@ -291,7 +291,7 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 			(-1));
 	}
 
-	/* Exploit that u->user_agent is an atom! */ 
+	/* Exploit that u->user_agent is an atom! */
 	if (u->user_agent != rd->user_agent) {
 		g_assert(NULL != u->user_agent);
 		if (NULL != rd->user_agent)
@@ -369,13 +369,13 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
             range_len += gm_snprintf(
                 &range_tmp[range_len], sizeof(range_tmp)-range_len,
                 " @ %s", compact_size(u->range_start));
-    
+
         g_assert((guint) range_len < sizeof(range_tmp));
 
         titles[c_ul_range] = range_tmp;
     }
 
-	g_strlcpy(size_tmp, short_size(u->file_size), sizeof(size_tmp)); 
+	g_strlcpy(size_tmp, short_size(u->file_size), sizeof(size_tmp));
     titles[c_ul_size] = size_tmp;
 
 	if (NULL != u->user_agent) {
@@ -406,7 +406,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 		c_ul_host, titles[c_ul_host],
 		c_ul_loc, titles[c_ul_loc],
 		c_ul_agent, titles[c_ul_agent],
-		c_ul_progress, 
+		c_ul_progress,
 			force_range(
 				uploads_gui_progress(&status, rd), 0.0, 1.0),
 		c_ul_status, titles[c_ul_status],
@@ -446,7 +446,7 @@ add_column(gint column_id, GtkTreeIterCompareFunc sortfunc, GtkType column_type)
 		column = gtk_tree_view_column_new_with_attributes(
 					_(column_titles[column_id]), renderer,
 					"foreground-gdk", c_ul_fg,
-					"text", column_id, 
+					"text", column_id,
 					NULL);
 	}
 
@@ -508,7 +508,7 @@ uploads_gui_init(void)
 		{ c_ul_size, 		compare_sizes },
 		{ c_ul_range, 		compare_ranges },
 		{ c_ul_agent, 		NULL },
-		{ c_ul_progress, 	NULL }, 
+		{ c_ul_progress, 	NULL },
 		{ c_ul_status, 		NULL },
 	};
 	GtkTreeView *treeview;
@@ -529,14 +529,14 @@ uploads_gui_init(void)
 			c_ul_progress == cols[i].id
 				? GTK_TYPE_CELL_RENDERER_PROGRESS
 				: GTK_TYPE_CELL_RENDERER_TEXT);
-	
+
 	upload_handles = g_hash_table_new(NULL, NULL);
 
     guc_upload_add_upload_added_listener(upload_added);
     guc_upload_add_upload_removed_listener(upload_removed);
     guc_upload_add_upload_info_changed_listener
 		(upload_info_changed);
-	
+
 	g_signal_connect(GTK_OBJECT(treeview), "button_press_event",
 		G_CALLBACK(on_button_press_event), NULL);
 }
@@ -642,9 +642,9 @@ uploads_gui_update_display(time_t now)
 	g_slist_free(sl_removed_uploads);
 	sl_removed_uploads = ctx.sl_remaining;
 
-	/* Update the status column for all active uploads. */ 
+	/* Update the status column for all active uploads. */
 	g_hash_table_foreach(upload_handles, update_row, &now);
-       
+
 	if (NULL == sl_removed_uploads)
 		gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
 
@@ -672,7 +672,7 @@ uploads_clear_helper(gpointer user_data)
     for (sl = sl_removed_uploads; sl; sl = g_slist_next(sl_removed_uploads)) {
 		remove_row((upload_row_data_t *) sl->data, &ctx);
 		/* Interrupt and come back later to prevent GUI stalling. */
-		if (0 == (++counter & 0x7f)) { 
+		if (0 == (++counter & 0x7f)) {
 			/* Remember which elements haven't been traversed yet. */
 			sl_remaining = g_slist_remove_link(sl, sl);
 			break;
@@ -682,13 +682,13 @@ uploads_clear_helper(gpointer user_data)
 	 * by ctx->remaining. */
 	g_slist_free(sl_removed_uploads);
 	sl_removed_uploads = g_slist_concat(ctx.sl_remaining, sl_remaining);
-		
+
     if (NULL == sl_removed_uploads) {
 		gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
     	uploads_remove_lock = FALSE;
     	return FALSE; /* Finished. */
     }
-    
+
     return TRUE; /* More rows to remove. */
 }
 
@@ -697,7 +697,7 @@ uploads_gui_clear_completed(void)
 {
 	if (!uploads_remove_lock) {
 		uploads_remove_lock = TRUE;
-		gtk_timeout_add(100, uploads_clear_helper, store_uploads); 
+		gtk_timeout_add(100, uploads_clear_helper, store_uploads);
 	}
 }
 
@@ -705,10 +705,10 @@ uploads_gui_clear_completed(void)
  * Unregister callbacks in the backend and clean up.
  */
 void
-uploads_gui_shutdown(void) 
+uploads_gui_shutdown(void)
 {
 	uploads_shutting_down = TRUE;
-	
+
 	tree_view_save_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
 	tree_view_save_visibility(treeview_uploads, PROP_UPLOADS_COL_VISIBLE);
 

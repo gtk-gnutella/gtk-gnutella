@@ -60,12 +60,12 @@ monitor_gui_append_to_monitor(
 {
 	(void) ip;
 	(void) port;
-		
+
 	/* The user might have changed the max. number of items to
 	 * show, that's why we don't just the remove the first item. */
 	for (/* empty */; monitor_items >= monitor_max_items; monitor_items--) {
 		GtkTreeIter iter;
-		
+
         /* Get the first iter in the list */
         if (
 			!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(monitor_model),
@@ -129,13 +129,13 @@ void monitor_gui_init(void)
      * cell_renderer to the first column of the model */
     renderer = gtk_cell_renderer_text_new();
 	g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, NULL);
-    column = gtk_tree_view_column_new_with_attributes 
+    column = gtk_tree_view_column_new_with_attributes
         ("Query", renderer, "text", QUERY_COLUMN, NULL);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
 
     /* Add the column to the view. */
     gtk_tree_view_append_column (GTK_TREE_VIEW(tree), column);
-	
+
 	g_signal_connect(G_OBJECT(tree), "button_press_event",
 		G_CALLBACK(on_treeview_monitor_button_press_event), NULL);
 }
@@ -151,7 +151,7 @@ void monitor_gui_shutdown(void)
  *
  * Remove all but the first n items from the monitor.
  */
-void share_gui_clear_monitor(void) 
+void share_gui_clear_monitor(void)
 {
     gtk_list_store_clear(monitor_model);
 	monitor_items = 0;

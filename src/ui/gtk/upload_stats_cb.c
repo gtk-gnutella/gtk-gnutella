@@ -71,7 +71,7 @@ compare_ul_size(GtkCList *unused_clist, gconstpointer ptr1, gconstpointer ptr2)
 	guint32 s1;
 	guint32 s2;
 
-	(void) unused_clist;	
+	(void) unused_clist;
 	s1 = ((const struct ul_stats *) ((const GtkCListRow *) ptr1)->data)->size;
 	s2 = ((const struct ul_stats *) ((const GtkCListRow *) ptr2)->data)->size;
 
@@ -94,8 +94,8 @@ compare_ul_complete(GtkCList *unused_clist,
 	guint32 c2 = ((const struct ul_stats *)
 		((const GtkCListRow *) ptr2)->data)->complete;
 
-	(void) unused_clist;	
-	return (c1 != c2) ? ((c1 > c2) ? 1 : -1) : 
+	(void) unused_clist;
+	return (c1 != c2) ? ((c1 > c2) ? 1 : -1) :
 		(a1 == a2) ? 0 : (a1 > a2) ? 1 : -1;
 }
 
@@ -111,7 +111,7 @@ compare_ul_norm(GtkCList *clist, gconstpointer ptr1, gconstpointer ptr2)
 	n1 = ((const struct ul_stats *) ((const GtkCListRow *) ptr1)->data)->norm;
 	n2 = ((const struct ul_stats *) ((const GtkCListRow *) ptr2)->data)->norm;
 
-	return (n1 != n2) ? ((n1 > n2) ? 1 : -1) : 
+	return (n1 != n2) ? ((n1 > n2) ? 1 : -1) :
 		compare_ul_complete(clist, ptr1, ptr2);
 }
 
@@ -131,8 +131,8 @@ compare_ul_attempts(GtkCList *unused_clist,
 	guint32 c2 = ((const struct ul_stats *)
 		((const GtkCListRow *) ptr2)->data)->complete;
 
-	(void) unused_clist;	
-	return (a1 != a2) ? ((a1 > a2) ? 1 : -1) : 
+	(void) unused_clist;
+	return (a1 != a2) ? ((a1 > a2) ? 1 : -1) :
 		(c1 == c2) ? 0 : (c1 > c2) ? 1 : -1;
 }
 
@@ -165,7 +165,7 @@ on_clist_ul_stats_click_column(GtkCList *clist, gint column,
 	}
 
 	if (column == ul_sort_column) {
-		ul_sort_order = (ul_sort_order == GTK_SORT_DESCENDING) ? 
+		ul_sort_order = (ul_sort_order == GTK_SORT_DESCENDING) ?
 			GTK_SORT_ASCENDING : GTK_SORT_DESCENDING;
 	} else {
 		ul_sort_column = column;

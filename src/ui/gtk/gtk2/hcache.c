@@ -142,7 +142,7 @@ void hcache_gui_update(time_t now)
 		return;
 	last_update = now;
 	locked = TRUE;
-	
+
     current_page = gtk_notebook_get_current_page(notebook_main);
     if (current_page != nb_main_page_hostcache)
 		goto cleanup;
