@@ -23,6 +23,13 @@
  *----------------------------------------------------------------------
  */
 
+/*
+ * For ntohl and inet_addr
+ */
+#include <netinet/in.h> 
+#include <arpa/inet.h>
+
+
 #include "gnutella.h"
 #include "filter_gui.h"
 #include "misc.h"
@@ -60,6 +67,23 @@ static GtkCTreeNode *fl_node_free = NULL;
 
 
 
+/*
+ * Private functions prototypes
+ */
+static rule_t *filter_gui_get_text_rule();
+static rule_t *filter_gui_get_ip_rule();
+static rule_t *filter_gui_get_size_rule();
+static rule_t *filter_gui_get_jump_rule();
+static rule_t *filter_gui_get_flag_rule();
+static GtkCTreeNode *getFilterRoot(filter_t *f);
+
+
+
+/*
+ * getFilterRoot:
+ *
+ * Fetch the proper root node for a given filter in the filter tree.
+ */
 static GtkCTreeNode *getFilterRoot(filter_t *f)
 {
     if (filter_is_global(f)) {
@@ -453,6 +477,8 @@ void filter_gui_rebuild_target_combos(GList *filters)
         optionmenu_filter_ip_target,
         optionmenu_filter_size_target,
         optionmenu_filter_jump_target,
+        optionmenu_filter_sha1_target,
+        optionmenu_filter_flag_target,
         NULL };
     gpointer bufptr;
     gint i;
@@ -553,6 +579,12 @@ void filter_gui_edit_rule(rule_t *r)
         case RULE_JUMP:
             filter_gui_edit_jump_rule(r);
             break;
+        case RULE_SHA1:
+            filter_gui_edit_sha1_rule(r);
+            break;
+        case RULE_FLAG:
+            filter_gui_edit_flag_rule(r);
+            break;
         default:
             g_error("Unknown rule type: %d", r->type);
         }
@@ -612,6 +644,55 @@ void filter_gui_edit_ip_rule(rule_t *r)
     gtk_notebook_set_page(
         GTK_NOTEBOOK(notebook_filter_detail),
         nb_filt_page_ip);
+}
+
+
+
+/*
+ * filter_gui_edit_sha1_rule:
+ *
+ * Load a sha1 rule into the rule edtior or clear it if the rule is NULL.
+ */
+void filter_gui_edit_sha1_rule(rule_t *r)
+{
+    g_assert((r == NULL) ||(r->type == RULE_SHA1));
+
+    if (filter_dialog == NULL)
+        return;
+
+    if (r == NULL) {
+        gtk_entry_set_text(GTK_ENTRY(entry_filter_sha1_hash), "");
+        option_menu_select_item_by_data(optionmenu_filter_sha1_target,
+            (gpointer) DEFAULT_TARGET);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_sha1_invert_cond), FALSE);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_sha1_active), TRUE);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_sha1_soft), FALSE);
+    } else {
+        gchar *hash_str;
+
+        hash_str = (r->u.sha1.hash != NULL) ? 
+            sha1_base32(r->u.sha1.hash) : "";
+
+        gtk_entry_set_text(GTK_ENTRY(entry_filter_sha1_hash), hash_str);
+        option_menu_select_item_by_data(optionmenu_filter_sha1_target,
+            (gpointer) r->target);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_sha1_invert_cond),
+            RULE_IS_NEGATED(r));
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_sha1_active),
+            RULE_IS_ACTIVE(r));
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_sha1_soft),
+            RULE_IS_SOFT(r));
+    }
+
+    gtk_notebook_set_page(
+        GTK_NOTEBOOK(notebook_filter_detail),
+        nb_filt_page_sha1);
 }
 
 
@@ -730,6 +811,7 @@ void filter_gui_edit_size_rule(rule_t *r)
 }
 
 
+
 /*
  * filter_gui_edit_jump_rule:
  *
@@ -762,6 +844,96 @@ void filter_gui_edit_jump_rule(rule_t *r)
         nb_filt_page_jump);
 }
 
+
+
+/*
+ * filter_gui_edit_flag_rule:
+ *
+ * Load a flag rule into the rule edtior or clear it if the rule is NULL.
+ */
+
+
+void filter_gui_edit_flag_rule(rule_t *r)
+{
+    g_assert((r == NULL) || (r->type == RULE_FLAG));
+
+    if (filter_dialog == NULL)
+        return;
+
+    if (r == NULL) {
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(radiobutton_filter_flag_stable_ignore), TRUE);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(radiobutton_filter_flag_busy_ignore), TRUE);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(radiobutton_filter_flag_push_ignore), TRUE);
+        option_menu_select_item_by_data(optionmenu_filter_flag_target,
+            (gpointer) DEFAULT_TARGET);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_flag_active), TRUE);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_flag_soft), FALSE);
+   } else {
+        GtkWidget *tb = NULL;
+
+        switch (r->u.flag.stable) {
+        case RULE_FLAG_SET:
+            tb = radiobutton_filter_flag_stable_set;
+            break;
+        case RULE_FLAG_UNSET:
+            tb = radiobutton_filter_flag_stable_unset;
+            break;
+        case RULE_FLAG_IGNORE:
+            tb = radiobutton_filter_flag_stable_ignore;
+            break;
+        default:
+            g_assert_not_reached();
+        }
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), TRUE);
+
+        switch (r->u.flag.busy) {
+        case RULE_FLAG_SET:
+            tb = radiobutton_filter_flag_busy_set;
+            break;
+        case RULE_FLAG_UNSET:
+            tb = radiobutton_filter_flag_busy_unset;
+            break;
+        case RULE_FLAG_IGNORE:
+            tb = radiobutton_filter_flag_busy_ignore;
+            break;
+        default:
+            g_assert_not_reached();
+        }
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), TRUE);
+
+        switch (r->u.flag.push) {
+        case RULE_FLAG_SET:
+            tb = radiobutton_filter_flag_push_set;
+            break;
+        case RULE_FLAG_UNSET:
+            tb = radiobutton_filter_flag_push_unset;
+            break;
+        case RULE_FLAG_IGNORE:
+            tb = radiobutton_filter_flag_push_ignore;
+            break;
+        default:
+            g_assert_not_reached();
+        }
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), TRUE);
+
+        option_menu_select_item_by_data(optionmenu_filter_jump_target,
+            (gpointer) r->target);
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_flag_active),
+            RULE_IS_ACTIVE(r));
+        gtk_toggle_button_set_active
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_flag_soft),
+            RULE_IS_SOFT(r));
+    }
+
+    gtk_notebook_set_page
+        (GTK_NOTEBOOK(notebook_filter_detail), nb_filt_page_flag);
+}
 
 
 
@@ -816,3 +988,298 @@ void filter_gui_set_ruleset(GList *ruleset)
 }
 
 
+
+/*
+ * filter_gui_get_rule:
+ *
+ * Fetch the rule which is currently edited. This
+ * returns a completely new rule_t item in new memory.
+ */
+rule_t *filter_gui_get_rule() 
+{
+    gint page;
+    rule_t *r;
+
+    g_return_val_if_fail(filter_dialog != NULL, NULL);
+
+    page = gtk_notebook_get_current_page
+        (GTK_NOTEBOOK(notebook_filter_detail));
+
+    switch (page) {
+    case nb_filt_page_buttons:
+        r = NULL;
+        break;
+    case nb_filt_page_text:
+        r = filter_gui_get_text_rule();
+        break;
+    case nb_filt_page_ip:
+        r = filter_gui_get_ip_rule();
+        break;
+    case nb_filt_page_size:
+        r = filter_gui_get_size_rule();
+        break;
+    case nb_filt_page_jump:
+        r = filter_gui_get_jump_rule();
+        break;
+    case nb_filt_page_flag:
+        r = filter_gui_get_flag_rule();
+        break;
+    default:
+        g_assert_not_reached();
+        r = NULL;
+    };
+
+    if ((r != NULL) && (dbg >= 5))
+        printf("got rule: %s\n", filter_rule_to_gchar(r));
+
+    return r;
+}
+
+
+
+/* 
+ * filter_gui_get_text_rule:
+ *
+ * Extract information about a text rule.
+ * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
+ */
+static rule_t *filter_gui_get_text_rule()
+{
+  	rule_t *r;
+    gchar *match;
+    gint type;
+    gboolean case_sensitive;
+    filter_t *target;
+    gboolean negate;
+    gboolean active;
+    gboolean soft;
+    guint16 flags;
+
+    g_return_val_if_fail(filter_dialog != NULL, NULL);
+
+	type = (enum rule_text_type)
+        option_menu_get_selected_data(optionmenu_filter_text_type);
+
+	match = gtk_editable_get_chars
+        (GTK_EDITABLE(entry_filter_text_pattern), 0, -1);
+
+	case_sensitive = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_text_case));
+
+	negate = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_text_invert_cond));
+
+	active = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_text_active));
+
+   	soft = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_text_soft));
+
+    target = (filter_t *)option_menu_get_selected_data
+        (optionmenu_filter_text_target);
+
+    flags =
+        (negate ? RULE_FLAG_NEGATE : 0) |
+        (active ? RULE_FLAG_ACTIVE : 0) |
+        (soft   ? RULE_FLAG_SOFT   : 0);
+
+    r = filter_new_text_rule(match, type, case_sensitive, target, flags);
+
+    g_free(match);
+    
+    return r;
+}
+
+
+
+/* 
+ * filter_gui_get_ip_rule:
+ *
+ * Extract information about a ip rule.
+ * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
+ */
+static rule_t *filter_gui_get_ip_rule()
+{
+    gchar *s;
+    guint32 addr;
+    guint32 mask;
+    filter_t *target;
+    gboolean negate;
+    gboolean active;
+    gboolean soft;
+    guint16 flags;
+
+    g_return_val_if_fail(filter_dialog != NULL, NULL);
+
+	s = gtk_editable_get_chars(GTK_EDITABLE(entry_filter_ip_address), 0, -1);
+	addr = ntohl(inet_addr(s));
+	g_free(s);
+
+	s = gtk_editable_get_chars(GTK_EDITABLE(entry_filter_ip_mask), 0, -1);
+	mask = ntohl(inet_addr(s));
+	g_free(s);
+
+    negate = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_invert_cond));
+
+    active = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_active));
+
+    soft = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_soft));
+
+    target = (filter_t *)option_menu_get_selected_data
+        (optionmenu_filter_ip_target);
+
+    flags =
+        (negate ? RULE_FLAG_NEGATE : 0) |
+        (active ? RULE_FLAG_ACTIVE : 0) |
+        (soft   ? RULE_FLAG_SOFT   : 0);
+
+    return filter_new_ip_rule(addr, mask, target, flags);
+}
+
+
+
+/* 
+ * filter_gui_get_size_rule:
+ *
+ * Extract information about a size rule.
+ * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
+ */
+static rule_t *filter_gui_get_size_rule()
+{
+    size_t lower;
+    size_t upper;
+    filter_t *target;
+    gboolean negate;
+    gboolean active;
+    gboolean soft;
+    guint16 flags;
+
+    if (filter_dialog == NULL)
+        return NULL;
+
+    lower = gtk_spin_button_get_value_as_int
+        (GTK_SPIN_BUTTON(spinbutton_filter_size_min));
+
+    upper = gtk_spin_button_get_value_as_int
+        (GTK_SPIN_BUTTON(spinbutton_filter_size_max));
+
+    negate = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_size_invert_cond));
+
+    active = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_size_active));
+
+    soft = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_size_soft));
+
+    target = (filter_t *)option_menu_get_selected_data
+        (optionmenu_filter_size_target);
+
+    flags =
+        (negate ? RULE_FLAG_NEGATE : 0) |
+        (active ? RULE_FLAG_ACTIVE : 0) |
+        (soft   ? RULE_FLAG_SOFT   : 0);
+
+   return filter_new_size_rule(lower, upper, target, flags);
+}
+
+
+
+/* 
+ * filter_gui_get_jump_rule:
+ *
+ * Extract information about a size rule.
+ * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
+ */
+static rule_t *filter_gui_get_jump_rule()
+{
+    filter_t *target;
+    gboolean active;
+    guint16 flags;
+
+    if (filter_dialog == NULL)
+        return NULL;
+
+    target = (filter_t *)option_menu_get_selected_data
+        (optionmenu_filter_jump_target);
+
+    active = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_jump_active));
+
+    flags = (active ? RULE_FLAG_ACTIVE : 0);
+
+    return filter_new_jump_rule(target, flags);
+}
+
+
+
+/* 
+ * filter_gui_get_flag_rule:
+ *
+ * Extract information about a flag rule.
+ * NEVER CALL DIRECTLY!!! Use filter_gui_get_rule().
+ */
+static rule_t *filter_gui_get_flag_rule()
+{
+    filter_t *target;
+    enum rule_flag_action stable = 2;
+    enum rule_flag_action busy = 2;
+    enum rule_flag_action push = 2;
+    gboolean active;
+    gboolean soft;
+    guint16 flags;
+    GtkWidget *act;
+
+    if (filter_dialog == NULL)
+        return NULL;
+
+    target = (filter_t *)option_menu_get_selected_data
+        (optionmenu_filter_flag_target);
+
+    act = radiobutton_get_active_in_group
+        (GTK_RADIO_BUTTON(radiobutton_filter_flag_stable_set));
+    if (act == radiobutton_filter_flag_stable_set)
+        stable = RULE_FLAG_SET;
+    else if (act == radiobutton_filter_flag_stable_unset)
+        stable = RULE_FLAG_UNSET;
+    else if (act == radiobutton_filter_flag_stable_ignore)
+        stable = RULE_FLAG_IGNORE;
+    else
+        g_error("Unknown radiobutton for stable flag");
+
+    act = radiobutton_get_active_in_group
+        (GTK_RADIO_BUTTON(radiobutton_filter_flag_busy_set));
+    if (act == radiobutton_filter_flag_busy_set)
+        busy = RULE_FLAG_SET;
+    else if (act == radiobutton_filter_flag_busy_unset)
+        busy = RULE_FLAG_UNSET;
+    else if (act == radiobutton_filter_flag_busy_ignore)
+        busy = RULE_FLAG_IGNORE;
+    else
+        g_error("Unknown radiobutton for busy flag");
+
+    act = radiobutton_get_active_in_group
+        (GTK_RADIO_BUTTON(radiobutton_filter_flag_push_set));
+    if (act == radiobutton_filter_flag_push_set)
+        push = RULE_FLAG_SET;
+    else if (act == radiobutton_filter_flag_push_unset)
+        push = RULE_FLAG_UNSET;
+    else if (act == radiobutton_filter_flag_push_ignore)
+        push = RULE_FLAG_IGNORE;
+    else
+        g_error("Unknown radiobutton for push flag");
+
+    active = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_flag_active));
+
+    soft = gtk_toggle_button_get_active
+        (GTK_TOGGLE_BUTTON(checkbutton_filter_flag_soft));
+
+    flags = (active ? RULE_FLAG_ACTIVE : 0) |
+            (soft   ? RULE_FLAG_SOFT   : 0);
+
+    return filter_new_flag_rule(stable, busy, push, target, flags);
+}
