@@ -696,13 +696,68 @@ void download_move_to_completed_dir(struct download *d)
 	gchar dl_src[4096];
 	gchar dl_dest[4096];
 	gint return_tmp, return_tmp2;
+	struct stat buf;
 
-	if (!strcmp(d->path, move_file_path))
-		return;
+	if (0 == strcmp(d->path, move_file_path))
+		return;			/* Already in "completed dir" */
 
 	g_snprintf(dl_src, sizeof(dl_src), "%s/%s", d->path, d->file_name);
 	g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s", move_file_path,
 			   d->file_name);
+
+	dl_src[sizeof(dl_src)-1] = '\0';
+	dl_dest[sizeof(dl_dest)-1] = '\0';
+
+	/*
+	 * If, by extraordinary, there is already a file in the "completed dir"
+	 * with the same name, don't overwrite the existing file.
+	 *
+	 * NB: we assume either there is only one gnutella servent running, or if
+	 * several ones are running, that they are configured to use different
+	 * download and completed dirs.
+	 *
+	 *		--RAM, 03/11/2001
+	 */
+
+	if (-1 != stat(dl_dest, &buf)) {
+		gchar dl_tmp[4096];
+		int destlen = strlen(dl_dest);
+		int i;
+
+		/*
+		 * There must be enough room for us to append the ".xx" extensions.
+		 * That's 3 chars, plus the trailing NUL.
+		 */
+
+		if (destlen >= sizeof(dl_dest) - 4) {
+			g_warning("Found '%s' in completed dir, and path already too long",
+				d->file_name);
+			return;
+		}
+
+		strncpy(dl_tmp, dl_dest, destlen);
+
+		for (i = 1; i < 100; i++) {
+			gchar ext[4];
+
+			g_snprintf(ext, 4, ".%02d", i);
+			dl_tmp[destlen] = '\0';				/* Ignore prior attempt */
+			strncat(dl_tmp+destlen, ext, 3);	/* Append .01, .02, ...*/
+			if (-1 == stat(dl_tmp, &buf))
+				break;
+		}
+
+		if (i == 100) {
+			g_warning("Found '%s' in completed dir, "
+				"and was unable to find another unique name",
+				d->file_name);
+			return;
+		}
+
+		strncat(dl_dest+destlen, dl_tmp+destlen, 3);
+
+		g_warning("Moving completed file as '%s'", dl_dest);
+	}
 
 	/* First try and link it to the new locatation */
 
