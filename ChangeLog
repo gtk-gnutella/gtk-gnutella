@@ -1,4 +1,15 @@
-# v 0.80   2002.19.02  [beta]
+# since last version
+
+- Fixed I/O memory leaks.
+- Fixed filter memory leaks.
+- Fixed ping/pong counting memory leaks (in obsolete code anyway).
+- At end of download, also remove "Retry in 10s" entries bearing same name.
+- Now makes accurate use of the HTTP "Connection:" header.
+- Don't try to open local "config" directory as a file.
+- Improved the download selection logic on pushes.
+- Be sure to reinstall the SIGPIPE signal handler within the handler
+
+# v 0.80   2002.01.19  [beta]
 
 Summary of changes (user-visible):
 
