@@ -711,6 +711,8 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (notebook_main);
   gtk_box_pack_start (GTK_BOX (vbox_right), notebook_main, TRUE, TRUE, 0);
+  GTK_WIDGET_UNSET_FLAGS (notebook_main, GTK_CAN_FOCUS);
+  gtk_notebook_set_show_tabs (GTK_NOTEBOOK (notebook_main), FALSE);
   gtk_notebook_set_show_border (GTK_NOTEBOOK (notebook_main), FALSE);
 
   vbox_gnutellanet = gtk_vbox_new (FALSE, 6);
