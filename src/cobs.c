@@ -31,11 +31,6 @@
 
 #include "common.h"			/* Needed for -DUSE_DMALLOC and <string.h> */
 
-#include <sys/types.h>		/* FreeBSD requires this before <sys/uio.h> */
-#include <sys/uio.h>		/* For struct iovec */
-
-#include <glib.h>
-
 #include "cobs.h"
 #include "override.h"		/* Must be the last header included */
 
@@ -234,3 +229,4 @@ gchar *cobs_decode(gchar *buf, gint len, gint *retlen, gboolean inplace)
 	return NULL;
 }
 
+/* vi: set ts=4 sw=4 cindent: */
