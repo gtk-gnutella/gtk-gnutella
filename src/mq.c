@@ -43,6 +43,7 @@ RCSID("$Id$");
 
 #define MQ_MAXIOV		256		/* Our limit on the I/O vectors we build */
 #define MQ_MINIOV		2		/* Minimum amount of I/O vectors in service */
+#define MQ_MINSEND		256		/* Minimum size we try to send */
 
 static void qlink_free(mqueue_t *q);
 static void mq_service(gpointer data);
@@ -847,14 +848,20 @@ static void mq_service(gpointer data)
 	mqueue_t *q = (mqueue_t *) data;
 	static struct iovec iov[MQ_MAXIOV];
 	gint iovsize;
-	gint iovcnt = 0;
-	gint sent = 0;
+	gint iovcnt;
+	gint sent;
 	gint r;
 	GList *l;
-	gint dropped = 0;
+	gint dropped;
 	gint maxsize;
+	gboolean saturated;
 
+again:
 	g_assert(q->count);		/* Queue is serviced, we must have something */
+
+	iovcnt = 0;
+	sent = 0;
+	dropped = 0;
 
 	/*
 	 * Build I/O vector.
@@ -866,8 +873,9 @@ static void mq_service(gpointer data)
 
 	iovsize = MIN(MQ_MAXIOV, q->count);
 	maxsize = q->last_written + (q->last_written >> 1);		/* 1.5 times */
+	maxsize = MAX(MQ_MINSEND, maxsize);
 
-	for (l = q->qtail; l && iovsize > 0; iovsize--) {
+	for (l = q->qtail; l && iovsize > 0; /* empty */) {
 		struct iovec *ie;
 		pmsg_t *mb = (pmsg_t *) l->data;
 		gchar *mbs = pmsg_start(mb);
@@ -886,6 +894,7 @@ static void mq_service(gpointer data)
 		if (node_can_send(q->node, gmsg_function(mbs), gmsg_hops(mbs))) {
 			/* send the message */
 			l = g_list_previous(l);
+			iovsize--;
 			ie = &iov[iovcnt++];
 			ie->iov_base = mb->m_rptr;
 			ie->iov_len = pmsg_size(mb);
@@ -920,18 +929,22 @@ static void mq_service(gpointer data)
 
 	r = tx_writev(q->tx_drv, iov, iovcnt);
 
-	if (r <= 0)
+	if (r <= 0) {
+		q->last_written = 0;
 		return;
+	}
 
 	node_add_tx_given(q->node, r);
 	q->last_written = r;
 
 	/*
-	 * Determine which messages we wrote.
+	 * Determine which messages we wrote, and whether we saturated the
+	 * lower layer.
 	 */
 
 	iovsize = iovcnt;
 	iovcnt = 0;
+	saturated = FALSE;
 
 	for (l = q->qtail; l && r > 0 && iovsize > 0; iovsize--) {
 		struct iovec *ie = &iov[iovcnt++];
@@ -952,6 +965,7 @@ static void mq_service(gpointer data)
 			mb->m_rptr += r;
 			q->size -= r;
 			g_assert(l == q->qtail);	/* Partially written, is at tail */
+			saturated = TRUE;
 			break;
 		}
 	}
@@ -961,6 +975,19 @@ static void mq_service(gpointer data)
 
 	if (sent)
 		node_add_sent(q->node, sent);
+
+	/*
+	 * We're in the service routine, and we need to flush as much as possible
+	 * to the lower layer.  If it has not saturated yet, continue.  This is
+	 * the only way to ensure the lower layer will keep calling our service
+	 * routine.  For instance, the compressing layer will only invoke us when
+	 * it has flushed its pending buffer and it was in flow control.
+	 *
+	 *		--RAM. 01/03/2003
+	 */
+
+	if (!saturated && q->count > 0)
+		goto again;
 
 update_servicing:
 	/*
