@@ -233,10 +233,10 @@ static struct {
  */
 
 #define FIELD_ADD(a,b,c) do {		\
-	guint32 len = (b);				\
+	guint32 l = (b);				\
 	WRITE_INT32(a);					\
-	WRITE_INT32(len);				\
-	WRITE_STR(c, len);				\
+	WRITE_INT32(l);					\
+	WRITE_STR(c, l);				\
 } while(0)
 
 /*
@@ -375,8 +375,9 @@ static void file_info_fd_store_binary(
 		FIELD_ADD(FILE_INFO_FIELD_CHA1, SHA1_RAW_SIZE, fi->cha1);
 
 	for (a = fi->alias; a; a = a->next) {
-		gint len = strlen(a->data) + 1;
-		if (len < FI_MAX_FIELD_LEN + 1)
+		gint len = strlen(a->data);		/* Do not store the trailing NUL */
+		g_assert(len >= 0);
+		if (len < FI_MAX_FIELD_LEN)
 			FIELD_ADD(FILE_INFO_FIELD_ALIAS, len, a->data);
 	}
 
@@ -872,7 +873,7 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 	struct dl_file_info *fi = NULL;
 	struct dl_file_chunk *fc;
 	enum dl_file_info_field field;
-	gchar tmp[FI_MAX_FIELD_LEN];
+	gchar tmp[FI_MAX_FIELD_LEN + 1];	/* +1 for trailing NUL on strings */
 	gchar *reason;
 	gint fd;
 	guint32 version;
@@ -942,14 +943,17 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 			goto bailout;
 		}
 		
-		if (tmpguint > sizeof(tmp)) {
+		if (tmpguint > FI_MAX_FIELD_LEN) {
 			g_snprintf(tmp, sizeof(tmp),
 				"field #%d is too large (%u bytes) ", field, tmpguint);
 			reason = tmp;
 			goto bailout;
 		}
 
+		g_assert(tmpguint < sizeof(tmp));
+
 		READ_STR(tmp, tmpguint);
+		tmp[tmpguint] = '\0';				/* Did not store trailing NUL */
 
 		switch(field) {
 		case FILE_INFO_FIELD_NAME:
