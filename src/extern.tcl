@@ -16,8 +16,10 @@ set w_main_list {
 	menu_uploads_visible
 	menu_downloads_visible
 	menu_connections_visible
-	menu_bps_in_visible
-	menu_bps_out_visible
+	menu_bws_in_visible
+	menu_bws_out_visible
+    menu_bws_gin_visible
+    menu_bws_gout_visible
 
 	hbox_statusbar
 	label_statusbar_uptime
@@ -30,8 +32,10 @@ set w_main_list {
 	checkbutton_config_force_ip
 	checkbutton_config_proxy_connections
 	checkbutton_config_proxy_auth
-    checkbutton_config_bps_in
-    checkbutton_config_bps_out
+    checkbutton_config_bws_in
+    checkbutton_config_bws_out
+    checkbutton_config_bws_gin
+    checkbutton_config_bws_gout
 	entry_config_extensions
 	entry_config_force_ip 
 	entry_config_maxttl 
@@ -49,10 +53,10 @@ set w_main_list {
 	checkbutton_config_use_netmasks
 	entry_config_netmasks        
     spinbutton_config_proxy_port 
-	spinbutton_config_bps_in
-	spinbutton_config_bps_out
-    spinbutton_config_bps_in
-    spinbutton_config_bps_out
+	spinbutton_config_bws_in
+	spinbutton_config_bws_out
+    spinbutton_config_bws_gin
+    spinbutton_config_bws_gout
     spinbutton_config_port
     spinbutton_config_proxy_port
     spinbutton_config_max_high_ttl_radius
@@ -78,7 +82,7 @@ set w_main_list {
 	button_nodes_add 
 	button_nodes_remove 
 	button_host_catcher_clear
-	entry_hosts_in_catcher
+	progressbar_hosts_in_catcher
 
 	button_uploads_kill
 	button_uploads_clear_completed
@@ -195,8 +199,10 @@ set w_main_list {
 
 	progressbar_downloads
 	progressbar_uploads 
-	progressbar_bps_in
-	progressbar_bps_out
+	progressbar_bws_in
+	progressbar_bws_out
+    progressbar_bws_gin
+    progressbar_bws_gout
 
 	statusbar 
 	sw_connections
@@ -206,6 +212,8 @@ set w_main_list {
     pixmap_firewall
     pixmap_no_firewall
     spinbutton_nodes_max_hosts_cached
+    frame_bws_inout
+    frame_bws_ginout
 }
 
 # interface.h ----------------------------------------------------------------------------------------
