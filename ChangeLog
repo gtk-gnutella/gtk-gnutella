@@ -104,6 +104,9 @@
   assertion failures for pushes later on.
 - When not sharing, don't return query hits [From Mark Schreiber].
 - When not sharing, send them a "410 Sharing currently disabled" error.
+- Added X-Live-Since: to all our HTTP replies.
+- Added download queue persistence.
+- Download resuming now checks for proper file via an overlap of 512 bytes.
 
 # v 0.18   2001.11.19
 
