@@ -134,7 +134,7 @@ bsched_t *bsched_make(gchar *name,
 	g_assert(bandwidth >= 0);
 	g_assert(period > 0);
 	g_assert(type == BS_T_STREAM);		/* XXX only mode supported for now */
-	g_assert(bandwidth < BS_BW_MAX);	/* Signed, and multiplied by 1000 */
+	g_assert(bandwidth <= BS_BW_MAX);	/* Signed, and multiplied by 1000 */
 
 	bs = (bsched_t *) g_malloc0(sizeof(*bs));
 
@@ -550,7 +550,7 @@ void bsched_set_bandwidth(bsched_t *bs, gint bandwidth)
 {
 	g_assert(bs);
 	g_assert(bandwidth >= 0);
-	g_assert(bandwidth < BS_BW_MAX);	/* Signed, and multiplied by 1000 */
+	g_assert(bandwidth <= BS_BW_MAX);	/* Signed, and multiplied by 1000 */
 
 	bs->bw_per_second = bandwidth;
 	bs->bw_max = bandwidth * bs->period / 1000;
