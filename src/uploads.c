@@ -1805,26 +1805,32 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 	buf = header_get(header, "Range");
 	if (buf) {
-		if (strchr(buf, ',')) {
+		http_range_t *r;
+		GSList *ranges =
+			http_range_parse("Range", buf,  reqfile->file_size, user_agent);
+
+		if (ranges == NULL) {
+			upload_error_remove(u, NULL, 400, "Malformed Range request");
+			return;
+		}
+
+		if (g_slist_next(ranges) != NULL) {
+			http_range_free(ranges);
 			upload_error_remove(u, NULL,
 				500, "Multiple Range requests unsupported");
 			return;
-		} else if (2 == sscanf(buf, "bytes=%u-%u", &skip, &end)) {
-			has_end = TRUE;
-			if (skip > end) {
-				upload_error_remove(u, NULL, 400, "Malformed Range request");
-				return;
-			}
-		} else if (1 == sscanf(buf, "bytes=-%u", &skip)) {
-			/*
-			 * Backwards specification -- they want latest `skip' bytes.
-			 */
-			if (skip >= reqfile->file_size)
-				skip = 0;
-			else
-				skip = reqfile->file_size - skip;
-		} else
-			(void) sscanf(buf, "bytes=%u", &skip);
+		}
+
+		r = (http_range_t *) ranges->data;
+
+		g_assert(r->start <= r->end);
+		g_assert(r->end < reqfile->file_size);
+
+		skip = r->start;
+		end = r->end;
+		has_end = TRUE;
+
+		http_range_free(ranges);
 	}
 
 	/*
