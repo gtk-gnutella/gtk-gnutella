@@ -34,6 +34,13 @@
 
 #ifdef CORE_SOURCES
 
+/*
+ * Includes specified by "uses"-statement in .ag file
+ */
+#include "core/sockets.h"
+#include "core/bsched.h"
+
+
 extern const gboolean reading_hostfile;
 extern const gboolean reading_ultrafile;
 extern const gboolean ancient_version;

@@ -180,6 +180,12 @@ gchar *[=(. func-prefix)=]_to_string(property_t prop);
 
 #ifdef [=(. private-src)=]
 
+/*
+ * Includes specified by "uses"-statement in .ag file
+ */
+[= FOR uses =]#include "[=uses=]"
+[= ENDFOR uses =]
+
 [= FOR prop =][= 
 IF (exist? "data.value") =][=
 (define item (get "data.value")) =][=
