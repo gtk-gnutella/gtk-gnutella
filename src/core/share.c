@@ -813,7 +813,7 @@ too_big_for_gnutella(off_t size)
 	g_return_val_if_fail(size >= 0, TRUE);
 	if (sizeof(off_t) <= sizeof(guint32))
 		return FALSE;
-	return (guint64) size > (guint64) 0xffffffffUL;
+	return (guint64) size > ((guint64) 1U << 63) - 1;
 }
 
 /**
@@ -2061,7 +2061,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 #ifdef USE_ICU
 		if (!is_utf8) {
-			char* stmp_2;
+			const gchar *stmp_2;
 
 			stmp_2 = iso_8859_1_to_utf8(stmp_1);
 			if (!stmp_2 || (strlen(stmp_2) < search_len)) {
