@@ -540,7 +540,7 @@ void filter_edit_text_rule(rule_t *r)
         gtk_toggle_button_set_active
             (GTK_TOGGLE_BUTTON(checkbutton_filter_text_invert_cond), FALSE);
         gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_text_active), FALSE);
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_text_active), TRUE);
         gtk_toggle_button_set_active
             (GTK_TOGGLE_BUTTON(checkbutton_filter_text_soft), FALSE);
     } else {
@@ -588,7 +588,7 @@ void filter_edit_ip_rule(rule_t *r)
         gtk_toggle_button_set_active
             (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_invert_cond), FALSE);
         gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_active), FALSE);
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_active), TRUE);
         gtk_toggle_button_set_active
             (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_soft), FALSE);
     } else {
@@ -637,7 +637,7 @@ void filter_edit_size_rule(rule_t *r)
         gtk_toggle_button_set_active
             (GTK_TOGGLE_BUTTON(checkbutton_filter_size_invert_cond), FALSE);
         gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_size_active), FALSE);
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_size_active), TRUE);
         gtk_toggle_button_set_active
             (GTK_TOGGLE_BUTTON(checkbutton_filter_size_soft), FALSE);
     } else {
@@ -678,7 +678,7 @@ void filter_edit_jump_rule(rule_t *r)
         option_menu_select_item_by_data(optionmenu_filter_jump_target,
             (gpointer) DEFAULT_TARGET);
         gtk_toggle_button_set_active
-            (GTK_TOGGLE_BUTTON(checkbutton_filter_jump_active), FALSE);
+            (GTK_TOGGLE_BUTTON(checkbutton_filter_jump_active), TRUE);
    } else {
         option_menu_select_item_by_data(optionmenu_filter_jump_target,
             (gpointer) r->target);
