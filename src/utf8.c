@@ -54,12 +54,17 @@ RCSID("$Id$");
 #endif /* I_LIBCHARSET */
 
 #endif /* !USE_GTK2 || ENABLE_NLS */
+
+
+#ifdef USE_ICU
+static  UConverter *conv_icu_locale = NULL;
+static  UConverter *conv_icu_utf8 = NULL;
+#endif
  
 #ifndef USE_GTK2
 #define GIConv iconv_t
 #define g_iconv_open(t, f) iconv_open(t, f) 
 #define g_iconv(c, i, n, o, m) iconv(c, i, n, o, m)
-
 #endif /* !USE_GTK2 */
 
 static GIConv cd_locale_to_utf8	= (GIConv) -1;
@@ -619,8 +624,42 @@ void locale_init(void)
 	}
 	if ((GIConv)-1 == (cd_utf8_to_locale = g_iconv_open(charset, "UTF-8")))
 		g_warning("g_iconv_open(\"%s\", \"UTF-8\") failed.", charset);
+
+#ifdef USE_ICU
+	{
+		UErrorCode errorCode = U_ZERO_ERROR;
+
+		/* set up the locale converter */
+		conv_icu_locale = ucnv_open(charset, &errorCode);
+		if (errorCode != U_ZERO_ERROR)
+			g_warning("ucnv_open : %s", U_SUCCESS(errorCode));
+
+		/* set up the UTF-8 converter */
+		conv_icu_utf8 = ucnv_open("utf8", &errorCode);
+		if (errorCode != U_ZERO_ERROR)
+			g_warning("ucnv_open : %s", U_SUCCESS(errorCode));
+	}
+#endif
 }
 
+/*
+ * locale_close
+ *
+ * Called at shutdown time.
+ */
+void locale_close(void)
+{
+#ifdef USE_ICU
+	if (conv_icu_locale) {
+	  ucnv_close(conv_icu_locale);
+	  conv_icu_locale=NULL;
+	}
+	if (conv_icu_utf8) {
+	  ucnv_close(conv_icu_utf8);
+	  conv_icu_utf8=NULL;
+	}
+#endif
+}
 
 static inline char *g_iconv_complete(GIConv cd,
 	char *inbuf, size_t inbytes_left,
@@ -705,7 +744,6 @@ gchar *utf8_to_locale(gchar *str, size_t len)
 				str, len != 0 ? len : strlen(str), outbuf, sizeof(outbuf) - 7);
 }
 
-
 gboolean is_ascii_string(const gchar *str)
 {
 	while (*str)
@@ -736,3 +774,130 @@ gchar *lazy_locale_to_utf8(gchar *str, size_t len)
 	gchar *t = locale_to_utf8(str, len);
 	return NULL != t ? t : "<Cannot convert to UTF-8>";
 }
+
+#ifdef USE_ICU
+
+int to_icu_conv(const gchar *in, int lenin, UChar *out, int lenout)
+{
+	UErrorCode error = U_ZERO_ERROR;
+	int r;
+
+	r = ucnv_toUChars(conv_icu_locale, out, lenout, in, lenin, &error);
+
+	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
+}
+
+int icu_to_utf8_conv(const UChar *in, int lenin, gchar *out, int lenout)
+{
+	UErrorCode error = U_ZERO_ERROR;
+	int r;
+
+	r = ucnv_fromUChars(conv_icu_utf8, out, lenout, in, lenin, &erro);
+
+	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
+}
+
+int unicode_NFC(const UChar *source, gint32 len, UChar *result, gint32 rlen)
+{
+	UErrorCode error = U_ZERO_ERROR;
+	int r;
+
+	r = unorm_normalize(source, len, UNORM_NFC, 0, result, rlen, &error);
+
+	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
+}
+
+int unicode_NFKD(const UChar *source, gint32 len, UChar *result, gint32 rlen)
+{
+	UErrorCode error = U_ZERO_ERROR;
+	int r;
+
+	r = unorm_normalize (source, len, UNORM_NFKD, 0, result, rlen, &error);
+
+	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
+}
+
+int unicode_upper(const UChar *source, gint32 len, UChar *result, gint32 rlen)
+{
+	UErrorCode error = U_ZERO_ERROR;
+	int r;
+
+	r = u_strToUpper(result, rlen, source, len, NULL, &error);
+	
+	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
+}
+
+int unicode_lower(const UChar *source, gint32 len, UChar *result, gint32 rlen)
+{
+	UErrorCode error = U_ZERO_ERROR;
+	int r;
+
+	r = u_strToLower(result, rlen, source, len, NULL, &error);
+	
+	return (error != U_ZERO_ERROR && error != U_BUFFER_OVERFLOW_ERROR) ? 0 : r;
+}
+
+int unicode_filters(const UChar *source, gint32 len, UChar *result)
+{
+	int i, j;
+	int space = 0;
+
+	for (i = 0, j = 0; i < len; i++) {
+		switch(u_charType(source[i])) {
+		case U_LOWERCASE_LETTER :
+		case U_OTHER_LETTER :
+		case U_MODIFIER_LETTER :
+		case U_DECIMAL_DIGIT_NUMBER :
+			result[j++] = source[i];
+			space = 0;
+			break;
+
+		case U_ENCLOSING_MARK :
+			result[j++] = 0x0043;
+			break;
+
+		case U_CONTROL_CHAR :
+			if (source[i] == '\n')
+				result[j++] = source[i];
+			break;
+
+		case U_NON_SPACING_MARK :
+			if (source[i] == 0x3099 || source[i] == 0x309A)
+				result[j++] = source[i];
+			break;
+
+		case U_UPPERCASE_LETTER :
+		case U_TITLECASE_LETTER :
+		case U_PARAGRAPH_SEPARATOR :
+		case U_UNASSIGNED :
+/*		case U_GENERAL_OTHER_TYPES : */
+		case U_COMBINING_SPACING_MARK :
+		case U_LINE_SEPARATOR :
+		case U_LETTER_NUMBER :
+		case U_OTHER_NUMBER :
+		case U_SPACE_SEPARATOR :
+		case U_FORMAT_CHAR :
+		case U_PRIVATE_USE_CHAR :
+		case U_SURROGATE :
+		case U_DASH_PUNCTUATION :
+		case U_START_PUNCTUATION :
+		case U_END_PUNCTUATION :
+		case U_CONNECTOR_PUNCTUATION :
+		case U_OTHER_PUNCTUATION :
+		case U_MATH_SYMBOL :
+		case U_CURRENCY_SYMBOL :
+		case U_MODIFIER_SYMBOL :
+		case U_OTHER_SYMBOL :
+		case U_INITIAL_PUNCTUATION :
+		case U_FINAL_PUNCTUATION :
+		case U_CHAR_CATEGORY_COUNT :
+			if (0 == space)
+				result[j++] = 0x0020;
+			space=1;
+			break;
+		}
+	}
+
+}
+
+#endif	/* USE_ICU */

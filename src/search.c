@@ -1809,6 +1809,7 @@ gnet_search_t search_new(
 	gchar *qdup;
 	gint qlen;
 	gint utf8_len;
+	gboolean latin_locale = is_latin_locale();
 	extern guint compact_query(gchar *search, gint utf8_len);
 
 	sch = g_new0(search_ctrl_t, 1);
@@ -1818,12 +1819,52 @@ gnet_search_t search_new(
 	 * Canonicalize the query we're sending.
 	 */
 
+#ifdef USE_ICU
+	{
+		UChar *qtmp1;
+		UChar *qtmp2;
+		int	len, maxlen;
+
+		len=strlen(query);
+		maxlen = len*6; /* Max 6 bytes for one char in utf8 */
+
+		qtmp1 = (UChar *) g_malloc(maxlen*sizeof(UChar));
+		qtmp2 = (UChar *) g_malloc(maxlen*sizeof(UChar));
+
+		if (latin_locale) {
+			len = to_icu_conv(query, len, qtmp1, maxlen);
+			len = unicode_NFC(qtmp1, len, qtmp2, maxlen);
+		} else
+			len = to_icu_conv(query, len, qtmp2, maxlen);
+
+		len = unicode_NFKD(qtmp2, len, qtmp1, maxlen);
+		len = unicode_upper(qtmp1, len, qtmp2, maxlen);
+		len = unicode_lower(qtmp2, len, qtmp1, maxlen);
+		len = unicode_filters(qtmp1, len, qtmp2);
+
+		qdup = g_malloc(len);
+
+		if (latin_locale)
+			utf8_len = icu_to_utf8_conv(qtmp2, len, qdup, len);
+		else
+			utf8_len = icu_to_utf8_conv(qtmp2, len, qdup, len*6);
+
+		g_free(qtmp1);
+		g_free(qtmp2);
+	}
+#else
+
 	qdup = g_strdup(query);
 	qlen = strlen(qdup);
 
 	utf8_len = utf8_is_valid_string(qdup, qlen);
 	if (utf8_len && utf8_len == qlen)
 		utf8_len = 0;						/* Uses ASCII only */
+
+	/* Suppress accents, graphics, ... */
+	if (latin_locale)
+		use_map_on_query(qdup, qlen);
+#endif
 
 	compact_query(qdup, utf8_len);
 

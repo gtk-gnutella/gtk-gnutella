@@ -159,8 +159,6 @@ static const guchar iso_8859_1[96] = {
 	'y',			/* 255 - LATIN SMALL LETTER Y WITH DIAERESIS */
 };
 
-#ifdef I18N_LEVEL1
-
 static const guchar cp1252[30] = {
 
 	' ', 			/* 130 - LOW-9 QUOTE */
@@ -325,7 +323,6 @@ static const guchar macroman[126] = {
 	'y',			/* 255 - LATIN SMALL LETTER Y WITH DIAERESIS */
 };
 
-#endif
 
 guint32 files_scanned = 0;
 guint32 kbytes_scanned = 0;
@@ -501,41 +498,49 @@ static void found_reset(struct gnutella_node *n)
 /* ----------------------------------------- */
 
 static char_map_t query_map;
-
+static gboolean b_latin = FALSE;
 
 /*
  * setup_char_map
  *
  * Set up keymapping table for Gnutella.
- *
  */
 static void setup_char_map(char_map_t map)
 {
 	gint c;	
-
-#ifdef I18N_LEVEL1
 	gboolean b_ascii = FALSE;
 	gboolean b_iso_8859_1 = FALSE;
 	gboolean b_cp1252 = FALSE;
 	gboolean b_macroman = FALSE;
-	gboolean b_latin = FALSE;
 	const gchar *charset = locale_get_charset();
 
-	if (!strcmp(charset, "ASCII")) {
+	if (0 == strcmp(charset, "ASCII")) {
 		b_ascii = TRUE;
 		b_latin = TRUE;
 	} else if (
-		!strcmp(charset, "ISO-8859-1") || !strcmp(charset, "ISO-8859-15")
+		0 == strcmp(charset, "ISO-8859-1") ||
+		0 == strcmp(charset, "ISO-8859-15")
 	) {
 		b_iso_8859_1 = TRUE;
 		b_latin = TRUE;
-	} else if (!strcmp(charset, "CP1252")) {
+	} else if (0 == strcmp(charset, "CP1252")) {
 		b_cp1252 = TRUE;
 		b_latin = TRUE;
-	} else if (!strcmp(charset, "MacRoman")) {
+	} else if (0 == strcmp(charset, "MacRoman")) {
 		b_macroman = TRUE;
 		b_latin = TRUE;
-	}
+	} else if (
+		0 == strcmp(charset, "CP437") ||
+		0 == strcmp(charset, "CP775") ||
+		0 == strcmp(charset, "CP850") ||
+		0 == strcmp(charset, "CP852") ||
+		0 == strcmp(charset, "CP865") ||
+		0 == strcmp(charset, "HP-ROMAN8") ||
+		0 == strcmp(charset, "ISO-8859-2") ||
+		0 == strcmp(charset, "ISO-8859-4") ||
+		0 == strcmp(charset, "ISO-8859-14")
+	)
+		b_latin = TRUE;
 
 	for (c = 0; c < 256; c++)	{
 		if (!isupper(c)) {  /* not same than islower, cf ssharp */
@@ -555,46 +560,33 @@ static void setup_char_map(char_map_t map)
 	}
 
 	if (b_latin) {
-		if (b_iso_8859_1 || b_cp1252)
+		if (b_iso_8859_1 || b_cp1252) {
 			for (c = 160; c < 256; c++)
 				map[c] = iso_8859_1[c - 160];
-
-		if (b_cp1252)
+		}
+		if (b_cp1252) {
 			for (c = 130; c < 160; c++)
 				map[c] = cp1252[c - 130];
-		else
-			if (b_macroman)
-				for (c = 130; c < 256; c++)
-					map[c] = macroman[c - 130];
-	}
-
-
-#else
-/*
- * The most common encoding of searches are ASCII, then ISO-8859-1.
- * Unicode is marginal for now, and we restrict it to the ISO-8859-1 subset.
- */
-
-	for (c = 0; c < 256; c++)	{
-		if (islower(c)) {
-			map[c] = c;
-			map[toupper(c)] = c;
+		} else if (b_macroman) {
+			for (c = 130; c < 256; c++)
+				map[c] = macroman[c - 130];
 		}
-		else if (isupper(c))
-			; /* handled by previous case */
-		else if (ispunct(c) || isspace(c))
-			map[c] = ' ';
-		else if (isdigit(c))
-			map[c] = c;
-		else if (isalnum(c))
-			map[c] = c;
-		else
-			map[c] = ' ';			/* unknown in our locale */
 	}
+}
 
-	for (c = 160; c < 256; c++)
-		map[c] = iso_8859_1[c - 160];
-#endif
+/*
+ * use_map_on_query
+ *
+ * Apply the proper charset mapping on the query, depending on their
+ * locale, so that the query has no accent.
+ */
+void use_map_on_query(guchar *query, int len)
+{
+	query += len - 1;
+	for (/* empty */; len > 0; len--) {
+		*query = query_map[*query];
+		query--;
+	}
 }
 
 /* ----------------------------------------- */
@@ -2509,5 +2501,15 @@ struct shared_file *shared_file_by_sha1(gchar *sha1_digest)
 	}
 
 	return f;
+}
+
+/*
+ * is_latin_locale
+ *
+ * Is the locale using the latin alphabet?
+ */
+gboolean is_latin_locale(void)
+{
+	return b_latin;
 }
 

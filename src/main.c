@@ -241,6 +241,7 @@ void gtk_gnutella_exit(gint n)
 	adns_close();
 	atoms_close();
 	wdestroy();
+	locale_close();
 
 	if (dbg)
 		printf("gtk-gnutella shut down cleanly.\n\n");
