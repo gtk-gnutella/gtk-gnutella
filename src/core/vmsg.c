@@ -142,8 +142,6 @@ static struct vmsg vmsg_map[] = {
 	/* Above line intentionally left blank (for "!}sort" in vi) */
 };
 
-#define END(v)		(v - 1 + sizeof(v) / sizeof(v[0]))
-
 /*
  * Items in the "Messages Supported" vector.
  */
@@ -165,6 +163,15 @@ struct vms_feature {
 
 #define VMS_FEATURE_SIZE	6		/* Each entry is 6 bytes (4+2) */
 
+#define PAIR_CMP(x, y, a0, a1, b0, b1) \
+( \
+  (x = CMP(a0, a1)) \
+	? x \
+	: (y = CMP(b0, b1)) \
+			? y \
+			: 0 \
+)
+
 /**
  * Find message, given vendor code, and id, version.
  *
@@ -173,33 +180,21 @@ struct vms_feature {
 static struct vmsg *
 find_message(guint32 vendor, guint16 id, guint16 version)
 {
-	struct vmsg *low = vmsg_map;
-	struct vmsg *high = END(vmsg_map);
+  gint c_vendor, c_id, c_version;
 
-	while (low <= high) {
-		struct vmsg *mid = low + (high - low) / 2;
-		gint c;
+#define GET_KEY(i) (&vmsg_map[(i)])
+#define FOUND(i) do { return &vmsg_map[(i)]; } while (0)
+#define COMPARE(item, key) \
+	0 != (c_vendor = VENDOR_CODE_CMP((item)->key, key)) \
+		? c_vendor \
+		: PAIR_CMP(c_id, c_version, (item)->id, id, (item)->version, version)
 
-		c = VENDOR_CODE_CMP(mid->vendor, vendor);
+	BINARY_SEARCH(struct vmsg *, vendor, G_N_ELEMENTS(vmsg_map), COMPARE,
+		GET_KEY, FOUND);
 
-		if (c == 0) {
-			if (mid->id != id)
-				c = mid->id < id ? -1 : +1;
-		}
-
-		if (c == 0) {
-			if (mid->version != version)
-				c = mid->version < version ? -1 : +1;
-		}
-
-		if (c == 0)
-			return mid;
-		else if (c < 0)
-			low = mid + 1;
-		else
-			high = mid - 1;
-	}
-
+#undef COMPARE	
+#undef FOUND
+#undef GET_KEY
 	return NULL;		/* Not found */
 }
 
