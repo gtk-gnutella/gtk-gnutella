@@ -2076,7 +2076,8 @@ static void node_is_now_connected(struct gnutella_node *n)
 		vmsg_send_messages_supported(n);
 		if (is_firewalled) {
 			vmsg_send_connect_back(n, listen_port);
-			send_proxy_request(n);
+			if (!NODE_IS_LEAF(n))
+				send_proxy_request(n);
 		}
 	}
 
