@@ -1543,8 +1543,12 @@ void search_shutdown(void)
 
 	for (l = searches; l; l = l->next) {
 		struct search *sch = (struct search *) l->data;
+		gtk_timeout_remove(sch->tab_updating);
 		if (!sch->passive) {
 			GSList *m;
+			g_hook_destroy_link(&node_added_hook_list, sch->new_node_hook);
+			if (sch->reissue_timeout_id)
+				g_source_remove(sch->reissue_timeout_id);
 			for (m = sch->muids; m; m = m->next) {
 				g_free(m->data);
 			}

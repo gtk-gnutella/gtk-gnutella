@@ -95,6 +95,7 @@ struct gnutella_node *node_added;
 
 static gint32 connected_node_cnt = 0;
 static gint pending_byes = 0;			/* Used when shutdowning servent */
+static gboolean in_shutdown = FALSE;
 
 /*
  * This structure is used to encapsulate the various arguments required
@@ -1088,7 +1089,7 @@ static void node_got_bye(struct gnutella_node *n)
 			}
 			continue;
 		}
-		if (c < ' ' && !warned) {
+		if (c && c < ' ' && !warned) {
 			warned = TRUE;
 			g_warning("Bye message from %s contains control characters",
 				node_ip(n));
@@ -1452,6 +1453,12 @@ static void node_process_handshake_header(struct io_header *ih)
 		header_dump(ih->header, stdout);
 		printf("\n------\n");
 		fflush(stdout);
+	}
+
+	if (in_shutdown) {
+		send_node_error(n->socket, 503, "Servent Shutdown");
+		node_remove(n, "Servent Shutdown");
+		return;					/* node_remove() has freed s->getline */
 	}
 
 	/*
@@ -2742,6 +2749,10 @@ void node_bye_all(void)
 {
 	GSList *l;
 
+	g_assert(!in_shutdown);		/* Meant to be called once */
+
+	in_shutdown = TRUE;
+
 	for (l = sl_nodes; l; l = l->next) {
 		struct gnutella_node *n = l->data;
 
@@ -2767,6 +2778,8 @@ void node_bye_all(void)
  */
 gboolean node_bye_pending(void)
 {
+	g_assert(in_shutdown);		/* Cannot be called before node_bye_all() */
+
 	return pending_byes > 0;
 }
 
