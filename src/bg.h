@@ -112,6 +112,7 @@ void bg_daemon_enqueue(gpointer h, gpointer item);
 void bg_task_cancel(gpointer h);
 void bg_task_exit(gpointer h, gint code);
 void bg_task_ticks_used(gpointer h, gint used);
+bgsig_cb_t bg_task_signal(gpointer h, bgsig_t sig, bgsig_cb_t handler);
 
 gint bg_task_seqno(gpointer h);
 gpointer bg_task_context(gpointer h);

@@ -679,7 +679,7 @@ static gint bg_task_kill(gpointer h, bgsig_t sig)
  * Install user-level signal handler for a task signal.
  * Returns previously installed signal handler.
  */
-static bgsig_cb_t bg_task_signal(gpointer h, bgsig_t sig, bgsig_cb_t handler)
+bgsig_cb_t bg_task_signal(gpointer h, bgsig_t sig, bgsig_cb_t handler)
 {
 	struct bgtask *bt = TASK(h);
 	bgsig_cb_t oldhandler;
