@@ -872,7 +872,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[19].name = "listen_port";
-    gnet_property->props[19].desc = _("Local port gtk-gnutella is listening on. Your ISP may block or choke traffic on port 6346 so it would be a good idea to change it to something in the range of 1024-65535.  Don't forget to update your firewall port forwarding / opening, as necessary.  Note that by default, the port 6346 is not used to guard against undue censorship.");
+    gnet_property->props[19].desc = _("Local TCP port gtk-gnutella is listening on. Your ISP may block or choke traffic on TCP port 6346 so it would be a good idea to change it to something in the range of 1024-65535.  Don't forget to update your firewall port forwarding / opening, as necessary.  Note that by default, the TCP port 6346 is not used to guard against undue censorship.");
     gnet_property->props[19].ev_changed = event_new("listen_port_changed");
     gnet_property->props[19].save = TRUE;
     gnet_property->props[19].vector_size = 1;
@@ -1991,7 +1991,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[78].name = "proxy_port";
-    gnet_property->props[78].desc = _("Port the proxy is listening on");
+    gnet_property->props[78].desc = _("TCP Port the proxy is listening on");
     gnet_property->props[78].ev_changed = event_new("proxy_port_changed");
     gnet_property->props[78].save = TRUE;
     gnet_property->props[78].vector_size = 1;
