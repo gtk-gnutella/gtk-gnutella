@@ -332,7 +332,7 @@ free_key_true(gpointer key, gpointer unused_val, gpointer unused_x)
 	return TRUE;
 }
 
-/*&
+/**
  * Clear hash table whose keys are atoms and values ignored.
  */
 static void
@@ -1046,7 +1046,7 @@ node_init(void)
 	
 	unstable_servent   = g_hash_table_new(NULL, NULL);
     ht_connected_nodes = g_hash_table_new(host_hash, host_eq);
-	nodes_by_id        = g_hash_table_new(g_int_hash, g_int_equal);
+	nodes_by_id        = g_hash_table_new(NULL, NULL);
 
 	start_rfc822_date = atom_str_get(date_to_rfc822_gchar(now));
 	gnet_prop_set_guint32_val(PROP_START_STAMP, (guint32) now);
@@ -1230,7 +1230,7 @@ node_real_remove(gnutella_node_t *node)
     node_fire_node_removed(node);
 
 	sl_nodes = g_slist_remove(sl_nodes, node);
-	g_hash_table_remove(nodes_by_id, &node->id);
+	g_hash_table_remove(nodes_by_id, GUINT_TO_POINTER(node->id));
     node_drop_handle(node->node_handle);
 
 	/*
@@ -4817,7 +4817,7 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	 */
 
 	sl_nodes = g_slist_prepend(sl_nodes, n);
-	g_hash_table_insert(nodes_by_id, &n->id, n);
+	g_hash_table_insert(nodes_by_id, GUINT_TO_POINTER(n->id), n);
 
 	if (n->status != GTA_NODE_REMOVING)
         node_ht_connected_nodes_add(n->gnet_ip, n->gnet_port);
@@ -6441,8 +6441,9 @@ fire:
 gnet_node_info_t *
 node_get_info(const gnet_node_t n)
 {
-    gnet_node_info_t *info = g_new(gnet_node_info_t, 1);
+    gnet_node_info_t *info;
 
+	info = walloc(sizeof *info);
 	node_fill_info(n, info);
     return info;
 }
@@ -6467,7 +6468,7 @@ void
 node_free_info(gnet_node_info_t *info)
 {
 	node_clear_info(info);
-    G_FREE_NULL(info);
+    wfree(info, sizeof *info);
 }
 
 /**
@@ -6987,12 +6988,12 @@ node_all_nodes(void)
 /**
  * Returns writable node given its ID, or NULL if we can't reach that node.
  */
-gnutella_node_t *node_active_by_id(guint32 id)
+gnutella_node_t *
+node_active_by_id(guint32 id)
 {
 	gnutella_node_t *n;
 
-	n = g_hash_table_lookup(nodes_by_id, &id);
-
+	n = g_hash_table_lookup(nodes_by_id, GUINT_TO_POINTER(id));
 	if (n == NULL || !NODE_IS_WRITABLE(n))
 		return NULL;
 
