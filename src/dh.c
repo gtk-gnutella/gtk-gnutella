@@ -279,79 +279,93 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, gint count)
 
 	g_assert(mq != NULL);
 
-	if (mq_is_swift_controlled(mq)) {
-		/*
-		 * We're currently severely dropping messages from the queue.
-		 * Don't enqueue if we already sent a hit for this query or
-		 * have one queued.
-		 *
-		 * To avoid loosing rare hits, consider at least DH_THRESH_HITS hits.
-		 */
-
-		if (
-			dh->hits_sent >= DH_THRESH_HITS ||
-			dh->hits_queued >= DH_THRESH_HITS
-		) {
-			if (dh_debug > 19) printf("DH queue in SWIFT mode, dropping\n");
-			goto drop_flow_control;
-		}
-	}
-
-	if (mq_is_flow_controlled(mq)) {
-		/*
-		 * Queue is flow-controlled, don't add to its burden if we
-		 * already have hits enqueued for this query.
-		 */
-
-		if (dh->hits_queued >= DH_THRESH_HITS) {
-			if (dh_debug > 19) printf("DH queue in FLOWC mode, dropping\n");
-			goto drop_flow_control;
-		}
-	}
-
 	/*
-	 * If we sent more than DH_MIN_HITS already, drop this hit
-	 * if the queue already has more bytes queued than its high-watermark,
-	 * meaning it is in the dangerous zone.
+	 * If the queue already has more bytes queued than its high-watermark,
+	 * meaning it is in the dangerous zone, drop this hit if we sent more
+	 * than DH_THRESH_HITS already or have enough in the queue to reach the
+	 * DH_MIN_HITS level.
 	 */
 
-	if (dh->hits_sent >= DH_MIN_HITS && mq_size(mq) > mq_hiwat(mq)) {
+	if (
+		mq_size(mq) > mq_hiwat(mq) &&		/* Implies we're flow-controlled */
+		(dh->hits_sent >= DH_THRESH_HITS || dh->hits_queued >= DH_MIN_HITS)
+	) {
 		if (dh_debug > 19) printf("DH queue size > hiwat, dropping\n");
 		goto drop_flow_control;
 	}
 
 	/*
-	 * If we sent more then DH_POPULAR_HITS already, drop this hit
-	 * if the queue has more bytes than its low-watermark, meaning
-	 * it is in the warning zone.
+	 * In SWIFT mode, we're aggressively dropping messages from the queue.
+	 * We're in flow control, but we're probably lower than hiwat, the
+	 * heaviest condition.  Be more tolerant before dropping, meaning
+	 * a strongest dropping rule than the above.
 	 */
 
-	if (dh->hits_sent >= DH_POPULAR_HITS && mq_size(mq) > mq_lowat(mq)) {
+	if (
+		mq_is_swift_controlled(mq) &&
+		(dh->hits_sent >= DH_MIN_HITS || dh->hits_queued >= DH_MIN_HITS)
+	) {
+		if (dh_debug > 19) printf("DH queue in SWIFT mode, dropping\n");
+		goto drop_flow_control;
+	}
+
+	/*
+	 * Queue is flow-controlled, don't add to its burden if we
+	 * already have hits enqueued for this query with results sent.
+	 */
+
+	if (
+		mq_is_flow_controlled(mq) &&
+		(
+			(dh->hits_sent >= DH_MIN_HITS &&
+		 	 dh->hits_queued >= 2 * DH_THRESH_HITS) ||
+			(dh->hits_sent < DH_MIN_HITS &&
+			 (dh->hits_sent + dh->hits_queued) >= DH_MIN_HITS + DH_THRESH_HITS)
+		)
+	) {
+		if (dh_debug > 19) printf("DH queue in FLOWC mode, dropping\n");
+		goto drop_flow_control;
+	}
+
+	/*
+	 * If the queue has more bytes than its low-watermark, meaning
+	 * it is in the warning zone, drop if we sent more then DH_POPULAR_HITS
+	 * already, and we have quite a few queued.
+	 */
+
+	if (
+		mq_size(mq) > mq_lowat(mq) &&
+		dh->hits_sent >= DH_POPULAR_HITS &&
+		dh->hits_queued >= (DH_MIN_HITS / 2)
+	) {
 		if (dh_debug > 19) printf("DH queue size > lowat, dropping\n");
 		goto drop_flow_control;
 	}
 
 	/*
-	 * If we sent more than DH_MIN_HITS and we saw more than DH_POPULAR_HITS
-	 * and we have the difference in the queue, don't add more and throttle.
+	 * If we sent more than DH_POPULAR_HITS and have DH_MIN_HITS queued,
+	 * don't add more and throttle.
 	 */
 
 	if (
-		dh->hits_sent >= DH_MIN_HITS &&
-		dh->hits_recv >= DH_POPULAR_HITS &&
-		dh->hits_queued >= (DH_POPULAR_HITS - DH_MIN_HITS)
+		dh->hits_sent >= DH_POPULAR_HITS &&
+		dh->hits_queued >= DH_MIN_HITS
 	) {
 		if (dh_debug > 19) printf("DH enough hits queued, throttling\n");
 		goto drop_throttle;
 	}
 
 	/*
-	 * If we successfully sent more than DH_POPULAR_HITS, drop the current
-	 * hit if we have already something in the queue.
+	 * If what we sent plus what we hold will top the maximum number of hits,
+	 * yet we did not reach the maximum, drop: we need to leave room for
+	 * other hits for less popular results.
 	 */
 
-	if (dh->hits_sent >= DH_POPULAR_HITS && dh->hits_queued >= DH_MIN_HITS) {
-		if (dh_debug > 19) printf("DH popular hits, more queued, throttling\n");
+	if (
+		dh->hits_sent < DH_MAX_HITS &&
+		dh->hits_queued > (DH_MIN_HITS / 2) &&
+		(dh->hits_queued + dh->hits_sent) >= DH_MAX_HITS) {
+		if (dh_debug > 19) printf("DH enough queued, nearing max, throttling\n");
 		goto drop_throttle;
 	}
 
