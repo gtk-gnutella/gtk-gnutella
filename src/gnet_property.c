@@ -464,6 +464,10 @@ guint32  qrp_patch_length     = 0;
 guint32  qrp_patch_length_def = 0;
 guint32  qrp_patch_comp_ratio     = 0;
 guint32  qrp_patch_comp_ratio_def = 0;
+gchar   *ancient_version_force     = "";
+gchar   *ancient_version_force_def = "";
+guint32  ancient_version_left_days     = 365;
+guint32  ancient_version_left_days_def = 365;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -4304,6 +4308,47 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[199].data.guint32.choices = NULL;
     gnet_property->props[199].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[199].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_ANCIENT_VERSION_FORCE:
+     *
+     * General data:
+     */
+    gnet_property->props[200].name = "ancient_version_force";
+    gnet_property->props[200].desc = _("This property must be set to the current version number of gtk-gnutella in order to allow it to run when it is ancient");
+    gnet_property->props[200].ev_changed = event_new("ancient_version_force_changed");
+    gnet_property->props[200].save = TRUE;
+    gnet_property->props[200].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[200].type               = PROP_TYPE_STRING;
+    gnet_property->props[200].data.string.def    = &ancient_version_force_def;
+    gnet_property->props[200].data.string.value  = &ancient_version_force;
+    if (gnet_property->props[200].data.string.def) {
+        *gnet_property->props[200].data.string.value =
+            g_strdup(eval_subst(*gnet_property->props[200].data.string.def));
+    }
+
+
+    /*
+     * PROP_ANCIENT_VERSION_LEFT_DAYS:
+     *
+     * General data:
+     */
+    gnet_property->props[201].name = "ancient_version_left_days";
+    gnet_property->props[201].desc = _("Indicates that gtk-gnutella will expire in that many days.");
+    gnet_property->props[201].ev_changed = event_new("ancient_version_left_days_changed");
+    gnet_property->props[201].save = FALSE;
+    gnet_property->props[201].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[201].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[201].data.guint32.def   = &ancient_version_left_days_def;
+    gnet_property->props[201].data.guint32.value = &ancient_version_left_days;
+    gnet_property->props[201].data.guint32.choices = NULL;
+    gnet_property->props[201].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[201].data.guint32.min   = 0x00000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

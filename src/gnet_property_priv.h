@@ -230,6 +230,8 @@ extern guint32  qrp_hashed_keywords;
 extern guint32  qrp_patch_raw_length;
 extern guint32  qrp_patch_length;
 extern guint32  qrp_patch_comp_ratio;
+extern gchar   *ancient_version_force;
+extern guint32  ancient_version_left_days;
 
 
 prop_set_t *gnet_prop_init(void);
