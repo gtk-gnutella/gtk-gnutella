@@ -32,6 +32,8 @@
 
 #include "gnutella.h"
 
+#define QRP_MIN_WORD_LENGTH		3		/* Minimal word length */
+
 /*
  * Query routing: structures to keep track of all the query hashes,
  * and where they come from..
