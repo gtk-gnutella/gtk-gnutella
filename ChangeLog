@@ -1,5 +1,11 @@
 # since last version
 
+- (2004.06.01 - Jeroen)
+ * Uploads: HEAD requests won't be treated as a followup request anymore (which
+            avoids an upload to ignore the max uploads per ip setting)
+ * PARQ:    Fixed an assertion failure when an upload got removed due to too many
+            disconnections
+
 - (2003.05.29 - RAM)
  * Top makefile did not install "hostiles.txt".
  * Reset counter of QUEUE requests sent when remote servent replies to one.
