@@ -80,9 +80,8 @@ static GHashTable *gwc_known_url = NULL;
  *   and an url (chosen randomly among the known ones) is sent to
  *   the "current webcache".
  *
- * . Every hour, but 10 minutes after the previous update, an urlfile
- *   request is sent to the "current webcache", to get more webcache URLs
- *   to propagate.
+ * . Every 8 hours, an urlfile request is sent to the "current webcache",
+ *   to get more webcache URLs to propagate.
  *
  * . After having used a cache for more than MAX_GWC_REUSE times, as
  *   tracked by `current_reused', a new "current webcache" is elected.
@@ -104,10 +103,11 @@ static gint current_reused = 0;				/* Amount of times we reused it */
 #define MIN_URL_LINES	5					/* Min lines expected */
 #define HOUR_MS			(3600 * 1000)		/* Callout queue time in ms */
 #define URL_RETRY_MS	(20 * 1000)			/* Retry timer for urlfile, in ms */
+#define REFRESH_MS		(8 * HOUR_MS)		/* Refresh every 8 hours */
 
 static gchar *gwc_file = "gwcache";
 static gpointer hourly_update_ev = NULL;
-static gpointer hourly_refresh_ev = NULL;
+static gpointer periodic_refresh_ev = NULL;
 static gpointer urlfile_retry_ev = NULL;
 static gchar *client_info;
 static gboolean gwc_file_dirty = FALSE;
@@ -332,12 +332,12 @@ static void gwc_hourly_update(cqueue_t *cq, gpointer obj)
 }
 
 /*
- * gwc_hourly_refresh
+ * gwc_periodic_refresh
  *
  * Hourly web cache refresh.
  * Scheduled as a callout queue event.
  */
-static void gwc_hourly_refresh(cqueue_t *cq, gpointer obj)
+static void gwc_periodic_refresh(cqueue_t *cq, gpointer obj)
 {
 	/*
 	 * Disable retry timer, since we are about to retry now based on our
@@ -351,8 +351,8 @@ static void gwc_hourly_refresh(cqueue_t *cq, gpointer obj)
 
 	gwc_get_urls();
 
-	hourly_refresh_ev = cq_insert(callout_queue,
-		HOUR_MS, gwc_hourly_refresh, NULL);
+	periodic_refresh_ev = cq_insert(callout_queue,
+		REFRESH_MS, gwc_periodic_refresh, NULL);
 }
 
 /*
@@ -394,18 +394,13 @@ void gwc_init(void)
 	 * Schedule hourly updates, starting our first in 10 minutes:
 	 * It is hoped that by then, we'll have a stable IP and will know
 	 * whether we're firewalled or not.
-	 *
-	 * Note that the hourly update and the hourly refresh are not scheduled
-	 * initially at the same time in the future, and each event reschedules
-	 * the next update one hour later. So even if both transactions are made
-	 * to the same web cache, they will be separated by roughly 10 minutes.
 	 */
 
 	hourly_update_ev = cq_insert(callout_queue,
 		HOUR_MS / 6, gwc_hourly_update, NULL);
 
-	hourly_refresh_ev = cq_insert(callout_queue,
-		HOUR_MS, gwc_hourly_refresh, NULL);
+	periodic_refresh_ev = cq_insert(callout_queue,
+		REFRESH_MS, gwc_periodic_refresh, NULL);
 }
 
 /*
@@ -458,7 +453,7 @@ void gwc_close(void)
 	gint i;
 
 	cq_cancel(callout_queue, hourly_update_ev);
-	cq_cancel(callout_queue, hourly_refresh_ev);
+	cq_cancel(callout_queue, periodic_refresh_ev);
 	if (urlfile_retry_ev)
 		cq_cancel(callout_queue, urlfile_retry_ev);
 	g_free(client_info);
