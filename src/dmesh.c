@@ -955,6 +955,94 @@ static const gchar *dmesh_entry_to_gchar(const struct dmesh_entry *dme)
 }
 
 /*
+ * dmesh_fill_alternate
+ *
+ * Fill supplied vector `hvec' whose size is `hcnt' with some alternate
+ * locations for a given SHA1 key, that can be requested by hash directly.
+ *
+ * Returns the amount of locations filled.
+ */
+gint dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt)
+{
+	struct dmesh *dm;
+	struct dmesh_entry *selected[MAX_ENTRIES];
+	gint nselected;
+	gint i;
+	gint j;
+	GSList *l;
+
+	/*
+	 * Fetch the mesh entry for this SHA1.
+	 */
+
+	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
+
+	if (dm == NULL)						/* SHA1 unknown */
+		return 0;
+
+	/*
+	 * First pass: identify entries that can be requested by hash only.
+	 */
+
+	for (i = 0, l = dm->entries; l; l = l->next) {
+		struct dmesh_entry *dme = (struct dmesh_entry *) l->data;
+
+		if (dme->url.idx != URN_INDEX)
+			continue;
+
+		g_assert(i < MAX_ENTRIES);
+
+		selected[i++] = dme;
+	}
+
+	nselected = i;
+
+	if (nselected == 0)
+		return 0;
+
+	g_assert(nselected <= dm->count);
+
+	/*
+	 * Second pass: choose at most `hcnt' entries at random.
+	 */
+
+	for (i = j = 0; i < nselected && j < hcnt; i++) {
+		struct dmesh_entry *dme;
+		gint nleft = nselected - i;
+		gint npick = random_value(nleft - 1);
+		gint k;
+		gint n;
+		gint url_len;
+
+		/*
+		 * The `npick' variable is the index of the selected entry, all
+		 * NULL pointers we can encounter on our path not-withstanding.
+		 */
+
+		for (k = 0, n = npick; n >= 0; /* empty */) {
+			g_assert(k < nselected);
+			if (selected[k] == NULL) {
+				k++;
+				continue;
+			}
+			n--;
+		}
+
+		g_assert(k < nselected);
+
+		dme = selected[k];
+		selected[k] = NULL;				/* Can't select same entry twice */
+
+		g_assert(j < hcnt);
+
+		hvec[j].ip = dme->url.ip;
+		hvec[j++].port = dme->url.port;
+	}
+
+	return j;		/* Amount we filled in vector */
+}
+
+/*
  * dmesh_alternate_location
  *
  * Build alternate location header for a given SHA1 key.  We generate at
@@ -1006,7 +1094,7 @@ gint dmesh_alternate_location(const gchar *sha1,
 		return 0;
 
 	/*
-	 * Find mesh entry for this SHA1, and check whether we anything (new).
+	 * Find mesh entry for this SHA1, and check whether we have anything (new).
 	 */
 
 	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);

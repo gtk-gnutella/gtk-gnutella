@@ -472,12 +472,16 @@ static gnet_results_set_t *get_results_set(
 			exvcnt = ext_parse(tag, taglen, exv, MAX_EXTVEC);
 
 			if (exvcnt == MAX_EXTVEC) {
-				g_warning("%s hit record has %d extensions!",
-					gmsg_infostr(&n->header), exvcnt);
+				g_warning("%s hit record #%d/%d has %d extensions!",
+					gmsg_infostr(&n->header), nr, rs->num_recs, exvcnt);
 				if (dbg)
 					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 				if (dbg > 1)
 					dump_hex(stderr, "Query Hit Tag", tag, taglen);
+			} else if (dbg > 15) {
+				printf("%s hit record #%d/%d has %d extensions:\n",
+					gmsg_infostr(&n->header), nr, rs->num_recs, exvcnt);
+				ext_dump(stdout, exv, exvcnt, "> ", "\n", TRUE);
 			}
 
 			/*
@@ -872,14 +876,18 @@ static gnet_results_set_t *get_results_set(
 				g_warning("%s from %s claimed GGEP extensions in trailer, "
 					"seen none",
 					gmsg_infostr(&n->header), vendor ? vendor : "????");
+			} else if (dbg > 15) {
+				printf("%s from %s has %d trailer extensions:\n",
+					gmsg_infostr(&n->header), vendor ? vendor : "????", exvcnt);
+				ext_dump(stdout, exv, exvcnt, "> ", "\n", TRUE);
 			}
 		}
 
 		if (dbg) {
-			if (seen_ggep_h)
+			if (seen_ggep_h && dbg > 3)
 				g_warning("%s from %s used GGEP \"H\" extension",
 					 gmsg_infostr(&n->header), vendor ? vendor : "????");
-			if (seen_ggep_alt)
+			if (seen_ggep_alt && dbg > 3)
 				g_warning("%s from %s used GGEP \"ALT\" extension",
 					 gmsg_infostr(&n->header), vendor ? vendor : "????");
 			if (seen_bitprint)

@@ -85,6 +85,7 @@ void dmesh_remove(
 gboolean dmesh_collect_sha1(gchar *value, gchar *digest);
 void dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer);
 void dmesh_collect_compact_locations(gchar *sha1, gchar *value);
+gint dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt);
 
 gint dmesh_alternate_location(
 	const gchar *sha1, gchar * buf, gint size, guint32 ip, guint32 last_sent,

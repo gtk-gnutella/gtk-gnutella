@@ -50,12 +50,13 @@
 #include "settings.h"
 #include "ggep.h"
 #include "search.h"		/* For QUERY_SPEED_MARK */
+#include "dmesh.h"		/* For dmesh_fill_alternate() */
 
 RCSID("$Id$");
 
 #define QHIT_SIZE_THRESHOLD	2016	/* Flush query hits larger than this */
 #define QHIT_MAX_RESULTS	255		/* Maximum amount of hits in a query hit */
-
+#define QHIT_MAX_ALT		5		/* Send out 5 alt-locs per entry, at most */
 #define QHIT_MAX_PROXIES	5		/* Send out 5 push-proxies at most */
 
 static const guchar iso_8859_1[96] = {
@@ -519,29 +520,21 @@ static void setup_char_map(char_map_t map)
 	gboolean b_latin = FALSE;
 	const gchar *charset = locale_get_charset();
 
-	if (!strcmp(charset, "ASCII"))
-	{
+	if (!strcmp(charset, "ASCII")) {
 		b_ascii = TRUE;
 		b_latin = TRUE;
+	} else if (
+		!strcmp(charset, "ISO-8859-1") || !strcmp(charset, "ISO-8859-15")
+	) {
+		b_iso_8859_1 = TRUE;
+		b_latin = TRUE;
+	} else if (!strcmp(charset, "CP1252")) {
+		b_cp1252 = TRUE;
+		b_latin = TRUE;
+	} else if (!strcmp(charset, "MacRoman")) {
+		b_macroman = TRUE;
+		b_latin = TRUE;
 	}
-	else
-		if (!strcmp(charset, "ISO-8859-1") || !strcmp(charset, "ISO-8859-15"))
-		{
-			b_iso_8859_1 = TRUE;
-			b_latin = TRUE;
-		}
-		else
-			if (!strcmp(charset, "CP1252"))
-			{
-				b_cp1252 = TRUE;
-				b_latin = TRUE;
-			}
-			else
-				if (!strcmp(charset, "MacRoman"))
-				{
-					b_macroman = TRUE;
-					b_latin = TRUE;
-				}
 
 	for (c = 0; c < 256; c++)	{
 		if (!isupper(c)) {  /* not same than islower, cf ssharp */
@@ -560,9 +553,7 @@ static void setup_char_map(char_map_t map)
 			map[c] = ' ';			/* unknown in our locale */
 	}
 
-	if (b_latin)
-	{
-
+	if (b_latin) {
 		if (b_iso_8859_1 || b_cp1252)
 			for (c = 160; c < 256; c++)
 				map[c] = iso_8859_1[c - 160];
@@ -1321,6 +1312,8 @@ static gboolean got_match(struct shared_file *sf)
 	guint32 pos = FOUND_SIZE;
 	guint32 needed = 8 + 2 + sf->file_name_len;		/* size of hit entry */
 	gboolean sha1_available;
+	gnet_host_t hvec[QHIT_MAX_ALT];
+	gint hcnt;
 
 	sha1_available = SHARE_F_HAS_DIGEST ==
 		(sf->flags & (SHARE_F_HAS_DIGEST | SHARE_F_RECOMPUTING));
@@ -1340,10 +1333,16 @@ static gboolean got_match(struct shared_file *sf)
 	 * larger necessary, since the extension will take at most 26 bytes,
 	 * and could take only 25.  This is NOT a problem, as we later adjust
 	 * the real size to fit the data we really emitted.
+	 *
+	 * If some alternate locations are available, they'll be included as
+	 * GGEP "ALT" afterwards.
 	 */
 
-	if (sha1_available)
+	if (sha1_available) {
 		needed += 9 + SHA1_BASE32_SIZE;
+		hcnt = dmesh_fill_alternate(sf->sha1_digest, hvec, QHIT_MAX_ALT);
+		needed += hcnt * 6 + 6;
+	}
 
 	/*
 	 * Refuse entry if we don't have enough room.	-- RAM, 22/01/2002
@@ -1370,11 +1369,18 @@ static gboolean got_match(struct shared_file *sf)
 	FOUND_BUF[pos++] = '\0';
 
 	if (sha1_available) {
+		gchar *ggep_h_addr = NULL;
+
+		/*
+		 * Emit the SHA1, either as GGEP "H" or as a plain ASCII URN.
+		 */
+
 		if (use_ggep_h) {
 			/* Modern way: GGEP "H" for binary URN */
 			guint8 type = GGEP_H_SHA1;
 			struct iovec iov[2];
 			gint w;
+			guint32 flags = GGEP_W_FIRST | GGEP_W_COBS;
 
 			iov[0].iov_base = (gpointer) &type;
 			iov[0].iov_len = 1;
@@ -1382,14 +1388,18 @@ static gboolean got_match(struct shared_file *sf)
 			iov[1].iov_base = sf->sha1_digest;
 			iov[1].iov_len = SHA1_RAW_SIZE;
 
+			if (hcnt == 0)
+				flags |= GGEP_W_LAST;	/* Nothing will follow */
+
 			w = ggep_ext_writev((gchar *) &FOUND_BUF[pos], FOUND_LEFT(pos),
-					"H", iov, G_N_ELEMENTS(iov),
-					GGEP_W_FIRST|GGEP_W_LAST|GGEP_W_COBS);
+					"H", iov, G_N_ELEMENTS(iov), flags);
 
 			if (w == -1)
 				g_warning("could not write GGEP \"H\" extension in query hit");
-			else
+			else {
 				pos += w;			/* Could be COBS-encoded, we don't know */
+				ggep_h_addr = &FOUND_BUF[pos] + 1;	/* Skip leading magic */
+			}
 		} else {
 			/* Good old way: ASCII URN */
 			gchar *b32 = sha1_base32(sf->sha1_digest);
@@ -1397,6 +1407,49 @@ static gboolean got_match(struct shared_file *sf)
 			pos += 9;
 			memcpy(&FOUND_BUF[pos], b32, SHA1_BASE32_SIZE);
 			pos += SHA1_BASE32_SIZE;
+		}
+
+		/*
+		 * If we have known alternate locations, include a few of them for
+		 * this file in the GGEP "ALT" extension.
+		 */
+
+		if (hcnt > 0) {
+			gchar alts[6 * QHIT_MAX_ALT];
+			gchar *p;
+			gint i;
+			gint alts_len;
+			struct iovec iov[1];
+			guint32 flags = GGEP_W_LAST | GGEP_W_COBS;
+			gint w;
+
+			g_assert(hcnt <= QHIT_MAX_ALT);
+
+			for (i = 0, p = alts; i < hcnt; i++) {
+				WRITE_GUINT32_BE(hvec[i].ip, p);
+				p += 4;
+				WRITE_GUINT16_LE(hvec[i].port, p);
+				p += 2;
+			}
+
+			alts_len = p - alts;
+
+			g_assert(alts_len % 6 == 0);
+
+			iov[0].iov_base = (gpointer) alts;
+			iov[0].iov_len = alts_len;
+
+			if (ggep_h_addr == NULL)
+				flags |= GGEP_W_FIRST;		/* Nothing before */
+
+			w = ggep_ext_writev((gchar *) &FOUND_BUF[pos], FOUND_LEFT(pos),
+					"ALT", iov, G_N_ELEMENTS(iov), flags);
+
+			if (w == -1)
+				g_warning(
+					"could not write GGEP \"ALT\" extension in query hit");
+			else
+				pos += w;			/* Could be COBS-encoded, we don't know */
 		}
 	}
 
