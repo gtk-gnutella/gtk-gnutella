@@ -2899,6 +2899,15 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 		return;
 
 	/*
+	 * Since this is the third and final acknowledgement, the remote node
+	 * is ready to send Gnutella data (and so are we, now that we got
+	 * the final ack).  Mark the Gnutella connection as fully established,
+	 * which means we'll be able to relay traffic to this node.
+	 */
+
+	n->flags |= NODE_F_ESTABLISHED;
+
+	/*
 	 * If we already have data following the final acknowledgment, feed it
 	 * to to stack, from the bottom: we already read it into the socket's
 	 * buffer, but we need to inject it at the bottom of the RX stack.
@@ -4425,6 +4434,7 @@ static void node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	 */
 
 	n->last_rx = time(NULL);
+	n->flags |= NODE_F_ESTABLISHED;		/* Since we've got Gnutella data */
 
 	while (n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n)) {
 		if (!node_read(n, mb))

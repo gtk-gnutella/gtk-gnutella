@@ -125,6 +125,13 @@ static pmsg_t *gmsg_split_to_pmsg(gpointer head, gpointer data, guint32 size)
 
 /***
  *** Sending of Gnutella messages.
+ ***
+ *** To send data to a single node, we need NODE_IS_WRITABLE, indicating
+ *** that the TX stack is up and operational.
+ ***
+ *** To relay data to a node, we need NODE_IS_ESTABLISHED, indicating that
+ *** our RX stack received some Gnutella traffic (for outgoing connections)
+ *** or that we got the 3rd handshake (for incoming connections).
  ***/
 
 /*
@@ -220,7 +227,7 @@ void gmsg_sendto_all(const GSList *sl, gchar *msg, guint32 size)
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
-		if (!NODE_IS_WRITABLE(dn))
+		if (!NODE_IS_ESTABLISHED(dn))
 			continue;
 		mq_putq(dn->outq, pmsg_clone(mb));
 	}
@@ -246,7 +253,7 @@ void gmsg_search_sendto_all(
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
-		if (!NODE_IS_WRITABLE(dn))
+		if (!NODE_IS_ESTABLISHED(dn))
 			continue;
 		sq_putq(dn->searchq, sh, pmsg_clone(mb));
 	}
@@ -272,7 +279,7 @@ void gmsg_search_sendto_all_nonleaf(
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
-		if (!NODE_IS_WRITABLE(dn) || NODE_IS_LEAF(dn))
+		if (!NODE_IS_ESTABLISHED(dn) || NODE_IS_LEAF(dn))
 			continue;
 		sq_putq(dn->searchq, sh, pmsg_clone(mb));
 	}
@@ -301,7 +308,7 @@ void gmsg_split_sendto_all_but_one(const GSList *sl, struct gnutella_node *n,
 		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
 		if (dn == n)
 			continue;
-		if (!NODE_IS_WRITABLE(dn) || NODE_IS_LEAF(dn))
+		if (!NODE_IS_ESTABLISHED(dn) || NODE_IS_LEAF(dn))
 			continue;
 		mq_putq(dn->outq, pmsg_clone(mb));
 	}
@@ -325,6 +332,9 @@ void gmsg_split_sendto_leaves(const GSList *sl,
 
 	for (/* empty */; sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
+
+		if (!NODE_IS_ESTABLISHED(dn))
+			continue;
 
 		/*
 		 * We have already tested that the node was being writable.
@@ -362,7 +372,7 @@ static void gmsg_split_sendto_all_but_one_ggep(
 		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
 		if (dn == n)
 			continue;
-		if (!NODE_IS_WRITABLE(dn) || NODE_IS_LEAF(dn))
+		if (!NODE_IS_ESTABLISHED(dn) || NODE_IS_LEAF(dn))
 			continue;
 		if (NODE_CAN_GGEP(dn))
 			mq_putq(dn->outq, pmsg_clone(mb));

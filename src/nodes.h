@@ -187,7 +187,7 @@ typedef struct gnutella_node {
 #define NODE_F_HDSK_PING	0x00000001	/* Expecting handshake ping */
 #define NODE_F_UNUSED_1		0x00000002	/* UNUSED */
 #define NODE_F_INCOMING		0x00000004	/* Incoming (permanent) connection */
-#define NODE_F_UNUSED_2		0x00000008	/* UNUSED */
+#define NODE_F_ESTABLISHED	0x00000008	/* Gnutella connection established */
 #define NODE_F_VALID		0x00000010	/* We handshaked with a Gnutella node */
 #define NODE_F_ALIEN_IP		0x00000020	/* Pong-IP does not match TCP/IP addr */
 #define NODE_F_WRITABLE		0x00000040	/* Node is writable */
@@ -250,6 +250,10 @@ typedef struct gnutella_node {
 
 #define NODE_IS_READABLE(n) \
 	(((n)->flags & (NODE_F_READABLE|NODE_F_NOREAD)) == NODE_F_READABLE)
+
+#define NODE_IS_ESTABLISHED(n) \
+	(((n)->flags & (NODE_F_WRITABLE|NODE_F_ESTABLISHED)) == \
+		(NODE_F_WRITABLE|NODE_F_ESTABLISHED))
 
 #define NODE_MQUEUE_PERCENT_USED(n) \
 	((n)->outq ? mq_size((n)->outq) * 100 / mq_maxsize((n)->outq) : 0)
