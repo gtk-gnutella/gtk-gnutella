@@ -706,7 +706,7 @@ download_selected_all_files(GtkTreeModel *model, GtkTreePath *path,
         gint i = 0;
         
         while (gtk_tree_model_iter_nth_child(model, &child, iter, i)) {
-			download_selected_file(model, iter, ctx->iters);
+			download_selected_file(model, &child, ctx->iters);
             i++;
         }
 	}
