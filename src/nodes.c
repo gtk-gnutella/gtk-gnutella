@@ -3245,7 +3245,7 @@ void node_get_status(const gnet_node_t n, gnet_node_status_t *status)
     else
         status->message[0] = '\0';
 
-	if (node->status == GTA_NODE_CONNECTED)
+	if (node->alive_pings != NULL && node->status == GTA_NODE_CONNECTED)
 		alive_get_roundtrip_ms(node->alive_pings,
 			&status->rt_avg, &status->rt_last);
 }
