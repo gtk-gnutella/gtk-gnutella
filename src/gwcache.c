@@ -479,6 +479,8 @@ static void forget_url(gchar *url)
 		for (i = gwc_url_slot;;) {
 			if (gwc_url[i] != url)		/* Atoms: we can compare addresses */
 				url_tmp[j++] = gwc_url[i];
+			else
+				atom_str_free(url);		/* Or gwc_url[i], same pointer */
 			i++;
 			if (i == MAX_GWC_URLS)
 				i = 0;
@@ -489,6 +491,8 @@ static void forget_url(gchar *url)
 		for (i = 0; i <= gwc_url_slot; i++) {
 			if (gwc_url[i] != url)		/* Atoms: we can compare addresses */
 				url_tmp[j++] = gwc_url[i];
+			else
+				atom_str_free(url);		/* Or gwc_url[i], same pointer */
 		}
 	}
 
