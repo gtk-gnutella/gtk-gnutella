@@ -122,11 +122,9 @@ static void on_gnet_stats_column_resized(
 	guint32 width;
 	gint property;
 	gint column_id = GPOINTER_TO_INT(data);
-	static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
 
 	g_assert(column_id >= 0 && column_id <= 9);
 
-	g_static_mutex_lock(&mutex);
 	widget_name = gtk_widget_get_name(column->tree_view);
  	width = gtk_tree_view_column_get_width(column);
 
@@ -152,7 +150,6 @@ static void on_gnet_stats_column_resized(
 	}
 
 	gui_prop_set_guint32(property, &width, column_id, 1);
-	g_static_mutex_unlock(&mutex);
 }
 
 static gint gnet_stats_drop_reasons_type = MSG_TOTAL;
@@ -294,7 +291,7 @@ static void add_column(
 		GTK_CELL_RENDERER_TEXT(renderer), 1);
 	g_object_set(renderer,
 		"xalign", xalign,
-		"ypad", (gint) GUI_CELL_RENDERER_YPAD,
+		"ypad", GUI_CELL_RENDERER_YPAD,
 		NULL);
 
 	column = gtk_tree_view_column_new_with_attributes(
