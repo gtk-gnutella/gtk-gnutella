@@ -2255,9 +2255,13 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 *
 	 * We do that before calling upload_http_status() to avoid lacking
 	 * room in the headers, should there by any alternate location present.
+	 *
+	 * We never emit the queue ID for HEAD requests, nor during follow-ups
+	 * (which always occur for the same resource, meaning the PARQ ID was
+	 * arlready sent for those).
 	 */
 
-	if (!parq_ul_id_sent(u)) {
+	if (!head_only && !is_followup && !parq_ul_id_sent(u)) {
 		cb_parq_arg.u = u;
 
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
