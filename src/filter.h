@@ -184,4 +184,5 @@ void filter_timer(void);
 void filter_update_targets(void);
 inline filter_t *filter_get_drop_target(void);
 inline filter_t *filter_get_show_target(void);
+inline filter_t *filter_get_global_pre(void);
 #endif /* __filter_h__ */

@@ -2193,3 +2193,8 @@ inline filter_t *filter_get_show_target(void)
 {
     return filter_show;
 }
+
+inline filter_t *filter_get_global_pre(void)
+{
+    return filter_global_pre;
+}
