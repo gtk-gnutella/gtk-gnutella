@@ -1266,6 +1266,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 {
 	dquery_t *dq;
 	guint16 req_speed;
+	gboolean tagged_speed = FALSE;
 
 	g_assert(NODE_IS_LEAF(n));
 
@@ -1297,9 +1298,35 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		dq->flags |= DQ_F_LEAF_GUIDED;
 
 	READ_GUINT16_LE(n->data, req_speed);
+	tagged_speed = (req_speed & QUERY_SPEED_MARK) ? TRUE : FALSE;
 
-	if (req_speed & QUERY_SPEED_LEAF_GUIDED)
+	if (tagged_speed && (req_speed & QUERY_SPEED_LEAF_GUIDED))
 		dq->flags |= DQ_F_LEAF_GUIDED;
+
+	/*
+	 * If the leaf is not guiding the query, yet requests out-of-band
+	 * replies, clear that flag so that we can monitor how much hits
+	 * are delivered.
+	 */
+
+	if (
+		tagged_speed &&
+		(req_speed & QUERY_SPEED_OOB_REPLY) &&
+		!(dq->flags & DQ_F_LEAF_GUIDED)
+	) {
+		gchar *data = pmsg_start(dq->mb) + sizeof(struct gnutella_header);
+		guint16 speed;
+
+		READ_GUINT16_LE(data, speed);
+		g_assert(speed == req_speed);
+		speed &= ~QUERY_SPEED_OOB_REPLY;
+		WRITE_GUINT16_LE(speed, data);
+
+		if (dq_debug > 19)
+			printf("DQ node #%d %s <%s>: removed OOB delivery from query "
+				"(old speed = 0x%x, new speed = 0x%x)\n",
+				n->id, node_ip(n), node_vendor(n), req_speed, speed);
+	}
 
 	if (dq_debug > 19)
 		printf("DQ node #%d %s <%s> (%s leaf-guidance) queries \"%s\"\n",
