@@ -67,21 +67,30 @@ AC_MSG_RESULT($need_lresolv)
 AC_SEARCH_LIBS(socket,socket)                                               
 AC_SEARCH_LIBS(gethostbyname,nsl socket)                                    
 
-dnl Set PACKAGE_DATA_DIR in config.h.
+dnl Set PACKAGE_DATA_DIR and LOCALEDIR in config.h.
 if test "x${datadir}" = 'x${prefix}/share'; then
   if test "x${prefix}" = "xNONE"; then
     AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR,
 	"${ac_default_prefix}/share/${PACKAGE}",
 	[Define which directory should be used for package data.])
+    AC_DEFINE_UNQUOTED(LOCALEDIR,
+	"${ac_default_prefix}/share/locale",
+	[Define where the files for NLS should be installed.])
   else
     AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR,
 	"${prefix}/share/${PACKAGE}",
 	[Define which directory should be used for package data.])
+    AC_DEFINE_UNQUOTED(LOCALEDIR,
+	"${prefix}/share/locale",
+	[Define where the files for NLS should be installed.])
   fi
 else
   AC_DEFINE_UNQUOTED(PACKAGE_DATA_DIR,
 	"${datadir}/${PACKAGE}",
 	[Define which directory should be used for package data.])
+  AC_DEFINE_UNQUOTED(LOCALEDIR,
+	"${datadir}/locale",
+	[Define where the files for NLS should be installed.])
 fi
 
 
@@ -91,7 +100,6 @@ packagesrcdir=`cd $srcdir && pwd`
 AC_DEFINE_UNQUOTED(PACKAGE_SOURCE_DIR,
 	"${packagesrcdir}",
 	[Define which directory should be used for package source.])
-
 
 dnl Check for XML support
 AC_PATH_PROG(XML_CONFIG,xml2-config,no)
