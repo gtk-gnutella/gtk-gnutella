@@ -3780,7 +3780,7 @@ gboolean download_remove(struct download *d)
 
 	atom_str_free(d->file_name);
 	if (d->escaped_name != d->file_name)
-		G_FREE_NULL(d->escaped_name);
+		g_free(d->escaped_name);
 
 	d->file_name = NULL;
 	d->escaped_name = NULL;
@@ -4618,7 +4618,7 @@ static gboolean download_moved_permanently(
 
 		atom_str_free(d->file_name);
 		if (d->escaped_name != d->file_name)
-			G_FREE_NULL(d->escaped_name);
+			g_free(d->escaped_name);
 
 		d->file_name = info.name;			/* Already an atom */
 		d->escaped_name = url_escape_cntrl(info.name);
@@ -7869,6 +7869,8 @@ void download_close(void)
 			http_buffer_free(d->req);
 		if (d->cproxy)
 			cproxy_free(d->cproxy);
+		if (d->escaped_name != d->file_name)
+			g_free(d->escaped_name);
 
 		file_info_remove_source(d->file_info, d, TRUE);
 		parq_dl_remove(d);
