@@ -276,7 +276,7 @@ gboolean downloads_gui_update_parent_status(download_t *d,
  *	Usable for both active downloads and downloads queue treeview.
  */
 static GtkTreeViewColumn *add_column(
-	GtkTreeView *treeview, GtkType column_type, gchar *name,
+	GtkTreeView *treeview, GtkType column_type, const gchar *name,
 	gint id, gint width, guint xpad, gfloat xalign,
 	gint fg_column, gint bg_column)
 {
@@ -336,9 +336,9 @@ static GtkTreeViewColumn *add_column(
  *	Note: Usable only for active downloads treeview.
  */
 static void add_active_downloads_column(GtkTreeView *treeview,
-	GtkType column_type, gchar *name,
+	GtkType column_type, const gchar *name,
 	gint id, gint width, guint xpad, gfloat xalign,
-	gint (*sortfunc)(GtkTreeModel *, GtkTreeIter *, GtkTreeIter *, gpointer))
+	const GtkTreeIterCompareFunc sortfunc)
 {
     GtkTreeViewColumn *column;
 	GtkTreeModel *model;
@@ -359,9 +359,8 @@ static void add_active_downloads_column(GtkTreeView *treeview,
  *	Note: Usable only for downloads queue treeview.
  */
 static void add_queue_downloads_column(GtkTreeView *treeview,
-	gchar *name, gint id, gint width, guint xpad, gfloat xalign,
-	gint (*sortfunc)(GtkTreeModel *, GtkTreeIter *, GtkTreeIter *,
-	gpointer))
+	const gchar *name, gint id, gint width, guint xpad, gfloat xalign,
+	const GtkTreeIterCompareFunc sortfunc)
 {
     GtkTreeViewColumn *column;
 	GtkTreeModel *model;
