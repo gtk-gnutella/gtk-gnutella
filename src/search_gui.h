@@ -43,9 +43,11 @@ struct search {
 	gboolean    enabled;
 
 #ifdef USE_GTK2
-	GtkWidget	*tree_view;			/* GtkTreeView for this search */
+	GtkWidget  *tree_view;			/* GtkTreeView for this search */
+	GtkTreeModel	*model;			/* GtkTreeModel for the GtkTreeView
+									 * so it can be detached from it */
 #else
-	GtkCTree	*ctree;			   	/* GtkCTree for this search */
+	GtkCTree   *ctree;			   	/* GtkCTree for this search */
 #endif
 
 	GHashTable *parents;	/* table of mount iterators for any seen SHA1 */
@@ -143,10 +145,14 @@ void gui_search_get_colors(
 	search_t *sch,
 	GdkColor **mark_color, GdkColor **ignore_color, GdkColor **download_color);
 
+void search_gui_start_massive_update(search_t *sch);
+void search_gui_end_massive_update(search_t *sch);
+
 /*
  * Callbacks
  */
 gboolean search_gui_search_results_col_widths_changed(property_t prop);
 gboolean search_gui_search_results_col_visible_changed(property_t prop);
 
+/* vi: set ts=4: */
 #endif /* _search_gui_h_ */

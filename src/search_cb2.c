@@ -521,21 +521,30 @@ static void autoselect_files(GtkTreeView *treeview)
  * search results pane. Autoselection takes place here.
  */
 void on_tree_view_search_results_select_row(
-    GtkTreeView *tree_view, gpointer user_data)
+    GtkTreeView *view, gpointer user_data)
 {
 	static gboolean autoselection_running = FALSE;
 	static gchar tmpstr[4096];
 	GtkTreePath *path;
 
-	gtk_tree_view_get_cursor(tree_view, &path, NULL);
+	gtk_tree_view_get_cursor(view, &path, NULL);
 	if (NULL != path) {
 		GtkTreeModel *model;
 		const record_t *rc = NULL;
 		gchar *filename;
 		const gchar *vendor;
 		GtkTreeIter iter;
+		search_t *sch = NULL;
+		const GList *l = search_gui_get_searches();
 
-		model = gtk_tree_view_get_model(tree_view);
+		for (/* NOTHING */; NULL != l; l = g_list_next(l))
+			if (view == GTK_TREE_VIEW(((search_t *) l->data)->tree_view)) {
+				sch = (search_t *) l->data;
+				break;
+			}
+
+		g_assert(NULL != sch);
+		model = GTK_TREE_MODEL(sch->model);
 		gtk_tree_model_get_iter(model, &iter, path);
 		gtk_tree_model_get(model, &iter, c_sr_filename, &filename,
 			c_sr_record, &rc, (-1));
@@ -578,7 +587,7 @@ void on_tree_view_search_results_select_row(
 	g_return_if_fail(!autoselection_running);
 
 	autoselection_running = TRUE;
-	autoselect_files(tree_view);
+	autoselect_files(view);
 	autoselection_running = FALSE;
 }
 
@@ -857,4 +866,5 @@ void search_callbacks_shutdown(void)
  	 */
 }
 
+/* vi: set ts=4: */
 #endif	/* USE_GTK2 */

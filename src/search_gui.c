@@ -2492,6 +2492,23 @@ void search_gui_collapse_all()
 	gtk_ctree_collapse_recursive(ctree, NULL);		
 }
 
+void search_gui_start_massive_update(search_t *sch)
+{
+	g_assert(sch);
+	gtk_clist_freeze(GTK_CLIST(sch->ctree));
+}
 
+void search_gui_end_massive_update(search_t *sch)
+{
+	GtkCList *ctree;
 
+	g_assert(sch);
+	ctree = GTK_CLIST(sch->ctree);
+	g_assert(ctree);
+
+	while (ctree->freeze_count > 0)
+		gtk_clist_thaw(ctree);
+}
+
+/* vi: set ts=4: */
 #endif	/* USE_GTK1 */

@@ -980,12 +980,9 @@ void search_gui_flush(time_t now)
     GSList *curs;
     static time_t last = 0;
 	guint32 period;
-#ifdef USE_GTK1
     GSList *frozen = NULL;
-#endif
 
 	gui_prop_get_guint32_val(PROP_SEARCH_ACCUMULATION_PERIOD, &period);
-
     if (now && (difftime(now, last) < period))
         return;
 
@@ -1025,10 +1022,8 @@ void search_gui_flush(time_t now)
              */
 
             if (sch) {
-#ifdef USE_GTK1
-                gtk_clist_freeze(GTK_CLIST(sch->ctree));
-                frozen = g_slist_prepend(frozen, sch->ctree);
-#endif
+                search_gui_start_massive_update(sch);
+                frozen = g_slist_prepend(frozen, sch);
                 search_matched(sch, rs);
             } else {
                 if (gui_debug >= 6) {
@@ -1088,17 +1083,16 @@ void search_gui_flush(time_t now)
 		g_slist_free(schl);
     }
 
-#ifdef USE_GTK1
     /*
      * Unfreeze all we have frozen before.
      */
     for (sl = frozen; sl != NULL; sl = g_slist_next(sl)) {
-        while (((GtkCList*) (sl->data))->freeze_count > 0)
-            gtk_clist_thaw(GTK_CLIST(sl->data));
+		search_gui_end_massive_update((search_t *) sl->data);
     }
     g_slist_free(frozen);
-#endif
 
     g_slist_free(accumulated_rs);
     accumulated_rs = NULL;
 }
+
+/* vi: set ts=4: */

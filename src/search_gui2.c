@@ -121,7 +121,7 @@ static void	search_gui_clear_store(search_t *sch)
 {
 	GtkTreeModel *model;
 
-	model = gtk_tree_view_get_model(GTK_TREE_VIEW(sch->tree_view));
+	model = GTK_TREE_MODEL(sch->model);
 	gtk_tree_model_foreach(model, unref_record, sch->dups);
 	gtk_tree_store_clear(GTK_TREE_STORE(model));
 	g_assert(0 == g_hash_table_size(sch->dups));
@@ -366,7 +366,7 @@ gboolean search_gui_new_search_full(
 	/* Create a new TreeView if needed, or use the default TreeView */
 
 	if (searches) {
-		/* We have to create a new clist for this search */
+		/* We have to create a new TreeView for this search */
 		gui_search_create_tree_view(&sch->scrolled_window, &sch->tree_view);
 
 		gtk_object_set_user_data((GtkObject *) sch->scrolled_window,
@@ -375,7 +375,7 @@ gboolean search_gui_new_search_full(
 		gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results),
 								 sch->scrolled_window, NULL);
 	} else {
-		/* There are no searches currently, we can use the default clist */
+		/* There are no searches currently, we can use the default TreeView */
 
 		if (default_scrolled_window && default_search_tree_view) {
 			sch->scrolled_window = default_scrolled_window;
@@ -389,9 +389,10 @@ gboolean search_gui_new_search_full(
 		gtk_object_set_user_data((GtkObject *) sch->scrolled_window,
 								 (gpointer) sch);
 	}
+	sch->model = gtk_tree_view_get_model(GTK_TREE_VIEW(sch->tree_view));
 
-
-	model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view_search);
+	/* Add the search to the TreeView in pane on the left */
+	model = GTK_TREE_STORE(gtk_tree_view_get_model(tree_view_search));
 	gtk_tree_store_append(model, &iter, NULL);
 	gtk_tree_store_set(model, &iter,
 		c_sl_name, sch->query,
@@ -485,7 +486,7 @@ void search_gui_add_record(
 	GtkTreeIter *parent;
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW(sch->tree_view);
-	GtkTreeStore *model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
+	GtkTreeStore *model = GTK_TREE_STORE(sch->model);
 
 	/*
 	 * When the search is displayed in multiple search results, the refcount
@@ -673,7 +674,7 @@ static void download_selection_of_tree_view(GtkTreeView * tree_view)
 	search_t *current_search = search_gui_get_current_search();
 
 	selection = gtk_tree_view_get_selection(tree_view);
-	model = gtk_tree_view_get_model(tree_view);
+	model = GTK_TREE_MODEL(current_search->model);
 
     gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED,
 		&search_remove_downloaded);
@@ -1065,7 +1066,7 @@ void search_gui_remove_search(search_t *sch)
    	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
 	gtk_list_remove_items(GTK_LIST(combo_searches->list), glist);
 
-	model = gtk_tree_view_get_model(tree_view_search);
+	model = GTK_TREE_MODEL(sch->model);
     gtk_tree_model_foreach(model, tree_view_search_remove, sch);
 
     gtk_timeout_remove(sch->tab_updating);
@@ -1280,7 +1281,7 @@ static GtkTreeViewColumn *add_column(
 	return column;
 }
 
-static void add_results_columns (GtkTreeView *treeview)
+static void add_results_columns(GtkTreeView *treeview)
 {
 	guint32 *width;
 
@@ -1389,7 +1390,7 @@ static gboolean tree_view_search_update(
 }
 
 /* Like search_update_tab_label but always update the label */
-void gui_search_force_update_tab_label(struct search *sch, time_t now)
+void gui_search_force_update_tab_label(search_t *sch, time_t now)
 {
     search_t *search;
 	GtkTreeModel *model;
@@ -1523,7 +1524,7 @@ void gui_search_set_enabled(struct search *sch, gboolean enabled)
  *
  *	Expand all nodes in tree for current search
  */
-void search_gui_expand_all()
+void search_gui_expand_all(void)
 {
 	search_t *current_search = search_gui_get_current_search();
 	gtk_tree_view_expand_all(GTK_TREE_VIEW(current_search->tree_view));
@@ -1535,10 +1536,29 @@ void search_gui_expand_all()
  *
  *	Collapse all nodes in tree for current search
  */
-void search_gui_collapse_all()
+void search_gui_collapse_all(void)
 {
 	search_t *current_search = search_gui_get_current_search();
 	gtk_tree_view_collapse_all(GTK_TREE_VIEW(current_search->tree_view));
 }
 
+void search_gui_start_massive_update(search_t *sch)
+{
+	g_assert(sch);
+
+	g_object_ref(sch->model);
+	gtk_tree_view_set_model(GTK_TREE_VIEW(sch->tree_view), NULL);
+}
+
+void search_gui_end_massive_update(search_t *sch)
+{
+	g_assert(sch);
+
+    gui_search_force_update_tab_label(sch, time(NULL));
+	gtk_tree_view_set_model(GTK_TREE_VIEW(sch->tree_view),
+		GTK_TREE_MODEL(sch->model));
+}
+
+
+/* vi: set ts=4: */
 #endif	/* USE_GTK2 */
