@@ -81,7 +81,7 @@ static void fi_gui_set_details(gnet_fi_t fih)
 
     gtk_entry_set_text(entry_fi_filename,
 		lazy_locale_to_utf8(fi->file_name, 0));
-    gtk_label_printf(label_fi_size, "%s (%u bytes)",
+    gtk_label_printf(label_fi_size, _("%s (%u bytes)"),
 		short_size(fis.size), fis.size);
 
     gtk_tree_store_clear(store_aliases);
@@ -218,19 +218,19 @@ static void fi_gui_fill_status(
 
     if (s.recvcount) {
 	gm_snprintf(fi_status, sizeof(fi_status), 
-            "Downloading (%.1f k/s)", s.recv_last_rate / 1024.0);
+            _("Downloading (%.1f k/s)"), s.recv_last_rate / 1024.0);
         titles[c_fi_status] = fi_status;
     } else if (s.done == s.size) {
-        titles[c_fi_status] = "Finished";
+        titles[c_fi_status] = _("Finished");
     } else if (s.lifecount == 0) {
-        titles[c_fi_status] = "No sources";
+        titles[c_fi_status] = _("No sources");
     } else if (s.aqueued_count || s.pqueued_count) {
         gm_snprintf(fi_status, sizeof(fi_status), 
-            "Queued (%d active/ %d passive)",
+            _("Queued (%d active/ %d passive)"),
             s.aqueued_count, s.pqueued_count);
         titles[c_fi_status] = fi_status;
     } else {
-        titles[c_fi_status] = "Waiting";
+        titles[c_fi_status] = _("Waiting");
     }
     titles[c_fi_handle] = GUINT_TO_POINTER(fih);
 }
@@ -303,9 +303,9 @@ static gint compare_uint_func(
 static void add_column(
     GtkTreeView *tree,
 	gint column_id,
+	const gchar *title,
 	gint width,
-	gfloat xalign,
-	const gchar *title)
+	gfloat xalign)
 {
     GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
@@ -334,7 +334,23 @@ static void add_column(
 
 void fi_gui_init(void) 
 {
-	guint32 *width;
+	static const struct {
+		const gint id;
+		const gchar * const title;
+		const gfloat align;
+		const GtkTreeIterCompareFunc sort_func;
+		const gint sort_by;
+	} columns[] = {
+		{ c_fi_filename, N_("File"),	0.0, NULL, -1 },
+    	{ c_fi_size,	 N_("Size"),	1.0, compare_uint_func, c_fi_isize },
+    	{ c_fi_done,	 N_("Done"),	1.0, compare_uint_func, c_fi_idone },
+    	{ c_fi_sources,  N_("Sources"), 1.0, compare_uint_func, c_fi_isources },
+    	{ c_fi_status,   N_("Status"),	0.0, NULL, -1 }
+	};
+	guint32 width[G_N_ELEMENTS(columns)];
+	guint i;
+
+	STATIC_ASSERT(FILEINFO_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
 
 	fi_gui_handles = g_hash_table_new_full(
         NULL, NULL, NULL, (gpointer) w_tree_iter_free);
@@ -349,46 +365,42 @@ void fi_gui_init(void)
 		"label_fi_size"));
 
 	store_fileinfo = gtk_tree_store_new(c_fi_num,
-		G_TYPE_STRING,
-		G_TYPE_STRING,
-		G_TYPE_STRING,
-		G_TYPE_STRING,
-		G_TYPE_STRING,
-		G_TYPE_UINT,
-		G_TYPE_UINT,
-		G_TYPE_UINT,
-		G_TYPE_UINT);
+		G_TYPE_STRING,	/* Filename */
+		G_TYPE_STRING,	/* Size		*/
+		G_TYPE_STRING,	/* Done		*/
+		G_TYPE_STRING,	/* Sources	*/
+		G_TYPE_STRING,	/* Status	*/
+		G_TYPE_UINT,	/* Fileinfo handle		*/
+		G_TYPE_UINT,	/* Size (for sorting)	*/
+		G_TYPE_UINT,	/* Done (for sorting)	*/
+		G_TYPE_UINT);	/* Sources (for sorting */
 	gtk_tree_view_set_model(treeview_fileinfo, GTK_TREE_MODEL(store_fileinfo));
 	g_signal_connect(GTK_OBJECT(treeview_fileinfo), "cursor-changed",
-        (gpointer) on_treeview_fileinfo_selected, NULL);
+        G_CALLBACK(on_treeview_fileinfo_selected), NULL);
+
+	gui_prop_get_guint32(PROP_FILE_INFO_COL_WIDTHS, width, 0,
+		G_N_ELEMENTS(width));
+
+	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+    	add_column(treeview_fileinfo,
+			columns[i].id,
+			_(columns[i].title),
+			width[i],
+			columns[i].align);
+
+		if (columns[i].sort_func) {
+			gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_fileinfo),
+				columns[i].id,
+				columns[i].sort_func,
+				GINT_TO_POINTER(columns[i].sort_by),
+				NULL);
+		}
+	}
 
 	store_aliases = gtk_tree_store_new(1, G_TYPE_STRING);
 	gtk_tree_view_set_model(treeview_fi_aliases, GTK_TREE_MODEL(store_aliases));
 
-	width = gui_prop_get_guint32(PROP_FILE_INFO_COL_WIDTHS, NULL, 0, 0);
-    add_column(treeview_fileinfo, c_fi_filename,
-		width[c_fi_filename], 0.0, _("File"));
-    add_column(treeview_fileinfo, c_fi_size,
-		width[c_fi_size], 1.0, _("Size"));
-    add_column(treeview_fileinfo, c_fi_done,
-		width[c_fi_done], 1.0, _("Done"));
-    add_column(treeview_fileinfo, c_fi_sources,
-		width[c_fi_sources], 1.0, _("Sources"));
-    add_column(treeview_fileinfo, c_fi_status,
-		width[c_fi_status], 0.0, _("Status"));
-	G_FREE_NULL(width);
-
-	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_fileinfo),
-		c_fi_size, compare_uint_func,
-		GINT_TO_POINTER(c_fi_isize), NULL);
-	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_fileinfo),
-		c_fi_done, compare_uint_func,
-		GINT_TO_POINTER(c_fi_idone), NULL);
-	gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_fileinfo),
-		c_fi_sources, compare_uint_func,
-		GINT_TO_POINTER(c_fi_isources), NULL);
-
-    add_column(treeview_fi_aliases, 0, 0, 0.0, _("Aliases"));
+    add_column(treeview_fi_aliases, 0, _("Aliases"), 0.0, 0);
 
     fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
     fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
@@ -415,5 +427,5 @@ void fi_gui_shutdown(void)
 	fi_gui_handles = NULL;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4: */
 #endif	/* USE_GTK2 */
