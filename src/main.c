@@ -149,18 +149,20 @@ void gtk_gnutella_exit(gint n)
 	 * the properties and exit.
 	 */
 
-	settings_shutdown();
-	main_gui_update_coords();
-	settings_gui_shutdown();
+	settings_save_if_dirty();
+	settings_gui_save_if_dirty();
 
 	if (from_atexit)
 		return;
 
+	main_gui_update_coords();
     main_gui_shutdown();
 
+	settings_shutdown();
 	socket_shutdown();
 	search_shutdown(); 
 	bsched_shutdown();
+	settings_gui_shutdown();
 
 	/* 
 	 * Wait at most EXIT_GRACE seconds, so that BYE messages can go through.
