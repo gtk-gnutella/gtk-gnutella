@@ -4427,7 +4427,7 @@ create_main_window (void)
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_general), 0, label403);
   gtk_misc_set_alignment (GTK_MISC (label403), 7.45058e-09, 0.5);
 
-  label404 = gtk_label_new (_("count"));
+  label404 = gtk_label_new (_("Count"));
   gtk_widget_set_name (label404, "label404");
   gtk_widget_ref (label404);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label404", label404,
@@ -4515,7 +4515,7 @@ create_main_window (void)
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_drop_reasons), 0, label375);
   gtk_misc_set_alignment (GTK_MISC (label375), 7.45058e-09, 0.5);
 
-  label376 = gtk_label_new (_("count"));
+  label376 = gtk_label_new (_("Count"));
   gtk_widget_set_name (label376, "label376");
   gtk_widget_ref (label376);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label376", label376,
