@@ -559,10 +559,13 @@ static void upload_remove_v(
 	if (dbg > 1) {
 		if (u->name) {
 			printf("Cancelling upload for %s from %s: %s\n",
-				u->name, ip_to_gchar(u->socket->ip), logreason);
+				u->name,
+				u->socket ? ip_to_gchar(u->socket->ip) : "<no socket>",
+				logreason);
 		} else {
 			printf("Cancelling upload from %s: %s\n",
-				ip_to_gchar(u->socket->ip), logreason);
+				u->socket ? ip_to_gchar(u->socket->ip) : "<no socket>",
+				logreason);
 		}
 	}
 
