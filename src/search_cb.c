@@ -270,6 +270,8 @@ gint search_cb_autoselect(GtkCTree *ctree, GtkCTreeNode *node,
 	} /* for */
 	
 	gtk_clist_thaw(GTK_CLIST(ctree));
+	
+	gtk_widget_queue_draw((GtkWidget *) ctree); /* Force redraw */
 	in_autoselect = FALSE;
 	return x;
 }
