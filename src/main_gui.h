@@ -27,6 +27,7 @@
 #define __main_gui_h__
 
 void main_gui_init(void);
+void main_gui_run(void);
 void main_gui_shutdown(void);
 
 #endif /* __main_gui_h__ */

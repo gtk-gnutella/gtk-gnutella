@@ -78,6 +78,17 @@ void main_gui_init(void)
     settings_gui_init();
 }
 
+void main_gui_run(void)
+{
+	gui_update_global();
+
+	gtk_widget_show(main_window);		/* Display the main window */
+
+    // FIXME: add window resizing code here!
+
+	gtk_main();
+}
+
 void main_gui_shutdown(void)
 {
     guint32 coord[4] = { 0, 0, 0, 0};

@@ -408,12 +408,6 @@ gint main(gint argc, gchar ** argv)
 	signal(SIGXFSZ, SIG_IGN);
 #endif
 
-    /* Final interface setup (setting of values read from config) */
-    
-	gui_update_global();
-
-	gtk_widget_show(main_window);		/* Display the main window */
-
 	/* Setup the main timers */
 
 	(void) g_timeout_add(1000, main_timer, NULL);
@@ -423,8 +417,10 @@ gint main(gint argc, gchar ** argv)
 	/* Okay, here we go */
 
 	bsched_enable_all();
+
 	version_ancient_warn();
-	gtk_main();
+
+    main_gui_run();
 
 	return 0;
 }
