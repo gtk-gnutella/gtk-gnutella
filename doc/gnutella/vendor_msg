@@ -160,7 +160,7 @@ and hops=0.  The GUID is ignored.
 
 BearShare will use the Hops Flow feature to allow leaves to inform its
 Ultrapeers that they should turn the forwarding of queries on and off
-(by setting hops to maxTTL+1 and 0 respectively) based on whether or not
+(by setting hops to max_TTL and 0 respectively) based on whether or not
 the leaf has sharing of files turned on. Setting hops to 0 results in a
 substantial bandwidth reduction with modem users who have large shared
 file sets but turn sharing off to speed up downloads.
