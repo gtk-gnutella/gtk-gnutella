@@ -84,8 +84,9 @@ d_free(gpointer ctx)
  * Daemon's notification of start/stop.
  */
 static void
-d_notify(gpointer h, gboolean on)
+d_notify(gpointer unused_h, gboolean on)
 {
+	(void) unused_h;
 	gnet_prop_set_boolean_val(PROP_SHA1_VERIFYING, on);
 }
 
@@ -93,12 +94,13 @@ d_notify(gpointer h, gboolean on)
  * Daemon's notification: starting to work on item.
  */
 static void
-d_start(gpointer h, gpointer ctx, gpointer item)
+d_start(gpointer unused_h, gpointer ctx, gpointer item)
 {
 	struct verifyd *vd = (struct verifyd *) ctx;
 	struct download *d = (struct download *) item;
 	gchar *filename;
 
+	(void) unused_h;
 	g_assert(vd->magic == VERIFYD_MAGIC);
 	g_assert(vd->fd == -1);
 	g_assert(vd->d == NULL);
@@ -134,13 +136,14 @@ d_start(gpointer h, gpointer ctx, gpointer item)
  * Daemon's notification: finished working on item.
  */
 static void
-d_end(gpointer h, gpointer ctx, gpointer item)
+d_end(gpointer unused_h, gpointer ctx, gpointer item)
 {
 	struct verifyd *vd = (struct verifyd *) ctx;
 	struct download *d = (struct download *) item;
 	time_t elapsed = 0;
 	guint8 digest[SHA1HashSize];
 
+	(void) unused_h;
 	g_assert(vd->magic == VERIFYD_MAGIC);
 
 	if (vd->fd == -1) {				/* Did not start properly */
