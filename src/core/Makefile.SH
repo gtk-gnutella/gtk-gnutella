@@ -78,7 +78,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.9 2004/10/16 20:37:50 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.10 2004/11/14 21:30:01 rmanfredi Exp $
 
 SRC = \
 	alive.c \
@@ -145,6 +145,7 @@ SRC = \
 	tx_dgram.c \
 	tx_link.c \
 	udp.c \
+	uhc.c \
 	upload_stats.c \
 	uploads.c \
 	verify.c \
@@ -218,6 +219,7 @@ OBJ = \
 	tx_dgram.o \
 	tx_link.o \
 	udp.o \
+	uhc.o \
 	upload_stats.o \
 	uploads.o \
 	verify.o \
