@@ -58,6 +58,7 @@
 #include "walloc.h"
 #include "adns.h"
 #include "hostiles.h"
+#include "pproxy.h"
 
 #ifdef USE_REMOTE_SHELL
 #include "shell.h"
@@ -198,6 +199,8 @@ void socket_tos_default(struct gnutella_socket *s)
 	case SOCK_TYPE_CONTROL:
 	case SOCK_TYPE_DOWNLOAD: /* ACKs w/ low latency => higher transfer rates */
 	case SOCK_TYPE_HTTP:
+	case SOCK_TYPE_PPROXY:
+	case SOCK_TYPE_CPROXY:
 		socket_tos_lowdelay(s);
 		break;
 	case SOCK_TYPE_UPLOAD:
@@ -278,19 +281,39 @@ static void socket_destroy(struct gnutella_socket *s, gchar *reason)
 	 * for calling back socket_free().
 	 */
 
-	if (s->type == SOCK_TYPE_CONTROL && s->resource.node) {
-		node_remove(s->resource.node, reason);
-		return;
-	} else if (s->type == SOCK_TYPE_DOWNLOAD && s->resource.download) {
-		download_stop(s->resource.download, GTA_DL_ERROR, reason);
-		return;
-
-	} else if (s->type == SOCK_TYPE_UPLOAD && s->resource.upload) {
-		upload_remove(s->resource.upload, reason);
-		return;
-	} else if (s->type == SOCK_TYPE_HTTP && s->resource.handle) {
-		http_async_error(s->resource.handle, HTTP_ASYNC_IO_ERROR);
-		return;
+	switch (s->type) {
+	case SOCK_TYPE_CONTROL:
+		if (s->resource.node) {
+			node_remove(s->resource.node, reason);
+			return;
+		}
+		break;
+	case SOCK_TYPE_DOWNLOAD:
+		if (s->resource.download) {
+			download_stop(s->resource.download, GTA_DL_ERROR, reason);
+			return;
+		}
+		break;
+	case SOCK_TYPE_UPLOAD:
+		if (s->resource.upload) {
+			upload_remove(s->resource.upload, reason);
+			return;
+		}
+		break;
+	case SOCK_TYPE_PPROXY:
+		if (s->resource.pproxy) {
+			pproxy_remove(s->resource.pproxy, reason);
+			return;
+		}
+		break;
+	case SOCK_TYPE_HTTP:
+		if (s->resource.handle) {
+			http_async_error(s->resource.handle, HTTP_ASYNC_IO_ERROR);
+			return;
+		}
+		break;
+	default:
+		break;
 	}
 
 	/*
@@ -525,12 +548,35 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	/*
 	 * Dispatch request. Here we decide what kind of connection this is.
 	 */
+
 	if (0 == strncmp(first, gnutella_hello, gnutella_hello_length))
 		node_add_socket(s, s->ip, s->port);	/* Incoming control connection */
-	else if (0 == strncmp(first, "GET ", 4))
-		upload_add(s);
-	else if (0 == strncmp(first, "HEAD ", 5))
-		upload_add(s);
+	else if (
+		0 == strncmp(first, "GET ", 4) ||
+		0 == strncmp(first, "HEAD ", 5)
+	) {
+		gchar *uri;
+
+		/*
+		 * We have to decide whether this is an upload request or a
+		 * push-proxyfication request.
+		 *
+		 * In the following code, since sizeof("GET") accounts for the
+		 * trailing NUL, we will skip the space after the request type.
+		 */
+
+		uri = first + ((first[0] == 'G') ? sizeof("GET") : sizeof("HEAD"));
+		while (*uri == ' ' || *uri == '\t')
+			uri++;
+
+		if (
+			0 == strncmp(uri, "/gnutella/", 10) ||
+			0 == strncmp(uri, "/gnet/", 6)
+		)
+			pproxy_add(s);
+		else
+			upload_add(s);
+	}
 #ifdef USE_REMOTE_SHELL
 	else if (0 == strncmp(first, "HELO ", 5))
         shell_add(s);

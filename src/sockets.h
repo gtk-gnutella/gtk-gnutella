@@ -57,6 +57,8 @@ enum socket_type {
 	SOCK_TYPE_HTTP,
     SOCK_TYPE_SHELL,
     SOCK_TYPE_CONNBACK,
+    SOCK_TYPE_PPROXY,
+    SOCK_TYPE_CPROXY,
     SOCK_TYPE_DESTROYING,
 };
 
@@ -82,6 +84,8 @@ struct gnutella_socket {
 		struct gnutella_node *node;
 		struct download *download;
 		struct upload *upload;
+		struct pproxy *pproxy;
+		struct cproxy *cproxy;
 		gpointer handle;
 	} resource;
 
