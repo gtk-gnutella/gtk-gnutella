@@ -736,6 +736,7 @@ void share_close(void)
 	share_free();
 	shared_dirs_free();
 	huge_close();
+	qrp_close();
 }
 
 /*
@@ -748,7 +749,7 @@ static gboolean got_match(struct shared_file *sf)
 {
 	guint32 pos = FOUND_SIZE;
 	guint32 needed = 8 + 2 + sf->file_name_len;		/* size of hit entry */
-	gboolean sha1_available = *sf->sha1_digest;
+	gboolean sha1_available = sf->has_sha1_digest;
 	
 	/*
 	 * We don't stop adding records if we refused this one, hence the TRUE
@@ -1197,30 +1198,6 @@ struct shared_file *shared_file_by_sha1(const gchar *sha1_digest)
 
 	return f;
 }
-
-#if 0
-// XXX no longer used
-/* 
- * shared_file_by_sha1_base32
- * 
- * Take a given base-32 encoded SHA1 hash, and return the corresponding
- * shared_file if we have it.
- */
-struct shared_file *shared_file_by_sha1_base32(const gchar *sha1_digest)
-{
-	gchar digest[SHA1_RAW_SIZE];
-
-	if (
-		!base32_decode_into(sha1_digest, SHA1_BASE32_SIZE,
-			digest, sizeof(digest))
-	) {
-		g_warning("got invalid base32 SHA1: %.32s", sha1_digest);
-		return NULL;
-	}
-
-	return shared_file_by_sha1(digest);
-}
-#endif
 
 /* 
  * Emacs stuff:
