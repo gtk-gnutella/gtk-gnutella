@@ -63,7 +63,7 @@ RCSID("$Id$");
 #define MAX_REQUEST		5		/* Maximum of 5 requests... */
 #define MAX_PERIOD		60		/* ...per minute */
 #define MAX_BAN			10800	/* 3 hours */
-#define BAN_REMIND		10		/* Every so many attemps, tell them about it */
+#define BAN_REMIND		5		/* Every so many attemps, tell them about it */
 
 static GHashTable *info;		/* Info by IP address */
 static gfloat decay_coeff;		/* Decay coefficient, per second */
