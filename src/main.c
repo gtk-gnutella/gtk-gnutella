@@ -43,6 +43,13 @@ void gtk_gnutella_exit(gint n)
 	node_bye_all();
 	upload_close();		/* Done before config_close() for stats update */
 
+    /*
+     * Make sure the gui writes config variabes it owns but that can't 
+     * be updated via callbacks.
+     *      --BLUE, 16/05/2002
+     */
+    gui_shutdown();
+
 	if (hosts_idle_func)
 		gtk_idle_remove(hosts_idle_func);
 	config_shutdown();
