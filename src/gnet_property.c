@@ -2052,7 +2052,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[87].name = "input_gnet_leaf_bandwidth";
-    gnet_property->props[87].desc = _("Bandwidth limit for incoming gNet leaf traffic in bytes/sec. When not running as an ultra node, this bandwidth is given to the regular HTTP traffic, whether or not the shaper for leaves is enabled.");
+    gnet_property->props[87].desc = _("Bandwidth limit for incoming gNet leaf traffic in bytes/sec. When running as an ultra node, this bandwidth is stolen from the regular HTTP traffic if the shaper for leaves is enabled.");
     gnet_property->props[87].ev_changed = event_new("bw_gnet_lin_changed");
     gnet_property->props[87].save = TRUE;
     gnet_property->props[87].vector_size = 1;
@@ -2072,7 +2072,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[88].name = "output_gnet_leaf_bandwidth";
-    gnet_property->props[88].desc = _("Bandwidth limit for outgoing gNet leaf traffic in bytes/sec. When not running as an ultra node, this bandwidth is given to the regular HTTP traffic, whether or not the shaper for leaves is enabled.");
+    gnet_property->props[88].desc = _("Bandwidth limit for outgoing gNet leaf traffic in bytes/sec. When running as an ultra node, this bandwidth is stolen from the regular HTTP traffic, if the shaper for leaves is enabled.");
     gnet_property->props[88].ev_changed = event_new("bw_gnet_lout_changed");
     gnet_property->props[88].save = TRUE;
     gnet_property->props[88].vector_size = 1;
