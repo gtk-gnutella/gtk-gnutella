@@ -113,14 +113,16 @@ static void nodes_gui_node_added(gnet_node_t n, const gchar *t)
  */
 static void nodes_gui_node_info_changed(gnet_node_t n)
 {
-    gnet_node_info_t info;
-
     g_hash_table_insert(ht_node_info_changed, 
         GUINT_TO_POINTER(n), (gpointer) 0x1);
 #if 0
+{
+    gnet_node_info_t info;
+
     node_fill_info(n, &info);
     nodes_gui_update_node_info(&info, -1);
     node_clear_info(&info);
+}
 #endif
 }
 
@@ -131,13 +133,15 @@ static void nodes_gui_node_info_changed(gnet_node_t n)
  */
 static void nodes_gui_node_flags_changed(gnet_node_t n)
 {
-    gnet_node_flags_t flags;
-
     g_hash_table_insert(ht_node_flags_changed, 
         GUINT_TO_POINTER(n), (gpointer) 0x1);
 #if 0
+{
+    gnet_node_flags_t flags;
+
     node_fill_flags(n, &flags);
     nodes_gui_update_node_flags(n, &flags, -1);
+}
 #endif
 }
 
