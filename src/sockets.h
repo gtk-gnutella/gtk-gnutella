@@ -63,7 +63,7 @@ enum socket_type {
 struct gnutella_socket {
 	gint file_desc;			/* file descriptor */
 
-	gint gdk_tag;			/* gdk tag */
+	guint gdk_tag;			/* gdk tag */
 
 	enum socket_direction direction;
 	enum socket_type type;

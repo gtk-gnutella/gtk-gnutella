@@ -56,7 +56,7 @@ void inputevt_close(void);
 /*
  * This emulates the GDK input interface.
  */
-gint inputevt_add(guint source, inputevt_cond_t condition,
+guint inputevt_add(gint source, inputevt_cond_t condition,
 	inputevt_handler_t handler, gpointer data) ;
 
 #define inputevt_remove(source) (g_source_remove(source))
