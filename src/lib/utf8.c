@@ -3638,24 +3638,24 @@ strlcpy_utf8(gchar *dst, const gchar *src, size_t dst_size)
 	g_assert(NULL != dst);
 	g_assert(NULL != src);
 
-	if (dst_size--) {
-		size_t i = 0;
-
-		while (i < dst_size) {
+	if (dst_size-- > 0) {
+		while ('\0' != *s) {
 			size_t clen;
-
-			if ('\0' == *s)
-				return i;
 
 			clen = utf8_is_valid_char(s);
 			clen = MAX(1, clen);
-			if (dst_size - i <= clen)
+			if (clen > dst_size)
 				break;
 
-			memmove(d, s, clen);
-			d += clen;
-			s += clen;
-			i += clen;
+			if (clen == 1) {
+				*d++ = *s++;
+				dst_size--;
+			} else {
+				memmove(d, s, clen);
+				d += clen;
+				s += clen;
+				dst_size -= clen;
+			}
 		}
 		*d = '\0';
 	}
@@ -3663,6 +3663,31 @@ strlcpy_utf8(gchar *dst, const gchar *src, size_t dst_size)
 		s++;
 	return s - src;
 }
+
+/**
+ * @param uc the unicode character to encode.
+ * @returns 0 if the unicode character is invalid. Otherwise the
+ *          length of the UTF-8 character is returned.
+ */
+static inline gint
+utf8_encoded_char_len(guint32 uc)
+{
+	guint len;
+
+	if (UNICODE_IS_SURROGATE(uc)) {
+		return 0;
+	}
+
+	len = UNISKIP(uc);
+	if (len > 4) {
+		len = 2;
+		uc = UNI_REPLACEMENT;
+	}
+	g_assert(len > 0 && len <= 6);
+
+	return len;
+}
+
 
 /**
  * @param uc the unicode character to encode.
@@ -3678,24 +3703,17 @@ utf8_encode_char(guint32 uc, gchar *buf)
 
 	g_assert(buf);
 
-	if (UNICODE_IS_SURROGATE(uc)) {
-		return 0;
-	}
+	len = utf8_encoded_char_len(uc);
+	if (len > 0) {
+		g_assert(len > 0 && len <= 6);
 
-	len = UNISKIP(uc);
-	if (len > 4) {
-		len = 2;
-		uc = UNI_REPLACEMENT;
+		p = &buf[len];
+		while (--p > buf) {
+			*p = (uc | UTF8_BYTE_MARK) & UTF8_BYTE_MASK;
+			uc >>= UTF8_ACCU_SHIFT;
+		}
+		*p = uc | UTF8_LENGTH_MARK(len);
 	}
-
-	g_assert(len > 0 && len <= 6);
-
-	p = &buf[len];
-	while (--p > buf) {
-		*p = (uc | UTF8_BYTE_MARK) & UTF8_BYTE_MASK;
-		uc >>= UTF8_ACCU_SHIFT;
-	}
-	*p = uc | UTF8_LENGTH_MARK(len);
 	return len;
 }
 
@@ -4319,7 +4337,7 @@ locale_to_utf8_nfd(const gchar *str, size_t len)
 	char sbuf[4096];
 	const gchar *s;
 	gchar *ret;
-	size_t utf8_len;
+	size_t utf8_size;
 
 	g_assert(NULL != str);
 
@@ -4328,15 +4346,15 @@ locale_to_utf8_nfd(const gchar *str, size_t len)
 	if (0 == len)
 		return g_strdup("");
 
-   	utf8_len = len * 6 + 1;
+   	utf8_size = len * 6 + 1;
 	if (utf8_is_valid_string(str, len)) {
 		s = str;
 	} else {
 		gchar *p;
 
-		g_assert((utf8_len - 1) / 6 == len);
-		p = len < sizeof sbuf ? sbuf : g_malloc(utf8_len);
-		s = g_iconv_complete(cd_locale_to_utf8, str, len, p, utf8_len);
+		g_assert((utf8_size - 1) / 6 == len);
+		p = len < sizeof sbuf ? sbuf : g_malloc(utf8_size);
+		s = g_iconv_complete(cd_locale_to_utf8, str, len, p, utf8_size);
 	}
 
 	/*
@@ -4344,10 +4362,10 @@ locale_to_utf8_nfd(const gchar *str, size_t len)
 	 * be touched, but it must be valid. So just pass ``s'' not NULL.
 	 */
 	len = utf8_decompose_nfd(s, /* fake */ (gchar *) s, 0);
-	utf8_len = len + 1;
-	ret = g_malloc(utf8_len);
-	len = utf8_decompose_nfd(s, ret, utf8_len);
-	g_assert(len < utf8_len);
+	utf8_size = len + 1;
+	ret = g_malloc(utf8_size);
+	len = utf8_decompose_nfd(s, ret, utf8_size);
+	g_assert(len == utf8_size - 1);
 
 	if (s != str && s != sbuf) {
 		g_free((gchar *) s); /* Override const */
@@ -4581,7 +4599,7 @@ utf32_to_utf8(const guint32 *in, gchar *out, size_t size)
 	g_assert(out != NULL);
 	g_assert(size <= INT_MAX);
 
-	if (size > 0) {
+	if (size-- > 0) {
 		do {
 			uc = *s;
 			retlen = utf8_encode_char(uc, utf8_buf);
@@ -4596,8 +4614,7 @@ utf32_to_utf8(const guint32 *in, gchar *out, size_t size)
 	}
 
 	while ((uc = *s) != 0x0000) {
-		retlen = utf8_encode_char(uc, utf8_buf);
-		p += retlen;
+		p += utf8_encoded_char_len(uc);
 	}
 
 	return p - out;
@@ -4839,6 +4856,7 @@ utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size)
 			d = utf32_decompose_nfd_char(uc, &d_len);
 			if (d_len > size)
 				break;
+			size -= d_len;
 			while (d_len-- > 0) {
 				*p++ = *d++;
 			}
@@ -4874,52 +4892,59 @@ utf32_decompose_nfd(const guint32 *in, guint32 *out, size_t size)
 size_t
 utf8_decompose_nfd(const gchar *src, gchar *dst, size_t size)
 {
-	size_t len = 0, nfd_len = 0;
+	const guint32 *d;
+	guint32 uc;
+	gint retlen;
+	size_t d_len, len = 0, nfd_len = 0;
 
 	g_assert(src != NULL);
 	g_assert(dst != NULL);
 	g_assert(size <= INT_MAX);
 
-	while (*src != '\0') {
-		const guint32 *d;
-		guint32 uc;
-		gint retlen;
-		size_t utf8_len, d_len;
-		gchar buf[256], utf8_buf[7], *q;
+	if (size-- > 0) {
+		while (*src != '\0') {
+			size_t utf8_len;
+			gchar buf[256], utf8_buf[7], *q;
 
+			len = utf8_decode_lookahead(src, len);
+			uc = utf8_decode_char(src, len, &retlen, FALSE);
+			if (uc == 0x0000)
+				break;
+
+			src += retlen;
+			len -= retlen;
+			d = utf32_decompose_nfd_char(uc, &d_len);
+			q = buf;
+			while (d_len-- > 0) {
+				utf8_len = utf8_encode_char(*d++, utf8_buf);
+				g_assert((size_t) (&buf[sizeof buf] - q) >= utf8_len);
+				memcpy(q, utf8_buf, utf8_len);
+				q += utf8_len;
+			}
+
+			utf8_len = q - buf;
+			nfd_len += utf8_len;
+			if (nfd_len > size)
+				break;
+
+			memcpy(dst, buf, utf8_len);
+			dst += utf8_len;
+		}
+		*dst = '\0';
+	}
+
+	while (*src != '\0') {
 		len = utf8_decode_lookahead(src, len);
 		uc = utf8_decode_char(src, len, &retlen, FALSE);
 		if (uc == 0x0000)
 			break;
+		
 		src += retlen;
 		len -= retlen;
-
 		d = utf32_decompose_nfd_char(uc, &d_len);
-		nfd_len += d_len;
-		q = buf;
-		while (d_len-- > 0) {
-			uc = *d++;
-			utf8_len = utf8_encode_char(uc, utf8_buf);
-			g_assert((size_t) (&buf[sizeof buf] - q) >= utf8_len);
-			if (size > 1) {
-				memcpy(q, utf8_buf, utf8_len);
-				q += utf8_len;
-			}
-		}
-
-		if (size > 1) {
-			utf8_len = q - buf;
-			if (utf8_len >= size) {
-				size = 1;
-			} else {
-				memcpy(dst, buf, utf8_len);
-				dst += utf8_len;
-				size -= utf8_len;
-			}
-		}
+		while (d_len-- > 0)
+			nfd_len += utf8_encoded_char_len(*d++);
 	}
-	if (size > 0)
-		*dst = '\0';
 
 	return nfd_len;
 }
@@ -4946,19 +4971,40 @@ typedef guint32 (*utf8_remap_func)(guint32 uc);
 static size_t
 utf8_remap(gchar *dst, const gchar *src, size_t size, utf8_remap_func remap)
 {
-	size_t len = 0, lower_len = 0;
+	guint32 uc;
+	gint retlen;
+	size_t len = 0, new_len = 0;
 
 	g_assert(dst != NULL);
 	g_assert(src != NULL);
 	g_assert(remap != NULL);
 	g_assert(size <= INT_MAX);
 
-	while (*src != '\0') {
-		guint32 uc;
-		size_t utf8_len;
-		gint retlen;
-		gchar utf8_buf[7];
+	if (size-- > 0) {
+		while (*src != '\0') {
+			size_t utf8_len;
+			gchar utf8_buf[7];
 
+			len = utf8_decode_lookahead(src, len);
+			uc = utf8_decode_char(src, len, &retlen, FALSE);
+			if (uc == 0x0000)
+				break;
+
+			src += retlen;
+			len -= retlen;
+			uc = remap(uc);
+			utf8_len = utf8_encode_char(uc, utf8_buf);
+			new_len += utf8_len;
+			if (new_len > size)
+				break;
+			
+			memcpy(dst, utf8_buf, utf8_len);
+			dst += utf8_len;
+		}
+		*dst = '\0';
+	}
+
+	while (*src != '\0') {
 		len = utf8_decode_lookahead(src, len);
 		uc = utf8_decode_char(src, len, &retlen, FALSE);
 		if (uc == 0x0000)
@@ -4967,23 +5013,10 @@ utf8_remap(gchar *dst, const gchar *src, size_t size, utf8_remap_func remap)
 		src += retlen;
 		len -= retlen;
 		uc = remap(uc);
-		utf8_len = utf8_encode_char(uc, utf8_buf);
-		g_assert(utf8_len > 0 && utf8_len <= 6);
-		lower_len += utf8_len;
-		if (size > 1) {
-			if (utf8_len >= size) {
-				size = 1;
-			} else {
-				memcpy(dst, utf8_buf, utf8_len);
-				dst += utf8_len;
-				size -= utf8_len;
-			}
-		}
+		new_len += utf8_encoded_char_len(uc);
 	}
-	if (size > 0)
-		*dst = '\0';
 
-	return lower_len;
+	return new_len;
 }
 
 /**
