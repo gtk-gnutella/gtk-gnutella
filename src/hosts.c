@@ -25,56 +25,62 @@ gint hosts_idle_func = 0;
 
 static void ping_reqs_clear(void);
 
-/* Hosts ------------------------------------------------------------------------------------------ */
+/*
+ * Host hash table handing.
+ */
+
+static guint host_hash(gconstpointer key)
+{
+	struct gnutella_host *host = (struct gnutella_host *) key;
+
+	return (guint) (host->ip ^ ((host->port << 16) | host->port));
+}
+
+static gint host_eq(gconstpointer v1, gconstpointer v2)
+{
+	struct gnutella_host *h1 = (struct gnutella_host *) v1;
+	struct gnutella_host *h2 = (struct gnutella_host *) v2;
+
+	return h1->ip == h2->ip && h1->port == h2->port;
+}
+
+static void host_ht_add(struct gnutella_host *host)
+{
+	/* Add host to the ht_catched_hosts table */
+
+	if (g_hash_table_lookup(ht_catched_hosts, (gconstpointer) host)) {
+		g_warning("Attempt to add %s twice to caught host list",
+			ip_port_to_gchar(host->ip, host->port));
+		return;
+	}
+
+	g_hash_table_insert(ht_catched_hosts, host, (gpointer) 1);
+}
+
+static void host_ht_remove(struct gnutella_host *host)
+{
+	/* Remove host from the ht_catched_hosts table */
+
+	if (!g_hash_table_lookup(ht_catched_hosts, (gconstpointer) host)) {
+		g_warning("Attempt to remove missing %s from caught host list",
+			ip_port_to_gchar(host->ip, host->port));
+		return;
+	}
+
+	g_hash_table_remove(ht_catched_hosts, host);
+}
+
+/* Hosts ------------------------------------------ */
 
 void host_init(void)
 {
-	ht_catched_hosts = g_hash_table_new(g_str_hash, g_str_equal);
-}
-
-#define BUILD_IP_PORT_KEY(b,i,p) do {          \
-	g_snprintf(b, sizeof(b)-1, "%x:%x", i, p); \
-} while (0)
-
-
-static void host_ht_add(guint32 ip, guint16 port)
-{
-	/* Add (ip, port) tuple to the ht_catched_hosts table */
-
-	char buf[64];
-	
-	BUILD_IP_PORT_KEY(buf, ip, port);
-	if (g_hash_table_lookup(ht_catched_hosts, (gconstpointer) buf)) {
-		g_warning("Attempt to add %s twice to caught host list",
-			ip_port_to_gchar(ip, port));
-		return;
-	}
-
-	g_hash_table_insert(ht_catched_hosts, g_strdup(buf), (gpointer) 1);
-}
-
-static void host_ht_remove(guint32 ip, guint16 port)
-{
-	/* Remove (ip, port) tuple from the ht_catched_hosts table */
-
-	gpointer key, val;
-	char buf[64];
-
-	BUILD_IP_PORT_KEY(buf, ip, port);
-	if (!g_hash_table_lookup_extended(ht_catched_hosts, buf, &key, &val)) {
-		g_warning("Attempt to remove missing %s from caught host list",
-			ip_port_to_gchar(ip, port));
-		return;
-	}
-
-	g_hash_table_remove(ht_catched_hosts, buf);
-	g_free(key);
+	ht_catched_hosts = g_hash_table_new(host_hash, host_eq);
 }
 
 gboolean find_host(guint32 ip, guint16 port)
 {
-	char buf[64];
 	GSList *l;
+	struct gnutella_host lhost = { ip, port };
 
 	/* Check our local ip */
 
@@ -93,8 +99,7 @@ gboolean find_host(guint32 ip, guint16 port)
 
 	/* Check the hosts -- large list, use hash table --RAM */
 
-	BUILD_IP_PORT_KEY(buf, ip, port);
-	return g_hash_table_lookup(ht_catched_hosts, buf) ? TRUE : FALSE;
+	return g_hash_table_lookup(ht_catched_hosts, &lhost) ? TRUE : FALSE;
 }
 
 void host_remove(struct gnutella_host *h, gboolean from_clist_too)
@@ -108,17 +113,11 @@ void host_remove(struct gnutella_host *h, gboolean from_clist_too)
 	}
 
 	sl_catched_hosts = g_slist_remove(sl_catched_hosts, h);
-	host_ht_remove(h->ip, h->port);
+	host_ht_remove(h);
 
 	if (!sl_catched_hosts) gtk_widget_set_sensitive(button_host_catcher_clear, FALSE);
 
 	g_free(h);
-}
-
-static int host_ht_free(gpointer key, gpointer value, gpointer usr)
-{
-	g_free(key);
-	return TRUE;		/* Remove the key */
 }
 
 gboolean check_valid_host(guint32 ip, guint16 port)
@@ -206,7 +205,7 @@ void host_add(struct gnutella_node *n, guint32 t_ip, guint16 t_port, gboolean co
 	if (!sl_catched_hosts) gtk_widget_set_sensitive(button_host_catcher_clear, TRUE);
 
 	sl_catched_hosts = g_slist_prepend(sl_catched_hosts, host);
-	host_ht_add(host->ip, host->port);
+	host_ht_add(host);
 }
 
 /* Hosts text files ------------------------------------------------------------------------------- */
@@ -337,14 +336,18 @@ void ping_stats_add(struct gnutella_node *n)
 	 * Both bits 31 and 30 must be clear, or either we have an improper
 	 * little-endian encoding, or it's an obvious "fake" count.
 	 *		--RAM, 14/09/2001
+	 *
+	 * We only account the kbytes value if the file count was correct.
+	 *		--RAM, 15/09/2001
 	 */
 
 	READ_GUINT32_LE(r->files_count, v);
-	if (0 == (v & 0xc0000000))
+	if (0 == (v & 0xc0000000)) {
 		p->files += v;
-	READ_GUINT32_LE(r->kbytes_count, v);
-	if (0 == (v & 0xc0000000))
-		p->kbytes += v;
+		READ_GUINT32_LE(r->kbytes_count, v);
+		if (0 == (v & 0xc0000000))
+			p->kbytes += v;
+	}
 
 	gettimeofday(&tv, (struct timezone *) NULL);
 
@@ -444,7 +447,6 @@ void host_close(void)
 		host_remove(
 			(struct gnutella_host *) sl_catched_hosts->data, FALSE);
 
-	g_hash_table_foreach_remove(ht_catched_hosts, host_ht_free, 0);
 	g_hash_table_destroy(ht_catched_hosts);
 
 	ping_reqs_clear();
