@@ -62,7 +62,6 @@ RCSID("$Id$");
  */
 #define QHIT_MIN_TRAILER_LEN	(4+3+16)	/* NAME + open flags + GUID */
 
-
 /*
  * Buffer where query hit packet is built.
  *
@@ -83,8 +82,10 @@ static struct {
 	guint32 s;					/* size used by current search hit */
 	guint files;				/* amount of file entries */
 	gint max_size;				/* max query hit size */
-	struct gnutella_node *n;	/* issuing node, which sent the query */
 	gboolean use_ggep_h;		/* whether to use GGEP "H" to send SHA1 */
+	gchar *muid;				/* the MUID to put in all query hits */
+	qhit_process_t process;		/* processor once query hit is built */
+	gpointer udata;				/* processor argument */
 } found_data;
 
 #define FOUND_CHUNK		1024	/* Minimal growing memory amount unit */
@@ -107,22 +108,60 @@ static struct {
 	found_data.files = 0;							\
 } while (0)
 
-#define FOUND_INIT(node,m,ggep_h) do {				\
+#define FOUND_INIT(m,xuid,ggep_h,proc,ud) do {		\
 	found_data.max_size = (m);						\
-	found_data.n = (node);							\
+	found_data.muid = (xuid);						\
 	found_data.use_ggep_h = (ggep_h);				\
+	found_data.process = (proc);					\
+	found_data.udata = (ud);						\
 } while (0)
 
 #define FOUND_BUF		found_data.d
 #define FOUND_SIZE		found_data.s
 #define FOUND_FILES		found_data.files
-#define FOUND_NODE		found_data.n
 #define FOUND_MAX_SIZE	found_data.max_size
+#define FOUND_MUID		found_data.muid
 #define FOUND_GGEP_H	found_data.use_ggep_h
+#define FOUND_PROCESS	found_data.process
+#define FOUND_UDATA		found_data.udata
 
 #define FOUND_LEFT(x)	(found_data.l - (x))
 
 static time_t release_date;
+
+/**
+ * Processor for query hits sent inbound.
+ */
+static void
+qhit_send_node(gpointer data, gint len, gpointer udata)
+{
+	gnutella_node_t *n = (gnutella_node_t *) udata;
+	struct gnutella_header *packet_head = (struct gnutella_header *) data;
+
+	if (dbg > 3)
+		printf("flushing query hit (%d entr%s, %d bytes sofar) to %s\n",
+			FOUND_FILES, FOUND_FILES == 1 ? "y" : "ies", FOUND_SIZE,
+			node_ip(n));
+
+	/*
+	 * We limit the TTL to the minimal possible value, then add a margin
+	 * of 5 to account for re-routing abilities some day.  We then trim
+	 * at our configured hard TTL limit.  Replies are precious packets,
+	 * it would be a pity if they did not make it back to their source.
+	 *
+	 *			 --RAM, 02/02/2001
+	 */
+
+	if (n->header.hops == 0) {
+		g_warning
+			("search_request(): hops=0, bug in route_message()?\n");
+		n->header.hops++;	/* Can't send message with TTL=0 */
+	}
+
+	packet_head->ttl = MIN((guint) n->header.hops + 5, hard_ttl_limit);
+
+	gmsg_sendto_one(n, data, len);
+}
 
 /**
  * Flush pending search request to the network.
@@ -130,7 +169,6 @@ static time_t release_date;
 static void
 flush_match(void)
 {
-	struct gnutella_node *n = FOUND_NODE;
 	gchar trailer[10];
 	guint32 pos, pl;
 	struct gnutella_header *packet_head;
@@ -143,11 +181,6 @@ flush_match(void)
 	gint proxies_size = 0;		/* Size of emitted GGEP proxies */
 	gint hostname_size = 0;		/* Size of emitted GGEP hostname */
 	guint32 connect_speed;		/* Connection speed, in kbits/s */
-
-	if (dbg > 3)
-		printf("flushing query hit (%d entr%s, %d bytes sofar) to %s\n",
-			FOUND_FILES, FOUND_FILES == 1 ? "y" : "ies", FOUND_SIZE,
-			node_ip(FOUND_NODE));
 
 	/*
 	 * Build Gtk-gnutella trailer.
@@ -321,26 +354,11 @@ flush_match(void)
 	pl = FOUND_SIZE - sizeof(struct gnutella_header);
 
 	packet_head = (struct gnutella_header *) FOUND_BUF;
-	memcpy(&packet_head->muid, &n->header.muid, 16);
-
-	/*
-	 * We limit the TTL to the minimal possible value, then add a margin
-	 * of 5 to account for re-routing abilities some day.  We then trim
-	 * at our configured hard TTL limit.  Replies are precious packets,
-	 * it would be a pity if they did not make it back to their source.
-	 *
-	 *			 --RAM, 02/02/2001
-	 */
-
-	if (n->header.hops == 0) {
-		g_warning
-			("search_request(): hops=0, bug in route_message()?\n");
-		n->header.hops++;	/* Can't send message with TTL=0 */
-	}
+	packet_head->ttl = 1;		/* Overriden later if sending inbound */
+	packet_head->hops = 0;
+	memcpy(&packet_head->muid, FOUND_MUID, 16);
 
 	packet_head->function = GTA_MSG_SEARCH_RESULTS;
-	packet_head->ttl = MIN((guint) n->header.hops + 5, hard_ttl_limit);
-	packet_head->hops = 0;
 	WRITE_GUINT32_LE(pl, packet_head->size);
 
 	search_head = (struct gnutella_search_results_out *)
@@ -365,7 +383,7 @@ flush_match(void)
 	WRITE_GUINT32_BE(listen_ip(), search_head->host_ip);
 	WRITE_GUINT32_LE(connect_speed, search_head->host_speed);
 
-	gmsg_sendto_one(n, FOUND_BUF, FOUND_SIZE);
+	FOUND_PROCESS(FOUND_BUF, FOUND_SIZE, FOUND_UDATA);
 }
 
 /**
@@ -541,14 +559,27 @@ add_file(struct shared_file *sf)
  * Reset the QueryHit, that is, the "data found" pointer is at the beginning of
  * the data found section in the query hit packet.
  *
- * @param n the node that issued the query hit and to which we must reply
  * @param max_size the maximum size in bytes of individual query hits
+ *
  * @param use_ggep_h whether GGEP "H" can be used to send the SHA1 of files
+ *
+ * @param muid is the MUID that should be put in all the generated hits.
+ * This must point to a memory location that is guaranteed to stay accurate
+ * during all the processing.
+ *
+ * @param process the processor callback to invoke on each individually built
+ * query hit message, along with `udata'.
+ *
+ * @param udata the node that issued the query hit and to which we must reply
+ * for inbound query hit processor, an OOB holding structure when the hits
+ * have to be sent out-of-bound
  */
 static void
-found_reset(struct gnutella_node *n, gint max_size, gboolean use_ggep_h)
+found_reset(
+	gint max_size, gchar *muid,
+	gboolean use_ggep_h, qhit_process_t process, gpointer udata)
 {
-	FOUND_INIT(n, max_size, use_ggep_h);
+	FOUND_INIT(max_size, muid, use_ggep_h, process, udata);
 	FOUND_RESET();
 }
 
@@ -568,7 +599,8 @@ qhit_send_results(
 	GSList *sl;
 	gint sent = 0;
 
-	found_reset(n, QHIT_SIZE_THRESHOLD, use_ggep_h);
+	found_reset(QHIT_SIZE_THRESHOLD, n->header.muid,
+		use_ggep_h, qhit_send_node, n);
 
 	for (sl = files; sl; sl = g_slist_next(sl)) {
 		shared_file_t *sf = (shared_file_t *) sl->data;
@@ -584,7 +616,41 @@ qhit_send_results(
 
 	if (dbg > 3)
 		printf("sent %d/%d hits to %s\n", sent, count, node_ip(n));
+}
 
+/**
+ * Build query hit results for later out-of-band delivery.
+ *
+ * @param cb			the processor callback to invoke on each built hit
+ * @param udata			argument to pass to callback (OOB recording strcuture)
+ * @param muid			the MUID to use on each generated hit
+ * @param files			the list of shared_file_t entries that make up results
+ * @param count			the amount of results
+ * @param use_ggep_h	whether GGEP "H" can be used to send the SHA1 of files
+ */
+void
+qhit_build_results(
+	qhit_process_t cb, gpointer udata,
+	gchar *muid, GSList *files, gint count, gboolean use_ggep_h)
+{
+	GSList *sl;
+	gint sent;
+
+	found_reset(QHIT_SIZE_OOB, muid, use_ggep_h, cb, udata);
+
+	for (sl = files, sent = 0; sl && sent < count; sl = g_slist_next(sl)) {
+		shared_file_t *sf = (shared_file_t *) sl->data;
+
+		if (add_file(sf))
+			sent++;
+	}
+
+	if (FOUND_FILES)			/* Still some unflushed results */
+		flush_match();			/* Send last packet */
+
+	/*
+	 * Nothing to free, since everything is the property of the OOB module.
+	 */
 }
 
 /**

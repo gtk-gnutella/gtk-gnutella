@@ -28,6 +28,10 @@
 #ifndef _core_qhit_h_
 #define _core_qhit_h_
 
+#include <glib.h>
+
+typedef void (*qhit_process_t)(gpointer data, gint len, gpointer udata);
+
 /*
  * Public interface.
  */
@@ -39,6 +43,9 @@ void qhit_close(void);
 
 void qhit_send_results(
 	struct gnutella_node *n, GSList *files, gint count, gboolean use_ggep_h);
+void qhit_build_results(
+	qhit_process_t cb, gpointer udata,
+	gchar *muid, GSList *files, gint count, gboolean use_ggep_h);
 
 #endif /* _core_qhit_h_ */
 
