@@ -523,8 +523,20 @@ static void bsched_begin_timeslice(bsched_t *bs)
 
 	bs->flags &= ~(BS_F_NOBW|BS_F_FROZEN_SLOT|BS_F_CHANGED_BW);
 
+	/*
+	 * On the first round of source dispatching, don't use the stolen
+	 * Only introduce it when we come back to a source we already
+	 * scheduled, to avoid spending bandwidth too early when we have
+	 * many sources in various schedulers stealing each other some
+	 * bandwidth that could starve others.
+	 *
+	 * In other words, don't distribute (bs->bw_max + bs->bw_stolen)
+	 * among all the slots, but only bs->bw_max.  The remaining
+	 * will be distributed by bw_available().
+	 */
+
 	if (bs->count)
-		bs->bw_slot = (bs->bw_max + bs->bw_stolen) / bs->count;
+		bs->bw_slot = bs->bw_max / bs->count;
 	else
 		bs->bw_slot = 0;
 
@@ -533,7 +545,7 @@ static void bsched_begin_timeslice(bsched_t *bs)
 	 * adjusting the bandwidth, then don't bother trying and freeze it.
 	 */
 
-	if (bs->bw_slot < BW_SLOT_MIN)
+	if (bs->bw_slot < BW_SLOT_MIN && bs->bw_stolen == 0)
 		bs->flags |= BS_F_FROZEN_SLOT;
 }
 
@@ -704,9 +716,15 @@ static gint bw_available(bio_source_t *bio, gint len)
 	 * If source was already active, recompute the per-slot value since
 	 * we already looped once through all the sources.  This prevents the
 	 * first scheduled sources to eat all the bandwidth.
+	 *
+	 * At this point, we'll distribute the stolen bandwidth, which was
+	 * not initially distributed.  If the stolen bandwidth is an order of
+	 * magnitude larger that the regular bandwidth (bs->bw_max), distributing
+	 * everything.  Hence the MIN() below.
 	 */
 
 	available = bs->bw_max + bs->bw_stolen - bs->bw_actual;
+	available = MIN(bs->bw_max, available);
 
 	if (
 		!(bs->flags & BS_F_FROZEN_SLOT) &&
@@ -719,6 +737,10 @@ static gint bw_available(bio_source_t *bio, gint len)
 		 * It's not worth redistributing less than BW_SLOT_MIN bytes per slot.
 		 * If we ever drop below that value, freeze the slot value to prevent
 		 * further redistribution.
+		 *
+		 * We don't freeze when the amount available which was redistributed
+		 * is equal to the regular bandwidth for the scheduler.  This usually
+		 * happens when there is some stolen bandwidth that is not used yet.
 		 */
 
 		if (slot > BW_SLOT_MIN) {
