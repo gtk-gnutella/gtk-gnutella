@@ -714,6 +714,13 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 						}
 					}					
 					break;
+				case EXT_T_UNKNOWN_GGEP:	/* Unknown GGEP extension */
+					if (search_debug) {
+						g_warning("%s unknown GGEP \"%s\" (dumping)",
+							gmsg_infostr(&n->header), ext_ggep_id_str(e));
+						ext_dump(stderr, e, 1, "....", "\n", TRUE);
+					}
+					break;
 				case EXT_T_GGEP_T:			/* Descriptive text */
 					unknown = FALSE;		/* Disables ext_has_ascii_word() */
 					/* FALLTHROUGH */
