@@ -231,7 +231,7 @@ on_popup_downloads_abort_named_activate(GtkMenuItem *unused_menuitem,
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads_queue"));
-    gint removed = 0;
+    guint removed = 0;
 
 	(void) unused_menuitem;
 	(void) unused_udata;
@@ -277,7 +277,7 @@ on_popup_downloads_abort_host_activate(GtkMenuItem *unused_menuitem,
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads_queue"));
-    gint removed = 0;
+    guint removed = 0;
 
 	(void) unused_menuitem;
 	(void) unused_udata;
@@ -327,7 +327,7 @@ on_popup_downloads_abort_sha1_activate(GtkMenuItem *unused_menuitem,
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads_queue"));
-    gint removed = 0;
+    guint removed = 0;
 
 	(void) unused_menuitem;
 	(void) unused_udata;
@@ -625,7 +625,7 @@ on_popup_queue_abort_named_activate(GtkMenuItem *unused_menuitem,
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads_queue"));
-    gint removed = 0;
+    guint removed = 0;
 
 	(void) unused_menuitem;
 	(void) unused_udata;
@@ -666,7 +666,7 @@ on_popup_queue_abort_host_activate(GtkMenuItem *unused_menuitem,
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads_queue"));
-    gint removed = 0;
+    guint removed = 0;
 
 	(void) unused_menuitem;
 	(void) unused_udata;
@@ -708,7 +708,7 @@ on_popup_queue_abort_sha1_activate(GtkMenuItem *unused_menuitem,
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads_queue"));
-    gint removed = 0;
+    guint removed = 0;
 
 	(void) unused_menuitem;
 	(void) unused_udata;

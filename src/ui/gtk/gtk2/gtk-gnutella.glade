@@ -465,7 +465,7 @@
       <signal name="activate" handler="on_popup_search_download_activate" last_modification_time="Sun, 30 Mar 2003 12:52:08 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image453">
+	<widget class="GtkImage" id="image522">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-save</property>
 	  <property name="icon_size">1</property>
@@ -485,7 +485,7 @@
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image454">
+	<widget class="GtkImage" id="image523">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -533,11 +533,11 @@
   <child>
     <widget class="GtkImageMenuItem" id="globally_drop1">
       <property name="visible">True</property>
-      <property name="label" translatable="yes">Globally drop results</property>
+      <property name="label" translatable="yes">Globally drop results...</property>
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image455">
+	<widget class="GtkImage" id="image524">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-delete</property>
 	  <property name="icon_size">1</property>
@@ -591,11 +591,11 @@
   <child>
     <widget class="GtkImageMenuItem" id="auto-download_selected_by1">
       <property name="visible">True</property>
-      <property name="label" translatable="yes">Auto-download selected by</property>
+      <property name="label" translatable="yes">Auto-download selected by...</property>
       <property name="use_underline">True</property>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image456">
+	<widget class="GtkImage" id="image525">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-execute</property>
 	  <property name="icon_size">1</property>
@@ -617,7 +617,7 @@
 	      <signal name="activate" handler="on_popup_search_autodownload_sha1_activate"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image457">
+		<widget class="GtkImage" id="image526">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-execute</property>
 		  <property name="icon_size">1</property>
@@ -638,7 +638,7 @@
 	      <signal name="activate" handler="on_popup_search_autodownload_name_activate"/>
 
 	      <child internal-child="image">
-		<widget class="GtkImage" id="image458">
+		<widget class="GtkImage" id="image527">
 		  <property name="visible">True</property>
 		  <property name="stock">gtk-execute</property>
 		  <property name="icon_size">1</property>
@@ -669,7 +669,7 @@
       <signal name="activate" handler="on_popup_search_new_from_selected_activate" last_modification_time="Sun, 15 Sep 2002 11:07:06 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image459">
+	<widget class="GtkImage" id="image528">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-new</property>
 	  <property name="icon_size">1</property>
@@ -696,7 +696,7 @@
       <signal name="activate" handler="on_popup_search_expand_all_activate" last_modification_time="Thu, 01 Jan 2004 05:01:39 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image460">
+	<widget class="GtkImage" id="image529">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-add</property>
 	  <property name="icon_size">1</property>
@@ -717,7 +717,7 @@
       <signal name="activate" handler="on_popup_search_collapse_all_activate" last_modification_time="Thu, 01 Jan 2004 05:01:39 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image461">
+	<widget class="GtkImage" id="image530">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-remove</property>
 	  <property name="icon_size">1</property>
@@ -744,7 +744,7 @@
       <signal name="activate" handler="on_popup_search_toggle_tabs_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image462">
+	<widget class="GtkImage" id="image531">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-index</property>
 	  <property name="icon_size">1</property>
@@ -765,7 +765,7 @@
       <signal name="activate" handler="on_popup_search_config_cols_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image463">
+	<widget class="GtkImage" id="image532">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-preferences</property>
 	  <property name="icon_size">1</property>
@@ -792,7 +792,7 @@
       <signal name="activate" handler="on_popup_search_metadata_activate" last_modification_time="Thu, 02 Sep 2004 08:35:41 GMT"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image464">
+	<widget class="GtkImage" id="image533">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-dialog-info</property>
 	  <property name="icon_size">1</property>
@@ -5078,7 +5078,7 @@ http://maxmind.com/</property>
 			      <child>
 				<widget class="GtkEventBox" id="eventbox12">
 				  <property name="visible">True</property>
-				  <property name="tooltip" translatable="yes">The current IP address and listening port for this node. To change these go to Config-&gt;Network.</property>
+				  <property name="tooltip" translatable="yes">The current IP address and listening port for this node. To change these go to Settings-&gt;Preferences-&gt;Network.</property>
 				  <property name="visible_window">True</property>
 				  <property name="above_child">False</property>
 
@@ -8544,7 +8544,7 @@ http://maxmind.com/</property>
 			  <child>
 			    <widget class="GtkLabel" id="label589">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">Edit _Filters</property>
+			      <property name="label" translatable="yes">_Edit filters</property>
 			      <property name="use_underline">True</property>
 			      <property name="use_markup">False</property>
 			      <property name="justify">GTK_JUSTIFY_LEFT</property>
@@ -8558,7 +8558,7 @@ http://maxmind.com/</property>
 			    <packing>
 			      <property name="padding">0</property>
 			      <property name="expand">False</property>
-			      <property name="fill">False</property>
+			      <property name="fill">True</property>
 			    </packing>
 			  </child>
 			</widget>
@@ -23067,7 +23067,7 @@ message</property>
 			      <property name="justify">GTK_JUSTIFY_CENTER</property>
 			      <property name="wrap">False</property>
 			      <property name="selectable">False</property>
-			      <property name="xalign">0.5</property>
+			      <property name="xalign">0</property>
 			      <property name="yalign">0.5</property>
 			      <property name="xpad">0</property>
 			      <property name="ypad">0</property>
@@ -23703,7 +23703,7 @@ message</property>
 			<widget class="GtkTable" id="table94">
 			  <property name="visible">True</property>
 			  <property name="n_rows">3</property>
-			  <property name="n_columns">2</property>
+			  <property name="n_columns">3</property>
 			  <property name="homogeneous">True</property>
 			  <property name="row_spacing">2</property>
 			  <property name="column_spacing">4</property>
@@ -23844,6 +23844,54 @@ message</property>
 			      <property name="x_padding">4</property>
 			      <property name="x_options">fill</property>
 			      <property name="y_options">fill</property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label918">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">bytes</property>
+			      <property name="use_underline">False</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_CENTER</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">2</property>
+			      <property name="right_attach">3</property>
+			      <property name="top_attach">1</property>
+			      <property name="bottom_attach">2</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
+			    </packing>
+			  </child>
+
+			  <child>
+			    <widget class="GtkLabel" id="label919">
+			      <property name="visible">True</property>
+			      <property name="label" translatable="yes">bytes</property>
+			      <property name="use_underline">False</property>
+			      <property name="use_markup">False</property>
+			      <property name="justify">GTK_JUSTIFY_CENTER</property>
+			      <property name="wrap">False</property>
+			      <property name="selectable">False</property>
+			      <property name="xalign">0</property>
+			      <property name="yalign">0.5</property>
+			      <property name="xpad">0</property>
+			      <property name="ypad">0</property>
+			    </widget>
+			    <packing>
+			      <property name="left_attach">2</property>
+			      <property name="right_attach">3</property>
+			      <property name="top_attach">2</property>
+			      <property name="bottom_attach">3</property>
+			      <property name="x_options">fill</property>
+			      <property name="y_options"></property>
 			    </packing>
 			  </child>
 			</widget>

@@ -1594,7 +1594,7 @@ void gui_update_download(download_t *d, gboolean force)
 		break;
 
 	case GTA_DL_ERROR:
-		a = d->remove_msg ? d->remove_msg : _("Unknown Error");
+		a = d->remove_msg ? d->remove_msg : _("Unknown error");
 		break;
 
 	case GTA_DL_TIMEOUT_WAIT:

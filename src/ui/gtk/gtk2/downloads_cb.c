@@ -292,7 +292,7 @@ on_popup_downloads_abort_named_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
 	GSList *sl, *selected;
-    gint removed = 0;
+    guint removed = 0;
 
 	(void) unused_menuitem;
 	(void) unused_udata;
@@ -320,7 +320,7 @@ on_popup_downloads_abort_host_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
 	GSList *sl, *selected;
-    gint removed = 0;
+    guint removed = 0;
 
 	(void) unused_menuitem;
 	(void) unused_udata;
@@ -337,7 +337,7 @@ on_popup_downloads_abort_host_activate(GtkMenuItem *unused_menuitem,
 	g_slist_free(selected);
 
     statusbar_gui_message(15,
-		removed == 1 ? _("Forgot %d download") : _("Forgot %d downloads"),
+		removed == 1 ? _("Forgot %u download") : _("Forgot %u downloads"),
 		removed);
 }
 
@@ -350,7 +350,7 @@ on_popup_downloads_abort_sha1_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
 	GSList *sl, *selected;
-    gint removed = 0;
+    guint removed = 0;
 
 	(void) unused_menuitem;
 	(void) unused_udata;
@@ -556,7 +556,7 @@ on_popup_queue_abort_named_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
 	GSList *sl, *selected;
-    gint removed = 0;
+    guint removed = 0;
 
 	(void) unused_menuitem;
 	(void) unused_udata;
@@ -584,7 +584,7 @@ on_popup_queue_abort_host_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
 	GSList *sl, *selected;
-    gint removed = 0;
+    guint removed = 0;
 
 	(void) unused_menuitem;
 	(void) unused_udata;
@@ -614,7 +614,7 @@ on_popup_queue_abort_sha1_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata)
 {
 	GSList *sl, *selected;
-    gint removed = 0;
+    guint removed = 0;
 
 	(void) unused_menuitem;
 	(void) unused_udata;

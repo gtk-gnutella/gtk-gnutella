@@ -406,6 +406,7 @@ create_main_window (void)
   GtkWidget *hbox181;
   guint button_search_download_key;
   GtkWidget *button_search_download;
+  guint button_search_filter_key;
   GtkWidget *button_search_filter;
   GtkWidget *checkbutton_search_results_show_settings;
   GtkWidget *label_search_results_show_settings;
@@ -1969,6 +1970,7 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (entry_nodes_ip, 72, -2);
+  gtk_tooltips_set_tip (tooltips, entry_nodes_ip, _("The current IP address and listening port for this node. To change these go to Settings->Preferences->Network."), NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_nodes_ip), FALSE);
 
   label_gnutellanet = gtk_label_new (_("#|Gnet"));
@@ -4048,7 +4050,11 @@ create_main_window (void)
                               GDK_d, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
 
-  button_search_filter = gtk_button_new_with_label (_("Edit filters"));
+  button_search_filter = gtk_button_new_with_label ("");
+  button_search_filter_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (button_search_filter)->child),
+                                   _("_Edit filters"));
+  gtk_widget_add_accelerator (button_search_filter, "clicked", accel_group,
+                              button_search_filter_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
   gtk_widget_set_name (button_search_filter, "button_search_filter");
   gtk_widget_ref (button_search_filter);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "button_search_filter", button_search_filter,
@@ -4482,7 +4488,7 @@ create_main_window (void)
   gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_general), 1, 80);
   gtk_clist_column_titles_show (GTK_CLIST (clist_gnet_stats_general));
 
-  label403 = gtk_label_new (_("Stat"));
+  label403 = gtk_label_new (_("Type"));
   gtk_widget_set_name (label403, "label403");
   gtk_widget_ref (label403);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label403", label403,
@@ -4587,7 +4593,7 @@ create_main_window (void)
   gtk_widget_show (label376);
   gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_drop_reasons), 1, label376);
 
-  checkbutton_gnet_stats_drop_perc = gtk_check_button_new_with_label (_("show percentages"));
+  checkbutton_gnet_stats_drop_perc = gtk_check_button_new_with_label (_("Show percentages"));
   gtk_widget_set_name (checkbutton_gnet_stats_drop_perc, "checkbutton_gnet_stats_drop_perc");
   gtk_widget_ref (checkbutton_gnet_stats_drop_perc);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_gnet_stats_drop_perc", checkbutton_gnet_stats_drop_perc,
@@ -6345,9 +6351,6 @@ create_popup_dl_queued (void)
   GtkWidget *separator17;
   GtkWidget *popup_queue_expand_all;
   GtkWidget *popup_queue_collapse_all;
-  GtkTooltips *tooltips;
-
-  tooltips = gtk_tooltips_new ();
 
   popup_dl_queued = gtk_menu_new ();
   gtk_widget_set_name (popup_dl_queued, "popup_dl_queued");
@@ -6369,7 +6372,6 @@ create_popup_dl_queued (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (popup_queue_abort);
   gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_abort);
-  gtk_tooltips_set_tip (tooltips, popup_queue_abort, _("Dequeue selected downloads"), NULL);
 
   abort_all2 = gtk_menu_item_new_with_label (_("Abort all..."));
   gtk_widget_set_name (abort_all2, "abort_all2");
@@ -6394,7 +6396,6 @@ create_popup_dl_queued (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (popup_queue_abort_named);
   gtk_container_add (GTK_CONTAINER (abort_all2_menu), popup_queue_abort_named);
-  gtk_tooltips_set_tip (tooltips, popup_queue_abort_named, _("Abort and dequeue all downloads with selected names"), NULL);
 
   popup_queue_abort_sha1 = gtk_menu_item_new_with_label (_("with the same urn:sha1"));
   gtk_widget_set_name (popup_queue_abort_sha1, "popup_queue_abort_sha1");
@@ -6411,7 +6412,6 @@ create_popup_dl_queued (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (popup_queue_abort_host);
   gtk_container_add (GTK_CONTAINER (abort_all2_menu), popup_queue_abort_host);
-  gtk_tooltips_set_tip (tooltips, popup_queue_abort_host, _("Abort and dequeue all downloads from selected hosts"), NULL);
 
   separator12 = gtk_menu_item_new ();
   gtk_widget_set_name (separator12, "separator12");
@@ -6491,8 +6491,6 @@ create_popup_dl_queued (void)
                       GTK_SIGNAL_FUNC (on_popup_queue_collapse_all_activate),
                       NULL);
 
-  gtk_object_set_data (GTK_OBJECT (popup_dl_queued), "tooltips", tooltips);
-
   return popup_dl_queued;
 }
 
@@ -6516,6 +6514,9 @@ create_popup_search (void)
   GtkWidget *popup_search_drop_sha1_global;
   GtkWidget *popup_search_drop_host_global;
   GtkWidget *separator14;
+  GtkWidget *auto_download_selected_by1;
+  GtkWidget *auto_download_selected_by1_menu;
+  GtkAccelGroup *auto_download_selected_by1_menu_accels;
   GtkWidget *popup_search_autodownload_name;
   GtkWidget *popup_search_autodownload_sha1;
   GtkWidget *separator3;
@@ -6652,21 +6653,37 @@ create_popup_search (void)
   gtk_container_add (GTK_CONTAINER (popup_search), separator14);
   gtk_widget_set_sensitive (separator14, FALSE);
 
-  popup_search_autodownload_name = gtk_menu_item_new_with_label (_("Auto-download selected by name"));
+  auto_download_selected_by1 = gtk_menu_item_new_with_label (_("Auto-download selected by..."));
+  gtk_widget_set_name (auto_download_selected_by1, "auto_download_selected_by1");
+  gtk_widget_ref (auto_download_selected_by1);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "auto_download_selected_by1", auto_download_selected_by1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (auto_download_selected_by1);
+  gtk_container_add (GTK_CONTAINER (popup_search), auto_download_selected_by1);
+
+  auto_download_selected_by1_menu = gtk_menu_new ();
+  gtk_widget_set_name (auto_download_selected_by1_menu, "auto_download_selected_by1_menu");
+  gtk_widget_ref (auto_download_selected_by1_menu);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "auto_download_selected_by1_menu", auto_download_selected_by1_menu,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_menu_item_set_submenu (GTK_MENU_ITEM (auto_download_selected_by1), auto_download_selected_by1_menu);
+  auto_download_selected_by1_menu_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (auto_download_selected_by1_menu));
+
+  popup_search_autodownload_name = gtk_menu_item_new_with_label (_("name"));
   gtk_widget_set_name (popup_search_autodownload_name, "popup_search_autodownload_name");
   gtk_widget_ref (popup_search_autodownload_name);
   gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_autodownload_name", popup_search_autodownload_name,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (popup_search_autodownload_name);
-  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_autodownload_name);
+  gtk_container_add (GTK_CONTAINER (auto_download_selected_by1_menu), popup_search_autodownload_name);
 
-  popup_search_autodownload_sha1 = gtk_menu_item_new_with_label (_("Auto-download selected by urn:sha1"));
+  popup_search_autodownload_sha1 = gtk_menu_item_new_with_label (_("urn:sha1"));
   gtk_widget_set_name (popup_search_autodownload_sha1, "popup_search_autodownload_sha1");
   gtk_widget_ref (popup_search_autodownload_sha1);
   gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_autodownload_sha1", popup_search_autodownload_sha1,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (popup_search_autodownload_sha1);
-  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_autodownload_sha1);
+  gtk_container_add (GTK_CONTAINER (auto_download_selected_by1_menu), popup_search_autodownload_sha1);
 
   separator3 = gtk_menu_item_new ();
   gtk_widget_set_name (separator3, "separator3");
@@ -10667,16 +10684,16 @@ create_dlg_prefs (void)
   GtkWidget *checkbutton_config_bws_gin;
   GtkWidget *frame74;
   GtkWidget *table58;
-  guint checkbutton_config_bws_glin_key;
-  GtkWidget *checkbutton_config_bws_glin;
-  guint checkbutton_config_bws_glout_key;
-  GtkWidget *checkbutton_config_bws_glout;
   GtkObject *spinbutton_config_bws_glin_adj;
   GtkWidget *spinbutton_config_bws_glin;
   GtkObject *spinbutton_config_bws_glout_adj;
   GtkWidget *spinbutton_config_bws_glout;
   GtkWidget *label556;
   GtkWidget *label557;
+  guint checkbutton_config_bws_glout_key;
+  GtkWidget *checkbutton_config_bws_glout;
+  guint checkbutton_config_bws_glin_key;
+  GtkWidget *checkbutton_config_bws_glin;
   GtkWidget *frame12;
   GtkWidget *table4;
   GtkWidget *label126;
@@ -10794,6 +10811,8 @@ create_dlg_prefs (void)
   GtkWidget *spinbutton_dl_minchunksize;
   GtkObject *spinbutton_dl_maxchunksize_adj;
   GtkWidget *spinbutton_dl_maxchunksize;
+  GtkWidget *label732;
+  GtkWidget *label733;
   GtkWidget *hseparator12;
   GtkWidget *table52;
   guint checkbutton_config_strict_sha1_matching_key;
@@ -11227,7 +11246,7 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label129), 0, 0.5);
 
-  label35 = gtk_label_new (_("Default: 6346, Disable: 0, Random: 1"));
+  label35 = gtk_label_new (_("Disable: 0, Random: 1"));
   gtk_widget_set_name (label35, "label35");
   gtk_widget_ref (label35);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label35", label35,
@@ -13799,34 +13818,6 @@ create_dlg_prefs (void)
   gtk_table_set_row_spacings (GTK_TABLE (table58), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table58), 4);
 
-  checkbutton_config_bws_glin = gtk_check_button_new_with_label ("");
-  checkbutton_config_bws_glin_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_bws_glin)->child),
-                                   _("Incoming incoming traffic from _leaves"));
-  gtk_widget_add_accelerator (checkbutton_config_bws_glin, "clicked", accel_group,
-                              checkbutton_config_bws_glin_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_set_name (checkbutton_config_bws_glin, "checkbutton_config_bws_glin");
-  gtk_widget_ref (checkbutton_config_bws_glin);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_bws_glin", checkbutton_config_bws_glin,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_config_bws_glin);
-  gtk_table_attach (GTK_TABLE (table58), checkbutton_config_bws_glin, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_config_bws_glout = gtk_check_button_new_with_label ("");
-  checkbutton_config_bws_glout_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_bws_glout)->child),
-                                   _("Incoming outgoing traffic to lea_ves"));
-  gtk_widget_add_accelerator (checkbutton_config_bws_glout, "clicked", accel_group,
-                              checkbutton_config_bws_glout_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
-  gtk_widget_set_name (checkbutton_config_bws_glout, "checkbutton_config_bws_glout");
-  gtk_widget_ref (checkbutton_config_bws_glout);
-  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_bws_glout", checkbutton_config_bws_glout,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_config_bws_glout);
-  gtk_table_attach (GTK_TABLE (table58), checkbutton_config_bws_glout, 0, 1, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
   spinbutton_config_bws_glin_adj = gtk_adjustment_new (1, 0, 100, 1, 5, 10);
   spinbutton_config_bws_glin = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bws_glin_adj), 1, 2);
   gtk_widget_set_name (spinbutton_config_bws_glin, "spinbutton_config_bws_glin");
@@ -13874,6 +13865,34 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label557), 0, 0.5);
+
+  checkbutton_config_bws_glout = gtk_check_button_new_with_label ("");
+  checkbutton_config_bws_glout_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_bws_glout)->child),
+                                   _("Outgoing traffic to lea_ves"));
+  gtk_widget_add_accelerator (checkbutton_config_bws_glout, "clicked", accel_group,
+                              checkbutton_config_bws_glout_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (checkbutton_config_bws_glout, "checkbutton_config_bws_glout");
+  gtk_widget_ref (checkbutton_config_bws_glout);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_bws_glout", checkbutton_config_bws_glout,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_bws_glout);
+  gtk_table_attach (GTK_TABLE (table58), checkbutton_config_bws_glout, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_bws_glin = gtk_check_button_new_with_label ("");
+  checkbutton_config_bws_glin_key = gtk_label_parse_uline (GTK_LABEL (GTK_BIN (checkbutton_config_bws_glin)->child),
+                                   _("Incoming traffic from _leaves"));
+  gtk_widget_add_accelerator (checkbutton_config_bws_glin, "clicked", accel_group,
+                              checkbutton_config_bws_glin_key, GDK_MOD1_MASK, (GtkAccelFlags) 0);
+  gtk_widget_set_name (checkbutton_config_bws_glin, "checkbutton_config_bws_glin");
+  gtk_widget_ref (checkbutton_config_bws_glin);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_config_bws_glin", checkbutton_config_bws_glin,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_bws_glin);
+  gtk_table_attach (GTK_TABLE (table58), checkbutton_config_bws_glin, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   frame12 = gtk_frame_new (_("Bandwidth limits for HTTP traffic"));
   gtk_widget_set_name (frame12, "frame12");
@@ -14689,7 +14708,7 @@ create_dlg_prefs (void)
   gtk_widget_show (hseparator11);
   gtk_box_pack_start (GTK_BOX (vbox99), hseparator11, FALSE, TRUE, 0);
 
-  table51 = gtk_table_new (2, 4, FALSE);
+  table51 = gtk_table_new (2, 5, FALSE);
   gtk_widget_set_name (table51, "table51");
   gtk_widget_ref (table51);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table51", table51,
@@ -14773,6 +14792,28 @@ create_dlg_prefs (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_maxchunksize), TRUE);
+
+  label732 = gtk_label_new (_("bytes"));
+  gtk_widget_set_name (label732, "label732");
+  gtk_widget_ref (label732);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label732", label732,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label732);
+  gtk_table_attach (GTK_TABLE (table51), label732, 4, 5, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label732), 7.45058e-09, 0.5);
+
+  label733 = gtk_label_new (_("bytes"));
+  gtk_widget_set_name (label733, "label733");
+  gtk_widget_ref (label733);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "label733", label733,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label733);
+  gtk_table_attach (GTK_TABLE (table51), label733, 4, 5, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label733), 7.45058e-09, 0.5);
 
   hseparator12 = gtk_hseparator_new ();
   gtk_widget_set_name (hseparator12, "hseparator12");
