@@ -423,9 +423,6 @@ static void config_set_param(keyword_t keyword, gchar *value)
             bw_ul_usage_enabled, gnet, 
             PROP_BW_UL_USAGE_ENABLED)
         CONFIG_SET_BOOL(
-            clear_uploads, gui, 
-            PROP_AUTOCLEAR_UPLOADS)
-        CONFIG_SET_BOOL(
             download_delete_aborted, gnet, 
             PROP_DOWNLOAD_DELETE_ABORTED)
         CONFIG_SET_BOOL(
@@ -756,6 +753,12 @@ static void config_set_param(keyword_t keyword, gchar *value)
         gboolean b = !g_ascii_strcasecmp(value, "true");
         gnet_prop_set_boolean(PROP_AUTOCLEAR_COMPLETED_DOWNLOADS, &b, 0, 1);
         gnet_prop_set_boolean(PROP_AUTOCLEAR_FAILED_DOWNLOADS, &b, 0, 1);
+        return;
+    }
+	case k_clear_uploads: {
+        gboolean b = !g_ascii_strcasecmp(value, "true");
+        gnet_prop_set_boolean(PROP_AUTOCLEAR_COMPLETED_UPLOADS, &b, 0, 1);
+        gnet_prop_set_boolean(PROP_AUTOCLEAR_FAILED_UPLOADS, &b, 0, 1);
         return;
     }
     case k_filter_default_policy:

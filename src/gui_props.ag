@@ -709,13 +709,24 @@ prop = {
 };
 
 prop = {
-    name = "autoclear_uploads";
+    name = "autoclear_completed_uploads";
     cfgvar = "auto_clear_completed_uploads";
     desc = "Auto clear completed uploads";
     type = boolean;
     data = {
         default = TRUE;
-        value   = clear_uploads;
+        value   = clear_uploads_complete;
+    };
+};
+
+prop = {
+    name = "autoclear_failed_uploads";
+    cfgvar = "auto_clear_failed_uploads";
+    desc = "Auto clear failed uploads";
+    type = boolean;
+    data = {
+        default = TRUE;
+        value   = clear_uploads_failed;
     };
 };
 

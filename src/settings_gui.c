@@ -1105,10 +1105,18 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_AUTOCLEAR_UPLOADS,
+        PROP_AUTOCLEAR_COMPLETED_UPLOADS,
         update_togglebutton,
         TRUE,
-        "checkbutton_uploads_auto_clear",
+        "checkbutton_uploads_auto_clear_complete",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_AUTOCLEAR_FAILED_UPLOADS,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_uploads_auto_clear_failed",
         FREQ_UPDATES, 0
     },
     {
@@ -3103,6 +3111,7 @@ static gboolean autoclear_failed_downloads_changed(property_t prop)
 
     return FALSE;
 }
+
 static gboolean traffic_stats_mode_changed(property_t prop)
 {
     gui_update_traffic_stats();

@@ -449,6 +449,25 @@ void uploads_gui_shutdown(void)
     upload_remove_upload_info_changed_listener(upload_info_changed);
 }
 
+static gboolean upload_should_remove(time_t now, upload_row_data_t *ul) 
+{
+	g_assert(NULL != ul);
+	if (now - ul->last_update <= REMOVE_DELAY)
+		return FALSE;
+
+	if (clear_uploads_complete && GTA_UL_COMPLETE == ul->status)
+		return TRUE;
+	
+	if (
+		clear_uploads_failed &&
+		(GTA_UL_CLOSED == ul->status || GTA_UL_ABORTED == ul->status)
+	) {
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 /*
  * uploads_gui_update_display
  *
@@ -486,26 +505,22 @@ void uploads_gui_update_display(time_t now)
             gtk_list_store_set(GTK_LIST_STORE(model), &iter,
 				c_ul_status, uploads_gui_status_str(&status, data),
 				-1);
-		} else {
-			if (clear_uploads && (now - data->last_update > REMOVE_DELAY))
-				to_remove =
-					g_slist_prepend(to_remove, w_tree_iter_copy(&iter));
-			else
-				all_removed = FALSE;    /* Not removing all "expired" ones */
-		}
+		} else if (upload_should_remove(now, data))
+			to_remove = g_slist_prepend(to_remove, w_tree_iter_copy(&iter));
+		else
+			all_removed = FALSE;    /* Not removing all "expired" ones */
     }
 
-    if (clear_uploads)
-		for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
-        	GtkTreeIter *i = sl->data;
-			gpointer p;
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+		GtkTreeIter *i = sl->data;
+		gpointer p;
 
-			gtk_tree_model_get(model, i, c_ul_data, &p, -1);
-			g_assert(NULL != p);
-			G_FREE_NULL(p);
-        	gtk_list_store_remove(GTK_LIST_STORE(model), i);
-        	w_tree_iter_free(i);
-    	}
+		gtk_tree_model_get(model, i, c_ul_data, &p, (-1));
+		g_assert(NULL != p);
+		G_FREE_NULL(p);
+		gtk_list_store_remove(GTK_LIST_STORE(model), i);
+		w_tree_iter_free(i);
+	}
 
 	if (all_removed)
 		gtk_widget_set_sensitive(button_uploads_clear_completed, FALSE);
