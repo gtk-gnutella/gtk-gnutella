@@ -40,15 +40,16 @@ RCSID("$Id$");
 
 #include "override.h"		/* Must be the last header included */
 
-static guint32 common_dbg = 0;	/* XXX -- need to init lib's props --RAM */
+static guint32 common_dbg = ~0;	/* XXX -- need to init lib's props --RAM */
 
 /* private data types */
 
 typedef struct adns_query {
-	gchar hostname[MAX_HOSTLEN + 1];
-	adns_callback_t user_callback;
+	GFunc user_callback;
 	gpointer user_data;
-	gpointer data; 
+	guint32 ip;
+	gboolean reverse;
+	gchar hostname[MAX_HOSTLEN + 1];
 } adns_query_t;
 
 typedef struct adns_async_write {
@@ -56,14 +57,6 @@ typedef struct adns_async_write {
 	gchar *buf;				/* Remaining data to write */
 	gint n;					/* Amount to write still */
 } adns_async_write_t;
-
-
-typedef struct adns_reply {
-	adns_callback_t user_callback;
-    gpointer user_data;
-	gpointer data; 
-    guint32 ip;
-} adns_reply_t;
 
 typedef struct adns_cache_entry {
 	gchar *hostname; /* atom */
@@ -163,7 +156,7 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 
 	entry = &cache->entries[cache->oldest];
 	atom = atom_str_get(hostname);
-	g_assert(NULL == g_hash_table_lookup(cache->hashtab, hostname));
+	g_assert(NULL == g_hash_table_lookup(cache->hashtab, atom));
 	if (NULL != entry->hostname) {
 		g_hash_table_remove(cache->hashtab, entry->hostname);
 		atom_str_free(entry->hostname);
@@ -193,18 +186,25 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 	gpointer key;
 	gpointer val;
 	adns_cache_entry_t *entry;
+	gpointer atom;
+	gboolean found;
 
 	g_assert(NULL != cache);
 	g_assert(NULL != hostname);
 
-	if (!g_hash_table_lookup_extended(cache->hashtab, hostname, &key, &val))
+	atom = atom_str_get(hostname);
+	found = g_hash_table_lookup_extended(cache->hashtab, atom, &key, &val);
+	g_assert(!found || atom == key);
+	atom_str_free(atom); /* Do not yet nullify for the assertion below */
+
+	if (!found)
 		return FALSE;
 
-	g_assert(hostname == key);
 	i = GPOINTER_TO_UINT(val);
 	g_assert(i < cache->size);
 	entry = &cache->entries[i];
-	g_assert(hostname == entry->hostname);
+	g_assert(atom == entry->hostname);
+	atom = NULL;
 
 	if (delta_time(now, entry->timestamp) < cache->timeout) {
 		if (NULL != ip)
@@ -302,17 +302,24 @@ adns_do_write(gint fd, gpointer buf, size_t len)
  * fails ``reply->ip'' will be set to zero.
  */
 static void
-adns_gethostbyname(const adns_query_t *query, adns_reply_t *reply)
+adns_gethostbyname(const adns_query_t *query, adns_query_t *reply)
 {
+	const gchar *host;
+	
 	g_assert(NULL != query);
 	g_assert(NULL != reply);
 
-	if (common_dbg > 1)
-		g_warning("adns_gethostbyname: Resolving \"%s\" ...", query->hostname);
+	if (common_dbg > 1) {
+		g_message("adns_gethostbyname: Resolving \"%s\" ...",
+				query->reverse ? ip_to_gchar(query->ip) : query->hostname);
+	}
+
 	reply->user_callback = query->user_callback;
 	reply->user_data = query->user_data;
-	reply->data = query->data;
-	reply->ip = host_to_ip(query->hostname);
+	reply->reverse = query->reverse;
+	reply->ip = query->reverse ? query->ip : host_to_ip(query->hostname);
+	host = query->reverse ? ip_to_host(query->ip) : query->hostname;
+	g_strlcpy(reply->hostname, host ? host : "", sizeof reply->hostname);
 }
 
 /**
@@ -324,8 +331,7 @@ adns_gethostbyname(const adns_query_t *query, adns_reply_t *reply)
 static void
 adns_helper(gint fd_in, gint fd_out)
 {
-	static adns_query_t query;
-	static adns_reply_t reply;
+	static adns_query_t query, reply;
 
 	g_set_prgname(ADNS_PROCESS_TITLE);
 	gm_setproctitle(g_get_prgname());
@@ -347,25 +353,37 @@ adns_helper(gint fd_in, gint fd_out)
 	_exit(EXIT_SUCCESS);
 }
 
+static inline void
+adns_invoke_user_callback(adns_query_t *reply)
+{
+	if (reply->reverse) {
+		adns_reverse_callback_t func;
+	   
+		func = (adns_reverse_callback_t) reply->user_callback;
+		func(reply->hostname[0] != '\0' ? reply->hostname : NULL,
+			reply->user_data);
+	} else {
+		adns_callback_t func;
+	   
+		func = (adns_callback_t) reply->user_callback;
+		func(reply->ip, reply->user_data);
+	}
+}
+
 /**
  * Handles the query in synchronous (blocking) mode and is used if the
  * dns helper is busy i.e., the pipe buffer is full or in case the dns
  * helper is dead.  
  */
 static void
-adns_fallback(adns_query_t *query)
+adns_fallback(const adns_query_t *query)
 {
-	adns_reply_t reply;
+	adns_query_t reply;
 
 	g_assert(NULL != query);
-	g_assert(NULL != query->data);
-
-	atom_str_free(query->data);
-	query->data = NULL;
-
 	adns_gethostbyname(query, &reply);
 	g_assert(NULL != reply.user_callback);
-	reply.user_callback(reply.ip, reply.user_data);
+	adns_invoke_user_callback(&reply);
 }
 
 /**
@@ -378,7 +396,7 @@ static void
 adns_reply_callback(gpointer data, gint source, inputevt_cond_t condition)
 {
 	static size_t n = 0;
-	static adns_reply_t reply;
+	static adns_query_t reply;
 
 	g_assert(NULL == data);	
 	g_assert(condition & (INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION));
@@ -415,15 +433,24 @@ again:
 	if (sizeof(reply) == n) {
 		time_t now = time(NULL);
 
-		if (common_dbg > 1)
+		if (common_dbg > 1) {
+			const gchar *host, *ip;
+
+			host = reply.hostname;
+			ip = ip_to_gchar(reply.ip);
 			g_warning("adns_reply_callback: Resolved \"%s\" to \"%s\".",
-				(gchar *) reply.data, ip_to_gchar(reply.ip));
+				reply.reverse ? ip : host, reply.reverse ? host : ip);
+		}
+
 		g_assert(NULL != reply.user_callback);
-		g_assert(NULL != reply.data);
-		if (!adns_cache_lookup(adns_cache, now, reply.data, NULL))
-			adns_cache_add(adns_cache, now, reply.data, reply.ip);
-		atom_str_free(reply.data);
-		reply.user_callback(reply.ip, reply.user_data);
+		if (	
+				!reply.reverse &&
+				!adns_cache_lookup(adns_cache, now, reply.hostname, NULL)
+		) {
+			adns_cache_add(adns_cache, now, reply.hostname, reply.ip);
+		}
+
+		adns_invoke_user_callback(&reply);
 		n = 0;
 	}
 }
@@ -433,7 +460,7 @@ again:
  * written into the pipe.  The query is cloned.
  */
 static adns_async_write_t *
-adns_async_write_alloc(adns_query_t *query, size_t n)
+adns_async_write_alloc(const adns_query_t *query, size_t n)
 {
 	adns_async_write_t *remain;
 
@@ -577,6 +604,57 @@ prefork_failure:
 }
 
 /**
+ *
+ * @return TRUE on success, FALSE on failure.
+ */
+static gboolean
+adns_send_query(const adns_query_t *query)
+{
+	ssize_t written;
+	adns_query_t q;
+
+	if (!adns_helper_alive || 0 != adns_query_event_id)
+		return FALSE;
+		
+	g_assert(adns_query_fd >= 0);
+	q = *query;
+
+	/*
+	 * Try to write the query atomically into the pipe.
+	 */
+
+	written = write(adns_query_fd, &q, sizeof(q));
+	if (written == (ssize_t) -1) {
+		if (errno != EINTR && errno != EAGAIN) {
+			g_warning("adns_resolve: write() failed: %s",
+				g_strerror(errno));
+			adns_helper_alive = FALSE;
+			CLOSE_IF_VALID(adns_query_fd);
+			return FALSE;
+		}
+		written = 0;
+	}
+
+	g_assert(0 == adns_query_event_id);
+
+	/*
+	 * If not written fully, allocate a spill buffer and record
+	 * callback that will write the remaining data when the pipe
+	 * can absorb new data.
+	 */
+
+	if (written < (ssize_t) sizeof(q)) {
+		adns_async_write_t *aq = adns_async_write_alloc(&q, written);
+
+		adns_query_event_id = inputevt_add(adns_query_fd,
+			INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
+			adns_query_callback, aq);
+	}
+	
+	return TRUE;
+}
+
+/**
  * Creates a DNS resolve query for ``hostname''. The given function
  * ``user_callback'' (which MUST NOT be NULL) will be invoked with
  * the resolved IP address and ``user_data'' as its parameters. The
@@ -586,7 +664,7 @@ prefork_failure:
  * the adns helper process is ``out of service'' the query will be
  * resolved synchronously.
  *
- * @eturn TRUE if the resolution is asynchronous i.e., the callback
+ * @return TRUE if the resolution is asynchronous i.e., the callback
  * will be called AFTER adns_resolve() returned. If the resolution is
  * synchronous i.e., the callback was called BEFORE adns_resolve()
  * returned, adns_resolve() returns FALSE.
@@ -596,86 +674,80 @@ adns_resolve(const gchar *hostname,
 	adns_callback_t user_callback, gpointer user_data)
 {
 	gsize hostname_len;
-	static adns_query_t query;
-	static adns_reply_t reply;
+	static adns_query_t query, reply;
 
 	g_assert(NULL != hostname);
 	g_assert(NULL != user_callback);
 
-	query.user_callback = user_callback;
+	query.user_callback = (GFunc) user_callback;
 	query.user_data = user_data;
+	query.reverse = FALSE;
+	query.ip = 0;
+	reply = query;
+	
 	reply.ip = gchar_to_ip(hostname);
 	if (0 != reply.ip) {
-		query.user_callback(reply.ip, query.user_data);
+		adns_invoke_user_callback(&reply);
 		return FALSE; /* synchronous */
 	}
 
 	hostname_len = g_strlcpy(query.hostname, hostname, sizeof(query.hostname));
 	if (hostname_len >= sizeof(query.hostname)) {
 		/* truncation detected */
-		query.user_callback(0, query.user_data);
+		reply.ip = 0;
+		adns_invoke_user_callback(&reply);
 		return FALSE; /* synchronous */
 	}
 
 	ascii_strlower(query.hostname, hostname);
-	query.data = atom_str_get(query.hostname);
-	if (adns_cache_lookup(adns_cache, time(NULL), query.data, &reply.ip)) {
-		atom_str_free(query.data);
-		query.user_callback(reply.ip, query.user_data);
+	if (adns_cache_lookup(adns_cache, time(NULL), query.hostname, &reply.ip)) {
+		adns_invoke_user_callback(&reply);
 		return FALSE; /* synchronous */
 	}
 
-	if (adns_helper_alive && 0 == adns_query_event_id) {
-		adns_query_t q;
-		ssize_t written;
-
-		g_assert(adns_query_fd >= 0);
-		g_assert(hostname_len < sizeof(q.hostname));
-
-		strncpy(q.hostname, query.data, sizeof(q.hostname));
-		q.user_callback = user_callback;
-		q.user_data = user_data;
-		q.data = query.data;
-
-		/*
-		 * Try to write the query atomically into the pipe.
-		 */
-
-		written = write(adns_query_fd, &q, sizeof(q));
-
-		if (written == (ssize_t) -1) {
-			if (errno != EINTR && errno != EAGAIN) {
-				g_warning("adns_resolve: write() failed: %s",
-					g_strerror(errno));
-				adns_helper_alive = FALSE;
-				CLOSE_IF_VALID(adns_query_fd);
-				goto fallback;
-			}
-			written = 0;
-		}
-
-		g_assert(0 == adns_query_event_id);
-
-		/*
-		 * If not written fully, allocate a spill buffer and record
-		 * callback that will write the remaining data when the pipe
-		 * can absorb new data.
-		 */
-
-		if (written < (ssize_t) sizeof(q)) {
-			adns_async_write_t *aq = adns_async_write_alloc(&q, written);
-
-			adns_query_event_id = inputevt_add(adns_query_fd,
-				INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
-				adns_query_callback, aq);
-		}
-
+	if (adns_send_query(&query))
 		return TRUE; /* asynchronous */ 
-	}
 
-fallback:
 	g_warning("adns_resolve: using synchronous resolution for \"%s\"",
-		(gchar *) query.data);
+		query.hostname);
+
+	adns_fallback(&query);
+
+	return FALSE; /* synchronous */
+}
+
+/**
+ * Creates a DNS reverse lookup query for ``ip''. The given function
+ * ``user_callback'' (which MUST NOT be NULL) will be invoked with
+ * the resolved hostname and ``user_data'' as its parameters. If the lookup
+ * failed, the callback will be invoked with ``hostname'' NULL. If the adns
+ * helper process is ``out of service'' the query will be processed
+ * synchronously.
+ *
+ * @return TRUE if the resolution is asynchronous i.e., the callback
+ * will be called AFTER adns_reverse_lookup() returned. If the resolution is
+ * synchronous i.e., the callback was called BEFORE adns_reverse_lookup()
+ * returned, adns_reverse_lookup() returns FALSE.
+ */
+gboolean
+adns_reverse_lookup(guint32 ip,
+	adns_reverse_callback_t user_callback, gpointer user_data)
+{
+	static adns_query_t query;
+
+	g_assert(NULL != user_callback);
+
+	query.user_callback = (GFunc) user_callback;
+	query.user_data = user_data;
+	query.ip = ip;
+	query.reverse = TRUE;
+	query.hostname[0] = '\0';
+
+	if (adns_send_query(&query))
+		return TRUE; /* asynchronous */ 
+
+	g_warning("adns_reverse_lookup: using synchronous resolution for \"%s\"",
+		ip_to_gchar(query.ip));
 
 	adns_fallback(&query);
 

@@ -29,9 +29,11 @@
 #include <glib.h>
 
 typedef void (*adns_callback_t)(guint32, gpointer);
+typedef void (*adns_reverse_callback_t)(const gchar *, gpointer);
 
 void adns_init(void);
 gboolean adns_resolve(const gchar *, adns_callback_t, gpointer);
+gboolean adns_reverse_lookup(guint32 ip, adns_reverse_callback_t, gpointer);
 void adns_close(void);
 
 #endif /* _adns_h_ */
