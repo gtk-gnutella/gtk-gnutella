@@ -91,9 +91,7 @@ set w_main_list {
     spinbutton_uploads_max_ip
 	clist_uploads 	
 
-	clist_downloads_queue 
-	button_queue_clear
-	button_queue_remove
+	clist_downloads_queue
 	togglebutton_queue_freeze
     entry_queue_regex
     checkbutton_queue_regex_case
@@ -214,6 +212,7 @@ set w_main_list {
     spinbutton_nodes_max_hosts_cached
     frame_bws_inout
     frame_bws_ginout
+    hpaned_main
 
     label_shutdown_count
 }
