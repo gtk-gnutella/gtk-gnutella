@@ -10,6 +10,12 @@
   * Updated debian/substvars: added depends on zlib1g
 
 - (2002.05.12 - RAM)
+  * Removed debugging warning on Z_BUF_ERROR when TX flushing.
+  * Search stats configuration unit is now the second.
+  * Fixed assertion failure in deflate_rotate_and_send(): the culprit
+	was deflate_nagle_timeout(), calling that routine without checking.
+  * Added Debian build dependency on zlib1g-dev (in debian/control).
+  * Compressed node traffic indicated by TXc and/or RXc in Info field.
   * Fixed typo in cq.c that caused hash bucket chaining to be mixed up.
   * Fixed order in the CH_INSERT_AFTER macro that was corrupting tail too
     early (forgot it was a macro, and not a function call).
