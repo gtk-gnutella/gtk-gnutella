@@ -6078,11 +6078,13 @@ create_popup_search (void)
   GtkAccelGroup *drop1_menu_accels;
   GtkWidget *popup_search_drop_name;
   GtkWidget *popup_search_drop_sha1;
+  GtkWidget *popup_search_drop_host;
   GtkWidget *globally_drop1;
   GtkWidget *globally_drop1_menu;
   GtkAccelGroup *globally_drop1_menu_accels;
   GtkWidget *popup_search_drop_name_global;
   GtkWidget *popup_search_drop_sha1_global;
+  GtkWidget *popup_search_drop_host_global;
   GtkWidget *separator14;
   GtkWidget *popup_search_autodownload_name;
   GtkWidget *popup_search_autodownload_sha1;
@@ -6156,6 +6158,14 @@ create_popup_search (void)
   gtk_container_add (GTK_CONTAINER (drop1_menu), popup_search_drop_sha1);
   gtk_tooltips_set_tip (tooltips, popup_search_drop_sha1, "Adds \"don't display\" rules matching the selected files urn:sha1 to the search filter.", NULL);
 
+  popup_search_drop_host = gtk_menu_item_new_with_label ("results from host");
+  gtk_widget_set_name (popup_search_drop_host, "popup_search_drop_host");
+  gtk_widget_ref (popup_search_drop_host);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_drop_host", popup_search_drop_host,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_drop_host);
+  gtk_container_add (GTK_CONTAINER (drop1_menu), popup_search_drop_host);
+
   globally_drop1 = gtk_menu_item_new_with_label ("Globally drop...");
   gtk_widget_set_name (globally_drop1, "globally_drop1");
   gtk_widget_ref (globally_drop1);
@@ -6189,6 +6199,14 @@ create_popup_search (void)
   gtk_widget_show (popup_search_drop_sha1_global);
   gtk_container_add (GTK_CONTAINER (globally_drop1_menu), popup_search_drop_sha1_global);
   gtk_tooltips_set_tip (tooltips, popup_search_drop_sha1_global, "Adds \"don't display\" rules matching the selected files urn:sha1 to the global pre-filter.", NULL);
+
+  popup_search_drop_host_global = gtk_menu_item_new_with_label ("results from host");
+  gtk_widget_set_name (popup_search_drop_host_global, "popup_search_drop_host_global");
+  gtk_widget_ref (popup_search_drop_host_global);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_drop_host_global", popup_search_drop_host_global,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_drop_host_global);
+  gtk_container_add (GTK_CONTAINER (globally_drop1_menu), popup_search_drop_host_global);
 
   separator14 = gtk_menu_item_new ();
   gtk_widget_set_name (separator14, "separator14");
@@ -6307,11 +6325,17 @@ create_popup_search (void)
   gtk_signal_connect (GTK_OBJECT (popup_search_drop_sha1), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_drop_sha1_activate),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_drop_host), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_drop_host_activate),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_drop_name_global), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_drop_name_global_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_drop_sha1_global), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_drop_sha1_global_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_drop_host_global), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_drop_host_global_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_autodownload_name), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_autodownload_name_activate),
