@@ -467,8 +467,7 @@ void vmsg_send_proxy_req(struct gnutella_node *n, gchar *muid)
 
 	gmsg_sendto_one(n, (gchar *) m, msgsize);
 
-	// XXX
-	if (dbg)
+	if (dbg > 2)
 		g_warning("sent proxy REQ to %s <%s>", node_ip(n), node_vendor(n));
 }
 
@@ -496,8 +495,7 @@ static void handle_proxy_ack(struct gnutella_node *n,
 	payload += 4;
 	READ_GUINT16_LE(payload, port);
 
-	// XXX
-	if (dbg)
+	if (dbg > 2)
 		g_warning("got proxy ACK from %s <%s>: proxy at %s",
 			node_ip(n), node_vendor(n), ip_port_to_gchar(ip, port));
 
@@ -538,7 +536,6 @@ void vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid)
 	 * proxyfy pushes to it ASAP.
 	 */
 
-	// XXX not yet!
-	//gmsg_ctrl_sendto_one(n, (gchar *) m, msgsize);
+	gmsg_ctrl_sendto_one(n, (gchar *) m, msgsize);
 }
 
