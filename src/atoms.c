@@ -35,6 +35,31 @@
 
 RCSID("$Id$");
 
+#ifdef PROTECT_ATOMS
+/* With PROTECT_ATOMS the arena of atoms will be mapped read-only. This
+ * might not be fully portable and should be used for debugging only.
+ * The atoms must be page-aligned for this feature. So you'll need
+ * much more memory.
+ */
+
+#include <sys/mman.h>
+
+#ifndef PAGESIZE
+#define PAGESIZE 4096
+#endif
+
+#define PADDING(x) (PAGESIZE - ((x) % PAGESIZE))
+
+typedef enum {
+	ATOM_PROT_MAGIC = 0x3eeb9a27U
+} atom_prot_magic_t;
+
+#else
+
+#define PADDING(x) 0
+
+#endif /* PROTECT_ATOMS */
+
 /*
  * Atoms are ref-counted.
  *
@@ -43,11 +68,56 @@ RCSID("$Id$");
  * the atom structure.
  */
 typedef struct atom {
-	gint refcnt;				/* Amount of references */
-	gchar arena[1];			/* Start of user arena */
+
+		gint refcnt;			/* Amount of references */
+#ifdef PROTECT_ATOMS
+		union {
+			struct {
+				guint len;				/* Length of user arena */
+				atom_prot_magic_t magic;
+			} attr;
+			gchar padding[PAGESIZE - sizeof(guint)];
+		};
+		/* PADDING */
+#endif /* PROTECT_ATOMS */
+
+		gchar arena[1];			/* Start of user arena */
 } atom_t;
 
+
 #define ARENA_OFFSET	G_STRUCT_OFFSET(struct atom, arena)
+
+#ifdef PROTECT_ATOMS
+static inline void atom_unprotect(atom_t *a)
+{
+	int ret;
+
+	g_assert(ATOM_PROT_MAGIC == a->attr.magic);
+	g_assert(a->attr.len > 0 && 0 == (a->attr.len % PAGESIZE));
+	ret = mprotect(a->arena, a->attr.len, PROT_READ | PROT_WRITE);
+	if (-1 == ret)
+		g_warning("atom_unprotect: mprotect(%p, %u, ...) failed: %s",
+			a->arena, a->attr.len, g_strerror(errno));
+}
+
+static inline void atom_protect(atom_t *a, guint len)
+{
+	int ret;
+
+	g_assert(len > 0 && 0 == (len % PAGESIZE));
+	a->attr.len = len;
+	a->attr.magic = ATOM_PROT_MAGIC;
+	ret = mprotect(a->arena, a->attr.len, PROT_READ);
+	if (-1 == ret)
+		g_warning("atom_protect: mprotect(%p, %u, ...) failed: %s",
+			a->arena, a->attr.len, g_strerror(errno));
+}
+#else
+
+#define atom_protect(a, l)
+#define atom_unprotect(a)
+
+#endif /* PROTECT_ATOMS */
 
 typedef gint (*len_func_t)(gconstpointer v);
 typedef const gchar *(*str_func_t)(gconstpointer v);
@@ -291,6 +361,10 @@ void atoms_init(void)
 {
 	gint i;
 
+#ifdef PROTECT_ATOMS
+	g_assert(ARENA_OFFSET == PAGESIZE);
+#endif /* PROTECT_ATOMS */
+
 	for (i = 0; i < COUNT(atoms); i++) {
 		table_desc_t *td = &atoms[i];
 
@@ -341,9 +415,10 @@ gpointer atom_get(gint type, gconstpointer key)
 
 	len = (*td->len_func)(key);
 
-	a = g_malloc(ARENA_OFFSET + len);
+	a = g_malloc(ARENA_OFFSET + len + PADDING(len));
 	a->refcnt = 1;
 	memcpy(a->arena, key, len);
+	atom_protect(a, len + PADDING(len));
 
 	/*
 	 * Insert atom in table.
@@ -388,6 +463,7 @@ void atom_free(gint type, gconstpointer key)
 
 	if (--a->refcnt == 0) {
 		g_hash_table_remove(td->table, key);
+		atom_unprotect(a);
 		g_free(a);
 	}
 }
