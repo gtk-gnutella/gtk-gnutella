@@ -595,6 +595,8 @@ void main_gui_init(void)
             GTK_TOGGLE_BUTTON
                 (lookup_widget(main_window, 
                                "checkbutton_downloads_never_push"))));
+
+	downloads_gui_init();	/* Before settings_gui_init() */
     settings_gui_init();
     fi_gui_init();
     nodes_gui_init();
@@ -603,7 +605,6 @@ void main_gui_init(void)
     search_stats_gui_init();
     uploads_gui_init();
     upload_stats_gui_init();
-	downloads_gui_init();
     /* Must come before search_init() so searches/filters can be loaded.*/
 	filter_init(); 
     search_gui_init();
