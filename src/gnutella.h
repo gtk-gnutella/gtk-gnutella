@@ -86,8 +86,14 @@
 
 /* Messages structures */
 
+#ifdef __GNUC__ 
+#define ZERO_LENGTH 0
+#else
+#define ZERO_LENGTH
+#endif /* __GNUC__ */
+
 struct gnutella_header {
-	guchar muid[16];
+	gchar muid[16];
 	guchar function;
 	guchar ttl;
 	guchar hops;
@@ -112,7 +118,7 @@ struct gnutella_msg_init_response {
 
 struct gnutella_search {
 	guchar speed[2];
-	guchar query[0];
+	gchar query[ZERO_LENGTH];
 } __attribute__((__packed__));
 
 struct gnutella_search_results {
@@ -120,7 +126,7 @@ struct gnutella_search_results {
 	guchar host_port[2];
 	guchar host_ip[4];
 	guchar host_speed[4];
-	guchar records[0];
+	guchar records[ZERO_LENGTH];
 
 	/* Last 16 bytes = client_id */
 } __attribute__((__packed__));
@@ -144,7 +150,7 @@ struct gnutella_msg_push_request {
 
 struct gnutella_bye {
 	guchar code[2];
-	guchar message[0];
+	guchar message[ZERO_LENGTH];
 } __attribute__((__packed__));
 
 struct gnutella_qrp_reset {
