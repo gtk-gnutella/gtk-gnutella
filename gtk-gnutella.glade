@@ -3923,15 +3923,17 @@
 			</child>
 
 			<widget>
-			  <class>GtkLabel</class>
-			  <name>label523</name>
-			  <label>Filename:</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
+			  <class>GtkButton</class>
+			  <name>button_fi_purge</name>
+			  <sensitive>False</sensitive>
+			  <can_focus>True</can_focus>
+			  <signal>
+			    <name>clicked</name>
+			    <handler>on_button_fi_purge_clicked</handler>
+			    <last_modification_time>Wed, 07 May 2003 09:48:30 GMT</last_modification_time>
+			  </signal>
+			  <label>Purge</label>
+			  <relief>GTK_RELIEF_NORMAL</relief>
 			  <child>
 			    <left_attach>0</left_attach>
 			    <right_attach>1</right_attach>
@@ -3950,34 +3952,8 @@
 
 			<widget>
 			  <class>GtkLabel</class>
-			  <name>label524</name>
-			  <label>Size:</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <child>
-			    <left_attach>0</left_attach>
-			    <right_attach>1</right_attach>
-			    <top_attach>1</top_attach>
-			    <bottom_attach>2</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <name>label_fi_size</name>
-			  <label></label>
+			  <name>label523</name>
+			  <label>Filename:</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0</xalign>
@@ -3987,34 +3963,6 @@
 			  <child>
 			    <left_attach>1</left_attach>
 			    <right_attach>2</right_attach>
-			    <top_attach>1</top_attach>
-			    <bottom_attach>2</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkButton</class>
-			  <name>button_fi_purge</name>
-			  <sensitive>False</sensitive>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>clicked</name>
-			    <handler>on_button_fi_purge_clicked</handler>
-			    <last_modification_time>Wed, 07 May 2003 09:48:30 GMT</last_modification_time>
-			  </signal>
-			  <label>Purge</label>
-			  <relief>GTK_RELIEF_NORMAL</relief>
-			  <child>
-			    <left_attach>2</left_attach>
-			    <right_attach>3</right_attach>
 			    <top_attach>0</top_attach>
 			    <bottom_attach>1</bottom_attach>
 			    <xpad>0</xpad>
@@ -4039,13 +3987,65 @@
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
 			  <child>
-			    <left_attach>1</left_attach>
-			    <right_attach>2</right_attach>
+			    <left_attach>2</left_attach>
+			    <right_attach>3</right_attach>
 			    <top_attach>0</top_attach>
 			    <bottom_attach>1</bottom_attach>
 			    <xpad>0</xpad>
 			    <ypad>0</ypad>
 			    <xexpand>True</xexpand>
+			    <yexpand>False</yexpand>
+			    <xshrink>False</xshrink>
+			    <yshrink>False</yshrink>
+			    <xfill>True</xfill>
+			    <yfill>False</yfill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label_fi_size</name>
+			  <label></label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <left_attach>2</left_attach>
+			    <right_attach>3</right_attach>
+			    <top_attach>1</top_attach>
+			    <bottom_attach>2</bottom_attach>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <xexpand>False</xexpand>
+			    <yexpand>False</yexpand>
+			    <xshrink>False</xshrink>
+			    <yshrink>False</yshrink>
+			    <xfill>True</xfill>
+			    <yfill>False</yfill>
+			  </child>
+			</widget>
+
+			<widget>
+			  <class>GtkLabel</class>
+			  <name>label524</name>
+			  <label>Size:</label>
+			  <justify>GTK_JUSTIFY_CENTER</justify>
+			  <wrap>False</wrap>
+			  <xalign>0</xalign>
+			  <yalign>0.5</yalign>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <child>
+			    <left_attach>1</left_attach>
+			    <right_attach>2</right_attach>
+			    <top_attach>1</top_attach>
+			    <bottom_attach>2</bottom_attach>
+			    <xpad>0</xpad>
+			    <ypad>0</ypad>
+			    <xexpand>False</xexpand>
 			    <yexpand>False</yexpand>
 			    <xshrink>False</xshrink>
 			    <yshrink>False</yshrink>
