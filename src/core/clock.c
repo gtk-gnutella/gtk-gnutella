@@ -47,8 +47,11 @@ RCSID("$Id$");
 #include "lib/stats.h"
 #include "lib/override.h"		/* Must be the last header included */
 
-#define REUSE_DELAY	86400		/* 1 day */
-#define MIN_DATA	30			/* Update skew when we have enough data */
+#define REUSE_DELAY	10800		/* 3 hours */
+#define ENOUGH_DATA	30			/* Update skew when we have enough data */
+#define MIN_DATA	15			/* Minimum amount of points for update */
+#define MAX_SDEV	150.0		/* Maximum dispersion we tolerate */
+#define CLEAN_STEPS	3			/* Amount of steps to remove off-track data */
 
 struct used_val {
 	guint *ip_atom;				/* The atom used for the key */
@@ -130,6 +133,17 @@ val_create(guint32 ip, gint precision)
 }
 
 /**
+ * Accepted an update due to a lower precision entry, reschedule the
+ * expiration timeout.
+ */
+static void
+val_reused(struct used_val *v, gint precision)
+{
+	v->precision = precision;
+	cq_resched(callout_queue, v->cq_ev, REUSE_DELAY * 1000);
+}
+
+/**
  * Called at startup time to initialize local structures.
  */
 void
@@ -165,13 +179,13 @@ static void
 clock_adjust(void)
 {
 	gint n;
-	gdouble *value;
 	gdouble avg;
 	gdouble sdev;
 	gdouble min;
 	gdouble max;
 	gint i;
 	guint32 new_skew;
+	gint k;
 
 	/*
 	 * Compute average and standard deviation using all the data points.
@@ -180,44 +194,73 @@ clock_adjust(void)
 	n = statx_n(datapoints);
 	avg = statx_avg(datapoints);
 	sdev = statx_sdev(datapoints);
-	value = statx_data(datapoints);
-
-	if (dbg > 1)
-		printf("CLOCK adjusting from n=%d avg=%.2f sdev=%.2f\n", n, avg, sdev);
-
-	statx_clear(datapoints);
 
 	/*
-	 * Remove aberration points: keep only the sigma range around the
-	 * average.
+	 * Incrementally remove aberration points.
 	 */
 
-	min = avg - sdev;
-	max = avg + sdev;
+	for (k = 0; k < CLEAN_STEPS; k++) {
+		gdouble *value = statx_data(datapoints);
 
-	for (i = 0; i < n; i++) {
-		gdouble v = value[i];
-		if (v < min || v > max)
-			continue;
-		statx_add(datapoints, v);
+		if (dbg > 1)
+			printf("CLOCK before #%d: n=%d avg=%.2f sdev=%.2f\n",
+				k, n, avg, sdev);
+
+		statx_clear(datapoints);
+
+		/*
+		 * Remove aberration points: keep only the sigma range around the
+		 * average.
+		 */
+
+		min = avg - sdev;
+		max = avg + sdev;
+
+		for (i = 0; i < n; i++) {
+			gdouble v = value[i];
+			if (v < min || v > max)
+				continue;
+			statx_add(datapoints, v);
+		}
+
+		g_free(value);
+
+		/*
+		 * Recompute the new average using the "sound" points we kept.
+		 */
+
+		n = statx_n(datapoints);
+		avg = statx_avg(datapoints);
+		sdev = statx_sdev(datapoints);
+
+		if (dbg > 1)
+			printf("CLOCK after #%d: kept n=%d avg=%.2f sdev=%.2f\n",
+				k, n, avg, sdev);
+
+		if (sdev <= MAX_SDEV || n < MIN_DATA)
+			break;
 	}
 
-	g_free(value);
-
 	/*
-	 * Recompute the new average using the "sound" points we kept.
+	 * If standard deviation is too large still, we cannot update our
+	 * clock, collect more points.
+	 *
+	 * If we don't have a minimum amount of data, don't attempt the
+	 * update yet, continue collecting.
 	 */
 
-	n = statx_n(datapoints);
-	avg = statx_avg(datapoints);
-	sdev = statx_sdev(datapoints);
+	if (sdev > MAX_SDEV || n < MIN_DATA) {
+		if (dbg > 1)
+			printf("CLOCK will continue collecting data\n");
+		return;
+	}
 
 	statx_clear(datapoints);
 
 	new_skew = clock_skew + (gint32) avg;
 
 	if (dbg)
-		printf("CLOCK kept n=%d avg=%.2f sdev=%.2f => SKEW old=%d new=%d\n",
+		printf("CLOCK with n=%d avg=%.2f sdev=%.2f => SKEW old=%d new=%d\n",
 			n, avg, sdev, (gint32) clock_skew, (gint32) new_skew);
 
 	gnet_prop_set_guint32_val(PROP_CLOCK_SKEW, new_skew);
@@ -250,7 +293,7 @@ clock_update(time_t update, gint precision, guint32 ip)
 	if ((v = g_hash_table_lookup(used, &ip))) {
 		if (precision && precision >= v->precision)
 			return;
-		v->precision = precision;
+		val_reused(v, precision);
 	} else {
 		v = val_create(ip, precision);
 		g_hash_table_insert(used, v->ip_atom, v);
@@ -267,7 +310,7 @@ clock_update(time_t update, gint precision, guint32 ip)
 			(gint32) clock_skew, delta, precision, ip_to_gchar(ip),
 			statx_n(datapoints), statx_avg(datapoints), statx_sdev(datapoints));
 
-	if (statx_n(datapoints) >= MIN_DATA)
+	if (statx_n(datapoints) >= ENOUGH_DATA)
 		clock_adjust();
 }
 
