@@ -93,7 +93,8 @@ struct mesh_info_val {
 	gpointer cq_ev;					/* Scheduled cleanup callout event */
 };
 
-#define MESH_INFO_TIMEOUT	(600*1000)	/* Keep info 10 minutes (unit: ms) */
+/* Keep mesh info about uploaders for that long (unit: ms) */
+#define MESH_INFO_TIMEOUT	((PARQ_MAX_UL_RETRY_DELAY + PARQ_GRACE_TIME)*1000)
 
 extern cqueue_t *callout_queue;
 
@@ -105,8 +106,10 @@ static void upload_error_remove(gnutella_upload_t *u, struct shared_file *sf,
 static void upload_error_remove_ext(gnutella_upload_t *u,
 	struct shared_file *sf, const gchar *extended, int code,
 	const gchar *msg, ...);
-static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg);
-static void upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg);
+static void upload_http_sha1_add(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags);
+static void upload_http_xhost_add(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 static void upload_write(gpointer up, gint source, inputevt_cond_t cond);
 
 
@@ -1556,6 +1559,8 @@ static struct shared_file *get_file_to_upload_from_urn(
 		return NULL;
 	}
 
+	u->n2r = TRUE;		/* Remember we saw an N2R request */
+
 	if (1 != sscanf(urn + skip, "%32s", hash))
 		goto malformed;
 
@@ -1638,7 +1643,8 @@ static struct shared_file *get_file_to_upload(
  * This routine is called by http_send_status() to generate the
  * X-Host line (added to the HTTP status) into `buf'.
  */
-static void upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg)
+static void upload_http_xhost_add(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
 	gint rw = 0;
 	gint length = *retval;
@@ -1668,7 +1674,8 @@ static void upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg)
  * This routine is called by http_send_status() to generate the
  * SHA1-specific headers (added to the HTTP status) into `buf'.
  */
-static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
+static void upload_http_sha1_add(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
 	gint rw = 0;
 	gint length = *retval;
@@ -1677,14 +1684,33 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 	shared_file_t *sf = a->sf;
 	gint needed_room;
 	gint range_length;
+	time_t now = time(NULL);
+	guint32 last_sent;
+	gchar tmp[160];
+	gint mesh_len;
+	gboolean need_available_ranges = FALSE;
 
 	/*
 	 * Room for header + base32 SHA1 + crlf
+	 *
+	 * We don't send the SHA1 if we're short on bandwidth and they
+	 * made a request via the N2R resolver.  This will leave more room
+	 * for the mesh information.
+	 * NB: we use HTTP_CBF_BW_SATURATED, not HTTP_CBF_SMALL_REPLY on purpose.
+	 *
+	 * Also, if we sent mesh information for THIS upload, it means we're
+	 * facing a follow-up request and we don't need to send them the SHA1
+	 * again.
+	 *		--RAM, 18/10/2003
 	 */
 
 	needed_room = 33 + SHA1_BASE32_SIZE + 2;
 
-	if (length - rw > needed_room)
+	if (
+		length > needed_room &&
+		!((flags & HTTP_CBF_BW_SATURATED) && u->n2r) &&
+		u->last_dmesh == 0
+	)
 		rw += gm_snprintf(buf, length,
 			"X-Gnutella-Content-URN: urn:sha1:%s\r\n",
 			sha1_base32(a->sf->sha1_digest));
@@ -1694,38 +1720,80 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
 	 * PFSP-server: if they requested a partial file, let them know about
 	 * the set of available ranges.
 	 *
-	 * We do that before sending the alt-locs, because we're filling up as
-	 * much space as we can with alt-locs, and we would not have much room
-	 * left to emit the range list if we did it afterwards.
-	 *
-	 * Leave at least 160 bytes for alt-locs, just in case (enough for one
-	 * traditional URN location and several compact ones).
+	 * To know how much room we can use for ranges, try to see how much
+	 * locations we are going to fill.  In case we are under stringent
+	 * size control, it would be a shame to not emit ranges because we
+	 * want to leave size for alt-locs and yet there are none to emit!
 	 */
 
-	range_length = length - 160;
+	range_length = length - sizeof(tmp);
 
-	if (sf->fi != NULL && rw < range_length) {
+	/*
+	 * Because of possible persistent uplaods, we have to keep track on
+	 * the last time we sent download mesh information within the upload
+	 * itself: the time for them to download a range will be greater than
+	 * our expiration timer on the external mesh information.
+	 */
+
+	last_sent = u->last_dmesh ?
+		u->last_dmesh :
+		mi_get_stamp(u->socket->ip, sf->sha1_digest, now);
+
+	/*
+	 * Ranges are only emitted for partial files, so no pre-estimation of
+	 * the size of the mesh entries is needed when replying for a full file.
+	 *
+	 * However, we're not going to include the available ranges when we
+	 * are returning a 503 "busy" or "queued" indication, or any 4xx indication
+	 * since the data will be stale by the time it is needed.  We only dump
+	 * then when explicitly requested to do so.
+	 */
+
+	if (sf->fi != NULL && (flags & HTTP_CBF_SHOW_RANGES))
+		need_available_ranges = TRUE;
+
+	if (need_available_ranges) {
+		mesh_len = dmesh_alternate_location(
+			sf->sha1_digest, tmp, sizeof(tmp), u->socket->ip,
+			last_sent, u->user_agent, NULL);
+
+		if (mesh_len < sizeof(tmp) - 5)
+			range_length = length - mesh_len;	/* Leave more room for ranges */
+	} else
+		mesh_len = 1;			/* Try to emit alt-locs later */
+
+	/*
+	 * Emit the X-Available-Ranges: header if file is partial and we're
+	 * not returning a busy signal.
+	 */
+
+	if (need_available_ranges && rw < range_length) {
 		g_assert(pfsp_server);		/* Or we would not have a partial file */
 		rw += file_info_available_ranges(sf->fi, &buf[rw], range_length - rw);
 	}
 
-	if (rw < length) {
-		time_t now = time(NULL);
-		guint32 last_sent;
+	/*
+	 * Emit alt-locs only if there is anything to emit, using all the
+	 * remaining space, which may be larger than the room we tried to
+	 * emit locations to in the above pre-check, in case there was only
+	 * a little amount of ranges written!
+	 */
+
+	if (mesh_len > 0) {
+		gint maxlen = length - rw;
 
 		/*
-		 * Because of possible persistent uplaods, we have to keep track on
-		 * the last time we sent download mesh information within the upload
-		 * itself: the time for them to download a range will be greater than
-		 * our expiration timer on the external mesh information.
+		 * If we're trying to limit the reply size, limit the size of the mesh.
+		 * When we send X-Alt: locations, this leaves room for quite a few
+		 * locations nonetheless!
+		 *		--RAM, 18/10/2003
 		 */
 
-		last_sent = u->last_dmesh ?
-			u->last_dmesh :
-			mi_get_stamp(u->socket->ip, sf->sha1_digest, now);
+		if (flags & HTTP_CBF_SMALL_REPLY)
+			maxlen = MIN(maxlen, sizeof(tmp));
 
 		rw += dmesh_alternate_location(
-			sf->sha1_digest, &buf[rw], length - rw, u->socket->ip,
+			sf->sha1_digest, &buf[rw], maxlen, u->socket->ip,
 			last_sent, u->user_agent, NULL);
 
 		u->last_dmesh = now;
@@ -1740,7 +1808,8 @@ static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg)
  * This routine is called by http_send_status() to generate the
  * additionnal headers on a "416 Request range not satisfiable" error.
  */
-static void upload_416_extra(gchar *buf, gint *retval, gpointer arg)
+static void upload_416_extra(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
 	gint rw = 0;
 	gint length = *retval;
@@ -1761,7 +1830,8 @@ static void upload_416_extra(gchar *buf, gint *retval, gpointer arg)
  * This routine is called by http_send_status() to generate the
  * upload-specific headers into `buf'.
  */
-static void upload_http_status(gchar *buf, gint *retval, gpointer arg)
+static void upload_http_status(
+	gchar *buf, gint *retval, gpointer arg, guint32 flags)
 {
 	gint rw = 0;
 	gint length = *retval;
@@ -1795,7 +1865,7 @@ static void upload_http_status(gchar *buf, gint *retval, gpointer arg)
 		gint remain = length - rw;
 
 		if (remain > 0) {
-			upload_http_sha1_add(&buf[rw], &remain, arg);
+			upload_http_sha1_add(&buf[rw], &remain, arg, flags);
 			rw += remain;
 		}
 	}
