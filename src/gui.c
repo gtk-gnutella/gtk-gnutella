@@ -552,7 +552,7 @@ void gui_update_download(struct download *d, gboolean force)
 				s = (d->size - d->pos) / bs;
 				bs = bs / 1024.0;
 
-				slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f%% ", p);
+				slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.02f%% ", p);
 
 				if (now - d->last_update > IO_STALLED)
 					slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
@@ -574,7 +574,7 @@ void gui_update_download(struct download *d, gboolean force)
 					g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
 						"TR: %us", s);
 			} else
-				g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f%%", p);
+				g_snprintf(gui_tmp, sizeof(gui_tmp), "%.02f%%", p);
 
 			a = gui_tmp;
 		} else
@@ -638,7 +638,7 @@ void gui_update_upload(struct upload *u)
 		tr = ((u->end - u->pos + 1) -
 			  ((u->end - u->pos + 1) % 1024)) / 1024 / rate;
 
-		slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f%% [%s] ",
+		slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.02f%% [%s] ",
 			pc, short_size(requested));
 
 		if (time((time_t *) 0) - u->last_update > IO_STALLED)
