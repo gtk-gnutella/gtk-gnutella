@@ -1107,8 +1107,8 @@ static struct shared_file *get_file_to_upload_from_index(
 				printf("INDEX FIXED: requested %u, serving %u: %s\n",
 					index, sfn->file_index, sfn->file_path);
 			else
-				printf("INDEX MISMATCH: requested %u: %s (has %s)\n",
-					index, basename, sfn->file_name);
+				printf("INDEX MISMATCH (no fix): requested %u: %s\n",
+					index, basename);
 		}
 
 		if (sfn == NULL) {
