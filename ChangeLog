@@ -1,5 +1,13 @@
 # since last version
 
+- (2003.07.13 - RAM)
+ * Fixed ban_record(): could be using the wrong callout queue callback.
+ * Added ban_is_banned() to allow checking for the ban status without calling
+   ban_allow() which is only supposed to be called on new connections.
+ * When host refuses that we download from it, ban it for some time and kill
+   all its pending uploads.
+ * Don't send back QUEUE to a host that is banned.
+
 - (2003.07.12 - Jeroen)
  * PARQ doesn't like it when gets multiple requests for the same file from the
    same host while it is allready being upload to that host. Duplicate upload
@@ -10,7 +18,10 @@
 - (2003.07.09 - Jeroen)
  * PARQ: Uploads->parq pointers were only assigned during parq_upload_create.
          Pointer is now also set when a existing parq upload is rerequested.
-	 Pointer is removed as soon as PARQ strucuture is freed.
+         Pointer is removed as soon as PARQ strucuture is freed.
+
+- (2003.07.08 - RAM)
+ * Call setlocale() and determine proper codeset [Path from Stephane Corbe].
 
 - (2003.07.07 - Jeroen)
  * PARQ: Uploads contain a pointer to a parq structure now for fast lookups.
