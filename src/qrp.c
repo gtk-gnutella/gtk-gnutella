@@ -1975,6 +1975,13 @@ qrt_patch_compute(struct routing_table *rt, struct routing_patch **rpp)
 {
 	struct qrt_patch_context *ctx;
 
+	/*
+	 * Cancel computation if already active.
+	 */
+
+	if (qrt_patch_ctx != NULL)
+		qrt_patch_cancel_compute();
+
 	g_assert(qrt_patch_ctx == NULL);	/* No computation active */
 
 	gnet_prop_set_guint32_val(PROP_QRP_PATCH_TIMESTAMP, (guint32) time(NULL));
