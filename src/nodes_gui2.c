@@ -468,9 +468,12 @@ void nodes_gui_update_nodes_display(time_t now)
 	gint current_page;
 	static GtkNotebook *notebook = NULL;
     GtkTreeModel *model;
-	GtkTreeView *treeview;
 
-    if (last_update == now)
+    g_message("recorded changed: flags:%d  info:%d",
+        g_hash_table_size(ht_node_flags_changed),
+        g_hash_table_size(ht_node_info_changed));
+
+    if (last_update+2 > now)
         return;
 
 	/*
@@ -490,17 +493,24 @@ void nodes_gui_update_nodes_display(time_t now)
 
     last_update = now;
 
+#undef DO_FREEZE
+
+#ifdef DO_FREEZE
     /* "Freeze" view */
-	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
-    model = gtk_tree_view_get_model(treeview);
+    model = gtk_tree_view_get_model(treeview_nodes);
     g_object_ref(model);
-    gtk_tree_view_set_model(treeview, NULL);
+    gtk_tree_view_set_model(treeview_nodes, NULL);
+#endif
 
 	G_LIST_FOREACH(list_nodes, (GFunc) update_row, &now);
 
+#ifdef DO_FREEZE
     /* "Thaw" view */
-    gtk_tree_view_set_model(treeview, model);
+    gtk_tree_view_set_model(treeview_nodes, model);
     g_object_unref(model);
+#else
+    gtk_widget_queue_draw(GTK_WIDGET(treeview_nodes));
+#endif
 }
 
 /***
