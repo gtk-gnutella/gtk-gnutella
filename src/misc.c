@@ -6,6 +6,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <ctype.h>			/* For isalnum() */
 
 #include "gnutella.h"
 #include "nodes.h"
@@ -169,46 +170,63 @@ void message_dump(struct gnutella_node *n)
 	printf("\n");
 }
 
+/* Display header line for hex dumps */
+
+static void dump_hex_header(FILE *out)
+{
+	int i;
+	char *cols = "0123456789abcdef";
+
+	fputs("Offset ", out);
+	for (i = 0; i < 16; i++)
+		fprintf(out, " %c ", cols[i]);
+	fprintf(out, " %s\n", cols);
+}
+
 /* 
  * Displays hex & ascii lines to the terminal (for debug)
  * Displays the "title" then the characters in "s", # of bytes to print in "b"
  */
 
-void debug_show_hex(gchar * title, gchar * s, gint b)
+void dump_hex(FILE *out, gchar *title, gchar *s, gint b)
 {
 
 	int i, x, y, z, end;
 	char temp[18];
 
-	printf("----------------- %s\n", title);
-
 	if ((b < 1) || (s == NULL)) {		// check everything, this is for debug
-		printf("ERROR - debug_show_hex, value out of range\n");
-		fflush(stdout);
+		g_warning("dump_hex: value out of range\n");
+		fflush(out);
 		return;
 	}
 
+	fprintf(out, "----------------- %s:\n", title);
+
 	i = x = end = 0;
 	while (1) {
+		if ((x & 0xff) == 0) {					// i%256 == 0
+			if (x > 0)
+				fputc('\n', out);				// break after 256 byte chunk
+			dump_hex_header(out);
+		}
+		if (i == 0)
+			fprintf(out, "%5d  ", x & 0xffff);	// offset, lowest 16 bits
 		if (end) {
-			printf("   ");
+			fputs("   ", out);
 			temp[i] = ' ';
 		} else {
-			z = s[x] & 0x000000FF;
-			printf("%.2X ", z);
-			z = z & 0x0000007F; // hack off bit 7 for ASCII
-			if (z < 0x20)
+			z = s[x] & 0xff;
+			fprintf(out, "%.2X ", z);
+			if (!(isalnum(z) || ispunct(z)))
 				z = '.';		// no non printables
-			if (z == 0x7F)
-				z = '.';		// no DEL
 			temp[i] = z;		// save it for later ASCII print
 		}
 		if (++i >= 16) {
-			printf(" ");
+			fputc(' ', out);
 			for (y = 0; y < 16; y++) {	//do 16 bytes ASCII
-				printf("%c", temp[y]);
+				fputc(temp[y], out);
 			}
-			printf("\n");
+			fputc('\n', out);
 			if (end || ((x + 1) >= b))
 				break;
 			i = 0;
@@ -216,8 +234,8 @@ void debug_show_hex(gchar * title, gchar * s, gint b)
 		if (++x >= b)
 			end = 1;
 	}
-	printf("----------------- Bytes = %d\n", b);
-	fflush(stdout);
+	fprintf(out, "----------------- (%d bytes).\n", b);
+	fflush(out);
 }
 
 /* vi: set ts=4: */
