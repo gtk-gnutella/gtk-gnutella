@@ -247,8 +247,10 @@ void adns_init(void)
 	query.user_callback = user_callback;
 	query.user_data = user_data;
 	reply.ip = gchar_to_ip(hostname);
-	if (0 != reply.ip)
+	if (0 != reply.ip) {
 		query.user_callback(reply.ip, query.user_data);
+		return;
+	}
 
 	g_strlcpy(query.hostname, hostname, sizeof(query.hostname));
 	

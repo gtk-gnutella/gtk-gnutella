@@ -819,14 +819,7 @@ static struct gnutella_socket *socket_connect_finalize(
 	/* Set the file descriptor non blocking */
 	fcntl(s->file_desc, F_SETFL, O_NONBLOCK);
 
-	if (0 != s->gdk_tag) {
-		/* FIXME: There's already a callback registered. Can we really skip
-	 	 * socket_connected()? Can we put the callback into a queue? 
-	 	 */
-
-		g_warning("socket_connect_finalize: Skipping socket_connected()!");
-		return s;
-	}
+	g_assert(0 == s->gdk_tag);
 
 	if (proxy_protocol != PROXY_NONE)
 		s->gdk_tag = inputevt_add(s->file_desc,
