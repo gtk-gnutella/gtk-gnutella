@@ -578,6 +578,10 @@ static gboolean save_file_path_changed(property_t prop)
 
         return TRUE;
     }
+
+    if (s)
+        g_free(s);
+
     return FALSE;
 }
 
@@ -598,6 +602,10 @@ static gboolean move_file_path_changed(property_t prop)
 
         return TRUE;
     }
+    
+    if (s)
+        g_free(s);
+
     return FALSE;
 }
 
