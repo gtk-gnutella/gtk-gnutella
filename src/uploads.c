@@ -16,6 +16,7 @@
 #include "getline.h"
 #include "header.h"
 #include "hosts.h"		/* for check_valid_host() */
+#include "url.h"
 
 GSList *uploads = NULL;
 gint running_uploads = 0;
@@ -713,6 +714,9 @@ static void upload_request(struct upload *u, header_t *header)
 		 * If we serve the wrong file, and it's a resuming request, this will
 		 * result in a corrupted file!
 		 *		--RAM, 26/09/2001
+		 *
+		 * We now support URL-escaped queries.
+		 *		--RAM, 16/01/2002
 		 */
 
 		requested_file = shared_file(index);
@@ -721,6 +725,8 @@ static void upload_request(struct upload *u, header_t *header)
 
 		buf = request +
 			((request[0] == 'G') ? sizeof("GET /get/") : sizeof("HEAD /get/"));
+
+		(void) url_unescape(buf, TRUE);		/* Index is escape-safe anyway */
 
 		while ((c = *(guchar *) buf++) && c != '/')
 			/* empty */;

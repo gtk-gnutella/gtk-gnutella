@@ -12,6 +12,7 @@
 #include "getline.h"
 #include "header.h"
 #include "routing.h"
+#include "url.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -599,9 +600,10 @@ void download_start(struct download *d, gboolean check_allowed)
 		d->status = GTA_DL_CONNECTING;
 		d->socket = socket_connect(d->ip, d->port, GTA_TYPE_DOWNLOAD);
 
+		if (!DOWNLOAD_IS_VISIBLE(d))
+			download_gui_add(d);
+
 		if (!d->socket) {
-			if (!DOWNLOAD_IS_VISIBLE(d))
-				download_gui_add(d);
 			download_stop(d, GTA_DL_ERROR, "Connection failed");
 			return;
 		}
@@ -610,6 +612,10 @@ void download_start(struct download *d, gboolean check_allowed)
 		d->socket->pos = 0;
 	} else {					/* We have to send a push request */
 		d->status = GTA_DL_PUSH_SENT;
+
+		if (!DOWNLOAD_IS_VISIBLE(d))
+			download_gui_add(d);
+
 		download_push(d);
 	}
 
@@ -2064,7 +2070,6 @@ void download_push_ack(struct gnutella_socket *s)
 		printf("%s\n", giv);
 		printf("----\n");
 		fflush(stdout);
-		
 	}
 
 	/*
@@ -2219,17 +2224,23 @@ static void download_store(void)
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
+		gchar *escaped;
 
 		if (DOWNLOAD_IS_STOPPED(d))
 			continue;
 		if (DOWNLOAD_IS_IN_PUSH_MODE(d))
 			continue;
 
-		fprintf(out, "%s\n", d->file_name);
+		escaped = url_escape_cntrl(d->file_name);	/* Protect against "\n" */
+
+		fprintf(out, "%s\n", escaped);
 		fprintf(out, "%u, %u:%s, %s\n\n",
 			d->size,
 			d->record_index, guid_hex_str(d->guid),
 			ip_port_to_gchar(d->ip, d->port));
+
+		if (escaped != d->file_name)				/* Lazily dup'ed */
+			g_free(escaped);
 	}
 
 	if (0 != fclose(out))
@@ -2301,7 +2312,9 @@ static void download_retrieve(void)
 		switch (recline) {
 		case 1:						/* The file name */
 			(void) str_chomp(dl_tmp, 0);
-			d_name = g_strdup(dl_tmp);
+			d_name = url_unescape(dl_tmp, FALSE);	/* Would like new string */
+			if (d_name == dl_tmp)					/* Nothing to unescape */
+				d_name = g_strdup(dl_tmp);
 			continue;
 		case 2:						/* Other information */
 			break;

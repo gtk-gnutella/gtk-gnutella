@@ -44,16 +44,16 @@ guchar *url_escape(guchar *url)
 	gint c;
 	guchar *new;
 
-	for (p = url, c = *p; c; c = *p++)
+	for (p = url, c = *p++; c; c = *p++)
 		if (!TRANSPARENT(c))
 			need_escape++;
 
 	if (need_escape == 0)
 		return url;
 
-	new = g_malloc(p - url + (need_escape << 1) + 1);
+	new = g_malloc(p - url + (need_escape << 1));
 
-	for (p = url, q = new, c = *p; c; c = *p++) {
+	for (p = url, q = new, c = *p++; c; c = *p++) {
 		if (TRANSPARENT(c))
 			*q++ = c;
 		else {
@@ -82,14 +82,14 @@ guchar *url_escape_cntrl(guchar *url)
 	gint c;
 	guchar *new;
 
-	for (p = url, c = *p; c; c = *p++)
+	for (p = url, c = *p++; c; c = *p++)
 		if (iscntrl(c) || c == ESCAPE_CHAR)
 			need_escape++;
 
 	if (need_escape == 0)
 		return url;
 
-	new = g_malloc(p - url + (need_escape << 1) + 1);
+	new = g_malloc(p - url + (need_escape << 1));
 
 	for (p = url, q = new, c = *p; c; c = *p++) {
 		if (!iscntrl(c) && c != ESCAPE_CHAR)
@@ -121,7 +121,7 @@ guchar *url_unescape(guchar *url, gboolean inplace)
 	gint c;
 	guchar *new;
 
-	for (p = url, c = *p; c; c = *p++)
+	for (p = url, c = *p++; c; c = *p++)
 		if (c == ESCAPE_CHAR)
 			need_unescape++;
 
@@ -131,17 +131,18 @@ guchar *url_unescape(guchar *url, gboolean inplace)
 	if (inplace)
 		new = url;
 	else
-		new = g_malloc(p - url - (need_unescape << 1) + 1);
+		new = g_malloc(p - url - (need_unescape << 1));
 
-	for (p = url, q = new, c = *p; c; c = *p++) {
+	for (p = url, q = new, c = *p++; c; c = *p++) {
 		if (c != ESCAPE_CHAR)
 			*q++ = c;
 		else {
-			p++;					/* Skip escape character */
 			if ((c = *p++)) {
 				gint v = (hex2dec(c) << 4) & 0xf0;
-				if ((c = *p))
+				if ((c = *p++))
 					v += hex2dec(c) & 0x0f;
+				else
+					break;
 				*q++ = v;
 			} else
 				break;
