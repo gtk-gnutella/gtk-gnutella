@@ -166,8 +166,8 @@ guint32  proxy_ip     = 0x00000000;
 guint32  proxy_ip_def = 0x00000000;
 guint32  proxy_port     = 0x0000;
 guint32  proxy_port_def = 0x0000;
-guint32  proxy_protocol     = 0x0000;
-guint32  proxy_protocol_def = 0x0000;
+guint32  proxy_protocol     = PROXY_NONE;
+guint32  proxy_protocol_def = PROXY_NONE;
 prop_def_choice_t proxy_protocol_choices[] = { 
     {"None", PROXY_NONE},
     {"HTTP", PROXY_HTTP},
@@ -282,8 +282,8 @@ guint32  max_ultrapeers     = 3;
 guint32  max_ultrapeers_def = 3;
 guint32  max_leaves     = 100;
 guint32  max_leaves_def = 100;
-guint32  current_peermode     = 100;
-guint32  current_peermode_def = 100;
+guint32  current_peermode     = 1;
+guint32  current_peermode_def = 1;
 prop_def_choice_t current_peermode_choices[] = { 
     {"normal node", 1},
     {"leaf node", 0},
