@@ -3,7 +3,7 @@
  *
  * This file comes from RFC 3174. Inclusion in gtk-gnutella is:
  *
- *   Copyright (c) 2002, Raphael Manfredi
+ *   Copyright (c) 2002-2003, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.

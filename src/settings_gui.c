@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2002, Richard Eckart
+ * Copyright (c) 2001-2003, Richard Eckart
  *
  * Reflection of changes in backend or gui properties in the GUI.
  *

@@ -1,7 +1,7 @@
 /* 
  * $Id$
  *
- * Copyright (c) 2002, Alex Bennee <alex@bennee.com> & Raphael Manfredi
+ * Copyright (c) 2002-2003, Alex Bennee <alex@bennee.com> & Raphael Manfredi
  *
  * This file takes care of paceing search messages out at a rate
  * that doesn't flood the gnutella network. A search queue is

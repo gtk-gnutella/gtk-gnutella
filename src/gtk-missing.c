@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002, Richard Eckart
+ * Copyright (c) 2002-2003, Richard Eckart
  *
  * Functions that should be in gtk+-1.2 or gtk+-2.x but are not.
  *

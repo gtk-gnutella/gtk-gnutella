@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002, Raphael Manfredi
+ * Copyright (c) 2002-2003, Raphael Manfredi
  *
  * Handling of the (name, size) tuples.
  *

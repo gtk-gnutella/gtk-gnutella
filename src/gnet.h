@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2002, Raphael Manfredi, Richard Eckart
+ * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.

@@ -1,11 +1,11 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002, Raphael Manfredi
+ * Copyright (c) 2002-2003, Raphael Manfredi
  *
  * Callout queue.
  *
- * Copyright (c) 2001-2002, Raphael Manfredi
+ * Copyright (c) 2001-2003, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.

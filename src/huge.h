@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002, Ch. Tronche & Raphael Manfredi
+ * Copyright (c) 2002-2003, Ch. Tronche & Raphael Manfredi
  *
  * HUGE support (Hash/URN Gnutella Extension).
  *

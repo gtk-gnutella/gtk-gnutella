@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002, Richard Eckart
+ * Copyright (c) 2002-2003, Richard Eckart
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.

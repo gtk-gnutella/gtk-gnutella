@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2002, Raphael Manfredi
+ * Copyright (c) 2001-2003, Raphael Manfredi
  *
  * Handle downloads.
  *

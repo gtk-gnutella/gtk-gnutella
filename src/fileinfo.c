@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002, Vidar Madsen & Raphael Manfredi
+ * Copyright (c) 2002-2003, Vidar Madsen & Raphael Manfredi
  *
  * Structure for storing meta-information about files being
  * downloaded.
