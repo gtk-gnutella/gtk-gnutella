@@ -214,6 +214,7 @@ static gboolean spinbutton_output_bw_changed(property_t prop);
 static void update_output_bw_display(void);
 static void update_input_bw_display(void);
 static gboolean dl_http_latency_changed(property_t prop);
+static gboolean update_byte_size_entry(property_t prop);
 #ifdef USE_GTK1
 static gboolean compute_connection_speed_changed(property_t prop);
 #endif
@@ -1913,7 +1914,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_UL_BYTE_COUNT,
-        update_entry,
+        update_byte_size_entry,
         TRUE,
         "entry_ul_byte_count",
         FREQ_SECS, 1
@@ -1921,7 +1922,7 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_DL_BYTE_COUNT,
-        update_entry,
+        update_byte_size_entry,
         TRUE,
         "entry_dl_byte_count",
         FREQ_SECS, 1
@@ -2918,6 +2919,37 @@ static gboolean plug_icon_changed(property_t prop)
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tb), val_online_mode);
 
 	return FALSE;
+}
+
+static gboolean update_byte_size_entry(property_t prop)
+{
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+	guint64 value;
+	gchar buf[80];
+
+    if (!top)
+        return FALSE;
+
+    w = lookup_widget(top, map_entry->wid);
+
+    if (w == NULL) {
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]", 
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
+
+	gnet_prop_get_guint64_val(prop, &value);
+
+	gm_snprintf(buf, sizeof(buf), "%s (%s)",
+		short_size(value), stub->to_string(prop));
+
+    gtk_entry_set_text(GTK_ENTRY(w), buf);
+
+    return FALSE;
 }
 
 static gboolean current_peermode_changed(property_t prop)
