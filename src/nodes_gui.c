@@ -217,15 +217,14 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n)
         g_snprintf(gui_tmp, sizeof(gui_tmp), "%d.%d",
             n->proto_major, n->proto_minor);
         gtk_clist_set_text(clist, row, 3, gui_tmp);
-		if (status.status == GTA_NODE_CONNECTED) {
-	        gtk_clist_set_text(clist, row, 4, 
-    	    	status.connect_date ? 
-        			short_uptime(now - status.connect_date) : "...");
 
+		if (status.status == GTA_NODE_CONNECTED)
+	        gtk_clist_set_text(clist, row, 4, 
+       			short_uptime(now - status.connect_date));
+
+		if (status.up_date)
     	    gtk_clist_set_text(clist, row, 5, 
-	        	status.up_date ?
-        			short_uptime(now - status.up_date) : "...");
-		}
+	        	status.up_date ?  short_uptime(now - status.up_date) : "...");
 
         gtk_clist_set_text(clist, row, 6, nodes_gui_status_str(&status, now));
     } else {
@@ -370,17 +369,21 @@ void nodes_gui_update_nodes_display(time_t now)
 
         node_get_status(n, &status);
 
+		/*
+		 * Don't update times if we've already disconnected.
+		 */
+
 		if (status.status == GTA_NODE_CONNECTED) {
 	        gtk_clist_set_text(clist, row, 4, 
-    	    	status.connect_date ? 
-        			short_uptime(now - status.connect_date) : "...");
+        			short_uptime(now - status.connect_date));
 		
-	        gtk_clist_set_text(clist, row, 5, 
-    	    	status.up_date ?
-        			short_uptime(now - status.up_date) : "...");
+			if (status.up_date)
+				gtk_clist_set_text(clist, row, 5, 
+					status.up_date ?
+						short_uptime(now - status.up_date) : "...");
 		}
         gtk_clist_set_text(clist, row, 6, nodes_gui_status_str(&status, now));
     }
-
     gtk_clist_thaw(clist);
 }
+
