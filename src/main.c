@@ -318,29 +318,6 @@ static void sig_terminate(int n)
 		exit(1);				/* Terminate ASAP */
 }
 
-/*
- * sig_ignore
- *
- * This routine is meant as a workaround for some systems where a single
- * setting to SIG_IGN just won't do (e.g. on linux kernel 2.4.19-pre8-ben0).
- * Doing this is a little suboptimal, but we're not going to get hundreds of
- * SIGPIPE per second either.
- *		--RAM, 08/07/2002 (should fix bug #578151)
- */
-static void sig_ignore(int n)
-{
-#if 0 && !defined(SIGNALS_KEPT)
-/* This should be unnecessary due to using set_signal() instead of signal()
- *	-- cbiere, 2004-31-12
- */
-	gint saved_errno = errno;
-	signal(n, sig_ignore);
-	errno = saved_errno;
-#else
-	(void) n;
-#endif
-}
-
 /* FIXME: this is declared in search_gui.c and should be called in the
  *        main timer loop of the gui.
  */
@@ -548,8 +525,8 @@ gint main(gint argc, gchar **argv, gchar **env)
 	for (i = 3; i < 256; i++)
 		close(i);				/* Just in case */
 
-	set_signal(SIGINT, sig_ignore);	/* ignore SIGINT in adns (e.g. for gdb) */
-	set_signal(SIGPIPE, sig_ignore);	/* Not SIG_IGN, see comment */
+	set_signal(SIGINT, SIG_IGN);	/* ignore SIGINT in adns (e.g. for gdb) */
+	set_signal(SIGPIPE, SIG_IGN);
 
 #ifdef MALLOC_STATS
 	set_signal(SIGUSR1, sig_malloc);
@@ -636,7 +613,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	set_signal(SIGINT, sig_terminate);
 
 #ifdef SIGXFSZ
-	set_signal(SIGXFSZ, sig_ignore);
+	set_signal(SIGXFSZ, SIG_IGN);
 #endif
 
 	/* Setup the main timers */
