@@ -444,7 +444,7 @@ gint header_append(header_t *o, guchar *text, gint len)
 		 * If the buffer starts with a NUL char, it's also clearly malformed.
 		 */
 
-		g_assert(b > buf || (b == buf && *buf == '\0'));
+		g_assert(b > buf || (b == buf && *text == '\0'));
 
 		if (b == buf || *(b-1) != '\0') {
 			o->flags |= HEAD_F_SKIP;
