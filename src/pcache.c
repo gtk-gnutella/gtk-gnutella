@@ -327,6 +327,8 @@ static struct recent recent_pongs[HCACHE_MAX];
 #define OLD_PING_PERIOD		45		/* Pinging period for "old" clients */
 #define OLD_CACHE_RATIO		20		/* % of pongs from "old" clients we cache */
 #define RECENT_PING_SIZE	50		/* remember last 50 pongs we saw */
+#define MIN_UP_PING			3		/* ping at least 3 neighbours */
+#define UP_PING_RATIO		20		/* ping 20% of UP, at random */
 
 #define cache_lifespan(m)	\
 	((m) == NODE_P_LEAF ? CACHE_LEAF_LIFESPAN : CACHE_UP_LIFESPAN)
@@ -625,6 +627,22 @@ void pcache_close(void)
 static void ping_all_neighbours(time_t now)
 {
 	const GSList *sl;
+	GSList *may_ping = NULL;
+	GSList *to_ping = NULL;
+	gint ping_cnt = 0;
+	gint selected = 0;
+	gint left;
+
+	/*
+	 * Because nowadays the network has a higher outdegree for ultrapeers,
+	 * and because of the widespread use of X-Try-Ultrapeers headers, it is
+	 * less critical to use pings as a way to collect hosts.
+	 *
+	 * Therefore, don't ping all neighbours but only UP_PING_RATIO percent
+	 * of them, chosen at random, with at least MIN_UP_PING hosts chosen.
+	 *
+	 *		--RAM, 12/01/2004
+	 */
 
 	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
 		struct gnutella_node *n = (struct gnutella_node *) sl->data;
@@ -641,13 +659,36 @@ static void ping_all_neighbours(time_t now)
 		if (NODE_IN_TX_FLOW_CONTROL(n))
 			continue;
 
-		if (n->attrs & NODE_A_PONG_CACHING)
-			send_ping(n, my_ttl);
-		else if (now > n->next_ping) {
-			send_ping(n, my_ttl);
-			n->next_ping = now + OLD_PING_PERIOD;
+		if ((n->attrs & NODE_A_PONG_CACHING) || now > n->next_ping) {
+			may_ping = g_slist_prepend(may_ping, n);
+			ping_cnt++;
 		}
 	}
+
+	for (sl = may_ping, left = ping_cnt; sl; sl = g_slist_next(sl), left--) {
+		struct gnutella_node *n = (struct gnutella_node *) sl->data;
+
+		if (
+			ping_cnt <= MIN_UP_PING ||
+			(selected < MIN_UP_PING && left <= (MIN_UP_PING - selected)) ||
+			random_value(99) < UP_PING_RATIO 
+		) {
+			to_ping = g_slist_prepend(to_ping, n);
+			selected++;
+		}
+	}
+
+	for (sl = to_ping; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *n = (struct gnutella_node *) sl->data;
+
+		if (!(n->attrs & NODE_A_PONG_CACHING))
+			n->next_ping = now + OLD_PING_PERIOD;
+
+		send_ping(n, my_ttl);
+	}
+
+	g_slist_free(may_ping);
+	g_slist_free(to_ping);
 }
 
 /*
