@@ -1,5 +1,21 @@
 # since last version
 
+- (2004-09-19 - RAM)
+ * Automatically demote an Ultrapeer that appears to be TCP-firewalled.
+ * Fixed routing debugging logs.
+ * Added core -> UI bridge routine guc_statusbar_warning().
+ * New property "routing_debug" to control debugging for message routing.
+ * Warn them in the statusbar if they attempt to choose a non-leaf mode
+   and they are firewalled.
+ * [GTK1] [GTK2] Added GUI mapping for new "routing_debug" property.
+ * Implemented OOB-proxying of queries, when running as ultranode.
+ * Ammended the routing policy of queries to account for duplicate OOB-proxied
+   queries that would differ only in the IP:port of their MUID.
+ * New property "proxy_oob_queries" to control OOB-proxying by the ultranode.
+ * New general statistics: GNR_OOB_PROXIED_QUERY_HITS,
+   GNR_QUERY_OOB_PROXIED_DUPS and GNR_OOB_PROXIED_QUERIES.
+ * [GTK1] [GTK2] Added GUI mapping for new "proxy_oob_queries" property.
+
 - (2004-09-18 - RAM)
  * Must not reset n->socket after processing data from UDP node, since we
    can issue an UDP message at any time, therefore the n->socket must stay
@@ -8,6 +24,11 @@
    be duplicates with only the version number changing in the table, but
    this was forgotten and the table lists messages with different versions
    as different entries.  Caused it to not process UDP connect back correctly.
+ * Added more search statistics at the bottom of each search window.
+ * Drop OOB queries with a bad "return address" i.e. queries coming from a
+   neighbouring node and whose IP:port for return does not point back to the
+   issuing node.
+ * Strip OOB flag on queries whose return adddress is a private IP.
 
 - (2004-09-15 - RAM)
  * Was not accounting received queries and query hits for the UDP node.
