@@ -266,6 +266,7 @@ extern GSList *sl_unqueued;
  */
 
 void download_init(void);
+void download_restore_state(void);
 void download_timer(time_t now);
 void download_info_change_all(
 	struct dl_file_info *old_fi, struct dl_file_info *new_fi);
@@ -308,6 +309,7 @@ void download_move_done(struct download *d, time_t elapsed);
 void download_move_error(struct download *d);
 
 guint extract_retry_after(header_t *header);
+gboolean is_faked_download(struct download *d);
 
 #endif /* _downloads_h_ */
 

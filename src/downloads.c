@@ -286,7 +286,15 @@ void download_init(void)
 	dl_by_ip = g_hash_table_new(dl_ip_hash, dl_ip_eq);
 	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
 	dl_count_by_sha1 = g_hash_table_new(g_str_hash, g_str_equal);
+}
 
+/*
+ * download_restore_state
+ *
+ * Initialize downloading data structures.
+ */
+void download_restore_state(void)
+{
 	/*
 	 * The order of the following calls matters.
 	 */
@@ -298,6 +306,7 @@ void download_init(void)
 	download_resume_bg_tasks();				/* Reschedule SHA1 and moving */
 	file_info_store();
 }
+
 
 /* ----------------------------------------- */
 
@@ -762,8 +771,8 @@ void download_info_change_all(
 		}
 
 		g_assert(old_fi->refcount > 0);
-		old_fi->refcount--;
-		new_fi->refcount++;
+        file_info_unref(old_fi);
+        file_info_ref(new_fi);
 		d->file_info = new_fi;
 
 		d->flags &= ~DL_F_SUSPENDED;
@@ -800,7 +809,7 @@ static void download_info_reget(struct download *d)
 
 	fi = d->file_info = file_info_get(
 		d->file_name, save_file_path, d->file_size, d->sha1);
-	fi->refcount++;
+	file_info_ref(fi);
 	fi->lifecount++;
 
 	d->flags &= ~DL_F_SUSPENDED;
@@ -2478,7 +2487,7 @@ static void create_download(
 		d->flags |= DL_F_SUSPENDED;
 
 	d->file_info = fi;
-	fi->refcount++;
+    file_info_ref(fi);
 	fi->lifecount++;
 
 	download_add_to_list(d, DL_LIST_WAITING);
@@ -2675,7 +2684,7 @@ static struct download *download_clone(struct download *d)
 	cd->bio = NULL;						/* Recreated on each transfer */
 	cd->file_desc = -1;					/* File re-opened each time */
 	cd->socket->resource.download = cd;	/* Takes ownership of socket */
-	cd->file_info->refcount++;			/* Clone and original share same info */
+	file_info_ref(cd->file_info);		/* Clone and original share same info */
 	cd->file_info->lifecount++;			/* Both are still "alive" for now */
 	cd->list_idx = -1;
 	cd->file_name = atom_str_get(d->file_name);
@@ -6121,8 +6130,6 @@ void download_close(void)
 	g_slist_free(sl_downloads);
 	g_slist_free(sl_unqueued);
 	g_hash_table_destroy(pushed_downloads);
-
-	file_info_close();
 
 	// XXX free & check other hash tables as well.
 	// dl_by_ip, dl_by_host
