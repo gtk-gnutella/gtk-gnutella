@@ -28,6 +28,8 @@
 
 #include "gui.h"
 
+struct download;
+
 void gui_update_download(struct download *, gboolean);
 void gui_update_download_server(struct download *);
 void gui_update_download_range(struct download *d);
@@ -35,5 +37,7 @@ void gui_update_download_abort_resume(void);
 void gui_update_download_clear(void);
 void gui_update_download(struct download *, gboolean);
 
+void gui_update_c_downloads(gint, gint);
+void gui_update_queue_frozen();
 
 #endif /* __downloads_gui_h__ */

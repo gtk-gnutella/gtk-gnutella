@@ -25,30 +25,13 @@
 
 #include "downloads_gui.h"
 
+#include "downloads.h" // FIXME: remove this dependency
+#include "statusbar_gui.h"
+#include "downloads_cb.h"
+
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 
 static gchar tmpstr[4096];
-
-void gui_update_upload_kill(void)
-{
-	GList *l = NULL;
-	struct upload *d = NULL;
-    GtkCList *clist = GTK_CLIST
-        (lookup_widget(main_window, "clist_uploads"));
-
-	for (l = clist->selection; l; l = l->next) {
-		d = (struct upload *) gtk_clist_get_row_data(clist, (gint) l->data);
-		if (UPLOAD_IS_COMPLETE(d)) {
-			d = NULL;
-			break;
-		}
-	}
-
-	gtk_widget_set_sensitive
-        (lookup_widget(main_window, "button_uploads_kill"), d ? 1 : 0);
-}
-
-
 
 void gui_update_download_clear(void)
 {
@@ -269,4 +252,150 @@ void gui_update_download_range(struct download *d)
 
 	row = gtk_clist_find_row_from_data(clist_downloads,	(gpointer) d);
 	gtk_clist_set_text(clist_downloads, row, c_dl_range, tmpstr);
+}
+
+void gui_update_c_downloads(gint c, gint ec)
+{
+    GtkProgressBar *pg = GTK_PROGRESS_BAR
+        (lookup_widget(main_window, "progressbar_downloads"));
+    gfloat frac;
+
+	g_snprintf(tmpstr, sizeof(tmpstr), "%u/%u download%s", c, ec,
+			   (c == 1 && ec == 1) ? "" : "s");
+    
+    frac = MIN(c, ec) != 0 ? (float)MIN(c, ec) / ec : 0;
+
+    gtk_progress_bar_set_text(pg, tmpstr);
+    gtk_progress_bar_set_fraction(pg, frac);
+}
+
+void gui_update_download_abort_resume(void)
+{
+	struct download *d;
+	GList *l;
+    GtkCList *clist_downloads;
+	gboolean abort  = FALSE;
+    gboolean resume = FALSE;
+    gboolean remove = FALSE;
+    gboolean queue  = FALSE;
+    gboolean abort_sha1 = FALSE;
+
+    clist_downloads = GTK_CLIST(lookup_widget(main_window, "clist_downloads"));
+
+
+	for (l = clist_downloads->selection; l; l = l->next) {
+		d = (struct download *)
+			gtk_clist_get_row_data(clist_downloads, (gint) l->data);
+
+        if (!d) {
+			g_warning
+				("gui_update_download_abort_resume(): row %d has NULL data\n",
+				 (gint) l->data);
+			continue;
+		}
+
+		g_assert(d->status != GTA_DL_REMOVED);
+
+        if (d->status != GTA_DL_COMPLETED)
+            queue = TRUE;
+    
+        if (d->sha1 != NULL)
+            abort_sha1 = TRUE;
+
+		switch (d->status) {
+		case GTA_DL_QUEUED:
+			fprintf(stderr, "gui_update_download_abort_resume(): "
+				"found queued download '%s' in active download list !\n",
+				d->file_name);
+			continue;
+		case GTA_DL_CONNECTING:
+		case GTA_DL_PUSH_SENT:
+		case GTA_DL_FALLBACK:
+		case GTA_DL_REQ_SENT:
+		case GTA_DL_HEADERS:
+		case GTA_DL_RECEIVING:
+			abort = TRUE;
+			break;
+		case GTA_DL_ERROR:
+		case GTA_DL_ABORTED:
+			resume = TRUE;
+            /* only check if file exists if really necessary */
+            if (!remove && download_file_exists(d))
+                remove = TRUE;
+			break;
+		case GTA_DL_TIMEOUT_WAIT:
+			abort = resume = TRUE;
+			break;
+		}
+
+		if (abort & resume & remove)
+			break;
+	}
+
+	gtk_widget_set_sensitive
+        (lookup_widget(main_window, "button_downloads_abort"), abort);
+	gtk_widget_set_sensitive
+        (lookup_widget(popup_downloads, "popup_downloads_abort"), abort);
+    gtk_widget_set_sensitive
+        (lookup_widget(popup_downloads, "popup_downloads_abort_named"), abort);
+    gtk_widget_set_sensitive
+        (lookup_widget(popup_downloads, "popup_downloads_abort_host"), abort);
+    gtk_widget_set_sensitive(
+        lookup_widget(popup_downloads, "popup_downloads_abort_sha1"), 
+        abort_sha1);
+	gtk_widget_set_sensitive
+        (lookup_widget(main_window, "button_downloads_resume"), resume);
+	gtk_widget_set_sensitive
+        (lookup_widget(popup_downloads, "popup_downloads_resume"), resume);
+    gtk_widget_set_sensitive
+        (lookup_widget(popup_downloads, "popup_downloads_remove_file"), remove);
+    gtk_widget_set_sensitive
+        (lookup_widget(popup_downloads, "popup_downloads_queue"), queue);
+}
+
+void gui_update_queue_frozen()
+{
+    static gboolean msg_displayed = FALSE;
+    static statusbar_msgid_t id = {0, 0};
+
+    GtkWidget *togglebutton_queue_freeze;
+
+    togglebutton_queue_freeze =
+        lookup_widget(main_window, "togglebutton_queue_freeze");
+
+    if (gui_debug >= 3)
+	printf("frozen %i, msg %i\n", download_queue_is_frozen(),
+	    msg_displayed);
+
+    if (download_queue_is_frozen() > 0) {
+		gtk_label_set_text(
+            GTK_LABEL(GTK_BIN(togglebutton_queue_freeze)->child),
+			"Thaw queue");
+        if (!msg_displayed) {
+            msg_displayed = TRUE;
+          	id = statusbar_gui_message(0, "QUEUE FROZEN");
+        }
+    } else {
+		gtk_label_set_text(
+            GTK_LABEL(GTK_BIN(togglebutton_queue_freeze)->child),
+			"Freeze queue");
+        if (msg_displayed) {
+            msg_displayed = FALSE;
+            statusbar_gui_remove(id);
+        }
+	} 
+
+    gtk_signal_handler_block_by_func(
+        GTK_OBJECT(togglebutton_queue_freeze),
+        GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled),
+        NULL);
+
+    gtk_toggle_button_set_active(
+        GTK_TOGGLE_BUTTON(togglebutton_queue_freeze),
+        download_queue_is_frozen() > 0);
+    
+    gtk_signal_handler_unblock_by_func(
+        GTK_OBJECT(togglebutton_queue_freeze),
+        GTK_SIGNAL_FUNC(on_togglebutton_queue_freeze_toggled),
+        NULL);
 }

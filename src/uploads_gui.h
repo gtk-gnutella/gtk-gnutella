@@ -28,4 +28,11 @@
 
 #include "gui.h"
 
+struct upload;
+
+void gui_update_upload(struct upload *);
+void gui_update_upload_kill(void);
+
+void gui_update_c_uploads(void);
+
 #endif /* __uploads_gui_h__ */
