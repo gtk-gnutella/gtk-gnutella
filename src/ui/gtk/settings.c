@@ -4673,6 +4673,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_prefs_dialog,
+        PROP_USE_GLOBAL_HOSTILES_TXT,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_use_global_hostiles",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_prefs_dialog,
         PROP_PROXY_PROTOCOL,
         update_multichoice,
         TRUE,

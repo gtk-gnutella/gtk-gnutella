@@ -9691,6 +9691,7 @@ create_dlg_prefs_net_tab (void)
   GtkWidget *label_banned_count;
   GtkWidget *viewport471;
   GtkWidget *entry_config_max_banned_fd;
+  GtkWidget *checkbutton_use_global_hostiles;
   GtkWidget *label514;
   GtkWidget *table108;
   GtkWidget *frame83;
@@ -10046,7 +10047,7 @@ create_dlg_prefs_net_tab (void)
   gtk_box_pack_start (GTK_BOX (vbox24), frame_expert_nw_misc, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame_expert_nw_misc), 4);
 
-  table43 = gtk_table_new (3, 4, FALSE);
+  table43 = gtk_table_new (4, 4, FALSE);
   gtk_widget_set_name (table43, "table43");
   gtk_widget_show (table43);
   gtk_container_add (GTK_CONTAINER (frame_expert_nw_misc), table43);
@@ -10132,6 +10133,13 @@ create_dlg_prefs_net_tab (void)
   gtk_editable_set_editable (GTK_EDITABLE (entry_config_max_banned_fd), FALSE);
   gtk_entry_set_has_frame (GTK_ENTRY (entry_config_max_banned_fd), FALSE);
   gtk_entry_set_width_chars (GTK_ENTRY (entry_config_max_banned_fd), 6);
+
+  checkbutton_use_global_hostiles = gtk_check_button_new_with_mnemonic (_("Use global hostiles.txt"));
+  gtk_widget_set_name (checkbutton_use_global_hostiles, "checkbutton_use_global_hostiles");
+  gtk_widget_show (checkbutton_use_global_hostiles);
+  gtk_table_attach (GTK_TABLE (table43), checkbutton_use_global_hostiles, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label514 = gtk_label_new (_("Banning"));
   gtk_widget_set_name (label514, "label514");
@@ -10404,6 +10412,7 @@ create_dlg_prefs_net_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label_banned_count, "label_banned_count");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, viewport471, "viewport471");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, entry_config_max_banned_fd, "entry_config_max_banned_fd");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, checkbutton_use_global_hostiles, "checkbutton_use_global_hostiles");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, label514, "label514");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, table108, "table108");
   GLADE_HOOKUP_OBJECT (dlg_prefs_net_tab, frame83, "frame83");

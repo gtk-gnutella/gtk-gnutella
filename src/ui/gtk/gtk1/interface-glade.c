@@ -10446,6 +10446,7 @@ create_dlg_prefs (void)
   GtkWidget *label654;
   GtkWidget *frame120;
   GtkWidget *label_banned_count;
+  GtkWidget *checkbutton_use_global_hostiles;
   GtkWidget *frame80;
   GtkWidget *table62;
   guint checkbutton_host_runs_ntp_key;
@@ -11579,7 +11580,7 @@ create_dlg_prefs (void)
   gtk_widget_show (frame_expert_nw_misc);
   gtk_box_pack_start (GTK_BOX (vbox24), frame_expert_nw_misc, FALSE, TRUE, 0);
 
-  table48 = gtk_table_new (3, 4, FALSE);
+  table48 = gtk_table_new (4, 4, FALSE);
   gtk_widget_set_name (table48, "table48");
   gtk_widget_ref (table48);
   gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "table48", table48,
@@ -11697,6 +11698,16 @@ create_dlg_prefs (void)
   gtk_widget_show (label_banned_count);
   gtk_container_add (GTK_CONTAINER (frame120), label_banned_count);
   gtk_misc_set_padding (GTK_MISC (label_banned_count), 5, 0);
+
+  checkbutton_use_global_hostiles = gtk_check_button_new_with_label (_("Use global hostiles.txt"));
+  gtk_widget_set_name (checkbutton_use_global_hostiles, "checkbutton_use_global_hostiles");
+  gtk_widget_ref (checkbutton_use_global_hostiles);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_use_global_hostiles", checkbutton_use_global_hostiles,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_use_global_hostiles);
+  gtk_table_attach (GTK_TABLE (table48), checkbutton_use_global_hostiles, 0, 1, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   frame80 = gtk_frame_new (_("Clock synchronisation"));
   gtk_widget_set_name (frame80, "frame80");
