@@ -485,8 +485,9 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	if (v->done_initial > s.done) {
 		guc_fi_free_chunks(v->chunks_initial);
 		v->chunks_initial = vp_get_chunks_initial(fih);
-		v->done_initial = s.done;
+		v->done_initial = s.done; 
 	}
+	guc_fi_free_info(fi);
 
 	/*
 	 * Use the new chunks list to create a composite with the initial
