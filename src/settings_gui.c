@@ -286,6 +286,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_search_jump_to_downloads"
     },
+#ifndef USE_GTK2
     {
         get_main_window,
         PROP_NODES_COL_WIDTHS,
@@ -293,6 +294,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_nodes"
     },
+#endif
     {
         get_main_window,
         PROP_DL_ACTIVE_COL_WIDTHS,
@@ -1280,6 +1282,12 @@ static gboolean update_entry(property_t prop)
         return FALSE;
 
     w = lookup_widget(top, map_entry->wid);
+
+    if (w == NULL) {
+        g_warning("%s - widget not found: [%s]", 
+             G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
    
     switch (map_entry->type) {
         case PROP_TYPE_GUINT32: {
@@ -1328,6 +1336,12 @@ static gboolean update_spinbutton(property_t prop)
         return FALSE;
 
     w = lookup_widget(top, map_entry->wid);
+
+    if (w == NULL) {
+        g_warning("%s - widget not found: [%s]", 
+             G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
    
     switch (map_entry->type) {
         case PROP_TYPE_GUINT32:
@@ -1357,6 +1371,12 @@ static gboolean update_togglebutton(property_t prop)
         return FALSE;
 
     w = lookup_widget(top, map_entry->wid);
+
+    if (w == NULL) {
+        g_warning("%s - widget not found: [%s]", 
+             G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
    
     switch (map_entry->type) {
         case PROP_TYPE_BOOLEAN:
@@ -1385,6 +1405,12 @@ static gboolean update_split_pane(property_t prop)
         return FALSE;
 
     w = lookup_widget(top, map_entry->wid);
+
+    if (w == NULL) {
+        g_warning("%s - widget not found: [%s]", 
+             G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
     
     switch (map_entry->type) {
         case PROP_TYPE_GUINT32:
@@ -1413,8 +1439,13 @@ static gboolean update_clist_col_widths(property_t prop)
         return FALSE;
 
     w = lookup_widget(top, map_entry->wid);
-    g_assert(w != NULL);
-    
+
+    if (w == NULL) {
+        g_warning("%s - widget not found: [%s]", 
+             G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
+
     switch (map_entry->type) {
         case PROP_TYPE_GUINT32: {
             gint n = 0;
@@ -1451,9 +1482,12 @@ static gboolean update_window_geometry(property_t prop)
 
     w = top;
     
-    if (!w->window)
+    if (!w->window) {
+        g_warning("%s - top level window not available (NULL)", 
+             G_GNUC_PRETTY_FUNCTION);
         return FALSE;
-    
+    }
+ 
     switch (map_entry->type) {
         case PROP_TYPE_GUINT32: {
             guint32 geo[4];
@@ -1491,6 +1525,12 @@ static gboolean update_bandwidth_spinbutton(property_t prop)
         return FALSE;
 
     w = lookup_widget(top, map_entry->wid);
+
+    if (w == NULL) {
+        g_warning("%s - widget not found: [%s]", 
+             G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
    
     switch (map_entry->type) {
         case PROP_TYPE_GUINT32:
@@ -2156,6 +2196,8 @@ static gboolean expert_mode_changed(property_t prop)
     };
     gint n;
     gboolean b;
+
+    update_togglebutton(prop);
 
     gui_prop_get_boolean(prop, &b, 0, 1);
 
