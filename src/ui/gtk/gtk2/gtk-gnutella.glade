@@ -8344,6 +8344,7 @@ http://maxmind.com/</property>
 
 		  <child>
 		    <widget class="GtkLabel" id="label655">
+		      <property name="visible">True</property>
 		      <property name="label" translatable="yes">Re_try search every</property>
 		      <property name="use_underline">True</property>
 		      <property name="use_markup">False</property>
@@ -8365,6 +8366,7 @@ http://maxmind.com/</property>
 
 		  <child>
 		    <widget class="GtkSpinButton" id="spinbutton_search_reissue_timeout">
+		      <property name="visible">True</property>
 		      <property name="can_focus">True</property>
 		      <property name="climb_rate">1</property>
 		      <property name="digits">0</property>
@@ -8372,7 +8374,7 @@ http://maxmind.com/</property>
 		      <property name="update_policy">GTK_UPDATE_ALWAYS</property>
 		      <property name="snap_to_ticks">False</property>
 		      <property name="wrap">False</property>
-		      <property name="adjustment">600 600 100000 60 600 600</property>
+		      <property name="adjustment">600 0 100000 60 600 600</property>
 		      <signal name="changed" handler="on_spinbutton_search_reissue_timeout_changed" after="yes" last_modification_time="Thu, 12 Sep 2002 14:26:02 GMT"/>
 		    </widget>
 		    <packing>
@@ -8384,6 +8386,7 @@ http://maxmind.com/</property>
 
 		  <child>
 		    <widget class="GtkLabel" id="label_search_reissue">
+		      <property name="visible">True</property>
 		      <property name="label" translatable="yes">secs   </property>
 		      <property name="use_underline">False</property>
 		      <property name="use_markup">False</property>

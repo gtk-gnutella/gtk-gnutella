@@ -2110,7 +2110,6 @@ expert_mode_changed(property_t prop)
     static const gchar *expert_widgets_main[] = {
         "button_search_passive",
         "frame_expert_node_info",
-        "hbox_expert_search_timeout",
 		NULL
 	};
 	static const gchar *expert_widgets_prefs[] = {
@@ -2132,21 +2131,20 @@ expert_mode_changed(property_t prop)
         "frame_expert_oob_queries",
         NULL
     };
-
     gint n;
-    gboolean b;
+    gboolean expert, override;
+	GtkWidget *w;
 
     update_togglebutton(prop);
-    gui_prop_get_boolean_val(prop, &b);
+    gui_prop_get_boolean_val(prop, &expert);
 
 	/* Enable/Disable main_window expert widgets */
     for (n = 0; expert_widgets_main[n] != NULL; n++) {
-        GtkWidget *w = lookup_widget(main_window, expert_widgets_main[n]);
-
+       w = lookup_widget(main_window, expert_widgets_main[n]);
        if (w == NULL)
 			continue;
 
-        if (b)
+        if (expert)
             gtk_widget_show(w);
         else
             gtk_widget_hide(w);
@@ -2154,17 +2152,23 @@ expert_mode_changed(property_t prop)
 
 	/* Enable/Disable preferences dialog expert widgets */
     for (n = 0; expert_widgets_prefs[n] != NULL; n++) {
-        GtkWidget *w = lookup_widget(dlg_prefs, expert_widgets_prefs[n]);
-
+       w = lookup_widget(dlg_prefs, expert_widgets_prefs[n]);
        if (w == NULL)
 			continue;
 
-        if (b)
+        if (expert)
             gtk_widget_show(w);
         else
             gtk_widget_hide(w);
     }
 
+	gnet_prop_get_boolean_val(PROP_ALLOW_DANGEROUS_BUGS, &override);
+    w = lookup_widget(main_window, "hbox_expert_search_timeout");
+    if (expert && override)
+      gtk_widget_show(w);
+    else
+      gtk_widget_hide(w);
+ 
     return FALSE;
 }
 
@@ -5520,7 +5524,6 @@ void
 settings_gui_init(void)
 {
     gint n;
-	gboolean override;
 
     gui_prop_set_stub = gui_prop_get_stub();
     gnet_prop_set_stub = gnet_prop_get_stub();
@@ -5560,23 +5563,6 @@ settings_gui_init(void)
 		gtk_widget_set_sensitive(w, FALSE);
 	}
 #endif
-
-	gnet_prop_get_boolean_val(PROP_ALLOW_DANGEROUS_BUGS, &override);
-	if (override) {
-		gchar *names[] = {
-			"search_reissue_label",
-			"spinbutton_search_reissue_timeout",
-			"label_search_reissue",
-			NULL,
-		};
-		gchar **n;
-		
-		for (n = names; *n; n++) {
-			GtkWidget *w = lookup_widget(main_window, *n);
-			g_assert(w != NULL);
-			gtk_widget_show(w);
-		}
-	}
 }
 
 void

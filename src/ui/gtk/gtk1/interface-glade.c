@@ -4013,15 +4013,17 @@ create_main_window (void)
   gtk_widget_ref (search_reissue_label);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "search_reissue_label", search_reissue_label,
                             (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (search_reissue_label);
   gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), search_reissue_label, FALSE, FALSE, 0);
   gtk_misc_set_alignment (GTK_MISC (search_reissue_label), 1, 0.5);
 
-  spinbutton_search_reissue_timeout_adj = gtk_adjustment_new (600, 600, 100000, 60, 600, 600);
+  spinbutton_search_reissue_timeout_adj = gtk_adjustment_new (600, 0, 100000, 60, 600, 600);
   spinbutton_search_reissue_timeout = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_search_reissue_timeout_adj), 1, 0);
   gtk_widget_set_name (spinbutton_search_reissue_timeout, "spinbutton_search_reissue_timeout");
   gtk_widget_ref (spinbutton_search_reissue_timeout);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_search_reissue_timeout", spinbutton_search_reissue_timeout,
                             (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_search_reissue_timeout);
   gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), spinbutton_search_reissue_timeout, TRUE, TRUE, 0);
   gtk_widget_set_usize (spinbutton_search_reissue_timeout, 70, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_search_reissue_timeout), TRUE);
@@ -4031,6 +4033,7 @@ create_main_window (void)
   gtk_widget_ref (label_search_reissue);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_search_reissue", label_search_reissue,
                             (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_search_reissue);
   gtk_box_pack_start (GTK_BOX (hbox_expert_search_timeout), label_search_reissue, FALSE, FALSE, 0);
 
   hbox181 = gtk_hbox_new (FALSE, 4);

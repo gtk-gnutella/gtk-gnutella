@@ -5659,7 +5659,6 @@
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>search_reissue_label</name>
-		    <visible>False</visible>
 		    <label>Re_try search every</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
@@ -5679,7 +5678,6 @@
 		    <class>GtkSpinButton</class>
 		    <name>spinbutton_search_reissue_timeout</name>
 		    <width>70</width>
-		    <visible>False</visible>
 		    <can_focus>True</can_focus>
 		    <signal>
 		      <name>changed</name>
@@ -5694,7 +5692,7 @@
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>600</value>
-		    <lower>600</lower>
+		    <lower>0</lower>
 		    <upper>100000</upper>
 		    <step>60</step>
 		    <page>600</page>
@@ -5709,7 +5707,6 @@
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label_search_reissue</name>
-		    <visible>False</visible>
 		    <label>secs   </label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
