@@ -1431,22 +1431,26 @@ static gboolean download_start_prepare(struct download *d)
 		g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s",
 			move_file_path, d->output_name);
 
-		if (stat(dl_dest, &st) != -1 && st.st_size < d->size) {
-			if (-1 == rename(dl_dest, dl_tmp))
-				g_warning("cannot move incomplete \"%s\" back to "
-					"download dir: %s", dl_dest, g_strerror(errno));
-			else {
-				if (st.st_size > download_overlap_range)
-					d->skip = st.st_size;
-				g_warning("moved incomplete \"%s\" back to download dir",
-					d->output_name);
-			}
+		if (stat(dl_dest, &st) != -1) {		/* File exists in "done" dir */
+			if (st.st_size < d->size) {		/* And is smaller */
+				if (-1 == rename(dl_dest, dl_tmp))
+					g_warning("cannot move incomplete \"%s\" back to "
+						"download dir: %s", dl_dest, g_strerror(errno));
+				else {
+					if (st.st_size > download_overlap_range)
+						d->skip = st.st_size;
+					g_warning("moved incomplete \"%s\" back to download dir",
+						d->output_name);
+				}
+			} else
+				d->skip = st.st_size;		/* "done" file is larger */
 		}
 	}
 
 	d->pos = d->skip;
 	d->last_update = time((time_t *) NULL);
-	d->overlap_size = (d->skip == 0) ? 0 : download_overlap_range;
+	d->overlap_size = (d->skip == 0 || d->size <= d->pos) ?
+		0 : download_overlap_range;
 
 	g_assert(d->overlap_size == 0 || d->skip > d->overlap_size);
 
