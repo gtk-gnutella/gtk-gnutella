@@ -54,7 +54,7 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "Route lost",
     "No route",
     "Duplicate message",
-    "Message from banned host",
+    "Message to banned GUID",
     "Node shutting down",
     "Flow control",
     "Query text had no trailing NUL",
