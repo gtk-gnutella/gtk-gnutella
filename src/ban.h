@@ -39,7 +39,7 @@ void ban_force(struct gnutella_socket *s);
 gint ban_delay(guint32 ip);
 void ban_max_recompute(void);
 
-gchar *ban_vendor(gchar *vendor, gchar *token);
+gchar *ban_vendor(gchar *vendor);
 
 /*
  * Return codes for ban_allow().

@@ -2499,7 +2499,6 @@ static void node_process_handshake_header(
 	gchar *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
 	gchar *compressing = "Content-Encoding: deflate\r\n";
 	gchar *empty = "";
-	gchar *token = NULL;
 
 	g_assert(!(n->flags & NODE_F_TMP));	/* 0.6 connections no longer "tmp" */
 
@@ -2526,14 +2525,11 @@ static void node_process_handshake_header(
 	 * Handle common header fields, non servent-specific.
 	 */
 
-	/* X-Token -- marks gtk-gnutella versions */
-
-	token = header_get(head, "X-Token");
-
 	/* User-Agent -- servent vendor identification */
 
 	field = header_get(head, "User-Agent");
 	if (field) {
+		gchar *token = header_get(head, "X-Token");
 		if (!version_check(field, token))
 			n->flags |= NODE_F_FAKE_NAME;
         node_set_vendor(n, field);
@@ -2752,7 +2748,7 @@ static void node_process_handshake_header(
 	 */
 
 	if (n->vendor) {
-		gchar *msg = ban_vendor(n->vendor, token);
+		gchar *msg = ban_vendor(n->vendor);
 
 		if (msg != NULL) {
 			send_node_error(n->socket, 403, msg);

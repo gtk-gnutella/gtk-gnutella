@@ -1773,7 +1773,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	if (user_agent) {
-		gchar *msg = ban_vendor(user_agent, token);
+		gchar *msg = ban_vendor(user_agent);
 
 		if (msg != NULL) {
 			upload_error_remove(u, NULL, 403, msg);

@@ -438,12 +438,28 @@ static gchar *too_old = "Outdated version, please upgrade";
  * is exceptional, usually restricted to some versions and the servent's author
  * is informed about the banning.
  *
- * `token' is an optional parameter, which should only be given for GTKG.
- *
  * Returns NULL if we shall not ban, a banning reason string otherwise.
  */
-gchar *ban_vendor(gchar *vendor, gchar *token)
+gchar *ban_vendor(gchar *vendor)
 {
+	gboolean is_gtkg = FALSE;
+
+#define GTKG_NAME	"gtk-gnutella/"
+#define GTKG_LEN	(sizeof(GTKG_NAME) - 1)
+
+	/*
+	 * If vendor starts with "!gtk-gnutella", skip the leading '!' for
+	 * our tests here.
+	 */
+
+	if (
+		vendor[0] == '!' &&
+		0 == strncmp(vendor + 1, GTKG_NAME, GTKG_LEN)
+	) {
+		vendor++;
+		is_gtkg = TRUE;
+	}
+
 	/*
 	 * Ban gtk-gnutella/0.90 from the network.  This servent had
 	 * bugs that could corrupt the traffic.  Also ban 0.91u.
@@ -454,12 +470,9 @@ gchar *ban_vendor(gchar *vendor, gchar *token)
 	 *		--RAM, 03/01/2002.
 	 */
 
-#define GTKG_NAME	"gtk-gnutella/"
-#define GTKG_LEN	(sizeof(GTKG_NAME) - 1)
-
 	if (
 		vendor[0] == 'g' &&
-		0 == strncmp(vendor, GTKG_NAME, GTKG_LEN)
+		(is_gtkg || 0 == strncmp(vendor, GTKG_NAME, GTKG_LEN))
 	) {
 		if (
 			0 == strncmp(vendor + GTKG_LEN, "0.90", 4) ||
@@ -470,10 +483,8 @@ gchar *ban_vendor(gchar *vendor, gchar *token)
 		if (version_is_too_old(vendor))
 			return too_old;
 
-	} else if (token != NULL)
-		g_warning("vendor \"%s\" used an X-Token header set to \"%s\"",
-			vendor, token);
-
+		return NULL;
+	}
 
 #undef GTKG_NAME
 #undef GTKG_LEN
@@ -490,6 +501,8 @@ gchar *ban_vendor(gchar *vendor, gchar *token)
 				return harmful;
 		} else if (0 == strncmp(vendor, GTKG_NAME, GTKG_LEN))
 			return refused;
+
+		return NULL;
 	}
 
 #undef GNUC_NAME
