@@ -441,7 +441,6 @@ static void got_match(struct shared_file *sf)
 
 void search_request(struct gnutella_node *n)
 {
-
 	guchar found_files = 0;
 	guint32 pos, pl;
 	guint16 req_speed;
@@ -455,12 +454,57 @@ void search_request(struct gnutella_node *n)
 
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
+	 *
+	 * We can't simply check the last byte, because there can be extensions
+	 * at the end of the query after the first NUL.  So we need to scan the
+	 * string.  Note that we use this scanning opportunity to also compute
+	 * the search string length.
+	 *		--RAN, 21/12/2001
 	 */
 
-	if (n->data[n->size - 1]) {
-		g_warning("search request (hops=%d, ttl=%d) was not NUL terminated",
-			n->header.hops, n->header.ttl);
-		n->data[n->size - 1] = '\0';
+	search = n->data + 2;
+	search_len = 0;
+
+	/* open a block, since C doesn't allow variables to be declared anywhere */
+	{
+		gchar *s = search;
+		guint32 max_len = n->size - 3;		/* Payload size - Speed - NUL */
+
+		while (search_len <= max_len && *s++)
+			search_len++;
+
+		if (search_len > max_len) {
+			g_warning("search request (hops=%d, ttl=%d) had no NUL (%d byte%s)",
+				n->header.hops, n->header.ttl, n->size - 2,
+				n->size == 3 ? "" : "s");
+			g_assert(n->data[n->size - 1] != '\0');
+			if (dbg > 4)
+				dump_hex(stderr, "Search Text", search, MIN(n->size - 2, 256));
+			n->data[n->size - 1] = '\0';	/* Force a NUL */
+			search_len = max_len;			/* And we truncated it */
+		}
+
+		/* We can now use `search' safely as a C string: it embeds a NUL */
+	}
+
+	/*
+	 * We don't handle extra search data yet, but trace them.
+	 *
+	 * We ignore double-NULs on search (i.e. one extra byte and it's NUL).
+	 * This is not needed, but some servent do so.
+	 */
+
+	if (search_len + 3 != n->size) {
+		gint extra = n->size - 3 - search_len;		/* Amount of extra data */
+		if (extra != 1 && search[search_len+1] != '\0') {
+			/* Not a double NUL */
+			g_warning("search request (hops=%d, ttl=%d) "
+				"has %d extra byte%s after NUL",
+				n->header.hops, n->header.ttl, extra, extra == 1 ? "" : "s");
+			if (dbg > 4)
+				dump_hex(stderr, "Extra Query Data", &search[search_len+1],
+					MIN(extra, 256));
+		}
 	}
 
 	if (monitor_enabled) {		/* Update the search monitor */
@@ -502,9 +546,6 @@ void search_request(struct gnutella_node *n)
 
 	if (n->header.hops > max_ttl)
 		return;
-
-	search = n->data + 2;
-	search_len = strlen(search);
 
 	if (search_len <= 1)
 		return;

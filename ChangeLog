@@ -17,6 +17,8 @@
 - Started to reorganize GUI/callbacks in search.c, moving relevant code to
   callbacks.c and gui.c.  There is still a fair amount of mixing between the
   GUI stuff and the program logic, requiring further fine tuning.
+- Rewrote NUL detection logic in search query, and now dumps yet unhandled
+  extra query data
 
 # v 0.18   2001.11.19
 
