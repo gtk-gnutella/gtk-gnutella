@@ -673,11 +673,12 @@ static void download_info_reget(struct download *d)
 
 	g_assert(fi);
 	g_assert(fi->lifecount > 0);
+	g_assert(fi->lifecount <= fi->refcount);
 
 	downloads_with_name_dec(fi->file_name);		/* File name can change! */
 
 	fi->lifecount--;
-	file_info_free(fi);
+	file_info_free(fi, FALSE);					/* Keep it around for others */
 
 	fi = d->file_info = file_info_get(
 		d->file_name, save_file_path, d->file_size, d->sha1);
@@ -827,8 +828,19 @@ gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 		}
 	}
 
-	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
-		download_abort((struct download *)sl->data);
+	/*
+	 * Abort all requested downloads, and mark their fileinfo as "discard"
+	 * so that we reclaim it when the last reference is gone: if we came
+	 * here, it means they are no longer interested in that file, so it's
+	 * no use to keep it around for "alternate" source location matching.
+	 *		--RAM, 05/11/2002
+	 */
+
+	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+		struct download *d = (struct download *) sl->data;
+		file_info_set_discard(d->file_info, TRUE);
+		download_abort(d);
+	}
 
 	g_slist_free(to_remove);
 
@@ -867,8 +879,19 @@ gint download_remove_all_named(const gchar *name)
         to_remove = g_slist_prepend(to_remove, d);
 	}
 
-    for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
-        download_abort((struct download *)sl->data);
+	/*
+	 * Abort all requested downloads, and mark their fileinfo as "discard"
+	 * so that we reclaim it when the last reference is gone: if we came
+	 * here, it means they are no longer interested in that file, so it's
+	 * no use to keep it around for "alternate" source location matching.
+	 *		--RAM, 05/11/2002
+	 */
+
+    for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+		struct download *d = (struct download *) sl->data;
+		file_info_set_discard(d->file_info, TRUE);
+        download_abort(d);
+	}
 
     g_slist_free(to_remove);
 
@@ -908,8 +931,19 @@ gint download_remove_all_with_sha1(const guchar *sha1)
         to_remove = g_slist_prepend(to_remove, d);
 	}
 
-    for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
-        download_abort((struct download *)sl->data);
+	/*
+	 * Abort all requested downloads, and mark their fileinfo as "discard"
+	 * so that we reclaim it when the last reference is gone: if we came
+	 * here, it means they are no longer interested in that file, so it's
+	 * no use to keep it around for "alternate" source location matching.
+	 *		--RAM, 05/11/2002
+	 */
+
+    for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
+		struct download *d = (struct download *) sl->data;
+		file_info_set_discard(d->file_info, TRUE);
+        download_abort(d);
+	}
 
     g_slist_free(to_remove);
 
@@ -1330,6 +1364,7 @@ void download_stop(struct download *d, guint32 new_status,
 	case GTA_DL_COMPLETED:
 	case GTA_DL_ABORTED:
 	case GTA_DL_ERROR:
+		g_assert(d->file_info->lifecount <= d->file_info->refcount);
 		g_assert(d->file_info->lifecount > 0);
 		d->file_info->lifecount--;
 		break;
@@ -1454,6 +1489,8 @@ void download_queue(struct download *d, const gchar *fmt, ...)
 	g_assert(d->file_info);
 	g_assert(d->file_info->refcount > 0);
 	g_assert(d->file_info->lifecount > 0);
+	g_assert(d->file_info->lifecount <= d->file_info->refcount);
+	g_assert(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
 
 	va_start(args, fmt);
 	download_queue_v(d, fmt, args);
@@ -1694,10 +1731,22 @@ static gboolean download_ignore_requested(struct download *d)
 	if ((reason = ignore_is_requested(fi->file_name, fi->size, fi->sha1))) {
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
+
 		download_stop(d, GTA_DL_ERROR, "Ignoring requested (%s)",
 			reason == IGNORE_SHA1 ? "SHA1" :
 			reason == IGNORE_LIBRARY ? "Already Owned" : "Name & Size");
+
+		/*
+		 * Since we're ignoring this file, make sure we don't keep any
+		 * track of it on disk: dispose of the fileinfo when the last
+		 * reference will be removed, remove all known downloads from the
+		 * queue and delete the file.
+		 */
+
+		file_info_set_discard(d->file_info, TRUE);
 		queue_remove_downloads_with_file(fi, d);
+		download_remove_file(d);
+
 		return TRUE;
 	}
 
@@ -1882,6 +1931,8 @@ void download_start(struct download *d, gboolean check_allowed)
 	g_assert(d->file_info);
 	g_assert(d->file_info->refcount > 0);
 	g_assert(d->file_info->lifecount > 0);
+	g_assert(d->file_info->lifecount <= d->file_info->refcount);
+	g_assert(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
 
 	/*
 	 * If caller did not check whether we were allowed to start downloading
@@ -1905,6 +1956,7 @@ void download_start(struct download *d, gboolean check_allowed)
 	g_assert(d->list_idx == DL_LIST_RUNNING);	/* Moved to "running" list */
 	g_assert(d->file_info->refcount > 0);		/* Still alive */
 	g_assert(d->file_info->lifecount > 0);
+	g_assert(d->file_info->lifecount <= d->file_info->refcount);
 
 	if ((is_firewalled || !send_pushes) && d->push)
 		download_push_remove(d);
@@ -2211,6 +2263,7 @@ static void create_download(
 	struct dl_server *server;
 	struct download *d;
 	gchar *file_name = interactive ? atom_str_get(file) : file;
+	struct dl_file_info *fi;
 
 	/*
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
@@ -2223,8 +2276,8 @@ static void create_download(
 		return;
 	}
 
-	if (!file_info)
-		file_info = file_info_get(file_name, save_file_path, size, sha1);
+	fi = file_info == NULL ?
+		file_info_get(file_name, save_file_path, size, sha1) : file_info;
 
 	/*
 	 * Initialize download, creating new server if needed.
@@ -2277,12 +2330,12 @@ static void create_download(
 	 * schedule them: we wait for the outcome of the SHA1 verification process.
 	 */
 
-	if (file_info->flags & FI_F_SUSPEND)
+	if (fi->flags & FI_F_SUSPEND)
 		d->flags |= DL_F_SUSPENDED;
 
-	d->file_info = file_info;
-	file_info->refcount++;
-	file_info->lifecount++;
+	d->file_info = fi;
+	fi->refcount++;
+	fi->lifecount++;
 
 	download_add_to_list(d, DL_LIST_WAITING);
 	sl_downloads = g_slist_prepend(sl_downloads, d);
@@ -2296,6 +2349,32 @@ static void create_download(
 
 	if (!d->always_push && d->sha1)
 		dmesh_add(d->sha1, ip, port, record_index, file_name, stamp);
+
+	/*
+	 * When we know our SHA1, if we don't have a SHA1 in the `fi' and we
+	 * looked for it, it means that they didn't have "strict_sha1_matching"
+	 * at some point in time.
+	 *
+	 * If we have a SHA1, it must match.
+	 */
+
+	if (d->sha1 != NULL && fi->sha1 == NULL) {
+		gboolean success = file_info_got_sha1(fi, d->sha1);
+		if (success) {
+			g_warning("forced SHA1 %s after %u byte%s downloaded for %s",
+				sha1_base32(d->sha1), fi->done, fi->done == 1 ? "" : "s",
+				download_outname(d));
+			if (DOWNLOAD_IS_QUEUED(d))		/* file_info_got_sha1() can queue */
+				return;
+		} else {
+			download_info_reget(d);
+			download_queue(d, "Dup SHA1 during creation");
+			return;
+		}
+	}
+
+	g_assert(d->sha1 == NULL || d->file_info->sha1 == d->sha1);
+
 
 	if (d->flags & DL_F_SUSPENDED)
 		download_queue(d, "Suspended (SHA1 checking)");
@@ -2687,7 +2766,7 @@ void download_free(struct download *d)
 	d->status = GTA_DL_REMOVED;
 
 	atom_str_free(d->file_name);
-	file_info_free(d->file_info);
+	file_info_free(d->file_info, FALSE);		/* Keep fileinfo around */
 
 	sl_removed = g_slist_prepend(sl_removed, d);
 
@@ -2761,6 +2840,9 @@ void download_requeue(struct download *d)
 {
 	g_assert(d);
 	g_assert(!DOWNLOAD_IS_QUEUED(d));
+
+	if (DOWNLOAD_IS_VERIFYING(d))		/* Can't requeue: it's done */
+		return;
 
 	if (DOWNLOAD_IS_STOPPED(d))
 		d->file_info->lifecount++;
@@ -3708,6 +3790,8 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 				download_info_reget(d);
 				download_queue(d, "URN fileinfo mismatch");
 
+				g_assert(d->file_info->sha1 == d->sha1);
+
 				return FALSE;
 			}
 
@@ -3727,6 +3811,8 @@ static gboolean check_content_urn(struct download *d, header_t *header)
 				download_queue(d, "Discovered dup SHA1");
 				return FALSE;
 			}
+
+			g_assert(d->file_info->sha1 == d->sha1);
 
 			if (DOWNLOAD_IS_QUEUED(d))		/* Queued by call above */
 				return FALSE;
@@ -5289,7 +5375,7 @@ void download_close(void)
 			bsched_source_remove(d->bio);
 		if (d->sha1)
 			atom_sha1_free(d->sha1);
-		file_info_free(d->file_info);
+		file_info_free(d->file_info, TRUE);
 		download_remove_from_server(d, TRUE);
 		atom_str_free(d->file_name);
 

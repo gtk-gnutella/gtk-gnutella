@@ -70,6 +70,7 @@ struct dl_file_info {
  */
 
 #define FI_F_SUSPEND		0x00000001 	/* Marked "suspended" new downloads */
+#define FI_F_DISCARD		0x00000002 	/* Discard fileinfo when refcount = 0 */
 #define FI_F_MARK			0x80000000 	/* Marked during traversal */
 
 #define FILE_INFO_COMPLETE(x)	((x)->done == (x)->size)
@@ -81,6 +82,7 @@ void file_info_retrieve(void);
 void file_info_store(void);
 void file_info_store_binary(struct dl_file_info *fi);
 void file_info_store_if_dirty(void);
+void file_info_set_discard(struct dl_file_info *fi, gboolean state);
 enum dl_chunk_status file_info_find_hole(
 	struct download *d, guint32 *from, guint32 *to);
 void file_info_merge_adjacent(struct dl_file_info *fi);
@@ -90,7 +92,7 @@ enum dl_chunk_status file_info_chunk_status(
 void file_info_recreate(struct download *d);
 struct dl_file_info *file_info_get(
 	gchar *file, gchar *path, guint32 size, gchar *sha1);
-void file_info_free(struct dl_file_info *fi);
+void file_info_free(struct dl_file_info *fi, gboolean discard);
 void file_info_strip_binary(struct dl_file_info *fi);
 gboolean file_info_got_sha1(struct dl_file_info *fi, guchar *sha1);
 void file_info_update(

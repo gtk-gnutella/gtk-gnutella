@@ -1020,14 +1020,8 @@ static void file_info_store_one(FILE *f, struct dl_file_info *fi)
 		struct stat st;
 
 		g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", fi->path, fi->file_name);
-		if (-1 == stat(fi_tmp, &st)) {
-			g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", move_file_path,
-				fi->file_name);
-			if (-1 == stat(fi_tmp, &st)) {
-				/* Reference count is zero, and file does not exist. Skip it? */
-				return;
-			}
-		}
+		if (-1 == stat(fi_tmp, &st))
+			return; 	/* Skip: not referenced, and file no longer exists */
 	}
 	
 	fprintf(f, "# refcount %u\n", fi->refcount);
@@ -1421,6 +1415,16 @@ static void file_info_reparent_all(
 		g_warning("cannot unlink \"%s\": %s", fi_tmp, g_strerror(errno));
 
 	download_info_change_all(from, to);
+
+	/*
+	 * We can dispose of the old `from' as all downloads using it are now gone.
+	 */
+
+	g_assert(from->refcount == 0);
+	g_assert(from->lifecount == 0);
+
+	file_info_hash_remove(from);
+	fi_free(from);
 }
 
 /*
@@ -1481,7 +1485,9 @@ gboolean file_info_got_sha1(struct dl_file_info *fi, guchar *sha1)
 
 	if (fi->done) {
 		g_assert(xfi->done == 0);
+		fi->sha1 = atom_sha1_get(sha1);
 		file_info_reparent_all(xfi, fi);	/* All `xfi' replaced by `fi' */
+		g_hash_table_insert(fi_by_sha1, fi->sha1, fi);
 	} else {
 		g_assert(fi->done == 0);
 		file_info_reparent_all(fi, xfi);	/* All `fi' replaced by `xfi' */
@@ -2062,6 +2068,12 @@ static struct dl_file_info *file_info_has_identical(
 		return file_info_lookup(file, size, sha1);
 	}
 
+	if (sha1) {
+		fi = g_hash_table_lookup(fi_by_sha1, sha1);
+		if (fi)
+			return fi;
+	}
+
 	nsk.name = file;
 	nsk.size = size;
 
@@ -2081,8 +2093,11 @@ static struct dl_file_info *file_info_has_identical(
 		g_assert(fi->size == size);
 		g_assert(fi->refcount >= 0);
 
-		if (fi->refcount == 0)			/* No longer used by any download */
-			continue;
+		/*
+		 * Note that we consider `fi' structures where fi->refcount == 0.
+		 * Since they are around, it means they were not marked as FI_F_DISCARD
+		 * and therefore those files are still of interest.
+		 */
 
 		if (sha1 && fi->sha1) {
 			if (sha1_eq(sha1, fi->sha1))
@@ -2130,17 +2145,42 @@ void file_info_check_results_set(gnet_results_set_t *rs)
 }
 
 /*
+ * file_info_set_discard
+ *
+ * Set or clear the discard state for a fileinfo.
+ */
+void file_info_set_discard(struct dl_file_info *fi, gboolean state)
+{
+	g_assert(fi);
+
+	if (state)
+		fi->flags |= FI_F_DISCARD;
+	else
+		fi->flags &= ~FI_F_DISCARD;
+}
+
+/*
  * file_info_free
  *
  * Free fileinfo, removing one reference.
- * When nobody references the fileinfo structure, discard it.
+ * When nobody references the fileinfo structure, free it if `discard' is TRUE,
+ * or if the fileinfo has been marked with FI_F_DISCARD.
  */
-void file_info_free(struct dl_file_info *fi)
+void file_info_free(struct dl_file_info *fi, gboolean discard)
 {
 	g_assert(fi->refcount > 0);
 	g_assert(fi->hashed);
 
-	if (fi->refcount-- == 1) {
+	/*
+	 * We don't free the structure when `discard' is FALSE: keeping the
+	 * fileinfo around means it's still in the hash tables, and therefore
+	 * that its SHA1, if any, is still around to help us spot duplicates.
+	 *
+	 * At times however, we really want to discard an unreferenced fileinfo
+	 * as soon as this happens.
+	 */
+
+	if (fi->refcount-- == 1 && (discard || (fi->flags & FI_F_DISCARD))) {
 		file_info_hash_remove(fi);
 		fi_free(fi);
 	}
