@@ -703,17 +703,6 @@ gboolean node_connected(guint32 ip, guint16 port, gboolean incoming)
 	return FALSE;
 }
 
-static gboolean have_node(struct gnutella_node *node, gboolean incoming)
-{
-	if (stop_host_get)			/* Useful for testing */
-		return FALSE;
-
-	if (node->status == GTA_NODE_REMOVING)
-		return FALSE;
-
-	return node_connected(node->ip, node->port, incoming);
-}
-
 /*
  * send_welcome
  *
@@ -1911,19 +1900,6 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 		s->getline = NULL;
 	}
 
-	/*
-	 * If we are preferring local hosts, try to remove a non-local host
-	 * if the new host is a local one.
-	 *		-- Mike Perry's netmask hack, 17/04/2002
-	 */
-
-	if (
-		use_netmasks &&
-		node_count() >= max_connections &&
-		host_is_nearby(ip)
-	)
-		node_remove_non_nearby();
-
 #ifdef NO_RFC1918
 	/*
 	 * This needs to be a runtime option.  I could see a need for someone
@@ -1939,12 +1915,38 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 	}
 #endif
 
+	/*
+	 * Check wether we have already a connection to this node.
+	 */
+
+	incoming = s != NULL;
+	already_connected = node_connected(ip, port, incoming);
+
+	/*
+	 * If we are preferring local hosts, try to remove a non-local host
+	 * if the new host is a local one.
+	 *		-- Mike Perry's netmask hack, 17/04/2002
+	 */
+
+	if (
+		use_netmasks &&
+		!already_connected &&
+		node_count() >= max_connections &&
+		host_is_nearby(ip)
+	)
+		node_remove_non_nearby();
+
 	/* Too many gnutellaNet connections */
 	if (node_count() >= max_connections) {
 		if (!s)
 			return;
-		ponging_only = TRUE;	/* Will only send connection pongs */
+		if (!already_connected)
+			ponging_only = TRUE;	/* Will only send connection pongs */
 	}
+
+	/*
+	 * Create new node.
+	 */
 
 	n = (struct gnutella_node *) g_malloc0(sizeof(struct gnutella_node));
 
@@ -1963,8 +1965,6 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 		s->type = GTA_TYPE_CONTROL;
 		n->status = (major > 0 || minor > 4) ?
 			GTA_NODE_RECEIVING_HELLO : GTA_NODE_WELCOME_SENT;
-
-		incoming = TRUE;
 
 		/*
 		 * We need to create a temporary connection, flagging it a "ponging"
@@ -2027,11 +2027,10 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 	gtk_clist_set_row_data(GTK_CLIST(clist_nodes), row, (gpointer) n);
 
 	/*
-	 * Check wether we have already a connection to this node before
-	 * adding the node to the list
+	 * Insert node in lists, before checking `already_connected', since
+	 * we need everything installed to call node_remove(): we want to
+	 * leave a trail in the GUI.
 	 */
-
-	already_connected = have_node(n, incoming);
 
 	sl_nodes = g_slist_prepend(sl_nodes, n);
 	if (n->status != GTA_NODE_REMOVING)
