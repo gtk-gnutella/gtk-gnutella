@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2003, Mike Gray
+ * Copyright (c) 2003, Michael Gray
  *
  * Icon management.
  *
@@ -25,77 +25,51 @@
  *----------------------------------------------------------------------
  */
 
-#include <gdk/gdk.h>
-#include "gnutella.h"
-#include "gui.h"
-#include "icon.h"
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+#ifdef USE_GTK2
+
+#include <gdk/gdk.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
+
+#include "gnutella.h"
+#include "gui.h"
+#include "icon.h"
+
 static GtkWidget *icon;
 static GtkWidget *canvas;
-static gboolean icon_visible_fg, icon_just_mapped_fg;
-static gint leaf, norm, ultra, con_max;
+static GdkPixbuf *con_pixbuf, *up_pixbuf, *down_pixbuf;
+static gboolean icon_visible_fg, icon_close_fg, icon_just_mapped_fg;
+static gint leaf_cnt, norm_cnt, ultra_cnt, con_max;
 static gint up_cnt, up_max;
 static gint down_cnt, down_max;
-static GdkRectangle con_rect, up_rect, down_rect;
-static GdkRectangle con_bar, up_bar, down_bar;
-
-static const guint icon_width = 63;
-static const guint icon_height = 63;
-static const guint icon_inset = 2;
-static const guint icon_inset2 = 4;
-
-#if 1
-/*
- * XRenderQuerySubpixelOrder
- *
- * I have only "indirectly" installed the gnome-2.0 desktop
- * environment since I really don't use it.  One of the problems
- * this causes is that the shared library libXft.so, which is
- * needed by libpangoxft-1.0.so, which is needed for the gettext
- * functions, can't find this function on my system.  Since I
- * couldn't find a version of libXft.so that would work, and
- * the only recourse seems to be to rebuild the entire xfree
- * package again (of which I don't have the source code right now),
- * I simply define the function here.  Everyone else probably
- * won't need this function.
- */
-int XRenderQuerySubpixelOrder(int x, int y)
-{
-    return 0;
-}
-#endif
 
 /*
- * get_width
- *
- * Calculates the width of rect will that will represent the
- * value of cnt in rect.
+ * These macros set the default icon window dimensions.  The
+ * ICON_INSET should be the size of the borders drawn on the
+ * window.  The XPM_WIDTH is the width between the icons and
+ * the bar.
  */
-static guint get_width(const GdkRectangle * rect,
-                       const guint cnt, const guint mx)
-{
-    guint width;
-    float shift;
-
-    width = rect->width - rect->x;
-    shift = ((float) cnt / (float) mx);
-    return (guint) ((float) width * shift);
-}
+#define ICON_WIDTH   64
+#define ICON_HEIGHT  64
+#define ICON_INSET   2
+#define ICON_INSET2  4
+#define ICON_INSET4  8
+#define XPM_WIDTH    20
 
 /*
  * on_icon_map_event
  *
  * Callback when icon recieves a map event.
- * 
+ *
  * This function and on_icon_unmap_event are needed to keep
  * track of when main_window is iconified.
  */
-static gboolean
-on_icon_map_event(GtkWidget * widget, GdkEvent * event, gpointer user_data)
+gboolean on_icon_map_event(GtkWidget * widget,
+                           GdkEvent * event,
+                           gpointer user_data)
 {
     icon_just_mapped_fg = icon_visible_fg = TRUE;
     return FALSE;
@@ -106,70 +80,155 @@ on_icon_map_event(GtkWidget * widget, GdkEvent * event, gpointer user_data)
  *
  * Callback when icon recieves an unmap event.
  */
-static gboolean
-on_icon_unmap_event(GtkWidget * widget,
-                    GdkEvent * event, gpointer user_data)
+gboolean on_icon_unmap_event(GtkWidget * widget,
+                             GdkEvent * event,
+                             gpointer user_data)
 {
     icon_visible_fg = FALSE;
     return FALSE;
 }
 
 /*
+ * get_width
+ *
+ * Calculates the width of rect will that will represent the
+ * value of cnt in rect.
+ */
+static guint get_width(const GdkRectangle * rect,
+                       const guint cnt,
+                       const guint mx)
+{
+    guint r;
+
+    r = (guint) ((float)rect->width * ((float)cnt / (float)mx));
+    return (r < rect->width) ? r : rect->width;
+}
+
+/*
+ * center_image
+ *
+ * Sets width and height of rect to that of image and calculates
+ * x and y such that the centers of rect and base are the same point.
+ */
+static void center_image(GdkRectangle * rect,
+                         const GdkRectangle * base,
+                         const GdkPixbuf * image)
+{
+    rect->width = gdk_pixbuf_get_width(image);
+    rect->height = gdk_pixbuf_get_height(image);
+    rect->x = base->x + (base->width - rect->width) / 2;
+    rect->y = base->y + (base->height - rect->height) / 2;
+}
+
+/*
  * on_canvas_expose_event
  *
- * Callback when canvas recieves an expose event.
+ * Callback when canvas recieves an expose event.  The icon is entirely
+ * redrawn for every expose event instead of checking and redrawing
+ * just the dirty regions.  Since the icon is so small, the gain
+ * probably isn't worth the extra overhead.
  */
-static gboolean
-on_canvas_expose_event(GtkWidget * widget,
-                       GdkEventExpose * event, gpointer user_data)
+gboolean on_canvas_expose_event(GtkWidget * widget,
+                                GdkEventExpose * event,
+                                gpointer user_data)
 {
-    GdkRectangle rect;
+    GdkRectangle panel, rect, bar;
 
-    /* just draw on at a time */
+    /*   just draw once for all expose events   */
     if (event->count)
         return FALSE;
 
-    /* paint connection bar */
+    /*   setup image column   */
+    panel.x = ICON_INSET;
+    panel.y = ICON_INSET;
+    panel.height = (widget->allocation.height - ICON_INSET2) / 3;
+    panel.width = XPM_WIDTH;
+
+    /*   draw connection icon   */
+    center_image(&rect, &panel, con_pixbuf);
+    gdk_draw_pixbuf(canvas->window, NULL, con_pixbuf, 0, 0,
+                    rect.x, rect.y, rect.width, rect.height, 0, 0, 0);
+
+    panel.y += panel.height;
+
+    /*   paint download icon   */
+    center_image(&rect, &panel, up_pixbuf);
+    gdk_draw_pixbuf(canvas->window, NULL, down_pixbuf, 0, 0,
+                    rect.x, rect.y, rect.width, rect.height, 0, 0, 0);
+
+    panel.y += panel.height;
+
+    /*   paint upload icon   */
+    center_image(&rect, &panel, down_pixbuf);
+    gdk_draw_pixbuf(canvas->window, NULL, up_pixbuf, 0, 0,
+                    rect.x, rect.y, rect.width, rect.height, 0, 0, 0);
+
+    /*   setup bar column   */
+    panel.x = XPM_WIDTH + ICON_INSET;
+    panel.y = ICON_INSET;
+    panel.width = (ICON_WIDTH - ICON_INSET2) - XPM_WIDTH;
+    panel.height = (widget->allocation.height - ICON_INSET2);
+
+    /*   draw bar panel   */
+    gtk_paint_box(widget->style, widget->window,
+                  GTK_STATE_INSENSITIVE, GTK_SHADOW_OUT,
+                  NULL, widget, NULL,
+                  panel.x, panel.y, panel.width, panel.height);
+
+    panel.height /= 3;
+    rect.x = panel.x + ICON_INSET2;
+    rect.y = panel.y + ICON_INSET2;
+    rect.width = panel.width - ICON_INSET4;
+    rect.height = panel.height - ICON_INSET4;
+    bar.x = rect.x + ICON_INSET;
+    bar.y = rect.y + ICON_INSET;
+    bar.width = rect.width - ICON_INSET2;
+    bar.height = rect.height - ICON_INSET2;
+
+    /*   paint connection bar   */
     gtk_paint_shadow(widget->style, widget->window,
                      GTK_STATE_NORMAL, GTK_SHADOW_IN,
                      NULL, widget, NULL,
-                     con_rect.x, con_rect.y,
-                     con_rect.width, con_rect.height);
+                     rect.x, rect.y, rect.width, rect.height);
     gdk_draw_rectangle(widget->window, widget->style->black_gc, TRUE,
-                       con_bar.x, con_bar.y,
-                       con_bar.width, con_bar.height);
-    rect = con_bar;
-    rect.width = get_width(&rect, leaf + norm + ultra, con_max);
+                       bar.x, bar.y, bar.width, bar.height);
+    bar.width = get_width(&bar, leaf_cnt + norm_cnt + ultra_cnt, con_max);
     gdk_draw_rectangle(widget->window, widget->style->white_gc, TRUE,
-                       rect.x, rect.y, rect.width, rect.height);
+                       bar.x, bar.y, bar.width, bar.height);
 
-    /* paint upload bar */
+    panel.y += panel.height;
+    rect.y += panel.height;
+    bar.y += panel.height;
+    bar.width = rect.width - ICON_INSET2;
+
+    /*   paint download bar   */
     gtk_paint_shadow(widget->style, widget->window,
                      GTK_STATE_NORMAL, GTK_SHADOW_IN,
                      NULL, widget, NULL,
-                     up_rect.x, up_rect.y, up_rect.width, up_rect.height);
+                     rect.x, rect.y, rect.width, rect.height);
     gdk_draw_rectangle(widget->window, widget->style->black_gc, TRUE,
-                       up_bar.x, up_bar.y, up_bar.width, up_bar.height);
-    rect = up_bar;
-    rect.width = get_width(&rect, up_cnt, up_max);
+                       bar.x, bar.y, bar.width, bar.height);
+    bar.width = get_width(&bar, down_cnt, down_max);
     gdk_draw_rectangle(widget->window, widget->style->white_gc, TRUE,
-                       rect.x, rect.y, rect.width, rect.height);
+                       bar.x, bar.y, bar.width, bar.height);
 
-    /* paint download bar */
+    panel.y += panel.height;
+    rect.y += panel.height;
+    bar.y += panel.height;
+    bar.width = rect.width - ICON_INSET2;
+
+    /*   paint upload bar   */
     gtk_paint_shadow(widget->style, widget->window,
                      GTK_STATE_NORMAL, GTK_SHADOW_IN,
                      NULL, widget, NULL,
-                     down_rect.x, down_rect.y,
-                     down_rect.width, down_rect.height);
+                     rect.x, rect.y, rect.width, rect.height);
     gdk_draw_rectangle(widget->window, widget->style->black_gc, TRUE,
-                       down_bar.x, down_bar.y,
-                       down_bar.width, down_bar.height);
-    rect = down_bar;
-    rect.width = get_width(&rect, down_cnt, down_max);
+                       bar.x, bar.y, bar.width, bar.height);
+    bar.width = get_width(&bar, up_cnt, up_max);
     gdk_draw_rectangle(widget->window, widget->style->white_gc, TRUE,
-                       rect.x, rect.y, rect.width, rect.height);
+                       bar.x, bar.y, bar.width, bar.height);
 
-    /* paint border */
+    /*   paint border   */
     gtk_paint_shadow(widget->style, widget->window,
                      GTK_STATE_NORMAL, GTK_SHADOW_OUT,
                      NULL, widget, NULL, 0, 0, -1, -1);
@@ -180,21 +239,24 @@ on_canvas_expose_event(GtkWidget * widget,
 /*
  * create_icon
  *
- * Sets up the icon and canvas widgets. (Mostly generated by Glade)
+ * Sets up the icon and canvas widgets.  This function was
+ * generated by glade separatly from the main gui since the icon
+ * widgets are independent of the rest of the gui, and there
+ * are unresolved issues between GTK and GTK2.
  */
 static void create_icon(void)
 {
     icon = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_widget_set_name(icon, "icon");
     gtk_object_set_data(GTK_OBJECT(icon), "icon", icon);
-    gtk_widget_set_usize(icon, icon_width + 1, icon_height + 1);
+    gtk_widget_set_usize(icon, ICON_WIDTH + 1, ICON_HEIGHT + 1);
     gtk_widget_set_sensitive(icon, FALSE);
     GTK_WIDGET_SET_FLAGS(icon, GTK_CAN_FOCUS);
     GTK_WIDGET_SET_FLAGS(icon, GTK_CAN_DEFAULT);
     gtk_widget_set_events(icon, GDK_VISIBILITY_NOTIFY_MASK);
     gtk_window_set_title(GTK_WINDOW(icon), "icon");
     gtk_window_set_default_size(GTK_WINDOW(icon),
-                                icon_width + 1, icon_height + 1);
+                                ICON_WIDTH + 1, ICON_HEIGHT + 1);
     gtk_window_set_policy(GTK_WINDOW(icon), FALSE, FALSE, FALSE);
 
     canvas = gtk_drawing_area_new();
@@ -217,28 +279,35 @@ static void create_icon(void)
 void icon_timer(void)
 {
     GdkRectangle rect;
-#ifndef USE_GTK2
-    GdkEvent event;
-#endif /* USE_GTK2 */
+    gint con_old, up_old, down_old;
 
-    /* Don't do anything if icon isn't even visible */
-    if (!icon_visible_fg)
+    /*   don't do anything if icon isn't even visible or the
+       application is closing   */
+    if (!icon_visible_fg || icon_close_fg)
         return;
 
-    /* This may be useful someday */
+    /*   this may be useful someday   */
     if (icon_just_mapped_fg) {
         icon_just_mapped_fg = FALSE;
     }
 
-    /* get current values */
-    gnet_prop_get_guint32_val(PROP_NODE_LEAF_COUNT, &leaf);
-    gnet_prop_get_guint32_val(PROP_NODE_NORMAL_COUNT, &norm);
-    gnet_prop_get_guint32_val(PROP_NODE_ULTRA_COUNT, &ultra);
+    /*   get current values   */
+    con_old = leaf_cnt + norm_cnt + ultra_cnt;
+    up_old = up_cnt;
+    down_old = down_cnt;
+    gnet_prop_get_guint32_val(PROP_NODE_LEAF_COUNT, &leaf_cnt);
+    gnet_prop_get_guint32_val(PROP_NODE_NORMAL_COUNT, &norm_cnt);
+    gnet_prop_get_guint32_val(PROP_NODE_ULTRA_COUNT, &ultra_cnt);
     gnet_prop_get_guint32_val(PROP_MAX_CONNECTIONS, &con_max);
     gnet_prop_get_guint32_val(PROP_UL_RUNNING, &up_cnt);
     gnet_prop_get_guint32_val(PROP_MAX_UPLOADS, &up_max);
     gnet_prop_get_guint32_val(PROP_DL_RUNNING_COUNT, &down_cnt);
     gnet_prop_get_guint32_val(PROP_MAX_DOWNLOADS, &down_max);
+
+    /*   if nothing has changed, then don't redraw   */
+    if (con_old == leaf_cnt + norm_cnt + ultra_cnt)
+        if (up_old == up_cnt && down_old == down_cnt)
+            return;
 
     /*
      * For some reason, gtk_widget_queue_draw(canvas) will
@@ -250,25 +319,11 @@ void icon_timer(void)
     rect.x = rect.y = 0;
     rect.width = canvas->allocation.width;
     rect.height = canvas->allocation.height;
-
-#ifdef USE_GTK2
-
     gdk_window_invalidate_rect(canvas->window, &rect, FALSE);
-
-#else
-
-    event.type = GDK_EXPOSE;
-    event.expose.window = canvas->window;
-    event.expose.area = rect;
-
-    /* gtk_propagate_event(canvas) does not work either */
-    gtk_widget_event(canvas, &event);
-
-#endif
 }
 
 /*
- * For details of what is expected from an icon window and what it 
+ * For details of what is expected from an icon window and what it
  * should expect, see --
  *    http://tronche.com/gui/x/icccm/sec-4.html#s-4.1.9
  */
@@ -282,50 +337,23 @@ void icon_init(void)
      * window, none of its subwindows get mapped.  This is not
      * because of GTK, but seems to be either the window manager
      * or X itself that does this.
+     *
      * Also note the canvas widget is never unmapped, regardless
      * of whether the icon window is visible or not.
      */
     gtk_widget_map(canvas);
     gdk_window_set_icon(main_window->window, icon->window, NULL, NULL);
-    icon_just_mapped_fg = icon_visible_fg = FALSE;
+    icon_just_mapped_fg = icon_visible_fg = icon_close_fg = FALSE;
 
-    /* setup connection rectangles */
-    con_rect.x = 2 + icon_inset;
-    con_rect.y = 2 + icon_inset;
-    con_rect.width = icon_width - (con_rect.x * 2);
-    con_rect.height = 9;
-    con_bar = con_rect;
-    con_bar.x += icon_inset;
-    con_bar.y += icon_inset;
-    con_bar.width -= icon_inset2;
-    con_bar.height -= icon_inset2;
-
-    /* setup upload rectangles */
-    up_rect.x = 2 + icon_inset;
-    up_rect.y = 15 + icon_inset;
-    up_rect.width = icon_width - (up_rect.x * 2);
-    up_rect.height = 9;
-    up_bar = up_rect;
-    up_bar.x += icon_inset;
-    up_bar.y += icon_inset;
-    up_bar.width -= icon_inset2;
-    up_bar.height -= icon_inset2;
-
-    /* setup downoad rectangles */
-    down_rect.x = 2 + icon_inset;
-    down_rect.y = 28 + icon_inset;
-    down_rect.width = icon_width - (down_rect.x * 2);
-    down_rect.height = 9;
-    down_bar = down_rect;
-    down_bar.x += icon_inset;
-    down_bar.y += icon_inset;
-    down_bar.width -= icon_inset2;
-    down_bar.height -= icon_inset2;
+    /*   load images   */
+    con_pixbuf = create_pixbuf("smallserver.xpm");
+    up_pixbuf = create_pixbuf("upload.xpm");
+    down_pixbuf = create_pixbuf("download.xpm");
 }
 
 void icon_close(void)
 {
-    icon_visible_fg = FALSE;
+    icon_close_fg = TRUE;
 
     /*
      * Because the icon window is a top level window, it must be
@@ -333,4 +361,52 @@ void icon_close(void)
      */
     gtk_widget_destroy(icon);
 }
+
+#else                           /*   !USE_GTK2   */
+
+/*
+ * Right now, I haven't found a good way of setting any kind of
+ * icon with GTK < 2.0 without using the Xlib directly.
+ */
+
+#include "icon.h"
+
+void icon_timer(void)
+{
+    return;
+}
+
+void icon_init(void)
+{
+    return;
+}
+
+void icon_close(void)
+{
+    return;
+}
+
+#endif                          /*    USE_GTK2   */
+
+#if 0
+/*
+ * XRenderQuerySubpixelOrder
+ *
+ * I have only "indirectly" installed the gnome-2.0 desktop
+ * environment since I really don't use it.  One of the problems
+ * this causes is that the shared library libXft.so, which is
+ * needed by libpangoxft-1.0.so, which is needed for the gettext
+ * functions, can't find this function on my system.  Since I
+ * couldn't find a version of libXft.so that would work, and
+ * the only recourse seems to be to rebuild the entire xfree
+ * package again (of which I don't have the source code right now),
+ * I simply define the function here.  Everyone else probably
+ * won't need this function.
+ */
+int XRenderQuerySubpixelOrder(int x,
+                              int y)
+{
+    return 0;
+}
+#endif
 

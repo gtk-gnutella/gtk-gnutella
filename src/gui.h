@@ -275,4 +275,7 @@ void gui_merge_window_as_tab(GtkWidget *toplvl, GtkWidget *notebook,
 							 GtkWidget *window);
 #endif
 
+void icon_init(void);
+void icon_close(void);
+
 #endif /* _gui_h_ */

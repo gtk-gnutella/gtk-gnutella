@@ -236,6 +236,7 @@ static void slow_main_timer(time_t now)
 
 static gboolean main_timer(gpointer p)
 {
+	void icon_timer(void);
 	time_t now = time((time_t *) NULL);
 
 	bsched_timer();					/* Scheduling update */

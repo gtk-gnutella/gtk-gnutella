@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2003, Mike Gray
+ * Copyright (c) 2003, Michael Gray
  *
  * Icon management.
  *
