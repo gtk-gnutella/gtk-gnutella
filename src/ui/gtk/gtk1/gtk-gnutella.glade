@@ -5963,6 +5963,7 @@
 		<yalign>0.5</yalign>
 		<xpad>0</xpad>
 		<ypad>0</ypad>
+		<default_focus_target>spinbutton_monitor_items</default_focus_target>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
@@ -6122,6 +6123,7 @@
 		<yalign>0.5</yalign>
 		<xpad>0</xpad>
 		<ypad>0</ypad>
+		<default_focus_target>spinbutton_search_stats_update_interval</default_focus_target>
 		<child>
 		  <padding>0</padding>
 		  <expand>False</expand>
@@ -13979,6 +13981,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
+		    <default_focus_target>spinbutton_config_port</default_focus_target>
 		    <child>
 		      <left_attach>0</left_attach>
 		      <right_attach>1</right_attach>
@@ -14224,6 +14227,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
+		    <default_focus_target>entry_config_proxy_hostname</default_focus_target>
 		    <child>
 		      <left_attach>0</left_attach>
 		      <right_attach>1</right_attach>
@@ -14250,6 +14254,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
+		    <default_focus_target>spinbutton_config_proxy_port</default_focus_target>
 		    <child>
 		      <left_attach>2</left_attach>
 		      <right_attach>3</right_attach>
@@ -14276,6 +14281,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
+		    <default_focus_target>combo-entry3</default_focus_target>
 		    <child>
 		      <left_attach>0</left_attach>
 		      <right_attach>1</right_attach>
@@ -14443,6 +14449,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
+		    <default_focus_target>entry_config_socks_username</default_focus_target>
 		    <child>
 		      <left_attach>0</left_attach>
 		      <right_attach>1</right_attach>
@@ -14469,6 +14476,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
+		    <default_focus_target>entry_config_socks_password</default_focus_target>
 		    <child>
 		      <left_attach>2</left_attach>
 		      <right_attach>3</right_attach>
@@ -15099,6 +15107,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
+		  <default_focus_target>spinbutton_node_rx_size</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -15177,6 +15186,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
+		  <default_focus_target>spinbutton_download_rx_size</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -16339,6 +16349,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		      <yalign>0.5</yalign>
 		      <xpad>0</xpad>
 		      <ypad>0</ypad>
+		      <default_focus_target>spinbutton_config_search_items</default_focus_target>
 		      <child>
 			<left_attach>0</left_attach>
 			<right_attach>1</right_attach>
@@ -17018,6 +17029,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
+		    <default_focus_target>spinbutton_config_maxttl</default_focus_target>
 		    <child>
 		      <left_attach>0</left_attach>
 		      <right_attach>1</right_attach>
@@ -17044,6 +17056,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
+		    <default_focus_target>spinbutton_config_myttl</default_focus_target>
 		    <child>
 		      <left_attach>2</left_attach>
 		      <right_attach>3</right_attach>
@@ -17070,6 +17083,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
+		    <default_focus_target>spinbutton_config_max_high_ttl_radius</default_focus_target>
 		    <child>
 		      <left_attach>2</left_attach>
 		      <right_attach>3</right_attach>
@@ -17096,6 +17110,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
+		    <default_focus_target>spinbutton_config_max_high_ttl_msg</default_focus_target>
 		    <child>
 		      <left_attach>0</left_attach>
 		      <right_attach>1</right_attach>
@@ -17122,6 +17137,7 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 		    <yalign>0.5</yalign>
 		    <xpad>0</xpad>
 		    <ypad>0</ypad>
+		    <default_focus_target>spinbutton_config_hard_ttl_limit</default_focus_target>
 		    <child>
 		      <left_attach>0</left_attach>
 		      <right_attach>1</right_attach>
