@@ -1,0 +1,7 @@
+.config
+Makefile
+config.h
+config.sh
+gtk-gnutella.spec
+install
+mkdep
