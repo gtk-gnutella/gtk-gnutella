@@ -46,7 +46,6 @@ RCSID("$Id$");
 #include "lib/override.h"	/* Must be the last header included */
 
 #define TSYNC_EXPIRE_MS		(60*1000)	/* Expiration time: 60 secs */
-#define TSYNC_RTT_MAX		5			/* No clock update if RTT > 5 secs */
 
 /*
  * Records the time at which we sent a "Time Sync" to remote peers,
@@ -205,6 +204,7 @@ tsync_got_reply(struct gnutella_node *n,
 	struct tsync *ts;
 	tm_t delay;
 	double rtt;
+	gint precision;
 
 	/*
 	 * Compute the delay.
@@ -272,11 +272,16 @@ tsync_got_reply(struct gnutella_node *n,
 		}
 
 		/*
-		 * Update our clock skew if within the tolerance for the RTT.
+		 * Update our clock skew.
+		 *
+		 * The precision we're giving is 0 if we synchronized through UDP
+		 * with an NTP-synchronized host and the RTT was less than 2 secs.
 		 */
 
-		if ((gint) rtt <= TSYNC_RTT_MAX)
-			clock_update(time(NULL) + (gint) clock_offset, ntp ? 0 : 5,  n->ip);
+		precision = ntp ? (NODE_IS_UDP(n) ? 0 : 1) : 2;
+		precision += (gint) (rtt * 0.5);
+
+		clock_update(time(NULL) + (gint) clock_offset, precision,  n->ip);
 
 		g_hash_table_remove(tsync_by_time, &ts->sent);
 		tsync_free(ts);
