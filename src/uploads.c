@@ -2084,7 +2084,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			 	 *		-- JA, 19/05/'03
 				 */
 				upload_error_remove(u, reqfile, 403, 
-					"Retry-After not honoured. Removed from PARQ queue");
+					"Minimum retry delay not honoured. "
+					"Removed from PARQ queue");
 				return;
 			}
 
