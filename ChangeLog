@@ -1,5 +1,30 @@
 # since last version
 
+- (2003.01.18 - RAM)
+ * Added new properties: "bw_gnet_leaf_in_enabled", "bw_gnet_leaf_out_enabled",
+   "bw_gnet_lin" and "bw_gnet_lout" to control leaf node bandwidth.
+   Those are special: values configured are automatically added to Gnet
+   bandwidth when not in ultra mode, regardless of whether the shaper is
+   enabled.
+ * Set decent default Gnutella bandwidths.
+ * Added leaf bandwidth scheduler, that can steal bandwidth out of Gnet only.
+ * Reordered creation of TX and RX stack so that the peermode is known.
+ * Can now properly switch between all three modes (normal, leaf, ultra).
+ * Upon mode change, reshape the Gnet bandwidth (leaf versus regular).
+ * Added support for QRP infinity 1 to not rule out Shareaza.
+ * Have the TX and RX link layers write/read using proper bandwidth scheduler.
+ * Had inverted proportional bandwidth repartition computations.
+ * Adjusted the bandwidth scheduling algorithm to behave a little better
+   in the advent we lack bandwidth and lots of stealing occurs accross shapers.
+ * No longer kills a connection when the send queue becomes full, unless
+   the message was a prioritary one.
+ * RX and TX stacks now provides access to the underlying link-level I/O source.
+ * GUI now displays the node TX / RX speeds in k/s.
+ * Leaf nodes have their send buffer shrank to as low as 256 bytes.
+ * Doubled the time between two alive pings.
+ * Don't route the query if the hashing vector is empty.
+ * Don't send queries from the search queue on flow-controlled connections.
+
 - (2003.01.18 - Richard)
  * [Gtk1] Added following props to gui:
    - PROP_SEARCH_MAX_RESULTS (search pane settings)
