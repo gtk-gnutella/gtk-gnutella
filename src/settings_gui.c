@@ -151,6 +151,8 @@ static gboolean update_window_geometry(property_t prop);
 static gboolean update_treeview_col_widths(property_t prop);
 #endif
 static gboolean current_peermode_changed(property_t prop);
+static gboolean bw_gnet_lin_enabled_changed(property_t prop);
+static gboolean bw_gnet_lout_enabled_changed(property_t prop);
 static gboolean bw_http_in_enabled_changed(property_t prop);
 static gboolean bw_gnet_in_enabled_changed(property_t prop);
 static gboolean bw_gnet_out_enabled_changed(property_t prop);
@@ -1478,6 +1480,55 @@ static prop_map_t property_map[] = {
 /* FIXME: Gtk2 version should have these too */
     {
         get_main_window,
+        PROP_BW_GNET_LEAF_IN_ENABLED,
+        bw_gnet_lin_enabled_changed,
+        TRUE,
+        "checkbutton_config_bws_glin"
+    },
+    {
+        get_main_window,
+        PROP_BW_GNET_LEAF_OUT_ENABLED,
+        bw_gnet_lout_enabled_changed,
+        TRUE,
+        "checkbutton_config_bws_glout"
+    },
+    {
+        get_main_window,
+        PROP_BW_GNET_LIN,
+        update_bandwidth_spinbutton,
+        TRUE,
+        "spinbutton_config_bws_glin"
+    },
+    {
+        get_main_window,
+        PROP_BW_GNET_LOUT,
+        update_bandwidth_spinbutton,
+        TRUE,
+        "spinbutton_config_bws_glout"
+    },
+    {
+        get_main_window,
+        PROP_MAX_LEAVES,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_max_leaves"
+    },
+    {
+        get_main_window,
+        PROP_MAX_BANNED_FD,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_max_banned_fd"
+    },
+    {
+        get_main_window,
+        PROP_INCOMING_CONNECTING_TIMEOUT,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_config_incoming_connecting_timeout"
+    },
+    {
+        get_main_window,
         PROP_NODE_RX_FLOWC_RATIO,
         update_spinbutton,
         TRUE,
@@ -1489,6 +1540,104 @@ static prop_map_t property_map[] = {
         update_spinbutton,
         TRUE,
         "spinbutton_normal_connections"
+    },
+    {
+        get_main_window,
+        PROP_READING_ULTRAFILE,
+        update_entry,
+        TRUE,
+        "entry_reading_ultrafile"
+    },
+    {
+        get_main_window,
+        PROP_NODE_LEAF_COUNT,
+        update_entry,
+        TRUE,
+        "entry_node_leaf_count"
+    },
+    {
+        get_main_window,
+        PROP_NODE_NORMAL_COUNT,
+        update_entry,
+        TRUE,
+        "entry_node_normal_count"
+    },
+    {
+        get_main_window,
+        PROP_NODE_ULTRA_COUNT,
+        update_entry,
+        TRUE,
+        "entry_node_ultra_count"
+    },
+    {
+        get_main_window,
+        PROP_CURRENT_IP_STAMP,
+        update_entry,
+        TRUE,
+        "entry_current_ip_stamp"
+    },
+    {
+        get_main_window,
+        PROP_AVERAGE_IP_UPTIME,
+        update_entry,
+        TRUE,
+        "entry_average_ip_uptime"
+    },
+    {
+        get_main_window,
+        PROP_START_STAMP,
+        update_entry,
+        TRUE,
+        "entry_start_stamp"
+    },
+    {
+        get_main_window,
+        PROP_AVERAGE_SERVENT_UPTIME,
+        update_entry,
+        TRUE,
+        "entry_average_servent_uptime"
+    },
+    {
+        get_main_window,
+        PROP_PROXY_CONNECTIONS,
+        update_entry,
+        TRUE,
+        "entry_proxy_connections"
+    },
+    {
+        get_main_window,
+        PROP_FORCE_ULTRAPEER,
+        update_entry,
+        TRUE,
+        "entry_force_ultrapeer"
+    },
+    {
+        get_main_window,
+        PROP_FORCE_LEAF,
+        update_entry,
+        TRUE,
+        "entry_force_leaf"
+    },
+    {
+        get_main_window,
+        PROP_SYS_NOFILE,
+        update_entry,
+        TRUE,
+        "entry_sys_nofile"
+    },
+    {
+        get_main_window,
+        PROP_SYS_PHYSMEM,
+        update_entry,
+        TRUE,
+        "entry_sys_physmem"
+    },
+    {
+        get_main_window,
+        PROP_DL_QALIVE_COUNT,
+        update_entry,
+        TRUE,
+        "entry_dl_qalive_count"
     },
 #endif
 #ifdef USE_GTK2
@@ -1579,6 +1728,14 @@ static gboolean update_entry(property_t prop)
             stub->guint32.get(prop, &val, 0, 1);
 
             g_snprintf(s, sizeof(s), "%s", ip_to_gchar(val));
+            break;
+        }
+        case PROP_TYPE_BOOLEAN: {
+            gboolean val;
+        
+            stub->boolean.get(prop, &val, 0, 1);
+
+            g_snprintf(s, sizeof(s), "%s", val ? "TRUE" : "FALSE");
             break;
         }
         default:
@@ -1943,6 +2100,40 @@ ENTRY(
 ENTRY(
     socks_pass, 
     "entry_config_socks_password")
+
+static gboolean bw_gnet_lin_enabled_changed(property_t prop)
+{
+    GtkWidget *w;
+    GtkWidget *s;
+    gboolean val;
+
+    gnet_prop_get_boolean(prop, &val, 0, 1);
+
+    w = lookup_widget(main_window, "checkbutton_config_bws_glin");
+    s = lookup_widget(main_window, "spinbutton_config_bws_glin");
+
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
+    gtk_widget_set_sensitive(s, val);
+
+    return FALSE;
+}
+
+static gboolean bw_gnet_lout_enabled_changed(property_t prop)
+{
+    GtkWidget *w;
+    GtkWidget *s;
+    gboolean val;
+
+    gnet_prop_get_boolean(prop, &val, 0, 1);
+
+    w = lookup_widget(main_window, "checkbutton_config_bws_glout");
+    s = lookup_widget(main_window, "spinbutton_config_bws_glout");
+
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
+    gtk_widget_set_sensitive(s, val);
+
+    return FALSE;
+}
 
 static gboolean bw_http_in_enabled_changed(property_t prop)
 {
@@ -2652,6 +2843,9 @@ static gboolean expert_mode_changed(property_t prop)
 		"frame_expert_dl_timeout",
         "frame_expert_ul_timeout",
         "frame_expert_dl_source_quality",
+#ifndef USE_GTK2
+        "frame_expert_unmapped",
+#endif
         NULL
     };
     gint n;
@@ -2849,6 +3043,8 @@ void spinbutton_adjustment_value_changed
         if (
             (map_entry->prop == PROP_BW_HTTP_IN) ||
             (map_entry->prop == PROP_BW_HTTP_OUT) ||
+            (map_entry->prop == PROP_BW_GNET_LIN) ||
+            (map_entry->prop == PROP_BW_GNET_LOUT) ||
             (map_entry->prop == PROP_BW_GNET_IN) ||
             (map_entry->prop == PROP_BW_GNET_OUT)
         ) {
@@ -2986,6 +3182,8 @@ static void settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                     (map->stub == gnet_prop_set_stub) && (
                         (map->prop == PROP_BW_HTTP_IN) ||
                         (map->prop == PROP_BW_HTTP_OUT) ||
+                        (map->prop == PROP_BW_GNET_LIN) ||
+                        (map->prop == PROP_BW_GNET_LOUT) ||
                         (map->prop == PROP_BW_GNET_IN) ||
                         (map->prop == PROP_BW_GNET_OUT)
                     )

@@ -732,6 +732,34 @@ static gboolean bw_gnet_out_enabled_changed(property_t prop)
     return FALSE;
 }
 
+static gboolean bw_gnet_lin_enabled_changed(property_t prop)
+{
+    gboolean val;
+
+    gnet_prop_get_boolean_val(prop, &val);
+
+    if (val)
+        bsched_enable(bws.glin);
+    else
+        bsched_disable(bws.glin);
+
+    return FALSE;
+}
+
+static gboolean bw_gnet_lout_enabled_changed(property_t prop)
+{
+    gboolean val;
+
+    gnet_prop_get_boolean_val(prop, &val);
+
+    if (val)
+        bsched_enable(bws.glout);
+    else
+        bsched_disable(bws.glout);
+
+    return FALSE;
+}
+
 static gboolean node_sendqueue_size_changed(property_t prop)
 {
     guint32 val;
@@ -900,6 +928,26 @@ static gboolean bw_gnet_out_changed(property_t prop)
     return FALSE;
 }
 
+static gboolean bw_gnet_lin_changed(property_t prop)
+{
+    guint32 val;
+
+    gnet_prop_get_guint32(prop, &val, 0, 1);
+    bsched_set_bandwidth(bws.glin, val);
+    
+    return FALSE;
+}
+
+static gboolean bw_gnet_lout_changed(property_t prop)
+{
+    guint32 val;
+
+    gnet_prop_get_guint32(prop, &val, 0, 1);
+    bsched_set_bandwidth(bws.glout, val);
+    
+    return FALSE;
+}
+
 static gboolean node_online_mode_changed(property_t prop)
 {
 	gboolean val;
@@ -1033,6 +1081,16 @@ static prop_map_t property_map[] = {
         FALSE
     },
     {
+        PROP_BW_GNET_LEAF_IN_ENABLED, 
+        bw_gnet_lin_enabled_changed, 
+        FALSE
+    },
+    {
+        PROP_BW_GNET_LEAF_OUT_ENABLED, 
+        bw_gnet_lout_enabled_changed, 
+        FALSE
+    },
+    {
         PROP_SCAN_EXTENSIONS,
         scan_extensions_changed,
         TRUE
@@ -1085,6 +1143,16 @@ static prop_map_t property_map[] = {
     {
         PROP_BW_GNET_OUT,
         bw_gnet_out_changed,
+        FALSE
+    },
+    {
+        PROP_BW_GNET_LIN,
+        bw_gnet_lin_changed,
+        FALSE
+    },
+    {
+        PROP_BW_GNET_LOUT,
+        bw_gnet_lout_changed,
         FALSE
     },
 	{
