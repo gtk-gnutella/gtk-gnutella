@@ -49,8 +49,11 @@ RCSID("$Id$");
 
 static GHashTable *used;		/* Records the IP address used */
 
+static gint finest_precision = MAX_DELTA;
+
 struct used_val {
 	guint *ip_atom;				/* The atom used for the key */
+	gint precision;				/* The precision used for the last update */
 	gpointer cq_ev;				/* Scheduled cleanup event */
 };
 
@@ -94,11 +97,12 @@ static void val_destroy(cqueue_t *cq, gpointer obj)
  *
  * Create a value for the `used' table.
  */
-struct used_val *val_create(guint32 ip)
+struct used_val *val_create(guint32 ip, gint precision)
 {
 	struct used_val *v = walloc(sizeof(*v));
 
 	v->ip_atom = atom_int_get(&ip);
+	v->precision = precision;
 	v->cq_ev = cq_insert(callout_queue, REUSE_DELAY * 1000, val_destroy, v);
 
 	return v;
@@ -153,14 +157,35 @@ void clock_update(time_t update, gint precision, guint32 ip)
 	g_assert(used);
 
 	/*
-	 * Discard update if from an IP we've seen less than REUSE_DELAY secs ago.
+	 * If precision is more coarse grain than the finsest we've seen,
+	 * then discard update.  Don't consider precision=0, since this is
+	 * a special processing (clock synchronization via Time Sync from an
+	 * NTP-synchronized servent).
 	 */
 
-	if (g_hash_table_lookup(used, &ip))
+	if (precision > finest_precision)
 		return;
 
-	v = val_create(ip);
-	g_hash_table_insert(used, v->ip_atom, v);
+	if (precision)
+		finest_precision = precision;
+
+	/*
+	 * Discard update if from an IP we've seen less than REUSE_DELAY secs ago
+	 * and the precision used for the update was more coarse grain than it
+	 * is now.
+	 *
+	 * We always allow updates when the precision is 0, which means the remote
+	 * end was running NTP.
+	 */
+
+	if ((v = g_hash_table_lookup(used, &ip))) {
+		if (precision && precision >= v->precision)
+			return;
+		v->precision = precision;
+	} else {
+		v = val_create(ip, precision);
+		g_hash_table_insert(used, v->ip_atom, v);
+	}
 
     gnet_prop_get_guint32_val(PROP_CLOCK_SKEW, &new_skew);
 	skew = (gint32) new_skew;
