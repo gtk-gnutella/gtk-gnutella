@@ -473,8 +473,8 @@ filter_new_text_rule(const gchar *match, gint type,
     gboolean case_sensitive, filter_t *target, guint16 flags)
 {
   	rule_t *r;
-    gchar *buf;
-	size_t match_len;
+	gchar *buf;
+	size_t buf_len;
 
     g_assert(match != NULL);
     g_assert(target != NULL);
@@ -488,31 +488,31 @@ filter_new_text_rule(const gchar *match, gint type,
     r->u.text.type           = type;
     set_flags(r->flags, RULE_FLAG_VALID);
 
-	match_len = strlen(match);
-	buf = g_malloc(match_len + 1);
-
+	buf_len = strlen(match);
+	buf = g_malloc(buf_len + 1);
     if (!r->u.text.case_sensitive) {
-		if (0 != utf8_is_valid_string(match, 0)) {
+		if (0 != utf8_is_valid_string(buf, 0)) {
 			size_t len;
 
-			len = utf8_strlower(buf, match, match_len + 1);
-			if (len > match_len) {
-				match_len = len;
-				buf = g_realloc(buf, match_len + 1);
-				len = utf8_strlower(buf, match, match_len + 1);
-				g_assert(len == match_len);
-			}	
-			match_len = len;
+			len = utf8_strlower(buf, match, buf_len + 1);
+			if (len > buf_len) {
+				buf_len = len;
+				buf = g_realloc(buf, buf_len + 1);
+				len = utf8_strlower(buf, match, buf_len + 1);
+				g_assert(len == buf_len);
+			}
+			g_assert(len <= buf_len);
+			buf_len = len;
 		} else {
 			/* Assume the string is encoded for the current locale */
         	strlower(buf, match);
 		}
 	} else {
-		memcpy(buf, match, match_len);
+		memcpy(buf, match, buf_len + 1);
 	}
 	
+	r->u.text.matchlen = buf_len; 
 	r->u.text.match = buf;
-	r->u.text.matchlen = match_len;
 
     buf = g_strdup(r->u.text.match);
 
@@ -917,7 +917,7 @@ filter_revert_changes(void)
 gchar *
 filter_rule_condition_to_gchar(const rule_t *r)
 {
-    static gchar tmp[256];
+    static gchar tmp[4096];
 
     g_assert(r != NULL);
 
@@ -1161,7 +1161,7 @@ filter_rule_condition_to_gchar(const rule_t *r)
 gchar *
 filter_rule_to_gchar(rule_t *r)
 {
-	static gchar tmp[1024];
+	static gchar tmp[4096];
 
     g_assert(r != NULL);
 
@@ -1795,7 +1795,7 @@ filter_replace_rule_in_session(filter_t *f,
     g_assert(filter != NULL);
 
     if (gui_debug >= 4) {
-        gchar f1[1024];
+        gchar f1[4096];
 		const gchar *f2;
 	   
 		g_strlcpy(f1, filter_rule_to_gchar(old_rule), sizeof f1);
