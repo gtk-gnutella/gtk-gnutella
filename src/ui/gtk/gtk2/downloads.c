@@ -1570,8 +1570,13 @@ void gui_update_download(download_t *d, gboolean force)
 		a = tmpstr;
 		break;
 	case GTA_DL_SINKING:
-		gm_snprintf(tmpstr, sizeof(tmpstr),
-			_("Sinking (%" PRIu64 " bytes left)"), (guint64) d->sinkleft);
+		{
+			gchar bytes[32];
+			
+			gm_snprintf(bytes, sizeof bytes, "%" PRIu64, (guint64) d->sinkleft);
+			gm_snprintf(tmpstr, sizeof(tmpstr),
+				_("Sinking (%s bytes left)"), bytes);
+		}
 		a = tmpstr;
 		break;
 	default:

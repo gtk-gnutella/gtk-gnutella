@@ -152,6 +152,7 @@ fi_gui_set_details(gnet_fi_t fih)
     guint n;
     GtkCList *cl_aliases;
 	gboolean in_progress = FALSE;
+	gchar bytes[32];
 
     fi = guc_fi_get_info(fih);
     g_assert(fi != NULL);
@@ -164,9 +165,10 @@ fi_gui_set_details(gnet_fi_t fih)
     gtk_label_set_text(
         GTK_LABEL(lookup_widget(main_window, "label_fi_filename")),
         fi->file_name);
+	gm_snprintf(bytes, sizeof bytes, "%" PRIu64, (guint64) fis.size);
     gtk_label_printf(
         GTK_LABEL(lookup_widget(main_window, "label_fi_size")),
-        _("%s (%" PRIu64 " bytes)"), short_size(fis.size), (guint64) fis.size);
+        _("%s (%s bytes)"), short_size(fis.size), bytes);
 
     gtk_clist_freeze(cl_aliases);
     gtk_clist_clear(cl_aliases);

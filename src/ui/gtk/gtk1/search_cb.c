@@ -141,6 +141,7 @@ search_gui_set_details(record_t *rc)
 	static GtkEntry *info_country = NULL;
 	static GtkEntry *info_speed = NULL;
 	const gchar *vendor;
+	gchar bytes[32];
 
 	if (info_filename == NULL) {		/* First time */
 		info_filename =
@@ -202,8 +203,9 @@ search_gui_set_details(record_t *rc)
 		iso3166_country_cc(rc->results_set->country));
 	gtk_entry_set_text(info_country, tmpstr);
 
-	gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%" PRIu64 " bytes)"),
-		short_size(rc->size), (guint64) rc->size);
+	gm_snprintf(bytes, sizeof bytes, "%" PRIu64, (guint64) rc->size);
+	gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%s bytes)"),
+		short_size(rc->size), bytes);
 	gtk_entry_set_text(info_size, tmpstr);
 
 	gtk_entry_set_text(info_guid, guid_hex_str(rc->results_set->guid));

@@ -453,6 +453,7 @@ on_tree_view_search_results_select_row(GtkTreeView *view, gpointer unused_udata)
 		search_t *sch = NULL;
 		const GList *l = search_gui_get_searches();
 		gchar text[1024];
+		gchar bytes[32];
 
 		for (/* NOTHING */; NULL != l; l = g_list_next(l))
 			if (view == GTK_TREE_VIEW(((search_t *) l->data)->tree_view)) {
@@ -480,8 +481,9 @@ on_tree_view_search_results_select_row(GtkTreeView *view, gpointer unused_udata)
 			gtk_entry_set_text(GTK_ENTRY(
 				lookup_widget(main_window, "entry_result_info_source")),
 				ip_port_to_gchar(rc->results_set->ip, rc->results_set->port));
-		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%" PRIu64 " bytes)"),
-			short_size(rc->size), (guint64) rc->size);
+		gm_snprintf(bytes, sizeof bytes, "%" PRIu64, (guint64) rc->size);
+		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%s bytes)"),
+			short_size(rc->size), bytes);
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_size")),
 			tmpstr);
