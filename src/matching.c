@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include "gnutella.h"
 #include "matching.h"
+#include "search_stats.h"
 
 /*
  * Search query word splitting.
@@ -573,6 +574,14 @@ gint st_search(
 	wocnt = query_make_word_vec(search, &wovec);
 	if (wocnt == 0)
 		return 0;
+
+	/*
+	 * If search statistics are being gathered, count each word
+	 */
+	if (search_stats_enabled)
+	    for (i = 0; i < wocnt; i++)
+		tally_search_stats(&wovec[i]);
+
 	pattern = (cpattern_t **) g_malloc(wocnt * sizeof(cpattern_t *));
 
 	for (i = 0; i < wocnt; i++)

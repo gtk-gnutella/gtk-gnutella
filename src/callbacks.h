@@ -153,5 +153,12 @@ void on_search_popdown_switch(GtkWidget * w, gpointer data);
 void on_search_notebook_switch(GtkNotebook * notebook, GtkNotebookPage * page, gint page_num, gpointer user_data);
 void on_button_search_clear_clicked(GtkButton * button, gpointer user_data);
 void on_popup_search_clear_results_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_checkbutton_enable_search_stats_toggled(GtkToggleButton * togglebutton, gpointer user_data);
+void on_button_reset_search_stats_clicked(GtkButton * button, gpointer user_data);
+void on_entry_search_stats_update_interval_activate(GtkEditable * editable, gpointer user_data);
+gboolean on_entry_search_stats_update_interval_focus_out_event(GtkWidget * widget, GdkEventFocus * event, gpointer user_data);
+void on_entry_search_stats_delcoef_activate(GtkEditable * editable, gpointer user_data);
+gboolean on_entry_search_stats_delcoef_focus_out_event(GtkWidget * widget, GdkEventFocus * event, gpointer user_data);
+void on_clist_search_stats_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 
 #endif	/* __callbacks_h__ */

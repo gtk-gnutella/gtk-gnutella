@@ -5,6 +5,15 @@
 #include "uploads.h"
 #include "search.h"
 
+#define NOTEBOOK_MAIN_GNUTELLANET_IDX		0
+#define NOTEBOOK_MAIN_UPLOADS_IDX			1
+#define NOTEBOOK_MAIN_DOWNLOADS_IDX			2
+#define NOTEBOOK_MAIN_SEARCH_IDX			3
+#define NOTEBOOK_MAIN_SEARCH_MONITOR_IDX	4
+#define NOTEBOOK_MAIN_SEARCH_STATS_IDX		5
+#define NOTEBOOK_MAIN_CONFIG_IDX			6
+
+
 /* gui.c */
 
 void gui_set_status(gchar *);
@@ -47,6 +56,8 @@ void gui_update_socks_host();
 void gui_update_socks_port();
 void gui_update_socks_user();
 void gui_update_socks_pass();
+void gui_update_search_stats_update_interval(void);
+void gui_update_search_stats_delcoef(void);
 void gui_search_update_items(struct search *sch);
 void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist);
 void gui_search_init(void);

@@ -18,6 +18,7 @@ gtk_gnutella_SOURCES = \
 	hosts.c hosts.h \
 	routing.c routing.h \
 	search.c search.h \
+	search_stats.c search_stats.h \
 	filter.c filter.h \
 	downloads.c downloads.h \
 	share.c share.h \

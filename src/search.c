@@ -1456,8 +1456,10 @@ void search_download_files(void)
 	/* Download the selected files */
 
 	if (jump_to_downloads) {
-		gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main), 2);
-		gtk_clist_select_row(GTK_CLIST(clist_menu), 2, 0);
+		gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main),
+			NOTEBOOK_MAIN_DOWNLOADS_IDX);
+		gtk_clist_select_row(GTK_CLIST(clist_menu),
+			NOTEBOOK_MAIN_DOWNLOADS_IDX, 0);
 	}
 
 	if (current_search) {

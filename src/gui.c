@@ -809,4 +809,15 @@ void gui_close(void)
 		g_free(shared_dirs_paths);
 }
 
+void gui_update_search_stats_update_interval(void)
+{
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", search_stats_update_interval);
+	gtk_entry_set_text(GTK_ENTRY(entry_search_stats_update_interval), gui_tmp);
+}
+void gui_update_search_stats_delcoef(void)
+{
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", search_stats_delcoef);
+	gtk_entry_set_text(GTK_ENTRY(entry_search_stats_delcoef), gui_tmp);
+}
+
 /* vi: set ts=4: */

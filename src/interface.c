@@ -73,6 +73,11 @@ GtkWidget *button_search_close;
 GtkWidget *checkbutton_monitor;
 GtkWidget *entry_monitor;
 GtkWidget *clist_monitor;
+GtkWidget *checkbutton_enable_search_stats;
+GtkWidget *clist_search_stats;
+GtkWidget *entry_search_stats_update_interval;
+GtkWidget *entry_search_stats_delcoef;
+GtkWidget *label_search_stats_count;
 GtkWidget *button_config_move_path;
 GtkWidget *button_config_save_path;
 GtkWidget *entry_config_path;
@@ -251,6 +256,18 @@ create_main_window (void)
   GtkWidget *scrolledwindow8;
   GtkWidget *label70;
   GtkWidget *label_monitor;
+  GtkWidget *vbox12;
+  GtkWidget *hbox67;
+  GtkWidget *label101;
+  GtkWidget *label102;
+  GtkWidget *scrolledwindow10;
+  GtkWidget *label105;
+  GtkWidget *label106;
+  GtkWidget *label107;
+  GtkWidget *alignment1;
+  GtkWidget *hbox66;
+  GtkWidget *button_reset_search_stats;
+  GtkWidget *label98;
   GtkWidget *vbox_config;
   GtkWidget *frame_save_new_files;
   GtkWidget *table_save_files_button;
@@ -1651,6 +1668,135 @@ create_main_window (void)
   gtk_widget_show (label_monitor);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 4), label_monitor);
 
+  vbox12 = gtk_vbox_new (FALSE, 5);
+  gtk_widget_ref (vbox12);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox12", vbox12,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox12);
+  gtk_container_add (GTK_CONTAINER (notebook_main), vbox12);
+
+  hbox67 = gtk_hbox_new (FALSE, 3);
+  gtk_widget_ref (hbox67);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox67", hbox67,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox67);
+  gtk_box_pack_start (GTK_BOX (vbox12), hbox67, FALSE, TRUE, 0);
+
+  checkbutton_enable_search_stats = gtk_check_button_new_with_label ("Enable Search Stats");
+  gtk_widget_ref (checkbutton_enable_search_stats);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_enable_search_stats", checkbutton_enable_search_stats,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_enable_search_stats);
+  gtk_box_pack_start (GTK_BOX (hbox67), checkbutton_enable_search_stats, FALSE, FALSE, 0);
+
+  label101 = gtk_label_new ("             Update Interval (1/10s)");
+  gtk_widget_ref (label101);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label101", label101,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label101);
+  gtk_box_pack_start (GTK_BOX (hbox67), label101, TRUE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label101), GTK_JUSTIFY_RIGHT);
+
+  entry_search_stats_update_interval = gtk_entry_new ();
+  gtk_widget_ref (entry_search_stats_update_interval);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_search_stats_update_interval", entry_search_stats_update_interval,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_search_stats_update_interval);
+  gtk_box_pack_start (GTK_BOX (hbox67), entry_search_stats_update_interval, FALSE, FALSE, 0);
+  gtk_widget_set_usize (entry_search_stats_update_interval, 40, -2);
+
+  label102 = gtk_label_new ("  Deletion Coeff. (0-100)");
+  gtk_widget_ref (label102);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label102", label102,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label102);
+  gtk_box_pack_start (GTK_BOX (hbox67), label102, TRUE, TRUE, 0);
+  gtk_label_set_justify (GTK_LABEL (label102), GTK_JUSTIFY_RIGHT);
+
+  entry_search_stats_delcoef = gtk_entry_new ();
+  gtk_widget_ref (entry_search_stats_delcoef);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_search_stats_delcoef", entry_search_stats_delcoef,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_search_stats_delcoef);
+  gtk_box_pack_end (GTK_BOX (hbox67), entry_search_stats_delcoef, FALSE, FALSE, 0);
+  gtk_widget_set_usize (entry_search_stats_delcoef, 32, -2);
+
+  scrolledwindow10 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_ref (scrolledwindow10);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "scrolledwindow10", scrolledwindow10,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (scrolledwindow10);
+  gtk_box_pack_start (GTK_BOX (vbox12), scrolledwindow10, TRUE, TRUE, 0);
+
+  clist_search_stats = gtk_clist_new (3);
+  gtk_widget_ref (clist_search_stats);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_search_stats", clist_search_stats,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (clist_search_stats);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow10), clist_search_stats);
+  gtk_clist_set_column_width (GTK_CLIST (clist_search_stats), 0, 498);
+  gtk_clist_set_column_width (GTK_CLIST (clist_search_stats), 1, 93);
+  gtk_clist_set_column_width (GTK_CLIST (clist_search_stats), 2, 80);
+  gtk_clist_column_titles_show (GTK_CLIST (clist_search_stats));
+
+  label105 = gtk_label_new ("Search Term");
+  gtk_widget_ref (label105);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label105", label105,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label105);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_search_stats), 0, label105);
+
+  label106 = gtk_label_new ("This Interval");
+  gtk_widget_ref (label106);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label106", label106,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label106);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_search_stats), 1, label106);
+
+  label107 = gtk_label_new ("Total");
+  gtk_widget_ref (label107);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label107", label107,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label107);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_search_stats), 2, label107);
+
+  alignment1 = gtk_alignment_new (0.5, 0.5, 1, 1);
+  gtk_widget_ref (alignment1);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "alignment1", alignment1,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (alignment1);
+  gtk_box_pack_start (GTK_BOX (vbox12), alignment1, FALSE, FALSE, 0);
+
+  hbox66 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_ref (hbox66);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox66", hbox66,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (hbox66);
+  gtk_container_add (GTK_CONTAINER (alignment1), hbox66);
+
+  button_reset_search_stats = gtk_button_new_with_label ("  Reset Stats  ");
+  gtk_widget_ref (button_reset_search_stats);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_reset_search_stats", button_reset_search_stats,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (button_reset_search_stats);
+  gtk_box_pack_start (GTK_BOX (hbox66), button_reset_search_stats, FALSE, FALSE, 0);
+
+  label_search_stats_count = gtk_label_new ("0");
+  gtk_widget_ref (label_search_stats_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_search_stats_count", label_search_stats_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_search_stats_count);
+  gtk_box_pack_end (GTK_BOX (hbox66), label_search_stats_count, FALSE, FALSE, 0);
+  gtk_widget_set_usize (label_search_stats_count, 48, -2);
+  gtk_label_set_justify (GTK_LABEL (label_search_stats_count), GTK_JUSTIFY_RIGHT);
+
+  label98 = gtk_label_new ("label98");
+  gtk_widget_ref (label98);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label98", label98,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label98);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 5), label98);
+
   vbox_config = gtk_vbox_new (FALSE, 4);
   gtk_widget_ref (vbox_config);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_config", vbox_config,
@@ -2205,7 +2351,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_config", label_config,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_config);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 5), label_config);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_main), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_main), 6), label_config);
 
   hbox_copyright = gtk_hbox_new (FALSE, 0);
   gtk_widget_ref (hbox_copyright);
@@ -2425,6 +2571,27 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_monitor), "button_press_event",
                       GTK_SIGNAL_FUNC (on_clist_monitor_button_press_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (checkbutton_enable_search_stats), "toggled",
+                      GTK_SIGNAL_FUNC (on_checkbutton_enable_search_stats_toggled),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_search_stats_update_interval), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_search_stats_update_interval_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_search_stats_update_interval), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_entry_search_stats_update_interval_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_search_stats_delcoef), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_search_stats_delcoef_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_search_stats_delcoef), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_entry_search_stats_delcoef_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (clist_search_stats), "resize_column",
+                      GTK_SIGNAL_FUNC (on_clist_search_stats_resize_column),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (button_reset_search_stats), "clicked",
+                      GTK_SIGNAL_FUNC (on_button_reset_search_stats_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_config_save_path), "clicked",
                       GTK_SIGNAL_FUNC (on_button_config_save_path_clicked),

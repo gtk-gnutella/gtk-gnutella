@@ -18,6 +18,7 @@
 #include "share.h"
 #include "gui.h"
 #include "autodownload.h"
+#include "search_stats.h"
 
 static gchar *config_file = "config";
 static gchar *host_file = "hosts";
@@ -73,6 +74,8 @@ guint32 max_high_ttl_radius = 2;
 guint32 min_dup_msg = 5;
 gfloat min_dup_ratio = 1.5;
 guint32 max_hosts_cached = 20480;
+guint32 search_stats_update_interval = 200;
+guint32 search_stats_delcoef = 25;
 
 gint dbg = 0;					// debug level, for development use
 gint stop_host_get = 0;			// stop get new hosts, non activity ok (debug)
@@ -97,6 +100,7 @@ guint32 dl_active_col_widths[] = { 240, 80, 80, 80 };
 guint32 dl_queued_col_widths[] = { 320, 80, 80 };
 guint32 uploads_col_widths[] = { 200, 120, 36, 80, 80 };
 guint32 search_results_col_widths[] = { 210, 80, 50, 140, 140 };
+guint32 search_stats_col_widths[] = { 200, 80, 80 };
 
 gboolean jump_to_downloads = TRUE;
 
@@ -143,7 +147,7 @@ enum {
 	k_win_x, k_win_y, k_win_w, k_win_h, k_win_coords, k_widths_nodes,
 	k_widths_uploads,
 	k_widths_dl_active, k_widths_dl_queued, k_widths_search_results,
-	k_show_results_tabs,
+	k_widths_search_stats, k_show_results_tabs,
 	k_hops_random_factor, k_send_pushes, k_jump_to_downloads,
 	k_max_connections, k_proxy_connections,
 	k_proxy_protocol, k_proxy_ip, k_proxy_port, k_socksv5_user,
@@ -153,7 +157,8 @@ enum {
 	k_search_strict_and, k_search_pick_all,
 	k_max_high_ttl_msg, k_max_high_ttl_radius,
 	k_min_dup_msg, k_min_dup_ratio, k_max_hosts_cached,
-	k_use_auto_download, k_auto_download_file,
+	k_use_auto_download, k_auto_download_file, 
+	k_search_stats_update_interval, k_search_stats_delcoef,
 	k_end
 };
 
@@ -210,11 +215,12 @@ gchar *keywords[] = {
 	"window_w",					/* k_win_w */
 	"window_h",					/* k_win_h */
 	"window_coords",			/* k_win_coords */
-	"widths_nodes",				/* k_width_nodes */
-	"widths_uploads",			/* k_width_uploads */
-	"widths_dl_active",			/* k_width_dl_active */
-	"widths_dl_queued",			/* k_width_dl_queued */
+	"widths_nodes",				/* k_widths_nodes */
+	"widths_uploads",			/* k_widths_uploads */
+	"widths_dl_active",			/* k_widths_dl_active */
+	"widths_dl_queued",			/* k_widths_dl_queued */
 	"widths_search_results",	/* k_widths_search_results */
+	"widths_search_stats",		/* k_widths_search_stats */
 	"show_results_tabs",		/* k_show_results_tabs */
 	"hops_random_factor",		/* k_hops_random_factor */
 	"send_pushes",				/* k_send_pushes */
@@ -241,6 +247,8 @@ gchar *keywords[] = {
 	"max_hosts_cached",
 	"use_auto_download",
 	"auto_download_file",
+	"search_stats_update_interval",
+	"search_stats_delcoef",
 	NULL
 };
 
@@ -382,6 +390,9 @@ void config_init(void)
 	gui_update_scan_extensions();
 	gui_update_shared_dirs();
 
+	gui_update_search_stats_delcoef();
+	gui_update_search_stats_update_interval();
+
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(checkbutton_monitor),
 								 monitor_enabled);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
@@ -441,6 +452,10 @@ void config_init(void)
 	// for (i = 0; i < 5; i++)
 	//    gtk_clist_set_column_width(GTK_CLIST(clist_search_results),
 	//         i, search_results_col_widths[i]);
+
+	for (i = 0; i < 3; i++)
+		gtk_clist_set_column_width(GTK_CLIST(clist_search_stats), i,
+								   search_stats_col_widths[i]);
 
 	/* Transition : HOME/.gtk-gnutella is now a directory */
 
@@ -738,6 +753,12 @@ void config_set_param(guint32 keyword, gchar *value)
 				search_results_col_widths[i] = a[i];
 		return;
 
+	case k_widths_search_stats:
+		if ((a = config_parse_array(value, 3)))
+			for (i = 0; i < 3; i++)
+				search_stats_col_widths[i] = a[i];
+		return;
+
 	case k_show_results_tabs:
 		search_results_show_tabs =
 			(gboolean) ! g_strcasecmp(value, "true");
@@ -845,6 +866,14 @@ void config_set_param(guint32 keyword, gchar *value)
 
 	case k_auto_download_file:
 		auto_download_file = g_strdup(value);
+		return;
+	case k_search_stats_delcoef:
+		if (i >= 0 && i <= 100)
+			search_stats_delcoef = i;
+		return;
+	case k_search_stats_update_interval:
+		if (i >= 0 && i <= 50000)
+			search_stats_update_interval = i;
 		return;
 	}
 }
@@ -1060,6 +1089,10 @@ void config_save(void)
 			search_results_col_widths[0], search_results_col_widths[1],
 			search_results_col_widths[2], search_results_col_widths[3],
 			search_results_col_widths[4]);
+	fprintf(config, "%s = %u,%u,%u\n",
+			keywords[k_widths_search_stats],
+			search_stats_col_widths[0], search_stats_col_widths[1],
+			search_stats_col_widths[2]);
 
 	fprintf(config, "\n\n# The following variables cannot "
 		"yet be configured with the GUI.\n\n");
@@ -1215,6 +1248,13 @@ void config_save(void)
 	fprintf(config, "# Set to 1 to log network errors for later "
 		"inspection, for developer improvements\n"
 			"%s = %u\n\n", keywords[k_enable_err_log], enable_err_log);
+
+	fprintf(config, "# Search stats gathering parameters\n");
+	fprintf(config, "%s = %u\n", keywords[k_search_stats_update_interval],
+		search_stats_update_interval);
+	fprintf(config, "%s = %u\n", keywords[k_search_stats_delcoef],
+		search_stats_delcoef);
+	fprintf(config, "\n");
 
 	/* The following are useful if you want to tweak your node --RAM */
 

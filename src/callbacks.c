@@ -16,6 +16,7 @@
 #include "misc.h"
 #include "autodownload.h"
 #include "dialog-filters.h"
+#include "search_stats.h"
 
 gchar c_tmp[2048];
 
@@ -859,6 +860,78 @@ gboolean on_clist_monitor_button_press_event(GtkWidget * widget,
 }
 
 /*
+ * Search Stats
+ */
+void on_checkbutton_enable_search_stats_toggled(GtkToggleButton * togglebutton,
+						gpointer user_data)
+{
+	search_stats_enabled = gtk_toggle_button_get_active(togglebutton);
+	if (search_stats_enabled)
+		enable_search_stats();
+	else
+		gtk_widget_set_sensitive(checkbutton_enable_search_stats, FALSE);
+
+}
+
+void on_button_reset_search_stats_clicked(GtkButton * button, gpointer user_data)
+{
+	reset_search_stats();
+}
+
+void on_entry_search_stats_update_interval_activate(GtkEditable * editable,
+						    gpointer user_data)
+{
+	/* This will generate a focus out event (next func) */
+	gtk_widget_grab_focus(clist_menu);
+}
+
+gboolean on_entry_search_stats_update_interval_focus_out_event(
+	GtkWidget * widget,
+	GdkEventFocus * event,
+	gpointer user_data)
+{
+	guint32 v;
+	gchar *e = g_strdup(
+		gtk_entry_get_text(GTK_ENTRY(entry_search_stats_update_interval)));
+	g_strstrip(e);
+	v = atoi(e);
+	if (v > 0 && v <= 10000)
+		search_stats_update_interval = v;
+	gui_update_search_stats_update_interval();
+	g_free(e);
+	return TRUE;
+}
+
+void on_entry_search_stats_delcoef_activate(GtkEditable * editable,
+					    gpointer user_data)
+{
+	/* This will generate a focus out event (next func) */
+	gtk_widget_grab_focus(clist_menu);
+}
+
+gboolean on_entry_search_stats_delcoef_focus_out_event(
+	GtkWidget * widget,
+	GdkEventFocus * event,
+	gpointer user_data)
+{
+	guint32 v;
+	gchar *e = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_search_stats_delcoef)));
+	g_strstrip(e);
+	v = atoi(e);
+	if (v >= 0 && v <= 100)
+		search_stats_delcoef = v;
+	gui_update_search_stats_delcoef();
+	g_free(e);
+	return TRUE;
+}
+
+void on_clist_search_stats_resize_column(GtkCList * clist, gint column,
+										   gint width, gpointer user_data)
+{
+	search_stats_col_widths[column] = width;
+}
+
+/*
  * Config
  */
 
@@ -1252,11 +1325,6 @@ gboolean on_entry_config_search_items_focus_out_event(GtkWidget * widget,
 	gui_update_search_max_items();
 	g_free(e);
 	return TRUE;
-}
-
-void on_button_extra_config_clicked(GtkButton * button, gpointer user_data)
-{
-	gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main), 6);
 }
 
 void on_button_search_passive_clicked(GtkButton * button,

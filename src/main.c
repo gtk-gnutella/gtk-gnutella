@@ -128,6 +128,7 @@ gint main(gint argc, gchar ** argv)
 		"Downloads",
 		"Search",
 		"  Monitor",
+		"  Stats",
 		"Config",
 		NULL
 	};
@@ -192,13 +193,13 @@ gint main(gint argc, gchar ** argv)
 	optimal_width =
 		gtk_clist_optimal_column_width(GTK_CLIST(clist_stats), 0);
 
-	for (i = 0; i < 6; i++)
+	for (i = 0; i < 7; i++)
 		gtk_clist_insert(GTK_CLIST(clist_menu), i, (gchar **) & menus[i]);
 	gtk_clist_select_row(GTK_CLIST(clist_menu), 0, 0);
 
 	gtk_widget_set_usize(sw_menu, optimal_width,
 						 (clist_menu->style->font->ascent +
-						  clist_menu->style->font->descent + 4) * 6);
+						  clist_menu->style->font->descent + 4) * 7);
 
 	gtk_clist_column_titles_passive(GTK_CLIST(clist_nodes));
 	gtk_clist_column_titles_passive(GTK_CLIST(clist_uploads));

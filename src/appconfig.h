@@ -9,6 +9,7 @@ extern gchar *config_dir;
 
 extern gboolean force_local_ip;
 extern gboolean monitor_enabled;
+extern gboolean search_stats_enabled;
 extern gboolean clear_uploads;
 extern gboolean clear_downloads;
 
@@ -56,12 +57,15 @@ extern guint32 dl_active_col_widths[];
 extern guint32 dl_queued_col_widths[];
 extern guint32 uploads_col_widths[];
 extern guint32 search_results_col_widths[];
+extern guint32 search_stats_col_widths[];
 extern guint32 hops_random_factor;
 extern guint32 max_high_ttl_msg;
 extern guint32 max_high_ttl_radius;
 extern guint32 min_dup_msg;
 extern gfloat min_dup_ratio;
 extern guint32 max_hosts_cached;
+extern guint32 search_stats_update_interval;
+extern guint32 search_stats_delcoef;
 
 extern gint dbg;
 extern gint stop_host_get;
