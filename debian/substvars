@@ -1,1 +1,1 @@
-shlibs:Depends=libc6 (>= 2.2.4-4), libglib1.2 (>= 1.2.0), libgtk1.2 (>= 1.2.10-4), xlibs (>> 4.1.0)
+shlibs:Depends=libc6 (>= 2.2.4-4), libglib1.2 (>= 1.2.0), libgtk1.2 (>= 1.2.10-4), xlibs (>> 4.1.0), zlib1g (>= 1:1.1.4)
