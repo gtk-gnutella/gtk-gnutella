@@ -403,6 +403,15 @@ void node_real_remove(gnutella_node_t *node)
 		io_free(node->io_opaque);
 
 	/*
+	 * The freeing of the vendor string is delayed, because the GUI update
+	 * code reads it.  When this routine is called, the GUI line has been
+	 * removed, so it's safe to do it now.
+	 */
+
+	if (node->vendor)
+		atom_str_free(node->vendor);
+
+	/*
 	 * The RX stack needs to be dismantled asynchronously, to not be freed
 	 * whilst on the "data reception" interrupt path.
 	 */
@@ -469,7 +478,9 @@ static void node_remove_v(
 		socket_free(n->socket);
 		n->socket = NULL;
 	}
+
 	/* n->io_opaque will be freed by node_real_remove() */
+	/* n->vendor will be freed by node_real_remove() */
 
 	if (n->allocated) {
 		g_free(n->data);
@@ -485,10 +496,6 @@ static void node_remove_v(
 	}
 	if (n->rx)					/* RX stack freed by node_real_remove() */
 		node_disable_read(n);
-	if (n->vendor) {
-		atom_str_free(n->vendor);
-		n->vendor = NULL;
-	}
 	if (n->gnet_guid) {
 		atom_guid_free(n->gnet_guid);
 		n->gnet_guid = NULL;
@@ -3039,8 +3046,6 @@ void node_close(void)
 			sq_free(n->searchq);
 		if (n->allocated)
 			g_free(n->data);
-		if (n->vendor)
-			atom_str_free(n->vendor);
 		if (n->gnet_guid)
 			atom_guid_free(n->gnet_guid);
 		if (n->alive_pings)
