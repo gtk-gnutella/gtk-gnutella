@@ -58,6 +58,7 @@
 #include "core/move.h"
 #include "core/nodes.h"
 #include "core/ntp.h"
+#include "core/oob.h"
 #include "core/parq.h"
 #include "core/pcache.h"
 #include "core/pproxy.h"
