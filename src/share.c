@@ -547,10 +547,16 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 			/*
 			 * Look for the trailing chars (we're matching an extension).
 			 * Matching is case-insensitive, and the extension opener is ".".
+			 *
+			 * An extension "--all--" matches all files, even if they
+			 * don't have any extension. [Patch from Zygo Blaxell].
 			 */
 
-			if (*start == '.' && 0 == g_strcasecmp(start+1, e->str)) {
-
+			if (
+				0 == g_strcasecmp("--all--", e->str) ||		/* All files */
+				(start >= name && *start == '.' &&
+					0 == g_strcasecmp(start+1, e->str))
+			) {
 				if (stat(full, &file_stat) == -1) {
 					g_warning("can't stat %s: %s", full, g_strerror(errno));
 					break;
