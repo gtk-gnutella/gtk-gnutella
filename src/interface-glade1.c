@@ -472,7 +472,11 @@ create_main_window (void)
   GtkObject *spinbutton_config_download_overlap_range_adj;
   GtkWidget *spinbutton_config_download_overlap_range;
   GtkWidget *label173;
+  GtkWidget *frame_expert_dl_source_quality;
+  GtkWidget *table47;
   GtkWidget *checkbutton_config_download_optimistic_start;
+  GtkWidget *checkbutton_config_req_urn;
+  GtkWidget *checkbutton_config_req_srv_name;
   GtkWidget *frame_expert_dl_timeout;
   GtkWidget *table8;
   GtkWidget *label162;
@@ -4443,13 +4447,14 @@ create_main_window (void)
   gtk_widget_show (frame16);
   gtk_box_pack_start (GTK_BOX (vbox38), frame16, FALSE, TRUE, 0);
 
-  table46 = gtk_table_new (3, 3, FALSE);
+  table46 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table46, "table46");
   gtk_widget_ref (table46);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table46", table46,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (table46);
   gtk_container_add (GTK_CONTAINER (frame16), table46);
+  gtk_container_set_border_width (GTK_CONTAINER (table46), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table46), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table46), 4);
 
@@ -4514,13 +4519,52 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label173), 7.45058e-09, 0.5);
 
+  frame_expert_dl_source_quality = gtk_frame_new ("Source quality");
+  gtk_widget_set_name (frame_expert_dl_source_quality, "frame_expert_dl_source_quality");
+  gtk_widget_ref (frame_expert_dl_source_quality);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_expert_dl_source_quality", frame_expert_dl_source_quality,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame_expert_dl_source_quality);
+  gtk_box_pack_start (GTK_BOX (vbox38), frame_expert_dl_source_quality, FALSE, TRUE, 0);
+
+  table47 = gtk_table_new (1, 3, FALSE);
+  gtk_widget_set_name (table47, "table47");
+  gtk_widget_ref (table47);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "table47", table47,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table47);
+  gtk_container_add (GTK_CONTAINER (frame_expert_dl_source_quality), table47);
+  gtk_container_set_border_width (GTK_CONTAINER (table47), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table47), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table47), 4);
+
   checkbutton_config_download_optimistic_start = gtk_check_button_new_with_label ("Optimistic first chunk");
   gtk_widget_set_name (checkbutton_config_download_optimistic_start, "checkbutton_config_download_optimistic_start");
   gtk_widget_ref (checkbutton_config_download_optimistic_start);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_download_optimistic_start", checkbutton_config_download_optimistic_start,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_config_download_optimistic_start);
-  gtk_table_attach (GTK_TABLE (table46), checkbutton_config_download_optimistic_start, 0, 3, 2, 3,
+  gtk_table_attach (GTK_TABLE (table47), checkbutton_config_download_optimistic_start, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_req_urn = gtk_check_button_new_with_label ("Require urn");
+  gtk_widget_set_name (checkbutton_config_req_urn, "checkbutton_config_req_urn");
+  gtk_widget_ref (checkbutton_config_req_urn);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_req_urn", checkbutton_config_req_urn,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_req_urn);
+  gtk_table_attach (GTK_TABLE (table47), checkbutton_config_req_urn, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_req_srv_name = gtk_check_button_new_with_label ("Require server name");
+  gtk_widget_set_name (checkbutton_config_req_srv_name, "checkbutton_config_req_srv_name");
+  gtk_widget_ref (checkbutton_config_req_srv_name);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_req_srv_name", checkbutton_config_req_srv_name,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_req_srv_name);
+  gtk_table_attach (GTK_TABLE (table47), checkbutton_config_req_srv_name, 2, 3, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 

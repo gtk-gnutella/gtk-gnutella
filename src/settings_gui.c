@@ -1315,6 +1315,20 @@ static prop_map_t property_map[] = {
         TRUE,
         "eventbox_image_save" /* need eventbox because image has no tooltip */
     },
+    {
+        get_main_window,
+        PROP_DOWNLOAD_REQUIRE_URN,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_req_urn"
+    },
+    {
+        get_main_window,
+        PROP_DOWNLOAD_REQUIRE_SERVER_NAME,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_req_srv_name"
+    },
 };
 
 /***
@@ -2356,6 +2370,7 @@ static gboolean expert_mode_changed(property_t prop)
         "frame_expert_gnet_other",
 		"frame_expert_dl_timeout",
         "frame_expert_ul_timeout",
+        "frame_expert_dl_source_quality",
         NULL
     };
     gint n;

@@ -6745,7 +6745,8 @@ options</label>
 		    <widget>
 		      <class>GtkTable</class>
 		      <name>table46</name>
-		      <rows>3</rows>
+		      <border_width>2</border_width>
+		      <rows>2</rows>
 		      <columns>3</columns>
 		      <homogeneous>False</homogeneous>
 		      <row_spacing>2</row_spacing>
@@ -6896,6 +6897,30 @@ options</label>
 			  <yfill>False</yfill>
 			</child>
 		      </widget>
+		    </widget>
+		  </widget>
+
+		  <widget>
+		    <class>GtkFrame</class>
+		    <name>frame_expert_dl_source_quality</name>
+		    <label>Source quality</label>
+		    <label_xalign>0</label_xalign>
+		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		    <child>
+		      <padding>0</padding>
+		      <expand>False</expand>
+		      <fill>True</fill>
+		    </child>
+
+		    <widget>
+		      <class>GtkTable</class>
+		      <name>table47</name>
+		      <border_width>2</border_width>
+		      <rows>1</rows>
+		      <columns>3</columns>
+		      <homogeneous>False</homogeneous>
+		      <row_spacing>2</row_spacing>
+		      <column_spacing>4</column_spacing>
 
 		      <widget>
 			<class>GtkCheckButton</class>
@@ -6906,9 +6931,55 @@ options</label>
 			<draw_indicator>True</draw_indicator>
 			<child>
 			  <left_attach>0</left_attach>
+			  <right_attach>1</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_config_req_urn</name>
+			<can_focus>True</can_focus>
+			<label>Require urn</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <left_attach>1</left_attach>
+			  <right_attach>2</right_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
+			  <xpad>0</xpad>
+			  <ypad>0</ypad>
+			  <xexpand>False</xexpand>
+			  <yexpand>False</yexpand>
+			  <xshrink>False</xshrink>
+			  <yshrink>False</yshrink>
+			  <xfill>True</xfill>
+			  <yfill>False</yfill>
+			</child>
+		      </widget>
+
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_config_req_srv_name</name>
+			<can_focus>True</can_focus>
+			<label>Require server name</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <left_attach>2</left_attach>
 			  <right_attach>3</right_attach>
-			  <top_attach>2</top_attach>
-			  <bottom_attach>3</bottom_attach>
+			  <top_attach>0</top_attach>
+			  <bottom_attach>1</bottom_attach>
 			  <xpad>0</xpad>
 			  <ypad>0</ypad>
 			  <xexpand>False</xexpand>
