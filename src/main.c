@@ -65,6 +65,7 @@
 #include "eval.h"
 #include "pproxy.h"
 #include "hsep.h"
+#include "dq.h"
 
 #ifdef USE_REMOTE_CTRL
 #include "shell.h"
@@ -222,6 +223,7 @@ void gtk_gnutella_exit(gint n)
 		sleep(1);
 	}
 
+	dq_close();
 	hsep_close();
 	hostiles_close();
 	drop_close();
@@ -572,6 +574,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	parq_init();
 	hsep_init();
 	clock_init();
+	dq_init();
 
 	main_gui_init();
 	
