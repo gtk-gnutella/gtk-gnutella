@@ -47,15 +47,7 @@
 
 #define MAX_HOSTLEN		256		/* Max length for FQDN host */
 
-/*
- * http_timer
- *
- * Called from main timer to expire HTTP requests that take too long.
- */
-void http_timer(time_t now)
-{
-	// XXX handle list, put ha in them monitor last_update
-}
+static GSList *sl_outgoing = NULL;		/* To spot reply timeouts */
 
 /*
  * http_send_status
@@ -449,10 +441,14 @@ gboolean http_extract_version(
  * Parse HTTP url and extract the IP/port we need to connect to.
  * Also identifies the start of the path to request on the server.
  *
- * Returns TRUE if the URL was correctly parsed, with `ip', `port' and `path'
- * filled, FALSE otherwise.
+ * Returns TRUE if the URL was correctly parsed, with `ip', `port', 'host'
+ * and `path' filled if they are non-NULL, FALSE otherwise.
+ *
+ * NOTE: `host' is only filled if a non-numeric host was given in the URL,
+ * and the pointer returned is to STATIC data.
  */
-gboolean http_url_parse(gchar *url, guint32 *ip, guint16 *port, gchar **path)
+gboolean http_url_parse(
+	gchar *url, guint32 *ip, guint16 *port, gchar **host, gchar **path)
 {
 	gchar *host_start;
 	gchar *port_start;
@@ -461,6 +457,7 @@ gboolean http_url_parse(gchar *url, guint32 *ip, guint16 *port, gchar **path)
 	gboolean seen_upw = FALSE;
 	gchar s;
 	guint32 portnum;
+	static gchar hostname[MAX_HOSTLEN + 1];
 
 	if (0 != strncasecmp(url, "http://", 7))
 		return FALSE;
@@ -499,7 +496,9 @@ gboolean http_url_parse(gchar *url, guint32 *ip, guint16 *port, gchar **path)
 	p--;							/* Go back to trailing "/" */
 	if (*p != '/')
 		return FALSE;
-	*path = p;						/* Start of path, at the "/" */
+
+	if (path != NULL)
+		*path = p;					/* Start of path, at the "/" */
 
 	/*
 	 * Validate the port.
@@ -513,7 +512,8 @@ gboolean http_url_parse(gchar *url, guint32 *ip, guint16 *port, gchar **path)
 	if ((guint32) (guint16) portnum != portnum)
 		return FALSE;
 
-	*port = (guint16) portnum;
+	if (port != NULL)
+		*port = (guint16) portnum;
 
 	/*
 	 * Validate the host.
@@ -524,17 +524,19 @@ gboolean http_url_parse(gchar *url, guint32 *ip, guint16 *port, gchar **path)
 		if (
 			5 == sscanf(host_start, "%u.%u.%u.%u%c", &msb, &b3, &b2, &lsb, &s)
 			&& (s == '/' || s == ':')
-		)
-			*ip = lsb + (b2 << 8) + (b3 << 16) + (msb << 24);
-		else
+		) {
+			if (ip != NULL)
+				*ip = lsb + (b2 << 8) + (b3 << 16) + (msb << 24);
+			if (host != NULL)
+				*host = NULL;				/* No hostnmae */
+		} else
 			return FALSE;
 	} else {
-		gchar host[MAX_HOSTLEN + 1];
-		gchar *q = host;
-		gchar *end = host + sizeof(host);
+		gchar *q = hostname;
+		gchar *end = hostname + sizeof(hostname);
 
 		/*
-		 * Extract hostname into host[].
+		 * Extract hostname into hostname[].
 		 */
 
 		p = host_start;
@@ -545,16 +547,25 @@ gboolean http_url_parse(gchar *url, guint32 *ip, guint16 *port, gchar **path)
 			}
 			*q++ = c;
 		}
-		host[MAX_HOSTLEN] = '\0';
+		hostname[MAX_HOSTLEN] = '\0';
 
-		*ip = host_to_ip(host);
-		if (*ip == 0)					/* Unable to resolve name */
-			return FALSE;
+		if (ip != NULL) {
+			*ip = host_to_ip(hostname);
+			if (*ip == 0)					/* Unable to resolve name */
+				return FALSE;
+		}
+
+		if (host != NULL)
+			*host = hostname;				/* Static data! */
 	}
 
-	if (dbg > 12)
-		printf("URL \"%s\" -> host=%s, path=%s\n",
-			url, ip_port_to_gchar(*ip, *port), *path);
+	if (dbg > 5)
+		printf("URL \"%s\" -> IP=%s, host=%s, path=%s\n",
+			url,
+			(ip != NULL && port != NULL) ?
+				ip_port_to_gchar(*ip, *port) : "<not remembered>",
+			(host != NULL) ? (*host ? *host : "<none>") : "<not remembered>",
+			(path != NULL) ? *path : "<not remembered>");
 
 	return TRUE;
 }
@@ -574,6 +585,7 @@ static gchar *error_str[] = {
 	"Got EOF",								/* HTTP_ASYNC_EOF */
 	"Unparseable HTTP status",				/* HTTP_ASYNC_BAD_STATUS */
 	"Got moved status, but no location",	/* HTTP_ASYNC_NO_LOCATION */
+	"Data timeout",							/* HTTP_ASYNC_TIMEOUT */
 };
 
 gint http_async_errno;		/* Used to return error codes during setup */
@@ -615,7 +627,9 @@ static gchar *http_verb[HTTP_MAX_REQTYPE] = {
 struct http_async {					/* An asynchronous HTTP request */
 	gint magic;						/* Magic number */
 	enum http_reqtype type;			/* Type of request */
+	gchar *url;						/* Initial URL request (atom) */
 	gchar *path;					/* Path to request (atom) */
+	gchar *host;					/* Hostname, if not a numeric IP (atom) */
 	struct gnutella_socket *socket;	/* Attached socket */
 	http_header_cb_t header_ind;	/* Callback for headers */
 	http_data_cb_t data_ind;		/* Callback for data */
@@ -623,7 +637,65 @@ struct http_async {					/* An asynchronous HTTP request */
 	time_t last_update;				/* Time of last activity */
 	gpointer io_opaque;				/* Opaque I/O callback information */
 	bio_source_t *bio;				/* Bandwidth-limited source */
+	gpointer user_opaque;			/* User opaque data */
+	http_user_free_t user_free;		/* Free routine for opaque data */
 };
+
+/*
+ * http_async_info
+ *
+ * Get URL and request information, given opaque handle.
+ * This can be used by client code to log request parameters.
+ *
+ * Returns URL and fills `req' with the request type string (GET, POST, ...)
+ * if it is a non-NULL pointer, `path' with the request path, `ip' and `port'
+ * with the server address/port.
+ */
+gchar *http_async_info(
+	gpointer handle, gchar **req, gchar **path, guint32 *ip, guint16 *port)
+{
+	struct http_async *ha = (struct http_async *) handle;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+
+	if (req)  *req  = http_verb[ha->type];
+	if (path) *path = ha->path;
+	if (ip)   *ip   = ha->socket->ip;
+	if (port) *port = ha->socket->port;
+
+	return ha->url;
+}
+
+/*
+ * http_async_set_opaque
+ *
+ * Set user-defined opaque data, which can be freed via `fn'.
+ */
+void http_async_set_opaque(gpointer handle, gpointer data, http_user_free_t fn)
+{
+	struct http_async *ha = (struct http_async *) handle;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+	g_assert(fn != NULL);
+	g_assert(data != NULL);
+
+	ha->user_opaque = data;
+	ha->user_free = fn;
+}
+
+/*
+ * http_async_get_opaque
+ *
+ * Retrieve user-defined opaque data.
+ */
+gpointer http_async_get_opaque(gpointer handle)
+{
+	struct http_async *ha = (struct http_async *) handle;
+
+	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
+
+	return ha->user_opaque;
+}
 
 /*
  * http_async_free
@@ -633,12 +705,22 @@ struct http_async {					/* An asynchronous HTTP request */
  */
 static void http_async_free(struct http_async *ha)
 {
+	g_assert(sl_outgoing);
+
 	socket_free(ha->socket);
+	atom_str_free(ha->url);
 	atom_str_free(ha->path);
+
+	if (ha->host)
+		atom_str_free(ha->host);
 	if (ha->io_opaque)
 		io_free(ha->io_opaque);
 	if (ha->bio)
 		bsched_source_remove(ha->bio);
+	if (ha->user_free)
+		(*ha->user_free)(ha->user_opaque);
+
+	sl_outgoing = g_slist_remove(sl_outgoing, ha);
 
 	wfree(ha, sizeof(*ha));
 }
@@ -740,6 +822,7 @@ gpointer http_async_get(
 	gchar *path;
 	struct gnutella_socket *s;
 	struct http_async *ha;
+	gchar *host;
 
 	g_assert(url);
 	g_assert(data_ind);
@@ -749,7 +832,7 @@ gpointer http_async_get(
 	 * Extract the necessary parameters for the connection.
 	 */
 
-	if (!http_url_parse(url, &ip, &port, &path)) {
+	if (!http_url_parse(url, &ip, &port, &host, &path)) {
 		http_async_errno = HTTP_ASYNC_BAD_URL;
 		return NULL;
 	}
@@ -778,13 +861,19 @@ gpointer http_async_get(
 
 	ha->magic = HTTP_ASYNC_MAGIC;
 	ha->type = HTTP_GET;
+	ha->url = atom_str_get(url);
 	ha->path = atom_str_get(path);
+	ha->host = host ? atom_str_get(host) : NULL;
 	ha->socket = s;
 	ha->data_ind = data_ind;
 	ha->error_ind = error_ind;
 	ha->io_opaque = NULL;
 	ha->bio = NULL;
 	ha->last_update = time(NULL);
+	ha->user_opaque = NULL;
+	ha->user_free = NULL;
+
+	sl_outgoing = g_slist_prepend(sl_outgoing, ha);
 
 	return ha;
 }
@@ -796,6 +885,9 @@ gpointer http_async_get(
  */
 static void http_redirect(struct http_async *ha, gchar *url)
 {
+	// XXX
+	g_warning("HTTP redirect not implemented yet!");
+	http_async_error(ha, HTTP_ASYNC_BAD_STATUS);
 	// XXX
 }
 
@@ -812,6 +904,7 @@ static void http_got_data(struct http_async *ha, gboolean eof)
 	g_assert(eof || s->pos > 0);		/* If not EOF, there must be data */
 
 	if (s->pos > 0) {
+		ha->last_update = time(NULL);
 		(*ha->data_ind)(ha, s->buffer, s->pos);
 		s->pos = 0;
 	}
@@ -988,9 +1081,10 @@ void http_async_connected(gpointer handle)
 		"%s %s HTTP/1.1\r\n"
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n"
-		"Connection: close\r\n",
+		"Connection: close\r\n"
+		"\r\n",
 		http_verb[ha->type], ha->path,
-		ip_port_to_gchar(s->ip, s->port),
+		ha->host ? ha->host : ip_to_gchar(s->ip),
 		version_string);
 
 	if (rw >= sizeof(req)) {
@@ -1026,6 +1120,48 @@ void http_async_connected(gpointer handle)
 
 	io_get_header(ha, &ha->io_opaque, bws.in, s, IO_SAVE_FIRST,
 		call_http_got_header, NULL, &http_io_error);
+}
+
+/*
+ * http_async_log_error
+ *
+ * Default error indication callback which logs the error by listing the
+ * initial HTTP request and the reported error cause.
+ */
+void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v)
+{
+	gchar *url;
+	gchar *req;
+	gint error = (gint) v;
+	http_error_t *herror = (http_error_t *) v;
+
+	url = http_async_info(handle, &req, NULL, NULL, NULL);
+
+	switch (type) {
+	case HTTP_ASYNC_SYSERR:
+		g_warning("aborting \"%s %s\" on system error: %s",
+			req, url, g_strerror(error));
+		break;
+	case HTTP_ASYNC_ERROR:
+		if (error == HTTP_ASYNC_CANCELLED) {
+			if (dbg > 3)
+				printf("explicitly cancelled \"%s %s\"\n", req, url);
+		} else
+			g_warning("aborting \"%s %s\" on error: %s",
+				req, url, http_async_strerror(error));
+		break;
+	case HTTP_ASYNC_HEADER:
+		g_warning("aborting \"%s %s\" on header parsing error: %s",
+				req, url, header_strerror(error));
+		break;
+	case HTTP_ASYNC_HTTP:
+		g_warning("stopping \"%s %s\": HTTP %d %s",
+				req, url, herror->code, herror->message);
+		break;
+	default:
+		g_error("unhandled HTTP request error type %d", type);
+		/* NOTREACHED */
+	}
 }
 
 /***
@@ -1072,4 +1208,40 @@ static struct io_error http_io_error = {
 	err_header_read_eof,
 	NULL,
 };
+
+/*
+ * http_timer
+ *
+ * Called from main timer to expire HTTP requests that take too long.
+ */
+void http_timer(time_t now)
+{
+	GSList *l;
+
+retry:
+	for (l = sl_outgoing; l; l = l->next) {
+		struct http_async *ha = (struct http_async *) l->data;
+		time_t elapsed = now - ha->last_update;
+		guint32 timeout = ha->bio ?
+			download_connected_timeout :
+			download_connecting_timeout;
+
+		if (elapsed > timeout) {
+			http_async_error(ha, HTTP_ASYNC_TIMEOUT);
+			goto retry;
+		}
+	}
+}
+
+/*
+ * http_close
+ *
+ * Shutdown the HTTP module.
+ */
+void http_close(void)
+{
+	while (sl_outgoing)
+		http_async_error(
+			(struct http_async *) sl_outgoing->data, HTTP_ASYNC_CANCELLED);
+}
 

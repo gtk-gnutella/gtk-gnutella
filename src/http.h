@@ -111,6 +111,13 @@ typedef struct {
 typedef void (*http_error_cb_t)(gpointer h, http_errtype_t error, gpointer val);
 
 /*
+ * http_user_free_t
+ *
+ * Callabck to free user opaque data.
+ */
+typedef void (*http_user_free_t)(gpointer data);
+
+/*
  * Asynchronous request error codes.
  */
 
@@ -124,6 +131,7 @@ typedef void (*http_error_cb_t)(gpointer h, http_errtype_t error, gpointer val);
 #define HTTP_ASYNC_EOF			7	/* Got EOF */
 #define HTTP_ASYNC_BAD_STATUS	8	/* Unparseable HTTP status */
 #define HTTP_ASYNC_NO_LOCATION	9	/* Got moved status, but no location */
+#define HTTP_ASYNC_TIMEOUT		10	/* Data timeout */
 
 extern gint http_async_errno;
 
@@ -142,7 +150,8 @@ gint http_status_parse(gchar *line,
 gboolean http_extract_version(
 	gchar *request, gint len, gint *major, gint *minor);
 
-gboolean http_url_parse(gchar *url, guint32 *ip, guint16 *port, gchar **res);
+gboolean http_url_parse(
+	gchar *url, guint32 *ip, guint16 *port, gchar **host, gchar **path);
 
 gpointer http_async_get(
 	gchar *url,
@@ -150,9 +159,17 @@ gpointer http_async_get(
 	http_data_cb_t data_ind,
 	http_error_cb_t error_ind);
 
+gchar *http_async_info(
+	gpointer handle, gchar **req, gchar **path, guint32 *ip, guint16 *port);
 void http_async_connected(gpointer handle);
 void http_async_cancel(gpointer handle);
 void http_async_error(gpointer handle, gint code);
+
+void http_async_set_opaque(gpointer handle, gpointer data, http_user_free_t fn);
+gpointer http_async_get_opaque(gpointer handle);
+void http_async_log_error(gpointer handle, http_errtype_t type, gpointer v);
+
+void http_close(void);
 
 #endif	/* __http_h__ */
 
