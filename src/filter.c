@@ -2317,7 +2317,10 @@ void filter_init(void)
  */
 void filter_update_targets(void)
 {
-    filter_gui_rebuild_target_combos(filters);
+    if (session_started)
+        filter_gui_rebuild_target_combos(filters_current);
+    else
+        filter_gui_rebuild_target_combos(filters);
 }
 
 
