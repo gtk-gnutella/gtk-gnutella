@@ -60,7 +60,7 @@ RCSID("$Id$");
 
 #define RQST_LINE_LENGTH	256		/* Reasonable estimate for request line */
 
-GSList *uploads = NULL;
+static GSList *uploads = NULL;
 
 static idtable_t *upload_handle_map = NULL;
 
@@ -194,6 +194,8 @@ void upload_timer(time_t now)
 
 	for (l = uploads; l; l = g_slist_next(l)) {
 		gnutella_upload_t *u = (gnutella_upload_t *) l->data;
+
+		g_assert(u != NULL);
 
 		if (UPLOAD_IS_COMPLETE(u))
 			continue;					/* Complete, no timeout possible */
@@ -2859,7 +2861,7 @@ void upload_kill_ip(guint32 ip)
 	for (l = uploads; l; l = g_slist_next(l)) {
 		gnutella_upload_t *u = (gnutella_upload_t *) (l->data);
 
-		g_assert(u);
+		g_assert(u != NULL);
 
 		if (u->ip == ip && !UPLOAD_IS_COMPLETE(u)) {
 			parq_upload_force_remove(u);
