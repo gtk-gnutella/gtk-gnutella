@@ -42,6 +42,7 @@ LSRC = \
 	fifo.c \
 	file.c \
 	fuzzy.c \
+	getdate.c \
 	getline.c \
 	glib-missing.c \
 	hashlist.c \
@@ -82,7 +83,13 @@ LOBJ = \
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
-SimpleYaccTarget(libshared.a, getdate)
-
-NormalLibraryTarget(shared,$(LSRC),$(LOBJ) getdate.o)
+NormalLibraryTarget(shared,$(LSRC),$(LOBJ))
 DependTarget()
+
+/*
+ * Since getdate.c is in CVS, they can compile even if they lack yacc.
+ */
+getdate.c: getdate.y
+	-$(YACC) $(JYFLAGS) $<
+	-$(MV) y.tab.c $@
+
