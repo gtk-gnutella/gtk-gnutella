@@ -55,7 +55,7 @@ static const guint8 is_transparent[96] = {
 #define PATH_MASK		0x1
 #define QUERY_MASK		0x2
 
-static const char *hex_alphabet = "0123456789ABCDEF";
+static const char hex_alphabet[] = "0123456789ABCDEF";
 
 /*
  * url_escape_mask
