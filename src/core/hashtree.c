@@ -139,7 +139,7 @@ inline gboolean node_is_free_node(node_t *node)
  *        implementation will free it later with g_free().
  * @return a pointer to the new created hashtree.
  */
-hashtree *hashtree_new(gpointer hash_func)
+hashtree	*hashtree_new(gpointer (*hash_func)(gpointer, gpointer))
 {
 	hashtree *tree = (hashtree *) malloc(sizeof(hashtree));
 

@@ -59,7 +59,7 @@ struct hashtree_s {
 	gpointer	(* hash_func) (gpointer hash1, gpointer hash2);
 };
 
-hashtree	*hashtree_new(gpointer hash_func);
+hashtree	*hashtree_new(gpointer (*hash_func)(gpointer, gpointer));
 void		 hashtree_append_leaf_node(hashtree *parent, gpointer hash);
 void		 hashtree_finish(hashtree *parent);
 void		 hashtree_destroy(hashtree *tree);
