@@ -564,7 +564,7 @@ const gchar *locale_get_charset(void)
 static void textdomain_init(const char *charset)
 {
 #ifdef ENABLE_NLS
-	bindtextdomain(PACKAGE, LOCALEDIR);
+	bindtextdomain(PACKAGE, LOCALE_EXP);
 
 #ifdef HAS_BIND_TEXTDOMAIN_CODESET
 
