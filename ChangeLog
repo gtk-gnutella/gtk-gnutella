@@ -1,5 +1,20 @@
 # since last version
 
+- (2003.01.10 - RAM)
+ * Was reading '*p' but could peruse 'c' instead (dmesh.c).
+ * Generalized the use of walloc/wfree for small structures.
+ * Try to allocate chunks of 4K at most for walloc(), or 8 objects at least.
+ * Created new GTKG-specific GGEP extension "GTKGV1" to propagate version
+   information and servent startup time in query hits.
+ * Added inet_init() to ensure we have the no-connection timer set if we
+   startup in non-firewalled mode.
+ * Will now emit "GTKGV1" extensions in query hits when replying to a GTKG
+   query, and display version information in search pane.
+ * Exported version_str() for version string formatting.
+ * Be sure to not call inet_firewalled() on first listening port change,
+   i.e. when we read back the configuration file, or the persisted
+   "is_firewalled" property will be ignored!
+
 - (2003.01.08 - RAM)
  * Forgot to check for alternate locations on 503 replies.
  * Also compare SHA1 of requested files when checking for upload duplicates.
