@@ -92,10 +92,10 @@ gchar *home_dir = NULL;
 gchar *config_dir = NULL;
 
 
-guint32 nodes_col_widths[] = { 140, 80, 80 };
+guint32 nodes_col_widths[] = { 130, 50, 120, 20, 80 };
 guint32 dl_active_col_widths[] = { 240, 80, 80, 80 };
 guint32 dl_queued_col_widths[] = { 320, 80, 80 };
-guint32 uploads_col_widths[] = { 200, 120, 20, 40, 80 };
+guint32 uploads_col_widths[] = { 200, 120, 36, 80, 80 };
 guint32 search_results_col_widths[] = { 210, 80, 50, 140, 140 };
 
 gboolean jump_to_downloads = TRUE;
@@ -125,7 +125,7 @@ enum {
 	k_listen_port, k_max_ttl, k_my_ttl, k_shared_dirs, k_forced_local_ip,
 	k_connection_speed,
 	k_search_max_items, k_search_max_results,
-	k_force_local_ip, k_hosts_catched,
+	k_force_local_ip, k_guid,
 	k_download_connecting_timeout,
 	k_download_push_sent_timeout, k_download_connected_timeout,
 	k_download_retry_timeout_min, k_download_retry_timeout_max,
@@ -178,7 +178,7 @@ gchar *keywords[] = {
 	"limit_search_results",		/* k_search_max_items */
 	"search_max_results",		/* k_search_max_results */
 	"force_local_ip",			/* k_force_local_ip */
-	"hc",						/* k_hosts_catched */
+	"guid",						/* k_guid */
 	"download_connecting_timeout",		/* k_download_connecting_timeout */
 	"download_push_sent_timeout",		/* k_download_push_sent_timeout */
 	"download_connected_timeout",		/* k_download_connected_timeout */
@@ -278,6 +278,7 @@ void config_init(void)
 	config_dir = g_strdup(getenv("GTK_GNUTELLA_DIR"));
 	socksv5_user = socksv5[SOCKSV5_USER];
 	socksv5_pass = socksv5[SOCKSV5_PASS];
+	memset(guid, 0, sizeof(guid));
 
 	pwd = getpwuid(getuid());
 
@@ -421,7 +422,7 @@ void config_init(void)
 		gtk_window_set_default_size(GTK_WINDOW(main_window), w_w, w_h);
 	}
 
-	for (i = 0; i < 3; i++)
+	for (i = 0; i < 5; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_nodes), i,
 								   nodes_col_widths[i]);
 	for (i = 0; i < 4; i++)
@@ -466,27 +467,6 @@ void config_init(void)
 			return;
 		}
 	}
-}
-
-void config_hosts_catched(gchar * str)
-{
-	gchar **h = g_strsplit(str, ",", 0);
-	gint i = 0;
-	gchar p[16];
-
-	while (h[i] && *h[i]) {
-		if (strlen(h[i]) == 8) {		/* This is a host with default port */
-			host_add(strtoul(h[i], NULL, 16), 6346, FALSE);
-		} else if (strlen(h[i]) == 12) {		/* This is a host with a port */
-			strncpy(p, h[i] + 8, 4);
-			h[i][8] = 0;
-			host_add(strtoul(h[i], NULL, 16), strtoul(p, NULL, 16), FALSE);
-		}
-
-		i++;
-	}
-
-	g_strfreev(h);
 }
 
 guint32 *config_parse_array(gchar * str, guint32 n)
@@ -584,6 +564,11 @@ void config_set_param(guint32 keyword, gchar *value)
 		force_local_ip = (gboolean) ! g_strcasecmp(value, "true");
 		return;
 
+	case k_guid:
+		if (strlen(value) == 32)
+			hex_to_guid(value, guid);
+		return;
+
 	case k_scan_extensions:
 		parse_extensions(value);
 		return;
@@ -599,10 +584,6 @@ void config_set_param(guint32 keyword, gchar *value)
 
 	case k_shared_dirs:
 		shared_dirs_parse(value);
-		return;
-
-	case k_hosts_catched:
-		config_hosts_catched(value);
 		return;
 
 	case k_node_sendqueue_size:
@@ -728,8 +709,8 @@ void config_set_param(guint32 keyword, gchar *value)
 		return;
 
 	case k_widths_nodes:
-		if ((a = config_parse_array(value, 3)))
-			for (i = 0; i < 3; i++)
+		if ((a = config_parse_array(value, 5)))
+			for (i = 0; i < 5; i++)
 				nodes_col_widths[i] = a[i];
 		return;
 
@@ -1040,6 +1021,7 @@ void config_save(void)
 	fprintf(config, "%s = \"%s\"\n", keywords[k_forced_local_ip],
 			ip_to_gchar(forced_local_ip));
 	fprintf(config, "%s = %u\n", keywords[k_listen_port], listen_port);
+	fprintf(config, "%s = \"%s\"\n", keywords[k_guid], guid_hex_str(guid));
 	fprintf(config, "\n");
 	fprintf(config, "%s = %u\n", keywords[k_connection_speed],
 			connection_speed);
@@ -1060,8 +1042,9 @@ void config_save(void)
 	fprintf(config, "%s = %u,%u,%u,%u\n\n", keywords[k_win_coords], win_x,
 			win_y, win_w, win_h);
 
-	fprintf(config, "%s = %u,%u,%u\n", keywords[k_widths_nodes],
-			nodes_col_widths[0], nodes_col_widths[1], nodes_col_widths[2]);
+	fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_nodes],
+			nodes_col_widths[0], nodes_col_widths[1],
+			nodes_col_widths[2], nodes_col_widths[3], nodes_col_widths[4]);
 	fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_uploads],
 			uploads_col_widths[0], uploads_col_widths[1],
 			uploads_col_widths[2], uploads_col_widths[3],

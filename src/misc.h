@@ -28,6 +28,7 @@ gchar *short_size(guint32);
 gchar *short_kb_size(guint32);
 gchar *compact_size(guint32 size);
 gchar *short_time(guint32 s);
+guint32 random_value(guint32 max);
 void strlower(gchar *, gchar *);
 
 #endif /* __misc_h__ */

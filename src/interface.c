@@ -157,6 +157,8 @@ create_main_window (void)
   GtkWidget *sw_nodes;
   GtkWidget *label13;
   GtkWidget *label14;
+  GtkWidget *label_node_vendor;
+  GtkWidget *label_node_proto;
   GtkWidget *label15;
   GtkWidget *hbox2;
   GtkWidget *hbox16;
@@ -507,7 +509,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox6), sw_nodes, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw_nodes), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
 
-  clist_nodes = gtk_clist_new (3);
+  clist_nodes = gtk_clist_new (5);
   gtk_widget_ref (clist_nodes);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "clist_nodes", clist_nodes,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -518,6 +520,8 @@ create_main_window (void)
   gtk_clist_set_column_width (GTK_CLIST (clist_nodes), 0, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_nodes), 1, 80);
   gtk_clist_set_column_width (GTK_CLIST (clist_nodes), 2, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_nodes), 3, 80);
+  gtk_clist_set_column_width (GTK_CLIST (clist_nodes), 4, 80);
   gtk_clist_set_selection_mode (GTK_CLIST (clist_nodes), GTK_SELECTION_MULTIPLE);
   gtk_clist_column_titles_show (GTK_CLIST (clist_nodes));
 
@@ -535,12 +539,26 @@ create_main_window (void)
   gtk_widget_show (label14);
   gtk_clist_set_column_widget (GTK_CLIST (clist_nodes), 1, label14);
 
+  label_node_vendor = gtk_label_new ("Vendor");
+  gtk_widget_ref (label_node_vendor);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_node_vendor", label_node_vendor,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_node_vendor);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_nodes), 2, label_node_vendor);
+
+  label_node_proto = gtk_label_new ("Ver");
+  gtk_widget_ref (label_node_proto);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_node_proto", label_node_proto,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_node_proto);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_nodes), 3, label_node_proto);
+
   label15 = gtk_label_new ("Info");
   gtk_widget_ref (label15);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label15", label15,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label15);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_nodes), 2, label15);
+  gtk_clist_set_column_widget (GTK_CLIST (clist_nodes), 4, label15);
 
   hbox2 = gtk_hbox_new (FALSE, 6);
   gtk_widget_ref (hbox2);

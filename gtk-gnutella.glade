@@ -414,8 +414,8 @@
 		  <handler>on_clist_nodes_resize_column</handler>
 		  <last_modification_time>Tue, 09 May 2000 19:18:06 GMT</last_modification_time>
 		</signal>
-		<columns>3</columns>
-		<column_widths>80,80,80</column_widths>
+		<columns>5</columns>
+		<column_widths>80,80,80,80,80</column_widths>
 		<selection_mode>GTK_SELECTION_MULTIPLE</selection_mode>
 		<show_titles>True</show_titles>
 		<shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -438,6 +438,32 @@
 		  <child_name>CList:title</child_name>
 		  <name>label14</name>
 		  <label>Type</label>
+		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <wrap>False</wrap>
+		  <xalign>0.5</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		</widget>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <child_name>CList:title</child_name>
+		  <name>label_node_vendor</name>
+		  <label>Vendor</label>
+		  <justify>GTK_JUSTIFY_CENTER</justify>
+		  <wrap>False</wrap>
+		  <xalign>0.5</xalign>
+		  <yalign>0.5</yalign>
+		  <xpad>0</xpad>
+		  <ypad>0</ypad>
+		</widget>
+
+		<widget>
+		  <class>GtkLabel</class>
+		  <child_name>CList:title</child_name>
+		  <name>label_node_proto</name>
+		  <label>Ver</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0.5</xalign>

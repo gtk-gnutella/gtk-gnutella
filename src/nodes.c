@@ -976,6 +976,7 @@ static void downgrade_handshaking(struct gnutella_node *n)
 	} else
 		n->remove_msg = "Re-connection failed";
 
+	gui_update_node_proto(n);
 	gui_update_node(n, TRUE);
 }
 
@@ -1322,8 +1323,10 @@ static void node_process_handshake_header(struct io_header *ih)
 	/* User-Agent -- servent vendor identification */
 
 	field = header_get(ih->header, "User-Agent");
-	if (field)
+	if (field) {
 		n->vendor = g_strdup(field);
+		gui_update_node_vendor(n);
+	}
 
 	/* Pong-Caching -- ping/pong reduction scheme */
 
@@ -1699,11 +1702,12 @@ final_cleanup:
 void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 {
 	struct gnutella_node *n;
-	gchar *titles[4];
+	gchar *titles[5];
 	gint row;
 	gboolean incoming = FALSE, already_connected = FALSE;
 	gint major = 0, minor = 0;
 	gboolean ponging_only = FALSE;
+	gchar proto_tmp[16];
 
 	/*
 	 * Compute the protocol version from the first handshake line, if
@@ -1807,8 +1811,13 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 		titles[1] = (gchar *) "Outgoing";
 	}
 
+	g_snprintf(proto_tmp, sizeof(proto_tmp), "%d.%d",
+		n->proto_major, n->proto_minor);
+
 	titles[0] = node_ip(n);
 	titles[2] = (gchar *) "";
+	titles[3] = proto_tmp;
+	titles[4] = (gchar *) "";
 
 	row = gtk_clist_append(GTK_CLIST(clist_nodes), titles);
 	gtk_clist_set_row_data(GTK_CLIST(clist_nodes), row, (gpointer) n);

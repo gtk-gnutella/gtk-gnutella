@@ -379,8 +379,7 @@ static void __search_send_packet(struct search *sch, struct gnutella_node *n)
 
 	m->header.function = GTA_MSG_SEARCH;
 	m->header.ttl = my_ttl;
-	m->header.hops = hops_random_factor ?
-		(rand() % (hops_random_factor + 1)) : 0;
+	m->header.hops = hops_random_factor ? random_value(hops_random_factor) : 0;
 	if (m->header.ttl + m->header.hops > hard_ttl_limit)
 		m->header.ttl = hard_ttl_limit - m->header.hops;
 
@@ -1330,9 +1329,10 @@ void search_results(struct gnutella_node *n)
 	if (extract_vendor) {
 		gchar *vendor = extract_vendor_name(rs);
 
-		if (vendor)
+		if (vendor) {
 			n->vendor = g_strdup(vendor);
-		else
+			gui_update_node_vendor(n);
+		} else
 			n->attrs |= NODE_A_QHD_NO_VTAG;		/* No vendor tag in QHD */
 
 		/*

@@ -1668,7 +1668,7 @@ void pcache_pong_received(struct gnutella_node *n)
 	 */
 
 	if (!(n->attrs & NODE_A_PONG_CACHING)) {
-		gint ratio = (int) (100.0 * rand() / (RAND_MAX + 1.0));
+		gint ratio = (gint) random_value(100);
 		if (ratio >= OLD_CACHE_RATIO) {
 			if (dbg > 7)
 				printf("NOT CACHED pong %s (hops=%d, TTL=%d) from OLD %s\n",

@@ -333,38 +333,30 @@ void gui_update_node_display(struct gnutella_node *n)
 
 	switch (n->status) {
 	case GTA_NODE_CONNECTING:
-		g_snprintf(gui_tmp, sizeof(gui_tmp), "[%d.%d] Connecting...",
-			n->proto_major, n->proto_minor);
-		a = gui_tmp;
+		a = "Connecting...";
 		break;
 
 	case GTA_NODE_HELLO_SENT:
-		g_snprintf(gui_tmp, sizeof(gui_tmp), "[%d.%d] Hello sent",
-			n->proto_major, n->proto_minor);
-		a = gui_tmp;
+		a = "Hello sent";
 		break;
 
 	case GTA_NODE_WELCOME_SENT:
-		g_snprintf(gui_tmp, sizeof(gui_tmp), "[%d.%d] Welcome sent",
-			n->proto_major, n->proto_minor);
-		a = gui_tmp;
+		a = "Welcome sent";
 		break;
 
 	case GTA_NODE_CONNECTED:
 	case GTA_NODE_SHUTDOWN:
-		if (n->sent || n->received)
+		if (n->sent || n->received) {
 			g_snprintf(gui_tmp, sizeof(gui_tmp),
-				"[%d.%d] %s: "
+				"%s: "
 				"TX=%d RX=%d Drop(TX=%d, RX=%d) Bad=%d Q=%d,%d%% %s",
-				n->proto_major, n->proto_minor,
 				n->status == GTA_NODE_SHUTDOWN ? "Shutdown" : "Connected",
 				n->sent, n->received, n->tx_dropped, n->rx_dropped, n->n_bad,
 				NODE_QUEUE_COUNT(n), NODE_QUEUE_PERCENT_USED(n),
 				NODE_IN_TX_FLOW_CONTROL(n) ? " [FC]" : "");
-		else
-			g_snprintf(gui_tmp, sizeof(gui_tmp), "[%d.%d] Connected",
-			   n->proto_major, n->proto_minor);
-		a = gui_tmp;
+			a = gui_tmp;
+		} else
+			a = "Connected";
 		break;
 
 	case GTA_NODE_REMOVING:
@@ -372,19 +364,16 @@ void gui_update_node_display(struct gnutella_node *n)
 		break;
 
 	case GTA_NODE_RECEIVING_HELLO:
-		g_snprintf(gui_tmp, sizeof(gui_tmp), "[%d.%d] Receiving Hello",
-			n->proto_major, n->proto_minor);
-		a = gui_tmp;
+		a = "Receiving hello";
 		break;
 
 	default:
 		a = "UNKNOWN STATUS";
 	}
 
-	row =
-		gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes), (gpointer) n);
+	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes), (gpointer) n);
 	gtk_clist_freeze(GTK_CLIST(clist_nodes));
-	gtk_clist_set_text(GTK_CLIST(clist_nodes), row, 2, a);
+	gtk_clist_set_text(GTK_CLIST(clist_nodes), row, 4, a);
 	gtk_clist_thaw(GTK_CLIST(clist_nodes));
 }
 
@@ -397,6 +386,26 @@ void gui_update_node(struct gnutella_node *n, gboolean force)
 	n->last_update = now;
 
 	gui_update_node_display(n);
+}
+
+void gui_update_node_proto(struct gnutella_node *n)
+{
+	gint row;
+
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%d.%d",
+		n->proto_major, n->proto_minor);
+
+	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes), (gpointer) n);
+	gtk_clist_set_text(GTK_CLIST(clist_nodes), row, 3, gui_tmp);
+}
+
+void gui_update_node_vendor(struct gnutella_node *n)
+{
+	gint row;
+
+	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes), (gpointer) n);
+	gtk_clist_set_text(GTK_CLIST(clist_nodes), row, 2,
+		n->vendor ? n->vendor : "");
 }
 
 /* */

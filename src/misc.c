@@ -3,6 +3,7 @@
 
 #include <sys/stat.h>
 
+#include <stdlib.h>			/* For RAND_MAX */
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -328,6 +329,16 @@ gchar *date_to_rfc822_gchar2(time_t date)
 	buf[sizeof(buf)-1] = '\0';		/* Be really sure */
 
 	return buf;
+}
+
+/*
+ * random_value
+ *
+ * Return random value between (0..max).
+ */
+guint32 random_value(guint32 max)
+{
+	return (guint32) ((max + 1.0) * rand() / (RAND_MAX + 1.0));
 }
 
 /* Dumps a gnutella message (debug) */
