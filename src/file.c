@@ -186,7 +186,8 @@ FILE *file_config_open_read_norename(
  *
  * Returns opened FILE if success, NULL on error.
  */
-FILE *file_config_open_write(const gchar *what, const file_path_t *fv)
+static FILE *file_config_open(const gchar *what, const file_path_t *fv,
+    gboolean append)
 {
 	FILE *out = NULL;
 	char *path;
@@ -194,11 +195,21 @@ FILE *file_config_open_write(const gchar *what, const file_path_t *fv)
 	path = g_strdup_printf("%s/%s.%s", fv->dir, fv->name, new_ext);
 	g_return_val_if_fail(NULL != path, NULL);
 
-	out = file_fopen(path, "w");
+	out = file_fopen(path, append ? "a" : "w");
 	if (out == NULL)
 		g_warning("unable to persist %s", what);
 	G_FREE_NULL(path);
 	return out;
+}
+
+FILE *file_config_open_write(const gchar *what, const file_path_t *fv) 
+{
+    return file_config_open(what, fv, FALSE);
+}
+
+FILE *file_config_open_append(const gchar *what, const file_path_t *fv) 
+{
+    return file_config_open(what, fv, TRUE);
 }
 
 /*
