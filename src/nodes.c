@@ -332,6 +332,7 @@ void node_timer(time_t now)
 			} else if (now - n->last_update > node_connected_timeout) {
 				node_bye_if_writable(n, 405, "Activity timeout");
 			} else if (
+				!NODE_IS_LEAF(n) &&
 				NODE_IN_TX_FLOW_CONTROL(n) &&
 				now - n->tx_flowc_date > node_tx_flowc_timeout
 			)
@@ -354,8 +355,8 @@ void node_timer(time_t now)
 			}
 
 			if (
-				n->sent > MIN_TX_FOR_RATIO &&
 				!NODE_IS_LEAF(n) &&
+				n->sent > MIN_TX_FOR_RATIO &&
 				(n->received == 0 || n->sent / n->received > MAX_TX_RX_RATIO)
 			) {
 				node_bye_if_writable(n, 405, "Reception shortage");
@@ -1339,26 +1340,7 @@ static void node_is_now_connected(struct gnutella_node *n)
 	struct gnutella_socket *s = n->socket;
 
 	/*
-	 * Create RX stack, and enable reception of data.
-	 */
-
-	if (n->attrs & NODE_A_RX_INFLATE) {
-		rxdrv_t *rx;
-
-		if (dbg > 4)
-			printf("Receiving compressed data from node %s\n", node_ip(n));
-
-		n->rx = rx_make(n, &rx_inflate_ops, node_data_ind, 0);
-		rx = rx_make_under(n->rx, &rx_link_ops, 0);
-		g_assert(rx);			/* Cannot fail */
-        compressed_node_cnt++;
-	} else
-		n->rx = rx_make(n, &rx_link_ops, node_data_ind, 0);
-
-	rx_enable(n->rx);
-
-	/*
-	 * Update state, and mark node as valid.
+	 * Cleanup hanshaking objects.
 	 */
 
 	if (n->io_opaque)				/* None for outgoing 0.4 connections */
@@ -1389,9 +1371,19 @@ static void node_is_now_connected(struct gnutella_node *n)
 	g_assert(current_peermode != NODE_P_LEAF ||
 		NODE_IS_ULTRA(n) || NODE_IS_PONGING_ONLY(n));
 
+	/*
+	 * Update state, and mark node as valid.
+	 */
+
 	n->status = GTA_NODE_CONNECTED;
-	n->flags |= NODE_F_VALID | NODE_F_READABLE;
+	n->flags |= NODE_F_VALID;
 	n->last_update = n->connect_date = time((time_t *) NULL);
+
+	connected_node_cnt++;
+
+	/*
+	 * Determine the frequency at which we will send "alive pings".
+	 */
 
 	switch (current_peermode) {
 	case NODE_P_NORMAL:
@@ -1411,7 +1403,29 @@ static void node_is_now_connected(struct gnutella_node *n)
 		break;
 	}
 
-	connected_node_cnt++;
+	/*
+	 * Create the RX stack, and enable reception of data.
+	 */
+
+	if (n->attrs & NODE_A_RX_INFLATE) {
+		rxdrv_t *rx;
+
+		if (dbg > 4)
+			printf("Receiving compressed data from node %s\n", node_ip(n));
+
+		n->rx = rx_make(n, &rx_inflate_ops, node_data_ind, 0);
+		rx = rx_make_under(n->rx, &rx_link_ops, 0);
+		g_assert(rx);			/* Cannot fail */
+        compressed_node_cnt++;
+	} else
+		n->rx = rx_make(n, &rx_link_ops, node_data_ind, 0);
+
+	rx_enable(n->rx);
+	n->flags |= NODE_F_READABLE;
+
+	/*
+	 * Create the TX stack if we're going to tranmit Gnet messages.
+	 */
 
 	if (!NODE_IS_PONGING_ONLY(n)) {
 		txdrv_t *tx = tx_make(n, &tx_link_ops, 0);		/* Cannot fail */
@@ -1630,19 +1644,22 @@ void node_set_online_mode(gboolean on)
  *
  * Called from the property system when current peermode is changed.
  */
-void node_set_current_peermode(guint32 mode)
+void node_set_current_peermode(node_peer_t mode)
 {
 	gchar *msg = NULL;
-
-	// XXX we need to know the previous peermode
+	static node_peer_t old_mode = NODE_P_UNKNOWN;
 
 	switch (mode) {
 	case NODE_P_NORMAL:
 		msg = "normal";
 		node_bye_flags(NODE_F_LEAF, 203, "Becoming a regular node");
+		if (old_mode == NODE_P_LEAF)
+			node_bye_flags(NODE_F_ULTRA, 203, "Becoming a regular node");
 		break;
 	case NODE_P_ULTRA:
 		msg = "ultra";
+		if (old_mode == NODE_P_LEAF)
+			node_bye_flags(NODE_F_ULTRA, 203, "Becoming an ultra node");
 		break;
 	case NODE_P_LEAF:
 		msg = "leaf";
@@ -1655,6 +1672,12 @@ void node_set_current_peermode(guint32 mode)
 
 	if (dbg > 2)
 		printf("Switching to \"%s\" peer mode\n", msg);
+
+	if (old_mode != NODE_P_UNKNOWN)		/* Not at init time */
+		bsched_set_peermode(mode);		/* Adapt Gnet bandwidth */
+
+	old_mode = mode;
+
 }
 
 /*
