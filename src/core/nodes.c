@@ -6037,6 +6037,8 @@ node_close(void)
 		node_real_remove(n);
 	}
 
+	if (udp_node->outq)
+		mq_free(udp_node->outq);
 	node_real_remove(udp_node);
 
 	g_slist_free(sl_proxies);
