@@ -148,12 +148,16 @@ void vp_draw_fi_progress(gnet_fi_t fih)
     vp_info_t *v;
     gpointer atom;
 
-    if (fih) {
+    /*
+     * Remember the current fih handle so that we can redraw it later
+     */
+    fi_context.fih = fih;
+
+    if (fih != -1) {
 	g_assert( g_hash_table_lookup_extended(vp_info_hash, &fih, &atom, &v) );
 	g_assert( v );
 
 	v->context = &fi_context;
-	v->context->fih = fih;
 
 	g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
     }
@@ -443,6 +447,11 @@ void vp_gui_init(void)
     g_assert(gdk_colormap_alloc_color(cmap, &empty, FALSE, TRUE));
     g_assert(gdk_color_parse("black", &black));
     g_assert(gdk_colormap_alloc_color(cmap, &black, FALSE, TRUE));
+
+    /*
+     * No progress fih has been seen yet
+     */
+    fi_context.fih = -1;
 }
 
 /* 
