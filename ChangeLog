@@ -1,5 +1,18 @@
 # since last version
 
+- (2002.11.11 RAM)
+ * New http://gwebcache.bearshare.net/gcache.php replaces the old zero-g.net
+   hardwired bootstrapping web cache, which was shutdown due to traffic.
+ * No longer uses strftime() to format date string for X-Live-Since, since
+   it insists on using the user's locale.
+ * Added asynchronous moving of downloaded files.
+ * Renamed node_connected() as node_is_connected().
+ * The verify_queue() routine no longer knows about download states.
+ * Don't reject PUSH comming from a private IP if we're connected to it
+   (this is mainly for testing purposes but will not hurt).
+ * Changed property descriptions of "download paths" to remove any constraint
+   on them being on the same filesystem.
+
 - (2002.11.09 RAM)
  * The BSD sendfile() requires that first two arguments be swapped (wrt linux).
  * Now computes and displays the overall swarming downloading rate and the
