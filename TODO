@@ -17,9 +17,6 @@ This documents describes briefly the things we want to have in gtk-gnutella
 
 0.96:	
 	* PARQ: Update to 1.1 (to be specified)
-	* High outdegree support
-	* Inter-UP QRP support
-	* Dynamic query supprt
 	* Meta data support
 
 After this release we should start with the gui <-> core/lib seperation.
