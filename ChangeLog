@@ -1,5 +1,9 @@
 # since last version
 
+- (2002.12.22 - cbiere)
+ * [Gtk2] Added columns for connected time and uptime (sync with Gtk1)
+   (nodes_gui2.c)
+
 - (2002.12.20 - cbiere)
  * Rearranged gnet stats; reduced CPU load for gnet stats (gnet_stats_gui2.c,
    gtk2-gnutella.glade, interface-glade2.c)
