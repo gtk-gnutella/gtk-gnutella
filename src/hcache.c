@@ -140,7 +140,9 @@ static void start_mass_update(hostcache_t *hc)
 }
 
 /**
- * End mass update of host cache.
+ * End mass update of host cache. If a hostcache has already been freed
+ * when this function is called, it will not tigger a property update
+ * for that hostcache and all of it's group (ANY, ULTRA, BAD).
  */
 static void stop_mass_update(hostcache_t *hc)
 {
@@ -151,6 +153,11 @@ static void stop_mass_update(hostcache_t *hc)
         switch (hc->type) {
         case HCACHE_FRESH_ANY:
         case HCACHE_VALID_ANY: {
+            if ((NULL == caches[HCACHE_FRESH_ANY]) || 
+                (NULL == caches[HCACHE_VALID_ANY])) {
+                break;
+            }
+
             gnet_prop_set_guint32_val(hc->hosts_in_catcher,
                 caches[HCACHE_FRESH_ANY]->host_count +
                 caches[HCACHE_VALID_ANY]->host_count);
@@ -158,6 +165,11 @@ static void stop_mass_update(hostcache_t *hc)
         }
         case HCACHE_FRESH_ULTRA:
         case HCACHE_VALID_ULTRA:
+            if ((NULL == caches[HCACHE_FRESH_ULTRA]) || 
+                (NULL == caches[HCACHE_VALID_ULTRA])) {
+                break;
+            }
+
             gnet_prop_set_guint32_val(hc->hosts_in_catcher,
                 caches[HCACHE_FRESH_ULTRA]->host_count +
                 caches[HCACHE_VALID_ULTRA]->host_count);
@@ -165,6 +177,12 @@ static void stop_mass_update(hostcache_t *hc)
         case HCACHE_TIMEOUT:
         case HCACHE_UNSTABLE:
         case HCACHE_BUSY:
+            if ((NULL == caches[HCACHE_TIMEOUT]) || 
+                (NULL == caches[HCACHE_UNSTABLE]) ||
+                (NULL == caches[HCACHE_BUSY])) {
+                break;
+            }
+
             gnet_prop_set_guint32_val(hc->hosts_in_catcher,
                 caches[HCACHE_TIMEOUT]->host_count +
                 caches[HCACHE_UNSTABLE]->host_count +
