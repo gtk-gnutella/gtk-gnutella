@@ -322,8 +322,9 @@ void search_gui_unref_record(record_t *rc)
 
 /* Free all the results_set's of a search */
 
-static void free_r_sets_helper(results_set_t *rs, gpointer user_data)
+static inline void free_r_sets_helper(gpointer data, gpointer user_data)
 {
+	results_set_t *rs = data;
 	search_gui_free_r_set(rs);
 }
 
@@ -334,7 +335,7 @@ void search_gui_free_r_sets(search_t *sch)
 	g_assert(g_hash_table_size(sch->dups) == 0); /* All records were cleaned */
 
 	if (NULL != sch->r_sets) {
-		hash_list_foreach(sch->r_sets, (GFunc) free_r_sets_helper, NULL);
+		hash_list_foreach(sch->r_sets, free_r_sets_helper, NULL);
 		hash_list_free(sch->r_sets);
 		sch->r_sets = NULL;
 	}
