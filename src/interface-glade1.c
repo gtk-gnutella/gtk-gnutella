@@ -221,6 +221,18 @@ create_main_window (void)
   GtkWidget *label_dl_range;
   GtkWidget *label_dl_server;
   GtkWidget *label115;
+  GtkWidget *frame_dl_settings;
+  GtkWidget *table60;
+  GtkWidget *label64;
+  GtkWidget *label80;
+  GtkWidget *checkbutton_dl_clear_complete;
+  GtkWidget *checkbutton_downloads_never_push;
+  GtkWidget *checkbutton_dl_clear_failed;
+  GtkWidget *checkbutton_download_delete_aborted;
+  GtkObject *spinbutton_max_downloads_adj;
+  GtkWidget *spinbutton_max_downloads;
+  GtkObject *spinbutton_max_host_downloads_adj;
+  GtkWidget *spinbutton_max_host_downloads;
   GtkWidget *hbox41;
   GtkWidget *button_downloads_abort;
   GtkWidget *button_downloads_resume;
@@ -229,17 +241,8 @@ create_main_window (void)
   GtkWidget *viewport11;
   GtkWidget *hbox166;
   GtkWidget *label_dl_running_count;
-  GtkWidget *hbox42;
-  GtkWidget *label64;
-  GtkObject *spinbutton_max_downloads_adj;
-  GtkWidget *spinbutton_max_downloads;
-  GtkWidget *label80;
-  GtkObject *spinbutton_max_host_downloads_adj;
-  GtkWidget *spinbutton_max_host_downloads;
-  GtkWidget *hbox73;
-  GtkWidget *checkbutton_downloads_auto_clear;
-  GtkWidget *checkbutton_downloads_never_push;
-  GtkWidget *checkbutton_download_delete_aborted;
+  GtkWidget *checkbutton_dl_show_settings;
+  GtkWidget *label_dl_show_settings;
   GtkWidget *scrolledwindow12;
   GtkWidget *viewport1;
   GtkWidget *vbox35;
@@ -694,15 +697,15 @@ create_main_window (void)
   GtkWidget *table32;
   GtkWidget *label288;
   GtkWidget *label289;
-  GtkObject *spinbutton_config_dbg_adj;
-  GtkWidget *spinbutton_config_dbg;
   GtkObject *spinbutton_config_gui_debug_adj;
   GtkWidget *spinbutton_config_gui_debug;
   GtkWidget *label440;
   GtkObject *spinbutton_config_lib_debug_adj;
   GtkWidget *spinbutton_config_lib_debug;
-  GtkWidget *checkbutton_config_stop_host_get;
   GtkWidget *label509;
+  GtkObject *spinbutton_config_dbg_adj;
+  GtkWidget *spinbutton_config_dbg;
+  GtkWidget *checkbutton_config_stop_host_get;
   GtkObject *spinbutton_config_track_props_adj;
   GtkWidget *spinbutton_config_track_props;
   GtkWidget *frame_expert_unmapped;
@@ -2616,6 +2619,109 @@ create_main_window (void)
   gtk_widget_show (label115);
   gtk_clist_set_column_widget (GTK_CLIST (clist_downloads), 5, label115);
 
+  frame_dl_settings = gtk_frame_new ("Download settings ");
+  gtk_widget_set_name (frame_dl_settings, "frame_dl_settings");
+  gtk_widget_ref (frame_dl_settings);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_dl_settings", frame_dl_settings,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame_dl_settings);
+  gtk_box_pack_start (GTK_BOX (vbox16), frame_dl_settings, FALSE, TRUE, 0);
+
+  table60 = gtk_table_new (3, 4, FALSE);
+  gtk_widget_set_name (table60, "table60");
+  gtk_widget_ref (table60);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "table60", table60,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table60);
+  gtk_container_add (GTK_CONTAINER (frame_dl_settings), table60);
+  gtk_container_set_border_width (GTK_CONTAINER (table60), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table60), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table60), 4);
+
+  label64 = gtk_label_new ("Maximum simultaneous downloads");
+  gtk_widget_set_name (label64, "label64");
+  gtk_widget_ref (label64);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label64", label64,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label64);
+  gtk_table_attach (GTK_TABLE (table60), label64, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label80 = gtk_label_new ("Max downloads from single host");
+  gtk_widget_set_name (label80, "label80");
+  gtk_widget_ref (label80);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label80", label80,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label80);
+  gtk_table_attach (GTK_TABLE (table60), label80, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_dl_clear_complete = gtk_check_button_new_with_label ("Auto clear completed downloads");
+  gtk_widget_set_name (checkbutton_dl_clear_complete, "checkbutton_dl_clear_complete");
+  gtk_widget_ref (checkbutton_dl_clear_complete);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_clear_complete", checkbutton_dl_clear_complete,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_dl_clear_complete);
+  gtk_table_attach (GTK_TABLE (table60), checkbutton_dl_clear_complete, 0, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_downloads_never_push = gtk_check_button_new_with_label ("Never send a push request");
+  gtk_widget_set_name (checkbutton_downloads_never_push, "checkbutton_downloads_never_push");
+  gtk_widget_ref (checkbutton_downloads_never_push);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_never_push", checkbutton_downloads_never_push,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_downloads_never_push);
+  gtk_table_attach (GTK_TABLE (table60), checkbutton_downloads_never_push, 0, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_dl_clear_failed = gtk_check_button_new_with_label ("Auto clear failed downloads");
+  gtk_widget_set_name (checkbutton_dl_clear_failed, "checkbutton_dl_clear_failed");
+  gtk_widget_ref (checkbutton_dl_clear_failed);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_clear_failed", checkbutton_dl_clear_failed,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_dl_clear_failed);
+  gtk_table_attach (GTK_TABLE (table60), checkbutton_dl_clear_failed, 2, 4, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_download_delete_aborted = gtk_check_button_new_with_label ("Delete file on abort");
+  gtk_widget_set_name (checkbutton_download_delete_aborted, "checkbutton_download_delete_aborted");
+  gtk_widget_ref (checkbutton_download_delete_aborted);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_download_delete_aborted", checkbutton_download_delete_aborted,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_download_delete_aborted);
+  gtk_table_attach (GTK_TABLE (table60), checkbutton_download_delete_aborted, 2, 4, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_max_downloads_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_max_downloads = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_downloads_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_max_downloads, "spinbutton_max_downloads");
+  gtk_widget_ref (spinbutton_max_downloads);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_max_downloads", spinbutton_max_downloads,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_max_downloads);
+  gtk_table_attach (GTK_TABLE (table60), spinbutton_max_downloads, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_downloads), TRUE);
+
+  spinbutton_max_host_downloads_adj = gtk_adjustment_new (1, 1, 100, 1, 10, 10);
+  spinbutton_max_host_downloads = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_host_downloads_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_max_host_downloads, "spinbutton_max_host_downloads");
+  gtk_widget_ref (spinbutton_max_host_downloads);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_max_host_downloads", spinbutton_max_host_downloads,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_max_host_downloads);
+  gtk_table_attach (GTK_TABLE (table60), spinbutton_max_host_downloads, 3, 4, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_host_downloads), TRUE);
+
   hbox41 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox41, "hbox41");
   gtk_widget_ref (hbox41);
@@ -2689,81 +2795,22 @@ create_main_window (void)
   gtk_misc_set_alignment (GTK_MISC (label_dl_running_count), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_dl_running_count), 5, 0);
 
-  hbox42 = gtk_hbox_new (FALSE, 4);
-  gtk_widget_set_name (hbox42, "hbox42");
-  gtk_widget_ref (hbox42);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox42", hbox42,
+  checkbutton_dl_show_settings = gtk_check_button_new ();
+  gtk_widget_set_name (checkbutton_dl_show_settings, "checkbutton_dl_show_settings");
+  gtk_widget_ref (checkbutton_dl_show_settings);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_dl_show_settings", checkbutton_dl_show_settings,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox42);
-  gtk_box_pack_start (GTK_BOX (vbox16), hbox42, FALSE, TRUE, 0);
+  gtk_widget_show (checkbutton_dl_show_settings);
+  gtk_box_pack_start (GTK_BOX (hbox41), checkbutton_dl_show_settings, FALSE, FALSE, 0);
+  gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (checkbutton_dl_show_settings), FALSE);
 
-  label64 = gtk_label_new ("Maximum simultaneous downloads");
-  gtk_widget_set_name (label64, "label64");
-  gtk_widget_ref (label64);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label64", label64,
+  label_dl_show_settings = gtk_label_new ("Show settings");
+  gtk_widget_set_name (label_dl_show_settings, "label_dl_show_settings");
+  gtk_widget_ref (label_dl_show_settings);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_dl_show_settings", label_dl_show_settings,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label64);
-  gtk_box_pack_start (GTK_BOX (hbox42), label64, FALSE, FALSE, 0);
-
-  spinbutton_max_downloads_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
-  spinbutton_max_downloads = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_downloads_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_max_downloads, "spinbutton_max_downloads");
-  gtk_widget_ref (spinbutton_max_downloads);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_max_downloads", spinbutton_max_downloads,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_max_downloads);
-  gtk_box_pack_start (GTK_BOX (hbox42), spinbutton_max_downloads, FALSE, TRUE, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_downloads), TRUE);
-
-  label80 = gtk_label_new ("Max downloads from single host");
-  gtk_widget_set_name (label80, "label80");
-  gtk_widget_ref (label80);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "label80", label80,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (label80);
-  gtk_box_pack_start (GTK_BOX (hbox42), label80, FALSE, FALSE, 0);
-
-  spinbutton_max_host_downloads_adj = gtk_adjustment_new (1, 1, 100, 1, 10, 10);
-  spinbutton_max_host_downloads = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_max_host_downloads_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_max_host_downloads, "spinbutton_max_host_downloads");
-  gtk_widget_ref (spinbutton_max_host_downloads);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_max_host_downloads", spinbutton_max_host_downloads,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_max_host_downloads);
-  gtk_box_pack_start (GTK_BOX (hbox42), spinbutton_max_host_downloads, FALSE, TRUE, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_max_host_downloads), TRUE);
-
-  hbox73 = gtk_hbox_new (FALSE, 0);
-  gtk_widget_set_name (hbox73, "hbox73");
-  gtk_widget_ref (hbox73);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox73", hbox73,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hbox73);
-  gtk_box_pack_start (GTK_BOX (vbox16), hbox73, FALSE, TRUE, 0);
-
-  checkbutton_downloads_auto_clear = gtk_check_button_new_with_label ("Auto clear completed downloads");
-  gtk_widget_set_name (checkbutton_downloads_auto_clear, "checkbutton_downloads_auto_clear");
-  gtk_widget_ref (checkbutton_downloads_auto_clear);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_auto_clear", checkbutton_downloads_auto_clear,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_downloads_auto_clear);
-  gtk_box_pack_start (GTK_BOX (hbox73), checkbutton_downloads_auto_clear, FALSE, FALSE, 0);
-
-  checkbutton_downloads_never_push = gtk_check_button_new_with_label ("Never send a push request");
-  gtk_widget_set_name (checkbutton_downloads_never_push, "checkbutton_downloads_never_push");
-  gtk_widget_ref (checkbutton_downloads_never_push);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_downloads_never_push", checkbutton_downloads_never_push,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_downloads_never_push);
-  gtk_box_pack_start (GTK_BOX (hbox73), checkbutton_downloads_never_push, FALSE, FALSE, 0);
-
-  checkbutton_download_delete_aborted = gtk_check_button_new_with_label ("Delete file on abort");
-  gtk_widget_set_name (checkbutton_download_delete_aborted, "checkbutton_download_delete_aborted");
-  gtk_widget_ref (checkbutton_download_delete_aborted);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_download_delete_aborted", checkbutton_download_delete_aborted,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_download_delete_aborted);
-  gtk_box_pack_start (GTK_BOX (hbox73), checkbutton_download_delete_aborted, FALSE, FALSE, 0);
+  gtk_widget_show (label_dl_show_settings);
+  gtk_container_add (GTK_CONTAINER (checkbutton_dl_show_settings), label_dl_show_settings);
 
   scrolledwindow12 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow12, "scrolledwindow12");
@@ -6652,18 +6699,6 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label289), 0, 0.5);
 
-  spinbutton_config_dbg_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
-  spinbutton_config_dbg = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_dbg_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_dbg, "spinbutton_config_dbg");
-  gtk_widget_ref (spinbutton_config_dbg);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_dbg", spinbutton_config_dbg,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_config_dbg);
-  gtk_table_attach (GTK_TABLE (table32), spinbutton_config_dbg, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_dbg), TRUE);
-
   spinbutton_config_gui_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_config_gui_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_gui_debug_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_gui_debug, "spinbutton_config_gui_debug");
@@ -6699,16 +6734,6 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_lib_debug), TRUE);
 
-  checkbutton_config_stop_host_get = gtk_check_button_new_with_label ("Stop collecting hosts in host catcher");
-  gtk_widget_set_name (checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
-  gtk_widget_ref (checkbutton_config_stop_host_get);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_stop_host_get", checkbutton_config_stop_host_get,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_config_stop_host_get);
-  gtk_table_attach (GTK_TABLE (table32), checkbutton_config_stop_host_get, 0, 2, 4, 5,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
   label509 = gtk_label_new ("Track properties");
   gtk_widget_set_name (label509, "label509");
   gtk_widget_ref (label509);
@@ -6720,6 +6745,28 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label509), 0, 0.5);
 
+  spinbutton_config_dbg_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_dbg = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_dbg_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_dbg, "spinbutton_config_dbg");
+  gtk_widget_ref (spinbutton_config_dbg);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_dbg", spinbutton_config_dbg,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_dbg);
+  gtk_table_attach (GTK_TABLE (table32), spinbutton_config_dbg, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_dbg), TRUE);
+
+  checkbutton_config_stop_host_get = gtk_check_button_new_with_label ("Stop collecting hosts in host catcher");
+  gtk_widget_set_name (checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
+  gtk_widget_ref (checkbutton_config_stop_host_get);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_stop_host_get", checkbutton_config_stop_host_get,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_stop_host_get);
+  gtk_table_attach (GTK_TABLE (table32), checkbutton_config_stop_host_get, 0, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   spinbutton_config_track_props_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
   spinbutton_config_track_props = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_track_props_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_track_props, "spinbutton_config_track_props");
@@ -6728,7 +6775,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (spinbutton_config_track_props);
   gtk_table_attach (GTK_TABLE (table32), spinbutton_config_track_props, 1, 2, 3, 4,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_track_props), TRUE);
 
@@ -11763,7 +11810,7 @@ create_dlg_about (void)
   gtk_container_add (GTK_CONTAINER (scrolledwindow18), text1);
   gtk_widget_set_usize (text1, 213, -2);
   gtk_text_insert (GTK_TEXT (text1), NULL, NULL, NULL,
-                   "Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de\nko <junkpile@free.fr>\nJeroen Asselman <jeroen@asselman.com>\n", strlen("Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de\nko <junkpile@free.fr>\nJeroen Asselman <jeroen@asselman.com>\n"));
+                   "Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de\nko <junkpile@free.fr>\nJeroen Asselman <jeroen@asselman.com>\n", -1);
 
   label408 = gtk_label_new ("==> We are looking for people who want to contribute to this fine tool. <==\nVisit http://gtk-gnutella.sourceforge.net.\nJoin the users or developers mailing lists.\nMeet us on #gtk-gnutella at irc.freenode.net.");
   gtk_widget_set_name (label408, "label408");
