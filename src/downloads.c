@@ -5906,8 +5906,10 @@ static void download_retrieve(void)
 					"can't handle %d lines in records, aborting", maxlines);
 				goto out;
 			}
-			if (dl_tmp[0] != '*')
+			if (dl_tmp[0] != '*') {
+				(void) str_chomp(dl_tmp, 0);		/* Strip final "\n" */
 				parq_id = g_strdup(dl_tmp);
+			}
 			break;
 		default:
 			g_warning("download_retrieve: "
