@@ -3,6 +3,22 @@ Quick Release Guide
 
 [The whole process will take ~1 hour]
 
+Checking steps
+--------------
+
+Before releasing, double check that:
+
+* The bogons.txt file is up-to-date:
+
+	wget http://www.completewhois.com/bogons/data/bogons-cidr-all.txt
+	mv bogons-cidr-all.txt bogons.txt
+
+* The keys have been updated for the major release, in src/core/token.c,
+  with the date (timestamp) listed in the token_keys[] array being accurate.
+
+Release steps
+-------------
+
 0. Make sure everything is up to date, since we're releasing based on
    local files:
 
