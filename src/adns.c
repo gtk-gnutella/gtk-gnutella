@@ -43,6 +43,13 @@ typedef struct adns_query {
 	gpointer data; 
 } adns_query_t;
 
+typedef struct adns_async_write {
+	adns_query_t *query;	/* Original query */
+	gchar *buf;				/* Remaining data to write */
+	gint n;					/* Amount to write still */
+} adns_async_write_t;
+
+
 typedef struct adns_reply {
 	adns_callback_t user_callback;
     gpointer user_data;
@@ -226,7 +233,6 @@ static gboolean adns_do_transfer(
 	gint fd, gpointer buf, size_t len, gboolean do_write)
 {
 	ssize_t ret;
-	size_t transferred = 0;
 	size_t n = len;
 
 	while (n > 0) {
@@ -238,7 +244,6 @@ static gboolean adns_do_transfer(
 		else 
 			ret = read(fd, buf, n);
 	
-        	
 		if ((ssize_t) -1 == ret && errno != EAGAIN && errno != EINTR) {
             /* Ignore the failure, if the parent process is gone.
                This prevents an unnecessary warning when quitting. */
@@ -255,9 +260,9 @@ static gboolean adns_do_transfer(
 				g_warning("adns_do_transfer: EOF (%s)",
 					do_write ? "write" : "read");
 			return FALSE;
-		} else {
+		} else if (ret > 0) {
 			n -= ret;
-			buf = (gchar *) buf + transferred;
+			buf = (gchar *) buf + ret;
 		}
 	}
 
@@ -346,11 +351,16 @@ static void adns_helper(gint fd_in, gint fd_out)
  * dns helper is busy i.e., the pipe buffer is full or in case the dns
  * helper is dead.  
  */
-static void adns_fallback(const adns_query_t *query)
+static void adns_fallback(adns_query_t *query)
 {
 	adns_reply_t reply;
 
 	g_assert(NULL != query);
+	g_assert(NULL != query->data);
+
+	atom_str_free(query->data);
+	query->data = NULL;
+
 	adns_gethostbyname(query, &reply);
 	g_assert(NULL != reply.user_callback);
 	reply.user_callback(reply.ip, reply.user_data);
@@ -372,6 +382,7 @@ static void adns_reply_callback(
 	
 	g_assert(sizeof(reply) >= n);
 
+again:
 	if (sizeof(reply) > n) {
 		gpointer buf = (gchar *) &reply + n;
 		ssize_t ret;
@@ -390,8 +401,9 @@ static void adns_reply_callback(
 				inputevt_remove(adns_reply_event_id);
 				g_warning("adns_reply_callback: removed myself");
 				close(source);
+				return;
 			}
-			return;
+			goto again;
 		}
 
 		g_assert(ret > 0);
@@ -413,6 +425,39 @@ static void adns_reply_callback(
 		n = 0;
 	}
 }
+
+/*
+ * adns_query_write_alloc
+ *
+ * Allocate a the "spill" buffer for the query, with `n' bytes being already
+ * written into the pipe.  The query is cloned.
+ */
+static adns_async_write_t *adns_async_write_alloc(adns_query_t *query, gint n)
+{
+	adns_async_write_t *remain;
+
+	g_assert(n < sizeof(*query));
+
+	remain = walloc(sizeof(*remain));
+	remain->query = walloc(sizeof(*query));
+	memcpy(remain->query, query, sizeof(*query));
+	remain->buf = (gchar *) remain->query + n;
+	remain->n = sizeof(*query) - n;
+
+	return remain;
+}
+
+/*
+ * adns_query_write_free
+ *
+ * Dispose of the "spill" buffer.
+ */
+static void adns_async_write_free(adns_async_write_t *remain)
+{
+	wfree(remain->query, sizeof(*remain->query));
+	wfree(remain, sizeof(*remain));
+}
+
 /*
  * adns_query_callback
  *
@@ -425,18 +470,16 @@ static void adns_query_callback(
 		gpointer data, gint dest, inputevt_cond_t condition)
 {
 	static size_t n = 0;
-	adns_query_t *query = data;
-	
-	g_assert(NULL != query);
+	adns_async_write_t *remain = data;
+
+	g_assert(NULL != remain);
 	g_assert(dest == adns_query_fd);
 	g_assert(0 != adns_query_event_id);
-	g_assert(sizeof(*query) >= n);
 
-	if (sizeof(*query) > n) {
-		gpointer buf = (gchar *) query + n;
+	while (remain->n > 0) {
 		ssize_t ret;
 
-		ret = write(dest, buf, sizeof(*query) - n);
+		ret = write(dest, remain->buf, remain->n);
 		
 		if (0 == ret) {
 			errno = ECONNRESET;	
@@ -452,21 +495,21 @@ static void adns_query_callback(
 				adns_helper_alive = FALSE;
 				CLOSE_IF_VALID(adns_query_fd);
 				g_warning("adns_query_callback: using fallback");
-				adns_fallback(query);
+				adns_fallback(remain->query);
+				adns_async_write_free(remain);
 			}
 			return;
 		}
 
 		g_assert(ret > 0);	
-		n += (size_t) ret;
-		g_assert(sizeof(*query) >= n);
+		remain->n -= (size_t) ret;
+		remain->buf += (size_t) ret;
+		g_assert(remain->n >= 0);
 	}
-	/* FALL THROUGH */
-	if (sizeof(*query) == n) {
-		inputevt_remove(adns_query_event_id);
-		adns_query_event_id = 0;
-		n = 0;
-	}
+
+	inputevt_remove(adns_query_event_id);
+	adns_query_event_id = 0;
+	adns_async_write_free(remain);
 }
 
 /* public functions */
@@ -580,29 +623,59 @@ gboolean adns_resolve(
 	}
 
 	if (adns_helper_alive && 0 == adns_query_event_id) {
-		static adns_query_t q;
-		/* ``q'' must be static as it's used in a callback.
-		 * It's ``protected'' by ``adns_query_event_id''. Never used it
-		 * with multithreading unless you change it to a malloc'd buffer.
-	     */
+		adns_query_t q;
+		gint written;
 
+		g_assert(adns_query_fd >= 0);
 		g_assert(hostname_len < sizeof(q.hostname));
-		memcpy(q.hostname, query.data, hostname_len + 1);
 
+		memcpy(q.hostname, query.data, hostname_len + 1);
 		q.user_callback = user_callback;
 		q.user_data = user_data;
 		q.data = query.data;
 
+		/*
+		 * Try to write the query atomically into the pipe.
+		 */
+
+		written = write(adns_query_fd, &q, sizeof(q));
+
+		if (written == -1) {
+			if (errno != EINTR && errno != EAGAIN) {
+				g_warning("adns_resolve: write() failed: %s",
+					g_strerror(errno));
+				adns_helper_alive = FALSE;
+				CLOSE_IF_VALID(adns_query_fd);
+				goto fallback;
+			}
+			written = 0;
+		}
+
 		g_assert(0 == adns_query_event_id);
-		adns_query_event_id = inputevt_add(adns_query_fd,
-			INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
-			adns_query_callback, &q);
+
+		/*
+		 * If not written fully, allocate a spill buffer and record
+		 * callback that will write the remaining data when the pipe
+		 * can absorb new data.
+		 */
+
+		if (written < sizeof(q)) {
+			adns_async_write_t *aq = adns_async_write_alloc(&q, written);
+
+			adns_query_event_id = inputevt_add(adns_query_fd,
+				INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
+				adns_query_callback, aq);
+		}
+
 		return TRUE; /* asynchronous */ 
 	}
 
-	atom_str_free(query.data);
-	query.data = NULL;
+fallback:
+	g_warning("adns_resolve: using synchronous resolution for \"%s\"",
+		query.data);
+
 	adns_fallback(&query);
+
 	return FALSE; /* synchronous */
 }
 
