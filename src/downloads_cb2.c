@@ -1363,4 +1363,57 @@ void on_treeview_downloads_queue_select_row(GtkTreeView * tree_view,
 	
 }
 
+
+/*
+ *	on_popup_downloads_expand_all_activate
+ */
+void on_popup_downloads_expand_all_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
+{
+	GtkTreeView *tree_view = GTK_TREE_VIEW
+		(lookup_widget(main_window, "treeview_downloads"));
+		
+	downloads_gui_expand_all(tree_view);	
+}
+
+
+/*
+ *	on_popup_downloads_collapse_all_activate
+ */
+void on_popup_downloads_collapse_all_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
+{
+	GtkTreeView *tree_view = GTK_TREE_VIEW
+		(lookup_widget(main_window, "treeview_downloads"));
+	
+	downloads_gui_collapse_all(tree_view);	
+}
+
+
+/*
+ *	on_popup_queue_expand_all_activate
+ */
+void on_popup_queue_expand_all_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
+{
+	GtkTreeView *tree_view = GTK_TREE_VIEW
+		(lookup_widget(main_window, "treeview_downloads_queue"));
+	
+	downloads_gui_expand_all(tree_view);	
+}
+
+
+/*
+ *	on_popup_queue_collapse_all_activate
+ */
+void on_popup_queue_collapse_all_activate(GtkMenuItem *menuitem, 
+	gpointer user_data)
+{
+	GtkTreeView *tree_view = GTK_TREE_VIEW
+		(lookup_widget(main_window, "treeview_downloads_queue"));
+	
+	downloads_gui_collapse_all(tree_view);	
+}
+
+
 #endif	/* USE_GTK2 */

@@ -49,5 +49,10 @@ void gui_update_download_host(struct download *d);
 
 void gui_update_download_abort_resume(void);
 
+#ifdef USE_GTK2
+void downloads_gui_expand_all(GtkTreeView *tree_view);
+void downloads_gui_collapse_all(GtkTreeView *tree_view);
+#endif
+
 
 #endif /* _downloads_gui_h_ */

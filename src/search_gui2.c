@@ -1500,6 +1500,7 @@ void gui_search_history_add(gchar *s)
     list_search_history = new_hist;
 }
 
+
 /*
  * gui_search_set_enabled
  *
@@ -1520,6 +1521,30 @@ void gui_search_set_enabled(struct search *sch, gboolean enabled)
 		search_stop(sch->search_handle);
 
    /* FIXME: Mark this entry as active/inactive in the searches list. */
+}
+
+
+/*
+ *	search_gui_expand_all
+ *
+ *	Expand all nodes in tree for current search
+ */
+void search_gui_expand_all()
+{
+	search_t *current_search = search_gui_get_current_search();
+	gtk_tree_view_expand_all(GTK_TREE_VIEW(current_search->tree_view));
+}
+
+
+/*
+ *	search_gui_collapse_all
+ *
+ *	Collapse all nodes in tree for current search
+ */
+void search_gui_collapse_all()
+{
+	search_t *current_search = search_gui_get_current_search();
+	gtk_tree_view_collapse_all(GTK_TREE_VIEW(current_search->tree_view));
 }
 
 #endif	/* USE_GTK2 */

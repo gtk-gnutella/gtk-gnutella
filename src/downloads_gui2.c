@@ -1850,4 +1850,25 @@ void gui_update_download_abort_resume(void)
 }
 
 
+/*
+ *	downloads_gui_expand_all
+ *
+ *	Expand all nodes in given tree, either downloads or downloads_queue
+ */
+void downloads_gui_expand_all(GtkTreeView *tree_view)
+{
+	gtk_tree_view_expand_all(tree_view);
+}
+
+
+/*
+ *	downloads_gui_collapse_all
+ *
+ *	Collapse all nodes in given, tree either downloads or downloads_queue
+ */
+void downloads_gui_collapse_all(GtkTreeView *tree_view)
+{
+	gtk_tree_view_collapse_all(tree_view);
+}
+
 #endif

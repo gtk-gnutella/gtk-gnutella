@@ -103,6 +103,7 @@ void search_gui_add_record(
 gboolean gui_search_update_tab_label(struct search *);
 void gui_search_clear_results(void);
 void gui_search_history_add(gchar *s);
+
 #ifdef USE_GTK2
 void gui_search_create_tree_view(GtkWidget **sw, GtkWidget **tree_view);
 void gui_search_force_update_tab_label(struct search *, time_t now);
@@ -110,11 +111,11 @@ void gui_search_force_update_tab_label(struct search *, time_t now);
 GtkCTreeNode *find_parent_with_sha1(GHashTable *ht, gpointer key);
 void gui_search_create_ctree(GtkWidget **sw, GtkCTree **ctree);
 void gui_search_force_update_tab_label(struct search *);
+#endif
 
 void search_gui_expand_all();
 void search_gui_collapse_all();
 
-#endif
 void gui_search_update_items(struct search *);
 void gui_search_set_enabled(struct search *sch, gboolean enabled);
 const GList *search_gui_get_searches(void);

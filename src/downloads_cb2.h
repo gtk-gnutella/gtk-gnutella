@@ -101,4 +101,9 @@ void on_popup_queue_abort_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_popup_queue_copy_url_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_queue_connect_activate(GtkMenuItem *menuitem, gpointer user_data);
 
+void on_popup_downloads_expand_all_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_downloads_collapse_all_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_queue_expand_all_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_queue_collapse_all_activate(GtkMenuItem *menuitem, gpointer user_data);
+
 #endif /* _downloads_cb2_h_ */
