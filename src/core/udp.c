@@ -194,17 +194,18 @@ udp_connect_back(guint32 ip, guint16 port, const gchar *muid)
 {
 	struct gnutella_msg_init *m;
 	struct gnutella_node *n = node_udp_get_ip_port(ip, port);
+	guint32 size;
 
 	if (!enable_udp)
 		return;
 
-	m = build_ping_msg(muid, 1);
+	m = build_ping_msg(muid, 1, &size);
 
-	mq_udp_node_putq(n->outq, gmsg_to_pmsg(m, sizeof(*m)), n);
+	mq_udp_node_putq(n->outq, gmsg_to_pmsg(m, size), n);
 
 	if (udp_debug > 19)
-		printf("UDP queued connect-back PING %s to %s\n",
-			guid_hex_str(muid), ip_port_to_gchar(ip, port));
+		printf("UDP queued connect-back PING %s (%u bytes) to %s\n",
+			guid_hex_str(muid), size, ip_port_to_gchar(ip, port));
 }
 
 /*
@@ -215,13 +216,14 @@ udp_send_ping(guint32 ip, guint16 port)
 {
 	struct gnutella_msg_init *m;
 	struct gnutella_node *n = node_udp_get_ip_port(ip, port);
+	guint32 size;
 
 	if (!enable_udp)
 		return;
 
-	m = build_ping_msg(NULL, 1);
+	m = build_ping_msg(NULL, 1, &size);
 
-	mq_udp_node_putq(n->outq, gmsg_to_pmsg(m, sizeof(*m)), n);
+	mq_udp_node_putq(n->outq, gmsg_to_pmsg(m, size), n);
 }
 
 /* vi: set ts=4: */
