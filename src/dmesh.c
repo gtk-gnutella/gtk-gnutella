@@ -121,7 +121,7 @@ static GHashTable *ban_mesh_by_sha1 = NULL;
 
 #define BAN_LIFETIME	7200		/* 2 hours */
 
-static const gchar *dmesh_ban_file = "dmesh_ban";
+static const gchar dmesh_ban_file[] = "dmesh_ban";
 
 static void dmesh_retrieve(void);
 static void dmesh_ban_retrieve(void);
@@ -367,6 +367,7 @@ static const gchar *parse_errstr[] = {
 	"File prefix neither /uri-res nor /get",/* DMESH_URL_BAD_FILE_PREFIX */
 	"Index in /get/index is reserved",		/* DMESH_URL_RESERVED_INDEX */
 	"No filename after /get/index",			/* DMESH_URL_NO_FILENAME */
+	"Bad URL encoding",						/* DMESH_URL_BAD_ENCODING */
 };
 
 /*
@@ -500,6 +501,10 @@ ok:
 
 	if (idx != URN_INDEX) {
 		gchar *unescaped = url_unescape(file, FALSE);
+		if (!unescaped) {
+			dmesh_url_errno = DMESH_URL_BAD_ENCODING;
+			return FALSE;
+		}
 		info->name = atom_str_get(unescaped);
 		if (unescaped != file)
 			G_FREE_NULL(unescaped);
