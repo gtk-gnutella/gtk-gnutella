@@ -44,7 +44,7 @@ struct vendor {
     { T_CULT, "Cultiv8r" },
     { T_EVIL, "Suicide" },
     { T_FIRE, "FireFly" },
-    { T_FISH, "PEERahna" },
+    { T_FISH, "PEERanha" },
     { T_GDNA, "Gnucleus DNA" },
     { T_GNEW, "Gnewtellium" },
     { T_GNOT, "Gnotella" },
