@@ -459,7 +459,8 @@ void hsep_process_msg(struct gnutella_node *n,time_t now)
 
 	for (i = 0; i < max; i++) {
 		if (dbg > 1)
-			printf("(%llu,%llu,%llu) ", messaget[0], messaget[1], messaget[2]);
+			printf("(%" PRIu64 ",%" PRIu64 ",%" PRIu64 ") ",
+				messaget[0], messaget[1], messaget[2]);
 		*globalt++ += *messaget - *connectiont;
 		*connectiont++ = *messaget++;
 		*globalt++ += *messaget - *connectiont;
@@ -595,7 +596,7 @@ void hsep_send_msg(struct gnutella_node *n,time_t now)
 	 */
 	
 	/* optimize number of triples to send */
-	opttriples = hsep_triples_to_send((const hsep_triple *) &tmp, triples);
+	opttriples = hsep_triples_to_send((const hsep_triple *) tmp, triples);
 
 	globalt = (guint64 *) hsep_global_table;
 	connectiont = (guint64 *) n->hsep_table;
@@ -607,7 +608,8 @@ void hsep_send_msg(struct gnutella_node *n,time_t now)
 
 	for (i = 0; i < opttriples; i++) {
 		if (dbg > 1) {
-			printf("(%llu,%llu,%llu) ", ownt[0] + globalt[0] - connectiont[0],
+			printf("(%" PRIu64 ",%" PRIu64 ",%" PRIu64 ") ",
+				ownt[0] + globalt[0] - connectiont[0],
 			    ownt[1] + globalt[1] - connectiont[1],
 			    ownt[2] + globalt[2] - connectiont[2]);
 		}
@@ -666,7 +668,7 @@ void hsep_notify_shared(guint64 ownfiles, guint64 ownkibibytes)
 	if (ownfiles != hsep_own[HSEP_IDX_FILES] ||
 		ownkibibytes != hsep_own[HSEP_IDX_KIB]) {
 		if (dbg) {
-			printf("HSEP: Shared files changed to %llu (%llu KiB)\n",
+			printf("HSEP: Shared files changed to %" PRIu64 " (%" PRIu64" KiB)\n",
 			    ownfiles, ownkibibytes);
 		}
 		
@@ -778,17 +780,17 @@ void hsep_dump_table(void)
 	printf("HSEP: Reachable nodes (1-%d hops): ", HSEP_N_MAX);
 
 	for (i = 1; i <= HSEP_N_MAX; i++)
-		printf("%llu ", hsep_global_table[i][HSEP_IDX_NODES]);
+		printf("%" PRIu64 " ", hsep_global_table[i][HSEP_IDX_NODES]);
 
 	printf("\nHSEP: Reachable files (1-%d hops): ", HSEP_N_MAX);
 
 	for (i = 1; i <= HSEP_N_MAX; i++)
-		printf("%llu ", hsep_global_table[i][HSEP_IDX_FILES]);
+		printf("%" PRIu64 " ", hsep_global_table[i][HSEP_IDX_FILES]);
 
 	printf("\nHSEP:   Reachable KiB (1-%d hops): ", HSEP_N_MAX);
 
 	for (i = 1; i <= HSEP_N_MAX; i++)
-		printf("%llu ", hsep_global_table[i][HSEP_IDX_KIB]);
+		printf("%" PRIu64 " ", hsep_global_table[i][HSEP_IDX_KIB]);
 
 	printf("\n");
 

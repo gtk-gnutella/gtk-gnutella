@@ -630,7 +630,7 @@ static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 		if ((i % 3) == 2)
 			n = strlen(short_kb_size64(*globalt++));
 		else
-			n = gm_snprintf(buf, sizeof(buf), "%llu", *globalt++);		
+			n = gm_snprintf(buf, sizeof(buf), "%" PRIu64, *globalt++);		
 
 		if (n > maxlen[i % 3])
 			maxlen[i % 3] = n;
@@ -649,7 +649,8 @@ static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 	globalt = (gint64 *) &globaltable[1];
 	
 	for (i = 0; i < HSEP_N_MAX; i++) {
-		gm_snprintf(buf, sizeof(buf), "%4d  %*llu  %*llu  %*s\n", i + 1,
+		gm_snprintf(buf, sizeof(buf), "%4d  %*" PRIu64 "  %*" PRIu64 "  %*s\n",
+			i + 1,
 			maxlen[0], globalt[HSEP_IDX_NODES],
 			maxlen[1], globalt[HSEP_IDX_FILES],
 			maxlen[2], short_kb_size64(globalt[HSEP_IDX_KIB]));
