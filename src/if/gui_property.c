@@ -34,6 +34,7 @@
  */
 #include "if/ui/gtk/gnet_stats.h"
 #include "ui/gtk/columns.h"
+#include "ui/gtk/notebooks.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -253,8 +254,8 @@ gboolean show_gnet_info_shared_files     = FALSE;
 gboolean show_gnet_info_shared_files_def = FALSE;
 guint32  search_accumulation_period     = 5;
 guint32  search_accumulation_period_def = 5;
-guint32  treemenu_nodes_expanded[17]     = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1 };
-guint32  treemenu_nodes_expanded_def[17] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1 };
+guint32  treemenu_nodes_expanded[nb_main_page_num]     = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1 };
+guint32  treemenu_nodes_expanded_def[nb_main_page_num] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1 };
 guint32  gnet_stats_pkg_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_pkg_col_widths_def[6] = { 60, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_byte_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
@@ -2123,7 +2124,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[101].desc = _("Expanded stati of the nodes in the treemenu.");
     gui_property->props[101].ev_changed = event_new("treemenu_nodes_expanded_changed");
     gui_property->props[101].save = TRUE;
-    gui_property->props[101].vector_size = 17;
+    gui_property->props[101].vector_size = nb_main_page_num;
 
     /* Type specific data: */
     gui_property->props[101].type               = PROP_TYPE_GUINT32;

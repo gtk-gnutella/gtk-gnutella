@@ -39,6 +39,7 @@
  */
 #include "if/ui/gtk/gnet_stats.h"
 #include "ui/gtk/columns.h"
+#include "ui/gtk/notebooks.h"
 
 
 extern const gboolean monitor_enabled;
@@ -142,7 +143,7 @@ extern const gboolean show_gnet_info_rt;
 extern const gboolean show_gnet_info_shared_size;
 extern const gboolean show_gnet_info_shared_files;
 extern const guint32  search_accumulation_period;
-extern const guint32  treemenu_nodes_expanded[17];
+extern const guint32  treemenu_nodes_expanded[nb_main_page_num];
 extern const guint32  gnet_stats_pkg_col_widths[6];
 extern const guint32  gnet_stats_byte_col_widths[6];
 extern const guint32  config_toolbar_style;

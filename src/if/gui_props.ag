@@ -11,6 +11,7 @@ private_src  = "GUI_SOURCES";
 
 uses = "if/ui/gtk/gnet_stats.h";
 uses = "ui/gtk/columns.h";
+uses = "ui/gtk/notebooks.h";
 
 prop = {
     name = "monitor_enabled";
@@ -1064,9 +1065,9 @@ prop = {
     name = "treemenu_nodes_expanded";
     desc = "Expanded stati of the nodes in the treemenu.";
     type = guint32;
-    vector_size = 17; /* TREEMENU_NODES */
+    vector_size = nb_main_page_num;
     data = {
-        default = "{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1 }";
+        default = "{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }";
     };
 };
 
