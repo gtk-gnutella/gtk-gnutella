@@ -479,9 +479,6 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 
 	g_assert(url);
 
-	for (p = q; *p != '\0' && p < &q[sizeof http_prefix - 1]; p++)
-		*p = tolower((guchar) *p);
-
 	if (0 != strncmp(q, http_prefix, sizeof http_prefix - 1)) {
 		if (url_dbg)
 			g_warning("URL isn't preceded by \"http://\"");
@@ -507,18 +504,23 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 		/* The ``host'' part is not an IP address */  
 
 		for (/* NOTHING */; *q != '\0'; q++) {
-			while (*q != '\0' && (isalnum((guchar) *q) || *q ==  '-')) {
-				*q = tolower((guchar) *q);
-				q++;
-			}
+			gint c;
 
-			if (*q == '\0') {
+		    for (/* NOTHING */; (c = (guchar) *q) != '\0'; q++) {
+        		if (isalnum(c)) {
+          			*q = tolower(c);
+        		} else if (c != '-') {
+          			break;
+        		}
+      		}   
+
+			if (c == '\0') {
 				if (dots < 1 && !(pol & URL_POLICY_ALLOW_LOCAL_HOSTS)) {
 					g_warning("Current URL policy forbids local hosts");
 					return NULL;
 				}
 				break;
-			} else if (*q == '.') {
+			} else if (c == '.') {
 
 				if (!(isalnum((guchar) *(q - 1)) && isalnum((guchar) q[1]))) {
 					if (url_dbg)
@@ -527,13 +529,11 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 					return NULL;
 				}
 				dots++;
-				q++;
-				if (*q == '\0')
+				if (q[1] == '\0' || q[1] == ':' || q[1] == '/')
 					break;
 
-				if (*q != '/')
-					tld = q;
-			} else if (*q == '\0' || *q == '/' || *q == ':') {
+				tld = &q[1];
+			} else if (c == '\0' || c == '/' || c == ':') {
 				break;
 			} else {
 				if (url_dbg)
@@ -636,12 +636,22 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 	*q = '\0';
 
 	if (pol & URL_POLICY_GWC_RULES) {
-		/* Check for .htm and .html */
-		if (0 == strcasecmp(q - 5, ".html") || 0 == strcasecmp(q - 4, ".htm")) {
-			if (url_dbg)
-				g_message("URL points probably to static data; rejected");
-			return NULL;
-		}
+		static const struct {
+			ssize_t len;
+			const gchar *ext;
+		} static_types[] = {
+			{ 5, ".html" },
+			{ 4, ".htm" },
+			{ 4, ".txt" }
+		};
+		gint i;
+
+		for (i = 0; i < G_N_ELEMENTS(static_types); i++)
+    		if (!strcasecmp(q - static_types[i].len, static_types[i].ext)) {
+				if (url_dbg)
+					g_message("URL points probably to static data; rejected");
+      			return NULL;
+    		}
 	}
 
 	/* Add a trailing slash; if the URI is empty (to prevent dupes) */
