@@ -56,7 +56,7 @@ Ladies and gentleman, here's the
          * [general desciption of the file contents]
          */
 
-    The tag $Id$ is expanded by CVS when the file is committed.
+    The tag $Id is expanded by CVS when the file is committed.
 
     The bracketed sections "[...]" have to be replaced by the respective
     things they describe.
@@ -70,6 +70,7 @@ Ladies and gentleman, here's the
 
         /**
          * Purpose in life.
+         *
          * @returns blah blah.
          */
         void function_name(...args...)
