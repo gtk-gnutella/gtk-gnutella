@@ -147,7 +147,9 @@ gtk_gnutella_SOURCES = \
 	qrp.c qrp.h \
 	getdate.y getdate.h \
 	atoms.c atoms.h \
-	extensions.c extensions.h ggep.h \
+	extensions.c extensions.h \
+	cobs.c cobs.h \
+	ggep.c ggep.h \
 	dmesh.c dmesh.h \
 	http.c http.h \
 	version.c version.h \

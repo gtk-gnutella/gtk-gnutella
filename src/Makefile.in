@@ -1,6 +1,6 @@
-# Makefile.in generated automatically by automake 1.4-p5 from Makefile.am
+# Makefile.in generated automatically by automake 1.4-p4 from Makefile.am
 
-# Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
+# Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -121,7 +121,7 @@ XML_STORE_FILES = search_xml.c search_xml.h
 @ENABLE_XML_STORE_FALSE@XML_STORE = 
 
 # interface.h must come before any .c files that include it so that it is built.
-gtk_gnutella_SOURCES =  	$(XML_STORE) 	$(GLADE_UI) 	$(ADDITIONAL_DROPIN) 	gnutella.h listener.h 	gnet.h common.h 	misc.c misc.h 	prop.c prop.h 	gnet_property.c gnet_property.h gnet_property_priv.h 	guid.c guid.h 	settings.c settings.h oldconfig.c oldconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	pcache.c pcache.h 	routing.c routing.h 	search.c search.h search_gui.h 	downloads.c downloads.h downloads_gui.h 	fileinfo.c fileinfo.h 	fuzzy.c fuzzy.h 	whitelist.c whitelist.h 	share.c share.h 	uploads.c uploads.h uploads_gui.h 	upload_stats.c upload_stats.h upload_stats_gui.h 	main.c 	matching.c matching.h 	getline.c getline.h 	header.c header.h 	ioheader.c ioheader.h 	url.c url.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	cq.c cq.h 	mq.c mq.h 	sq.c sq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h 	tx_deflate.c tx_deflate.h 	rxbuf.c rxbuf.h 	rx.c rx.h 	rx_link.c rx_link.h 	rx_inflate.c rx_inflate.h 	zlib_util.c zlib_util.h 	sha1.c sha1.h huge.c huge.h 	base32.c base32.h 	utf8.c utf8.h 	ban.c ban.h 	inet.c inet.h 	qrp.c qrp.h 	getdate.y getdate.h 	atoms.c atoms.h 	extensions.c extensions.h ggep.h 	dmesh.c dmesh.h 	http.c http.h 	version.c version.h 	alive.c alive.h 	zalloc.c zalloc.h 	walloc.c walloc.h 	vendors.c vendors.h 	idtable.c idtable.h 	namesize.c namesize.h 	ignore.c ignore.h 	gnet_stats.c gnet_stats.h 	gwcache.c gwcache.h
+gtk_gnutella_SOURCES =  	$(XML_STORE) 	$(GLADE_UI) 	$(ADDITIONAL_DROPIN) 	gnutella.h listener.h 	gnet.h common.h 	misc.c misc.h 	prop.c prop.h 	gnet_property.c gnet_property.h gnet_property_priv.h 	guid.c guid.h 	settings.c settings.h oldconfig.c oldconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	pcache.c pcache.h 	routing.c routing.h 	search.c search.h search_gui.h 	downloads.c downloads.h downloads_gui.h 	fileinfo.c fileinfo.h 	fuzzy.c fuzzy.h 	whitelist.c whitelist.h 	share.c share.h 	uploads.c uploads.h uploads_gui.h 	upload_stats.c upload_stats.h upload_stats_gui.h 	main.c 	matching.c matching.h 	getline.c getline.h 	header.c header.h 	ioheader.c ioheader.h 	url.c url.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	cq.c cq.h 	mq.c mq.h 	sq.c sq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h 	tx_deflate.c tx_deflate.h 	rxbuf.c rxbuf.h 	rx.c rx.h 	rx_link.c rx_link.h 	rx_inflate.c rx_inflate.h 	zlib_util.c zlib_util.h 	sha1.c sha1.h huge.c huge.h 	base32.c base32.h 	utf8.c utf8.h 	ban.c ban.h 	inet.c inet.h 	qrp.c qrp.h 	getdate.y getdate.h 	atoms.c atoms.h 	extensions.c extensions.h 	cobs.c cobs.h 	ggep.c ggep.h 	dmesh.c dmesh.h 	http.c http.h 	version.c version.h 	alive.c alive.h 	zalloc.c zalloc.h 	walloc.c walloc.h 	vendors.c vendors.h 	idtable.c idtable.h 	namesize.c namesize.h 	ignore.c ignore.h 	gnet_stats.c gnet_stats.h 	gwcache.c gwcache.h
 
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
@@ -174,9 +174,10 @@ LIBS = @LIBS@
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@zlib_util.o sha1.o huge.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@base32.o utf8.o ban.o inet.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@qrp.o getdate.o atoms.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@extensions.o dmesh.o http.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@version.o alive.o zalloc.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@walloc.o vendors.o idtable.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@extensions.o cobs.o ggep.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@dmesh.o http.o version.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@alive.o zalloc.o walloc.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@vendors.o idtable.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@namesize.o ignore.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@gnet_stats.o gwcache.o
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@gtk_gnutella_OBJECTS =  \
@@ -212,9 +213,10 @@ LIBS = @LIBS@
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@zlib_util.o sha1.o huge.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@base32.o utf8.o ban.o inet.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@qrp.o getdate.o atoms.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@extensions.o dmesh.o http.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@version.o alive.o zalloc.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@walloc.o vendors.o idtable.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@extensions.o cobs.o ggep.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@dmesh.o http.o version.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@alive.o zalloc.o walloc.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@vendors.o idtable.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@namesize.o ignore.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@gnet_stats.o gwcache.o
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@gtk_gnutella_OBJECTS =  \
@@ -250,11 +252,12 @@ LIBS = @LIBS@
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@zlib_util.o sha1.o huge.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@base32.o utf8.o ban.o inet.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@qrp.o getdate.o atoms.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@extensions.o dmesh.o http.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@version.o alive.o zalloc.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@walloc.o vendors.o idtable.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@namesize.o ignore.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@gnet_stats.o gwcache.o
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@extensions.o cobs.o ggep.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@dmesh.o http.o version.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@alive.o zalloc.o walloc.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@vendors.o idtable.o namesize.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@ignore.o gnet_stats.o \
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@gwcache.o
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@search_xml.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@interface-glade1.o \
@@ -291,9 +294,10 @@ LIBS = @LIBS@
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@zlib_util.o sha1.o huge.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@base32.o utf8.o ban.o inet.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@qrp.o getdate.o atoms.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@extensions.o dmesh.o http.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@version.o alive.o zalloc.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@walloc.o vendors.o idtable.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@extensions.o cobs.o ggep.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@dmesh.o http.o version.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@alive.o zalloc.o walloc.o \
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@vendors.o idtable.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@namesize.o ignore.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@gnet_stats.o gwcache.o
 @ENABLE_GTK2_FALSE@gtk_gnutella_DEPENDENCIES = 
@@ -311,11 +315,11 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 TAR = tar
 GZIP_ENV = --best
 DEP_FILES =  .deps/alive.P .deps/atoms.P .deps/ban.P .deps/base32.P \
-.deps/bsched.P .deps/callbacks.P .deps/cq.P .deps/dmesh.P \
+.deps/bsched.P .deps/callbacks.P .deps/cobs.P .deps/cq.P .deps/dmesh.P \
 .deps/downloads.P .deps/downloads_cb.P .deps/downloads_gui.P \
 .deps/extensions.P .deps/fileinfo.P .deps/filter.P .deps/filter_cb.P \
 .deps/filter_gui.P .deps/fuzzy.P .deps/getdate.P .deps/getline.P \
-.deps/gmsg.P .deps/gnet_property.P .deps/gnet_stats.P \
+.deps/ggep.P .deps/gmsg.P .deps/gnet_property.P .deps/gnet_stats.P \
 .deps/gnet_stats_gui.P .deps/gtk-missing.P .deps/gtkcolumnchooser.P \
 .deps/gui.P .deps/gui_property.P .deps/guid.P .deps/gwcache.P \
 .deps/header.P .deps/hosts.P .deps/http.P .deps/huge.P .deps/idtable.P \
@@ -420,7 +424,7 @@ TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) $(LISP)
 	  awk '    { files[$$0] = 1; } \
 	       END { for (i in files) print i; }'`; \
 	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
-	  || (cd $(srcdir) && etags -o $$here/TAGS $(ETAGS_ARGS) $$tags  $$unique $(LISP))
+	  || (cd $(srcdir) && etags $(ETAGS_ARGS) $$tags  $$unique $(LISP) -o $$here/TAGS)
 
 mostlyclean-tags:
 

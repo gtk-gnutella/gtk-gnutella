@@ -28,7 +28,11 @@
 #ifndef __ggep_h__
 #define __ggep_h__
 
+#include "extensions.h"
+
 #include <glib.h>
+
+#define GGEP_MAGIC		0xc3		/* GGEP extension prefix */
 
 /*
  * GGEP Extension Header Flags.
@@ -52,8 +56,53 @@
 #define GGEP_L_XFLAGS	(GGEP_L_CONT | GGEP_L_LAST)
 
 /*
+ * The "H" extension
+ */
+
+#define GGEP_H_SHA1		0x01		/* Binary SHA1 */
+#define GGEP_H_BITPRINT	0x02		/* Bitprint (SHA1 + Tiger tree root) */
+
+/*
+ * Flags for ggep_ext_write() and friends.
+ */
+
+#define GGEP_W_LAST		0x00000001	/* This is the last extension */
+#define GGEP_W_COBS		0x00000002	/* Attempt COBS encoding, if needed */
+#define GGEP_W_DEFLATE	0x00000004	/* Attempt payload compression */
+#define GGEP_W_FIRST	0x00000008	/* First extension, write GGEP_MAGIC */
+
+/*
+ * Extraction interface return types.
+ */
+
+typedef enum ggept_status {
+	GGEP_OK = 0,					/* OK, extracted what was asked */
+	GGEP_NOT_FOUND = 1,				/* OK, but did not find it */
+	GGEP_INVALID = 2,				/* Error, found something invalid */
+	GGEP_BAD_SIZE = 3,				/* Error, buffer not correctly sized */
+} ggept_status_t;
+
+/*
  * Public interaface.
  */
+
+struct iovec;
+
+gint ggep_decode_into(extvec_t *exv, guchar *buf, gint len);
+
+gint ggep_ext_write(
+	guchar *buf, gint len,
+	gchar *id, guchar *payload, gint plen,
+	guint32 wflags);
+
+gint ggep_ext_writev(
+	guchar *buf, gint len,
+	gchar *id, struct iovec *iov, gint iovcnt,
+	guint32 wflags);
+
+void ggep_mark_last(guchar *start);
+
+ggept_status_t ggept_h_sha1_extract(extvec_t *exv, guchar *buf, gint len);
 
 #endif	/* __ggep_h__ */
 
