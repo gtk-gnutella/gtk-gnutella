@@ -1,0 +1,211 @@
+/*
+ * Jmakefile for src
+ */
+
+;# $Id$
+;#
+;#  @COPYRIGHT@
+;#
+;# $Log$
+;# Revision 1.1  2003/08/09 22:20:31  rmanfredi
+;# Added metaconfig files.
+;#
+;# Revision 3.0.1.2  1995/07/25  13:29:41  ram
+;# patch56: re-ordered macros, moving the install at the end
+;#
+;# Revision 3.0.1.1  1994/01/24  13:42:41  ram
+;# patch16: added dependency generation stage
+;#
+;# Revision 3.0  1993/08/18  12:03:53  ram
+;# Baseline for dist 3.0 netwide release.
+;#
+
+GUI_GTK2 = \
+	fileinfo_gui2.c \
+	gnet_stats_gui2.c \
+	monitor_cb2.c\
+	monitor_gui2.c \
+	nodes_cb2.c \
+	nodes_gui2.c \
+	search_cb2.c \
+	search_gui2.c \
+	search_stats_gui2.c \
+	uploads_gui2.c \
+	upload_stats_gui2.c
+
+GUI_GTK1 = \
+|expand f!$(GUI_GTK2)!
+	!f:2.c=.c \
+-expand \\
+
+GUI_COMMON = \
+	callbacks.c \
+	downloads_cb.c \
+	downloads_gui.c \
+	filter.c \
+	filter_cb.c \
+	filter_gui.c \
+	gtkcolumnchooser.c \
+	gtk-missing.c \
+	gui.c \
+	gui_property.c \
+	main_cb.c \
+	main_gui.c \
+	nodes_gui_common.c \
+	search_gui_common.c \
+	settings_cb.c \
+	settings_gui.c \
+	statusbar_gui.c \
+	uploads_cb.c \
+	uploads_gui_common.c \
+	upload_stats_cb.c
+
+CORE = \
+	adns.c \
+	alive.c \
+	atoms.c \
+	ban.c \
+	base32.c \
+	base64.c \
+	bg.c \
+	bsched.c \
+	clock.c \
+	cobs.c \
+	common.c \
+	cq.c \
+	crc.c \
+	dmesh.c \
+	downloads.c \
+	eval.c \
+	event.c \
+	extensions.c \
+	file.c \
+	fileinfo.c \
+	fuzzy.c \
+	getline.c \
+	ggep.c \
+	ggep_type.c \
+	glib-missing.c \
+	gmsg.c \
+	gnet_property.c \
+	gnet_stats.c \
+	guid.c \
+	gwcache.c \
+	hcache.c \
+	header.c \
+	hostiles.c \
+	hosts.c \
+	http.c \
+	huge.c \
+	icon.c \
+	idtable.c \
+	ignore.c \
+	inet.c \
+	inputevt.c \
+	ioheader.c \
+	main.c \
+	matching.c \
+	misc.c \
+	move.c \
+	mq.c \
+	namesize.c \
+	nodes.c \
+	parq.c \
+	pcache.c \
+	pmsg.c \
+	pproxy.c \
+	prop.c \
+	qrp.c \
+	routing.c \
+	rxbuf.c \
+	rx.c \
+	rx_inflate.c \
+	rx_link.c \
+	search.c \
+	search_xml.c \
+	settings.c \
+	sha1.c \
+	share.c \
+	shell.c \
+	sockets.c \
+	sq.c \
+	tiger.c \
+	tigertree.c \
+	token.c \
+	tx.c \
+	tx_deflate.c \
+	tx_link.c \
+	uploads.c \
+	upload_stats.c \
+	url.c \
+	utf8.c \
+	vendors.c \
+	verify.c \
+	version.c \
+	vmsg.c \
+	walloc.c \
+	whitelist.c \
+	zalloc.c \
+	zlib_util.c
+
+SRCLIST = \
+	$(GUI_GTK2) \
+	$(GUI_GTK1) \
+	$(GUI_COMMON) \
+	$(CORE)
+
+OBJLIST = \
+|expand f!$(SRCLIST)!
+	!f:\.c=.o \
+-expand \\
+
+SRC = $(GUI_GLADE_SRC) $(SRCLIST)
+OBJ = $(GUI_GLADE_OBJ) $(OBJLIST)
+
+;# Additional flags for GTK compilation, added in the substituted section
+++GTK_CFLAGS $gtkcflags
+++GTK_LDFLAGS $gtkldflags
+
+;# Add glade-generated source files and derived objects
+++GUI_GLADE_SRC $gladesrc
+++GUI_GLADE_OBJ $gladeobj
+
+;# Add the glade command and the glade source file
+++GLADE $glade
+++GLADEFILE ../$gladefile
+
+;# Add the libxml2 flags
+++XML2_CFLAGS $xmlcflags
+++XML2_LDFLAGS $xmlldflags
+
+;# Those extra flags are expected to be user-defined
+CFLAGS = -I$(TOP) $(GTK_CFLAGS) $(XML2_CFLAGS)
+DPFLAGS = -I$(TOP) $(GTK_CFLAGS) $(XML2_CFLAGS)
+LDFLAGS = $(GTK_LDFLAGS) $(XML2_LDFLAGS)
+
+>PRIVLIB	/* Force metaconfig to ask for privlib location */
+
+DependTarget()
+SimpleYaccTarget(gtk-gnutella, getdate)
+NormalProgramTarget(gtk-gnutella, $(SRC), $(OBJ) getdate.o)
+
+#
+# Glade generates:
+#	interface-glade[12].c interface-glade[12].h
+#   support-glade[12].c support-glade[12].h
+#
+# Depending on whether we compile for Gtk 1.2 or Gtk 2, the ones the others
+# will be linked and included. This can be tested by checking if USE_GTK2
+# is defined in the sourcecode files.
+# We let glade directly handle the callbacks.[ch] files so we can do without
+# any postprocessing of the glade output.
+#
+
+glade_files:
+	@echo $(GLADE) --write-source $(GLADEFILE)
+	$(GLADE) --write-source $(GLADEFILE)
+
+properties:
+	autogen gui_props.ag
+	autogen gnet_props.ag
+
