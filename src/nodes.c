@@ -1584,39 +1584,6 @@ gboolean node_host_is_connected(guint32 ip, guint16 port)
 }
 
 /*
- * send_welcome
- *
- * Send the 0.4 welcoming string, and return true if OK.
- * On error, the node is removed if given, or the connection closed.
- */
-static gboolean send_welcome(
-	struct gnutella_socket *s, struct gnutella_node *n)
-{
-	gint sent;
-
-	g_assert(s);
-	g_assert(n);
-	g_assert(n->socket == s);
-
-	if (
-		-1 == (sent = bws_write(bws.gout, s->file_desc,
-			gnutella_welcome, GNUTELLA_WELCOME_LENGTH))
-	) {
-		node_remove(n, "Write of 0.4 HELLO acknowledge failed: %s",
-			g_strerror(errno));
-		return FALSE;
-	} else if (sent < GNUTELLA_WELCOME_LENGTH) {
-		if (dbg)
-			g_warning("wrote only %d out of %d bytes of HELLO ack to %s",
-				sent, sizeof(gnutella_welcome) - 1, ip_to_gchar(s->ip));
-		node_remove(n, "Partial write of 0.4 HELLO acknowledge");
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-/*
  * formatted_connection_pongs
  *
  * Build CONNECT_PONGS_COUNT pongs to emit as an X-Try header.
@@ -3498,22 +3465,6 @@ static void call_node_process_handshake_ack(gpointer obj, header_t *header)
 	node_process_handshake_ack(NODE(obj), header);
 }
 
-static void call_node_04_connected(gpointer obj, header_t *header)
-{
-	struct gnutella_node *n = NODE(obj);
-
-	/*
-	 * If it is a 0.4 handshake, we're done: we have already welcomed the
-	 * node, and came here just to read the trailing "\n".  We're now
-	 * ready to process incoming data.
-	 */
-
-	g_assert(n->proto_major == 0 && n->proto_minor == 4);
-	g_assert(n->flags & NODE_F_INCOMING);
-
-	node_is_now_connected(n);
-}
-
 #undef NODE
 
 void node_add(guint32 ip, guint16 port)
@@ -3710,41 +3661,13 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 	}
 
 	if (incoming) {				/* Welcome the incoming node */
-		if (n->proto_major == 0 && n->proto_minor == 4) {
-			/*
-			 * Remote node uses the 0.4 protocol, welcome it.
-			 */
+		/*
+		 * We need to read the remote headers then send ours before we can
+		 * operate any data transfer (3-way handshaking).
+		 */
 
-			if (!send_welcome(s, n))
-				return;
-
-			/*
-			 * There's no more handshaking to perform, we're ready to
-			 * read node data.
-			 *
-			 * However, our implementation of the first line reading only
-			 * read until the first "\n" of the hello.  Therefore, we need
-			 * to enter the node_header_read() callback, which will simply
-			 * get an empty line, marking the end of headers.
-			 *
-			 * That's why we're going to execute the code below which sets
-			 * the callback as if we were talking to a 0.6+ node.
-			 *
-			 *		--RAM, 21/12/2001
-			 */
-
-			io_get_header(n, &n->io_opaque, bws.gin, s, 0,
-				call_node_04_connected, NULL, &node_io_error);
-		} else {
-			/*
-			 * Remote node is using a modern handshaking.  We need to read
-			 * its headers then send ours before we can operate any
-			 * data transfer.
-			 */
-
-			io_get_header(n, &n->io_opaque, bws.gin, s, IO_3_WAY|IO_HEAD_ONLY,
-				call_node_process_handshake_header, NULL, &node_io_error);
-		}
+		io_get_header(n, &n->io_opaque, bws.gin, s, IO_3_WAY|IO_HEAD_ONLY,
+			call_node_process_handshake_header, NULL, &node_io_error);
 	}
 
     node_fire_node_info_changed(n);
