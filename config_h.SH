@@ -142,6 +142,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #define volatile
 #endif
 
+/* I_INTTYPES:
+ *	This symbol, if defined, indicates to the C program that it should
+ *	include <inttypes.h> to get format conversions of integer types.
+ */
+#$i_inttypes I_INTTYPES		/**/
+
 /* I_SYS_PARAM:
  *	This symbol, if defined, indicates to the C program that it should
  *	include <sys/param.h>.

@@ -49,10 +49,9 @@
 #endif
 #endif
 
-/* XXX: Add Configure check for <inttypes.h> */
-#ifdef HAVE_INTTYPES_H
+#ifdef I_INTTYPES
 #include <inttypes.h>
-#endif /* HAVE_INTTYPES_H */
+#endif /* I_INTTYPES */
 
 #include <glib.h>
 

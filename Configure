@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Jun 16 21:08:04 MEST 2004 [metaconfig 3.0 PL70]
+# Generated on Sun Jun 20 22:32:24 MEST 2004 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -337,6 +337,7 @@ gtkpackage=''
 gtkversion=''
 h_fcntl=''
 h_sysfile=''
+i_inttypes=''
 i_langinfo=''
 i_libcharset=''
 i_libintl=''
@@ -5879,6 +5880,10 @@ none) yaccflags='';;
 *) yaccflags="$ans";;
 esac
 
+: see if this is a inttypes.h system
+set inttypes.h i_inttypes
+eval $inhdr
+
 : see if this is a langinfo system
 set langinfo.h i_langinfo
 eval $inhdr
@@ -6225,6 +6230,7 @@ h_fcntl='$h_fcntl'
 h_sysfile='$h_sysfile'
 hint='$hint'
 huge='$huge'
+i_inttypes='$i_inttypes'
 i_langinfo='$i_langinfo'
 i_libcharset='$i_libcharset'
 i_libintl='$i_libintl'
