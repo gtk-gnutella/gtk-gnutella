@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2001-2003, Raphael Manfredi
  *
- * Pong caching (LimeWire's ping/pong reducing scheme).
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,12 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @file
+ *
+ * Pong caching (LimeWire's ping/pong reducing scheme).
  */
 
 #include "gnutella.h"
@@ -59,12 +63,11 @@ RCSID("$Id$");
  *** Messages
  ***/
 
-/*
- * send_ping
- *
+/**
  * Sends a ping to given node, or broadcast to everyone if `n' is NULL.
  */
-static void send_ping(struct gnutella_node *n, guint8 ttl)
+static void
+send_ping(struct gnutella_node *n, guint8 ttl)
 {
 	struct gnutella_msg_init m;
 
@@ -102,9 +105,7 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
 	}
 }
 
-/*
- * send_alive_ping
- *
+/**
  * Send ping to immediate neighbour, to check its latency and the fact
  * that it is alive, or get its Gnet sharing information (ip, port).
  * The message is sent as a "control" one, i.e. it's put ahead of the queue.
@@ -113,7 +114,8 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
  *
  * NB: this routine is only made visible for "alive.c".
  */
-void send_alive_ping(struct gnutella_node *n, gchar *muid)
+void
+send_alive_ping(struct gnutella_node *n, gchar *muid)
 {
 	struct gnutella_msg_init m;
 
@@ -133,12 +135,11 @@ void send_alive_ping(struct gnutella_node *n, gchar *muid)
 	gmsg_ctrl_sendto_one(n, (gchar *) &m, sizeof(struct gnutella_msg_init));
 }
 
-/*
- * build_pong_msg
- *
+/**
  * Build pong message, returns pointer to static data.
  */
-struct gnutella_msg_init_response *build_pong_msg(
+struct gnutella_msg_init_response *
+build_pong_msg(
 	guint8 hops, guint8 ttl, gchar *muid,
 	guint32 ip, guint16 port, guint32 files, guint32 kbytes)
 {
@@ -158,13 +159,13 @@ struct gnutella_msg_init_response *build_pong_msg(
 	return &pong;
 }
 
-/*
- * send_pong
- *
+/**
  * Send pong message back to node.
  * If `control' is true, send it as a higher priority message.
  */
-static void send_pong(struct gnutella_node *n, gboolean control,
+static void
+send_pong(
+	struct gnutella_node *n, gboolean control,
 	guint8 hops, guint8 ttl, gchar *muid,
 	guint32 ip, guint16 port, guint32 files, guint32 kbytes)
 {
@@ -184,16 +185,15 @@ static void send_pong(struct gnutella_node *n, gboolean control,
 		gmsg_sendto_one(n, (gchar *) r, sizeof(*r));
 }
 
-/*
- * send_personal_info
- *
+/**
  * Send info about us back to node, using the hopcount information present in
  * the header of the node structure to construct the TTL of the pong we
  * send.
  *
  * If `control' is true, send it as a higher priority message.
  */
-static void send_personal_info(struct gnutella_node *n, gboolean control)
+static void
+send_personal_info(struct gnutella_node *n, gboolean control)
 {
 	guint32 kbytes;
 	guint32 files;
@@ -231,12 +231,11 @@ static void send_personal_info(struct gnutella_node *n, gboolean control)
 		n->header.muid, listen_ip(), listen_port, files, kbytes);
 }
 
-/*
- * send_neighbouring_info
- *
+/**
  * Send a pong for each of our connected neighbours to specified node.
  */
-static void send_neighbouring_info(struct gnutella_node *n)
+static void
+send_neighbouring_info(struct gnutella_node *n)
 {
 	const GSList *sl;
 
@@ -348,13 +347,15 @@ static struct recent recent_pongs[HOST_MAX];
  * Callbacks for the `ht_recent_pongs' hash table.
  */
 
-static guint cached_pong_hash(gconstpointer key)
+static guint
+cached_pong_hash(gconstpointer key)
 {
 	const struct cached_pong *cp = (const struct cached_pong *) key;
 
 	return (guint) (cp->ip ^ ((cp->port << 16) | cp->port));
 }
-static gint cached_pong_eq(gconstpointer v1, gconstpointer v2)
+static gint
+cached_pong_eq(gconstpointer v1, gconstpointer v2)
 {
 	const struct cached_pong *h1 = (const struct cached_pong *) v1;
 	const struct cached_pong *h2 = (const struct cached_pong *) v2;
@@ -362,10 +363,11 @@ static gint cached_pong_eq(gconstpointer v1, gconstpointer v2)
 	return h1->ip == h2->ip && h1->port == h2->port;
 }
 
-/*
- * pcache_init
+/**
+ * Initialization.
  */
-void pcache_init(void)
+void
+pcache_init(void)
 {
 	gint h;
 
@@ -382,12 +384,11 @@ void pcache_init(void)
 		g_hash_table_new(cached_pong_hash, cached_pong_eq);
 }
 
-/*
- * free_cached_pong
- *
+/**
  * Free cached pong when noone references it any more.
  */
-static void free_cached_pong(struct cached_pong *cp)
+static void
+free_cached_pong(struct cached_pong *cp)
 {
 	g_assert(cp->refcount > 0);		/* Someone was referencing it */
 
@@ -398,16 +399,15 @@ static void free_cached_pong(struct cached_pong *cp)
 }
 
 
-/*
- * pcache_get_recent
- *
+/**
  * Get a recent pong from the list, updating `last_returned_pong' as we
  * go along, so that we never return twice the same pong instance.
  *
  * Fills `ip' and `port' with the pong value and return TRUE if we
  * got a pong.  Otherwise return FALSE.
  */
-gboolean pcache_get_recent(host_type_t type, guint32 *ip, guint16 *port)
+gboolean
+pcache_get_recent(host_type_t type, guint32 *ip, guint16 *port)
 {
 	static guint32 last_ip = 0;
 	static guint16 last_port = 0;
@@ -474,13 +474,12 @@ found:
 	return TRUE;
 }
 
-/*
- * add_recent_pong
- *
+/**
  * Add recent pong to the list, handled as a FIFO cache, if not already
  * present.
  */
-static void add_recent_pong(host_type_t type, struct cached_pong *cp)
+static void
+add_recent_pong(host_type_t type, struct cached_pong *cp)
 {
 	struct recent *rec;
 
@@ -518,12 +517,11 @@ static void add_recent_pong(host_type_t type, struct cached_pong *cp)
 	cp->refcount++;		/* We don't refcount insertion in the hash table */
 }
 
-/*
- * pong_type
- *
+/**
  * Determine the pong type (any, or of the ultra kind).
  */
-static host_type_t pong_type(struct gnutella_init_response *pong)
+static host_type_t
+pong_type(struct gnutella_init_response *pong)
 {
 	guint32 kbytes;
 
@@ -540,7 +538,8 @@ static host_type_t pong_type(struct gnutella_init_response *pong)
 /**
  * Clear the whole recent pong list.
  */
-void pcache_clear_recent(host_type_t type)
+void
+pcache_clear_recent(host_type_t type)
 {
 	GList *l;
 	struct recent *rec;
@@ -562,16 +561,15 @@ void pcache_clear_recent(host_type_t type)
 	rec->recent_pong_count = 0;
 }
 
-/*
- * pcache_outgoing_connection
- *
+/**
  * Called when a new outgoing connection has been made.
  *
  * + If we need a connection, or have less than MAX_PONGS entries in our caught
  *   list, send a ping at normal TTL value.
  * + Otherwise, send a handshaking ping with TTL=1
  */
-void pcache_outgoing_connection(struct gnutella_node *n)
+void
+pcache_outgoing_connection(struct gnutella_node *n)
 {
 	g_assert(NODE_IS_CONNECTED(n));
 
@@ -581,12 +579,11 @@ void pcache_outgoing_connection(struct gnutella_node *n)
 		send_ping(n, 1);			/* Handshaking ping */
 }
 
-/*
- * pcache_expire
- *
+/**
  * Expire the whole cache.
  */
-static void pcache_expire(void)
+static void
+pcache_expire(void)
 {
 	gint i;
 	gint entries = 0;
@@ -610,12 +607,11 @@ static void pcache_expire(void)
 			entries, entries == 1 ? "y" : "ies", hcache_size(HOST_ANY));
 }
 
-/*
- * pcache_close
- *
+/**
  * Final shutdown.
  */
-void pcache_close(void)
+void
+pcache_close(void)
 {
 	static host_type_t types[] = { HOST_ANY, HOST_ULTRA };
 	guint i;
@@ -630,14 +626,13 @@ void pcache_close(void)
 	}
 }
 
-/*
- * ping_all_neighbours
- *
+/**
  * Send a ping to all "new" clients to which we are connected, and one to
  * older client if and only if at least OLD_PING_PERIOD seconds have
  * elapsed since our last ping, as determined by `next_ping'.
  */
-static void ping_all_neighbours(time_t now)
+static void
+ping_all_neighbours(time_t now)
 {
 	const GSList *sl;
 	GSList *may_ping = NULL;
@@ -704,13 +699,12 @@ static void ping_all_neighbours(time_t now)
 	g_slist_free(to_ping);
 }
 
-/*
- * pcache_possibly_expired
- *
+/**
  * Check pong cache for expiration.
  * If expiration time is reached, flush it and ping all our neighbours.
  */
-void pcache_possibly_expired(time_t now)
+void
+pcache_possibly_expired(time_t now)
 {
 	if (delta_time(now, pcache_expire_time) >= 0) {
 		pcache_expire();
@@ -719,19 +713,16 @@ void pcache_possibly_expired(time_t now)
 	}
 }
 
-/*
- * pcache_set_peermode
- *
+/**
  * Called when peer mode is changed to recompute the pong cache lifetime.
  */
-void pcache_set_peermode(node_peer_t mode)
+void
+pcache_set_peermode(node_peer_t mode)
 {
 	pcache_expire_time = time(NULL) + cache_lifespan(mode);
 }
 
-/*
- * setup_pong_demultiplexing
- *
+/**
  * Fill ping_guid[] and pong_needed[] arrays in the node from which we just
  * accepted a ping.
  *
@@ -745,8 +736,8 @@ void pcache_set_peermode(node_peer_t mode)
  * of the ping allows us to fake the pong reply, so the sending node recognizes
  * those as being "his" pongs.
  */
-static void setup_pong_demultiplexing(
-	struct gnutella_node *n, gchar *muid, guint8 ttl)
+static void
+setup_pong_demultiplexing(struct gnutella_node *n, gchar *muid, guint8 ttl)
 {
 	gint remains;
 	gint h;
@@ -790,9 +781,7 @@ static void setup_pong_demultiplexing(
 	g_assert(remains == 0);
 }
 
-/*
- * iterate_on_cached_line
- *
+/**
  * Internal routine for send_cached_pongs.
  *
  * Iterates on a list of cached pongs and send back any pong to node `n'
@@ -801,7 +790,8 @@ static void setup_pong_demultiplexing(
  *
  * Return FALSE if we're definitely done, TRUE if we can still iterate.
  */
-static gboolean iterate_on_cached_line(
+static gboolean
+iterate_on_cached_line(
 	struct gnutella_node *n, struct cache_line *cl, guint8 ttl,
 	GSList *start, GSList *end, gboolean strict)
 {
@@ -869,14 +859,14 @@ static gboolean iterate_on_cached_line(
 	return n->pong_missing != 0;
 }
 
-/*
- * send_cached_pongs
- *
+/**
  * Send pongs from cache line back to node `n' if more are needed for this
  * hop count and they are not originating from the node.  When `strict'
  * is false, we send even if no pong at that hop level is needed.
  */
-static void send_cached_pongs(struct gnutella_node *n,
+static void
+send_cached_pongs(
+	struct gnutella_node *n,
 	struct cache_line *cl, guint8 ttl, gboolean strict)
 {
 	gint hops = cl->hops;
@@ -899,13 +889,12 @@ static void send_cached_pongs(struct gnutella_node *n,
 		(void) iterate_on_cached_line(n, cl, ttl, cl->pongs, NULL, strict);
 }
 
-/*
- * pong_all_neighbours_but_one
- *
+/**
  * We received a pong we cached from `n'.  Send it to all other nodes if
  * they need one at this hop count.
  */
-static void pong_all_neighbours_but_one(
+static void
+pong_all_neighbours_but_one(
 	struct gnutella_node *n, struct cached_pong *cp, host_type_t ptype,
 	guint8 hops, guint8 ttl)
 {
@@ -961,13 +950,12 @@ static void pong_all_neighbours_but_one(
 	}
 }
 
-/*
- * pong_random_leaf
- *
+/**
  * We received an ultra pong.
  * Send it to one randomly selected leaf, which is not already missing pongs.
  */
-static void pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
+static void
+pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 {
 	const GSList *sl;
 	gint leaves;
@@ -1020,13 +1008,12 @@ static void pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 	}
 }
 
-/*
- * record_fresh_pong
- *
+/**
  * Add pong from node `n' to our cache of recent pongs.
  * Returns the cached pong object.
  */
-static struct cached_pong *record_fresh_pong(
+static struct cached_pong *
+record_fresh_pong(
 	host_type_t type,
 	struct gnutella_node *n,
 	guint8 hops, guint32 ip, guint16 port,
@@ -1057,9 +1044,31 @@ static struct cached_pong *record_fresh_pong(
 	return cp;
 }
 
-/*
- * pcache_ping_received
- *
+/**
+ * Called when an UDP ping is received.
+ */
+static void
+pcache_udp_ping_received(struct gnutella_node *n)
+{
+	extern gint guid_eq(gconstpointer a, gconstpointer b);
+
+	g_assert(NODE_IS_UDP(n));
+
+	/*
+	 * If we got a PING whose MUID is our node's GUID, then it's a reply
+	 * to our "UDP Connect Back" message.  Record that we can receive
+	 * unsollicited UDP traffic.
+	 */
+
+	if (guid_eq(guid, n->header.muid)) {
+		if (udp_debug > 19)
+			printf("UDP got unsollicited PING matching our GUID!\n");
+		inet_udp_got_unsollicited_incoming(n->ip);
+		return;
+	}
+}
+
+/**
  * Called when a ping is received from a node.
  *
  * + If current time is less than what `ping_accept' says, drop the ping.
@@ -1074,13 +1083,19 @@ static struct cached_pong *record_fresh_pong(
  * + Return a pong for us if we accept incoming connections right now.
  * + Return cached pongs, avoiding to resend a pong coming from that node ID.
  */
-void pcache_ping_received(struct gnutella_node *n)
+void
+pcache_ping_received(struct gnutella_node *n)
 {
 	time_t now = time((time_t *) 0);
 	gint h;
 	guint8 ttl;
 
 	g_assert(NODE_IS_CONNECTED(n));
+
+	if (NODE_IS_UDP(n)) {
+		pcache_udp_ping_received(n);
+		return;
+	}
 
 	/*
 	 * Handle "alive" pings and "crawler" pings specially.
@@ -1098,6 +1113,7 @@ void pcache_ping_received(struct gnutella_node *n)
 	if (n->header.hops == 0 && n->header.ttl <= 2) {
 		n->n_ping_special++;
 		n->n_ping_accepted++;
+
 		if (n->header.ttl == 1)
 			send_personal_info(n, TRUE);	/* Control message, prioritary */
 		else if (n->header.ttl == 2) {
@@ -1224,9 +1240,7 @@ void pcache_ping_received(struct gnutella_node *n)
 	}
 }
 
-/*
- * pcache_pong_received
- *
+/**
  * Called when a pong is received from a node.
  *
  * + Record node in the main host catching list.
@@ -1237,7 +1251,8 @@ void pcache_ping_received(struct gnutella_node *n)
  *   never send back this entry to the node).
  * + For all nodes but `n', propagate pong if neeed, with demultiplexing.
  */
-void pcache_pong_received(struct gnutella_node *n)
+void
+pcache_pong_received(struct gnutella_node *n)
 {
 	guint32 ip;
 	guint16 port;
@@ -1248,6 +1263,9 @@ void pcache_pong_received(struct gnutella_node *n)
 	host_type_t ptype;
 
 	n->n_pong_received++;
+
+	if (NODE_IS_UDP(n))
+		return;							/* XXX UDP PONG ignored for now */
 
 	/*
 	 * Decompile the pong information.
@@ -1446,9 +1464,7 @@ void pcache_pong_received(struct gnutella_node *n)
 			cp, CACHE_HOP_IDX(n->header.hops), MAX(1, n->header.ttl));
 }
 
-/*
- * pcache_pong_fake
- *
+/**
  * Fake a pong for a node from which we received an incoming connection,
  * using the supplied IP/port.
  *
@@ -1457,13 +1473,16 @@ void pcache_pong_received(struct gnutella_node *n)
  * making an incoming connection to us, it is really in need for other
  * connections as well.
  */
-void pcache_pong_fake(struct gnutella_node *n, guint32 ip, guint16 port)
+void
+pcache_pong_fake(struct gnutella_node *n, guint32 ip, guint16 port)
 {
+	g_assert(n->attrs & NODE_A_ULTRA);
+
 	if (!host_is_valid(ip, port))
 		return;
 
 	host_add(ip, port, FALSE);
-	(void) record_fresh_pong(HOST_ANY, n, 1, ip, port, 0, 0);
+	(void) record_fresh_pong(HOST_ULTRA, n, 1, ip, port, 0, 0);
 }
 
 /* vi: set ts=4: */
