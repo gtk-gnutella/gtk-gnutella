@@ -47,6 +47,10 @@
 #include "http.h"
 #include "version.h"
 
+#include "gnet_property_priv.h"
+#include "settings.h"
+#include "nodes.h"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -56,7 +60,6 @@
 
 static GSList *sl_downloads = NULL;	/* All downloads (queued + unqueued) */
 GSList *sl_unqueued = NULL;			/* Unqueued downloads only */
-gboolean send_pushes = TRUE;
 static gchar dl_tmp[4096];
 static gint queue_frozen = 0;
 
@@ -2371,7 +2374,7 @@ static void download_start_restart_timer(struct download *d)
 {
 	/* download_retry_stopped: seconds to wait after EOF or ECONNRESET */
 
-	d->restart_timer_id = g_timeout_add(download_retry_stopped * 1000,
+	d->restart_timer_id = g_timeout_add(download_retry_stopped_delay * 1000,
 		download_queue_w, d);
 }
 
