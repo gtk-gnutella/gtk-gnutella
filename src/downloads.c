@@ -1293,6 +1293,14 @@ static void download_queue_delay(struct download *d, guint32 delay,
 static gboolean download_retry_no_urires(struct download *d,
 	gint delay, gint ack_code)
 {
+	/*
+	 * Gtk-gnutella servers understand /uri-res.  Therefore, if we get an
+	 * HTTP error after sending such a request, trust it (i.e. don't retry).
+	 */
+
+	if (0 == strncmp(download_vendor_str(d), "gtk-gnutella/", 13))
+		return FALSE;
+
 	if (!(d->server->attrs & DLS_A_NO_URIRES) && (d->flags & DL_F_URIRES)) {
 		/*
 		 * We sent /uri-res, and never marked server as not supporting it.
