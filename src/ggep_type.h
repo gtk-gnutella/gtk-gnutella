@@ -59,6 +59,7 @@ struct ggep_gtkgv1 {				/* Decompiled payload of "GTKGV1" */
 };
 
 ggept_status_t ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info);
+ggept_status_t ggept_hname_extract(extvec_t *exv, gchar *buf, gint len);
 
 ggept_status_t ggept_alt_extract(extvec_t *exv,
 	struct gnutella_host **hvec, gint *hvcnt);

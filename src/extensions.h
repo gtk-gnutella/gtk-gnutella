@@ -105,6 +105,7 @@ typedef struct extvec {
 #define EXT_T_GGEP_u			9	/* HUGE URN in ASCII */
 #define EXT_T_GGEP_T			10	/* Textual information in query hits */
 #define EXT_T_GGEP_PUSH			11	/* Push proxy info, in query hits */
+#define EXT_T_GGEP_HNAME		12	/* Hostname info, in query hits */
 
 /*
  * Public interface.

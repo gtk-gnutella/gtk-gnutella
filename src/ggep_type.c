@@ -44,7 +44,7 @@ RCSID("$Id$");
  *
  * Extract the SHA1 hash of the "H" extension into the supplied buffer.
  *
- * Returns extraction status: only then GGEP_OK is returned will we have
+ * Returns extraction status: only when GGEP_OK is returned will we have
  * the SHA1 in buf.
  */
 ggept_status_t ggept_h_sha1_extract(extvec_t *exv, gchar *buf, gint len)
@@ -214,6 +214,36 @@ ggept_status_t ggept_push_extract(extvec_t *exv,
 
 	*hvec = vec;
 	*hvcnt = cnt;
+
+	return GGEP_OK;
+}
+
+/*
+ * ggept_hname_extract
+ *
+ * Extract hostname of the "HNAME" extension into the supplied buffer.
+ * Returns extraction status: only when GGEP_OK is returned will we have
+ * extracted something in the supplied buffer.
+ */
+ggept_status_t ggept_hname_extract(extvec_t *exv, gchar *buf, gint len)
+{
+	gint tlen;
+
+	g_assert(exv->ext_type == EXT_GGEP);
+	g_assert(exv->ext_token == EXT_T_GGEP_HNAME);
+	g_assert(len >= SHA1_RAW_SIZE);
+
+	/*
+	 * Leave out one character at the end to be able to store the trailing
+	 * NUL, which is not included in the extension.
+	 */
+
+	tlen = ggep_decode_into(exv, buf, len - 1);
+
+	if (tlen <= 0)
+		return GGEP_INVALID;
+
+	buf[tlen] = '\0';
 
 	return GGEP_OK;
 }
