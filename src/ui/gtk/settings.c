@@ -714,27 +714,58 @@ static gboolean bw_http_out_enabled_changed(property_t prop)
 static gboolean is_firewalled_changed(property_t prop)
 {
 	GtkWidget *icon_firewall;
+	GtkWidget *icon_tcp_firewall;
+	GtkWidget *icon_udp_firewall;
 	GtkWidget *icon_open;
-	gboolean val, send_pushes;
+	gboolean is_tcp_firewalled;
+	gboolean is_udp_firewalled;
+	gboolean send_pushes;
+	gboolean enable_udp;
 
     icon_firewall = lookup_widget(main_window, "eventbox_image_firewall");
+    icon_tcp_firewall = lookup_widget(main_window,
+		"eventbox_image_tcp_firewall");
+    icon_udp_firewall = lookup_widget(main_window,
+		"eventbox_image_udp_firewall");
 	icon_open = lookup_widget(main_window, "eventbox_image_no_firewall");
 
-    gnet_prop_get_boolean_val(prop, &val);
-	if (val) {
-		gtk_widget_hide(icon_open);
-		gtk_widget_show(icon_firewall);
-	} else {
-		gtk_widget_hide(icon_firewall);
-		gtk_widget_show(icon_open);
-	}
+    gnet_prop_get_boolean_val(PROP_IS_FIREWALLED, &is_tcp_firewalled);
+    gnet_prop_get_boolean_val(PROP_IS_UDP_FIREWALLED, &is_udp_firewalled);
+    gnet_prop_get_boolean_val(PROP_ENABLE_UDP, &enable_udp);
 
-    gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
-  	gtk_widget_set_sensitive
-        (lookup_widget(popup_downloads, "popup_downloads_push"),
-		!val && send_pushes);
+	gtk_widget_hide(icon_open);
+	gtk_widget_hide(icon_tcp_firewall);
+	gtk_widget_hide(icon_udp_firewall);
+	gtk_widget_hide(icon_firewall);
+
+	if (!enable_udp)
+		is_udp_firewalled = FALSE;	/* Ignore firewalled status if no UDP */
+
+	if (is_tcp_firewalled && is_udp_firewalled)
+		gtk_widget_show(icon_firewall);
+	else if (is_tcp_firewalled)
+		gtk_widget_show(icon_tcp_firewall);
+	else if (is_udp_firewalled)
+		gtk_widget_show(icon_udp_firewall);
+	else
+		gtk_widget_show(icon_open);
+
+	gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
+	gtk_widget_set_sensitive
+		(lookup_widget(popup_downloads, "popup_downloads_push"),
+		!is_tcp_firewalled && send_pushes);
 
 	return FALSE;
+}
+
+static gboolean enable_udp_changed(property_t prop)
+{
+	gboolean changed;
+
+	changed = update_togglebutton(prop);
+	(void) is_firewalled_changed(prop);
+
+	return changed;
 }
 
 static gboolean plug_icon_changed(property_t prop)
@@ -4301,6 +4332,7 @@ static prop_map_t property_map[] = {
         "checkbutton_gnet_stats_hops",
         FREQ_UPDATES, 0
     ),
+#endif
     PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_WITH_HEADERS,
@@ -4309,7 +4341,14 @@ static prop_map_t property_map[] = {
         "checkbutton_gnet_stats_with_headers",
         FREQ_UPDATES, 0
     ),
-#endif
+    PROP_ENTRY(
+        get_main_window,
+        PROP_GNET_STATS_SOURCE,
+        update_multichoice,
+        TRUE,
+        "combo_gnet_stats_source",
+        FREQ_UPDATES, 0
+	),
     PROP_ENTRY(
         get_main_window,
         PROP_GNET_STATS_DROP_PERC,
@@ -5059,7 +5098,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_ENABLE_UDP,
-        update_togglebutton,
+        enable_udp_changed,
         TRUE,
         "checkbutton_enable_udp",
         FREQ_UPDATES, 0
