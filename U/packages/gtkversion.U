@@ -27,6 +27,7 @@
 ?H:#$d_usegtk1 USE_GTK1    /**/
 ?H:#$d_usegtk2 USE_GTK2    /**/
 ?H:.
+?Y:TOP
 : ask them wich GTK+ version they want
 $cat <<'EOM'
 
