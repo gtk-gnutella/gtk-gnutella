@@ -80,19 +80,23 @@ To compile gtk-gnutella:
     make
     make install
 
-The `Configure' shell script attempts to guess correct values for various
-system-dependent variables used during compilation.  It uses those values
-to create a `Makefile' in each directory of the package.  It may also
-create one or more `.h' files containing system-dependent definitions.
-Finally, it creates `config.sh' file that saves the results of its tests
-to speed up reconfiguring, reusing your previous values as defaults.
+The `Configure' shell script attempts to guess correct values for various 
+system-dependent variables used during compilation.  It uses those values to 
+create a `Makefile' in each directory of the package.  It may also create one 
+or more `.h' files containing system-dependent definitions.  Finally, it 
+creates `config.sh' file that saves the results of its tests to speed up 
+reconfiguring, reusing your previous values as defaults.  If you don't want to 
+reuse your previous values you can delete them with:
+
+make clobber
 
 For a list of command line switches use "Configure -h"
 
-"Configure" can be run non-interactively by using the "-d" commandline option, 
-which will configure gtk-gnutella using default values for all symbols.  
-Defaults can be changed using the "-D" and "-U" options.  The following is a 
-list of commonly used options with the defaults. 
+Although "Configure" is intended to be run interactively, it can be run 
+non-interactively by using the "-d" commandline option, which will configure 
+gtk-gnutella using default values for all symbols.  Defaults can be changed 
+using the "-D" and "-U" options, whether in interactive or noninteractive 
+mode.  The following is a list of commonly used options with the defaults. 
 
 -Dprefix=/usr/local
 -Dbindir=/usr/local/bin
