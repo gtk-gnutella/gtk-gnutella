@@ -1414,16 +1414,24 @@ void on_button_search_clicked(GtkButton * button, gpointer user_data)
          *      --BLUE, 04/05/2002
          */
         gui_search_history_add(e);
+
+
+        /*
+         * We have to capture the selection here already, because
+         * new_search will trigger a rebuild of the menu as a
+         * side effect.
+         */
+        default_filter = (filter_t *)option_menu_get_selected_data
+            (optionmenu_search_filter);
+
 		search = new_search(minimum_speed, e);
 
         /*
          * If we should set a default filter, we do that.
          */
-        default_filter = option_menu_get_selected_data
-            (optionmenu_search_filter);
-
         if (default_filter != NULL) {
-            rule_t *rule = filter_new_jump_rule(default_filter);
+            rule_t *rule = filter_new_jump_rule
+                (default_filter, RULE_FLAG_ACTIVE);
             
             /*
              * Since we don't want to distrub the shadows and
