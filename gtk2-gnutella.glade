@@ -329,7 +329,7 @@
       <signal name="activate" handler="on_popup_search_edit_filter_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image64">
+	<widget class="GtkImage" id="image108">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-properties</property>
 	  <property name="icon_size">1</property>
@@ -374,6 +374,15 @@
 	      <signal name="activate" handler="on_popup_search_drop_sha1_activate"/>
 	    </widget>
 	  </child>
+
+	  <child>
+	    <widget class="GtkMenuItem" id="popup_search_drop_host">
+	      <property name="visible">True</property>
+	      <property name="label" translatable="yes">results from host</property>
+	      <property name="use_underline">True</property>
+	      <signal name="activate" handler="on_popup_search_drop_host_activate" last_modification_time="Sun, 15 Sep 2002 12:34:12 GMT"/>
+	    </widget>
+	  </child>
 	</widget>
       </child>
     </widget>
@@ -403,6 +412,15 @@
 	      <property name="label" translatable="yes">results with urn:sha1</property>
 	      <property name="use_underline">True</property>
 	      <signal name="activate" handler="on_popup_search_drop_sha1_global_activate"/>
+	    </widget>
+	  </child>
+
+	  <child>
+	    <widget class="GtkMenuItem" id="popup_search_drop_host_global">
+	      <property name="visible">True</property>
+	      <property name="label" translatable="yes">results from host</property>
+	      <property name="use_underline">True</property>
+	      <signal name="activate" handler="on_popup_search_drop_host_global_activate" last_modification_time="Sun, 15 Sep 2002 12:34:12 GMT"/>
 	    </widget>
 	  </child>
 	</widget>
@@ -441,6 +459,21 @@
   </child>
 
   <child>
+    <widget class="GtkMenuItem" id="popup_search_new_from_selected">
+      <property name="visible">True</property>
+      <property name="label" translatable="yes">New search from selected</property>
+      <property name="use_underline">True</property>
+      <signal name="activate" handler="on_popup_search_new_from_selected_activate" last_modification_time="Sun, 15 Sep 2002 11:07:06 GMT"/>
+    </widget>
+  </child>
+
+  <child>
+    <widget class="GtkMenuItem" id="separator15">
+      <property name="visible">True</property>
+    </widget>
+  </child>
+
+  <child>
     <widget class="GtkImageMenuItem" id="popup_search_stop">
       <property name="visible">True</property>
       <property name="label" translatable="yes">Stop this search</property>
@@ -448,7 +481,7 @@
       <signal name="activate" handler="on_popup_search_stop_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image65">
+	<widget class="GtkImage" id="image109">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-stop</property>
 	  <property name="icon_size">1</property>
@@ -469,7 +502,7 @@
       <signal name="activate" handler="on_popup_search_resume_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image66">
+	<widget class="GtkImage" id="image110">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-go-forward</property>
 	  <property name="icon_size">1</property>
@@ -490,7 +523,7 @@
       <signal name="activate" handler="on_popup_search_restart_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image67">
+	<widget class="GtkImage" id="image111">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-redo</property>
 	  <property name="icon_size">1</property>
@@ -511,52 +544,9 @@
       <signal name="activate" handler="on_popup_search_duplicate_activate"/>
 
       <child internal-child="image">
-	<widget class="GtkImage" id="image68">
+	<widget class="GtkImage" id="image112">
 	  <property name="visible">True</property>
 	  <property name="stock">gtk-copy</property>
-	  <property name="icon_size">1</property>
-	  <property name="xalign">0.5</property>
-	  <property name="yalign">0.5</property>
-	  <property name="xpad">0</property>
-	  <property name="ypad">0</property>
-	</widget>
-      </child>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkImageMenuItem" id="popup_search_close">
-      <property name="visible">True</property>
-      <property name="label" translatable="yes">Close this search</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_popup_search_close_activate"/>
-
-      <child internal-child="image">
-	<widget class="GtkImage" id="image69">
-	  <property name="visible">True</property>
-	  <property name="stock">gtk-close</property>
-	  <property name="icon_size">1</property>
-	  <property name="xalign">0.5</property>
-	  <property name="yalign">0.5</property>
-	  <property name="xpad">0</property>
-	  <property name="ypad">0</property>
-	</widget>
-      </child>
-    </widget>
-  </child>
-
-  <child>
-    <widget class="GtkImageMenuItem" id="popup_search_clear_results">
-      <property name="visible">True</property>
-      <property name="sensitive">False</property>
-      <property name="label" translatable="yes">Clear search results</property>
-      <property name="use_underline">True</property>
-      <signal name="activate" handler="on_popup_search_clear_results_activate"/>
-
-      <child internal-child="image">
-	<widget class="GtkImage" id="image70">
-	  <property name="visible">True</property>
-	  <property name="stock">gtk-clear</property>
 	  <property name="icon_size">1</property>
 	  <property name="xalign">0.5</property>
 	  <property name="yalign">0.5</property>
@@ -7787,11 +7777,11 @@ Grace time remaining:</property>
 			      <property name="spacing">2</property>
 
 			      <child>
-				<widget class="GtkScrolledWindow" id="scrolledwindow27">
+				<widget class="GtkScrolledWindow" id="scrolledwindow37">
 				  <property name="visible">True</property>
 				  <property name="can_focus">True</property>
 				  <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-				  <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+				  <property name="vscrollbar_policy">GTK_POLICY_ALWAYS</property>
 				  <property name="shadow_type">GTK_SHADOW_NONE</property>
 				  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
@@ -7804,13 +7794,13 @@ Grace time remaining:</property>
 				      <property name="selection_mode">GTK_SELECTION_SINGLE</property>
 				      <property name="show_titles">True</property>
 				      <property name="shadow_type">GTK_SHADOW_IN</property>
-				      <signal name="resize_column" handler="on_clist_nodes_resize_column" last_modification_time="Wed, 11 Sep 2002 16:47:01 GMT"/>
-				      <signal name="select_row" handler="on_clist_nodes_select_row" last_modification_time="Wed, 11 Sep 2002 16:47:09 GMT"/>
-				      <signal name="unselect_row" handler="on_clist_nodes_unselect_row" last_modification_time="Wed, 11 Sep 2002 16:47:14 GMT"/>
-				      <signal name="button_press_event" handler="on_clist_nodes_button_press_event" last_modification_time="Wed, 11 Sep 2002 16:47:26 GMT"/>
+				      <signal name="select_row" handler="on_clist_nodes_select_row" last_modification_time="Sun, 15 Sep 2002 13:33:09 GMT"/>
+				      <signal name="unselect_row" handler="on_clist_nodes_unselect_row" last_modification_time="Sun, 15 Sep 2002 13:33:16 GMT"/>
+				      <signal name="button_press_event" handler="on_clist_nodes_button_press_event" last_modification_time="Sun, 15 Sep 2002 13:33:27 GMT"/>
+				      <signal name="resize_column" handler="on_clist_nodes_resize_column" last_modification_time="Sun, 15 Sep 2002 13:33:40 GMT"/>
 
 				      <child>
-					<widget class="GtkLabel" id="label347">
+					<widget class="GtkLabel" id="label472">
 					  <property name="visible">True</property>
 					  <property name="label" translatable="yes">Host</property>
 					  <property name="use_underline">False</property>
@@ -7826,7 +7816,7 @@ Grace time remaining:</property>
 				      </child>
 
 				      <child>
-					<widget class="GtkLabel" id="label348">
+					<widget class="GtkLabel" id="label473">
 					  <property name="visible">True</property>
 					  <property name="label" translatable="yes">Type</property>
 					  <property name="use_underline">False</property>
@@ -7842,7 +7832,7 @@ Grace time remaining:</property>
 				      </child>
 
 				      <child>
-					<widget class="GtkLabel" id="label349">
+					<widget class="GtkLabel" id="label474">
 					  <property name="visible">True</property>
 					  <property name="label" translatable="yes">Vendor</property>
 					  <property name="use_underline">False</property>
@@ -7858,7 +7848,7 @@ Grace time remaining:</property>
 				      </child>
 
 				      <child>
-					<widget class="GtkLabel" id="label350">
+					<widget class="GtkLabel" id="label475">
 					  <property name="visible">True</property>
 					  <property name="label" translatable="yes">Ver</property>
 					  <property name="use_underline">False</property>
@@ -7874,7 +7864,7 @@ Grace time remaining:</property>
 				      </child>
 
 				      <child>
-					<widget class="GtkLabel" id="label351">
+					<widget class="GtkLabel" id="label476">
 					  <property name="visible">True</property>
 					  <property name="label" translatable="yes">Info</property>
 					  <property name="use_underline">False</property>
@@ -11006,18 +10996,25 @@ Grace time remaining:</property>
 			  <property name="spacing">4</property>
 
 			  <child>
-			    <widget class="GtkLabel" id="label_items_found">
+			    <widget class="GtkViewport" id="viewport_fix_flashing_1">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">No items found</property>
-			      <property name="use_underline">False</property>
-			      <property name="use_markup">False</property>
-			      <property name="justify">GTK_JUSTIFY_CENTER</property>
-			      <property name="wrap">False</property>
-			      <property name="selectable">False</property>
-			      <property name="xalign">7.45058e-09</property>
-			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
-			      <property name="ypad">0</property>
+			      <property name="shadow_type">GTK_SHADOW_IN</property>
+
+			      <child>
+				<widget class="GtkLabel" id="label_items_found">
+				  <property name="visible">True</property>
+				  <property name="label" translatable="yes">No items found</property>
+				  <property name="use_underline">False</property>
+				  <property name="use_markup">False</property>
+				  <property name="justify">GTK_JUSTIFY_CENTER</property>
+				  <property name="wrap">False</property>
+				  <property name="selectable">False</property>
+				  <property name="xalign">7.45058e-09</property>
+				  <property name="yalign">0.5</property>
+				  <property name="xpad">0</property>
+				  <property name="ypad">0</property>
+				</widget>
+			      </child>
 			    </widget>
 			    <packing>
 			      <property name="padding">0</property>
@@ -11571,7 +11568,7 @@ Grace time remaining:</property>
 			<widget class="GtkScrolledWindow" id="scrolledwindow26">
 			  <property name="visible">True</property>
 			  <property name="can_focus">True</property>
-			  <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+			  <property name="hscrollbar_policy">GTK_POLICY_ALWAYS</property>
 			  <property name="vscrollbar_policy">GTK_POLICY_ALWAYS</property>
 			  <property name="shadow_type">GTK_SHADOW_NONE</property>
 			  <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
@@ -11857,23 +11854,30 @@ Grace time remaining:</property>
 			  </child>
 
 			  <child>
-			    <widget class="GtkLabel" id="label_search_stats_count">
+			    <widget class="GtkViewport" id="viewport_fix_flashing_2">
 			      <property name="visible">True</property>
-			      <property name="label" translatable="yes">0 terms counted</property>
-			      <property name="use_underline">False</property>
-			      <property name="use_markup">False</property>
-			      <property name="justify">GTK_JUSTIFY_RIGHT</property>
-			      <property name="wrap">False</property>
-			      <property name="selectable">False</property>
-			      <property name="xalign">0.5</property>
-			      <property name="yalign">0.5</property>
-			      <property name="xpad">0</property>
-			      <property name="ypad">0</property>
+			      <property name="shadow_type">GTK_SHADOW_IN</property>
+
+			      <child>
+				<widget class="GtkLabel" id="label_search_stats_count">
+				  <property name="visible">True</property>
+				  <property name="label" translatable="yes">0 terms counted</property>
+				  <property name="use_underline">False</property>
+				  <property name="use_markup">False</property>
+				  <property name="justify">GTK_JUSTIFY_RIGHT</property>
+				  <property name="wrap">False</property>
+				  <property name="selectable">False</property>
+				  <property name="xalign">1</property>
+				  <property name="yalign">0.5</property>
+				  <property name="xpad">0</property>
+				  <property name="ypad">0</property>
+				</widget>
+			      </child>
 			    </widget>
 			    <packing>
 			      <property name="padding">0</property>
-			      <property name="expand">False</property>
-			      <property name="fill">False</property>
+			      <property name="expand">True</property>
+			      <property name="fill">True</property>
 			      <property name="pack_type">GTK_PACK_END</property>
 			    </packing>
 			  </child>

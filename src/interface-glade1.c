@@ -6135,12 +6135,12 @@ create_popup_search (void)
   GtkWidget *popup_search_autodownload_name;
   GtkWidget *popup_search_autodownload_sha1;
   GtkWidget *separator3;
+  GtkWidget *popup_search_new_from_selected;
+  GtkWidget *separator15;
   GtkWidget *popup_search_stop;
   GtkWidget *popup_search_resume;
   GtkWidget *popup_search_restart;
   GtkWidget *popup_search_duplicate;
-  GtkWidget *popup_search_close;
-  GtkWidget *popup_search_clear_results;
   GtkWidget *separator2;
   GtkWidget *popup_search_toggle_tabs;
   GtkWidget *popup_search_config_cols;
@@ -6288,6 +6288,23 @@ create_popup_search (void)
   gtk_container_add (GTK_CONTAINER (popup_search), separator3);
   gtk_widget_set_sensitive (separator3, FALSE);
 
+  popup_search_new_from_selected = gtk_menu_item_new_with_label ("New search from selected");
+  gtk_widget_set_name (popup_search_new_from_selected, "popup_search_new_from_selected");
+  gtk_widget_ref (popup_search_new_from_selected);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_new_from_selected", popup_search_new_from_selected,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_search_new_from_selected);
+  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_new_from_selected);
+
+  separator15 = gtk_menu_item_new ();
+  gtk_widget_set_name (separator15, "separator15");
+  gtk_widget_ref (separator15);
+  gtk_object_set_data_full (GTK_OBJECT (popup_search), "separator15", separator15,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (separator15);
+  gtk_container_add (GTK_CONTAINER (popup_search), separator15);
+  gtk_widget_set_sensitive (separator15, FALSE);
+
   popup_search_stop = gtk_menu_item_new_with_label ("Stop this search");
   gtk_widget_set_name (popup_search_stop, "popup_search_stop");
   gtk_widget_ref (popup_search_stop);
@@ -6319,23 +6336,6 @@ create_popup_search (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (popup_search_duplicate);
   gtk_container_add (GTK_CONTAINER (popup_search), popup_search_duplicate);
-
-  popup_search_close = gtk_menu_item_new_with_label ("Close this search");
-  gtk_widget_set_name (popup_search_close, "popup_search_close");
-  gtk_widget_ref (popup_search_close);
-  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_close", popup_search_close,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_search_close);
-  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_close);
-
-  popup_search_clear_results = gtk_menu_item_new_with_label ("Clear search results");
-  gtk_widget_set_name (popup_search_clear_results, "popup_search_clear_results");
-  gtk_widget_ref (popup_search_clear_results);
-  gtk_object_set_data_full (GTK_OBJECT (popup_search), "popup_search_clear_results", popup_search_clear_results,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_search_clear_results);
-  gtk_container_add (GTK_CONTAINER (popup_search), popup_search_clear_results);
-  gtk_widget_set_sensitive (popup_search_clear_results, FALSE);
 
   separator2 = gtk_menu_item_new ();
   gtk_widget_set_name (separator2, "separator2");
@@ -6389,6 +6389,9 @@ create_popup_search (void)
   gtk_signal_connect (GTK_OBJECT (popup_search_autodownload_sha1), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_autodownload_sha1_activate),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_search_new_from_selected), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_search_new_from_selected_activate),
+                      NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_stop), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_stop_activate),
                       NULL);
@@ -6400,12 +6403,6 @@ create_popup_search (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_duplicate), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_duplicate_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_close), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_close_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_search_clear_results), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_search_clear_results_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_search_toggle_tabs), "activate",
                       GTK_SIGNAL_FUNC (on_popup_search_toggle_tabs_activate),
