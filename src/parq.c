@@ -41,6 +41,8 @@ RCSID("$Id$");
 #define PARQ_VERSION_MAJOR	1
 #define PARQ_VERSION_MINOR	0
 
+#define AGRESSIVE 0
+
 #define PARQ_RETRY_SAFETY	40		/* 40 seconds before lifetime */
 #define PARQ_TIMER_BY_POS	30		/* 30 seconds for each queue position */
 #define PARQ_MAX_UL_RETRY_DELAY 1200	/* 20 minutes retry rate max. */
@@ -1218,7 +1220,7 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 guint32 parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 {
 	int result = 60 + 45 * (parq_ul->relative_position - 1);
-#if 0
+#if AGRESSIVE
 	int fast_result;
 	struct parq_ul_queued *parq_ul_prev = NULL;
 	GList *l = NULL;
@@ -1976,6 +1978,11 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	/* This is to ensure dynamic slot allocation */
 	if (slots_free < 0)
 		slots_free = 0;
+
+#if AGRESSIVE
+#else
+	slots_free = 0;
+#endif
 	
 	if (allowed_max_uploads <= uq->queue->active_uploads - slots_free) {
 		return FALSE;
@@ -2223,7 +2230,7 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	parq_ul->updated = now;
 	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
 		
-#if 0
+#if AGRESSIVE
 	/* If the chunk sizes are really small, expire them sooner */
 	parq_ul->expire = parq_ul->retry + parq_ul->chunk_size / bw_http_out;
 	parq_ul->expire = MIN(MIN_LIFE_TIME + parq_ul->retry, parq_ul->expire);
