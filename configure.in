@@ -180,11 +180,11 @@ src/Makefile
 gtk-gnutella.spec
 ])
 
-echo ""
-echo ""
+echo
+echo
 echo "Feature summary:"
 echo "---------------"
-echo ""
+echo
 echo "Frontend                 :   $frontend"
 msg="Persistant filters       :  "
 if test "x$enable_xml_store" = "xno" ; then
@@ -224,5 +224,7 @@ else
     echo "$msg no (you need to install zlib from www.zlib.org)"
 fi
 
-echo ""
-echo ""
+echo
+echo "It's recommended and probably necessary to use GNU make. If GNU make"
+echo "is not the default on your system, it might be installed as gmake."
+echo
