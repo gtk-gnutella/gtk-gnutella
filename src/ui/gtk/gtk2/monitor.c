@@ -42,8 +42,7 @@ RCSID("$Id$");
 static guint32 monitor_items = 0;
 static GtkListStore *monitor_model = NULL;
 
-enum
-{
+enum {
    QUERY_COLUMN = 0,
    MONITOR_COLUMNS
 };
@@ -55,8 +54,8 @@ enum
  ***/
 
 static void
-monitor_gui_append_to_monitor(
-    query_type_t type, const gchar *item, guint32 ip, guint16 port)
+monitor_gui_append(query_type_t type, const gchar *item,
+	guint32 ip, guint16 port)
 {
 	(void) ip;
 	(void) port;
@@ -99,13 +98,12 @@ monitor_gui_append_to_monitor(
 	}
 }
 
-
-
 /***
  *** Public functions
  ***/
 
-void monitor_gui_init(void)
+void
+monitor_gui_init(void)
 {
     GtkWidget *tree;
 	GtkCellRenderer *renderer;
@@ -130,7 +128,7 @@ void monitor_gui_init(void)
     renderer = gtk_cell_renderer_text_new();
 	g_object_set(renderer, "ypad", GUI_CELL_RENDERER_YPAD, NULL);
     column = gtk_tree_view_column_new_with_attributes
-        ("Query", renderer, "text", QUERY_COLUMN, NULL);
+        (_("Query"), renderer, "text", QUERY_COLUMN, NULL);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
 
     /* Add the column to the view. */
@@ -140,27 +138,25 @@ void monitor_gui_init(void)
 		G_CALLBACK(on_treeview_monitor_button_press_event), NULL);
 }
 
-void monitor_gui_shutdown(void)
+void
+monitor_gui_shutdown(void)
 {
     monitor_gui_enable_monitor(FALSE);
 }
 
 #if 0
-/*
- * share_gui_trim_monitor:
- *
+/**
  * Remove all but the first n items from the monitor.
  */
-void share_gui_clear_monitor(void)
+void
+share_gui_clear_monitor(void)
 {
     gtk_list_store_clear(monitor_model);
 	monitor_items = 0;
 }
 #endif
 
-/*
- * share_gui_enable_monitor:
- *
+/**
  * Enable/disable monitor.
  */
 void monitor_gui_enable_monitor(const gboolean val)
@@ -169,10 +165,9 @@ void monitor_gui_enable_monitor(const gboolean val)
 
     if (val != registered) {
         if (val)
-            guc_share_add_search_request_listener(monitor_gui_append_to_monitor);
+            guc_share_add_search_request_listener(monitor_gui_append);
         else
-            guc_share_remove_search_request_listener(
-				monitor_gui_append_to_monitor);
+            guc_share_remove_search_request_listener(monitor_gui_append);
         registered = val;
     }
 }
