@@ -211,7 +211,6 @@ local_realclean::
 	$(RM) gtk-gnutella
 
 gtk-gnutella:  $(OBJ) $(EXTRA)
-
 	$(RM) $@
 	if test -f $@; then $(MV) $@ $@~; fi
 	$(CC) -o $@  $(OBJ) $(EXTRA) $(JLDFLAGS) $(LIBS)
