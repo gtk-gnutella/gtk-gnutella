@@ -44,7 +44,7 @@ void gtk_gnutella_exit(gint n)
 
 	if (hosts_idle_func)
 		gtk_idle_remove(hosts_idle_func);
-	config_save();
+	config_shutdown();
 
 	/* Shutdown systems, so we can track memory leaks */
 	if (s_listen)

@@ -1089,13 +1089,19 @@ gchar *config_boolean(gboolean b)
 	return (b) ? b_true : b_false;
 }
 
-void config_save(void)
+/*
+ * config_save
+ *
+ * Save user configuration.
+ */
+static void config_save(void)
 {
 	FILE *config;
 	gint win_x, win_y, win_w, win_h;
 	gchar *filename;
 	time_t mtime = 0;
 	struct stat buf;
+	gchar *newfile;
 
 	if (!config_dir) {
 		g_warning("no configuration directory: preferences were not saved");
@@ -1125,16 +1131,23 @@ void config_save(void)
 			g_warning("unable to rename as \"%s\": %s", old, g_strerror(errno));
 		else
 			g_warning("renamed old copy as \"%s\"", old);
+		g_free(old);
 	}
 
-	config = fopen(filename, "w");
+	/*
+	 * Create new file, which will be renamed at the end, so we don't
+	 * clobber a good configuration file should we fail abrupbtly.
+	 */
+
+	newfile = g_strconcat(filename, ".new", NULL);
+	config = fopen(newfile, "w");
 
 	if (!config) {
 		fprintf(stderr, "\nfopen(): %s\n"
 			"\nUnable to write your configuration in %s\n"
 			"Preferences have not been saved.\n\n",
-				g_strerror(errno), cfg_tmp);
-		return;
+				g_strerror(errno), newfile);
+		goto end;
 	}
 
 	gdk_window_get_root_origin(main_window->window, &win_x, &win_y);
@@ -1434,10 +1447,25 @@ void config_save(void)
 			keywords[k_other_messages_kick_size],
 			other_messages_kick_size);
 
-	fprintf(config, "\n\n");
+	fprintf(config, "### End of configuration file ###\n");
 
-	fclose(config);
+	/*
+	 * Rename saved configuration file on success.
+	 */
 
+	if (0 == fclose(config)) {
+		if (-1 == rename(newfile, filename))
+			g_warning("could not rename %s as %s: %s",
+				newfile, filename, g_strerror(errno));
+	} else
+		g_warning("could not flush %s: %s", newfile, g_strerror(errno));
+
+end:
+	g_free(newfile);
+}
+
+void config_hostcache_save(void)
+{
 	/* Save the catched hosts & upload history */
 
 	if (hosts_idle_func) {
@@ -1452,7 +1480,15 @@ void config_save(void)
 			hosts_write_to_file(cfg_tmp);
 		}
 	}
+}
 
+/*
+ * config_upload_stats_save
+ *
+ * Save upload statistics.
+ */
+static void config_upload_stats_save(void)
+{
 	if (cfg_use_local_file)
 		ul_stats_dump_history(ul_stats_file, TRUE);
 	else {
@@ -1460,10 +1496,16 @@ void config_save(void)
 			config_dir, ul_stats_file);
 		ul_stats_dump_history(cfg_tmp, TRUE);
 	}
+}
 
-	/*
-	 * Remove pidfile.
-	 */
+/*
+ * config_remove_pidfile
+ *
+ * Remove pidfile.
+ */
+static void config_remove_pidfile(void)
+{
+	gchar *filename;
 
 	g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, pidfile);
 
@@ -1476,6 +1518,7 @@ void config_save(void)
 		g_warning("could not remove pidfile \"%s\": %s",
 			filename, g_strerror(errno));
 }
+
 
 /*
  * config_ip_changed
@@ -1515,6 +1558,14 @@ void config_ip_changed(guint32 new_ip)
 
 	forced_local_ip = new_ip;
 	gui_update_config_force_ip();
+}
+
+void config_shutdown(void)
+{
+	config_save();
+	config_hostcache_save();
+	config_upload_stats_save();
+	config_remove_pidfile();
 }
 
 void config_close(void)
