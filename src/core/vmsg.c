@@ -1173,6 +1173,49 @@ static void handle_time_sync_reply(struct gnutella_node *n,
 }
 
 /**
+ * Callback invoked when "Time Sync Request" is about to be sent.
+ * Writes current time in the first half of the MUID.
+ */
+static gboolean
+vmsg_time_sync_req_stamp(pmsg_t *mb, struct mqueue *q)
+{
+	tm_t old;
+	tm_t now;
+	gchar *muid = pmsg_start(mb);
+
+	g_assert(pmsg_is_writable(mb));
+	STATIC_ASSERT(sizeof(now) == 2 * sizeof(guint32));
+
+	/*
+	 * Read the old timestamp.
+	 */
+
+	READ_GUINT32_BE(muid, old.tv_sec);
+	muid += 4;
+	READ_GUINT32_BE(muid, old.tv_usec);
+
+	tm_now(&now);
+	now.tv_sec = clock_loc2gmt(now.tv_sec);
+
+	muid -= 4;								/* Rewind */
+	WRITE_GUINT32_BE(now.tv_sec, muid);		/* First half of MUID */
+	muid += 4;
+	WRITE_GUINT32_BE(now.tv_usec, muid);
+
+	/*
+	 * Inform the tsync layer that the "T1" timestamp is not the one
+	 * we registered in vmsg_send_time_sync_req().  Tagging via the
+	 * timestamp is the only mean we have to update the records since we
+	 * can't attach metadata to the "pre-send" callbacks, hence the need
+	 * to pass both the old and the new timestamps.
+	 */
+
+	tsync_send_timestamp(&old, &now);
+
+	return TRUE;
+}
+
+/**
  * Send a "Time Sync Request" message, asking them to echo back their own
  * time so that we can compute our clock differences and measure round trip
  * times.  The time at which we send the message is included in the first
@@ -1181,7 +1224,7 @@ static void handle_time_sync_reply(struct gnutella_node *n,
  * If the node is an UDP node, its IP and port indicate to whom we shall
  * send the message.
  *
- * The `sent' parameter is filled with the time at which we sent the message.
+ * The `sent' parameter is filled with the initial "T1" timestamp markup.
  */
 void
 vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *sent)
@@ -1205,11 +1248,13 @@ vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *sent)
 
 	/*
 	 * The first 8 bytes of the MUID are used to store the time at which
-	 * we send the message, and we fill that as late as possible.
+	 * we send the message, and we fill that as late as possible.  We write
+	 * the current time now, because we have to return it to the caller,
+	 * but it will be superseded when the message is finally scheduled to
+	 * be sent by the queue.
 	 */
 
-	tm_now(sent);
-	sent->tv_sec = clock_loc2gmt(sent->tv_sec);
+	pmsg_set_check(mb, vmsg_time_sync_req_stamp);
 
 	WRITE_GUINT32_BE(sent->tv_sec, muid);
 	muid += 4;
@@ -1219,6 +1264,31 @@ vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *sent)
 		mq_udp_node_putq(n->outq, mb, n);
 	else
 		mq_putq(n->outq, mb);
+}
+
+/**
+ * Callback invoked when "Time Sync Reply" is about to be sent.
+ * Writes current time in the second half of the MUID.
+ */
+static gboolean
+vmsg_time_sync_reply_stamp(pmsg_t *mb, struct mqueue *q)
+{
+	tm_t now;
+	gchar *muid = pmsg_start(mb);
+
+	g_assert(pmsg_is_writable(mb));
+	STATIC_ASSERT(sizeof(now) == 2 * sizeof(guint32));
+
+	muid += 8;
+
+	tm_now(&now);
+	now.tv_sec = clock_loc2gmt(now.tv_sec);
+
+	WRITE_GUINT32_BE(now.tv_sec, muid);		/* Second half of MUID */
+	muid += 4;
+	WRITE_GUINT32_BE(now.tv_usec, muid);
+
+	return TRUE;
 }
 
 /**
@@ -1234,7 +1304,6 @@ vmsg_send_time_sync_reply(struct gnutella_node *n, gboolean ntp, tm_t *got)
 	guint32 paysize = sizeof(guint8) + 2 * sizeof(guint32);
 	gchar *payload;
 	gchar *muid;
-	tm_t now;
 	pmsg_t *mb;
 
 	if (!NODE_IS_WRITABLE(n))
@@ -1256,27 +1325,20 @@ vmsg_send_time_sync_reply(struct gnutella_node *n, gboolean ntp, tm_t *got)
 	WRITE_GUINT32_BE(got->tv_usec, payload);
 
 	mb = gmsg_to_ctrl_pmsg(m, msgsize);		/* Send as quickly as possible */
-	muid = pmsg_start(mb);
+	muid = pmsg_start(mb);					/* MUID of the reply */
 
 	/*
 	 * Propagate first half of the MUID, which is the time at which
-	 * they sent us the message, in their clock time.
+	 * they sent us the message in their clock time, into the reply's MUID
 	 *
 	 * The second 8 bytes of the MUID are used to store the time at which
-	 * we send the message, and we fill that as late as possible.
+	 * we send the message, and we fill that as late as possible, i.e.
+	 * when we are about to send the message.
 	 */
 
-	STATIC_ASSERT(sizeof(now) == 2 * sizeof(guint32));
-
 	memcpy(muid, n->header.muid, 8);		/* First half of MUID */
-	muid += 8;
 
-	tm_now(&now);
-	now.tv_sec = clock_loc2gmt(now.tv_sec);
-
-	WRITE_GUINT32_BE(now.tv_sec, muid);		/* Second half of MUID */
-	muid += 4;
-	WRITE_GUINT32_BE(now.tv_usec, muid);
+	pmsg_set_check(mb, vmsg_time_sync_reply_stamp);
 
 	if (NODE_IS_UDP(n))
 		mq_udp_node_putq(n->outq, mb, n);
