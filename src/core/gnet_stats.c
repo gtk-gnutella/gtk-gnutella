@@ -279,7 +279,7 @@ void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 
 void gnet_stats_count_general(gnutella_node_t *n, gnr_stats_t type, guint32 x)
 {
-	/* XXX - parameter `n' is unused, remove? */
+	/* XXX - parameter `n' is unused, remove? -- and it can be NULL */
 
 	g_assert((gint) type >= 0 && type < GNR_TYPE_COUNT);
 
