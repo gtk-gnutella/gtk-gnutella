@@ -354,8 +354,10 @@ bsched_close(void)
 
 	g_slist_free(bws_list);
 	g_slist_free(bws_out_list);
+	g_slist_free(bws_gsteal_list);
 
 	bws.out = bws.in = bws.gout = bws.gin = bws.glin = bws.glout = NULL;
+	bws.gout_udp = bws.gin_udp = NULL;
 }
 
 /**
@@ -558,6 +560,8 @@ bsched_no_more_bandwidth(bsched_t *bs)
 	for (l = bs->sources; l; l = g_list_next(l)) {
 		bio_source_t *bio = (bio_source_t *) l->data;
 
+		g_assert(bio != NULL);
+
 		if (bio->io_tag)
 			bio_disable(bio);
 	}
@@ -575,6 +579,8 @@ bsched_clear_active(bsched_t *bs)
 
 	for (l = bs->sources; l; l = g_list_next(l)) {
 		bio_source_t *bio = (bio_source_t *) l->data;
+
+		g_assert(bio != NULL);
 
 		bio->flags &= ~BIO_F_ACTIVE;
 	}
@@ -598,6 +604,8 @@ bsched_begin_timeslice(bsched_t *bs)
 	for (count = 0, l = bs->sources; l; l = g_list_next(l)) {
 		bio_source_t *bio = (bio_source_t *) l->data;
 		guint32 actual;
+
+		g_assert(bio != NULL);
 
 		last = l;			/* Remember last seen source  for rotation */
 		count++;			/* Count them for assertion */
@@ -644,6 +652,7 @@ bsched_begin_timeslice(bsched_t *bs)
 		bio_source_t *bio;
 		g_assert(bs->sources != NULL);
 		bio = (bio_source_t *) bs->sources->data;
+		g_assert(bio != NULL);
 		bs->sources = g_list_remove(bs->sources, bio);
 		bs->sources = gm_list_insert_after(bs->sources, last, bio);
 	}
@@ -706,6 +715,8 @@ bsched_begin_timeslice(bsched_t *bs)
 static void
 bsched_bio_add(bsched_t *bs, bio_source_t *bio)
 {
+	g_assert(bio != NULL);
+
 	bs->sources = g_list_append(bs->sources, bio);
 	bs->count++;
 
@@ -726,6 +737,8 @@ bsched_bio_add(bsched_t *bs, bio_source_t *bio)
 static void
 bsched_bio_remove(bsched_t *bs, bio_source_t *bio)
 {
+	g_assert(bio != NULL);
+
 	bs->sources = g_list_remove(bs->sources, bio);
 	bs->count--;
 
@@ -1881,6 +1894,8 @@ bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 
 	for (l = bs->sources; l; l = g_list_next(l)) {
 		bio_source_t *bio = (bio_source_t *) l->data;
+
+		g_assert(bio != NULL);
 
 		if (bio->flags & BIO_F_USED)
 			last_used++;
