@@ -109,15 +109,21 @@ static void fi_gui_set_details(gnet_fi_t fih)
 
     last_shown = fih;
     last_shown_valid = TRUE;
+
+    gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
+			     TRUE);
 }
 
 static void fi_gui_clear_details(void)
 {
-	last_shown_valid = FALSE;
+    last_shown_valid = FALSE;
 
     gtk_entry_set_text(entry_fi_filename, "");
     gtk_label_set_text(label_fi_size, "");
     gtk_tree_store_clear(store_aliases);
+
+    gtk_widget_set_sensitive(lookup_widget(main_window, "button_fi_purge"),
+			     FALSE);
 }
 
 void on_treeview_fileinfo_selected(
@@ -128,23 +134,13 @@ void on_treeview_fileinfo_selected(
 	GtkTreeIter iter;
     gnet_fi_t fih;
 
-	selection = gtk_tree_view_get_selection(treeview_fileinfo);
-	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
-		gtk_tree_model_get(model, &iter, c_fi_handle, &fih, (-1));
+    selection = gtk_tree_view_get_selection(treeview_fileinfo);
+    if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+	gtk_tree_model_get(model, &iter, c_fi_handle, &fih, (-1));
     	fi_gui_set_details(fih);
-	} else
-		fi_gui_clear_details();
+    } else
+	fi_gui_clear_details();
 }
-
-/* FIXME: */
-#if 0
-void on_clist_fileinfo_unselect_row(GtkCList *clist, gint row, gint column,
-    GdkEvent *event, gpointer user_data)
-{
-    if (clist->selection == NULL)
-        fi_gui_clear_details();
-}
-#endif
 
 /*
  * on_button_fi_purge_clicked
@@ -153,8 +149,10 @@ void on_clist_fileinfo_unselect_row(GtkCList *clist, gint row, gint column,
  */
 void on_button_fi_purge_clicked(GtkButton *button, gpointer user_data)
 {
-	if (last_shown_valid)
-		fi_purge(last_shown);
+    if (last_shown_valid) {
+	fi_purge(last_shown);
+	fi_gui_clear_details();
+    }
 }
 
 static void fi_gui_append_row(
