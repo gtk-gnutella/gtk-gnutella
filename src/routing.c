@@ -77,7 +77,7 @@ void message_set_muid(struct gnutella_header *header)
 {
 	gint i;
 
-	for (i = 0; i < 32; i += 2) (*((guint16 *) (header->muid + i))) = rand() % 65536;
+	for (i = 0; i < 16; i += 2) (*((guint16 *) (header->muid + i))) = rand() % 65536;
 }
 
 /* Erase a node from the routing tables */
