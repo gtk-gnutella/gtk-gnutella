@@ -1,5 +1,17 @@
 # since last version
 
+- (2003.01.30 - RAM)
+ * Immediately reset the qrt_ fields and query_table to NULL after having
+   freed those items, to prevent accidental reuse.
+ * Forgot to remove QRT patch compression task from the list of running tasks
+   upon a cancel.
+ * Clone directory list before traversing it with recurse_scan() since we
+   loop back to the GUI and the directory list could be changed whilst the
+   scanning is proceeding.
+ * Suppressed warning about handle_messages_supported() not being done.
+ * Removed spurious assert() in qrt_patch_computed_add_listener().
+ * Added support for LimeWire's crawler.
+
 - (2003.01.29 - RAM)
  * If downloaded filename is empty, use "noname" as the filename.
  * Forgot to test for swapped ranges in the trailing range listed.
