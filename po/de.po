@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.94u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2004-07-04 10:41+0200\n"
-"PO-Revision-Date: 2004-07-04 10:48+0100\n"
+"POT-Creation-Date: 2004-07-06 23:08+0200\n"
+"PO-Revision-Date: 2004-07-06 23:08+0100\n"
 "Last-Translator: Thomas Schuerger <thomas@schuerger.com>\n"
 "Language-Team: German <gtk-gnutella-devel@lists.sourceforge.net>\n"
 "MIME-Version: 1.0\n"
@@ -125,7 +125,7 @@ msgstr "Dateiname"
 #: src/interface-glade1.c:3360 src/interface-glade1.c:3630
 #: src/interface-glade1.c:6585 src/interface-glade1.c:10549
 #: src/interface-glade1.c:13629 src/interface-glade2.c:4430
-#: src/search_gui.c:2177 src/search_gui.c:2183 src/search_gui2.c:1290
+#: src/search_gui.c:2177 src/search_gui.c:2183 src/search_gui2.c:1211
 #: src/shell.c:586 src/upload_stats_gui2.c:252 src/uploads_gui2.c:60
 msgid "Size"
 msgstr "Größe"
@@ -166,7 +166,7 @@ msgstr "%u Hosts"
 
 #: src/downloads_gui2.c:1255
 msgid "Queued"
-msgstr ""
+msgstr "In Warteschlange gestellt"
 
 #: src/downloads_gui2.c:1278
 #, c-format
@@ -216,7 +216,7 @@ msgstr "Falle zu Push zurück"
 #: src/downloads_gui2.c:1346
 #, c-format
 msgid "Sending request (%d%%)"
-msgstr ""
+msgstr "Sende Anfrage (%d%%)"
 
 #: src/downloads_gui2.c:1358
 msgid "Receiving headers"
@@ -250,7 +250,7 @@ msgstr "Berechne SHA1 (%.02f%%)"
 
 #: src/downloads_gui2.c:1411
 msgid "SHA1 figure"
-msgstr ""
+msgstr "SHA1-Wert"
 
 #: src/downloads_gui2.c:1411
 msgid "SHA1 check"
@@ -307,7 +307,7 @@ msgstr "Erneut versuchen in %ds"
 #: src/downloads_gui2.c:1535
 #, c-format
 msgid "Sinking (%u bytes left)"
-msgstr ""
+msgstr "Sinke (%u Bytes übrig)"
 
 #: src/downloads_gui2.c:1540
 #, c-format
@@ -325,11 +325,11 @@ msgstr "Dieses Protokoll wird noch nicht unterstützt"
 
 #: src/drop.c:156
 msgid "MAGNET URL contained source URL for an unsupported protocol"
-msgstr ""
+msgstr "MAGNET-URL enthielt nicht unterstütztes Protokoll"
 
 #: src/drop.c:240
 msgid "MAGNET URL contained exact topic search other than urn:sha1:"
-msgstr ""
+msgstr "MAGNET-URL enthielt andere Suche als nach urn:sha1:"
 
 #: src/drop.c:289
 msgid "Cannot handle the dropped data"
@@ -339,35 +339,40 @@ msgstr ""
 msgid "Protocol is not supported"
 msgstr "Protokoll wird nicht unterstützt"
 
-#: src/fileinfo_gui2.c:84
-#, c-format
-msgid "%s (%u bytes)"
-msgstr ""
-
-#: src/fileinfo_gui2.c:220
+#: src/fileinfo_gui.c:116 src/fileinfo_gui2.c:220
 #, c-format
 msgid "Downloading (%.1f k/s)"
 msgstr "Lade herunter (%.1f k/s)"
 
-#: src/fileinfo_gui2.c:223
+#: src/fileinfo_gui.c:119 src/fileinfo_gui2.c:223
 msgid "Finished"
 msgstr "Fertig"
 
-#: src/fileinfo_gui2.c:225
+#: src/fileinfo_gui.c:121 src/fileinfo_gui2.c:225
 msgid "No sources"
 msgstr "Keine Quellen"
+
+#: src/fileinfo_gui.c:124
+#, fuzzy, c-format
+msgid "Queued (%d active/ %d passive)"
+msgstr "In Warteschlange (%d aktiv, %d passiv)"
+
+#: src/fileinfo_gui.c:128 src/fileinfo_gui2.c:232
+msgid "Waiting"
+msgstr "Warte"
+
+#: src/fileinfo_gui.c:160 src/fileinfo_gui2.c:84
+#, c-format
+msgid "%s (%u bytes)"
+msgstr ""
 
 #: src/fileinfo_gui2.c:228
 #, c-format
 msgid "Queued (%d active, %d passive)"
-msgstr ""
-
-#: src/fileinfo_gui2.c:232
-msgid "Waiting"
-msgstr "Warte"
+msgstr "In Warteschlange (%d aktiv, %d passiv)"
 
 #: src/fileinfo_gui2.c:343 src/interface-glade1.c:3621 src/search_gui.c:2161
-#: src/search_gui.c:2167 src/search_gui2.c:1288
+#: src/search_gui.c:2167 src/search_gui2.c:1209
 msgid "File"
 msgstr "Datei"
 
@@ -382,7 +387,7 @@ msgstr "Quellen"
 
 #: src/fileinfo_gui2.c:402
 msgid "Aliases"
-msgstr ""
+msgstr "Aliase"
 
 #: src/filter_gui.c:68
 msgid "starts with"
@@ -2685,7 +2690,7 @@ msgid "Hosts"
 msgstr ""
 
 #: src/hcache_gui2.c:42 src/interface-glade1.c:1691
-#: src/interface-glade1.c:10621 src/search_gui2.c:862
+#: src/interface-glade1.c:10621 src/search_gui2.c:804
 msgid "Hits"
 msgstr "Treffer"
 
@@ -2711,7 +2716,7 @@ msgstr ""
 
 #: src/hcache_gui_common.c:43
 msgid "Timeout"
-msgstr ""
+msgstr "Zeitüberschreitung"
 
 #: src/hcache_gui_common.c:44 src/interface-glade1.c:14123
 #: src/interface-glade2.c:13646
@@ -2819,7 +2824,7 @@ msgid "New search:"
 msgstr "Neue Suche:"
 
 #: src/interface-glade1.c:1617 src/interface-glade1.c:1699
-#: src/search_gui2.c:863
+#: src/search_gui2.c:805
 msgid "New"
 msgstr "Neu"
 
@@ -2834,7 +2839,7 @@ msgstr ""
 
 #: src/interface-glade1.c:1682 src/interface-glade1.c:3573
 #: src/interface-glade1.c:4334 src/interface-glade1.c:4421 src/main_gui.c:109
-#: src/search_gui2.c:861
+#: src/search_gui2.c:803
 msgid "Search"
 msgstr "Suchen"
 
@@ -2943,7 +2948,7 @@ msgid "Uptime"
 msgstr "Uptime"
 
 #: src/interface-glade1.c:2116 src/nodes_gui2.c:142 src/search_gui.c:2220
-#: src/search_gui.c:2226 src/search_gui2.c:1292
+#: src/search_gui.c:2226 src/search_gui2.c:1213
 msgid "Info"
 msgstr "Info"
 
@@ -3306,7 +3311,7 @@ msgstr "Suche schließen"
 
 #: src/interface-glade1.c:3993 src/interface-glade2.c:10718
 #: src/search_gui.c:466 src/search_gui.c:1837 src/search_gui.c:1957
-#: src/search_gui2.c:420 src/search_gui2.c:939 src/search_gui2.c:1090
+#: src/search_gui2.c:420 src/search_gui2.c:883 src/search_gui2.c:1016
 msgid "(no search)"
 msgstr "(keine Suche)"
 
@@ -3831,7 +3836,7 @@ msgstr ""
 "Knoten zurückgeliefert werden sollen."
 
 #: src/interface-glade1.c:6513 src/interface-glade2.c:4360
-#: src/search_gui2.c:1354
+#: src/search_gui2.c:1275
 msgid "items"
 msgstr ""
 
@@ -3895,7 +3900,7 @@ msgstr "von Knoten innerhalb eines"
 
 #: src/interface-glade1.c:6805
 msgid "Max # of high TTL msg"
-msgstr ""
+msgstr "Max. Anzahl Pakete mit hoher TTL"
 
 #: src/interface-glade1.c:6816
 msgid "Hard TTL limit"
@@ -4042,11 +4047,11 @@ msgstr "Max. Anzahl von Wiederholungen"
 
 #: src/interface-glade1.c:7564 src/interface-glade2.c:6155
 msgid "Maximum attempts to make, not counting HTTP busy indications"
-msgstr ""
+msgstr "Maximale Versuchsanzahl, ohne HTTP-Busy-Antworten"
 
 #: src/interface-glade1.c:7578 src/interface-glade2.c:6145
 msgid "Amount of bytes to overlap when resuming download"
-msgstr ""
+msgstr "Anzahl Bytes zum überlappen bei Wiederversuch"
 
 #: src/interface-glade1.c:7581 src/interface-glade1.c:13508
 #: src/interface-glade1.c:13519 src/interface-glade2.c:6130
@@ -4064,15 +4069,15 @@ msgstr "Optimistisches erstes Stück"
 
 #: src/interface-glade1.c:7621
 msgid "Require urn"
-msgstr ""
+msgstr "URN benötigt"
 
 #: src/interface-glade1.c:7631
 msgid "Require server name"
-msgstr ""
+msgstr "Servername benötigt"
 
 #: src/interface-glade1.c:7641 src/interface-glade2.c:6386
 msgid "Delays and timeouts (all values in seconds)"
-msgstr ""
+msgstr "Wartezeiten und Zeitüberschreitungen (in Sekunden)"
 
 #: src/interface-glade1.c:7660 src/interface-glade2.c:6305
 msgid "Retry stopped delay"
@@ -4160,15 +4165,15 @@ msgstr "Maximale Stückgröße"
 
 #: src/interface-glade1.c:8006
 msgid "Strict SHA1 matching"
-msgstr ""
+msgstr "Strikter SHA1-Vergleich"
 
 #: src/interface-glade1.c:8026 src/interface-glade2.c:6504
 msgid "Fuzzy threshold"
-msgstr ""
+msgstr "Unscharfe Grenze"
 
 #: src/interface-glade1.c:8049
 msgid "Apply fuzzy filter on download mesh entries"
-msgstr ""
+msgstr "Unscharfen Filter auf Mesh-Einträge anwenden"
 
 #: src/interface-glade1.c:8059
 msgid "Watch hits for alternate download sources"
@@ -4176,7 +4181,7 @@ msgstr "Suchtreffer nach alternativen Quellen durchsuchen"
 
 #: src/interface-glade1.c:8069
 msgid "Feed mesh from hits"
-msgstr ""
+msgstr "Mesh mit Suchtreffern füttern"
 
 #: src/interface-glade1.c:8079
 msgid ""
@@ -4220,7 +4225,7 @@ msgstr "Timeouts (alle Werte in Sekunden)"
 
 #: src/interface-glade1.c:8292 src/interface-glade2.c:6998
 msgid "Partial File Sharing (swarming)"
-msgstr ""
+msgstr "Freigabe partiell heruntergeladener Dateien"
 
 #: src/interface-glade1.c:8311
 msgid "First chunk size "
@@ -4394,6 +4399,8 @@ msgstr "Expertenmodus"
 #: src/interface-glade1.c:9286
 msgid "Show additional information and settings for advanced and expert users"
 msgstr ""
+"Zusatzinformationen und Einstellungen für Fortgeschrittene und Experten "
+"zeigen"
 
 #: src/interface-glade1.c:9296 src/interface-glade2.c:8082
 msgid "gnutellaNet display"
@@ -4409,11 +4416,11 @@ msgstr "Gnutella-Protokollversion anzeigen"
 
 #: src/interface-glade1.c:9345 src/interface-glade2.c:7934
 msgid "Display detailed traffic information"
-msgstr ""
+msgstr "Detaillierte Verkehrsinformationen anzeigen"
 
 #: src/interface-glade1.c:9361 src/interface-glade2.c:8077
 msgid "Detailed traffic information to display"
-msgstr ""
+msgstr "Anzuzeigende Verkehrsinformationen"
 
 #: src/interface-glade1.c:9381 src/interface-glade2.c:7958
 msgid "TX compression"
@@ -4449,7 +4456,7 @@ msgstr ""
 
 #: src/interface-glade1.c:9461 src/interface-glade2.c:8028
 msgid "Generated queries"
-msgstr ""
+msgstr "Generierte Anfragen"
 
 #: src/interface-glade1.c:9471 src/interface-glade2.c:8035
 msgid "Pending local queries"
@@ -4465,7 +4472,7 @@ msgstr ""
 
 #: src/interface-glade1.c:9501 src/interface-glade2.c:8042
 msgid "QRP stats"
-msgstr ""
+msgstr "QRP-Statistik"
 
 #: src/interface-glade1.c:9511 src/interface-glade2.c:8049
 msgid "Dup / Bad / Weird"
@@ -4669,7 +4676,7 @@ msgstr "Gnet-Statistik"
 
 #: src/interface-glade1.c:10575 src/interface-glade2.c:15288
 msgid "Hostcache statistics"
-msgstr ""
+msgstr "Host-Cache-Statistik"
 
 #: src/interface-glade1.c:10605
 msgid "Cache"
@@ -4677,7 +4684,7 @@ msgstr ""
 
 #: src/interface-glade1.c:10637
 msgid "Hostcache capacity"
-msgstr ""
+msgstr "Host-Cache-Kapazität"
 
 #: src/interface-glade1.c:10670 src/interface-glade1.c:10723
 #: src/interface-glade1.c:10775
@@ -4686,7 +4693,7 @@ msgstr "%v/%u (%P%%)"
 
 #: src/interface-glade1.c:10680 src/interface-glade2.c:15321
 msgid "Regular hosts"
-msgstr ""
+msgstr "Normale Hosts"
 
 #: src/interface-glade1.c:10699 src/interface-glade1.c:10751
 #: src/interface-glade1.c:10804 src/interface-glade2.c:15335
@@ -5077,7 +5084,7 @@ msgstr "nur markieren"
 
 #: src/interface-glade1.c:13025 src/interface-glade2.c:12238
 msgid "Condition: If filename matches"
-msgstr ""
+msgstr "Bedingung: falls Dateiname gleich"
 
 #: src/interface-glade1.c:13140 src/interface-glade1.c:13361
 #: src/interface-glade1.c:13605 src/interface-glade1.c:13777
@@ -5155,7 +5162,7 @@ msgstr ""
 
 #: src/interface-glade1.c:14095 src/interface-glade2.c:13943
 msgid "Condition: If result has flags"
-msgstr ""
+msgstr "Bedingung: falls Ergebnis hat Flags"
 
 #: src/interface-glade1.c:14157 src/interface-glade1.c:14217
 #: src/interface-glade1.c:14308 src/interface-glade2.c:13749
@@ -5213,7 +5220,7 @@ msgstr "ignorieren"
 
 #: src/interface-glade1.c:14777
 msgid "State"
-msgstr ""
+msgstr "Zustand"
 
 #: src/interface-glade1.c:14801
 msgid "Apply"
@@ -5561,11 +5568,11 @@ msgstr "Hartes Limit für zu benutzende Dateideskriptoren"
 
 #: src/interface-glade2.c:3611
 msgid "Download RX buffer: "
-msgstr ""
+msgstr "Download-Empfangspuffer: "
 
 #: src/interface-glade2.c:3619
 msgid "Gnutella RX buffer: "
-msgstr ""
+msgstr "Gnutella-Empfangspuffer: "
 
 #: src/interface-glade2.c:3627
 msgid "Socket receive buffer size"
@@ -5629,7 +5636,7 @@ msgstr "_Meine TTL"
 
 #: src/interface-glade2.c:4665
 msgid "gnutellaNet _TTL settings"
-msgstr ""
+msgstr "Gnet-_TTl-Einstellungen"
 
 #: src/interface-glade2.c:4725
 msgid "Number of tolerable _duplicate messages per node"
@@ -5719,11 +5726,11 @@ msgstr "Optimistisches erstes _Stück"
 
 #: src/interface-glade2.c:6183
 msgid "Require _urn"
-msgstr ""
+msgstr "_URN benötigt"
 
 #: src/interface-glade2.c:6190
 msgid "Require _server name"
-msgstr ""
+msgstr "_Servername benötigt"
 
 #: src/interface-glade2.c:6368
 msgid "_Push sent timeout"
@@ -5751,11 +5758,11 @@ msgstr "Treffer nach _alternativen Quellen durchsuchen"
 
 #: src/interface-glade2.c:6475
 msgid "Strict SHA_1 matching"
-msgstr ""
+msgstr "Strikter SHA_1-Vergleich"
 
 #: src/interface-glade2.c:6480
 msgid "_Feed mesh from hits"
-msgstr ""
+msgstr "Mesh mit Suchtreffern _füttern"
 
 #: src/interface-glade2.c:6512
 msgid "_Apply fuzzy filter on download mesh entries"
@@ -6036,7 +6043,7 @@ msgstr "Alle von Warteschlange nach Regex selektieren"
 
 #: src/interface-glade2.c:10286
 msgid "_Purge"
-msgstr ""
+msgstr "_Entfernen"
 
 #: src/interface-glade2.c:10321
 msgid " with sources "
@@ -6124,7 +6131,7 @@ msgstr "Keine Dateien gefunden"
 
 #: src/interface-glade2.c:11121
 msgid "Re_try search every"
-msgstr ""
+msgstr "_Suche erneut senden alle"
 
 #: src/interface-glade2.c:11165
 msgid "_Download selected"
@@ -6457,11 +6464,11 @@ msgstr ""
 msgid "%d files auto selected with %d sources by urn:sha1."
 msgstr ""
 
-#: src/search_gui.c:2169 src/search_gui.c:2175 src/search_gui2.c:1289
+#: src/search_gui.c:2169 src/search_gui.c:2175 src/search_gui2.c:1210
 msgid "Extension"
 msgstr "Endung"
 
-#: src/search_gui.c:2185 src/search_gui.c:2191 src/search_gui2.c:1291
+#: src/search_gui.c:2185 src/search_gui.c:2191 src/search_gui2.c:1212
 msgid "#"
 msgstr ""
 
@@ -6474,25 +6481,25 @@ msgstr "Geschw."
 msgid "%s%u item%s found"
 msgstr ""
 
-#: src/search_gui.c:2265 src/search_gui2.c:1356
+#: src/search_gui.c:2265 src/search_gui2.c:1277
 #, c-format
 msgid "%sNo items found"
 msgstr "%sKeine Dateien gefunden"
 
-#: src/search_gui.c:2267 src/search_gui2.c:1358
+#: src/search_gui.c:2267 src/search_gui2.c:1279
 msgid "No search"
 msgstr "Keine Suche"
 
-#: src/search_gui2.c:1350
+#: src/search_gui2.c:1271
 msgid "(passive search) "
 msgstr "(passive Suche)"
 
-#: src/search_gui2.c:1353
+#: src/search_gui2.c:1274
 #, c-format
 msgid "%s%u %s found"
 msgstr ""
 
-#: src/search_gui2.c:1354
+#: src/search_gui2.c:1275
 msgid "item"
 msgstr ""
 
@@ -6635,12 +6642,12 @@ msgstr ""
 #: src/settings_gui.c:4558
 #, c-format
 msgid "%u active"
-msgstr ""
+msgstr "%u aktiv"
 
 #: src/settings_gui.c:4584
 #, c-format
 msgid "%u queued"
-msgstr ""
+msgstr "%u in Warteschlange"
 
 #: src/settings_gui.c:4700
 #, c-format
@@ -6672,11 +6679,11 @@ msgstr "Unbekannte Operation"
 #: src/shell.c:281 src/shell.c:328 src/shell.c:385 src/shell.c:497
 #: src/shell.c:565
 msgid "Malformed command"
-msgstr ""
+msgstr "Fehlerhaftes Kommando"
 
 #: src/shell.c:305
 msgid "Query string missing"
-msgstr ""
+msgstr "Suchanfrage fehlt"
 
 #: src/shell.c:312
 msgid "Search added"
@@ -6684,7 +6691,7 @@ msgstr "Suche hinzugefügt"
 
 #: src/shell.c:352 src/shell.c:411 src/shell.c:527
 msgid "Property missing"
-msgstr ""
+msgstr "Eigenschaft fehlt"
 
 #: src/shell.c:365 src/shell.c:424 src/shell.c:540
 msgid "Unknown property"
@@ -6800,8 +6807,8 @@ msgstr ""
 
 #: src/uploads_gui_common.c:211
 msgid "Sending QUEUE, connecting back..."
-msgstr ""
+msgstr "Sende QUEUE, verbinde zurück..."
 
 #: src/uploads_gui_common.c:219
 msgid "Sent QUEUE, waiting for headers..."
-msgstr ""
+msgstr "QUEUE gesendet, warte auf Kopfzeilen..."
