@@ -1,5 +1,20 @@
 # since last version
 
+- (2002.06.20 - RAM)
+  * Was not properly parsing more than one GGEP extension block in a row.
+  * First take at download mesh implementation, with code refactoring.
+  * Lowered max banning period to 3 hours, instead of 1 whole day.
+  * Removed the gnotella.fileflash.com host cache: host no longer exists.
+  * New date_to_iso_gchar() to emit the ISO date for the download mesh.
+  * Now keeps track of the time we received the query hits, for the
+	download mesh.
+  * Simplified parsing of the query hit trailer, keeping only the vendor
+	code around instead of the whole trailer.  Adapted sorting algorithm
+	accordingly.
+  * shared_file_by_sha1_base32() is no longer used (share.c).
+  * New url_escape_into() routine (url.c).
+  * HTTP status parsing routine now called http_status_parse().
+
 - (2002.06.20 - Richard)
   * Bug: segfault during autoselection (NULL rowdata) (Thanks Daniel)
   * Filtering now supports multiple properties to set (display/download)

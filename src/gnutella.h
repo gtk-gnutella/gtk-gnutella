@@ -66,13 +66,15 @@
 #define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"
 #define GTA_INTERFACE "X11"
-#define GTA_RELEASE "15/06/2002"
+#define GTA_RELEASE "20/06/2002"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #define GTA_MSG_INIT					0x00
 #define GTA_MSG_INIT_RESPONSE			0x01
 #define GTA_MSG_BYE						0x02
 #define GTA_MSG_QRP						0x30
+#define GTA_MSG_VENDOR					0x31	/* Vendor-specific */
+#define GTA_MSG_EXTENDED				0x32	/* RESERVED */
 #define GTA_MSG_PUSH_REQUEST			0x40
 #define GTA_MSG_SEARCH					0x80
 #define GTA_MSG_SEARCH_RESULTS			0x81
@@ -165,6 +167,12 @@ struct qrp_patch {
 	guchar entry_bits;
 } __attribute__((__packed__));
 
+struct msg_vendor {
+	guchar vendor[4];		/* E.g. "GTKG" */
+	guchar type[2];			/* Message type, little endian */
+	/* payload follows */
+} __attribute__((__packed__));
+
 /* */
 
 /*
@@ -189,10 +197,6 @@ extern gchar *start_rfc822_date;
 /* main.c */
 
 void gtk_gnutella_exit(gint);
-
-/* md5.c */
-
-gchar *md5dump(guchar *);
 
 #endif							/* __gnutella_h__ */
 
