@@ -840,10 +840,18 @@ void download_gui_add(struct download *d)
 	color = &(gtk_widget_get_style(GTK_WIDGET(clist_downloads))
 				->fg[GTK_STATE_INSENSITIVE]);
 
+	/*
+	 * When `record_index' is URN_INDEX, the `file_name' is the URN, which
+	 * is not something really readable.  Better display the target filename
+	 * on disk in that case.
+	 *		--RAM, 22/10/2002
+	 */
+
 	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
 		GtkCList* clist_downloads_queue;
 
-        titles[c_queue_filename] = d->file_name;
+        titles[c_queue_filename] = d->record_index == URN_INDEX ?
+			d->file_info->file_name : d->file_name;
         titles[c_queue_server] = download_vendor_str(d);
         titles[c_queue_status] = "";
 		titles[c_queue_size] = short_size(d->file_info->size);
@@ -859,7 +867,8 @@ void download_gui_add(struct download *d)
 			 gtk_clist_set_foreground(clist_downloads_queue, row, color);
 	} else {					/* This is an active download */
 
-		titles[c_dl_filename] = d->file_name;
+		titles[c_dl_filename] = d->record_index == URN_INDEX ?
+			d->file_info->file_name : d->file_name;
 		titles[c_dl_server] = download_vendor_str(d);
 		titles[c_dl_status] = "";
 		titles[c_dl_size] = short_size(d->file_info->size);
