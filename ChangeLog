@@ -1,5 +1,15 @@
 # since last version
 
+- (2003.05.11 - RAM)
+ * Updated PARQ to revision 1.0.a of the specs.
+ * Added flags to record whether a QUEUE is pending.
+ * Try sending as many QUEUE messages as possible until we have 100 uploads.
+ * Don't expire a PARQ entry if a QUEUE message is pending but was delayed
+   because there are too many uploads running.
+ * Exported download_redirect_to_server() for PARQ.
+ * Send QUEUE messages spaced by at least 10 minutes for a given entry.
+ * Give dead downloads a chance to come back to life by sending them QUEUE.
+
 - (2003.05.10 - RAM)
  * Fixed "memory leak" in fileinfo_gui.c.
  * New -DTRACK_ZALLOC compilation switch that will track down the allocation
