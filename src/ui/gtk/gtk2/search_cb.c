@@ -447,6 +447,7 @@ on_tree_view_search_results_select_row(GtkTreeView *view, gpointer unused_udata)
 	gtk_tree_view_get_cursor(view, &path, NULL);
 	if (NULL != path) {
 		GtkTreeModel *model;
+		GtkTextBuffer *txt;
 		const record_t *rc = NULL;
 		const gchar *vendor;
 		GtkTreeIter iter;
@@ -525,7 +526,11 @@ on_tree_view_search_results_select_row(GtkTreeView *view, gpointer unused_udata)
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
 			rc->tag ? lazy_locale_to_utf8(rc->tag, 0) : "");
-
+		
+		txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,
+					"textview_result_info_xml"))); 
+		gtk_text_buffer_set_text(txt, rc->xml ? rc->xml : _("<none>"), -1);
+			
 		text[0] = '\0';
 		gm_snprintf(text, sizeof text,
 			"%s %s\n"
