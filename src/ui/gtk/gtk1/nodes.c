@@ -171,7 +171,7 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
 			n->vendor ? n->vendor : "...");
 
         gtk_clist_set_text(clist, row, c_gnet_loc,
-			(char *) iso3166_country_cc(n->country)); /* override const */
+			(gchar *) iso3166_country_cc(n->country)); /* override const */
 
         gm_snprintf(gui_tmp, sizeof(gui_tmp), "%d.%d",
             n->proto_major, n->proto_minor);
@@ -313,7 +313,7 @@ void nodes_gui_add_node(gnet_node_info_t *n)
 {
     GtkCList *clist_nodes;
     gint row;
-	gchar *titles[c_gnet_num];
+	const gchar *titles[c_gnet_num];
 	gchar proto_tmp[32];
 
     g_assert(n != NULL);
@@ -332,7 +332,7 @@ void nodes_gui_add_node(gnet_node_info_t *n)
 
     clist_nodes = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
 
-    row = gtk_clist_append(clist_nodes, titles);
+    row = gtk_clist_append(clist_nodes, (gchar **) titles); /* override const */
     gtk_clist_set_row_data(clist_nodes, row, GUINT_TO_POINTER(n->node_handle));
 }
 

@@ -135,23 +135,23 @@ prop = {
 };
     
 prop = {
-    name = "search_results_col_visible";
-    desc = "Which columns are visible in the search results tables";
-    type = boolean;
-    vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
-    data = {
-        default = "{ 1,1,1,1,1,1,1,1,1 }";
-    };
-};
-
-prop = {
     name = "search_list_col_widths";
     cfgvar = "widths_search_list";
     desc = "Widths of the columns in the search list on the sidebar";
     type = guint32;
-    vector_size = SEARCH_LIST_VISIBLE_COLUMNS;
+    vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
     data = {
         default = "{ 80, 20, 20 }";
+    };
+};
+
+prop = {
+    name = "search_results_col_visible";
+    desc = "Which columns are visible in the search results tables";
+    type = boolean;
+    vector_size = c_sr_num;
+    data = {
+        default = "{ 1,1,1,1,1,1,1,1,1,1 }";
     };
 };
 
@@ -160,7 +160,7 @@ prop = {
     cfgvar = "widths_search_results";
     desc = "Widths of the columns in the search results tables";
     type = guint32;
-    vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
+    vector_size = c_sr_num;
     data = {
         default = "{ 210, 50, 80, 50, 70, 70, 70, 140, 70 }";
     };

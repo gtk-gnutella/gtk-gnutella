@@ -252,7 +252,7 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 	gchar range_tmp[256];
 	guint range_len;
     gint row;
-	gchar *titles[UPLOADS_GUI_VISIBLE_COLUMNS];
+	const gchar *titles[UPLOADS_GUI_VISIBLE_COLUMNS];
     GtkWidget *clist_uploads;
     upload_row_data_t *data;
 
@@ -293,7 +293,8 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
     data->start_date  = u->start_date;
     data->valid       = TRUE;
 
-    row = gtk_clist_append(GTK_CLIST(clist_uploads), titles);
+    row = gtk_clist_append(GTK_CLIST(clist_uploads),
+			(gchar **) titles); /* override const */
     gtk_clist_set_row_data_full(GTK_CLIST(clist_uploads), row, 
         data, free_data);
 }

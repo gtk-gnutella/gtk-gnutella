@@ -62,10 +62,10 @@ gboolean dl_queued_col_visible[DOWNLOAD_QUEUE_VISIBLE_COLUMNS]     = { 1, 1, 1, 
 gboolean dl_queued_col_visible_def[DOWNLOAD_QUEUE_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1 };
 guint32  file_info_col_widths[FILEINFO_VISIBLE_COLUMNS]     = { 240, 80, 80, 80, 80 };
 guint32  file_info_col_widths_def[FILEINFO_VISIBLE_COLUMNS] = { 240, 80, 80, 80, 80 };
-gboolean search_results_col_visible[SEARCH_RESULTS_VISIBLE_COLUMNS]     = { 1,1,1,1,1,1,1,1,1 };
-gboolean search_results_col_visible_def[SEARCH_RESULTS_VISIBLE_COLUMNS] = { 1,1,1,1,1,1,1,1,1 };
-guint32  search_list_col_widths[SEARCH_LIST_VISIBLE_COLUMNS]     = { 80, 20, 20 };
-guint32  search_list_col_widths_def[SEARCH_LIST_VISIBLE_COLUMNS] = { 80, 20, 20 };
+gboolean search_results_col_visible[c_sr_num]     = { 1,1,1,1,1,1,1,1,1,1 };
+gboolean search_results_col_visible_def[c_sr_num] = { 1,1,1,1,1,1,1,1,1,1 };
+guint32  search_list_col_widths[c_sr_num]     = { 80, 20, 20 };
+guint32  search_list_col_widths_def[c_sr_num] = { 80, 20, 20 };
 guint32  search_results_col_widths[SEARCH_RESULTS_VISIBLE_COLUMNS]     = { 210, 50, 80, 50, 70, 70, 70, 140, 70 };
 guint32  search_results_col_widths_def[SEARCH_RESULTS_VISIBLE_COLUMNS] = { 210, 50, 80, 50, 70, 70, 70, 140, 70 };
 guint32  search_stats_col_widths[3]     = { 200, 80, 80 };
@@ -520,7 +520,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[12].desc = _("Which columns are visible in the search results tables");
     gui_property->props[12].ev_changed = event_new("search_results_col_visible_changed");
     gui_property->props[12].save = TRUE;
-    gui_property->props[12].vector_size = SEARCH_RESULTS_VISIBLE_COLUMNS;
+    gui_property->props[12].vector_size = c_sr_num;
 
     /* Type specific data: */
     gui_property->props[12].type               = PROP_TYPE_BOOLEAN;
@@ -537,7 +537,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[13].desc = _("Widths of the columns in the search list on the sidebar");
     gui_property->props[13].ev_changed = event_new("search_list_col_widths_changed");
     gui_property->props[13].save = TRUE;
-    gui_property->props[13].vector_size = SEARCH_LIST_VISIBLE_COLUMNS;
+    gui_property->props[13].vector_size = c_sr_num;
 
     /* Type specific data: */
     gui_property->props[13].type               = PROP_TYPE_GUINT32;
