@@ -476,5 +476,24 @@ void strlower(gchar *dst, gchar *src)
 	} while (*src++);
 }
 
+/* build_url_from_download
+ *
+ * creates a url which points to a downloads (e.g. you can move this to a
+ * browser and download the file there with this url
+ */
+gchar * build_url_from_download(struct download * d) 
+{
+    static gchar url_tmp[256];
+
+    if (d == NULL)
+        return NULL;
+
+    g_snprintf(url_tmp, sizeof(url_tmp),
+               "http://%s/get/%u/%s",
+               ip_port_to_gchar(d->ip, d->port),
+			   d->record_index, d->file_name);
+    
+    return url_tmp;
+}
 
 /* vi: set ts=4: */
