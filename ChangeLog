@@ -1,5 +1,14 @@
 # since last version
 
+- (2002.10.24 RAM)
+ * Opening version 0.92u.
+ * Stricter banning policy: ban after 5 reqs/minute instead of 10.
+ * Fixed typo "interaface" -> "interface" in some includes.
+ * Show download's disk filename when all we have from server is an URN.
+ * Don't show "503 rebuilding library" when in fact we don't share anything.
+ * New walloc0() routine.
+ * Now allow again setting "min Gnet connections" to 0.
+
 # v 0.91   2002.10.19  [stable]
 
 Highlight of changes (user-visible):

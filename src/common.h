@@ -67,11 +67,11 @@
  */
 
 #define GTA_VERSION 0
-#define GTA_SUBVERSION 91
-#define GTA_REVISION "stable"
-#define GTA_REVCHAR ""
+#define GTA_SUBVERSION 92
+#define GTA_REVISION "unstable"
+#define GTA_REVCHAR "u"
 #define GTA_INTERFACE "X11"
-#define GTA_RELEASE "19/10/2002"
+#define GTA_RELEASE "24/10/2002"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 /*
