@@ -34,7 +34,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <string.h>
-#include <ctype.h>		/* tolower() */
+#include <ctype.h>		/* toupper() */
 
 #include "share.h"
 #include "gmsg.h"
