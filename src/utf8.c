@@ -2209,7 +2209,7 @@ utf8_encode_char(guint32 uc, gchar *buf)
 	p = &buf[len];
 	while (--p > buf) {
 		*p = (uc | UTF8_BYTE_MARK) & UTF8_BYTE_MASK;
-		uc >>= 6;
+		uc >>= UTF8_ACCU_SHIFT;
 	}
 	*p = uc | UTF8_LENGTH_MARK(len);
 	return len;
@@ -2773,7 +2773,7 @@ locale_to_utf8_nfd(const gchar *str, size_t len)
 
 	ret = g_utf8_normalize(s, (gssize) -1, G_NORMALIZE_NFD);
 	if (s != str) {
-		g_free(s); /* Override const */
+		g_free((gchar *) s); /* Override const */
 		s = NULL;
 	}
 
