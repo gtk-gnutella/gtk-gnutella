@@ -157,6 +157,22 @@ AC_CHECK_FUNCS(strcasestr vsnprintf strlcpy)
 AC_CHECK_FUNCS(srandom random)
 AC_CHECK_FUNCS(sysctl)
 
+AC_CHECK_FUNC(bind_textdomain_codeset,
+    [AC_DEFINE(HAVE_BIND_TEXTDOMAIN_CODESET, 1,
+    [Define if you have a GNU gettext.])], )
+
+AC_CHECK_FUNC(bind_textdomain_codeset, ,
+    AC_CHECK_LIB(intl, bind_textdomain_codeset,
+    [LIBS="-lintl $LIBS"
+     ac_cv_func_bind_textdomain_codeset="yes"
+    ]))
+if test "$ac_cv_func_bind_textdomain_codeset" = yes; then
+    AC_DEFINE(HAVE_BIND_TEXTDOMAIN_CODESET, 1,
+    [Define if you have the bind_textdomain_codeset function.])
+fi
+
+AC_CHECK_HEADERS(libcharset.h, , , ) 
+
 AC_CHECK_HEADERS(sys/sysctl.h, , , )
 
 dnl Checks for sendfile(2)
