@@ -33,6 +33,25 @@ void share_init(void)
 	share_scan();
 }
 
+/* Free existing extensions */
+
+static void free_extensions(void)
+{
+	GSList *l = extensions;
+
+	if (!l)
+		return;
+
+	while (l) {
+		struct extension *e = (struct extension *) l->data;
+		g_free(e->str);
+		g_free(e);
+		l = l->next;
+	}
+	g_slist_free(extensions);
+	extensions = NULL;
+}
+
 /* Get the file extensions to scan */
 
 void parse_extensions(gchar * str)
@@ -40,17 +59,8 @@ void parse_extensions(gchar * str)
 	gchar **exts = g_strsplit(str, ";", 0);
 	gchar *x, *s;
 	guint i, e;
-	GSList *l;
 
-	if (extensions) {
-		l = extensions;
-		while (l) {
-			g_free(l->data);
-			l = l->next;
-		}
-		g_slist_free(extensions);
-		extensions = NULL;
-	}
+	free_extensions();
 
 	e = i = 0;
 
@@ -64,8 +74,12 @@ void parse_extensions(gchar * str)
 			while (--x > s
 				   && (*x == ' ' || *x == '\t' || *x == '*' || *x == '?'))
 				*x = 0;
-			if (*s)
-				extensions = g_slist_append(extensions, g_strdup(s));
+			if (*s) {
+				struct extension *e = (struct extension *) g_malloc(sizeof(*e));
+				e->str = g_strdup(s);
+				e->len = strlen(s);
+				extensions = g_slist_append(extensions, e);
+			}
 		}
 		i++;
 	}
@@ -134,6 +148,7 @@ void recurse_scan(gchar * dir, gchar * basedir)
 
 	struct shared_file *found = NULL;
 	struct stat file_stat;
+	gchar *entry_end;
 
 	if (!(directory = opendir(dir)))
 		return;
@@ -160,10 +175,18 @@ void recurse_scan(gchar * dir, gchar * basedir)
 			continue;
 		}
 
-		/* XXX Could make use of pattern matching, would speed up scanning */
+		entry_end = dir_entry->d_name + strlen(dir_entry->d_name);
 
-		for (exts = extensions; exts; exts = exts->next)
-			if (strstr(dir_entry->d_name, exts->data)) {
+		for (exts = extensions; exts; exts = exts->next) {
+			struct extension *e = (struct extension *) exts->data;
+			gchar *start = entry_end - (e->len + 1);	/* +1 for "." */
+
+			/*
+			 * Look for the trailing chars (we're matching an extension).
+			 * Matching is case-insensitive, and the extension opener is ".".
+			 */
+
+			if (*start == '.' && 0 == g_strcasecmp(start+1, e->str)) {
 
 				if (stat(full, &file_stat) == -1) {
 					g_warning("Can't stat %s: %s", full,
@@ -201,6 +224,7 @@ void recurse_scan(gchar * dir, gchar * basedir)
 				bytes_scanned %= 1024;
 				break;			/* for loop */
 			}
+		}
 		g_free(full);
 	}
 	closedir(directory);
@@ -252,6 +276,7 @@ void share_scan(void)
 
 void share_close(void)
 {
+	free_extensions();
 	share_free();
 	shared_dirs_free();
 }
