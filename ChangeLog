@@ -1,5 +1,17 @@
 # since last version
 
+- (2002.05.24 - RAM)
+  * First stab at QRP.  Computes the routing table, but it is not used yet.
+  * Added QRP message definition.
+  * Callout queue is now a global service and is initialized from main.
+  * Try to scan library when GUI is brought up.  This currently results
+	in a slow GUI whilst the library is created.  Also, the "Rescan" button
+	should be disabled whilst we do the first share_scan(), but it's not.
+  * Was not accounting Gnet header traffic as Gnet bandwidth.
+  * Added anti-hammering feature, that will ban users sending more
+	than 10 requests per minute (sliding window).
+  * Always honour HEAD requests, even when busy, provided no hammering.
+
 - (2002.05.24 - Richard)
   * allow shrinking of main window to smaller then minimum size required
     by the child widgets
