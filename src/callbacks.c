@@ -1844,7 +1844,7 @@ BIND_CHECKBUTTON(
             bws_out_enabled);
         gtk_widget_set_sensitive(
             GTK_WIDGET(spinbutton_config_ul_usage_min_percentage),
-            bws_out_enabled);
+            bws_out_enabled && bw_ul_usage_enabled);
     }
 )
 
