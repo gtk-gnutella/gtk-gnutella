@@ -971,7 +971,8 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 					qhvec_add(qhv, wovec[i].word, QUERY_H_WORD);
 			}
 
-			query_word_vec_free(wovec, wocnt);
+			if (wocnt != 0)
+				query_word_vec_free(wovec, wocnt);
 		}
 	}
 
