@@ -54,6 +54,8 @@ const gchar *msg_type_str(int value)
 		N_("Total"),
 	};
 
+	STATIC_ASSERT(G_N_ELEMENTS(strs) == MSG_TYPE_COUNT);
+
 	if ((guint) value >= G_N_ELEMENTS(strs)) {
 		g_warning("Requested general_type_str %d is invalid", value);
 		return "";
@@ -103,6 +105,8 @@ const gchar *msg_drop_str(int value)
 		N_("Bad return address"),
 		N_("Hostile IP address"),
 	};
+
+	STATIC_ASSERT(G_N_ELEMENTS(strs) == MSG_DROP_REASON_COUNT);
 	
 	if ((guint) value >= G_N_ELEMENTS(strs)) {
 		g_warning("Requested general_type_str %d is invalid", value);
@@ -123,14 +127,15 @@ const gchar *general_type_str(int value)
 		N_("Routing errors"),
 		N_("Searches to local DB"),
 		N_("Hits on local DB"),
-		N_("Query hits received for local searches"),
-		N_("Query hits received for OOB-proxied searches"),
+		N_("Query hits received for local queries"),
+		N_("Query hits received for OOB-proxied queries"),
+		N_("OOB hits received for OOB-proxied queries"),
 		N_("Duplicates with higher TTL"),
+		N_("Duplicate OOB-proxied queries"),
 		N_("Compacted queries"),
 		N_("Bytes saved by compacting"),
 		N_("UTF8 queries"),
 		N_("SHA1 queries"),
-		N_("Duplicate OOB-proxied queries"),
 		N_("Broadcasted push messages"),
 		N_("Push proxy relayed messages"),
 		N_("Push proxy broadcasted messages"),
@@ -145,6 +150,8 @@ const gchar *general_type_str(int value)
 		N_("Dynamic queries with partial late results"),
 		N_("Dynamic queries completed by late results"),
 	};
+
+	STATIC_ASSERT(G_N_ELEMENTS(strs) == GNR_TYPE_COUNT);
 	
 	if ((guint) value >= G_N_ELEMENTS(strs)) {
 		g_warning("Requested general_type_str %d is invalid", value);
