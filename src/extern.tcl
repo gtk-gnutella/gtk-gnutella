@@ -24,8 +24,7 @@ set w_main_list {
 
 	button_config_move_path
 	button_config_rescan_dir
-	button_config_save_path 
-	button_config_update_port 
+	button_config_save_path
 	checkbutton_config_force_ip
 	checkbutton_config_proxy_connections
 	checkbutton_config_proxy_auth
@@ -70,6 +69,7 @@ set w_main_list {
 	button_downloads_resume
 	checkbutton_downloads_auto_clear 
 	checkbutton_downloads_never_push
+    checkbutton_downloads_delete_aborted
 	clist_downloads
 
 	button_search 
@@ -117,6 +117,7 @@ set w_main_list {
 	popup_downloads_queue
 	popup_downloads_remove_file
 	popup_downloads_search_again
+    popup_downloads_copy_url
 
 	popup_monitor 
 	popup_monitor_add_search	
