@@ -130,6 +130,7 @@ gchar *short_size(guint32);
 gchar *short_size64(guint64 size);
 gchar *short_kb_size(guint32);
 gchar *compact_size(guint32 size);
+gchar *compact_kb_size(guint32 size);
 
 /*
  * SHA1<->base32 string conversion

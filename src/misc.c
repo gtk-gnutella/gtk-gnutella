@@ -445,6 +445,34 @@ gchar *compact_size(guint32 size)
 	return b;
 }
 
+/* Returns a number of Kbytes in a compact readable form */
+
+gchar *compact_kb_size(guint32 size)
+{
+	static gchar b[64];
+
+	if (size < 1024)
+		gm_snprintf(b, sizeof(b), "%uK", size);
+	else if (size < 1048576) {
+		if (size & 0x3ff)
+			gm_snprintf(b, sizeof(b), "%.1fM", (float) size / 1024.0);
+		else
+			gm_snprintf(b, sizeof(b), "%dM", size >> 10);
+	} else if (size < 1073741824)
+		if (size & 0xfffff)
+			gm_snprintf(b, sizeof(b), "%.1fG", (float) size / 1048576.0);
+		else
+			gm_snprintf(b, sizeof(b), "%dG", size >> 20);
+	else {
+		if (size & 0x3fffffff)
+			gm_snprintf(b, sizeof(b), "%.1fT", (float) size / 1073741824.0);
+		else
+			gm_snprintf(b, sizeof(b), "%dT", size >> 30);
+	}
+
+	return b;
+}
+
 /* Return time spent in seconds in a consise short readable form */
 
 gchar *short_time(time_t t)
