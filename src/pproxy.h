@@ -76,6 +76,7 @@ struct cproxy {
 	gchar *guid;			/* GUID (atom) to which push should be sent */
 	guint32 file_idx;		/* File index to request */
 	gpointer http_handle;	/* Asynchronous HTTP request handle */
+	guint32 flags;			/* Operating flags */
 
 	/*
 	 * For GUI.
