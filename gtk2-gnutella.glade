@@ -1819,7 +1819,7 @@ Grace time remaining:</property>
 	      <child>
 		<widget class="GtkLabel" id="label495">
 		  <property name="visible">True</property>
-		  <property name="label" translatable="yes">Richard Eckart (GTK+ 1.2), Christian Biere (GTK+ 2.x)</property>
+		  <property name="label" translatable="yes">Richard Eckart (GTK+ 1.2)</property>
 		  <property name="use_underline">False</property>
 		  <property name="use_markup">False</property>
 		  <property name="justify">GTK_JUSTIFY_LEFT</property>

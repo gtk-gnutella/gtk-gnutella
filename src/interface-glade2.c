@@ -1449,7 +1449,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label494), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label494), 10, 0);
 
-  label495 = gtk_label_new (_("Richard Eckart (GTK+ 1.2), Christian Biere (GTK+ 2.x)"));
+  label495 = gtk_label_new (_("Richard Eckart (GTK+ 1.2)"));
   gtk_widget_set_name (label495, "label495");
   gtk_widget_show (label495);
   gtk_box_pack_start (GTK_BOX (vbox88), label495, FALSE, FALSE, 0);
