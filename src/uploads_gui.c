@@ -226,6 +226,15 @@ static void uploads_gui_update_upload_info(gnet_upload_info_t *u)
 }
 
 
+/*
+ * free_data
+ *
+ * Called to free the row data -- needed when running under -DTRACK_MALLOC.
+ */
+static void free_data(gpointer o)
+{
+	g_free(o);
+}
 
 /*
  * uploads_gui_add_upload:
@@ -280,7 +289,7 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 
     row = gtk_clist_append(GTK_CLIST(clist_uploads), titles);
     gtk_clist_set_row_data_full(GTK_CLIST(clist_uploads), row, 
-        data, g_free);
+        data, free_data);
 }
 
 
