@@ -24,6 +24,8 @@
  */
 
 #include <string.h>		/* For memmove() */
+
+#include "common.h"
 #include "getline.h"
 #include "walloc.h"
 #include "misc.h"		/* For RCSID */
@@ -70,7 +72,7 @@ void getline_free(getline_t *o)
 	g_assert(o);
 	g_assert(o->line);
 
-	g_free(o->line);
+	G_FREE_NULL(o->line);
 	wfree(o, sizeof(*o));
 }
 

@@ -894,7 +894,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 
 			parq_dl_update_id(d, temp);
 		
-			g_free(temp);
+			G_FREE_NULL(temp);
 		}
 		break;
 	default:
@@ -3621,7 +3621,7 @@ static void parq_upload_load_queue(void)
 			
 			/* During parq_upload_create already created an ID for us */
 			g_hash_table_remove(ul_all_parq_by_id, parq_ul->id);
-			g_free(parq_ul->id);
+			G_FREE_NULL(parq_ul->id);
 			parq_ul->id = g_strdup(id);
 			g_hash_table_insert(ul_all_parq_by_id, parq_ul->id, parq_ul);
 			

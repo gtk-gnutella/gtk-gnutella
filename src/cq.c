@@ -91,8 +91,8 @@ void cq_free(cqueue_t *cq)
 		}
 	}
 
-	g_free(cq->cq_hash);
-	g_free(cq);
+	G_FREE_NULL(cq->cq_hash);
+	G_FREE_NULL(cq);
 }
 
 /*

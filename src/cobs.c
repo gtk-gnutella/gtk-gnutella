@@ -229,7 +229,7 @@ gchar *cobs_decode(gchar *buf, gint len, gint *retlen, gboolean inplace)
 		return out;
 
 	if (!inplace)
-		g_free(out);
+		G_FREE_NULL(out);
 
 	return NULL;
 }

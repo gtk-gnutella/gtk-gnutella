@@ -206,7 +206,7 @@ static void hcache_free(hcache_type_t type)
 
 	hcache_remove_all(hc);
 	g_hash_table_destroy(hc->ht_known_hosts);
-	g_free(hc);
+	G_FREE_NULL(hc);
 
 	caches[type] = NULL;
 }

@@ -115,7 +115,7 @@ void alive_free(gpointer obj)
 		ap_free((struct alive_ping *) l->data);
 
 	g_slist_free(a->pings);
-	g_free(a);
+	G_FREE_NULL(a);
 }
 
 /*

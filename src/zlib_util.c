@@ -26,6 +26,7 @@
 #include <zlib.h>
 #include <glib.h>
 
+#include "common.h"
 #include "zlib_util.h"
 #include "misc.h"		/* For RCSID */
 #include "walloc.h"
@@ -217,7 +218,7 @@ void zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
 	}
 
 	if (output)
-		g_free(zd->out);
+		G_FREE_NULL(zd->out);
 
 	wfree(zd, sizeof(*zd));
 }
@@ -244,7 +245,7 @@ gpointer zlib_uncompress(gpointer data, gint len, gint uncompressed_len)
 	}
 
 	g_warning("while decompressing data: %s", zlib_strerror(ret));
-	g_free(out);
+	G_FREE_NULL(out);
 
 	return NULL;
 }

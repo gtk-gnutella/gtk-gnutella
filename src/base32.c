@@ -542,7 +542,7 @@ gchar *base32_decode(const gchar *buf, gint len, gint *outlen)
 	decoded = base32_decode_into(buf, len, decbuf, declen);
 
 	if (decoded == 0) {
-		g_free(decbuf);
+        G_FREE_NULL(decbuf);
 		return NULL;
 	}
 

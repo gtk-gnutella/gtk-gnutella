@@ -121,7 +121,7 @@ static void d_free(gpointer ctx)
 	if (md->wd != -1)
 		close(md->wd);
 
-	g_free(md->buffer);
+	G_FREE_NULL(md->buffer);
 	wfree(md, sizeof(*md));
 }
 

@@ -397,7 +397,7 @@ gchar *base64_decode(const gchar *buf, guint len, guint *outlen)
 	decoded = base64_decode_into(buf, len, decbuf, declen);
 
 	if (decoded == 0) {
-		g_free(decbuf);
+		G_FREE_NULL(decbuf);
 		return NULL;
 	}
 

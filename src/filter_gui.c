@@ -414,7 +414,7 @@ void filter_gui_filter_add(filter_t *f, GList *ruleset)
             (GTK_CTREE(ctree_filter_filters), node, FALSE);
     }
     
-    g_free(titles[1]);
+    G_FREE_NULL(titles[1]);
 }
 
 
@@ -1487,7 +1487,7 @@ static rule_t *filter_gui_get_text_rule(void)
 
     r = filter_new_text_rule(match, type, case_sensitive, target, flags);
 
-    g_free(match);
+    G_FREE_NULL(match);
     
     return r;
 }
@@ -1518,14 +1518,14 @@ static rule_t *filter_gui_get_ip_rule(void)
             (lookup_widget(filter_dialog, "entry_filter_ip_address")),
         0, -1));
 	addr = ntohl(inet_addr(s));
-	g_free(s);
+	G_FREE_NULL(s);
 
 	s = STRTRACK(gtk_editable_get_chars(
         GTK_EDITABLE
             (lookup_widget(filter_dialog, "entry_filter_ip_mask")),
         0, -1));
 	mask = ntohl(inet_addr(s));
-	g_free(s);
+	G_FREE_NULL(s);
 
    	negate = gtk_toggle_button_get_active(
         GTK_TOGGLE_BUTTON

@@ -85,7 +85,7 @@ void on_popup_monitor_add_search_activate
 		if (*e)
             search_gui_new_search(e, 0, NULL);
 
-		g_free(e);
+		G_FREE_NULL(e);
 	}	
 }
 

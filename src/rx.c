@@ -30,6 +30,7 @@
  *----------------------------------------------------------------------
  */
 
+#include "common.h"
 #include "rx.h"
 #include "misc.h"		/* For RCSID */
 #include "override.h"		/* Must be the last header included */
@@ -162,7 +163,7 @@ void rx_free(rxdrv_t *rx)
 		rx_free(rx->lower);
 
 	RX_DESTROY(rx);
-	g_free(rx);
+	G_FREE_NULL(rx);
 }
 
 /*

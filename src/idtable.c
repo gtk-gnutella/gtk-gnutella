@@ -169,9 +169,9 @@ void idtable_destroy(idtable_t *tbl)
 
     tbl->size = tbl->esize = tbl->ids = 0;
 
-    g_free(tbl->used_ids);
-    g_free(tbl->data);
-    g_free(tbl);
+    G_FREE_NULL(tbl->used_ids);
+    G_FREE_NULL(tbl->data);
+    G_FREE_NULL(tbl);
 }
 
 /*

@@ -153,7 +153,7 @@ static gchar *ggep_inflate(gchar *buf, gint len, gint *retlen, gint token)
 	 */
 
 	if (failed) {
-		g_free(result);
+		G_FREE_NULL(result);
 		return NULL;
 	}
 
@@ -472,7 +472,7 @@ gint ggep_ext_writev(
 	if (payload != NULL) {				/* Vector was linearized */
 		memcpy(p, payload, plen);		/* Raw payload */
 		p += plen;
-		g_free(payload);
+		G_FREE_NULL(payload);
 	} else {
 		for (i = iovcnt, xiov = iov; i--; xiov++) {
 			gint xlen = xiov->iov_len;
@@ -488,7 +488,7 @@ gint ggep_ext_writev(
 
 bad:
 	if (needs_cobs)
-		g_free(payload);
+		G_FREE_NULL(payload);
 	return -1;
 }
 

@@ -1731,7 +1731,7 @@ void search_close(gnet_search_t sh)
 	}
 
 	atom_str_free(sch->query);
-	g_free(sch);
+	G_FREE_NULL(sch);
 }
 
 /*
@@ -1840,7 +1840,7 @@ gnet_search_t search_new(
 	sch->query = atom_str_get(qdup);
 	sch->frozen = TRUE;
 
-	g_free(qdup);
+	G_FREE_NULL(qdup);
 
 	if (flags & SEARCH_PASSIVE) {
 		sch->passive = TRUE;

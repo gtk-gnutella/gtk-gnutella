@@ -490,7 +490,7 @@ static gchar *validate_vendor(gchar *vendor, gchar *token, guint32 ip)
 		if (faked) {
 			gchar *name = g_strdup_printf("!%s", vendor);
 			result = atom_str_get(name);
-			g_free(name);
+			G_FREE_NULL(name);
 		} else
 			result = atom_str_get(vendor);
 	}

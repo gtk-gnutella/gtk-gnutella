@@ -508,8 +508,7 @@ static void qlink_free(mqueue_t *q)
 {
 	g_assert(q->qlink);
 
-	g_free(q->qlink);
-	q->qlink = NULL;
+	G_FREE_NULL(q->qlink);
 	q->qlink_count = 0;
 }
 

@@ -841,7 +841,7 @@ void prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
 		 * Clear property.
 		 */
 		if (old != NULL) {
-			g_free(old);
+			G_FREE_NULL(old);
 			differ = TRUE;
 		}
 	} else {
@@ -850,7 +850,7 @@ void prop_set_string(prop_set_t *ps, property_t prop, const gchar *val)
 		 */
 		if (old != NULL) {
 			differ = strcmp(old, val) != 0;
-			g_free(old);
+			G_FREE_NULL(old);
 		} else {
 			differ = TRUE;
 		}
@@ -963,7 +963,7 @@ gchar *prop_to_string(prop_set_t *ps, property_t prop)
 		case PROP_TYPE_STRING: {
 			gchar *buf = prop_get_string(ps, prop, NULL, 0);
 			g_strlcpy(s, buf, sizeof(s));
-			g_free(buf);
+			G_FREE_NULL(buf);
 			break;
 		}
 		case PROP_TYPE_IP: {
@@ -1134,7 +1134,7 @@ void prop_save_to_file(
 			g_warning("unable to rename as \"%s\": %s", old, g_strerror(errno));
 		else
 			g_warning("renamed old copy as \"%s\"", old);
-		g_free(old);
+		G_FREE_NULL(old);
 	}
 
 	/*
@@ -1268,7 +1268,7 @@ void prop_save_to_file(
 		fprintf(config, "%s%s = %s%s%s\n\n", defaultvalue ? "#" : "",
 			p->name, quotes ? "\"" : "", val, quotes ? "\"" : "");
 
-		g_free(val);
+		G_FREE_NULL(val);
 		g_strfreev(vbuf);
 	}
 	
@@ -1288,8 +1288,8 @@ void prop_save_to_file(
 		g_warning("could not flush %s: %s", newfile, g_strerror(errno));
 
 end:
-	g_free(newfile);
-	g_free(filename);
+	G_FREE_NULL(newfile);
+	G_FREE_NULL(filename);
 }
 
 /*
@@ -1342,12 +1342,12 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 		prop_parse_storage(val, p->vector_size, buf);
 		stub->storage.set(prop, buf, p->vector_size);
 
-		g_free(buf);
+		G_FREE_NULL(buf);
 		break;
 	}
 	};
 
-	g_free(stub);
+	G_FREE_NULL(stub);
 }
 
 void prop_load_from_file(

@@ -145,11 +145,11 @@ static void hfield_free(header_field_t *h)
 	GSList *l;
 
 	for (l = h->lines; l; l = l->next)
-		g_free(l->data);
+		G_FREE_NULL(l->data);
 	g_slist_free(h->lines);
 
-	g_free(h->name);
-	g_free(h);
+	G_FREE_NULL(h->name);
+	G_FREE_NULL(h);
 }
 
 /*
@@ -210,7 +210,7 @@ header_t *header_make(void)
  */
 static gboolean free_header_data(gpointer key, gpointer value, gpointer udata)
 {
-	g_free(key);		/* XXX if shared, don't do that */
+	G_FREE_NULL(key);		/* XXX if shared, don't do that */
 	g_string_free((GString *) value, TRUE);
 	return TRUE;
 }
@@ -227,7 +227,7 @@ void header_free(header_t *o)
 	header_reset(o);
 
 	g_hash_table_destroy(o->headers);
-	g_free(o);
+	G_FREE_NULL(o);
 }
 
 /*
@@ -897,7 +897,7 @@ void header_features_cleanup(struct xfeature_t *xfeatures)
 		struct header_x_feature *feature = 
 			(struct header_x_feature *) cur->data;
 		
-		g_free(feature->name);
+		G_FREE_NULL(feature->name);
 		wfree(feature, sizeof(*feature));
 	}
 }

@@ -133,7 +133,7 @@ void rxbuf_close(void)
 
 	for (l = sl_buffers; l; l = l->next) {
 		pdata_t *buf = (pdata_t *) l->data;
-		g_free(buf);
+		G_FREE_NULL(buf);
 		freed++;
 	}
 

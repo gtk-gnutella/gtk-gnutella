@@ -188,8 +188,8 @@ static void bsched_free(bsched_t *bs)
 	}
 
 	g_list_free(bs->sources);
-	g_free(bs->name);
-	g_free(bs);
+	G_FREE_NULL(bs->name);
+	G_FREE_NULL(bs);
 }
 
 /*
@@ -738,7 +738,7 @@ void bsched_source_remove(bio_source_t *bio)
 	if (bio->io_tag)
 		g_source_remove(bio->io_tag);
 
-	g_free(bio);
+	G_FREE_NULL(bio);
 }
 
 /*

@@ -258,7 +258,7 @@ static void shadow_cancel(shadow_t *shadow)
     shadow->removed = shadow->added = shadow->current = NULL;
 
     shadow_filters = g_list_remove(shadow_filters, shadow);
-    g_free(shadow);
+    G_FREE_NULL(shadow);
 }
 
 
@@ -330,7 +330,7 @@ static void shadow_commit(shadow_t *shadow)
     shadow->added = shadow->removed = shadow->current = NULL;
     shadow->filter = NULL;
     shadow_filters = g_list_remove(shadow_filters, shadow); 
-    g_free(shadow);
+    G_FREE_NULL(shadow);
 
     if (gui_debug >= 6) {
         printf("after commit filter looks like this\n");
@@ -529,7 +529,7 @@ rule_t *filter_new_text_rule(gchar *match, gint type,
 				"; falling back to substring match", buf);
 
 			r->u.text.type = RULE_TEXT_SUBSTR;
-            g_free(re);
+            G_FREE_NULL(re);
 		} else {
 			r->u.text.u.re = re;
 		}
@@ -539,7 +539,7 @@ rule_t *filter_new_text_rule(gchar *match, gint type,
 	if (r->u.text.type == RULE_TEXT_SUBSTR)
 		r->u.text.u.pattern = pattern_compile(buf);
 
-    g_free(buf);
+    G_FREE_NULL(buf);
 
     return r;
 }
@@ -974,8 +974,8 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
             gm_snprintf(tmp, sizeof(tmp), 
                 "If IP address matches %s/%s", addr, mask);
 
-            g_free(addr);
-            g_free(mask);
+            G_FREE_NULL(addr);
+            G_FREE_NULL(mask);
         }
         break;
     case RULE_SIZE:
@@ -998,8 +998,8 @@ gchar *filter_rule_condition_to_gchar(const rule_t *r)
 				"If filesize is between %d and %d (%s - %s)",
 				(gint) r->u.size.lower, (int)r->u.size.upper, s1, s2);
 
-            g_free(s1);
-            g_free(s2);
+            G_FREE_NULL(s1);
+            G_FREE_NULL(s2);
         }
         break;
     case RULE_SHA1:
@@ -1166,7 +1166,7 @@ gchar *filter_rule_to_gchar(rule_t *r)
         cond,
         RULE_IS_VALID(r) ? r->target->name : "(invalid)");
 
-    g_free(cond);
+    G_FREE_NULL(cond);
   
     return f_tmp;
 }
@@ -1338,10 +1338,8 @@ static void filter_free(filter_t *f)
 	G_LIST_FOREACH_SWAPPED(copy, filter_remove_rule, f);
     g_list_free(copy);
 
-    g_free(f->name);
-    f->name = NULL;
-    
-    g_free(f);
+    G_FREE_NULL(f->name);
+    G_FREE_NULL(f);
 }
 
 
@@ -1360,7 +1358,7 @@ void filter_free_rule(rule_t *r)
 
     switch (r->type) {
     case RULE_TEXT:
-        g_free(r->u.text.match);
+        G_FREE_NULL(r->u.text.match);
 
         switch (r->u.text.type) {
         case RULE_TEXT_WORDS:
@@ -1385,8 +1383,8 @@ void filter_free_rule(rule_t *r)
         }
         break;
     case RULE_SHA1:
-        g_free(r->u.sha1.hash);
-        g_free(r->u.sha1.filename);
+        G_FREE_NULL(r->u.sha1.hash);
+        G_FREE_NULL(r->u.sha1.filename);
         break;
     case RULE_SIZE:
     case RULE_JUMP:
@@ -1397,7 +1395,7 @@ void filter_free_rule(rule_t *r)
     default:
         g_error("filter_free_rule: unknown rule type: %d", r->type);
     }
-	g_free(r);
+	G_FREE_NULL(r);
 }
 
 
@@ -1809,8 +1807,8 @@ void filter_replace_rule_in_session(filter_t *f,
 
         printf("replacing rules (old <- new): %s <- %s\n", f1, f2);
 
-        g_free(f1);
-        g_free(f2);
+        G_FREE_NULL(f1);
+        G_FREE_NULL(f2);
     }
 
     /*
@@ -2190,7 +2188,7 @@ static int filter_apply
 
 		list = g_list_next(list);
 	}
-    g_free(l_name);
+    G_FREE_NULL(l_name);
 
     filter->visited = FALSE;
     filter->fail_count += MAX_FILTER_PROP - prop_count;
@@ -2474,7 +2472,7 @@ void filter_free_result(filter_result_t *res)
         };
     }
 
-    g_free(res);
+    G_FREE_NULL(res);
 }
 
 /*

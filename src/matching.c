@@ -244,7 +244,7 @@ void query_word_vec_free(word_vec_t *wovec, guint n)
 		wfree(wovec[i].word, wovec[i].len + 1);
 
 	if (n > WOVEC_DFLT)
-		g_free(wovec);
+		G_FREE_NULL(wovec);
 	else
 		zfree(wovec_zone, wovec);
 }
@@ -297,7 +297,7 @@ cpattern_t *pattern_compile(gchar *pattern)
  */
 void pattern_free(cpattern_t *cpat)
 {
-	g_free(cpat->pattern);
+	G_FREE_NULL(cpat->pattern);
 	zfree(pat_zone, cpat);
 }
 
@@ -406,7 +406,7 @@ gchar *pattern_qsearch(
 
 static void destroy_entry(struct st_entry *entry)
 {
-	g_free(entry->string);
+	G_FREE_NULL(entry->string);
 }
 
 /* initialize a bin */
@@ -435,7 +435,7 @@ static struct st_bin *bin_allocate(void)
  * NOTE: does NOT destroy the st_entry's, since they may be shared */
 static void bin_destroy(struct st_bin *bin)
 {
-	g_free(bin->vals);
+	G_FREE_NULL(bin->vals);
 	bin->vals = 0;
 }
 
@@ -534,17 +534,17 @@ void st_destroy(search_table_t *table)
 		for (i = 0; i < table->nbins; i++) {
 			if (table->bins[i]) {
 				bin_destroy(table->bins[i]);
-				g_free(table->bins[i]);
+				G_FREE_NULL(table->bins[i]);
 			}
 		}
-		g_free(table->bins);
+		G_FREE_NULL(table->bins);
 		table->bins = 0;
 	}
 
 	if (table->all_entries.vals) {
 		for (i = 0; i < table->all_entries.nvals; i++) {
 			destroy_entry(table->all_entries.vals[i]);
-			g_free(table->all_entries.vals[i]);
+			G_FREE_NULL(table->all_entries.vals[i]);
 		}
 		bin_destroy(&table->all_entries);
 	}
@@ -595,7 +595,7 @@ void st_insert_item(search_table_t *table, gchar *string, void *data)
 
 	len = match_map_string(table->fold_map, string);
 	if (len < 2) {
-		g_free(string);
+		G_FREE_NULL(string);
 		return;
 	}
 
@@ -874,7 +874,7 @@ gint st_search(
 		if (pattern[i])					/* Lazily compiled by entry_match() */
 			zfree(pat_zone, pattern[i]);
 
-	g_free(pattern);
+	G_FREE_NULL(pattern);
 	query_word_vec_free(wovec, wocnt);
 
 	return nres;

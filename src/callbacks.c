@@ -200,7 +200,7 @@ void button_fs_save_path_clicked(GtkButton * button, gpointer user_data)
 		if (is_directory(name)) {
             gnet_prop_set_string(PROP_SAVE_FILE_PATH, name);
         } else {
-            g_free(name);
+            G_FREE_NULL(name);
         }
 	}
 
@@ -257,7 +257,7 @@ void button_fs_move_path_clicked(GtkButton *button, gpointer user_data)
 		if (is_directory(name)) {
             gnet_prop_set_string(PROP_MOVE_FILE_PATH, name);
         } else {
-            g_free(name);
+            G_FREE_NULL(name);
         }
 	}
 
@@ -314,7 +314,7 @@ void button_fs_bad_path_clicked(GtkButton *button, gpointer user_data)
 		if (is_directory(name)) {
             gnet_prop_set_string(PROP_BAD_FILE_PATH, name);
         } else {
-            g_free(name);
+            G_FREE_NULL(name);
         }
 	}
 
@@ -369,7 +369,7 @@ void button_fs_add_dir_clicked(GtkButton * button, gpointer user_data)
 		if (is_directory(name))
 			shared_dir_add(name);
 
-        g_free(name);
+        G_FREE_NULL(name);
 	}
 
 	gtk_widget_destroy(add_dir_filesel);
@@ -417,7 +417,7 @@ void on_entry_config_netmask_activate(GtkEditable *editable, gpointer data)
     
     gnet_prop_set_string(PROP_LOCAL_NETMASKS_STRING, buf);
     
-    g_free(buf);
+    G_FREE_NULL(buf);
 }
 FOCUS_TO_ACTIVATE(entry_config_netmask)
 

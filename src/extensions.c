@@ -184,9 +184,9 @@ static gchar *ext_name_atom(gchar *name)
 static gboolean ext_names_kv_free(gpointer key, gpointer value, gpointer udata)
 {
 	if (0 != strcmp((gchar *) key, (gchar *) value))
-		g_free(value);
+		G_FREE_NULL(value);
 
-	g_free(key);
+	G_FREE_NULL(key);
 
 	return TRUE;
 }

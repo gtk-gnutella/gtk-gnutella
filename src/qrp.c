@@ -271,7 +271,7 @@ static void qrt_compact(struct routing_table *rt)
 	 * Install new compacted arena in place of the non-compacted one.
 	 */
 
-	g_free(rt->arena);
+	G_FREE_NULL(rt->arena);
 	rt->arena = (guchar *) narena;
 	rt->compacted = TRUE;
 
@@ -339,7 +339,7 @@ static struct routing_patch *qrt_patch_ref(struct routing_patch *rp)
  */
 static void qrt_patch_free(struct routing_patch *rp)
 {
-	g_free(rp->arena);
+	G_FREE_NULL(rp->arena);
 	wfree(rp, sizeof(*rp));
 }
 
@@ -509,7 +509,7 @@ static bgret_t qrt_step_compress(gpointer h, gpointer u, gint ticks)
 		if (zlib_deflater_outlen(ctx->zd) < ctx->rp->len) {
 			struct routing_patch *rp = ctx->rp;
 
-			g_free(rp->arena);
+			G_FREE_NULL(rp->arena);
 			rp->arena = zlib_deflater_out(ctx->zd);
 			rp->len = zlib_deflater_outlen(ctx->zd);
 			rp->compressed = TRUE;
@@ -657,7 +657,7 @@ static void qrt_free(struct routing_table *rt)
 
 	if (rt->digest)
 		atom_sha1_free(rt->digest);
-	g_free(rt->arena);
+	G_FREE_NULL(rt->arena);
 
 	wfree(rt, sizeof(*rt));
 }
@@ -836,7 +836,7 @@ void qrp_add_file(struct shared_file *sf)
 
 		normalised_filename = unicode_canonize(sf->file_name);
 		wocnt = query_make_word_vec(normalised_filename, &wovec);
-		g_free(normalised_filename);
+		G_FREE_NULL(normalised_filename);
 	}
 #endif
 
@@ -890,7 +890,7 @@ void qrp_add_file(struct shared_file *sf)
 		if (NULL == g_hash_table_lookup(ht_seen_words, key))
 			g_hash_table_insert(ht_seen_words, key, GINT_TO_POINTER(1));
 		else
-			g_free(key);
+			G_FREE_NULL(key);
 	}
 }
 
@@ -900,7 +900,7 @@ void qrp_add_file(struct shared_file *sf)
 
 static void free_word(gpointer key, gpointer value, gpointer udata)
 {
-	g_free(key);
+	G_FREE_NULL(key);
 }
 
 struct unique_substrings {		/* User data for unique_subtr() callback */
@@ -1029,11 +1029,11 @@ static void qrp_context_free(gpointer p)
 		dispose_ht_seen_words();
 
 	for (l = ctx->sl_substrings; l; l = l->next)
-		g_free(l->data);
+		G_FREE_NULL(l->data);
 	g_slist_free(ctx->sl_substrings);
 
 	if (ctx->table)
-		g_free(ctx->table);
+		G_FREE_NULL(ctx->table);
 
 	wfree(ctx, sizeof(*ctx));
 }
@@ -1207,7 +1207,7 @@ static bgret_t qrp_step_compute(gpointer h, gpointer u, gint ticks)
 		if (routing_table && qrt_eq(routing_table, table, slots)) {
 			if (dbg)
 				printf("no change in QRP table\n");
-			g_free(table);
+			G_FREE_NULL(table);
 			bg_task_exit(h, 0);	/* Abort processing */
 		}
 
@@ -1221,7 +1221,7 @@ static bgret_t qrp_step_compute(gpointer h, gpointer u, gint ticks)
 		return BGR_NEXT;		/* Done! */
 	}
 
-	g_free(table);
+	G_FREE_NULL(table);
 
 	return BGR_MORE;			/* More work required */
 }
@@ -2118,7 +2118,7 @@ void qrt_receive_free(gpointer handle)
 		qrt_unref(qrcv->table);
 	if (qrcv->expansion)
 		wfree(qrcv->expansion, qrcv->shrink_factor);
-	g_free(qrcv->data);
+	G_FREE_NULL(qrcv->data);
 
 	qrcv->magic = 0;			/* Prevent accidental reuse */
 
@@ -2767,7 +2767,7 @@ void qrp_close(void)
 		qrt_patch_unref(routing_patch);
 
 	if (buffer.arena)
-		g_free(buffer.arena);
+		G_FREE_NULL(buffer.arena);
 }
 
 /*

@@ -415,7 +415,7 @@ void on_button_search_clicked(GtkButton *button, gpointer user_data)
         	gdk_beep();
     }
 
-	g_free(e);
+	G_FREE_NULL(e);
 }
 
 
@@ -445,7 +445,7 @@ void on_entry_search_changed(GtkEditable * editable, gpointer user_data)
 	g_strstrip(e);
 	gtk_widget_set_sensitive
         (lookup_widget(main_window, "button_search"), *e != 0);
-	g_free(e);
+	G_FREE_NULL(e);
 }
 
 

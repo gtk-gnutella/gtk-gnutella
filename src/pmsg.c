@@ -332,11 +332,11 @@ static void pdata_free(pdata_t *db)
 		gpointer p = is_embedded ? (gpointer) db : (gpointer) db->d_arena;
 		(*db->d_free)(p, db->d_arg);
 		if (!is_embedded)
-			g_free(db);
+			G_FREE_NULL(db);
 	} else {
 		if (!is_embedded)
-			g_free(db->d_arena);
-		g_free(db);
+			G_FREE_NULL(db->d_arena);
+		G_FREE_NULL(db);
 	}
 }
 

@@ -1008,7 +1008,7 @@ shared_file_t *file_info_shared_sha1(const gchar *sha1)
 
 		memcpy(sf->sha1_digest, fi->sha1, SHA1_RAW_SIZE);
 
-		g_free(path);
+		G_FREE_NULL(path);
 	}
 
 	return fi->sf;
@@ -1468,7 +1468,7 @@ void file_info_close(void)
 	g_hash_table_destroy(fi_by_size);
 	g_hash_table_destroy(fi_by_outname);
 	
-	g_free(tbuf.arena);
+	G_FREE_NULL(tbuf.arena);
 }
 
 /*
@@ -1727,7 +1727,7 @@ void file_info_unlink(struct dl_file_info *fi)
 		file_info_upload_stop(fi, "Partial file removed");
 
 	if (path != NULL)
-		g_free(path);
+		G_FREE_NULL(path);
 }
 
 /*
@@ -2195,7 +2195,7 @@ static gchar *file_info_new_outname(gchar *name)
 
 ok:
 	if (escaped != name && escaped != empty)
-		g_free(escaped);
+		G_FREE_NULL(escaped);
 
 	return result;
 }
@@ -3829,7 +3829,7 @@ gint file_info_available_ranges(struct dl_file_info *fi, gchar *buf, gint size)
 				(nleft - j - 1) * sizeof(fc_ary[0]));
 	}
 
-	g_free(fc_ary);
+	G_FREE_NULL(fc_ary);
 
 emit:
 	length = 0;
