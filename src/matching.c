@@ -746,8 +746,10 @@ gint st_search(
 			qhvec_add(qhv, wovec[i].word, QUERY_H_WORD);
 	}
 
-	if (wocnt == 0 || best_bin == NULL)
+	if (wocnt == 0 || best_bin == NULL) {
+		query_word_vec_free(wovec, wocnt);
 		return 0;
+	}
 
 	g_assert(best_bin_size > 0);	/* Allocated bin, it must hold something */
 
