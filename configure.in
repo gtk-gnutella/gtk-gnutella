@@ -126,9 +126,12 @@ if test "x$GCC" = "xyes"; then
 fi
 changequote([,])dnl
 
-AC_CHECK_FUNCS(herror inet_aton)
+AC_CHECK_FUNCS(hstrerror herror inet_aton)
 AC_CHECK_FUNCS(strcasestr vsnprintf strlcpy)
 AC_CHECK_FUNCS(srandom random)
+AC_CHECK_FUNCS(sysctl)
+
+AC_CHECK_HEADERS(sys/sysctl.h, , , )
 
 dnl Checks for sendfile(2)
 AC_CHECK_FUNC(sendfile, , AC_CHECK_LIB(sendfile, sendfile,
