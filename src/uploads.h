@@ -25,7 +25,6 @@ struct upload {
 	gint skip;
 	gint pos;
 	gboolean push;
-	gboolean head_only;
 };
 
 /*
@@ -71,7 +70,8 @@ extern guint32 count_uploads;
 
 void upload_remove(struct upload *, const gchar *, ...);
 void handle_push_request(struct gnutella_node *);
-void upload_add(struct gnutella_socket *s, gboolean head_only);
+void upload_add(struct gnutella_socket *s);
+void upload_push_conf(struct upload *u);
 void upload_write(gpointer up, gint, GdkInputCondition);
 void upload_close(void);
 

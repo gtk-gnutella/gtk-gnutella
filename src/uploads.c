@@ -15,6 +15,7 @@
 #include "misc.h"
 #include "getline.h"
 #include "header.h"
+#include "hosts.h"		/* for check_valid_host() */
 
 GSList *uploads = NULL;
 gint running_uploads = 0;
@@ -30,26 +31,126 @@ struct io_header {
 	struct upload *upload;
 	header_t *header;
 	getline_t *getline;
+	void (*process_header)(struct io_header *);
+	gint flags;
 };
+
+#define IO_STATUS_LINE		0x00000002	/* First line is a status line */
 
 static void upload_request(struct upload *u, header_t *header);
 
 /*
- * TODO: Make sure we do all the following:
+ * upload_create
  *
- * Recieve HTTP get information , send headers 200(found) or 404(not found),
- * look at Range for skip amount and do a sanity check on the Range
- * "Range < File Size" and Index, Make Upload structure with socket
- * and file desc ,and file name and location.
- * Handle the PUSH request.
+ * Create a new upload structure, linked to a socket.
  */
+static struct upload *upload_create(struct gnutella_socket *s, gboolean push)
+{
+	struct upload *u;
 
+	u = (struct upload *) g_malloc0(sizeof(struct upload));
+
+	u->socket = s;
+	s->resource.upload = u;
+
+	u->push = push;
+	u->status = push ? GTA_UL_PUSH_RECIEVED : GTA_UL_HEADERS;
+	u->last_update = time((time_t *) 0);
+	u->file_desc = -1;
+
+	/*
+	 * Record pending upload in the GUI.
+	 */
+
+	registered_uploads++;
+	gui_update_c_uploads();
+
+	/*
+	 * Add the upload structure to the upload slist, so it's monitored
+	 * from now on within the main loop for timeouts.
+	 */
+
+	uploads = g_slist_append(uploads, u);
+
+	return u;
+}
+
+/*
+ * handle_push_request
+ *
+ * Called when we receive a Push request on Gnet.
+ *
+ * If it is not for us, discard it.
+ * If we are the target, then connect back to the remote servent.
+ */
 void handle_push_request(struct gnutella_node *n)
 {
-	/* TODO:
-	 * Deal with push request, just setup the upload structure but don't
-	 * send anything?
+	struct upload *u;
+	struct gnutella_socket *s;
+	struct shared_file *req_file;
+	guint32 file_index;
+	guint32 ip;
+	guint16 port;
+	guchar *info;
+
+	if (0 != memcmp(n->data, guid, 16))		/* Servent ID matches our GUID? */
+		return;								/* No: not for us */
+
+	/*
+	 * We are the target of the push.
 	 */
+
+	info = n->data + 16;					/* Start of file information */
+
+	READ_GUINT32_LE(info, file_index);
+	READ_GUINT32_BE(info + 4, ip);
+	READ_GUINT16_LE(info + 8, port);
+
+	/*
+	 * Quick sanity check on file index.
+	 */
+
+	req_file = shared_file(file_index);
+	if (req_file == NULL) {
+		g_warning("PUSH request (hops=%d, ttl=%d) for invalid file index %u",
+			n->header.hops, n->header.ttl, file_index);
+		return;
+	}
+
+	/*
+	 * XXX might be run inside corporations (private IPs), must be smarter.
+	 * XXX maybe a configuration variable? --RAM, 31/12/2001
+	 *
+	 * Don't waste time and resources connecting to something that will fail.
+	 */
+
+	if (!check_valid_host(ip, port)) {
+		g_warning("PUSH request (hops=%d, ttl=%d) from invalid address %s",
+			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port));
+		return;
+	}
+
+	if (dbg > 4)
+		printf("PUSH (hops=%d, ttl=%d) to %s: %s\n",
+			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port),
+			req_file->file_name);
+
+	/*
+	 * OK, start the upload by opening a connection to the remote host.
+	 */
+
+	s = socket_connect(ip, port, GTA_TYPE_UPLOAD);
+	if (!s) {
+		g_warning("PUSH request (hops=%d, ttl=%d) dropped: can't connect to %s",
+			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port));
+		return;
+	}
+
+	u = upload_create(s, TRUE);
+	u->index = file_index;
+	u->name = req_file->file_name;
+
+	/* Now waiting for the connection CONF -- will call upload_push_conf() */
 }
 
 void upload_real_remove(void)
@@ -150,9 +251,17 @@ void upload_remove(struct upload *u, const gchar *reason, ...)
 	 * any data yet, so we send an HTTP error code before closing the
 	 * connection.
 	 *		--RAM, 24/12/2001
+	 *
+	 * Push requests still connecting don't have anything to send, hence
+	 * we check explicitely for GTA_UL_PUSH_RECIEVED.
+	 *		--RAM, 31/12/2001
 	 */
 
-	if (UPLOAD_IS_CONNECTING(u) && !u->error_sent)
+	if (
+		UPLOAD_IS_CONNECTING(u) &&
+		!u->error_sent &&
+		u->status != GTA_UL_PUSH_RECIEVED
+	)
 		send_upload_error(u, 400, reason ? errbuf : "Bad Request");
 
 	/*
@@ -179,6 +288,19 @@ void upload_remove(struct upload *u, const gchar *reason, ...)
 	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_uploads), (gpointer) u);
 	gtk_clist_remove(GTK_CLIST(clist_uploads), row);
 	uploads = g_slist_remove(uploads, (gpointer) u);
+}
+
+/***
+ *** Header parsing callbacks
+ ***
+ *** We could call those directly, but I'm thinking about factoring all
+ *** that processing into a generic set of functions, and the processing
+ *** callbacks will all have the same signature.  --RAM, 31/12/2001
+ ***/
+
+static void call_upload_request(struct io_header *ih)
+{
+	upload_request(ih->upload, ih->header);
 }
 
 /*
@@ -226,6 +348,28 @@ nextline:
 	/*
 	 * We come here everytime we get a full header line.
 	 */
+
+	if (ih->flags & IO_STATUS_LINE) {
+		/*
+		 * Save status line away in socket's "getline" object, then clear
+		 * the fact that we're expecting a status line and continue to get
+		 * the following header lines.
+		 *
+		 * XXX Refactoring note: it's not a status line here, it's the HTTP
+		 * XXX request, which we get from the remote servent through a
+		 * XXX connection we initiated with the GIV string (PUSH reply).
+		 * XXX The flag must be renamed, kept it as-is for now to not add
+		 * XXX futher factoring difficulty.
+		 */
+
+		g_assert(s->getline == 0);
+		s->getline = getline_make();
+
+		getline_copy(getline, s->getline);
+		getline_reset(getline);
+		ih->flags &= ~IO_STATUS_LINE;
+		goto nextline;
+	}
 
 	error = header_append(header,
 		getline_str(getline), getline_length(getline));
@@ -281,17 +425,12 @@ nextline:
 	 * line is still held in the s->getline structure.
 	 */
 
-	getline_free(ih->getline);
-	g_free(ih);
-
 	gdk_input_remove(s->gdk_tag);
 	s->gdk_tag = 0;
 
-	u->last_update = time((time_t *) 0);	/* Done reading headers */
-	upload_request(u, header);
+	ih->process_header(ih);
 
-	header_free(header);
-	return;
+	/* FALL THROUGH */
 
 	/*
 	 * When we come here, we're done with the parsing structures, we can
@@ -370,32 +509,15 @@ final_cleanup:
  * upload_add
  *
  * Create a new upload request, and begin reading HTTP headers.
- * If `head_only' is true, the request was a HEAD and we're only going
- * to send back the headers.
  */
-void upload_add(struct gnutella_socket *s, gboolean head_only)
+void upload_add(struct gnutella_socket *s)
 {
 	struct upload *u;
 	struct io_header *ih;
 
-	u = (struct upload *) g_malloc0(sizeof(struct upload));
+	u = upload_create(s, FALSE);
 
 	s->type = GTA_TYPE_UPLOAD;
-
-	u->socket = s;
-	u->status = GTA_UL_HEADERS;
-	u->push = FALSE;
-	u->last_update = time((time_t *) 0);
-	u->file_desc = -1;
-	u->head_only = head_only;
-	s->resource.upload = u;
-
-	/*
-	 * Record pending upload in the GUI.
-	 */
-
-	registered_uploads++;
-	gui_update_c_uploads();
 
 	/*
 	 * Prepare callback argument used during the header reading phase.
@@ -405,6 +527,8 @@ void upload_add(struct gnutella_socket *s, gboolean head_only)
 	ih->upload = u;
 	ih->header = header_make();
 	ih->getline = getline_make();
+	ih->flags = 0;
+	ih->process_header = call_upload_request;
 
 	g_assert(s->gdk_tag == 0);
 
@@ -413,19 +537,78 @@ void upload_add(struct gnutella_socket *s, gboolean head_only)
 		upload_header_read, (gpointer) ih);
 
 	/*
-	 * Add the upload structure to the upload slist, so it's monitored
-	 * from now on within the main loop for timeouts.
-	 */
-
-	g_assert(u);
-	uploads = g_slist_append(uploads, u);
-
-	/*
 	 * There may be pending input in the socket buffer, so go handle
 	 * it immediately.
 	 */
 
 	upload_header_parse(ih);
+}
+
+/*
+ * upload_push_conf
+ *
+ * Got confirmation that the connection to the remote host was OK.
+ * Send the GIV string, then prepare receiving back the HTTP request.
+ */
+void upload_push_conf(struct upload *u)
+{
+	gchar giv[MAX_LINE_SIZE];
+	struct gnutella_socket *s;
+	struct io_header *ih;
+	gint rw;
+	gint sent;
+
+	g_assert(u);
+	g_assert(u->name);
+
+	/*
+	 * Send the GIV string, using our servent GUID.
+	 */
+
+	rw = g_snprintf(giv, sizeof(giv), "GIV %u:%s/%s",
+		u->index, guid_hex_str(guid), u->name);
+	giv[sizeof(giv)-1] = '\0';			/* Might have been truncated */
+	
+	s = u->socket;
+	if (-1 == (sent = write(s->file_desc, giv, rw))) {
+		g_warning("Unable to send back GIV for \"%s\" to %s: %s",
+			u->name, ip_to_gchar(s->ip), g_strerror(errno));
+	} else if (sent < rw) {
+		g_warning("Only sent %d out of %d bytes of GIV for \"%s\" to %s: %s",
+			sent, rw, u->name, ip_to_gchar(s->ip), g_strerror(errno));
+	} else if (dbg > 4) {
+		printf("----Sent GIV to %s:\n%.*s----\n", ip_to_gchar(s->ip), rw, giv);
+		fflush(stdout);
+	}
+
+	if (sent != rw) {
+		upload_remove(u, "Unable to send GIV");
+		return;
+	}
+
+	/*
+	 * Prepare callback argument used during the header reading phase.
+	 *
+	 * We're requesting the reading of a "status line", which will be the
+	 * HTTP request.  It will be stored in a created s->getline entry.
+	 * Once we're done, we'll end-up in upload_request(): the path joins
+	 * with the one used for direct uploading.
+	 */
+
+	g_assert(s->getline == 0);
+
+	ih = (struct io_header *) g_malloc(sizeof(struct io_header));
+	ih->upload = u;
+	ih->header = header_make();
+	ih->getline = getline_make();
+	ih->flags = IO_STATUS_LINE;		/* XXX will be really the HTTP request */
+	ih->process_header = call_upload_request;
+
+	g_assert(s->gdk_tag == 0);
+
+	s->gdk_tag = gdk_input_add(s->file_desc,
+		(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+		upload_header_read, (gpointer) ih);
 }
 
 /*
@@ -447,6 +630,7 @@ static void upload_request(struct upload *u, header_t *header)
 	gchar *request = getline_str(s->getline);
 	GSList *l;
 	gint sent;
+	gboolean head_only;
 
 	titles[0] = titles[1] = titles[2] = NULL;
 
@@ -465,6 +649,7 @@ static void upload_request(struct upload *u, header_t *header)
 	 */
 
 	u->status = GTA_UL_SENDING;
+	u->last_update = time((time_t *) 0);	/* Done reading headers */
 
 	/*
 	 * If we remove the upload in upload_remove(), we'll decrement
@@ -472,6 +657,13 @@ static void upload_request(struct upload *u, header_t *header)
 	 */
 
 	running_uploads++;
+
+	/*
+	 * If `head_only' is true, the request was a HEAD and we're only going
+	 * to send back the headers.
+	 */
+
+	head_only = (request[0] == 'H');
 
 	/*
 	 * IDEA
@@ -614,6 +806,17 @@ static void upload_request(struct upload *u, header_t *header)
 
 		g_free(fpath);
 
+		/*
+		 * If we pushed this upload, and they are not requesting the same
+		 * file, that's OK, but warn.
+		 *		--RAM, 31/12/2001
+		 */
+
+		if (u->push && index != u->index)
+			g_warning("Host %s sent PUSH for %u but is now requesting %u (%s)",
+				ip_to_gchar(s->ip),
+				u->index, index, requested_file->file_name);
+
 		/* Set all the upload information */
 		u->index = index;
 		u->name = requested_file->file_name;
@@ -676,7 +879,7 @@ static void upload_request(struct upload *u, header_t *header)
 		 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
 		 */
 
-		if (u->head_only) {
+		if (head_only) {
 			upload_remove(u, NULL);		/* No message, everything was OK */
 			return;
 		}
