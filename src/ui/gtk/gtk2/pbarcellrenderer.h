@@ -52,6 +52,13 @@
 #include <gtk/gtkcellrenderer.h>
 #include "gtk/gui.h"
 
+#if !defined(GTK_TYPE_CELL_RENDERER_PROGRESS)
+#define USING_CUSTOM_TYPE_CELL_RENDERER_PROGRESS
+
+/*
+ * This widget is included in GTK+ since 2.5.0
+ */
+
 G_BEGIN_DECLS
 
 #define GTK_TYPE_CELL_RENDERER_PROGRESS (gtk_cell_renderer_get_type ())
@@ -77,4 +84,5 @@ GtkCellRenderer* gtk_cell_renderer_progress_new(void);
 
 G_END_DECLS
 
+#endif /* !USING_CUSTOM_TYPE_CELL_RENDERER_PROGRESS */
 #endif	/* _gtk2_pbarcellrenderer_h_ */

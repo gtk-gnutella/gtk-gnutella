@@ -57,6 +57,11 @@ RCSID("$Id$");
 
 #include "pbarcellrenderer.h"
 
+#if defined(USING_CUSTOM_TYPE_CELL_RENDERER_PROGRESS)
+/*
+ * This widget is included in GTK+ since 2.5.0
+ */
+
 #include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -427,4 +432,5 @@ gtk_cell_renderer_progress_finalize(GObject *object)
 	(*G_OBJECT_CLASS(parent_class)->finalize)(object);
 }
 
-/* vi: set ts=4: */
+#endif /* !USING_CUSTOM_TYPE_CELL_RENDERER_PROGRESS */
+/* vi: set ts=4 sw=4 cindent: */
