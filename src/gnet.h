@@ -441,10 +441,9 @@ typedef enum msg_drop_reason {
     MSG_DROP_QUERY_NO_NUL,
     MSG_DROP_QUERY_TOO_SHORT,
     MSG_DROP_QUERY_OVERHEAD,
-    MSG_DROP_MALFORMED_SHA1_QUERY,
+    MSG_DROP_MALFORMED_SHA1,
     MSG_DROP_MALFORMED_UTF_8,
     MSG_DROP_BAD_RESULT,
-    MSG_DROP_RESULT_SHA1_ERROR,
 	MSG_DROP_HOSTILE_IP,
     MSG_DROP_REASON_COUNT /* number of known reasons to drop a message */
 } msg_drop_reason_t;

@@ -1761,7 +1761,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 					!huge_sha1_extract32(e->ext_payload, e->ext_paylen,
 						sha1_digest, &n->header, FALSE)
                 ) {
-                    gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1_QUERY);
+                    gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
 					return TRUE;			/* Drop message! */
                 }
 

@@ -753,7 +753,7 @@ static gnet_results_set_t *get_results_set(
 				 node_vendor(n), node_ip(n),
 				 sha1_errors, sha1_errors == 1 ? "" : "s",
 				 nr, nr == 1 ? "" : "s");
-            gnet_stats_count_dropped(n, MSG_DROP_RESULT_SHA1_ERROR);
+            gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
 			goto bad_packet;		/* Will drop this bad query hit */
 		}
 
