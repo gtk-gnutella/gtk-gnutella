@@ -12,10 +12,10 @@
 #include "dialog-filters.h"
 
 #define MAKE_CODE(a,b,c,d) ( \
-		((guint32) (a) << 24) | \
-		((guint32) (b) << 16) | \
-		((guint32) (c) << 8)  | \
-		((guint32) (d)))
+	((guint32) (a) << 24) | \
+	((guint32) (b) << 16) | \
+	((guint32) (c) << 8)  | \
+	((guint32) (d)))
 
 #define T_GTKG	MAKE_CODE('G','T','K','G')
 #define T_NAPS	MAKE_CODE('N','A','P','S')
@@ -158,9 +158,8 @@ void on_clist_search_results_click_column(GtkCList * clist, gint column,
 	}
 
 	gtk_clist_set_sort_type(GTK_CLIST(current_search->clist),
-							(current_search->sort_order >
-							 0) ? GTK_SORT_ASCENDING :
-							GTK_SORT_DESCENDING);
+		(current_search->sort_order > 0) ?
+			GTK_SORT_ASCENDING : GTK_SORT_DESCENDING);
 	gtk_clist_set_sort_column(GTK_CLIST(current_search->clist), column);
 
 	gtk_clist_sort(GTK_CLIST(current_search->clist));
@@ -194,8 +193,7 @@ void on_popup_search_toggle_tabs_activate(GtkMenuItem * menuitem,
 										  gpointer user_data)
 {
 	gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_search_results),
-							   (search_results_show_tabs =
-								!search_results_show_tabs));
+		(search_results_show_tabs = !search_results_show_tabs));
 }
 
 static void search_reissue(struct search *sch)
@@ -586,10 +584,8 @@ void search_close_current(void)
 
 	if (searches) {				/* Some other searches remain. */
 		gtk_notebook_remove_page(GTK_NOTEBOOK(notebook_search_results),
-								 gtk_notebook_page_num(GTK_NOTEBOOK
-													   (notebook_search_results),
-													   sch->
-													   scrolled_window));
+			gtk_notebook_page_num(GTK_NOTEBOOK(notebook_search_results),
+				sch->scrolled_window));
 	} else {
 		/*
 		 * Keep the clist of this search, clear it and make it the
@@ -608,8 +604,8 @@ void search_close_current(void)
 		gtk_entry_set_text(GTK_ENTRY(combo_entry_searches), "");
 
 		if (search_results_show_tabs)
-			gtk_notebook_set_show_tabs(GTK_NOTEBOOK
-									   (notebook_search_results), FALSE);
+			gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_search_results),
+				FALSE);
 
 		gtk_widget_set_sensitive(button_search_clear, FALSE);
 		gtk_widget_set_sensitive(popup_search_clear_results, FALSE);
@@ -620,13 +616,10 @@ void search_close_current(void)
 
 	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
 
-	gtk_list_remove_items(GTK_LIST(GTK_COMBO(combo_searches)->list),
-						  glist);
+	gtk_list_remove_items(GTK_LIST(GTK_COMBO(combo_searches)->list), glist);
 
 	g_hash_table_destroy(sch->dups);
-
 	g_free(sch->query);
-
 	g_free(sch);
 
 	gtk_widget_set_sensitive(combo_searches, (gboolean) searches);
@@ -1247,10 +1240,11 @@ void search_matched(struct search *sch, struct results_set *rs)
 			 * setter. His trailer therefore needs to be specially parsed.
 			 *				--RAM, 09/09/2001
 			 */
-			if ((rs->trailer[4] == 1) && (rs->trailer[5] & 0x04))
-				rs->status |= ST_BUSY;
-			if ((rs->trailer[4] > 0) && (rs->trailer[5] & 0x01))
-				rs->status |= ST_FIREWALL;
+			if ((rs->trailer[4] == 1)) {
+				if (rs->trailer[5] & 0x04) rs->status |= ST_BUSY;
+				if (rs->trailer[5] & 0x01) rs->status |= ST_FIREWALL;
+				rs->status |= ST_PARSED_TRAILER;
+			}
 			break;
 		case T_GTKG:
 		case T_LIME:
@@ -1261,12 +1255,10 @@ void search_matched(struct search *sch, struct results_set *rs)
 			if ((rs->trailer[4] == 2)) {
 				guint32 status =
 					((guint32) rs->trailer[5]) & ((guint32) rs-> trailer[6]);
-				if (status & 0x04)
-					rs->status |= ST_BUSY;
-				if (status & 0x01)
-					rs->status |= ST_FIREWALL;
-				if (status & 0x08)
-					rs->status |= ST_UPLOADED;
+				if (status & 0x04) rs->status |= ST_BUSY;
+				if (status & 0x01) rs->status |= ST_FIREWALL;
+				if (status & 0x08) rs->status |= ST_UPLOADED;
+				rs->status |= ST_PARSED_TRAILER;
 			} else
 				g_warning("vendor %s changed # of open data bytes to %d",
 						  vendor, rs->trailer[4]);
@@ -1281,6 +1273,9 @@ void search_matched(struct search *sch, struct results_set *rs)
 			g_string_append(vinfo, ", open");	/* Open for uploading */
 		if (rs->status & ST_FIREWALL)
 			g_string_append(vinfo, ", push");
+		if (vendor && !(rs->status & ST_PARSED_TRAILER)) {
+			g_string_append(vinfo, ", <unparsed>");
+		}
 	}
 
 	/* Update the GUI */
