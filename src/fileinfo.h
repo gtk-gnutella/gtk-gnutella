@@ -55,7 +55,7 @@ struct dl_file_info {
 	gchar *sha1;			/* server SHA1 (atom) if known, NULL if not. */
 	gchar *cha1;			/* computed SHA1 (atom) if known, NULL if not. */
 	gint32 refcount;		/* Reference count of file (number of sources)*/
-    GSList *sources;        /* list of sources (struct download *)*/
+	GSList *sources;        /* list of sources (struct download *)*/
 	gint32 lifecount;		/* Amount of "alive" downloads referencing us */
 	time_t stamp;			/* Time stamp */
 	time_t last_flush;		/* When last flush to disk occurred */
@@ -66,8 +66,11 @@ struct dl_file_info {
 	struct shared_file *sf;	/* When PFSP-server is enabled, share this file */
 	gboolean use_swarming;	/* Use swarming? */
 	gboolean dirty;			/* Does it need saving? */
-    gboolean dirty_status;  /* Notify about status change on next interval */
+	gboolean dirty_status;  /* Notify about status change on next interval */
 	gboolean hashed;		/* In hash tables? */
+	guint32  aqueued_count; /* Actively queued sources */
+	guint32  pqueued_count; /* Passively queued sources */
+		
 
 	/*
 	 * The following group is used to compute the aggregated reception rate.

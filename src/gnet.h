@@ -728,6 +728,8 @@ typedef struct gnet_fi_status {
 	guint32  size;
 	guint32  done;
 	guint32  recv_last_rate;
+	guint32  aqueued_count;
+	guint32  pqueued_count;
 } gnet_fi_status_t;
 
 typedef void (*fi_listener_t) (gnet_fi_t);

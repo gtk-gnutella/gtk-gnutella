@@ -3550,6 +3550,8 @@ void fi_get_status(gnet_fi_t fih, gnet_fi_status_t *s)
     s->done           = fi->done;
     s->recv_last_rate = fi->recv_last_rate;
     s->size           = fi->size;
+    s->aqueued_count  = fi->aqueued_count;
+    s->pqueued_count  = fi->pqueued_count;
 }
 
 

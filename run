@@ -3,7 +3,7 @@
 # $Id$
 
 # This is where the configuration stuff is stored.
-export GTK_GNUTELLA_DIR=$HOME/.gtk-gnutella
+# export GTK_GNUTELLA_DIR=$HOME/.gtk-gnutella
 
 # turn on core dumps and delete old dump
 ulimit -S -c unlimited

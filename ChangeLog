@@ -1,5 +1,9 @@
 # since last version
 
+- (2004.03.26 - Richard)
+ * Show queued status in fileinfo pane. (Closes #916976)
+ * Comment out GTK_GNUTELLA_DIR export in run script.
+
 - (2004.03-17 - Richard)
  * [GTK1] Slight layout change in the fileinfo pane.
  * [GTK2] Purging of multiple files is now possible.

@@ -90,8 +90,9 @@ static void fi_gui_fill_status(
 
     fi_get_status(fih, &s);
 
-    gm_snprintf(fi_sources, sizeof(fi_sources), "%d/%d (%d)",
-        s.recvcount, s.lifecount, s.refcount);
+    gm_snprintf(fi_sources, sizeof(fi_sources), "%d/%d/%d (%d)",
+        s.recvcount, s.aqueued_count+s.pqueued_count,
+	s.lifecount, s.refcount);
     titles[c_fi_sources] = fi_sources;
 
     if (s.done) {
@@ -111,8 +112,15 @@ static void fi_gui_fill_status(
         titles[c_fi_status] = fi_status;
     } else if (s.done == s.size){
         titles[c_fi_status] = "Finished";
+    } else if (s.lifecount == 0) {
+        titles[c_fi_status] = "No sources";
+    } else if (s.aqueued_count || s.pqueued_count) {
+        gm_snprintf(fi_status, sizeof(fi_status), 
+            "Queued (%d active/ %d passive)",
+            s.aqueued_count, s.pqueued_count);
+        titles[c_fi_status] = fi_status;
     } else {
-        titles[c_fi_status] = s.lifecount ? "Waiting" : "No sources";
+        titles[c_fi_status] = "Waiting";
     }
 }
 

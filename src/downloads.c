@@ -1098,6 +1098,8 @@ void download_actively_queued(struct download *d, gboolean queued)
 			return;
 
 		d->flags |= DL_F_ACTIVE_QUEUED;
+	        d->file_info->aqueued_count ++;
+	        d->file_info->dirty = TRUE;	
 		gnet_prop_set_guint32_val(PROP_DL_AQUEUED_COUNT, dl_aqueued_count + 1);
 	} else {
 		if (!(d->flags & DL_F_ACTIVE_QUEUED))	/* Already accounted for */
@@ -1106,6 +1108,9 @@ void download_actively_queued(struct download *d, gboolean queued)
 		gnet_prop_set_guint32_val(PROP_DL_AQUEUED_COUNT, dl_aqueued_count - 1);
 		g_assert((gint) dl_aqueued_count >= 0);
 		d->flags &= ~DL_F_ACTIVE_QUEUED;
+		g_assert(d->file_info->aqueued_count > 0);
+	        d->file_info->aqueued_count --;
+	        d->file_info->dirty = TRUE;			
 	}
 }
 
@@ -1121,6 +1126,8 @@ static void download_passively_queued(struct download *d, gboolean queued)
 			return;
 
 		d->flags |= DL_F_PASSIVE_QUEUED;
+	        d->file_info->pqueued_count ++;
+	        d->file_info->dirty = TRUE;	
 		gnet_prop_set_guint32_val(PROP_DL_PQUEUED_COUNT, dl_pqueued_count + 1);
 	} else {
 		if (!(d->flags & DL_F_PASSIVE_QUEUED))	/* Already accounted for */
@@ -1129,6 +1136,9 @@ static void download_passively_queued(struct download *d, gboolean queued)
 		gnet_prop_set_guint32_val(PROP_DL_PQUEUED_COUNT, dl_pqueued_count - 1);
 		g_assert((gint) dl_pqueued_count >= 0);
 		d->flags &= ~DL_F_PASSIVE_QUEUED;
+		g_assert(d->file_info->pqueued_count > 0);
+	        d->file_info->pqueued_count --;
+	        d->file_info->dirty = TRUE;			
 	}
 }
 
