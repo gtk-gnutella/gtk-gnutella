@@ -380,15 +380,17 @@ typedef struct gnet_stats {
     guint32 drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
 
     struct {
-        guint32 recieved[MSG_TYPE_COUNT];
-        guint32 sent[MSG_TYPE_COUNT];
+        guint32 received[MSG_TYPE_COUNT];
+        guint32 local[MSG_TYPE_COUNT];
+        guint32 relayed[MSG_TYPE_COUNT];
         guint32 dropped[MSG_TYPE_COUNT];
         guint32 expired[MSG_TYPE_COUNT];
     } pkg;
 
     struct {
-        guint32 recieved[MSG_TYPE_COUNT];
-        guint32 sent[MSG_TYPE_COUNT];
+        guint32 received[MSG_TYPE_COUNT];
+        guint32 local[MSG_TYPE_COUNT];
+        guint32 relayed[MSG_TYPE_COUNT];
         guint32 dropped[MSG_TYPE_COUNT];
         guint32 expired[MSG_TYPE_COUNT];
     } byte;

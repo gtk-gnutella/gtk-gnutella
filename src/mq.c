@@ -593,9 +593,10 @@ static void mq_service(gpointer data)
 		pmsg_t *mb = (pmsg_t *) l->data;
 
 		if (r >= ie->iov_len) {			/* Completely written */
+			gchar *mb_start = pmsg_start(mb);
 			sent++;
             gnet_stats_count_sent(q->node,
-				gmsg_function(pmsg_start(mb)), pmsg_size(mb));
+				gmsg_function(mb_start), gmsg_hops(mb_start), pmsg_size(mb));
 			r -= ie->iov_len;
 			l = mq_rmlink_prev(q, l, ie->iov_len);
 		} else {
@@ -678,9 +679,11 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 		node_add_tx_given(q->node, written);
 
 		if (written == size) {
-			pmsg_free(mb);
+			gchar *mbs = pmsg_start(mb);
 			node_inc_sent(q->node);
-            gnet_stats_count_sent(q->node, gmsg_function(pmsg_start(mb)), size);
+            gnet_stats_count_sent(q->node,
+				gmsg_function(mbs), gmsg_hops(mbs), size);
+			pmsg_free(mb);
 			return;
 		}
 

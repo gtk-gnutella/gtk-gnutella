@@ -222,9 +222,10 @@ void gnet_stats_gui_update(void)
         lookup_widget(main_window, "clist_gnet_stats_drop_reasons"));
 
     for (n = 0; n < MSG_TYPE_COUNT; n ++) {
-        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.pkg.recieved[n]);
+        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.pkg.received[n]);
         gtk_clist_set_text(clist_stats_pkg, n, c_gs_recieved, strbuf);
-        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.pkg.sent[n]);
+        g_snprintf(strbuf, sizeof(strbuf), "%u",
+			stats.pkg.local[n] + stats.pkg.relayed[n]);
         gtk_clist_set_text(clist_stats_pkg, n, c_gs_sent, strbuf);
         g_snprintf(strbuf, sizeof(strbuf), "%u", stats.pkg.dropped[n]);
         gtk_clist_set_text(clist_stats_pkg, n, c_gs_dropped, strbuf);
@@ -232,9 +233,9 @@ void gnet_stats_gui_update(void)
         gtk_clist_set_text(clist_stats_pkg, n, c_gs_expired, strbuf);
 
         gtk_clist_set_text(clist_stats_byte, n, c_gs_recieved, 
-            compact_size(stats.byte.recieved[n]));
+            compact_size(stats.byte.received[n]));
         gtk_clist_set_text(clist_stats_byte, n, c_gs_sent,
-            compact_size(stats.byte.sent[n]));
+            compact_size(stats.byte.local[n] + stats.byte.relayed[n]));
         gtk_clist_set_text(clist_stats_byte, n, c_gs_dropped,
             compact_size(stats.byte.dropped[n]));
         gtk_clist_set_text(clist_stats_byte, n, c_gs_expired,

@@ -35,6 +35,7 @@ struct gnutella_header;
 struct route_dest;
 
 #define gmsg_function(p) (((struct gnutella_header *) p)->function)
+#define gmsg_hops(p)     (((struct gnutella_header *) p)->hops)
 
 /*
  * Public interface
