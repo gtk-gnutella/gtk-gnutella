@@ -78,5 +78,7 @@ void parq_upload_add(gnutella_upload_t *u);
 void parq_upload_busy(gnutella_upload_t *u, gpointer handle);
 void parq_upload_save_queue(void);
 void parq_upload_send_queue_conf(gnutella_upload_t *u);
-	
+
+gboolean parq_ul_id_sent(gnutella_upload_t *u);
+
 #endif /* _parq_h_ */

@@ -145,6 +145,7 @@ struct parq_ul_queued {
 #define PARQ_UL_QUEUE		0x00000001	/* Scheduled for QUEUE sending */
 #define PARQ_UL_NOQUEUE		0x00000002	/* No IP:port, don't send QUEUE */
 #define PARQ_UL_QUEUE_SENT	0x00000004	/* QUEUE message sent */
+#define PARQ_UL_ID_SENT		0x00000008	/* We already sent an ID */
 
 /* Contains the queued download status */
 struct parq_dl_queued {	
@@ -1579,9 +1580,7 @@ void parq_upload_timer(time_t now)
 	if (print_q_size++ >= 60) {
 		print_q_size = 0;
 
-#if 0		
 		if (dbg) {
-#endif
 			printf("\n");
 
 			for (queues = ul_parqs ; queues != NULL; queues = queues->next) {
@@ -1598,9 +1597,7 @@ void parq_upload_timer(time_t now)
 					  queue->alive,
 					  queue->active ? "active" : "inactive");
 			}
-#if 0
 		}
-#endif
 			
 		parq_upload_save_queue();
 		
@@ -1721,7 +1718,7 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	 * If the number of upload slots have been decreased, an old queue
 	 * may still exist. What to do with those uploads? Should we make
 	 * sure those uploads are served first? Those uploads should take
-	 * less time too upload anyway, as they _must_ be smaller.
+	 * less time to upload anyway, as they _must_ be smaller.
 	 */
 	
 	l = g_list_last(ul_parqs);
@@ -2064,7 +2061,7 @@ void parq_upload_remove(gnutella_upload_t *u)
 
 		parq_ul->queue->active_uploads--;
 		
-		/* Search next waiting upload that an slot is avail using QUEUE */
+		/* Tell next waiting upload that a slot is available, using QUEUE */
 		for (lnext = g_list_first(parq_ul->queue->by_rel_pos); lnext != NULL;
 			  lnext = g_list_next(lnext)) {
 				struct parq_ul_queued *parq_ul_next =
@@ -2072,7 +2069,8 @@ void parq_upload_remove(gnutella_upload_t *u)
 				
 			if (!parq_ul_next->has_slot) {
 				g_assert(parq_ul_next->queue->active <= 1);
-				parq_upload_send_queue(parq_ul_next);	
+				if (!(parq_ul_next->flags & (PARQ_UL_QUEUE|PARQ_UL_NOQUEUE)))
+					parq_upload_send_queue(parq_ul_next);
 				break;
 			}
 		}
@@ -2153,6 +2151,8 @@ void parq_upload_add_header(gchar *buf, gint *retval, gpointer arg)
 					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
 					parq_upload_lookup_id(a->u),
 					MAX((gint32)  (parq_ul->retry - now ), 0));
+
+			parq_ul->flags |= PARQ_UL_ID_SENT;
 		}
 	}
 
@@ -2194,16 +2194,31 @@ void parq_upload_add_header_id(gchar *buf, gint *retval, gpointer arg)
 	 *		--RAM, 17/05/2003
 	 */
 
-	if (parq_ul->major >= 1)
+	if (parq_ul->major >= 1) {
 		rw = gm_snprintf(buf, length,
 			"X-Queue: %d.%d\r\n"
 			"X-Queued: ID=%s\r\n",
 			PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
 			parq_upload_lookup_id(a->u));
 
+		parq_ul->flags |= PARQ_UL_ID_SENT;
+	}
+
 	g_assert(rw < length);
 	
 	*retval = rw;
+}
+
+/*
+ * parq_ul_id_sent
+ *
+ * Determines whether the PARQ ID was already sent for an upload.
+ */
+gboolean parq_ul_id_sent(gnutella_upload_t *u)
+{
+	struct parq_ul_queued *parq_ul = parq_upload_find(u);
+
+	return parq_ul != NULL && (parq_ul->flags & PARQ_UL_ID_SENT);
 }
 
 /*
