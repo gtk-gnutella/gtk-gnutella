@@ -29,6 +29,8 @@ extern guint32 download_connected_timeout;
 extern guint32 download_retry_timeout_min;
 extern guint32 download_retry_timeout_max;
 extern guint32 download_max_retries;
+extern guint32 upload_connecting_timeout;
+extern guint32 upload_connected_timeout;
 extern guint32 node_connected_timeout;
 extern guint32 node_connecting_timeout;
 extern guint32 node_sendqueue_size;

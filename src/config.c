@@ -49,6 +49,8 @@ guint32 download_connected_timeout = 60;
 guint32 download_retry_timeout_min = 20;
 guint32 download_retry_timeout_max = 120;
 guint32 download_max_retries = 5;
+guint32 upload_connecting_timeout = 60;		/* Receiving headers */
+guint32 upload_connected_timeout = 180;		/* Sending data */
 guint32 node_connected_timeout = 45;
 guint32 node_connecting_timeout = 5;
 guint32 node_sendqueue_size = 20480;	/* was 10240 */
@@ -118,6 +120,7 @@ enum {
 	k_force_local_ip, k_hosts_catched,
 	k_download_connecting_timeout,
 	k_download_push_sent_timeout, k_download_connected_timeout,
+	k_upload_connecting_timeout, k_upload_connected_timeout,
 	k_node_connected_timeout,
 	k_node_connecting_timeout, k_node_sendqueue_size,
 	k_search_queries_forward_size,
@@ -166,6 +169,8 @@ gchar *keywords[] = {
 	"download_connecting_timeout",		/* k_download_connecting_timeout */
 	"download_push_sent_timeout",		/* k_download_push_sent_timeout */
 	"download_connected_timeout",		/* k_download_connected_timeout */
+	"upload_connecting_timeout",		/* k_upload_connecting_timeout */
+	"upload_connected_timeout",			/* k_upload_connected_timeout */
 	"node_connected_timeout",	/* k_node_connected_timeout */
 	"node_connecting_timeout",	/* k_node_connecting_timeout */
 	"node_sendqueue_size",		/* k_node_sendqueue_size */
@@ -593,6 +598,14 @@ void config_set_param(guint32 keyword, gchar *value)
 		if (i > 1 && i < 3600) download_connected_timeout = i;
 		return;
 
+	case k_upload_connecting_timeout:
+		if (i > 1 && i < 3600) upload_connecting_timeout = i;
+		return;
+
+	case k_upload_connected_timeout:
+		if (i > 1 && i < 3600) upload_connected_timeout = i;
+		return;
+
 	case k_search_queries_forward_size:
 		if (i > 64 && i < 65535) search_queries_forward_size = i;
 		return;
@@ -989,7 +1002,7 @@ void config_save(void)
 		"yet be configured with the GUI.\n\n");
 
 	fprintf(config, "# Name of file with auto-download strings "
-		"(relative is taken from launch dir)\n%s = %s\n\n",
+		"(relative is taken from launch dir)\n%s = \"%s\"\n\n",
 			keywords[k_auto_download_file],
 			auto_download_file);
 
@@ -1010,6 +1023,14 @@ void config_save(void)
 		"for a connected download\n%s = %u\n\n",
 			keywords[k_download_connected_timeout],
 			download_connected_timeout);
+	fprintf(config, "# Number of seconds before timeout "
+		"for a connecting upload\n%s = %u\n\n",
+			keywords[k_upload_connecting_timeout],
+			upload_connecting_timeout);
+	fprintf(config, "# Number of seconds before timeout "
+		"for a connected upload\n%s = %u\n\n",
+			keywords[k_upload_connected_timeout],
+			upload_connected_timeout);
 	fprintf(config, "# Number of seconds before timeout "
 		"for a connecting node\n%s = %u\n\n",
 			keywords[k_node_connecting_timeout], node_connecting_timeout);
