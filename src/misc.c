@@ -47,7 +47,7 @@ RCSID("$Id$");
 #define RANDOM_MASK				0xffffffff
 #define RANDOM_MAXV				RAND_MAX
 #else
-#define RANDOM_MASK				2147483647
+#define RANDOM_MASK				0x7fffffff
 #define RANDOM_MAXV				RANDOM_MASK
 #endif
 
