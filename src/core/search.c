@@ -55,6 +55,7 @@ RCSID("$Id$");
 #include "vmsg.h"
 #include "sq.h"
 #include "settings.h"		/* For listen_ip() */
+#include "oob_proxy.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/gui_property.h"
@@ -1286,7 +1287,7 @@ build_search_msg(search_ctrl_t *sch, gint *len, gint *sizep)
 
 		guid_oob_get_ip_port(m->header.muid, &ip, &port);
 
-		if (ip == listen_ip() && port == listen_port && ip_is_valid(ip))
+		if (ip == listen_ip() && port == listen_port && host_is_valid(ip, port))
 			speed |= QUERY_SPEED_OOB_REPLY;
 	}
 
@@ -1755,6 +1756,7 @@ search_results(gnutella_node_t *n, gint *results)
 	GSList *selected_searches = NULL;
 	GSList *sl;
 	gboolean drop_it = FALSE;
+	gboolean forward_it = TRUE;
 
 	g_assert(results != NULL);
 
@@ -1821,12 +1823,32 @@ search_results(gnutella_node_t *n, gint *results)
 	 * Let dynamic querying know about the result count, in case
 	 * there is a dynamic query opened for this.
 	 *
-	 * Also pass the results to the dynamic query hit monitoring
+	 * Also pass the results to the dynamic query hit monitoring (DH)
 	 * to be able to throttle messages if we get too many hits.
+	 *
+	 * NB: if the dynamic query says the user is no longer interested
+	 * by the query, we won't forward the results, but we don't set
+	 * `drop_it' as this is reserved for bad packets.
 	 */
 
-	dq_got_results(n->header.muid, rs->num_recs);
-	dh_got_results(n->header.muid, rs->num_recs);
+	if (!dq_got_results(n->header.muid, rs->num_recs))
+		forward_it = FALSE;
+
+	/*
+	 * If we got results for an OOB-proxied query, we'll forward
+	 * the hit to the proper leaf, but we don't want to route this
+	 * message any further.
+	 *
+	 * Also, the DH layer is invoked directly from the OOB-proxy layer
+	 * if the MUID is for a proxied query, using the unmangled original
+	 * MUID of the query, as sent by the leaf.  Therefore, we can only
+	 * call dh_got_results() when oob_proxy_got_results() returns FALSE.
+	 */
+
+	if (oob_proxy_got_results(n, rs->num_recs))
+		forward_it = FALSE;
+	else
+		dh_got_results(n->header.muid, rs->num_recs);
 
     /*
      * Look for records that match entries in the download queue.
@@ -1877,13 +1899,13 @@ search_results(gnutella_node_t *n, gint *results)
 final_cleanup:
 	g_slist_free(selected_searches);
 
-	if (drop_it && n->header.hops == 1) {
+	if (drop_it && n->header.hops == 1 && !NODE_IS_UDP(n)) {
 		n->n_weird++;
 		if (search_debug) g_warning("[weird #%d] dropped %s from %s (%s)",
 			n->n_weird, gmsg_infostr(&n->header), node_ip(n), node_vendor(n));
 	}
 
-	return drop_it;
+	return drop_it || !forward_it;
 }
 
 /**
@@ -2412,6 +2434,14 @@ search_oob_pending_results(
 	 */
 
 	if (!search_get_kept_results(muid, &kept)) {
+
+		/*
+		 * Maybe it's an OOB-proxied search?
+		 */
+
+		if (oob_proxy_pending_results(n, muid, hits, udp_firewalled))
+			return;
+
 		if (search_debug)
 			g_warning("got OOB indication of %d hit%s for unknown search %s",
 				hits, hits == 1 ? "" : "s", guid_hex_str(muid));
