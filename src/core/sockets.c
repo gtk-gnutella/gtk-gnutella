@@ -770,12 +770,15 @@ socket_timer(time_t now)
 
 	for (l = sl_incoming; l; l = g_slist_next(l)) {
 		struct gnutella_socket *s = (struct gnutella_socket *) l->data;
+		gint32 delta;
+		
 		g_assert(s->last_update);
 		/*
 		 * Last_update can be in the feature due to parq. This is needed
 		 * to avoid dropping the connection
 		 */
-		if (now - s->last_update > (gint32) incoming_connecting_timeout) {
+		delta = delta_time(now, s->last_update);
+		if (delta > (gint32) incoming_connecting_timeout) {
 			if (dbg) {
 				g_warning("connection from %s timed out (%d bytes read)",
 						  ip_to_gchar(s->ip), (int) s->pos);
