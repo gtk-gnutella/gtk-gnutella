@@ -1748,13 +1748,12 @@ void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist)
     gtk_widget_show_all(hbox);
     gtk_clist_set_column_name(GTK_CLIST(*clist), 3, "Host");
 
-	label = gtk_label_new("URN");
-    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
+	label = gtk_label_new("urn:sha1");
     hbox = gtk_hbox_new(FALSE, 4);
     gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
 	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_urn, hbox);
     gtk_widget_show_all(hbox);
-    gtk_clist_set_column_name(GTK_CLIST(*clist), 4, "URN");
+    gtk_clist_set_column_name(GTK_CLIST(*clist), 4, "urn:sha1");
     gtk_clist_set_column_visibility(GTK_CLIST(*clist), 4, FALSE);
 
 	label = gtk_label_new("Info");
