@@ -1,6 +1,21 @@
 # since last version
 
-- (Richard)
+- (2002.11.03 RAM)
+ * Refuse to start a "suspended" download, requeuing it as "Suspended".
+ * Moved settings of the DL_F_SUSPENDED after download is allocated
+   (thanks to Paul Cassella for spotting this).
+ * Log vendor string when HTTP/1.1 server gives us more bytes than requested.
+ * When we have to trim data, we can't use keep-alive connections: remember
+   bad servers so we don't request upper-bounded ranges from them again.
+ * When logging to "done.sha1", use the output filename as name, not the
+   server name, which could be an obscure urn:sha1: string.
+ * When resuming after crash, forgot to handle the case where a completed
+   file could be listed many times in the queue.
+ * Was showing bytes/s instead of kbytes/s in the final SHA1 computing
+   rate display.
+ * Added new is_faked_download() routine.
+
+- (2002.11.03 Richard)
  * Added default extensions: doc, nes, smc, smd, rom
  * Changed default sidebar width to 140
  * Changed default filter-tree size in filter dialog to 140
