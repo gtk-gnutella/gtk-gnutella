@@ -30,6 +30,8 @@
 
 #include "matching.h"
 
+typedef void (*qrp_callback_t)(gpointer arg, gboolean cancelled);
+
 guint32 qrp_hash(guchar *x, gint bits);
 guint32 qrp_hashcode(guchar *x);
 guint32 qrp_hash_restrict(guint32 hashcode, gint bits);
