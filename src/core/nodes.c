@@ -2268,7 +2268,7 @@ node_host_is_connected(guint32 ip, guint16 port)
  * continuations. --RAM, 10/01/2002
  */
 static gchar *
-formatted_connection_pongs(gchar *field, hcache_type_t htype, gint num)
+formatted_connection_pongs(gchar *field, host_type_t htype, gint num)
 {
 	struct gnutella_host hosts[CONNECT_PONGS_COUNT];
 	gint hcount;
@@ -2606,7 +2606,7 @@ send_proxy_request(gnutella_node_t *n)
 	g_assert(n->proxy_ip == 0);		/* Not proxying us yet */
 
 	n->flags |= NODE_F_PROXY;
-	vmsg_send_proxy_req(n, guid);
+	vmsg_send_proxy_req(n, guid);	/* XXX: guid is a property */
 }
 
 /**
@@ -4361,11 +4361,11 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		guint value = 0;
 		sscanf(field, "%u", &value);
 		if (value < 1 || value > 255) {
+			value = max_ttl;
 			if (dbg) g_warning("node %s <%s> request bad Max-TTL %s, using %u",
-				node_ip(n), node_vendor(n), field, my_ttl);
-			value = my_ttl;
+				node_ip(n), node_vendor(n), field, value);
 		}
-		n->max_ttl = my_ttl;
+		n->max_ttl = MIN(max_ttl, value);
 	} else if (n->attrs & NODE_A_ULTRA)
 		n->max_ttl = NODE_LEGACY_TTL;
 
@@ -4595,7 +4595,7 @@ allow_for_now:		/* XXX remove after 2005-01-31 */
 					"X-Degree: %d\r\n"
 					"X-Max-TTL: %d\r\n",
 					(up_connections + max_connections - normal_connections) / 2,
-					my_ttl);
+					max_ttl);
 			else if (0 == strncmp(node_vendor(n), "LimeWire", 8))
 				gm_snprintf(degree, sizeof(degree),
 					"X-Dynamic-Querying: 0.1\r\n"
@@ -5765,7 +5765,7 @@ node_init_outgoing(struct gnutella_node *n)
 				"X-Degree: %d\r\n"
 				"X-Max-TTL: %d\r\n",
 				(up_connections + max_connections - normal_connections) / 2,
-				my_ttl);
+				max_ttl);
 		else
 			gm_snprintf(degree, sizeof(degree),
 				"X-Dynamic-Querying: 0.1\r\n"
