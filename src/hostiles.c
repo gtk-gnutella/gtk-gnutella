@@ -65,13 +65,14 @@ void hostiles_retrieve(void)
 	int linenum = 0;
 	gint count = 0;
 	file_path_t fp[] = {
-		{ settings_config_dir(), hostiles_file },
+		{ NULL, NULL },
 		{ PACKAGE_DATA_DIR, hostiles_file },
 #ifdef USE_SOURCE_DIR_AS_FALLBACK 
 		{ PACKAGE_SOURCE_DIR, hostiles_file },
 #endif
 	};
 
+	file_path_set(&fp[0], settings_config_dir(), hostiles_file);
 	f = file_config_open_read_norename(hostiles_what, fp, G_N_ELEMENTS(fp));
 	if (!f)
 	   return;
