@@ -51,7 +51,7 @@ static const gchar * const extype[] = {
  ***/
 
 struct rwtable {			/* Reserved word description */
-	gchar *rw_name;			/* Representation */
+	const gchar *rw_name;	/* Representation */
 	gint rw_token;			/* Token value */
 };
 
@@ -63,13 +63,27 @@ static const struct rwtable urntable[] =	/* URN name table (sorted) */
 
 static const struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 {
-	{ "ALT",			EXT_T_GGEP_ALT },
-	{ "GTKGV1",			EXT_T_GGEP_GTKGV1 },
-	{ "H",				EXT_T_GGEP_H },
-	{ "HNAME",			EXT_T_GGEP_HNAME },
-	{ "PUSH",			EXT_T_GGEP_PUSH },
-	{ "T",				EXT_T_GGEP_T },
-	{ "u",				EXT_T_GGEP_u },
+#define GGEP_ID(x) { #x, EXT_T_GGEP_ ## x }
+   	
+	{ "<", EXT_T_GGEP_LIME_XML },
+	GGEP_ID(ALT),
+	GGEP_ID(DU),
+	GGEP_ID(GTKGV1),
+	GGEP_ID(H),
+	GGEP_ID(HNAME),
+	GGEP_ID(IPP),
+	GGEP_ID(LF),
+	GGEP_ID(LOC),
+	GGEP_ID(PHC),
+	GGEP_ID(PUSH),
+	GGEP_ID(SCP),
+	GGEP_ID(T),
+	GGEP_ID(UDPHC),
+	GGEP_ID(UP),
+	GGEP_ID(VC),
+	GGEP_ID(u),
+	
+#undef GGEP_ID
 };
 
 #define END(v)		(v - 1 + G_N_ELEMENTS(v))
@@ -222,7 +236,7 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 		guchar flags;
 		gchar id[16];
 		gint id_len;
-		gint data_length = 0;
+		gint data_length;
 		gint i;
 		gchar *ip = id;
 		gboolean length_ended = FALSE;
@@ -262,6 +276,7 @@ ext_ggep_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 		 * Read the payload length (maximum of 3 bytes).
 		 */
 
+		data_length = 0;
 		for (i = 0; i < 3 && p < end; i++) {
 			guchar b = *p++;
 
