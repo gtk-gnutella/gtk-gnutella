@@ -554,7 +554,7 @@ static void recurse_scan(gchar *dir, gchar *basedir)
 				found->file_size = file_stat.st_size;
 				found->file_index = ++files_scanned;
 				found->mtime = file_stat.st_mtime;
-				found->sha1_digest[0] = '\0';
+				found->has_sha1_digest = FALSE;
 				request_sha1(found);
 
 				st_insert_item(&search_table, found->file_name, found);
@@ -708,7 +708,7 @@ static gboolean got_match(struct shared_file *sf)
 	put_shared_file_into_found_set(sf);
 
 	if (sha1_available)
-		needed += 8 + SHA1_BASE32_SIZE;
+		needed += 9 + SHA1_BASE32_SIZE;
 
 	/*
 	 * Refuse entry if we don't have enough room.	-- RAM, 22/01/2002
@@ -735,9 +735,10 @@ static gboolean got_match(struct shared_file *sf)
 	FOUND_BUF[pos++] = '\0';
 
 	if (sha1_available) {
-		memcpy(&FOUND_BUF[pos], "urn:sha1:", 8);
-		pos += 8;
-		memcpy(&FOUND_BUF[pos], sf->sha1_digest, SHA1_BASE32_SIZE);
+		gchar *b32 = sha1_base32(sf->sha1_digest);
+		memcpy(&FOUND_BUF[pos], "urn:sha1:", 9);
+		pos += 9;
+		memcpy(&FOUND_BUF[pos], b32, SHA1_BASE32_SIZE);
 		pos += SHA1_BASE32_SIZE;
 	}
 
@@ -790,7 +791,7 @@ static void check_query_extension(
 	const char *extension, int extension_length, struct query_extensions *qe)
 {
 	if (extension_length == 9 + SHA1_BASE32_SIZE
-		&& !strncmp(extension, "urn:sha1:", 9)) {
+		&& 0 == strncmp(extension, "urn:sha1:", 9)) {
 
 		qe->urn = extension + 9;
 		if (dbg > 4) {
@@ -800,7 +801,7 @@ static void check_query_extension(
 		}
 
 	} else if (extension_length == 4 && !strncmp(extension, "urn:", 4)) {
-		; /* We always send URN for now */
+		; /* We always send URN, whether we saw this or not */
 	} else {
 		qe->unknown++;
 		if (dbg > 4) {
@@ -1137,7 +1138,7 @@ static GTree *sha1_to_share = NULL;
 /* 
  * compare_share_sha1
  * 
- * Compare to base-32 encoded SHA1 hashes.
+ * Compare binary SHA1 hashes.
  * Return 0 if they're the same, a negative or positive number if s1 if greater
  * than s2 or s1 greater than s2, respectively.
  * Used to search the sha1_to_share tree.
@@ -1145,7 +1146,7 @@ static GTree *sha1_to_share = NULL;
 
 static int compare_share_sha1(const gchar *s1, const gchar *s2)
 {
-	return memcmp(s1, s2, SHA1_BASE32_SIZE);
+	return memcmp(s1, s2, SHA1_RAW_SIZE);
 }
 
 /* 
@@ -1159,7 +1160,7 @@ static void reinit_sha1_table()
 	if (sha1_to_share)
 		g_tree_destroy(sha1_to_share);
 
-	sha1_to_share = g_tree_new((GCompareFunc)compare_share_sha1);
+	sha1_to_share = g_tree_new((GCompareFunc) compare_share_sha1);
 }
 
 /* 
@@ -1172,7 +1173,8 @@ static void reinit_sha1_table()
 
 void set_sha1(struct shared_file *f, const char *sha1)
 {
-	memcpy(f->sha1_digest, sha1, SHA1_BASE32_SIZE);
+	memcpy(f->sha1_digest, sha1, SHA1_RAW_SIZE);
+	f->has_sha1_digest = TRUE;
 	g_tree_insert(sha1_to_share, f->sha1_digest, f);
 }
 
@@ -1185,7 +1187,7 @@ void set_sha1(struct shared_file *f, const char *sha1)
 
 gboolean sha1_hash_available(const struct shared_file *sf)
 {
-	return *sf->sha1_digest;
+	return sf->has_sha1_digest;
 }
 
 /* 
@@ -1196,7 +1198,16 @@ gboolean sha1_hash_available(const struct shared_file *sf)
  */
 struct shared_file *shared_file_from_sha1_hash(const gchar *sha1_digest)
 {
-	struct shared_file *f = g_tree_lookup(sha1_to_share,(gpointer)sha1_digest);
+	struct shared_file *f;
+	gchar digest[SHA1_RAW_SIZE];
+
+	if (
+		!base32_decode_into(sha1_digest, SHA1_BASE32_SIZE,
+			digest, sizeof(digest))
+	)
+		return NULL;
+
+	f = g_tree_lookup(sha1_to_share, (gpointer) digest);
 
 	if (!f)
 		return NULL;

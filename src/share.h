@@ -40,7 +40,8 @@ struct shared_file {
 	guint32 file_size;		/* File size in Bytes */
 	gint file_name_len;
 	time_t mtime;			/* Last modification time, for SHA1 computation */
-	gchar sha1_digest[SHA1_BASE32_SIZE];	/* base32 encoding of SHA1 */
+	gchar sha1_digest[SHA1_RAW_SIZE];	/* SHA1 digest, binary form */
+	gboolean has_sha1_digest;				/* True when digest is set */
 };
 
 struct gnutella_search_results_out {
