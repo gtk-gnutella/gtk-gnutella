@@ -1,0 +1,227 @@
+               Framework for Vendor-specific Messages
+
+                          Raphael Manfredi
+                    <Raphael_Manfredi@pobox.com>
+                        January, 1st 2003
+
+[These specifications are a summary of messages exchanged on the GDF.
+ The initial introduction of vendor-specific messages was done by
+ BearShare.  However, some refinements to the initial proposal have been
+ introduced and never documented formally.  This document tries to remedy
+ to that].
+
+1. OVERVIEW
+
+Vendor-specific messages allow vendors to experiment with new messages
+without disrupting the regular Gnutella network.
+
+This document defines the framework which is used to define the new
+vendor-specific messages.  Whilst those message are inherently highy
+specific and free form, they are minimally structured so as to be
+manageable.
+
+The framework also defines a generic way for servents to query eachother
+about the set of supported vendor-specific messages they support.
+
+2. MESSAGE FORMAT
+
+All vendor-specific message use the new message code 0x31 (49 decimal).
+
+The message code 0x32 (50 decimal) is hereby also reserved for
+standardized vendor messages, i.e. messages that were initially specified
+privately as a 0x31 message and which were deemed so generally useful
+that they were "promoted".  There is otherwise no difference between
+the 0x32 and the 0x31 version of a message, as far as the format goes.
+
+Since all vendor-specific messages are defined within one 0x31 message
+type, the leading bytes of the payload further define the message
+as follows:
+
+Bytes 0-3: Vendor ID, case sensitive sequence of 4 ASCII characters,
+           as with query hits.  For instance, "BEAR" would be coded as
+           the 0x42454152 digit, in hexadecimal.  Note that this
+           representation is inherently big-endian.
+
+           [Note from RAM: yes, it is case SENSITIVE.  All vendors
+            traditionally used upper-cased chars in query hits, and
+            being case-insensitive would not buy us anything but
+            problems.]
+
+           You can also view this field as a big-endian unsigned
+           32-bit integer.
+
+Bytes 4-5: Sub-selector, yielding the message type for this vendor ID.
+           This field is a little-endian unsigned 16-bit integer.
+           All values from 0x0000 to 0xfffc can be used.
+           Values 0xfffe and 0xffff are reserved (see section 4 below).
+
+Bytes 6-7: Version number, a little-endian unsigned 16-bit integer.
+
+The type of the vendor-specific message is therefore determined by the
+tuple (Vendor ID, Sub-selector).  For ease of notation, the message from
+vendor ID "BEAR" bearing sub-selector 34 (for instance) will be noted
+"BEAR/34".
+
+Hereinafter, when we talk about a "message type", we mean a
+vendor-specific message type, i.e. a tuple (Vendor ID, Sub-selector).
+Thus, "BEAR/34" is a message type, and you must understand that it is
+sent encapsulated within a regular Gnutella message bearing the message
+code 0x31.
+
+The remainder of the payload is defined by the message type.
+
+The rules for routing 0x31 messages, value for GUID, ttl, and hops are
+defined on a message type basis.  Servents MUST NOT route or broadcast
+vendor-specific messages they do not understand, but instead MUST
+drop them.
+
+3. HANDSHAKING
+
+During Gnutella handshaking, servents supporting reception of
+vendor-specific messages compliant with this specification SHOULD
+advertise so by emitting the following header:
+
+    Vendor-Message: 0.1
+
+Alternatively, the reception of a 0x31 message with hops=0 should be
+understood as if the node had sent the above header.  Most existing
+servents do not choke on unknown messages, but newer servents might be
+stricter.  Therefore, you should not send 0x31 messages to servents
+who have not advertised understanding of those via a Vendor-Message
+header.
+
+Note that understand 0x31 messages simply means that you will
+read the message and not terminate the connection.  It gives no
+assurance that you will be able to understand the received message.
+
+Section 4 below defines a generic way for servents supporting vendor
+messages to query eachother about the subset they support.  By
+definition, complete support for all the vendor-specific messages
+is impossible.
+
+4. DISCOVERY OF SUPPORTED MESSAGES
+
+Because the set of vendor-messages supported is not really bounded and
+can be fairly large, it is not advertised directly in the handshake.
+
+At times, all you want to know is whether a servent supports
+vendor-messages.  This is indicated by the presence of the Vendor-Message
+field in the handshake.  So you blindly send the message, and do not
+really care whether the other end will act on it or simply ignore it.
+
+On the other hand, some vendor-specific messages may require a reply from
+the other party.  Before sending the message, you need to know whether
+the other end will support it, so that you do not wait the reply forever,
+or close the connection if the reply does not come after a timeout,
+for instance.
+
+The following discovery messages are guaranteed to be supported by all
+the servents advertising Vendor-Message in their header:
+
+4.1 Supported Vendor IDs
+
+The message is known as "null/0xffff".  "null" is because the vendor ID
+field is set with zeros, as in 0x00000000.  And "0xffff" because the
+sub-selector ID is 65535 in decimal.
+
+The only version specified for this message is 1.  It has no payload,
+and MUST be sent with TTL=1, hops=0.
+
+The message requests the other party to send back an array of vendor-IDs
+corresponding to the vendor-specific messages suppoted.  For the sake
+of the illustration, imagine you are supporting some vendor-specific
+messages from "BEAR" and from "GTKG".
+
+The reply to the "null/0xffff" message is a "null/0xfffe" message,
+version 1.  It bears the same GUID that came with the request, and is
+also sent with TTL=1 and hops=0.  Its payload is a vector of supported
+vendor IDs.
+
+In our example, the reply would be (whole payload of the 0x31 message):
+
+    Byte     Value
+     0         0        # "null" vendor ID
+     1         0 
+     2         0 
+     3         0 
+     4        0xfe      # 0xfffe in little-endian representation
+     5        0xff
+     6        0x01      # version 1, the only one defined so far
+     7        0x00
+     8        'B'       # The reply starts here, ASCII code 0x42
+     9        'E'       # ASCII code 0x45
+    10        'A'       # ASCII code 0x41
+    11        'R'       # ASCII code 0x52
+    12        'G'       # ASCII code 0x47
+    13        'T'       # ASCII code 0x54
+    14        'K'       # ASCII code 0x4b
+    15        'G'       # ASCII code 0x47
+    
+The payload of the "null/0xfffe" reply is necessary a multiple of 4 bytes.
+
+4.2 Specific Messages by Vendor IDs
+
+Now that we know that the remote servent supports messages defined by
+"BEAR" and by "GTKG", we would want to know which specific messages
+are supported.
+
+In order to know which GTKG messages are supported, for instance, we
+would send the query "GTKG/0xffff".  Where "null/0xffff" queries for the
+set of vendor IDs supported, "GTKG/0xffff" queries for the sub-selectors
+ID AND version number of the messages supported.
+
+This message MUST be sent with TTL=1 and hops=0.  It has not payload.
+
+To query for BEAR messages, one would send a "BEAR/0xffff".  You need not
+wait for the reply of "GTKG/0xffff" to send the "BEAR/0xffff" message,
+of course!
+
+The reply to "GTKG/0xffff" will be "GTKG/0xfffe".  It bears the same
+GUID as the query, and MUST be sent with TTL=1 and hops=0.  Its payload
+is a vector of 4 bytes, defined as:
+
+    Bytes 0-1: little-endian unsigned 16-bit integer: sub-selector ID.
+    Bytes 1-2: little-endian unsigned 16-bit integer: version number
+
+There is one entry per supported message.  If several version numbers are
+supported for a given sub-selector ID, whether or not all are mentionned
+depends how backward compatible those messages were.  If they are
+guaranteed to be backward compatible, only the highest version supported
+(i.e. understood when read) needs to be sent back.
+
+5. EXAMPLE - HOPS FLOW
+
+Here is a sample definition for a REAL vendor-specific message, known
+as BEAR/4, but also as "Hops Flow".
+
+This message carries a single 8-bit unsigned integer representing the
+highest value for hops that a servent wishes to see in queries from
+its neighbors.
+
+This message MUST NOT be routed, and MUST always be sent with TTL=1
+and hops=0.  The GUID is ignored.
+
+BearShare will use the Hops Flow feature to allow leaves to inform its
+Ultrapeers that they should turn the forwarding of queries on and off
+(by setting hops to max-TTL and 0 respectively) based on whether or not
+the leaf has sharing of files turned on. Setting hops to 0 results in a
+substantial bandwidth reduction with modem users who have large shared
+file sets but turn sharing off to speed up downloads.
+
+Here is a detailed description of the message payload within the 0x31
+Gnutella message:
+
+    Byte     Value
+     0        'B'       # ASCII code 0x42
+     1        'E'       # ASCII code 0x45
+     2        'A'       # ASCII code 0x41
+     3        'R'       # ASCII code 0x52
+     4        0x04      # 4 in little-endian representation
+     5        0x00
+     6        0x01      # version 1, the only one defined so far
+     7        0x00
+     8         zz       # the hop value
+
+Therefore, the payload length for this 0x31 message is 9 bytes.
+
+Raphael
