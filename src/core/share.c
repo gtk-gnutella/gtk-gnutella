@@ -50,6 +50,7 @@ RCSID("$Id$");
 #include "oob_proxy.h"
 #include "fileinfo.h"
 #include "settings.h"
+#include "hosts.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"

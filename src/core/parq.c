@@ -38,6 +38,7 @@ RCSID("$Id$");
 #include "share.h"
 #include "sockets.h"
 #include "gnet_stats.h"
+#include "hosts.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"

@@ -31,6 +31,7 @@ RCSID("$Id$");
 
 #include "pproxy.h"
 #include "http.h"
+#include "hosts.h"
 #include "version.h"
 
 /* Following extra needed for the server-side */

@@ -49,6 +49,7 @@ RCSID("$Id$");
 #include "mq_udp.h"
 #include "clock.h"
 #include "tsync.h"
+#include "hosts.h"
 
 #include "if/gnet_property_priv.h"
 
