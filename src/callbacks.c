@@ -129,7 +129,7 @@ gboolean on_progressbar_bws_gout_button_press_event(GtkWidget *widget,
 
 void on_button_host_catcher_clear_clicked(GtkButton *button, gpointer user_data)
 {
-	host_clear_cache();
+	hcache_clear(HCACHE_ANY);
 }
 
 /***

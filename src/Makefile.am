@@ -110,6 +110,7 @@ gtk_gnutella_SOURCES = \
 	sockets.c sockets.h \
 	nodes.c nodes.h \
 	hosts.c hosts.h \
+	hcache.c hcache.h \
 	pcache.c pcache.h \
 	routing.c routing.h \
 	search.c search.h search_gui.h \

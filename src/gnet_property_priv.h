@@ -29,6 +29,7 @@
 #include <glib.h>
 
 extern gboolean reading_hostfile;
+extern gboolean reading_ultrafile;
 extern gboolean ancient_version;
 extern gchar   *new_version_str;
 extern guint32  up_connections;
@@ -88,6 +89,8 @@ extern guint32  proxy_port;
 extern guint32  proxy_protocol;
 extern guint32  max_hosts_cached;
 extern guint32  hosts_in_catcher;
+extern guint32  hosts_in_ultra_catcher;
+extern guint32  max_ultra_hosts_cached;
 extern guint32  max_high_ttl_msg;
 extern guint32  max_high_ttl_radius;
 extern guint32  bw_http_in;

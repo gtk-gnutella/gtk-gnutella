@@ -98,9 +98,6 @@ void gtk_gnutella_exit(gint n)
 
     main_gui_shutdown();
 
-	if (hosts_idle_func)
-		g_source_remove(hosts_idle_func);
-
 	if (s_listen)
 		socket_free(s_listen);
 	socket_shutdown();
@@ -122,11 +119,12 @@ void gtk_gnutella_exit(gint n)
 
 	share_close();
 	node_close();
-	host_close();
 	routing_close();
 	bsched_close();
 	dmesh_close();
 	settings_close();
+	hcache_close();
+	host_close();
 	ban_close();
     whitelist_close();
 	cq_free(callout_queue);
@@ -312,6 +310,7 @@ gint main(gint argc, gchar ** argv)
     main_gui_early_init(argc, argv);
 	callout_queue = cq_make(0);
 	init_constants();
+	hcache_init();
 	settings_init();
 	guid_init();
 	gwc_init();

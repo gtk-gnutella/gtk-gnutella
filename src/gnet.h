@@ -25,6 +25,7 @@
 #define __gnet_h__
 
 #include "common.h"
+#include "hcache.h"
 
 
 /***
@@ -147,16 +148,6 @@ void node_remove_nodes_by_handle(GSList *node_list);
 void node_get_status(const gnet_node_t n, gnet_node_status_t *s);
 gnet_node_info_t *node_get_info(const gnet_node_t n);
 void node_free_info(gnet_node_info_t *info);
-
-
-
-/***
- *** Host cache
- ***/
-void host_clear_cache(void);
-
-
-
 
 /***
  *** Sharing

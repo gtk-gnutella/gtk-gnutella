@@ -38,7 +38,6 @@ struct gnutella_host {
  */
 
 extern GList *sl_caught_hosts;
-extern gint hosts_idle_func;
 extern guint32 hosts_in_catcher;
 extern gboolean host_low_on_pongs;
 
@@ -48,24 +47,13 @@ extern gboolean host_low_on_pongs;
 
 void host_init(void);
 void host_timer(void);
-gboolean find_host(guint32, guint16);
-void host_remove(struct gnutella_host *);
-void host_save_valid(guint32 ip, guint16 port);
 void host_add(guint32, guint16, gboolean);
-void host_prune_cache();
-gboolean host_cache_is_empty(void);
-gint host_cache_size(void);
 void host_add_semi_pong(guint32 ip, guint16 port);
-gint host_fill_caught_array(struct gnutella_host *hosts, gint hcount);
-void host_get_caught(guint32 *ip, guint16 *port);
-gboolean check_valid_host(guint32, guint16);
-void hosts_read_from_file(const gchar *, gboolean);
-void hosts_write_to_file(const gchar *);
+gboolean host_is_valid(guint32, guint16);
 void host_shutdown(void);
 void host_close(void);
 
 void parse_netmasks(gchar *value);
-gboolean find_nearby_host(guint32 *ip, guint16 *port);
 gboolean host_is_nearby(guint32 ip);
 
 #endif /* __hosts_h__ */

@@ -22,6 +22,15 @@ prop = {
     };
 };
 
+prop = {
+    name = "reading_ultrafile";
+    desc = "Indicates wether the ultracache file is being read";
+    type = boolean;
+    save = FALSE;
+    data = {  
+        default = FALSE;
+    };
+};
 
 prop = {
     name = "ancient_version";
@@ -687,7 +696,7 @@ prop = {
 
 prop = {
     name = "max_hosts_cached";
-    desc = "Maximum number of hosts in the host catcher";
+    desc = "Maximum number of hosts in the regular node catcher";
     type = guint32;
     data = {
         default = 20480;
@@ -698,12 +707,35 @@ prop = {
 
 prop = {
     name = "hosts_in_catcher";
-    desc = "Current number of hosts in hostcatcher";
+    desc = "Current number of hosts in regular node catcher";
     save = FALSE;
     type = guint32;
     data = {
         default = 0;
         min     = 0;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "hosts_in_ultra_catcher";
+    desc = "Current number of hosts in ultra node catcher";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 100000;
+    };
+};
+
+prop = {
+    name = "max_ultra_hosts_cached";
+    desc = "Maximum number of hosts in the ultra node catcher";
+    type = guint32;
+    data = {
+        default = 20480;
+        min     = 100;
         max     = 100000;
     };
 };
