@@ -51,15 +51,32 @@
 void on_spinbutton_search_reissue_timeout_changed
     (GtkEditable *editable, gpointer user_data)
 {
+    static gboolean lock = FALSE;
     search_t *current_search;
+    guint32 timeout_real;
+    guint32 timeout;
+
+    if (lock)
+        return;
+
+    lock = TRUE;
 
     current_search = search_gui_get_current_search();
 
-    if (!current_search || search_is_passive(current_search->search_handle))
+    if (!current_search || search_is_passive(current_search->search_handle)) {
+        lock = FALSE;
         return;
+    }
 
-    search_set_reissue_timeout(current_search->search_handle,
-        gtk_spin_button_get_value(GTK_SPIN_BUTTON(editable)));
+    timeout = gtk_spin_button_get_value(GTK_SPIN_BUTTON(editable));
+
+    search_set_reissue_timeout(current_search->search_handle, timeout);
+    timeout_real = search_get_reissue_timeout(current_search->search_handle);
+
+    if (timeout != timeout_real)
+        gtk_spin_button_set_value(GTK_SPIN_BUTTON(editable), timeout_real);
+
+    lock = FALSE;
 }
 
 void on_spinbutton_minimum_speed_changed

@@ -113,10 +113,10 @@ static idtable_t *search_handle_map = NULL;
     (search_ctrl_t *) idtable_get_value(search_handle_map, n)
 
 #define search_request_handle(n) \
-    idtable_request_key(search_handle_map, n)
+    idtable_new_id(search_handle_map, n)
 
 #define search_drop_handle(n) \
-    idtable_drop_key(search_handle_map, n);
+    idtable_free_id(search_handle_map, n);
 
 guint32   search_passive  = 0;		/* Amount of passive searches */
 
@@ -993,7 +993,7 @@ void search_shutdown(void)
         search_close(((search_ctrl_t *)sl_search_ctrl->data)->search_handle);
     }
 
-    g_assert(idtable_keys(search_handle_map) == 0);
+    g_assert(idtable_ids(search_handle_map) == 0);
 
     idtable_destroy(search_handle_map);
     search_handle_map = NULL;
@@ -1184,6 +1184,9 @@ void search_set_reissue_timeout(gnet_search_t sh, guint32 timeout)
         return;
     }
 
+    if (timeout < 600)
+        timeout = 600;
+
     sch->reissue_timeout = timeout;
     update_one_reissue_timeout(sch);
 }
@@ -1215,6 +1218,7 @@ void search_set_minimum_speed(gnet_search_t sh, guint16 speed)
 
     sch->speed = speed;
 }
+
 
 /*
  * search_get_minimum_speed:
