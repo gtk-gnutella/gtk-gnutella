@@ -30,6 +30,10 @@
 
 static gchar tmpstr[4096];
 
+static gboolean uploads_remove_lock = FALSE;
+static guint uploads_rows_done = 0;
+
+
 static gint find_row(gnet_upload_t u, upload_row_data_t **data);
 
 static void uploads_gui_update_meter(guint32 i, guint32 t);
@@ -470,8 +474,7 @@ void uploads_gui_update_display(time_t now)
 			FALSE);
 }
 
-void uploads_gui_clear_completed(void)
-{
+static gboolean uploads_clear_helper(gpointer user_data) {
     GList *l;
     GSList *to_remove= NULL;
     GSList *sl;
@@ -488,15 +491,35 @@ void uploads_gui_clear_completed(void)
             to_remove = g_slist_prepend(to_remove, (gpointer) row);
         
         row ++;
+		if (row > uploads_rows_done) { 
+			uploads_rows_done++;	
+       		if (0 == (uploads_rows_done & 0x7f))
+       			break;
+		}
     }
 
     for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
         gtk_clist_remove(clist, (gint)sl->data);
     
     g_slist_free(to_remove);
-
-	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_uploads_clear_completed"), FALSE);
     gtk_clist_thaw(clist);
+    
+    if (l == NULL) {
+		gtk_widget_set_sensitive(lookup_widget(
+			main_window, "button_uploads_clear_completed"), FALSE);
+    	uploads_remove_lock = FALSE;
+    	return FALSE;
+    }
+    
+    return TRUE;
+}
+
+void uploads_gui_clear_completed(void)
+{
+	if (!uploads_remove_lock) {
+		uploads_remove_lock = TRUE;
+		uploads_rows_done = 0;
+		gtk_timeout_add(100, (gpointer) (uploads_clear_helper), NULL);
+	}
 }
 
