@@ -853,6 +853,7 @@ gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 	gint available;
 	gint amount;
 	gint r;
+	off_t start = *offset;
 
 	g_assert(bio);
 	g_assert(bio->flags & BIO_F_WRITE);
@@ -892,7 +893,6 @@ gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 	 */
 
 	{
-		off_t start = *offset;
 		off_t written;
 
 		r = sendfile(in_fd, bio->fd, start, amount, NULL, &written, 0);
@@ -906,8 +906,19 @@ gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 		if (r > 0)
 			*offset = start + r;
 	}
+
 #else	/* !USE_BSD_SENDFILE */
+
 	r = sendfile(bio->fd, in_fd, offset, amount);
+
+	if (r >= 0 && *offset != start + r) {		/* Paranoid, as usual */
+		g_warning("FIXED SENDFILE returned offset: "
+			"was set to %ld instead of %ld (%d byte%s written)",
+			(glong) *offset, (glong) (start + r), r, r == 1 ? "" : "s");
+		*offset = start + r;
+	} else if (r == -1)
+		*offset = start;	/* Paranoid: in case sendfile() touched it */
+
 #endif	/* USE_BSD_SENDFILE */
 
 	if (r > 0) {

@@ -2129,6 +2129,7 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 	gint written;
 	guint32 amount;
 	guint32 available;
+	off_t pos;				/* For sendfile() sanity checks */
 
 	if (!(cond & GDK_INPUT_WRITE)) {
 		/* If we can't write then we don't want it, kill the socket */
@@ -2150,22 +2151,13 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 
 	g_assert(amount > 0);
 
-// XXX temporary
-{
-	off_t pos;
-
 	pos = u->pos;
 	written = bio_sendfile(u->bio, u->file_desc, &u->pos, available);
 
-	// XXX sendfile() working as expected?
-	if (written >= 0 && written != u->pos - pos)
-		g_warning("BAD SENDFILE for \"%s\": claims to have written %d bytes, "
-			"but startpos=%ld, endpos=%ld (%d bytes)",
-			u->name, written,
-			(glong) pos, (glong) u->pos, (gint) (u->pos - pos));
-} // XXX
+	g_assert(written == -1 || written == u->pos - pos);
 
 #else	/* !HAVE_SENDFILE */
+
 	/*
 	 * Compute the amount of bytes to send.
 	 */
