@@ -40,7 +40,9 @@ enum rule_type {
     RULE_TEXT = 0,
     RULE_IP,
     RULE_SIZE,
-    RULE_JUMP
+    RULE_JUMP,
+    RULE_SHA1,
+    RULE_FLAG
 };
 
 enum rule_text_type {
@@ -50,6 +52,13 @@ enum rule_text_type {
     RULE_TEXT_SUBSTR,
     RULE_TEXT_REGEXP,
     RULE_TEXT_EXACT
+
+};
+
+enum rule_flag_action {
+    RULE_FLAG_SET = 0,
+    RULE_FLAG_UNSET = 1,
+    RULE_FLAG_IGNORE = 2
 };
 
 typedef struct filter {
@@ -66,7 +75,7 @@ typedef struct filter {
 
 
 #define RULE_FLAG_NEGATE (1 << 0)
-#define RULE_FLAG_VALID  (1 << 1)
+#define RULE_FLAG_VALID  (1 << 1) /* rule has valid target */
 #define RULE_FLAG_ACTIVE (1 << 2)
 #define RULE_FLAG_SOFT   (1 << 3)
 
@@ -109,21 +118,16 @@ typedef struct rule {
             size_t lower;		        /* lower limit or 0 */
             size_t upper;		        /* upper limit or ~0 */
         } size;
+        struct _f_sha1 {
+            gchar *hash;                /* sha1 hash */
+        } sha1;
+        struct _f_flag {
+            enum rule_flag_action busy;
+            enum rule_flag_action stable;
+            enum rule_flag_action push;
+        } flag;
     } u;
 } rule_t;
-
-
-
-/*
- * Notebook tabs in the filter detail notebook.
- */
-enum {
-    nb_filt_page_buttons = 0,
-    nb_filt_page_text,
-    nb_filt_page_ip,
-    nb_filt_page_size,
-    nb_filt_page_jump
-};
 
 
 
@@ -146,11 +150,14 @@ inline gboolean filter_is_builtin(filter_t *f);
 inline gboolean filter_is_global(filter_t *f);
 inline void filter_reset_stats(filter_t *filter);
 inline void filter_rule_reset_stats(rule_t *rule);
-rule_t *filter_get_rule();
 rule_t *filter_new_ip_rule(guint32, guint32, filter_t *, guint16);
 rule_t *filter_new_jump_rule(filter_t *,guint16);
 rule_t *filter_new_size_rule(size_t, size_t, filter_t *, guint16);
 rule_t *filter_new_text_rule(gchar *, gint, gboolean, filter_t *, guint16);
+rule_t *filter_new_sha1_rule(gchar *, filter_t *, guint16);
+rule_t *filter_new_flag_rule
+    (enum rule_flag_action stable, enum rule_flag_action busy, 
+    enum rule_flag_action push, filter_t *target, guint16 flags);
 void filter_adapt_order(void);
 void filter_append_rule(filter_t *f, rule_t *r);
 void filter_append_rule_to_session(filter_t *, rule_t *);

@@ -60,10 +60,6 @@ typedef struct shadow {
 static gint shadow_filter_eq(const shadow_t *a, const filter_t *b);
 static shadow_t *shadow_new(filter_t *s);
 static shadow_t *shadow_find(filter_t *s);
-static rule_t *filter_get_text_rule();
-static rule_t *filter_get_ip_rule();
-static rule_t *filter_get_size_rule();
-static rule_t *filter_get_jump_rule();
 static void rule_free(rule_t *f);
 static int filter_apply(filter_t *, struct record *rec);
 static void filter_free(filter_t *f);
@@ -417,55 +413,6 @@ void filter_close_dialog(gboolean commit)
 
 
 
-/*
- * filter_get_rule:
- *
- * Fetch the rule which is currently edited. This
- * returns a completely new rule_t item in new memory.
- */
-rule_t *filter_get_rule() 
-{
-    gint page;
-    rule_t *r;
-
-    g_return_val_if_fail(filter_dialog != NULL, NULL);
-
-    page = gtk_notebook_get_current_page
-        (GTK_NOTEBOOK(notebook_filter_detail));
-
-    gtk_notebook_set_page(
-        GTK_NOTEBOOK(notebook_filter_detail),
-        nb_filt_page_buttons);
-
-    switch (page) {
-    case nb_filt_page_buttons:
-        r = NULL;
-        break;
-    case nb_filt_page_text:
-        r = filter_get_text_rule();
-        break;
-    case nb_filt_page_ip:
-        r = filter_get_ip_rule();
-        break;
-    case nb_filt_page_size:
-        r = filter_get_size_rule();
-        break;
-    case nb_filt_page_jump:
-        r = filter_get_jump_rule();
-        break;
-    default:
-        g_assert_not_reached();
-        r = NULL;
-    };
-
-    if ((r != NULL) && (dbg >= 5))
-        printf("got rule: %s\n", filter_rule_to_gchar(r));
-
-    return r;
-}
-
-
-
 rule_t *filter_new_text_rule(gchar *match, gint type, 
     gboolean case_sensitive, filter_t *target, guint16 flags)
 {
@@ -604,181 +551,48 @@ rule_t *filter_new_jump_rule(filter_t *target, guint16 flags)
 
 
 
-/* 
- * filter_get_text_rule:
- *
- * Extract information about a text rule.
- * NEVER CALL DIRECTLY!!! Use rule_get_rule().
- */
-static rule_t *filter_get_text_rule()
+
+rule_t *filter_new_sha1_rule(gchar *sha1, filter_t *target, guint16 flags)
 {
-  	rule_t *r;
-    gchar *match;
-    gint type;
-    gboolean case_sensitive;
-    filter_t *target;
-    gboolean negate;
-    gboolean active;
-    gboolean soft;
-    guint16 flags;
+   	rule_t *f;
 
-    g_return_val_if_fail(filter_dialog != NULL, NULL);
+    g_assert(target != NULL);
 
-	type = (enum rule_text_type)
-        option_menu_get_selected_data(optionmenu_filter_text_type);
+    f = g_new0(rule_t, 1);
 
-	match = gtk_editable_get_chars
-        (GTK_EDITABLE(entry_filter_text_pattern), 0, -1);
+    f->type = RULE_SHA1;
 
-	case_sensitive = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_text_case));
+  	f->target = target;
+    if (sha1 != NULL)
+        f->u.sha1.hash = g_memdup(sha1, SHA1_RAW_SIZE);
+    f->flags  = flags;
+    set_flags(f->flags, RULE_FLAG_VALID);
 
-	negate = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_text_invert_cond));
-
-	active = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_text_active));
-
-   	soft = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_text_soft));
-
-    target = (filter_t *)option_menu_get_selected_data
-        (optionmenu_filter_text_target);
-
-    flags =
-        (negate ? RULE_FLAG_NEGATE : 0) |
-        (active ? RULE_FLAG_ACTIVE : 0) |
-        (soft   ? RULE_FLAG_SOFT   : 0);
-
-    r = filter_new_text_rule(match, type, case_sensitive, target, flags);
-
-    g_free(match);
-    
-    return r;
+    return f;
 }
 
 
 
-/* 
- * filter_get_ip_rule:
- *
- * Extract information about a ip rule.
- * NEVER CALL DIRECTLY!!! Use filter_get_rule().
- */
-static rule_t *filter_get_ip_rule()
+rule_t *filter_new_flag_rule
+    (enum rule_flag_action stable, enum rule_flag_action busy,
+     enum rule_flag_action push, filter_t *target, guint16 flags)
 {
-    gchar *s;
-    guint32 addr;
-    guint32 mask;
-    filter_t *target;
-    gboolean negate;
-    gboolean active;
-    gboolean soft;
-    guint16 flags;
+   	rule_t *f;
 
-    g_return_val_if_fail(filter_dialog != NULL, NULL);
+    g_assert(target != NULL);
 
-	s = gtk_editable_get_chars(GTK_EDITABLE(entry_filter_ip_address), 0, -1);
-	addr = ntohl(inet_addr(s));
-	g_free(s);
+    f = g_new0(rule_t, 1);
 
-	s = gtk_editable_get_chars(GTK_EDITABLE(entry_filter_ip_mask), 0, -1);
-	mask = ntohl(inet_addr(s));
-	g_free(s);
+    f->type = RULE_FLAG;
 
-    negate = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_invert_cond));
+    f->u.flag.stable = stable;
+    f->u.flag.busy = busy;
+    f->u.flag.push = push;
+  	f->target = target;
+    f->flags  = flags;
+    set_flags(f->flags, RULE_FLAG_VALID);
 
-    active = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_active));
-
-    soft = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_ip_soft));
-
-    target = (filter_t *)option_menu_get_selected_data
-        (optionmenu_filter_ip_target);
-
-    flags =
-        (negate ? RULE_FLAG_NEGATE : 0) |
-        (active ? RULE_FLAG_ACTIVE : 0) |
-        (soft   ? RULE_FLAG_SOFT   : 0);
-
-    return filter_new_ip_rule(addr, mask, target, flags);
-}
-
-
-
-/* 
- * filter_get_size_rule:
- *
- * Extract information about a size rule.
- * NEVER CALL DIRECTLY!!! Use filter_get_rule().
- */
-static rule_t *filter_get_size_rule()
-{
-    size_t lower;
-    size_t upper;
-    filter_t *target;
-    gboolean negate;
-    gboolean active;
-    gboolean soft;
-    guint16 flags;
-
-    if (filter_dialog == NULL)
-        return NULL;
-
-    lower = gtk_spin_button_get_value_as_int
-        (GTK_SPIN_BUTTON(spinbutton_filter_size_min));
-
-    upper = gtk_spin_button_get_value_as_int
-        (GTK_SPIN_BUTTON(spinbutton_filter_size_max));
-
-    negate = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_size_invert_cond));
-
-    active = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_size_active));
-
-    soft = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_size_soft));
-
-    target = (filter_t *)option_menu_get_selected_data
-        (optionmenu_filter_size_target);
-
-    flags =
-        (negate ? RULE_FLAG_NEGATE : 0) |
-        (active ? RULE_FLAG_ACTIVE : 0) |
-        (soft   ? RULE_FLAG_SOFT   : 0);
-
-   return filter_new_size_rule(lower, upper, target, flags);
-}
-
-
-
-/* 
- * filter_get_jump_rule:
- *
- * Extract information about a size rule.
- * NEVER CALL DIRECTLY!!! Use filter_get_rule().
- */
-static rule_t *filter_get_jump_rule()
-{
-    filter_t *target;
-    gboolean active;
-    guint16 flags;
-
-    if (filter_dialog == NULL)
-        return NULL;
-
-    target = (filter_t *)option_menu_get_selected_data
-        (optionmenu_filter_jump_target);
-
-    active = gtk_toggle_button_get_active
-        (GTK_TOGGLE_BUTTON(checkbutton_filter_jump_active));
-
-    flags = (active ? RULE_FLAG_ACTIVE : 0);
-
-    return filter_new_jump_rule(target, flags);
+    return f;
 }
 
 
@@ -1012,7 +826,8 @@ gchar *filter_rule_condition_to_gchar(rule_t *r)
                 r->u.text.case_sensitive ? "(case sensitive)" : "");
             break;
         default:
-            g_error("Unknown text rule type: %d", r->u.text.type);
+            g_error("filter_rule_condition_to_gchar:" 
+                    "unknown text rule type: %d", r->u.text.type);
         };
         break;
     case RULE_IP:
@@ -1054,13 +869,84 @@ gchar *filter_rule_condition_to_gchar(rule_t *r)
             g_free(s2);
         }
         break;
+    case RULE_SHA1:
+        if (r->u.sha1.hash != NULL) {
+            g_snprintf(tmp, sizeof(tmp), "If urn:sha1 is %s",
+                sha1_base32(r->u.sha1.hash));
+        } else 
+            g_snprintf(tmp, sizeof(tmp), "If urn:sha1 is not available");
+        break;
     case RULE_JUMP:
        	g_snprintf(
             tmp, sizeof(tmp), 
             "Always");
         break;
+    case RULE_FLAG:
+        {
+            gchar *busy_str = "";
+            gchar *push_str = "";
+            gchar *stable_str = "";
+            gchar *s1 = "";
+            gchar *s2 = "";
+            gboolean b = FALSE;
+
+            switch (r->u.flag.busy) {
+            case RULE_FLAG_SET:
+                busy_str = "busy is set";
+                b = TRUE;
+                break;
+            case RULE_FLAG_UNSET:
+                busy_str = "busy is not set";
+                b = TRUE;
+                break;
+            case RULE_FLAG_IGNORE:
+                break;
+            }
+    
+            switch (r->u.flag.push) {
+            case RULE_FLAG_SET:
+                if (b) s1 = ", ";
+                push_str = "push is set";
+                b = TRUE;
+                break;
+            case RULE_FLAG_UNSET:
+                if (b) s1 = ", ";
+                push_str = "push is not set";
+                b = TRUE;
+                break;
+            case RULE_FLAG_IGNORE:
+                break;
+            }
+    
+            switch (r->u.flag.stable) {
+            case RULE_FLAG_SET:
+                if (b) s2 = ", ";
+                stable_str = "stable is set";
+                b = TRUE;
+                break;
+            case RULE_FLAG_UNSET:
+                if (b) s2 = ", ";
+                stable_str = "stable is not set";
+                b = TRUE;
+                break;
+            case RULE_FLAG_IGNORE:
+                break;
+            }
+
+            if (b)
+                g_snprintf(
+                    tmp, sizeof(tmp),
+                    "If flag %s%s%s%s%s", 
+                    busy_str, s1, push_str, s2, stable_str);
+            else
+                 g_snprintf(
+                    tmp, sizeof(tmp),
+                    "Always (all flags ignored)");
+        }
+        break;
     default:
-        g_error("Unknown rule type: %d", r->type);
+        g_error("filter_rule_condition_to_gchar: "
+                "unknown rule type: %d", r->type);
         return NULL;
     };
 
@@ -1289,7 +1175,8 @@ static void rule_free(rule_t *r)
     if (dbg >= 6)
         printf("freeing rule: %s\n", filter_rule_to_gchar(r));
 
-	if (r->type == RULE_TEXT) {
+    switch (r->type) {
+    case RULE_TEXT:
         g_free(r->u.text.match);
 
         switch (r->u.text.type) {
@@ -1311,8 +1198,19 @@ static void rule_free(rule_t *r)
         case RULE_TEXT_EXACT:
             break;
         default:
-            g_error("Unknown text filter type: %d", r->u.text.type);
+            g_error("rule_free: unknown text rule type: %d", r->u.text.type);
         }
+        break;
+    case RULE_SHA1:
+        g_free(r->u.sha1.hash);
+        break;
+    case RULE_SIZE:
+    case RULE_JUMP:
+    case RULE_IP:
+    case RULE_FLAG:
+        break;
+    default:
+        g_error("rule_free: unknown rule type: %d", r->type);
     }
 	g_free(r);
 }
@@ -1925,6 +1823,44 @@ static int filter_apply(filter_t *filter, struct record *rec)
                 if (rec->size >= r->u.size.lower && 
                     rec->size <= r->u.size.upper)
                     match = TRUE;
+                break;
+            case RULE_SHA1:
+                if (rec->sha1 == r->u.sha1.hash)
+                    match = TRUE;
+                else if ((rec->sha1 != NULL) &&  r->u.sha1.hash != NULL)
+                    if (memcmp(rec->sha1, r->u.sha1.hash, SHA1_RAW_SIZE) == 0)
+                        match = TRUE;
+                break;
+            case RULE_FLAG:
+                {
+                    gboolean stable_match;
+                    gboolean busy_match;
+                    gboolean push_match;
+    
+                    stable_match = 
+                        ((r->u.flag.busy == RULE_FLAG_SET) &&
+                         (rec->results_set->status & ST_BUSY)) ||
+                        ((r->u.flag.busy == RULE_FLAG_UNSET) &&
+                         !(rec->results_set->status & ST_BUSY)) ||
+                        (r->u.flag.busy == RULE_FLAG_IGNORE);
+
+                    busy_match =
+                        ((r->u.flag.push == RULE_FLAG_SET) &&
+                         (rec->results_set->status & ST_FIREWALL)) ||
+                        ((r->u.flag.push == RULE_FLAG_UNSET) &&
+                         !(rec->results_set->status & ST_FIREWALL)) ||
+                        (r->u.flag.busy == RULE_FLAG_IGNORE);
+                
+                    push_match = 
+                        ((r->u.flag.stable == RULE_FLAG_SET) &&
+                         (rec->results_set->status & ST_UPLOADED)) ||
+                        ((r->u.flag.stable == RULE_FLAG_UNSET) &&
+                         !(rec->results_set->status & ST_UPLOADED)) ||
+                        (r->u.flag.stable == RULE_FLAG_IGNORE);
+                     
+                    if (stable_match && busy_match && push_match)
+                        match = TRUE;
+                }
                 break;
             default:
                 g_error("Unknown rule type: %d", r->type);
