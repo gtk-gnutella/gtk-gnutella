@@ -29,6 +29,8 @@
 #include <time.h>
 #include <stdio.h>
 
+#include "config.h"				/* Needed for FreeBSD compiles */
+
 #define SIZE_FIELD_MAX 64		/* Max size of sprintf-ed size quantity */
 
 
