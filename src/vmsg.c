@@ -222,13 +222,13 @@ static void handle_messages_supported(struct gnutella_node *n,
 
 	if (dbg > 2)
 		printf("VMSG node %s <%s> supports %u vendor message%s\n",
-			node_ip(n), n->vendor ? n->vendor : "????", count,
+			node_ip(n), node_vendor(n), count,
 			count == 1 ? "" : "s");
 
 	if (size != sizeof(count) + count * VMS_ITEM_SIZE) {
 		g_warning("bad payload length in \"Messages Supported\" from %s <%s>: "
 			"expected %d bytes in vector for %d item%s, got %d",
-			node_ip(n), n->vendor ? n->vendor : "????",
+			node_ip(n), node_vendor(n),
 			count * VMS_ITEM_SIZE, count, count == 1 ? "" : "s",
 			size - (gint) sizeof(count));
 		return;
@@ -303,7 +303,7 @@ static void handle_hops_flow(struct gnutella_node *n,
 
 	if (size != 1) {
 		g_warning("got improper Hops Flow (payload has %d bytes) from %s <%s>",
-			size, node_ip(n), n->vendor == NULL ? n->vendor : "????");
+			size, node_ip(n), node_vendor(n));
 		return;
 	}
 
@@ -351,7 +351,7 @@ static void handle_connect_back(struct gnutella_node *n,
 	if (size != 2) {
 		g_warning("got improper Connect Back (payload has %d byte%ss) "
 			"from %s <%s>", size, size == 1 ? "" : "s",
-			node_ip(n), n->vendor ? n->vendor : "????");
+			node_ip(n), node_vendor(n));
 		return;
 	}
 
@@ -359,7 +359,7 @@ static void handle_connect_back(struct gnutella_node *n,
 
 	if (port == 0) {
 		g_warning("got improper port #%d in Connect Back from %s <%s>",
-			port, node_ip(n), n->vendor ? n->vendor : "????");
+			port, node_ip(n), node_vendor(n));
 		return;
 	}
 

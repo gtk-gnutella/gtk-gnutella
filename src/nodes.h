@@ -284,7 +284,7 @@ typedef struct gnutella_node {
  * Macros.
  */
 
-#define node_vendor(n)              ((n)->vendor)
+#define node_vendor(n)		((n)->vendor != NULL ? (n)->vendor : "????")
 
 #define node_inc_sent(n)            node_add_sent(n, 1)
 #define node_inc_txdrop(n)          node_add_txdrop(n, 1)

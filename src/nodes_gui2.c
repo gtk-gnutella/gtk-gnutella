@@ -30,6 +30,8 @@
 
 RCSID("$Id$");
 
+#define pretty_node_vendor(n) ((n)->vendor != NULL ? (n)->vendor : "...")
+
 /*
  * gNet connections table columns
  */
@@ -208,7 +210,7 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
     gtk_list_store_set(nodes_model, &iter, 
         COL_NODE_HOST,    ip_port_to_gchar(n->ip, n->port),
         COL_NODE_TYPE,    "...",
-        COL_NODE_VENDOR,  locale_to_utf8(n->vendor ? n->vendor : "...", 0),
+        COL_NODE_VENDOR,  locale_to_utf8(pretty_node_vendor(n), 0),
         COL_NODE_VERSION, proto_tmp,
         COL_NODE_CONNECTED, "...",
         COL_NODE_UPTIME,  "...",
@@ -367,7 +369,7 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n)
             n->proto_major, n->proto_minor);
 
         gtk_list_store_set(nodes_model, &iter, 
-            COL_NODE_VENDOR,  locale_to_utf8(n->vendor ? n->vendor : "...", 0),
+            COL_NODE_VENDOR,  locale_to_utf8(pretty_node_vendor(n), 0),
             COL_NODE_VERSION, version,
             COL_NODE_INFO,    gui_node_status_str(&status, now),
             -1);

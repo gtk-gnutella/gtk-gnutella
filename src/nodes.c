@@ -664,15 +664,13 @@ static void node_remove_v(
 		n->remove_msg = NULL;
 
 	if (dbg > 3)
-		printf("Node %s <%s> removed: %s\n", node_ip(n),
-			n->vendor ? n->vendor : "????",
+		printf("Node %s <%s> removed: %s\n", node_ip(n), node_vendor(n),
 			n->remove_msg ? n->remove_msg : "<no reason>");
 
 	if (dbg > 4) {
 		printf("NODE [%d.%d] %s <%s> TX=%d (drop=%d) RX=%d (drop=%d) "
 			"Dup=%d Bad=%d W=%d\n",
-			n->proto_major, n->proto_minor, node_ip(n),
-			n->vendor ? n->vendor : "????",
+			n->proto_major, n->proto_minor, node_ip(n), node_vendor(n),
 			n->sent, n->tx_dropped, n->received, n->rx_dropped,
 			n->n_dups, n->n_bad, n->n_weird);
 		printf("NODE \"%s%s\" %s PING (drop=%d acpt=%d spec=%d sent=%d) "
@@ -1717,7 +1715,7 @@ static void node_got_bye(struct gnutella_node *n)
 		if (c == '\0') {			/* NUL marks the end of the message */
 			if (dbg && cnt != message_len - 1)
 				g_warning("Bye message %u from %s <%s> has early NUL",
-					code, node_ip(n), n->vendor ? n->vendor : "????");
+					code, node_ip(n), node_vendor(n));
 			break;
 		} else if (c == '\r') {
 			if (++cnt < n->size) {
@@ -1736,7 +1734,7 @@ static void node_got_bye(struct gnutella_node *n)
 			warned = TRUE;
 			if (dbg)
 				g_warning("Bye message %u from %s <%s> contains control chars",
-					code, node_ip(n), n->vendor ? n->vendor : "????");
+					code, node_ip(n), node_vendor(n));
 		}
 	}
 
@@ -2373,7 +2371,7 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 		if (current_peermode == NODE_P_ULTRA) {
 			n->flags |= NODE_F_LEAF;		/* Remote accepted to become leaf */
 			if (dbg) g_warning("node %s <%s> accepted to become our leaf",
-				node_ip(n), n->vendor ? n->vendor : "????");
+				node_ip(n), node_vendor(n));
 		}
 	}
 
@@ -2394,7 +2392,7 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 		if (major >= n->qrp_major || minor >= n->qrp_minor)
 			if (dbg) g_warning("node %s <%s> now claims QRP version %u.%u, "
 				"but advertised %u.%u earlier",
-				node_ip(n), n->vendor ? n->vendor : "????", major, minor,
+				node_ip(n), node_vendor(n), major, minor,
 				(guint) n->qrp_major, (guint) n->qrp_minor);
 		n->qrp_major = (guint8) major;
 		n->qrp_minor = (guint8) minor;
@@ -2590,7 +2588,7 @@ static void node_process_handshake_header(
 		sscanf(field, "%u.%u", &major, &minor);
 		if (major > 0 || minor > 1)
 			if (dbg) g_warning("node %s <%s> claims Bye-Packet version %u.%u",
-				node_ip(n), n->vendor ? n->vendor : "????", major, minor);
+				node_ip(n), node_vendor(n), major, minor);
 		n->attrs |= NODE_A_BYE_PACKET;
 	}
 
@@ -2614,7 +2612,7 @@ static void node_process_handshake_header(
 		if (major > 0 || (major == 0 && minor > 1))
 			if (dbg) g_warning("node %s <%s> claims Vendor-Message "
 				"version %u.%u",
-				node_ip(n), n->vendor ? n->vendor : "????", major, minor);
+				node_ip(n), node_vendor(n), major, minor);
 
 		n->attrs |= NODE_A_CAN_VENDOR;
 	}
@@ -2644,7 +2642,7 @@ static void node_process_handshake_header(
 
 		if (up == -1)
 			g_warning("cannot parse X-Live-Since \"%s\" from %s (%s)",
-				field, node_ip(n), n->vendor ? n->vendor : "<unkown vendor>");
+				field, node_ip(n), node_vendor(n));
 		else 
 			n->up_date = MIN(up, now);
 	} else {
@@ -2659,8 +2657,7 @@ static void node_process_handshake_header(
 				n->up_date = now - 86400 * days - 3600 * hours - 60 * mins;
 			else
 				g_warning("cannot parse Uptime \"%s\" from %s (%s)",
-					field, node_ip(n),
-					n->vendor ? n->vendor : "<unkown vendor>");
+					field, node_ip(n), node_vendor(n));
 		}
 	}
 
@@ -2788,7 +2785,7 @@ static void node_process_handshake_header(
 		sscanf(field, "%u.%u", &major, &minor);
 		if (major > 0 || minor > 1)
 			if (dbg) g_warning("node %s <%s> claims QRP version %u.%u",
-				node_ip(n), n->vendor ? n->vendor : "????", major, minor);
+				node_ip(n), node_vendor(n), major, minor);
 		n->qrp_major = (guint8) major;
 		n->qrp_minor = (guint8) minor;
 	}
@@ -2836,7 +2833,7 @@ static void node_process_handshake_header(
 					n->up_date != 0 && n->up_date < start_stamp
 				) {
 					g_warning("accepting request from %s <%s> to become a leaf",
-						node_ip(n), n->vendor ? n->vendor : "????");
+						node_ip(n), node_vendor(n));
 
 					node_bye_all_but_one(n, 203, "Becoming a leaf node");
 					n->flags |= NODE_F_ULTRA;
@@ -2845,7 +2842,7 @@ static void node_process_handshake_header(
 						NODE_P_LEAF);
 				} else if (dbg > 2)
 					g_warning("denied request from %s <%s> to become a leaf",
-						node_ip(n), n->vendor ? n->vendor : "????");
+						node_ip(n), node_vendor(n));
 			}
 		}
 		if (field && 0 == strcasecmp(field, "true")) {
@@ -2861,7 +2858,7 @@ static void node_process_handshake_header(
 		if (field && !(n->attrs & NODE_A_ULTRA))
 			g_warning("node %s <%s> is not an ultrapeer but sent the "
 				"X-Ultrapeer-Needed header",
-				node_ip(n), n->vendor ? n->vendor : "????");
+				node_ip(n), node_vendor(n));
 
 		/*
 		 * Prepare our final acknowledgment.

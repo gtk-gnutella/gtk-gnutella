@@ -595,7 +595,7 @@ void gmsg_log_dropped(gpointer head, gchar *reason, ...)
  */
 void gmsg_log_bad(struct gnutella_node *n, gchar *reason, ...)
 {
-	printf("BAD <%s> ", n->vendor ? n->vendor : "????");
+	printf("BAD <%s> ", node_vendor(n));
 
 	/* Allows gmsg_infostr() in arglist */
 	fputs(gmsg_infostr2(&n->header), stdout);

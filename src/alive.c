@@ -183,7 +183,7 @@ static void ap_ack(struct alive_ping *ap, struct alive *a)
 	if (dbg > 4)
 		printf("ALIVE node %s (%s) "
 		"delay=%dms min=%dms, max=%dms, agv=%dms [%d queued]\n",
-			node_ip(a->node), a->node->vendor ? a->node->vendor : "",
+			node_ip(a->node), node_vendor(a->node),
 			a->last_rt, a->min_rt, a->max_rt, a->avg_rt, a->count);
 }
 

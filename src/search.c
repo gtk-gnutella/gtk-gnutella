@@ -609,7 +609,7 @@ static gnet_results_set_t *get_results_set(
 			if (dbg) g_warning(
 				"%s (%s) from %s (%s) had %d SHA1 error%s over %u record%s",
 				 gmsg_infostr(&n->header), vendor ? vendor : "????",
-				 node_ip(n), n->vendor ? n->vendor : "????",
+				 node_ip(n), node_vendor(n),
 				 sha1_errors, sha1_errors == 1 ? "" : "s",
 				 nr, nr == 1 ? "" : "s");
             gnet_stats_count_dropped(n, MSG_DROP_RESULT_SHA1_ERROR);
@@ -755,8 +755,7 @@ static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		if (vendor) {
 			if (dbg) g_warning(
 				"node %s (%s) had no tag in its query hits, now has %s in %s",
-				node_ip(n), n->vendor ? n->vendor : "", vendor,
-				gmsg_infostr(&n->header));
+				node_ip(n), node_vendor(n), vendor, gmsg_infostr(&n->header));
 			n->n_weird++;
 			n->attrs &= ~NODE_A_QHD_NO_VTAG;
 		}
@@ -775,7 +774,7 @@ static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			if (dbg) g_warning(
 				"node %s (%s) had tag %c%c%c%c in its query hits, "
 				"now has none in %s",
-				node_ip(n), n->vendor ? n->vendor : "",
+				node_ip(n), node_vendor(n),
 				n->vcode[0], n->vcode[1], n->vcode[2], n->vcode[3],
 				gmsg_infostr(&n->header));
 			n->n_weird++;
@@ -796,7 +795,7 @@ static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			if (dbg) g_warning(
 				"node %s (%s) moved from tag %c%c%c%c to %c%c%c%c "
 				"in %s",
-				node_ip(n), n->vendor ? n->vendor : "",
+				node_ip(n), node_vendor(n),
 				n->vcode[0], n->vcode[1], n->vcode[2], n->vcode[3],
 				rs->vendor[0], rs->vendor[1], rs->vendor[2], rs->vendor[3],
 				gmsg_infostr(&n->header));
@@ -819,7 +818,7 @@ static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 
 				g_warning(
 					"node %s (%s) moved from GUID %s to %s in %s",
-					node_ip(n), n->vendor ? n->vendor : "",
+					node_ip(n), node_vendor(n),
 					old, guid_hex_str(rs->guid), gmsg_infostr(&n->header));
 			}
 			atom_guid_free(n->gnet_guid);
@@ -853,7 +852,7 @@ static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 		) {
 			if (dbg) g_warning(
 				"node %s (%s) advertised %s but now says Query Hits from %s",
-				node_ip(n), n->vendor ? n->vendor : "",
+				node_ip(n), node_vendor(n),
 				ip_to_gchar(n->gnet_pong_ip ?
 					n->gnet_pong_ip : n->gnet_qhit_ip),
 				ip_port_to_gchar(rs->ip, rs->port));
