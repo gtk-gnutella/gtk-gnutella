@@ -60,6 +60,9 @@ void gui_init(void)
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", GTA_WEBSITE);
 	gui_statusbar_push(scid_bottom, gui_tmp);
 
+    /* search history combo stuff */
+    gtk_combo_disable_activate(GTK_COMBO(combo_search));
+
     /* copy url selection stuff */
     gtk_selection_add_target(popup_dl_active, GDK_SELECTION_PRIMARY, 
                              GDK_SELECTION_TYPE_STRING, 1);
@@ -171,7 +174,7 @@ void gui_statusbar_clear_timeouts(time_t now)
 /*
  * gui_statusbar_free_timeout_list:
  *
- * Cleat the whole timeout list and free allocated memory.
+ * Clear the whole timeout list and free allocated memory.
  */
 static void gui_statusbar_free_timeout_list() 
 {
@@ -193,6 +196,10 @@ void gui_update_config_force_ip(void)
 void gui_update_config_port(void)
 {
 	gchar *iport;
+
+    // FIXME: if port/ip have changed display this as a notice in
+    // the statusbar
+    //      --BLUE, 30/04/2002
 
 	iport = ip_port_to_gchar(listen_ip(), listen_port);
 
@@ -622,19 +629,25 @@ void gui_update_download_abort_resume(void)
 	struct download *d;
 	GList *l;
 
-	gboolean abort = FALSE, resume = FALSE;
+	gboolean abort  = FALSE;
+    gboolean resume = FALSE;
+    gboolean remove = FALSE;
+    gboolean queue  = FALSE;
 
 	for (l = GTK_CLIST(clist_downloads)->selection; l; l = l->next) {
 		d = (struct download *)
 			gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
 								   (gint) l->data);
 
-      if (!d) {
+        if (!d) {
 			g_warning
 				("gui_update_download_abort_resume(): row %d has NULL data\n",
 				 (gint) l->data);
 			continue;
 		}
+
+        if (d->status != GTA_DL_COMPLETED)
+            queue = TRUE;
 
 		switch (d->status) {
 		case GTA_DL_QUEUED:
@@ -653,6 +666,9 @@ void gui_update_download_abort_resume(void)
 		case GTA_DL_ERROR:
 		case GTA_DL_ABORTED:
 			resume = TRUE;
+            /* only check if file exists if really necessary */
+            if (!remove && download_file_exists(d))
+                remove = TRUE;
 			break;
 		case GTA_DL_TIMEOUT_WAIT:
 		case GTA_DL_STOPPED:
@@ -660,14 +676,18 @@ void gui_update_download_abort_resume(void)
 			break;
 		}
 
-		if (abort & resume)
+		if (abort & resume & remove)
 			break;
 	}
 
 	gtk_widget_set_sensitive(button_downloads_abort, abort);
 	gtk_widget_set_sensitive(popup_downloads_abort, abort);
+    gtk_widget_set_sensitive(popup_downloads_abort_named, abort);
+    gtk_widget_set_sensitive(popup_downloads_abort_host, abort);
 	gtk_widget_set_sensitive(button_downloads_resume, resume);
 	gtk_widget_set_sensitive(popup_downloads_resume, resume);
+    gtk_widget_set_sensitive(popup_downloads_remove_file, remove);
+    gtk_widget_set_sensitive(popup_downloads_queue, queue);
 }
 
 void gui_update_upload_kill(void)
@@ -1020,6 +1040,20 @@ void gui_search_clear_results(void)
 	gui_search_force_update_tab_label(current_search);
 }
 
+/*
+ * gui_search_history_add:
+ *
+ * Adds a search string to the search history combo. Makes
+ * sure we do not get more than 10 entries in the history.
+ * Also makes sure we don't get duplicate history entries.
+ * If a string is already in history and it's added again,
+ * it's moved to the beginning of the history list.
+ */
+void gui_search_history_add(gchar * s)
+{
+    // FIXME
+}
+
 void gui_close(void)
 {
 	gui_statusbar_free_timeout_list();
@@ -1034,6 +1068,7 @@ void gui_update_search_stats_update_interval(void)
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", search_stats_update_interval);
 	gtk_entry_set_text(GTK_ENTRY(entry_search_stats_update_interval), gui_tmp);
 }
+
 void gui_update_search_stats_delcoef(void)
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", search_stats_delcoef);
