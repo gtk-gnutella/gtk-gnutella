@@ -2653,7 +2653,10 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 	g_assert(hevcnt <= G_N_ELEMENTS(hev));
 
-	if (!http_send_status(u->socket, http_code, FALSE, hev, hevcnt, http_msg)) {
+	if (
+		!http_send_status(u->socket, http_code, u->keep_alive,
+			hev, hevcnt, http_msg)
+	) {
 		upload_remove(u, "Cannot send whole HTTP status");
 		return;
 	}
