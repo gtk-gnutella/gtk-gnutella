@@ -1468,13 +1468,20 @@ static prop_map_t property_map[] = {
         "label_dl_running_count"
     },
 #ifdef USE_GTK2
-/* FIXME: Gtk1 version should have this one too */
+/* FIXME: Gtk1 version should have these one too */
     {
         get_main_window,
         PROP_CONFIG_TOOLBAR_STYLE,
         config_toolbar_style_changed,
         TRUE,
         "combo_config_toolbar_style"
+    },
+    {
+        get_main_window,
+        PROP_SEARCH_MAX_RESULTS,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_search_max_results"
     },
 #endif
 };
