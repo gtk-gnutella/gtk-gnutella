@@ -869,17 +869,21 @@ sha1_base32(const gchar *sha1)
 
 /**
  * Convert base32 string into binary SHA1.
- * Returns pointer to static data.
+ *
+ * @param base32 a buffer holding SHA1_BASE32_SIZE or more bytes.
+ * @return	Returns pointer to static data or NULL if the input wasn't a
+ *			validly base32 encoded SHA1.
  */
 gchar *
 base32_sha1(const gchar *base32)
 {
 	static gchar digest_sha1[SHA1_RAW_SIZE];
+	gint len;
 
-	base32_decode_into(base32, SHA1_BASE32_SIZE,
+	len = base32_decode_into(base32, SHA1_BASE32_SIZE,
 		digest_sha1, sizeof(digest_sha1));
 
-	return digest_sha1;
+	return SHA1_BASE32_SIZE == len ? digest_sha1 : NULL;
 }
 
 /**
@@ -1251,7 +1255,7 @@ void
 dump_hex(FILE *out, const gchar *title, gconstpointer data, gint b)
 {
 	int i, x, y, z, end;
-	gchar *s = (gchar *) data;
+	const gchar *s = (const gchar *) data;
 	gchar temp[18];
 
 	if ((b < 0) || (s == NULL)) {
@@ -1908,7 +1912,7 @@ filepath_exists(const gchar *dir, const gchar *file)
  *    or whether the parsed value was zero.
  */
 guint64
-parse_uint64(const gchar *src, gchar **endptr, gint base, gint *errorptr)
+parse_uint64(const gchar *src, gchar const **endptr, gint base, gint *errorptr)
 {
 	const gchar *p;
 	guint64 v = 0;
@@ -1953,7 +1957,7 @@ parse_uint64(const gchar *src, gchar **endptr, gint base, gint *errorptr)
 	}
 
 	if (NULL != endptr)
-		*endptr = (gchar *) p;
+		*endptr = p;
 
 	if (!error && p == src)
 		error = EINVAL;

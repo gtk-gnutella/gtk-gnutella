@@ -63,6 +63,18 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 #define g_strlcpy strlcpy
 #endif
 
+/**
+ * Cast a ``const gchar *'' to ``gchar *''. This allows the compiler to
+ * print a diagnostic message if you accidently try to deconstify an
+ * incompatible type. A direct typecast would hide such a mistake.
+ */
+static inline gchar *
+deconstify_gchar(const gchar *p)
+{
+	return (gchar *) p;
+}
+
+
 gint ascii_strcasecmp(const gchar *s1, const gchar *s2);
 gint ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len);
 
@@ -181,7 +193,7 @@ skip_ascii_spaces(const gchar *s)
 	while (is_ascii_space(*s))
 		s++;
 
-	return (gchar *) s; /* override const */
+	return deconstify_gchar(s);
 }
 
 /**
@@ -195,7 +207,7 @@ skip_ascii_blanks(const gchar *s)
 	while (is_ascii_blank(*s))
 		s++;
 
-	return (gchar *) s; /* override const */
+	return deconstify_gchar(s);
 }
 
 /*
@@ -335,7 +347,7 @@ gchar *short_filename(gchar *fullname);
 gchar *data_hex_str(const gchar *data, size_t len);
 gint create_directory(const gchar *dir);
 gboolean filepath_exists(const gchar *dir, const gchar *file);
-guint64 parse_uint64(const gchar *, gchar **, gint, gint *);
+guint64 parse_uint64(const gchar *, gchar const **, gint, gint *);
 
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);
