@@ -3864,8 +3864,7 @@ static void node_process_handshake_header(
 				"%s"		/* X-Ultrapeer-Needed */
 				"%s"		/* X-Query-Routing */
 				"X-Token: %s\r\n"
-				"X-Live-Since: %s\r\n"
-				"\r\n",
+				"X-Live-Since: %s\r\n",
 				version_string, ip_to_gchar(n->socket->ip),
 				(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
 				current_peermode == NODE_P_NORMAL ? "" :
@@ -3882,6 +3881,8 @@ static void node_process_handshake_header(
 				
 			header_features_generate(&xfeatures.connections,
 				gnet_response, sizeof(gnet_response), &rw);
+
+			rw = gm_snprintf(&gnet_response[rw], sizeof(gnet_response) - rw, "\r\n");
 		}
 		g_assert(rw < sizeof(gnet_response));
 	}
