@@ -1169,6 +1169,7 @@ static void flush_match(void)
 	gint version_size = 0;		/* Size of emitted GGEP version */
 	gint proxies_size = 0;		/* Size of emitted GGEP proxies */
 	gint hostname_size = 0;		/* Size of emitted GGEP hostname */
+	guint32 connect_speed;		/* Connection speed, in kbits/s */
 
 	if (dbg > 3)
 		printf("flushing query hit (%d entr%s, %d bytes sofar)\n",
@@ -1380,9 +1381,22 @@ static void flush_match(void)
 
 	search_head->num_recs = FOUND_FILES;	/* One byte, little endian! */
 
+	/*
+	 * Compute connection speed dynamically if requested.
+	 */
+
+	connect_speed = connection_speed;
+	if (compute_connection_speed) {
+		connect_speed = max_uploads == 0 ?
+			0 : (MAX(bsched_avg_bps(bws.out), bsched_bwps(bws.out)) * 8 / 1024);
+		if (max_uploads > 0 && connect_speed == 0)
+			connect_speed = 32;		/* No b/w limit set and no traffic yet */
+	}
+	connect_speed /= MAX(1, max_uploads);	/* Upload speed expected per slot */
+
 	WRITE_GUINT16_LE(listen_port, search_head->host_port);
 	WRITE_GUINT32_BE(listen_ip(), search_head->host_ip);
-	WRITE_GUINT32_LE(connection_speed, search_head->host_speed);
+	WRITE_GUINT32_LE(connect_speed, search_head->host_speed);
 
 	gmsg_sendto_one(n, (gchar *) FOUND_BUF, FOUND_SIZE);
 }
