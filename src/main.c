@@ -201,6 +201,7 @@ static void slow_main_timer(time_t now)
 	switch (i) {
 	case 0:
 		dmesh_store();
+		dmesh_ban_store();
 		break;
 	case 1:
 		search_store();

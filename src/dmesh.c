@@ -40,11 +40,15 @@
 #include "getdate.h"
 #include "huge.h"
 #include "base32.h"
+#include "cq.h"
+#include "walloc.h"
 
 #include "gnet_property_priv.h"
 #include "settings.h"
 
 #define HTTP_PORT	80		/* Registered HTTP port */
+
+extern cqueue_t *callout_queue;
 
 /* made visible for us by atoms.c */
 extern guint sha1_hash(gconstpointer key);
@@ -75,8 +79,69 @@ struct dmesh_entry {
 
 static gchar *dmesh_file = "dmesh";
 
+/*
+ * If we get a "bad" URL into the mesh ("bad" = gives 404 or other error when
+ * trying to download it), we must remember it for some time and prevent it
+ * from re-entering the mesh again within that period to prevent rescheduling
+ * for download and a further failure: that would be hammering the poor host,
+ * and we're wasting our time and bandwidth.
+ *
+ * Therefore, each time we get a "bad" URL, we insert it in a hash table.
+ * The table entry is then scheduled to be removed after some grace period
+ * occurs.  The table is keyed by the dmesh_urlinfo_t, and points to a
+ * dmesh_banned structure.
+ *
+ * The table is persisted at regular intervals.
+ */
+static GHashTable *ban_mesh = NULL;
+
+struct dmesh_banned {
+	dmesh_urlinfo_t *info;	/* The banned URL (same as key) */
+	time_t ctime;			/* Last time we saw this banned URL */
+	gpointer cq_ev;			/* Scheduled callout event */
+};
+
+#define BAN_LIFETIME	7200		/* 2 hours */
+
+static gchar *dmesh_ban_file = "dmesh_ban";
+
 static void dmesh_retrieve(void);
+static void dmesh_ban_retrieve(void);
 static gchar *dmesh_urlinfo_to_gchar(dmesh_urlinfo_t *info);
+
+/*
+ * urlinfo_hash
+ *
+ * Hash a URL info.
+ */
+static guint urlinfo_hash(gconstpointer key)
+{
+	dmesh_urlinfo_t *info = (dmesh_urlinfo_t *) key;
+	guint hash = 0;
+
+	WRITE_GUINT32_LE(info->ip, &hash);	/* Reverse IP, 192.x.y.z -> z.y.x.192 */
+	hash ^= (info->port << 16) | info->port;
+	hash ^= info->idx;
+	hash ^= g_str_hash(info->name);
+
+	return hash;
+}
+
+/*
+ * urlinfo_eq
+ *
+ * Test equality of two URL infos.
+ */
+static gint urlinfo_eq(gconstpointer a, gconstpointer b)
+{
+	dmesh_urlinfo_t *ia = (dmesh_urlinfo_t *) a;
+	dmesh_urlinfo_t *ib = (dmesh_urlinfo_t *) b;
+
+	return ia->ip == ib->ip		&&
+		ia->port == ib->port	&&
+		ia->idx == ib->idx		&&
+		0 == strcmp(ia->name, ib->name);
+}
 
 /*
  * dmesh_init
@@ -86,7 +151,9 @@ static gchar *dmesh_urlinfo_to_gchar(dmesh_urlinfo_t *info);
 void dmesh_init(void)
 {
 	mesh = g_hash_table_new(sha1_hash, sha1_eq);
+	ban_mesh = g_hash_table_new(urlinfo_hash, urlinfo_eq);
 	dmesh_retrieve();
+	dmesh_ban_retrieve();
 }
 
 /*
@@ -118,7 +185,100 @@ static void dmesh_entry_free(struct dmesh_entry *dme)
 	if (dme->url.name)
 		atom_str_free(dme->url.name);
 
-	g_free(dme);
+	wfree(dme, sizeof(*dme));
+}
+
+/*
+ * dmesh_urlinfo_free
+ *
+ * Free a dmesh_urlinfo_t structure.
+ */
+static void dmesh_urlinfo_free(dmesh_urlinfo_t *info)
+{
+	g_assert(info);
+
+	atom_str_free(info->name);
+	wfree(info, sizeof(*info));
+}
+
+/*
+ * dmesh_ban_expire
+ *
+ * Called from callout queue when it's time to expire the URL ban.
+ */
+static void dmesh_ban_expire(cqueue_t *cq, gpointer obj)
+{
+	struct dmesh_banned *dmb = (struct dmesh_banned *) obj;
+
+	g_assert(dmb);
+	g_assert((gpointer) dmb == g_hash_table_lookup(ban_mesh, dmb->info));
+
+	g_hash_table_remove(ban_mesh, dmb->info);
+	dmesh_urlinfo_free(dmb->info);
+	wfree(dmb, sizeof(*dmb));
+}
+
+/*
+ * dmesh_ban_add
+ *
+ * Add new URL to the banned hash.
+ * If stamp is 0, the current timestamp is used.
+ */
+static void dmesh_ban_add(dmesh_urlinfo_t *info, time_t stamp)
+{
+	time_t now = time(NULL);
+	struct dmesh_banned *dmb;
+	gint lifetime = BAN_LIFETIME;
+
+	if (stamp == 0)
+		stamp = now;
+
+	/*
+	 * If expired, don't insert.
+	 */
+
+	lifetime -= now - stamp;
+
+	if (lifetime <= 0)
+		return;
+
+	/*
+	 * Insert new entry, or update old entry if the new one is more recent.
+	 */
+
+	dmb = (struct dmesh_banned *) g_hash_table_lookup(ban_mesh, info);
+
+	if (dmb == NULL) {
+		dmesh_urlinfo_t *ui;
+
+		ui = walloc(sizeof(*info));
+		ui->ip = info->ip;
+		ui->port = info->port;
+		ui->idx = info->idx;
+		ui->name = atom_str_get(info->name);
+
+		dmb = walloc(sizeof(*dmb));
+		dmb->info = ui;
+		dmb->ctime = stamp;
+		dmb->cq_ev = cq_insert(callout_queue,
+			lifetime * 1000, dmesh_ban_expire, dmb);
+
+		g_hash_table_insert(ban_mesh, dmb->info, dmb);
+	}
+	else if (dmb->ctime < stamp) {
+		dmb->ctime = stamp;
+		cq_resched(callout_queue, dmb->cq_ev, lifetime * 1000);
+	}
+}
+
+/*
+ * dmesh_is_banned
+ *
+ * Check whether URL is banned from the mesh.
+ */
+static gboolean dmesh_is_banned(dmesh_urlinfo_t *info)
+{
+	return NULL != g_hash_table_lookup(ban_mesh, info);
 }
 
 /*
@@ -360,20 +520,52 @@ static void dmesh_dispose(guchar *sha1)
 	g_assert(((struct dmesh *) value)->entries == NULL);
 
 	atom_sha1_free(key);
-	g_free(value);
+	wfree(value, sizeof(struct dmesh));
 
 	g_hash_table_remove(mesh, sha1);
 }
 
 /*
+ * dmesh_fill_info
+ *
+ * Fill URL info from externally supplied sha1, ip, port, idx and name.
+ * When `idx' is 0, then `name' is ignored, and we use the stringified SHA1.
+ */
+static void dmesh_fill_info(dmesh_urlinfo_t *info,
+	guchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name)
+{
+	static guchar sha1_urn[SHA1_BASE32_SIZE + sizeof("urn:sha1:")];
+
+	info->ip = ip;
+	info->port = port;
+	info->idx = idx;
+
+	if (idx == 0) {
+		g_snprintf(sha1_urn, sizeof(sha1_urn),
+			"urn:sha1:%s", base32_sha1(sha1));
+		info->name = sha1_urn;
+	} else
+		info->name = name;
+}
+
+/*
  * dmesh_remove
  *
- * Remove entry from mesh.
+ * Remove entry from mesh due to a failed download attempt.
  */
 void dmesh_remove(guchar *sha1,
 	guint32 ip, guint16 port, guint idx, gchar *name)
 {
 	struct dmesh *dm;
+	dmesh_urlinfo_t info;
+
+	/*
+	 * We're called because the download failed, so we must ban the URL
+	 * to prevent further insertion in the mesh.
+	 */
+
+	dmesh_fill_info(&info, sha1, ip, port, idx, name);
+	dmesh_ban_add(&info, 0);
 
 	/*
 	 * Lookup SHA1 in the mesh to see if we already have entries for it.
@@ -384,7 +576,7 @@ void dmesh_remove(guchar *sha1,
 	if (dm == NULL)				/* Nothing for this SHA1 key */
 		return;
 
-	(void) dm_remove(dm, ip, port, idx, name, MAX_STAMP);
+	(void) dm_remove(dm, ip, port, idx, info.name, MAX_STAMP);
 
 	/*
 	 * If there is nothing left, clear the mesh entry.
@@ -397,7 +589,7 @@ void dmesh_remove(guchar *sha1,
 }
 
 /*
- * dmesh_add
+ * dmesh_raw_add
  *
  * Add entry to the download mesh, indexed by the binary `sha1' digest.
  * If `stamp' is 0, then the current time is used.
@@ -408,12 +600,13 @@ void dmesh_remove(guchar *sha1,
  * Returns whether the entry was added in the mesh, or was discarded because
  * it was the oldest record and we have enough already.
  */
-gboolean dmesh_add(guchar *sha1,
+static gboolean dmesh_raw_add(guchar *sha1,
 	guint32 ip, guint16 port, guint idx, gchar *name, guint32 stamp)
 {
 	struct dmesh_entry *dme;
 	struct dmesh *dm;
 	guint32 now = (guint32) time(NULL);
+	dmesh_urlinfo_t info;
 
 	if (stamp == 0 || stamp > now)
 		stamp = now;
@@ -432,6 +625,18 @@ gboolean dmesh_add(guchar *sha1,
 		return FALSE;
 
 	/*
+	 * See whether this URL is banned from the mesh.
+	 */
+
+	info.ip = ip;
+	info.port = port;
+	info.idx = idx;
+	info.name = name;
+
+	if (dmesh_is_banned(&info))
+		return FALSE;
+
+	/*
 	 * Lookup SHA1 in the mesh to see if we already have entries for it.
 	 *
 	 * If we don't, create a new structure and insert it in the table.
@@ -444,7 +649,7 @@ gboolean dmesh_add(guchar *sha1,
 	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
 
 	if (dm == NULL) {
-		dm = g_malloc(sizeof(*dm));
+		dm = walloc(sizeof(*dm));
 
 		dm->count = 0;
 		dm->entries = NULL;
@@ -469,7 +674,7 @@ gboolean dmesh_add(guchar *sha1,
 	 * Allocate new entry.
 	 */
 
-	dme = (struct dmesh_entry *) g_malloc(sizeof(*dme));
+	dme = (struct dmesh_entry *) walloc(sizeof(*dme));
 
 	dme->inserted = now;
 	dme->stamp = stamp;
@@ -509,6 +714,26 @@ gboolean dmesh_add(guchar *sha1,
 		file_info_try_to_swarm_with(name, idx, ip, port, sha1);
 
 	return dme != NULL;			/* TRUE means we added the entry */
+}
+
+/*
+ * dmesh_add
+ *
+ * Same as dmesh_raw_add(), but this is for public consumption.
+ */
+gboolean dmesh_add(guchar *sha1,
+	guint32 ip, guint16 port, guint idx, gchar *name, guint32 stamp)
+{
+	dmesh_urlinfo_t info;
+
+	/*
+	 * Translate the supplied arguments: if idx is 0, then `name' is the
+	 * filename but we must use the urn:sha1 instead, as 0 is our mark
+	 * to indicate an /uri-res/N2R? URL.
+	 */
+
+	dmesh_fill_info(&info, sha1, ip, port, idx, name);
+	return dmesh_raw_add(sha1, ip, port, idx, info.name, stamp);
 }
 
 /*
@@ -945,7 +1170,8 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 		 * Enter URL into mesh.
 		 */
 
-		ok = dmesh_add(sha1, info.ip, info.port, info.idx, info.name, stamp);
+		ok = dmesh_raw_add(
+			sha1, info.ip, info.port, info.idx, info.name, stamp);
 
 		if (dbg > 4)
 			printf("MESH %s: %s \"%s\", stamp=%u age=%u\n",
@@ -1014,14 +1240,20 @@ static gint dmesh_alt_loc_fill(guchar *sha1, dmesh_urlinfo_t *buf, gint count)
  * `sha1': (atom) the SHA1 of the file
  * `size': the original file size
  */
-void dmesh_multiple_downloads(guchar *sha1, guint32 size, struct dl_file_info *fi)
+void dmesh_multiple_downloads(
+	guchar *sha1, guint32 size, struct dl_file_info *fi)
 {
 	dmesh_urlinfo_t buffer[DMESH_MAX];
 	dmesh_urlinfo_t *p;
 	gint n;
 	static guchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+	time_t now;
 
 	n = dmesh_alt_loc_fill(sha1, buffer, DMESH_MAX);
+	if (n == 0)
+		return;
+
+	now = time(NULL);
 
 	for (p = buffer; n; n--, p++) {
 		if (dbg > 2)
@@ -1029,7 +1261,7 @@ void dmesh_multiple_downloads(guchar *sha1, guint32 size, struct dl_file_info *f
 				dmesh_urlinfo_to_gchar(p));
 
 		download_auto_new(p->name, size, p->idx, p->ip, p->port,
-			blank_guid, sha1, 0, FALSE, fi);
+			blank_guid, sha1, now, FALSE, fi);
 	}
 }
 
@@ -1056,28 +1288,55 @@ static void dmesh_store_kv(gpointer key, gpointer value, gpointer udata)
 
 // XXX add dmesh_store_if_dirty() and export that only
 
+typedef void (*header_func_t)(FILE *out);
+
 /*
- * dmesh_store
+ * dmesh_hash_store
  *
- * Store download mesh onto file.
- *
- * The download mesh is normally stored in ~/.gtk-gnutella/dmesh.
+ * Store hash table `hash' into `file'.
+ * The file header is emitted by `header_cb'.
+ * The storing callback for each item is `store_cb'.
  */
-void dmesh_store(void)
+void dmesh_store_hash(
+	gchar *what,
+	GHashTable *hash, gchar *file, header_func_t header_cb, GHFunc store_cb)
 {
 	FILE *out;
-	time_t now = time((time_t *) NULL);
 	gchar tmp[1024];
 	gchar filename[1024];
 
-	g_snprintf(tmp, sizeof(tmp), "%s/%s.new", config_dir, dmesh_file);
+	g_snprintf(tmp, sizeof(tmp), "%s/%s.new", config_dir, file);
 	out = fopen(tmp, "w");
 
 	if (!out) {
-		g_warning("unable to create %s to persist download mesh: %s",
-			tmp, g_strerror(errno));
+		g_warning("unable to create %s to persist %s: %s",
+			what, tmp, g_strerror(errno));
 		return;
 	}
+
+	(*header_cb)(out);
+
+	g_hash_table_foreach(hash, store_cb, out);
+
+	if (0 == fclose(out)) {
+		g_snprintf(filename, sizeof(filename), "%s/%s",
+			config_dir, file);
+
+		if (-1 == rename(tmp, filename))
+			g_warning("could not rename %s as %s: %s",
+				tmp, filename, g_strerror(errno));
+	} else
+		g_warning("could not flush %s: %s", tmp, g_strerror(errno));
+}
+
+/*
+ * dmesh_header_print
+ *
+ * Prints header to dmesh store file.
+ */
+static void dmesh_header_print(FILE *out)
+{
+	time_t now = time((time_t *) NULL);
 
 	fputs("# THIS FILE IS AUTOMATICALLY GENERATED -- DO NOT EDIT\n", out);
 	fprintf(out, "#\n# Download mesh saved on %s#\n\n", ctime(&now));
@@ -1087,18 +1346,18 @@ void dmesh_store(void)
 	fputs("#   URL2 timestamp2\n", out);
 	fputs("#   <blank line>\n", out);
 	fputs("#\n\n", out);
+}
 
-	g_hash_table_foreach(mesh, dmesh_store_kv, out);
-
-	if (0 == fclose(out)) {
-		g_snprintf(filename, sizeof(filename), "%s/%s",
-			config_dir, dmesh_file);
-
-		if (-1 == rename(tmp, filename))
-			g_warning("could not rename %s as %s: %s",
-				tmp, filename, g_strerror(errno));
-	} else
-		g_warning("could not flush %s: %s", tmp, g_strerror(errno));
+/*
+ * dmesh_store
+ *
+ * Store download mesh onto file.
+ * The download mesh is normally stored in ~/.gtk-gnutella/dmesh.
+ */
+void dmesh_store(void)
+{
+	dmesh_store_hash("download mesh",
+		mesh, dmesh_file, dmesh_header_print, dmesh_store_kv);
 }
 
 /*
@@ -1183,6 +1442,121 @@ static void dmesh_retrieve(void)
 }
 
 /*
+ * dmesh_ban_store_kv
+ *
+ * Store key/value pair in file.
+ */
+static void dmesh_ban_store_kv(gpointer key, gpointer value, gpointer udata)
+{
+	struct dmesh_banned *dmb = (struct dmesh_banned *) value;
+	FILE *out = (FILE *) udata;
+
+	g_assert(key == (gpointer) dmb->info);
+
+	fprintf(out, "%d %s\n",
+		(gint) dmb->ctime, dmesh_urlinfo_to_gchar(dmb->info));
+}
+
+/*
+ * dmesh_ban_header_print
+ *
+ * Prints header to banned mesh store file.
+ */
+static void dmesh_ban_header_print(FILE *out)
+{
+	time_t now = time((time_t *) NULL);
+
+	fputs("# THIS FILE IS AUTOMATICALLY GENERATED -- DO NOT EDIT\n", out);
+	fprintf(out, "#\n# Banned mesh saved on %s#\n\n", ctime(&now));
+	fputs("#\n# Format is:\n", out);
+	fputs("#  timestamp URL\n", out);
+	fputs("#\n\n", out);
+}
+
+/*
+ * dmesh_ban_store
+ *
+ * Store banned mesh onto file.
+ * The banned mesh is normally stored in ~/.gtk-gnutella/dmesh_ban.
+ */
+void dmesh_ban_store(void)
+{
+	dmesh_store_hash("banned mesh",
+		ban_mesh, dmesh_ban_file, dmesh_ban_header_print, dmesh_ban_store_kv);
+}
+
+/*
+ * dmesh_ban_retrieve
+ *
+ * Retrieve banned mesh and add entries that have not expired yet.
+ * The mesh is normally retrieved from ~/.gtk-gnutella/dmesh_ban.
+ */
+static void dmesh_ban_retrieve(void)
+{
+	FILE *in;
+	gchar tmp[1024];
+	gchar filename[1024];
+	gint line = 0;
+	time_t stamp;
+	gchar *p;
+	dmesh_urlinfo_t info;
+
+	g_snprintf(tmp, sizeof(tmp), "%s/%s", config_dir, dmesh_ban_file);
+
+	in = fopen(tmp, "r");
+
+	if (!in)
+		return;
+
+	/*
+	 * Rename "file" as "file.orig", so that the original file is kept
+	 * around some time for recovery purposes..
+	 */
+
+	g_snprintf(filename, sizeof(filename), "%s/%s.orig",
+		config_dir, dmesh_ban_file);
+
+	if (-1 == rename(tmp, filename))
+		g_warning("could not rename %s as %s: %s",
+			tmp, filename, g_strerror(errno));
+
+	/*
+	 * Retrieval algorithm:
+	 *
+	 * Lines starting with a # are skipped.
+	 */
+
+	while (fgets(tmp, sizeof(tmp) - 1, in)) {	/* Room for trailing NUL */
+		line++;
+
+		if (tmp[0] == '#')
+			continue;			/* Skip comments */
+
+		str_chomp(tmp, 0);		/* Remove final "\n" */
+
+		stamp = strtoul(tmp, &p, 10);
+		if (p == tmp || *p != ' ') {
+			g_warning("malformed stamp at line #%d in banned mesh: %s",
+				line, tmp);
+			continue;
+		}
+
+		p++;					/* Now points at the start of the URL */
+		if (!dmesh_url_parse(p, &info)) {
+			g_warning("malformed URL at line #%d in banned mesh: %s",
+				line, tmp);
+			continue;
+		}
+
+		dmesh_ban_add(&info, stamp);
+		atom_str_free(info.name);
+	}
+
+	fclose(in);
+	dmesh_ban_store();			/* Persist what we have retrieved */
+}
+
+/*
  * dmesh_free_kv
  *
  * Free key/value pair in download mesh hash.
@@ -1198,7 +1572,26 @@ static gboolean dmesh_free_kv(gpointer key, gpointer value, gpointer udata)
 		dmesh_entry_free((struct dmesh_entry *) l->data);
 
 	g_slist_free(dm->entries);
-	g_free(dm);
+	wfree(dm, sizeof(*dm));
+
+	return TRUE;
+}
+
+/*
+ * dmesh_ban_free_kv
+ *
+ * Free key/value pair in the ban_mesh hash.
+ */
+static gboolean dmesh_ban_free_kv(gpointer key, gpointer value, gpointer udata)
+{
+	struct dmesh_banned *dmb = (struct dmesh_banned *) value;
+
+	g_assert(key == (gpointer) dmb->info);
+
+	dmesh_urlinfo_free(dmb->info);
+	cq_cancel(callout_queue, dmb->cq_ev);
+
+	wfree(dmb, sizeof(*dmb));
 
 	return TRUE;
 }
@@ -1211,6 +1604,12 @@ static gboolean dmesh_free_kv(gpointer key, gpointer value, gpointer udata)
 void dmesh_close(void)
 {
 	dmesh_store();
+	dmesh_ban_store();
+
 	g_hash_table_foreach_remove(mesh, dmesh_free_kv, NULL);
+	g_hash_table_destroy(mesh);
+
+	g_hash_table_foreach_remove(ban_mesh, dmesh_ban_free_kv, NULL);
+	g_hash_table_destroy(ban_mesh);
 }
 
