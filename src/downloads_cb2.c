@@ -28,6 +28,7 @@
 
 #ifdef USE_GTK2
 
+RCSID("$Id$");
 
 #include "downloads_cb2.h"
 
@@ -37,13 +38,7 @@
 
 #include "downloads.h" /* FIXME: remove this dependency */
 
-
-
-RCSID("$Id$");
-
 static gchar *selected_url = NULL; 
-
-
 
 /***
  *** Popup menu: downloads
