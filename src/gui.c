@@ -24,16 +24,49 @@ gchar gui_tmp[4096];
 GtkWidget *default_search_clist = NULL;
 GtkWidget *default_scrolled_window = NULL;
 
+guint statusbar_context_id = -1;
+
+void gui_nodes_remove_selected(void)
+{
+  if (GTK_CLIST(clist_nodes)->selection) {
+		struct gnutella_node *n;
+		GList *l = GTK_CLIST(clist_nodes)->selection;
+
+		while (l) {
+			n = (struct gnutella_node *)
+				gtk_clist_get_row_data(GTK_CLIST(clist_nodes),
+                                   (gint) l->data);
+         if( n ) {
+           if( NODE_IS_WRITABLE(n) ) {
+             node_bye(n, 201, "User manual removal");
+             gtk_clist_unselect_row(GTK_CLIST(clist_nodes), (gint) l->data, 0);
+           } else {
+             node_remove(n, NULL);
+             node_real_remove(n);
+           }
+         } else 
+           g_warning( "remove_selected_nodes(): row %d has NULL data\n", 
+                      (gint) l->data);
+         
+         l = GTK_CLIST(clist_nodes)->selection;
+		}
+	}
+}
+
 void gui_set_status(gchar * msg)
 {
-	if (msg) {
-		gtk_label_set(GTK_LABEL(label_left), msg);
-		gtk_label_set(GTK_LABEL(label_right), "");
-	} else {
-		gtk_label_set(GTK_LABEL(label_left), "");
-		g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", GTA_WEBSITE);
-		gtk_label_set(GTK_LABEL(label_right), gui_tmp);
-	}
+  if( statusbar_context_id == -1 ) {
+    statusbar_context_id = gtk_statusbar_get_context_id( GTK_STATUSBAR(statusbar), "sb" );
+  }
+
+  gtk_statusbar_pop( GTK_STATUSBAR(statusbar), statusbar_context_id );
+
+  if( msg ) {
+    gtk_statusbar_push( GTK_STATUSBAR(statusbar), statusbar_context_id, msg );
+  } else {
+    g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", GTA_WEBSITE);
+    gtk_statusbar_push( GTK_STATUSBAR(statusbar), statusbar_context_id, gui_tmp );
+  }
 }
 
 void gui_update_config_force_ip(void)
@@ -127,9 +160,13 @@ void gui_update_monitor_max_items(void)
 
 void gui_update_c_gnutellanet(void)
 {
+	gint nodes = node_count();
+
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u gnutellaNet",
-		connected_nodes(), node_count());
+		connected_nodes(), nodes);
 	gtk_clist_set_text(GTK_CLIST(clist_connections), 0, 0, gui_tmp);
+    gtk_progress_configure(GTK_PROGRESS(progressbar_connections), 
+                           connected_nodes(), 0, nodes);
 }
 
 void gui_update_c_uploads(void)
@@ -139,6 +176,8 @@ void gui_update_c_uploads(void)
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u upload%s", i, t,
 			   (i == 1 && t == 1) ? "" : "s");
 	gtk_clist_set_text(GTK_CLIST(clist_connections), 1, 0, gui_tmp);
+    gtk_progress_configure(GTK_PROGRESS(progressbar_uploads), 
+                           i, 0, t);
 }
 
 void gui_update_c_downloads(gint c, gint ec)
@@ -146,6 +185,8 @@ void gui_update_c_downloads(gint c, gint ec)
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u download%s", c, ec,
 			   (c == 1 && ec == 1) ? "" : "s");
 	gtk_clist_set_text(GTK_CLIST(clist_connections), 2, 0, gui_tmp);
+    gtk_progress_configure(GTK_PROGRESS(progressbar_downloads), 
+                           c, 0, ec);
 }
 
 void gui_update_max_downloads(void)
@@ -198,25 +239,25 @@ void gui_update_search_reissue_timeout(GtkEntry *
 void gui_update_socks_host()
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", proxy_ip);
-	gtk_entry_set_text(GTK_ENTRY(config_entry_socks_host), gui_tmp);
+	gtk_entry_set_text(GTK_ENTRY(entry_config_socks_host), gui_tmp);
 }
 
 void gui_update_socks_port()
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", proxy_port);
-	gtk_entry_set_text(GTK_ENTRY(config_entry_socks_port), gui_tmp);
+	gtk_entry_set_text(GTK_ENTRY(entry_config_socks_port), gui_tmp);
 }
 
 void gui_update_socks_user()
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", socksv5_user);
-	gtk_entry_set_text(GTK_ENTRY(config_entry_socks_username), gui_tmp);
+	gtk_entry_set_text(GTK_ENTRY(entry_config_socks_username), gui_tmp);
 }
 
 void gui_update_socks_pass()
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", socksv5_pass);
-	gtk_entry_set_text(GTK_ENTRY(config_entry_socks_password), gui_tmp);
+	gtk_entry_set_text(GTK_ENTRY(entry_config_socks_password), gui_tmp);
 }
 
 
@@ -396,6 +437,13 @@ void gui_update_download_abort_resume(void)
 			gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
 								   (gint) l->data);
 
+      if (!d) {
+			g_warning
+				("gui_update_download_abort_resume(): row %d has NULL data\n",
+				 (gint) l->data);
+			continue;
+		}
+
 		switch (d->status) {
 		case GTA_DL_QUEUED:
 			fprintf(stderr, "gui_update_download_abort_resume(): "
@@ -424,8 +472,10 @@ void gui_update_download_abort_resume(void)
 			break;
 	}
 
-	gtk_widget_set_sensitive(button_abort_download, abort);
-	gtk_widget_set_sensitive(button_resume_download, resume);
+	gtk_widget_set_sensitive(button_downloads_abort, abort);
+	gtk_widget_set_sensitive(popup_downloads_abort, abort);
+	gtk_widget_set_sensitive(button_downloads_resume, resume);
+	gtk_widget_set_sensitive(popup_downloads_resume, resume);
 }
 
 void gui_update_upload_kill(void)
@@ -443,7 +493,7 @@ void gui_update_upload_kill(void)
 		}
 	}
 
-	gtk_widget_set_sensitive(button_kill_upload, d ? 1 : 0);
+	gtk_widget_set_sensitive(button_uploads_kill, d ? 1 : 0);
 }
 
 
@@ -464,7 +514,7 @@ void gui_update_download_clear(void)
 		}
 	}
 
-	gtk_widget_set_sensitive(button_clear_download, clear);
+	gtk_widget_set_sensitive(button_downloads_clear_completed, clear);
 }
 
 void gui_update_download(struct download *d, gboolean force)
