@@ -2305,11 +2305,10 @@ download_retry_no_urires(struct download *d, gint delay, gint ack_code)
 
 		d->server->attrs |= DLS_A_NO_URIRES;
 
-		if (1) {
+		if (dbg)
 			g_message("Server %s (%s) does not support /uri-res/N2R?\n",
 				ip_port_to_gchar(download_ip(d), download_port(d)),
 				download_vendor_str(d));
-		}
 
 		download_passively_queued(d, FALSE);
 
@@ -2720,8 +2719,8 @@ download_pick_available(struct download *d)
 
 	if (!file_info_find_available_hole(d, d->ranges, &from, &to)) {
 		if (dbg > 3)
-			printf("PFSP no interesting chunks from %s for \"%s\", "
-				"available was: %s\n",
+			g_message("PFSP no interesting chunks from %s for \"%s\", "
+				"available was: %s",
 				ip_port_to_gchar(download_ip(d), download_port(d)),
 				download_outname(d), http_range_to_gchar(d->ranges));
 
@@ -2750,8 +2749,8 @@ download_pick_available(struct download *d)
 		d->overlap_size = download_overlap_range;
 
 	if (dbg > 3)
-		printf("PFSP selected %u-%u (overlap=%u) from %s for \"%s\", "
-			"available was: %s\n", from, to - 1, d->overlap_size,
+		g_message("PFSP selected %u-%u (overlap=%u) from %s for \"%s\", "
+			"available was: %s", from, to - 1, d->overlap_size,
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			download_outname(d), http_range_to_gchar(d->ranges));
 			
@@ -3096,7 +3095,7 @@ download_push(struct download *d, gboolean on_timeout)
 			download_push_remove(d);
 
 			if (dbg > 2)
-				printf("PUSH trying to ignore them for %s\n",
+				g_message("PUSH trying to ignore them for %s",
 					ip_port_to_gchar(download_ip(d), download_port(d)));
 
 			d->flags |= DL_F_PUSH_IGN;
@@ -3320,9 +3319,8 @@ create_download(gchar *file, gchar *uri, guint32 size, guint32 record_index,
 
 	if ((d = has_same_download(file_name, sha1, guid, ip, port))) {
 		g_assert(!server_created);		/* Obviously! */
-		if (interactive) {
+		if (interactive)
 			g_message("Rejecting duplicate download for %s", file_name);
-        }
 		atom_str_free(file_name);
 		return NULL;
 	}
@@ -3512,7 +3510,7 @@ download_auto_new(gchar *file, guint32 size, guint32 record_index,
 
 abort_download:
 	if (dbg > 4)
-		printf("ignoring auto download for \"%s\": %s\n", file, reason);
+		g_message("ignoring auto download for \"%s\": %s", file, reason);
 	return;
 }
 
@@ -4427,7 +4425,7 @@ download_overlap_check(struct download *d)
 	close(fd);
 
 	if (dbg > 3)
-		printf("%d overlapping bytes MATCHED at offset %d for \"%s\"\n",
+		g_message("%d overlapping bytes MATCHED at offset %d for \"%s\"",
 			d->overlap_size, d->skip - d->overlap_size, d->file_name);
 
 	return TRUE;
@@ -4961,7 +4959,7 @@ check_xhostname(struct download *d, const header_t *header)
 			download_push_remove(d);
 
 		if (dbg > 2)
-			printf("PUSH got X-Hostname, trying to ignore them for %s (%s)\n",
+			g_message("PUSH got X-Hostname, trying to ignore them for %s (%s)",
 				buf, ip_port_to_gchar(download_ip(d), download_port(d)));
 
 		d->flags |= DL_F_PUSH_IGN;
@@ -5021,7 +5019,7 @@ check_xhost(struct download *d, const header_t *header)
 		download_push_remove(d);
 
 	if (dbg > 2)
-		printf("PUSH got X-Host, trying to ignore them for %s\n",
+		g_message("PUSH got X-Host, trying to ignore them for %s",
 			ip_port_to_gchar(download_ip(d), download_port(d)));
 
 	d->flags |= DL_F_PUSH_IGN;
@@ -5625,8 +5623,8 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 			if (http_range_contains(d->ranges, d->skip, d->range_end - 1)) {
 				if (dbg > 3)
-					printf("PFSP currently requested chunk %u-%u from %s "
-						"for \"%s\" already in the available ranges: %s\n",
+					g_message("PFSP currently requested chunk %u-%u from %s "
+						"for \"%s\" already in the available ranges: %s",
 						d->skip, d->range_end - 1,
 						ip_port_to_gchar(download_ip(d), download_port(d)),
 						download_outname(d), http_range_to_gchar(d->ranges));
@@ -6500,12 +6498,12 @@ download_write_request(gpointer data, gint source, inputevt_cond_t cond)
 	} else if (sent < rw) {
 		http_buffer_add_read(r, sent);
 		return;
-	} else if (dbg > 2) {
-		printf("----Sent Request (%s) completely to %s (%d bytes):\n%.*s----\n",
+	} else if (dbg > 1) {
+		g_message(
+			"----Sent Request (%s) completely to %s (%d bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			http_buffer_length(r), http_buffer_length(r), http_buffer_base(r));
-		fflush(stdout);
 	}
 
 	/*
@@ -6574,7 +6572,7 @@ download_send_request(struct download *d)
 
 	if (d->always_push && !DOWNLOAD_IS_IN_PUSH_MODE(d)) {
 		if (dbg > 2)
-			printf("PUSH not necessary to reach %s\n",
+			g_message("PUSH not necessary to reach %s",
 				ip_port_to_gchar(download_ip(d), download_port(d)));
 		d->server->attrs |= DLS_A_PUSH_IGN;
 		d->always_push = FALSE;
@@ -6660,7 +6658,8 @@ picked:
 	 */
 
 	if (d->uri) {
-		printf("GET %s HTTP/1.1\r\n", d->uri);
+		if (dbg)
+			g_message("GET %s HTTP/1.1\r\n", d->uri);
 		rw = gm_snprintf(dl_tmp, sizeof(dl_tmp),
 			"GET %s HTTP/1.1\r\n",
 			d->uri);
@@ -6885,7 +6884,7 @@ picked:
 			download_write_request, (gpointer) d);
 
 		return;
-	} else {
+	} else if (dbg > 1) {
 		g_message("----Sent Request (%s) to %s (%d bytes):\n%.*s----\n",
 			d->keep_alive ? "follow-up" : "initial",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
@@ -6949,7 +6948,7 @@ select_push_download(guint file_index, const gchar *hex_guid)
 		g_assert(d != NULL);
 		g_assert(d->record_index == file_index);
 	} else if (dbg > 3)
-		printf("got unexpected GIV: nothing pending currently\n");
+		g_message("got unexpected GIV: nothing pending currently");
 
 	/*
 	 * We might get another GIV for the same download: we send two pushes
@@ -6966,12 +6965,12 @@ select_push_download(guint file_index, const gchar *hex_guid)
 	if (d) {
 		if (d->socket) {
 			if (dbg > 3)
-				printf("got concurrent GIV: download is connected, state %d\n",
+				g_message("got concurrent GIV: download is connected, state %d",
 					d->status);
 			d = NULL;
 		} else if (!DOWNLOAD_IS_EXPECTING_GIV(d)) {
 			if (dbg > 3)
-				printf("got GIV string for download in state %d\n",
+				g_message("got GIV string for download in state %d",
 					d->status);
 			d = NULL;
 		}
@@ -7044,7 +7043,7 @@ select_push_download(guint file_index, const gchar *hex_guid)
 
 				if (d->socket == NULL && DOWNLOAD_IS_EXPECTING_GIV(d)) {
 					if (dbg > 2)
-						printf("GIV: selected active download '%s' from %s\n",
+						g_message("GIV: selected active download '%s' from %s",
 							d->file_name, guid_hex_str(rguid));
 					return d;
 				}
@@ -7075,8 +7074,8 @@ select_push_download(guint file_index, const gchar *hex_guid)
 					continue;
 
 				if (dbg > 4)
-					printf(
-						"GIV: trying alternate download '%s' from %s at %s\n",
+					g_message(
+						"GIV: trying alternate download '%s' from %s at %s",
 						d->file_name, guid_hex_str(rguid),
 						ip_port_to_gchar(download_ip(d), download_port(d)));
 
@@ -7100,8 +7099,8 @@ select_push_download(guint file_index, const gchar *hex_guid)
 						count_running_downloads());
 
 					if (dbg > 2)
-						printf(
-							"GIV: selected alternate download '%s' from %s\n",
+						g_message(
+							"GIV: selected alternate download '%s' from %s",
 							d->file_name, guid_hex_str(rguid));
 
 					return d;
