@@ -2575,12 +2575,23 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			gboolean parq_allows = FALSE;
 			
 			if (parq_upload_lookup_position(u) == -1) {
+				time_t expire = parq_banned_source_expire(u->ip);
+				gchar retry_after[80];
+				time_t delay = expire - time(NULL);
+
+				if (delay <= 0)
+					delay = 60;		/* Let them retry in a minute, only */
+
+
+				gm_snprintf(retry_after, sizeof(retry_after),
+					"Retry-After: %d\r\n", (gint) delay);
+
 				/*
 				 * Looks like upload got removed from PARQ queue. For now this
 				 * only happens when a client got banned. Bye bye!
 			 	 *		-- JA, 19/05/'03
 				 */
-				upload_error_remove(u, reqfile, 403,
+				upload_error_remove_ext(u, reqfile, retry_after, 403,
 					"%s not honoured; removed from PARQ queue",
 					was_actively_queued ?
 						"Minimum retry delay" : "Retry-After");
