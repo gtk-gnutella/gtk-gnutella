@@ -207,8 +207,9 @@ gchar *gm_strconcatv(const gchar *s, va_list args)
 	gchar *add;
 	gint size;
 
-	res = strdup(s);
 	size = strlen(s) + 1;
+	res = g_malloc(size);
+	memcpy(res, s, size);
 
 	while ((add = va_arg(args, gchar *))) {
 		gint len = strlen(add);
