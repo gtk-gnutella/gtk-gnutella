@@ -34,6 +34,7 @@ RCSID("$Id$");
 #include "settings.h"
 #include "nodes.h"
 #include "hsep.h"
+#include "version.h"
 
 #include "if/bridge/c2ui.h"
 #include "if/gnet_property.h"
@@ -75,7 +76,8 @@ static gchar auth_cookie[SHA1_RAW_SIZE];
 static void shell_destroy(gnutella_shell_t *sh);
 void shell_shutdown(gnutella_shell_t *sh);
 static gboolean shell_write(gnutella_shell_t *sh, const gchar *s);
-void print_hsep_table(gnutella_shell_t *sh, hsep_triple *table, int triples, hsep_triple *nonhsep);
+void print_hsep_table(
+	gnutella_shell_t *sh, hsep_triple *table, int triples, hsep_triple *nonhsep);
 
 enum {
 	CMD_UNKNOWN,
@@ -1130,7 +1132,9 @@ void shell_add(struct gnutella_socket *s)
 		shell_write(sh, "400 Invalid credentials\n");
 		shell_shutdown(sh);
 	} else {
-		shell_write(sh, "100 Welcome to gtk-gnutella\n");
+		shell_write(sh, "100 Welcome to ");
+		shell_write(sh, version_short_string);
+		shell_write(sh, "\n");
 	}
 
 	getline_reset(s->getline); /* clear AUTH command from buffer */
