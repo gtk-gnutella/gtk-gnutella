@@ -541,11 +541,10 @@ void node_timer(time_t now)
 					fc_ratio = (gdouble) total / (2.0 * NODE_RX_FC_HALF_PERIOD);
 					fc_ratio *= 100.0;
 
-					if ((gint) fc_ratio > node_rx_flowc_ratio) {
+					if ((gint) fc_ratio > max_ratio) {
 						node_bye(n, 405,
 							"Remotely flow-controlled too often "
-							"(%.2f%% > %d%% of time)",
-							fc_ratio, node_rx_flowc_ratio);
+							"(%.2f%% > %d%% of time)", fc_ratio, max_ratio);
 						return;
 					}
 
