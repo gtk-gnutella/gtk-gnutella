@@ -806,9 +806,8 @@ void share_scan(void)
 
 	gui_update_files_scanned();		/* Final view */
 
-#if 0
 	/*
-	 * Query routing table update.  XXX DISABLED: not ready.
+	 * Query routing table update.
 	 */
 
 	qrp_prepare_computation();
@@ -821,7 +820,6 @@ void share_scan(void)
 	}
 
 	qrp_finalize_computation();
-#endif
 
 	in_share_scan = FALSE;
 	gnet_prop_set_boolean_val(PROP_LIBRARY_REBUILDING, FALSE);
