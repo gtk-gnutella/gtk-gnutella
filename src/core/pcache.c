@@ -184,8 +184,9 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 
 	if (uhc) {
 		pong_meta_t *meta = &local_meta;
+		gboolean ok;
 
-		ggep_stream_begin(&gs, "VC", 0) &&
+		ok = ggep_stream_begin(&gs, "VC", 0) &&
 		ggep_stream_write(&gs, meta->vendor, sizeof(meta->vendor)) &&
 		ggep_stream_write(&gs, &meta->version_ua, 1) &&
 		ggep_stream_end(&gs);
@@ -245,7 +246,9 @@ build_pong_msg(
 
 	if (meta != NULL) {
 		if (meta->flags & PONG_META_HAS_VC) {	/* Vendor code */
-			ggep_stream_begin(&gs, "VC", 0) &&
+			gboolean ok;
+
+			ok = ggep_stream_begin(&gs, "VC", 0) &&
 			ggep_stream_write(&gs, meta->vendor, sizeof(meta->vendor)) &&
 			ggep_stream_write(&gs, &meta->version_ua, 1) &&
 			ggep_stream_end(&gs);
@@ -255,7 +258,9 @@ build_pong_msg(
 			ggep_stream_pack(&gs, "GUE", &meta->guess, 1, 0);
 
 		if (meta->flags & PONG_META_HAS_UP) {	/* Ultrapeer info */
-			ggep_stream_begin(&gs, "UP", 0) &&
+			gboolean ok;
+
+			ok = ggep_stream_begin(&gs, "UP", 0) &&
 			ggep_stream_write(&gs, &meta->version_up, 1) &&
 			ggep_stream_write(&gs, &meta->up_slots, 1) &&
 			ggep_stream_write(&gs, &meta->leaf_slots, 1) &&
