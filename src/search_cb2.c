@@ -258,20 +258,6 @@ void on_button_search_close_clicked(GtkButton * button, gpointer user_data)
 }
 
 
-void on_button_search_expand_all_clicked (GtkButton *button, 
-	gpointer user_data)
-{
-	search_gui_expand_all();
-}
-
-
-void on_button_search_collapse_all_clicked (GtkButton *button, 
-	gpointer user_data)
-{
-	search_gui_collapse_all();
-}
-
-
 gboolean on_tree_view_search_results_key_press_event
     (GtkWidget *widget, GdkEventKey * event, gpointer user_data)
 {

@@ -1552,14 +1552,14 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new (_("Raphaël Manfredi"));
+  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new (_("Raphaël Manfredi"));
+  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -10488,16 +10488,6 @@ create_main_window_search_tab (void)
   GtkWidget *image27;
   GtkWidget *label_search_results_show_settings;
   GtkWidget *hbox262;
-  GtkWidget *button_search_expand_all;
-  GtkWidget *alignment91;
-  GtkWidget *hbox251;
-  GtkWidget *image263;
-  GtkWidget *label828;
-  GtkWidget *button_search_collapse_all;
-  GtkWidget *alignment92;
-  GtkWidget *hbox252;
-  GtkWidget *image264;
-  GtkWidget *label829;
   GtkWidget *button_search_clear;
   GtkWidget *alignment25;
   GtkWidget *hbox156;
@@ -11094,56 +11084,6 @@ create_main_window_search_tab (void)
   gtk_widget_show (hbox262);
   gtk_box_pack_start (GTK_BOX (hbox154), hbox262, TRUE, FALSE, 0);
 
-  button_search_expand_all = gtk_button_new ();
-  gtk_widget_set_name (button_search_expand_all, "button_search_expand_all");
-  gtk_widget_show (button_search_expand_all);
-  gtk_box_pack_start (GTK_BOX (hbox262), button_search_expand_all, FALSE, FALSE, 0);
-
-  alignment91 = gtk_alignment_new (0.5, 0.5, 0, 0);
-  gtk_widget_set_name (alignment91, "alignment91");
-  gtk_widget_show (alignment91);
-  gtk_container_add (GTK_CONTAINER (button_search_expand_all), alignment91);
-
-  hbox251 = gtk_hbox_new (FALSE, 2);
-  gtk_widget_set_name (hbox251, "hbox251");
-  gtk_widget_show (hbox251);
-  gtk_container_add (GTK_CONTAINER (alignment91), hbox251);
-
-  image263 = gtk_image_new_from_stock ("gtk-add", GTK_ICON_SIZE_BUTTON);
-  gtk_widget_set_name (image263, "image263");
-  gtk_widget_show (image263);
-  gtk_box_pack_start (GTK_BOX (hbox251), image263, FALSE, FALSE, 0);
-
-  label828 = gtk_label_new_with_mnemonic (_("Expand all"));
-  gtk_widget_set_name (label828, "label828");
-  gtk_widget_show (label828);
-  gtk_box_pack_start (GTK_BOX (hbox251), label828, FALSE, FALSE, 0);
-
-  button_search_collapse_all = gtk_button_new ();
-  gtk_widget_set_name (button_search_collapse_all, "button_search_collapse_all");
-  gtk_widget_show (button_search_collapse_all);
-  gtk_box_pack_start (GTK_BOX (hbox262), button_search_collapse_all, FALSE, FALSE, 0);
-
-  alignment92 = gtk_alignment_new (0.5, 0.5, 0, 0);
-  gtk_widget_set_name (alignment92, "alignment92");
-  gtk_widget_show (alignment92);
-  gtk_container_add (GTK_CONTAINER (button_search_collapse_all), alignment92);
-
-  hbox252 = gtk_hbox_new (FALSE, 2);
-  gtk_widget_set_name (hbox252, "hbox252");
-  gtk_widget_show (hbox252);
-  gtk_container_add (GTK_CONTAINER (alignment92), hbox252);
-
-  image264 = gtk_image_new_from_stock ("gtk-remove", GTK_ICON_SIZE_BUTTON);
-  gtk_widget_set_name (image264, "image264");
-  gtk_widget_show (image264);
-  gtk_box_pack_start (GTK_BOX (hbox252), image264, FALSE, FALSE, 0);
-
-  label829 = gtk_label_new_with_mnemonic (_("Collapse all"));
-  gtk_widget_set_name (label829, "label829");
-  gtk_widget_show (label829);
-  gtk_box_pack_start (GTK_BOX (hbox252), label829, FALSE, FALSE, 0);
-
   button_search_clear = gtk_button_new ();
   gtk_widget_set_name (button_search_clear, "button_search_clear");
   gtk_widget_show (button_search_clear);
@@ -11212,12 +11152,6 @@ create_main_window_search_tab (void)
                     NULL);
   g_signal_connect ((gpointer) button_search_filter, "clicked",
                     G_CALLBACK (on_button_search_filter_clicked),
-                    NULL);
-  g_signal_connect ((gpointer) button_search_expand_all, "clicked",
-                    G_CALLBACK (on_button_search_expand_all_clicked),
-                    NULL);
-  g_signal_connect ((gpointer) button_search_collapse_all, "clicked",
-                    G_CALLBACK (on_button_search_collapse_all_clicked),
                     NULL);
   g_signal_connect ((gpointer) button_search_clear, "clicked",
                     G_CALLBACK (on_button_search_clear_clicked),
@@ -11319,16 +11253,6 @@ create_main_window_search_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_search_tab, image27, "image27");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, label_search_results_show_settings, "label_search_results_show_settings");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox262, "hbox262");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, button_search_expand_all, "button_search_expand_all");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, alignment91, "alignment91");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox251, "hbox251");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, image263, "image263");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, label828, "label828");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, button_search_collapse_all, "button_search_collapse_all");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, alignment92, "alignment92");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox252, "hbox252");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, image264, "image264");
-  GLADE_HOOKUP_OBJECT (main_window_search_tab, label829, "label829");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, button_search_clear, "button_search_clear");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, alignment25, "alignment25");
   GLADE_HOOKUP_OBJECT (main_window_search_tab, hbox156, "hbox156");
