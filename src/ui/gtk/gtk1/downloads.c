@@ -1606,11 +1606,11 @@ download_gui_remove(struct download *d)
 					if (2 == n) {
 						/* Removing this download will leave only one left, 
 						 * we'll have to get rid of the header. */
-				
+
 						/* Get rid of current download, d */
 						gtk_ctree_remove_node(ctree_downloads_queue, node);
 						parent_children_add(ctree_downloads_queue, key, -1);
-
+				
 						/* Replace header with only remaining child */
 						parent_row = GTK_CTREE_ROW(parent);
 						node = parent_row->children;			
@@ -1641,15 +1641,11 @@ download_gui_remove(struct download *d)
 							c_queue_status, status);
 						gtk_ctree_node_set_text(ctree_downloads_queue,  parent,
 							c_queue_loc, country);
-					}
-				
-					if (0 == n) {
+					} else if (0 == n) {
 						/* Node has no children -> is a parent */
 						remove_parent_with_fi_handle(parents_queue,
 							d->file_info->fi_handle);
-					}
-						
-					if (n > 2){
+					} else if (n > 2) {
 						gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", 
                             n - 1);
 
@@ -1695,11 +1691,11 @@ download_gui_remove(struct download *d)
 					if (2 == n) {
 						/* Removing this download will leave only one left, 
 						 * we'll have to get rid of the header. */
-				
+
 						/* Get rid of current download, d */
 						gtk_ctree_remove_node(ctree_downloads, node);
 						parent_children_add(ctree_downloads, key, -1);
-
+				
 						/* Replace header with only remaining child */
 						parent_row = GTK_CTREE_ROW(parent);
 						node = parent_row->children;			
@@ -1734,15 +1730,11 @@ download_gui_remove(struct download *d)
 							c_dl_range, range);
 						gtk_ctree_node_set_text(ctree_downloads,  parent,
 							c_dl_loc, country);
-					}
-				
-					if (0 == n) {
+					} else if (0 == n) {
 						/* Node has no children -> is a parent */
 						remove_parent_with_fi_handle(parents, 
 							d->file_info->fi_handle);
-					}
-						
-					if (2 < n){
+					} else if (2 < n){
 						gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", n - 1);
 						gtk_ctree_node_set_text(ctree_downloads,  parent,
 							c_dl_host, tmpstr);
