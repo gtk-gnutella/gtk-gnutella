@@ -192,7 +192,8 @@ static FILE *file_config_open(const gchar *what, const file_path_t *fv,
 	FILE *out = NULL;
 	char *path;
 
-	path = g_strconcat(fv->dir, G_DIR_SEPARATOR_S, fv->name, new_ext, NULL);
+	path = g_strconcat(fv->dir, G_DIR_SEPARATOR_S, fv->name, ".",
+				new_ext, NULL);
 	g_return_val_if_fail(NULL != path, NULL);
 
 	out = file_fopen(path, append ? "a" : "w");
