@@ -15,16 +15,19 @@ struct gnutella_node;
 
 /*
  * A search queue.
- * There is one search queue per node, above the message queue.
+ *
+ * There is one search queue per node, placed above the message queue.
+ * It is only fed by the queries sent by ourselves.  Its purpose is to
+ * delay queries to avoid flooding a single connection.
  */
 typedef struct search_queue {
 	GList *searches;			/* A pointer to the GList */
 	struct gnutella_node *node;	/* Node owning this search queue */
 	time_t last_sent;    		/* Time last msg was sent */
-	int count;					/* Count of number in queue */
+	gint count;					/* Count of number in queue */
 	/* stats */
-	int n_sent;					/* Number of searches sent */
-	int n_dropped;				/* Number dropped due to flow control */
+	gint n_sent;				/* Number of searches sent */
+	gint n_dropped;				/* Number dropped due to flow control */
 } squeue_t;
 
 #define sq_count(q)			((q)->count)
@@ -40,5 +43,5 @@ void sq_free(squeue_t *sq);
 void sq_putq(squeue_t *sq, pmsg_t *mb);
 void sq_process(squeue_t *sq, time_t now);
 
-#endif /* __search_queue_h__ */
+#endif /* __sq_h__ */
 
