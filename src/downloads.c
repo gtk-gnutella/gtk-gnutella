@@ -52,6 +52,7 @@
 #include <time.h>			/* For ctime() */
 
 #define DOWNLOAD_RECV_BUFSIZE	114688		/* 112K */
+#define DOWNLOAD_MIN_OVERLAP	64			/* Minimum overlap for safety */
 
 static GSList *sl_downloads = NULL; /* All downloads (queued + unqueued) */
 GSList *sl_unqueued = NULL;			/* Unqueued downloads only */
@@ -3677,12 +3678,24 @@ static void download_request(struct download *d, header_t *header)
 	} else {
 		/*
 		 * We don't have any X-Gnutella-Content-URN header on this server.
-		 * If fileinfo has a SHA1, we must stop, as we cannot be sure we're
-		 * writing to the SAME file.  Doing so could prevent resuming later.
+		 * If fileinfo has a SHA1, we must be careful if we cannot be sure
+		 * we're writing to the SAME file.
+		 *
+		 * If they have configured an overlapping range of at least
+		 * DOWNLOAD_MIN_OVERLAP, we can requeue the download if we were not
+		 * overlapping here, in the hope we'll (later on) request a chunk after
+		 * something we have already downloaded.
+		 *
+		 * If not, stop definitively.
 		 */
 
 		if (d->file_info->sha1) {
-			download_stop(d, GTA_DL_ERROR, "No URN on server to validate");
+			if (download_overlap_range >= DOWNLOAD_MIN_OVERLAP) {
+				if (d->overlap_size == 0)
+					download_queue_delay(d, download_retry_busy_delay,
+						"No URN on server, waiting for overlap");
+			} else
+				download_stop(d, GTA_DL_ERROR, "No URN on server to validate");
 			return;
 		}
 	}
