@@ -1760,6 +1760,16 @@ static gboolean download_start_prepare(struct download *d)
 		return FALSE;
 
 	/*
+	 * Even though we should not schedule a "suspended" download, we could
+	 * be asked via a user-event to start such a download.
+	 */
+
+	if (d->flags & DL_F_SUSPENDED) {
+		download_queue(d, "Suspended");
+		return FALSE;
+	}
+
+	/*
 	 * If the file already exists, and has less than `download_overlap_range'
 	 * bytes, we restart the download from scratch.	Otherwise, we request
 	 * that amount before the resuming point.
@@ -2214,19 +2224,6 @@ static void create_download(
 		file_info = file_info_get(file_name, save_file_path, size, sha1);
 
 	/*
-	 * If fileinfo is maked with FI_F_SUSPEND, it means we are in the process
-	 * of verifying the SHA1 of the download.  If it matches with the SHA1
-	 * we got initially, we'll remove the downloads, otherwise we will
-	 * restart it.
-	 *
-	 * That's why we still accept downloads for that fileinfo, but do not
-	 * schedule them: we wait for the outcome of the SHA1 verification process.
-	 */
-
-	if (file_info->flags & FI_F_SUSPEND)
-		d->flags |= DL_F_SUSPENDED;
-
-	/*
 	 * Initialize download, creating new server if needed.
 	 */
 
@@ -2266,6 +2263,19 @@ static void create_download(
 	else
 		d->push = FALSE;
 	d->record_stamp = stamp;
+
+	/*
+	 * If fileinfo is maked with FI_F_SUSPEND, it means we are in the process
+	 * of verifying the SHA1 of the download.  If it matches with the SHA1
+	 * we got initially, we'll remove the downloads, otherwise we will
+	 * restart it.
+	 *
+	 * That's why we still accept downloads for that fileinfo, but do not
+	 * schedule them: we wait for the outcome of the SHA1 verification process.
+	 */
+
+	if (file_info->flags & FI_F_SUSPEND)
+		d->flags |= DL_F_SUSPENDED;
 
 	d->file_info = file_info;
 	file_info->refcount++;
@@ -3220,16 +3230,20 @@ static void download_write_data(struct download *d)
 
 	/*
 	 * We can't have data going farther than what we requested from the
-	 * server.  But if we do, trim and warn.
+	 * server.  But if we do, trim and warn.  And mark the server as not
+	 * being capable of handling keep-alive connections correctly!
 	 */
 
 	if (d->pos + s->pos > d->range_end) {
 		gint extra = (d->pos + s->pos) - d->range_end;
-		g_warning("server %s gave us %d more byte%s than requested for \"%s\"",
+		g_warning("server %s (%s) gave us %d more byte%s "
+			"than requested for \"%s\"",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
+			download_vendor_str(d),
 			extra, extra == 1 ? "" : "s", download_outname(d));
 		s->pos -= extra;
 		trimmed = TRUE;
+		d->server->attrs |= DLS_A_NO_KEEPALIVE;		/* Since we have to trim */
 		g_assert(s->pos > 0);	/* We had not reached range_end previously */
 	}
 
@@ -4591,6 +4605,9 @@ retry:
 			if (count_running_downloads_with_name(d->file_info->file_name) != 0)
 				continue;
 
+			if (d->flags & DL_F_SUSPENDED)
+				continue;
+
 			if (dbg > 4)
 				printf("GIV: trying alternate download '%s' from %s at %s\n",
 					d->file_name, guid_hex_str(rguid),
@@ -5095,7 +5112,7 @@ void download_verify_done(struct download *d, guchar *digest, time_t elapsed)
 
 	d->status = GTA_DL_VERIFIED;
 
-	ignore_add_sha1(d->file_name, fi->cha1);
+	ignore_add_sha1(download_outname(d), fi->cha1);
 
 	if (fi->sha1 == NULL || sha1_eq(fi->sha1, fi->cha1)) {
 		ignore_add_filesize(d->file_name, d->file_info->size);
@@ -5155,6 +5172,7 @@ void download_verify_error(struct download *d)
 static void download_resume_bg_tasks(void)
 {
 	GSList *l;
+	GSList *to_remove = NULL;			/* List of fileinfos to remove */
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
@@ -5170,9 +5188,12 @@ static void download_resume_bg_tasks(void)
 
 		/*
 		 * Found a complete download.
+		 *
+		 * More than one download may reference this fileinfo if we crashed
+		 * and many such downloads were in the queue at that time.
 		 */
 
-		g_assert(fi->refcount == 1);
+		g_assert(fi->refcount >= 1);
 
 		/*
 		 * It is possible that the faked download was scheduled to run, and
@@ -5204,10 +5225,23 @@ static void download_resume_bg_tasks(void)
 		else {
 			d->status = GTA_DL_VERIFIED;		/* Does not mean good SHA1 */
 			download_move_to_completed_dir(d);
+			to_remove = g_slist_prepend(to_remove, d->file_info);
 		}
 
 		gui_update_download(d, TRUE);
 	}
+
+	/*
+	 * Remove queued downloads referencing a complete file.
+	 */
+
+	for (l = to_remove; l; l = l->next) {
+		struct dl_file_info *fi = (struct dl_file_info *) l->data;
+		g_assert(FILE_INFO_COMPLETE(fi));
+		queue_remove_downloads_with_file(fi, NULL);
+	}
+
+	g_slist_free(to_remove);
 
 	/*
 	 * Clear the marks.
