@@ -342,10 +342,10 @@ create_main_window (void)
   GtkWidget *table4;
   GtkWidget *label123;
   GtkWidget *label124;
-  GtkObject *spinbutton_config_bps_in_adj;
-  GtkObject *spinbutton_config_bps_out_adj;
   GtkWidget *label125;
   GtkWidget *label126;
+  GtkObject *spinbutton_config_bps_in_adj;
+  GtkObject *spinbutton_config_bps_out_adj;
   GtkWidget *label127;
   GtkWidget *label121;
   GtkWidget *vbox25;
@@ -2054,7 +2054,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (notebook1);
   gtk_container_add (GTK_CONTAINER (notebook_main), notebook1);
-  gtk_notebook_set_tab_pos (GTK_NOTEBOOK (notebook1), GTK_POS_LEFT);
 
   vbox24 = gtk_vbox_new (FALSE, 0);
   gtk_widget_ref (vbox24);
@@ -2101,7 +2100,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (entry_config_force_ip);
   gtk_table_attach (GTK_TABLE (table_local_ip), entry_config_force_ip, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
   frame_listen_port = gtk_frame_new ("Listen port");
@@ -2452,7 +2451,7 @@ create_main_window (void)
   gtk_widget_show (entry_config_extensions);
   gtk_box_pack_start (GTK_BOX (hbox27), entry_config_extensions, TRUE, TRUE, 0);
 
-  label120 = gtk_label_new ("File storage");
+  label120 = gtk_label_new ("File\nsharing");
   gtk_widget_ref (label120);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label120", label120,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -2471,7 +2470,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table4", table4,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (table4);
-  gtk_box_pack_start (GTK_BOX (vbox27), table4, FALSE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox27), table4, FALSE, FALSE, 0);
 
   label123 = gtk_label_new ("Input bandwidth limit");
   gtk_widget_ref (label123);
@@ -2493,27 +2492,6 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label124), 0, 0.5);
 
-  spinbutton_config_bps_in_adj = gtk_adjustment_new (0, 0, 2e+06, 1, 1024, 1024);
-  spinbutton_config_bps_in = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bps_in_adj), 1, 0);
-  gtk_widget_ref (spinbutton_config_bps_in);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_bps_in", spinbutton_config_bps_in,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_config_bps_in);
-  gtk_table_attach (GTK_TABLE (table4), spinbutton_config_bps_in, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bps_in), TRUE);
-
-  spinbutton_config_bps_out_adj = gtk_adjustment_new (0, 0, 2e+06, 1, 1024, 1024);
-  spinbutton_config_bps_out = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bps_out_adj), 1, 0);
-  gtk_widget_ref (spinbutton_config_bps_out);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_bps_out", spinbutton_config_bps_out,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (spinbutton_config_bps_out);
-  gtk_table_attach (GTK_TABLE (table4), spinbutton_config_bps_out, 1, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
   label125 = gtk_label_new ("bps");
   gtk_widget_ref (label125);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label125", label125,
@@ -2534,6 +2512,29 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label126), 0, 0.5);
 
+  spinbutton_config_bps_in_adj = gtk_adjustment_new (0, 0, 2e+06, 1, 1024, 1024);
+  spinbutton_config_bps_in = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bps_in_adj), 1, 0);
+  gtk_widget_ref (spinbutton_config_bps_in);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_bps_in", spinbutton_config_bps_in,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_bps_in);
+  gtk_table_attach (GTK_TABLE (table4), spinbutton_config_bps_in, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (spinbutton_config_bps_in, 100, -2);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_bps_in), TRUE);
+
+  spinbutton_config_bps_out_adj = gtk_adjustment_new (0, 0, 2e+06, 1, 1024, 1024);
+  spinbutton_config_bps_out = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_bps_out_adj), 1, 0);
+  gtk_widget_ref (spinbutton_config_bps_out);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_bps_out", spinbutton_config_bps_out,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_bps_out);
+  gtk_table_attach (GTK_TABLE (table4), spinbutton_config_bps_out, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (spinbutton_config_bps_out, 100, -2);
+
   label127 = gtk_label_new ("Due to the current implementation limitations,\nthis does not affect Gnet traffic.");
   gtk_widget_ref (label127);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label127", label127,
@@ -2541,6 +2542,7 @@ create_main_window (void)
   gtk_widget_show (label127);
   gtk_box_pack_start (GTK_BOX (vbox27), label127, FALSE, FALSE, 0);
   gtk_label_set_justify (GTK_LABEL (label127), GTK_JUSTIFY_FILL);
+  gtk_misc_set_alignment (GTK_MISC (label127), 7.45058e-09, 0.5);
 
   label121 = gtk_label_new ("Bandwidth\ncontrol");
   gtk_widget_ref (label121);
