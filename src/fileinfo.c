@@ -1175,17 +1175,9 @@ void file_info_recreate(struct download *d)
 	struct dl_file_info *new_fi;
 	GSList *l;
 
-	/*
-	 * NB: we use d->size, and are not reusing fi->size, because the download
-	 * can be larger than what we thought the file originally was, so the
-	 * old fi->size may be incorrect.
-	 *		--RAM, 22/08/2002.
-	 */
-
-	g_assert(d->size >= fi->size);
 	g_assert(d->status == GTA_DL_CONNECTING);
 
-	new_fi = file_info_create(fi->file_name, fi->path, d->size, fi->sha1);
+	new_fi = file_info_create(fi->file_name, fi->path, fi->size, fi->sha1);
 
 	/*
 	 * Copy old alises to new structure.
