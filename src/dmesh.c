@@ -504,6 +504,7 @@ gboolean dmesh_add(guchar *sha1,
 static gint dmesh_urlinfo(dmesh_urlinfo_t *info, gchar *buf, gint len)
 {
 	gint rw;
+	gint maxslen = len - 1;			/* Account for trailing NUL */
 
 	g_assert(len > 0);
 	g_assert(info->name != NULL);
@@ -514,7 +515,7 @@ static gint dmesh_urlinfo(dmesh_urlinfo_t *info, gchar *buf, gint len)
 		rw = g_snprintf(buf, len, "http://%s",
 			ip_port_to_gchar(info->ip, info->port));
 
-	if (rw >= len)
+	if (rw >= maxslen)
 		return -1;
 
 	if (info->idx == 0)
@@ -526,7 +527,7 @@ static gint dmesh_urlinfo(dmesh_urlinfo_t *info, gchar *buf, gint len)
 		 * Write filename, URL-escaping it directly into the buffer.
 		 */
 
-		if (rw < len) {
+		if (rw < maxslen) {
 			gint re = url_escape_into(info->name, &buf[rw], len - rw);
 
 			if (re < 0)
@@ -538,7 +539,7 @@ static gint dmesh_urlinfo(dmesh_urlinfo_t *info, gchar *buf, gint len)
 		}
 	}
 
-	return (rw >= len) ? -1 : rw;
+	return (rw >= maxslen) ? -1 : rw;
 }
 
 /*
@@ -568,6 +569,7 @@ static gchar *dmesh_urlinfo_to_gchar(dmesh_urlinfo_t *info)
 static gint dmesh_entry_url_stamp(struct dmesh_entry *dme, gchar *buf, gint len)
 {
 	gint rw;
+	gint maxslen = len - 1;			/* Account for trailing NUL */
 
 	/*
 	 * Format the URL info first.
@@ -585,7 +587,7 @@ static gint dmesh_entry_url_stamp(struct dmesh_entry *dme, gchar *buf, gint len)
 	rw += g_snprintf(&buf[rw], len - rw,
 		" %s", date_to_iso_gchar((time_t) dme->stamp));
 
-	return (rw >= len) ? -1 : rw;
+	return (rw >= maxslen) ? -1 : rw;
 }
 
 /*
@@ -631,13 +633,18 @@ gint dmesh_alternate_location(guchar *sha1,
 	struct dmesh_entry *selected[MAX_ENTRIES];
 	gint i;
 	gint min_url_len;
+	gint maxslen = size - 1;		/* Account for trailing NUL */
+
+	g_assert(sha1);
+	g_assert(buf);
+	g_assert(size >= 0);
 	
 	/*
 	 * Start filling the buffer.
 	 */
 
 	len = g_snprintf(buf, size, "X-Gnutella-Alternate-Location:\r\n");
-	if (len >= size)
+	if (len >= maxslen)
 		return 0;
 
 	/*
@@ -757,17 +764,24 @@ gint dmesh_alternate_location(guchar *sha1,
 				continue;
 		}
 
-		g_assert(len < size);			/* We checked for enough size above */
+		g_assert((url_len + 1 + len) < size);
 		len += g_snprintf(&buf[len], size - len, "\t%s", url);
-		g_assert(len < size);
+		g_assert(len + 2 < size);
 
 		nurl++;
 	}
 
+	g_assert(len < size);
+
 	if (nurl)
 		len += g_snprintf(&buf[len], size - len, "\r\n");
 
-	g_assert(len < size);
+	// g_assert(len < size);
+	if (len >= size) {
+		g_warning("BUG: dmesh_alternate_location: filled buffer completely "
+			"(size=%d, len=%d, nurl=%d)", size, len, nurl);
+		return 0;
+	}
 
 	return (nurl > 0) ? len : 0;
 }
