@@ -4407,6 +4407,16 @@ void node_close(void)
 			atom_guid_free(n->gnet_guid);
 		if (n->alive_pings)
 			alive_free(n->alive_pings);
+		if (n->routing_data)
+			routing_node_remove(n);
+		if (n->qrt_update)
+			qrt_update_free(n->qrt_update);
+		if (n->qrt_receive)
+			qrt_receive_free(n->qrt_receive);
+		if (n->query_table)
+			qrt_unref(n->query_table);
+		if (n->rxfc)
+			wfree(n->rxfc, sizeof(*n->rxfc));
 		node_real_remove(n);
 	}
 
