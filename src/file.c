@@ -105,7 +105,7 @@ static FILE *open_read(
 
 		G_FREE_NULL(path);
 		path = path_orig;
-		G_FREE_NULL(path_orig);
+		path_orig = NULL;
 	}
 
 	/*
