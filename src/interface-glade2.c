@@ -7749,6 +7749,8 @@ create_main_window_config_ui_tab (void)
   GtkWidget *checkbutton_gnet_info_qrp_stats;
   GtkWidget *checkbutton_gnet_info_dbw;
   GtkWidget *checkbutton_gnet_info_rt;
+  GtkWidget *checkbutton_gnet_info_shared_size;
+  GtkWidget *checkbutton_gnet_info_shared_files;
   GtkWidget *label748;
   GtkWidget *label747;
 
@@ -7950,7 +7952,7 @@ create_main_window_config_ui_tab (void)
   gtk_box_pack_start (GTK_BOX (vbox127), frame_gnet_detailed_traffic, FALSE, TRUE, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame_gnet_detailed_traffic), GTK_SHADOW_OUT);
 
-  table81 = gtk_table_new (5, 3, FALSE);
+  table81 = gtk_table_new (6, 3, FALSE);
   gtk_widget_set_name (table81, "table81");
   gtk_widget_show (table81);
   gtk_container_add (GTK_CONTAINER (frame_gnet_detailed_traffic), table81);
@@ -8063,6 +8065,20 @@ create_main_window_config_ui_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
+  checkbutton_gnet_info_shared_size = gtk_check_button_new_with_mnemonic (_("Library size"));
+  gtk_widget_set_name (checkbutton_gnet_info_shared_size, "checkbutton_gnet_info_shared_size");
+  gtk_widget_show (checkbutton_gnet_info_shared_size);
+  gtk_table_attach (GTK_TABLE (table81), checkbutton_gnet_info_shared_size, 0, 1, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_gnet_info_shared_files = gtk_check_button_new_with_mnemonic (_("Library # of files"));
+  gtk_widget_set_name (checkbutton_gnet_info_shared_files, "checkbutton_gnet_info_shared_files");
+  gtk_widget_show (checkbutton_gnet_info_shared_files);
+  gtk_table_attach (GTK_TABLE (table81), checkbutton_gnet_info_shared_files, 1, 2, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   label748 = gtk_label_new (_("Detailed traffic information to display"));
   gtk_widget_set_name (label748, "label748");
   gtk_widget_show (label748);
@@ -8122,6 +8138,8 @@ create_main_window_config_ui_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_ui_tab, checkbutton_gnet_info_qrp_stats, "checkbutton_gnet_info_qrp_stats");
   GLADE_HOOKUP_OBJECT (main_window_config_ui_tab, checkbutton_gnet_info_dbw, "checkbutton_gnet_info_dbw");
   GLADE_HOOKUP_OBJECT (main_window_config_ui_tab, checkbutton_gnet_info_rt, "checkbutton_gnet_info_rt");
+  GLADE_HOOKUP_OBJECT (main_window_config_ui_tab, checkbutton_gnet_info_shared_size, "checkbutton_gnet_info_shared_size");
+  GLADE_HOOKUP_OBJECT (main_window_config_ui_tab, checkbutton_gnet_info_shared_files, "checkbutton_gnet_info_shared_files");
   GLADE_HOOKUP_OBJECT (main_window_config_ui_tab, label748, "label748");
   GLADE_HOOKUP_OBJECT (main_window_config_ui_tab, label747, "label747");
 

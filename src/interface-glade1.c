@@ -956,6 +956,8 @@ create_main_window (void)
   GtkWidget *checkbutton_gnet_info_qrp_stats;
   GtkWidget *checkbutton_gnet_info_dbw;
   GtkWidget *checkbutton_gnet_info_rt;
+  GtkWidget *checkbutton_gnet_info_shared_size;
+  GtkWidget *checkbutton_gnet_info_shared_files;
   GtkWidget *label287;
   GtkWidget *scrolledwindow37;
   GtkWidget *viewport9;
@@ -9284,7 +9286,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox123), frame_gnet_detailed_traffic, FALSE, TRUE, 0);
   gtk_frame_set_shadow_type (GTK_FRAME (frame_gnet_detailed_traffic), GTK_SHADOW_OUT);
 
-  table71 = gtk_table_new (5, 3, FALSE);
+  table71 = gtk_table_new (6, 3, FALSE);
   gtk_widget_set_name (table71, "table71");
   gtk_widget_ref (table71);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table71", table71,
@@ -9442,6 +9444,26 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_gnet_info_rt);
   gtk_table_attach (GTK_TABLE (table71), checkbutton_gnet_info_rt, 2, 3, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_gnet_info_shared_size = gtk_check_button_new_with_label (_("Library size"));
+  gtk_widget_set_name (checkbutton_gnet_info_shared_size, "checkbutton_gnet_info_shared_size");
+  gtk_widget_ref (checkbutton_gnet_info_shared_size);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_gnet_info_shared_size", checkbutton_gnet_info_shared_size,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_gnet_info_shared_size);
+  gtk_table_attach (GTK_TABLE (table71), checkbutton_gnet_info_shared_size, 0, 1, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_gnet_info_shared_files = gtk_check_button_new_with_label (_("Library # of files"));
+  gtk_widget_set_name (checkbutton_gnet_info_shared_files, "checkbutton_gnet_info_shared_files");
+  gtk_widget_ref (checkbutton_gnet_info_shared_files);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_gnet_info_shared_files", checkbutton_gnet_info_shared_files,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_gnet_info_shared_files);
+  gtk_table_attach (GTK_TABLE (table71), checkbutton_gnet_info_shared_files, 1, 2, 5, 6,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
