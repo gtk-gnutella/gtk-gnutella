@@ -1,0 +1,41 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:glibconfig glibcflags glibldflags: glibpackage
+?MAKE:	-pick add $@ %<
+?S:glibconfig:
+?S:	This variable holds the command to use to grab information about glib.
+?S: Typically something like "pkg-config glib+" or "glib-config".
+?S:.
+?S:glibcflags:
+?S:	This variable holds the compiler flags required to compile with glib.
+?S:.
+?S:glibldflags:
+?S:	This variable holds the linker flags required to link against glib.
+?S:.
+?T:modver version
+: how can we find information about glib?
+echo " "
+echo "Checking how we can gather information about glib..." >&4
+if pkg-config $glibpackage --cflags >/dev/null 2>&1; then
+	glibconfig="pkg-config $glibpackage"
+	modver=--modversion
+elif glib-config --cflags >/dev/null 2>&1; then
+	glibconfig='glib-config'
+	modver=--version
+else
+	echo "You've got problems!  Do you have glib installed?" >&4
+	glibconfig='false'
+	modver=''
+fi
+echo "(I'll use '$glibconfig' to gather that information.)"
+
+glibcflags=`$glibconfig --cflags`
+glibldflags=`$glibconfig --libs`
+
+?X: check that we've got the version they asked for
+version=`$glibconfig $modver`
+echo " "
+echo "We'll be using glib version $version."
+

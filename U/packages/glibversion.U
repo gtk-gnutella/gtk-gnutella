@@ -1,0 +1,51 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:glibversion glibpackage d_useglib1 d_useglib2: +gtkversion
+?MAKE:	-pick add $@ %<
+?S:glibversion:
+?S:	The version of GTK+ they want to use.
+?S: We currently support 1 and 2.
+?S:.
+?S:glibpackage:
+?S:	This variable holds the name of the GTK+ package to use when querying
+?S: for flags via pkg-config.
+?S:.
+?S:d_useglib1:
+?S:	This symbol conditionally defines USE_GLIB1 when compiling with glib 1.x.
+?S:.
+?S:d_useglib2:
+?S:	This symbol conditionally defines USE_GLIB2 when compiling with glib 2.x.
+?S:.
+?C:USE_GLIB1:
+?C: This symbol is defined when compiling for glib 1.x.
+?C:.
+?C:USE_GLIB2:
+?C: This symbol is defined when compiling for glib 2.x.
+?C:.
+?H:#$d_useglib1 USE_GLIB1    /**/
+?H:#$d_useglib2 USE_GLIB2    /**/
+?H:.
+?Y:TOP
+?T:ver
+: decide which version of glib to use
+case "$glibversion" in
+'')
+	case "$gtkversion" in
+	1) ver=1;;
+	*) ver=2;;
+	esac
+	;;
+2) ver=2;;
+*) ver=1;;
+esac
+case "$ver" in
+2)
+	glibversion=2; glibpackage=glib-2.0
+	d_useglib2="$define"; d_useglib1="$undef";;
+*)
+	glibversion=1; glibpackage=glib
+	d_useglib1="$define"; d_useglib2="$undef";;
+esac
+
