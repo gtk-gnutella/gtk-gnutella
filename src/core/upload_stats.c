@@ -294,9 +294,11 @@ void upload_stats_file_complete(const struct upload *u)
 	upload_stats_file_add(u->name, u->file_size, 1, u->end - u->skip + 1);
 }
 
-void upload_stats_prune_nonexistent()
+void upload_stats_prune_nonexistent(void)
 {
+	/* XXX */
 	/* for each row, get the filename, check if filename is ? */
+	g_warning("upload_stats_prune_nonexistent: not implemented!");
 }
 
 /*
