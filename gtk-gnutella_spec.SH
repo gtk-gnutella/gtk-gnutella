@@ -77,7 +77,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/applications/gtk-gnutella.desktop
 %{_datadir}/pixmaps/gtk-gnutella.png
 %{_datadir}/locale
-%{_mandir)/man1
+%{_mandir}/man1
 
 %doc README TODO AUTHORS ChangeLog
 
