@@ -2530,6 +2530,14 @@ void on_clist_search_results_select_row(GtkCList * clist, gint row,
 {
 	guint msgid = -1;
 
+    /*
+     * Block this signal so we don't emit it for every autoselected item.
+     */
+    gtk_signal_handler_block_by_func(
+        GTK_OBJECT(clist),
+        GTK_SIGNAL_FUNC(on_clist_search_results_select_row),
+        NULL);
+
 	gtk_widget_set_sensitive(button_search_download, TRUE);
     gtk_widget_set_sensitive(popup_search_drop_name, TRUE);
     gtk_widget_set_sensitive(popup_search_drop_sha1, TRUE);
@@ -2537,7 +2545,6 @@ void on_clist_search_results_select_row(GtkCList * clist, gint row,
     gtk_widget_set_sensitive(popup_search_drop_sha1_global, TRUE);
     gtk_widget_set_sensitive(popup_search_autodownload_name, TRUE);
     gtk_widget_set_sensitive(popup_search_autodownload_sha1, TRUE);
-    
 
     gtk_clist_freeze(clist);
 
