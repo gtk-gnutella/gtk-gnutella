@@ -161,7 +161,14 @@ guint guid_hash(gconstpointer key)
  */
 gint guid_eq(gconstpointer a, gconstpointer b)
 {
-	return 0 == memcmp(a, b, 16);
+	guint32 *ax = (guint32 *) a;
+	guint32 *bx = (guint32 *) b;
+
+	return
+		ax[0] == bx[0] &&
+		ax[1] == bx[1] &&
+		ax[2] == bx[2] &&
+		ax[3] == bx[3];
 }
 
 /*
@@ -205,7 +212,15 @@ guint sha1_hash(gconstpointer key)
  */
 gint sha1_eq(gconstpointer a, gconstpointer b)
 {
-	return 0 == memcmp(a, b, 20);
+	guint32 *ax = (guint32 *) a;
+	guint32 *bx = (guint32 *) b;
+
+	return
+		ax[0] == bx[0] &&
+		ax[1] == bx[1] &&
+		ax[2] == bx[2] &&
+		ax[3] == bx[3] &&
+		ax[4] == bx[4];
 }
 
 /*
