@@ -1728,6 +1728,19 @@ static void node_process_handshake_header(
 	}
 
 	/*
+	 * If the connection is flagged as being temporary, it's time to deny
+	 * it with a 503 error code.
+	 */
+
+	if (n->flags & NODE_F_TMP) {
+		g_assert(incoming);
+		send_node_error(n->socket, 503,
+			"Too many Gnet connections (%d max)", max_connections);
+		node_remove(n, "Sent busy indication");
+		return;					/* node_remove() has freed s->getline */
+	}
+
+	/*
 	 * Accept-Encoding -- decompression support on the remote side
 	 */
 
@@ -1757,19 +1770,6 @@ static void node_process_handshake_header(
 	if (field) {
 		if (strstr(field, "deflate"))		// XXX needs more rigourous parsing
 			n->attrs |= NODE_A_RX_INFLATE;	/* We shall decompress input */
-	}
-
-	/*
-	 * If the connection is flagged as being temporary, it's time to deny
-	 * it with a 503 error code.
-	 */
-
-	if (n->flags & NODE_F_TMP) {
-		g_assert(incoming);
-		send_node_error(n->socket, 503,
-			"Too many Gnet connections (%d max)", max_connections);
-		node_remove(n, "Sent busy indication");
-		return;					/* node_remove() has freed s->getline */
 	}
 
 	/*
