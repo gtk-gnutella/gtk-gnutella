@@ -18,7 +18,7 @@ $cat >try.c <<'EOC'
 #endif
 int main(void)
 {
-	switch (0) { case 0: case (sizeof(off_t) >= 8): break; };
+	switch (0) { case 0: case (sizeof(off_t) >= 8): break; }
 	return 0;
 }
 EOC
