@@ -35,7 +35,6 @@ static GtkTreeView *treeview_gnet_stats_recv = NULL;
 static GtkTreeView *treeview_gnet_stats_general = NULL;
 static GtkNotebook *notebook_main = NULL;
 static GtkNotebook *notebook_gnet_stats = NULL;
-static GtkCombo *combo_gnet_stats_type = NULL;
 
 static gchar *msg_type_str[MSG_TYPE_COUNT] = {
     "Unknown",
@@ -293,14 +292,16 @@ static void add_column(
 		"xalign", xalign,
 		"ypad", GUI_CELL_RENDERER_YPAD,
 		NULL);
-
-	column = gtk_tree_view_column_new_with_attributes(
-				label, renderer, "text", column_id, NULL);
-	gtk_tree_view_column_set_min_width(column, 1);
-	gtk_tree_view_column_set_fixed_width(column, MAX(1, width));
-	gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
-	gtk_tree_view_column_set_resizable(column, TRUE);
-	gtk_tree_view_column_set_reorderable(column, TRUE);
+	column = gtk_tree_view_column_new_with_attributes(label, renderer,
+		"text", column_id,
+		NULL);
+	g_object_set(column,
+		"fixed-width", MAX(1, width),
+		"min-width", 1,
+		"reorderable", TRUE,
+		"resizable", TRUE,
+		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
+		NULL);
 	gtk_tree_view_append_column(treeview, column);
 	g_object_notify(G_OBJECT(column), "width");
 	g_signal_connect(G_OBJECT(column), "notify::width",
@@ -320,7 +321,7 @@ static void gnet_stats_update_general(const gnet_stats_t *stats)
 
 	for (n = 0; n < GNR_TYPE_COUNT; n++) {
 		general_stat_str(str, sizeof(str), stats, n);
-		gtk_list_store_set(store, &iter, 1, str, -1);
+		gtk_list_store_set(store, &iter, 1, str, (-1));
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 	}
 }
@@ -340,7 +341,7 @@ static void gnet_stats_update_drop_reasons(
 	for (n = 0; n < MSG_DROP_REASON_COUNT; n++) {
 		drop_stat_str(str, sizeof(str), stats, n,
 			gnet_stats_drop_reasons_type);
-		gtk_list_store_set(store, &iter, 1, str, -1);
+		gtk_list_store_set(store, &iter, 1, str, (-1));
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 	}
 
@@ -376,7 +377,7 @@ static void gnet_stats_update_messages(const gnet_stats_t *stats)
 				pkt_stat_str(str[3], len, stats->pkg.expired, n, perc),
 				c_gs_relayed,
 				pkt_stat_str(str[4], len, stats->pkg.relayed, n, perc),
-				-1);
+				(-1));
 		} else { /* byte mode */
 			gtk_list_store_set(store, &iter,
 				c_gs_received,
@@ -389,7 +390,7 @@ static void gnet_stats_update_messages(const gnet_stats_t *stats)
 				byte_stat_str(str[3], len, stats->byte.expired, n, perc),
 				c_gs_relayed,
 				byte_stat_str(str[4], len, stats->byte.relayed, n, perc),
-				-1);
+				(-1));
     	}
 		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
 	}
@@ -445,7 +446,7 @@ static void gnet_stats_update_types(
 
 		gtk_list_store_set(store, &iter,
 			1, str[0], 2, str[1], 3, str[2], 4, str[3], 5, str[4],
-			6, str[5], 7, str[6], 8, str[7], 9, str[8], -1);
+			6, str[5], 7, str[6], 8, str[7], 9, str[8], (-1));
 #if 0		
 		g_message("%-12s %-4s %-4s %-4s %-4s %-4s %-4s %-4s",
 			msg_type_str[n],
@@ -507,7 +508,8 @@ void gnet_stats_gui_init(void)
 {
     GtkTreeView *treeview;
     GtkTreeModel *model;
-    GtkCombo *combo;
+	GtkOptionMenu *option_menu;
+	GtkWidget *menu;
     gint n;
 	guint32 *width;
 
@@ -521,20 +523,20 @@ void gnet_stats_gui_init(void)
 							G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
 							G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING));
 
-	for (n = 0; n < MSG_TYPE_COUNT; n++) {
+	for (n = 0; n < G_N_ELEMENTS(msg_type_str); n++) {
 		GtkTreeIter iter;
 		gint i;
 
 		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
 			for (i = 0; i < 6; i++)
 				gtk_list_store_set(GTK_LIST_STORE(model), &iter, i,
-					i == 0 ? msg_type_str[n] : "-", -1);
+					i == 0 ? msg_type_str[n] : "-", (-1));
 	}
 
 	width = gui_prop_get_guint32(
 				PROP_GNET_STATS_MSG_COL_WIDTHS, NULL, 0, 0);
 	for (n = 0; n < G_N_ELEMENTS(msg_stats_label); n++)
-		add_column(treeview, n, width[n], (gfloat) n != 0,
+		add_column(treeview, n, width[n], (gfloat) (n != 0),
 			msg_stats_label[n]);
 	G_FREE_NULL(width);
 
@@ -554,21 +556,21 @@ void gnet_stats_gui_init(void)
 	for (n = 0; n < STATS_FLOWC_COLUMNS; n++) {
     	gchar buf[16];
 
-		gm_snprintf(buf, sizeof(buf), "%d%c", n-1,
-				(n+1) < STATS_FLOWC_COLUMNS ? '\0' : '+');
-		add_column(treeview, n, width[n], (gfloat) n != 0,
+		gm_snprintf(buf, sizeof(buf), "%d%c", n - 1,
+				n + 1 < STATS_FLOWC_COLUMNS ? '\0' : '+');
+		add_column(treeview, n, width[n], (gfloat) (n != 0),
 			n == 0 ? "Type" : buf);
 	}
 	G_FREE_NULL(width);
 
-	for (n = 0; n < MSG_TYPE_COUNT; n++) {
+	for (n = 0; n < G_N_ELEMENTS(msg_type_str); n++) {
 		GtkTreeIter iter;
 		gint i;
 
 		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
 		for (i = 0; i < STATS_FLOWC_COLUMNS; i++)
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter, i,
-				i == 0 ? msg_type_str[n] : "-", -1);
+				i == 0 ? msg_type_str[n] : "-", (-1));
 	}
 
     gtk_tree_view_set_model(treeview, model);
@@ -578,27 +580,23 @@ void gnet_stats_gui_init(void)
      * Initialize stats tables.
      */
 
-    combo = combo_gnet_stats_type = GTK_COMBO(
-        lookup_widget(main_window, "combo_gnet_stats_type"));
+	option_menu = GTK_OPTION_MENU(
+		lookup_widget(main_window, "option_menu_gnet_stats_type"));
+	menu = gtk_menu_new();
 
-    for (n = 0; n < MSG_TYPE_COUNT; n ++) {
-        GtkWidget *list_item;
-        GList *l;
+	for (n = 0; n < G_N_ELEMENTS(msg_type_str); n ++) {
+		GtkWidget *menu_item;
 
-        list_item = gtk_list_item_new_with_label(msg_type_str[n]);
-        gtk_widget_show(list_item);
-
-        l = g_list_prepend(NULL, (gpointer) list_item);
-        gtk_list_append_items(GTK_LIST(GTK_COMBO(combo)->list), l);
-
-        if (n == MSG_TOTAL)
-            gtk_list_select_child(GTK_LIST(GTK_COMBO(combo)->list), list_item);
-
-        g_signal_connect(
-            GTK_OBJECT(list_item), "select",
-            G_CALLBACK(on_gnet_stats_type_selected),
-            GINT_TO_POINTER(n));
-    }
+		menu_item = gtk_menu_item_new_with_label(_(msg_type_str[n]));
+		gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+		g_signal_connect(
+			GTK_OBJECT(menu_item), "activate",
+			G_CALLBACK(on_gnet_stats_type_selected),
+			GINT_TO_POINTER(n));
+	}
+	gtk_option_menu_set_menu(option_menu, menu);
+	gtk_option_menu_set_history(option_menu, MSG_TOTAL);
+	gtk_widget_show_all(GTK_WIDGET(option_menu));
 
 
 	/* ----------------------------------------- */
@@ -617,7 +615,7 @@ void gnet_stats_gui_init(void)
 		for (i = 0; n == 0 && i < MSG_DROP_REASON_COUNT; i++) {
 			gtk_list_store_append(GTK_LIST_STORE(model), &iter);
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-				0, msg_drop_str[i], 1, "-", -1);
+				0, msg_drop_str[i], 1, "-", (-1));
 		}
 
 		add_column(treeview, n, width[n], (gfloat) n != 0,
@@ -644,7 +642,7 @@ void gnet_stats_gui_init(void)
 		for (i = 0; n == 0 && i < GNR_TYPE_COUNT; i++) {
 			gtk_list_store_append(GTK_LIST_STORE(model), &iter);
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-				0, general_type_str[i], 1, "-", -1);
+				0, general_type_str[i], 1, "-", (-1));
 		}
 		add_column(treeview, n, width[n], (gfloat) n != 0,
 			n == 0 ? "Type" : "Count");
@@ -669,21 +667,21 @@ void gnet_stats_gui_init(void)
 	for (n = 0; n < STATS_FLOWC_COLUMNS; n++) {
     	gchar buf[16];
 
-		gm_snprintf(buf, sizeof(buf), "%d%c", n-1,
-				(n+1) < STATS_RECV_COLUMNS ? '\0' : '+');
-		add_column(treeview, n, width[n], (gfloat) n != 0,
+		gm_snprintf(buf, sizeof(buf), "%d%c", n - 1,
+				n + 1 < STATS_RECV_COLUMNS ? '\0' : '+');
+		add_column(treeview, n, width[n], (gfloat) (n != 0),
 			n == 0 ? "Type" : buf);
 	}
 	G_FREE_NULL(width);
 
-	for (n = 0; n < MSG_TYPE_COUNT; n++) {
+	for (n = 0; n < G_N_ELEMENTS(msg_type_str); n++) {
 		GtkTreeIter iter;
 		gint i;
 
 		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
 		for (i = 0; i < STATS_RECV_COLUMNS; i++)
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter, i,
-				i == 0 ? msg_type_str[n] : "-", -1);
+				i == 0 ? msg_type_str[n] : "-", (-1));
 	}
 
     gtk_tree_view_set_model(treeview, model);

@@ -1821,6 +1821,8 @@ Grace time remaining:</property>
       <child>
 	<widget class="GtkFrame" id="frame46">
 	  <property name="border_width">3</property>
+	  <property name="width_request">100</property>
+	  <property name="height_request">100</property>
 	  <property name="visible">True</property>
 	  <property name="label_xalign">0</property>
 	  <property name="label_yalign">0.5</property>
@@ -1885,7 +1887,9 @@ Christian Biere &lt;christianbiere@gmx.de&gt;
 ko &lt;junkpile@free.fr&gt;
 Jeroen Asselman &lt;jeroen@asselman.com&gt;
 T'aZ &lt;tazdev@altern.org&gt;
-Andrew Barnert &lt;barnert@myrealbox.com&gt;</property>
+Andrew Barnert &lt;barnert@myrealbox.com&gt;
+Michael Gray &lt;mrgray01@louisville.edu&gt;
+Nicolás Lichtmaier &lt;nick@technisys.com.ar&gt;</property>
 		    </widget>
 		  </child>
 		</widget>
@@ -15908,47 +15912,6 @@ Andrew Barnert &lt;barnert@myrealbox.com&gt;</property>
 		      </child>
 
 		      <child>
-			<widget class="GtkCombo" id="combo_gnet_stats_type">
-			  <property name="visible">True</property>
-			  <property name="value_in_list">False</property>
-			  <property name="allow_empty">True</property>
-			  <property name="case_sensitive">False</property>
-			  <property name="enable_arrow_keys">True</property>
-			  <property name="enable_arrows_always">False</property>
-
-			  <child internal-child="entry">
-			    <widget class="GtkEntry" id="combo-entry2">
-			      <property name="visible">True</property>
-			      <property name="can_focus">True</property>
-			      <property name="editable">False</property>
-			      <property name="visibility">True</property>
-			      <property name="max_length">0</property>
-			      <property name="text" translatable="yes"></property>
-			      <property name="has_frame">True</property>
-			      <property name="invisible_char" translatable="yes">*</property>
-			      <property name="activates_default">False</property>
-			    </widget>
-			  </child>
-
-			  <child internal-child="list">
-			    <widget class="GtkList" id="combo-list2">
-			      <property name="visible">True</property>
-			      <property name="selection_mode">GTK_SELECTION_BROWSE</property>
-			    </widget>
-			  </child>
-			</widget>
-			<packing>
-			  <property name="left_attach">1</property>
-			  <property name="right_attach">2</property>
-			  <property name="top_attach">0</property>
-			  <property name="bottom_attach">1</property>
-			  <property name="x_padding">5</property>
-			  <property name="x_options">expand|shrink|fill</property>
-			  <property name="y_options"></property>
-			</packing>
-		      </child>
-
-		      <child>
 			<widget class="GtkCheckButton" id="checkbutton_gnet_stats_drop_perc">
 			  <property name="visible">True</property>
 			  <property name="can_focus">True</property>
@@ -15966,6 +15929,22 @@ Andrew Barnert &lt;barnert@myrealbox.com&gt;</property>
 			  <property name="bottom_attach">2</property>
 			  <property name="x_padding">5</property>
 			  <property name="x_options">shrink|fill</property>
+			  <property name="y_options"></property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkOptionMenu" id="option_menu_gnet_stats_type">
+			  <property name="visible">True</property>
+			  <property name="can_focus">True</property>
+			  <property name="history">-1</property>
+			</widget>
+			<packing>
+			  <property name="left_attach">1</property>
+			  <property name="right_attach">2</property>
+			  <property name="top_attach">0</property>
+			  <property name="bottom_attach">1</property>
+			  <property name="x_options">fill</property>
 			  <property name="y_options"></property>
 			</packing>
 		      </child>
