@@ -3971,6 +3971,25 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 			      <property name="fill">False</property>
 			    </packing>
 			  </child>
+
+			  <child>
+			    <widget class="GtkCheckButton" id="checkbutton_config_no_rfc1918">
+			      <property name="visible">True</property>
+			      <property name="tooltip" translatable="yes">Check this button if you want to use GTK-Gnutella on your Local Area Network. RFC1918 will be ignored.</property>
+			      <property name="can_focus">True</property>
+			      <property name="label" translatable="yes">Allow connections from and to LAN addresses</property>
+			      <property name="use_underline">True</property>
+			      <property name="relief">GTK_RELIEF_NORMAL</property>
+			      <property name="active">False</property>
+			      <property name="inconsistent">False</property>
+			      <property name="draw_indicator">True</property>
+			    </widget>
+			    <packing>
+			      <property name="padding">0</property>
+			      <property name="expand">False</property>
+			      <property name="fill">False</property>
+			    </packing>
+			  </child>
 			</widget>
 			<packing>
 			  <property name="padding">0</property>
@@ -4203,16 +4222,17 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 		      </child>
 
 		      <child>
-			<widget class="GtkSpinButton" id="spinbutton_config_max_banned_fd">
+			<widget class="GtkEntry" id="entry_config_max_banned_fd">
 			  <property name="visible">True</property>
 			  <property name="can_focus">True</property>
-			  <property name="climb_rate">1</property>
-			  <property name="digits">0</property>
-			  <property name="numeric">True</property>
-			  <property name="update_policy">GTK_UPDATE_ALWAYS</property>
-			  <property name="snap_to_ticks">False</property>
-			  <property name="wrap">False</property>
-			  <property name="adjustment">1 0 100 1 10 10</property>
+			  <property name="editable">False</property>
+			  <property name="visibility">True</property>
+			  <property name="max_length">0</property>
+			  <property name="text" translatable="yes"></property>
+			  <property name="has_frame">True</property>
+			  <property name="invisible_char" translatable="yes">*</property>
+			  <property name="activates_default">False</property>
+			  <property name="width_chars">6</property>
 			</widget>
 			<packing>
 			  <property name="left_attach">1</property>
@@ -4220,7 +4240,7 @@ T'aZ &lt;tazdev@altern.org&gt;</property>
 			  <property name="top_attach">2</property>
 			  <property name="bottom_attach">3</property>
 			  <property name="x_padding">5</property>
-			  <property name="x_options">shrink|fill</property>
+			  <property name="x_options">fill</property>
 			  <property name="y_options"></property>
 			</packing>
 		      </child>

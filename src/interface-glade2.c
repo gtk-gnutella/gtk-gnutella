@@ -2484,6 +2484,7 @@ create_main_window_config_net_tab (void)
   GtkWidget *vbox23_2;
   GtkWidget *hbox77;
   GtkWidget *checkbutton_config_use_netmasks;
+  GtkWidget *checkbutton_config_no_rfc1918;
   GtkWidget *hbox78;
   GtkWidget *label126_2;
   GtkWidget *entry_config_netmasks;
@@ -2497,8 +2498,7 @@ create_main_window_config_net_tab (void)
   GtkWidget *label515;
   GtkWidget *label516;
   GtkWidget *label583;
-  GtkObject *spinbutton_config_max_banned_fd_adj;
-  GtkWidget *spinbutton_config_max_banned_fd;
+  GtkWidget *entry_config_max_banned_fd;
   GtkWidget *label514;
   GtkTooltips *tooltips;
 
@@ -2760,6 +2760,12 @@ create_main_window_config_net_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox77), checkbutton_config_use_netmasks, FALSE, FALSE, 5);
   gtk_tooltips_set_tip (tooltips, checkbutton_config_use_netmasks, "This option can give peformance boosts to those on a large network with many peers by trying to locate files on the local networks first.", NULL);
 
+  checkbutton_config_no_rfc1918 = gtk_check_button_new_with_mnemonic ("Allow connections from and to LAN addresses");
+  gtk_widget_set_name (checkbutton_config_no_rfc1918, "checkbutton_config_no_rfc1918");
+  gtk_widget_show (checkbutton_config_no_rfc1918);
+  gtk_box_pack_start (GTK_BOX (hbox77), checkbutton_config_no_rfc1918, FALSE, FALSE, 0);
+  gtk_tooltips_set_tip (tooltips, checkbutton_config_no_rfc1918, "Check this button if you want to use GTK-Gnutella on your Local Area Network. RFC1918 will be ignored.", NULL);
+
   hbox78 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox78, "hbox78");
   gtk_widget_show (hbox78);
@@ -2836,14 +2842,14 @@ create_main_window_config_net_tab (void)
   gtk_label_set_justify (GTK_LABEL (label583), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label583), 0, 0.5);
 
-  spinbutton_config_max_banned_fd_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
-  spinbutton_config_max_banned_fd = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_max_banned_fd_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_max_banned_fd, "spinbutton_config_max_banned_fd");
-  gtk_widget_show (spinbutton_config_max_banned_fd);
-  gtk_table_attach (GTK_TABLE (table43), spinbutton_config_max_banned_fd, 1, 2, 2, 3,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+  entry_config_max_banned_fd = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_max_banned_fd, "entry_config_max_banned_fd");
+  gtk_widget_show (entry_config_max_banned_fd);
+  gtk_table_attach (GTK_TABLE (table43), entry_config_max_banned_fd, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 5, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_max_banned_fd), TRUE);
+  gtk_editable_set_editable (GTK_EDITABLE (entry_config_max_banned_fd), FALSE);
+  gtk_entry_set_width_chars (GTK_ENTRY (entry_config_max_banned_fd), 6);
 
   label514 = gtk_label_new ("Miscellaneous");
   gtk_widget_set_name (label514, "label514");
@@ -2934,6 +2940,7 @@ create_main_window_config_net_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, vbox23_2, "vbox23_2");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, hbox77, "hbox77");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, checkbutton_config_use_netmasks, "checkbutton_config_use_netmasks");
+  GLADE_HOOKUP_OBJECT (main_window_config_net_tab, checkbutton_config_no_rfc1918, "checkbutton_config_no_rfc1918");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, hbox78, "hbox78");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label126_2, "label126_2");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, entry_config_netmasks, "entry_config_netmasks");
@@ -2945,7 +2952,7 @@ create_main_window_config_net_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label515, "label515");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label516, "label516");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label583, "label583");
-  GLADE_HOOKUP_OBJECT (main_window_config_net_tab, spinbutton_config_max_banned_fd, "spinbutton_config_max_banned_fd");
+  GLADE_HOOKUP_OBJECT (main_window_config_net_tab, entry_config_max_banned_fd, "entry_config_max_banned_fd");
   GLADE_HOOKUP_OBJECT (main_window_config_net_tab, label514, "label514");
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_config_net_tab, tooltips, "tooltips");
 
