@@ -179,6 +179,7 @@ gint http_status_parse(gchar *line,
 gboolean http_extract_version(
 	gchar *request, gint len, gint *major, gint *minor);
 
+guint32 http_range_size(GSList *list);
 gchar *http_range_to_gchar(GSList *list);
 void http_range_free(GSList *list);
 GSList *http_range_parse(

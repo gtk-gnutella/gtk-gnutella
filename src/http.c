@@ -665,6 +665,8 @@ static GSList *http_range_add(
 		 */
 
 		if (r->start > end) {
+			GSList *next;
+
 			/* Ensure range is not overlapping with previous */
 			if (prev != NULL) {
 				http_range_t *pr = (http_range_t *) prev->data;
@@ -672,6 +674,18 @@ static GSList *http_range_add(
 					g_warning("vendor <%s> sent us overlapping range %u-%u"
 						" (with previous %u-%u) in the %s header -- ignoring",
 						vendor, start, end, pr->start, pr->end, field);
+					goto ignored;
+				}
+			}
+
+			/* Ensure range is not overlapping with next, if any */
+			next = g_slist_next(l);
+			if (next != NULL) {
+				http_range_t *nr = (http_range_t *) next->data;
+				if (nr->start <= end) {
+					g_warning("vendor <%s> sent us overlapping range %u-%u"
+						" (with next %u-%u) in the %s header -- ignoring",
+						vendor, start, end, nr->start, nr->end, field);
 					goto ignored;
 				}
 			}
@@ -804,6 +818,13 @@ GSList *http_range_parse(
 				g_warning("weird %s header from <%s>, offset %d "
 					"(incomplete negative range): %s",
 					field, vendor, ((gchar *) str - value) - 1, value);
+				goto reset;
+			}
+
+			if (start > end) {
+				g_warning("weird %s header from <%s>, offset %d "
+					"(swapped range?): %s", field, vendor,
+					((gchar *) str - value) - 1, value);
 				goto reset;
 			}
 
@@ -957,6 +978,24 @@ void http_range_free(GSList *list)
 		wfree(l->data, sizeof(http_range_t));
 
 	g_slist_free(list);
+}
+
+/*
+ * http_range_size
+ *
+ * Returns total size of all the ranges.
+ */
+guint32 http_range_size(GSList *list)
+{
+	GSList *l;
+	guint32 size = 0;
+
+	for (l = list; l; l = g_slist_next(l)) {
+		http_range_t *r = (http_range_t *) l->data;
+		size += r->end - r->start + 1;
+	}
+
+	return size;
 }
 
 /*
