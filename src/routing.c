@@ -587,10 +587,11 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 	if (sender->header.function & 0x01) {
 		/*
 		 * We'll also handle all search replies if we're doing a passive
-		 * search
+		 * search, or if we don't have the vendor ID yet and the hop count
+		 * is 0.
 		 */
-		handle_it = sender->header.function == GTA_MSG_SEARCH_RESULTS
-				&& search_passive;
+		handle_it = sender->header.function == GTA_MSG_SEARCH_RESULTS &&
+			(search_passive || (!sender->vendor && sender->header.hops == 0));
 
 		/*
 		 * If message is a Query Hit, we have to record we have seen a
