@@ -56,6 +56,18 @@ void gui_update_up_connections(void)
 	gtk_entry_set_text(GTK_ENTRY(entry_up_connections), gui_tmp);
 }
 
+void gui_update_max_connections(void)
+{
+   g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", max_connections);
+   gtk_entry_set_text(GTK_ENTRY(entry_max_connections), gui_tmp);
+}
+
+void gui_update_search_reissue_timeout()
+{
+   g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", search_reissue_timeout);
+   gtk_entry_set_text(GTK_ENTRY(entry_search_reissue_timeout), gui_tmp);
+}
+
 void gui_update_minimum_speed(guint32 s)
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", s);
@@ -148,6 +160,38 @@ void gui_update_search_max_items(void)
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%d", search_max_items);
 	gtk_entry_set_text(GTK_ENTRY(entry_config_search_items), gui_tmp);
 }
+
+#if 0
+void gui_update_search_reissue_timeout(GtkEntry *entry_search_reissue_timeout) {
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%d", search_reissue_timeout);
+	gtk_entry_set_text(entry_search_reissue_timeout, gui_tmp);
+}
+#endif
+
+void gui_update_socks_host()
+{
+  g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", proxy_ip);
+  gtk_entry_set_text(GTK_ENTRY(config_entry_socks_host), gui_tmp);
+}
+
+void gui_update_socks_port()
+{
+   g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", proxy_port);
+   gtk_entry_set_text(GTK_ENTRY(config_entry_socks_port), gui_tmp);
+}
+
+void gui_update_socks_user()
+{
+  g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", socksv5_user);
+  gtk_entry_set_text(GTK_ENTRY(config_entry_socks_username), gui_tmp);
+}
+
+void gui_update_socks_pass()
+{
+  g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", socksv5_pass);
+  gtk_entry_set_text(GTK_ENTRY(config_entry_socks_password), gui_tmp);
+}
+
 
 void gui_update_scan_extensions(void)
 {
