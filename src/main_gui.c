@@ -562,13 +562,37 @@ void main_gui_run(void)
 
 #ifdef USE_GTK2
     if (coord[2] != 0 && coord[3] != 0) {
+		gint x, y, dx, dy;
         gtk_window_move(GTK_WINDOW(main_window), coord[0], coord[1]);
 		gtk_window_resize(GTK_WINDOW(main_window), coord[2], coord[3]);
+
+		/* (At least) FVWM2 doesn't take the window decoration into account
+		 * when handling positions requests. Readjust the window position
+		 * if we detect that the window manager added an offset. */
+
+		gtk_window_get_position(GTK_WINDOW(main_window), &x, &y);
+		dx = (gint) coord[0] - x;
+		dy = (gint) coord[1] - y;
+		if (dx || dy) {
+        	gtk_window_move(GTK_WINDOW(main_window), x + dx, y + dy);
+		}
 	}
 #else
     if (coord[2] != 0 && coord[3] != 0) {
+		gint x, y, dx, dy;
+
         gdk_window_move_resize(main_window->window,
 			coord[0], coord[1], coord[2], coord[3]);
+
+		/* (At least) FVWM2 doesn't take the window decoration into account
+		 * when handling positions requests. Readjust the window position
+		 * if we detect that the window manager added an offset. */
+
+		gdk_window_get_root_origin(main_window->window, &x, &y);
+		dx = (gint) coord[0] - x;
+		dy = (gint) coord[1] - y;
+		if (dx || dy)
+        	gdk_window_move(main_window->window, x + dx, y + dy);
 	}
 #endif
 
