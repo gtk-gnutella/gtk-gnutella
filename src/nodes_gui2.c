@@ -80,18 +80,20 @@ void on_popup_nodes_config_cols_activate(
 /*
  * nodes_gui_add_column
  *
- * Create a column, associating the "text" attribute of the
+ * Create a column, associating the attribute ``attr'' (usually "text") of the
  * cell_renderer to the first column of the model. Also associate the
  * foreground color with the c_gnet_fg column, so that we can set
  * the foreground color for the whole row.
  */
 static void nodes_gui_add_column(
-	GtkTreeView *tree, gint column_id, gint width, const gchar *title)
+	GtkTreeView *tree, gint column_id, gint width,
+	const gchar *title, const gchar *attr)
 {
     GtkTreeViewColumn *column;
 
    	column = gtk_tree_view_column_new_with_attributes(
-		title, nodes_gui_cell_renderer, "text", column_id, 
+		title, nodes_gui_cell_renderer,
+		attr, column_id, 
 		"foreground-gdk", c_gnet_fg,
 		NULL);
 	g_object_set(G_OBJECT(nodes_gui_cell_renderer),
@@ -173,13 +175,13 @@ static void nodes_gui_create_treeview_nodes(void)
 	g_object_set(nodes_gui_cell_renderer,
 		"ypad", GUI_CELL_RENDERER_YPAD, NULL);
 
-	nodes_gui_add_column(tree, c_gnet_host, 1, "Host");
-	nodes_gui_add_column(tree, c_gnet_flags, 1, "Flags");
-	nodes_gui_add_column(tree, c_gnet_user_agent, 1, "User-agent");
-	nodes_gui_add_column(tree, c_gnet_version, 1, "Ver");
-	nodes_gui_add_column(tree, c_gnet_connected, 1, "Connected");
-	nodes_gui_add_column(tree, c_gnet_uptime, 1, "Uptime");
-	nodes_gui_add_column(tree, c_gnet_info, 1, "Info");
+	nodes_gui_add_column(tree, c_gnet_host, 1, N_("Host"), "text");
+	nodes_gui_add_column(tree, c_gnet_flags, 1, N_("Flags"), "markup");
+	nodes_gui_add_column(tree, c_gnet_user_agent, 1, N_("User-Agent"), "text");
+	nodes_gui_add_column(tree, c_gnet_version, 1, N_("Ver"), "text");
+	nodes_gui_add_column(tree, c_gnet_connected, 1, N_("Connected"), "text");
+	nodes_gui_add_column(tree, c_gnet_uptime, 1, N_("Uptime"), "text");
+	nodes_gui_add_column(tree, c_gnet_info, 1, N_("Info"), "text");
 }
 
 static inline void nodes_gui_remove_selected_helper(
@@ -244,17 +246,19 @@ static inline void nodes_gui_update_node_info(
 static inline void nodes_gui_update_node_flags(
 	gnet_node_t n, gnet_node_flags_t *flags, GtkTreeIter *iter)
 {
+	gchar buf[256];
+
     if (iter == NULL)
         iter = find_node(n);
 
 	g_assert(NULL != iter);
-	gtk_list_store_set(nodes_model, iter, c_gnet_flags,  
-			nodes_gui_common_flags_str(flags), (-1));
+	gm_snprintf(buf, sizeof buf, "<tt>%s</tt>",
+		nodes_gui_common_flags_str(flags));
+	gtk_list_store_set(nodes_model, iter, c_gnet_flags, buf, (-1));
 	if (NODE_P_LEAF == flags->peermode || NODE_P_NORMAL == flags->peermode) {
 	    GdkColor *color = &(gtk_widget_get_style(GTK_WIDGET(treeview_nodes))
 				->fg[GTK_STATE_INSENSITIVE]);
-	    gtk_list_store_set(nodes_model, iter, c_gnet_fg,
-			       color, (-1));
+	    gtk_list_store_set(nodes_model, iter, c_gnet_fg, color, (-1));
 	}
 }
 
@@ -432,18 +436,18 @@ static inline void update_row(gpointer data, const time_t *now)
     }
 
 	if (status.connect_date) {
-		g_strlcpy(timestr, short_uptime(*now - status.connect_date),
+		g_strlcpy(timestr, short_uptime(delta_time(*now, status.connect_date)),
 			sizeof(timestr));
 		gtk_list_store_set(nodes_model, iter, 
 			c_gnet_connected, timestr,
 			c_gnet_uptime, status.up_date
-				? short_uptime(*now - status.up_date) : NULL,
+				? short_uptime(delta_time(*now, status.up_date)) : NULL,
 			c_gnet_info, nodes_gui_common_status_str(&status, *now),
 			(-1));
 	} else {
 		gtk_list_store_set(nodes_model, iter,
 			c_gnet_uptime, status.up_date
-				? short_uptime(*now - status.up_date) : NULL,
+				? short_uptime(delta_time(*now, status.up_date)) : NULL,
 			c_gnet_info, nodes_gui_common_status_str(&status, *now),
 			(-1));
 	}
@@ -477,7 +481,7 @@ void nodes_gui_update_nodes_display(time_t now)
         	g_hash_table_size(ht_node_info_changed));
 	}
 
-    if (last_update + 2 > now)
+    if (delta_time(now, last_update) < 2)
         return;
 
 	/*
@@ -492,8 +496,12 @@ void nodes_gui_update_nodes_display(time_t now)
 		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
 
     current_page = gtk_notebook_get_current_page(notebook);
-	if (current_page != nb_main_page_gnet && now - last_update < UPDATE_MIN)
+	if (
+		current_page != nb_main_page_gnet &&
+		delta_time(now, last_update) < UPDATE_MIN
+	) {
 		return;
+	}
 
     last_update = now;
 
