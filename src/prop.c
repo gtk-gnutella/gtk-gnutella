@@ -830,7 +830,7 @@ static const gchar *config_boolean(gboolean b)
  * config_comment:
  *
  * Creates a string containing aset of lines from with words taken from s, 
- * each line no longerthen 80 chars (except when a single words is very long)
+ * each line no longer than 80 chars (except when a single words is very long)
  * and prepended with "# ".
  */
 static gchar *config_comment(const gchar *s)
@@ -838,7 +838,7 @@ static gchar *config_comment(const gchar *s)
     gchar **sv;
     gchar *tok;
     gint n;
-    gint len = 0; /* length without "# " at the beginning */
+    gint len = 0;		 /* length without "# " at the beginning */
     GString *out;
     static gchar result[2048];
     
@@ -847,12 +847,13 @@ static gchar *config_comment(const gchar *s)
     out = g_string_new("# ");
     sv = g_strsplit(s, " ", 0);
 
-    for(tok = sv[0], n = 0; tok != NULL; ++n, tok = sv[n]) {
-        if ((len == 0) || ((len + strlen(sv[n]) < 78))) {
+    for (tok = sv[0], n = 0; tok != NULL; ++n, tok = sv[n]) {
+        if ((len == 0) || ((len + strlen(sv[n]) < 72))) {
             /* append to this line */
+			if (n > 0)
+				g_string_append_c(out, ' ');
             g_string_append(out, sv[n]);
-            g_string_append_c(out, ' ');
-            len += strlen(sv[n]);
+            len += strlen(sv[n]) + (n == 0 ? 0 : 1);
         } else {
             /* end line and append to new line */
             g_string_append(out, "\n# ");
