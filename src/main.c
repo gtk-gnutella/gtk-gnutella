@@ -150,7 +150,7 @@ void gtk_gnutella_exit(gint n)
 	ext_close();
 	share_close();
 	node_close();
-	routing_close();
+	routing_close();	/* After node_close() */
 	bsched_close();
 	dmesh_close();
 	host_close();
