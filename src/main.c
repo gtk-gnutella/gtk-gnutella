@@ -47,7 +47,7 @@
 #include "pcache.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
-#define EXIT_GRACE				20	/* Seconds to wait before exiting */
+#define EXIT_GRACE				30	/* Seconds to wait before exiting */
 
 /* */
 
@@ -103,6 +103,7 @@ void gtk_gnutella_exit(gint n)
 	socket_shutdown();
 	search_shutdown();
 	filters_shutdown();
+	bsched_shutdown();
 
 	/* 
 	 * Wait at most EXIT_GRACE seconds, so that BYE messages can go through.
@@ -111,16 +112,19 @@ void gtk_gnutella_exit(gint n)
     gtk_widget_hide(main_window);
     gtk_widget_show(shutdown_window);
 
-	while (node_bye_pending() && 
-           (tick = time((time_t *) NULL)) - now < EXIT_GRACE) {
-         g_snprintf(tmp, sizeof(tmp), "%d seconds", 
+	while (
+		node_bye_pending() && 
+		(tick = time((time_t *) NULL)) - now < EXIT_GRACE
+	) {
+		g_snprintf(tmp, sizeof(tmp), "%d seconds", 
             EXIT_GRACE - (gint)difftime(tick,now));
+
         gtk_label_set(GTK_LABEL(label_shutdown_count),tmp);
 		gtk_main_iteration_do(FALSE);
+
 		usleep(50000);					/* 50 ms */
 	}
 
-   	bsched_shutdown();
 	share_close();
 	node_close();
 	host_close();
@@ -131,7 +135,8 @@ void gtk_gnutella_exit(gint n)
 	g_free(version_string);
 	g_free(start_rfc822_date);
 
-    printf("gtk-gnutella shut down cleanly.\n\n");
+	if (dbg)
+		printf("gtk-gnutella shut down cleanly.\n\n");
 
 	gtk_exit(n);
 }
