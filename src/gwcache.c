@@ -671,7 +671,7 @@ static void parse_dispatch_lines(
 		linelen = str_chomp(linep, getline_length(getline));
 
 		if (!(*cb)(ctx, linep, linelen)) {
-			clear_current_url(TRUE);	/* An ERROR was reported */
+			clear_current_url(FALSE);	/* An ERROR was reported */
 			return;
 		}
 
