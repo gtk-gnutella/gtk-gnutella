@@ -2189,12 +2189,16 @@ void parq_upload_upload_got_freed(gnutella_upload_t *u)
 		return;
 	
 	parq_ul = parq_upload_find(u);
+		
+	/*
+	 * If the u->parq_opaque exist there must be a reference to an parq
+	 * structure. Otherwise something did go wrong.
+	 */
+	g_assert(parq_ul != NULL);
+	
+	parq_ul->u = NULL;
 	
 	u->parq_opaque = NULL;
-	
-	/* The parq_ul allready might have been removed. So check this first */
-	if (parq_ul != NULL)	
-		parq_ul->u = NULL;
 }
 
 /*
