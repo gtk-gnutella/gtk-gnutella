@@ -38,6 +38,7 @@ void version_init(void);
 void version_close(void);
 void version_ancient_warn(void);
 void version_check(guchar *str);
+gboolean version_is_too_old(gchar *vendor);
 
 extern gchar *version_string;
 extern gchar *version_number;

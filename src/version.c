@@ -33,6 +33,9 @@
 
 RCSID("$Id$");
 
+#define VERSION_ANCIENT_WARN	(86400*365)		/* 1 year */
+#define VERSION_ANCIENT_BAN		(86400*549)		/* 1.5 year */
+
 gchar *version_number = NULL;
 gchar *version_string = NULL;
 
@@ -108,6 +111,14 @@ static void version_stamp(guchar *str, struct version *ver)
 	guchar *p;
 
 	ver->timestamp = 0;
+
+	/*
+	 * A typical vendor string with a timestamp would look like:
+	 *
+	 *    gtk-gnutella/0.85 (04/04/2002; X11; FreeBSD 4.6-STABLE i386)
+	 *
+	 * The date stamp is formattted as DD/MM/YYYY.
+	 */
 
 	p = strchr(str, '(');
 	if (p) {
@@ -452,10 +463,25 @@ void version_ancient_warn(void)
 {
 	g_assert(our_version.timestamp > 0);	/* version_init() called */
 
-	if (time(NULL) - our_version.timestamp > 86400*365) {
+	if (time(NULL) - our_version.timestamp > VERSION_ANCIENT_WARN) {
 		g_warning("version of gtk-gnutella is too old, you should upgrade!");
         gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, TRUE);
 	}
+}
+
+/*
+ * version_is_too_old
+ *
+ * Check the timestamp in the GTKG version string and returns TRUE if it
+ * is too old or could not be parsed, FALSE if OK.
+ */
+gboolean version_is_too_old(gchar *vendor)
+{
+	struct version ver;
+
+	version_stamp(vendor, &ver);		/* Fills ver->timestamp */
+
+	return time(NULL) - ver.timestamp > VERSION_ANCIENT_BAN;
 }
 
 /*
