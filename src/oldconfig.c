@@ -45,6 +45,7 @@
 #include <netdb.h>
 
 #include "settings_gui.h"
+#include "search_stats_gui.h"
 
 #define CONFIG_SET_BOOL(v,pref,prop)                 \
     case k_##v: {                                    \
@@ -482,9 +483,6 @@ void config_set_param(keyword_t keyword, gchar *value)
             search_results_show_tabs, gui, 
             PROP_SEARCH_RESULTS_SHOW_TABS)
         CONFIG_SET_BOOL(
-            search_stats_enabled, gui, 
-            PROP_SEARCH_STATS_ENABLED)
-        CONFIG_SET_BOOL(
             statusbar_visible, gui, 
             PROP_STATUSBAR_VISIBLE)
         CONFIG_SET_BOOL(
@@ -785,6 +783,14 @@ void config_set_param(keyword_t keyword, gchar *value)
 	case k_win_w:
 	case k_win_h:
 		return;
+
+    case k_search_stats_enabled: {
+        guint32 v;
+        v = g_strcasecmp(value, "true") == 0 ? 
+            WORD_SEARCH_STATS : NO_SEARCH_STATS;
+        gui_prop_set_guint32(PROP_SEARCH_STATS_MODE, &v, 0, 1);
+        return;
+    }
 
     case k_min_dup_ratio: {
         guint32 v = atof(value)*100;
