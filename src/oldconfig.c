@@ -423,9 +423,6 @@ static void config_set_param(keyword_t keyword, gchar *value)
             bw_ul_usage_enabled, gnet, 
             PROP_BW_UL_USAGE_ENABLED)
         CONFIG_SET_BOOL(
-            clear_downloads, gnet, 
-            PROP_AUTOCLEAR_DOWNLOADS )
-        CONFIG_SET_BOOL(
             clear_uploads, gui, 
             PROP_AUTOCLEAR_UPLOADS)
         CONFIG_SET_BOOL(
@@ -755,6 +752,12 @@ static void config_set_param(keyword_t keyword, gchar *value)
             widths_filter_filters, gui,
             PROP_FILTER_FILTERS_COL_WIDTHS)
 
+    case k_clear_downloads: {
+        gboolean b = !g_ascii_strcasecmp(value, "true");
+        gnet_prop_set_boolean(PROP_AUTOCLEAR_COMPLETED_DOWNLOADS, &b, 0, 1);
+        gnet_prop_set_boolean(PROP_AUTOCLEAR_FAILED_DOWNLOADS, &b, 0, 1);
+        return;
+    }
     case k_filter_default_policy:
         /* 
          * Removed. This can be accomplished by adding respective rules
