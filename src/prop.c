@@ -220,6 +220,15 @@ static void prop_parse_boolean_vector(const gchar *name,
 				valid = TRUE;
 			}
 			break;
+		case sizeof "1" - 1:
+			if (*a == '1') {
+				t[i] = TRUE;
+				valid = TRUE;
+			} else if (*a == '0') {
+				t[i] = FALSE;
+				valid = TRUE;
+			}
+			break;
 		}
 		if (!valid) {
 			t[i] = FALSE;
