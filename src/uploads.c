@@ -1449,7 +1449,6 @@ static struct shared_file *get_file_to_upload_from_index(
 	buf++; /* Skip the '/' */
 	basename = buf;
 
-	g_message("basename=\"%s\"", basename);
     if (u->name != NULL)
         atom_str_free(u->name);
     u->name = atom_str_get(basename);
