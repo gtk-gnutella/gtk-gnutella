@@ -1,3 +1,6 @@
+/*
+ * 0.6 handshaking code is Copyright (c) 2001, Raphael Manfredi.
+ */
 
 #include "gnutella.h"
 
@@ -19,6 +22,8 @@
 #include "hosts.h"
 #include "nodes.h"
 #include "misc.h"
+#include "getline.h"
+#include "header.h"
 
 GSList *sl_nodes = (GSList *) NULL;
 
@@ -29,8 +34,11 @@ guint32 global_searches = 0;
 guint32 routing_errors = 0;
 guint32 dropped_messages = 0;
 
-const gchar *gnutella_hello = "GNUTELLA CONNECT/0.4\n\n";
-const gchar *gnutella_welcome = "GNUTELLA OK\n\n";
+const gchar *gnutella_hello = "GNUTELLA CONNECT/";
+guint32 gnutella_hello_length = 0;
+
+static const gchar *gnutella_welcome = "GNUTELLA OK\n\n";
+static guint32 gnutella_welcome_length = 0;
 
 GHookList node_added_hook_list;
 /*
@@ -39,10 +47,25 @@ GHookList node_added_hook_list;
  */
 struct gnutella_node *node_added;
 
-guint32 gnutella_welcome_length = 0;
-
 static gint32 connected_node_cnt = 0;
 static gchar *msg_name[256];
+
+/*
+ * This structure is used to encapsulate the various arguments required
+ * by the header parsing I/O callback.
+ */
+struct io_header {
+	struct gnutella_node *node;
+	header_t *header;
+	getline_t *getline;
+	void (*process_header)(struct io_header *);
+	gint flags;
+};
+
+#define IO_EXTRA_DATA_OK	0x00000001	/* OK to have extra data after EOH */
+#define IO_STATUS_LINE		0x00000002	/* First line is a status line */
+
+static GHashTable *node_by_fd = 0;
 
 /*
  * Network init
@@ -53,6 +76,7 @@ void network_init(void)
 	int i;
 
 	gnutella_welcome_length = strlen(gnutella_welcome);
+	gnutella_hello_length = strlen(gnutella_hello);
 	g_hook_list_init(&node_added_hook_list, sizeof(GHook));
 	node_added_hook_list.seq_id = 1;
 	node_added = NULL;
@@ -63,6 +87,8 @@ void network_init(void)
 	msg_name[GTA_MSG_INIT_RESPONSE] = "pong";
 	msg_name[GTA_MSG_SEARCH] = "query";
 	msg_name[GTA_MSG_SEARCH_RESULTS] = "query hit";
+
+	node_by_fd = g_hash_table_new(g_direct_hash, g_direct_equal);
 }
 
 /*
@@ -96,6 +122,27 @@ static guint32 max_msg_size(void)
 	return maxsize;
 }
 
+/*
+ * get_protocol_version
+ *
+ * Parse the first handshake line to determine the protocol version.
+ * The major and minor are returned in `major' and `minor' respectively.
+ */
+static void get_protocol_version(guchar *handshake, gint *major, gint *minor)
+{
+	if (sscanf(&handshake[gnutella_hello_length], "%d.%d", major, minor))
+		return;
+
+	g_warning("Unable to parse version number in HELLO, assuming 0.4");
+	if (dbg > 2) {
+		guint len = strlen(handshake);
+		dump_hex(stderr, "First HELLO Line", handshake, MIN(len, 80));
+	}
+
+	*major = 0;
+	*minor = 4;
+}
+
 void node_real_remove(struct gnutella_node *n)
 {
 	gint row;
@@ -125,6 +172,13 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 		g_assert(connected_node_cnt >= 0);
 	}
 
+	if (n->membuf) {
+		g_assert(n->socket);
+		g_free(n->membuf->data);
+		g_free(n->membuf);
+		n->membuf = NULL;
+		g_hash_table_remove(node_by_fd, (gpointer) n->socket->file_desc);
+	}
 	if (n->socket) {
 		g_assert(n->socket->resource.node == n);
 		socket_free(n->socket);
@@ -207,13 +261,567 @@ static gboolean have_node(struct gnutella_node *node, gboolean incoming)
 	return node_connected(node->ip, node->port, incoming);
 }
 
-struct gnutella_node *node_add(struct gnutella_socket *s, guint32 ip,
-							   guint16 port)
+/*
+ * send_node_error
+ *
+ * Send error message to node.
+ */
+static void send_node_error(struct gnutella_socket *s, int code, guchar *msg)
+{
+	gchar gnet_response[1024];
+	gint rw;
+
+	// XXX if 503, add X-Try:
+
+	rw = g_snprintf(gnet_response, sizeof(gnet_response),
+		"GNUTELLA/0.6 %d %s\r\n"
+		"User-Agent: gtk-gnutella/%d.%d\r\n\r\n",
+		code, msg, GTA_VERSION, GTA_SUBVERSION);
+
+	// XXX mark partial writes
+
+	if (-1 == write(s->file_desc, gnet_response, rw))
+		g_warning("Unable to send back error %d (%s) to node %s: %s",
+			code, msg, ip_to_gchar(s->ip), g_strerror(errno));
+	else if (dbg > 4) {
+		printf("----Sent Error to node %s:\n%.*s----\n",
+			ip_to_gchar(s->ip), rw, gnet_response);
+		fflush(stdout);
+	}
+}
+
+/*
+ * membuf_read
+ *
+ * Reading callback installed by node_process_handshake_ack() to read from
+ * a memory buffer.
+ */
+static gint membuf_read(gint fd, gpointer buf, gint len)
+{
+	struct gnutella_node *n;
+	struct membuf *mbuf;
+	gint available;
+	gint count;
+
+	if (dbg > 4) printf("membuf_read: fd=%d, len=%d\n", fd, len);
+
+	n = (struct gnutella_node *) g_hash_table_lookup(node_by_fd, (gpointer) fd);
+	g_assert(n);
+	g_assert(n->read == membuf_read);
+
+	mbuf = n->membuf;
+	g_assert(mbuf);
+
+	g_assert(mbuf->rptr <= mbuf->end);
+
+	/*
+	 * Sockets are set non-blocking.  If we have nothing to read, don't
+	 * return 0, but -1 with errno set appropriately.
+	 */
+
+	if (mbuf->rptr == mbuf->end) {
+		errno = EAGAIN;
+		return -1;
+	}
+
+	available = mbuf->end - mbuf->rptr;
+	count = len < available ? len : available;
+	g_assert(count > 0);
+
+	memmove(buf, mbuf->rptr, count);
+	mbuf->rptr += count;
+
+	g_assert(mbuf->rptr <= mbuf->end);
+
+	return count;
+}
+
+/*
+ * node_process_handshake_ack
+ *
+ * This routine is called to process the whole 0.6+ handshake header
+ * acknowledgement we get back after welcoming a node.
+ */
+static void node_process_handshake_ack(struct io_header *ih)
+{
+	struct gnutella_node *n = ih->node;
+	struct gnutella_socket *s = n->socket;
+	gchar *status;
+	gint ack_code;
+	gint major, minor;
+	gchar *ack_message = "";
+	gboolean ack_ok = FALSE;
+
+	status = getline_str(s->getline);
+
+	if (dbg) {
+		printf("Got incoming acknowledgment headers from node %s:\n",
+			ip_to_gchar(n->ip));
+		dump_hex(stdout, "Status Line", status,
+			MIN(getline_length(s->getline), 80));
+		header_dump(ih->header, stdout);
+		fflush(stdout);
+	}
+
+	ack_code = parse_status_line(status, &ack_message, &major, &minor);
+	if (dbg) {
+		printf("ACK: code=%d, message=\"%s\", proto=%d.%d\n", ack_code,
+			ack_message, major, minor);
+		fflush(stdout);
+	}
+	if (ack_code == -1) {
+		g_warning("weird acknowledgment status line from %s",
+			ip_to_gchar(n->ip));
+		dump_hex(stderr, "Status Line", status,
+			MIN(getline_length(s->getline), 80));
+	} else
+		ack_ok = TRUE;
+
+	if (ack_ok && (major != n->proto_major || minor != n->proto_minor)) {
+		g_warning("node %s handshaked at %d.%d and now acks at %d.%d, "
+			"adjusting", ip_to_gchar(n->ip), n->proto_major, n->proto_minor,
+			major, minor);
+		n->proto_major = major;
+		n->proto_minor = minor;
+	}
+
+	/*
+	 * Is the connection OK?
+	 */
+
+	if (!ack_ok)
+		node_remove(n, "Weird HELLO acknowlegment");
+	else if (ack_code < 200 || ack_code >= 300) {
+		node_remove(n, "HELLO error %d (%s)", ack_code, ack_message);
+		ack_ok = FALSE;
+	}
+
+	/*
+	 * We can now dispose of the io_header structure.
+	 */
+
+	header_free(ih->header);
+	getline_free(ih->getline);
+	g_free(ih);
+
+	if (!ack_ok)
+		return;			/* s->getline will have been freed by node removal */
+
+	/*
+	 * Get rid of the acknowledgment status line.
+	 */
+
+	getline_free(s->getline);
+	s->getline = NULL;
+
+	/*
+	 * The problem we have now is that the remote node is going to
+	 * send binary data, normally processed by node_read().  However,
+	 * we have probably read some of those data along with the handshaking
+	 * reply.  We can't just install the callback and leave, since the
+	 * callback won't be invoked until new data comes in.  And the remote
+	 * node might have send us a Ping that it expects us to reply to
+	 * or it will close the connection.
+	 *
+	 * To minimize the amount of change to make to the existing code, I
+	 * came up with the following trick:
+	 *
+	 * . The node_read() routine will no longer call read(), the system call,
+	 *   directly, but will use n->read() instead.
+	 * . While there is data pending in the socket, we install our own reading
+	 *   routine so that node_read() gets to read from a memory buffer through
+	 *   a reading routine we provide: membuf_read().
+	 * . We force all the data to be read now by calling node_read() manually.
+	 *
+	 * Because read() normally takes a file descriptor, we'll need to be able
+	 * to convert that file descriptor back into a node structure.  That's
+	 * the purpose of the `node_by_fd' hash.
+	 *
+	 *		--RAM, 23/12/2001
+	 */
+
+	if (s->pos > 0) {
+		struct membuf *mbuf;
+
+		/*
+		 * Prepare buffer where membuf_read() will read from and copy all
+		 * the pending data that we read from the socket.  Then reset the
+		 * socket buffer so that it appears to be empty.
+		 */
+
+		mbuf = (struct membuf *) g_malloc(sizeof(struct membuf));
+		mbuf->data = mbuf->rptr = g_malloc(s->pos);
+		mbuf->end = mbuf->data + s->pos;
+		n->membuf = mbuf;
+		memmove(mbuf->data, s->buffer, s->pos);
+		s->pos = 0;
+
+		/*
+		 * Install the membuf_read() callback.
+		 */
+
+		n->read = membuf_read;
+		g_assert(0 == g_hash_table_lookup(node_by_fd, (gpointer) s->file_desc));
+		g_hash_table_insert(node_by_fd, (gpointer) s->file_desc, (gpointer) n);
+
+		/*
+		 * Call node_read() until all the data have been read from the
+		 * memory buffer.
+		 */
+
+		while (mbuf->rptr < mbuf->end)
+			node_read((gpointer) n, s->file_desc, 0);
+
+		/*
+		 * Cleanup the memory buffer data structures.
+		 */
+
+		g_hash_table_remove(node_by_fd, (gpointer) s->file_desc);
+		g_free(mbuf->data);
+		g_free(mbuf);
+		n->membuf = 0;
+	}
+
+	n->last_update = time((time_t *) 0);	/* Done reading ack */
+
+	/*
+	 * Install node_read() as the reading callback.
+	 */
+
+	n->read = (gint (*)(gint, gpointer, gint)) read;
+
+	gdk_input_remove(s->gdk_tag);
+	s->gdk_tag = gdk_input_add(s->file_desc,
+		(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+		node_read, (gpointer) n);
+}
+
+/*
+ * node_process_handshake_header
+ *
+ * This routine is called to process the whole 0.6+ handshake header
+ * and to either accept (welcoming the remote node) or deny the connection.
+ */
+static void node_process_handshake_header(struct io_header *ih)
+{
+	struct gnutella_node *n = ih->node;
+	gchar gnet_response[1024];
+	gint rw;
+	gint sent;
+
+	if (dbg) {
+		printf("Got incoming handshaking headers from node %s:\n",
+			ip_to_gchar(n->ip));
+		header_dump(ih->header, stdout);
+	}
+
+	// XXX
+	if (dbg) {
+		gchar *ua = header_get(ih->header, "User-Agent");
+		printf("Node software = %s\n", ua ? ua : "<none>");
+	}
+
+	/*
+	 * Welcome the incoming node.
+	 */
+
+	rw = g_snprintf(gnet_response, sizeof(gnet_response),
+		"GNUTELLA/0.6 200 OK\r\n"
+		"User-Agent: gtk-gnutella/%d.%d\r\n"
+		"X-Comment: This is still experimental, and none of the new 0.6\r\n"
+		"    features are supported.  In particular, no attention is paid\r\n"
+		"    to any headers that are sent along the handshake.\r\n"
+		"\r\n",
+		GTA_VERSION, GTA_SUBVERSION);
+
+	/*
+	 * When sending a handshake reply, we might not be able to transmit the
+	 * whole thing in one shot.  This should be rare, so we're not handling
+	 * the case for now.  Simply log it and close the connection.
+	 */
+
+	if (-1 == (sent = write(n->socket->file_desc, gnet_response, rw))) {
+		int errcode = errno;
+		g_warning("Unable to send back handshake reply to node %s: %s",
+			ip_to_gchar(n->ip), g_strerror(errcode));
+		node_remove(n, "Failed (Cannot reply to HELLO: %s)",
+			g_strerror(errcode));
+		goto final_cleanup;
+	} else if (sent < rw) {
+		g_warning("Could only send %d out of %d bytes of reply to node %s",
+			sent, rw, ip_to_gchar(n->ip));
+		node_remove(n, "Failed (Cannot send HELLO reply atomically)");
+		goto final_cleanup;
+	} else if (dbg > 4) {
+		printf("----Sent OK handshake reply to %s:\n%.*s----\n",
+			ip_to_gchar(n->ip), rw, gnet_response);
+		fflush(stdout);
+	}
+
+	/*
+	 * Now that we got all the headers, we may update the `last_update' field.
+	 */
+
+	n->status = GTA_NODE_WELCOME_SENT;
+	n->last_update = time((time_t *) 0);
+
+	/*
+	 * The remote node is expected to send us an acknowledgement.
+	 * The I/O callback installed is still node_header_read(), but
+	 * we need to configure a different callback when the header
+	 * is collected.
+	 */
+
+	header_reset(ih->header);
+	ih->flags |= IO_EXTRA_DATA_OK | IO_STATUS_LINE;
+	ih->process_header = node_process_handshake_ack;
+	return;
+
+	/*
+	 * When we come here, we're done with the parsing structures, we can
+	 * free them.
+	 */
+
+final_cleanup:
+	header_free(ih->header);
+	getline_free(ih->getline);
+	g_free(ih);
+}
+
+/*
+ * node_header_parse
+ *
+ * This routine is called to parse the input buffer, a line at a time,
+ * until EOH is reached.
+ */
+static void node_header_parse(struct io_header *ih)
+{
+	struct gnutella_node *n = ih->node;
+	struct gnutella_socket *s = n->socket;
+	getline_t *getline = ih->getline;
+	header_t *header = ih->header;
+	guint parsed;
+	gint error;
+
+	/*
+	 * Read header a line at a time.  We have exacly s->pos chars to handle.
+	 * NB: we're using a goto label to loop over.
+	 */
+
+nextline:
+	switch (getline_read(getline, s->buffer, s->pos, &parsed)) {
+	case READ_OVERFLOW:
+		g_warning("node_header_parse: line too long, disconnecting from %s",
+			ip_to_gchar(s->ip));
+		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		node_remove(n, "Failed (Header line too long)");
+		goto final_cleanup;
+		/* NOTREACHED */
+	case READ_DONE:
+		if (s->pos != parsed)
+			memmove(s->buffer, s->buffer + parsed, s->pos - parsed);
+		s->pos -= parsed;
+		break;
+	case READ_MORE:		/* ok, but needs more data */
+	default:
+		g_assert(parsed == s->pos);
+		s->pos = 0;
+		return;
+	}
+
+	/*
+	 * We come here everytime we get a full header line.
+	 */
+
+	if (ih->flags & IO_STATUS_LINE) {
+		/*
+		 * Save status line away in socket's "getline" object, then clear
+		 * the fact that we're expecting a status line and continue to get
+		 * the following header lines.
+		 */
+
+		g_assert(s->getline == 0);
+		s->getline = getline_make();
+
+		getline_copy(getline, s->getline);
+		getline_reset(getline);
+		ih->flags &= ~IO_STATUS_LINE;
+		goto nextline;
+	}
+
+	error = header_append(header,
+		getline_str(getline), getline_length(getline));
+
+	switch (error) {
+	case HEAD_OK:
+		getline_reset(getline);
+		goto nextline;			/* Go process other lines we may have read */
+		/* NOTREACHED */
+	case HEAD_EOH:				/* We reached the end of the header */
+		break;
+	case HEAD_TOO_LARGE:
+	case HEAD_MANY_LINES:
+	case HEAD_EOH_REACHED:
+		g_warning("node_header_parse: %s, disconnecting from %s",
+			header_strerror(error),  ip_to_gchar(s->ip));
+		fprintf(stderr, "------ Header Dump:\n");
+		header_dump(header, stderr);
+		fprintf(stderr, "------\n");
+		dump_hex(stderr, "Header Line", getline_str(getline),
+			MIN(getline_length(getline), 128));
+		node_remove(n, "Failed (%s)", header_strerror(error));
+		goto final_cleanup;
+		/* NOTREACHED */
+	default:					/* Error, but try to continue */
+		g_warning("node_header_parse: %s, from %s",
+			header_strerror(error), ip_to_gchar(s->ip));
+		dump_hex(stderr, "Header Line",
+			getline_str(getline), getline_length(getline));
+		getline_reset(getline);
+		goto nextline;			/* Go process other lines we may have read */
+	}
+
+	/*
+	 * We reached the end of headers.
+	 *
+	 * Make sure there's no more data.  Whatever handshaking protocol is used,
+	 * we have to answer before the other end can send more data.
+	 */
+
+	if (s->pos && !(ih->flags & IO_EXTRA_DATA_OK)) {
+		g_warning("incoming node %s sent extra bytes after HELLO",
+			ip_to_gchar(s->ip));
+		dump_hex(stderr, "Extra HELLO Data", s->buffer, MIN(s->pos, 256));
+		node_remove(n, "Failed (Extra HELLO data)");
+		goto final_cleanup;
+	}
+
+	/*
+	 * If it is a 0.4 handshake, we're done: we have already welcomed the
+	 * node, and came here just to read the trailing "\n".  We're now
+	 * ready to process incoming data.
+	 */
+
+	if (n->proto_major == 0 && n->proto_minor == 4) {
+		n->last_update = time((time_t *) 0);	/* Done reading "headers" */
+		gdk_input_remove(s->gdk_tag);
+		s->gdk_tag = gdk_input_add(s->file_desc,
+			(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+			node_read, (gpointer) n);
+		goto final_cleanup;
+	}
+
+	/*
+	 * We're dealing with a 0.6+ handshake.
+	 *
+	 * If this is our first call, we'll go to node_process_handshake_header().
+	 * We need to welcome the node, and it will reply after our welcome,
+	 * so we don't free the io_header structure and the getline/header
+	 * objects yet.
+	 *
+	 * If this is our second call, we'll go to node_process_handshake_ack().
+	 * This will terminate the handshaking process, and cleanup the header
+	 * parsing structure, then install the data handling callback.
+	 */
+
+	getline_reset(ih->getline);		/* Ensure it's empty, ready for reuse */
+	ih->process_header(ih);
+	return;
+
+	/*
+	 * When we come here, we're done with the parsing structures, we can
+	 * free them.
+	 */
+
+final_cleanup:
+	header_free(ih->header);
+	getline_free(ih->getline);
+	g_free(ih);
+}
+
+
+/*
+ * node_header_read
+ *
+ * This routine is installed as an input callback to read the hanshaking
+ * header.
+ */
+static void node_header_read(
+	gpointer data, gint source, GdkInputCondition cond)
+{
+	struct io_header *ih = (struct io_header *) data;
+	struct gnutella_node *n = ih->node;
+	struct gnutella_socket *s = n->socket;
+	guint count;
+	gint r;
+
+	if (cond & GDK_INPUT_EXCEPTION) {
+		node_remove(n, "Failed (Input Exception)");
+		goto final_cleanup;
+	}
+
+	count = sizeof(s->buffer) - s->pos - 1;		/* -1 to allow trailing NUL */
+	if (count <= 0) {
+		g_warning("node_header_read: incoming buffer full, "
+			"disconnecting from %s", ip_to_gchar(s->ip));
+		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		node_remove(n, "Failed (Input buffer full)");
+		goto final_cleanup;
+	}
+
+	r = read(s->file_desc, s->buffer + s->pos, count);
+	if (r == 0) {
+		node_remove(n, "Failed (EOF)");
+		goto final_cleanup;
+	} else if (r < 0 && errno == EAGAIN)
+		return;
+	else if (r < 0) {
+		node_remove(n, "Failed (Input error: %s)", g_strerror(errno));
+		goto final_cleanup;
+	}
+
+	/*
+	 * During the header reading phase, we don't update "n->last_update"
+	 * on purpose.  The timeout is defined for the whole connection phase,
+	 * i.e. until we read the end of the headers.
+	 */
+
+	s->pos += r;
+
+	node_header_parse(ih);
+	return;
+
+	/*
+	 * When we come here, we're done with the parsing structures, we can
+	 * free them.
+	 */
+
+final_cleanup:
+	header_free(ih->header);
+	getline_free(ih->getline);
+	g_free(ih);
+}
+
+void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 {
 	struct gnutella_node *n;
 	gchar *titles[4];
 	gint row;
 	gboolean incoming = FALSE, already_connected = FALSE;
+	gint major = 0, minor = 0;
+
+	/*
+	 * Compute the protocol version from the first handshake line, if
+	 * we got a socket (meaning an inbound connection).  It is important
+	 * to figure out early because we have to deny the connection cleanly
+	 * for 0.6 clients and onwards.
+	 */
+
+	if (s) {
+		get_protocol_version(getline_str(s->getline), &major, &minor);
+		getline_free(s->getline);
+		s->getline = NULL;
+	}
 
 #define NO_RFC1918				/* XXX */
 
@@ -221,30 +829,40 @@ struct gnutella_node *node_add(struct gnutella_socket *s, guint32 ip,
 	/* This needs to be a runtime option.  I could see a need for someone
 	   * to want to run gnutella behind a firewall over on a private network. */
 	if (is_private_ip(ip)) {
-		if (s)
+		if (s) {
+			if (major > 0 || minor > 4)
+				send_node_error(s, 404, "Denied access from private IP");
 			socket_destroy(s);
-		return NULL;
+		}
+		return;
 	}
 #endif
 
 	/* Too many gnutellaNet connections */
 	if (nodes_in_list >= max_connections) {
-		if (s)
+		if (s) {
+			if (major > 0 || minor > 4)
+				send_node_error(s, 503, "Too many Gnet connections");
 			socket_destroy(s);
-		return NULL;
+		}
+		return;
 	}
 
 	n = (struct gnutella_node *) g_malloc0(sizeof(struct gnutella_node));
 
 	n->ip = ip;
 	n->port = port;
+	n->proto_major = major;
+	n->proto_minor = minor;
 
 	n->routing_data = NULL;
+	n->read = (gint (*)(gint, gpointer, gint)) read;
 
 	if (s) {					/* This is an incoming control connection */
 		n->socket = s;
 		s->type = GTA_TYPE_CONTROL;
-		n->status = GTA_NODE_WELCOME_SENT;
+		n->status = (major > 0 || minor > 4) ?
+			GTA_NODE_RECEIVING_HELLO : GTA_NODE_WELCOME_SENT;
 		s->resource.node = n;
 
 		incoming = TRUE;
@@ -285,23 +903,82 @@ struct gnutella_node *node_add(struct gnutella_socket *s, guint32 ip,
 		nodes_in_list++;
 
 	if (already_connected) {
+		if (incoming && (n->proto_major > 0 || n->proto_minor > 4))
+			send_node_error(s, 404, "Already connected");
 		node_remove(n, "Already connected");
-		return (struct gnutella_node *) NULL;
+		return;
 	}
 
 	if (incoming) {				/* Welcome the incoming node */
-		if (
-			write(s->file_desc, gnutella_welcome, strlen(gnutella_welcome)) < 0
-		) {
-			node_remove(n, "Write of HELLO failed: %s", g_strerror(errno));
-			return (struct gnutella_node *) NULL;
+		struct io_header *ih;
+
+		if (n->proto_major == 0 && n->proto_minor == 4) {
+			gint sent;
+
+			/*
+			 * Remote node uses the 0.4 protocol.
+			 */
+
+			if (
+				-1 == (sent = write(s->file_desc, gnutella_welcome,
+					gnutella_welcome_length))
+			) {
+				node_remove(n, "Write of 0.4 HELLO acknowledge failed: %s",
+					g_strerror(errno));
+				return;
+			}
+			else if (sent < gnutella_welcome_length) {
+				g_warning("wrote only %d out of %d bytes of HELLO ack to %s",
+					sent, gnutella_welcome_length, ip_to_gchar(n->ip));
+				node_remove(n, "Partial write of 0.4 HELLO acknowledge");
+				return;
+			}
+
+			/*
+			 * There's no more handshaking to perform, we're ready to
+			 * read node data.
+			 *
+			 * However, our implementation of the first line reading only
+			 * read until the first "\n" of the hello.  Therefore, we need
+			 * to enter the node_header_read() callback, which will simply
+			 * get an empty line, marking the end of headers.
+			 *
+			 * That's why we're going to execute the code below which sets
+			 * the callback as if we were talking to a 0.6+ node.
+			 *
+			 *		--RAM, 21/12/2001
+			 */
 		}
+
+		/*
+		 * Remote node is using a modern handshaking.  We need to read
+		 * its headers then send ours before we can operate any
+		 * data transfer.
+		 */
+
+		ih = (struct io_header *) g_malloc(sizeof(struct io_header));
+		ih->node = n;
+		ih->header = header_make();
+		ih->getline = getline_make();
+		ih->process_header = node_process_handshake_header;
+		ih->flags = 0;
+
+		g_assert(s->gdk_tag == 0);
+
+		s->gdk_tag = gdk_input_add(s->file_desc,
+			(GdkInputCondition) GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
+			node_header_read, (gpointer) ih);
+
+		/*
+		 * There may be pending input in the socket buffer, so go handle
+		 * it immediately.
+		 */
+
+		node_header_parse(ih);
 	}
 
 	gui_update_node(n, TRUE);
 	gui_update_c_gnutellanet();
-
-	return n;
 }
 
 /*
@@ -401,11 +1078,19 @@ void node_parse(struct gnutella_node *node)
 
 void node_init_outgoing(struct gnutella_node *n)
 {
-	if (
-		write(n->socket->file_desc, gnutella_hello, strlen(gnutella_hello)) < 0
-	) {
-		node_remove(n, "Write error: %s", g_strerror(errno));
-	} else {
+	gchar buf[MAX_LINE_SIZE];
+	gint len;
+	gint sent;
+
+	n->proto_major = 0;
+	n->proto_minor = 4;
+	len = g_snprintf(buf, sizeof(buf), "%s%d.%d\n\n", gnutella_hello, 0, 4);
+
+	if (-1 == (sent = write(n->socket->file_desc, buf, len)))
+		node_remove(n, "Write error during HELLO: %s", g_strerror(errno));
+	else if (sent < len)
+		node_remove(n, "Partial write during HELLO");
+	else {
 		n->status = GTA_NODE_HELLO_SENT;
 		gui_update_node(n, TRUE);
 	}
@@ -441,7 +1126,7 @@ gboolean node_enqueue(struct gnutella_node *n, gchar * data, guint32 size)
 			node_write, (gpointer) n);
 
 		/* We assume that if this is valid, it is non-zero */
-		assert(n->gdk_tag);
+		g_assert(n->gdk_tag);
 	}
 
 	if (!n->sendq) {
@@ -529,9 +1214,9 @@ void node_write(gpointer data, gint source, GdkInputCondition cond)
 		} else {
 			int terr = errno;
 			time_t t = time(NULL);
-			g_error("%s:gtk-gnutella:node_write: "
-				"write failed with unexpected errno: %d (%s)\n",
-				 ctime(&t), terr, g_strerror(terr));
+			g_error("%s  gtk-gnutella: node_write: "
+				"write failed on fd #%d with unexpected errno: %d (%s)\n",
+				 ctime(&t), n->socket->file_desc, terr, g_strerror(terr));
 		}
 	}
 
@@ -543,6 +1228,11 @@ void node_write(gpointer data, gint source, GdkInputCondition cond)
 	}
 }
 
+/*
+ * node_read
+ *
+ * I/O callback used to read binary Gnet traffic from a node.
+ */
 void node_read(gpointer data, gint source, GdkInputCondition cond)
 {
 	gint r;
@@ -575,7 +1265,7 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 		guchar *w = (guchar *) & n->header;
 		gboolean kick = FALSE;
 
-		r = read(n->socket->file_desc, w + n->pos,
+		r = n->read(n->socket->file_desc, w + n->pos,
 				 sizeof(struct gnutella_header) - n->pos);
 
 		if (!r) {
@@ -667,7 +1357,7 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 
 	/* Reading of the message data */
 
-	r = read(n->socket->file_desc, n->data + n->pos, n->size - n->pos);
+	r = n->read(n->socket->file_desc, n->data + n->pos, n->size - n->pos);
 
 	if (!r) {
 		node_remove(n, "Failed (EOF in %s message data)",
@@ -691,13 +1381,12 @@ void node_read(gpointer data, gint source, GdkInputCondition cond)
 
 void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 {
-	static struct gnutella_socket *s;
-	static gint r;
-
-	s = (struct gnutella_socket *) data;
+	struct gnutella_node *n = (struct gnutella_node *) data;
+	struct gnutella_socket *s = n->socket;
+	gint r;
 
 	if (cond & GDK_INPUT_EXCEPTION) {
-		node_remove(s->resource.node, "Failed (Input Exception)");
+		node_remove(n, "Failed (Input Exception)");
 		return;
 	}
 
@@ -705,13 +1394,12 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 		gnutella_welcome_length - s->pos);
 
 	if (!r) {
-		node_remove(s->resource.node, "Failed (EOF)");
+		node_remove(n, "Failed (EOF)");
 		return;
 	} else if (r < 0 && errno == EAGAIN)
 		return;
 	else if (r < 0) {
-		node_remove(s->resource.node, "Read error in HELLO: %s",
-			g_strerror(errno));
+		node_remove(n, "Read error in HELLO: %s", g_strerror(errno));
 		return;
 	}
 
@@ -723,9 +1411,10 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 	if (strcmp(s->buffer, gnutella_welcome)) {
 		/* The node does not seem to be a valid gnutella server !? */
 
-		g_warning("node %s replied to our HELLO with: \"%.80s\"\n",
-			ip_port_to_gchar(s->ip, s->port), s->buffer);
-		node_remove(s->resource.node, "Failed (Not a gnutella server ?)");
+		g_warning("node %s replied to our HELLO strangely",
+			ip_port_to_gchar(s->ip, s->port));
+		dump_hex(stderr, "HELLO Reply", s->buffer, MIN(s->pos, 80));
+		node_remove(n, "Failed (Not a Gnutella server?)");
 		return;
 	}
 
@@ -734,24 +1423,23 @@ void node_read_connecting(gpointer data, gint source, GdkInputCondition cond)
 	gdk_input_remove(s->gdk_tag);
 
 	s->gdk_tag = gdk_input_add(s->file_desc,
-		GDK_INPUT_READ | GDK_INPUT_EXCEPTION,
-		node_read, (gpointer) s->resource.node);
+		GDK_INPUT_READ | GDK_INPUT_EXCEPTION, node_read, (gpointer) n);
 
 	/* We assume that if this is valid, it is non-zero */
-	assert(s->gdk_tag);
+	g_assert(s->gdk_tag);
 
 	s->pos = 0;
 
-	s->resource.node->status = GTA_NODE_CONNECTED;
+	n->status = GTA_NODE_CONNECTED;
 	connected_node_cnt++;
 
-	gui_update_node(s->resource.node, TRUE);
+	gui_update_node(n, TRUE);
 
 	gtk_widget_set_sensitive(button_host_catcher_get_more, TRUE);
 
-	send_init(s->resource.node);
+	send_init(n);
 
-	node_added = s->resource.node;
+	node_added = n;
 	g_hook_list_invoke(&node_added_hook_list, TRUE);
 	node_added = NULL;
 }
@@ -770,6 +1458,7 @@ void node_close(void)
 	}
 
 	g_slist_free(sl_nodes);
+	g_hash_table_destroy(node_by_fd);
 }
 
 /* vi: set ts=4: */
