@@ -1,5 +1,24 @@
 # since last version
 
+- (2004-09-29 - RAM)
+ * Added "Time Sync" vendor messages.
+ * Accept clock synchronization from same IP if the precision is better.
+ * Count unclaimed and partially claimed OOB locally-generated hits.
+ * Show TCP/UDP round-trip times as determined from "Time Sync" messages.
+
+- (2004-09-28 - RAM)
+ * The header to emit is X-Push-Proxy now, not X-Push-Proxies.
+
+- (2004-09-27 - RAM)
+ * Assume the majority of servents will now understand bounded Range requests.
+ * Leaf node's TX buffer size was too small for decent output.
+ * Count GIV callback requests we get.
+ * Count QUEUE callback requests we get.
+ * Ensure UDP socket gets a large RX buffer size, to avoid dropping datagrams
+   if we're busy and we can't process them yet.
+ * The "improbable SHA1" detection now recognizes trivial sequences.
+ * Check GGEP "H" and "u" in query hits for improbable SHA1.
+
 - (2004-09-26 - RAM)
  * When debugging, always show bad SHA1 and old-style SHA1 in the logs.
  * Force "auto mode" when they run as ultra mode and get firewalled.
