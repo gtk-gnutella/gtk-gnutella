@@ -78,6 +78,7 @@ set w_main_list {
 	button_search_filter 
 	button_search_stream 
 	checkbutton_search_jump_to_downloads
+    checkbutton_search_remove_downloaded
 	entry_search 
     combo_search
 	entry_search_reissue_timeout
