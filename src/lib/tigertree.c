@@ -129,7 +129,7 @@ static void tt_block(TT_CONTEXT *ctx)
 	++ctx->count;
 	b = ctx->count;
 
-	while(b == ((b >> 1) << 1)) { // while evenly divisible by 2...
+	while (!(b & 1)) { /* while evenly divisible by 2... */
 		tt_compose(ctx);
 		b = b >> 1;
 	}
