@@ -29,7 +29,7 @@
 #include "prop.h"
 #include "misc.h"
 
-#define debug 1
+#define debug 0
 
 /*
  * Checks if a property is part of a property set.
