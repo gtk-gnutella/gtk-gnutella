@@ -68,7 +68,7 @@ static void fi_gui_update_row(
 		c_fi_done, titles[c_fi_done],
 		c_fi_sources, titles[c_fi_sources],
 		c_fi_status, titles[c_fi_status],
-		c_fi_isize, GPOINTER_TO_UINT(titles[c_fi_isize]),
+		c_fi_isize, *(guint64 *) titles[c_fi_isize],
 		c_fi_idone, GPOINTER_TO_UINT(titles[c_fi_idone]),
 		c_fi_isources, GPOINTER_TO_UINT(titles[c_fi_isources]),
 		(-1));
@@ -90,7 +90,7 @@ static void fi_gui_set_details(gnet_fi_t fih)
 
     gtk_entry_set_text(entry_fi_filename,
 		lazy_locale_to_utf8(fi->file_name, 0));
-    gtk_label_printf(label_fi_size, _("%s (%u bytes)"),
+    gtk_label_printf(label_fi_size, _("%s (%" PRIu64 " bytes)"),
 		short_size(fis.size), fis.size);
 
     gtk_tree_store_clear(store_aliases);
@@ -199,6 +199,8 @@ static void fi_gui_fill_status(
     static gchar fi_status[256];
     static gchar fi_done[SIZE_FIELD_MAX+10];
     static gchar fi_size[SIZE_FIELD_MAX];
+    static guint64 isize;
+	guint idone;
 
     guc_fi_get_status(fih, &s);
 
@@ -213,19 +215,20 @@ static void fi_gui_fill_status(
         gm_snprintf(fi_done, sizeof(fi_done), "%s (%.1f%%)", 
             short_size(s.done), done);
         titles[c_fi_done] = fi_done;
-        titles[c_fi_idone] =
-			GUINT_TO_POINTER((guint) (done * ((1 << 30) / 101)));
+		idone = done * ((1 << 30) / 101);
     } else {
         titles[c_fi_done] = "-";
-		titles[c_fi_idone] = GUINT_TO_POINTER(0);
+		idone = 0;
     }
         
     g_strlcpy(fi_size, short_size(s.size), sizeof(fi_size));
-	titles[c_fi_size]    = fi_size;
-    titles[c_fi_isize]   = GUINT_TO_POINTER(s.size);
+	titles[c_fi_size]  = fi_size;
+	isize = s.size;
+    titles[c_fi_isize] = (gpointer) &isize;
+    titles[c_fi_idone] = GUINT_TO_POINTER(idone);
 
     if (s.recvcount) {
-	gm_snprintf(fi_status, sizeof(fi_status), 
+		gm_snprintf(fi_status, sizeof(fi_status), 
             _("Downloading (%.1f k/s)"), s.recv_last_rate / 1024.0);
         titles[c_fi_status] = fi_status;
     } else if (s.done == s.size) {
@@ -308,6 +311,16 @@ static gint compare_uint_func(
     return CMP(a, b);
 }
 
+static gint compare_uint64_func(
+    GtkTreeModel *model, GtkTreeIter *i, GtkTreeIter *j, gpointer user_data)
+{
+	guint64 a, b;
+
+    gtk_tree_model_get(model, i, GPOINTER_TO_INT(user_data), &a, (-1));
+    gtk_tree_model_get(model, j, GPOINTER_TO_INT(user_data), &b, (-1));
+    return CMP(a, b);
+}
+
 static void add_column(
     GtkTreeView *tree,
 	gint column_id,
@@ -350,7 +363,7 @@ void fi_gui_init(void)
 		const gint sort_by;
 	} columns[] = {
 		{ c_fi_filename, N_("File"),	0.0, NULL, -1 },
-    	{ c_fi_size,	 N_("Size"),	1.0, compare_uint_func, c_fi_isize },
+    	{ c_fi_size,	 N_("Size"),	1.0, compare_uint64_func, c_fi_isize },
     	{ c_fi_done,	 N_("Done"),	1.0, compare_uint_func, c_fi_idone },
     	{ c_fi_sources,  N_("Sources"), 1.0, compare_uint_func, c_fi_isources },
     	{ c_fi_status,   N_("Status"),	0.0, NULL, -1 }
@@ -362,7 +375,7 @@ void fi_gui_init(void)
 		G_TYPE_STRING,	/* Sources	*/
 		G_TYPE_STRING,	/* Status	*/
 		G_TYPE_UINT,	/* Fileinfo handle		*/
-		G_TYPE_UINT,	/* Size (for sorting)	*/
+		G_TYPE_UINT64,	/* Size (for sorting)	*/
 		G_TYPE_UINT,	/* Done (for sorting)	*/
 		G_TYPE_UINT		/* Sources (for sorting */
 	};

@@ -73,10 +73,10 @@ void
 bitzi_gui_update(const bitzi_data_t *bitzi_data)
 {
 	g_assert(bitzi_data != NULL);
-    g_message("bitzi_gui_update: data %p, size %d\n"
+    g_message("bitzi_gui_update: data %p, size %" PRIu64 "\n"
 			  "goodness %f, judgement %d, type %s, details %s",
 			bitzi_data,
-			bitzi_data->size,
+			(guint64) bitzi_data->size,
 			bitzi_data->goodness,
 			bitzi_data->judgement,
 			NULL_STRING(bitzi_data->mime_type),

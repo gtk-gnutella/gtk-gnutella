@@ -164,7 +164,7 @@ static void fi_gui_set_details(gnet_fi_t fih)
         fi->file_name);
     gtk_label_printf(
         GTK_LABEL(lookup_widget(main_window, "label_fi_size")),
-        _("%s (%u bytes)"), short_size(fis.size), fis.size);
+        _("%s (%" PRIu64 " bytes)"), short_size(fis.size), (guint64) fis.size);
 
     gtk_clist_freeze(cl_aliases);
     gtk_clist_clear(cl_aliases);
