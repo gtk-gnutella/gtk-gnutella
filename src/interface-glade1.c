@@ -54,7 +54,6 @@ create_main_window (void)
   GtkWidget *toolbar1;
   GtkWidget *button_quit;
   GtkWidget *hpaned_main;
-  GtkWidget *viewport3;
   GtkWidget *vpaned_sidebar;
   GtkWidget *sw_menu;
   GtkWidget *ctree_menu;
@@ -83,7 +82,6 @@ create_main_window (void)
   GtkWidget *vbox43;
   GtkWidget *progressbar_bws_gin;
   GtkWidget *progressbar_bws_gout;
-  GtkWidget *viewport4;
   GtkWidget *vbox_right;
   GtkWidget *notebook_main;
   GtkWidget *vbox_gnutellanet;
@@ -893,21 +891,13 @@ create_main_window (void)
   gtk_paned_set_gutter_size (GTK_PANED (hpaned_main), 8);
   gtk_paned_set_position (GTK_PANED (hpaned_main), 110);
 
-  viewport3 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport3, "viewport3");
-  gtk_widget_ref (viewport3);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport3", viewport3,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (viewport3);
-  gtk_paned_pack1 (GTK_PANED (hpaned_main), viewport3, FALSE, TRUE);
-
   vpaned_sidebar = gtk_vpaned_new ();
   gtk_widget_set_name (vpaned_sidebar, "vpaned_sidebar");
   gtk_widget_ref (vpaned_sidebar);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vpaned_sidebar", vpaned_sidebar,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vpaned_sidebar);
-  gtk_container_add (GTK_CONTAINER (viewport3), vpaned_sidebar);
+  gtk_paned_pack1 (GTK_PANED (hpaned_main), vpaned_sidebar, FALSE, TRUE);
   gtk_paned_set_handle_size (GTK_PANED (vpaned_sidebar), 8);
   gtk_paned_set_gutter_size (GTK_PANED (vpaned_sidebar), 8);
   gtk_paned_set_position (GTK_PANED (vpaned_sidebar), 114);
@@ -1171,21 +1161,13 @@ create_main_window (void)
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_bws_gout), TRUE);
   gtk_progress_set_format_string (GTK_PROGRESS (progressbar_bws_gout), "bws gout");
 
-  viewport4 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport4, "viewport4");
-  gtk_widget_ref (viewport4);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "viewport4", viewport4,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (viewport4);
-  gtk_paned_pack2 (GTK_PANED (hpaned_main), viewport4, TRUE, TRUE);
-
   vbox_right = gtk_vbox_new (FALSE, 4);
   gtk_widget_set_name (vbox_right, "vbox_right");
   gtk_widget_ref (vbox_right);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_right", vbox_right,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox_right);
-  gtk_container_add (GTK_CONTAINER (viewport4), vbox_right);
+  gtk_paned_pack2 (GTK_PANED (hpaned_main), vbox_right, TRUE, TRUE);
 
   notebook_main = gtk_notebook_new ();
   gtk_widget_set_name (notebook_main, "notebook_main");
@@ -3760,7 +3742,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_search_reissue_timeout), TRUE);
 
-  label277 = gtk_label_new ("seconds (0 - disable)");
+  label277 = gtk_label_new ("seconds");
   gtk_widget_set_name (label277, "label277");
   gtk_widget_ref (label277);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label277", label277,
