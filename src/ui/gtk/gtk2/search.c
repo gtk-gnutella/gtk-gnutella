@@ -293,7 +293,7 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	gint sort_col, gint sort_order, flag_t flags, search_t **search)
 {
 	const gchar *query, *error;
-	GList *rules, *l;
+	GList *rules;
 	search_t *sch;
 	gnet_search_t sch_id;
 	GtkListStore *model;
