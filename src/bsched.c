@@ -583,7 +583,7 @@ static void bsched_begin_timeslice(bsched_t *bs)
 		bs->sources = gm_list_insert_after(bs->sources, last, bio);
 	}
 
-	bs->flags &= ~(BS_F_NOBW|BS_F_FROZEN_SLOT|BS_F_CHANGED_BW);
+	bs->flags &= ~(BS_F_NOBW|BS_F_FROZEN_SLOT|BS_F_CHANGED_BW|BS_F_CLEARED);
 
 	/*
 	 * On the first round of source dispatching, don't use the stolen b/w.
@@ -878,10 +878,18 @@ static gint bw_available(bio_source_t *bio, gint len)
 		 *
 		 * NB: we don't freeze the slots if we capped the redistribution above,
 		 * because we have more stolen bandwidth to possibly use.
+		 *
+		 * NB: we run bsched_clear_active() only ONCE per period, because if
+		 * we have to run it more, it means that a few set of sources are
+		 * very active: just give them bandwidth now, other sources had their
+		 * fair chance to trigger and things may change at the next period.
 		 */
 
 		if (capped || slot > BW_SLOT_MIN) {
-			bsched_clear_active(bs);
+			if (!(bs->flags & BS_F_CLEARED)) {	/* Only once per period */
+				bsched_clear_active(bs);
+				bs->flags |= BS_F_CLEARED;
+			}
 			bs->bw_slot = slot;
 		} else {
 			bs->flags |= BS_F_FROZEN_SLOT;

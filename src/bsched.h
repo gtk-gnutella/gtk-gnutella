@@ -108,6 +108,7 @@ typedef struct bsched {
 #define BS_F_NOBW			0x00000008	/* No more bandwidth */
 #define BS_F_FROZEN_SLOT	0x00000010	/* Value of `bw_slot' is frozen */
 #define BS_F_CHANGED_BW		0x00000020	/* Bandwidth limit changed */
+#define BS_F_CLEARED		0x00000040	/* Ran clear_active once on scheduler */
 
 #define BS_F_RW				(BS_F_READ|BS_F_WRITE)
 
