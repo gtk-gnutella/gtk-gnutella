@@ -2394,6 +2394,22 @@ static gboolean node_can_accept_connection(
 				node_remove(n, "Too many ultra nodes (%d max)", max_ultrapeers);
 				return FALSE;
 			}
+			
+			/*
+			 * Honour the prefer compressed connection setting. Even when making
+			 * outgoing connections in leaf mode
+			 * 		-- JA 24/5/2003
+			 */
+			if (
+				prefer_compressed_gnet &&
+				up_connections <= node_ultra_count - compressed_node_cnt &&
+				!(n->attrs & NODE_A_CAN_INFLATE)
+			) {
+				send_node_error(n->socket, 403,
+					"Compressed connection prefered");
+				node_remove(n, "Connection not compressed");
+				return FALSE;
+			}
 		} else if (node_ultra_count > max_ultrapeers) {
 			node_bye(n, 503,
 				"Too many ultra connections (%d max)", max_ultrapeers);
@@ -4976,4 +4992,3 @@ void node_connected_back(struct gnutella_socket *s)
 }
 
 /* vi: set ts=4: */
-

@@ -1,5 +1,8 @@
 # since last version
 
+- (2003.05.25 - Jeroen)
+ * When in leaf mode: Prefer compressed connections is honoured again.
+
 - (2003.05.24 - RAM)
  * Also package the pixmaps in the RPM [Patch #635484 from Sam Varshavchik].
  * Don't store download queue at each download inserted [Patch #699251 from
