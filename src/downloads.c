@@ -653,29 +653,27 @@ static void download_info_reget(struct download *d)
 static void queue_remove_downloads_with_file(
 	struct dl_file_info *fi, struct download *skip)
 {
-	GSList *l;
+	GSList *sl;
+    GSList *to_remove = NULL;
 
-	for (l = sl_downloads; l; l = l->next) {
-		struct download *d = (struct download *) l->data;
+	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
+		struct download *d = (struct download *) sl->data;
 
-		if (d->status == GTA_DL_REMOVED)
+		if (
+            (d->status == GTA_DL_REMOVED) ||
+            (d->status == GTA_DL_COMPLETED) ||
+            (d->file_info != fi) ||
+            (d == skip)
+        )
 			continue;
 
-		if (d->file_info != fi)
-			continue;
-
-		if (d == skip)
-			continue;
-		
-		switch (d->status) {
-		case GTA_DL_COMPLETED:
-		case GTA_DL_REMOVED:
-			break;
-		default:
-			download_free(d);
-			break;
-		}
+        to_remove = g_slist_prepend(to_remove, d);
 	}
+
+    for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
+        download_free((struct download *)sl->data);
+
+    g_slist_free(to_remove);
 }
 
 /*
@@ -690,7 +688,9 @@ gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 	struct dl_server *server = get_server((gchar *) guid, ip, port);
 	gint n;
 	enum dl_list listnum[] = { DL_LIST_RUNNING, DL_LIST_WAITING };
-
+    GSList *to_remove = NULL;
+    GSList *sl;
+    
 	for (n = 0; n < sizeof(listnum) / sizeof(listnum[0]); n++) {
 		enum dl_list idx = listnum[n];
 		GList *l;
@@ -702,9 +702,15 @@ gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 			g_assert(d->status != GTA_DL_REMOVED);
 
 			n++;
-			download_abort(d);
+
+            to_remove = g_slist_prepend(to_remove, d);
 		}
 	}
+
+    for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
+        download_abort((struct download *)sl->data);
+
+    g_slist_free(to_remove);
 
 	return n;
 }
@@ -718,26 +724,33 @@ gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
  */
 gint download_remove_all_named(const gchar *name)
 {
-	GSList *l;
+	GSList *sl;
+    GSList *to_remove = NULL;
 	gint n = 0;
 
 	g_return_val_if_fail(name, 0);
 	
 	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s", name);
 
-	for (l = sl_downloads; l; l = g_slist_next(l)) {
-		struct download *d = (struct download *) l->data;
+	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
+		struct download *d = (struct download *) sl->data;
 
 		g_assert(d);
 
-		if (d->status == GTA_DL_REMOVED)
+		if (
+            (d->status == GTA_DL_REMOVED) ||
+            (strcmp(dl_tmp, d->file_name) != 0)
+        )
 			continue;
 
-		if (0 == strcmp(dl_tmp, d->file_name))  {
-			n++;
-			download_abort(d);
-		}
+		n++;
+        to_remove = g_slist_prepend(to_remove, d);
 	}
+
+    for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
+        download_abort((struct download *)sl->data);
+
+    g_slist_free(to_remove);
 
 	return n;
 }
@@ -753,24 +766,32 @@ gint download_remove_all_named(const gchar *name)
  */
 gint download_remove_all_with_sha1(const guchar *sha1)
 {
-	GSList *l;
+	GSList *sl;
+    GSList *to_remove = NULL;
 	gint n = 0;
 
 	g_return_val_if_fail(sha1 != NULL, 0);
 	
-	for (l = sl_downloads; l; l = g_slist_next(l)) {
-		struct download *d = (struct download *) l->data;
+	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
+		struct download *d = (struct download *) sl->data;
 
 		g_assert(d);
 
-		if (d->status == GTA_DL_REMOVED)
+		if (
+            (d->status == GTA_DL_REMOVED) ||
+            (d->sha1 == NULL) ||
+            (memcmp(sha1, d->sha1, SHA1_RAW_SIZE) != 0)
+        )
 			continue;
 
-		if ((d->sha1 != NULL) && (0 == memcmp(sha1, d->sha1, SHA1_RAW_SIZE))) {
-			n++;
-			download_abort(d);
-		}
+		n++;
+        to_remove = g_slist_prepend(to_remove, d);
 	}
+
+    for (sl = to_remove; sl != NULL; sl = g_slist_next(sl))
+        download_abort((struct download *)sl->data);
+
+    g_slist_free(to_remove);
 
 	return n;
 }
