@@ -37,9 +37,24 @@ typedef enum {
 /*
  * Sharing callbacks
  */
+
 typedef void (*search_request_listener_t) (
     query_type_t, const gchar *query, guint32, guint16);
 
+/*
+ * Public interface, visible from the bridge.
+ */
+
+#ifdef CORE_SOURCES
+
+void shared_dir_add(const gchar *);
+void share_scan(void);
+guint64 shared_files_scanned(void);
+guint64 shared_kbytes_scanned(void);
+void share_add_search_request_listener(search_request_listener_t l);
+void share_remove_search_request_listener(search_request_listener_t l);
+
+#endif /* CORE_SOURCES */
 #endif /* _if_core_share_h */
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -62,6 +62,17 @@ typedef struct hcache_stats {
     gboolean    reading;    /**< TRUE if currently reading from disk */
 } hcache_stats_t;
 
+/*
+ * Public interface, visible from the bridge.
+ */
+
+#ifdef CORE_SOURCES
+
+void hcache_clear_host_type(host_type_t type);
+void hcache_clear(hcache_type_t type);
+void hcache_get_stats(hcache_stats_t *stats);
+
+#endif /* CORE_SOURCES */
 #endif /* _if_core_hcache_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

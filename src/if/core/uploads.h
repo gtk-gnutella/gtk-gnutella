@@ -143,6 +143,8 @@ void upload_add_upload_info_changed_listener(
 	upload_info_changed_listener_t l);
 void upload_remove_upload_info_changed_listener(
 	upload_info_changed_listener_t l);
+void upload_kill(gnet_upload_t upload);
+void upload_stats_prune_nonexistent(void);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_uploads_h_ */

@@ -49,6 +49,7 @@ void gui_update_download_host(struct download *d);
 void gui_update_download_abort_resume(void);
 void gui_update_download_clear(void);
 void gui_update_queue_frozen(void);
+void gui_update_download_clear_now(void);
 
 #endif /* GUI_SOURCES */
 #endif /* _if_ui_gtk_downloads_h_ */
