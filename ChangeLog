@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.05.14 - RAM)
+  * Added traffic compression ratios.
+  * Added support for Gnet bandwidth limiting (core only, no GUI settings).
+  * Fixed flow-control problems on TX stack.
+  * Fixed assertions on search sending to account for initial random hop count.
+
 - (2002.05.12 - Richard)
   * Added "Status" column to queue. Not working properly yet.
   * Added icon to display "firewalled" and "not firewalled"
