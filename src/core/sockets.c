@@ -2297,8 +2297,7 @@ socket_udp_listen(guint32 ip, guint16 port)
 	} else
 		s->local_port = port;
 
-	s->gdk_tag = inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
-					  socket_udp_accept, s);
+	s->gdk_tag = inputevt_add(sd, INPUT_EVENT_READ, socket_udp_accept, s);
 
 	/*
 	 * Enlarge the RX buffer on the UDP socket to avoid loosing incoming
