@@ -930,9 +930,8 @@ void filter_gui_edit_sha1_rule(rule_t *r)
         return;
 
     if (r != NULL) {
-        hash = (r->u.sha1.hash != NULL) ? 
-            sha1_base32(r->u.sha1.hash) : 
-            "[no hash]";
+        hash = r->u.sha1.hash != NULL ? 
+            sha1_base32(r->u.sha1.hash) : "[no hash]";
         origfile = r->u.sha1.filename;
         target = (gpointer) r->target;
         invert = RULE_IS_NEGATED(r);
