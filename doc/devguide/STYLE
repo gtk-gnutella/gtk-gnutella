@@ -67,7 +67,7 @@ Ladies and gentleman, here's the
       if (cond)  RIGHT
       if(cond)   WRONG
 
-      This applies while and for, too.
+      This applies to `while', `for' and `switch' as well.
 
 3.4  There is no space in structure access operators:
 
@@ -94,7 +94,7 @@ Ladies and gentleman, here's the
       Reason according to Raphael Manfredi:
       Although strictly equivalent, they don't read the same. The
       first represents an equality test, the second is a boolean
-      negation. Since strcmp() returns a signed integer, i.e. the
+      negation. Since strcmp() returns a signed integer i.e., the
       difference between the first non-matching characters. The first
       form is much more readable. In contrast to the first, the latter
       form reads as: "if NOT strcmp [...]", i.e. "if this is not a
@@ -173,7 +173,7 @@ Ladies and gentleman, here's the
             ...
         }
 
-6.2  You may ommit the braces for one-line conditionals.
+6.2  You may omit the braces for one-line conditionals.
 
         if (a == b)
             do_this();
