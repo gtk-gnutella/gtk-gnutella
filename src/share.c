@@ -1396,7 +1396,7 @@ static gboolean got_match(struct shared_file *sf)
 	guint32 needed = 8 + 2 + sf->file_name_len;		/* size of hit entry */
 	gboolean sha1_available;
 	gnet_host_t hvec[QHIT_MAX_ALT];
-	gint hcnt;
+	gint hcnt = 0;
 
 	g_assert(sf->fi == NULL);	/* Cannot match partially downloaded files */
 

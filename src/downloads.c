@@ -2694,7 +2694,6 @@ static void download_bad_source(struct download *d)
 static struct gnutella_socket *download_connect(struct download *d)
 {
 	struct dl_server *server = d->server;
-	time_t now;
 	guint16 port = download_port(d);
 
 	g_assert(server != NULL);
@@ -2710,13 +2709,13 @@ static struct gnutella_socket *download_connect(struct download *d)
 	if (
 		(server->attrs & DLS_A_DNS_LOOKUP) ||
 		(server->hostname != NULL &&
-			((now = time(NULL))) - server->dns_lookup > DOWNLOAD_DNS_LOOKUP)
+			time(NULL) - server->dns_lookup > DOWNLOAD_DNS_LOOKUP)
 	) {
 		g_assert(server->hostname != NULL);
 
 		d->flags |= DL_F_DNS_LOOKUP;
 		server->attrs &= ~DLS_A_DNS_LOOKUP;
-		server->dns_lookup = now;
+		server->dns_lookup = time(NULL);
 		return socket_connect_by_name(
 			server->hostname, port, SOCK_TYPE_DOWNLOAD);
 	} else
