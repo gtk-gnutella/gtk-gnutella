@@ -275,7 +275,7 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
         if ((data != NULL) || allow_null) {
             if (cfn != NULL) {
                 if (g_slist_find_custom(result_list, data, cfn) != NULL) {
-                    gchar *name = gtk_widget_get_name(GTK_WIDGET(clist));
+                    const gchar *name = gtk_widget_get_name(GTK_WIDGET(clist));
                     if (gui_debug >= 3)
                         printf("%s has duplicate data: %p\n",
                             (name != NULL) ? name : "<UNKNOWN>", data);
@@ -286,7 +286,7 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
             result_list = g_slist_prepend(result_list, data);
             to_unselect = g_slist_prepend(to_unselect, (gpointer) row);
         } else {
-            gchar *name = gtk_widget_get_name(GTK_WIDGET(clist));
+            const gchar *name = gtk_widget_get_name(GTK_WIDGET(clist));
             if (gui_debug >= 3)
                 printf("%s contains NULL data in row %d\n",
                     (name != NULL) ? name : "<UNKNOWN>", row);
