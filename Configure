@@ -5209,25 +5209,37 @@ echo "(I'll use '$glibconfig' to gather that information.)"
 glibcflags=`$glibconfig --cflags`
 glibldflags=`$glibconfig --libs`
 
-version=`$glibconfig $modver`
-echo " "
-echo "We'll be using glib version $version."
+: "check that we've got the version they asked for"
+version=$gtkversion
 
-: how can we find information about GTK?
-echo " "
-echo "Checking how we can gather information about GTK+..." >&4
-if pkg-config $gtkpackage --cflags >/dev/null 2>&1; then
-	gtkconfig="pkg-config $gtkpackage"
-	modver=--modversion
-elif gtk-config --cflags >/dev/null 2>&1; then
-	gtkconfig='gtk-config'
-	modver=--version
+$cat >try.c <<EOC
+#include <glib.h>
+#ifndef GLIB_MAJOR_VERSION
+#error "glib.h not found?"
+#else
+#if GLIB_MAJOR_VERSION != $version 
+#error "Wrong glib.h?"
+#endif
+#endif
+int main(void)
+{
+  (void) g_malloc(23);
+  return 0;
+}
+EOC
+
+if $cc $ccflags $ldflags $glibcflags $glibldflags -o try try.c >/dev/null 2>&1;
+then
+	echo " "
+	echo "We'll be using glib version $version." >&4
+	echo "OK"
 else
-	echo "You've got problems!  Do you have GTK+ installed?" >&4
-	gtkconfig='false'
-	modver=''
+	echo "Cannot compile against glib version '$version'" >&4
+	exit 1
 fi
-echo "(I'll use '$gtkconfig' to gather that information.)"
+
+$rm -f try try.c
+
 
 version=`$gtkconfig $modver`
 case "$gtkversion" in
