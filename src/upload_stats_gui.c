@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2002, Raphael Manfredi
+ * Copyright (c) 2001-2002, Richard Eckart
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -23,21 +23,9 @@
  *----------------------------------------------------------------------
  */
 
-#ifndef __upload_stats_h__
-#define __upload_stats_h__
+#ifndef __uploads_stats_gui_h__
+#define __uploads_stats_gui_h__
 
-#include <glib.h>
-#include <gtk/gtk.h>
+#include "gui.h"
 
-#include "uploads.h"
-
-void ul_stats_load_history(const gchar *);
-void ul_stats_dump_history(const gchar *filename, gboolean cleanup);
-void ul_flush_stats_if_dirty(void);
-void ul_stats_file_begin(const struct upload *u);
-void ul_stats_file_aborted(const struct upload *u);
-void ul_stats_file_complete(const struct upload *u);
-void ul_stats_prune_nonexistant();
-void ul_stats_clear_all();
-
-#endif
+#endif /* __uploads_stats_gui_h__ */

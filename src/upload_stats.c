@@ -53,69 +53,9 @@
 #include "upload_stats_gui.h" // FIXME: remove this dependency
 #include "upload_stats.h"
 
-
-struct ul_stats {
-	guint32 size;
-	guint32 attempts;
-	guint32 complete;
-	guint64 bytes_sent;
-	gfloat norm;		/* bytes sent / file size */
-};
-
 static gint ul_rows = 0;
 static gboolean dirty = FALSE;
 static gchar *stats_file = NULL;
-
-gint compare_ul_size(GtkCList *clist, gconstpointer ptr1,
-						 gconstpointer ptr2)
-{
-	guint32 s1 = ((struct ul_stats *) ((GtkCListRow *) ptr1)->data)->size;
-	guint32 s2 = ((struct ul_stats *) ((GtkCListRow *) ptr2)->data)->size;
-
-	return (s1 == s2) ? 0 : (s1 > s2) ? 1 : -1;
-}
-/*
- * first by normalized, then by complete
- */
-gint compare_ul_norm(GtkCList *clist, gconstpointer ptr1,
-						 gconstpointer ptr2)
-{
-	gfloat n1 = ((struct ul_stats *) ((GtkCListRow *) ptr1)->data)->norm;
-	gfloat n2 = ((struct ul_stats *) ((GtkCListRow *) ptr2)->data)->norm;
-
-	return (n1 != n2) ? ((n1 > n2) ? 1 : -1) : 
-		compare_ul_complete(clist, ptr1, ptr2);
-}
-
-/*
- * first by attempts, then by complete
- */
-gint compare_ul_attempts(GtkCList *clist, gconstpointer ptr1,
-						 gconstpointer ptr2)
-{
-	guint32 a1 = ((struct ul_stats *) ((GtkCListRow *) ptr1)->data)->attempts;
-	guint32 a2 = ((struct ul_stats *) ((GtkCListRow *) ptr2)->data)->attempts;
-	guint32 c1 = ((struct ul_stats *) ((GtkCListRow *) ptr1)->data)->complete;
-	guint32 c2 = ((struct ul_stats *) ((GtkCListRow *) ptr2)->data)->complete;
-
-	return (a1 != a2) ? ((a1 > a2) ? 1 : -1) : 
-		(c1 == c2) ? 0 : (c1 > c2) ? 1 : -1;
-}
-
-/*
- * first by complete, then by attempts
- */
-gint compare_ul_complete(GtkCList *clist,
-	gconstpointer ptr1, gconstpointer ptr2)
-{
-	guint32 a1 = ((struct ul_stats *) ((GtkCListRow *) ptr1)->data)->attempts;
-	guint32 a2 = ((struct ul_stats *) ((GtkCListRow *) ptr2)->data)->attempts;
-	guint32 c1 = ((struct ul_stats *) ((GtkCListRow *) ptr1)->data)->complete;
-	guint32 c2 = ((struct ul_stats *) ((GtkCListRow *) ptr2)->data)->complete;
-
-	return (c1 != c2) ? ((c1 > c2) ? 1 : -1) : 
-		(a1 == a2) ? 0 : (a1 > a2) ? 1 : -1;
-}
 
 static void ul_stats_add_row(gchar *filename,
 	guint32 size, guint32 attempts, guint32 complete, guint64 ul_bytes)
@@ -135,11 +75,11 @@ static void ul_stats_add_row(gchar *filename,
 	g_snprintf(complete_tmp, sizeof(complete_tmp), "%u", complete);
 	g_snprintf(norm_tmp, sizeof(norm_tmp), "%.3f", norm);
 
-	rowdata[UL_STATS_FILE_IDX] = filename;
-	rowdata[UL_STATS_SIZE_IDX] = size_tmp;
-	rowdata[UL_STATS_ATTEMPTS_IDX] = attempts_tmp;
-	rowdata[UL_STATS_COMPLETE_IDX] = complete_tmp;
-	rowdata[UL_STATS_NORM_IDX] = norm_tmp;
+	rowdata[c_us_filename] = filename;
+	rowdata[c_us_size] = size_tmp;
+	rowdata[c_us_attempts] = attempts_tmp;
+	rowdata[c_us_complete] = complete_tmp;
+	rowdata[c_us_norm] = norm_tmp;
 
     row = gtk_clist_insert(clist, 0, rowdata);
 	ul_rows++;
@@ -231,8 +171,7 @@ done:
         GtkCList *clist = 
             GTK_CLIST(lookup_widget(main_window, "clist_ul_stats"));
 
-        gtk_clist_set_compare_func(clist, compare_ul_norm);
-        gtk_clist_set_sort_column(clist, UL_STATS_NORM_IDX);
+        gtk_clist_set_sort_column(clist, c_us_norm);
         gtk_clist_set_sort_type(clist, GTK_SORT_DESCENDING);
 
         // FIXME: should use auto-sort?
@@ -285,7 +224,7 @@ void ul_stats_dump_history(const gchar *ul_history_file_name, gboolean cleanup)
 		stat = gtk_clist_get_row_data(GTK_CLIST(clist_ul_stats), row);
 
 		gtk_clist_get_text(GTK_CLIST(clist_ul_stats), row,
-			UL_STATS_FILE_IDX, &file);
+			c_us_filename, &file);
 
 		escaped = url_escape_cntrl(file);
 		fprintf(out, "%s\t%u\t%u\t%u\t%u\t%u\n", escaped,
@@ -351,7 +290,7 @@ static int ul_find_row_by_upload(
 			continue;
 
 		gtk_clist_get_text(clist, i,
-			UL_STATS_FILE_IDX, &filename);
+			c_us_filename, &filename);
 
 		if (g_str_equal(filename, u->name)) {
 			*s = us;
@@ -384,7 +323,7 @@ void ul_stats_file_begin(const struct upload *u)
 
 		/* set attempt cell contents */
 		g_snprintf(attempts_tmp, sizeof(attempts_tmp), "%d", stat->attempts);
-		gtk_clist_set_text(clist, row, UL_STATS_ATTEMPTS_IDX, attempts_tmp);
+		gtk_clist_set_text(clist, row, c_us_attempts, attempts_tmp);
         
         // FIXME: use auto-sort?
 		gtk_clist_sort(clist);
@@ -426,14 +365,14 @@ static void ul_stats_file_add(const struct upload *u, gint comp, gint sent)
 		stat->complete += comp;
 		g_snprintf(complete_tmp, sizeof(complete_tmp), "%d", 
 			stat->complete);
-		gtk_clist_set_text(clist, row, UL_STATS_COMPLETE_IDX, complete_tmp);
+		gtk_clist_set_text(clist, row, c_us_complete, complete_tmp);
 
 		/* update normalized upload counter */
 		stat->bytes_sent += sent;
 		stat->norm = (float) stat->bytes_sent / (float) stat->size;
 
 		g_snprintf(norm_tmp, sizeof(complete_tmp), "%.3f", stat->norm);
-		gtk_clist_set_text(clist, row, UL_STATS_NORM_IDX, norm_tmp);
+		gtk_clist_set_text(clist, row, c_us_norm, norm_tmp);
 
         // FIXME: use auto-sort?
 		gtk_clist_sort(clist);
