@@ -75,5 +75,7 @@ gint hcache_fill_caught_array(
 void hcache_get_caught(host_type_t type, guint32 *ip, guint16 *port);
 gboolean hcache_find_nearby(host_type_t type, guint32 *ip, guint16 *port);
 
+void hcache_store_if_dirty(host_type_t type);
+
 #endif /* _core_hcache_h_ */
 
