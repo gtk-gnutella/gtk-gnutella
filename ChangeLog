@@ -1,5 +1,15 @@
 # since last version
 
+- (2003.10.13 - RAM)
+ * Fixed file_info_available_ranges() to avoid assertion failure at the end.
+ * Detect and ignore exact duplicate entries in the hostiles.txt file.
+ * Because of PFSP-server, we can get our own alt-locs back: make sure we
+   don't try to download a partial file from oursevelves!
+ * Added ip2_to_gchar() in case we want to format two IPs in the same printf.
+ * Bearshare changed its vendor tag to "BARE" in query hits.
+ * Re-organized gtk_gnutella_exit() to perform only minimal activities
+   when being called from atexit().
+
 - (2003.10.12 - RAM)
  * Added file_info_readable_filename() to get a meaningful name for uploads
    related to partial files, and not an URN if possible.
