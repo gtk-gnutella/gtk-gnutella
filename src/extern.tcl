@@ -95,6 +95,8 @@ set w_main_list {
 	popup_dl_queued 
 	popup_queue_remove
 	popup_queue_start_now 
+	popup_queue_freeze
+	popup_queue_search_again
 
 	popup_dl_active 
 	popup_downloads_abort
@@ -102,6 +104,8 @@ set w_main_list {
 	popup_downloads_kill 
 	popup_downloads_push 
 	popup_downloads_queue
+	popup_downloads_remove_file
+	popup_downloads_search_again
 
 	popup_monitor 
 	popup_monitor_add_search	

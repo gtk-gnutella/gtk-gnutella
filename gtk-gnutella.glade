@@ -1776,11 +1776,6 @@
 		      <last_modification_time>Mon, 18 Mar 2002 23:33:43 GMT</last_modification_time>
 		    </signal>
 		    <signal>
-		      <name>click_column</name>
-		      <handler>on_clist_downloads_click_column</handler>
-		      <last_modification_time>Mon, 18 Mar 2002 23:34:15 GMT</last_modification_time>
-		    </signal>
-		    <signal>
 		      <name>button_press_event</name>
 		      <handler>on_clist_downloads_button_press_event</handler>
 		      <last_modification_time>Mon, 18 Mar 2002 23:34:22 GMT</last_modification_time>
@@ -2130,11 +2125,6 @@
 		      <name>unselect_row</name>
 		      <handler>on_clist_downloads_queue_unselect_row</handler>
 		      <last_modification_time>Fri, 29 Mar 2002 18:59:12 GMT</last_modification_time>
-		    </signal>
-		    <signal>
-		      <name>click_column</name>
-		      <handler>on_clist_downloads_queue_click_column</handler>
-		      <last_modification_time>Fri, 29 Mar 2002 18:59:14 GMT</last_modification_time>
 		    </signal>
 		    <signal>
 		      <name>button_press_event</name>
@@ -4609,13 +4599,73 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_downloads_push</name>
+    <name>popup_downloads_abort</name>
     <signal>
       <name>activate</name>
-      <handler>on_popup_downloads_push_activate</handler>
-      <last_modification_time>Fri, 29 Mar 2002 20:29:38 GMT</last_modification_time>
+      <handler>on_button_downloads_abort_clicked</handler>
+      <last_modification_time>Fri, 29 Mar 2002 19:08:19 GMT</last_modification_time>
     </signal>
-    <label>Force push mode</label>
+    <label>Abort</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_downloads_kill</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_downloads_kill_activate</handler>
+      <last_modification_time>Fri, 29 Mar 2002 20:30:27 GMT</last_modification_time>
+    </signal>
+    <label>Abort and remove file</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_downloads_abort_named</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_downloads_abort_named_activate</handler>
+      <last_modification_time>Tue, 09 Apr 2002 23:48:06 GMT</last_modification_time>
+    </signal>
+    <label>Abort all with name</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_downloads_abort_host</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_downloads_abort_host_activate</handler>
+      <last_modification_time>Tue, 09 Apr 2002 17:55:57 GMT</last_modification_time>
+    </signal>
+    <label>Abort all from host</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_downloads_remove_file</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_downloads_remove_file_activate</handler>
+      <last_modification_time>Tue, 09 Apr 2002 17:55:57 GMT</last_modification_time>
+    </signal>
+    <label>Remove file</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_downloads_resume</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_button_downloads_resume_clicked</handler>
+      <last_modification_time>Fri, 29 Mar 2002 19:08:19 GMT</last_modification_time>
+    </signal>
+    <label>Resume</label>
     <right_justify>False</right_justify>
   </widget>
 
@@ -4633,37 +4683,37 @@
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_downloads_kill</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_downloads_kill_activate</handler>
-      <last_modification_time>Fri, 29 Mar 2002 20:30:27 GMT</last_modification_time>
-    </signal>
-    <label>Kill and remove file</label>
+    <name>separator9</name>
     <right_justify>False</right_justify>
   </widget>
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_downloads_abort</name>
+    <name>popup_downloads_push</name>
     <signal>
       <name>activate</name>
-      <handler>on_button_downloads_abort_clicked</handler>
-      <last_modification_time>Fri, 29 Mar 2002 19:08:19 GMT</last_modification_time>
+      <handler>on_popup_downloads_push_activate</handler>
+      <last_modification_time>Fri, 29 Mar 2002 20:29:38 GMT</last_modification_time>
     </signal>
-    <label>Abort</label>
+    <label>Force push mode</label>
     <right_justify>False</right_justify>
   </widget>
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_downloads_resume</name>
+    <name>separator10</name>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_downloads_search_again</name>
     <signal>
       <name>activate</name>
-      <handler>on_button_downloads_resume_clicked</handler>
-      <last_modification_time>Fri, 29 Mar 2002 19:08:19 GMT</last_modification_time>
+      <handler>on_popup_downloads_search_again_activate</handler>
+      <last_modification_time>Tue, 09 Apr 2002 17:55:57 GMT</last_modification_time>
     </signal>
-    <label>Resume</label>
+    <label>Search again</label>
     <right_justify>False</right_justify>
   </widget>
 </widget>
@@ -4677,10 +4727,10 @@
     <name>popup_queue_start_now</name>
     <signal>
       <name>activate</name>
-      <handler>on_download_start_now_activate</handler>
-      <last_modification_time>Thu, 27 Apr 2000 19:57:33 GMT</last_modification_time>
+      <handler>on_popup_queue_start_now_activate</handler>
+      <last_modification_time>Tue, 09 Apr 2002 21:19:56 GMT</last_modification_time>
     </signal>
-    <label>start now</label>
+    <label>Start now</label>
     <right_justify>False</right_justify>
   </widget>
 
@@ -4692,36 +4742,68 @@
       <handler>on_button_downloads_queue_remove_clicked</handler>
       <last_modification_time>Fri, 29 Mar 2002 19:19:35 GMT</last_modification_time>
     </signal>
-    <label>remove</label>
-    <right_justify>False</right_justify>
-  </widget>
-</widget>
-
-<widget>
-  <class>GtkMenu</class>
-  <name>popup_hosts</name>
-
-  <widget>
-    <class>GtkMenuItem</class>
-    <name>popup_hosts_export</name>
-    <signal>
-      <name>activate</name>
-      <handler>on_popup_hosts_export_activate</handler>
-      <last_modification_time>Sat, 29 Apr 2000 10:26:05 GMT</last_modification_time>
-    </signal>
-    <label>Export to text file</label>
+    <label>Remove</label>
     <right_justify>False</right_justify>
   </widget>
 
   <widget>
     <class>GtkMenuItem</class>
-    <name>popup_hosts_import</name>
+    <name>popup_queue_remove_named</name>
     <signal>
       <name>activate</name>
-      <handler>on_popup_hosts_import_activate</handler>
-      <last_modification_time>Fri, 29 Mar 2002 20:26:10 GMT</last_modification_time>
+      <handler>on_popup_queue_remove_named_activate</handler>
+      <last_modification_time>Tue, 09 Apr 2002 23:48:26 GMT</last_modification_time>
     </signal>
-    <label>Import from text file</label>
+    <label>Remove all with name</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_queue_remove_host</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_queue_remove_host_activate</handler>
+      <last_modification_time>Tue, 09 Apr 2002 22:31:18 GMT</last_modification_time>
+    </signal>
+    <label>Remove all from host</label>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>separator7</name>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkCheckMenuItem</class>
+    <name>popup_queue_freeze</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_queue_freeze_activate</handler>
+      <last_modification_time>Tue, 09 Apr 2002 17:50:30 GMT</last_modification_time>
+    </signal>
+    <label>Freeze</label>
+    <active>False</active>
+    <always_show_toggle>True</always_show_toggle>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>separator8</name>
+    <right_justify>False</right_justify>
+  </widget>
+
+  <widget>
+    <class>GtkMenuItem</class>
+    <name>popup_queue_search_again</name>
+    <signal>
+      <name>activate</name>
+      <handler>on_popup_queue_search_again_activate</handler>
+      <last_modification_time>Tue, 09 Apr 2002 17:51:45 GMT</last_modification_time>
+    </signal>
+    <label>Search again</label>
     <right_justify>False</right_justify>
   </widget>
 </widget>

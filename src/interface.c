@@ -95,12 +95,16 @@ GtkWidget *popup_hosts_export;
 GtkWidget *popup_dl_queued;
 GtkWidget *popup_queue_remove;
 GtkWidget *popup_queue_start_now;
+GtkWidget *popup_queue_freeze;
+GtkWidget *popup_queue_search_again;
 GtkWidget *popup_dl_active;
 GtkWidget *popup_downloads_abort;
 GtkWidget *popup_downloads_resume;
 GtkWidget *popup_downloads_kill;
 GtkWidget *popup_downloads_push;
 GtkWidget *popup_downloads_queue;
+GtkWidget *popup_downloads_remove_file;
+GtkWidget *popup_downloads_search_again;
 GtkWidget *popup_monitor;
 GtkWidget *popup_monitor_add_search;
 GtkWidget *popup_nodes;
@@ -2699,9 +2703,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (clist_downloads), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_downloads_select_row),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_downloads), "click_column",
-                      GTK_SIGNAL_FUNC (on_clist_downloads_click_column),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (clist_downloads), "button_press_event",
                       GTK_SIGNAL_FUNC (on_clist_downloads_button_press_event),
                       NULL);
@@ -2740,9 +2741,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "unselect_row",
                       GTK_SIGNAL_FUNC (on_clist_downloads_queue_unselect_row),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "click_column",
-                      GTK_SIGNAL_FUNC (on_clist_downloads_queue_click_column),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "button_press_event",
                       GTK_SIGNAL_FUNC (on_clist_downloads_queue_button_press_event),
@@ -2954,31 +2952,14 @@ GtkWidget*
 create_popup_dl_active (void)
 {
   GtkAccelGroup *popup_dl_active_accels;
+  GtkWidget *popup_downloads_abort_named;
+  GtkWidget *popup_downloads_abort_host;
+  GtkWidget *separator9;
+  GtkWidget *separator10;
 
   popup_dl_active = gtk_menu_new ();
   gtk_object_set_data (GTK_OBJECT (popup_dl_active), "popup_dl_active", popup_dl_active);
   popup_dl_active_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (popup_dl_active));
-
-  popup_downloads_push = gtk_menu_item_new_with_label ("Force push mode");
-  gtk_widget_ref (popup_downloads_push);
-  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_push", popup_downloads_push,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_downloads_push);
-  gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_push);
-
-  popup_downloads_queue = gtk_menu_item_new_with_label ("Move back to queue");
-  gtk_widget_ref (popup_downloads_queue);
-  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_queue", popup_downloads_queue,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_downloads_queue);
-  gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_queue);
-
-  popup_downloads_kill = gtk_menu_item_new_with_label ("Kill and remove file");
-  gtk_widget_ref (popup_downloads_kill);
-  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_kill", popup_downloads_kill,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_downloads_kill);
-  gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_kill);
 
   popup_downloads_abort = gtk_menu_item_new_with_label ("Abort");
   gtk_widget_ref (popup_downloads_abort);
@@ -2987,6 +2968,34 @@ create_popup_dl_active (void)
   gtk_widget_show (popup_downloads_abort);
   gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_abort);
 
+  popup_downloads_kill = gtk_menu_item_new_with_label ("Abort and remove file");
+  gtk_widget_ref (popup_downloads_kill);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_kill", popup_downloads_kill,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_downloads_kill);
+  gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_kill);
+
+  popup_downloads_abort_named = gtk_menu_item_new_with_label ("Abort all with name");
+  gtk_widget_ref (popup_downloads_abort_named);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_abort_named", popup_downloads_abort_named,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_downloads_abort_named);
+  gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_abort_named);
+
+  popup_downloads_abort_host = gtk_menu_item_new_with_label ("Abort all from host");
+  gtk_widget_ref (popup_downloads_abort_host);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_abort_host", popup_downloads_abort_host,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_downloads_abort_host);
+  gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_abort_host);
+
+  popup_downloads_remove_file = gtk_menu_item_new_with_label ("Remove file");
+  gtk_widget_ref (popup_downloads_remove_file);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_remove_file", popup_downloads_remove_file,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_downloads_remove_file);
+  gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_remove_file);
+
   popup_downloads_resume = gtk_menu_item_new_with_label ("Resume");
   gtk_widget_ref (popup_downloads_resume);
   gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_resume", popup_downloads_resume,
@@ -2994,20 +3003,69 @@ create_popup_dl_active (void)
   gtk_widget_show (popup_downloads_resume);
   gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_resume);
 
-  gtk_signal_connect (GTK_OBJECT (popup_downloads_push), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_downloads_push_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_downloads_queue), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_downloads_queue_activate),
+  popup_downloads_queue = gtk_menu_item_new_with_label ("Move back to queue");
+  gtk_widget_ref (popup_downloads_queue);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_queue", popup_downloads_queue,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_downloads_queue);
+  gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_queue);
+
+  separator9 = gtk_menu_item_new ();
+  gtk_widget_ref (separator9);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "separator9", separator9,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (separator9);
+  gtk_container_add (GTK_CONTAINER (popup_dl_active), separator9);
+  gtk_widget_set_sensitive (separator9, FALSE);
+
+  popup_downloads_push = gtk_menu_item_new_with_label ("Force push mode");
+  gtk_widget_ref (popup_downloads_push);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_push", popup_downloads_push,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_downloads_push);
+  gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_push);
+
+  separator10 = gtk_menu_item_new ();
+  gtk_widget_ref (separator10);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "separator10", separator10,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (separator10);
+  gtk_container_add (GTK_CONTAINER (popup_dl_active), separator10);
+  gtk_widget_set_sensitive (separator10, FALSE);
+
+  popup_downloads_search_again = gtk_menu_item_new_with_label ("Search again");
+  gtk_widget_ref (popup_downloads_search_again);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_active), "popup_downloads_search_again", popup_downloads_search_again,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_downloads_search_again);
+  gtk_container_add (GTK_CONTAINER (popup_dl_active), popup_downloads_search_again);
+
+  gtk_signal_connect (GTK_OBJECT (popup_downloads_abort), "activate",
+                      GTK_SIGNAL_FUNC (on_button_downloads_abort_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_downloads_kill), "activate",
                       GTK_SIGNAL_FUNC (on_popup_downloads_kill_activate),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_downloads_abort), "activate",
-                      GTK_SIGNAL_FUNC (on_button_downloads_abort_clicked),
+  gtk_signal_connect (GTK_OBJECT (popup_downloads_abort_named), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_downloads_abort_named_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_downloads_abort_host), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_downloads_abort_host_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_downloads_remove_file), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_downloads_remove_file_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_downloads_resume), "activate",
                       GTK_SIGNAL_FUNC (on_button_downloads_resume_clicked),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_downloads_queue), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_downloads_queue_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_downloads_push), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_downloads_push_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_downloads_search_again), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_downloads_search_again_activate),
                       NULL);
 
   return popup_dl_active;
@@ -3017,67 +3075,94 @@ GtkWidget*
 create_popup_dl_queued (void)
 {
   GtkAccelGroup *popup_dl_queued_accels;
+  GtkWidget *popup_queue_remove_named;
+  GtkWidget *popup_queue_remove_host;
+  GtkWidget *separator7;
+  GtkWidget *separator8;
 
   popup_dl_queued = gtk_menu_new ();
   gtk_object_set_data (GTK_OBJECT (popup_dl_queued), "popup_dl_queued", popup_dl_queued);
   popup_dl_queued_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (popup_dl_queued));
 
-  popup_queue_start_now = gtk_menu_item_new_with_label ("start now");
+  popup_queue_start_now = gtk_menu_item_new_with_label ("Start now");
   gtk_widget_ref (popup_queue_start_now);
   gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "popup_queue_start_now", popup_queue_start_now,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (popup_queue_start_now);
   gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_start_now);
 
-  popup_queue_remove = gtk_menu_item_new_with_label ("remove");
+  popup_queue_remove = gtk_menu_item_new_with_label ("Remove");
   gtk_widget_ref (popup_queue_remove);
   gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "popup_queue_remove", popup_queue_remove,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (popup_queue_remove);
   gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_remove);
 
+  popup_queue_remove_named = gtk_menu_item_new_with_label ("Remove all with name");
+  gtk_widget_ref (popup_queue_remove_named);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "popup_queue_remove_named", popup_queue_remove_named,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_queue_remove_named);
+  gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_remove_named);
+
+  popup_queue_remove_host = gtk_menu_item_new_with_label ("Remove all from host");
+  gtk_widget_ref (popup_queue_remove_host);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "popup_queue_remove_host", popup_queue_remove_host,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_queue_remove_host);
+  gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_remove_host);
+
+  separator7 = gtk_menu_item_new ();
+  gtk_widget_ref (separator7);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "separator7", separator7,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (separator7);
+  gtk_container_add (GTK_CONTAINER (popup_dl_queued), separator7);
+  gtk_widget_set_sensitive (separator7, FALSE);
+
+  popup_queue_freeze = gtk_check_menu_item_new_with_label ("Freeze");
+  gtk_widget_ref (popup_queue_freeze);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "popup_queue_freeze", popup_queue_freeze,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_queue_freeze);
+  gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_freeze);
+  gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (popup_queue_freeze), TRUE);
+
+  separator8 = gtk_menu_item_new ();
+  gtk_widget_ref (separator8);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "separator8", separator8,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (separator8);
+  gtk_container_add (GTK_CONTAINER (popup_dl_queued), separator8);
+  gtk_widget_set_sensitive (separator8, FALSE);
+
+  popup_queue_search_again = gtk_menu_item_new_with_label ("Search again");
+  gtk_widget_ref (popup_queue_search_again);
+  gtk_object_set_data_full (GTK_OBJECT (popup_dl_queued), "popup_queue_search_again", popup_queue_search_again,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (popup_queue_search_again);
+  gtk_container_add (GTK_CONTAINER (popup_dl_queued), popup_queue_search_again);
+
   gtk_signal_connect (GTK_OBJECT (popup_queue_start_now), "activate",
-                      GTK_SIGNAL_FUNC (on_download_start_now_activate),
+                      GTK_SIGNAL_FUNC (on_popup_queue_start_now_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (popup_queue_remove), "activate",
                       GTK_SIGNAL_FUNC (on_button_downloads_queue_remove_clicked),
                       NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_queue_remove_named), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_queue_remove_named_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_queue_remove_host), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_queue_remove_host_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_queue_freeze), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_queue_freeze_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (popup_queue_search_again), "activate",
+                      GTK_SIGNAL_FUNC (on_popup_queue_search_again_activate),
+                      NULL);
 
   return popup_dl_queued;
-}
-
-GtkWidget*
-create_popup_hosts (void)
-{
-  GtkAccelGroup *popup_hosts_accels;
-  GtkWidget *popup_hosts_import;
-
-  popup_hosts = gtk_menu_new ();
-  gtk_object_set_data (GTK_OBJECT (popup_hosts), "popup_hosts", popup_hosts);
-  popup_hosts_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (popup_hosts));
-
-  popup_hosts_export = gtk_menu_item_new_with_label ("Export to text file");
-  gtk_widget_ref (popup_hosts_export);
-  gtk_object_set_data_full (GTK_OBJECT (popup_hosts), "popup_hosts_export", popup_hosts_export,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_hosts_export);
-  gtk_container_add (GTK_CONTAINER (popup_hosts), popup_hosts_export);
-
-  popup_hosts_import = gtk_menu_item_new_with_label ("Import from text file");
-  gtk_widget_ref (popup_hosts_import);
-  gtk_object_set_data_full (GTK_OBJECT (popup_hosts), "popup_hosts_import", popup_hosts_import,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (popup_hosts_import);
-  gtk_container_add (GTK_CONTAINER (popup_hosts), popup_hosts_import);
-
-  gtk_signal_connect (GTK_OBJECT (popup_hosts_export), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_hosts_export_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (popup_hosts_import), "activate",
-                      GTK_SIGNAL_FUNC (on_popup_hosts_import_activate),
-                      NULL);
-
-  return popup_hosts;
 }
 
 GtkWidget*
