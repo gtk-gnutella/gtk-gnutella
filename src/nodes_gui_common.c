@@ -121,21 +121,22 @@ const gchar *nodes_gui_common_status_str(
  * Display a summary of the node flags:
  *
  *    012345678 (offset)
- *    NIrwqTRFh
- *    ^^^^^^^^^
- *    ||||||||+ hops flow triggerd (h), or total query flow control (f)
- *    |||||||+  flow control (F), or pending data in queue (d)
- *    ||||||+   indicates whether RX is compressed
- *    |||||+    indicates whether TX is compressed
- *    ||||+     indicates whether we sent/received a QRT, or send/receive one
- *    |||+      indicates whether node is writable
- *    ||+       indicates whether node is readable
- *    |+        indicates connection type (Incoming, Outgoing, Ponging)
- *    +         indicates peer mode (Normal, Ultra, Leaf)
+ *    NIrwqTRPFh
+ *    ^^^^^^^^^^
+ *    |||||||||+ hops flow triggerd (h), or total query flow control (f)
+ *    ||||||||+  flow control (F), or pending data in queue (d)
+ *    |||||||+   indicates whether we're a push proxy (P) / node is proxy (p)
+ *    ||||||+    indicates whether RX is compressed
+ *    |||||+     indicates whether TX is compressed
+ *    ||||+      indicates whether we sent/received a QRT, or send/receive one
+ *    |||+       indicates whether node is writable
+ *    ||+        indicates whether node is readable
+ *    |+         indicates connection type (Incoming, Outgoing, Ponging)
+ *    +          indicates peer mode (Normal, Ultra, Leaf)
  */
 const gchar *nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 {
-	static gchar status[] = "NIrwqTRFh";
+	static gchar status[] = "NIrwqTRPFh";
 
 	switch (flags->peermode) {
 		case NODE_P_UNKNOWN:	status[0] = '-'; break;
@@ -162,16 +163,20 @@ const gchar *nodes_gui_common_flags_str(const gnet_node_flags_t *flags)
 	status[5] = flags->tx_compressed ? 'T' : '-';
 	status[6] = flags->rx_compressed ? 'R' : '-';
 
-	if (flags->in_tx_flow_control) status[7] = 'F';
-	else if (!flags->mqueue_empty) status[7] = 'd';
+	if (flags->is_push_proxied)  status[7] = 'P';
+	else if (flags->is_proxying) status[7] = 'p';
 	else status[7] = '-';
 
+	if (flags->in_tx_flow_control) status[8] = 'F';
+	else if (!flags->mqueue_empty) status[8] = 'd';
+	else status[8] = '-';
+
 	if (flags->hops_flow == 0)
-		status[8] = 'f';
+		status[9] = 'f';
 	else if (flags->hops_flow < GTA_NORMAL_TTL)
-		status[8] = 'h';
+		status[9] = 'h';
 	else
-		status[8] = '-';
+		status[9] = '-';
 
 	status[sizeof(status) - 1] = '\0';
 	return status;
