@@ -1324,15 +1324,12 @@ void gui_prop_shutdown(void) {
         if (gui_property->props[n].type == PROP_TYPE_STRING) {
 			gchar **p = gui_property->props[n].data.string.value;
 			if (*p)
-				g_free(*p);
-			*p = NULL;
+				G_FREE_NULL(*p);
         }
     }
 
-    g_free(gui_property->props);
-    g_free(gui_property);
-    gui_property->props = NULL;
-    gui_property = NULL;
+    G_FREE_NULL(gui_property->props);
+    G_FREE_NULL(gui_property);
 }
 
 prop_def_t *gui_prop_get_def(property_t p)
