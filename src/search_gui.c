@@ -37,7 +37,7 @@
 #include "atoms.h"
 #include "hosts.h" // FIXME: remove this dependency
 #include "misc.h"
-#include "settings.h" // FIXME: remove this dependency
+#include "settings_gui.h"
 #include "zalloc.h"
 
 #include <ctype.h>
@@ -584,7 +584,7 @@ search_t *search_gui_new_search_full
 
 /* Searches results */
 
-gint search_compare(gint sort_col, record_t *r1, record_t *r2)
+gint search_gui_compare_records(gint sort_col, record_t *r1, record_t *r2)
 {
     results_set_t *rs1;
 	results_set_t *rs2;
@@ -838,7 +838,7 @@ static void search_gui_add_record
             {
                 record_t *rec = (record_t *)GTK_CLIST_ROW(work)->data;
 
-                if (search_compare(sch->sort_col, rc, rec) < 0)
+                if (search_gui_compare_records(sch->sort_col, rc, rec) < 0)
                     break;
 				row++;
 			}
@@ -851,7 +851,7 @@ static void search_gui_add_record
             {
                 record_t *rec = (record_t *)GTK_CLIST_ROW(work)->data;
     
-                if (search_compare(sch->sort_col, rc, rec) > 0)
+                if (search_gui_compare_records(sch->sort_col, rc, rec) > 0)
                     break;
 				row++;
 			}
@@ -1050,7 +1050,7 @@ static void search_store_old(void)
 	FILE *out;
 	time_t now = time((time_t *) NULL);
 
-	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", config_dir, search_file);
+	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
 	out = fopen(tmpstr, "w");
 
 	if (!out) {
@@ -1083,7 +1083,7 @@ void search_gui_store_searches(void)
 #ifdef USE_SEARCH_XML
 	search_store_xml();
     
-  	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", config_dir, search_file);
+  	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
     if (file_exists(tmpstr)) {
         gchar filename[1024];
 
@@ -1405,7 +1405,7 @@ static gboolean search_retrieve_old(void)
 	gint line;				/* File line number */
     guint32 minimum_speed;
 
-	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", config_dir, search_file);
+	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", gui_config_dir, search_file);
 	if (-1 == stat(tmpstr, &buf))
 		return FALSE;
 
@@ -1423,7 +1423,7 @@ static gboolean search_retrieve_old(void)
 
 	line = 0;
 
-    gnet_prop_get_guint32(PROP_MINIMUM_SPEED, &minimum_speed, 0, 1);
+    gui_prop_get_guint32(PROP_DEFAULT_MINIMUM_SPEED, &minimum_speed, 0, 1);
 
 	while (fgets(tmpstr, sizeof(tmpstr) - 1, in)) {	/* Room for trailing NUL */
 		line++;
@@ -1494,7 +1494,8 @@ void search_gui_init(void)
 #ifdef USE_SEARCH_XML
     LIBXML_TEST_VERSION
 	if (search_retrieve_old()) {
-       	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", config_dir, search_file);
+       	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", 
+            gui_config_dir, search_file);
         g_warning(
             "Found old searches file. Loaded it.\n"
             "On exit the searches will be saved in the new XML format\n"
@@ -1632,9 +1633,12 @@ void search_gui_set_current_search(search_t *sch)
         
         list = GTK_CLIST(current_search->clist);
 
-        for (i = 0; i < list->columns; i ++)
+        for (i = 0; i < list->columns; i ++) {
             gtk_clist_set_column_visibility
                 (GTK_CLIST(sch->clist), i, list->column[i].visible);
+            gtk_clist_set_column_width
+                (GTK_CLIST(sch->clist), i, list->column[i].width);
+        }
     }
 
 	current_search = sch;
