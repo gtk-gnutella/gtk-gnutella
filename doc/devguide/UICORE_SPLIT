@@ -1,0 +1,346 @@
+************************************************************
+Emile's thoughts and ideas on ui/core seperation, Aug 18th, 2004.  
+************************************************************
+
+The gtkg files have been split into four categories: UI, Core, Interface, and 
+Common.  A list of all the files in each category is included at the end of this 
+document.  The one exception is main.c which currently exists to tie the gui, 
+core, and interface together. 
+
+In this attempt I tried to minimize any modification of code aside from 
+restructuring.  As such, all functionality and internal structures should still 
+be in place.  As you'll see, there are many things we will want to change as we 
+move towards a cleaner interface.  I didn't want to try to make any of those 
+decisions at this time.  This code represents the gtk-gnutella codebase as it is 
+now.  It's just in a different structure than it was before to allow us to 
+easily see what type of communication is going on between the ui and the core.  
+From here we can better decide what type of communication we *want* to have 
+going on, and how it will happen. (eg. if we want to move to seperate ui/core 
+processes, IPC, etc.)
+
+Hopefully I haven't broken any functionality/introduced bugs as I haven't 
+really written/modified much code.  It seems to run fine in both gtk1 and gtk2 
+in the time I've been testing it.  There may be some problems however as I have 
+restructured *at lot* of the codebase in terms of includes, etc.  Along with 
+this, I don't know all the details of compiling for BSD or other non-basic-linux 
+box compiles, these will need to be tested by someone more knowledgeable.
+
+
+
+*********
+Common Libraries:
+*********
+
+- Every file is allowed to use the common libraries, they exist merely to 
+	minimize code duplication. 
+- Common libraries are not allowed to depend on the ui or core files.
+- Common libraries should not depend on interface files although right now we 
+	have a couple of dependencies on the property tables (which are part of the 
+	interface.  We should seek to remove this in the future and try not to 
+	introduce any interface dependencies into new common library routines.
+
+
+*********
+UI/Core communication:
+*********
+
+- ui files are not allowed to include core files and vice versa.
+- Following this, the ui files are not allowed to call any core functions.  
+	They must rely on interface functions.  The same is true of the core files 
+	calling ui functions.
+
+
+*********
+Interface Files:
+*********
+
+- The "ui_core_interface_***_defs" files contain the structures, #defines, 
+	typedefs, and macros that are currently shared between the gui and the core.  
+- No function prototypes are allowed in these files, only defines, structs, 
+	typedefs and macros.  
+- The "ui_core_interface_***_defs" files are not allowed to depend on gui or 
+	core files.
+- I don't have the knowledge to reconfigure the callback/listener mechanisms so 
+	I basically left them where and as they were.
+- I didn't spend the time to figure out all the #defines, structs, etc. in each 
+	def file that was needed to be shared.  If a defs file was needed, I moved 
+	all of the structs and defines into it for the related file.  So, for 
+	example, if a ui file was dependent on some structs in http.h I created a 
+	ui_core_interface_http_defs.h file that contained *all* the structs, 
+	#defines, etc. in http.h (and http.h then included that defs file along with 
+	the gui file that needed them).  Eventually we may wish to include only the 
+	fewer, necessary items.
+- Eventually we will want the interface files to remain basically unchanging.  
+	Likely this will mean, for example, creating an interface download struct 
+	that is a subset of the download struct we are currently using.  This struct 
+	would contain only the info a gui would actually need from a core and vice 
+	versa (eg. the gui doesn't need to know bandwidth scheduling information).  
+	If we pare down and better define our interface structs, the 
+	"ui_core_interface_***_defs" files will become fewer and smaller.
+- All ui/core communication is done through the functions contained in 
+	ui_core_interface.h/c.  The functions are categorized using two different
+	prefixes: "gcu_" for Core->UI and "guc_" for UI->Core.
+
+
+*********
+Property Tables:
+*********
+
+- The property tables and associated functions are considered interface files.  
+- The property functions are the only interface functions that do not begin with 
+	"gcu_" or "guc_" as they are rather a special case.  
+- The property tables do not depend on ui/core files so either the gui or core 
+	may include either of the property table files (gui_properties.h or 
+	gnet_properties.h).
+
+
+*********
+Misc Problems:
+*********
+
+- file.h/c depends on ban.h (or it did before this patch).  
+	This is only for one function call (ban_reclaim_fd()).  The reason file.c 
+	includes ban.h is that when we try to get a new file descriptor and it 
+	fails, we then try to grab a file descriptor that we have been using for 
+	keeping banning lists (I don't know the details of ban.c). The problem is 
+	ban.c depends on the core so cannot be included in the common libraries 
+	(ie. the ui can't include it without then depending on core files).  We 
+	could remove this functionality.  Dismiss it as a rare case (I don't know if 
+	it is) and just remove the dependency.  For now this is what I've done (I 
+	just commented out and notated the function call with a FIXME).
+
+	There's probably a better solution but I don't know what it is.
+
+- gnet.h and the files it includes were a big step towards ui/core separation.  
+	These files don't depend on the ui or core as far as I can tell.  However, 
+	they have function prototypes (which is against my rules for separation) and
+	and the function implementations are contained in the core files.  This is
+	not what I wanted to accomplish in my patch.  I'm not sure where this will
+	eventually go, but for now the gnet_*** files (aside from gnet_stats) are
+	going to be strange until we sort it out.  They basically contain the 
+	function prototypes as before as well as an include to a matching 
+	ui_core_interface_***_defs file that contains the #defines,	structs, etc.  	
+
+- I don't know what to put for the ID and copyright information at the top of 
+	new files.  I just put "FILL_IN_EMILES_BLANKS" at the top of the defs files 
+	so hopefully it will be easy to replace it with the appropriate information.  
+
+- Just something I noticed.  We may want to rename filter.h/c, icon.h/c and 
+	drop.h/c so that they are more obviously "gui" files.
+
+- Along with this, ram asked that I separate the source files into different
+	directories (ui, core, interface, common).  I think this is a wonderful idea 
+	but I don't have the time to figure out how to make configure do that right 
+	now.
+
+
+
+*********
+File List:
+*********
+
+Following is a list of all the header files in the gtk-gnutella project and 
+their classifications.  One can deduce from this list the classification of the 
+related .c files.  
+
+
+Gui Files:
+
+callbacks.h
+downloads_cb.h
+downloads_cb2.h
+downloads_gui.h
+downloads_gui_common.h
+drop.h
+fileinfo_gui.h
+filter.h
+filter_cb.h
+filter_gui.h
+gnet_stats_gui.h
+gnet_stats_gui_common.h
+gtk-missing.h
+gtkcolumnchooser.h
+gui.h
+hcache_gui.h
+hcache_gui_common.h
+icon.h
+main_cb.h
+main_gui.h
+monitor_cb.h
+monitor_gui.h
+nodes_cb.h
+nodes_cb2.h
+nodes_gui.h
+nodes_gui_common.h
+pbarcellrenderer_gui2.h
+search_cb.h
+search_cb2.h
+search_gui.h
+search_gui_common.h
+search_stats_gui.h
+search_xml.h
+settings_cb.h
+settings_gui.h
+statusbar_gui.h
+upload_stats_cb.h
+upload_stats_gui.h
+uploads_cb.h
+uploads_gui.h
+uploads_gui_common.h
+visual_progress_gui.h
+
+
+
+
+Core Files:
+
+
+alive.h
+ban.h
+bsched.h
+dmesh.h
+downloads.h
+extensions.h
+fileinfo.h
+ggep.h
+ggep_type.h
+gmsg.h
+gnet.h
+gnet_downloads.h
+gnet_filters.h
+gnet_hcache.h
+gnet_net_stats.h
+gnet_nodes.h
+gnet_search.h
+gnet_share.h
+gnet_stats.h
+gnet_uploads.h
+gnutella.h
+gwcache.h
+hcache.h
+header.h
+hostiles.h
+hosts.h
+hsep.h
+http.h
+huge.h
+ignore.h
+inet.h
+ioheader.h
+matching.h
+move.h
+mq.h
+nodes.h
+parq.h
+pcache.h
+pmsg.h
+pproxy.h
+qrp.h
+routing.h
+rx.h
+rx_inflate.h
+rx_link.h
+rxbuf.h
+search.h
+settings.h
+share.h
+shell.h
+sockets.h
+sq.h
+token.h
+tx.h
+tx_deflate.h
+tx_link.h
+upload_stats.h
+uploads.h
+verify.h
+version.h
+vmsg.h
+whitelist.h
+
+
+
+Common Libraries:
+
+
+adns.h
+atoms.h
+base32.h
+base64.h
+bg.h
+common.h
+clock.h
+cobs.h
+cq.h
+crc.h
+eval.h
+event.h
+file.h
+fuzzy.h
+getdate.h
+getline.h
+glib-missing.h
+guid.h
+hashlist.h
+hashtree.h
+idtable.h
+inputevt.h
+listener.h
+malloc.h
+misc.h
+namesize.h
+override.h
+prop.h
+sha1.h
+tiger.h
+tigertree.h
+tm.h
+url.h
+utf8.h
+vendors.h
+walloc.h
+zalloc.h
+zlib_util.h
+
+
+Interface Files:
+
+ui_core_interface.h
+ui_core_interface_adns_defs.h
+ui_core_interface_bsched_defs.h
+ui_core_interface_common_defs.h
+ui_core_interface_cproxy_defs.h
+ui_core_interface_download_defs.h
+ui_core_interface_event_defs.h
+ui_core_interface_fileinfo_defs.h
+ui_core_interface_filters_defs.h
+ui_core_interface_gnet_defs.h
+ui_core_interface_gnet_download_defs.h
+ui_core_interface_gnet_hcache_defs.h
+ui_core_interface_gnet_nodes_defs.h
+ui_core_interface_gnet_search_defs.h
+ui_core_interface_gnet_share_defs.h
+ui_core_interface_gnet_stats_defs.h
+ui_core_interface_gnet_upload_defs.h
+ui_core_interface_gnutella_defs.h
+ui_core_interface_header_defs.h
+ui_core_interface_hsep_defs.h
+ui_core_interface_http_defs.h
+ui_core_interface_inputevt_defs.h
+ui_core_interface_matching_defs.h
+ui_core_interface_misc_defs.h
+ui_core_interface_mq_defs.h
+ui_core_interface_nodes_defs.h
+ui_core_interface_pmsg_defs.h
+ui_core_interface_qrp_defs.h
+ui_core_interface_rx_defs.h
+ui_core_interface_search_gui_defs.h
+ui_core_interface_share_defs.h
+ui_core_interface_socket_defs.h
+ui_core_interface_sq_defs.h
+ui_core_interface_tm_defs.h
+ui_core_interface_version_defs.h
+gui_property.h			
+gui_property_priv.h
+gnet_property.h     
+gnet_property_priv.h
