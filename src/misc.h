@@ -140,6 +140,7 @@ typedef guint16 flag_t;
  * Network related string routines
  */
 guint32  gchar_to_ip(const gchar *);
+gboolean gchar_to_ip_strict(const gchar *s, guint32 *addr, gchar const **ep);
 gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
 gboolean gchar_to_ip_port(const gchar *str, guint32 *ip, guint16 *port);
 gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask);
@@ -250,6 +251,25 @@ char *strcasestr(const char *haystack, const char *needle);
 gchar *strcasestr(const gchar *haystack, const gchar *needle);
 #endif
 
+/**
+ * Swap endianness of a guint32.
+ *
+ * @param i the guint32 to swap
+ *
+ * @returns the value of i after swapping its byte order.
+ */
+static inline guint32
+swap_guint32(guint32 i)
+{
+	gint a = i & 0x000000ff;
+	gint b = (i & 0x0000ff00) >> 8;
+	gint c = (i & 0x00ff0000) >> 16;
+	gint d = (i & 0xff000000) >> 24;
+
+	return d + (c << 8) + (b << 16) + (a << 24);
+}
+
+
 /*
  * Syscall wrappers for errno == 0 bug. --RAM, 27/10/2003
  */
@@ -260,4 +280,5 @@ extern gint do_errno;
 
 gint do_stat(const gchar *path, struct stat *buf);
 
+/* vi: set ts=4 sw=4 cindent: */
 #endif /* _misc_h_ */
