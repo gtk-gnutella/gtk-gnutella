@@ -860,6 +860,7 @@ static void config_read(void)
 {
 	FILE *config;
 	gchar *s, *k, *v;
+	gchar *path;
 	keyword_t i;
 	guint32 n = 0;
 	struct stat buf;
@@ -869,17 +870,22 @@ static void config_read(void)
 	if (!is_directory(gui_config_dir))
 		return;
 
-	gm_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", gui_config_dir, config_file);
+	path = g_strdup_printf("%s/%s", gui_config_dir, config_file);
+	g_return_if_fail(NULL != path);
 
-	config = fopen(cfg_tmp, "r");
-	if (!config)
+	config = fopen(path, "r");
+	if (!config) {
+		G_FREE_NULL(path);
 		return;
+	}
 
 	if (-1 == fstat(fileno(config), &buf))
 		g_warning("could open but not fstat \"%s\" (fd #%d): %s",
-			cfg_tmp, fileno(config), g_strerror(errno));
+			path, fileno(config), g_strerror(errno));
 	else
 		cfg_mtime = buf.st_mtime;
+
+	G_FREE_NULL(path);
 
 	while (fgets(cfg_tmp, sizeof(cfg_tmp), config)) {
 		n++;
