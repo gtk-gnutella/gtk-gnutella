@@ -14,7 +14,12 @@ gtk-gnutella \- A Gnutella client for Gtk+
 .SH DESCRIPTION
 .I gtk-gnutella
 is a GTK+ Gnutella client for Unix. It supports both searching and
-sharing with the 0.4 version of the gnutella protocol.
+sharing with the 0.6 version of the gnutella protocol.
+.PP
+You should be aware that as of October 19th, 2002, this manual page
+is fairly incomplete, with parts that are obsolete.  If you would like
+to remedy to this situation and write a decent manual page, please
+send your patch/updates to gtk-gnutella-devel@lists.sourceforge.net.
 .SH OPTIONS
 None.
 .SH GETTING STARTED
@@ -72,380 +77,30 @@ once. By holding down the control or shift keys while clicking files,
 you can select several files and then click "Download selected files"
 to put them all in the download queue at once.
 .SH CONFIGURATION
-You can configure
-.I gtk-gnutella
-either using
-.I gtk-gnutella,
-while it is running (recommended) or by editing the config file.
-.B BEWARE:
-.I gtk-gnutella
-will write the config file when it quits, so you must edit the config file
-only when the program is not running.
+Most of the configuration can be done via the "Config" pane.  You will
+find several tabs there, each tab regroupping common information.
+But some specific information pertaining to downloads or searches are
+directly available on the "Downloads" and "Uploads" panes.
 .PP
-The so-called "Preferences" for
-.I gtk-gnutella
-are scattered throughout the user interface. In fact, each pane
-contains at least one piece of configuration information. Here's a
-rundown. Each item below is the keyword used in the config file.
-.TP
-.PD
-.B up_connections
-This is on the gnutellaNet tab. This is the minimum number of
-connections that you wish to have to the gnutellaNet.
-.I Gtk-gnutella
-will attempt to keep at least this many connections open. Set this to
-an integer value between 0 and 511.
-.TP
-.BI auto_clear_completed_uploads
-This is on the uploads tab. When the checkbox is checked, or the
-config variable is set to "true" in the config file, any uploads that
-complete (or abort because of failure) are automatically removed from
-the uploads list. If unchecked ("false"), these uploads remain visible
-in the window until you click the "Clear completed" button.
-.TP
-.BI max_simultaneous_downloads
-This is on the downloads tab. This is the maximum number of files that
-you will be downloading at any time. If you select more files for
-download than this number, those files will be placed in the download
-queue (the lower half of the downloads window). Set this to an integer
-between 1 and 511.
-.TP
-.BI max_simultaneous_host_downloads
-This is on the downloads tab. This is the maximum number of files that
-you will be downloading at any time from a single host. This is
-intended for politeness -- you don't want to saturate somebody's
-connection! If you select more files from a particular host than this
-number, those files will be placed in the download queue (the lower
-half of the downloads window). Set this to an integer between 1 and
-511. (Realistically speaking, you shouldn't set this higher than 2 or 3
-unless you know who's on the other end and they have a really fat pipe!)
-.TP
-.BI max_simultaneous_uploads
-This is on the uploads tab. This is the maximum number of files that
-others can upload at any time from you. Set this to a low value unless
-you want to have your connection saturated, or you have a
-high-bandwidth connection. Set this to an integer between 0 and
-511. Setting this to 0 will effectively bar other people from
-downloading from you.
-.TP
-.BI auto_clear_completed_downloads
-This is on the downloads tab. It has similar meaning to the
-auto_clear_completed_uploads configuration variable.
-.TP
-.BI search_minimum_speed
-This is on the search tab. When searching, search results are checked
-against this value. If a search result arrives from a host with a
-lower connection speed that this value, the result will be thrown
-away. The idea here is that you may only want to download from faster
-hosts. Specify an integer here that reprsents kilobits per second of
-bandwidth. (E.g. a 1.5mb/s cable connection would be 1500kb/s, so you
-would enter 1500 if this is the minimum value you want.)
-.TP
-.BI monitor_enabled
-This is on the search monitor tab. When this is "true", the search
-monitor tab displays the search terms that other users are searching
-for.
-.TP
-.BI monitor_max_items
-This is on the search monitor tab. This is the number of items that
-are displayed on the search monitor tab when monitor_enabled is
-true. If monitor_enabled is false, this variable has no effect. Set
-this to a value between 1 and 511. 
-.TP
-.BI shared_files_extensions
-This is on the config tab.
-This is a semicolon-separated list of extensions. When scanning for
-files to share, files with these extensions will be shared. The list
-should resemble "mp3;zip;tar.gz;tgz".
-.TP
-.BI listen_port
-This is on the config tab.
-This is the TCP port on which gtk-gnutella will listen for incoming
-connections. The default is 6346, but any valid TCP port can be used
-(1-65535, with a lot of exceptions).
-.TP
-.BI max_ttl
-This is on the config tab.
-This is the max TTL ("time to live") that we will allow to pass
-through our node. If we see a packet that has a higher TTL it either
-gets trimmed to this value or lower, or it gets dropped. Actual
-processing might be slightly more complicated, but this is the
-idea. You shouldn't have to mess with this.
-.TP
-.BI my_ttl
-This is on the config tab.
-When we send out a packet, this is the ttl that we use. If you set
-this value too low, your packets won't propagate to very much of the
-gnutellaNet. If you set it too high, you'll cause a lot of extra
-traffic to be generated (and you also run the risk of other nodes
-dropping your packet instead of routing it). You shouldn't have to
-mess with this.
-.TP
-.BI shared_dirs
-This is on the config tab.
-This is a colon-separated list of the directories that are scanned for
-files. This works in conjunction with shared_files_extensions (see
-above).
-.TP
-.BI forced_local_ip
-This is on the config tab.
-If force_local_ip is "true", this is the IP address that we are
-pretending to have. All packets originating from this node will have
-the source IP address set to this value. This is useful if gtk-gnutella
-cannot correctly determine your IP address.  Usually, it's best to
-leave this field alone, unless you know what you are doing.
-.TP
-.BI connection_speed
-This is on the config tab.
-This is the bandwidth of your node in kilobits per second. A person
-running
-.I gtk-gnutella
-over a 56k modem would set this to 56. Someone running over a 1.5mb
-cable connection would set this to 1500.
-.TP
-.BI guid
-This is your persistent servent GUID, which is allocated once and then
-kept.  It allows gnet:// URLs to refer back to your servent, wherever you
-are located, so it is important to not reset it unless absolutely necessary,
-since that would irremediably obsolete all the gnet:// URLs gathered so far
-for your shared files.
-.TP
-.BI output_bandwidth
-The maximum allowed output bandwidth, in bytes per second.  If set to 0,
-then there is no throttling.  The maximum value is 2097152, or 2 MB/sec.
-In effect, this variable allows to limit the speed of the uploads.
-The Gnet traffic is not accounted for.  Use
-.BI output_gnet_bandwidth
-for that.
-.TP
-.BI input_bandwidth
-This can not be set through the GUI.
-The maximum allowed input bandwidth, in bytes per second.  If set to 0,
-then there is no throttling.  The maximum value is 2097152, or 2 MB/sec.
-In effect, this variable allows to limit the speed of the downloads.
-The Gnet traffic is not accounted for. Use
-.BI input_gnet_bandwidth
-for that.
-.TP
-.BI output_gnet_bandwidth
-The maximum allowed output bandwidth for Gnet traffic.  Same rules as for
-.BI output_bandwidth .
-.TP
-.BI input_gnet_bandwidth
-The maximum allowed input bandwidth for Gnet traffic.  Same rules as for
-.BI input_bandwidth .
-.TP
-.BI limit_search_results
-This is on the config tab.
-This limits how many results are returned to other people searching
-your files. Set this to an integer between -1 and 255. Setting this to
--1 prevents searches from being performed.
-.TP
-.BI search_max_results
-This can not be set through the GUI.
-This limits how many results are accumulated when performing
-searches. The default value is 5000, which is much more than you'll be
-able to browse through. The min allowed value is 1, and there is no
-maximum, as long as you have RAM and CPU.
-.TP
-.BI force_local_ip
-This is on the config tab.
-If this is true, then forced_local_ip is used (see above).
-.TP
-.BI download_connecting_timeout
-The number of seconds before timing out for a connecting download.
-.TP
-.BI download_push_sent_timeout
-The number of seconds before timing out for a 'push sent' download.
-.TP
-.BI download_connected_timeout
-The number of seconds before timing out for a connected download.
-.TP
-.BI download_retry_timeout_min
-The minimum amout of seconds to wait on auto-retry when a push times out.
-.TP
-.BI download_retry_timeout_max
-The maximum amout of seconds to wait on auto-retry when a push times out.
-.TP
-.BI download_max_retries
-The maximum attempts to make, not counting HTTP busy indications.  Only
-timeouts and refused connections are counted.
-.TP
-.BI download_retry_timeout_delay
-Delay in seconds to wait after a download connection timeout before retrying.
-.TP
-.BI download_retry_busy_delay
-Delay in seconds to wait after an HTTP busy indication before retrying
-download.
-.TP
-.BI download_retry_refused_delay
-Delay in seconds to wait after a download connection was unable to complete,
-probably refused due to no listening port opened on the remote side.
-.TP
-.BI download_retry_stopped
-Delay in seconds to wait before re-issuing a stopped download.  A download
-stops when it hits an unexpected EOF condition, or a remote connection reset.
-.TP
-.BI download_overlap_range
-Amount of bytes to request prior the resuming point, to ensure that the
-file is the same as the one we partially got, and that we're resuming at
-the proper offset.  If the file on disk is smaller than that value, the
-whole file is requested again.
-.TP
-.BI upload_connecting_timeout
-The number of seconds before timing out for a connecting upload,
-whilst we receive the HTTP headers.  This is the maximum amount
-of time allowed to receive the entire set of headers.
-.TP
-.BI upload_connected_timeout
-The number of seconds before timing out for a connected upload,
-whilst we send data.  This is the maximum amount of time before
-two consecutive data sending.
-.TP
-.BI node_connected_timeout
-The number of seconds before timing out for a connected node.
-.TP
-.BI node_connecting_timeout
-The number of seconds before timing out for a connecting node.
-.TP
-.BI node_sendqueue_size
-The maximum size of the sendqueue for the nodes (in bytes).
-.TP
-.BI node_tx_flowc_timeout
-This is the maximum amout of time, in seconds, that a node can remain
-in a transmit flow-control condition.  As soon as the flow-control condition
-disappears withing that amount of time, the connection is kept.
-.TP
-.BI search_queries_forward_size
-This can not be set through the GUI.
-Maximum size of search queries messages we forward to others (in bytes).
-.TP
-.BI search_queries_kick_size
-This can not be set through the GUI.
-Maximum size of search queries messages we allow, otherwise close the
-connection (in bytes).
-.TP
-.BI search_answers_forward_size
-This can not be set through the GUI.
-Maximum size of search answers messages we forward to others (in bytes)
-.TP
-.BI search_answers_kick_size
-Maximum size of search answers messages we allow, otherwise close the
-connection (in bytes).
-This can not be set through the GUI.
-.TP
-.BI other_messages_kick_size
-Maximum size of unknown messages we allow, otherwise close the
-connection (in bytes).
-This can not be set through the GUI.
-.TP
-.BI store_downloading_files_to
-This is in the config tab.
-This is the name of the directory where "in progress" downloading files
-are stored.
-.TP
-.BI move_downloaded_files_to
-This is in the config tab.
-This is the name of the directory where completed downloads are
-stored. By setting this and store_downloading_files_to to different
-directories, you can avoid cluttering this directory with partially
-completed files.
-.BI show_results_tabs
-If this is "true" (the default setting), multiple search tabs will be
-shown in the search tab. When "false", a search list is displayed, but
-you need a wider screen for it to be truly useful.
-.TP
-.BI hops_random_factor
-Don't worry about this.
-.TP
-.BI send_pushes
-This is in the downloads tab.
-If this is "true" then
-.I gtk-gnutella
-will never send a push request to download a file.
-.TP
-.BI jump_to_downloads
-This is in the search tab.
-If this is "true" then
-.I gtk-gnutella
-will switch to the downloads tab whenever you select a file (or files)
-for downloading from the search tab.
-.TP
-.BI max_connections
-This is in the gnutellaNet tab.
-This is the maximum number of connections that will be established. If
-other hosts attempt to connect and we are at this limit, then those
-connections will be refused.
-.TP
-.PD 0
-.BI proxy_connections
-.TP
-.BI socks_protocol
-.TP
-.BI proxy_ip
-.TP
-.BI proxy_port
-.TP
-.BI socksv5_user
-.TP
-.BI socksv5_pass
-These settings are in the config tab. They are for setting up
-.I gtk-gnutella
-to work with a proxy server. If you need these, hopefully you know
-more about proxies and socks than I do.
-.PD
-.TP
-.BI search_reissue_timeout
-When a search is running, the search request packet is sent out to the
-gnutellaNet every search_reissue_timeout seconds. This allows new
-results to come in over an extended period of time, as hosts are
-leaving and joining the network.
-.TP
-.BI hard_ttl_limit
-This works with max_ttl above. This can not be set directly through
-the GUI.
-.TP
-.BI max_uploads_ip
-The maximum amount of uploads allowed for a given IP.  If you set it to 1,
-each user will be only able to get one file at a time.  This cannot be set
-through the GUI yet.
-.TP
-.BI dbg
-This can not be set through the GUI.
-If this is set to an integer value greater than 0, varying levels of
-debugging messages will be sent to the console. Set this to an integer
-between 0 and 20.
-.TP
-.BI search_pick_all
-Whether auto-selection is active in the search tab.
-.TP
-.PD 0
-.BI max_high_ttl_msg
-.TP
-.BI max_high_ttl_radius
-.TP
-.BI min_dup_msg
-.TP
-.BI min_dup_ratio
-The above are undocumented at this stage.
-.PD
-.TP
-.BI max_hosts_cached
-This is the max number of hosts that will be cached in the host cache.
-.TP
-.BI search_stats_update_interval
-The updating interval, in seconds, for the search statistics.
-.TP
-.BI search_stats_delcoef
-A deletion coefficient, so that small non-significant results can be dropped.
-The lowest it is, the more search statistics will be kept in memory.
+If you linger your mouse over each configuration parameter, a tooltip window
+will popup explaining the meaning of that parameter.  You may have to press
+"Enter" after a text input, or move the focus to another parameter to
+validate your entry.  Items configured via spin buttons normally take
+effect immediately, unless you type text instead of using the spin buttons.
 .SH FILES
 .TP
-.I $GTK_GNUTELLA_DIR/config
+.I $GTK_GNUTELLA_DIR/config_gnet
 .RS
-Per-user configuration file. This can be edited.
+Per-user configuration file, for Gnet. This can be edited when the program
+is not running, but it is best to use the GUI to change configuration
+variables.
 .B gtk-gnutella
 saves this file every time the program is exited normally.
+.RE
+.TP
+.I $GTK_GNUTELLA_DIR/config_gui
+.RS
+GUI configuration.  It is best to not edit this file.
 .RE
 .TP
 .I $GTK_GNUTELLA_DIR/dmesh
@@ -454,10 +109,36 @@ This is where the download mesh is persisted.  You don't need to worry
 about this.
 .RE
 .TP
+.I $GTK_GNUTELLA_DIR/dmesh_ban
+.RS
+This is where temporarily banned download mesh entries are stored.
+.RE
+.TP
+.I $GTK_GNUTELLA_DIR/done.namesize
+.RS
+This file holds the name and size of files completely downloaded by
+.B gtk-gnutella
+and which will now be ignored.
+.RE
+.TP
+.I $GTK_GNUTELLA_DIR/done.sha1
+.RS
+This file holds the SHA1 of files completely downloaded by
+.B gtk-gnutella
+and which will now be ignored.
+.RE
+.TP
 .I $GTK_GNUTELLA_DIR/downloads
 .RS
 This is where the download queue is persisted.  Only the direct downloads
 (i.e. non-pushed) can be saved, since they don't need routing information.
+.RE
+.TP
+.I $GTK_GNUTELLA_DIR/gwcache
+.RS
+This is the list of known other Gnutella web caches, which.
+.B gtk-gnutella
+refreshes regularily.
 .RE
 .TP
 .I $GTK_GNUTELLA_DIR/hosts
@@ -516,11 +197,10 @@ Additional information about gnutella is available at
 .B http://gnutella.wego.com/
 .SH AUTHORS
 Yann Grossel wrote the original
-.B Gtk-gnutella
-.
+.B Gtk-gnutella .
 .PP
 Raphael Manfredi <Raphael_Manfredi@pobox.com> is the current maintainer
-(since version 0.14, released early September 2001).
+and project leader (since version 0.14, released early September 2001).
 .br
 Richard Eckart <wyldfire@users.sourceforge.net> is actively working
 on GUI issues.
