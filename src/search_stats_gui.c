@@ -356,7 +356,7 @@ void search_stats_gui_init(void)
     combo_types = GTK_COMBO(
         lookup_widget(main_window, "combo_search_stats_type"));
 
-    for (n = 0; n < MSG_TYPE_COUNT; n ++) {
+    for (n = 0; n < 3; n ++) {
         GtkWidget *list_item;
         GList *l;
 
