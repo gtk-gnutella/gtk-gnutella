@@ -68,16 +68,26 @@ file_register_fd_reclaimer(reclaim_fd_t callback)
  *
  * NB: the supplied `fv' argument is a vector of `fvcnt' elements.
  *
- * Returns opened FILE, or NULL if we were unable to open any.
+ * @param what is what is being opened, for logging purposes.
+ * @param fv is a vector of files to try to open, in sequence
+ * @param fvcnt is the size of the vector
+ * @param renaming indicates whether the opened file should be renamed .orig.
+ * @param chosen is filled with the index of the chosen path in the vector,
+ * unless NULL is given.
+ *
+ * @return opened FILE, or NULL if we were unable to open any.  `chosen' is
+ * only filled if the file is opened.
  */
 static FILE *
 open_read(
-	const gchar *what, const file_path_t *fv, gint fvcnt, gboolean renaming)
+	const gchar *what, const file_path_t *fv, gint fvcnt, gboolean renaming,
+	gint *chosen)
 {
 	FILE *in;
 	gchar *path;
 	gchar *path_orig;
 	const gchar *instead = empty_str;
+	gint idx = 0;
 
 	g_assert(fv != NULL);
 	g_assert(fvcnt >= 1);
@@ -138,6 +148,7 @@ open_read(
 		for (xfv = fv + 1, xfvcnt = fvcnt - 1; xfvcnt; xfv++, xfvcnt--) {
 			G_FREE_NULL(path);
 			path = make_pathname(xfv->dir, xfv->name);
+			idx++;
 			if (NULL != path && NULL != (in = fopen(path, "r")))
 				break;
 		}
@@ -158,6 +169,9 @@ out:
 		G_FREE_NULL(path);
 	if (NULL != path_orig)
 		G_FREE_NULL(path_orig);
+	if (in != NULL && chosen != NULL)
+		*chosen = idx;
+
 	return in;
 }
 
@@ -173,7 +187,7 @@ out:
 FILE *
 file_config_open_read(const gchar *what, const file_path_t *fv, gint fvcnt)
 {
-	return open_read(what, fv, fvcnt, TRUE);
+	return open_read(what, fv, fvcnt, TRUE, NULL);
 }
 
 /**
@@ -189,7 +203,18 @@ FILE *
 file_config_open_read_norename(
 	const gchar *what, const file_path_t *fv, gint fvcnt)
 {
-	return open_read(what, fv, fvcnt, FALSE);
+	return open_read(what, fv, fvcnt, FALSE, NULL);
+}
+
+/**
+ * Same as file_config_open_read_norename(), but also returns the index
+ * of the path chosen within the array, if a file was opened at all.
+ */
+FILE *
+file_config_open_read_norename_chosen(
+	const gchar *what, const file_path_t *fv, gint fvcnt, gint *chosen)
+{
+	return open_read(what, fv, fvcnt, FALSE, chosen);
 }
 
 /**
