@@ -1535,18 +1535,6 @@ void file_info_retrieve(void)
 			struct dl_file_info *dfi;
 
 			/*
-			 * We could not add the aliases immediately because the file
-			 * is formatted with ALIA coming before SIZE.  To let fi_alias()
-			 * detect conflicting entries, we need to have a valid fi->size.
-			 */
-
-			for (l = aliases; l; l = l->next) {
-				fi_alias(fi, (gchar *) l->data, FALSE);
-				atom_str_free((gchar *) l->data);
-			}
-			g_slist_free(aliases);
-
-			/*
 			 * There can't be duplicates!
 			 */
 
@@ -1597,12 +1585,29 @@ void file_info_retrieve(void)
 
 			file_info_merge_adjacent(fi);
 			file_info_hash_insert(fi);
+
+			/*
+			 * We could not add the aliases immediately because the file
+			 * is formatted with ALIA coming before SIZE.  To let fi_alias()
+			 * detect conflicting entries, we need to have a valid fi->size.
+			 * And since the `fi' is hashed, we can detect duplicates in
+			 * the `aliases' list itself as an added bonus.
+			 */
+
+			for (l = aliases; l; l = l->next) {
+				fi_alias(fi, (gchar *) l->data, TRUE);
+				atom_str_free((gchar *) l->data);
+			}
+			g_slist_free(aliases);
+
 			empty = FALSE;
 			fi = NULL;
 
 			continue;
 
 		discard:
+			for (l = aliases; l; l = l->next)
+				atom_str_free((gchar *) l->data);
 			fi_free(fi);
 			fi = NULL;
 			continue;
@@ -2150,8 +2155,10 @@ void file_info_update(
 	struct dl_file_info *fi = d->file_info;
 	struct dl_file_chunk *fc, *nfc;
 	gboolean found = FALSE;
-
 	int againcount = 0;
+
+	g_assert(fi->refcount > 0);
+	g_assert(fi->lifecount > 0);
 
 	fi->stamp = time((time_t *)NULL);
 
@@ -2397,6 +2404,9 @@ enum dl_chunk_status file_info_find_hole(
 	guint32 chunksize;
 	struct stat buf;
 	guint busy = 0;
+
+	g_assert(fi->refcount > 0);
+	g_assert(fi->lifecount > 0);
 
 	/*
 	 * This routine is called each time we start a new download, before
