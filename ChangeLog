@@ -1,7 +1,21 @@
 # since last version
 
+- (2003.07.04 - RAM)
+ * Added anti-403 "Network Disabled" code.
+ * Don't insert alt-locs pointing to hostile IPs in the mesh.
+ * Navigation pane updates correctly with 'jump to downloads' (fixes #612799
+   and #629299) [From Emile le Vivre].
+ * When banning due to vendor user-agent string, record the IP and forcefully
+   ban it for 3 hours from then on, to defeat GTKG's own anti-banning code.
+
 - (2003.07.03 - Jeroen)
  * PARQ: Should only actively queue one upload per ip
+
+- (2003.07.01 - RAM)
+ * Sort by size, then by SHA1 when sorting by size [From Thomas Schuerger].
+
+- (2003.06.28 - RAM)
+ * Added "torrent" to the default list of sharing extensions.
 
 - (2003.06.25 - RAM)
  * Don't pick a suspended download in download_find_waiting_unparq().
