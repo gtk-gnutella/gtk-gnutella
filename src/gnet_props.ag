@@ -303,7 +303,7 @@ prop = {
     type = guint32; 
     data = {
         default = 30;
-        min     = 1;
+        min     = 10;
         max     = 100000; 
     }; 
 };
@@ -314,7 +314,7 @@ prop = {
     type = guint32;
     data = { 
         default = 60;
-        min     = 1;
+        min     = 30;
         max     = 100000;
     };
 };
@@ -326,7 +326,7 @@ prop = {
     type = guint32;
     data = {
         default = 60;
-        min     = 1;
+        min     = 20;
         max     = 100000;
     };
 };
@@ -337,7 +337,7 @@ prop = {
     type = guint32;  
     data = {
         default = 20;
-        min     = 1;
+        min     = 5;
         max     = 100000;
     };
 };
@@ -348,7 +348,7 @@ prop = {
     type = guint32;
     data = {
         default = 120;
-        min     = 1;
+        min     = 5;
         max     = 100000;
     };
 };
@@ -437,7 +437,7 @@ prop = {
     type = guint32;
     data = {
         default = 60;
-        min     = 1;
+        min     = 10;
         max     = 100000;
     };
 };
@@ -449,7 +449,7 @@ prop = {
     type = guint32;
     data = {
         default = 180;
-        min     = 1;
+        min     = 20;
         max     = 100000;
     };
 };
@@ -511,7 +511,7 @@ prop = {
     type = guint32;
     data = {
         default = 30;
-        min     = 5;
+        min     = 15;
         max     = 300;
     };
 };
@@ -523,7 +523,7 @@ prop = {
     type = guint32;
     data = {
         default = 30;
-        min     = 1;
+        min     = 10;
         max     = 100000;
     };
 };
@@ -535,7 +535,7 @@ prop = {
     type = guint32;
     data = {
         default = 90;
-        min     = 1;
+        min     = 30;
         max     = 100000;
     };
 };
@@ -559,7 +559,7 @@ prop = {
     type = guint32;
     data = {
         default = 180;
-        min     = 5;
+        min     = 60;
         max     = 100000;
     };
 };
@@ -1196,7 +1196,7 @@ prop = {
     type = string;
     data = {
         default = 
-          "asf;avi;"
+          "aac;asf;avi;"
 		  "bin;bz2;"
 		  "cue;"
 		  "deb;divx;doc;"
@@ -1940,9 +1940,9 @@ prop = {
 		"gtk-gnutella nodes.";
 	type = guint32;
 	data = {
-		default = 33;
+		default = 20;
 		min = 0;
-		max = 100;
+		max = 50;
 	};
 };
 
@@ -1951,8 +1951,9 @@ prop = {
 	desc = "Maximum percentage of slots a vendor can occupy";
 	type = guint32;
 	data = {
-		default = 50;
-		min = 0;
+		default = 60;
+		min = 50;
 		max = 100;
 	};
 };
+

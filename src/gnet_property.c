@@ -244,8 +244,8 @@ guint32  min_dup_msg     = 5;
 guint32  min_dup_msg_def = 5;
 guint32  min_dup_ratio     = 150;
 guint32  min_dup_ratio_def = 150;
-gchar   *scan_extensions     = "asf;avi;bin;bz2;cue;deb;divx;doc;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;nes;ogg;ogm;qt;png;ps;pdf;ram;rm;rar;rpm;rom;s3m;smc;smd;stm;tar;tgz;torrent;txt;vob;voc;vqf;wav;wma;wmv;xm;xvid;zip";
-gchar   *scan_extensions_def = "asf;avi;bin;bz2;cue;deb;divx;doc;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;nes;ogg;ogm;qt;png;ps;pdf;ram;rm;rar;rpm;rom;s3m;smc;smd;stm;tar;tgz;torrent;txt;vob;voc;vqf;wav;wma;wmv;xm;xvid;zip";
+gchar   *scan_extensions     = "aac;asf;avi;bin;bz2;cue;deb;divx;doc;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;nes;ogg;ogm;qt;png;ps;pdf;ram;rm;rar;rpm;rom;s3m;smc;smd;stm;tar;tgz;torrent;txt;vob;voc;vqf;wav;wma;wmv;xm;xvid;zip";
+gchar   *scan_extensions_def = "aac;asf;avi;bin;bz2;cue;deb;divx;doc;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;mjpg;mod;mov;mpa;mpg;mpeg;mpega;mp4;mp3;mp2;mp1:mpv;nes;ogg;ogm;qt;png;ps;pdf;ram;rm;rar;rpm;rom;s3m;smc;smd;stm;tar;tgz;torrent;txt;vob;voc;vqf;wav;wma;wmv;xm;xvid;zip";
 gboolean scan_ignore_symlink_dirs     = FALSE;
 gboolean scan_ignore_symlink_dirs_def = FALSE;
 gboolean scan_ignore_symlink_regfiles     = FALSE;
@@ -386,10 +386,10 @@ gchar   *server_hostname     = "";
 gchar   *server_hostname_def = "";
 gboolean give_server_hostname     = FALSE;
 gboolean give_server_hostname_def = FALSE;
-guint32  reserve_gtkg_nodes     = 33;
-guint32  reserve_gtkg_nodes_def = 33;
-guint32  unique_nodes     = 50;
-guint32  unique_nodes_def = 50;
+guint32  reserve_gtkg_nodes     = 20;
+guint32  reserve_gtkg_nodes_def = 20;
+guint32  unique_nodes     = 60;
+guint32  unique_nodes_def = 60;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -897,7 +897,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[24].data.guint32.value = &download_connecting_timeout;
     gnet_property->props[24].data.guint32.choices = NULL;
     gnet_property->props[24].data.guint32.max   = 100000;
-    gnet_property->props[24].data.guint32.min   = 1;
+    gnet_property->props[24].data.guint32.min   = 10;
 
 
     /*
@@ -917,7 +917,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[25].data.guint32.value = &download_push_sent_timeout;
     gnet_property->props[25].data.guint32.choices = NULL;
     gnet_property->props[25].data.guint32.max   = 100000;
-    gnet_property->props[25].data.guint32.min   = 1;
+    gnet_property->props[25].data.guint32.min   = 30;
 
 
     /*
@@ -937,7 +937,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[26].data.guint32.value = &download_connected_timeout;
     gnet_property->props[26].data.guint32.choices = NULL;
     gnet_property->props[26].data.guint32.max   = 100000;
-    gnet_property->props[26].data.guint32.min   = 1;
+    gnet_property->props[26].data.guint32.min   = 20;
 
 
     /*
@@ -957,7 +957,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[27].data.guint32.value = &download_retry_timeout_min;
     gnet_property->props[27].data.guint32.choices = NULL;
     gnet_property->props[27].data.guint32.max   = 100000;
-    gnet_property->props[27].data.guint32.min   = 1;
+    gnet_property->props[27].data.guint32.min   = 5;
 
 
     /*
@@ -977,7 +977,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[28].data.guint32.value = &download_retry_timeout_max;
     gnet_property->props[28].data.guint32.choices = NULL;
     gnet_property->props[28].data.guint32.max   = 100000;
-    gnet_property->props[28].data.guint32.min   = 1;
+    gnet_property->props[28].data.guint32.min   = 5;
 
 
     /*
@@ -1117,7 +1117,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[35].data.guint32.value = &upload_connecting_timeout;
     gnet_property->props[35].data.guint32.choices = NULL;
     gnet_property->props[35].data.guint32.max   = 100000;
-    gnet_property->props[35].data.guint32.min   = 1;
+    gnet_property->props[35].data.guint32.min   = 10;
 
 
     /*
@@ -1137,7 +1137,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[36].data.guint32.value = &upload_connected_timeout;
     gnet_property->props[36].data.guint32.choices = NULL;
     gnet_property->props[36].data.guint32.max   = 100000;
-    gnet_property->props[36].data.guint32.min   = 1;
+    gnet_property->props[36].data.guint32.min   = 20;
 
 
     /*
@@ -1237,7 +1237,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[41].data.guint32.value = &incoming_connecting_timeout;
     gnet_property->props[41].data.guint32.choices = NULL;
     gnet_property->props[41].data.guint32.max   = 300;
-    gnet_property->props[41].data.guint32.min   = 5;
+    gnet_property->props[41].data.guint32.min   = 15;
 
 
     /*
@@ -1257,7 +1257,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[42].data.guint32.value = &node_connecting_timeout;
     gnet_property->props[42].data.guint32.choices = NULL;
     gnet_property->props[42].data.guint32.max   = 100000;
-    gnet_property->props[42].data.guint32.min   = 1;
+    gnet_property->props[42].data.guint32.min   = 10;
 
 
     /*
@@ -1277,7 +1277,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[43].data.guint32.value = &node_connected_timeout;
     gnet_property->props[43].data.guint32.choices = NULL;
     gnet_property->props[43].data.guint32.max   = 100000;
-    gnet_property->props[43].data.guint32.min   = 1;
+    gnet_property->props[43].data.guint32.min   = 30;
 
 
     /*
@@ -1317,7 +1317,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[45].data.guint32.value = &node_tx_flowc_timeout;
     gnet_property->props[45].data.guint32.choices = NULL;
     gnet_property->props[45].data.guint32.max   = 100000;
-    gnet_property->props[45].data.guint32.min   = 5;
+    gnet_property->props[45].data.guint32.min   = 60;
 
 
     /*
@@ -3488,7 +3488,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[161].name = "reserve_gtkg_nodes";
-    gnet_property->props[161].desc = _("Percentage of the number of connections we should reserve for gtk-gnutella nodes. Should be less than 100, unless special circumstances arise, such as testing or clustering.");
+    gnet_property->props[161].desc = _("Percentage of the number of connections we should reserve for gtk-gnutella nodes.");
     gnet_property->props[161].ev_changed = event_new("reserve_gtkg_nodes_changed");
     gnet_property->props[161].save = TRUE;
     gnet_property->props[161].vector_size = 1;
@@ -3498,7 +3498,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[161].data.guint32.def   = &reserve_gtkg_nodes_def;
     gnet_property->props[161].data.guint32.value = &reserve_gtkg_nodes;
     gnet_property->props[161].data.guint32.choices = NULL;
-    gnet_property->props[161].data.guint32.max   = 100;
+    gnet_property->props[161].data.guint32.max   = 50;
     gnet_property->props[161].data.guint32.min   = 0;
 
 
@@ -3508,7 +3508,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[162].name = "unique_nodes";
-    gnet_property->props[162].desc = _("Maximum percentage of connection slots a vendor can occupy. Setting this too low may cause problems, especially in leaf mode.");
+    gnet_property->props[162].desc = _("Maximum percentage of slots a vendor can occupy");
     gnet_property->props[162].ev_changed = event_new("unique_nodes_changed");
     gnet_property->props[162].save = TRUE;
     gnet_property->props[162].vector_size = 1;
@@ -3519,7 +3519,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[162].data.guint32.value = &unique_nodes;
     gnet_property->props[162].data.guint32.choices = NULL;
     gnet_property->props[162].data.guint32.max   = 100;
-    gnet_property->props[162].data.guint32.min   = 0;
+    gnet_property->props[162].data.guint32.min   = 50;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
