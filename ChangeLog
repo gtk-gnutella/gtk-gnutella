@@ -1,5 +1,11 @@
 # since last version
 
+- (2004.01.04 - Richard)
+ * [Gtk1] [Gtk2] Show icon when gtkg determines that it is ancient.
+ * Props that have default values are saved as comments, so they can be
+   upgraded to new defaults on version upgrades. [from Globuz]
+ * Fixed critical bug in results-bursting code.
+
 - (2004.01.04 - Emile)
  * [Gtk1] Fixed autosort for "count" column
  * [Gtk1] Added "Push mode" status for downloads tree
