@@ -57,6 +57,11 @@ static void SIG_Ignore(int n)
 
 static void auto_connect(void)
 {
+	/*
+	 * Round-robin selection of a host catcher, and addition to the list of
+	 * nodes, if not already connected to it.
+	 */
+
 	static gchar *host_catcher[] = {
 		"router.limewire.com",
 		"connect1.gnutellanet.com",
@@ -64,14 +69,16 @@ static void auto_connect(void)
 		"connect3.gnutellanet.com",
 	};
 	static guint host_idx = 0;
-	guint32 auto_ip = 0;
+	guint32 ip = 0;
+	guint16 port = 6346;
+	extern gboolean node_connected(guint32, guint16, gboolean);
 
 	if (host_idx >= (sizeof(host_catcher)/sizeof(host_catcher[0])))
 		host_idx = 0;
 
-	auto_ip = host_to_ip(host_catcher[host_idx++]);
-	if (auto_ip != 0)
-		 node_add(NULL, auto_ip, 6346);
+	ip = host_to_ip(host_catcher[host_idx++]);
+	if (ip != 0 && !node_connected(ip, port, FALSE))
+		 node_add(NULL, ip, port);
 }
 
 gboolean main_timer(gpointer p)
@@ -83,16 +90,20 @@ gboolean main_timer(gpointer p)
 	time_t now = time((time_t *) NULL);
 
 	/*
-	 * If we are under the number of connections wanted, we add a host
+	 * If we are under the number of connections wanted, we add hosts
 	 * to the connection list
 	 */
 
 	if (nodes_in_list < up_connections && !stop_host_get) {
 		if (sl_catched_hosts != NULL) {
 			struct gnutella_host *host;
-			host = (struct gnutella_host *) sl_catched_hosts->data;
-			node_add(NULL, host->ip, host->port);
-			host_remove(host, TRUE);
+			int missing = up_connections - nodes_in_list;
+
+			while (missing-- > 0 && sl_catched_hosts) {
+				host = (struct gnutella_host *) sl_catched_hosts->data;
+				node_add(NULL, host->ip, host->port);
+				host_remove(host, TRUE);
+			}
 		} else
 			auto_connect();
 	}
