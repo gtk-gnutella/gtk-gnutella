@@ -35,7 +35,7 @@ extension is defined as follows:
 
 Due to the location of the LF extension, there must be no NUL bytes in the
 the GGEP data. Therefore, each byte of the data contains only 7 data bits,
-the MSB is always set to 1. The ordering of the bytes is little-endian.
+the MSB is set in all bytes. The ordering of the bytes is little-endian.
 
 4. EXAMPLE CODE
 
