@@ -40,11 +40,13 @@ RCSID("$Id$");
 #include "gtk/columns.h"
 #include "gtk/notebooks.h"
 #include "gtk/gtk-missing.h"
+#include "gtk/settings.h"
 
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
 
 #include "lib/glib-missing.h"
+#include "lib/iso3166.h"
 #include "lib/utf8.h"
 #include "lib/vendors.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -144,13 +146,15 @@ void on_search_notebook_focus_tab(GtkNotebook * notebook,
 	search_gui_set_current_search(sch);
 }
 
-void on_tree_view_search_select_row(GtkTreeView * treeview, gpointer user_data)
+void
+on_tree_view_search_select_row(GtkTreeView *treeview, gpointer unused_udata)
 {
 	GtkTreeSelection *selection;
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 	search_t *sch;
 
+	(void) unused_udata;
 	g_assert(treeview != NULL);
 	selection = gtk_tree_view_get_selection(treeview);
 	if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
@@ -473,12 +477,14 @@ void on_tree_view_search_results_select_row(
 
 	gtk_tree_view_get_cursor(view, &path, NULL);
 	if (NULL != path) {
+ 		GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(view));
 		GtkTreeModel *model;
 		const record_t *rc = NULL;
 		const gchar *vendor;
 		GtkTreeIter iter;
 		search_t *sch = NULL;
 		const GList *l = search_gui_get_searches();
+		gchar text[1024];
 
 		for (/* NOTHING */; NULL != l; l = g_list_next(l))
 			if (view == GTK_TREE_VIEW(((search_t *) l->data)->tree_view)) {
@@ -524,27 +530,41 @@ void on_tree_view_search_results_select_row(
 		gtk_entry_set_text(
 			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
 			rc->tag ? lazy_locale_to_utf8(rc->tag, 0) : "");
+
+		text[0] = '\0';
+		gm_snprintf(text, sizeof text,
+			"Peer: %s\n"
+			"Country: %s (%s)\n"
+			"Vendor: %-64.64s\n"
+			"SHA1: %s\n"
+			"GUID: %s\n"
+			"Size: %s\n"
+			"%s",
+			ip_port_to_gchar(rc->results_set->ip, rc->results_set->port),
+			iso3166_country_name(rc->results_set->country),
+				iso3166_country_cc(rc->results_set->country),
+			vendor ? vendor : _("Unknown"),
+			rc->sha1 != NULL ? sha1_base32(rc->sha1) : _("<none>"),
+			guid_hex_str(rc->results_set->guid),
+			short_size(rc->size),
+			_("(Press Control-F1 to toggle view)"));
+
+  			if (GTK_IS_WINDOW (toplevel)) {
+      			g_object_set_data(G_OBJECT(toplevel),
+					"gtk-tooltips-keyboard-mode", GUINT_TO_POINTER (TRUE));
+			}
+			gtk_tooltips_set_tip(settings_gui_tooltips(),
+				GTK_WIDGET(view), text, NULL);
 	}
 
     refresh_popup();
 
     /* Fill a few static global variables here, so we don't have to
      * poll the properties in autoselect_files_helper all the time. */
-    gui_prop_get_boolean(
-        PROP_SEARCH_AUTOSELECT_SIMILAR, 
-        &as_similar, 0, 1);
-
-    gui_prop_get_boolean(
-        PROP_SEARCH_AUTOSELECT_SAMESIZE, 
-        &as_samesize, 0, 1);
-
-    gui_prop_get_boolean(
-        PROP_SEARCH_AUTOSELECT_FUZZY, 
-        &as_fuzzy, 0, 1);
-
-	gnet_prop_get_guint32(
-        PROP_FUZZY_THRESHOLD, 
-        &as_fuzzy_threshold, 0, 1);
+    gui_prop_get_boolean(PROP_SEARCH_AUTOSELECT_SIMILAR, &as_similar, 0, 1);
+    gui_prop_get_boolean(PROP_SEARCH_AUTOSELECT_SAMESIZE, &as_samesize, 0, 1);
+    gui_prop_get_boolean(PROP_SEARCH_AUTOSELECT_FUZZY, &as_fuzzy, 0, 1);
+	gnet_prop_get_guint32(PROP_FUZZY_THRESHOLD, &as_fuzzy_threshold, 0, 1);
 
     /* Unfortunately Gtk2 doesn't tell us which nodes were freshly added
      * to the selection, so we have to iterate over the complete selection

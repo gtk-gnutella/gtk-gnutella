@@ -168,6 +168,26 @@ always_true(gpointer key, gpointer value, gpointer x)
 	return TRUE;
 }
 
+static gboolean
+on_focus_in(GtkWidget *widget, GdkEventFocus *unused_event,
+		gpointer unused_udata)
+{
+	(void) unused_event;
+	(void) unused_udata;
+	set_tooltips_keyboard_mode(widget, TRUE);
+	return FALSE;
+}
+
+static gboolean
+on_focus_out(GtkWidget *widget, GdkEventFocus *unused_event,
+		gpointer unused_udata)
+{
+	(void) unused_event;
+	(void) unused_udata;
+	set_tooltips_keyboard_mode(widget, FALSE);
+	return FALSE;
+}
+
 
 /**
  * Decrement refcount of hash table key entry.
@@ -1327,6 +1347,10 @@ gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 		G_CALLBACK(on_tree_view_search_results_button_press_event), NULL);
     g_signal_connect(GTK_OBJECT(treeview), "key_press_event",
 		G_CALLBACK(on_tree_view_search_results_key_press_event), NULL);
+    g_signal_connect(GTK_OBJECT(treeview), "focus-in-event",
+		G_CALLBACK(on_focus_in), NULL);
+    g_signal_connect(GTK_OBJECT(treeview), "focus-out-event",
+		G_CALLBACK(on_focus_out), NULL);
 }
 
 static gboolean

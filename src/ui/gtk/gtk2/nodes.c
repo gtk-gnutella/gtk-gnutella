@@ -36,6 +36,7 @@ RCSID("$Id$");
 #include "gtk/nodes.h"
 #include "gtk/columns.h"
 #include "gtk/notebooks.h"
+#include "gtk/settings.h"
 
 #include "if/gui_property.h"
 #include "if/gui_property_priv.h"
@@ -141,16 +142,7 @@ static void nodes_gui_create_treeview_nodes(void)
 		{ N_("Uptime"),		c_gnet_uptime,		"text" },
 		{ N_("Info"),		c_gnet_info,		"text" }
 	};
-	GtkTreeView *tree;
-	guint i;
-
-	STATIC_ASSERT(NODES_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
-
-    /*
-     * Create a model.  We are using the store model for now, though we
-     * could use any other GtkTreeModel
-     */
-    nodes_model = gtk_list_store_new(c_gnet_num,
+	GType types[] = {
         G_TYPE_STRING,   /* c_gnet_host */
         G_TYPE_STRING,   /* c_gnet_loc */
         G_TYPE_STRING,   /* c_gnet_flags */
@@ -161,7 +153,18 @@ static void nodes_gui_create_treeview_nodes(void)
         G_TYPE_STRING,   /* c_gnet_info */
         G_TYPE_UINT,     /* c_gnet_handle */
         GDK_TYPE_COLOR	 /* c_gnet_fg */
-     );
+	};
+	GtkTreeView *tree;
+	guint i;
+
+	STATIC_ASSERT(NODES_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
+	STATIC_ASSERT(c_gnet_num == G_N_ELEMENTS(types));
+
+    /*
+     * Create a model.  We are using the store model for now, though we
+     * could use any other GtkTreeModel
+     */
+    nodes_model = gtk_list_store_newv(G_N_ELEMENTS(types), types);
 
     /*
      * Get the monitor widget
@@ -265,6 +268,66 @@ static inline void nodes_gui_update_node_flags(
 	}
 }
 
+static gboolean
+on_focus_in(GtkWidget *widget, GdkEventFocus *unused_event,
+		gpointer unused_udata)
+{
+	(void) unused_event;
+	(void) unused_udata;
+	set_tooltips_keyboard_mode(widget, TRUE);
+	return FALSE;
+}
+
+static gboolean
+on_focus_out(GtkWidget *widget, GdkEventFocus *unused_event,
+		gpointer unused_udata)
+{
+	(void) unused_event;
+	(void) unused_udata;
+	set_tooltips_keyboard_mode(widget, FALSE);
+	return FALSE;
+}
+
+static void
+on_cursor_changed(GtkTreeView *tv, gpointer unused_udata)
+{
+	GtkTreeModel *model;
+	GtkTreePath *path;
+	GtkTreeIter iter;
+	gnet_node_info_t *info;
+	guint handle;
+	gchar text[1024];
+
+	(void) unused_udata;
+	g_assert(tv != NULL);
+
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+	if (!path)
+		return;
+	
+	text[0] = '\0';
+	model = gtk_tree_view_get_model(tv);
+	gtk_tree_model_get_iter(model, &iter, path);
+	gtk_tree_model_get(model, &iter, c_gnet_handle, &handle, (-1));
+	if (!find_node(handle))
+		return;
+	
+
+   	info = guc_node_get_info(handle);
+	gm_snprintf(text, sizeof text,
+		"Peer: %s\nCountry: %s (%s)\nVendor: %-64.64s\n%s",
+		ip_port_to_gchar(info->ip, info->port),
+		iso3166_country_name(info->country),
+		iso3166_country_cc(info->country),
+		info->vendor ? lazy_locale_to_utf8(info->vendor, 0) : _("Unknown"),
+		_("(Press Control-F1 to toggle view)"));
+	
+	guc_node_free_info(info);
+	
+	gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv), text, NULL);
+	set_tooltips_keyboard_mode(GTK_WIDGET(tv), TRUE);
+}
+
 /***
  *** Public functions
  ***/
@@ -320,6 +383,13 @@ void nodes_gui_init(void)
     guc_node_add_node_removed_listener(nodes_gui_node_removed);
     guc_node_add_node_info_changed_listener(nodes_gui_node_info_changed);
     guc_node_add_node_flags_changed_listener(nodes_gui_node_flags_changed);
+
+	g_signal_connect(GTK_OBJECT(treeview_nodes), "cursor-changed",
+		G_CALLBACK(on_cursor_changed), treeview_nodes);
+	g_signal_connect(GTK_OBJECT(treeview_nodes), "focus-out-event",
+		G_CALLBACK(on_focus_out), treeview_nodes);
+	g_signal_connect(GTK_OBJECT(treeview_nodes), "focus-in-event",
+		G_CALLBACK(on_focus_in), treeview_nodes);
 }
 
 /*
@@ -605,4 +675,4 @@ void nodes_gui_remove_selected(void)
 	g_slist_free(node_list);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
