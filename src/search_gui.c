@@ -552,25 +552,24 @@ gint search_gui_compare_records(
             break;
 			
         case c_sr_info:
-			result = memcmp(rs1->vendor, rs2->vendor, sizeof(rs1->vendor));
+			result = strncmp(rs1->vendor, rs2->vendor, sizeof(rs1->vendor));
 			if (result)
 				break;
-            if (rs1->status == rs2->status)
-                result = 0;
-            else
-                result = (rs1->status > rs2->status) ? +1 : -1;
+            result = SIGN(rs1->status, rs2->status);
             break;
 			
         case c_sr_count:
-				if (g1->num_children == g2->num_children)
-					result = 0;
-				else
-					result = (g1->num_children > g2->num_children) ? +1 : -1;
+			/*
+			 * Sort by count (#), then by size.
+			 */
+			if (g1->num_children == g2->num_children)
+				result = SIGN(r1->size, r2->size);
+			else
+				result = SIGN(g1->num_children, g2->num_children);
             break;
 				
         case c_sr_speed:
-            result = (rs1->speed == rs2->speed) ? 0 :
-                (rs1->speed > rs2->speed) ? +1 : -1;
+            result = SIGN(rs1->speed, rs2->speed);
             break;
 		
         case c_sr_host:
@@ -582,13 +581,13 @@ gint search_gui_compare_records(
 				result = rs2->hostname == NULL ? -1 :
 					strcmp(rs1->hostname, rs2->hostname);
 				if (result == 0)
-					result = rs1->port < rs2->port ? -1 : +1;
+					result = SIGN(rs1->port, rs2->port);
 			} else if (rs2->hostname != NULL) {
 				result = +1;		/* greater than any IP address */
 			} else {
-				result = (rs1->ip == rs2->ip) ?  
-					(gint) rs1->port - (gint) rs2->port :
-					(rs1->ip > rs2->ip) ? +1 : -1;
+				result = (rs1->ip == rs2->ip)
+							? SIGN(rs1->port, rs2->port)
+							: SIGN(rs1->ip, rs2->ip);
 			}
             break;
 			

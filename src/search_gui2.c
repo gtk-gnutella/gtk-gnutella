@@ -452,7 +452,8 @@ static gint search_gui_compare_count_func(
 {
 	guint m = (guint) gtk_tree_model_iter_n_children(model, a);
 	guint n = (guint) gtk_tree_model_iter_n_children(model, b);
-	return SIGN(m, n);
+	return m == n ?
+		search_gui_compare_size_func(model, a, b, user_data) : SIGN(m, n);
 }
 
 #if 0
