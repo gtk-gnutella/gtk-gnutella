@@ -380,7 +380,10 @@ static gnet_results_set_t *get_results_set(
 	/* Check for hostile IP addresses */
 
 	if (hostiles_check(rs->ip)) {
-		g_warning("dropping query hit from hostile IP %s", ip_to_gchar(rs->ip));
+        if (dbg) {
+            g_message("dropping query hit from hostile IP %s", 
+                ip_to_gchar(rs->ip));
+        }
 		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 		goto bad_packet;
 	}
