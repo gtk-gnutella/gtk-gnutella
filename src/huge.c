@@ -1151,8 +1151,8 @@ void huge_collect_locations(guchar *sha1, header_t *header)
 	if (alt == NULL)
 		alt = header_get(header, "Alt-Location");
 
-	if (alt)
-		dmesh_collect_locations(sha1, alt);
+	if (alt) 
+		dmesh_collect_locations(sha1, alt, TRUE);
 }
 
 /* 

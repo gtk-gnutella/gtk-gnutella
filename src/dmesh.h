@@ -41,8 +41,8 @@
  *   http://1.2.3.4:5678/get/1/name.txt
  *   http://1.2.3.4:5678/uri-res/N2R?urn:sha1:ABCDEFGHIJKLMNOPQRSTUVWXYZ234567
  *
- * We use the `idx' to discriminate between the two forms, 0 meaning it's
- * an URN (since 0 cannot be a valid file index).
+ * We use the `idx' to discriminate between the two forms, URN_INDEX meaning
+ * it's an URN.
  */
 typedef struct {
 	guint32 ip;				/* Host IP */
@@ -84,7 +84,7 @@ gboolean dmesh_add(
 void dmesh_remove(
 	guchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name);
 
-void dmesh_collect_locations(guchar *sha1, guchar *value);
+void dmesh_collect_locations(guchar *sha1, guchar *value, gboolean defer);
 
 gint dmesh_alternate_location(
 	guchar *sha1, gchar * buf, gint size, guint32 ip, guint32 last_sent);
