@@ -2292,6 +2292,8 @@ static gboolean node_can_accept_connection(
 				return FALSE;
 			}
 		} else if (n->attrs & NODE_A_ULTRA) {
+			gint ultra_max;
+
 			/*
 			 * Try to preference compressed ultrapeer connections too
 			 * 		-- JA, 08/06/2003
@@ -2308,8 +2310,7 @@ static gboolean node_can_accept_connection(
 				return FALSE;
 			}
 			
-			gint ultra_max = max_connections - normal_connections;
-
+			ultra_max = max_connections - normal_connections;
 			ultra_max = MAX(ultra_max, 0);
 
 			if (
