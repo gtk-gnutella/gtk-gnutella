@@ -64,6 +64,7 @@ SRC = \
 	namesize.c \
 	nodes.c \
 	oob.c \
+	oob_proxy.c \
 	parq.c \
 	pcache.c \
 	pmsg.c \
