@@ -3041,8 +3041,12 @@ static void err_header_read_error(gpointer obj, gint error)
 
 static void err_header_read_eof(gpointer obj)
 {
-	node_remove(NODE(obj), "Failed (EOF)");
-	maybe_downgrade_handshaking(NODE(obj));
+	struct gnutella_node *n = NODE(obj);
+
+	node_remove(n, (n->flags & NODE_F_CRAWLER) ?
+		"Sent crawling info" : "Failed (EOF)");
+
+	maybe_downgrade_handshaking(n);
 }
 
 static void err_header_extra_data(gpointer obj)
