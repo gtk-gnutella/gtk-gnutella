@@ -92,12 +92,26 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 /**
  * Skips over all ASCII space characters starting at ``s''.
  *
- * @return a pointer to the first Non-ASCII space character starting from s.
+ * @return a pointer to the first non-space character starting from s.
  */
 static inline gchar *
 skip_ascii_spaces(const gchar *s)
 {
 	while (is_ascii_space(*s))
+		s++;
+
+	return (gchar *) s; /* override const */
+}
+
+/**
+ * Skips over all ASCII blank characters starting at ``s''.
+ *
+ * @return a pointer to the first non-blank character starting from s.
+ */
+static inline gchar *
+skip_ascii_blanks(const gchar *s)
+{
+	while (is_ascii_blank(*s))
 		s++;
 
 	return (gchar *) s; /* override const */
