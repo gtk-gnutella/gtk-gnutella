@@ -1,7 +1,18 @@
 # since last version
 
+- (2003.03.11 - Richard)
+ * Added possibility to tap into the fileinfo database from the gui.
+ * [Gtk1] Added file info table to the downloads pane. This is not finished, 
+   but already helpful.
+ * Added download_restore_state() (seperated out from download_init())
+ * Changed init sequence: first init gui, then read back downloads+fileinfo
+ * Changed shutdown: first close downloads, then gui, then fileinfo
+ * Introduced file_info_ref() and file_info_unref() to make it possible to
+   watch for changes here and notify the gui.
+ * Fixed: PROP_BAN_MAX_FDS not updated in gui
+
 - (2003.03.06 - Richard)
- * Fixed odometers (where all showing "in")
+ * Fixed odometers (were all showing "in")
  * [Gtk1] Added odometers for leaf traffic
  * [Gtk1] Added 3 new icons to the gui
  * Fixed connections odometer for the different peermodes
