@@ -2,6 +2,10 @@ This is the stable 0.93.x branch.
 
 # since last version
 
+- (2004.02.06 - Jeroen)
+ * Fixed compiler warnings
+ * Fixed a possible segfault when using ICU and iconv_open failed
+
 - (2004.02.06 - Richard)
  * [Gtk1] Fixed sorting by name in search_gui.c. Result of 
    search_gui_compare_records was not properly handled.
