@@ -46,6 +46,7 @@
 ?S:	It's not much, but it parallels the loclibpth stuff in libpth.U.
 ?S:.
 ?T:inctest thisincl xxx flag inclwanted ftry previous thislibdir
+?F:!cpp.c
 ?D:cppflags=''
 ?D:ccflags=''
 ?D:ldflags=''

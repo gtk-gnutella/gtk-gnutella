@@ -18,7 +18,7 @@
 ?S:	internally by Configure.
 ?S:.
 ?T:thislib try libnames xxx xscan xrun thisname com tans file
-?F:!libnames
+?F:!libnames !libc.tmp
 ?LINT:change nm_opt runnm
 case "$runnm" in
 true)

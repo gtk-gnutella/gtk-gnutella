@@ -17,9 +17,10 @@
 ?C:.
 ?H:#$d_iptos USE_IP_TOS		/**/
 ?H:.
-?F:iptos iptos.h
+?F:!iptos !iptos.h
 ?T:inh
 ?LINT:set d_iptos
+?LINT:usefile iptos.h
 : check for IP TOS support
 echo " "
 echo "Checking for IP TOS (Type of Service) support..." >&4
