@@ -460,6 +460,7 @@ static gboolean scan_files_once(gpointer p)
 static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 	const gchar *message, gpointer user_data)
 {
+	saved_errno = errno;
 	time_t now;
 	struct tm *ct;
 	const char *level;
@@ -510,6 +511,8 @@ static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
 		raise(SIGTRAP);
 	}
 #endif
+
+	errno = saved_errno;
 }
 
 static void log_init(void)
