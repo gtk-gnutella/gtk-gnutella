@@ -8,6 +8,7 @@ Date: Sun Jun  9 12:09:17 MEST 2002
 Format: <hash type> <binary hash digest>
 COBS-Encoding: Maybe
 Deflate: Never
+Revision: $Id$
 
 The 'H' extension carries a hash digest in binary form.  It is meant to
 replace the "urn:xxx:<base32 digest>" representation defined by HUGE in
@@ -29,8 +30,12 @@ The payload format is:
 
 The currently supported hash types are:
 
-    0x01    sha1        x=20
-    0x02    bitprint    x=20+24=44 (a)
+    Type    Hash        Digest length   URN scheme
+    ----    --------    -------------   -------------
+    0x01    sha1        20              urn:sha1:
+    0x02    bitprint    20+24=44 (a)    urn:bitprint:
+    0x03    md5         16              urn:md5:
+    0x04    uuid        16 (b)          uuid:
 
 The whole payload can be COBS-encoded in the case where the hash digest
 contains NUL bytes and the GGEP extension is used in Query Hits.  It does
@@ -49,4 +54,8 @@ Footnotes
    Here, we encode it as 20 bytes (binary SHA1) and 24 bytes (binary Tiger)
    without any separator between them.  The first 20 bytes refer to the SHA1,
    the trailing 24 bytes refer to the Tiger tree hash.
+
+(b)
+   By uuid, we mean any 128-bit unique identifier that may be used
+   in "uuid:" URNs.
 
