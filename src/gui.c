@@ -89,9 +89,9 @@ void gui_update_global(void)
 
 	gnet_prop_get_guint32_val(PROP_START_STAMP, &start_stamp);
 
-    gtk_label_printf(
+    gtk_label_set_text(
         GTK_LABEL(lookup_widget(main_window, "label_statusbar_uptime")),
-        _("Uptime: %s"), short_uptime(difftime(now, start_stamp)));
+        short_uptime(difftime(now, start_stamp)));
 
     /*
      * Update the different parts of the GUI.
