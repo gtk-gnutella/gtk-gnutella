@@ -274,20 +274,17 @@ struct gnutella_host *host_get_caught(void)
 
 gint hosts_reading_func(gpointer data)
 {
-	gchar *s;
-	guint16 port;
 	gint max_read = max_hosts_cached - g_hash_table_size(ht_catched_hosts);
 	gint count = MIN(max_read, HOST_READ_CNT);
 	gint i;
 
 	for (i = 0; i < count; i++) {
 		if (fgets(h_tmp, sizeof(h_tmp) - 1, hosts_r_file)) { /* NUL appended */
-			s = h_tmp;
-			while (*s && *s != ':')
-				s++;
-			port = (*s) ? atoi(s + 1) : 6346;
-			*s++ = 0;
-			host_add(gchar_to_ip(h_tmp), port, FALSE);
+			guint32 ip;
+			gint16 port;
+
+			if (gchar_to_ip_port(h_tmp, &ip, &port))
+				host_add(ip, port, FALSE);
 		} else
 			goto done;
 	}
