@@ -169,6 +169,7 @@ CORE = \
 	base32.c \
 	base64.c \
 	bg.c \
+	bitzi.c \
 	bsched.c \
 	clock.c \
 	cobs.c \
@@ -319,6 +320,7 @@ OBJLIST = \
 	base64.o \
 	bg.o \
 	bsched.o \
+	bitzi.o \
 	clock.o \
 	cobs.o \
 	common.o \

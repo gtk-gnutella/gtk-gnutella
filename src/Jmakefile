@@ -84,6 +84,7 @@ CORE = \
 	base64.c \
 	bg.c \
 	bsched.c \
+	bitzi.c \
 	clock.c \
 	cobs.c \
 	common.c \
