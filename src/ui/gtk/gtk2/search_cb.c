@@ -282,6 +282,9 @@ gboolean on_tree_view_search_results_key_press_event
     case GDK_Return:
         search_gui_download_files();
         return TRUE;
+	case GDK_Delete:
+        search_gui_discard_files();
+		return TRUE;
     default:
         return FALSE;
     };

@@ -774,32 +774,28 @@ download_selected_all_files(GtkTreeModel *model, GtkTreePath *path,
 }
 
 static void
-download_current_selection(void)
+collect_all_iters(GtkTreeModel *model, GtkTreePath *path,
+		GtkTreeIter *iter, gpointer data)
 {
-	search_t *search = search_gui_get_current_search();
-	GSList *sl = NULL;
-	struct selection_ctx ctx;
-    gboolean clear;
+	struct selection_ctx *ctx = data;
 
-	/* XXX: This has to be GUI (not a core) property! */
-    gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED, &clear);
+	g_assert(ctx != NULL);
+	g_assert(ctx->iters != NULL);
 
-	ctx.tv = GTK_TREE_VIEW(search->tree_view);
-	ctx.iters = clear ? &sl : NULL;
-	gtk_tree_selection_selected_foreach(gtk_tree_view_get_selection(ctx.tv),
-		download_selected_all_files, &ctx);
-
-	if (sl) {
-		GtkTreeModel *model;
-
-		model = gtk_tree_view_get_model(ctx.tv);
-		g_slist_foreach(sl, remove_selected_file, model);
-    	g_slist_free(sl);
+	*ctx->iters = g_slist_prepend(*ctx->iters, w_tree_iter_copy(iter));
+    if (
+            gtk_tree_model_iter_has_child(model, iter) &&
+            !gtk_tree_view_row_expanded(ctx->tv, path)
+    ) {
+        GtkTreeIter child;
+        gint i = 0;
+        
+        while (gtk_tree_model_iter_nth_child(model, &child, iter, i)) {
+			*ctx->iters = g_slist_prepend(*ctx->iters,
+								w_tree_iter_copy(&child));
+            i++;
+        }
 	}
-	
-    gui_search_force_update_tab_label(search, time(NULL));
-    search_gui_update_items(search);
-    guc_search_update_items(search->search_handle, search->items);
 }
 
 struct menu_helper {
@@ -845,25 +841,67 @@ search_gui_menu_select(gint page)
 void
 search_gui_download_files(void)
 {
-    GtkTreeSelection *selection;
-	search_t *current_search = search_gui_get_current_search();
+	search_t *search = search_gui_get_current_search();
+	GSList *sl = NULL;
+	struct selection_ctx ctx;
+    gboolean clear;
 
-	selection = gtk_tree_view_get_selection(
-		GTK_TREE_VIEW(lookup_widget(main_window, "treeview_menu")));
-
-	/* Download the selected files */
-
-	if (current_search) {
-		download_current_selection();
-		gtk_tree_selection_unselect_all(
-			GTK_TREE_SELECTION(gtk_tree_view_get_selection(
-				GTK_TREE_VIEW(current_search->tree_view))));
-	} else {
+	if (!search) {
 		g_warning("search_download_files(): no possible search!");
+		return;
 	}
+	
+	/* XXX: This has to be GUI (not a core) property! */
+    gnet_prop_get_boolean_val(PROP_SEARCH_REMOVE_DOWNLOADED, &clear);
+
+	ctx.tv = GTK_TREE_VIEW(search->tree_view);
+	ctx.iters = clear ? &sl : NULL;
+	gtk_tree_selection_selected_foreach(gtk_tree_view_get_selection(ctx.tv),
+		download_selected_all_files, &ctx);
+
+	if (sl) {
+		GtkTreeModel *model;
+
+		model = gtk_tree_view_get_model(ctx.tv);
+		g_slist_foreach(sl, remove_selected_file, model);
+    	g_slist_free(sl);
+	}
+	
+    gui_search_force_update_tab_label(search, time(NULL));
+    search_gui_update_items(search);
+    guc_search_update_items(search->search_handle, search->items);
 }
 
 
+void
+search_gui_discard_files(void)
+{
+	search_t *search = search_gui_get_current_search();
+	GSList *sl = NULL;
+	struct selection_ctx ctx;
+
+	if (!search) {
+		g_warning("search_download_files(): no possible search!");
+		return;
+	}
+	
+	ctx.tv = GTK_TREE_VIEW(search->tree_view);
+	ctx.iters = &sl;
+	gtk_tree_selection_selected_foreach(gtk_tree_view_get_selection(ctx.tv),
+		collect_all_iters, &ctx);
+
+	if (sl) {
+		GtkTreeModel *model;
+
+		model = gtk_tree_view_get_model(ctx.tv);
+		g_slist_foreach(sl, remove_selected_file, model);
+    	g_slist_free(sl);
+	}
+	
+    gui_search_force_update_tab_label(search, time(NULL));
+    search_gui_update_items(search);
+    guc_search_update_items(search->search_handle, search->items);
+}
 
 /***
  *** Private functions
@@ -884,6 +922,7 @@ add_list_columns(GtkTreeView *treeview)
 	guint32 width[G_N_ELEMENTS(columns)];
 	guint i;
 
+	STATIC_ASSERT(SEARCH_LIST_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
     gui_prop_get_guint32(PROP_SEARCH_LIST_COL_WIDTHS, width, 0,
 		G_N_ELEMENTS(width));
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
