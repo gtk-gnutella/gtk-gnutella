@@ -1,5 +1,13 @@
 # since last version
 
+- (2003.02.04 - RAM)
+ * Abort download if handed out an URL that is too large (probably garbage).
+ * Integrated fuzzy dmesh filtering for non-N2R entries [From Alex Bennee].
+ * Shortened the string displayed for queued download entries.
+ * New properties "pfsp_server", "pfsp_first_chunk" for PFSP (unused for now).
+ * New property "fuzzy_filter_dmesh" to toggle fuzzy dmesh filtering.
+ * Give unused reserved bandwidth for leaf nodes to HTTP traffic.
+
 - (2003.02.03 - RAM)
  * Added inclusion of "common.h" for FreeBSD 4.7 (utf8.c).
  * Integrated PARQ patch: client-side is fully supported [from Jeroen Asselman].
