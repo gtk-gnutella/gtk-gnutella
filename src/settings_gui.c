@@ -147,6 +147,10 @@ static gboolean update_clist_col_widths(property_t prop);
 static gboolean update_bandwidth_spinbutton(property_t prop);
 static gboolean update_window_geometry(property_t prop);
 
+#ifdef USE_GTK2
+static gboolean update_treeview_col_widths(property_t prop);
+#endif
+
 static gboolean bw_http_in_enabled_changed(property_t prop);
 static gboolean bw_gnet_in_enabled_changed(property_t prop);
 static gboolean bw_gnet_out_enabled_changed(property_t prop);
@@ -291,7 +295,15 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_search_jump_to_downloads"
     },
-#ifndef USE_GTK2
+#ifdef USE_GTK2
+    {
+        get_main_window,
+        PROP_NODES_COL_WIDTHS,
+        update_treeview_col_widths,
+        TRUE,
+        "treeview_nodes"
+    },
+#else
     {
         get_main_window,
         PROP_NODES_COL_WIDTHS,
@@ -1543,6 +1555,56 @@ static gboolean update_clist_col_widths(property_t prop)
     return FALSE;
 }
 
+#ifdef USE_GTK2
+static gboolean update_treeview_col_widths(property_t prop)
+{
+    GtkWidget *w;
+    guint32* val = NULL;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    if (!top)
+        return FALSE;
+
+    w = lookup_widget(top, map_entry->wid);
+
+    if (w == NULL) {
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]", 
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
+
+    switch (map_entry->type) {
+        case PROP_TYPE_GUINT32: {
+            gint n = 0;
+            prop_def_t *def;
+
+            val = stub->guint32.get(prop, NULL, 0, 0);
+            def = stub->get_def(prop);
+
+            for (n = 0; n < def->vector_size; n ++) {
+            	GtkTreeViewColumn *col = gtk_tree_view_get_column(
+            		GTK_TREE_VIEW(w), n);
+            		
+            	if (col)
+            		gtk_tree_view_column_set_fixed_width(col, val[n]);
+            }
+
+            prop_free_def(def);
+            break;
+        }
+        default:
+            val = 0;
+            g_error("update_treeview_col_widths: incompatible type %s", 
+                prop_type_str[map_entry->type]);
+    }
+
+    g_free(val);
+    return FALSE;
+}
+#endif // USE_GTK2
 static gboolean update_window_geometry(property_t prop)
 {
     GtkWidget *w;
