@@ -1564,6 +1564,9 @@ static void bsched_stealbeat(bsched_t *bs)
 
 	underused -= bs->bw_unwritten;
 
+	// XXX Remove that for now -- we don't know if the untriggered sources
+	// XXX had anything to write or not. -- RAM, 11/05/2003
+#if 0
 	/*
 	 * That's not enough for writing schedulers: some sources have no
 	 * triggering callback (i.e. we write to them when we have more data),
@@ -1588,6 +1591,7 @@ static void bsched_stealbeat(bsched_t *bs)
 				underused -= half_contribution;
 		}
 	}
+#endif
 
 	if (underused <= 0)				/* Nothing to redistribute */
 		return;
