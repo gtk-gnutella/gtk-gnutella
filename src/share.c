@@ -450,8 +450,6 @@ void search_request(struct gnutella_node *n)
 	guint32 search_len;
 	gchar trailer[10];
 
-	global_searches++;
-
 	/*
 	 * Make sure search request is NUL terminated... --RAM, 06/10/2001
 	 *
@@ -576,6 +574,7 @@ void search_request(struct gnutella_node *n)
 	 * Perform search...
 	 */
 
+	global_searches++;
 	FOUND_RESET();
 
 	found_files = st_search(&search_table, search, got_match,
