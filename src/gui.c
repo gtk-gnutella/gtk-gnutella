@@ -1636,6 +1636,19 @@ void gui_update_download(struct download *d, gboolean force)
 	}
 }
 
+void gui_update_download_server(struct download *d)
+{
+	gint row;
+
+	g_assert(d);
+	g_assert(d->status != GTA_DL_QUEUED);
+	g_assert(d->server);
+
+	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads),
+			(gpointer) d);
+	gtk_clist_set_text(GTK_CLIST(clist_downloads), row, c_dl_server, d->server);
+}
+
 void gui_update_upload(struct upload *u)
 {
 	gfloat rate = 1, pc = 0;

@@ -166,6 +166,7 @@ void gui_update_connection_speed(void);
 void gui_update_count_downloads(void);
 void gui_update_count_uploads(void);
 void gui_update_download(struct download *, gboolean);
+void gui_update_download_server(struct download *);
 void gui_update_download_abort_resume(void);
 void gui_update_download_clear(void);
 void gui_update_files_scanned(void);

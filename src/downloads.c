@@ -2395,6 +2395,7 @@ static void download_request(struct download *d, header_t *header)
 	gchar *buf;
 	struct stat st;
 	gboolean got_content_length = FALSE;
+	gboolean got_new_server = FALSE;
 
 	d->last_update = time(NULL);	/* Done reading headers */
 
@@ -2418,11 +2419,13 @@ static void download_request(struct download *d, header_t *header)
 		buf = header_get(header, "User-Agent");	/* Maybe they're confused */
 
 	if (buf) {
-		if (d->server == NULL)
+		if (d->server == NULL) {
 			d->server = atom_str_get(buf);
-		else if (0 != strcmp(d->server, buf)) {	/* Server name changed? */
+			got_new_server = TRUE;
+		} else if (0 != strcmp(d->server, buf)) {	/* Server name changed? */
 			atom_str_free(d->server);
 			d->server = atom_str_get(buf);
+			got_new_server = TRUE;
 		}
 	}
 
@@ -2559,6 +2562,8 @@ static void download_request(struct download *d, header_t *header)
 		if (!d->always_push && d->sha1)
 			dmesh_remove(d->sha1, d->ip, d->port, d->record_index,
 				d->file_name);
+		if (got_new_server)
+			gui_update_download_server(d);
 		download_stop(d, GTA_DL_ERROR, "HTTP %d %s", ack_code, ack_message);
 		return;
 	}
@@ -2570,6 +2575,9 @@ static void download_request(struct download *d, header_t *header)
 	 * get a valid Content-Range, relax that constraint a bit.
 	 *		--RAM, 08/01/2002
 	 */
+
+	if (got_new_server)
+		gui_update_download_server(d);
 
 	buf = header_get(header, "Content-Length");		/* Mandatory */
 	if (buf) {
