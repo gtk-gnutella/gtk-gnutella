@@ -113,7 +113,6 @@ static guint
 frame_hash(gconstpointer key)
 {
 	struct frame *f = (struct frame *) key;
-	extern guint binary_hash(const guchar *key, gint len);	/* in atoms.c */
 	
 	return binary_hash((gconstpointer) f->stack, f->len * sizeof(void *));
 }

@@ -45,7 +45,7 @@ void dh_route(
 	struct gnutella_node *src, struct gnutella_node *dest, gint count);
 gboolean dh_would_route(const gchar *muid, struct gnutella_node *dest);
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 
 #endif	/* _core_dh_h_ */
 

@@ -1092,7 +1092,6 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 static void
 update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 {
-	extern gint guid_eq(gconstpointer a, gconstpointer b);
 	gchar *vendor;
 	guint32 old_weird = n->n_weird;
 
@@ -1751,9 +1750,6 @@ search_dequeue_all_nodes(gnet_search_t sh)
 void
 search_init(void)
 {
-	extern guint guid_hash(gconstpointer key);		/* from lib/atoms.c */
-	extern gint guid_eq(gconstpointer a, gconstpointer b);
-
 	rs_zone = zget(sizeof(gnet_results_set_t), 1024);
 	rc_zone = zget(sizeof(gnet_record_t), 1024);
     

@@ -71,4 +71,4 @@ void route_proxy_remove(gchar *guid);
 struct gnutella_node *route_proxy_find(gchar *guid);
 
 #endif /* _core_routing_h_ */
-
+/* vi: set ts=4 sw=4 cindent: */

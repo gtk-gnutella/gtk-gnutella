@@ -393,4 +393,4 @@ static struct mq_ops mq_udp_ops = {
 	mq_no_putq,			/* putq */
 };
 
-/* vi: set ts=4 sw=4 cindent=4: */
+/* vi: set ts=4 sw=4 cindent: */

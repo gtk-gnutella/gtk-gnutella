@@ -69,8 +69,6 @@ RCSID("$Id$");
 
 static GSList *pproxies = NULL;	/* Currently active push-proxy requests */
 
-extern gint guid_eq(gconstpointer a, gconstpointer b);
-
 static void send_pproxy_error(struct pproxy *pp, int code,
 	const gchar *msg, ...) G_GNUC_PRINTF(3, 4);
 static void pproxy_error_remove(struct pproxy *pp, int code,

@@ -220,8 +220,6 @@ static enum node_bad node_is_bad(struct gnutella_node *n);
 static gnutella_node_t *node_udp_create(void);
 static gboolean node_remove_useless_leaf(void);
 
-extern gint guid_eq(gconstpointer a, gconstpointer b);
-
 /***
  *** Callbacks
  ***/

@@ -125,5 +125,5 @@ void ext_dump(FILE *fd, const extvec_t *extvec, gint extcnt,
 
 #endif	/* _core_extensions_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 

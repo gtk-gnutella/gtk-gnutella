@@ -506,9 +506,6 @@ dh_would_route(const gchar *muid, gnutella_node_t *dest)
 void
 dh_init(void)
 {
-	extern guint guid_hash(gconstpointer key);
-	extern gint guid_eq(gconstpointer a, gconstpointer b);
-
 	by_muid = g_hash_table_new(guid_hash, guid_eq);
 	by_muid_old = g_hash_table_new(guid_hash, guid_eq);
 	last_rotation = time(NULL);

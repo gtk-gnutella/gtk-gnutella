@@ -43,6 +43,7 @@ RCSID("$Id$");
 #include "if/gui_property.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/atoms.h"
 #include "lib/utf8.h"
 #include "lib/glib-missing.h"
 #include "lib/override.h"		/* Must be the last header included */
@@ -1172,8 +1173,8 @@ void gui_update_download_server(download_t *d)
  */
 void gui_update_download_range(download_t *d)
 {
-	guint32 len;
-	gint rw;
+	filesize_t len;
+	size_t rw;
 	const gchar *and_more = "";
 
 	g_assert(d);
@@ -1226,7 +1227,6 @@ void gui_update_download_host(download_t *d)
  */
 void gui_update_download(download_t *d, gboolean force)
 {
-	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 	const gchar *a = NULL;
 	time_t now = time((time_t *) NULL);
 	struct dl_file_info *fi;
@@ -1511,8 +1511,7 @@ void gui_update_download(download_t *d, gboolean force)
 			rw = 0;
 
 			if (avg_bps) {
-				guint32 remain = 0;
-				guint32 s;
+				filesize_t remain = 0, s;
 				gfloat bs;
 
                 if (d->size > (d->pos - d->skip))
@@ -1579,8 +1578,8 @@ void gui_update_download(download_t *d, gboolean force)
 		a = tmpstr;
 		break;
 	case GTA_DL_SINKING:
-		gm_snprintf(tmpstr, sizeof(tmpstr), _("Sinking (%u bytes left)"),
-			d->sinkleft);
+		gm_snprintf(tmpstr, sizeof(tmpstr),
+			_("Sinking (%" PRIu64 " bytes left)"), (guint64) d->sinkleft);
 		a = tmpstr;
 		break;
 	default:

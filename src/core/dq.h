@@ -54,7 +54,7 @@ void dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv);
 void dq_search_closed(gnet_search_t handle);
 gboolean dq_get_results_wanted(gchar *muid, guint32 *wanted);
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 
 #endif	/* _core_dq_h_ */
 

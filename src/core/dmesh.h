@@ -89,11 +89,11 @@ void dmesh_collect_compact_locations(gchar *sha1, gchar *value);
 gint dmesh_fill_alternate(const gchar *sha1, gnet_host_t *hvec, gint hcnt);
 
 gint dmesh_alternate_location(
-	const gchar *sha1, gchar * buf, gint size, guint32 ip, time_t last_sent,
+	const gchar *sha1, gchar * buf, size_t size, guint32 ip, time_t last_sent,
 	const gchar *vendor, struct dl_file_info *fi, gboolean request);
 
 void dmesh_multiple_downloads(
-	gchar *sha1, guint32 size, struct dl_file_info *fi);
+	gchar *sha1, filesize_t size, struct dl_file_info *fi);
 
 void dmesh_check_results_set(gnet_results_set_t *rs);
 
@@ -102,4 +102,4 @@ void dmesh_ban_store(void);
 
 #endif	/* _core_dmesh_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

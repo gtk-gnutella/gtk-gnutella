@@ -414,9 +414,6 @@ oob_proxy_muid_proxied(gchar *muid)
 void
 oob_proxy_init(void)
 {
-	extern guint guid_hash(gconstpointer key);		/* from lib/atoms.c */
-	extern gint guid_eq(gconstpointer a, gconstpointer b);
-
 	proxied_queries = g_hash_table_new(guid_hash, guid_eq);
 }
 

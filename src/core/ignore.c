@@ -137,9 +137,6 @@ static FILE *open_append(const gchar *file)
  */
 void ignore_init(void)
 {
-	extern guint sha1_hash(gconstpointer key);
-	extern gint sha1_eq(gconstpointer a, gconstpointer b);
-
 	by_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
 	by_namesize = g_hash_table_new(namesize_hash, namesize_eq);
 

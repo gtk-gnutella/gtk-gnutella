@@ -919,10 +919,7 @@ node_mq_cmp(const void *np1, const void *np2)
 	 * each subsequent UP selection...
 	 */
 
-	if (qs1 == qs2)
-		return 0;
-
-	return qs1 < qs2 ? -1 : +1;
+	return CMP(qs1, qs2);
 }
 
 /**
@@ -965,8 +962,7 @@ node_mq_qrp_cmp(const void *np1, const void *np2)
 
 		if (!nu1->can_route == !nu2->can_route) {
 			/* Both can equally route or not route */
-			return qs1 == qs2 ? 0 :
-				qs1 < qs2 ? -1 : +1;
+			return CMP(qs1, qs2);
 		}
 
 		return nu1->can_route ? -1 : +1;
@@ -1774,9 +1770,6 @@ dq_get_results_wanted(gchar *muid, guint32 *wanted)
 void
 dq_init(void)
 {
-	extern guint guid_hash(gconstpointer key);
-	extern gint guid_eq(gconstpointer a, gconstpointer b);
-
 	dqueries = g_hash_table_new(g_direct_hash, 0);
 	by_node_id = g_hash_table_new(NULL, NULL);
 	by_muid = g_hash_table_new(guid_hash, guid_eq);

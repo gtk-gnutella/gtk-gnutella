@@ -50,6 +50,7 @@ RCSID("$Id$");
 
 #include "if/gnet_property_priv.h"
 
+#include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/walloc.h"
 #include "lib/override.h"	/* Must be the last header included */
@@ -1037,8 +1038,6 @@ record_fresh_pong(
 static void
 pcache_udp_ping_received(struct gnutella_node *n)
 {
-	extern gint guid_eq(gconstpointer a, gconstpointer b);
-
 	g_assert(NODE_IS_UDP(n));
 
 	/*

@@ -68,8 +68,6 @@ struct alive_ping {
 
 static void alive_trim_upto(struct alive *a, GSList *item);
 
-extern gint guid_eq(gconstpointer a, gconstpointer b);
-
 /**
  * Create an alive_ping, with proper message ID.
  */

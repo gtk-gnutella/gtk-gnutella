@@ -176,8 +176,6 @@ struct route_log {
 	struct route_dest dest;		/* Message destination */
 };
 
-extern gint guid_eq(gconstpointer a, gconstpointer b);
-
 static void free_route_list(struct message *m);
 
 /**
@@ -667,7 +665,6 @@ routing_init(void)
     gchar guid_buf[16];
 	guint32 i;
 	gboolean need_guid = TRUE;
-	extern guint guid_hash(gconstpointer key);		/* from atoms.c */
 
 	/*
 	 * Make sure it segfaults if we try to access it, but it must be

@@ -547,9 +547,6 @@ oob_got_results(
 void
 oob_init(void)
 {
-	extern guint guid_hash(gconstpointer key);		/* from lib/atoms.c */
-	extern gint guid_eq(gconstpointer a, gconstpointer b);
-
 	results_by_muid = g_hash_table_new(guid_hash, guid_eq);
 	servent_by_host = g_hash_table_new(host_hash, host_eq);
 }

@@ -862,7 +862,7 @@ gui_update_download_server(struct download *d)
 void
 gui_update_download_range(struct download *d)
 {
-	guint32 len;
+	filesize_t len;
 	gchar *and_more = "";
 	gint rw;
 	GtkCTreeNode *node;
@@ -929,7 +929,6 @@ gui_update_download(struct download *d, gboolean force)
 	gfloat bs = 0;
 
 	gint rw;
-	extern gint sha1_eq(gconstpointer a, gconstpointer b);
     gint current_page;
 	static GtkNotebook *notebook = NULL;
 	static GtkNotebook *dl_notebook = NULL;
@@ -1137,7 +1136,7 @@ gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_COMPLETED:
 		if (d->last_update != d->start_date) {
-			guint32 spent = d->last_update - d->start_date;
+			guint32 spent = delta_time(d->last_update, d->start_date);
 
 			gfloat rate = ((d->range_end - d->skip + d->overlap_size) /
 				1024.0) / spent;
@@ -1231,7 +1230,7 @@ gui_update_download(struct download *d, gboolean force)
 			rw = 0;
 
 			if (avg_bps) {
-				guint32 remain = 0;
+				filesize_t remain = 0;
 				guint32 s;
 				gfloat bs;
 
@@ -1297,8 +1296,8 @@ gui_update_download(struct download *d, gboolean force)
 		a = tmpstr;
 		break;
 	case GTA_DL_SINKING:
-		gm_snprintf(tmpstr, sizeof(tmpstr), "Sinking (%u bytes left)",
-			d->sinkleft);
+		gm_snprintf(tmpstr, sizeof(tmpstr), "Sinking (%" PRIu64 " bytes left)",
+			(guint64) d->sinkleft);
 		a = tmpstr;
 		break;
 	default:
