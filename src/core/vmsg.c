@@ -151,10 +151,6 @@ struct vms_feature {
 /**
  * Find message, given vendor code, and id, version.
  *
- * We don't necessarily match the version exactly: we only guarantee to
- * return a handler whose version number is greater or equal than the message
- * received.
- *
  * Returns handler callback if found, NULL otherwise.
  */
 static struct vmsg *
@@ -175,8 +171,8 @@ find_message(guint32 vendor, guint16 id, guint16 version)
 		}
 
 		if (c == 0) {
-			if (mid->version < version)		/* Return match if >= */
-				c = -1;
+			if (mid->version != version)
+				c = mid->version < version ? -1 : +1;
 		}
 
 		if (c == 0)
