@@ -115,6 +115,8 @@ void gtk_mass_widget_set_sensitive(GtkWidget *tl, gchar *list[], gboolean b);
  * GtkTreeView
  */
 #ifdef USE_GTK2
+typedef void (*tree_view_motion_callback)(GtkTreeView *, GtkTreePath *);
+
 GtkTreeIter *w_tree_iter_new(void);
 GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter);
 void w_tree_iter_free(GtkTreeIter *iter);
@@ -125,6 +127,8 @@ void tree_view_restore_visibility(GtkTreeView *treeview, property_t prop);
 void tree_view_restore_widths(GtkTreeView *treeview, property_t prop);
 void set_tooltips_keyboard_mode(GtkWidget *widget, gboolean on);
 void widget_force_tooltip(GtkWidget *widget);
+void tree_view_set_motion_callback(GtkTreeView *tv,
+	tree_view_motion_callback cb);
 #endif /* USE_GTK2 */
 
 /*

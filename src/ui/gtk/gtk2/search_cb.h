@@ -52,6 +52,7 @@ void on_tree_view_search_results_unselect_row(GtkTreeView * tree_view, gint row,
 void on_tree_view_search_results_resize_column(GtkTreeView * tree_view, gint column, gint width, gpointer user_data);
 void on_button_search_passive_clicked (GtkButton *button, gpointer user_data);
 
+void search_update_tooltip(GtkTreeView *tv, GtkTreePath *path);
 void search_callbacks_shutdown(void);
 
 

@@ -578,6 +578,93 @@ tree_view_restore_visibility(GtkTreeView *treeview, property_t prop)
 	}
 }
 
+static gboolean
+on_tree_view_motion_notify(GtkWidget *widget,
+	GdkEventMotion *event, gpointer udata)
+{
+	GtkTreeView *tv;
+	GtkTreePath *path;
+	tree_view_motion_callback cb;
+
+	g_assert(widget != NULL);
+	g_assert(event != NULL);
+	g_assert(udata != NULL);
+
+	tv = GTK_TREE_VIEW(widget);
+	cb = udata;
+	
+#if 0 
+	{
+		gchar type[32];
+#define EVENT_TYPE(x) case x: gm_snprintf(type, sizeof type, "%s", #x); break;
+		switch (event->type) {
+		EVENT_TYPE(GDK_NOTHING)
+		EVENT_TYPE(GDK_DESTROY)
+		EVENT_TYPE(GDK_EXPOSE)
+		EVENT_TYPE(GDK_MOTION_NOTIFY)
+		EVENT_TYPE(GDK_BUTTON_PRESS)
+		EVENT_TYPE(GDK_2BUTTON_PRESS)
+		EVENT_TYPE(GDK_3BUTTON_PRESS)
+		EVENT_TYPE(GDK_BUTTON_RELEASE)
+		EVENT_TYPE(GDK_KEY_PRESS)
+		EVENT_TYPE(GDK_KEY_RELEASE)
+		EVENT_TYPE(GDK_ENTER_NOTIFY)
+		EVENT_TYPE(GDK_LEAVE_NOTIFY)
+		EVENT_TYPE(GDK_FOCUS_CHANGE)
+		EVENT_TYPE(GDK_CONFIGURE)
+		EVENT_TYPE(GDK_MAP)
+		EVENT_TYPE(GDK_UNMAP)
+		EVENT_TYPE(GDK_PROPERTY_NOTIFY)
+		EVENT_TYPE(GDK_SELECTION_CLEAR)
+		EVENT_TYPE(GDK_SELECTION_REQUEST)
+		EVENT_TYPE(GDK_SELECTION_NOTIFY)
+		EVENT_TYPE(GDK_PROXIMITY_IN)
+		EVENT_TYPE(GDK_PROXIMITY_OUT)
+		EVENT_TYPE(GDK_DRAG_ENTER)
+		EVENT_TYPE(GDK_DRAG_LEAVE)
+		EVENT_TYPE(GDK_DRAG_MOTION)
+		EVENT_TYPE(GDK_DRAG_STATUS)
+		EVENT_TYPE(GDK_DROP_START)
+		EVENT_TYPE(GDK_DROP_FINISHED)
+		EVENT_TYPE(GDK_CLIENT_EVENT)
+		EVENT_TYPE(GDK_VISIBILITY_NOTIFY)
+		EVENT_TYPE(GDK_NO_EXPOSE)
+		EVENT_TYPE(GDK_SCROLL)
+		EVENT_TYPE(GDK_WINDOW_STATE)
+		EVENT_TYPE(GDK_SETTING)
+		default:
+			gm_snprintf(type, sizeof type, "%ld", (gulong) event->type);
+		}
+#undef EVENT_TYPE
+
+		g_message("%s: type=%s, x=%d, y=%d, axes=%p, x_root=%d, y_root=%d",
+				__func__, type,
+				(gint) event->x, (gint) event->y, event->axes,
+				(gint) event->x_root, (gint) event->y_root);
+	}
+#endif /* 0 */
+	
+	if (
+		gtk_tree_view_get_path_at_pos(tv,
+			event->x, event->y, &path, NULL, NULL, NULL)
+	) {
+		g_assert(path != NULL);
+		
+		cb(tv, path);
+		gtk_tree_path_free(path);
+		path = NULL;
+	}
+	
+	return FALSE;
+}
+
+void
+tree_view_set_motion_callback(GtkTreeView *tv, tree_view_motion_callback cb)
+{
+	g_signal_connect(GTK_OBJECT(tv),
+		"motion-notify-event", G_CALLBACK(on_tree_view_motion_notify), cb);
+}
+
 #endif /* USE_GTK2 */
 
 gdouble

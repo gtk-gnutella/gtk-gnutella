@@ -432,135 +432,175 @@ on_tree_view_search_results_click_column(GtkTreeViewColumn *unused_column,
 	return FALSE;
 }
 
+static const record_t *
+search_get_record_at_path(GtkTreeView *tv, GtkTreePath *path)
+{
+	const GList *l = search_gui_get_searches();
+	search_t *sch = NULL;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	const record_t *rc;
+
+	for (/* NOTHING */; NULL != l; l = g_list_next(l)) {
+		if (tv == GTK_TREE_VIEW(((search_t *) l->data)->tree_view)) {
+			sch = (search_t *) l->data;
+			break;
+		}
+	}
+	g_return_val_if_fail(NULL != sch, NULL);
+	
+	model = GTK_TREE_MODEL(sch->model);
+	gtk_tree_model_get_iter(model, &iter, path);
+	gtk_tree_model_get(model, &iter, c_sr_record, &rc, (-1));
+
+	return rc;
+}
+
+static const gchar *
+search_get_vendor_from_record(const record_t *rc)
+{
+	gchar *s;
+
+	g_assert(rc != NULL);	
+
+	s = lookup_vendor_name(rc->results_set->vendor);
+	if (s == NULL)
+		return _("Unknown");
+	
+	if (rc->results_set->version) {
+		static gchar buf[128];
+
+		gm_snprintf(buf, sizeof buf, "%s/%s", s, rc->results_set->version);
+		return buf;
+	}
+
+	return s;
+}
+
+void
+search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
+{
+	const record_t *rc;
+	gchar text[1024];
+	
+	g_assert(tv != NULL);
+	g_assert(path != NULL);
+
+	rc = search_get_record_at_path(tv, path);
+	g_return_if_fail(rc != NULL);
+
+	gm_snprintf(text, sizeof text,
+		"%s %s\n"
+		"%s %s (%s)\n"
+		"%s %.64s\n"
+		"%s %s\n"
+		"%s %s\n"
+		"%s %s\n"
+		"%s",
+		_("Peer:"),
+		ip_port_to_gchar(rc->results_set->ip, rc->results_set->port),
+		_("Country:"),
+		iso3166_country_name(rc->results_set->country),
+		iso3166_country_cc(rc->results_set->country),
+		_("Vendor:"),
+		search_get_vendor_from_record(rc),
+		_("SHA1:"),
+		rc->sha1 != NULL ? sha1_base32(rc->sha1) : _("<none>"),
+		_("GUID:"),
+		guid_hex_str(rc->results_set->guid),
+		_("Size:"),
+		short_size(rc->size),
+		_("(Press Control-F1 to toggle view)"));
+
+	gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv), text, NULL);
+	set_tooltips_keyboard_mode(GTK_WIDGET(tv), TRUE);
+}
+
+static void
+search_update_details(GtkTreeView *tv, GtkTreePath *path)
+{
+	GtkTextBuffer *txt;
+	const record_t *rc = NULL;
+	gchar bytes[32];
+
+	g_assert(tv != NULL);
+	g_assert(path != NULL);
+
+	rc = search_get_record_at_path(tv, path);
+	g_return_if_fail(rc != NULL);
+
+	gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
+			lazy_locale_to_utf8(rc->name, 0));
+
+	gtk_entry_printf(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
+			"%s%s",
+			rc->sha1 ? "urn:sha1:" : _("<none>"),
+			rc->sha1 ? sha1_base32(rc->sha1) : "");
+
+	if (rc->results_set->hostname)
+		gtk_entry_set_text(GTK_ENTRY(
+					lookup_widget(main_window, "entry_result_info_source")),
+				hostname_port_to_gchar(
+					rc->results_set->hostname, rc->results_set->port));
+	else
+		gtk_entry_set_text(GTK_ENTRY(
+					lookup_widget(main_window, "entry_result_info_source")),
+				ip_port_to_gchar(rc->results_set->ip, rc->results_set->port));
+
+	gm_snprintf(bytes, sizeof bytes, "%" PRIu64, (guint64) rc->size);
+	gtk_entry_printf(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_size")),
+			_("%s (%s bytes)"), short_size(rc->size), bytes);
+
+	gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_guid")),
+			guid_hex_str(rc->results_set->guid));
+
+	gtk_entry_printf(GTK_ENTRY(
+				lookup_widget(main_window, "entry_result_info_timestamp")),
+			"%25.25s", ctime(&rc->results_set->stamp));
+			/* discard trailing '\n' (see ctime(3) */
+
+	gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_vendor")),
+			search_get_vendor_from_record(rc));
+
+	gtk_entry_printf(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_index")),
+			"%lu", (gulong) rc->index);
+
+	gtk_entry_set_text(
+			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
+			rc->tag ? lazy_locale_to_utf8(rc->tag, 0) : "");
+
+	txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,
+					"textview_result_info_xml"))); 
+	gtk_text_buffer_set_text(txt, rc->xml ? rc->xml : _("<none>"), -1);
+
+}
+
+
 /**
  * This function is called when the user selectes a row in the
  * search results pane. Autoselection takes place here.
  */
 void
-on_tree_view_search_results_select_row(GtkTreeView *view, gpointer unused_udata)
+on_tree_view_search_results_select_row(GtkTreeView *tv, gpointer unused_udata)
 {
-	static gchar tmpstr[4096];
 	GtkTreePath *path;
 
 	(void) unused_udata;
 
-	gtk_tree_view_get_cursor(view, &path, NULL);
-	if (NULL != path) {
-		GtkTreeModel *model;
-		GtkTextBuffer *txt;
-		const record_t *rc = NULL;
-		const gchar *vendor;
-		GtkTreeIter iter;
-		search_t *sch = NULL;
-		const GList *l = search_gui_get_searches();
-		gchar text[1024];
-		gchar bytes[32];
-
-		for (/* NOTHING */; NULL != l; l = g_list_next(l))
-			if (view == GTK_TREE_VIEW(((search_t *) l->data)->tree_view)) {
-				sch = (search_t *) l->data;
-				break;
-			}
-
-		g_assert(NULL != sch);
-		model = GTK_TREE_MODEL(sch->model);
-		gtk_tree_model_get_iter(model, &iter, path);
-		gtk_tree_model_get(model, &iter, c_sr_record, &rc, (-1));
-		g_assert(NULL != rc);
-
-		gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_filename")),
-			lazy_locale_to_utf8(rc->name, 0));
-
-		gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
-			rc->sha1 ? "urn:sha1:" : _("<none>"),
-			rc->sha1 ? sha1_base32(rc->sha1) : "");
-		gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_sha1")),
-			tmpstr);
-
-		if (rc->results_set->hostname)
-			gtk_entry_set_text(GTK_ENTRY(
-				lookup_widget(main_window, "entry_result_info_source")),
-				hostname_port_to_gchar(
-					rc->results_set->hostname, rc->results_set->port));
-		else
-			gtk_entry_set_text(GTK_ENTRY(
-				lookup_widget(main_window, "entry_result_info_source")),
-				ip_port_to_gchar(rc->results_set->ip, rc->results_set->port));
-
-		gm_snprintf(bytes, sizeof bytes, "%" PRIu64, (guint64) rc->size);
-		gm_snprintf(tmpstr, sizeof(tmpstr), _("%s (%s bytes)"),
-			short_size(rc->size), bytes);
-		gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_size")),
-			tmpstr);
-
-		gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_guid")),
-			guid_hex_str(rc->results_set->guid));
-
-		g_strlcpy(tmpstr, ctime(&rc->results_set->stamp),
-			MIN(25U, sizeof tmpstr)); /* discard trailing '\n' (see ctime(3) */
-		gtk_entry_set_text(GTK_ENTRY(
-			lookup_widget(main_window, "entry_result_info_timestamp")),
-			tmpstr);
-
-		vendor = lookup_vendor_name(rc->results_set->vendor);
-		if (vendor == NULL)
-			*tmpstr = '\0';
-		else if (rc->results_set->version)
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s",
-				vendor, rc->results_set->version);
-		else
-			g_strlcpy(tmpstr, vendor, sizeof tmpstr);
-		gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_vendor")),
-			tmpstr);
-
-		gm_snprintf(tmpstr, sizeof(tmpstr), "%lu", (gulong) rc->index);
-		gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_index")),
-			tmpstr);
-
-		gtk_entry_set_text(
-			GTK_ENTRY(lookup_widget(main_window, "entry_result_info_tag")),
-			rc->tag ? lazy_locale_to_utf8(rc->tag, 0) : "");
-		
-		txt = gtk_text_view_get_buffer(GTK_TEXT_VIEW(lookup_widget(main_window,
-					"textview_result_info_xml"))); 
-		gtk_text_buffer_set_text(txt, rc->xml ? rc->xml : _("<none>"), -1);
-			
-		text[0] = '\0';
-		gm_snprintf(text, sizeof text,
-			"%s %s\n"
-			"%s %s (%s)\n"
-			"%s %.64s\n"
-			"%s %s\n"
-			"%s %s\n"
-			"%s %s\n"
-			"%s",
-			_("Peer:"),
-			ip_port_to_gchar(rc->results_set->ip, rc->results_set->port),
-			_("Country:"),
-			iso3166_country_name(rc->results_set->country),
-			iso3166_country_cc(rc->results_set->country),
-			_("Vendor:"),
-			vendor ? vendor : _("Unknown"),
-			_("SHA1:"),
-			rc->sha1 != NULL ? sha1_base32(rc->sha1) : _("<none>"),
-			_("GUID:"),
-			guid_hex_str(rc->results_set->guid),
-			_("Size:"),
-			short_size(rc->size),
-			_("(Press Control-F1 to toggle view)"));
-
-		gtk_tooltips_set_tip(settings_gui_tooltips(),
-				GTK_WIDGET(view), text, NULL);
-		set_tooltips_keyboard_mode(GTK_WIDGET(view), TRUE);
+	gtk_tree_view_get_cursor(tv, &path, NULL);
+	if (path != NULL) {
+		search_update_tooltip(tv, path);
+		search_update_details(tv, path);
+		gtk_tree_path_free(path);
+		path = NULL;
+    	refresh_popups();
 	}
-
-    refresh_popups();
 }
 
 void

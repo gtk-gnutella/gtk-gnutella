@@ -179,6 +179,9 @@ on_enter_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 	gtk_tree_view_get_cursor(GTK_TREE_VIEW(widget), &path, NULL);
 	if (!path) {
 		gtk_tooltips_set_tip(settings_gui_tooltips(), widget, NULL, NULL);
+	} else {
+		gtk_tree_path_free(path);
+		path = NULL;
 	}
 	widget_force_tooltip(widget);
 	return FALSE;
@@ -1362,6 +1365,8 @@ gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 		G_CALLBACK(on_enter_notify), NULL);
     g_signal_connect(GTK_OBJECT(treeview), "leave-notify-event",
 		G_CALLBACK(on_leave_notify), NULL);
+
+	tree_view_set_motion_callback(treeview, search_update_tooltip);
 }
 
 static gboolean
