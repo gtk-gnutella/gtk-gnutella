@@ -651,14 +651,14 @@ void share_scan(void)
 	else
 		in_share_scan = TRUE;
 
-	g_assert(file_basenames == NULL);
-
 	files_scanned = 0;
 	bytes_scanned = 0;
 	kbytes_scanned = 0;
 
 	reinit_sha1_table();
 	share_free();
+
+	g_assert(file_basenames == NULL);
 
 	st_create(&search_table);
 	file_basenames = g_hash_table_new(g_str_hash, g_str_equal);
