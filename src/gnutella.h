@@ -66,15 +66,19 @@
 #define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"
 #define GTA_INTERFACE "X11"
-#define GTA_RELEASE "20/05/2002"
+#define GTA_RELEASE "24/05/2002"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #define GTA_MSG_INIT					0x00
 #define GTA_MSG_INIT_RESPONSE			0x01
 #define GTA_MSG_BYE						0x02
+#define GTA_MSG_QRP						0x30
 #define GTA_MSG_PUSH_REQUEST			0x40
 #define GTA_MSG_SEARCH					0x80
 #define GTA_MSG_SEARCH_RESULTS			0x81
+
+#define GTA_QRP_RESET					0x00
+#define GTA_QRP_PATCH					0x01
 
 /*
  * Structures
@@ -125,6 +129,20 @@ struct gnutella_msg_push_request {
 struct gnutella_bye {
 	guchar code[2];
 	guchar message[0];
+} __attribute__((__packed__));
+
+struct qrp_reset {
+	guchar variant;			/* 0x00 */
+	guchar table_length[4];	/* little endian */
+	guchar infinity;
+} __attribute__((__packed__));
+
+struct qrp_patch {
+	guchar variant;			/* 0x01 */
+	guchar seq_no;
+	guchar seq_size;
+	guchar compressor;
+	guchar entry_bits;
 } __attribute__((__packed__));
 
 /* */
