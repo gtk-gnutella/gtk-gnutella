@@ -101,6 +101,8 @@ static GSList *sl_statusbar_timeouts = NULL;
 
 static GList *sl_search_history = NULL;
 
+static void gui_init_menu();
+
 void gui_init(void)
 {
 	/* popup menus */
@@ -110,6 +112,8 @@ void gui_init(void)
 	create_popup_uploads();
 	create_popup_dl_active();
 	create_popup_dl_queued();	
+
+    gui_init_menu();
 
 	/* statusbar stuff */
 	scid_bottom    = 
@@ -172,8 +176,6 @@ void gui_init(void)
 	gtk_clist_set_reorderable(GTK_CLIST(clist_downloads_queue), TRUE);
    	gtk_clist_set_use_drag_icons(GTK_CLIST(clist_downloads_queue), FALSE);
     
-   
-    
     /* 
      * Just hide the tabs so we can keep them displayed in glade
      * which is easier for editing.
@@ -182,96 +184,105 @@ void gui_init(void)
     gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_main), FALSE);
 }
 
-/*
 static void gui_init_menu() 
 {
-    const gchar *menus[] = {
-		"gnutellaNet",
-		"Uploads",
-		"Stats",
-		"Downloads",
-		"Search",
-		"Monitor",
-		"Stats",
-		"Config",
-		NULL
-	};
+    gchar * title;
+	gint optimal_width;
+	GtkCTreeNode * parent_node = NULL;    
+	GtkCTreeNode * last_node = NULL;
 
-    const gint menutabs[] = { 0, 1, 2, 3, 4, 5, 6, 7, -1 };
-   	gint optimal_width;
-    GtkCTreeNode * parent_node = NULL;    
-    GtkCTreeNode * last_node = NULL;
-
-    g_assert(sizeof(menus) / sizeof(menus[0]) - 2 == NOTEBOOK_MAIN_IDX_MAX);
-
-   	// Final interface setup
-
-	optimal_width =
-		gtk_clist_optimal_column_width(GTK_CLIST(ctree_menu), 0);
-
-    // gnutellaNet
+     // gnutellaNet
+    title = (gchar *) &"gnutellaNet";
     last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[0],
+		GTK_CTREE(ctree_menu), NULL, NULL, &title,
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
     gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[0]);
+		GTK_CTREE(ctree_menu), last_node, 
+        (gpointer) nb_main_page_gnutellaNet);
 
     // Uploads
+    title = (gchar *) &"Uploads";
     parent_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[1],
+		GTK_CTREE(ctree_menu), NULL, NULL, &title,
         0, NULL, NULL, NULL, NULL, FALSE, TRUE );
     gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), parent_node, (gpointer) &menutabs[1]);
+		GTK_CTREE(ctree_menu), parent_node, 
+        (gpointer) nb_main_page_uploads);
 
     // Uploads -> Stats
+    title = (gchar *) &"Stats";
     last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) &menus[2],
+		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
         0, NULL, NULL, NULL, NULL, TRUE, TRUE);
     gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[2]);
+		GTK_CTREE(ctree_menu), last_node, 
+        (gpointer) nb_main_page_uploads_stats);
 
     // Downloads
+    title = (gchar *) &"Downloads";
     last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[3],
+		GTK_CTREE(ctree_menu), NULL, NULL, &title,
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
     gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[3]);
+		GTK_CTREE(ctree_menu), last_node, 
+        (gpointer) nb_main_page_downloads);
 
     // Search
+    title = (gchar *) &"Search";
     parent_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[4],
+		GTK_CTREE(ctree_menu), NULL, NULL, &title,
         0, NULL, NULL, NULL, NULL, FALSE, TRUE );
     gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), parent_node, (gpointer) &menutabs[4]);
+		GTK_CTREE(ctree_menu), parent_node, 
+        (gpointer) nb_main_page_search);
 
     // Search -> Monitor
+    title = (gchar *) &"Monitor";
     last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) & menus[5],
+		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
     gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[5]);
+		GTK_CTREE(ctree_menu), last_node, 
+        (gpointer) nb_main_page_monitor);
 
-    // Search -> Monitor
+    // Search -> search stats
+    title = (gchar *) &"Stats";
     last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) & menus[6],
+		GTK_CTREE(ctree_menu), parent_node, NULL, &title,
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
     gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[6]);
+		GTK_CTREE(ctree_menu), last_node, 
+        (gpointer) nb_main_page_search_stats);
 
     // Config
+    title = (gchar *) &"Config";
     last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) & menus[7],
+		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &title,
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
     gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[7]); 
+		GTK_CTREE(ctree_menu), last_node, 
+        (gpointer) nb_main_page_config); 
 
 	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
+
+    optimal_width =
+		gtk_clist_optimal_column_width(GTK_CLIST(ctree_menu), 0);
 
 	gtk_widget_set_usize(sw_menu, optimal_width,
 						 (ctree_menu->style->font->ascent +
 						  ctree_menu->style->font->descent + 4) * 8);
+
+#ifdef GTA_REVISION
+
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "gtk-gnutella %u.%u %s", GTA_VERSION,
+			   GTA_SUBVERSION, GTA_REVISION);
+#else
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "gtk-gnutella %u.%u", GTA_VERSION,
+			   GTA_SUBVERSION);
+#endif
+
+	gtk_window_set_title(GTK_WINDOW(main_window), gui_tmp);
 }
-*/
 
 void gui_update_all() 
 {
@@ -280,6 +291,10 @@ void gui_update_all()
     /* update gui setting from config variables */
 
     gui_update_guid();
+    
+    gui_update_c_gnutellanet();
+	gui_update_c_uploads();
+	gui_update_c_downloads(0, 0);
     
 	gui_update_count_downloads();
 	gui_update_count_uploads();
@@ -375,6 +390,11 @@ void gui_update_all()
     gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_bws_gout_visible),
 								   progressbar_bws_gout_visible);
 
+    gtk_notebook_set_page(GTK_NOTEBOOK(notebook_sidebar),
+        search_results_show_tabs ? 1 : 0);
+    gtk_notebook_set_show_tabs(GTK_NOTEBOOK(notebook_search_results),
+                               search_results_show_tabs);
+
 	gui_update_proxy_ip();
 	gui_update_proxy_port();
 	gui_update_socks_user();
@@ -449,11 +469,19 @@ void gui_update_all()
 		gtk_clist_set_column_width(GTK_CLIST(clist_ul_stats), i,
                                    ul_stats_col_widths[i]);
 
+    for (i = 0; i < 3; i++)
+		gtk_clist_set_column_width(GTK_CLIST(clist_search), i,
+                                   search_list_col_widths[i]);
+
+
     gtk_paned_set_position(GTK_PANED(vpaned_downloads),
                            downloads_divider_pos);
     
     gtk_paned_set_position(GTK_PANED(hpaned_main),
                            main_divider_pos);
+        
+    gtk_paned_set_position(GTK_PANED(vpaned_sidebar),
+                           side_divider_pos);
 }
 
 void gui_nodes_remove_selected(void)
@@ -1103,10 +1131,7 @@ void gui_update_global(void)
 {
 	static gboolean startupset = FALSE;
 	static time_t   startup;
-    static struct conf_bandwidth max_bw = {0, 0, 0, 0};
-    guint32 high_limit;
-    guint32 current;
-
+   
 	time_t now = time((time_t *) NULL);	
 
 	if( !startupset ) {
@@ -1131,8 +1156,14 @@ void gui_update_global(void)
     g_snprintf(gui_tmp, sizeof(gui_tmp),  "Uptime: %s", 
 							   short_uptime((guint32) difftime(now,startup)));
 	gtk_label_set_text(GTK_LABEL(label_statusbar_uptime), gui_tmp);
+}
 
-	/*
+void gui_update_traffic_stats() {
+    static struct conf_bandwidth max_bw = {0, 0, 0, 0};
+    guint32 high_limit;
+    guint32 current;
+
+  	/*
 	 * Since gtk_progress does not give us enough control over the format
      * of the displayed values, we have regenerate the value string on each
      * update.
@@ -1649,24 +1680,28 @@ void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist)
     gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
 	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_filename, hbox);
     gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*clist), 0, "File");
 
 	label = gtk_label_new("Size");
     hbox = gtk_hbox_new(FALSE, 4);
     gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
 	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_size, hbox);
     gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*clist), 1, "Size");
 
 	label = gtk_label_new("Speed");
     hbox = gtk_hbox_new(FALSE, 4);
     gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
 	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_speed, hbox);
     gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*clist), 2, "Speed");
 
 	label = gtk_label_new("Host");
     hbox = gtk_hbox_new(FALSE, 4);
     gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
 	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_host, hbox);
     gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*clist), 3, "Host");
 
 	label = gtk_label_new("Info");
     gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
@@ -1674,6 +1709,7 @@ void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist)
     gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
 	gtk_clist_set_column_widget(GTK_CLIST(*clist), c_sr_info, hbox);
     gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*clist), 4, "Info");
 
 	gtk_widget_show_all(*sw);
 
@@ -1707,11 +1743,15 @@ void gui_search_update_items(struct search *sch)
 void gui_search_init(void)
 {
 	gui_search_create_clist(&default_scrolled_window, &default_search_clist);
-	gtk_notebook_remove_page(GTK_NOTEBOOK(notebook_search_results), 0);
+    gtk_notebook_remove_page(GTK_NOTEBOOK(notebook_search_results), 0);
 	gtk_notebook_set_scrollable(GTK_NOTEBOOK(notebook_search_results),
 								TRUE);
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results),
 							 default_scrolled_window, NULL);
+  	gtk_notebook_set_tab_label_text(
+        GTK_NOTEBOOK(notebook_search_results),
+        default_scrolled_window, "(no search)");
+    
 	gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo_searches)->popwin),
 					   "hide", GTK_SIGNAL_FUNC(on_search_popdown_switch),
 					   NULL);
@@ -1724,6 +1764,8 @@ void gui_search_init(void)
 /* Like search_update_tab_label but always update the label */
 void gui_search_force_update_tab_label(struct search *sch)
 {
+    gint row;
+
 	if (sch == current_search || sch->unseen_items == 0)
 		g_snprintf(gui_tmp, sizeof(gui_tmp), "%s\n(%d)", sch->query,
 				   sch->items);
@@ -1733,7 +1775,25 @@ void gui_search_force_update_tab_label(struct search *sch)
 	sch->last_update_items = sch->items;
 	gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(notebook_search_results),
 									sch->scrolled_window, gui_tmp);
+
+    row = gtk_clist_find_row_from_data(GTK_CLIST(clist_search), sch);
+    g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", sch->items);
+    gtk_clist_set_text(GTK_CLIST(clist_search), row, c_sl_hit, gui_tmp);
+    g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", sch->unseen_items);
+    gtk_clist_set_text(GTK_CLIST(clist_search), row, c_sl_new, gui_tmp);
+
+    if (sch->unseen_items > 0) {
+        gtk_clist_set_background(
+            GTK_CLIST(clist_search), row, 
+            &gtk_widget_get_style(GTK_WIDGET(clist_search))
+                ->bg[GTK_STATE_ACTIVE]);
+    } else {
+        gtk_clist_set_background
+            (GTK_CLIST(clist_search), row, NULL);
+    }
+
 	sch->last_update_time = time(NULL);
+    
 }
 
 /* Doesn't update the label if nothing's changed or if the last update was
@@ -1813,6 +1873,8 @@ void gui_shutdown(void)
         gtk_paned_get_position(GTK_PANED(vpaned_downloads));
     main_divider_pos = 
         gtk_paned_get_position(GTK_PANED(hpaned_main));
+    side_divider_pos = 
+        gtk_paned_get_position(GTK_PANED(vpaned_sidebar));
 } 
 
 void gui_update_search_stats_update_interval(void)
@@ -1841,5 +1903,6 @@ void gui_update_stats_frames()
         gtk_widget_hide(frame_bws_ginout);
     }
 }
+
 
 /* vi: set ts=4: */
