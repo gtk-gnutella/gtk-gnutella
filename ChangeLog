@@ -1,5 +1,13 @@
 # since last version
 
+- (2002.05.27 - RAM)
+  * Fixed ipf_unban() to test rounded integer counter and not float in removal.
+  * Was not properly updating SHA1 info when library was being rebuilt.
+  * Was not properly sending back urn:sha1 in query hits (truncating the
+	':' separator).
+  * All SHA1 digests are now stored in binary internally.
+  * Added padding chars to base32 encoding, and "const" in the signatures.
+
 - (2002.05.24 - RAM)
   * First stab at QRP.  Computes the routing table, but it is not used yet.
   * Added QRP message definition.
