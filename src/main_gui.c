@@ -411,7 +411,7 @@ static GtkWidget *gui_create_dlg_about(void)
         "Stephane Corbe <noubi@users.sourceforge.net>",
         "Emile le Vivre <emile@struggle.ca>",
         "Angelo Cano <angelo_cano@fastmail.fm>",
-        "Thomas Schuerger <schuerge@wjpserver.cs.uni-sb.de>",
+        "Thomas Schuerger <thomas@schuerger.com>",
         "Russell Francis <rf358197@ohio.edu>",
         "Richard Hyde <email@richardhyde.net>",
         "Thadeu Lima de Souza Cascardo <cascardo@dcc.ufmg.br>",
