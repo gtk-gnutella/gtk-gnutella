@@ -139,6 +139,7 @@ dh_locate(gchar *muid)
 
 	if (found) {
 		g_hash_table_remove(by_muid_old, key);
+		g_assert(!g_hash_table_lookup(by_muid, key));
 		g_hash_table_insert(by_muid, key, value);
 		return (dqhit_t *) value;
 	}
@@ -206,7 +207,8 @@ dh_timer(time_t now)
 	last_rotation = now;
 
 	if (dh_debug > 19)
-		printf("DH rotated tables\n");
+		printf("DH rotated tables, current has %d, old has %d\n",
+			g_hash_table_size(by_muid), g_hash_table_size(by_muid_old));
 }
 
 /**
