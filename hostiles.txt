@@ -134,7 +134,9 @@
 
 # hosted by voxel.net, massive spamming, uploaded file contains also GWebCache
 # URLs and possibly a trojan, SHA1 match fails continously
-69.9.0.0/255.255.0.0
+69.9.187.0/255.255.255.0
+69.9.188.0/255.255.255.0
+69.9.189.0/255.255.255.0
 
 # weasel.net, diverse GWebCache spamming/trashing
 66.68.124.56
