@@ -1,5 +1,9 @@
 # since last version
 
+- (2004.06.06 - TNT)
+ * Added German translation (de.po). Still needs a little
+   fine-tuning.
+
 - (2004.06.04 - TNT)
  * [Gtk2] Added horizon stats table to gnet stats pane. Rearranged
    and optimized pane layout.
