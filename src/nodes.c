@@ -1237,7 +1237,8 @@ static void node_is_now_connected(struct gnutella_node *n)
 	} else if (n->flags & NODE_F_LEAF)
 		n->peermode = NODE_P_LEAF;
 
-	g_assert(current_peermode != NODE_P_LEAF || NODE_IS_ULTRA(n));
+	g_assert(current_peermode != NODE_P_LEAF ||
+		NODE_IS_ULTRA(n) || NODE_IS_PONGING_ONLY(n));
 
 	n->status = GTA_NODE_CONNECTED;
 	n->flags |= NODE_F_VALID | NODE_F_READABLE;
