@@ -2226,6 +2226,9 @@ upload_request(gnutella_upload_t *u, header_t *header)
 		}
 	}
 
+	/* Pick up the X-Remote-IP or Remote-IP header */
+	node_check_remote_ip_header(u->ip, header);
+
 	idx = reqfile->file_index;
 	sha1 = sha1_hash_available(reqfile) ? reqfile->sha1_digest : NULL;
 
@@ -2982,6 +2985,15 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 
 	} else {
 		/*
+		 * If sendfile() failed on a different connection meanwhile
+		 * u->buffer is still NULL for this connection.
+		 */
+		if (sendfile_failed && NULL == u->buffer) {
+			u->buf_size = READ_BUF_SIZE;
+			u->buffer = (gchar *) g_malloc(u->buf_size);
+		}
+		
+		/*
 	 	 * If the buffer position reached the size, then we need to read
 	 	 * more data from the file.
 	 	 */
@@ -3015,14 +3027,20 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 	if ((ssize_t) -1 == written) {
 		gint e = errno;
 
-		if (use_sendfile && e != EINTR && e != EAGAIN) {
+		if (
+			use_sendfile &&
+			e != EINTR &&
+			e != EAGAIN &&
+			e != EPIPE &&
+			e != ECONNRESET
+		) {
 			g_warning("sendfile() failed: \"%s\"\n"
-					"Disabling sendfile() for this session", strerror(e));
+				"Disabling sendfile() for this session", g_strerror(e));
 			sendfile_failed = TRUE;
 		}
 		if (e != EAGAIN) {
 			socket_eof(u->socket);
-			upload_remove(u, "Data write error: %s", g_strerror(errno));
+			upload_remove(u, "Data write error: %s", g_strerror(e));
 		}
 		return;
 	} else if (written == 0) {
