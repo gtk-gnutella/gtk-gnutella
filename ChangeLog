@@ -1,5 +1,25 @@
 # since last version
 
+- (2003.05.15 - RAM)
+ * Allow server to give a smaller range than the one we're requesting.
+ * Reject download when range end is greater than what we asked for.
+ * Persist download PARQ ids.
+ * Added download_find_waiting_unparq() to elect replacing download on QUEUE.
+ * Fixed handling of QUEUE callbacks: was not parsing the ID correctly.
+ * When looking up a PARQ download by ID, if we don't find one for the host,
+   try to pick any non-PARQ waiting download for that host instead.
+ * PARQ ids are now random GUIDs, tagged for GTKG.
+ * Don't call file_info_update(DL_CHUNK_EMPTY) to clear the tail of a range.
+   The routine is not prepared to handle that case.  As a workaround, 
+   call file_info_clear_download() first, then file_info_update(DL_CHUNK_BUSY)
+   on the complementary part.
+ * New file_config_open_read_norename() to open config files that are never
+   written, and which therefore don't need to be renamed as ".orig".
+ * Fixed file_config_open_read() so that it displays "instead" when we open
+   the ".orig" version.
+ * Fixed file_info_update() so that it accepts DL_CHUNK_EMPTY on *whole* ranges.
+ * Open hostiles and whitelist with new file_config_open_read_norename().
+
 - (2003.05.15 - Jeroen)
  * PARQ: Don't display status Waiting when there are no upload slots available
  * PARQ: Send a QUEUE command when an upload slot is available
