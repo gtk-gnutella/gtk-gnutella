@@ -48,6 +48,7 @@ void on_ctree_downloads_tree_select_row
 {
 	gboolean activate = FALSE;
 	struct download *d;
+    GList *selection;
 
 	gui_update_download_abort_resume();
 
@@ -55,8 +56,11 @@ void on_ctree_downloads_tree_select_row
 	if (DL_GUI_IS_HEADER == d)
 		return;
 
-    activate = ((GTK_CLIST(ctree)->selection != NULL) &&
-        (GTK_CLIST(ctree)->selection->next == NULL));
+    selection = GTK_CLIST(ctree)->selection;
+
+    activate = (selection != NULL) &&
+        (selection->next == NULL) &&
+        (!GTK_CTREE_NODE_HAS_CHILDREN(selection->data));
 
     gtk_widget_set_sensitive
         (lookup_widget(popup_downloads, "popup_downloads_copy_url"), activate);
@@ -84,12 +88,15 @@ gboolean on_ctree_downloads_button_press_event
 {
 	gint row;
     gint col;
+    GList *selection;
 
 	if (event->button != 3)
 		return FALSE;
 
+    selection = GTK_CLIST(widget)->selection;
+
 	/* If no items are selected */
-    if (GTK_CLIST(widget)->selection == NULL)
+    if (selection == NULL)
 	{
 	    gtk_widget_set_sensitive
 	        (lookup_widget(popup_downloads, "popup_downloads_abort"), 
@@ -116,12 +123,19 @@ gboolean on_ctree_downloads_button_press_event
 	        (lookup_widget(popup_downloads, "popup_downloads_push"), 
 			FALSE);
 	    gtk_widget_set_sensitive
-	        (lookup_widget(popup_downloads, "popup_downloads_copy_url"), 
+ 	        (lookup_widget(popup_downloads, "popup_downloads_copy_url"), 
 			FALSE);
 	    gtk_widget_set_sensitive
 	        (lookup_widget(popup_downloads, "popup_downloads_connect"), 
 			FALSE);
-	}
+	}else if (GTK_CTREE_NODE_HAS_CHILDREN(selection->data)) {
+	    gtk_widget_set_sensitive
+ 	        (lookup_widget(popup_downloads, "popup_downloads_copy_url"), 
+			FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_downloads, "popup_downloads_connect"), 
+			FALSE);
+    }
 
 	if (!gtk_clist_get_selection_info
 		(GTK_CLIST(widget), event->x, event->y, &row, &col))
@@ -431,6 +445,9 @@ void on_popup_downloads_copy_url_activate(GtkMenuItem * menuitem,
 
     g_return_if_fail(l);
 
+    if (GTK_CTREE_NODE_HAS_CHILDREN(l->data))
+        return;
+
     /* 
      * note that we set the popup dialog as owner, because we can
      * connect the selection_* signals to that using glade.
@@ -471,6 +488,9 @@ void on_popup_downloads_connect_activate(GtkMenuItem * menuitem,
     GList *l = GTK_CLIST(ctree_downloads)->selection;
 
     g_return_if_fail(l);
+
+    if (GTK_CTREE_NODE_HAS_CHILDREN(l->data))
+        return;
 
    	d = (struct download *) 
     	gtk_ctree_node_get_row_data(ctree_downloads, l->data);
@@ -693,6 +713,9 @@ void on_popup_queue_copy_url_activate(GtkMenuItem * menuitem,
 
     g_return_if_fail(l);
 
+    if (GTK_CTREE_NODE_HAS_CHILDREN(l->data))
+        return;
+
     /* 
      * note that we set the popup dialog as owner, because we can
      * connect the selection_* signals to that using glade.
@@ -732,6 +755,9 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
     GList *l = GTK_CLIST(ctree_downloads_queue)->selection;
 
     g_return_if_fail(l);
+
+    if (GTK_CTREE_NODE_HAS_CHILDREN(l->data))
+        return;
 
    	d = (struct download *) 
 	    gtk_ctree_node_get_row_data(ctree_downloads_queue, l->data);
@@ -1000,12 +1026,15 @@ gboolean on_ctree_downloads_queue_button_press_event
 	gint row;
     gint col;
     GtkCTree *ctree_downloads_queue = GTK_CTREE(widget);
+    GList *selection;
 
 	if (event->button != 3)
 		return FALSE;
 
+    selection = GTK_CLIST(widget)->selection;
+
 	/* If no items are selected */
-    if (GTK_CLIST(ctree_downloads_queue)->selection == NULL) {
+    if (selection == NULL) {
 	    gtk_widget_set_sensitive
 	        (lookup_widget(popup_queue, "popup_queue_start_now"), FALSE);
 	    gtk_widget_set_sensitive
@@ -1020,7 +1049,12 @@ gboolean on_ctree_downloads_queue_button_press_event
 	        (lookup_widget(popup_queue, "popup_queue_copy_url"), FALSE);
 	    gtk_widget_set_sensitive
 	        (lookup_widget(popup_queue, "popup_queue_connect"), FALSE);
-	}
+	} else if (GTK_CTREE_NODE_HAS_CHILDREN(selection->data)) {
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_queue, "popup_queue_copy_url"), FALSE);
+	    gtk_widget_set_sensitive
+	        (lookup_widget(popup_queue, "popup_queue_connect"), FALSE);
+    }
 
 	if (
 		!gtk_clist_get_selection_info(GTK_CLIST(ctree_downloads_queue),
