@@ -115,7 +115,8 @@ static gint sent_node_compare(gconstpointer a, gconstpointer b);
 static void search_free_sent_nodes(search_t *sch);
 static gboolean search_reissue_timeout_callback(gpointer data);
 static void update_one_reissue_timeout(search_t *sch);
-static struct results_set *get_results_set(struct gnutella_node *n);
+static struct results_set *get_results_set(
+	struct gnutella_node *n, gboolean validate_only);
 static gboolean search_retrieve_old(void);
 
 #ifndef USE_SEARCH_XML
@@ -1032,17 +1033,22 @@ static gchar *extract_vendor_name(struct results_set * rs)
  * Parse Query Hit and extract the embedded records, plus the optional
  * trailing Query Hit Descritor (QHD).
  *
+ * If `validate_only' is set, we only validate the results and don't wish
+ * to permanently use the results, so don't allocate any memory for each
+ * record.
+ *
  * Returns a structure describing the whole result set, or NULL if we
  * were unable to parse it properly.
  */
-static struct results_set *get_results_set(struct gnutella_node *n)
+static struct results_set *get_results_set(
+	struct gnutella_node *n, gboolean validate_only)
 {
 	struct results_set *rs;
-	struct record *rc;
+	struct record *rc = NULL;
 	gchar *e, *s, *fname, *tag;
 	guint32 nr, size, index, taglen;
 	struct gnutella_search_results *r;
-	GString *info = g_string_sized_new(80);
+	GString *info = NULL;
 	gint sha1_errors = 0;
 	guchar *trailer = NULL;
 
@@ -1053,6 +1059,9 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 				  n->size);
 		return NULL;
 	}
+
+	if (!validate_only)
+		info = g_string_sized_new(80);
 
 	rs = (struct results_set *) g_malloc0(sizeof(struct results_set));
 	r = (struct gnutella_search_results *) n->data;
@@ -1129,11 +1138,14 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 		 */
 
 		nr++;
-		rc = (struct record *) g_malloc0(sizeof(struct record));
 
-		rc->index = index;
-		rc->size = size;
-		rc->name = atom_str_get(fname);
+		if (!validate_only) {
+			rc = (struct record *) g_malloc0(sizeof(struct record));
+
+			rc->index = index;
+			rc->size = size;
+			rc->name = atom_str_get(fname);
+		}
 
 		/*
 		 * If we have a tag, parse it for extensions.
@@ -1161,7 +1173,8 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 			 * Look for a valid SHA1 or a tag string we can display.
 			 */
 
-			g_string_truncate(info, 0);
+			if (!validate_only)
+				g_string_truncate(info, 0);
 
 			for (i = 0; i < exvcnt; i++) {
 				extvec_t *e = &exv[i];
@@ -1172,13 +1185,17 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 					if (
 						huge_sha1_extract32(e->ext_payload, e->ext_paylen,
 							sha1_digest, &n->header, TRUE)
-					)
-						rc->sha1 = atom_sha1_get(sha1_digest);
-					else
+					) {
+						if (!validate_only)
+							rc->sha1 = atom_sha1_get(sha1_digest);
+					} else
 						sha1_errors++;
 					break;
 				case EXT_T_UNKNOWN:
-					if (e->ext_paylen && ext_has_ascii_word(e)) {
+					if (
+						!validate_only &&
+						e->ext_paylen && ext_has_ascii_word(e)
+					) {
 						guchar *p = e->ext_payload + e->ext_paylen;
 						guchar c = *p;
 
@@ -1195,12 +1212,14 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 				}
 			}
 
-			if (info->len)
+			if (!validate_only && info->len)
 				rc->tag = atom_str_get(info->str);
 		}
 
-		rc->results_set = rs;
-		rs->records = g_slist_prepend(rs->records, (gpointer) rc);
+		if (!validate_only) {
+			rc->results_set = rs;
+			rs->records = g_slist_prepend(rs->records, (gpointer) rc);
+		}
 	}
 
 	/*
@@ -1303,7 +1322,8 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 		}
 	}
 
-	g_string_free(info, TRUE);
+	if (!validate_only)
+		g_string_free(info, TRUE);
 	return rs;
 
 	/*
@@ -1322,7 +1342,8 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 	}
 
 	search_free_r_set(rs);
-	g_string_free(info, TRUE);
+	if (!validate_only)
+		g_string_free(info, TRUE);
 
 	return NULL;				/* Forget set, comes from a bad node */
 }
@@ -1803,9 +1824,12 @@ gboolean search_results(struct gnutella_node *n)
 
 	/*
 	 * Parse the packet.
+	 *
+	 * If we're not going to dispatch it to any search, the packet is only
+	 * parsed for validation.
 	 */
 
-	rs = get_results_set(n);
+	rs = get_results_set(n, selected_searches == NULL);
 	if (rs == NULL)
 		goto final_cleanup;
 
