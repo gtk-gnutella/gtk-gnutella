@@ -4063,7 +4063,8 @@ static void download_write_data(struct download *d)
 		g_warning("write to file failed (%s) !", error);
 		g_warning("tried to write(%d, %p, %d)",
 			  d->file_desc, s->buffer, s->pos);
-		download_stop(d, GTA_DL_ERROR, "Can't save data: %s", error);
+		download_queue_delay(d, download_retry_busy_delay,
+			"Can't save data: %s", error);
 		return;
 	}
 
@@ -4073,7 +4074,8 @@ static void download_write_data(struct download *d)
 	if (written < s->pos) {
 		g_warning("partial write of %d out of %d bytes to file '%s'",
 			written, s->pos, d->file_info->file_name);
-		download_stop(d, GTA_DL_ERROR, "Partial write to file");
+		download_queue_delay(d, download_retry_busy_delay,
+			"Partial write to file");
 		return;
 	}
 
