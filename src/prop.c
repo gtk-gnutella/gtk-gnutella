@@ -1170,3 +1170,11 @@ void prop_load_from_file(
 
 	fclose(config);
 }
+
+inline property_t prop_get_by_name(prop_set_t *ps, const gchar *name)
+{
+    g_assert(ps != NULL);
+
+    return GPOINTER_TO_UINT(
+        g_hash_table_lookup(ps->byName, name));
+}

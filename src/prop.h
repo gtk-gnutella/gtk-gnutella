@@ -238,6 +238,7 @@ guint8 *prop_get_storage(
     prop_set_t *, property_t, guint8 *, gsize);
 
 gchar *prop_to_string(prop_set_t *ps, property_t prop);
+inline property_t prop_get_by_name(prop_set_t *ps, const char *name);
 
 #endif /* _prop_h_ */
 
