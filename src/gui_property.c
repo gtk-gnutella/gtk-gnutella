@@ -62,8 +62,8 @@ guint32  uploads_col_widths[6]     = { 200, 120, 36, 80, 80, 80 };
 guint32  uploads_col_widths_def[6] = { 200, 120, 36, 80, 80, 80 };
 guint32  filter_rules_col_widths[4]     = { 10, 240, 80, 40 };
 guint32  filter_rules_col_widths_def[4] = { 10, 240, 80, 40 };
-guint32  filter_filters_col_widths[3]     = { 80, 20, 20 };
-guint32  filter_filters_col_widths_def[3] = { 80, 20, 20 };
+guint32  filter_filters_col_widths[3]     = { 80, 40, 20 };
+guint32  filter_filters_col_widths_def[3] = { 80, 40, 20 };
 guint32  window_coords[4]     = { 0, 0, 0, 0 };
 guint32  window_coords_def[4] = { 0, 0, 0, 0 };
 guint32  filter_dlg_coords[4]     = { 0, 0, 0, 0 };
@@ -112,6 +112,8 @@ gboolean search_autoselect_ident     = FALSE;
 gboolean search_autoselect_ident_def = FALSE;
 gboolean jump_to_downloads     = TRUE;
 gboolean jump_to_downloads_def = TRUE;
+gboolean show_search_results_settings     = FALSE;
+gboolean show_search_results_settings_def = FALSE;
 
 static prop_set_t *gui_property = NULL;
 
@@ -827,6 +829,23 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[38].type               = PROP_TYPE_BOOLEAN;
     gui_property->props[38].data.boolean.def   = &jump_to_downloads_def;
     gui_property->props[38].data.boolean.value = &jump_to_downloads;
+
+
+    /*
+     * PROP_SHOW_SEARCH_RESULTS_SETTINGS:
+     *
+     * General data:
+     */
+    gui_property->props[39].name = "show_search_results_settings";
+    gui_property->props[39].desc = "Display settings";
+    gui_property->props[39].prop_changed_listeners = NULL;
+    gui_property->props[39].save = TRUE;
+    gui_property->props[39].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[39].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[39].data.boolean.def   = &show_search_results_settings_def;
+    gui_property->props[39].data.boolean.value = &show_search_results_settings;
     return gui_property;
 }
 

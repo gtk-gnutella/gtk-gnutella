@@ -178,6 +178,7 @@ static gboolean traffic_stats_mode_changed(property_t prop);
 static gboolean is_firewalled_changed(property_t prop);
 static gboolean min_dup_ratio_changed(property_t prop);
 static gboolean is_inet_connected_changed(property_t prop);
+static gboolean show_search_results_settings_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
 //        description. 
@@ -1127,6 +1128,13 @@ static prop_map_t property_map[] = {
         TRUE,
         NULL
     },
+    {
+        get_main_window,
+        PROP_SHOW_SEARCH_RESULTS_SETTINGS,
+        show_search_results_settings_changed,
+        TRUE,
+        "checkbutton_search_results_show_settings"
+    }
 };
 
 /***
@@ -1919,6 +1927,36 @@ static gboolean min_dup_ratio_changed(property_t prop)
     w = lookup_widget(top, map_entry->wid);
     stub->guint32.get(prop, &val, 0, 1);
     gtk_spin_button_set_value(GTK_SPIN_BUTTON(w), (float)val/100.0);
+
+    return FALSE;
+}
+
+static gboolean show_search_results_settings_changed(property_t prop)
+{
+    GtkWidget *w;
+    GtkWidget *frame;
+    gboolean val;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    if (!top)
+        return FALSE;
+
+    stub->boolean.get(prop, &val, 0, 1);
+
+    w = lookup_widget(top, map_entry->wid);
+    frame = lookup_widget(top, "frame_search_results_settings");
+
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
+
+    if (val) {
+        gtk_label_set_text(GTK_LABEL(GTK_BIN(w)->child), "Hide settings");
+        gtk_widget_show(frame);
+    } else {
+        gtk_label_set_text(GTK_LABEL(GTK_BIN(w)->child), "Show settings");
+        gtk_widget_hide(frame);
+    }
 
     return FALSE;
 }

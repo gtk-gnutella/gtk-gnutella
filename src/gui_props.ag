@@ -161,7 +161,7 @@ prop = {
     type = guint32;
     vector_size = 3;
     data = {
-        default = "{ 80, 20, 20 }";
+        default = "{ 80, 40, 20 }";
     };
 };
 
@@ -394,5 +394,14 @@ prop = {
     type = boolean;
     data = {
         default = TRUE;
+    };
+};
+
+prop = {
+    name = "show_search_results_settings";
+    desc = "Display settings";
+    type = boolean;
+    data = {
+        default = FALSE;
     };
 };
