@@ -68,7 +68,7 @@ static GHashTable *nodes_handles = NULL;
  ***/
 
 static void nodes_gui_node_removed(gnet_node_t);
-static void nodes_gui_node_added(gnet_node_t, const gchar *);
+static void nodes_gui_node_added(gnet_node_t);
 static void nodes_gui_node_info_changed(gnet_node_t);
 static void nodes_gui_node_flags_changed(gnet_node_t);
 
