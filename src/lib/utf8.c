@@ -5388,7 +5388,7 @@ unicode_canonize(const gchar *in)
 	qtmp1 = (UChar *) g_malloc(maxlen * sizeof(UChar));
 	qtmp2 = (UChar *) g_malloc(maxlen * sizeof(UChar));
 
-	len = utf8_to_icu_conv(in, qtmp2, maxlen);
+	len = utf8_to_icu_conv(in, len, qtmp2, maxlen);
 	len = unicode_NFKD(qtmp2, len, qtmp1, maxlen);
 	len = unicode_upper(qtmp1, len, qtmp2, maxlen);
 	len = unicode_lower(qtmp2, len, qtmp1, maxlen);
