@@ -71,7 +71,7 @@ typedef void (*qrp_callback_t)(gpointer arg, gboolean cancelled);
 
 struct gnutella_node;
 
-guint32 qrp_hashcode(gchar *x);
+static guint32 qrp_hashcode(const gchar *x);
 
 void qrp_init(char_map_t map);
 void qrp_close(void);
@@ -100,9 +100,9 @@ void qrt_get_info(gpointer obj, qrt_info_t *qi);
 struct query_hashvec *qhvec_alloc(gint size);
 void qhvec_free(struct query_hashvec *qhvec);
 void qhvec_reset(struct query_hashvec *qhvec);
-query_hashvec_t * qhvec_clone(query_hashvec_t *qsrc);
+query_hashvec_t * qhvec_clone(const query_hashvec_t *qsrc);
 gboolean qhvec_has_source(query_hashvec_t *qhvec, enum query_hsrc src);
-void qhvec_add(struct query_hashvec *qhvec, gchar *word, enum query_hsrc src);
+void qhvec_add(struct query_hashvec *qhvec, const gchar *word, enum query_hsrc src);
 
 GSList *qrt_build_query_target(
 	query_hashvec_t *qhvec, gint hops, gint ttl, struct gnutella_node *source);
