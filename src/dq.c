@@ -52,6 +52,7 @@ RCSID("$Id$");
 #include "qrp.h"
 #include "vmsg.h"
 #include "search.h"
+#include "alive.h"
 #include "override.h"		/* Must be the last header included */
 
 #define DQ_MAX_LIFETIME		300000	/* 5 minutes, in ms */
@@ -61,7 +62,7 @@ RCSID("$Id$");
 #define DQ_TIMEOUT_ADJUST	100		/* 100 ms at each connection */
 #define DQ_MIN_TIMEOUT		1500	/* 1.5 s at least between queries */
 #define DQ_LINGER_TIMEOUT	120000	/* 2 minutes, in ms */
-#define DQ_STATUS_TIMEOUT	25000	/* 25 s, in ms, to reply to query status */
+#define DQ_STATUS_TIMEOUT	20000	/* 20 s, in ms, to reply to query status */
 
 #define DQ_LEAF_RESULTS		50		/* # of results targetted for leaves */
 #define DQ_LOCAL_RESULTS	150		/* # of results for local queries */
@@ -105,6 +106,7 @@ typedef struct dquery {
 	guint32 result_timeout;	/* The current timeout for getting results */
 	gpointer expire_ev;		/* Callout queue global expiration event */
 	gpointer results_ev;	/* Callout queue results expiration event */
+	gpointer alive;			/* Alive ping stats for computing timeouts */
 	time_t start;			/* Time at which it started */
 	time_t stop;			/* Time at which it was terminated */
 	pmsg_t *by_ttl[DQ_MAX_TTL];	/* Copied mesages, one for each TTL */
@@ -739,6 +741,9 @@ dq_results_expired(cqueue_t *cq, gpointer obj)
 	dquery_t *dq = (dquery_t *) obj;
 	gnutella_node_t *n;
 	struct gnutella_header *head;
+	gint timeout;
+	guint32 avg;
+	guint32 last;
 
 	g_assert(!(dq->flags & DQ_F_LINGER));
 
@@ -791,7 +796,19 @@ dq_results_expired(cqueue_t *cq, gpointer obj)
 
 	vmsg_send_qstat_req(n, head->muid);
 
-	dq->results_ev = cq_insert(callout_queue, DQ_STATUS_TIMEOUT,
+	/*
+	 * Compute the timout using the available ping-pong round-trip
+	 * statistics.
+	 */
+
+	alive_get_roundtrip_ms(dq->alive, &avg, &last);
+	timeout = (avg + last) / 2000;		/* An average, converted to seconds */
+	timeout = MAX(timeout, DQ_STATUS_TIMEOUT);
+
+	if (dq_debug > 19)
+		printf("DQ[%d] status reply timeout set to %d s\n", dq->qid, timeout);
+
+	dq->results_ev = cq_insert(callout_queue, timeout,
 		dq_results_expired, dq);
 }
 
@@ -1258,6 +1275,7 @@ dq_launch_net(gnutella_node_t *n, query_hashvec_t *qhv)
 		n->size + sizeof(struct gnutella_header));
 	dq->max_results = DQ_LEAF_RESULTS;
 	dq->ttl = MIN(n->header.ttl, DQ_MAX_TTL);
+	dq->alive = n->alive_pings;
 
 	/*
 	 * Determine whether this query will be leaf-guided.
