@@ -343,7 +343,7 @@ gm_sanitize_filename(const gchar *filename, gboolean no_spaces)
 
 	/* Replace shell meta characters and likely problematic characters */
 	for (p = s; (c = *(guchar *) p) != '\0'; ++p) {
-		static const gchar evil[] = "$&*/\\`:;<>?|~\177";
+		static const gchar evil[] = "$&*/\\`:;()'\"<>?|~\177";
 		
 		if (
 			c < 32
