@@ -9819,6 +9819,7 @@ create_dlg_prefs (void)
   GtkWidget *vbox131;
   GtkWidget *checkbutton_send_oob_queries;
   GtkWidget *checkbutton_process_oob_queries;
+  GtkWidget *checkbutton_proxy_oob_queries;
   GtkWidget *vbox122;
   GtkWidget *frame_expert_search_queue;
   GtkWidget *table75;
@@ -11753,6 +11754,14 @@ create_dlg_prefs (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_process_oob_queries);
   gtk_box_pack_start (GTK_BOX (vbox131), checkbutton_process_oob_queries, FALSE, FALSE, 0);
+
+  checkbutton_proxy_oob_queries = gtk_check_button_new_with_label (_("Act as OOB proxy for leaves"));
+  gtk_widget_set_name (checkbutton_proxy_oob_queries, "checkbutton_proxy_oob_queries");
+  gtk_widget_ref (checkbutton_proxy_oob_queries);
+  gtk_object_set_data_full (GTK_OBJECT (dlg_prefs), "checkbutton_proxy_oob_queries", checkbutton_proxy_oob_queries,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_proxy_oob_queries);
+  gtk_box_pack_start (GTK_BOX (vbox131), checkbutton_proxy_oob_queries, FALSE, FALSE, 0);
 
   vbox122 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox122, "vbox122");

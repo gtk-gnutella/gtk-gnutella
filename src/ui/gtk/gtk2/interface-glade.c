@@ -10880,6 +10880,7 @@ create_dlg_prefs_gnet_tab (void)
   GtkWidget *table101;
   GtkWidget *checkbutton_send_oob_queries;
   GtkWidget *checkbutton_process_oob_queries;
+  GtkWidget *checkbutton_proxy_oob_queries;
   GtkWidget *label885;
   GtkWidget *frame_expert_search_queue;
   GtkWidget *table100;
@@ -11488,7 +11489,7 @@ create_dlg_prefs_gnet_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox286), frame128, FALSE, TRUE, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame128), 4);
 
-  table101 = gtk_table_new (2, 1, FALSE);
+  table101 = gtk_table_new (3, 1, FALSE);
   gtk_widget_set_name (table101, "table101");
   gtk_widget_show (table101);
   gtk_container_add (GTK_CONTAINER (frame128), table101);
@@ -11507,6 +11508,13 @@ create_dlg_prefs_gnet_tab (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (checkbutton_process_oob_queries), TRUE);
+
+  checkbutton_proxy_oob_queries = gtk_check_button_new_with_mnemonic (_("Act as OOB proxy for leaves"));
+  gtk_widget_set_name (checkbutton_proxy_oob_queries, "checkbutton_proxy_oob_queries");
+  gtk_widget_show (checkbutton_proxy_oob_queries);
+  gtk_table_attach (GTK_TABLE (table101), checkbutton_proxy_oob_queries, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label885 = gtk_label_new (_("Out of Band Querying"));
   gtk_widget_set_name (label885, "label885");
@@ -12222,6 +12230,7 @@ create_dlg_prefs_gnet_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table101, "table101");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_send_oob_queries, "checkbutton_send_oob_queries");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_process_oob_queries, "checkbutton_process_oob_queries");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, checkbutton_proxy_oob_queries, "checkbutton_proxy_oob_queries");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, label885, "label885");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, frame_expert_search_queue, "frame_expert_search_queue");
   GLADE_HOOKUP_OBJECT (dlg_prefs_gnet_tab, table100, "table100");

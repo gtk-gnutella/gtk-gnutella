@@ -15836,6 +15836,20 @@ Meet us on #gtk-gnutella at irc.freenode.net.</label>
 			<fill>False</fill>
 		      </child>
 		    </widget>
+
+		    <widget>
+		      <class>GtkCheckButton</class>
+		      <name>checkbutton_proxy_oob_queries</name>
+		      <can_focus>True</can_focus>
+		      <label>Act as OOB proxy for leaves</label>
+		      <active>False</active>
+		      <draw_indicator>True</draw_indicator>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+		    </widget>
 		  </widget>
 		</widget>
 
