@@ -537,6 +537,8 @@ version_init(void)
 	ok = version_parse(version_string, &our_version);
 	g_assert(ok);
 
+	g_message("%s", version_string);
+
 	version_stamp(version_string, &our_version);
 	g_assert(our_version.timestamp != 0);
 
