@@ -26,7 +26,7 @@
 #ifndef __gnet_property_priv_h__
 #define __gnet_property_priv_h__
 
-#include "prop.h"
+#include <glib.h>
 
 extern gboolean reading_hostfile;
 extern gboolean ancient_version;
@@ -108,9 +108,6 @@ extern gchar   *save_file_path;
 extern gchar   *move_file_path;
 extern gchar   *shared_dirs_paths;
 extern gchar   *local_netmasks_string;
-extern gboolean search_stats_enabled;
-extern guint32  search_stats_update_interval;
-extern guint32  search_stats_delcoef;
 extern guint32  total_downloads;
 extern guint32  total_uploads;
 extern guint8   guid[16];

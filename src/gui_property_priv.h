@@ -26,7 +26,7 @@
 #ifndef __gui_property_priv_h__
 #define __gui_property_priv_h__
 
-#include "prop.h"
+#include <glib.h>
 
 extern gboolean monitor_enabled;
 extern guint32  monitor_max_items;
@@ -71,6 +71,9 @@ extern gboolean show_search_results_settings;
 extern gboolean search_autoselect_fuzzy;
 extern guint32  filter_default_policy;
 extern guint32  default_minimum_speed;
+extern gboolean search_stats_enabled;
+extern guint32  search_stats_update_interval;
+extern guint32  search_stats_delcoef;
 
 
 prop_set_t *gui_prop_init(void);

@@ -6,6 +6,7 @@ autogen definitions 'props.tpl';
 
 uses = "sockets.h";
 uses = "gnet.h";
+uses = "bsched.h";
 
 property_set = "gnet_property";
 func_prefix  = "gnet_prop";
@@ -921,37 +922,6 @@ prop = {
     type = string;
     data = {
         default = "";
-    };
-};
-
-prop = {
-    name = "search_stats_enabled";
-    desc = "Collect statistics about search that go through this node";
-    type = boolean;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
-    name = "search_stats_update_interval";
-    desc = "Interval in which the search stats are updated";
-    type = guint32;
-    data = {
-        default = 200;
-        min     = 0;
-        max     = 50000;
-    };
-};
-
-prop = {
-    name = "search_stats_delcoef";
-    desc = "[unknown, please provide description in gnet_props.ag]";
-    type = guint32;
-    data = {
-        default = 25;
-        min     = 0;
-        max     = 100;
     };
 };
 

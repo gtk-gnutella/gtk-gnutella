@@ -24,7 +24,6 @@
  */
 
 #include "prop.h"
-#include "gui_property_priv.h"
 #include "gui_property.h"
 
 
@@ -121,6 +120,12 @@ guint32  filter_default_policy     = FILTER_PROP_STATE_DO;
 guint32  filter_default_policy_def = FILTER_PROP_STATE_DO;
 guint32  default_minimum_speed     = 0;
 guint32  default_minimum_speed_def = 0;
+gboolean search_stats_enabled     = FALSE;
+gboolean search_stats_enabled_def = FALSE;
+guint32  search_stats_update_interval     = 200;
+guint32  search_stats_update_interval_def = 200;
+guint32  search_stats_delcoef     = 25;
+guint32  search_stats_delcoef_def = 25;
 
 static prop_set_t *gui_property = NULL;
 
@@ -908,6 +913,61 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[42].data.guint32.value = &default_minimum_speed;
     gui_property->props[42].data.guint32.max   = 2000;
     gui_property->props[42].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_SEARCH_STATS_ENABLED:
+     *
+     * General data:
+     */
+    gui_property->props[43].name = "search_stats_enabled";
+    gui_property->props[43].desc = "Collect statistics about search that go through this node";
+    gui_property->props[43].prop_changed_listeners = NULL;
+    gui_property->props[43].save = TRUE;
+    gui_property->props[43].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[43].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[43].data.boolean.def   = &search_stats_enabled_def;
+    gui_property->props[43].data.boolean.value = &search_stats_enabled;
+
+
+    /*
+     * PROP_SEARCH_STATS_UPDATE_INTERVAL:
+     *
+     * General data:
+     */
+    gui_property->props[44].name = "search_stats_update_interval";
+    gui_property->props[44].desc = "Interval in which the search stats are updated";
+    gui_property->props[44].prop_changed_listeners = NULL;
+    gui_property->props[44].save = TRUE;
+    gui_property->props[44].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[44].type               = PROP_TYPE_GUINT32;
+    gui_property->props[44].data.guint32.def   = &search_stats_update_interval_def;
+    gui_property->props[44].data.guint32.value = &search_stats_update_interval;
+    gui_property->props[44].data.guint32.max   = 50000;
+    gui_property->props[44].data.guint32.min   = 0;
+
+
+    /*
+     * PROP_SEARCH_STATS_DELCOEF:
+     *
+     * General data:
+     */
+    gui_property->props[45].name = "search_stats_delcoef";
+    gui_property->props[45].desc = "[unknown, please provide description in gnet_props.ag]";
+    gui_property->props[45].prop_changed_listeners = NULL;
+    gui_property->props[45].save = TRUE;
+    gui_property->props[45].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[45].type               = PROP_TYPE_GUINT32;
+    gui_property->props[45].data.guint32.def   = &search_stats_delcoef_def;
+    gui_property->props[45].data.guint32.value = &search_stats_delcoef;
+    gui_property->props[45].data.guint32.max   = 100;
+    gui_property->props[45].data.guint32.min   = 0;
     return gui_property;
 }
 
