@@ -333,7 +333,7 @@ gint main(gint argc, gchar ** argv)
 	pmsg_init();
 	gmsg_init();
 	bsched_init();
-	network_init();
+	node_init();
 	routing_init();
 	search_init();
 	share_init();
