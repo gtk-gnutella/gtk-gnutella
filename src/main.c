@@ -54,6 +54,7 @@
 #include "core/inet.h"
 #include "core/move.h"
 #include "core/nodes.h"
+#include "core/ntp.h"
 #include "core/parq.h"
 #include "core/pcache.h"
 #include "core/pproxy.h"
@@ -252,6 +253,7 @@ void gtk_gnutella_exit(gint n)
 		sleep(1);
 	}
 
+	ntp_close();
 	sq_close();
 	dh_close();
 	dq_close();
@@ -597,6 +599,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	
 	drop_init();
 	download_restore_state();
+	ntp_init();
 
 	/* Some signal handlers */
 

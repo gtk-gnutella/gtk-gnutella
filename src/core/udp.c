@@ -44,6 +44,7 @@ RCSID("$Id$");
 #include "mq_udp.h"
 #include "routing.h"
 #include "pcache.h"
+#include "ntp.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -124,6 +125,19 @@ not:
 void
 udp_received(struct gnutella_socket *s)
 {
+	/*
+	 * If reply comes from the NTP port, notify that they're running NTP.
+	 */
+
+	if (s->ip == 0x7f000001 && s->port == NTP_PORT) {	/* from 127.0.0.1:123 */
+		ntp_got_reply(s);
+		return;
+	}
+
+	/*
+	 * This must be regular Gnutella traffic then.
+	 */
+
 	inet_udp_got_incoming(s->ip);
 	bws_udp_count_read(s->pos);
 
