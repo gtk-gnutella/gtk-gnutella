@@ -4452,11 +4452,11 @@ node_parse(struct gnutella_node *node)
 			regular_size = sizeof(struct gnutella_init_response);
 		break;
 	case GTA_MSG_BYE:
-		if (n->header.hops != 0 || n->header.ttl != 1) {
+		if (n->header.hops != 0 || n->header.ttl > 1) {
 			n->n_bad++;
 			drop = TRUE;
 			if (dbg)
-				gmsg_log_bad(n, "expected hops=0 and TTL=1");
+				gmsg_log_bad(n, "expected hops=0 and TTL<=1");
             gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		}
 		break;
@@ -4492,11 +4492,11 @@ node_parse(struct gnutella_node *node)
 
 	case GTA_MSG_VENDOR:
 	case GTA_MSG_STANDARD:
-		if (n->header.hops != 0 || n->header.ttl != 1) {
+		if (n->header.hops != 0 || n->header.ttl > 1) {
 			n->n_bad++;
 			drop = TRUE;
 			if (dbg)
-				gmsg_log_bad(n, "expected hops=0 and TTL=1");
+				gmsg_log_bad(n, "expected hops=0 and TTL<=1");
             gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		} else if (n->size > MAX_MSG_SIZE) {
             drop = TRUE;
@@ -4508,11 +4508,11 @@ node_parse(struct gnutella_node *node)
 		break;
 
 	case GTA_MSG_QRP:			/* Leaf -> Ultrapeer, never routed */
-		if (n->header.hops != 0 || n->header.ttl != 1) {
+		if (n->header.hops != 0 || n->header.ttl > 1) {
 			n->n_bad++;
 			drop = TRUE;
 			if (dbg)
-				gmsg_log_bad(n, "expected hops=0 and TTL=1");
+				gmsg_log_bad(n, "expected hops=0 and TTL<=1");
             gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		} else if (
 			current_peermode != NODE_P_ULTRA ||
@@ -4529,11 +4529,11 @@ node_parse(struct gnutella_node *node)
 		}
 		break;
 	case GTA_MSG_HSEP_DATA:     /* never routed */
-		if (n->header.hops != 0 || n->header.ttl != 1) {
+		if (n->header.hops != 0 || n->header.ttl > 1) {
 			n->n_bad++;
 			drop = TRUE;
 			if (dbg)
-				gmsg_log_bad(n, "expected hops=0 and TTL=1");
+				gmsg_log_bad(n, "expected hops=0 and TTL<=1");
 			gnet_stats_count_dropped(n, MSG_DROP_IMPROPER_HOPS_TTL);
 		} else if (!(n->attrs & NODE_A_CAN_HSEP)) {
 			drop = TRUE;
