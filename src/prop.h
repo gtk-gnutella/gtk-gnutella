@@ -50,7 +50,8 @@ typedef enum {
     PROP_TYPE_GUINT32,
     PROP_TYPE_STRING,
     PROP_TYPE_IP,
-    PROP_TYPE_STORAGE
+    PROP_TYPE_STORAGE,
+    PROP_TYPE_MULTICHOICE
 } prop_type_t;
 
 extern gchar *prop_type_str[];
@@ -71,11 +72,17 @@ typedef void (*prop_remove_prop_changed_listener_t)
 /*
  * Container struct definitions for the different property types
  */
+typedef struct prop_def_choice {
+    gchar *title;
+    guint32 value;
+} prop_def_choice_t;
+
 typedef struct prop_def_guint32 {
     guint32 *def;    /* default value */
     guint32 *value;  /* current value */
     guint32 min;     /* minimal value */
     guint32 max;     /* maximal value */
+    prop_def_choice_t *choices;
 } prop_def_guint32_t;
 typedef void (*prop_set_guint32_t)
     (property_t, const guint32 *, gsize, gsize);
@@ -83,20 +90,20 @@ typedef guint32 *(*prop_get_guint32_t)
     (property_t, guint32 *, gsize, gsize);
 
 typedef struct prop_def_storage {
-    guint8 *value;  /* current data */
+    guint8 *value;   /* current data */
 } prop_def_storage_t;
 typedef void (*prop_set_storage_t)(property_t, const guint8 *, gsize);
 typedef guint8 *(*prop_get_storage_t)(property_t, guint8 *, gsize);
 
 typedef struct prop_def_string {
-    gchar **def;      /* default value */
+    gchar **def;     /* default value */
     gchar **value;   /* current value */
 } prop_def_string_t;
 typedef void (*prop_set_string_t)(property_t, const gchar *);
 typedef gchar *(*prop_get_string_t)(property_t, gchar *, gsize);
 
 typedef struct prop_def_boolean {
-    gboolean *def;    /* default value */
+    gboolean *def;   /* default value */
     gboolean *value; /* current value */
 } prop_def_boolean_t;
 typedef void (*prop_set_boolean_t)

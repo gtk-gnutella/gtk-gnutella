@@ -30,11 +30,7 @@
 #include "common.h"
 #include "version.h"
 
-#define debug 0
-
-#ifndef USE_GTK2
-#define g_ascii_strcasecmp g_strcasecmp
-#endif
+#define debug common_dbg
 
 /*
  * Checks if a property is part of a property set.
@@ -46,7 +42,8 @@ gchar *prop_type_str[] = {
     "guint32",
     "string",
     "ip",
-    "storage"
+    "storage",
+    "multichoice"
 };
 
 static gchar prop_tmp[4096];
@@ -160,9 +157,10 @@ void prop_parse_storage(const gchar *str, gsize size, guint8 *t)
     if ((size*2) != strlen(str))
         g_error("prop_parse_storage: storage does not match requested size");
 
-    for (i = 0; i < size; i ++)
+    for (i = 0; i < size; i++)
         t[i] = (hex2dec(str[i*2]) << 4) + hex2dec(str[i*2+1]);
 }
+
 
 
 /***
@@ -175,7 +173,8 @@ void prop_parse_storage(const gchar *str, gsize size, guint8 *t)
  * Copy the property definition from the property set and return it. 
  * Use the prop_free_def call to free the memory again. A simple g_free
  * won't do, since there are lot's of pointers to allocated memory
- * in the definition structure.
+ * in the definition structure. 
+ * The prop_changed_listeners field will always be NULL in the copy.
  */
 prop_def_t *prop_get_def(prop_set_t *ps, property_t p)
 {
@@ -187,6 +186,9 @@ prop_def_t *prop_get_def(prop_set_t *ps, property_t p)
         g_error("prop_get_def: unknown property %d", p);
 
     buf = g_memdup(&PROP(ps, p), sizeof(prop_def_t));
+    buf->name = g_strdup(PROP(ps, p).name);
+    buf->desc = g_strdup(PROP(ps, p).desc);
+    buf->prop_changed_listeners = NULL;
 
     switch(buf->type) {
     case PROP_TYPE_BOOLEAN:
@@ -197,6 +199,29 @@ prop_def_t *prop_get_def(prop_set_t *ps, property_t p)
             PROP(ps,p).data.boolean.value,
             sizeof(gboolean) * PROP(ps,p).vector_size);
         break;
+    case PROP_TYPE_MULTICHOICE: {
+        guint n = 0;
+
+        while (PROP(ps,p).data.guint32.choices[n].title != NULL)
+            n++;
+
+        n ++; /* Keep space for terminating {NULL, 0} field */
+
+        buf->data.guint32.choices = g_memdup(
+            PROP(ps,p).data.guint32.choices,
+            sizeof(prop_def_choice_t) * n);
+
+        buf->data.guint32.choices[n-1].title = NULL;
+        buf->data.guint32.choices[n-1].value = 0;
+
+        n = 0;
+        while (PROP(ps,p).data.guint32.choices[n].title != NULL) {
+            buf->data.guint32.choices[n].title = 
+                g_strdup(PROP(ps,p).data.guint32.choices[n].title);
+            n++;
+        }
+        /* no break -> continue to PROP_TYPE_GUINT32 */
+    }
     case PROP_TYPE_IP:
     case PROP_TYPE_GUINT32:
         buf->data.guint32.def = g_memdup(
@@ -226,26 +251,39 @@ void prop_free_def(prop_def_t *d)
 
     switch(d->type) {
     case PROP_TYPE_BOOLEAN:
-        g_free(d->data.boolean.value);
-        g_free(d->data.boolean.def);
+        G_FREE_NULL(d->data.boolean.value);
+        G_FREE_NULL(d->data.boolean.def);
         break;
+    case PROP_TYPE_MULTICHOICE: {
+        guint n = 0;
+
+        while (d->data.guint32.choices[n].title != NULL) {
+            G_FREE_NULL(d->data.guint32.choices[n].title);
+            n++;
+        }
+
+        G_FREE_NULL(d->data.guint32.choices);
+        /* no break -> continue to PROP_TYPE_GUINT32 */
+    }
     case PROP_TYPE_IP:
     case PROP_TYPE_GUINT32:
-        g_free(d->data.guint32.value);
-        g_free(d->data.guint32.def);
+        G_FREE_NULL(d->data.guint32.value);
+        G_FREE_NULL(d->data.guint32.def);
         break;
     case PROP_TYPE_STRING:
 		if (*d->data.string.value)
-			g_free(*d->data.string.value);
+			G_FREE_NULL(*d->data.string.value);
 		if (*d->data.string.def)
-			g_free(*d->data.string.def);
-        g_free(d->data.string.value);
-        g_free(d->data.string.def);
+			G_FREE_NULL(*d->data.string.def);
+        G_FREE_NULL(d->data.string.value);
+        G_FREE_NULL(d->data.string.def);
         break;
     case PROP_TYPE_STORAGE:
-        g_free(d->data.storage.value);
+        G_FREE_NULL(d->data.storage.value);
     }
-    g_free(d);
+    G_FREE_NULL(d->name);
+    G_FREE_NULL(d->desc);
+    G_FREE_NULL(d);
 } 
 
 /*
@@ -317,7 +355,7 @@ void prop_set_boolean(
 
     g_assert(offset+length <= PROP(ps,prop).vector_size);
 
-    for (n = offset; (n < length) && !differ; n ++) {
+    for (n = offset; (n < length) && !differ; n++) {
         old = PROP(ps,prop).data.boolean.value[n] ? 1 : 0;
         new = src[n] ? 1 : 0;
         
@@ -336,7 +374,7 @@ void prop_set_boolean(
 
         printf("updated property [%s] = ( ", PROP(ps,prop).name);
             
-        for(n = 0; n < PROP(ps,prop).vector_size; n ++)
+        for(n = 0; n < PROP(ps,prop).vector_size; n++)
             printf("%s%s ", 
                 *PROP(ps,prop).data.boolean.value ? "TRUE" : "FALSE",
                 (n < (PROP(ps,prop).vector_size-1)) ? "," : "");
@@ -391,13 +429,15 @@ void prop_set_guint32(
     if(!prop_in_range(ps, prop))
         g_error("prop_set_guint32: unknown property %d", prop);
     if((PROP(ps,prop).type != PROP_TYPE_GUINT32) &&
-       (PROP(ps,prop).type != PROP_TYPE_IP))
+       (PROP(ps,prop).type != PROP_TYPE_IP) &&
+       (PROP(ps,prop).type != PROP_TYPE_MULTICHOICE) )
         g_error("Type mismatch setting value for [%s] of type" 
-            " %s when %s or %s was expected",
+            " %s when %s, %s or %s was expected",
             PROP(ps,prop).name,
             prop_type_str[PROP(ps,prop).type],
             prop_type_str[PROP_TYPE_GUINT32],
-            prop_type_str[PROP_TYPE_IP]);
+            prop_type_str[PROP_TYPE_IP],
+            prop_type_str[PROP_TYPE_MULTICHOICE]);
 
     if (length == 0)
         length = PROP(ps,prop).vector_size;
@@ -414,27 +454,57 @@ void prop_set_guint32(
      * Only do bounds-checking on non-vector properties.
      */
     if (PROP(ps,prop).vector_size == 1) {
-        if (
-            (PROP(ps,prop).data.guint32.min <= *src) &&
-            (PROP(ps,prop).data.guint32.max >= *src)
-        ) {
-            *PROP(ps,prop).data.guint32.value = *src;
-        } else {
+        /*
+         * Either check multiple choices or min/max.
+         */
+        if (PROP(ps,prop).type == PROP_TYPE_MULTICHOICE) {
+            guint n = 0;
+            gboolean invalid = TRUE;
             guint32 newval = *src;
 
-            if (newval > PROP(ps,prop).data.guint32.max)
-                newval = PROP(ps,prop).data.guint32.max;
-            if (newval < PROP(ps,prop).data.guint32.min)
-                newval = PROP(ps,prop).data.guint32.min;
+            g_assert(PROP(ps,prop).data.guint32.choices != NULL);
 
-            g_warning("prop_set_guint32: [%s] new value out of bounds "
-                "(%u/%u): %u (adjusting to %u)",
-                PROP(ps,prop).name,
-                PROP(ps,prop).data.guint32.min,
-                PROP(ps,prop).data.guint32.max,
-                *src, newval );
+            while (PROP(ps,prop).data.guint32.choices[n].title != NULL) {
+                if (PROP(ps,prop).data.guint32.choices[n].value == newval) {
+                    invalid = FALSE;
+                    break;
+                }
+                n++;
+            }
 
-            *PROP(ps,prop).data.guint32.value = newval;
+            if (invalid) {
+                g_warning("prop_set_guint32: [%s] new value is invalid " 
+                    "choice %u (leaving at %u)", 
+                    PROP(ps,prop).name, newval, *src);
+            } else {
+                *PROP(ps,prop).data.guint32.value = newval;
+            }
+        } else {
+
+            g_assert(PROP(ps,prop).data.guint32.choices == NULL);
+
+            if (
+                (PROP(ps,prop).data.guint32.min <= *src) &&
+                (PROP(ps,prop).data.guint32.max >= *src)
+            ) {
+                *PROP(ps,prop).data.guint32.value = *src;
+            } else {
+                guint32 newval = *src;
+    
+                if (newval > PROP(ps,prop).data.guint32.max)
+                    newval = PROP(ps,prop).data.guint32.max;
+                if (newval < PROP(ps,prop).data.guint32.min)
+                    newval = PROP(ps,prop).data.guint32.min;
+    
+                g_warning("prop_set_guint32: [%s] new value out of bounds "
+                    "(%u/%u): %u (adjusting to %u)",
+                    PROP(ps,prop).name,
+                    PROP(ps,prop).data.guint32.min,
+                    PROP(ps,prop).data.guint32.max,
+                    *src, newval );
+    
+                *PROP(ps,prop).data.guint32.value = newval;
+            }
         }
     } else {
         memcpy(&PROP(ps,prop).data.guint32.value[offset], src,
@@ -446,14 +516,13 @@ void prop_set_guint32(
 
         printf("updated property [%s] = ( ", PROP(ps,prop).name);
 
-        for (n = 0; n < PROP(ps,prop).vector_size; n ++) {
-            if (PROP(ps,prop).type == PROP_TYPE_GUINT32) {
-                printf("%u%s ", PROP(ps,prop).data.guint32.value[n],
-                    (n < (PROP(ps,prop).vector_size-1)) ? "," : "");
-            }
+        for (n = 0; n < PROP(ps,prop).vector_size; n++) {
             if (PROP(ps,prop).type == PROP_TYPE_IP) {
                 printf("%s%s ", ip_to_gchar(
                     PROP(ps,prop).data.guint32.value[n]),
+                    (n < (PROP(ps,prop).vector_size-1)) ? "," : "");
+            } else {
+                printf("%u%s ", PROP(ps,prop).data.guint32.value[n],
                     (n < (PROP(ps,prop).vector_size-1)) ? "," : "");
             }
         }
@@ -475,13 +544,15 @@ guint32 *prop_get_guint32(
     if(!prop_in_range(ps, prop))
         g_error("prop_get_guint32: unknown property %d", prop);
     if((PROP(ps,prop).type != PROP_TYPE_GUINT32) &&
-       (PROP(ps,prop).type != PROP_TYPE_IP))
-        g_error("Type mismatch getting value for [%s] of type" 
-            " %s when %s or %s was expected",
+       (PROP(ps,prop).type != PROP_TYPE_IP) &&
+       (PROP(ps,prop).type != PROP_TYPE_MULTICHOICE) )
+        g_error("Type mismatch setting value for [%s] of type" 
+            " %s when %s, %s or %s was expected",
             PROP(ps,prop).name,
             prop_type_str[PROP(ps,prop).type],
             prop_type_str[PROP_TYPE_GUINT32],
-            prop_type_str[PROP_TYPE_IP]);
+            prop_type_str[PROP_TYPE_IP],
+            prop_type_str[PROP_TYPE_MULTICHOICE]);
 
    if (length == 0)
         length = PROP(ps,prop).vector_size;
@@ -498,8 +569,8 @@ guint32 *prop_get_guint32(
     return target;
 }
 
-void prop_set_storage
-    (prop_set_t *ps, property_t prop, const guint8 *src, gsize length)
+void prop_set_storage(
+    prop_set_t *ps, property_t prop, const guint8 *src, gsize length)
 {
     gboolean differ = FALSE;
 
@@ -533,8 +604,8 @@ void prop_set_storage
     prop_emit_prop_changed(ps, prop);
 }
 
-guint8 *prop_get_storage
-    (prop_set_t *ps, property_t prop, guint8 *t, gsize length)
+guint8 *prop_get_storage(
+    prop_set_t *ps, property_t prop, guint8 *t, gsize length)
 {
     gpointer target;
    
@@ -798,7 +869,7 @@ void prop_save_to_file
     fprintf(config, "#\n# Description of contents\n");
     fprintf(config, "%s\n\n", config_comment(ps->desc));
 
-    for (n = 0; n < ps->size; n ++) {
+    for (n = 0; n < ps->size; n++) {
         prop_def_t *p = &ps->props[n];
         gchar **vbuf;
         gint i;
@@ -816,7 +887,7 @@ void prop_save_to_file
 
         switch(p->type) {
         case PROP_TYPE_BOOLEAN:
-            for (i = 0; i < p->vector_size; i ++) {
+            for (i = 0; i < p->vector_size; i++) {
                 g_snprintf(sbuf, sizeof(sbuf), "%s", 
                     config_boolean(p->data.boolean.value[i]));
                 vbuf[i] = g_strdup(sbuf);
@@ -825,8 +896,9 @@ void prop_save_to_file
                 
             val = g_strjoinv(",", vbuf);
             break;
+        case PROP_TYPE_MULTICHOICE:
         case PROP_TYPE_GUINT32:
-            for (i = 0; i < p->vector_size; i ++) {
+            for (i = 0; i < p->vector_size; i++) {
                 g_snprintf(sbuf, sizeof(sbuf), "%u", 
                         p->data.guint32.value[i]);
                 vbuf[i] = g_strdup(sbuf);
@@ -840,7 +912,7 @@ void prop_save_to_file
             quotes = TRUE;
             break;
         case PROP_TYPE_IP:
-            for (i = 0; i < p->vector_size; i ++) {
+            for (i = 0; i < p->vector_size; i++) {
                 g_snprintf(sbuf, sizeof(sbuf), "%s", 
                         ip_to_gchar(p->data.guint32.value[i]));
                 vbuf[i] = g_strdup(sbuf);
@@ -858,7 +930,7 @@ void prop_save_to_file
              * a byte is not 8 bits. Also see guid_hex_str in misc.c
              *      -- Richard, 12/08/200
              */
-            for (i = 0; i < p->vector_size; i ++)
+            for (i = 0; i < p->vector_size; i++)
                 g_snprintf(&val[(i*2)], 3, "%02x", p->data.storage.value[i]);
     
             val[(p->vector_size*2)] = '\0';
@@ -915,6 +987,7 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
         prop_parse_boolean_vector(val, p->vector_size, (gboolean *)vecbuf);
         stub->boolean.set(prop, (gboolean *)&vecbuf, 0, 0);
         break;
+    case PROP_TYPE_MULTICHOICE:
     case PROP_TYPE_GUINT32:
         g_assert(
             (p->vector_size * sizeof(guint32)) < 
@@ -948,8 +1021,8 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
     g_free(stub);
 }
 
-void prop_load_from_file
-    (prop_set_t *ps, const gchar *dir, const gchar *filename)
+void prop_load_from_file(
+    prop_set_t *ps, const gchar *dir, const gchar *filename)
 {
 	FILE *config;
 	gchar *s, *k, *v;
