@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Bandwidth scheduling.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,12 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @file
+ *
+ * Bandwidth scheduling.
  */
 
 #include "gnutella.h"
@@ -62,6 +66,7 @@ static gint bws_out_ema = 0;
 #define BW_OUT_LEAF_MIN	32		/* Minimum out bandwidth per leaf connection */
 
 #define BW_TCP_MSG		40		/* Smallest size of a TCP message */
+#define BW_UDP_MSG		20		/* Minimal IP overhead for a UDP message */
 
 /*
  * Determine how large an I/O vector the kernel can accept.
@@ -77,13 +82,12 @@ static gint bws_out_ema = 0;
 #define MAX_IOV_COUNT	16				/* Unknown, use required minimum */
 #endif
 
-/*
- * safe_writev
- *
+/**
  * Wrapper over writev() ensuring that we don't request more than
  * MAX_IOV_COUNT entries at a time.
  */
-static gint safe_writev(gint fd, struct iovec *iov, gint iovcnt)
+static gint
+safe_writev(gint fd, struct iovec *iov, gint iovcnt)
 {
 	gint sent = 0;
 	struct iovec *end = iov + iovcnt;
@@ -128,9 +132,7 @@ static gint safe_writev(gint fd, struct iovec *iov, gint iovcnt)
 	return sent;
 }
 
-/*
- * bsched_make
- *
+/**
  * Create a new bandwidth scheduler.
  *
  * `type' refers to the scheduling model.  Only BS_T_STREAM for now.
@@ -138,8 +140,8 @@ static gint safe_writev(gint fd, struct iovec *iov, gint iovcnt)
  * `bandwidth' is the expected bandwidth in bytes per second.
  * `period' is the scheduling period in ms.
  */
-bsched_t *bsched_make(gchar *name,
-	gint type, guint32 mode, gint bandwidth, gint period)
+bsched_t *
+bsched_make(gchar *name, gint type, guint32 mode, gint bandwidth, gint period)
 {
 	bsched_t *bs;
 
@@ -168,15 +170,14 @@ bsched_t *bsched_make(gchar *name,
 	return bs;
 }
 
-/*
- * bsched_free
- *
+/**
  * Free bandwidth scheduler.
  *
  * All sources have their bsched pointer reset to NULL but are not disposed of.
  * Naturally, they cannot be used for I/O any more.
  */
-static void bsched_free(bsched_t *bs)
+static void
+bsched_free(bsched_t *bs)
 {
 	GList *l;
 
@@ -193,13 +194,12 @@ static void bsched_free(bsched_t *bs)
 	G_FREE_NULL(bs);
 }
 
-/*
- * bsched_add_stealer
- *
+/**
  * Add `stealer' as a bandwidth stealer for underused bandwidth in `bs'.
  * Both must be either reading or writing schedulers.
  */
-static void bsched_add_stealer(bsched_t *bs, bsched_t *stealer)
+static void
+bsched_add_stealer(bsched_t *bs, bsched_t *stealer)
 {
 	g_assert(bs != stealer);
 	g_assert((bs->flags & BS_F_RW) == (stealer->flags & BS_F_RW));
@@ -207,12 +207,11 @@ static void bsched_add_stealer(bsched_t *bs, bsched_t *stealer)
 	bs->stealers = g_slist_prepend(bs->stealers, stealer);
 }
 
-/*
- * bsched_init
- *
+/**
  * Initialize global bandwidth schedulers.
  */
-void bsched_init(void)
+void
+bsched_init(void)
 {
 	bws.out = bsched_make("out",
 		BS_T_STREAM, BS_F_WRITE, bw_http_out, 1000);
@@ -268,12 +267,11 @@ void bsched_init(void)
 	bsched_set_peermode(current_peermode);
 }
 
-/*
- * bsched_close
- *
+/**
  * Discard global bandwidth schedulers.
  */
-void bsched_close(void)
+void
+bsched_close(void)
 {
 	GSList *l;
 
@@ -286,16 +284,15 @@ void bsched_close(void)
 	bws.out = bws.in = bws.gout = bws.gin = bws.glin = bws.glout = NULL;
 }
 
-/*
- * bsched_set_peermode
- *
+/**
  * Adapt the overall Gnet/HTTP bandwidth repartition depending on the current
  * peermode.
  *
  * This routine is called each time the peermode changes or each time the
  * settings for the traffic shapers changes.
  */
-void bsched_set_peermode(node_peer_t mode)
+void
+bsched_set_peermode(node_peer_t mode)
 {
 	guint32 steal;
 
@@ -341,12 +338,11 @@ void bsched_set_peermode(node_peer_t mode)
 	}
 }
 
-/*
- * bsched_enable
- *
+/**
  * Enable scheduling, marks the start of the period.
  */
-void bsched_enable(bsched_t *bs)
+void
+bsched_enable(bsched_t *bs)
 {
 
 	g_assert(bs);
@@ -355,24 +351,22 @@ void bsched_enable(bsched_t *bs)
 	g_get_current_time(&bs->last_period);
 }
 
-/*
- * bsched_disable
- *
+/**
  * Disable scheduling.
  */
-void bsched_disable(bsched_t *bs)
+void
+bsched_disable(bsched_t *bs)
 {
 	g_assert(bs);
 
 	bs->flags &= ~BS_F_ENABLED;
 }
 
-/*
- * bsched_enable_all
- *
+/**
  * Enable all known bandwidth schedulers.
  */
-void bsched_enable_all(void)
+void
+bsched_enable_all(void)
 {
 	if (bws.out->bw_per_second && bws_out_enabled)
 		bsched_enable(bws.out);
@@ -393,14 +387,13 @@ void bsched_enable_all(void)
 		bsched_enable(bws.glin);
 }
 
-/*
- * bsched_shutdown
- *
+/**
  * Shutdowning program.
  * Disable all known bandwidth schedulers, so that any pending I/O can
  * go through as quickly as possible.
  */
-void bsched_shutdown(void)
+void
+bsched_shutdown(void)
 {
 	GSList *l;
 
@@ -408,12 +401,11 @@ void bsched_shutdown(void)
 		bsched_disable(l->data);
 }
 
-/*
- * bio_enable
- *
+/**
  * Enable an I/O source.
  */
-static void bio_enable(bio_source_t *bio)
+static void
+bio_enable(bio_source_t *bio)
 {
 	g_assert(bio->io_tag == 0);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
@@ -426,16 +418,15 @@ static void bio_enable(bio_source_t *bio)
 	g_assert(bio->io_tag);
 }
 
-/*
- * bio_disable
- *
+/**
  * Disable I/O source.
  *
  * The value of `bw_available' is ignored, as this is a fairly low-level call.
  * If it is called, then the caller has already taken care of redispatching
  * any remaining bandwidth.
  */
-static void bio_disable(bio_source_t *bio)
+static void
+bio_disable(bio_source_t *bio)
 {
 	g_assert(bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
@@ -444,13 +435,11 @@ static void bio_disable(bio_source_t *bio)
 	bio->io_tag = 0;
 }
 
-/*
- * bio_add_callback
- *
+/**
  * Add I/O callback to a "passive" I/O source.
  */
-void bio_add_callback(bio_source_t *bio,
-	inputevt_handler_t callback, gpointer arg)
+void
+bio_add_callback(bio_source_t *bio, inputevt_handler_t callback, gpointer arg)
 {
 	g_assert(bio);
 	g_assert(bio->io_callback == NULL);	/* "passive" source */
@@ -463,12 +452,11 @@ void bio_add_callback(bio_source_t *bio,
 		bio_enable(bio);
 }
 
-/*
- * bio_remove_callback
- *
+/**
  * Remove I/O callback from I/O source.
  */
-void bio_remove_callback(bio_source_t *bio)
+void
+bio_remove_callback(bio_source_t *bio)
 {
 	g_assert(bio);
 	g_assert(bio->io_callback);		/* Not a "passive" source */
@@ -481,12 +469,11 @@ void bio_remove_callback(bio_source_t *bio)
 }
 
 
-/*
- * bsched_no_more_bandwidth
- *
+/**
  * Disable all sources and flag that we have no more bandwidth.
  */
-static void bsched_no_more_bandwidth(bsched_t *bs)
+static void
+bsched_no_more_bandwidth(bsched_t *bs)
 {
 	GList *l;
 
@@ -500,12 +487,11 @@ static void bsched_no_more_bandwidth(bsched_t *bs)
 	bs->flags |= BS_F_NOBW;
 }
 
-/*
- * bsched_clear_active
- *
+/**
  * Remove activation indication on all the sources.
  */
-static void bsched_clear_active(bsched_t *bs)
+static void
+bsched_clear_active(bsched_t *bs)
 {
 	GList *l;
 
@@ -516,16 +502,15 @@ static void bsched_clear_active(bsched_t *bs)
 	}
 }
 
-/*
- * bsched_begin_timeslice
- *
+/**
  * Called whenever a new scheduling timeslice begins.
  *
  * Re-enable all sources and flag that we have bandwidth.
  * Update the per-source bandwidth statistics.
  * Clears all activation indication on all sources.
  */
-static void bsched_begin_timeslice(bsched_t *bs)
+static void
+bsched_begin_timeslice(bsched_t *bs)
 {
 	GList *l;
 	GList *last = NULL;
@@ -637,12 +622,11 @@ static void bsched_begin_timeslice(bsched_t *bs)
 	bs->looped = FALSE;
 }
 
-/*
- * bsched_bio_add
- *
+/**
  * Add new source to the source list of scheduler.
  */
-static void bsched_bio_add(bsched_t *bs, bio_source_t *bio)
+static void
+bsched_bio_add(bsched_t *bs, bio_source_t *bio)
 {
 	bs->sources = g_list_append(bs->sources, bio);
 	bs->count++;
@@ -658,12 +642,11 @@ static void bsched_bio_add(bsched_t *bs, bio_source_t *bio)
 		bs->flags |= BS_F_FROZEN_SLOT;
 }
 
-/*
- * bsched_bio_remove
- *
+/**
  * Remove source from the source list of scheduler.
  */
-static void bsched_bio_remove(bsched_t *bs, bio_source_t *bio)
+static void
+bsched_bio_remove(bsched_t *bs, bio_source_t *bio)
 {
 	bs->sources = g_list_remove(bs->sources, bio);
 	bs->count--;
@@ -674,9 +657,7 @@ static void bsched_bio_remove(bsched_t *bs, bio_source_t *bio)
 	g_assert(bs->count >= 0);
 }
 
-/*
- * bsched_source_add
- *
+/**
  * Declare fd as a new source for the scheduler.
  *
  * When `callback' is NULL, the source will be "passive", i.e. its bandwidth
@@ -686,7 +667,9 @@ static void bsched_bio_remove(bsched_t *bs, bio_source_t *bio)
  *
  * Returns new bio_source object.
  */
-bio_source_t *bsched_source_add(bsched_t *bs, int fd, guint32 flags,
+bio_source_t *
+bsched_source_add(
+	bsched_t *bs, int fd, guint32 flags,
 	inputevt_handler_t callback, gpointer arg)
 {
 	bio_source_t *bio;
@@ -724,13 +707,12 @@ bio_source_t *bsched_source_add(bsched_t *bs, int fd, guint32 flags,
 	return bio;
 }
 
-/*
- * bsched_source_remove
- *
+/**
  * Remove bio_source object from the scheduler.
  * The bio_source object is freed and must not be re-used.
  */
-void bsched_source_remove(bio_source_t *bio)
+void
+bsched_source_remove(bio_source_t *bio)
 {
 	bsched_t *bs = bio->bs;
 
@@ -742,12 +724,11 @@ void bsched_source_remove(bio_source_t *bio)
 	G_FREE_NULL(bio);
 }
 
-/*
- * bsched_set_bandwidth
- *
+/**
  * On-the-fly changing of the allowed bandwidth.
  */
-void bsched_set_bandwidth(bsched_t *bs, gint bandwidth)
+void
+bsched_set_bandwidth(bsched_t *bs, gint bandwidth)
 {
 	g_assert(bs);
 	g_assert(bandwidth >= 0);
@@ -780,13 +761,12 @@ void bsched_set_bandwidth(bsched_t *bs, gint bandwidth)
 }
 
 
-/*
- * bw_available
- *
+/**
  * Returns the bandwidth available for a given source.
  * `len' is the amount of bytes requested by the application.
  */
-static gint bw_available(bio_source_t *bio, gint len)
+static gint
+bw_available(bio_source_t *bio, gint len)
 {
 	bsched_t *bs = bio->bs;
 	gint available;
@@ -997,16 +977,15 @@ static gint bw_available(bio_source_t *bio, gint len)
 	return result;
 }
 
-/*
- * bsched_bw_update
- *
+/**
  * Update bandwidth used, and scheduler statistics.
  * If no more bandwidth is available, disable all sources.
  *
  * `used' is the amount of bytes used by the I/O.
  * `requested' is the amount of bytes requested for the I/O.
  */
-static void bsched_bw_update(bsched_t *bs, gint used, gint requested)
+static void
+bsched_bw_update(bsched_t *bs, gint used, gint requested)
 {
 	g_assert(bs);		/* Ensure I/O source was in alive scheduler */
 	g_assert(used <= requested);
@@ -1041,14 +1020,13 @@ static void bsched_bw_update(bsched_t *bs, gint used, gint requested)
 		bsched_no_more_bandwidth(bs);
 }
 
-/*
- * bio_write
- *
+/**
  * Write at most `len' bytes from `buf' to source's fd, as bandwidth permits.
  * If we cannot write anything due to bandwidth constraints, return -1 with
  * errno set to EAGAIN.
  */
-gint bio_write(bio_source_t *bio, gconstpointer data, gint len)
+gint
+bio_write(bio_source_t *bio, gconstpointer data, gint len)
 {
 	gint available;
 	gint amount;
@@ -1099,14 +1077,13 @@ gint bio_write(bio_source_t *bio, gconstpointer data, gint len)
 	return r;
 }
 
-/*
- * bio_writev
- *
+/**
  * Write at most `len' bytes from `iov' to source's fd, as bandwidth permits.
  * If we cannot write anything due to bandwidth constraints, return -1 with
  * errno set to EAGAIN.
  */
-gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
+gint
+bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 {
 	gint available;
 	gint r;
@@ -1224,9 +1201,7 @@ gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
 	return r;
 }
 
-/*
- * bio_sendfile
- *
+/**
  * Write at most `len' bytes to source's fd, as bandwidth permits.
  * Bytes are read from `offset' in the in_fd file descriptor, and the value
  * is updated in place by the kernel.
@@ -1234,7 +1209,8 @@ gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
  * If we cannot write anything due to bandwidth constraints, return -1 with
  * errno set to EAGAIN.
  */
-gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
+gint
+bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 {
 #ifndef HAS_SENDFILE
 	g_error("missing sendfile(2), should not have been called");
@@ -1318,14 +1294,13 @@ gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 #endif	/* HAVE_SENDFILE */
 }
 
-/*
- * bio_read
- *
+/**
  * Read at most `len' bytes from `buf' from source's fd, as bandwidth permits.
  * If we cannot read anything due to bandwidth constraints, return -1 with
  * errno set to EAGAIN.
  */
-gint bio_read(bio_source_t *bio, gpointer data, gint len)
+gint
+bio_read(bio_source_t *bio, gpointer data, gint len)
 {
 	gint available;
 	gint amount;
@@ -1362,14 +1337,13 @@ gint bio_read(bio_source_t *bio, gpointer data, gint len)
 	return r;
 }
 
-/*
- * bws_write
- *
+/**
  * Write at most `len' bytes from `buf' to specified fd, and account the
  * bandwidth used.  Any overused bandwidth will be tracked, so that on
  * average, we stick to the requested bandwidth rate.
  */
-gint bws_write(bsched_t *bs, gint fd, gconstpointer data, gint len)
+gint
+bws_write(bsched_t *bs, gint fd, gconstpointer data, gint len)
 {
 	gint r;
 
@@ -1384,14 +1358,13 @@ gint bws_write(bsched_t *bs, gint fd, gconstpointer data, gint len)
 	return r;
 }
 
-/*
- * bws_read
- *
+/**
  * Read at most `len' bytes from `buf' from specified fd, and account the
  * bandwidth used.  Any overused bandwidth will be tracked, so that on
  * average, we stick to the requested bandwidth rate.
  */
-gint bws_read(bsched_t *bs, gint fd, gpointer data, gint len)
+gint
+bws_read(bsched_t *bs, gint fd, gpointer data, gint len)
 {
 	gint r;
 
@@ -1406,13 +1379,34 @@ gint bws_read(bsched_t *bs, gint fd, gpointer data, gint len)
 	return r;
 }
 
-/*
- * bs_socket
- *
+/**
+ * Account for read data from UDP.
+ */
+void
+bws_udp_count_read(gint len)
+{
+	gint count = BW_UDP_MSG + len;
+
+	bsched_bw_update(bws.gin, count, count);
+}
+
+/**
+ * Account for written data to UDP.
+ */
+void
+bws_udp_count_written(gint len)
+{
+	gint count = BW_UDP_MSG + len;
+
+	bsched_bw_update(bws.gout, count, count);
+}
+
+/**
  * Returns adequate b/w shaper depending on the socket type.
  * Returns NULL if there is no b/w shaper to consider.
  */
-static bsched_t *bs_socket(enum socket_direction dir, enum socket_type type)
+static bsched_t *
+bs_socket(enum socket_direction dir, enum socket_type type)
 {
 	switch (type) {
 	case SOCK_TYPE_DOWNLOAD:
@@ -1431,12 +1425,11 @@ static bsched_t *bs_socket(enum socket_direction dir, enum socket_type type)
 	}
 }
 
-/*
- * bws_sock_connect
- *
+/**
  * Record that we're issuing a TCP/IP connection of a particular type.
  */
-void bws_sock_connect(enum socket_type type)
+void
+bws_sock_connect(enum socket_type type)
 {
 	bsched_t *bs = bs_socket(SOCK_CONN_OUTGOING, type);
 
@@ -1454,12 +1447,11 @@ void bws_sock_connect(enum socket_type type)
 		bsched_bw_update(bs, 1.5 * BW_TCP_MSG, 1.5 * BW_TCP_MSG);
 }
 
-/*
- * bws_sock_connect_failed
- *
+/**
  * Record that the connection attempt failed.
  */
-void bws_sock_connect_failed(enum socket_type type)
+void
+bws_sock_connect_failed(enum socket_type type)
 {
 	bsched_t *bs = bs_socket(SOCK_CONN_INCOMING, type);
 
@@ -1471,12 +1463,11 @@ void bws_sock_connect_failed(enum socket_type type)
 		bsched_bw_update(bs, BW_TCP_MSG, BW_TCP_MSG);
 }
 
-/*
- * bws_sock_connect_timeout
- *
+/**
  * A connection attempt of `type' timed out.
  */
-void bws_sock_connect_timeout(enum socket_type type)
+void
+bws_sock_connect_timeout(enum socket_type type)
 {
 	bsched_t *bs = bs_socket(SOCK_CONN_OUTGOING, type);
 
@@ -1488,12 +1479,11 @@ void bws_sock_connect_timeout(enum socket_type type)
 		bsched_bw_update(bs, BW_TCP_MSG, BW_TCP_MSG);
 }
 
-/*
- * bws_sock_connected
- *
+/**
  * Record that the connection attempt succeeded.
  */
-void bws_sock_connected(enum socket_type type)
+void
+bws_sock_connected(enum socket_type type)
 {
 	bsched_t *bs = bs_socket(SOCK_CONN_INCOMING, type);
 
@@ -1505,12 +1495,11 @@ void bws_sock_connected(enum socket_type type)
 		bsched_bw_update(bs, BW_TCP_MSG, BW_TCP_MSG);
 }
 
-/*
- * bws_sock_accepted
- *
+/**
  * We accepted an incoming connection of `type'.
  */
-void bws_sock_accepted(enum socket_type type)
+void
+bws_sock_accepted(enum socket_type type)
 {
 	bsched_t *bsout = bs_socket(SOCK_CONN_OUTGOING, type);
 	bsched_t *bsin = bs_socket(SOCK_CONN_INCOMING, type);
@@ -1526,12 +1515,11 @@ void bws_sock_accepted(enum socket_type type)
 		bsched_bw_update(bsin, BW_TCP_MSG, BW_TCP_MSG);
 }
 
-/*
- * bws_sock_closed
- *
+/**
  * The connection was closed, remotely if `remote' is true.
  */
-void bws_sock_closed(enum socket_type type, gboolean remote)
+void
+bws_sock_closed(enum socket_type type, gboolean remote)
 {
 	bsched_t *bsout = bs_socket(SOCK_CONN_OUTGOING, type);
 	bsched_t *bsin = bs_socket(SOCK_CONN_INCOMING, type);
@@ -1555,12 +1543,11 @@ void bws_sock_closed(enum socket_type type, gboolean remote)
 	}
 }
 
-/*
- * bws_can_connect
- *
+/**
  * Do we have the bandwidth to issue a new TCP/IP connection of `type'?
  */
-gboolean bws_can_connect(enum socket_type type)
+gboolean
+bws_can_connect(enum socket_type type)
 {
 	bsched_t *bsout = bs_socket(SOCK_CONN_OUTGOING, type);
 	bsched_t *bsin = bs_socket(SOCK_CONN_INCOMING, type);
@@ -1597,12 +1584,11 @@ gboolean bws_can_connect(enum socket_type type)
 	return TRUE;
 }
 
-/*
- * bsched_heartbeat
- *
+/**
  * Periodic heartbeat.
  */
-static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
+static void
+bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 {
 	GList *l;
 	gint delay;
@@ -1789,12 +1775,11 @@ new_timeslice:
 	bs->bw_actual = bs->bw_stolen = 0;
 }
 
-/*
- * bsched_stealbeat
- *
+/**
  * Periodic stealing beat, occurs after the heartbeat.
  */
-static void bsched_stealbeat(bsched_t *bs)
+static void
+bsched_stealbeat(bsched_t *bs)
 {
 	GSList *l;
 	GSList *all_used = NULL;		/* List of bsched_t that used all b/w */
@@ -1918,12 +1903,11 @@ static void bsched_stealbeat(bsched_t *bs)
 	}
 }
 
-/*
- * bsched_timer
- *
+/**
  * Periodic timer.
  */
-void bsched_timer(void)
+void
+bsched_timer(void)
 {
 	GTimeVal tv;
 	GSList *l;
@@ -1970,9 +1954,7 @@ void bsched_timer(void)
 		printf("Outgoing b/w EMA = %d bytes/s\n", bws_out_ema);
 }
 
-/*
- * bsched_enough_up_bandwidth
- *
+/**
  * Determine whether we have enough bandwidth to possibly become an
  * ultra node:
  *
@@ -1984,7 +1966,8 @@ void bsched_timer(void)
  * 4. Overall, there must be BW_OUT_LEAF_MIN bytes per configured leaf plus
  *    BW_OUT_GNET_MIN bytes per gnet connection available.
  */
-gboolean bsched_enough_up_bandwidth(void)
+gboolean
+bsched_enough_up_bandwidth(void)
 {
 	if (bws_out_ema < BW_OUT_UP_MIN)
 		return FALSE;		/* 1. */

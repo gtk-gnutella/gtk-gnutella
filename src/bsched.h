@@ -208,6 +208,9 @@ void bws_sock_connect_failed(enum socket_type type);
 void bws_sock_closed(enum socket_type type, gboolean remote);
 gboolean bws_can_connect(enum socket_type type);
 
+void bws_udp_count_written(gint len);
+void bws_udp_count_read(gint len);
+
 gboolean bsched_enough_up_bandwidth(void);
 
 #endif	/* _bsched_h_ */
