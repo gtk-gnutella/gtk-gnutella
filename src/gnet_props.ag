@@ -1236,6 +1236,30 @@ prop = {
 };
 
 prop = {
+    name = "ul_running";
+    desc = "Number of running uploads";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+        min = 0x00000000;
+        max = 0xFFFFFFFF;
+    };
+};
+
+prop = {
+    name = "ul_registered";
+    desc = "Number of registered (pending) uploads";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+        min = 0x00000000;
+        max = 0xFFFFFFFF;
+    };
+};
+
+prop = {
     name = "total_uploads";
     desc = "Total number of completed uploads in this session";
     save = FALSE;
@@ -1590,6 +1614,16 @@ prop = {
     desc = "How many downloads are currently running "
 			"(downloading / connecting).";
 	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "dl_active_count";
+    desc = "How many downloads are currently active.";
+    save = FALSE;
     type = guint32;
     data = {
         default = 0;
