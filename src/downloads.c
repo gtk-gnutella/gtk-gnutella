@@ -5196,7 +5196,7 @@ static void download_request(
 				);
 			} else {
 				/* No hammering -- hold further requests on server */
-				download_passively_queued(d, TRUE);
+				download_passively_queued(d, FALSE);
 				download_queue_hold(d,
 					delay ? delay : download_retry_busy_delay,
 					"%sHTTP %d %s", short_read, ack_code, ack_message);
