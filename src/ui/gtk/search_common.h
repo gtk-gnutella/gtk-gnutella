@@ -67,18 +67,10 @@ typedef struct results_set {
 } results_set_t;
 
 /*
- * A host.
- */
-typedef struct host {
-	guint32 ip;
-	guint16 port;
-} host_t;
-
-/*
  * Host vector held in query hits.
  */
 typedef struct host_vec {
-	host_t *hvec;				/* Vector of alternate locations */
+	gnet_host_t *hvec;				/* Vector of alternate locations */
 	gint hvcnt;					/* Amount of hosts in vector */
 } host_vec_t;
 
