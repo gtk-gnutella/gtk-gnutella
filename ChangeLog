@@ -11,6 +11,11 @@
 - Integrated HTTP proxy patch [From Szabolcs Seláf].
 - Properly handle Range requests such as "123-456" and "-567".  Still no
   handling for things like "123-456,457-789" though.
+- Extract and log vendor information of nodes we connect to.
+- Fixed improper counting of TX-dropped packets in flow-control as RX-dropped.
+- All % completion figures now shown with 2 decimals.
+- Since we can now automatically determine our IP correctly, make sure the
+  "force local IP" parameter is true by default.
 
 # v 0.80   2002.01.31  [stable]
 # v 0.80   2002.01.22  [beta2]
