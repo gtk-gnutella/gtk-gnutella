@@ -28,6 +28,7 @@
 
 #include <signal.h>
 #include <ctype.h>
+#include <setjmp.h>
 
 #include "search.h"
 #include "share.h"
@@ -75,6 +76,7 @@ RCSID("$Id$");
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 #define EXIT_GRACE				30	/* Seconds to wait before exiting */
 #define CALLOUT_PERIOD			100	/* milliseconds */
+#define ATEXIT_TIMEOUT			10	/* Final cleanup must not take longer */
 
 /* */
 
@@ -86,6 +88,20 @@ static guint main_slow_update = 0;
 static gboolean exiting = FALSE;
 static gboolean from_atexit = FALSE;
 static gint signal_received = 0;
+static jmp_buf atexit_env;
+
+/*
+ * sig_alarm
+ *
+ * Force immediate shutdown of SIGALRM reception.
+ */
+static void sig_alarm(int n)
+{
+	if (from_atexit) {
+		g_warning("exit cleanup timed out -- forcing exit");
+		longjmp(atexit_env, 1);
+	}
+}
 
 /*
  * gtk_gnutella_atexit
@@ -104,7 +120,14 @@ static void gtk_gnutella_atexit()
 	if (!exiting) {
 		g_warning("trapped foreign exit(), cleaning up...");
 		from_atexit = TRUE;
+		signal(SIGALRM, sig_alarm);
+		if (setjmp(atexit_env)) {
+			g_warning("cleanup aborted.");
+			return;
+		}
+		alarm(ATEXIT_TIMEOUT);
 		gtk_gnutella_exit(1);	/* Won't exit() since from_atexit is set */
+		alarm(0);
 		g_warning("cleanup all done.");
 	}
 }
