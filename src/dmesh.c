@@ -41,6 +41,8 @@
 
 #include "settings.h"
 
+RCSID("$Id$");
+
 extern cqueue_t *callout_queue;
 
 /* made visible for us by atoms.c */

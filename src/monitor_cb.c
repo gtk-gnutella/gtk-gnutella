@@ -27,6 +27,8 @@
 
 #include "search_gui.h"
 
+RCSID("$Id$");
+
 gboolean on_clist_monitor_button_press_event
     (GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {

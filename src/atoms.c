@@ -33,6 +33,8 @@
 
 #include "common.h"
 
+RCSID("$Id$");
+
 /*
  * Atoms are ref-counted.
  *

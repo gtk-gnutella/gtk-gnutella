@@ -35,6 +35,8 @@
 #include "ban.h"
 #include "sockets.h"
 
+RCSID("$Id$");
+
 /*
  * We keep a hash table, indexed by IP address, which records all the
  * requests we have from the various IPs.  When hammering is detected,

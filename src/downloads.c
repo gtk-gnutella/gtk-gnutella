@@ -53,6 +53,8 @@
 #include <regex.h>
 #include <time.h>			/* For ctime() */
 
+RCSID("$Id$");
+
 #define DOWNLOAD_RECV_BUFSIZE	114688		/* 112K */
 #define DOWNLOAD_MIN_OVERLAP	64			/* Minimum overlap for safety */
 #define DOWNLOAD_SHORT_DELAY	2			/* Shortest retry delay */

@@ -37,6 +37,8 @@
 #include "downloads.h"
 #include "move.h"
 
+RCSID("$Id$");
+
 #define COPY_BLOCK_SHIFT	12			/* Power of two of copy unit credit */
 #define COPY_BUF_SIZE		65536		/* Size of the reading buffer */
 

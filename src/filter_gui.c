@@ -34,6 +34,7 @@
 #include <netinet/in.h> 
 #include <arpa/inet.h>
 
+RCSID("$Id$");
 
 #ifdef USE_GTK2
 #define WIDGET_FILTER_SIZE_MIN "spinbutton_filter_size_min"

@@ -36,6 +36,8 @@
 #include "settings_gui.h"
 #include "search_stats_gui.h"
 
+RCSID("$Id$");
+
 static gchar gui_tmp[4096];
 
 /*

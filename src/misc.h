@@ -47,7 +47,8 @@
 
 /* The RCS IDs can be looked up from the compiled binary with e.g. `what'  */
 #ifdef __GNUC__
-#define RCSID(x) static const char rcsid[] __attribute__((__unused__)) = "@(#) " x
+#define RCSID(x) \
+	static const char rcsid[] __attribute__((__unused__)) = "@(#) " x
 #else
 #define RCSID(x) static const char rcsid[] = "@(#) " x
 #endif

@@ -31,6 +31,7 @@
 #include "settings_gui.h"
 #include "statusbar_gui.h"
 
+RCSID("$Id$");
 
 /*
  * nodes_ctrl_connect_by_name:

@@ -34,6 +34,8 @@
 #include "search_gui.h"
 #include "gtk-missing.h"
 
+RCSID("$Id$");
+
 #define BIT_TO_BOOL(m) ((m == 0) ? FALSE : TRUE)
 
 /*

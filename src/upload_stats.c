@@ -52,6 +52,8 @@
 #include "upload_stats_gui.h"
 #include "upload_stats.h"
 
+RCSID("$Id$");
+
 static gboolean dirty = FALSE;
 static gchar *stats_file = NULL;
 static GList *upload_stats_list = NULL;

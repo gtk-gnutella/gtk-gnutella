@@ -34,6 +34,8 @@
 #include "rx_inflate.h"
 #include "rxbuf.h"
 
+RCSID("$Id$");
+
 /*
  * Private attributes for the decompressing layer.
  */

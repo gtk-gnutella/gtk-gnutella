@@ -36,6 +36,8 @@
 #include "mq.h"
 #include "routing.h"
 
+RCSID("$Id$");
+
 #define HEADER_SIZE	sizeof(struct gnutella_header)
 
 static gchar *msg_name[256];

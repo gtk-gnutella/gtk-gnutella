@@ -28,6 +28,8 @@
 #include "statusbar_gui.h"
 #include "search_stats_gui.h"
 
+RCSID("$Id$");
+
 /* 
  * Create a function for the focus out signal and make it call
  * the callback for the activate signal.

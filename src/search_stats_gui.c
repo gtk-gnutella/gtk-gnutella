@@ -37,6 +37,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+RCSID("$Id$");
+
 /* this is what the stat_hash's 'val' points to */
 struct term_counts {
 	guint32 period_cnt;

@@ -30,6 +30,8 @@
 #include "alive.h"
 #include "nodes.h"
 
+RCSID("$Id$");
+
 #define INFINITY	0xffffffff
 
 /*

@@ -50,6 +50,8 @@
 #include "settings.h"
 #include "ggep.h"
 
+RCSID("$Id$");
+
 #define QHIT_SIZE_THRESHOLD	2016	/* Flush query hits larger than this */
 #define QHIT_MAX_RESULTS	255		/* Maximum amount of hits in a query hit */
 

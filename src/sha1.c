@@ -57,6 +57,9 @@
  */
 
 #include "sha1.h"
+#include "misc.h"		/* For RCSID */
+
+RCSID("$Id$");
 
 /*
  *  Define the SHA1 circular left shift macro

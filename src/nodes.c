@@ -67,6 +67,8 @@
 
 #include "settings.h"
 
+RCSID("$Id$");
+
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
 #define NODE_SEND_BUFSIZE		4096	/* TCP send buffer size - 4K */

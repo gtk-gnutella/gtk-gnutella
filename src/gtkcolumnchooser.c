@@ -25,8 +25,10 @@
 
 #include <gtk/gtkcheckmenuitem.h>
 
-
 #include "gtkcolumnchooser.h"
+#include "misc.h"				/* For RCSID */
+
+RCSID("$Id$");
 
 static GtkWidgetClass * parent_class = NULL;
 

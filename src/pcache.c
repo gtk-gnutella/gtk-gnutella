@@ -49,6 +49,8 @@
 
 #include "settings.h"
 
+RCSID("$Id$");
+
 /***
  *** Messages
  ***/

@@ -37,6 +37,8 @@
 
 #include <ctype.h>
 
+RCSID("$Id$");
+
 #ifdef USE_GTK2
 #define g_hash_table_freeze(x) /* The function is deprecated. It does nothing */
 #define g_hash_table_thaw(x) /* The function is deprecated. It does nothing */

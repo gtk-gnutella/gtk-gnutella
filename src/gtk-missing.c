@@ -28,6 +28,8 @@
 #include "gui.h"
 #include "gtk-missing.h"
 
+RCSID("$Id$");
+
 /*
  * gtk_paned_get_position:
  *

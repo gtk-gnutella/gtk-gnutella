@@ -45,6 +45,8 @@
 
 #include "settings.h"
 
+RCSID("$Id$");
+
 /***
  *** Server side: computation of SHA1 hash digests and replies.
  *** SHA1 is defined in RFC 3174.

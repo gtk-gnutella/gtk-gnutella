@@ -34,6 +34,8 @@
 #include "downloads.h"
 #include "verify.h"
 
+RCSID("$Id$");
+
 #define HASH_BLOCK_SHIFT	12			/* Power of two of hash unit credit */
 #define HASH_BUF_SIZE		65536		/* Size of the reading buffer */
 

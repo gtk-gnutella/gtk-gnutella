@@ -33,6 +33,8 @@
 #include "settings.h"
 #include "bsched.h"
 
+RCSID("$Id$");
+
 extern cqueue_t *callout_queue;
 
 /***

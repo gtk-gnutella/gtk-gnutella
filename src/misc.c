@@ -37,6 +37,8 @@
 #include <ctype.h>			/* For isalnum() and isspace() */
 #include <sys/times.h>		/* For times() */
 
+RCSID("$Id$");
+
 #if !defined(HAVE_SRANDOM) || !defined(HAVE_RANDOM)
 #define srandom(x)	srand(x)
 #define random(x)	rand(x)

@@ -29,6 +29,8 @@
 #include "statusbar_gui.h"
 #include "downloads_cb.h"
 
+RCSID("$Id$");
+
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 #define IO_AVG_RATE		5		/* Compute global recv rate every 5 secs */
 

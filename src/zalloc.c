@@ -27,6 +27,9 @@
 
 
 #include "zalloc.h"
+#include "misc.h"		/* For RCSID */
+
+RCSID("$Id$");
 
 /*
  * Define ZONE_SAFE to allow detection of duplicate frees on a zone object.

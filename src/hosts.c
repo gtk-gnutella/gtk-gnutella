@@ -45,6 +45,8 @@
 
 #include "settings.h"
 
+RCSID("$Id$");
+
 gboolean host_low_on_pongs = FALSE;			/* True when less than 12% full */
 
 static gboolean in_shutdown = FALSE;

@@ -36,6 +36,7 @@
 #include "extensions.h"
 #include "huge.h"			/* For SHA1_RAW_SIZE */
 
+RCSID("$Id$");
 
 #define MAX_PAYLOAD_LEN		65536	/* Max length for deflated payload */
 #define MIN_GROW			256		/* Minimum grow size for inflated buffer */

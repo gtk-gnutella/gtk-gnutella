@@ -28,6 +28,8 @@
 #include "common.h"
 #include "cq.h"
 
+RCSID("$Id$");
+
 #define HASH_SIZE	1024			/* Hash list size, must be power of 2 */
 #define HASH_MASK	(HASH_SIZE - 1)
 #define EV_HASH(x) ((x) & HASH_MASK)

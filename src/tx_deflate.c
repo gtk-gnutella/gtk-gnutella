@@ -37,6 +37,8 @@
 #include "tx.h"
 #include "tx_deflate.h"
 
+RCSID("$Id$");
+
 /*
  * The driver manages two fixed-size buffers: one is being filled by the
  * compressing algorithm whilst the second is being sent on the network.

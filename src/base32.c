@@ -31,6 +31,8 @@
 
 #include "base32.h"
 
+RCSID("$Id$");
+
 /*
  *                       The Base 32 Alphabet
  *

@@ -34,6 +34,8 @@
 #include "extensions.h"
 #include "ggep.h"
 
+RCSID("$Id$");
+
 #define HUGE_FS		0x1c		/* Field separator (HUGE) */
 
 static gchar *extype[] = {

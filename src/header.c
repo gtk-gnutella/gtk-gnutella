@@ -34,6 +34,8 @@
 
 #include "header.h"
 
+RCSID("$Id$");
+
 /***
  *** Operating flags
  ***/

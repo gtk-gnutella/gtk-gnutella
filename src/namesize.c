@@ -26,8 +26,9 @@
  */
 
 #include "common.h"			/* For safe compilation under USE_DMALLOC */
-
 #include "namesize.h"
+
+RCSID("$Id$");
 
 /*
  * namesize_hash

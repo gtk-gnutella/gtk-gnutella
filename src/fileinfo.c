@@ -52,6 +52,8 @@
 #include <netinet/in.h>		/* For ntohl() and friends... */
 #include <dirent.h>
 
+RCSID("$Id$");
+
 #define FI_MIN_CHUNK_SPLIT	512		/* Smallest chunk we can split */
 #define FI_MAX_FIELD_LEN	1024	/* Max field length we accept to save */
 

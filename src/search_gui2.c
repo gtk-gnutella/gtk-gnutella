@@ -40,10 +40,11 @@
 # include <libxml/parser.h>
 #endif
 
-
 /* System includes */
 #include <ctype.h>
 #include <gtk/gtk.h>
+
+RCSID("$Id$");
 
 #define MAX_TAG_SHOWN	60		/* Show only first chars of tag */
 

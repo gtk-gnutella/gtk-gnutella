@@ -30,6 +30,8 @@
 
 #include "downloads.h" // FIXME: remove this dependency
 
+RCSID("$Id$");
+
 static gchar *selected_url = NULL; 
 
 

@@ -33,6 +33,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+RCSID("$Id$");
+
 GSList *sl_whitelist = NULL;
 
 static gchar *whitelist_file = "whitelist";

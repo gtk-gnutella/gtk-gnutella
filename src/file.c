@@ -31,6 +31,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+RCSID("$Id$");
+
 static gchar *orig_ext = ".orig";
 static gchar *new_ext = ".new";
 static gchar *instead_str = " instead";

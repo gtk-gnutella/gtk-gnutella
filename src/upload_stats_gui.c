@@ -48,6 +48,8 @@
 #include "upload_stats_gui.h"
 #include "upload_stats.h"
 
+RCSID("$Id$");
+
 /* Private variables */
 static gint ul_rows = 0;
 

@@ -25,6 +25,8 @@
 
 #include "uploads_gui.h"
 
+RCSID("$Id$");
+
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
 #define REMOVE_DELAY    5       /* delay before outdated info is removed */
 

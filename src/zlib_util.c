@@ -27,6 +27,9 @@
 #include <glib.h>
 
 #include "zlib_util.h"
+#include "misc.h"		/* For RCSID */
+
+RCSID("$Id$");
 
 #define OUT_GROW	1024		/* To grow output buffer if it's to short */
 

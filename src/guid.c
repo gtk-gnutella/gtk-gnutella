@@ -32,6 +32,8 @@
 #include "common.h"
 #include "guid.h"
 
+RCSID("$Id$");
+
 /*
  * Flags for GUID[15] tagging.
  */

@@ -29,6 +29,8 @@
 
 #include <ctype.h>
 
+RCSID("$Id$");
+
 static char *fuzzy_strlower(char *a)
 {
 	unsigned char *p = a;

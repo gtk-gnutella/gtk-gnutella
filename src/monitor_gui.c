@@ -26,9 +26,9 @@
  */
 
 #include "gui.h"
-
 #include "monitor_gui.h"
 
+RCSID("$Id$");
 
 /***
  *** Private variables

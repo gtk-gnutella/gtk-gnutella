@@ -30,6 +30,8 @@
 #include "filter_cb.h"
 #include "filter_gui.h"
 
+RCSID("$Id$");
+
 /*
  * Private variables
  */

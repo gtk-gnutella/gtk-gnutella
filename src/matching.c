@@ -29,6 +29,8 @@
 
 #include <ctype.h>
 
+RCSID("$Id$");
+
 //FIXME: remove this dependency
 extern guint32 dbg;
 

@@ -37,6 +37,8 @@
 #include "search_gui.h"
 #include "version.h"
 
+RCSID("$Id$");
+
 #define GLOBAL_PRE 0
 #define GLOBAL_POST 1
 

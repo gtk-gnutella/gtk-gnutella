@@ -36,6 +36,8 @@
 
 #include "bg.h"
 
+RCSID("$Id$");
+
 #define BT_MAGIC		0xbacc931d		/* Internal bgtask magic number */
 
 #define MAX_LIFE		150000			/* In useconds, MUST be << 1 sec */

@@ -32,6 +32,8 @@
 #include "search_gui.h"
 #include "statusbar_gui.h"
 
+RCSID("$Id$");
+
 #ifndef USE_GTK2
 #include "gtkcolumnchooser.h" 
 #endif

@@ -38,6 +38,8 @@
 
 #include "settings.h"
 
+RCSID("$Id$");
+
 static gchar gwc_tmp[1024];
 
 /*

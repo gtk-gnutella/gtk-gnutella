@@ -60,6 +60,8 @@
 #include "settings.h"
 #include "fileinfo.h"
 
+RCSID("$Id$");
+
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 #define EXIT_GRACE				30	/* Seconds to wait before exiting */
 #define CALLOUT_PERIOD			100	/* milliseconds */

@@ -44,6 +44,8 @@
 #include "ioheader.h"
 #include "version.h"
 
+RCSID("$Id$");
+
 #define MAX_HOSTLEN		256		/* Max length for FQDN host */
 
 static GSList *sl_outgoing = NULL;		/* To spot reply timeouts */

@@ -39,6 +39,8 @@
 #include "rxbuf.h"
 #include "bsched.h"
 
+RCSID("$Id$");
+
 /*
  * Private attributes for the link.
  */

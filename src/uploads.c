@@ -52,6 +52,8 @@
 
 #include "settings.h"
 
+RCSID("$Id$");
+
 #define READ_BUF_SIZE	4096		/* Read buffer size, if no sendfile(2) */
 
 GSList *uploads = NULL;

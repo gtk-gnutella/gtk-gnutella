@@ -38,6 +38,8 @@
 #include "tx_link.h"
 #include "bsched.h"
 
+RCSID("$Id$");
+
 /*
  * Private attributes for the link.
  */

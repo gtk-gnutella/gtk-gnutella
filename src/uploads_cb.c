@@ -27,6 +27,8 @@
 #include "uploads_gui.h"
 #include "upload_stats.h" // FIXME: remove this dependency
 
+RCSID("$Id$");
+
 /***
  *** Private functions
  ***/

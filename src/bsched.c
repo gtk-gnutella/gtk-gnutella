@@ -43,6 +43,8 @@
 
 #include "bsched.h"
 
+RCSID("$Id$");
+
 /*
  * Global bandwidth schedulers.
  */

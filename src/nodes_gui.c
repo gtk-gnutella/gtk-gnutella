@@ -26,8 +26,9 @@
  */
 
 #include "gui.h"
-
 #include "nodes_gui.h"
+
+RCSID("$Id$");
 
 static gchar gui_tmp[4096];
 

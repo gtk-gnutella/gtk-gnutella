@@ -31,6 +31,8 @@
 
 #include <common.h>
 
+RCSID("$Id$");
+
 /*
  * The following defines map the GDK-compatible input condition flags
  * to those used by GLIB.

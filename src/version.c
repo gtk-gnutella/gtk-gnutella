@@ -31,6 +31,8 @@
 
 #include "version.h"
 
+RCSID("$Id$");
+
 gchar *version_number = NULL;
 gchar *version_string = NULL;
 

@@ -36,6 +36,8 @@
 #include "sockets.h"
 #include "bsched.h"
 
+RCSID("$Id$");
+
 /*
  * This structure is used to encapsulate the various arguments required
  * by the header parsing I/O callbacks.

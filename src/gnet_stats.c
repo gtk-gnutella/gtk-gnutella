@@ -25,6 +25,8 @@
 
 #include "gnet_stats.h"
 
+RCSID("$Id$");
+
 static guint8 stats_lut[256];
 
 static gnet_stats_t gnet_stats;

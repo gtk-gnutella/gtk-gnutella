@@ -38,6 +38,8 @@
 
 #include "settings.h"
 
+RCSID("$Id$");
+
 /*
  * Hash tables where we collect SHA1 we already own or wish to ignore and
  * filename/filesizes we likewise wish to ignore.

@@ -38,6 +38,8 @@
 
 #include "cobs.h"
 
+RCSID("$Id$");
+
 /*
  * cobs_encodev
  *

@@ -30,6 +30,8 @@
 #include "common.h"
 #include "version.h"
 
+RCSID("$Id$");
+
 #define debug common_dbg
 
 /*

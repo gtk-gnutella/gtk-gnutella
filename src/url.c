@@ -28,6 +28,8 @@
 #include "common.h"
 #include "url.h"
 
+RCSID("$Id$");
+
 #define ESCAPE_CHAR		'%'
 #define TRANSPARENT_CHAR(x,m) \
 	((x) >= 32 && (x) < 128 && (is_transparent[(x)-32] & (m)))

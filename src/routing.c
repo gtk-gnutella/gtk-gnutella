@@ -36,6 +36,8 @@
 
 #include <stdarg.h>
 
+RCSID("$Id$");
+
 struct gnutella_node *fake_node;		/* Our fake node */
 
 struct message {

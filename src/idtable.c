@@ -26,6 +26,8 @@
 #include "common.h"			/* For <string.h>, basically */
 #include "idtable.h"
 
+RCSID("$Id$");
+
 /*
  * Slot block size and number of slot blocks in a table.
  */

@@ -26,8 +26,9 @@
  */
 
 #include "gui.h"
-
 #include "monitor_gui.h"
+
+RCSID("$Id$");
 
 static guint32 monitor_items = 0;
 static GtkListStore *monitor_model = NULL;

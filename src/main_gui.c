@@ -24,7 +24,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-	#include "config.h"
+#include "config.h"
 #endif
 
 #include "gui.h"
@@ -44,14 +44,13 @@
 #include "version.h"
 
 #include "filter_cb.h"
-
 #include "filter.h"
-
 #include "oldconfig.h"
-
 #include "callbacks.h" // FIXME: remove this dependency (compare_ul_norm)
 
 #include <pwd.h>
+
+RCSID("$Id$");
 
 static gchar tmpstr[4096];
 

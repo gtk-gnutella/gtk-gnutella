@@ -34,6 +34,8 @@
 #include "gmsg.h"
 #include "nodes.h"					/* For NODE_IS_WRITABLE() */
 
+RCSID("$Id$");
+
 #define MIN_SPARSE_RATIO	20		/* At most 20% of slots used */
 #define MAX_CONFLICT_RATIO	75		/* At most 75% of insertion conflicts */
 #define MIN_WORD_LENGTH		3		/* Minimal word length */

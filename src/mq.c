@@ -38,6 +38,8 @@
 #include "tx.h"
 #include "gnet_stats.h"
 
+RCSID("$Id$");
+
 #define MQ_MAXIOV	256		/* Our limit on the I/O vectors we build */
 
 static void qlink_free(mqueue_t *q);

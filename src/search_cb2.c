@@ -32,6 +32,8 @@
 #include "search_gui.h"
 #include "statusbar_gui.h"
 
+RCSID("$Id$");
+
 static gchar tmpstr[4096];
 
 /***

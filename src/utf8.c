@@ -31,6 +31,9 @@
 #include <string.h>
 
 #include "utf8.h"
+#include "misc.h"
+
+RCSID("$Id$");
 
 /*
  * How wide is an UTF-8 encoded char, depending on its first byte?

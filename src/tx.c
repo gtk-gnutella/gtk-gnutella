@@ -31,6 +31,9 @@
  */
 
 #include "tx.h"
+#include "misc.h"		/* For RCSID */
+
+RCSID("$Id$");
 
 /*
  * Dynamic dispatch of polymorphic routines.

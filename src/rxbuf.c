@@ -33,6 +33,8 @@
 #include "rxbuf.h"
 #include "pmsg.h"
 
+RCSID("$Id$");
+
 /*
  * RX buffers are a set of pdata_t structures which are never physically freed
  * during normal operations but endlessly recycled: the set of free RX buffers

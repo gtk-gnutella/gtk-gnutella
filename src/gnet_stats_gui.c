@@ -25,6 +25,8 @@
 
 #include "gnet_stats_gui.h"
 
+RCSID("$Id$");
+
 gchar *msg_type_str[MSG_TYPE_COUNT] = {
     "Unknown",
     "Ping",

@@ -30,6 +30,8 @@
 #include "walloc.h"
 #include "zalloc.h"
 
+RCSID("$Id$");
+
 #if ZALLOC_ALIGNBYTES == 2
 #define ZALLOC_ALIGNBITS 1
 #elif ZALLOC_ALIGNBYTES == 4

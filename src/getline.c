@@ -26,6 +26,9 @@
 #include <string.h>		/* For memmove() */
 #include "getline.h"
 #include "walloc.h"
+#include "misc.h"		/* For RCSID */
+
+RCSID("$Id$");
 
 /*
  * Those govern the allocation policy for the getline buffer.

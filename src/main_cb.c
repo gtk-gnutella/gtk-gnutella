@@ -28,6 +28,8 @@
 #include "main_cb.h"
 #include "main_gui.h"
 
+RCSID("$Id$");
+
 /***
  *** Private functions
  ***/

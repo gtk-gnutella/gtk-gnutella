@@ -27,6 +27,8 @@
 
 #include <ctype.h>
 
+RCSID("$Id$");
+
 struct vendor {
     guint32 code;
     gchar *name;

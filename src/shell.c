@@ -35,6 +35,8 @@
 
 #include <sys/stat.h>
 
+RCSID("$Id$");
+
 #define CMD_MAX_SIZE 1024
 #define OUTPUT_BUFFER_SIZE 64000
 

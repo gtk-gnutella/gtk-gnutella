@@ -35,6 +35,8 @@
 
 #include "settings.h"
 
+RCSID("$Id$");
+
 #define MIN_RESERVE_SIZE	1024	/* we'd like that many pongs in reserve */
 
 /*

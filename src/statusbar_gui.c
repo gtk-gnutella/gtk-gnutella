@@ -28,6 +28,8 @@
 #include "gui.h"
 #include "statusbar_gui.h"
 
+RCSID("$Id$");
+
 /*
  * Timeout entry for statusbar messages.
  */
