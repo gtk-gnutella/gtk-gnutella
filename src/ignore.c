@@ -434,20 +434,24 @@ void ignore_timer(time_t now)
 	time_t stamp;
 
 	f = open_read_stamp(ignore_sha1, &stamp);
-	if (f != NULL && stamp > ignore_sha1_mtime) {
-		ignore_sha1_mtime = stamp;
-		if (dbg)
-			printf("RELOAD %s\n", ignore_sha1);
-		sha1_parse(f, ignore_sha1);
+	if (f != NULL) {
+		if (stamp > ignore_sha1_mtime) {
+			ignore_sha1_mtime = stamp;
+			if (dbg)
+				printf("RELOAD %s\n", ignore_sha1);
+			sha1_parse(f, ignore_sha1);
+		}
 		fclose(f);
 	}
 
 	f = open_read_stamp(ignore_namesize, &stamp);
-	if (f != NULL && stamp > ignore_namesize_mtime) {
-		ignore_namesize_mtime = stamp;
-		if (dbg)
-			printf("RELOAD %s\n", ignore_namesize);
-		namesize_parse(f, ignore_namesize);
+	if (f != NULL) {
+		if (stamp > ignore_namesize_mtime) {
+			ignore_namesize_mtime = stamp;
+			if (dbg)
+				printf("RELOAD %s\n", ignore_namesize);
+			namesize_parse(f, ignore_namesize);
+		}
 		fclose(f);
 	}
 }
