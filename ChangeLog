@@ -1,16 +1,16 @@
 # since last version
 
 - gtk-gnutella.spec now generated at configure time thanks to a patch
-  from Sam Varshavchik
-- LimeWire shut down their router.limewire.com pong cache
-- Trace IP of HTTP requests/replies we send or receive
-- Check for valid index/name combination before checking for upload slots
-- Automatically and silently ignore 0-byte files in search results
+  from Sam Varshavchik.
+- LimeWire shut down their router.limewire.com pong cache.
+- Trace IP of HTTP requests/replies we send or receive.
+- Check for valid index/name combination before checking for upload slots.
+- Automatically and silently ignore 0-byte files in search results.
 - Silentlently ignore files located in private IPs if we don't send pushes
-  (this is a temporary hack until someone adds a radio button to achieve this)
+  (this is a temporary hack until someone adds a radio button to achieve this).
 - Detect changes in indices for files we already found, and update the
-  download queue accordingly (patch from Vladimir Klebanov)
-- Improved hex dumping routine and use it to dump data on connection problems
+  download queue accordingly (patch from Vladimir Klebanov).
+- Improved hex dumping routine and use it to dump data on connection problems.
 - Don't send user/password to proxy if none was configured
 - Assume we're firewalled and advertise so until we get an incoming connection
 - Try to parse all extended Query Hit Data (the open part) assuming BS compat.
@@ -18,34 +18,40 @@
   callbacks.c and gui.c.  There is still a fair amount of mixing between the
   GUI stuff and the program logic, requiring further fine tuning.
 - Rewrote NUL detection logic in search query, and now dumps yet unhandled
-  extra query data
+  extra query data.
 - Constant refactoring: moved download/upload/socket constants and state
-  inspection predicates into their respective headers
+  inspection predicates into their respective headers.
 - Now scan uploads for timeouts, and added configuration of the various
   time limits via two new config variables: "upload_connected_timeout" and
-  "upload_connecting_timeout"
-- Proxy connection errors were not reported (show_error() was not implemented)
-- Now parses HTTP headers correctly
-- Handles HTTP "HEAD" requests correctly
+  "upload_connecting_timeout".
+- Proxy connection errors were not reported (show_error() was not implemented).
+- Now parses HTTP headers correctly.
+- Handles HTTP "HEAD" requests correctly.
 - Handles incoming Gnet handshaking at the 0.6 level
-  (but does not issue outgoing 0.6 handshakes yet)
+  (but does not issue outgoing 0.6 handshakes yet).
 - Cancelled uploads are now logged with details, since they don't appear
-  in the GUI currently
+  in the GUI currently.
 - Mark upload/download as stalled if no I/O within the last minute
 - The amount of seconds between two automatic re-queries of the network
-  now has to be at least of 300 seconds
-- Fixed memory leak in uploads (found by Nate)
+  now has to be at least of 300 seconds.
+- Fixed memory leak in uploads (found by Nate).
 - Connection statistics now show two figures, as "x/y": x is the amount of
   connected sockets, and y is the amount of attempts made in the background
-  but not yet fully connected at the application level
-- Node connections statistics are dumped for debugging
-- Downloads now use the new HTTP header parsing code
+  but not yet fully connected at the application level.
+- Node connections statistics are dumped for debugging.
+- Downloads now use the new HTTP header parsing code.
 - Don't hammer host caches, allow a reasonable delay between two consecutive
-  connection attemps to the same host
-- Now uses fresh pongs when the saved caught host list has been re-read
-- Send 10 fresh pongs to old 0.4 servents to whom we deny the connection
+  connection attemps to the same host.
+- Now uses fresh pongs when the saved caught host list has been re-read.
+- Send 10 fresh pongs to old 0.4 servents to whom we deny the connection.
 - Sent Pushes now use the Gnet connection socket, so they will work when
   behind a masquerading+forwarding firewall with only the Gnet port opened.
+- Fixed a couple of buglets introduced by the late re-organization of code.
+- Added handling of push requests sent by remote servents, i.e gtk-gnutella
+  will now reply when others request us to push a file to them.
+- If search results say remote servent is firewalled, start immediately in
+  push mode when downloading, provided pushes are authorized.
+- Recognizes more vendor codes in QHD (Query Hit Descriptor).
 
 # v 0.18   2001.11.19
 
