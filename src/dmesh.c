@@ -71,6 +71,7 @@ struct dmesh_entry {
 static gchar *dmesh_file = "dmesh";
 
 static void dmesh_retrieve(void);
+static gchar *dmesh_urlinfo_to_gchar(dmesh_urlinfo_t *info);
 
 /*
  * dmesh_init
@@ -238,8 +239,9 @@ ok:
  * dm_expire
  *
  * Expire entries older than `agemax' in a given mesh bucket `dm'.
+ * `sha1' is only passed in case we want to log the removal.
  */
-static void dm_expire(struct dmesh *dm, guint32 agemax)
+static void dm_expire(struct dmesh *dm, guint32 agemax, guchar *sha1)
 {
 	GSList *l;
 	GSList *prev;
@@ -263,6 +265,12 @@ static void dm_expire(struct dmesh *dm, guint32 agemax)
 		 */
 
 		g_assert(dm->count > 0);
+
+		if (dbg > 4)
+			printf("MESH %s: EXPIRED \"%s\", age=%u\n",
+				sha1_base32(sha1),
+				dmesh_urlinfo_to_gchar(&dme->url),
+				(guint32) (now - dme->stamp));
 
 		dmesh_entry_free(dme);
 		dm->count--;
@@ -307,7 +315,7 @@ static gboolean dm_remove(struct dmesh *dm,
 			 * Found entry, remove it if older than `stamp'.
 			 */
 
-			if (dme->stamp >= stamp)
+			if (dme->stamp > stamp)
 				return FALSE;
 
 			dm->entries = g_slist_remove(dm->entries, dme);
@@ -334,6 +342,7 @@ static void dmesh_dispose(guchar *sha1)
 	found = g_hash_table_lookup_extended(mesh, sha1, &key, &value);
 
 	g_assert(found);
+	g_assert(((struct dmesh *) value)->count == 0);
 	g_assert(((struct dmesh *) value)->entries == NULL);
 
 	atom_sha1_free(key);
@@ -392,10 +401,20 @@ gboolean dmesh_add(guchar *sha1,
 	struct dmesh *dm;
 	guint32 now = (guint32) time(NULL);
 
-	if (stamp == 0)
+	if (stamp == 0 || stamp > now)
 		stamp = now;
 
 	if (now - stamp > MAX_LIFETIME)
+		return FALSE;
+
+	/*
+	 * Reject if this is for our host, or if the host is a private IP.
+	 */
+
+	if (ip == listen_ip() && port == listen_port)
+		return FALSE;
+
+	if (is_private_ip(ip))
 		return FALSE;
 
 	/*
@@ -418,7 +437,7 @@ gboolean dmesh_add(guchar *sha1,
 
 		g_hash_table_insert(mesh, atom_sha1_get(sha1), dm);
 	} else {
-		dm_expire(dm, MAX_LIFETIME);
+		dm_expire(dm, MAX_LIFETIME, sha1);
 
 		if (!dm_remove(dm, ip, port, idx, name, stamp))
 			return FALSE;
@@ -626,7 +645,7 @@ gint dmesh_alternate_location(guchar *sha1,
 	 * Expire old entries.  If none remain, free entry and return.
 	 */
 
-	dm_expire(dm, MAX_LIFETIME);
+	dm_expire(dm, MAX_LIFETIME, sha1);
 
 	if (dm->count == 0) {
 		g_assert(dm->entries == NULL);
@@ -805,7 +824,8 @@ void dmesh_collect_locations(guchar *sha1, guchar *value)
 		*p = '\0';
 		ok = dmesh_url_parse(url, &info);
 
-if (dbg) printf("MESH (parsed=%d): \"%s\"\n", ok, url);
+		if (dbg > 6)
+			printf("MESH (parsed=%d): \"%s\"\n", ok, url);
 
 		if (!ok)
 			g_warning("cannot parse Alternate-Location URL: %s", url);
@@ -855,7 +875,8 @@ if (dbg) printf("MESH (parsed=%d): \"%s\"\n", ok, url);
 			*p = '\0';
 			stamp = date2time(date, &now);
 
-if (dbg) printf("MESH (stamp=%u): \"%s\"\n", (guint32) stamp, date);
+			if (dbg > 6)
+				printf("MESH (stamp=%u): \"%s\"\n", (guint32) stamp, date);
 
 			if (stamp == -1) {
 				g_warning("cannot parse Alternate-Location date: %s", date);
@@ -867,45 +888,17 @@ if (dbg) printf("MESH (stamp=%u): \"%s\"\n", (guint32) stamp, date);
 			stamp = 0;
 
 		/*
-		 * If they sent us something about ourselves, discard!
-		 */
-
-		if (info.ip == listen_ip() && info.port == listen_port) {
-			if (dbg)
-				g_warning("mesh ignoring %s: entry points to ourselves",
-					dmesh_urlinfo_to_gchar(&info));
-			goto ignore;
-		}
-
-		/*
-		 * Ensure entry is in the past, and not too old.
-		 */
-
-		if (stamp > now)
-			stamp = now;
-
-		if (now - stamp >= MAX_LIFETIME) {
-			if (dbg)
-				g_warning("mesh ignoring %s: timestamp is %u seconds old",
-					dmesh_urlinfo_to_gchar(&info), (guint32) (now - stamp));
-			goto ignore;
-		}
-
-		/*
 		 * Enter URL into mesh.
 		 */
 
 		ok = dmesh_add(sha1, info.ip, info.port, info.idx, info.name, stamp);
 
-		if (dbg > 4) {
+		if (dbg > 4)
 			printf("MESH %s: %s \"%s\", age=%u\n",
 				sha1_base32(sha1),
 				ok ? "added" : "rejected",
 				dmesh_urlinfo_to_gchar(&info), (guint32) (now - stamp));
-		}
 
-	ignore:
-		g_assert(info.name);
 		atom_str_free(info.name);
 
 		if (c == '\0')				/* Reached end of string */
