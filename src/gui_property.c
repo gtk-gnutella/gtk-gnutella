@@ -55,12 +55,12 @@ guint32  dl_queued_col_widths[5]     = { 240, 80, 80, 80, 80 };
 guint32  dl_queued_col_widths_def[5] = { 240, 80, 80, 80, 80 };
 guint32  file_info_col_widths[5]     = { 240, 80, 80, 80, 80 };
 guint32  file_info_col_widths_def[5] = { 240, 80, 80, 80, 80 };
-guint32  search_results_col_visible[6]     = { 1,1,1,1,0,1};
-guint32  search_results_col_visible_def[6] = { 1,1,1,1,0,1};
+guint32  search_results_col_visible[8]     = { 1,1,1,1,1,1,0,1};
+guint32  search_results_col_visible_def[8] = { 1,1,1,1,1,1,0,1};
 guint32  search_list_col_widths[3]     = { 80, 20, 20 };
 guint32  search_list_col_widths_def[3] = { 80, 20, 20 };
-guint32  search_results_col_widths[7]     = { 210, 80, 50, 70, 70, 140, 70 };
-guint32  search_results_col_widths_def[7] = { 210, 80, 50, 70, 70, 140, 70 };
+guint32  search_results_col_widths[8]     = { 210, 50, 80, 50, 70, 70, 140, 70 };
+guint32  search_results_col_widths_def[8] = { 210, 50, 80, 50, 70, 70, 140, 70 };
 guint32  search_stats_col_widths[3]     = { 200, 80, 80 };
 guint32  search_stats_col_widths_def[3] = { 200, 80, 80 };
 guint32  ul_stats_col_widths[5]     = { 200, 80, 80, 80, 80 };
@@ -444,7 +444,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[9].desc = _("Which columns are visible in the search results tables");
     gui_property->props[9].ev_changed = event_new("search_results_col_visible_changed");
     gui_property->props[9].save = TRUE;
-    gui_property->props[9].vector_size = 6;
+    gui_property->props[9].vector_size = 8;
 
     /* Type specific data: */
     gui_property->props[9].type               = PROP_TYPE_GUINT32;
@@ -484,7 +484,7 @@ prop_set_t *gui_prop_init(void) {
     gui_property->props[11].desc = _("Widths of the columns in the search results tables");
     gui_property->props[11].ev_changed = event_new("search_results_col_widths_changed");
     gui_property->props[11].save = TRUE;
-    gui_property->props[11].vector_size = 7;
+    gui_property->props[11].vector_size = 8;
 
     /* Type specific data: */
     gui_property->props[11].type               = PROP_TYPE_GUINT32;

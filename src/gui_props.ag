@@ -105,9 +105,9 @@ prop = {
     name = "search_results_col_visible";
     desc = "Which columns are visible in the search results tables";
     type = guint32;
-    vector_size = 6;
+    vector_size = 8;
     data = {
-        default = "{ 1,1,1,1,0,1}";
+        default = "{ 1,1,1,1,1,1,0,1}";
     };
 };
 
@@ -127,9 +127,9 @@ prop = {
     cfgvar = "widths_search_results";
     desc = "Widths of the columns in the search results tables";
     type = guint32;
-    vector_size = 7;
+    vector_size = 8;
     data = {
-        default = "{ 210, 80, 50, 70, 70, 140, 70 }";
+        default = "{ 210, 50, 80, 50, 70, 70, 140, 70 }";
     };
 };
 
