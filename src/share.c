@@ -781,7 +781,9 @@ void shared_dir_add(const gchar * path)
 static inline gboolean too_big_for_gnutella(off_t size)
 {
 	g_return_val_if_fail(size >= 0, TRUE);
-	return size > (gint64) 0xffffffffUL;
+	if (sizeof(off_t) <= sizeof(guint32))
+		return FALSE;
+	return (guint64) size > (guint64) 0xffffffffUL;
 }
 
 /*
