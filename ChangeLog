@@ -1,5 +1,18 @@
 # since last version
 
+- (2004-10-16 - RAM)
+ * Added bogons.txt and geo-ip.txt databases.
+ * Fixed inverted logic test, causing spurious "got metainfo in filecache"
+   warnings and not doing the proper things.
+ * GUI properties capturing column positionning no longer rely on hardwired
+   constants but use the definitions from ui/gtk/columns.h.
+ * Added columns showing the country codes of the hosts (labeled "Loc").
+ * Added mention that we use MaxMind's GeoIP database, per their license.
+
+- (2004-10-11 - RAM)
+ * Added "convert_old_filenames" property, FALSE by default, governing the
+   sanitization of existing files in the download directory.
+
 - (2004-10-10 - RAM)
  * Added filepath_exists().
  * Fixed indentation of parse_uint64().
