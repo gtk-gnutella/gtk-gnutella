@@ -87,6 +87,15 @@
 #endif
 
 /*
+ * Other common macros.
+ */
+
+#define G_FREE_NULL(p) do { \
+	g_free(p); \
+	p = NULL; \
+} while (0)
+
+/*
  * Constants
  */
 
