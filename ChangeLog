@@ -1,5 +1,8 @@
 # since last version
 
+- (2004-06-23 - Richard)
+ * [Gtk1] Ported "extension" column in search results from Gtk2.
+
 - (2004-06-21 - RAM)
  * Switched to ISO date formats in ChangeLog, as well as in code comments.
  * Don't loose a source if we can't connect due to a lack of file descriptors.

@@ -95,6 +95,7 @@ typedef struct record {
 	gint refcount;				/* Number of hash tables it has been put to */
 
 	gchar  *name;				/* File name */
+	gchar  *ext;				/* File extension */
 	guint32 size;				/* Size of file, in bytes */
 	guint32 index;				/* Index for GET command */
 	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
@@ -143,5 +144,6 @@ void search_gui_flush(time_t);
 gboolean search_gui_autoselect_cmp(record_t *rc, record_t *rc2,
     gboolean search_autoselect, gboolean search_autoselect_ident,
     gboolean search_autoselect_fuzzy, guint32 fuzzy_threshold);
+gchar *search_gui_extract_ext(gchar *filename);
 
 #endif /* _search_gui_common_h_ */

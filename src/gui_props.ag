@@ -137,7 +137,7 @@ prop = {
     type = boolean;
     vector_size = 8;
     data = {
-        default = "{ 1,1,1,1,1,1,0,1}";
+        default = "{ 1,1,1,1,1,1,1,1}";
     };
 };
 

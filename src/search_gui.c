@@ -537,6 +537,10 @@ static gint search_gui_compare_records(
             result = (search_sort_casesense ? strcmp : strcasecmp)
                 (r1->name, r2->name);
             break;
+
+        case c_sr_ext:
+            result = strcmp(r1->ext, r2->ext);
+            break;
 		
         case c_sr_size:
 			/*
@@ -1225,6 +1229,7 @@ void search_gui_add_record(
 
 	/* Setup text for node.  Note only parent nodes will have # and size shown*/
 	titles[c_sr_filename] = (NULL != rc->name) ?  rc->name : empty;
+	titles[c_sr_ext] = (NULL != rc->ext) ? rc->ext : empty;
 	titles[c_sr_info] = (NULL != rc->info) ?  rc->info : empty;
 	titles[c_sr_sha1] = (NULL != rc->sha1) ?  sha1_base32(rc->sha1) : empty;
 	titles[c_sr_size] = empty;
@@ -1233,6 +1238,7 @@ void search_gui_add_record(
 	titles[c_sr_host] = (NULL == rs->hostname) ?
 		ip_port_to_gchar(rs->ip, rs->port) :
 		hostname_port_to_gchar(rs->hostname, rs->port);
+
 
 	gm_snprintf(tmpstr, sizeof(tmpstr), "%u", rs->speed);
 	titles[c_sr_speed] = atom_str_get(tmpstr);
@@ -2159,6 +2165,14 @@ void gui_search_create_ctree(GtkWidget ** sw, GtkCTree ** ctree)
 	gtk_clist_set_column_widget(GTK_CLIST(*ctree), c_sr_filename, hbox);
     gtk_widget_show_all(hbox);
     gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_filename, _("File"));
+
+	label = gtk_label_new(_("Extension"));
+    gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
+    hbox = gtk_hbox_new(FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(hbox), label, TRUE, TRUE, 0);
+	gtk_clist_set_column_widget(GTK_CLIST(*ctree), c_sr_ext, hbox);
+    gtk_widget_show_all(hbox);
+    gtk_clist_set_column_name(GTK_CLIST(*ctree), c_sr_ext, _("Extension"));
 
 	label = gtk_label_new(_("Size"));
     gtk_misc_set_alignment(GTK_MISC(label),0,0.5);
