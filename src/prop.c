@@ -231,7 +231,6 @@ static void prop_parse_boolean_vector(const gchar *name,
 			break;
 		}
 		if (!valid) {
-			t[i] = FALSE;
 			g_warning("Not a boolean value (prop=\"%s\"): \"%s\"", name, a);
 		}
 	}
@@ -1365,44 +1364,54 @@ static void load_helper(prop_set_t *ps, property_t prop, const gchar *val)
 {
 	prop_def_t *p = &PROP(ps,prop);
 	prop_set_stub_t *stub;
-	static gboolean vecbuf_bool[100];
-	static guint32 vecbuf_uint32[100];
-	static guint64 vecbuf_uint64[100];
+	static union {
+		gboolean	boolean[100];
+		guint32		uint32[100];
+		guint64		uint64[100];
+	} vecbuf;
 
 	stub = ps->get_stub();
 
 	switch (p->type) {
 	case PROP_TYPE_BOOLEAN:
 		prop_assert(ps, prop,
-			p->vector_size * sizeof(gboolean) < sizeof(vecbuf_bool));
+			p->vector_size * sizeof(gboolean) < sizeof(vecbuf.boolean));
 	
-		prop_parse_boolean_vector(p->name, val, p->vector_size, vecbuf_bool);
-		stub->boolean.set(prop, vecbuf_bool, 0, 0);
+		/* Initialize vector with defaults */
+		stub->boolean.get(prop, vecbuf.boolean, 0, 0);
+		prop_parse_boolean_vector(p->name, val, p->vector_size, vecbuf.boolean);
+		stub->boolean.set(prop, vecbuf.boolean, 0, 0);
 		break;
 	case PROP_TYPE_MULTICHOICE:
 	case PROP_TYPE_GUINT32:
 		prop_assert(ps, prop,
-			p->vector_size * sizeof(guint32) < sizeof(vecbuf_uint32));
+			p->vector_size * sizeof(guint32) < sizeof(vecbuf.uint32));
 
-		prop_parse_guint32_vector(p->name, val, p->vector_size, vecbuf_uint32);
-		stub->guint32.set(prop, vecbuf_uint32, 0, 0);
+		/* Initialize vector with defaults */
+		stub->guint32.get(prop, vecbuf.uint32, 0, 0);
+		prop_parse_guint32_vector(p->name, val, p->vector_size, vecbuf.uint32);
+		stub->guint32.set(prop, vecbuf.uint32, 0, 0);
 		break;
 	case PROP_TYPE_GUINT64:
 		prop_assert(ps, prop,
-			p->vector_size * sizeof(guint64) < sizeof(vecbuf_uint64));
+			p->vector_size * sizeof(guint64) < sizeof(vecbuf.uint64));
 
-		prop_parse_guint64_vector(p->name, val, p->vector_size, vecbuf_uint64);
-		stub->guint64.set(prop, vecbuf_uint64, 0, 0);
+		/* Initialize vector with defaults */
+		stub->guint64.get(prop, vecbuf.uint64, 0, 0);
+		prop_parse_guint64_vector(p->name, val, p->vector_size, vecbuf.uint64);
+		stub->guint64.set(prop, vecbuf.uint64, 0, 0);
 		break;
 	case PROP_TYPE_STRING:
 		stub->string.set(prop, val);
 		break;
 	case PROP_TYPE_IP:
 		prop_assert(ps, prop,
-			p->vector_size * sizeof(guint32) < sizeof(vecbuf_uint32));
+			p->vector_size * sizeof(guint32) < sizeof(vecbuf.uint32));
 
-		prop_parse_ip_vector(p->name, val, p->vector_size, vecbuf_uint32);
-		stub->guint32.set(prop, vecbuf_uint32, 0, 0);
+		/* Initialize vector with defaults */
+		stub->guint32.get(prop, vecbuf.uint32, 0, 0);
+		prop_parse_ip_vector(p->name, val, p->vector_size, vecbuf.uint32);
+		stub->guint32.set(prop, vecbuf.uint32, 0, 0);
 		break;
 	case PROP_TYPE_STORAGE:
 		{
