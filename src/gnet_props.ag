@@ -744,13 +744,24 @@ prop = {
 };
 
 prop = {
-    name = "autoclear_downloads";
+    name = "autoclear_completed_downloads";
     cfgvar = "auto_clear_completed_downloads";
     desc = "Auto clear completed downloads";
     type = boolean;  
     data = {
         default = FALSE;
-        value   = clear_downloads;
+        value   = clear_complete_downloads;
+    };
+};
+
+prop = {
+    name = "autoclear_failed_downloads";
+    cfgvar = "auto_clear_failed_downloads";
+    desc = "Auto clear failed downloads";
+    type = boolean;  
+    data = {
+        default = FALSE;
+        value   = clear_failed_downloads;
     };
 };
 
@@ -1565,7 +1576,7 @@ prop = {
     data = {
         default = 3;
         min = 1;
-        max = 4;
+        max = 100;
     };
 };
 
