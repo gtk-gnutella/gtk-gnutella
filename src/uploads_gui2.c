@@ -56,9 +56,6 @@ static inline upload_row_data_t *find_upload(gnet_upload_t u);
 static void uploads_gui_update_upload_info(const gnet_upload_info_t *u);
 static void uploads_gui_add_upload(gnet_upload_info_t *u);
 
-static gfloat force_range(gfloat, gfloat, gfloat);
-
-
 static const char *column_titles[UPLOADS_GUI_VISIBLE_COLUMNS] = {
 	N_("Filename"),
 	N_("Host"),
@@ -144,6 +141,7 @@ static void upload_info_changed(gnet_upload_t u,
     upload_free_info(info);
 }
 
+#if 0	/* UNUSED */
 #define COMPARE_FUNC(field, code) \
 static gint CAT3(compare_,field,_func)( \
 	GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer user_data) \
@@ -172,7 +170,7 @@ COMPARE_FUNC(ranges, {
 	gint s = SIGN(u, v); 
 	return 0 != s ? s : SIGN(rd_a->range_start, rd_b->range_start);
 });
-
+#endif	/* UNUSED */
 
 /***
  *** Private functions
