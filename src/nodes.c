@@ -2033,7 +2033,7 @@ static gchar *formatted_connection_pongs(gchar *field, hcache_type_t htype)
  */
 static gchar *node_crawler_headers(struct gnutella_node *n)
 {
-	static gchar buf[6144];		/* 6 KB */
+	static gchar buf[8192];		/* 8 KB */
 	GSList *sl;
 	gint maxsize;
 	gint rw;
@@ -3383,7 +3383,7 @@ static gchar *node_query_routing_header(struct gnutella_node *n)
 static void node_process_handshake_header(
 	struct gnutella_node *n, header_t *head)
 {
-	gchar gnet_response[8192];		/* Large in case Crawler info sent back */
+	gchar gnet_response[10240];		/* Large in case Crawler info sent back */
 	gint rw;
 	gint sent;
 	const gchar *field;
