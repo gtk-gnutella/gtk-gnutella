@@ -106,6 +106,16 @@ typedef struct extvec {
 #define EXT_T_GGEP_T			10	/* Textual information in query hits */
 #define EXT_T_GGEP_PUSH			11	/* Push proxy info, in query hits */
 #define EXT_T_GGEP_HNAME		12	/* Hostname info, in query hits */
+#define EXT_T_GGEP_LF			13	/* Large File, in query hits */
+#define EXT_T_GGEP_DU			14	/* Daily Uptime */
+#define EXT_T_GGEP_VC			15	/* Vendor Code */
+#define EXT_T_GGEP_UP			16	/* UltraPeer information */
+#define EXT_T_GGEP_LOC			17	/* LOCale preferences */
+#define EXT_T_GGEP_SCP			18	/* Support Cached Pongs, in pings (UHC) */
+#define EXT_T_GGEP_IPP			19	/* IP:Port, in pongs (UHC) */
+#define EXT_T_GGEP_PHC			20	/* Packed HostCaches, in pongs (UHC) */
+#define EXT_T_GGEP_UDPHC		21	/* UDP HostCache, in pongs (UHC) */
+#define EXT_T_GGEP_LIME_XML		22	/* LimeWire XML metadata, in query hits */
 
 /*
  * Public interface.
