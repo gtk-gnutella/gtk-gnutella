@@ -371,11 +371,11 @@ gchar *short_size(guint32 size)
 	if (size < 1024)
 		gm_snprintf(b, sizeof(b), "%u Bytes", size);
 	else if (size < 1048576)
-		gm_snprintf(b, sizeof(b), "%.1f KB", (gfloat) size / 1024.0);
+		gm_snprintf(b, sizeof(b), "%.2f KB", (gfloat) size / 1024.0);
 	else if (size < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.1f MB", (gfloat) size / 1048576.0);
+		gm_snprintf(b, sizeof(b), "%.2f MB", (gfloat) size / 1048576.0);
 	else
-		gm_snprintf(b, sizeof(b), "%.1f GB", (gfloat) size / 1073741824.0);
+		gm_snprintf(b, sizeof(b), "%.2f GB", (gfloat) size / 1073741824.0);
 
 	return b;
 }
@@ -387,19 +387,19 @@ gchar *short_size64(guint64 size)
 	if (size < 1024)
 		gm_snprintf(b, sizeof(b), "%u Bytes", (guint) size);
 	else if (size < 1048576)
-		gm_snprintf(b, sizeof(b), "%.1f KB", (gfloat) size / 1024.0);
+		gm_snprintf(b, sizeof(b), "%.2f KB", (gfloat) size / 1024.0);
 	else if (size < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.1f MB", (gfloat) size / 1048576.0);
+		gm_snprintf(b, sizeof(b), "%.2f MB", (gfloat) size / 1048576.0);
 	else if ((size >> 10) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.1f GB", (gfloat) size / 1073741824.0);
+		gm_snprintf(b, sizeof(b), "%.2f GB", (gfloat) size / 1073741824.0);
 	else if ((size >> 20) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.1f TB",
+		gm_snprintf(b, sizeof(b), "%.2f TB",
 			(gfloat) (size >> 10) / 1073741824.0);
 	else if ((size >> 30) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.1f PB",
+		gm_snprintf(b, sizeof(b), "%.2f PB",
 			(gfloat) (size >> 20) / 1073741824.0);
 	else
-		gm_snprintf(b, sizeof(b), "%.1f EB",
+		gm_snprintf(b, sizeof(b), "%.2f EB",
 			(gfloat) (size >> 30) / 1073741824.0);
 
 	return b;
@@ -430,19 +430,19 @@ gchar *short_kb_size64(guint64 size)
 	if (size < 1024)
 		gm_snprintf(b, sizeof(b), "%u KB", (guint) size);
 	else if (size < 1048576)
-		gm_snprintf(b, sizeof(b), "%.1f MB", (gfloat) size / 1024.0);
+		gm_snprintf(b, sizeof(b), "%.2f MB", (gfloat) size / 1024.0);
 	else if (size < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.1f GB", (gfloat) size / 1048576.0);
+		gm_snprintf(b, sizeof(b), "%.2f GB", (gfloat) size / 1048576.0);
 	else if ((size >> 10) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.1f TB", (gfloat) size / 1073741824.0);
+		gm_snprintf(b, sizeof(b), "%.2f TB", (gfloat) size / 1073741824.0);
 	else if ((size >> 20) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.1f PB",
+		gm_snprintf(b, sizeof(b), "%.2f PB",
 			(gfloat) (size >> 10) / 1073741824.0);
 	else if ((size >> 30) < 1073741824)
-		gm_snprintf(b, sizeof(b), "%.1f EB",
+		gm_snprintf(b, sizeof(b), "%.2f EB",
 			(gfloat) (size >> 20) / 1073741824.0);
 	else
-		gm_snprintf(b, sizeof(b), "%.1f ZB",
+		gm_snprintf(b, sizeof(b), "%.2f ZB",
 			(gfloat) (size >> 30) / 1073741824.0);
 
 	return b;
