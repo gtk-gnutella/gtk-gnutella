@@ -3040,7 +3040,7 @@ static GSList *list_clone_shift(struct dl_file_info *fi)
 
 	for (l = fi->chunklist; l; l = g_slist_next(l)) {
 		fc = l->data;
-		if (fc->to >= offset)
+		if (fc->to > offset)		/* Not ">=" or we'd miss one chunk */
 			break;					/* We've reached the cloning point */
 		g_assert(fc->from < offset);
 		clone = gm_slist_insert_after(clone, tail, fc);
