@@ -78,11 +78,13 @@ void socket_monitor_incoming(void)
 		g_assert(s->last_update);
 		/* We reuse the `node_connecting_timeout' parameter, need a new one? */
 		if (now - s->last_update > node_connecting_timeout) {
-			g_warning("connection from %s timed out (%d bytes read)",
-					  ip_to_gchar(s->ip), s->pos);
-			if (s->pos > 0)
-				dump_hex(stderr, "Connection Header",
-					s->buffer, MIN(s->pos, 80));
+			if (dbg) {
+				g_warning("connection from %s timed out (%d bytes read)",
+						  ip_to_gchar(s->ip), s->pos);
+				if (s->pos > 0)
+					dump_hex(stderr, "Connection Header",
+						s->buffer, MIN(s->pos, 80));
+			}
 			socket_destroy(s);
 			goto retry;			/* Don't know the internals of lists, retry */
 		}
@@ -160,8 +162,7 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 
 	count = sizeof(s->buffer) - s->pos - 1;		/* -1 to allow trailing NUL */
 	if (count <= 0) {
-		g_warning
-			("socket_read(): incoming buffer full, disconnecting from %s",
+		g_warning("socket_read(): incoming buffer full, disconnecting from %s",
 			 ip_to_gchar(s->ip));
 		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
 		socket_destroy(s);
@@ -200,7 +201,8 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 	case READ_OVERFLOW:
 		g_warning("socket_read(): first line too long, disconnecting from %s",
 			 ip_to_gchar(s->ip));
-		dump_hex(stderr, "Leading Data", s->buffer, MIN(s->pos, 256));
+		dump_hex(stderr, "Leading Data",
+			getline_str(s->getline), MIN(getline_length(s->getline), 256));
 		if (
 			0 == strncmp(s->buffer, "GET ", 4) ||
 			0 == strncmp(s->buffer, "HEAD ", 5)
@@ -285,9 +287,11 @@ static void socket_read(gpointer data, gint source, GdkInputCondition cond)
 		upload_add(s);
 	else {
 		gint len = getline_length(s->getline);
-		g_warning("socket_read(): Got an unknown incoming connection, "
-			"dropping it.");
-		dump_hex(stderr, "First Line", first, MIN(len, 160));
+		if (dbg) {
+			g_warning("socket_read(): Got an unknown incoming connection, "
+				"dropping it.");
+			dump_hex(stderr, "First Line", first, MIN(len, 160));
+		}
 		goto cleanup;
 	}
 
