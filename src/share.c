@@ -46,6 +46,11 @@
 #include "base32.h"
 #include "atoms.h"
 #include "extensions.h"
+#include "nodes.h"
+
+#include "gnet_property_priv.h"
+#include "listener.h"
+#include "settings.h"
 
 static guchar iso_8859_1[96] = {
 	' ', 			/* 160 - NO-BREAK SPACE */
@@ -159,6 +164,27 @@ static GHashTable *file_basenames = NULL;
 
 gchar stmp_1[4096];
 gchar stmp_2[4096];
+
+/***
+ *** Callbacks
+ ***/
+
+static listeners_t search_request_listeners = NULL;
+
+void share_add_search_request_listener(search_request_listener_t l)
+{
+    LISTENER_ADD(search_request, l);
+}
+
+void share_remove_search_request_listener(search_request_listener_t l)
+{
+    LISTENER_REMOVE(search_request, l);
+}
+
+static void share_emit_search_request(const gchar *query)
+{
+    LISTENER_EMIT(search_request, query);
+}
 
 /*
  * Buffer where query hit packet is built.
@@ -927,10 +953,10 @@ gboolean search_request(struct gnutella_node *n)
 		}
 	}
 
-    
-
-	if (monitor_enabled) 		/* Update the search monitor */
-		share_gui_append_to_monitor(n->data + 2);
+    /*
+     * Push the query string to interested ones.
+     */
+    share_emit_search_request(n->data+2);
 
 	READ_GUINT16_LE(n->data, req_speed);
 

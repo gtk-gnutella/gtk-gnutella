@@ -26,8 +26,10 @@
 #ifndef __share_h__
 #define __share_h__
 
-#include "nodes.h"
+//#include "nodes.h"
 #include "huge.h"
+
+struct gnutella_node;
 
 /* A file extension we have to share */
 struct extension {
