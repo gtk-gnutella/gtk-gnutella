@@ -107,6 +107,7 @@ GUI_GTK2 = \
 	downloads_gui2.c \
 	fileinfo_gui2.c \
 	gnet_stats_gui2.c \
+	hcache_gui2.c \
 	monitor_cb2.c\
 	monitor_gui2.c \
 	nodes_cb2.c \
@@ -122,6 +123,7 @@ GUI_GTK1 = \
 	downloads_gui.c \
 	fileinfo_gui.c \
 	gnet_stats_gui.c \
+	hcache_gui.c \
 	monitor_cb.c \
 	monitor_gui.c \
 	nodes_cb.c \
@@ -146,6 +148,7 @@ GUI_COMMON = \
 	gtk-missing.c \
 	gui.c \
 	gui_property.c \
+	hcache_gui_common.c \
 	main_cb.c \
 	main_gui.c \
 	nodes_gui_common.c \
@@ -340,6 +343,9 @@ OBJLIST = \
 	hashlist.o \
 	hashtree.o \
 	hcache.o \
+	hcache_gui.o \
+	hcache_gui2.o \
+	hcache_gui_common.o \
 	header.o \
 	hostiles.o \
 	hosts.o \
