@@ -228,7 +228,7 @@ static void handle_messages_supported(struct gnutella_node *n,
 			"expected %d bytes in vector for %d item%s, got %d",
 			node_ip(n), n->vendor ? n->vendor : "????",
 			count * VMS_ITEM_SIZE, count, count == 1 ? "" : "s",
-			size - sizeof(count));
+			size - (gint) sizeof(count));
 		return;
 	}
 
