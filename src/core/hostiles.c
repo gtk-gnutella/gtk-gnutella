@@ -47,6 +47,7 @@ RCSID("$Id$");
 #include "lib/walloc.h"
 #include "lib/watcher.h"
 
+#include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 #include "if/bridge/c2ui.h"
 
@@ -186,7 +187,7 @@ hostiles_changed(const gchar *filename, gpointer udata)
 
 	which = GPOINTER_TO_UINT(udata);
 	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
-	
+
 	f = file_fopen(filename, "r");
 	if (f == NULL)
 		return;
@@ -228,41 +229,73 @@ hostiles_retrieve_from_file(FILE *f, hostiles_t which,
  * shortly after a modification.
  */
 static void
-hostiles_retrieve(void)
+hostiles_retrieve(hostiles_t which)
 {
-	FILE *f;
-	file_path_t fp_private[1];
-	gint idx;
+	g_assert((gint) which >= 0 && which < NUM_HOSTILES);
 
-	file_path_set(&fp_private[0], settings_config_dir(), hostiles_file);
-	f = file_config_open_read_norename_chosen(
-			hostiles_what, fp_private, G_N_ELEMENTS(fp_private), &idx);
+	switch (which) {
+	case HOSTILE_PRIVATE:
+		{
+			FILE *f;
+			gint idx;
+			file_path_t fp_private[1];
 
-	if (f) {
-		hostiles_retrieve_from_file(f, HOSTILE_PRIVATE,
-			fp_private[idx].dir, fp_private[idx].name);
-		fclose(f);
-		f = NULL;
-	}
+			file_path_set(&fp_private[0], settings_config_dir(), hostiles_file);
+			f = file_config_open_read_norename_chosen(
+				hostiles_what, fp_private, G_N_ELEMENTS(fp_private), &idx);
 
-
-	if (use_global_hostiles_txt) {
-		static const file_path_t const fp[] = {
-#ifndef OFFICIAL_BUILD
-			{ PACKAGE_SOURCE_DIR, hostiles_file },
-#endif
-			{ PRIVLIB_EXP, hostiles_file },
-		};
-
-		f = file_config_open_read_norename_chosen(
-				hostiles_what, fp, G_N_ELEMENTS(fp), &idx);
-		if (f) {
-			hostiles_retrieve_from_file(f,
-				HOSTILE_GLOBAL, fp[idx].dir, fp[idx].name);
-			fclose(f);
-			f = NULL;
+			if (f) {
+				hostiles_retrieve_from_file(f, HOSTILE_PRIVATE,
+					fp_private[idx].dir, fp_private[idx].name);
+				fclose(f);
+			}
 		}
+		break;
+
+	case HOSTILE_GLOBAL:
+		{
+			FILE *f;
+			gint idx;
+			static const file_path_t const fp[] = {
+#ifndef OFFICIAL_BUILD
+				{ PACKAGE_SOURCE_DIR, hostiles_file },
+#endif
+				{ PRIVLIB_EXP, hostiles_file },
+			};
+			
+
+			f = file_config_open_read_norename_chosen(
+				hostiles_what, fp, G_N_ELEMENTS(fp), &idx);
+			if (f) {
+				hostiles_retrieve_from_file(f,
+				HOSTILE_GLOBAL, fp[idx].dir, fp[idx].name);
+				fclose(f);
+			}
+		}
+		break;
+
+	case NUM_HOSTILES:
+		g_assert_not_reached();
 	}
+}
+
+/**
+ * If the property was set to FALSE at startup time, hostile_db[HOSTILE_GLOBAL]
+ * is still NULL and we need to load the global hostiles.txt now. Otherwise,
+ * there's nothing to do, hostiles_check() will simply ignore
+ * hostile_db[HOSTILE_GLOBAL]. The file watcher keeps running though during
+ * this session and we keep the database in memory.
+ */
+static gboolean
+use_global_hostiles_txt_changed(property_t unused_prop)
+{
+	(void) unused_prop;
+
+	if (use_global_hostiles_txt && !hostile_db[HOSTILE_GLOBAL]) {
+		hostiles_retrieve(HOSTILE_GLOBAL);
+	}
+	
+    return FALSE;
 }
 
 /**
@@ -271,7 +304,9 @@ hostiles_retrieve(void)
 void
 hostiles_init(void)
 {
-	hostiles_retrieve();
+	hostiles_retrieve(HOSTILE_PRIVATE);
+    gnet_prop_add_prop_changed_listener(PROP_USE_GLOBAL_HOSTILES_TXT,
+		use_global_hostiles_txt_changed, TRUE);
 }
 
 /**
@@ -297,6 +332,9 @@ hostiles_check(guint32 ip)
 	gint i;
 
 	for (i = 0; i < NUM_HOSTILES; i++) {
+		if (i == HOSTILE_GLOBAL && !use_global_hostiles_txt)
+			continue;
+
 		if (NULL != hostile_db[i] && THERE == iprange_get(hostile_db[i], ip))
 			return TRUE;
 	}
