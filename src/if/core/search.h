@@ -131,8 +131,7 @@ typedef void (*search_got_results_listener_t)
 
 #ifdef CORE_SOURCES
 
-gnet_search_t search_new
-    (const gchar *, guint16 min_speed, guint32 timeout, flag_t flags);
+gnet_search_t search_new(const gchar *, guint32 timeout, flag_t flags);
 void search_close(gnet_search_t sh);
 
 void search_start(gnet_search_t sh);

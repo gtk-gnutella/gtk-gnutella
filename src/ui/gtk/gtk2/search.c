@@ -272,8 +272,7 @@ gboolean search_gui_new_search(
     
     gnet_prop_get_guint32_val
 		(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
-	return search_gui_new_search_full(
-        query, 0, timeout, SORT_NO_COL, SORT_NONE,
+	return search_gui_new_search_full(query, timeout, SORT_NO_COL, SORT_NONE,
 		flags | SEARCH_ENABLED, search);
 }
 
@@ -291,9 +290,7 @@ do_atom_sha1_free(gpointer sha1)
  * search is stored there.
  */
 gboolean
-search_gui_new_search_full(
-	const gchar *querystr, guint16 speed,
-	guint32 reissue_timeout,
+search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	gint sort_col, gint sort_order, flag_t flags, search_t **search)
 {
 	static gchar query[512];
@@ -376,8 +373,7 @@ search_gui_new_search_full(
 	sch->sort_order = sort_order;	/* Unused in GTK2 currently */
 	sch->query = atom_str_get(query);
 	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
-	sch->search_handle = guc_search_new
-		(query, speed, reissue_timeout, flags);
+	sch->search_handle = guc_search_new(query, reissue_timeout, flags);
 	sch->passive = (flags & SEARCH_PASSIVE) ? TRUE : FALSE;
 	sch->massive_update = FALSE;
 	sch->dups = g_hash_table_new_full(
@@ -1284,14 +1280,7 @@ add_results_columns(GtkTreeView *treeview)
 		{ N_("Extension"), c_sr_ext,	  0.0, NULL },
 		{ N_("Size"),	   c_sr_size,	  1.0, search_gui_compare_size_func },
 		{ N_("#"),		   c_sr_count,	  1.0, search_gui_compare_count_func },
-#if 0
-		{ N_("Speed"),	   c_sr_speed,	  1.0, NULL },
-		{ N_("Host"),	   c_sr_host,	  0.0, NULL },
-#endif
 		{ N_("Loc"),	   c_sr_loc,	  0.0, NULL },
-#if 0
-		{ N_("SHA1"),	   c_sr_sha1,	  0.0, NULL },
-#endif
 		{ N_("Metadata"),  c_sr_meta,	  0.0, NULL },
 		{ N_("Info"),	   c_sr_info,	  0.0, NULL }
 	};

@@ -840,7 +840,7 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
 			(flags & SEARCH_PASSIVE) ? "passive" : "active",
 			query);
 
-	search_gui_new_search_full(query, 0, reissue_timeout,
+	search_gui_new_search_full(query, reissue_timeout,
 		sort_col, sort_order, flags, &search);
 
     G_FREE_NULL(query);

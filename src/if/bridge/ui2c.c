@@ -550,10 +550,10 @@ gboolean guc_search_is_frozen(gnet_search_t sh)
 	return search_is_frozen(sh);
 }
 
-gnet_search_t guc_search_new(const gchar *query, 
-	guint16 minimum_speed, guint32 reissue_timeout, flag_t flags)
+gnet_search_t guc_search_new(const gchar *query,
+		guint32 reissue_timeout, flag_t flags)
 {
-	return search_new(query, minimum_speed, reissue_timeout, flags);
+	return search_new(query, reissue_timeout, flags);
 }
 
 void guc_search_reissue(gnet_search_t sh)

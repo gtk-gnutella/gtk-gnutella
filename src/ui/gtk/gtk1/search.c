@@ -299,7 +299,7 @@ gboolean search_gui_new_search(
     gnet_prop_get_guint32_val
 		(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
-    return search_gui_new_search_full(query, 0, timeout,
+    return search_gui_new_search_full(query, timeout,
 		sort_col, sort_order, flags | SEARCH_ENABLED, search);
 }
 
@@ -312,8 +312,7 @@ gboolean search_gui_new_search(
  * happened. If the "search" argument is not NULL a pointer to the new
  * search is stored there.
  */
-gboolean search_gui_new_search_full(
-	const gchar *querystr, guint16 speed,
+gboolean search_gui_new_search_full(const gchar *querystr,
 	guint32 reissue_timeout, gint sort_col, 
 	gint sort_order, flag_t flags, search_t **search)
 {
@@ -398,8 +397,7 @@ gboolean search_gui_new_search_full(
 	
 	sch->query = atom_str_get(query);
 	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
-    sch->search_handle = guc_search_new
-		(query, speed, reissue_timeout, flags);
+    sch->search_handle = guc_search_new(query, reissue_timeout, flags);
     sch->passive = (flags & SEARCH_PASSIVE) ? TRUE : FALSE;
 	sch->dups = g_hash_table_new((GHashFunc) search_gui_hash_func,
 					(GCompareFunc) search_gui_hash_key_compare);
