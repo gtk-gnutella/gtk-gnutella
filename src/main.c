@@ -102,7 +102,8 @@ void gtk_gnutella_exit(gint n)
 #endif
 
 	node_bye_all();
-	upload_close();		/* Done before settings_close() for stats update */
+	upload_close();		/* Done before upload_stats_close() for stats update */
+	upload_stats_close();
 	download_close();
 	http_close();
 	gwc_close();
@@ -147,7 +148,6 @@ void gtk_gnutella_exit(gint n)
 	verify_close();
 	move_close();
 	bg_close();
-	upload_stats_free_all();
 	atom_str_free(start_rfc822_date);
 	atoms_close();
 	wdestroy();

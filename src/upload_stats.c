@@ -147,11 +147,8 @@ done:
  * upload_stats_dump_history
  *
  * Save upload statistics to file.
- * When `cleanup' is TRUE, we release the memory used by the statistics.
- * Otherwise, we just save the data, but keep the data structure intact.
  */
-void upload_stats_dump_history(
-	const gchar *ul_history_file_name, gboolean cleanup)
+static void upload_stats_dump_history(const gchar *ul_history_file_name)
 {
 	FILE *out;
 	time_t now = time((time_t *) NULL);
@@ -195,19 +192,10 @@ void upload_stats_dump_history(
 
 		if (escaped != stat->filename)		/* File had escaped chars */
 			G_FREE_NULL(escaped);
-
-		if (cleanup)
-			G_FREE_NULL(l->data);
 	}
 
 	/* close file */
 	fclose(out);
-
-	if (cleanup && stats_file) {
-		g_list_free(upload_stats_list);
-		upload_stats_list = NULL;
-		G_FREE_NULL(stats_file);
-	}
 }
 
 /*
@@ -224,7 +212,7 @@ void upload_stats_flush_if_dirty(void)
 	dirty = FALSE;
 
 	if (NULL != stats_file)
-		upload_stats_dump_history(stats_file, FALSE);
+		upload_stats_dump_history(stats_file);
 	else
 		g_warning("can't save upload statistics: no file name recorded");
 }
@@ -331,7 +319,7 @@ void upload_stats_prune_nonexistent()
  *
  * Clear all the upload stats data structure
  */
-void upload_stats_free_all(void)
+static void upload_stats_free_all(void)
 {
     GList *l;
 
@@ -354,5 +342,17 @@ void upload_stats_clear_all(void)
 {
 	upload_stats_gui_clear_all();
 	upload_stats_free_all();
+}
+
+/*
+ * upload_stats_close
+ *
+ * Called at shutdown time.
+ */
+void upload_stats_close(void)
+{
+	upload_stats_dump_history(stats_file);
+	upload_stats_free_all();
+	G_FREE_NULL(stats_file);
 }
 
