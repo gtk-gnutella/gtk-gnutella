@@ -118,6 +118,11 @@ different meanings in other places. For example:
 
 In the translated string discard everything up to the first '|' and
 translate the rest only.
+
+If you want to see the strings translated every so often in gtk-gnutella
+when it is running, without having to install as root each time, do
+$ ./Configure -Oders -Dlocale=$HOME/gtkg/locale
+$ make install
  
  
 5. Convert the output to UTF-8 (if it's not already UTF-8 encoded):
