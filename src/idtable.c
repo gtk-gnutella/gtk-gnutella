@@ -162,7 +162,7 @@ void idtable_destroy(idtable_t *tbl)
     g_assert(tbl->last_id < tbl->size);
 
     if (tbl->ids > 0) {
-        g_warning("idtable_destroy: destroying table with %u ids\n", 
+        g_warning("idtable_destroy: destroying table with %u ids", 
             tbl->ids);
     }
 
