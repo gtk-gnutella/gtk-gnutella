@@ -33,12 +33,13 @@
 #include "downloads.h"
 #include "gnet_stats.h"
 #include "ignore.h"
-#include "ggep.h"
+#include "ggep_type.h"
 #include "version.h"
 #include "qrp.h"
 #include "search.h"
 #include "hostiles.h"
 #include "dmesh.h"
+#include "fileinfo.h"
 
 #include <ctype.h>
 
@@ -102,14 +103,6 @@ static query_hashvec_t *query_hashvec = NULL;
     idtable_free_id(search_handle_map, n);
 
 guint32   search_passive  = 0;		/* Amount of passive searches */
-
-/* 
- * Didn't find a better place to put this, since downloads.h
- * doesn't know about the struct results_set. --vidar, 20020802 
- * FIXME: this is declared in fileinfo.c, but not in fileinfo.h!
- */
-extern gboolean file_info_check_results_set(gnet_results_set_t *rs);
-
 
 /***
  *** Callbacks (private and public)
@@ -237,6 +230,23 @@ static gboolean search_has_muid(search_ctrl_t *sch, const gchar *muid)
 }
 
 /*
+ * search_free_alt_locs
+ *
+ * Free the alternate locations held within a file record.
+ */
+void search_free_alt_locs(gnet_record_t *rc)
+{
+	gnet_alt_locs_t *alt = rc->alt_locs;
+
+	g_assert(alt != NULL);
+
+	wfree(alt->hvec, alt->hvcnt * sizeof(*alt->hvec));
+	wfree(alt, sizeof(*alt));
+
+	rc->alt_locs = NULL;
+}
+
+/*
  * search_free_record
  *
  * Free one file record.
@@ -244,10 +254,12 @@ static gboolean search_has_muid(search_ctrl_t *sch, const gchar *muid)
 static void search_free_record(gnet_record_t *rc)
 {
 	atom_str_free(rc->name);
-	if (rc->tag)
+	if (rc->tag != NULL)
 		atom_str_free(rc->tag);
-	if (rc->sha1)
+	if (rc->sha1 != NULL)
 		atom_sha1_free(rc->sha1);
+	if (rc->alt_locs != NULL)
+		search_free_alt_locs(rc);
 	zfree(rc_zone, rc);
 }
 
@@ -299,6 +311,7 @@ static gnet_results_set_t *get_results_set(
 	gint sha1_errors = 0;
 	gchar *trailer = NULL;
 	gboolean seen_ggep_h = FALSE;
+	gboolean seen_ggep_alt = FALSE;
 	gboolean seen_bitprint = FALSE;
 
 	/* We shall try to detect malformed packets as best as we can */
@@ -414,6 +427,7 @@ static gnet_results_set_t *get_results_set(
 			rc->size  = size;
 			rc->name  = atom_str_get(fname);
             rc->flags = 0;
+            rc->alt_locs = NULL;
 		}
 
 		/*
@@ -424,6 +438,8 @@ static gnet_results_set_t *get_results_set(
 			extvec_t exv[MAX_EXTVEC];
 			gint exvcnt;
 			gint i;
+			struct gnutella_host *hvec = NULL;		/* For GGEP "ALT" */
+			gint hvcnt = 0;
 
 			g_assert(taglen > 0);
 
@@ -485,6 +501,18 @@ static gnet_results_set_t *get_results_set(
 						}
 					}
 					break;
+				case EXT_T_GGEP_ALT:
+					ret = ggept_alt_extract(e, &hvec, &hvcnt);
+					if (ret == GGEP_OK)
+						seen_ggep_alt = TRUE;
+					else {
+						if (dbg) {
+							g_warning("%s bad GGEP \"ALT\" (dumping)",
+								gmsg_infostr(&n->header));
+							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+						}
+					}
+					break;
 				case EXT_T_UNKNOWN:
 					if (
 						!validate_only &&
@@ -508,6 +536,23 @@ static gnet_results_set_t *get_results_set(
 
 			if (!validate_only && info->len)
 				rc->tag = atom_str_get(info->str);
+
+			if (hvec != NULL) {
+				g_assert(hvcnt > 0);
+
+				/*
+				 * GGEP "ALT" is only meaningful when there is a SHA1!
+				 */
+
+				if (!validate_only && rc->sha1 != NULL) {
+					gnet_alt_locs_t *alt = walloc(sizeof(*alt));
+
+					alt->hvec = hvec;
+					alt->hvcnt = hvcnt;
+					rc->alt_locs = alt;
+				} else
+					wfree(hvec, hvcnt * sizeof(*hvec));
+			}
 		}
 
 		if (!validate_only)
@@ -699,6 +744,11 @@ static gnet_results_set_t *get_results_set(
 			if (seen_ggep_h) {
 				gchar *vendor = lookup_vendor_name(rs->vendor);
 				g_warning("%s from %s used GGEP \"H\" extension",
+					 gmsg_infostr(&n->header), vendor ? vendor : "????");
+			}
+			if (seen_ggep_alt) {
+				gchar *vendor = lookup_vendor_name(rs->vendor);
+				g_warning("%s from %s used GGEP \"ALT\" extension",
 					 gmsg_infostr(&n->header), vendor ? vendor : "????");
 			}
 			if (seen_bitprint) {
@@ -1266,11 +1316,15 @@ gboolean search_results(gnutella_node_t *n)
 	/*
 	 * Parse the packet.
 	 *
-	 * If we're not going to dispatch it to any search, the packet is only
-	 * parsed for validation.
+	 * If we're not going to dispatch it to any search or auto-download files
+	 * based on the SHA1, the packet is only parsed for validation.
 	 */
 
-	rs = get_results_set(n, selected_searches == NULL);
+	rs = get_results_set(n,
+		selected_searches == NULL
+		&& !auto_download_identical
+		&& !auto_feed_download_mesh);
+
 	if (rs == NULL) {
         /*
          * get_results_set takes care of telling the stats that
@@ -1293,7 +1347,7 @@ gboolean search_results(gnutella_node_t *n)
 
     /*
      * Look for records that match entries in the download queue.
-     */
+	 */
 
     if (auto_download_identical)
 		file_info_check_results_set(rs);
@@ -1301,9 +1355,10 @@ gboolean search_results(gnutella_node_t *n)
 	/*
 	 * Look for records whose SHA1 matches files we own and add
 	 * those entries to the mesh.
-	 */
+     */
 
-	dmesh_check_results_set(rs);
+	if (auto_feed_download_mesh)
+		dmesh_check_results_set(rs);
 
     /*
      * Look for records that should be ignored.

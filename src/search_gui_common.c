@@ -480,8 +480,30 @@ void search_gui_common_shutdown(void)
 	rs_zone = rc_zone = NULL;
 }
 
+/*
+ * search_gui_check_alt_locs
+ *
+ * Check for alternate locations in the result set, and enqueue the downloads
+ * if there are any.  Then free the alternate location from the record.
+ */
+void search_gui_check_alt_locs(record_t *rc, time_t stamp)
+{
+	gint i;
+	alt_locs_t *alt = rc->alt_locs;
+	static gchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-// Remove older functions from search_gui.c and search_gui2.c
-// Rename all calls in those files.
-// Update the record structure to hold the alt_locs.
-// Fix the download_new() calls to handle ALT
+	g_assert(alt != NULL);
+
+	for (i = alt->hvcnt - 1; i >= 0; i--) {
+		struct host *h = &alt->hvec[i];
+
+		if (!host_is_valid(h->ip, h->port))
+			continue;
+
+		download_auto_new(rc->name, rc->size, URN_INDEX, h->ip,
+			h->port, blank_guid, rc->sha1, stamp, FALSE, NULL);
+	}
+
+	search_gui_free_alt_locs(rc);
+}
+

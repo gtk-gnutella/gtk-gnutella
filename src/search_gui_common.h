@@ -118,5 +118,6 @@ gboolean search_gui_result_is_dup(struct search* sch, struct record * rc);
 struct search *search_gui_find(gnet_search_t sh);
 record_t *search_gui_create_record(results_set_t *rs, gnet_record_t *r) ;
 results_set_t *search_gui_create_results_set(const gnet_results_set_t *r_set);
+void search_gui_check_alt_locs(record_t *rc, time_t stamp);
 
 #endif /* _search_gui_common_h_ */

@@ -26,6 +26,7 @@
 
 #include "common.h"
 #include "hcache.h"
+#include "hosts.h"
 
 
 /***
@@ -224,9 +225,6 @@ void share_add_search_request_listener(search_request_listener_t l);
 void share_remove_search_request_listener(search_request_listener_t l);
 
 
-
-
-
 /***
  *** Searches
  ***/
@@ -272,6 +270,14 @@ typedef struct gnet_results_set {
 } gnet_results_set_t;
 
 /*
+ * Alternate locations held in query hits.
+ */
+typedef struct gnet_alt_locs {
+	struct gnutella_host *hvec;	/* Vector of alternate locations */
+	gint hvcnt;					/* Amount of hosts in vector */
+} gnet_alt_locs_t;
+
+/*
  * Result record flags
  */
 #define SR_DOWNLOADED 1
@@ -287,6 +293,7 @@ typedef struct gnet_record {
 	guint32 index;				/* Index for GET command */
 	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
 	gchar  *tag;				/* Optional tag data string (atom) */
+	gnet_alt_locs_t *alt_locs;	/* Optional: known alternate locations */
     flag_t  flags;
 } gnet_record_t;
 
@@ -320,6 +327,7 @@ guint32 search_get_reissue_timeout(gnet_search_t sh);
 void search_set_minimum_speed(gnet_search_t sh, guint16 speed);
 guint16 search_get_minimum_speed(gnet_search_t sh);
 
+void search_free_alt_locs(gnet_record_t *rc);
 
 /***
  *** Filters
@@ -508,7 +516,7 @@ void download_auto_new(gchar *,
     gboolean, struct dl_file_info *);
 void download_index_changed(guint32, guint16, gchar *, guint32, guint32);
 
-
+#define URN_INDEX	0xffffffff		/* Marking index, indicates URN instead */
 
 /***
  *** Uploads

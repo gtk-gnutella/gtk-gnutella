@@ -51,8 +51,6 @@ typedef struct {
 	gchar *name;			/* File name or URN string (atom) */
 } dmesh_urlinfo_t;
 
-#define URN_INDEX	0xffffffff		/* Marking index, indicates URN instead */
-
 /*
  * Error codes from dmesh_url_parse().
  */

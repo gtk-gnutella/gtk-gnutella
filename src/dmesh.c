@@ -1801,6 +1801,28 @@ void dmesh_check_results_set(gnet_results_set_t *rs)
 		if (has) {
 			dmesh_fill_info(&info, rc->sha1, rs->ip, rs->port, URN_INDEX, NULL);
 			(void) dmesh_raw_add(rc->sha1, &info, now);
+
+			/*
+			 * If we have further alt-locs specified in the query hit, add
+			 * them to the mesh and dispose of them.
+			 */
+
+			if (rc->alt_locs != NULL) {
+				gint i;
+				gnet_alt_locs_t *alt = rc->alt_locs;
+
+				for (i = alt->hvcnt - 1; i >= 0; i--) {
+					struct gnutella_host *h = &alt->hvec[i];
+
+					dmesh_fill_info(&info, rc->sha1, h->ip, h->port,
+						URN_INDEX, NULL);
+					(void) dmesh_raw_add(rc->sha1, &info, now);
+				}
+
+				search_free_alt_locs(rc);		/* Read them, free them! */
+			}
+
+			g_assert(rc->alt_locs == NULL);
 		}
 	}
 }

@@ -101,6 +101,7 @@ typedef struct extvec {
 #define EXT_T_GGEP_H			5	/* GGEP binary hash value */
 #define EXT_T_OVERHEAD			6	/* Pure overhead */
 #define EXT_T_GGEP_GTKGV1		7	/* GTKG version indication #1 */
+#define EXT_T_GGEP_ALT			8	/* Alternate locations in query hits */
 
 /*
  * Public interface.
