@@ -14,7 +14,11 @@
     Alt-Tab. Works in any application.
   * moved more code from main.c to gui_init
   * removed clist_connections (old stats) from glade and gui code
-  
+
+- (2002.05.02 - RAM)
+  * Fixed bug #551185: was not initializing local_netmasks_string.
+  * Fixed bug #552255: could be wrongly freeing static string.
+
 - (2002.05.01 - RAM)
   * Integrated the search queue patch: searches are now sent once every
 	10 seconds on a per-connection basis [From Alex Bennee].
