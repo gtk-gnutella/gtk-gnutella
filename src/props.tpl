@@ -182,8 +182,12 @@ ELSE=][=
         (define vtype "guint32  ")
         (define vdef (get "data.default"))=][=
     = string =][=
-        (define vtype "gchar   *")
-        (define vdef (sprintf "\"%s\"" (get "data.default")))=][=
+        (define vtype "gchar   *")=][=
+        IF (= (get "data.default") "NULL")=][=
+            (define vdef (sprintf "NULL"))=][=
+        ELSE=][=
+            (define vdef (sprintf "\"%s\"" (get "data.default")))=][=
+        ENDIF=][=
     ESAC =][= 
     IF (exist? "vector_size")=]
 [=  (. vtype)=][=(. item)=][[=vector_size=]]     = [=(. vdef)=];
@@ -278,9 +282,13 @@ FOR prop =][=
     [=(. current-prop)=].data.guint32.value = [=(. prop-var)=];[=
     IF (exist? "data.max")=]
     [=(. current-prop)=].data.guint32.max   = [=data.max=];[=
+    ELSE=]
+    [=(. current-prop)=].data.guint32.max   = 0xFFFFFFFF;[=
     ENDIF=][=
     IF (exist? "data.min")=]
     [=(. current-prop)=].data.guint32.min   = [=data.min=];[= 
+    ELSE=]
+    [=(. current-prop)=].data.guint32.min   = 0x00000000;[= 
     ENDIF=][=
 
     = ip =]
@@ -294,8 +302,10 @@ FOR prop =][=
     [=(. current-prop)=].type               = PROP_TYPE_STRING;
     [=(. current-prop)=].data.string.def    = [=(. prop-def-var)=];
     [=(. current-prop)=].data.string.value  = [=(. prop-var)=];
-    *[=(. current-prop)=].data.string.value =
-        g_strdup(*[=(. current-prop)=].data.string.def);[= 
+    if ([=(. current-prop)=].data.string.def) {
+        *[=(. current-prop)=].data.string.value =
+            g_strdup(*[=(. current-prop)=].data.string.def);
+    }[= 
     ESAC =][=
 ENDFOR prop=]
     return [=(. prop-set)=];
