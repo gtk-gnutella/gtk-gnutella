@@ -6,7 +6,7 @@ package=gtk-gnutella
 
 build:
 	$(checkdir)
-	./configure --prefix=/usr
+	./configure --enable-xml-store --prefix=/usr
 	$(MAKE) CFLAGS="-O2 -g -Wall"
 #	cp menu.ex debian/tmp/usr/lib/menu/xtranslate 
 	touch build
