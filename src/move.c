@@ -175,7 +175,7 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 	struct download *d = we->d;
 	gchar *source = NULL;
 	struct stat buf;
-	gchar *name;
+	const gchar *name;
 
 	g_assert(md->magic == MOVED_MAGIC);
 	g_assert(md->rd == -1);
@@ -445,3 +445,4 @@ void move_close(void)
 	bg_task_cancel(move_daemon);
 }
 
+/* vi: set ts=4: */
