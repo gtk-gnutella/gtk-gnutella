@@ -3999,7 +3999,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label266), 0, 0.5);
 
-  label267 = gtk_label_new_with_mnemonic ("Raphael Manfredi <Raphael__Manfredi@pobox.com>");
+  label267 = gtk_label_new_with_mnemonic ("Raphaël Manfredi <Raphael__Manfredi@pobox.com>");
   gtk_widget_set_name (label267, "label267");
   gtk_widget_show (label267);
   gtk_table_attach (GTK_TABLE (table28), label267, 1, 2, 1, 2,
@@ -4053,7 +4053,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label272), 0, 0.5);
 
-  label273 = gtk_label_new ("Raphael Manfredi");
+  label273 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label273, "label273");
   gtk_widget_show (label273);
   gtk_table_attach (GTK_TABLE (table29), label273, 1, 2, 2, 3,
@@ -4061,7 +4061,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label273), 0, 0.5);
 
-  label274 = gtk_label_new ("Raphael Manfredi");
+  label274 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label274, "label274");
   gtk_widget_show (label274);
   gtk_table_attach (GTK_TABLE (table29), label274, 1, 2, 1, 2,
@@ -4077,7 +4077,7 @@ create_dlg_about (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label_d268), 0, 0.5);
 
-  label275 = gtk_label_new ("Raphael Manfredi");
+  label275 = gtk_label_new ("Raphaël Manfredi");
   gtk_widget_set_name (label275, "label275");
   gtk_widget_show (label275);
   gtk_table_attach (GTK_TABLE (table29), label275, 1, 2, 0, 1,
@@ -4107,6 +4107,12 @@ create_dlg_about (void)
   gtk_widget_set_name (textview1, "textview1");
   gtk_widget_show (textview1);
   gtk_container_add (GTK_CONTAINER (scrolledwindow18), textview1);
+  gtk_text_view_set_editable (GTK_TEXT_VIEW (textview1), FALSE);
+  gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (textview1), FALSE);
+  gtk_text_view_set_left_margin (GTK_TEXT_VIEW (textview1), 4);
+  gtk_text_view_set_right_margin (GTK_TEXT_VIEW (textview1), 4);
+  gtk_text_buffer_set_text (gtk_text_view_get_buffer (GTK_TEXT_VIEW (textview1)),
+	"Steven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaël Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nVidar Madsen <vidar@gimp.org>", -1);
 
   label302 = gtk_label_new ("Contributors");
   gtk_widget_set_name (label302, "label302");
@@ -4123,6 +4129,7 @@ create_dlg_about (void)
   gtk_widget_set_name (button_about_close, "button_about_close");
   gtk_widget_show (button_about_close);
   gtk_box_pack_start (GTK_BOX (hbox137), button_about_close, TRUE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (button_about_close), 5);
   GTK_WIDGET_SET_FLAGS (button_about_close, GTK_CAN_DEFAULT);
 
   g_signal_connect ((gpointer) dlg_about, "delete_event",

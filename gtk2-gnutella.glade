@@ -6614,7 +6614,7 @@ Grace time remaining:</property>
 	  <child>
 	    <widget class="GtkLabel" id="label267">
 	      <property name="visible">True</property>
-	      <property name="label" translatable="yes">Raphael Manfredi &lt;Raphael__Manfredi@pobox.com&gt;</property>
+	      <property name="label" translatable="yes">Raphaël Manfredi &lt;Raphael__Manfredi@pobox.com&gt;</property>
 	      <property name="use_underline">True</property>
 	      <property name="use_markup">False</property>
 	      <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -6759,7 +6759,7 @@ Grace time remaining:</property>
 	      <child>
 		<widget class="GtkLabel" id="label273">
 		  <property name="visible">True</property>
-		  <property name="label" translatable="yes">Raphael Manfredi</property>
+		  <property name="label" translatable="yes">Raphaël Manfredi</property>
 		  <property name="use_underline">False</property>
 		  <property name="use_markup">False</property>
 		  <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -6783,7 +6783,7 @@ Grace time remaining:</property>
 	      <child>
 		<widget class="GtkLabel" id="label274">
 		  <property name="visible">True</property>
-		  <property name="label" translatable="yes">Raphael Manfredi</property>
+		  <property name="label" translatable="yes">Raphaël Manfredi</property>
 		  <property name="use_underline">False</property>
 		  <property name="use_markup">False</property>
 		  <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -6830,7 +6830,7 @@ Grace time remaining:</property>
 	      <child>
 		<widget class="GtkLabel" id="label275">
 		  <property name="visible">True</property>
-		  <property name="label" translatable="yes">Raphael Manfredi</property>
+		  <property name="label" translatable="yes">Raphaël Manfredi</property>
 		  <property name="use_underline">False</property>
 		  <property name="use_markup">False</property>
 		  <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -6899,17 +6899,40 @@ Grace time remaining:</property>
 		<widget class="GtkTextView" id="textview1">
 		  <property name="visible">True</property>
 		  <property name="can_focus">True</property>
-		  <property name="editable">True</property>
+		  <property name="editable">False</property>
 		  <property name="justification">GTK_JUSTIFY_LEFT</property>
 		  <property name="wrap_mode">GTK_WRAP_NONE</property>
-		  <property name="cursor_visible">True</property>
+		  <property name="cursor_visible">False</property>
 		  <property name="pixels_above_lines">0</property>
 		  <property name="pixels_below_lines">0</property>
 		  <property name="pixels_inside_wrap">0</property>
-		  <property name="left_margin">0</property>
-		  <property name="right_margin">0</property>
+		  <property name="left_margin">4</property>
+		  <property name="right_margin">4</property>
 		  <property name="indent">0</property>
-		  <property name="text" translatable="yes"></property>
+		  <property name="text" translatable="yes">Steven Wilcoxon &lt;swilcoxon@users.sourceforge.net&gt;
+Jason Lingohr &lt;lingman@users.sourceforge.net&gt;
+Brian St Pierre &lt;bstpierre@users.sourceforge.net&gt;
+Chuck Homic &lt;homic@users.sourceforge.net&gt;
+Ingo Saitz &lt;salz@users.sourceforge.net&gt;
+Ben Hochstedler &lt;hochstrb@users.sourceforge.net&gt;
+Daniel Walker &lt;axiom@users.sourceforge.net&gt;
+Paul Cassella &lt;pwc@users.sourceforge.net&gt; 
+Jared Mauch &lt;jaredmauch@users.sourceforge.net&gt;
+Nate E &lt;web1 (at) users dot sourceforge dot net&gt;
+Raphaël Manfredi &lt;Raphael_Manfredi@pobox.com&gt;
+Kenn Brooks Hamm &lt;khamm@andrew.cmu.edu&gt;
+Mark Schreiber &lt;mark7@andrew.cmu.edu&gt;
+Sam Varshavchik &lt;mrsam@courier-mta.com&gt;
+Vladimir Klebanov &lt;unny@rz.uni-karlsruhe.de&gt;
+Roman Shterenzon &lt;roman@xpert.com&gt;
+Robert Bihlmeyer &lt;robbe@orcus.priv.at&gt;
+Noel T.Nunkovich &lt;ntnunk@earthlink.net&gt;
+Michael Tesch &lt;tesch@users.sourceforge.net&gt;
+Markus 'guruz' Goetz &lt;guruz@guruz.info&gt;
+Richard Eckart &lt;wyldfire@users.sourceforge.net&gt;
+Christophe Tronche &lt;ch.tronche@computer.org&gt;
+Alex Bennee &lt;alex@bennee.com&gt;
+Vidar Madsen &lt;vidar@gimp.org&gt;</property>
 		</widget>
 	      </child>
 	    </widget>
@@ -6949,6 +6972,7 @@ Grace time remaining:</property>
 
 	  <child>
 	    <widget class="GtkButton" id="button_about_close">
+	      <property name="border_width">5</property>
 	      <property name="visible">True</property>
 	      <property name="can_default">True</property>
 	      <property name="can_focus">True</property>
