@@ -183,6 +183,7 @@ static gboolean use_netmasks_changed(property_t prop);
 static gboolean guid_changed(property_t prop);
 static gboolean show_tooltips_changed(property_t prop);
 static gboolean expert_mode_changed(property_t prop);
+static gboolean search_stats_mode_changed(property_t prop);
 
 // FIXME: move to separate file and autoegenerate from high-level
 //        description. 
@@ -875,6 +876,13 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
+        PROP_SEARCH_STATS_MODE,
+        search_stats_mode_changed,
+        FALSE, /* search_stats_gui_init takes care of that */
+        "combo_search_stats_type"
+    },
+    {
+        get_main_window,
         PROP_SEARCH_STATS_UPDATE_INTERVAL,
         update_spinbutton,
         TRUE,
@@ -1182,11 +1190,11 @@ static prop_map_t property_map[] = {
         "checkbutton_config_show_tooltips"
     },
     {
-        NULL,
+        get_main_window,
         PROP_EXPERT_MODE,
         expert_mode_changed,
         TRUE,
-        NULL
+        "checkbutton_expert_mode"
     },
     {
         get_main_window,
@@ -1208,7 +1216,21 @@ static prop_map_t property_map[] = {
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_stats_drop_perc"
-    }
+    },
+    {
+        get_main_window,
+        PROP_GNET_COMPACT_QUERY,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_gnet_compact_query"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_GENERAL_COL_WIDTHS,
+        update_clist_col_widths,
+        TRUE,
+        "clist_gnet_stats_general"
+    },
 };
 
 /***
@@ -2141,6 +2163,19 @@ static gboolean expert_mode_changed(property_t prop)
 
     return FALSE;
 }
+
+static gboolean search_stats_mode_changed(property_t prop)
+{
+    guint32 val;
+
+    gui_prop_get_guint32(prop, &val, 0, 1);
+
+    search_stats_gui_set_type(val);
+    search_stats_gui_reset();
+
+    return FALSE;
+}
+
 
 /***
  *** V.  Control functions.
