@@ -73,33 +73,6 @@ struct dl_server {
 	guint32 attrs;
 };
 
-/*
- * PARQ Version information
- */
- 
-#define PARQ_VERSION_MAJOR	1
-#define	PARQ_VERSION_MINOR	0
-
-#define PARQ_MAX_ID_LENGTH 40
-
-
-/* 
- * Download dependent queuing status. This will be moved to parq.c eventually
- */
-struct dl_queued {	
-	guint position;			/* Current position in the queue */
-	guint length;			/* Current queue length */
-	time_t ETA;				/* Estimated time till upload slot retrieved */
-	guint lifetime;			/* Max interval before loosing queue position */
-	guint retry_delay;		/* Interval between new attempt */
-	gchar ID[PARQ_MAX_ID_LENGTH];	/* PARQ Queue ID, includes trailing NUL */
-};
-
-/*
- * End of PARQ declaration
- */
-
-
 struct download {
     gnet_src_t src_handle;      /* Handle */
 
@@ -150,7 +123,7 @@ struct download {
 	gboolean push;			/* Currently in push mode */
 	gboolean always_push;	/* Always use the push method for this download */
 	
-	struct dl_queued queue_status;	/* Queuing status */
+	gpointer queue_status;	/* Queuing status */
 };
 
 /*
@@ -328,4 +301,3 @@ guint extract_retry_after(const header_t *header);
 gboolean is_faked_download(struct download *d);
 
 #endif /* _downloads_h_ */
-

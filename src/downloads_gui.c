@@ -91,21 +91,21 @@ void gui_update_download(struct download *d, gboolean force)
 
 			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "Queued");
 
-			if (d->queue_status.position > 0) {
+			if (get_parq_dl_position(d) > 0) {
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" (slot %d",		/* ) */
-					d->queue_status.position);
+					get_parq_dl_position(d));
 				
-				if (d->queue_status.length > 0) {
+				if (get_parq_dl_queue_length(d) > 0) {
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-						" / %d",	d->queue_status.length);
+						" / %d", get_parq_dl_queue_length(d));
 				}
 
-				if (d->queue_status.ETA > 0) {
+				if (get_parq_dl_eta(d)  > 0) {
 					rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						", ETA: %ds",
-						(gint) (d->queue_status.ETA  - elapsed));
+						(gint) (get_parq_dl_eta(d)  - elapsed));
 				}
 
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw, /* ( */ ")");
@@ -113,7 +113,7 @@ void gui_update_download(struct download *d, gboolean force)
 
 			rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" retry in %ds",
-					(gint) (d->queue_status.retry_delay - elapsed));
+					(gint) (get_parq_dl_retry_delay(d) - elapsed));
 		}
 		a = tmpstr;
 		break;

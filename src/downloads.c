@@ -389,7 +389,7 @@ void download_timer(time_t now)
 
 			switch (d->status) {
 			case GTA_DL_ACTIVE_QUEUED:
- 				t = d->queue_status.retry_delay;
+ 				t = get_parq_dl_retry_delay(d);
  				break;
 			case GTA_DL_PUSH_SENT:
 			case GTA_DL_FALLBACK:
@@ -407,7 +407,7 @@ void download_timer(time_t now)
 
 			if (now - d->last_update > t) {
 				/*
-				 * When the 'timeout' has expired, first check wether the
+				 * When the 'timeout' has expired, first check whether the
 				 * download was activly queued. If so, tell parq to retry the
 				 * download in which case the HTTP connection wasn't closed
 				 *   --JA 31 jan 2003
@@ -2779,7 +2779,7 @@ abort_download:
  */
 static struct download *download_clone(struct download *d)
 {
-	struct download *cd = walloc(sizeof(struct download));
+	struct download *cd = walloc0(sizeof(struct download));
     struct dl_file_info *fi;
 
     fi = d->file_info;
@@ -2820,7 +2820,8 @@ static struct download *download_clone(struct download *d)
 	d->sha1 = NULL;
 	d->socket = NULL;
 	d->ranges = NULL;
-
+	d->queue_status = NULL;
+	
 	return cd;
 }
 
@@ -2962,6 +2963,12 @@ static void download_free_removed(void)
 
 		g_assert(d->status == GTA_DL_REMOVED);
 
+		/* 
+		 * Let parq remove and free its allocated memory
+		 *			-- JA, 18/4/2003
+	 	 */
+		parq_dl_remove(d);
+
 		download_reclaim_server(d, TRUE);	/* Delays freeing of server */
 
 		sl_downloads = g_slist_remove(sl_downloads, d);
@@ -3049,7 +3056,7 @@ void download_free(struct download *d)
     idtable_free_id(src_handle_map, d->src_handle);
 
 	sl_removed = g_slist_prepend(sl_removed, d);
-
+	
 	/* download structure will be freed in download_free_removed() */
 }
 
@@ -4605,9 +4612,9 @@ static void download_request(
 				download_queue_delay(d,
 					delay ? delay : download_retry_busy_delay,
 						"Queued (slot %d/%d) ETA: %s",
-							d->queue_status.position,
-							d->queue_status.length,
-							short_time(d->queue_status.ETA)
+							get_parq_dl_position(d),
+							get_parq_dl_queue_length(d),
+							short_time(get_parq_dl_eta(d))
 				);
 			else 
 				/* No hammering */

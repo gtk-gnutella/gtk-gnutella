@@ -567,8 +567,17 @@ static void send_upload_error_v(
 		hev[hevcnt].he_cb = upload_http_sha1_add;
 		hev[hevcnt++].he_arg = &cb_arg;
 	}
-
-	http_send_status(u->socket, code, hevcnt ? hev : NULL, hevcnt, reason);
+	
+	/* 
+	 * Keep connection alive when activly queued
+	 * 		-- JA, 22/4/2003
+	 */
+	if (u->status == GTA_UL_QUEUED)
+		http_send_status(u->socket, code, TRUE,
+			hevcnt ? hev : NULL, hevcnt, reason);
+	else
+		http_send_status(u->socket, code, FALSE,
+			hevcnt ? hev : NULL, hevcnt, reason);
 
 	u->error_sent = code;
 }
@@ -695,14 +704,13 @@ static void upload_remove_v(
     }
 
 
-	if (previous_running != running_uploads)
+	if (previous_running > running_uploads)
 		parq_upload_remove(u);
 	
     upload_fire_upload_removed(u, reason ? errbuf : NULL);
 
 	upload_free_resources(u);
 	wfree(u, sizeof(*u));
-
 	uploads = g_slist_remove(uploads, (gpointer) u);
 }
 
@@ -767,7 +775,9 @@ static void upload_error_remove_ext(
 	send_upload_error_v(u, sf, ext, code, msg, errargs);
 	va_end(errargs);
 
-	upload_remove_v(u, msg, args);
+	if (u->status != GTA_UL_QUEUED)
+		upload_remove_v(u, msg, args);
+	
 	va_end(args);
 }
 
@@ -1928,7 +1938,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		hev[hevcnt].he_cb = upload_416_extra;
 		hev[hevcnt++].he_arg = &cb_arg;
 
-		(void) http_send_status(u->socket, 416, hev, hevcnt, msg);
+		(void) http_send_status(u->socket, 416, FALSE, hev, hevcnt, msg);
 		upload_remove(u, msg);
 		return;
 	}
@@ -2082,14 +2092,20 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 					printf("Overriden slot limit because u/l b/w used at "
 						"%d%% (minimum set to %d%%)\n",
 						bsched_avg_pct(bws.out), ul_usage_min_percentage);
-			} else {	
+			} else {
+				if (u->status == GTA_UL_QUEUED) {
+					upload_error_remove(u, reqfile,	503, 
+						"Active queued (slot %d, ETA: %s)", 
+						parq_upload_lookup_position(u), 
+						short_time(parq_upload_lookup_eta(u)));
+				} else
 				if (parq_upload_queue_full(u)) {
 					upload_error_remove(u, reqfile, 503, "Queue full");
 				} else {
 					upload_error_remove(u, reqfile,	503, 
 						"Queued (slot %d, ETA: %s)", 
 						parq_upload_lookup_position(u), 
-						short_time(parq_upload_lookup_ETA(u)));
+						short_time(parq_upload_lookup_eta(u)));
 				}
 				return;
 			}
@@ -2207,7 +2223,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	hev[hevcnt].he_cb = upload_http_status;
 	hev[hevcnt++].he_arg = &cb_arg;
 
-	if (!http_send_status(u->socket, http_code, hev, hevcnt, http_msg)) {
+	if (!http_send_status(u->socket, http_code, FALSE, hev, hevcnt, http_msg)) {
 		upload_remove(u, "Cannot send whole HTTP status");
 		return;
 	}
@@ -2505,4 +2521,3 @@ void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 	
 	
 }
-

@@ -65,11 +65,15 @@ static GSList *sl_outgoing = NULL;		/* To spot reply timeouts */
  *
  * At the HTTP level, the connection is closed if an error is returned
  * (either 4xx or 5xx) or a redirection occurs (3xx).
+ * Unless keep_alive = true.
+ * keep_alive=false is ignored if the errorcode < 300, in which case
+ * the Connection: close header never is send.
+ * 		-- JA, 19/4/2003
  *
  * Returns TRUE if we were able to send everything, FALSE otherwise.
  */
 gboolean http_send_status(
-	struct gnutella_socket *s, gint code,
+	struct gnutella_socket *s, gint code, gboolean keep_alive,
 	http_extra_desc_t *hev, gint hevcnt,
 	const gchar *reason, ...)
 {
@@ -86,7 +90,7 @@ gboolean http_send_status(
 	gm_vsnprintf(status_msg, sizeof(status_msg)-1,  reason, args);
 	va_end(args);
 
-	if (code < 300)
+	if (code < 300 || keep_alive)
 		conn_close = "";		/* Keep HTTP connection */
 
 	rw = gm_snprintf(header, sizeof(header),

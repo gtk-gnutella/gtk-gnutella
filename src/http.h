@@ -173,8 +173,9 @@ typedef struct http_range {
 void http_timer(time_t now);
 
 gboolean http_send_status(struct gnutella_socket *s,
-	gint code, http_extra_desc_t *hev, gint hevcnt, const gchar *reason, ...);
-
+	gint code, gboolean keep_alive, http_extra_desc_t *hev, gint hevcnt, 
+	const gchar *reason, ...);
+	
 gint http_status_parse(const gchar *line,
 	const gchar *proto, const gchar **msg, gint *major, gint *minor);
 
@@ -216,4 +217,3 @@ void http_close(void);
 #endif	/* _http_h_ */
 
 /* vi: set ts=4: */
-

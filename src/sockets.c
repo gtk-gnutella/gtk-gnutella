@@ -406,7 +406,7 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			0 == strncmp(s->buffer, "GET ", 4) ||
 			0 == strncmp(s->buffer, "HEAD ", 5)
 		)
-			http_send_status(s, 414, NULL, 0, "Requested URL Too Large");
+			http_send_status(s, 414, FALSE, NULL, 0, "Requested URL Too Large");
 		socket_destroy(s, "Requested URL too large");
 		return;
 	case READ_DONE:
@@ -445,12 +445,12 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 		download_push_ack(s);
 		return;
 	}
-#ifdef EXP_PARQ
+
 	if (0 == strncmp(first, "QUEUE ", 6)) {
 		parq_download_queue_ack(s);
 		return;
 	}
-#endif
+
 	/*
 	 * Check for banning.
 	 */
@@ -475,7 +475,7 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 			hev.he_type = HTTP_EXTRA_LINE;
 			hev.he_msg = msg;
 
-			http_send_status(s, 550, &hev, 1, "Banned for %s",
+			http_send_status(s, 550, FALSE, &hev, 1, "Banned for %s",
 				short_time(delay));
 		}
 		goto cleanup;
@@ -512,7 +512,7 @@ unknown:
 			dump_hex(stderr, "First Line", first, MIN(len, 160));
 	}
 	if (strstr(first, "HTTP"))
-		http_send_status(s, 501, NULL, 0, "Method Not Implemented");
+		http_send_status(s, 501, FALSE, NULL, 0, "Method Not Implemented");
 	/* FALL THROUGH */
 
 cleanup:
