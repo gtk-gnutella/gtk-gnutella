@@ -1599,7 +1599,7 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 		need_push =
 			(rs->status & ST_FIREWALL) || !host_is_valid(rs->ip, rs->port);
 
-		filename = gm_sanitize_filename(rc->name, FALSE);
+		filename = gm_sanitize_filename(rc->name, FALSE, FALSE);
 		if (guc_download_new(filename, rc->size, rc->index, 
 				rs->ip, rs->port, rs->guid, rs->hostname,
 				rc->sha1, rs->stamp, need_push, NULL, rs->proxies)

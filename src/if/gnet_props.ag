@@ -2641,6 +2641,15 @@ prop = {
 };
 
 prop = {
+	name = "convert_evil_chars";
+	desc = "If set, meta shell characters in filenames are replaced with underscores. (This must also be enabled for FAT partitions.)";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
+prop = {
 	name = "tls_enforce";
 	desc = "If set, all outgoing connections are tunneled over TLS.";
 	type = boolean;

@@ -2339,7 +2339,7 @@ file_info_retrieve(void)
 			{
 				gchar *s;
 
-				s = gm_sanitize_filename(value, convert_spaces);
+				s = gm_sanitize_filename(value, convert_spaces, FALSE);
 				fi->file_name = atom_str_get(s);
 				if (s != value) {
 					g_warning("fileinfo database contained an "
@@ -2369,7 +2369,7 @@ file_info_retrieve(void)
 			} else {
 				gchar *s;
 
-				s = gm_sanitize_filename(value, convert_spaces);
+				s = gm_sanitize_filename(value, convert_spaces, FALSE);
 				aliases = g_slist_append(aliases, atom_str_get(s));
 				if (s != value) {
 					g_warning("fileinfo database contained an "
@@ -2494,7 +2494,8 @@ file_info_new_outname(const gchar *name, const gchar *dir)
 	const gchar empty[] = "noname";
 	gchar ext[32] = "";
 
-	escaped = gm_sanitize_filename(name, convert_spaces);
+	escaped = gm_sanitize_filename(name, convert_spaces,
+					convert_evil_chars);
 
 	if (*escaped == '\0')			/* Don't allow empty names */
 		escaped = empty;

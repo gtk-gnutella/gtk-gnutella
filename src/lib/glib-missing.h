@@ -54,7 +54,8 @@ size_t gm_snprintf(gchar *str, size_t n,
 void gm_savemain(gint argc, gchar **argv, gchar **env);
 void gm_setproctitle(gchar *title);
 unsigned long gm_atoul(const char *str, char **endptr, int *errorcode);
-gchar *gm_sanitize_filename(const gchar *filename, gboolean no_spaces);
+gchar *gm_sanitize_filename(const gchar *filename,
+	gboolean no_spaces, gboolean no_evil);
 
 #define GM_STRCONCAT_NULL(x, ...) g_strconcat(x, ## __VA_ARGS__, NULL)
 

@@ -322,12 +322,15 @@ unsigned long gm_atoul(const char *str, char **endptr, int *errorcode)
  * meta characters are replaced by harmless characters.
  *
  * @param filename the suggested filename.
+ * @param no_spaces if TRUE, spaces are replaced with underscores.
+ * @param no_evil if TRUE, "evil" characters are replaced with underscores.
  *
  * @returns a newly allocated string or ``filename'' if it was a valid filename
  *		    already.
  */
 gchar *
-gm_sanitize_filename(const gchar *filename, gboolean no_spaces)
+gm_sanitize_filename(const gchar *filename,
+		gboolean no_spaces, gboolean no_evil)
 {
 	gint c;
 	gchar *q = NULL;
@@ -351,7 +354,7 @@ gm_sanitize_filename(const gchar *filename, gboolean no_spaces)
 			|| c == G_DIR_SEPARATOR
 			|| (c == ' ' && no_spaces)
 			|| (p == s && c == '.')
-			|| NULL != strchr(evil, c)
+			|| (no_evil && NULL != strchr(evil, c))
 		) {
 			if (!q) {
 				q = g_strdup(s);
