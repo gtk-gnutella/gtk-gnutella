@@ -563,12 +563,12 @@ void downloads_gui_shutdown(void)
  */
 void download_gui_add(struct download *d)
 {
-	gchar *titles[6], *titles_parent[6];
+	const gchar *titles[6], *titles_parent[6];
 	GtkCTreeNode *new_node, *parent;
 	GdkColor *color;
 	gchar vendor[256];
-	gchar *file_name;
-	gchar *size, *filename, *host, *range, *server, *status;
+	const gchar *file_name, *filename;
+	gchar *size, *host, *range, *server, *status;
 	struct download *drecord;
 	gpointer key;
 	gint n;
@@ -638,8 +638,10 @@ void download_gui_add(struct download *d)
         			titles_parent[c_queue_host] = host;
 					
 					new_node = gtk_ctree_insert_node(ctree_downloads_queue, 
-						parent, NULL, titles_parent, DL_GUI_TREE_SPACE, NULL, 
-						NULL, NULL, NULL, FALSE, FALSE);
+						parent, NULL,
+						(gchar **) titles_parent, /* Override const */
+						DL_GUI_TREE_SPACE, NULL, NULL, NULL, NULL,
+						FALSE, FALSE);
 
 					parent_children_add(ctree_downloads_queue, key, 1);
 	
@@ -678,8 +680,10 @@ void download_gui_add(struct download *d)
 				titles[c_queue_size] = "\"";
 
 				new_node = gtk_ctree_insert_node(ctree_downloads_queue, 
-						parent, NULL, titles, DL_GUI_TREE_SPACE, NULL, NULL, 
-						NULL, NULL, FALSE, FALSE);
+						parent, NULL,
+						(gchar **) titles, /* Override const */
+						DL_GUI_TREE_SPACE, NULL, NULL, NULL, NULL,
+						FALSE, FALSE);
 	
 				gtk_ctree_node_set_row_data(ctree_downloads_queue, new_node, 
 						(gpointer) d);
@@ -703,8 +707,10 @@ void download_gui_add(struct download *d)
 				 *  for now.
 				 */
 				new_node = gtk_ctree_insert_node(ctree_downloads_queue, 
-						NULL, NULL, titles, DL_GUI_TREE_SPACE, NULL, NULL, 
-						NULL, NULL, FALSE, FALSE);	
+						NULL, NULL,
+						(gchar **) titles, /* Override const */
+						DL_GUI_TREE_SPACE, NULL, NULL, NULL, NULL,
+						FALSE, FALSE);	
 				gtk_ctree_node_set_row_data(ctree_downloads_queue, new_node, 
 						(gpointer) d);
 				if (d->always_push)
@@ -756,8 +762,10 @@ void download_gui_add(struct download *d)
         			titles_parent[c_dl_range] = range;
 
 					new_node = gtk_ctree_insert_node(ctree_downloads, 
-						parent, NULL, titles_parent, DL_GUI_TREE_SPACE, NULL, 
-						NULL, NULL, NULL, FALSE, FALSE);
+						parent, NULL,
+						(gchar **) titles_parent, /* Override const */
+						DL_GUI_TREE_SPACE, NULL, NULL, NULL, NULL,
+						FALSE, FALSE);
 
 					parent_children_add(ctree_downloads, key, 1);
  
@@ -797,8 +805,10 @@ void download_gui_add(struct download *d)
 				titles[c_dl_size] = "\"";
 
 				new_node = gtk_ctree_insert_node(ctree_downloads, 
-						parent, NULL, titles, DL_GUI_TREE_SPACE, NULL, NULL, 
-						NULL, NULL,	FALSE, FALSE);
+						parent, NULL,
+						(gchar **) titles, /* Override const */
+						DL_GUI_TREE_SPACE, NULL, NULL, NULL, NULL,
+						FALSE, FALSE);
 	
 				gtk_ctree_node_set_row_data(ctree_downloads, new_node, 
 						(gpointer) d);
@@ -822,8 +832,10 @@ void download_gui_add(struct download *d)
 				 *  for now.
 				 */
 				new_node = gtk_ctree_insert_node(ctree_downloads, 
-						NULL, NULL, titles, DL_GUI_TREE_SPACE, NULL, NULL, 
-						NULL, NULL, FALSE, FALSE);	
+						NULL, NULL,
+						(gchar **) titles, /* Override const */
+						DL_GUI_TREE_SPACE, NULL, NULL, NULL, NULL,
+						FALSE, FALSE);	
 				gtk_ctree_node_set_row_data(ctree_downloads, new_node, 
 						(gpointer) d);
 				if (DOWNLOAD_IS_IN_PUSH_MODE(d))
@@ -1572,7 +1584,8 @@ void download_gui_remove(struct download *d)
 	GtkCTreeNode *node, *parent;
 	GtkCTreeRow *parent_row;
 	struct download *drecord;
-	gchar *filename, *host, *range, *server, *status;
+	gchar *host, *range, *server, *status;
+	const gchar *filename;
 	gpointer key;
 	gint n;
 	
