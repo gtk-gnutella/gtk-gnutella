@@ -61,6 +61,7 @@ enum {
 	c_gnet_info,
 #ifdef USE_GTK2
 	c_gnet_handle,
+	c_gnet_fg,
 #endif
 	c_gnet_num
 };

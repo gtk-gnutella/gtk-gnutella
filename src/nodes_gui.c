@@ -168,6 +168,12 @@ static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
     if (row != -1) {
         gtk_clist_set_text(clist, row, 1,
 			nodes_gui_common_flags_str(flags));
+	if (NODE_P_LEAF == flags->peermode || NODE_P_NORMAL == flags->peermode) {
+		GdkColor *color = &(gtk_widget_get_style(GTK_WIDGET(clist))
+			->fg[GTK_STATE_INSENSITIVE]);
+		gtk_clist_set_foreground(clist, row, color);
+	}
+
     } else {
         g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
     }

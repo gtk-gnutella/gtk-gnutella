@@ -72,7 +72,9 @@ void on_popup_nodes_config_cols_activate(
  * nodes_gui_add_column
  *
  * Create a column, associating the "text" attribute of the
- * cell_renderer to the first column of the model
+ * cell_renderer to the first column of the model. Also associate the
+ * foreground color with the c_gnet_fg column, so that we can set
+ * the foreground color for the whole row.
  */
 static void nodes_gui_add_column(
 	GtkTreeView *tree, gint column_id, gint width, const gchar *title)
@@ -80,7 +82,12 @@ static void nodes_gui_add_column(
     GtkTreeViewColumn *column;
 
    	column = gtk_tree_view_column_new_with_attributes(
-		title, nodes_gui_cell_renderer, "text", column_id, NULL);
+		title, nodes_gui_cell_renderer, "text", column_id, 
+		"foreground-gdk", c_gnet_fg,
+		NULL);
+	g_object_set(G_OBJECT(nodes_gui_cell_renderer),
+		     "foreground-set", TRUE,
+		     NULL);
 	g_object_set(G_OBJECT(column),
 		"fixed-width", MAX(1, width),
 		"min-width", 1,
@@ -131,7 +138,9 @@ static void nodes_gui_create_treeview_nodes(void)
         G_TYPE_STRING,   /* c_gnet_connected */
         G_TYPE_STRING,   /* c_gnet_uptime */
         G_TYPE_STRING,   /* c_gnet_info */
-        G_TYPE_UINT);    /* c_gnet_handle */
+        G_TYPE_UINT,     /* c_gnet_handle */
+        GDK_TYPE_COLOR	 /* c_gnet_fg */
+     );
 
     /*
      * Get the monitor widget
@@ -230,6 +239,12 @@ static inline void nodes_gui_update_node_flags(
 	g_assert(NULL != iter);
 	gtk_list_store_set(nodes_model, iter, c_gnet_flags,  
 			nodes_gui_common_flags_str(flags), (-1));
+	if (NODE_P_LEAF == flags->peermode || NODE_P_NORMAL == flags->peermode) {
+	    GdkColor *color = &(gtk_widget_get_style(GTK_WIDGET(treeview_nodes))
+				->fg[GTK_STATE_INSENSITIVE]);
+	    gtk_list_store_set(nodes_model, iter, c_gnet_fg,
+			       color, (-1));
+	}
 }
 
 /***

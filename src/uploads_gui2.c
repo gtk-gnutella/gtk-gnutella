@@ -276,11 +276,10 @@ static void uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 	gtk_list_store_set(store_uploads, &rd->iter,
 		c_ul_status, uploads_gui_status_str(&status, rd), (-1));
 
-	if (u->push != rd->push) {
-		rd->push = u->push;
- 		color = rd->push ? &(gtk_widget_get_style(GTK_WIDGET(treeview_uploads))
-			->fg[GTK_STATE_INSENSITIVE]) : NULL;
-		gtk_list_store_set(store_uploads, &rd->iter, c_ul_fg, color, (-1));
+	if (u->push) {
+	    color = &(gtk_widget_get_style(GTK_WIDGET(treeview_uploads))
+		      ->fg[GTK_STATE_INSENSITIVE]);
+	    gtk_list_store_set(store_uploads, &rd->iter, c_ul_fg, color, (-1));
 	}
 }
 
@@ -388,9 +387,11 @@ static void add_column(gint column_id, GtkTreeIterCompareFunc sortfunc)
 	g_object_set(renderer,
 		"xalign", (gfloat) 0.0,
 		"ypad", GUI_CELL_RENDERER_YPAD,
+		"foreground-set", TRUE,
 		NULL);
 	column = gtk_tree_view_column_new_with_attributes(
-		column_titles[column_id], renderer, "text", column_id, NULL);
+		column_titles[column_id], renderer, "text", column_id, 
+		"foreground-gdk", c_ul_fg, NULL);
 	g_object_set(G_OBJECT(column),
 		"min-width", 1,
 		"fixed-width", MAX(1, width),
