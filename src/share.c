@@ -237,7 +237,9 @@ struct {
 
 #define FOUND_LEFT(x)	(found_data.l - (x))
 
-static gboolean use_ggep_h;		/* Can we use GGEP "H" for this query? */
+static gboolean use_ggep_h;			/* Can we use GGEP "H" for this query? */
+static gchar *use_ggep_version;		/* Can we use "GTKGVn" for this query? */
+static time_t release_date;
 
 /* 
  * We don't want to include the same file several times in a reply (for
@@ -374,6 +376,8 @@ void share_init(void)
 
 	found_data.l = FOUND_CHUNK;		/* must be > size after found_reset */
 	found_data.d = (guchar *) g_malloc(found_data.l * sizeof(guchar));
+
+	release_date = date2time(GTA_RELEASE, NULL);
 
 	/*
 	 * We allocate an empty search_table, which will be de-allocated when we
@@ -853,6 +857,8 @@ static void flush_match(void)
 	guint32 pos, pl;
 	struct gnutella_header *packet_head;
 	struct gnutella_search_results_out *search_head;
+	gchar version[24];
+	gint version_size = 0;		/* Size of GGEP version indication */
 
 	if (dbg > 3)
 		printf("flushing query hit (%d entr%s, %d bytes sofar)\n",
@@ -865,7 +871,7 @@ static void flush_match(void)
 
 	strncpy(trailer, "GTKG", 4);	/* Vendor code */
 	trailer[4] = 2;					/* Open data size */
-	trailer[5] = 0x04 | 0x08;		/* Valid flags we set */
+	trailer[5] = 0x04 | 0x08 | 0x20;	/* Valid flags we set */
 	trailer[6] = 0x01;				/* Our flags (valid firewall bit) */
 
 	if (running_uploads >= max_uploads)
@@ -875,10 +881,72 @@ static void flush_match(void)
 	if (is_firewalled)
 		trailer[5] |= 0x01;			/* Firewall bit set in enabling byte */
 
+	/*
+	 * Build "GTKGV1" GGEP extension if needed.
+	 */
+
+	if (use_ggep_version != NULL) {
+		guint8 major = GTA_VERSION;
+		guint8 minor = GTA_SUBVERSION;
+		gchar *revp = GTA_REVCHAR;
+		guint8 revchar = (guint8) revp[0];
+		guint8 patch;
+		guint32 release;
+		guint32 start;
+		struct iovec iov[6];
+		gint w;
+
+#ifdef GTA_PATCHLEVEL
+		patch = GTA_PATCHLEVEL;
+#else
+		patch = 0;
+#endif
+
+		WRITE_GUINT32_BE(release_date, &release);
+		WRITE_GUINT32_BE(start_stamp, &start);
+
+		iov[0].iov_base = &major;
+		iov[0].iov_len = 1;
+
+		iov[1].iov_base = &minor;
+		iov[1].iov_len = 1;
+
+		iov[2].iov_base = &patch;
+		iov[2].iov_len = 1;
+
+		iov[3].iov_base = &revchar;
+		iov[3].iov_len = 1;
+
+		iov[4].iov_base = &release;
+		iov[4].iov_len = 4;
+
+		iov[5].iov_base = &start;
+		iov[5].iov_len = 4;
+
+		w = ggep_ext_writev(version, sizeof(version),
+				use_ggep_version, iov, G_N_ELEMENTS(iov),
+				GGEP_W_FIRST|GGEP_W_LAST);
+
+		if (w == -1)
+			g_warning("could not write GGEP \"%s\" extension in query hit",
+				use_ggep_version);
+		else {
+			trailer[6] |= 0x20;			/* Has GGEP extensions in trailer */
+			version_size = w;
+		}
+	}
+
 	pos = FOUND_SIZE;
-	FOUND_GROW(16 + 7);
-	memcpy(&FOUND_BUF[pos], trailer, 7);	/* Store trailer */
-	memcpy(&FOUND_BUF[pos+7], guid, 16);	/* Store the GUID */
+	FOUND_GROW(16 + 7 + version_size);
+	memcpy(&FOUND_BUF[pos], trailer, 7);	/* Store the open trailer */
+	pos += 7;
+
+	if (version_size) {
+		memcpy(&FOUND_BUF[pos], version, version_size);	/* Store GGEP version */
+		pos += version_size;
+	}
+
+	memcpy(&FOUND_BUF[pos], guid, 16);	/* Store the GUID */
 
 	/* Payload size including the search results header, actual results */
 	pl = FOUND_SIZE - sizeof(struct gnutella_header);
@@ -991,7 +1059,8 @@ static gboolean got_match(struct shared_file *sf)
 			iov[1].iov_len = SHA1_RAW_SIZE;
 
 			w = ggep_ext_writev(&FOUND_BUF[pos], FOUND_LEFT(pos),
-					"H", iov, 2, GGEP_W_FIRST|GGEP_W_LAST|GGEP_W_COBS);
+					"H", iov, G_N_ELEMENTS(iov),
+					GGEP_W_FIRST|GGEP_W_LAST|GGEP_W_COBS);
 
 			if (w == -1)
 				g_warning("could not write GGEP \"H\" extension in query hit");
@@ -1468,6 +1537,11 @@ gboolean search_request(struct gnutella_node *n)
 	 * Otherwise, it's an old servent or one unwilling to support this new
 	 * extension, so it will get its SHA1 URNs in ASCII form.
 	 *		--RAM, 17/11/2002
+	 *
+	 * If query comes from GTKG 0.92u or later, include the GGEP "GTKGV1"
+	 * extension that is holding the version number of the replying servent,
+	 * and the startup time of the servent.
+	 *		--RAM, 10/01/2003
 	 */
 
 	{
@@ -1475,12 +1549,12 @@ gboolean search_request(struct gnutella_node *n)
 		gboolean release;
 
 		use_ggep_h = FALSE;
+		use_ggep_version = NULL;
 
-		if (
-			guid_is_gtkg(n->header.muid, &major, &minor, &release) && 
-			(major >= 1 || minor > 91 || (minor == 91 && release))
-		) {
-			use_ggep_h = TRUE;
+		if (guid_is_gtkg(n->header.muid, &major, &minor, &release)) {
+			use_ggep_h = major >= 1 || minor > 91 || (minor == 91 && release);
+			if (major >= 1 || minor >= 92)
+				use_ggep_version = "GTKGV1";
 
 			if (dbg > 3)
 				printf("GTKG %squery from %d.%d%s\n",

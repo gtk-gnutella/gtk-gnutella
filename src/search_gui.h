@@ -51,6 +51,7 @@ typedef struct results_set {
 	guint16 speed;
 	time_t  stamp;				/* Reception time of the hit */
 	guchar  vendor[4];			/* Vendor code */
+	gchar *version;				/* Version information (atom) */
 
 	guint32 num_recs;
 	GSList *records;

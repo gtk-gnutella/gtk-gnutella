@@ -214,6 +214,8 @@ static void search_free_r_set(results_set_t *rs)
 
     if (rs->guid)
 		atom_guid_free(rs->guid);
+    if (rs->version)
+		atom_str_free(rs->version);
 
 	g_slist_free(rs->records);
 	zfree(rs_zone, rs);
@@ -854,8 +856,13 @@ void search_matched(search_t *sch, results_set_t *rs)
 
     vendor = lookup_vendor_name(rs->vendor);
 
-   	if (vendor)
+   	if (vendor) {
 		g_string_append(vinfo, vendor);
+		if (rs->version) {
+			g_string_append(vinfo, "/");
+			g_string_append(vinfo, rs->version);
+		}
+	}
 
 	for (i = 0; i < sizeof(open_flags) / sizeof(open_flags[0]); i++) {
 		if (rs->status & open_flags[i].flag) {
@@ -1399,6 +1406,9 @@ static results_set_t *create_results_set(const gnet_results_set_t *r_set)
     rs->speed = r_set->speed;
     rs->stamp = r_set->stamp;
     memcpy(rs->vendor, r_set->vendor, sizeof(rs->vendor));
+
+	if (r_set->version)
+		rs->version = atom_str_get(r_set->version);
 
     rs->num_recs = 0;
     rs->records = NULL;

@@ -34,6 +34,7 @@
 #include "gnet_stats.h"
 #include "ignore.h"
 #include "ggep.h"
+#include "version.h"
 
 #include <ctype.h>
 
@@ -259,6 +260,9 @@ static void search_free_r_set(gnet_results_set_t *rs)
 	if (rs->guid)
 		atom_guid_free(rs->guid);
 
+	if (rs->version)
+		atom_str_free(rs->version);
+
 	g_slist_free(rs->records);
 	zfree(rs_zone, rs);
 }
@@ -307,6 +311,7 @@ static gnet_results_set_t *get_results_set(
 	rs->vendor[0] = '\0';
 	rs->records   = NULL;
 	rs->guid      = NULL;
+	rs->version   = NULL;
     rs->status    = 0;
 
 	r = (struct gnutella_search_results *) n->data;
@@ -622,16 +627,46 @@ static gnet_results_set_t *get_results_set(
 			extvec_t exv[MAX_EXTVEC];
 			gboolean seen_ggep = FALSE;
 			gint i;
+			struct ggep_gtkgv1 info;
 
 			if (privlen > 0)
 				exvcnt = ext_parse(priv, privlen, exv, MAX_EXTVEC);
 
-			// XXX for now we don't do anything with the information we
-			// XXX collected: we just validate it
-
 			for (i = 0; i < exvcnt; i++) {
-				if (exv[i].ext_type == EXT_GGEP)
+				extvec_t *e = &exv[i];
+				ggept_status_t ret;
+
+				if (e->ext_type == EXT_GGEP)
 					seen_ggep = TRUE;
+
+				if (validate_only)
+					continue;
+
+				switch (e->ext_token) {
+				case EXT_T_GGEP_GTKGV1:
+					ret = ggept_gtkgv1_extract(e, &info);
+					if (ret == GGEP_OK) {
+						version_t ver;
+
+						ver.major = info.major;
+						ver.minor = info.minor;
+						ver.patchlevel = info.patch;
+						ver.tag = info.revchar;
+						ver.taglevel = 0;
+						ver.timestamp = info.revchar ? info.release : 0;
+
+						rs->version = atom_str_get(version_str(&ver));
+					} else if (ret == GGEP_INVALID) {
+						if (dbg) {
+							g_warning("%s bad GGEP \"GTKGV1\" (dumping)",
+								gmsg_infostr(&n->header));
+							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+						}
+					}
+					break;
+				default:
+					break;
+				}
 			}
 
 			if (exvcnt == MAX_EXTVEC) {

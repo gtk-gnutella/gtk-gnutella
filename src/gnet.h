@@ -255,6 +255,7 @@ typedef struct gnet_results_set {
 	guint32 speed;
 	time_t  stamp;				/* Reception time of the hit */
 	guchar  vendor[4];			/* Vendor code */
+	gchar *version;				/* Version information (atom) */
     flag_t  flags;
 
 	GSList *records;
