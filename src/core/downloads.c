@@ -7919,6 +7919,8 @@ download_close(void)
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
 		g_assert(d != NULL);
+		if (DOWNLOAD_IS_VISIBLE(d))
+			gcu_download_gui_remove(d);
 		if (d->socket)
 			socket_free(d->socket);
 		if (d->push)
