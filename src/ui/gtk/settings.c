@@ -2690,6 +2690,7 @@ static prop_map_t property_map[] = {
         "hpaned_gnet_stats",
         FREQ_UPDATES, 0
     ),
+#ifdef USE_GTK1
     PROP_ENTRY(
         get_main_window,
         PROP_SIDE_DIVIDER_POS,
@@ -2698,6 +2699,7 @@ static prop_map_t property_map[] = {
         "vpaned_sidebar",
         FREQ_UPDATES, 0
     ),
+#endif /* USE_GTK1 */
     PROP_ENTRY(
         get_main_window,
         PROP_DOWNLOADS_DIVIDER_POS,
@@ -5491,9 +5493,11 @@ settings_gui_shutdown(void)
     *(guint32 *) &main_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_main")));
+#ifdef USE_GTK1
     *(guint32 *) &side_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_sidebar")));
+#endif /* USE_GTK1 */
     *(guint32 *) &gnet_stats_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_gnet_stats")));
