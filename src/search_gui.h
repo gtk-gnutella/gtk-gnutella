@@ -69,11 +69,12 @@ typedef struct record {
 	struct results_set *results_set;	/* Parent, containing record */
 	gint refcount;				/* Number of hash tables it has been put to */
 
-	gchar *name;				/* File name */
+	gchar  *name;				/* File name */
 	guint32 size;				/* Size of file, in bytes */
 	guint32 index;				/* Index for GET command */
-	gchar *sha1;				/* SHA1 URN (binary form, atom) */
-	gchar *tag;					/* Optional tag data string (atom) */
+	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
+	gchar  *tag;				/* Optional tag data string (atom) */
+    flag_t  flags;              /* same flags as in gnet_record_t */
 } record_t;
 
 /* 

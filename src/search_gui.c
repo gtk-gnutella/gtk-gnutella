@@ -28,6 +28,8 @@
 #include "gui.h"
 
 #include "hosts.h" // FIXME: remove this dependency
+//#include "downloads.h" // FIXME: remove this dependency
+
 
 /* GUI includes  */
 #include "search_gui.h"
@@ -888,14 +890,21 @@ void search_matched(search_t *sch, results_set_t *rs)
         flt_result = filter_record(sch, rc);
 
         /*
+         * Check wether this record was already scheduled for download by
+         * the backend.
+         */
+        downloaded = rc->flags & SR_DOWNLOADED;
+
+        /*
          * Now we check for the different filter result properties.
          */
 
         /*
          * Check for FILTER_PROP_DOWNLOAD:
          */
-        if (flt_result->props[FILTER_PROP_DOWNLOAD].state ==
-            FILTER_PROP_STATE_DO) {
+        if (!downloaded &&
+            (flt_result->props[FILTER_PROP_DOWNLOAD].state ==
+            FILTER_PROP_STATE_DO)) {
             download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
                 rs->guid, rc->sha1, rs->stamp, need_push, NULL);
             downloaded = TRUE;
@@ -1284,6 +1293,7 @@ static record_t *create_record(results_set_t *rs, gnet_record_t *r)
     rc->index = r->index;
     rc->sha1 = (r->sha1 != NULL) ? atom_sha1_get(r->sha1) : NULL;
     rc->tag = (r->tag != NULL) ? atom_str_get(r->tag) : NULL;
+    rc->flags = r->flags;
 
     return rc;
 }
