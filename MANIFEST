@@ -238,6 +238,10 @@ src/core/move.c
 src/core/move.h 
 src/core/mq.c 
 src/core/mq.h 
+src/core/mq_tcp.c
+src/core/mq_tcp.h
+src/core/mq_udp.c
+src/core/mq_udp.h
 src/core/namesize.c 
 src/core/namesize.h 
 src/core/nodes.c 
@@ -280,6 +284,8 @@ src/core/tx.c
 src/core/tx.h 
 src/core/tx_deflate.c 
 src/core/tx_deflate.h 
+src/core/tx_dgram.c
+src/core/tx_dgram.h
 src/core/tx_link.c 
 src/core/tx_link.h 
 src/core/udp.c 
