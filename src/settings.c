@@ -523,10 +523,10 @@ static gboolean node_sendqueue_size_changed(property_t prop)
     guint32 val;
     guint32 min = 1.5 * settings_max_msg_size();
 
-    gnet_prop_get_guint32(prop, &val, 0, 1);
+    gnet_prop_get_guint32(PROP_NODE_SENDQUEUE_SIZE, &val, 0, 1);
 
     if (val < min) {
-        gnet_prop_set_guint32(prop, &min, 0, 1);
+        gnet_prop_set_guint32(PROP_NODE_SENDQUEUE_SIZE, &min, 0, 1);
         return TRUE;
     }
     
@@ -690,6 +690,16 @@ typedef struct prop_map {
 static prop_map_t property_map[] = {
     {
         PROP_NODE_SENDQUEUE_SIZE,
+        node_sendqueue_size_changed,
+        TRUE
+    },
+    {
+        PROP_SEARCH_QUERIES_KICK_SIZE,
+        node_sendqueue_size_changed,
+        TRUE
+    },
+    {
+        PROP_SEARCH_ANSWERS_KICK_SIZE,
         node_sendqueue_size_changed,
         TRUE
     },
