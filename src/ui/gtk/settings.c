@@ -114,7 +114,8 @@ static gint gnet_init_list[GNET_PROPERTY_NUM];
 static GtkTooltips* tooltips = NULL;
 
 static gchar *home_dir = NULL;
-static const gchar *property_file = "config_gui";
+static const gchar property_file[] = "config_gui";
+static const gchar date_fmt[] = "%Y-%m-%d %H:%M:%S";
 
 static gchar set_tmp[4096];
 
@@ -440,6 +441,81 @@ static gboolean update_split_pane(property_t prop)
     }
 
     gtk_paned_set_position(GTK_PANED(w), val);
+
+    return FALSE;
+}
+
+static gboolean update_entry_date(property_t prop)
+{
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+	time_t t;
+	gchar buf[128];
+
+    if (!top)
+        return FALSE;
+
+    w = lookup_widget(top, map_entry->wid);
+    if (w == NULL) {
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]",
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
+
+    t = *stub->guint32.get(prop, NULL, 0, 0);
+	strftime(buf, sizeof buf, date_fmt, localtime(&t));
+    gtk_entry_set_text(GTK_ENTRY(w), buf);
+
+    return FALSE;
+}
+
+static gboolean update_entry_duration(property_t prop)
+{
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    if (!top)
+        return FALSE;
+
+    w = lookup_widget(top, map_entry->wid);
+    if (w == NULL) {
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]",
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
+
+    gtk_entry_set_text(GTK_ENTRY(w),
+		short_time(*stub->guint32.get(prop, NULL, 0, 0)));
+
+    return FALSE;
+}
+
+static gboolean update_size_entry(property_t prop)
+{
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    if (!top)
+        return FALSE;
+
+    w = lookup_widget(top, map_entry->wid);
+    if (w == NULL) {
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]",
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
+
+    gtk_entry_set_text(GTK_ENTRY(w),
+		short_kb_size(*stub->guint32.get(prop, NULL, 0, 0)));
 
     return FALSE;
 }
@@ -931,15 +1007,38 @@ static gboolean update_label_date(property_t prop)
 	if (val == 0)
 		gtk_label_set_text(GTK_LABEL(w), _("Never"));
 	else {
-		time_t stamp = val;
-		struct tm *ct = localtime(&stamp);
-		gchar buf[80];
+		time_t t = val;
+		gchar buf[128];
 
-		gm_snprintf(buf, sizeof(buf), "%.2d/%.2d/%d %.2d:%.2d:%.2d",
-			ct->tm_mday, ct->tm_mon + 1, ct->tm_year + 1900,
-			ct->tm_hour, ct->tm_min, ct->tm_sec);
+		strftime(buf, sizeof buf, date_fmt, localtime(&t));
 		gtk_label_set_text(GTK_LABEL(w), buf);
 	}
+
+    return FALSE;
+}
+
+static gboolean update_label_duration(property_t prop)
+{
+    GtkWidget *w;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+	guint32 val;
+
+    if (!top)
+        return FALSE;
+
+    w = lookup_widget(top, map_entry->wid);
+
+    if (w == NULL) {
+		if (gui_debug)
+			g_warning("%s - widget not found: [%s]",
+				 G_GNUC_PRETTY_FUNCTION, map_entry->wid);
+        return FALSE;
+    }
+
+	stub->guint32.get(prop, &val, 0, 1);
+	gtk_label_set_text(GTK_LABEL(w), short_time(val));
 
     return FALSE;
 }
@@ -4802,7 +4901,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_CURRENT_IP_STAMP,
-        update_entry,
+        update_entry_date,
         TRUE,
         "entry_current_ip_stamp",
         FREQ_UPDATES, 0
@@ -4810,7 +4909,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_AVERAGE_IP_UPTIME,
-        update_entry,
+        update_entry_duration,
         TRUE,
         "entry_average_ip_uptime",
         FREQ_UPDATES, 0
@@ -4818,7 +4917,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_START_STAMP,
-        update_entry,
+        update_entry_date,
         TRUE,
         "entry_start_stamp",
         FREQ_UPDATES, 0
@@ -4826,7 +4925,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_AVERAGE_SERVENT_UPTIME,
-        update_entry,
+        update_entry_duration,
         TRUE,
         "entry_average_servent_uptime",
         FREQ_UPDATES, 0
@@ -4842,7 +4941,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_SYS_PHYSMEM,
-        update_entry,
+        update_size_entry,
         TRUE,
         "entry_sys_physmem",
         FREQ_UPDATES, 0
@@ -4938,7 +5037,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_LIBRARY_RESCAN_TIME,
-        update_label,
+        update_label_duration,
         TRUE,
         "label_library_rescan_time",
         FREQ_UPDATES, 0
@@ -4954,7 +5053,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_QRP_INDEXING_TIME,
-        update_label,
+        update_label_duration,
         TRUE,
         "label_qrp_indexing_time",
         FREQ_UPDATES, 0
@@ -4970,7 +5069,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_QRP_COMPUTATION_TIME,
-        update_label,
+        update_label_duration,
         TRUE,
         "label_qrp_computation_time",
         FREQ_UPDATES, 0
@@ -4986,7 +5085,7 @@ static prop_map_t property_map[] = {
     PROP_ENTRY(
         get_prefs_dialog,
         PROP_QRP_PATCH_COMPUTATION_TIME,
-        update_label,
+        update_label_duration,
         TRUE,
         "label_qrp_patch_computation_time",
         FREQ_UPDATES, 0
