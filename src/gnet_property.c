@@ -416,6 +416,20 @@ gboolean up_req_enough_mem     = FALSE;
 gboolean up_req_enough_mem_def = FALSE;
 gboolean up_req_enough_bw     = FALSE;
 gboolean up_req_enough_bw_def = FALSE;
+guint32  search_queue_size     = 256;
+guint32  search_queue_size_def = 256;
+guint32  search_queue_spacing     = 10;
+guint32  search_queue_spacing_def = 10;
+gboolean enable_shell     = TRUE;
+gboolean enable_shell_def = TRUE;
+guint32  entry_removal_timeout     = 5;
+guint32  entry_removal_timeout_def = 5;
+gboolean node_watch_similar_queries     = TRUE;
+gboolean node_watch_similar_queries_def = TRUE;
+guint32  node_queries_half_life     = 5;
+guint32  node_queries_half_life_def = 5;
+guint32  node_requery_threshold     = 1700;
+guint32  node_requery_threshold_def = 1700;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -3782,6 +3796,140 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[175].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[175].data.boolean.def   = &up_req_enough_bw_def;
     gnet_property->props[175].data.boolean.value = &up_req_enough_bw;
+
+
+    /*
+     * PROP_SEARCH_QUEUE_SIZE:
+     *
+     * General data:
+     */
+    gnet_property->props[176].name = "search_queue_size";
+    gnet_property->props[176].desc = _("Size of the search queue holding the locally generated queries before they are sent on a given connection.  When full, the oldest query is dropped without being sent.  Set it so that it is slightly larger than the amount of opened searches.");
+    gnet_property->props[176].ev_changed = event_new("search_queue_size_changed");
+    gnet_property->props[176].save = TRUE;
+    gnet_property->props[176].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[176].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[176].data.guint32.def   = &search_queue_size_def;
+    gnet_property->props[176].data.guint32.value = &search_queue_size;
+    gnet_property->props[176].data.guint32.choices = NULL;
+    gnet_property->props[176].data.guint32.max   = 512;
+    gnet_property->props[176].data.guint32.min   = 32;
+
+
+    /*
+     * PROP_SEARCH_QUEUE_SPACING:
+     *
+     * General data:
+     */
+    gnet_property->props[177].name = "search_queue_spacing";
+    gnet_property->props[177].desc = _("Minimum amount of seconds between two consecutive queries sent to a given connection (for locally generated queries only!). The larger the value, the less negative impact it has on the network.");
+    gnet_property->props[177].ev_changed = event_new("search_queue_spacing_changed");
+    gnet_property->props[177].save = TRUE;
+    gnet_property->props[177].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[177].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[177].data.guint32.def   = &search_queue_spacing_def;
+    gnet_property->props[177].data.guint32.value = &search_queue_spacing;
+    gnet_property->props[177].data.guint32.choices = NULL;
+    gnet_property->props[177].data.guint32.max   = 60;
+    gnet_property->props[177].data.guint32.min   = 10;
+
+
+    /*
+     * PROP_ENABLE_SHELL:
+     *
+     * General data:
+     */
+    gnet_property->props[178].name = "enable_shell";
+    gnet_property->props[178].desc = _("Whether connection to gtk-gnutella via the 'shell' control interface should be allowed.");
+    gnet_property->props[178].ev_changed = event_new("enable_shell_changed");
+    gnet_property->props[178].save = TRUE;
+    gnet_property->props[178].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[178].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[178].data.boolean.def   = &enable_shell_def;
+    gnet_property->props[178].data.boolean.value = &enable_shell;
+
+
+    /*
+     * PROP_ENTRY_REMOVAL_TIMEOUT:
+     *
+     * General data:
+     */
+    gnet_property->props[179].name = "entry_removal_timeout";
+    gnet_property->props[179].desc = _("Amount of seconds to leave 'dead' entries around so that they can still be displayed by the GUI along with the termination status.");
+    gnet_property->props[179].ev_changed = event_new("entry_removal_timeout_changed");
+    gnet_property->props[179].save = TRUE;
+    gnet_property->props[179].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[179].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[179].data.guint32.def   = &entry_removal_timeout_def;
+    gnet_property->props[179].data.guint32.value = &entry_removal_timeout;
+    gnet_property->props[179].data.guint32.choices = NULL;
+    gnet_property->props[179].data.guint32.max   = 60;
+    gnet_property->props[179].data.guint32.min   = 1;
+
+
+    /*
+     * PROP_NODE_WATCH_SIMILAR_QUERIES:
+     *
+     * General data:
+     */
+    gnet_property->props[180].name = "node_watch_similar_queries";
+    gnet_property->props[180].desc = _("Whether gtk-gnutella should actively monitor query strings by TTL and hop count and drop duplicates.  Only applies when not running as a leaf node, and only for queries with hop count > 0, i.e. not from our immediate neighbour.  Dropped queries will be accounted for in the 'Message throttle' counter");
+    gnet_property->props[180].ev_changed = event_new("node_watch_similar_queries_changed");
+    gnet_property->props[180].save = TRUE;
+    gnet_property->props[180].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[180].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[180].data.boolean.def   = &node_watch_similar_queries_def;
+    gnet_property->props[180].data.boolean.value = &node_watch_similar_queries;
+
+
+    /*
+     * PROP_NODE_QUERIES_HALF_LIFE:
+     *
+     * General data:
+     */
+    gnet_property->props[181].name = "node_queries_half_life";
+    gnet_property->props[181].desc = _("Half the duration during which gtk-gnutella should remember the recently relayed queries by TTL and hop count.  The default value of 5 should be just fine, but you can experiment with different settings if you want.  The higher it is set, the more likely you are to drop legitimate queries, so be careful.");
+    gnet_property->props[181].ev_changed = event_new("node_queries_half_life_changed");
+    gnet_property->props[181].save = TRUE;
+    gnet_property->props[181].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[181].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[181].data.guint32.def   = &node_queries_half_life_def;
+    gnet_property->props[181].data.guint32.value = &node_queries_half_life;
+    gnet_property->props[181].data.guint32.choices = NULL;
+    gnet_property->props[181].data.guint32.max   = 15;
+    gnet_property->props[181].data.guint32.min   = 1;
+
+
+    /*
+     * PROP_NODE_REQUERY_THRESHOLD:
+     *
+     * General data:
+     */
+    gnet_property->props[182].name = "node_requery_threshold";
+    gnet_property->props[182].desc = _("The minimum amount of seconds to enforce between two identical queries coming from leaf nodes.  If the requery happens before the amount specified, it is dropped and accounted for in the 'Message throttle' counter.  Too frequent requeries are harmful for the network, yet we must allow some amount of requerying given the dynamic nature of Gnutella connections.  You can't disable this checking, but you can lower the constraint significantly. Deviations from the default of 1700 have exponential effects on the network traffic.");
+    gnet_property->props[182].ev_changed = event_new("node_requery_threshold_changed");
+    gnet_property->props[182].save = TRUE;
+    gnet_property->props[182].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[182].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[182].data.guint32.def   = &node_requery_threshold_def;
+    gnet_property->props[182].data.guint32.value = &node_requery_threshold;
+    gnet_property->props[182].data.guint32.choices = NULL;
+    gnet_property->props[182].data.guint32.max   = 1800;
+    gnet_property->props[182].data.guint32.min   = 1200;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

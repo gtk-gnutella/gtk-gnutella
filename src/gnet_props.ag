@@ -2115,3 +2115,99 @@ prop = {
 	};
 };
 
+prop = {
+	name = "search_queue_size";
+	desc = "Size of the search queue holding the locally generated queries "
+		"before they are sent on a given connection.  When full, the oldest "
+		"query is dropped without being sent.  Set it so that it is slightly "
+		"larger than the amount of opened searches.";
+	type = guint32;
+	data = {
+		default = 256;
+		min = 32;
+		max = 512;
+	};
+};
+
+prop = {
+	name = "search_queue_spacing";
+	desc = "Minimum amount of seconds between two consecutive queries sent "
+		"to a given connection (for locally generated queries only!). "
+		"The larger the value, the less negative impact it has on the network.";
+	type = guint32;
+	data = {
+		default = 10;
+		min = 10;
+		max = 60;
+	};
+};
+
+prop = {
+	name = "enable_shell";
+	desc = "Whether connection to gtk-gnutella via the 'shell' control "
+		"interface should be allowed.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
+prop = {
+	name = "entry_removal_timeout";
+	desc = "Amount of seconds to leave 'dead' entries around so that they "
+		"can still be displayed by the GUI along with the termination status.";
+	type = guint32;
+	data = {
+		default = 5;
+		min = 1;
+		max = 60;
+	};
+};
+
+prop = {
+	name = "node_watch_similar_queries";
+	desc = "Whether gtk-gnutella should actively monitor query strings by "
+		"TTL and hop count and drop duplicates.  Only applies when not "
+		"running as a leaf node, and only for queries with hop count > 0, "
+		"i.e. not from our immediate neighbour.  Dropped queries will be "
+		"accounted for in the 'Message throttle' counter.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
+prop = {
+	name = "node_queries_half_life";
+	desc = "Half the duration during which gtk-gnutella should remember "
+		"the recently relayed queries by TTL and hop count.  The default "
+		"value of 5 should be just fine, but you can experiment with "
+		"different settings if you want.  The higher it is set, the more "
+		"likely you are to drop legitimate queries, so be careful.";
+	type = guint32;
+	data = {
+		default = 5;
+		min = 1;
+		max = 15;
+	};
+};
+
+prop = {
+	name = "node_requery_threshold";
+	desc = "The minimum amount of seconds to enforce between two identical "
+		"queries coming from leaf nodes.  If the requery happens before "
+		"the amount specified, it is dropped and accounted for in the "
+		"'Message throttle' counter.  Too frequent requeries are harmful "
+		"for the network, yet we must allow some amount of requerying given "
+		"the dynamic nature of Gnutella connections.  You can't disable this "
+		"checking, but you can lower the constraint significantly. Deviations "
+		"from the default of 1700 have exponential effects on the network "
+		"traffic.";
+	type = guint32;
+	data = {
+		default = 1700;
+		min = 1200;
+		max = 1800;
+	};
+};
+

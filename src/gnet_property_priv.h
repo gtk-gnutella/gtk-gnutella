@@ -206,6 +206,13 @@ extern gboolean up_req_not_firewalled;
 extern gboolean up_req_enough_fd;
 extern gboolean up_req_enough_mem;
 extern gboolean up_req_enough_bw;
+extern guint32  search_queue_size;
+extern guint32  search_queue_spacing;
+extern gboolean enable_shell;
+extern guint32  entry_removal_timeout;
+extern gboolean node_watch_similar_queries;
+extern guint32  node_queries_half_life;
+extern guint32  node_requery_threshold;
 
 
 prop_set_t *gnet_prop_init(void);
