@@ -143,16 +143,24 @@ void gtk_gnutella_exit(gint n)
 	verify_close();
 	move_close();
 
+	/*
+	 * When coming from atexit(), there is a sense of urgency.
+	 * We have saved most of the dynamic data above, finish with
+	 * the properties and exit.
+	 */
+
+	settings_shutdown();
+	main_gui_update_coords();
+	settings_gui_shutdown();
+
+	if (from_atexit)
+		return;
+
     main_gui_shutdown();
 
-	if (s_listen) {
-		socket_free(s_listen);
-		s_listen = NULL;
-	}
 	socket_shutdown();
 	search_shutdown(); 
 	bsched_shutdown();
-	settings_shutdown();
 
 	/* 
 	 * Wait at most EXIT_GRACE seconds, so that BYE messages can go through.
@@ -163,8 +171,10 @@ void gtk_gnutella_exit(gint n)
 	if (current_peermode == NODE_P_ULTRA)
 		exit_grace *= 2;
 
-	if (from_atexit)
-		exit_grace = 0;
+	if (s_listen) {
+		socket_free(s_listen);		/* No longer accept connections */
+		s_listen = NULL;
+	}
 
 	while (
 		node_bye_pending() && 
@@ -203,13 +213,15 @@ void gtk_gnutella_exit(gint n)
 	if (dbg)
 		printf("gtk-gnutella shut down cleanly.\n\n");
 
-	if (!from_atexit)
-		gtk_exit(n);
+	gtk_exit(n);
 }
 
 static void sig_terminate(int n)
 {
 	signal_received = n;		/* Terminate asynchronously in main_timer() */
+
+	if (from_atexit)			/* Might be stuck in some cleanup callback */
+		exit(1);				/* Terminate ASAP */
 }
 
 /*
@@ -321,7 +333,6 @@ static gboolean main_timer(gpointer p)
 	}
 	
 	icon_timer();
-
 	bg_sched_timer();				/* Background tasks */
 
 	return TRUE;

@@ -31,6 +31,7 @@ void main_gui_init(void);
 void main_gui_run(void);
 void main_gui_shutdown(void);
 void main_gui_timer(void);
+void main_gui_update_coords(void);
 void main_gui_shutdown_tick(guint);
 
 #endif /* _main_gui_h_ */

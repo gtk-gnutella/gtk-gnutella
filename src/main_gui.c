@@ -599,17 +599,12 @@ void main_gui_run(void)
 
 void main_gui_shutdown(void)
 {
-    gint32 coord[4] = { 0, 0, 0, 0};
-	
 	icon_close();
-
-	gdk_window_get_root_origin(main_window->window, &coord[0], &coord[1]);
-	gdk_drawable_get_size(main_window->window, &coord[2], &coord[3]);
-    gui_prop_set_guint32(PROP_WINDOW_COORDS, (guint32 *) coord, 0, 4);
 
     /*
      * Discard all changes and close the dialog.
      */
+
     filter_close_dialog(FALSE);
 	gtk_widget_hide(main_window);
 
@@ -622,14 +617,22 @@ void main_gui_shutdown(void)
     nodes_gui_shutdown();
     uploads_gui_shutdown();
 	gnet_stats_gui_shutdown();
-    settings_gui_shutdown();
 }
 
-void main_gui_timer()
+void main_gui_update_coords(void)
+{
+    gint32 coord[4] = { 0, 0, 0, 0};
+
+	gdk_window_get_root_origin(main_window->window, &coord[0], &coord[1]);
+	gdk_drawable_get_size(main_window->window, &coord[2], &coord[3]);
+    gui_prop_set_guint32(PROP_WINDOW_COORDS, (guint32 *) coord, 0, 4);
+}
+
+void main_gui_timer(void)
 {
     gui_update_global();
     gui_update_traffic_stats();
-    filter_timer(); /* Update the filter stats */
+    filter_timer();					/* Update the filter stats */
 }
 
 void main_gui_shutdown_tick(guint left)
