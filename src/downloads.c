@@ -3491,7 +3491,8 @@ static gboolean use_push_proxy(struct download *d)
 		gnet_host_t *host;
 
 		host = (gnet_host_t *) server->proxies->data;	/* Pick the first */
-		d->cproxy = cproxy_create(d, host->ip, host->port, download_guid(d));
+		d->cproxy = cproxy_create(d, host->ip, host->port,
+			download_guid(d), d->record_index);
 
 		if (d->cproxy) {
 			gui_update_download(d, TRUE);	/* Will read status in d->cproxy */
