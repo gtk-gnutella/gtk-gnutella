@@ -755,16 +755,16 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 			}
 
 			if (has_unknown) {
-				g_warning("%s hit record #%d/%d has unknown extensions!",
-					gmsg_infostr(&n->header), nr, rs->num_recs);
 				if (search_debug) {
+					g_warning("%s hit record #%d/%d has unknown extensions!",
+						gmsg_infostr(&n->header), nr, rs->num_recs);
 					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 					dump_hex(stderr, "Query Hit Tag", tag, taglen);
 				}
 			} else if (exvcnt == MAX_EXTVEC) {
-				g_warning("%s hit record #%d/%d has %d extensions!",
-					gmsg_infostr(&n->header), nr, rs->num_recs, exvcnt);
 				if (search_debug) {
+					g_warning("%s hit record #%d/%d has %d extensions!",
+						gmsg_infostr(&n->header), nr, rs->num_recs, exvcnt);
 					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 					dump_hex(stderr, "Query Hit Tag", tag, taglen);
 				}
