@@ -45,14 +45,16 @@ RCSID("$Id$");
 
 #if !defined(USE_GTK2) || defined(ENABLE_NLS)
 #include <iconv.h>
-#include <langinfo.h>
 #include <locale.h>
-#endif
- 
+
 #ifdef HAVE_LIBCHARSET_H
 #include <libcharset.h>
+#else
+#include <langinfo.h>
 #endif /* HAVE_LIBCHARSET_H */
 
+#endif /* !USE_GTK2 || ENABLE_NLS */
+ 
 #ifndef USE_GTK2
 #define GIConv iconv_t
 #define g_iconv_open(t, f) iconv_open(t, f) 
