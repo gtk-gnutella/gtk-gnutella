@@ -473,7 +473,8 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
 		gtk_clist_unselect_row(GTK_CLIST(clist_downloads_queue), (gint) l->data, 0);
      
 		if (!d) {
-			g_warning("on_popup_queue_abort_named_activate(): row %d has NULL data\n",
+			g_warning("on_popup_queue_abort_named_activate(): "
+				"row %d has NULL data\n",
 					  (gint) l->data);
 			continue;
 		}
