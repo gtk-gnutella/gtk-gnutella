@@ -411,10 +411,11 @@ ping_uhc_type(gnutella_node_t *n)
 	}
 
 	if (ggep_debug > 1)
-		printf("%s: UHC ping requesting %s slots\n",
+		printf("%s: UHC ping requesting %s slots from %s\n",
 			gmsg_infostr(&n->header),
 			uhc == UHC_ANY ?	"unspecified" :
-			uhc == UHC_ULTRA ?	"ultra" : "leaf");
+			uhc == UHC_ULTRA ?	"ultra" : "leaf",
+			ip_port_to_gchar(n->ip, n->port));
 
 	return uhc;
 }
