@@ -28,7 +28,7 @@
 
 #include <glib.h>
 
-#define MAX_LINE_SIZE	2048	/* Maximum length for any line */
+#define MAX_LINE_SIZE	1024	/* Maximum length for regular line */
 
 /*
  * getline() return codes.
@@ -40,24 +40,22 @@
 
 /*
  * A getline "object".
- *
- * Note that we don't use MAX_LINE_SIZE for ease of implementation.
- * Given the high encapsulation of the processing, it would not be a
- * problem.  Rather, it is a design choice: we could be fed a very long
- * line, practically endless, and we would be stuck reading and reading.
- * A limit must be drawn.
  */
 
 typedef struct getline {
-	guchar line[MAX_LINE_SIZE];		/* Accumulator, NUL terminated when done */
+	guint maxlen;					/* Maximum authorized length */
+	guint size;						/* Current allocated size for `line' */
+	guchar *line;					/* Accumulator, NUL terminated when done */
 	guint pos;						/* Next writing position in line[] */
 } getline_t;
+
+#define getline_maxlen(o)	((o)->maxlen)
 
 /*
  * Public interface.
  */
 
-getline_t *getline_make(void);
+getline_t *getline_make(gint maxsize);
 void getline_free(getline_t *o);
 void getline_reset(getline_t *o);
 gint getline_read(getline_t *o, guchar *data, gint len, gint *used);

@@ -482,7 +482,7 @@ static void parse_context_set(gpointer handle, gint maxlines)
 	struct parse_context *ctx;
 
 	ctx = walloc(sizeof(*ctx));
-	ctx->getline = getline_make();
+	ctx->getline = getline_make(MAX_LINE_SIZE);
 	ctx->maxlines = maxlines;
 	ctx->handle = handle;
 	ctx->lines = 0;

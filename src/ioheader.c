@@ -169,7 +169,7 @@ nextline:
 		 */
 
 		g_assert(s->getline == 0);
-		s->getline = getline_make();
+		s->getline = getline_make(getline_length(getline) + 1);
 
 		getline_copy(getline, s->getline);
 		getline_reset(getline);
@@ -395,7 +395,7 @@ void io_get_header(
 	ih = walloc(sizeof(*ih));
 	ih->resource = resource;
 	ih->io_opaque = io_opaque;
-	ih->getline = getline_make();
+	ih->getline = getline_make(HEAD_MAX_SIZE);
 	ih->socket = s;
 	ih->flags = flags;
 	ih->bs = bs;

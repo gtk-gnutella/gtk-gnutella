@@ -623,7 +623,7 @@ static void socket_accept(gpointer data, gint source,
 	t->direction = SOCK_CONN_INCOMING;
 	t->type = s->type;
 	t->local_port = s->local_port;
-	t->getline = getline_make();
+	t->getline = getline_make(MAX_LINE_SIZE);
 
 	switch (s->type) {
 	case SOCK_TYPE_CONTROL:
@@ -1164,7 +1164,7 @@ int connect_http(struct gnutella_socket *s)
 				g_strerror(errno));
 			return -1;
 		}
-		s->getline = getline_make();
+		s->getline = getline_make(HEAD_MAX_SIZE);
 		switch (getline_read(s->getline, s->buffer, rc, &parsed)) {
 		case READ_OVERFLOW:
 			show_error("Reading buffer overflow\n");

@@ -25,15 +25,35 @@
 
 #include <string.h>		/* For memmove() */
 #include "getline.h"
+#include "walloc.h"
+
+/*
+ * Those govern the allocation policy for the getline buffer.
+ * We start at START_LENGTH, and we grow the buffer each time we need
+ * more room by chunks of at least GROW_LENGTH.
+ */
+#define START_LENGTH 	512
+#define GROW_LENGTH		1024
 
 /*
  * getline_make
  *
- * Create a new line reading object.
+ * Create a new line reading object, capable of holding a line of at most
+ * `maxlen' bytes.
  */
-getline_t *getline_make(void)
+getline_t *getline_make(gint maxlen)
 {
-	return (getline_t *) g_malloc0(sizeof(getline_t));
+	getline_t *o;
+
+	g_assert(maxlen > 0);
+
+	o = walloc0(sizeof(*o));
+
+	o->maxlen = maxlen;
+	o->size = MIN(START_LENGTH, maxlen);
+	o->line = g_malloc(o->size);
+
+	return o;
 }
 
 /*
@@ -44,7 +64,10 @@ getline_t *getline_make(void)
 void getline_free(getline_t *o)
 {
 	g_assert(o);
-	g_free(o);
+	g_assert(o->line);
+
+	g_free(o->line);
+	wfree(o, sizeof(*o));
 }
 
 /*
@@ -56,6 +79,8 @@ void getline_free(getline_t *o)
 void getline_reset(getline_t *o)
 {
 	g_assert(o);
+	g_assert(o->line);
+
 	o->pos = 0;
 }
 
@@ -81,9 +106,34 @@ gint getline_read(getline_t *o, guchar *data, gint len, gint *used)
 	guchar c;
 	gint orig_len = len;
 	gint used_bytes;
+	gint needed;
+	gint missing;
+
+	/*
+	 * Make sure we have enough room to either grab all `len' bytes or
+	 * read until we reach our configured limit.
+	 */
+
+	needed = o->maxlen - o->pos;
+	missing = o->pos + MIN(len, needed) - o->size + 1;	/* Trailing NUL */
+
+	if (missing > 0) {
+		gint new_size = o->size + MAX(missing, GROW_LENGTH);
+		new_size = MIN(new_size, o->maxlen);
+
+		o->line = g_realloc(o->line, new_size);
+		o->size = new_size;
+
+		g_assert(o->size <= o->maxlen);
+
+	}
+
+	/*
+	 * Read data until the end of the line.
+	 */
 
 	while (len-- > 0) {
-		if (o->pos >= MAX_LINE_SIZE)
+		if (o->pos >= (o->size - 1))			/* Leave room for final NUL */
 			return READ_OVERFLOW;
 		c = *data++;
 		o->line[o->pos++] = c;
@@ -120,6 +170,8 @@ gint getline_read(getline_t *o, guchar *data, gint len, gint *used)
  */
 guchar *getline_str(getline_t *o)
 {
+	g_assert(o->pos < o->size);
+
 	o->line[o->pos] = '\0';		/* Ensure it is NUL-terminated */
 	return o->line;
 }
@@ -141,7 +193,20 @@ gint getline_length(getline_t *o)
  */
 void getline_copy(getline_t *source, getline_t *dest)
 {
+	g_assert(source);
+	g_assert(dest);
+	g_assert(source->pos < dest->maxlen);
+	g_assert(source != dest);
+
+	if (dest->size <= source->pos) {
+		dest->size = source->pos + 1;		/* Trailing NUL */
+		dest->line = g_realloc(dest->line, dest->size);
+	}
+
 	memmove(dest->line, source->line, source->pos);
 	dest->pos = source->pos;
+
+	g_assert(dest->pos < dest->size);
+	g_assert(dest->size <= dest->maxlen);
 }
 
