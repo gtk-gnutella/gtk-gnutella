@@ -60,11 +60,27 @@ struct routing_table {
 	gboolean compacted;
 };
 
+/*
+ * A routing table patch.
+ */
+struct routing_patch {
+	gint refcnt;					/* Amount of references */
+	guchar *arena;
+	gint size;						/* Number of entries in table */
+	gint len;						/* Length of arena in bytes */
+	gint entry_bits;
+	gboolean compressed;
+};
+
 static char_map_t qrp_map;
 static struct routing_table *routing_table = NULL;	/* Our table */
+static struct routing_patch *routing_patch = NULL;	/* Against empty table */
 static gint generation = 0;
 
 static gchar qrp_tmp[4096];
+
+static void qrt_compress_cancel_all(void);
+static void qrt_patch_compute(void);
 
 /*
  * qrp_hashcode
@@ -326,15 +342,15 @@ static void qrt_apply_patch_4(struct routing_table *rt, guchar *patch, gint len)
 }
 
 /*
- * A routing table patch.
+ * qrt_patch_ref
+ *
+ * Get a new reference on a routing patch.
  */
-struct routing_patch {
-	guchar *arena;
-	gint size;						/* Number of entries in table */
-	gint len;						/* Length of arena in bytes */
-	gint entry_bits;
-	gboolean compressed;
-};
+static struct routing_patch *qrt_patch_ref(struct routing_patch *rp)
+{
+	rp->refcnt++;
+	return rp;
+}
 
 /*
  * qrt_patch_free
@@ -345,6 +361,19 @@ static void qrt_patch_free(struct routing_patch *rp)
 {
 	g_free(rp->arena);
 	wfree(rp, sizeof(*rp));
+}
+
+/*
+ * qrt_patch_unref
+ *
+ * Remove a reference on a routing patch, freeing it when no more ref remains.
+ */
+static void qrt_patch_unref(struct routing_patch *rp)
+{
+	g_assert(rp->refcnt > 0);
+
+	if (--rp->refcnt == 0)
+		qrt_patch_free(rp);
 }
 
 /*
@@ -372,6 +401,7 @@ static struct routing_patch *qrt_diff_4(
 	g_assert(old == NULL || new->slots == old->slots);
 
 	rp = walloc(sizeof(*rp));
+	rp->refcnt = 1;
 	rp->size = new->slots;
 	rp->len = rp->size / 2;			/* Each entry stored on 4 bits */
 	rp->entry_bits = 4;
@@ -560,22 +590,6 @@ static gpointer qrt_patch_compress(
 	sl_compress_tasks = g_slist_prepend(sl_compress_tasks, task);
 
 	return task;
-}
-
-/*
- * qrt_compress_cancel_all
- *
- * Cancel all running compression coroutines.
- */
-static void qrt_compress_cancel_all(void)
-{
-	GSList *l;
-
-	for (l = sl_compress_tasks; l; l = l->next)
-		bg_task_cancel(l->data);
-
-	g_slist_free(sl_compress_tasks);
-	sl_compress_tasks = NULL;
 }
 
 /*
@@ -1113,7 +1127,6 @@ static bgret_t qrp_step_compute(gpointer h, gpointer u, gint ticks)
 static bgret_t qrp_step_install(gpointer h, gpointer u, gint ticks)
 {
 	struct qrp_context *ctx = (struct qrp_context *) u;
-	struct routing_table *old = routing_table;
 
 	g_assert(ctx->magic == QRP_MAGIC);
 
@@ -1122,13 +1135,24 @@ static bgret_t qrp_step_install(gpointer h, gpointer u, gint ticks)
 	 * Install new routing table and notify the nodes that it has changed.
 	 */
 
+	if (routing_table != NULL)
+		qrt_unref(routing_table);
+
 	routing_table = qrt_create(ctx->table, ctx->slots, LOCAL_INFINITY);
 	ctx->table = NULL;		/* Don't free table when freeing context */
 
-	node_qrt_changed(routing_table);
+	/*
+	 * Now that a new routing table is available, we'll need a new routing
+	 * patch against an empty table, to send to new connections.
+	 */
 
-	if (old)
-		qrt_unref(old);
+	if (routing_patch != NULL) {
+		qrt_patch_unref(routing_patch);
+		routing_patch = NULL;
+	}
+
+	qrt_patch_compute();				/* Default patch, done asynchronously */
+	node_qrt_changed(routing_table);
 
 	return BGR_DONE;		/* Done! */
 }
@@ -1167,6 +1191,160 @@ void qrp_finalize_computation(void)
 		ctx,
 		qrp_context_free,
 		NULL, NULL);
+}
+
+/***
+ *** Computation of the routing patch against an empty table.
+ ***/
+
+#define QRT_PATCH_MAGIC	0x9a1c4939
+
+struct qrt_patch_context {
+	guint32 magic;
+	struct routing_patch *rp;	/* Routing patch being compressed */
+	gpointer compress;			/* The compression task */
+};
+
+typedef void (*qrt_patch_computed_cb_t)(gpointer arg, struct routing_patch *rp);
+
+struct patch_listener_info {
+	qrt_patch_computed_cb_t callback;
+	gpointer arg;
+};
+
+static struct qrt_patch_context *qrt_patch_ctx = NULL;
+static GSList *qrt_patch_computed_listeners = NULL;
+
+
+/*
+ * qrt_patch_computed
+ *
+ * Callback invoked when the routing patch is computed.
+ */
+static void qrt_patch_computed(
+	gpointer h, gpointer u, bgstatus_t status, gpointer arg)
+{
+	struct qrt_patch_context *ctx = (struct qrt_patch_context *) arg;
+	GSList *l;
+
+	g_assert(ctx->magic == QRT_PATCH_MAGIC);
+	g_assert(ctx == qrt_patch_ctx);
+	g_assert(routing_patch == NULL);
+
+	if (dbg > 2)
+		printf("QRP global default patch computed (status = %d)\n", status);
+
+	qrt_patch_ctx = NULL;			/* Indicates that we're done */
+
+	if (status == BGS_OK)
+		routing_patch = ctx->rp;
+
+	ctx->magic = 0;					/* Prevent accidental reuse */
+
+	wfree(ctx, sizeof(*ctx));
+
+	/*
+	 * Tell all our listeners that the routing patch is now available, or
+	 * that an error occurred.
+	 */
+
+	for (l = qrt_patch_computed_listeners; l; l = l->next) {
+		struct patch_listener_info *pi = l->data;
+		(*pi->callback)(pi->arg, routing_patch);	/* NULL indicates failure */
+		wfree(pi, sizeof(*pi));
+	}
+
+	g_slist_free(qrt_patch_computed_listeners);
+	qrt_patch_computed_listeners = NULL;
+}
+
+/*
+ * qrt_patch_computed_add_listener
+ *
+ * Record listener to callback with given argument when the default routing
+ * patch will be ready.
+ */
+static gpointer qrt_patch_computed_add_listener(
+	qrt_patch_computed_cb_t cb, gpointer arg)
+{
+	struct patch_listener_info *pi;
+
+	g_assert(qrt_patch_ctx != NULL);	/* Computation in progress */
+
+	pi = walloc(sizeof(*pi));
+
+	pi->callback = cb;
+	pi->arg = arg;
+
+	qrt_patch_computed_listeners =
+		g_slist_prepend(qrt_patch_computed_listeners, pi);
+
+	return pi;
+}
+
+/*
+ * qrt_patch_computed_remove_listener
+ *
+ * Remove recorded listener.
+ */
+static void qrt_patch_computed_remove_listener(gpointer handle)
+{
+	g_assert(qrt_patch_computed_listeners != NULL);
+
+	qrt_patch_computed_listeners =
+		g_slist_remove(qrt_patch_computed_listeners, handle);
+}
+
+/*
+ * qrt_patch_cancel_compute
+ *
+ * Cancel computation.
+ */
+static void qrt_patch_cancel_compute(void)
+{
+	g_assert(qrt_patch_ctx != NULL);
+
+	bg_task_cancel(qrt_patch_ctx->compress);
+
+	g_assert(qrt_patch_ctx == NULL);	/* qrt_patch_computed() called! */
+	g_assert(qrt_patch_computed_listeners == NULL);
+}
+
+/*
+ * qrt_patch_compute
+ *
+ * Launch asynchronous computation of the default routing patch.
+ */
+static void qrt_patch_compute(void)
+{
+	struct qrt_patch_context *ctx;
+
+	g_assert(qrt_patch_ctx == NULL);	/* No computation active */
+
+	qrt_patch_ctx = ctx = walloc(sizeof(*ctx));
+
+	ctx->magic = QRT_PATCH_MAGIC;
+	ctx->rp = qrt_diff_4(NULL, routing_table);
+	ctx->compress = qrt_patch_compress(ctx->rp, qrt_patch_computed, ctx);
+}
+
+/*
+ * qrt_compress_cancel_all
+ *
+ * Cancel all running compression coroutines.
+ */
+static void qrt_compress_cancel_all(void)
+{
+	GSList *l;
+
+	if (qrt_patch_ctx != NULL)
+		qrt_patch_cancel_compute();
+
+	for (l = sl_compress_tasks; l; l = l->next)
+		bg_task_cancel(l->data);
+
+	g_slist_free(sl_compress_tasks);
+	sl_compress_tasks = NULL;
 }
 
 /***
@@ -1279,8 +1457,10 @@ struct qrt_update {
 	gint seqsize;					/* Total amount of messages to send */
 	gint offset;					/* Offset within patch */
 	gpointer compress;				/* Compressing task (NULL = done) */
+	gpointer listener;				/* Listener for default patch being ready */
 	gint chunksize;					/* Amount to send within each PATCH */
 	time_t last;					/* Time at which we sent the last batch */
+	gboolean ready;					/* Ready for sending? */
 };
 
 /*
@@ -1298,6 +1478,7 @@ static void qrt_compressed(
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
 	qup->compress = NULL;
+	qup->ready = TRUE;
 
 	if (status == BGS_ERROR) {		/* Error during processing */
 		g_warning("could not compress query routing patch to send to %s",
@@ -1341,9 +1522,35 @@ static void qrt_compressed(
 	return;
 
 error:
-	qrt_patch_free(qup->patch);
+	qrt_patch_unref(qup->patch);
 	qup->patch = NULL;			/* Signal error to qrt_update_send_next() */
 	return;
+}
+
+/*
+ * qrt_patch_available
+ *
+ * Default global routing patch (the one against a NULL table) is now
+ * available for consumption.
+ *
+ * If we get a NULL pointer, it means the computation was interrupted or
+ * that an error occurred.
+ */
+static void qrt_patch_available(gpointer arg, struct routing_patch *rp)
+{
+	struct qrt_update *qup = (struct qrt_update *) arg;
+
+	g_assert(qup->magic == QRT_UPDATE_MAGIC);
+
+	if (dbg > 2)
+		printf("QRP global routing patch is now available (node %s)\n",
+			node_ip(qup->node));
+
+	qup->listener = NULL;
+	if (rp != NULL)
+		qup->patch = qrt_patch_ref(rp);
+
+	qrt_compressed(NULL, NULL, rp == NULL ? BGS_ERROR : BGS_OK, qup);
 }
 
 /*
@@ -1370,14 +1577,39 @@ gpointer qrt_update_create(struct gnutella_node *n, gpointer query_table)
 
 	qup->magic = QRT_UPDATE_MAGIC;
 	qup->node = n;
-	qup->patch = qrt_diff_4(query_table, routing_table);
+	qup->ready = FALSE;
 
-	/*
-	 * The following call may take a while, in the background.
-	 * When compression is done, `qup->compress' will be set to NULL.
-	 */
+	if (query_table == NULL) {
+		/*
+		 * If routing_patch is not NULL, it is ready, no need to compute it.
+		 * Otherwise, it means it is being computed, so enqueue a
+		 * notification callback to know when it is ready.
+		 */
 
-	qup->compress = qrt_patch_compress(qup->patch, qrt_compressed, qup);
+		if (routing_patch != NULL) {
+			if (dbg > 2)
+				printf("QRP default routing patch is already there (node %s)\n",
+					node_ip(n));
+
+			qup->patch = qrt_patch_ref(routing_patch);
+			qrt_compressed(NULL, NULL, BGS_OK, qup);
+		} else {
+			if (dbg > 2)
+				printf("QRP must wait for routing patch (node %s)\n",
+					node_ip(n));
+
+			qup->listener =
+				qrt_patch_computed_add_listener(qrt_patch_available, qup);
+		}
+	} else {
+		/*
+		 * The compression call may take a while, in the background.
+		 * When compression is done, `qup->compress' will be set to NULL.
+		 */
+
+		qup->patch = qrt_diff_4(query_table, routing_table);
+		qup->compress = qrt_patch_compress(qup->patch, qrt_compressed, qup);
+	}
 
 	return qup;
 }
@@ -1401,9 +1633,12 @@ void qrt_update_free(gpointer handle)
 
 	g_assert(qup->compress == NULL);	/* Reset by qrt_compressed() */
 
+	if (qup->listener)
+		qrt_patch_computed_remove_listener(qup->listener);
+
 	qup->magic = 0;						/* Prevent accidental reuse */
 	if (qup->patch)
-		qrt_patch_free(qup->patch);
+		qrt_patch_unref(qup->patch);
 
 	wfree(qup, sizeof(*qup));
 }
@@ -1423,7 +1658,7 @@ gboolean qrt_update_send_next(gpointer handle)
 
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
-	if (qup->compress != NULL)		/* Still compressing */
+	if (!qup->ready)				/* Still compressing or waiting */
 		return TRUE;
 
 	if (qup->patch == NULL)			/* An error occurred */
@@ -1480,7 +1715,7 @@ gboolean qrt_update_was_ok(gpointer handle)
 
 	g_assert(qup->magic == QRT_UPDATE_MAGIC);
 
-	return qup->patch != NULL && qup->seqno == qup->seqsize;
+	return qup->patch != NULL && qup->seqno > qup->seqsize;
 }
 
 /*
@@ -1494,6 +1729,9 @@ void qrp_close(void)
 
 	if (routing_table)
 		qrt_unref(routing_table);
+
+	if (routing_patch)
+		qrt_patch_unref(routing_patch);
 
 	if (buffer.arena)
 		g_free(buffer.arena);
