@@ -1250,14 +1250,17 @@ static gchar *rule_condition_to_gchar(rule_t *r)
     case RULE_SIZE:
 		if (r->u.size.lower == 0)
 			g_snprintf(tmp, sizeof(tmp),
-				"If filesize is smaller than %d", r->u.size.upper);
+				"If filesize is smaller than %d (%s)",
+				r->u.size.upper, short_size(r->u.size.upper));
 		else if (r->u.size.upper == r->u.size.lower)
 			g_snprintf(tmp, sizeof(tmp),
-				"If filesize is exactly %d", r->u.size.upper);
+				"If filesize is exactly %d (%s)",
+				r->u.size.upper, short_size(r->u.size.upper));
 		else
 			g_snprintf(tmp, sizeof(tmp),
-				"If filesize is between %d and %d",
-				r->u.size.lower, r->u.size.upper);
+				"If filesize is between %d and %d (%s - %s)",
+				r->u.size.lower, r->u.size.upper,
+				short_size(r->u.size.lower), short_size(r->u.size.upper));
         break;
     case RULE_JUMP:
        	g_snprintf(
