@@ -455,8 +455,8 @@ void gui_update_download_abort_resume(void)
 
 		switch (d->status) {
 		case GTA_DL_QUEUED:
-			fprintf(stderr, "gui_update_download_abort_resume(): "
-				"found queued download '%s' in active download list !\n",
+			g_warning("gui_update_download_abort_resume(): "
+				"found queued download '%s' in active download list !",
 				d->file_name);
 			continue;
 		case GTA_DL_CONNECTING:
@@ -465,6 +465,7 @@ void gui_update_download_abort_resume(void)
 		case GTA_DL_REQ_SENT:
 		case GTA_DL_HEADERS:
 		case GTA_DL_RECEIVING:
+		case GTA_DL_ACTIVE_QUEUED:
 			abort = TRUE;
 			break;
 		case GTA_DL_ERROR:
