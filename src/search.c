@@ -23,21 +23,16 @@
  *----------------------------------------------------------------------
  */
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
+#include "gnutella.h"
 
 #include "gnet.h"
 #include "gnet_property_priv.h"
 #include "gnutella.h"
-#include "atoms.h"
 #include "extensions.h"
 #include "gmsg.h"
 #include "huge.h"
 #include "nodes.h"
 #include "routing.h"
-#include "walloc.h"
-#include "zalloc.h"
 
 #include <ctype.h>
 
@@ -252,102 +247,6 @@ static gboolean search_has_muid(search_ctrl_t *sch, const guchar *muid)
 		if (!memcmp(muid, (guchar *) m->data, 16))
 			return TRUE;
 	return FALSE;
-}
-
-/*
- * search_extract_host
- *
- * Extract IP/port information out of the Query Hit into `ip' and `port'.
- */
-// FIXME: this should be moved to nodes.c
-void search_extract_host(struct gnutella_node *n, guint32 *ip, guint16 *port)
-{
-	guint32 hip;
-	guint16 hport;
-	struct gnutella_search_results *r =
-		(struct gnutella_search_results *) n->data;
-
-	/* Read Query Hit info */
-
-	READ_GUINT32_BE(r->host_ip, hip);		/* IP address */
-	READ_GUINT16_LE(r->host_port, hport);	/* Port */
-
-	*ip = hip;
-	*port = hport;
-}
-
-/*
- * extract_vendor_name
- *
- * Extract vendor name from the results set's trailer, and return the name.
- * If we can't understand the name, return NULL.
- * Otherwise returns the name as a pointer to static data.
- *
- * As a side effect, set the ST_KNOWN_VENDOR in the status flags when the
- * vendor is known.
- */
-// FIXME: duplicate in search_gui.c!
-static gchar *extract_vendor_name(gnet_results_set_t *rs)
-{
-	static gchar temp[5];
-	gchar *vendor = NULL;
-	guint32 t;
-	gint i;
-
-	if (rs->vendor[0] == '\0')
-		return NULL;
-
-	READ_GUINT32_BE(rs->vendor, t);
-	rs->status |= ST_KNOWN_VENDOR;
-
-	switch (t) {
-	case T_BEAR: vendor = "Bear";			break;
-	case T_CULT: vendor = "Cultiv8r";		break;
-	case T_FIRE: vendor = "FireFly";		break;
-	case T_FISH: vendor = "PEERahna";		break;
-	case T_GNEW: vendor = "Gnewtellium";	break;
-	case T_GNOT: vendor = "Gnotella";		break;
-	case T_GNUC: vendor = "Gnucleus";		break;
-	case T_GNUT: vendor = "Gnut";			break;
-	case T_GTKG: vendor = "Gtk-Gnut";		break;
-	case T_HSLG: vendor = "Hagelslag";		break;
-	case T_LIME: vendor = "Lime";			break;
-	case T_MACT: vendor = "Mactella";		break;
-	case T_MNAP: vendor = "MyNapster";		break;
-	case T_MMMM: vendor = "Morpheus-v2";	break;
-	case T_MRPH: vendor = "Morpheus";		break;
-	case T_MUTE: vendor = "Mutella";		break;
-	case T_NAPS: vendor = "NapShare";		break;
-	case T_OCFG: vendor = "OpenCola";		break;
-	case T_OPRA: vendor = "Opera";			break;
-	case T_PHEX: vendor = "Phex";			break;
-	case T_QTEL: vendor = "Qtella";			break;
-	case T_RAZA: vendor = "Shareaza";		break;
-	case T_SNUT: vendor = "SwapNut";		break;
-	case T_SWAP: vendor = "Swapper";		break;
-	case T_SWFT: vendor = "Swift";			break;
-	case T_TOAD: vendor = "ToadNode";		break;
-	case T_XOLO: vendor = "Xolox";			break;
-	case T_XTLA: vendor = "Xtella";			break;
-	case T_ZIGA: vendor = "Ziga";			break;
-	default:
-		/* Unknown type, look whether we have all printable ASCII */
-		rs->status &= ~ST_KNOWN_VENDOR;
-		for (i = 0; i < sizeof(rs->vendor); i++) {
-			guchar c = rs->vendor[i];
-			if (isascii(c) && isprint(c))
-				temp[i] = c;
-			else {
-				temp[0] = '\0';
-				break;
-			}
-		}
-		temp[4] = '\0';
-		vendor = temp[0] ? temp : NULL;
-		break;
-	}
-
-	return vendor;
 }
 
 /*
@@ -625,8 +524,13 @@ static gnet_results_set_t *get_results_set
 	 */
 
 	if (trailer) {
-		gchar *vendor = extract_vendor_name(rs);
+		gchar *vendor;
 		guint32 t;
+
+        vendor = lookup_vendor_name(rs->vendor);
+
+        if ((vendor != NULL) && is_vendor_known(rs->vendor))
+            rs->status |= ST_KNOWN_VENDOR;
 
 		READ_GUINT32_BE(trailer, t);
 
@@ -733,11 +637,13 @@ static gnet_results_set_t *get_results_set
  */
 static void update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 {
-	gchar *vendor = extract_vendor_name(rs);
+	gchar *vendor;
 	extern gint guid_eq(gconstpointer a, gconstpointer b);
 	gint old_weird = n->n_weird;
 
 	g_assert(n->header.hops == 1);
+
+    vendor = lookup_vendor_name(rs->vendor);
 
 	if (n->attrs & NODE_A_QHD_NO_VTAG) {	/* Known to have no tag */
 		if (vendor) {
