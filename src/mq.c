@@ -193,7 +193,12 @@ static void mq_swift_checkpoint(mqueue_t *q, gboolean initial)
 		 * take a margin...
 		 */
 
-		needed = target_to_lowmark / 3;
+		/*
+		 * Add + 2 to avoid a zero result in case the target_to_lowmark is
+		 * less then 3.
+		 *		-- JA 08/03/2004
+		 */
+		needed = target_to_lowmark + 2 / 3;
 	} else {
 		/*
 		 * We won't be able to reach the low watermark at the present rates.

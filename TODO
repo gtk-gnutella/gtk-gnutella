@@ -22,6 +22,8 @@ This documents describes briefly the things we want to have in gtk-gnutella
 	* PARQ: 'Rotating' queue by filename
 	* IP / hostname White list
 	* Area-specific logging.
+	* Keep track of long uptime ultrapeers
+	  - Add parsing of GGEP extension to help finding these
 
 After this release we should start with the gui <-> core/lib seperation.
 Therefore 0.94.x will probably be renamed to 1.0 as soon as it is completly
