@@ -1,5 +1,12 @@
 # since last version
 
+- (2002.05.12 - Richard)
+  * Added icon to display "firewalled" status in statusbar
+  * Change spinbutton support from using int to using float.
+  * Fixed decimal values in the bandwidth settings
+  * Unselect all before using regex to select (more intuitive)
+  * Updated debian/substvars: added depends on zlib1g
+
 - (2002.05.12 - RAM)
   * Made destruction of the RX stack a true depth-first operation.
   * The RX inflater will stop delivering packets as soon as RX is disabled.
