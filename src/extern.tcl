@@ -56,6 +56,7 @@ set w_main_list {
 	button_uploads_kill
 	button_uploads_clear_completed
 	checkbutton_uploads_auto_clear
+    spinbutton_uploads_max_ip
 	clist_uploads 	
 
 	clist_downloads_queue 
@@ -133,8 +134,7 @@ set w_main_list {
 	button_ul_stats_clear_all
 	button_ul_stats_clear_deleted 
 	checkbutton_autodownload
-	checkbutton_search_stats_enable 
-	clist_connections 
+	checkbutton_search_stats_enable
 	clist_nodes 
 	clist_search_stats 
 	clist_ul_stats 
