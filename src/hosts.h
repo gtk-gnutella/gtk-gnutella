@@ -26,6 +26,7 @@ gboolean find_host(guint32, guint16);
 void host_remove(struct gnutella_host *);
 void host_save_valid(guint32 ip, guint16 port);
 void host_add(guint32, guint16, gboolean);
+void host_prune_cache();
 void host_add_semi_pong(guint32 ip, guint16 port);
 gint host_fill_caught_array(struct gnutella_host *hosts, gint hcount);
 void host_get_caught(guint32 *ip, guint16 *port);

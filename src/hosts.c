@@ -366,8 +366,6 @@ static gboolean add_host_to_cache(guint32 ip, guint16 port, gchar *type)
  */
 void host_add(guint32 ip, guint16 port, gboolean connect)
 {
-	gint extra;
-
 	if (!add_host_to_cache(ip, port, "pong"))
 		return;
 
@@ -408,7 +406,19 @@ void host_add(guint32 ip, guint16 port, gboolean connect)
 	 * `sl_valid_hosts'.  At that point, we switch.
 	 */
 
-	extra = g_hash_table_size(ht_known_hosts) - max_hosts_cached;
+    host_prune_cache();
+}
+
+/*
+ * host_prune_cache
+ *
+ * Remove hosts that exceed max_hosts_cached.
+ */
+void host_prune_cache() 
+{
+    gint extra;
+
+    extra = g_hash_table_size(ht_known_hosts) - max_hosts_cached;
 	while (extra-- > 0) {
 		if (sl_caught_hosts == NULL) {
 			sl_caught_hosts = sl_valid_hosts;
