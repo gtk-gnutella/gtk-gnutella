@@ -5932,7 +5932,7 @@ create_main_window (void)
   gtk_table_set_row_spacings (GTK_TABLE (table51), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table51), 4);
 
-  checkbutton_config_aggressive_swarming = gtk_check_button_new_with_label ("Agressive mode");
+  checkbutton_config_aggressive_swarming = gtk_check_button_new_with_label ("Aggressive mode");
   gtk_widget_set_name (checkbutton_config_aggressive_swarming, "checkbutton_config_aggressive_swarming");
   gtk_widget_ref (checkbutton_config_aggressive_swarming);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_aggressive_swarming", checkbutton_config_aggressive_swarming,
@@ -9045,7 +9045,7 @@ create_dlg_filters (void)
   gtk_widget_show (button_filter_clear);
   gtk_box_pack_start (GTK_BOX (hbox125), button_filter_clear, FALSE, FALSE, 0);
 
-  button_filter_reset_all_rules = gtk_button_new_with_label ("Reset all rule stats\nin this fiter");
+  button_filter_reset_all_rules = gtk_button_new_with_label ("Reset all rule stats\nin this filter");
   gtk_widget_set_name (button_filter_reset_all_rules, "button_filter_reset_all_rules");
   gtk_widget_ref (button_filter_reset_all_rules);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "button_filter_reset_all_rules", button_filter_reset_all_rules,

@@ -9346,7 +9346,7 @@ settings</label>
 			  <class>GtkCheckButton</class>
 			  <name>checkbutton_config_aggressive_swarming</name>
 			  <can_focus>True</can_focus>
-			  <label>Agressive mode</label>
+			  <label>Aggressive mode</label>
 			  <active>False</active>
 			  <draw_indicator>True</draw_indicator>
 			  <child>
@@ -13111,7 +13111,7 @@ from this filter</label>
 	      <last_modification_time>Sat, 08 Jun 2002 00:58:29 GMT</last_modification_time>
 	    </signal>
 	    <label>Reset all rule stats
-in this fiter</label>
+in this filter</label>
 	    <relief>GTK_RELIEF_NORMAL</relief>
 	    <child>
 	      <padding>0</padding>
