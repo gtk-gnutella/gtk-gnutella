@@ -40,6 +40,7 @@
 #include "gnet_stats.h"
 #include "gnet_net_stats.h"
 #include "dq.h"
+#include "udp.h"
 #include "settings.h"		/* For listen_ip() */
 #include "override.h"		/* Must be the last header included */
 
@@ -73,7 +74,9 @@ static void handle_features_supported(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
 static void handle_hops_flow(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
-static void handle_connect_back(struct gnutella_node *n,
+static void handle_tcp_connect_back(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size);
+static void handle_udp_connect_back(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
 static void handle_proxy_req(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
@@ -93,7 +96,8 @@ static struct vmsg vmsg_map[] = {
 	{ T_0000, 0x0000, 0x0000, handle_messages_supported, "Messages Supported" },
 	{ T_0000, 0x000a, 0x0000, handle_features_supported, "Features Supported" },
 	{ T_BEAR, 0x0004, 0x0001, handle_hops_flow, "Hops Flow" },
-	{ T_BEAR, 0x0007, 0x0001, handle_connect_back, "Connect Back" },
+	{ T_BEAR, 0x0007, 0x0001, handle_tcp_connect_back, "TCP Connect Back" },
+	{ T_GTKG, 0x0007, 0x0001, handle_udp_connect_back, "UDP Connect Back" },
 	{ T_BEAR, 0x000b, 0x0001, handle_qstat_req, "Query Status Request" },
 	{ T_BEAR, 0x000c, 0x0001, handle_qstat_answer, "Query Status Response" },
 	{ T_LIME, 0x0015, 0x0002, handle_proxy_req, "Push Proxy Request" },
@@ -531,10 +535,10 @@ vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
 }
 
 /**
- * Handle the "Connect Back" message.
+ * Handle the "TCP Connect Back" message.
  */
 static void
-handle_connect_back(struct gnutella_node *n,
+handle_tcp_connect_back(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size)
 {
 	guint16 port;
@@ -560,11 +564,11 @@ handle_connect_back(struct gnutella_node *n,
 }
 
 /**
- * Send an "Connect Back" message to specified node, telling it to connect
+ * Send a "TCP Connect Back" message to specified node, telling it to connect
  * back to us on the specified port.
  */
 void
-vmsg_send_connect_back(struct gnutella_node *n, guint16 port)
+vmsg_send_tcp_connect_back(struct gnutella_node *n, guint16 port)
 {
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint32 paysize = sizeof(port);
@@ -575,6 +579,56 @@ vmsg_send_connect_back(struct gnutella_node *n, guint16 port)
 	payload = vmsg_fill_type(&m->data, T_BEAR, 7, 1);
 
 	WRITE_GUINT16_LE(port, payload);
+
+	gmsg_sendto_one(n, (gchar *) m, msgsize);
+}
+
+/**
+ * Handle the "UDP Connect Back" message.
+ */
+static void
+handle_udp_connect_back(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size)
+{
+	guint16 port;
+	gchar guid_buf[16];
+
+	g_assert(vmsg->version <= 1);
+
+	if (size != 18) {
+		vmsg_bad_payload(n, vmsg, size, 18);
+		return;
+	}
+
+	READ_GUINT16_LE(payload, port);
+	memcpy(guid_buf, payload + 2, 16);
+
+	if (port == 0) {
+		g_warning("got improper port #%d in %s from %s <%s>",
+			port, vmsg->name, node_ip(n), node_vendor(n));
+		return;
+	}
+
+	udp_connect_back(n->ip, port, guid_buf);
+}
+
+/**
+ * Send a "UDP Connect Back" message to specified node, telling it to ping
+ * us back via UDP on the specified port.
+ */
+void
+vmsg_send_udp_connect_back(struct gnutella_node *n, guint16 port)
+{
+	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
+	guint32 paysize = sizeof(port) + 16;
+	guint32 msgsize;
+	guchar *payload;
+
+	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
+	payload = vmsg_fill_type(&m->data, T_GTKG, 7, 1);
+
+	WRITE_GUINT16_LE(port, payload);
+	memcpy(payload + 2, guid, 16);
 
 	gmsg_sendto_one(n, (gchar *) m, msgsize);
 }
