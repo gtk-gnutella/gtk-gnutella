@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Tue Aug 24 20:46:02 MEST 2004 [metaconfig 3.0 PL70]
+# Generated on Sun Aug 29 11:37:38 MEST 2004 [metaconfig 3.0 PL70]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -5920,6 +5920,7 @@ if $test -f "$bison$_exe"; then
 fi
 case "$yacc" in
 '')
+	yacc=`./loc yacc yacc $pth`
 	if $test -f "$yacc$_exe"; then
 		dflt='yacc'
 	elif $test -f "$byacc$_exe"; then
