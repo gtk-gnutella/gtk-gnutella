@@ -1,6 +1,27 @@
 # since last version
 
 - (2002.08.27 Richard)
+ * Changed justification of columns in search stats
+ * Moved search stats to gui side. Use the same callback as the
+   search monitor to get information from backend.
+ * Fix search stats so that a change in the update interval does immediatly
+   take effect.
+ * Expanded search_request_listener signature to contain a query type and
+   a query string. This way the gui can decide how to handle SHA1 queries.
+   (Search monitor displays them, search stats drop them)
+ * Fixed up search monitor to handle SHA1 queries on the gui side.
+ * Moved all search stats properties to gui.
+ * Moved more stuff out of callbacks.[ch]
+ * Moved build_url_from_download from misc.c to downloads.c
+ * Moved gtk_gnutella_exit prototype to common.h
+ * Cleant up gui.[ch]. Moved code to downloads_gui.[ch] and search_gui.[ch]
+ * Made column headers insensitive for tables that can not be sorted.
+ * Moved node_ip and message_dump from misc.c to nodes.c
+ * Added upload_kill() to uploads.[ch]
+ * More include cleanups for gui<->core separation
+ * Export host_clear_cache in gnet.h
+
+- (2002.08.27 Richard)
  * Moved vendor code resolving to vendors.[ch]
  * Added ARES to known vendors 
  * Juggled includes: 
