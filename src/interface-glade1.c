@@ -416,10 +416,12 @@ create_main_window (void)
   GtkWidget *table5;
   GtkWidget *checkbutton_config_force_ip;
   GtkWidget *label129;
-  GtkWidget *entry_config_force_ip;
   GtkWidget *label35;
+  GtkWidget *checkbutton_give_server_hostname;
+  GtkWidget *entry_config_force_ip;
   GtkObject *spinbutton_config_port_adj;
   GtkWidget *spinbutton_config_port;
+  GtkWidget *entry_server_hostname;
   GtkWidget *frame_proxy_settings;
   GtkWidget *vbox100;
   GtkWidget *table53;
@@ -4317,7 +4319,7 @@ create_main_window (void)
   gtk_widget_show (hseparator2);
   gtk_box_pack_start (GTK_BOX (vbox30), hseparator2, FALSE, TRUE, 3);
 
-  table5 = gtk_table_new (2, 3, FALSE);
+  table5 = gtk_table_new (3, 3, FALSE);
   gtk_widget_set_name (table5, "table5");
   gtk_widget_ref (table5);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "table5", table5,
@@ -4348,16 +4350,6 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label129), 0, 0.5);
 
-  entry_config_force_ip = gtk_entry_new ();
-  gtk_widget_set_name (entry_config_force_ip, "entry_config_force_ip");
-  gtk_widget_ref (entry_config_force_ip);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_config_force_ip", entry_config_force_ip,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (entry_config_force_ip);
-  gtk_table_attach (GTK_TABLE (table5), entry_config_force_ip, 1, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
   label35 = gtk_label_new (_("Default: 6346, Disable: 0"));
   gtk_widget_set_name (label35, "label35");
   gtk_widget_ref (label35);
@@ -4365,6 +4357,26 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label35);
   gtk_table_attach (GTK_TABLE (table5), label35, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_give_server_hostname = gtk_check_button_new_with_label (_("Public hostname"));
+  gtk_widget_set_name (checkbutton_give_server_hostname, "checkbutton_give_server_hostname");
+  gtk_widget_ref (checkbutton_give_server_hostname);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_give_server_hostname", checkbutton_give_server_hostname,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_give_server_hostname);
+  gtk_table_attach (GTK_TABLE (table5), checkbutton_give_server_hostname, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  entry_config_force_ip = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_force_ip, "entry_config_force_ip");
+  gtk_widget_ref (entry_config_force_ip);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_config_force_ip", entry_config_force_ip,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_config_force_ip);
+  gtk_table_attach (GTK_TABLE (table5), entry_config_force_ip, 1, 3, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
 
@@ -4380,6 +4392,16 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (spinbutton_config_port, 64, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_port), TRUE);
+
+  entry_server_hostname = gtk_entry_new_with_max_length (255);
+  gtk_widget_set_name (entry_server_hostname, "entry_server_hostname");
+  gtk_widget_ref (entry_server_hostname);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_server_hostname", entry_server_hostname,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (entry_server_hostname);
+  gtk_table_attach (GTK_TABLE (table5), entry_server_hostname, 1, 3, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   frame_proxy_settings = gtk_frame_new (_("Proxy settings"));
   gtk_widget_set_name (frame_proxy_settings, "frame_proxy_settings");
@@ -8424,6 +8446,15 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_force_ip), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_config_force_ip_focus_out_event),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_server_hostname), "changed",
+                      GTK_SIGNAL_FUNC (on_entry_server_hostname_changed),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_server_hostname), "activate",
+                      GTK_SIGNAL_FUNC (on_entry_server_hostname_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (entry_server_hostname), "focus_out_event",
+                      GTK_SIGNAL_FUNC (on_entry_server_hostname_focus_out_event),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_proxy_ip), "activate",
                       GTK_SIGNAL_FUNC (on_entry_config_proxy_ip_activate),

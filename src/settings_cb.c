@@ -173,6 +173,35 @@ void on_entry_config_force_ip_changed
 	g_free(e);
 }
 
+void on_entry_server_hostname_activate
+    (GtkEditable *editable, gpointer user_data)
+{
+   	gchar *e;
+	guint32 ip;
+	e = gtk_editable_get_chars(
+        GTK_EDITABLE(lookup_widget(main_window, "entry_server_hostname")), 
+        0, -1);
+	g_strstrip(e);
+	gnet_prop_set_string(PROP_SERVER_HOSTNAME, e);
+	g_free(e);
+}
+FOCUS_TO_ACTIVATE(entry_server_hostname)
+
+void on_entry_server_hostname_changed
+    (GtkEditable *editable,  gpointer user_data)
+{
+    gchar *e = gtk_editable_get_chars(editable, 0, -1);
+
+	g_strstrip(e);
+
+	gtk_widget_set_sensitive(
+        lookup_widget(main_window, "checkbutton_give_server_hostname"),
+        strlen(e) > 4);		/* Minimum: "a.com" */
+
+	g_free(e);
+}
+
+
 void on_menu_toolbar_visible_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {

@@ -49,6 +49,10 @@ gboolean on_entry_config_force_ip_focus_out_event(GtkWidget *widget, GdkEventFoc
 void on_entry_config_force_ip_activate(GtkEditable *editable, gpointer user_data); 
 void on_entry_config_force_ip_changed(GtkEditable *editable, gpointer user_data);
 
+gboolean on_entry_server_hostname_focus_out_event(GtkWidget *widget, GdkEventFocus *event, gpointer user_data);
+void on_entry_server_hostname_activate(GtkEditable *editable, gpointer user_data); 
+void on_entry_server_hostname_changed(GtkEditable *editable, gpointer user_data);
+
 void on_menu_statusbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_toolbar_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_connections_visible_activate(GtkMenuItem * menuitem, gpointer user_data);

@@ -1016,10 +1016,27 @@ static prop_map_t property_map[] = {
 #ifdef USE_GTK1
 	{
         get_main_window,
+        PROP_GIVE_SERVER_HOSTNAME,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_give_server_hostname",
+        FREQ_UPDATES, 0
+	},
+	{
+        get_main_window,
+        PROP_SERVER_HOSTNAME,
+        update_entry,
+        TRUE,
+        "entry_server_hostname",
+        FREQ_UPDATES, 0
+	},
+	{
+        get_main_window,
         PROP_PFSP_SERVER,
         update_togglebutton,
         TRUE,
         "checkbutton_pfsp_server",
+        FREQ_UPDATES, 0
 	},
 	{
         get_main_window,
@@ -1027,6 +1044,7 @@ static prop_map_t property_map[] = {
         update_spinbutton,
         TRUE,
         "spinbutton_pfsp_first_chunk",
+        FREQ_UPDATES, 0
 	},
 #endif	/* USE_GTK1 */
     {
