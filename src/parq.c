@@ -69,7 +69,7 @@ GHashTable *dl_all_parq_by_id = NULL;
 
 guint parq_max_upload_size = MAX_UPLOAD_QSIZE;
 guint parq_upload_active_size = 20; /* Number of active upload slots per queue*/
-guint parq_upload_ban_timeout = 600;
+guint parq_upload_ban_window = 600;
 static const gchar *file_parq_file = "parq";
 
 GList *ul_parqs = NULL;			/* List of all queued uploads */
@@ -1950,8 +1950,11 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	
 	parq_ul->expire = MIN_LIFE_TIME + parq_ul->retry;
 	
-	if (org_retry > now && !(parq_ul->flags & PARQ_UL_QUEUE_SENT ||
-							 u->status & GTA_UL_QUEUE_WAITING)) {
+	if (
+		org_retry > now && 
+		!((parq_ul->flags & PARQ_UL_QUEUE_SENT) || 
+			(u->status & GTA_UL_QUEUE_WAITING))
+		) {
 		/*
 		 * Bad bad client, re-requested within the Retry-After interval.
 		 * we are not going to allow this download. Wether it could get an
@@ -1970,7 +1973,7 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 			return FALSE;
 		}
 		
-		parq_ul->ban_timeout = now + parq_upload_ban_timeout;
+		parq_ul->ban_timeout = now + parq_upload_ban_window;
 		return FALSE;
 	}
 
