@@ -365,7 +365,7 @@ gpointer cq_insert(cqueue_t *cq, gint delay, cq_service_t fn, gpointer arg)
 	g_assert(valid_ptr(fn));
 	g_assert(delay > 0);
 
-	ev = (cevent_t *) g_malloc(sizeof(*ev));
+	ev = (cevent_t *) g_malloc0(sizeof(*ev));
 
 	ev->ce_magic = EV_MAGIC;
 	ev->ce_time = cq->cq_time + delay;
