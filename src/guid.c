@@ -245,9 +245,12 @@ gboolean guid_is_requery(const gchar *xuid)
 void guid_random_fill(gchar *xuid)
 {
 	gint i;
+	guint32 v;
 
-	for (i = 0; i < 16; i++)
-		xuid[i] = random_value(0xff);
+	for (i = 0; i < 16; i++) {
+		v =  random_value(~((guint32) 0U));
+		xuid[i] = v ^ (v >> 8) ^ (v >> 16) ^ (v >> 24);
+	}
 }
 
 /*
@@ -291,3 +294,4 @@ void guid_query_muid(gchar *muid, gboolean initial)
 	guid_flag_gtkg(muid);		/* Mark as being from GTKG */
 }
 
+/* vi: set ts=4: */
