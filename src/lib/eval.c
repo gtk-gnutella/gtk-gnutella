@@ -224,7 +224,8 @@ get_home(void)
 	if (pp != NULL)
 		return atom_str_get(pp->pw_dir);
 
-	return atom_str_get("/tmp");
+	g_warning("Could not determine home directory");
+	return atom_str_get("/");
 }
 
 /**
