@@ -5457,7 +5457,7 @@ node_flushq(struct gnutella_node *n)
 {
 	/*
 	 * Put the connection in TCP_NODELAY mode to accelerate flushing of the
-	 * kernel buffers by truning off the Nagle algorithm.
+	 * kernel buffers by turning off the Nagle algorithm.
 	 */
 
 	if (n->flags & NODE_F_NODELAY)		/* Already done */
@@ -5465,6 +5465,19 @@ node_flushq(struct gnutella_node *n)
 
 	sock_nodelay(n->socket, TRUE);
 	n->flags |= NODE_F_NODELAY;
+}
+
+/**
+ * Called by queue to disable the flush mode.
+ */
+void
+node_unflushq(struct gnutella_node *n)
+{
+	if (!(n->flags & NODE_F_NODELAY))		/* Already done */
+		return;
+
+	sock_nodelay(n->socket, FALSE);
+	n->flags &= ~NODE_F_NODELAY;
 }
 
 /**
