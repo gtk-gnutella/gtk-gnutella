@@ -1,5 +1,18 @@
 # since last version
 
+- (2002.05.17 - Richard)
+  * Fixed bug: drag in queue while queue is freezed unfreezes queue.
+  * Reflect freezeing of queue in the gui (as would explicit freezing).
+  * Reduce min value for listen_port to 0 in glade.
+  * Display notice window when shutting down.
+  * Made menu expand and used gtkpaned so size of sidebar can be changed.
+    Size is not yet persistent.
+  * Removed stream button from search panel since unused.
+  * Tried to fix problem with segfault during shutdown and thus
+    disabled timer calls in main timer for things that were
+    already closed (uploads/downloads) during grace period.
+    Failed miserably because we still have a segfault.
+
 - (2002.05.17 - RAM)
   * Applied enum/macro cleanup patch #555837 [From Uros Bizjak].
   * Display download queue status entries.
@@ -9,6 +22,16 @@
 	chance of being sent.
   * Added extended copyright notices, per FSF recommendations.
   * Added copy of the GPL in the LICENSE file.
+
+- (2002.05.16 - Richard)
+  * The position of the divider in the downloads pane is persisitent.
+    Attention: I implemented the missing gtk_paned_get_position function
+    and it has the same name as the GTK2 function will have.
+  * Started to tidy up config file
+  * Hopefully fixed sourceforge bug #555758: Crash when drag lasts too long?
+    Catch the drag signals and freeze the queue during drag. This prevents
+    items to be removed from the list during the drag which I think was
+    the cause for the crash.
 
 - (2002.05.15 - Richard)
   * Fixed bug with spinbuttons: manually entering a value did require
