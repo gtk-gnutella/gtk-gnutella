@@ -168,8 +168,10 @@ static gint tx_link_write(txdrv_t *tx, gpointer data, gint len)
 
 	r = write(fd, data, len);
 
-	if (r >= 0)
+	if (r >= 0) {
+		node_add_tx_written(tx->node, r);
 		return r;
+	}
 
 	switch (errno) {
 	case EAGAIN:
@@ -217,8 +219,10 @@ static gint tx_link_writev(txdrv_t *tx, struct iovec *iov, gint iovcnt)
 	else
 		r = writev(fd, iov, iovcnt);
 
-	if (r >= 0)
+	if (r >= 0) {
+		node_add_tx_written(tx->node, r);
 		return r;
+	}
 
 	switch (errno) {
 	case EAGAIN:

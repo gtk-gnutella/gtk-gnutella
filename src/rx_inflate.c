@@ -39,6 +39,7 @@ static pmsg_t *inflate_data(rxdrv_t *rx, pmsg_t *mb)
 	z_streamp inz = attr->inz;
 	gint old_size;
 	gint old_avail;
+	gint inflated;
 
 	/*
 	 * Prepare call to inflate().
@@ -83,7 +84,10 @@ static pmsg_t *inflate_data(rxdrv_t *rx, pmsg_t *mb)
 	 * Build message block with inflated data.
 	 */
 
-	return pmsg_alloc(PMSG_P_DATA, db, 0, old_avail - inz->avail_out);
+	inflated = old_avail - inz->avail_out;
+	node_add_rx_inflated(rx->node, inflated);
+
+	return pmsg_alloc(PMSG_P_DATA, db, 0, inflated);
 	
 cleanup:
 	rxbuf_free(db, NULL);

@@ -89,6 +89,18 @@ struct gnutella_node {
 	guint32 n_ping_sent;		/* Number of pings we sent to this node */
 	guint32 n_pong_received;	/* Number of pongs we received from this node */
 	guint32 n_pong_sent;		/* Number of pongs we sent to this node */
+
+	/*
+	 * Traffic statistics -- RAM, 13/05/2002.
+	 */
+
+	gint32 tx_given;			/* Bytes fed to the TX stack (from top) */
+	gint32 tx_deflated;			/* Bytes deflated by the TX stack */
+	gint32 tx_written;			/* Bytes written by the TX stack */
+	
+	gint32 rx_given;			/* Bytes fed to the RX stack (from bottom) */
+	gint32 rx_inflated;			/* Bytes inflated by the RX stack */
+	gint32 rx_read;				/* Bytes read from the RX stack */
 };
 
 /*
@@ -182,6 +194,14 @@ struct gnutella_node {
 #define NODE_TX_COMPRESSED(n) \
 	((n)->attrs & NODE_A_TX_DEFLATE)
 
+#define NODE_TX_COMPRESSION_RATIO(n)	\
+	((n)->tx_given ?					\
+		(double) ((n)->tx_given - (n)->tx_deflated) / (n)->tx_given : 0.0)
+
+#define NODE_RX_COMPRESSION_RATIO(n)	\
+	((n)->rx_inflated ?					\
+		(double) ((n)->rx_inflated - (n)->rx_given) / (n)->rx_inflated : 0.0)
+
 /*
  * Macros.
  */
@@ -205,6 +225,14 @@ void gui_update_node(struct gnutella_node *, gboolean);
 
 #define node_add_rxdrop(n,x)	\
 	do { (n)->rx_dropped += (x); gui_update_node((n), FALSE); } while (0)
+
+#define node_add_tx_given(n,x)		do { (n)->tx_given += (x); } while (0)
+#define node_add_tx_written(n,x)	do { (n)->tx_written += (x); } while (0)
+#define node_add_tx_deflated(n,x)	do { (n)->tx_deflated += (x); } while (0)
+
+#define node_add_rx_given(n,x)		do { (n)->rx_given += (x); } while (0)
+#define node_add_rx_inflated(n,x)	do { (n)->rx_inflated += (x); } while (0)
+#define node_add_rx_read(n,x)		do { (n)->rx_read += (x); } while (0)
 
 /*
  * Global Data

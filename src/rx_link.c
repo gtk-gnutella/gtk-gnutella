@@ -73,6 +73,8 @@ static void is_readable(gpointer data, gint source, GdkInputCondition cond)
 	 * NB: `mb' is expected to be freed by the last layer using it.
 	 */
 
+	node_add_rx_given(rx->node, r);
+
 	mb = pmsg_alloc(PMSG_P_DATA, db, 0, r);
 
 	(*rx->data_ind)(rx, mb);
@@ -137,6 +139,8 @@ static void rx_link_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	g_assert(rx);
 	g_assert(mb);
+
+	node_add_rx_given(rx->node, pmsg_size(mb));
 
 	/*
 	 * Call the registered data_ind callback to feed the upper layer.

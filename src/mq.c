@@ -538,6 +538,8 @@ static void mq_service(gpointer data)
 	if (r <= 0)
 		return;
 
+	node_add_tx_given(q->node, r);
+
 	/*
 	 * Determine which messages we wrote.
 	 */
@@ -628,7 +630,11 @@ void mq_putq(mqueue_t *q, pmsg_t *mb)
 		if (written < 0) {
 			pmsg_free(mb);
 			return;					/* Node removed */
-		} else if (written == size) {
+		}
+
+		node_add_tx_given(q->node, written);
+
+		if (written == size) {
 			pmsg_free(mb);
 			node_inc_sent(q->node);
 			return;

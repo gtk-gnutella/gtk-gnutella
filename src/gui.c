@@ -907,11 +907,24 @@ void gui_update_node_display(struct gnutella_node *n, time_t now)
 
 	case GTA_NODE_CONNECTED:
 		if (n->sent || n->received) {
-			g_snprintf(gui_tmp, sizeof(gui_tmp),
-				"%s=%d %s=%d Query(TX=%d, Q=%d) Drop(TX=%d, RX=%d) "
-				"Dup=%d Bad=%d Q=%d,%d%% %s",
-				NODE_TX_COMPRESSED(n) ? "TXc" : "TX", n->sent,
-				NODE_RX_COMPRESSED(n) ? "RXc" : "RX", n->received,
+			gint slen = 0;
+			if (NODE_TX_COMPRESSED(n))
+				slen += g_snprintf(gui_tmp, sizeof(gui_tmp), "TXc=%d,%d%%",
+					n->sent, (gint) (NODE_TX_COMPRESSION_RATIO(n) * 100));
+			else
+				slen += g_snprintf(gui_tmp, sizeof(gui_tmp), "TX=%d", n->sent);
+
+			if (NODE_RX_COMPRESSED(n))
+				slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					" RXc=%d,%d%%",
+					n->received, (gint) (NODE_RX_COMPRESSION_RATIO(n) * 100));
+			else
+				slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					" RX=%d", n->received);
+
+			slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				" Query(TX=%d, Q=%d) Drop(TX=%d, RX=%d)"
+				" Dup=%d Bad=%d Q=%d,%d%% %s",
 				NODE_SQUEUE_SENT(n), NODE_SQUEUE_COUNT(n),
 				n->tx_dropped, n->rx_dropped, n->n_dups, n->n_bad,
 				NODE_MQUEUE_COUNT(n), NODE_MQUEUE_PERCENT_USED(n),

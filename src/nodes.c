@@ -2471,6 +2471,7 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 				 sizeof(struct gnutella_header) - n->pos);
 
 		n->pos += r;
+		node_add_rx_read(n, r);
 
 		if (n->pos < sizeof(struct gnutella_header))
 			return FALSE;
@@ -2568,6 +2569,7 @@ static gboolean node_read(struct gnutella_node *n, pmsg_t *mb)
 	r = pmsg_read(mb, n->data + n->pos, n->size - n->pos);
 
 	n->pos += r;
+	node_add_rx_read(n, r);
 
 	g_assert(n->pos <= n->size);
 

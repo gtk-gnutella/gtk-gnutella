@@ -321,6 +321,8 @@ retry:
 
 	b->wptr += old_avail - outz->avail_out;
 
+	node_add_tx_deflated(tx->node, old_avail - outz->avail_out);
+
 	/*
 	 * Check whether avail_out is 0.
 	 *
@@ -408,9 +410,10 @@ static gint deflate_add(txdrv_t *tx, gpointer data, gint len)
 	gint added = 0;
 
 	if (dbg > 9) {
-		printf("deflate_add: (%s) given %d bytes (buffer #%d, nagle %s)\n",
+		printf("deflate_add: (%s) given %d bytes (buffer #%d, nagle %s, "
+			"unflushed %d)\n",
 			node_ip(tx->node), len, attr->fill_idx,
-			(attr->flags & DF_NAGLE) ? "on" : "off");
+			(attr->flags & DF_NAGLE) ? "on" : "off", attr->unflushed);
 		fflush(stdout);
 	}
 
@@ -419,13 +422,14 @@ static gint deflate_add(txdrv_t *tx, gpointer data, gint len)
 		gint ret;
 		gint old_added = added;
 		gboolean flush_started = (attr->flags & DF_FLUSH) ? TRUE : FALSE;
+		gint old_avail;
 
 		/*
 		 * Prepare call to deflate().
 		 */
 
 		outz->next_out = b->wptr;
-		outz->avail_out = b->end - b->wptr;
+		outz->avail_out = old_avail = b->end - b->wptr;
 
 		outz->next_in = data + added;
 		outz->avail_in = len - added;
@@ -459,6 +463,7 @@ static gint deflate_add(txdrv_t *tx, gpointer data, gint len)
 		g_assert(added >= old_added);
 
 		attr->unflushed += added - old_added;
+		node_add_tx_deflated(tx->node, old_avail - outz->avail_out);
 
 		/*
 		 * If we filled the output buffer, check whether we have a pending
