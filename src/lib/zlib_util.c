@@ -23,6 +23,12 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ * Zlib wrapper functions.
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
@@ -56,15 +62,18 @@ gchar *zlib_strerror(gint errnum)
 	return "Invalid error code";
 }
 
-/*
- * zlib_deflater_make
- *
+/**
  * Creates an incremental zlib deflater for `len' bytes starting at `data',
  * with specified compression `level'.
  *
+ * If `data' is NULL, data to compress will have to be fed to the deflater
+ * via zlib_deflate_data() calls.  Otherwise, calls to zlib_deflate() will
+ * incrementally compress the initial buffer.
+ *
  * Returns new deflater, or NULL if error.
  */
-zlib_deflater_t *zlib_deflater_make(gpointer data, gint len, gint level)
+zlib_deflater_t *
+zlib_deflater_make(gpointer data, gint len, gint level)
 {
 	zlib_deflater_t *zd;
 	z_streamp outz;
@@ -90,7 +99,7 @@ zlib_deflater_t *zlib_deflater_make(gpointer data, gint len, gint level)
 	zd->opaque = outz;
 
 	zd->in = data;
-	zd->inlen = len;
+	zd->inlen = data ? len : 0;
 
 	/*
 	 * zlib requires normally 0.1% more + 12 bytes, we use 0.5% to be safe.
@@ -111,19 +120,22 @@ zlib_deflater_t *zlib_deflater_make(gpointer data, gint len, gint level)
 	outz->next_out = zd->out;
 	outz->avail_out = zd->outlen;
 	outz->next_in = zd->in;
-	outz->avail_in = 0;			/* Will be set each time zlib_deflate called */
+	outz->avail_in = 0;			/* Will be set by zlib_deflate_step() */
 
 	return zd;
 }
 
-/*
- * zlib_deflate
- *
+/**
  * Incrementally deflate more data.
  *
- * Returns -1 on error, 1 if work remains, 0 when done.
+ * @param zd		the deflator object
+ * @param amount	amount of data to deflate
+ * @param may_close	whether to allow closing when all data was consumed
+ *
+ * @return -1 on error, 1 if work remains, 0 when done.
  */
-gint zlib_deflate(zlib_deflater_t *zd, gint amount)
+static gint
+zlib_deflate_step(zlib_deflater_t *zd, gint amount, gboolean may_close)
 {
 	z_streamp outz = (z_streamp) zd->opaque;
 	gint remaining;
@@ -132,6 +144,7 @@ gint zlib_deflate(zlib_deflater_t *zd, gint amount)
 	gint ret;
 
 	g_assert(amount > 0);
+	g_assert(outz != NULL);			/* Stream not closed yet */
 
 	/*
 	 * Compute amount of input data to process.
@@ -141,7 +154,7 @@ gint zlib_deflate(zlib_deflater_t *zd, gint amount)
 	g_assert(remaining >= 0);
 
 	process = MIN(remaining, amount);
-	finishing = process < amount;
+	finishing = process < amount && may_close;
 
 	/*
 	 * Process data.
@@ -195,6 +208,61 @@ gint zlib_deflate(zlib_deflater_t *zd, gint amount)
 
 	g_assert_not_reached();		/* Not reached */
 	return -1;
+}
+
+/**
+ * Incrementally deflate more data, the `amount' specified.
+ * When all the data have been compressed, the stream is closed.
+ *
+ * @return -1 on error, 1 if work remains, 0 when done.
+ */
+gint
+zlib_deflate(zlib_deflater_t *zd, gint amount)
+{
+	return zlib_deflate_step(zd, amount, TRUE);
+}
+
+/**
+ * Deflate the data supplied, but do not close the stream when all the
+ * data have been compressed.  Needs to call zlib_deflate_close() for that.
+ *
+ * @returns TRUE if OK, FALSE on error.
+ */
+gboolean
+zlib_deflate_data(zlib_deflater_t *zd, gpointer data, gint len)
+{
+	z_streamp outz = (z_streamp) zd->opaque;
+
+	g_assert(outz != NULL);			/* Stream not closed yet */
+
+	zd->in = data;
+	zd->inlen = len;
+
+	outz->next_in = zd->in;
+	outz->avail_in = 0;			/* Will be set by zlib_deflate_step() */
+
+	return zlib_deflate_step(zd, len, FALSE) > 0 ? TRUE : FALSE;
+}
+
+/**
+ * Marks the end of the data: flush the stream and close.
+ *
+ * @returns TRUE if OK, FALSE on error.
+ */
+gboolean
+zlib_deflate_close(zlib_deflater_t *zd)
+{
+	z_streamp outz = (z_streamp) zd->opaque;
+
+	g_assert(outz != NULL);			/* Stream not closed yet */
+
+	zd->in = NULL;
+	zd->inlen = 0;
+
+	outz->next_in = zd->in;
+	outz->avail_in = 0;
+
+	return zlib_deflate_step(zd, 1, TRUE) == 0 ? TRUE : FALSE;
 }
 
 /*

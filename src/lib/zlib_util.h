@@ -50,6 +50,8 @@ gchar *zlib_strerror(gint errnum);
 
 zlib_deflater_t *zlib_deflater_make(gpointer data, gint len, gint level);
 gint zlib_deflate(zlib_deflater_t *zd, gint amount);
+gboolean zlib_deflate_data(zlib_deflater_t *zd, gpointer data, gint len);
+gboolean zlib_deflate_close(zlib_deflater_t *zd);
 void zlib_deflater_free(zlib_deflater_t *zd, gboolean output);
 
 gpointer zlib_uncompress(gpointer data, gint len, gint uncompressed_len);
