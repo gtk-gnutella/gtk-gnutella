@@ -168,6 +168,9 @@ void sq_process(squeue_t *sq, time_t now)
 	if (n->received == 0)		/* RX = 0, wait for handshaking ping */
 		return;
 
+	if (!NODE_IS_WRITABLE(n))
+		return;
+
 	/*
 	 * Queue is managed as a LIFO: we extract the first message, i.e. the last
 	 * one enqueued, and pass it along to the node's message queue.
@@ -192,8 +195,7 @@ void sq_process(squeue_t *sq, time_t now)
 			node_ip(n), QUERY_TEXT(pmsg_start(mb)),
 			sq->count, sq->n_sent);
 
-	if (NODE_IS_WRITABLE(n))
-		mq_putq(n->outq, mb);
+	mq_putq(n->outq, mb);
 
 	sq->searches = g_list_remove_link(sq->searches, item);
 	g_list_free_1(item);
