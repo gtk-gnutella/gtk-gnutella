@@ -127,22 +127,24 @@ void gui_update_monitor_max_items(void)
 
 void gui_update_c_gnutellanet(void)
 {
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u gnutellaNet", nodes_in_list);
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u gnutellaNet",
+		connected_nodes(), nodes_in_list);
 	gtk_clist_set_text(GTK_CLIST(clist_connections), 0, 0, gui_tmp);
 }
 
 void gui_update_c_uploads(void)
 {
 	gint i = running_uploads;
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u upload%s", i,
-			   (i == 1) ? "" : "s");
+	gint t = registered_uploads;
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u upload%s", i, t,
+			   (i == 1 && t == 1) ? "" : "s");
 	gtk_clist_set_text(GTK_CLIST(clist_connections), 1, 0, gui_tmp);
 }
 
-void gui_update_c_downloads(gint c)
+void gui_update_c_downloads(gint c, gint ec)
 {
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u download%s", c,
-			   (c == 1) ? "" : "s");
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u/%u download%s", c, ec,
+			   (c == 1 && ec == 1) ? "" : "s");
 	gtk_clist_set_text(GTK_CLIST(clist_connections), 2, 0, gui_tmp);
 }
 
