@@ -170,7 +170,6 @@ found_write(gconstpointer data, size_t length)
 	g_assert(!f->open);
 
 	if (length > sizeof f->data - f->pos) {
-		g_warning("XXX");
 		return FALSE;
 	}
 
@@ -243,7 +242,6 @@ found_process(void)
 	struct found_struct *f = found_get();
 
 	g_assert(f->process != NULL);
-	dump_hex(stderr, __func__, f->data, f->pos);
 	f->process(f->data, f->pos, f->udata);
 }
 
@@ -276,12 +274,13 @@ qhit_send_node(gpointer data, size_t len, gpointer udata)
 	gnutella_node_t *n = (gnutella_node_t *) udata;
 	struct gnutella_header *packet_head = (struct gnutella_header *) data;
 
-	if (/* XXX: dbg > 3 */ TRUE)
+	if (dbg > 3) {
 		g_message("flushing query hit (%d entr%s, %d bytes sofar) to %s\n",
-			(int) found_file_count(),
+			(gint) found_file_count(),
 			found_file_count() == 1 ? "y" : "ies",
-			(int) found_size(),
+			(gint) found_size(),
 			node_ip(n));
+	}
 
 	g_assert(len <= INT_MAX);
 	
@@ -516,7 +515,6 @@ add_file(struct shared_file *sf)
 		found_size() + needed + QHIT_MIN_TRAILER_LEN
 			> search_answers_forward_size
 	) {
-		g_warning("XXX");
 		return FALSE;
 	}
 
@@ -526,7 +524,6 @@ add_file(struct shared_file *sf)
 	 */
 
 	if (needed > found_left()) {
-		g_warning("XXX");
 		return FALSE;
 	}
 
@@ -539,23 +536,19 @@ add_file(struct shared_file *sf)
 	
 	WRITE_GUINT32_LE(sf->file_index, &idx_le);
 	if (!found_write(&idx_le, sizeof idx_le)) {
-		g_warning("XXX");
 		return FALSE;
 	}
 	WRITE_GUINT32_LE(fs32, &fs32_le);
 	if (!found_write(&fs32_le, sizeof fs32_le)) {
-		g_warning("XXX");
 		return FALSE;
 	}
 	if (!found_write(sf->file_name, sf->file_name_len)) {
-		g_warning("XXX");
 		return FALSE;
 	}
 
 	/* Position equals the next byte to be written to */
 
 	if (!found_write("", 1)) {
-		g_warning("XXX");
 		return FALSE;
 	}
 
@@ -573,11 +566,9 @@ add_file(struct shared_file *sf)
 		/* Good old way: ASCII URN */
 
 		if (!found_write(urnsha1, sizeof urnsha1 - 1)) {
-			g_warning("XXX");
 			return FALSE;
 		}
 		if (!found_write(b32, SHA1_BASE32_SIZE)) {
-			g_warning("XXX");
 			return FALSE;
 		}
 	}
@@ -661,7 +652,6 @@ add_file(struct shared_file *sf)
 
 	/* Append terminating NUL */
 	if (!found_write("", 1)) {
-		g_warning("XXX");
 		return FALSE;
 	}
 
@@ -743,7 +733,7 @@ qhit_send_results(
 
 	g_slist_free(files);
 
-	if (/* XXX: dbg > 3 */ TRUE)
+	if (dbg > 3)
 		g_message("sent %d/%d hits to %s\n", sent, count, node_ip(n));
 }
 
