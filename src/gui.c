@@ -70,6 +70,8 @@ guint scid_hostsfile           = -1;
 guint scid_search_autoselected = -1;
 guint scid_queue_freezed       = -1;
 guint scid_queue_remove_regex  = -1;
+guint scid_ip_changed          = -1;
+guint scid_warn                = -1;
 
 /* List with timeout entries for statusbar messages */
 static GSList *sl_statusbar_timeouts = NULL;
@@ -103,6 +105,14 @@ void gui_init(void)
    	scid_queue_remove_regex = 
 		gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar), 
                                      "queue remove regex");	
+
+    scid_ip_changed =
+        gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar),
+                                     "ip changed");
+
+    scid_warn =
+        gtk_statusbar_get_context_id(GTK_STATUSBAR(statusbar),
+                                     "warning");
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", GTA_WEBSITE);
 	gui_statusbar_push(scid_bottom, gui_tmp);
@@ -251,8 +261,8 @@ void gui_update_all()
 	gui_update_minimum_speed(minimum_speed);
 	gui_update_up_connections();
 	gui_update_max_connections();
-	gui_update_config_port();
-	gui_update_config_force_ip();
+	gui_update_config_port(TRUE);
+	gui_update_config_force_ip(TRUE);
 
 	gui_update_save_file_path();
 	gui_update_move_file_path();
@@ -330,20 +340,28 @@ void gui_update_all()
 								   progressbar_downloads_visible);
 	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_connections_visible),
 								   progressbar_connections_visible);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_bps_in_visible),
-								   progressbar_bps_in_visible);
-	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_bps_out_visible),
-								   progressbar_bps_out_visible);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_bws_in_visible),
+								   progressbar_bws_in_visible);
+	gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_bws_out_visible),
+								   progressbar_bws_out_visible);
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_bws_gin_visible),
+								   progressbar_bws_gin_visible);
+    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(menu_bws_gout_visible),
+								   progressbar_bws_gout_visible);
 
 	gui_update_proxy_ip();
 	gui_update_proxy_port();
 	gui_update_socks_user();
 	gui_update_socks_pass();
 
-	gui_update_input_bandwidth();
-	gui_update_output_bandwidth();
-    gui_update_bps_in_enabled();
-    gui_update_bps_out_enabled();
+	gui_update_bandwidth_input();
+	gui_update_bandwidth_output();
+    gui_update_bandwidth_ginput();
+	gui_update_bandwidth_goutput();
+    gui_update_bws_in_enabled();
+    gui_update_bws_out_enabled();
+    gui_update_bws_gin_enabled();
+    gui_update_bws_gout_enabled();
     gui_update_queue_regex_case();
     gui_update_search_remove_downloaded();
     gui_update_download_delete_aborted();
@@ -369,6 +387,7 @@ void gui_update_all()
     gui_update_upload_connecting_timeout();
     gui_update_upload_connected_timeout();
     gui_update_max_hosts_cached();
+    gui_update_stats_frames();
 
     if (win_w && win_h) {
 		gtk_widget_set_uposition(main_window, win_x, win_y);
@@ -381,7 +400,7 @@ void gui_update_all()
 	for (i = 0; i < 4; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_downloads), i,
 								   dl_active_col_widths[i]);
-	for (i = 0; i < 3; i++)
+	for (i = 0; i < 4; i++)
 		gtk_clist_set_column_width(GTK_CLIST(clist_downloads_queue), i,
 								   dl_queued_col_widths[i]);
 	for (i = 0; i < 5; i++)
@@ -504,26 +523,66 @@ static void gui_statusbar_free_timeout_list()
 	}
 }
 
-void gui_update_config_force_ip(void)
+/*
+ * gui_address_changed:
+ *
+ * Checks wether listen_port or listen_ip
+ * have changed since the last call and displays
+ * a notice in case and updates the relevant widgets.
+ */
+static void gui_address_changed()
 {
-	gtk_entry_set_text(GTK_ENTRY(entry_config_force_ip),
-					   ip_to_gchar(forced_local_ip));
+    static guint32 old_address = 0;
+    static guint16 old_port = 0;
+   
+    if (old_address != listen_ip() || old_port != listen_port) {
+        guint msgid = -1;
+        gchar * iport;
+
+      	iport = ip_port_to_gchar(listen_ip(), listen_port);
+
+        old_address = listen_ip();
+        old_port = listen_port;
+
+        g_snprintf(gui_tmp, sizeof(gui_tmp), "Address/port changed to: %s",
+                   iport);
+        msgid = gui_statusbar_push(scid_ip_changed, gui_tmp);
+        gui_statusbar_add_timeout(scid_ip_changed, msgid, 15);
+
+        gtk_label_set(GTK_LABEL(label_current_port), iport);
+        gtk_entry_set_text(GTK_ENTRY(entry_nodes_ip), iport);
+    }
 }
 
-void gui_update_config_port(void)
+void gui_update_config_force_ip(gboolean force)
 {
-	gchar *iport;
+   /*
+    * Make sure we don't change the values if the user is
+    * currently editing them.
+    *      --BLUE, 15/05/2002
+    */ 
 
-    // FIXME: if port/ip have changed display this as a notice in
-    // the statusbar
-    //      --BLUE, 30/04/2002
+   if (!force ||
+       GTK_WIDGET_HAS_FOCUS(entry_config_force_ip))
+       return;
 
-	iport = ip_port_to_gchar(listen_ip(), listen_port);
+   gtk_entry_set_text(GTK_ENTRY(entry_config_force_ip),
+					  ip_to_gchar(forced_local_ip));
+}
 
-	gtk_spin_button_set_value(
-        GTK_SPIN_BUTTON(spinbutton_config_port), listen_port);
-	gtk_label_set(GTK_LABEL(label_current_port), iport);
-    gtk_entry_set_text(GTK_ENTRY(entry_nodes_ip), iport);
+void gui_update_config_port(gboolean force)
+{
+    gui_address_changed();
+   
+    /*
+     * Make sure we don't change the values if the user is
+     * currently editing them.
+     *      --BLUE, 15/05/2002
+     */
+    if (force ||
+        !GTK_WIDGET_HAS_FOCUS(spinbutton_config_port))
+        gtk_spin_button_set_value(
+            GTK_SPIN_BUTTON(spinbutton_config_port), listen_port);
 }
 
 void gui_update_max_ttl(void)
@@ -622,6 +681,13 @@ void gui_update_c_downloads(gint c, gint ec)
                            c, 0, ec);
 }
 
+void gui_update_hosts_in_catcher()
+{
+    gtk_progress_configure(GTK_PROGRESS(progressbar_hosts_in_catcher), 
+                           hosts_in_catcher, 0, 
+                           MAX(hosts_in_catcher, max_hosts_cached));
+}
+
 void gui_update_max_downloads(void)
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", max_downloads);
@@ -697,29 +763,55 @@ UPDATE_ENTRY(
     NO_FUNC)
 
 UPDATE_CHECKBUTTON(
-    checkbutton_config_bps_in, 
-    bps_in_enabled,
-    gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bps_in),
-                             bps_in_enabled))
+    checkbutton_config_bws_in, 
+    bws_in_enabled,
+    gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bws_in),
+                             bws_in_enabled))
 
-void gui_update_input_bandwidth ()
+void gui_update_bandwidth_input()
 {
     gtk_spin_button_set_value(
-        GTK_SPIN_BUTTON(spinbutton_config_bps_in),
+        GTK_SPIN_BUTTON(spinbutton_config_bws_in),
         (float) bandwidth.input / 1024.0);
 }
 
 UPDATE_CHECKBUTTON(
-    checkbutton_config_bps_out, 
-    bps_out_enabled,
-    gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bps_out),
-                             bps_out_enabled);)
+    checkbutton_config_bws_out, 
+    bws_out_enabled,
+    gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bws_out),
+                             bws_out_enabled);)
 
-void gui_update_output_bandwidth ()
+void gui_update_bandwidth_output()
 {
     gtk_spin_button_set_value(
-        GTK_SPIN_BUTTON(spinbutton_config_bps_out),
+        GTK_SPIN_BUTTON(spinbutton_config_bws_out),
         (float) bandwidth.output / 1024.0);
+}
+
+UPDATE_CHECKBUTTON(
+    checkbutton_config_bws_gin, 
+    bws_gin_enabled,
+    gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bws_gin),
+                             bws_gin_enabled))
+
+void gui_update_bandwidth_ginput()
+{
+    gtk_spin_button_set_value(
+        GTK_SPIN_BUTTON(spinbutton_config_bws_gin),
+        (float) bandwidth.ginput / 1024.0);
+}
+
+UPDATE_CHECKBUTTON(
+    checkbutton_config_bws_gout, 
+    bws_gout_enabled,
+    gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bws_gout),
+                             bws_gout_enabled);)
+
+void gui_update_bandwidth_goutput()
+{
+    gtk_spin_button_set_value(
+        GTK_SPIN_BUTTON(spinbutton_config_bws_gout),
+        (float) bandwidth.goutput / 1024.0);
 }
 
 UPDATE_CHECKBUTTON(
@@ -957,9 +1049,7 @@ void gui_update_global(void)
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", dropped_messages);
 	gtk_entry_set_text(GTK_ENTRY(entry_dropped_messages), gui_tmp);
 
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", hosts_in_catcher);
-	gtk_entry_set_text(GTK_ENTRY(entry_hosts_in_catcher), gui_tmp);
-
+    gui_update_hosts_in_catcher();
 	
     g_snprintf(gui_tmp, sizeof(gui_tmp),  "Uptime: %s", 
 							   short_uptime((guint32) difftime(now,startup)));
@@ -973,16 +1063,29 @@ void gui_update_global(void)
 	 */
 	
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
-			   compact_size(progressbar_bps_in_avg ? bsched_avg_bps(bws.in) : 
+			   compact_size(progressbar_bws_in_avg ? bsched_avg_bps(bws.in) : 
 										             bsched_bps(bws.in)),
-			   progressbar_bps_in_avg ? "(avg)" : "");
-	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bps_in), gui_tmp);
+			   progressbar_bws_in_avg ? "(avg)" : "");
+	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_in), gui_tmp);
 
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s", 
-			   compact_size(progressbar_bps_out_avg ? bsched_avg_bps(bws.out) :
+			   compact_size(progressbar_bws_out_avg ? bsched_avg_bps(bws.out) :
 										              bsched_bps(bws.out)),
-			   progressbar_bps_out_avg ? "(avg)" : "");
-	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bps_out), gui_tmp);
+			   progressbar_bws_out_avg ? "(avg)" : "");
+	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_out), gui_tmp);
+
+    g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s in %s", 
+			   compact_size(progressbar_bws_gin_avg ? bsched_avg_bps(bws.gin) : 
+										              bsched_bps(bws.gin)),
+			   progressbar_bws_gin_avg ? "(avg)" : "");
+	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_gin), gui_tmp);
+
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%s/s out %s", 
+			   compact_size(progressbar_bws_gout_avg ? bsched_avg_bps(bws.gout) :
+										               bsched_bps(bws.gout)),
+			   progressbar_bws_gout_avg ? "(avg)" : "");
+	gtk_progress_set_format_string(GTK_PROGRESS(progressbar_bws_gout), gui_tmp);
+
 
 	/*
 	 * If the bandwidth usage peaks above the maximum, then GTK will not
@@ -991,17 +1094,29 @@ void gui_update_global(void)
 	 *		--RAM, 16/04/2002
 	 */
 
-	gtk_progress_configure(GTK_PROGRESS(progressbar_bps_in), 
-    	MIN(progressbar_bps_in_avg ? bsched_avg_bps(bws.in) : 
+	gtk_progress_configure(GTK_PROGRESS(progressbar_bws_in), 
+    	MIN(progressbar_bws_in_avg ? bsched_avg_bps(bws.in) : 
 									 bsched_bps(bws.in), 
 			bws.in->bw_per_second),
 		0, bws.in->bw_per_second);
 
-	gtk_progress_configure(GTK_PROGRESS(progressbar_bps_out), 
-    	MIN(progressbar_bps_out_avg ? bsched_avg_bps(bws.out) :
+	gtk_progress_configure(GTK_PROGRESS(progressbar_bws_out), 
+    	MIN(progressbar_bws_out_avg ? bsched_avg_bps(bws.out) :
 									  bsched_bps(bws.out), 
 			bws.out->bw_per_second),
 		0, bws.out->bw_per_second);
+
+   	gtk_progress_configure(GTK_PROGRESS(progressbar_bws_gin), 
+    	MIN(progressbar_bws_gin_avg ? bsched_avg_bps(bws.gin) : 
+								 	  bsched_bps(bws.gin), 
+			bws.gin->bw_per_second),
+		0, bws.gin->bw_per_second);
+
+	gtk_progress_configure(GTK_PROGRESS(progressbar_bws_gout), 
+    	MIN(progressbar_bws_gout_avg ? bsched_avg_bps(bws.gout) :
+		 							   bsched_bps(bws.gout), 
+			bws.gout->bw_per_second),
+		0, bws.gout->bw_per_second);
 }
 
 void gui_update_node_display(struct gnutella_node *n, time_t now)
@@ -1596,6 +1711,21 @@ void gui_update_search_stats_delcoef(void)
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", search_stats_delcoef);
 	gtk_entry_set_text(GTK_ENTRY(entry_search_stats_delcoef), gui_tmp);
+}
+
+void gui_update_stats_frames()
+{
+    if (progressbar_bws_in_visible || progressbar_bws_out_visible) {
+        gtk_widget_show(frame_bws_inout);
+    } else {
+        gtk_widget_hide(frame_bws_inout);
+    }
+
+    if (progressbar_bws_gin_visible || progressbar_bws_gout_visible) {
+        gtk_widget_show(frame_bws_ginout);
+    } else {
+        gtk_widget_hide(frame_bws_ginout);
+    }
 }
 
 /* vi: set ts=4: */
