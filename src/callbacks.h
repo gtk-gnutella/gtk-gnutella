@@ -150,6 +150,7 @@ void on_clist_search_results_click_column(GtkCList * clist, gint column, gpointe
 void on_clist_search_results_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 void on_clist_search_results_select_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
 void on_clist_search_results_unselect_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
+void on_clist_search_select_row(GtkCList * clist, gint row, gint column, GdkEvent * event, gpointer user_data);
 void on_entry_search_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_search_changed (GtkEditable *editable, gpointer user_data);
 void on_entry_search_reissue_timeout_activate (GtkEditable *editable, gpointer user_data);
@@ -266,6 +267,7 @@ void on_popup_search_restart_activate (GtkMenuItem *menuitem, gpointer user_data
 void on_popup_search_resume_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_stop_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_search_config_cols_activate (GtkMenuItem *menuitem, gpointer user_data);
 
 
 
@@ -279,6 +281,7 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem *menuitem, gpointer use
 void on_popup_downloads_search_again_activate(GtkMenuItem *menuitem, gpointer user_data); 
 void on_popup_downloads_queue_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_copy_url_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_downloads_connect_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_selection_get(GtkWidget * widget, GtkSelectionData * data, 
                                       guint info, guint time, gpointer user_data);
 gint on_popup_downloads_selection_clear_event(GtkWidget * widget, GdkEventSelection *event);
@@ -294,6 +297,10 @@ void on_popup_queue_search_again_activate (GtkMenuItem *menuitem, gpointer user_
 void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem, gpointer user_data); 
 void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_popup_queue_abort_activate(GtkMenuItem * menuitem, gpointer user_data);
+void on_popup_queue_copy_url_activate(GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_queue_connect_activate(GtkMenuItem *menuitem, gpointer user_data);
+
+
 
 /***
  *** upload stats
@@ -330,6 +337,13 @@ void on_menu_bws_in_visible_activate(GtkMenuItem * menuitem, gpointer user_data)
 void on_menu_bws_out_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_bws_gin_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
 void on_menu_bws_gout_visible_activate(GtkMenuItem * menuitem, gpointer user_data);
+
+
+
+/***
+ *** search list (sidebar)
+ ***/
+void on_clist_search_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 
 
 #endif	/* __callbacks_h__ */
