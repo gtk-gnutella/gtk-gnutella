@@ -1,5 +1,7 @@
 /*
- * FILL_IN_EMILES_BLANKS
+ * $Id$
+ *
+ * Copyright (c) 2001-2003, Raphael Manfredi
  *
  * Interface definition file.  One of the files that defines structures,
  * macros, etc. as part of the gui/core interface.
@@ -27,9 +29,11 @@
 #ifndef _ui_core_interface_misc_defs_h_
 #define _ui_core_interface_misc_defs_h_
 
+#include "config.h"
+
 #include <ctype.h>
+#include <string.h>
 #include <glib.h>
-#include "config.h"				/* Needed for FreeBSD compiles */
 
 
 /* The RCS IDs can be looked up from the compiled binary with e.g. `what'  */
@@ -124,3 +128,4 @@ typedef guint16 flag_t;
 
 
 #endif
+/* vi: set ts=4 sw=4 cindent: */
