@@ -981,7 +981,7 @@ prop = {
 		"displays the amount of slots in the QRP table, 'g' the generation "
 		"number, 'f' the fill ratio, 't' the passing threshold and 'e' the "
 		"efficiency, i.e. the proportion of received queries that are sent "
-		"to the leaf.";
+		"to the node after QRP table filtering.";
     type = boolean;
     data = {
         default = FALSE;

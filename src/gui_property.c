@@ -2005,7 +2005,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[95].name = "show_gnet_info_qrp_stats";
-    gui_property->props[95].desc = _("Whether Query Routing Protocol statistics should be displayed. For a leaf node, this is simply the ratio of queries that generated a hit over the amount of received queries.  For an ultrapeer, it displays the amount of slots in the QRP table, 'g' the generation number, 'f' the fill ratio, 't' the passing threshold and 'e' the efficiency, i.e. the proportion of received queries that are sent to the leaf.");
+    gui_property->props[95].desc = _("Whether Query Routing Protocol statistics should be displayed. For a leaf node, this is simply the ratio of queries that generated a hit over the amount of received queries.  For an ultrapeer, it displays the amount of slots in the QRP table, 'g' the generation number, 'f' the fill ratio, 't' the passing threshold and 'e' the efficiency, i.e. the proportion of received queries that are sent to the node after QRP table filtering.");
     gui_property->props[95].ev_changed = event_new("show_gnet_info_qrp_stats_changed");
     gui_property->props[95].save = TRUE;
     gui_property->props[95].vector_size = 1;
@@ -2130,7 +2130,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[102].name = "widths_gnet_stats_pkg";
-    gui_property->props[102].desc = _("Widths of the columns in the Gnet packet stats table (pkg) [GTK2]");
+    gui_property->props[102].desc = _("Widths of the columns in the Gnet packet stats table (pkg)[GTK2]");
     gui_property->props[102].ev_changed = event_new("gnet_stats_pkg_col_widths_changed");
     gui_property->props[102].save = TRUE;
     gui_property->props[102].vector_size = 6;
