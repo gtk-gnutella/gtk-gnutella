@@ -1,7 +1,7 @@
 # since last version
 
 - (2003.01.11 - cbiere)
-
+ * Fixed wrong date for ChangeLog
  * Tried to pop non-existent message from statusbar
  * [Gtk2] New locale_to_utf8: non-convertible characters are replaced by an
    underscore ('_')
