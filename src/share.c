@@ -871,11 +871,14 @@ gboolean search_request(struct gnutella_node *n)
 
 		exvcnt = ext_parse(search + search_len + 1, extra, exv, MAX_EXTVEC);
 
-		if (exvcnt == MAX_EXTVEC)
-			g_warning(
-				"query (hops=%d, ttl=%d) %d byte%s has %d extensions!",
-				n->header.hops, n->header.ttl, n->size - 2,
-				n->size == 3 ? "" : "s", exvcnt);
+		if (exvcnt == MAX_EXTVEC) {
+			g_warning("%s has %d extensions!",
+				gmsg_infostr(&n->header), exvcnt);
+			if (dbg)
+				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
+			if (dbg > 1)
+				dump_hex(stderr, "Query", search, n->size - 2);
+		}
 
 		if (exvcnt && dbg > 3) {
 			printf("Query with extensions: %s\n", search);
