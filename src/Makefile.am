@@ -36,7 +36,18 @@ GLADE_UI = \
 	interface-glade2.c interface-glade2.h \
 	support-glade2.c support-glade2.h
 ADDITIONAL_DROPIN = \
-	share_gui2.c share_gui.h
+	monitor_gui2.c monitor_gui.h monitor_cb2.c monitor_cb.h \
+	nodes_gui.c nodes_gui.h nodes_cb.c nodes_cb.h \
+	gui_property.c gui_property.h gui_property_priv.h \
+	settings_gui.c settings_gui.h settings_cb.c settings_cb.h \
+	statusbar_gui.c statusbar_gui.h \
+	search_gui.c search_gui.h search_cb.c search_cb.h \
+	downloads_gui.c downloads_gui.h downloads_cb.c downloads_cb.h \
+	uploads_gui.c uploads_gui.h uploads_cb.c uploads_cb.h \
+	upload_stats_gui.c upload_stats_gui.h \
+	gnet_stats_gui.c gnet_stats_gui.h \
+	search_stats_gui.c search_stats_gui.h \
+	main_gui.c main_gui.h main_cb.c main_cb.h 
 gtk_gnutella_LDADD = @GTK_GNUTELLA_LIBS@ -lz @XML_LIBS@
 else
 INCLUDES = \

@@ -33,18 +33,11 @@ then
 			AC_MSG_ERROR(Cannot find GLib: Is glib-config in path?))
     frontend="Gtk 1.2"
 else
-    echo -e "\n\n"
-    echo "The GTK2 version of gtk-gnutells is currently not maintained and"
-    echo "does not compile. It's probably coming back some day, but we can't"
-    echo "give you any date."
-    echo -e "\n\n"
-    exit 0
-
     PKG_CHECK_MODULES(GTK_GNUTELLA, gtk+-2.0 >= 2.0.0 glib-2.0 >= 2.0.0)
     AC_SUBST(GTK_GNUTELLA_CFLAGS)
     AC_DEFINE(USE_GTK2)
     
-    frontent="Gtk 2.0"
+    frontend="Gtk 2.0 (experimental)"
 fi
 AM_CONDITIONAL(ENABLE_GTK2, test "x$enable_gtk2" = "xyes")
 
