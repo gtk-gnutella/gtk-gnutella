@@ -530,8 +530,14 @@ search_gui_add_record(
 	}
 	if (vinfo->len) {
 		g_assert(rw < sizeof info);
-		rw = gm_snprintf(&info[rw], sizeof info - rw, "%s%s",
+		rw += gm_snprintf(&info[rw], sizeof info - rw, "%s%s",
 			info[0] != '\0' ? "; " : "", vinfo->str);
+	}
+
+	if (rc->alt_locs != NULL) {
+		g_assert(rw < sizeof info);
+		rw +== gm_snprintf(&info[rw], sizeof info - rw, "%salt",
+			info[0] != '\0' ? ", " : "");
 	}
 
 	/* Don't care if it's truncated. It's usually very short anyways. */

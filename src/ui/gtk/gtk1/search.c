@@ -1204,7 +1204,13 @@ void search_gui_add_record(
 			g_string_append(info, "; ");
 		g_string_append(info, vinfo->str);
 	}
-	
+
+	if (rc->alt_locs != NULL) {
+		if (info->len)
+			g_string_append(info, ", ");
+		g_string_append(info, "alt");
+	}
+
 	if (NULL != rc->info)
 		atom_str_free(rc->info);
 	rc->info = atom_str_get(info->str);	
