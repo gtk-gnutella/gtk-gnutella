@@ -478,7 +478,6 @@ static void adjust_credit(
  */
 static void put_sha1_back_into_share_library(
 	struct shared_file *sf,
-	guint32 file_index,
 	const char *file_name,
 	const char *digest)
 {
@@ -502,7 +501,7 @@ static void put_sha1_back_into_share_library(
 
 		if (dbg > 1)
 			printf("SHA1: name of file #%d changed from %s to %s (reload ?): "
-				"discarding\n", file_index, file_name, full_file_name);
+				"discarding\n", sf->file_index, file_name, full_file_name);
 
 		return;
 	}
@@ -550,8 +549,8 @@ static void try_to_put_sha1_back_into_share_library()
 	while (waiting_for_library_build_complete) {
 		struct file_sha1 *f = waiting_for_library_build_complete;
 		waiting_for_library_build_complete = f->next;
-		put_sha1_back_into_share_library(sf,
-			f->file_index, f->file_name, f->sha1_digest);
+		put_sha1_back_into_share_library(shared_file(f->file_index),
+			f->file_name, f->sha1_digest);
 		g_free(f->file_name);
 		g_free(f);
 	}
@@ -718,7 +717,7 @@ static void got_sha1_result(
 		push(&waiting_for_library_build_complete, current_file);
 		current_file = NULL;
 	} else
-		put_sha1_back_into_share_library(sf, file_index, file_name, digest_b32);
+		put_sha1_back_into_share_library(sf, file_name, digest_b32);
 }
 
 /*
