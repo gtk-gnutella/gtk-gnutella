@@ -36,11 +36,14 @@ typedef struct  {
 	gint inlen;				/* Length of input buffer */
 	gpointer out;			/* Compressed data */
 	gint outlen;			/* Length of ouput buffer */
+	gint inlen_total;		/* Total input length seen */
 	gpointer opaque;		/* Internal data structures */
+	gboolean allocated;		/* Whether output buffer was allocated or static */
 } zlib_deflater_t;
 
 #define zlib_deflater_out(z)	((z)->out)
 #define zlib_deflater_outlen(z)	((z)->outlen)
+#define zlib_deflater_inlen(z)	((z)->inlen_total)
 
 /*
  * Public interface.
@@ -49,6 +52,8 @@ typedef struct  {
 gchar *zlib_strerror(gint errnum);
 
 zlib_deflater_t *zlib_deflater_make(gpointer data, gint len, gint level);
+zlib_deflater_t *zlib_deflater_make_into(
+	gpointer data, gint len, gpointer dest, gint destlen, gint level);
 gint zlib_deflate(zlib_deflater_t *zd, gint amount);
 gboolean zlib_deflate_data(zlib_deflater_t *zd, gpointer data, gint len);
 gboolean zlib_deflate_close(zlib_deflater_t *zd);

@@ -66,14 +66,17 @@ gchar *zlib_strerror(gint errnum)
  * Creates an incremental zlib deflater for `len' bytes starting at `data',
  * with specified compression `level'.
  *
- * If `data' is NULL, data to compress will have to be fed to the deflater
- * via zlib_deflate_data() calls.  Otherwise, calls to zlib_deflate() will
- * incrementally compress the initial buffer.
+ * @param data		data to compress; if NULL, will be incrementally given
+ * @param len		length of data to compress (if data not NULL) or estimation
+ * @param dest		where compressed data should go, or NULL if allocated
+ * @param destlen	length of supplied output buffer, if dest != NULL
+ * @param level		compression level, between 0 and 9.
  *
  * Returns new deflater, or NULL if error.
  */
-zlib_deflater_t *
-zlib_deflater_make(gpointer data, gint len, gint level)
+static zlib_deflater_t *
+zlib_deflater_alloc(
+	gpointer data, gint len, gpointer dest, gint destlen, gint level)
 {
 	zlib_deflater_t *zd;
 	z_streamp outz;
@@ -100,6 +103,7 @@ zlib_deflater_make(gpointer data, gint len, gint level)
 
 	zd->in = data;
 	zd->inlen = data ? len : 0;
+	zd->inlen_total = zd->inlen;
 
 	/*
 	 * zlib requires normally 0.1% more + 12 bytes, we use 0.5% to be safe.
@@ -110,8 +114,20 @@ zlib_deflater_make(gpointer data, gint len, gint level)
 	 * redundant.
 	 */
 
-	zd->outlen = (gint) (len * 1.005 + 12.0);
-	zd->out = g_malloc(zd->outlen);
+	if (dest == NULL) {
+		/* Compressed data go to a dynamically allocated buffer */
+		if (data == NULL && len == 0)
+			len = 512;
+
+		zd->outlen = (gint) (len * 1.005 + 12.0);
+		zd->out = g_malloc(zd->outlen);
+		zd->allocated = TRUE;
+	} else {
+		/* Compressed data go to a supplied buffer, not-resizable */
+		zd->out = dest;
+		zd->outlen = destlen;
+		zd->allocated = FALSE;
+	}
 
 	/*
 	 * Initialize Z stream.
@@ -123,6 +139,41 @@ zlib_deflater_make(gpointer data, gint len, gint level)
 	outz->avail_in = 0;			/* Will be set by zlib_deflate_step() */
 
 	return zd;
+}
+
+/**
+ * Creates an incremental zlib deflater for `len' bytes starting at `data',
+ * with specified compression `level'.  Data will be compressed into a
+ * dynamically allocated buffer, resized as needed.
+ *
+ * If `data' is NULL, data to compress will have to be fed to the deflater
+ * via zlib_deflate_data() calls.  Otherwise, calls to zlib_deflate() will
+ * incrementally compress the initial buffer.
+ *
+ * @return new deflater, or NULL if error.
+ */
+zlib_deflater_t *
+zlib_deflater_make(gpointer data, gint len, gint level)
+{
+	return zlib_deflater_alloc(data, len, NULL, 0, level);
+}
+
+/**
+ * Creates an incremental zlib deflater for `len' bytes starting at `data',
+ * with specified compression `level'.  Data will be compressed into the
+ * supplied buffer starting at `dest'.
+ *
+ * If `data' is NULL, data to compress will have to be fed to the deflater
+ * via zlib_deflate_data() calls.  Otherwise, calls to zlib_deflate() will
+ * incrementally compress the initial buffer.
+ *
+ * @return new deflater, or NULL if error.
+ */
+zlib_deflater_t *
+zlib_deflater_make_into(
+	gpointer data, gint len, gpointer dest, gint destlen, gint level)
+{
+	return zlib_deflater_alloc(data, len, dest, destlen, level);
 }
 
 /**
@@ -170,10 +221,13 @@ zlib_deflate_step(zlib_deflater_t *zd, gint amount, gboolean may_close)
 			g_warning("under-estimated output buffer size: input=%d, output=%d",
 				zd->inlen, zd->outlen);
 
-			zd->outlen += OUT_GROW;
-			zd->out = g_realloc(zd->out, zd->outlen);
-			outz->next_out = (guchar *) zd->out + (zd->outlen - OUT_GROW);
-			outz->avail_out = OUT_GROW;
+			if (zd->allocated) {
+				zd->outlen += OUT_GROW;
+				zd->out = g_realloc(zd->out, zd->outlen);
+				outz->next_out = (guchar *) zd->out + (zd->outlen - OUT_GROW);
+				outz->avail_out = OUT_GROW;
+			} else
+				goto error;		/* Cannot continue */
 		}
 
 		return 1;				/* Need to call us again */
@@ -197,17 +251,19 @@ zlib_deflate_step(zlib_deflater_t *zd, gint amount, gboolean may_close)
 
 	default:
 		g_warning("error during compression: %s", zlib_strerror(ret));
-		ret = deflateEnd(outz);
-		if (ret != Z_OK && ret != Z_DATA_ERROR)
-			g_warning("while freeing compressor: %s", zlib_strerror(ret));
-		wfree(outz, sizeof(*outz));
-		zd->opaque = NULL;
-
-		return -1;				/* Error! */
+		goto error;
 	}
 
 	g_assert_not_reached();		/* Not reached */
-	return -1;
+
+error:
+	ret = deflateEnd(outz);
+	if (ret != Z_OK && ret != Z_DATA_ERROR)
+		g_warning("while freeing compressor: %s", zlib_strerror(ret));
+	wfree(outz, sizeof(*outz));
+	zd->opaque = NULL;
+
+	return -1;				/* Error! */
 }
 
 /**
@@ -237,6 +293,7 @@ zlib_deflate_data(zlib_deflater_t *zd, gpointer data, gint len)
 
 	zd->in = data;
 	zd->inlen = len;
+	zd->inlen_total += len;
 
 	outz->next_in = zd->in;
 	outz->avail_in = 0;			/* Will be set by zlib_deflate_step() */
@@ -284,7 +341,7 @@ void zlib_deflater_free(zlib_deflater_t *zd, gboolean output)
 		wfree(outz, sizeof(*outz));
 	}
 
-	if (output)
+	if (output && zd->allocated)
 		G_FREE_NULL(zd->out);
 
 	wfree(zd, sizeof(*zd));
