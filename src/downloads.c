@@ -2560,7 +2560,7 @@ static void download_unqueue(struct download *d)
 	if (d->flags & DL_F_REPLIED)
 		gnet_prop_set_guint32_val(PROP_DL_QALIVE_COUNT, dl_qalive_count - 1);
 
-	g_assert(dl_qalive_count >= 0);
+	g_assert((gint) dl_qalive_count >= 0);
 
 	d->status = GTA_DL_CONNECTING;		/* Allow download to be stopped */
 }
@@ -3802,7 +3802,7 @@ gboolean download_remove(struct download *d)
 		if (d->flags & DL_F_REPLIED)
 			gnet_prop_set_guint32_val(PROP_DL_QALIVE_COUNT, dl_qalive_count - 1);
 
-		g_assert(dl_qalive_count >= 0);
+		g_assert((gint) dl_qalive_count >= 0);
 	}
 
 	/*
@@ -4734,9 +4734,11 @@ static gboolean download_get_server_name(
 			!version_check(buf, header_get(header, "X-Token"), download_ip(d));
 		if (server->vendor == NULL) {
 			if (faked) {
-				gchar *name = g_strdup_printf("!%s", buf);
+				gchar name[1024];
+
+				name[0] = '!';
+				g_strlcpy(&name[1], buf, sizeof name - 1);
 				server->vendor = atom_str_get(name);
-				G_FREE_NULL(name);
 			} else
 				server->vendor = atom_str_get(buf);
 			got_new_server = TRUE;
@@ -5280,7 +5282,7 @@ static void download_sink(struct download *d)
 {
 	struct gnutella_socket *s = d->socket;
 
-	g_assert(s->pos >= 0 && s->pos <= sizeof(s->buffer));
+	g_assert((gint) s->pos >= 0 && s->pos <= sizeof(s->buffer));
 	g_assert(d->status == GTA_DL_SINKING);
 	g_assert(d->flags & DL_F_CHUNK_CHOSEN);
 	g_assert(d->flags & DL_F_SUNK_DATA);
@@ -6280,7 +6282,7 @@ static void download_read(gpointer data, gint source, inputevt_cond_t cond)
 		return;
 	}
 
-	g_assert(s->pos >= 0 && s->pos <= sizeof(s->buffer));
+	g_assert((gint) s->pos >= 0 && s->pos <= sizeof(s->buffer));
 
 	if (s->pos == sizeof(s->buffer)) {
 		download_queue_delay(d, download_retry_stopped_delay,
