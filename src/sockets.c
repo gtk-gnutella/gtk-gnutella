@@ -711,6 +711,80 @@ void sock_cork(struct gnutella_socket *s, gboolean on)
 #endif /* TCP_CORK */
 }
 
+/*
+ * _sock_set
+ *
+ * Internal routine for sock_send_buf() and sock_recv_buf().
+ * Set send/receive buffer to specified size, and warn if it cannot be done.
+ * If `shrink' is false, refuse to shrink the buffer if its size is larger.
+ */
+static void _sock_set(gint fd, gint option, gint size,
+	gchar *type, gboolean shrink)
+{
+	gint old_len = 0;
+	gint new_len = 0;
+	gint len;
+
+	size = (size + 1) & ~0x1;	/* Must be even, round to upper boundary */
+
+	len = sizeof(old_len);
+	if (-1 == getsockopt(fd, SOL_SOCKET, option, &old_len, &len))
+		g_warning("cannot read old %s buffer length on fd #%d: %s",
+			type, fd, g_strerror(errno));
+
+// XXX needs to add metaconfig test
+#if linux
+	old_len >>= 1;		/* Linux returns twice the real amount */
+#endif
+
+	if (!shrink && old_len >= size) {
+		if (dbg > 5)
+			printf("SOCKET %s buffer on fd #%d NOT shrank to %d bytes (is %d)\n",
+				type, fd, size, old_len);
+		return;
+	}
+
+	if (-1 == setsockopt(fd, SOL_SOCKET, option, &size, sizeof(size)))
+		g_warning("cannot set new %s buffer length to %d on fd #%d: %s",
+			type, size, fd, g_strerror(errno));
+
+	len = sizeof(new_len);
+	if (-1 == getsockopt(fd, SOL_SOCKET, option, &new_len, &len))
+		g_warning("cannot read new %s buffer length on fd #%d: %s",
+			type, fd, g_strerror(errno));
+
+#if linux
+	new_len >>= 1;		/* Linux returns twice the real amount */
+#endif
+
+	if (dbg > 5)
+		printf("SOCKET %s buffer on fd #%d: %d -> %d bytes (now %d) %s\n",
+			type, fd, old_len, size, new_len,
+			(new_len == size) ? "OK" : "FAILED");
+}
+
+/*
+ * sock_send_buf
+ *
+ * Set socket's send buffer to specified size.
+ * If `shrink' is false, refuse to shrink the buffer if its size is larger.
+ */
+void sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
+{
+	_sock_set(s->file_desc, SO_SNDBUF, size, "send", shrink);
+}
+
+/*
+ * sock_recv_buf
+ *
+ * Set socket's receive buffer to specified size.
+ * If `shrink' is false, refuse to shrink the buffer if its size is larger.
+ */
+void sock_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink)
+{
+	_sock_set(s->file_desc, SO_RCVBUF, size, "receive", shrink);
+}
+
 static void show_error(char *fmt, ...)
 {
 	va_list args;
