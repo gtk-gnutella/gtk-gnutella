@@ -45,7 +45,7 @@
  *     is purely descriptive anyway.
  */
 typedef struct results_set {
-	gint refcount;				/* Numner of "struct search" this belongs to */
+	gint refcount;				/* Number of "struct search" this belongs to */
 
 	gchar *guid;				/* Servent's GUID (atom) */
 	guint32 ip;
@@ -114,6 +114,7 @@ void search_gui_free_record(record_t *rc);
 void search_gui_clean_r_set(results_set_t *rs);
 void search_gui_free_r_set(results_set_t *rs);
 void search_gui_dispose_results(results_set_t *rs);
+void search_gui_ref_record(record_t *rc);
 void search_gui_unref_record(record_t *rc);
 void search_gui_free_r_sets(search_t *sch);
 guint search_gui_hash_func(const record_t *key);

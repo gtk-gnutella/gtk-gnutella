@@ -105,6 +105,8 @@ void search_gui_free_record(record_t *rc)
 		atom_sha1_free(rc->sha1);
 	if (rc->alt_locs != NULL)
 		search_gui_free_alt_locs(rc);
+	rc->refcount = -1;
+	rc->sha1 = GUINT_TO_POINTER(0x01020304);
 	zfree(rc_zone, rc);
 }
 
@@ -213,22 +215,28 @@ void search_gui_dispose_results(results_set_t *rs)
 	 */
 
 	for (l = search_gui_get_searches(); NULL != l; l = g_list_next(l)) {
-		GSList *lnk;
 		search_t *sch = (search_t *) l->data;
-
-		lnk = g_slist_find(sch->r_sets, rs);
-		if (lnk == NULL)
-			continue;
-
-		refs++;			/* Found one more reference to this search */
-		sch->r_sets = g_slist_remove_link(sch->r_sets, lnk);
-		g_slist_free_1(lnk);
+	
+		if (NULL != sch->r_sets && hash_list_contains(sch->r_sets, rs)) {
+			refs++;			/* Found one more reference to this search */
+			hash_list_remove(sch->r_sets, rs);
+		}
 	}
 
 	g_assert(rs->refcount == refs);		/* Found all the searches */
 
 	rs->refcount = 1;
 	search_gui_free_r_set(rs);
+}
+/*
+ * search_gui_ref_record
+ *
+ * Add a reference to the record but don't dare to redeem it!
+ */ 
+void search_gui_ref_record(record_t *rc)
+{
+	g_assert(rc->refcount >= 0);
+	rc->refcount++;
 }
 
 /*
@@ -271,27 +279,29 @@ void search_gui_unref_record(record_t *rc)
 
 /* Free all the results_set's of a search */
 
+static void free_r_sets_helper(results_set_t *rs, gpointer user_data)
+{
+	search_gui_free_r_set(rs);
+}
+
 void search_gui_free_r_sets(search_t *sch)
 {
-	GSList *sl;
-
 	g_assert(sch != NULL);
 	g_assert(sch->dups != NULL);
 	g_assert(g_hash_table_size(sch->dups) == 0); /* All records were cleaned */
 
-	for (sl = sch->r_sets; NULL != sl; sl = g_slist_next(sl))
-		search_gui_free_r_set((results_set_t *) sl->data);
-
-	g_slist_free(sch->r_sets);
-	sch->r_sets = NULL;
+	if (NULL != sch->r_sets) {
+		hash_list_foreach(sch->r_sets, (GFunc) free_r_sets_helper, NULL);
+		hash_list_free(&sch->r_sets);
+	}
 }
 
 guint search_gui_hash_func(const record_t *rc)
 {
 	/* Must use same fields as search_hash_key_compare() --RAM */
 	return
-		g_direct_hash(rc->sha1) ^	/* atom! (may be NULL) */
-		g_direct_hash(rc->results_set->guid) ^	/* atom! */
+		GPOINTER_TO_UINT(rc->sha1) ^	/* atom! (may be NULL) */
+		GPOINTER_TO_UINT(rc->results_set->guid) ^	/* atom! */
 		(NULL != rc->sha1 ? 0 : g_str_hash(rc->name)) ^
 		g_int_hash(&rc->size) ^
 		g_int_hash(&rc->results_set->ip) ^
@@ -317,7 +327,7 @@ gint search_gui_hash_key_compare(const record_t *rc1, const record_t *rc2)
  */
 void search_gui_remove_r_set(search_t *sch, results_set_t *rs)
 {
-	sch->r_sets = g_slist_remove(sch->r_sets, rs);
+	hash_list_remove(sch->r_sets, rs);
 	search_gui_free_r_set(rs);
 }
 
