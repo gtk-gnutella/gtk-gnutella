@@ -219,7 +219,7 @@ static inline gboolean parent_gui_needs_update(struct download *d, time_t now)
  */
 static gint parent_children_add(GtkCTree *ctree, gpointer key, gint x)
 {
-	GHashTable *ht;
+	GHashTable *ht = NULL;
 	gpointer k;
 	gpointer v;
 	gint cnt;

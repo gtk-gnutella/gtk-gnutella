@@ -681,7 +681,7 @@ static void shell_read_data(gnutella_shell_t *sh)
 {
 	struct gnutella_socket *s;
 	guint parsed;
-	ssize_t rc;
+	ssize_t rc = -1;
 
 	g_assert(sh);
 
