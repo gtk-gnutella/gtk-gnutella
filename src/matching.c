@@ -25,17 +25,26 @@
  *----------------------------------------------------------------------
  */
 
+#include "common.h"
+
 #include <ctype.h>
 
-#include "common.h"
-#include "search_stats.h"
-
-#include "gnet_property_priv.h"
+//FIXME: remove this dependency
+extern guint32 dbg;
 
 #define WOVEC_DFLT	10				/* Default size of word-vectors */
 
-static zone_t *wovec_zone = NULL;	/* Word-vectors of WOVEC_DFLT entries */
+/*
+ * Masks for mask_hash().
+ */
+
+#define MASK_LETTER(x)		(1 << (x))		/* bits 0 to 25 */
+#define MASK_DIGIT			0x80000000
+
 static zone_t *pat_zone = NULL;		/* Compiled patterns */
+static zone_t *wovec_zone = NULL;	/* Word-vectors of WOVEC_DFLT entries */
+
+
 
 /*
  * matching_init
@@ -233,37 +242,6 @@ cpattern_t *pattern_compile(guchar *pattern)
 }
 
 /*
- * pattern_compile_fast
- *
- * Same as pattern_compile(), but the pattern string is NOT duplicated,
- * and its length is known upon entry.
- *
- * NB: there is no pattern_free_fast(), just call zfree() on the result.
- */
-static cpattern_t *pattern_compile_fast(guchar *pattern, guint32 plen)
-{
-	cpattern_t *p = (cpattern_t *) zalloc(pat_zone);
-	guint32 *pd = p->delta;
-	gint i;
-	guchar *c;
-
-	p->pattern = pattern;
-	p->len = plen;
-
-	plen++;			/* Avoid increasing within the memset() inlined macro */
-
-	for (i = 0; i < ALPHA_SIZE; i++)
-		*pd++ = plen;
-
-	plen--;			/* Restore original pattern length */
-
-	for (pd = p->delta, c = pattern, i = 0; i < plen; c++, i++)
-		pd[(guint) *c] = plen - i;
-
-	return p;
-}
-
-/*
  * pattern_free
  *
  * Dispose of compiled pattern.
@@ -376,45 +354,6 @@ gchar *pattern_qsearch(
 
 #define ST_MIN_BIN_SIZE		4
 
-/*
- * Masks for mask_hash().
- */
-
-#define MASK_LETTER(x)		(1 << (x))		/* bits 0 to 25 */
-#define MASK_DIGIT			0x80000000
-
-/*
- * mask_hash
- *
- * Compute character mask "hash", using one bit per letter of the alphabet,
- * plus one for any digit.
- */
-static guint32 mask_hash(guchar *str) {
-	guchar *s = str;
-	guchar c;
-	guint32 mask = 0;
-
-	while ((c = *s++)) {
-		if (isspace(c))
-			continue;
-		else if (isdigit(c))
-			mask |= MASK_DIGIT;
-		else {
-			gint idx = tolower(c) - 'a';
-			if (idx >= 0 && idx < 26)
-				mask |= MASK_LETTER(idx);
-		}
-	}
-
-	return mask;
-}
-
-/* get key of two-char pair */
-__inline__ static gint st_key(search_table_t *table, guchar k[2])
-{
-	return table->index_map[k[0]] * table->nchars +
-		table->index_map[k[1]];
-}
 
 static void destroy_entry(struct st_entry *entry)
 {
@@ -562,6 +501,39 @@ void st_destroy(search_table_t *table)
 	}
 }
 
+/*
+ * mask_hash
+ *
+ * Compute character mask "hash", using one bit per letter of the alphabet,
+ * plus one for any digit.
+ */
+static guint32 mask_hash(guchar *str) {
+	guchar *s = str;
+	guchar c;
+	guint32 mask = 0;
+
+	while ((c = *s++)) {
+		if (isspace(c))
+			continue;
+		else if (isdigit(c))
+			mask |= MASK_DIGIT;
+		else {
+			gint idx = tolower(c) - 'a';
+			if (idx >= 0 && idx < 26)
+				mask |= MASK_LETTER(idx);
+		}
+	}
+
+	return mask;
+}
+
+/* get key of two-char pair */
+__inline__ static gint st_key(search_table_t *table, guchar k[2])
+{
+	return table->index_map[k[0]] * table->nchars +
+		table->index_map[k[1]];
+}
+
 /* insert an item into the search_table
  * one-char strings are silently ignored */
 void st_insert_item(search_table_t *table, guchar *string, void *data)
@@ -607,6 +579,51 @@ void st_insert_item(search_table_t *table, guchar *string, void *data)
 	g_hash_table_destroy(seen_keys);
 }
 
+/* minimize space consumption */
+void st_compact(search_table_t *table)
+{
+	gint i;
+
+	if (!table->all_entries.nvals)
+		return;			/* Nothing in table */
+
+	bin_compact(&table->all_entries);
+	for (i = 0; i < table->nbins; i++)
+		if (table->bins[i])
+			bin_compact(table->bins[i]);
+}
+
+/*
+ * pattern_compile_fast
+ *
+ * Same as pattern_compile(), but the pattern string is NOT duplicated,
+ * and its length is known upon entry.
+ *
+ * NB: there is no pattern_free_fast(), just call zfree() on the result.
+ */
+static cpattern_t *pattern_compile_fast(guchar *pattern, guint32 plen)
+{
+	cpattern_t *p = (cpattern_t *) zalloc(pat_zone);
+	guint32 *pd = p->delta;
+	gint i;
+	guchar *c;
+
+	p->pattern = pattern;
+	p->len = plen;
+
+	plen++;			/* Avoid increasing within the memset() inlined macro */
+
+	for (i = 0; i < ALPHA_SIZE; i++)
+		*pd++ = plen;
+
+	plen--;			/* Restore original pattern length */
+
+	for (pd = p->delta, c = pattern, i = 0; i < plen; c++, i++)
+		pd[(guint) *c] = plen - i;
+
+	return p;
+}
+
 /*
  * entry_match
  *
@@ -646,7 +663,7 @@ static gboolean entry_match(
 gint st_search(
 	search_table_t *table,
 	guchar *search,
-	gboolean (*callback)(struct shared_file *),
+	gboolean (*callback)(shared_file_t *),
 	gint max_res)
 {
 	gint i, key, nres = 0;
@@ -708,14 +725,6 @@ gint st_search(
 	wocnt = query_make_word_vec(search, &wovec);
 	if (wocnt == 0)
 		return 0;
-
-	/*
-	 * If search statistics are being gathered, count each word
-	 */
-	if (search_stats_enabled) {
-	    for (i = 0; i < wocnt; i++)
-			search_stats_tally(&wovec[i]);
-	}
 
 	pattern = (cpattern_t **) g_malloc0(wocnt * sizeof(cpattern_t *));
 
@@ -792,21 +801,6 @@ gint st_search(
 
 	return nres;
 }
-
-/* minimize space consumption */
-void st_compact(search_table_t *table)
-{
-	gint i;
-
-	if (!table->all_entries.nvals)
-		return;			/* Nothing in table */
-
-	bin_compact(&table->all_entries);
-	for (i = 0; i < table->nbins; i++)
-		if (table->bins[i])
-			bin_compact(table->bins[i]);
-}
-
 
 /* vi: set ts=4: */
 
