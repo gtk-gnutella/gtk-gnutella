@@ -39,6 +39,8 @@ PIXMAPS = \
 	exit.xpm \
 	filter.xpm \
 	firewall.xpm \
+	firewall_tcp.xpm \
+	firewall_udp.xpm \
 	freeze.xpm \
 	icon.xpm \
 	leaf.xpm \
