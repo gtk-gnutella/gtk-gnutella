@@ -79,15 +79,16 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
 			gmsg_sendto_one(n, (gchar *) &m, sizeof(struct gnutella_msg_init));
 		}
 	} else {
-		GSList *l;
+		const GSList *sl_nodes = node_all_nodes();
+		const GSList *sl;
 
 		/*
 		 * XXX Have to loop to count pings sent.
 		 * XXX Need to do that more generically, to factorize code.
 		 */
 
-		for (l = sl_nodes; l; l = l->next) {
-			n = (struct gnutella_node *) l->data;
+		for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+			n = (struct gnutella_node *) sl->data;
 			if (!NODE_IS_WRITABLE(n))
 				continue;
 			n->n_ping_sent++;
@@ -146,7 +147,7 @@ struct gnutella_msg_init_response *build_pong_msg(
 	memcpy(&pong.header.muid, muid, 16);
 
 	WRITE_GUINT16_LE(port, pong.response.host_port);
-	WRITE_GUINT32_BE(ip, pong.response.host_ip);
+	memcpy(pong.response.host_ip, &ip, 4);
 	WRITE_GUINT32_LE(files, pong.response.files_count);
 	WRITE_GUINT32_LE(kbytes, pong.response.kbytes_count);
 	WRITE_GUINT32_LE(sizeof(struct gnutella_init_response), pong.header.size);
@@ -229,14 +230,14 @@ static void send_personal_info(struct gnutella_node *n, gboolean control)
  */
 static void send_neighbouring_info(struct gnutella_node *n)
 {
-	GSList *l;
+	const GSList *sl;
 
 	g_assert(n->header.function == GTA_MSG_INIT);	/* Replying to a ping */
 	g_assert(n->header.hops == 0);					/* Originates from node */
 	g_assert(n->header.ttl == 2);					/* "Crawler" ping */
 
-	for (l = sl_nodes; l; l = l->next) {
-		struct gnutella_node *cn = (struct gnutella_node *) l->data;
+	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *cn = (struct gnutella_node *) sl->data;
 
 		if (!NODE_IS_WRITABLE(cn))
 			continue;
@@ -423,11 +424,12 @@ gboolean pcache_get_recent(hcache_type_t type, guint32 *ip, guint16 *port)
 		if (cp->ip != last_ip || cp->port != last_port)
 			goto found;
 
-		if (l->next == NULL)			/* Head is the only item in list */
+		if (g_list_next(l) == NULL)		/* Head is the only item in list */
 			return FALSE;
 	} else {
 		/* Regular case */
-		for (l = rec->last_returned_pong->prev; l; l = l->prev) {
+		l = g_list_previous(rec->last_returned_pong);
+		for (/* empty */ ; l; l = g_list_previous(l)) {
 			cp = (struct cached_pong *) l->data;
 			if (cp->ip != last_ip || cp->port != last_port)
 				goto found;
@@ -438,7 +440,7 @@ gboolean pcache_get_recent(hcache_type_t type, guint32 *ip, guint16 *port)
 	 * Still none found, go back to the end of the list.
 	 */
 
-	for (l = g_list_last(rec->recent_pongs); l; l = l->prev) {
+	for (l = g_list_last(rec->recent_pongs); l; l = g_list_previous(l)) {
 		cp = (struct cached_pong *) l->data;
 		if (cp->ip != last_ip || cp->port != last_port)
 			goto found;
@@ -483,7 +485,7 @@ static void add_recent_pong(hcache_type_t type, struct cached_pong *cp)
 		g_hash_table_remove(rec->ht_recent_pongs, cp);
 
 		if (lnk == rec->last_returned_pong)
-			rec->last_returned_pong = rec->last_returned_pong->prev;
+			rec->last_returned_pong = g_list_previous(rec->last_returned_pong);
 
 		free_cached_pong(cp);
 		g_list_free_1(lnk);
@@ -528,7 +530,7 @@ void pcache_clear_recent(hcache_type_t type)
 
 	rec = &recent_pongs[type];
 
-	for (l = rec->recent_pongs; l; l = l->next) {
+	for (l = rec->recent_pongs; l; l = g_list_next(l)) {
 		struct cached_pong *cp = (struct cached_pong *) l->data;
 
 		g_hash_table_remove(rec->ht_recent_pongs, cp);
@@ -572,11 +574,11 @@ static void pcache_expire(void)
 
 	for (i = 0; i < PONG_CACHE_SIZE; i++) {
 		struct cache_line *cl = &pong_cache[i];
-		GSList *l;
+		GSList *sl;
 
-		for (l = cl->pongs; l; l = l->next) {
+		for (sl = cl->pongs; sl; sl = g_slist_next(sl)) {
 			entries++;
-			free_cached_pong((struct cached_pong *) l->data);
+			free_cached_pong((struct cached_pong *) sl->data);
 		}
 		g_slist_free(cl->pongs);
 
@@ -618,10 +620,10 @@ void pcache_close(void)
  */
 static void ping_all_neighbours(time_t now)
 {
-	GSList *l;
+	const GSList *sl;
 
-	for (l = sl_nodes; l; l = l->next) {
-		struct gnutella_node *n = (struct gnutella_node *) l->data;
+	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *n = (struct gnutella_node *) sl->data;
 
 		if (!NODE_IS_WRITABLE(n) || NODE_IS_LEAF(n))
 			continue;
@@ -738,7 +740,7 @@ static gboolean iterate_on_cached_line(
 	gint hops = cl->hops;
 	GSList *l;
 
-	for (l = start; l && l != end && n->pong_missing; l = l->next) {
+	for (l = start; l && l != end && n->pong_missing; l = g_slist_next(l)) {
 		struct cached_pong *cp = (struct cached_pong *) l->data;
 
 		cl->cursor = l;
@@ -838,10 +840,10 @@ static void pong_all_neighbours_but_one(
 	struct gnutella_node *n, struct cached_pong *cp, hcache_type_t ptype,
 	guint8 hops, guint8 ttl)
 {
-	GSList *l;
+	const GSList *sl;
 
-	for (l = sl_nodes; l; l = l->next) {
-		struct gnutella_node *cn = (struct gnutella_node *) l->data;
+	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *cn = (struct gnutella_node *) sl->data;
 
 		if (cn == n)
 			continue;
@@ -898,14 +900,14 @@ static void pong_all_neighbours_but_one(
  */
 static void pong_random_leaf(struct cached_pong *cp, guint8 hops, guint8 ttl)
 {
-	GSList *l;
+	const GSList *sl;
 	gint leaves;
 	struct gnutella_node *leaf = NULL;
 
 	g_assert(current_peermode == NODE_P_ULTRA);
 
-	for (l = sl_nodes, leaves = 0; l; l = l->next) {
-		struct gnutella_node *cn = (struct gnutella_node *) l->data;
+	for (sl = node_all_nodes(), leaves = 0; sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *cn = (struct gnutella_node *) sl->data;
 		gint threshold;
 
 		if (cn->pong_missing)	/* A job for pong_all_neighbours_but_one() */
@@ -1165,7 +1167,7 @@ void pcache_pong_received(struct gnutella_node *n)
 	 */
 
 	READ_GUINT16_LE(n->data, port);
-	READ_GUINT32_BE(n->data + 2, ip);
+	memcpy(&ip, n->data + 2, 4);
 	READ_GUINT32_LE(n->data + 6, files_count);
 	READ_GUINT32_LE(n->data + 10, kbytes_count);
 

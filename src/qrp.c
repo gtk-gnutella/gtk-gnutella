@@ -2806,7 +2806,7 @@ GSList *qrt_build_query_target(
 {
 	GSList *nodes = NULL;		/* Targets for the query */
 	gint count = 0;				/* Amount of selected nodes so far */
-	GSList *l;
+	const GSList *sl;
 
 	g_assert(qhvec != NULL);
 	g_assert(hops >= 0);
@@ -2822,8 +2822,8 @@ GSList *qrt_build_query_target(
 		return NULL;
 	}
 
-	for (l = sl_nodes; l; l = l->next) {
-		struct gnutella_node *dn = (struct gnutella_node *) l->data;
+	for (sl = node_all_nodes(); sl; sl = g_slist_next(sl)) {
+		struct gnutella_node *dn = (struct gnutella_node *) sl->data;
 		struct routing_table *rt = (struct routing_table *) dn->query_table;
 		struct query_hash *qh;
 		gboolean can_route;
