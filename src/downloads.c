@@ -125,7 +125,7 @@ static gboolean has_same_active_download(gchar *file, gchar *guid)
 
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
-		if (DOWNLOAD_IS_STOPPED(d) || DOWNLOAD_IS_WAITING(d))
+		if (DOWNLOAD_IS_STOPPED(d))
 			continue;
 		if (0 == strcmp(file, d->file_name) && 0 == memcmp(guid, d->guid, 16))
 			return TRUE;
