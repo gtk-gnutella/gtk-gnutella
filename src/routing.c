@@ -226,7 +226,7 @@ void routing_init(void)
 	fake_route.saved_messages = 0;
 	fake_route.node = fake_node;
 
-	srand(time((time_t *) NULL));
+	srand(time((time_t *) NULL) ^ getpid());
 
 	/*
 	 * Only generate a new GUID for this servent if all entries are 0.
