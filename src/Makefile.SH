@@ -217,7 +217,7 @@ gtk-gnutella:  $(OBJ) $(EXTRA)
 	$(CC) -o $@  $(OBJ) $(EXTRA) $(JLDFLAGS) $(LIBS)
 
 local_install:: gtk-gnutella
-	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
 	(set -x; test -d $(INSTALL_PREFIX)$(BINDIR) || \
 		$(INSTALLDIR) $(INSTALL_PREFIX)$(BINDIR)); \
 	$(INSTALL) -c -s -m 555  gtk-gnutella $(INSTALL_PREFIX)$(BINDIR)
@@ -226,7 +226,7 @@ local_deinstall::
 	$(RM) $(INSTALL_PREFIX)$(BINDIR)/gtk-gnutella
 
 local_install.man:: gtk-gnutella.man
-	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
 	(set -x; test -d $(INSTALL_PREFIX)$(MANSRC) || \
 		$(INSTALLDIR) $(INSTALL_PREFIX)$(MANSRC)); \
 	$(INSTALL) -c -m 444 gtk-gnutella.man $(INSTALL_PREFIX)$(MANSRC)/gtk-gnutella.$(L)
