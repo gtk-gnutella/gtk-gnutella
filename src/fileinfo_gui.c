@@ -32,15 +32,6 @@
 
 RCSID("$Id$");
 
-enum {
-    C_FI_FILENAME = 0,
-    C_FI_SIZE,
-    C_FI_DONE,
-    C_FI_SOURCES,
-    C_FI_STATUS,
-    C_FI_COLUMNS
-};
-
 static gnet_fi_t last_shown = 0;
 static gboolean  last_shown_valid = FALSE;
 
@@ -164,7 +155,7 @@ static gnet_fi_info_t *last_fi = NULL;
  * it filled in last time!
  */
 static void fi_gui_fill_info(
-    gnet_fi_t fih, gchar *titles[C_FI_COLUMNS])
+    gnet_fi_t fih, gchar *titles[c_fi_num])
 {
     /* Clear info from last call. We keep this around so we don't
      * have to strdup entries from it when passing them to the 
@@ -177,11 +168,11 @@ static void fi_gui_fill_info(
     last_fi = fi_get_info(fih);
     g_assert(last_fi != NULL);
 
-    titles[C_FI_FILENAME] = last_fi->file_name;
+    titles[c_fi_filename] = last_fi->file_name;
 }
 
 static void fi_gui_fill_status(
-    gnet_fi_t fih, gchar *titles[C_FI_COLUMNS])
+    gnet_fi_t fih, gchar *titles[c_fi_num])
 {
     gnet_fi_status_t s;
     static gchar fi_sources[32];
@@ -193,34 +184,34 @@ static void fi_gui_fill_status(
 
     gm_snprintf(fi_sources, sizeof(fi_sources), "%d/%d (%d)",
         s.recvcount, s.lifecount, s.refcount);
-    titles[C_FI_SOURCES] = fi_sources;
+    titles[c_fi_sources] = fi_sources;
 
     if (s.done) {
         gm_snprintf(fi_done, sizeof(fi_done), "%s (%.1f%%)", 
             short_size(s.done), ((float) s.done / s.size)*100.0);
-        titles[C_FI_DONE] = fi_done;
+        titles[c_fi_done] = fi_done;
     } else {
-        titles[C_FI_DONE] = "-";
+        titles[c_fi_done] = "-";
     }
         
     gm_snprintf(fi_size, sizeof(fi_size), "%s", short_size(s.size));
-    titles[C_FI_SIZE]    = fi_size;
+    titles[c_fi_size]    = fi_size;
 
     if (s.recvcount) {
         gm_snprintf(fi_status, sizeof(fi_status), 
             "Downloading (%.1f k/s)", s.recv_last_rate / 1024.0);
-        titles[C_FI_STATUS] = fi_status;
+        titles[c_fi_status] = fi_status;
     } else if (s.done == s.size){
-        titles[C_FI_STATUS] = "Finished";
+        titles[c_fi_status] = "Finished";
     } else {
-        titles[C_FI_STATUS] = s.lifecount ? "Waiting" : "No sources";
+        titles[c_fi_status] = s.lifecount ? "Waiting" : "No sources";
     }
 }
 
 static void fi_gui_update(gnet_fi_t fih, gboolean full)
 {
     GtkCList *clist;
-	gchar    *titles[C_FI_COLUMNS];
+	gchar    *titles[c_fi_num];
     gint      row;
 
     clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
@@ -243,7 +234,7 @@ static void fi_gui_update(gnet_fi_t fih, gboolean full)
 static void fi_gui_fi_added(gnet_fi_t fih)
 {
     GtkCList       *clist;
-	gchar          *titles[C_FI_COLUMNS];
+	gchar          *titles[c_fi_num];
 
     clist = GTK_CLIST(lookup_widget(main_window, "clist_fileinfo"));
 
@@ -283,11 +274,11 @@ void fi_gui_init(void)
     fi_add_listener((GCallback)fi_gui_fi_removed, 
         EV_FI_REMOVED, FREQ_SECS, 0);
     fi_add_listener((GCallback)fi_gui_fi_status_changed, 
-        EV_FI_STATUS_CHANGED, FREQ_SECS, 0);
+        EV_FI_STATUS_CHANGED, FREQ_SECS, 2);
 
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_fileinfo")),
-        C_FI_SIZE, GTK_JUSTIFY_RIGHT);
+        c_fi_size, GTK_JUSTIFY_RIGHT);
 }
 
 void fi_gui_shutdown(void)
@@ -328,7 +319,7 @@ void fi_gui_update_display(time_t now)
     gtk_clist_freeze(clist);
 
 	for (l = clist->row_list, row = 0; l; l = l->next, row++) {
-        gchar *titles[C_FI_COLUMNS];
+        gchar *titles[c_fi_num];
 		gnet_fi_t fih = (gnet_fi_t) GPOINTER_TO_UINT(
             ((GtkCListRow *) l->data)->data);
 

@@ -162,6 +162,25 @@ enum {
 #endif
 
 /*
+ * Fileinfo table columns.
+ */
+
+enum {
+	c_fi_filename = 0,
+	c_fi_size,
+	c_fi_done,
+	c_fi_sources,
+	c_fi_status,
+#ifdef USE_GTK2
+	c_fi_handle,
+	c_fi_isize,
+	c_fi_idone,
+	c_fi_isources,
+#endif
+	c_fi_num
+};
+
+/*
  * Searches table columns
  */
 enum {
@@ -254,9 +273,9 @@ enum {
  * Notebook tabs in the downloads page.
  */
 enum {
-	nb_notebook_page_downloads = 0,
-	nb_notebook_page_fileinfo,
-	nb_notebook_page_num
+	nb_downloads_page_downloads = 0,
+	nb_downloads_page_fileinfo,
+	nb_downloads_page_num
 };
 
 /*
