@@ -90,6 +90,8 @@ gchar *msg_stats_label[] = {
 	"Generated"
 };
 
+static	GtkCellRenderer *gnet_stats_gui_cell_renderer = NULL;
+
 enum {
 	GNET_STATS_NB_PAGE_MESSAGES,
 	GNET_STATS_NB_PAGE_FLOWC,
@@ -298,12 +300,10 @@ static const gchar *type_stat_str(
 static void add_column(
 	GtkTreeView *treeview, gint column_id, const gchar *label)
 {
-	GtkCellRenderer *renderer;
 	GtkTreeViewColumn *column;
 
-	renderer = gtk_cell_renderer_text_new();
 	column = gtk_tree_view_column_new_with_attributes(
-					label, renderer, "text", column_id, NULL);
+				label, gnet_stats_gui_cell_renderer, "text", column_id, NULL);
 	gtk_tree_view_column_set_min_width(column, 0);
 	gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_GROW_ONLY);
 	gtk_tree_view_column_set_resizable(column, TRUE);
@@ -543,6 +543,10 @@ void gnet_stats_gui_init(void)
 				gtk_list_store_set(GTK_LIST_STORE(model), &iter, i,
 					i == 0 ? msg_type_str[n] : "-", -1);
 	}
+
+	gnet_stats_gui_cell_renderer = gtk_cell_renderer_text_new();
+	g_object_set(gnet_stats_gui_cell_renderer,
+		"ypad", (gint) GUI_CELL_RENDERER_YPAD, NULL);
 
 	for (n = 0; n < G_N_ELEMENTS(msg_stats_label); n++)
 		add_column(treeview, n, msg_stats_label[n]);

@@ -84,8 +84,8 @@ static void monitor_gui_append_to_monitor(
 void monitor_gui_init(void)
 {
     GtkWidget *tree;
+	GtkCellRenderer *renderer;
     GtkTreeViewColumn *column;
-    GtkCellRenderer *renderer;
 
     /* Create a model.  We are using the store model for now, though we
      * could use any other GtkTreeModel */
@@ -103,7 +103,9 @@ void monitor_gui_init(void)
 
     /* Create a column, associating the "text" attribute of the
      * cell_renderer to the first column of the model */
-    renderer = gtk_cell_renderer_text_new ();
+    renderer = gtk_cell_renderer_text_new();
+	g_object_set(renderer,
+		"ypad", (gint) GUI_CELL_RENDERER_YPAD, NULL);
     column = gtk_tree_view_column_new_with_attributes 
         ("Query", renderer, "text", QUERY_COLUMN, NULL);
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
