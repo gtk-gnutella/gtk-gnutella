@@ -1,8 +1,17 @@
 # since last version
 
+- (2004-10-26 - RAM)
+ * Optimized SHA1 computation (~10% gains with -O2, 20% with -O0 on a P3).
+
 - (2004-10-23 - Richard)
- * [Gtk1] Removed autoselection controlling. Now we only autoselect the whole branch.
+ * [Gtk1] Removed autoselection controlling. Now we only autoselect the whole
+   branch.
  * [Gtk1] Press "del" to discard selected search results.
+
+- (2004-10-20 - RAM)
+ * Record incoming activity to avoid marking a node "offline" too aggressively.
+ * Save position of the "vpaned_results" vertical pane when exiting.
+ * Save position of the "hpaned_filter_main" horizontal pane when exiting.
 
 - (2004-10-19 - Richard)
  * [Gtk1] Added "Configure columns" to nodes pane
