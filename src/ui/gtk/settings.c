@@ -5064,6 +5064,14 @@ static prop_map_t property_map[] = {
         "checkbutton_enable_udp",
         FREQ_UPDATES, 0
     ),
+    PROP_ENTRY(
+        get_prefs_dialog,
+        PROP_CONVERT_SPACES,
+        update_togglebutton,
+        TRUE,
+        "checkbutton_config_convert_spaces",
+        FREQ_UPDATES, 0
+    ),
 #ifdef USE_GTK1
     PROP_ENTRY(
         get_main_window,
