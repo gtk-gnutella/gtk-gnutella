@@ -20,7 +20,10 @@
  */
 struct attr {
 	z_streamp inz;					/* Decompressing stream */
+	gint flags;
 };
+
+#define IF_ENABLED	0x00000001		/* Reception enabled */
 
 /*
  * inflate_data
@@ -122,6 +125,7 @@ static gpointer rx_inflate_init(rxdrv_t *rx, gpointer args)
 	attr = g_malloc(sizeof(*attr));
 
 	attr->inz = inz;
+	attr->flags = 0;
 
 	rx->opaque = attr;
 
@@ -137,6 +141,8 @@ static void rx_inflate_destroy(rxdrv_t *rx)
 {
 	struct attr *attr = (struct attr *) rx->opaque;
 	gint ret;
+
+	g_assert(attr->inz);
 
 	ret = inflateEnd(attr->inz);
 	if (ret != Z_OK)
@@ -154,6 +160,7 @@ static void rx_inflate_destroy(rxdrv_t *rx)
  */
 static void rx_inflate_recv(rxdrv_t *rx, pmsg_t *mb)
 {
+	struct attr *attr = (struct attr *) rx->opaque;
 	pmsg_t *imb;		/* Inflated message */
 
 	g_assert(rx);
@@ -161,9 +168,11 @@ static void rx_inflate_recv(rxdrv_t *rx, pmsg_t *mb)
 
 	/*
 	 * Decompress the stream, forwarding inflated data to the upper layer.
+	 * At any time, a packet we forward can cause the reception to be
+	 * disabled, in which case we must stop.
 	 */
 
-	while ((imb = inflate_data(rx, mb)))
+	while ((attr->flags & IF_ENABLED) && (imb = inflate_data(rx, mb)))
 		(*rx->data_ind)(rx, imb);
 
 	pmsg_free(mb);
@@ -176,9 +185,9 @@ static void rx_inflate_recv(rxdrv_t *rx, pmsg_t *mb)
  */
 static void rx_inflate_enable(rxdrv_t *rx)
 {
-	// struct attr *attr = (struct attr *) rx->opaque;
+	struct attr *attr = (struct attr *) rx->opaque;
 
-	// XXX do something?
+	attr->flags |= IF_ENABLED;
 }
 
 /*
@@ -188,9 +197,9 @@ static void rx_inflate_enable(rxdrv_t *rx)
  */
 static void rx_inflate_disable(rxdrv_t *rx)
 {
-	// struct attr *attr = (struct attr *) rx->opaque;
+	struct attr *attr = (struct attr *) rx->opaque;
 
-	// XXX do something?
+	attr->flags &= ~IF_ENABLED;
 }
 
 struct rxdrv_ops rx_inflate_ops = {
