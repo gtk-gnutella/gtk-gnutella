@@ -143,6 +143,7 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 {
 	static gchar buf[256];
 	struct gnutella_msg_init *m = (struct gnutella_msg_init *) buf;
+	ggep_stream_t gs;
 	guint32 sz;
 
 	g_assert(ttl);
@@ -161,28 +162,36 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 
 	sz = 0;			/* Payload size if no extensions */
 
+	ggep_stream_init(&gs, &m->ggep, sizeof(buf) - sizeof(*m));
+
 	/*
-	 * Add GGEP information if we're building an UDP host cache ping.
+	 * If we're not sending an "alive" ping (TTL=1), then tell them we
+	 * support "IPP" groupping in pongs by sending "SCP".  Also include
+	 * that if we're building an UDP host cache ping.
+	 */
+
+	if (uhc || ttl > 1) {
+		guint8 spp;
+
+		spp = (current_peermode == NODE_P_LEAF) ? 0x0 : 0x1;
+		ggep_stream_pack(&gs, "SCP", &spp, sizeof(spp), 0);
+	}
+
+	/*
+	 * Add vendor code if we're building an UDP host cache ping.
+	 * This allows the host cache to perform vendor clustering.
 	 */
 
 	if (uhc) {
-		ggep_stream_t gs;
 		pong_meta_t *meta = &local_meta;
-		guint8 spp;
-
-		ggep_stream_init(&gs, &m->ggep, sizeof(buf) - sizeof(*m));
 
 		ggep_stream_begin(&gs, "VC", 0) &&
 		ggep_stream_write(&gs, meta->vendor, sizeof(meta->vendor)) &&
 		ggep_stream_write(&gs, &meta->version_ua, 1) &&
 		ggep_stream_end(&gs);
-
-		spp = (current_peermode == NODE_P_LEAF) ? 0x0 : 0x1;
-			
-		ggep_stream_pack(&gs, "SCP", &spp, sizeof(spp), 0);
-
-		sz += ggep_stream_close(&gs);
 	}
+
+	sz += ggep_stream_close(&gs);
 
 	WRITE_GUINT32_LE(sz, m->header.size);
 
@@ -200,7 +209,7 @@ build_ping_msg(const gchar *muid, guint8 ttl, gboolean uhc, guint32 *size)
 static struct gnutella_msg_init_response *
 build_pong_msg(
 	guint8 hops, guint8 ttl, const gchar *muid,
-	struct pong_info *info, pong_meta_t *meta, guint8 uhc, guint32 *size)
+	struct pong_info *info, pong_meta_t *meta, enum uhc_flag uhc, guint32 *size)
 {
 	static gchar buf[1024];
 	struct gnutella_msg_init_response *pong =
@@ -285,7 +294,7 @@ build_pong_msg(
 	if (uhc != UHC_NONE) {
 		/*
 		 * XXX For this first implementation, ignore their desire.  Just
-		 * XXX fill a bunch of hosts as we would for an X-Try header.
+		 * XXX fill a bunch of hosts as we would for an X-Try-Ultrapeer header.
 		 */
 
 		gnet_host_t host[PCACHE_UHC_MAX_IP];
@@ -366,20 +375,60 @@ send_pong(
 }
 
 /**
+ * Determine whether this is an UHC ping (mentionning "SCP" support).
+ *
+ * @return UHC_NONE if not an UHC ping, the UHC type otherwise.
+ */
+static enum uhc_flag
+ping_uhc_type(gnutella_node_t *n)
+{
+	gint i;
+	enum uhc_flag uhc = UHC_NONE;
+
+	for (i = 0; i < n->extcount; i++) {
+		extvec_t *e = &n->extvec[i];
+		guint16 paylen;
+
+		if (e->ext_token != EXT_T_GGEP_SCP)
+			continue;
+
+		/*
+		 * Look whether they want leaf slots, ultra slots, or don't care.
+		 */
+
+		paylen = ext_paylen(e);
+
+		if (paylen >= 1) {
+			guint8 flags = ext_payload(e)[0];
+			uhc = (flags & 0x1) ? UHC_ULTRA : UHC_LEAF;
+		} else
+			uhc = UHC_ANY;
+	}
+
+	if (ggep_debug > 1)
+		printf("%s: UHC ping requesting %s slots\n",
+			gmsg_infostr(&n->header),
+			uhc == UHC_ANY ?	"unspecified" :
+			uhc == UHC_ULTRA ?	"ultra" : "leaf");
+
+	return uhc;
+}
+
+/**
  * Send info about us back to node, using the hopcount information present in
  * the header of the node structure to construct the TTL of the pong we
  * send.
  *
  * If `control' is true, send it as a higher priority message.
+ * If `uhc' is not UHC_NONE, we'll send IPs in a packed IPP reply.
  */
 static void
-send_personal_info(struct gnutella_node *n, gboolean control)
+send_personal_info(struct gnutella_node *n, gboolean control, enum uhc_flag uhc)
 {
 	guint32 kbytes;
 	guint32 files;
 	struct pong_info info;
 	guint32 ip_uptime;
-	enum uhc_flag uhc = UHC_NONE;
 
 	g_assert(n->header.function == GTA_MSG_INIT);	/* Replying to a ping */
 
@@ -399,41 +448,6 @@ send_personal_info(struct gnutella_node *n, gboolean control)
 			kbytes = next_pow2(kbytes);
 	} else if (kbytes)
 		kbytes |= 1;		/* Ensure not a power of two */
-
-	/*
-	 * If the PING to which we're replying bears the GGEP "SCP" extension,
-	 * then it's an UDP host cache ping.
-	 */
-
-	if (NODE_IS_UDP(n)) {
-		gint i;
-
-		for (i = 0; i < n->extcount; i++) {
-			extvec_t *e = &n->extvec[i];
-			guint16 paylen;
-
-			if (e->ext_token != EXT_T_GGEP_SCP)
-				continue;
-
-			/*
-			 * Look whether they want leaf slots, ultra slots, or don't care.
-			 */
-
-			paylen = ext_paylen(e);
-
-			if (paylen >= 1) {
-				guint8 flags = ext_payload(e)[0];
-				uhc = (flags & 0x1) ? UHC_ULTRA : UHC_LEAF;
-			} else
-				uhc = UHC_ANY;
-		}
-
-		if (ggep_debug > 1)
-			printf("%s: UHC ping requesting %s slots\n",
-				gmsg_infostr(&n->header),
-				uhc == UHC_ANY ?	"unspecified" :
-				uhc == UHC_ULTRA ?	"ultra" : "leaf");
-	}
 
 	/*
 	 * Pongs are sent with a TTL just large enough to reach the pinging host,
@@ -1169,9 +1183,9 @@ iterate_on_cached_line(
 
 		if (pcache_debug > 7)
 			printf("iterate: sent cached pong %s (hops=%d, TTL=%d) to %s, "
-				"missing=%d %s\n", ip_port_to_gchar(cp->info.ip, cp->info.port),
-				hops, ttl, node_ip(n), n->pong_missing,
-				strict ? "STRICT" : "loose");
+				"missing=%d %s\n",
+				ip_port_to_gchar(cp->info.ip, cp->info.port), hops, ttl,
+				node_ip(n), n->pong_missing, strict ? "STRICT" : "loose");
 
 		if (strict && --(n->pong_needed[hops]) == 0)
 			return FALSE;
@@ -1191,6 +1205,11 @@ iterate_on_cached_line(
  * Send pongs from cache line back to node `n' if more are needed for this
  * hop count and they are not originating from the node.  When `strict'
  * is false, we send even if no pong at that hop level is needed.
+ *
+ * @param n			the node to which pongs are sent
+ * @param cl		the cache line on which we need to iterate.
+ * @param ttl		the TTL of the pongs we're generating
+ * @param strict	if TRUE, don't send pongs if none needed at that hop count
  */
 static void
 send_cached_pongs(
@@ -1215,6 +1234,75 @@ send_cached_pongs(
 		(void) iterate_on_cached_line(n, cl, ttl, cl->pongs, old->next, strict);
 	} else
 		(void) iterate_on_cached_line(n, cl, ttl, cl->pongs, NULL, strict);
+}
+
+/**
+ * Send as many cached pongs as needed to the relevant node.
+ */
+static void
+send_demultiplexed_pongs(gnutella_node_t *n)
+{
+	gint h;
+	guint8 ttl;
+	enum uhc_flag uhc;
+
+	/*
+	 * Look whether the "ping" they sent bore the "SCP" exntesion, meaning
+	 * we can reply using "IPP" to pack the various addresses.
+	 */
+
+	uhc = ping_uhc_type(n);
+
+	if (uhc != UHC_NONE) {
+		send_personal_info(n, FALSE, uhc);
+		return;
+	}
+
+	/*
+	 * If TTL = 0, only us can reply, and we'll do that below in any case.
+	 * We call setup_pong_demultiplexing() anyway to reset the pong_needed[]
+	 * array and compute `n->pong_missing'.
+	 */
+
+	setup_pong_demultiplexing(n, n->header.ttl);
+
+	if (n->pong_missing == 0)
+		return;
+
+	/*
+	 * Return cached pongs if we have some and they are needed.
+	 * We first try to send pongs on a per-hop basis, based on pong_needed[].
+	 *
+	 * NB: if we can send IPs in a single IPP extension, then we supply a
+	 * vector that is filled, and we'll have to send the pong afterwards.
+	 */
+
+	ttl = MIN((guint) n->header.hops + 1, max_ttl);
+
+	for (h = 0; n->pong_missing && h < n->header.ttl; h++) {
+		struct cache_line *cl = &pong_cache[CACHE_HOP_IDX(h)];
+
+		if (cl->pongs) {
+			send_cached_pongs(n, cl, ttl, TRUE);
+			if (!NODE_IS_CONNECTED(n))
+				return;
+		}
+	}
+
+	/*
+	 * We then re-iterate if some pongs are still needed, sending any we
+	 * did not already send.
+	 */
+
+	for (h = 0; n->pong_missing && h < n->header.ttl; h++) {
+		struct cache_line *cl = &pong_cache[CACHE_HOP_IDX(h)];
+
+		if (cl->pongs) {
+			send_cached_pongs(n, cl, ttl, FALSE);
+			if (!NODE_IS_CONNECTED(n))
+				return;
+		}
+	}
 }
 
 /**
@@ -1531,11 +1619,7 @@ pcache_udp_ping_received(struct gnutella_node *n)
 
 	aging_insert(udp_pings, GUINT_TO_POINTER(n->ip), GUINT_TO_POINTER(1));
 
-	/*
-	 * We'll probe for UHC pings in send_personal_info().
-	 */
-
-	send_personal_info(n, FALSE);
+	send_personal_info(n, FALSE, ping_uhc_type(n));
 }
 
 /**
@@ -1557,8 +1641,6 @@ void
 pcache_ping_received(struct gnutella_node *n)
 {
 	time_t now = time((time_t *) 0);
-	gint h;
-	guint8 ttl;
 
 	g_assert(NODE_IS_CONNECTED(n));
 
@@ -1585,7 +1667,7 @@ pcache_ping_received(struct gnutella_node *n)
 		n->n_ping_accepted++;
 
 		if (n->header.ttl == 1)
-			send_personal_info(n, TRUE);	/* Control message, prioritary */
+			send_personal_info(n, TRUE, UHC_NONE);	/* Prioritary */
 		else if (n->header.ttl == 2) {
 			if (current_peermode != NODE_P_LEAF)
 				send_neighbouring_info(n);
@@ -1637,17 +1719,6 @@ pcache_ping_received(struct gnutella_node *n)
 		return;
 
 	/*
-	 * If TTL = 0, only us can reply, and we'll do that below in any case..
-	 * We call setup_pong_demultiplexing() anyway to reset the pong_needed[]
-	 * array.
-	 *
-	 * A leaf node will not demultiplex pongs, so don't bother.
-	 */
-
-	if (current_peermode != NODE_P_LEAF)
-		setup_pong_demultiplexing(n, n->header.ttl);
-
-	/*
 	 * If we can accept an incoming connection, send a reply.
 	 *
 	 * If we are firewalled, we nonetheless send a ping
@@ -1664,7 +1735,7 @@ pcache_ping_received(struct gnutella_node *n)
 		n->n_ping_accepted == 1 ||
 		((is_firewalled || node_missing() > 0) && inet_can_answer_ping())
 	) {
-		send_personal_info(n, FALSE);
+		send_personal_info(n, FALSE, UHC_NONE);
 		if (!NODE_IS_CONNECTED(n))	/* Can be removed if send queue is full */
 			return;
 	}
@@ -1676,37 +1747,7 @@ pcache_ping_received(struct gnutella_node *n)
 	 * We continue here only for non-leaf nodes.
 	 */
 
-	/*
-	 * Return cached pongs if we have some and they are needed.
-	 * We first try to send pongs on a per-hop basis, based on pong_needed[].
-	 */
-
-	ttl = MIN((guint) n->header.hops + 1, max_ttl);
-
-	for (h = 0; n->pong_missing && h < n->header.ttl; h++) {
-		struct cache_line *cl = &pong_cache[CACHE_HOP_IDX(h)];
-
-		if (cl->pongs) {
-			send_cached_pongs(n, cl, ttl, TRUE);
-			if (!NODE_IS_CONNECTED(n))
-				return;
-		}
-	}
-
-	/*
-	 * We then re-iterate if some pongs are still needed, sending any we
-	 * did not already send.
-	 */
-
-	for (h = 0; n->pong_missing && h < n->header.ttl; h++) {
-		struct cache_line *cl = &pong_cache[CACHE_HOP_IDX(h)];
-
-		if (cl->pongs) {
-			send_cached_pongs(n, cl, ttl, FALSE);
-			if (!NODE_IS_CONNECTED(n))
-				return;
-		}
-	}
+	send_demultiplexed_pongs(n);
 }
 
 /**
