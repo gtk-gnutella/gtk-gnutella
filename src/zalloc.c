@@ -43,7 +43,25 @@ RCSID("$Id$");
 #endif
 
 #ifdef ZONE_SAFE
-#define BLOCK_USED	((gchar *) 0xff12aa34)	/* Tagging of used blocks. */
+#define FILE_REV_OFFSET		sizeof(gchar *)
+#endif
+
+#ifdef TRACK_ZALLOC
+
+#undef zalloc				/* We want the real zalloc() routine here */
+
+#ifndef ZONE_SAFE
+#define ZONE_SAFE			/* Need used block tagging when tracking */
+#endif
+
+#define FILE_REV_OFFSET		(sizeof(gchar *) + sizeof(gint))
+#undef USED_REV_OFFSET
+#define USED_REV_OFFSET		(sizeof(gchar *) + FILE_REV_OFFSET)
+
+#endif	/* TRACK_ZALLOC */
+
+#ifdef ZONE_SAFE
+#define BLOCK_USED			((gchar *) 0xff12aa34)	/* Tagging of used blocks */
 #endif
 
 #define DEFAULT_HINT		128	/* Default amount of blocks in a zone */
@@ -114,6 +132,9 @@ gpointer zalloc(zone_t *zone)
 #ifdef ZONE_SAFE
 		*blk++ = BLOCK_USED;
 #endif
+#ifdef TRACK_ZALLOC
+		blk = (gchar **) ((gchar *) blk + FILE_REV_OFFSET);
+#endif
 
 		return blk;
 	}
@@ -137,9 +158,91 @@ gpointer zalloc(zone_t *zone)
 #ifdef ZONE_SAFE
 	*blk++ = BLOCK_USED;
 #endif
+#ifdef TRACK_ZALLOC
+	blk = (gchar **) ((gchar *) blk + FILE_REV_OFFSET);
+#endif
 
 	return blk;
 }
+
+#ifdef TRACK_ZALLOC
+/*
+ * zalloc_track
+ *
+ * Tracking version of zalloc().
+ */
+gpointer zalloc_track(zone_t *zone, gchar *file, gint line)
+{
+	gchar *blk = zalloc(zone);
+	gchar *p;
+
+	p = blk - FILE_REV_OFFSET;			/* Go backwards */
+	*(gchar **) p = file;
+	p += sizeof(gchar *);
+	*(gint *) p = line;
+
+	return blk;
+}
+
+/*
+ * zblock_log
+ *
+ * Log information about block, `p' being the physical start of the block, not
+ * the user part of it.
+ */
+static void zblock_log(gchar *p)
+{
+	gchar *uptr;			/* User pointer */
+	gchar *file;
+	gint line;
+
+	uptr = p + sizeof(gchar *);		/* Skip used marker */
+	file = *(gchar **) uptr;
+	uptr += sizeof(gchar *);
+	line = *(gint *) uptr;
+	uptr += sizeof(gint);
+
+	g_warning("block 0x%lx was allocated from \"%s\", line %d",
+		(gulong) uptr, file, line);
+}
+
+/*
+ * zdump_used
+ *
+ * Go through the whole zone and dump all the used blocks.
+ */
+static void zdump_used(zone_t *zone)
+{
+	gint used = 0;
+	struct subzone *next;
+	gchar *p;
+
+	p = (gchar *) zone->zn_arena;
+	next = zone->zn_next;
+
+	for (;;) {
+		gint cnt = zone->zn_hint;		/* Amount of blocks per zone */
+
+		while (cnt-- > 0) {
+			if (*(gchar **) p == BLOCK_USED) {
+				used++;
+				zblock_log(p);
+			}
+			p += zone->zn_size;
+		}
+
+		if (next == NULL)
+			break;
+
+		p = (gchar *) next->zn_arena;
+		next = next->zn_next;
+	}
+
+	if (used != zone->zn_cnt)
+		g_warning("found %d used block, but zone said it was holding %d",
+			used, zone->zn_cnt);
+}
+#endif	/* TRACK_ZALLOC */
 
 /*
  * zfree
@@ -160,7 +263,11 @@ void zfree(zone_t *zone, gpointer ptr)
 
 #ifdef ZONE_SAFE
 	{
-		gchar **tmp = ((gchar **) ptr-1);	/* Go back at leading magic */
+		gchar **tmp;
+
+		/* Go back at leading magic, also the start of the block */
+		tmp = (gchar **) ((gchar *) ptr - USED_REV_OFFSET);
+
 		if (*tmp != BLOCK_USED)
 			g_error("trying to free block 0x%lx twice", (gulong) ptr);
 		ptr = tmp;
@@ -213,7 +320,6 @@ static zone_t *zn_create(zone_t *zone, gint size, gint hint)
 
 	if (size < sizeof(gchar *))
 		size = sizeof(gchar *);
-	size = zalloc_round(size);
 
 #ifdef ZONE_SAFE
 	/*
@@ -223,9 +329,19 @@ static zone_t *zn_create(zone_t *zone, gint size, gint hint)
 	 * if done at all and the error remains undetected: the free list is
 	 * corrupted).
 	 */
-	size += sizeof(char *);
+	size += sizeof(gchar *);
 #endif
-	
+
+#ifdef TRACK_ZALLOC
+	/*
+	 * When tracking allocation points, each block records the file and the
+	 * line number where it was allocated from.
+	 */
+	size += sizeof(gchar *) + sizeof(gint);
+#endif
+
+	size = zalloc_round(size);
+
 	/*
 	 * Make sure we have at least room for `hint' blocks in the zone.
 	 */
@@ -278,9 +394,13 @@ void zdestroy(zone_t *zone)
 	if (zone->zn_refcnt-- > 1)
 		return;
 
-	if (zone->zn_cnt)
+	if (zone->zn_cnt) {
 		g_warning("destroyed zone (%d-byte blocks) still holds %d entr%s",
 			zone->zn_size, zone->zn_cnt, zone->zn_cnt == 1 ? "y" : "ies");
+#ifdef TRACK_ZALLOC
+		zdump_used(zone);
+#endif
+	}
 
 	for (sz = zone->zn_next, next = NULL; sz; sz = next) {
 		next = sz->zn_next;

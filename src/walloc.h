@@ -32,6 +32,7 @@
 
 /*
  * Under REMAP_ZALLOC control, those routines are remapped to malloc/free.
+ * Under TRACK_ZALLOC, we keep tack of the allocation places.
  */
 
 #if defined(USE_DMALLOC) && !defined(REMAP_ZALLOC)
@@ -39,6 +40,10 @@
 #endif
 
 #ifdef REMAP_ZALLOC
+
+#ifdef TRACK_ZALLOC
+#error "TRACK_ZALLOC and REMAP_ZALLOC are mutually exclusive"
+#endif
 
 #define walloc(s)			g_malloc(s)
 #define walloc0(s)			g_malloc0(s)
@@ -53,6 +58,19 @@ void wfree(gpointer ptr, gint size);
 gpointer wrealloc(gpointer old, gint old_size, gint new_size);
 
 #endif	/* REMAP_ZALLOC */
+
+#ifdef TRACK_ZALLOC
+
+#define walloc(s)			walloc_track(s, __FILE__, __LINE__)
+#define walloc0(s)			walloc0_track(s, __FILE__, __LINE__)
+#define wrealloc(p,o,n)		wrealloc_track(p, o, n, __FILE__, __LINE__)
+
+gpointer walloc_track(gint size, gchar *file, gint line);
+gpointer walloc0_track(int size, gchar *file, gint line);
+gpointer wrealloc_track(gpointer old, gint old_size, gint new_size,
+	gchar *file, gint line);
+
+#endif	/* TRACK_ZALLOC */
 
 void wdestroy(void);
 

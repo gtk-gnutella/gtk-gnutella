@@ -72,6 +72,7 @@ void zdestroy(zone_t *zone);
 
 /*
  * Under REMAP_ZALLOC control, those routines are remapped to malloc/free.
+ * Under TRACK_ZALLOC, we keep tack of the allocation places.
  */
 
 #if defined(USE_DMALLOC) && !defined(REMAP_ZALLOC)
@@ -79,6 +80,10 @@ void zdestroy(zone_t *zone);
 #endif
 
 #ifdef REMAP_ZALLOC
+
+#ifdef TRACK_ZALLOC
+#error "TRACK_ZALLOC and REMAP_ZALLOC are mutually exclusive"
+#endif
 
 #define zalloc(z)	g_malloc((z)->zn_size)
 #define zfree(z,o)	g_free(o)
@@ -89,6 +94,14 @@ gpointer zalloc(zone_t *);
 void zfree(zone_t *, gpointer);
 
 #endif	/* REMAP_ZALLOC */
+
+#ifdef TRACK_ZALLOC
+
+#define zalloc(z)	zalloc_track(z, __FILE__, __LINE__)
+
+gpointer zalloc_track(zone_t *z, gchar *file, gint line);
+
+#endif	/* TRACK_ZALLOC */
 
 #endif /* _zalloc_h_ */
 

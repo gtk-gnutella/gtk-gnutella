@@ -42,6 +42,12 @@ RCSID("$Id$");
 #error "Unexpected ZALLOC_ALIGNBYTES value"
 #endif
 
+#ifdef TRACK_ZALLOC
+#undef walloc					/* We want to define the real routines */
+#undef walloc0
+#undef wrealloc
+#endif
+
 #define WALLOC_MAX		4096	/* Passed this size, use malloc() */
 #define WALLOC_CHUNK	4096	/* Target chunk size for small structs */
 #define WALLOC_MINCOUNT	8		/* Minimum amount of structs in a chunk */
@@ -171,6 +177,91 @@ gpointer wrealloc(gpointer old, gint old_size, gint new_size)
 	return new;
 }
 #endif	/* !REMAP_ZALLOC */
+
+/***
+ *** Tracking versions of the walloc routines.
+ ***/
+
+#ifdef TRACK_ZALLOC
+/*
+ * walloc_track
+ *
+ * Allocate memory from a zone suitable for the given size.
+ * Returns a pointer to the start of the allocated block.
+ */
+gpointer walloc_track(int size, gchar *file, gint line)
+{
+	zone_t *zone;
+	gint rounded = zalloc_round(size);
+	gint idx;
+
+	g_assert(size > 0);
+
+	if (rounded >= WALLOC_MAX)
+		return g_malloc(size);		/* Too big for efficient zalloc() */
+
+	idx = rounded >> ZALLOC_ALIGNBITS;
+
+	g_assert(WALLOC_MAX >> ZALLOC_ALIGNBITS == WZONE_SIZE);
+	g_assert(idx >= 0 && idx < WZONE_SIZE);
+
+	if (!(zone = wzone[idx])) {
+		gint count;
+
+		/*
+		 * We're paying this computation/allocation cost once per size!
+		 *
+		 * Try to create approximately WALLOC_CHUNK byte chunks, but
+		 * capable of holding at least WALLOC_MINCOUNT structures.
+		 */
+
+		count = WALLOC_CHUNK / rounded;
+		count = MAX(count, WALLOC_MINCOUNT);
+
+		if (!(zone = wzone[idx] = zget(rounded, count)))
+			g_error("zget() failed?");
+	}
+
+	return zalloc_track(zone, file, line);
+}
+
+/*
+ * walloc0_track
+ *
+ * Same as walloc_track(), but zeroes the allocated memory before returning.
+ */
+gpointer walloc0_track(int size, gchar *file, gint line)
+{
+	gpointer p = walloc_track(size, file, line);
+
+	if (p != NULL)
+		memset(p, 0, size);
+
+	return p;
+}
+
+/*
+ * wrealloc_track
+ *
+ * Reallocate a block allocated via walloc().
+ * Returns new block address.
+ */
+gpointer wrealloc_track(gpointer old, gint old_size, gint new_size,
+	gchar *file, gint line)
+{
+	gpointer new;
+	gint rounded = zalloc_round(new_size);
+
+	if (zalloc_round(old_size) == rounded)
+		return old;
+
+	new = walloc_track(new_size, file, line);
+	memcpy(new, old, MIN(old_size, new_size));
+	wfree(old, old_size);
+
+	return new;
+}
+#endif	/* TRACK_ZALLOC */
 
 /*
  * wdestroy
