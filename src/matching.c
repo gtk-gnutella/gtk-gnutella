@@ -272,13 +272,12 @@ static guint32 mask_hash(guchar *str) {
 	guint32 mask = 0;
 
 	while ((c = *s++)) {
-		guchar lc = tolower(c);
 		if (isspace(c))
 			continue;
 		else if (isdigit(c))
 			mask |= MASK_DIGIT;
 		else {
-			gint idx = lc - 'a';
+			gint idx = tolower(c) - 'a';
 			if (idx >= 0 && idx < 26)
 				mask |= MASK_LETTER(idx);
 		}
@@ -529,23 +528,6 @@ gint st_search(
 	len = map_string(table->fold_map, search);
 
 	/*
-	 * Prepare matching optimization, an idea from Mike Green.
-	 *
-	 * At library building time, we computed a mask hash, made from the
-	 * lowercased file name, using one bit per different letter, roughly
-	 * (see mask_hash() for the exact algorigthm).
-	 *
-	 * We're now going to compute the same mask on the query, and compare
-	 * it bitwise with the mask for each file.  If the file does not hold
-	 * at least all the chars present in the query, it's no use applying
-	 * the pattern matching algorithm, it won't match at all.
-	 *
-	 *		--RAM, 01/10/2001
-	 */
-
-	search_mask = mask_hash(search);
-
-	/*
 	 * Find smallest bin
 	 */
 
@@ -593,6 +575,23 @@ gint st_search(
 
 	for (i = 0; i < wocnt; i++)
 		pattern[i] = pattern_compile(wovec[i].word);
+
+	/*
+	 * Prepare matching optimization, an idea from Mike Green.
+	 *
+	 * At library building time, we computed a mask hash, made from the
+	 * lowercased file name, using one bit per different letter, roughly
+	 * (see mask_hash() for the exact algorigthm).
+	 *
+	 * We're now going to compute the same mask on the query, and compare
+	 * it bitwise with the mask for each file.  If the file does not hold
+	 * at least all the chars present in the query, it's no use applying
+	 * the pattern matching algorithm, it won't match at all.
+	 *
+	 *		--RAM, 01/10/2001
+	 */
+
+	search_mask = mask_hash(search);
 
 	/*
 	 * Search through the smallest bin
