@@ -2,8 +2,9 @@
 		$Id$
 
 1. To regenerate the GUI source code from the Glade file, type
-2. Some simple guidelines to add a net setting to the GUI:
+2. Some simple guidelines to add a net setting to the GUI
 3. Layout guidelines
+4. Widget naming
 
 
 1. To regenerate the GUI source code from the Glade file, type
@@ -81,5 +82,15 @@ should be placed inside a GtkViewport (no GtkScrolledWindow needed):
   GtkViewport(GtkScrolledWindow(GtkLabel))
   
 
- 
+4. Widget naming
+
+When adding a widget which is mapped to a property, try to name it in the 
+following manner:
+
+  [widgettype]_[propname]
   
+Example:
+  GtkToggleButton
+  PROP_USE_PROXY
+  -> togglebutton_use_proxy
+ 
