@@ -13,6 +13,7 @@
 #include "dialog-filters.h"
 #include "routing.h"
 #include "autodownload.h"
+#include "hosts.h"				/* For check_valid_host() */
 
 #define MAKE_CODE(a,b,c,d) ( \
 	((guint32) (a) << 24) | \
@@ -759,7 +760,6 @@ static guint search_hash_func(gconstpointer key)
 	return
 		g_str_hash(rc->name) ^
 		g_int_hash(&rc->size) ^
-		g_int_hash(&rc->index) ^
 		g_int_hash(&rc->results_set->ip) ^
 		g_int_hash(&rc->results_set->port);
 }
@@ -796,18 +796,33 @@ gint search_hash_key_compare(gconstpointer a, gconstpointer b)
 {
 	struct record *this_record = (struct record *) a;
 	struct record *rc = (struct record *) b;
+	gboolean identical;
 
 	/* Must compare same fields as search_hash_func() --RAM */
-	return !strcmp(rc->name, this_record->name)
-		&& rc->index == this_record->index
-		/*
-		 * Actually, if the index is the only thing that changed,
-		 * we probably want to overwrite the old one (and if we've
-		 * got the download queue'd, replace it there too.
-		 */
+	identical = !strcmp(rc->name, this_record->name)
 		&& rc->size == this_record->size
 		&& rc->results_set->ip == this_record->results_set->ip
 		&& rc->results_set->port == this_record->results_set->port;
+
+	/*
+	 * Actually, if the index is the only thing that changed,
+	 * we want to overwrite the old one (and if we've
+	 * got the download queue'd, replace it there too.
+	 *		--RAM, 17/12/2001 from a patch by Vladimir Klebanov
+	 */
+	if (identical && rc->index != this_record->index) {
+		g_warning("Index changed from %u to %u for %s",
+			this_record->index, rc->index, rc->name);
+		download_index_changed(
+			this_record->results_set->ip,
+			this_record->results_set->port,
+			this_record->index,
+			rc->index);
+		this_record->index = rc->index;
+		return TRUE;		/* yes, it's a duplicate */
+	}
+
+	return identical && rc->index == this_record->index;
 }
 
 
@@ -1105,7 +1120,7 @@ struct results_set *get_results_set(struct gnutella_node *n)
 	nr = 0;
 
 	if (dbg > 7)
-		debug_show_hex("Query Hit Data", n->data, n->size);
+		dump_hex(stdout, "Query Hit Data", n->data, n->size);
 
 	while (s < e && nr < rs->num_recs) {
 		READ_GUINT32_LE(s, index);
@@ -1251,12 +1266,16 @@ static void search_gui_update(struct search * sch, struct results_set * rs,
 
 		/*
 		 * If we have too many results in this search already,
+		 * or if the size is zero bytes,
+		 * or we don't send pushes and it's a private IP,
 		 * or if this is a duplicate search result,
 		 * or if we are filtering this result, throw the record away.
 		 */
 
 		if (
 			sch->items >= search_max_results ||
+			rc->size == 0 ||
+			(!send_pushes && !check_valid_host(rs->ip, rs->port)) ||
 			search_result_is_dup(sch, rc) ||
 			!filter_record(sch, rc)
 		) {
@@ -1400,10 +1419,8 @@ void search_matched(struct search *sch, struct results_set *rs)
 		switch (t) {
 		case T_NAPS:
 			/*
-			 * The author of NapShare apparently did not understand the
-			 * purpose of having two flag bytes: one enabler and one
-			 * setter. His trailer therefore needs to be specially parsed.
-			 *				--RAM, 09/09/2001
+			 * NapShare has a one-byte only flag: no enabler, just setters.
+			 *		--RAM, 17/12/2001
 			 */
 			if (rs->trailer[4] == 1) {
 				if (rs->trailer[5] & 0x04) rs->status |= ST_BUSY;
