@@ -51,6 +51,7 @@
 #include "gnet_property.h"
 
 #define QHIT_SIZE_THRESHOLD	2016	/* Flush query hits larger than this */
+#define QHIT_MAX_RESULTS	255		/* Maximum amount of hits in a query hit */
 
 static guchar iso_8859_1[96] = {
 	' ', 			/* 160 - NO-BREAK SPACE */
@@ -1010,7 +1011,7 @@ static gboolean got_match(struct shared_file *sf)
 	 * we have so far.
 	 */
 
-	if (FOUND_SIZE >= QHIT_SIZE_THRESHOLD) {
+	if (FOUND_SIZE >= QHIT_SIZE_THRESHOLD || FOUND_FILES >= QHIT_MAX_RESULTS) {
 		flush_match();
 		FOUND_RESET();
 	}
