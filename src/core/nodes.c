@@ -82,6 +82,7 @@ RCSID("$Id$");
 #include "g2/g2nodes.h"
 #endif
 
+#include "lib/aging.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/getdate.h"
@@ -134,6 +135,9 @@ RCSID("$Id$");
 #define NODE_TSYNC_PERIOD_MS	300000	/* Synchronize every 5 minutes */
 #define NODE_TSYNC_CHECK		15		/* 15 secs before a timeout */
 
+#define TCP_CRAWLER_FREQ		300		/* once every 5 minutes */
+#define UDP_CRAWLER_FREQ		120		/* once every 2 minutes */
+
 gchar *start_rfc822_date = NULL;		/* RFC822 format of start_time */
 
 static GSList *sl_nodes = NULL;
@@ -143,10 +147,14 @@ static gnutella_node_t *udp_node = NULL;
 /* These two contain connected and connectING(!) nodes. */
 static GHashTable *ht_connected_nodes   = NULL;
 static guint32     connected_node_count = 0;
-#define NO_METADATA			((gpointer) 0x1)	/* No metadata for host */
+
+#define NO_METADATA		GUINT_TO_POINTER(1)	/* No metadata for host */
 
 static GHashTable *unstable_servent = NULL;
 static GSList *unstable_servents = NULL;
+
+static gpointer tcp_crawls = NULL;
+static gpointer udp_crawls = NULL;
 
 typedef struct node_bad_client {
 	int	errors;
@@ -1053,6 +1061,16 @@ node_init(void)
 	gnet_prop_set_guint32_val(PROP_START_STAMP, (guint32) now);
 
 	udp_node = node_udp_create();
+
+	/*
+	 * Limit replies to TCP/UDP crawls from a single IP.
+	 */
+
+	tcp_crawls = aging_make(TCP_CRAWLER_FREQ,
+		NULL, NULL, NULL, NULL, NULL, NULL);
+		
+	udp_crawls = aging_make(UDP_CRAWLER_FREQ,
+		NULL, NULL, NULL, NULL, NULL, NULL);
 }
 
 /**
@@ -4100,6 +4118,22 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		n->flags |= NODE_F_CRAWLER;
         gnet_prop_set_guint32_val(PROP_CRAWLER_VISIT_COUNT,
             crawler_visit_count + 1);
+
+		/*
+		 * Make sure they're not crawling us too often.
+		 */
+
+		if (aging_lookup(tcp_crawls, GUINT_TO_POINTER(n->ip))) {
+			static const gchar msg[] = "Too frequent crawling";
+
+			g_warning("rejecting TCP crawler request from %s", node_ip(n));
+
+			send_node_error(n->socket, 403, "%s", msg);
+			node_remove(n, "%s", msg);
+			return;
+		}
+
+		aging_insert(tcp_crawls, GUINT_TO_POINTER(n->ip), GUINT_TO_POINTER(1));
 	}
 
 	/*
@@ -4309,13 +4343,13 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 		current_peermode == NODE_P_LEAF &&
 		(n->degree < 2 * NODE_LEGACY_DEGREE || !(n->attrs & NODE_A_DYN_QUERY))
 	) {
-		gchar msg[] = "Too ancient Gnutella protocol";
+		static const gchar msg[] = "Too ancient Gnutella protocol";
 
 		if ((n->flags & NODE_F_GTKG) && time(NULL) < 1107126000)
 			goto allow_for_now;		/* Up to Mon Jan 31 00:00:00 2005 */
 
-		send_node_error(n->socket, 403, msg);
-		node_remove(n, msg);
+		send_node_error(n->socket, 403, "%s", msg);
+		node_remove(n, "%s", msg);
 		return;
 	}
 allow_for_now:		/* XXX remove after 2005-01-31 */
@@ -6591,6 +6625,9 @@ node_close(void)
     node_handle_map = NULL;
 	qhvec_free(query_hashvec);
 
+	aging_destroy(tcp_crawls);
+	aging_destroy(udp_crawls);
+
 	rxbuf_close();
 }
 
@@ -7443,6 +7480,17 @@ node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
 
 	gnet_prop_set_guint32_val(PROP_UDP_CRAWLER_VISIT_COUNT,
 		udp_crawler_visit_count + 1);
+
+	/*
+	 * Make sure they're not crawling us too often.
+	 */
+
+	if (aging_lookup(udp_crawls, GUINT_TO_POINTER(n->ip))) {
+		g_warning("rejecting UDP crawler request from %s", node_ip(n));
+		return;
+	}
+
+	aging_insert(udp_crawls, GUINT_TO_POINTER(n->ip), GUINT_TO_POINTER(1));
 
 	/*
 	 * Build an array of candidate nodes.
