@@ -774,7 +774,6 @@ void random_init(void)
 	 * Finally, can initialize the random number generator.
 	 */
 
-printf("seed = 0x%x\n", (gint) seed);
 	srand(seed);
 }
 
