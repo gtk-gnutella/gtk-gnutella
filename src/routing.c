@@ -16,7 +16,7 @@ GList   *tail[256];					/* The older message in the lists */
 struct message
 {
 	guchar muid[16];					/* Message UID */
-	struct gnutella_node *node;	/* Node from where the message came */
+	GSList *nodes;						/* Nodes from which the message came */
 	guint8 function;					/* Type of the message */
 };
 
@@ -45,6 +45,17 @@ void routing_log(gchar *fmt, ...)
 	//printf("%s", t);
 }
 
+gboolean node_sent_message(struct gnutella_node *n, struct message *m) {
+  GSList *l = m->nodes;
+
+  while(l) {
+	if (l->data == n)
+	  return TRUE;
+	l = l->next;
+  }
+  return FALSE;
+}
+
 /* Init function */
 
 void routing_init(void)
@@ -69,13 +80,15 @@ void routing_init(void)
 }
 
 
+void generate_new_muid(guchar *muid) {
+  gint i;
+  for (i = 0; i < 16; i += 2) (*((guint16 *) (muid + i))) = rand() % 65536;
+}
+
 /* Generate a new muid and put it in a message header */
 
-void message_set_muid(struct gnutella_header *header)
-{
-	gint i;
-
-	for (i = 0; i < 16; i += 2) (*((guint16 *) (header->muid + i))) = rand() % 65536;
+void message_set_muid(struct gnutella_header *header) {
+	generate_new_muid(header->muid);
 }
 
 /* Erase a node from the routing tables */
@@ -86,8 +99,11 @@ void routing_node_remove(struct gnutella_node *node)
 	guint32 i;
 
 	for (i = 0; i < 256; i++)
-		for (l = messages[i]; l; l = l->next)
-			if (((struct message *) l->data)->node == node) ((struct message *) l->data)->node = NULL;
+		for (l = messages[i]; l; l = l->next) {
+			struct message *m = (struct message *)l->data;
+			/* g_slist_remove won't do anything if this node isn't in the list */
+			m->nodes = g_slist_remove(m->nodes, node);
+		}
 }
 
 /* Adds a new message in the routing tables */
@@ -119,6 +135,7 @@ void message_add(guchar *muid, guint8 function, struct gnutella_node *node)
 		messages[f] = ct;								/* The list head change */
 
 		m = (struct message *) ct->data;			/* We'll use the oldest message memory place */
+		g_slist_free(m->nodes);
 	}
 	else /* Table is not full, allocate a new structure and prepend it to the table */
 	{
@@ -133,12 +150,12 @@ void message_add(guchar *muid, guint8 function, struct gnutella_node *node)
 
 	memcpy(m->muid, muid, 16);
 	m->function = function;
-	m->node = node;
+	m->nodes = g_slist_append(NULL, node);
 }
 
 /* Look for a particular message in the routing tables */
 
-gboolean find_message(guchar *muid, guint8 function, struct gnutella_node **node)
+gboolean find_message(guchar *muid, guint8 function, struct message **m)
 {
 	/* Returns TRUE if the message is found */
 	/* Set *node to node if there is a connected node associated with the message found */
@@ -151,12 +168,12 @@ gboolean find_message(guchar *muid, guint8 function, struct gnutella_node **node
 		{
 			/* We found the message */
 
-			*node = ((struct message *) l->data)->node;	/* The node the message came from */
+			*m = (struct message *) l->data;	/* The node the message came from */
 			return TRUE;
 		}
 	}
 
-	*node = NULL;
+	*m = NULL;
 	return FALSE; /* Message not found in the tables */
 }
 
@@ -165,7 +182,8 @@ gboolean find_message(guchar *muid, guint8 function, struct gnutella_node **node
 gboolean route_message(struct gnutella_node **node)
 {
 	static struct gnutella_node *sender;	/* The node that sent the message */
-	static struct gnutella_node *found;		/* The node found in the routing tables */
+	struct message *m; /* The copy of the message we've already seen */
+	struct gnutella_node *found;		/* The node to have sent us this message earliest of those we're still connected to. */
 	static gboolean handle_it;
 
 	sender = (*node);
@@ -183,7 +201,7 @@ gboolean route_message(struct gnutella_node **node)
 		/* We'll also handle all search replies if we're doing a passive search */
 		handle_it = handle_it  ||  (sender->header.function == GTA_MSG_SEARCH_RESULTS  &&  search_passive);
 
-		if (!find_message(sender->header.muid, sender->header.function & ~(0x01), &found))
+		if (!find_message(sender->header.muid, sender->header.function & ~(0x01), &m))
 		{
 			/* We have never seen any request matching this reply ! */
 
@@ -196,7 +214,7 @@ gboolean route_message(struct gnutella_node **node)
 			return handle_it;					/* We don't have to handle the message */
 		}
 
-		if (found == fake_node)				/* We are the target of the reply */
+		if (node_sent_message(fake_node, m))				/* We are the target of the reply */
 		{
 			if (sender->header.function == GTA_MSG_INIT_RESPONSE) ping_stats_add(sender);
 			routing_log("[H] we are the target\n");
@@ -205,7 +223,7 @@ gboolean route_message(struct gnutella_node **node)
 
 		if (handle_it) routing_log("[H] "); else routing_log("[ ] ");
 
-		if (found)								/* We only have to forward the message the target node */
+		if (m && m->nodes)						/* We only have to forward the message the target node */
 		{
 			if (sender->header.ttl > max_ttl) /* TTL too large, don't forward */
 			{
@@ -225,6 +243,8 @@ gboolean route_message(struct gnutella_node **node)
 
 			sender->header.hops++;
 
+			found = (struct gnutella_node *) m->nodes->data;
+
 			routing_log("-> sendto_one(%s)\n", node_ip(found));
 
 			sendto_one(found, (guchar *) &(sender->header), sender->data, sender->size + sizeof(struct gnutella_header));
@@ -242,11 +262,11 @@ gboolean route_message(struct gnutella_node **node)
 	}
 	else /* The message is a request */
 	{
-		if (find_message(sender->header.muid, sender->header.function, &found))
+		if (find_message(sender->header.muid, sender->header.function, &m))
 		{
 			/* This is a duplicated message */
 
-			if (found == sender)	/* The same node has sent us a message twice ! */
+			if (node_sent_message(sender, m))	/* The same node has sent us a message twice ! */
 			{
 				routing_log("[ ] Dup message (from the same node !)\n");
 
@@ -257,8 +277,21 @@ gboolean route_message(struct gnutella_node **node)
 
 /*				node_remove(sender, "Kicked (sent identical messages twice)"); */
 /*				(*node) = NULL; */
+			} else {
+			  routing_log("[ ] duplicated\n");
+
+			  if (node_sent_message(fake_node, m)) {
+				/* node sent us our own search, which may be ok if they've
+				 * just connected and sent it before they read our reissue
+				 * of the search, or if we've sent them the search with a
+				 * new muid. */
+			  } else {
+				/* append so that we route matches to the one that sent it
+				 * to us first; ie., presumably the one closest to the
+				 * original sender. */
+				m->nodes = g_slist_append(m->nodes, sender);
+			  }
 			}
-			else routing_log("[ ] duplicated\n");
 
 			return FALSE;
 		}
