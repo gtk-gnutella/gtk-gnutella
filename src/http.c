@@ -152,7 +152,7 @@ gboolean http_send_status(
 	if (code < 300 || !keep_alive) 
 		no_content = "";
 
-	g_assert(header_size <= sizeof(header));
+	g_assert((size_t) header_size <= sizeof(header));
 
 	date = date_to_rfc1123_gchar(time(NULL));
 	rw = gm_snprintf(header, header_size,
@@ -1127,15 +1127,15 @@ guint32 http_range_size(const GSList *list)
 const gchar *http_range_to_gchar(const GSList *list)
 {
 	static gchar str[2048];
-	const GSList *l;
+	const GSList *sl = list;
 	gint rw;
 
-	for (l = list, rw = 0; l && rw < sizeof(str); l = g_slist_next(l)) {
-		const http_range_t *r = (const http_range_t *) l->data;
+	for (rw = 0; sl && (size_t) rw < sizeof(str); sl = g_slist_next(sl)) {
+		const http_range_t *r = (const http_range_t *) sl->data;
 
 		rw += gm_snprintf(&str[rw], sizeof(str)-rw, "%u-%u", r->start, r->end);
 
-		if (g_slist_next(l) != NULL)
+		if (g_slist_next(sl) != NULL)
 			rw += gm_snprintf(&str[rw], sizeof(str)-rw, ", ");
 	}
 
@@ -1326,7 +1326,7 @@ GSList * http_range_merge(GSList *old_list, GSList *new_list)
  *** Asynchronous HTTP error code management.
  ***/
 
-static const gchar *error_str[] = {
+static const gchar * const error_str[] = {
 	"OK",									/* HTTP_ASYNC_OK */
 	"Invalid HTTP URL",						/* HTTP_ASYNC_BAD_URL */
 	"Connection failed",					/* HTTP_ASYNC_CONN_FAILED */
@@ -1371,16 +1371,16 @@ enum http_reqtype {
 	HTTP_MAX_REQTYPE,
 };
 
-static const gchar *http_verb[HTTP_MAX_REQTYPE] = {
+static const gchar * const http_verb[HTTP_MAX_REQTYPE] = {
 	"HEAD",
 	"GET",
 	"POST",
 };
 
-#define HTTP_ASYNC_MAGIC 0xa91cf3ee
+#define HTTP_ASYNC_MAGIC 0xa91cf3eeU
 
 struct http_async {					/* An asynchronous HTTP request */
-	gint magic;						/* Magic number */
+	guint magic;					/* Magic number */
 	enum http_reqtype type;			/* Type of request */
 	http_state_t state;				/* Current request state */
 	guint32 flags;					/* Operational flags */
@@ -2452,7 +2452,7 @@ void http_async_connected(gpointer handle)
 		(gchar *) http_verb[ha->type], ha->path,
 		ha->host ? ha->host : ip_to_gchar(s->ip), s->port);
 
-	if (rw >= sizeof(req)) {
+	if ((size_t) rw >= sizeof(req)) {
 		http_async_error(ha, HTTP_ASYNC_REQ2BIG);
 		return;
 	}
@@ -2602,10 +2602,10 @@ void http_timer(time_t now)
 retry:
 	for (l = sl_outgoing; l; l = l->next) {
 		struct http_async *ha = (struct http_async *) l->data;
-		time_t elapsed = now - ha->last_update;
-		time_t timeout = (time_t) (ha->bio ?
+		gint elapsed = delta_time(now, ha->last_update);
+		gint timeout = ha->bio ?
 			download_connected_timeout :
-			download_connecting_timeout);
+			download_connecting_timeout;
 
 		if (ha->flags & HA_F_SUBREQ)
 			continue;
