@@ -580,6 +580,9 @@ static gboolean find_message(
  * case, it must be sent to the whole list of routes we have, and `target' will
  * be NULL.
  *
+ * NB: we're just *recording* routing information for the message into `dest',
+ * we are not physically forwarding the message on the wire.
+ *
  * Returns whether we should handle the message after routing.
  */
 static gboolean forward_message(struct gnutella_node **node,
@@ -590,7 +593,10 @@ static gboolean forward_message(struct gnutella_node **node,
 	g_assert(routes == NULL || target == NULL);
 
 	/* Drop messages that would travel way too many nodes --RAM */
-	if (sender->header.ttl + sender->header.hops > hard_ttl_limit) {
+	if (
+		sender->header.ttl + sender->header.hops > hard_ttl_limit &&
+		current_peermode != NODE_P_LEAF
+	) {
 		routing_log("[ ] [NEW] hard TTL limit reached\n");
 
 		/*
@@ -635,7 +641,11 @@ static gboolean forward_message(struct gnutella_node **node,
 		if (node_sent_ttl0(sender))
 			*node = NULL;
 		/* Don't handle unless we're a leaf: shouldn't have seen it */
-		return current_peermode == NODE_P_LEAF;
+		if (current_peermode == NODE_P_LEAF) {
+			sender->header.hops++;	/* Going to handle it, must be accurate */
+			return TRUE;
+		} else
+			return FALSE;
 	}
 
 	routing_log("[H] [NEW] ");
@@ -646,10 +656,13 @@ static gboolean forward_message(struct gnutella_node **node,
 
 	if (!--sender->header.ttl) {
 		/* TTL expired, message stops here */
-		routing_log("(TTL expired)\n");
-        gnet_stats_count_expired(sender);
-		/* don't increase rx_dropped, we'll handle this message */
-	} else {			/* Forward it to all others nodes */
+		if (current_peermode != NODE_P_LEAF) {
+			routing_log("(TTL expired)\n");
+			gnet_stats_count_expired(sender);
+			/* don't increase rx_dropped, we'll handle this message */
+		}
+	} else if (current_peermode != NODE_P_LEAF) {
+		/* Forward message to all others nodes */
 		if (routes != NULL) {
 			GSList *l;
 			GSList *nodes = NULL;
@@ -900,7 +913,8 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 
 		/*
 		 * If the TTL expired, drop the message, unless the target is a
-		 * leaf node, in which case we'll forward it the reply.
+		 * leaf node, in which case we'll forward it the reply, or we
+		 * are a leaf node, in which case we won't route the message!.
 		 */
 
 		found = ((struct route_data *) m->routes->data)->node;
@@ -911,10 +925,12 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 				routing_log("(expired TTL bumped)\n");
 				sender->header.ttl = 1;
 			} else {
-				/* TTL expired, message stops here */
-				routing_log("(TTL expired)\n");
-				gnet_stats_count_expired(sender);
-				sender->rx_dropped++;
+				/* TTL expired, message stops here in any case */
+				if (current_peermode != NODE_P_LEAF) {
+					routing_log("(TTL expired)\n");
+					gnet_stats_count_expired(sender);
+					sender->rx_dropped++;
+				}
 				return handle_it;
 			}
 		}
