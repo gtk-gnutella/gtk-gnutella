@@ -3744,8 +3744,8 @@ parq_still_sharing(struct parq_ul_queued *parq_ul)
 			g_message("[PARQ UL] We no longer share this file: "
 				"SHA1=%s \"%s\"", sha1_base32(parq_ul->sha1), parq_ul->name);
 			return FALSE;
-		} else
-			return TRUE;  /* Either we have the file or we are rebuilding */
+		}
+		/* Either we have the file or we are rebuilding */
 	} else {
 		/*
 		 * Let's see if we can find the SHA1 for this file if there
@@ -3767,12 +3767,10 @@ parq_still_sharing(struct parq_ul_queued *parq_ul)
 					parq_ul->name);
 				return FALSE;
 			}
-		} else
-			return TRUE;
+		}
 	}
 
 	/* Return TRUE by default because this is the safest condition */
-
 	return TRUE;
 }
 
