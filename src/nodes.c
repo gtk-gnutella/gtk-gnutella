@@ -330,7 +330,10 @@ void node_timer(time_t now)
 					node_remove(n, "Shutdown (%s)", reason);
 					g_free(reason);
 				}
-			} else if (now - n->last_update > node_connected_timeout) {
+			} else if (
+				!NODE_IS_LEAF(n) &&
+				now - n->last_update > node_connected_timeout
+			) {
 				node_bye_if_writable(n, 405, "Activity timeout");
 			} else if (
 				!NODE_IS_LEAF(n) &&
