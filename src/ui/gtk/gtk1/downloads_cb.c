@@ -347,8 +347,7 @@ on_popup_downloads_abort_sha1_activate(GtkMenuItem *unused_menuitem,
 		}
 
         if (d->file_info->sha1 != NULL)
-            removed += guc_download_remove_all_with_sha1(
-			d->file_info->sha1);
+            removed += guc_download_remove_all_with_sha1(d->file_info->sha1);
 	}
 
 	g_list_free(data_list);
