@@ -117,8 +117,8 @@ find_parent_with_sha1(GHashTable *ht, gpointer key)
 }
 
 static gboolean
-unref_record(
-	GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
+unref_record(GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter,
+	gpointer data)
 {
 	record_t *rc = NULL;
 	GHashTable *dups = (GHashTable *) data;
@@ -126,13 +126,14 @@ unref_record(
 	(void) path;
 
 	gtk_tree_model_get(model, iter, c_sr_record, &rc, (-1));
-	g_assert(g_hash_table_lookup(dups, rc) != NULL);
 	g_assert(NULL != rc);
+	g_assert(rc->magic == RECORD_MAGIC);
 	g_assert(rc->refcount > 0);
+	g_assert(g_hash_table_lookup(dups, rc) != NULL);
 	search_gui_unref_record(rc);
 	g_assert(rc->refcount > 0);
 	g_hash_table_remove(dups, rc);
-	g_assert(g_hash_table_lookup(dups, rc) == NULL);
+	/* rc may point to freed memory now if this was the last reference */
 	return FALSE;
 }
 
@@ -476,6 +477,8 @@ search_gui_add_record(
 	 * have open
 	 *		-- JA, 6/11/2003
 	 */
+	
+	g_assert(rc->magic == RECORD_MAGIC);
 	g_assert(rc->refcount >= 1);
 
 	if (rc->tag) {
@@ -1133,6 +1136,10 @@ search_gui_set_current_search(search_t *sch)
         GtkTreeView *tv_new = GTK_TREE_VIEW(sch->tree_view);
         GtkTreeView *tv_old = GTK_TREE_VIEW(current_search->tree_view);
 
+		gtk_widget_hide(GTK_WIDGET(tv_old));
+		g_object_freeze_notify(G_OBJECT(tv_old));
+		gtk_widget_show(GTK_WIDGET(tv_new));
+		g_object_thaw_notify(G_OBJECT(tv_new));
 		if (tvm_search) {
 			tree_view_motion_clear_callback(tv_old, tvm_search);
 			tvm_search = NULL;
@@ -1358,6 +1365,7 @@ gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 		G_CALLBACK(on_tree_view_search_results_key_press_event), NULL);
     g_signal_connect(GTK_OBJECT(treeview), "leave-notify-event",
 		G_CALLBACK(on_leave_notify), NULL);
+	g_object_freeze_notify(G_OBJECT(treeview));
 }
 
 static gboolean
@@ -1617,8 +1625,7 @@ search_gui_metadata_update(const bitzi_data_t *data)
 		}
 	}
 
-	/* free the string */
-	g_free(text);
+	G_FREE_NULL(text);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
