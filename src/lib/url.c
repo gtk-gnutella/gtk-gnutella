@@ -516,12 +516,15 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 
 	p = q;
 	if (*q == ':' ) {
-		gulong v;
+		gulong v = 0;
 
 		q++;
-		errno = 0;
-		v = strtoul(q, &endptr, 10);
-		if (errno || v < 1 || v > 65535) {
+		/* strtoul() allows leading spaces, +, - and zeroes */
+		if (NULL != strchr("123456789", *q)) {
+			errno = 0;
+			v = strtoul(q, &endptr, 10);
+		}
+		if (v < 1 || v > 65535 || errno) {
 			if (url_debug)
 				g_warning("':' MUST be followed a by port value (1-65535)");
 			return NULL;
