@@ -86,7 +86,7 @@ __inline__ guint32 qrp_hashcode(guchar *x)
 
 
 	while ((c = *x++)) {
-		guint32 b = tolower(c) & 0xFF; 
+		guint32 b = (c >= 'A' && c <= 'Z') ? (c + 'a' - 'A') : c; 
 		xor ^= b << (j << 3);
 		j = (j + 1) & 0x3;
 	}
@@ -140,6 +140,7 @@ void qrp_init(char_map_t map)
 
 	g_assert(qrp_hash("ebcklmenq", 13) == 3527);
 	g_assert(qrp_hash("ndflalem", 16) == 37658);
+	g_assert(qrp_hash("NDFLalem", 16) == 37658);
 	g_assert(qrp_hash("7777a88a8a8a8", 10) == 342);
 }
 
