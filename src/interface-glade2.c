@@ -4513,10 +4513,10 @@ create_main_window (void)
   GtkWidget *label_current_port;
   GtkWidget *hseparator2;
   GtkWidget *table5;
-  GtkWidget *entry_config_force_ip;
-  GtkWidget *label35;
-  GtkWidget *checkbutton_config_force_ip;
   GtkWidget *label129;
+  GtkWidget *entry_config_force_ip;
+  GtkWidget *checkbutton_config_force_ip;
+  GtkWidget *label35;
   GtkObject *spinbutton_config_port_adj;
   GtkWidget *spinbutton_config_port;
   GtkWidget *label287;
@@ -4527,10 +4527,11 @@ create_main_window (void)
   GtkWidget *combo_config_proxy_protocol;
   GtkWidget *combo_entry4;
   GtkWidget *label92;
-  GtkObject *spinbutton_config_proxy_port_adj;
-  GtkWidget *spinbutton_config_proxy_port;
   GtkWidget *label90;
   GtkWidget *label91;
+  GtkObject *spinbutton_config_proxy_port_adj;
+  GtkWidget *spinbutton_config_proxy_port;
+  GtkWidget *label556;
   GtkWidget *hbox88;
   GtkWidget *checkbutton_config_proxy_auth;
   GtkWidget *hbox61;
@@ -4828,12 +4829,12 @@ create_main_window (void)
   GtkWidget *spinbutton_config_dbg;
   GtkObject *spinbutton_config_gui_debug_adj;
   GtkWidget *spinbutton_config_gui_debug;
-  GtkObject *spinbutton_config_lib_debug_adj;
-  GtkWidget *spinbutton_config_lib_debug;
   GtkWidget *label376;
   GtkWidget *label377;
   GtkWidget *label517;
   GtkWidget *checkbutton_config_stop_host_get;
+  GtkObject *spinbutton_config_lib_debug_adj;
+  GtkWidget *spinbutton_config_lib_debug;
   GtkWidget *label375;
   GtkWidget *label372;
   GtkWidget *label_config;
@@ -6971,33 +6972,12 @@ create_main_window (void)
   gtk_widget_show (hseparator2);
   gtk_box_pack_start (GTK_BOX (vbox30), hseparator2, FALSE, TRUE, 3);
 
-  table5 = gtk_table_new (2, 3, FALSE);
+  table5 = gtk_table_new (2, 5, FALSE);
   gtk_widget_set_name (table5, "table5");
   gtk_widget_show (table5);
   gtk_box_pack_start (GTK_BOX (vbox30), table5, TRUE, TRUE, 0);
   gtk_table_set_row_spacings (GTK_TABLE (table5), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table5), 4);
-
-  entry_config_force_ip = gtk_entry_new ();
-  gtk_widget_set_name (entry_config_force_ip, "entry_config_force_ip");
-  gtk_widget_show (entry_config_force_ip);
-  gtk_table_attach (GTK_TABLE (table5), entry_config_force_ip, 1, 3, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  label35 = gtk_label_new ("Default: 6346, Disable: 0");
-  gtk_widget_set_name (label35, "label35");
-  gtk_widget_show (label35);
-  gtk_table_attach (GTK_TABLE (table5), label35, 2, 3, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  checkbutton_config_force_ip = gtk_check_button_new_with_mnemonic ("_Force local IP to");
-  gtk_widget_set_name (checkbutton_config_force_ip, "checkbutton_config_force_ip");
-  gtk_widget_show (checkbutton_config_force_ip);
-  gtk_table_attach (GTK_TABLE (table5), checkbutton_config_force_ip, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 5, 0);
 
   label129 = gtk_label_new_with_mnemonic ("_Listen port");
   gtk_widget_set_name (label129, "label129");
@@ -7007,11 +6987,32 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 5, 0);
   gtk_misc_set_alignment (GTK_MISC (label129), 0, 0.5);
 
+  entry_config_force_ip = gtk_entry_new ();
+  gtk_widget_set_name (entry_config_force_ip, "entry_config_force_ip");
+  gtk_widget_show (entry_config_force_ip);
+  gtk_table_attach (GTK_TABLE (table5), entry_config_force_ip, 2, 5, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_force_ip = gtk_check_button_new_with_mnemonic ("_Force local IP to");
+  gtk_widget_set_name (checkbutton_config_force_ip, "checkbutton_config_force_ip");
+  gtk_widget_show (checkbutton_config_force_ip);
+  gtk_table_attach (GTK_TABLE (table5), checkbutton_config_force_ip, 0, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 5, 0);
+
+  label35 = gtk_label_new ("Default: 6346, Disable: 0");
+  gtk_widget_set_name (label35, "label35");
+  gtk_widget_show (label35);
+  gtk_table_attach (GTK_TABLE (table5), label35, 4, 5, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   spinbutton_config_port_adj = gtk_adjustment_new (6346, 0, 65535, 1, 10, 10);
   spinbutton_config_port = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_port_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_port, "spinbutton_config_port");
   gtk_widget_show (spinbutton_config_port);
-  gtk_table_attach (GTK_TABLE (table5), spinbutton_config_port, 1, 2, 1, 2,
+  gtk_table_attach (GTK_TABLE (table5), spinbutton_config_port, 1, 4, 1, 2,
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_port), TRUE);
@@ -7033,7 +7034,7 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame_proxy_settings), vbox28);
   gtk_container_set_border_width (GTK_CONTAINER (vbox28), 2);
 
-  table47 = gtk_table_new (2, 4, FALSE);
+  table47 = gtk_table_new (2, 7, FALSE);
   gtk_widget_set_name (table47, "table47");
   gtk_widget_show (table47);
   gtk_box_pack_start (GTK_BOX (vbox28), table47, FALSE, TRUE, 0);
@@ -7059,6 +7060,7 @@ create_main_window (void)
   combo_entry4 = GTK_COMBO (combo_config_proxy_protocol)->entry;
   gtk_widget_set_name (combo_entry4, "combo_entry4");
   gtk_widget_show (combo_entry4);
+  gtk_editable_set_editable (GTK_EDITABLE (combo_entry4), FALSE);
 
   label92 = gtk_label_new_with_mnemonic ("_Port:");
   gtk_widget_set_name (label92, "label92");
@@ -7068,15 +7070,6 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_misc_set_alignment (GTK_MISC (label92), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label92), 5, 0);
-
-  spinbutton_config_proxy_port_adj = gtk_adjustment_new (3128, 1, 65535, 1, 10, 10);
-  spinbutton_config_proxy_port = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_proxy_port_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_proxy_port, "spinbutton_config_proxy_port");
-  gtk_widget_show (spinbutton_config_proxy_port);
-  gtk_table_attach (GTK_TABLE (table47), spinbutton_config_proxy_port, 3, 4, 1, 2,
-                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
-                    (GtkAttachOptions) (0), 5, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_proxy_port), TRUE);
 
   label90 = gtk_label_new_with_mnemonic ("Proxy _type:");
   gtk_widget_set_name (label90, "label90");
@@ -7097,6 +7090,25 @@ create_main_window (void)
   gtk_label_set_justify (GTK_LABEL (label91), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label91), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label91), 5, 0);
+
+  spinbutton_config_proxy_port_adj = gtk_adjustment_new (3128, 1, 65535, 1, 10, 10);
+  spinbutton_config_proxy_port = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_proxy_port_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_proxy_port, "spinbutton_config_proxy_port");
+  gtk_widget_show (spinbutton_config_proxy_port);
+  gtk_table_attach (GTK_TABLE (table47), spinbutton_config_proxy_port, 3, 6, 1, 2,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_proxy_port), TRUE);
+
+  label556 = gtk_label_new ("                  ");
+  gtk_widget_set_name (label556, "label556");
+  gtk_widget_show (label556);
+  gtk_table_attach (GTK_TABLE (table47), label556, 3, 6, 0, 1,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_sensitive (label556, FALSE);
+  gtk_label_set_justify (GTK_LABEL (label556), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label556), 0, 0.5);
 
   hbox88 = gtk_hbox_new (FALSE, 0);
   gtk_widget_set_name (hbox88, "hbox88");
@@ -7534,6 +7546,7 @@ create_main_window (void)
   combo_entry3 = GTK_COMBO (combo_config_peermode)->entry;
   gtk_widget_set_name (combo_entry3, "combo_entry3");
   gtk_widget_show (combo_entry3);
+  gtk_editable_set_editable (GTK_EDITABLE (combo_entry3), FALSE);
 
   label537 = gtk_label_new ("Current peermode");
   gtk_widget_set_name (label537, "label537");
@@ -8781,6 +8794,7 @@ create_main_window (void)
   combo_entry5 = GTK_COMBO (combo_config_toolbar_style)->entry;
   gtk_widget_set_name (combo_entry5, "combo_entry5");
   gtk_widget_show (combo_entry5);
+  gtk_editable_set_editable (GTK_EDITABLE (combo_entry5), FALSE);
 
   label373 = gtk_label_new ("Miscellaneous");
   gtk_widget_set_name (label373, "label373");
@@ -8865,15 +8879,6 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_gui_debug), TRUE);
 
-  spinbutton_config_lib_debug_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
-  spinbutton_config_lib_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_lib_debug_adj), 1, 0);
-  gtk_widget_set_name (spinbutton_config_lib_debug, "spinbutton_config_lib_debug");
-  gtk_widget_show (spinbutton_config_lib_debug);
-  gtk_table_attach (GTK_TABLE (table36), spinbutton_config_lib_debug, 1, 2, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_lib_debug), TRUE);
-
   label376 = gtk_label_new_with_mnemonic ("_Core debug level");
   gtk_widget_set_name (label376, "label376");
   gtk_widget_show (label376);
@@ -8907,6 +8912,15 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table36), checkbutton_config_stop_host_get, 0, 2, 3, 4,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 5, 0);
+
+  spinbutton_config_lib_debug_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
+  spinbutton_config_lib_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_lib_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_lib_debug, "spinbutton_config_lib_debug");
+  gtk_widget_show (spinbutton_config_lib_debug);
+  gtk_table_attach (GTK_TABLE (table36), spinbutton_config_lib_debug, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_lib_debug), TRUE);
 
   label375 = gtk_label_new ("Debug settings");
   gtk_widget_set_name (label375, "label375");
@@ -9889,10 +9903,10 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label_current_port, "label_current_port");
   GLADE_HOOKUP_OBJECT (main_window, hseparator2, "hseparator2");
   GLADE_HOOKUP_OBJECT (main_window, table5, "table5");
-  GLADE_HOOKUP_OBJECT (main_window, entry_config_force_ip, "entry_config_force_ip");
-  GLADE_HOOKUP_OBJECT (main_window, label35, "label35");
-  GLADE_HOOKUP_OBJECT (main_window, checkbutton_config_force_ip, "checkbutton_config_force_ip");
   GLADE_HOOKUP_OBJECT (main_window, label129, "label129");
+  GLADE_HOOKUP_OBJECT (main_window, entry_config_force_ip, "entry_config_force_ip");
+  GLADE_HOOKUP_OBJECT (main_window, checkbutton_config_force_ip, "checkbutton_config_force_ip");
+  GLADE_HOOKUP_OBJECT (main_window, label35, "label35");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_port, "spinbutton_config_port");
   GLADE_HOOKUP_OBJECT (main_window, label287, "label287");
   GLADE_HOOKUP_OBJECT (main_window, frame_proxy_settings, "frame_proxy_settings");
@@ -9902,9 +9916,10 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, combo_config_proxy_protocol, "combo_config_proxy_protocol");
   GLADE_HOOKUP_OBJECT (main_window, combo_entry4, "combo_entry4");
   GLADE_HOOKUP_OBJECT (main_window, label92, "label92");
-  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_proxy_port, "spinbutton_config_proxy_port");
   GLADE_HOOKUP_OBJECT (main_window, label90, "label90");
   GLADE_HOOKUP_OBJECT (main_window, label91, "label91");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_proxy_port, "spinbutton_config_proxy_port");
+  GLADE_HOOKUP_OBJECT (main_window, label556, "label556");
   GLADE_HOOKUP_OBJECT (main_window, hbox88, "hbox88");
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_config_proxy_auth, "checkbutton_config_proxy_auth");
   GLADE_HOOKUP_OBJECT (main_window, hbox61, "hbox61");
@@ -10162,11 +10177,11 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, table36, "table36");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_dbg, "spinbutton_config_dbg");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_gui_debug, "spinbutton_config_gui_debug");
-  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_lib_debug, "spinbutton_config_lib_debug");
   GLADE_HOOKUP_OBJECT (main_window, label376, "label376");
   GLADE_HOOKUP_OBJECT (main_window, label377, "label377");
   GLADE_HOOKUP_OBJECT (main_window, label517, "label517");
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_lib_debug, "spinbutton_config_lib_debug");
   GLADE_HOOKUP_OBJECT (main_window, label375, "label375");
   GLADE_HOOKUP_OBJECT (main_window, label372, "label372");
   GLADE_HOOKUP_OBJECT (main_window, label_config, "label_config");
