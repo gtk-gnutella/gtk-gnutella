@@ -1951,7 +1951,10 @@ static gboolean parq_upload_continue(struct parq_ul_queued *uq, gint free_slots)
 	for (l = g_list_first(uq->queue->by_rel_pos); l; l = l->next) {
 		struct parq_ul_queued *parq_ul = (struct parq_ul_queued*) l->data;
 	
-		if (!parq_ul->has_slot && parq_ul != uq && !parq_ul->by_ip->uploading)
+		if (
+			  !parq_ul->has_slot && parq_ul != uq && 
+			  parq_ul->by_ip->ip != uq->by_ip->ip && !parq_ul->by_ip->uploading
+			)
 			/* Another upload in the current queue is allowed first */
 			return FALSE;
 		else
