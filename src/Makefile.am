@@ -49,7 +49,7 @@ GLADE_UI = \
 	support-glade1.c support-glade1.h
 ADDITIONAL_DROPIN = \
 	gtkcolumnchooser.c gtkcolumnchooser.h \
-	share_gui.c share_gui.h \
+	monitor_gui.c monitor_gui.h \
 	nodes_gui.c nodes_gui.h nodes_cb.c nodes_cb.h \
 	gui_property.c gui_property.h gui_property_priv.h \
 	settings_gui.c settings_gui.h settings_cb.c settings_cb.h \
@@ -76,7 +76,7 @@ gtk_gnutella_SOURCES = \
 	$(GLADE_UI) \
 	$(ADDITIONAL_DROPIN) \
 	gnutella.h \
-	gnet.h \
+	gnet.h common.h \
 	misc.c misc.h \
 	prop.c prop.h \
 	gnet_property.c gnet_property.h gnet_property_priv.h \
@@ -132,7 +132,8 @@ gtk_gnutella_SOURCES = \
 	version.c version.h \
 	alive.c alive.h \
 	zalloc.c zalloc.h \
-	walloc.c walloc.h
+	walloc.c walloc.h \
+	vendors.c vendors.h
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
 GLADE_WARNING2 = "  \"glade --write-source\" failed.  To ignore any changes to"
