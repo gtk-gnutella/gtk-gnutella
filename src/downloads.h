@@ -239,7 +239,8 @@ struct download {
 	|| (d)->status == GTA_DL_PUSH_SENT	\
 	|| (d)->status == GTA_DL_FALLBACK	\
 	|| (d)->status == GTA_DL_REQ_SENT	\
-	|| (d)->status == GTA_DL_ACTIVE_QUEUED \
+	|| (d)->status == GTA_DL_ACTIVE_QUEUED	\
+	|| (d)->status == GTA_DL_SINKING	\
 	|| (d)->status == GTA_DL_HEADERS	)
 
 #define DOWNLOAD_IS_EXPECTING_GIV(d)	\
