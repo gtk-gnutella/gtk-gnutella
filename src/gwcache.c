@@ -390,7 +390,7 @@ static void gwc_urlfile_retry(cqueue_t *cq, gpointer obj)
  */
 void gwc_init(void)
 {
-	gint i;
+	guint i;
 
 	gwc_known_url = g_hash_table_new(g_str_hash, g_str_equal);
 
@@ -966,7 +966,7 @@ void gwc_get_hosts(void)
 	 *		--RAM, 24/11/2003
 	 */
 
-	if (now - last_called < REUSE_PERIOD)
+	if (delta_time(now, last_called) < REUSE_PERIOD)
 		clear_current_url(FALSE);
 
 	last_called = now;

@@ -76,7 +76,7 @@ typedef struct adns_cache_entry {
 typedef struct adns_cache_struct {
 	guint size;
 	guint oldest;
-	time_t timeout;
+	guint timeout;
 	GHashTable *hashtab;
 	adns_cache_entry_t entries[ADNS_CACHED_NUM];
 } adns_cache_t;
@@ -203,7 +203,7 @@ static gboolean adns_cache_lookup(
 	entry = &cache->entries[i];
 	g_assert(hostname == entry->hostname);
 
-	if (entry->timestamp + cache->timeout > now) {
+	if (delta_time(now, entry->timestamp) < cache->timeout) {
 		if (NULL != ip)
 			*ip = entry->ip;
 		if (dbg > 0)

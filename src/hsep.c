@@ -286,7 +286,7 @@ void hsep_timer(void)
 			continue;
 
 		/* check how many seconds ago the last message was sent */
-		diff = now - n->hsep_last_sent;
+		diff = delta_time(now, n->hsep_last_sent);
 
 		/* the -900 is used to react to changes in system time */
 		if (diff >= HSEP_MSG_INTERVAL || diff < -900)

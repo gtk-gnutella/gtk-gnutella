@@ -369,7 +369,7 @@ void nodes_gui_update_nodes_display(time_t now)
 	 * at least.
 	 *		--RAM, 28/12/2003
 	 */
-	if (!nodes_gui_is_visible() && now - last_update < UPDATE_MIN)
+	if (!nodes_gui_is_visible() && delta_time(now, last_update) < UPDATE_MIN)
 		return;
 
     last_update = now;

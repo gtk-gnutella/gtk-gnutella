@@ -177,7 +177,7 @@ static void ipf_unban(cqueue_t *cq, gpointer obj)
 	 * and applying the linear decay coefficient.
 	 */
 
-	ipf->counter -= (now - ipf->ctime) * decay_coeff;
+	ipf->counter -= delta_time(now, ipf->ctime) * decay_coeff;
 	ipf->ctime = now;
 
 	if (dbg > 4)
@@ -244,7 +244,7 @@ ban_type_t ban_allow(guint32 ip)
 	 * and applying the linear decay coefficient.
 	 */
 
-	ipf->counter -= (now - ipf->ctime) * decay_coeff;
+	ipf->counter -= delta_time(now, ipf->ctime) * decay_coeff;
 
 	if (ipf->counter < 0.0)
 		ipf->counter = 0.0;
@@ -658,3 +658,4 @@ const gchar *ban_vendor(const gchar *vendor)
 	return NULL;
 }
 
+/* vi: set ts=4: */

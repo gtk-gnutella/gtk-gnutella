@@ -396,7 +396,7 @@ gboolean version_check(const gchar *str, const gchar *token, guint32 ip)
 	 * there must be a token present.
 	 */
 
-	if (their_version.timestamp >= TOKEN_START_DATE) {
+	if (delta_time(their_version.timestamp, 0) >= TOKEN_START_DATE) {
 		tok_error_t error;
 
 		if (token == NULL) {
@@ -430,7 +430,7 @@ gboolean version_check(const gchar *str, const gchar *token, guint32 ip)
 
 	if (
 		cmp == 0 &&
-		their_version.timestamp > target_version->timestamp &&
+		delta_time(their_version.timestamp, target_version->timestamp) > 0 &&
 		target_version == &last_rel_version
 	) {
 		if (dbg > 6)
@@ -458,10 +458,10 @@ gboolean version_check(const gchar *str, const gchar *token, guint32 ip)
 	if (their_version.tag == 'u' && cmp < 0)
 		return TRUE;
 
-	if (their_version.timestamp <= target_version->timestamp)
+	if (delta_time(their_version.timestamp, target_version->timestamp) <= 0)
 		return TRUE;
 
-	if (their_version.timestamp == our_version.timestamp)
+	if (delta_time(their_version.timestamp, our_version.timestamp) == 0)
 		return TRUE;
 
 	/*
@@ -522,7 +522,7 @@ void version_init(void)
 	g_assert(ok);
 
 	version_stamp(version_string, &our_version);
-	g_assert(our_version.timestamp > 0);
+	g_assert(our_version.timestamp != 0);
 
 	gm_snprintf(buf, sizeof(buf),
 		"gtk-gnutella/%s (%s)",
@@ -540,8 +540,9 @@ void version_init(void)
 
 	if (
 		tok_is_ancient(now) ||
-		now - our_version.timestamp > VERSION_ANCIENT_WARN ||
-		(our_version.tag && now - our_version.timestamp > VERSION_UNSTABLE_WARN)
+		delta_time(now, our_version.timestamp) > VERSION_ANCIENT_WARN ||
+		(our_version.tag &&
+			delta_time(now, our_version.timestamp) > VERSION_UNSTABLE_WARN)
 	)
 		ancient_version = TRUE;
 }
@@ -553,7 +554,7 @@ void version_init(void)
  * If that amount is greater than our grace period, refuse to run unless
  * they set the "ancient_version_force" property explicitly.
  */
-static void version_maybe_refuse(time_t overtime)
+static void version_maybe_refuse(guint overtime)
 {
 	gchar *force;
 	property_t prop = PROP_ANCIENT_VERSION_FORCE;
@@ -564,7 +565,7 @@ static void version_maybe_refuse(time_t overtime)
 	force = gnet_prop_get_string(prop, NULL, 0);
 
 	if (0 == strcmp(force, version_string)) {
-		g_free(force);
+		G_FREE_NULL(force);
 		return;
 	}
 
@@ -591,11 +592,9 @@ static void version_maybe_refuse(time_t overtime)
 void version_ancient_warn(void)
 {
 	time_t now = time(NULL);
-	time_t lifetime;
-	time_t remain;
-	time_t elapsed;
+	gint lifetime, remain, elapsed;
 
-	g_assert(our_version.timestamp > 0);	/* version_init() called */
+	g_assert(our_version.timestamp != 0);	/* version_init() called */
 
 	/*
 	 * Must reset the property to FALSE so that if it changes and becomes
@@ -606,7 +605,7 @@ void version_ancient_warn(void)
 
 	gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, FALSE);
 
-	elapsed = now - our_version.timestamp;
+	elapsed = delta_time(now, our_version.timestamp);
 
 	if (elapsed > VERSION_ANCIENT_WARN || tok_is_ancient(now)) {
 		version_maybe_refuse(elapsed - VERSION_ANCIENT_WARN);
@@ -647,16 +646,17 @@ gboolean version_is_too_old(const gchar *vendor)
 {
 	version_t ver;
 	time_t now = time(NULL);
+	gint d;
 
 	version_stamp(vendor, &ver);		/* Fills ver->timestamp */
-
-	if (now - ver.timestamp > VERSION_ANCIENT_BAN)
+	d = delta_time(now, ver.timestamp);
+	if (d > VERSION_ANCIENT_BAN)
 		return TRUE;
 
 	if (!version_parse(vendor, &ver))	/* Fills ver->tag */
 		return TRUE;					/* Unable to parse */
 
-	if (ver.tag && now - ver.timestamp > VERSION_UNSTABLE_BAN)
+	if (ver.tag && d > VERSION_UNSTABLE_BAN)
 		return TRUE;
 
 	return FALSE;
@@ -670,7 +670,9 @@ gboolean version_is_too_old(const gchar *vendor)
 void version_close(void)
 {
 	atom_str_free(version_string);
+	version_string = NULL;
 	atom_str_free(version_short_string);
+	version_short_string = NULL;
 
 	if (version_cmp(&our_version, &last_rel_version) < 0)
 		g_warning("upgrade recommended: most recent released version seen: %s",

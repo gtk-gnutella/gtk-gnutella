@@ -92,7 +92,7 @@ gboolean event_subscriber_active(struct event *evt);
                 t = (evt->triggered_count % s->f_interval) == 0;   \
                 break;                                             \
             case FREQ_SECS:                                        \
-                t = (guint32) difftime(now, s->last_call)		   \
+                t = (guint32) delta_time(now, s->last_call)		   \
 						> s->f_interval;   						   \
                 break;                                             \
             default:                                               \
