@@ -152,6 +152,12 @@ static gboolean update_window_geometry(property_t prop);
 #ifdef USE_GTK2
 static gboolean update_treeview_col_widths(property_t prop);
 #endif
+static gboolean hosts_in_catcher_changed(property_t prop);
+static gboolean hosts_in_ultra_catcher_changed(property_t prop);
+static gboolean hosts_in_bad_catcher_changed(property_t prop);
+static gboolean reading_hostfile_changed(property_t prop);
+static gboolean reading_ultrafile_changed(property_t prop);
+static gboolean hostcache_size_changed(property_t prop);
 static gboolean config_toolbar_style_changed(property_t prop);
 static gboolean bw_gnet_lin_enabled_changed(property_t prop);
 static gboolean bw_gnet_lout_enabled_changed(property_t prop);
@@ -162,15 +168,12 @@ static gboolean bw_ul_usage_enabled_changed(property_t prop);
 static gboolean bw_http_out_enabled_changed(property_t prop);
 static gboolean proxy_ip_changed(property_t prop);
 static gboolean monitor_enabled_changed(property_t prop);
-static gboolean reading_hostfile_changed(property_t prop);
 static gboolean ancient_version_changed(property_t prop);
 static gboolean ancient_version_left_days_changed(property_t prop);
 static gboolean new_version_str_changed(property_t prop);
 static gboolean send_pushes_changed(property_t prop);
 static gboolean statusbar_visible_changed(property_t prop);
 static gboolean toolbar_visible_changed(property_t prop);
-static gboolean hosts_in_catcher_changed(property_t prop);
-static gboolean hosts_in_ultra_catcher_changed(property_t prop);
 static gboolean progressbar_bws_in_visible_changed(property_t prop);
 static gboolean progressbar_bws_out_visible_changed(property_t prop);
 static gboolean progressbar_bws_gin_visible_changed(property_t prop);
@@ -499,6 +502,25 @@ static prop_map_t property_map[] = {
         FREQ_UPDATES, 0
     ),
 #endif
+#ifdef USE_GTK2
+    PROP_ENTRY(
+        get_main_window,
+        PROP_HCACHE_COL_WIDTHS,
+        update_treeview_col_widths,
+        TRUE,
+        "treeview_hcache",
+        FREQ_UPDATES, 0
+    ),
+#else
+    PROP_ENTRY(
+        get_main_window,
+        PROP_HCACHE_COL_WIDTHS,
+        update_clist_col_widths,
+        TRUE,
+        "clist_hcache",
+        FREQ_UPDATES, 0
+    ),
+#endif
 #ifndef USE_GTK2
     PROP_ENTRY(
         get_main_window,
@@ -772,6 +794,14 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_main_window,
+        PROP_QUICK_CONNECT_POOL_SIZE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_quick_connect_pool_size",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
         PROP_NODE_LEAF_COUNT,
         gnet_connections_changed,
         FALSE,
@@ -848,14 +878,6 @@ static prop_map_t property_map[] = {
         proxy_ip_changed,
         TRUE,
         "entry_config_proxy_ip",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_MAX_HOSTS_CACHED,
-        update_spinbutton,
-        TRUE,
-        "spinbutton_nodes_max_hosts_cached",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -1321,22 +1343,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_config_proxy_auth",
         FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_HOSTS_IN_CATCHER,
-        hosts_in_catcher_changed,
-        TRUE,
-        "progressbar_hosts_in_catcher",
-        FREQ_SECS, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_READING_HOSTFILE,
-        reading_hostfile_changed,
-        TRUE,
-        NULL,
-        FREQ_SECS, 1
     ),
     PROP_ENTRY(
         get_main_window,
@@ -2300,11 +2306,11 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         get_main_window,
-        PROP_MAX_ULTRA_HOSTS_CACHED,
-        update_spinbutton,
+        PROP_HOSTS_IN_CATCHER,
+        hosts_in_catcher_changed,
         TRUE,
-        "spinbutton_nodes_max_ultra_hosts_cached",
-        FREQ_UPDATES, 0
+        "progressbar_hosts_in_catcher",
+        FREQ_SECS, 0
     ),
     PROP_ENTRY(
         get_main_window,
@@ -2313,6 +2319,54 @@ static prop_map_t property_map[] = {
         TRUE,
         "progressbar_hosts_in_ultra_catcher",
         FREQ_SECS, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_HOSTS_IN_BAD_CATCHER,
+        hosts_in_bad_catcher_changed,
+        TRUE,
+        "progressbar_hosts_in_bad_catcher",
+        FREQ_SECS, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_READING_HOSTFILE,
+        reading_hostfile_changed,
+        TRUE,
+        NULL,
+        FREQ_SECS, 1
+    ),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_READING_ULTRAFILE,
+        reading_ultrafile_changed,
+        TRUE,
+        NULL,
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_MAX_HOSTS_CACHED,
+        hostcache_size_changed,
+        TRUE,
+        "spinbutton_max_hosts_cached",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_MAX_ULTRA_HOSTS_CACHED,
+        hostcache_size_changed,
+        TRUE,
+        "spinbutton_max_ultra_hosts_cached",
+        FREQ_UPDATES, 0
+    ),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_MAX_BAD_HOSTS_CACHED,
+        hostcache_size_changed,
+        TRUE,
+        "spinbutton_max_bad_hosts_cached",
+        FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
         get_main_window,
@@ -2480,14 +2534,6 @@ static prop_map_t property_map[] = {
         update_spinbutton_ultranode,
         TRUE,
         "spinbutton_normal_connections",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_READING_ULTRAFILE,
-        update_entry,
-        TRUE,
-        "entry_reading_ultrafile",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
@@ -3770,6 +3816,90 @@ static gboolean monitor_enabled_changed(property_t prop)
     return FALSE;
 }
 
+static void set_host_progress(const gchar *w, guint32 cur, guint32 max)
+{
+    GtkProgressBar *pg = GTK_PROGRESS_BAR(lookup_widget(main_window, w));
+    gfloat frac;
+
+    frac = MIN(cur, max) != 0 ? (float)MIN(cur, max) / max : 0;
+
+	gm_snprintf(set_tmp, sizeof(set_tmp), 
+#ifdef USE_GTK2
+		_("%u/%u host%s (%u%%)"),
+#else
+		_("%u/%u host%s (%u%%%%)"),
+#endif
+        cur, max, (cur == 1 && max == 1) ? "" : "s",
+        (guint)(frac*100));
+
+    gtk_progress_bar_set_text(pg, set_tmp);
+    gtk_progress_bar_set_fraction(pg, frac);
+}
+
+static gboolean hosts_in_catcher_changed(property_t prop)
+{
+    guint32 hosts_in_catcher;
+    guint32 max_hosts_cached;
+
+    gnet_prop_get_guint32_val(PROP_HOSTS_IN_CATCHER, &hosts_in_catcher);
+    gnet_prop_get_guint32_val(PROP_MAX_HOSTS_CACHED, &max_hosts_cached);
+
+    gtk_widget_set_sensitive(
+        lookup_widget(main_window, "button_host_catcher_clear"),
+        hosts_in_catcher != 0);
+
+    set_host_progress(
+        "progressbar_hosts_in_catcher",
+        hosts_in_catcher,
+        max_hosts_cached);
+
+    return FALSE;
+}
+
+static gboolean hosts_in_ultra_catcher_changed(property_t prop)
+{
+    guint32 hosts;
+    guint32 max_hosts;
+
+    gnet_prop_get_guint32_val(PROP_HOSTS_IN_ULTRA_CATCHER, &hosts);
+    gnet_prop_get_guint32_val(PROP_MAX_ULTRA_HOSTS_CACHED, &max_hosts);
+
+    gtk_widget_set_sensitive(
+        lookup_widget(main_window, "button_ultra_catcher_clear"), 
+        hosts != 0);
+
+    set_host_progress(
+        "progressbar_hosts_in_ultra_catcher", 
+        hosts, 
+        max_hosts);
+
+    return FALSE;
+}
+
+static gboolean hosts_in_bad_catcher_changed(property_t prop)
+{
+    guint32 hosts;
+    guint32 max_hosts;
+
+    gnet_prop_get_guint32_val(PROP_HOSTS_IN_BAD_CATCHER, &hosts);
+    gnet_prop_get_guint32_val(PROP_MAX_BAD_HOSTS_CACHED, &max_hosts);
+
+    gtk_widget_set_sensitive(
+        lookup_widget(main_window, "button_hostcache_clear_bad"), 
+        hosts != 0);
+
+    /* 
+     * Multiply by 3 because the three bad hostcaches can't steal slots
+     * from each other.
+     */
+    set_host_progress(
+        "progressbar_hosts_in_bad_catcher", 
+        hosts, 
+        max_hosts*3); 
+
+    return FALSE;
+}
+
 static gboolean reading_hostfile_changed(property_t prop)
 {
     gboolean state;
@@ -3786,6 +3916,45 @@ static gboolean reading_hostfile_changed(property_t prop)
 		if (0 != id.scid)
        		statusbar_gui_remove(id);
     }
+    return FALSE;
+}
+
+static gboolean reading_ultrafile_changed(property_t prop)
+{
+    gboolean state;
+    static statusbar_msgid_t id = {0, 0};
+
+    gnet_prop_get_boolean_val(PROP_READING_ULTRAFILE, &state);
+    if (state) {
+        GtkProgressBar *pg = GTK_PROGRESS_BAR
+            (lookup_widget(main_window, "progressbar_hosts_in_ultra_catcher"));
+        gtk_progress_bar_set_text(pg, _("loading..."));
+        id = statusbar_gui_message(0, _("Reading ultra cache..."));
+    } else {
+    	hosts_in_catcher_changed(PROP_HOSTS_IN_ULTRA_CATCHER);
+		if (0 != id.scid)
+       		statusbar_gui_remove(id);
+    }
+    return FALSE;
+}
+
+static gboolean hostcache_size_changed(property_t prop)
+{
+    update_spinbutton(prop);
+    switch(prop) {
+    case PROP_MAX_HOSTS_CACHED:
+        hosts_in_catcher_changed(PROP_HOSTS_IN_CATCHER);
+        break;
+    case PROP_MAX_ULTRA_HOSTS_CACHED:
+        hosts_in_ultra_catcher_changed(PROP_HOSTS_IN_ULTRA_CATCHER);
+        break;
+    case PROP_MAX_BAD_HOSTS_CACHED:
+        hosts_in_bad_catcher_changed(PROP_HOSTS_IN_BAD_CATCHER);
+        break;
+    default:
+        g_error("hostcache_size_changed: unknown hostcache property %d", prop);
+    }
+    
     return FALSE;
 }
 
@@ -3947,62 +4116,6 @@ static gboolean toolbar_visible_changed(property_t prop)
             (lookup_widget(main_window, "hb_toolbar"));
 	}
 
-    return FALSE;
-}
-
-static void set_host_progress(const gchar *w, guint32 cur, guint32 max)
-{
-    GtkProgressBar *pg = GTK_PROGRESS_BAR(lookup_widget(main_window, w));
-    gfloat frac;
-
-    frac = MIN(cur, max) != 0 ? (float)MIN(cur, max) / max : 0;
-
-	gm_snprintf(set_tmp, sizeof(set_tmp), 
-#ifdef USE_GTK2
-		_("%u/%u host%s (%u%%)"),
-#else
-		_("%u/%u host%s (%u%%%%)"),
-#endif
-        cur, max, (cur == 1 && max == 1) ? "" : "s",
-        (guint)(frac*100));
-
-    gtk_progress_bar_set_text(pg, set_tmp);
-    gtk_progress_bar_set_fraction(pg, frac);
-}
-
-static gboolean hosts_in_catcher_changed(property_t prop)
-{
-    guint32 hosts_in_catcher;
-    guint32 max_hosts_cached;
-
-    gnet_prop_get_guint32_val(PROP_HOSTS_IN_CATCHER, &hosts_in_catcher);
-    gnet_prop_get_guint32_val(PROP_MAX_HOSTS_CACHED, &max_hosts_cached);
-
-    gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_host_catcher_clear"), 
-        hosts_in_catcher != 0);
-
-    set_host_progress(
-        "progressbar_hosts_in_catcher", 
-        hosts_in_catcher,
-        max_hosts_cached);
-    
-    return FALSE;
-}
-
-static gboolean hosts_in_ultra_catcher_changed(property_t prop)
-{
-    guint32 hosts;
-    guint32 max_hosts;
-
-    gnet_prop_get_guint32_val(PROP_HOSTS_IN_ULTRA_CATCHER, &hosts);
-    gnet_prop_get_guint32_val(PROP_MAX_ULTRA_HOSTS_CACHED, &max_hosts);
-
-    gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_ultra_catcher_clear"), hosts != 0);
-
-    set_host_progress("progressbar_hosts_in_ultra_catcher", hosts, max_hosts);
-    
     return FALSE;
 }
 
@@ -4572,7 +4685,6 @@ static gboolean expert_mode_changed(property_t prop)
         "frame_expert_unmapped",
         "button_search_passive",
         "frame_expert_node_info",
-        "notebook_expert_stats_hosts",
         "frame_expert_rx_buffers",
         "frame_expert_gnet_message_size",
         "frame_expert_search_queue",
