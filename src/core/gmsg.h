@@ -35,6 +35,7 @@
 
 struct gnutella_node;
 struct route_dest;
+struct mqueue;
 
 #define gmsg_function(p) (((struct gnutella_header *) p)->function)
 #define gmsg_hops(p)     (((struct gnutella_header *) p)->hops)
@@ -48,6 +49,8 @@ const gchar *gmsg_name(guint function);
 
 pmsg_t *gmsg_to_pmsg(gpointer msg, guint32 size);
 pmsg_t *gmsg_to_ctrl_pmsg(gpointer msg, guint32 size);
+pmsg_t * gmsg_to_ctrl_pmsg_extend(
+	gpointer msg, guint32 size, pmsg_free_t free, gpointer arg);
 pmsg_t *gmsg_split_to_pmsg(gpointer head, gpointer data, guint32 size);
 pmsg_t * gmsg_split_to_pmsg_extend(
 	gpointer head, gpointer data, guint32 size, pmsg_free_t free, gpointer arg);
@@ -73,6 +76,8 @@ gint gmsg_cmp(gpointer pdu1, gpointer pdu2);
 gchar *gmsg_infostr(gpointer head);
 gchar *gmsg_infostr_full(gpointer message);
 gchar *gmsg_infostr_full_split(gpointer head, gpointer data);
+
+void gmsg_install_presend(pmsg_t *mb);
 
 void gmsg_log_dropped(gpointer head,
 	gchar *reason, ...) G_GNUC_PRINTF(2, 3);

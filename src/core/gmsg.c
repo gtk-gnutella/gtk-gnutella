@@ -108,7 +108,11 @@ gmsg_name(guint function)
 pmsg_t *
 gmsg_to_pmsg(gpointer msg, guint32 size)
 {
-	return pmsg_new(PMSG_P_DATA, msg, size);
+	pmsg_t *mb;
+
+	mb = pmsg_new(PMSG_P_DATA, msg, size);
+	gmsg_install_presend(mb);
+	return mb;
 }
 
 /**
@@ -117,7 +121,26 @@ gmsg_to_pmsg(gpointer msg, guint32 size)
 pmsg_t *
 gmsg_to_ctrl_pmsg(gpointer msg, guint32 size)
 {
-	return pmsg_new(PMSG_P_CONTROL, msg, size);
+	pmsg_t *mb;
+
+	mb = pmsg_new(PMSG_P_CONTROL, msg, size);
+	gmsg_install_presend(mb);
+	return mb;
+}
+
+/**
+ * Construct extended control PDU (with free routine) from message.
+ */
+pmsg_t *
+gmsg_to_ctrl_pmsg_extend(
+	gpointer msg, guint32 size, pmsg_free_t free, gpointer arg)
+{
+	pmsg_t *mb;
+
+	mb = pmsg_new_extend(PMSG_P_CONTROL, msg, size, free, arg);
+	gmsg_install_presend(mb);
+
+	return mb;
 }
 
 /**
@@ -144,6 +167,7 @@ gmsg_split_to_pmsg(gpointer head, gpointer data, guint32 size)
 
 	mb = pmsg_new(PMSG_P_DATA, NULL, size);
 	write_message(mb, head, data, size);
+	gmsg_install_presend(mb);
 
 	return mb;
 }
@@ -159,6 +183,7 @@ gmsg_split_to_pmsg_extend(
 
 	mb = pmsg_new_extend(PMSG_P_DATA, NULL, size, free, arg);
 	write_message(mb, head, data, size);
+	gmsg_install_presend(mb);
 
 	return mb;
 }
@@ -566,6 +591,61 @@ gmsg_sendto_route_ggep(
 /***
  *** Miscellaneous utilities.
  ***/
+
+/**
+ * Test whether a query can be sent.
+ *
+ * We look at the hops-flow, and whether there is a route for the query hits
+ * if it is a non-OOB query: no need to forward the request if the reply
+ * will be dropped.
+ *
+ * Note that queries with hops=0 are not necessarily ours, since the queries
+ * from our leaves are propagated as if they were coming from ourselves.
+ * Therefore, unless the OOB flag is set, we always check for an existing
+ * route.
+ */
+static gboolean
+gmsg_query_can_send(pmsg_t *mb, mqueue_t *q)
+{
+	gnutella_node_t *n = mq_node(q);
+	gchar *start = pmsg_start(mb);
+	struct gnutella_header *head = (struct gnutella_header *) start;
+
+	g_assert(head->function == GTA_MSG_SEARCH);
+
+	if (!node_query_hops_ok(n, head->hops)) {
+		if (dbg > 4)
+			gmsg_log_dropped(start, "to node %s due to hops-flow", node_ip(n));
+		return FALSE;
+	}
+
+	if (gmsg_is_oob_query(start))
+		return TRUE;
+
+	if (!route_exists_for_reply(start, head->function)) {
+		if (dbg > 4)
+			gmsg_log_dropped(start, "to node %s due to no route for hits",
+				node_ip(n));
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
+ * Install "pre-send" callback for certain types of messages.
+ */
+void
+gmsg_install_presend(pmsg_t *mb)
+{
+	gchar *start = pmsg_start(mb);
+	struct gnutella_header *head = (struct gnutella_header *) start;
+
+	if (head->function == GTA_MSG_SEARCH) {
+		gpointer old = pmsg_set_check(mb, gmsg_query_can_send);
+		g_assert(old == NULL);
+	}
+}
 
 /**
  * Test whether the Gnutella message can be safely dropped on the connection.
