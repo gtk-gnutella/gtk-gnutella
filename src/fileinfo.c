@@ -2222,8 +2222,10 @@ static gchar *file_info_new_outname(const gchar *name)
 	return NULL;
 
 ok:
-	if (escaped != name && escaped != empty)
-		G_FREE_NULL((gchar *) escaped); /* Override const */
+	if (escaped != name && escaped != empty) {
+		g_free((gchar *) escaped); /* Override const */
+		escaped = NULL; /* Don't use G_FREE_NULL b/c of lvalue cast */
+	}
 
 	return result;
 }

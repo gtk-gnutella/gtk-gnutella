@@ -1561,8 +1561,10 @@ static struct shared_file *get_file_to_upload_from_index(
 			upload_error_remove_ext(u, sfn, location,
 				301, "Moved Permanently");
 
-			if (escaped != sfn->file_name)
-				G_FREE_NULL((gchar *) escaped); /* Override const */
+			if (escaped != sfn->file_name) {
+				g_free((gchar *) escaped); /* Override const */
+				escaped = NULL;	/* Don't use G_FREE_NULL b/c of lvalue cast */
+			}
 			return NULL;
 		}
 		else if (sf == NULL)
