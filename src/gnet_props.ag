@@ -1482,6 +1482,17 @@ prop = {
 };
 
 prop = {
+    name = "dl_qalive_count";
+    desc = "How many queued downloads are currently responsive "
+			"(remote servent answering requests).";
+	save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
     name = "dl_byte_count";
     desc = "Amount of bytes downloaded so far, HTTP headers not withstanding.";
 	save = FALSE;

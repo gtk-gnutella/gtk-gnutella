@@ -299,6 +299,8 @@ guint32  dl_queue_count     = 0;
 guint32  dl_queue_count_def = 0;
 guint32  dl_running_count     = 0;
 guint32  dl_running_count_def = 0;
+guint32  dl_qalive_count     = 0;
+guint32  dl_qalive_count_def = 0;
 guint32  dl_byte_count     = 0;
 guint32  dl_byte_count_def = 0;
 guint32  ul_byte_count     = 0;
@@ -2710,23 +2712,43 @@ prop_set_t *gnet_prop_init(void) {
 
 
     /*
-     * PROP_DL_BYTE_COUNT:
+     * PROP_DL_QALIVE_COUNT:
      *
      * General data:
      */
-    gnet_property->props[125].name = "dl_byte_count";
-    gnet_property->props[125].desc = "Amount of bytes downloaded so far, HTTP headers not withstanding.";
+    gnet_property->props[125].name = "dl_qalive_count";
+    gnet_property->props[125].desc = "How many queued downloads are currently responsive (remote servent answering requests).";
     gnet_property->props[125].prop_changed_listeners = NULL;
     gnet_property->props[125].save = FALSE;
     gnet_property->props[125].vector_size = 1;
 
     /* Type specific data: */
     gnet_property->props[125].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[125].data.guint32.def   = &dl_byte_count_def;
-    gnet_property->props[125].data.guint32.value = &dl_byte_count;
+    gnet_property->props[125].data.guint32.def   = &dl_qalive_count_def;
+    gnet_property->props[125].data.guint32.value = &dl_qalive_count;
     gnet_property->props[125].data.guint32.choices = NULL;
     gnet_property->props[125].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[125].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_DL_BYTE_COUNT:
+     *
+     * General data:
+     */
+    gnet_property->props[126].name = "dl_byte_count";
+    gnet_property->props[126].desc = "Amount of bytes downloaded so far, HTTP headers not withstanding.";
+    gnet_property->props[126].prop_changed_listeners = NULL;
+    gnet_property->props[126].save = FALSE;
+    gnet_property->props[126].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[126].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[126].data.guint32.def   = &dl_byte_count_def;
+    gnet_property->props[126].data.guint32.value = &dl_byte_count;
+    gnet_property->props[126].data.guint32.choices = NULL;
+    gnet_property->props[126].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[126].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -2734,19 +2756,19 @@ prop_set_t *gnet_prop_init(void) {
      *
      * General data:
      */
-    gnet_property->props[126].name = "ul_byte_count";
-    gnet_property->props[126].desc = "Amount of bytes uploaded so far, HTTP headers not withstanding.";
-    gnet_property->props[126].prop_changed_listeners = NULL;
-    gnet_property->props[126].save = FALSE;
-    gnet_property->props[126].vector_size = 1;
+    gnet_property->props[127].name = "ul_byte_count";
+    gnet_property->props[127].desc = "Amount of bytes uploaded so far, HTTP headers not withstanding.";
+    gnet_property->props[127].prop_changed_listeners = NULL;
+    gnet_property->props[127].save = FALSE;
+    gnet_property->props[127].vector_size = 1;
 
     /* Type specific data: */
-    gnet_property->props[126].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[126].data.guint32.def   = &ul_byte_count_def;
-    gnet_property->props[126].data.guint32.value = &ul_byte_count;
-    gnet_property->props[126].data.guint32.choices = NULL;
-    gnet_property->props[126].data.guint32.max   = 0xFFFFFFFF;
-    gnet_property->props[126].data.guint32.min   = 0x00000000;
+    gnet_property->props[127].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[127].data.guint32.def   = &ul_byte_count_def;
+    gnet_property->props[127].data.guint32.value = &ul_byte_count;
+    gnet_property->props[127].data.guint32.choices = NULL;
+    gnet_property->props[127].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[127].data.guint32.min   = 0x00000000;
     return gnet_property;
 }
 
