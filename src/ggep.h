@@ -104,6 +104,17 @@ void ggep_mark_last(guchar *start);
 
 ggept_status_t ggept_h_sha1_extract(extvec_t *exv, guchar *buf, gint len);
 
+struct ggep_gtkgv1 {				/* Decompiled payload of "GTKGV1" */
+	guint8 major;
+	guint8 minor;
+	guint8 patch;
+	guint8 revchar;
+	guint32 release;
+	guint32 start;
+};
+
+ggept_status_t ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info);
+
 #endif	/* _ggep_h_ */
 
 /* vi: set ts=4: */

@@ -63,6 +63,7 @@ static struct rwtable urntable[] =	/* URN name table (sorted) */
 
 static struct rwtable ggeptable[] =	/* GGEP extension table (sorted) */
 {
+	{ "GTKGV1",			EXT_T_GGEP_GTKGV1 },
 	{ "H",				EXT_T_GGEP_H },
 };
 

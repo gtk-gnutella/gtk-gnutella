@@ -100,6 +100,7 @@ typedef struct extvec {
 #define EXT_T_XML				4	/* XML payload */
 #define EXT_T_GGEP_H			5	/* GGEP binary hash value */
 #define EXT_T_OVERHEAD			6	/* Pure overhead */
+#define EXT_T_GGEP_GTKGV1		7	/* GTKG version indication #1 */
 
 /*
  * Public interface.

@@ -594,3 +594,37 @@ ggept_status_t ggept_h_sha1_extract(extvec_t *exv, guchar *buf, gint len)
 	return GGEP_OK;
 }
 
+/*
+ * ggept_gtkgv1_extract
+ *
+ * Extract payload information from "GTKGV1" into `info'.
+ */
+ggept_status_t ggept_gtkgv1_extract(extvec_t *exv, struct ggep_gtkgv1 *info)
+{
+	guchar tmp[16];
+	guchar *p = tmp;
+	gint tlen;
+
+	g_assert(exv->ext_type == EXT_GGEP);
+	g_assert(exv->ext_token == EXT_T_GGEP_GTKGV1);
+
+	tlen = ggep_decode_into(exv, tmp, sizeof(tmp));
+
+	if (tlen != 12)
+		return GGEP_INVALID;
+
+	info->major = *p++;
+	info->minor = *p++;
+	info->patch = *p++;
+	info->revchar = *p++;
+
+	READ_GUINT32_BE(p, info->release);
+	p += 4;
+	READ_GUINT32_BE(p, info->start);
+	p += 4;
+
+	g_assert(p - tmp == 12);
+
+	return GGEP_OK;
+}
+
