@@ -54,6 +54,11 @@ enum dl_list {
 	DL_LIST_SZ		= 3,
 };
 
+struct vernum {
+	guint major;
+	guint minor;
+};
+
 struct dl_key {
 	guchar *guid;			/* GUID of server (atom) */
 	guint32 ip;				/* IP address of server */
@@ -66,6 +71,7 @@ struct dl_server {
 	gint count[DL_LIST_SZ];		/* Amount of downloads in list */
 	gchar *vendor;			/* Remote server vendor string (atom) */
 	time_t retry_after;		/* Time at which we may retry from this host */
+	struct vernum parq_version;	/* Supported queueing version */
 	guint32 attrs;
 };
 

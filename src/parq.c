@@ -44,6 +44,7 @@ gboolean get_header_version(gchar const *const header,
 {
 	return sscanf(header, ": %d.%d", major, minor) != 0;
 }
+
 /* 
  * get_header_value
  *
@@ -51,27 +52,75 @@ gboolean get_header_version(gchar const *const header,
  * is returned for that value.
  */
 gchar *get_header_value(
-	gchar const *const s, gchar const *const attribute, gint *length)
+	gchar *const s, gchar const *const attribute, gint *length)
 {
-	gchar *lowercase_header;
+	gchar *lowercase_header = s;
 	gchar *end;
+	gboolean found_right_attribute = FALSE;
+	size_t attrlen;
+	gchar e;
+	gchar b;
 	
 	g_assert(s != NULL);
 	g_assert(attribute != NULL);
 
-	// XXX This routine is fragile.  If looking for say "bar=x", we can
-	// XXX mistakenly parse "foobar=x" instead. --RAM, 03/02/2003
-	
-	lowercase_header = strcasestr(s, attribute);
+	attrlen = strlen(attribute);
 
+	/*
+	 * When we are looking for "foo", make sure we aren't actually
+	 * parsing "barfoobar". There should be at least a space, or a
+	 * delimiter at the end and at the beginning.
+	 */
+
+	do {
+		lowercase_header = strcasestr(lowercase_header, attribute);
+		
+		if (lowercase_header == NULL)
+			return NULL;
+
+		e = lowercase_header[attrlen];		/* End char after attribute */
+		
+		if (lowercase_header == s) {
+			/*
+			 * This is actually the first value of the header. And it
+			 * started at position '0'. Which is the same as were
+			 * s pointed too. Only check to see if the end is correct
+			 */
+
+			found_right_attribute = e == ' ' || e == '=' || e == '\0';
+		} else {
+			b = *(lowercase_header - 1);	/* Character before attribute */
+			found_right_attribute = (
+					b == ';' || b == ',' || b == ':' || b == ' '
+				) && (
+					e == ' ' || e == '=' || e == '\0'
+				);
+		}
+		
+		/* 
+		 * If we weren't looking at the right value. Move on to the next.
+		 * If there are no valid values, the while loop will abort with 
+		 * lowercase_header == NULL
+		 */
+		if (!found_right_attribute)
+			lowercase_header++;
+
+	} while (!found_right_attribute && lowercase_header != NULL);	
+	
+	
 	if (lowercase_header == NULL)
 		return NULL;
-
+		
 	lowercase_header = strchr(lowercase_header, '=');
 	if (lowercase_header == NULL)
 		return NULL;
 
 	lowercase_header += sizeof(gchar);
+
+	/*
+	 * If we need to compute the length of the attribute's value, look for
+	 * the next trailing delimiter (';' or ',').
+	 */
 	
 	if (length != NULL) {
 		*length = 0;
@@ -93,10 +142,8 @@ gchar *get_header_value(
 			*length = end - lowercase_header;
 	}
 
-	/* Could be NULL */
-	return lowercase_header;
+	return lowercase_header;		/* Could be NULL */
 }
-
 
 /*
  * parq_download_retry_active_queued
@@ -196,6 +243,9 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 		minor = 1;
 	}
 	
+	d->server->parq_version.major = major;
+	d->server->parq_version.minor = minor;
+	
 	switch (major) {
 	case 0:				/* Active queueing */		
 		d->queue_status.ID[0] = '\0';
@@ -241,8 +291,6 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 			d->queue_status.retry_delay);
 	}
 	
-	
-	/* FIXME: This isn't 100% correct yet for PARQ, it is for active queueing */
 	if (parq_download_is_active_queued(d)) {
 		/*
 		 * Don't keep a chunk busy if we are queued, perhaps another servent
@@ -274,8 +322,10 @@ gboolean parq_download_is_active_queued(struct download *d)
  * parq_download_add_header
  *
  * Adds an:
- * X-Queue: 1.0
- * X-Queued: position=x; ID=xxxxx
+ *
+ *    X-Queue: 1.0
+ *    X-Queued: position=x; ID=xxxxx
+ *
  * to the HTTP GET request
  */
 void parq_download_add_header(
@@ -285,10 +335,12 @@ void parq_download_add_header(
 		"X-Queue: %d.%d\r\n", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
 
 	/*
-	 * XXX -- assume it's not PARQ if there is no ID --RAM, 02/02/2003.
+	 * Only add X-Queued header if server really supports X-Queue: 1.x. Don't
+	 * add X-Queued if there is no ID available. This could be because it is
+	 * a first request.
 	 */
 
-	if (d->queue_status.ID[0] != '\0')
+	if (d->server->parq_version.major == 1 && d->queue_status.ID[0] != '\0')
 		*rw += gm_snprintf(&buf[*rw], len - *rw,
 			"X-Queued: position=%d; ID=%s\r\n",
 			d->queue_status.position, d->queue_status.ID);
