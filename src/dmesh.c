@@ -104,7 +104,11 @@ struct dmesh_banned {
 	dmesh_urlinfo_t *info;	/* The banned URL (same as key) */
 	time_t ctime;			/* Last time we saw this banned URL */
 	gpointer cq_ev;			/* Scheduled callout event */
+	
+	const gchar *sha1;
 };
+
+static GHashTable *ban_mesh_by_sha1 = NULL;
 
 #define BAN_LIFETIME	7200		/* 2 hours */
 
@@ -157,6 +161,7 @@ void dmesh_init(void)
 {
 	mesh = g_hash_table_new(sha1_hash, sha1_eq);
 	ban_mesh = g_hash_table_new(urlinfo_hash, urlinfo_eq);
+	ban_mesh_by_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
 	dmesh_retrieve();
 	dmesh_ban_retrieve();
 }
@@ -215,9 +220,27 @@ static void dmesh_ban_expire(cqueue_t *cq, gpointer obj)
 {
 	struct dmesh_banned *dmb = (struct dmesh_banned *) obj;
 
+	GSList *by_ip;
+	
 	g_assert(dmb);
 	g_assert((gpointer) dmb == g_hash_table_lookup(ban_mesh, dmb->info));
 
+	/*
+	 * Also remove the banned entry from the IP list by SHA1 which is ussed
+	 * by X-NAlt
+	 *		-- JA 24/10/2003
+	 */
+	if (dmb->sha1 != NULL) {
+		by_ip = g_hash_table_lookup(ban_mesh_by_sha1, dmb->sha1);
+		g_hash_table_remove(ban_mesh_by_sha1, dmb->sha1);
+		
+		by_ip = g_slist_remove(by_ip, &dmb->info->ip);
+		
+		if (by_ip != NULL) {
+			g_hash_table_insert(ban_mesh_by_sha1, dmb->sha1, by_ip);
+		}
+	}
+	
 	g_hash_table_remove(ban_mesh, dmb->info);
 	dmesh_urlinfo_free(dmb->info);
 	wfree(dmb, sizeof(*dmb));
@@ -229,11 +252,15 @@ static void dmesh_ban_expire(cqueue_t *cq, gpointer obj)
  * Add new URL to the banned hash.
  * If stamp is 0, the current timestamp is used.
  */
-static void dmesh_ban_add(dmesh_urlinfo_t *info, time_t stamp)
+static void dmesh_ban_add(const gchar *sha1,
+	  dmesh_urlinfo_t *info,
+	  time_t stamp)
 {
 	time_t now = time(NULL);
 	struct dmesh_banned *dmb;
 	gint lifetime = BAN_LIFETIME;
+	
+	GList *by_ip = NULL;
 
 	if (stamp == 0)
 		stamp = now;
@@ -246,6 +273,10 @@ static void dmesh_ban_add(dmesh_urlinfo_t *info, time_t stamp)
 
 	if (lifetime <= 0)
 		return;
+
+	if (sha1 != NULL) {
+		by_ip = (GList *) g_hash_table_lookup(ban_mesh_by_sha1, sha1);
+	}
 
 	/*
 	 * Insert new entry, or update old entry if the new one is more recent.
@@ -267,13 +298,31 @@ static void dmesh_ban_add(dmesh_urlinfo_t *info, time_t stamp)
 		dmb->ctime = stamp;
 		dmb->cq_ev = cq_insert(callout_queue,
 			lifetime * 1000, dmesh_ban_expire, dmb);
-
+		dmb->sha1 = NULL;
+		
 		g_hash_table_insert(ban_mesh, dmb->info, dmb);
+		
+		/*
+		 * Keep record of banned hosts by SHA1 Hash. We will use this to send
+		 * out X-Nalt locations.
+		 *		-- JA, 1/11/2003.
+		 */
+		if (sha1 != NULL) {
+			/*
+			 * We remove it from the hash table first because we are going
+			 * to modify the list.
+			 */
+			g_hash_table_remove(ban_mesh_by_sha1, sha1);
+			
+			by_ip = g_list_append(by_ip, dmb);
+
+			g_hash_table_insert(ban_mesh_by_sha1, atom_sha1_get(sha1), by_ip);
+		}
 	}
 	else if (dmb->ctime < stamp) {
 		dmb->ctime = stamp;
 		cq_resched(callout_queue, dmb->cq_ev, lifetime * 1000);
-	}
+	}	
 }
 
 /*
@@ -601,7 +650,7 @@ void dmesh_remove(const gchar *sha1,
 	 */
 
 	dmesh_fill_info(&info, sha1, ip, port, idx, name);
-	dmesh_ban_add(&info, 0);
+	dmesh_ban_add(sha1, &info, 0);
 
 	/*
 	 * Lookup SHA1 in the mesh to see if we already have entries for it.
@@ -1070,7 +1119,7 @@ gint dmesh_alternate_location(const gchar *sha1,
 {
 	gchar url[1024];
 	struct dmesh *dm;
-	gint len;
+	gint len = 0;
 	GSList *l;
 	gint nurl = 0;
 	gint nselected = 0;
@@ -1080,21 +1129,67 @@ gint dmesh_alternate_location(const gchar *sha1,
 	gint maxslen = size - 1;		/* Account for trailing NUL */
 	gboolean use_compact = FALSE;
 	gint linelen;
-
+	
 	g_assert(sha1);
 	g_assert(buf);
 	g_assert(size >= 0);
 
 	if (vendor != NULL && huge_has_xalt_support(vendor))
 		use_compact = TRUE;
+
+	/* Find mesh entry for this SHA1 */
+	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
+	
+	/*
+	 * Get the X-Nalts and fill this header. Only fill up to a maximum of 33%
+	 * of the total buffer size.
+	 *		 -- JA, 1/11/2003
+	 */
+	if (use_compact) {
+		GList *by_ip = NULL;
+		GList *cur;
+		gboolean first = TRUE;
+
+		/*
+		 * Get the list with banned ips
+		 */
+		by_ip = (GList *) g_hash_table_lookup(ban_mesh_by_sha1, sha1);
+		
+		/* Loop through the X-Nalts */
+		for (cur = g_list_first(by_ip);
+			cur != g_list_last(by_ip);
+			cur = g_list_next(cur)) {
+			
+			struct dmesh_banned *banned = (struct dmesh_banned *) cur->data;
+			if (banned->ctime > last_sent) {
+				if (first) {
+					len = gm_snprintf(&buf[len], size - len, "X-Nalt: ");
+					first = FALSE;
+				} else {
+					len = gm_snprintf(&buf[len], size - len, ",");
+				}
+				
+				len += gm_snprintf(&buf[len], size - len, "%s:%d", 
+					ip_to_gchar(banned->info->ip), banned->info->port);
+			}
+			
+			if (len > size / 3)
+				break;
+		}
+	
+		if (!first) {
+			len += gm_snprintf(&buf[len], size - len, "\r\n");
+		}	
+	}
 	
 	/*
 	 * Start filling the buffer.
 	 */
 
-	linelen = len = gm_snprintf(buf, size,
+	len += linelen = gm_snprintf(&buf[len], size - len,
 		use_compact ? "X-Alt: " : "X-Gnutella-Alternate-Location:\r\n");
 
+	
 	/*
 	 * PFSP-server: If we have to list ourselves in the mesh, do so
 	 * at the first position.
@@ -1138,17 +1233,15 @@ gint dmesh_alternate_location(const gchar *sha1,
 		return 0;
 
 	/*
-	 * Find mesh entry for this SHA1, and check whether we have anything (new).
+	 * Check whether we have anything (new).
 	 */
-
-	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
 
 	if (dm == NULL)						/* SHA1 unknown */
 		goto nomore;
 
 	if (dm->last_update <= last_sent)	/* No new insertion */
-		goto nomore;
-
+		goto nomore;	
+	
 	/*
 	 * Expire old entries.  If none remain, free entry and return.
 	 */
@@ -2404,7 +2497,8 @@ static void dmesh_ban_retrieve(void)
 			continue;
 		}
 
-		dmesh_ban_add(&info, stamp);
+		// FIXME: Save SHA1 for banning
+		dmesh_ban_add(NULL, &info, stamp);
 		atom_str_free(info.name);
 	}
 
@@ -2468,4 +2562,3 @@ void dmesh_close(void)
 	g_hash_table_foreach_remove(ban_mesh, dmesh_ban_free_kv, NULL);
 	g_hash_table_destroy(ban_mesh);
 }
-
