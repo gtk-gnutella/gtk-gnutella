@@ -807,6 +807,7 @@ dq_terminate(dquery_t *dq)
 		dq->expire_ev = cq_insert(callout_queue, DQ_LINGER_TIMEOUT,
 			dq_expired, dq);
 
+	dq->flags &= ~DQ_F_WAITING;
 	dq->flags |= DQ_F_LINGER;
 	dq->stop = time(NULL);
 
