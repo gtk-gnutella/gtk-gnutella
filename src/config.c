@@ -548,19 +548,24 @@ void config_init(void)
 	if (!home_dir)
 		g_warning("can't find your home directory!");
 
-	if (config_dir && !is_directory(config_dir)) {
-		g_warning("'%s' does not exists or is not a directory!", config_dir);
-		g_free(config_dir);
-		config_dir = NULL;
-	}
-
 	if (!config_dir) {
 		if (home_dir) {
-			g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/.gtk-gnutella",
-					   home_dir);
+			g_snprintf(cfg_tmp, sizeof(cfg_tmp),
+				"%s/.gtk-gnutella", home_dir);
 			config_dir = g_strdup(cfg_tmp);
 		} else
-			g_warning("no configuration directory: prefs will not be saved!");
+			g_warning("no home directory: prefs will not be saved!");
+	}
+
+	if (config_dir && !is_directory(config_dir)) {
+		g_warning("creating configuration directory '%s'\n", config_dir);
+
+		if (mkdir(config_dir, 0755) == -1) {
+			g_warning("mkdir(%s) failed: %s\n\n",
+				config_dir, g_strerror(errno));
+			g_free(config_dir);
+			config_dir = NULL;
+		}
 	}
 
 	if (config_dir) {
@@ -613,32 +618,6 @@ void config_init(void)
 		node_sendqueue_size = (guint32) (1.5 * config_max_msg_size());
 		g_warning("node_sendqueue_size was too small, adjusted to %u",
 			node_sendqueue_size);
-	}
-
-	/* Transition : HOME/.gtk-gnutella is now a directory */
-
-	if (config_dir && !is_directory(config_dir)) {
-		if (unlink(config_dir) == -1) {
-			if (errno != ENOENT) {
-				g_warning("unlink(%s) failed (%s) !\n", config_dir,
-						  g_strerror(errno));
-				g_free(config_dir);
-				config_dir = NULL;
-				return;
-			}
-		} else {
-			/* We are replacing the old config file by a directory. */
-			fprintf(stdout, "Creating configuration directory '%s'\n",
-					config_dir);
-		}
-
-		if (mkdir(config_dir, 0755) == -1) {
-			g_warning("mkdir(%s) failed (%s) !\n\n", config_dir,
-					  g_strerror(errno));
-			g_free(config_dir);
-			config_dir = NULL;
-			return;
-		}
 	}
 }
 
