@@ -34,21 +34,37 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <time.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/uio.h>		/* writev(), readv(), struct iovec */
 #include <netinet/in.h>
-#include <arpa/inet.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>		/* For ntohl(), htonl() */
+#include <ctype.h>
 #include <fcntl.h>
 #include <string.h>
 #include <dirent.h>
 
+#ifdef I_SYS_PARAM
+#include <sys/param.h>
+#endif
+#ifdef I_SYS_SYSCTL
+#include <sys/sysctl.h>
+#endif
 
-#include "ui_core_interface_common_defs.h"
-
+#ifdef I_TIME
+#include <time.h>
+#endif
+#ifdef I_SYS_TIME
+#include <sys/time.h>
+#endif
+#ifdef I_SYS_TIME_KERNEL
+#define KERNEL
+#include <sys/time.h>
+#undef KERNEL
+#endif
 
 #ifdef I_INTTYPES
 #include <inttypes.h>
@@ -61,6 +77,11 @@
 #define USE_BSD_SENDFILE	/* No <sys/sendfile.h>, assume BSD version */
 #endif
 #endif	/* I_SYS_SENDFILE_H */
+
+#if defined(USE_IP_TOS) && defined(I_NETINET_IP)
+#include <netinet/in_systm.h>
+#include <netinet/ip.h>
+#endif
 
 /*
  * Macro to print signed 64-bit integers
@@ -106,32 +127,12 @@
 #include <glib.h>
 #include <zlib.h>
 
-
-#include "atoms.h"
-#include "base32.h"
-#include "bg.h"
-#include "cobs.h"
-#include "cq.h"
-#include "event.h"
-#include "fuzzy.h"
-#include "getdate.h"
-#include "getline.h"
-#include "glib-missing.h"
-#include "guid.h"
-#include "hashlist.h"
-#include "idtable.h"
-#include "inputevt.h"
-#include "listener.h"
-#include "matching.h"
-#include "misc.h"
-#include "namesize.h"
-#include "sha1.h"
-#include "url.h"
-#include "utf8.h"
-#include "vendors.h"
-#include "walloc.h"
-#include "zalloc.h"
-#include "zlib_util.h"
+#ifdef USE_GLIB1
+typedef void (*GCallback) (void);
+#endif
+#ifdef USE_GLIB2
+#include <glib-object.h>
+#endif
 
 /*
  * Portability macros.
@@ -162,6 +163,17 @@ do {				\
 	}			\
 } while (0)
 
+/* The RCS IDs can be looked up from the compiled binary with e.g. `what'  */
+#ifdef __GNUC__
+#define RCSID(x) \
+	static const char rcsid[] __attribute__((__unused__)) = "@(#) " x
+#else
+#define RCSID(x) static const char rcsid[] = "@(#) " x
+#endif
+
+/* CMP() returns sign of a-b */
+#define CMP(a, b) ((a) == (b) ? 0 : (a) > (b) ? 1 : (-1))
+
 /*
  * Constants
  */
@@ -171,7 +183,7 @@ do {				\
 #define GTA_PATCHLEVEL 0
 #define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"
-#define GTA_RELEASE "2004-08-19"	/* ISO format YYYY-MM-DD */
+#define GTA_RELEASE "2004-08-25"	/* ISO format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
@@ -182,7 +194,24 @@ do {				\
 #define GTA_INTERFACE "X11"
 #endif
 
+#define xstr(x) STRINGIFY(x)  
+
+#if defined(GTA_PATCHLEVEL) && (GTA_PATCHLEVEL != 0)
+#define GTA_VERSION_NUMBER \
+	xstr(GTA_VERSION) "." xstr(GTA_SUBVERSION) "." xstr(GTA_PATCHLEVEL) \
+		GTA_REVCHAR
+#else
+#define GTA_VERSION_NUMBER \
+	xstr(GTA_VERSION) "." xstr(GTA_SUBVERSION) GTA_REVCHAR
+#endif
+
 #define GTA_PORT		6346	/* Default "standard" port */
+#define MAX_HOSTLEN		256		/* Max length for FQDN host */
+
+/* The next two defines came from huge.h --- Emile */
+#define SHA1_BASE32_SIZE 	32		/* 160 bits in base32 representation */
+#define SHA1_RAW_SIZE		20		/* 160 bits in binary representation */
+
 
 /*
  * Forbidden glib calls.
@@ -201,13 +230,6 @@ typedef gboolean (*reclaim_fd_t)(void);
  * Variables
  */
 extern guint32 common_dbg;
-
-/*
- * Functions
- */
-
-/* main.c */
-void gtk_gnutella_exit(gint); 
 
 /*
  * Standard gettext macros.
