@@ -464,16 +464,18 @@ static inline void update_row(gpointer data, const time_t *now)
 
 void nodes_gui_update_nodes_display(time_t now)
 {
+#define DO_FREEZE FALSE
+	static const gboolean do_freeze = DO_FREEZE;
     static time_t last_update = 0;
 	gint current_page;
 	static GtkNotebook *notebook = NULL;
     GtkTreeModel *model;
 
-    g_message("recorded changed: flags:%d  info:%d",
+    g_message("recorded changed: flags: %d info:%d",
         g_hash_table_size(ht_node_flags_changed),
         g_hash_table_size(ht_node_info_changed));
 
-    if (last_update+2 > now)
+    if (last_update + 2 > now)
         return;
 
 	/*
@@ -493,24 +495,22 @@ void nodes_gui_update_nodes_display(time_t now)
 
     last_update = now;
 
-#undef DO_FREEZE
-
-#ifdef DO_FREEZE
-    /* "Freeze" view */
-    model = gtk_tree_view_get_model(treeview_nodes);
-    g_object_ref(model);
-    gtk_tree_view_set_model(treeview_nodes, NULL);
-#endif
+	if (do_freeze) {
+    	/* "Freeze" view */
+    	model = gtk_tree_view_get_model(treeview_nodes);
+    	g_object_ref(model);
+    	gtk_tree_view_set_model(treeview_nodes, NULL);
+	}
 
 	G_LIST_FOREACH(list_nodes, (GFunc) update_row, &now);
 
-#ifdef DO_FREEZE
-    /* "Thaw" view */
-    gtk_tree_view_set_model(treeview_nodes, model);
-    g_object_unref(model);
-#else
-    gtk_widget_queue_draw(GTK_WIDGET(treeview_nodes));
-#endif
+	if (do_freeze) {
+    	/* "Thaw" view */
+    	gtk_tree_view_set_model(treeview_nodes, model);
+    	g_object_unref(model);
+	} else {
+    	gtk_widget_queue_draw(GTK_WIDGET(treeview_nodes));
+	}
 }
 
 /***
@@ -608,4 +608,5 @@ void nodes_gui_remove_selected(void)
 	g_slist_free(node_list);
 }
 
+/* vi: set ts=4: */
 #endif	/* USE_GTK2 */
