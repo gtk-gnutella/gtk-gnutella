@@ -141,8 +141,9 @@
 207.234.131.148
 209.67.79.0/255.255.255.0
 
-# fsh1.xcite.net, replies to queries with $search + .exe
+# fsh1.xcite.net and fsh2.xcite.net, reply to queries with $search + .exe
 216.169.118.81
+216.169.118.82
 
 ###
 ### The following come from an htaccess denying RIAA/MPAA access
