@@ -72,10 +72,10 @@ void gui_update_files_scanned(void)
         GTK_LABEL(lookup_widget(main_window, "label_files_scanned"));
 
 	gm_snprintf(gui_tmp, sizeof(gui_tmp),
-		(files_scanned == 1) ?
-			_("%u file shared (%s)") :_("%u files shared (%s)"),
-		files_scanned,
-		short_kb_size(kbytes_scanned));
+		(shared_files_scanned() == 1) ?
+			_("%lu file shared (%s)") :_("%lu files shared (%s)"),
+		(gulong) shared_files_scanned(),
+		short_kb_size64(shared_kbytes_scanned()));
 	gtk_label_set(label_files_scanned, gui_tmp);
 }
 

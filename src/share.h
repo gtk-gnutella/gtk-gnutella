@@ -71,7 +71,6 @@ struct gnutella_search_results_out {
  * Global Data
  */
 
-extern guint32 files_scanned, bytes_scanned, kbytes_scanned;
 extern GSList *extensions, *shared_dirs;
 
 /*
@@ -90,6 +89,8 @@ struct shared_file *shared_file(guint idx);
 struct shared_file *shared_file_by_name(const gchar *basename);
 void share_scan(void);
 void share_close(void);
+guint64 shared_kbytes_scanned(void);
+guint64 shared_files_scanned(void);
 gboolean search_request(struct gnutella_node *n, struct query_hashvec *qhv);
 void parse_extensions(const gchar *);
 gchar *get_file_path(gint);

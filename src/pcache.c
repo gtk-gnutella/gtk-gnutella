@@ -40,7 +40,7 @@
 #include "hcache.h"
 #include "pcache.h"
 #include "nodes.h"
-#include "share.h" /* For files_scanned and kbytes_scanned. */
+#include "share.h" /* For shared_files_scanned() and shared_kbytes_scanned(). */
 #include "routing.h"
 #include "gmsg.h"
 #include "alive.h"
@@ -193,25 +193,30 @@ static void send_pong(struct gnutella_node *n, gboolean control,
  */
 static void send_personal_info(struct gnutella_node *n, gboolean control)
 {
-	guint32 kbytes = 0;
+	guint32 kbytes;
+	guint32 files;
 
 	g_assert(n->header.function == GTA_MSG_INIT);	/* Replying to a ping */
 
 	if (!force_local_ip && !local_ip)
 		return;		/* If we don't know yet our local IP, we can't reply */
 
+	files = MIN(shared_files_scanned(), ~((guint32) 0U));
+
 	/*
 	 * Mark pong if we are an ultra node: the amount of kbytes scanned must
 	 * be an exact power of two, and at minimum 8.
 	 */
 
+	kbytes = MIN(shared_kbytes_scanned(), ~((guint32) 0U));
+
 	if (current_peermode == NODE_P_ULTRA) {
-		if (kbytes_scanned <= 8)
+		if (kbytes <= 8)
 			kbytes = 8;
 		else
-			kbytes = next_pow2(kbytes_scanned);
-	} else if (kbytes_scanned)
-		kbytes = kbytes_scanned | 0x1;		/* Ensure not a power of two */
+			kbytes = next_pow2(kbytes);
+	} else if (kbytes)
+		kbytes |= 1;		/* Ensure not a power of two */
 
 	/*
 	 * Pongs are sent with a TTL just large enough to reach the pinging host,
@@ -221,7 +226,7 @@ static void send_personal_info(struct gnutella_node *n, gboolean control)
 	 */
 
 	send_pong(n, control, 0, MIN((guint) n->header.hops + 1, max_ttl),
-		n->header.muid, listen_ip(), listen_port, files_scanned, kbytes);
+		n->header.muid, listen_ip(), listen_port, files, kbytes);
 }
 
 /*

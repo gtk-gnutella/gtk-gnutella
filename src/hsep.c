@@ -277,7 +277,7 @@ void hsep_timer(void)
 
 	if (!scanning_shared) {
 		if (upload_is_enabled())
-			hsep_notify_shared(files_scanned, kbytes_scanned);
+			hsep_notify_shared(shared_files_scanned(), shared_kbytes_scanned());
 		else
 			hsep_notify_shared(0, 0);
 	}
