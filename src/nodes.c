@@ -3839,8 +3839,7 @@ static void node_process_handshake_header(
 				"%s"		/* X-Ultrapeer-Needed */
 				"%s"		/* X-Query-Routing */
 				"X-Token: %s\r\n"
-				"X-Live-Since: %s\r\n"
-				"\r\n",
+				"X-Live-Since: %s\r\n",
 				version_string, ip_to_gchar(n->socket->ip),
 				(n->attrs & NODE_A_TX_DEFLATE) ? compressing : empty,
 				current_peermode == NODE_P_NORMAL ? "" :
@@ -3857,6 +3856,8 @@ static void node_process_handshake_header(
 				
 			header_features_generate(&xfeatures.connections,
 				gnet_response, sizeof(gnet_response), &rw);
+
+			rw += gm_snprintf(&gnet_response[rw], sizeof(gnet_response) - rw, "\r\n");
 		}
 		g_assert(rw < sizeof(gnet_response));
 	}
@@ -4550,8 +4551,7 @@ void node_init_outgoing(struct gnutella_node *n)
 		"X-Token: %s\r\n"
 		"X-Live-Since: %s\r\n"
 		"%s"		/* X-Ultrapeer */
-		"%s"		/* X-Query-Routing */
-		"\r\n",
+		"%s",		/* X-Query-Routing */
 		GNUTELLA_HELLO,
 		n->proto_major, n->proto_minor,
 		ip_port_to_gchar(listen_ip(), listen_port),
@@ -4565,6 +4565,8 @@ void node_init_outgoing(struct gnutella_node *n)
 
 	header_features_generate(&xfeatures.connections, buf, sizeof(buf), &len);
 
+	len += gm_snprintf(&buf[len], sizeof(buf) - len, "\r\n");
+	
 	g_assert(len < sizeof(buf));
 
 	/*
