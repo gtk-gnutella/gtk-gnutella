@@ -681,6 +681,11 @@ void guc_upload_stats_prune_nonexistent(void)
 	upload_stats_prune_nonexistent();
 }
 
+void guc_upload_stats_clear_all(void)
+{
+	upload_stats_clear_all();
+}
+
 /*	version interface functions (UI -> Core)*/
 const gchar *guc_version_get_version_string()
 {
@@ -692,3 +697,5 @@ void guc_gtk_gnutella_exit(gint code)
 {
 	gtk_gnutella_exit(code);
 }
+
+/* vi: set ts=4 sw=4 cindent:*/

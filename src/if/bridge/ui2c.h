@@ -232,6 +232,7 @@ void guc_upload_remove_upload_info_changed_listener
 
 /* upload stats interface functions */
 void guc_upload_stats_prune_nonexistent(void);
+void guc_upload_stats_clear_all(void);
 
 /* version interface functions*/
 const gchar *guc_version_get_version_string();

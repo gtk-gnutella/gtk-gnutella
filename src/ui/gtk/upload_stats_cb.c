@@ -47,7 +47,7 @@ RCSID("$Id$");
 
 void on_button_ul_stats_clear_all_clicked(GtkButton *button, gpointer data)
 {
-	upload_stats_gui_clear_all();
+	guc_upload_stats_clear_all();
 }
 
 void on_button_ul_stats_clear_deleted_clicked(
