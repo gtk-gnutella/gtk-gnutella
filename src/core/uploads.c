@@ -2966,7 +2966,7 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 	g_assert(amount > 0);
 
 	if (use_sendfile) {
-		off_t pos;				/* For sendfile() sanity checks */
+		off_t pos, before;			/* For sendfile() sanity checks */
 		/*
 	 	 * Compute the amount of bytes to send.
 	 	 * Use the two variables to avoid warnings about unused vars by
@@ -2974,10 +2974,12 @@ upload_write(gpointer up, gint unused_source, inputevt_cond_t cond)
 	 	 */
 
 		available = amount > READ_BUF_SIZE ? READ_BUF_SIZE : amount;
+		before = pos = u->pos;
 		written = bio_sendfile(u->bio, u->file_desc, &pos, available);
 
-		g_assert((ssize_t) -1 == written || (guint64) written == pos - u->pos);
+		g_assert((ssize_t) -1 == written || (guint64) written == pos - before);
 		u->pos = pos;
+			
 	} else {
 		/*
 	 	 * If the buffer position reached the size, then we need to read
