@@ -862,8 +862,8 @@ void filter_gui_edit_rule(rule_t *r)
  */
 void filter_gui_edit_ip_rule(rule_t *r)
 {
-    gchar *ip       = "";
-    gchar *mask     = "255.255.255.255";
+    gchar *ip       = g_strdup("");
+    gchar *mask     = g_strdup("255.255.255.255");
     gpointer target = (gpointer) DEFAULT_TARGET;
     gboolean invert = FALSE;
     gboolean active = TRUE;
@@ -1019,19 +1019,19 @@ void filter_gui_edit_text_rule(rule_t *r)
             (lookup_widget(filter_dialog, "optionmenu_filter_text_type")),
         type);
     option_menu_select_item_by_data(
-        lookup_widget(filter_dialog, "optionmenu_filter_ip_target"),
+        lookup_widget(filter_dialog, "optionmenu_filter_text_target"),
         target);
     gtk_toggle_button_set_active(
         GTK_TOGGLE_BUTTON(lookup_widget
-            (filter_dialog, "checkbutton_filter_ip_invert_cond")),
+            (filter_dialog, "checkbutton_filter_text_invert_cond")),
         invert);
     gtk_toggle_button_set_active(
         GTK_TOGGLE_BUTTON
-            (lookup_widget(filter_dialog, "checkbutton_filter_ip_active")),
+            (lookup_widget(filter_dialog, "checkbutton_filter_text_active")),
         active);
     gtk_toggle_button_set_active(
         GTK_TOGGLE_BUTTON
-            (lookup_widget(filter_dialog, "checkbutton_filter_ip_soft")),
+            (lookup_widget(filter_dialog, "checkbutton_filter_text_soft")),
         soft);
 
     gtk_notebook_set_page(
@@ -1079,19 +1079,19 @@ void filter_gui_edit_size_rule(rule_t *r)
             (lookup_widget(filter_dialog, "spinbutton_filter_size_max")),
         max);
     option_menu_select_item_by_data(
-        lookup_widget(filter_dialog, "optionmenu_filter_ip_target"),
+        lookup_widget(filter_dialog, "optionmenu_filter_size_target"),
         target);
     gtk_toggle_button_set_active(
         GTK_TOGGLE_BUTTON(lookup_widget
-            (filter_dialog, "checkbutton_filter_ip_invert_cond")),
+            (filter_dialog, "checkbutton_filter_size_invert_cond")),
         invert);
     gtk_toggle_button_set_active(
         GTK_TOGGLE_BUTTON
-            (lookup_widget(filter_dialog, "checkbutton_filter_ip_active")),
+            (lookup_widget(filter_dialog, "checkbutton_filter_size_active")),
         active);
     gtk_toggle_button_set_active(
         GTK_TOGGLE_BUTTON
-            (lookup_widget(filter_dialog, "checkbutton_filter_ip_soft")),
+            (lookup_widget(filter_dialog, "checkbutton_filter_size_soft")),
         soft);
 
     gtk_notebook_set_page(
