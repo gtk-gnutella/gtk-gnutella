@@ -3709,12 +3709,20 @@ void parq_del_banned_source(guint32 ip)
 	banned = NULL;
 }
 
-gboolean parq_is_banned_source(guint32 ip)
+/*
+ * parq_banned_source_expire
+ *
+ * Returns expiration timestamp if source is banned, or 0 if it isn't banned.
+ */
+time_t parq_banned_source_expire(guint32 ip)
 {
+	struct parq_banned *banned;
+
 	g_assert(parq_banned_source != NULL);
 	
-	return 
-		g_hash_table_lookup(parq_banned_source, &ip) != NULL;
+	banned = g_hash_table_lookup(parq_banned_source, &ip);
+
+	return (banned == NULL) ? 0 : banned->expire;
 }
 
 /* 
