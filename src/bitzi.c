@@ -29,6 +29,8 @@
 
 RCSID("$Id$");
 
+#ifdef USE_GTK2
+
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 
@@ -353,3 +355,4 @@ on_search_meta_data_activate(GtkMenuItem *menuitem, gpointer user_data)
 }
 
 /* vi: set ts=4 sw=4 cindent: */
+#endif /* USE_GTK2 */
