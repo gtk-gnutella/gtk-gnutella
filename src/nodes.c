@@ -58,6 +58,7 @@
 #include "pmsg.h"
 #include "pcache.h"
 #include "bsched.h"
+#include "atoms.h"
 
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
@@ -374,7 +375,7 @@ static void node_remove_v(
 	if (n->rx)					/* RX stack freed by node_real_remove() */
 		node_disable_read(n);
 	if (n->vendor) {
-		g_free(n->vendor);
+		atom_str_free(n->vendor);
 		n->vendor = NULL;
 	}
 
@@ -1440,7 +1441,7 @@ static void node_process_handshake_header(struct io_header *ih)
 
 	field = header_get(ih->header, "User-Agent");
 	if (field) {
-		n->vendor = g_strdup(field);
+		n->vendor = atom_str_get(field);
 		gui_update_node_vendor(n);
 	}
 
@@ -2787,7 +2788,10 @@ gboolean node_remove_non_nearby(void)
 		struct gnutella_node *n = sl_nodes->data;
 
 		if (NODE_IS_CONNECTED(n) && !host_is_nearby(n->ip)) {
-			node_remove(n, "Non Local");
+			if (NODE_IS_WRITABLE(n))
+				node_bye(n, 202, "Local node preferred");
+			else
+				node_remove(n, "Local node preferred");
 			return TRUE;
 		}
 	}
@@ -2822,7 +2826,7 @@ void node_close(void)
 		if (n->allocated)
 			g_free(n->data);
 		if (n->vendor)
-			g_free(n->vendor);
+			atom_str_free(n->vendor);
 		node_real_remove(n);
 	}
 
