@@ -67,6 +67,7 @@ static void uploads_gui_add_upload(gnet_upload_info_t *u);
 static const char * const column_titles[UPLOADS_GUI_VISIBLE_COLUMNS] = {
 	N_("Filename"),
 	N_("Host"),
+	N_("Loc"),
 	N_("Size"),
 	N_("Range"),
 	N_("User-Agent"),
@@ -292,6 +293,17 @@ static void uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 			(-1));
 	}
 
+	/* Exploit that u->country is an atom! */ 
+	if (u->country != rd->country) {
+		g_assert(NULL != u->country);
+		if (NULL != rd->country)
+			atom_str_free(rd->country);
+		rd->country = atom_str_get(u->country);
+		gtk_list_store_set(store_uploads, &rd->iter,
+			c_ul_loc, lazy_locale_to_utf8(rd->country, 0),
+			(-1));
+	}
+
 	guc_upload_get_status(u->upload_handle, &status);
 	rd->status = status.status;
 
@@ -331,6 +343,7 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
     rd->start_date  = u->start_date;
 	rd->ip			= u->ip;
 	rd->name		= NULL != u->name ? atom_str_get(u->name) : NULL;
+	rd->country	    = NULL != u->country ? atom_str_get(u->country) : NULL;
 	rd->user_agent	= NULL != u->user_agent
 						? atom_str_get(u->user_agent) : NULL;
 	rd->push		= u->push;
@@ -374,6 +387,19 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 	} else
 		titles[c_ul_agent] = "...";
 
+	if (NULL != u->country) {
+		static gchar str[5];	/* MUST be static! */
+		gchar *country;
+
+		country = lazy_locale_to_utf8(u->country, 0);
+		if (u->country != country) {
+			g_strlcpy(str, country, sizeof(str));
+			country = str;
+		}
+    	titles[c_ul_loc] = country;
+	} else
+		titles[c_ul_loc] = "..";
+
 	titles[c_ul_filename] = NULL != u->name
 								? lazy_locale_to_utf8(u->name, 0) : "...";
 	titles[c_ul_host]     = ip_to_gchar(u->ip);
@@ -385,6 +411,7 @@ void uploads_gui_add_upload(gnet_upload_info_t *u)
 		c_ul_range, titles[c_ul_range],
 		c_ul_filename, titles[c_ul_filename],
 		c_ul_host, titles[c_ul_host],
+		c_ul_loc, titles[c_ul_loc],
 		c_ul_agent, titles[c_ul_agent],
 		c_ul_progress, 
 			force_range(
@@ -476,6 +503,7 @@ void uploads_gui_init(void)
 		G_TYPE_STRING,
 		G_TYPE_STRING,
 		G_TYPE_STRING,
+		G_TYPE_STRING,
 		G_TYPE_FLOAT,
 		G_TYPE_STRING,
 		GDK_TYPE_COLOR,
@@ -484,6 +512,7 @@ void uploads_gui_init(void)
 
 	add_column(c_ul_filename, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
 	add_column(c_ul_host, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
+	add_column(c_ul_loc, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
 	add_column(c_ul_size, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
 	add_column(c_ul_range, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
 	add_column(c_ul_agent, NULL, GTK_TYPE_CELL_RENDERER_TEXT);
