@@ -29,16 +29,12 @@
  *----------------------------------------------------------------------
  */
 
-#include "common.h"				/* For -DUSE_DMALLOC and <string.h> */
+#include "common.h"		/* For -DUSE_DMALLOC and <string.h> + common_dbg */
 
 #include <setjmp.h>
 #include <glib.h>
 
 #include "bg.h"
-#include "walloc.h"
-
-#include "gnet_property.h"
-#include "gnet_property_priv.h"
 
 #define BT_MAGIC		0xbacc931d		/* Internal bgtask magic number */
 
@@ -216,7 +212,7 @@ static void bg_task_suspend(struct bgtask *bt)
 		gdouble new_cost =
 			(4 * bt->tick_cost + (elapsed / bt->ticks_used)) / 5.0;
 
-		if (dbg > 4)
+		if (common_dbg > 4)
 			printf("BGTASK \"%s\" total=%d msecs, elapsed=%d, ticks=%d, "
 				"used=%d, tick_cost=%f usecs (was %f)\n",
 				bt->name, bt->wtime, elapsed, bt->ticks, bt->ticks_used,
@@ -433,7 +429,7 @@ void bg_daemon_enqueue(gpointer h, gpointer item)
 	bt->wq = g_slist_append(bt->wq, item);
 
 	if (bt->flags & TASK_F_SLEEPING) {
-		if (dbg > 1)
+		if (common_dbg > 1)
 			printf("BGTASK waking up daemon \"%s\" task\n", bt->name);
 
 		bg_sched_wakeup(bt);
@@ -496,7 +492,7 @@ static void bg_task_terminate(struct bgtask *bt)
 	 * When we come here, the task is no longer running.
 	 */
 
-	if (dbg > 1)
+	if (common_dbg > 1)
 		printf("BGTASK terminating \"%s\"%s, ran %d msecs\n",
 			bt->name, (bt->flags & TASK_F_DAEMON) ? " daemon" : "", bt->wtime);
 
@@ -838,7 +834,7 @@ static void bg_task_ended(struct bgtask *bt)
 
 	item = bt->wq->data;
 
-	if (dbg > 2)
+	if (common_dbg > 2)
 		printf("BGTASK daemon \"%s\" done with item 0x%lx\n",
 			bt->name, (gulong) item);
 
@@ -860,7 +856,7 @@ static void bg_task_ended(struct bgtask *bt)
 	 */
 
 	if (bt->wq == NULL) {
-		if (dbg > 1)
+		if (common_dbg > 1)
 			printf("BGTASK daemon \"%s\" going back to sleep\n", bt->name);
 
 		bg_sched_sleep(bt);
@@ -940,7 +936,7 @@ void bg_sched_timer(void)
 			 * So they exited, or someone is killing the task.
 			 */
 
-			if (dbg > 1)
+			if (common_dbg > 1)
 				printf("BGTASK back from setjmp() for \"%s\"\n", bt->name);
 
 			bt->flags |= TASK_F_NOTICK;
@@ -953,7 +949,7 @@ void bg_sched_timer(void)
 		 * Run the next step.
 		 */
 
-		if (dbg > 4)
+		if (common_dbg > 4)
 			printf("BGTASK \"%s\" running step #%d.%d with %d tick%s\n",
 				bt->name, bt->step, bt->seqno, ticks, ticks == 1 ? "" : "s");
 
@@ -971,7 +967,7 @@ void bg_sched_timer(void)
 
 			item = bt->wq->data;
 
-			if (dbg > 2)
+			if (common_dbg > 2)
 				printf("BGTASK daemon \"%s\" starting with item 0x%lx\n",
 					bt->name, (gulong) item);
 
@@ -985,7 +981,7 @@ void bg_sched_timer(void)
 		bg_task_switch(NULL);		/* Stop current task, update stats */
 		remain -= bt->elapsed;
 
-		if (dbg > 4)
+		if (common_dbg > 4)
 			printf("BGTASK \"%s\" step #%d.%d ran %d tick%s "
 				"in %d usecs [ret=%d]\n",
 				bt->name, bt->step, bt->seqno,

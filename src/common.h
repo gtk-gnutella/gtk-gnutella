@@ -60,7 +60,13 @@
 #include "regex.h"
 #include "sha1.h"
 #include "idtable.h"
+#include "getline.h"
+#include "namesize.h"
+#include "utf8.h"
+#include "zlib_util.h"
+#include "cobs.h"
 #include "bg.h"
+#include "guid.h"
 
 #include "../config.h"
 
@@ -91,6 +97,11 @@
 #define GTA_INTERFACE "X11"
 #define GTA_RELEASE "22/11/2002"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
+
+/*
+ * Variables
+ */
+extern guint32 common_dbg;
 
 /*
  * Functions
