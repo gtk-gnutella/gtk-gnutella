@@ -268,11 +268,12 @@ static void gui_init_menu(void)
 
 	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
 		GtkCTreeNode *node;
-		gchar *title[] = { _(menu[i].title) };
+		const gchar *title[] = { _(menu[i].title) };
 
     	node = gtk_ctree_insert_node(ctree_menu,
-					menu[i].parent ? NULL : parent_node,
-					NULL, title, 0, NULL, NULL, NULL, NULL, FALSE, TRUE);
+					menu[i].parent ? NULL : parent_node, NULL,
+					(gchar **) title, /* Override const */
+					0, NULL, NULL, NULL, NULL, FALSE, TRUE);
 		if (menu[i].parent)
 			parent_node = node;
 		
@@ -540,9 +541,12 @@ void main_gui_run(void)
 {	
     guint32 coord[4] = { 0, 0, 0, 0 };
 
-    gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, 4);
+    gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
 
     gui_update_global();
+
+    gtk_widget_show(main_window);		/* Display the main window */
+    
 
     /*
      * We need to tell Gtk the size of the window, otherwise we'll get
@@ -554,13 +558,19 @@ void main_gui_run(void)
         gtk_window_set_default_size(
             GTK_WINDOW(main_window), coord[2], coord[3]);
 
-    gtk_widget_show(main_window);		/* Display the main window */
-    
     icon_init();
 
-    if (coord[2] != 0 && coord[3] != 0)
-        gdk_window_move_resize(main_window->window, 
-	    coord[0], coord[1], coord[2], coord[3]);
+#ifdef USE_GTK2
+    if (coord[2] != 0 && coord[3] != 0) {
+        gtk_window_move(GTK_WINDOW(main_window), coord[0], coord[1]);
+		gtk_window_resize(GTK_WINDOW(main_window), coord[2], coord[3]);
+	}
+#else
+    if (coord[2] != 0 && coord[3] != 0) {
+        gdk_window_move_resize(main_window->window,
+			coord[0], coord[1], coord[2], coord[3]);
+	}
+#endif
 
     gtk_widget_fix_width(
         lookup_widget(main_window, "frame_statusbar_uptime"),
@@ -597,11 +607,21 @@ void main_gui_shutdown(void)
 
 void main_gui_update_coords(void)
 {
-    gint32 coord[4] = { 0, 0, 0, 0};
+    guint32 coord[4] = { 0, 0, 0, 0};
+	gint x, y, w, h;
 
-	gdk_window_get_root_origin(main_window->window, &coord[0], &coord[1]);
-	gdk_drawable_get_size(main_window->window, &coord[2], &coord[3]);
-    gui_prop_set_guint32(PROP_WINDOW_COORDS, (guint32 *) coord, 0, 4);
+#ifdef USE_GTK1
+	gdk_window_get_root_origin(main_window->window, &x, &y);
+	gdk_window_get_size(main_window->window, &w, &h);
+#else
+	gtk_window_get_position(GTK_WINDOW(main_window), &x, &y);
+	gtk_window_get_size(GTK_WINDOW(main_window), &w, &h);
+#endif
+	coord[0] = x;
+	coord[1] = y;
+	coord[2] = w;
+	coord[3] = h;
+    gui_prop_set_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
 }
 
 void main_gui_timer(void)
