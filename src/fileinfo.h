@@ -49,6 +49,7 @@ struct dl_file_info {
 	gchar *sha1;		/* SHA1 (atom) if known, NULL if not. */
 	guint32 refcount;	/* Reference count of file */
 	time_t stamp;		/* Time stamp */
+	time_t last_flush;	/* When last flush to disk occurred */
 	guint32 done;		/* Total number of bytes completed */
 	GSList *chunklist;	/* List of ranges within file */
 	guint32 generation;	/* Generation number, incremented on disk update */

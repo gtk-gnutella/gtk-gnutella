@@ -80,6 +80,8 @@ enum dl_file_info_field {
 	FILE_INFO_FIELD_END,
 };
 
+#define FI_STORE_DELAY		10	/* Max delay (secs) for flushing fileinfo */
+
 /*
  * The swarming trailer is built within a memory buffer first, to avoid having
  * to issue mutliple write() system calls.  We can't use stdio's buffering
@@ -281,8 +283,12 @@ static inline void file_info_checksum(guint32 *checksum, guchar *d, int len)
  *
  * Store a binary record of the file metainformation at the end of the
  * supplied file descriptor, opened for writing.
+ *
+ * When `force' is false, we don't store unless FI_STORE_DELAY seconds
+ * have elapsed since last flush to disk.
  */
-static void file_info_fd_store_binary(struct dl_file_info *fi, int fd)
+static void file_info_fd_store_binary(
+	struct dl_file_info *fi, int fd, gboolean force)
 {
 	GSList *fclist;
 	GSList *a;
@@ -298,6 +304,15 @@ static void file_info_fd_store_binary(struct dl_file_info *fi, int fd)
 			fi->size, fi->file_name, g_strerror(errno));
 		return;
 	}
+
+	/*
+	 * Don't flush unless required or some delay occurred since last flush.
+	 */
+
+	if (force || fi->stamp - fi->last_flush >= FI_STORE_DELAY)
+		fi->last_flush = fi->stamp;
+	else
+		return;
 
 	TBUF_INIT_WRITE();
 	WRITE_INT32(FILE_INFO_VERSION);
@@ -369,7 +384,8 @@ static void file_info_store_binary(struct dl_file_info *fi)
 		return;
 	}
 
-	file_info_fd_store_binary(fi, fd);
+	fi->stamp = time(NULL);
+	file_info_fd_store_binary(fi, fd, TRUE);	/* Force flush */
 	close(fd);
 }
 
@@ -773,6 +789,7 @@ void file_info_retrieve(void)
 	struct dl_file_info *fi = NULL;
 	gchar filename[1024];
 	struct stat buf;
+	GHashTable *seen_file = g_hash_table_new(g_str_hash, g_str_equal);
 
 	g_snprintf(fi_tmp, sizeof(fi_tmp), "%s/%s", config_dir, file_info_file);
 
@@ -810,6 +827,23 @@ void file_info_retrieve(void)
 
 		if ((*line == '\0') && fi && fi->file_name) {
 			struct dl_file_info *dfi;
+			gboolean already_seen;
+
+			/*
+			 * If we already have an entry for this filename, then we have
+			 * a bug somewhere because we listed the same fileinfo twice.
+			 */
+
+			already_seen = (gboolean)
+				g_hash_table_lookup(seen_file, (gconstpointer) fi->file_name);
+
+			if (already_seen) {
+				g_warning("discarding duplicate fileinfo entry for \"%s\"",
+					fi->file_name);
+				fi_free(fi);
+				goto discard;
+			} else
+				g_hash_table_insert(seen_file, fi->file_name, (gpointer) 0x1);
 
 			/* 
 			 * Check file trailer information.  The main file is only written
@@ -838,7 +872,10 @@ void file_info_retrieve(void)
 
 			file_info_merge_adjacent(fi);
 			sl_file_info = g_slist_append(sl_file_info, fi);
+
+		discard:
 			fi = NULL;
+			continue;
 		}
 
 		if (!fi) {
@@ -881,6 +918,13 @@ void file_info_retrieve(void)
 				fi->chunklist = g_slist_append(fi->chunklist, fc);
 			}
 		}
+	}
+
+	g_hash_table_destroy(seen_file);	/* Key pointers belong to vector */
+
+	if (fi) {
+		fi_free(fi);
+		g_warning("file info repository was truncated!");
 	}
 
 	fclose(f);
@@ -1295,7 +1339,7 @@ again:
 	 */
 
 	if (status == DL_CHUNK_DONE)
-		file_info_fd_store_binary(d->file_info, d->file_desc);
+		file_info_fd_store_binary(d->file_info, d->file_desc, FALSE);
 	else
 		file_info_store_binary(d->file_info);
 }
