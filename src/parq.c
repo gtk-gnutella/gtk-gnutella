@@ -2557,11 +2557,18 @@ static void parq_upload_load_queue(void)
 		} else
 			sscanf(line, "IP: %u\n", &ip);
 
+		// XXX legacy -- remove after 0.92 is out -- RAM, 11/05/2003
+		if (sscanf(line, "XIP: -%u\n", &xip)) {
+			sscanf(line, "XIP: %d\n", &signed_ip);
+			xip = (guint32) signed_ip;
+		} else
+			sscanf(line, "XIP: %u\n", &xip);
+
+
 		sscanf(line, "QUEUE: %d", &queue);
 		sscanf(line, "POS: %d\n", &position);
 		sscanf(line, "ENTERED: %d\n", &enter);
 		sscanf(line, "SIZE: %d\n", &filesize);
-		sscanf(line, "XIP: %u\n", &xip);
 		sscanf(line, "XPORT: %d\n", &xport);
 		
 		if (!strncmp(line, "ID: ", 4)) {
