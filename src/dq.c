@@ -116,6 +116,7 @@ typedef struct dquery {
 #define DQ_F_LINGER			0x00000002	/* Lingering to monitor extra results */
 #define DQ_F_LEAF_GUIDED	0x00000004	/* Leaf-guided query */
 #define DQ_F_WAITING		0x00000008	/* Waiting guidance reply from leaf */
+#define DQ_F_EXITING		0x80000000	/* Final cleanup at exit time */
 
 /*
  * This table keeps track of all the dynamic query objects that we have
@@ -644,7 +645,8 @@ dq_free(dquery_t *dq)
 			pmsg_free(dq->by_ttl[i]);
 	}
 
-	g_hash_table_remove(dqueries, dq);
+	if (!(dq->flags & DQ_F_EXITING))
+		g_hash_table_remove(dqueries, dq);
 
 	/*
 	 * Remove query from the `by_node_id' table but only if the node ID
@@ -1476,7 +1478,10 @@ dq_init(void)
 static void
 free_query(gpointer key, gpointer value, gpointer udata)
 {
-	dq_free((dquery_t *) key);
+	dquery_t *dq = (dquery_t *) key;
+
+	dq->flags |= DQ_F_EXITING;		/* So nothing is removed from the table */
+	dq_free(dq);
 }
 
 /**
