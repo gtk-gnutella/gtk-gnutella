@@ -1,5 +1,17 @@
 # since last version
 
+- (2002.10.15 RAM)
+ * Added GGEP parsing and generation code.
+ * Added support for COBS (required by GGEP).
+ * Fixed "abort from host" routine.
+ * Fixed improper lifecount in downloads, when resuming leads to a Duplicate.
+ * Added assertions in gmsg_dump() and gmsg_split_dump().
+ * Forgot to cancel the "urlfile" retry event during shutdown.
+ * dump_hex() can now handle zero-sized dumps.
+ * Will now recognize GGEP "H" extensions in query hits.
+ * Protected some GUI warnings with "if (gui_debug)" tests.
+ * Now knows how to generate GGEP "H" extensions in query hits, code disabled.
+
 - (2002.10.14 RAM)
  * Fixed bug when following HTTP redirection during downloads.
  * Lowercase the Content-Range header value before parsing.
