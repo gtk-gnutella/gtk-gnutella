@@ -4557,11 +4557,6 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		(current_peermode != NODE_P_LEAF &&
 			node_ultra_count + node_normal_count >= max_connections)
 	) {
-#if 1
-		/* XXX: Interferes with manually adding outgoing connections */
-        if (!s)
-            return;
-#endif
         if (!already_connected) {
 			if (whitelist_check(ip)) {
 				/* Incoming whitelisted IP, and we're full. Remove one node. */
