@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Sun Aug 10 01:08:13 MEST 2003 [metaconfig 3.0 PL70]
+# Generated on Sun Aug 10 01:22:11 MEST 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -969,6 +969,48 @@ echo " "
 echo "Beginning of configuration questions for $package."
 
 trap 'echo " "; test -d ../UU && rm -rf X $rmlist; exit 1' 1 2 3 15
+
+: Now test for existence of everything in MANIFEST
+echo " "
+if test -f $rsrc/MANIFEST; then
+	echo "First let's make sure your kit is complete.  Checking..." >&4
+	awk '$1 !~ /PACK[A-Z]+/ {print $1}' $rsrc/MANIFEST | split -50
+	rm -f missing
+	tmppwd=`pwd`
+	for filelist in x??; do
+		(cd $rsrc; ls `cat $tmppwd/$filelist` >/dev/null 2>>$tmppwd/missing)
+	done
+	if test -s missing; then
+		cat missing >&4
+		cat >&4 <<'EOM'
+
+THIS PACKAGE SEEMS TO BE INCOMPLETE.
+
+You have the option of continuing the configuration process, despite the
+distinct possibility that your kit is damaged, by typing 'y'es.  If you
+do, don't blame me if something goes wrong.  I advise you to type 'n'o
+and contact the author (Raphael_Manfredi@pobox.com).
+
+EOM
+		echo $n "Continue? [n] $c" >&4
+		read ans
+		case "$ans" in
+		y*)
+			echo "Continuing..." >&4
+			rm -f missing
+			;;
+		*)
+			echo "ABORTING..." >&4
+			kill $$
+			;;
+		esac
+	else
+		echo "Looks good..."
+	fi
+else
+	echo "There is no MANIFEST file.  I hope your kit is complete !"
+fi
+rm -f missing x??
 
 : create .config dir to save info across Configure sessions
 test -d ../.config || mkdir ../.config
