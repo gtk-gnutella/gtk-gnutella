@@ -1405,19 +1405,22 @@ void search_matched(struct search *sch, struct results_set *rs)
 			 * setter. His trailer therefore needs to be specially parsed.
 			 *				--RAM, 09/09/2001
 			 */
-			if ((rs->trailer[4] == 1)) {
+			if (rs->trailer[4] == 1) {
 				if (rs->trailer[5] & 0x04) rs->status |= ST_BUSY;
 				if (rs->trailer[5] & 0x01) rs->status |= ST_FIREWALL;
 				rs->status |= ST_PARSED_TRAILER;
 			}
 			break;
-		case T_GTKG:
 		case T_LIME:
+			if (rs->trailer[4] == 4)
+				rs->trailer[4] = 2;		/* We ignore XML data size */
+				/* Fall through */
+		case T_GTKG:
 		case T_BEAR:
 		case T_GNOT:
 		case T_GNUC:
 		case T_SNUT:
-			if ((rs->trailer[4] == 2)) {
+			if (rs->trailer[4] == 2) {
 				guint32 status =
 					((guint32) rs->trailer[5]) & ((guint32) rs-> trailer[6]);
 				if (status & 0x04) rs->status |= ST_BUSY;
