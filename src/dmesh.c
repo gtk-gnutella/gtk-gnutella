@@ -2516,37 +2516,18 @@ static gboolean dmesh_free_kv(gpointer key, gpointer value, gpointer udata)
 }
 
 /*
- * dmesh_ban_free_kv
+ * dmesh_ban_prepend_list
  *
- * Free key/value pair in the ban_mesh hash.
+ * Prepend the value to the list, given by reference.
  */
-static gboolean dmesh_ban_free_kv(gpointer key, gpointer value, gpointer udata)
+static void dmesh_ban_prepend_list(gpointer key, gpointer value, gpointer user)
 {
 	struct dmesh_banned *dmb = (struct dmesh_banned *) value;
+	GSList **listref = (GSList **) user;
 
 	g_assert(key == (gpointer) dmb->info);
 
-	dmesh_urlinfo_free(dmb->info);
-	cq_cancel(callout_queue, dmb->cq_ev);
-	if (dmb->sha1)
-		atom_sha1_free(dmb->sha1);
-
-	wfree(dmb, sizeof(*dmb));
-
-	return TRUE;
-}
-
-/*
- * dmesh_ban_sha1_free_kv
- *
- * Free key/value pair in the ban_mesh_by_sha1 hash.
- */
-static gboolean dmesh_ban_sha1_free_kv(
-	gpointer key, gpointer value, gpointer udata)
-{
-	atom_sha1_free(key);
-
-	return TRUE;
+	*listref = g_slist_prepend(*listref, dmb);
 }
 
 /*
@@ -2556,15 +2537,32 @@ static gboolean dmesh_ban_sha1_free_kv(
  */
 void dmesh_close(void)
 {
+	GSList *banned = NULL;
+	GSList *sl;
+
 	dmesh_store();
 	dmesh_ban_store();
 
 	g_hash_table_foreach_remove(mesh, dmesh_free_kv, NULL);
 	g_hash_table_destroy(mesh);
 
-	g_hash_table_foreach_remove(ban_mesh, dmesh_ban_free_kv, NULL);
-	g_hash_table_destroy(ban_mesh);
+	/*
+	 * Construct a list of banned mesh entries to remove, then manually
+	 * expire all the entries, which will remove entries from `ban_mesh'
+	 * and `ban_mesh_by_sha1' as well.
+	 */
 
-	g_hash_table_foreach_remove(ban_mesh_by_sha1, dmesh_ban_sha1_free_kv, NULL);
+	g_hash_table_foreach(ban_mesh, dmesh_ban_prepend_list, &banned);
+
+	for (sl = banned; sl; sl = g_slist_next(sl)) {
+		struct dmesh_banned *dmb = (struct dmesh_banned *) sl->data;
+		cq_cancel(callout_queue, dmb->cq_ev);
+		dmesh_ban_expire(callout_queue, dmb);
+	}
+
+	g_slist_free(banned);
+
+	g_hash_table_destroy(ban_mesh);
 	g_hash_table_destroy(ban_mesh_by_sha1);
 }
+
