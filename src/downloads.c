@@ -1163,7 +1163,7 @@ void download_remove_file(struct download *d, gboolean reset)
 		}
 
 		if (DOWNLOAD_IS_RUNNING(d)) {
-			download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
+			download_stop(d, GTA_DL_TIMEOUT_WAIT, "timeout wait");
 			download_queue(d, "Requeued due to file removal");
 		}
 	}
@@ -1214,7 +1214,7 @@ void download_info_change_all(
 		}
 
 		if (is_running)
-			download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
+			download_stop(d, GTA_DL_TIMEOUT_WAIT, "timeout wait");
 
 		switch (d->status) {
 		case GTA_DL_COMPLETED:
@@ -2124,7 +2124,7 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 		download_gui_remove(d);
 
 	if (DOWNLOAD_IS_RUNNING(d))
-		download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
+		download_stop(d, GTA_DL_TIMEOUT_WAIT, "timeout wait");
 	else
 		file_info_clear_download(d, TRUE);	/* Also done by download_stop() */
 
@@ -3751,7 +3751,7 @@ gboolean download_remove(struct download *d)
 	 */
 
 	if (DOWNLOAD_IS_RUNNING(d))
-		download_stop(d, GTA_DL_ABORTED, NULL);
+		download_stop(d, GTA_DL_ABORTED, "aborted");
 	else if (DOWNLOAD_IS_STOPPED(d))
 		/* nothing, lifecount already decremented */;
 	else {
@@ -3829,7 +3829,7 @@ void download_forget(struct download *d, gboolean unavailable)
 	if (unavailable)
 		download_unavailable(d, GTA_DL_ABORTED, NULL);
 	else
-		download_stop(d, GTA_DL_ABORTED, NULL);
+		download_stop(d, GTA_DL_ABORTED, "aborted");
 }
 
 /*
@@ -4531,7 +4531,7 @@ partial_done:
 	 */
 
 	cd = download_clone(d);
-	download_stop(d, GTA_DL_COMPLETED, NULL);
+	download_stop(d, GTA_DL_COMPLETED, "completed");
 
 	/*
 	 * If we had to trim the data requested, it means the server did not
@@ -4559,7 +4559,7 @@ partial_done:
 	 */
 
 done:
-	download_stop(d, GTA_DL_COMPLETED, NULL);
+	download_stop(d, GTA_DL_COMPLETED, "completed");
 	download_verify_sha1(d);
 
 	gnet_prop_set_guint32_val(PROP_TOTAL_DOWNLOADS, total_downloads + 1);
@@ -7037,7 +7037,7 @@ void download_retry(struct download *d)
 	if (d->push)
 		d->timeout_delay = 1;	/* Must send pushes before route expires! */
 
-	download_stop(d, GTA_DL_TIMEOUT_WAIT, NULL);
+	download_stop(d, GTA_DL_TIMEOUT_WAIT, "timeout wait");
 }
 
 /*
@@ -7802,7 +7802,7 @@ static void download_resume_bg_tasks(void)
 			download_unqueue(d);
 
 		if (!DOWNLOAD_IS_STOPPED(d))
-			download_stop(d, GTA_DL_COMPLETED, NULL);
+			download_stop(d, GTA_DL_COMPLETED, "completed");
 
 		/*
 		 * If we don't have the computed SHA1 yet, queue it for SHA1
