@@ -564,7 +564,9 @@ prop = {
 prop = {
     name = "default_minimum_speed";
     cfgvar = "search_minimum_speed";
-    desc = "This is the default minimum speed for new searches in kbit/s";
+    desc = "[NO LONGER USED] "
+		"This is the default minimum speed for new searches in kbit/s";
+	save = FALSE;
     type = guint32;
     data = {
         default = 0;

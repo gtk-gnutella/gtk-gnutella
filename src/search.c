@@ -63,8 +63,9 @@ struct sent_node_data {
 typedef struct search_ctrl {
     gnet_search_t search_handle; /* Search handle */
 
+	/* no more "speed" field -- use marked field now --RAM, 06/07/2003 */
+
 	gchar  *query;				/* The search query */
-	guint16 speed;				/* Minimum speed for the results of query */
 	time_t  time;				/* Time when this search was started */
 	GSList *muids;				/* Message UIDs of this search */
 	GHashTable *h_muids;		/* All known message UIDs of this search */
@@ -1007,9 +1008,14 @@ static void _search_send_packet(search_ctrl_t *sch, gnutella_node_t *n)
 	 * It is too soon though, as GTKG before 0.92 did honour that field.
 	 * The next major version will use a tailored speed field.
 	 *		--RAM, 19/01/2003
+	 *
+	 * Starting today (06/07/2003), we're using marked speed fields and
+	 * ignore the speed they specify in the searches from the GUI. --RAM
 	 */
 
-	speed = sch->speed;					/* XXX until version 0.93 */
+	speed = QUERY_SPEED_MARK;			/* Indicates: special speed field */
+	if (is_firewalled)
+		speed |= QUERY_SPEED_FIREWALLED;
 
 	WRITE_GUINT16_LE(speed, m->search.speed);
 
@@ -1490,7 +1496,7 @@ void search_set_minimum_speed(gnet_search_t sh, guint16 speed)
 
     g_assert(sch != NULL);
 
-    sch->speed = speed;
+	// XXX remove callback and remove control from GUI --RAM, 06/07/2003
 }
 
 
@@ -1505,7 +1511,8 @@ guint16 search_get_minimum_speed(gnet_search_t sh)
 
     g_assert(sch != NULL);
 
-    return sch->speed;
+	// XXX remove callback and remove control from GUI --RAM, 06/07/2003
+    return 0;
 }
 
 /*
@@ -1540,7 +1547,6 @@ gnet_search_t search_new(
 	compact_query(qdup, utf8_len);
 
 	sch->query = atom_str_get(qdup);
-	sch->speed = minimum_speed;
 	sch->frozen = TRUE;
 
 	g_free(qdup);

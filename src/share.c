@@ -1563,23 +1563,23 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 * Unless bit 15 is set, process as a speed.
 	 * Otherwise if bit 15 is set:
 	 *
-	 * 1. If the firewall bit (bit 8) is set, the remote servent is firewalled.
+	 * 1. If the firewall bit (bit 14) is set, the remote servent is firewalled.
 	 *    Therefore, if we are also firewalled, don't reply.
 	 *
-	 * 2. If the XML bit (bit 9) is cleared and we support XML meta data, don't
+	 * 2. If the XML bit (bit 13) is cleared and we support XML meta data, don't
 	 *    include them in the result set [GTKG does not support XML meta data]
 	 *
-	 * 3. We should not reply if we are busy and have no alt-loc for the hits.
-	 *    [GTKG always replies, but the set of results is limited anyway]
+	 *		--RAM, 19/01/2003, updated 06/07/2003 (bit 14-13 instead of 8-9)
 	 *
-	 *		--RAM, 19/01/2003
+	 * Starting today (06/07/2003), we ignore the connection speed overall
+	 * if it's not marked with the QUERY_SPEED_MARK flag to indicate new
+	 * interpretation. --RAM
 	 */
 
 	if (req_speed & QUERY_SPEED_MARK) {
 		if ((req_speed & QUERY_SPEED_FIREWALLED) && is_firewalled)
 			return FALSE;			/* Both servents are firewalled */
-	} else if (connection_speed < req_speed)
-		return FALSE;				/* We're not fast enough */
+	}
 
 	/*
 	 * If we aren't going to let the searcher download anything, then

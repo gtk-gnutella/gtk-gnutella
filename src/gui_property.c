@@ -1243,9 +1243,9 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[55].name = "search_minimum_speed";
-    gui_property->props[55].desc = _("This is the default minimum speed for new searches in kbit/s");
+    gui_property->props[55].desc = _("[NO LONGER USED] This is the default minimum speed for new searches in kbit/s");
     gui_property->props[55].ev_changed = event_new("default_minimum_speed_changed");
-    gui_property->props[55].save = TRUE;
+    gui_property->props[55].save = FALSE;
     gui_property->props[55].vector_size = 1;
 
     /* Type specific data: */
