@@ -137,6 +137,10 @@ static gboolean search_retrieve_old(void);
 
 static void search_dispose_results(struct results_set *rs);
 
+/* Didn't find a better place to put this, since downloads.h
+ * doesn't know about the struct results_set. --vidar, 20020802 */
+gboolean file_info_check_results_set(struct results_set *rs);
+
 /*
  * Human readable translation of servent trailer open flags.
  * Decompiled flags are listed in the order of the table.
@@ -1371,6 +1375,7 @@ static struct results_set *get_results_set(
 				 nr, nr == 1 ? "" : "s");
 			if (dbg > 1)
 				dump_hex(stderr, "Query Hit Data (BAD)", n->data, n->size);
+			goto bad_packet;		/* Will drop this bad query hit */
 		}
 	}
 
@@ -1799,7 +1804,7 @@ static void update_neighbour_info(
 		if (!guid_eq(n->gnet_guid, rs->guid)) {
 			if (dbg) {
 				gchar old[33];
-				strncpy(old, guid_hex_str(n->gnet_guid), sizeof(old)-1);
+				strncpy(old, guid_hex_str(n->gnet_guid), sizeof(old));
 
 				g_warning(
 					"node %s (%s) moved from GUID %s to %s in %s",
@@ -1891,8 +1896,10 @@ gboolean search_results(struct gnutella_node *n)
 	 */
 
 	rs = get_results_set(n, selected_searches == NULL);
-	if (rs == NULL)
+	if (rs == NULL) {
+		drop_it = TRUE;				/* Don't forward bad packets */
 		goto final_cleanup;
+	}
 
 	/*
 	 * If we're handling a message from our immediate neighbour, grab the
@@ -1905,6 +1912,13 @@ gboolean search_results(struct gnutella_node *n)
 	if (n->header.hops == 1)
 		update_neighbour_info(n, rs);
 
+    /*
+     * Look for records that match entries in the download queue.
+     */
+
+    if (auto_download_identical)
+        file_info_check_results_set(rs);
+    
 	/*
 	 * Dispatch the results to the selected searches.
 	 */

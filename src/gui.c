@@ -27,10 +27,10 @@
 
 #include "gnutella.h"
 #include "gui.h"
-#include "sockets.h" /* For local_ip. (FIXME: move to config.h?) */
-#include "search.h" // FIXME: remove this dependency
-#include "share.h" /* For stats globals. (FIXME: move to config.h?) */
-#include "downloads.h" /* For stats globals. (FIXME: move to config.h?) */
+#include "sockets.h"	/* For local_ip. (FIXME: move to config.h?) */
+#include "search.h"		// FIXME: remove this dependency
+#include "share.h"		/* For stats globals. (FIXME: move to config.h?) */
+#include "downloads.h"	/* For stats globals. (FIXME: move to config.h?) */
 #include "misc.h"
 #include "callbacks.h"
 #include "gtk-missing.h"
@@ -951,12 +951,14 @@ void gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_RECEIVING:
 		if (d->pos - d->skip > 0) {
-			gfloat p = 0;
+			gfloat p = 0, pt = 0;
 			gint bps;
 			guint32 avg_bps;
 
 			if (d->size)
-				p = d->pos * 100.0 / d->size;
+                p = (d->pos - d->skip) * 100.0 / d->size;
+            if (download_filesize(d))
+                pt = download_filedone(d) * 100.0 / download_filesize(d);
 
 			bps = bio_bps(d->bio);
 			avg_bps = bio_avg_bps(d->bio);
@@ -969,10 +971,14 @@ void gui_update_download(struct download *d, gboolean force)
 				guint32 s;
 				gfloat bs;
 
-				s = (d->size - d->pos) / avg_bps;
+                if(d->size > (d->pos - d->skip))
+                    s = (d->size - (d->pos - d->skip)) / avg_bps;
+                else
+                    s=0;
+
 				bs = bps / 1024.0;
 
-				slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.02f%% ", p);
+				slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.02f%% / %.02f%% ", p, pt);
 
 				if (now - d->last_update > IO_STALLED)
 					slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
@@ -982,7 +988,7 @@ void gui_update_download(struct download *d, gboolean force)
 						"(%.1f k/s) ", bs);
 
 				g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					"TR: %s", short_time(s));
+					"TR: %s", s ? short_time(s) : "-");
 			} else
 				g_snprintf(gui_tmp, sizeof(gui_tmp), "%.02f%%%s", p,
 					(now - d->last_update > IO_STALLED) ? " (stalled)" : "");

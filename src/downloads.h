@@ -27,6 +27,7 @@
 #define __downloads_h__
 
 #include "bsched.h"
+#include "fileinfo.h"
 
 /*
  * We keep a list of all the downloads queued per GUID+IP:port (host).  Indeed
@@ -70,13 +71,12 @@ struct download {
 	guint32 status;			/* Current status of the download */
 	gpointer io_opaque;		/* Opaque I/O callback information */
 
-	gchar *path;			/* Path of the created output file */
-	gchar *output_name;		/* Basename of the created output file */
 	bio_source_t *bio;		/* Bandwidth-limited source */
 
 	struct dl_server *server;	/* Remote server description */
 	enum dl_list list_idx;		/* List to which download belongs in server */
 
+	struct dl_file_info *file_info;
 	guint32 record_index;	/* Index of the file on the Gnutella server */
 	gchar *file_name;		/* Name of the file on the Gnutella server */
 
@@ -144,13 +144,18 @@ struct download {
  * Access macros.
  */
 
-#define download_guid(d)	((d)->server->key->guid)
-#define download_ip(d)		((d)->server->key->ip)
-#define download_port(d)	((d)->server->key->port)
-#define download_vendor(d)	((d)->server->vendor)
+#define download_guid(d)		((d)->server->key->guid)
+#define download_ip(d)			((d)->server->key->ip)
+#define download_port(d)		((d)->server->key->port)
+#define download_vendor(d)		((d)->server->vendor)
 
 #define download_vendor_str(d) \
 	((d)->server->vendor ? (d)->server->vendor : "")
+
+#define download_path(d)		((d)->file_info->path)
+#define download_outname(d)		((d)->file_info->file_name)
+#define download_filesize(d)	((d)->file_info->size)
+#define download_filedone(d)	((d)->file_info->done)
 
 /*
  * State inspection macros.

@@ -1898,6 +1898,11 @@ void on_clist_search_results_select_row
     
             if (search_autoselect_ident) {
                 if ((
+                        /*
+						 * size check added to workaround buggy
+                         * servents. -vidar, 2002-08-08
+						 */
+                        rc->size == rc2->size && 
                         rc->sha1 != NULL && rc2->sha1 != NULL &&
                         memcmp(rc->sha1, rc2->sha1, SHA1_RAW_SIZE) == 0
                     ) || (

@@ -180,6 +180,7 @@ void download_init(void)
 	dl_by_host = g_hash_table_new(dl_key_hash, dl_key_eq);
 	dl_count_by_name = g_hash_table_new(g_str_hash, g_str_equal);
 	dl_count_by_sha1 = g_hash_table_new(g_str_hash, g_str_equal);
+	file_info_retrieve();
 	download_retrieve();
 }
 
@@ -441,7 +442,7 @@ gboolean download_file_exists(struct download *d)
 	gchar path[2048];
 	struct stat buf;
 
-	g_snprintf(path, sizeof(path), "%s/%s", d->path, d->output_name);
+	g_snprintf(path, sizeof(path), "%s/%s", d->file_info->path, d->file_info->file_name);
 
 	if (-1 == stat(path, &buf))
 		return FALSE;
@@ -458,11 +459,40 @@ void download_remove_file(struct download *d)
 {
 	gchar path[2048];
 
-	g_snprintf(path, sizeof(path), "%s/%s", d->path, d->output_name);
+	g_snprintf(path, sizeof(path), "%s/%s", d->file_info->path, d->file_info->file_name);
 
 	if (-1 == unlink(path))
 		g_warning("cannot unlink \"%s\": %s", path, g_strerror(errno));
 }
+
+/*
+ * queue_remove_downloads_with_file
+ *
+ * Removes all downloads that point to the file_info struct.
+ * This replaces queue_remove_identical, since downloads can
+ * have different file names but still point to the same file.
+ *
+ */
+static void queue_remove_downloads_with_file(struct dl_file_info *fi)
+{
+	GSList *to_remove = NULL;
+	GSList *l;
+
+	for (l = sl_downloads; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
+
+		if (d->file_info != fi) continue;
+		
+		if ((d->status == GTA_DL_QUEUED) || (d->status == GTA_DL_TIMEOUT_WAIT))
+			to_remove = g_slist_prepend(to_remove, d);
+	}
+	
+	for (l = to_remove; l; l = l->next)
+		download_free((struct download *)l->data);
+
+	g_slist_free(to_remove);
+}
+
 
 /*
  * queue_remove_identical
@@ -516,9 +546,9 @@ static void queue_remove_identical(
 		switch (d->status) {
 		case GTA_DL_QUEUED:
 		case GTA_DL_TIMEOUT_WAIT:
-			if (0 == strcmp(name, d->file_name)) {
+			if (0 == strcmp(name, d->file_info->file_name)) {
 				d->flags |= DL_F_MARK;
-				if (d->size <= size)
+				if (d->file_info->size <= size)
 					to_remove = g_slist_prepend(to_remove, d);
 				else
 					bigger++;
@@ -546,7 +576,7 @@ static void queue_remove_identical(
 		case GTA_DL_QUEUED:
 		case GTA_DL_TIMEOUT_WAIT:
 			if (d->sha1 && g_hash_table_lookup(seen_sha1, d->sha1)) {
-				if (d->size <= size)
+				if (d->file_info->size <= size)
 					to_remove = g_slist_prepend(to_remove, d);
 				else
 					bigger++;
@@ -564,7 +594,7 @@ static void queue_remove_identical(
 
 		if (dbg > 3)
 			printf("queue_remove_identical: removing \"%s\" (%s) %d bytes\n",
-				d->file_name, d->sha1 ? sha1_base32(d->sha1) : "", d->size);
+				d->file_name, d->sha1 ? sha1_base32(d->sha1) : "", d->file_info->size);
 
 		download_free(d);
 	}
@@ -617,8 +647,8 @@ gint download_remove_all_from_peer(const gchar *guid, guint32 ip, guint16 port)
 	}
 
 	g_slist_free(to_remove);
-    
-    return n;
+
+	return n;
 }
 
 /*
@@ -669,7 +699,7 @@ gint download_remove_all_named(const gchar *name)
 
 	g_slist_free(to_remove);
 
-    return m;
+	return m;
 }
 
 /*
@@ -719,8 +749,8 @@ gint download_remove_all_with_sha1(const guchar *sha1)
 	}
 
 	g_slist_free(to_remove);
-    
-    return m;
+
+	return m;
 }
 
 /*
@@ -733,8 +763,8 @@ void download_gui_add(struct download *d)
 {
 	gchar *titles[5];
 	gint row;
-    GdkColor *color;
-    GtkCList* clist_downloads;
+	GdkColor *color;
+	GtkCList* clist_downloads;
 
 	g_return_if_fail(d);
 
@@ -745,33 +775,43 @@ void download_gui_add(struct download *d)
 		return;
 	}
 
-    clist_downloads = GTK_CLIST
-        (lookup_widget(main_window, "clist_downloads"));
+	clist_downloads = GTK_CLIST
+		(lookup_widget(main_window, "clist_downloads"));
 
-    color = &(gtk_widget_get_style(GTK_WIDGET(clist_downloads))
-                ->fg[GTK_STATE_INSENSITIVE]);
+	color = &(gtk_widget_get_style(GTK_WIDGET(clist_downloads))
+				->fg[GTK_STATE_INSENSITIVE]);
 
 	titles[c_dl_filename] = d->file_name;
 	titles[c_dl_host] = ip_port_to_gchar(download_ip(d), download_port(d));
-	titles[c_dl_size] = short_size(d->size);
 	titles[c_dl_server] = download_vendor_str(d);
 	titles[c_dl_status] = "";
 
 	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
-        GtkCList* clist_downloads_queue;
+		GtkCList* clist_downloads_queue;
 
-        clist_downloads_queue = GTK_CLIST
-            (lookup_widget(main_window, "clist_downloads_queue"));
+		titles[c_dl_size] = short_size(d->file_info->size);
+
+		clist_downloads_queue = GTK_CLIST
+			(lookup_widget(main_window, "clist_downloads_queue"));
 
 		row = gtk_clist_append(clist_downloads_queue, titles);
 		gtk_clist_set_row_data(clist_downloads_queue, row, (gpointer) d);
-        if (d->always_push)
-             gtk_clist_set_foreground(clist_downloads_queue, row, color);
+		if (d->always_push)
+			 gtk_clist_set_foreground(clist_downloads_queue, row, color);
 	} else {					/* This is an active download */
+		gint rw;
+
+		rw = g_snprintf(dl_tmp, sizeof(dl_tmp),
+			"%s", short_size(d->file_info->size));
+		rw += g_snprintf(&dl_tmp[rw], sizeof(dl_tmp)-rw,
+			" (%s)", short_size(d->size));
+
+		titles[c_dl_size] = dl_tmp;
+
 		row = gtk_clist_append(clist_downloads, titles);
 		gtk_clist_set_row_data(clist_downloads, row, (gpointer) d);
-        if (DOWNLOAD_IS_IN_PUSH_MODE(d))
-             gtk_clist_set_foreground(clist_downloads, row, color);
+		if (DOWNLOAD_IS_IN_PUSH_MODE(d))
+			 gtk_clist_set_foreground(clist_downloads, row, color);
 	}
 
 	d->visible = TRUE;
@@ -796,10 +836,10 @@ void download_gui_remove(struct download *d)
 	}
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
-        GtkCList *clist_downloads_queue;
+		GtkCList *clist_downloads_queue;
 
-        clist_downloads_queue = GTK_CLIST
-            (lookup_widget(main_window, "clist_downloads_queue"));
+		clist_downloads_queue = GTK_CLIST
+			(lookup_widget(main_window, "clist_downloads_queue"));
 
 		row =
 			gtk_clist_find_row_from_data(clist_downloads_queue, (gpointer) d);
@@ -809,10 +849,10 @@ void download_gui_remove(struct download *d)
 			g_warning("download_gui_remove(): "
 				"Queued download '%s' not found in clist !?", d->file_name);
 	} else {
-        GtkCList *clist_downloads;
+		GtkCList *clist_downloads;
 
-        clist_downloads = GTK_CLIST
-            (lookup_widget(main_window, "clist_downloads"));
+		clist_downloads = GTK_CLIST
+			(lookup_widget(main_window, "clist_downloads"));
 
 		row = gtk_clist_find_row_from_data(clist_downloads, (gpointer) d);
 		if (row != -1)
@@ -910,10 +950,10 @@ static void download_move_to_list(struct download *d, enum dl_list idx)
 			g_assert(DOWNLOAD_IS_ESTABLISHING(d));
 			dl_establishing--;
 		}
-		downloads_with_name_dec(d->file_name);
+		downloads_with_name_dec(d->file_info->file_name);
 	} else if (idx == DL_LIST_RUNNING) {
 		dl_establishing++;
-		downloads_with_name_inc(d->file_name);
+		downloads_with_name_inc(d->file_info->file_name);
 	}
 
 	g_assert(dl_active >= 0 && dl_establishing >= 0);
@@ -1128,11 +1168,16 @@ void download_stop(struct download *d, guint32 new_status,
 	if (DOWNLOAD_IS_VISIBLE(d))
 		gui_update_download(d, TRUE);
 
+	if (!d->file_info->use_swarming) {
 	if (new_status == GTA_DL_COMPLETED)
-		queue_remove_identical(d->file_name, d->sha1, d->size);
+		queue_remove_downloads_with_file(d->file_info);
+	} else if (d->file_info->done == d->file_info->size)
+		queue_remove_downloads_with_file(d->file_info);
 
-	if (store_queue)
+	if (store_queue) {
 		download_store();			/* Refresh copy */
+		file_info_store();
+	}
 
 	if (DOWNLOAD_IS_STOPPED(d) && DOWNLOAD_IS_IN_PUSH_MODE(d))
 		download_push_remove(d);
@@ -1141,6 +1186,8 @@ void download_stop(struct download *d, guint32 new_status,
 		gui_update_download_abort_resume();
 		gui_update_download_clear();
 	}
+
+	file_info_clear_download(d);
 
 	gui_update_c_downloads(dl_active, dl_establishing + dl_active);
 }
@@ -1197,6 +1244,8 @@ static void download_queue_v(struct download *d, const gchar *fmt, va_list ap)
 		g_source_remove(d->restart_timer_id);
 		d->restart_timer_id = 0;
 	}
+
+	file_info_clear_download(d);
 }
 
 /*
@@ -1470,18 +1519,21 @@ static gboolean download_start_prepare(struct download *d)
 	 *		--RAM, 13/03/2002
 	 */
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->output_name);
+	if (!d->file_info->use_swarming) {
+
+		g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s",
+			d->file_info->path, d->file_info->file_name);
 
 	d->skip = 0;
 
 	if (stat(dl_tmp, &st) != -1) {
 		if (st.st_size > download_overlap_range)
 			d->skip = st.st_size;
-	} else {
+		} else if (!d->file_info->use_swarming) {
 		gchar dl_dest[4096];
 
 		g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s",
-			move_file_path, d->output_name);
+					move_file_path, d->file_info->file_name);
 
 		if (stat(dl_dest, &st) != -1) {		/* File exists in "done" dir */
 			if (st.st_size < d->size) {		/* And is smaller */
@@ -1492,7 +1544,7 @@ static gboolean download_start_prepare(struct download *d)
 					if (st.st_size > download_overlap_range)
 						d->skip = st.st_size;
 					g_warning("moved incomplete \"%s\" back to download dir",
-						d->output_name);
+								d->file_info->file_name);
 				}
 			} else
 				d->skip = st.st_size;		/* "done" file is larger */
@@ -1503,6 +1555,51 @@ static gboolean download_start_prepare(struct download *d)
 	d->last_update = time((time_t *) NULL);
 	d->overlap_size = (d->skip == 0 || d->size <= d->pos) ?
 		0 : download_overlap_range;
+
+	} else { /* using swarming */
+	
+		enum dl_chunk_status status;
+		guint32 from, to;
+
+		d->overlap_size = 0;
+		d->last_update = time((time_t *) NULL);
+
+		status = file_info_find_hole(d, &from, &to);
+
+		if (status == DL_CHUNK_EMPTY) {
+
+			d->skip = d->pos = from;
+			d->size = to - from;
+
+			if (
+				from > download_overlap_range &&
+				file_info_chunk_status(d->file_info, 
+					from - download_overlap_range, from -1 ) == DL_CHUNK_DONE
+			)
+				d->overlap_size = download_overlap_range;
+
+		} else if (status == DL_CHUNK_BUSY) {
+
+			if (!DOWNLOAD_IS_QUEUED(d))
+				download_queue_delay(d, 10, "Waiting for a free slot");
+			return FALSE;
+
+		} else if (status == DL_CHUNK_DONE) {
+
+			if (DOWNLOAD_IS_QUEUED(d))
+				if (DOWNLOAD_IS_VISIBLE(d))
+					download_gui_remove(d);
+
+			d->status = GTA_DL_CONNECTING;
+
+			if (!DOWNLOAD_IS_VISIBLE(d))
+				download_gui_add(d);
+
+			download_stop(d, GTA_DL_ERROR, "No more holes to fill");
+			queue_remove_downloads_with_file(d->file_info);
+			return FALSE;
+		}
+	}
 
 	g_assert(d->overlap_size == 0 || d->skip > d->overlap_size);
 
@@ -1523,12 +1620,13 @@ static gboolean download_start_prepare(struct download *d)
 	 * Is there anything to get at all?
 	 */
 
-	if (d->size <= d->pos) {
+	if (d->file_info->done == d->file_info->size) {
 		d->status = GTA_DL_CONNECTING;
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
 		download_stop(d, GTA_DL_ERROR, "Nothing more to get");
-		queue_remove_identical(d->file_name, d->sha1, d->size);
+		//queue_remove_identical(d->file_info->file_name, d->sha1, d->file_info->size);
+		queue_remove_downloads_with_file(d->file_info);
 		return FALSE;
 	}
 
@@ -1553,7 +1651,8 @@ void download_start(struct download *d, gboolean check_allowed)
 	if (check_allowed && (
 		count_running_downloads() >= max_downloads ||
 		count_running_on_server(d->server) >= max_host_downloads ||
-		count_running_downloads_with_name(d->file_name) != 0)
+		(!d->file_info->use_swarming &&
+			count_running_downloads_with_name(d->file_info->file_name) != 0))
 	) {
 		if (!DOWNLOAD_IS_QUEUED(d))
 			download_queue(d, NULL);
@@ -1641,7 +1740,10 @@ void download_pickup_queued(void)
 		for (w = server->list[DL_LIST_WAITING]; w; w = g_list_next(w)) {
 			struct download *d = (struct download *) w->data;
 
-			if (count_running_downloads_with_name(d->file_name) != 0)
+			if (
+				!d->file_info->use_swarming &&
+			  	count_running_downloads_with_name(download_outname(d)) != 0
+			)
 				continue;
 
 			if ((now - d->last_update) <= d->timeout_delay)
@@ -1661,8 +1763,8 @@ void download_pickup_queued(void)
 	 */
 
 	gtk_widget_set_sensitive(
-        lookup_widget(popup_queue, "popup_queue_start_now"), 
-        (running < max_downloads) &&
+		lookup_widget(popup_queue, "popup_queue_start_now"), 
+		(running < max_downloads) &&
 		GTK_CLIST(
 			lookup_widget(main_window, "clist_downloads_queue"))->selection); 
 }
@@ -1820,6 +1922,12 @@ static void create_download(
 	struct dl_server *server;
 	struct download *d;
 	gchar *file_name = interactive ? atom_str_get(file) : file;
+	struct dl_file_info *file_info;
+
+	/* Fixme? Apparently, many of the servents that set the push flag
+	 * are perfectly capable of receiving direct connections as well, so
+	 * just for the heck of it, ignore them. --vidar, 31/07/2002 */
+	// push = 0;
 
 	/*
 	 * Refuse to queue the same download twice. --RAM, 04/11/2001
@@ -1850,6 +1958,8 @@ static void create_download(
 	if (output == NULL)
 		output = escape_filename(file_name);
 
+	file_info = file_info_get(output, save_file_path, size, sha1);
+
 	/*
 	 * Initialize download, creating new server if needed.
 	 */
@@ -1863,9 +1973,11 @@ static void create_download(
 	d->server = server;
 	d->list_idx = -1;
 
-	d->path = atom_str_get(save_file_path);
-	d->output_name = output;
+	//d->path = atom_str_get(save_file_path);
+	//d->output_name = file_info->file_name;
+
 	d->file_name = file_name;
+	/* Note: size and skip will be filled by file_info_find_hole() later */
 	d->size = size;
 	d->record_index = record_index;
 	d->file_desc = -1;
@@ -1878,6 +1990,8 @@ static void create_download(
 	else
 		d->push = FALSE;
 	d->record_stamp = stamp;
+
+	d->file_info = file_info;
 
 	download_add_to_list(d, DL_LIST_WAITING);
 	sl_downloads = g_slist_prepend(sl_downloads, d);
@@ -1895,7 +2009,7 @@ static void create_download(
 	if (
 		count_running_downloads() < max_downloads &&
 		count_running_on_server(d->server) < max_host_downloads &&
-		count_running_downloads_with_name(d->file_name) == 0
+		count_running_downloads_with_name(d->file_info->file_name) == 0
 	) {
 		download_start(d, FALSE);		/* Starts the download immediately */
 	} else {
@@ -2121,10 +2235,9 @@ void download_free(struct download *d)
 
 	download_remove_from_server(d);
 
-	atom_str_free(d->path);
 	atom_str_free(d->file_name);
-	if (d->output_name != d->file_name)
-		g_free(d->output_name);
+	file_info_free(d->file_info, FALSE);
+
 	g_free(d);
 }
 
@@ -2145,6 +2258,14 @@ void download_abort(struct download *d)
 
 	download_stop(d, GTA_DL_ABORTED, NULL);
 
+	/* 
+	 * Fixme! The refcount isn't decreased until "Clear completed", so
+	 * we may very well have a file with a high refcount and no active
+	 * or queued downloads. ;-/
+	 *
+	 * So, the following doesn't really work;
+	 */
+	if (d->file_info->refcount == 1)
 	if (download_delete_aborted)
 		download_remove_file(d);
 }
@@ -2190,12 +2311,13 @@ void download_move_to_completed_dir(struct download *d)
 	gint return_tmp, return_tmp2;
 	struct stat buf;
 
-	if (0 == strcmp(d->path, move_file_path))
+	file_info_strip_binary(d->file_info);
+	
+	if (0 == strcmp(d->file_info->path, move_file_path))
 		return;			/* Already in "completed dir" */
 
-	g_snprintf(dl_src, sizeof(dl_src), "%s/%s", d->path, d->output_name);
-	g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s", move_file_path,
-			   d->output_name);
+	g_snprintf(dl_src, sizeof(dl_src), "%s/%s", d->file_info->path, d->file_info->file_name);
+	g_snprintf(dl_dest, sizeof(dl_dest), "%s/%s", move_file_path, d->file_info->file_name);
 
 	dl_src[sizeof(dl_src)-1] = '\0';
 	dl_dest[sizeof(dl_dest)-1] = '\0';
@@ -2223,7 +2345,7 @@ void download_move_to_completed_dir(struct download *d)
 
 		if (destlen >= sizeof(dl_dest) - 4) {
 			g_warning("Found '%s' in completed dir, and path already too long",
-				d->output_name);
+				d->file_info->file_name);
 			return;
 		}
 
@@ -2242,7 +2364,7 @@ void download_move_to_completed_dir(struct download *d)
 		if (i == 100) {
 			g_warning("Found '%s' in completed dir, "
 				"and was unable to find another unique name",
-				d->output_name);
+				d->file_info->file_name);
 			return;
 		}
 
@@ -2612,21 +2734,23 @@ static gboolean download_overlap_check(struct download *d)
 	gchar *data = NULL;
 	gint r;
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->output_name);
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->file_info->path,
+		d->file_info->file_name);
 
 	fd = open(dl_tmp, O_RDONLY);
 
 	if (fd == -1) {
 		const gchar * error = g_strerror(errno);
 		g_warning("cannot check resuming for \"%s\": %s",
-			d->output_name, error);
+			d->file_info->file_name, error);
 		download_stop(d, GTA_DL_ERROR, "Can't check resume data: %s", error);
 		goto out;
 	}
 
 	if (-1 == fstat(fd, &buf)) {			/* Should never happen */
 		const gchar *error = g_strerror(errno);
-		g_warning("cannot stat opened \"%s\": %s", d->output_name, error);
+		g_warning("cannot stat opened \"%s\": %s",
+			d->file_info->file_name, error);
 		download_stop(d, GTA_DL_ERROR, "Can't stat opened file: %s", error);
 		goto out;
 	}
@@ -2636,9 +2760,9 @@ static gboolean download_overlap_check(struct download *d)
 	 * immediately.
 	 */
 
-	if (d->skip != buf.st_size) {
+	if (!d->file_info->use_swarming && d->skip != buf.st_size) {
 		g_warning("File '%s' changed size (now %lu, but was %u)",
-			d->output_name, (gulong) buf.st_size, d->skip);
+			d->file_info->file_name, (gulong) buf.st_size, d->skip);
 		download_stop(d, GTA_DL_STOPPED, "Stopped (Output file size changed)");
 		goto out;
 	}
@@ -2659,14 +2783,14 @@ static gboolean download_overlap_check(struct download *d)
 	if (r < 0) {
 		const gchar *error = g_strerror(errno);
 		g_warning("cannot read resuming data for \"%s\": %s",
-			d->output_name, error);
+			d->file_info->file_name, error);
 		download_stop(d, GTA_DL_ERROR, "Can't read resume data: %s", error);
 		goto out;
 	}
 
 	if (r != d->overlap_size) {
 		g_warning("Short read (%d instead of %d bytes) on resuming data "
-			"for \"%s\"", r, d->overlap_size, d->output_name);
+			"for \"%s\"", r, d->overlap_size, d->file_info->file_name);
 		download_stop(d, GTA_DL_ERROR, "Short read on resume data");
 		goto out;
 	}
@@ -2734,6 +2858,17 @@ static void download_write_data(struct download *d)
 		/* FALL THROUGH */
 	}
 
+	if (
+		d->file_info->use_swarming &&
+		-1 == lseek(d->file_desc, d->pos, SEEK_SET)
+	) {
+		const char *error = g_strerror(errno);
+		g_warning("download_read(): failed to seek at offset %u (%s)",
+			d->pos, error);
+		download_stop(d, GTA_DL_ERROR, "Can't seek to offset %u: %s",
+			d->pos, error);
+	}
+
 	if (-1 == (written = write(d->file_desc, s->buffer, s->pos))) {
 		const char *error = g_strerror(errno);
 		g_warning("download_read(): write to file failed (%s) !", error);
@@ -2744,10 +2879,11 @@ static void download_write_data(struct download *d)
 	} else if (written < s->pos) {
 		g_warning("download_read(): "
 			"partial write of %d out of %d bytes to file '%s'",
-			written, s->pos, d->output_name);
+			written, s->pos, d->file_info->file_name);
 		download_stop(d, GTA_DL_ERROR, "Partial write to file");
 		return;
 	}
+	file_info_update(d, d->pos, d->pos + s->pos, DL_CHUNK_DONE);
 
 	d->pos += s->pos;
 	s->pos = 0;
@@ -2756,12 +2892,41 @@ static void download_write_data(struct download *d)
 	 * End download if we have completed it.
 	 */
 
-	if (d->pos >= d->size) {
-        guint32 val = total_downloads+1;
+	if (d->file_info->use_swarming) {
+ 
+		enum dl_chunk_status s = file_info_pos_status(d->file_info, d->pos);
+
+		if (s == DL_CHUNK_DONE) {
+			download_stop(d, GTA_DL_COMPLETED, NULL);
+			if (d->file_info->done < d->file_info->size) {
+				download_queue_delay(d, 2, "Requeued by competing download.");
+			} else {
+				guint32 val = total_downloads + 1;
+
+				queue_remove_downloads_with_file(d->file_info);
+				download_move_to_completed_dir(d);
+				gnet_prop_set_guint32(PROP_TOTAL_DOWNLOADS, &val, 0, 1);
+			}
+		} else if (s == DL_CHUNK_EMPTY) {
+			/*
+			 * We have completed our busy-chunk, so we should extend it
+			 * to avoid new downloads starting from here. (FIXME -- XXX)
+			 */
+		} else if (d->pos >= (d->skip + d->size)) {
+			/*
+			 * Growing the chunk size dynamically would be nice, but since
+			 * since the Size column isn't updated regularly, let's
+			 * just progress beyond 100% for now.
+			 */
+			/* d->size = d->pos - d->skip; */
+		}
+
+	} else if (d->file_info->done == d->file_info->size) {
+		guint32 val = total_downloads+1;
 
 		download_stop(d, GTA_DL_COMPLETED, NULL);
 		download_move_to_completed_dir(d);
-        gnet_prop_set_guint32(PROP_TOTAL_DOWNLOADS, &val, 0, 1);
+		gnet_prop_set_guint32(PROP_TOTAL_DOWNLOADS, &val, 0, 1);
 	} else
 		gui_update_download(d, FALSE);
 }
@@ -2827,8 +2992,8 @@ static gboolean download_moved_permanently(struct download *d, header_t *header)
 
 		g_assert(d->list_idx == DL_LIST_RUNNING);
 
-		downloads_with_name_dec(d->file_name);
-		downloads_with_name_inc(info.name);
+		//downloads_with_name_dec(d->file_name);
+		//downloads_with_name_inc(info.name);
 
 		/*
 		 * About to free the d->file_name atom, but maybe the output_name
@@ -2840,8 +3005,8 @@ static gboolean download_moved_permanently(struct download *d, header_t *header)
 		 * will not be the targetted file on the disk.
 		 */
 
-		if (d->output_name == d->file_name)
-			d->output_name = g_strdup(d->file_name);
+		//if (d->output_name == d->file_name)
+		//	d->output_name = g_strdup(d->file_name);
 
 		atom_str_free(d->file_name);
 		d->file_name = info.name;			/* Already an atom */
@@ -2955,6 +3120,7 @@ static void download_request(struct download *d, header_t *header)
 			if (d->sha1 == NULL) {
 				d->sha1 = atom_sha1_get(digest);
 				download_store();		/* Save SHA1 */
+				file_info_store();
 
 				/*
 				 * Insert record in download mesh if it does not require
@@ -3069,11 +3235,11 @@ static void download_request(struct download *d, header_t *header)
 		if (z == 0) {
 			download_stop(d, GTA_DL_ERROR, "Bad length !?");
 			return;
-		} else if (server_size != d->size) {
-			if (z == d->size) {
+		} else if (server_size != d->file_info->size) {
+			if (z == d->file_info->size) {
 				g_warning("File '%s': server seems to have "
 					"ignored our range request of %u.",
-					d->file_name, d->size - d->overlap_size);
+					d->file_name, d->file_info->size - d->overlap_size);
 				download_stop(d, GTA_DL_ERROR,
 					"Server can't handle resume request");
 				return;
@@ -3091,7 +3257,7 @@ static void download_request(struct download *d, header_t *header)
 				 *		--RAM, 15/05/2002
 				 */
 				g_warning("File '%s': expected size %u but server said %u",
-					d->file_name, d->size, server_size);
+					d->file_name, d->file_info->size, server_size);
 				download_stop(d, GTA_DL_ERROR, "File size mismatch");
 				return;
 			}
@@ -3112,9 +3278,9 @@ static void download_request(struct download *d, header_t *header)
 				download_stop(d, GTA_DL_ERROR, "Range start mismatch");
 				return;
 			}
-			if (total != d->size) {
+			if (total != d->file_info->size) {
 				g_warning("File '%s': file size mismatch: expected %u, got %u",
-					d->file_name, d->size, total);
+					d->file_name, d->file_info->size, total);
 				download_stop(d, GTA_DL_ERROR, "File size mismatch");
 				return;
 			}
@@ -3149,13 +3315,14 @@ static void download_request(struct download *d, header_t *header)
 
 	g_assert(d->file_desc == -1);
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->path, d->output_name);
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->file_info->path,
+			d->file_info->file_name);
 
 	if (stat(dl_tmp, &st) != -1) {
 		/* File exists, we'll append the data to it */
-		if (st.st_size != d->skip) {
+		if (!d->file_info->use_swarming && (st.st_size != d->skip)) {
 			g_warning("File '%s' changed size (now %lu, but was %u)",
-				d->output_name, (gulong) st.st_size, d->skip);
+					d->file_info->file_name, (gulong) st.st_size, d->skip);
 			download_stop(d, GTA_DL_STOPPED,
 				"Stopped (Output file size changed)");
 			return;
@@ -3163,11 +3330,11 @@ static void download_request(struct download *d, header_t *header)
 
 		d->file_desc = open(dl_tmp, O_WRONLY);
 	} else {
-		if (d->skip) {
+		if (!d->file_info->use_swarming && d->skip) {
 			download_stop(d, GTA_DL_ERROR, "Cannot resume: file gone");
 			return;
 		}
-		d->file_desc = open(dl_tmp, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		d->file_desc = open(dl_tmp, O_WRONLY | O_CREAT, 0644);
 	}
 
 	if (d->file_desc == -1) {
@@ -3250,15 +3417,15 @@ static void download_read(gpointer data, gint source, GdkInputCondition cond)
 		return;
 	}
 
-	g_assert(d->pos <= d->size);
+	g_assert(d->pos <= d->file_info->size);
 
-	if (d->pos == d->size) {
+	if (d->pos == d->file_info->size) {
 		download_stop(d, GTA_DL_ERROR, "Failed (Completed?)");
 		return;
 	}
 
 	remains = sizeof(s->buffer) - s->pos;
-	to_read = d->size - d->pos;
+	to_read = d->file_info->size - d->pos;
 	if (remains < to_read)
 		to_read = remains;			/* Only read to fill buffer */
 
@@ -3415,6 +3582,7 @@ gboolean download_send_request(struct download *d)
 
 	/*
 	 * Now prepare to read the status line and the headers.
+	 * XXX separate this to swallow 100 continuations?
 	 */
 
 	g_assert(d->io_opaque == NULL);
@@ -3575,7 +3743,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 
 			g_assert(!DOWNLOAD_IS_RUNNING(d));
 
-			if (count_running_downloads_with_name(d->file_name) != 0)
+			if (count_running_downloads_with_name(d->file_info->file_name) != 0)
 				continue;
 
 			if (dbg > 4)
@@ -3778,7 +3946,7 @@ static void download_store(void)
 
 		fprintf(out, "%s\n", escaped);
 		fprintf(out, "%u, %u:%s, %s\n",
-			d->size,
+			d->file_info->size,
 			d->record_index, guid_hex_str(download_guid(d)),
 			ip_port_to_gchar(download_ip(d), download_port(d)));
 		fprintf(out, "%s\n\n",
@@ -4027,16 +4195,16 @@ void download_close(void)
 		if (d->restart_timer_id)
 			g_source_remove(d->restart_timer_id);
 		download_remove_from_server(d);
-		atom_str_free(d->path);
 		atom_str_free(d->file_name);
-		if (d->output_name != d->file_name)
-			g_free(d->output_name);
+
 		g_free(d);
 	}
 
 	g_slist_free(sl_downloads);
 	g_slist_free(sl_unqueued);
 	g_hash_table_destroy(pushed_downloads);
+
+	file_info_close();
 
 	// XXX free & check other hash tables as well.
 }

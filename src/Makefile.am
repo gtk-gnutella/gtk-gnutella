@@ -89,6 +89,8 @@ gtk_gnutella_SOURCES = \
 	search.c search.h search_gui.h \
 	search_stats.c search_stats.h search_stats_gui.h \
 	downloads.c downloads.h downloads_gui.h \
+	fileinfo.c fileinfo.h \
+	fuzzy.c fuzzy.h \
 	share.c share.h \
 	uploads.c uploads.h uploads_gui.h \
 	upload_stats.c upload_stats.h upload_stats_gui.h \

@@ -58,6 +58,7 @@
 #include "main_gui.h"
 #include "settings.h"
 #include "oldconfig.h"
+#include "fileinfo.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 #define EXIT_GRACE				30	/* Seconds to wait before exiting */
@@ -207,11 +208,14 @@ static void slow_main_timer(time_t now)
 	case 2:
 		ul_flush_stats_if_dirty();
 		break;
+	case 3:
+		file_info_store_if_dirty();
+		break;
 	default:
 		g_assert(0);
 	}
 
-	if (++i > 2)
+	if (++i > 3)
 		i = 0;
 }
 
@@ -375,6 +379,7 @@ gint main(gint argc, gchar ** argv)
 	callout_queue = cq_make(0);
 	init_constants();
 	settings_init();
+	file_info_init();
     gui_init();
 	matching_init();
 	host_init();
