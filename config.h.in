@@ -67,6 +67,12 @@
 /* Define if you want to use GTK+ 2.x. */
 #undef USE_GTK2
 
+/* Define if you compile against GTK+ 2.x. */
+#undef G_DISABLE_DEPRECATED
+
+/* Define if you compile against GTK+ 2.x. */
+#undef GDK_DISABLE_DEPRECATED
+
 /* Define which directory should be used for package data. */
 #undef PACKAGE_DATA_DIR
 
@@ -105,6 +111,9 @@
 
 /* Define if you have ctype.h. */
 #undef HAVE_CTYPE_H
+
+/* Define if you have ICU (for non roman charset support). */
+#undef HAVE_ICU
 
 /* Define if your IP stack supports Type-of-Service (IP TOS). */
 #undef HAVE_IP_TOS

@@ -21,6 +21,8 @@ dnl ---------------------------------------------------------------------------
 dnl Check configure command line options
 dnl ---------------------------------------------------------------------------
 
+test_icu=0
+
 AC_ARG_ENABLE(xml-store,[
   --enable-xml-store              save searches and filters in XML (default=on)], , 
   enable_xml_store=yes)
@@ -38,20 +40,21 @@ AC_ARG_ENABLE(tos,[
 if  test "x$enable_gtk2" = "xno"
 then
     AM_PATH_GTK(1.2.0, ,
-	AC_MSG_ERROR(Cannot find GTK: Is gtk-config in path?))
+	AC_MSG_ERROR(Cannot find GTK+: Is gtk-config in path?))
 
     AM_PATH_GLIB(1.2.10, ,
 			AC_MSG_ERROR(Cannot find GLib: Is glib-config in path?))
-    frontend="Gtk 1.2"
+    frontend="GTK+ 1.2"
 else
     PKG_CHECK_MODULES(GTK_GNUTELLA, gtk+-2.0 >= 2.0.0 glib-2.0 >= 2.0.0)
     AC_SUBST(GTK_GNUTELLA_CFLAGS)
     AC_DEFINE(USE_GTK2, 1, [Define if you want to use GTK+ 2.x.])
 
-    frontend="Gtk 2.0"
+    frontend="GTK+ 2.x"
 
-dnl We don't need any deprecated glib functions 
-	CPPFLAGS="${CPPFLAGS} -DG_DISABLE_DEPRECATED -DGDK_DISABLE_DEPRECATED"
+dnl We don't need any deprecated GLib or GDK functions 
+AC_DEFINE(G_DISABLE_DEPRECATED, 1, [Define if you compile against GTK+ 2.x.])
+AC_DEFINE(GDK_DISABLE_DEPRECATED, 1, [Define if you compile against GTK+ 2.x.])
     
 fi
 AM_CONDITIONAL(ENABLE_GTK2, test "x$enable_gtk2" = "xyes")
@@ -202,6 +205,16 @@ if test "x$have_zlib" != "xyes"; then
     echo "Missing zlib -- you need to install zlib from www.zlib.org"
 fi
 
+dnl Checks for ICU
+
+AC_CHECK_HEADER(unicode/pos400.h,
+AC_CHECK_LIB(icuuc, ucnv_open_2_6, [have_icu=yes], [have_icu=no]))
+
+if test "x$have_icu" = "xyes"; then
+	AC_DEFINE(HAVE_ICU, 1,
+		[Define if you have ICU (for non roman charset support).])
+fi
+
 dnl Checks for IP_TOS in netinet/ip.h
 if test "x$enable_tos" != "xno"; then
     AC_MSG_CHECKING([for IP TOS support in netinet/in.h])
@@ -248,7 +261,7 @@ else
     have_tos=no
 fi
 
-AC_OUTPUT([ po/Makefile.in m4/Makefile 
+AC_OUTPUT([ po/Makefile.in intl/Makefile 
 Makefile
 src/Makefile
 gtk-gnutella.spec
@@ -259,12 +272,12 @@ echo
 echo "Feature summary:"
 echo "---------------"
 echo
-echo "Frontend                 :   $frontend"
-msg="Persistant filters       :  "
+echo "Frontend                           :   $frontend"
+msg="Persistant filters                 :  "
 if test "x$enable_xml_store" = "xno" ; then
     if test "x$XML_CONFIG" = "xno" ; then
         echo "$msg no (libxml2 missing)"
-	echo "NOTE: filters will not be persisted. You should seriously consider"
+	echo "NOTE: Filters will not be persisted. You should seriously consider"
 	echo "      installing libxml2 as the filters are a central element of"
 	echo "      gtk-gnutella and you WILL want that they are kept across"
 	echo "      sessions. If your distribution does not have a libxml2"
@@ -277,21 +290,32 @@ else
     echo "$msg yes"
 fi	
 
-msg="Remote shell             :  "
+msg="Remote shell                       :  "
 if test "x$enable_remote_shell" = "xyes" ; then
     echo "$msg yes"
 else
     echo "$msg no"
 fi
 
-msg="gNet traffic compression :  "
+msg="gNet traffic compression           :  "
 if test "x$have_zlib" = "xyes" ; then
     echo "$msg yes"
 else
     echo "$msg no (you need to install zlib from www.zlib.org)"
 fi
 
-msg="IP TOS (Type of Service) :  "
+msg="Extended non roman charset support :  "
+if test "x$have_icu" = "xyes" ; then
+	echo "$msg yes"
+else
+	echo "$msg no"
+	echo
+	echo "********************************* NOTE ****************************************"
+	echo "**** You should install ICU from http://oss.software.ibm.com/icu/download/ ****"
+	echo
+fi
+
+msg="IP TOS (Type of Service)           :  "
 if test "x$have_tos" = "xyes" ; then
     echo "$msg yes"
 else
