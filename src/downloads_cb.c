@@ -150,7 +150,9 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 								      gpointer user_data)
 {
    	struct download *d;
-    GList *node_list, *data_list = NULL;
+    GList *node_list;
+    GList *data_list;
+    GList *l;
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
@@ -162,8 +164,8 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
 		node_list, TRUE, TRUE);
 	
-	for (; NULL != data_list; data_list = g_list_next(data_list)) {
-		d = (struct download *) data_list->data;
+	for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
 
         if (!d) {
 			g_warning(
@@ -189,7 +191,9 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
 										   gpointer user_data) 
 {
    	struct download *d;
-    GList *node_list, *data_list = NULL;
+    GList *node_list;
+    GList *data_list;
+    GList *l;
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
@@ -202,8 +206,8 @@ void on_popup_downloads_abort_named_activate(GtkMenuItem * menuitem,
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
 		node_list, TRUE, TRUE);
 	
-	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
-		d = (struct download *) data_list->data;
+	for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
 
 		if (!d) {
 			g_warning("on_popup_downloads_abort_named_activate():"
@@ -232,7 +236,9 @@ void on_popup_downloads_abort_host_activate(GtkMenuItem * menuitem,
 {
 	// XXX routing misnamed: we're "forgetting" here, not "aborting"
     	struct download *d;
-    GList *node_list, *data_list = NULL;
+    GList *node_list; 
+    GList *data_list;
+    GList *l;
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
@@ -245,8 +251,8 @@ void on_popup_downloads_abort_host_activate(GtkMenuItem * menuitem,
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
 		node_list, TRUE, TRUE);
 	
-	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
-		d = (struct download *) data_list->data;
+	for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
 
 		if (!d) {
 			g_warning("on_popup_downloads_abort_host_activate():" 
@@ -277,7 +283,9 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem * menuitem,
 										   gpointer user_data) 
 {
    	struct download *d;
-    GList *node_list, *data_list = NULL;
+    GList *node_list;
+    GList *data_list;
+    GList *l;
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
@@ -290,8 +298,8 @@ void on_popup_downloads_abort_sha1_activate(GtkMenuItem * menuitem,
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
 		node_list, TRUE, TRUE);
 	
-	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
-		d = (struct download *) data_list->data;
+	for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
 
 		if (!d) {
 			g_warning("on_popup_downloads_abort_sha1_activate():"
@@ -322,7 +330,9 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 										   gpointer user_data) 
 {
 	struct download *d;
-    GList *node_list, *data_list = NULL;
+    GList *node_list;
+    GList *data_list;
+    GList *l;
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
 
@@ -332,8 +342,8 @@ void on_popup_downloads_remove_file_activate(GtkMenuItem * menuitem,
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
 		node_list, TRUE, FALSE);
 	
-	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
-		d = (struct download *) data_list->data;
+	for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
 
 		if (DL_GUI_IS_HEADER == GPOINTER_TO_INT(d))
 			continue;
@@ -374,7 +384,9 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
 										   gpointer user_data) 
 {
    	struct download *d;
-    GList *node_list, *data_list = NULL;
+    GList *node_list;
+    GList *data_list;
+    GList *l;
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
@@ -386,8 +398,8 @@ void on_popup_downloads_queue_activate(GtkMenuItem * menuitem,
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
 		node_list, TRUE, TRUE);
 	
-	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
-		d = data_list->data;
+	for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
 
         if (!d) {
             g_warning
@@ -479,8 +491,9 @@ void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
 										   gpointer user_data) 
 {
    	struct download *d;
-    GList *node_list, *data_list = NULL;
-
+    GList *node_list;
+    GList *data_list;
+    GList *l;
     GtkCTree *ctree_downloads_queue = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads_queue"));
 
@@ -490,8 +503,8 @@ void on_popup_queue_start_now_activate(GtkMenuItem * menuitem,
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads_queue, 
 		node_list, TRUE, TRUE);
 	
-	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
-		d = data_list->data;
+	for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
 
         if (!d) {
             g_warning(
@@ -512,7 +525,9 @@ void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
   							       gpointer user_data)
 {
 	struct download *d;
-    GList *node_list, *data_list = NULL;
+    GList *node_list;
+    GList *data_list;
+    GList *l;
     GtkCTree *ctree_downloads_queue = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads_queue"));
 
@@ -523,8 +538,8 @@ void on_popup_queue_abort_activate(GtkMenuItem * menuitem,
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads_queue, 
 		node_list, TRUE, TRUE);
 	
-	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
-		d = (struct download *) data_list->data;
+	for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
 
         if (!d) {
 			g_warning(
@@ -546,7 +561,9 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
 										  gpointer user_data) 
 {
    	struct download *d;
-    GList *node_list, *data_list = NULL;
+    GList *node_list;
+    GList *data_list;
+    GList *l;
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
@@ -559,8 +576,8 @@ void on_popup_queue_abort_named_activate(GtkMenuItem * menuitem,
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads_queue, 
 		node_list, TRUE, TRUE);
 	
-	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
-		d = (struct download *) data_list->data;
+	for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
 
 		if (!d) {
 			g_warning("on_popup_queue_abort_named_activate(): "
@@ -582,7 +599,9 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
 										    gpointer user_data) 
 {
    	struct download *d;
-    GList *node_list, *data_list = NULL;
+    GList *node_list;
+    GList *data_list;
+    GList *l;
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
@@ -595,8 +614,8 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads_queue, 
 		node_list, TRUE, TRUE);
 	
-	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
-		d = (struct download *) data_list->data;
+	for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
 
 		if (!d) {
 			g_warning(
@@ -620,7 +639,9 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
 								        gpointer user_data) 
 {
    	struct download *d;
-    GList *node_list, *data_list = NULL;
+    GList *node_list;
+    GList *data_list;
+    GList *l;
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
     GtkCTree *ctree_downloads_queue = GTK_CTREE
@@ -633,8 +654,8 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads_queue, 
 		node_list, TRUE, TRUE);
 	
-	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
-		d = (struct download *) data_list->data;
+	for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
 
 		if (!d) {
 			g_warning(
@@ -738,7 +759,9 @@ void on_popup_queue_connect_activate(GtkMenuItem * menuitem,
 void on_button_downloads_abort_clicked(GtkButton * button, gpointer user_data)
 {
    	struct download *d;
-    GList *node_list, *data_list = NULL;
+    GList *node_list; 
+    GList *data_list;
+    GList *l;
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
 
@@ -747,8 +770,8 @@ void on_button_downloads_abort_clicked(GtkButton * button, gpointer user_data)
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
 		node_list, TRUE, TRUE);
 	
-	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
-		d = (struct download *) data_list->data;
+	for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
 
 		if (!d) {
 			g_warning(
@@ -768,7 +791,9 @@ void on_button_downloads_abort_clicked(GtkButton * button, gpointer user_data)
 void on_button_downloads_resume_clicked(GtkButton * button, gpointer user_data)
 {
    	struct download *d;
-    GList *node_list, *data_list = NULL;
+    GList *node_list;
+    GList *data_list;
+    GList *l;
     GtkCTree *ctree_downloads = GTK_CTREE
         (lookup_widget(main_window, "ctree_downloads"));
 
@@ -777,8 +802,8 @@ void on_button_downloads_resume_clicked(GtkButton * button, gpointer user_data)
 	data_list = downloads_gui_collect_ctree_data(ctree_downloads, 
 		node_list, TRUE, TRUE);
 	
-	for (; NULL !=data_list; data_list = g_list_next(data_list)) {
-		d = (struct download *) data_list->data;
+	for (l = data_list; NULL != l; l = g_list_next(l)) {
+		d = (struct download *) l->data;
 
         if (!d) {
             g_warning
