@@ -45,8 +45,8 @@
 
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
-#define NODE_SEND_BUFSIZE		4096	/* TCP send buffer size - 4K*/
-#define NODE_RECV_BUFSIZE		49152	/* TCP receive buffer size - 48K */
+#define NODE_SEND_BUFSIZE		4096	/* TCP send buffer size - 4K */
+#define NODE_RECV_BUFSIZE		114688	/* TCP receive buffer size - 112K */
 
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define SHUTDOWN_GRACE_DELAY	120	/* Grace period for shutdowning nodes */
