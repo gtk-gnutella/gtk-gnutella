@@ -34,6 +34,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include "file.h"
 #include "downloads.h"
 #include "fileinfo.h"
 #include "move.h"

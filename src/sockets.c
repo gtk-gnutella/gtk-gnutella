@@ -85,6 +85,24 @@ RCSID("$Id$");
 #define SOCK_ADNS_BADNAME	0x04	/* Signals bad host name */
 
 /*
+ * In order to avoid having a dependency between sockets.c and ban.c,
+ * we have ban.c register a callback to reclaim file descriptors
+ * at init time.
+ *		--RAM, 2004-08-18
+ */
+static reclaim_fd_t reclaim_fd = NULL;
+
+/**
+ * Register fd reclaiming callback.
+ * Use NULL to unregister it.
+ */
+void
+socket_register_fd_reclaimer(reclaim_fd_t callback)
+{
+	reclaim_fd = callback;
+}
+
+/*
  * UDP address information for datagrams.
  */
 struct udp_addr {
@@ -979,7 +997,10 @@ socket_accept(gpointer data, gint source, inputevt_cond_t cond)
 		 * banning pool and retry.
 		 */
 
-		if ((errno == EMFILE || errno == ENFILE) && ban_reclaim_fd()) {
+		if (
+			(errno == EMFILE || errno == ENFILE) &&
+			reclaim_fd != NULL && (*reclaim_fd)()
+		) {
 			sd = accept(s->file_desc, (struct sockaddr *) &addr, &len);
 			if (sd >= 0) {
 				g_warning("had to close a banned fd to accept new connection");
@@ -1124,7 +1145,10 @@ socket_connect_prepare(guint16 port, enum socket_type type)
 		 * banning pool and retry.
 		 */
 
-		if ((errno == EMFILE || errno == ENFILE) && ban_reclaim_fd()) {
+		if (
+			(errno == EMFILE || errno == ENFILE) &&
+			reclaim_fd != NULL && (*reclaim_fd)()
+		) {
 			sd = socket(AF_INET, SOCK_STREAM, 0);
 			if (sd >= 0) {
 				g_warning("had to close a banned fd to prepare new connection");

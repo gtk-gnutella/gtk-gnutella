@@ -27,6 +27,7 @@
 
 #include <ctype.h>
 #include <glib.h>
+#include "file.h"
 #include "parq.h"
 #include "ioheader.h"
 #include "sockets.h"

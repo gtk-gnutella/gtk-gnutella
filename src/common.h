@@ -103,7 +103,6 @@
 #include "cobs.h"
 #include "cq.h"
 #include "event.h"
-#include "file.h"
 #include "fuzzy.h"
 #include "getdate.h"
 #include "getline.h"
@@ -181,6 +180,12 @@ do {				\
 
 #define g_snprintf	DONT_CALL_g_snprintf
 #define g_vsnprintf	DONT_CALL_g_vsnprintf
+
+/*
+ * Typedefs
+ */
+
+typedef gboolean (*reclaim_fd_t)(void);
 
 /*
  * Variables

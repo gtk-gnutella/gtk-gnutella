@@ -46,6 +46,7 @@
 #include <stdlib.h>
 
 #include "hosts.h"
+#include "file.h"
 #include "hcache.h"
 #include "pcache.h"
 #include "nodes.h"

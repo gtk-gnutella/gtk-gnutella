@@ -32,6 +32,7 @@
 #include <sys/stat.h>
 
 #include "gwcache.h"
+#include "file.h"
 #include "http.h"
 #include "url.h"
 #include "hosts.h"

@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 
 #include "inputevt.h"
+#include "file.h"
 #include "shell.h"
 #include "sockets.h"
 #include "settings.h"

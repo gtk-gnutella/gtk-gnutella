@@ -30,6 +30,8 @@
 
 #include <stdio.h>
 
+#include "common.h"
+
 /*
  * This structure is used to identify a file to be saved/restored.
  */
@@ -41,6 +43,8 @@ typedef struct {
 /*
  * Public interface.
  */
+
+void file_register_fd_reclaimer(reclaim_fd_t callback);
 
 FILE *file_config_open_read(
 	const gchar *what, const file_path_t *fv, gint fvcnt);

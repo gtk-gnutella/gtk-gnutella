@@ -27,8 +27,7 @@
 #ifndef _sockets_h_
 #define _sockets_h_
 
-#include <sys/time.h>		/* for time_t */
-#include <glib.h>
+#include "common.h"
 #include "ui_core_interface_socket_defs.h"
 
 /*
@@ -40,6 +39,8 @@ extern gboolean is_firewalled;
 /*
  * Global Functions
  */
+
+void socket_register_fd_reclaimer(reclaim_fd_t callback);
 
 void socket_eof(struct gnutella_socket *s);
 void socket_free(struct gnutella_socket *);

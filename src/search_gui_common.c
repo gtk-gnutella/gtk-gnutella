@@ -32,6 +32,7 @@
 #include <errno.h>
 
 #include "gui.h"
+#include "file.h"
 
 #include "guid.h"
 #include "search_gui_common.h"

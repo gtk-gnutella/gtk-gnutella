@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Miscellaneous common file routines.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,13 +23,18 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ * Miscellaneous common file routines.
+ */
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
-//#include "ban.h"	/* FIXME: needed for ban_reclaim_fd() */
 #include "common.h"
+#include "file.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -42,8 +45,24 @@ static const gchar instead_str[] = " instead";
 static const gchar empty_str[] = "";
 
 /*
- * open_read
- *
+ * In order to avoid having a dependency between file.c and ban.c,
+ * we have ban.c register a callback to reclaim file descriptors
+ * at init time.
+ *		--RAM, 2004-08-18
+ */
+static reclaim_fd_t reclaim_fd = NULL;
+
+/**
+ * Register fd reclaiming callback.
+ * Use NULL to unregister it.
+ */
+void
+file_register_fd_reclaimer(reclaim_fd_t callback)
+{
+	reclaim_fd = callback;
+}
+
+/**
  * Open configuration file, renaming it as ".orig" when `renaming' is TRUE.
  * If configuration file cannot be found, try opening the ".orig" variant
  * if already present and `renaming' is TRUE.
@@ -53,7 +72,8 @@ static const gchar empty_str[] = "";
  *
  * Returns opened FILE, or NULL if we were unable to open any.
  */
-static FILE *open_read(
+static FILE *
+open_read(
 	const gchar *what, const file_path_t *fv, gint fvcnt, gboolean renaming)
 {
 	FILE *in;
@@ -143,9 +163,7 @@ out:
 	return in;
 }
 
-/*
- * file_config_open_read
- *
+/**
  * Open configuration file, renaming it as ".orig".  If configuration file
  * cannot be found, try opening the ".orig" variant if already present.
  * If not found, try with successive alternatives, if supplied.
@@ -154,15 +172,13 @@ out:
  *
  * Returns opened FILE, or NULL if we were unable to open any.
  */
-FILE *file_config_open_read(
-	const gchar *what, const file_path_t *fv, gint fvcnt)
+FILE *
+file_config_open_read(const gchar *what, const file_path_t *fv, gint fvcnt)
 {
 	return open_read(what, fv, fvcnt, TRUE);
 }
 
-/*
- * file_config_open_read_norename
- *
+/**
  * Open configuration file, without renaming it.  If configuration file
  * cannot be found, try opening the ".orig" variant if already present.
  * If not found, try with successive alternatives, if supplied.
@@ -171,23 +187,22 @@ FILE *file_config_open_read(
  *
  * Returns opened FILE, or NULL if we were unable to open any.
  */
-FILE *file_config_open_read_norename(
+FILE *
+file_config_open_read_norename(
 	const gchar *what, const file_path_t *fv, gint fvcnt)
 {
 	return open_read(what, fv, fvcnt, FALSE);
 }
 
-/*
- * file_config_open_write
- *
+/**
  * Open configuration file for writing.  We don't clobber the existing file
  * yet and open a ".new" instead.  Renaming will occur afterwards, when
  * file_config_close() is called.
  *
  * Returns opened FILE if success, NULL on error.
  */
-static FILE *file_config_open(const gchar *what, const file_path_t *fv,
-    gboolean append)
+static FILE *
+file_config_open(const gchar *what, const file_path_t *fv, gboolean append)
 {
 	FILE *out = NULL;
 	char *path;
@@ -203,23 +218,30 @@ static FILE *file_config_open(const gchar *what, const file_path_t *fv,
 	return out;
 }
 
-FILE *file_config_open_write(const gchar *what, const file_path_t *fv) 
+/**
+ * Open configuration file for writing.
+ */
+FILE *
+file_config_open_write(const gchar *what, const file_path_t *fv) 
 {
     return file_config_open(what, fv, FALSE);
 }
 
-FILE *file_config_open_append(const gchar *what, const file_path_t *fv) 
+/**
+ * Open configuration file for appending.
+ */
+FILE *
+file_config_open_append(const gchar *what, const file_path_t *fv) 
 {
     return file_config_open(what, fv, TRUE);
 }
 
-/*
- * file_config_close
- *
+/**
  * Close configuration file opened for writing, and rename it.
  * Returns TRUE on success.
  */
-gboolean file_config_close(FILE *out, const file_path_t *fv)
+gboolean
+file_config_close(FILE *out, const file_path_t *fv)
 {
 	char *path = NULL;
 	char *path_new = NULL;
@@ -254,12 +276,11 @@ failed:
 	return FALSE;
 }
 
-/*
- * file_config_preamble
- *
+/**
  * Emit the configuration preamble.
  */
-void file_config_preamble(FILE *out, const gchar *what)
+void
+file_config_preamble(FILE *out, const gchar *what)
 {
 	time_t now = time((time_t *) NULL);
 
@@ -269,26 +290,24 @@ void file_config_preamble(FILE *out, const gchar *what)
 	fprintf(out, "#\n# %s saved on %s#\n\n", what, ctime(&now));
 }
 
-/*
- * file_path_set
- *
+/**
  * Initializes `fp' with directory path `dir' and filename `name'.
  */
-void file_path_set(file_path_t *fp, const char *dir, const char *name)
+void
+file_path_set(file_path_t *fp, const char *dir, const char *name)
 {
 	g_assert(NULL != fp);
 	fp->dir = dir;
 	fp->name = name;
 }
 
-/*
- * do_open
- *
+/**
  * Open file, returning file descriptor or -1 on error with errno set.
  * Errors are logged as a warning, unless `missing' is true, in which
  * case no error is logged for ENOENT.
  */
-static gint do_open(const gchar *path, gint flags, gint mode, gboolean missing)
+static gint
+do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 {
 	gint fd;
 	const gchar *what;
@@ -311,19 +330,16 @@ static gint do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 	 * banning pool and retry.
 	 */
 
-	/*  FIXME:  This forces us to depend on ban.h which includes a number of
-		other core files.  We therefore can't use file.h in the gui. 
-	
-		We need to find a better way to do this if it's necessary. --- Emile
-
-	if ((errno == EMFILE || errno == ENFILE) && ban_reclaim_fd()) {
+	if (
+		(errno == EMFILE || errno == ENFILE) &&
+		reclaim_fd != NULL && (*reclaim_fd)()
+	) {
 		fd = open(path, flags, mode);
 		if (fd >= 0) {
 			g_warning("had to close a banned fd to %s file", what);
 			return fd;
 		}
 	}
-	*/
 	
 	/*
 	 * Hack for broken libc, which can return -1 with errno = 0!
@@ -343,48 +359,44 @@ static gint do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 	return -1;
 }
 
-/*
- * file_open
- *
+/**
  * Open file, returning file descriptor or -1 on error with errno set.
  * Errors are logged as a warning.
  */
-gint file_open(const gchar *path, gint flags)
+gint
+file_open(const gchar *path, gint flags)
 {
 	return do_open(path, flags, 0, FALSE);
 }
 
-/*
- * file_open_missing
- *
+/**
  * Open file, returning file descriptor or -1 on error with errno set.
  * Errors are logged as a warning, unless the file is missing, in which
  * case nothing is logged.
  */
-gint file_open_missing(const gchar *path, gint flags)
+gint
+file_open_missing(const gchar *path, gint flags)
 {
 	return do_open(path, flags, 0, TRUE);
 }
 
-/*
- * file_create
- *
+/**
  * Create file, returning file descriptor or -1 on error with errno set.
  * Errors are logged as a warning.
  */
-gint file_create(const gchar *path, gint flags, gint mode)
+gint
+file_create(const gchar *path, gint flags, gint mode)
 {
 	return do_open(path, flags | O_CREAT, mode, FALSE);
 }
 
-/*
- * file_fopen
- *
+/**
  * Open file, returning FILE pointer if success or NULL on error.
  * Errors are logged as a warning, unless error is ENOENT and `missing'
  * is TRUE.
  */
-static FILE *do_fopen(const gchar *path, const gchar *mode, gboolean missing)
+static FILE *
+do_fopen(const gchar *path, const gchar *mode, gboolean missing)
 {
 	gchar m;
 	FILE *f;
@@ -409,19 +421,16 @@ static FILE *do_fopen(const gchar *path, const gchar *mode, gboolean missing)
 	 * banning pool and retry.
 	 */
 
-	/*  FIXME:  This forces us to depend on ban.h which includes a number of
-		other core files.  We therefore can't use file.h in the gui. 
-	
-		We need to find a better way to do this if it's necessary. --- Emile
-	
-	if ((errno == EMFILE || errno == ENFILE) && ban_reclaim_fd()) {
+	if (
+		(errno == EMFILE || errno == ENFILE) &&
+		reclaim_fd != NULL && (*reclaim_fd)()
+	) {
 		f = fopen(path, mode);
 		if (f != NULL) {
 			g_warning("had to close a banned fd to %s file", what);
 			return f;
 		}
 	}
-	*/
 
 	if (!missing || errno != ENOENT)
 		g_warning("can't %s file \"%s\": %s", what, path, g_strerror(errno));
@@ -429,25 +438,23 @@ static FILE *do_fopen(const gchar *path, const gchar *mode, gboolean missing)
 	return NULL;
 }
 
-/*
- * file_fopen
- *
+/**
  * Open file, returning FILE pointer if success or NULL on error.
  * Errors are logged as a warning.
  */
-FILE *file_fopen(const gchar *path, const gchar *mode)
+FILE *
+file_fopen(const gchar *path, const gchar *mode)
 {
 	return do_fopen(path, mode, FALSE);
 }
 
-/*
- * file_fopen_missing
- *
+/**
  * Open file, returning FILE pointer if success or NULL on error.
  * Errors are logged as a warning, unless the file is missing, in which
  * case nothing is logged.
  */
-FILE *file_fopen_missing(const gchar *path, const gchar *mode)
+FILE *
+file_fopen_missing(const gchar *path, const gchar *mode)
 {
 	return do_fopen(path, mode, TRUE);
 }

@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * Banning control.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,6 +23,12 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ * Banning control.
+ */
+
 #include "gnutella.h"
 
 #include <stdio.h>			/* For debug printf() only */
@@ -34,9 +38,11 @@
 
 #include "ban.h"
 #include "sockets.h"
-#include "version.h" /* for version_is_too_old() */
+#include "version.h"		/* For version_is_too_old() */
 #include "token.h"
 #include "atoms.h"
+#include "file.h"			/* For file_register_fd_reclaimer() */
+#include "sockets.h"		/* For socket_register_fd_reclaimer() */
 
 #include "gnet_property.h"
 #include "gnet_property_priv.h"
@@ -86,12 +92,11 @@ struct ip_info {
 
 static void ipf_destroy(cqueue_t *cq, gpointer obj);
 
-/*
- * ipf_make
- *
+/**
  * Create new ip_info structure for said IP.
  */
-static struct ip_info *ipf_make(guint32 ip, time_t now)
+static struct ip_info *
+ipf_make(guint32 ip, time_t now)
 {
 	struct ip_info *ipf;
 
@@ -119,12 +124,11 @@ static struct ip_info *ipf_make(guint32 ip, time_t now)
 	return ipf;
 }
 
-/*
- * ipf_free
- *
+/**
  * Free ip_info structure.
  */
-static void ipf_free(struct ip_info *ipf)
+static void
+ipf_free(struct ip_info *ipf)
 {
 	g_assert(ipf);
 
@@ -137,12 +141,11 @@ static void ipf_free(struct ip_info *ipf)
 	zfree(ipf_zone, ipf);
 }
 
-/*
- * ipf_destroy
- *
+/**
  * Called from callout queue when it's time to destroy the record.
  */
-static void ipf_destroy(cqueue_t *cq, gpointer obj)
+static void
+ipf_destroy(cqueue_t *cq, gpointer obj)
 {
 	struct ip_info *ipf = (struct ip_info *) obj;
 
@@ -159,12 +162,11 @@ static void ipf_destroy(cqueue_t *cq, gpointer obj)
 	ipf_free(ipf);
 }
 
-/*
- * ipf_unban
- *
+/**
  * Called from callout queue when it's time to unban the IP.
  */
-static void ipf_unban(cqueue_t *cq, gpointer obj)
+static void
+ipf_unban(cqueue_t *cq, gpointer obj)
 {
 	struct ip_info *ipf = (struct ip_info *) obj;
 	time_t now = time((time_t *) NULL);
@@ -213,9 +215,7 @@ static void ipf_unban(cqueue_t *cq, gpointer obj)
 	ipf->cq_ev = cq_insert(callout_queue, delay, ipf_destroy, ipf);
 }
 
-/*
- * ban_allow
- *
+/**
  * Check whether we can allow connection from `ip' to proceed.
  *
  * Returns:
@@ -225,7 +225,8 @@ static void ipf_unban(cqueue_t *cq, gpointer obj)
  *   BAN_FORCE	don't send back anything, and call ban_force().
  *   BAN_MSG	will ban with explicit message and tailored error code.
  */
-ban_type_t ban_allow(guint32 ip)
+ban_type_t
+ban_allow(guint32 ip)
 {
 	struct ip_info *ipf;
 	time_t now = time((time_t *) NULL);
@@ -328,12 +329,11 @@ ban_type_t ban_allow(guint32 ip)
 	return BAN_OK;
 }
 
-/*
- * ban_record
- *
+/**
  * Record banning with specific message for a given IP, for MAX_BAN seconds.
  */
-void ban_record(guint32 ip, const gchar *msg)
+void
+ban_record(guint32 ip, const gchar *msg)
 {
 	struct ip_info *ipf;
 
@@ -376,15 +376,14 @@ void ban_record(guint32 ip, const gchar *msg)
 static GList *banned_head = NULL;
 static GList *banned_tail = NULL;
 
-/*
- * reclaim_fd
- *
+/**
  * Internal version of ban_reclaim_fd().
  *
  * Reclaim a file descriptor used for banning.
  * Returns TRUE if we did reclaim something, FALSE if there was nothing.
  */
-static gboolean reclaim_fd(void)
+static gboolean
+reclaim_fd(void)
 {
 	GList *prev;
 
@@ -412,10 +411,10 @@ static gboolean reclaim_fd(void)
 	return TRUE;
 }
 
-/*
- * ban_reclaim_fd
+/**
+ * Reclaim a file descriptor used for banning
  *
- * Reclaim a file descriptor used for banning.
+ * Invoked from the outside as a callback to reclaim file descriptors.
  *
  * This routine is called when there is a shortage of file descriptors, so
  * we activate the "file_descriptor_shortage" property.  However, if we have
@@ -424,7 +423,8 @@ static gboolean reclaim_fd(void)
  *
  * Returns TRUE if we did reclaim something, FALSE if there was nothing.
  */
-gboolean ban_reclaim_fd(void)
+static gboolean
+ban_reclaim_fd(void)
 {
 	gboolean reclaimed;
 
@@ -443,14 +443,13 @@ gboolean ban_reclaim_fd(void)
 	return reclaimed;
 }
 
-/*
- * ban_force
- *
+/**
  * Force banning of the connection.
  *
  * We're putting it in a list and forgetting about it.
  */
-void ban_force(struct gnutella_socket *s)
+void
+ban_force(struct gnutella_socket *s)
 {
 	gint fd = s->file_desc;
 
@@ -481,12 +480,11 @@ void ban_force(struct gnutella_socket *s)
 	gnet_prop_set_guint32_val(PROP_BANNED_COUNT, banned_count + 1);
 }
 
-/*
- * ban_is_banned
- *
+/**
  * Check whether IP is already recorded as being banned.
  */
-gboolean ban_is_banned(guint32 ip)
+gboolean
+ban_is_banned(guint32 ip)
 {
 	struct ip_info *ipf;
 
@@ -495,12 +493,11 @@ gboolean ban_is_banned(guint32 ip)
 	return ipf != NULL && ipf->banned;
 }
 
-/*
- * ban_delay
- *
+/**
  * Return banning delay for banned IP.
  */
-gint ban_delay(guint32 ip)
+gint
+ban_delay(guint32 ip)
 {
 	struct ip_info *ipf;
 
@@ -510,12 +507,11 @@ gint ban_delay(guint32 ip)
 	return ipf->ban_delay;
 }
 
-/*
- * ban_message
- *
+/**
  * Return banning message for banned IP.
  */
-gchar *ban_message(guint32 ip)
+gchar *
+ban_message(guint32 ip)
 {
 	struct ip_info *ipf;
 
@@ -525,26 +521,26 @@ gchar *ban_message(guint32 ip)
 	return ipf->ban_msg;
 }
 
-/*
- * ban_init
- *
+/**
  * Initialize the banning system.
  */
-void ban_init(void)
+void
+ban_init(void)
 {
 	info = g_hash_table_new(g_direct_hash, 0);
 	decay_coeff = (gfloat) MAX_REQUEST / MAX_PERIOD;
 	ipf_zone = zget(sizeof(struct ip_info), 0);
 
 	ban_max_recompute();
+	file_register_fd_reclaimer(ban_reclaim_fd);
+	socket_register_fd_reclaimer(ban_reclaim_fd);
 }
 
-/*
- * ban_max_recompute
- *
+/**
  * Recompute the maximum amount of file descriptors we dedicate to banning.
  */
-void ban_max_recompute(void)
+void
+ban_max_recompute(void)
 {
 	guint32 max;
 
@@ -558,17 +554,17 @@ void ban_max_recompute(void)
 	gnet_prop_set_guint32_val(PROP_MAX_BANNED_FD, max);
 }
 
-static void free_info(gpointer key, gpointer value, gpointer udata)
+static void
+free_info(gpointer key, gpointer value, gpointer udata)
 {
 	ipf_free((struct ip_info *) value);
 }
 
-/*
- * ban_close
- *
+/**
  * Called at shutdown time to reclaim all memory.
  */
-void ban_close(void)
+void
+ban_close(void)
 {
 	GList *l;
 
@@ -593,9 +589,7 @@ static const gchar harmful[] = "Harmful version banned, upgrade required";
 static const gchar refused[] = "Connection refused";
 static const gchar too_old[] = "Outdated version, please upgrade";
 
-/*
- * ban_vendor
- *
+/**
  * Check whether servent identified by its vendor string should be banned.
  * When we ban, we ban for both gnet and download connections.  Such banning
  * is exceptional, usually restricted to some versions and the servent's author
@@ -603,7 +597,8 @@ static const gchar too_old[] = "Outdated version, please upgrade";
  *
  * Returns NULL if we shall not ban, a banning reason string otherwise.
  */
-const gchar *ban_vendor(const gchar *vendor)
+const gchar *
+ban_vendor(const gchar *vendor)
 {
 	gboolean is_gtkg = FALSE;
 
