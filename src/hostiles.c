@@ -67,6 +67,8 @@ void hostiles_retrieve(void)
 	gint count = 0;
 #ifdef USE_SOURCE_DIR_AS_FALLBACK 
 	file_path_t fp[3];
+#else
+	file_path_t fp[2];
 #endif
 
 	file_path_set(&fp[0], settings_config_dir(), hostiles_file);
