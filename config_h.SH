@@ -45,6 +45,22 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
  */
 #$d_bsd BSD		/**/
 
+/* STRINGIFY:
+ *	This macro surrounds its token with double quotes.
+ */
+#if $cpp_stuff == 1
+#define STRINGIFY(a)"a"
+#define SQuoTe(a)"a
+#define EQuoTe(a)a"
+#endif
+#if $cpp_stuff == 42
+#define StGiFy(a)# a
+#define STRINGIFY(a)StGiFy(a)
+#endif
+#if $cpp_stuff != 1 && $cpp_stuff != 42
+#include "Bletch: How does this C preprocessor catenate tokens?"
+#endif
+
 /* HASATTRIBUTE:
  *	This symbol indicates the C compiler can check for function attributes,
  *	such as printf formats. This is normally only supported by GNU cc.
@@ -257,6 +273,13 @@ sed <<!GROK!THIS! >config.h -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un-
  *	include <sys/sysctl.h>.
  */
 #$i_syssysctl I_SYS_SYSCTL		/**/
+
+/* OFFICIAL_BUILD:
+ * When defined, the build is "official".  Programs generated for an
+ *	official build MUST NOT peek into the place where the sources lie, via
+ *	PACKAGE_SOURCE_DIR or any other means.
+ */
+#$d_official OFFICIAL_BUILD	/**/
 
 /* PACKAGE_SOURCE_DIR:
  * Holds the directory name holding the package source.

@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Sun Aug 10 23:49:57 MEST 2003 [metaconfig 3.0 PL70]
+# Generated on Tue Aug 12 19:14:55 MEST 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -105,7 +105,7 @@ if test -d /usr/lpp -a -f /usr/bin/bsh -a -f /usr/bin/uname; then
 fi
 case "$inksh/$needksh" in
 /[a-z]*)
-		unset ENV
+		ENV=''
 		changesh=true
 		reason="$needksh"
 	;;
@@ -136,7 +136,7 @@ esac
 
 : Configure runs within the UU subdirectory
 test -d UU || mkdir UU
-unset CDPATH
+CDPATH=''
 cd UU && rm -f ./*
 
 d_bsd=''
@@ -242,6 +242,7 @@ optimize=''
 cf_by=''
 cf_time=''
 contains=''
+cpp_stuff=''
 cpplast=''
 cppminus=''
 cpprun=''
@@ -284,6 +285,7 @@ gladesrc=''
 gtkcflags=''
 gtkconfig=''
 gtkldflags=''
+gtkgversion=''
 d_usegtk1=''
 d_usegtk2=''
 gtkpackage=''
@@ -323,6 +325,8 @@ small=''
 split=''
 c=''
 n=''
+d_official=''
+official=''
 package=''
 spackage=''
 pkgsrc=''
@@ -709,6 +713,155 @@ EOSS
 chmod +x contains
 esac
 
+: Find the path to the source tree
+case "$src" in
+'') case "$0" in
+    */*) src=`echo $0 | sed -e 's%/[^/][^/]*$%%'`;;
+    *)   src='.';;
+    esac;;
+esac
+case "$src" in
+'')	src=/
+	rsrc=/
+	;;
+/*) rsrc="$src";;
+*) rsrc="../$src";;
+esac
+if test -f $rsrc/Configure && \
+	$contains "^package=$package$" $rsrc/Configure >/dev/null 2>&1
+then
+   : found it, so we are ok.
+else
+	rsrc=''
+	for src in . .. ../.. ../../.. ../../../..; do
+		if test -f ../$src/Configure && \
+			$contains "^package=$package$" ../$src/Configure >/dev/null 2>&1
+		then
+			rsrc=../$src
+			break
+		fi
+	done
+fi
+case "$rsrc" in
+'')
+	cat <<EOM >&4
+
+Sorry, I can't seem to locate the source dir for $package.  Please start
+Configure with an explicit path -- i.e. /some/path/Configure.
+
+EOM
+	exit 1
+	;;
+../.)	rsrc='..';;
+*)
+	echo " "
+	echo "Sources for $package found in \"$src\"." >&4
+	;;
+esac
+
+: script used to extract .SH files with variable substitutions
+cat >extract <<EOS
+CONFIG=true
+SRC=$src
+EOS
+cat >>extract <<'EOS'
+echo "Doing variable substitutions on .SH files..."
+if test -f $SRC/MANIFEST; then
+	set x `awk '{print $1}' <$SRC/MANIFEST | grep '\.SH'`
+else
+	echo "(Looking for .SH files under the source directory.)"
+	set x `(cd $SRC; find . -name "*.SH" -print)`
+fi
+shift
+case $# in
+0) set x `(cd $SRC; echo *.SH)`; shift;;
+esac
+if test ! -f $SRC/$1; then
+	shift
+fi
+mkdir_p='
+name=$1;
+create="";
+while test $name; do
+	if test ! -d "$name"; then
+		create="$name $create";
+		name=`echo $name | sed -e "s|^[^/]*$||"`;
+		name=`echo $name | sed -e "s|\(.*\)/.*|\1|"`;
+	else
+		name="";
+	fi;
+done;
+for file in $create; do
+	mkdir $file;
+done
+'
+for file in $*; do
+	case "$SRC" in
+	".")
+		case "$file" in
+		*/*)
+			dir=`expr X$file : 'X\(.*\)/'`
+			file=`expr X$file : 'X.*/\(.*\)'`
+			(cd $dir && . ./$file)
+			;;
+		*)
+			. ./$file
+			;;
+		esac
+		;;
+	*)
+		case "$file" in
+		*/*)
+			dir=`expr X$file : 'X\(.*\)/'`
+			file=`expr X$file : 'X.*/\(.*\)'`
+			(set x $dir; shift; eval $mkdir_p)
+			sh <$SRC/$dir/$file
+			;;
+		*)
+			sh <$SRC/$file
+			;;
+		esac
+		;;
+	esac
+done
+if test -f $SRC/config_h.SH; then
+	if test ! -f config.h; then
+	: oops, they left it out of MANIFEST, probably, so do it anyway.
+	. $SRC/config_h.SH
+	fi
+fi
+EOS
+
+: extract files and exit if asked to do so
+case "$extractsh" in
+true)
+	case "$realsilent" in
+	true) ;;
+	*) exec 1>&4;;
+	esac
+	case "$config_sh" in
+	'') config_sh='config.sh';;
+	esac
+	echo " "
+	echo "Fetching answers from $config_sh..."
+	cd ..
+	. $config_sh
+	test "$override" && . ./optdef.sh
+	echo " "
+	. UU/extract
+	rm -rf UU
+	echo "Done."
+	exit 0
+	;;
+esac
+
+: Eunice requires " " instead of "", can you believe it
+echo " "
+: Here we go...
+echo "Beginning of configuration questions for $package."
+
+trap 'echo " "; test -d ../UU && rm -rf X $rmlist; exit 1' 1 2 3 15
+
 : first determine how to suppress newline on echo command
 echo " "
 echo "Checking echo to see how to suppress newlines..."
@@ -727,6 +880,48 @@ fi
 echo $n "The star should be here-->$c"
 echo '*'
 rm -f .echotmp
+
+: Now test for existence of everything in MANIFEST
+echo " "
+if test -f $rsrc/MANIFEST; then
+	echo "First let's make sure your kit is complete.  Checking..." >&4
+	awk '$1 !~ /PACK[A-Z]+/ {print $1}' $rsrc/MANIFEST | split -50
+	rm -f missing
+	tmppwd=`pwd`
+	for filelist in x??; do
+		(cd $rsrc; ls `cat $tmppwd/$filelist` >/dev/null 2>>$tmppwd/missing)
+	done
+	if test -s missing; then
+		cat missing >&4
+		cat >&4 <<'EOM'
+
+THIS PACKAGE SEEMS TO BE INCOMPLETE.
+
+You have the option of continuing the configuration process, despite the
+distinct possibility that your kit is damaged, by typing 'y'es.  If you
+do, don't blame me if something goes wrong.  I advise you to type 'n'o
+and contact the author (Raphael_Manfredi@pobox.com).
+
+EOM
+		echo $n "Continue? [n] $c" >&4
+		read ans
+		case "$ans" in
+		y*)
+			echo "Continuing..." >&4
+			rm -f missing
+			;;
+		*)
+			echo "ABORTING..." >&4
+			kill $$
+			;;
+		esac
+	else
+		echo "Looks good..."
+	fi
+else
+	echo "There is no MANIFEST file.  I hope your kit is complete !"
+fi
+rm -f missing x??
 
 : compute the number of columns on the terminal for proper question formatting
 case "$COLUMNS" in
@@ -834,201 +1029,6 @@ case "\$ans" in
 '') ans="\$xxxm";;
 esac
 EOSC
-
-: Find the path to the source tree
-case "$src" in
-'') src=`echo $0 | sed -e 's%/[^/][^/]*$%%'`;;
-esac
-case "$src" in
-'')
-	src=.
-	rsrc=..
-	;;
-/*) rsrc="$src/..";;
-*) rsrc="../$src";;
-esac
-if test -f $rsrc/Configure && \
-	$contains "^package=$package" $rsrc/Configure >/dev/null 2>&1
-then
-   : found it, so we are ok.
-else
-	rsrc=''
-	for src in . .. ../.. ../../.. ../../../..; do
-		if test -f ../$src/Configure && \
-			$contains "^package=$package" ../$src/Configure >/dev/null 2>&1
-		then
-			rsrc=../$src
-			break
-		fi
-	done
-fi
-case "$rsrc" in
-'')
-	echo " "
-	dflt=
-	rp="Directory where sources for $package are located?"
-	. ./myread
-	src="$ans"
-	rsrc="$src"
-	if test -f $rsrc/Configure && \
-		$contains "^package=$package" $rsrc/Configure >/dev/null 2>&1
-	then
-		echo "Ok, I've found them under $src"
-	else
-		echo "Sorry, I can't seem to be able to locate $package sources." >&4
-		exit 1
-	fi
-	;;
-../.) ;;
-*)
-	echo " "
-	echo "Sources for $package found in $src" >&4
-	;;
-esac
-
-: script used to extract .SH files with variable substitutions
-cat >extract <<'EOS'
-CONFIG=true
-echo "Doing variable substitutions on .SH files..."
-if test -f $src/MANIFEST; then
-	set x `awk '{print $1}' <$src/MANIFEST | grep '\.SH'`
-else
-	echo "(Looking for .SH files under the source directory.)"
-	set x `(cd $src; find . -name "*.SH" -print)`
-fi
-shift
-case $# in
-0) set x `(cd $src; echo *.SH)`; shift;;
-esac
-if test ! -f $src/$1; then
-	shift
-fi
-mkdir_p='
-name=$1;
-create="";
-while test $name; do
-	if test ! -d "$name"; then
-		create="$name $create";
-		name=`echo $name | sed -e "s|^[^/]*$||"`;
-		name=`echo $name | sed -e "s|\(.*\)/.*|\1|"`;
-	else
-		name="";
-	fi;
-done;
-for file in $create; do
-	mkdir $file;
-done
-'
-for file in $*; do
-	case "$src" in
-	".")
-		case "$file" in
-		*/*)
-			dir=`expr X$file : 'X\(.*\)/'`
-			file=`expr X$file : 'X.*/\(.*\)'`
-			(cd $dir && . ./$file)
-			;;
-		*)
-			. ./$file
-			;;
-		esac
-		;;
-	*)
-		case "$file" in
-		*/*)
-			dir=`expr X$file : 'X\(.*\)/'`
-			file=`expr X$file : 'X.*/\(.*\)'`
-			(set x $dir; shift; eval $mkdir_p)
-			sh <$src/$dir/$file
-			;;
-		*)
-			sh <$src/$file
-			;;
-		esac
-		;;
-	esac
-done
-if test -f $src/config_h.SH; then
-	if test ! -f config.h; then
-	: oops, they left it out of MANIFEST, probably, so do it anyway.
-	. $src/config_h.SH
-	fi
-fi
-EOS
-
-: extract files and exit if asked to do so
-case "$extractsh" in
-true)
-	case "$realsilent" in
-	true) ;;
-	*) exec 1>&4;;
-	esac
-	case "$config_sh" in
-	'') config_sh='config.sh'; config="$rsrc/config.sh";;
-	/*) config="$config_sh";;
-	*) config="$rsrc/$config_sh";;
-	esac
-	echo " "
-	echo "Fetching answers from $config_sh..."
-	. $config
-	test "$override" && . ./optdef.sh
-	echo " "
-	cd ..
-	. UU/extract
-	rm -rf UU
-	echo "Done."
-	exit 0
-	;;
-esac
-
-: Eunice requires " " instead of "", can you believe it
-echo " "
-: Here we go...
-echo "Beginning of configuration questions for $package."
-
-trap 'echo " "; test -d ../UU && rm -rf X $rmlist; exit 1' 1 2 3 15
-
-: Now test for existence of everything in MANIFEST
-echo " "
-if test -f $rsrc/MANIFEST; then
-	echo "First let's make sure your kit is complete.  Checking..." >&4
-	awk '$1 !~ /PACK[A-Z]+/ {print $1}' $rsrc/MANIFEST | split -50
-	rm -f missing
-	tmppwd=`pwd`
-	for filelist in x??; do
-		(cd $rsrc; ls `cat $tmppwd/$filelist` >/dev/null 2>>$tmppwd/missing)
-	done
-	if test -s missing; then
-		cat missing >&4
-		cat >&4 <<'EOM'
-
-THIS PACKAGE SEEMS TO BE INCOMPLETE.
-
-You have the option of continuing the configuration process, despite the
-distinct possibility that your kit is damaged, by typing 'y'es.  If you
-do, don't blame me if something goes wrong.  I advise you to type 'n'o
-and contact the author (Raphael_Manfredi@pobox.com).
-
-EOM
-		echo $n "Continue? [n] $c" >&4
-		read ans
-		case "$ans" in
-		y*)
-			echo "Continuing..." >&4
-			rm -f missing
-			;;
-		*)
-			echo "ABORTING..." >&4
-			kill $$
-			;;
-		esac
-	else
-		echo "Looks good..."
-	fi
-else
-	echo "There is no MANIFEST file.  I hope your kit is complete !"
-fi
-rm -f missing x??
 
 : create .config dir to save info across Configure sessions
 test -d ../.config || mkdir ../.config
@@ -1186,6 +1186,7 @@ bison
 byacc
 cpp
 date
+egrep
 ln
 test
 uname
@@ -1415,6 +1416,7 @@ for file in $loclist $trylist; do
 done
 
 : who configured the system
+LC_ALL=C; export LC_ALL
 cf_time=`$date 2>&1`
 cf_by=`(logname) 2>/dev/null`
 case "$cf_by" in
@@ -1424,6 +1426,74 @@ case "$cf_by" in
 	"") cf_by=unknown ;;
 	esac ;;
 esac
+
+: set up the script used to warn in case of inconsistency
+cat <<EOS >whoa
+$startsh
+EOS
+cat <<'EOSC' >>whoa
+dflt=y
+echo " "
+echo "*** WHOA THERE!!! ***" >&4
+echo "    The $hint value for \$$var on this machine was \"$was\"!" >&4
+rp="    Keep the $hint value?"
+. ./myread
+case "$ans" in
+y) td=$was; tu=$was;;
+esac
+EOSC
+
+: function used to set $1 to $val
+setvar='var=$1; eval "was=\$$1"; td=$define; tu=$undef;
+case "$val$was" in
+$define$undef) . ./whoa; eval "$var=\$td";;
+$undef$define) . ./whoa; eval "$var=\$tu";;
+*) eval "$var=$val";;
+esac'
+
+: define pakcage source directory
+case "$src" in
+/*) pkgsrc=$src;;
+*) pkgsrc=`relsrc=$rsrc; export relsrc; $sh -c "cd $relsrc; pwd" 2>/dev/null`;;
+esac
+
+: determine whether this is an official build
+case "$official" in
+true) dflt=y;;
+*) dflt=n;;
+esac
+$cat <<EOM
+
+I can compile $package for a so-called "official build".  That means
+a build whose generated programs should not refer back to the place
+where the sources for $package are located.  In other words, no
+mention of the current source directory:
+
+	$pkgsrc
+
+should make its way into the generated scripts and programs.  Because
+that would be useless, and to protect your privacy.
+
+When compiling for local use, it usually makes sense to allow $package
+to access your sources, in case you don't want to make a full install
+and wish to rely on some configuration file or other data file present
+in the sources.
+
+EOM
+rp='Is this producing an official build'
+. ./myread
+case "$ans" in
+y) val=true;;
+*) val=false;;
+esac
+set official
+eval $setvar
+case "$official" in
+true) val="$define";;
+*) val="$undef";;
+esac
+set d_official
+eval $setvar
 
 : ask them whether they want remote control support
 $cat <<'EOM'
@@ -2711,30 +2781,6 @@ n) echo "OK, that should do.";;
 esac
 $rm -f try try.* core
 
-: set up the script used to warn in case of inconsistency
-cat <<EOS >whoa
-$startsh
-EOS
-cat <<'EOSC' >>whoa
-dflt=y
-echo " "
-echo "*** WHOA THERE!!! ***" >&4
-echo "    The $hint value for \$$var on this machine was \"$was\"!" >&4
-rp="    Keep the $hint value?"
-. ./myread
-case "$ans" in
-y) td=$was; tu=$was;;
-esac
-EOSC
-
-: function used to set $1 to $val
-setvar='var=$1; eval "was=\$$1"; td=$define; tu=$undef;
-case "$val$was" in
-$define$undef) . ./whoa; eval "$var=\$td";;
-$undef$define) . ./whoa; eval "$var=\$tu";;
-*) eval "$var=$val";;
-esac'
-
 : Look for GNU-cc style attribute checking
 echo " "
 echo "Checking whether your compiler can handle __attribute__ ..." >&4
@@ -2924,7 +2970,7 @@ case "$usenm" in
 		dflt=n
 		;;
 	*)
-		dflt=`egrep 'inlibc|csym' ../Configure | wc -l 2>/dev/null`
+		dflt=`$egrep 'inlibc|csym' $rsrc/Configure | wc -l 2>/dev/null`
 		if $test $dflt -gt 20; then
 			dflt=y
 		else
@@ -3584,7 +3630,7 @@ main() {
 EOCP
 : check sys/file.h first to get FREAD on Sun
 if $test `./findhdr sys/file.h` && \
-		$cc $cppflags "-DI_SYS_FILE" open3.c -o open3 >/dev/null 2>&1 ; then
+		$cc $cppflags "-DI_SYS_FILE" -o open3 open3.c >/dev/null 2>&1 ; then
 	h_sysfile=true;
 	echo "<sys/file.h> defines the O_* constants..." >&4
 	if ./open3; then
@@ -3595,7 +3641,7 @@ if $test `./findhdr sys/file.h` && \
 		val="$undef"
 	fi
 elif $test `./findhdr fcntl.h` && \
-		$cc "-DI_FCNTL" open3.c -o open3 >/dev/null 2>&1 ; then
+		$cc "-DI_FCNTL" -o open3 open3.c >/dev/null 2>&1 ; then
 	h_fcntl=true;
 	echo "<fcntl.h> defines the O_* constants..." >&4
 	if ./open3; then
@@ -3779,6 +3825,37 @@ eval $inlibc
 : preserve RCS keywords in files with variable substitution, grrr
 Id='$Id'
 
+: how do we catenate cpp tokens here?
+echo " "
+echo "Checking to see how your cpp does stuff like catenate tokens..." >&4
+$cat >cpp_stuff.c <<'EOCP'
+#define RCAT(a,b)a/**/b
+#define ACAT(a,b)a ## b
+RCAT(Rei,ser)
+ACAT(Cir,cus)
+EOCP
+$cppstdin $cppflags $cppminus <cpp_stuff.c >cpp_stuff.out 2>&1
+if $contains 'Circus' cpp_stuff.out >/dev/null 2>&1; then
+	echo "Oh!  Smells like ANSI's been here."
+	echo "We can catify or stringify, separately or together!"
+	cpp_stuff=42
+elif $contains 'Reiser' cpp_stuff.out >/dev/null 2>&1; then
+	$cat <<EOM
+Ah, yes!  The good old days!
+However, in the good old days we don't know how to stringify and
+catify at the same time...
+Unless we have a cute trick...  which I have!
+EOM
+	cpp_stuff=1
+else
+	$cat >&4 <<EOM
+Hmm, I don't seem to be able to catenate tokens with your cpp.  You're going
+to have to edit the values of CAT[2-5] and SCAT[2-5] in config.h...
+EOM
+	cpp_stuff="/* Help! How do we handle cpp_stuff? */*/"
+fi
+$rm -f cpp_stuff.*
+
 : derive which glade to use based on the configure GTK+
 echo " "
 case "$gtkversion" in
@@ -3841,6 +3918,27 @@ esac
 gtkcflags=`$gtkconfig --cflags`
 gtkldflags=`$gtkconfig --libs`
 
+: determine our version number
+echo " "
+echo "Figuring out my version number..." >&4
+$grep '^#define GTA' $rsrc/src/common.h >ver.c
+$cat >>ver.c <<'EOM'
+int main()
+{
+#if defined(GTA_PATCHLEVEL) && (GTA_PATCHLEVEL != 0)
+	printf("%d.%d.%d%s\n",
+		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR);
+#else
+	printf("%d.%d%s\n", GTA_VERSION, GTA_SUBVERSION, GTA_REVCHAR);
+#endif
+	return 0;
+}
+EOM
+$cc -o ver ver.c
+gtkgversion=`./ver`
+echo "(You have version $gtkgversion.)"
+$rm -f ver.c ver
+
 : locate a BSD compatible install program
 echo " "
 echo "Looking for a BSD-compatible install program..." >&4
@@ -3862,7 +3960,7 @@ main()
 	exit(0);
 }
 EOC
-	if $cc try.c -o try >/dev/null 2>&1; then
+	if $cc -o try try.c >/dev/null 2>&1; then
 		cp try try.ns
 		strip try >/dev/null 2>&1
 	else
@@ -3991,7 +4089,7 @@ case "$mkdep" in
 '')
 	;;
 *)
-	if test -x "$mkdep" &&
+	if test -f "$mkdep" &&
 		$mkdep dep.c >dep.out 2>/dev/null &&
 		$contains "dep$_o:.*dep\.h" dep.out >/dev/null 2>&1
 	then
@@ -4166,12 +4264,6 @@ rp="Name of program to make makefile dependencies?"
 . ./getfile
 mkdep="$ans"
 $rm -f dep.c dep.h dep$_o dep.out
-
-: define pakcage source directory
-case "$src" in
-/*) pkgsrc=$src;;
-*) pkgsrc=`relsrc=$rsrc; export relsrc; $sh -c "cd $relsrc; pwd" 2>/dev/null`;;
-esac
 
 : Cruising for prototypes
 echo " "
@@ -4448,7 +4540,7 @@ case "$d_iptos" in
 esac
 $cat >&4 <<EOM
 
-Feature Summary:
+Feature Summary (Version $gtkgversion):
 -------------------------------------------------
 GUI front-end                      : $frontend
 Persistent filters                 : $persistent
@@ -4542,6 +4634,7 @@ contains='$contains'
 cp='$cp'
 cpio='$cpio'
 cpp='$cpp'
+cpp_stuff='$cpp_stuff'
 cppflags='$cppflags'
 cpplast='$cpplast'
 cppminus='$cppminus'
@@ -4566,6 +4659,7 @@ d_iptos='$d_iptos'
 d_isascii='$d_isascii'
 d_libxml2='$d_libxml2'
 d_memcpy='$d_memcpy'
+d_official='$d_official'
 d_oldsock='$d_oldsock'
 d_open3='$d_open3'
 d_portable='$d_portable'
@@ -4605,6 +4699,7 @@ glibpth='$glibpth'
 grep='$grep'
 gtkcflags='$gtkcflags'
 gtkconfig='$gtkconfig'
+gtkgversion='$gtkgversion'
 gtkldflags='$gtkldflags'
 gtkpackage='$gtkpackage'
 gtkversion='$gtkversion'
@@ -4664,6 +4759,7 @@ n='$n'
 nm_opt='$nm_opt'
 nm_so_opt='$nm_so_opt'
 nroff='$nroff'
+official='$official'
 optimize='$optimize'
 osname='$osname'
 osvers='$osvers'
