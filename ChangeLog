@@ -1,5 +1,9 @@
 # since last version
 
+- (2003.11.10 - RAM)
+ * Use average upload bandwidth consumption to compute PARQ ETA values.
+ * Flag query hits carrying a push-proxy indication.
+
 - (2003.11.09 - RAM)
  * Forgot to include "settings_gui.h" in main.c.
  * Forgot to allow X-Available-Ranges emission on HTTP 2xx returns.
