@@ -1197,7 +1197,7 @@ void search_matched(struct search *sch, struct results_set *rs)
 		rs->status = ST_KNOWN_VENDOR;
 
 		switch (t) {
-		case T_GTKG: vendor = "Gtk-Gnutella";	break;
+		case T_GTKG: vendor = "Gtk-Gnut";		break;
 		case T_NAPS: vendor = "NapShare";		break;
 		case T_LIME: vendor = "Lime";			break;
 		case T_BEAR: vendor = "Bear";			break;
