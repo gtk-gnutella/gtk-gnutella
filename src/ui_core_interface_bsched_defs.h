@@ -29,6 +29,7 @@
 
 #include <sys/types.h>		/* For off_t */
 #include "ui_core_interface_inputevt_defs.h"
+#include "ui_core_interface_socket_defs.h"	/* wrap_io_t */
 
 /*
  * Bandwidth scheduler.
@@ -124,7 +125,7 @@ typedef struct bsched {
  */
 typedef struct bio_source {
 	bsched_t *bs;						/* B/w scheduler for this source */
-	gint fd;							/* File descriptor */
+	wrap_io_t *wio;						/* Wrapped I/O object */
 	gint io_tag;						/* Recorded I/O callback tag */
 	guint io_flags;						/* Flags for I/O callback */
 	inputevt_handler_t io_callback;		/* I/O callback routine */
@@ -167,3 +168,5 @@ struct bws_set {
 
 
 #endif
+
+/* vi: set ts=4 sw=4 cindent: */

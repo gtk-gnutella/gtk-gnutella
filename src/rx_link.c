@@ -46,7 +46,7 @@ RCSID("$Id$");
  * Private attributes for the link.
  */
 struct attr {
-	gint fd;			/* Cached socket file descriptor */
+	wrap_io_t 	 *wio;	/* Cached wrapped IO object */
 	bio_source_t *bio;	/* Bandwidth-limited I/O source */
 	bsched_t *bs;		/* Scheduler to attach I/O source to */
 };
@@ -128,7 +128,7 @@ static gpointer rx_link_init(rxdrv_t *rx, gpointer args)
 
 	attr = walloc(sizeof(*attr));
 
-	attr->fd = rx->node->socket->file_desc;
+	attr->wio = &rx->node->socket->wio;
 	attr->bio = NULL;
 	attr->bs = rx->node->peermode == NODE_P_LEAF ? bws.glin : bws.gin;
 
@@ -192,7 +192,7 @@ static void rx_link_enable(rxdrv_t *rx)
 	 * Install reading callback.
 	 */
 
-	attr->bio = bsched_source_add(attr->bs, attr->fd, BIO_F_READ,
+	attr->bio = bsched_source_add(attr->bs, attr->wio, BIO_F_READ,
 		is_readable, (gpointer) rx);
 
 	g_assert(attr->bio);
@@ -234,3 +234,4 @@ struct rxdrv_ops rx_link_ops = {
 	rx_link_bio_source,	/* bio_source */
 };
 
+/* vi: set ts=4 sw=4 cindent: */
