@@ -1607,14 +1607,14 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new (_("Raphaël Manfredi"));
+  label493 = gtk_label_new (_("Rapha\303\253l Manfredi"));
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new (_("Raphaël Manfredi"));
+  label494 = gtk_label_new (_("Rapha\303\253l Manfredi"));
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -15050,6 +15050,7 @@ create_dlg_prefs_ui_tab (void)
   GtkWidget *checkbutton_expert_mode;
   GtkWidget *label374;
   GtkWidget *frame94;
+  GtkWidget *table103;
   GtkWidget *frame_gnet_detailed_traffic;
   GtkWidget *table81;
   GtkWidget *checkbutton_gnet_info_txc;
@@ -15228,10 +15229,17 @@ create_dlg_prefs_ui_tab (void)
   gtk_widget_show (frame94);
   gtk_box_pack_start (GTK_BOX (vbox80), frame94, FALSE, FALSE, 0);
 
+  table103 = gtk_table_new (2, 1, FALSE);
+  gtk_widget_set_name (table103, "table103");
+  gtk_widget_show (table103);
+  gtk_container_add (GTK_CONTAINER (frame94), table103);
+
   frame_gnet_detailed_traffic = gtk_frame_new (NULL);
   gtk_widget_set_name (frame_gnet_detailed_traffic, "frame_gnet_detailed_traffic");
   gtk_widget_show (frame_gnet_detailed_traffic);
-  gtk_container_add (GTK_CONTAINER (frame94), frame_gnet_detailed_traffic);
+  gtk_table_attach (GTK_TABLE (table103), frame_gnet_detailed_traffic, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
   gtk_container_set_border_width (GTK_CONTAINER (frame_gnet_detailed_traffic), 2);
   gtk_frame_set_shadow_type (GTK_FRAME (frame_gnet_detailed_traffic), GTK_SHADOW_OUT);
 
@@ -15379,7 +15387,9 @@ create_dlg_prefs_ui_tab (void)
   checkbutton_node_show_detailed_info = gtk_check_button_new_with_mnemonic (_("Display detailed traffic information"));
   gtk_widget_set_name (checkbutton_node_show_detailed_info, "checkbutton_node_show_detailed_info");
   gtk_widget_show (checkbutton_node_show_detailed_info);
-  gtk_frame_set_label_widget (GTK_FRAME (frame_gnet_detailed_traffic), checkbutton_node_show_detailed_info);
+  gtk_table_attach (GTK_TABLE (table103), checkbutton_node_show_detailed_info, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label747 = gtk_label_new (_("gnutellaNet display"));
   gtk_widget_set_name (label747, "label747");
@@ -15410,6 +15420,7 @@ create_dlg_prefs_ui_tab (void)
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, checkbutton_expert_mode, "checkbutton_expert_mode");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, label374, "label374");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, frame94, "frame94");
+  GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, table103, "table103");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, frame_gnet_detailed_traffic, "frame_gnet_detailed_traffic");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, table81, "table81");
   GLADE_HOOKUP_OBJECT (dlg_prefs_ui_tab, checkbutton_gnet_info_txc, "checkbutton_gnet_info_txc");
