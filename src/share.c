@@ -909,7 +909,7 @@ static void recurse_scan(gchar *dir, const gchar *basedir)
 				found = (struct shared_file *) walloc0(sizeof(*found));
 
 				found->file_path = atom_str_get(full);
-				found->file_name = /*found->file_path + (*/name/* - full)*/;
+				found->file_name = found->file_path + (name - full);
 				found->file_name_len = name_len;
 				found->file_size = file_stat.st_size;
 				found->file_index = ++files_scanned;
