@@ -124,11 +124,19 @@ struct gnutella_node *node_add(struct gnutella_socket *s, guint32 ip, guint16 po
        /* This needs to be a runtime option.  I could see a need for someone
        * to want to run gnutella behind a firewall over on a private network. */
        if (is_private_ip(ip))
-       {
-          g_warning("discarding: private ip address %#x\n", ip);
-          return NULL;
+       {       
+	 socket_destroy(s);
+	 return NULL;
         }
 #endif
+
+   /* Too many gnutellaNet connections */
+       if (nodes_in_list >= max_connections)
+       {
+	 socket_destroy(s);
+	 return NULL;
+       }
+ 
 
 
 	n = (struct gnutella_node *) g_malloc0(sizeof(struct gnutella_node));
@@ -296,33 +304,6 @@ gboolean node_enqueue(struct gnutella_node *n, gchar *data, guint32 size)
 	  return TRUE;
 	}
 
-	if(!n->sq_pos) {
-	  int r = write(n->socket->file_desc, data, size);
-	  if(r == size)
-		return TRUE;
-	  if(r > 0) {
-		data += r;
-		size -= r;
-	  }
-	  if(r < 0) {
-		if(errno == EPIPE || errno == ENOSPC || errno == EIO || errno == ECONNRESET) {
-		  node_remove(n, "Write of data failed");
-		  return FALSE; 
-		}
-		if(errno == EBADF || errno == EINVAL || errno == EFAULT)
-		  g_error("gtk-gnutella:node_enqueue:write:%s\n", g_strerror(errno));
-		if(errno != EAGAIN && errno != EINTR)
-		  g_error("gtk-gnutella:node_enqueue:write failed with unknown errno %d (%s)\n",
-				  errno, g_strerror(errno));
-		/* errno == EAGAIN || errno == EINTR */
-	  }
-	  if(r == 0)
-		g_error("gtk-gnutella:node_enqueue:write returned 0?\n");
-	  /* We're still here if there was a partial write or if we got EAGAIN or EINTR */
-	}
-
-	/* We get here if there already was a send queue or we need to start one. */
-
 	if (size + n->sq_pos > node_sendqueue_size) { node_remove(n, "Send queue exceeded"); return FALSE; }
 
 	if (!n->gdk_tag) {
@@ -332,7 +313,12 @@ gboolean node_enqueue(struct gnutella_node *n, gchar *data, guint32 size)
 		assert(n->gdk_tag);
 	}
 
-	if (!n->sendq) n->sendq = (gchar *) g_malloc0(node_sendqueue_size);
+	if (!n->sendq) {
+	  n->sendq = (gchar *) g_malloc0(node_sendqueue_size);
+	  n->sq_pos = 0;
+	  n->end_of_last_packet = 0;
+	  n->end_of_packets = NULL;
+	}
 
 	memcpy(n->sendq + n->sq_pos, data, size);
 
@@ -347,10 +333,14 @@ void node_enqueue_end_of_packet(struct gnutella_node *n) {
   if(!n->sq_pos) {
 	n->sent++;
 	gui_update_node(n, FALSE);
+  } else {
+	n->end_of_packets = g_slist_append(n->end_of_packets, (gpointer)(n->sq_pos - n->end_of_last_packet));
+	n->end_of_last_packet = n->sq_pos;
   }
-  else
-	n->end_of_packets = g_slist_append(n->end_of_packets, (gpointer)n->sq_pos);
 }
+
+#include <sys/time.h>
+#include <unistd.h>
 
 void node_write(gpointer data, gint source, GdkInputCondition cond)
 {
@@ -363,33 +353,41 @@ void node_write(gpointer data, gint source, GdkInputCondition cond)
 
 	/* We can write again on the node's socket */
 
-	if (n->sendq && n->sq_pos)
-	{
-		r = write(n->socket->file_desc, n->sendq, (n->sq_pos > 1024)? 1024 : n->sq_pos);
+	if (n->sendq && n->sq_pos) {
+		r = write(n->socket->file_desc, n->sendq, n->sq_pos);
 
-		if (r >= 0)
-		{
-		  GSList *l;
+		if (r > 0) {
 			/* Move the remaining data to the beginning of the buffer */
 			/* Thanks to Steven Wilcoxon <swilcoxon@uswest.net> who noticed this awful bug */
 
 			memmove(n->sendq, n->sendq + r, n->sq_pos - r);
 			n->sq_pos -= r;
+			n->end_of_last_packet -= r;
 
 			/* count all the packets we just wrote */
 			while(n->end_of_packets  &&  ((guint32) n->end_of_packets->data <= r)) {
 			  n->sent++;
+			  r -= (guint32)n->end_of_packets->data;
 			  n->end_of_packets = g_slist_remove(n->end_of_packets, n->end_of_packets->data);
 			}
+
+			if(r && n->end_of_packets)
+			  (guint32) n->end_of_packets->data -= r;
+
 			gui_update_node(n, FALSE);
 
-			/* update the rest of the counts. */
-			for(l = n->end_of_packets; l; l = l->next)
-			  l->data = (gpointer) (((guint32) l->data) - r);
-				
+		} else if(r == 0) {
+		  g_error("gtk-gnutella:node_enqueue:write returned 0?\n");
+		} else if (errno == EAGAIN || errno == EINTR) {
+		  return;
+		} else if (errno == EPIPE || errno == ENOSPC || errno == EIO || errno == ECONNRESET || errno == ETIMEDOUT) {
+		  node_remove(n, "Write of queue failed");
+		  return; 
+		} else {
+		  int terr = errno;
+		  time_t t = time(NULL);
+		  g_error("%s:gtk-gnutella:node_write: write failed with unexpected errno: %d (%s)\n", ctime(&t), terr, g_strerror(terr));
 		}
-		else if (errno == EAGAIN) return;
-		else { node_remove(n, "Write of queue failed"); return; }
 	}
 
 	if (!n->sq_pos)
