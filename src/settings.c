@@ -213,6 +213,7 @@ void settings_init(void)
 	guint32 maxfd = (guint32) sysconf(_SC_OPEN_MAX);
 	guint32 amount = (guint32) settings_getphysmemsize();
 	struct rlimit lim;
+	char *path = NULL;
 
 	g_warning("Detected amount of physical RAM: %lu KB", (gulong) amount);
 
@@ -269,9 +270,10 @@ void settings_init(void)
 	g_assert(NULL != config_dir);
 	/* Ensure we're the only instance running */
 
-	gm_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, pidfile);
-	ensure_unicity(cfg_tmp);
-	save_pid(cfg_tmp);
+	path = g_strdup_printf("%s/%s", config_dir, pidfile);
+	ensure_unicity(path);
+	save_pid(path);
+	G_FREE_NULL(path);
 
 		/* Parse the configuration */
 	prop_load_from_file(properties, config_dir, config_file);
@@ -279,8 +281,10 @@ void settings_init(void)
 	hcache_retrieve(HCACHE_ANY);
 	hcache_retrieve(HCACHE_ULTRA);
 
-	gm_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, ul_stats_file);
-	upload_stats_load_history(cfg_tmp);	/* Loads the upload statistics */
+	path = g_strdup_printf("%s/%s", config_dir, ul_stats_file);
+	upload_stats_load_history(path);	/* Loads the upload statistics */
+	G_FREE_NULL(path);
+	
 
 	/* watch for filter_file defaults */
 
@@ -301,8 +305,7 @@ void settings_init(void)
 	return;
 
 no_config_dir: 
-	g_warning(_("Cannot proceed without valid "
-		"configuration directory"));
+	g_warning(_("Cannot proceed without valid configuration directory"));
 	exit(EXIT_FAILURE); /* g_error() would dump core, that's ugly. */
 }
 
@@ -371,11 +374,14 @@ static void settings_hostcache_save(void)
  */
 static void settings_remove_pidfile(void)
 {
-	gm_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s", config_dir, pidfile);
+	char *path;
 
-	if (-1 == unlink(cfg_tmp))
+	path = g_strdup_printf("%s/%s", config_dir, pidfile);
+	g_return_if_fail(NULL != path);
+	if (-1 == unlink(path))
 		g_warning("could not remove pidfile \"%s\": %s",
-			cfg_tmp, g_strerror(errno));
+			path, g_strerror(errno));
+	G_FREE_NULL(path);
 }
 
 /*
