@@ -73,6 +73,7 @@ static gchar auth_cookie[SHA1_RAW_SIZE];
 static void shell_destroy(gnutella_shell_t *sh);
 void shell_shutdown(gnutella_shell_t *sh);
 static gboolean shell_write(gnutella_shell_t *sh, const gchar *s);
+void print_hsep_table(gnutella_shell_t *sh, hsep_triple *table, int triples, hsep_triple *nonhsep);
 
 enum {
 	CMD_UNKNOWN,
@@ -577,20 +578,31 @@ error:
  */
 static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd) 
 {
-	guint i;
 	gchar buf[200];
-	guint maxlen[4];
+	gchar *tok;
+	gint pos = 0;
 	hsep_triple globaltable[HSEP_N_MAX + 1];
 	hsep_triple nonhsep;
 	guint64 *globalt;
-	char *hopsstr = _("Hops");
-	char *nodesstr = _("Nodes");
-	char *filesstr = _("Files");
-	char *sizestr = _("Size");
+	gboolean all;
 
 	g_assert(sh);
 	g_assert(cmd);
 	g_assert(!IS_PROCESSING(sh));
+
+    tok = shell_get_token(cmd, &pos);
+    if (tok != NULL) {
+		shell_write(sh, tok);
+		shell_write(sh, "\n");
+		if (0 == strcasecmp(tok, "ALL"))
+			all = 1;
+		else {
+        	sh->msg = _("Unknown parameter");
+	        goto error;
+		}
+	}
+	else
+		all = 0;
 
 	sh->msg = "";
 
@@ -598,14 +610,71 @@ static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 	hsep_get_non_hsep_triple(&nonhsep);
 
 	gm_snprintf(buf, sizeof(buf),
-		_("Horizon size (%u/%u nodes support HSEP):\n\n"),
+		_("Total horizon size (%u/%u nodes support HSEP):"),
 		(unsigned int)globaltable[1][HSEP_IDX_NODES],
 		(unsigned int)(globaltable[1][HSEP_IDX_NODES] +
 		nonhsep[HSEP_IDX_NODES]));
 
 	shell_write(sh, buf);
+	shell_write(sh, "\n\n");
 
 	globalt = (gint64 *) &globaltable[1];
+
+	print_hsep_table(sh, globaltable, HSEP_N_MAX, &nonhsep);
+
+	if(all) {
+		GSList *sl;
+		hsep_triple table[HSEP_N_MAX + 1];
+
+		for (sl = (GSList *) node_all_nodes(); sl; sl = g_slist_next(sl)) {
+			struct gnutella_node *n = (struct gnutella_node *) sl->data;
+
+			if ((!NODE_IS_ESTABLISHED(n)) || !(n->attrs & NODE_A_CAN_HSEP))
+				continue;
+
+			shell_write(sh, "\n");
+
+			gm_snprintf(buf, sizeof(buf),
+				_("Horizon size via HSEP node %s:"), node_ip(n));
+
+			shell_write(sh, buf);
+			shell_write(sh, "\n\n");
+
+			hsep_get_connection_table(n, table, G_N_ELEMENTS(table));
+			print_hsep_table(sh, table, HSEP_N_MAX, NULL);
+		}
+	}
+
+	G_FREE_NULL(tok);
+	return REPLY_READY;
+
+error:
+	G_FREE_NULL(tok);
+	if (sh->msg == NULL)
+		sh->msg = _("Malformed command");
+
+	return REPLY_ERROR;
+}
+
+void print_hsep_table(gnutella_shell_t *sh, hsep_triple *table, int triples, hsep_triple *nonhsepptr)
+{
+	guint i;
+	char *hopsstr = _("Hops");
+	char *nodesstr = _("Nodes");
+	char *filesstr = _("Files");
+	char *sizestr = _("Size");
+	guint64 *t;
+	hsep_triple nonhsep;
+	static hsep_triple emptynonhsep = {0, 0, 0};
+	gchar buf[200];
+	guint maxlen[4];
+
+	if (nonhsepptr != NULL)
+		memcpy(nonhsep, *nonhsepptr, sizeof(nonhsep));
+	else
+		memcpy(nonhsep, emptynonhsep, sizeof(nonhsep));
+
+	t = (guint64 *) &table[1];
 
 	/*
 	 * Determine maximum width of each column.
@@ -616,17 +685,17 @@ static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 	maxlen[2] = strlen(filesstr);  /* length of Files */
 	maxlen[3] = strlen(sizestr);   /* length of Size */
 
-	for (i = 0; i < HSEP_N_MAX * 4; i++) {
+	for (i = 0; i < triples * 4; i++) {
 		size_t n;
 	       
 		if ((i % 4) == 0)
 			n = gm_snprintf(buf, sizeof(buf), "%d", i/4 + 1);
 		else if ((i % 4) == 3)
-			n = strlen(short_kb_size64(*globalt++ + nonhsep[HSEP_IDX_KIB]));
+			n = strlen(short_kb_size64(*t++ + nonhsep[HSEP_IDX_KIB]));
 		else if ((i % 4) == 2)
-			n = gm_snprintf(buf, sizeof(buf), "%" PRIu64, *globalt++ + nonhsep[HSEP_IDX_FILES]);
+			n = gm_snprintf(buf, sizeof(buf), "%" PRIu64, *t++ + nonhsep[HSEP_IDX_FILES]);
 		else
-			n = gm_snprintf(buf, sizeof(buf), "%" PRIu64, *globalt++ + nonhsep[HSEP_IDX_NODES]);
+			n = gm_snprintf(buf, sizeof(buf), "%" PRIu64, *t++ + nonhsep[HSEP_IDX_NODES]);
 
 		if (n > maxlen[i % 4])
 			maxlen[i % 4] = n;
@@ -642,22 +711,23 @@ static guint shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
 
 	shell_write(sh, "\n");
 
-	globalt = (gint64 *) &globaltable[1];
+	t = (gint64 *) &table[1];
 	
-	for (i = 0; i < HSEP_N_MAX; i++) {
+	for (i = 0; i < triples; i++) {
 		gm_snprintf(buf, sizeof(buf), "%*d  %*" PRIu64 "  %*" PRIu64 "  %*s\n",
 			maxlen[0], i + 1,
-			maxlen[1], globalt[HSEP_IDX_NODES] + nonhsep[HSEP_IDX_NODES],
-			maxlen[2], globalt[HSEP_IDX_FILES] + nonhsep[HSEP_IDX_FILES],
-			maxlen[3], short_kb_size64(globalt[HSEP_IDX_KIB] +
+			maxlen[1], t[HSEP_IDX_NODES] + nonhsep[HSEP_IDX_NODES],
+			maxlen[2], t[HSEP_IDX_FILES] + nonhsep[HSEP_IDX_FILES],
+			maxlen[3], short_kb_size64(t[HSEP_IDX_KIB] +
 			    nonhsep[HSEP_IDX_KIB]));
 
 		shell_write(sh, buf);
-		globalt += 3;
+		t += 3;
 	}		
-	
-	return REPLY_READY; 
+
 }
+
+
 
 /*
  * shell_exec:
@@ -686,7 +756,7 @@ static guint shell_exec(gnutella_shell_t *sh, const gchar *cmd)
 			"100-PRINT <property>\n"
 			"100-SET <property> <value>\n"
 			"100-WHATIS <property>\n"
-			"100-HORIZON\n"
+			"100-HORIZON [ALL]\n"
 			"100-QUIT\n"
 			"100-HELP\n");
 		reply_code = REPLY_READY;
