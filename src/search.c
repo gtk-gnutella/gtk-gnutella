@@ -62,7 +62,8 @@ typedef struct search_ctrl {
 	gchar  *query;				/* The search query */
 	guint16 speed;				/* Minimum speed for the results of query */
 	time_t  time;				/* Time when this search was started */
-	GSList *muids;				/* Message UID's of this search */
+	GSList *muids;				/* Message UIDs of this search */
+	GHashTable *h_muids;		/* All known message UIDs of this search */
 
 	gboolean passive;			/* Is this a passive search? */
 	gboolean frozen;			/* True => don't update window */
@@ -224,12 +225,9 @@ static gboolean search_already_sent_to_node(
  */
 static gboolean search_has_muid(search_ctrl_t *sch, const guchar *muid)
 {
-	GSList *m;
+	g_assert(sch->h_muids);
 
-	for (m = sch->muids; m; m = m->next)
-		if (!memcmp(muid, (guchar *) m->data, 16))
-			return TRUE;
-	return FALSE;
+	return NULL != g_hash_table_lookup(sch->h_muids, muid);
 }
 
 /*
@@ -1067,7 +1065,9 @@ static void search_add_new_muid(search_ctrl_t *sch, guchar *muid)
 {
 	if (sch->muids)				/* If this isn't the first muid */
 		search_reset_sent_nodes(sch);
+
 	sch->muids = g_slist_prepend(sch->muids, (gpointer) muid);
+	g_hash_table_insert(sch->h_muids, muid, muid);
 }
 
 static void search_send_packet(search_ctrl_t *sch)
@@ -1322,6 +1322,8 @@ void search_close(gnet_search_t sh)
 			wfree(m->data, MUID_SIZE);
 
 		g_slist_free(sch->muids);
+		g_hash_table_destroy(sch->h_muids);
+
 		search_free_sent_nodes(sch);
 		search_dequeue_all_nodes(sch->query);
 	} else {
@@ -1499,6 +1501,10 @@ void search_start(gnet_search_t sh)
 
 		if (sch->muids == NULL) {
 			guchar *muid = (guchar *) walloc(MUID_SIZE);
+			extern guint guid_hash(gconstpointer key);
+			extern gint guid_eq(gconstpointer a, gconstpointer b);
+
+			sch->h_muids = g_hash_table_new(guid_hash, guid_eq);
 
 			guid_query_muid(muid, TRUE);
 			search_add_new_muid(sch, muid);
