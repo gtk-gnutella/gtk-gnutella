@@ -40,6 +40,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header);
 gboolean parq_download_is_active_queued(struct download *d);
 void parq_download_add_header(
 gchar *buf, gint len, gint *rw, struct download *d);
+gboolean parq_download_is_passive_queued(struct download *d);
 	
 void parq_upload_queue_init();
 void parq_upload_timer(time_t now);

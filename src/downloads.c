@@ -87,6 +87,7 @@ static void download_free_removed(void);
 static void download_incomplete_header(struct download *d);
 static gboolean has_blank_guid(const struct download *d);
 static void download_verify_sha1(struct download *d);
+static gboolean download_get_server_name(struct download *d, header_t *header);
 
 /*
  * Download structures.
