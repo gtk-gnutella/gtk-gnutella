@@ -5074,6 +5074,28 @@ void node_connected_back(struct gnutella_socket *s)
 gboolean node_proxying_add(gnutella_node_t *n, gchar *guid)
 {
 	/*
+	 * If we're firewalled, we can't accept.
+	 */
+
+	if (is_firewalled) {
+		g_warning("denying push-proxyfication for %s <%s>: firewalled",
+			node_ip(n), node_vendor(n));
+		return FALSE;
+	}
+
+	/*
+	 * If our IP is not reacheable, deny as well.
+	 */
+
+	if (!host_is_valid(listen_ip(), listen_port)) {
+		g_warning("denying push-proxyfication for %s <%s>: "
+			"current IP %s is invalid",
+			node_ip(n), node_vendor(n),
+			ip_port_to_gchar(listen_ip(), listen_port));
+		return FALSE;
+	}
+
+	/*
 	 * Did we already get a proxyfication request for the node?
 	 * Maybe he did not get our ACK and is retrying?
 	 */
