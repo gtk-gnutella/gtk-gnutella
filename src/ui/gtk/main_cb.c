@@ -222,7 +222,7 @@ on_main_gui_treeview_menu_row_collapsed(GtkTreeView *tree, GtkTreeIter *iter,
 
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree));
 	gtk_tree_model_get(GTK_TREE_MODEL(model), iter, 2, &id, (-1));
-	g_assert(id >= 0 && id < TREEMENU_NODES);
+	g_assert(id >= 0 && id < nb_main_page_num);
 	gui_prop_set_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
 }
 
@@ -239,7 +239,7 @@ on_main_gui_treeview_menu_row_expanded(GtkTreeView *tree, GtkTreeIter *iter,
 
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree));
 	gtk_tree_model_get(GTK_TREE_MODEL(model), iter, 2, &id, (-1));
-	g_assert(id >= 0 && id < TREEMENU_NODES);
+	g_assert(id >= 0 && id < nb_main_page_num);
 	gui_prop_set_guint32(PROP_TREEMENU_NODES_EXPANDED, &expanded, id, 1);
 }
 

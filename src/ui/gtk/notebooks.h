@@ -31,15 +31,14 @@ enum {
     nb_main_page_uploads,
     nb_main_page_uploads_stats,
     nb_main_page_downloads,
-#ifdef USE_GTK2
-    nb_main_page_dl_files,
-    nb_main_page_dl_queue,
-#endif /* USE_GTK2 */
     nb_main_page_search,
     nb_main_page_monitor,
     nb_main_page_search_stats,
     nb_main_page_gnet_stats,
     nb_main_page_hostcache,
+
+    nb_main_page_dl_files,
+    nb_main_page_dl_queue,
 
     nb_main_page_num
 };
@@ -69,31 +68,6 @@ enum {
 	nb_downloads_page_num
 };
 
-/*
- * Nodes in the treemenu
- */
-enum {
-    TREEMENU_NODE_GNET = 0,
-    TREEMENU_NODE_GNET_STATS,
-    TREEMENU_NODE_HOSTCACHE,
-    TREEMENU_NODE_UL,
-    TREEMENU_NODE_UL_STATS,
-    TREEMENU_NODE_DL,
-    TREEMENU_NODE_SEARCH,
-    TREEMENU_NODE_SEARCH_MON,
-    TREEMENU_NODE_SEARCH_STATS,
-    TREEMENU_NODE_CFG_SEL,
-    TREEMENU_NODE_CFG_NET,
-    TREEMENU_NODE_CFG_GNET,
-    TREEMENU_NODE_CFG_BWC,
-    TREEMENU_NODE_CFG_DL,
-    TREEMENU_NODE_CFG_UL,
-    TREEMENU_NODE_CFG_UI,
-    TREEMENU_NODE_CFG_DBG,
-
-    TREEMENU_NODES
-};
-
 #endif /* _gtk_notebooks_h_ */
 
-/* vi: set ts=4: */
+/* vi: set sw=4 ts=4 cindent: */
