@@ -1,5 +1,12 @@
 # since last version
 
+- (2004-08-05 - Jeroen)
+ * When avoiding vendor monopoly, make a difference between outgoing and
+   incoming connections. 
+
+- (2004-08-05 - Jeroen)
+ * Commited some stuff for G2 support, to avoid I lose it again.
+
 - (2004-08-03 - RAM)
  * Updated hostiles.txt from BearShare's list.
  * Removed spurious and wrongly placed call to header_features_generate()
