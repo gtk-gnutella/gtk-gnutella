@@ -2723,15 +2723,9 @@ static gboolean current_peermode_changed(property_t prop)
 	GtkWidget *icon_legacy;
 	guint32 mode;
 
-#ifdef USE_GTK2
     icon_ultra = lookup_widget(main_window, "eventbox_image_ultra");
 	icon_leaf = lookup_widget(main_window, "eventbox_image_leaf");
 	icon_legacy = lookup_widget(main_window, "eventbox_image_legacy");
-#else
-    icon_ultra = lookup_widget(main_window, "image_ultra");
-	icon_leaf = lookup_widget(main_window, "image_leaf");
-	icon_legacy = lookup_widget(main_window, "image_legacy");
-#endif
 
     gnet_prop_get_guint32_val(prop, &mode);
 	gtk_widget_hide(icon_ultra);
