@@ -3457,7 +3457,7 @@ static void parq_upload_load_queue(void)
 	if (!f)
 		return;
 	
-	u = walloc(sizeof(*u));
+	u = walloc0(sizeof(*u));
 	
 	if (dbg)
 		g_warning("[PARQ UL] Loading queue information");
