@@ -109,6 +109,8 @@ struct parq_ul_queued {
 	guint relative_position; /* Relative position in the queue, if 'not alive' 
 							  uploads are taken into account */
 	gboolean has_slot;		/* Whether the items is currently uploading */
+	gboolean had_slot;		/* If an upload had an upload slot it is not allowed
+							   to reuse the id for another upload	*/
 	guint eta;				/* Expected time in seconds till an upload slot is
 							   reached */
 
@@ -1239,6 +1241,7 @@ static struct parq_ul_queued *parq_upload_create(gnutella_upload_t *u)
 	parq_ul->major = 0;
 	parq_ul->minor = 0;
 	parq_ul->is_alive = TRUE;
+	parq_ul->had_slot =  FALSE;
 	parq_ul->queue->alive++;
 	parq_ul->retry = now + parq_ul_calc_retry(parq_ul);
 	parq_ul->expire = parq_ul->retry + MIN_LIFE_TIME;
@@ -1928,12 +1931,17 @@ gpointer parq_upload_get(gnutella_upload_t *u, header_t *header)
 	/*
 	 * Try to locate by ID first. If this fails, try to locate by IP and file
 	 * name. We want to locate on ID first as a client may reuse an ID.
+	 * Avoid abusing an PARQ entry by reusing an ID which allready finished
+	 * uploading.
 	 */
+	
 	parq_ul = parq_upload_find_id(u, header);
 	
-	if (parq_ul != NULL)
-		goto cleanup;
-	
+	if (parq_ul != NULL) {
+		if (!parq_ul->had_slot)
+			goto cleanup;
+	}
+
 	parq_ul = parq_upload_find(u);
 
 	if (parq_ul == NULL) {
@@ -2151,6 +2159,7 @@ void parq_upload_busy(gnutella_upload_t *u, gpointer handle)
 		return;
 	
 	parq_ul->has_slot = TRUE;
+	parq_ul->had_slot = TRUE;
 	parq_ul->queue->active_uploads++;
 }
 
@@ -2847,6 +2856,10 @@ static void parq_store(gpointer data, gpointer x)
 	FILE *f = (FILE *)x;
 	time_t now = time((time_t *) NULL);
 	struct parq_ul_queued *parq_ul = (struct parq_ul_queued *) data;
+	
+	if (parq_ul->had_slot && !parq_ul->has_slot)
+		/* We are not saving uploads which allready finished an upload */
+		return;
 	
 	g_assert(NULL != f);
 	if (dbg > 5)
