@@ -56,6 +56,7 @@ typedef struct results_set {
 	guchar  vendor[4];			/* Vendor code */
 	gchar *version;				/* Version information (atom) */
 	gnet_host_vec_t *proxies;	/* Optional: known push proxies */
+	gchar *hostname;			/* Optional: server's hostname */
 
 	guint32 num_recs;
 	GSList *records;

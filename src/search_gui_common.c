@@ -189,6 +189,8 @@ void search_gui_free_r_set(results_set_t *rs)
 		atom_str_free(rs->version);
 	if (rs->proxies)
 		search_gui_free_proxies(rs);
+	if (rs->hostname)
+		atom_str_free(rs->hostname);
 
 	g_slist_free(rs->records);
 	zfree(rs_zone, rs);
@@ -472,11 +474,12 @@ results_set_t *search_gui_create_results_set(const gnet_results_set_t *r_set)
     rs->stamp = r_set->stamp;
     memcpy(rs->vendor, r_set->vendor, sizeof(rs->vendor));
 	rs->version = r_set->version ? atom_str_get(r_set->version) : NULL;
+	rs->hostname = r_set->hostname ? atom_str_get(r_set->hostname) : NULL;
 
     rs->num_recs = 0;
     rs->records = NULL;
 	rs->proxies = NULL;
-    
+
     for (sl = r_set->records; sl != NULL; sl = g_slist_next(sl)) {
         record_t *rc;
 		gnet_record_t *grc = (gnet_record_t *) sl->data;
@@ -539,7 +542,8 @@ void search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 			continue;
 
 		download_auto_new(rc->name, rc->size, URN_INDEX, h->ip,
-			h->port, blank_guid, rc->sha1, rs->stamp, FALSE, NULL, NULL);
+			h->port, blank_guid, rs->hostname,
+			rc->sha1, rs->stamp, FALSE, NULL, NULL);
 	}
 
 	search_gui_free_alt_locs(rc);

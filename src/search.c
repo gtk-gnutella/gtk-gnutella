@@ -300,6 +300,9 @@ static void search_free_r_set(gnet_results_set_t *rs)
 	if (rs->proxies)
 		search_free_proxies(rs);
 
+	if (rs->hostname)
+		atom_str_free(rs->hostname);
+
 	g_slist_free(rs->records);
 	zfree(rs_zone, rs);
 }
@@ -337,6 +340,7 @@ static gnet_results_set_t *get_results_set(
 	gboolean multiple_sha1 = FALSE;
 	gint multiple_alt = 0;
 	gchar *vendor = NULL;
+	gchar hostname[256];
 
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
@@ -358,6 +362,7 @@ static gnet_results_set_t *get_results_set(
 	rs->version   = NULL;
     rs->status    = 0;
 	rs->proxies   = NULL;
+	rs->hostname  = NULL;
 
 	r = (struct gnutella_search_results *) n->data;
 
@@ -858,6 +863,13 @@ static gnet_results_set_t *get_results_set(
 								ext_dump(stderr, e, 1, "....", "\n", TRUE);
 							}
 						}
+					}
+					break;
+				case EXT_T_GGEP_HNAME:
+					if (!validate_only) {
+						ret = ggept_hname_extract(e, hostname, sizeof(hostname));
+						if (ret == GGEP_OK)
+							rs->hostname = atom_str_get(hostname);
 					}
 					break;
 				default:
@@ -1583,7 +1595,8 @@ static void search_check_alt_locs(
 		}
 
 		download_auto_new(rc->name, rc->size, URN_INDEX, h->ip,
-			h->port, blank_guid, rc->sha1, rs->stamp, FALSE, fi, rs->proxies);
+			h->port, blank_guid, rs->hostname,
+			rc->sha1, rs->stamp, FALSE, fi, rs->proxies);
 
 		if (rs->proxies != NULL)
 			search_free_proxies(rs);
@@ -1620,7 +1633,8 @@ static void search_check_results_set(gnet_results_set_t *rs)
 				!host_is_valid(rs->ip, rs->port);
 
 			download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-					rs->guid, rc->sha1, rs->stamp, need_push, fi, rs->proxies);
+					rs->guid, rs->hostname,
+					rc->sha1, rs->stamp, need_push, fi, rs->proxies);
 
 
 			if (rs->proxies != NULL)
