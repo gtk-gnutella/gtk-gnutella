@@ -280,6 +280,7 @@ extern const gboolean send_oob_queries;
 extern const gboolean proxy_oob_queries;
 extern const gboolean uploads_stalling;
 extern const gboolean allow_auto_requeries;
+extern const gboolean use_global_hostiles_txt;
 
 
 prop_set_t *gnet_prop_init(void);
