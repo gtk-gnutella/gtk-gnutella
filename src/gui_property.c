@@ -1331,6 +1331,8 @@ void gui_prop_shutdown(void) {
 
     g_free(gui_property->props);
     g_free(gui_property);
+    gui_property->props = NULL;
+    gui_property = NULL;
 }
 
 prop_def_t *gui_prop_get_def(property_t p)

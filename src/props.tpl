@@ -350,6 +350,8 @@ void [=(. func-prefix)=]_shutdown(void) {
 
     g_free([=(. prop-array)=]);
     g_free([=(. prop-set)=]);
+    [=(. prop-array)=] = NULL;
+    [=(. prop-set)=] = NULL;
 }
 
 prop_def_t *[=(. func-prefix)=]_get_def(property_t p)
