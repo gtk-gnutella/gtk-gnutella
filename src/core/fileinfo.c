@@ -449,7 +449,7 @@ file_info_checksum(guint32 *checksum, gchar *d, int len)
  * @param fi the fileinfo struct to check.
  * @return TRUE if chunklist is consistent, FALSE otherwise.
  */
-static gboolean 
+static gboolean
 file_info_check_chunklist(struct dl_file_info *fi)
 {
 	GSList *sl;
@@ -468,7 +468,7 @@ file_info_check_chunklist(struct dl_file_info *fi)
 		) {
 			return FALSE;
 		}
-		
+
 		last = fc->to;
 	}
 
@@ -664,13 +664,31 @@ file_info_strip_binary_from_file(struct dl_file_info *fi, const gchar *file)
 }
 
 /**
+ * Frees the chunklist and all its elements of a fileinfo struct. Note that
+ * the consistency of the list isn't checked to explicitely allow freeing
+ * inconsistent chunklists.
+ *
+ * @param fi the fileinfo struct.
+ */
+static void
+file_info_chunklist_free(struct dl_file_info *fi)
+{
+	GSList *sl;
+
+	g_assert(fi);
+
+	for (sl = fi->chunklist; NULL != sl; sl = g_slist_next(sl))
+		wfree(sl->data, sizeof(struct dl_file_chunk));
+	g_slist_free(fi->chunklist);
+	fi->chunklist = NULL;
+}
+
+/**
  * Free a `file_info' structure.
  */
 static void
 fi_free(struct dl_file_info *fi)
 {
-	GSList *l;
-
 	g_assert(fi);
 	g_assert(!fi->hashed);
 
@@ -695,13 +713,13 @@ fi_free(struct dl_file_info *fi)
 		atom_sha1_free(fi->cha1);
 	if (fi->chunklist) {
 		g_assert(file_info_check_chunklist(fi));
-		for (l = fi->chunklist; l; l = l->next)
-			wfree(l->data, sizeof(struct dl_file_chunk));
-		g_slist_free(fi->chunklist);
+		file_info_chunklist_free(fi);
 	}
 	if (fi->alias) {
-		for (l = fi->alias; l; l = l->next)
-			atom_str_free(l->data);
+		GSList *sl;
+
+		for (sl = fi->alias; NULL != sl; sl = g_slist_next(sl))
+			atom_str_free(sl->data);
 		g_slist_free(fi->alias);
 	}
 	if (fi->seen_on_network)
@@ -1202,8 +1220,8 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	gboolean t64;
 	GSList *chunklist = NULL;
 
-#define BAILOUT(x) do { reason = (x); goto bailout; } while (0) 
-	
+#define BAILOUT(x) do { reason = (x); goto bailout; } while (0)
+
 	g_assert(NULL != file);
 	g_assert(NULL != path);
 
@@ -1218,6 +1236,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 
 	if (!file_info_get_trailer(fd, &trailer, pathname)) {
 		BAILOUT("could not find trailer");
+		/* NOT REACHED */
 	}
 	t64 = trailer_is_64bit(&trailer);
 
@@ -1284,12 +1303,14 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 		if (tmpguint == 0) {
 			gm_snprintf(tmp, sizeof(tmp), "field #%d has zero size", field);
 			BAILOUT(tmp);
+			/* NOT REACHED */
 		}
 
 		if (tmpguint > FI_MAX_FIELD_LEN) {
 			gm_snprintf(tmp, sizeof(tmp),
 				"field #%d is too large (%u bytes) ", field, (guint) tmpguint);
 			BAILOUT(tmp);
+			/* NOT REACHED */
 		}
 
 		g_assert(tmpguint < sizeof(tmp));
@@ -1321,7 +1342,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 		case FILE_INFO_FIELD_CHUNK:
 			{
 				struct dl_file_chunk *fc;
-			
+
 				memcpy(tmpchunk, tmp, sizeof(tmpchunk));
 				fc = walloc0(sizeof(*fc));
 
@@ -1372,7 +1393,9 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 
 	fi->chunklist = g_slist_reverse(chunklist);
 	if (!file_info_check_chunklist(fi)) {
+		file_info_chunklist_free(fi);
 		BAILOUT("File contains inconsistent chunk list");
+		/* NOT REACHED */
 	}
 
 	/*
@@ -1414,6 +1437,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 
 	if (checksum != trailer.checksum) {
 		BAILOUT("checksum mismatch");
+		/* NOT REACHED */
 	}
 
 	close(fd);
@@ -2298,8 +2322,7 @@ file_info_retrieve(void)
 			 * Ensure "size != 0 => file_size_known".
 			 */
 
-			if (fi->size)
-				fi->file_size_known = TRUE;
+			fi->file_size_known = 0 != fi->size;
 
 			/*
 			 * Allow reconstruction of missing information: if no CHNK
@@ -2315,15 +2338,17 @@ file_info_retrieve(void)
 			 */
 
 			if (fi->chunklist == NULL) {
-				struct dl_file_chunk *fc;
+				if (fi->file_size_known) {
+					struct dl_file_chunk *fc;
 
-				g_warning("no CHNK info for \"%s\" -- assuming empty file",
-					fi->file_name);
-				fc = walloc0(sizeof(struct dl_file_chunk));
-				fc->from = 0;
-				fc->to = fi->size;
-				fc->status = DL_CHUNK_EMPTY;
-				fi->chunklist = g_slist_append(fi->chunklist, fc);
+					g_warning("no CHNK info for \"%s\" -- assuming empty file",
+						fi->file_name);
+					fc = walloc0(sizeof(struct dl_file_chunk));
+					fc->from = 0;
+					fc->to = fi->size;
+					fc->status = DL_CHUNK_EMPTY;
+					fi->chunklist = g_slist_append(fi->chunklist, fc);
+				}
 				fi->generation = 0;		/* Restarting from scratch... */
 				fi->done = 0;
 				if (fi->cha1 != NULL) {
@@ -2550,13 +2575,19 @@ file_info_retrieve(void)
 			break;
 		case FI_TAG_SIZE:
 			v = parse_uint64(value, &ep, 10, &error);
-			damaged = error || *ep != '\0' || v >= ((guint64) 1UL << 63);
+			damaged = error
+				|| *ep != '\0'
+				|| v >= ((guint64) 1UL << 63)
+				|| (!fi->file_size_known && 0 == v);
 			fi->size = v;
 			fi->size_atom = atom_uint64_get(&fi->size);
 			break;
 		case FI_TAG_FSKN:
 			v = parse_uint64(value, &ep, 10, &error);
-			damaged = error || *ep != '\0' || v > 1;
+			damaged = error
+				|| *ep != '\0'
+				|| v > 1
+				|| (0 == fi->size && 0 != v);
 			fi->file_size_known = v != 0;
 			break;
 		case FI_TAG_TIME:
@@ -2610,7 +2641,7 @@ file_info_retrieve(void)
 					damaged = error
 						|| *ep != ' '
 						|| v >= ((guint64) 1UL << 63)
-						|| v < from
+						|| v <= from
 						|| to > fi->size;
 				}
 				if (!damaged) {
@@ -3069,7 +3100,7 @@ file_info_merge_adjacent(struct dl_file_info *fi)
 	filesize_t done = 0;
 
 	g_assert(file_info_check_chunklist(fi));
-	
+
 	while (restart) {
 		restart = FALSE;
 		done = 0;
@@ -3564,7 +3595,7 @@ list_clone_shift(struct dl_file_info *fi)
 				break;
 			}
 		}
-		
+
 		g_assert(file_info_check_chunklist(fi));
 	}
 
