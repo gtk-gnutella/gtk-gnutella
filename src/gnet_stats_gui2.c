@@ -29,6 +29,7 @@
 
 #include "gnet_stats_gui.h"
 #include "gnutella.h" /* for sizeof(struct gnutella_header) */
+#include "hsep.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -38,6 +39,7 @@ static GtkTreeView *treeview_gnet_stats_drop_reasons = NULL;
 static GtkTreeView *treeview_gnet_stats_flowc = NULL;
 static GtkTreeView *treeview_gnet_stats_recv = NULL;
 static GtkTreeView *treeview_gnet_stats_general = NULL;
+static GtkTreeView *treeview_gnet_stats_horizon = NULL;
 static GtkNotebook *notebook_main = NULL;
 static GtkNotebook *notebook_gnet_stats = NULL;
 
@@ -420,6 +422,34 @@ static void gnet_stats_update_recv(const gnet_stats_t *stats)
 		byte_counters, pkg_counters);
 }
 
+static void gnet_stats_update_horizon()
+{
+    GtkTreeView *treeview = treeview_gnet_stats_horizon;
+    GtkListStore *store;
+    GtkTreeIter iter;
+    gint n;
+	hsep_triple hsep_table[HSEP_N_MAX + 1];
+
+	hsep_get_global_table(hsep_table, HSEP_N_MAX + 1);
+
+	store = GTK_LIST_STORE(gtk_tree_view_get_model(treeview));
+	g_object_ref(store);
+	gtk_tree_view_set_model(treeview, NULL);
+	gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter);
+
+	for (n = 0; n < HSEP_N_MAX; n++) {
+		gtk_list_store_set(store, &iter, 1,
+		    horizon_stat_str(hsep_table, n + 1, 1), (-1));
+		gtk_list_store_set(store, &iter, 2,
+		    horizon_stat_str(hsep_table, n + 1, 2), (-1));
+		gtk_list_store_set(store, &iter, 3,
+		    horizon_stat_str(hsep_table, n + 1, 3), (-1));
+		gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter);
+	}
+	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
+	g_object_unref(store);
+}
+
 /***
  *** Public functions
  ***/
@@ -574,6 +604,44 @@ void gnet_stats_gui_init(void)
 
 	/* ----------------------------------------- */
 
+    treeview = treeview_gnet_stats_horizon = GTK_TREE_VIEW(
+        lookup_widget(main_window, "treeview_gnet_stats_horizon"));
+	model = GTK_TREE_MODEL(
+		gtk_list_store_new(4,
+			G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING));
+
+	width = gui_prop_get_guint32(
+				PROP_GNET_STATS_HORIZON_COL_WIDTHS, NULL, 0, 0);
+	for (n = 0; n < 4; n++) {
+		GtkTreeIter iter;
+		gint i;
+		char *str;
+
+		for (i = 0; n == 0 && i < HSEP_N_MAX; i++) {
+			gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
+				0, horizon_stat_str(NULL, i + 1, 0),
+				1, "-", 2, "-", 3, "-", (-1));
+		}
+		switch (n) {
+			case 0: str = _("Hops");
+			        break;
+			case 1: str = _("Nodes");
+			        break;
+			case 2: str = _("Files");
+			        break;
+			case 3: str = _("Size");
+			        break;
+		}
+		add_column(treeview, n, width[n], (gfloat) n != 0, str);
+	}
+	G_FREE_NULL(width);
+
+    gtk_tree_view_set_model(treeview, model);
+	g_object_unref(model);
+
+	/* ----------------------------------------- */
+
     treeview = treeview_gnet_stats_recv = GTK_TREE_VIEW(
         lookup_widget(main_window, "treeview_gnet_stats_recv"));
 	model = GTK_TREE_MODEL(
@@ -620,6 +688,8 @@ void gnet_stats_gui_shutdown(void)
 		PROP_GNET_STATS_FC_COL_WIDTHS);
     tree_view_save_widths(treeview_gnet_stats_recv,
 		PROP_GNET_STATS_RECV_COL_WIDTHS);
+    tree_view_save_widths(treeview_gnet_stats_horizon,
+		PROP_GNET_STATS_HORIZON_COL_WIDTHS);
 }
 
 void gnet_stats_gui_update(time_t now)
@@ -644,6 +714,7 @@ void gnet_stats_gui_update(time_t now)
 
 	gnet_stats_update_general(&stats);
 	gnet_stats_update_drop_reasons(&stats);
+	gnet_stats_update_horizon();
 
 	switch (current_page) {
 		case GNET_STATS_NB_PAGE_MESSAGES:
