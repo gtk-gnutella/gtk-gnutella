@@ -34,7 +34,7 @@
 #include "misc.h"
 #include "callbacks.h"
 #include "gtk-missing.h"
-#include "filter.h"
+#include "filter_gui.h"
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -237,6 +237,7 @@ static void gui_init_menu()
     title = (gchar *) &"Downloads";
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), NULL, NULL, &title,
+
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
     gtk_ctree_node_set_row_data(
 		GTK_CTREE(ctree_menu), last_node, 
@@ -448,10 +449,9 @@ void gui_update_all()
     gui_update_upload_connected_timeout();
     gui_update_max_hosts_cached();
     gui_update_ul_usage_min_percentage();
+    gui_update_bw_ul_usage_enabled();
     gui_update_stats_frames();
     gui_address_changed();
-
-    filter_update_filters();
 
     if (win_w && win_h) {
 		gtk_widget_set_uposition(main_window, win_x, win_y);
@@ -850,6 +850,13 @@ UPDATE_CHECKBUTTON(
     bws_in_enabled,
     gtk_widget_set_sensitive(GTK_WIDGET(spinbutton_config_bws_in),
                              bws_in_enabled))
+
+UPDATE_CHECKBUTTON(
+    checkbutton_config_bw_ul_usage_enabled,
+    bw_ul_usage_enabled,
+    gtk_widget_set_sensitive(
+            GTK_WIDGET(spinbutton_config_ul_usage_min_percentage),
+            bws_out_enabled && bw_ul_usage_enabled);)
 
 void gui_update_bandwidth_input()
 {
@@ -1849,6 +1856,10 @@ gboolean gui_search_update_tab_label(struct search *sch)
 
 void gui_search_clear_results(void)
 {
+    /*
+     * FIXME: this is a memory leak (sort of). Actually we'd
+     * need to decrease the refcounts on the removed records.
+     */
 	gtk_clist_clear(GTK_CLIST(current_search->clist));
 	current_search->items = current_search->unseen_items = 0;
 	gui_search_force_update_tab_label(current_search);
