@@ -4784,16 +4784,45 @@ static void download_request(
 			sscanf(buf, "bytes=%d-%d/%d", &start, &end, &total)		/* Bad! */
 		) {
 			if (start != d->skip - d->overlap_size) {
-				g_warning("File '%s': start byte mismatch: wanted %u, got %u",
-					d->file_name, d->skip - d->overlap_size, start);
+				g_warning("file '%s' on %s (%s): "
+					"start byte mismatch: wanted %u, got %u",
+					d->file_name,
+					ip_port_to_gchar(download_ip(d), download_port(d)),
+					download_vendor_str(d),
+					d->skip - d->overlap_size, start);
 				download_bad_source(d);
 				download_stop(d, GTA_DL_ERROR, "Range start mismatch");
 				return;
 			}
-			if (end != d->range_end - 1) {
-				g_warning("File '%s': end byte mismatch: wanted %u, got %u"
-					" (continuing anyway)",
-					d->file_name, d->range_end - 1, end);
+			if (total != fi->size) {
+				g_warning("file '%s' on %s (%s): "
+					"file size mismatch: expected %u, got %u",
+					d->file_name,
+					ip_port_to_gchar(download_ip(d), download_port(d)),
+					download_vendor_str(d),
+					fi->size, total);
+				download_bad_source(d);
+				download_stop(d, GTA_DL_ERROR, "File size mismatch");
+				return;
+			}
+			if (end > d->range_end - 1) {
+				g_warning("file '%s' on %s (%s): "
+					"end byte too large: expected %u, got %u",
+					d->file_name,
+					ip_port_to_gchar(download_ip(d), download_port(d)),
+					download_vendor_str(d),
+					d->range_end - 1, end);
+				download_bad_source(d);
+				download_stop(d, GTA_DL_ERROR, "Range end too large");
+				return;
+			}
+			if (end < d->range_end - 1) {
+				g_warning("file '%s' on %s (%s): "
+					"end byte short: wanted %u, got %u (continuing anyway)",
+					d->file_name,
+					ip_port_to_gchar(download_ip(d), download_port(d)),
+					download_vendor_str(d),
+					d->range_end - 1, end);
 
 				/*
 				 * Since we're getting less than we asked for, we need to
@@ -4808,13 +4837,6 @@ static void download_request(
 				d->size = d->range_end - d->skip;	/* Don't count overlap */
 
 				gui_update_download_range(d);
-			}
-			if (total != fi->size) {
-				g_warning("File '%s': file size mismatch: expected %u, got %u",
-					d->file_name, fi->size, total);
-				download_bad_source(d);
-				download_stop(d, GTA_DL_ERROR, "File size mismatch");
-				return;
 			}
 			got_content_length = TRUE;
 			check_content_range = 0;		/* We validated the served range */
@@ -5862,7 +5884,7 @@ static void download_retrieve(void)
 			continue;
 		case 3:						/* SHA1 hash, or "*" if none */
 			if (dl_tmp[0] == '*')
-				break;
+				goto no_sha1;
 			if (
 				strlen(dl_tmp) != (1+SHA1_BASE32_SIZE) ||	/* Final "\n" */
 				!base32_decode_into(dl_tmp, SHA1_BASE32_SIZE,
@@ -5873,7 +5895,10 @@ static void download_retrieve(void)
 					dl_tmp, line);
 			} else
 				has_sha1 = TRUE;
-			break;
+		no_sha1:
+			if (maxlines == 3)
+				break;
+			continue;
 		case 4:						/* PARQ id, or "*" if none */
 			if (maxlines != 4) {
 				g_warning("download_retrieve: "
@@ -5903,7 +5928,11 @@ static void download_retrieve(void)
 		d = create_download(d_name, d_size, d_index, d_ip, d_port, d_guid,
 			has_sha1 ? sha1_digest : NULL, 1, FALSE, FALSE, NULL);
 
-		g_assert(d != NULL);
+		if (d == NULL) {
+			g_warning("ignored dup download at line #%d (server %s)",
+				line - maxlines + 1, ip_port_to_gchar(d_ip, d_port));
+			goto next_entry;
+		}
 
 		/*
 		 * Record PARQ id if present, so we may answer QUEUE callbacks.
@@ -5920,6 +5949,7 @@ static void download_retrieve(void)
 		 * Don't free `d_name', we gave it to create_download()!
 		 */
 
+	next_entry:
 		d_name = NULL;
 		recline = 0;				/* Mark the end */
 		has_sha1 = FALSE;
