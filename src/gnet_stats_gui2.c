@@ -322,9 +322,9 @@ void gnet_stats_gui_init(void)
     	GtkTreeViewColumn *column;
     	gchar buf[16];
 
+		renderer = gtk_cell_renderer_text_new();
 		g_snprintf(buf, sizeof(buf), "%d%c", n-1,
 				(n+1) < STATS_FLOWC_COLUMNS ? ' ' : '+');
-		renderer = gtk_cell_renderer_text_new();
 		column = gtk_tree_view_column_new_with_attributes(
 			n == 0 ? "Type" : buf, renderer, "text", n, NULL);
 		gtk_tree_view_column_set_fixed_width(column, n == 0 ? 100 : 50);
@@ -332,7 +332,6 @@ void gnet_stats_gui_init(void)
 		gtk_tree_view_column_set_resizable(column, TRUE);
 		gtk_tree_view_append_column(treeview_flowc, column);
 	}
-
 
 	for (n = 0; n < MSG_TYPE_COUNT; n++) {
 		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
@@ -554,7 +553,7 @@ void gnet_stats_gui_update(void)
 		}
 
 		gtk_list_store_set(store, &iter,
-//			0, msg_type_str[n],
+			0, msg_type_str[n],
 			1, str[0],
 			2, str[1],
 			3, str[2],
