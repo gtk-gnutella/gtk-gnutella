@@ -3144,6 +3144,10 @@ create_download(gchar *file, gchar *uri, filesize_t size, guint32 record_index,
 		return NULL;
 	}
 
+	/* An empty filename would create a corrupt download entry */
+	if (interactive && '\0' == file[0])
+		file = "noname";
+
     file_name = interactive ? atom_str_get(file) : file;
 
     if (uri)
