@@ -189,6 +189,7 @@ static gboolean main_timer(gpointer p)
 	if (!exiting) {
 		gui_statusbar_clear_timeouts(now);
 		gui_update_global();
+        gui_update_traffic_stats();
 
 		/* Update for things that change slowly */
 		if (main_slow_update++ > SLOW_UPDATE_PERIOD) {
@@ -203,29 +204,6 @@ static gboolean main_timer(gpointer p)
 gint main(gint argc, gchar ** argv)
 {
 	gint i;
-
-	const gchar *menus[] = {
-		"gnutellaNet",
-		"Uploads",
-		"Stats",
-		"Downloads",
-		"Search",
-		"Monitor",
-		"Stats",
-		"Config",
-		NULL
-	};
-
-	const gint menutabs[] = { 0, 1, 2, 3, 4, 5, 6, 7, -1 };
-
-	gchar mtmp[1024];
-
-	gint optimal_width;
-	GtkCTreeNode * parent_node = NULL;    
-	GtkCTreeNode * last_node = NULL;
-
-
-	g_assert(sizeof(menus) / sizeof(menus[0]) - 2 == NOTEBOOK_MAIN_IDX_MAX);
 
 	for (i = 3; i < 256; i++)
 		close(i);				/* Just in case */
@@ -254,7 +232,7 @@ gint main(gint argc, gchar ** argv)
 	bsched_init();
 	network_init();
 	routing_init();
-	filters_init();			/* Must come before search_init() for retrieval */
+	filters_init();	/* Must come before search_init() for retrieval */
 	search_init();
 	share_init();
 	download_init();
@@ -277,88 +255,10 @@ gint main(gint argc, gchar ** argv)
 	if (listen_port)
 		s_listen = socket_listen(0, listen_port, GTA_TYPE_CONTROL);
 
-	/* Final interface setup */
-
-    // gnutellaNet
-    last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[0],
-        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[0]);
-
-    // Uploads
-    parent_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[1],
-        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), parent_node, (gpointer) &menutabs[1]);
-
-    // Uploads -> Stats
-    last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) &menus[2],
-        0, NULL, NULL, NULL, NULL, TRUE, TRUE);
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[2]);
-
-    // Downloads
-    last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[3],
-        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[3]);
-
-    // Search
-    parent_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &menus[4],
-        0, NULL, NULL, NULL, NULL, FALSE, TRUE );
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), parent_node, (gpointer) &menutabs[4]);
-
-    // Search -> Monitor
-    last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) & menus[5],
-        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[5]);
-
-    // Search -> Monitor
-    last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), parent_node, NULL, (gchar **) & menus[6],
-        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[6]);
-
-    // Config
-    last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) & menus[7],
-        0, NULL, NULL, NULL, NULL, TRUE, TRUE );
-    gtk_ctree_node_set_row_data(
-		GTK_CTREE(ctree_menu), last_node, (gpointer) &menutabs[7]); 
-
-	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
-
-    optimal_width =
-		gtk_clist_optimal_column_width(GTK_CLIST(ctree_menu), 0);
-
-	gtk_widget_set_usize(sw_menu, optimal_width,
-						 (ctree_menu->style->font->ascent +
-						  ctree_menu->style->font->descent + 4) * 8);
-
-	gui_update_c_gnutellanet();
-	gui_update_c_uploads();
-	gui_update_c_downloads(0, 0);
-
+    /* Final interface setup (setting of values read from config) */
+    
 	gui_update_global();
 
-#ifdef GTA_REVISION
-	g_snprintf(mtmp, sizeof(mtmp), "gtk-gnutella %u.%u %s", GTA_VERSION,
-			   GTA_SUBVERSION, GTA_REVISION);
-#else
-	g_snprintf(mtmp, sizeof(mtmp), "gtk-gnutella %u.%u", GTA_VERSION,
-			   GTA_SUBVERSION);
-#endif
-
-	gtk_window_set_title(GTK_WINDOW(main_window), mtmp);
 	gtk_widget_show(main_window);		/* Display the main window */
 
 	/* Setup the main timer */
