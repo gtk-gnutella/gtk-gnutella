@@ -656,7 +656,6 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
     gboolean search_autoselect;
     gboolean search_autoselect_ident;
     gboolean search_autoselect_fuzzy;
-	gpointer key = NULL;
 	GtkCTreeNode *parent;
 	GtkCTreeRow *parent_row;
     search_t *sch;
@@ -679,7 +678,15 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
     sch = search_gui_get_current_search();
 	grc = gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));
 	rc = grc->shared_record;
-	
+
+	/* XXX anti-crash, when rc is 0x3 or something... -- RAM, 15/03/2004 */
+	if ((gulong) rc < 0x1000) {
+		statusbar_gui_message(15, "*** MEMORY CORRUPTED, TRYING TO IGNORE!");
+		g_warning("MEMORY CORRUPTED (in GUI search row data, rc=0x%lx)",
+			(gulong) rc);
+		goto out;
+	}
+
     gui_prop_get_boolean(
         PROP_SEARCH_AUTOSELECT, 
         &search_autoselect, 0, 1);
@@ -718,12 +725,8 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
 
 	/* If a parent node is selected, select all children */
 	if (GTK_CLIST(ctree)->selection != NULL) {
-		grc = gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));
-		rc = grc->shared_record;
 		if (NULL != rc->sha1) {
-
-			key = atom_sha1_get(rc->sha1);
-			parent = find_parent_with_sha1(sch->parents, key);
+			parent = find_parent_with_sha1(sch->parents, rc->sha1);
 		
 			if (NULL != parent) {
 				parent_row = GTK_CTREE_ROW(parent);
@@ -746,11 +749,10 @@ void on_ctree_search_results_select_row(GtkCTree *ctree,
         					NULL);
 				}
 			}
-			
-			atom_sha1_free(key);
 		}	
 	}
 
+out:
     active = FALSE;
 }
 
