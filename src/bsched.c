@@ -188,6 +188,7 @@ static void bsched_free(bsched_t *bs)
 	}
 
 	g_list_free(bs->sources);
+	g_slist_free(bs->stealers);
 	G_FREE_NULL(bs->name);
 	G_FREE_NULL(bs);
 }
