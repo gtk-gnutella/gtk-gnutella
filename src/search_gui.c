@@ -26,6 +26,7 @@
  */
 
 #include "gui.h"
+#include "file.h"
 
 #include "hosts.h" /* FIXME: remove this dependency */
 
@@ -1032,14 +1033,16 @@ static void search_store_old(void)
 	GList *l;
 	FILE *out;
 	time_t now = time((time_t *) NULL);
+	gchar *path;
 
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s",
-		settings_gui_config_dir(), search_file);
-	out = fopen(tmpstr, "w");
+	path = g_strdup_printf("%s/%s", settings_gui_config_dir(), search_file);
+	g_return_if_fail(NULL != path);
+	out = fopen(path, "w");
 
 	if (!out) {
 		g_warning("Unable to create \"%s\" to persist search: %s",
-			tmpstr, g_strerror(errno));
+			path, g_strerror(errno));
+		G_FREE_NULL(path);
 		return;
 	}
 
@@ -1053,7 +1056,9 @@ static void search_store_old(void)
 	}
 
 	if (0 != fclose(out))
-		g_warning("Could not flush \"%s\": %s", tmpstr, g_strerror(errno));
+		g_warning("Could not flush \"%s\": %s", path, g_strerror(errno));
+
+	G_FREE_NULL(path);
 }
 #endif /* USE_SEARCH_XML */
 
@@ -1065,24 +1070,31 @@ static void search_store_old(void)
 void search_gui_store_searches(void)
 {
 #ifdef USE_SEARCH_XML
+	char *path;
+
 	search_store_xml();
     
-  	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s",
-		settings_gui_config_dir(), search_file);
-    if (file_exists(tmpstr)) {
-        gchar filename[1024];
+	path = g_strdup_printf("%s/%s", settings_gui_config_dir(), search_file);
+	g_return_if_fail(NULL != path);
 
-      	gm_snprintf(filename, sizeof(filename), "%s.old", tmpstr);
+    if (file_exists(path)) {
+		char *path_old;
 
-        g_warning(
-            _("Found old searches file. The search information has been\n"
-            "stored in the new XML format and the old file is renamed to\n"
-            "%s"), filename);
-        if (-1 == rename(tmpstr, filename))
-          	g_warning(_("could not rename %s as %s: %s\n"
-                "The XML file will not be used unless this problem is resolved"),
-                tmpstr, filename, g_strerror(errno));
+      	path_old = g_strdup_printf("%s.old", path);
+		if (NULL != path_old) {
+        	g_warning(
+            	_("Found old searches file. The search information has been\n"
+            	"stored in the new XML format and the old file is renamed to\n"
+            	"%s"), path_old);
+        	if (-1 == rename(path, path_old))
+          		g_warning(_("could not rename %s as %s: %s\n"
+                	"The XML file will not be used "
+					"unless this problem is resolved."),
+                path, path_old, g_strerror(errno));
+			G_FREE_NULL(path_old);
+		}
     }
+	G_FREE_NULL(path);
 #else
     search_store_old();
 #endif
@@ -1398,21 +1410,12 @@ static results_set_t *create_results_set(const gnet_results_set_t *r_set)
 static gboolean search_retrieve_old(void)
 {
 	FILE *in;
-	struct stat buf;
 	gint line;				/* File line number */
+	const file_path_t fp = { settings_gui_config_dir(), search_file };
 
-	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s",
-		settings_gui_config_dir(), search_file);
-	if (-1 == stat(tmpstr, &buf))
+	in = file_config_open_read("Old searches", &fp, 1);
+	if (!in)
 		return FALSE;
-
-	in = fopen(tmpstr, "r");
-
-	if (!in) {
-		g_warning("Unable to open %s to retrieve searches: %s",
-			tmpstr, g_strerror(errno));
-		return FALSE;
-	}
 
 	/*
 	 * Retrieval of each searches.
@@ -1432,7 +1435,7 @@ static gboolean search_retrieve_old(void)
 		(void) str_chomp(tmpstr, 0);	/* The search string */
 
 		search_gui_new_search(tmpstr, 0, NULL);
-		tmpstr[0] = 0;
+		tmpstr[0] = '\0';
 	}
 
 	fclose(in);
@@ -1489,8 +1492,6 @@ void search_gui_init(void)
 #ifdef USE_SEARCH_XML
     LIBXML_TEST_VERSION
 	if (search_retrieve_old()) {
-       	gm_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", 
-            settings_gui_config_dir(), search_file);
         g_warning(
             _("Found old searches file. Loaded it.\n"
             "On exit the searches will be saved in the new XML format\n"
