@@ -23,7 +23,7 @@
 
 #define DOWNLOAD_RECV_BUFSIZE		114688		/* 112K */
 
-struct download *selected_queued_download = (struct download *) NULL;
+// struct download *selected_queued_download = (struct download *) NULL;
 
 GSList *sl_downloads = NULL;
 guint32 count_downloads = 0;
@@ -80,6 +80,9 @@ void download_init(void)
 void download_timer(time_t now)
 {
 	GSList *l = sl_downloads;
+
+	if(GTK_CHECK_MENU_ITEM(popup_queue_freeze)->active)
+		return;
 
 	while (l) {
 		struct download *d = (struct download *) l->data;
@@ -250,6 +253,8 @@ static void queue_remove_all_named(const gchar *name, guint32 size)
 	GSList *l;
 	gint bigger = 0;
 
+	g_return_if_fail(name);
+	
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
 
@@ -276,6 +281,102 @@ static void queue_remove_all_named(const gchar *name, guint32 size)
 	if (bigger)
 		g_warning("file \"%s\" is incomplete: %d bigger entr%s in queue",
 			name, bigger, bigger == 1 ? "y" : "ies");
+}
+
+/*
+ * download_remove_all_from_peer:
+ *
+ * remove all downloads to a given peer from the download queue
+ * and abort all conenctions to peer in the active download list.
+ */
+void download_remove_all_from_peer(const gchar *guid)
+{
+	GSList *l;
+	GSList *to_remove = NULL;
+
+	int n = 0, m = 0;
+
+	g_return_if_fail(guid);
+
+	for (l = sl_downloads; l; l = g_slist_next(l)) {
+		struct download *d = (struct download *) l->data;
+
+		n ++;
+
+		if (!d) {
+			g_warning("download_remove_all_from_peer(): NULL download");
+			continue;
+		}
+
+		if (!memcmp(guid, d->guid, 16))
+			to_remove = g_slist_prepend(to_remove, d);
+	}
+
+	for (l = to_remove; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
+		m ++;
+		switch (d->status) {
+		case GTA_DL_QUEUED:
+		case GTA_DL_TIMEOUT_WAIT:
+			download_free(d);
+			break;
+		default:
+			download_abort(d);
+		}
+	}
+
+	g_message( "removed %u of %u downloads", m, n );
+
+	g_slist_free(to_remove);
+}
+
+/*
+ * download_remove_all_named
+ *
+ * remove all downloads with a given name from the download queue
+ * and abort all conenctions to peer in the active download list.
+ */
+void download_remove_all_named(const gchar *name)
+{
+	GSList *l;
+	GSList *to_remove = NULL;
+	
+	int n = 0, m = 0;
+
+	g_return_if_fail(guid);
+	
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s", name);
+
+	for (l = sl_downloads; l; l = g_slist_next(l)) {
+		struct download *d = (struct download *) l->data;
+
+		n ++;
+
+		if (!d) {
+			g_warning("download_remove_all_from_peer(): NULL download");
+			continue;
+		}
+
+		if (!strcmp(dl_tmp, d->file_name)) 
+			to_remove = g_slist_prepend(to_remove, d);
+	}
+
+	for (l = to_remove; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
+		m ++;
+		switch (d->status) {
+		case GTA_DL_QUEUED:
+		case GTA_DL_TIMEOUT_WAIT:
+			download_free(d);
+			break;
+		default:
+			download_abort(d);
+		}
+	}
+
+	g_message( "removed %u of %u downloads named %s", m, n, dl_tmp );
+
+	g_slist_free(to_remove);
 }
 
 /*
@@ -308,7 +409,6 @@ void download_gui_add(struct download *d)
 		gtk_clist_set_row_data(GTK_CLIST(clist_downloads_queue), row,
 							   (gpointer) d);
 	} else {					/* This is an active download */
-
 		row = gtk_clist_append(GTK_CLIST(clist_downloads), titles);
 		gtk_clist_set_row_data(GTK_CLIST(clist_downloads), row,
 							   (gpointer) d);
@@ -336,10 +436,6 @@ void download_gui_remove(struct download *d)
 	}
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
-     /*
-		if (selected_queued_download == d)
-			selected_queued_download = (struct download *) NULL;
-     */
 		row =
 			gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads_queue),
 										 (gpointer) d);
@@ -349,10 +445,6 @@ void download_gui_remove(struct download *d)
 			g_warning("download_gui_remove(): "
 				"Queued download '%s' not found in clist !?", d->file_name);
 	} else {
-     /*
-		if (selected_active_download == d)
-			selected_active_download = (struct download *) NULL;
-     */
 		row =
 			gtk_clist_find_row_from_data(GTK_CLIST(clist_downloads),
 										 (gpointer) d);
@@ -513,7 +605,7 @@ void download_stop(struct download *d, guint32 new_status,
 		gui_update_download_clear();
 	}
 
-	download_pickup_queued();	/* Can recurse to here via download_stop() */
+	//download_pickup_queued();	/* Can recurse to here via download_stop() */
 	count_running_downloads();
 }
 
@@ -1226,7 +1318,6 @@ void download_new(gchar * file, guint32 size, guint32 record_index,
 	create_download(file, NULL, size, record_index, ip, port, guid, push, TRUE);
 }
 
-
 /* Free a download. */
 
 void download_free(struct download *d)
@@ -1481,7 +1572,7 @@ static gboolean download_queue_w(gpointer dp)
 {
 	struct download *d = (struct download *) dp;
 	download_queue(d);
-	download_pickup_queued();
+	//download_pickup_queued();
 	return TRUE;
 }
 
