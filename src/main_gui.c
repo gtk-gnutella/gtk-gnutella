@@ -303,7 +303,10 @@ void main_gui_init(void)
         c_ul_size, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")),
-        c_gs_sent, GTK_JUSTIFY_RIGHT);
+        c_gs_relayed, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")),
+        c_gs_generated, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")),
         c_gs_dropped, GTK_JUSTIFY_RIGHT);
@@ -315,7 +318,7 @@ void main_gui_init(void)
         c_gs_recieved, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
-        c_gs_sent, GTK_JUSTIFY_RIGHT);
+        c_gs_generated, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
         c_gs_dropped, GTK_JUSTIFY_RIGHT);
@@ -325,6 +328,9 @@ void main_gui_init(void)
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
         c_gs_recieved, GTK_JUSTIFY_RIGHT);
+    gtk_clist_set_column_justification(
+        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
+        c_gs_relayed, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_drop_reasons")),
         1, GTK_JUSTIFY_RIGHT);

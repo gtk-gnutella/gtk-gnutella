@@ -111,9 +111,10 @@ enum {
 enum {
     c_gs_type = 0,
     c_gs_recieved,
-    c_gs_sent,
     c_gs_expired,
-    c_gs_dropped
+    c_gs_dropped,
+    c_gs_relayed,
+    c_gs_generated
 };
 
 
