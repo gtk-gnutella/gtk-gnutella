@@ -39,6 +39,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/uio.h>		/* writev(), readv(), struct iovec */
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -53,7 +54,13 @@
 #include <inttypes.h>
 #endif /* I_INTTYPES */
 
-#include <glib.h>
+#ifdef I_SYS_SENDFILE
+#include <sys/sendfile.h>
+#else	/* !I_SYS_SENDFILE */
+#ifdef HAS_SENDFILE
+#define USE_BSD_SENDFILE	/* No <sys/sendfile.h>, assume BSD version */
+#endif
+#endif	/* I_SYS_SENDFILE_H */
 
 /*
  * Macro to print signed 64-bit integers
@@ -95,6 +102,9 @@
 
 #include <stdarg.h>
 #include <regex.h>
+
+#include <glib.h>
+#include <zlib.h>
 
 
 #include "atoms.h"
@@ -223,3 +233,5 @@ void gtk_gnutella_exit(gint);
 #endif /* ENABLE_NLS */
 
 #endif /* _common_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */
