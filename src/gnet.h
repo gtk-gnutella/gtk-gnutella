@@ -42,5 +42,6 @@ enum {
 #include "gnet_net_stats.h"
 #include "gnet_downloads.h"
 #include "gnet_uploads.h"
+#include "gnet_hcache.h"
 
 #endif /* _gnet_h_ */
