@@ -584,7 +584,6 @@ void download_gui_add(struct download *d)
 					 gtk_ctree_node_set_foreground(ctree_downloads_queue, 
 						new_node, color);
 				
-			
 				n = count_node_children(ctree_downloads_queue, parent);
 				gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", n);
 
@@ -708,9 +707,12 @@ void download_gui_add(struct download *d)
 					 gtk_ctree_node_set_foreground(ctree_downloads, 
 						new_node, color);
 				
-			
+// BLUEFIRE			
 				n = count_node_children(ctree_downloads, parent);
-				gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", n);
+				gm_snprintf(tmpstr, sizeof(tmpstr), 
+                    "%u hosts (%u)",
+                    d->file_info->recvcount, 
+                    n - d->file_info->recvcount);
 
 				gtk_ctree_node_set_text(ctree_downloads, parent, 
 					c_queue_host, tmpstr);
@@ -1573,8 +1575,8 @@ void download_gui_remove(struct download *d)
 					}
 						
 					if (2 < n){
-						gm_snprintf(tmpstr, sizeof(tmpstr), 
-							"%u hosts", n - 1);
+						gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", 
+                            n - 1);
 
 						gtk_ctree_node_set_text(ctree_downloads_queue,  parent,
 							c_queue_host, tmpstr);
@@ -1662,7 +1664,9 @@ void download_gui_remove(struct download *d)
 						
 					if (2 < n){
 						gm_snprintf(tmpstr, sizeof(tmpstr), 
-							"%u hosts", n - 1);
+                            "%u hosts (%u)",
+                            d->file_info->recvcount, 
+                            n - d->file_info->recvcount - 1);
 
 						gtk_ctree_node_set_text(ctree_downloads,  parent,
 							c_dl_host, tmpstr);
