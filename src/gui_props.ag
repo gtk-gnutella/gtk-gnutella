@@ -536,7 +536,16 @@ prop = {
 
 prop = {
     name = "show_search_results_settings";
-    desc = "Display settings";
+    desc = "Display search settings";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "show_dl_settings";
+    desc = "Display download settings";
     type = boolean;
     data = {
         default = FALSE;
