@@ -296,12 +296,13 @@ void on_entry_filter_new_activate
     filter_t *filter;
 
     g_strstrip(name);
-    if (*name) {
+    if (*name && (filter_find_by_name_in_session(name) == NULL)) {
         filter = filter_new(name);
         filter_add_to_session(filter);
         gtk_entry_set_text(GTK_ENTRY(editable), "");
         filter_set(filter);
-    }
+    } else
+        gdk_beep();
 }
 
 void on_button_filter_create_clicked
