@@ -36,7 +36,7 @@ struct extension {
 struct shared_file {
 	gchar *file_name;
 	gchar *file_directory;	/* The full path of the directory the file's in */
-	guint32 file_index;		/* the files index withing out local DB */
+	guint32 file_index;		/* the files index within our local DB */
 	guint32 file_size;		/* File size in Bytes */
 	gint file_name_len;
 	time_t mtime;			/* Last modification time, for SHA1 computation */
