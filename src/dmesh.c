@@ -728,11 +728,11 @@ gint dmesh_alternate_location(guchar *sha1,
 			continue;
 
 		if (nurl) {
-			if (url_len + 5 >= size - len)	/* Needs "\t" and 2*"\r\n" + NUL */
+			if (url_len + 5 > size - len)	/* Needs "\t" and 2*"\r\n" + NUL */
 				continue;
 			len += g_snprintf(&buf[len], size - len, ",\r\n");
 		} else {
-			if (url_len + 3 >= size - len)	/* Needs "\t" and "\r\n" + NUL */
+			if (url_len + 3 > size - len)	/* Needs "\t" and "\r\n" + NUL */
 				continue;
 		}
 
