@@ -131,6 +131,7 @@ static inline gint tx_link_write_error(txdrv_t *tx, const char *func)
 	case EAGAIN:
 	case EINTR:
 	case ENOBUFS:
+	case EINPROGRESS:		/* Weird, but seen it -- RAM, 07/10/2003 */
 		return 0;
 	case EPIPE:
 	case ENOSPC:
