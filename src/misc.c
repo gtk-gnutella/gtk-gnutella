@@ -109,6 +109,15 @@ gchar *ip_to_gchar(guint32 ip)
 	return a;
 }
 
+gchar *ip2_to_gchar(guint32 ip)
+{
+	static gchar a[32];
+	struct in_addr ia;
+	ia.s_addr = htonl(ip);
+	g_strlcpy(a, inet_ntoa(ia), sizeof(a));
+	return a;
+}
+
 gchar *ip_port_to_gchar(guint32 ip, guint16 port)
 {
 	static gchar a[32];
@@ -1033,7 +1042,7 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	size = strlen(filename);
 	len = strlen(extra_bytes);
 	filename[size - len] = '\0';
-	len = size - len;;
+	len = size - len;
 
 	/*
 	 * Append file and extension, then try to see whether this file exists.
@@ -1159,7 +1168,9 @@ gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 		str = &buf[0];
 	}
 
-	*ip = host_to_ip(str);
+	*ip = gchar_to_ip(str);		/* Assume numeric IP */
+	if (*ip == 0)				/* Bad luck */
+		*ip = host_to_ip(str);
 	if (!*ip)
 		return FALSE;
 
