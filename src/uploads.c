@@ -2027,39 +2027,18 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		return;
 	}
 
-	/*
-	 * We let all HEAD request go through, whether we're busy or not, since
-	 * we only send back the header.
-	 *
-	 * Follow-up requests already have their slots.
-	 */
-
+	
 	if (!head_only) {
-		if (is_followup && parq_upload_lookup_position(u) == -1) {
-			/*
-			 * Allthough the request is an follow up request, the last time the
-			 * upload didn't get a parq slot. There is probably a good reason 
-			 * for this. The most logical explantion is that the client did a
-			 * HEAD only request with a keep-alive. However, no parq structure
-			 * is set for such an upload. So we should treat as a new upload.
-			 *		-- JA, 1/06/'03
-			 */
-			is_followup = FALSE;
-		}
-		
-		u->parq_opaque = parq_upload_get(u, header);
-
-		if (u->parq_opaque == NULL) {
-			upload_error_remove(u, reqfile, 503, "Queue full");
-			return;
-		}
-	}
-
-	if (!(head_only || is_followup)) {
 		/*
 		 * Ensure that noone tries to download the same file twice, and
 		 * that they don't get beyond the max authorized downloads per IP.
 		 * NB: SHA1 are atoms, so it's OK to compare their addresses.
+		 *
+		 * This needs to be done before the upload enters PARQ. PARQ doesn't
+		 * handle multiple uploads for the same file very well as it tries to
+		 * keep 1 pointer to the upload structure as long as that structure 
+		 * exists.
+		 * 		-- JA 12/7/'03
 		 */
 
 		for (l = uploads; l; l = l->next) {
@@ -2091,7 +2070,37 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			}
 #endif
 		}
+	}
+		
+	/*
+	 * We let all HEAD request go through, whether we're busy or not, since
+	 * we only send back the header.
+	 *
+	 * Follow-up requests already have their slots.
+	 */
 
+	if (!head_only) {
+		if (is_followup && parq_upload_lookup_position(u) == -1) {
+			/*
+			 * Allthough the request is an follow up request, the last time the
+			 * upload didn't get a parq slot. There is probably a good reason 
+			 * for this. The most logical explantion is that the client did a
+			 * HEAD only request with a keep-alive. However, no parq structure
+			 * is set for such an upload. So we should treat as a new upload.
+			 *		-- JA, 1/06/'03
+			 */
+			is_followup = FALSE;
+		}
+		
+		u->parq_opaque = parq_upload_get(u, header);
+
+		if (u->parq_opaque == NULL) {
+			upload_error_remove(u, reqfile, 503, "Queue full");
+			return;
+		}
+	}
+
+	if (!(head_only || is_followup)) {
 		/*
 		 * Even though this test is less costly than the previous ones, doing
 		 * it afterwards allows them to be notified of a mismatch whilst they
