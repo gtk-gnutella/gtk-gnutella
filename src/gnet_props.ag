@@ -1421,12 +1421,8 @@ prop = {
         value = 1;
     };
     choice = {
-        name = "leaf node";
+        name = "leaf node (experimental)";
         value = 0;
-    };
-    choice = {
-        name = "ultrapeer";
-        value = 2;
     };
 };
 

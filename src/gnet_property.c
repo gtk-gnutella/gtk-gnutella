@@ -286,8 +286,7 @@ guint32  current_peermode     = 1;
 guint32  current_peermode_def = 1;
 prop_def_choice_t current_peermode_choices[] = { 
     {"normal node", 1},
-    {"leaf node", 0},
-    {"ultrapeer", 2},
+    {"leaf node (experimental)", 0},
     {NULL, 0}
 };
 guint32  sys_nofile     = 1024;
