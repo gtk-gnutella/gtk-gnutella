@@ -146,6 +146,7 @@ extern gboolean use_aggressive_swarming;
 extern guint32  dl_minchunksize;
 extern guint32  dl_maxchunksize;
 extern gboolean auto_download_identical;
+extern gboolean auto_feed_download_mesh;
 extern gboolean strict_sha1_matching;
 extern gboolean use_fuzzy_matching;
 extern guint32  fuzzy_threshold;
