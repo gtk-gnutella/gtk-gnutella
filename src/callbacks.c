@@ -570,8 +570,8 @@ void on_popup_downloads_push_activate(GtkMenuItem * menuitem,
 	for (l = GTK_CLIST(clist_downloads)->selection; l; 
          l = GTK_CLIST(clist_downloads)->selection ) {		
 		d = (struct download *) 
-        gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
-                               (gint) l->data);
+            gtk_clist_get_row_data(GTK_CLIST(clist_downloads),
+                                   (gint) l->data);
         gtk_clist_unselect_row(GTK_CLIST(clist_downloads), (gint) l->data, 0);
      
         if (!d) {
@@ -1161,7 +1161,7 @@ void on_button_search_close_clicked(GtkButton * button, gpointer user_data)
 
 void on_button_search_download_clicked(GtkButton * button, gpointer user_data)
 {
-	search_download_files();
+    search_download_files();
 }
 
 void on_button_search_stream_clicked(GtkButton * button, gpointer user_data)
@@ -1242,7 +1242,7 @@ void on_popup_monitor_add_search_activate (GtkMenuItem *menuitem,
 	gchar *e;
 
 	for (l = GTK_CLIST(clist_monitor)->selection; l; 
-        l = GTK_CLIST(clist_monitor)->selection ) {		
+         l = GTK_CLIST(clist_monitor)->selection ) {		
         gtk_clist_get_text(GTK_CLIST(clist_monitor), (gint) l->data, 0, titles);
         gtk_clist_unselect_row(GTK_CLIST(clist_monitor), (gint) l->data, 0);
      
@@ -1775,7 +1775,7 @@ void on_entry_config_search_items_activate(GtkEditable * editable,
 }
 
 gboolean on_entry_config_search_items_focus_out_event(GtkWidget * widget,
-													  GdkEventFocus *
+						    						  GdkEventFocus *
 													  event,
 													  gpointer user_data)
 {
@@ -1807,6 +1807,12 @@ void on_checkbutton_search_jump_to_downloads_toggled(GtkToggleButton *
 											  gpointer user_data)
 {
 	jump_to_downloads = gtk_toggle_button_get_active(togglebutton);
+}
+
+void on_checkbutton_search_remove_downloaded_toggled
+    (GtkToggleButton * togglebutton, gpointer user_data)
+{
+	search_remove_downloaded = gtk_toggle_button_get_active(togglebutton);
 }
 
 void on_checkbutton_autodownload_toggled(GtkToggleButton *togglebutton,
