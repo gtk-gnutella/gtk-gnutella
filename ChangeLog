@@ -1,5 +1,9 @@
 # since last version
 
+- (2003.08.16 - Jeroen)
+ * PARQ: Update all IP / Port info for all PARQ entries for this servent
+   when a servent sends his new IP / Port.
+ 
 - (2003.08.16 - RAM)
  * Updated metaconfig so that the generated config.h can compile properly
    with the broken gcc 3.x pre-processor.
