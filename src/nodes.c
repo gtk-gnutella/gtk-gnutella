@@ -2344,11 +2344,10 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	}
 
 	ack_ok = analyse_status(n, NULL);
+	extract_header_pongs(head, n);		/* Some servents always send X-Try-* */
 
-	if (!ack_ok) {
-		extract_header_pongs(head, n);
+	if (!ack_ok)
 		return;			/* s->getline will have been freed by node removal */
-	}
 
 	/*
 	 * Get rid of the acknowledgment status line.
@@ -2718,6 +2717,13 @@ static void node_process_handshake_header(
 	}
 
 	/*
+	 * X-Try and X-Try-Ultrapeers -- normally only sent on 503, but some
+	 * servents always send such lines during the connection process.
+	 */
+
+	extract_header_pongs(head, n);
+
+	/*
 	 * Check that everything is OK so far for an outgoing connection: if
 	 * they did not reply with 200, then there's no need for us to reply back.
 	 */
@@ -2734,8 +2740,6 @@ static void node_process_handshake_header(
 
 		if ((n->flags & NODE_F_RETRY_04))
 			downgrade_handshaking(n);
-		else
-			extract_header_pongs(head, n);
 
 		return;				/* node_remove() has freed s->getline */
 	}
