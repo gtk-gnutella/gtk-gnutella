@@ -461,10 +461,15 @@ static void bsched_bw_update(bsched_t *bs, gint used)
 {
 	g_assert(bs);		/* Ensure I/O source was in alive scheduler */
 
-	if (!(bs->flags & BS_F_ENABLED))		/* Scheduler disabled */
-		return;								/* Nothing to update */
+	/*
+	 * Even when the scheduler is disabled, update the actual bandwidth used
+	 * for the statistics and the GUI display.
+	 */
 
 	bs->bw_actual += used;
+
+	if (!(bs->flags & BS_F_ENABLED))		/* Scheduler disabled */
+		return;								/* Nothing to update */
 
 	/*
 	 * When all bandwidth has been used, disable all sources.
