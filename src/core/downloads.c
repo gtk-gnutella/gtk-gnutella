@@ -471,12 +471,12 @@ download_timer(time_t now)
 
 			{
 				struct dl_file_info *fi = d->file_info;
+				gint delta = delta_time(now, fi->recv_last_time);
 
 				g_assert(fi->recvcount > 0);
 
-				if (now - fi->recv_last_time > IO_AVG_RATE) {
-					fi->recv_last_rate =
-						fi->recv_amount / (now - fi->recv_last_time);
+				if (delta > IO_AVG_RATE) {
+					fi->recv_last_rate = fi->recv_amount / delta;
 					fi->recv_amount = 0;
 					fi->recv_last_time = now;
 				}
@@ -1419,7 +1419,7 @@ queue_remove_downloads_with_file(
  * When `unavailable' is TRUE, the downloads are marked unavailable,
  * so that they can be cleared up differently by the GUI .
  *
- * Return the number of removed downloads.
+ * @return the number of removed downloads.
  */
 gint
 download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port,
@@ -4327,12 +4327,13 @@ download_write_data(struct download *d)
 	 */
 
 	if (d->pos + s->pos > d->range_end) {
-		gint extra = (d->pos + s->pos) - d->range_end;
-		g_message("Server %s (%s) gave us %d more byte%s "
+		filesize_t extra = (d->pos + s->pos) - d->range_end;
+
+		g_message("Server %s (%s) gave us %" PRIu64 " more byte%s "
 			"than requested for \"%s\"",
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			download_vendor_str(d),
-			extra, extra == 1 ? "" : "s", download_outname(d));
+			(guint64) extra, extra == 1 ? "" : "s", download_outname(d));
 		s->pos -= extra;
 		trimmed = TRUE;
 		g_assert(s->pos > 0);	/* We had not reached range_end previously */
@@ -5216,7 +5217,7 @@ download_sink_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct download *d = (struct download *) data;
 	struct gnutella_socket *s = d->socket;
-	gint32 r;
+	ssize_t r;
 
 	(void) unused_source;
 	g_assert(s);
@@ -5229,13 +5230,13 @@ download_sink_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 	}
 
 	r = bio_read(d->bio, s->buffer, sizeof(s->buffer));
-
-	if (r <= 0) {
-		if (r == 0) {
-			socket_eof(s);
-			download_queue_delay(d, download_retry_busy_delay,
-				"Stopped data (EOF)");
-		} else if (errno != EAGAIN) {
+	if (r == 0) {
+		socket_eof(s);
+		download_queue_delay(d, download_retry_busy_delay,
+			"Stopped data (EOF)");
+		return;
+	} else if ((ssize_t) -1 == r) {
+		if (errno != EAGAIN) {
 			socket_eof(s);
 			if (errno == ECONNRESET)
 				download_queue_delay(d, download_retry_busy_delay,
@@ -5881,7 +5882,7 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	requested_size = d->range_end - d->skip + d->overlap_size;
 
-	buf = header_get(header, "Content-Length");		/* Mandatory */
+	buf = header_get(header, "Content-Length"); /* Mandatory */
 	if (buf) {
 		filesize_t content_size;
 		gint error;
@@ -5910,8 +5911,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 				download_stop(d, GTA_DL_ERROR,
 					"Server can't handle resume request");
 				return;
-			} else 
+			} else {
 				check_content_range = content_size;	/* Need Content-Range */
+			}
 		}
 				
 		got_content_length = TRUE;
@@ -5919,50 +5921,9 @@ download_request(struct download *d, header_t *header, gboolean ok)
 
 	buf = header_get(header, "Content-Range");		/* Optional */
 	if (buf) {
-		static const gchar unit[] = "bytes";
-		const gchar *s;
-		gint error;
-		gchar *ep;
 		filesize_t start, end, total;
 
-		/*
-		 * HTTP/1.1 -- RFC 2616 -- 3.12 Range Units
-		 *
-		 *		bytes SP start '-' end '/' total
-		 *
-		 * HTTP/1.1 -- RFC 2616 -- 14.35.1 Byte Ranges
-		 *
-		 * This is wrong but used by some (legacy?) servers:
-		 *
-		 *		bytes '=' start '-' end '/' total
-		 */
-
-		ascii_strlower(buf, buf);				/* Normalize case */
-		s = buf;
-		error = 0 != strncmp(s, unit, CONST_STRLEN(unit));
-		if (!error) {
-			s += CONST_STRLEN(unit);
-			error = *s != ' ' && *s != '=';
-		}
-		if (!error) {
-			s = skip_ascii_spaces(s);
-			start = parse_uint64(s, &ep, 10, &error);
-			s = ep;
-			error |= *s != '-';
-		}
-		if (!error) {
-			s = skip_ascii_spaces(s);
-			end = parse_uint64(s, &ep, 10, &error);
-			s = ep;
-			error |= *s != '/';
-		}
-		if (!error) {
-			s = skip_ascii_spaces(s);
-			total = parse_uint64(s, &ep, 10, &error);
-			s = ep;
-		}
-				
-		if (!error) {
+		if (!http_content_range_parse(buf, &start, &end, &total)) {
 			/* FIXME: DOWNLOAD_SIZE, don't always use total!!! */
 			if (!d->file_size_known) {
 				d->size = total;
@@ -6060,7 +6021,6 @@ download_request(struct download *d, header_t *header, gboolean ok)
 			ip_port_to_gchar(download_ip(d), download_port(d)),
 			download_vendor_str(d),
 			(guint64) check_content_range);
-
 		download_bad_source(d);
 		download_stop(d, GTA_DL_ERROR, "Content-Length mismatch");
 		return;
@@ -6237,8 +6197,8 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct download *d = (struct download *) data;
 	struct gnutella_socket *s;
-	gint32 r;
-	gint32 to_read, remains;
+	ssize_t r;
+	filesize_t to_read, remains;
 	struct dl_file_info *fi;
 
 	(void) unused_source;
@@ -6291,12 +6251,15 @@ download_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 	 * Therefore, we use the "busy" delay instead of the "stopped" delay.
 	 */
 
-	if (r <= 0) {
-		if (r == 0) {
-			socket_eof(s);
-			download_queue_delay(d, download_retry_busy_delay,
+	if (r == 0) {
+		socket_eof(s);
+		download_queue_delay(d, download_retry_busy_delay,
 				"Stopped data (EOF)");
-		} else if (errno != EAGAIN) {
+		return;
+	} else if ((ssize_t) -1 == r) {
+		if (errno == EINVAL)
+			G_BREAKPOINT();
+		if (errno != EAGAIN) {
 			socket_eof(s);
 			if (errno == ECONNRESET)
 				download_queue_delay(d, download_retry_busy_delay,
