@@ -1,5 +1,15 @@
 # since last version
 
+- (2004-06-10 - Richard)
+ * [Gtk1] Replaces GtkFrame around progress indicator in fileinfo pane
+   with a GtkViewport
+ * Removed gui_update_all()
+ * Renamed gui_update_global() to gui_general_timer()
+ * Moved gui timer calls from gui_update_global() to main_gui_timer()
+ * Added doxygen support to: gui.c search_gui_common.c
+ * Moved gui_add_targetted_search() as search_gui_add_targetted_search()
+   to search_gui_common.[ch].
+
 # v 0.94	2004.07.10	[stable]
 - GUI updates:
  * File info pane renamed to downloads
