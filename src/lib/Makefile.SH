@@ -39,9 +39,7 @@ DIR = $DIR
 AR = ar rc
 CC = $cc
 CTAGS = ctags
-CFLAGS = -I\$(TOP) -I.. \$(GLIB_CFLAGS) -DCURDIR=\$(CURRENT) $optimize $ccflags $large
-JCFLAGS = \$(CFLAGS)
-DPFLAGS = \$(CFLAGS)
+JCFLAGS = \$(CFLAGS) $optimize $ccflags $large
 JYFLAGS = \$(YFLAGS) $yaccflags
 MKDEP = $mkdep \$(DPFLAGS) --
 MV = $mv
@@ -87,7 +85,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.5 2004/09/20 20:25:52 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.6 2004/10/03 22:21:55 rmanfredi Exp $
 
 LSRC = \
 	adns.c \
@@ -114,6 +112,7 @@ LSRC = \
 	pattern.c \
 	prop.c \
 	sha1.c \
+	stats.c \
 	tiger.c \
 	tigertree.c \
 	tm.c \
@@ -152,6 +151,7 @@ LOBJ = \
 	pattern.o \
 	prop.o \
 	sha1.o \
+	stats.o \
 	tiger.o \
 	tigertree.o \
 	tm.o \
@@ -164,6 +164,10 @@ LOBJ = \
 	wordvec.o \
 	zalloc.o \
 	zlib_util.o 
+
+# Those extra flags are expected to be user-defined
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCURDIR=$(CURRENT)
+DPFLAGS = $(CFLAGS)
 
 libshared.a:  getdate.c
 
