@@ -225,7 +225,7 @@ static struct ul_stats *upload_stats_find(const gchar *name, guint64 size)
 		struct ul_stats *s;
 	
 		s = l->data;
-		if (size == s->size && g_str_equal(name, s->filename))
+		if (size == s->size && 0 == strcmp(name, s->filename))
 			return s;
 	}
 

@@ -205,7 +205,7 @@ static struct ul_stats *upload_stats_gui_find(
 		struct ul_stats *us = NULL;
 
 		gtk_tree_model_get(GTK_TREE_MODEL(model), iter, c_us_stat, &us, (-1));
-		if (us->size == size && g_str_equal(us->filename, name)) {
+		if (us->size == size && 0 == strcmp(us->filename, name)) {
 			return us;
 		}
 		valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(model), iter);

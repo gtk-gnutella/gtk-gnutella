@@ -247,8 +247,8 @@ gint gui_record_name_eq(gconstpointer rec1, gconstpointer rec2)
 {
     gint result;
 
-    result = g_str_equal(((const record_t *) rec1)->name,
-       ((const record_t *) rec2)->name) ? 0 : 1;
+    result = 0 == strcmp(((const record_t *) rec1)->name,
+       ((const record_t *) rec2)->name);
 
 	if (common_dbg > 4)
     	g_message("[%s] == [%s] -> %d\n", ((const record_t *) rec1)->name,
