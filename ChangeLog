@@ -8,6 +8,13 @@
   * Unplugged non-functional QRP stuff.
 
 - (2002.06.22 - Richard)
+  * Added STATE rule which uses the DOWNLOAD and DISPLAY filter result
+    properties for the condition.
+  * Added RETURN target to filter dialog. It aborts the processing of the
+    current chain returning to the caller.
+  * Make filter root-nodes in filter dialog not selectable
+  * Builtin filter targets have uppercase names.
+  * Removed cruft: search_strict_and
   * Synced GUI limits with config reader limits. (Closes #557681)
   * Removed "autodownload" checkbox from GUI and deleted it's callback
     This is to be replaced by the filtering system.
