@@ -933,7 +933,7 @@ static gboolean current_peermode_changed(property_t prop)
     guint32 val;
 
     gnet_prop_get_guint32_val(prop, &val);
-	node_set_current_peermode(val);
+	node_set_current_peermode((node_peer_t) val);
 
     return FALSE;
 }
