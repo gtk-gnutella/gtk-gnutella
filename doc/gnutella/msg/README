@@ -1,1 +1,4 @@
 This directory contains specification of extra vendor-specific messages.
+
+The file GTKG.lst contains a list of all the vendor messages ever defined
+in the "GTKG" namespace.
