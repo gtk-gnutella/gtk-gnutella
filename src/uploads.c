@@ -191,6 +191,13 @@ void handle_push_request(struct gnutella_node *n)
 	 */
 
 	req_file = shared_file(file_index);
+
+	if (req_file == SHARE_REBUILDING) {
+		g_warning("PUSH request (hops=%d, ttl=%d) whilst rebuilding library",
+			n->header.hops, n->header.ttl);
+		return;		/* Sorry, race not supported for now -- RAM, 12/03/2002 */
+	}
+
 	if (req_file == NULL) {
 		g_warning("PUSH request (hops=%d, ttl=%d) for invalid file index %u",
 			n->header.hops, n->header.ttl, file_index);
@@ -792,6 +799,14 @@ static void upload_request(struct upload *u, header_t *header)
 		 */
 
 		requested_file = shared_file(index);
+
+		if (requested_file == SHARE_REBUILDING) {
+			gchar *error = "Library being rebuilt";
+			send_upload_error(u, 408, error);		/* Is retry-able by user */
+			upload_remove(u, error);
+			return;
+		}
+
 		if (requested_file == NULL)
 			goto not_found;
 

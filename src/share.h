@@ -9,12 +9,9 @@ struct extension {
 	gint len;			/* Extension length (e.g. 4) */
 };
 
-/* XXX could be clever and share the file_directory's ... */
 struct shared_file {
 	gchar *file_name;
 	gchar *file_directory;	/* The full path of the directory the file's in */
-	/* lowercased path from the share_dir entry to the file */
-	gchar *file_directory_path;
 	guint32 file_index;			/* the files index withing out local DB */
 	guint32 file_size;			/* File size in Bytes */
 	gint file_name_len;
@@ -36,6 +33,13 @@ struct gnutella_search_results_out {
 extern guint32 files_scanned, bytes_scanned, kbytes_scanned;
 extern guint32 monitor_max_items, monitor_items;
 extern GSList *extensions, *shared_dirs;
+
+/*
+ * Special return value from shared_file() during library rebuild time.
+ * This is needed because we no longer block the GUI whilst scanning.
+ */
+
+#define SHARE_REBUILDING	((struct shared_file *) 0x1)
 
 /*
  * Global Functions

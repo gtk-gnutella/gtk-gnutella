@@ -135,7 +135,7 @@ struct shared_file *shared_file(guint idx)
 		return NULL;
 
 	if (file_table == NULL)			/* Rebuilding the library! */
-		return NULL;
+		return SHARE_REBUILDING;
 
 	return file_table[idx - 1];
 }
