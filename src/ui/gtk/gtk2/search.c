@@ -82,6 +82,9 @@ static GtkWidget *default_search_tree_view = NULL;
 GtkWidget *default_scrolled_window = NULL;
 
 
+/* For cyclic updates of the tooltip */
+static tree_view_motion_t *tvm_search;
+
 /* ----------------------------------------- */
 
 static inline void
@@ -235,6 +238,11 @@ search_gui_close_search(search_t *sch)
      *      --BLUE 26/05/2002
      */
 
+	if (tvm_search && sch == search_gui_get_current_search()) {
+		tree_view_motion_clear_callback(GTK_TREE_VIEW(sch->tree_view),
+			tvm_search);
+		tvm_search = NULL;
+	}
 	search_gui_clear_store(sch);
  	searches = g_list_remove(searches, (gpointer) sch);
 
@@ -961,8 +969,7 @@ search_gui_shutdown(void)
 
 	search_gui_shutting_down = TRUE;
 	search_callbacks_shutdown();
-    search_remove_got_results_listener(search_gui_got_results);
-
+ 	search_remove_got_results_listener(search_gui_got_results);
 	search_gui_store_searches();
 
 	pos = gtk_paned_get_position(
@@ -1125,6 +1132,10 @@ search_gui_set_current_search(search_t *sch)
         GtkTreeView *tv_new = GTK_TREE_VIEW(sch->tree_view);
         GtkTreeView *tv_old = GTK_TREE_VIEW(current_search->tree_view);
 
+		if (tvm_search) {
+			tree_view_motion_clear_callback(tv_old, tvm_search);
+			tvm_search = NULL;
+		}
 		tree_view_save_widths(tv_old, PROP_SEARCH_RESULTS_COL_WIDTHS);
 		tree_view_save_visibility(tv_old, PROP_SEARCH_RESULTS_COL_VISIBLE);
 		tree_view_restore_visibility(tv_new, PROP_SEARCH_RESULTS_COL_VISIBLE);
@@ -1187,8 +1198,11 @@ search_gui_set_current_search(search_t *sch)
     }
 
 	tree_view_restore_widths(GTK_TREE_VIEW(sch->tree_view),
-			PROP_SEARCH_RESULTS_COL_WIDTHS);
+		PROP_SEARCH_RESULTS_COL_WIDTHS);
 
+	tvm_search = tree_view_motion_set_callback(GTK_TREE_VIEW(sch->tree_view),
+		search_update_tooltip);
+	
     /*
      * Search results notebook
      */
@@ -1343,8 +1357,6 @@ gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tv)
 		G_CALLBACK(on_tree_view_search_results_key_press_event), NULL);
     g_signal_connect(GTK_OBJECT(treeview), "leave-notify-event",
 		G_CALLBACK(on_leave_notify), NULL);
-
-	tree_view_set_motion_callback(treeview, search_update_tooltip);
 }
 
 static gboolean

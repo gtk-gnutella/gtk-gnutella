@@ -480,52 +480,58 @@ search_get_vendor_from_record(const record_t *rc)
 void
 search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 {
-	static const record_t *last_rc;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
 	const record_t *rc;
-	gchar text[1024];
-	
-	g_assert(tv != NULL);
 
+	g_assert(tv != NULL);
 	if (!path) {
+		rc = NULL;
+	} else {
+		model = gtk_tree_view_get_model(tv);
+		if (!gtk_tree_model_get_iter(model, &iter, path)) {
+			g_warning("gtk_tree_model_get_iter() failed");
+			return;
+		}
+
+		rc = search_get_record_at_path(tv, path);
+	}
+
+	if (!rc) {
 		GtkWidget *w;
 		
-		last_rc = NULL;
 		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
 			_("Move the cursor over a row to see details."), NULL);
 		w = settings_gui_tooltips()->tip_window;
 		if (w)
 			gtk_widget_hide(w);
-		return;
+	} else {
+		gchar text[1024];
+
+		gm_snprintf(text, sizeof text,
+			"%s %s\n"
+			"%s %s (%s)\n"
+			"%s %.64s\n"
+			"%s %s\n"
+			"%s %s\n"
+			"%s %s",
+			_("Peer:"),
+			ip_port_to_gchar(rc->results_set->ip, rc->results_set->port),
+			_("Country:"),
+			iso3166_country_name(rc->results_set->country),
+			iso3166_country_cc(rc->results_set->country),
+			_("Vendor:"),
+			search_get_vendor_from_record(rc),
+			_("SHA1:"),
+			rc->sha1 != NULL ? sha1_base32(rc->sha1) : _("<none>"),
+			_("GUID:"),
+			guid_hex_str(rc->results_set->guid),
+			_("Size:"),
+			short_size(rc->size));
+		
+		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
+			text, NULL);
 	}
-	
-	rc = search_get_record_at_path(tv, path);
-	g_return_if_fail(rc != NULL);
-	if (last_rc == rc)
-		return;
-	last_rc = rc;
-
-	gm_snprintf(text, sizeof text,
-		"%s %s\n"
-		"%s %s (%s)\n"
-		"%s %.64s\n"
-		"%s %s\n"
-		"%s %s\n"
-		"%s %s",
-		_("Peer:"),
-		ip_port_to_gchar(rc->results_set->ip, rc->results_set->port),
-		_("Country:"),
-		iso3166_country_name(rc->results_set->country),
-		iso3166_country_cc(rc->results_set->country),
-		_("Vendor:"),
-		search_get_vendor_from_record(rc),
-		_("SHA1:"),
-		rc->sha1 != NULL ? sha1_base32(rc->sha1) : _("<none>"),
-		_("GUID:"),
-		guid_hex_str(rc->results_set->guid),
-		_("Size:"),
-		short_size(rc->size));
-
-	gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv), text, NULL);
 }
 
 static void

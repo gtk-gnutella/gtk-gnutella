@@ -68,6 +68,8 @@ static GHashTable *nodes_handles = NULL;
 
 static GHashTable *ht_pending_lookups = NULL;
 
+static tree_view_motion_t *tvm_nodes;
+
 /***
  *** Private functions
  ***/
@@ -277,61 +279,57 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 {
 	GtkTreeModel *model;
 	GtkTreeIter iter;
-	gnet_node_info_t info;
-	gnet_node_flags_t flags;
-	gnet_node_t n = 0xcafebabeU;
-	static gnet_node_t last_n;
-	gchar text[1024];
+	gnet_node_t n;
 
 	g_assert(tv != NULL);
 	if (!path) {
+		n = (gnet_node_t) -1;
+	} else {
+		model = gtk_tree_view_get_model(tv);
+		if (!gtk_tree_model_get_iter(model, &iter, path)) {
+			g_warning("gtk_tree_model_get_iter() failed");
+			return;
+		}
+
+		gtk_tree_model_get(model, &iter, c_gnet_handle, &n, (-1));
+	}
+
+	if ((gnet_node_t) -1 == n || !find_node(n)) {
 		GtkWidget *w;
 		
-		last_n = (gnet_node_t) -1;
 		gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv),
 			_("Move the cursor over a row to see details."), NULL);
 		w = settings_gui_tooltips()->tip_window;
 		if (w)
 			gtk_widget_hide(w);
-		return;
+	} else {
+		gnet_node_info_t info;
+		gnet_node_flags_t flags;
+		gchar text[1024];
+
+		guc_node_fill_flags(n, &flags);
+		guc_node_fill_info(n, &info);
+		g_assert(info.node_handle == n);
+		gm_snprintf(text, sizeof text,
+			"%s %s\n"
+			"%s %s (%s)\n"
+			"%s %s (%s)\n"
+			"%s %.64s",
+			_("Peer:"),
+			ip_port_to_gchar(info.ip, info.port),
+			_("Peermode:"),
+			peermode_to_string(flags.peermode),
+			flags.incoming ? _("incoming") : _("outgoing"),
+			_("Country:"),
+			iso3166_country_name(info.country),
+			iso3166_country_cc(info.country),
+			_("Vendor:"),
+			info.vendor ? lazy_locale_to_utf8(info.vendor, 0) : _("Unknown"));
+
+		guc_node_clear_info(&info);
+		gtk_tooltips_set_tip(settings_gui_tooltips(),
+			GTK_WIDGET(tv), text, NULL);
 	}
-
-	model = gtk_tree_view_get_model(tv);
-	if (!gtk_tree_model_get_iter(model, &iter, path)) {
-		g_warning("gtk_tree_model_get_iter() failed");
-		return;
-	}
-
-	gtk_tree_model_get(model, &iter, c_gnet_handle, &n, (-1));
-	if (last_n == n)
-		return;
-	last_n = n;
-
-	if (!find_node(n))
-		return;
-
-    guc_node_fill_flags(n, &flags);
-	guc_node_fill_info(n, &info);
-	g_assert(info.node_handle == n);
-	gm_snprintf(text, sizeof text,
-		"%s %s\n"
-		"%s %s (%s)\n"
-		"%s %s (%s)\n"
-		"%s %.64s",
-		_("Peer:"),
-		ip_port_to_gchar(info.ip, info.port),
-		_("Peermode:"),
-		peermode_to_string(flags.peermode),
-		flags.incoming ? _("incoming") : _("outgoing"),
-		_("Country:"),
-		iso3166_country_name(info.country),
-		iso3166_country_cc(info.country),
-		_("Vendor:"),
-		info.vendor ? lazy_locale_to_utf8(info.vendor, 0) : _("Unknown"));
-
-	guc_node_clear_info(&info);
-
-	gtk_tooltips_set_tip(settings_gui_tooltips(), GTK_WIDGET(tv), text, NULL);
 }
 
 static gboolean
@@ -451,7 +449,7 @@ nodes_gui_init(void)
 	g_signal_connect(GTK_OBJECT(treeview_nodes), "leave-notify-event",
 		G_CALLBACK(on_leave_notify), treeview_nodes);
 
-	tree_view_set_motion_callback(treeview_nodes, update_tooltip);
+	tvm_nodes = tree_view_motion_set_callback(treeview_nodes, update_tooltip);
 }
 
 /**
@@ -460,6 +458,11 @@ nodes_gui_init(void)
 void
 nodes_gui_shutdown(void)
 {
+	if (tvm_nodes) {
+		tree_view_motion_clear_callback(treeview_nodes, tvm_nodes);
+		tvm_nodes = NULL;
+	}
+
 	tree_view_save_widths(treeview_nodes, PROP_NODES_COL_WIDTHS);
 	tree_view_save_visibility(treeview_nodes, PROP_NODES_COL_VISIBLE);
 

@@ -578,21 +578,28 @@ tree_view_restore_visibility(GtkTreeView *treeview, property_t prop)
 	}
 }
 
+struct tree_view_motion {
+	tree_view_motion_callback cb;
+	GtkTreeView *tv;
+	guint signal_id;
+	guint timeout_id;
+	guint x, y;
+	gboolean ready;
+};
+
 static gboolean
 on_tree_view_motion_notify(GtkWidget *widget,
 	GdkEventMotion *event, gpointer udata)
 {
-	GtkTreeView *tv;
-	GtkTreePath *path;
-	tree_view_motion_callback cb;
+	tree_view_motion_t *tvm;
 
 	g_assert(widget != NULL);
 	g_assert(event != NULL);
-	g_assert(udata != NULL);
 
-	tv = GTK_TREE_VIEW(widget);
-	cb = udata;
-	
+	tvm = udata;
+	g_assert(tvm != NULL);
+	g_assert(tvm->cb != NULL);
+
 #if 0 
 	{
 		gchar type[32];
@@ -644,27 +651,61 @@ on_tree_view_motion_notify(GtkWidget *widget,
 	}
 #endif /* 0 */
 	
-	if (
-		gtk_tree_view_get_path_at_pos(tv,
-			event->x, event->y, &path, NULL, NULL, NULL)
-	) {
-		g_assert(path != NULL);
-		
-		cb(tv, path);
-		gtk_tree_path_free(path);
-		path = NULL;
-	} else {
-		cb(tv, NULL);
-	}
-	
+	tvm->x = event->x;
+	tvm->y = event->y;
+	tvm->ready = TRUE;
 	return FALSE;
 }
 
-void
-tree_view_set_motion_callback(GtkTreeView *tv, tree_view_motion_callback cb)
+static gboolean
+tree_view_motion_timeout(gpointer data)
 {
-	g_signal_connect(GTK_OBJECT(tv),
-		"motion-notify-event", G_CALLBACK(on_tree_view_motion_notify), cb);
+	tree_view_motion_t *tvm = data;
+
+	g_assert(tvm != NULL);
+	g_assert(tvm->tv != NULL);
+	g_assert(tvm->cb != NULL);
+
+	if (tvm->ready) {
+		GtkTreePath *path = NULL;
+
+		tvm->ready = FALSE;
+		gtk_tree_view_get_path_at_pos(tvm->tv, tvm->x, tvm->y, &path,
+			NULL, NULL, NULL);
+		tvm->cb(tvm->tv, path);
+		if (path)
+			gtk_tree_path_free(path);
+	}
+	
+	return TRUE;
+}
+
+tree_view_motion_t *
+tree_view_motion_set_callback(GtkTreeView *tv, tree_view_motion_callback cb)
+{
+	tree_view_motion_t *tvm;
+
+	g_assert(tv != NULL);
+	g_assert(cb != NULL);
+
+	tvm = g_malloc(sizeof *tvm);
+	tvm->tv = tv;
+	tvm->cb = cb;
+	tvm->timeout_id = g_timeout_add(400, tree_view_motion_timeout, tvm);
+	tvm->signal_id = g_signal_connect(GTK_OBJECT(tv),
+		"motion-notify-event", G_CALLBACK(on_tree_view_motion_notify), tvm);
+	return tvm;
+}
+
+void
+tree_view_motion_clear_callback(GtkTreeView *tv, tree_view_motion_t *tvm)
+{
+	g_assert(tv != NULL);
+	g_assert(tvm != NULL);
+
+	g_signal_handler_disconnect(GTK_OBJECT(tv), tvm->signal_id);
+	g_source_remove(tvm->timeout_id);
+	G_FREE_NULL(tvm);
 }
 
 #endif /* USE_GTK2 */

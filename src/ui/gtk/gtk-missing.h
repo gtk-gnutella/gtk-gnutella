@@ -116,6 +116,7 @@ void gtk_mass_widget_set_sensitive(GtkWidget *tl, gchar *list[], gboolean b);
  */
 #ifdef USE_GTK2
 typedef void (*tree_view_motion_callback)(GtkTreeView *, GtkTreePath *);
+typedef struct tree_view_motion tree_view_motion_t;
 
 GtkTreeIter *w_tree_iter_new(void);
 GtkTreeIter *w_tree_iter_copy(GtkTreeIter *iter);
@@ -125,8 +126,9 @@ void tree_view_save_widths(GtkTreeView *treeview, property_t prop);
 void tree_view_save_visibility(GtkTreeView *treeview, property_t prop);
 void tree_view_restore_visibility(GtkTreeView *treeview, property_t prop);
 void tree_view_restore_widths(GtkTreeView *treeview, property_t prop);
-void tree_view_set_motion_callback(GtkTreeView *tv,
+tree_view_motion_t *tree_view_motion_set_callback(GtkTreeView *tv,
 	tree_view_motion_callback cb);
+void tree_view_motion_clear_callback(GtkTreeView *tv, tree_view_motion_t *tm);
 #endif /* USE_GTK2 */
 
 /*
