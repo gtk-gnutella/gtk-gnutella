@@ -594,7 +594,9 @@ hcache_add(hcache_type_t type, guint32 ip, guint16 port, const gchar *what)
 		g_assert(hash_list_contains(caches[hce->type]->hostlist, host));
 
 		hash_list_remove(caches[hce->type]->hostlist, host);
+		caches[hce->type]->host_count--;
 		hash_list_prepend(hc->hostlist, host);
+		hc->host_count++;
 		caches[hce->type]->dirty = hc->dirty = TRUE;
 
 		hce->type = type;
