@@ -142,6 +142,7 @@ static void nodes_gui_create_treeview_nodes(void)
 		const gchar * const attr;
 	} columns[] = {
 		{ N_("Host"),		c_gnet_host,		"text" },
+		{ N_("Loc"),		c_gnet_loc,			"text" },
 		{ N_("Flags"),		c_gnet_flags,		"markup" },
 		{ N_("User-Agent"), c_gnet_user_agent,	"text" },
 		{ N_("Ver"),		c_gnet_version,		"text" },
@@ -160,6 +161,7 @@ static void nodes_gui_create_treeview_nodes(void)
      */
     nodes_model = gtk_list_store_new(c_gnet_num,
         G_TYPE_STRING,   /* c_gnet_host */
+        G_TYPE_STRING,   /* c_gnet_loc */
         G_TYPE_STRING,   /* c_gnet_flags */
         G_TYPE_STRING,   /* c_gnet_user_agent */
         G_TYPE_STRING,   /* c_gnet_version */
@@ -243,6 +245,7 @@ static inline void nodes_gui_update_node_info(
 
 	gtk_list_store_set(nodes_model, iter, 
 		c_gnet_user_agent, n->vendor ? lazy_locale_to_utf8(n->vendor, 0) : NULL,
+		c_gnet_loc, n->country ? lazy_locale_to_utf8(n->country, 0) : NULL,
 		c_gnet_version, version,
 		c_gnet_info, nodes_gui_common_status_str(&status, now),
 		(-1));
@@ -399,6 +402,7 @@ void nodes_gui_add_node(gnet_node_info_t *n)
         c_gnet_host,    ip_port_to_gchar(n->ip, n->port),
         c_gnet_flags,    NULL,
         c_gnet_user_agent, n->vendor ? lazy_locale_to_utf8(n->vendor, 0) : NULL,
+        c_gnet_loc, 	n->country ? lazy_locale_to_utf8(n->country, 0) : NULL,
         c_gnet_version, proto_tmp,
         c_gnet_connected, NULL,
         c_gnet_uptime,  NULL,
