@@ -467,6 +467,8 @@ void gmsg_log_bad(struct gnutella_node *n, gchar *reason, ...)
  */
 static void gmsg_dump(FILE *out, guchar *data, guint32 size)
 {
+	g_assert(size >= HEADER_SIZE);
+
 	dump_hex(out, gmsg_infostr(data), data + HEADER_SIZE, size - HEADER_SIZE);
 }
 
@@ -477,6 +479,8 @@ static void gmsg_dump(FILE *out, guchar *data, guint32 size)
  */
 static void gmsg_split_dump(FILE *out, guchar *head, guchar *data, guint32 size)
 {
+	g_assert(size >= HEADER_SIZE);
+
 	dump_hex(out, gmsg_infostr(head), data, size - HEADER_SIZE);
 }
 
