@@ -1259,3 +1259,26 @@ prop = {
     };
 };
 
+prop = {
+    name = "download_require_urn";
+    desc = "Whether gtk-gnutella should make sure the server confirms the "
+           "URN of the file we're requesting when it is known locally and "
+		   "a traditional request by name is used (i.e. gtk-gnutella is not "
+		   "issueing a /uri-res/N2R? request).  When set, it supersedes the "
+		   "optimistic first chunk setting.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "download_require_server_name";
+    desc = "Whether gtk-gnutella should make sure the server gives us "
+           "back a non-empty identifying token.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+

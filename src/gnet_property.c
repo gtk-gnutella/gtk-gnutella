@@ -249,6 +249,10 @@ gboolean online_mode     = TRUE;
 gboolean online_mode_def = TRUE;
 guint32  lib_debug     = 0;
 guint32  lib_debug_def = 0;
+gboolean download_require_urn     = FALSE;
+gboolean download_require_urn_def = FALSE;
+gboolean download_require_server_name     = FALSE;
+gboolean download_require_server_name_def = FALSE;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -2244,6 +2248,40 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[106].data.guint32.value = &lib_debug;
     gnet_property->props[106].data.guint32.max   = 0xFFFFFFFF;
     gnet_property->props[106].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_DOWNLOAD_REQUIRE_URN:
+     *
+     * General data:
+     */
+    gnet_property->props[107].name = "download_require_urn";
+    gnet_property->props[107].desc = "Whether gtk-gnutella should make sure the server confirms the URN of the file we're requesting when it is known locally and a traditional request by name is used (i.e. gtk-gnutella is not issueing a /uri-res/N2R? request).  When set, it supersedes the optimistic first chunk setting.";
+    gnet_property->props[107].prop_changed_listeners = NULL;
+    gnet_property->props[107].save = TRUE;
+    gnet_property->props[107].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[107].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[107].data.boolean.def   = &download_require_urn_def;
+    gnet_property->props[107].data.boolean.value = &download_require_urn;
+
+
+    /*
+     * PROP_DOWNLOAD_REQUIRE_SERVER_NAME:
+     *
+     * General data:
+     */
+    gnet_property->props[108].name = "download_require_server_name";
+    gnet_property->props[108].desc = "Whether gtk-gnutella should make sure the server gives us back a non-empty identifying token.";
+    gnet_property->props[108].prop_changed_listeners = NULL;
+    gnet_property->props[108].save = TRUE;
+    gnet_property->props[108].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[108].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[108].data.boolean.def   = &download_require_server_name_def;
+    gnet_property->props[108].data.boolean.value = &download_require_server_name;
     return gnet_property;
 }
 
@@ -2265,9 +2303,7 @@ void gnet_prop_shutdown(void) {
     }
 
     g_free(gnet_property->props);
-	gnet_property->props = NULL;
     g_free(gnet_property);
-	gnet_property = NULL;
 }
 
 prop_def_t *gnet_prop_get_def(property_t p)

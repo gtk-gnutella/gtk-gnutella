@@ -135,6 +135,8 @@ extern gboolean file_moving;
 extern gboolean prefer_compressed_gnet;
 extern gboolean online_mode;
 extern guint32  lib_debug;
+extern gboolean download_require_urn;
+extern gboolean download_require_server_name;
 
 
 prop_set_t *gnet_prop_init(void);
