@@ -127,7 +127,7 @@ fi
 changequote([,])dnl
 
 AC_CHECK_FUNCS(herror inet_aton)
-AC_CHECK_FUNCS(strcasestr vsnprintf)
+AC_CHECK_FUNCS(strcasestr vsnprintf strlcpy)
 AC_CHECK_FUNCS(srandom random)
 
 dnl Checks for sendfile(2)
