@@ -537,8 +537,10 @@ atom_get_track(gint type, gconstpointer key, gchar *file, gint line)
  * Free key/value pair of the tracking table.
  */
 static gboolean
-tracking_free_kv(gpointer key, gpointer value, gpointer user)
+tracking_free_kv(gpointer key, gpointer value, gpointer uu_user)
 {
+	(void) uu_user;
+
 	g_free(key);
 	wfree(value, sizeof(struct spot));
 	return TRUE;
