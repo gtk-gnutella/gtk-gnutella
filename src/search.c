@@ -205,15 +205,16 @@ void search_close_current(void)
 	gtk_widget_set_sensitive(button_search_close, (gboolean) searches);
 }
 
-void search_free_sent_node(gpointer node, gpointer unused_value,
-						   gpointer unused_user_data)
+static gboolean search_free_sent_node(
+	gpointer node, gpointer value, gpointer udata)
 {
 	g_free(node);
+	return TRUE;
 }
 
 static void search_free_sent_nodes(struct search *sch)
 {
-	g_hash_table_foreach(sch->sent_nodes, search_free_sent_node, NULL);
+	g_hash_table_foreach_remove(sch->sent_nodes, search_free_sent_node, NULL);
 	g_hash_table_destroy(sch->sent_nodes);
 }
 
