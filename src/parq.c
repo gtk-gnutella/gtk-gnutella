@@ -390,6 +390,9 @@ static gchar *get_header_value(
  */
 void parq_init(void)
 {
+	header_features_add("queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
+		FEATURE_UPLOAD | FEATURE_DOWNLOAD);
+	
 	ul_all_parq_by_ip_and_name = g_hash_table_new(g_str_hash, g_str_equal);
 	ul_all_parq_by_ip = g_hash_table_new(g_int_hash, g_int_equal);
 	ul_all_parq_by_id = g_hash_table_new(g_str_hash, g_str_equal);
@@ -806,7 +809,7 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 	gchar *buf = NULL;
 	gchar *temp = NULL;
 	gchar *value = NULL;
-	gint major, minor;
+	gint major = 0, minor = 0;
 	gint header_value_length;
 	gint retry;
 
@@ -818,7 +821,9 @@ gboolean parq_download_parse_queue_status(struct download *d, header_t *header)
 	if (buf == NULL)			/* Remote server does not support queues */
 		return FALSE;
 
-	if (!get_header_version(buf, &major, &minor)) {
+	header_get_feature("queue", header, &major, &minor);
+	
+	if (major == 0 && minor == 0 &&!get_header_version(buf, &major, &minor)) {
 		/*
 	 	* Could not retreive queueing version. It could be 0.1 but there is 
 		* no way to tell for certain
@@ -990,7 +995,7 @@ void parq_download_add_header(
 	gchar *buf, gint len, gint *rw, struct download *d)
 {
 	g_assert(d != NULL);
-	g_assert(len >= 0 && *rw >= 0 && len >= *rw);	
+	g_assert(len >= 0 && *rw >= 0 && len >= *rw);
 
 	*rw += gm_snprintf(&buf[*rw], len - *rw,
 		"X-Queue: %d.%d\r\n", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);

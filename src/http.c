@@ -1523,13 +1523,18 @@ static void http_async_http_error(
 static gint http_async_build_request(gpointer handle, gchar *buf, gint len,
 	gchar *verb, gchar *path, gchar *host)
 {
-	return gm_snprintf(buf, len,
+	int rw = gm_snprintf(buf, len,
 		"%s %s HTTP/1.1\r\n"
 		"Host: %s\r\n"
 		"User-Agent: %s\r\n"
 		"Connection: close\r\n"
 		"\r\n",
 		verb, path, host, version_string);
+	
+	header_features_generate(buf, sizeof(buf), &rw,
+		FEATURE_DOWNLOAD);
+	
+	return rw;
 }
 
 /*
@@ -2468,4 +2473,3 @@ void http_close(void)
 		http_async_error(
 			(struct http_async *) sl_outgoing->data, HTTP_ASYNC_CANCELLED);
 }
-

@@ -121,7 +121,19 @@ void header_fmt_end(gpointer o);
 gchar *header_fmt_string(gpointer o);
 gchar *header_fmt_to_gchar(gpointer o);
 
+
+#define FEATURE_UPLOAD		0x00000001
+#define FEATURE_DOWNLOAD	0x00000002
+#define FEATURE_CONNECTION	0x00000004
+void header_get_feature(const gchar *feature_name, const header_t *header,
+	int *feature_version_major, int *feature_version_minor);
+void header_features_add(gchar *feature_name, 
+	int feature_version_major,
+	int feature_version_minor,
+	int type);
+void header_features_cleanup();
+void header_features_generate(gchar *buf, gint len, gint *rw, gint type);
+
 #endif	/* _header_h_ */
 
 /* vi: set ts=4: */
-

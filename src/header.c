@@ -59,6 +59,18 @@ static const char *error_str[] = {
 	"End of header",						/* HEAD_EOH */
 };
 
+struct header_x_feature
+{
+	gchar *name;
+	int major;
+	int minor;
+	
+	int type;
+};
+
+GList *x_features;
+
+
 /*
  * header_strerror
  *
@@ -717,3 +729,113 @@ gchar *header_fmt_to_gchar(gpointer o)
 	return line;
 }
 
+/***
+ *** X-Features header parsing utilities
+ ***/
+
+void header_features_add(gchar *feature_name, 
+	int feature_version_major,
+	int feature_version_minor,
+	int type)
+{
+	struct header_x_feature *feature = walloc(sizeof(*feature));
+	
+	feature->name = g_strdup(feature_name);
+	feature->major = feature_version_major;
+	feature->minor = feature_version_minor;
+	
+	feature->type = type;
+	
+	x_features = g_list_append(x_features, feature);
+}
+
+void header_features_cleanup()
+{
+	GList *cur;
+	for(cur = g_list_first(x_features);
+		cur != g_list_last(x_features);
+		cur = g_list_next(cur)) {
+		
+		struct header_x_feature *feature = 
+			(struct header_x_feature *) cur->data;
+		
+		g_free(feature->name);
+		wfree(feature, sizeof(*feature));
+	}
+}
+
+void header_features_generate(gchar *buf, gint len, gint *rw, gint type)
+{
+	GList *cur;
+	
+	*rw += gm_snprintf(&buf[*rw], len - *rw, "X-Features: ");
+
+	for(cur = g_list_first(x_features);
+		cur != g_list_last(x_features);
+		cur = g_list_next(cur)) {
+		
+		struct header_x_feature *feature = 
+			(struct header_x_feature *) cur->data;
+
+		if (feature->type & type > 0) {
+			*rw += gm_snprintf(&buf[*rw], len - *rw, "%s/%d.%d ",
+				feature->name, feature->major, feature->minor);
+		}
+	}
+	
+	*rw += gm_snprintf(&buf[*rw], len - *rw, "\r\n");	
+}
+
+void header_get_feature(const gchar *feature_name, const header_t *header,
+	int *feature_version_major, int *feature_version_minor)
+{
+	gchar *buf = NULL;
+	
+	gchar *end = NULL;
+	gchar *major = NULL;
+	gchar *minor = NULL;
+	
+	*feature_version_major = 0;
+	*feature_version_minor = 0;
+
+	buf = header_get(header, (const gchar *) "X-Features");
+
+	/* We could also try to scan for the header: feature_name, so this would
+     * make this function even more generic. But I would suggest another
+     * function for this though.
+     */	
+	if (buf == NULL) {
+		/* Actually the 'specs' say we should assume it is supported if the
+		 * X-Features header is not there. But I wouldn't count on it */
+		
+		return;
+	}
+	
+	buf = strcasestr(buf, feature_name);
+	
+	if (buf == NULL) {
+		/* Not supported */
+		// REMOVE:
+		g_warning("[header] Feature_name %s not supported", feature_name);
+		header_dump(header, stderr);
+		return;
+	}
+	
+	buf += strlen(feature_name);
+	
+	if (*buf != '/') {
+		g_warning("[header] Malformed X-Features header, ignoring");
+		//if (dbg)
+			header_dump(header, stderr);
+		
+		return;
+	}
+	
+	buf++;
+	
+	if (*buf ==  '\0')
+		return;
+	
+	/* XXX Is this exploitable? */
+	sscanf(buf, "%d.%d", feature_version_major, feature_version_minor);
+}
