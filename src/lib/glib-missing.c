@@ -344,6 +344,39 @@ gm_sanitize_filename(const gchar *filename,
 	s = q;
 #endif /* Mac OS X */
 
+/* Maximum bytes in filename i.e., including NUL */	
+#define	FILENAME_MAXBYTES 256
+
+	/* Make sure the filename isn't too long */
+	if (strlen(s) >= FILENAME_MAXBYTES) {
+		gchar *buf, *ext;
+		size_t ext_size = 0;
+
+		buf = g_malloc(FILENAME_MAXBYTES);
+		
+		/* Try to preserve the filename extension */
+		ext = strrchr(s, '.');
+		if (ext) {
+			ext_size = strlen(ext) + 1;
+			ext_size = MIN(FILENAME_MAXBYTES, ext_size);
+		}
+
+		strlcpy_utf8(buf, s, FILENAME_MAXBYTES - ext_size);
+
+		/* Append the filename extension */
+		if (ext) {
+			size_t len;
+
+			len = strlen(buf);
+			g_assert(len + ext_size <= FILENAME_MAXBYTES);
+			strncpy(&buf[len], ext, ext_size);
+		}
+
+		g_assert(strlen(buf) < FILENAME_MAXBYTES);
+		G_FREE_NULL(q);
+		s = q = buf;
+	}
+
 	/* Replace shell meta characters and likely problematic characters */
 	for (p = s; (c = *(guchar *) p) != '\0'; ++p) {
 		static const gchar evil[] = "$&*/\\`:;()'\"<>?|~\177";
