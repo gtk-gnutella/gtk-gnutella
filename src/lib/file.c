@@ -94,6 +94,10 @@ open_read(
 	
 	path = make_pathname(fv->dir, fv->name);
 	g_return_val_if_fail(NULL != path, NULL);
+	if (!is_absolute_path(path)) {
+		G_FREE_NULL(path);
+		return NULL;
+	}
 
 	path_orig = g_strdup_printf("%s.%s", path, orig_ext);
 	if (NULL == path_orig)
@@ -234,10 +238,12 @@ file_config_open(const gchar *what, const file_path_t *fv, gboolean append)
 				new_ext, NULL);
 	g_return_val_if_fail(NULL != path, NULL);
 
-	out = file_fopen(path, append ? "a" : "w");
-	if (out == NULL)
-		g_warning("unable to persist %s", what);
-	G_FREE_NULL(path);
+	if (is_absolute_path(path)) {
+		out = file_fopen(path, append ? "a" : "w");
+		if (out == NULL)
+			g_warning("unable to persist %s", what);
+		G_FREE_NULL(path);
+	}
 	return out;
 }
 
@@ -335,6 +341,11 @@ do_open(const gchar *path, gint flags, gint mode, gboolean missing)
 	gint fd;
 	const gchar *what;
 
+	if (!is_absolute_path(path)) {
+		errno = EPERM;
+		return -1;
+	}
+
 	fd = open(path, flags, mode);
 	if (fd >= 0)
 		return fd;
@@ -424,6 +435,11 @@ do_fopen(const gchar *path, const gchar *mode, gboolean missing)
 	gchar m;
 	FILE *f;
 	const gchar *what;
+
+	if (!is_absolute_path(path)) {
+		errno = EPERM;
+		return NULL;
+	}
 
 	f = fopen(path, mode);
 	if (f != NULL)
