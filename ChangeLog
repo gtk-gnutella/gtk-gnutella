@@ -8,6 +8,9 @@
  * Added atexit() hook to allow GTKG to cleanup properly when a library
    calls exit() directly, especially when the connection with X is lost.
  * Now uses GGEP "ALT" to provide known alternate locations in query hits.
+ * Terminate connection when peermode changed during handshaking, using
+   a BYE message with code 504.  This race condition is rare enough to not
+   warrant recovery (fixes bug #799675).
 
 - (2003.10.05 - RAM)
  * Added parsing of new compact X-Alt header and generation of that new header
