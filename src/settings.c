@@ -365,6 +365,31 @@ void settings_close(void)
 		g_free(config_dir);
 }
 
+void gnet_get_bw_stats(gnet_bw_stats_t *s)
+{
+    g_assert(s != NULL);
+
+    s->gnet_in_enabled  = bws_gin_enabled;
+    s->gnet_in          = bsched_bps(bws.gin);
+    s->gnet_in_avg      = bsched_avg_bps(bws.gin);
+    s->gnet_in_limit    = bws.gin->bw_per_second;
+
+    s->gnet_out_enabled = bws_gout_enabled;
+    s->gnet_out         = bsched_bps(bws.gout);
+    s->gnet_out_avg     = bsched_avg_bps(bws.gout);
+    s->gnet_out_limit   = bws.gout->bw_per_second;
+
+    s->http_in_enabled  = bws_in_enabled;
+    s->http_in          = bsched_bps(bws.in);
+    s->http_in_avg      = bsched_avg_bps(bws.in);
+    s->http_in_limit    = bws.in->bw_per_second;
+
+    s->http_out_enabled = bws_out_enabled;
+    s->http_out         = bsched_bps(bws.out);
+    s->http_out_avg     = bsched_avg_bps(bws.out);
+    s->http_out_limit   = bws.out->bw_per_second;
+}
+
 /***
  *** Callbacks
  ***/
