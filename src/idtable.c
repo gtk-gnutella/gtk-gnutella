@@ -87,7 +87,6 @@ static guint32 find_unused_key(idtable_t *tbl)
 static void idtable_extend(idtable_t *tbl)
 {
     guint32 old_blk_count = BLOCK_COUNT(tbl);
-    guint32 n;
 
     /*
      * We know that the array is full, so the next free key would be
