@@ -187,9 +187,11 @@ rw_screen(gboolean case_sensitive,
 	} G_STMT_END
 
 	if (case_sensitive)
-		BINARY_SEARCH(const gchar *, word, size, strcmp, GET_KEY, FOUND);
+		BINARY_SEARCH(const gchar *, word, size,
+				strcmp, GET_KEY, FOUND);
 	else
-		BINARY_SEARCH(const gchar *, word, size, strcasecmp, GET_KEY, FOUND);
+		BINARY_SEARCH(const gchar *, word, size,
+				ascii_strcasecmp, GET_KEY, FOUND);
 	
 #undef FOUND
 #undef GET_KEY
@@ -559,7 +561,7 @@ ext_huge_parse(gchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	 * Recognize "urn:".
 	 */
 
-	if (0 != strncasecmp(p, "urn:", 4))
+	if (0 != ascii_strncasecmp(p, "urn:", 4))
 		return 0;
 
 	p += 4;
@@ -718,7 +720,7 @@ ext_unknown_parse(gchar **retp, gint len, extvec_t *exv,
 			(
 				(c == 'u' || c == 'U') &&
 				(end - p) >= 3 &&
-				0 == strncasecmp(p, "rn:", 3)
+				0 == ascii_strncasecmp(p, "rn:", 3)
 			) ||
 			(c == '<' && (p < end) && isalpha((guchar) *p))
 		) {

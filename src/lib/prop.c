@@ -220,13 +220,13 @@ prop_parse_boolean_vector(const gchar *name,
 		valid = FALSE;
 		switch (l) {
 		case sizeof "TRUE" - 1:
-			if (0 == g_ascii_strncasecmp(a, "TRUE", l)) {
+			if (0 == ascii_strncasecmp(a, "TRUE", l)) {
 				t[i] = TRUE;
 				valid = TRUE;
 			}
 			break;
 		case sizeof "FALSE" - 1:
-			if (0 == g_ascii_strncasecmp(a, "FALSE", l)) {
+			if (0 == ascii_strncasecmp(a, "FALSE", l)) {
 				t[i] = FALSE;
 				valid = TRUE;
 			}
@@ -1554,7 +1554,7 @@ prop_load_from_file(prop_set_t *ps, const gchar *dir, const gchar *filename)
 			g_message("k=\"%s\", v=\"%s\"", k, v);
 
 		for (i = 0; i < ps->size; i++)
-			if (!g_ascii_strcasecmp(k, (ps->props[i]).name)) {
+			if (!ascii_strcasecmp(k, (ps->props[i]).name)) {
 				load_helper(ps, i + ps->offset, v);
 				break;
 			}

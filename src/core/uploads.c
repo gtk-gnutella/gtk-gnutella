@@ -1731,12 +1731,14 @@ get_file_to_upload_from_urn(
 	 *		--RAM, 16/11/2002
 	 */
 
-	if (0 != strncasecmp(urn, urn_prefix, CONST_STRLEN(urn_prefix)))
+	if (0 != ascii_strncasecmp(urn, urn_prefix, CONST_STRLEN(urn_prefix)))
 		goto not_found;
 
-	if (0 == strncasecmp(urn, urn_sha1, CONST_STRLEN(urn_sha1)))
+	if (0 == ascii_strncasecmp(urn, urn_sha1, CONST_STRLEN(urn_sha1)))
 		skip = CONST_STRLEN(urn_sha1);
-	else if (0 == strncasecmp(urn, urn_bitprint, CONST_STRLEN(urn_bitprint)))
+	else if (
+		0 == ascii_strncasecmp(urn, urn_bitprint, CONST_STRLEN(urn_bitprint))
+	)
 		skip = CONST_STRLEN(urn_bitprint);
 	else
 		goto not_found;
@@ -2473,12 +2475,12 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	if (u->http_major > 1 || (u->http_major == 1 && u->http_minor >= 1)) {
 		/* HTTP/1.1 or greater -- defaults to persistent connections */
 		u->keep_alive = TRUE;
-		if (buf && 0 == strcasecmp(buf, "close"))
+		if (buf && 0 == ascii_strcasecmp(buf, "close"))
 			u->keep_alive = FALSE;
 	} else {
 		/* HTTP/1.0 or lesser -- must request persistence */
 		u->keep_alive = FALSE;
-		if (buf && 0 == strcasecmp(buf, "keep-alive"))
+		if (buf && 0 == ascii_strcasecmp(buf, "keep-alive"))
 			u->keep_alive = TRUE;
 	}
 

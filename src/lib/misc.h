@@ -59,11 +59,12 @@
 size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size);
 #endif
 
-#define g_ascii_strcasecmp g_strcasecmp
-#define g_ascii_strncasecmp g_strncasecmp
 #define g_string_printf g_string_sprintf
 #define g_strlcpy strlcpy
 #endif
+
+gint ascii_strcasecmp(const gchar *s1, const gchar *s2);
+gint ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len);
 
 /* ctype-like functions that allow only ASCII characters whereas the locale
  * would allow others. The parameter doesn't have to be casted to (unsigned
@@ -321,7 +322,7 @@ gint str_chomp(gchar *str, gint len);
 gint hex2dec(guchar c);
 gboolean is_printable(const gchar *buf, gint len);
 void dump_hex(FILE *, const gchar *, gconstpointer, gint);
-void strlower(gchar *, const gchar *);
+void locale_strlower(gchar *, const gchar *);
 void ascii_strlower(gchar *dst, const gchar *src);
 gint strcmp_delimit(const gchar *a, const gchar *b, const gchar *delimit);
 gint strcasecmp_delimit(const gchar *a, const gchar *b, const gchar *delimit);

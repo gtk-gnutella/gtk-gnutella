@@ -505,7 +505,7 @@ filter_new_text_rule(const gchar *match, gint type,
 			buf_len = len;
 		} else {
 			/* Assume the string is encoded for the current locale */
-        	strlower(buf, match);
+        	locale_strlower(buf, match);
 		}
 	} else {
 		memcpy(buf, match, buf_len + 1);
@@ -1976,7 +1976,7 @@ filter_apply(filter_t *filter, const struct record *rec, filter_result_t *res)
 		namelen = len;
 	} else {
 		/* Assume the string is encoded for the current locale */
-		strlower(l_name, rec->name);
+		locale_strlower(l_name, rec->name);
 	}
 
 	list = g_list_first(list);

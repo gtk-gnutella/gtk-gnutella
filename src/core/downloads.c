@@ -4837,7 +4837,10 @@ check_xhostname(struct download *d, const header_t *header)
 	 * then we're done.
 	 */
 
-	if (server->hostname != NULL && 0 == strcasecmp(server->hostname, buf))
+	if (
+		server->hostname != NULL &&
+		0 == ascii_strcasecmp(server->hostname, buf)
+	)
 		return;
 
 	set_server_hostname(server, buf);
@@ -5405,12 +5408,12 @@ download_request(struct download *d, header_t *header, gboolean ok)
 		/* HTTP/1.1 or greater -- defaults to persistent connections */
 		d->keep_alive = TRUE;
 		d->server->attrs |= DLS_A_HTTP_1_1;
-		if (buf && 0 == strcasecmp(buf, "close"))
+		if (buf && 0 == ascii_strcasecmp(buf, "close"))
 			d->keep_alive = FALSE;
 	} else {
 		/* HTTP/1.0 or lesser -- must request persistence */
 		d->keep_alive = FALSE;
-		if (buf && 0 == strcasecmp(buf, "keep-alive"))
+		if (buf && 0 == ascii_strcasecmp(buf, "keep-alive"))
 			d->keep_alive = TRUE;
 	}
 

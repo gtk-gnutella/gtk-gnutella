@@ -1295,7 +1295,7 @@ search_gui_parse_query(const gchar *querystr, const gchar **error)
 		return NULL;
 	}
 
-	if (0 == strncasecmp(query, magnet, CONST_STRLEN(magnet))) {
+	if (0 == ascii_strncasecmp(query, magnet, CONST_STRLEN(magnet))) {
 		gchar raw[SHA1_RAW_SIZE];
 
 		if (urn_get_sha1(query, raw)) {
@@ -1314,7 +1314,7 @@ search_gui_parse_query(const gchar *querystr, const gchar **error)
 	 *		--RAM, 28/06/2002
 	 */
 
-	if (0 == strncasecmp(query, urnsha1, CONST_STRLEN(urnsha1))) {
+	if (0 == ascii_strncasecmp(query, urnsha1, CONST_STRLEN(urnsha1))) {
 		gchar raw[SHA1_RAW_SIZE];
 		gchar *b = &query[CONST_STRLEN(urnsha1)];
 

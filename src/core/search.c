@@ -799,8 +799,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 					payload = ext_payload(e);
 					if (
 						paylen >= 9 &&
-						(0 == strncasecmp(payload, "sha1:", 5) ||
-						 0 == strncasecmp(payload, "bitprint:", 9))
+						(0 == ascii_strncasecmp(payload, "sha1:", 5) ||
+						 0 == ascii_strncasecmp(payload, "bitprint:", 9))
 					) {
 						gchar *buf;
 

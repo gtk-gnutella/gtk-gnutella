@@ -1859,7 +1859,7 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 			if (c == ',') {
 				if (
 					(p[1] == 'h' || p[1] == 'H') &&
-					0 == g_ascii_strncasecmp(&p[1], "http://", 7)
+					0 == ascii_strncasecmp(&p[1], "http://", 7)
 
 				)
 					break;
@@ -1947,7 +1947,7 @@ dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer)
 
             if (
 				(c == 'h' || c == 'H') &&
-				0 == g_ascii_strncasecmp(p, "http://", 7)
+				0 == ascii_strncasecmp(p, "http://", 7)
 			)
 				break;
 

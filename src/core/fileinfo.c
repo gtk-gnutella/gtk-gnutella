@@ -943,7 +943,8 @@ file_info_has_filename(struct dl_file_info *fi, gchar *file)
 	GSList *a;
 
 	for (a = fi->alias; a; a = a->next) {
-		if (0 == strcasecmp((gchar *)a->data, file))
+		/* XXX: UTF-8, locale, what's the proper encoding here? */
+		if (0 == ascii_strcasecmp((gchar *) a->data, file))
 			return TRUE;
 	}
 
@@ -1076,13 +1077,13 @@ looks_like_urn(const gchar *filename)
 	const gchar *p;
 	gint c;
 
-	if (0 == strncasecmp(filename, "urn:", 4))
+	if (0 == ascii_strncasecmp(filename, "urn:", 4))
 		return TRUE;
 
-	if (0 == strncasecmp(filename, "sha1:", 4))
+	if (0 == ascii_strncasecmp(filename, "sha1:", 4))
 		return TRUE;
 
-	if (0 == strncasecmp(filename, "bitprint:", 9))
+	if (0 == ascii_strncasecmp(filename, "bitprint:", 9))
 		return TRUE;
 
 	idx = 0;

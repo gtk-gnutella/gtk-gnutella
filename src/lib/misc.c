@@ -1308,12 +1308,11 @@ done:
 
 /**
  * Copies ``src'' to ``dst'', converting all upper-case characters to
- * lower-case. ``dst'' and ``src'' may point to the same object.
- *
- * NB: Bad name because it might clash with <string.h>.
+ * lower-case. ``dst'' and ``src'' may point to the same object. The
+ * conversion depends on the current locale.
  */
 void
-strlower(gchar *dst, const gchar *src)
+locale_strlower(gchar *dst, const gchar *src)
 {
 	do {
 		*dst++ = tolower((const guchar) *src);
@@ -1342,6 +1341,51 @@ ascii_strlower(gchar *dst, const gchar *src)
 				*dst = ascii_tolower(c);
 			dst++;
 		} while (c != '\0');
+}
+
+/**
+ * Same as strcasecmp() but only case-insensitive for ASCII characters.
+ */
+gint
+ascii_strcasecmp(const gchar *s1, const gchar *s2)
+{
+	gint a, b;
+	
+	g_assert(s1 != NULL);
+	g_assert(s2 != NULL);
+
+	do {
+		a = ascii_tolower((guchar) *s1++);
+		b = ascii_tolower((guchar) *s2++);
+		if (a != b)
+			return a - b;
+	} while (a != '\0');
+	
+	return 0;
+}
+
+/**
+ * Same as strncasecmp() but only case-insensitive for ASCII characters.
+ */
+gint
+ascii_strncasecmp(const gchar *s1, const gchar *s2, size_t len)
+{
+	gint a, b;
+	
+	g_assert(s1 != NULL);
+	g_assert(s2 != NULL);
+	g_assert(len <= INT_MAX);
+
+	while (len-- > 0) {
+		a = ascii_tolower((guchar) *s1++);
+		b = ascii_tolower((guchar) *s2++);
+		if (a != b)
+			return a - b;
+		if (a == '\0')
+			break;
+	}
+	
+	return 0;
 }
 
 

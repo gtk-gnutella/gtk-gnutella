@@ -600,7 +600,10 @@ url_normalize(gchar *url, url_policy_t pol)
 		guint i;
 
 		for (i = 0; i < G_N_ELEMENTS(static_types); i++)
-    		if (!strcasecmp(q - static_types[i].len, static_types[i].ext)) {
+    		if (
+				0 == ascii_strcasecmp(q - static_types[i].len,
+						static_types[i].ext)
+			) {
 				warn = "URL points probably to static data; rejected";
       			goto bad;
     		}

@@ -549,7 +549,7 @@ http_url_parse(
 	if (!path) path = &tmp_path;
 	if (!port) port = &tmp_port;
 
-	if (0 != strncasecmp(url, prefix, CONST_STRLEN(prefix))) {
+	if (0 != ascii_strncasecmp(url, prefix, CONST_STRLEN(prefix))) {
 		http_url_errno = HTTP_URL_NOT_HTTP;
 		return FALSE;
 	}
@@ -716,7 +716,7 @@ http_content_range_parse(const gchar *buf,
 	 *		bytes '=' start '-' end '/' total
 	 */
 
-	if (0 != strncasecmp(s, unit, CONST_STRLEN(unit)))
+	if (0 != ascii_strncasecmp(s, unit, CONST_STRLEN(unit)))
 		return -1;
 
 	s += CONST_STRLEN(unit);

@@ -114,7 +114,7 @@ get_command(const gchar *cmd)
 	guint n;
 
 	for (n = 0; n < G_N_ELEMENTS(commands); n ++) {
-		if (g_ascii_strcasecmp(commands[n].cmd, cmd) == 0)
+		if (ascii_strcasecmp(commands[n].cmd, cmd) == 0)
 			return commands[n].id;
 	}
 
@@ -448,10 +448,10 @@ shell_exec_set(gnutella_shell_t *sh, const gchar *cmd)
 	switch (prop_buf->type) {
 	case PROP_TYPE_BOOLEAN: {
 		gboolean val;
-		if (g_ascii_strcasecmp(tok_value, "true") == 0) {
+		if (ascii_strcasecmp(tok_value, "true") == 0) {
 			val = TRUE;
 		}
-		else if (g_ascii_strcasecmp(tok_value, "false") == 0) {
+		else if (ascii_strcasecmp(tok_value, "false") == 0) {
 			val = FALSE;
 		}
 		else {
@@ -597,7 +597,7 @@ shell_exec_horizon(gnutella_shell_t *sh, const gchar *cmd)
     if (tok != NULL) {
 		shell_write(sh, tok);
 		shell_write(sh, "\n");
-		if (0 == strcasecmp(tok, "ALL")) {
+		if (0 == ascii_strcasecmp(tok, "ALL")) {
 			all = TRUE;
 		} else {
         	sh->msg = _("Unknown parameter");

@@ -4060,7 +4060,7 @@ const char *get_locale_charset(void)
 			first_end = end;
 
  		len = end - start;
-		if (len > 0 && 0 == g_ascii_strncasecmp(cs, start, cs_len)) {
+		if (len > 0 && 0 == ascii_strncasecmp(cs, start, cs_len)) {
 			len = first_end - codesets[i] + 1;
 			g_strlcpy(buf, codesets[i], MIN(len, sizeof(buf)));
 			return buf;
@@ -4144,7 +4144,7 @@ locale_init(void)
 	textdomain_init(charset);
 
 	for (i = 0; i < G_N_ELEMENTS(latin_sets); i++)
-		if (0 == strcasecmp(charset, latin_sets[i])) {
+		if (0 == ascii_strcasecmp(charset, latin_sets[i])) {
 			latin_locale = TRUE;
 			break;
 		}

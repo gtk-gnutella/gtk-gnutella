@@ -3782,7 +3782,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	/* X-Ultrapeer -- support for ultra peer mode */
 
 	field = header_get(head, "X-Ultrapeer");
-	if (field && 0 == strcasecmp(field, "false")) {
+	if (field && 0 == ascii_strcasecmp(field, "false")) {
 		n->attrs &= ~NODE_A_ULTRA;
 		if (current_peermode == NODE_P_ULTRA) {
 			n->flags |= NODE_F_LEAF;		/* Remote accepted to become leaf */
@@ -4033,9 +4033,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	field = header_get(head, "X-Ultrapeer");
 	if (field) {
 		n->attrs |= NODE_A_CAN_ULTRA;
-		if (0 == strcasecmp(field, "true"))
+		if (0 == ascii_strcasecmp(field, "true"))
 			n->attrs |= NODE_A_ULTRA;
-		else if (0 == strcasecmp(field, "false")) {
+		else if (0 == ascii_strcasecmp(field, "false")) {
 			if (current_peermode == NODE_P_ULTRA)
 				n->flags |= NODE_F_LEAF;
 		}
@@ -4178,9 +4178,9 @@ node_process_handshake_header(struct gnutella_node *n, header_t *head)
 	field = header_get(head, "X-Ultrapeer");
 	if (field) {
 		n->attrs |= NODE_A_CAN_ULTRA;
-		if (0 == strcasecmp(field, "true"))
+		if (0 == ascii_strcasecmp(field, "true"))
 			n->attrs |= NODE_A_ULTRA;
-		else if (0 == strcasecmp(field, "false")) {
+		else if (0 == ascii_strcasecmp(field, "false")) {
 			if (current_peermode == NODE_P_ULTRA)
 				n->flags |= NODE_F_LEAF;
 		}
@@ -4479,7 +4479,7 @@ allow_for_now:		/* XXX remove after 2005-01-31 */
 		/* X-Ultrapeer-Needed -- only defined for 2nd reply (outgoing) */
 
 		field = header_get(head, "X-Ultrapeer-Needed");
-		if (field && 0 == strcasecmp(field, "false")) {
+		if (field && 0 == ascii_strcasecmp(field, "false")) {
 			/*
 			 * Remote ultrapeer node wants more leaves.
 			 * If we are an ultrapeer without any leaves yet, accept to
@@ -4515,7 +4515,7 @@ allow_for_now:		/* XXX remove after 2005-01-31 */
 				}
 			}
 		}
-		if (field && 0 == strcasecmp(field, "true")) {
+		if (field && 0 == ascii_strcasecmp(field, "true")) {
 			/*
 			 * Remote ultrapeer node looking for more ultrapeers.
 			 * If we're a leaf node and meet the ultrapeer requirements,
@@ -6784,7 +6784,7 @@ node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 		 */
 
 		if (
-			0 == g_ascii_strncasecmp(vendor, prefix, sizeof prefix - 1) &&
+			0 == ascii_strncasecmp(vendor, prefix, sizeof prefix - 1) &&
 			0 != strcmp_delimit(vendor, full, " /")
 		) {
 			gm_snprintf(buf, sizeof buf, "%s (%s)", full, vendor);

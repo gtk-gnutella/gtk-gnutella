@@ -1587,7 +1587,7 @@ filter_update_size(GtkEntry *entry)
 			} else {
 				m10 *= 1000;
 			}
-			if (0 == strncasecmp(suffix, p, len)) {
+			if (0 == ascii_strncasecmp(suffix, p, len)) {
 				guint64 v, mp = base2 ? m2 : m10;
 				
 				v = size * mp;

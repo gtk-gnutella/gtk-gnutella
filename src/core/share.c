@@ -886,9 +886,9 @@ recurse_scan(gchar *dir, const gchar *basedir)
 			 */
 
 			if (
-				0 == g_ascii_strcasecmp("--all--", e->str) ||	/* All files */
+				0 == ascii_strcasecmp("--all--", e->str) ||	/* All files */
 				(start >= name && *start == '.' &&
-					0 == g_ascii_strcasecmp(start+1, e->str))
+					0 == ascii_strcasecmp(start + 1, e->str))
 			) {
 				struct shared_file *found = NULL;
 

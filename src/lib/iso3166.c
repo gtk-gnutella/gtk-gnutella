@@ -348,7 +348,7 @@ iso3166_encode_cc(const gchar *cc)
 		if (NULL != iso3166_countries[v]) {
 			gint code = v;
         	d = iso3166_decode_cc(code);
-        	g_assert(0 == strcasecmp(cc, d));
+        	g_assert(0 == ascii_strcasecmp(cc, d));
 			return code;
 		}
     }
