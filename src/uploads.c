@@ -2092,10 +2092,14 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			is_followup = FALSE;
 		}
 		
-		u->parq_opaque = parq_upload_get(u, header);
-
-		if (u->parq_opaque == NULL) {
+		if (parq_upload_queue_full(u)) {
 			upload_error_remove(u, reqfile, 503, "Queue full");
+			return;
+		}
+		
+		if ((u->parq_opaque = parq_upload_get(u, header)) == NULL) {
+			upload_error_remove(u, reqfile, 503,
+				"Another connection is still active");
 			return;
 		}
 	}

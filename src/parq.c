@@ -2284,8 +2284,14 @@ gpointer parq_upload_get(gnutella_upload_t *u, header_t *header)
 cleanup:
 	g_assert(parq_ul != NULL);
 
-	if (parq_ul->u != NULL)
-		g_assert(parq_ul->u == u);
+	if (parq_ul->u != NULL) {
+		if (parq_ul->u == u) {
+			g_warning("Request from ip %s (%s), requested a new upload %s while"
+				" another one is still active within PARQ",
+				ip_to_gchar(u->ip), upload_vendor_str(u), u->name);
+			return NULL;
+		}
+	}
 
 	if (parq_ul->queue->by_date_dead != NULL &&
 		  g_list_find(parq_ul->queue->by_date_dead, parq_ul) != NULL)
