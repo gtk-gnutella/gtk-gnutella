@@ -76,8 +76,8 @@ static const gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "Malformed SHA1 Query",
     "Malformed UTF-8 Query",
     "Malformed Query Hit",
-    "Query hit had bad SHA1"
-	"Hostile IP address",
+    "Query hit had bad SHA1",
+	"Hostile IP address"
 };
 
 static const gchar *general_type_str[GNR_TYPE_COUNT] = {
