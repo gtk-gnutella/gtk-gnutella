@@ -325,6 +325,7 @@ struct shared_file {
 	gchar *file_directory_path;
 	guint32 file_index;			/* the files index withing out local DB */
 	guint32 file_size;			/* File size in Bytes */
+	guint32 file_mask_hash;		/* Hash computed by mask_hash() on filename */
 	gint file_name_len;
 };
 
