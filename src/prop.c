@@ -934,15 +934,15 @@ void prop_save_to_file
 		goto end;
 	}
 
+	fprintf(config,
+			"#\n# Gtk-Gnutella %s%s (%s) by Olrick & Co.\n# %s\n#\n",
+			GTA_VERSION_NUMBER,
 #ifdef GTA_REVISION
-	fprintf(config,
-			"#\n# Gtk-Gnutella %s %s (%s) by Olrick & Co.\n# %s\n#\n",
-			version_number, GTA_REVISION, GTA_RELEASE, GTA_WEBSITE);
+			" " GTA_REVISION,
 #else
-	fprintf(config,
-			"#\n# Gtk-Gnutella %s (%s) by Olrick & Co.\n# %s\n#\n",
-			version_number, GTA_RELEASE, GTA_WEBSITE);
+			"",
 #endif
+			GTA_RELEASE, GTA_WEBSITE);
 
     fprintf(config,
 		"#\n# Description of contents\n"
