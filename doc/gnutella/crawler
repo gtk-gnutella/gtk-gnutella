@@ -1,0 +1,61 @@
+This document is a quick overview of how to best make your Gnutella 0.6 client 
+crawler compatible with the LimeWire crawler.
+
+Header Processing
+-----------------
+
+Upon a connection attempt, if you receive the header
+
+    Crawler: majorversion.minorversion
+
+respond with the headers
+
+    Leaves: ipleaf1:port, ipleaf2:port, ...
+    Peers: ippeer1:port, ippeer2:port, ...
+
+After finishing the connection process, just close the connection.
+
+The majorversion.minorversion of the crawler header is currently 0.1.
+
+Leaves specify the ip and port of leaf nodes connected to your client if it is 
+running as an ultrapeer.  Peers specify the non-leaf clients that you are 
+connected to.  i.e. ultrapeers, 0.6 and 0.4 style clients.
+
+Example:
+
+   Crawler                          Client
+   -----------------------------------------------------------
+   GNUTELLA CONNECT/0.6<cr><lf>
+   User-Agent: LimeWire (crawl)<cr><lf>
+   X-Ultrapeer: False<cr><lf>
+   Query-Routing: 0.1<cr><lf>
+   Crawler: 0.1<cr><lf>
+   <cr><lf>
+                                    GNUTELLA/0.6 200 OK<cr><lf>
+                                    User-Agent: BearShare<cr><lf>
+                                    Leaves: 127.0.0.1:80,127.0.0.2:6346,
+                                            127.0.0.3:6346<cr><lf>
+                                    Peers: 127.0.0.4:6346,127.0.0.5:6346,
+                                            127.0.0.6:6346<cr><lf>
+                                    <cr><lf>
+   GNUTELLA/0.6 200 OK<cr><lf>
+   <cr><lf>
+
+   Disconnect                       Disconnect
+
+
+
+This is the preferred method of delivering leaves and peers to the LimeWire 
+crawler.  
+
+The LimeWire crawler will currently wait 40 seconds before disconnecting.  In 
+fact, it always attempts to employ the following backup algorithm.
+
+Traditional Crawler Pings
+-------------------------
+In backup to the pure header only algorithm, the LimeWire crawler will 
+establish the connection as above and then send a crawler ping with 
+hop=0,TTL=2 and read your pong responses.  After sending the crawler ping, 
+it also sends a network ping with hop=1, ttl=6 in an attempt to discover 
+more hosts.  All pongs are processed.  Note that they should not be 
+"Big" pongs with GGEP extensions.
