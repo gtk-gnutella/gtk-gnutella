@@ -1236,7 +1236,7 @@ static gboolean analyse_status(struct gnutella_node *n, gint *code)
 	struct gnutella_socket *s = n->socket;
 	gchar *status;
 	gint ack_code;
-	gint major, minor;
+	gint major = 0, minor = 0;
 	gchar *ack_message = "";
 	gboolean ack_ok = FALSE;
 	gboolean incoming = (n->flags & NODE_F_INCOMING) ? TRUE : FALSE;
