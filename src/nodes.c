@@ -2205,7 +2205,7 @@ void send_node_error(
 			sent, rw, code, msg_tmp, ip_to_gchar(s->ip), g_strerror(errno));
 	} else if (dbg > 2) {
 		printf("----Sent error %d to node %s (%d bytes):\n%.*s----\n",
-			code, ip_to_gchar(s->ip), rw, rw, gnet_response);
+			code, ip_to_gchar(s->ip), rw, (int) rw, gnet_response);
 		fflush(stdout);
 	}
 }
@@ -2581,9 +2581,11 @@ static void node_got_bye(struct gnutella_node *n)
 
 	if (dbg)
 		g_warning("node %s (%s) sent us BYE %d %.*s",
-			node_ip(n), node_vendor(n), code, MIN(80, message_len), message);
+			node_ip(n), node_vendor(n), code, (int) MIN(80, message_len),
+				message);
 
-	node_remove(n, "Got BYE %d %.*s", code, MIN(80, message_len), message);
+	node_remove(n, "Got BYE %d %.*s", code, (int) MIN(80, message_len),
+		message);
 }
 
 /*
@@ -3952,7 +3954,7 @@ static void node_process_handshake_header(
 		return;
 	} else if (dbg > 2) {
 		printf("----Sent OK %s to %s (%d bytes):\n%.*s----\n",
-			what, ip_to_gchar(n->ip), rw, rw, gnet_response);
+			what, ip_to_gchar(n->ip), rw, (int) rw, gnet_response);
 		fflush(stdout);
 	}
 
@@ -4673,7 +4675,7 @@ void node_init_outgoing(struct gnutella_node *n)
 
 		if (dbg > 2) {
 			printf("----Sent HELLO request to %s (%d bytes):\n%.*s----\n",
-				ip_to_gchar(n->ip), len, len, buf);
+				ip_to_gchar(n->ip), len, (int) len, buf);
 			fflush(stdout);
 		}
 	}
