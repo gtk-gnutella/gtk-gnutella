@@ -54,6 +54,7 @@ void vmsg_send_proxy_cancel(struct gnutella_node *n);
 void vmsg_send_oob_reply_ack(struct gnutella_node *n, gchar *muid, guint8 want);
 void vmsg_send_time_sync_req(struct gnutella_node *n, gboolean ntp, tm_t *);
 void vmsg_send_time_sync_reply(struct gnutella_node *n, gboolean ntp, tm_t *);
+void vmsg_send_udp_crawler_pong(struct gnutella_node *n, struct pmsg *mb);
 
 struct pmsg *vmsg_build_oob_reply_ind(gchar *muid, guint8 hits);
 

@@ -1,7 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2004, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -92,6 +92,7 @@ RCSID("$Id$");
 #include "lib/idtable.h"
 #include "lib/listener.h"
 #include "lib/walloc.h"
+#include "lib/zlib_util.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -7119,6 +7120,359 @@ node_active_by_id(guint32 id)
 		return NULL;
 
 	return n;
+}
+
+/***
+ *** UDP Crawling
+ ***/
+
+/**
+ * qsort() callback for sorting nodes by user-agent.
+ */
+static gint
+node_ua_cmp(const void *np1, const void *np2)
+{
+	gnutella_node_t *n1 = *(gnutella_node_t **) np1;
+	gnutella_node_t *n2 = *(gnutella_node_t **) np2;
+
+	if (n1->vendor == NULL)
+		return (n2->vendor == NULL) ? 0 : +1;
+
+	if (n2->vendor == NULL)
+		return (n1->vendor == NULL) ? 0 : -1;
+
+	return strcmp(n1->vendor, n2->vendor);
+}
+
+/**
+ * Append user-agent string to the string holding them, each value being
+ * separated from the previous with NODE_CR_SEPARATOR.
+ *
+ * The LimeWire crawler expects a very simple escaping whereby every
+ * separator found in the vendor string is preceded by NODE_CR_ESCAPE_CHAR.
+ * We further escape the escape character with itself, if found.
+ */
+static void
+node_crawl_append_vendor(GString *ua, gchar *vendor)
+{
+	gchar *p = vendor;
+	gchar c;
+
+	while ((c = *p++)) {
+		if (c == NODE_CR_ESCAPE_CHAR) {
+			g_string_append_c(ua, NODE_CR_ESCAPE_CHAR);
+			g_string_append_c(ua, NODE_CR_ESCAPE_CHAR);
+		} else if (c == NODE_CR_SEPARATOR) {
+			g_string_append_c(ua, NODE_CR_ESCAPE_CHAR);
+			g_string_append_c(ua, c);
+		} else
+			g_string_append_c(ua, c);
+	}
+
+	g_string_append_c(ua, NODE_CR_SEPARATOR);
+}
+
+/**
+ * Fill message with the selected crawling information.
+ *
+ * @param mb		the message into which we're writing
+ * @param ary		the node array
+ * @param start		the starting index in the array
+ * @param len		the array length
+ * @param want		the amount of entries they want
+ * @param features	the selected features to insert
+ * @param now		current time, for connection time computation
+ * @param ua		the concatenated user-agent string
+ *
+ * @return the amount of entries successfully written
+ */
+static gint
+node_crawl_fill(pmsg_t *mb,
+	gnutella_node_t **ary, gint start, gint len, gint want,
+	guint8 features, time_t now, GString *ua)
+{
+	gint i;
+	gint n;
+	gint written = 0;
+
+	g_assert(ary != NULL);
+	g_assert(want > 0);
+	g_assert(len > 0);
+	g_assert(start < len);
+
+	for (i = start, n = 0; n < want; n++) {
+		gnutella_node_t *n = ary[i];
+		gchar addr[6];
+
+		/*
+		 * Add node's address (IP:port).
+		 */
+
+		WRITE_GUINT32_BE(n->ip, &addr[0]);
+		WRITE_GUINT16_LE(n->port, &addr[4]);
+
+		if (sizeof(addr) != pmsg_write(mb, addr, sizeof(addr)))
+			break;
+
+		/*
+		 * If they want the connection time, report it in minutes on
+		 * a two-byte value, emitted in little-endian.
+		 */
+
+		if (features & NODE_CR_CONNECTION) {
+			guint32 connected = delta_time(now, n->connect_date);
+			guint32 minutes = connected / 60;
+			gchar value[2];
+
+			minutes = MIN(minutes, 0xffffU);
+			WRITE_GUINT16_LE(minutes, value);
+			
+			if (sizeof(value) != pmsg_write(mb, value, sizeof(value)))
+				break;
+		}
+
+		/*
+		 * If they want the user-agent of the nodes, append the node's
+		 * vendor to the `ua' string, or "" if unknown.
+		 */
+
+		if (features & NODE_CR_USER_AGENT)
+			node_crawl_append_vendor(ua, n->vendor ? n->vendor : "");
+
+		written++;			/* Completely written */
+		i++;
+		if (i == len)		/* Wrap around index */
+			i = 0;
+	}
+
+	return written;
+}
+
+/**
+ * Received an UDP crawler ping, requesting information about `ucnt' ultra
+ * nodes and `lcnt' leaves.  Processing is further customized with some
+ * `features', a set of flags.
+ */
+void
+node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features)
+{
+	gnutella_node_t **ultras = NULL;	/* Array of ultra nodes */
+	gnutella_node_t **leaves = NULL;	/* Array of leaves */
+	gint ultras_len = 0;				/* Size of `ultras' */
+	gint leaves_len = 0;				/* Size of `leaves' */
+	gint ux = 0;						/* Index in `ultras' */
+	gint lx = 0;						/* Index in `leaves' */
+	gint ui;							/* Iterating index in `ultras' */
+	gint li;							/* Iterating index in `leaves' */
+	gint un;							/* Amount of ultras to send */
+	gint ln;							/* Amount of leaves to send */
+	GSList *sl;
+	gboolean crawlable_only = (features & NODE_CR_CRAWLABLE) ? TRUE : FALSE;
+	gboolean wants_ua = (features & NODE_CR_USER_AGENT) ? TRUE : FALSE;
+	pmsg_t *mb = NULL;
+	pdata_t *db;
+	guchar *payload;					/* Start of constructed payload */
+	GString *agents = NULL;				/* The string holding user-agents */
+	time_t now;
+
+	g_assert(NODE_IS_UDP(n));
+	g_assert(ucnt >= 0 && ucnt <= 255);
+	g_assert(lcnt >= 0 && lcnt <= 255);
+
+	gnet_prop_set_guint32_val(PROP_UDP_CRAWLER_VISIT_COUNT,
+		udp_crawler_visit_count + 1);
+
+	/*
+	 * Build an array of candidate nodes.
+	 */
+
+	if (ucnt) {
+		ultras_len = node_ultra_count * sizeof(gnutella_node_t *);
+		ultras = walloc(ultras_len);
+	}
+
+	if (lcnt) {
+		leaves_len = node_leaf_count * sizeof(gnutella_node_t *);
+		leaves = walloc(leaves_len);
+	}
+
+	for (sl = sl_nodes; sl; sl = g_slist_next(sl)) {
+		gnutella_node_t *n = sl->data;
+
+		if (!NODE_IS_ESTABLISHED(n))
+			continue;
+
+		if (crawlable_only && !(n->attrs & NODE_A_CRAWLABLE))
+			continue;
+
+		if (ucnt && NODE_IS_ULTRA(n)) {
+			g_assert(ux < node_ultra_count);
+			ultras[ux++] = n;
+			continue;
+		}
+
+		if (lcnt && NODE_IS_LEAF(n)) {
+			g_assert(lx < node_leaf_count);
+			leaves[lx++] = n;
+			continue;
+		}
+	}
+
+	if (ux + lx == 0)		/* Nothing selected */
+		goto cleanup;
+
+	/*
+	 * If they want user-agent strings, sort the arrays by user-agent string,
+	 * so that data can be better compressed.
+	 */
+
+	if (wants_ua) {
+		if (ux)
+			qsort(ultras, ux, sizeof(gnutella_node_t *), node_ua_cmp);
+		if (lx)
+			qsort(leaves, lx, sizeof(gnutella_node_t *), node_ua_cmp);
+	}
+
+	/*
+	 * If we have more items than they really want, trim down by randomizing
+	 * the index in the array at which we'll start iterating.
+	 */
+
+	ui = (ux <= ucnt) ? 0 : random_value(ucnt - 1);
+	li = (lx <= lcnt) ? 0 : random_value(lcnt - 1);
+
+	/*
+	 * Construct the payload of the reply in a message buffer.
+	 * We indicate that the first 3 bytes are already "written", since
+	 * they will be inserted manually.
+	 */
+
+	db = rxbuf_new();
+	mb = pmsg_alloc(PMSG_P_DATA, db, 0, 3);		/* 3 bytes of header */
+	payload = (guchar *) pmsg_start(mb);
+
+	/*
+	 * The first 3 bytes of the payload are:
+	 *
+	 *	1- # of ultra node returned.
+	 *	2- # of leaf nodes returned.
+	 *  3- the features we retained.
+	 */
+
+	features &= ~NODE_CR_LOCALE;	/* XXX no support for locales yet */
+
+	un = MIN(ux, ucnt);
+	ln = MIN(lx, lcnt);
+
+	payload[0] = un;
+	payload[1] = ln;
+	payload[2] = features;
+
+	g_assert(pmsg_size(mb) == 3);
+
+	/*
+	 * We start looping over the ultra nodes, then continue with the leaf
+	 * nodes.  For each entry, we write the IP:port, followed by one or all
+	 * of the following: connection time in minutes, language info.
+	 */
+
+	now = time(NULL);
+
+	if (features & NODE_CR_USER_AGENT)
+		agents = g_string_sized_new((un + ln) * 15);
+
+	if (ux)
+		ui = node_crawl_fill(mb, ultras, ui, ux, un, features, now, agents);
+	if (lx)
+		li = node_crawl_fill(mb, leaves, li, lx, ln, features, now, agents);
+
+	if (ui != un) {
+		g_assert(ui < un);
+		payload[0] = ui;
+		g_warning("crawler pong can only hold %d ultras out of selected %d",
+			ui, un);
+	}
+
+	if (li != ln) {
+		g_assert(li < ln);
+		payload[1] = li;
+		g_warning("crawler pong can only hold %d leaves out of selected %d",
+			li, ln);
+	}
+
+	if (ui + li == 0) {
+		g_warning("crawler pong ended up having nothing to send back");
+		goto cleanup;
+	}
+
+	/*
+	 * If they want user-agents, compress the string we have.
+	 */
+
+	if (features & NODE_CR_USER_AGENT) {
+		zlib_deflater_t *zd;
+		gint ret;
+
+		g_assert(agents->len > 0);
+
+		zd = zlib_deflater_make(
+			agents->str,
+			agents->len - 1,			/* Drop trailing separator */
+			Z_DEFAULT_COMPRESSION);
+
+		ret = zlib_deflate(zd, agents->len - 1);	/* Compress the whole */
+
+		if (ret != 0) {
+			if (ret == -1)
+				g_warning("crawler user-agent compression failed");
+			else
+				g_warning("crawler user-agent compression did not terminate?");
+
+			payload[2] &= ~NODE_CR_USER_AGENT;		/* Don't include it then */
+		} else {
+			gchar *dpayload = zlib_deflater_out(zd);
+			gint dlen = zlib_deflater_outlen(zd);
+			gint remains;
+
+			if (dbg) g_message(
+				"crawler compressed %d bytes user-agent string into %d",
+				agents->len - 1, dlen);
+
+			/*
+			 * If we have room to include it, do so.
+			 */
+
+			remains = pdata_len(db) - pmsg_size(mb);
+			if (remains < dlen)
+				g_warning("crawler cannot include %d bytes user-agent: "
+					"only %d bytes left in buffer", dlen, remains);
+			else
+				pmsg_write(mb, dpayload, dlen);
+
+			g_assert(dlen == pmsg_size(mb) - (pdata_len(db) - remains));
+		}
+
+		zlib_deflater_free(zd, TRUE);
+	}
+
+	if (dbg) g_message(
+		"crawler sending data for %u ultras and %u leaves: %d bytes, "
+		"features=0x%x to %s",
+		payload[0], payload[1], pmsg_size(mb), payload[2], node_ip(n));
+
+	vmsg_send_udp_crawler_pong(n, mb);
+
+	/* FALL THROUGH */
+
+cleanup:
+	if (mb)
+		pmsg_free(mb);
+	if (ultras)
+		wfree(ultras, ultras_len);
+	if (leaves)
+		wfree(leaves, leaves_len);
+	if (agents)
+		g_string_free(agents, TRUE);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -50,6 +50,7 @@ RCSID("$Id$");
 #include "clock.h"
 #include "tsync.h"
 #include "hosts.h"
+#include "pmsg.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -59,7 +60,7 @@ RCSID("$Id$");
 #include "lib/vendors.h"
 #include "lib/override.h"	/* Must be the last header included */
 
-static gchar v_tmp[256];	/* Large enough for a payload of 225 bytes */
+static gchar v_tmp[4128];	/* Large enough for a payload of 4K */
 
 /*
  * Vendor message handler.
@@ -109,6 +110,8 @@ static void handle_time_sync_req(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
 static void handle_time_sync_reply(struct gnutella_node *n,
 	struct vmsg *vmsg, gchar *payload, gint size);
+static void handle_udp_crawler_ping(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size);
 
 /*
  * Known vendor-specific messages.
@@ -127,7 +130,7 @@ static struct vmsg vmsg_map[] = {
 	{ T_GTKG, 0x0009, 0x0001, handle_time_sync_req, "Time Sync Request" },
 	{ T_GTKG, 0x000a, 0x0001, handle_time_sync_reply, "Time Sync Reply" },
 	{ T_GTKG, 0x0015, 0x0001, handle_proxy_cancel, "Push-Proxy Cancel" },
-	{ T_LIME, 0x000b, 0x0001, handle_oob_reply_ack, "OOB Reply Ack" },
+	{ T_LIME, 0x0005, 0x0001, handle_udp_crawler_ping, "UDP Crawler Ping" },
 	{ T_LIME, 0x000b, 0x0002, handle_oob_reply_ack, "OOB Reply Ack" },
 	{ T_LIME, 0x000c, 0x0001, handle_oob_reply_ind, "OOB Reply Indication" },
 	{ T_LIME, 0x000c, 0x0002, handle_oob_reply_ind, "OOB Reply Indication" },
@@ -433,6 +436,13 @@ handle_messages_supported(struct gnutella_node *n,
 			vm->handler == handle_time_sync_reply
 		)
 			node_can_tsync(n);
+
+		/*
+		 * UDP-crawling support.
+		 */
+
+		if (vm->handler == handle_udp_crawler_ping)
+			n->attrs |= NODE_A_CRAWLABLE;
 	}
 }
 
@@ -1355,6 +1365,88 @@ vmsg_send_time_sync_reply(struct gnutella_node *n, gboolean ntp, tm_t *got)
 		mq_udp_node_putq(n->outq, mb, n);
 	else
 		mq_putq(n->outq, mb);
+}
+
+/**
+ * Handle reception of an UDP crawler ping.
+ */
+static void
+handle_udp_crawler_ping(struct gnutella_node *n,
+	struct vmsg *vmsg, gchar *payload, gint size)
+{
+	guint8 number_up;
+	guint8 number_leaves;
+	guint8 features;
+
+	/*
+	 * We expect those messages to come via UDP.
+	 */
+
+	if (!NODE_IS_UDP(n)) {
+		g_warning("got %s/%uv%u from TCP via %s, ignoring",
+			vendor_code_str(vmsg->vendor), vmsg->id, vmsg->version, node_ip(n));
+		return;
+	}
+
+	/*
+	 * The format of the message was reverse-engineered from LimeWire's code.
+	 * The version 1 message is claimed to be forward compatible with future
+	 * versions, meaning the first 3 bytes will remain in newer versions.
+	 *
+	 * The payload is made of 3 bytes:
+	 *
+	 *   number_up: 	the # of UP they want to know about (255 means ALL)
+	 *   number_leaves: the # of leaves they want to know about (255 means ALL)
+	 *	 features:		some flags defining what to return
+	 *					0x1 - connection time, in minutes
+	 *					0x2 - locale info (2-letter language code)
+	 *					0x4 - "new" peers only (supporting this LIME/5 message)
+	 *					0x8 - user agent of peers, separated by ";" and deflated
+	 *
+	 * Upon reception of this message, an "UDP Crawler Pong" (LIME/6v1) is built
+	 * and sent back to the requester.
+	 */
+
+	if (vmsg->version == 1 && size != 3) {
+		vmsg_bad_payload(n, vmsg, size, 3);
+		return;
+	}
+
+	number_up = payload[0];
+	number_leaves = payload[1];
+	features = payload[2] & NODE_CR_MASK;
+
+	node_crawl(n, number_up, number_leaves, features);
+}
+
+/**
+ * Send UDP crawler pong, in reply to their ping.
+ * The supplied message block contains the payload to send back.
+ */
+void
+vmsg_send_udp_crawler_pong(struct gnutella_node *n, pmsg_t *mb)
+{
+	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
+	guint32 msgsize;
+	guint32 paysize = pmsg_size(mb);
+	gchar *payload;
+
+	g_assert(NODE_IS_UDP(n));
+
+	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
+	payload = vmsg_fill_type(&m->data, T_LIME, 6, 1);
+
+	memcpy(payload, pmsg_start(mb), paysize);
+
+	if (vmsg_debug > 1) {
+		guint8 nup = payload[0];
+		guint8 nleaves = payload[1];
+
+		printf("VMSG sending %s with up=%u and leaves=%u to %s\n",
+			gmsg_infostr_full(m), nup, nleaves, node_ip(n));
+	}
+
+	udp_send_reply(n, m, msgsize);
 }
 
 /* vi: set ts=4: */

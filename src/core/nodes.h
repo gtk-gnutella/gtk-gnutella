@@ -299,6 +299,7 @@ typedef struct gnutella_node {
 #define NODE_A_UP_QRP		0x00000100	/* Supports intra-UP QRP */
 #define NODE_A_LEAF_GUIDE	0x00000200	/* Supports leaf-guided dyn queries */
 #define NODE_A_TIME_SYNC	0x00000400	/* Supports time sync */
+#define NODE_A_CRAWLABLE	0x00000800	/* Node can be UDP-crawled */
 
 #define NODE_A_CAN_HSEP		0x04000000	/* Node supports HSEP */
 #define NODE_A_CAN_QRP		0x08000000	/* Node supports query routing */
@@ -307,6 +308,18 @@ typedef struct gnutella_node {
 #define NODE_A_CAN_ULTRA	0x40000000	/* Node is ultra capable */
 #define NODE_A_CAN_INFLATE	0x80000000	/* Node capable of inflating */
 
+/*
+ * UDP crawling "feature" flags.
+ */
+
+#define NODE_CR_CONNECTION	0x01		/* Include connection times */
+#define NODE_CR_LOCALE		0x02		/* Include locale information */
+#define NODE_CR_CRAWLABLE	0x04		/* Include crawlable peers only */
+#define NODE_CR_USER_AGENT	0x08		/* Include user-agent strings */
+#define NODE_CR_MASK		0x0f		/* Mask for supported features */
+
+#define NODE_CR_SEPARATOR	';'
+#define NODE_CR_ESCAPE_CHAR	'\\'
 
 /*
  * State inspection macros.
@@ -556,6 +569,7 @@ void node_udp_process(struct gnutella_socket *s);
 gnutella_node_t *node_udp_get_ip_port(guint32 ip, guint16 port);
 
 void node_can_tsync(gnutella_node_t *n);
+void node_crawl(gnutella_node_t *n, gint ucnt, gint lcnt, guint8 features);
 
 #endif /* _core_nodes_h_ */
 
