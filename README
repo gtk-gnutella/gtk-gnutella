@@ -171,8 +171,20 @@ memory. The function "strdup()" will allocate memory that needs to be
 "free()" in some cases. maloc is used a lot.
 
 When editing the code, please turn off any options in your editor that
-replaces tabs with spaces. We use tabs that create 3 spaces in our source
+replaces tabs with spaces. We use tabs that create 4 spaces in our source
 files. And turn off line wrapping!
+
+Some common inline mode settings for editors are:
+
+	/* vi: set ts=4 */
+
+for vi and its relations, and
+
+	/* -*- mode: cc-mode; tab-width:4 ;-*- */
+
+for emacsen and its cousins.
+
+Consider src/header.c and src/header.h good examples of that style.
 
 Please use the patch manager found on the main development page to post
 any patches you may have come up with. It allows you to upload the patch
