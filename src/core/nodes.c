@@ -6754,6 +6754,13 @@ node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 	} else {
 		static const char prefix[] = "morph", full[] = "Morpheus";
 
+		/*
+		 * Morpheus names its servents as "morph350" or "morph461" and
+		 * this perturbs the anti-monopoly features by making them appear
+		 * as all different whereas they are really incarnations of the
+		 * same servent.  Normalize their name.
+		 */
+
 		if (
 			0 == g_ascii_strncasecmp(vendor, prefix, sizeof prefix - 1) &&
 			0 != strcmp_delimit(vendor, full, " /")
