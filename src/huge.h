@@ -53,6 +53,7 @@ gboolean huge_http_sha1_extract32(gchar *buf, gchar *retval);
 gboolean huge_sha1_extract32(gchar *buf, gint len, gchar *retval,
 	gpointer header, gboolean check_old);
 gboolean huge_extract_sha1(gchar *buf, gchar *digest);
+gboolean huge_extract_sha1_no_urn(gchar *buf, gchar *digest);
 
 void huge_collect_locations(gchar *sha1, struct header *header);
 
