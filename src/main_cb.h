@@ -57,4 +57,9 @@ void on_button_abort_quit_clicked(GtkButton *button, gpointer user_data);
 gboolean on_dlg_quit_delete_event(
     GtkWidget *widget, GdkEvent *event, gpointer user_data);
 
+#ifdef USE_GTK2
+void on_main_gui_treeview_menu_cursor_changed(GtkTreeView *, gpointer);
+#endif
+
+
 #endif /* __main_cb_h__ */

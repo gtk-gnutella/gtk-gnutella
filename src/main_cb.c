@@ -113,3 +113,22 @@ gboolean on_dlg_quit_delete_event(
     gtk_widget_hide(dlg_quit);
     return TRUE;
 }
+
+#ifdef USE_GTK2
+void on_main_gui_treeview_menu_cursor_changed(
+    GtkTreeView *treeview, gpointer user_data)
+{   
+    GtkTreeSelection *selection;
+    GtkTreeModel *model = NULL;
+    GtkTreeIter iter; 
+    gint tab = 0;
+    
+    g_assert(treeview != NULL);
+    selection = gtk_tree_view_get_selection(treeview);
+    if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+        gtk_tree_model_get(GTK_TREE_MODEL(model), &iter, 1, &tab, -1);
+        gtk_notebook_set_page
+            (GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")), tab);
+    }
+}
+#endif

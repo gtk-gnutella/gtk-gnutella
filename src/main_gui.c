@@ -122,10 +122,81 @@ void load_legacy_settings(void)
     g_free(home_dir);
 }
 
-static void gui_init_menu() 
+static void gui_init_window_title(void)
 {
-    gchar * title;
-	gint optimal_width;
+	gchar tmpstr[256];
+
+	g_snprintf(tmpstr, sizeof(tmpstr),
+#ifdef GTA_REVISION
+		"gtk-gnutella %s %s", version_number, GTA_REVISION
+#else
+		"gtk-gnutella %s", version_number
+#endif
+	);
+	gtk_window_set_title(GTK_WINDOW(main_window), tmpstr);
+}
+
+#ifdef USE_GTK2
+static void gui_init_menu(void) 
+{
+	GtkTreeView	*treeview;
+	GtkTreeIter	iter, parent;
+	GtkTreeStore *store;
+	GtkTreeViewColumn *column;
+
+	treeview = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_menu"));
+	store = gtk_tree_store_new(2, G_TYPE_STRING, G_TYPE_INT);
+
+	gtk_tree_store_append(store, &parent, NULL);
+	gtk_tree_store_set(store, &parent,
+		0, "gnutellaNet", 1, nb_main_page_gnet, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, "Stats", 1, nb_main_page_gnet_stats, -1);
+
+	gtk_tree_store_append(store, &parent, NULL);
+	gtk_tree_store_set(store, &parent,
+		0, "Uploads", 1, nb_main_page_uploads, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, "Stats", 1, nb_main_page_uploads_stats, -1);
+
+	gtk_tree_store_append(store, &parent, NULL);
+	gtk_tree_store_set(store, &parent,
+		0, "Downloads", 1, nb_main_page_downloads, -1);
+
+	gtk_tree_store_append(store, &parent, NULL);
+	gtk_tree_store_set(store, &parent,
+		0, "Search", 1, nb_main_page_search, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, "Monitor", 1, nb_main_page_monitor, -1);
+	gtk_tree_store_append(store, &iter, &parent);
+	gtk_tree_store_set(store, &iter,
+		0, "Stats", 1, nb_main_page_search_stats, -1);
+
+	gtk_tree_store_append(store, &parent, NULL);
+	gtk_tree_store_set(store, &parent, 0, "Config", 1, nb_main_page_config, -1);
+
+	gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
+	g_object_unref(store);
+
+	column = gtk_tree_view_column_new_with_attributes(
+		NULL, gtk_cell_renderer_text_new(), "text", 0, NULL);
+    gtk_tree_view_column_set_resizable(column, TRUE);
+    gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_FIXED);
+    gtk_tree_view_append_column(treeview, column);
+	gtk_tree_view_columns_autosize(treeview);
+
+	g_signal_connect(G_OBJECT(treeview), "cursor-changed",
+		G_CALLBACK(on_main_gui_treeview_menu_cursor_changed), NULL);
+}
+
+#else
+
+static void gui_init_menu(void) 
+{
+	gchar *title;
 	GtkCTreeNode *parent_node = NULL;    
 	GtkCTreeNode *last_node = NULL;
     GtkCTree *ctree_menu =
@@ -171,7 +242,6 @@ static void gui_init_menu()
     title = (gchar *) &"Downloads";
     last_node = gtk_ctree_insert_node(
 		GTK_CTREE(ctree_menu), NULL, NULL, &title,
-
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
     gtk_ctree_node_set_row_data(
 		GTK_CTREE(ctree_menu), last_node, 
@@ -207,27 +277,15 @@ static void gui_init_menu()
     // Config
     title = (gchar *) &"Config";
     last_node = gtk_ctree_insert_node(
-		GTK_CTREE(ctree_menu), NULL, NULL, (gchar **) &title,
+		GTK_CTREE(ctree_menu), NULL, NULL, &title,
         0, NULL, NULL, NULL, NULL, TRUE, TRUE );
     gtk_ctree_node_set_row_data(
 		GTK_CTREE(ctree_menu), last_node, 
         (gpointer) nb_main_page_config);
 
 	gtk_clist_select_row(GTK_CLIST(ctree_menu), 0, 0);
-
-    optimal_width =
-		gtk_clist_optimal_column_width(GTK_CLIST(ctree_menu), 0);
-
-#ifdef GTA_REVISION
-	g_snprintf(tmpstr, sizeof(tmpstr),
-		"gtk-gnutella %s %s", version_number, GTA_REVISION);
-#else
-	g_snprintf(tmpstr, sizeof(tmpstr), "gtk-gnutella %s", version_number);
-#endif
-
-	gtk_window_set_title(GTK_WINDOW(main_window), tmpstr);
 }
-
+#endif /* USE_GTK2 */
 
 
 /***
@@ -269,6 +327,7 @@ void main_gui_early_init(gint argc, gchar **argv)
     statusbar_gui_init();
 
     gui_init_menu();
+	gui_init_window_title();
 
     /* about box */
 #ifdef GTA_REVISION

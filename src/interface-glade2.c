@@ -4215,8 +4215,7 @@ create_main_window (void)
   GtkWidget *hpaned_main;
   GtkWidget *vpaned_sidebar;
   GtkWidget *scrolledwindow25;
-  GtkWidget *ctree_menu;
-  GtkWidget *label346;
+  GtkWidget *treeview_menu;
   GtkWidget *vbox46;
   GtkWidget *notebook_sidebar;
   GtkWidget *hb_searches;
@@ -4334,6 +4333,8 @@ create_main_window (void)
   GtkWidget *frame7;
   GtkWidget *vbox19;
   GtkWidget *scrolledwindow19;
+  GtkWidget *viewport9;
+  GtkWidget *frame68;
   GtkWidget *treeview_ul_stats;
   GtkWidget *ul_stats_hbox2;
   GtkWidget *button_ul_stats_clear_deleted;
@@ -5143,18 +5144,12 @@ create_main_window (void)
   gtk_paned_pack1 (GTK_PANED (vpaned_sidebar), scrolledwindow25, FALSE, TRUE);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow25), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  ctree_menu = gtk_ctree_new (1, 0);
-  gtk_widget_set_name (ctree_menu, "ctree_menu");
-  gtk_widget_show (ctree_menu);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow25), ctree_menu);
-  gtk_clist_set_column_width (GTK_CLIST (ctree_menu), 0, 80);
-  gtk_clist_column_titles_hide (GTK_CLIST (ctree_menu));
-
-  label346 = gtk_label_new ("label346");
-  gtk_widget_set_name (label346, "label346");
-  gtk_widget_show (label346);
-  gtk_clist_set_column_widget (GTK_CLIST (ctree_menu), 0, label346);
-  gtk_label_set_justify (GTK_LABEL (label346), GTK_JUSTIFY_LEFT);
+  treeview_menu = gtk_tree_view_new ();
+  gtk_widget_set_name (treeview_menu, "treeview_menu");
+  gtk_widget_show (treeview_menu);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow25), treeview_menu);
+  gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (treeview_menu), FALSE);
+  gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_menu), FALSE);
 
   vbox46 = gtk_vbox_new (FALSE, 4);
   gtk_widget_set_name (vbox46, "vbox46");
@@ -5830,10 +5825,21 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (vbox19), scrolledwindow19, TRUE, TRUE, 0);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow19), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
+  viewport9 = gtk_viewport_new (NULL, NULL);
+  gtk_widget_set_name (viewport9, "viewport9");
+  gtk_widget_show (viewport9);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow19), viewport9);
+
+  frame68 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame68, "frame68");
+  gtk_widget_show (frame68);
+  gtk_container_add (GTK_CONTAINER (viewport9), frame68);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame68), GTK_SHADOW_IN);
+
   treeview_ul_stats = gtk_tree_view_new ();
   gtk_widget_set_name (treeview_ul_stats, "treeview_ul_stats");
   gtk_widget_show (treeview_ul_stats);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow19), treeview_ul_stats);
+  gtk_container_add (GTK_CONTAINER (frame68), treeview_ul_stats);
   gtk_tree_view_set_reorderable (GTK_TREE_VIEW (treeview_ul_stats), TRUE);
   gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_ul_stats), FALSE);
 
@@ -9092,9 +9098,6 @@ create_main_window (void)
   g_signal_connect ((gpointer) togglebutton_queue_freeze, "toggled",
                     G_CALLBACK (on_togglebutton_queue_freeze_toggled),
                     NULL);
-  g_signal_connect ((gpointer) ctree_menu, "tree_select_row",
-                    G_CALLBACK (on_ctree_menu_tree_select_row),
-                    NULL);
   g_signal_connect ((gpointer) progressbar_bws_in, "button_press_event",
                     G_CALLBACK (on_progressbar_bws_in_button_press_event),
                     NULL);
@@ -9366,8 +9369,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, hpaned_main, "hpaned_main");
   GLADE_HOOKUP_OBJECT (main_window, vpaned_sidebar, "vpaned_sidebar");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow25, "scrolledwindow25");
-  GLADE_HOOKUP_OBJECT (main_window, ctree_menu, "ctree_menu");
-  GLADE_HOOKUP_OBJECT (main_window, label346, "label346");
+  GLADE_HOOKUP_OBJECT (main_window, treeview_menu, "treeview_menu");
   GLADE_HOOKUP_OBJECT (main_window, vbox46, "vbox46");
   GLADE_HOOKUP_OBJECT (main_window, notebook_sidebar, "notebook_sidebar");
   GLADE_HOOKUP_OBJECT (main_window, hb_searches, "hb_searches");
@@ -9480,6 +9482,8 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, frame7, "frame7");
   GLADE_HOOKUP_OBJECT (main_window, vbox19, "vbox19");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow19, "scrolledwindow19");
+  GLADE_HOOKUP_OBJECT (main_window, viewport9, "viewport9");
+  GLADE_HOOKUP_OBJECT (main_window, frame68, "frame68");
   GLADE_HOOKUP_OBJECT (main_window, treeview_ul_stats, "treeview_ul_stats");
   GLADE_HOOKUP_OBJECT (main_window, ul_stats_hbox2, "ul_stats_hbox2");
   GLADE_HOOKUP_OBJECT (main_window, button_ul_stats_clear_deleted, "button_ul_stats_clear_deleted");
