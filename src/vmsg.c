@@ -233,6 +233,10 @@ void vmsg_send_hops_flow(struct gnutella_node *n, guint8 hops)
 	payload = vmsg_fill_type(&hflow->data, T_BEAR, 4, 1);
 	*payload = hops;
 
+	/*
+	 * Send the message as a control message, so that it gets sent ASAP.
+	 */
+
 	gmsg_ctrl_sendto_one(n, (guchar *) hflow, msgsize);
 }
 
@@ -286,6 +290,6 @@ void vmsg_send_connect_back(struct gnutella_node *n, guint16 port)
 
 	WRITE_GUINT16_LE(port, payload);
 
-	gmsg_ctrl_sendto_one(n, (guchar *) cbak, msgsize);
+	gmsg_sendto_one(n, (guchar *) cbak, msgsize);
 }
 
