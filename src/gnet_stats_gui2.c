@@ -526,7 +526,7 @@ void gnet_stats_gui_init(void)
 		for (i = 0; n == 0 && i < MSG_DROP_REASON_COUNT; i++) {
 			gtk_list_store_append(GTK_LIST_STORE(model), &iter);
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-				0, msg_drop_str(n), 1, "-", (-1));
+				0, msg_drop_str(i), 1, "-", (-1));
 		}
 
 		add_column(treeview, n, width[n], (gfloat) n != 0,
@@ -553,7 +553,7 @@ void gnet_stats_gui_init(void)
 		for (i = 0; n == 0 && i < GNR_TYPE_COUNT; i++) {
 			gtk_list_store_append(GTK_LIST_STORE(model), &iter);
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-				0, general_type_str(n), 1, "-", (-1));
+				0, general_type_str(i), 1, "-", (-1));
 		}
 		add_column(treeview, n, width[n], (gfloat) n != 0,
 			n == 0 ? "Type" : "Count");
