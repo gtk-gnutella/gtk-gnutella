@@ -3308,9 +3308,14 @@ static void err_header_read_eof(gpointer o)
 		 * closed the connection (probably after serving the last byte
 		 * of the previous request).
 		 *		--RAM, 01/09/2002
+		 *
+		 * If server shrunk our reply, then it's probably a server
+		 * implementing some kind of "rotating" queues.  Don't activate
+		 * the "no keepalive" attribute then.
+		 *		--RAM, 05/07/2003
 		 */
 
-		if (d->keep_alive)
+		if (d->keep_alive && !(d->flags & DL_F_SHRUNK_REPLY))
 			d->server->attrs |= DLS_A_NO_KEEPALIVE;
 
 		/*
@@ -4770,9 +4775,15 @@ static void download_request(
 		 */
 
 		if (0 == strncmp(download_vendor_str(d), "gtk-gnutella/", 13)) {
+			gboolean was_banning = d->server->attrs & DLS_A_BANNING;
+
 			d->server->attrs &= ~DLS_A_BANNING;
 			d->server->attrs &= ~DLS_A_MINIMAL_HTTP;
 			d->server->attrs &= ~DLS_A_FAKE_G2;
+
+			if (was_banning)
+				gui_update_download_server(d);
+
 		} else if (!(d->server->attrs & DLS_A_BANNING)) {
 			switch (ack_code) {
 			case 401:
@@ -4804,6 +4815,9 @@ static void download_request(
 				download_queue_delay(d,
 					delay ? delay : download_retry_busy_delay,
 					"%sHTTP %d %s", short_read, ack_code, ack_message);
+
+				gui_update_download_server(d);
+
 				return;
 			}
 		}
