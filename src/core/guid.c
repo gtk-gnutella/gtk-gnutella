@@ -191,35 +191,52 @@ guid_flag_gtkg(gchar *xuid)
 }
 
 /**
- * Test whether GUID is that of GTKG, and extract version major/minor, along
- * with release status provided the `majp', `minp' and `relp' are non-NULL.
+ * Decode major/minor and release information from the specified two
+ * contiguous GUID bytes.
+ *
+ * @param xuid is the GUID considered
+ * @param start is the offset of the markup (2 or 4) in the GUID
+ * @param majp is filled with the major version if it's a GTKG markup
+ * @param minp is filled with the minor version if it's a GTKG markup
+ * @param relp is filled with the release status if it's a GTKG markup
+ *
+ * @return whether we recognized a GTKG markup.
  */
-gboolean
-guid_is_gtkg(const gchar *guid, guint8 *majp, guint8 *minp, gboolean *relp)
+static gboolean
+guid_extract_gtkg_info(
+	const guint8 *xuid, gint start, guint8 *majp, guint8 *minp, gboolean *relp)
 {
 	guint8 major;
 	guint8 minor;
 	gboolean release;
 	guint16 mark;
 	guint16 xmark;
-	const guint8 *xuid = (const guint8 *) guid;
 
-	if (xuid[0] != guid_hec(guid))
-		return FALSE;
-
-	major = xuid[2] & 0x0f;
-	minor = xuid[3] & 0x7f;
-	release = (xuid[3] & 0x80) ? FALSE : TRUE;
+	major = xuid[start] & 0x0f;
+	minor = xuid[start+1] & 0x7f;
+	release = (xuid[start+1] & 0x80) ? FALSE : TRUE;
 
 	mark = guid_gtkg_encode_version(major, minor, release);
-	xmark = (xuid[2] << 8) | xuid[3];
+	xmark = (xuid[start] << 8) | xuid[start+1];
 
 	if (mark != xmark)
 		return FALSE;
 
 	/*
+	 * Even if by extraordinary the above check matches, make sure we're
+	 * not distant from more than one major version.  Since GTKG versions
+	 * expire every year, and I don't foresee more than one major version
+	 * release per year, this strengthens the positive check.
+	 */
+
+	if (major != GTA_VERSION) {
+		if (major + 1 != GTA_VERSION || major - 1 != GTA_VERSION)
+			return FALSE;
+	}
+
+	/*
 	 * We've validated the GUID: the HEC is correct and the version is
-	 * consistently encoded, judging by the highest 4 bits of xuid[2].
+	 * consistently encoded, judging by the highest 4 bits of xuid[4].
 	 */
 
 	if (majp) *majp = major;
@@ -227,6 +244,21 @@ guid_is_gtkg(const gchar *guid, guint8 *majp, guint8 *minp, gboolean *relp)
 	if (relp) *relp = release;
 
 	return TRUE;
+}
+
+/**
+ * Test whether GUID is that of GTKG, and extract version major/minor, along
+ * with release status provided the `majp', `minp' and `relp' are non-NULL.
+ */
+gboolean
+guid_is_gtkg(const gchar *guid, guint8 *majp, guint8 *minp, gboolean *relp)
+{
+	const guint8 *xuid = (const guint8 *) guid;
+
+	if (xuid[0] != guid_hec(guid))
+		return FALSE;
+
+	return guid_extract_gtkg_info(xuid, 2, majp, minp, relp);
 }
 
 /**
@@ -277,6 +309,44 @@ guid_query_muid(gchar *muid, gboolean initial)
 }
 
 /**
+ * Flag a MUID for OOB queries as being from GTKG, by patching `xuid' in place.
+ *
+ * Bytes 4/5 become the GTKG version mark.
+ * Byte 15 becomes the HEC of the leading 15 bytes.
+ */
+static void
+guid_flag_oob_gtkg(gchar *xuid)
+{
+	xuid[4] = gtkg_version_mark >> 8;
+	xuid[5] = gtkg_version_mark & 0xff;
+	xuid[15] = guid_hec(xuid - 1);		/* guid_hec() skips leading byte */
+}
+
+/**
+ * Test whether GUID is that of GTKG, and extract version major/minor, along
+ * with release status provided the `majp', `minp' and `relp' are non-NULL.
+ */
+static gboolean
+guid_oob_is_gtkg(const gchar *guid, guint8 *majp, guint8 *minp, gboolean *relp)
+{
+	const guint8 *xuid = (const guint8 *) guid;
+
+	/*
+	 * The HEC for OOB queries is made of the first 15 bytes.  We can offset
+	 * the argument to guid_hec() by 1 because that routine starts at the byte
+	 * after its argument.
+	 *
+	 * Also bit 0 of the HEC is not significant (used to mark requeries)
+	 * therefore it is masked out for comparison purposes.
+	 */
+
+	if ((xuid[15] & ~GUID_REQUERY) != (guid_hec(guid - 1) & ~GUID_REQUERY))
+		return FALSE;
+
+	return guid_extract_gtkg_info(xuid, 4, majp, minp, relp);
+}
+
+/**
  * Check whether the MUID of a query is that of GTKG.
  *
  * GTKG uses GUID tagging, but unfortunately, the bytes uses to store the
@@ -293,11 +363,52 @@ gboolean
 guid_query_muid_is_gtkg(
 	const gchar *guid, gboolean oob, guint8 *majp, guint8 *minp, gboolean *relp)
 {
-	// XXX change when GTKG generates OOB queries
+	gboolean is_gtkg;
+
 	if (oob)
-		return FALSE;
+		return guid_oob_is_gtkg(guid, majp, minp, relp);
+
+	/*
+	 * There is an ambiguity if the query is not marked as being OOB,
+	 * because GTKG can initially select an OOB-encoding of the GUID yet
+	 * not emit the query with the OOB flag because it realizes the servent
+	 * is UDP-firewalled, or the user changed his mind and turned off OOB
+	 * queries.
+	 *
+	 * Therefore, try to decode as OOB first, and if it fails being recognized
+	 * as a GTKG marking, use the plain old markup instead.
+	 */
+
+	is_gtkg = guid_oob_is_gtkg(guid, majp, minp, relp);
+
+	if (is_gtkg)
+		return TRUE;
 
 	return guid_is_gtkg(guid, majp, minp, relp);	/* Plain old markup */
+}
+
+/**
+ * Generate GUID for a query with OOB results delivery.
+ * If `initial' is false, this is a requery.
+ *
+ * Bytes 0 to 3 if the GUID are the 4 octet bytes of the IP address.
+ * Bytes 13 and 14 are the little endian representation of the port.
+ * Byte 15 holds an HEC with bit 0 indicating a requery.
+ */
+void
+guid_query_oob_muid(gchar *muid, guint32 ip, guint16 port, gboolean initial)
+{
+	guid_random_fill(muid);
+
+	WRITE_GUINT32_BE(ip, &muid[0]);
+	WRITE_GUINT16_LE(port, &muid[13]);
+
+	guid_flag_oob_gtkg(muid);		/* Mark as being from GTKG */
+
+	if (initial)
+		muid[15] &= ~GUID_REQUERY;
+	else
+		muid[15] |= GUID_REQUERY;
 }
 
 /**
