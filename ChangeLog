@@ -1,5 +1,15 @@
 # since last version
 
+- (2002.07.05 - RAM)
+  * Random cleanup: sanity checks in query hits and pongs, RX timeouts.
+  * host_init() was spuriously declaring pcache_init() in its body.
+  * Don't enter SHA1 filtering rules for records with no SHA1 [From Richard].
+  * Added regular alive pings.
+  * Preserve status message when moving stopped downloads to the queue.
+  * Will now send "connection" pongs during the first 5 minutes of startup,
+    even if it thinks it's firewalled, in the hope we'll get an incoming
+    connection.
+
 - (2002.07.02 - Richard)
   * Added "Apply" and "Revert" buttons to filter dialog
   * Made the "filter enabled" state work with shadows
@@ -21,16 +31,16 @@
   * Pressing [enter] in search results list will download the selected items.
 
 - (2002.07.02 - RAM)
+  * Will no longer be tricked into saying it's not firewalled because a local
+    connection to the node is attempted. (fixes bug #562127).
   * Added pseudo-extension "--all--" which allows to share all files, whether
-	they have an extension or not [Debian patch from Zygo Blaxell].
-  * When getting an incoming connection, make sure it's not from localhost
-	(fixes bug #562127).
+    they have an extension or not [Debian patch from Zygo Blaxell].
   * Don't enter ourselves in the pong/host cache.
   * Typo minumum -> minimum in GUI.
   * When overriding upload slots, use recent bandwidth for computation, not
-	the average, or we'll override more often when the limit is raised.
+    the average, or we'll override more often when the limit is raised.
   * When "Nothing more to get" on downloads. remove all identical files from
-	the queue as well.
+    the queue as well.
   * Avoid needless display flickering in search screens [From Richard].
   * During shutdown, make sure we neither accept nor make Gnet connections.
   * Ignore XML size in QHD for Swapper.
@@ -54,13 +64,13 @@ Highlight of changes (user-visible):
 
 - (2002.06.30 - RAM)
   * Tuned auto-selection in search window to be an O(n) algorithm instead
-	of O(n*n), which greatly improves performance [From Richard].
+    of O(n*n), which greatly improves performance [From Richard].
   * Protected a few pong-cache warnings, so that they be emitted only
-	when running in debugging mode.
+    when running in debugging mode.
   * When removing completed downloads from queue, also remove first-order
-	aliases by SHA1, if available.
+    aliases by SHA1, if available.
   * Fixed upload crash when we can't send back the whole HTTP status
-	[From Paul Cassella].
+    [From Paul Cassella].
 
 - (2002.06.29 - RAM)
   * More Solaris fixes [Uros Bizjak, patch #575037].
@@ -79,23 +89,23 @@ Highlight of changes (user-visible):
   * Raised BYE grace period to 30 seconds to be compatible with shutdown grace.
   * Don't flag as new a version bearing the same timestamp as ours.
   * Don't throw away node from hostcache if we can't connect due to lack
-	of file descriptor.
+    of file descriptor.
 
 - (2002.06.27 - RAM)
   * Stop all processing for 0.4 handshaking after Tue Jul  1 00:00:00 2003.
   * Added configure check for glib >= 1.2.10 [From Richard].
   * Make sure GUI configuration for download overlap does not exceed the
-	size of the socket's buffer [From Richard].
+    size of the socket's buffer [From Richard].
   * Added version checking: gtk-gnutella will now warn when it sees a newer
-	version than itself.
+    version than itself.
   * Fixed base32 decoding to use gint8 instead of gchar to be sure to
-	get signed characters.
+    get signed characters.
   * Removed heartbeat warnings about skewed clock when not debugging.
   * Fixed dynamic upload slots spinbutton sensitivity (fixes bug #574592)
-	[From Richard].
+    [From Richard].
   * Changed getdate to parse dates as DD/MM/YYYY, not as MM/DD/YYYY.
   * Fixed Gnutella size reading in message headers: alignment constraints
-	would cause a bus error on some CPUs.
+    would cause a bus error on some CPUs.
   * Added configure check for strcasestr(), which is present on some systems.
   * Better seed the random number generator.
 
@@ -103,7 +113,7 @@ Highlight of changes (user-visible):
   * Did not include proper gui.c version in 0.90 beta.
   * Do not abort when regular expression in queue matching is invalid!
   * Avoid using all file descriptors for banning.  Now configurable via two
-	new config variables, namely ban_max_fds and ban_ratio_fds.
+    new config variables, namely ban_max_fds and ban_ratio_fds.
   * Fixed bug in dmesh_url_parse(), caused by buggy sscanf(), grrr...
 
 # v 0.90   2002.06.24  [beta]
@@ -132,11 +142,11 @@ History of changes since 0.85 stable:
 - (2002.06.24 - RAM)
   * Debian package now requires glib1.2 >= 1.2.10.
   * Added warning in dmesh_alternate_location() in case we overflow buffer.
-	Also check returned val from g_snprintf() to account for trailing NUL.
+    Also check returned val from g_snprintf() to account for trailing NUL.
   * Integrated Richard's filter cleanup patch.
   * Added nicer servent name for two new servents: RAZA and SWFT.
   * Mark callout queue event as freed to avoid memory corruptions in case
-	of misuse (i.e. usage bug).
+    of misuse (i.e. usage bug).
   * Forgot that dm_expire() could empty the mesh entry (fixes bug #573027).
   * Fixed buggy node_remove_non_nearby() (closes bug #572918).
   * Added vendor information to warning about improper pong-caching.
