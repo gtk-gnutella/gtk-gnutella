@@ -26,7 +26,7 @@
 /**
  * @file
  *
- * Message queues, writing to a TCP stack.
+ * Message queues, writing to a UDP stack.
  */
 
 #include "common.h"
