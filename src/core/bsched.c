@@ -34,6 +34,7 @@
 RCSID("$Id$");
 
 #include "bsched.h"
+#include "inet.h"
 #include "uploads.h"
 
 #include "if/core/wrap.h"		/* wrapped_io_t */
@@ -52,7 +53,9 @@ struct bws_set bws = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 static GSList *bws_list = NULL;
 static GSList *bws_gsteal_list = NULL;
 static GSList *bws_out_list = NULL;
+static GSList *bws_in_list = NULL;
 static gint bws_out_ema = 0;
+static gint bws_in_ema = 0;
 
 #define BW_SLOT_MIN		64		/* Minimum bandwidth/slot for realloc */
 
@@ -319,6 +322,11 @@ bsched_init(void)
 	bws_list = g_slist_prepend(bws_list, bws.gout_udp);
 	bws_list = g_slist_prepend(bws_list, bws.out);
 
+	bws_in_list = g_slist_prepend(bws_in_list, bws.glin);
+	bws_in_list = g_slist_prepend(bws_in_list, bws.gin);
+	bws_in_list = g_slist_prepend(bws_in_list, bws.gin_udp);
+	bws_in_list = g_slist_prepend(bws_in_list, bws.in);
+
 	bws_out_list = g_slist_prepend(bws_out_list, bws.glout);
 	bws_out_list = g_slist_prepend(bws_out_list, bws.gout);
 	bws_out_list = g_slist_prepend(bws_out_list, bws.gout_udp);
@@ -356,6 +364,7 @@ bsched_close(void)
 
 	g_slist_free(bws_list);
 	g_slist_free(bws_out_list);
+	g_slist_free(bws_in_list);
 	g_slist_free(bws_gsteal_list);
 
 	bws.out = bws.in = bws.gout = bws.gin = bws.glin = bws.glout = NULL;
@@ -2078,6 +2087,7 @@ bsched_timer(void)
 	GTimeVal tv;
 	GSList *l;
 	gint out_used = 0;
+	gint in_used = 0;
 
 	g_get_current_time(&tv);
 
@@ -2104,7 +2114,7 @@ bsched_timer(void)
 		bsched_begin_timeslice(l->data);
 
 	/*
-	 * Fourth pass: update the average outgoing bandwidth used.
+	 * Fourth pass: update the average bandwidth used.
 	 */
 
 	for (l = bws_out_list; l; l = g_slist_next(l)) {
@@ -2116,6 +2126,19 @@ bsched_timer(void)
 
 	if (dbg > 4)
 		printf("Outgoing b/w EMA = %d bytes/s\n", bws_out_ema);
+
+	for (l = bws_in_list; l; l = g_slist_next(l)) {
+		bsched_t *bs = (bsched_t *) l->data;
+		in_used += (gint) (bs->bw_last_period * 1000.0 / bs->period_ema);
+	}
+
+	bws_in_ema += (in_used >> 6) - (bws_in_ema >> 6);		/* Slow EMA */
+
+	if (dbg > 4)
+		printf("Incoming b/w EMA = %d bytes/s\n", bws_in_ema);
+
+	if (in_used)
+		inet_read_activity();
 }
 
 /**

@@ -43,6 +43,7 @@ void inet_udp_firewalled(void);
 gboolean inet_can_answer_ping(void);
 
 void inet_got_incoming(guint32 ip);
+void inet_read_activity(void);
 void inet_udp_got_incoming(guint32 ip);
 void inet_udp_record_sent(guint32 ip);
 

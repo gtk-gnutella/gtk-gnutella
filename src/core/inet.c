@@ -36,7 +36,6 @@ RCSID("$Id$");
 #include "inet.h"
 #include "nodes.h"				/* For node_beaome_firewalled() */
 #include "settings.h"
-#include "bsched.h"
 
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
@@ -107,7 +106,7 @@ struct ip_record {
 
 #define OUTGOING_WINDOW		150			/* Outgoing monitoring window */
 
-static guint32 outgoing_connected = 0;	/* Successful connections in period */
+static guint32 activity_seen = 0;		/* Activity recorded in period */
 static gpointer outgoing_ev = NULL;		/* Callout queue timer */
 
 static void inet_set_is_connected(gboolean val);
@@ -254,6 +253,7 @@ inet_udp_got_solicited(void)
 	gnet_prop_set_boolean_val(PROP_RECV_SOLICITED_UDP, TRUE);
 
 	if (solicited_udp_ev == NULL) {
+		activity_seen++;
 		cq_insert(callout_queue,
 			FW_SOLICITED_WINDOW * 1000, got_no_udp_solicited, NULL);
 		if (dbg)
@@ -332,10 +332,11 @@ inet_got_incoming(guint32 ip)
 	 * connected to the Internet.
 	 */
 
-	if (!is_inet_connected && !is_local) {
-		outgoing_connected++;				/* In case we have a timer set */
+	if (!is_local)
+		activity_seen++;				/* In case we have a timer set */
+
+	if (!is_inet_connected && !is_local)
 		inet_set_is_connected(TRUE);
-	}
 
 	/*
 	 * If we already know we're not firewalled, we have already scheduled
@@ -400,10 +401,11 @@ inet_udp_got_incoming(guint32 ip)
 {
 	gboolean is_local = is_local_ip(ip);
 
-	if (!is_inet_connected && !is_local) {
-		outgoing_connected++;				/* In case we have a timer set */
+	if (!is_local)
+		activity_seen++;				/* In case we have a timer set */
+
+	if (!is_inet_connected && !is_local)
 		inet_set_is_connected(TRUE);
-	}
 
 	/*
 	 * Make sure we're not connecting locally.
@@ -510,30 +512,12 @@ inet_set_is_connected(gboolean val)
 static void
 check_outgoing_connection(cqueue_t *cq, gpointer obj)
 {
-	guint32 last_received;
-
 	outgoing_ev = NULL;
 
-	/*
-	 * If we received data during last second, then we're not really
-	 * disconnected.
-	 */
-
-	last_received = 0;
-
-	if (bws.in)  last_received += bsched_bps(bws.in);
-	if (bws.gin) last_received += bsched_bps(bws.gin);
-
-	g_message("%s: last_received=%u, outgoing_connected=%d", __func__,
-		(unsigned) last_received, (int) outgoing_connected);
-
-	if (
-		outgoing_connected == 0	&&		/* No success over the period */
-		last_received == 0				/* And no data received last second */
-	)
+	if (activity_seen == 0)				/* Nothing over the period */
 		inet_set_is_connected(FALSE);
 
-	outgoing_connected = 0;
+	activity_seen = 0;
 }
 
 /**
@@ -554,7 +538,7 @@ inet_connection_attempted(guint32 ip)
 	 */
 
 	if (!outgoing_ev) {
-		outgoing_connected = 0;
+		activity_seen = 0;
 		outgoing_ev = cq_insert(
 			callout_queue, OUTGOING_WINDOW * 1000,
 			check_outgoing_connection, NULL);
@@ -574,10 +558,24 @@ inet_connection_succeeded(guint32 ip)
 	if (is_local_ip(ip))
 		return;
 
-	outgoing_connected++;
+	activity_seen++;
 
 	if (!is_inet_connected)
 		inet_set_is_connected(TRUE);
+}
+
+/**
+ * Called when reading activity occurred during a b/w scheduling period.
+ */
+void
+inet_read_activity(void)
+{
+	activity_seen++;
+
+	/*
+	 * We're not sure activity was not with a local node, so don't
+	 * call inet_set_is_connected(TRUE) at this point!
+	 */
 }
 
 /**
