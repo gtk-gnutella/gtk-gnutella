@@ -111,6 +111,11 @@ void event_remove_subscriber(struct event *evt, GCallback cb)
 	subscriber_destroy(s);
 }
 
+guint32 event_subscriber_count(struct event *evt)
+{
+  return g_slist_length(evt->subscribers);
+}
+
 struct event_table *event_table_new(void) 
 {
     struct event_table *t;
