@@ -181,7 +181,6 @@ gboolean downloads_gui_update_parent_status(struct download *d,
 	gpointer key;
 	gboolean changed = FALSE;
 	
-	GtkTreeIter *iter;
 	GtkTreeIter *parent;
 	GtkTreeView *tree_view;
 	GtkTreeStore *model;
@@ -1665,7 +1664,6 @@ void gui_update_download(struct download *d, gboolean force)
 							gint active_src, tot_src;
 							gfloat percent_done =0;
 
-							guint32 remain = 0;
 							guint32 s = 0;
 							gfloat bs = 0;
 
