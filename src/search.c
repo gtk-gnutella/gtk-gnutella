@@ -1241,7 +1241,6 @@ static void search_gui_update(struct search * sch, struct results_set * rs,
 
 	gtk_clist_freeze(GTK_CLIST(sch->clist));
 
-    l = rs->records;
 	for (l = rs->records; l; l = next) {
 		struct record *rc = (struct record *) l->data;
 		next = l->next;
@@ -1485,7 +1484,7 @@ void search_matched(struct search *sch, struct results_set *rs)
 	/* Adds the set to the list */
 	sch->r_sets = g_slist_prepend(sch->r_sets, (gpointer) rs);
 
-	if ((sch->items == 0) && (sch == current_search)) {
+	if (old_items == 0 && sch == current_search && sch->items > 0) {
 		gtk_widget_set_sensitive(button_search_clear, TRUE);
 		gtk_widget_set_sensitive(popup_search_clear_results, TRUE);
 	}
