@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.12.30 - Richard)
+ * Added PROP_BW_ALLOW_STEALING to gui
+ * Replaced radiobuttons with GtkCombo for PROP_PROXY_PROTOCOL
+ * Removed cruft code from gui_update_all()
+ * Removed cruft code: on_search_stats_type_selected()
+
 - (2002.12.30 - RAM)
  * Added ability to share bandwidth between HTTP and Gnet.
  * New property "bw_allow_stealing" to control bandwidth sharing.
