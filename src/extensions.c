@@ -388,7 +388,7 @@ static gint ext_xml_parse(guchar **retp, gint len, extvec_t *exv, gint exvcnt)
 
 	while (p < end) {
 		guchar c = *p++;
-		if (c == '\0' || c == HUGE_FS || c == GGEP_MAGIC) {
+		if (c == '\0' || c == HUGE_FS) {
 			p--;
 			break;
 		}
