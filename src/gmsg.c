@@ -117,7 +117,7 @@ void gmsg_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
 void gmsg_search_sendto_one(struct gnutella_node *n, guchar *msg, guint32 size)
 {
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
-	g_assert(((struct gnutella_header *) msg)->hops == 0);
+	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
 
 	if (!NODE_IS_WRITABLE(n))
 		return;
@@ -189,7 +189,7 @@ void gmsg_search_sendto_all(GSList *l, guchar *msg, guint32 size)
 	pmsg_t *mb = gmsg_to_pmsg(PMSG_P_DATA, msg, size);
 
 	g_assert(((struct gnutella_header *) msg)->ttl > 0);
-	g_assert(((struct gnutella_header *) msg)->hops == 0);
+	g_assert(((struct gnutella_header *) msg)->hops <= hops_random_factor);
 
 	for (/* empty */; l; l = l->next) {
 		struct gnutella_node *dn = (struct gnutella_node *) l->data;
