@@ -118,7 +118,7 @@ typedef void (*GCallback) (void);
  * without installing it first. Thus, look for icons etc. in $srcdir.
  * XXX: Comment this out for releases! */
 
-#if 0
+#if 1
 #define USE_SOURCE_DIR_AS_FALLBACK
 #endif
 
