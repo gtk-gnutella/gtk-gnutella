@@ -35,7 +35,8 @@
 #define QUERY_SPEED_MARK		0x8000		/* Field is special: not a speed */
 #define QUERY_SPEED_FIREWALLED	0x4000		/* Issuing servent is firewalled */
 #define QUERY_SPEED_NO_XML		0x2000		/* No XML in result set, please */
-#define QUERY_SPEED_GGEP_H		0x1000		/* Recipient understands GGEP "H" */
+#define QUERY_SPEED_LEAF_GUIDED	0x1000		/* Leaf-guided query */
+#define QUERY_SPEED_GGEP_H		0x0800		/* Recipient understands GGEP "H" */
 
 /*
  * Global Functions

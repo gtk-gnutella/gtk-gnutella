@@ -1571,7 +1571,7 @@ gboolean search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 *
 	 *		--RAM, 19/01/2003, updated 06/07/2003 (bit 14-13 instead of 8-9)
 	 *
-	 * 3. If the GGEP "H" bit (bit 12) is set, the issuer of the query will
+	 * 3. If the GGEP "H" bit (bit 11) is set, the issuer of the query will
 	 *    understand the "H" extension in query hits.
 	 *		--RAM, 16/07/2003
 	 *
