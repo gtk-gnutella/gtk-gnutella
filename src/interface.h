@@ -91,8 +91,6 @@ extern GtkWidget *checkbutton_uploads_auto_clear;
 extern GtkWidget *spinbutton_uploads_max_ip;
 extern GtkWidget *clist_uploads;
 extern GtkWidget *clist_downloads_queue;
-extern GtkWidget *button_queue_clear;
-extern GtkWidget *button_queue_remove;
 extern GtkWidget *togglebutton_queue_freeze;
 extern GtkWidget *entry_queue_regex;
 extern GtkWidget *checkbutton_queue_regex_case;
@@ -200,6 +198,7 @@ extern GtkWidget *pixmap_no_firewall;
 extern GtkWidget *spinbutton_nodes_max_hosts_cached;
 extern GtkWidget *frame_bws_inout;
 extern GtkWidget *frame_bws_ginout;
+extern GtkWidget *hpaned_main;
 extern GtkWidget *label_shutdown_count;
 
 /* End of global widgets */

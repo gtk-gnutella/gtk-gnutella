@@ -283,9 +283,10 @@
 
     <widget>
       <class>GtkHPaned</class>
-      <name>hpaned1</name>
+      <name>hpaned_main</name>
       <handle_size>7</handle_size>
       <gutter_size>8</gutter_size>
+      <position>110</position>
       <child>
 	<padding>0</padding>
 	<expand>True</expand>
@@ -374,7 +375,7 @@
 	      <orientation>GTK_PROGRESS_LEFT_TO_RIGHT</orientation>
 	      <activity_mode>False</activity_mode>
 	      <show_text>True</show_text>
-	      <format>%v/%u Gnet nodes</format>
+	      <format>%v/%u gNet nodes</format>
 	      <text_xalign>0.5</text_xalign>
 	      <text_yalign>0.5</text_yalign>
 	      <child>
@@ -1065,7 +1066,6 @@
 		      <class>GtkEntry</class>
 		      <name>entry_routing_errors</name>
 		      <width>72</width>
-		      <sensitive>False</sensitive>
 		      <tooltip>Somebody tell me a sensible tooltip for this.</tooltip>
 		      <can_focus>True</can_focus>
 		      <editable>False</editable>
@@ -1092,7 +1092,6 @@
 		      <class>GtkEntry</class>
 		      <name>entry_global_searches</name>
 		      <width>72</width>
-		      <sensitive>False</sensitive>
 		      <tooltip>Somebody tell me a sensible tooltip for this.</tooltip>
 		      <can_focus>True</can_focus>
 		      <editable>False</editable>
@@ -1119,7 +1118,6 @@
 		      <class>GtkEntry</class>
 		      <name>entry_dropped_messages</name>
 		      <width>72</width>
-		      <sensitive>False</sensitive>
 		      <tooltip>Somebody tell me a sensible tooltip for this.</tooltip>
 		      <can_focus>True</can_focus>
 		      <editable>False</editable>
@@ -1146,7 +1144,6 @@
 		      <class>GtkEntry</class>
 		      <name>entry_count_downloads</name>
 		      <width>72</width>
-		      <sensitive>False</sensitive>
 		      <tooltip>Somebody tell me a sensible tooltip for this.</tooltip>
 		      <can_focus>True</can_focus>
 		      <editable>False</editable>
@@ -1173,7 +1170,6 @@
 		      <class>GtkEntry</class>
 		      <name>entry_count_uploads</name>
 		      <width>72</width>
-		      <sensitive>False</sensitive>
 		      <tooltip>Somebody tell me a sensible tooltip for this.</tooltip>
 		      <can_focus>True</can_focus>
 		      <editable>False</editable>
@@ -1304,7 +1300,6 @@
 		      <class>GtkEntry</class>
 		      <name>entry_global_messages</name>
 		      <width>72</width>
-		      <sensitive>False</sensitive>
 		      <tooltip>Somebody tell me a sensible tooltip for this.</tooltip>
 		      <can_focus>True</can_focus>
 		      <editable>False</editable>
@@ -1581,7 +1576,6 @@
 		      <widget>
 			<class>GtkEntry</class>
 			<name>entry_nodes_guid</name>
-			<sensitive>False</sensitive>
 			<can_focus>True</can_focus>
 			<editable>False</editable>
 			<text_visible>True</text_visible>
@@ -1632,7 +1626,6 @@
 		      <widget>
 			<class>GtkEntry</class>
 			<name>entry_nodes_ip</name>
-			<sensitive>False</sensitive>
 			<can_focus>True</can_focus>
 			<editable>False</editable>
 			<text_visible>True</text_visible>
@@ -2738,24 +2731,6 @@
 			  <expand>False</expand>
 			  <fill>False</fill>
 			</child>
-
-			<widget>
-			  <class>GtkButton</class>
-			  <name>button_queue_clear</name>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>clicked</name>
-			    <handler>on_button_queue_clear_clicked</handler>
-			    <last_modification_time>Thu, 11 Apr 2002 17:20:13 GMT</last_modification_time>
-			  </signal>
-			  <label>Clear queue</label>
-			  <relief>GTK_RELIEF_NORMAL</relief>
-			  <child>
-			    <padding>0</padding>
-			    <expand>False</expand>
-			    <fill>False</fill>
-			  </child>
-			</widget>
 
 			<widget>
 			  <class>GtkToggleButton</class>
@@ -4553,7 +4528,7 @@
 		    <widget>
 		      <class>GtkCheckButton</class>
 		      <name>checkbutton_config_use_netmasks</name>
-		      <tooltip>This option can give peformance boosts to those on a large WAN with many peers (such as a university). Enter the networks of nearby dorms and peered networks to take advantage of this</tooltip>
+		      <tooltip>This option can give peformance boosts to those on a large network with many peers by trying to locate files on the local networks first.</tooltip>
 		      <can_focus>True</can_focus>
 		      <signal>
 			<name>toggled</name>
@@ -4583,26 +4558,20 @@
 		    </child>
 
 		    <widget>
-		      <class>GtkEventBox</class>
-		      <name>eventbox1</name>
-		      <tooltip>Enter a semicolon separated list of networks that are local to you in the form of ip/bits or ip/netmask (eg 192.168.0.0/24 or 192.168.1.0/255.255.255.0)</tooltip>
+		      <class>GtkLabel</class>
+		      <name>label126_2</name>
+		      <label>Addresses of Local Network(s)</label>
+		      <justify>GTK_JUSTIFY_CENTER</justify>
+		      <wrap>False</wrap>
+		      <xalign>0.5</xalign>
+		      <yalign>0.5</yalign>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
 		      <child>
 			<padding>0</padding>
 			<expand>False</expand>
 			<fill>False</fill>
 		      </child>
-
-		      <widget>
-			<class>GtkLabel</class>
-			<name>label126_2</name>
-			<label>Addresses of Local Network(s)</label>
-			<justify>GTK_JUSTIFY_CENTER</justify>
-			<wrap>False</wrap>
-			<xalign>0.5</xalign>
-			<yalign>0.5</yalign>
-			<xpad>0</xpad>
-			<ypad>0</ypad>
-		      </widget>
 		    </widget>
 
 		    <widget>

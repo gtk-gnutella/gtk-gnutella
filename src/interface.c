@@ -97,8 +97,6 @@ GtkWidget *checkbutton_uploads_auto_clear;
 GtkWidget *spinbutton_uploads_max_ip;
 GtkWidget *clist_uploads;
 GtkWidget *clist_downloads_queue;
-GtkWidget *button_queue_clear;
-GtkWidget *button_queue_remove;
 GtkWidget *togglebutton_queue_freeze;
 GtkWidget *entry_queue_regex;
 GtkWidget *checkbutton_queue_regex_case;
@@ -206,6 +204,7 @@ GtkWidget *pixmap_no_firewall;
 GtkWidget *spinbutton_nodes_max_hosts_cached;
 GtkWidget *frame_bws_inout;
 GtkWidget *frame_bws_ginout;
+GtkWidget *hpaned_main;
 GtkWidget *label_shutdown_count;
 
 /* End of global widgets */
@@ -235,7 +234,6 @@ create_main_window (void)
   GtkAccelGroup *menu_gnet_stats_visible_menu_accels;
   GtkWidget *toolbar1;
   GtkWidget *button_quit;
-  GtkWidget *hpaned1;
   GtkWidget *vbox_left;
   GtkWidget *label117;
   GtkWidget *handlebox2;
@@ -400,7 +398,6 @@ create_main_window (void)
   GtkWidget *vbox23_2;
   GtkWidget *hbox77;
   GtkWidget *hbox78;
-  GtkWidget *eventbox1;
   GtkWidget *label126_2;
   GtkWidget *label119;
   GtkWidget *vbox29;
@@ -748,21 +745,22 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (button_quit);
 
-  hpaned1 = gtk_hpaned_new ();
-  gtk_widget_ref (hpaned1);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "hpaned1", hpaned1,
+  hpaned_main = gtk_hpaned_new ();
+  gtk_widget_ref (hpaned_main);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "hpaned_main", hpaned_main,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (hpaned1);
-  gtk_box_pack_start (GTK_BOX (vbox12), hpaned1, TRUE, TRUE, 0);
-  gtk_paned_set_handle_size (GTK_PANED (hpaned1), 7);
-  gtk_paned_set_gutter_size (GTK_PANED (hpaned1), 8);
+  gtk_widget_show (hpaned_main);
+  gtk_box_pack_start (GTK_BOX (vbox12), hpaned_main, TRUE, TRUE, 0);
+  gtk_paned_set_handle_size (GTK_PANED (hpaned_main), 7);
+  gtk_paned_set_gutter_size (GTK_PANED (hpaned_main), 8);
+  gtk_paned_set_position (GTK_PANED (hpaned_main), 110);
 
   vbox_left = gtk_vbox_new (FALSE, 2);
   gtk_widget_ref (vbox_left);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_left", vbox_left,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox_left);
-  gtk_paned_pack1 (GTK_PANED (hpaned1), vbox_left, FALSE, TRUE);
+  gtk_paned_pack1 (GTK_PANED (hpaned_main), vbox_left, FALSE, TRUE);
   gtk_widget_set_usize (vbox_left, 110, -2);
 
   sw_menu = gtk_scrolled_window_new (NULL, NULL);
@@ -813,7 +811,7 @@ create_main_window (void)
   gtk_widget_show (progressbar_connections);
   gtk_box_pack_start (GTK_BOX (vbox31), progressbar_connections, FALSE, FALSE, 0);
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_connections), TRUE);
-  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_connections), "%v/%u Gnet nodes");
+  gtk_progress_set_format_string (GTK_PROGRESS (progressbar_connections), "%v/%u gNet nodes");
 
   progressbar_uploads = gtk_progress_bar_new ();
   gtk_widget_ref (progressbar_uploads);
@@ -912,7 +910,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_right", vbox_right,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox_right);
-  gtk_paned_pack2 (GTK_PANED (hpaned1), vbox_right, TRUE, TRUE);
+  gtk_paned_pack2 (GTK_PANED (hpaned_main), vbox_right, TRUE, TRUE);
 
   notebook_main = gtk_notebook_new ();
   gtk_widget_ref (notebook_main);
@@ -1152,7 +1150,6 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_SHRINK | GTK_FILL),
                     (GtkAttachOptions) (GTK_EXPAND), 0, 0);
   gtk_widget_set_usize (entry_routing_errors, 72, -2);
-  gtk_widget_set_sensitive (entry_routing_errors, FALSE);
   gtk_tooltips_set_tip (tooltips, entry_routing_errors, "Somebody tell me a sensible tooltip for this.", NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_routing_errors), FALSE);
 
@@ -1165,7 +1162,6 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (GTK_EXPAND), 0, 0);
   gtk_widget_set_usize (entry_global_searches, 72, -2);
-  gtk_widget_set_sensitive (entry_global_searches, FALSE);
   gtk_tooltips_set_tip (tooltips, entry_global_searches, "Somebody tell me a sensible tooltip for this.", NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_global_searches), FALSE);
 
@@ -1178,7 +1174,6 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_EXPAND), 0, 0);
   gtk_widget_set_usize (entry_dropped_messages, 72, -2);
-  gtk_widget_set_sensitive (entry_dropped_messages, FALSE);
   gtk_tooltips_set_tip (tooltips, entry_dropped_messages, "Somebody tell me a sensible tooltip for this.", NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_dropped_messages), FALSE);
 
@@ -1191,7 +1186,6 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_EXPAND), 0, 0);
   gtk_widget_set_usize (entry_count_downloads, 72, -2);
-  gtk_widget_set_sensitive (entry_count_downloads, FALSE);
   gtk_tooltips_set_tip (tooltips, entry_count_downloads, "Somebody tell me a sensible tooltip for this.", NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_count_downloads), FALSE);
 
@@ -1204,7 +1198,6 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_EXPAND), 0, 0);
   gtk_widget_set_usize (entry_count_uploads, 72, -2);
-  gtk_widget_set_sensitive (entry_count_uploads, FALSE);
   gtk_tooltips_set_tip (tooltips, entry_count_uploads, "Somebody tell me a sensible tooltip for this.", NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_count_uploads), FALSE);
 
@@ -1261,7 +1254,6 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_EXPAND), 0, 0);
   gtk_widget_set_usize (entry_global_messages, 72, -2);
-  gtk_widget_set_sensitive (entry_global_messages, FALSE);
   gtk_tooltips_set_tip (tooltips, entry_global_messages, "Somebody tell me a sensible tooltip for this.", NULL);
   gtk_entry_set_editable (GTK_ENTRY (entry_global_messages), FALSE);
 
@@ -1384,7 +1376,6 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table6), entry_nodes_guid, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_sensitive (entry_nodes_guid, FALSE);
   gtk_entry_set_editable (GTK_ENTRY (entry_nodes_guid), FALSE);
 
   label151 = gtk_label_new ("IP:Port:");
@@ -1405,7 +1396,6 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table6), entry_nodes_ip, 1, 2, 1, 2,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_sensitive (entry_nodes_ip, FALSE);
   gtk_entry_set_editable (GTK_ENTRY (entry_nodes_ip), FALSE);
 
   label_gnutellanet = gtk_label_new ("gnutellaNet");
@@ -1946,13 +1936,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox68);
   gtk_box_pack_start (GTK_BOX (vbox15), hbox68, FALSE, FALSE, 0);
-
-  button_queue_clear = gtk_button_new_with_label ("Clear queue");
-  gtk_widget_ref (button_queue_clear);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "button_queue_clear", button_queue_clear,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_queue_clear);
-  gtk_box_pack_start (GTK_BOX (hbox68), button_queue_clear, FALSE, FALSE, 0);
 
   togglebutton_queue_freeze = gtk_toggle_button_new_with_label ("Freeze queue");
   gtk_widget_ref (togglebutton_queue_freeze);
@@ -2757,7 +2740,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_config_use_netmasks);
   gtk_box_pack_start (GTK_BOX (hbox77), checkbutton_config_use_netmasks, FALSE, FALSE, 0);
-  gtk_tooltips_set_tip (tooltips, checkbutton_config_use_netmasks, "This option can give peformance boosts to those on a large WAN with many peers (such as a university). Enter the networks of nearby dorms and peered networks to take advantage of this", NULL);
+  gtk_tooltips_set_tip (tooltips, checkbutton_config_use_netmasks, "This option can give peformance boosts to those on a large network with many peers by trying to locate files on the local networks first.", NULL);
 
   hbox78 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox78);
@@ -2766,20 +2749,12 @@ create_main_window (void)
   gtk_widget_show (hbox78);
   gtk_box_pack_start (GTK_BOX (vbox23_2), hbox78, FALSE, FALSE, 0);
 
-  eventbox1 = gtk_event_box_new ();
-  gtk_widget_ref (eventbox1);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "eventbox1", eventbox1,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (eventbox1);
-  gtk_box_pack_start (GTK_BOX (hbox78), eventbox1, FALSE, FALSE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox1, "Enter a semicolon separated list of networks that are local to you in the form of ip/bits or ip/netmask (eg 192.168.0.0/24 or 192.168.1.0/255.255.255.0)", NULL);
-
   label126_2 = gtk_label_new ("Addresses of Local Network(s)");
   gtk_widget_ref (label126_2);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label126_2", label126_2,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label126_2);
-  gtk_container_add (GTK_CONTAINER (eventbox1), label126_2);
+  gtk_box_pack_start (GTK_BOX (hbox78), label126_2, FALSE, FALSE, 0);
 
   entry_config_netmasks = gtk_entry_new ();
   gtk_widget_ref (entry_config_netmasks);
@@ -4072,9 +4047,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "drag_end",
                       GTK_SIGNAL_FUNC (on_clist_downloads_queue_drag_end),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (button_queue_clear), "clicked",
-                      GTK_SIGNAL_FUNC (on_button_queue_clear_clicked),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (togglebutton_queue_freeze), "toggled",
                       GTK_SIGNAL_FUNC (on_togglebutton_queue_freeze_toggled),
