@@ -1,0 +1,167 @@
+Partial File Sharing Protocol Version 1.0
+Tor Klingberg <tor.klingberg@gmx.net>
+August 2002
+
+
+Introduction:
+
+This is a protocol for sharing partial files on the Gnutella network. A
+partial file is a file that a host has only downloaded parts of. Partial 
+File Sharing allows files to spread faster over the Gnutella network.
+Here, the server is the host that is providing the file, and client is the
+host that requests the file.
+
+
+1. Partial File Transfer
+
+The server allows HTTP requests for partial files, at URIs chosen by the
+server. They can for example be assigned a file index and shared at
+"/get/index/filename", or simply at "/partials/filename". If requests 
+by urn are supported, the best way is probably to share only at 
+"uri-res/N2R?urn:sha1:HASH_OF_COMPLETE_FILE". Servers should make sure 
+that the URI to a partial file does not become invalid when the file is 
+completed.
+
+Only partial requests (with a Range header) are accepted.
+
+The X-Available-Ranges header is used by the server to inform the client
+about what ranges are available. Note that a 2xx or 503 response without 
+an X-Available-Ranges header means the complete file is available. The
+format is as follows:
+
+X-Available-Ranges: bytes 0-10,20-30
+
+The client requests the range it wants using the Range header.
+
+Range: bytes=0-
+means the client wants any ranges the server can provide.
+
+The server then provides the range it wants to upload using a 206 Partial
+Content response. This allows the server to upload different ranges to
+different hosts, and save bandwidth by allowing them to get the other parts
+from each other. The server can decide to upload any range inside the
+requested range. This means that the client cannot be sure that the first
+byte in the response is first requested byte.
+
+The 206 response contains a Content-Range header on the form
+
+Content-Range: bytes <start>-<end>/<total_size>
+
+Note that <total_size> is the size of the COMPLETE file.
+
+If the server is unable to provide any part of the requested range, it
+returns a "503 Requested Range Not Available" (the Reason Phrase is just my
+recommendation). If the client continues to request the same range, the
+server may send a 404 to make a PFSP unaware client stop retrying.
+The X-Available-Ranges header will tell a PFSP enabled client what ranges it
+can request.
+
+If the client provides an "Accept:" header with "multipart/byteranges" in
+it, the server may respond with multiple ranges at once. The client may send
+multiple ranges in the Range: header if it sends an Accept header with
+multipart/byteranges in the same header set. This is standard HTTP/1.1
+stuff, but I doubt that Gnutella servents will support it. If you do not
+want multipart support, just ignore it and everything will work fine.
+
+You should, however, be aware that there can be multiple ranges specified in
+one "Range:" header. Servents are then allowed to choose any range within
+the specified ranges, or simply read the first range only.
+
+
+2. Tree Hashes
+
+Tree hashes are not absolutely required for Partial File Sharing, so you
+don't have to implement this part at first. TigerTree can be implemented
+if/when corrupt files become a problem. The reason that it is in this
+document is because Partial File Sharing might cause corrupt files to spread
+faster.
+
+TigerTree hashes are computed using a 1024 byte base size. It is then up to
+each vendor to decide how many sub-hashes to actually store. Storing (and
+advertising) the top 10 levels of the tree might be good decision. It would
+allow a resolution of about 2 MB on a 1 GB file, and requires only about
+25 kB of hash data per file.
+
+The tree is provided as specified in the Tree Hash EXchange format (THEX) at
+http://www.open-content.net/specs/draft-jchapweske-thex-01.html
+It basically says that the hash tree is provided as a long stream of binary
+data starting with the root hash, then the two hashes it is computed from,
+and so on.
+
+To inform the client about where the hash tree can be retrieved the server
+includes an X-Thex-URI header on this form
+
+X-Thex-URI: <URI> ; <ROOT>
+
+<URI> is any valid URI. It can be to an uri-res translator, and can even
+point to another host. The client can then retrieve desired parts of the
+hash tree by doing range requests for the specified URI.
+
+The THEX data is shared as if it was a partial file. If a client requests a
+subrange of the THEX data that the server does not store, and is not willing
+to calculate on the fly, the server uses the same routines as if it was a
+partial file where the requested range is not available.
+
+<ROOT> is the root TigerTree hash is base32 format.
+
+
+3. How to find the location of partial files.
+
+This protocol does not affect Gnutella messages in any way. The only
+available mean of spreading the location of a partial file is through the
+download mesh in X-Gnutella-Alternate-Location headers. I think this should
+work very well. Since those who share a partial file are also downloading
+the same file, they will be able to send alt-loc headers to other hosts
+sharing the full file.
+
+Spreading partial files in the download mesh will cause servents that do
+not support partial file sharing to receive addresses to partial sources. I
+don't think that is a problem. The worst thing that can happen is that they
+won't be able to use those sources.
+
+When requesting a file for download, the client must include an alt-loc 
+header pointing to its locally shared partial file, if there is not a good 
+reason not to do so in the particular case. If the client is firewalled
+(and push proxy URIs are not available) that is a reason. Clients should 
+do this even if the download has not started yet. Since it takes a while 
+for alt-locs to spread, the download is likely to have started when 
+someone else get the alt-loc. If not, a few failed download requests is 
+not a big problem.
+
+
+4. Sample negotiation:
+
+Here is a sample negotiation. I don't think it will look exactly like this,
+but it should show the headers in action. Clients might want to request a
+small range first, to get the list of available ranges. There are some
+linebreakes in long headers below.
+
+Client:
+    GET /uri-res/N2R?urn:sha1:QLFYWY2RI5WZCTEP6MJKR5CAFGP7FQ5X HTTP/1.1
+    User-Agent: FooBar/1.0
+    Host: 123.123.123.123:6346
+    Connection: Keep-Alive
+    Range: bytes=73826-
+    X-Gnutella-Content-URN: urn:sha1:QLFYWY2RI5WZCTEP6MJKR5CAFGP7FQ5X
+    X-Gnutella-Alternate-Location:
+http://theclient.com:6346/uri-res/N2R?urn:sha1:QLFYWY2RI5WZCTEP6MJKR5CAFGP7FQ5X
+
+Server:
+    HTTP/1.1 206 Partial Content
+    Server: FooBar/1.0
+    Content-Type: audio/mpeg
+    Content-Range: bytes 73826-285749/533273
+    Content-Length: 211924
+    Connection: Keep-Alive
+    X-Available-Ranges: bytes 0-285749,425926-488271
+    X-Gnutella-Content-URN: urn:sha1:QLFYWY2RI5WZCTEP6MJKR5CAFGP7FQ5X
+    X-Thex-URI:
+/uri-res/N2X?urn:sha1:QLFYWY2RI5WZCTEP6MJKR5CAFGP7FQ5X;VEKXTRSJPTZJLY2IKG5FQ
+2TCXK26SECFPP4DX7I
+    X-Gnutella-Alternate-Location: <list of alt-locs>
+
+    <211924 bytes of data>
+
+"N2X" above is an example. Someone should comment on what should be used.
+Since the URI is provided in the X-Thex-URI header, each vendor can chose
+how to provide the THEX data.
