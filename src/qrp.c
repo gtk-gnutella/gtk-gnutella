@@ -75,7 +75,7 @@ struct routing_table {
 	gint infinity;			/* Value for "infinity" */
 	guint32 client_slots;	/* Only for received tables, for shrinking ctrl */
 	gint bits;				/* Amount of bits used in table size (received) */
-	gint set_count;			/* Amount of slots set in table (received) */
+	gint set_count;			/* Amount of slots set in table */
 	gint fill_ratio;		/* 100 * fill ratio for table (received) */
 	gint pass_throw;		/* Query must pass a d100 throw to be forwarded */
 	gchar *digest;			/* SHA1 digest of the whole table (atom) */
@@ -126,6 +126,18 @@ install_routing_table(struct routing_table *rt)
 	if (routing_table != NULL)
 		qrt_unref(routing_table);
 	routing_table = qrt_ref(rt);
+
+	/*
+	 * Update some properties with might have changed compared to the local
+	 * table when running in UP mode, since we're merging our table with
+	 * the ones from the leaves.  Alas, we can't really update the conflict
+	 * ratio nor the amount of keywords present.
+	 */
+
+	gnet_prop_set_guint32_val(PROP_QRP_SLOTS, (guint32) rt->slots);
+	gnet_prop_set_guint32_val(PROP_QRP_SLOTS_FILLED, (guint32) rt->set_count);
+	gnet_prop_set_guint32_val(PROP_QRP_FILL_RATIO,
+		(guint32) (100.0 * rt->set_count / rt->slots));
 }
 
 /**
@@ -251,6 +263,7 @@ qrt_compact(struct routing_table *rt)
 
 	nsize = rt->slots / 8;
 	narena = g_malloc0(nsize);
+	rt->set_count = 0;
 	q = (guchar *) narena + (nsize - 1);
 
 	/*
@@ -265,8 +278,10 @@ qrt_compact(struct routing_table *rt)
 	 */
 
 	for (mask = 0, i = rt->slots - 1, p = &rt->arena[i]; i >= 0; i--, p--) {
-		if (*p != rt->infinity)
+		if (*p != rt->infinity) {
 			mask |= 0x80;				/* Bit set to indicates presence */
+			rt->set_count++;
+		}
 		if (0 == (i & 0x7)) {			/* Reached "bit 0" */
 			*q-- = mask;
 			mask = 0;
@@ -1802,6 +1817,33 @@ qrp_finalize_computation(void)
 }
 
 /**
+ * Proceed with table merging between `merge_table' and `local_table' into
+ * `routing_table' if we're running as an ultra node, or install the
+ * `local_table' as the `routing_table' if we're running as leaf.
+ */
+static void
+qrp_update_routing_table(void)
+{
+	struct qrp_context *ctx;
+
+	if (qrp_merge != NULL)
+		bg_task_cancel(qrp_merge);
+
+	g_assert(qrp_merge == NULL);
+	g_assert(local_table != NULL);
+
+	ctx = walloc0(sizeof(*ctx));
+	ctx->magic = QRP_MAGIC;
+	ctx->rtp = &local_table;		/* In case we call qrp_step_install_leaf */
+	ctx->rpp = &routing_patch;
+
+	qrp_merge = bg_task_create("QRP merging",
+		qrp_merge_steps, G_N_ELEMENTS(qrp_merge_steps),
+		ctx, qrp_merge_context_free,
+		NULL, NULL);
+}
+
+/**
  * Called as a task completion callback when the `merge_table' has been
  * recomputed, to relaunch the merging with `local_table' to get the final
  * routing table.
@@ -1809,19 +1851,24 @@ qrp_finalize_computation(void)
 static void
 qrp_merge_routing_table(gpointer h, gpointer c, bgstatus_t st, gpointer arg)
 {
-	struct qrp_context *ctx;
+	qrp_update_routing_table();
+}
 
-	g_assert(qrp_merge == NULL);
-	g_assert(local_table != NULL);
+/**
+ * Called when the current peermode has changed.
+ */
+void
+qrp_peermode_changed(void)
+{
+	/*
+	 * Make sure we won't send an invalid patch to new connections.
+	 */
 
-	ctx = walloc0(sizeof(*ctx));
-	ctx->magic = QRP_MAGIC;
-	ctx->rpp = &routing_patch;
+	if (routing_patch != NULL)
+		qrt_patch_unref(routing_patch);
+	routing_patch = NULL;
 
-	qrp_merge = bg_task_create("QRP merging",
-		qrp_merge_steps, G_N_ELEMENTS(qrp_merge_steps),
-		ctx, qrp_merge_context_free,
-		NULL, NULL);
+	qrp_update_routing_table();
 }
 
 /***
@@ -2398,8 +2445,10 @@ qrt_update_create(struct gnutella_node *n, gpointer query_table)
 		qup->patch = qrt_diff_4(old_table, routing_table);
 		if (qup->patch != NULL)
 			qup->compress = qrt_patch_compress(qup->patch, qrt_compressed, qup);
-		else
+		else {
 			qup->empty_patch = TRUE;
+			qup->ready = TRUE;
+		}
 	}
 
 	return qup;

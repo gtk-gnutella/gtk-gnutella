@@ -74,6 +74,7 @@ void qrp_init(char_map_t map);
 void qrp_close(void);
 
 void qrp_leaf_changed(void);
+void qrp_peermode_changed(void);
 
 void qrp_prepare_computation(void);
 void qrp_add_file(struct shared_file *sf);

@@ -2702,6 +2702,7 @@ static void node_set_current_peermode(node_peer_t mode)
 	if (old_mode != NODE_P_UNKNOWN) {	/* Not at init time */
 		bsched_set_peermode(mode);		/* Adapt Gnet bandwidth */
 		pcache_set_peermode(mode);		/* Adapt pong cache lifetime */
+		qrp_peermode_changed();			/* Compute proper routing table */
 	}
 
 	old_mode = mode;
