@@ -146,7 +146,7 @@ void header_features_generate(struct xfeature_t *xfeatures,
 
 	header_fmt_end(fmt);
 	
-	if (header_fmt_length(fmt) < len - *rw) {
+	if ((size_t) header_fmt_length(fmt) < len - *rw) {
 		*rw += gm_snprintf(&buf[*rw], len - *rw, "%s", header_fmt_string(fmt));
 	}
 

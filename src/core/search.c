@@ -2522,7 +2522,7 @@ search_oob_pending_results(
 	 */
 
 	ask = MIN(hits, 254);
-	ask = MIN(ask, search_max_items);
+	ask = MIN((guint) ask, search_max_items);
 
 	/*
 	 * Ok, ask them the hits then.
