@@ -720,50 +720,82 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_BOOL_COMPAT(progressbar_bws_in_visible,progressbar_bps_in_visible)
         CONFIG_SET_BOOL_COMPAT(progressbar_bws_out_avg,progressbar_bps_out_avg)
         CONFIG_SET_BOOL_COMPAT(progressbar_bws_out_visible,progressbar_bps_out_visible)
-        CONFIG_SET_NUM(connection_speed,               0,    2000)
-        CONFIG_SET_NUM(download_connected_timeout,     1,  100000)
-        CONFIG_SET_NUM(download_connecting_timeout,    1,  100000)
-        CONFIG_SET_NUM(download_push_sent_timeout,     1,  100000)
-        CONFIG_SET_NUM(download_retry_timeout_max,    15,  100000)
-        CONFIG_SET_NUM(download_retry_timeout_min,    15,  100000)
-        CONFIG_SET_NUM(downloads_divider_pos,          0,    5000)
-        CONFIG_SET_NUM(main_divider_pos,               0,    5000)
-        CONFIG_SET_NUM(side_divider_pos,               0,    5000)
-        CONFIG_SET_NUM(filter_main_divider_pos,        0,    5000)
-        CONFIG_SET_NUM(hard_ttl_limit,                 5,     254)
-        CONFIG_SET_NUM(hops_random_factor,             0,       3)
-        CONFIG_SET_NUM(listen_port,                    0,   65535)
-        CONFIG_SET_NUM(max_connections,                0,     511)
-        CONFIG_SET_NUM(max_downloads,                  1,     511)
-        CONFIG_SET_NUM(max_host_downloads,             1,     511)
-        CONFIG_SET_NUM(max_hosts_cached,             100,  100000)
-        CONFIG_SET_NUM(max_ttl,                        1,     254)
-        CONFIG_SET_NUM(max_uploads,                    0,     511)
-        CONFIG_SET_NUM(max_uploads_ip,                 0,     511)
-		CONFIG_SET_NUM(ul_usage_min_percentage,        0,     100)
-        CONFIG_SET_NUM(minimum_speed,                  0,    2000)
-        CONFIG_SET_NUM(monitor_max_items,              1,     511)
-        CONFIG_SET_NUM(my_ttl,                         1,     254)
-        CONFIG_SET_NUM(node_connected_timeout,         1,  100000)
-        CONFIG_SET_NUM(node_connecting_timeout,        1,  100000)
-        CONFIG_SET_NUM(node_sendqueue_size,         4096, 1048576)
-        CONFIG_SET_NUM(node_tx_flowc_timeout,          1,  100000)
-        CONFIG_SET_NUM(other_messages_kick_size,     513, 1048575)
-        CONFIG_SET_NUM(proxy_port,                     0,   65535)
-        CONFIG_SET_NUM(search_answers_forward_size,  513, 1048575)
-        CONFIG_SET_NUM(search_answers_kick_size,     513, 1048575)
-        CONFIG_SET_NUM(search_max_items,              -1,     255)
-        CONFIG_SET_NUM(search_max_results,             1,    1000)
-        CONFIG_SET_NUM(search_queries_forward_size,   65,   65534)
-        CONFIG_SET_NUM(search_queries_kick_size,     513,   65534)
-        CONFIG_SET_NUM(search_stats_delcoef,           0,     100)
-        CONFIG_SET_NUM(search_stats_update_interval,   0,   50000)
-        CONFIG_SET_NUM(up_connections,                 1,     511)
+        CONFIG_SET_NUM(connection_speed,               0,      2000)
+        CONFIG_SET_NUM(download_connected_timeout,     1,    100000)
+        CONFIG_SET_NUM(download_connecting_timeout,    1,    100000)
+        CONFIG_SET_NUM(download_push_sent_timeout,     1,    100000)
+        CONFIG_SET_NUM(download_retry_timeout_max,    15,    100000)
+        CONFIG_SET_NUM(download_retry_timeout_min,    15,    100000)
+        CONFIG_SET_NUM(downloads_divider_pos,          0,      5000)
+        CONFIG_SET_NUM(main_divider_pos,               0,      5000)
+        CONFIG_SET_NUM(side_divider_pos,               0,      5000)
+        CONFIG_SET_NUM(filter_main_divider_pos,        0,      5000)
+        CONFIG_SET_NUM(hard_ttl_limit,                 5,        99)
+        CONFIG_SET_NUM(hops_random_factor,             0,         3)
+        CONFIG_SET_NUM(listen_port,                    0,     65535)
+        CONFIG_SET_NUM(max_connections,                0,       100)
+        CONFIG_SET_NUM(max_downloads,                  0,       100)
+        CONFIG_SET_NUM(max_host_downloads,             1,       100)
+        CONFIG_SET_NUM(max_hosts_cached,             100,    500000)
+        CONFIG_SET_NUM(max_ttl,                        1,        99)
+        CONFIG_SET_NUM(max_uploads,                    0,       100)
+        CONFIG_SET_NUM(max_uploads_ip,                 1,       100)
+		CONFIG_SET_NUM(ul_usage_min_percentage,        0,       100)
+        CONFIG_SET_NUM(minimum_speed,                  0,      2000)
+        CONFIG_SET_NUM(monitor_max_items,              1,      1000)
+        CONFIG_SET_NUM(my_ttl,                         1,        99)
+        CONFIG_SET_NUM(node_connected_timeout,         1,    100000)
+        CONFIG_SET_NUM(node_connecting_timeout,        1,    100000)
+        CONFIG_SET_NUM(node_sendqueue_size,         4096,   1048576)
+        CONFIG_SET_NUM(node_tx_flowc_timeout,          1,    100000)
+        CONFIG_SET_NUM(other_messages_kick_size,     513,   1048575)
+        CONFIG_SET_NUM(proxy_port,                     0,     65535)
+        CONFIG_SET_NUM(search_answers_forward_size,  513,   1048575)
+        CONFIG_SET_NUM(search_answers_kick_size,     513,   1048575)
+        CONFIG_SET_NUM(search_max_items,               1,       255)
+        CONFIG_SET_NUM(search_max_results,             0,      1000)
+        CONFIG_SET_NUM(search_queries_forward_size,   65,     65534)
+        CONFIG_SET_NUM(search_queries_kick_size,     513,     65534)
+        CONFIG_SET_NUM(search_stats_delcoef,           0,       100)
+        CONFIG_SET_NUM(search_stats_update_interval,   0,     50000)
+        CONFIG_SET_NUM(up_connections,                 1,       100)
         CONFIG_SET_STR(proxy_ip)
         CONFIG_SET_STR(socks_pass)
         CONFIG_SET_STR(socks_user)
         CONFIG_SET_STR_COMPAT(socks_pass, socksv5_pass)
         CONFIG_SET_STR_COMPAT(socks_user, socksv5_user)
+
+        CONFIG_SET_NUM(max_high_ttl_msg,               0,        99)
+        CONFIG_SET_NUM(max_high_ttl_radius,            0,        99)
+        CONFIG_SET_NUM(download_max_retries,           0,    100000)
+        CONFIG_SET_NUM(download_overlap_range,       128, 1024*1024)
+        CONFIG_SET_NUM(download_retry_timeout_delay,  15,    100000)
+        CONFIG_SET_NUM(download_retry_busy_delay,     15,    100000)
+        CONFIG_SET_NUM(download_retry_refused_delay,  15,    100000)
+        CONFIG_SET_NUM(download_retry_stopped,        15,    100000)
+        CONFIG_SET_NUM(upload_connecting_timeout,      1,    100000)
+        CONFIG_SET_NUM(upload_connected_timeout,       1,    100000)
+        CONFIG_SET_NUM(search_reissue_timeout,         0,      9999)
+        
+    case k_output_bandwidth:
+        if ((i >= 0) && (i <= BS_BW_MAX))
+            bandwidth.output = i;
+        break;
+
+    case k_input_bandwidth:
+        if ((i >= 0) && (i <= BS_BW_MAX))
+            bandwidth.input = i;
+        break;
+
+    case k_input_gnet_bandwidth:
+        if ((i >= 0) && (i <= BS_BW_MAX))
+            bandwidth.ginput = i;
+        break;
+
+    case k_output_gnet_bandwidth:
+        if ((i >= 0) && (i <= BS_BW_MAX))
+            bandwidth.goutput = i;
+        break;
 
     case k_filter_default_policy:
         /*
@@ -801,58 +833,6 @@ void config_set_param(keyword_t keyword, gchar *value)
 
 	case k_shared_dirs:
 		shared_dirs_parse(value);
-		return;
-
-	case k_download_retry_timeout_delay:
-		if (i >= 0) download_retry_timeout_delay = i;
-		return;
-
-	case k_download_retry_busy_delay:
-		if (i >= 0) download_retry_busy_delay = i;
-		return;
-
-	case k_download_max_retries:
-		if (i >= 0) download_max_retries = i;
-		return;
-
-	case k_download_overlap_range:
-		if (i >= 0) download_overlap_range = i;
-		return;
-
-	case k_download_retry_refused_delay:
-		if (i >= 0) download_retry_refused_delay = i;
-		return;
-
-	case k_download_retry_stopped:
-		if (i >= 0) download_retry_stopped = i;
-		return;
-
-	case k_upload_connecting_timeout:
-		if (i > 1 && i < 3600) upload_connecting_timeout = i;
-		return;
-
-	case k_upload_connected_timeout:
-		if (i > 1 && i < 3600) upload_connected_timeout = i;
-		return;
-
-	case k_output_bandwidth:
-		/* Limited to 2 MB/s since we multiply by 1000 in an unsigned 32-bit */
-		if (i >= 0 && i < BS_BW_MAX) bandwidth.output = i;
-		return;
-
-	case k_input_bandwidth:
-		/* Limited to 2 MB/s since we multiply by 1000 in an unsigned 32-bit */
-		if (i >= 0 && i < BS_BW_MAX) bandwidth.input = i;
-		return;
-
-	case k_output_gnet_bandwidth:
-		/* Limited to 2 MB/s since we multiply by 1000 in an unsigned 32-bit */
-		if (i >= 0 && i < BS_BW_MAX) bandwidth.goutput = i;
-		return;
-
-	case k_input_gnet_bandwidth:
-		/* Limited to 2 MB/s since we multiply by 1000 in an unsigned 32-bit */
-		if (i >= 0 && i < BS_BW_MAX) bandwidth.ginput = i;
 		return;
    
 	case k_win_x:
@@ -975,10 +955,6 @@ void config_set_param(keyword_t keyword, gchar *value)
 		proxy_protocol = i;
 		return;
 
-	case k_search_reissue_timeout:
-		search_reissue_timeout = i;
-		return;
-
 	case k_dbg:
 		dbg = i;
 		return;
@@ -997,14 +973,6 @@ void config_set_param(keyword_t keyword, gchar *value)
 
 	case k_search_pick_all:
 		search_pick_all = i;
-		return;
-
-	case k_max_high_ttl_msg:
-		max_high_ttl_msg = i;
-		return;
-
-	case k_max_high_ttl_radius:
-		max_high_ttl_radius = i;
 		return;
 
 	case k_min_dup_msg:

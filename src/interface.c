@@ -179,7 +179,6 @@ GtkWidget *popup_filter_rule_copy;
 GtkWidget *popup_filter_rule_paste;
 GtkWidget *button_ul_stats_clear_all;
 GtkWidget *button_ul_stats_clear_deleted;
-GtkWidget *checkbutton_autodownload;
 GtkWidget *checkbutton_search_stats_enable;
 GtkWidget *clist_nodes;
 GtkWidget *clist_search_stats;
@@ -1738,7 +1737,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox81), label130, FALSE, FALSE, 0);
   gtk_misc_set_alignment (GTK_MISC (label130), 1, 0.5);
 
-  spinbutton_uploads_max_ip_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_uploads_max_ip_adj = gtk_adjustment_new (1, 1, 100, 1, 10, 10);
   spinbutton_uploads_max_ip = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_uploads_max_ip_adj), 1, 0);
   gtk_widget_ref (spinbutton_uploads_max_ip);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_uploads_max_ip", spinbutton_uploads_max_ip,
@@ -2018,7 +2017,7 @@ create_main_window (void)
   gtk_widget_show (label80);
   gtk_box_pack_start (GTK_BOX (hbox42), label80, FALSE, FALSE, 0);
 
-  entry_max_host_downloads_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  entry_max_host_downloads_adj = gtk_adjustment_new (1, 1, 100, 1, 10, 10);
   entry_max_host_downloads = gtk_spin_button_new (GTK_ADJUSTMENT (entry_max_host_downloads_adj), 1, 0);
   gtk_widget_ref (entry_max_host_downloads);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_max_host_downloads", entry_max_host_downloads,
@@ -2484,13 +2483,6 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (checkbutton_search_jump_to_downloads);
   gtk_box_pack_start (GTK_BOX (hbox80), checkbutton_search_jump_to_downloads, FALSE, FALSE, 0);
-
-  checkbutton_autodownload = gtk_check_button_new_with_label ("Automatic Download");
-  gtk_widget_ref (checkbutton_autodownload);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_autodownload", checkbutton_autodownload,
-                            (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (checkbutton_autodownload);
-  gtk_box_pack_start (GTK_BOX (hbox80), checkbutton_autodownload, FALSE, FALSE, 0);
 
   checkbutton_search_remove_downloaded = gtk_check_button_new_with_label ("Remove downloaded items from list");
   gtk_widget_ref (checkbutton_search_remove_downloaded);
@@ -3385,7 +3377,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_widget_set_usize (spinbutton_config_search_min_speed, 45, -2);
 
-  entry_config_search_items_adj = gtk_adjustment_new (1, 0, 1000, 1, 10, 10);
+  entry_config_search_items_adj = gtk_adjustment_new (1, 1, 255, 1, 10, 10);
   entry_config_search_items = gtk_spin_button_new (GTK_ADJUSTMENT (entry_config_search_items_adj), 1, 0);
   gtk_widget_ref (entry_config_search_items);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "entry_config_search_items", entry_config_search_items,
@@ -3755,7 +3747,7 @@ create_main_window (void)
   gtk_widget_show (label172);
   gtk_box_pack_start (GTK_BOX (hbox94), label172, FALSE, FALSE, 0);
 
-  spinbutton_config_download_max_retries_adj = gtk_adjustment_new (1, 1, 100000, 1, 10, 10);
+  spinbutton_config_download_max_retries_adj = gtk_adjustment_new (1, 0, 100000, 1, 10, 10);
   spinbutton_config_download_max_retries = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_download_max_retries_adj), 1, 0);
   gtk_widget_ref (spinbutton_config_download_max_retries);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_download_max_retries", spinbutton_config_download_max_retries,
@@ -4462,9 +4454,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (checkbutton_search_jump_to_downloads), "toggled",
                       GTK_SIGNAL_FUNC (on_checkbutton_search_jump_to_downloads_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_autodownload), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_autodownload_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (checkbutton_search_remove_downloaded), "toggled",
                       GTK_SIGNAL_FUNC (on_checkbutton_search_remove_downloaded_toggled),

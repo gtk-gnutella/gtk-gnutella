@@ -2103,7 +2103,7 @@
 		  <snap>False</snap>
 		  <wrap>False</wrap>
 		  <value>1</value>
-		  <lower>0</lower>
+		  <lower>1</lower>
 		  <upper>100</upper>
 		  <step>1</step>
 		  <page>10</page>
@@ -2652,7 +2652,7 @@
 		      <snap>False</snap>
 		      <wrap>False</wrap>
 		      <value>1</value>
-		      <lower>0</lower>
+		      <lower>1</lower>
 		      <upper>100</upper>
 		      <step>1</step>
 		      <page>10</page>
@@ -3628,25 +3628,6 @@
 		  <last_modification_time>Fri, 29 Mar 2002 19:07:46 GMT</last_modification_time>
 		</signal>
 		<label>Jump to downloads</label>
-		<active>False</active>
-		<draw_indicator>True</draw_indicator>
-		<child>
-		  <padding>0</padding>
-		  <expand>False</expand>
-		  <fill>False</fill>
-		</child>
-	      </widget>
-
-	      <widget>
-		<class>GtkCheckButton</class>
-		<name>checkbutton_autodownload</name>
-		<can_focus>True</can_focus>
-		<signal>
-		  <name>toggled</name>
-		  <handler>on_checkbutton_autodownload_toggled</handler>
-		  <last_modification_time>Fri, 19 Oct 2001 01:35:33 GMT</last_modification_time>
-		</signal>
-		<label>Automatic Download</label>
 		<active>False</active>
 		<draw_indicator>True</draw_indicator>
 		<child>
@@ -5782,8 +5763,8 @@ control</label>
 		    <snap>False</snap>
 		    <wrap>False</wrap>
 		    <value>1</value>
-		    <lower>0</lower>
-		    <upper>1000</upper>
+		    <lower>1</lower>
+		    <upper>255</upper>
 		    <step>1</step>
 		    <page>10</page>
 		    <page_size>10</page_size>
@@ -6734,7 +6715,7 @@ options</label>
 		      <snap>False</snap>
 		      <wrap>False</wrap>
 		      <value>1</value>
-		      <lower>1</lower>
+		      <lower>0</lower>
 		      <upper>100000</upper>
 		      <step>1</step>
 		      <page>10</page>

@@ -175,7 +175,6 @@ extern GtkWidget *popup_filter_rule_copy;
 extern GtkWidget *popup_filter_rule_paste;
 extern GtkWidget *button_ul_stats_clear_all;
 extern GtkWidget *button_ul_stats_clear_deleted;
-extern GtkWidget *checkbutton_autodownload;
 extern GtkWidget *checkbutton_search_stats_enable;
 extern GtkWidget *clist_nodes;
 extern GtkWidget *clist_search_stats;
