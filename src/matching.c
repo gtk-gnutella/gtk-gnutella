@@ -747,7 +747,8 @@ gint st_search(
 	}
 
 	if (wocnt == 0 || best_bin == NULL) {
-		query_word_vec_free(wovec, wocnt);
+		if (wocnt > 0)
+			query_word_vec_free(wovec, wocnt);
 		return 0;
 	}
 
