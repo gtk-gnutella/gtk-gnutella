@@ -1,5 +1,24 @@
 # since last version
 
+- (2003.09.11 - RAM)
+ * My farewell to gtk-gnutella...  Appointed Jeroen as new leader.
+ * No longer aborts downloads when we can't write data to disk: requeue them
+   with the "busy" retry delay.
+ * Fixed definition of QUERY_SPEED flags to match LimeWire's interpretation.
+   When they talk about bit #15, it's the bit on the wire, but since the
+   field is little-endiant, that's really bit #7 in the definition.
+ * New "dl_remove_file_on_mismatch" property to request file removal when
+   there is a resuming mismatch for a download.
+ * [GTK1] Added a "remove file on mismatch" checkbutton in download pane.
+
+- (2003.08.26 - RAM)
+ * Optimized file_info_update() to not call file_info_merge_adjacent()
+   systematically.  It now also behaves more efficiently for the common
+   case where we append new data to an already "done" chunk.
+
+- (2003.08.20 - RAM)
+ * Had forgotten to fix IP endianess issues in filter_gui.c.
+
 - (2003.08.19 - RAM)
  * Escape leading '.' in filenames as '_' to avoid downloading "hidden" files.
  * Flag aborted downloads with server unavailable as "Aborted (Server down)".
