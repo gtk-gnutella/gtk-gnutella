@@ -28,27 +28,6 @@
 #include "nodes.h"
 #include "filter.h"
 
-
-
-struct gnutella_search {
-	guchar speed[2];
-	guchar query[0];
-};
-
-
-
-struct gnutella_search_results {
-	guchar num_recs;
-	guchar host_port[2];
-	guchar host_ip[4];
-	guchar host_speed[4];
-	guchar records[0];
-
-	/* Last 16 bytes = client_id */
-};
-
-
-
 /*
  * A results_set structure factorizes the common information from a Query Hit
  * packet, and then has a list of individual records, one for each hit.
@@ -104,14 +83,6 @@ typedef struct record {
 #define ST_UPLOADED				0x0004		/* Is "stable", people downloaded */
 #define ST_BUSY					0x0002		/* Has currently no slots */
 #define ST_FIREWALL				0x0001		/* Is behind a firewall */
-
-
-struct gnutella_msg_search {
-	struct gnutella_header header;
-	struct gnutella_search search;
-};
-
-
 
 /* 
  * Structure for search results 
