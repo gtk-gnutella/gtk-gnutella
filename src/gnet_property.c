@@ -2273,7 +2273,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[101].name = "is_firewalled";
     gnet_property->props[101].desc = "Whether gtk-gnutella thinks we're currently firewalled";
     gnet_property->props[101].prop_changed_listeners = NULL;
-    gnet_property->props[101].save = FALSE;
+    gnet_property->props[101].save = TRUE;
     gnet_property->props[101].vector_size = 1;
 
     /* Type specific data: */

@@ -1208,10 +1208,18 @@ prop = {
     };
 };
 
+/*
+ * NB: we make is_firewalled a persistent property for the following reasons:
+ *
+ * + If they were not firewalled once, chances are that they will remain so.
+ * + Every hour, we monitor incoming connections, and if we receive none, we
+ *   will activate the firewalled mode.
+ */
+
 prop = {
     name = "is_firewalled";
     desc = "Whether gtk-gnutella thinks we're currently firewalled";
-    save = FALSE;
+    save = TRUE;
     type = boolean;
     data = {
 	    default = TRUE;
