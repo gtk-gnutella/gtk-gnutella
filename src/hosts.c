@@ -139,18 +139,15 @@ gboolean check_valid_host(guint32 ip, guint16 port)
 	if (!ip || !port)
 		return FALSE;			/* IP == 0 || Port == 0 */
 
+	if (is_private_ip(ip)) 
+		return FALSE;
+
 	if (ip == (guint32) 0x01020304 || ip == (guint32) 0x01010101)
 		return FALSE;			/* IP == 1.2.3.4 || IP == 1.1.1.1 */
 	if ((ip & (guint32) 0xFF000000) == (guint32) 0x00000000)
 		return FALSE;			/* IP == 0.0.0.0 / 8 */
 	if ((ip & (guint32) 0xFF000000) == (guint32) 0x7F000000)
 		return FALSE;			/* IP == 127.0.0.0 / 8 */
-	if ((ip & (guint32) 0xFF000000) == (guint32) 0x0A000000)
-		return FALSE;			/* IP == 10.0.0.0 / 8 */
-	if ((ip & (guint32) 0xFFF00000) == (guint32) 0xAC100000)
-		return FALSE;			/* IP == 172.16.0.0 / 12 */
-	if ((ip & (guint32) 0xFFFF0000) == (guint32) 0xC0A80000)
-		return FALSE;			/* IP == 192.168.0.0 / 16 */
 
 	return TRUE;
 }
