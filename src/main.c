@@ -328,6 +328,7 @@ gint main(gint argc, gchar ** argv)
 	search_init();
 	share_init();
 	filters_init();
+	download_init();
 	autodownload_init();
 
 	/* Some signal handlers */
