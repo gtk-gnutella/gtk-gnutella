@@ -210,8 +210,11 @@ static void free_routing_data(gpointer key, gpointer value, gpointer udata)
 	decrement_message_counters(((struct message *)value)->nodes);
 }
 
+static gboolean global_destruction;	/* XXX temporary hack -- RAM, 11/02/2002 */
 void routing_close(void)
 {
+	global_destruction = TRUE;	/* XXX temporary hack -- RAM, 11/02/2002 */
+
 	g_hash_table_foreach(messages_hashed, free_routing_data, NULL);
 	g_hash_table_destroy(messages_hashed);
 }
@@ -263,6 +266,9 @@ void message_set_muid(struct gnutella_header *header, gboolean modern)
 static void remove_one_message_reference(GSList * cur)
 {
 	struct route_data *rd = (struct route_data *) cur->data;
+
+	if (global_destruction && !rd)
+		return;		/* XXX Shouldn't happen, but does! -- RAM, 11/01/2002 */
 
 	g_assert(rd);
 
