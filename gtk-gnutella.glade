@@ -1004,11 +1004,6 @@
 		    <class>GtkSpinButton</class>
 		    <name>spinbutton_up_connections</name>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_up_connections_changed</handler>
-		      <last_modification_time>Tue, 16 Jul 2002 00:02:06 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>0</digits>
 		    <numeric>True</numeric>
@@ -1066,12 +1061,6 @@
 		    <class>GtkSpinButton</class>
 		    <name>spinbutton_max_connections</name>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_max_connections_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Tue, 16 Jul 2002 00:02:29 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>0</digits>
 		    <numeric>True</numeric>
@@ -1587,12 +1576,6 @@
 		      <class>GtkSpinButton</class>
 		      <name>spinbutton_nodes_max_hosts_cached</name>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>changed</name>
-			<handler>on_spinbutton_nodes_max_hosts_cached_changed</handler>
-			<after>True</after>
-			<last_modification_time>Thu, 18 Jul 2002 03:16:02 GMT</last_modification_time>
-		      </signal>
 		      <climb_rate>1</climb_rate>
 		      <digits>0</digits>
 		      <numeric>True</numeric>
@@ -2027,12 +2010,6 @@
 		  <class>GtkSpinButton</class>
 		  <name>spinbutton_max_uploads</name>
 		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>changed</name>
-		    <handler>on_spinbutton_max_uploads_changed</handler>
-		    <after>True</after>
-		    <last_modification_time>Wed, 17 Jul 2002 23:11:11 GMT</last_modification_time>
-		  </signal>
 		  <climb_rate>1</climb_rate>
 		  <digits>0</digits>
 		  <numeric>True</numeric>
@@ -2073,12 +2050,6 @@
 		  <class>GtkSpinButton</class>
 		  <name>spinbutton_max_uploads_ip</name>
 		  <can_focus>True</can_focus>
-		  <signal>
-		    <name>changed</name>
-		    <handler>on_spinbutton_max_uploads_ip_changed</handler>
-		    <after>True</after>
-		    <last_modification_time>Wed, 17 Jul 2002 23:19:45 GMT</last_modification_time>
-		  </signal>
 		  <climb_rate>1</climb_rate>
 		  <digits>0</digits>
 		  <numeric>True</numeric>
@@ -2564,12 +2535,6 @@
 		      <class>GtkSpinButton</class>
 		      <name>spinbutton_max_downloads</name>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>changed</name>
-			<handler>on_spinbutton_max_downloads_changed</handler>
-			<after>True</after>
-			<last_modification_time>Wed, 17 Jul 2002 23:26:48 GMT</last_modification_time>
-		      </signal>
 		      <climb_rate>1</climb_rate>
 		      <digits>0</digits>
 		      <numeric>True</numeric>
@@ -2610,11 +2575,6 @@
 		      <class>GtkSpinButton</class>
 		      <name>spinbutton_max_host_downloads</name>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>changed</name>
-			<handler>on_spinbutton_max_host_downloads_changed</handler>
-			<last_modification_time>Wed, 17 Jul 2002 23:28:34 GMT</last_modification_time>
-		      </signal>
 		      <climb_rate>1</climb_rate>
 		      <digits>0</digits>
 		      <numeric>True</numeric>
@@ -3718,12 +3678,6 @@
 		<class>GtkSpinButton</class>
 		<name>spinbutton_monitor_items</name>
 		<can_focus>True</can_focus>
-		<signal>
-		  <name>changed</name>
-		  <handler>on_spinbutton_monitor_items_changed</handler>
-		  <after>True</after>
-		  <last_modification_time>Thu, 18 Jul 2002 03:17:40 GMT</last_modification_time>
-		</signal>
 		<climb_rate>1</climb_rate>
 		<digits>0</digits>
 		<numeric>True</numeric>
@@ -3875,11 +3829,6 @@
 		<class>GtkSpinButton</class>
 		<name>spinbutton_search_stats_update_interval</name>
 		<can_focus>True</can_focus>
-		<signal>
-		  <name>changed</name>
-		  <handler>on_spinbutton_search_stats_update_interval_changed</handler>
-		  <last_modification_time>Thu, 08 Aug 2002 17:44:07 GMT</last_modification_time>
-		</signal>
 		<climb_rate>1</climb_rate>
 		<digits>0</digits>
 		<numeric>False</numeric>
@@ -3920,11 +3869,6 @@
 		<class>GtkSpinButton</class>
 		<name>spinbutton_search_stats_delcoef</name>
 		<can_focus>True</can_focus>
-		<signal>
-		  <name>changed</name>
-		  <handler>on_spinbutton_search_stats_defcoef_changed</handler>
-		  <last_modification_time>Thu, 08 Aug 2002 17:50:44 GMT</last_modification_time>
-		</signal>
 		<climb_rate>1</climb_rate>
 		<digits>0</digits>
 		<numeric>False</numeric>
@@ -4319,12 +4263,6 @@
 		      <name>spinbutton_config_port</name>
 		      <width>64</width>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>changed</name>
-			<handler>on_spinbutton_config_port_changed</handler>
-			<after>True</after>
-			<last_modification_time>Thu, 18 Jul 2002 03:18:01 GMT</last_modification_time>
-		      </signal>
 		      <climb_rate>1</climb_rate>
 		      <digits>0</digits>
 		      <numeric>True</numeric>
@@ -4570,12 +4508,6 @@
 		      <name>spinbutton_config_proxy_port</name>
 		      <width>64</width>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>changed</name>
-			<handler>on_spinbutton_config_proxy_port_changed</handler>
-			<after>True</after>
-			<last_modification_time>Thu, 18 Jul 2002 03:18:13 GMT</last_modification_time>
-		      </signal>
 		      <climb_rate>1</climb_rate>
 		      <digits>0</digits>
 		      <numeric>True</numeric>
@@ -4993,12 +4925,6 @@ settings</label>
 		    <name>spinbutton_config_bws_gin</name>
 		    <width>64</width>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_config_bws_gin_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Thu, 18 Jul 2002 03:18:24 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>2</digits>
 		    <numeric>True</numeric>
@@ -5032,12 +4958,6 @@ settings</label>
 		    <name>spinbutton_config_bws_gout</name>
 		    <width>64</width>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_config_bws_gout_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Thu, 18 Jul 2002 03:18:40 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>2</digits>
 		    <numeric>True</numeric>
@@ -5159,12 +5079,6 @@ settings</label>
 		      <name>spinbutton_config_bws_in</name>
 		      <width>64</width>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>changed</name>
-			<handler>on_spinbutton_config_bws_in_changed</handler>
-			<after>True</after>
-			<last_modification_time>Thu, 18 Jul 2002 03:18:54 GMT</last_modification_time>
-		      </signal>
 		      <climb_rate>1</climb_rate>
 		      <digits>2</digits>
 		      <numeric>True</numeric>
@@ -5198,12 +5112,6 @@ settings</label>
 		      <name>spinbutton_config_bws_out</name>
 		      <width>64</width>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>changed</name>
-			<handler>on_spinbutton_config_bws_out_changed</handler>
-			<after>True</after>
-			<last_modification_time>Thu, 18 Jul 2002 03:19:03 GMT</last_modification_time>
-		      </signal>
 		      <climb_rate>1</climb_rate>
 		      <digits>2</digits>
 		      <numeric>True</numeric>
@@ -5322,11 +5230,6 @@ settings</label>
 		      <name>spinbutton_config_ul_usage_min_percentage</name>
 		      <tooltip>Until xx% of outgoing HTTP bandwidth is in use, open additional upload slots on request.</tooltip>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>changed</name>
-			<handler>on_spinbutton_config_ul_usage_min_percentage_changed</handler>
-			<last_modification_time>Thu, 18 Jul 2002 03:19:11 GMT</last_modification_time>
-		      </signal>
 		      <climb_rate>1</climb_rate>
 		      <digits>0</digits>
 		      <numeric>True</numeric>
@@ -5461,12 +5364,6 @@ control</label>
 			<width>64</width>
 			<tooltip>What other people see as your connection speed.</tooltip>
 			<can_focus>True</can_focus>
-			<signal>
-			  <name>changed</name>
-			  <handler>on_spinbutton_config_speed_changed</handler>
-			  <after>True</after>
-			  <last_modification_time>Thu, 18 Jul 2002 03:20:01 GMT</last_modification_time>
-			</signal>
 			<climb_rate>1</climb_rate>
 			<digits>0</digits>
 			<numeric>True</numeric>
@@ -5636,11 +5533,6 @@ control</label>
 			<name>spinbutton_config_search_min_speed</name>
 			<width>45</width>
 			<can_focus>True</can_focus>
-			<signal>
-			  <name>changed</name>
-			  <handler>on_spinbutton_config_search_min_speed_changed</handler>
-			  <last_modification_time>Thu, 18 Jul 2002 03:20:28 GMT</last_modification_time>
-			</signal>
 			<climb_rate>1</climb_rate>
 			<digits>0</digits>
 			<numeric>True</numeric>
@@ -5675,12 +5567,6 @@ control</label>
 			<width>64</width>
 			<tooltip>This limits how many results gnutella returns to other people searching your files.</tooltip>
 			<can_focus>True</can_focus>
-			<signal>
-			  <name>changed</name>
-			  <handler>on_spinbutton_config_search_items_changed</handler>
-			  <after>True</after>
-			  <last_modification_time>Thu, 18 Jul 2002 03:19:45 GMT</last_modification_time>
-			</signal>
 			<climb_rate>1</climb_rate>
 			<digits>0</digits>
 			<numeric>True</numeric>
@@ -5739,11 +5625,6 @@ control</label>
 			<class>GtkSpinButton</class>
 			<name>spinbutton_config_search_reissue_timeout</name>
 			<can_focus>True</can_focus>
-			<signal>
-			  <name>changed</name>
-			  <handler>on_spinbutton_config_search_reissue_timeout_changed</handler>
-			  <last_modification_time>Sun, 04 Aug 2002 21:02:38 GMT</last_modification_time>
-			</signal>
 			<climb_rate>1</climb_rate>
 			<digits>0</digits>
 			<numeric>True</numeric>
@@ -5905,12 +5786,6 @@ control</label>
 			<name>spinbutton_config_node_tx_flowc_timeout</name>
 			<width>64</width>
 			<can_focus>True</can_focus>
-			<signal>
-			  <name>changed</name>
-			  <handler>on_spinbutton_config_node_tx_flowc_timeout_changed</handler>
-			  <after>True</after>
-			  <last_modification_time>Thu, 18 Jul 2002 03:20:56 GMT</last_modification_time>
-			</signal>
 			<climb_rate>1</climb_rate>
 			<digits>0</digits>
 			<numeric>True</numeric>
@@ -5944,12 +5819,6 @@ control</label>
 			<name>spinbutton_config_node_connecting_timeout</name>
 			<width>64</width>
 			<can_focus>True</can_focus>
-			<signal>
-			  <name>changed</name>
-			  <handler>on_spinbutton_config_node_connecting_timeout_changed</handler>
-			  <after>True</after>
-			  <last_modification_time>Thu, 18 Jul 2002 03:20:37 GMT</last_modification_time>
-			</signal>
 			<climb_rate>1</climb_rate>
 			<digits>0</digits>
 			<numeric>True</numeric>
@@ -5983,12 +5852,6 @@ control</label>
 			<name>spinbutton_config_node_connected_timeout</name>
 			<width>64</width>
 			<can_focus>True</can_focus>
-			<signal>
-			  <name>changed</name>
-			  <handler>on_spinbutton_config_node_connected_timeout_changed</handler>
-			  <after>True</after>
-			  <last_modification_time>Thu, 18 Jul 2002 03:20:46 GMT</last_modification_time>
-			</signal>
 			<climb_rate>1</climb_rate>
 			<digits>0</digits>
 			<numeric>True</numeric>
@@ -6176,12 +6039,6 @@ control</label>
 			<name>spinbutton_config_maxttl</name>
 			<width>64</width>
 			<can_focus>True</can_focus>
-			<signal>
-			  <name>changed</name>
-			  <handler>on_spinbutton_config_maxttl_changed</handler>
-			  <after>True</after>
-			  <last_modification_time>Thu, 18 Jul 2002 03:21:18 GMT</last_modification_time>
-			</signal>
 			<climb_rate>1</climb_rate>
 			<digits>0</digits>
 			<numeric>True</numeric>
@@ -6215,12 +6072,6 @@ control</label>
 			<name>spinbutton_config_max_high_ttl_msg</name>
 			<tooltip>Amount of tolerable messages above hard TTL limit per node</tooltip>
 			<can_focus>True</can_focus>
-			<signal>
-			  <name>changed</name>
-			  <handler>on_spinbutton_config_max_high_ttl_msg_changed</handler>
-			  <after>True</after>
-			  <last_modification_time>Thu, 18 Jul 2002 03:21:32 GMT</last_modification_time>
-			</signal>
 			<climb_rate>1</climb_rate>
 			<digits>0</digits>
 			<numeric>True</numeric>
@@ -6254,12 +6105,6 @@ control</label>
 			<name>spinbutton_config_hard_ttl_limit</name>
 			<tooltip>Max hard TTL limit (hop+ttl) on message</tooltip>
 			<can_focus>True</can_focus>
-			<signal>
-			  <name>changed</name>
-			  <handler>on_spinbutton_config_hard_ttl_limit_changed</handler>
-			  <after>True</after>
-			  <last_modification_time>Thu, 18 Jul 2002 03:22:14 GMT</last_modification_time>
-			</signal>
 			<climb_rate>1</climb_rate>
 			<digits>0</digits>
 			<numeric>True</numeric>
@@ -6293,12 +6138,6 @@ control</label>
 			<name>spinbutton_config_myttl</name>
 			<width>64</width>
 			<can_focus>True</can_focus>
-			<signal>
-			  <name>changed</name>
-			  <handler>on_spinbutton_config_myttl_changed</handler>
-			  <after>True</after>
-			  <last_modification_time>Thu, 18 Jul 2002 03:21:51 GMT</last_modification_time>
-			</signal>
 			<climb_rate>1</climb_rate>
 			<digits>0</digits>
 			<numeric>True</numeric>
@@ -6332,12 +6171,6 @@ control</label>
 			<name>spinbutton_config_max_high_ttl_radius</name>
 			<tooltip>Hop radius for counting high TTL limit messages (#hops lower than...)</tooltip>
 			<can_focus>True</can_focus>
-			<signal>
-			  <name>changed</name>
-			  <handler>on_spinbutton_config_max_high_ttl_radius_changed</handler>
-			  <after>True</after>
-			  <last_modification_time>Thu, 18 Jul 2002 03:22:04 GMT</last_modification_time>
-			</signal>
 			<climb_rate>1</climb_rate>
 			<digits>0</digits>
 			<numeric>True</numeric>
@@ -6524,11 +6357,6 @@ control</label>
 			<class>GtkSpinButton</class>
 			<name>spinbutton_config_min_dup_msg</name>
 			<can_focus>True</can_focus>
-			<signal>
-			  <name>changed</name>
-			  <handler>on_spinbutton_config_min_dup_msg_changed</handler>
-			  <last_modification_time>Thu, 08 Aug 2002 22:53:20 GMT</last_modification_time>
-			</signal>
 			<climb_rate>1</climb_rate>
 			<digits>0</digits>
 			<numeric>False</numeric>
@@ -6561,11 +6389,6 @@ control</label>
 			<class>GtkSpinButton</class>
 			<name>spinbutton_config_min_dup_ratio</name>
 			<can_focus>True</can_focus>
-			<signal>
-			  <name>changed</name>
-			  <handler>on_spinbutton_config_min_dup_ratio_changed</handler>
-			  <last_modification_time>Thu, 08 Aug 2002 22:53:27 GMT</last_modification_time>
-			</signal>
 			<climb_rate>1</climb_rate>
 			<digits>0</digits>
 			<numeric>False</numeric>
@@ -6854,12 +6677,6 @@ options</label>
 		      <width>64</width>
 		      <tooltip>Maximum attempts to make, not counting HTTP busy indications</tooltip>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>changed</name>
-			<handler>on_spinbutton_config_download_max_retries_changed</handler>
-			<after>True</after>
-			<last_modification_time>Thu, 18 Jul 2002 03:23:00 GMT</last_modification_time>
-		      </signal>
 		      <climb_rate>1</climb_rate>
 		      <digits>0</digits>
 		      <numeric>True</numeric>
@@ -7143,12 +6960,6 @@ options</label>
 		    <name>spinbutton_config_download_retry_stopped_delay</name>
 		    <tooltip>Delay in seconds to wait when running download stops</tooltip>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_config_download_retry_stopped_delay_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Thu, 18 Jul 2002 04:12:44 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>0</digits>
 		    <numeric>True</numeric>
@@ -7183,12 +6994,6 @@ options</label>
 		    <width>50</width>
 		    <tooltip>Delay in seconds to wait if connection is refused</tooltip>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_config_download_retry_refused_delay_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Thu, 18 Jul 2002 03:23:54 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>0</digits>
 		    <numeric>True</numeric>
@@ -7222,12 +7027,6 @@ options</label>
 		    <name>spinbutton_config_download_retry_busy_delay</name>
 		    <tooltip>Delay in seconds to wait after HTTP busy indication</tooltip>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_config_download_retry_busy_delay_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Thu, 18 Jul 2002 03:24:23 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>0</digits>
 		    <numeric>True</numeric>
@@ -7262,12 +7061,6 @@ options</label>
 		    <width>50</width>
 		    <tooltip>Delay in seconds to wait after connection failure</tooltip>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_config_download_retry_timeout_delay_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Thu, 18 Jul 2002 03:23:36 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>0</digits>
 		    <numeric>True</numeric>
@@ -7301,12 +7094,6 @@ options</label>
 		    <name>spinbutton_config_download_retry_timeout_max</name>
 		    <tooltip>Maximum seconds to wait on auto-retry timeouts</tooltip>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_config_download_retry_timeout_max_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Thu, 18 Jul 2002 03:24:05 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>0</digits>
 		    <numeric>True</numeric>
@@ -7340,12 +7127,6 @@ options</label>
 		    <name>spinbutton_config_download_retry_timeout_min</name>
 		    <tooltip>Minimum seconds to wait on auto-retry timeouts</tooltip>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_config_download_retry_timeout_min_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Thu, 18 Jul 2002 03:24:33 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>0</digits>
 		    <numeric>True</numeric>
@@ -7379,12 +7160,6 @@ options</label>
 		    <name>spinbutton_config_download_connecting_timeout</name>
 		    <tooltip>Number of seconds before timeout for a connecting download</tooltip>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_config_download_connecting_timeout_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Thu, 18 Jul 2002 03:23:44 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>0</digits>
 		    <numeric>True</numeric>
@@ -7418,12 +7193,6 @@ options</label>
 		    <name>spinbutton_config_download_push_sent_timeout</name>
 		    <tooltip>Number of seconds before timeout for a 'push sent' download</tooltip>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_config_download_push_sent_timeout_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Thu, 18 Jul 2002 03:24:14 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>0</digits>
 		    <numeric>True</numeric>
@@ -7457,12 +7226,6 @@ options</label>
 		    <name>spinbutton_config_download_connected_timeout</name>
 		    <tooltip>Number of seconds before timeout for a connected download</tooltip>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_config_download_connected_timeout_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Thu, 18 Jul 2002 03:24:42 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>0</digits>
 		    <numeric>True</numeric>
@@ -7758,12 +7521,6 @@ settings</label>
 		    <class>GtkSpinButton</class>
 		    <name>spinbutton_config_upload_connecting_timeout</name>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_config_upload_connecting_timeout_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Thu, 18 Jul 2002 03:22:27 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>0</digits>
 		    <numeric>True</numeric>
@@ -7796,12 +7553,6 @@ settings</label>
 		    <class>GtkSpinButton</class>
 		    <name>spinbutton_config_upload_connected_timeout</name>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>changed</name>
-		      <handler>on_spinbutton_config_upload_connected_timeout_changed</handler>
-		      <after>True</after>
-		      <last_modification_time>Thu, 18 Jul 2002 03:22:35 GMT</last_modification_time>
-		    </signal>
 		    <climb_rate>1</climb_rate>
 		    <digits>0</digits>
 		    <numeric>True</numeric>
