@@ -3268,9 +3268,9 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 	}
 	
 	if (!gnet_deflate_enabled && (n->attrs & NODE_A_RX_INFLATE)) {
-		node_remove(n, "Compression was not accepted");
 		g_warning("Content-Encoding \"deflate\" although disabled - from"
 			   " node %s <%s>", node_ip(n), node_vendor(n));
+        node_bye(n, 400, "Compression was not accepted");
 		return;
 	}
 
@@ -3286,6 +3286,7 @@ node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 						node_ip(n), node_vendor(n));
 				} else {
 					node_bye(n, 206, "G2 not supported");
+					return;
 				}
 			} else {
 				if (n->protocol_type != PROTOCOL_TYPE_GNUTELLA) {
