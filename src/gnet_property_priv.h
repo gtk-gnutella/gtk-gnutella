@@ -106,6 +106,7 @@ extern guint32  min_dup_ratio;
 extern gchar   *scan_extensions;
 extern gchar   *save_file_path;
 extern gchar   *move_file_path;
+extern gchar   *bad_file_path;
 extern gchar   *shared_dirs_paths;
 extern gchar   *local_netmasks_string;
 extern guint32  total_downloads;
