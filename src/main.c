@@ -200,7 +200,7 @@ static void sig_ignore(int n)
 
 static void init_constants(void)
 {
-	time_t now = time(NULL);
+	time_t now = clock_loc2gmt(time(NULL));
 	start_rfc822_date = atom_str_get(date_to_rfc822_gchar(now));
 	gnet_prop_set_guint32_val(PROP_START_STAMP, (guint32) now);
 }
