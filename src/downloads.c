@@ -341,7 +341,9 @@ void download_stop(struct download *d, guint32 new_status,
 
 	d->status = new_status;
 	d->last_update = time((time_t *) NULL);
-	d->retries = 0;		/* If they retry manually, go over whole cycle again */
+
+	if (d->status != GTA_DL_TIMEOUT_WAIT)
+		d->retries = 0;		/* If they retry, go over whole cycle again */
 
 	if (reason) {
 		va_list args;
