@@ -98,6 +98,8 @@ search_gui_free_alt_locs(record_t *rc)
 {
 	gnet_host_vec_t *alt = rc->alt_locs;
 
+	g_assert(rc->magic == RECORD_MAGIC);
+	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
 	g_assert(alt != NULL);
 
 	wfree(alt->hvec, alt->hvcnt * sizeof(*alt->hvec));
@@ -132,10 +134,12 @@ search_gui_free_proxies(results_set_t *rs)
  * To ensure some level of sanity, we ask our callers to explicitely check
  * for a refcount to be zero before calling us.
  */
-void
+static void
 search_gui_free_record(record_t *rc)
 {
+	g_assert(rc->magic == RECORD_MAGIC);
 	g_assert(rc->refcount == 0);
+	g_assert(NULL == rc->results_set);
 
 	atom_str_free(rc->name);
 	if (rc->ext != NULL)
@@ -151,7 +155,8 @@ search_gui_free_record(record_t *rc)
 	if (rc->alt_locs != NULL)
 		search_gui_free_alt_locs(rc);
 	rc->refcount = -1;
-	rc->sha1 = GUINT_TO_POINTER(0x01020304);
+	rc->magic = 0xBAD;
+	rc->sha1 = GUINT_TO_POINTER(1U);
 	zfree(rc_zone, rc);
 }
 
@@ -167,7 +172,7 @@ search_gui_clean_r_set(results_set_t *rs)
 	GSList *sl;
     GSList *sl_remove = NULL;
 
-	g_assert(rs->refcount);		/* If not dispatched, should be freed */
+	g_assert(rs->refcount > 0);		/* If not dispatched, should be freed */
 
     /*
      * Collect empty searches.
@@ -175,6 +180,9 @@ search_gui_clean_r_set(results_set_t *rs)
     for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
 		record_t *rc = (record_t *) sl->data;
 
+		g_assert(rc->results_set == rs);
+		g_assert(rc->magic == RECORD_MAGIC);
+		g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
 		if (rc->refcount == 0)
 			sl_remove = g_slist_prepend(sl_remove, (gpointer) rc);
     }
@@ -185,8 +193,10 @@ search_gui_clean_r_set(results_set_t *rs)
 	for (sl = sl_remove; sl != NULL; sl = g_slist_next(sl)) {
 		record_t *rc = (record_t *) sl->data;
 
+		rc->results_set = NULL;
 		search_gui_free_record(rc);
 		rs->records = g_slist_remove(rs->records, rc);
+		g_assert(rs->num_recs > 0);
 		rs->num_recs--;
 	}
 
@@ -233,8 +243,17 @@ search_gui_free_r_set(results_set_t *rs)
 	 * search_free_record() safely, because rc->refcount must be zero.
 	 */
 
-	for (sl = rs->records; sl != NULL; sl = g_slist_next(sl))
-		search_gui_free_record((record_t *) sl->data);
+	g_assert(rs->num_recs == g_slist_length(rs->records));
+	for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
+		record_t *rc = (record_t *) sl->data;
+		
+		g_assert(rc->magic == RECORD_MAGIC);
+		g_assert(rc->results_set == rs);
+		rc->results_set = NULL;
+		search_gui_free_record(rc);
+		g_assert(rs->num_recs > 0);
+		rs->num_recs--;
+	}
 
     if (rs->guid)
 		atom_guid_free(rs->guid);
@@ -289,7 +308,8 @@ search_gui_dispose_results(results_set_t *rs)
 void
 search_gui_ref_record(record_t *rc)
 {
-	g_assert(rc->refcount >= 0);
+	g_assert(rc->magic == RECORD_MAGIC);
+	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
 	rc->refcount++;
 }
 
@@ -304,7 +324,8 @@ search_gui_unref_record(record_t *rc)
 {
 	results_set_t *rs;
 
-	g_assert(rc->refcount > 0);
+	g_assert(rc->magic == RECORD_MAGIC);
+	g_assert(rc->refcount > 0 && rc->refcount < INT_MAX);
 
 	if (--(rc->refcount) > 0)
 		return;
@@ -313,12 +334,14 @@ search_gui_unref_record(record_t *rc)
 	 * Free record, and remove it from the parent's list.
 	 */
 	rs = rc->results_set;
+	rc->results_set = NULL;
 	search_gui_free_record(rc);
 
 	rs->records = g_slist_remove(rs->records, rc);
+	g_assert(rs->num_recs > 0);
 	rs->num_recs--;
 
-	g_assert(rs->num_recs || rs->records == NULL);
+	g_assert((rs->num_recs > 0) ^ (rs->records == NULL));
 
 	/*
 	 * We can't free the results_set structure right now if it does not
@@ -359,6 +382,9 @@ search_gui_free_r_sets(search_t *sch)
 guint
 search_gui_hash_func(const record_t *rc)
 {
+	g_assert(rc->magic == RECORD_MAGIC);
+	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
+
 	/* Must use same fields as search_hash_key_compare() --RAM */
 	return
 		GPOINTER_TO_UINT(rc->sha1) ^	/* atom! (may be NULL) */
@@ -407,11 +433,11 @@ search_gui_result_is_dup(search_t *sch, record_t *rc)
 		gpointer ptr;
 	} old;
 	gpointer dummy;
-	gboolean found;
 
-	found = g_hash_table_lookup_extended(sch->dups, rc, &old.ptr, &dummy);
+	g_assert(rc->magic == RECORD_MAGIC);
+	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
 
-	if (!found)
+	if (!g_hash_table_lookup_extended(sch->dups, rc, &old.ptr, &dummy))
 		return FALSE;
 
 	/*
@@ -481,6 +507,7 @@ search_gui_create_record(results_set_t *rs, gnet_record_t *r)
 
     rc = (record_t *) zalloc(rc_zone);
 
+	rc->magic = RECORD_MAGIC;
     rc->results_set = rs;
     rc->refcount = 0;
 
@@ -607,6 +634,8 @@ search_gui_check_alt_locs(results_set_t *rs, record_t *rc)
 	gint i;
 	gnet_host_vec_t *alt = rc->alt_locs;
 
+	g_assert(rc->magic == RECORD_MAGIC);
+	g_assert(rc->refcount >= 0 && rc->refcount < INT_MAX);
 	g_assert(alt != NULL);
 	g_assert(rs->proxies == NULL);	/* Since we downloaded record already */
 
@@ -800,7 +829,11 @@ search_matched(search_t *sch, results_set_t *rs)
 		record_t *rc = (record_t *) l->data;
         filter_result_t *flt_result;
         gboolean downloaded = FALSE;
+		gboolean is_dup;
 
+		g_assert(rc->magic == RECORD_MAGIC);
+		g_assert(rc->refcount >= 0);
+		
         if (gui_debug > 7)
             printf("search_matched: [%s] considering %s (%s)\n",
 				sch->query, rc->name, vinfo->str);
@@ -818,7 +851,12 @@ search_matched(search_t *sch, results_set_t *rs)
 		 * we detect a change.
 		 */
 
-		if (search_gui_result_is_dup(sch, rc)) {
+		
+		g_assert(rc->refcount >= 0);
+		is_dup = search_gui_result_is_dup(sch, rc);
+		g_assert(rc->refcount >= 0);
+		
+		if (is_dup) {
 			sch->duplicates++;
 			continue;
 		}
@@ -833,7 +871,9 @@ search_matched(search_t *sch, results_set_t *rs)
 			continue;
 		}
 
+		g_assert(rc->refcount >= 0);
         flt_result = filter_record(sch, rc);
+		g_assert(rc->refcount >= 0);
 
         /*
          * Check whether this record was already scheduled for
@@ -887,8 +927,11 @@ search_matched(search_t *sch, results_set_t *rs)
             gboolean mark;
 
             sch->items++;
+			g_assert(rc->refcount >= 0);
             g_hash_table_insert(sch->dups, rc, GINT_TO_POINTER(1));
+			g_assert(rc->refcount >= 0);
             search_gui_ref_record(rc);
+			g_assert(rc->refcount >= 1);
 
             mark =
                 (flt_result->props[FILTER_PROP_DISPLAY].state ==

@@ -76,6 +76,10 @@ typedef struct host_vec {
 	gint hvcnt;					/* Amount of hosts in vector */
 } host_vec_t;
 
+typedef enum {
+	RECORD_MAGIC = 0x3fb9c04e
+} record_magic_t;
+
 /*
  * An individual hit.  It referes to a file entry on the remote servent,
  * as identified by the parent results_set structure that contains this hit.
@@ -88,6 +92,7 @@ typedef struct host_vec {
 typedef struct record {
 	results_set_t *results_set;	/* Parent, containing record */
 	gint refcount;				/* Number of hash tables it has been put to */
+	record_magic_t magic;		/* Magic ID */
 
 	gchar  *name;				/* File name */
 	gchar  *ext;				/* File extension */
@@ -117,7 +122,6 @@ void search_gui_current_search(search_t *sch);
 
 void search_gui_free_alt_locs(record_t *rc);
 void search_gui_free_proxies(results_set_t *rs);
-void search_gui_free_record(record_t *rc);
 void search_gui_clean_r_set(results_set_t *rs);
 void search_gui_free_r_set(results_set_t *rs);
 void search_gui_dispose_results(results_set_t *rs);
