@@ -188,7 +188,7 @@ void gui_update_node(struct gnutella_node *, gboolean);
 	do { (n)->sent += (x); gui_update_node((n), FALSE); } while (0)
 
 #define node_add_txdrop(n,x)	\
-	do { (n)->rx_dropped += (x); gui_update_node((n), FALSE); } while (0)
+	do { (n)->tx_dropped += (x); gui_update_node((n), FALSE); } while (0)
 
 #define node_add_rxdrop(n,x)	\
 	do { (n)->rx_dropped += (x); gui_update_node((n), FALSE); } while (0)
