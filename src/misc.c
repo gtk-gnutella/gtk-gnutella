@@ -40,7 +40,7 @@
 
 RCSID("$Id$");
 
-#if !defined(HAVE_SRANDOM) || !defined(HAVE_RANDOM)
+#if !defined(HAS_SRANDOM) || !defined(HAS_RANDOM)
 #define srandom(x)	srand(x)
 #define random(x)	rand(x)
 #define RANDOM_MASK				0xffffffff
@@ -53,7 +53,7 @@ RCSID("$Id$");
 static const char hex_alphabet[] = "0123456789ABCDEF";
 const char hex_alphabet_lower[] = "0123456789abcdef";
 
-#ifndef HAVE_STRLCPY
+#ifndef HAS_STRLCPY
 size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 {
 	gchar *d = dst;
@@ -76,7 +76,7 @@ size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size)
 		s++;
 	return s - src;
 }
-#endif /* HAVE_STRLCPY */
+#endif /* HAS_STRLCPY */
 
 /*
  * is_string_ip
@@ -122,7 +122,7 @@ gchar *ip_port_to_gchar(guint32 ip, guint16 port)
 	return a;
 }
 
-#ifndef HAVE_INET_ATON
+#ifndef HAS_INET_ATON
 /* 
  * Copied from icecast.
  * Fixed to returns 0 on failure, 1 on success --RAM, 12/01/2002.
@@ -143,7 +143,7 @@ int inet_aton(const char *s, struct in_addr *a)
 #endif
 	return 1;
 }
-#endif /* !HAVE_INET_ATON */
+#endif /* !HAS_INET_ATON */
 
 
 guint32 gchar_to_ip(const gchar *str)
@@ -203,14 +203,14 @@ guint32 host_to_ip(const gchar *host)
 		}
 		return ntohl(*(guint32 *) (he->h_addr_list[0]));
 	} else {
-#if defined(HAVE_HSTRERROR)
+#if defined(HAS_HSTRERROR)
 		g_warning("cannot resolve \"%s\": %s", host, hstrerror(h_errno));
-#elif defined(HAVE_HERROR)
+#elif defined(HAS_HERROR)
 		g_warning("cannot resolve \"%s\":", host);
 		herror("gethostbyname()");
 #else
 		g_warning("cannot resolve \"%s\": gethostbyname() failed!", host);
-#endif /* defined(HAVE_HSTRERROR) */
+#endif /* defined(HAS_HSTRERROR) */
 	}
 
 	return 0;
@@ -841,7 +841,7 @@ void strlower(gchar *dst, const gchar *src)
 	} while (*src++);
 }
 
-#ifndef HAVE_STRCASESTR
+#ifndef HAS_STRCASESTR
 /*
  * strcasestr
  *
@@ -895,7 +895,7 @@ gchar *strcasestr(const gchar *haystack, const gchar *needle)
 
 	return NULL;		/* Not found */
 }
-#endif	/* HAVE_STRCASESTR */
+#endif	/* HAS_STRCASESTR */
 
 /*
  * random_init

@@ -33,13 +33,13 @@
 #include <sys/types.h>
 #include <sys/uio.h>	/* struct iovec */
 
-#ifdef HAVE_SYS_SENDFILE_H
+#ifdef I_SYS_SENDFILE
 #include <sys/sendfile.h>
-#else	/* !HAVE_SYS_SENDFILE_H */
-#ifdef HAVE_SENDFILE
+#else	/* !I_SYS_SENDFILE */
+#ifdef HAS_SENDFILE
 #define USE_BSD_SENDFILE		/* No <sys/sendfile.h>, assume BSD version */
 #endif
-#endif	/* HAVE_SYS_SENDFILE_H */
+#endif	/* I_SYS_SENDFILE_H */
 
 #include "bsched.h"
 
@@ -1172,7 +1172,7 @@ gint bio_writev(bio_source_t *bio, struct iovec *iov, gint iovcnt)
  */
 gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len)
 {
-#ifndef HAVE_SENDFILE
+#ifndef HAS_SENDFILE
 	g_error("missing sendfile(2), should not have been called");
 	return EOPNOTSUPP;		/* g_error() is fatal, just shut warnings */
 #else

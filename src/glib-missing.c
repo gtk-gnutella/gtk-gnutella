@@ -121,7 +121,7 @@ GList *g_list_delete_link(GList *l, GList *lnk)
  * `args' is the arguments to be printed.
  */
 
-#ifdef	HAVE_VSNPRINTF
+#ifdef	HAS_VSNPRINTF
 #define DO_VSNPRINTF() do {					\
 	str[0] = '\0';							\
 	retval = vsnprintf(str, n, fmt, args);	\

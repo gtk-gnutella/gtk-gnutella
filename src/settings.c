@@ -31,14 +31,14 @@
 #include <sys/time.h>			/* For FreeBSD, before <sys/resource.h> */
 #include <sys/resource.h>
 
-#ifdef HAVE_SYS_SYSCTL_H 
+#ifdef I_SYS_SYSCTL
 
-#ifndef __FreeBSD__
+#ifdef I_SYS_PARAM
 #include <sys/param.h>
-#endif /* __FreeBSD__ */
+#endif
 
 #include <sys/sysctl.h>
-#endif /* HAVE_SYS_SYSCTL_H */
+#endif /* I_SYS_SYSCTL */
 
 #include <sys/stat.h>
 #include <signal.h>
@@ -207,7 +207,7 @@ static gulong settings_getphysmemsize(void)
 		return 0;
 	}
 	return (pagesize >> 10) * (gulong) pages;
-#elif defined(HAVE_SYSCTL) && defined(CTL_HW) && defined(HW_USERMEM)
+#elif defined(HAS_SYSCTL) && defined(CTL_HW) && defined(HW_USERMEM)
 /* There's also HW_PHYSMEM but HW_USERMEM is better for our needs. */
 	int mib[2] = { CTL_HW, HW_USERMEM };
 	int amount = 0;
@@ -218,7 +218,7 @@ static gulong settings_getphysmemsize(void)
 			"settings_getphysmemsize: sysctl() for HW_USERMEM failed: %s",
 			g_strerror(errno));
 	return amount / 1024;
-#else /* !(defined (_SC_PHYS_PAGES) || defined(HAVE_SYSCTL)) */
+#else /* !(defined (_SC_PHYS_PAGES) || defined(HAS_SYSCTL)) */
 	g_warning("Unable to determine amount of physical RAM");
 	return 0;
 #endif 	/* _SC_PHYS_PAGES */

@@ -2285,7 +2285,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		return;
 	}
 
-#ifndef HAVE_SENDFILE
+#ifndef HAS_SENDFILE
 	/* If we got a valid skip amount then jump ahead to that position */
 	if (u->skip > 0) {
 		if (-1 == lseek(u->file_desc, u->skip, SEEK_SET)) {
@@ -2302,7 +2302,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		u->buf_size = READ_BUF_SIZE * sizeof(gchar);
 		u->buffer = (gchar *) g_malloc(u->buf_size);
 	}
-#endif	/* !HAVE_SENDFILE */
+#endif	/* !HAS_SENDFILE */
 
 	/*
 	 * Set remaining upload information
@@ -2422,9 +2422,9 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 	gint written;
 	guint32 amount;
 	guint32 available;
-#ifdef HAVE_SENDFILE
+#ifdef HAS_SENDFILE
 	off_t pos;				/* For sendfile() sanity checks */
-#endif	/* !HAVE_SENDFILE */
+#endif	/* !HAS_SENDFILE */
 
 	if (!(cond & INPUT_EVENT_WRITE)) {
 		/* If we can't write then we don't want it, kill the socket */
@@ -2435,7 +2435,7 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 		return;
 	}
 
-#ifdef HAVE_SENDFILE
+#ifdef HAS_SENDFILE
 	/*
 	 * Compute the amount of bytes to send.
 	 * Use the two variables to avoid warnings about unused vars by compiler.
@@ -2451,7 +2451,7 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 
 	g_assert(written == -1 || written == u->pos - pos);
 
-#else	/* !HAVE_SENDFILE */
+#else	/* !HAS_SENDFILE */
 
 	/*
 	 * Compute the amount of bytes to send.
@@ -2486,7 +2486,7 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 
 	written = bio_write(u->bio, &u->buffer[u->bpos], available);
 
-#endif	/* HAVE_SENDFILE */
+#endif	/* HAS_SENDFILE */
 
 	if (written ==  -1) {
 		if (errno != EAGAIN)
@@ -2497,7 +2497,7 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 		return;
 	}
 
-#ifndef HAVE_SENDFILE
+#ifndef HAS_SENDFILE
 	/*
 	 * Only required when not using sendfile(), otherwise the u->pos field
 	 * is directly updated by the kernel, and u->bpos is unused.

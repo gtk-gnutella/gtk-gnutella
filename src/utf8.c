@@ -47,11 +47,11 @@ RCSID("$Id$");
 #include <iconv.h>
 #include <locale.h>
 
-#ifdef HAVE_LIBCHARSET_H
+#ifdef I_LIBCHARSET
 #include <libcharset.h>
 #else
 #include <langinfo.h>
-#endif /* HAVE_LIBCHARSET_H */
+#endif /* I_LIBCHARSET */
 
 #endif /* !USE_GTK2 || ENABLE_NLS */
  
@@ -424,7 +424,7 @@ gint utf8_to_iso8859(gchar *s, gint len, gboolean space)
 }
 
 
-#if !defined(USE_GTK2) && !defined(HAVE_LIBCHARSET_H)
+#if !defined(USE_GTK2) && !defined(I_LIBCHARSET)
 
 /* List of known codesets. The first word of each string is the alias to be
  * returned. The words are seperated by whitespaces.
@@ -552,7 +552,7 @@ const char *locale_charset(void)
 	}
 	return NULL;
 }
-#endif /* ENABLE_NLS && !HAVE_LIBCHARSET_H */
+#endif /* ENABLE_NLS && !I_LIBCHARSET */
 
 static const gchar *charset = NULL;
 
@@ -566,7 +566,7 @@ static void textdomain_init(const char *charset)
 #ifdef ENABLE_NLS
 	bindtextdomain(PACKAGE, LOCALEDIR);
 
-#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
+#ifdef HAS_BIND_TEXTDOMAIN_CODESET
 
 	bind_textdomain_codeset(PACKAGE,
 #ifdef USE_GTK2	
@@ -576,7 +576,7 @@ static void textdomain_init(const char *charset)
 #endif /* USE_GTK2*/
 	);
 
-#endif /* HAVE_BIND_TEXTDOMAIN_CODESET */
+#endif /* HAS_BIND_TEXTDOMAIN_CODESET */
 
 	textdomain(PACKAGE);
 #endif /* NLS */
@@ -595,9 +595,9 @@ void locale_init(void)
 
 #else
 
-#if defined(HAVE_LANGINFO_H) || defined(HAVE_LIBCHARSET_H)
+#if defined(I_LANGINFO) || defined(I_LIBCHARSET)
 	charset = locale_charset();
-#endif /* HAVE_LANGINFO_H || HAVE_LIBCHARSET_H */
+#endif /* I_LANGINFO || I_LIBCHARSET */
 
 	if (charset == NULL) {
 		charset = "ISO-8859-1";		/* Default locale codeset */
