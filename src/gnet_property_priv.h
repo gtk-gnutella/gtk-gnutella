@@ -90,6 +90,7 @@ extern guint32  dh_debug;
 extern guint32  dq_debug;
 extern guint32  vmsg_debug;
 extern guint32  search_debug;
+extern guint32  udp_debug;
 extern guint32  track_props;
 extern gboolean stop_host_get;
 extern gboolean bws_in_enabled;
@@ -163,6 +164,7 @@ extern gboolean use_fuzzy_matching;
 extern guint32  fuzzy_threshold;
 extern gboolean is_firewalled;
 extern gboolean is_inet_connected;
+extern gboolean is_udp_firewalled;
 extern gboolean gnet_compact_query;
 extern gboolean download_optimistic_start;
 extern gboolean library_rebuilding;
@@ -247,6 +249,9 @@ extern guint32  ancient_version_left_days;
 extern gboolean file_descriptor_shortage;
 extern gboolean file_descriptor_runout;
 extern gboolean convert_spaces;
+extern gboolean enable_udp;
+extern gboolean process_oob_queries;
+extern gboolean send_oob_queries;
 
 
 prop_set_t *gnet_prop_init(void);

@@ -739,6 +739,17 @@ prop = {
 };
 
 prop = {
+	name = "udp_debug";
+	desc = "Debug level for the UDP traffic layer.";
+    type = guint32;
+    data = {
+        default = 0;
+        min     = 0;
+        max     = 20;
+    };
+};
+
+prop = {
     name = "track_props";
     desc = "For development use: track properties";
     type = guint32;
@@ -1576,7 +1587,7 @@ prop = {
 
 prop = {
     name = "is_firewalled";
-    desc = "Whether gtk-gnutella thinks we're currently firewalled";
+    desc = "Whether gtk-gnutella thinks you're currently firewalled, TCP-wise";
     save = TRUE;
     type = boolean;
     data = {
@@ -1588,6 +1599,16 @@ prop = {
     name = "is_inet_connected";
     desc = "Whether gtk-gnutella thinks it's connected to the Internet";
     save = FALSE;
+    type = boolean;
+    data = {
+	    default = TRUE;
+    };
+};
+
+prop = {
+    name = "is_udp_firewalled";
+    desc = "Whether gtk-gnutella thinks you're currently firewalled, UDP-wise";
+    save = TRUE;
     type = boolean;
     data = {
 	    default = TRUE;
@@ -2566,6 +2587,49 @@ prop = {
 prop = {
 	name = "convert_spaces";
 	desc = "If set, spaces in filenames are replaced with underscores.";
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "enable_udp";
+	desc = "Whether UDP shall be used in complement to TCP.  When set, "
+		"gtk-gnutella will also listen for UDP traffic on the same port "
+		"as the one configured for TCP and process incoming Gnutella traffic "
+		"in almost the same way as if it was received via TCP.";
+	type = boolean;
+	data = {
+		default = FALSE;
+	};
+};
+
+prop = {
+	name = "process_oob_queries";
+	desc = "Whether gtk-gnutella should honour the request for out-of-band "
+		"delivery of query hits via UDP, regardless of whether UDP listening "
+		"is enabled.  It should not be necessary to open a port on your "
+		"firewall to enable this as your node will be the origin of the UDP "
+		"traffic and should therefore be able to receive replies sent to "
+		"the transient UDP port opened by a masquerading firewall.  It is "
+		"enabled by default because it is deemed safe, as your node controls "
+		"the bulk of the emitted traffic and honours the bandwidth limitation "
+		"you have put in place.";
+	type = boolean;
+	data = {
+		default = TRUE;
+	};
+};
+
+prop = {
+	name = "send_oob_queries";
+	desc = "Whether gtk-gnutella should send queries requesting out-of-band "
+		"delivery of query hits via UDP.  This setting is ignored if you "
+		"appear to be UDP-firewalled, i.e. cannot receive unsollicited UDP "
+		"traffic.  You need to enable UDP support first.  This can cause "
+		"the reception of vast quantities of UDP replies (negotiated normally "
+		"by your node, but still) and that is why it is disabled by default.";
 	type = boolean;
 	data = {
 		default = FALSE;
