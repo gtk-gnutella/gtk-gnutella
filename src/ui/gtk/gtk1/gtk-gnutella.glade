@@ -6445,7 +6445,7 @@
 			  <class>GtkLabel</class>
 			  <child_name>CList:title</child_name>
 			  <name>label404</name>
-			  <label>count</label>
+			  <label>Count</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0.5</xalign>
@@ -6579,7 +6579,7 @@
 			  <class>GtkLabel</class>
 			  <child_name>CList:title</child_name>
 			  <name>label376</name>
-			  <label>count</label>
+			  <label>Count</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
 			  <wrap>False</wrap>
 			  <xalign>0.5</xalign>
