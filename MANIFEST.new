@@ -254,6 +254,11 @@ src/hashtree.c
 src/hashtree.h
 src/hcache.c
 src/hcache.h
+src/hcache_gui_common.c
+src/hcache_gui_common.h
+src/hcache_gui.c
+src/hcache_gui.h
+src/hcache_gui2.c
 src/header.c
 src/header.h
 src/hostiles.c
