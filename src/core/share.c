@@ -1387,7 +1387,7 @@ query_strip_oob_flag(gnutella_node_t *n, gchar *data)
 	speed &= ~QUERY_SPEED_OOB_REPLY;
 	WRITE_GUINT16_LE(speed, data);
 
-	gnet_stats_count_general(n, GNR_OOB_QUERIES_STRIPPED, 1);
+	gnet_stats_count_general(GNR_OOB_QUERIES_STRIPPED, 1);
 
 	if (query_debug)
 		printf("QUERY from node %s <%s>: removed OOB delivery (speed = 0x%x)\n",
@@ -1519,7 +1519,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_UTF_8);
 			return TRUE;					/* Drop message! */
 		} else if (utf8_len)
-			gnet_stats_count_general(n, GNR_QUERY_UTF8, 1);
+			gnet_stats_count_general(GNR_QUERY_UTF8, 1);
 
 		/*
 		 * Compact the query, offsetting from the start as needed in case
@@ -1533,8 +1533,8 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		g_assert(mangled_search_len <= search_len - offset);
 	
 		if (mangled_search_len != search_len - offset) {
-			gnet_stats_count_general(n, GNR_QUERY_COMPACT_COUNT, 1);
-			gnet_stats_count_general(n, GNR_QUERY_COMPACT_SIZE,
+			gnet_stats_count_general(GNR_QUERY_COMPACT_COUNT, 1);
+			gnet_stats_count_general(GNR_QUERY_COMPACT_SIZE,
 				search_len - offset - mangled_search_len);
 		}
 
@@ -1632,7 +1632,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		}
 
 		if (exv_sha1cnt)
-			gnet_stats_count_general(n, GNR_QUERY_SHA1, 1);
+			gnet_stats_count_general(GNR_QUERY_SHA1, 1);
 	}
 
     /*
@@ -1852,9 +1852,9 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 				use_ggep_h =
 					major >= 1 || minor > 91 || (minor == 91 && release);
 
-			gnet_stats_count_general(n, GNR_GTKG_TOTAL_QUERIES, 1);
+			gnet_stats_count_general(GNR_GTKG_TOTAL_QUERIES, 1);
 			if (requery)
-				gnet_stats_count_general(n, GNR_GTKG_REQUERIES, 1);
+				gnet_stats_count_general(GNR_GTKG_REQUERIES, 1);
 
 			if (query_debug > 3)
 				printf("GTKG %s%squery from %d.%d%s\n",
@@ -1864,7 +1864,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	}
 
 	if (use_ggep_h)
-		gnet_stats_count_general(n, GNR_QUERIES_WITH_GGEP_H, 1);
+		gnet_stats_count_general(GNR_QUERIES_WITH_GGEP_H, 1);
 
 	/*
 	 * If OOB reply is wanted, validate a few things.
@@ -1971,7 +1971,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	) {
 		oob_proxy_create(n);
 		oob = TRUE;
-		gnet_stats_count_general(n, GNR_OOB_PROXIED_QUERIES, 1);
+		gnet_stats_count_general(GNR_OOB_PROXIED_QUERIES, 1);
 	}
 
 	if (tagged_speed) {
@@ -1995,7 +1995,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 	 * Perform search...
 	 */
 
-    gnet_stats_count_general(n, GNR_LOCAL_SEARCHES, 1);
+    gnet_stats_count_general(GNR_LOCAL_SEARCHES, 1);
 	if (current_peermode == NODE_P_LEAF && node_ultra_received_qrp(n))
 		node_inc_qrp_query(n);
 
@@ -2038,7 +2038,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 			drop_it = TRUE;					/* Drop message! */
 			goto finish;					/* Flush any SHA1 result we have */
 		} else if (utf8_len)
-			gnet_stats_count_general(n, GNR_QUERY_UTF8, 1);
+			gnet_stats_count_general(GNR_QUERY_UTF8, 1);
 
 		is_utf8 = utf8_len > 0;
 
@@ -2094,7 +2094,7 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 
 finish:
 	if (qctx->found > 0) {
-        gnet_stats_count_general(n, GNR_LOCAL_HITS, qctx->found);
+        gnet_stats_count_general(GNR_LOCAL_HITS, qctx->found);
 		if (current_peermode == NODE_P_LEAF && node_ultra_received_qrp(n))
 			node_inc_qrp_match(n);
 

@@ -1142,7 +1142,7 @@ forward_message(
 			dest->ur.u_nodes = nodes;
 
 			if (count > 1)
-				gnet_stats_count_general(sender, GNR_BROADCASTED_PUSHES, 1);
+				gnet_stats_count_general(GNR_BROADCASTED_PUSHES, 1);
 
 		} else if (target != NULL) {
 			dest->type = ROUTE_ONE;
@@ -1204,7 +1204,7 @@ check_duplicate(struct route_log *log,
 		if (sender->header.ttl > m->ttl) {
 			routing_log_extra(log, "dup message with higher ttl");
 
-			gnet_stats_count_general(sender, GNR_DUPS_WITH_HIGHER_TTL, 1);
+			gnet_stats_count_general(GNR_DUPS_WITH_HIGHER_TTL, 1);
 
 			m->ttl = sender->header.ttl;	/* Remember highest TTL */
 
@@ -1281,12 +1281,12 @@ check_duplicate(struct route_log *log,
 
 		g_assert(m != NULL);		/* find_message() succeeded */
 
-		gnet_stats_count_general(sender, GNR_QUERY_OOB_PROXIED_DUPS, 1);
+		gnet_stats_count_general(GNR_QUERY_OOB_PROXIED_DUPS, 1);
 
 		if (sender->header.ttl > m->ttl) {
 			routing_log_extra(log, "dup OOB query with higher ttl");
 
-			gnet_stats_count_general(sender, GNR_DUPS_WITH_HIGHER_TTL, 1);
+			gnet_stats_count_general(GNR_DUPS_WITH_HIGHER_TTL, 1);
 
 			m->ttl = sender->header.ttl;	/* Remember highest TTL */
 
@@ -1577,9 +1577,9 @@ route_query_hit(struct route_log *log,
 	if (node_sent_message(fake_node, m)) {
 		node_is_target = TRUE;		/* We are the target of the reply */
 		if (is_oob_proxied)
-			gnet_stats_count_general(sender, GNR_OOB_PROXIED_QUERY_HITS, 1);
+			gnet_stats_count_general(GNR_OOB_PROXIED_QUERY_HITS, 1);
 		else
-			gnet_stats_count_general(sender, GNR_LOCAL_QUERY_HITS, 1);
+			gnet_stats_count_general(GNR_LOCAL_QUERY_HITS, 1);
 		goto handle;
 	}
 
@@ -1710,7 +1710,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		gmsg_split_is_oob_query(&sender->header, sender->data)
 	) {
 		mangled = route_mangled_oob_muid(sender->header.muid);
-		gnet_stats_count_general(sender, GNR_OOB_QUERIES, 1);
+		gnet_stats_count_general(GNR_OOB_QUERIES, 1);
 	}
 
 	/*

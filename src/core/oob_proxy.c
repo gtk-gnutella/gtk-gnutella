@@ -325,13 +325,13 @@ ignore:
  * the MUID as one of the OOB-proxied queries.
  */
 gboolean
-oob_proxy_got_results(gnutella_node_t *n, gint results)
+oob_proxy_got_results(gnutella_node_t *n, guint results)
 {
 	struct oob_proxy_rec *opr;
 	struct gnutella_node *leaf;
 
 	g_assert(n->header.function == GTA_MSG_SEARCH_RESULTS);
-	g_assert(results > 0);
+	g_assert(results > 0 && results <= INT_MAX);
 
 	opr = g_hash_table_lookup(proxied_queries, n->header.muid);
 	if (opr == NULL)
@@ -372,7 +372,7 @@ oob_proxy_got_results(gnutella_node_t *n, gint results)
 	dh_got_results(opr->leaf_muid, results);
 
 	if (NODE_IS_UDP(n))
-		gnet_stats_count_general(n, GNR_OOB_HITS_FOR_PROXIED_QUERIES, 1);
+		gnet_stats_count_general(GNR_OOB_HITS_FOR_PROXIED_QUERIES, 1);
 
 	/*
 	 * Replace the MUID of the message with the original one that

@@ -459,7 +459,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 		rs->status |= ST_UDP;
 
 		if (n->ip != rs->ip && !is_private_ip(rs->ip))
-			gnet_stats_count_general(n, GNR_OOB_HITS_WITH_ALIEN_IP, 1);
+			gnet_stats_count_general(GNR_OOB_HITS_WITH_ALIEN_IP, 1);
 	}
 
 	/* Check for hostile IP addresses */

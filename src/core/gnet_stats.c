@@ -42,7 +42,7 @@ static gnet_stats_t gnet_stats;
 static gnet_stats_t gnet_tcp_stats;
 static gnet_stats_t gnet_udp_stats;
 
-static gchar * const msg_drop_reason[MSG_DROP_REASON_COUNT] = {
+static const gchar * const msg_drop_reason[MSG_DROP_REASON_COUNT] = {
 	N_("Bad size"),							/* MSG_DROP_BAD_SIZE */
 	N_("Too small"),						/* MSG_DROP_TOO_SMALL */
 	N_("Too large"),						/* MSG_DROP_TOO_LARGE */
@@ -277,10 +277,8 @@ void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 			node_ip(n), node_vendor(n), msg_drop_reason[reason]);
 }
 
-void gnet_stats_count_general(gnutella_node_t *n, gnr_stats_t type, guint32 x)
+void gnet_stats_count_general(gnr_stats_t type, guint32 x)
 {
-	/* XXX - parameter `n' is unused, remove? -- and it can be NULL */
-
 	g_assert((gint) type >= 0 && type < GNR_TYPE_COUNT);
 
     gnet_stats.general[type] += x;

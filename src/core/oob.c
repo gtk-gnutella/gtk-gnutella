@@ -188,7 +188,7 @@ results_destroy(cqueue_t *unused_cq, gpointer obj)
 			guid_hex_str(r->muid), ip_port_to_gchar(r->dest.ip, r->dest.port),
 			r->count, r->count == 1 ? "" : "s");
 
-	gnet_stats_count_general(NULL, GNR_UNCLAIMED_OOB_HITS, 1);
+	gnet_stats_count_general(GNR_UNCLAIMED_OOB_HITS, 1);
 
 	r->ev_expire = NULL;		/* The timer which just triggered */
 	results_free_remove(r);
@@ -209,7 +209,7 @@ results_timeout(cqueue_t *unused_cq, gpointer obj)
 			guid_hex_str(r->muid), ip_port_to_gchar(r->dest.ip, r->dest.port),
 			r->count, r->count == 1 ? "" : "s");
 
-	gnet_stats_count_general(NULL, GNR_UNCLAIMED_OOB_HITS, 1);
+	gnet_stats_count_general(GNR_UNCLAIMED_OOB_HITS, 1);
 
 	r->ev_timeout = NULL;		/* The timer which just triggered */
 	results_free_remove(r);
@@ -420,7 +420,7 @@ oob_deliver_hits(struct gnutella_node *n, gchar *muid, guint8 wanted)
 			r->muid, r->files, deliver_count, r->use_ggep_h);
 
 	if (wanted < r->count)
-		gnet_stats_count_general(n, GNR_PARTIALLY_CLAIMED_OOB_HITS, 1);
+		gnet_stats_count_general(GNR_PARTIALLY_CLAIMED_OOB_HITS, 1);
 
 	/*
 	 * We're now done with the "oob_results" structure, since all the

@@ -1096,7 +1096,7 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 	
 	queue = getline_str(s->getline);
 
-	gnet_stats_count_general(NULL, GNR_QUEUE_CALLBACKS, 1);
+	gnet_stats_count_general(GNR_QUEUE_CALLBACKS, 1);
 
 	if (dbg) {
 		printf("--- Got QUEUE from %s:\n", ip_to_gchar(s->ip));
@@ -1661,7 +1661,6 @@ static void parq_upload_free_queue(struct parq_ul_queue *queue)
  */
 static void parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 {
-	extern gint running_uploads;
 	GList *l;
 	guint eta = 0;
 	guint avg_bps;
@@ -1685,7 +1684,7 @@ static void parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 		}
 	}
 	
-	if (eta == 0 && running_uploads > max_uploads) {
+	if (eta == 0 && ul_running > max_uploads) {
 		/* We don't have an upload slot available, so a start ETA (for position
 		 * 1) is necessary.
 		 * Use the eta of another queue. First by the queue which uses more than
@@ -1984,7 +1983,6 @@ void parq_upload_timer(time_t now)
 	if (!rebuilding && ul_parq_queue != NULL && max_uploads > 0) {
 		GList *queue_cmd_remove = NULL;
 		GList *queue_cmd_list = NULL;
-		extern gint registered_uploads;			/* From uploads.c */
 		
 		queue_cmd_list = ul_parq_queue;
 		do {
@@ -2040,7 +2038,7 @@ void parq_upload_timer(time_t now)
 			
 			parq_ul->flags &= ~PARQ_UL_QUEUE;
 		} while (
-			registered_uploads < MAX_UPLOADS && 
+			ul_registered < MAX_UPLOADS && 
 			(queue_cmd_list = g_list_next(queue_cmd_list)) != NULL &&
 			bws_can_connect(SOCK_TYPE_UPLOAD)
 		);

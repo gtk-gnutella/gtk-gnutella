@@ -6890,7 +6890,7 @@ download_push_ack(struct gnutella_socket *s)
 	g_assert(s->getline);
 	giv = getline_str(s->getline);
 
-	gnet_stats_count_general(NULL, GNR_GIV_CALLBACKS, 1);
+	gnet_stats_count_general(GNR_GIV_CALLBACKS, 1);
 
 	if (dbg > 4) {
 		printf("----Got GIV from %s:\n", ip_to_gchar(s->ip));
