@@ -532,7 +532,8 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	 */
 	 
 	if (parq_is_banned_source(s->ip)) {
-		g_warning("[sockets] PARQ has banned ip %s", ip_to_gchar(s->ip));
+		if (dbg)
+			g_warning("[sockets] PARQ has banned ip %s", ip_to_gchar(s->ip));
 		ban_force(s);
 		goto cleanup;
 	}
