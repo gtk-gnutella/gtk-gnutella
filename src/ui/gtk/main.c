@@ -385,6 +385,7 @@ static GtkWidget *gui_create_dlg_about(void)
         "Hans de Graaff <hans@degraaff.org>",
         "Globuz",
 		"Daichi Kawahata <daichik@users.sourceforge.net>",
+		"Dave Rutherford <polymath69@users.sourceforge.net>",
         NULL
     };
     GtkWidget *dlg = create_dlg_about();
