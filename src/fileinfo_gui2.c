@@ -401,7 +401,7 @@ void fi_gui_init(void)
     fi_add_listener((GCallback) fi_gui_fi_removed, EV_FI_REMOVED,
 		FREQ_SECS, 0);
     fi_add_listener((GCallback) fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED,
-		FREQ_SECS, 2);
+		FREQ_SECS, 0);
 }
 
 void fi_gui_shutdown(void)
