@@ -1258,8 +1258,7 @@ static gboolean send_push_request(gchar *guid, guint32 file_id, guint16 port)
 	memcpy(&(m.request.guid), guid, 16);
 
 	WRITE_GUINT32_LE(file_id, m.request.file_id);
-	WRITE_GUINT32_BE((force_local_ip) ? forced_local_ip : local_ip,
-					 m.request.host_ip);
+	WRITE_GUINT32_BE(listen_ip(), m.request.host_ip);
 	WRITE_GUINT16_LE(port, m.request.host_port);
 
 	message_add(m.header.muid, GTA_MSG_PUSH_REQUEST, NULL);

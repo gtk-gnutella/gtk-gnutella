@@ -149,7 +149,7 @@ gboolean find_host(guint32 ip, guint16 port)
 
 	/* Check our local ip */
 
-	if (ip == local_ip || (force_local_ip && ip == forced_local_ip))
+	if (ip == listen_ip())
 		return TRUE;
 
 	/* Check the nodes -- this is a small list, OK to traverse */
@@ -749,8 +749,7 @@ static void send_personal_info(struct gnutella_node *n)
 	 */
 
 	send_pong(n, 0, MIN(n->header.hops + 1, max_ttl), n->header.muid,
-		force_local_ip ? forced_local_ip : local_ip, listen_port,
-		files_scanned, kbytes_scanned);
+		listen_ip(), listen_port, files_scanned, kbytes_scanned);
 }
 
 /*
@@ -1325,6 +1324,38 @@ static void pong_all_neighbours_but_one(
 }
 
 /*
+ * record_fresh_pong
+ *
+ * Add pong from node `n' to our cache of recent pongs.
+ * Returns the cached pong object.
+ */
+static struct cached_pong *record_fresh_pong(struct gnutella_node *n,
+	guint8 hops, guint32 ip, guint16 port,
+	guint32 files_count, guint32 kbytes_count)
+{
+	struct cache_line *cl;
+	struct cached_pong *cp;
+	guint8 hop;
+
+	cp = (struct cached_pong *) g_malloc(sizeof(struct cached_pong));
+
+	cp->refcount = 1;
+	cp->node_id = n->id;
+	cp->last_sent_id = n->id;
+	cp->ip = ip;
+	cp->port = port;
+	cp->files_count = files_count;
+	cp->kbytes_count = kbytes_count;
+
+	hop = CACHE_HOP_IDX(hops);
+	cl = &pong_cache[hop];
+	cl->pongs = g_slist_append(cl->pongs, cp);
+	add_recent_pong(cp);
+
+	return cp;
+}
+
+/*
  * pcache_ping_received
  *
  * Called when a ping is received from a node.
@@ -1470,9 +1501,7 @@ void pcache_pong_received(struct gnutella_node *n)
 	guint16 port;
 	guint32 files_count;
 	guint32 kbytes_count;
-	struct cache_line *cl;
 	struct cached_pong *cp;
-	guint8 hop;
 
 	n->n_pong_received++;
 
@@ -1540,20 +1569,8 @@ void pcache_pong_received(struct gnutella_node *n)
 	 * Insert pong within our cache.
 	 */
 
-	cp = (struct cached_pong *) g_malloc(sizeof(struct cached_pong));
-
-	cp->refcount = 1;
-	cp->node_id = n->id;
-	cp->last_sent_id = n->id;
-	cp->ip = ip;
-	cp->port = port;
-	cp->files_count = files_count;
-	cp->kbytes_count = kbytes_count;
-
-	hop = CACHE_HOP_IDX(n->header.hops);
-	cl = &pong_cache[hop];
-	cl->pongs = g_slist_append(cl->pongs, cp);
-	add_recent_pong(cp);
+	cp = record_fresh_pong(n, n->header.hops, ip, port,
+		files_count, kbytes_count);
 
 	if (dbg > 6)
 		printf("CACHED pong %s (hops=%d, TTL=%d) from %s %s\n",
@@ -1565,7 +1582,31 @@ void pcache_pong_received(struct gnutella_node *n)
 	 * received it from, provided they need more pongs of this hop count.
 	 */
 
-	pong_all_neighbours_but_one(n, cp, hop, n->header.ttl);
+	pong_all_neighbours_but_one(n,
+		cp, CACHE_HOP_IDX(n->header.hops), n->header.ttl);
+}
+
+/*
+ * pcache_pong_fake
+ *
+ * Fake a pong for a node from which we received an incoming connection,
+ * using the supplied IP/port.
+ *
+ * This pong is not multiplexed to neighbours, but is used to populate our
+ * cache, so we can return its address to others, assuming that if it is
+ * making an incoming connection to us, it is really in need for other
+ * connections as well.
+ */
+void pcache_pong_fake(struct gnutella_node *n, guint32 ip, guint16 port)
+{
+	if (!check_valid_host(ip, port))
+		return;
+
+	host_add(ip, port, FALSE);
+	(void) record_fresh_pong(n, 1, ip, port, 0, 0);
+
+	n->gnet_ip = ip;
+	n->gnet_port = port;
 }
 
 /*

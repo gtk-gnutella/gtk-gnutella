@@ -266,7 +266,7 @@ gboolean node_connected(guint32 ip, guint16 port, gboolean incoming)
 
 	GSList *l;
 
-	if (ip == local_ip || (force_local_ip && ip == forced_local_ip))
+	if (ip == listen_ip())
 		return TRUE;
 	for (l = sl_nodes; l; l = l->next) {
 		struct gnutella_node *n = (struct gnutella_node *) l->data;
@@ -954,6 +954,8 @@ static void node_process_handshake_header(struct io_header *ih)
 	 * Handle common header fields, non servent-specific.
 	 */
 
+	/* Pong-Caching -- ping/pong reduction scheme */
+
 	field = header_get(ih->header, "Pong-Caching");
 	if (field) {
 		guint major, minor;
@@ -964,12 +966,24 @@ static void node_process_handshake_header(struct io_header *ih)
 		n->flags |= NODE_F_PING_LIMIT;
 	}
 
+	/* Node -- remote node Gnet IP/port information */
+
+	if (incoming) {
+		guint32 ip;
+		guint16 port;
+
+		field = header_get(ih->header, "Node");
+		if (!field) field = header_get(ih->header, "X-My-Address");
+		if (field && gchar_to_ip_port(field, &ip, &port))
+			pcache_pong_fake(n, ip, port);
+	}
+
 	/*
 	 * If this is an outgoing connection, we're processing the remote
 	 * acknowledgment to our initial handshake.
 	 */
 
-	if (!(n->flags & NODE_F_INCOMING)) {
+	if (!incoming) {
 		gboolean ok = analyse_status(n, NULL);
 
 		/*
@@ -1022,7 +1036,6 @@ static void node_process_handshake_header(struct io_header *ih)
 			"Pong-Caching: 0.1\r\n"
 			"Remote-IP: %s\r\n"
 			"X-Live-Since: %s\r\n"
-			"X-Comment: This is still experimental\r\n"
 			"\r\n",
 			version_string, ip_to_gchar(n->socket->ip), start_rfc822_date);
 	}
@@ -1717,12 +1730,14 @@ void node_init_outgoing(struct gnutella_node *n)
 	} else
 		len = g_snprintf(buf, sizeof(buf),
 			"GNUTELLA CONNECT/%d.%d\r\n"
+			"Node: %s\r\n"
 			"User-Agent: %s\r\n"
 			"Pong-Caching: 0.1\r\n"
 			"X-Live-Since: %s\r\n"
-			"X-Comment: This is still experimental\r\n"
 			"\r\n",
-			n->proto_major, n->proto_minor, version_string, start_rfc822_date);
+			n->proto_major, n->proto_minor,
+			ip_port_to_gchar(listen_ip(), listen_port),
+			version_string, start_rfc822_date);
 
 	/*
 	 * We don't retry a connection from 0.6 to 0.4 if we fail to write the

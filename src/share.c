@@ -643,8 +643,7 @@ void search_request(struct gnutella_node *n)
 		search_head->num_recs = found_files;	/* One byte, little endian! */
 
 		WRITE_GUINT16_LE(listen_port, search_head->host_port);
-		WRITE_GUINT32_BE(force_local_ip ? forced_local_ip : local_ip,
-						 search_head->host_ip);
+		WRITE_GUINT32_BE(listen_ip(), search_head->host_ip);
 		WRITE_GUINT32_LE(connection_speed, search_head->host_speed);
 
 		sendto_one(n, FOUND_BUF, NULL, FOUND_SIZE);

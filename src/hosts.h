@@ -44,5 +44,6 @@ void pcache_possibly_expired(time_t now);
 void pcache_outgoing_connection(struct gnutella_node *n);
 void pcache_ping_received(struct gnutella_node *n);
 void pcache_pong_received(struct gnutella_node *n);
+void pcache_pong_fake(struct gnutella_node *n, guint32 ip, guint16 port);
 
 #endif /* __hosts_h__ */
