@@ -569,9 +569,9 @@ void ban_close(void)
  *** Vendor-specific banning.
  ***/
 
-static const gchar *harmful = "Harmful version banned, upgrade required";
-static const gchar *refused = "Connection refused";
-static const gchar *too_old = "Outdated version, please upgrade";
+static const gchar *harmful = N_("Harmful version banned, upgrade required");
+static const gchar *refused = N_("Connection refused");
+static const gchar *too_old = N_("Outdated version, please upgrade");
 
 /*
  * ban_vendor
