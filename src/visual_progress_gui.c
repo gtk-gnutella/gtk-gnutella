@@ -359,9 +359,29 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
     v->chunks_list = keep_new;
 }
 
+/**
+ * Create a ranges list with one item covering the whole file.
+ *
+ * @param[in] size  File size to be used in range creation
+ */
+static GSList *range_for_complete_file(guint32 size)
+{
+	http_range_t *range;
+
+	range = walloc(sizeof(*range));
+	range->start = 0;
+	range->end = size - 1;
+
+    return g_slist_append(NULL, range);
+}
+
 
 /**
- * Callback for range updates.
+ * Callback for range updates.  
+ * 
+ * This function gets triggered by an event when new ranges
+ * information has become available for a download source.
+ * @param[in] srcid  The abstract id of the source that had its ranges updated.
  */
 static void vp_update_ranges(gnet_src_t srcid)
 {
@@ -383,12 +403,22 @@ static void vp_update_ranges(gnet_src_t srcid)
     g_assert(found);
     g_assert(v);
 	
-	g_message("Ranges info for %s", d->file_info->file_name);
-	g_message("Ranges before: %s", http_range_to_gchar(v->ranges));
-	g_message("Ranges new   : %s", http_range_to_gchar(d->ranges));
-	v->ranges = http_range_merge(v->ranges, d->ranges);
-	/* FIXME: should be freeing old v->ranges list here... */
-	g_message("Ranges after : %s", http_range_to_gchar(v->ranges));
+	/* 
+	 * If this download is not using swarming then we have the whole
+	 * file. The same is true when d->ranges == NULL.
+	 */
+
+	if (!d->file_info->use_swarming || d->ranges == NULL) {
+		/* Indicate that the whole file is available */
+		v->ranges = range_for_complete_file(d->file_info->size);
+	} else {
+		/* Merge in the new ranges */
+		g_message("Ranges before: %s", http_range_to_gchar(v->ranges));
+		g_message("Ranges new   : %s", http_range_to_gchar(d->ranges));
+		v->ranges = http_range_merge(v->ranges, d->ranges);
+		/* FIXME: should be freeing old v->ranges list here... */
+		g_message("Ranges after : %s", http_range_to_gchar(v->ranges));
+	}
 }
 
 
@@ -440,7 +470,7 @@ void vp_gui_init(void)
 }
 
 /**
- * Undo everything set up in cv_gui_init
+ * Undo everything set up in vp_gui_init
  */
 void vp_gui_shutdown(void)
 {

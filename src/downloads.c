@@ -184,7 +184,7 @@ static void src_init(void)
     src_events[EV_SRC_REMOVED]        = event_new("src_removed");
     src_events[EV_SRC_INFO_CHANGED]   = event_new("src_info_changed");
     src_events[EV_SRC_STATUS_CHANGED] = event_new("src_status_changed");
-	src_events[EV_SRC_RANGES_CHANGED] = event_new("src_ranges_changed");
+    src_events[EV_SRC_RANGES_CHANGED] = event_new("src_ranges_changed");
 }
 
 static void src_close(void)
@@ -5241,7 +5241,7 @@ static void check_push_proxies(struct download *d, header_t *header)
 	server->proxies_stamp = time(NULL);
 }
 
-/*
+/**
  * update_available_ranges
  *
  * Partial File Sharing Protocol (PFSP) -- client-side
@@ -5249,6 +5249,9 @@ static void check_push_proxies(struct download *d, header_t *header)
  * If there is an X-Available-Range header, parse it to know
  * whether we can spot a range that is available and which we
  * do not have.
+ *
+ * @param[in,out] d  The download for which we update available ranges
+ * @param[in] header  The HTTP header which contains ranges info
  */
 static void update_available_ranges(struct download *d, header_t *header)
 {
@@ -5261,7 +5264,7 @@ static void update_available_ranges(struct download *d, header_t *header)
 	}
 
 	if (!d->file_info->use_swarming)
-		return;
+		goto send_event;
 
 	g_assert(header != NULL);
 	g_assert(header->headers != NULL);
@@ -5269,7 +5272,7 @@ static void update_available_ranges(struct download *d, header_t *header)
 	buf = header_get(header, available);
 
 	if (buf == NULL || download_filesize(d) == 0)
-		return;
+		goto send_event;
 
 	/*
 	 * Update available range list and total size available remotely.
@@ -5280,6 +5283,13 @@ static void update_available_ranges(struct download *d, header_t *header)
 
 	d->ranges_size = http_range_size(d->ranges);
 
+	/* 
+	 * We should always send an update event for the ranges, even when
+	 * not using swarming or when there are no available ranges. That
+	 * way the receiver of this event can still determine that the
+	 * whole range for this file is available.
+	 */
+ send_event:
 	event_trigger(src_events[EV_SRC_RANGES_CHANGED], 
 				  T_NORMAL(src_listener_t, d->src_handle));
 }
@@ -8095,4 +8105,9 @@ const gchar *build_url_from_download(struct download *d)
 	return url_tmp;
 }
 
-/* vi: set ts=4: */
+/* 
+ * Local Variables:
+ * tab-width:4
+ * End:
+ * vi: set ts=4: 
+ */

@@ -1,5 +1,9 @@
 # since last version
 
+- (2004.06.10 - Hans)
+ * The blue line in visual progress indicating the bytes available on the
+   network now also takes servents sharing the full file into account.
+	
 - (2004.06.09 - Hans)
  * [Gtk1] [Gtk2] Use more efficient handling for size of visual progress
    indicator and remove obsolete code.
