@@ -1616,7 +1616,7 @@ void node_parse(struct gnutella_node *node)
 			drop = TRUE;
 		break;
 	case GTA_MSG_SEARCH:
-		if (!*n->header.size)
+		if (*n->header.size <= 3)	/* At least speed(2) + NUL(1) */
 			drop = TRUE;
 		else if (*n->header.size > search_queries_forward_size)
 			drop = TRUE;
