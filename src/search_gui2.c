@@ -37,6 +37,9 @@
 #include "gui_property.h"
 #include "settings_gui.h"
 
+/* Core includes */
+#include "search.h"
+
 RCSID("$Id$");
 
 #define MAX_TAG_SHOWN	60		/* Show only first chars of tag */
@@ -471,7 +474,15 @@ void search_gui_add_record(
 	GtkTreeView *tree_view = GTK_TREE_VIEW(sch->tree_view);
 	GtkTreeStore *model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
 
-	g_assert(rc->refcount == 1);
+	/*
+	 * When the search is displayed in multiple search results, the refcount
+	 * can also be larger than 1.
+	 * FIXME: Check that the refcount is less then the number of search that we
+	 * have open
+	 *		-- JA, 6/11/2003
+	 */
+	g_assert(rc->refcount >= 1);
+	
 	if (rc->tag) {
 		guint len = strlen(rc->tag);
 
@@ -520,9 +531,12 @@ void search_gui_add_record(
 	} else
 		gtk_tree_store_append(model, &iter, (parent = NULL));
 
-	g_assert(rc->refcount == 1);
+	g_assert(rc->refcount >= 1);
+	
 	search_gui_ref_record(rc);
-	g_assert(rc->refcount == 2);
+	
+	g_assert(rc->refcount >= 2);
+	
 	gtk_tree_store_set(model, &iter,
 		      c_sr_filename, lazy_locale_to_utf8(rc->name, 0),
 		      c_sr_size, NULL != parent ? NULL : short_size(rc->size),
