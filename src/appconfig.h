@@ -7,6 +7,11 @@
 
 extern gchar *config_dir;
 
+extern gboolean progressbar_uploads_visible;
+extern gboolean progressbar_downloads_visible;
+extern gboolean progressbar_connections_visible;
+extern gboolean toolbar_visible;
+extern gboolean statusbar_visible;
 extern gboolean force_local_ip;
 extern gboolean monitor_enabled;
 extern gboolean search_stats_enabled;
