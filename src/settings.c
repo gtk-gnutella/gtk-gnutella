@@ -752,8 +752,10 @@ static gboolean listen_port_changed(property_t prop)
 	if (listen_port == old_listen_port)
 		return FALSE;
 
-	if (old_listen_port != (guint32) -1)
+	if (old_listen_port != (guint32) -1) {
 		inet_firewalled();			/* Assume we're firewalled on port change */
+		inet_udp_firewalled();
+	}
 
 	random_port = listen_port == 0;
 	memset(tried, 0, sizeof tried);
@@ -785,25 +787,36 @@ static gboolean listen_port_changed(property_t prop)
 		 * Close old port.
 		 */
 	
-		if (s_listen) {
-			socket_free(s_listen);
-			s_listen = NULL;
+		if (s_tcp_listen) {
+			socket_free(s_tcp_listen);
+			s_tcp_listen = NULL;
 		}
 	
 		/*
 		 * If the new port != 0, open the new port
 		 */
 	
-		if (listen_port) {
-			s_listen = socket_listen(0, listen_port, SOCK_TYPE_CONTROL);
+		if (listen_port)
+			s_tcp_listen = socket_tcp_listen(0, listen_port, SOCK_TYPE_CONTROL);
+
+		/*
+		 * If UDP is enabled, also listen on the same UDP port.
+		 */
+
+		if (enable_udp) {
+			s_udp_listen = socket_udp_listen(0, listen_port);
+			if (random_port && s_udp_listen == NULL) {
+				socket_free(s_tcp_listen);
+				s_tcp_listen = NULL;
+			}
 		}
-	} while (random_port && s_listen == NULL && ++num_tried < 65535 - 1024);
+	} while (random_port && s_tcp_listen == NULL && ++num_tried < 65535 - 1024);
 	
     /*
      * If socket allocation failed, reset the property
      */
 
-    if ((s_listen == NULL) && (listen_port != 0)) {
+    if ((s_tcp_listen == NULL) && (listen_port != 0)) {
 		if (random_port) {
 			old_listen_port = (guint32) -1;
 			listen_port = 0;
