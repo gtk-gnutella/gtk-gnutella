@@ -1,13 +1,7 @@
 /*
  * $Id$
  *
- * Copyright (c) 2002-2003, Raphael Manfredi
- *
- * Consistant Overhead Byte Stuffing (COBS).
- *
- * COBS is an escaping algorithm, taking input in the [0,255] range and
- * producing output in the [1,255] range.  In other words, it escapes all
- * NUL bytes.
+ * Copyright (c) 2002-2004, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,22 +23,32 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ *  Consistant Overhead Byte Stuffing (COBS).
+ *
+ * COBS is an escaping algorithm, taking input in the [0,255] range and
+ * producing output in the [1,255] range.  In other words, it escapes all
+ * NUL bytes.
+ */
+
 #include "common.h"
 
 RCSID("$Id$");
 
 #include "cobs.h"
+#include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-/*
- * cobs_encodev
- *
+/**
  * Encode vector `iov' of `iovcnt' elements, whose size is held in `retlen'.
  * Returns the new encoded buffer, and its length in `retlen'.
  *
  * NB: the output is a linear buffer, not a vector.
  */
-gchar *cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen)
+gchar *
+cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen)
 {
 	gint maxsize;
 	gchar *out;
@@ -102,12 +106,13 @@ gchar *cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen)
 	}
 
 	/*
-	 * If `last_code' is 0xff, then optimize: we don't need to finish.
+	 * If `last_code' is 0xff, then optimize: we don't need to finish if
+	 * no data was written after we emitted it.
 	 * Decoder will detect this condition and know there was no need for
 	 * the trailing logical NUL.
 	 */
 
-	if (last_code != 0xff)
+	if (last_code != 0xff || code != 0x1)
 		FINISH(code);
 
 #undef FINISH
@@ -119,13 +124,12 @@ gchar *cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen)
 	return out;
 }
 
-/*
- * cobs_encode
- *
+/**
  * Encode `len' bytes starting at `buf' into new allocated buffer.
  * Returns the new encoded buffer, and its length in `retlen'.
  */
-gchar *cobs_encode(gchar *buf, gint len, gint *retlen)
+gchar *
+cobs_encode(gchar *buf, gint len, gint *retlen)
 {
 	struct iovec iov;
 
@@ -136,17 +140,15 @@ gchar *cobs_encode(gchar *buf, gint len, gint *retlen)
 	return cobs_encodev(&iov, 1, retlen);
 }
 
-/*
- * cobs_decode_into
- *
+/**
  * Decode `len' bytes starting at `buf' into decoding buffer `out', which
  * is `outlen' bytes long.
  *
  * Returns whether the input was valid COBS encoding.
  * The length of the decoded buffer is returned in `retlen'.
  */
-gboolean cobs_decode_into(
-	gchar *buf, gint len, gchar *out, gint outlen, gint *retlen)
+gboolean
+cobs_decode_into(gchar *buf, gint len, gchar *out, gint outlen, gint *retlen)
 {
 	const gchar *end = buf + len;		/* First byte off buffer */
 	const gchar *oend = out + outlen;	/* First byte off buffer */
@@ -173,9 +175,6 @@ gboolean cobs_decode_into(
 		for (i = 1; i < code && p < end && o < oend; i++)
 			*o++ = *p++;
 
-		if (i < code)
-			return FALSE;			/* Reached end of some buffer in loop */
-
 		if (code < 0xFF) {
 			if (o < oend)
 				*o++ = '\0';
@@ -200,16 +199,15 @@ gboolean cobs_decode_into(
 	return TRUE;					/* Valid COBS encoding */
 }
 
-/*
- * cobs_decode
- *
+/**
  * Decode `len' bytes starting at `buf' into new allocated buffer, unless
  * `inplace' is true in which case decoding is done inplace.
  *
  * Returns the new decoded buffer, or NULL if the input was not valid COBS
  * encoding.  The length of the decoded buffer is in `retlen'.
  */
-gchar *cobs_decode(gchar *buf, gint len, gint *retlen, gboolean inplace)
+gchar *
+cobs_decode(gchar *buf, gint len, gint *retlen, gboolean inplace)
 {
 	gchar *out;
 
@@ -227,6 +225,117 @@ gchar *cobs_decode(gchar *buf, gint len, gint *retlen, gboolean inplace)
 		G_FREE_NULL(out);
 
 	return NULL;
+}
+
+/***
+ *** Streaming interface.
+ ***/
+
+#define COBS_CLOSED	0x100
+
+/**
+ * Initialize an incremental COBS context, where data will be written in the
+ * supplied buffer.
+ *
+ * @param data		start of buffer where data will be written
+ * @param len		length of supplied buffer
+ */
+void
+cobs_stream_init(cobs_stream_t *cs, gpointer data, gint len)
+{
+	if (len < 2) {
+		cs->last_code = COBS_CLOSED;	/* Too short to write anything */
+		return;
+	}
+
+	cs->o = cs->outbuf = data;
+	cs->end = cs->outbuf + len;
+	cs->cp = cs->o++;
+	cs->code = 0x1;
+	cs->last_code = 0;
+	cs->saw_nul = FALSE;
+}
+
+/**
+ * Add data to the COBS stream.
+ *
+ * @return TRUE if OK, FALSE if we cannot put the data any more.
+ */
+gboolean
+cobs_stream_write(cobs_stream_t *cs, gpointer data, gint len)
+{
+	gchar *p = data;
+	gchar *end = p + len;
+
+	if (cs->last_code == COBS_CLOSED)
+		return FALSE;	/* Stream closed */
+
+#define FINISH() do {					\
+	g_assert(cs->cp < cs->end);			\
+	*cs->cp = cs->last_code = cs->code;	\
+	cs->cp = cs->o++;					\
+	cs->code = 0x1;						\
+} while (0)
+
+	while (p < end) {
+		const gchar c = *p++;
+		if (cs->cp >= cs->end)
+			return FALSE;
+		if (c == 0) {
+			cs->saw_nul = TRUE;
+			FINISH();
+		} else {
+			if (cs->o >= cs->end)
+				return FALSE;
+			*(cs->o++) = c;
+			cs->code++;				/* One more non-NUL byte */
+			if (cs->code == 0xff)
+				FINISH();
+		}
+	}
+
+#undef FINISH
+
+	return TRUE;
+}
+
+/**
+ * Close COBS stream: we have no more data to write.
+ *
+ * @param cs		the stream to close
+ * @param saw_nul	if non-NULL, writes whether we saw a NUL in the input
+ *
+ * @return the final length of the stream on success, -1 on error.
+ */
+gint
+cobs_stream_close(cobs_stream_t *cs, gboolean *saw_nul)
+{
+	if (cs->last_code == COBS_CLOSED)
+		return -1;	/* Stream closed */
+
+	/*
+	 * If `last_code' is 0xff, then optimize: we don't need to finish if
+	 * no data was written after we emitted that code.
+	 * Decoder will detect this condition and know there was no need for
+	 * the trailing logical NUL.
+	 */
+
+	if (cs->last_code == 0xff && cs->code == 0x1)
+		goto closed;
+
+	if (cs->cp >= cs->end)
+		return -1;
+
+	*cs->cp = cs->code;
+	cs->cp = cs->o++;
+
+closed:
+	cs->last_code = COBS_CLOSED;
+
+	if (saw_nul != NULL)
+		*saw_nul = cs->saw_nul;
+
+	return cs->cp - cs->outbuf;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

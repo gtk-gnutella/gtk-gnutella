@@ -31,6 +31,20 @@
 #include <glib.h>
 
 /*
+ * A COBS stream is used to fill a buffer space with COBS-ed data where
+ * the input data is not known beforehand but gathered a piece at a time.
+ */
+typedef struct cobs_stream {
+	gchar *outbuf;			/* Output buffer start */
+	gchar *end;				/* First char beyond output buffer */
+	gchar *o;				/* Where next non-NUL data will be written */
+	gchar *cp;				/* Where we'll write the code length */
+	gint code;				/* Current code length */
+	gint last_code;			/* Last code we emitted */
+	gboolean saw_nul;		/* True if we saw a NUL in the input */
+} cobs_stream_t;
+
+/*
  * Public interface.
  */
 
@@ -41,6 +55,10 @@ gchar *cobs_encodev(struct iovec *iov, gint iovcnt, gint *retlen);
 gchar *cobs_decode(gchar *buf, gint len, gint *retlen, gboolean inplace);
 gboolean cobs_decode_into(
 	gchar *buf, gint len, gchar *out, gint outlen, gint *retlen);
+
+void cobs_stream_init(cobs_stream_t *cs, gpointer data, gint len);
+gint cobs_stream_close(cobs_stream_t *cs, gboolean *saw_nul);
+gboolean cobs_stream_write(cobs_stream_t *cs, gpointer data, gint len);
 
 #endif	/* _cobs_h_ */
 
