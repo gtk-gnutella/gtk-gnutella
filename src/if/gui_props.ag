@@ -1031,8 +1031,8 @@ prop = {
 
 prop = {
     name = "show_gnet_info_dbw";
-    desc = "Whether duplicate, bad and weird received message counts should "
-		"be displayed.";
+    desc = "Whether we should display message counts for duplicate, bad, "
+		"weird and messages bearing an hostile IP address.";
     type = boolean;
     data = {
         default = FALSE;

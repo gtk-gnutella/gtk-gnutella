@@ -128,6 +128,7 @@ typedef struct gnutella_node {
 	guint16 n_dups;				/* Number of dup messages received (bad) */
 	guint16 n_hard_ttl;			/* Number of hard_ttl exceeded (bad) */
 	guint32 n_weird;			/* Number of weird messages from that node */
+	guint32 n_hostile;			/* Number of messages from hostile IP */
 
 	guint32 allocated;			/* Size of allocated buffer data, 0 for none */
 	gboolean have_header;		/* TRUE if we have got a full message header */

@@ -238,7 +238,8 @@ const gchar *nodes_gui_common_status_str(
 
 			if (show_gnet_info_dbw)
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-				" Dup=%d Bad=%d W=%d", n->n_dups, n->n_bad, n->n_weird);
+				" Dup=%u Bad=%u W=%u H=%u",
+				n->n_dups, n->n_bad, n->n_weird, n->n_hostile);
 
 			if (show_gnet_info_rt)
 				slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,

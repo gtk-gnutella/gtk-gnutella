@@ -2088,7 +2088,7 @@ prop_set_t *gui_prop_init(void) {
      * General data:
      */
     gui_property->props[99].name = "show_gnet_info_dbw";
-    gui_property->props[99].desc = _("Whether duplicate, bad and weird received message counts should be displayed.");
+    gui_property->props[99].desc = _("Whether we should display message counts for duplicate, bad, weird and messages bearing an hostile IP address.");
     gui_property->props[99].ev_changed = event_new("show_gnet_info_dbw_changed");
     gui_property->props[99].save = TRUE;
     gui_property->props[99].vector_size = 1;

@@ -60,6 +60,7 @@ typedef struct gnet_node_status {
 	guint16  n_dups;			/* Number of dup messages received (bad) */
 	guint16  n_hard_ttl;		/* Number of hard_ttl exceeded (bad) */
 	guint32  n_weird;			/* Number of weird messages from that node */
+	guint32  n_hostile;			/* Number of messages from hostile IP */
 
     gint     squeue_sent;
     gint     squeue_count;
