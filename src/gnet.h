@@ -186,6 +186,7 @@ void node_remove_node_removed_listener(node_removed_listener_t);
 void node_add_node_info_changed_listener(node_info_changed_listener_t);
 void node_remove_node_info_changed_listener(node_info_changed_listener_t);
 void node_add_node_flags_changed_listener(node_flags_changed_listener_t);
+void node_remove_node_flags_changed_listener(node_flags_changed_listener_t);
 
 /*
  * Nodes public interface

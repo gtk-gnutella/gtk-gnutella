@@ -49,6 +49,8 @@ enum {
     NODE_COLUMNS
 };
 
+static GtkTreeView *treeview_nodes = NULL;
+
 static GtkListStore *nodes_model = NULL;
 static GtkCellRenderer *nodes_gui_cell_renderer = NULL;
 static GHashTable *nodes_handles = NULL;
@@ -110,7 +112,7 @@ static void nodes_gui_remove_selected_helper(
 	GSList **list = data;
 	guint handle;
 
-	gtk_tree_model_get(model, iter, COL_NODE_HANDLE, &handle, -1);
+	gtk_tree_model_get(model, iter, COL_NODE_HANDLE, &handle, (-1));
 	*list = g_slist_append(*list, GUINT_TO_POINTER(handle));
 }
 
@@ -122,11 +124,12 @@ static void nodes_gui_remove_selected_helper(
  */
 static gboolean nodes_gui_find_node(gnet_node_t n, GtkTreeIter **iter)
 {
-	gpointer orig_key;
-    
     g_assert(iter != NULL);
-	return g_hash_table_lookup_extended(nodes_handles,
-		GUINT_TO_POINTER(n), &orig_key, (gpointer) iter);
+	return g_hash_table_lookup_extended(
+			nodes_handles,
+			GUINT_TO_POINTER(n),
+			NULL,
+			(gpointer) iter);
 }
 
 /*
@@ -169,7 +172,7 @@ static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
 
     if (nodes_gui_find_node(n, &iter))
 		gtk_list_store_set(nodes_model, iter, COL_NODE_TYPE,  
-			nodes_gui_common_flags_str(flags), -1);
+			nodes_gui_common_flags_str(flags), (-1));
     else
         g_warning("%s: no matching row found", G_GNUC_PRETTY_FUNCTION);
 }
@@ -195,7 +198,7 @@ void nodes_gui_early_init(void)
  *
  * Initialize the nodes controller. Register callbacks in the backend.
  */
-void nodes_gui_init() 
+void nodes_gui_init(void) 
 {
     GtkTreeView *tree;
 
@@ -212,12 +215,14 @@ void nodes_gui_init()
         G_TYPE_UINT);    /* COL_NODE_HANDLE */
 
     /* Get the monitor widget */
-   tree = GTK_TREE_VIEW(lookup_widget(main_window, "treeview_nodes"));
-   gtk_tree_view_set_model(tree, GTK_TREE_MODEL(nodes_model));
+	treeview_nodes = GTK_TREE_VIEW(lookup_widget(
+		main_window, "treeview_nodes"));
+	tree = treeview_nodes;
+	
+	gtk_tree_view_set_model(tree, GTK_TREE_MODEL(nodes_model));
 
     /* The view now holds a reference.  We can get rid of our own
      * reference */
-   g_object_unref(G_OBJECT(nodes_model));
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree),
 		GTK_SELECTION_MULTIPLE);
 
@@ -251,6 +256,13 @@ void nodes_gui_shutdown(void)
     node_remove_node_added_listener(nodes_gui_node_added);
     node_remove_node_removed_listener(nodes_gui_node_removed);
     node_remove_node_info_changed_listener(nodes_gui_node_info_changed);
+    node_remove_node_flags_changed_listener(nodes_gui_node_flags_changed);
+	gtk_list_store_clear(nodes_model);
+	g_object_unref(G_OBJECT(nodes_model));
+	nodes_model = NULL;
+	gtk_tree_view_set_model(treeview_nodes, NULL);
+	g_hash_table_destroy(nodes_handles);
+	nodes_handles = NULL;
 }
 
 /*
@@ -277,18 +289,13 @@ void nodes_gui_remove_node(gnet_node_t n)
 void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
 {
     GtkTreeIter iter;
-    GtkTreeIter *iter_cp;
 	static gchar proto_tmp[32];
 
     g_assert(n != NULL);
 
-    gtk_list_store_append(nodes_model, &iter);
-	iter_cp = w_tree_iter_copy(&iter);
-
    	gm_snprintf(proto_tmp, sizeof(proto_tmp), "%d.%d",
 		n->proto_major, n->proto_minor);
-	g_hash_table_insert(nodes_handles,
-		GUINT_TO_POINTER(n->node_handle), iter_cp);
+    gtk_list_store_append(nodes_model, &iter);
     gtk_list_store_set(nodes_model, &iter, 
         COL_NODE_HOST,    ip_port_to_gchar(n->ip, n->port),
         COL_NODE_TYPE,    NULL,
@@ -298,7 +305,9 @@ void nodes_gui_add_node(gnet_node_info_t *n, const gchar *type)
         COL_NODE_UPTIME,  NULL,
         COL_NODE_INFO,    NULL,
         COL_NODE_HANDLE,  n->node_handle,
-        -1);
+        (-1));
+	g_hash_table_insert(nodes_handles,
+		GUINT_TO_POINTER(n->node_handle), w_tree_iter_copy(&iter));
 }
 
 /*

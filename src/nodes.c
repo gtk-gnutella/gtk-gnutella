@@ -197,8 +197,7 @@ void node_add_node_flags_changed_listener(node_flags_changed_listener_t l)
     LISTENER_ADD(node_flags_changed, l);
 }
 
-static void node_remove_node_flags_changed_listener(
-	node_flags_changed_listener_t l)
+void node_remove_node_flags_changed_listener(node_flags_changed_listener_t l)
 {
     LISTENER_REMOVE(node_flags_changed, l);
 }
