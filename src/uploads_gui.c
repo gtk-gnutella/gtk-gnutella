@@ -109,7 +109,16 @@ static void upload_info_changed(gnet_upload_t u,
     guint32 running, guint32 registered)
 {
     gnet_upload_info_t *info;
-    
+	gint current_page;
+	static GtkNotebook *notebook = NULL;
+
+	if (notebook == NULL)
+		notebook = GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main"));
+
+	current_page = gtk_notebook_get_current_page(notebook);
+	if (current_page != nb_main_page_uploads)
+		return;
+
     info = upload_get_info(u);
     uploads_gui_update_upload_info(info);
     upload_free_info(info);

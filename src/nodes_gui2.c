@@ -360,6 +360,11 @@ static inline void update_row(gpointer data, const time_t *now)
 void nodes_gui_update_nodes_display(time_t now)
 {
     static time_t last_update = 0;
+	gint current_page;
+
+	current_page = gtk_notebook_get_current_page(notebook_main);
+	if (current_page != nb_main_page_gnet)
+		return;
 
     if (last_update + 1 < now) {
 		last_update = now;
@@ -415,6 +420,11 @@ static void nodes_gui_node_added(gnet_node_t n, const gchar *type)
 static void nodes_gui_node_info_changed(gnet_node_t n)
 {
     gnet_node_info_t info;
+	gint current_page;
+
+	current_page = gtk_notebook_get_current_page(notebook_main);
+	if (current_page != nb_main_page_gnet)
+		return;
 
     node_fill_info(n, &info);
     nodes_gui_update_node_info(&info);
