@@ -166,29 +166,6 @@ void search_gui_free_gui_record(gpointer gui_rc)
 
 
 /*
- *	count_node_children
- *
- *	Returns number of children under parent node in the given ctree
- */
-static inline gint count_node_children(GtkCTree *ctree, GtkCTreeNode *parent)
-{
-	GtkCTreeRow *current_row;
-	GtkCTreeNode *current_node;
-	gint num_children = 0;
-	
-	current_row = GTK_CTREE_ROW(parent);
-	current_node = current_row->children;
-	
-	for(;NULL != current_node; current_node = current_row->sibling){
-		current_row = GTK_CTREE_ROW(current_node);
-		num_children++;
-	}	
-	
-	return num_children;	
-}
-
-
-/*
  *	search_gui_restart_search
  *
  */
@@ -555,7 +532,8 @@ gint search_gui_compare_records(
 
         switch (sort_col) {
         case c_sr_filename:
-            result = strcmp(r1->name, r2->name);
+            result = (search_sort_casesense ? strcmp : strcasecmp)
+                (r1->name, r2->name);
             break;
 		
         case c_sr_size:
@@ -1280,14 +1258,14 @@ void search_gui_add_record(
 				NULL, NULL, NULL, NULL, 0, 0);
 			
 			/*Update the "#" column of the parent, +1 for parent */			
-			count = count_node_children(ctree, parent) + 1;			
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%u", count); 
+			count = gtk_ctree_count_node_children(ctree, parent);			
+			gm_snprintf(tmpstr, sizeof(tmpstr), "%u", count+1); 
 			gtk_ctree_node_set_text(ctree, parent, c_sr_count, tmpstr); 
 
 			/* Update count in the records (use for column sorting) */
 			gui_rc->num_children = 0;
 			parent_rc = gtk_ctree_node_get_row_data(ctree, parent);
-			parent_rc->num_children = count - 1;
+			parent_rc->num_children = count;
 			is_parent = FALSE;
 
 		} else { /* Add as a parent */
@@ -1436,10 +1414,9 @@ void search_gui_set_clear_button_sensitive(gboolean flag)
 
 
 /*
- *	search_gui_remove_result
+ * search_gui_remove_result
  *
- *	Removes the given node from the ctree 
- *
+ * Removes the given node from the ctree 
  */
 static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 {
@@ -1453,7 +1430,6 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 	GtkCTreeNode *old_parent;
 	GtkCTreeNode *old_parent_sibling;
 	GtkCTreeNode *child_sibling;
-	GtkCTreeNode *temp_node;
 	gint n;
 
 	search_t *current_search = search_gui_get_current_search();
@@ -1468,14 +1444,15 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 	row = GTK_CTREE_ROW(node);
 	if (NULL == row->parent) {
 
-		/* It has no parents, therefore it must be a parent.
+		/* 
+         * It has no parents, therefore it must be a parent.
 		 * If it has children, then we are removing the parent but not the
 		 * children 
 		 */		
-		n = count_node_children(ctree, node);
-		if (0 < n) {
+		if (NULL != row->children) {
 
-			/* We move the first child into the position originally occupied
+			/* 
+             * We move the first child into the position originally occupied
 			 * by the parent, then we move all the children of the parent into
 			 * that child node (making it a parent).  Finally we delete the 
 			 * old parent.
@@ -1490,7 +1467,8 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 			gtk_ctree_move(ctree, child_node, NULL, old_parent_sibling);
 			
 			while (NULL != child_sibling) {
-				temp_node = child_sibling;
+                GtkCTreeNode *temp_node = child_sibling;
+
 				child_sibling = GTK_CTREE_NODE_SIBLING(child_sibling);
 				gtk_ctree_move(ctree, temp_node, child_node, NULL);					
 			}
@@ -1501,17 +1479,21 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 			child_grc = gtk_ctree_node_get_row_data(ctree, child_node);
 			
 			/* Calculate # column */
-			n = count_node_children(ctree, child_node);
-			if (1 < n)
-				gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n); 
-			else
+			n = gtk_ctree_count_node_children(ctree, child_node);
+			if (0 < n) {
+				gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n+1); 
+			} else {
 				*tmpstr = '\0';
+            }
 
 			/* Update record count, child_rc will become the rc for the parent*/
-			child_grc->num_children = n - 1; /* -1 because we're removing one */
+			child_grc->num_children = n;
 			
-			/* Now actually modify the old parent node */
-			gtk_ctree_node_set_text(ctree, child_node, c_sr_count, tmpstr);		
+			/* Now actually modify the new parent node */
+			gtk_ctree_node_set_text(ctree, child_node, 
+                c_sr_count, tmpstr);		
+			gtk_ctree_node_set_text(ctree, child_node, 
+                c_sr_size, short_size(rc->size));
 			
 		} else {
 			/* The row has no children, remove it's sha1 and the row itself */
@@ -1530,15 +1512,15 @@ static void search_gui_remove_result(GtkCTree *ctree, GtkCTreeNode *node)
 
 		
 		/* Now update the "#" column of the parent */
-		n = count_node_children(ctree, old_parent) + 1;
-		if (1 < n)
-			gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n);
+		n = gtk_ctree_count_node_children(ctree, old_parent);
+		if (0 < n)
+			gm_snprintf(tmpstr, sizeof(tmpstr), "%u", n+1);
 		else
 			*tmpstr = '\0';
 		gtk_ctree_node_set_text(ctree, old_parent, c_sr_count, tmpstr);
 	
 		parent_grc = gtk_ctree_node_get_row_data(ctree, old_parent);
-		parent_grc->num_children = n - 1;
+		parent_grc->num_children = n;
 	}
 		
 	/*
@@ -1593,10 +1575,6 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 		
 		count++;
 
-		/* make it visibile that we already selected this for download */
-		gtk_ctree_node_set_foreground(ctree, node,
-			&gtk_widget_get_style(GTK_WIDGET(ctree))->fg[GTK_STATE_ACTIVE]);
-
 		grc = gtk_ctree_node_get_row_data(ctree, node);		
 		rc = grc->shared_record;
 		
@@ -1620,10 +1598,15 @@ static guint download_selection_of_ctree(GtkCTree * ctree, guint *selected)
 		if (rc->alt_locs != NULL)
 			search_gui_check_alt_locs(rs, rc);
 
-        if (remove_downloaded)
+        if (remove_downloaded) {
 			search_gui_remove_result(ctree, node);
-		else
+		} else {
+            /* make it visibile that we already selected this for download */
+            gtk_ctree_node_set_foreground(ctree, node, 
+                &gtk_widget_get_style(
+                    GTK_WIDGET(ctree))->fg[GTK_STATE_ACTIVE]);
 			gtk_ctree_unselect(ctree, node);
+        }
 	}
 	
 	gtk_clist_unselect_all(GTK_CLIST(ctree));
@@ -1656,31 +1639,7 @@ void search_gui_download_files(void)
     notebook_main = lookup_widget(main_window, "notebook_main");
     ctree_menu = lookup_widget(main_window, "ctree_menu");
 
-	/* This CTree in this following section is the CTree on the lefthand pane,
-	 * not the one used to display search results
-	 */
-	if (jump_to_downloads) {
-		gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main),
-            nb_main_page_downloads);
-
-		/*
-		 * Get ctree node for "downloads" row.
-		 * Start searching from root node (0th)
-		 */
-		ctree_node = gtk_ctree_find_by_row_data(GTK_CTREE(ctree_menu), 
-			gtk_ctree_node_nth(GTK_CTREE(ctree_menu), 0), 
-			GINT_TO_POINTER(nb_main_page_downloads));
-
-		/*
-		 * Select "downloads" row.
-		 * May need additional code in the future to expand node,
-		 * if necessary -- emile
-		 */		
-		gtk_ctree_select(GTK_CTREE(ctree_menu), ctree_node);
-	}
-
 	if (current_search) {
-
 		created = download_selection_of_ctree(
 			GTK_CTREE(current_search->ctree), &selected);
 
