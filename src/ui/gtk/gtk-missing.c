@@ -744,7 +744,7 @@ void
 gtk_combo_init_choices(GtkCombo *combo, GtkSignalFunc func,
 		prop_def_t *def, gpointer user_data)
 {
-    guint n;
+    guint i;
     guint32 original;
 
     g_assert(def != NULL);
@@ -754,28 +754,26 @@ gtk_combo_init_choices(GtkCombo *combo, GtkSignalFunc func,
 
     original = *def->data.guint32.value;
 
-    n = 0;
-    while (def->data.guint32.choices[n].title != NULL) {
+    for (i = 0; def->data.guint32.choices[i].title != NULL; i++) {
         GtkWidget *list_item;
         GList *l;
 
         list_item = gtk_list_item_new_with_label(
-            def->data.guint32.choices[n].title);
+						_(def->data.guint32.choices[i].title));
 
         gtk_object_set_user_data(GTK_OBJECT(list_item),
-            GINT_TO_POINTER(def->data.guint32.choices[n].value));
+            GINT_TO_POINTER(def->data.guint32.choices[i].value));
 
         gtk_widget_show(list_item);
 
-        gtk_signal_connect_after(
-            GTK_OBJECT(list_item), "select", func, user_data);
+        gtk_signal_connect_after(GTK_OBJECT(list_item),
+			"select", func, user_data);
 
         l = g_list_prepend(NULL, (gpointer) list_item);
         gtk_list_append_items(GTK_LIST(combo->list), l);
 
-        if (def->data.guint32.choices[n].value == original)
+        if (def->data.guint32.choices[i].value == original)
             gtk_list_select_child(GTK_LIST(combo->list), list_item);
-        n ++;
     }
 }
 
