@@ -491,7 +491,7 @@ static void handle_proxy_ack(struct gnutella_node *n,
 		return;
 	}
 
-	READ_GUINT32_BE(payload, ip);
+	memcpy(&ip, payload, 4);
 	payload += 4;
 	READ_GUINT16_LE(payload, port);
 
@@ -521,13 +521,14 @@ void vmsg_send_proxy_ack(struct gnutella_node *n, gchar *muid)
 	struct gnutella_msg_vendor *m = (struct gnutella_msg_vendor *) v_tmp;
 	guint32 paysize = sizeof(guint32) + sizeof(guint16);
 	guint32 msgsize;
+	guint32 ip = listen_ip();
 	guchar *payload;
 
 	msgsize = vmsg_fill_header(&m->header, paysize, sizeof(v_tmp));
 	memcpy(m->header.muid, muid, 16);
 	payload = vmsg_fill_type(&m->data, T_LIME, 22, 2);
 
-	WRITE_GUINT16_BE(listen_ip(), payload);
+	memcpy(payload, &ip, 4);
 	payload += 4;
 	WRITE_GUINT16_LE(listen_port, payload);
 
