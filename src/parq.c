@@ -405,7 +405,6 @@ void parq_close(void)
 			if (parq_ul == NULL)
 				break;
 			
-			parq_ul->by_ip->total = 0;
 			parq_ul->by_ip->uploading = 0;
 			
 			remove = g_slist_prepend(remove, parq_ul);		
