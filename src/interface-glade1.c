@@ -299,7 +299,7 @@ create_main_window (void)
   GtkWidget *label510;
   GtkWidget *frame76;
   GtkWidget *vbox109;
-  GtkWidget *vpaned1;
+  GtkWidget *vpaned_fileinfo;
   GtkWidget *vbox111;
   GtkWidget *scrolledwindow42;
   GtkWidget *clist_fileinfo;
@@ -3549,16 +3549,16 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame76), vbox109);
   gtk_container_set_border_width (GTK_CONTAINER (vbox109), 2);
 
-  vpaned1 = gtk_vpaned_new ();
-  gtk_widget_set_name (vpaned1, "vpaned1");
-  gtk_widget_ref (vpaned1);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "vpaned1", vpaned1,
+  vpaned_fileinfo = gtk_vpaned_new ();
+  gtk_widget_set_name (vpaned_fileinfo, "vpaned_fileinfo");
+  gtk_widget_ref (vpaned_fileinfo);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vpaned_fileinfo", vpaned_fileinfo,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vpaned1);
-  gtk_box_pack_start (GTK_BOX (vbox109), vpaned1, TRUE, TRUE, 0);
-  gtk_paned_set_handle_size (GTK_PANED (vpaned1), 8);
-  gtk_paned_set_gutter_size (GTK_PANED (vpaned1), 8);
-  gtk_paned_set_position (GTK_PANED (vpaned1), 305);
+  gtk_widget_show (vpaned_fileinfo);
+  gtk_box_pack_start (GTK_BOX (vbox109), vpaned_fileinfo, TRUE, TRUE, 0);
+  gtk_paned_set_handle_size (GTK_PANED (vpaned_fileinfo), 8);
+  gtk_paned_set_gutter_size (GTK_PANED (vpaned_fileinfo), 8);
+  gtk_paned_set_position (GTK_PANED (vpaned_fileinfo), 305);
 
   vbox111 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox111, "vbox111");
@@ -3566,7 +3566,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox111", vbox111,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (vbox111);
-  gtk_paned_pack1 (GTK_PANED (vpaned1), vbox111, FALSE, TRUE);
+  gtk_paned_pack1 (GTK_PANED (vpaned_fileinfo), vbox111, FALSE, TRUE);
 
   scrolledwindow42 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow42, "scrolledwindow42");
@@ -3687,7 +3687,7 @@ create_main_window (void)
   gtk_object_set_data_full (GTK_OBJECT (main_window), "frame78", frame78,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (frame78);
-  gtk_paned_pack2 (GTK_PANED (vpaned1), frame78, TRUE, TRUE);
+  gtk_paned_pack2 (GTK_PANED (vpaned_fileinfo), frame78, TRUE, TRUE);
 
   vbox110 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox110, "vbox110");

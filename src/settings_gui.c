@@ -312,6 +312,16 @@ static prop_map_t property_map[] = {
         "vpaned_downloads",
         FREQ_UPDATES, 0
     },
+#ifdef USE_GTK1
+    {
+        get_main_window,
+        PROP_FILEINFO_DIVIDER_POS,
+        update_split_pane,
+        TRUE,
+        "vpaned_fileinfo",
+        FREQ_UPDATES, 0
+    },
+#endif
     {
         get_filter_dialog,
         PROP_FILTER_MAIN_DIVIDER_POS,
@@ -5062,6 +5072,11 @@ void settings_gui_shutdown(void)
     downloads_divider_pos =
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "vpaned_downloads")));
+#ifdef USE_GTK1
+	fileinfo_divider_pos =
+        gtk_paned_get_position(GTK_PANED
+            (lookup_widget(main_window, "vpaned_fileinfo")));
+#endif
     main_divider_pos = 
         gtk_paned_get_position(GTK_PANED
             (lookup_widget(main_window, "hpaned_main")));

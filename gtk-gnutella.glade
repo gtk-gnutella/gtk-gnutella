@@ -4135,7 +4135,7 @@
 
 		<widget>
 		  <class>GtkVPaned</class>
-		  <name>vpaned1</name>
+		  <name>vpaned_fileinfo</name>
 		  <handle_size>8</handle_size>
 		  <gutter_size>8</gutter_size>
 		  <position>305</position>
