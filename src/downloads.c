@@ -742,12 +742,11 @@ gboolean download_file_exists(struct download *d)
 
 	path = g_strdup_printf("%s/%s",
 				d->file_info->path, d->file_info->file_name);
-	if (NULL != path) {
-		ret = -1 != stat(path, &buf);
-		G_FREE_NULL(path);
-	} else
-		ret = FALSE;
-	
+	g_return_val_if_fail(NULL != path, FALSE);
+
+	ret = -1 != stat(path, &buf);
+	G_FREE_NULL(path);
+
 	return ret;
 }
 
@@ -4805,8 +4804,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	g_assert(d->file_desc == -1);
 
 	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
-	if (NULL == path);
-		return;  
+	g_return_if_fail(NULL != path);
 
 	if (stat(path, &st) != -1) {
 		/* File exists, we'll append the data to it */
