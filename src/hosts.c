@@ -90,10 +90,12 @@ gboolean find_host(guint32 ip, guint16 port)
 
 	for (l = sl_nodes; l; l = l->next)
 	{
-		if (((struct gnutella_node *) l->data)->ip == ip)
-		{
-			if (((struct gnutella_node *) l->data)->socket->direction == GTA_CONNECTION_INCOMING) return TRUE;
-			else if (((struct gnutella_node *) l->data)->port == port) return TRUE;
+		struct gnutella_node *node = (struct gnutella_node *) l->data;
+		if (node->ip == ip) {
+			if (node->socket &&
+					node->socket->direction == GTA_CONNECTION_INCOMING)
+				return TRUE;
+			else if (node->port == port) return TRUE;
 		}
 	}
 
