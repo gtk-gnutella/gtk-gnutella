@@ -2159,8 +2159,10 @@ static gint parq_ul_rel_pos_cmp(gconstpointer a, gconstpointer b)
 void parq_upload_upload_got_freed(gnutella_upload_t *u)
 {
 	struct parq_ul_queued *parq_ul = parq_upload_find(u);
-		
-	parq_ul->u = NULL;
+	
+	/* The parq_ul allready might have been removed. So check this first */
+	if (parq_ul != NULL)	
+		parq_ul->u = NULL;
 }
 
 /*
