@@ -1740,6 +1740,7 @@ create_main_window (void)
   GtkWidget *image365;
   GtkWidget *viewport469;
   GtkWidget *table70;
+  GtkWidget *label914;
   GtkWidget *hbox211;
   GtkWidget *eventbox_image_warning;
   GtkWidget *image_warning;
@@ -1777,7 +1778,6 @@ create_main_window (void)
   GtkWidget *image_leaf;
   GtkWidget *eventbox_image_legacy;
   GtkWidget *image_legacy;
-  GtkWidget *label697;
   GtkWidget *hpaned_main;
   GtkWidget *vbox138;
   GtkWidget *scrolledwindow58;
@@ -2079,10 +2079,18 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (viewport469), table70);
   gtk_table_set_col_spacings (GTK_TABLE (table70), 4);
 
+  label914 = gtk_label_new ("");
+  gtk_widget_set_name (label914, "label914");
+  gtk_widget_show (label914);
+  gtk_table_attach (GTK_TABLE (table70), label914, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label914), 0, 0.5);
+
   hbox211 = gtk_hbox_new (FALSE, 2);
   gtk_widget_set_name (hbox211, "hbox211");
   gtk_widget_show (hbox211);
-  gtk_table_attach (GTK_TABLE (table70), hbox211, 0, 1, 0, 1,
+  gtk_table_attach (GTK_TABLE (table70), hbox211, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
   gtk_container_set_border_width (GTK_CONTAINER (hbox211), 2);
@@ -2290,14 +2298,6 @@ create_main_window (void)
   gtk_widget_show (image_legacy);
   gtk_container_add (GTK_CONTAINER (eventbox_image_legacy), image_legacy);
   gtk_misc_set_padding (GTK_MISC (image_legacy), 1, 0);
-
-  label697 = gtk_label_new (_(" "));
-  gtk_widget_set_name (label697, "label697");
-  gtk_widget_show (label697);
-  gtk_table_attach (GTK_TABLE (table70), label697, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_misc_set_alignment (GTK_MISC (label697), 0, 0.5);
 
   hpaned_main = gtk_hpaned_new ();
   gtk_widget_set_name (hpaned_main, "hpaned_main");
@@ -2939,6 +2939,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image365, "image365");
   GLADE_HOOKUP_OBJECT (main_window, viewport469, "viewport469");
   GLADE_HOOKUP_OBJECT (main_window, table70, "table70");
+  GLADE_HOOKUP_OBJECT (main_window, label914, "label914");
   GLADE_HOOKUP_OBJECT (main_window, hbox211, "hbox211");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_warning, "eventbox_image_warning");
   GLADE_HOOKUP_OBJECT (main_window, image_warning, "image_warning");
@@ -2976,7 +2977,6 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image_leaf, "image_leaf");
   GLADE_HOOKUP_OBJECT (main_window, eventbox_image_legacy, "eventbox_image_legacy");
   GLADE_HOOKUP_OBJECT (main_window, image_legacy, "image_legacy");
-  GLADE_HOOKUP_OBJECT (main_window, label697, "label697");
   GLADE_HOOKUP_OBJECT (main_window, hpaned_main, "hpaned_main");
   GLADE_HOOKUP_OBJECT (main_window, vbox138, "vbox138");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow58, "scrolledwindow58");
@@ -5245,7 +5245,7 @@ create_main_window_search_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox215), viewport56, TRUE, TRUE, 0);
   gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport56), GTK_SHADOW_ETCHED_IN);
 
-  label_items_found = gtk_label_new (_("No items found                                                                          "));
+  label_items_found = gtk_label_new (_("                                                                     "));
   gtk_widget_set_name (label_items_found, "label_items_found");
   gtk_widget_show (label_items_found);
   gtk_container_add (GTK_CONTAINER (viewport56), label_items_found);
