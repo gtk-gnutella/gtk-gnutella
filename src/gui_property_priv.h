@@ -46,6 +46,7 @@ extern guint32  filter_filters_col_widths[3];
 extern guint32  gnet_stats_msg_col_widths[6];
 extern guint32  gnet_stats_fc_ttl_col_widths[10];
 extern guint32  gnet_stats_fc_hops_col_widths[10];
+extern guint32  gnet_stats_fc_col_widths[10];
 extern guint32  gnet_stats_drop_reasons_col_widths[2];
 extern guint32  window_coords[4];
 extern guint32  filter_dlg_coords[4];

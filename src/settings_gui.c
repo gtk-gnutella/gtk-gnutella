@@ -347,7 +347,43 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_ul_stats"
     },
-#ifndef USE_GTK2
+#ifdef USE_GTK2
+    {
+        get_main_window,
+        PROP_SEARCH_LIST_COL_WIDTHS,
+        update_treeview_col_widths,
+        TRUE,
+        "tree_view_search"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_MSG_COL_WIDTHS,
+        update_treeview_col_widths,
+        TRUE,
+        "treeview_gnet_stats_messages"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_FC_TTL_COL_WIDTHS,
+        update_treeview_col_widths,
+        TRUE,
+        "treeview_gnet_stats_flowc"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_FC_HOPS_COL_WIDTHS,
+        update_treeview_col_widths,
+        TRUE,
+        "treeview_gnet_stats_flowc"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
+        update_treeview_col_widths,
+        TRUE,
+        "treeview_gnet_stats_drop_reasons"
+    },
+#else
     {
         get_main_window,
         PROP_SEARCH_LIST_COL_WIDTHS,
@@ -376,7 +412,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_gnet_stats_fc_hops"
     },
-#endif
     {
         get_main_window,
         PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
@@ -384,6 +419,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_gnet_stats_drop_reasons"
     },
+#endif
     {
         get_filter_dialog,
         PROP_FILTER_RULES_COL_WIDTHS,
@@ -1246,6 +1282,7 @@ static prop_map_t property_map[] = {
         "checkbutton_expert_mode"
     },
 #ifdef USE_GTK2
+#if 0
     {
         get_main_window,
         PROP_GNET_STATS_PKG_PERC,
@@ -1260,6 +1297,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_gnet_stats_byte_perc"
     },
+#endif
 #else
     {
         get_main_window,
@@ -1290,6 +1328,15 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_gnet_compact_query"
     },
+#ifdef USE_GTK2
+    {
+        get_main_window,
+        PROP_GNET_STATS_GENERAL_COL_WIDTHS,
+        update_treeview_col_widths,
+        TRUE,
+        "treeview_gnet_stats_general"
+	},
+#else
     {
         get_main_window,
         PROP_GNET_STATS_GENERAL_COL_WIDTHS,
@@ -1297,6 +1344,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_gnet_stats_general"
     },
+#endif
     {
         get_main_window,
         PROP_DOWNLOAD_OPTIMISTIC_START,
@@ -1628,7 +1676,7 @@ static gboolean update_treeview_col_widths(property_t prop)
             	GtkTreeViewColumn *col = gtk_tree_view_get_column(
             		GTK_TREE_VIEW(w), n);
             		
-            	if (col)
+            	if (col && val[n] > 0)
             		gtk_tree_view_column_set_fixed_width(col, val[n]);
             }
 
@@ -1637,7 +1685,7 @@ static gboolean update_treeview_col_widths(property_t prop)
         }
         default:
             val = 0;
-            g_error("update_treeview_col_widths: incompatible type %s", 
+            g_error("%s: incompatible type %s", __FUNCTION__,
                 prop_type_str[map_entry->type]);
     }
 

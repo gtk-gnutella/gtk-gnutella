@@ -4819,9 +4819,7 @@ create_main_window (void)
   GtkWidget *notebook2;
   GtkWidget *frame58;
   GtkWidget *scrolledwindow32;
-  GtkWidget *clist_gnet_stats_general;
-  GtkWidget *label402;
-  GtkWidget *label403;
+  GtkWidget *treeview_gnet_stats_general;
   GtkWidget *label477;
   GtkWidget *frame56;
   GtkWidget *vbox86;
@@ -4829,37 +4827,28 @@ create_main_window (void)
   GtkWidget *label406;
   GtkWidget *combo_gnet_stats_type;
   GtkWidget *combo_entry2;
-  GtkWidget *scrolledwindow31;
-  GtkWidget *viewport1;
-  GtkWidget *clist_gnet_stats_drop_reasons;
-  GtkWidget *label400;
-  GtkWidget *label401;
+  GtkWidget *scrolledwindow45;
+  GtkWidget *treeview_gnet_stats_drop_reasons;
   GtkWidget *checkbutton_gnet_stats_drop_perc;
   GtkWidget *label476;
   GtkWidget *frame55;
   GtkWidget *vbox84;
-  GtkWidget *scrolledwindow29;
-  GtkWidget *clist_gnet_stats_pkg;
-  GtkWidget *label383;
-  GtkWidget *label384;
-  GtkWidget *label385;
-  GtkWidget *label386;
-  GtkWidget *label387;
-  GtkWidget *label388;
-  GtkWidget *checkbutton_gnet_stats_pkg_perc;
+  GtkWidget *scrolledwindow46;
+  GtkWidget *treeview_gnet_stats_messages;
+  GtkWidget *hbox210;
+  GtkWidget *frame67;
+  GtkWidget *vbox93;
+  GtkWidget *gnet_stats_msgs_radio_byte;
+  GSList *gnet_stats_msgs_radio_byte_group = NULL;
+  GtkWidget *gnet_stats_msgs_radio_packets;
+  GtkWidget *label508;
+  GtkWidget *frame66;
+  GtkWidget *vbox94;
+  GtkWidget *gnet_stats_msgs_radio_abs;
+  GSList *gnet_stats_msgs_radio_abs_group = NULL;
+  GtkWidget *gnet_stats_msgs_radio_rel;
+  GtkWidget *label507;
   GtkWidget *label478;
-  GtkWidget *frame57;
-  GtkWidget *vbox85;
-  GtkWidget *scrolledwindow30;
-  GtkWidget *clist_gnet_stats_byte;
-  GtkWidget *label394;
-  GtkWidget *label395;
-  GtkWidget *label396;
-  GtkWidget *label397;
-  GtkWidget *label398;
-  GtkWidget *label399;
-  GtkWidget *checkbutton_gnet_stats_byte_perc;
-  GtkWidget *label479;
   GtkWidget *frame61;
   GtkWidget *vbox83;
   GtkWidget *vbox89;
@@ -4874,10 +4863,10 @@ create_main_window (void)
   GtkWidget *label504;
   GtkWidget *frame64;
   GtkWidget *table41;
-  GtkWidget *radio_fc_byte;
-  GSList *radio_fc_byte_group = NULL;
-  GtkWidget *checkbutton_fc_headers;
   GtkWidget *radio_fc_pkts;
+  GSList *radio_fc_pkts_group = NULL;
+  GtkWidget *radio_fc_byte;
+  GtkWidget *checkbutton_fc_headers;
   GtkWidget *label505;
   GtkWidget *frame65;
   GtkWidget *vbox92;
@@ -8648,26 +8637,13 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (frame58), scrolledwindow32);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow32), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  clist_gnet_stats_general = gtk_clist_new (2);
-  gtk_widget_set_name (clist_gnet_stats_general, "clist_gnet_stats_general");
-  gtk_widget_show (clist_gnet_stats_general);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow32), clist_gnet_stats_general);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_general), 0, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_general), 1, 80);
-  gtk_clist_column_titles_show (GTK_CLIST (clist_gnet_stats_general));
-
-  label402 = gtk_label_new ("Value");
-  gtk_widget_set_name (label402, "label402");
-  gtk_widget_show (label402);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_general), 0, label402);
-  gtk_label_set_justify (GTK_LABEL (label402), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label402), 0, 0.5);
-
-  label403 = gtk_label_new ("count");
-  gtk_widget_set_name (label403, "label403");
-  gtk_widget_show (label403);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_general), 1, label403);
-  gtk_label_set_justify (GTK_LABEL (label403), GTK_JUSTIFY_LEFT);
+  treeview_gnet_stats_general = gtk_tree_view_new ();
+  gtk_widget_set_name (treeview_gnet_stats_general, "treeview_gnet_stats_general");
+  gtk_widget_show (treeview_gnet_stats_general);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow32), treeview_gnet_stats_general);
+  gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_gnet_stats_general), TRUE);
+  gtk_tree_view_set_reorderable (GTK_TREE_VIEW (treeview_gnet_stats_general), TRUE);
+  gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_gnet_stats_general), FALSE);
 
   label477 = gtk_label_new_with_mnemonic ("_General");
   gtk_widget_set_name (label477, "label477");
@@ -8708,38 +8684,19 @@ create_main_window (void)
   gtk_widget_show (combo_entry2);
   gtk_editable_set_editable (GTK_EDITABLE (combo_entry2), FALSE);
 
-  scrolledwindow31 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow31, "scrolledwindow31");
-  gtk_widget_show (scrolledwindow31);
-  gtk_box_pack_start (GTK_BOX (vbox86), scrolledwindow31, TRUE, TRUE, 0);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow31), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  scrolledwindow45 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow45, "scrolledwindow45");
+  gtk_widget_show (scrolledwindow45);
+  gtk_box_pack_start (GTK_BOX (vbox86), scrolledwindow45, TRUE, TRUE, 0);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow45), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  viewport1 = gtk_viewport_new (NULL, NULL);
-  gtk_widget_set_name (viewport1, "viewport1");
-  gtk_widget_show (viewport1);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow31), viewport1);
-
-  clist_gnet_stats_drop_reasons = gtk_clist_new (2);
-  gtk_widget_set_name (clist_gnet_stats_drop_reasons, "clist_gnet_stats_drop_reasons");
-  gtk_widget_show (clist_gnet_stats_drop_reasons);
-  gtk_container_add (GTK_CONTAINER (viewport1), clist_gnet_stats_drop_reasons);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_drop_reasons), 0, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_drop_reasons), 1, 80);
-  gtk_clist_column_titles_show (GTK_CLIST (clist_gnet_stats_drop_reasons));
-  gtk_clist_set_shadow_type (GTK_CLIST (clist_gnet_stats_drop_reasons), GTK_SHADOW_NONE);
-
-  label400 = gtk_label_new ("Reason");
-  gtk_widget_set_name (label400, "label400");
-  gtk_widget_show (label400);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_drop_reasons), 0, label400);
-  gtk_label_set_justify (GTK_LABEL (label400), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label400), 0, 0.5);
-
-  label401 = gtk_label_new ("count");
-  gtk_widget_set_name (label401, "label401");
-  gtk_widget_show (label401);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_drop_reasons), 1, label401);
-  gtk_label_set_justify (GTK_LABEL (label401), GTK_JUSTIFY_LEFT);
+  treeview_gnet_stats_drop_reasons = gtk_tree_view_new ();
+  gtk_widget_set_name (treeview_gnet_stats_drop_reasons, "treeview_gnet_stats_drop_reasons");
+  gtk_widget_show (treeview_gnet_stats_drop_reasons);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow45), treeview_gnet_stats_drop_reasons);
+  gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_gnet_stats_drop_reasons), TRUE);
+  gtk_tree_view_set_reorderable (GTK_TREE_VIEW (treeview_gnet_stats_drop_reasons), TRUE);
+  gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_gnet_stats_drop_reasons), FALSE);
 
   checkbutton_gnet_stats_drop_perc = gtk_check_button_new_with_mnemonic ("show percentages");
   gtk_widget_set_name (checkbutton_gnet_stats_drop_perc, "checkbutton_gnet_stats_drop_perc");
@@ -8762,147 +8719,92 @@ create_main_window (void)
   gtk_widget_show (vbox84);
   gtk_container_add (GTK_CONTAINER (frame55), vbox84);
 
-  scrolledwindow29 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow29, "scrolledwindow29");
-  gtk_widget_show (scrolledwindow29);
-  gtk_box_pack_start (GTK_BOX (vbox84), scrolledwindow29, TRUE, TRUE, 0);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow29), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+  scrolledwindow46 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow46, "scrolledwindow46");
+  gtk_widget_show (scrolledwindow46);
+  gtk_box_pack_start (GTK_BOX (vbox84), scrolledwindow46, TRUE, TRUE, 0);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow46), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-  clist_gnet_stats_pkg = gtk_clist_new (6);
-  gtk_widget_set_name (clist_gnet_stats_pkg, "clist_gnet_stats_pkg");
-  gtk_widget_show (clist_gnet_stats_pkg);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow29), clist_gnet_stats_pkg);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_pkg), 0, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_pkg), 1, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_pkg), 2, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_pkg), 3, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_pkg), 4, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_pkg), 5, 80);
-  gtk_clist_column_titles_show (GTK_CLIST (clist_gnet_stats_pkg));
+  treeview_gnet_stats_messages = gtk_tree_view_new ();
+  gtk_widget_set_name (treeview_gnet_stats_messages, "treeview_gnet_stats_messages");
+  gtk_widget_show (treeview_gnet_stats_messages);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow46), treeview_gnet_stats_messages);
+  gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_gnet_stats_messages), TRUE);
+  gtk_tree_view_set_reorderable (GTK_TREE_VIEW (treeview_gnet_stats_messages), TRUE);
+  gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_gnet_stats_messages), FALSE);
 
-  label383 = gtk_label_new ("Type");
-  gtk_widget_set_name (label383, "label383");
-  gtk_widget_show (label383);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_pkg), 0, label383);
-  gtk_label_set_justify (GTK_LABEL (label383), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label383), 0, 0.5);
+  hbox210 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox210, "hbox210");
+  gtk_widget_show (hbox210);
+  gtk_box_pack_start (GTK_BOX (vbox84), hbox210, FALSE, FALSE, 0);
 
-  label384 = gtk_label_new ("received");
-  gtk_widget_set_name (label384, "label384");
-  gtk_widget_show (label384);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_pkg), 1, label384);
-  gtk_label_set_justify (GTK_LABEL (label384), GTK_JUSTIFY_LEFT);
+  frame67 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame67, "frame67");
+  gtk_widget_show (frame67);
+  gtk_box_pack_start (GTK_BOX (hbox210), frame67, TRUE, TRUE, 2);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame67), GTK_SHADOW_ETCHED_OUT);
 
-  label385 = gtk_label_new ("expired");
-  gtk_widget_set_name (label385, "label385");
-  gtk_widget_show (label385);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_pkg), 2, label385);
-  gtk_label_set_justify (GTK_LABEL (label385), GTK_JUSTIFY_LEFT);
+  vbox93 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox93, "vbox93");
+  gtk_widget_show (vbox93);
+  gtk_container_add (GTK_CONTAINER (frame67), vbox93);
 
-  label386 = gtk_label_new ("dropped");
-  gtk_widget_set_name (label386, "label386");
-  gtk_widget_show (label386);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_pkg), 3, label386);
-  gtk_label_set_justify (GTK_LABEL (label386), GTK_JUSTIFY_LEFT);
+  gnet_stats_msgs_radio_byte = gtk_radio_button_new_with_mnemonic (NULL, "Bytes");
+  gtk_widget_set_name (gnet_stats_msgs_radio_byte, "gnet_stats_msgs_radio_byte");
+  gtk_widget_show (gnet_stats_msgs_radio_byte);
+  gtk_box_pack_start (GTK_BOX (vbox93), gnet_stats_msgs_radio_byte, FALSE, FALSE, 0);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (gnet_stats_msgs_radio_byte), gnet_stats_msgs_radio_byte_group);
+  gnet_stats_msgs_radio_byte_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (gnet_stats_msgs_radio_byte));
 
-  label387 = gtk_label_new ("relayed");
-  gtk_widget_set_name (label387, "label387");
-  gtk_widget_show (label387);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_pkg), 4, label387);
-  gtk_label_set_justify (GTK_LABEL (label387), GTK_JUSTIFY_LEFT);
+  gnet_stats_msgs_radio_packets = gtk_radio_button_new_with_mnemonic (NULL, "Packets");
+  gtk_widget_set_name (gnet_stats_msgs_radio_packets, "gnet_stats_msgs_radio_packets");
+  gtk_widget_show (gnet_stats_msgs_radio_packets);
+  gtk_box_pack_start (GTK_BOX (vbox93), gnet_stats_msgs_radio_packets, FALSE, FALSE, 0);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (gnet_stats_msgs_radio_packets), gnet_stats_msgs_radio_byte_group);
+  gnet_stats_msgs_radio_byte_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (gnet_stats_msgs_radio_packets));
 
-  label388 = gtk_label_new ("generated");
-  gtk_widget_set_name (label388, "label388");
-  gtk_widget_show (label388);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_pkg), 5, label388);
-  gtk_label_set_justify (GTK_LABEL (label388), GTK_JUSTIFY_LEFT);
+  label508 = gtk_label_new ("Units");
+  gtk_widget_set_name (label508, "label508");
+  gtk_widget_show (label508);
+  gtk_frame_set_label_widget (GTK_FRAME (frame67), label508);
+  gtk_label_set_justify (GTK_LABEL (label508), GTK_JUSTIFY_LEFT);
 
-  checkbutton_gnet_stats_pkg_perc = gtk_check_button_new_with_mnemonic ("show percentages");
-  gtk_widget_set_name (checkbutton_gnet_stats_pkg_perc, "checkbutton_gnet_stats_pkg_perc");
-  gtk_widget_show (checkbutton_gnet_stats_pkg_perc);
-  gtk_box_pack_start (GTK_BOX (vbox84), checkbutton_gnet_stats_pkg_perc, FALSE, FALSE, 0);
+  frame66 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame66, "frame66");
+  gtk_widget_show (frame66);
+  gtk_box_pack_start (GTK_BOX (hbox210), frame66, TRUE, TRUE, 2);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame66), GTK_SHADOW_ETCHED_OUT);
 
-  label478 = gtk_label_new_with_mnemonic ("Messages (_packets)");
+  vbox94 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox94, "vbox94");
+  gtk_widget_show (vbox94);
+  gtk_container_add (GTK_CONTAINER (frame66), vbox94);
+
+  gnet_stats_msgs_radio_abs = gtk_radio_button_new_with_mnemonic (NULL, "Absolute");
+  gtk_widget_set_name (gnet_stats_msgs_radio_abs, "gnet_stats_msgs_radio_abs");
+  gtk_widget_show (gnet_stats_msgs_radio_abs);
+  gtk_box_pack_start (GTK_BOX (vbox94), gnet_stats_msgs_radio_abs, FALSE, FALSE, 0);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (gnet_stats_msgs_radio_abs), gnet_stats_msgs_radio_abs_group);
+  gnet_stats_msgs_radio_abs_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (gnet_stats_msgs_radio_abs));
+
+  gnet_stats_msgs_radio_rel = gtk_radio_button_new_with_mnemonic (NULL, "Relative");
+  gtk_widget_set_name (gnet_stats_msgs_radio_rel, "gnet_stats_msgs_radio_rel");
+  gtk_widget_show (gnet_stats_msgs_radio_rel);
+  gtk_box_pack_start (GTK_BOX (vbox94), gnet_stats_msgs_radio_rel, FALSE, FALSE, 0);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (gnet_stats_msgs_radio_rel), gnet_stats_msgs_radio_abs_group);
+  gnet_stats_msgs_radio_abs_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (gnet_stats_msgs_radio_rel));
+
+  label507 = gtk_label_new ("Mode");
+  gtk_widget_set_name (label507, "label507");
+  gtk_widget_show (label507);
+  gtk_frame_set_label_widget (GTK_FRAME (frame66), label507);
+  gtk_label_set_justify (GTK_LABEL (label507), GTK_JUSTIFY_LEFT);
+
+  label478 = gtk_label_new_with_mnemonic ("_Messages");
   gtk_widget_set_name (label478, "label478");
   gtk_widget_show (label478);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 2), label478);
   gtk_label_set_justify (GTK_LABEL (label478), GTK_JUSTIFY_LEFT);
-
-  frame57 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame57, "frame57");
-  gtk_widget_show (frame57);
-  gtk_container_add (GTK_CONTAINER (notebook2), frame57);
-
-  vbox85 = gtk_vbox_new (FALSE, 2);
-  gtk_widget_set_name (vbox85, "vbox85");
-  gtk_widget_show (vbox85);
-  gtk_container_add (GTK_CONTAINER (frame57), vbox85);
-
-  scrolledwindow30 = gtk_scrolled_window_new (NULL, NULL);
-  gtk_widget_set_name (scrolledwindow30, "scrolledwindow30");
-  gtk_widget_show (scrolledwindow30);
-  gtk_box_pack_start (GTK_BOX (vbox85), scrolledwindow30, TRUE, TRUE, 0);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow30), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-
-  clist_gnet_stats_byte = gtk_clist_new (6);
-  gtk_widget_set_name (clist_gnet_stats_byte, "clist_gnet_stats_byte");
-  gtk_widget_show (clist_gnet_stats_byte);
-  gtk_container_add (GTK_CONTAINER (scrolledwindow30), clist_gnet_stats_byte);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_byte), 0, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_byte), 1, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_byte), 2, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_byte), 3, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_byte), 4, 80);
-  gtk_clist_set_column_width (GTK_CLIST (clist_gnet_stats_byte), 5, 80);
-  gtk_clist_column_titles_show (GTK_CLIST (clist_gnet_stats_byte));
-
-  label394 = gtk_label_new ("Type");
-  gtk_widget_set_name (label394, "label394");
-  gtk_widget_show (label394);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_byte), 0, label394);
-  gtk_label_set_justify (GTK_LABEL (label394), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label394), 0, 0.5);
-
-  label395 = gtk_label_new ("received");
-  gtk_widget_set_name (label395, "label395");
-  gtk_widget_show (label395);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_byte), 1, label395);
-  gtk_label_set_justify (GTK_LABEL (label395), GTK_JUSTIFY_LEFT);
-
-  label396 = gtk_label_new ("expired");
-  gtk_widget_set_name (label396, "label396");
-  gtk_widget_show (label396);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_byte), 2, label396);
-  gtk_label_set_justify (GTK_LABEL (label396), GTK_JUSTIFY_LEFT);
-
-  label397 = gtk_label_new ("dropped");
-  gtk_widget_set_name (label397, "label397");
-  gtk_widget_show (label397);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_byte), 3, label397);
-  gtk_label_set_justify (GTK_LABEL (label397), GTK_JUSTIFY_LEFT);
-
-  label398 = gtk_label_new ("relayed");
-  gtk_widget_set_name (label398, "label398");
-  gtk_widget_show (label398);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_byte), 4, label398);
-  gtk_label_set_justify (GTK_LABEL (label398), GTK_JUSTIFY_LEFT);
-
-  label399 = gtk_label_new ("generated");
-  gtk_widget_set_name (label399, "label399");
-  gtk_widget_show (label399);
-  gtk_clist_set_column_widget (GTK_CLIST (clist_gnet_stats_byte), 5, label399);
-  gtk_label_set_justify (GTK_LABEL (label399), GTK_JUSTIFY_LEFT);
-
-  checkbutton_gnet_stats_byte_perc = gtk_check_button_new_with_mnemonic ("show percentages");
-  gtk_widget_set_name (checkbutton_gnet_stats_byte_perc, "checkbutton_gnet_stats_byte_perc");
-  gtk_widget_show (checkbutton_gnet_stats_byte_perc);
-  gtk_box_pack_start (GTK_BOX (vbox85), checkbutton_gnet_stats_byte_perc, FALSE, FALSE, 0);
-
-  label479 = gtk_label_new_with_mnemonic ("Message (_bytes)");
-  gtk_widget_set_name (label479, "label479");
-  gtk_widget_show (label479);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 3), label479);
-  gtk_label_set_justify (GTK_LABEL (label479), GTK_JUSTIFY_LEFT);
 
   frame61 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame61, "frame61");
@@ -8926,6 +8828,8 @@ create_main_window (void)
   gtk_widget_set_name (treeview_gnet_stats_flowc, "treeview_gnet_stats_flowc");
   gtk_widget_show (treeview_gnet_stats_flowc);
   gtk_box_pack_start (GTK_BOX (vbox89), treeview_gnet_stats_flowc, TRUE, TRUE, 0);
+  gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_gnet_stats_flowc), TRUE);
+  gtk_tree_view_set_reorderable (GTK_TREE_VIEW (treeview_gnet_stats_flowc), TRUE);
   gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview_gnet_stats_flowc), FALSE);
 
   frame62 = gtk_frame_new (NULL);
@@ -8944,7 +8848,7 @@ create_main_window (void)
   gtk_widget_set_name (frame63, "frame63");
   gtk_widget_show (frame63);
   gtk_box_pack_start (GTK_BOX (hbox209), frame63, TRUE, TRUE, 2);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame63), GTK_SHADOW_IN);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame63), GTK_SHADOW_ETCHED_OUT);
 
   vbox90 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox90, "vbox90");
@@ -8977,42 +8881,42 @@ create_main_window (void)
   frame64 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame64, "frame64");
   gtk_widget_show (frame64);
-  gtk_box_pack_start (GTK_BOX (hbox209), frame64, TRUE, TRUE, 2);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame64), GTK_SHADOW_IN);
+  gtk_box_pack_start (GTK_BOX (hbox209), frame64, TRUE, TRUE, 1);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame64), GTK_SHADOW_ETCHED_OUT);
 
   table41 = gtk_table_new (2, 2, FALSE);
   gtk_widget_set_name (table41, "table41");
   gtk_widget_show (table41);
   gtk_container_add (GTK_CONTAINER (frame64), table41);
 
+  radio_fc_pkts = gtk_radio_button_new_with_mnemonic (NULL, "Packets");
+  gtk_widget_set_name (radio_fc_pkts, "radio_fc_pkts");
+  gtk_widget_show (radio_fc_pkts);
+  gtk_table_attach (GTK_TABLE (table41), radio_fc_pkts, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_tooltips_set_tip (tooltips, radio_fc_pkts, "Show the number of dropped packets.", NULL);
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_pkts), radio_fc_pkts_group);
+  radio_fc_pkts_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_pkts));
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (radio_fc_pkts), TRUE);
+
   radio_fc_byte = gtk_radio_button_new_with_mnemonic (NULL, "Bytes");
   gtk_widget_set_name (radio_fc_byte, "radio_fc_byte");
   gtk_widget_show (radio_fc_byte);
-  gtk_table_attach (GTK_TABLE (table41), radio_fc_byte, 0, 1, 1, 2,
+  gtk_table_attach (GTK_TABLE (table41), radio_fc_byte, 0, 1, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_tooltips_set_tip (tooltips, radio_fc_byte, "Show the volumes of dropped packets.", NULL);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_byte), radio_fc_byte_group);
-  radio_fc_byte_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_byte));
+  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_byte), radio_fc_pkts_group);
+  radio_fc_pkts_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_byte));
 
   checkbutton_fc_headers = gtk_check_button_new_with_mnemonic ("Add headers");
   gtk_widget_set_name (checkbutton_fc_headers, "checkbutton_fc_headers");
   gtk_widget_show (checkbutton_fc_headers);
-  gtk_table_attach (GTK_TABLE (table41), checkbutton_fc_headers, 1, 2, 1, 2,
+  gtk_table_attach (GTK_TABLE (table41), checkbutton_fc_headers, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_tooltips_set_tip (tooltips, checkbutton_fc_headers, "If checked add the header size of the packets to the volume.", NULL);
-
-  radio_fc_pkts = gtk_radio_button_new_with_mnemonic (NULL, "Packets");
-  gtk_widget_set_name (radio_fc_pkts, "radio_fc_pkts");
-  gtk_widget_show (radio_fc_pkts);
-  gtk_table_attach (GTK_TABLE (table41), radio_fc_pkts, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_tooltips_set_tip (tooltips, radio_fc_pkts, "Show the number of dropped packets.", NULL);
-  gtk_radio_button_set_group (GTK_RADIO_BUTTON (radio_fc_pkts), radio_fc_byte_group);
-  radio_fc_byte_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio_fc_pkts));
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (radio_fc_pkts), TRUE);
 
   label505 = gtk_label_new ("Unit");
   gtk_widget_set_name (label505, "label505");
@@ -9024,7 +8928,7 @@ create_main_window (void)
   gtk_widget_set_name (frame65, "frame65");
   gtk_widget_show (frame65);
   gtk_box_pack_start (GTK_BOX (hbox209), frame65, TRUE, TRUE, 2);
-  gtk_frame_set_shadow_type (GTK_FRAME (frame65), GTK_SHADOW_IN);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame65), GTK_SHADOW_ETCHED_OUT);
 
   vbox92 = gtk_vbox_new (FALSE, 0);
   gtk_widget_set_name (vbox92, "vbox92");
@@ -9057,7 +8961,7 @@ create_main_window (void)
   label502 = gtk_label_new_with_mnemonic ("Flow _control");
   gtk_widget_set_name (label502, "label502");
   gtk_widget_show (label502);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 4), label502);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 3), label502);
   gtk_label_set_justify (GTK_LABEL (label502), GTK_JUSTIFY_LEFT);
 
   label378 = gtk_label_new ("gNet stats");
@@ -9424,18 +9328,6 @@ create_main_window (void)
                     NULL);
   g_signal_connect ((gpointer) entry_config_extensions, "focus_out_event",
                     G_CALLBACK (on_entry_config_extensions_focus_out_event),
-                    NULL);
-  g_signal_connect ((gpointer) clist_gnet_stats_general, "resize_column",
-                    G_CALLBACK (on_clist_gnet_stats_general_resize_column),
-                    NULL);
-  g_signal_connect ((gpointer) clist_gnet_stats_drop_reasons, "resize_column",
-                    G_CALLBACK (on_clist_gnet_stats_drop_reasons_resize_column),
-                    NULL);
-  g_signal_connect ((gpointer) clist_gnet_stats_pkg, "resize_column",
-                    G_CALLBACK (on_clist_gnet_stats_pkg_resize_column),
-                    NULL);
-  g_signal_connect ((gpointer) clist_gnet_stats_byte, "resize_column",
-                    G_CALLBACK (on_clist_gnet_stats_byte_resize_column),
                     NULL);
 
   gtk_label_set_mnemonic_widget (GTK_LABEL (label204), entry_search);
@@ -10067,9 +9959,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, notebook2, "notebook2");
   GLADE_HOOKUP_OBJECT (main_window, frame58, "frame58");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow32, "scrolledwindow32");
-  GLADE_HOOKUP_OBJECT (main_window, clist_gnet_stats_general, "clist_gnet_stats_general");
-  GLADE_HOOKUP_OBJECT (main_window, label402, "label402");
-  GLADE_HOOKUP_OBJECT (main_window, label403, "label403");
+  GLADE_HOOKUP_OBJECT (main_window, treeview_gnet_stats_general, "treeview_gnet_stats_general");
   GLADE_HOOKUP_OBJECT (main_window, label477, "label477");
   GLADE_HOOKUP_OBJECT (main_window, frame56, "frame56");
   GLADE_HOOKUP_OBJECT (main_window, vbox86, "vbox86");
@@ -10077,37 +9967,26 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label406, "label406");
   GLADE_HOOKUP_OBJECT (main_window, combo_gnet_stats_type, "combo_gnet_stats_type");
   GLADE_HOOKUP_OBJECT (main_window, combo_entry2, "combo_entry2");
-  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow31, "scrolledwindow31");
-  GLADE_HOOKUP_OBJECT (main_window, viewport1, "viewport1");
-  GLADE_HOOKUP_OBJECT (main_window, clist_gnet_stats_drop_reasons, "clist_gnet_stats_drop_reasons");
-  GLADE_HOOKUP_OBJECT (main_window, label400, "label400");
-  GLADE_HOOKUP_OBJECT (main_window, label401, "label401");
+  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow45, "scrolledwindow45");
+  GLADE_HOOKUP_OBJECT (main_window, treeview_gnet_stats_drop_reasons, "treeview_gnet_stats_drop_reasons");
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_gnet_stats_drop_perc, "checkbutton_gnet_stats_drop_perc");
   GLADE_HOOKUP_OBJECT (main_window, label476, "label476");
   GLADE_HOOKUP_OBJECT (main_window, frame55, "frame55");
   GLADE_HOOKUP_OBJECT (main_window, vbox84, "vbox84");
-  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow29, "scrolledwindow29");
-  GLADE_HOOKUP_OBJECT (main_window, clist_gnet_stats_pkg, "clist_gnet_stats_pkg");
-  GLADE_HOOKUP_OBJECT (main_window, label383, "label383");
-  GLADE_HOOKUP_OBJECT (main_window, label384, "label384");
-  GLADE_HOOKUP_OBJECT (main_window, label385, "label385");
-  GLADE_HOOKUP_OBJECT (main_window, label386, "label386");
-  GLADE_HOOKUP_OBJECT (main_window, label387, "label387");
-  GLADE_HOOKUP_OBJECT (main_window, label388, "label388");
-  GLADE_HOOKUP_OBJECT (main_window, checkbutton_gnet_stats_pkg_perc, "checkbutton_gnet_stats_pkg_perc");
+  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow46, "scrolledwindow46");
+  GLADE_HOOKUP_OBJECT (main_window, treeview_gnet_stats_messages, "treeview_gnet_stats_messages");
+  GLADE_HOOKUP_OBJECT (main_window, hbox210, "hbox210");
+  GLADE_HOOKUP_OBJECT (main_window, frame67, "frame67");
+  GLADE_HOOKUP_OBJECT (main_window, vbox93, "vbox93");
+  GLADE_HOOKUP_OBJECT (main_window, gnet_stats_msgs_radio_byte, "gnet_stats_msgs_radio_byte");
+  GLADE_HOOKUP_OBJECT (main_window, gnet_stats_msgs_radio_packets, "gnet_stats_msgs_radio_packets");
+  GLADE_HOOKUP_OBJECT (main_window, label508, "label508");
+  GLADE_HOOKUP_OBJECT (main_window, frame66, "frame66");
+  GLADE_HOOKUP_OBJECT (main_window, vbox94, "vbox94");
+  GLADE_HOOKUP_OBJECT (main_window, gnet_stats_msgs_radio_abs, "gnet_stats_msgs_radio_abs");
+  GLADE_HOOKUP_OBJECT (main_window, gnet_stats_msgs_radio_rel, "gnet_stats_msgs_radio_rel");
+  GLADE_HOOKUP_OBJECT (main_window, label507, "label507");
   GLADE_HOOKUP_OBJECT (main_window, label478, "label478");
-  GLADE_HOOKUP_OBJECT (main_window, frame57, "frame57");
-  GLADE_HOOKUP_OBJECT (main_window, vbox85, "vbox85");
-  GLADE_HOOKUP_OBJECT (main_window, scrolledwindow30, "scrolledwindow30");
-  GLADE_HOOKUP_OBJECT (main_window, clist_gnet_stats_byte, "clist_gnet_stats_byte");
-  GLADE_HOOKUP_OBJECT (main_window, label394, "label394");
-  GLADE_HOOKUP_OBJECT (main_window, label395, "label395");
-  GLADE_HOOKUP_OBJECT (main_window, label396, "label396");
-  GLADE_HOOKUP_OBJECT (main_window, label397, "label397");
-  GLADE_HOOKUP_OBJECT (main_window, label398, "label398");
-  GLADE_HOOKUP_OBJECT (main_window, label399, "label399");
-  GLADE_HOOKUP_OBJECT (main_window, checkbutton_gnet_stats_byte_perc, "checkbutton_gnet_stats_byte_perc");
-  GLADE_HOOKUP_OBJECT (main_window, label479, "label479");
   GLADE_HOOKUP_OBJECT (main_window, frame61, "frame61");
   GLADE_HOOKUP_OBJECT (main_window, vbox83, "vbox83");
   GLADE_HOOKUP_OBJECT (main_window, vbox89, "vbox89");
@@ -10121,9 +10000,9 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label504, "label504");
   GLADE_HOOKUP_OBJECT (main_window, frame64, "frame64");
   GLADE_HOOKUP_OBJECT (main_window, table41, "table41");
+  GLADE_HOOKUP_OBJECT (main_window, radio_fc_pkts, "radio_fc_pkts");
   GLADE_HOOKUP_OBJECT (main_window, radio_fc_byte, "radio_fc_byte");
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_fc_headers, "checkbutton_fc_headers");
-  GLADE_HOOKUP_OBJECT (main_window, radio_fc_pkts, "radio_fc_pkts");
   GLADE_HOOKUP_OBJECT (main_window, label505, "label505");
   GLADE_HOOKUP_OBJECT (main_window, frame65, "frame65");
   GLADE_HOOKUP_OBJECT (main_window, vbox92, "vbox92");

@@ -201,6 +201,17 @@ prop = {
 };
 
 prop = {
+    name = "gnet_stats_fc_col_widths";
+    cfgvar = "widths_gnet_stats_fc";
+    desc = "Widths of the columns in the gnet fc hops stats table";
+    type = guint32;
+    vector_size = 10;
+    data = {
+        default = "{ 60, 20, 20, 20, 20, 20, 20, 20, 20, 20 }";
+    };
+};
+
+prop = {
     name = "gnet_stats_drop_reasons_col_widths";
     cfgvar = "widths_gnet_stats_drop_reasons";
     desc = "Widths of the columns in the gnet stats drop reasons table";

@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.12.15 - cbiere)
+ * [Gtk2] Replaced deprecated GtkCList in gnet stats pane by GtkTreeView
+
+- (2002.12.12 - RAM)
+ * Fixed crash at exit time: was calling hcache_clear() from hcache_free().
+
 - (2002.12.10 - Richard)
  * Updated gnet stats again
  * Split off gnet_stats_gui2.h
