@@ -1743,6 +1743,26 @@ prop = {
 };
 
 prop = {
+    name = "fi_all_count";
+    desc = "How many fileinfo do we have.";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "fi_with_source_count";
+    desc = "How many fileinfo with sources do we have.";
+    save = FALSE;
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
     name = "dl_qalive_count";
     desc = "How many queued downloads are currently responsive "
 			"(remote servent answering requests).";
