@@ -236,6 +236,7 @@ typedef guint32 gnet_search_t;
  * Flags for search_new()
  */
 #define SEARCH_PASSIVE	 0x01 /* start a passive ssearch */
+#define SEARCH_ENABLED	 0x02 /* start an enabled search */
 
 /*
  * Result sets `status' flags.
@@ -305,7 +306,7 @@ gnet_search_t search_new
     (const gchar *, guint16 min_speed, guint32 timeout, flag_t flags);
 void search_close(gnet_search_t sh);
 
-void search_start(gnet_search_t sh, gboolean enabled);
+void search_start(gnet_search_t sh);
 void search_stop(gnet_search_t sh);
 gboolean search_is_stopped(gnet_search_t sh);
 void search_reissue(gnet_search_t sh);

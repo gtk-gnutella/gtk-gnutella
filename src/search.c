@@ -1559,15 +1559,15 @@ gnet_search_t search_new(
  *
  * Start a newly created start or resume stopped search.
  */
-void search_start(gnet_search_t sh, gboolean enabled)
+void search_start(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
 
-    g_assert(sch->frozen);
+    g_assert(sch->frozen);			/* Coming from search_new(), or resuming */
 
-    sch->frozen = !enabled;
+    sch->frozen = FALSE;
 
-    if (!sch->passive && !sch->frozen) {
+    if (!sch->passive) {
 		/*
 		 * If we just created the search with search_new(), there will be
 		 * no message ever sent, and sch->muids will be NULL.

@@ -803,8 +803,8 @@ void on_popup_search_duplicate_activate(GtkMenuItem * menuitem,
 	if (search)
 		search_gui_new_search_full(search->query, 
             search_get_minimum_speed(search->search_handle),
-			search->enabled, timeout,
-            search->sort_col, search->sort_order, 0, NULL);
+			timeout, search->sort_col, search->sort_order,
+			search->enabled ? SEARCH_ENABLED : 0, NULL);
 }
 
 void on_popup_search_restart_activate
@@ -824,7 +824,7 @@ void on_popup_search_resume_activate(GtkMenuItem * menuitem,
 
     search = search_gui_get_current_search();
 	if (search) {
-		search_start(search->search_handle, TRUE);
+		search_start(search->search_handle);
 		/* FIXME: Mark graphically this entry as active again in the list. */
 		search->enabled = TRUE;
 

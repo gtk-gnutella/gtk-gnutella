@@ -711,14 +711,12 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
 {
     gchar *buf;
     gchar *query;
-    gboolean enabled;
     gint sort_col = SORT_NO_COL, sort_order = SORT_NONE;
     gint32 speed;
     guint32 reissue_timeout;
     xmlNodePtr node;
     search_t * search;
-    gboolean passive = FALSE;
-    guint flags;
+    guint flags = 0;
 
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
@@ -736,11 +734,12 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
 
     buf = xmlGetProp(xmlnode, TAG_SEARCH_ENABLED);
     if (buf) {
-        enabled = atoi(buf);
+        if (atoi(buf) == 1)
+			flags |= SEARCH_ENABLED;
         g_free(buf);
     }
     else
-      enabled = 1; /* Compatibility : Search began always */
+		flags |= SEARCH_ENABLED;	 /* Compatibility: searches always began */
 
     buf = xmlGetProp(xmlnode, TAG_SEARCH_SPEED);
     if (buf) {
@@ -756,7 +755,8 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
 
     buf = xmlGetProp(xmlnode, TAG_SEARCH_PASSIVE);
     if (buf) {
-        passive = atol(buf) == 1 ? TRUE : FALSE;
+        if (atol(buf) == 1)
+			flags |= SEARCH_PASSIVE;
         g_free(buf);
     }
 
@@ -772,13 +772,13 @@ static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
         g_free(buf);
     }
 
-    flags =
-        (passive ? SEARCH_PASSIVE : 0);
-
     if (gui_debug >= 4)
-        printf("adding new search: %s (enabled=%d)\n", query, enabled);
+        printf("adding new %s %s search: %s\n",
+			(flags & SEARCH_ENABLED) ? "enabled" : "disabled",
+			(flags & SEARCH_PASSIVE) ? "passive" : "active",
+			query);
 
-	search_gui_new_search_full(query, enabled, speed, reissue_timeout,
+	search_gui_new_search_full(query, speed, reissue_timeout,
 		sort_col, sort_order, flags, &search);
 
     g_free(query);

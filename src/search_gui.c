@@ -448,8 +448,8 @@ gboolean search_gui_new_search(
     gui_prop_get_guint32_val(PROP_DEFAULT_MINIMUM_SPEED, &speed);
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
-    return search_gui_new_search_full(query, TRUE, speed, timeout,
-		sort_col, sort_order, flags, search);
+    return search_gui_new_search_full(query, speed, timeout,
+		sort_col, sort_order, flags | SEARCH_ENABLED, search);
 }
 
 /* 
@@ -461,7 +461,8 @@ gboolean search_gui_new_search(
  * search is stored there.
  */
 gboolean search_gui_new_search_full(
-	const gchar *querystr, gboolean enabled, guint16 speed, guint32 reissue_timeout, gint sort_col, 
+	const gchar *querystr, guint16 speed,
+	guint32 reissue_timeout, gint sort_col, 
 	gint sort_order, flag_t flags, search_t **search)
 {
     search_t *sch;
@@ -544,9 +545,9 @@ gboolean search_gui_new_search_full(
 	sch->sort_order = sort_order;
 	
 	sch->query = atom_str_get(query);
-	sch->enabled = enabled;
+	sch->enabled = (flags & SEARCH_ENABLED) ? TRUE : FALSE;
     sch->search_handle = search_new(query, speed, reissue_timeout, flags);
-    sch->passive = flags & SEARCH_PASSIVE;
+    sch->passive = (flags & SEARCH_PASSIVE) ? TRUE : FALSE;
 	sch->dups =
 		g_hash_table_new(search_hash_func, search_hash_key_compare);
 	if (!sch->dups)
@@ -625,7 +626,8 @@ gboolean search_gui_new_search_full(
 
 	searches = g_list_append(searches, (gpointer) sch);
 
-	search_start(sch->search_handle, enabled);
+	if (sch->enabled)
+		search_start(sch->search_handle);
 
 	if (search)
 		*search = sch;
