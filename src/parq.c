@@ -405,6 +405,9 @@ void parq_close(void)
 			if (parq_ul == NULL)
 				break;
 			
+			parq_ul->by_ip->total = 0;
+			parq_ul->by_ip->uploading = 0;
+			
 			remove = g_slist_prepend(remove, parq_ul);		
 		}
 		
@@ -1136,7 +1139,6 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 	g_assert(parq_ul->by_ip != NULL);
 	g_assert(parq_ul->by_ip->total > 0);
 	g_assert(parq_ul->by_ip->uploading <= parq_ul->by_ip->total);
-	g_assert(g_list_length(parq_ul->by_ip->list) == parq_ul->by_ip->total);
 	
 	parq_upload_decrease_all_after(parq_ul);	
 
@@ -1217,6 +1219,7 @@ static void parq_upload_free(struct parq_ul_queued *parq_ul)
 guint32 parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 {
 	int result = 60 + 45 * (parq_ul->relative_position - 1);
+#if 0
 	int fast_result;
 	struct parq_ul_queued *parq_ul_prev = NULL;
 	GList *l = NULL;
@@ -1238,6 +1241,7 @@ guint32 parq_ul_calc_retry(struct parq_ul_queued *parq_ul)
 	
 		result = MIN(result, fast_result);
 	}
+#endif
 	
 	return MIN(PARQ_MAX_UL_RETRY_DELAY, result);
 }
@@ -2220,9 +2224,13 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	
 	g_assert(parq_ul->eta - now > 0);
 	
+#if 0
 	/* If the chunk sizes are really small, expire them sooner */
 	parq_ul->expire = parq_ul->retry + parq_ul->chunk_size / bw_http_out;
 	parq_ul->expire = MIN(MIN_LIFE_TIME + parq_ul->retry, parq_ul->expire);
+#else
+	parq_ul->expire = MIN_LIFE_TIME + parq_ul->retry;
+#endif
 	
 	if (
 		org_retry > now && 
