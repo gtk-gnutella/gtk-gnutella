@@ -36,6 +36,7 @@
 #include "utf8.h"
 #include "vendors.h"
 #include "ignore.h"
+#include "ggep.h"
 
 #include <ctype.h>
 
@@ -280,6 +281,7 @@ static gnet_results_set_t *get_results_set(
 	GString *info = NULL;
 	gint sha1_errors = 0;
 	guchar *trailer = NULL;
+	gboolean seen_ggep_h = FALSE;
 
 	/* We shall try to detect malformed packets as best as we can */
 	if (n->size < 27) {
@@ -326,7 +328,6 @@ static gnet_results_set_t *get_results_set(
 
 		/* Followed by file name, and termination (double NUL) */
 		fname = s;
-		tag = NULL;
 
 		while (s < e && *s)
 			s++;				/* move s up to the next double NUL */
@@ -344,6 +345,7 @@ static gnet_results_set_t *get_results_set(
 		 * may not contain any NUL.
 		 */
 
+		tag = NULL;
 		taglen = 0;
 
 		if (s[1]) {
@@ -421,6 +423,7 @@ static gnet_results_set_t *get_results_set(
 			for (i = 0; i < exvcnt; i++) {
 				extvec_t *e = &exv[i];
 				gchar sha1_digest[SHA1_RAW_SIZE];
+				ggept_status_t ret;
 
 				switch (e->ext_token) {
 				case EXT_T_URN_SHA1:
@@ -432,6 +435,27 @@ static gnet_results_set_t *get_results_set(
 							rc->sha1 = atom_sha1_get(sha1_digest);
 					} else
 						sha1_errors++;
+					break;
+				case EXT_T_GGEP_H:
+					ret = ggept_h_sha1_extract(e, sha1_digest, SHA1_RAW_SIZE);
+					if (ret == GGEP_OK) {
+						if (!validate_only)
+							rc->sha1 = atom_sha1_get(sha1_digest);
+						seen_ggep_h = TRUE;
+					} else if (ret == GGEP_INVALID) {
+						sha1_errors++;
+						if (dbg) {
+							g_warning("%s bad GGEP \"H\" (dumping)",
+								gmsg_infostr(&n->header));
+							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+						}
+					} else {
+						if (dbg) {
+							g_warning("%s GGEP \"H\" with no SHA1 (dumping)",
+								gmsg_infostr(&n->header));
+							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+						}
+					}
 					break;
 				case EXT_T_UNKNOWN:
 					if (
@@ -458,9 +482,8 @@ static gnet_results_set_t *get_results_set(
 				rc->tag = atom_str_get(info->str);
 		}
 
-		if (!validate_only) {
+		if (!validate_only)
 			rs->records = g_slist_prepend(rs->records, (gpointer) rc);
-		}
 	}
 
 	/*
@@ -478,7 +501,7 @@ static gnet_results_set_t *get_results_set(
 	 */
 
 	if (s < e) {
-		guint32 tlen = e - s;
+		guint32 tlen = e - s;			/* Trailer length, starts at `s' */
 		guchar *x = (guchar *) s;
 
 		if (tlen >= 5 && x[4] + 5 <= tlen)
@@ -608,9 +631,15 @@ static gnet_results_set_t *get_results_set(
 				if (dbg > 1)
 					dump_hex(stderr, "Query Hit private data", priv, privlen);
 			} else if (!seen_ggep) {
-				g_warning("%s claimed GGEP extensions, seen none",
+				g_warning("%s claimed GGEP extensions in trailer, seen none",
 					gmsg_infostr(&n->header));
 			}
+		}
+
+		if (dbg && seen_ggep_h) {
+			gchar *vendor = lookup_vendor_name(rs->vendor);
+			g_warning("%s from %s used GGEP \"H\" extension",
+				 gmsg_infostr(&n->header), vendor ? vendor : "????");
 		}
 
 		/*
