@@ -310,6 +310,43 @@ static gboolean scan_files_once(gpointer p)
 	return FALSE;
 }
 
+static void log_handler(const gchar *log_domain, GLogLevelFlags log_level,
+	const gchar *message, gpointer user_data)
+{
+	time_t now;
+	struct tm *ct;
+	const char *level;
+
+	now = time((time_t *) NULL);
+	ct = localtime(&now);
+
+	switch (log_level) {
+	case G_LOG_LEVEL_CRITICAL:
+		level = "CRITICAL"; 
+		break;
+	case G_LOG_LEVEL_ERROR:
+		level = "ERROR"; 
+		break;
+	case G_LOG_LEVEL_WARNING:
+		level = "WARNING"; 
+		break;
+	default:
+		level = "UNKNOWN";
+	}
+
+	fprintf(stderr, "%.2d/%.2d/%.2d %.2d:%.2d:%.2d (%s): %s\n",
+		ct->tm_year % 100, ct->tm_mon + 1, ct->tm_mday,
+		ct->tm_hour, ct->tm_min, ct->tm_sec,
+		level, message);
+}
+ 
+static void log_init(void)
+{
+	g_log_set_handler(G_LOG_DOMAIN,
+		G_LOG_LEVEL_ERROR | G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL,
+		&log_handler, NULL);
+}
+
 gint main(gint argc, gchar ** argv)
 {
 	gint i;
@@ -318,6 +355,7 @@ gint main(gint argc, gchar ** argv)
 		close(i);				/* Just in case */
 
 	/* Our inits */
+	log_init();
 	atoms_init();
 	version_init();
 	random_init();
