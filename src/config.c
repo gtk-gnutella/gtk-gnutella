@@ -1454,11 +1454,11 @@ void config_save(void)
 	}
 
 	if (cfg_use_local_file)
-		ul_stats_dump_history(ul_stats_file);
+		ul_stats_dump_history(ul_stats_file, TRUE);
 	else {
 		g_snprintf(cfg_tmp, sizeof(cfg_tmp), "%s/%s",
 			config_dir, ul_stats_file);
-		ul_stats_dump_history(cfg_tmp);
+		ul_stats_dump_history(cfg_tmp, TRUE);
 	}
 
 	/*

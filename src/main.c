@@ -21,6 +21,7 @@
 #include "gmsg.h"
 #include "bsched.h"
 #include "search_stats.h"
+#include "upload_stats.h"
 
 #define SLOW_UPDATE_PERIOD		20	/* Updating period for `main_slow_update' */
 
@@ -92,7 +93,13 @@ static void init_constants(void)
 	start_rfc822_date = g_strdup(date_to_rfc822_gchar(start_time));
 }
 
-gboolean main_timer(gpointer p)
+static void slow_main_timer(time_t now)
+{
+		gui_update_config_port();		/* Show current IP:port if dynamic IP */
+		ul_flush_stats_if_dirty();
+}
+
+static gboolean main_timer(gpointer p)
 {
 	time_t now = time((time_t *) NULL);
 
@@ -114,7 +121,7 @@ gboolean main_timer(gpointer p)
 	/* Update for things that change slowly */
 	if (main_slow_update++ > SLOW_UPDATE_PERIOD) {
 		main_slow_update = 0;
-		gui_update_config_port();		/* Show current IP:port if dynamic IP */
+		slow_main_timer(now);
 	}
 
 	return TRUE;
