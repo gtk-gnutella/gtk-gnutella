@@ -1543,7 +1543,7 @@ static void parq_upload_update_eta(struct parq_ul_queue *which_ul_queue)
 		}
 		
 		if (eta == 0)
-			g_warning("[parq] Was unable to calculate an accurate ETA");
+			g_warning("[PARQ UL] Was unable to calculate an accurate ETA");
 
 	}
 	
@@ -2185,7 +2185,8 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 		 * we are not going to allow this download. Wether it could get an
 		 * upload slot or not. Neither are we going to active queue it.
 		 */
-		g_warning("host %s (%s) re-requested \"%s\" too soon (%d secs early)", 
+		g_warning("[PARQ UL] "
+			"host %s (%s) re-requested \"%s\" too soon (%d secs early)", 
 			ip_port_to_gchar(u->socket->ip, u->socket->port), 
 			upload_vendor_str(u),
 			u->name, (gint) (org_retry - now));
@@ -2196,7 +2197,7 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 		 	 * queue now.
 			 */
 
-			g_warning(
+			g_warning("[PARQ UL] "
 				"punishing %s (%s) for re-requesting \"%s\" %d secs early", 
 				ip_port_to_gchar(u->socket->ip, u->socket->port), 
 				upload_vendor_str(u),
@@ -2411,7 +2412,7 @@ gboolean parq_upload_remove(gnutella_upload_t *u)
 	if (parq_ul->disc_timeout > now && parq_ul->has_slot) {
 		/* Client disconnects to often. This could block our upload
 		 * slots. Sorry, but we are going to remove this upload */
-		g_warning("[parq ul] "
+		g_warning("[PARQ UL] "
 			"Removing %s (%s) for too many disconnections \"%s\" %d secs early",
 			ip_port_to_gchar(u->socket->ip, u->socket->port), 
 			upload_vendor_str(u),
