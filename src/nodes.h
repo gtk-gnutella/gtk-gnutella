@@ -3,9 +3,17 @@
 
 #include "gnutella.h"
 
+struct membuf {
+	gchar *data;			/* Where data is held */
+	gchar *end;				/* First location beyond buffer */
+	gchar *rptr;			/* Read pointer within data */
+};
+
 struct gnutella_node {
 	gchar error_str[256];		/* To sprintf() error strings with vars */
 	struct gnutella_socket *socket;		/* Socket of the node */
+	gint proto_major;			/* Protocol major number */
+	gint proto_minor;			/* Protocol minor number */
 
 	struct gnutella_header header;		/* Header of the current message */
 
@@ -15,9 +23,7 @@ struct gnutella_node {
 
 	guint32 pos;			/* write position in data */
 
-	/* GNUTELLA_HELLO_SENT | GNUTELLA_HELLO_RECEIVED |
-	   GNUTELLA_CONNECTED | GNUTELLA_ */
-	guchar status;
+	guchar status;			/* See possible values below */
 
 	guint32 sent;				/* Number of sent packets */
 	guint32 received;			/* Number of received packets */
@@ -48,13 +54,41 @@ struct gnutella_node {
 	/* any information necessary to route packets associated with this
 	   host goes here */
 	gpointer routing_data;
+
+	/*
+	 * The following is used after a 0.6 handshake.  See comment in
+	 * node_process_handshake_ack() to understand how it is used and why.
+	 *		--RAM, 23/12/2001
+	 */
+	gint (*read)(gint, gpointer, gint);	/* Data reading routine */
+	struct membuf *membuf;				/* Buffer, which we can read from */
 };
+
+/*
+ * Node states.
+ */
+
+#define GTA_NODE_CONNECTING			1	/* Making outgoing connection */
+#define GTA_NODE_HELLO_SENT			2	/* Sent 0.4 hello */
+#define GTA_NODE_WELCOME_SENT		3	/* Hello accepted, remote welcomed */
+#define GTA_NODE_CONNECTED			4	/* Connected at the Gnet level */
+#define GTA_NODE_REMOVING			5	/* Removing node */
+#define GTA_NODE_RECEIVING_HELLO	6	/* Receiving 0.6 headers */
+
+/*
+ * State inspection macros.
+ */
+
+#define NODE_IS_CONNECTING(n)						\
+	(	(n)->status == GTA_NODE_CONNECTING			\
+	||	(n)->status == GTA_NODE_RECEIVING_HELLO	)
 
 /*
  * Global Data
  */
 
 extern const gchar *gnutella_hello;
+extern guint32 gnutella_hello_length;
 
 extern GSList *sl_nodes;
 extern guint32 nodes_in_list;
@@ -71,7 +105,7 @@ extern struct gnutella_node *node_added;
 void network_init(void);
 gboolean on_the_net(void);
 gint32 connected_nodes(void);
-struct gnutella_node *node_add(struct gnutella_socket *, guint32, guint16);
+void node_add(struct gnutella_socket *, guint32, guint16);
 void node_real_remove(struct gnutella_node *);
 void node_remove(struct gnutella_node *, const gchar * reason, ...);
 void node_init_outgoing(struct gnutella_node *);
