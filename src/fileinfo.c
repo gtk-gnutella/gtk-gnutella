@@ -3708,7 +3708,8 @@ file_info_add_source(struct dl_file_info *fi, struct download *dl)
  * This replaces file_info_free()
  */
 void
-file_info_remove_source(struct dl_file_info *fi, struct download *dl, gboolean discard)
+file_info_remove_source(
+	struct dl_file_info *fi, struct download *dl, gboolean discard)
 {
     g_assert(dl->file_info != NULL);
     g_assert(fi->refcount > 0);
