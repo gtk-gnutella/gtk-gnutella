@@ -131,8 +131,8 @@ typedef void (*http_user_free_t)(gpointer data);
  * Asynchronous operations that the user may redefine.
  */
 
-typedef gint (*http_op_request_t)(gpointer handle, gchar *buf, gint len,
-	gchar *verb, gchar *path, gchar *host, guint16 port);
+typedef size_t (*http_op_request_t)(gpointer handle, gchar *buf, size_t len,
+	const gchar *verb, const gchar *path, const gchar *host, guint16 port);
 
 /*
  * Asynchronous request error codes.

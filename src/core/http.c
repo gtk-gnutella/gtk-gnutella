@@ -239,10 +239,13 @@ http_send_status(
  * Add an X-Hostname line bearing the fully qualified hostname.
  */
 void
-http_hostname_add(gchar *buf, gint *retval, gpointer arg, guint32 flags)
+http_hostname_add(gchar *buf, gint *retval, gpointer unused_arg, guint32 flags)
 {
-	gint length = *retval;
-	gint rw;
+	size_t length = *retval;
+	size_t rw;
+
+	(void) unused_arg;
+	g_assert(length <= INT_MAX);
 
 	if (flags & HTTP_CBF_SMALL_REPLY)
 		rw = 0;
@@ -1659,16 +1662,19 @@ http_async_http_error(
  * `path' to ask for and the `host' to which we are making the request, for
  * suitable "Host:" header emission.
  *
- * Returns the length of the generated request, which must be terminated
+ * @return the length of the generated request, which must be terminated
  * properly by a trailing "\r\n" on a line by itself to mark the end of the
  * header.
  */
-static gint
-http_async_build_request(gpointer handle, gchar *buf, gint len,
-	gchar *verb, gchar *path, gchar *host, guint16 port)
+static size_t
+http_async_build_request(gpointer unused_handle, gchar *buf, size_t len,
+	const gchar *verb, const gchar *path, const gchar *host, guint16 port)
 {
-	int rw;
-	char port_str[32];
+	size_t rw;
+	gchar port_str[32];
+
+	(void) unused_handle;
+	g_assert(len <= INT_MAX);
 
 	if (port != HTTP_PORT) {
 		gm_snprintf(port_str, sizeof port_str, ":%u", (guint) port);
@@ -1704,7 +1710,7 @@ http_async_build_request(gpointer handle, gchar *buf, gint len,
  *
  * If `parent' is not NULL, then this request is a child request.
  *
- * Returns the newly created request, or NULL with `http_async_errno' set.
+ * @return the newly created request, or NULL with `http_async_errno' set.
  */
 static struct http_async *
 http_async_create(
@@ -2076,12 +2082,13 @@ http_got_data(struct http_async *ha, gboolean eof)
  * Read them and pass them to http_got_data().
  */
 static void
-http_data_read(gpointer data, gint source, inputevt_cond_t cond)
+http_data_read(gpointer data, gint unused_source, inputevt_cond_t cond)
 {
 	struct http_async *ha = (struct http_async *) data;
 	struct gnutella_socket *s = ha->socket;
 	gint r;
 
+	(void) unused_source;
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
@@ -2336,15 +2343,17 @@ http_async_request_sent(struct http_async *ha)
  * sending the HTTP request.
  */
 static void
-http_async_write_request(gpointer data, gint source, inputevt_cond_t cond)
+http_async_write_request(gpointer data, gint unused_source,
+	inputevt_cond_t cond)
 {
 	struct http_async *ha = (struct http_async *) data;
 	struct gnutella_socket *s = ha->socket;
 	http_buffer_t *r = ha->delayed;
-	gint sent;
-	gint rw;
+	ssize_t sent;
+	size_t rw;
 	gchar *base;
 
+	(void) unused_source;
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	g_assert(r != NULL);
 	g_assert(ha->state == HTTP_AS_REQ_SENDING);
@@ -2358,12 +2367,13 @@ http_async_write_request(gpointer data, gint source, inputevt_cond_t cond)
 	rw = http_buffer_unread(r);			/* Data we still have to send */
 	base = http_buffer_read_base(r);	/* And where unsent data start */
 
-	if (-1 == (sent = bws_write(bws.out, &s->wio, base, rw))) {
+	sent = bws_write(bws.out, &s->wio, base, rw);
+	if ((ssize_t) -1 == sent) {
 		g_warning("HTTP request sending to %s failed: %s",
 			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
 		http_async_syserr(ha, errno);
 		return;
-	} else if (sent < rw) {
+	} else if ((size_t) sent < rw) {
 		http_buffer_add_read(r, sent);
 		return;
 	} else if (dbg > 2) {
@@ -2400,9 +2410,9 @@ http_async_connected(gpointer handle)
 {
 	struct http_async *ha = (struct http_async *) handle;
 	struct gnutella_socket *s = ha->socket;
+	size_t rw;
+	ssize_t sent;
 	gchar req[2048];
-	gint rw;
-	gint sent;
 
 	g_assert(ha->magic == HTTP_ASYNC_MAGIC);
 	g_assert(s);
@@ -2416,7 +2426,7 @@ http_async_connected(gpointer handle)
 		(gchar *) http_verb[ha->type], ha->path,
 		ha->host ? ha->host : ip_to_gchar(s->ip), s->port);
 
-	if ((size_t) rw >= sizeof(req)) {
+	if (rw >= sizeof(req)) {
 		http_async_error(ha, HTTP_ASYNC_REQ2BIG);
 		return;
 	}
@@ -2427,12 +2437,12 @@ http_async_connected(gpointer handle)
 
 	http_async_newstate(ha, HTTP_AS_REQ_SENDING);
 	
-	if (-1 == (sent = bws_write(bws.out, &s->wio, req, rw))) {
+	if ((ssize_t) -1 == (sent = bws_write(bws.out, &s->wio, req, rw))) {
 		g_warning("HTTP request sending to %s failed: %s",
 			ip_port_to_gchar(s->ip, s->port), g_strerror(errno));
 		http_async_syserr(ha, errno);
 		return;
-	} else if (sent < rw) {
+	} else if ((size_t) sent < rw) {
 		g_warning("partial HTTP request write to %s: only %d of %d bytes sent",
 			ip_port_to_gchar(s->ip, s->port), sent, rw);
 
@@ -2452,9 +2462,8 @@ http_async_connected(gpointer handle)
 
 		return;
 	} else if (dbg > 2) {
-		printf("----Sent HTTP request to %s (%d bytes):\n%.*s----\n",
+		g_message("----Sent HTTP request to %s (%d bytes):\n%.*s----",
 			ip_port_to_gchar(s->ip, s->port), (int) rw, (int) rw, req);
-		fflush(stdout);
 	}
 
 	http_async_request_sent(ha);
@@ -2621,4 +2630,4 @@ http_close(void)
 			(struct http_async *) sl_outgoing->data, HTTP_ASYNC_CANCELLED);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
