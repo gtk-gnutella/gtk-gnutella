@@ -95,6 +95,12 @@ void on_button_nodes_remove_clicked(GtkButton *button, gpointer user_data)
 	nodes_gui_remove_selected();
 }
 
+gboolean on_popup_nodes_disconnect_activate(GtkItem *item, gpointer user_data)
+{
+	nodes_gui_remove_selected();
+	return TRUE;
+}
+
 void on_button_nodes_add_clicked(GtkButton * button, gpointer user_data)
 {
     add_node();
@@ -120,4 +126,15 @@ void on_entry_host_changed(GtkEditable * editable, gpointer user_data)
         is_string_ip(e));
 
 	g_free(e);
+}
+
+gboolean on_treeview_nodes_button_press_event(
+	GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+{
+    if (3 == event->button) {
+        /* right click section (popup menu) */
+        gtk_menu_popup(GTK_MENU(popup_nodes), NULL, NULL, NULL, NULL, 1, 0);
+        return TRUE;
+	}
+	return FALSE;
 }

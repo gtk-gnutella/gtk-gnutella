@@ -27,8 +27,10 @@
 
 #include "gui.h"
 #include "gtk-missing.h"
+#include "gtkcolumnchooser.h"
 #include "nodes_gui_common.h"
 #include "nodes_gui.h"
+#include "interface-glade2.h"
 
 RCSID("$Id$");
 
@@ -67,20 +69,13 @@ static void nodes_gui_node_added(gnet_node_t, const gchar *);
 static void nodes_gui_node_info_changed(gnet_node_t);
 static void nodes_gui_node_flags_changed(gnet_node_t);
 
-/*
- * on_nodes_gui_column_resized:
- *
- * Callback which updates the column width property
- */
-static void on_nodes_gui_column_resized(
-	GtkTreeViewColumn *column, GParamSpec *param, gpointer data)
+void on_popup_nodes_config_cols_activate(
+	GtkMenuItem *menuitem, gpointer user_data)
 {
-    guint32 width;
-    gint column_id = GPOINTER_TO_INT(data);
+    GtkWidget *cc;
 
-	g_assert(column_id >= 0 && column_id <= 6);
-	width = gtk_tree_view_column_get_width(column);
-	gui_prop_set_guint32(PROP_NODES_COL_WIDTHS, &width, column_id, 1);
+    cc = gtk_column_chooser_new(GTK_WIDGET(treeview_nodes));
+    gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 }
 
 /*
@@ -104,9 +99,6 @@ static void add_column(
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW (tree), column);
-	g_object_notify(G_OBJECT(column), "width");
-	g_signal_connect(G_OBJECT(column), "notify::width",
-		G_CALLBACK(on_nodes_gui_column_resized), GINT_TO_POINTER(column_id));
 }
 
 static inline void nodes_gui_remove_selected_helper(
@@ -189,8 +181,7 @@ static inline void nodes_gui_update_node_flags(
  */
 void nodes_gui_early_init(void)
 {
-    /* FIXME: create a popup again. */
-    /* popup_nodes = create_popup_nodes(); */
+    popup_nodes = create_popup_nodes();
 }
 
 /*
@@ -259,13 +250,7 @@ void nodes_gui_init(void)
  */
 void nodes_gui_shutdown(void) 
 {
-	GtkTreeViewColumn *c;
-	gint i;
-
-	for (i = 0; NULL != (c = gtk_tree_view_get_column(treeview_nodes, i)); i++)
-		g_signal_handlers_disconnect_by_func(c, on_nodes_gui_column_resized,
-			GINT_TO_POINTER(i));
-
+	tree_view_save_widths(treeview_nodes, PROP_NODES_COL_WIDTHS);
     node_remove_node_added_listener(nodes_gui_node_added);
     node_remove_node_removed_listener(nodes_gui_node_removed);
     node_remove_node_info_changed_listener(nodes_gui_node_info_changed);

@@ -36,6 +36,11 @@ void on_button_nodes_add_clicked (GtkButton *button, gpointer user_data);
 void on_button_nodes_remove_clicked (GtkButton *button, gpointer user_data);
 void on_entry_host_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_host_changed (GtkEditable *editable, gpointer user_data);
+gboolean on_popup_nodes_disconnect_activate(GtkItem *item, gpointer user_data);
+gboolean on_popup_nodes_config_cols_activate(GtkItem *item, gpointer user_data);
+gboolean on_treeview_nodes_button_press_event(
+	GtkWidget *widget, GdkEventButton  *event, gpointer user_data);
+
 
 void nodes_gui_remove_selected(void);
 #endif /* _nodes_cb2_h_ */

@@ -6225,6 +6225,7 @@ create_main_window_gnet_tab (void)
 
   main_window_gnet_tab = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name (main_window_gnet_tab, "main_window_gnet_tab");
+  gtk_widget_set_size_request (main_window_gnet_tab, 587, 359);
   gtk_window_set_title (GTK_WINDOW (main_window_gnet_tab), _("window8"));
 
   scrolledwindow73 = gtk_scrolled_window_new (NULL, NULL);
@@ -6678,6 +6679,9 @@ create_main_window_gnet_tab (void)
   gtk_frame_set_label_widget (GTK_FRAME (frame14), label282);
   gtk_label_set_justify (GTK_LABEL (label282), GTK_JUSTIFY_LEFT);
 
+  g_signal_connect ((gpointer) treeview_nodes, "button_press_event",
+                    G_CALLBACK (on_treeview_nodes_button_press_event),
+                    NULL);
   g_signal_connect ((gpointer) button_nodes_add, "clicked",
                     G_CALLBACK (on_button_nodes_add_clicked),
                     NULL);
@@ -12817,5 +12821,54 @@ create_main_window_config_sel_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_sel_tab, label602, "label602");
 
   return main_window_config_sel_tab;
+}
+
+GtkWidget*
+create_popup_nodes (void)
+{
+  GtkWidget *popup_nodes;
+  GtkWidget *popup_nodes_disconnect;
+  GtkWidget *image231;
+  GtkWidget *popup_nodes_config_cols;
+  GtkWidget *image232;
+
+  popup_nodes = gtk_menu_new ();
+  gtk_widget_set_name (popup_nodes, "popup_nodes");
+
+  popup_nodes_disconnect = gtk_image_menu_item_new_with_mnemonic (_("Disconnect"));
+  gtk_widget_set_name (popup_nodes_disconnect, "popup_nodes_disconnect");
+  gtk_widget_show (popup_nodes_disconnect);
+  gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_disconnect);
+
+  image231 = gtk_image_new_from_stock ("gtk-cancel", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image231, "image231");
+  gtk_widget_show (image231);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_nodes_disconnect), image231);
+
+  popup_nodes_config_cols = gtk_image_menu_item_new_with_mnemonic (_("Configure columns"));
+  gtk_widget_set_name (popup_nodes_config_cols, "popup_nodes_config_cols");
+  gtk_widget_show (popup_nodes_config_cols);
+  gtk_container_add (GTK_CONTAINER (popup_nodes), popup_nodes_config_cols);
+
+  image232 = gtk_image_new_from_stock ("gtk-preferences", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image232, "image232");
+  gtk_widget_show (image232);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (popup_nodes_config_cols), image232);
+
+  g_signal_connect ((gpointer) popup_nodes_disconnect, "activate",
+                    G_CALLBACK (on_popup_nodes_disconnect_activate),
+                    NULL);
+  g_signal_connect ((gpointer) popup_nodes_config_cols, "activate",
+                    G_CALLBACK (on_popup_nodes_config_cols_activate),
+                    NULL);
+
+  /* Store pointers to all widgets, for use by lookup_widget(). */
+  GLADE_HOOKUP_OBJECT_NO_REF (popup_nodes, popup_nodes, "popup_nodes");
+  GLADE_HOOKUP_OBJECT (popup_nodes, popup_nodes_disconnect, "popup_nodes_disconnect");
+  GLADE_HOOKUP_OBJECT (popup_nodes, image231, "image231");
+  GLADE_HOOKUP_OBJECT (popup_nodes, popup_nodes_config_cols, "popup_nodes_config_cols");
+  GLADE_HOOKUP_OBJECT (popup_nodes, image232, "image232");
+
+  return popup_nodes;
 }
 
