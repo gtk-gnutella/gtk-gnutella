@@ -1,5 +1,21 @@
 # since last version
 
+# v 0.90   2002.07.01  [beta2]
+
+Highlight of changes (user-visible):
+
+- Bug fixes and slight improvements.
+- Greatly enhanced auto-selection in searches to use far less CPU.
+- Will now warn user when encountering a newer version of gtk-gnutella.
+- URN searches now supported, by typing "urn:sha1:" in search text, followed
+  by the base32 value.
+
+- (2002.07.01 - RAM)
+  * Added configure check for mandatory zlib.
+  * Was wrongly stopping at GGEP magic byte when grabbing XML extension.
+  * Optimized GUI update of node information, traversing list once only.
+  * When closing a search, remove pending messages from all the search queues.
+
 - (2002.06.30 - RAM)
   * Tuned auto-selection in search window to be an O(n) algorithm instead
 	of O(n*n), which greatly improves performance [From Richard].

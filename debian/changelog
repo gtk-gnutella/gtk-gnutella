@@ -1,3 +1,10 @@
+gtk-gnutella (0.90.1-0) unstable; urgency=low
+
+  * 0.90 beta2
+  * closes Debian bugs #151124, #139237, #85364, #151143.
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Mon, 01 Jul 2002 22:11:00 +0200
+
 gtk-gnutella (0.90.0-0) unstable; urgency=low
 
   * 0.90 beta
