@@ -550,7 +550,7 @@ tree_view_save_visibility(GtkTreeView *treeview, property_t prop)
 	g_assert(treeview);
 	for (i = 0; i < INT_MAX; i++) {
 		GtkTreeViewColumn *c;
-		guint32 val;
+		gboolean val;
 
 		c = gtk_tree_view_get_column(treeview, i);
 		if (!c)
