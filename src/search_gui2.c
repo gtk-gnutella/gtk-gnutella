@@ -1149,11 +1149,11 @@ void search_gui_store_searches(void)
             g_warning(
                 "Found old searches file. The search information has been\n"
                 "stored in the new XML format and the old file is renamed to\n"
-                "%s", filename);
-            if (-1 == rename(path, filename))
+                "%s", path_backup);
+            if (-1 == rename(path, path_backup))
           	    g_warning("could not rename %s as %s: %s\n"
                     "The XML file will not be used unless this problem is "
-                    "resolved", path, filename, g_strerror(errno));
+                    "resolved", path, path_backup, g_strerror(errno));
             G_FREE_NULL(path_backup);
         }
     }
