@@ -34,6 +34,7 @@
 RCSID("$Id$");
 
 #include "wordvec.h"
+#include "utf8.h"
 #include "walloc.h"
 #include "zalloc.h"
 #include "override.h"		/* Must be the last header included */
@@ -125,15 +126,15 @@ word_vec_make(const gchar *query_str, word_vec_t **wovec)
 		gboolean is_alpha;
 
 		c = *(guchar *) query;
-#ifdef USE_ICU
-		is_alpha = (c != ' ' && c != '\0');
-		/*
-		 * We can't meet other non alpha than space, because the
-		 * string is normalised.
-		 */
-#else
-		is_alpha = isalnum(c);
-#endif
+		if (icu_enabled()) {
+			/*
+		 	 * We can't meet other non alpha than space, because the
+		 	 * string is normalised.
+		 	 */
+			is_alpha = (c != ' ' && c != '\0');
+		} else {
+			is_alpha = isalnum(c);
+		}
 
 		if (start == NULL) {				/* Not in a word yet */
 			if (is_alpha) start = query;

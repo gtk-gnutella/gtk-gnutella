@@ -35,6 +35,7 @@ RCSID("$Id$");
 
 #include "lib/pattern.h"
 #include "lib/misc.h"
+#include "lib/utf8.h"
 #include "lib/wordvec.h"
 #include "lib/walloc.h"
 #include "lib/zalloc.h"
