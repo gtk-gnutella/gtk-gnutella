@@ -59,6 +59,7 @@
 #include "sockets.h"
 #include "inet.h"
 #include "hcache.h"
+#include "downloads.h"
 
 RCSID("$Id$");
 
@@ -1122,6 +1123,26 @@ static gboolean current_peermode_changed(property_t prop)
     return FALSE;
 }
 
+static gboolean download_rx_size_changed(property_t prop)
+{
+    guint32 val;
+
+    gnet_prop_get_guint32_val(prop, &val);
+	download_set_socket_rx_size(val * 1024);
+
+	return FALSE;
+}
+
+static gboolean node_rx_size_changed(property_t prop)
+{
+    guint32 val;
+
+    gnet_prop_get_guint32_val(prop, &val);
+	node_set_socket_rx_size(val * 1024);
+
+	return FALSE;
+}
+
 /* This is a quirk to translate the old property PROP_PROXY_CONNECTIONS */
 static gboolean proxy_protocol_changed(property_t prop)
 {
@@ -1325,9 +1346,19 @@ static prop_map_t property_map[] = {
 		TRUE,
 	},
 	{
+		PROP_DOWNLOAD_RX_SIZE,
+		download_rx_size_changed,
+		TRUE,
+	},
+	{
+		PROP_NODE_RX_SIZE,
+		node_rx_size_changed,
+		TRUE,
+	},
+	{
 		/*
-		 * This is used for a quirk which relies on the order of PROP_PROXY_CONNECTIONS
-		 * and PROP_PROXY_PROTOCOL.
+		 * This is used for a quirk which relies on the order
+		 * of PROP_PROXY_CONNECTIONS and PROP_PROXY_PROTOCOL.
 		 */
 		PROP_PROXY_PROTOCOL,
 		proxy_protocol_changed,

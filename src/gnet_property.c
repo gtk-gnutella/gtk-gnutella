@@ -3619,7 +3619,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[164].name = "download_rx_size";
-    gnet_property->props[164].desc = _("Size of the RX socket buffer to be used for downloads, in kbytes. If you wish to avoid Gnutella downloads using up all your bandwidth, set it to a low value (default is 8K, which is fine). If you don't mind sucking up all the available bandwidth, increasing your connection latency, set it to a greater value. Any change only affects new downloads, existing downloads use the value that was configured when they were initiated. Remember: the smaller the value, the more you will be able to precisely control the incoming rate.");
+    gnet_property->props[164].desc = _("Size of the RX socket buffer to be used for downloads, in kbytes. If you wish to avoid Gnutella downloads using up all your bandwidth, set it to a low value (default is 8K, which is fine). If you don't mind sucking up all the available bandwidth, increasing your connection latency, set it to a greater value. Remember: the smaller the value, the more you will be able to precisely control the incoming rate.");
     gnet_property->props[164].ev_changed = event_new("download_rx_size_changed");
     gnet_property->props[164].save = TRUE;
     gnet_property->props[164].vector_size = 1;

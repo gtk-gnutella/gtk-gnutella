@@ -452,5 +452,6 @@ GSList *node_push_proxies(void);
 const GSList *node_all_nodes(void);
 
 void node_became_firewalled(void);
+void node_set_socket_rx_size(gint rx_size);
 
 #endif /* _nodes_h_ */

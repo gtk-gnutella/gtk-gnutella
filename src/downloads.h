@@ -332,6 +332,7 @@ guint extract_retry_after(const header_t *header);
 gboolean is_faked_download(struct download *d);
 
 struct download *download_find_waiting_unparq(guint32 ip, guint16 port);
+void download_set_socket_rx_size(gint rx_size);
 
 void download_proxy_newstate(struct download *d);
 void download_proxy_sent(struct download *d);

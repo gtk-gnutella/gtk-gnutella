@@ -1531,6 +1531,26 @@ gint download_remove_all_with_sha1(const gchar *sha1)
 }
 
 /*
+ * download_set_socket_rx_size
+ *
+ * Change the socket RX buffer size for all the currently connected
+ * downloads.
+ */
+void download_set_socket_rx_size(gint rx_size)
+{
+	GSList *sl;
+
+	g_assert(rx_size > 0);
+
+	for (sl = sl_downloads; sl != NULL; sl = g_slist_next(sl)) {
+		struct download *d = (struct download *) sl->data;
+	
+		if (d->socket != NULL)
+			sock_recv_buf(d->socket, rx_size, TRUE);
+	}
+}
+
+/*
  * GUI operations
  */
 

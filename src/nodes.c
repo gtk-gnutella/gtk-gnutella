@@ -791,6 +791,25 @@ void node_init(void)
 }
 
 /*
+ * node_set_socket_rx_size
+ *
+ * Change the socket RX buffer size for all the currently connected nodes.
+ */
+void node_set_socket_rx_size(gint rx_size)
+{
+	GSList *sl;
+
+	g_assert(rx_size > 0);
+
+	for (sl = sl_nodes; sl != NULL; sl = g_slist_next(sl)) {
+		struct gnutella_node *n = (struct gnutella_node *) sl->data;
+	
+		if (n->socket != NULL)
+			sock_recv_buf(n->socket, rx_size, TRUE);
+	}
+}
+
+/*
  * Nodes
  */
 

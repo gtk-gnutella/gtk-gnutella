@@ -1981,8 +1981,6 @@ prop = {
 		"bandwidth, set it to a low value (default is 8K, which is fine). "
 		"If you don't mind sucking up all the available bandwidth, "
 		"increasing your connection latency, set it to a greater value. "
-		"Any change only affects new downloads, existing downloads use "
-		"the value that was configured when they were initiated. "
 		"Remember: the smaller the value, the more you will be able to "
 		"precisely control the incoming rate.";
 	type = guint32;
