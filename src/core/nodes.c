@@ -1725,7 +1725,7 @@ node_avoid_monopoly(struct gnutella_node *n)
 		 * but some people wrongly use " " as the separator.
 		 */
 
-		if (0 != strcmp_delimit(n->vendor, node->vendor, "/ "))
+		if (0 != strcasecmp_delimit(n->vendor, node->vendor, "/ 012345678"))
 			continue;
 
 		if ((node->attrs & NODE_A_ULTRA) || (node->flags & NODE_F_ULTRA))
@@ -1813,7 +1813,7 @@ node_reserve_slot(struct gnutella_node *n)
 		if (node->status != GTA_NODE_CONNECTED || node->vendor == NULL)
 			continue;
 
-		if (0 != strcmp_delimit(node->vendor, gtkg_vendor, "/ "))
+		if (0 != strcasecmp_delimit(node->vendor, gtkg_vendor, "/ 0123456789"))
 			continue;
 
 		if ((node->attrs & NODE_A_ULTRA) || (node->attrs & NODE_F_ULTRA))
@@ -6736,14 +6736,25 @@ node_add_rxdrop(gnutella_node_t *n, gint x)
 void
 node_set_vendor(gnutella_node_t *n, const gchar *vendor)
 {
+	gchar buf[128];
+	
 	if (n->flags & NODE_F_FAKE_NAME) {
-		gchar name[1024];
+		buf[0] = '!';
+		g_strlcpy(&buf[1], vendor, sizeof buf - 1);
+		n->vendor = atom_str_get(buf);
+	} else {
+		static const char prefix[] = "morph", full[] = "Morpheus";
 
-		name[0] = '!';
-		g_strlcpy(&name[1], vendor, sizeof name - 1);
-		n->vendor = atom_str_get(name);
-	} else
+		if (
+			0 == g_ascii_strncasecmp(vendor, prefix, sizeof prefix - 1) &&
+			0 != strcmp_delimit(vendor, full, " /")
+		) {
+			gm_snprintf(buf, sizeof buf, "%s (%s)", full, vendor);
+			vendor = buf;
+		}
+
 		n->vendor = atom_str_get(vendor);
+	}
 
     node_fire_node_info_changed(n);
 }
