@@ -58,8 +58,6 @@ gboolean huge_extract_sha1_no_urn(gchar *buf, gchar *digest);
 void huge_collect_locations(gchar *sha1, struct header *header,
 	const gchar *vendor);
 
-gboolean huge_has_xalt_support(const gchar *vendor);
-
 #endif	/* _huge_h_ */
 
 /* 

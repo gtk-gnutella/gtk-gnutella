@@ -83,7 +83,6 @@ struct sha1_cache_entry {
 };
 
 static GHashTable *sha1_cache = NULL;
-static GHashTable *x_alt = NULL;
 
 /* 
  * cache_dirty means that in-core cache is different from the one on disk when
@@ -948,7 +947,6 @@ void request_sha1(struct shared_file *sf)
  */
 void huge_init(void)
 {
-	x_alt = g_hash_table_new(g_str_hash, g_str_equal);
 	sha1_cache = g_hash_table_new(g_str_hash, g_str_equal);
 	sha1_read_cache();
 }
@@ -964,18 +962,6 @@ static gboolean cache_free_entry(gpointer k, gpointer v, gpointer udata)
 
 	atom_str_free(e->file_name);
 	g_free(e);
-
-	return TRUE;
-}
-
-/*
- * xalt_free_entry
- *
- * Free vendor entry for X-Alt support.
- */
-static gboolean xalt_free_entry(gpointer k, gpointer v, gpointer udata)
-{
-	atom_str_free(k);
 
 	return TRUE;
 }
@@ -998,9 +984,6 @@ void huge_close(void)
 
 	g_hash_table_foreach_remove(sha1_cache, cache_free_entry, NULL);
 	g_hash_table_destroy(sha1_cache);
-
-	g_hash_table_foreach_remove(x_alt, xalt_free_entry, NULL);
-	g_hash_table_destroy(x_alt);
 
 	while (waiting_for_sha1_computation) {
 		struct file_sha1 *l = waiting_for_sha1_computation;
@@ -1191,62 +1174,6 @@ gboolean huge_extract_sha1_no_urn(gchar *buf, gchar *digest)
 }
 
 /*
- * huge_set_xalt_support
- *
- * Record that a vendor supports X-Alt.
- */
-static void huge_set_xalt_support(const gchar *vendor)
-{
-	gchar *key;
-
-	g_assert(vendor != NULL);
-
-	if (g_hash_table_lookup(x_alt, vendor))
-		return;
-
-	key = atom_str_get(vendor);
-	g_hash_table_insert(x_alt, key, GINT_TO_POINTER(0x1));
-}
-
-/*
- * huge_has_xalt_support
- *
- * Check whether vendor is known to have X-Alt support.
- */
-gboolean huge_has_xalt_support(const gchar *vendor)
-{
-	g_assert(vendor != NULL);
-
-	if (NULL != g_hash_table_lookup(x_alt, vendor))
-		return TRUE;
-
-	/*
-	 * After 01/01/2004, we blindly emit X-Alt.
-	 *
-	 * After that date, the x_alt hash and the logic for recording vendors
-	 * supporting X-Alt will have to be removed.  GTKG will always emit
-	 * alt-locs using X-Alt BUT will continue to parse the old-fashionned
-	 * alternate locations given by other servents.
-	 */
-
-	if (time(NULL) >= 1072911600)		/* Thu Jan  1 00:00:00 2004 */
-		return TRUE;
-
-	/*
-	 * Look for GTKG version of 05/10/2003 or greater, which is the cut-off
-	 * date after which we started parsing X-Alt.
-	 */
-
-	if (*vendor == 'g' && version_newer(vendor, 1065304800)) {
-		gchar *key = atom_str_get(vendor);
-		g_hash_table_insert(x_alt, key, GINT_TO_POINTER(0x1));
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-/*
  * huge_collect_locations
  *
  * Parse the "X-Gnutella-Alternate-Location" header if present to learn
@@ -1279,11 +1206,8 @@ void huge_collect_locations(gchar *sha1, header_t *header, const gchar *vendor)
 
 	alt = header_get(header, "X-Alt");
 
-	if (alt) {
+	if (alt)
 		dmesh_collect_compact_locations(sha1, alt);
-		if (vendor != NULL)
-			huge_set_xalt_support(vendor);
-	}
 }
 
 /* 

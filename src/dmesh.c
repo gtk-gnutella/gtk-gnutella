@@ -1136,15 +1136,12 @@ gint dmesh_alternate_location(const gchar *sha1,
 	gint i;
 	gint min_url_len;
 	gint maxslen = size - 1;		/* Account for trailing NUL */
-	gboolean use_compact = FALSE;
 	gint linelen;
+	GSList *by_ip;
 	
 	g_assert(sha1);
 	g_assert(buf);
 	g_assert(size >= 0);
-
-	if (vendor != NULL && huge_has_xalt_support(vendor))
-		use_compact = TRUE;
 
 	/* Find mesh entry for this SHA1 */
 	dm = (struct dmesh *) g_hash_table_lookup(mesh, sha1);
@@ -1155,19 +1152,15 @@ gint dmesh_alternate_location(const gchar *sha1,
 	 *		 -- JA, 1/11/2003
 	 */
 
-	if (use_compact) {
-		GSList *by_ip;
+	/*
+	 * Get the list with banned ips
+	 */
+
+	by_ip = (GSList *) g_hash_table_lookup(ban_mesh_by_sha1, sha1);
+
+	if (by_ip != NULL) {
 		gpointer fmt;
 		gboolean added = FALSE;
-
-		/*
-		 * Get the list with banned ips
-		 */
-
-		by_ip = (GSList *) g_hash_table_lookup(ban_mesh_by_sha1, sha1);
-
-		if (by_ip == NULL)
-			goto no_nalt;
 
 		fmt = header_fmt_make("X-Nalt", size);
 
@@ -1201,16 +1194,12 @@ gint dmesh_alternate_location(const gchar *sha1,
 		header_fmt_free(fmt);
 	}
 
-no_nalt:
-	
 	/*
 	 * Start filling the buffer.
 	 */
 
-	len += linelen = gm_snprintf(&buf[len], size - len,
-		use_compact ? "X-Alt: " : "X-Gnutella-Alternate-Location:\r\n");
+	len += linelen = gm_snprintf(&buf[len], size - len, "X-Alt: ");
 
-	
 	/*
 	 * PFSP-server: If we have to list ourselves in the mesh, do so
 	 * at the first position.
@@ -1223,32 +1212,23 @@ no_nalt:
 		gint url_len;
 		struct dmesh_entry ourselves;
 		time_t now = time(NULL);
-		gchar urn[80];
 		gint rw;
-
-		if (!use_compact)
-			gm_snprintf(urn, sizeof(urn), "urn:sha1:%s", sha1_base32(fi->sha1));
 
 		ourselves.inserted = now;
 		ourselves.stamp = now;
 		ourselves.url.ip = listen_ip();
 		ourselves.url.port = listen_port;
 		ourselves.url.idx = URN_INDEX;
-		ourselves.url.name = use_compact ? NULL : urn;
+		ourselves.url.name = NULL;
 
-		url_len = use_compact ?
-			dmesh_entry_compact(&ourselves, url, sizeof(url)) :
-			dmesh_entry_url_stamp(&ourselves, url, sizeof(url));
-		
+		url_len = dmesh_entry_compact(&ourselves, url, sizeof(url));
+
 		if (url_len + len + 2 >= maxslen)	/* Assume worst-case: non-compact */
 			return 0;
 
-		if (use_compact) {
-			rw = gm_snprintf(&buf[len], size - len, "%s", url);
-			linelen += rw;
-		} else
-			rw = gm_snprintf(&buf[len], size - len, "\t%s", url);
+		rw = gm_snprintf(&buf[len], size - len, "%s", url);
 
+		linelen += rw;
 		len += rw;
 		nurl++;
 	}
@@ -1300,7 +1280,7 @@ no_nalt:
 		if (dme->url.ip == ip)
 			continue;
 
-		if (use_compact && dme->url.idx != URN_INDEX)
+		if (dme->url.idx != URN_INDEX)
 			continue;
 
 		g_assert(i < MAX_ENTRIES);
@@ -1319,9 +1299,7 @@ no_nalt:
 	 * Second pass.
 	 */
 
-	min_url_len = use_compact ?
-		sizeof("1.2.3.4, ") :
-		sizeof("\thttp://1.2.3.4/get/1/x 2002-06-09T14:54:42Z\r\n");
+	min_url_len = sizeof("1.2.3.4, ");
 
 	for (i = 0; i < nselected && (size - len) > min_url_len; i++) {
 		struct dmesh_entry *dme;
@@ -1352,61 +1330,38 @@ no_nalt:
 
 		g_assert(dme->inserted > last_sent);
 
-		url_len = use_compact ?
-			dmesh_entry_compact(dme, url, sizeof(url)) :
-			dmesh_entry_url_stamp(dme, url, sizeof(url));
+		url_len = dmesh_entry_compact(dme, url, sizeof(url));
 
 		if (url_len < 0)				/* Too big for the buffer */
 			continue;
 
-		if (use_compact) {
-			/*
-			 * We'll emit the address, prepended by ", " if we already emitted
-			 * something.  However, if the address cannot fit on the line,
-			 * we'll emit ",\r\n\t" instead.  Assume we need 4 (worst case).
-			 * At the end, we'll always need "\r\n" plus the trailing NUL.
-			 */
-			if (url_len + (nurl ? 4 : 0) + 3 >= size - len)
-				continue;
-		} else if (nurl) {
-			/*
-			 * We need to finish the existing URL with ",\r\n", then we
-			 * need our own URL, i.e. a minimum of "\t" and "\r\n" to close
-			 * the header if we don't append anything else, plus the trailing
-			 * NUL.
-			 */
-			if (url_len + 6 >= size - len)	/* Needs "\t" and 2*"\r\n" + "," */
-				continue;
-			len += gm_snprintf(&buf[len], size - len, ",\r\n");
-		} else {
-			/*
-			 * We just need to be able to emit our URL and close the header,
-			 * i.e. we need "\t" and "\r\n" to end, plus the trailing NUL.
-			 */
-			if (url_len + 3 >= size - len)	/* Needs "\t" and "\r\n" */
-				continue;
-		}
+		/*
+		 * We'll emit the address, prepended by ", " if we already emitted
+		 * something.  However, if the address cannot fit on the line,
+		 * we'll emit ",\r\n\t" instead.  Assume we need 4 (worst case).
+		 * At the end, we'll always need "\r\n" plus the trailing NUL.
+		 */
+
+		if (url_len + (nurl ? 4 : 0) + 3 >= size - len)
+			continue;
 
 		g_assert((url_len + 1 + len) < size);
 
-		if (use_compact) {
-			if (linelen + url_len > 72) {
-				g_assert(nurl > 0);
-				len += gm_snprintf(&buf[len], size - len, ",\r\n\t%s", url);
-				linelen = 1 + strlen(url);		/* Accounts leading "\t" */
-			} else {
-				gint rw;
-				if (nurl) {
-					rw = gm_snprintf(&buf[len], size - len, ", ");
-					len += rw;
-					linelen += rw;
-				}
-				rw = gm_snprintf(&buf[len], size - len, "%s", url);
+		if (linelen + url_len > 72) {
+			g_assert(nurl > 0);
+			len += gm_snprintf(&buf[len], size - len, ",\r\n\t%s", url);
+			linelen = 1 + strlen(url);		/* Accounts leading "\t" */
+		} else {
+			gint rw;
+			if (nurl) {
+				rw = gm_snprintf(&buf[len], size - len, ", ");
 				len += rw;
 				linelen += rw;
 			}
-		} else
-			len += gm_snprintf(&buf[len], size - len, "\t%s", url);
+			rw = gm_snprintf(&buf[len], size - len, "%s", url);
+			len += rw;
+			linelen += rw;
+		}
 
 		g_assert(len + 2 < size);
 
