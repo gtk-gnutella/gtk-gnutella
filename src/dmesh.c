@@ -888,8 +888,8 @@ static gint dmesh_entry_url_stamp(struct dmesh_entry *dme, gchar *buf, gint len)
 
 		g_memmove(buf + 1, buf, rw);
 		buf[0] = '"';
-		buf[rw++] = '"';
-		buf[rw] = '\0';
+		buf[++rw] = '"';
+		buf[++rw] = '\0';
 	}
 
 	/*
