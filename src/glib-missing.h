@@ -56,7 +56,7 @@ void gm_savemain(gint argc, gchar **argv, gchar **env);
 void gm_setproctitle(gchar *title);
 unsigned long gm_atoul(const char *str, char **endptr, int *errorcode);
 
-#define GM_STRCONCAT_NULL(x, ...) g_strconcat(x, ## __VA_ARGS__, NULL);
+#define GM_STRCONCAT_NULL(x, ...) g_strconcat(x, ## __VA_ARGS__, NULL)
 
 /* NB: Sub-statement func is evaluated more than once! */
 #define G_LIST_FOREACH(list, func, user_data) \
