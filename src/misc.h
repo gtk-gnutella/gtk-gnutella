@@ -30,6 +30,7 @@
 
 #define SIZE_FIELD_MAX 64		/* Max size of sprintf-ed size quantity */
 
+
 /*
  * Some useful macros.
  */
@@ -37,6 +38,10 @@
 /* Set/clear binary flags */
 #define set_flags(r,f) (r = r | (f))
 #define clear_flags(r,f) (r = r & ~(f))
+
+#define SORT_ASC  1
+#define SORT_DESC -1
+#define SORT_NONE 0
 
 /*
  * Some common types
