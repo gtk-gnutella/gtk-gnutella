@@ -68,6 +68,7 @@ struct message {
 	struct message **slot;		/* Place where we're referenced from */
 	GSList *routes;	            /* route_data from where the message came */
 	guint8 function;			/* Type of the message */
+	guint8 ttl;					/* Max TTL we saw for this message */
 };
 
 /*
@@ -211,6 +212,7 @@ clean_entry(struct message *entry)
 		free_route_list(entry);
 
 	entry->routes = NULL;
+	entry->ttl = 0;
 }
 
 /**
@@ -680,16 +682,17 @@ routing_node_remove(struct gnutella_node *node)
  * Adds a new message in the routing tables.
  */
 void
-message_add(const gchar * muid, guint8 function, struct gnutella_node *node)
+message_add(const gchar *muid, guint8 function, struct gnutella_node *node)
 {
 	struct route_data *route;
 	struct message *entry;
+	struct message *m;
+	gboolean found;
+
+	found = find_message(muid, function, &m);
 
 	if (!node) {
-		struct message *m;
-
-		if (find_message(muid, function, &m)) {
-
+		if (found) {
 			/*
 			 * It is possible that we insert the message in the routing table,
 			 * then it gets "garbage collected" through a cycling, and then
@@ -722,18 +725,40 @@ message_add(const gchar * muid, guint8 function, struct gnutella_node *node)
 		route = get_routing_data(node);
 	}
 
-	entry = get_next_entry();
-	
-	g_assert(entry->routes == NULL);
+	if (found)			/* Dup message forwarded due to higher TTL */
+		entry = m;		/* Reuse existing entry */
+	else {
+		entry = get_next_entry();
+		g_assert(entry->routes == NULL);
 
-	/* fill in that storage space */
-	memcpy(entry->muid, muid, 16);
+		/* fill in that storage space */
+		memcpy(entry->muid, muid, 16);
+		entry->function = function;
+	}
 	
 	g_assert(route != NULL);
-	
-	route->saved_messages++;	
-	entry->routes = g_slist_append(entry->routes, route);
-	entry->function = function;
+
+	/*
+	 * We have to account for the reception of a duplicate message from
+	 * the same node, but with a higher TTL. Hence the test for
+	 * node_sent_message() if the message was already seen.
+	 *		--RAM, 2004-08-28
+	 */
+
+	if (!found || !node_sent_message(node, m)) {
+		route->saved_messages++;	
+		entry->routes = g_slist_append(entry->routes, route);
+	}
+
+	if (found)
+		return;
+
+	/*
+	 * New message entry.
+	 */
+
+	if (node != fake_node)
+		entry->ttl = node->header.ttl;
 
 	/* insert the new message into the hash table */
 	g_hash_table_insert(routing.messages_hashed, entry, entry);
@@ -876,7 +901,7 @@ forward_message(
 
 	sender->header.hops++;	/* Going to handle it, must be accurate */
 
-	if (!--sender->header.ttl) {
+	if (sender->header.ttl == 1) {
 		/* TTL expired, message stops here */
 		if (current_peermode != NODE_P_LEAF) {
 			routing_log("(TTL expired)");
@@ -918,10 +943,11 @@ forward_message(
 			/*
 			 * This message is broadcasted, ensure its TTL is "reasonable".
 			 * Trim down if excessively large.
+			 * NB: Account for the fact that we haven't decremented it yet.
 			 */
 
-			if (sender->header.ttl > max_ttl) {	/* TTL too large */
-				sender->header.ttl = max_ttl;	/* Trim down */
+			if (sender->header.ttl > max_ttl + 1) {	/* TTL too large */
+				sender->header.ttl = max_ttl + 1;	/* Trim down */
 				routing_log("(TTL trimmed down to %d) ", max_ttl);
 			}
 
@@ -941,6 +967,8 @@ forward_message(
 
 	message_add(sender->header.muid, sender->header.function, sender);
 
+	sender->header.ttl--;	/* Recorded, mark passage through our node */
+
 	return TRUE;
 }
 
@@ -959,9 +987,9 @@ forward_message(
 gboolean
 route_message(struct gnutella_node **node, struct route_dest *dest)
 {
-	static struct gnutella_node *sender;	/* The node that sent the message */
+	struct gnutella_node *sender;	/* The node that sent the message */
 	struct message *m;			/* The copy of the message we've already seen */
-	static gboolean handle_it;
+	gboolean handle_it = TRUE;
 	/*
 	 * The node to have sent us this message earliest of those we're
 	 * still connected to.
@@ -989,6 +1017,8 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 	g_assert(sender->header.function != QUERY_HIT_ROUTE_SAVE);
 
 	if (sender->header.function & 0x01) {
+		GSList *l;
+
 		/*
 		 * We'll also handle all search replies.
 		 */
@@ -1104,19 +1134,8 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		 * none of the nodes that sent us the request is connected any more.
 		 */
 
-		if (m->routes == NULL) {
-			routing_log("[%c] route to target lost", handle_it ? 'H' : ' ');
-
-            sender->rx_dropped++;
-            gnet_stats_count_dropped(sender, MSG_DROP_ROUTE_LOST);
-
-			if (handle_it) {
-				sender->header.hops++;	/* Must be accurate if we handle it */
-				sender->header.ttl--;
-			}
-
-			return handle_it;
-		}
+		if (m->routes == NULL)
+			goto route_lost;
 
 		if (node_sent_message(fake_node, m)) {
 			/* We are the target of the reply */
@@ -1151,7 +1170,7 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		 *				--RAM, 15/09/2001
 		 */
 
-		if (sender->header.ttl > hard_ttl_limit) {	/* TTL too large, trim */
+		if (sender->header.ttl > hard_ttl_limit + 1) {	/* TTL too large */
 			routing_log("(TTL adjusted) ");
 			sender->header.ttl = hard_ttl_limit + 1;
 		}
@@ -1159,12 +1178,26 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		sender->header.hops++;
 
 		/*
+		 * Look for a route different from the one we received the
+		 * message from.
+		 */
+
+		for (found = NULL, l = m->routes; l; l = g_slist_next(l)) {
+			struct route_data *route = (struct route_data *) l->data;
+			if (route->node != sender) {
+				found = route->node;
+				break;
+			}
+		}
+
+		if (found == NULL)
+			goto route_lost;
+
+		/*
 		 * If the TTL expired, drop the message, unless the target is a
 		 * leaf node, in which case we'll forward it the reply, or we
 		 * are a leaf node, in which case we won't route the message!.
 		 */
-
-		found = ((struct route_data *) m->routes->data)->node;
 
 		if (!--sender->header.ttl) {
 			if (NODE_IS_LEAF(found)) {
@@ -1188,6 +1221,19 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 		dest->ur.u_node = found;
 
 		return handle_it;
+
+	route_lost:
+		routing_log("[%c] route to target lost", handle_it ? 'H' : ' ');
+
+		sender->rx_dropped++;
+		gnet_stats_count_dropped(sender, MSG_DROP_ROUTE_LOST);
+
+		if (handle_it) {
+			sender->header.hops++;	/* Must be accurate if we handle it */
+			sender->header.ttl--;
+		}
+
+		return handle_it;
 	} else {
 		/*
 		 * Message is a request.
@@ -1195,8 +1241,25 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 
 		if (find_message(sender->header.muid, sender->header.function, &m)) {
 			/*
-			 * This is a duplicated message, which we're going to drop.
+			 * This is a duplicated message, which we might drop.
+			 *
+			 * We don't drop queries/pushes that come to us with a higher TTL
+			 * as we have previously seen.  In that case, we forward them but
+			 * don't handle them, since this was done when we saw them the
+			 * very first time.
+			 *		--RAM, 2004-08-28
 			 */
+
+			if (sender->header.ttl > m->ttl) {
+				routing_log("[ ] dup message with higher ttl (forwarded)");
+
+				gnet_stats_count_general(sender, GNR_DUPS_WITH_HIGHER_TTL, 1);
+
+				m->ttl = sender->header.ttl;	/* Remember highest TTL */
+
+				handle_it = FALSE;			/* Forward but don't handle */
+				goto route_it;
+			}
 
             gnet_stats_count_dropped(sender, MSG_DROP_DUPLICATE);
 			sender->rx_dropped++;
@@ -1256,6 +1319,8 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 
 			return FALSE;
 		}
+
+	route_it:
 
 		/*
 		 * A Push request is not broadcasted as other requests, it is routed
@@ -1336,6 +1401,8 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 
 			return FALSE;		/* We are not the target, don't handle it */
 		} else {
+			gboolean handle;
+
 			/*
 			 * The message is a request to broadcast.
 			 */
@@ -1353,7 +1420,8 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 			if (NODE_IS_UDP(sender))
 				return TRUE;			/* Process it, but don't route */
 
-			/* If the node is flow-controlled on TX, then it is preferable
+			/*
+			 * If the node is flow-controlled on TX, then it is preferable
 			 * to drop queries immediately: the traffic the replies may
 			 * generate could pile up and make the queue reach its maximum
 			 * size.  It is hoped that the flow control condition will not
@@ -1376,7 +1444,9 @@ route_message(struct gnutella_node **node, struct route_dest *dest)
 				return FALSE;
 			}
 
-			return forward_message(node, NULL, dest, NULL);	/* Broadcast */
+			handle = forward_message(node, NULL, dest, NULL); /* Broadcast */
+
+			return handle_it && handle;		/* handle_it == FALSE if dup */
 		}
 	}
 
