@@ -122,6 +122,7 @@ prop_set_stub_t *gui_prop_get_stub(void);
  */
 prop_def_t *gui_prop_get_def(property_t);
 property_t gui_prop_get_by_name(const gchar *);
+gchar *gui_prop_name(property_t);
 
 /*
  * Property-change listeners

@@ -26,6 +26,7 @@
  */
 
 #include "prop.h"
+#include "eval.h"
 #include "gui_property.h"
 
 
@@ -1707,6 +1708,11 @@ guint8 *gui_prop_get_storage(property_t p, guint8 *t, gsize l)
 gchar *gui_prop_to_string(property_t prop)
 {
     return prop_to_string(gui_property, prop);
+}
+
+gchar *gui_prop_name(property_t p)
+{
+    return prop_name(gui_property, p);
 }
 
 property_t gui_prop_get_by_name(const gchar *name)
