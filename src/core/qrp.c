@@ -178,8 +178,8 @@ install_merged_table(struct routing_table *rt)
 /**
  * Compute standard QRP hash code on 32 bits.
  */
-inline guint32
-qrp_hashcode(gchar *x)
+static inline guint32
+qrp_hashcode(const gchar *x)
 {
 	guint32 xor = 0;		/* The running total */
 	gint j = 0;  			/* The byte position in xor */
@@ -223,7 +223,7 @@ qrp_hashcode(gchar *x)
  * The hashing function, defined by the QRP specifications.
  * Naturally, everyone must use the SAME hashing function!
  */
-static guint32
+static inline guint32
 qrp_hash(gchar *x, gint bits)
 {
 	return qrp_hashcode(x) >> (32 - bits);
@@ -3723,7 +3723,7 @@ qhvec_reset(query_hashvec_t *qhvec)
  * Clone query hash vector.
  */
 query_hashvec_t *
-qhvec_clone(query_hashvec_t *qsrc)
+qhvec_clone(const query_hashvec_t *qsrc)
 {
 	query_hashvec_t *qhvec;
 	gint vecsize;
@@ -3747,7 +3747,7 @@ qhvec_clone(query_hashvec_t *qsrc)
  * If the vector is already full, do nothing.
  */
 void
-qhvec_add(query_hashvec_t *qhvec, gchar *word, enum query_hsrc src)
+qhvec_add(query_hashvec_t *qhvec, const gchar *word, enum query_hsrc src)
 {
 	struct query_hash *qh;
 
