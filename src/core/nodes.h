@@ -34,6 +34,7 @@
 #include "qrp.h"
 #include "hsep.h"
 #include "gnutella.h"
+#include "extensions.h"
 
 #include "if/core/wrap.h"			/* wrap_io_t */
 #include "if/core/hsep.h"
@@ -101,7 +102,9 @@ typedef struct gnutella_node {
 	guchar vcode[4];			/* Vendor code (vcode[0] == NUL when unknown) */
 	gpointer io_opaque;			/* Opaque I/O callback information */
 
-	struct gnutella_header header;		/* Header of the current message */
+	struct gnutella_header header;	/* Header of the current message */
+	extvec_t extvec[MAX_EXTVEC];	/* GGEP extensions in "fat" messages */
+	gint extcount;					/* Amount of extensions held */
 
 	guint32 size;	/* How many bytes we need to read for the current message */
 
@@ -475,6 +478,7 @@ guint connected_nodes(void);
 guint node_count(void);
 guint node_keep_missing(void);
 guint node_missing(void);
+guint node_leaves_missing(void);
 guint node_outdegree(void);
 gboolean node_is_connected(guint32 ip, guint16 port, gboolean incoming);
 gboolean node_host_is_connected(guint32 ip, guint16 port);

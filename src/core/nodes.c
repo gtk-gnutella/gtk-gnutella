@@ -77,6 +77,7 @@ RCSID("$Id$");
 #include "udp.h"
 #include "tsync.h"
 #include "geo_ip.h"
+#include "extensions.h"
 #ifdef ENABLE_G2
 #include "g2/g2nodes.h"
 #endif
@@ -101,7 +102,7 @@ RCSID("$Id$");
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
 #define NODE_SEND_BUFSIZE		4096	/* TCP send buffer size - 4K */
 #define NODE_SEND_LEAF_BUFSIZE	1024	/* TCP send buffer size for leaves */
-#define MAX_GGEP_PAYLOAD		1024	/* In ping, pong, push */
+#define MAX_GGEP_PAYLOAD		1536	/* In ping, pong, push */
 #define MAX_MSG_SIZE			65536	/* Absolute maximum message length */
 #define MAX_HOP_COUNT			255		/* Architecturally defined maximum */
 #define NODE_LEGACY_DEGREE		8		/* Older node without X-Degree */
@@ -1153,6 +1154,22 @@ node_missing(void)
 
 	g_assert_not_reached();
 	return 0;
+}
+
+/**
+ * Amount of leaves we're missing (0 if not in ultra mode).
+ */
+guint
+node_leaves_missing(void)
+{
+	gint missing;
+
+	if (current_peermode != NODE_P_ULTRA)
+		return 0;
+
+	missing = max_leaves - node_leaf_count;
+
+	return MAX(0, missing);
 }
 
 /**
@@ -4884,6 +4901,68 @@ node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 }
 
 /**
+ * Check that current message has an extra payload made of GGEP only, and
+ * whose total size is not exceeding `maxsize'.  The `regsize' value is the
+ * normal payload length of the message (e.g. 0 for a ping).
+ *
+ * NOTE: parsed extensions are left in the node's `extensions' structure.
+ *
+ * @return TRUE if there is a GGEP extension block, and only that after the
+ * regular payload, with a size no greater than `maxsize'.
+ */
+static gboolean
+node_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
+{
+	gchar *start;
+	gint len;
+	gint i;
+
+	g_assert(n->size > (guint32) regsize);	/* "fat" message */
+
+	len = n->size - regsize;				/* Extension length */
+
+	if (len > maxsize) {
+		g_warning("%s has %d extra bytes !", gmsg_infostr(&n->header), len);
+		return FALSE;
+	}
+
+	start = n->data + regsize;
+	n->extcount = ext_parse(start, len, n->extvec, MAX_EXTVEC);
+
+	/*
+	 * Assume that if we have MAX_EXTVEC, it's just plain garbage.
+	 */
+
+	if (n->extcount == MAX_EXTVEC) {
+		g_warning("%s has %d extensions!",
+			gmsg_infostr(&n->header), n->extcount);
+		if (dbg)
+			ext_dump(stderr, n->extvec, n->extcount, "> ", "\n", TRUE);
+		return FALSE;
+	}
+
+	/*
+	 * Ensure we have only GGEP extensions in there.
+	 */
+
+	for (i = 0; i < n->extcount; i++) {
+		if (n->extvec[i].ext_type != EXT_GGEP) {
+			g_warning("%s has non-GGEP extensions!", gmsg_infostr(&n->header));
+			if (dbg)
+				ext_dump(stderr, n->extvec, n->extcount, "> ", "\n", TRUE);
+			return FALSE;
+		}
+	}
+
+	if (dbg > 3) {
+		printf("%s has GGEP extensions:\n", gmsg_infostr(&n->header));
+		ext_dump(stdout, n->extvec, n->extcount, "> ", "\n", TRUE);
+	}
+
+	return TRUE;
+}
+
+/**
  * Processing of messages.
  *
  * NB: callers of this routine must not use the node structure upon return,
@@ -5070,7 +5149,7 @@ node_parse(struct gnutella_node *node)
 		has_ggep = FALSE;
 
 		if (n->size > regular_size)
-			has_ggep = gmsg_check_ggep(n, MAX_GGEP_PAYLOAD, regular_size);
+			has_ggep = node_check_ggep(n, MAX_GGEP_PAYLOAD, regular_size);
 
 		if (!has_ggep) {
 			drop = TRUE;
@@ -5290,6 +5369,7 @@ dropped:
 reset_header:
 	n->have_header = FALSE;
 	n->pos = 0;
+	n->extcount = 0;
 
 clean_dest:
 	if (dest.type == ROUTE_MULTI)
