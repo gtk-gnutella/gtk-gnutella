@@ -54,7 +54,6 @@ static const gchar * const hcache_col_labels[] = {
 static void add_column(
 	GtkTreeView *treeview,
 	gint column_id,
-	gint width,
 	gfloat xalign,
 	const gchar *label)
 {
@@ -72,7 +71,7 @@ static void add_column(
 		"text", column_id,
 		NULL);
 	g_object_set(column,
-		"fixed-width", MAX(1, width),
+		"fixed-width", 1,
 		"min-width", 1,
 		"reorderable", TRUE,
 		"resizable", TRUE,
@@ -89,7 +88,9 @@ void hcache_gui_init(void)
 {
     GtkTreeModel *model;
     gint n;
-	guint32 width[HCACHE_STATS_VISIBLE_COLUMNS];
+
+	STATIC_ASSERT(G_N_ELEMENTS(hcache_col_labels) ==
+		HCACHE_STATS_VISIBLE_COLUMNS);
 
 	notebook_main = GTK_NOTEBOOK(
 		lookup_widget(main_window, "notebook_main"));
@@ -114,12 +115,12 @@ void hcache_gui_init(void)
             (-1));
 	}
 
-	gui_prop_get_guint32(PROP_HCACHE_COL_WIDTHS, width, 0, G_N_ELEMENTS(width));
 	for (n = 0; (guint) n < G_N_ELEMENTS(hcache_col_labels); n++)
-		add_column(treeview_hcache, n, width[n], (gfloat) (n != 0),
+		add_column(treeview_hcache, n, (gfloat) (n != 0),
 			_(hcache_col_labels[n]));
 
     gtk_tree_view_set_model(treeview_hcache, model);
+    tree_view_restore_widths(treeview_hcache, PROP_HCACHE_COL_WIDTHS);
 	g_object_unref(model);
 }
 

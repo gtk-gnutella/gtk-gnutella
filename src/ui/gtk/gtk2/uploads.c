@@ -26,7 +26,9 @@
 #include "gtk/gui.h"
 
 #include "interface-glade.h"
+#if !GTK_CHECK_VERSION(2,5,0)
 #include "pbarcellrenderer.h"
+#endif
 
 #include "gtk/uploads.h"
 #include "gtk/uploads_common.h"
@@ -422,15 +424,11 @@ add_column(gint column_id, GtkTreeIterCompareFunc sortfunc, GtkType column_type)
 {
 	GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
-	guint32 width;
-	gboolean visible;
 
 	g_assert(column_id >= 0 && (guint) column_id < UPLOADS_GUI_VISIBLE_COLUMNS);
 	g_assert(NULL != treeview_uploads);
 	g_assert(NULL != store_uploads);
 
-	gui_prop_get_guint32(PROP_UPLOADS_COL_WIDTHS, &width, column_id, 1);
-	gui_prop_get_boolean(PROP_UPLOADS_COL_VISIBLE, &visible, column_id, 1);
 	if (column_type == GTK_TYPE_CELL_RENDERER_PROGRESS) {
 		renderer = gtk_cell_renderer_progress_new();
 		column = gtk_tree_view_column_new_with_attributes(
@@ -458,12 +456,11 @@ add_column(gint column_id, GtkTreeIterCompareFunc sortfunc, GtkType column_type)
 		NULL);
 
 	g_object_set(G_OBJECT(column),
+		"fixed-width", 1,
 		"min-width", 1,
-		"fixed-width", MAX(1, width),
 		"reorderable", TRUE,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
-		"visible", visible,
 		NULL);
 
 	gtk_tree_view_column_set_sort_column_id(column, column_id);
@@ -531,6 +528,9 @@ uploads_gui_init(void)
 				? GTK_TYPE_CELL_RENDERER_PROGRESS
 				: GTK_TYPE_CELL_RENDERER_TEXT);
 
+	tree_view_restore_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
+	tree_view_restore_visibility(treeview_uploads, PROP_UPLOADS_COL_VISIBLE);
+	
 	upload_handles = g_hash_table_new(NULL, NULL);
 
     guc_upload_add_upload_added_listener(upload_added);

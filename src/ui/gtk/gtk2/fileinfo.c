@@ -384,7 +384,6 @@ static void add_column(
     GtkTreeView *tree,
 	gint column_id,
 	const gchar *title,
-	gint width,
 	gfloat xalign)
 {
     GtkTreeViewColumn *column;
@@ -401,7 +400,7 @@ static void add_column(
     column = gtk_tree_view_column_new_with_attributes(
         title, renderer, "text", column_id, NULL);
 	g_object_set(G_OBJECT(column),
-		"fixed-width", MAX(1, width),
+		"fixed-width", 1,
 		"min-width", 1,
 		"reorderable", TRUE,
 		"resizable", TRUE,
@@ -451,7 +450,6 @@ fi_gui_init(void)
 		G_TYPE_UINT,	/* Done (for sorting)	*/
 		G_TYPE_UINT		/* Sources (for sorting */
 	};
-	guint32 width[G_N_ELEMENTS(columns)];
 	guint i;
 
 	STATIC_ASSERT(FILEINFO_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
@@ -481,12 +479,9 @@ fi_gui_init(void)
 	g_signal_connect(GTK_OBJECT(treeview_fileinfo), "cursor-changed",
         G_CALLBACK(on_treeview_fileinfo_cursor_changed), NULL);
 
-	gui_prop_get_guint32(PROP_FILE_INFO_COL_WIDTHS, width, 0,
-		G_N_ELEMENTS(width));
-
 	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
     	add_column(treeview_fileinfo, columns[i].id, _(columns[i].title),
-			width[i], columns[i].align);
+			columns[i].align);
 
 		if (columns[i].sort_func) {
 			gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store_fileinfo),
@@ -496,11 +491,12 @@ fi_gui_init(void)
 				NULL);
 		}
 	}
+	tree_view_restore_widths(treeview_fileinfo, PROP_FILE_INFO_COL_WIDTHS);
 
 	store_aliases = gtk_tree_store_new(1, G_TYPE_STRING);
 	gtk_tree_view_set_model(treeview_fi_aliases, GTK_TREE_MODEL(store_aliases));
 
-    add_column(treeview_fi_aliases, 0, _("Aliases"), 0.0, 0);
+    add_column(treeview_fi_aliases, 0, _("Aliases"), 0.0);
 
     guc_fi_add_listener(fi_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
     guc_fi_add_listener(fi_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
