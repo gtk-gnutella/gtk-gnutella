@@ -76,10 +76,14 @@ typedef struct pmsg {
 	gint m_prio;					/* Message priority (0 = normal) */
 } pmsg_t;
 
+typedef void (*pmsg_free_t)(pmsg_t *mb, gpointer arg);
+
+#define PMSG_PRIO_MASK		0x00ffffff	/* Only lower bits are relevant */
+
 #define pmsg_start(x)		((x)->m_data->d_arena)
 #define pmsg_phys_len(x)	pdata_len((x)->m_data)
 #define pmsg_is_writable(x)	((x)->m_data->d_refcnt == 1)
-#define pmsg_prio(x)		((x)->m_prio)
+#define pmsg_prio(x)		((x)->m_prio & PMSG_PRIO_MASK)
 
 #define pmsg_is_unread(x)	((x)->m_rptr == (x)->m_data->d_arena)
 #define pmsg_read_base(x)	((x)->m_rptr)
@@ -94,6 +98,17 @@ typedef struct pmsg {
 #define PMSG_P_HIGHEST	3			/* Highest priority */
 
 /*
+ * Flags defined in highest bits of `m_prio'.
+ */
+
+#define PMSG_PF_EXT		0x80000000	/* Message block uses extended form */
+#define PMSG_PF_SENT	0x40000000	/* Message was successfully sent */
+
+#define pmsg_is_extended(x)	((x)->m_prio & PMSG_PF_EXT)
+#define pmsg_was_sent(x)	((x)->m_prio & PMSG_PF_SENT)
+#define pmsg_mark_sent(x)	do { (x)->m_prio |= PMSG_PF_SENT; } while (0)
+
+/*
  * Public interface
  */
 
@@ -104,6 +119,7 @@ gint pmsg_size(pmsg_t *mb);
 pmsg_t *pmsg_new(gint prio, void *buf, gint len);
 pmsg_t *pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff);
 pmsg_t *pmsg_clone(pmsg_t *mb);
+pmsg_t *pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free, gpointer arg);
 void pmsg_free(pmsg_t *mb);
 gint pmsg_write(pmsg_t *mb, gpointer data, gint len);
 gint pmsg_read(pmsg_t *mb, gpointer data, gint len);

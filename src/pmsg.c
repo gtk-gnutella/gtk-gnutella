@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2002-2003, Raphael Manfredi
  *
- * PDU Messages.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -25,10 +23,18 @@
  *----------------------------------------------------------------------
  */
 
+/**
+ * @file
+ *
+ * PDU Messages.
+ */
+
 #include <string.h>		/* For memcpy() */
 
 #include "gnutella.h"
 #include "pmsg.h"
+#include "zalloc.h"
+#include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
 RCSID("$Id$");
@@ -38,34 +44,49 @@ RCSID("$Id$");
 
 #define EMBEDDED_OFFSET	G_STRUCT_OFFSET(pdata_t, d_embedded)
 
+/*
+ * An extended message block.
+ *
+ * Relies on C's structural equivalence for the first 4 fields.
+ * An extended message block can be identified by its `m_prio' field
+ * having the PMSG_PF_EXT flag set.
+ */
+typedef struct pmsg_ext {
+	/* First four fields like "stuct pmsg" */
+	gchar *m_rptr;					/* First unread byte in buffer */
+	gchar *m_wptr;					/* First unwritten byte in buffer */
+	pdata_t *m_data;				/* Data buffer */
+	gint m_prio;					/* Message priority (0 = normal) */
+	/* Additional fields */
+	pmsg_free_t m_free;				/* Free routine */
+	gpointer m_arg;					/* Argument to pass to free routine */
+} pmsg_ext_t;
+
 static zone_t *mb_zone = NULL;
 
-/*
- * pmsg_init
- *
+/**
  * Allocate internal variables.
  */
-void pmsg_init(void)
+void
+pmsg_init(void)
 {
 	mb_zone = zget(sizeof(pmsg_t), 1024);
 }
 
-/*
- * pmsg_close
- *
+/**
  * Free internal variables
  */
-void pmsg_close(void)
+void
+pmsg_close(void)
 {
 	zdestroy(mb_zone);
 }
 
-/*
- * pmsg_size
- *
+/**
  * Compute message's size.
  */
-int pmsg_size(pmsg_t *mb)
+int
+pmsg_size(pmsg_t *mb)
 {
 	int msize = 0;
 
@@ -79,22 +100,22 @@ int pmsg_size(pmsg_t *mb)
 	return msize;
 }
 
-/*
- * pmsg_new
- *
+/**
  * Create new message from user provided data, which are copied into the
  * allocated data block.  If no user buffer is provided, an empty message
  * is created and the length is used to size the data block.
  *
- * Returns a message made of one message block referencing one new data block.
+ * @return a message made of one message block referencing one new data block.
  */
-pmsg_t *pmsg_new(gint prio, void *buf, gint len)
+pmsg_t *
+pmsg_new(gint prio, void *buf, gint len)
 {
 	pmsg_t *mb;
 	pdata_t *db;
 
 	g_assert(len > 0);
 	g_assert(implies(buf, valid_ptr(buf)));
+	g_assert(0 == (prio & ~PMSG_PRIO_MASK));
 
 	mb = (pmsg_t *) zalloc(mb_zone);
 	db = pdata_new(len);
@@ -115,16 +136,15 @@ pmsg_t *pmsg_new(gint prio, void *buf, gint len)
 	return mb;
 }
 
-/*
- * pmsg_alloc
- *
+/**
  * Allocate new message using existing data block `db'.
  * The `roff' and `woff' are used to delimit the start and the end (first
  * unwritten byte) of the message within the data buffer.
  *
- * Return new message.
+ * @return new message.
  */
-pmsg_t *pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff)
+pmsg_t *
+pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff)
 {
 	pmsg_t *mb;
 
@@ -132,6 +152,7 @@ pmsg_t *pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff)
 	g_assert(roff >= 0 && (size_t) roff <= pdata_len(db));
 	g_assert(woff >= 0 && (size_t) woff <= pdata_len(db));
 	g_assert(woff >= roff);
+	g_assert(0 == (prio & ~PMSG_PRIO_MASK));
 
 	mb = (pmsg_t *) zalloc(mb_zone);
 
@@ -145,45 +166,96 @@ pmsg_t *pmsg_alloc(gint prio, pdata_t *db, gint roff, gint woff)
 	return mb;
 }
 
-/*
- * pmsg_clone
- *
+/**
+ * Extended cloning of message, adds a free routine callback.
+ */
+pmsg_t *
+pmsg_clone_extend(pmsg_t *mb, pmsg_free_t free, gpointer arg)
+{
+	pmsg_ext_t *nmb;
+
+	nmb = (pmsg_ext_t *) walloc(sizeof(*nmb));
+
+	nmb->m_rptr = mb->m_rptr;
+	nmb->m_wptr = mb->m_wptr;
+	nmb->m_data = mb->m_data;
+	nmb->m_prio = mb->m_prio;
+	pdata_addref(nmb->m_data);
+
+	nmb->m_prio |= PMSG_PF_EXT;
+	nmb->m_free = free;
+	nmb->m_arg = arg;
+
+	return (pmsg_t *) nmb;
+}
+
+/**
+ * Shallow cloning of extended message, result is referencing the same data.
+ */
+static pmsg_t *
+pmsg_clone_ext(pmsg_ext_t *mb)
+{
+	pmsg_ext_t *nmb;
+
+	g_assert(pmsg_is_extended(mb));
+
+	nmb = (pmsg_ext_t *) walloc(sizeof(*nmb));
+	*nmb = *mb;					/* Struct copy */
+	pdata_addref(nmb->m_data);
+
+	return (pmsg_t *) nmb;
+}
+
+/**
  * Shallow cloning of message, result is referencing the same data.
  */
-pmsg_t *pmsg_clone(pmsg_t *mb)
+pmsg_t *
+pmsg_clone(pmsg_t *mb)
 {
-	pmsg_t *nmb = (pmsg_t *) zalloc(mb_zone);
-	
-	*nmb = *mb;			/* Struct copy */
+	pmsg_t *nmb;
+
+	if (pmsg_is_extended(mb))
+		return pmsg_clone_ext((pmsg_ext_t *) mb);
+
+	nmb = (pmsg_t *) zalloc(mb_zone);
+	*nmb = *mb;					/* Struct copy */
 	pdata_addref(nmb->m_data);
 
 	return nmb;
 }
 
-/*
- * pmsg_free
- *
+/**
  * Free all message blocks, and decrease ref count on all data buffers.
  */
-void pmsg_free(pmsg_t *mb)
+void
+pmsg_free(pmsg_t *mb)
 {
 	/* In provision for messsage chaining */
 	do {
 		g_assert(valid_ptr(mb));
 		pdata_unref(mb->m_data);
-		zfree(mb_zone, mb);
+
+		/*
+		 * Invoke free routine on extended message block.
+		 */
+
+		if (pmsg_is_extended(mb)) {
+			pmsg_ext_t *emb = (pmsg_ext_t *) mb;
+			(*emb->m_free)(mb, emb->m_arg);
+			wfree(emb, sizeof(*emb));
+		} else
+			zfree(mb_zone, mb);
 	} while (0);
 }
 
-/*
- * pmsg_write
- *
+/**
  * Write data at the end of the message.
  * The message must be the only reference to the underlying data.
  *
- * Returns amount of written data.
+ * @returns amount of written data.
  */
-gint pmsg_write(pmsg_t *mb, gpointer data, gint len)
+gint
+pmsg_write(pmsg_t *mb, gpointer data, gint len)
 {
 	pdata_t *arena = mb->m_data;
 	gint available = arena->d_end - mb->m_wptr;
@@ -201,12 +273,11 @@ gint pmsg_write(pmsg_t *mb, gpointer data, gint len)
 	return written;
 }
 
-/*
- * pmsg_read
- *
+/**
  * Read data from the message, returning the amount of bytes transferred.
  */
-gint pmsg_read(pmsg_t *mb, gpointer data, gint len)
+gint
+pmsg_read(pmsg_t *mb, gpointer data, gint len)
 {
 	gint available = mb->m_wptr - mb->m_rptr;
 	gint readable = len >= available ? available : len;
@@ -222,13 +293,12 @@ gint pmsg_read(pmsg_t *mb, gpointer data, gint len)
 	return readable;
 }
 
-/*
- * pdata_new
- *
+/**
  * Allocate a new data block of given size.
  * The block header is at the start of the allocated block.
  */
-pdata_t *pdata_new(int len)
+pdata_t *
+pdata_new(int len)
 {
 	pdata_t *db;
 	gchar *arena;
@@ -244,16 +314,14 @@ pdata_t *pdata_new(int len)
 	return db;
 }
 
-/*
- * pdata_allocb
- *
+/**
  * Create an embedded data buffer out of existing arena.
  *
  * The optional `freecb' structure supplies the free routine callback to be
  * used to free the arena, with freearg as additional argument.
  */
-pdata_t *pdata_allocb(void *buf, gint len,
-	pdata_free_t freecb, gpointer freearg)
+pdata_t *
+pdata_allocb(void *buf, gint len, pdata_free_t freecb, gpointer freearg)
 {
 	pdata_t *db;
 
@@ -274,16 +342,14 @@ pdata_t *pdata_allocb(void *buf, gint len,
 	return db;
 }
 
-/*
- * pdata_allocb_ext
- *
+/**
  * Create an external (arena not embedded) data buffer out of existing arena.
  *
  * The optional `freecb' structure supplies the free routine callback to be
  * used to free the arena, with freearg as additional argument.
  */
-pdata_t *pdata_allocb_ext(void *buf, gint len,
-	pdata_free_t freecb, gpointer freearg)
+pdata_t *
+pdata_allocb_ext(void *buf, gint len, pdata_free_t freecb, gpointer freearg)
 {
 	pdata_t *db;
 
@@ -303,22 +369,20 @@ pdata_t *pdata_allocb_ext(void *buf, gint len,
 	return db;
 }
 
-/*
- * pdata_free_nop
- *
+/**
  * This free routine can be used when there is nothing to be freed for
  * the buffer, probably because it was made out of a static buffer.
  */
-void pdata_free_nop(gpointer p, gpointer arg)
+void
+pdata_free_nop(gpointer p, gpointer arg)
 {
 }
 
-/*
- * pdata_free
- *
+/**
  * Free data block when its reference count has reached 0.
  */
-static void pdata_free(pdata_t *db)
+static void
+pdata_free(pdata_t *db)
 {
 	gboolean is_embedded = (db->d_arena == db->d_embedded);
 
@@ -340,12 +404,11 @@ static void pdata_free(pdata_t *db)
 	}
 }
 
-/*
- * pdata_unref
- *
+/**
  * Decrease reference count on buffer, and free it when it reaches 0.
  */
-void pdata_unref(pdata_t *db)
+void
+pdata_unref(pdata_t *db)
 {
 	g_assert(valid_ptr(db));
 	g_assert(db->d_refcnt > 0);
