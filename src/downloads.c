@@ -7580,9 +7580,9 @@ renamed:
 
 cleanup:
 
-	if (NULL != src);	
+	if (NULL != src)
 		G_FREE_NULL(src);
-	if (NULL != dest);	
+	if (NULL != dest)
 		G_FREE_NULL(dest);
 	return;
 }
