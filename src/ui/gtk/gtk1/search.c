@@ -307,9 +307,8 @@ search_gui_new_search_full(const gchar *querystr,
 	gint sort_order, flag_t flags, search_t **search)
 {
     search_t *sch;
-	rule_t *rule;
 	gnet_search_t sch_id;
-    GList *glist;
+    GList *rules;
     gchar *titles[c_sl_num];
     gint row;
     const gchar *query, *error;
@@ -321,7 +320,7 @@ search_gui_new_search_full(const gchar *querystr,
         lookup_widget(main_window, "button_search_close");
     GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
 
-	query = search_gui_parse_query(querystr, &rule, &error);
+	query = search_gui_parse_query(querystr, &rules, &error);
 	if (!query) {
 		statusbar_gui_message(5, "%s", error);
 		return FALSE;
@@ -346,18 +345,17 @@ search_gui_new_search_full(const gchar *querystr,
 	}
 
 	sch->parents = g_hash_table_new(NULL, NULL);
-  	filter_new_for_search(sch);
-	if (rule) {
-		g_assert(sch->filter != NULL);
-		filter_append_rule(sch->filter, rule);
-	}
+
+	search_gui_filter_new(sch, rules);
+	g_list_free(rules);
+	rules = NULL;
 
 	/* Create the list item */
 
 	sch->list_item = gtk_list_item_new_with_label(sch->query);
 	gtk_widget_show(sch->list_item);
-	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
-	gtk_list_prepend_items(GTK_LIST(GTK_COMBO(combo_searches)->list), glist);
+	gtk_list_prepend_items(GTK_LIST(GTK_COMBO(combo_searches)->list),
+		g_list_prepend(NULL, sch->list_item));
 
     titles[c_sl_name] = sch->query;
     titles[c_sl_hit] = "0";
@@ -1955,9 +1953,10 @@ void search_gui_remove_search(search_t * sch)
 
     g_assert(sch != NULL);
 
-   	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
+   	glist = g_list_prepend(NULL, sch->list_item);
 	gtk_list_remove_items(GTK_LIST(combo_searches->list), glist);
-    g_list_free(glist); glist = NULL;
+    g_list_free(glist);
+	glist = NULL;
 
     row = gtk_clist_find_row_from_data(clist_search, sch);
     gtk_clist_remove(clist_search, row);

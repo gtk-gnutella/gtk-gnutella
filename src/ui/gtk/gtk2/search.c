@@ -293,17 +293,16 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	gint sort_col, gint sort_order, flag_t flags, search_t **search)
 {
 	const gchar *query, *error;
-	rule_t *rule;
+	GList *rules, *l;
 	search_t *sch;
 	gnet_search_t sch_id;
-	GList *glist;
 	GtkListStore *model;
 	GtkTreeIter iter;
     GtkWidget *button_search_close =
         lookup_widget(main_window, "button_search_close");
     GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
 
-	query = search_gui_parse_query(querystr, &rule, &error);
+	query = search_gui_parse_query(querystr, &rules, &error);
 	if (!query) {
 		statusbar_gui_warning(5, "%s", error);
 		return FALSE;
@@ -332,17 +331,13 @@ search_gui_new_search_full(const gchar *querystr, guint32 reissue_timeout,
 	sch->parents = g_hash_table_new_full(NULL, NULL,
 		do_atom_sha1_free, (GDestroyNotify) w_tree_iter_free);
 
-  	filter_new_for_search(sch);
-	if (rule) {
-		g_assert(sch->filter != NULL);
-		filter_append_rule(sch->filter, rule);
-	}
-
+	search_gui_filter_new(sch, rules);
+	g_list_free(rules);
+	
 	/* Create the list item */
 
 	sch->list_item = gtk_list_item_new_with_label(sch->query);
 	gtk_widget_show(sch->list_item);
-	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
 	gtk_label_set_text(GTK_LABEL(
 			lookup_widget(main_window, "label_search_current_search")), query);
 
@@ -1054,14 +1049,11 @@ tree_view_search_remove(GtkTreeModel *model, GtkTreePath *unused_path,
 void
 search_gui_remove_search(search_t *sch)
 {
-    GList *glist;
     gboolean sensitive;
 	GtkTreeModel *model;
 	search_t *current_search;
 
     g_assert(sch != NULL);
-
-   	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
 
 	model = gtk_tree_view_get_model(tree_view_search);
     gtk_tree_model_foreach(model, tree_view_search_remove, sch);
