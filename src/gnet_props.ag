@@ -783,6 +783,16 @@ prop = {
 };
 
 prop = {
+    name = "allow_private_network_connection";
+    desc =	"Check this button if you want to use GTK-Gnutella on your "
+			"Local Area Network. RFC1918 will be ignored.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
     name = "download_delete_aborted";
     desc = "Remove files of aborted downloads from disk";
     type = boolean;

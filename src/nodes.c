@@ -3138,12 +3138,7 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		s->getline = NULL;
 	}
 
-#ifdef NO_RFC1918
-	/*
-	 * This needs to be a runtime option.  I could see a need for someone
-	 * to want to run gnutella behind a firewall over on a private network.
-	 */
-	if (is_private_ip(ip)) {
+	if (!allow_private_network_connection && is_private_ip(ip)) {
 		if (s) {
 			if (major > 0 || minor > 4)
 				send_node_error(s, 404, "Denied access from private IP");
@@ -3151,7 +3146,6 @@ void node_add_socket(struct gnutella_socket *s, guint32 ip, guint16 port)
 		}
 		return;
 	}
-#endif
 
 	if (s && major == 0 && minor < 6) {
 		if (no_gnutella_04) {
