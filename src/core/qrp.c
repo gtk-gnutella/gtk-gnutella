@@ -934,7 +934,7 @@ merge_table_into_arena(struct routing_table *rt, guchar *arena, gint slots)
 {
 	gint ratio;
 	gint expand;
-	gint i, j;
+	gint i;
 	gint idx = 0;
 
 	/*
@@ -962,14 +962,11 @@ merge_table_into_arena(struct routing_table *rt, guchar *arena, gint slots)
 	for (i = 0; i < rt->slots; i++) {
 		guchar value = RT_SLOT_READ(rt->arena, i);
 
-		if (value == 0) 				/* "0 OR x = x" -- no change */
-			idx += expand;
-		else {
+		if (value != 0) {				/* "0 OR x = x" -- no change */
 			g_assert(idx + expand <= slots);	/* Won't overflow */
-
-			for (j = 0; j < expand; j++)
-				arena[idx++] = 0;				/* Less than "infinity" */
+			memset(&arena[idx], 0, expand);		/* Less than "infinity" */
 		}
+		idx += expand;
 	}
 }
 
@@ -1178,7 +1175,7 @@ qrp_add_file(struct shared_file *sf)
 			buffer.arena = g_realloc(buffer.arena, buffer.len + grow);
 			buffer.len += grow;
 		}
-		g_assert((gint) sf->file_name_len <= (buffer.len + 1));
+		g_assert(sf->file_name_len < (size_t) buffer.len);
 
 		strncpy(buffer.arena, sf->file_name, buffer.len);
 
