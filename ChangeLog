@@ -1,5 +1,9 @@
 # since last version
 
+- (2004.01.19 - RAM)
+ * Abort download_clear_stopped() if there's nothing in `sl_unqueued'.
+ * Don't call downloads_gui_init() before settings_gui_init().
+
 - (2004.01.18 - RAM)
  * Changed minimum for "node_connected_timeout" to 120 and the default to 180,
    since we must account for possible flow-control, both at the node and TCP
