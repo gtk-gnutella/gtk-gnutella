@@ -135,8 +135,8 @@ void gnet_stats_count_received_payload(gnutella_node_t *n)
 void gnet_stats_count_sent(
 	gnutella_node_t *n, guint8 type, guint8 hops, guint32 size)
 {
-	guint32 *stats_pkg;
-	guint32 *stats_byte;
+	guint64 *stats_pkg;
+	guint64 *stats_byte;
 	guint t = stats_lut[type];
 
 	stats_pkg = hops ? gnet_stats.pkg.relayed : gnet_stats.pkg.generated;

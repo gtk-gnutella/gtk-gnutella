@@ -128,7 +128,7 @@ static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
  *** Private functions
  ***/
 gchar *pkt_stat_str(
-    guint32 *val_tbl, gint type)
+    guint64 *val_tbl, gint type)
 {
     static gchar strbuf[20];
 
@@ -139,14 +139,14 @@ gchar *pkt_stat_str(
         gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
             (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
     else
-        gm_snprintf(strbuf, sizeof(strbuf), "%u", val_tbl[type]);
+        gm_snprintf(strbuf, sizeof(strbuf), "%llu", val_tbl[type]);
 
     return strbuf;
 }
 
 
 gchar *byte_stat_str(
-    guint32 *val_tbl, gint type)
+    guint64 *val_tbl, gint type)
 {
     static gchar strbuf[20];
 
@@ -158,7 +158,7 @@ gchar *byte_stat_str(
             (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
         return strbuf;
     } else
-        return compact_size(val_tbl[type]);
+        return compact_size64(val_tbl[type]);
 }
 
 gchar *drop_stat_str(gnet_stats_t *stats, gint reason)
@@ -173,7 +173,7 @@ gchar *drop_stat_str(gnet_stats_t *stats, gint reason)
         gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
             (float)stats->drop_reason[reason][selected_type]/total*100);
     else
-        gm_snprintf(strbuf, sizeof(strbuf), "%u", 
+        gm_snprintf(strbuf, sizeof(strbuf), "%llu", 
             stats->drop_reason[reason][selected_type]);
 
     return strbuf;
@@ -187,14 +187,14 @@ gchar *general_stat_str(gnet_stats_t *stats, gint type)
         return "-";
 
     if (type == GNR_QUERY_COMPACT_SIZE) {
-        return compact_size(stats->general[type]);
+        return compact_size64(stats->general[type]);
     } else {
-        gm_snprintf(strbuf, sizeof(strbuf), "%u", stats->general[type]);
+        gm_snprintf(strbuf, sizeof(strbuf), "%llu", stats->general[type]);
         return strbuf;
     }
 }
 
-gchar *flowc_stat_str_pkg(guint32 *val_tbl, gint type)
+gchar *flowc_stat_str_pkg(guint64 *val_tbl, gint type)
 {
     static gchar strbuf[20];
 
@@ -205,13 +205,13 @@ gchar *flowc_stat_str_pkg(guint32 *val_tbl, gint type)
 		gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
             (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
     } else {
-       	gm_snprintf(strbuf, sizeof(strbuf), "%u", val_tbl[type]);
+       	gm_snprintf(strbuf, sizeof(strbuf), "%llu", val_tbl[type]);
     }
 
     return strbuf;
 }
 
-gchar *flowc_stat_str_byte(guint32 *val_tbl, gint type)
+gchar *flowc_stat_str_byte(guint64 *val_tbl, gint type)
 {
     static gchar strbuf[20];
 
@@ -222,7 +222,7 @@ gchar *flowc_stat_str_byte(guint32 *val_tbl, gint type)
 		gm_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
             (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
     } else {
-       	return compact_size(val_tbl[type]);
+       	return compact_size64(val_tbl[type]);
     }
 
     return strbuf;

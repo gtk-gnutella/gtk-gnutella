@@ -105,13 +105,13 @@ static void hide_column_by_title(
 }
 
 static gchar *pkt_stat_str(
-	gchar *strbuf, gulong n, const guint32 *val_tbl, gint type, gboolean perc)
+	gchar *strbuf, gulong n, const guint64 *val_tbl, gint type, gboolean perc)
 {
     if (val_tbl[type] == 0)
 		g_strlcpy(strbuf, "-", n);
     else {
 		if (!perc)
-        	gm_snprintf(strbuf, n, "%lu", (gulong) val_tbl[type]);
+        	gm_snprintf(strbuf, n, "%llu", val_tbl[type]);
     	else
         	gm_snprintf(strbuf, n, "%.2f%%", 
             	(gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
@@ -122,12 +122,12 @@ static gchar *pkt_stat_str(
 
 
 static const gchar *byte_stat_str(
-	gchar *strbuf, gulong n, const guint32 *val_tbl, gint type, gboolean perc)
+	gchar *strbuf, gulong n, const guint64 *val_tbl, gint type, gboolean perc)
 {
     if (val_tbl[type] == 0)
 		g_strlcpy(strbuf, "-", n);
     else if (!perc)
-        g_strlcpy(strbuf, compact_size(val_tbl[type]), n);
+        g_strlcpy(strbuf, compact_size64(val_tbl[type]), n);
     else
         gm_snprintf(strbuf, n, "%.2f%%", 
             (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
@@ -150,7 +150,7 @@ static const gchar *drop_stat_str(
         gm_snprintf(str, n, "%.2f%%", 
             (gfloat) stats->drop_reason[reason][selected_type] / total * 100);
     else
-        gm_snprintf(str, n, "%u", stats->drop_reason[reason][selected_type]);
+        gm_snprintf(str, n, "%llu", stats->drop_reason[reason][selected_type]);
 
     return str;
 }
@@ -161,7 +161,7 @@ static const gchar *general_stat_str(
     if (stats->general[type] == 0)
         g_strlcpy(str, "-", n);
     else if (type == GNR_QUERY_COMPACT_SIZE)
-        g_strlcpy(str, compact_size(stats->general[type]), n);
+        g_strlcpy(str, compact_size64(stats->general[type]), n);
     else
         gm_snprintf(str, n, "%u", stats->general[type]);
 

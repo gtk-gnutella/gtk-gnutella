@@ -492,34 +492,34 @@ typedef enum {
 #define STATS_RECV_COLUMNS 10 /* -"- */
 
 typedef struct gnet_stat {
-	guint32 drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
+	guint64 drop_reason[MSG_DROP_REASON_COUNT][MSG_TYPE_COUNT];
 
 	struct {
-		guint32 received[MSG_TYPE_COUNT];
-		guint32 generated[MSG_TYPE_COUNT];
-		guint32 relayed[MSG_TYPE_COUNT];
-		guint32 dropped[MSG_TYPE_COUNT];
-		guint32 expired[MSG_TYPE_COUNT];
-		guint32 received_hops[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
-		guint32 received_ttl[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
-		guint32 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
-		guint32 flowc_ttl[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
+		guint64 received[MSG_TYPE_COUNT];
+		guint64 generated[MSG_TYPE_COUNT];
+		guint64 relayed[MSG_TYPE_COUNT];
+		guint64 dropped[MSG_TYPE_COUNT];
+		guint64 expired[MSG_TYPE_COUNT];
+		guint64 received_hops[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
+		guint64 received_ttl[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
+		guint64 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
+		guint64 flowc_ttl[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
 	} pkg;
 
 	struct {
-		guint32 received[MSG_TYPE_COUNT];
-		guint32 generated[MSG_TYPE_COUNT];
-		guint32 relayed[MSG_TYPE_COUNT];
-		guint32 dropped[MSG_TYPE_COUNT];
-		guint32 expired[MSG_TYPE_COUNT];
-		guint32 received_hops[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
-		guint32 received_ttl[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
-		guint32 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
-		guint32 flowc_ttl[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
+		guint64 received[MSG_TYPE_COUNT];
+		guint64 generated[MSG_TYPE_COUNT];
+		guint64 relayed[MSG_TYPE_COUNT];
+		guint64 dropped[MSG_TYPE_COUNT];
+		guint64 expired[MSG_TYPE_COUNT];
+		guint64 received_hops[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
+		guint64 received_ttl[STATS_RECV_COLUMNS][MSG_TYPE_COUNT];
+		guint64 flowc_hops[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
+		guint64 flowc_ttl[STATS_FLOWC_COLUMNS][MSG_TYPE_COUNT];
 	} byte;
 
 
-	guint32 general[GNR_TYPE_COUNT];
+	guint64 general[GNR_TYPE_COUNT];
 } gnet_stats_t;
 
 typedef enum {
