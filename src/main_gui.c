@@ -647,13 +647,13 @@ void main_gui_run(void)
 
 void main_gui_shutdown(void)
 {
-    guint32 coord[4] = { 0, 0, 0, 0};
+    gint32 coord[4] = { 0, 0, 0, 0};
 	
 	icon_close();
 
 	gdk_window_get_root_origin(main_window->window, &coord[0], &coord[1]);
 	gdk_drawable_get_size(main_window->window, &coord[2], &coord[3]);
-    gui_prop_set_guint32(PROP_WINDOW_COORDS, coord, 0, 4);
+    gui_prop_set_guint32(PROP_WINDOW_COORDS, (guint32 *) coord, 0, 4);
 
     /*
      * Discard all changes and close the dialog.
