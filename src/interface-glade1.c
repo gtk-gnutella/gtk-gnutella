@@ -78,6 +78,8 @@ create_main_window (void)
   GtkWidget *label188;
   GtkWidget *handlebox2;
   GtkWidget *vbox31;
+  GtkWidget *frame75;
+  GtkWidget *vbox108;
   GtkWidget *hbox_stats_connections;
   GtkWidget *eventbox6;
   GtkWidget *pixmap1;
@@ -1294,6 +1296,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (handlebox2);
   gtk_box_pack_start (GTK_BOX (vbox46), handlebox2, FALSE, TRUE, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (handlebox2), 1);
   gtk_handle_box_set_handle_position (GTK_HANDLE_BOX (handlebox2), GTK_POS_TOP);
   gtk_handle_box_set_snap_edge (GTK_HANDLE_BOX (handlebox2), GTK_POS_LEFT);
 
@@ -1305,13 +1308,30 @@ create_main_window (void)
   gtk_widget_show (vbox31);
   gtk_container_add (GTK_CONTAINER (handlebox2), vbox31);
 
-  hbox_stats_connections = gtk_hbox_new (FALSE, 0);
+  frame75 = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame75, "frame75");
+  gtk_widget_ref (frame75);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame75", frame75,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame75);
+  gtk_box_pack_start (GTK_BOX (vbox31), frame75, FALSE, FALSE, 0);
+  gtk_frame_set_shadow_type (GTK_FRAME (frame75), GTK_SHADOW_NONE);
+
+  vbox108 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox108, "vbox108");
+  gtk_widget_ref (vbox108);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox108", vbox108,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (vbox108);
+  gtk_container_add (GTK_CONTAINER (frame75), vbox108);
+
+  hbox_stats_connections = gtk_hbox_new (FALSE, 1);
   gtk_widget_set_name (hbox_stats_connections, "hbox_stats_connections");
   gtk_widget_ref (hbox_stats_connections);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_stats_connections", hbox_stats_connections,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox_stats_connections);
-  gtk_box_pack_start (GTK_BOX (vbox31), hbox_stats_connections, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox108), hbox_stats_connections, FALSE, TRUE, 0);
 
   eventbox6 = gtk_event_box_new ();
   gtk_widget_set_name (eventbox6, "eventbox6");
@@ -1341,13 +1361,13 @@ create_main_window (void)
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_connections), TRUE);
   gtk_progress_set_format_string (GTK_PROGRESS (progressbar_connections), "%v/%u gNet nodes");
 
-  hbox_stats_uploads = gtk_hbox_new (FALSE, 0);
+  hbox_stats_uploads = gtk_hbox_new (FALSE, 1);
   gtk_widget_set_name (hbox_stats_uploads, "hbox_stats_uploads");
   gtk_widget_ref (hbox_stats_uploads);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_stats_uploads", hbox_stats_uploads,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox_stats_uploads);
-  gtk_box_pack_start (GTK_BOX (vbox31), hbox_stats_uploads, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox108), hbox_stats_uploads, FALSE, TRUE, 0);
 
   eventbox7 = gtk_event_box_new ();
   gtk_widget_set_name (eventbox7, "eventbox7");
@@ -1377,13 +1397,13 @@ create_main_window (void)
   gtk_progress_set_show_text (GTK_PROGRESS (progressbar_uploads), TRUE);
   gtk_progress_set_format_string (GTK_PROGRESS (progressbar_uploads), "%v/%u uploads");
 
-  hbox_stats_downloads = gtk_hbox_new (FALSE, 0);
+  hbox_stats_downloads = gtk_hbox_new (FALSE, 1);
   gtk_widget_set_name (hbox_stats_downloads, "hbox_stats_downloads");
   gtk_widget_ref (hbox_stats_downloads);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "hbox_stats_downloads", hbox_stats_downloads,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (hbox_stats_downloads);
-  gtk_box_pack_start (GTK_BOX (vbox31), hbox_stats_downloads, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox108), hbox_stats_downloads, FALSE, TRUE, 0);
 
   eventbox8 = gtk_event_box_new ();
   gtk_widget_set_name (eventbox8, "eventbox8");
@@ -11206,6 +11226,10 @@ create_shutdown_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label_shutdown_count);
   gtk_box_pack_start (GTK_BOX (vbox44), label_shutdown_count, FALSE, FALSE, 0);
+
+  gtk_signal_connect (GTK_OBJECT (shutdown_window), "delete_event",
+                      GTK_SIGNAL_FUNC (gtk_true),
+                      NULL);
 
   return shutdown_window;
 }
