@@ -153,6 +153,8 @@ static void fi_gui_update_row(
     }
 }
 
+static gnet_fi_info_t *last_fi = NULL;
+
 /*
  * fi_gui_fill_info:
  *
@@ -162,20 +164,18 @@ static void fi_gui_update_row(
 static void fi_gui_fill_info(
     gnet_fi_t fih, gchar *titles[C_FI_COLUMNS])
 {
-    static gnet_fi_info_t *fi = NULL;
-
     /* Clear info from last call. We keep this around so we don't
      * have to strdup entries from it when passing them to the 
      * outside through titles[]. */
-    if (fi != NULL) {
-        fi_free_info(fi);
-    }
+
+    if (last_fi != NULL)
+        fi_free_info(last_fi);
         
     /* Fetch new info */
-    fi = fi_get_info(fih);
-    g_assert(fi != NULL);
+    last_fi = fi_get_info(fih);
+    g_assert(last_fi != NULL);
 
-    titles[C_FI_FILENAME] = fi->file_name;
+    titles[C_FI_FILENAME] = last_fi->file_name;
 }
 
 static void fi_gui_fill_status(
@@ -293,6 +293,8 @@ void fi_gui_shutdown(void)
     fi_remove_listener((GCallback)fi_gui_fi_removed, EV_FI_REMOVED);
     fi_remove_listener((GCallback)fi_gui_fi_added, EV_FI_ADDED);
     fi_remove_listener((GCallback)fi_gui_fi_status_changed, EV_FI_STATUS_CHANGED);
+    if (last_fi != NULL)
+        fi_free_info(last_fi);
 }
 
 /*
@@ -335,3 +337,4 @@ void fi_gui_update_display(time_t now)
     gtk_clist_thaw(clist);
 }
 */
+
