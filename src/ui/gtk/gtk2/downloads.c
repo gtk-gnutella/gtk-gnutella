@@ -72,10 +72,14 @@ static GtkTreeView *treeview_downloads_queue;
  *** Private functions
  ***/
 
-void check_iter_fi_handle(gpointer key, gpointer value, gpointer user_data)
+void
+check_iter_fi_handle(gpointer unused_key, gpointer value,
+	gpointer unused_udata)
 {
 	GtkTreeIter *iter = value;
 
+	(void) unused_key;
+	(void) unused_udata;
 	g_assert(iter);
 
 	g_assert(
@@ -88,11 +92,14 @@ void check_iter_fi_handle(gpointer key, gpointer value, gpointer user_data)
 	);
 }
 
-void check_iter_download(gpointer key, gpointer value, gpointer user_data)
+void
+check_iter_download(gpointer key, gpointer value,
+	gpointer unused_udata)
 {
 	GtkTreeIter *iter = value;
 	download_t *d = key;
 
+	(void) unused_udata;
 	g_assert(d);
 	g_assert(iter);
 
@@ -107,7 +114,8 @@ void check_iter_download(gpointer key, gpointer value, gpointer user_data)
 }
 
 
-GtkTreeIter *tree_iter_new(void)
+GtkTreeIter *
+tree_iter_new(void)
 {
 	GtkTreeIter *iter;
 
@@ -116,18 +124,21 @@ GtkTreeIter *tree_iter_new(void)
 	return iter;
 }
 
-void tree_iter_free(GtkTreeIter *iter)
+void
+tree_iter_free(GtkTreeIter *iter)
 {
 	g_assert(iter);
 	TREE_ITER_FREE(iter);
 	REGRESSION(g_hash_table_foreach(ht_dl_iters, check_iter_download, NULL);)
 }
 
-void ht_dl_iter_destroy(gpointer key, gpointer value, gpointer user_data)
+void
+ht_dl_iter_destroy(gpointer key, gpointer value, gpointer unused_udata)
 {
 	download_t *d = key;
 	GtkTreeIter *iter = value;
 
+	(void) unused_udata;
 	g_assert(d);
 	g_assert(value);
 	g_assert(d->visible);
@@ -135,14 +146,12 @@ void ht_dl_iter_destroy(gpointer key, gpointer value, gpointer user_data)
 	tree_iter_free(iter);
 }
 
-/*
- *	add_parent_with_fi_handle
- *
+/**
  *	Add the given tree iterator to the hashtable.
  *  The key is an atomized int of the fi_handle for a given download.
- *
  */
-static inline void add_parent_with_fi_handle(
+static inline void
+add_parent_with_fi_handle(
 	GHashTable *ht, gnet_fi_t fi_handle, GtkTreeIter *iter)
 {
 	g_assert(ht);
@@ -152,17 +161,14 @@ static inline void add_parent_with_fi_handle(
 	g_hash_table_insert(ht, GUINT_TO_POINTER(fi_handle), iter);
 }
 
-/*
- *	remove_parent_with_fi_handle
- *
+/**
  *	Removes the tree iterator matching the given fi_handle from the hash table.
  *  The atom used for the key along with the stored iter are assumed to be freed
  *  automatically.  The functions to free this memory should be declared when 
  *	creating the hash table.
- *
  */
-static inline void remove_parent_with_fi_handle(
-	GHashTable *ht, gnet_fi_t fi_handle)
+static inline void
+remove_parent_with_fi_handle(GHashTable *ht, gnet_fi_t fi_handle)
 {
 	g_assert(ht);
 	g_assert(ht == parents || ht == parents_queue);
@@ -171,14 +177,12 @@ static inline void remove_parent_with_fi_handle(
 }
 
 
-/*
- *	find_parent_with_fi_handle
- *
- *	Returns the tree iterator corresponding to the given key, an atomized
+/**
+ *	@return the tree iterator corresponding to the given key, an atomized
  *	fi_handle.
- *
  */
-static inline GtkTreeIter *find_parent_with_fi_handle(
+static inline GtkTreeIter *
+find_parent_with_fi_handle(
 	GHashTable *ht, gnet_fi_t fi_handle)
 {
 	GtkTreeIter *iter;
@@ -194,7 +198,8 @@ static inline GtkTreeIter *find_parent_with_fi_handle(
 	return iter;
 }
 
-static inline GtkTreeIter *find_download(download_t *d)
+static inline GtkTreeIter *
+find_download(download_t *d)
 {
     GtkTreeIter *iter = NULL;
 
@@ -205,13 +210,12 @@ static inline GtkTreeIter *find_download(download_t *d)
     return iter;
 }
 
-/*
- *	downloads_gui_all_aborted
- *
- *	Returns true if all the active downloads in the same tree as the given 
+/**
+ *	@return true if all the active downloads in the same tree as the given 
  * 	download are aborted (status is GTA_DL_ABORTED or GTA_DL_ERROR).
  */
-gboolean downloads_gui_all_aborted(download_t *drecord)
+gboolean
+downloads_gui_all_aborted(download_t *drecord)
 {
 	gint n, num_children;
 	GtkTreeIter *parent;
@@ -247,14 +251,12 @@ gboolean downloads_gui_all_aborted(download_t *drecord)
 }
 
 
-/*
- *	downloads_gui_update_parent_status
- *
+/**
  * 	Finds parent of given download in the active download tree and changes the
  *  status column to the given string.  Returns true if status is changed.
  */
-gboolean downloads_gui_update_parent_status(download_t *d, 
-	const gchar *new_status)
+gboolean
+downloads_gui_update_parent_status(download_t *d, const gchar *new_status)
 {
 	GtkTreeIter *parent;
 	GtkTreeStore *model;
@@ -272,14 +274,12 @@ gboolean downloads_gui_update_parent_status(download_t *d,
 }
 
  
-/*
- *	add_column
- *	
+/**
  *	Sets the details applicable to a single column in the treeviews.
  *	Usable for both active downloads and downloads queue treeview.
  */
-static GtkTreeViewColumn *add_column(
-	GtkTreeView *treeview, GtkType column_type, const gchar *name,
+static GtkTreeViewColumn *
+add_column(GtkTreeView *treeview, GtkType column_type, const gchar *name,
 	gint id, gint width, gboolean visible, gfloat xalign,
 	gint fg_column, gint bg_column)
 {
@@ -330,13 +330,12 @@ static GtkTreeViewColumn *add_column(
 }
 
 
-/*
- *	add_active_downloads_column
- *
+/**
  *	Add one column to the treeview
  *	Note: Usable only for active downloads treeview.
  */
-static void add_active_downloads_column(GtkTreeView *treeview,
+static void
+add_active_downloads_column(GtkTreeView *treeview,
 	GtkType column_type, const gchar *name,
 	gint id, gint width, gboolean visible, gfloat xalign,
 	const GtkTreeIterCompareFunc sortfunc)
@@ -353,13 +352,12 @@ static void add_active_downloads_column(GtkTreeView *treeview,
 			sortfunc, GINT_TO_POINTER(c_dl_record), NULL);
 }
 
-/*
- *	add_queue_downloads_column
- *
+/**
  *	Add one column to the treeview
  *	Note: Usable only for downloads queue treeview.
  */
-static void add_queue_downloads_column(GtkTreeView *treeview,
+static void
+add_queue_downloads_column(GtkTreeView *treeview,
 	const gchar *name, gint id, gint width, gboolean visible, gfloat xalign,
 	const GtkTreeIterCompareFunc sortfunc)
 {
@@ -376,7 +374,8 @@ static void add_queue_downloads_column(GtkTreeView *treeview,
 			sortfunc, GINT_TO_POINTER(c_queue_record), NULL);
 }
 
-static gint compare_size_func(GtkTreeModel *model,
+static gint
+compare_size_func(GtkTreeModel *model,
 	GtkTreeIter *a, GtkTreeIter *b, gpointer user_data)
 {
    	download_t *rec[2] = { NULL, NULL };
@@ -399,15 +398,14 @@ static gint compare_size_func(GtkTreeModel *model,
 	return CMP(rec[1]->file_size, rec[0]->file_size);
 }
 
-/*
- *	add_active_downloads_columns
- *
+/**
  *	Add all columns to the treeview
  * 	Set titles, alignment, width, etc. here
  *	
  *	Note: Usable only for active downloads treeview.
  */
-static void add_active_downloads_columns(GtkTreeView *treeview)
+static void
+add_active_downloads_columns(GtkTreeView *treeview)
 {
 	static const struct {
 		const gchar * const title;
@@ -452,15 +450,14 @@ static void add_active_downloads_columns(GtkTreeView *treeview)
 }
 
 
-/*
- *	add_queue_downloads_columns
- *
+/**
  *	Add all columns to the treeview
  * 	Set titles, alignment, width, etc. here
  *	
  *	Note: Usable only for downloads queue treeview.
  */
-static void add_queue_downloads_columns(GtkTreeView *treeview)
+static void
+add_queue_downloads_columns(GtkTreeView *treeview)
 {
 	static const struct {
 		const gchar * const title;
@@ -504,15 +501,12 @@ static void add_queue_downloads_columns(GtkTreeView *treeview)
  ***/
 
 
-/*
- *	downloads_gui_init
- *
+/**
  *	Initalize the download gui
  *
  *	Important things in here:  initialization of hash tables, adding columns
  * 	to the treeviews, creating treeview model (what the columns mean and their
  *	numbers), hooking up of signal callbacks
- *
  */
 void downloads_gui_init(void)
 {
@@ -620,9 +614,8 @@ void downloads_gui_init(void)
 		G_CALLBACK(on_treeview_downloads_queue_button_press_event), NULL);
 }
 
-/*
- *	downloads_gui_shutdown
- *
+/**
+ * Shutdown procedures
  */
 void downloads_gui_shutdown(void)
 {
@@ -645,18 +638,16 @@ void downloads_gui_shutdown(void)
 }
 
 
-/*
- *	download_gui_add
- *
+/**
  *	Add a download to either the active or queued download treeview depending
  *	on the download's flags.  This function handles grouping new downloads
  * 	appropriately and creation of parent/child nodes.
- *
  */
-void download_gui_add(download_t *d)
+void
+download_gui_add(download_t *d)
 {
+	static const gchar unknown_size_str[] = "no size";
 	const gchar *vendor;
-	const gchar *UNKNOWN_SIZE_STR = "no size";
 	GHashTable *ht;
 	GtkTreeView *treeview;
 	GtkTreeIter *parent;
@@ -712,7 +703,7 @@ void download_gui_add(download_t *d)
 			if (d->file_info->file_size_known)
 				d_file_size = short_size(d->file_info->size);
 			else
-				d_file_size = UNKNOWN_SIZE_STR;				
+				d_file_size = unknown_size_str;				
 		} else {
 			download_t *drecord;
 
@@ -810,7 +801,7 @@ void download_gui_add(download_t *d)
 			if (d->file_info->file_size_known)
 				d_file_size = short_size(d->file_info->size);
 			else
-				d_file_size = UNKNOWN_SIZE_STR;				
+				d_file_size = unknown_size_str;				
 		} else {
 			download_t *drecord;
 
@@ -1421,7 +1412,7 @@ void gui_update_download(download_t *d, gboolean force)
 			guint32 spent = d->last_update - d->start_date;
 
 			gfloat rate = ((d->range_end - d->skip + d->overlap_size) /
-				1024.0) / spent;
+				1024) / (gfloat) spent;
 			gm_snprintf(tmpstr, sizeof(tmpstr), "%s (%.1f k/s) %s",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
 				rate, short_time(spent));
@@ -1584,7 +1575,7 @@ void gui_update_download(download_t *d, gboolean force)
 		a = tmpstr;
 		break;
 	default:
-		gm_snprintf(tmpstr, sizeof(tmpstr), _("UNKNOWN STATUS %u"), d->status);
+		gm_snprintf(tmpstr, sizeof(tmpstr), _("Unknown status %u"), d->status);
 		a = tmpstr;
 	}
 
@@ -1697,10 +1688,12 @@ typedef struct {
 } update_help_t;
 
 static void update_download_abort_resume_helper(GtkTreeModel *model,
-	GtkTreePath *path, GtkTreeIter *iter, gpointer data)
+	GtkTreePath *unused_path, GtkTreeIter *iter, gpointer data)
 {
 	update_help_t *uh = data;
 	download_t *d = NULL;
+
+	(void) unused_path;
 
 	/* Ignore the rest if these are already set */
 	if (uh->do_abort && uh->do_resume && uh->do_remove)
