@@ -70,9 +70,10 @@ prop = {
 prop = {
     name = "max_connections";
     desc = "Don't allow more that this number of connections to other "
-           "servents.  As a rule of thumb you should resevere 1kb/s "
-	   "bandwidth per connection. Never use up all your bandwidth, "
-	   "leave a little space for TCP/IP overhead.";
+           "servents.  As a rule of thumb you should reserve 1kb/s "
+	       "bandwidth per connection. Never use up all your bandwidth, "
+	       "leave a little space for TCP/IP overhead. It's not "
+           "advisable that you set this to a value larger then 10.";
     type = guint32;
     data = {
         default = 4;
