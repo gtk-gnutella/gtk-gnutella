@@ -1759,7 +1759,7 @@ void send_node_error(
 		current_peermode == NODE_P_NORMAL ? "" :
 		current_peermode == NODE_P_LEAF ?
 			"X-Ultrapeer: False\r\n": "X-Ultrapeer: True\r\n",
-		(code == 503 || code == 403) ?
+		(current_peermode == NODE_P_NORMAL && (code == 503 || code == 403)) ?
 			formatted_connection_pongs("X-Try", HCACHE_ANY) : "");
 
 	rw += gm_snprintf(&gnet_response[rw], sizeof(gnet_response)-rw,
