@@ -511,6 +511,16 @@ create_main_window (void)
   GtkWidget *spinbutton_config_speed;
   GtkWidget *label36;
   GtkWidget *hseparator8;
+  GtkWidget *frame_expert_rx_buffers;
+  GtkWidget *table67;
+  GtkWidget *label553;
+  GtkWidget *label554;
+  GtkWidget *label555;
+  GtkWidget *label552;
+  GtkObject *spinbutton_node_rx_size_adj;
+  GtkWidget *spinbutton_node_rx_size;
+  GtkObject *spinbutton_download_rx_size_adj;
+  GtkWidget *spinbutton_download_rx_size;
   GtkWidget *label121;
   GtkWidget *scrolledwindow19;
   GtkWidget *viewport5;
@@ -5210,6 +5220,92 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table4), hseparator8, 0, 3, 3, 4,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (GTK_FILL), 0, 0);
+
+  frame_expert_rx_buffers = gtk_frame_new (_("Socket Receive Buffer Size"));
+  gtk_widget_set_name (frame_expert_rx_buffers, "frame_expert_rx_buffers");
+  gtk_widget_ref (frame_expert_rx_buffers);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame_expert_rx_buffers", frame_expert_rx_buffers,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame_expert_rx_buffers);
+  gtk_box_pack_start (GTK_BOX (vbox29), frame_expert_rx_buffers, FALSE, TRUE, 0);
+
+  table67 = gtk_table_new (2, 3, FALSE);
+  gtk_widget_set_name (table67, "table67");
+  gtk_widget_ref (table67);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "table67", table67,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table67);
+  gtk_container_add (GTK_CONTAINER (frame_expert_rx_buffers), table67);
+  gtk_table_set_row_spacings (GTK_TABLE (table67), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table67), 4);
+
+  label553 = gtk_label_new (_("Gnutella RX buffer"));
+  gtk_widget_set_name (label553, "label553");
+  gtk_widget_ref (label553);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label553", label553,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label553);
+  gtk_table_attach (GTK_TABLE (table67), label553, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label553), 0, 0.5);
+
+  label554 = gtk_label_new (_("Kbytes"));
+  gtk_widget_set_name (label554, "label554");
+  gtk_widget_ref (label554);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label554", label554,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label554);
+  gtk_table_attach (GTK_TABLE (table67), label554, 2, 3, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label554), 0, 0.5);
+
+  label555 = gtk_label_new (_("Kbytes"));
+  gtk_widget_set_name (label555, "label555");
+  gtk_widget_ref (label555);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label555", label555,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label555);
+  gtk_table_attach (GTK_TABLE (table67), label555, 2, 3, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label555), 0, 0.5);
+
+  label552 = gtk_label_new (_("Download RX buffer"));
+  gtk_widget_set_name (label552, "label552");
+  gtk_widget_ref (label552);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label552", label552,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label552);
+  gtk_table_attach (GTK_TABLE (table67), label552, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label552), 0, 0.5);
+
+  spinbutton_node_rx_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_node_rx_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_node_rx_size_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_node_rx_size, "spinbutton_node_rx_size");
+  gtk_widget_ref (spinbutton_node_rx_size);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_node_rx_size", spinbutton_node_rx_size,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_node_rx_size);
+  gtk_table_attach (GTK_TABLE (table67), spinbutton_node_rx_size, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_node_rx_size), TRUE);
+
+  spinbutton_download_rx_size_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_download_rx_size = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_download_rx_size_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_download_rx_size, "spinbutton_download_rx_size");
+  gtk_widget_ref (spinbutton_download_rx_size);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_download_rx_size", spinbutton_download_rx_size,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_download_rx_size);
+  gtk_table_attach (GTK_TABLE (table67), spinbutton_download_rx_size, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_download_rx_size), TRUE);
 
   label121 = gtk_label_new (_("Bandwidth\ncontrol"));
   gtk_widget_set_name (label121, "label121");

@@ -2180,6 +2180,22 @@ static prop_map_t property_map[] = {
         TRUE,
         "spinbutton_config_unique_nodes"
     },
+#ifdef USE_GTK1
+    {
+        get_main_window,
+        PROP_DOWNLOAD_RX_SIZE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_download_rx_size"
+    },
+    {
+        get_main_window,
+        PROP_NODE_RX_SIZE,
+        update_spinbutton,
+        TRUE,
+        "spinbutton_node_rx_size"
+    },
+#endif
 };
 
 /***
@@ -3530,6 +3546,9 @@ static gboolean expert_mode_changed(property_t prop)
         "frame_expert_ul_timeout",
         "frame_expert_dl_source_quality",
         "frame_expert_unmapped",
+#ifdef USE_GTK1
+        "frame_expert_rx_buffers",
+#endif
         NULL
     };
     gint n;
