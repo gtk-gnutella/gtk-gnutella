@@ -82,7 +82,6 @@ typedef struct vp_context {
  */
 typedef struct vp_info {
     gnet_fi_t fi_handle;
-    guint row;
     gchar *file_name;
     guint32 file_size;
     GSList *chunks_list;
@@ -283,11 +282,6 @@ vp_gui_fi_added(gnet_fi_t fih)
     
     new_vp_info = walloc0(sizeof(*new_vp_info));
     new_vp_info->fi_handle = fih;
-    /*
-     * TODO: We should initialize the row field in a way that does not
-     * depend on fih
-     */
-    new_vp_info->row = fih;
     new_vp_info->file_name = g_strdup(fi->file_name);
     new_vp_info->file_size = s.size;
     new_vp_info->chunks_list = guc_fi_get_chunks(fih);
