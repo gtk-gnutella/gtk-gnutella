@@ -1945,7 +1945,6 @@ create_main_window (void)
   gtk_widget_set_name (image_leaf, "image_leaf");
   gtk_widget_show (image_leaf);
   gtk_container_add (GTK_CONTAINER (eventbox_image_leaf), image_leaf);
-  gtk_widget_set_size_request (image_leaf, 20, 21);
   gtk_misc_set_padding (GTK_MISC (image_leaf), 1, 0);
 
   eventbox_image_normal = gtk_event_box_new ();
@@ -2221,12 +2220,14 @@ create_main_window (void)
   gtk_widget_set_name (progressbar_bws_gin, "progressbar_bws_gin");
   gtk_widget_show (progressbar_bws_gin);
   gtk_box_pack_start (GTK_BOX (vbox43), progressbar_bws_gin, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, progressbar_bws_gin, _("Click to toggle display."), NULL);
   gtk_widget_set_events (progressbar_bws_gin, GDK_BUTTON_PRESS_MASK);
 
   progressbar_bws_gout = gtk_progress_bar_new ();
   gtk_widget_set_name (progressbar_bws_gout, "progressbar_bws_gout");
   gtk_widget_show (progressbar_bws_gout);
   gtk_box_pack_start (GTK_BOX (vbox43), progressbar_bws_gout, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, progressbar_bws_gout, _("Click to toggle display."), NULL);
   gtk_widget_set_events (progressbar_bws_gout, GDK_BUTTON_PRESS_MASK);
 
   label278 = gtk_label_new (_("gnutellaNet traffic"));
@@ -2250,12 +2251,16 @@ create_main_window (void)
   progressbar_bws_lin = gtk_progress_bar_new ();
   gtk_widget_set_name (progressbar_bws_lin, "progressbar_bws_lin");
   gtk_widget_show (progressbar_bws_lin);
-  gtk_box_pack_start (GTK_BOX (vbox104), progressbar_bws_lin, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox104), progressbar_bws_lin, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, progressbar_bws_lin, _("Click to toggle display."), NULL);
+  gtk_widget_set_events (progressbar_bws_lin, GDK_BUTTON_PRESS_MASK);
 
   progressbar_bws_lout = gtk_progress_bar_new ();
   gtk_widget_set_name (progressbar_bws_lout, "progressbar_bws_lout");
   gtk_widget_show (progressbar_bws_lout);
-  gtk_box_pack_start (GTK_BOX (vbox104), progressbar_bws_lout, FALSE, FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox104), progressbar_bws_lout, FALSE, TRUE, 0);
+  gtk_tooltips_set_tip (tooltips, progressbar_bws_lout, _("Click to toggle display."), NULL);
+  gtk_widget_set_events (progressbar_bws_lout, GDK_BUTTON_PRESS_MASK);
 
   label605 = gtk_label_new (_("Leaf traffic"));
   gtk_widget_set_name (label605, "label605");
@@ -2381,6 +2386,12 @@ create_main_window (void)
                     NULL);
   g_signal_connect ((gpointer) progressbar_bws_gout, "button_press_event",
                     G_CALLBACK (on_progressbar_bws_gout_button_press_event),
+                    NULL);
+  g_signal_connect ((gpointer) progressbar_bws_lin, "button_press_event",
+                    G_CALLBACK (on_progressbar_bws_lin_button_press_event),
+                    NULL);
+  g_signal_connect ((gpointer) progressbar_bws_lout, "button_press_event",
+                    G_CALLBACK (on_progressbar_bws_lout_button_press_event),
                     NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */

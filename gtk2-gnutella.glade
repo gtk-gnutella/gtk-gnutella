@@ -2531,8 +2531,6 @@ Nicolás Lichtmaier &lt;nick@technisys.com.ar&gt;</property>
 
 			  <child>
 			    <widget class="GtkImage" id="image_leaf">
-			      <property name="width_request">20</property>
-			      <property name="height_request">21</property>
 			      <property name="visible">True</property>
 			      <property name="pixbuf">leaf.xpm</property>
 			      <property name="xalign">0.5</property>
@@ -3099,6 +3097,7 @@ Nicolás Lichtmaier &lt;nick@technisys.com.ar&gt;</property>
 				  <child>
 				    <widget class="GtkProgressBar" id="progressbar_bws_gin">
 				      <property name="visible">True</property>
+				      <property name="tooltip" translatable="yes">Click to toggle display.</property>
 				      <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				      <property name="fraction">0</property>
@@ -3115,6 +3114,7 @@ Nicolás Lichtmaier &lt;nick@technisys.com.ar&gt;</property>
 				  <child>
 				    <widget class="GtkProgressBar" id="progressbar_bws_gout">
 				      <property name="visible">True</property>
+				      <property name="tooltip" translatable="yes">Click to toggle display.</property>
 				      <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				      <property name="fraction">0</property>
@@ -3172,28 +3172,34 @@ Nicolás Lichtmaier &lt;nick@technisys.com.ar&gt;</property>
 				  <child>
 				    <widget class="GtkProgressBar" id="progressbar_bws_lin">
 				      <property name="visible">True</property>
+				      <property name="tooltip" translatable="yes">Click to toggle display.</property>
+				      <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				      <property name="fraction">0</property>
 				      <property name="pulse_step">0.1</property>
+				      <signal name="button_press_event" handler="on_progressbar_bws_lin_button_press_event" last_modification_time="Wed, 16 Apr 2003 19:04:07 GMT"/>
 				    </widget>
 				    <packing>
 				      <property name="padding">0</property>
 				      <property name="expand">False</property>
-				      <property name="fill">False</property>
+				      <property name="fill">True</property>
 				    </packing>
 				  </child>
 
 				  <child>
 				    <widget class="GtkProgressBar" id="progressbar_bws_lout">
 				      <property name="visible">True</property>
+				      <property name="tooltip" translatable="yes">Click to toggle display.</property>
+				      <property name="events">GDK_BUTTON_PRESS_MASK</property>
 				      <property name="orientation">GTK_PROGRESS_LEFT_TO_RIGHT</property>
 				      <property name="fraction">0</property>
 				      <property name="pulse_step">0.1</property>
+				      <signal name="button_press_event" handler="on_progressbar_bws_lout_button_press_event" last_modification_time="Wed, 16 Apr 2003 19:04:37 GMT"/>
 				    </widget>
 				    <packing>
 				      <property name="padding">0</property>
 				      <property name="expand">False</property>
-				      <property name="fill">False</property>
+				      <property name="fill">True</property>
 				    </packing>
 				  </child>
 				</widget>
