@@ -11,6 +11,9 @@
  * Trim down TTL of queries coming from "older" hosts not performing dynamic
    querying if the hops+TTL is larger than the TTL at which we're broadcasting.
  * Set default for max_ttl to 4.  Cannot set a my_ttl greater than 4.
+ * Added knowledge about GGEP "BH" and "CT" (unhandled for now).
+ * Search results now ignore unknown GGEP extensions in tags, thereby avoiding
+   display of "funny" characters in tag.
 
 - (2004-11-11 - RAM)
  * Refactored decoding of GGEP extensions: this is now done transparently
