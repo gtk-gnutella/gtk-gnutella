@@ -62,6 +62,7 @@ typedef struct results_set {
 
 	guint32 num_recs;
 	GSList *records;
+    GSList *schl;
 } results_set_t;
 
 /*
@@ -140,5 +141,6 @@ void search_gui_check_alt_locs(results_set_t *rs, record_t *rc);
 void search_gui_store_searches(void);
 void search_gui_retrieve_searches(void);
 void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set);
+void search_gui_flush(time_t);
 
 #endif /* _search_gui_common_h_ */

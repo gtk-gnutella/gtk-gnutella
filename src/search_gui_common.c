@@ -55,6 +55,8 @@ static const gchar search_file[] = "searches"; /* "old" file to searches */
 
 static gchar tmpstr[1024];
 
+static GSList *accumulated_rs = NULL;
+
 /*
  * Human readable translation of servent trailer open flags.
  * Decompiled flags are listed in the order of the table.
@@ -201,6 +203,14 @@ void search_gui_free_r_set(results_set_t *rs)
 		search_gui_clean_r_set(rs);
 		return;
 	}
+
+    /* 
+     * Free list of searches set was intended for.
+     */
+    if (rs->schl) {
+        g_slist_free(rs->schl);
+        rs->schl = NULL;
+    }
 
 	/*
 	 * Because noone refers to us any more, we know that our embedded records
@@ -934,52 +944,130 @@ void search_matched(search_t *sch, results_set_t *rs)
  */
 void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
 {
-    GSList *l;
     results_set_t *rs;
 
     /*
      * Copy the data we got from the backend.
      */
     rs = search_gui_create_results_set(r_set);
+    rs->schl = g_slist_copy(schl);
 
     if (gui_debug >= 12)
         printf("got incoming results...\n");
 
-    for (l = schl; l != NULL; l = g_slist_next(l))
-        search_matched(
-			search_gui_find((gnet_search_t) GPOINTER_TO_UINT(l->data)), rs);
+    accumulated_rs = g_slist_prepend(accumulated_rs, rs);
+}
 
-   	/*
-	 * Some of the records might have not been used by searches, and need
-	 * to be freed.  If no more records remain, we request that the
-	 * result set be removed from all the dispatched searches, the last one
-	 * removing it will cause its destruction.
-	 */
+void search_gui_flush(time_t now)
+{
+    GSList *sl;
+    GSList *curs;
+#ifdef USE_GTK1
+    GSList *frozen = NULL;
+#endif
+    static time_t last = 0;
 
-    if (gui_debug >= 15)
-        printf("cleaning phase\n");
-
-    if (rs->refcount == 0) {
-        search_gui_free_r_set(rs);
+    if (now && (difftime(now, last) < 5))
         return;
+
+    last = now;
+
+    if (accumulated_rs) {
+        guint32 recs = 0;
+        guint32 rscount = 0;
+
+        for (sl = accumulated_rs; sl != NULL; sl = g_slist_next(sl)) {
+            recs += ((results_set_t *)sl->data)->num_recs;
+            rscount ++;
+        }
+
+        printf("flushing %d rsets (%d recs, %d recs avg)...\n", 
+            rscount, recs, recs / rscount);
     }
 
-    search_gui_clean_r_set(rs);
+    for (curs = accumulated_rs; curs != NULL; curs = g_slist_next(curs)) {
+        results_set_t *rs = (results_set_t *) curs->data;
+        GSList *schl = g_slist_copy(rs->schl);
+ 
+        /*
+         * Dispatch to all searches and freeze display where necessary
+         * remembering what was frozen.
+         */
+        for (sl = schl; sl != NULL; sl = g_slist_next(sl)) {
+            search_t *sch;
 
-    if (gui_debug >= 15)
-        printf("trash phase\n");
+            sch = search_gui_find((gnet_search_t) GPOINTER_TO_UINT(sl->data));
 
+            /*
+             * Since we keep results around for a while, the search may have
+             * been closed until they get dispatched... so we need to check 
+             * that.
+             * --BLUE, 4/1/2004
+             */
+            if (sch) {
+#ifdef USE_GTK1
+                gtk_clist_freeze(GTK_CLIST(sch->ctree));
+                frozen = g_slist_prepend(frozen, sch->ctree);
+#endif
+                search_matched(sch, rs);
+            }
+        }
+
+        /*
+         * Some of the records might have not been used by searches, and need
+         * to be freed.  If no more records remain, we request that the
+         * result set be removed from all the dispatched searches, the last one
+         * removing it will cause its destruction.
+         */
+
+        if (gui_debug >= 15)
+            printf("cleaning phase\n");
+
+        if (rs->refcount == 0) {
+            search_gui_free_r_set(rs);
+            return;
+        }
+
+        search_gui_clean_r_set(rs);
+    
+        if (gui_debug >= 15)
+            printf("trash phase\n");
+
+        /*
+         * If the record set does not contain any records after the cleansing,
+         * we have only an empty shell left which we can safely remove from 
+         * all the searches.
+         */
+
+        if (rs->num_recs == 0) {
+            for (sl = schl; sl; sl = sl->next) {
+                search_t *sch = search_gui_find(
+                    (gnet_search_t) GPOINTER_TO_UINT(sl->data));
+
+                /*
+                 * Since we keep results around for a while, the search may 
+                 * have been closed until they get dispatched... so we need to 
+                 * check that.
+                 * --BLUE, 4/1/2004
+                 */
+                if (sch) {
+                    search_gui_remove_r_set(sch, rs);
+                } 
+            }
+        } 
+    }
+
+#ifdef USE_GTK1
     /*
-     * If the record set does not contain any records after the cleansing,
-     * we have only an empty shell left which we can safely remove from 
-     * all the searches.
+     * Unfreeze all we have frozen before.
      */
+    for (sl = frozen; sl != NULL; sl = g_slist_next(sl)) {
+        while (((GtkCList*) (sl->data))->freeze_count > 0)
+            gtk_clist_thaw(GTK_CLIST(sl->data));
+    }
+    g_slist_free(frozen);
+#endif
 
-	if (rs->num_recs == 0) {
-		for (l = schl; l; l = l->next) {
-			search_t *sch = search_gui_find(
-				(gnet_search_t) GPOINTER_TO_UINT(l->data));
-			search_gui_remove_r_set(sch, rs);
-		}
-	}
+    g_slist_free(accumulated_rs);
+    accumulated_rs = NULL;
 }
