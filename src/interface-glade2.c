@@ -1611,7 +1611,7 @@ create_main_window (void)
   GtkWidget *menu_file;
   GtkWidget *menu_file_menu;
   GtkWidget *quit;
-  GtkWidget *image135;
+  GtkWidget *image238;
   GtkWidget *menu_view;
   GtkWidget *menu_view_menu;
   GtkWidget *menu_toolbar_visible;
@@ -1630,12 +1630,13 @@ create_main_window (void)
   GtkWidget *menu_bws_gout_visible;
   GtkWidget *menu_gnet_leaf_stats_visible;
   GtkWidget *menu_gnet_leaf_stats_visible_menu;
+  GtkWidget *menu_autohide_bws_gleaf;
   GtkWidget *menu_bws_glin_visible;
   GtkWidget *menu_bws_glout_visible;
   GtkWidget *menu_help;
   GtkWidget *menu_help_menu;
   GtkWidget *menu_about;
-  GtkWidget *image136;
+  GtkWidget *image239;
   GtkWidget *viewport69;
   GtkWidget *table71;
   GtkWidget *label695;
@@ -1796,10 +1797,10 @@ create_main_window (void)
                               GDK_q, GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
 
-  image135 = gtk_image_new_from_stock ("gtk-quit", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image135, "image135");
-  gtk_widget_show (image135);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (quit), image135);
+  image238 = gtk_image_new_from_stock ("gtk-quit", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image238, "image238");
+  gtk_widget_show (image238);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (quit), image238);
 
   menu_view = gtk_menu_item_new_with_mnemonic (_("_View"));
   gtk_widget_set_name (menu_view, "menu_view");
@@ -1897,6 +1898,11 @@ create_main_window (void)
   gtk_widget_set_name (menu_gnet_leaf_stats_visible_menu, "menu_gnet_leaf_stats_visible_menu");
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_gnet_leaf_stats_visible), menu_gnet_leaf_stats_visible_menu);
 
+  menu_autohide_bws_gleaf = gtk_check_menu_item_new_with_mnemonic (_("autohide leaf traffic stats"));
+  gtk_widget_set_name (menu_autohide_bws_gleaf, "menu_autohide_bws_gleaf");
+  gtk_widget_show (menu_autohide_bws_gleaf);
+  gtk_container_add (GTK_CONTAINER (menu_gnet_leaf_stats_visible_menu), menu_autohide_bws_gleaf);
+
   menu_bws_glin_visible = gtk_check_menu_item_new_with_mnemonic (_("show leaf incoming traffic"));
   gtk_widget_set_name (menu_bws_glin_visible, "menu_bws_glin_visible");
   gtk_widget_show (menu_bws_glin_visible);
@@ -1921,10 +1927,10 @@ create_main_window (void)
   gtk_widget_show (menu_about);
   gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_about);
 
-  image136 = gtk_image_new_from_stock ("gtk-dialog-info", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image136, "image136");
-  gtk_widget_show (image136);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_about), image136);
+  image239 = gtk_image_new_from_stock ("gtk-dialog-info", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image239, "image239");
+  gtk_widget_show (image239);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_about), image239);
 
   viewport69 = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport69, "viewport69");
@@ -2547,6 +2553,9 @@ create_main_window (void)
   g_signal_connect ((gpointer) menu_bws_gout_visible, "activate",
                     G_CALLBACK (on_menu_bws_gout_visible_activate),
                     NULL);
+  g_signal_connect ((gpointer) menu_autohide_bws_gleaf, "activate",
+                    G_CALLBACK (on_menu_autohide_bws_gleaf_activate),
+                    NULL);
   g_signal_connect ((gpointer) menu_bws_glin_visible, "activate",
                     G_CALLBACK (on_menu_bws_glin_visible_activate),
                     NULL);
@@ -2605,7 +2614,7 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, menu_file, "menu_file");
   GLADE_HOOKUP_OBJECT (main_window, menu_file_menu, "menu_file_menu");
   GLADE_HOOKUP_OBJECT (main_window, quit, "quit");
-  GLADE_HOOKUP_OBJECT (main_window, image135, "image135");
+  GLADE_HOOKUP_OBJECT (main_window, image238, "image238");
   GLADE_HOOKUP_OBJECT (main_window, menu_view, "menu_view");
   GLADE_HOOKUP_OBJECT (main_window, menu_view_menu, "menu_view_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_toolbar_visible, "menu_toolbar_visible");
@@ -2624,12 +2633,13 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, menu_bws_gout_visible, "menu_bws_gout_visible");
   GLADE_HOOKUP_OBJECT (main_window, menu_gnet_leaf_stats_visible, "menu_gnet_leaf_stats_visible");
   GLADE_HOOKUP_OBJECT (main_window, menu_gnet_leaf_stats_visible_menu, "menu_gnet_leaf_stats_visible_menu");
+  GLADE_HOOKUP_OBJECT (main_window, menu_autohide_bws_gleaf, "menu_autohide_bws_gleaf");
   GLADE_HOOKUP_OBJECT (main_window, menu_bws_glin_visible, "menu_bws_glin_visible");
   GLADE_HOOKUP_OBJECT (main_window, menu_bws_glout_visible, "menu_bws_glout_visible");
   GLADE_HOOKUP_OBJECT (main_window, menu_help, "menu_help");
   GLADE_HOOKUP_OBJECT (main_window, menu_help_menu, "menu_help_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_about, "menu_about");
-  GLADE_HOOKUP_OBJECT (main_window, image136, "image136");
+  GLADE_HOOKUP_OBJECT (main_window, image239, "image239");
   GLADE_HOOKUP_OBJECT (main_window, viewport69, "viewport69");
   GLADE_HOOKUP_OBJECT (main_window, table71, "table71");
   GLADE_HOOKUP_OBJECT (main_window, label695, "label695");

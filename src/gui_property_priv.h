@@ -75,6 +75,7 @@ extern gboolean progressbar_bws_gin_visible;
 extern gboolean progressbar_bws_gout_visible;
 extern gboolean progressbar_bws_glin_visible;
 extern gboolean progressbar_bws_glout_visible;
+extern gboolean autohide_bws_gleaf;
 extern gboolean progressbar_bws_in_avg;
 extern gboolean progressbar_bws_out_avg;
 extern gboolean progressbar_bws_gin_avg;

@@ -458,7 +458,7 @@ prop = {
     desc = "Display incoming gNet leaf traffic bandwidth usage";
     type = boolean;
     data = {
-        default = FALSE;
+        default = TRUE;
     };
 };
 
@@ -467,9 +467,20 @@ prop = {
     desc = "Display outgoing gNet leaf traffic bandwidth usage";
     type = boolean;
     data = {
-        default = FALSE;
+        default = TRUE;
     };
 };
+
+prop = {
+    name = "autohide_bws_gleaf";
+    desc = "Automatically hide leaf bandwidth display when not in "
+           "ultrapeer mode";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
 
 prop = {
     name = "progressbar_bws_in_avg";

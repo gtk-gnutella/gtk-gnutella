@@ -2167,7 +2167,7 @@ Grace time remaining:</property>
 				  <accelerator key="q" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 				  <child internal-child="image">
-				    <widget class="GtkImage" id="image135">
+				    <widget class="GtkImage" id="image238">
 				      <property name="visible">True</property>
 				      <property name="stock">gtk-quit</property>
 				      <property name="icon_size">1</property>
@@ -2325,6 +2325,16 @@ Grace time remaining:</property>
 				    <widget class="GtkMenu" id="menu_gnet_leaf_stats_visible_menu">
 
 				      <child>
+					<widget class="GtkCheckMenuItem" id="menu_autohide_bws_gleaf">
+					  <property name="visible">True</property>
+					  <property name="label" translatable="yes">autohide leaf traffic stats</property>
+					  <property name="use_underline">True</property>
+					  <property name="active">False</property>
+					  <signal name="activate" handler="on_menu_autohide_bws_gleaf_activate" last_modification_time="Wed, 24 Dec 2003 15:46:39 GMT"/>
+					</widget>
+				      </child>
+
+				      <child>
 					<widget class="GtkCheckMenuItem" id="menu_bws_glin_visible">
 					  <property name="visible">True</property>
 					  <property name="label" translatable="yes">show leaf incoming traffic</property>
@@ -2369,7 +2379,7 @@ Grace time remaining:</property>
 				  <signal name="activate" handler="on_menu_about_activate"/>
 
 				  <child internal-child="image">
-				    <widget class="GtkImage" id="image136">
+				    <widget class="GtkImage" id="image239">
 				      <property name="visible">True</property>
 				      <property name="stock">gtk-dialog-info</property>
 				      <property name="icon_size">1</property>

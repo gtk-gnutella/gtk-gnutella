@@ -256,6 +256,19 @@
 
 		<widget>
 		  <class>GtkCheckMenuItem</class>
+		  <name>menu_autohide_bws_gleaf</name>
+		  <signal>
+		    <name>activate</name>
+		    <handler>on_menu_autohide_bws_gleaf_activate</handler>
+		    <last_modification_time>Wed, 24 Dec 2003 15:24:49 GMT</last_modification_time>
+		  </signal>
+		  <label>auto-hide leaf traffc stats</label>
+		  <active>False</active>
+		  <always_show_toggle>True</always_show_toggle>
+		</widget>
+
+		<widget>
+		  <class>GtkCheckMenuItem</class>
 		  <name>menu_bws_glin_visible</name>
 		  <signal>
 		    <name>activate</name>

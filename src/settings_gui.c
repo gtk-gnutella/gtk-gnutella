@@ -173,6 +173,7 @@ static gboolean progressbar_bws_gin_visible_changed(property_t prop);
 static gboolean progressbar_bws_gout_visible_changed(property_t prop);
 static gboolean progressbar_bws_glin_visible_changed(property_t prop);
 static gboolean progressbar_bws_glout_visible_changed(property_t prop);
+static gboolean autohide_bws_gleaf_changed(property_t prop);
 static gboolean progressbar_downloads_visible_changed(property_t prop);
 static gboolean progressbar_uploads_visible_changed(property_t prop);
 static gboolean progressbar_connections_visible_changed(property_t prop);
@@ -594,6 +595,14 @@ static prop_map_t property_map[] = {
         progressbar_bws_gout_visible_changed,
         TRUE,
         "menu_bws_gout_visible",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_AUTOHIDE_BWS_GLEAF,
+        autohide_bws_gleaf_changed,
+        TRUE,
+        "menu_autohide_bws_gleaf",
         FREQ_UPDATES, 0
     },
     {
@@ -2991,6 +3000,10 @@ static gboolean current_peermode_changed(property_t prop)
 		g_assert_not_reached();
 	}	
 
+    /* We need to update the bw stats because leaf bw autohiding may be
+       on.*/
+    gui_update_stats_frames();
+    
 	return FALSE;
 }
 
@@ -3260,6 +3273,25 @@ static gboolean progressbar_bws_glout_visible_changed(property_t prop)
 
     gui_prop_get_boolean_val(prop, &val);
     update_stats_visibility(cm, w, val);
+
+    return FALSE;
+}
+
+static gboolean autohide_bws_gleaf_changed(property_t prop)
+{
+    gboolean val;
+    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
+    prop_set_stub_t *stub = map_entry->stub;
+    GtkWidget *top = map_entry->fn_toplevel();
+
+    stub->boolean.get(prop, &val, 0, 1);
+
+    gtk_check_menu_item_set_state(GTK_CHECK_MENU_ITEM
+        (lookup_widget(top, map_entry->wid)), val);
+
+    /* The actual evaluation of the property takes place in 
+       gui_update_stats_frames() */
+    gui_update_stats_frames();
 
     return FALSE;
 }

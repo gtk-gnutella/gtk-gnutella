@@ -52,6 +52,7 @@ create_main_window (void)
   GtkWidget *menu_gnet_leaf_stats_visible;
   GtkWidget *menu_gnet_leaf_stats_visible_menu;
   GtkAccelGroup *menu_gnet_leaf_stats_visible_menu_accels;
+  GtkWidget *menu_autohide_bws_gleaf;
   GtkWidget *menu_bws_glin_visible;
   GtkWidget *menu_bws_glout_visible;
   GtkWidget *menu_about;
@@ -1156,6 +1157,15 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_gnet_leaf_stats_visible), menu_gnet_leaf_stats_visible_menu);
   menu_gnet_leaf_stats_visible_menu_accels = gtk_menu_ensure_uline_accel_group (GTK_MENU (menu_gnet_leaf_stats_visible_menu));
+
+  menu_autohide_bws_gleaf = gtk_check_menu_item_new_with_label (_("auto-hide leaf traffc stats"));
+  gtk_widget_set_name (menu_autohide_bws_gleaf, "menu_autohide_bws_gleaf");
+  gtk_widget_ref (menu_autohide_bws_gleaf);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_autohide_bws_gleaf", menu_autohide_bws_gleaf,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (menu_autohide_bws_gleaf);
+  gtk_container_add (GTK_CONTAINER (menu_gnet_leaf_stats_visible_menu), menu_autohide_bws_gleaf);
+  gtk_check_menu_item_set_show_toggle (GTK_CHECK_MENU_ITEM (menu_autohide_bws_gleaf), TRUE);
 
   menu_bws_glin_visible = gtk_check_menu_item_new_with_label (_("show leaf incoming traffic"));
   gtk_widget_set_name (menu_bws_glin_visible, "menu_bws_glin_visible");
@@ -8561,6 +8571,9 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (menu_bws_gout_visible), "activate",
                       GTK_SIGNAL_FUNC (on_menu_bws_gout_visible_activate),
+                      NULL);
+  gtk_signal_connect (GTK_OBJECT (menu_autohide_bws_gleaf), "activate",
+                      GTK_SIGNAL_FUNC (on_menu_autohide_bws_gleaf_activate),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (menu_bws_glin_visible), "activate",
                       GTK_SIGNAL_FUNC (on_menu_bws_glin_visible_activate),

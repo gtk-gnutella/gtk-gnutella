@@ -186,7 +186,9 @@ void gui_update_stats_frames(void)
         lookup_widget(main_window, "frame_bws_ginout");
     GtkWidget *frame_bws_glinout = 
         lookup_widget(main_window, "frame_bws_glinout");
-
+    guint32 peermode;
+    
+   	gnet_prop_get_guint32_val(PROP_CURRENT_PEERMODE, &peermode);
 
     if (progressbar_bws_in_visible || progressbar_bws_out_visible) {
         gtk_widget_show(frame_bws_inout);
@@ -200,7 +202,8 @@ void gui_update_stats_frames(void)
         gtk_widget_hide(frame_bws_ginout);
     }
 
-    if (progressbar_bws_glin_visible || progressbar_bws_glout_visible) {
+    if ((progressbar_bws_glin_visible || progressbar_bws_glout_visible) &&
+        (peermode == 2) || !autohide_bws_gleaf) {
         gtk_widget_show(frame_bws_glinout);
     } else {
         gtk_widget_hide(frame_bws_glinout);

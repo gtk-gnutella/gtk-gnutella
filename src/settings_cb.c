@@ -268,6 +268,16 @@ void on_menu_bws_glout_visible_activate(GtkMenuItem * menuitem,
 	checkmenu_changed(gui, PROP_PROGRESSBAR_BWS_GLOUT_VISIBLE, menuitem);
 }
 
+
+
+void on_menu_autohide_bws_gleaf_activate(GtkMenuItem * menuitem,
+                                        gpointer user_data)
+{
+	checkmenu_changed(gui, PROP_AUTOHIDE_BWS_GLEAF, menuitem);
+}
+
+
+
 void on_popup_search_toggle_tabs_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {
