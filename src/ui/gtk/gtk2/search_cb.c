@@ -188,19 +188,21 @@ on_search_selected(GtkItem *unused_item, gpointer data)
 void
 on_button_search_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
-	gchar *e = STRTRACK(gtk_editable_get_chars(
-		GTK_EDITABLE(lookup_widget(main_window, "entry_search")), 0, -1));
-
-        /*
-         * Even though we might not be on_the_net() yet, record the search.
-         * There is a callback mechanism when a new node is connected, which
-         * will launch the search there if it has not been sent already.
-         *              --patch from Mark Schreiber, 10/01/2002
-         */
-
+	GtkWidget *widget;
+	gchar *e;
+	
 	(void) unused_button;
 	(void) unused_udata;
 
+	/*
+	 * Even though we might not be on_the_net() yet, record the search.
+	 * There is a callback mechanism when a new node is connected, which
+	 * will launch the search there if it has not been sent already.
+	 *              --patch from Mark Schreiber, 10/01/2002
+	 */
+
+	widget = lookup_widget(main_window, "entry_search");
+	e = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(widget), 0, -1));
     g_strstrip(e);
     if ('\0' != *e) {
         filter_t *default_filter;
@@ -248,6 +250,7 @@ on_button_search_clicked(GtkButton *unused_button, gpointer unused_udata)
 			gdk_beep();
 	}
 
+	gtk_widget_grab_focus(widget);
 	G_FREE_NULL(e);
 }
 
