@@ -16,6 +16,8 @@
 #include <arpa/inet.h>
 #include <math.h>
 
+#define IO_STALLED		60		/* If nothing exchanged after that many secs */
+
 gchar gui_tmp[4096];
 
 /* If no search are currently allocated */
@@ -335,32 +337,43 @@ void gui_update_node(struct gnutella_node *n, gboolean force)
 
 	switch (n->status) {
 	case GTA_NODE_CONNECTING:
-		a = "Connecting...";
+		g_snprintf(gui_tmp, sizeof(gui_tmp), "[%d.%d] Connecting...",
+			n->proto_major, n->proto_minor);
+		a = gui_tmp;
 		break;
 
 	case GTA_NODE_HELLO_SENT:
-		a = "Hello sent";
+		g_snprintf(gui_tmp, sizeof(gui_tmp), "[%d.%d] Hello sent",
+			n->proto_major, n->proto_minor);
+		a = gui_tmp;
 		break;
 
 	case GTA_NODE_WELCOME_SENT:
-		a = "Welcome sent";
+		g_snprintf(gui_tmp, sizeof(gui_tmp), "[%d.%d] Welcome sent",
+			n->proto_major, n->proto_minor);
+		a = gui_tmp;
 		break;
 
 	case GTA_NODE_CONNECTED:
-
-		if (n->sent || n->received) {
+		if (n->sent || n->received)
 			g_snprintf(gui_tmp, sizeof(gui_tmp),
-					   "Connected: TX=%-8d\tRX=%-8d\tDrop=%-8d\tBad=%-8d",
-					   n->sent, n->received, n->dropped, n->n_bad);
-			a = gui_tmp;
-		} else
-			a = "Connected";
-
+			   "[%d.%d] Connected: TX=%-8d\tRX=%-8d\tDrop=%-8d\tBad=%-8d",
+			   n->proto_major, n->proto_minor,
+			   n->sent, n->received, n->dropped, n->n_bad);
+		else
+			g_snprintf(gui_tmp, sizeof(gui_tmp), "[%d.%d] Connected",
+			   n->proto_major, n->proto_minor);
+		a = gui_tmp;
 		break;
 
 	case GTA_NODE_REMOVING:
-
 		a = (gchar *) ((n->remove_msg) ? n->remove_msg : "Removing");
+		break;
+
+	case GTA_NODE_RECEIVING_HELLO:
+		g_snprintf(gui_tmp, sizeof(gui_tmp), "[%d.%d] Receiving Hello",
+			n->proto_major, n->proto_minor);
+		a = gui_tmp;
 		break;
 
 	default:
@@ -435,17 +448,13 @@ void gui_update_upload_kill(void)
 		d = (struct upload *)
 			gtk_clist_get_row_data(GTK_CLIST(clist_uploads),
 								   (gint) l->data);
-		if (d->status == GTA_UL_COMPLETE) {
+		if (UPLOAD_IS_COMPLETE(d)) {
 			d = NULL;
 			break;
 		}
 	}
 
-	if (d) {
-		gtk_widget_set_sensitive(button_kill_upload, 1);
-	} else
-		gtk_widget_set_sensitive(button_kill_upload, 0);
-
+	gtk_widget_set_sensitive(button_kill_upload, d ? 1 : 0);
 }
 
 
@@ -459,10 +468,10 @@ void gui_update_download_clear(void)
 		case GTA_DL_COMPLETED:
 		case GTA_DL_ERROR:
 		case GTA_DL_ABORTED:
-			{
-				clear = TRUE;
-				break;
-			}
+			clear = TRUE;
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -473,9 +482,12 @@ void gui_update_download(struct download *d, gboolean force)
 {
 	gchar *a = NULL;
 	gint row;
+	time_t now = time((time_t *) NULL);
 
-	if (d->last_update == time((time_t *) NULL) && !force)
+	if (d->last_gui_update == now && !force)
 		return;
+
+	d->last_gui_update = now;
 
 	switch (d->status) {
 	case GTA_DL_QUEUED:
@@ -519,41 +531,47 @@ void gui_update_download(struct download *d, gboolean force)
 		break;
 
 	case GTA_DL_RECEIVING:
-
 		if (d->pos - d->skip > 0) {
-			gfloat p = 0, bs = time((time_t *) NULL) - d->start_date;
+			gfloat p = 0, bs = now - d->start_date;
 
 			if (d->size)
 				p = ((gfloat) d->pos / (gfloat) d->size) * 100.0;
 
 			if (bs) {
+				gint slen;
 				guint32 s;
+
 				bs = ((d->pos - d->skip) / bs);
 				s = (d->size - d->pos) / bs;
 				bs = bs / 1024.0;
 
-				if (s > 86400)
-					g_snprintf(gui_tmp, sizeof(gui_tmp),
-							   "%.1f%% (%.1f k/s) TR: %ud %uh", p, bs,
-							   s / 86400, (s % 86400) / 3600);
-				else if (s > 3600)
-					g_snprintf(gui_tmp, sizeof(gui_tmp),
-							   "%.1f%% (%.1f k/s) TR: %uh %um", p, bs,
-							   s / 3600, (s % 3600) / 60);
-				else if (s > 60)
-					g_snprintf(gui_tmp, sizeof(gui_tmp),
-							   "%.1f%% (%.1f k/s) TR: %um %us", p, bs,
-							   s / 60, s % 60);
+				slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f%% ", p);
+
+				if (now - d->last_update > IO_STALLED)
+					slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+						"(stalled) ");
 				else
-					g_snprintf(gui_tmp, sizeof(gui_tmp),
-							   "%.1f%% (%.1f k/s) TR: %us", p, bs, s);
+					slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+						"(%.1f k/s) ", bs);
+
+				if (s > 86400)
+					g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+						"TR: %ud %uh", s / 86400, (s % 86400) / 3600);
+				else if (s > 3600)
+					g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+						"TR: %uh %um", s / 3600, (s % 3600) / 60);
+				else if (s > 60)
+					g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+						"TR: %um %us", s / 60, s % 60);
+				else
+					g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+						"TR: %us", s);
 			} else
 				g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f%%", p);
 
 			a = gui_tmp;
 		} else
 			a = "Connected";
-
 		break;
 
 	case GTA_DL_ERROR:
@@ -590,7 +608,9 @@ void gui_update_upload(struct upload *u)
 	gint row;
 	gchar gui_tmp[256];
 
-	if (u->status != GTA_UL_COMPLETE) {
+	if (!UPLOAD_IS_COMPLETE(u)) {
+		gint slen;
+
 		/*
 		 * position divided by 1 percentage point, found by dividing
 		 * the total size by 100
@@ -611,22 +631,27 @@ void gui_update_upload(struct upload *u)
 		tr = ((u->file_size - u->pos) -
 			  ((u->file_size - u->pos) % 1024)) / 1024 / rate;
 
+		slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f%% ", pc);
+
+		if (time((time_t *) 0) - u->last_update > IO_STALLED)
+			slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				"(stalled) ");
+		else
+			slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				"(%.1f k/s) ", rate);
 
 		if (tr > 86400)
-			g_snprintf(gui_tmp, sizeof(gui_tmp),
-					   "%.1f%% (%.1f k/s) TR: %ud %uh", pc, rate,
-					   tr / 86400, (tr % 86400) / 3600);
+			g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				"TR: %ud %uh", tr / 86400, (tr % 86400) / 3600);
 		else if (tr > 3600)
-			g_snprintf(gui_tmp, sizeof(gui_tmp),
-					   "%.1f%% (%.1f k/s) TR: %uh %um", pc, rate,
-					   tr / 3600, (tr % 3600) / 60);
+			g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				"TR: %uh %um", tr / 3600, (tr % 3600) / 60);
 		else if (tr > 60)
-			g_snprintf(gui_tmp, sizeof(gui_tmp),
-					   "%.1f%% (%.1f k/s) TR: %um %us", pc, rate, tr / 60,
-					   tr % 60);
+			g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				"TR: %um %us", tr / 60, tr % 60);
 		else
-			g_snprintf(gui_tmp, sizeof(gui_tmp),
-					   "%.1f%% (%.1f k/s) TR: %us", pc, rate, tr);
+			g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				"TR: %us", tr);
 
 	} else {
 		if (u->last_update != u->start_date) {
