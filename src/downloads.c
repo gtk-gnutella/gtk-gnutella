@@ -1552,7 +1552,8 @@ static gboolean download_ignore_requested(struct download *d)
 		if (!DOWNLOAD_IS_VISIBLE(d))
 			download_gui_add(d);
 		download_stop(d, GTA_DL_ERROR, "Ignoring requested (%s)",
-			reason == IGNORE_SHA1 ? "SHA1" : "Name & Size");
+			reason == IGNORE_SHA1 ? "SHA1" :
+			reason == IGNORE_LIBRARY ? "Already Owned" : "Name & Size");
 		queue_remove_downloads_with_file(fi, d);
 		return TRUE;
 	}
@@ -2278,6 +2279,9 @@ void download_auto_new(gchar *file, guint32 size, guint32 record_index,
 		goto abort_download;
 	case IGNORE_NAMESIZE:
 		reason = "ignore by name & size requested";
+		goto abort_download;
+	case IGNORE_LIBRARY:
+		reason = "SHA1 is already in library";
 		goto abort_download;
 	}
 

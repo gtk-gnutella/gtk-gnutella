@@ -36,6 +36,7 @@
 #include "namesize.h"
 #include "base32.h"
 #include "huge.h"
+#include "share.h"
 
 #include "settings.h"
 #include "gnet_property_priv.h"
@@ -302,8 +303,14 @@ enum ignore_val ignore_is_requested(guchar *file, guint32 size, guchar *sha1)
 
 	g_assert(file != NULL);
 
-	if (sha1 && g_hash_table_lookup(by_sha1, sha1))
-		return IGNORE_SHA1;
+	if (sha1) {
+		struct shared_file *sf;
+		if (g_hash_table_lookup(by_sha1, sha1))
+			return IGNORE_SHA1;
+		sf = shared_file_by_sha1(sha1);
+		if (sf && sf != SHARE_REBUILDING)
+			return IGNORE_LIBRARY;
+	}
 
 	ns.name = file;			/* Must be a basename, without any "/" inside */
 	ns.size = size;
