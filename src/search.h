@@ -111,7 +111,7 @@ struct search {
 	GHook *new_node_hook;
 	guint reissue_timeout_id;
 	guint reissue_timeout;		/* timeout per search, 0 = search stopped */
-	/* XXX Other fields for the filtering will be added here */
+	GList *filters;
 };
 
 /*

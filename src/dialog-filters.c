@@ -8,10 +8,14 @@
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 
+#include <regex.h>
+
 #include "support.h"
 
 #include "search.h"
 #include "filter.h"
+#include "matching.h"
+#include "misc.h"
 
 #include "dialog-filters.h"
 
@@ -28,6 +32,14 @@ struct filter_page_line {
 	GtkWidget *f_box;			/* The filter box */
 	GtkWidget *remove_button;	/* Button to remove the line */
 };
+
+enum filter_size_type {
+	FILTER_BETWEEN,
+	FILTER_LESS,
+	FILTER_GREATER
+};
+
+typedef struct filter *(*filter_factory)(GtkWidget *);
 
 GtkWidget *dialog_filters = NULL;
 GtkWidget *f_notebook = NULL;
@@ -364,6 +376,55 @@ void on_button_remove_filter_clicked(GtkButton * button,
  * displayed page of the filters notebook
  */
 
+/* create a text filter structure from the widgets in BOX
+ * has to conform closely to the interface created in the next function
+ */
+static struct filter *make_text_filter(GtkWidget *box)
+{
+	GList *children;
+	struct filter *f;
+
+	f = g_new(struct filter, 1);
+	f->type = FILTER_TEXT;
+	children = gtk_container_children(GTK_CONTAINER(box));
+	f->u.text.type = (enum filter_text_type)gtk_object_get_user_data((GtkObject *)gtk_menu_get_active(GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(GTK_WIDGET(g_list_nth_data(children, 1)))))));
+	f->u.text.u.match = gtk_editable_get_chars(GTK_EDITABLE(g_list_nth_data(children, 2)), 0, -1);
+	f->u.text.case_sensitive = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(g_list_nth_data(children, 3)));
+	f->positive = (int)gtk_object_get_user_data((GtkObject *)gtk_menu_get_active(GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(GTK_WIDGET(g_list_nth_data(children, 5)))))));
+	if (!f->u.text.case_sensitive)
+		strlower(f->u.text.u.match, f->u.text.u.match);
+	if (f->u.text.type == FILTER_WORDS) {
+		char *s;
+		GList *l = NULL;
+		for (s = strtok(f->u.text.u.match, " \t\n"); s;
+		     s = strtok(NULL,		   " \t\n"))
+			l = g_list_append(l, pattern_compile(s));
+		g_free(f->u.text.u.match);
+		f->u.text.u.words = l;
+	} else if (f->u.text.type == FILTER_REGEXP) {
+		int err;
+		regex_t *re;
+		re = g_new(regex_t, 1);
+		err = regcomp(re, f->u.text.u.match,
+			      REG_NOSUB|(f->u.text.case_sensitive ? 0
+								  : REG_ICASE));
+		if (err) {
+			char buf[1000];
+			regerror(err, re, buf, 1000);
+			g_warning("problem in regular expression: %s"
+				  "; falling back to substring match", buf);
+			f->u.text.type = FILTER_SUBSTR;
+		} else {
+			g_free(f->u.text.u.match);
+			f->u.text.u.re = re;
+		}
+	}
+	/* no "else" because REGEXP can fall back here */
+	if (f->u.text.type == FILTER_SUBSTR)
+		f->u.text.u.pattern = pattern_compile(f->u.text.u.match);
+	return f;
+}
+
 /* Add a text filter */
 
 void on_button_add_text_filter_clicked(GtkButton * button, gpointer search)
@@ -379,6 +440,7 @@ void on_button_add_text_filter_clicked(GtkButton * button, gpointer search)
 	GtkWidget *optionmenu2_menu;
 
 	box = new_filter_create_box(NULL);
+	gtk_object_set_user_data((GtkObject *)box, (gpointer)make_text_filter);
 
 	label = gtk_label_new("If filename");
 	gtk_widget_show(label);
@@ -389,18 +451,28 @@ void on_button_add_text_filter_clicked(GtkButton * button, gpointer search)
 	gtk_box_pack_start(GTK_BOX(box), optionmenu1, FALSE, FALSE, 0);
 	optionmenu1_menu = gtk_menu_new();
 	glade_menuitem = gtk_menu_item_new_with_label("starts with");
+	gtk_object_set_user_data((GtkObject *)glade_menuitem,
+				 (gpointer)FILTER_PREFIX);
 	gtk_widget_show(glade_menuitem);
 	gtk_menu_append(GTK_MENU(optionmenu1_menu), glade_menuitem);
 	glade_menuitem = gtk_menu_item_new_with_label("contains the words");
+	gtk_object_set_user_data((GtkObject *)glade_menuitem,
+				 (gpointer)FILTER_WORDS);
 	gtk_widget_show(glade_menuitem);
 	gtk_menu_append(GTK_MENU(optionmenu1_menu), glade_menuitem);
 	glade_menuitem = gtk_menu_item_new_with_label("ends with");
+	gtk_object_set_user_data((GtkObject *)glade_menuitem,
+				 (gpointer)FILTER_SUFFIX);
 	gtk_widget_show(glade_menuitem);
 	gtk_menu_append(GTK_MENU(optionmenu1_menu), glade_menuitem);
 	glade_menuitem = gtk_menu_item_new_with_label("includes");
+	gtk_object_set_user_data((GtkObject *)glade_menuitem,
+				 (gpointer)FILTER_SUBSTR);
 	gtk_widget_show(glade_menuitem);
 	gtk_menu_append(GTK_MENU(optionmenu1_menu), glade_menuitem);
 	glade_menuitem = gtk_menu_item_new_with_label("matches regex");
+	gtk_object_set_user_data((GtkObject *)glade_menuitem,
+				 (gpointer)FILTER_REGEXP);
 	gtk_widget_show(glade_menuitem);
 	gtk_menu_append(GTK_MENU(optionmenu1_menu), glade_menuitem);
 	gtk_option_menu_set_menu(GTK_OPTION_MENU(optionmenu1),
@@ -423,13 +495,40 @@ void on_button_add_text_filter_clicked(GtkButton * button, gpointer search)
 	gtk_box_pack_start(GTK_BOX(box), optionmenu2, FALSE, FALSE, 0);
 	optionmenu2_menu = gtk_menu_new();
 	glade_menuitem = gtk_menu_item_new_with_label("display");
+	gtk_object_set_user_data((GtkObject *)glade_menuitem,
+				 (gpointer)1);
 	gtk_widget_show(glade_menuitem);
 	gtk_menu_append(GTK_MENU(optionmenu2_menu), glade_menuitem);
 	glade_menuitem = gtk_menu_item_new_with_label("don't display");
+	gtk_object_set_user_data((GtkObject *)glade_menuitem,
+				 (gpointer)0);
 	gtk_widget_show(glade_menuitem);
 	gtk_menu_append(GTK_MENU(optionmenu2_menu), glade_menuitem);
 	gtk_option_menu_set_menu(GTK_OPTION_MENU(optionmenu2),
 							 optionmenu2_menu);
+}
+
+/* create an ip filter structure from the widgets in BOX
+ * has to conform closely to the interface created in the next function
+ */
+static struct filter *make_ip_filter(GtkWidget *box)
+{
+	GList *children;
+	struct filter *f;
+	char *s;
+
+	f = g_new(struct filter, 1);
+	f->type = FILTER_IP;
+	children = gtk_container_children(GTK_CONTAINER(box));
+	s = gtk_editable_get_chars(GTK_EDITABLE(g_list_nth_data(children, 1)), 0, -1);
+	f->u.ip.addr = ntohl(inet_addr(s));
+	g_free(s);
+	s = gtk_editable_get_chars(GTK_EDITABLE(g_list_nth_data(children, 3)), 0, -1);
+	f->u.ip.mask = ntohl(inet_addr(s));
+	g_free(s);
+	f->u.ip.addr &= f->u.ip.mask;
+	f->positive = (int)gtk_object_get_user_data((GtkObject *)gtk_menu_get_active(GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(GTK_WIDGET(g_list_nth_data(children, 5)))))));
+	return f;
 }
 
 /* Add an IP filter */
@@ -447,6 +546,7 @@ void on_button_add_ip_filter_clicked(GtkButton * button, gpointer search)
 	GtkWidget *glade_menuitem;
 
 	box = new_filter_create_box(NULL);
+	gtk_object_set_user_data((GtkObject *)box, (gpointer)make_ip_filter);
 
 	label3 = gtk_label_new("If IP address matches");
 	gtk_widget_show(label3);
@@ -473,14 +573,62 @@ void on_button_add_ip_filter_clicked(GtkButton * button, gpointer search)
 	gtk_box_pack_start(GTK_BOX(box), optionmenu3, FALSE, FALSE, 0);
 	optionmenu3_menu = gtk_menu_new();
 	glade_menuitem = gtk_menu_item_new_with_label("display");
+	gtk_object_set_user_data((GtkObject *)glade_menuitem,
+				 (gpointer)1);
 	gtk_widget_show(glade_menuitem);
 	gtk_menu_append(GTK_MENU(optionmenu3_menu), glade_menuitem);
 	glade_menuitem = gtk_menu_item_new_with_label("don't display");
+	gtk_object_set_user_data((GtkObject *)glade_menuitem,
+				 (gpointer)0);
 	gtk_widget_show(glade_menuitem);
 	gtk_menu_append(GTK_MENU(optionmenu3_menu), glade_menuitem);
 	gtk_option_menu_set_menu(GTK_OPTION_MENU(optionmenu3),
 							 optionmenu3_menu);
 	gtk_option_menu_set_history(GTK_OPTION_MENU(optionmenu3), 1);
+}
+
+/* create a size filter structure from the widgets in BOX
+ * has to conform closely to the interface created in the next function
+ */
+static struct filter *make_size_filter(GtkWidget *box)
+{
+	GList *children;
+	struct filter *f;
+	char *s, *err;
+	enum filter_size_type t;
+	size_t n;
+
+	f = g_new(struct filter, 1);
+	f->type = FILTER_SIZE;
+	children = gtk_container_children(GTK_CONTAINER(box));
+	t = (enum filter_size_type)gtk_object_get_user_data((GtkObject *)gtk_menu_get_active(GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(GTK_WIDGET(g_list_nth_data(children, 1)))))));
+	s = gtk_editable_get_chars(GTK_EDITABLE(g_list_nth_data(children, 2)), 0, -1);
+	n = strtoul(s, &err, 10);
+	if (*err)
+		g_warning("ignoring non-numeric '%s'", err);
+	g_free(s);
+	if (t == FILTER_LESS) {
+		f->u.size.lower = 0;
+		f->u.size.upper = n;
+	} else {
+		f->u.size.lower = n;
+		if (t == FILTER_GREATER)
+			f->u.size.upper = ~0L;
+		else {
+			g_assert(t == FILTER_BETWEEN);
+			s = gtk_editable_get_chars(GTK_EDITABLE(g_list_nth_data(children, 4)), 0, -1);
+			f->u.size.upper = strtoul(s, &err, 10);
+			if (*err)
+				g_warning("ignoring non-numeric '%s'", err);
+			if (f->u.size.upper < n) { /* == f->u.size.upper */
+				f->u.size.lower = f->u.size.upper;
+				f->u.size.upper = n;
+			}
+			g_free(s);
+		}
+	}
+	f->positive = (int)gtk_object_get_user_data((GtkObject *)gtk_menu_get_active(GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(GTK_WIDGET(g_list_nth_data(children, 6)))))));	
+	return f;
 }
 
 /* Add a size filter */
@@ -498,6 +646,7 @@ void on_button_add_size_filter_clicked(GtkButton * button, gpointer search)
 	GtkWidget *optionmenu5_menu;
 
 	box = new_filter_create_box(NULL);
+	gtk_object_set_user_data((GtkObject *)box, (gpointer)make_size_filter);
 
 	label = gtk_label_new("If file size");
 	gtk_widget_show(label);
@@ -508,12 +657,18 @@ void on_button_add_size_filter_clicked(GtkButton * button, gpointer search)
 	gtk_box_pack_start(GTK_BOX(box), optionmenu4, FALSE, FALSE, 0);
 	optionmenu4_menu = gtk_menu_new();
 	glade_menuitem = gtk_menu_item_new_with_label("is between");
+	gtk_object_set_user_data((GtkObject *)glade_menuitem,
+				 (gpointer)FILTER_BETWEEN);
 	gtk_widget_show(glade_menuitem);
 	gtk_menu_append(GTK_MENU(optionmenu4_menu), glade_menuitem);
 	glade_menuitem = gtk_menu_item_new_with_label("is greater than");
+	gtk_object_set_user_data((GtkObject *)glade_menuitem,
+				 (gpointer)FILTER_GREATER);
 	gtk_widget_show(glade_menuitem);
 	gtk_menu_append(GTK_MENU(optionmenu4_menu), glade_menuitem);
 	glade_menuitem = gtk_menu_item_new_with_label("is less than");
+	gtk_object_set_user_data((GtkObject *)glade_menuitem,
+				 (gpointer)FILTER_LESS);
 	gtk_widget_show(glade_menuitem);
 	gtk_menu_append(GTK_MENU(optionmenu4_menu), glade_menuitem);
 	gtk_option_menu_set_menu(GTK_OPTION_MENU(optionmenu4),
@@ -540,9 +695,13 @@ void on_button_add_size_filter_clicked(GtkButton * button, gpointer search)
 	gtk_box_pack_start(GTK_BOX(box), optionmenu5, FALSE, FALSE, 0);
 	optionmenu5_menu = gtk_menu_new();
 	glade_menuitem = gtk_menu_item_new_with_label("display");
+	gtk_object_set_user_data((GtkObject *)glade_menuitem,
+				 (gpointer)1);
 	gtk_widget_show(glade_menuitem);
 	gtk_menu_append(GTK_MENU(optionmenu5_menu), glade_menuitem);
 	glade_menuitem = gtk_menu_item_new_with_label("don't display");
+	gtk_object_set_user_data((GtkObject *)glade_menuitem,
+				 (gpointer)0);
 	gtk_widget_show(glade_menuitem);
 	gtk_menu_append(GTK_MENU(optionmenu5_menu), glade_menuitem);
 	gtk_option_menu_set_menu(GTK_OPTION_MENU(optionmenu5),
@@ -558,8 +717,64 @@ gboolean on_dialog_filters_delete_event(GtkWidget * widget,
 	return TRUE;
 }
 
+static void make_filter(gpointer filter, GList **data)
+{
+	filter_factory factory;
+	GtkWidget *f_box;
+	struct filter *f;
+
+	f_box = ((struct filter_page_line *)filter)->f_box;
+	g_assert(f_box);
+	factory = (filter_factory)gtk_object_get_user_data((GtkObject *)f_box); 
+	g_assert(factory);
+	f = factory(f_box);
+	if (f)
+		*data = g_list_append(*data, (gpointer)f);
+}
+
+static void filter_free(struct filter *f, gpointer data)
+{
+	if (f->type == FILTER_TEXT)
+		switch (f->u.text.type) {
+		case FILTER_WORDS:
+			g_list_foreach(f->u.text.u.words, (GFunc)pattern_free,
+				       NULL);
+			g_list_free(f->u.text.u.words);
+			break;
+		case FILTER_SUBSTR:
+			pattern_free(f->u.text.u.pattern);
+			break;
+		case FILTER_REGEXP:
+			regfree(f->u.text.u.re);
+			break;
+		case FILTER_PREFIX:
+		case FILTER_SUFFIX:
+			g_free(f->u.text.u.match);
+			break;
+		default:
+			g_error("don't know how to free text filter type %d",
+				f->u.text.type);
+		}
+	g_free(f);
+}
+
+static void page_apply(GtkWidget *page, gpointer data)
+{
+	struct filter_page *fp;
+	GList **list;
+
+	fp = (struct filter_page *)gtk_object_get_user_data((GtkObject *)page);
+	g_assert(fp);
+	list = fp->sch ? &fp->sch->filters : &global_filters;
+	g_list_foreach(*list, (GFunc)filter_free, NULL);
+	g_list_free(*list);
+	*list = NULL;
+	g_list_foreach(fp->page_lines, (GFunc)make_filter, list);
+}
+
 void on_button_apply_clicked(GtkButton * button, gpointer user_data)
 {
+	gtk_container_foreach(GTK_CONTAINER(f_notebook), page_apply, NULL);
 	gtk_widget_hide(dialog_filters);
 }
 

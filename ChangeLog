@@ -87,6 +87,8 @@
 - In case the handshaking fails with a remote strange server, read more data
   to be able to trace more of their reply.
 - Now parses the Query Hit packets only once, no matter how many searches open.
+- Integrated filtering patch [From Robert Bihlmeyer].  You may now apply
+  filters to your searches.
 
 # v 0.18   2001.11.19
 

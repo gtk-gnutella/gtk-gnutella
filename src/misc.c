@@ -263,4 +263,13 @@ void dump_hex(FILE *out, gchar *title, gchar *s, gint b)
 	fflush(out);
 }
 
+/* copies str to dst, converting all upper-case characters to lower-case */
+void strlower(gchar *dst, gchar *src)
+{
+	do {
+		*dst++ = tolower(*src);
+	} while (*src++);
+}
+
+
 /* vi: set ts=4: */

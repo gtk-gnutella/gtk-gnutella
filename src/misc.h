@@ -18,5 +18,6 @@ gboolean is_directory(gchar *);
 gchar *guid_hex_str(guchar *guid);
 void dump_hex(FILE *, gchar *, gchar *, gint);
 gchar *short_size(guint32);
+void strlower(gchar *, gchar *);
 
 #endif /* __misc_h__ */
