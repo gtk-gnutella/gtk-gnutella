@@ -79,12 +79,11 @@ void on_clist_uploads_resize_column(GtkCList * clist,
 static void uploads_kill_helper(
     GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data)
 {
-	upload_row_data_t *d;
+	upload_row_data_t *d = NULL;
 
 	gtk_tree_model_get(model, iter, c_ul_data, &d, -1);
 	g_assert(NULL != d);
-	if (d->valid)
-   		upload_kill(d->handle);
+	kill_upload(d, NULL);
 }
 
 void on_button_uploads_kill_clicked(GtkButton *button, gpointer user_data)
