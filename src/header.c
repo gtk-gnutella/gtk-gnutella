@@ -102,12 +102,12 @@ static void normalize(gchar *field)
 	
 	for (s = field, c = *s; c; c = *(++s)) {
 		if (start_word) {
-			if (isalnum(c)) {
+			if (is_ascii_alnum(c)) {
 				start_word = FALSE;
 				*s = toupper(c);
 			}
 		} else {
-			if (isalnum(c))
+			if (is_ascii_alnum(c))
 				*s = tolower(c);
 			else
 				start_word = TRUE;
@@ -383,7 +383,7 @@ gint header_append(header_t *o, const gchar *text, gint len)
 	 */
 
 	c = *p;
-	if (isspace(c)) {
+	if (is_ascii_space(c)) {
 
 		/*
 		 * It's a continuation.
@@ -411,7 +411,7 @@ gint header_append(header_t *o, const gchar *text, gint len)
 
 		p++;								/* First char is known space */
 		while ((c = *p)) {
-			if (!isspace(c))
+			if (!is_ascii_space(c))
 				break;
 			p++;
 		}
@@ -460,13 +460,13 @@ gint header_append(header_t *o, const gchar *text, gint len)
 				*b++ = '\0';			/* Reached end of field */
 				break;					/* Done, buf[] holds field name */
 			}
-			if (isspace(c)) {
+			if (is_ascii_space(c)) {
 				seen_space = TRUE;		/* Only trailing spaces allowed */
 				continue;
 			}
 			if (
-				seen_space ||
-				((iscntrl(c) || !isascii(c) || ispunct(c)) && c != '-')
+				seen_space || (c != '-' &&
+					(!isascii(c) || is_ascii_cntrl(c) || is_ascii_punct(c)))
 			) {
 				o->flags |= HEAD_F_SKIP;
 				return HEAD_BAD_CHARS;
@@ -504,7 +504,7 @@ gint header_append(header_t *o, const gchar *text, gint len)
 
 		p++;							/* First char is field separator */
 		while ((c = *p)) {
-			if (!isspace(c))
+			if (!is_ascii_space(c))
 				break;
 			p++;
 		}
@@ -1004,7 +1004,7 @@ void header_get_feature(const gchar *feature_name, const header_t *header,
 			break;
 
 		pc = (gint) *(guchar *) (buf - 1);
-		if (isspace(pc) || pc == ',' || pc == ';')
+		if (is_ascii_space(pc) || pc == ',' || pc == ';')
 			break;			/* Found it! */
 
 		/*
