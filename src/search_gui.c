@@ -1150,6 +1150,7 @@ gboolean search_gui_search_results_col_widths_changed(property_t prop)
  */
 gboolean search_gui_search_results_col_visible_changed(property_t prop)
 {
+	gint i;
     guint32 *val;
  	GtkCTree *ctree;
     search_t *current_search = search_gui_get_current_search();
@@ -1162,7 +1163,6 @@ gboolean search_gui_search_results_col_visible_changed(property_t prop)
     ctree = (current_search != NULL) ? 
         GTK_CTREE(current_search->ctree) : default_search_ctree;
 
-	gint i;
     if (ctree != NULL)
         for (i = 0; i < GTK_CLIST(ctree)->columns; i++)
             gtk_clist_set_column_visibility(GTK_CLIST(ctree), i, val[i]);
@@ -1365,6 +1365,7 @@ void search_gui_set_current_search(search_t *sch)
     GtkCTreeNode * node;
     GtkWidget *spinbutton_reissue_timeout;
     GtkCList *clist_search;
+	gint i;
     static gboolean locked = FALSE;
     gboolean passive;
     gboolean frozen;
@@ -1393,7 +1394,6 @@ void search_gui_set_current_search(search_t *sch)
         
         ctree = GTK_CTREE(current_search->ctree);
 
-		gint i;
         for (i = 0; i < GTK_CLIST(ctree)->columns; i++) {
             gtk_clist_set_column_visibility
                 (GTK_CLIST(sch->ctree), i, GTK_CLIST(ctree)->column[i].visible);

@@ -176,10 +176,12 @@ void gnet_stats_count_expired(gnutella_node_t *n)
 
 void gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 {
+	guint32 size;
+	guint type;
 	g_assert(reason >= 0 && reason < MSG_DROP_REASON_COUNT);
 
-    guint32 size = n->size + sizeof(n->header);
-	guint type = stats_lut[n->header.function];
+    size = n->size + sizeof(n->header);
+	type = stats_lut[n->header.function];
 
 	DROP_STATS(type, size);
 
@@ -196,9 +198,10 @@ void gnet_stats_count_general(gnutella_node_t *n, gint type, guint32 amount)
 void gnet_stats_count_dropped_nosize(
 	gnutella_node_t *n, msg_drop_reason_t reason)
 {
+	guint type;
 	g_assert(reason >= 0 && reason < MSG_DROP_REASON_COUNT);
 
-	guint type = stats_lut[n->header.function];
+	type = stats_lut[n->header.function];
 
 	DROP_STATS(type, sizeof(n->header));	/* Data part of message not read */
 
