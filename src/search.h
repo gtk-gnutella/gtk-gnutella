@@ -36,9 +36,5 @@ void search_shutdown(void);
 
 gboolean search_results(gnutella_node_t *n);
 
-// FIXME: this actually belongs in nodes.c. It's only used in node_parse!
-void search_extract_host(gnutella_node_t *n, guint32 *ip, guint16 *port);
-
-
 #endif /* __search_h__ */
 

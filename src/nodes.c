@@ -35,13 +35,13 @@
 
 #include <assert.h>
 
+#include "common.h"
 #include "sockets.h"
 #include "search.h"
 #include "share.h"
 #include "routing.h"
 #include "hosts.h"
 #include "nodes.h"
-#include "misc.h"
 #include "getline.h"
 #include "header.h"
 #include "gmsg.h"
@@ -58,7 +58,6 @@
 #include "pmsg.h"
 #include "pcache.h"
 #include "bsched.h"
-#include "atoms.h"
 #include "http.h"
 #include "version.h"
 #include "alive.h"
@@ -66,7 +65,6 @@
 #include "whitelist.h"
 
 #include "gnet_property_priv.h"
-#include "listener.h"
 #include "settings.h"
 
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
@@ -199,6 +197,32 @@ static void node_emit_node_changed
     LISTENER_EMIT(node_changed, n->node_handle, force);
 }
 
+/***
+ *** Private functions
+ ***/
+
+/*
+ * node_extract_host
+ *
+ * Extract IP/port information out of the Query Hit into `ip' and `port'.
+ */
+void node_extract_host(struct gnutella_node *n, guint32 *ip, guint16 *port)
+{
+	guint32 hip;
+	guint16 hport;
+	struct gnutella_search_results *r =
+		(struct gnutella_search_results *) n->data;
+
+	/* Read Query Hit info */
+
+	READ_GUINT32_BE(r->host_ip, hip);		/* IP address */
+	READ_GUINT16_LE(r->host_port, hport);	/* Port */
+
+	*ip = hip;
+	*port = hport;
+}
+
+
 /*
  * node_find_by_handle:
  *
@@ -254,10 +278,6 @@ void node_drop_handle(gnet_node_t nh)
 
     g_hash_table_remove(node_handle_map, (gpointer) nh);
 }
-
-/***
- *** Node timer.
- ***/
 
 /*
  * node_timer
@@ -348,7 +368,6 @@ void node_timer(time_t now)
 /*
  * Network init
  */
-
 void network_init(void)
 {
 	rxbuf_init();
@@ -2529,7 +2548,7 @@ static void node_parse(struct gnutella_node *node)
 			guint32 ip;
 			guint16 port;
 
-			search_extract_host(n, &ip, &port);
+			node_extract_host(n, &ip, &port);
 			host_add_semi_pong(ip, port);
 		}
 		break;

@@ -25,29 +25,28 @@
  *----------------------------------------------------------------------
  */
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
+#include "common.h"
 
+#include "hosts.h" // FIXME: remove this dependency
+
+/* GUI includes  */
 #include "search_gui.h"
 #include "search_cb.h"
 #include "gtk-missing.h"
 #include "gui_property.h"
 #include "gui_property_priv.h"
-#include "atoms.h"
-#include "hosts.h" // FIXME: remove this dependency
-#include "misc.h"
 #include "settings_gui.h"
-#include "zalloc.h"
-
-#include <ctype.h>
-#include <gtk/gtk.h>
-#include <sys/stat.h>
-
 #ifdef USE_SEARCH_XML
 # include "search_xml.h"
 # include <libxml/parser.h>
 #endif
+
+/* System includes */
+#include <ctype.h>
+#include <gtk/gtk.h>
+#include <sys/stat.h>
+
+
 
 // FIXME: duplicate in search.c
 #define MAKE_CODE(a,b,c,d) ( \
@@ -648,80 +647,6 @@ gint search_gui_compare_records(gint sort_col, record_t *r1, record_t *r2)
 }
 
 /*
- * extract_vendor_name
- *
- * Extract vendor name from the results set's trailer, and return the name.
- * If we can't understand the name, return NULL.
- * Otherwise returns the name as a pointer to static data.
- *
- * As a side effect, set the ST_KNOWN_VENDOR in the status flags when the
- * vendor is known.
- */
-// FIXME: duplicate in search.c!
-static gchar *extract_vendor_name(struct results_set * rs)
-{
-	static gchar temp[5];
-	gchar *vendor = NULL;
-	guint32 t;
-	gint i;
-
-	if (rs->vendor[0] == '\0')
-		return NULL;
-
-	READ_GUINT32_BE(rs->vendor, t);
-	rs->status |= ST_KNOWN_VENDOR;
-
-	switch (t) {
-	case T_BEAR: vendor = "Bear";			break;
-	case T_CULT: vendor = "Cultiv8r";		break;
-	case T_FIRE: vendor = "FireFly";		break;
-	case T_FISH: vendor = "PEERahna";		break;
-	case T_GNEW: vendor = "Gnewtellium";	break;
-	case T_GNOT: vendor = "Gnotella";		break;
-	case T_GNUC: vendor = "Gnucleus";		break;
-	case T_GNUT: vendor = "Gnut";			break;
-	case T_GTKG: vendor = "Gtk-Gnut";		break;
-	case T_HSLG: vendor = "Hagelslag";		break;
-	case T_LIME: vendor = "Lime";			break;
-	case T_MACT: vendor = "Mactella";		break;
-	case T_MNAP: vendor = "MyNapster";		break;
-	case T_MMMM: vendor = "Morpheus-v2";	break;
-	case T_MRPH: vendor = "Morpheus";		break;
-	case T_MUTE: vendor = "Mutella";		break;
-	case T_NAPS: vendor = "NapShare";		break;
-	case T_OCFG: vendor = "OpenCola";		break;
-	case T_OPRA: vendor = "Opera";			break;
-	case T_PHEX: vendor = "Phex";			break;
-	case T_QTEL: vendor = "Qtella";			break;
-	case T_RAZA: vendor = "Shareaza";		break;
-	case T_SNUT: vendor = "SwapNut";		break;
-	case T_SWAP: vendor = "Swapper";		break;
-	case T_SWFT: vendor = "Swift";			break;
-	case T_TOAD: vendor = "ToadNode";		break;
-	case T_XOLO: vendor = "Xolox";			break;
-	case T_XTLA: vendor = "Xtella";			break;
-	case T_ZIGA: vendor = "Ziga";			break;
-	default:
-		/* Unknown type, look whether we have all printable ASCII */
-		rs->status &= ~ST_KNOWN_VENDOR;
-		for (i = 0; i < sizeof(rs->vendor); i++) {
-			guchar c = rs->vendor[i];
-			if (isascii(c) && isprint(c))
-				temp[i] = c;
-			else {
-				temp[0] = '\0';
-				break;
-			}
-		}
-		temp[4] = '\0';
-		vendor = temp[0] ? temp : NULL;
-		break;
-	}
-
-	return vendor;
-}
-
-/*
  * search_result_is_dup
  *
  * Check to see whether we already have a record for this file.
@@ -893,7 +818,7 @@ void search_matched(search_t *sch, results_set_t *rs)
     download_color =  &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
         ->fg[GTK_STATE_ACTIVE]);
 
-    vendor = extract_vendor_name(rs);
+    vendor = lookup_vendor_name(rs->vendor);
 
    	if (vendor)
 		g_string_append(vinfo, vendor);
