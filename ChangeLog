@@ -1,5 +1,9 @@
 # since last version
 
+- (2002.08.23 - Vidar)
+ * Added a missing status reset in search.c, which should fix the wrongly
+   set Push flags.
+
 - (2002.08.22 - RAM)
  * Refactored scheduling of chunk ranges, and re-enabled checks for completed
    file in the "done" directory when swarming.
