@@ -40,11 +40,17 @@ RCSID("$Id$");
 
 static gchar gui_tmp[4096];
 
-static GHashTable *ht_nodes_changed = NULL;
+/* 
+ * These hash tables record which information about which nodes has
+ * changed. By using this the number of updates to the gui can be
+ * significantly reduced.
+ */
+static GHashTable *ht_node_info_changed = NULL;
+static GHashTable *ht_node_flags_changed = NULL;
 
 static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row);
 static void nodes_gui_update_node_flags(
-	gnet_node_t n, gnet_node_flags_t *flags);
+	gnet_node_t n, gnet_node_flags_t *flags, gint row);
 
 
 static gboolean nodes_gui_is_visible(void)
@@ -109,19 +115,13 @@ static void nodes_gui_node_info_changed(gnet_node_t n)
 {
     gnet_node_info_t info;
 
-    /* 
-     * Only record update if pane is not visible. Since a GHashTable
-     * can not contain multiple instances of a key, we can just insert.
-     */
-    if (!nodes_gui_is_visible()) {
-        g_hash_table_insert(ht_nodes_changed, 
-            GUINT_TO_POINTER(n), (gpointer) 0x1);
-        return;
-    }
-
+    g_hash_table_insert(ht_node_info_changed, 
+        GUINT_TO_POINTER(n), (gpointer) 0x1);
+#if 0
     node_fill_info(n, &info);
     nodes_gui_update_node_info(&info, -1);
     node_clear_info(&info);
+#endif
 }
 
 /*
@@ -133,8 +133,12 @@ static void nodes_gui_node_flags_changed(gnet_node_t n)
 {
     gnet_node_flags_t flags;
 
+    g_hash_table_insert(ht_node_flags_changed, 
+        GUINT_TO_POINTER(n), (gpointer) 0x1);
+#if 0
     node_fill_flags(n, &flags);
-    nodes_gui_update_node_flags(n, &flags);
+    nodes_gui_update_node_flags(n, &flags, -1);
+#endif
 }
 
 
@@ -192,13 +196,15 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row)
  * nodes_gui_update_node_flags
  *
  */
-static void nodes_gui_update_node_flags(gnet_node_t n, gnet_node_flags_t *flags)
+static void nodes_gui_update_node_flags(
+    gnet_node_t n, gnet_node_flags_t *flags, gint row)
 {
-	gint row;
     GtkCList *clist = GTK_CLIST
         (lookup_widget(main_window, "clist_nodes"));
 
-	row = gtk_clist_find_row_from_data(clist, GUINT_TO_POINTER(n));
+    if (row == -1)
+        row = gtk_clist_find_row_from_data(clist, GUINT_TO_POINTER(n));
+
     if (row != -1) {
         gtk_clist_set_text(clist, row, 1,
 			nodes_gui_common_flags_str(flags));
@@ -240,7 +246,8 @@ void nodes_gui_init(void)
     gtk_widget_set_sensitive
         (lookup_widget(popup_nodes, "popup_nodes_remove"), FALSE);
 
-    ht_nodes_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
+    ht_node_info_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
+    ht_node_flags_changed = g_hash_table_new(g_direct_hash, g_direct_equal);
 
     node_add_node_added_listener(nodes_gui_node_added);
     node_add_node_removed_listener(nodes_gui_node_removed);
@@ -258,9 +265,13 @@ void nodes_gui_shutdown()
     node_remove_node_added_listener(nodes_gui_node_added);
     node_remove_node_removed_listener(nodes_gui_node_removed);
     node_remove_node_info_changed_listener(nodes_gui_node_info_changed);
+    node_remove_node_flags_changed_listener(nodes_gui_node_flags_changed);
 
-    g_hash_table_destroy(ht_nodes_changed);
-    ht_nodes_changed = NULL;
+    g_hash_table_destroy(ht_node_info_changed);
+    g_hash_table_destroy(ht_node_flags_changed);
+
+    ht_node_info_changed = NULL;
+    ht_node_flags_changed = NULL;
 }
 
 /*
@@ -279,7 +290,11 @@ void nodes_gui_remove_node(gnet_node_t n)
      * Make sure node is remove from the "changed" hash table so
      * we don't try an update. 
      */
-    g_hash_table_remove(ht_nodes_changed, GUINT_TO_POINTER(n));
+    g_assert(NULL != ht_node_info_changed);
+    g_assert(NULL != ht_node_flags_changed);
+
+    g_hash_table_remove(ht_node_info_changed, GUINT_TO_POINTER(n));
+    g_hash_table_remove(ht_node_flags_changed, GUINT_TO_POINTER(n));
 
 	row = gtk_clist_find_row_from_data(GTK_CLIST(clist_nodes),
 		GUINT_TO_POINTER(n));
@@ -365,17 +380,25 @@ void nodes_gui_update_nodes_display(time_t now)
         node_get_status(n, &status);
 
         /* 
-         * Update the info too if it has recorded changes.
+         * Update additional info too if it has recorded changes.
          */
-        if (g_hash_table_lookup(ht_nodes_changed, GUINT_TO_POINTER(n))) {
+        if (g_hash_table_lookup(ht_node_info_changed, GUINT_TO_POINTER(n))) {
             gnet_node_info_t info;
 
-            g_hash_table_remove(ht_nodes_changed, GUINT_TO_POINTER(n));
+            g_hash_table_remove(ht_node_info_changed, GUINT_TO_POINTER(n));
             node_fill_info(n, &info);
             nodes_gui_update_node_info(&info, row);
             node_clear_info(&info);
         }
 
+        if (g_hash_table_lookup(ht_node_flags_changed, GUINT_TO_POINTER(n))) {
+            gnet_node_flags_t flags;
+
+            g_hash_table_remove(ht_node_flags_changed, GUINT_TO_POINTER(n));
+            node_fill_flags(n, &flags);
+            nodes_gui_update_node_flags(n, &flags, -1);
+        }
+    
 		/*
 		 * Don't update times if we've already disconnected.
 		 */
