@@ -48,6 +48,7 @@
  */
 
 struct bws_set bws = { NULL, NULL, NULL, NULL };
+static GSList *bws_list = NULL;
 
 #define BW_SLOT_MIN		256		/* Minimum bandwidth/slot for realloc */
 
@@ -181,6 +182,18 @@ static void bsched_free(bsched_t *bs)
 }
 
 /*
+ * bsched_add_stealer
+ *
+ * Add `stealer' as a bandwidth stealer for underused bandwidth in `bs'.
+ */
+static void bsched_add_stealer(bsched_t *bs, bsched_t *stealer)
+{
+	g_assert(bs != stealer);
+
+	bs->stealers = g_slist_prepend(bs->stealers, stealer);
+}
+
+/*
  * bsched_init
  *
  * Initialize global bandwidth schedulers.
@@ -198,6 +211,21 @@ void bsched_init(void)
 
 	bws.gin = bsched_make("G in",
 		BS_T_STREAM, BS_F_READ, bw_gnet_in, 1000);
+
+	bws_list = g_slist_prepend(bws_list, bws.gin);
+	bws_list = g_slist_prepend(bws_list, bws.in);
+	bws_list = g_slist_prepend(bws_list, bws.gout);
+	bws_list = g_slist_prepend(bws_list, bws.out);
+
+	/*
+	 * Allow cross-stealing of unused bandwidth between HTTP/gnet.
+	 */
+
+	bsched_add_stealer(bws.out, bws.gout);
+	bsched_add_stealer(bws.gout, bws.out);
+
+	bsched_add_stealer(bws.in, bws.gin);
+	bsched_add_stealer(bws.gin, bws.in);
 }
 
 /*
@@ -207,10 +235,10 @@ void bsched_init(void)
  */
 void bsched_close(void)
 {
-	bsched_free(bws.out);
-	bsched_free(bws.in);
-	bsched_free(bws.gout);
-	bsched_free(bws.gin);
+	GSList *l;
+
+	for (l = bws_list; l; l = g_slist_next(l))
+		bsched_free(l->data);
 
 	bws.out = bws.in = bws.gout = bws.gin = NULL;
 }
@@ -270,10 +298,10 @@ void bsched_enable_all(void)
  */
 void bsched_shutdown(void)
 {
-	bsched_disable(bws.out);
-	bsched_disable(bws.gout);
-	bsched_disable(bws.in);
-	bsched_disable(bws.gin);
+	GSList *l;
+
+	for (l = bws_list; l; l = g_slist_next(l))
+		bsched_disable(l->data);
 }
 
 /*
@@ -431,6 +459,11 @@ static void bsched_begin_timeslice(bsched_t *bs)
 
 	bs->flags &= ~(BS_F_NOBW|BS_F_FROZEN_SLOT|BS_F_CHANGED_BW);
 
+	if (bs->count)
+		bs->bw_slot = (bs->bw_max + bs->bw_stolen) / bs->count;
+	else
+		bs->bw_slot = 0;
+
 	/*
 	 * If the slot is less than the minimum we can reach by dynamically
 	 * adjusting the bandwidth, then don't bother trying and freeze it.
@@ -450,7 +483,7 @@ static void bsched_bio_add(bsched_t *bs, bio_source_t *bio)
 	bs->sources = g_list_append(bs->sources, bio);
 	bs->count++;
 
-	bs->bw_slot = bs->bw_max / bs->count;
+	bs->bw_slot = (bs->bw_max + bs->bw_stolen) / bs->count;
 
 	/*
 	 * If the slot is less than the minimum we can reach by dynamically
@@ -472,7 +505,7 @@ static void bsched_bio_remove(bsched_t *bs, bio_source_t *bio)
 	bs->count--;
 
 	if (bs->count)
-		bs->bw_slot = bs->bw_max / bs->count;
+		bs->bw_slot = (bs->bw_max + bs->bw_stolen) / bs->count;
 
 	g_assert(bs->count >= 0);
 }
@@ -576,7 +609,7 @@ void bsched_set_bandwidth(bsched_t *bs, gint bandwidth)
 	 * When all bandwidth has been used, disable all sources.
 	 */
 
-	if (bs->bw_actual >= bs->bw_max)
+	if (bs->bw_actual >= (bs->bw_max + bs->bw_stolen))
 		bsched_no_more_bandwidth(bs);
 
 	bs->flags |= BS_F_CHANGED_BW;
@@ -609,7 +642,7 @@ static gint bw_available(bio_source_t *bio, gint len)
 	 * first scheduled sources to eat all the bandwidth.
 	 */
 
-	available = bs->bw_max - bs->bw_actual;
+	available = bs->bw_max + bs->bw_stolen - bs->bw_actual;
 
 	if (
 		!(bs->flags & BS_F_FROZEN_SLOT) &&
@@ -671,7 +704,7 @@ static void bsched_bw_update(bsched_t *bs, gint used)
 	 * When all bandwidth has been used, disable all sources.
 	 */
 
-	if (bs->bw_actual >= bs->bw_max)
+	if (bs->bw_actual >= (bs->bw_max + bs->bw_stolen))
 		bsched_no_more_bandwidth(bs);
 }
 
@@ -1083,9 +1116,11 @@ static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 
 	bs->period_ema += (delay >> 2) - (bs->period_ema >> 2);
 	bs->bw_ema += (bs->bw_actual >> 2) - (bs->bw_ema >> 2);
+	bs->bw_stolen_ema += (bs->bw_stolen >> 2) - (bs->bw_stolen_ema >> 2);
 
 	g_assert(bs->period_ema >= 0);
 	g_assert(bs->bw_ema >= 0);
+	g_assert(bs->bw_stolen_ema >= 0);
 
 	/*
 	 * If scheduler is disabled, we don't need to recompute bandwidth.
@@ -1106,6 +1141,8 @@ static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 	overused = bs->bw_actual - theoric;
 	bs->bw_delta += overused;
 
+	overused -= bs->bw_stolen;		/* Correct for computations below */
+
 	bs->bw_max = bs->bw_per_second * bs->period_ema / 1000;
 
 	/*
@@ -1120,7 +1157,8 @@ static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 	 * period, forget it: allow a full period at the nominal new settings.
 	 */
 
-	correction = bs->bw_ema - theoric;		/* This is the overused "EMA" */
+	/* Forllowing is the overused "EMA" */
+	correction = bs->bw_ema - bs->bw_stolen_ema - theoric;
 	correction = MAX(correction, overused);
 
 	if (correction > 0 && !(bs->flags & BS_F_CHANGED_BW)) {
@@ -1129,19 +1167,16 @@ static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 			bs->bw_max = 0;
 	}
 
-	if (bs->count)
-		bs->bw_slot = bs->bw_max / bs->count;
-	else
-		bs->bw_slot = 0;
-
 	if (dbg > 4) {
 		printf("bsched_timer(%s): delay=%d (EMA=%d), b/w=%d (EMA=%d), "
-			"overused=%d (EMA = %d)\n",
+			"overused=%d (EMA=%d) stolen=%d (EMA=%d)\n",
 			bs->name, delay, bs->period_ema, bs->bw_actual, bs->bw_ema,
-			overused, bs->bw_ema - theoric);
+			overused, bs->bw_ema - bs->bw_stolen_ema - theoric,
+			bs->bw_stolen, bs->bw_stolen_ema);
 		printf("    -> b/w delta=%d, max=%d, slot=%d "
 			"(target %d B/s, %d slot%s, real %.02f B/s)\n",
-			bs->bw_delta, bs->bw_max, bs->bw_slot, bs->bw_per_second, bs->count,
+			bs->bw_delta, bs->bw_max, bs->count ? bs->bw_max / bs->count : 0,
+			bs->bw_per_second, bs->count,
 			bs->count == 1 ? "" : "s", bs->bw_actual * 1000.0 / delay);
 	}
 
@@ -1152,8 +1187,84 @@ static void bsched_heartbeat(bsched_t *bs, GTimeVal *tv)
 new_timeslice:
 
 	bs->bw_last_period = bs->bw_actual;
-	bs->bw_actual = 0;
-	bsched_begin_timeslice(bs);
+	bs->bw_actual = bs->bw_stolen = 0;
+}
+
+/*
+ * bsched_stealbeat
+ *
+ * Periodic stealing beat, occurs after the heartbeat.
+ */
+static void bsched_stealbeat(bsched_t *bs)
+{
+	GSList *l;
+	GSList *all_used = NULL;		/* List of bsched_t that used all b/w */
+	gint all_used_count = 0;		/* Amount of bsched_t that used all b/w */
+	gint all_bw_count = 0;			/* Sum of configured bandwidth */
+	gint steal_count = 0;
+	gint underused;
+
+	g_assert(bs->bw_actual == 0);	/* Heartbeat step must have been done */
+
+	if (bs->stealers == NULL)		/* No stealers */
+		return;
+
+	/*
+	 * Note that we do not use the theoric bandwidth, but bs->bw_max to
+	 * estimate the amount of underused bandwidth.  The reason is that
+	 * bs->bw_max can be corrected due to traffic spikes.
+	 */
+
+	underused = bs->bw_max - bs->bw_last_period;
+
+	if (underused <= 0)				/* Nothing to redistribute */
+		return;
+
+	/*
+	 * Determine who used up all its bandwidth among our stealers.
+	 */
+
+	for (l = bs->stealers; l; l = g_slist_next(l)) {
+		bsched_t *xbs = (bsched_t *) l->data;
+
+		steal_count++;
+
+		if (xbs->bw_last_period >= xbs->bw_max) {
+			all_used = g_slist_prepend(all_used, xbs);
+			all_used_count++;
+			all_bw_count += xbs->bw_max;
+		}
+	}
+
+	/*
+	 * Distribute our available bandwidth proportionally to all the
+	 * schedulers that saturated their bandwidth, or evenly to all the
+	 * stealers if noone saturated.
+	 */
+
+	if (all_used_count == 0) {
+		for (l = bs->stealers; l; l = g_slist_next(l)) {
+			bsched_t *xbs = (bsched_t *) l->data;
+			xbs->bw_stolen += underused / steal_count;
+
+			if (dbg > 4)
+				printf("b/w sched \"%s\" evenly giving %d bytes to \"%s\"\n",
+					bs->name, underused / steal_count, xbs->name);
+		}
+	} else {
+		for (l = all_used; l; l = g_slist_next(l)) {
+			bsched_t *xbs = (bsched_t *) l->data;
+			gdouble amount;
+
+			amount = (gdouble) underused * all_bw_count / (gdouble) xbs->bw_max;
+			xbs->bw_stolen += (gint) amount;
+
+			if (dbg > 4)
+				printf("b/w sched \"%s\" giving %d bytes to \"%s\"\n",
+					bs->name, (gint) amount, xbs->name);
+		}
+		g_slist_free(all_used);
+	}
 }
 
 /*
@@ -1164,12 +1275,32 @@ new_timeslice:
 void bsched_timer(void)
 {
 	GTimeVal tv;
+	GSList *l;
 
 	g_get_current_time(&tv);
 
-	bsched_heartbeat(bws.out, &tv);
-	bsched_heartbeat(bws.in, &tv);
-	bsched_heartbeat(bws.gout, &tv);
-	bsched_heartbeat(bws.gin, &tv);
+	/*
+	 * First pass: compute bandwidth used.
+	 */
+
+	for (l = bws_list; l; l = g_slist_next(l))
+		bsched_heartbeat(l->data, &tv);
+
+	/*
+	 * Second pass: possibly steal bandwidth from schedulers that
+	 * have not used up all their quota.
+	 */
+
+	if (bw_allow_stealing) {
+		for (l = bws_list; l; l = g_slist_next(l))
+			bsched_stealbeat(l->data);
+	}
+
+	/*
+	 * Third pass: begin new timeslice.
+	 */
+
+	for (l = bws_list; l; l = g_slist_next(l))
+		bsched_begin_timeslice(l->data);
 }
 

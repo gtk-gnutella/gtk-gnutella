@@ -54,10 +54,16 @@ struct iovec;
  *
  * Periodically, the scheduler runs to compute the amount available for the
  * next period.
+ *
+ * A list of stealing schedulers can be added to each scheduler.  At the end
+ * of the period, any amount of bandwidth that has been unused will be
+ * given as "stolem" bandwidth to some of the schedulers stealing from us.
+ * Priority is given to schedulers that used up all their bandwidth.
  */
 typedef struct bsched {
 	GTimeVal last_period;				/* Last time we ran our period */
 	GList *sources;						/* List of bio_source_t */
+	GSList *stealers;					/* List of bsched_t stealing bw */
 	gchar *name;						/* Name, for tracing purposes */
 	gint count;							/* Amount of sources */
 	gint type;							/* Scheduling type */
@@ -72,6 +78,8 @@ typedef struct bsched {
 	gint bw_last_period;				/* Bandwidth used last period */
 	gint bw_slot;						/* Basic per-source bandwidth lot */
 	gint bw_ema;						/* EMA of bandwidth really used */
+	gint bw_stolen;						/* Amount we stole this period */
+	gint bw_stolen_ema;					/* EMA of stolen bandwidth */
 	gint bw_delta;						/* Running diff of actual vs. theoric */
 } bsched_t;
 
