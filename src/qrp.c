@@ -2124,8 +2124,8 @@ static gboolean qrt_apply_patch(
 			}
 
 			/*
-			 * At this point, `expansion_slot' points to the next expantion
-			 * point.  Our offset `o' within the array (whose size if the
+			 * At this point, `expansion_slot' points to the next expansion
+			 * point.  Our offset `o' within the array (whose size is the
 			 * shrink_factor) is where the next patch must be applied.
 			 */
 

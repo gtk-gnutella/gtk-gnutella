@@ -60,7 +60,7 @@ static time_t fw_time = 0;				/* When we last became firewalled */
  * To detect switching from firewalled -> non-firewalled, we use incoming
  * connections (checking done in socket_accept()).
  *
- * To detect switching from non-firewalled -> firewalled we arm, a timer
+ * To detect switching from non-firewalled -> firewalled, we arm a timer
  * each time we get an incoming connection.  If we don't get another
  * connection before the timer expires, we might have switched to firewalled
  * mode.
