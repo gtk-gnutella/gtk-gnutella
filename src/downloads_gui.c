@@ -129,6 +129,15 @@ void gui_update_download(struct download *d, gboolean force)
 		a = "Push sent";
 		break;
 
+	case GTA_DL_REQ_SENDING:
+		if (d->req != NULL) {
+			gint pct = (d->req->rptr - d->req->buffer) * 100 / d->req->len;
+			gm_snprintf(tmpstr, sizeof(tmpstr), "Sending request (%d%%)", pct);
+			a = tmpstr;
+		} else
+			a = "Sending request";
+		break;
+
 	case GTA_DL_REQ_SENT:
 		a = "Request sent";
 		break;

@@ -64,13 +64,20 @@ struct dl_key {
 };
 
 struct dl_server {
-	struct dl_key *key;		/* Key properties */
+	struct dl_key *key;			/* Key properties */
 	GList *list[DL_LIST_SZ];	/* Download lists */
 	gint count[DL_LIST_SZ];		/* Amount of downloads in list */
 	const gchar *vendor;		/* Remote server vendor string (atom) */
-	time_t retry_after;		/* Time at which we may retry from this host */
+	time_t retry_after;			/* Time at which we may retry from this host */
 	struct vernum parq_version;	/* Supported queueing version */
 	guint32 attrs;
+};
+
+struct dl_request {			/* Partial HTTP request */
+	gchar *buffer;			/* The whole request */
+	gchar *rptr;			/* Reading pointer */
+	gchar *end;				/* First char after request */
+	gint len;				/* Request total length */
 };
 
 /*
@@ -98,7 +105,8 @@ typedef enum {
     GTA_DL_DONE             = 18,   /* All done! */
     GTA_DL_SINKING          = 19,   /* Sinking HTML reply */
     GTA_DL_ACTIVE_QUEUED    = 20,   /* Actively queued */
-    GTA_DL_PASSIVE_QUEUED   = 21    /* Passively queued */
+    GTA_DL_PASSIVE_QUEUED   = 21,   /* Passively queued */
+    GTA_DL_REQ_SENDING      = 22,   /* Sending HTTP request */
 } download_status_t;
 
 
@@ -127,6 +135,7 @@ struct download {
 	struct gnutella_socket *socket;
 	gint file_desc;			/* FD for writing into downloaded file */
 	guint32 overlap_size;	/* Size of the overlapping window on resume */
+	struct dl_request *req;	/* HTTP request, when partially sent */
 
 	time_t start_date;		/* Download start date */
 	time_t last_update;		/* Last status update or I/O */
@@ -228,12 +237,12 @@ struct download {
 #define DOWNLOAD_IS_WAITING(d)			\
 	(  (d)->status == GTA_DL_TIMEOUT_WAIT)
 
-/* JA, 31 jan 2003 GTA_DL_ACTIVE_QUEUED */
 #define DOWNLOAD_IS_ESTABLISHING(d)		\
 	(  (d)->status == GTA_DL_CONNECTING \
 	|| (d)->status == GTA_DL_PUSH_SENT	\
 	|| (d)->status == GTA_DL_FALLBACK	\
 	|| (d)->status == GTA_DL_REQ_SENT	\
+	|| (d)->status == GTA_DL_REQ_SENDING	\
 	|| (d)->status == GTA_DL_ACTIVE_QUEUED	\
 	|| (d)->status == GTA_DL_SINKING	\
 	|| (d)->status == GTA_DL_HEADERS	)

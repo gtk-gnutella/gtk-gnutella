@@ -319,6 +319,43 @@ static gboolean has_good_sha1(struct download *d)
 	return fi->sha1 == NULL || sha1_eq(fi->sha1, fi->cha1);
 }
 
+/*
+ * dl_req_alloc
+ *
+ * Allocate HTTP request buffer, capable of holding request at `buf', or `len'
+ * bytes, whose `written' bytes have already been sent out.
+ */
+static struct dl_request *dl_req_alloc(gchar *buf, gint len, gint written)
+{
+	struct dl_request *r;
+
+	g_assert(buf);
+	g_assert(len > 0);
+	g_assert(written >= 0 && written < len);
+
+	r = walloc(sizeof(*r));
+	r->buffer = walloc(len);		/* Should be small enough for walloc */
+	r->end = r->buffer + len;
+	r->rptr = r->buffer + written;
+
+	memcpy(r->buffer, buf, len);
+
+	return r;
+}
+
+/*
+ * dl_req_free
+ *
+ * Dispose of HTTP request buffer.
+ */
+static void dl_req_free(struct dl_request *r)
+{
+	g_assert(r);
+
+	wfree(r->buffer, r->len);
+	wfree(r, sizeof(*r));
+}
+
 /* ----------------------------------------- */
 
 /*
@@ -1543,6 +1580,11 @@ void download_stop(struct download *d, guint32 new_status,
 	if (d->bio) {
 		bsched_source_remove(d->bio);
 		d->bio = NULL;
+	}
+
+	if (d->req) {
+		dl_req_free(d->req);
+		d->req = NULL;
 	}
 
 	/* Don't clear ranges if simply queuing, or if completed */
@@ -3105,6 +3147,11 @@ void download_remove(struct download *d)
 	if (d->ranges) {
 		http_range_free(d->ranges);
 		d->ranges = NULL;
+	}
+
+	if (d->req) {
+		dl_req_free(d->req);
+		d->req = NULL;
 	}
 	
 	/* 
@@ -5240,6 +5287,108 @@ static void download_read(gpointer data, gint source, inputevt_cond_t cond)
 }
 
 /*
+ * download_request_sent
+ *
+ * Called when the whole HTTP request has been sent out.
+ */
+static void download_request_sent(struct download *d)
+{
+	/*
+	 * Update status and GUI.
+	 */
+
+	d->last_update = time((time_t *) 0);
+	d->status = GTA_DL_REQ_SENT;
+
+	/*
+	 * Now prepare to read the status line and the headers.
+	 * XXX separate this to swallow 100 continuations?
+	 */
+
+	g_assert(d->io_opaque == NULL);
+
+	io_get_header(d, &d->io_opaque, bws.in, d->socket, IO_SAVE_FIRST,
+		call_download_request, download_start_reading, &download_io_error);
+}
+
+/*
+ * download_write_request
+ *
+ * I/O callback called when we can write more data to the server to finish
+ * sending the HTTP request.
+ */
+static void download_write_request(
+	gpointer data, gint source, inputevt_cond_t cond)
+{
+	struct download *d = (struct download *) data;
+	struct gnutella_socket *s = d->socket;
+	struct dl_request *r = d->req;
+	gint sent;
+	gint rw;
+
+	g_assert(s->gdk_tag);		/* I/O callback still registered */
+	g_assert(r != NULL);
+	g_assert(d->status == GTA_DL_REQ_SENDING);
+
+	if (cond & INPUT_EVENT_EXCEPTION) {
+		/*
+		 * If download is queued with PARQ, don't stop the download on a write
+		 * error or we'd loose the PARQ ID, and the download entry.  If the
+		 * server contacts us back with a QUEUE callback, we could be unable
+		 * to resume!
+		 *		--RAM, 14/07/2003
+		 */
+
+		gchar *msg = "Could not send whole HTTP request";
+
+		if (d->queue_status == NULL)
+			download_stop(d, GTA_DL_ERROR, msg);
+		else
+			download_queue_delay(d, download_retry_busy_delay, msg);
+
+		return;
+	}
+
+	rw = r->end - r->rptr;		/* Data we still have to send */
+
+	if (-1 == (sent = bws_write(bws.out, s->file_desc, r->rptr, rw))) {
+		/*
+		 * If download is queued with PARQ, etc...  [Same as above]
+		 */
+
+		gchar *msg = "Write failed: %s";
+
+		if (d->queue_status == NULL)
+			download_stop(d, GTA_DL_ERROR, msg, g_strerror(errno));
+		else
+			download_queue_delay(d, download_retry_busy_delay,
+				msg, g_strerror(errno));
+		return;
+	} else if (sent < rw) {
+		r->rptr += sent;
+		return;
+	} else if (dbg > 2) {
+		printf("----Sent Request (%s) completely to %s:\n%.*s----\n",
+			d->keep_alive ? "follow-up" : "initial",
+			ip_port_to_gchar(download_ip(d), download_port(d)),
+				r->len, r->buffer);
+		fflush(stdout);
+	}
+
+	/*
+	 * HTTP request was completely sent.
+	 */
+	 
+	g_source_remove(s->gdk_tag);
+	s->gdk_tag = 0;
+
+	dl_req_free(r);
+	d->req = NULL;
+
+	download_request_sent(d);
+}
+
+/*
  * download_send_request
  *
  * Send the HTTP request for a download, then prepare I/O reading callbacks
@@ -5343,6 +5492,16 @@ picked:
 		d->flags &= ~DL_F_URIRES;		/* Clear if not sending /uri-res/N2R? */
 
 	d->flags &= ~DL_F_REPLIED;			/* Will be set if we get a reply */
+
+	/*
+	 * Tell GUI about the selected range, and that we're sending.
+	 */
+
+	d->status = GTA_DL_REQ_SENDING;
+	d->last_update = time((time_t *) 0);
+
+	gui_update_download_range(d);
+	gui_update_download(d, TRUE);
 
 	/*
 	 * Build the HTTP request.
@@ -5518,14 +5677,28 @@ picked:
 		return;
 	} else if (sent < rw) {
 		/*
-		 * Same as above.
+		 * Could not send the whole request, probably because the TCP output
+		 * path is clogged.
 		 */
 
-		if (d->keep_alive)
-			d->server->attrs |= DLS_A_NO_KEEPALIVE;
-
-		download_stop(d, GTA_DL_ERROR, "Partial write: wrote %d of %d bytes",
+		g_warning("partial HTTP request write to %s: wrote %d out of %d bytes",
+			ip_port_to_gchar(download_ip(d), download_port(d)),
 			sent, rw);
+
+		g_assert(d->req == NULL);
+
+		d->req = dl_req_alloc(dl_tmp, rw, sent);
+
+		/*
+		 * Install the writing callback.
+		 */
+
+		g_assert(s->gdk_tag == 0);
+
+		s->gdk_tag = inputevt_add(s->file_desc,
+			(inputevt_cond_t) INPUT_EVENT_WRITE | INPUT_EVENT_EXCEPTION,
+			download_write_request, (gpointer) d);
+
 		return;
 	} else if (dbg > 2) {
 		printf("----Sent Request (%s) to %s:\n%.*s----\n",
@@ -5535,25 +5708,7 @@ picked:
 		fflush(stdout);
 	}
 
-	/*
-	 * Update status and GUI.
-	 */
-
-	d->last_update = time((time_t *) 0);
-	d->status = GTA_DL_REQ_SENT;
-
-	gui_update_download_range(d);
-	gui_update_download(d, TRUE);
-
-	/*
-	 * Now prepare to read the status line and the headers.
-	 * XXX separate this to swallow 100 continuations?
-	 */
-
-	g_assert(d->io_opaque == NULL);
-
-	io_get_header(d, &d->io_opaque, bws.in, s, IO_SAVE_FIRST,
-		call_download_request, download_start_reading, &download_io_error);
+	download_request_sent(d);
 }
 
 /*
@@ -6652,6 +6807,8 @@ void download_close(void)
 			atom_sha1_free(d->sha1);
 		if (d->ranges)
 			http_range_free(d->ranges);
+		if (d->req)
+			dl_req_free(d->req);
         
 		file_info_remove_source(d->file_info, d, TRUE);
 		parq_dl_remove(d);
