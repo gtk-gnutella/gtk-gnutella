@@ -26,6 +26,7 @@
 /*
  * For ntohl and inet_addr
  */
+#include <sys/types.h>
 #include <netinet/in.h> 
 #include <arpa/inet.h>
 

@@ -31,6 +31,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <sys/types.h>
 
 #include "http.h"
 #include "appconfig.h"
