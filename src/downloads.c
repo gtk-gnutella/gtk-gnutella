@@ -3574,6 +3574,50 @@ static gboolean download_check_status(
 }
 
 /*
+ * download_convert_to_urires
+ *
+ * Convert download to /uri-res/N2R? request.
+ *
+ * This is called when we have a /get/index/name URL for the download, yet
+ * we attempted a GET /uri-res/ and either got a 503, or a 2xx return code.
+ * This means the remote server understands /uri-res/ with high probability.
+ *
+ * Converting the download to /uri-res/N2R? means that we get rid of the
+ * old index/name information in the download structure and replace it
+ * with URN_INDEX/URN.  Indeed, to access the download, we only need to issue
+ * a /uri-res request from now on.
+ *
+ * As a side effect, we remove the old index/name information from the download
+ * mesh as well.
+ */
+static void download_convert_to_urires(struct download *d)
+{
+	gchar *name;
+
+	g_assert(d->record_index != URN_INDEX);
+	g_assert(d->sha1 != NULL);
+	g_assert(d->file_info->sha1 == d->sha1);
+
+	/*
+	 * In case it is still recorded under its now obsolete index/name...
+	 */
+
+	dmesh_remove(d->sha1, download_ip(d), download_port(d),
+		d->record_index, d->file_name);
+
+	name = atom_str_get(sha1_base32(d->sha1));
+
+	if (dbg > 2)
+		g_warning("download at %s \"%u/%s\" becomes \"/uri-res/N2R?%s\"",
+			ip_port_to_gchar(download_ip(d), download_port(d)),
+			d->record_index, d->file_name, name);
+	
+	atom_str_free(d->file_name);
+	d->record_index = URN_INDEX;
+	d->file_name = name;
+}
+
+/*
  * extract_retry_after
  *
  * Extract Retry-After delay from header, returning 0 if none.
@@ -3956,6 +4000,16 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 		gint count = header_lines(header);
 		g_snprintf(short_read, sizeof(short_read),
 			"[short %d line%s header] ", count, count == 1 ? "" : "s");
+	}
+
+	/*
+	 * If we made a /uri-res/N2R? request, yet if the download still
+	 * has the old index/name indication, convert it to a /uri-res/.
+	 */
+
+	if (ack_code == 503 || (ack_code >= 200 && ack_code <= 299)) {
+		if (d->record_index != URN_INDEX && (d->flags & DL_F_URIRES))
+			download_convert_to_urires(d);
 	}
 
 	if (ack_code >= 200 && ack_code <= 299) {
