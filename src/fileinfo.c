@@ -1426,7 +1426,8 @@ void file_info_clear_download(struct download *d)
 		}
 	}
 	file_info_merge_adjacent(d->file_info);
-	file_info_store_binary(d->file_info);
+
+	/* No need to flush data to disk, those are transient changes */
 }
 
 /*
