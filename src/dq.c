@@ -468,6 +468,16 @@ dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, gint ncount)
 		if (!NODE_IS_ULTRA(n))
 			continue;
 
+		/*
+		 * Skip node if we're in TX flow-control (query will likely not
+		 * be transmitted before the next timeout, and it could even be
+		 * dropped) or if we're remotely flow-controlled (no queries to
+		 * be sent for now).
+		 */
+
+		if (NODE_IN_TX_FLOW_CONTROL(n) || n->hops_flow == 0)
+			continue;
+
 		if (!qrp_node_can_route(n, dq->qhv))
 			continue;
 
@@ -501,6 +511,16 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, gint ncount)
 			continue;
 
 		if (g_hash_table_lookup(dq->queried, &n->id))
+			continue;
+
+		/*
+		 * Skip node if we're in TX flow-control (query will likely not
+		 * be transmitted before the next timeout, and it could even be
+		 * dropped) or if we're remotely flow-controlled (no queries to
+		 * be sent for now).
+		 */
+
+		if (NODE_IN_TX_FLOW_CONTROL(n) || n->hops_flow == 0)
 			continue;
 
 		nup = &nv[i++];
@@ -954,8 +974,10 @@ dq_send_next(dquery_t *dq)
 		break;
 	}
 
-	if (!sent)
+	if (!sent) {
 		dq_terminate(dq);
+		goto cleanup;
+	}
 
 	/*
 	 * Adjust waiting period if we don't get enough results, indicating
