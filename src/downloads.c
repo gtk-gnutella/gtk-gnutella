@@ -5715,6 +5715,38 @@ static void download_request(
 			return;
 		}
 	} else {
+		const gchar *vendor = download_vendor_str(d);
+
+		if (ack_code == 403 && (*vendor == 'g' || *vendor == '!')) {
+			/*
+			 * GTKG is overzealous: it will send a 403 for PARQ banning
+			 * if we retry too often, but this can happen when GTKG crashes
+			 * and is restarted before the retry timeout expires.
+			 *
+			 * If we did not special case this reply, then someone who
+			 * auto-cleans downloads from his queue on error would loose
+			 * a source due to some error in GTKG, which is... embarrassing!
+			 *
+			 * NB: older GTKG before 2004-04-11 did not emit a Retry-After
+			 * on such 403, so we hardcode a retry timer of 1200, which is
+			 * the largest amount of time one can wait before retrying in
+			 * a queue.
+			 *
+			 *		--RAM, 11/04/2004
+			 */
+			if (
+				(
+					0 == strncmp(vendor, "gtk-gnutella/", 13) ||
+				 	0 == strncmp(vendor, "!gtk-gnutella/", 14)
+				) &&
+				NULL != strstr(ack_message, "removed from PARQ")
+			) {
+				download_queue_delay(d,
+					delay == 0 ?  1200 : delay,
+					"%sHTTP %d %s", short_read, ack_code, ack_message);
+				return;
+			}
+		}
 		switch (ack_code) {
 		case 301:				/* Moved permanently */
 			if (!download_moved_permanently(d, header))
