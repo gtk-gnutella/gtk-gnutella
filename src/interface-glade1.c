@@ -240,6 +240,11 @@ create_main_window (void)
   GtkWidget *viewport11;
   GtkWidget *hbox166;
   GtkWidget *label_dl_running_count;
+  GtkWidget *label533;
+  GtkWidget *label_dl_active_count;
+  GtkWidget *label537;
+  GtkWidget *label_dl_aqueued_count;
+  GtkWidget *label536;
   GtkWidget *checkbutton_dl_show_settings;
   GtkWidget *label_dl_show_settings;
   GtkWidget *scrolledwindow12;
@@ -269,6 +274,8 @@ create_main_window (void)
   GtkWidget *label507;
   GtkWidget *label_dl_qalive_count;
   GtkWidget *label506;
+  GtkWidget *label_dl_pqueued_count;
+  GtkWidget *label539;
   GtkWidget *hbox86;
   GtkWidget *label149;
   GtkWidget *entry_queue_regex;
@@ -2811,7 +2818,7 @@ create_main_window (void)
   gtk_widget_show (hbox166);
   gtk_container_add (GTK_CONTAINER (viewport11), hbox166);
 
-  label_dl_running_count = gtk_label_new (_("[running downloads]"));
+  label_dl_running_count = gtk_label_new (_("[running]"));
   gtk_widget_set_name (label_dl_running_count, "label_dl_running_count");
   gtk_widget_ref (label_dl_running_count);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label_dl_running_count", label_dl_running_count,
@@ -2820,6 +2827,46 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox166), label_dl_running_count, TRUE, TRUE, 0);
   gtk_misc_set_alignment (GTK_MISC (label_dl_running_count), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_dl_running_count), 5, 0);
+
+  label533 = gtk_label_new (_("("));
+  gtk_widget_set_name (label533, "label533");
+  gtk_widget_ref (label533);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label533", label533,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label533);
+  gtk_box_pack_start (GTK_BOX (hbox166), label533, FALSE, FALSE, 0);
+
+  label_dl_active_count = gtk_label_new (_("[active]"));
+  gtk_widget_set_name (label_dl_active_count, "label_dl_active_count");
+  gtk_widget_ref (label_dl_active_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_dl_active_count", label_dl_active_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_dl_active_count);
+  gtk_box_pack_start (GTK_BOX (hbox166), label_dl_active_count, FALSE, FALSE, 0);
+
+  label537 = gtk_label_new (_(", "));
+  gtk_widget_set_name (label537, "label537");
+  gtk_widget_ref (label537);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label537", label537,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label537);
+  gtk_box_pack_start (GTK_BOX (hbox166), label537, FALSE, FALSE, 0);
+
+  label_dl_aqueued_count = gtk_label_new (_("[aqueued]"));
+  gtk_widget_set_name (label_dl_aqueued_count, "label_dl_aqueued_count");
+  gtk_widget_ref (label_dl_aqueued_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_dl_aqueued_count", label_dl_aqueued_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_dl_aqueued_count);
+  gtk_box_pack_start (GTK_BOX (hbox166), label_dl_aqueued_count, FALSE, FALSE, 0);
+
+  label536 = gtk_label_new (_(")"));
+  gtk_widget_set_name (label536, "label536");
+  gtk_widget_ref (label536);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label536", label536,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label536);
+  gtk_box_pack_start (GTK_BOX (hbox166), label536, FALSE, FALSE, 0);
 
   checkbutton_dl_show_settings = gtk_check_button_new ();
   gtk_widget_set_name (checkbutton_dl_show_settings, "checkbutton_dl_show_settings");
@@ -3057,13 +3104,29 @@ create_main_window (void)
   gtk_widget_show (label_dl_qalive_count);
   gtk_box_pack_start (GTK_BOX (hbox169), label_dl_qalive_count, FALSE, FALSE, 0);
 
-  label506 = gtk_label_new (_(" alive)"));
+  label506 = gtk_label_new (_(" alive with "));
   gtk_widget_set_name (label506, "label506");
   gtk_widget_ref (label506);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label506", label506,
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (label506);
   gtk_box_pack_start (GTK_BOX (hbox169), label506, FALSE, FALSE, 0);
+
+  label_dl_pqueued_count = gtk_label_new (_("[pqueued]"));
+  gtk_widget_set_name (label_dl_pqueued_count, "label_dl_pqueued_count");
+  gtk_widget_ref (label_dl_pqueued_count);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label_dl_pqueued_count", label_dl_pqueued_count,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label_dl_pqueued_count);
+  gtk_box_pack_start (GTK_BOX (hbox169), label_dl_pqueued_count, FALSE, FALSE, 0);
+
+  label539 = gtk_label_new (_(" passive)"));
+  gtk_widget_set_name (label539, "label539");
+  gtk_widget_ref (label539);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label539", label539,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label539);
+  gtk_box_pack_start (GTK_BOX (hbox169), label539, FALSE, FALSE, 0);
 
   hbox86 = gtk_hbox_new (FALSE, 4);
   gtk_widget_set_name (hbox86, "hbox86");

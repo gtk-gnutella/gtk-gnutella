@@ -3265,7 +3265,7 @@
 			    <widget>
 			      <class>GtkLabel</class>
 			      <name>label_dl_running_count</name>
-			      <label>[running downloads]</label>
+			      <label>[running]</label>
 			      <justify>GTK_JUSTIFY_CENTER</justify>
 			      <wrap>False</wrap>
 			      <xalign>1</xalign>
@@ -3276,6 +3276,91 @@
 				<padding>0</padding>
 				<expand>True</expand>
 				<fill>True</fill>
+			      </child>
+			    </widget>
+
+			    <widget>
+			      <class>GtkLabel</class>
+			      <name>label533</name>
+			      <label>(</label>
+			      <justify>GTK_JUSTIFY_CENTER</justify>
+			      <wrap>False</wrap>
+			      <xalign>0.5</xalign>
+			      <yalign>0.5</yalign>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			      <child>
+				<padding>0</padding>
+				<expand>False</expand>
+				<fill>False</fill>
+			      </child>
+			    </widget>
+
+			    <widget>
+			      <class>GtkLabel</class>
+			      <name>label_dl_active_count</name>
+			      <label>[active]</label>
+			      <justify>GTK_JUSTIFY_CENTER</justify>
+			      <wrap>False</wrap>
+			      <xalign>0.5</xalign>
+			      <yalign>0.5</yalign>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			      <child>
+				<padding>0</padding>
+				<expand>False</expand>
+				<fill>False</fill>
+			      </child>
+			    </widget>
+
+			    <widget>
+			      <class>GtkLabel</class>
+			      <name>label537</name>
+			      <label>, </label>
+			      <justify>GTK_JUSTIFY_CENTER</justify>
+			      <wrap>False</wrap>
+			      <xalign>0.5</xalign>
+			      <yalign>0.5</yalign>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			      <child>
+				<padding>0</padding>
+				<expand>False</expand>
+				<fill>False</fill>
+			      </child>
+			    </widget>
+
+			    <widget>
+			      <class>GtkLabel</class>
+			      <name>label_dl_aqueued_count</name>
+			      <label>[aqueued]</label>
+			      <justify>GTK_JUSTIFY_CENTER</justify>
+			      <wrap>False</wrap>
+			      <xalign>0.5</xalign>
+			      <yalign>0.5</yalign>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			      <child>
+				<padding>0</padding>
+				<expand>False</expand>
+				<fill>False</fill>
+			      </child>
+			    </widget>
+
+			    <widget>
+			      <class>GtkLabel</class>
+			      <name>label536</name>
+			      <label>)</label>
+			      <justify>GTK_JUSTIFY_CENTER</justify>
+			      <wrap>False</wrap>
+			      <xalign>0.5</xalign>
+			      <yalign>0.5</yalign>
+			      <xpad>0</xpad>
+			      <ypad>0</ypad>
+			      <child>
+				<padding>0</padding>
+				<expand>False</expand>
+				<fill>False</fill>
 			      </child>
 			    </widget>
 			  </widget>
@@ -3657,7 +3742,41 @@
 				  <widget>
 				    <class>GtkLabel</class>
 				    <name>label506</name>
-				    <label> alive)</label>
+				    <label> alive with </label>
+				    <justify>GTK_JUSTIFY_CENTER</justify>
+				    <wrap>False</wrap>
+				    <xalign>0.5</xalign>
+				    <yalign>0.5</yalign>
+				    <xpad>0</xpad>
+				    <ypad>0</ypad>
+				    <child>
+				      <padding>0</padding>
+				      <expand>False</expand>
+				      <fill>False</fill>
+				    </child>
+				  </widget>
+
+				  <widget>
+				    <class>GtkLabel</class>
+				    <name>label_dl_pqueued_count</name>
+				    <label>[pqueued]</label>
+				    <justify>GTK_JUSTIFY_CENTER</justify>
+				    <wrap>False</wrap>
+				    <xalign>0.5</xalign>
+				    <yalign>0.5</yalign>
+				    <xpad>0</xpad>
+				    <ypad>0</ypad>
+				    <child>
+				      <padding>0</padding>
+				      <expand>False</expand>
+				      <fill>False</fill>
+				    </child>
+				  </widget>
+
+				  <widget>
+				    <class>GtkLabel</class>
+				    <name>label539</name>
+				    <label> passive)</label>
 				    <justify>GTK_JUSTIFY_CENTER</justify>
 				    <wrap>False</wrap>
 				    <xalign>0.5</xalign>

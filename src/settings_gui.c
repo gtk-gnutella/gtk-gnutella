@@ -200,6 +200,8 @@ static gboolean library_rebuilding_changed(property_t prop);
 static gboolean sha1_verifying_changed(property_t prop);
 static gboolean file_moving_changed(property_t prop);
 static gboolean dl_running_count_changed(property_t prop);
+static gboolean dl_active_count_changed(property_t prop);
+static gboolean dl_aqueued_count_changed(property_t prop);
 static gboolean gnet_connections_changed(property_t prop);
 static gboolean uploads_count_changed(property_t prop);
 static gboolean downloads_count_changed(property_t prop);
@@ -1858,6 +1860,14 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
+        PROP_DL_PQUEUED_COUNT,
+        update_label,
+        TRUE,
+        "label_dl_pqueued_count",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
         PROP_DL_RUNNING_COUNT,
         dl_running_count_changed,
         TRUE,
@@ -1867,9 +1877,17 @@ static prop_map_t property_map[] = {
     {
         get_main_window,
         PROP_DL_ACTIVE_COUNT,
-        downloads_count_changed,
+        dl_active_count_changed,
         TRUE,
-        NULL,
+        "label_dl_active_count",
+        FREQ_UPDATES, 0
+    },
+    {
+        get_main_window,
+        PROP_DL_AQUEUED_COUNT,
+        dl_aqueued_count_changed,
+        TRUE,
+        "label_dl_aqueued_count",
         FREQ_UPDATES, 0
     },
     {
@@ -3457,14 +3475,40 @@ static gboolean dl_running_count_changed(property_t prop)
     if (val == 0) {
         gtk_label_printf(
             GTK_LABEL(lookup_widget(main_window, "label_dl_running_count")),
-            _("no sources active"));
+            _("no sources"));
     } else {
         gtk_label_printf(
             GTK_LABEL(lookup_widget(main_window, "label_dl_running_count")),
-            _("%u source%s active"), val, (val != 1) ? "s" : "");
+            _("%u source%s"), val, (val != 1) ? "s" : "");
     }
 
 	downloads_count_changed(prop);
+
+	return FALSE;
+}
+
+static gboolean dl_active_count_changed(property_t prop)
+{
+	guint32 val;
+
+    gnet_prop_get_guint32_val(prop, &val);
+	gtk_label_printf(
+		GTK_LABEL(lookup_widget(main_window, "label_dl_active_count")),
+		_("%u active"), val);
+
+	downloads_count_changed(prop);
+
+	return FALSE;
+}
+
+static gboolean dl_aqueued_count_changed(property_t prop)
+{
+	guint32 val;
+
+    gnet_prop_get_guint32_val(prop, &val);
+	gtk_label_printf(
+		GTK_LABEL(lookup_widget(main_window, "label_dl_aqueued_count")),
+		_("%u queued"), val);
 
 	return FALSE;
 }
