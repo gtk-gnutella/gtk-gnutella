@@ -131,7 +131,7 @@ void gui_update_download(struct download *d, gboolean force)
 	case GTA_DL_FALLBACK:
 		{
 			if (d->cproxy != NULL) {
-				struct cproxy *cp = d->cproxy;
+				const struct cproxy *cp = d->cproxy;
 
 				if (cp->done) {
 					if (cp->sent)
@@ -217,7 +217,7 @@ void gui_update_download(struct download *d, gboolean force)
 
 	case GTA_DL_VERIFY_WAIT:
 		g_assert(FILE_INFO_COMPLETE(fi));
-		gm_snprintf(tmpstr, sizeof(tmpstr), "Waiting for SHA1 checking...");
+		g_strlcpy(tmpstr, "Waiting for SHA1 checking...", sizeof(tmpstr));
 		a = tmpstr;
 		break;
 
@@ -253,8 +253,8 @@ void gui_update_download(struct download *d, gboolean force)
 
 			switch (d->status) {
 			case GTA_DL_MOVE_WAIT:
-				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					"; Waiting for moving...");
+				g_strlcpy(&tmpstr[rw], "; Waiting for moving...",
+					sizeof(tmpstr)-rw);
 				break;
 			case GTA_DL_MOVING:
 				gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
