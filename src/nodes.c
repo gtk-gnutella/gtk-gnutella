@@ -222,10 +222,18 @@ void node_remove(struct gnutella_node *n, const gchar * reason, ...)
 		printf("Node %s removed: %s\n", node_ip(n),
 			n->remove_msg ? n->remove_msg : "<no reason>");
 
-	if (dbg > 4)
+	if (dbg > 4) {
 		printf("NODE [%d.%d] %s TX=%d RX=%d Drop=%d Bad=%d\n",
 			n->proto_major, n->proto_minor, node_ip(n),
 			n->sent, n->received, n->dropped, n->n_bad);
+		printf("NODE \"%s%s\" %s PING (drop=%d acpt=%d spec=%d sent=%d) "
+			"PONG (rcvd=%d sent=%d)\n",
+			(n->flags & NODE_F_PING_LIMIT) ? "new" : "old",
+			(n->flags & NODE_F_PING_ALIEN) ? "-alien" : "",
+			node_ip(n),
+			n->n_ping_throttle, n->n_ping_accepted, n->n_ping_special,
+			n->n_ping_sent, n->n_pong_received, n->n_pong_sent);
+	}
 
 	nodes_in_list--;
 	if (n->flags & NODE_F_TMP)
@@ -369,8 +377,8 @@ static void send_node_error(struct gnutella_socket *s, int code, guchar *msg)
 
 	rw = g_snprintf(gnet_response, sizeof(gnet_response),
 		"GNUTELLA/0.6 %d %s\r\n"
-		"User-Agent: gtk-gnutella/%d.%d\r\n\r\n",
-		code, msg, GTA_VERSION, GTA_SUBVERSION);
+		"User-Agent: %s\r\n\r\n",
+		code, msg, version_string);
 
 	if (-1 == (sent = write(s->file_desc, gnet_response, rw)))
 		g_warning("Unable to send back error %d (%s) to node %s: %s",
@@ -664,6 +672,7 @@ static void node_process_handshake_header(struct io_header *ih)
 	gchar gnet_response[1024];
 	gint rw;
 	gint sent;
+	gchar *field;
 
 	if (dbg) {
 		printf("Got incoming handshaking headers from node %s:\n",
@@ -671,10 +680,18 @@ static void node_process_handshake_header(struct io_header *ih)
 		header_dump(ih->header, stdout);
 	}
 
-	// XXX
-	if (dbg) {
-		gchar *ua = header_get(ih->header, "User-Agent");
-		printf("Node software = %s\n", ua ? ua : "<none>");
+	/*
+	 * Handle common header fields.
+	 */
+
+	field = header_get(ih->header, "Pong-Caching");
+	if (field) {
+		guint major, minor;
+		sscanf(field, "%u.%u", &major, &minor);
+		if (major > 0 || minor > 1)
+			g_warning("node %s claims Pong-Caching version %u.%u",
+				node_ip(n), major, minor);
+		n->flags |= NODE_F_PING_LIMIT;
 	}
 
 	/*
@@ -683,11 +700,11 @@ static void node_process_handshake_header(struct io_header *ih)
 
 	rw = g_snprintf(gnet_response, sizeof(gnet_response),
 		"GNUTELLA/0.6 200 OK\r\n"
-		"User-Agent: gtk-gnutella/%d.%d\r\n"
+		"User-Agent: %s\r\n"
 		"Pong-Caching: 0.1\r\n"
 		"X-Comment: This is still experimental\r\n"
 		"\r\n",
-		GTA_VERSION, GTA_SUBVERSION);
+		version_string);
 
 	/*
 	 * When sending a handshake reply, we might not be able to transmit the
