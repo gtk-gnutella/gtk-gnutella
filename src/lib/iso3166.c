@@ -46,7 +46,8 @@ static const struct {
 	const char cc[3];
 	const char *country;
 } iso3166_tab[] = {
-	{ "a2", N_("Anonymizing proxies and Satellite providers") },
+	{ "a1", N_("Anonymizing proxies") },
+	{ "a2", N_("Satellite providers") },
 	{ "af", N_("Afghanistan") },
 	{ "al", N_("Albania, People's Socialist Republic of") },
 	{ "dz", N_("Algeria, People's Democratic Republic of") },
