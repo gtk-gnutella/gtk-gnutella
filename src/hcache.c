@@ -76,8 +76,6 @@ static gchar *files[HCACHE_MAX] = { "hosts", "ultras" };
 static gchar *names[HCACHE_MAX] = { "regular", "ultra" };
 static gpointer bg_reader[HCACHE_MAX] = { NULL, NULL };
 
-gchar h_tmp[1024];
-
 static void hcache_remove_all(struct hostcache *hc);
 
 /*
@@ -750,6 +748,8 @@ static bgret_t read_step(gpointer h, gpointer u, gint ticks)
 	gint max_read;
 	gint count;
 	gint i;
+	static gchar h_tmp[1024];
+
 
 	g_assert(rctx->magic == READ_MAGIC);
 	g_assert(rctx->fd);
@@ -766,7 +766,7 @@ static bgret_t read_step(gpointer h, gpointer u, gint ticks)
 	for (i = 0; i < count; i++) {
 		if (fgets(h_tmp, sizeof(h_tmp) - 1, rctx->fd)) { /* NUL appended */
 			guint32 ip;
-			gint16 port;
+			guint16 port;
 
 			if (gchar_to_ip_port(h_tmp, &ip, &port)) {
 				if (hc->type == HCACHE_ULTRA)
@@ -827,7 +827,9 @@ void hcache_retrieve(hcache_type_t type)
 	hc = caches[type];
 
 	{
-		file_path_t fp = { settings_config_dir(), hc->filename };
+		file_path_t fp;
+		
+		file_path_set(&fp, settings_config_dir(), hc->filename);
 		fd = file_config_open_read("hosts", &fp, 1);
 	}
 
