@@ -35,6 +35,7 @@
 #include "sq.h"
 #include "mq.h"
 #include "routing.h"
+#include "extensions.h"
 
 RCSID("$Id$");
 
@@ -278,6 +279,54 @@ void gmsg_split_sendto_all_but_one(GSList *l, struct gnutella_node *n,
 }
 
 /*
+ * gmsg_split_sendto_all_but_one_ggep
+ *
+ * Same as gmsg_split_sendto_all_but_one(), but the message must not be
+ * forwarded as-is to nodes not supporting GGEP: it must be truncated to
+ * its `regular_size' size first.
+ */
+static void gmsg_split_sendto_all_but_one_ggep(
+	GSList *l,
+	struct gnutella_node *n,
+	guchar *head, guchar *data, guint32 size, gint regular_size)
+{
+	pmsg_t *mb = gmsg_split_to_pmsg(head, data, size);
+	pmsg_t *mb_stripped = NULL;
+
+	g_assert(((struct gnutella_header *) head)->ttl > 0);
+	g_assert(size >= regular_size);
+
+	/* relayed broadcasted message, cannot be sent with hops=0 */
+
+	for (/* empty */; l; l = l->next) {
+		struct gnutella_node *dn = (struct gnutella_node *) l->data;
+		if (dn == n)
+			continue;
+		if (!NODE_IS_WRITABLE(dn))
+			continue;
+		if (NODE_CAN_GGEP(dn))
+			mq_putq(dn->outq, pmsg_clone(mb));
+		else {
+			if (mb_stripped == NULL) {
+				struct gnutella_header nhead;
+
+				memcpy(&nhead, head, HEADER_SIZE);
+				WRITE_GUINT32_LE(regular_size, nhead.size);
+				mb_stripped =
+					gmsg_split_to_pmsg((guchar *) &nhead, data, regular_size);
+			}
+			mq_putq(dn->outq, pmsg_clone(mb_stripped));
+		}
+	}
+
+	pmsg_free(mb);
+
+	if (mb_stripped != NULL)
+		pmsg_free(mb_stripped);
+}
+
+
+/*
  * gmsg_sendto_route
  *
  * Send message held in current node according to route specification.
@@ -294,6 +343,42 @@ void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt)
 	case ROUTE_ALL_BUT_ONE:
 		gmsg_split_sendto_all_but_one(sl_nodes, rt->node,
 			(guchar *) &n->header, n->data, n->size + HEADER_SIZE);
+		break;
+	default:
+		g_error("unknown route destination: %d", rt->type);
+	}
+}
+
+/*
+ * gmsg_sendto_route_ggep
+ *
+ * Same as gmsg_sendto_route() but if the node did not claim support of GGEP
+ * extensions in pings, pongs and pushes, strip the GGEP payload before
+ * forwarding the message.
+ */
+void gmsg_sendto_route_ggep(
+	struct gnutella_node *n, struct route_dest *rt, gint regular_size)
+{
+	g_assert(regular_size >= 0);
+
+	switch (rt->type) {
+	case ROUTE_NONE:
+		break;
+	case ROUTE_ONE:
+		if (NODE_CAN_GGEP(rt->node))
+			gmsg_split_sendto_one(rt->node,
+				(guchar *) &n->header, n->data, n->size + HEADER_SIZE);
+		else {
+			WRITE_GUINT32_LE(regular_size, n->header.size);
+			gmsg_split_sendto_one(rt->node,
+				(guchar *) &n->header, n->data, regular_size + HEADER_SIZE);
+			WRITE_GUINT32_LE(n->size, n->header.size);
+		}
+		break;
+	case ROUTE_ALL_BUT_ONE:
+		gmsg_split_sendto_all_but_one_ggep(sl_nodes, rt->node,
+			(guchar *) &n->header, n->data, n->size + HEADER_SIZE,
+			regular_size);
 		break;
 	default:
 		g_error("unknown route destination: %d", rt->type);
@@ -496,5 +581,58 @@ static void gmsg_split_dump(FILE *out, guchar *head, guchar *data, guint32 size)
 	g_assert(size >= HEADER_SIZE);
 
 	dump_hex(out, gmsg_infostr(head), data, size - HEADER_SIZE);
+}
+
+/*
+ * gmsg_check_ggep
+ *
+ * Check that current message has an extra payload made of GGEP only, and
+ * whose total size is not exceeding `maxsize'.  The `regsize' value is the
+ * normal payload length of the message (e.g. 0 for a ping).
+ *
+ * Returns TRUE if there is a GGEP extension, and only that after the
+ * regular payload, with a size no greater than `maxsize'.
+ */
+gboolean gmsg_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
+{
+	extvec_t exv[MAX_EXTVEC];
+	gint exvcnt;
+	gchar *start;
+	gint len;
+	gint i;
+
+	len = n->size - regsize;				/* Extension length */
+
+	if (len > maxsize)
+		return FALSE;
+
+	start = n->data + regsize;
+	exvcnt = ext_parse(start, len, exv, MAX_EXTVEC);
+
+	/*
+	 * Assume that if we have MAX_EXTVEC, it's just plain garbage.
+	 */
+
+	if (exvcnt == MAX_EXTVEC) {
+		g_warning("%s has %d extensions!", gmsg_infostr(&n->header), exvcnt);
+		if (dbg)
+			ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
+		return FALSE;
+	}
+
+	/*
+	 * Ensure we have only GGEP extensions in there.
+	 */
+
+	for (i = 0; i < exvcnt; i++) {
+		if (exv[i].ext_type != EXT_GGEP) {
+			g_warning("%s has non-GGEP extensions!", gmsg_infostr(&n->header));
+			if (dbg)
+				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
+			return FALSE;
+		}
+	}
+
+	return TRUE;
 }
 

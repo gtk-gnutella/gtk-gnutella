@@ -174,10 +174,11 @@ typedef struct gnutella_node {
 #define NODE_A_QHD_NO_VTAG	0x00000008	/* Servent has no vendor tag in QHD */
 #define NODE_A_RX_INFLATE	0x00000010	/* Reading compressed data */
 #define NODE_A_TX_DEFLATE	0x00000020	/* Sending compressed data */
-#define NODE_A_CAN_ULTRA	0x00000040	/* Node is ultra capable */
-#define NODE_A_ULTRA		0x00000100	/* Node wants to be an Ultrapeer */
-#define NODE_A_NO_ULTRA		0x00000200	/* Node is NOT ultra capable */
+#define NODE_A_ULTRA		0x00000040	/* Node wants to be an Ultrapeer */
+#define NODE_A_NO_ULTRA		0x00000080	/* Node is NOT ultra capable */
 
+#define NODE_A_CAN_GGEP		0x20000000	/* Node supports big pongs, etc.. */
+#define NODE_A_CAN_ULTRA	0x40000000	/* Node is ultra capable */
 #define NODE_A_CAN_INFLATE	0x80000000	/* Node capable of inflating */
 
 /*
@@ -242,6 +243,8 @@ typedef struct gnutella_node {
 #define NODE_RX_COMPRESSION_RATIO(n)	\
 	((n)->rx_inflated ?					\
 		(double) ((n)->rx_inflated - (n)->rx_given) / (n)->rx_inflated : 0.0)
+
+#define NODE_CAN_GGEP(n)	((n)->attrs & NODE_A_CAN_GGEP)
 
 /*
  * Peer inspection macros

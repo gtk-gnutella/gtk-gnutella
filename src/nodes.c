@@ -73,6 +73,7 @@ RCSID("$Id$");
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
 #define NODE_SEND_BUFSIZE		4096	/* TCP send buffer size - 4K */
 #define NODE_RECV_BUFSIZE		114688	/* TCP receive buffer size - 112K */
+#define MAX_GGEP_PAYLOAD		1024	/* In ping, pong, push */
 
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define SHUTDOWN_GRACE_DELAY	120	/* Grace period for shutdowning nodes */
@@ -1911,6 +1912,16 @@ static void node_process_handshake_header(
 		n->attrs |= NODE_A_BYE_PACKET;
 	}
 
+	/* GGEP -- support for big pings, pongs and pushes */
+
+	field = header_get(head, "Ggep");
+	if (field) {
+		guint major, minor;
+		sscanf(field, "%u.%u", &major, &minor);
+		if (major > 0 || (major == 0 && minor >= 5))
+			n->attrs |= NODE_A_CAN_GGEP;
+	}
+
 	/*
 	 * Remote-IP -- IP address of this node as seen from remote node
 	 *
@@ -2135,6 +2146,7 @@ static void node_process_handshake_header(
 			"User-Agent: %s\r\n"
 			"Pong-Caching: 0.1\r\n"
 			"Bye-Packet: 0.1\r\n"
+			"GGEP: 0.5\r\n"
 			"Remote-IP: %s\r\n"
 			"Accept-Encoding: deflate\r\n"
 			"%s"
@@ -2565,6 +2577,8 @@ static void node_parse(struct gnutella_node *node)
 {
 	static struct gnutella_node *n;
 	gboolean drop = FALSE;
+	gboolean has_ggep = FALSE;
+	gint regular_size = -1;			/* -1 signals: regular size */
 	struct route_dest dest;
 
 	g_return_if_fail(node);
@@ -2610,16 +2624,12 @@ static void node_parse(struct gnutella_node *node)
 
 	switch (n->header.function) {
 	case GTA_MSG_INIT:
-        if (n->size) {
-			drop = TRUE;
-			gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
-        }
+        if (n->size)
+			regular_size = 0;		/* Will check further below */
 		break;
 	case GTA_MSG_INIT_RESPONSE:
-        if (n->size != sizeof(struct gnutella_init_response)) {
-			drop = TRUE;
-            gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
-        }
+        if (n->size != sizeof(struct gnutella_init_response))
+			regular_size = sizeof(struct gnutella_init_response);
 		break;
 	case GTA_MSG_BYE:
 		if (n->header.hops != 0 || n->header.ttl != 1) {
@@ -2631,10 +2641,8 @@ static void node_parse(struct gnutella_node *node)
 		}
 		break;
 	case GTA_MSG_PUSH_REQUEST:
-        if (n->size != sizeof(struct gnutella_push_request)) {
-			drop = TRUE;
-            gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
-        }
+        if (n->size != sizeof(struct gnutella_push_request))
+			regular_size = sizeof(struct gnutella_push_request);
 		break;
 	case GTA_MSG_SEARCH:
 		if (n->size <= 3) {	/* At least speed(2) + NUL(1) */
@@ -2669,6 +2677,18 @@ static void node_parse(struct gnutella_node *node)
 			gmsg_log_bad(n, "unknown message type");
 		n->n_bad++;
 		break;
+	}
+
+	/*
+	 * If message has not a regular size, check for a valid GGEP extension.
+	 */
+
+	if (regular_size != -1) {
+		has_ggep = gmsg_check_ggep(n, MAX_GGEP_PAYLOAD, regular_size);
+		if (!has_ggep) {
+			drop = TRUE;
+			gnet_stats_count_dropped(n, MSG_DROP_BAD_SIZE);
+		}
 	}
 
 	/*
@@ -2753,8 +2773,18 @@ static void node_parse(struct gnutella_node *node)
 		return;				/* The node has been removed during processing */
 
 	if (!drop) {
-		if (current_peermode != NODE_P_LEAF)
-			gmsg_sendto_route(n, &dest);	/* Propagate message, if needed */
+		if (current_peermode != NODE_P_LEAF) {
+			/*
+			 * Propagate message, if needed
+			 */
+
+			g_assert(regular_size == -1 || has_ggep);
+
+			if (has_ggep)
+				gmsg_sendto_route_ggep(n, &dest, regular_size);
+			else
+				gmsg_sendto_route(n, &dest);
+		}
 	} else {
 		if (dbg > 3)
 			gmsg_log_dropped(&n->header, "from %s", node_ip(n));
@@ -2793,6 +2823,7 @@ void node_init_outgoing(struct gnutella_node *n)
 			"User-Agent: %s\r\n"
 			"Pong-Caching: 0.1\r\n"
 			"Bye-Packet: 0.1\r\n"
+			"GGEP: 0.5\r\n"
 			"Accept-Encoding: deflate\r\n"
 			"X-Live-Since: %s\r\n"
 			"%s"

@@ -61,6 +61,10 @@ gchar *gmsg_infostr(gpointer head);
 void gmsg_log_dropped(gpointer head, gchar *reason, ...);
 void gmsg_log_bad(struct gnutella_node *n, gchar *reason, ...);
 
+gboolean gmsg_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize);
+void gmsg_sendto_route_ggep(
+	struct gnutella_node *n, struct route_dest *rt, gint regular_size);
+
 #endif	/* __gmsg_h__ */
 
 /* vi: set ts=4: */
