@@ -2363,7 +2363,13 @@ static gboolean update_clist_col_widths(property_t prop)
     return FALSE;
 }
 
-#ifdef USE_GTK2
+/* FIXME: Dummy function; verify whether we need it all. */
+static gboolean update_treeview_col_widths(property_t prop)
+{
+	return FALSE;
+}
+
+#if 0
 static gboolean update_treeview_col_widths(property_t prop)
 {
     GtkWidget *w;
@@ -2412,7 +2418,8 @@ static gboolean update_treeview_col_widths(property_t prop)
     g_free(val);
     return FALSE;
 }
-#endif /* USE_GTK2 */
+#endif /* 0 */
+
 static gboolean update_window_geometry(property_t prop)
 {
     GtkWidget *w;
