@@ -225,6 +225,14 @@ static void bsched_has_bandwidth(bsched_t *bs)
 	}
 
 	bs->flags &= ~(BS_F_NOBW|BS_F_FROZEN_SLOT);
+
+	/*
+	 * If the slot is less than the minimum we can reach by dynamically
+	 * adjusting the bandwidth, then don't bother trying and freeze it.
+	 */
+
+	if (bs->bw_slot < BW_SLOT_MIN)
+		bs->flags |= BS_F_FROZEN_SLOT;
 }
 
 /*
@@ -238,8 +246,14 @@ static void bsched_bio_add(bsched_t *bs, bio_source_t *bio)
 	bs->count++;
 
 	bs->bw_slot = bs->bw_max / bs->count;
+
+	/*
+	 * If the slot is less than the minimum we can reach by dynamically
+	 * adjusting the bandwidth, then don't bother trying and freeze it.
+	 */
+
 	if (bs->bw_slot < BW_SLOT_MIN)
-		bs->bw_slot = BW_SLOT_MIN;
+		bs->flags |= BS_F_FROZEN_SLOT;
 }
 
 /*
@@ -252,11 +266,8 @@ static void bsched_bio_remove(bsched_t *bs, bio_source_t *bio)
 	bs->sources = g_list_remove(bs->sources, bio);
 	bs->count--;
 
-	if (bs->count) {
+	if (bs->count)
 		bs->bw_slot = bs->bw_max / bs->count;
-		if (bs->bw_slot < BW_SLOT_MIN)
-			bs->bw_slot = BW_SLOT_MIN;
-	}
 
 	g_assert(bs->count >= 0);
 }
@@ -352,6 +363,8 @@ static gint bw_available(bio_source_t *bio, gint len)
 
 		/*
 		 * It's not worth redistributing less than BW_SLOT_MIN bytes per slot.
+		 * If we ever drop below that value, freeze the slot value to prevent
+		 * further redistribution.
 		 */
 
 		if (slot > BW_SLOT_MIN) {
@@ -367,7 +380,7 @@ static gint bw_available(bio_source_t *bio, gint len)
 	 * If nothing is available, disable all sources.
 	 */
 
-	if (available <= BW_SLOT_MIN) {
+	if (available <= 0) {
 		bsched_no_more_bandwidth(bs);
 		available = 0;
 	}
@@ -530,11 +543,9 @@ static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
 			bs->bw_max = 0;
 	}
 
-	if (bs->count) {
+	if (bs->count)
 		bs->bw_slot = bs->bw_max / bs->count;
-		if (bs->bw_slot < BW_SLOT_MIN)
-			bs->bw_slot = BW_SLOT_MIN;
-	} else
+	else
 		bs->bw_slot = 0;
 
 	if (dbg > 4) {		// XXX dbg > 5
