@@ -1918,11 +1918,130 @@
 		<handler>on_button_search_clicked</handler>
 		<last_modification_time>Sun, 26 Mar 2000 17:38:58 GMT</last_modification_time>
 	      </signal>
-	      <label> Search </label>
+	      <label> New search </label>
 	      <child>
 		<padding>0</padding>
 		<expand>False</expand>
 		<fill>False</fill>
+	      </child>
+	    </widget>
+	  </widget>
+
+	  <widget>
+	    <class>GtkTable</class>
+	    <name>table2</name>
+	    <rows>1</rows>
+	    <columns>4</columns>
+	    <homogeneous>False</homogeneous>
+	    <row_spacing>0</row_spacing>
+	    <column_spacing>8</column_spacing>
+	    <child>
+	      <padding>0</padding>
+	      <expand>False</expand>
+	      <fill>False</fill>
+	    </child>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <name>button_search_close</name>
+	      <sensitive>False</sensitive>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>clicked</name>
+		<handler>on_button_search_close_clicked</handler>
+		<last_modification_time>Sat, 06 May 2000 20:41:36 GMT</last_modification_time>
+	      </signal>
+	      <label>Close this search</label>
+	      <child>
+		<left_attach>3</left_attach>
+		<right_attach>4</right_attach>
+		<top_attach>0</top_attach>
+		<bottom_attach>1</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>False</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkButton</class>
+	      <name>button_search_filter</name>
+	      <sensitive>False</sensitive>
+	      <can_focus>True</can_focus>
+	      <signal>
+		<name>clicked</name>
+		<handler>on_button_search_filter_clicked</handler>
+		<last_modification_time>Sat, 06 May 2000 20:41:27 GMT</last_modification_time>
+	      </signal>
+	      <label>Filter results</label>
+	      <child>
+		<left_attach>2</left_attach>
+		<right_attach>3</right_attach>
+		<top_attach>0</top_attach>
+		<bottom_attach>1</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>False</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkLabel</class>
+	      <name>label79</name>
+	      <label>Actives searches:</label>
+	      <justify>GTK_JUSTIFY_CENTER</justify>
+	      <wrap>False</wrap>
+	      <xalign>0.5</xalign>
+	      <yalign>0.5</yalign>
+	      <xpad>0</xpad>
+	      <ypad>0</ypad>
+	      <child>
+		<left_attach>0</left_attach>
+		<right_attach>1</right_attach>
+		<top_attach>0</top_attach>
+		<bottom_attach>1</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>False</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>False</xfill>
+		<yfill>False</yfill>
+	      </child>
+	    </widget>
+
+	    <widget>
+	      <class>GtkOptionMenu</class>
+	      <name>option_menu_search</name>
+	      <sensitive>False</sensitive>
+	      <can_focus>True</can_focus>
+	      <items>No search yet
+</items>
+	      <initial_choice>0</initial_choice>
+	      <child>
+		<left_attach>1</left_attach>
+		<right_attach>2</right_attach>
+		<top_attach>0</top_attach>
+		<bottom_attach>1</bottom_attach>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+		<xexpand>True</xexpand>
+		<yexpand>False</yexpand>
+		<xshrink>False</xshrink>
+		<yshrink>False</yshrink>
+		<xfill>True</xfill>
+		<yfill>False</yfill>
 	      </child>
 	    </widget>
 	  </widget>
@@ -1935,7 +2054,7 @@
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
-	      <fill>True</fill>
+	      <fill>False</fill>
 	    </child>
 
 	    <widget>
@@ -2017,12 +2136,15 @@
 	  </widget>
 
 	  <widget>
-	    <class>GtkScrolledWindow</class>
-	    <name>scrolledwindow4</name>
-	    <hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-	    <vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-	    <hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-	    <vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
+	    <class>GtkNotebook</class>
+	    <name>notebook_search_results</name>
+	    <show_tabs>False</show_tabs>
+	    <show_border>False</show_border>
+	    <tab_pos>GTK_POS_TOP</tab_pos>
+	    <scrollable>False</scrollable>
+	    <tab_hborder>2</tab_hborder>
+	    <tab_vborder>2</tab_vborder>
+	    <popup_enable>False</popup_enable>
 	    <child>
 	      <padding>0</padding>
 	      <expand>True</expand>
@@ -2030,86 +2152,12 @@
 	    </child>
 
 	    <widget>
-	      <class>GtkCList</class>
-	      <name>clist_search_results</name>
-	      <can_focus>True</can_focus>
-	      <signal>
-		<name>select_row</name>
-		<handler>on_clist_search_results_select_row</handler>
-		<last_modification_time>Sun, 26 Mar 2000 17:39:32 GMT</last_modification_time>
-	      </signal>
-	      <signal>
-		<name>unselect_row</name>
-		<handler>on_clist_search_results_unselect_row</handler>
-		<last_modification_time>Mon, 27 Mar 2000 06:20:58 GMT</last_modification_time>
-	      </signal>
-	      <signal>
-		<name>button_press_event</name>
-		<handler>on_clist_search_results_button_press_event</handler>
-		<last_modification_time>Sat, 15 Apr 2000 10:26:54 GMT</last_modification_time>
-	      </signal>
-	      <signal>
-		<name>click_column</name>
-		<handler>on_clist_search_results_click_column</handler>
-		<last_modification_time>Mon, 17 Apr 2000 19:08:33 GMT</last_modification_time>
-	      </signal>
-	      <columns>4</columns>
-	      <column_widths>80,80,80,80</column_widths>
-	      <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
-	      <show_titles>True</show_titles>
-	      <shadow_type>GTK_SHADOW_IN</shadow_type>
+	      <class>Placeholder</class>
+	    </widget>
 
-	      <widget>
-		<class>GtkLabel</class>
-		<child_name>CList:title</child_name>
-		<name>label26</name>
-		<label>File</label>
-		<justify>GTK_JUSTIFY_CENTER</justify>
-		<wrap>False</wrap>
-		<xalign>0.5</xalign>
-		<yalign>0.5</yalign>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
-	      </widget>
-
-	      <widget>
-		<class>GtkLabel</class>
-		<child_name>CList:title</child_name>
-		<name>label27</name>
-		<label>Size</label>
-		<justify>GTK_JUSTIFY_CENTER</justify>
-		<wrap>False</wrap>
-		<xalign>0.5</xalign>
-		<yalign>0.5</yalign>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
-	      </widget>
-
-	      <widget>
-		<class>GtkLabel</class>
-		<child_name>CList:title</child_name>
-		<name>label28</name>
-		<label>Speed</label>
-		<justify>GTK_JUSTIFY_CENTER</justify>
-		<wrap>False</wrap>
-		<xalign>0.5</xalign>
-		<yalign>0.5</yalign>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
-	      </widget>
-
-	      <widget>
-		<class>GtkLabel</class>
-		<child_name>CList:title</child_name>
-		<name>label29</name>
-		<label>Host</label>
-		<justify>GTK_JUSTIFY_CENTER</justify>
-		<wrap>False</wrap>
-		<xalign>0.5</xalign>
-		<yalign>0.5</yalign>
-		<xpad>0</xpad>
-		<ypad>0</ypad>
-	      </widget>
+	    <widget>
+	      <class>Placeholder</class>
+	      <child_name>Notebook:tab</child_name>
 	    </widget>
 	  </widget>
 
@@ -2121,7 +2169,7 @@
 	    <child>
 	      <padding>0</padding>
 	      <expand>False</expand>
-	      <fill>True</fill>
+	      <fill>False</fill>
 	    </child>
 
 	    <widget>

@@ -16,6 +16,7 @@ gtk_gnutella_SOURCES = \
 	routing.c \
 	search.c \
 	downloads.c \
+	share.c \
 	uploads.c \
 	main.c \
 	gui.c \

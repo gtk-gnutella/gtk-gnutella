@@ -29,9 +29,9 @@
 /* Constants -------------------------------------------------------------------------------------- */
 
 #define GTA_VERSION 0
-#define GTA_SUBVERSION 12
-#define GTA_REVISION ""
-#define GTA_RELEASE "03.05.2000"
+#define GTA_SUBVERSION 13
+#define GTA_REVISION "pre-alpha"
+#define GTA_RELEASE "07.05.2000"
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #define GTA_MSG_INIT					0x00
@@ -208,7 +208,7 @@ struct gnutella_host
 	guint32 ip;
 	guint16 port;
 	guint32 files_count;
-	guint64 kbytes_count;
+	guint32 kbytes_count;
 };
 
 struct ping_req
@@ -308,23 +308,26 @@ extern GSList *sl_catched_hosts;
 extern struct ping_req *pr_ref;
 extern gint hosts_idle_func;
 
-/* uploads.c */
+/* search.c */
 
-extern GSList *uploads;
-extern guint32 count_uploads;
+extern gboolean  clear_uploads, clear_downloads;
 
 /* downloads.c */
 
 extern GSList *sl_downloads;
 extern guint32 count_downloads;
 
-/* search.c */
+/* share.c */
 
 extern guint32 files_scanned, bytes_scanned;
-extern gboolean monitor_enabled, clear_uploads, clear_downloads;
+extern gboolean monitor_enabled;
 extern guint32 monitor_max_items, monitor_items;
 extern GSList *extensions, *shared_dirs;
-extern guint32 items_found;
+
+/* uploads.c */
+
+extern GSList *uploads;
+extern guint32 count_uploads;
 
 /* callbacks.c */
 
@@ -368,7 +371,7 @@ void config_save();
 /* gui.c */
 
 void gui_set_status(gchar *);
-void gui_update_minimum_speed(void);
+void gui_update_minimum_speed(guint32);
 void gui_update_up_connections(void);
 void gui_update_config_port(void);
 void gui_update_config_force_ip(void);
@@ -392,7 +395,6 @@ void gui_update_connection_speed(void);
 void gui_update_search_max_items(void);
 void gui_update_scan_extensions(void);
 void gui_update_shared_dirs(void);
-void gui_update_items_found(void);
 void gui_update_download_clear(void);
 void gui_update_download_abort_resume(void);
 
@@ -462,17 +464,22 @@ gboolean download_send_request(struct download *);
 void upload_remove(struct upload *, gchar *);
 void handle_push_request(struct gnutella_node *);
 
-/* search.c */
+/* share.c */
 
-void search_init(void);
-void search_scan(void);
-void new_search(guint16, gchar *);
+void share_init(void);
+void share_scan(void);
 void search_request(struct gnutella_node *n);
-void search_results(struct gnutella_node *n);
-void search_download_files(void);
 void parse_extensions(gchar *);
 void shared_dirs_parse(gchar *);
 void shared_dir_add(gchar *);
+
+/* search.c */
+
+void search_init(void);
+void new_search(guint16, gchar *);
+void search_results(struct gnutella_node *n);
+void search_download_files(void);
+void search_close_current(void);
 gint search_results_compare_size(GtkCList *, gconstpointer, gconstpointer);
 gint search_results_compare_speed(GtkCList *, gconstpointer, gconstpointer);
 gint search_results_compare_ip(GtkCList *, gconstpointer, gconstpointer);

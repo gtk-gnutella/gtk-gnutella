@@ -99,3 +99,5 @@ void on_button_config_move_path_clicked (GtkButton *button, gpointer user_data);
 void on_popup_uploads_title_activate (GtkMenuItem *menuitem, gpointer user_data);
 gboolean on_clist_uploads_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 void on_popup_search_stop_sorting_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_button_search_filter_clicked (GtkButton *button, gpointer user_data);
+void on_button_search_close_clicked (GtkButton *button, gpointer user_data);

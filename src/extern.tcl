@@ -5,7 +5,7 @@
 #
 # So this little script...
 #
-# Of course, you will need tclsh to run it...
+# Of course, You will need tclsh to run it...
 #
 
 set w_list {
@@ -22,7 +22,9 @@ set w_list {
 	clist_downloads button_abort_download button_resume_download button_clear_download
 	entry_max_downloads checkbutton_clear_downloads clist_download_queue button_remove_download
 	entry_search button_search label_items_found entry_minimum_speed
-	clist_search_results button_search_download button_search_stream
+	notebook_search_results button_search_download button_search_stream
+	option_menu_search option_menu_search_menu
+	button_search_filter button_search_close
 	checkbutton_monitor entry_monitor clist_monitor
 	button_config_move_path
 	button_config_save_path entry_config_path label_files_scanned entry_config_extensions

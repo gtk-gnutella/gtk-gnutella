@@ -165,7 +165,7 @@ void config_init(void)
 	gui_update_count_downloads();
 	gui_update_count_uploads();
 
-	gui_update_minimum_speed();
+	gui_update_minimum_speed(minimum_speed);
 	gui_update_up_connections();
 	gui_update_config_port();
 	gui_update_config_force_ip();

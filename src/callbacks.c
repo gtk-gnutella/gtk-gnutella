@@ -578,7 +578,7 @@ gboolean on_entry_minimum_speed_focus_out_event(GtkWidget *widget, GdkEventFocus
 {
 	gint speed = atol(gtk_entry_get_text(GTK_ENTRY(entry_minimum_speed)));
 	if (speed >= 0 && speed < 65536) minimum_speed = speed;
-	gui_update_minimum_speed();
+	gui_update_minimum_speed(minimum_speed); /* XXX The minimum speed is now on a per search basis */
 
 	return TRUE;
 }
@@ -586,11 +586,13 @@ gboolean on_entry_minimum_speed_focus_out_event(GtkWidget *widget, GdkEventFocus
 void on_button_search_clicked (GtkButton *button, gpointer user_data)
 {
 	gchar *e = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry_search)));
-	if (!on_the_net()) return;
-	g_strstrip(e);
-	if (*e) new_search(minimum_speed, e);
+	if (on_the_net())
+	{
+		g_strstrip(e);
+		if (*e) new_search(minimum_speed, e);
+		gtk_widget_grab_focus(clist_menu);
+	}
 	g_free(e);
-	gtk_widget_grab_focus(clist_menu);
 }
 
 void on_entry_search_activate (GtkEditable *editable, gpointer user_data)
@@ -606,19 +608,13 @@ void on_entry_search_changed (GtkEditable *editable, gpointer user_data)
 	g_free(e);
 }
 
-void on_clist_search_results_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data)
-{
-	gtk_widget_set_sensitive(button_search_download, TRUE);
-}
-
-void on_clist_search_results_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data)
-{
-	gtk_widget_set_sensitive(button_search_download, (gboolean) GTK_CLIST(clist_search_results)->selection);
-}
+/*
 
 void on_clist_search_results_click_column (GtkCList *clist, gint column, gpointer user_data)
 {
+*/
 	/* Sorting by host doesn't work for now - so we disable it */
+/*
 
 	if (column == 3) return;
 
@@ -658,6 +654,18 @@ void on_clist_search_results_click_column (GtkCList *clist, gint column, gpointe
 	search_results_sort = TRUE;
 }
 
+*/
+
+void on_button_search_filter_clicked (GtkButton *button, gpointer user_data)
+{
+
+}
+
+void on_button_search_close_clicked (GtkButton *button, gpointer user_data)
+{
+	search_close_current();
+}
+
 void on_button_search_download_clicked (GtkButton *button, gpointer user_data)
 {
 	search_download_files();
@@ -675,11 +683,13 @@ void on_popup_search_stop_sorting_activate (GtkMenuItem *menuitem, gpointer user
 	search_results_sort = FALSE;
 }
 
+/*
+
 gboolean on_clist_search_results_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
 	if (event->button != 3) return FALSE;
 
-	gtk_clist_unselect_all(GTK_CLIST(clist_search_results));
+//	gtk_clist_unselect_all(GTK_CLIST(clist_search_results));
 
 	gtk_widget_set_sensitive(popup_search_stop_sorting, search_results_sort);
 
@@ -688,18 +698,19 @@ gboolean on_clist_search_results_button_press_event (GtkWidget *widget, GdkEvent
 	return TRUE;
 }
 
+*/
+
 /* Monitor ---------------------------------------------------------------------------------------- */
 
 void on_checkbutton_monitor_toggled (GtkToggleButton *togglebutton, gpointer user_data)
 {
 	monitor_enabled = gtk_toggle_button_get_active(togglebutton);
-/*
+
 	if (!monitor_enabled)
 	{
 		gtk_clist_clear(GTK_CLIST(clist_monitor));
 		monitor_items = 0;
 	}
-*/
 }
 
 void on_entry_monitor_activate (GtkEditable *editable, gpointer user_data)

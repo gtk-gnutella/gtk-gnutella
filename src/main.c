@@ -136,6 +136,8 @@ gint main(gint argc, gchar **argv)
 	config_init();
 	network_init();
 	routing_init();
+	search_init();
+	share_init();
 
 	/* Some signal handlers */
 
@@ -151,11 +153,6 @@ gint main(gint argc, gchar **argv)
 
 	for (i = 0; i < 6; i++) gtk_clist_insert(GTK_CLIST(clist_menu), i, (gchar **) &menus[i]);
 	gtk_clist_select_row(GTK_CLIST(clist_menu), 0, 0);
-
-	gtk_clist_set_column_width(GTK_CLIST(clist_search_results), 0, 289);
-	gtk_clist_set_column_width(GTK_CLIST(clist_search_results), 1, 80);
-	gtk_clist_set_column_width(GTK_CLIST(clist_search_results), 2, 50);
-	gtk_clist_set_column_width(GTK_CLIST(clist_search_results), 3, 140);
 
 	gtk_clist_set_column_width(GTK_CLIST(clist_nodes), 0, 140);
 

@@ -53,9 +53,9 @@ void gui_update_up_connections(void)
 	gtk_entry_set_text(GTK_ENTRY(entry_up_connections), gui_tmp);
 }
 
-void gui_update_minimum_speed(void)
+void gui_update_minimum_speed(guint32 s)
 {
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", minimum_speed);
+	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", s);
 	gtk_entry_set_text(GTK_ENTRY(entry_minimum_speed), gui_tmp);
 }
 
@@ -135,12 +135,6 @@ void gui_update_search_max_items(void)
 	gtk_entry_set_text(GTK_ENTRY(entry_config_search_items), gui_tmp);
 }
 
-void gui_update_items_found(void)
-{
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u item%s found", items_found, (items_found != 1)? "s": "");
-	gtk_label_set(GTK_LABEL(label_items_found), gui_tmp);
-}
-
 void gui_update_scan_extensions(void)
 {
 	GSList *l;
@@ -186,8 +180,7 @@ void gui_update_shared_dirs(void)
 
 void gui_update_stats(void)
 {
-	guint32 hosts, files, ping;
-	guint64 kbytes;
+	guint32 hosts, files, kbytes, ping;
 	static gchar b[256];
 
 	if (pr_ref)
@@ -206,9 +199,9 @@ void gui_update_stats(void)
 	gtk_clist_set_text(GTK_CLIST(clist_stats), 1, 0, gui_tmp);
 
 	if (kbytes < 1024) g_snprintf(b, sizeof(b), "%u KB", kbytes);
-	else if (kbytes < 1048576) g_snprintf(b, sizeof(b), "%.1fMB", (double) kbytes / 1024.0);
-	else if (kbytes < 1073741824) g_snprintf(b, sizeof(b), "%.1fGB", (double) kbytes / 1048576.0);
-	else g_snprintf(b, sizeof(b), "%.2fTB", (double) kbytes / 1073741824.0);
+	else if (kbytes < 1048576) g_snprintf(b, sizeof(b), "%.1fMB", (float) kbytes / 1024.0);
+	else if (kbytes < 1073741824) g_snprintf(b, sizeof(b), "%.1fGB", (float) kbytes / 1048576.0);
+	else g_snprintf(b, sizeof(b), "%.2fTB", (float) kbytes / 1073741824.0);
 
 	gtk_clist_set_text(GTK_CLIST(clist_stats), 2, 0, b);
 
