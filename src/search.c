@@ -360,7 +360,7 @@ static gnet_results_set_t *get_results_set(
 	/* Transfer the Query Hit info to our internal results_set struct */
 
 	rs->num_recs = (guint8) r->num_recs;		/* Number of hits */
-	memcpy(&rs->ip, r->host_ip, 4);				/* IP address */
+	READ_GUINT32_BE(r->host_ip, rs->ip);		/* IP address */
 	READ_GUINT16_LE(r->host_port, rs->port);	/* Port */
 	READ_GUINT32_LE(r->host_speed, rs->speed);	/* Connection speed */
 

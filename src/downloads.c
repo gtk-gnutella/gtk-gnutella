@@ -3525,6 +3525,8 @@ void download_proxy_failed(struct download *d)
 {
 	struct cproxy *cp = d->cproxy;
 
+	g_assert(cp != NULL);
+
 	gui_update_download(d, TRUE);	/* Will read status in d->cproxy */
 
 	remove_proxy(d->server, cproxy_ip(cp), cproxy_port(cp));
@@ -3552,7 +3554,6 @@ static gboolean send_push_request(
 {
 	struct gnutella_msg_push_request m;
 	GSList *nodes;
-	guint32 ip;
 
 	nodes = route_towards_guid(guid);
 	if (nodes == NULL)
@@ -3575,8 +3576,7 @@ static gboolean send_push_request(
 	memcpy(m.request.guid, guid, 16);
 
 	WRITE_GUINT32_LE(file_id, m.request.file_id);
-	ip = listen_ip();
-	memcpy(m.request.host_ip, &ip, 4);
+	WRITE_GUINT32_BE(listen_ip(), m.request.host_ip);
 	WRITE_GUINT16_LE(port, m.request.host_port);
 
 	/*

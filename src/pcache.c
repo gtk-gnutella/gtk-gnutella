@@ -147,7 +147,7 @@ struct gnutella_msg_init_response *build_pong_msg(
 	memcpy(&pong.header.muid, muid, 16);
 
 	WRITE_GUINT16_LE(port, pong.response.host_port);
-	memcpy(pong.response.host_ip, &ip, 4);
+	WRITE_GUINT32_BE(ip, pong.response.host_ip);
 	WRITE_GUINT32_LE(files, pong.response.files_count);
 	WRITE_GUINT32_LE(kbytes, pong.response.kbytes_count);
 	WRITE_GUINT32_LE(sizeof(struct gnutella_init_response), pong.header.size);
@@ -1167,7 +1167,7 @@ void pcache_pong_received(struct gnutella_node *n)
 	 */
 
 	READ_GUINT16_LE(n->data, port);
-	memcpy(&ip, n->data + 2, 4);
+	READ_GUINT32_BE(n->data + 2, ip);
 	READ_GUINT32_LE(n->data + 6, files_count);
 	READ_GUINT32_LE(n->data + 10, kbytes_count);
 

@@ -1024,7 +1024,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			 * If IP address is among the hostile set, drop.
 			 */
 
-			memcpy(&ip, sender->data + 20, 4);
+			READ_GUINT32_BE(sender->data + 20, ip);
 
 			if (hostiles_check(ip)) {
 				if (dbg > 3)

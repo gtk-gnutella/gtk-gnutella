@@ -279,15 +279,15 @@ static void message_dump(const struct gnutella_node *n)
 		printf(" Speed = %d Query = '%s'", speed, n->data + 2);
 	} else if (n->header.function == GTA_MSG_INIT_RESPONSE) {
 		READ_GUINT16_LE(n->data, port);
-		memcpy(&ip, n->data + 2, 4);
+		READ_GUINT32_BE(n->data + 2, ip);
 		READ_GUINT32_LE(n->data + 6, count);
 		READ_GUINT32_LE(n->data + 10, total);
 
 		printf(" Host = %s Port = %d Count = %d Total = %d",
 			   ip_to_gchar(ip), port, count, total);
 	} else if (n->header.function == GTA_MSG_PUSH_REQUEST) {
-		memcpy(&ip, n->data + 20, 4);
 		READ_GUINT32_LE(n->data + 16, idx);
+		READ_GUINT32_BE(n->data + 20, ip);
 		READ_GUINT32_LE(n->data + 24, port);
 
 		printf(" Index = %d Host = %s Port = %d ", idx, ip_to_gchar(ip),
@@ -305,15 +305,17 @@ static void message_dump(const struct gnutella_node *n)
 static void node_extract_host(
 	const struct gnutella_node *n, guint32 *ip, guint16 *port)
 {
+	guint32 hip;
 	guint16 hport;
 	const struct gnutella_search_results *r =
 		(const struct gnutella_search_results *) n->data;
 
 	/* Read Query Hit info */
 
+	READ_GUINT32_BE(r->host_ip, hip);		/* IP address */
 	READ_GUINT16_LE(r->host_port, hport);	/* Port */
 
-	memcpy(ip, r->host_ip, 4);
+	*ip = hip;
 	*port = hport;
 }
 
