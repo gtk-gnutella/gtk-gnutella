@@ -186,7 +186,7 @@ void on_popup_downloads_abort_host_activate
 			continue;
 		}
 		removed += download_remove_all_from_peer(
-			download_guid(d), download_ip(d), download_port(d));
+			download_guid(d), download_ip(d), download_port(d), FALSE);
 	}
 
     gtk_clist_thaw(clist_downloads_queue);
@@ -533,7 +533,7 @@ void on_popup_queue_abort_host_activate(GtkMenuItem * menuitem,
 			continue;
 		}
 		removed += download_remove_all_from_peer(
-			download_guid(d), download_ip(d), download_port(d));
+			download_guid(d), download_ip(d), download_port(d), FALSE);
 	}
 
     gtk_clist_thaw(GTK_CLIST(clist_downloads));
