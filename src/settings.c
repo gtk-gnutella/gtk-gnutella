@@ -327,10 +327,26 @@ no_config_dir:
 	exit(EXIT_FAILURE); /* g_error() would dump core, that's ugly. */
 }
 
+/*
+ * settings_config_dir
+ *
+ * Get the config directory
+ */
 const gchar *settings_config_dir(void)
 {
 	g_assert(NULL != config_dir);
 	return (const gchar *) config_dir;
+}
+
+/*
+ * settings_home_dir
+ *
+ * Gets the home dir.
+ */
+const gchar *settings_home_dir(void)
+{
+	g_assert(NULL != home_dir);
+	return (const gchar *) home_dir;
 }
 
 #if 0
@@ -1347,4 +1363,3 @@ static void settings_callbacks_shutdown(void)
 }
 
 /* vi: set ts=4: */
-

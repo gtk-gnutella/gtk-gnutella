@@ -37,6 +37,7 @@
 #include "nodes_gui.h"
 #include "main_cb.h"
 
+#include "settings.h"	/* Used for settings_home_dir */
 #include "settings_gui.h"
 #include "search_gui.h"
 #include "monitor_gui.h"
@@ -444,6 +445,50 @@ static GtkWidget *gui_create_dlg_about(void)
     return dlg;
 }
 
+/*
+ * main_gui_gtkrc_init
+ *
+ * Searches for the gktrc file to use. Order in which they are scanned:
+ * - $HOME/.gtkrc
+ * - $HOME/.gtk/gtkrc
+ * - $HOME/.gtk1/gtkrc ($HOME/.gtk2/gtkrc if GTK2 interface is used)
+ * - <GTK_GNUTELLA_SETTINGS_DIR>/gtkrc
+ * - ./gtkrc
+ * Where the last one can overule settings from earlier resource files.
+ */
+void main_gui_gtkrc_init(void)
+{
+	gchar *userrc;
+
+	/* parse gtkrc files (thx for sylpheed-claws developpers for the tip) */
+	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, ".gtkrc",
+		  NULL);
+	gtk_rc_parse(userrc);
+	g_free(userrc);
+
+	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, ".gtk",
+		  G_DIR_SEPARATOR_S, "gtkrc", NULL);
+	gtk_rc_parse(userrc);
+	g_free(userrc);
+
+#ifdef USE_GTK2
+	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, ".gtk2",
+		  G_DIR_SEPARATOR_S, "gtkrc", NULL);
+#else
+	userrc = g_strconcat(settings_home_dir(), G_DIR_SEPARATOR_S, ".gtk1",
+		  G_DIR_SEPARATOR_S, "gtkrc", NULL);
+#endif
+	gtk_rc_parse(userrc);
+	g_free(userrc);
+
+	userrc = g_strconcat(settings_config_dir(), G_DIR_SEPARATOR_S, "gtkrc", 
+		  NULL);
+	gtk_rc_parse(userrc);
+	g_free(userrc);
+
+	gtk_rc_parse("./gtkrc");
+}
+ 
 /***
  *** Public functions
  ***/
@@ -457,7 +502,7 @@ static GtkWidget *gui_create_dlg_about(void)
  *      -- Richard, 6/9/2002
  */
 void main_gui_early_init(gint argc, gchar **argv)
-{
+{	
 	/* Glade inits */
 
 	gtk_set_locale();
@@ -496,7 +541,9 @@ void main_gui_early_init(gint argc, gchar **argv)
 }
 
 void main_gui_init(void)
-{	
+{
+	main_gui_gtkrc_init();
+	
 #ifndef USE_GTK2
     gtk_clist_set_column_justification(
         GTK_CLIST(lookup_widget(main_window, "clist_search_stats")),
@@ -655,4 +702,3 @@ void main_gui_shutdown_tick(guint left)
 	gtk_label_set(label_shutdown_count,tmp);
     gtk_main_flush();
 }
-
