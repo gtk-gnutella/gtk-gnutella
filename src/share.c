@@ -356,6 +356,21 @@ void share_init(void)
 	found_data.l = FOUND_CHUNK;		/* must be > size after found_reset */
 	found_data.d = (guchar *) g_malloc(found_data.l * sizeof(guchar));
 
+	/*
+	 * We allocate an empty search_table, which will be de-allocated when we
+	 * call share_scan().  Why do we do this?  Because it ensures the table
+	 * is correctly setup empty, until we do call share_scan() for the first
+	 * time (the call is delayed until the GUI is up).
+	 *
+	 * Since we will start processing network packets, we will have a race
+	 * condition window if we get a Query message before having started
+	 * the share_scan().  Creating the table right now prevents adding an
+	 * extra test at the top of st_search().
+	 *		--RAM, 15/08/2002.
+	 */
+
+	st_create(&search_table);
+
     share_gui_init();
 }
 
