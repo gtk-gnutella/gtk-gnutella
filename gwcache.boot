@@ -14,6 +14,7 @@ http://cgi-bin.spaceports.com/~gnucache/gcache.php
 http://codered2.www2.dotnetplayground.com/gcache.asp
 http://corky.net/gcache/gcache.php
 http://cs-people.bu.edu/leith/gnuCache/gcache.php
+http://g-web-cache1.paonet.org/gcache/gcache.php
 http://gattinger.org/gcache/gcache.php
 http://gcache.planetjumpgate.net/gcache.php
 http://gcache.popquizhotshot.com/gcache.php
@@ -87,8 +88,6 @@ http://www.melissazone.com/gwebcache/gcache.php
 http://www.netsoc.ucd.ie/~roberth/GnuCache/gcache.php
 http://www.nofetish.com/gwebcache/gcache.php
 http://www.nusho.it/gwebcache-0.6.1/gcache.php
-http://www.padar.com/gwebcache/gcache.php
-http://www.paonet.org/rpao/pub/gwebcache/gcache.php
 http://www.php.ee/gcache/index.php
 http://www.pik.org/GWebCache/gcache.php
 http://www.polarhome.com/~sirjr/gcache.php
