@@ -44,7 +44,7 @@ static void quit(gboolean force)
 {
     gboolean confirm;
 
-    gui_prop_get_boolean(PROP_CONFIRM_QUIT, &confirm, 0, 1);
+    gui_prop_get_boolean_val(PROP_CONFIRM_QUIT, &confirm);
     if (force || !confirm)
        	guc_gtk_gnutella_exit(0);
     else
