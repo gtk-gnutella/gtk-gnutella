@@ -103,12 +103,12 @@ gint host_cmp(gconstpointer v1, gconstpointer v2)
 void host_timer(void)
 {
 	static gint called = 0;
-    gint count;
+    guint count;
 	gint missing;
 	guint32 ip;
 	guint16 port;
 	host_type_t htype;
-	gint max_nodes;
+	guint max_nodes;
 
 	if (in_shutdown || !online_mode)
 		return;
@@ -355,7 +355,7 @@ void parse_netmasks(gchar * str)
  */
 gboolean host_is_nearby(guint32 ip)
 {
-	int i;
+	guint i;
 
 	for (i = 0; i < number_local_networks; i++) {
 		if ((ip & local_networks[i].mask.s_addr) == 
