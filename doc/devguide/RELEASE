@@ -115,20 +115,17 @@ Quick Release Guide
 27. Update sourceforge's website: Create a news entry in htdocs/files/en using 
     news_template as a guide and submit it.
 
-28. Increment NEWSMIN and NEWSMAX in htdocs/files/common.php so the new 
-    news_nn will be displayed.
-
-29. Change the VERSION file in htdocs/files to update the version number.
+28. Change the VERSION file in htdocs/files to update the version number.
 
 	VERSION=0.91
 
-30. Manually update the web site by logging in to gtk-gnutella.sf.net via SSH.
+29. Manually update the web site by logging in to gtk-gnutella.sf.net via SSH.
 
 	ssh -l rmanfredi gtk-gnutella.sf.net
 	$ cd /home/groups/g/gt/gtk-gnutella
 	$ ./update_homepage.sh
 
-31. Send a message to gtk-gnutella-announce telling about the release.
+30. Send a message to gtk-gnutella-announce telling about the release.
 
-32. That's all folks!
+31. That's all folks!
 
