@@ -75,6 +75,7 @@ static void download_store(void);
 static void download_retrieve(void);
 static void download_free_removed(void);
 static void download_incomplete_header(struct download *d);
+static gboolean has_blank_guid(struct download *d);
 
 /*
  * Download structures.
@@ -200,6 +201,23 @@ static gint dl_server_retry_cmp(gconstpointer a, gconstpointer b)
 	return as->retry_after < bs->retry_after ? -1 : +1;
 }
 
+/*
+ * has_blank_guid
+ *
+ * Returns whether download has a blank (fake) GUID.
+ */
+gboolean has_blank_guid(struct download *d)
+{
+	guchar *g = download_guid(d);
+	gint i;
+
+	for (i = 0; i < 16; i++)
+		if (*g++)
+			return FALSE;
+
+	return TRUE;
+}
+
 /* ----------------------------------------- */
 
 /*
@@ -267,7 +285,7 @@ void download_timer(time_t now)
 			}
 
 			if (now - d->last_update > t) {
-				if (d->status == GTA_DL_CONNECTING)
+				if (d->status == GTA_DL_CONNECTING && !has_blank_guid(d))
 					download_fallback_to_push(d, TRUE, FALSE);
 				else if (d->status == GTA_DL_HEADERS)
 					download_incomplete_header(d);
@@ -3448,6 +3466,54 @@ static guint extract_retry_after(header_t *header)
 }
 
 /*
+ * check_xhost
+ *
+ * Look for an X-Host header in the reply.  If we get one, then it means
+ * the remote server is not firewalled and can be reached there.
+ *
+ * We only pay attention to such headers for pushed downloads.
+ */
+static void check_xhost(struct download *d, header_t *header)
+{
+	gchar *buf;
+	guint32 ip;
+	guint16 port;
+
+	g_assert(d->push);
+
+	buf = header_get(header, "X-Host");
+
+	if (buf == NULL)
+		return;
+
+	if (!gchar_to_ip_port(buf, &ip, &port) || !check_valid_host(ip, port))
+		return;
+
+	/*
+	 * It is possible that the IP:port we already have for this server
+	 * be wrong.  We may have gotten an IP:port from a query hit before
+	 * the server knew its real IP address.
+	 */
+
+	if (ip != download_ip(d) || port != download_port(d))
+		download_redirect_to_server(d, ip, port);
+
+	/*
+	 * Most importantly, ignore all pushes to this server from now on.
+	 * We'll mark the server as DLS_A_PUSH_IGN the first time we'll
+	 * be able to connect to it.
+	 */
+
+	download_push_remove(d);
+
+	if (dbg > 2)
+		printf("PUSH got X-Host, trying to ignore them for %s\n",
+			ip_port_to_gchar(download_ip(d), download_port(d)));
+
+	d->flags |= DL_F_PUSH_IGN;
+}
+
+/*
  * check_content_urn
  *
  * Check for X-Gnutella-Content-URN.
@@ -3659,6 +3725,16 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 		return;
 
 	d->retries = 0;				/* Retry successful, we managed to connect */
+
+	/*
+	 * If we were pushing this download, check for an X-Host header in
+	 * the reply: this will indicate that the remote host is not firewalled
+	 * and will give us its IP:port.
+	 */
+
+	if (d->push)
+		check_xhost(d, header);
+
 	ip = download_ip(d);
 	port = download_port(d);
 

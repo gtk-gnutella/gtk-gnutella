@@ -73,7 +73,7 @@ guint32 count_uploads = 0;
  * This structure is used for HTTP status printing callbacks.
  */
 struct upload_http_cb {
-	gnutella_upload_t *u;				/* Upload being ACK'ed */
+	gnutella_upload_t *u;			/* Upload being ACK'ed */
 	time_t now;						/* Current time */
 	time_t mtime;					/* File modification time */
 	struct shared_file *sf;
@@ -106,6 +106,7 @@ static void upload_error_remove(gnutella_upload_t *u, struct shared_file *sf,
 static void upload_error_remove_ext(gnutella_upload_t *u, struct shared_file *sf,
 	gchar *extended, int code, guchar *msg, ...);
 static void upload_http_sha1_add(gchar *buf, gint *retval, gpointer arg);
+static void upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg);
 
 
 /***
@@ -460,7 +461,7 @@ static void send_upload_error_v(
 	gchar reason[1024];
 	gchar extra[1024];
 	gint slen = 0;
-	http_extra_desc_t hev[2];
+	http_extra_desc_t hev[3];
 	gint hevcnt = 0;
 	struct upload_http_cb cb_arg;
 
@@ -491,6 +492,17 @@ static void send_upload_error_v(
 		} else
 			g_warning("send_upload_error_v: "
 				"ignoring too large extra header (%d bytes)", slen);
+	}
+
+	/*
+	 * If this is a pushed upload, and we are not firewalled, then tell
+	 * them they can reach us directly by outputting an X-Host line.
+	 */
+
+	if (u->push && !is_firewalled) {
+		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+		hev[hevcnt].he_cb = upload_http_xhost_add;
+		hev[hevcnt++].he_arg = NULL;
 	}
 
 	/*
@@ -1410,6 +1422,36 @@ static struct shared_file *get_file_to_upload(
 }
 
 /*
+ * upload_http_xhost_add
+ *
+ * This routine is called by http_send_status() to generate the
+ * X-Host line (added to the HTTP status) into `buf'.
+ */
+static void upload_http_xhost_add(gchar *buf, gint *retval, gpointer arg)
+{
+	gint rw = 0;
+	gint length = *retval;
+	guint32 ip;
+	guint16 port;
+
+	g_assert(!is_firewalled);
+
+	ip = listen_ip();
+	port = listen_port;
+
+	if (check_valid_host(ip, port)) {
+		gchar *xhost = ip_port_to_gchar(ip, port);
+		gint needed_room = strlen(xhost) + sizeof("X-Host: \r\n") - 1;
+		if (length > needed_room)
+			rw = g_snprintf(buf, length, "X-Host: %s\r\n", xhost);
+	}
+
+	g_assert(rw < length);
+
+	*retval = rw;
+}
+
+/*
  * upload_http_sha1_add
  *
  * This routine is called by http_send_status() to generate the
@@ -1552,7 +1594,8 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	struct upload_http_cb cb_arg;
 	gint http_code;
 	gchar *http_msg;
-	http_extra_desc_t hev;
+	http_extra_desc_t hev[2];
+	gint hevcnt = 0;
 	guchar *sha1;
 	gboolean is_followup = u->status == GTA_UL_WAITING;
 	extern gint sha1_eq(gconstpointer a, gconstpointer b);
@@ -1734,6 +1777,17 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	u->pos = 0;
 
 	/*
+	 * If this is a pushed upload, and we are not firewalled, then tell
+	 * them they can reach us directly by outputting an X-Host line.
+	 */
+
+	if (u->push && !is_firewalled) {
+		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+		hev[hevcnt].he_cb = upload_http_xhost_add;
+		hev[hevcnt++].he_arg = NULL;
+	}
+
+	/*
 	 * When requested range is invalid, the HTTP 416 reply should contain
 	 * a Content-Range header giving the total file size, so that they
 	 * know the limits of what they can request.
@@ -1745,11 +1799,11 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 		cb_arg.u = u;
 		cb_arg.sf = reqfile;
 
-		hev.he_type = HTTP_EXTRA_CALLBACK;
-		hev.he_cb = upload_416_extra;
-		hev.he_arg = &cb_arg;
+		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+		hev[hevcnt].he_cb = upload_416_extra;
+		hev[hevcnt++].he_arg = &cb_arg;
 
-		(void) http_send_status(u->socket, 416, &hev, 1, msg);
+		(void) http_send_status(u->socket, 416, hev, hevcnt, msg);
 		upload_remove(u, msg);
 		return;
 	}
@@ -1975,11 +2029,11 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	cb_arg.mtime = mtime;
 	cb_arg.sf = reqfile;
 
-	hev.he_type = HTTP_EXTRA_CALLBACK;
-	hev.he_cb = upload_http_status;
-	hev.he_arg = &cb_arg;
+	hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+	hev[hevcnt].he_cb = upload_http_status;
+	hev[hevcnt++].he_arg = &cb_arg;
 
-	if (!http_send_status(u->socket, http_code, &hev, 1, http_msg)) {
+	if (!http_send_status(u->socket, http_code, hev, hevcnt, http_msg)) {
 		upload_remove(u, "Cannot send whole HTTP status");
 		return;
 	}
