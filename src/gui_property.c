@@ -224,6 +224,8 @@ gboolean show_gnet_info_dbw     = FALSE;
 gboolean show_gnet_info_dbw_def = FALSE;
 gboolean show_gnet_info_rt     = FALSE;
 gboolean show_gnet_info_rt_def = FALSE;
+guint32  search_accumulation_period     = 5;
+guint32  search_accumulation_period_def = 5;
 guint32  treemenu_nodes_expanded[16]     = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1 };
 guint32  treemenu_nodes_expanded_def[16] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1 };
 guint32  gnet_stats_pkg_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
@@ -1890,23 +1892,43 @@ prop_set_t *gui_prop_init(void) {
 
 
     /*
+     * PROP_SEARCH_ACCUMULATION_PERIOD:
+     *
+     * General data:
+     */
+    gui_property->props[90].name = "search_accumulation_period";
+    gui_property->props[90].desc = _("The amount of time in seconds that the GUI should buffer search results as they come in.  This prevents too frequent updates that may cause flickering, but also saves CPU cycles since less redrawing has to occur in the search pane.");
+    gui_property->props[90].ev_changed = event_new("search_accumulation_period_changed");
+    gui_property->props[90].save = TRUE;
+    gui_property->props[90].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[90].type               = PROP_TYPE_GUINT32;
+    gui_property->props[90].data.guint32.def   = &search_accumulation_period_def;
+    gui_property->props[90].data.guint32.value = &search_accumulation_period;
+    gui_property->props[90].data.guint32.choices = NULL;
+    gui_property->props[90].data.guint32.max   = 30;
+    gui_property->props[90].data.guint32.min   = 1;
+
+
+    /*
      * PROP_TREEMENU_NODES_EXPANDED:
      *
      * General data:
      */
-    gui_property->props[90].name = "treemenu_nodes_expanded";
-    gui_property->props[90].desc = _("Expanded stati of the nodes in the treemenu");
-    gui_property->props[90].ev_changed = event_new("treemenu_nodes_expanded_changed");
-    gui_property->props[90].save = TRUE;
-    gui_property->props[90].vector_size = 16;
+    gui_property->props[91].name = "treemenu_nodes_expanded";
+    gui_property->props[91].desc = _("Expanded stati of the nodes in the treemenu");
+    gui_property->props[91].ev_changed = event_new("treemenu_nodes_expanded_changed");
+    gui_property->props[91].save = TRUE;
+    gui_property->props[91].vector_size = 16;
 
     /* Type specific data: */
-    gui_property->props[90].type               = PROP_TYPE_GUINT32;
-    gui_property->props[90].data.guint32.def   = treemenu_nodes_expanded_def;
-    gui_property->props[90].data.guint32.value = treemenu_nodes_expanded;
-    gui_property->props[90].data.guint32.choices = NULL;
-    gui_property->props[90].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[90].data.guint32.min   = 0x00000000;
+    gui_property->props[91].type               = PROP_TYPE_GUINT32;
+    gui_property->props[91].data.guint32.def   = treemenu_nodes_expanded_def;
+    gui_property->props[91].data.guint32.value = treemenu_nodes_expanded;
+    gui_property->props[91].data.guint32.choices = NULL;
+    gui_property->props[91].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[91].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1914,19 +1936,19 @@ prop_set_t *gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[91].name = "widths_gnet_stats_pkg";
-    gui_property->props[91].desc = _("Widths of the columns in the gnet packet stats table (pkg)[GTK2]");
-    gui_property->props[91].ev_changed = event_new("gnet_stats_pkg_col_widths_changed");
-    gui_property->props[91].save = TRUE;
-    gui_property->props[91].vector_size = 6;
+    gui_property->props[92].name = "widths_gnet_stats_pkg";
+    gui_property->props[92].desc = _("Widths of the columns in the gnet packet stats table (pkg)[GTK2]");
+    gui_property->props[92].ev_changed = event_new("gnet_stats_pkg_col_widths_changed");
+    gui_property->props[92].save = TRUE;
+    gui_property->props[92].vector_size = 6;
 
     /* Type specific data: */
-    gui_property->props[91].type               = PROP_TYPE_GUINT32;
-    gui_property->props[91].data.guint32.def   = gnet_stats_pkg_col_widths_def;
-    gui_property->props[91].data.guint32.value = gnet_stats_pkg_col_widths;
-    gui_property->props[91].data.guint32.choices = NULL;
-    gui_property->props[91].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[91].data.guint32.min   = 0x00000000;
+    gui_property->props[92].type               = PROP_TYPE_GUINT32;
+    gui_property->props[92].data.guint32.def   = gnet_stats_pkg_col_widths_def;
+    gui_property->props[92].data.guint32.value = gnet_stats_pkg_col_widths;
+    gui_property->props[92].data.guint32.choices = NULL;
+    gui_property->props[92].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[92].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1934,19 +1956,19 @@ prop_set_t *gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[92].name = "widths_gnet_stats_byte";
-    gui_property->props[92].desc = _("Widths of the columns in the gnet packet stats table (byte) [GTK2]");
-    gui_property->props[92].ev_changed = event_new("gnet_stats_byte_col_widths_changed");
-    gui_property->props[92].save = TRUE;
-    gui_property->props[92].vector_size = 6;
+    gui_property->props[93].name = "widths_gnet_stats_byte";
+    gui_property->props[93].desc = _("Widths of the columns in the gnet packet stats table (byte) [GTK2]");
+    gui_property->props[93].ev_changed = event_new("gnet_stats_byte_col_widths_changed");
+    gui_property->props[93].save = TRUE;
+    gui_property->props[93].vector_size = 6;
 
     /* Type specific data: */
-    gui_property->props[92].type               = PROP_TYPE_GUINT32;
-    gui_property->props[92].data.guint32.def   = gnet_stats_byte_col_widths_def;
-    gui_property->props[92].data.guint32.value = gnet_stats_byte_col_widths;
-    gui_property->props[92].data.guint32.choices = NULL;
-    gui_property->props[92].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[92].data.guint32.min   = 0x00000000;
+    gui_property->props[93].type               = PROP_TYPE_GUINT32;
+    gui_property->props[93].data.guint32.def   = gnet_stats_byte_col_widths_def;
+    gui_property->props[93].data.guint32.value = gnet_stats_byte_col_widths;
+    gui_property->props[93].data.guint32.choices = NULL;
+    gui_property->props[93].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[93].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1954,19 +1976,19 @@ prop_set_t *gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[93].name = "config_toolbar_style";
-    gui_property->props[93].desc = _("Configures the appearance of the toolbar");
-    gui_property->props[93].ev_changed = event_new("config_toolbar_style_changed");
-    gui_property->props[93].save = TRUE;
-    gui_property->props[93].vector_size = 1;
+    gui_property->props[94].name = "config_toolbar_style";
+    gui_property->props[94].desc = _("Configures the appearance of the toolbar");
+    gui_property->props[94].ev_changed = event_new("config_toolbar_style_changed");
+    gui_property->props[94].save = TRUE;
+    gui_property->props[94].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[93].type               = PROP_TYPE_MULTICHOICE;
-    gui_property->props[93].data.guint32.def   = &config_toolbar_style_def;
-    gui_property->props[93].data.guint32.value = &config_toolbar_style;
-    gui_property->props[93].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[93].data.guint32.min   = 0x00000000;
-    gui_property->props[93].data.guint32.choices = config_toolbar_style_choices;
+    gui_property->props[94].type               = PROP_TYPE_MULTICHOICE;
+    gui_property->props[94].data.guint32.def   = &config_toolbar_style_def;
+    gui_property->props[94].data.guint32.value = &config_toolbar_style;
+    gui_property->props[94].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[94].data.guint32.min   = 0x00000000;
+    gui_property->props[94].data.guint32.choices = config_toolbar_style_choices;
 
     gui_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {

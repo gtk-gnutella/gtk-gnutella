@@ -925,6 +925,20 @@ prop = {
     };
 };
 
+prop = {
+    name = "search_accumulation_period";
+    desc = "The amount of time in seconds that the GUI should buffer "
+		"search results as they come in.  This prevents too frequent "
+		"updates that may cause flickering, but also saves CPU cycles "
+		"since less redrawing has to occur in the search pane.";
+    type = guint32;
+    data = {
+        default = 5;
+		min = 1;
+		max = 30;
+    };
+};
+
 /*
  * GTK2 specific properties
  */

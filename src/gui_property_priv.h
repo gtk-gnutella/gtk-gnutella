@@ -120,6 +120,7 @@ extern gboolean show_gnet_info_rx_dropped;
 extern gboolean show_gnet_info_qrp_stats;
 extern gboolean show_gnet_info_dbw;
 extern gboolean show_gnet_info_rt;
+extern guint32  search_accumulation_period;
 extern guint32  treemenu_nodes_expanded[16];
 extern guint32  gnet_stats_pkg_col_widths[6];
 extern guint32  gnet_stats_byte_col_widths[6];
