@@ -15060,7 +15060,7 @@ http://maxmind.com/</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label_banned_count</name>
-		    <label>[banned count]</label>
+		    <label>[place holder]</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0.5</xalign>
@@ -15166,7 +15166,7 @@ http://maxmind.com/</label>
 		  <widget>
 		    <class>GtkLabel</class>
 		    <name>label_clock_skew</name>
-		    <label>[clock skew]</label>
+		    <label>[place holder]</label>
 		    <justify>GTK_JUSTIFY_CENTER</justify>
 		    <wrap>False</wrap>
 		    <xalign>0.5</xalign>
@@ -15871,7 +15871,7 @@ http://maxmind.com/</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_node_last_ultracheck</name>
-			    <label>2003-12-26 17:54:23</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>0.5</xalign>
@@ -15904,7 +15904,7 @@ http://maxmind.com/</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_last_ultra_leaf_switch</name>
-			    <label>2003-12-26 17:54:23</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>0.5</xalign>
@@ -16163,7 +16163,7 @@ http://maxmind.com/</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_up_req_avg_servent_uptime</name>
-			    <label>[no]</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -16196,7 +16196,7 @@ http://maxmind.com/</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_up_req_node_uptime</name>
-			    <label>[no]</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -16229,7 +16229,7 @@ http://maxmind.com/</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_up_req_enough_fd</name>
-			    <label>[no]</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -16262,7 +16262,7 @@ http://maxmind.com/</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_up_req_enough_bw</name>
-			    <label>[no]</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -16295,7 +16295,7 @@ http://maxmind.com/</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_up_req_avg_ip_uptime</name>
-			    <label>[no]</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -16328,7 +16328,7 @@ http://maxmind.com/</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_up_req_not_firewalled</name>
-			    <label>[no]</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -16361,7 +16361,7 @@ http://maxmind.com/</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_up_req_enough_mem</name>
-			    <label>[no]</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -16420,7 +16420,7 @@ http://maxmind.com/</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_up_req_enough_conn</name>
-			    <label>[no]</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -18903,7 +18903,7 @@ allowed</label>
 		      <widget>
 			<class>GtkLabel</class>
 			<name>label_output_bw_limit</name>
-			<label>out</label>
+			<label>[place holder]</label>
 			<justify>GTK_JUSTIFY_CENTER</justify>
 			<wrap>False</wrap>
 			<xalign>1</xalign>
@@ -18935,7 +18935,7 @@ allowed</label>
 		      <widget>
 			<class>GtkLabel</class>
 			<name>label_dl_http_latency</name>
-			<label>[latency]</label>
+			<label>[place holder]</label>
 			<justify>GTK_JUSTIFY_CENTER</justify>
 			<wrap>False</wrap>
 			<xalign>1</xalign>
@@ -18967,7 +18967,7 @@ allowed</label>
 		      <widget>
 			<class>GtkLabel</class>
 			<name>label_input_bw_limit</name>
-			<label>in</label>
+			<label>[place holder]</label>
 			<justify>GTK_JUSTIFY_CENTER</justify>
 			<wrap>False</wrap>
 			<xalign>1</xalign>
@@ -21920,7 +21920,7 @@ allowed</label>
 			<name>table78</name>
 			<border_width>2</border_width>
 			<rows>2</rows>
-			<columns>3</columns>
+			<columns>2</columns>
 			<homogeneous>False</homogeneous>
 			<row_spacing>2</row_spacing>
 			<column_spacing>4</column_spacing>
@@ -21978,32 +21978,6 @@ allowed</label>
 			</widget>
 
 			<widget>
-			  <class>GtkLabel</class>
-			  <name>label603</name>
-			  <label>secs</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <child>
-			    <left_attach>2</left_attach>
-			    <right_attach>3</right_attach>
-			    <top_attach>1</top_attach>
-			    <bottom_attach>2</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
 			  <class>GtkFrame</class>
 			  <name>frame99</name>
 			  <label_xalign>0</label_xalign>
@@ -22026,7 +22000,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_library_rescan_time</name>
-			    <label>18</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22043,7 +22017,7 @@ allowed</label>
 			  <shadow_type>GTK_SHADOW_IN</shadow_type>
 			  <child>
 			    <left_attach>1</left_attach>
-			    <right_attach>3</right_attach>
+			    <right_attach>2</right_attach>
 			    <top_attach>0</top_attach>
 			    <bottom_attach>1</bottom_attach>
 			    <xpad>0</xpad>
@@ -22059,7 +22033,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_library_rescan_timestamp</name>
-			    <label>2003-12-26 17:54:23</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22088,7 +22062,7 @@ allowed</label>
 			<name>table79</name>
 			<border_width>2</border_width>
 			<rows>3</rows>
-			<columns>5</columns>
+			<columns>4</columns>
 			<homogeneous>False</homogeneous>
 			<row_spacing>2</row_spacing>
 			<column_spacing>4</column_spacing>
@@ -22132,32 +22106,6 @@ allowed</label>
 			  <child>
 			    <left_attach>2</left_attach>
 			    <right_attach>3</right_attach>
-			    <top_attach>0</top_attach>
-			    <bottom_attach>1</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkLabel</class>
-			  <name>label610</name>
-			  <label>secs</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <child>
-			    <left_attach>4</left_attach>
-			    <right_attach>5</right_attach>
 			    <top_attach>0</top_attach>
 			    <bottom_attach>1</bottom_attach>
 			    <xpad>0</xpad>
@@ -22225,32 +22173,6 @@ allowed</label>
 
 			<widget>
 			  <class>GtkLabel</class>
-			  <name>label615</name>
-			  <label>secs</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <child>
-			    <left_attach>4</left_attach>
-			    <right_attach>5</right_attach>
-			    <top_attach>1</top_attach>
-			    <bottom_attach>2</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
-			  <class>GtkLabel</class>
 			  <name>label616</name>
 			  <label>Patch generation started on:</label>
 			  <justify>GTK_JUSTIFY_CENTER</justify>
@@ -22302,32 +22224,6 @@ allowed</label>
 			</widget>
 
 			<widget>
-			  <class>GtkLabel</class>
-			  <name>label620</name>
-			  <label>secs</label>
-			  <justify>GTK_JUSTIFY_CENTER</justify>
-			  <wrap>False</wrap>
-			  <xalign>0</xalign>
-			  <yalign>0.5</yalign>
-			  <xpad>0</xpad>
-			  <ypad>0</ypad>
-			  <child>
-			    <left_attach>4</left_attach>
-			    <right_attach>5</right_attach>
-			    <top_attach>2</top_attach>
-			    <bottom_attach>3</bottom_attach>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			    <xexpand>False</xexpand>
-			    <yexpand>False</yexpand>
-			    <xshrink>False</xshrink>
-			    <yshrink>False</yshrink>
-			    <xfill>True</xfill>
-			    <yfill>False</yfill>
-			  </child>
-			</widget>
-
-			<widget>
 			  <class>GtkFrame</class>
 			  <name>frame101</name>
 			  <label_xalign>0</label_xalign>
@@ -22350,7 +22246,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_indexing_timestamp</name>
-			    <label>2003-12-26 17:54:23</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22383,7 +22279,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_timestamp</name>
-			    <label>2003-12-26 17:54:23</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22416,7 +22312,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_patch_timestamp</name>
-			    <label>2003-12-26 17:54:23</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22449,7 +22345,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_indexing_time</name>
-			    <label>25</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22482,7 +22378,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_computation_time</name>
-			    <label>25</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22515,7 +22411,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_patch_computation_time</name>
-			    <label>25</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22820,7 +22716,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_hashed_keywords</name>
-			    <label>12345678</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22853,7 +22749,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_slots</name>
-			    <label>1M</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22886,7 +22782,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_slots_filled</name>
-			    <label>1234567</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22919,7 +22815,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_generation</name>
-			    <label>1</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22952,7 +22848,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_fill_ratio</name>
-			    <label>10</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -22985,7 +22881,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_conflict_ratio</name>
-			    <label>25</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -23146,7 +23042,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_patch_raw_length</name>
-			    <label>954065</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -23179,7 +23075,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_patch_length</name>
-			    <label>13456</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -23212,7 +23108,7 @@ allowed</label>
 			  <widget>
 			    <class>GtkLabel</class>
 			    <name>label_qrp_patch_comp_ratio</name>
-			    <label>10</label>
+			    <label>[place holder]</label>
 			    <justify>GTK_JUSTIFY_CENTER</justify>
 			    <wrap>False</wrap>
 			    <xalign>1</xalign>
@@ -25210,7 +25106,7 @@ allowed</label>
 	    <widget>
 	      <class>GtkFrame</class>
 	      <name>frame_expert_unmapped</name>
-	      <label>Unmapped stuff</label>
+	      <label>Diverse properties</label>
 	      <label_xalign>0</label_xalign>
 	      <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 	      <child>
@@ -25232,14 +25128,13 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label465</name>
-		  <label>PROP__CURRENT__IP__STAMP</label>
+		  <label>The current IP address was set at:</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
-		  <default_focus_target>entry_current_ip_stamp</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -25259,14 +25154,13 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label466</name>
-		  <label>PROP__AVERAGE__IP__UPTIME</label>
+		  <label>Avg. time between IP address changes:</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
-		  <default_focus_target>entry_average_ip_uptime</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -25286,14 +25180,13 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label467</name>
-		  <label>PROP__START__STAMP</label>
+		  <label>Running since:</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
-		  <default_focus_target>entry_start_stamp</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -25313,14 +25206,13 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label468</name>
-		  <label>PROP__AVERAGE__SERVENT__UPTIME</label>
+		  <label>Avg. uptime of this servent:</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
-		  <default_focus_target>entry_average_servent_uptime</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -25340,14 +25232,13 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label479</name>
-		  <label>PROP__SYS__NOFILE</label>
+		  <label>Max. number of open files:</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
-		  <default_focus_target>entry_sys_nofile</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -25367,14 +25258,13 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label480</name>
-		  <label>PROP__SYS__PHYSMEM</label>
+		  <label>Available physical memory:</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
-		  <default_focus_target>entry_sys_physmem</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -25394,14 +25284,13 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label508</name>
-		  <label>PROP__CRAWLER__VISIT__COUNT</label>
+		  <label>TCP crawler visits:</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
-		  <default_focus_target>entry_crawler_visit_count</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
@@ -25421,14 +25310,13 @@ allowed</label>
 		<widget>
 		  <class>GtkLabel</class>
 		  <name>label713</name>
-		  <label>PROP__UDP__CRAWLER__VISIT__COUNT</label>
+		  <label>UDP crawler visits:</label>
 		  <justify>GTK_JUSTIFY_CENTER</justify>
 		  <wrap>False</wrap>
 		  <xalign>0</xalign>
 		  <yalign>0.5</yalign>
 		  <xpad>0</xpad>
 		  <ypad>0</ypad>
-		  <default_focus_target>entry_udp_crawler_visit_count</default_focus_target>
 		  <child>
 		    <left_attach>0</left_attach>
 		    <right_attach>1</right_attach>
