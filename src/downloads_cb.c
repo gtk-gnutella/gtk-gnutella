@@ -46,6 +46,8 @@ void on_ctree_downloads_tree_select_row
 	gboolean activate = FALSE;
 	struct download *d;
 
+	gui_update_download_abort_resume();
+
 	d = gtk_ctree_node_get_row_data(ctree, GTK_CTREE_NODE(node));	
 	if (DL_GUI_IS_HEADER == GPOINTER_TO_INT(d))
 		return;
@@ -57,7 +59,6 @@ void on_ctree_downloads_tree_select_row
         (lookup_widget(popup_downloads, "popup_downloads_copy_url"), activate);
     gtk_widget_set_sensitive
         (lookup_widget(popup_downloads, "popup_downloads_connect"), activate);
-	gui_update_download_abort_resume();
 }
 
 

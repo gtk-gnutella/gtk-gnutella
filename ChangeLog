@@ -1,5 +1,9 @@
 # since last version
 
+- (2004.01.04 - Emile)
+ * [Gtk1] Fixed autosort for "count" column
+ * [Gtk1] Added "Push mode" status for downloads tree
+ 
 - (2004.01.04 - Richard)
  * Implemented "results bursting". That means that the gui accumulates incoming
    results over a period of time and then flushes them out to display in a burst.

@@ -680,9 +680,9 @@ void search_gui_add_record(
 	gpointer key = NULL;
 	gboolean is_parent = FALSE;
     struct results_set *rs = rc->results_set;
-	record_t *parent_rc, *rc2;
+	record_t *parent_rc, *rc1, *rc2;
 
-	GtkCTreeNode *parent, *node, *cur_node, *sibling;
+	GtkCTreeNode *parent, *node, *cur_node, *sibling, *auto_node;
 	GtkCTreeRow *row, *parent_row;
 	GtkCTree *ctree = GTK_CTREE(sch->ctree);
 	
@@ -814,11 +814,22 @@ void search_gui_add_record(
 		 * So we need to find the place to put the result by ourselves.
 		 */
 		
-		/* FIXME
-		 * For some reason autosort is broken on the count column. --- Emile
+		/* If the node added was a child and the column is sorted by count we
+		 * have to re-sort the parent node (it's count was just updated)
+		 * moving the parent will move the children too so we just pretend that
+		 * the parent node was actually the node that was added, not the child. 
 		 */
+		if(!is_parent && (c_sr_count == sch->sort_col)) {
+			is_parent = TRUE;
+			parent_row = GTK_CTREE_ROW(node);
+			auto_node = parent_row->parent;
+			rc1 = gtk_ctree_node_get_row_data(sch->ctree, node);
+		} else {
+			auto_node = node;
+			rc1 = rc;
+		}
+		
 		if (is_parent) {
-			
 			parent = NULL;
 			sibling = NULL;
 			
@@ -830,20 +841,20 @@ void search_gui_add_record(
 
 				/* If node is a child node, we skip it */
 				if (NULL != row->parent)
-				continue; 			
+					continue; 			
 		
 				rc2 = (record_t *) gtk_ctree_node_get_row_data(ctree, cur_node);
 	
-				if (rc == rc2)
+				if (rc1 == rc2)
 					continue;
 				
 				if(SORT_ASC == sch->sort_order) {
- 	            	if (search_gui_compare_records(sch->sort_col, rc, rc2) < 0){
+ 	            	if (search_gui_compare_records(sch->sort_col, rc1, rc2) < 0){
 						sibling = cur_node;
 						break;
 					} 
 				} else { /* SORT_DESC */
-					if (search_gui_compare_records(sch->sort_col, rc, rc2) > 0){
+					if (search_gui_compare_records(sch->sort_col, rc1, rc2) > 0){
 						sibling = cur_node;
 						break;
 					}
@@ -851,12 +862,12 @@ void search_gui_add_record(
 			}
 		} else { /* Is a child node */
 		
-			row = GTK_CTREE_ROW(node);
+			row = GTK_CTREE_ROW(auto_node);
 			parent = row->parent;
 			g_assert(NULL != parent);
 			sibling = NULL;
 			
-			parent_row = GTK_CTREE_ROW(node);
+			parent_row = GTK_CTREE_ROW(auto_node);
 			cur_node = parent_row->children; /* start looking at first child */
 
 			for (; NULL != cur_node; row = GTK_CTREE_ROW(cur_node), 
@@ -865,12 +876,12 @@ void search_gui_add_record(
 				rc2 = (record_t *) gtk_ctree_node_get_row_data(ctree, cur_node);
 	
 				if(SORT_ASC == sch->sort_order) {
- 	            	if (search_gui_compare_records(sch->sort_col, rc, rc2) < 0){
+ 	            	if (search_gui_compare_records(sch->sort_col, rc1, rc2) < 0){
 						sibling = cur_node;
 						break;
 					}
 				} else { /* SORT_DESC */
-					if (search_gui_compare_records(sch->sort_col, rc, rc2) > 0){
+					if (search_gui_compare_records(sch->sort_col, rc1, rc2) > 0){
 						sibling = cur_node;
 						break;
 					}
@@ -878,7 +889,7 @@ void search_gui_add_record(
 			}
 		}
 
-		gtk_ctree_move(ctree, node, parent, sibling);
+		gtk_ctree_move(ctree, auto_node, parent, sibling);
 	}
 
 

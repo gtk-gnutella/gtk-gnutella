@@ -386,6 +386,7 @@ gboolean downloads_gui_update_parent_status(
 	gpointer key;
 	gboolean changed = FALSE;
 	
+	GdkColor *color;
 	GtkCTreeNode *parent;
     GtkCTree *ctree_downloads = GTK_CTREE
             (lookup_widget(main_window, "ctree_downloads"));
@@ -399,6 +400,13 @@ gboolean downloads_gui_update_parent_status(
 			changed = TRUE;
 			gtk_ctree_node_set_text(ctree_downloads, parent,
 				c_dl_status, new_status);
+
+			if (0 == strcmp(new_status, "Push mode")) {
+				color = &(gtk_widget_get_style(GTK_WIDGET(ctree_downloads))
+					->fg[GTK_STATE_INSENSITIVE]);
+	
+				gtk_ctree_node_set_foreground(ctree_downloads, parent, color);		
+			}
 			record_parent_gui_update(key, now);
 		}
 	}
@@ -995,6 +1003,15 @@ void gui_update_download(struct download *d, gboolean force)
 				switch (d->status) {
 				case GTA_DL_PUSH_SENT:
 					a = "Push sent";
+					if (
+						parent_gui_needs_update(d, now) &&
+						!downloads_gui_any_status(d, GTA_DL_RECEIVING) &&
+						!downloads_gui_any_status(d, GTA_DL_ACTIVE_QUEUED) &&
+						!downloads_gui_any_status(d, GTA_DL_CONNECTING)
+						)
+						downloads_gui_update_parent_status
+							(d, now, "Push sent");
+		break;
 					break;
 				case GTA_DL_FALLBACK:
 					a = "Falling back to push";
