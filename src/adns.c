@@ -503,7 +503,7 @@ prefork_failure:
 gboolean adns_resolve(
 	const gchar *hostname, adns_callback_t user_callback, gpointer user_data)
 {
-	gsize len;
+	gsize len = 0;
 	static struct adns_query_t query;
 	static struct adns_reply_t reply;
 
