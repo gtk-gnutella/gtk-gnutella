@@ -1411,8 +1411,8 @@
 		<handler>on_clist_uploads_resize_column</handler>
 		<last_modification_time>Tue, 09 May 2000 19:18:30 GMT</last_modification_time>
 	      </signal>
-	      <columns>3</columns>
-	      <column_widths>80,80,80</column_widths>
+	      <columns>5</columns>
+	      <column_widths>80,60,40,40,60</column_widths>
 	      <selection_mode>GTK_SELECTION_EXTENDED</selection_mode>
 	      <show_titles>True</show_titles>
 	      <shadow_type>GTK_SHADOW_IN</shadow_type>
@@ -1435,6 +1435,32 @@
 		<child_name>CList:title</child_name>
 		<name>label73</name>
 		<label>Host</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<child_name>CList:title</child_name>
+		<name>label_size_range</name>
+		<label>Size</label>
+		<justify>GTK_JUSTIFY_CENTER</justify>
+		<wrap>False</wrap>
+		<xalign>0.5</xalign>
+		<yalign>0.5</yalign>
+		<xpad>0</xpad>
+		<ypad>0</ypad>
+	      </widget>
+
+	      <widget>
+		<class>GtkLabel</class>
+		<child_name>CList:title</child_name>
+		<name>label_up_range</name>
+		<label>Range</label>
 		<justify>GTK_JUSTIFY_CENTER</justify>
 		<wrap>False</wrap>
 		<xalign>0.5</xalign>

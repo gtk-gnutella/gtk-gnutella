@@ -693,14 +693,17 @@ static void upload_request(struct upload *u, header_t *header)
 	gchar http_response[1024], *fpath = NULL, sl[] = "/\0";
 	gchar *user_agent = 0;
 	gchar *buf;
-	gchar *titles[3];
+	gchar *titles[5];
 	gchar *request = getline_str(s->getline);
 	GSList *l;
 	gint sent;
 	gboolean head_only;
 	gboolean has_end = FALSE;
+	gchar size_tmp[256];
+	gchar range_tmp[256];
+	gint range_len;
 
-	titles[0] = titles[1] = titles[2] = NULL;
+	titles[0] = titles[1] = titles[2] = titles[3] = titles[4] = NULL;
 
 	if (dbg > 4) {
 		printf("----Incoming Request from %s:\n", ip_to_gchar(s->ip));
@@ -1046,9 +1049,21 @@ static void upload_request(struct upload *u, header_t *header)
 		 * Add upload to the GUI
 		 */
 
+		g_snprintf(size_tmp, sizeof(size_tmp), "%s", short_size(u->end + 1));
+
+		range_len = g_snprintf(range_tmp, sizeof(range_tmp), "%s",
+			compact_size(u->end - u->skip + 1));
+
+		if (u->skip)
+			range_len += g_snprintf(
+				&range_tmp[range_len], sizeof(range_tmp)-range_len,
+				" @ %s", compact_size(u->skip));
+
 		titles[0] = u->name;
 		titles[1] = ip_to_gchar(s->ip);
-		titles[2] = "";
+		titles[2] = size_tmp;
+		titles[3] = range_tmp;
+		titles[4] = "";
 
 		row = gtk_clist_append(GTK_CLIST(clist_uploads), titles);
 		gtk_clist_set_row_data(GTK_CLIST(clist_uploads), row, (gpointer) u);

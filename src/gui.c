@@ -641,8 +641,7 @@ void gui_update_upload(struct upload *u)
 		/* Time Remaining at the current rate, in seconds  */
 		tr = (u->end + 1 - u->pos) / avg_bps;
 
-		slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.02f%% [%s] ",
-			pc, short_size(requested));
+		slen = g_snprintf(gui_tmp, sizeof(gui_tmp), "%.02f%% ", pc);
 
 		if (time((time_t *) 0) - u->last_update > IO_STALLED)
 			slen += g_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
@@ -657,22 +656,18 @@ void gui_update_upload(struct upload *u)
 		if (u->last_update != u->start_date) {
 			guint32 spent = u->last_update - u->start_date;
 
-			rate = ((u->end - u->skip + 1) / 1024.0) / spent;
+			rate = (requested / 1024.0) / spent;
 			g_snprintf(gui_tmp, sizeof(gui_tmp),
-				"Completed [%s] (%.1f k/s) %s",
-				short_size(requested), rate, short_time(spent));
-		} else {
-			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed [%s] (< 1s)",
-				short_size(requested));
-		}
+				"Completed (%.1f k/s) %s", rate, short_time(spent));
+		} else
+			g_snprintf(gui_tmp, sizeof(gui_tmp), "Completed (< 1s)");
 	}
 
 	row =
 		gtk_clist_find_row_from_data(GTK_CLIST(clist_uploads),
 									 (gpointer) u);
 
-	gtk_clist_set_text(GTK_CLIST(clist_uploads), row, 2, gui_tmp);
-
+	gtk_clist_set_text(GTK_CLIST(clist_uploads), row, 4, gui_tmp);
 }
 
 /* Create a new GtkCList for search results */

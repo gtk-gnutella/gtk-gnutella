@@ -201,6 +201,24 @@ gchar *short_kb_size(guint32 size)
 	return b;
 }
 
+/* Returns a number of bytes in a compact readable form */
+
+gchar *compact_size(guint32 size)
+{
+	static gchar b[64];
+
+	if (size < 1024)
+		g_snprintf(b, sizeof(b), "%uB", size);
+	else if (size < 1048576)
+		g_snprintf(b, sizeof(b), "%.1fK", (float) size / 1024.0);
+	else if (size < 1073741824)
+		g_snprintf(b, sizeof(b), "%.1fM", (float) size / 1048576.0);
+	else
+		g_snprintf(b, sizeof(b), "%.1fG", (float) size / 1073741824.0);
+
+	return b;
+}
+
 /* Return time spent in seconds in a consise short readable form */
 
 gchar *short_time(guint32 s)
