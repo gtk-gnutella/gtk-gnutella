@@ -157,6 +157,10 @@ gboolean gnet_stats_perc     = FALSE;
 gboolean gnet_stats_perc_def = FALSE;
 gboolean gnet_stats_bytes     = FALSE;
 gboolean gnet_stats_bytes_def = FALSE;
+gboolean gnet_stats_hops     = FALSE;
+gboolean gnet_stats_hops_def = FALSE;
+gboolean gnet_stats_with_headers     = FALSE;
+gboolean gnet_stats_with_headers_def = FALSE;
 gboolean gnet_stats_drop_perc     = FALSE;
 gboolean gnet_stats_drop_perc_def = FALSE;
 guint32  gnet_stats_general_col_widths[2]     = { 60, 20 };
@@ -167,26 +171,6 @@ guint32  gnet_stats_pkg_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_pkg_col_widths_def[6] = { 60, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_byte_col_widths[6]     = { 60, 20, 20, 20, 20, 20 };
 guint32  gnet_stats_byte_col_widths_def[6] = { 60, 20, 20, 20, 20, 20 };
-gboolean gnet_stats_mode_fc_absolute     = FALSE;
-gboolean gnet_stats_mode_fc_absolute_def = FALSE;
-gboolean gnet_stats_mode_fc_headers     = FALSE;
-gboolean gnet_stats_mode_fc_headers_def = FALSE;
-gboolean gnet_stats_mode_fc_packets     = FALSE;
-gboolean gnet_stats_mode_fc_packets_def = FALSE;
-gboolean gnet_stats_mode_fc_ttl     = FALSE;
-gboolean gnet_stats_mode_fc_ttl_def = FALSE;
-gboolean gnet_stats_mode_msgs_absolute     = FALSE;
-gboolean gnet_stats_mode_msgs_absolute_def = FALSE;
-gboolean gnet_stats_mode_msgs_packets     = FALSE;
-gboolean gnet_stats_mode_msgs_packets_def = FALSE;
-gboolean gnet_stats_mode_recv_absolute     = FALSE;
-gboolean gnet_stats_mode_recv_absolute_def = FALSE;
-gboolean gnet_stats_mode_recv_headers     = FALSE;
-gboolean gnet_stats_mode_recv_headers_def = FALSE;
-gboolean gnet_stats_mode_recv_packets     = FALSE;
-gboolean gnet_stats_mode_recv_packets_def = FALSE;
-gboolean gnet_stats_mode_recv_ttl     = FALSE;
-gboolean gnet_stats_mode_recv_ttl_def = FALSE;
 
 static prop_set_t *gui_property = NULL;
 
@@ -1264,20 +1248,54 @@ prop_set_t *gui_prop_init(void) {
 
 
     /*
-     * PROP_GNET_STATS_DROP_PERC:
+     * PROP_GNET_STATS_HOPS:
      *
      * General data:
      */
-    gui_property->props[57].name = "gnet_stats_drop_perc";
-    gui_property->props[57].desc = "Show percentages instead of absolute values in the gnet stats (drop reasons)";
+    gui_property->props[57].name = "gnet_stats_hops";
+    gui_property->props[57].desc = "Show stats per hops instead of per TTL";
     gui_property->props[57].prop_changed_listeners = NULL;
     gui_property->props[57].save = TRUE;
     gui_property->props[57].vector_size = 1;
 
     /* Type specific data: */
     gui_property->props[57].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[57].data.boolean.def   = &gnet_stats_drop_perc_def;
-    gui_property->props[57].data.boolean.value = &gnet_stats_drop_perc;
+    gui_property->props[57].data.boolean.def   = &gnet_stats_hops_def;
+    gui_property->props[57].data.boolean.value = &gnet_stats_hops;
+
+
+    /*
+     * PROP_GNET_STATS_WITH_HEADERS:
+     *
+     * General data:
+     */
+    gui_property->props[58].name = "gnet_stats_with_headers";
+    gui_property->props[58].desc = "Add the headers to the volume";
+    gui_property->props[58].prop_changed_listeners = NULL;
+    gui_property->props[58].save = TRUE;
+    gui_property->props[58].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[58].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[58].data.boolean.def   = &gnet_stats_with_headers_def;
+    gui_property->props[58].data.boolean.value = &gnet_stats_with_headers;
+
+
+    /*
+     * PROP_GNET_STATS_DROP_PERC:
+     *
+     * General data:
+     */
+    gui_property->props[59].name = "gnet_stats_drop_perc";
+    gui_property->props[59].desc = "Show percentages instead of absolute values in the gnet stats (drop reasons)";
+    gui_property->props[59].prop_changed_listeners = NULL;
+    gui_property->props[59].save = TRUE;
+    gui_property->props[59].vector_size = 1;
+
+    /* Type specific data: */
+    gui_property->props[59].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[59].data.boolean.def   = &gnet_stats_drop_perc_def;
+    gui_property->props[59].data.boolean.value = &gnet_stats_drop_perc;
 
 
     /*
@@ -1285,19 +1303,19 @@ prop_set_t *gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[58].name = "widths_gnet_stats_general";
-    gui_property->props[58].desc = "Widths of the columns in the gnet stats general table";
-    gui_property->props[58].prop_changed_listeners = NULL;
-    gui_property->props[58].save = TRUE;
-    gui_property->props[58].vector_size = 2;
+    gui_property->props[60].name = "widths_gnet_stats_general";
+    gui_property->props[60].desc = "Widths of the columns in the gnet stats general table";
+    gui_property->props[60].prop_changed_listeners = NULL;
+    gui_property->props[60].save = TRUE;
+    gui_property->props[60].vector_size = 2;
 
     /* Type specific data: */
-    gui_property->props[58].type               = PROP_TYPE_GUINT32;
-    gui_property->props[58].data.guint32.def   = gnet_stats_general_col_widths_def;
-    gui_property->props[58].data.guint32.value = gnet_stats_general_col_widths;
-    gui_property->props[58].data.guint32.choices = NULL;
-    gui_property->props[58].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[58].data.guint32.min   = 0x00000000;
+    gui_property->props[60].type               = PROP_TYPE_GUINT32;
+    gui_property->props[60].data.guint32.def   = gnet_stats_general_col_widths_def;
+    gui_property->props[60].data.guint32.value = gnet_stats_general_col_widths;
+    gui_property->props[60].data.guint32.choices = NULL;
+    gui_property->props[60].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[60].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1305,16 +1323,16 @@ prop_set_t *gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[59].name = "auto_clear_completed_uploads";
-    gui_property->props[59].desc = "Auto clear completed uploads";
-    gui_property->props[59].prop_changed_listeners = NULL;
-    gui_property->props[59].save = TRUE;
-    gui_property->props[59].vector_size = 1;
+    gui_property->props[61].name = "auto_clear_completed_uploads";
+    gui_property->props[61].desc = "Auto clear completed uploads";
+    gui_property->props[61].prop_changed_listeners = NULL;
+    gui_property->props[61].save = TRUE;
+    gui_property->props[61].vector_size = 1;
 
     /* Type specific data: */
-    gui_property->props[59].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[59].data.boolean.def   = &clear_uploads_def;
-    gui_property->props[59].data.boolean.value = &clear_uploads;
+    gui_property->props[61].type               = PROP_TYPE_BOOLEAN;
+    gui_property->props[61].data.boolean.def   = &clear_uploads_def;
+    gui_property->props[61].data.boolean.value = &clear_uploads;
 
 
     /*
@@ -1322,19 +1340,19 @@ prop_set_t *gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[60].name = "widths_gnet_stats_pkg";
-    gui_property->props[60].desc = "Widths of the columns in the gnet packet stats table (pkg)[GTK2]";
-    gui_property->props[60].prop_changed_listeners = NULL;
-    gui_property->props[60].save = TRUE;
-    gui_property->props[60].vector_size = 6;
+    gui_property->props[62].name = "widths_gnet_stats_pkg";
+    gui_property->props[62].desc = "Widths of the columns in the gnet packet stats table (pkg)[GTK2]";
+    gui_property->props[62].prop_changed_listeners = NULL;
+    gui_property->props[62].save = TRUE;
+    gui_property->props[62].vector_size = 6;
 
     /* Type specific data: */
-    gui_property->props[60].type               = PROP_TYPE_GUINT32;
-    gui_property->props[60].data.guint32.def   = gnet_stats_pkg_col_widths_def;
-    gui_property->props[60].data.guint32.value = gnet_stats_pkg_col_widths;
-    gui_property->props[60].data.guint32.choices = NULL;
-    gui_property->props[60].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[60].data.guint32.min   = 0x00000000;
+    gui_property->props[62].type               = PROP_TYPE_GUINT32;
+    gui_property->props[62].data.guint32.def   = gnet_stats_pkg_col_widths_def;
+    gui_property->props[62].data.guint32.value = gnet_stats_pkg_col_widths;
+    gui_property->props[62].data.guint32.choices = NULL;
+    gui_property->props[62].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[62].data.guint32.min   = 0x00000000;
 
 
     /*
@@ -1342,189 +1360,19 @@ prop_set_t *gui_prop_init(void) {
      *
      * General data:
      */
-    gui_property->props[61].name = "widths_gnet_stats_byte";
-    gui_property->props[61].desc = "Widths of the columns in the gnet packet stats table (byte).[GTK2]";
-    gui_property->props[61].prop_changed_listeners = NULL;
-    gui_property->props[61].save = TRUE;
-    gui_property->props[61].vector_size = 6;
-
-    /* Type specific data: */
-    gui_property->props[61].type               = PROP_TYPE_GUINT32;
-    gui_property->props[61].data.guint32.def   = gnet_stats_byte_col_widths_def;
-    gui_property->props[61].data.guint32.value = gnet_stats_byte_col_widths;
-    gui_property->props[61].data.guint32.choices = NULL;
-    gui_property->props[61].data.guint32.max   = 0xFFFFFFFF;
-    gui_property->props[61].data.guint32.min   = 0x00000000;
-
-
-    /*
-     * PROP_GNET_STATS_MODE_FC_ABSOLUTE:
-     *
-     * General data:
-     */
-    gui_property->props[62].name = "gnet_stats_mode_fc_absolute";
-    gui_property->props[62].desc = "";
-    gui_property->props[62].prop_changed_listeners = NULL;
-    gui_property->props[62].save = TRUE;
-    gui_property->props[62].vector_size = 1;
-
-    /* Type specific data: */
-    gui_property->props[62].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[62].data.boolean.def   = &gnet_stats_mode_fc_absolute_def;
-    gui_property->props[62].data.boolean.value = &gnet_stats_mode_fc_absolute;
-
-
-    /*
-     * PROP_GNET_STATS_MODE_FC_HEADERS:
-     *
-     * General data:
-     */
-    gui_property->props[63].name = "gnet_stats_mode_fc_headers";
-    gui_property->props[63].desc = "";
+    gui_property->props[63].name = "widths_gnet_stats_byte";
+    gui_property->props[63].desc = "Widths of the columns in the gnet packet stats table (byte) [GTK2]";
     gui_property->props[63].prop_changed_listeners = NULL;
     gui_property->props[63].save = TRUE;
-    gui_property->props[63].vector_size = 1;
+    gui_property->props[63].vector_size = 6;
 
     /* Type specific data: */
-    gui_property->props[63].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[63].data.boolean.def   = &gnet_stats_mode_fc_headers_def;
-    gui_property->props[63].data.boolean.value = &gnet_stats_mode_fc_headers;
-
-
-    /*
-     * PROP_GNET_STATS_MODE_FC_PACKETS:
-     *
-     * General data:
-     */
-    gui_property->props[64].name = "gnet_stats_mode_fc_packets";
-    gui_property->props[64].desc = "";
-    gui_property->props[64].prop_changed_listeners = NULL;
-    gui_property->props[64].save = TRUE;
-    gui_property->props[64].vector_size = 1;
-
-    /* Type specific data: */
-    gui_property->props[64].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[64].data.boolean.def   = &gnet_stats_mode_fc_packets_def;
-    gui_property->props[64].data.boolean.value = &gnet_stats_mode_fc_packets;
-
-
-    /*
-     * PROP_GNET_STATS_MODE_FC_TTL:
-     *
-     * General data:
-     */
-    gui_property->props[65].name = "gnet_stats_mode_fc_ttl";
-    gui_property->props[65].desc = "";
-    gui_property->props[65].prop_changed_listeners = NULL;
-    gui_property->props[65].save = TRUE;
-    gui_property->props[65].vector_size = 1;
-
-    /* Type specific data: */
-    gui_property->props[65].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[65].data.boolean.def   = &gnet_stats_mode_fc_ttl_def;
-    gui_property->props[65].data.boolean.value = &gnet_stats_mode_fc_ttl;
-
-
-    /*
-     * PROP_GNET_STATS_MODE_MSGS_ABSOLUTE:
-     *
-     * General data:
-     */
-    gui_property->props[66].name = "gnet_stats_mode_msgs_absolute";
-    gui_property->props[66].desc = "";
-    gui_property->props[66].prop_changed_listeners = NULL;
-    gui_property->props[66].save = TRUE;
-    gui_property->props[66].vector_size = 1;
-
-    /* Type specific data: */
-    gui_property->props[66].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[66].data.boolean.def   = &gnet_stats_mode_msgs_absolute_def;
-    gui_property->props[66].data.boolean.value = &gnet_stats_mode_msgs_absolute;
-
-
-    /*
-     * PROP_GNET_STATS_MODE_MSGS_PACKETS:
-     *
-     * General data:
-     */
-    gui_property->props[67].name = "gnet_stats_mode_msgs_packets";
-    gui_property->props[67].desc = "";
-    gui_property->props[67].prop_changed_listeners = NULL;
-    gui_property->props[67].save = TRUE;
-    gui_property->props[67].vector_size = 1;
-
-    /* Type specific data: */
-    gui_property->props[67].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[67].data.boolean.def   = &gnet_stats_mode_msgs_packets_def;
-    gui_property->props[67].data.boolean.value = &gnet_stats_mode_msgs_packets;
-
-
-    /*
-     * PROP_GNET_STATS_MODE_RECV_ABSOLUTE:
-     *
-     * General data:
-     */
-    gui_property->props[68].name = "gnet_stats_mode_recv_absolute";
-    gui_property->props[68].desc = "";
-    gui_property->props[68].prop_changed_listeners = NULL;
-    gui_property->props[68].save = TRUE;
-    gui_property->props[68].vector_size = 1;
-
-    /* Type specific data: */
-    gui_property->props[68].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[68].data.boolean.def   = &gnet_stats_mode_recv_absolute_def;
-    gui_property->props[68].data.boolean.value = &gnet_stats_mode_recv_absolute;
-
-
-    /*
-     * PROP_GNET_STATS_MODE_RECV_HEADERS:
-     *
-     * General data:
-     */
-    gui_property->props[69].name = "gnet_stats_mode_recv_headers";
-    gui_property->props[69].desc = "";
-    gui_property->props[69].prop_changed_listeners = NULL;
-    gui_property->props[69].save = TRUE;
-    gui_property->props[69].vector_size = 1;
-
-    /* Type specific data: */
-    gui_property->props[69].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[69].data.boolean.def   = &gnet_stats_mode_recv_headers_def;
-    gui_property->props[69].data.boolean.value = &gnet_stats_mode_recv_headers;
-
-
-    /*
-     * PROP_GNET_STATS_MODE_RECV_PACKETS:
-     *
-     * General data:
-     */
-    gui_property->props[70].name = "gnet_stats_mode_recv_packets";
-    gui_property->props[70].desc = "";
-    gui_property->props[70].prop_changed_listeners = NULL;
-    gui_property->props[70].save = TRUE;
-    gui_property->props[70].vector_size = 1;
-
-    /* Type specific data: */
-    gui_property->props[70].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[70].data.boolean.def   = &gnet_stats_mode_recv_packets_def;
-    gui_property->props[70].data.boolean.value = &gnet_stats_mode_recv_packets;
-
-
-    /*
-     * PROP_GNET_STATS_MODE_RECV_TTL:
-     *
-     * General data:
-     */
-    gui_property->props[71].name = "gnet_stats_mode_recv_ttl";
-    gui_property->props[71].desc = "";
-    gui_property->props[71].prop_changed_listeners = NULL;
-    gui_property->props[71].save = TRUE;
-    gui_property->props[71].vector_size = 1;
-
-    /* Type specific data: */
-    gui_property->props[71].type               = PROP_TYPE_BOOLEAN;
-    gui_property->props[71].data.boolean.def   = &gnet_stats_mode_recv_ttl_def;
-    gui_property->props[71].data.boolean.value = &gnet_stats_mode_recv_ttl;
+    gui_property->props[63].type               = PROP_TYPE_GUINT32;
+    gui_property->props[63].data.guint32.def   = gnet_stats_byte_col_widths_def;
+    gui_property->props[63].data.guint32.value = gnet_stats_byte_col_widths;
+    gui_property->props[63].data.guint32.choices = NULL;
+    gui_property->props[63].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[63].data.guint32.min   = 0x00000000;
     return gui_property;
 }
 
