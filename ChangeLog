@@ -1,5 +1,12 @@
 # since last version
 
+- (2002.11.07 Richard)
+ * [Gtk2] Added new icons from Gtk1 and"prefer compressed" switch.
+ * [Gtk2] Columns in gnet panel automatically grow in width again
+ * [Gtk2] Fixed bug showing status information in version row on gnet panel.
+ * Fixed sizeof issue (memory corruption?). Thanks Christian Biere for
+   pointing out.
+
 - (2002.11.06 RAM)
  * More tweakings with fileinfos: will now physically remove files that are
    SHA1 or name/size ignored (if not completed already).
