@@ -103,6 +103,7 @@ gtk-gnutella.glade
 gtk-gnutella.png
 gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 gtk2-gnutella.glade
+gtk2-gnutella.gladep
 gwcache.boot
 hostiles.txt
 install.SH                   BSD-compatible install program
