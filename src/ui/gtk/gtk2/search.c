@@ -171,9 +171,15 @@ static gboolean
 on_enter_notify(GtkWidget *widget, GdkEventCrossing *unused_event,
 		gpointer unused_udata)
 {
+	GtkTreePath *path;
+	
 	(void) unused_event;
 	(void) unused_udata;
 
+	gtk_tree_view_get_cursor(GTK_TREE_VIEW(widget), &path, NULL);
+	if (!path) {
+		gtk_tooltips_set_tip(settings_gui_tooltips(), widget, NULL, NULL);
+	}
 	widget_force_tooltip(widget);
 	return FALSE;
 }
