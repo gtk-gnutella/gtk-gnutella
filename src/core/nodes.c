@@ -376,7 +376,7 @@ static void
 node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
 {
 	gnutella_node_t *n = (gnutella_node_t *) obj;
-	gnutella_node_t *udp = NULL;
+	gnutella_node_t *udp = NULL, *tn;
 
 	(void) unused_cq;
 	g_assert(!NODE_IS_UDP(n));
@@ -390,7 +390,11 @@ node_tsync_udp(cqueue_t *unused_cq, gpointer obj)
 	if (udp_active() && !(n->flags & NODE_F_TSYNC_TCP) && n->gnet_ip)
 		udp = node_udp_get_ip_port(n->gnet_ip, n->gnet_port);
 
-	tsync_send(udp == NULL ? n : udp, n->id);
+	tn = udp == NULL ? n : udp;
+	g_return_if_fail(tn->ip != 0);
+	g_return_if_fail(tn->port != 0);
+
+	tsync_send(tn, n->id);
 
 	/*
 	 * Next sync will occur in NODE_TSYNC_PERIOD_MS milliseconds.
