@@ -49,7 +49,7 @@ RCSID("$Id$");
  * Global bandwidth schedulers.
  */
 
-struct bws_set bws = { NULL, NULL, NULL, NULL };
+struct bws_set bws = { NULL, NULL, NULL, NULL, NULL, NULL };
 static GSList *bws_list = NULL;
 
 #define BW_SLOT_MIN		256		/* Minimum bandwidth/slot for realloc */
@@ -208,14 +208,22 @@ void bsched_init(void)
 	bws.gout = bsched_make("G out",
 		BS_T_STREAM, BS_F_WRITE, bw_gnet_out, 1000);
 
+	bws.glout = bsched_make("GL out",
+		BS_T_STREAM, BS_F_WRITE, bw_gnet_lout, 1000);
+
 	bws.in = bsched_make("in",
 		BS_T_STREAM, BS_F_READ, bw_http_in, 1000);
 
 	bws.gin = bsched_make("G in",
 		BS_T_STREAM, BS_F_READ, bw_gnet_in, 1000);
 
+	bws.glin = bsched_make("GL in",
+		BS_T_STREAM, BS_F_READ, bw_gnet_lin, 1000);
+
+	bws_list = g_slist_prepend(bws_list, bws.glin);
 	bws_list = g_slist_prepend(bws_list, bws.gin);
 	bws_list = g_slist_prepend(bws_list, bws.in);
+	bws_list = g_slist_prepend(bws_list, bws.glout);
 	bws_list = g_slist_prepend(bws_list, bws.gout);
 	bws_list = g_slist_prepend(bws_list, bws.out);
 
@@ -224,10 +232,25 @@ void bsched_init(void)
 	 */
 
 	bsched_add_stealer(bws.out, bws.gout);
+	bsched_add_stealer(bws.out, bws.glout);
+
 	bsched_add_stealer(bws.gout, bws.out);
+	bsched_add_stealer(bws.gout, bws.glout);
 
 	bsched_add_stealer(bws.in, bws.gin);
+	bsched_add_stealer(bws.in, bws.glin);
+
 	bsched_add_stealer(bws.gin, bws.in);
+	bsched_add_stealer(bws.gin, bws.glin);
+
+	/*
+	 * Leaf Gnet traffic can only steal from Gnet.
+	 */
+
+	bsched_add_stealer(bws.glout, bws.gout);
+	bsched_add_stealer(bws.glin, bws.gin);
+
+	bsched_set_peermode(current_peermode);
 }
 
 /*
@@ -242,7 +265,36 @@ void bsched_close(void)
 	for (l = bws_list; l; l = g_slist_next(l))
 		bsched_free(l->data);
 
-	bws.out = bws.in = bws.gout = bws.gin = NULL;
+	bws.out = bws.in = bws.gout = bws.gin = bws.glin = bws.glout = NULL;
+}
+
+/*
+ * bsched_set_peermode
+ *
+ * Adapt the overall Gnet bandwidth repartition depending on the current
+ * peermode.
+ *
+ * This routine is called each time the peermode changes.
+ */
+void bsched_set_peermode(node_peer_t mode)
+{
+	switch (mode) {
+	case NODE_P_NORMAL:
+	case NODE_P_LEAF:
+		bsched_set_bandwidth(bws.glin, 0);
+		bsched_set_bandwidth(bws.glout, 0);
+		bsched_set_bandwidth(bws.gin, bw_gnet_lin + bw_gnet_in);
+		bsched_set_bandwidth(bws.gout, bw_gnet_lout + bw_gnet_out);
+		break;
+	case NODE_P_ULTRA:
+		bsched_set_bandwidth(bws.glin, bw_gnet_lin);
+		bsched_set_bandwidth(bws.glout, bw_gnet_lout);
+		bsched_set_bandwidth(bws.gin, bw_gnet_in);
+		bsched_set_bandwidth(bws.gout, bw_gnet_out);
+		break;
+	default:
+		g_error("unhandled peer mode %d", mode);
+	}
 }
 
 /*
@@ -284,11 +336,17 @@ void bsched_enable_all(void)
 	if (bws.gout->bw_per_second && bws_gout_enabled)
 		bsched_enable(bws.gout);
 
+	if (bws.glout->bw_per_second && bws_glout_enabled)
+		bsched_enable(bws.glout);
+
 	if (bws.in->bw_per_second && bws_in_enabled)
 		bsched_enable(bws.in);
 
 	if (bws.gin->bw_per_second && bws_gin_enabled)
 		bsched_enable(bws.gin);
+
+	if (bws.glin->bw_per_second && bws_glin_enabled)
+		bsched_enable(bws.glin);
 }
 
 /*

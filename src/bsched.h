@@ -28,6 +28,8 @@
 #ifndef _bsched_h_
 #define _bsched_h_
 
+#include "gnet.h"			/* For node_peer_t */
+
 struct iovec;
 
 #include <sys/types.h>		/* For off_t */
@@ -146,6 +148,8 @@ struct bws_set {
 	bsched_t *in;			/* Input (downloads) */
 	bsched_t *gout;			/* Gnet output */
 	bsched_t *gin;			/* Gnet input */
+	bsched_t *glout;		/* Gnet leaf output */
+	bsched_t *glin;			/* Gnet leaf input */
 };
 
 extern struct bws_set bws;
@@ -159,6 +163,7 @@ bsched_t *bsched_make(gchar *name,
 void bsched_init(void);
 void bsched_shutdown(void);
 void bsched_close(void);
+void bsched_set_peermode(node_peer_t mode);
 void bsched_enable(bsched_t *bs);
 void bsched_disable(bsched_t *bs);
 void bsched_enable_all(void);
