@@ -20,7 +20,7 @@
 
 # $Id$
 #
-# Generated on Sun Aug 10 11:17:41 MEST 2003 [metaconfig 3.0 PL70]
+# Generated on Sun Aug 10 12:48:19 MEST 2003 [metaconfig 3.0 PL70]
 
 cat >/tmp/c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -3093,7 +3093,7 @@ else
 		echo " "
 		echo "nm didn't seem to work right. Trying ar instead..." >&4
 		com=''
-		if ar t $libc > libc.tmp; then
+		if ar t $libc > libc.tmp 2>/dev/null; then
 			for thisname in $libnames; do
 				ar t $thisname >>libc.tmp
 			done
@@ -3101,9 +3101,9 @@ else
 			echo "Ok." >&4
 		else
 			echo "ar didn't seem to work right." >&4
-			echo "Maybe this is a Cray...trying bld instead..." >&4
-			if bld t $libc | $sed -e 's/.*\///' -e "s/\\$_o:.*\$//" > libc.list
-			then
+			echo "Maybe this is a Cray... trying bld instead..." >&4
+			if bld t $libc >libc.tmp 2>/dev/null; then
+				$sed -e 's/.*\///' -e "s/\\$_o:.*\$//" <libc.tmp >libc.list
 				for thisname in $libnames; do
 					bld t $libnames | \
 					$sed -e 's/.*\///' -e "s/\\$_o:.*\$//" >>libc.list
@@ -3111,8 +3111,9 @@ else
 				done
 				echo "Ok." >&4
 			else
-				echo "That didn't work either.  Giving up." >&4
-				exit 1
+				echo "That didn't work either." >&4
+				echo "No problem, I'll be compiling test programs then..." >&4
+				runnm=false
 			fi
 		fi
 	fi
@@ -3148,7 +3149,7 @@ yes)
 		else tval=false;
 		fi;;
 	*)
-		echo "main() { extern short $1$tdc; printf(\"%hd\", $1$tc); }" > t.c;
+		echo "extern char $1$tdc; int main() { $1$tc; return 0; }" > t.c;
 		if $cc $ccflags $ldflags -o t t.c $libs >/dev/null 2>&1;
 		then tval=true;
 		else tval=false;
