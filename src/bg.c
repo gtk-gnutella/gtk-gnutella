@@ -904,6 +904,8 @@ void bg_sched_timer(void)
 		g_assert(bt);					/* runcount > 0 => there is a task */
 		g_assert(bt->flags & TASK_F_RUNNABLE);
 
+		bt->flags &= ~TASK_F_NOTICK;	/* We'll want tick cost update */
+
 		/*
 		 * Compute how many ticks we can ask for this processing step.
 		 *
@@ -965,13 +967,13 @@ void bg_sched_timer(void)
 
 		/*
 		 * If task is a daemon task, and we're starting at the first step,
-		 * unqueue the first item.
+		 * process the first item in the work queue.
 		 */
 
 		if ((bt->flags & TASK_F_DAEMON) && bt->step == 0 && bt->seqno == 0) {
 			gpointer item;
 
-			g_assert(bt->wq != NULL);
+			g_assert(bt->wq != NULL);	/* Runnable daemon, must have work */
 
 			item = bt->wq->data;
 
