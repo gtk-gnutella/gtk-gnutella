@@ -1850,15 +1850,13 @@ search_request(struct gnutella_node *n, query_hashvec_t *qhv)
 		}
 
 		/*
-		 * If it's a neighbouring query, make sure the IP:port for results
-		 * matches what we know about the listening IP:port for the node.
+		 * If it's a neighbouring query, make sure the IP for results
+		 * matches what we know about the listening IP for the node.
+		 * The UDP port can be different from the TCP port, so we can't
+		 * check that.
 		 */
 
-		if (
-			n->header.hops == 1 && (
-			(n->gnet_ip && ip != n->gnet_ip) ||
-			(n->gnet_port && port != n->gnet_port))
-		) {
+		if (n->header.hops == 1 && n->gnet_ip && ip != n->gnet_ip) {
 			gnet_stats_count_dropped(n, MSG_DROP_BAD_RETURN_ADDRESS);
 
 			if (query_debug)
