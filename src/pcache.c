@@ -188,10 +188,25 @@ static void send_pong(struct gnutella_node *n, gboolean control,
  */
 static void send_personal_info(struct gnutella_node *n, gboolean control)
 {
+	guint32 kbytes;
+
 	g_assert(n->header.function == GTA_MSG_INIT);	/* Replying to a ping */
 
 	if (!force_local_ip && !local_ip)
 		return;		/* If we don't know yet our local IP, we can't reply */
+
+	/*
+	 * Mark pong if we are an ultra node: the amount of kbytes scanned must
+	 * be an exact power of two, and at minimum 8.
+	 */
+
+	if (current_peermode == NODE_P_ULTRA) {
+		if (kbytes_scanned <= 8)
+			kbytes = 8;
+		else
+			kbytes = next_pow2(kbytes_scanned);
+	} else
+		kbytes = kbytes_scanned | 0x1;		/* Ensure not a power of two */
 
 	/*
 	 * Pongs are sent with a TTL just large enough to reach the pinging host,
@@ -201,7 +216,7 @@ static void send_personal_info(struct gnutella_node *n, gboolean control)
 	 */
 
 	send_pong(n, control, 0, MIN(n->header.hops + 1, max_ttl), n->header.muid,
-		listen_ip(), listen_port, files_scanned, kbytes_scanned);
+		listen_ip(), listen_port, files_scanned, kbytes);
 }
 
 /*
@@ -918,9 +933,10 @@ void pcache_ping_received(struct gnutella_node *n)
 		n->n_ping_special++;
 		if (n->header.ttl == 1)
 			send_personal_info(n, TRUE);	/* Control message, prioritary */
-		else if (n->header.ttl == 2)
-			send_neighbouring_info(n);
-		else
+		else if (n->header.ttl == 2) {
+			if (current_peermode != NODE_P_LEAF)
+				send_neighbouring_info(n);
+		} else
 			node_sent_ttl0(n);
 		return;
 	}
@@ -1170,8 +1186,9 @@ void pcache_pong_received(struct gnutella_node *n)
 	 * received it from, provided they need more pongs of this hop count.
 	 */
 
-	pong_all_neighbours_but_one(n,
-		cp, CACHE_HOP_IDX(n->header.hops), MAX(1, n->header.ttl));
+	if (current_peermode != NODE_P_LEAF)
+		pong_all_neighbours_but_one(n,
+			cp, CACHE_HOP_IDX(n->header.hops), MAX(1, n->header.ttl));
 }
 
 /*
