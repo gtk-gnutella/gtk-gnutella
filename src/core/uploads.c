@@ -1760,9 +1760,14 @@ get_file_to_upload_from_urn(
 		upload_error_remove(u, NULL, 503, "Library being rebuilt");
 		return NULL;
 	}
-
-	if (sf == NULL)
+	
+	if (sf == NULL) {
 		upload_error_not_found(u, uri);
+		return NULL;
+	} else if (!sha1_hash_is_uptodate(sf)) {
+		upload_error_remove(u, NULL, 503, "SHA1 is being recomputed");
+		return NULL;
+	}
 
 	return sf;
 
@@ -2026,12 +2031,14 @@ upload_416_extra(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
  * upload-specific headers into `buf'.
  */
 static void
-upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 flags)
+upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 unused_flags)
 {
 	gint rw = 0;
 	gint length = *retval;
 	struct upload_http_cb *a = (struct upload_http_cb *) arg;
 	gnutella_upload_t *u = a->u;
+
+	(void) unused_flags;
 
 	if (!u->keep_alive)
 		rw = gm_snprintf(buf, length, "Connection: close\r\n");
@@ -2051,19 +2058,6 @@ upload_http_status(gchar *buf, gint *retval, gpointer arg, guint32 flags)
 				(guint64) u->skip, (guint64) u->end, (guint64) u->file_size);
 
 	g_assert(rw < length);
-
-	/*
-	 * Propagate the SHA1 information for the file, if we have it.
-	 */
-
-	if (sha1_hash_is_uptodate(a->sf)) {
-		gint remain = length - rw;
-
-		if (remain > 0) {
-			upload_http_sha1_add(&buf[rw], &remain, arg, flags);
-			rw += remain;
-		}
-	}
 
 	*retval = rw;
 }
@@ -2105,14 +2099,13 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	gchar *token;
 	gboolean known_for_stalling;
 
-	if (dbg > 2) {
-		printf("----%s Request from %s:\n",
+	if (dbg) {
+		g_message("----%s Request from %s:\n%s",
 			is_followup ? "Follow-up" : "Incoming",
-			ip_to_gchar(s->ip));
-		printf("%s\n", request);
+			ip_to_gchar(s->ip),
+			request);
 		header_dump(header, stdout);
-		printf("----\n");
-		fflush(stdout);
+		g_message("----");
 	}
 
 	/*
@@ -2239,6 +2232,7 @@ upload_request(gnutella_upload_t *u, header_t *header)
 
 	idx = reqfile->file_index;
 	sha1 = sha1_hash_available(reqfile) ? reqfile->sha1_digest : NULL;
+
 
 	/*
 	 * If we pushed this upload, and they are not requesting the same
@@ -2894,6 +2888,21 @@ upload_request(gnutella_upload_t *u, header_t *header)
 	hev[hevcnt++].he_arg = &cb_arg;
 
 	g_assert(hevcnt <= G_N_ELEMENTS(hev));
+	
+	/*
+	 * Propagate the SHA1 information for the file, if we have it.
+	 */
+
+	if (sha1) {	
+		cb_arg.u = u;
+		cb_arg.sf = reqfile;
+
+		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+		hev[hevcnt].he_cb = upload_http_sha1_add;
+		hev[hevcnt++].he_arg = &cb_arg;
+		g_assert(hevcnt <= G_N_ELEMENTS(hev));
+	}
+
 
 	if (
 		!http_send_status(u->socket, http_code, u->keep_alive,
