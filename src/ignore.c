@@ -177,6 +177,7 @@ static void sha1_parse(FILE *f, guchar *file)
 		 */
 
 		if (
+			strlen(ign_tmp) < SHA1_BASE32_SIZE ||
 			!base32_decode_into(ign_tmp, SHA1_BASE32_SIZE,
 				sha1_digest, sizeof(sha1_digest))
 		) {

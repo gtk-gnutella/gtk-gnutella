@@ -985,10 +985,19 @@ void huge_close(void)
  */
 gboolean huge_http_sha1_extract32(guchar *buf, guchar *retval)
 {
+	gint i;
+	guchar *p;
+
 	/*
-	 * NB: base32_decode_into() will stop when NUL is reached
-	 * and return FALSE.
+	 * Make sure we have at least SHA1_BASE32_SIZE characters before the
+	 * end of the string.
 	 */
+
+	for (p = buf, i = 0; *p && i < SHA1_BASE32_SIZE; p++, i++)
+		/* empty */;
+
+	if (i < SHA1_BASE32_SIZE)
+		goto invalid;
 
 	if (base32_decode_into(buf, SHA1_BASE32_SIZE, retval, SHA1_RAW_SIZE))
 		return TRUE;
@@ -1010,6 +1019,7 @@ gboolean huge_http_sha1_extract32(guchar *buf, guchar *retval)
 	if (base32_decode_old_into(buf, SHA1_BASE32_SIZE, retval, SHA1_RAW_SIZE))
 		return TRUE;
 
+invalid:
 	g_warning("ignoring invalid SHA1 base32 encoding: %s", buf);
 
 	return FALSE;

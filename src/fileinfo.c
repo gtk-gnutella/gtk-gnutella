@@ -1559,7 +1559,9 @@ static guchar *extract_sha1(const gchar *line)
 	guchar sha1_digest[SHA1_RAW_SIZE];
 
 	if (
-		line[5] && base32_decode_into(line + 5, SHA1_BASE32_SIZE,
+		line[5] &&
+		strlen(&line[5]) >= SHA1_BASE32_SIZE &&
+		base32_decode_into(line + 5, SHA1_BASE32_SIZE,
 			sha1_digest, sizeof(sha1_digest))
 	)
 		return atom_sha1_get(sha1_digest);
