@@ -56,8 +56,8 @@ gchar *msg_drop_str[MSG_DROP_REASON_COUNT] = {
     "msg from banned host",
     "node shutting down",
     "flow control",
-    "query too long",
-    "query too short",
+    "query text too long",
+    "query text too short",
     "multiple SHA1",
     "misformed SHA1 query",
     "max ttl exceeded",
@@ -123,13 +123,40 @@ void on_clist_gnet_stats_drop_reasons_resize_column(
 
 static void on_gnet_stats_type_selected(GtkItem *i, gpointer data)
 {
-    printf( "selected type: %d\n", (gint) data);
-
     selected_type = (gint) data;
     gnet_stats_gui_update();
 }
 
 
+/***
+ *** Private functions
+ ***/
+static __inline__ gchar *pkt_stat_str(
+    guint32 *val_tbl, gint type, gboolean perc)
+{
+    static gchar strbuf[10];
+
+    if (val_tbl[type] == 0)
+        return perc ? "-  " : "-";
+
+    if (perc)
+        g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
+            (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
+    else
+        g_snprintf(strbuf, sizeof(strbuf), "%u", val_tbl[type]);
+
+    return strbuf;
+}
+
+
+static __inline__ gchar *byte_stat_str(
+    guint32 *val_tbl, gint type)
+{
+    if (val_tbl[type] == 0)
+        return "-";
+
+    return compact_size(val_tbl[type]);
+}
 
 /***
  *** Public functions
@@ -199,10 +226,12 @@ void gnet_stats_gui_update(void)
     GtkCList *clist_reason;
     gint n;
     gchar strbuf[10];
+    gboolean perc;
  
     gnet_stats_t stats;
 
     gnet_stats_get(&stats);
+    gui_prop_get_boolean(PROP_GNET_STATS_PERC_MODE, &perc, 0, 1);
 
     gtk_label_printf(
         GTK_LABEL(lookup_widget(main_window, "label_routing_errors")),
@@ -222,29 +251,36 @@ void gnet_stats_gui_update(void)
         lookup_widget(main_window, "clist_gnet_stats_drop_reasons"));
 
     for (n = 0; n < MSG_TYPE_COUNT; n ++) {
-        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.pkg.received[n]);
-        gtk_clist_set_text(clist_stats_pkg, n, c_gs_recieved, strbuf);
-        g_snprintf(strbuf, sizeof(strbuf), "%u",
-			stats.pkg.local[n] + stats.pkg.relayed[n]);
-        gtk_clist_set_text(clist_stats_pkg, n, c_gs_sent, strbuf);
-        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.pkg.dropped[n]);
-        gtk_clist_set_text(clist_stats_pkg, n, c_gs_dropped, strbuf);
-        g_snprintf(strbuf, sizeof(strbuf), "%u", stats.pkg.expired[n]);
-        gtk_clist_set_text(clist_stats_pkg, n, c_gs_expired, strbuf);
+        gtk_clist_set_text(clist_stats_pkg, n, c_gs_recieved, 
+            pkt_stat_str(stats.pkg.received, n, perc));
+        gtk_clist_set_text(clist_stats_pkg, n, c_gs_generated, 
+            pkt_stat_str(stats.pkg.generated, n, perc));
+        gtk_clist_set_text(clist_stats_pkg, n, c_gs_dropped,
+            pkt_stat_str(stats.pkg.dropped, n, perc));
+        gtk_clist_set_text(clist_stats_pkg, n, c_gs_expired,
+            pkt_stat_str(stats.pkg.expired, n, perc));
+        gtk_clist_set_text(clist_stats_pkg, n, c_gs_relayed,
+            pkt_stat_str(stats.pkg.relayed, n, perc));
 
         gtk_clist_set_text(clist_stats_byte, n, c_gs_recieved, 
-            compact_size(stats.byte.received[n]));
-        gtk_clist_set_text(clist_stats_byte, n, c_gs_sent,
-            compact_size(stats.byte.local[n] + stats.byte.relayed[n]));
+            byte_stat_str(stats.byte.received, n));
+        gtk_clist_set_text(clist_stats_byte, n, c_gs_generated,
+            byte_stat_str(stats.byte.generated, n));
         gtk_clist_set_text(clist_stats_byte, n, c_gs_dropped,
-            compact_size(stats.byte.dropped[n]));
+            byte_stat_str(stats.byte.dropped, n));
         gtk_clist_set_text(clist_stats_byte, n, c_gs_expired,
-            compact_size(stats.byte.expired[n]));
+            byte_stat_str(stats.byte.expired, n));
+        gtk_clist_set_text(clist_stats_byte, n, c_gs_relayed,
+            byte_stat_str(stats.byte.relayed, n));
     }
 
     for (n = 0; n < MSG_DROP_REASON_COUNT; n ++) {
-        g_snprintf(strbuf, sizeof(strbuf), "%u", 
-            stats.drop_reason[n][selected_type]);
-        gtk_clist_set_text(clist_reason, n, 1, strbuf);
+        if (stats.drop_reason[n][selected_type] == 0)
+            gtk_clist_set_text(clist_reason, n, 1, "-");
+        else {
+            g_snprintf(strbuf, sizeof(strbuf), "%u", 
+                stats.drop_reason[n][selected_type]);
+            gtk_clist_set_text(clist_reason, n, 1, strbuf);
+        }
     }
 }
