@@ -147,5 +147,11 @@ on_button_config_select_ui_clicked     (GtkButton       *button,
 void
 on_button_config_select_dbg_clicked    (GtkButton       *button,
                                         gpointer         user_data);
+void
+on_button_hostcache_clear_bad_clicked   (GtkButton       *button,
+                                        gpointer         user_data);
+
+void on_clist_hcache_resize_column(
+    GtkCList * clist, gint column, gint width, gpointer user_data);
 
 #endif	/* _callbacks_h_ */

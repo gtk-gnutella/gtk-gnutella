@@ -432,6 +432,18 @@ void on_clist_search_resize_column(
     search_list_col_widths[column] = width;
 }
 
+void
+on_button_hostcache_clear_bad_clicked   (GtkButton       *button,
+                                        gpointer         user_data)
+{
+	/* XXX: Implement this */
+}
+void on_clist_hcache_resize_column(
+    GtkCList * clist, gint column, gint width, gpointer user_data)
+{
+	/* XXX: Implement this */
+}
+
 #ifdef USE_GTK2
 void
 on_button_config_select_net_clicked    (GtkButton       *button,
@@ -501,4 +513,5 @@ on_button_config_select_dbg_clicked    (GtkButton       *button,
 		GTK_NOTEBOOK(lookup_widget(main_window, "notebook_main")),
 		nb_main_page_config_dbg);
 }
+
 #endif /* USE_GTK2 */
