@@ -370,6 +370,10 @@ static prop_map_t property_map[] = {
         "menu_statusbar_visible",
         FREQ_UPDATES, 0
     ),
+#ifndef USE_GTK2
+/* XXX: Toolbar currently removed because Glade 2.6.0 creates source code
+ * 		for it which depends on GTK+ 2.4.0.
+ */
     PROP_ENTRY(
         get_main_window,
         PROP_TOOLBAR_VISIBLE,
@@ -378,6 +382,15 @@ static prop_map_t property_map[] = {
         "menu_toolbar_visible",
         FREQ_UPDATES, 0
     ),
+    PROP_ENTRY(
+        get_main_window,
+        PROP_CONFIG_TOOLBAR_STYLE,
+        config_toolbar_style_changed,
+        TRUE,
+        "combo_config_toolbar_style",
+        FREQ_UPDATES, 0
+    ),
+#endif
 #ifdef USE_GTK2
     PROP_ENTRY(
         get_main_window,
@@ -2563,14 +2576,6 @@ static prop_map_t property_map[] = {
         update_togglebutton,
         TRUE,
         "checkbutton_gnet_monitor_servents",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_main_window,
-        PROP_CONFIG_TOOLBAR_STYLE,
-        config_toolbar_style_changed,
-        TRUE,
-        "combo_config_toolbar_style",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(

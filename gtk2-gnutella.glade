@@ -2349,7 +2349,7 @@ Grace time remaining:</property>
 				  <accelerator key="q" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 				  <child internal-child="image">
-				    <widget class="GtkImage" id="image238">
+				    <widget class="GtkImage" id="image301">
 				      <property name="visible">True</property>
 				      <property name="stock">gtk-quit</property>
 				      <property name="icon_size">1</property>
@@ -2376,16 +2376,6 @@ Grace time remaining:</property>
 			    <widget class="GtkMenu" id="menu_view_menu">
 
 			      <child>
-				<widget class="GtkCheckMenuItem" id="menu_toolbar_visible">
-				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">show _Toolbar</property>
-				  <property name="use_underline">True</property>
-				  <property name="active">True</property>
-				  <signal name="activate" handler="on_menu_toolbar_visible_activate"/>
-				</widget>
-			      </child>
-
-			      <child>
 				<widget class="GtkCheckMenuItem" id="menu_statusbar_visible">
 				  <property name="visible">True</property>
 				  <property name="label" translatable="yes">show _Statusbar</property>
@@ -2396,7 +2386,7 @@ Grace time remaining:</property>
 			      </child>
 
 			      <child>
-				<widget class="GtkMenuItem" id="separator6">
+				<widget class="GtkSeparatorMenuItem" id="separator6">
 				  <property name="visible">True</property>
 				</widget>
 			      </child>
@@ -2561,7 +2551,7 @@ Grace time remaining:</property>
 				  <signal name="activate" handler="on_menu_about_activate"/>
 
 				  <child internal-child="image">
-				    <widget class="GtkImage" id="image239">
+				    <widget class="GtkImage" id="image302">
 				      <property name="visible">True</property>
 				      <property name="stock">gtk-dialog-info</property>
 				      <property name="icon_size">1</property>
@@ -3036,111 +3026,6 @@ Grace time remaining:</property>
 	  <property name="padding">0</property>
 	  <property name="expand">False</property>
 	  <property name="fill">False</property>
-	</packing>
-      </child>
-
-      <child>
-	<widget class="GtkHandleBox" id="hb_toolbar">
-	  <property name="visible">True</property>
-	  <property name="shadow_type">GTK_SHADOW_OUT</property>
-	  <property name="handle_position">GTK_POS_LEFT</property>
-	  <property name="snap_edge">GTK_POS_TOP</property>
-
-	  <child>
-	    <widget class="GtkToolbar" id="toolbar_main">
-	      <property name="visible">True</property>
-	      <property name="orientation">GTK_ORIENTATION_HORIZONTAL</property>
-	      <property name="toolbar_style">GTK_TOOLBAR_BOTH</property>
-	      <property name="tooltips">True</property>
-	      <property name="show_arrow">True</property>
-
-	      <child>
-		<widget class="GtkToolItem" id="toolitem2">
-		  <property name="visible">True</property>
-		  <property name="visible_horizontal">True</property>
-		  <property name="visible_vertical">True</property>
-		  <property name="is_important">False</property>
-
-		  <child>
-		    <widget class="GtkButton" id="button_quit">
-		      <property name="visible">True</property>
-		      <property name="tooltip" translatable="yes">Guess what?</property>
-		      <property name="can_focus">True</property>
-		      <property name="label">gtk-quit</property>
-		      <property name="use_stock">True</property>
-		      <property name="relief">GTK_RELIEF_NONE</property>
-		      <property name="focus_on_click">True</property>
-		      <signal name="clicked" handler="on_button_quit_clicked" last_modification_time="Sat, 05 Jun 2004 00:18:55 GMT"/>
-		    </widget>
-		  </child>
-		</widget>
-		<packing>
-		  <property name="expand">False</property>
-		  <property name="homogeneous">False</property>
-		</packing>
-	      </child>
-
-	      <child>
-		<widget class="GtkToolItem" id="toolitem1">
-		  <property name="visible">True</property>
-		  <property name="visible_horizontal">True</property>
-		  <property name="visible_vertical">True</property>
-		  <property name="is_important">False</property>
-
-		  <child>
-		    <widget class="GtkLabel" id="label841">
-		      <property name="visible">True</property>
-		      <property name="label" translatable="yes">   </property>
-		      <property name="use_underline">False</property>
-		      <property name="use_markup">False</property>
-		      <property name="justify">GTK_JUSTIFY_LEFT</property>
-		      <property name="wrap">False</property>
-		      <property name="selectable">False</property>
-		      <property name="xalign">0.5</property>
-		      <property name="yalign">0.5</property>
-		      <property name="xpad">0</property>
-		      <property name="ypad">0</property>
-		    </widget>
-		  </child>
-		</widget>
-		<packing>
-		  <property name="expand">False</property>
-		  <property name="homogeneous">False</property>
-		</packing>
-	      </child>
-
-	      <child>
-		<widget class="GtkToolItem" id="toolitem3">
-		  <property name="visible">True</property>
-		  <property name="visible_horizontal">True</property>
-		  <property name="visible_vertical">True</property>
-		  <property name="is_important">False</property>
-
-		  <child>
-		    <widget class="GtkButton" id="button_search_filter">
-		      <property name="visible">True</property>
-		      <property name="tooltip" translatable="yes">Jump to the filters dialog</property>
-		      <property name="can_focus">True</property>
-		      <property name="label" translatable="yes">Filters</property>
-		      <property name="use_underline">True</property>
-		      <property name="relief">GTK_RELIEF_NONE</property>
-		      <property name="focus_on_click">True</property>
-		      <signal name="clicked" handler="on_button_search_filter_clicked" last_modification_time="Sat, 05 Jun 2004 00:24:37 GMT"/>
-		    </widget>
-		  </child>
-		</widget>
-		<packing>
-		  <property name="expand">False</property>
-		  <property name="homogeneous">False</property>
-		</packing>
-	      </child>
-	    </widget>
-	  </child>
-	</widget>
-	<packing>
-	  <property name="padding">0</property>
-	  <property name="expand">False</property>
-	  <property name="fill">True</property>
 	</packing>
       </child>
 
