@@ -1,4 +1,32 @@
+/*
+ * $Id$
+ *
+ * Copyright (c) 2004, Russell Francis
+ *
+ * GTK cell renderer.
+ *
+ *----------------------------------------------------------------------
+ * This file is part of gtk-gnutella.
+ *
+ *  gtk-gnutella is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  gtk-gnutella is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with gtk-gnutella; if not, write to the Free Software
+ *  Foundation, Inc.:
+ *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *----------------------------------------------------------------------
+ */
+
 /* gtkcellrenderer.c
+ *
  * Copyright (C) 2002 Naba Kumar <kh_naba@users.sourceforge.net>
  * heavily modified by Jörgen Scheibengruber <mfcn@gmx.de>
  * and yet more modifications by Russell Francis <rf358197@ohiou.edu>
@@ -23,8 +51,15 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#include "common.h"
+
 #include <stdlib.h>
 #include "pbarcellrenderer_gui2.h"
+#include "override.h"
+
+#ifdef USE_GTK2
+
+RCSID("$Id$");
 
 static void gtk_cell_renderer_progress_init(GtkCellRendererProgress *);
 
@@ -258,9 +293,6 @@ gtk_cell_renderer_progress_get_size (
 	gint            *width,
 	gint            *height)
 {
-	GtkCellRendererProgress *cellprogress =
-		(GtkCellRendererProgress *) cell;
-
 	/* 
 	 * Always return 1 here. Doesn't make to much sense,
 	 * but providing the real width would make it
@@ -319,7 +351,6 @@ gtk_cell_renderer_progress_render (
 		(GtkCellRendererProgress *) cell;
 	GtkStateType state;
 	GdkGC *gc;
-	GdkColor color;
 	PangoLayout *layout;
 	PangoRectangle logical_rect;
 	char *text; 
@@ -390,3 +421,5 @@ gtk_cell_renderer_progress_finalize(GObject *object)
 	g_free(cellprogress->priv);
 	(*G_OBJECT_CLASS(parent_class)->finalize)(object);
 }
+
+#endif	/* USE_GTK2 */
