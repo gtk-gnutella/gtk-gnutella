@@ -829,11 +829,18 @@ static gchar *formatted_connection_pongs(gchar *field)
  *
  * Send error message to node.
  */
-static void send_node_error(struct gnutella_socket *s, int code, guchar *msg)
+static void send_node_error(struct gnutella_socket *s,
+	int code, guchar *msg, ...)
 {
 	gchar gnet_response[2048];
+	gchar msg_tmp[256];
 	gint rw;
 	gint sent;
+	va_list args;
+
+	va_start(args, msg);
+	g_vsnprintf(msg_tmp, sizeof(msg_tmp)-1,  msg, args);
+	va_end(args);
 
 	/*
 	 * When sending a 503 (Busy) error to a node, send some hosts from
@@ -847,16 +854,16 @@ static void send_node_error(struct gnutella_socket *s, int code, guchar *msg)
 		"X-Live-Since: %s\r\n"
 		"%s"
 		"\r\n",
-		code, msg, version_string, ip_to_gchar(s->ip), start_rfc822_date,
+		code, msg_tmp, version_string, ip_to_gchar(s->ip), start_rfc822_date,
 		code == 503 ? formatted_connection_pongs("X-Try") : "");
 
 	if (-1 == (sent = write(s->file_desc, gnet_response, rw)))
 		g_warning("Unable to send back error %d (%s) to node %s: %s",
-			code, msg, ip_to_gchar(s->ip), g_strerror(errno));
+			code, msg_tmp, ip_to_gchar(s->ip), g_strerror(errno));
 	else if (sent < rw)
 		g_warning("Only sent %d out of %d bytes of error %d (%s) "
 			"to node %s: %s",
-			sent, rw, code, msg, ip_to_gchar(s->ip), g_strerror(errno));
+			sent, rw, code, msg_tmp, ip_to_gchar(s->ip), g_strerror(errno));
 	else if (dbg > 4) {
 		printf("----Sent error %d to node %s:\n%.*s----\n",
 			code, ip_to_gchar(s->ip), rw, gnet_response);
@@ -1401,7 +1408,7 @@ static void node_process_handshake_ack(struct io_header *ih)
  *
  * This routine is called to process a 0.6+ handshake header
  * It is either called to process the reply to our sending a 0.6 handshake
- * (outgoing connections) or to parse te initial 0.6 headers (incoming
+ * (outgoing connections) or to parse the initial 0.6 headers (incoming
  * connections).
  */
 static void node_process_handshake_header(struct io_header *ih)
@@ -1411,7 +1418,7 @@ static void node_process_handshake_header(struct io_header *ih)
 	gint rw;
 	gint sent;
 	gchar *field;
-	gboolean incoming = (n->flags & NODE_F_INCOMING) ? TRUE : FALSE;
+	gboolean incoming = (n->flags & (NODE_F_INCOMING|NODE_F_TMP));
 	gchar *what = incoming ? "HELLO reply" : "HELLO acknowledgment";
 
 	if (dbg) {
@@ -1457,10 +1464,33 @@ static void node_process_handshake_header(struct io_header *ih)
 		guint32 ip;
 		guint16 port;
 
+		/*
+		 * We parse only for incoming connections.  Even though the remote
+		 * node may reply with such a header to our outgoing connections,
+		 * if we reached it, we know its IP:port already!  There's no need
+		 * to spend time parsing it.
+		 */
+
 		field = header_get(ih->header, "Node");
 		if (!field) field = header_get(ih->header, "X-My-Address");
-		if (field && gchar_to_ip_port(field, &ip, &port))
-			pcache_pong_fake(n, ip, port);
+		if (!field) field = header_get(ih->header, "Listen-Ip");
+
+		if (field && gchar_to_ip_port(field, &ip, &port)) {
+			pcache_pong_fake(n, ip, port);		/* Might have free slots */
+
+			/*
+			 * Since we have the node's IP:port, record it now and mark the
+			 * node as valid: if the connection is terminated, the host will
+			 * be recorded amongst our valid set.
+			 *		--RAM, 18/03/2002.
+			 */
+
+			if (ip == n->ip) {
+				n->gnet_ip = ip;				/* Signals: we know the port */
+				n->gnet_port = port;
+				n->flags |= NODE_F_VALID;
+			}
+		}
 	}
 
 	/* Bye-Packet -- support for final notification */
@@ -1488,6 +1518,19 @@ static void node_process_handshake_header(struct io_header *ih)
 		guint32 ip = extract_my_ip(ih->header);
 		if (ip && ip != forced_local_ip)
 			config_ip_changed(ip);
+	}
+
+	/*
+	 * If the connection is flagged as being temporary, it's time to deny
+	 * it with a 503 error code.
+	 */
+
+	if (n->flags & NODE_F_TMP) {
+		g_assert(incoming);
+		send_node_error(n->socket, 503,
+			"Too many Gnet connections (%d max)", max_connections);
+		node_remove(n, "Sent busy indication");
+		return;					/* node_remove() has freed s->getline */
 	}
 
 	/*
@@ -1702,7 +1745,8 @@ nextline:
 
 	if (s->pos && !(ih->flags & IO_EXTRA_DATA_OK)) {
 		g_warning("%s node %s sent extra bytes after HELLO",
-			(n->flags & NODE_F_INCOMING) ? "incoming" : "outgoing",
+			(n->flags & (NODE_F_INCOMING|NODE_F_TMP)) ?
+				"incoming" : "outgoing",
 			ip_to_gchar(s->ip));
 		dump_hex(stderr, "Extra HELLO Data", s->buffer, MIN(s->pos, 256));
 		fprintf(stderr, "------ HELLO Header Dump:\n");
@@ -1852,11 +1896,6 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 	if (node_count() >= max_connections) {
 		if (!s)
 			return;
-		if (major > 0 || minor > 4) {
-			send_node_error(s, 503, "Too many Gnet connections");
-			socket_destroy(s);
-			return;
-		}
 		ponging_only = TRUE;	/* Will only send connection pongs */
 	}
 
@@ -1892,6 +1931,14 @@ void node_add(struct gnutella_socket *s, guint32 ip, guint16 port)
 		 * as soon as we have handshaked.
 		 *
 		 *		--RAM, 02/02/2001
+		 *
+		 * For 0.6 connections, flagging as Ponging means we're going to
+		 * parse the initial headers, in case there is a Node: header, but
+		 * we'll deny the connection.  This allows us to grab the node's
+		 * address in our pong cache, given that this nodes actively seeks
+		 * a connection, so it may very well accept incoming.
+		 *
+		 *		--RAM, 18/03/2002
 		 */
 
 		if (ponging_only) {
