@@ -73,8 +73,6 @@
  *** I. General variables/defines used in this module
  ***/
 
-#define PROP_MAP_SIZE \
-    (sizeof(property_map) / sizeof(property_map[0]))
 #define NOT_IN_MAP -1
 
 static prop_set_stub_t *gui_prop_set_stub = NULL;
@@ -357,22 +355,13 @@ static prop_map_t property_map[] = {
         TRUE,
         "clist_search"
     },
-#endif
     {
         get_main_window,
-        PROP_GNET_STATS_PKG_COL_WIDTHS,
+        PROP_GNET_STATS_MSG_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
-        "clist_gnet_stats_pkg"
+        "clist_gnet_stats_msg"
     },
-    {
-        get_main_window,
-        PROP_GNET_STATS_BYTE_COL_WIDTHS,
-        update_clist_col_widths,
-        TRUE,
-        "clist_gnet_stats_byte"
-    },
-#ifndef USE_GTK2
     {
         get_main_window,
         PROP_GNET_STATS_FC_TTL_COL_WIDTHS,
@@ -1256,6 +1245,7 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_expert_mode"
     },
+#ifdef USE_GTK2
     {
         get_main_window,
         PROP_GNET_STATS_PKG_PERC,
@@ -1270,20 +1260,20 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_gnet_stats_byte_perc"
     },
-#ifndef USE_GTK2
+#else
     {
         get_main_window,
-        PROP_GNET_STATS_FC_TTL_PERC,
+        PROP_GNET_STATS_BYTES,
         update_togglebutton,
         TRUE,
-        "checkbutton_gnet_stats_fc_ttl_perc"
+        "checkbutton_gnet_stats_bytes"
     },
     {
         get_main_window,
-        PROP_GNET_STATS_FC_HOPS_PERC,
+        PROP_GNET_STATS_PERC,
         update_togglebutton,
         TRUE,
-        "checkbutton_gnet_stats_fc_hops_perc"
+        "checkbutton_gnet_stats_perc"
     },
 #endif
     {
@@ -2565,8 +2555,17 @@ void spinbutton_adjustment_value_changed
     stub->guint32.set(map_entry->prop, &val, 0, 1);
 }
 
-void togglebutton_state_changed
-    (GtkToggleButton *tb, gpointer user_data)
+/*
+ * togglebutton_state_changed:
+ *
+ * This function is called when the state of a GtkToggleButton that
+ * is managed by the property_map. It is bound during initialization
+ * when the property_map is processed.
+ * GtkToggleButtons are normally bound directly to thier associated
+ * properties. Special cases are handled here.
+ */
+void togglebutton_state_changed(
+    GtkToggleButton *tb, gpointer user_data)
 {
     prop_map_t *map_entry = (prop_map_t *) user_data;
     prop_set_stub_t *stub = map_entry->stub;
@@ -2705,13 +2704,13 @@ static void settings_gui_init_prop_map(void)
 
     if (gui_debug >= 2) {
         printf("settings_gui_init_prop_map: property_map size: %u\n", 
-            (guint) PROP_MAP_SIZE);
+            (guint) G_N_ELEMENTS(property_map));
     }
 
     /*
      * Fill in automatic fields in property_map.
      */
-    for (n = 0; n < PROP_MAP_SIZE; n++) {
+    for (n = 0; n < G_N_ELEMENTS(property_map); n++) {
         property_t prop = property_map[n].prop;
         prop_def_t *def;
 
@@ -2748,7 +2747,7 @@ static void settings_gui_init_prop_map(void)
     /*
      * Now the map is complete and can be processed.
      */
-    for (n = 0; n < PROP_MAP_SIZE; n ++) {
+    for (n = 0; n < G_N_ELEMENTS(property_map); n ++) {
         property_t  prop      = property_map[n].prop;
         prop_def_t *def       = property_map[n].stub->get_def(prop);
         guint32     idx       = prop - property_map[n].stub->offset;
@@ -2884,7 +2883,7 @@ void settings_gui_shutdown(void)
     /*
      * Remove the listeners
      */
-    for (n = 0; n < PROP_MAP_SIZE; n ++) {
+    for (n = 0; n < G_N_ELEMENTS(property_map); n ++) {
         if (property_map[n].cb != IGNORE) {
             property_map[n].stub->prop_changed_listener.remove(
                 property_map[n].prop,

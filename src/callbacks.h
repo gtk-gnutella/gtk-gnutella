@@ -37,7 +37,7 @@
 #include "monitor_cb.h"
 #include "uploads_cb.h"
 #include "downloads_cb.h"
-#include "gnet_stats_gui.h"
+#include "gnet_stats_gui2.h"
 #else
 #include "filter_cb.h"
 #include "nodes_cb.h"
@@ -119,5 +119,3 @@ gint compare_ul_norm(GtkCList *clist, gconstpointer ptr1, gconstpointer ptr2);
 
 
 #endif	/* __callbacks_h__ */
- 
-

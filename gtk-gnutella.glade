@@ -8617,16 +8617,11 @@ interface</label>
 		</child>
 
 		<widget>
-		  <class>GtkNotebook</class>
-		  <name>notebook2</name>
-		  <can_focus>True</can_focus>
-		  <show_tabs>True</show_tabs>
-		  <show_border>True</show_border>
-		  <tab_pos>GTK_POS_TOP</tab_pos>
-		  <scrollable>False</scrollable>
-		  <tab_hborder>2</tab_hborder>
-		  <tab_vborder>2</tab_vborder>
-		  <popup_enable>False</popup_enable>
+		  <class>GtkFrame</class>
+		  <name>frame69</name>
+		  <label>Message/flow control stats</label>
+		  <label_xalign>0</label_xalign>
+		  <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
 		  <child>
 		    <padding>0</padding>
 		    <expand>True</expand>
@@ -8634,17 +8629,27 @@ interface</label>
 		  </child>
 
 		  <widget>
-		    <class>GtkFrame</class>
-		    <name>frame62</name>
-		    <label>Message stats (packets)</label>
-		    <label_xalign>0</label_xalign>
-		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		    <class>GtkVBox</class>
+		    <name>vbox97</name>
+		    <homogeneous>False</homogeneous>
+		    <spacing>0</spacing>
 
 		    <widget>
-		      <class>GtkVBox</class>
-		      <name>vbox91</name>
-		      <homogeneous>False</homogeneous>
-		      <spacing>0</spacing>
+		      <class>GtkNotebook</class>
+		      <name>notebook3</name>
+		      <can_focus>True</can_focus>
+		      <show_tabs>True</show_tabs>
+		      <show_border>True</show_border>
+		      <tab_pos>GTK_POS_TOP</tab_pos>
+		      <scrollable>False</scrollable>
+		      <tab_hborder>2</tab_hborder>
+		      <tab_vborder>2</tab_vborder>
+		      <popup_enable>False</popup_enable>
+		      <child>
+			<padding>0</padding>
+			<expand>True</expand>
+			<fill>True</fill>
+		      </child>
 
 		      <widget>
 			<class>GtkScrolledWindow</class>
@@ -8653,20 +8658,15 @@ interface</label>
 			<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
 			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
 			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-			<child>
-			  <padding>0</padding>
-			  <expand>True</expand>
-			  <fill>True</fill>
-			</child>
 
 			<widget>
 			  <class>GtkCList</class>
-			  <name>clist_gnet_stats_pkg</name>
+			  <name>clist_gnet_stats_msg</name>
 			  <can_focus>True</can_focus>
 			  <signal>
 			    <name>resize_column</name>
-			    <handler>on_clist_gnet_stats_pkg_resize_column</handler>
-			    <last_modification_time>Mon, 09 Sep 2002 21:44:58 GMT</last_modification_time>
+			    <handler>on_clist_gnet_stats_msg_resize_column</handler>
+			    <last_modification_time>Mon, 09 Dec 2002 15:22:25 GMT</last_modification_time>
 			  </signal>
 			  <columns>6</columns>
 			  <column_widths>80,80,80,79,80,80</column_widths>
@@ -8755,196 +8755,17 @@ interface</label>
 		      </widget>
 
 		      <widget>
-			<class>GtkCheckButton</class>
-			<name>checkbutton_gnet_stats_pkg_perc</name>
-			<can_focus>True</can_focus>
-			<label>show percentages</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
+			<class>GtkLabel</class>
+			<child_name>Notebook:tab</child_name>
+			<name>label436</name>
+			<label>Messages</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
 		      </widget>
-		    </widget>
-		  </widget>
-
-		  <widget>
-		    <class>GtkLabel</class>
-		    <child_name>Notebook:tab</child_name>
-		    <name>label409</name>
-		    <label>traffic/msg</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		  </widget>
-
-		  <widget>
-		    <class>GtkFrame</class>
-		    <name>frame63</name>
-		    <label>Message stats (bytes)</label>
-		    <label_xalign>0</label_xalign>
-		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-
-		    <widget>
-		      <class>GtkVBox</class>
-		      <name>vbox92</name>
-		      <homogeneous>False</homogeneous>
-		      <spacing>0</spacing>
-
-		      <widget>
-			<class>GtkScrolledWindow</class>
-			<name>scrolledwindow30</name>
-			<hscrollbar_policy>GTK_POLICY_AUTOMATIC</hscrollbar_policy>
-			<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
-			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
-			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-			<child>
-			  <padding>0</padding>
-			  <expand>True</expand>
-			  <fill>True</fill>
-			</child>
-
-			<widget>
-			  <class>GtkCList</class>
-			  <name>clist_gnet_stats_byte</name>
-			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>resize_column</name>
-			    <handler>on_clist_gnet_stats_byte_resize_column</handler>
-			    <last_modification_time>Mon, 09 Sep 2002 21:46:30 GMT</last_modification_time>
-			  </signal>
-			  <columns>6</columns>
-			  <column_widths>80,80,80,80,80,80</column_widths>
-			  <selection_mode>GTK_SELECTION_SINGLE</selection_mode>
-			  <show_titles>True</show_titles>
-			  <shadow_type>GTK_SHADOW_IN</shadow_type>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label397</name>
-			    <label>Type</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>7.45058e-09</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label398</name>
-			    <label>received</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label399</name>
-			    <label>expired</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label400</name>
-			    <label>dropped</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label401</name>
-			    <label>relayed</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-
-			  <widget>
-			    <class>GtkLabel</class>
-			    <child_name>CList:title</child_name>
-			    <name>label402</name>
-			    <label>generated</label>
-			    <justify>GTK_JUSTIFY_CENTER</justify>
-			    <wrap>False</wrap>
-			    <xalign>0.5</xalign>
-			    <yalign>0.5</yalign>
-			    <xpad>0</xpad>
-			    <ypad>0</ypad>
-			  </widget>
-			</widget>
-		      </widget>
-
-		      <widget>
-			<class>GtkCheckButton</class>
-			<name>checkbutton_gnet_stats_byte_perc</name>
-			<can_focus>True</can_focus>
-			<label>show percentages</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
-		      </widget>
-		    </widget>
-		  </widget>
-
-		  <widget>
-		    <class>GtkLabel</class>
-		    <child_name>Notebook:tab</child_name>
-		    <name>label410</name>
-		    <label>traffic/vol</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		  </widget>
-
-		  <widget>
-		    <class>GtkFrame</class>
-		    <name>frame67</name>
-		    <label>Flow control (TTL)</label>
-		    <label_xalign>0</label_xalign>
-		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-
-		    <widget>
-		      <class>GtkVBox</class>
-		      <name>vbox95</name>
-		      <homogeneous>False</homogeneous>
-		      <spacing>0</spacing>
 
 		      <widget>
 			<class>GtkScrolledWindow</class>
@@ -8953,11 +8774,6 @@ interface</label>
 			<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
 			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
 			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-			<child>
-			  <padding>0</padding>
-			  <expand>True</expand>
-			  <fill>True</fill>
-			</child>
 
 			<widget>
 			  <class>GtkCList</class>
@@ -9107,46 +8923,17 @@ interface</label>
 		      </widget>
 
 		      <widget>
-			<class>GtkCheckButton</class>
-			<name>checkbutton_gnet_stats_fc_ttl_perc</name>
-			<can_focus>True</can_focus>
-			<label>show percentages</label>
-			<active>False</active>
-			<draw_indicator>True</draw_indicator>
-			<child>
-			  <padding>0</padding>
-			  <expand>False</expand>
-			  <fill>False</fill>
-			</child>
+			<class>GtkLabel</class>
+			<child_name>Notebook:tab</child_name>
+			<name>label437</name>
+			<label>FC/TTL</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
 		      </widget>
-		    </widget>
-		  </widget>
-
-		  <widget>
-		    <class>GtkLabel</class>
-		    <child_name>Notebook:tab</child_name>
-		    <name>label411</name>
-		    <label>FC/TTL</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
-		  </widget>
-
-		  <widget>
-		    <class>GtkFrame</class>
-		    <name>frame68</name>
-		    <label>Flow control (hops)</label>
-		    <label_xalign>0</label_xalign>
-		    <shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
-
-		    <widget>
-		      <class>GtkVBox</class>
-		      <name>vbox96</name>
-		      <homogeneous>False</homogeneous>
-		      <spacing>0</spacing>
 
 		      <widget>
 			<class>GtkScrolledWindow</class>
@@ -9155,11 +8942,6 @@ interface</label>
 			<vscrollbar_policy>GTK_POLICY_AUTOMATIC</vscrollbar_policy>
 			<hupdate_policy>GTK_UPDATE_CONTINUOUS</hupdate_policy>
 			<vupdate_policy>GTK_UPDATE_CONTINUOUS</vupdate_policy>
-			<child>
-			  <padding>0</padding>
-			  <expand>True</expand>
-			  <fill>True</fill>
-			</child>
 
 			<widget>
 			  <class>GtkCList</class>
@@ -9309,8 +9091,33 @@ interface</label>
 		      </widget>
 
 		      <widget>
+			<class>GtkLabel</class>
+			<child_name>Notebook:tab</child_name>
+			<name>label438</name>
+			<label>FC/hops</label>
+			<justify>GTK_JUSTIFY_CENTER</justify>
+			<wrap>False</wrap>
+			<xalign>0.5</xalign>
+			<yalign>0.5</yalign>
+			<xpad>0</xpad>
+			<ypad>0</ypad>
+		      </widget>
+		    </widget>
+
+		    <widget>
+		      <class>GtkHBox</class>
+		      <name>hbox163</name>
+		      <homogeneous>False</homogeneous>
+		      <spacing>0</spacing>
+		      <child>
+			<padding>0</padding>
+			<expand>False</expand>
+			<fill>False</fill>
+		      </child>
+
+		      <widget>
 			<class>GtkCheckButton</class>
-			<name>checkbutton_gnet_stats_fc_hops_perc</name>
+			<name>checkbutton_gnet_stats_perc</name>
 			<can_focus>True</can_focus>
 			<label>show percentages</label>
 			<active>False</active>
@@ -9321,20 +9128,21 @@ interface</label>
 			  <fill>False</fill>
 			</child>
 		      </widget>
-		    </widget>
-		  </widget>
 
-		  <widget>
-		    <class>GtkLabel</class>
-		    <child_name>Notebook:tab</child_name>
-		    <name>label422</name>
-		    <label>FC/hops</label>
-		    <justify>GTK_JUSTIFY_CENTER</justify>
-		    <wrap>False</wrap>
-		    <xalign>0.5</xalign>
-		    <yalign>0.5</yalign>
-		    <xpad>0</xpad>
-		    <ypad>0</ypad>
+		      <widget>
+			<class>GtkCheckButton</class>
+			<name>checkbutton_gnet_stats_bytes</name>
+			<can_focus>True</can_focus>
+			<label>show bytes</label>
+			<active>False</active>
+			<draw_indicator>True</draw_indicator>
+			<child>
+			  <padding>0</padding>
+			  <expand>False</expand>
+			  <fill>False</fill>
+			</child>
+		      </widget>
+		    </widget>
 		  </widget>
 		</widget>
 
@@ -14938,22 +14746,6 @@ Meet us on #gtk-gnutella at irc.freenode.org.</label>
 	<ypad>10</ypad>
       </widget>
     </widget>
-  </widget>
-</widget>
-
-<widget>
-  <class>GtkWindow</class>
-  <name>window1</name>
-  <title>window1</title>
-  <type>GTK_WINDOW_TOPLEVEL</type>
-  <position>GTK_WIN_POS_NONE</position>
-  <modal>False</modal>
-  <allow_shrink>False</allow_shrink>
-  <allow_grow>True</allow_grow>
-  <auto_shrink>False</auto_shrink>
-
-  <widget>
-    <class>Placeholder</class>
   </widget>
 </widget>
 

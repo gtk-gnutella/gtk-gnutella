@@ -49,7 +49,7 @@ ADDITIONAL_DROPIN = \
 	downloads_gui.c downloads_gui.h downloads_cb.c downloads_cb.h \
 	uploads_gui.c uploads_gui.h uploads_cb.c uploads_cb.h \
 	upload_stats_gui.c upload_stats_gui.h \
-	gnet_stats_gui2.c gnet_stats_gui.h \
+	gnet_stats_gui2.c gnet_stats_gui2.h \
 	search_stats_gui.c search_stats_gui.h \
 	main_gui.c main_gui.h main_cb.c main_cb.h 
 gtk_gnutella_LDADD = @GTK_GNUTELLA_LIBS@ -lz @XML_LIBS@
@@ -168,8 +168,8 @@ gtk_gnutella_SOURCES = \
 	verify.c verify.h \
 	move.c move.h \
 	file.c file.h \
+	shell.c shell.h \
 	inputevt.c inputevt.h
-#	rc.c rc.h
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
 GLADE_WARNING2 = "  \"glade --write-source\" failed.  To ignore any changes to"

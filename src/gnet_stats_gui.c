@@ -82,7 +82,7 @@ static gint selected_type = MSG_TOTAL;
 /***
  *** Callbacks
  ***/
-void on_clist_gnet_stats_pkg_resize_column(
+void on_clist_gnet_stats_msg_resize_column(
     GtkCList *clist, gint column, gint width, gpointer user_data)
 {
     static gboolean lock = FALSE;
@@ -94,33 +94,11 @@ void on_clist_gnet_stats_pkg_resize_column(
     lock = TRUE;
 
     /* remember the width for storing it to the config file later */
-    gui_prop_set_guint32(PROP_GNET_STATS_PKG_COL_WIDTHS, &buf, column, 1);
-    gtk_clist_set_column_width(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_byte")),
-        column, width);
+    gui_prop_set_guint32(PROP_GNET_STATS_MSG_COL_WIDTHS, &buf, column, 1);
 
     lock = FALSE;
 }
 
-void on_clist_gnet_stats_byte_resize_column(
-    GtkCList *clist, gint column, gint width, gpointer user_data)
-{
-    static gboolean lock = FALSE;
-    guint32 buf = width;
-
-    if (lock)
-        return;
-
-    lock = TRUE;
-
-    /* remember the width for storing it to the config file later */
-    gui_prop_set_guint32(PROP_GNET_STATS_BYTE_COL_WIDTHS, &buf, column, 1);
-    gtk_clist_set_column_width(
-        GTK_CLIST(lookup_widget(main_window, "clist_gnet_stats_pkg")),
-        column, width);
-
-    lock = FALSE;
-}
 
 void on_clist_gnet_stats_fc_ttl_resize_column(
     GtkCList *clist, gint column, gint width, gpointer user_data)
@@ -200,9 +178,9 @@ G_INLINE_FUNC gchar *pkt_stat_str(
     static gchar strbuf[20];
 
     if (val_tbl[type] == 0)
-        return gnet_stats_pkg_perc ? "-  " : "-";
+        return gnet_stats_perc ? "-  " : "-";
 
-    if (gnet_stats_pkg_perc)
+    if (gnet_stats_perc)
         g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
             (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
     else
@@ -218,9 +196,9 @@ G_INLINE_FUNC gchar *byte_stat_str(
     static gchar strbuf[20];
 
     if (val_tbl[type] == 0)
-        return gnet_stats_byte_perc ? "-  " : "-";
+        return gnet_stats_perc ? "-  " : "-";
 
-    if (gnet_stats_byte_perc) {
+    if (gnet_stats_perc) {
         g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
             (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
         return strbuf;
@@ -234,9 +212,9 @@ G_INLINE_FUNC gchar *drop_stat_str(gnet_stats_t *stats, gint reason)
     guint32 total = stats->pkg.dropped[MSG_TOTAL];
 
     if (stats->drop_reason[reason][selected_type] == 0)
-        return gnet_stats_drop_perc ? "-  " : "-";
+        return gnet_stats_perc ? "-  " : "-";
 
-    if (gnet_stats_drop_perc)
+    if (gnet_stats_perc)
         g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
             (float)stats->drop_reason[reason][selected_type]/total*100);
     else
@@ -261,19 +239,35 @@ G_INLINE_FUNC gchar *general_stat_str(gnet_stats_t *stats, gint type)
     }
 }
 
-G_INLINE_FUNC gchar *flowc_stat_str(
-    guint32 *val_tbl, gint type, gboolean perc)
+G_INLINE_FUNC gchar *flowc_stat_str_pkg(guint32 *val_tbl, gint type)
 {
     static gchar strbuf[20];
 
     if (val_tbl[type] == 0)
-        return perc ? "-  " : "-";
+        return gnet_stats_perc ? "-  " : "-";
 
-	if (perc) {
+	if (gnet_stats_perc) {
 		g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
             (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
     } else {
        	g_snprintf(strbuf, sizeof(strbuf), "%u", val_tbl[type]);
+    }
+
+    return strbuf;
+}
+
+G_INLINE_FUNC gchar *flowc_stat_str_byte(guint32 *val_tbl, gint type)
+{
+    static gchar strbuf[20];
+
+    if (val_tbl[type] == 0)
+        return gnet_stats_perc ? "-  " : "-";
+
+	if (gnet_stats_perc) {
+		g_snprintf(strbuf, sizeof(strbuf), "%.2f%%", 
+            (float)val_tbl[type]/val_tbl[MSG_TOTAL]*100.0);
+    } else {
+       	return compact_size(val_tbl[type]);
     }
 
     return strbuf;
@@ -285,8 +279,7 @@ G_INLINE_FUNC gchar *flowc_stat_str(
 
 void gnet_stats_gui_init(void)
 {
-    GtkCList *clist_stats_pkg;
-    GtkCList *clist_stats_byte;
+    GtkCList *clist_stats_msg;
     GtkCList *clist_stats_fc_ttl;
     GtkCList *clist_stats_fc_hops;
     GtkCList *clist_general;
@@ -298,10 +291,8 @@ void gnet_stats_gui_init(void)
     for (n = 0; n < G_N_ELEMENTS(titles); n ++)
         titles[n] = "-";
 
-    clist_stats_pkg = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_pkg"));
-    clist_stats_byte = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_byte"));
+    clist_stats_msg = GTK_CLIST(
+        lookup_widget(main_window, "clist_gnet_stats_msg"));
     clist_stats_fc_ttl = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_fc_ttl"));
     clist_stats_fc_hops = GTK_CLIST(
@@ -317,30 +308,15 @@ void gnet_stats_gui_init(void)
      * Set column justification for numeric columns to GTK_JUSTIFY_RIGHT.
      */
     gtk_clist_set_column_justification(
-        clist_stats_pkg, c_gs_relayed, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        clist_stats_pkg, c_gs_generated, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        clist_stats_pkg, c_gs_dropped, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        clist_stats_pkg, c_gs_expired, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        clist_stats_pkg, c_gs_received, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        clist_stats_byte, c_gs_generated, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        clist_stats_byte, c_gs_dropped, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        clist_stats_byte, c_gs_expired, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        clist_stats_byte, c_gs_received, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
-        clist_stats_byte, c_gs_relayed, GTK_JUSTIFY_RIGHT);
-    gtk_clist_set_column_justification(
         clist_general, 1, GTK_JUSTIFY_RIGHT);
     gtk_clist_set_column_justification(
         clist_reason, 1, GTK_JUSTIFY_RIGHT);
 
+    for (n = 1; n < 6; n ++) {
+        gtk_clist_set_column_justification(
+            clist_stats_msg, n, GTK_JUSTIFY_RIGHT);
+    }
+    
     for (n = 1; n < 10; n ++) {
         gtk_clist_set_column_justification(
             clist_stats_fc_ttl, n, GTK_JUSTIFY_RIGHT);
@@ -352,8 +328,7 @@ void gnet_stats_gui_init(void)
     /*
      * Stats can't be sorted: make column headers insensitive.
      */
-	gtk_clist_column_titles_passive(clist_stats_pkg);
-	gtk_clist_column_titles_passive(clist_stats_byte);
+	gtk_clist_column_titles_passive(clist_stats_msg);
 	gtk_clist_column_titles_passive(clist_stats_fc_ttl);
 	gtk_clist_column_titles_passive(clist_stats_fc_hops);
 	gtk_clist_column_titles_passive(clist_reason);
@@ -369,10 +344,8 @@ void gnet_stats_gui_init(void)
 
         titles[0] = msg_type_str[n];
 
-        row = gtk_clist_append(clist_stats_pkg, titles);
-        gtk_clist_set_selectable(clist_stats_pkg, row, FALSE);
-        row = gtk_clist_append(clist_stats_byte, titles);
-        gtk_clist_set_selectable(clist_stats_byte, row, FALSE);
+        row = gtk_clist_append(clist_stats_msg, titles);
+        gtk_clist_set_selectable(clist_stats_msg, row, FALSE);
         row = gtk_clist_append(clist_stats_fc_ttl, titles);
         gtk_clist_set_selectable(clist_stats_fc_ttl, row, FALSE);
         row = gtk_clist_append(clist_stats_fc_hops, titles);
@@ -412,8 +385,7 @@ void gnet_stats_gui_init(void)
 
 void gnet_stats_gui_update(void)
 {
-    GtkCList *clist_stats_pkg;
-    GtkCList *clist_stats_byte;
+    GtkCList *clist_stats_msg;
     GtkCList *clist_reason;
     GtkCList *clist_general;
     GtkCList *clist_stats_fc_ttl;
@@ -431,10 +403,8 @@ void gnet_stats_gui_update(void)
 
     gnet_stats_get(&stats);
 
-    clist_stats_pkg = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_pkg"));
-    clist_stats_byte = GTK_CLIST(
-        lookup_widget(main_window, "clist_gnet_stats_byte"));
+    clist_stats_msg = GTK_CLIST(
+        lookup_widget(main_window, "clist_gnet_stats_msg"));
     clist_reason = GTK_CLIST(
         lookup_widget(main_window, "clist_gnet_stats_drop_reasons"));
     clist_general = GTK_CLIST(
@@ -446,45 +416,45 @@ void gnet_stats_gui_update(void)
 
     gtk_clist_freeze(clist_reason);
     gtk_clist_freeze(clist_general);
-    gtk_clist_freeze(clist_stats_byte);
-    gtk_clist_freeze(clist_stats_pkg);
+    gtk_clist_freeze(clist_stats_msg);
     gtk_clist_freeze(clist_stats_fc_ttl);
     gtk_clist_freeze(clist_stats_fc_hops);
 
     for (n = 0; n < MSG_TYPE_COUNT; n ++) {
         int m;
 
-        gtk_clist_set_text(clist_stats_pkg, n, c_gs_received, 
-            pkt_stat_str(stats.pkg.received, n));
-        gtk_clist_set_text(clist_stats_pkg, n, c_gs_generated, 
-            pkt_stat_str(stats.pkg.generated, n));
-        gtk_clist_set_text(clist_stats_pkg, n, c_gs_dropped,
-            pkt_stat_str(stats.pkg.dropped, n));
-        gtk_clist_set_text(clist_stats_pkg, n, c_gs_expired,
-            pkt_stat_str(stats.pkg.expired, n));
-        gtk_clist_set_text(clist_stats_pkg, n, c_gs_relayed,
-            pkt_stat_str(stats.pkg.relayed, n));
-
-        gtk_clist_set_text(clist_stats_byte, n, c_gs_received, 
-            byte_stat_str(stats.byte.received, n));
-        gtk_clist_set_text(clist_stats_byte, n, c_gs_generated,
-            byte_stat_str(stats.byte.generated, n));
-        gtk_clist_set_text(clist_stats_byte, n, c_gs_dropped,
-            byte_stat_str(stats.byte.dropped, n));
-        gtk_clist_set_text(clist_stats_byte, n, c_gs_expired,
-            byte_stat_str(stats.byte.expired, n));
-        gtk_clist_set_text(clist_stats_byte, n, c_gs_relayed,
-            byte_stat_str(stats.byte.relayed, n));
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_received, 
+            gnet_stats_bytes ? 
+                byte_stat_str(stats.byte.received, n) : 
+                pkt_stat_str(stats.pkg.received, n));
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_generated, 
+            gnet_stats_bytes ? 
+                byte_stat_str(stats.byte.generated, n) : 
+                pkt_stat_str(stats.pkg.generated, n));
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_dropped, 
+            gnet_stats_bytes ? 
+                byte_stat_str(stats.byte.dropped, n) : 
+                pkt_stat_str(stats.pkg.dropped, n));
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_expired, 
+            gnet_stats_bytes ? 
+                byte_stat_str(stats.byte.expired, n) : 
+                pkt_stat_str(stats.pkg.expired, n));
+        gtk_clist_set_text(clist_stats_msg, n, c_gs_relayed, 
+            gnet_stats_bytes ? 
+                byte_stat_str(stats.byte.relayed, n) : 
+                pkt_stat_str(stats.pkg.relayed, n));
 
         for (m = 1; m < 10; m ++)
             gtk_clist_set_text(clist_stats_fc_ttl, n, m,
-                flowc_stat_str(
-                    stats.byte.flowc_ttl[m], n, gnet_stats_fc_ttl_perc));
+                gnet_stats_bytes ? 
+                    flowc_stat_str_byte(stats.byte.flowc_ttl[m], n) :
+                    flowc_stat_str_pkg(stats.pkg.flowc_ttl[m], n));
 
         for (m = 1; m < 10; m ++)
             gtk_clist_set_text(clist_stats_fc_hops, n, m,
-                flowc_stat_str(
-                    stats.byte.flowc_hops[m], n, gnet_stats_fc_hops_perc));
+                gnet_stats_bytes ? 
+                    flowc_stat_str_byte(stats.byte.flowc_hops[m], n) :
+                    flowc_stat_str_pkg(stats.pkg.flowc_hops[m], n));
     }
 
     for (n = 0; n < MSG_DROP_REASON_COUNT; n ++)
@@ -495,8 +465,7 @@ void gnet_stats_gui_update(void)
 
     gtk_clist_thaw(clist_reason);
     gtk_clist_thaw(clist_general);
-    gtk_clist_thaw(clist_stats_byte);
-    gtk_clist_thaw(clist_stats_pkg);
+    gtk_clist_thaw(clist_stats_msg);
     gtk_clist_thaw(clist_stats_fc_ttl);
     gtk_clist_thaw(clist_stats_fc_hops);
 }
