@@ -1,5 +1,7 @@
 # Since last version
 
+- Further optimized library lookups to avoid useless matching operations
+- Added two host caches: public.bearshare.net and gnotella.fileflash.com
 - Was mistakenly using signed integer in GET requests for file indices
 - Double check requested file names with those in our library for extra safety
 - When download completes, remove all queued entries for same filename
