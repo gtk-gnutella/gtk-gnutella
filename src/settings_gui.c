@@ -1437,8 +1437,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "checkbutton_config_req_srv_name"
     },
-#ifndef USE_GTK2
-// FIXME: Gtk2 should also have these controls
     {
         get_main_window,
         PROP_ENABLE_ULTRAPEER,
@@ -1474,7 +1472,6 @@ static prop_map_t property_map[] = {
         TRUE,
         "spinbutton_config_ban_ratio_fds"
     }
-#endif
 };
 
 /***

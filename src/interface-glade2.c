@@ -4559,6 +4559,15 @@ create_main_window (void)
   GtkWidget *label126_2;
   GtkWidget *entry_config_netmasks;
   GtkWidget *label289;
+  GtkWidget *frame_expert_nw_misc;
+  GtkWidget *table43;
+  GtkWidget *label515;
+  GtkWidget *label516;
+  GtkObject *spinbutton_config_ban_ratio_fds_adj;
+  GtkWidget *spinbutton_config_ban_ratio_fds;
+  GtkObject *spinbutton_config_ban_max_fds_adj;
+  GtkWidget *spinbutton_config_ban_max_fds;
+  GtkWidget *label514;
   GtkWidget *label119;
   GtkWidget *scrolledwindow39;
   GtkWidget *viewport3;
@@ -4658,11 +4667,17 @@ create_main_window (void)
   GtkWidget *checkbutton_prefer_compressed_gnet;
   GtkWidget *label429;
   GtkWidget *frame_expert_gnet_other;
-  GtkWidget *table32;
-  GtkWidget *label363;
-  GtkWidget *checkbutton_gnet_compact_query;
+  GtkWidget *vbox99;
+  GtkWidget *hbox212;
+  GtkWidget *label518;
   GtkObject *spinbutton_config_hops_random_factor_adj;
   GtkWidget *spinbutton_config_hops_random_factor;
+  GtkWidget *hbox213;
+  GtkWidget *checkbutton_gnet_compact_query;
+  GtkWidget *hbox214;
+  GtkWidget *checkbutton_config_enable_ultrapeer;
+  GtkWidget *combo_config_peermode;
+  GtkWidget *combo_entry3;
   GtkWidget *label362;
   GtkWidget *label122;
   GtkWidget *scrolledwindow41;
@@ -4811,11 +4826,14 @@ create_main_window (void)
   GtkWidget *table36;
   GtkWidget *label376;
   GtkWidget *label377;
-  GtkWidget *checkbutton_config_stop_host_get;
   GtkObject *spinbutton_config_dbg_adj;
   GtkWidget *spinbutton_config_dbg;
   GtkObject *spinbutton_config_gui_debug_adj;
   GtkWidget *spinbutton_config_gui_debug;
+  GtkWidget *checkbutton_config_stop_host_get;
+  GtkWidget *label517;
+  GtkObject *spinbutton_config_lib_debug_adj;
+  GtkWidget *spinbutton_config_lib_debug;
   GtkWidget *label375;
   GtkWidget *label372;
   GtkWidget *label_config;
@@ -7114,6 +7132,56 @@ create_main_window (void)
   gtk_frame_set_label_widget (GTK_FRAME (frame_expert_nw_local), label289);
   gtk_label_set_justify (GTK_LABEL (label289), GTK_JUSTIFY_LEFT);
 
+  frame_expert_nw_misc = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame_expert_nw_misc, "frame_expert_nw_misc");
+  gtk_widget_show (frame_expert_nw_misc);
+  gtk_box_pack_start (GTK_BOX (vbox24), frame_expert_nw_misc, FALSE, TRUE, 0);
+
+  table43 = gtk_table_new (2, 2, FALSE);
+  gtk_widget_set_name (table43, "table43");
+  gtk_widget_show (table43);
+  gtk_container_add (GTK_CONTAINER (frame_expert_nw_misc), table43);
+
+  label515 = gtk_label_new ("Max. file descriptors reserved for banning");
+  gtk_widget_set_name (label515, "label515");
+  gtk_widget_show (label515);
+  gtk_table_attach (GTK_TABLE (table43), label515, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label515), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label515), 0, 0.5);
+
+  label516 = gtk_label_new ("Max. % of file descriptors used for banning");
+  gtk_widget_set_name (label516, "label516");
+  gtk_widget_show (label516);
+  gtk_table_attach (GTK_TABLE (table43), label516, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label516), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label516), 0, 0.5);
+
+  spinbutton_config_ban_ratio_fds_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
+  spinbutton_config_ban_ratio_fds = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_ban_ratio_fds_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_ban_ratio_fds, "spinbutton_config_ban_ratio_fds");
+  gtk_widget_show (spinbutton_config_ban_ratio_fds);
+  gtk_table_attach (GTK_TABLE (table43), spinbutton_config_ban_ratio_fds, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_config_ban_max_fds_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
+  spinbutton_config_ban_max_fds = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_ban_max_fds_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_ban_max_fds, "spinbutton_config_ban_max_fds");
+  gtk_widget_show (spinbutton_config_ban_max_fds);
+  gtk_table_attach (GTK_TABLE (table43), spinbutton_config_ban_max_fds, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label514 = gtk_label_new ("Miscellaneous");
+  gtk_widget_set_name (label514, "label514");
+  gtk_widget_show (label514);
+  gtk_frame_set_label_widget (GTK_FRAME (frame_expert_nw_misc), label514);
+  gtk_label_set_justify (GTK_LABEL (label514), GTK_JUSTIFY_LEFT);
+
   label119 = gtk_label_new ("Network\nsettings");
   gtk_widget_set_name (label119, "label119");
   gtk_widget_show (label119);
@@ -7705,7 +7773,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_min_dup_ratio), TRUE);
 
-  checkbutton_prefer_compressed_gnet = gtk_check_button_new_with_mnemonic ("prefer compressed connections");
+  checkbutton_prefer_compressed_gnet = gtk_check_button_new_with_mnemonic ("Prefer compressed connections");
   gtk_widget_set_name (checkbutton_prefer_compressed_gnet, "checkbutton_prefer_compressed_gnet");
   gtk_widget_show (checkbutton_prefer_compressed_gnet);
   gtk_table_attach (GTK_TABLE (table37), checkbutton_prefer_compressed_gnet, 0, 3, 2, 3,
@@ -7723,38 +7791,60 @@ create_main_window (void)
   gtk_widget_show (frame_expert_gnet_other);
   gtk_box_pack_start (GTK_BOX (vbox25), frame_expert_gnet_other, FALSE, TRUE, 0);
 
-  table32 = gtk_table_new (2, 2, FALSE);
-  gtk_widget_set_name (table32, "table32");
-  gtk_widget_show (table32);
-  gtk_container_add (GTK_CONTAINER (frame_expert_gnet_other), table32);
-  gtk_container_set_border_width (GTK_CONTAINER (table32), 2);
-  gtk_table_set_row_spacings (GTK_TABLE (table32), 2);
-  gtk_table_set_col_spacings (GTK_TABLE (table32), 4);
+  vbox99 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_set_name (vbox99, "vbox99");
+  gtk_widget_show (vbox99);
+  gtk_container_add (GTK_CONTAINER (frame_expert_gnet_other), vbox99);
 
-  label363 = gtk_label_new ("Hops random factor");
-  gtk_widget_set_name (label363, "label363");
-  gtk_widget_show (label363);
-  gtk_table_attach (GTK_TABLE (table32), label363, 0, 1, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-  gtk_label_set_justify (GTK_LABEL (label363), GTK_JUSTIFY_LEFT);
-  gtk_misc_set_alignment (GTK_MISC (label363), 0, 0.5);
+  hbox212 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox212, "hbox212");
+  gtk_widget_show (hbox212);
+  gtk_box_pack_start (GTK_BOX (vbox99), hbox212, TRUE, TRUE, 0);
 
-  checkbutton_gnet_compact_query = gtk_check_button_new_with_mnemonic ("Compact queries before processing");
-  gtk_widget_set_name (checkbutton_gnet_compact_query, "checkbutton_gnet_compact_query");
-  gtk_widget_show (checkbutton_gnet_compact_query);
-  gtk_table_attach (GTK_TABLE (table32), checkbutton_gnet_compact_query, 0, 2, 1, 2,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+  label518 = gtk_label_new ("Hops random factor");
+  gtk_widget_set_name (label518, "label518");
+  gtk_widget_show (label518);
+  gtk_box_pack_start (GTK_BOX (hbox212), label518, FALSE, TRUE, 5);
+  gtk_label_set_justify (GTK_LABEL (label518), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label518), 0, 0.5);
 
-  spinbutton_config_hops_random_factor_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_hops_random_factor_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
   spinbutton_config_hops_random_factor = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_hops_random_factor_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_hops_random_factor, "spinbutton_config_hops_random_factor");
   gtk_widget_show (spinbutton_config_hops_random_factor);
-  gtk_table_attach (GTK_TABLE (table32), spinbutton_config_hops_random_factor, 1, 2, 0, 1,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
+  gtk_box_pack_start (GTK_BOX (hbox212), spinbutton_config_hops_random_factor, FALSE, TRUE, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_hops_random_factor), TRUE);
+
+  hbox213 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox213, "hbox213");
+  gtk_widget_show (hbox213);
+  gtk_box_pack_start (GTK_BOX (vbox99), hbox213, TRUE, TRUE, 0);
+
+  checkbutton_gnet_compact_query = gtk_check_button_new_with_mnemonic ("Clean up queries before processing");
+  gtk_widget_set_name (checkbutton_gnet_compact_query, "checkbutton_gnet_compact_query");
+  gtk_widget_show (checkbutton_gnet_compact_query);
+  gtk_box_pack_start (GTK_BOX (hbox213), checkbutton_gnet_compact_query, FALSE, FALSE, 5);
+
+  hbox214 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_set_name (hbox214, "hbox214");
+  gtk_widget_show (hbox214);
+  gtk_box_pack_start (GTK_BOX (vbox99), hbox214, TRUE, TRUE, 0);
+
+  checkbutton_config_enable_ultrapeer = gtk_check_button_new_with_mnemonic ("Ultrapeer support (experimental)");
+  gtk_widget_set_name (checkbutton_config_enable_ultrapeer, "checkbutton_config_enable_ultrapeer");
+  gtk_widget_show (checkbutton_config_enable_ultrapeer);
+  gtk_box_pack_start (GTK_BOX (hbox214), checkbutton_config_enable_ultrapeer, FALSE, FALSE, 5);
+
+  combo_config_peermode = gtk_combo_new ();
+  g_object_set_data (G_OBJECT (GTK_COMBO (combo_config_peermode)->popwin),
+                     "GladeParentKey", combo_config_peermode);
+  gtk_widget_set_name (combo_config_peermode, "combo_config_peermode");
+  gtk_widget_show (combo_config_peermode);
+  gtk_box_pack_start (GTK_BOX (hbox214), combo_config_peermode, FALSE, FALSE, 0);
+
+  combo_entry3 = GTK_COMBO (combo_config_peermode)->entry;
+  gtk_widget_set_name (combo_entry3, "combo_entry3");
+  gtk_widget_show (combo_entry3);
 
   label362 = gtk_label_new ("Other");
   gtk_widget_set_name (label362, "label362");
@@ -8605,7 +8695,7 @@ create_main_window (void)
   gtk_widget_show (frame54);
   gtk_box_pack_start (GTK_BOX (vbox81), frame54, FALSE, TRUE, 0);
 
-  table36 = gtk_table_new (3, 2, FALSE);
+  table36 = gtk_table_new (4, 2, FALSE);
   gtk_widget_set_name (table36, "table36");
   gtk_widget_show (table36);
   gtk_container_add (GTK_CONTAINER (frame54), table36);
@@ -8613,7 +8703,7 @@ create_main_window (void)
   gtk_table_set_row_spacings (GTK_TABLE (table36), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table36), 4);
 
-  label376 = gtk_label_new_with_mnemonic ("_core debug level");
+  label376 = gtk_label_new_with_mnemonic ("_Core debug level");
   gtk_widget_set_name (label376, "label376");
   gtk_widget_show (label376);
   gtk_table_attach (GTK_TABLE (table36), label376, 0, 1, 0, 1,
@@ -8622,7 +8712,7 @@ create_main_window (void)
   gtk_label_set_justify (GTK_LABEL (label376), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label376), 0, 0.5);
 
-  label377 = gtk_label_new_with_mnemonic ("_gui debug level");
+  label377 = gtk_label_new_with_mnemonic ("_GUI debug level");
   gtk_widget_set_name (label377, "label377");
   gtk_widget_show (label377);
   gtk_table_attach (GTK_TABLE (table36), label377, 0, 1, 1, 2,
@@ -8631,14 +8721,7 @@ create_main_window (void)
   gtk_label_set_justify (GTK_LABEL (label377), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label377), 0, 0.5);
 
-  checkbutton_config_stop_host_get = gtk_check_button_new_with_mnemonic ("_stop collecting hosts in host catcher");
-  gtk_widget_set_name (checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
-  gtk_widget_show (checkbutton_config_stop_host_get);
-  gtk_table_attach (GTK_TABLE (table36), checkbutton_config_stop_host_get, 0, 2, 2, 3,
-                    (GtkAttachOptions) (GTK_FILL),
-                    (GtkAttachOptions) (0), 0, 0);
-
-  spinbutton_config_dbg_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_dbg_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
   spinbutton_config_dbg = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_dbg_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_dbg, "spinbutton_config_dbg");
   gtk_widget_show (spinbutton_config_dbg);
@@ -8647,7 +8730,7 @@ create_main_window (void)
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_dbg), TRUE);
 
-  spinbutton_config_gui_debug_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_gui_debug_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
   spinbutton_config_gui_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_gui_debug_adj), 1, 0);
   gtk_widget_set_name (spinbutton_config_gui_debug, "spinbutton_config_gui_debug");
   gtk_widget_show (spinbutton_config_gui_debug);
@@ -8655,6 +8738,30 @@ create_main_window (void)
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_gui_debug), TRUE);
+
+  checkbutton_config_stop_host_get = gtk_check_button_new_with_mnemonic ("_stop collecting hosts in host catcher");
+  gtk_widget_set_name (checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
+  gtk_widget_show (checkbutton_config_stop_host_get);
+  gtk_table_attach (GTK_TABLE (table36), checkbutton_config_stop_host_get, 0, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label517 = gtk_label_new ("Shared code debug level");
+  gtk_widget_set_name (label517, "label517");
+  gtk_widget_show (label517);
+  gtk_table_attach (GTK_TABLE (table36), label517, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_justify (GTK_LABEL (label517), GTK_JUSTIFY_LEFT);
+  gtk_misc_set_alignment (GTK_MISC (label517), 0, 0.5);
+
+  spinbutton_config_lib_debug_adj = gtk_adjustment_new (0, 0, 100, 1, 10, 10);
+  spinbutton_config_lib_debug = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_lib_debug_adj), 1, 0);
+  gtk_widget_set_name (spinbutton_config_lib_debug, "spinbutton_config_lib_debug");
+  gtk_widget_show (spinbutton_config_lib_debug);
+  gtk_table_attach (GTK_TABLE (table36), spinbutton_config_lib_debug, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
 
   label375 = gtk_label_new ("Debug settings");
   gtk_widget_set_name (label375, "label375");
@@ -9975,6 +10082,13 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, label126_2, "label126_2");
   GLADE_HOOKUP_OBJECT (main_window, entry_config_netmasks, "entry_config_netmasks");
   GLADE_HOOKUP_OBJECT (main_window, label289, "label289");
+  GLADE_HOOKUP_OBJECT (main_window, frame_expert_nw_misc, "frame_expert_nw_misc");
+  GLADE_HOOKUP_OBJECT (main_window, table43, "table43");
+  GLADE_HOOKUP_OBJECT (main_window, label515, "label515");
+  GLADE_HOOKUP_OBJECT (main_window, label516, "label516");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_ban_ratio_fds, "spinbutton_config_ban_ratio_fds");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_ban_max_fds, "spinbutton_config_ban_max_fds");
+  GLADE_HOOKUP_OBJECT (main_window, label514, "label514");
   GLADE_HOOKUP_OBJECT (main_window, label119, "label119");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow39, "scrolledwindow39");
   GLADE_HOOKUP_OBJECT (main_window, viewport3, "viewport3");
@@ -10055,10 +10169,16 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_prefer_compressed_gnet, "checkbutton_prefer_compressed_gnet");
   GLADE_HOOKUP_OBJECT (main_window, label429, "label429");
   GLADE_HOOKUP_OBJECT (main_window, frame_expert_gnet_other, "frame_expert_gnet_other");
-  GLADE_HOOKUP_OBJECT (main_window, table32, "table32");
-  GLADE_HOOKUP_OBJECT (main_window, label363, "label363");
-  GLADE_HOOKUP_OBJECT (main_window, checkbutton_gnet_compact_query, "checkbutton_gnet_compact_query");
+  GLADE_HOOKUP_OBJECT (main_window, vbox99, "vbox99");
+  GLADE_HOOKUP_OBJECT (main_window, hbox212, "hbox212");
+  GLADE_HOOKUP_OBJECT (main_window, label518, "label518");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_hops_random_factor, "spinbutton_config_hops_random_factor");
+  GLADE_HOOKUP_OBJECT (main_window, hbox213, "hbox213");
+  GLADE_HOOKUP_OBJECT (main_window, checkbutton_gnet_compact_query, "checkbutton_gnet_compact_query");
+  GLADE_HOOKUP_OBJECT (main_window, hbox214, "hbox214");
+  GLADE_HOOKUP_OBJECT (main_window, checkbutton_config_enable_ultrapeer, "checkbutton_config_enable_ultrapeer");
+  GLADE_HOOKUP_OBJECT (main_window, combo_config_peermode, "combo_config_peermode");
+  GLADE_HOOKUP_OBJECT (main_window, combo_entry3, "combo_entry3");
   GLADE_HOOKUP_OBJECT (main_window, label362, "label362");
   GLADE_HOOKUP_OBJECT (main_window, label122, "label122");
   GLADE_HOOKUP_OBJECT (main_window, scrolledwindow41, "scrolledwindow41");
@@ -10191,9 +10311,11 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, table36, "table36");
   GLADE_HOOKUP_OBJECT (main_window, label376, "label376");
   GLADE_HOOKUP_OBJECT (main_window, label377, "label377");
-  GLADE_HOOKUP_OBJECT (main_window, checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_dbg, "spinbutton_config_dbg");
   GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_gui_debug, "spinbutton_config_gui_debug");
+  GLADE_HOOKUP_OBJECT (main_window, checkbutton_config_stop_host_get, "checkbutton_config_stop_host_get");
+  GLADE_HOOKUP_OBJECT (main_window, label517, "label517");
+  GLADE_HOOKUP_OBJECT (main_window, spinbutton_config_lib_debug, "spinbutton_config_lib_debug");
   GLADE_HOOKUP_OBJECT (main_window, label375, "label375");
   GLADE_HOOKUP_OBJECT (main_window, label372, "label372");
   GLADE_HOOKUP_OBJECT (main_window, label_config, "label_config");
