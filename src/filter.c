@@ -2291,11 +2291,6 @@ void filter_shutdown(void)
 {
     GList *f;
 
-    /*
-     * Discard all changes and close the dialog.
-     */
-    filter_close_dialog(FALSE);
-
     if (dbg >= 5)
         printf("shutting down filters\n");
 

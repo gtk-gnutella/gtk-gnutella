@@ -34,6 +34,8 @@
 
 #include "settings_gui.h"
 
+#include "filter.h" // FIXME: remove this dependency
+
 void main_gui_init(void)
 {
     gtk_clist_column_titles_passive
@@ -83,6 +85,11 @@ void main_gui_shutdown(void)
 	gdk_window_get_root_origin(main_window->window, &coord[0], &coord[1]);
 	gdk_window_get_size(main_window->window, &coord[2], &coord[3]);
     gui_prop_set_guint32(PROP_WINDOW_COORDS, coord, 0, 4);
+
+    /*
+     * Discard all changes and close the dialog.
+     */
+    filter_close_dialog(FALSE);
 
     nodes_gui_shutdown();
     settings_gui_shutdown();
