@@ -78,7 +78,8 @@
 #define MAX_WEIRD_MSG			5	/* Close connection after so much weirds */
 #define MAX_TX_RX_RATIO			50	/* Max TX/RX ratio */
 #define MIN_TX_FOR_RATIO		500	/* TX packets before enforcing ratio */
-#define ALIVE_FREQUENCY			10	/* Seconds between each alive ping */
+#define ALIVE_PERIOD			10	/* Seconds between each alive ping */
+#define ALIVE_PERIOD_LEAF		30	/* Idem, for leaf nodes <-> ultrapeers */
 #define ALIVE_MAX_PENDING		4	/* Max unanswered pings in a row */
 
 GSList *sl_nodes = (GSList *) NULL;
@@ -352,7 +353,7 @@ void node_timer(time_t now)
 
 			if (NODE_IS_WRITABLE(n)) {
 				if (
-					now - n->last_alive_ping > ALIVE_FREQUENCY &&
+					now - n->last_alive_ping > n->alive_period &&
 					!alive_send_ping(n->alive_pings)
 				) {
 					node_bye(n, 406, "No reply to alive pings");
@@ -1246,6 +1247,25 @@ static void node_is_now_connected(struct gnutella_node *n)
 	n->status = GTA_NODE_CONNECTED;
 	n->flags |= NODE_F_VALID | NODE_F_READABLE;
 	n->last_update = n->connect_date = time((time_t *) NULL);
+
+	switch (current_peermode) {
+	case NODE_P_NORMAL:
+		n->alive_period = ALIVE_PERIOD;
+		break;
+	case NODE_P_ULTRA:
+		if (n->peermode == NODE_P_LEAF)
+			n->alive_period = ALIVE_PERIOD_LEAF;
+		else
+			n->alive_period = ALIVE_PERIOD;
+		break;
+	case NODE_P_LEAF:
+		n->alive_period = ALIVE_PERIOD_LEAF;
+		break;
+	default:
+		g_error("unknown peer mode %d", current_peermode);
+		break;
+	}
+
 	connected_node_cnt++;
 
 	if (!NODE_IS_PONGING_ONLY(n)) {
