@@ -49,6 +49,7 @@
  * 
  * Do not redraw the bar too often, only on event for actual file and
  * perhaps max once a second.
+ *
  */
 
 #include "gui.h"
@@ -85,22 +86,23 @@ typedef struct vp_info {
     GSList *chunks_list;
 	GSList *chunks_initial;
 	GSList *ranges_list;
+	guint32 done_initial;
     vp_context_t *context;
 } vp_info_t;
 
-static GHashTable *vp_info_hash; /** Hash table with our cached fileinfo info */
+static GHashTable *vp_info_hash; /* Hash table with our cached fileinfo info */
 
-static GdkColor done;       /** Pre-filled color (green) for DONE chunks */
-static GdkColor done_old;	/** Pre-filled color (dull green) for DONE
+static GdkColor done;       /* Pre-filled color (green) for DONE chunks */
+static GdkColor done_old;	/* Pre-filled color (dull green) for DONE
 							 * chunks from previous sessions */
-static GdkColor busy;       /** Pre-filled color (yellow) for BUSY chunks */
-static GdkColor empty;      /** Pre-filled color (red) for EMPTY chunks */
-static GdkColor black;      /** Pre-filled color (black) for general drawing */
-static GdkColor available;  /** Pre-filled color (blue) available on network */
-static GdkColor nosize;      /** Pre-filled color (gray) indicates
+static GdkColor busy;       /* Pre-filled color (yellow) for BUSY chunks */
+static GdkColor empty;      /* Pre-filled color (red) for EMPTY chunks */
+static GdkColor black;      /* Pre-filled color (black) for general drawing */
+static GdkColor available;  /* Pre-filled color (blue) available on network */
+static GdkColor nosize;     /* Pre-filled color (gray) indicates
 								 chunk information is not available
 								 (e.g. file size == 0 */
-static GdkColor *base;      /** Theme-defined background color */
+static GdkColor *base;      /* Theme-defined background color */
 
 /**
  * The visual progress context for drawing fileinfo information
@@ -168,6 +170,12 @@ vp_draw_chunk (gpointer data, gpointer user_data)
 		0, v->context->widget->allocation.height);
 }
 
+/**
+ * Draw an available range. Callback for a list iterator.
+ *
+ * @param data       The HTTP range to draw.
+ * @param user_data  A pointer to the vp_info_t structure.
+ */
 static void 
 vp_draw_range (gpointer data, gpointer user_data)
 {
@@ -251,6 +259,9 @@ on_drawingarea_fi_progress_realize(GtkWidget *widget, gpointer user_data)
 	base = gdk_color_copy(&(style->base[GTK_STATE_INSENSITIVE]));
 }
 
+/**
+ * Callback for the fileinfo pane GtkDrawingArea
+ */
 gboolean
 on_drawingarea_fi_progress_expose_event(
 	GtkWidget *widget, GdkEventExpose *event, gpointer user_data)
@@ -261,6 +272,33 @@ on_drawingarea_fi_progress_expose_event(
 	vp_draw_fi_progress(fi_context.fih_valid, fi_context.fih);
 
     return FALSE;
+}
+
+/**
+ * Get a list of chunks and filter out all empty chunks for quicker
+ * handling later on. Returns pointer to the new list. Caller should
+ * make sure to free this list and its chunks.
+ *
+ * @param fih  Fileinfo handle for which chunks should be retrieved
+ */
+static GSList *
+vp_get_chunks_initial(fih) {
+
+	GSList *result;
+	GSList *l;
+	gnet_fi_chunks_t *chunk;
+
+	result = guc_fi_get_chunks(fih);
+	for (l = result; l; ){
+		chunk = (gnet_fi_chunks_t *)l->data;
+		l = g_slist_next(l);
+		if (DL_CHUNK_EMPTY == chunk->status) {
+			result = g_slist_remove(result, chunk);
+			wfree(chunk, sizeof(gnet_fi_chunks_t));
+		}
+	}
+
+	return result;
 }
 
 
@@ -276,8 +314,6 @@ vp_gui_fi_added(gnet_fi_t fih)
     gnet_fi_info_t *fi = NULL;
     vp_info_t *new_vp_info = NULL;
     gnet_fi_status_t s;
-	GSList *l;
-	gnet_fi_chunks_t *chunk;
 
     fi = guc_fi_get_info(fih);
     guc_fi_get_status(fih, &s);
@@ -289,20 +325,14 @@ vp_gui_fi_added(gnet_fi_t fih)
     new_vp_info->chunks_list = guc_fi_get_chunks(fih);
 	new_vp_info->ranges_list = guc_fi_get_ranges(fih);
 
-	/*
-	 * We also copy the chunks info in the chunks_initial list. This list is
-	 * the list of chunks we already had at start. The empty chunks are removed
-	 * so that the list can be processed more efficiently.
+	/* 
+	 * Keep an optimized copy of the initial chunks list. Also
+	 * remember the amount of data already downloaded. This helps to
+	 * detect cheaply if the file download had restarted due to SHA1
+	 * mismatch.
 	 */
-	new_vp_info->chunks_initial = guc_fi_get_chunks(fih);
-	for (l = new_vp_info->chunks_initial; l; ){
-		chunk = (gnet_fi_chunks_t *)l->data;
-		l = g_slist_next(l);
-		if (DL_CHUNK_EMPTY == chunk->status) {
-			new_vp_info->chunks_initial = g_slist_remove(new_vp_info->chunks_initial, chunk);
-			wfree(chunk, sizeof(gnet_fi_chunks_t));
-		}
-	}
+	new_vp_info->chunks_initial = vp_get_chunks_initial(fih);
+	new_vp_info->done_initial = s.done;
 	
     g_hash_table_insert(vp_info_hash, GUINT_TO_POINTER(fih), new_vp_info);
     
@@ -361,6 +391,25 @@ vp_create_chunk(guint32 from, guint32 to, enum dl_chunk_status status, gboolean 
 	return chunk;
 }
 
+/**
+ * Assert that a chunks list confirms to the assumptions.
+ */
+void
+vp_assert_chunks_list(GSList *list) {
+	GSList *l;
+	gnet_fi_chunks_t *chunk;
+	int last = 0;
+
+	for (l = list; l; l = g_slist_next(l)) {
+		chunk = (gnet_fi_chunks_t *) l->data;
+		if (last != chunk->from)
+			printf("--> %d <--\n\n", last);
+		g_assert(last == chunk->from);
+		last = chunk->to;
+	}
+}
+
+
 /** 
  * Fileinfo has been changed for a file. Update the information and 
  * draw the information so the changes are visible.
@@ -379,12 +428,29 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
     gboolean found;
 	gpointer value;
 	guint32 highest = 0;
+	gnet_fi_info_t *fi;
+	gnet_fi_status_t s;
 
     found = g_hash_table_lookup_extended(vp_info_hash,
 		GUINT_TO_POINTER(fih), NULL, &value);
     g_assert(found);
     g_assert(value);
 	v = value;
+
+	/*
+	 * Check for the case that there is less data downloaded now
+	 * compared to when we started. This indicates that the download
+	 * has been started from scratch. In this case we re-initialize
+	 * the chunks_initial list and done field to keep the visual
+	 * display accurate.
+	 */
+	fi = guc_fi_get_info(fih);
+	guc_fi_get_status(fih, &s);
+	if (v->done_initial > s.done) {
+		guc_fi_free_chunks(v->chunks_initial);
+		v->chunks_initial = vp_get_chunks_initial(fih);
+		v->done_initial = s.done;
+	}
 
 	/*
 	 * Use the new chunks list to create a composite with the initial
@@ -394,12 +460,10 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	old = v->chunks_initial;
 	new = guc_fi_get_chunks(fih);
 	keep_new = new;	/* So that we can free this list later */
+	vp_assert_chunks_list(new);
 	guc_fi_free_chunks(v->chunks_list);
 	v->chunks_list = NULL;
 	
-	/*
-	 * FIXME: Also deal with the situation that the download was restarted!
-	 */
 	while (old || new) {
 		if (old && new) {
 			oc = (gnet_fi_chunks_t *) old->data;
@@ -418,14 +482,13 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 				continue;
 			}
 				
-			
 			/*
 			 * The chunks are identical: nothing changed, copy one chunk
 			 */
 			if (oc->from == nc->from && oc->to == nc->to) {
 				highest = oc->to;
 				v->chunks_list = g_slist_append(v->chunks_list, 
-					vp_create_chunk(oc->from, oc->to, oc->status, TRUE));
+				    vp_create_chunk(oc->from, oc->to, nc->status, TRUE));
 				old = g_slist_next(old);
 				new = g_slist_next(new);
 				continue;
@@ -439,7 +502,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 			if (oc->from >= nc->to) {
 				highest = nc->to;
 				v->chunks_list = g_slist_append(v->chunks_list, 
-					vp_create_chunk(nc->from, nc->to, nc->status, FALSE));
+ 					vp_create_chunk(nc->from, nc->to, nc->status, FALSE));
 				new = g_slist_next(new);
 				continue;
 			}
@@ -485,24 +548,13 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 		}
 	}
 	
-	// This code is only for debugging and should be removed before checkin
-	// Basically we check if the whole file is accounted for.
-	GSList *l;
-	gnet_fi_chunks_t *chunk;
-	int last = 0;
-	for (l = v->chunks_list; l; l = g_slist_next(l)) {
-		chunk = (gnet_fi_chunks_t *) l->data;
-		if (last != chunk->from)
-			printf("--> %d <--\n\n", last);
-		g_assert(last == chunk->from);
-		last = chunk->to;
-	}
-	
 	/* 
 	 * Now that the new list of chunks is merged with the old chunks we
 	 * can safely throw away the new list itself.
 	 */
 	guc_fi_free_chunks(keep_new);
+
+	vp_assert_chunks_list(v->chunks_list);
 }
 
 
@@ -550,10 +602,12 @@ vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
     wfree(value, sizeof(vp_info_t));
 }
 
-/* 
- * Initialize the use of the canvas: register listeners into the
- * fileinfo structure so that we are notified of fileinfo events, and
- * get a permanent handle to the canvas for later reuse.
+/**
+ * Initialize the use of visual progress.
+
+ * Register listeners into the fileinfo structure so that we are
+ * notified of fileinfo events, and get a permanent handle to the
+ * drawing area for later reuse.
  */
 void 
 vp_gui_init(void) 
