@@ -43,16 +43,18 @@ Original Message from Olrick
 Introduction
 ------------
 
-Gtk-Gnutella is a GUI based Gnutella Client. It's based upon the original
+Gtk-Gnutella is a GUI based Gnutella servent. It's based upon the original
 look of Gnutella v0.5.
 
-It's a fully featured Gnutella Client designed to share any type of file
-the user wishes to share.
+It's a fully featured Gnutella servent designed to share any type of file
+the user wishes to share.  Gtk-gnutella implements compressed gnutella net 
+connections, ultrapeer and leaf nodes and uses Passive/Active Remote 
+Queueing (PARQ).  
 
-It's a Unix clone, and it needs GTK+ (1.2 or above). Gnome is not needed. It
-is currently developed and tested under Linux (Redhat 6). It is known to run
-at least on Linux and FreeBSD (on 80x86 machines). It is released under the
-GNU Public License (GPL).
+It's a Unix clone, and can be built with either a GTK+ (1.2 or above) 
+or GTK2 GUI. Gnome is not needed. It is currently developed and tested 
+under Linux. It is known to run at least on Linux and FreeBSD (on 80x86 
+machines). It is released under the GNU Public License (GPL).
 
 For further information on Gnutella, try:
 http://gnutella.wego.com
@@ -91,7 +93,7 @@ If you don't get a connection, quit the program and restart it to get a
 few more hosts from the server. If you still don't get connected, you
 may need to check your Internet connection and DNS (etc/resolv.conf)
 list. If your Netscape or Konqueror web browser isn't working, you
-got a problem. In normal operations you should be connected within
+have a problem. In normal operations you should be connected within
 30 or so seconds.
 
 Click on "Config" in the upper left hand box to get the Configuration
