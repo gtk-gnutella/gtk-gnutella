@@ -136,9 +136,11 @@ oob_proxy_rec_free_remove(struct oob_proxy_rec *opr)
  * Callout queue callback to free OOB proxy record.
  */
 static void
-oob_proxy_rec_destroy(cqueue_t *cq, gpointer obj)
+oob_proxy_rec_destroy(cqueue_t *unused_cq, gpointer obj)
 {
 	struct oob_proxy_rec *opr = (struct oob_proxy_rec *) obj;
+
+	(void) unused_cq;
 
 	if (query_debug)
 		printf("OOB proxied query %s expired\n", guid_hex_str(opr->leaf_muid));
@@ -422,10 +424,11 @@ oob_proxy_init(void)
  * Cleanup servent -- hash table iterator callback
  */
 static void
-free_oob_proxy_kv(gpointer key, gpointer value, gpointer udata)
+free_oob_proxy_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
 	struct oob_proxy_rec *opr = (struct oob_proxy_rec *) value;
 
+	(void) unused_udata;
 	oob_proxy_rec_free(opr);
 }
 
@@ -439,3 +442,4 @@ oob_proxy_close(void)
 	g_hash_table_destroy(proxied_queries);
 }
 
+/* vi: set ts=4 sw=4 cindent: */

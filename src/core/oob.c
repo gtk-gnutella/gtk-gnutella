@@ -177,9 +177,11 @@ results_free_remove(struct oob_results *r)
  * Callout queue callback to free the results.
  */
 static void
-results_destroy(cqueue_t *cq, gpointer obj)
+results_destroy(cqueue_t *unused_cq, gpointer obj)
 {
 	struct oob_results *r = (struct oob_results *) obj;
+
+	(void) unused_cq;
 
 	if (query_debug)
 		printf("OOB query %s from %s expired with unclaimed %d hit%s\n",
@@ -196,9 +198,11 @@ results_destroy(cqueue_t *cq, gpointer obj)
  * Callout queue callback to free the results.
  */
 static void
-results_timeout(cqueue_t *cq, gpointer obj)
+results_timeout(cqueue_t *unused_cq, gpointer obj)
 {
 	struct oob_results *r = (struct oob_results *) obj;
+
+	(void) unused_cq;
 
 	if (query_debug)
 		printf("OOB query %s, no ACK from %s to claim %d hit%s\n",
@@ -289,10 +293,11 @@ servent_make(gnet_host_t *host)
  * -- fifo_free_all() callback.
  */
 static void
-free_pmsg(gpointer item, gpointer udata)
+free_pmsg(gpointer item, gpointer unused_udata)
 {
 	pmsg_t *mb = (pmsg_t *) item;
 
+	(void) unused_udata;
 	pmsg_free(mb);
 }
 
@@ -553,11 +558,12 @@ oob_init(void)
  * Cleanup oob_results -- hash table iterator callback
  */
 static void
-free_oob_kv(gpointer key, gpointer value, gpointer udata)
+free_oob_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
 	gchar *muid = (gchar *) key;
 	struct oob_results *r = (struct oob_results *) value;
 
+	(void) unused_udata;
 	g_assert(muid == r->muid);		/* Key is same as results's MUID */
 
 	results_free(r);
@@ -567,11 +573,12 @@ free_oob_kv(gpointer key, gpointer value, gpointer udata)
  * Cleanup servent -- hash table iterator callback
  */
 static void
-free_servent_kv(gpointer key, gpointer value, gpointer udata)
+free_servent_kv(gpointer key, gpointer value, gpointer unused_udata)
 {
 	gnet_host_t *host = (gnet_host_t *) key;
 	struct servent *s = (struct servent *) value;
 
+	(void) unused_udata;
 	g_assert(host == s->host);		/* Key is same as servent's host */
 
 	servent_free(s);
@@ -590,3 +597,4 @@ oob_close(void)
 	g_hash_table_destroy(servent_by_host);
 }
 
+/* vi: set ts=4 sw=4 cindent: */

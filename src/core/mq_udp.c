@@ -382,8 +382,10 @@ mq_udp_node_putq(mqueue_t *q, pmsg_t *mb, gnutella_node_t *n)
  * Disable plain mq_putq() operation on an UDP queue.
  */
 static void
-mq_no_putq(mqueue_t *q, pmsg_t *mb)
+mq_no_putq(mqueue_t *unused_q, pmsg_t *unused_mb)
 {
+	(void) unused_q;
+	(void) unused_mb;
 	g_error("plain mq_putq() forbidden on UDP queue -- use mq_udp_putq()");
 }
 
@@ -391,4 +393,4 @@ static struct mq_ops mq_udp_ops = {
 	mq_no_putq,			/* putq */
 };
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent=4: */
