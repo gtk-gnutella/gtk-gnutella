@@ -1,0 +1,9 @@
+#!/bin/sh
+ulimit -S -c unlimited
+rm -f core
+src/gtk-gnutella 2> gtk-gnutella.warn | tee gtk-gnutella.log
+if [ -e core ] ; then { 
+    tail -3 gtk-gnutella.warn
+    gdb src/gtk-gnutella core
+} 
+fi
