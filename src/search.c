@@ -31,6 +31,7 @@ struct search
 {
 	GtkWidget *clist;						/* GtkCList for this search */
 	GtkWidget *scrolled_window;		/* GtkScrolledWindow containing the GtkCList */
+	GtkWidget *list_item;				/* The GtkListItem in the combo for this search */
 	gchar 	*query;						/* The search query */
 	guint16	speed;						/* Minimum speed for the results of this query */
 	time_t	time;							/* Time when this search was started */
@@ -53,9 +54,9 @@ GtkWidget *default_scrolled_window = NULL;	/* If no search are currently allocat
 
 struct search *current_search = NULL;			/*	The search currently displayed */
 
-/* GUI Part ------------------------------------------------------------------------------------------------ */
+/* --------------------------------------------------------------------------------------------------------- */
 
-/* Creates a new GtkCList for search results */
+/* Create a new GtkCList for search results */
 
 void on_clist_search_results_select_row(GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data)
 {
@@ -111,58 +112,26 @@ void search_update_items(struct search *sch)
 	gtk_label_set(GTK_LABEL(label_items_found), stmp_1);
 }
 
-void on_search_switch(GtkMenuItem *item, gpointer user_data)
+struct search *search_selected = NULL;
+
+void on_search_selected(GtkItem *i, gpointer data)
 {
-	struct search *sch = (struct search *) user_data;
-
-	g_return_if_fail(sch);
-
-	current_search = sch;
-
-	gtk_notebook_set_page(GTK_NOTEBOOK(notebook_search_results), gtk_notebook_page_num(GTK_NOTEBOOK(notebook_search_results), sch->scrolled_window));
-
-	search_update_items(sch);
-
-	gui_update_minimum_speed(sch->speed);
-
-	gtk_widget_set_sensitive(button_search_download, (gboolean) GTK_CLIST(sch->clist)->selection);
+	search_selected = (struct search *) data;
 }
 
-void search_rebuild_option_menu(void)
+void on_search_switch(GtkWidget *w, gpointer data)
 {
-	GtkWidget *menuitem;
+	g_return_if_fail(search_selected);
 
-	gtk_option_menu_remove_menu(GTK_OPTION_MENU(option_menu_search));
+	current_search = search_selected;
 
-	/* Why the next call always fails with warning "assertion `GTK_IS_WIDGET (widget)' failed." ? */
-	/* gtk_widget_destroy(option_menu_search_menu); */
-	
-	option_menu_search_menu = gtk_menu_new();
+	gtk_notebook_set_page(GTK_NOTEBOOK(notebook_search_results), gtk_notebook_page_num(GTK_NOTEBOOK(notebook_search_results), search_selected->scrolled_window));
 
-	if (searches)
-	{
-		GSList *l;
+	search_update_items(search_selected);
 
-		for (l = searches; l; l = l->next)
-		{
-			menuitem = gtk_menu_item_new_with_label(((struct search *) l->data)->query);
-			gtk_widget_show(menuitem);
-			gtk_menu_prepend(GTK_MENU(option_menu_search_menu), menuitem);
-			gtk_signal_connect(GTK_OBJECT(menuitem), "activate", GTK_SIGNAL_FUNC(on_search_switch), (gpointer) (struct search *) l->data);
-		}
-	}
-	else
-	{
-		menuitem = gtk_menu_item_new_with_label("No searches");
-		gtk_widget_show(menuitem);
-		gtk_menu_append(GTK_MENU(option_menu_search_menu), menuitem);
-	}
+	gui_update_minimum_speed(search_selected->speed);
 
-	gtk_widget_set_sensitive(option_menu_search, (gboolean) searches);
-	gtk_widget_set_sensitive(button_search_filter, (gboolean) searches);
-	gtk_widget_set_sensitive(button_search_close, (gboolean) searches);
-
-	gtk_option_menu_set_menu(GTK_OPTION_MENU(option_menu_search), option_menu_search_menu);
+	gtk_widget_set_sensitive(button_search_download, (gboolean) GTK_CLIST(search_selected->clist)->selection);
 }
 
 /* */
@@ -174,6 +143,8 @@ void search_init(void)
 	gtk_notebook_remove_page(GTK_NOTEBOOK(notebook_search_results), 0);
 
 	gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results), default_scrolled_window, NULL);
+
+	gtk_signal_connect(GTK_OBJECT(GTK_COMBO(combo_searches)->popwin), "hide", GTK_SIGNAL_FUNC(on_search_switch), NULL);
 }
 
 /* Free all the results sets of a search */
@@ -200,10 +171,11 @@ void search_free_r_sets(struct search *sch)
 	g_slist_free(sch->r_sets);
 }
 
-/* Closes a search */
+/* Close a search */
 
 void search_close_current(void)
 {
+	GList *glist;
 	struct search *sch = current_search;
 
 	g_return_if_fail(current_search);
@@ -214,14 +186,16 @@ void search_close_current(void)
 
 	if (searches)
 	{
-		/* Some others searches remains. We destroy the clist of this search and display another search */
+		/* Some other searches remain. We destroy the clist of this search and display another search */
 
 		gtk_notebook_remove_page(GTK_NOTEBOOK(notebook_search_results), gtk_notebook_page_num(GTK_NOTEBOOK(notebook_search_results), sch->scrolled_window));
 
 		/* Why the next call always fails with warning "assertion `GTK_IS_WIDGET (widget)' failed." ? */
 		/* gtk_widget_destroy(sch->scrolled_window); */
 
-		on_search_switch( NULL, searches->data);	/* Switch to the first search in the list */
+		gtk_list_item_select(GTK_LIST_ITEM(((struct search *) searches->data)->list_item));
+
+		on_search_switch(NULL, NULL);
 	}
 	else		/* Keep the clist of this search, clear it and make it the default clist */
 	{
@@ -230,25 +204,34 @@ void search_close_current(void)
 		default_search_clist = sch->clist;
 		default_scrolled_window = sch->scrolled_window;
 
-		current_search = NULL;
+		search_selected = current_search = NULL;
 
 		search_update_items(NULL);
+
+		gtk_entry_set_text(GTK_ENTRY(combo_entry_searches), "");
 	}
+
+	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
+
+	gtk_list_remove_items(GTK_LIST(GTK_COMBO(combo_searches)->list), glist);
 
 	g_free(sch->query);
 
 	g_free(sch);
 
-	search_rebuild_option_menu();
+	gtk_widget_set_sensitive(combo_searches, (gboolean) searches);
+	gtk_widget_set_sensitive(button_search_filter, (gboolean) searches);
+	gtk_widget_set_sensitive(button_search_close, (gboolean) searches);
 }
 
-/* Starts a new search */
+/* Start a new search */
 
 void new_search(guint16 speed, gchar *query)
 {
 	struct  gnutella_msg_search *m;
 	struct  search *sch;
 	guint32 size;
+	GList   *glist;
 
 	sch = (struct search *) g_malloc0(sizeof(struct search));
 
@@ -301,11 +284,23 @@ void new_search(guint16 speed, gchar *query)
 
 	searches = g_slist_append(searches, (gpointer) sch);
 
-	current_search = sch;
+	sch->list_item = gtk_list_item_new_with_label(sch->query);
 
-	search_update_items(current_search);
+	gtk_signal_connect(GTK_OBJECT(sch->list_item), "select", GTK_SIGNAL_FUNC(on_search_selected), (gpointer) sch);
 
-	search_rebuild_option_menu();
+	gtk_widget_show(sch->list_item);
+
+	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
+
+	gtk_list_prepend_items(GTK_LIST(GTK_COMBO(combo_searches)->list), glist);
+
+	gtk_list_item_select(GTK_LIST_ITEM(sch->list_item));
+
+	on_search_switch(NULL, NULL);
+
+	gtk_widget_set_sensitive(combo_searches, TRUE);
+	gtk_widget_set_sensitive(button_search_filter, TRUE);
+	gtk_widget_set_sensitive(button_search_close, TRUE);
 
 	gtk_entry_set_text(GTK_ENTRY(entry_search), "");
 }
@@ -335,7 +330,7 @@ void search_results(struct gnutella_node *n)
 	GSList *l;
 	gchar *titles[4];
 
-	/* Finds the search matching the MUID */
+	/* Find the search matching the MUID */
 
 	for (l = searches; l; l = l->next)
 	{
@@ -395,7 +390,7 @@ void search_results(struct gnutella_node *n)
 
 		rs->records = g_slist_prepend(rs->records, (gpointer) rc);
 
-		s += 2;	/* Skips the two null bytes at the end */
+		s += 2;	/* Skip the two null bytes at the end */
 	}
 
 	if (s < e)

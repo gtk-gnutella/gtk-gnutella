@@ -217,7 +217,7 @@ struct ping_req
 	guchar muid[16];			/* muid of the ping */
 	guint32 hosts;				/* Number of hosts that replied */
 	guint32 files;				/* Number of shared files of all the hosts */
-	guint32 kbytes;			/* Number of K-bytes of all the files */
+	guint64 kbytes;			/* Number of K-bytes of all the files */
 
 	guint64 delay;				/* Total of reply delay for this request */
 };

@@ -1,5 +1,5 @@
 
-* v 0.13				2000.05.??
+* v 0.13          2000.05.??
 
 - 32 bits overflow when computing the size of all files on the GnutellaNet
   (in the gnutellanet stats) should been fixed

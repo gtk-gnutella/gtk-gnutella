@@ -60,8 +60,8 @@ GtkWidget *entry_minimum_speed;
 GtkWidget *notebook_search_results;
 GtkWidget *button_search_download;
 GtkWidget *button_search_stream;
-GtkWidget *option_menu_search;
-GtkWidget *option_menu_search_menu;
+GtkWidget *combo_searches;
+GtkWidget *combo_entry_searches;
 GtkWidget *button_search_filter;
 GtkWidget *button_search_close;
 GtkWidget *checkbutton_monitor;
@@ -190,7 +190,6 @@ create_main_window (void)
   GtkWidget *hbox18;
   GtkWidget *table2;
   GtkWidget *label79;
-  GtkWidget *glade_menuitem;
   GtkWidget *hbox19;
   GtkWidget *label_blank_3;
   GtkWidget *label30;
@@ -1198,20 +1197,23 @@ create_main_window (void)
                     (GtkAttachOptions) (0),
                     (GtkAttachOptions) (0), 0, 0);
 
-  option_menu_search = gtk_option_menu_new ();
-  gtk_widget_ref (option_menu_search);
-  gtk_object_set_data_full (GTK_OBJECT (main_window), "option_menu_search", option_menu_search,
+  combo_searches = gtk_combo_new ();
+  gtk_widget_ref (combo_searches);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_searches", combo_searches,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (option_menu_search);
-  gtk_table_attach (GTK_TABLE (table2), option_menu_search, 1, 2, 0, 1,
+  gtk_widget_show (combo_searches);
+  gtk_table_attach (GTK_TABLE (table2), combo_searches, 1, 2, 0, 1,
                     (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
-  gtk_widget_set_sensitive (option_menu_search, FALSE);
-  option_menu_search_menu = gtk_menu_new ();
-  glade_menuitem = gtk_menu_item_new_with_label ("No search yet");
-  gtk_widget_show (glade_menuitem);
-  gtk_menu_append (GTK_MENU (option_menu_search_menu), glade_menuitem);
-  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu_search), option_menu_search_menu);
+  gtk_widget_set_sensitive (combo_searches, FALSE);
+  gtk_combo_set_use_arrows (GTK_COMBO (combo_searches), FALSE);
+
+  combo_entry_searches = GTK_COMBO (combo_searches)->entry;
+  gtk_widget_ref (combo_entry_searches);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "combo_entry_searches", combo_entry_searches,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (combo_entry_searches);
+  gtk_entry_set_editable (GTK_ENTRY (combo_entry_searches), FALSE);
 
   hbox19 = gtk_hbox_new (FALSE, 4);
   gtk_widget_ref (hbox19);

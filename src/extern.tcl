@@ -23,7 +23,7 @@ set w_list {
 	entry_max_downloads checkbutton_clear_downloads clist_download_queue button_remove_download
 	entry_search button_search label_items_found entry_minimum_speed
 	notebook_search_results button_search_download button_search_stream
-	option_menu_search option_menu_search_menu
+	combo_searches combo_entry_searches
 	button_search_filter button_search_close
 	checkbutton_monitor entry_monitor clist_monitor
 	button_config_move_path

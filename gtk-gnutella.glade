@@ -2022,13 +2022,15 @@
 	    </widget>
 
 	    <widget>
-	      <class>GtkOptionMenu</class>
-	      <name>option_menu_search</name>
+	      <class>GtkCombo</class>
+	      <name>combo_searches</name>
 	      <sensitive>False</sensitive>
-	      <can_focus>True</can_focus>
-	      <items>No search yet
-</items>
-	      <initial_choice>0</initial_choice>
+	      <value_in_list>False</value_in_list>
+	      <ok_if_empty>True</ok_if_empty>
+	      <case_sensitive>False</case_sensitive>
+	      <use_arrows>False</use_arrows>
+	      <use_arrows_always>False</use_arrows_always>
+	      <items></items>
 	      <child>
 		<left_attach>1</left_attach>
 		<right_attach>2</right_attach>
@@ -2043,6 +2045,17 @@
 		<xfill>True</xfill>
 		<yfill>False</yfill>
 	      </child>
+
+	      <widget>
+		<class>GtkEntry</class>
+		<child_name>GtkCombo:entry</child_name>
+		<name>combo_entry_searches</name>
+		<can_focus>True</can_focus>
+		<editable>False</editable>
+		<text_visible>True</text_visible>
+		<text_max_length>0</text_max_length>
+		<text></text>
+	      </widget>
 	    </widget>
 	  </widget>
 
