@@ -34,7 +34,6 @@ dnl Set PACKAGE_SOURCE_DIR in config.h.
 packagesrcdir=`cd $srcdir && pwd`
 AC_DEFINE_UNQUOTED(PACKAGE_SOURCE_DIR, "${packagesrcdir}")
 
-
 dnl ---------------------------------------------------------------------------
 dnl Handle user-specified configure options
 dnl ---------------------------------------------------------------------------
@@ -43,7 +42,7 @@ AC_ARG_ENABLE(no-rfc1918,[
 gtk-gnutella options:
   --enable-no-rfc1918             avoid RFC1918 networks (default=off)], , enable_no_rfc1918=no)
 AC_ARG_ENABLE(xml-store,[
-  --enable-xml-store              save searches and filters in XML (default=on)], , enable_xml_store=yes)
+  --enable-xml-store              save searches and filters in XML (default=on)], , enable_xml_store=no)
 
 
 AC_MSG_CHECKING([whether to enable RFC1918 network avoidance mode])
@@ -55,19 +54,33 @@ else
 	AC_MSG_RESULT([yes])
 fi
 
-if test "x$enable_xml_store" = "xno"
-then
-	AC_MSG_RESULT([no])
+AC_PATH_PROG(XML_CONFIG,xml2-config,no)
+if test "x$XML_CONFIG" != "xno"; then
+    AC_MSG_CHECKING([whether to enable XML persistance backend])
+    if test "x$enable_xml_store" = "xno"
+    then
+    	AC_MSG_RESULT([no])
+    else
+        AC_MSG_RESULT([yes])
+        AC_MSG_CHECKING(libxml2 version)
+        libxml2_version=`$XML_CONFIG --version | awk '{print $1;}'`
+        AC_MSG_RESULT($libxml2_version)
+        libxml2_version=`echo $libxml2_version | awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+        if test 0$libxml2_version -lt 20419; then
+            AC_MSG_ERROR(libxml2 2.4.19 or later required)
+        fi
+        XML_LIBS=`$XML_CONFIG --libs`
+        XML_CFLAGS=`$XML_CONFIG --cflags`
+        AC_SUBST(XML_LIBS)
+        AC_SUBST(XML_CFLAGS)
+        LIBXML2_REQUIRED=2.4.19
+        AC_SUBST(LIBXML2_REQUIRED)
+        AC_DEFINE(USE_SEARCH_XML)
+    fi
 else
-	AC_CHECK_HEADER(gnome-xml/tree.h, [have_gnome_xml=yes], [have_gnome_xml=no])
-	if test "$have_gnome_xml" = yes; then
-		CFLAGS="$CFLAGS -DUSE_SEARCH_XML"
-		AC_MSG_CHECKING([whether to enable XML storage])
-		AC_MSG_RESULT([yes])
-	else
-		AC_MSG_CHECKING([whether to enable XML storage])
-		AC_MSG_RESULT([no])
-	fi
+    AC_MSG_CHECKING([whether to enable XML persistance backend])
+   	AC_MSG_RESULT([no])
+    enable_xml_store="no"
 fi
 AM_CONDITIONAL(ENABLE_XML_STORE, test "x$enable_xml_store" = "xyes")
 

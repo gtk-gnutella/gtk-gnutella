@@ -1677,7 +1677,6 @@ EOF
 
 
 
-
 # Check whether --enable-no-rfc1918 or --disable-no-rfc1918 was given.
 if test "${enable_no_rfc1918+set}" = set; then
   enableval="$enable_no_rfc1918"
@@ -1691,13 +1690,13 @@ if test "${enable_xml_store+set}" = set; then
   enableval="$enable_xml_store"
   :
 else
-  enable_xml_store=yes
+  enable_xml_store=no
 fi
 
 
 
 echo $ac_n "checking whether to enable RFC1918 network avoidance mode""... $ac_c" 1>&6
-echo "configure:1701: checking whether to enable RFC1918 network avoidance mode" >&5
+echo "configure:1700: checking whether to enable RFC1918 network avoidance mode" >&5
 if test "x$enable_no_rfc1918" = "xno"
 then
 	echo "$ac_t""no" 1>&6
@@ -1706,54 +1705,74 @@ else
 	echo "$ac_t""yes" 1>&6
 fi
 
-if test "x$enable_xml_store" = "xno"
-then
-	echo "$ac_t""no" 1>&6
-else
-	ac_safe=`echo "gnome-xml/tree.h" | sed 'y%./+-%__p_%'`
-echo $ac_n "checking for gnome-xml/tree.h""... $ac_c" 1>&6
-echo "configure:1716: checking for gnome-xml/tree.h" >&5
-if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
+# Extract the first word of "xml2-config", so it can be a program name with args.
+set dummy xml2-config; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+echo "configure:1712: checking for $ac_word" >&5
+if eval "test \"`echo '$''{'ac_cv_path_XML_CONFIG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
-  cat > conftest.$ac_ext <<EOF
-#line 1721 "configure"
-#include "confdefs.h"
-#include <gnome-xml/tree.h>
-EOF
-ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1726: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
-ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
-if test -z "$ac_err"; then
-  rm -rf conftest*
-  eval "ac_cv_header_$ac_safe=yes"
-else
-  echo "$ac_err" >&5
-  echo "configure: failed program was:" >&5
-  cat conftest.$ac_ext >&5
-  rm -rf conftest*
-  eval "ac_cv_header_$ac_safe=no"
+  case "$XML_CONFIG" in
+  /*)
+  ac_cv_path_XML_CONFIG="$XML_CONFIG" # Let the user override the test with a path.
+  ;;
+  ?:/*)			 
+  ac_cv_path_XML_CONFIG="$XML_CONFIG" # Let the user override the test with a dos path.
+  ;;
+  *)
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
+  ac_dummy="$PATH"
+  for ac_dir in $ac_dummy; do 
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_path_XML_CONFIG="$ac_dir/$ac_word"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  test -z "$ac_cv_path_XML_CONFIG" && ac_cv_path_XML_CONFIG="no"
+  ;;
+esac
 fi
-rm -f conftest*
-fi
-if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
-  echo "$ac_t""yes" 1>&6
-  have_gnome_xml=yes
+XML_CONFIG="$ac_cv_path_XML_CONFIG"
+if test -n "$XML_CONFIG"; then
+  echo "$ac_t""$XML_CONFIG" 1>&6
 else
   echo "$ac_t""no" 1>&6
-have_gnome_xml=no
 fi
 
-	if test "$have_gnome_xml" = yes; then
-		CFLAGS="$CFLAGS -DUSE_SEARCH_XML"
-		echo $ac_n "checking whether to enable XML storage""... $ac_c" 1>&6
-echo "configure:1751: checking whether to enable XML storage" >&5
-		echo "$ac_t""yes" 1>&6
-	else
-		echo $ac_n "checking whether to enable XML storage""... $ac_c" 1>&6
-echo "configure:1755: checking whether to enable XML storage" >&5
-		echo "$ac_t""no" 1>&6
-	fi
+if test "x$XML_CONFIG" != "xno"; then
+    echo $ac_n "checking whether to enable XML persistance backend""... $ac_c" 1>&6
+echo "configure:1747: checking whether to enable XML persistance backend" >&5
+    if test "x$enable_xml_store" = "xno"
+    then
+    	echo "$ac_t""no" 1>&6
+    else
+        echo "$ac_t""yes" 1>&6
+        echo $ac_n "checking libxml2 version""... $ac_c" 1>&6
+echo "configure:1754: checking libxml2 version" >&5
+        libxml2_version=`$XML_CONFIG --version | awk '{print $1;}'`
+        echo "$ac_t""$libxml2_version" 1>&6
+        libxml2_version=`echo $libxml2_version | awk -F. '{print $1 * 10000 + $2 * 100 + $3;}'`
+        if test 0$libxml2_version -lt 20419; then
+            { echo "configure: error: libxml2 2.4.19 or later required" 1>&2; exit 1; }
+        fi
+        XML_LIBS=`$XML_CONFIG --libs`
+        XML_CFLAGS=`$XML_CONFIG --cflags`
+        
+        
+        LIBXML2_REQUIRED=2.4.19
+        
+        cat >> confdefs.h <<\EOF
+#define USE_SEARCH_XML 1
+EOF
+
+    fi
+else
+    echo $ac_n "checking whether to enable XML persistance backend""... $ac_c" 1>&6
+echo "configure:1774: checking whether to enable XML persistance backend" >&5
+   	echo "$ac_t""no" 1>&6
+    enable_xml_store="no"
 fi
 
 
@@ -1776,12 +1795,12 @@ fi
 for ac_func in herror inet_aton
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:1780: checking for $ac_func" >&5
+echo "configure:1799: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1785 "configure"
+#line 1804 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -1804,7 +1823,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:1808: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:1827: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -1831,17 +1850,17 @@ done
 
 ac_safe=`echo "sys/sendfile.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for sys/sendfile.h""... $ac_c" 1>&6
-echo "configure:1835: checking for sys/sendfile.h" >&5
+echo "configure:1854: checking for sys/sendfile.h" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1840 "configure"
+#line 1859 "configure"
 #include "confdefs.h"
 #include <sys/sendfile.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1845: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1864: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -1872,17 +1891,17 @@ fi
 
 ac_safe=`echo "ctype.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ctype.h""... $ac_c" 1>&6
-echo "configure:1876: checking for ctype.h" >&5
+echo "configure:1895: checking for ctype.h" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1881 "configure"
+#line 1900 "configure"
 #include "confdefs.h"
 #include <ctype.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1886: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1905: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -2065,6 +2084,10 @@ s%@YACC@%$YACC%g
 s%@GTK_CONFIG@%$GTK_CONFIG%g
 s%@GTK_CFLAGS@%$GTK_CFLAGS%g
 s%@GTK_LIBS@%$GTK_LIBS%g
+s%@XML_CONFIG@%$XML_CONFIG%g
+s%@XML_LIBS@%$XML_LIBS%g
+s%@XML_CFLAGS@%$XML_CFLAGS%g
+s%@LIBXML2_REQUIRED@%$LIBXML2_REQUIRED%g
 s%@ENABLE_XML_STORE_TRUE@%$ENABLE_XML_STORE_TRUE%g
 s%@ENABLE_XML_STORE_FALSE@%$ENABLE_XML_STORE_FALSE%g
 

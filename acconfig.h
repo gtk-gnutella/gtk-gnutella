@@ -9,3 +9,4 @@
 #undef PACKAGE_SOURCE_DIR
 #undef HAVE_SENDFILE_H
 #undef HAVE_CTYPE_H
+#undef USE_SEARCH_XML

@@ -25,7 +25,8 @@
 
 
 INCLUDES = \
-	@GTK_CFLAGS@
+	@GTK_CFLAGS@ \
+	@XML_CFLAGS@
 
 bin_PROGRAMS = gtk-gnutella
 CLEANFILES = interface-glade.c interface-glade.h *.bak
@@ -34,10 +35,8 @@ XML_STORE_FILES = search_xml.c search_xml.h
 
 if ENABLE_XML_STORE
 XML_STORE = $(XML_STORE_FILES)
-XML_LIBS = `gnome-config --libs xml`
 else
 XML_STORE =
-XML_LIBS =
 endif
 
 # interface.h must come before any .c files that include it so that it is built.
@@ -91,8 +90,7 @@ gtk_gnutella_SOURCES = \
 	qrp.c qrp.h \
 	getdate.y
 
-gtk_gnutella_LDFLAGS = $(XML_LIBS)
-gtk_gnutella_LDADD = @GTK_LIBS@ -lz 
+gtk_gnutella_LDADD = @GTK_LIBS@ -lz @XML_LIBS@
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
 GLADE_WARNING2 = "  \"glade --write-source\" failed.  To ignore any changes to"
