@@ -31,7 +31,103 @@
 #include "gtk-missing.h"
 #include "gui_property.h"
 #include "gui_property_priv.h"
+#include "atoms.h"
+#include "callbacks.h"
+#include "hosts.h" // FIXME: remove this dependency
+#include "misc.h"
+#include "settings.h" // FIXME: remove this dependency
+#include "sq.h"
+#include "zalloc.h"
 
+#include <ctype.h>
+#include <gtk/gtk.h>
+#include <sys/stat.h>
+
+
+#ifdef USE_SEARCH_XML
+# include "search_xml.h"
+# include "libxml/parser.h"
+#endif
+
+// FIXME: duplicate in search.c
+#define MAKE_CODE(a,b,c,d) ( \
+	((guint32) (a) << 24) | \
+	((guint32) (b) << 16) | \
+	((guint32) (c) << 8)  | \
+	((guint32) (d)))
+
+#define T_BEAR	MAKE_CODE('B','E','A','R')
+#define T_CULT	MAKE_CODE('C','U','L','T')
+#define T_FIRE	MAKE_CODE('F','I','R','E')
+#define T_FISH	MAKE_CODE('F','I','S','H')
+#define T_GNEW	MAKE_CODE('G','N','E','W')
+#define T_GNOT	MAKE_CODE('G','N','O','T')
+#define T_GNUC	MAKE_CODE('G','N','U','C')
+#define T_GNUT	MAKE_CODE('G','N','U','T')
+#define T_GTKG	MAKE_CODE('G','T','K','G')
+#define T_HSLG	MAKE_CODE('H','S','L','G')
+#define T_LIME	MAKE_CODE('L','I','M','E')
+#define T_MACT	MAKE_CODE('M','A','C','T')
+#define T_MMMM	MAKE_CODE('M','M','M','M')
+#define T_MNAP	MAKE_CODE('M','N','A','P')
+#define T_MRPH	MAKE_CODE('M','R','P','H')
+#define T_MUTE	MAKE_CODE('M','U','T','E')
+#define T_NAPS	MAKE_CODE('N','A','P','S')
+#define T_OCFG	MAKE_CODE('O','C','F','G')
+#define T_OPRA	MAKE_CODE('O','P','R','A')
+#define T_PHEX	MAKE_CODE('P','H','E','X')
+#define T_QTEL	MAKE_CODE('Q','T','E','L')
+#define T_RAZA	MAKE_CODE('R','A','Z','A')
+#define T_SNUT	MAKE_CODE('S','N','U','T')
+#define T_SWAP	MAKE_CODE('S','W','A','P')
+#define T_SWFT	MAKE_CODE('S','W','F','T')
+#define T_TOAD	MAKE_CODE('T','O','A','D')
+#define T_XOLO	MAKE_CODE('X','O','L','O')
+#define T_XTLA	MAKE_CODE('X','T','L','A')
+#define T_ZIGA	MAKE_CODE('Z','I','G','A')
+
+#define MAX_TAG_SHOWN	60		/* Show only first chars of tag */
+
+static gchar tmpstr[4096];
+
+GList *searches = NULL;		/* List of search structs */
+
+/* Need to remove this dependency on GUI further --RAM */
+extern GtkWidget *default_search_clist;
+extern GtkWidget *default_scrolled_window;
+
+search_t *search_selected = NULL;
+search_t *current_search  = NULL;	/*	The search currently displayed */
+
+static gchar *search_file = "searches";	/* File where searches are saved */
+
+static zone_t *rs_zone;		/* Allocation of results_set */
+static zone_t *rc_zone;		/* Allocation of record */
+
+time_t tab_update_time = 5;
+
+/*
+ * Private function prototypes
+ */
+static search_t *find_search(gnet_search_t sh);
+static record_t *create_record(results_set_t *rs, gnet_record_t *r);
+static results_set_t *create_results_set(const gnet_results_set_t *r_set);
+#ifndef USE_SEARCH_XML
+    static void search_store_old(void);
+#endif /* USE_SEARCH_XML */
+
+/*
+ * Human readable translation of servent trailer open flags.
+ * Decompiled flags are listed in the order of the table.
+ */
+static struct {
+	guint32 flag;
+	gchar *status;
+} open_flags[] = {
+	{ ST_BUSY,		"busy" },
+	{ ST_UPLOADED,	"stable" },		/* Allows uploads -> stable */
+	{ ST_FIREWALL,	"push" },
+};
 
 /*
  * If no search are currently allocated 
@@ -39,12 +135,1331 @@
 GtkWidget *default_search_clist = NULL;
 GtkWidget *default_scrolled_window = NULL;
 
+
+/* ----------------------------------------- */
+
+void search_gui_restart_search(search_t *sch)
+{
+	search_reissue(sch->search_handle);
+	gtk_clist_clear(GTK_CLIST(sch->clist));
+	sch->items = sch->unseen_items = 0;
+	gui_search_update_items(sch);
+}
+
+/*
+ * search_free_record
+ *
+ * Free one file record.
+ *
+ * Those records may be inserted into some `dups' tables, at which time they
+ * have their refcount increased.  They may later be removed from those tables
+ * and they will have their refcount decreased.
+ *
+ * To ensure some level of sanity, we ask our callers to explicitely check
+ * for a refcount to be zero before calling us.
+ */
+static void search_free_record(record_t *rc)
+{
+	g_assert(rc->refcount == 0);
+
+	atom_str_free(rc->name);
+	if (rc->tag)
+		atom_str_free(rc->tag);
+	if (rc->sha1)
+		atom_sha1_free(rc->sha1);
+	zfree(rc_zone, rc);
+}
+
+/*
+ * search_clean_r_set
+ *
+ * This routine must be called when the results_set has been dispatched to
+ * all the opened searches.
+ *
+ * All the records that have not been used by a search are removed.
+ */
+static void search_clean_r_set(results_set_t *rs)
+{
+	GSList *m;
+    GSList *sl_remove = NULL;
+
+	g_assert(rs->refcount);		/* If not dispatched, should be freed */
+
+    /*
+     * Collect empty searches.
+     */
+    for (m = rs->records; m != NULL; m = m->next) {
+		record_t *rc = (record_t *) m->data;
+
+		if (rc->refcount == 0)
+			sl_remove = g_slist_prepend(sl_remove, (gpointer) rc);
+    }
+
+    /*
+     * Remove empty searches from record set.
+     */
+	for (m = sl_remove; m != NULL; m = g_slist_next(m)) {
+		record_t *rc = (record_t *) m->data;
+
+		search_free_record(rc);
+		rs->records = g_slist_remove(rs->records, rc);
+		rs->num_recs--;
+	}
+
+    g_slist_free(sl_remove);
+}
+
+/*
+ * search_free_r_set
+ *
+ * Free one results_set.
+ *
+ * Those records may be shared between several searches.  So while the refcount
+ * is positive, we just decrement it and return without doing anything.
+ */
+static void search_free_r_set(results_set_t *rs)
+{
+	GSList *m;
+
+    g_assert(rs != NULL);
+
+	/*
+	 * It is conceivable that some records were used solely by the search
+	 * dropping the result set.  Therefore, if the refcount is not 0,  we
+	 * pass through search_clean_r_set().
+	 */
+
+	if (--(rs->refcount) > 0) {
+		search_clean_r_set(rs);
+		return;
+	}
+
+	/*
+	 * Because noone refers to us any more, we know that our embedded records
+	 * cannot be held in the hash table anymore.  Hence we may call the
+	 * search_free_record() safely, because rc->refcount must be zero.
+	 */
+
+	for (m = rs->records; m != NULL; m = m->next)
+		search_free_record((record_t *) m->data);
+
+    if (rs->guid)
+		atom_guid_free(rs->guid);
+
+	g_slist_free(rs->records);
+	zfree(rs_zone, rs);
+}
+
+/*
+ * search_dispose_results
+ *
+ * Dispose of an empty search results, whose records have all been
+ * unreferenced by the searches.  The results_set is therefore an
+ * empty shell, useless.
+ */
+static void search_dispose_results(results_set_t *rs)
+{
+	gint refs = 0;
+	GList *l;
+
+	g_assert(rs->num_recs == 0);
+	g_assert(rs->refcount > 0);
+
+	/*
+	 * A results_set does not point back to the searches that still
+	 * reference it, so we have to do that manually.
+	 */
+
+	for (l = searches; l; l = l->next) {
+		GSList *link;
+		search_t *sch = (search_t *) l->data;
+
+		link = g_slist_find(sch->r_sets, rs);
+		if (link == NULL)
+			continue;
+
+		refs++;			/* Found one more reference to this search */
+
+		sch->r_sets = g_slist_remove_link(sch->r_sets, link);
+    
+        // FIXME: I have the strong impression that there is a memory leak
+        //        here. We find the link and unlink it from r_sets, but
+        //        then it does become a self-contained list and it is not
+        //        freed anywhere, does it?
+	}
+
+	g_assert(rs->refcount == refs);		/* Found all the searches */
+
+	rs->refcount = 1;
+	search_free_r_set(rs);
+}
+
+/*
+ * search_unref_record
+ *
+ * Remove one reference to a file record.
+ *
+ * If the record has no more references, remove it from its parent result
+ * set and free the record physically.
+ */
+static void search_unref_record(struct record *rc)
+{
+	struct results_set *rs;
+
+	g_assert(rc->refcount > 0);
+
+	if (--(rc->refcount) > 0)
+		return;
+
+	/*
+	 * Free record, and remove it from the parent's list.
+	 */
+
+	rs = rc->results_set;
+	search_free_record(rc);
+
+	rs->records = g_slist_remove(rs->records, rc);
+	rs->num_recs--;
+
+	g_assert(rs->num_recs || rs->records == NULL);
+
+	/*
+	 * We can't free the results_set structure right now if it does not
+	 * hold anything because we don't know which searches reference it.
+	 */
+
+	if (rs->num_recs == 0)
+		search_dispose_results(rs);
+}
+
+/* Free all the results_set's of a search */
+
+static void search_free_r_sets(search_t *sch)
+{
+	GSList *l;
+
+	g_assert(sch != NULL);
+	g_assert(sch->dups != NULL);
+	g_assert(g_hash_table_size(sch->dups) == 0); /* All records were cleaned */
+
+	for (l = sch->r_sets; l; l = l->next)
+		search_free_r_set((results_set_t *) l->data);
+
+	g_slist_free(sch->r_sets);
+	sch->r_sets = NULL;
+}
+
+/*
+ * dec_records_refcount
+ *
+ * Decrement refcount of hash table key entry.
+ */
+static gboolean dec_records_refcount(gpointer key, gpointer value, gpointer x)
+{
+	struct record *rc = (struct record *) key;
+
+	g_assert(rc->refcount > 0);
+
+	rc->refcount--;
+	return TRUE;
+}
+
+/*
+ * search_clear
+ *
+ * Clear all results from search.
+ */
+void search_gui_clear_search(search_t *sch)
+{
+	g_assert(sch);
+	g_assert(sch->dups);
+
+	/*
+	 * Before invoking search_free_r_sets(), we must iterate on the
+	 * hash table where we store records and decrement the refcount of
+	 * each record, and remove them from the hash table.
+	 *
+	 * Otherwise, we will violate the pre-condition of search_free_record(),
+	 * which is there precisely for that reason!
+	 */
+	g_hash_table_foreach_remove(sch->dups, dec_records_refcount, NULL);
+	search_free_r_sets(sch);
+
+	sch->items = sch->unseen_items = 0;
+}
+
+/* 
+ * search_gui_close_search:
+ *
+ * Remove the search from the list of searches and free all 
+ * associated ressources (including filter and gui stuff).
+ */
+void search_gui_close_search(search_t *sch)
+{
+    g_assert(sch != NULL);
+
+    search_close(sch->search_handle);
+
+    /*
+     * We remove the search immeditaly from the list of searches,
+     * because some of the following calls (may) depend on 
+     * "searches" holding only the remaining searches. 
+     * We may not free any ressources of "sch" yet, because 
+     * the same calls may still need them!.
+     *      --BLUE 26/05/2002
+     */
+ 	searches = g_list_remove(searches, (gpointer) sch);
+
+    search_gui_remove_search(sch);
+	filter_close_search(sch);
+	search_gui_clear_search(sch);
+	g_hash_table_destroy(sch->dups);
+	sch->dups = NULL;
+
+	atom_str_free(sch->query);
+
+	g_free(sch);
+}
+
+static guint search_hash_func(gconstpointer key)
+{
+	struct record *rc = (struct record *) key;
+	/* Must use same fields as search_hash_key_compare() --RAM */
+	return
+		g_str_hash(rc->name) ^
+		g_int_hash(&rc->size) ^
+		g_int_hash(&rc->results_set->ip) ^
+		g_int_hash(&rc->results_set->port) ^
+		g_int_hash(&rc->results_set->guid[0]) ^
+		g_int_hash(&rc->results_set->guid[4]) ^
+		g_int_hash(&rc->results_set->guid[8]) ^
+		g_int_hash(&rc->results_set->guid[12]);
+}
+
+static gint search_hash_key_compare(gconstpointer a, gconstpointer b)
+{
+	struct record *rc1 = (struct record *) a;
+	struct record *rc2 = (struct record *) b;
+
+	/* Must compare same fields as search_hash_func() --RAM */
+	return rc1->size == rc2->size
+		&& rc1->results_set->ip == rc2->results_set->ip
+		&& rc1->results_set->port == rc2->results_set->port
+		&& 0 == memcmp(rc1->results_set->guid, rc2->results_set->guid, 16)
+		&& 0 == strcmp(rc1->name, rc2->name);
+}
+
+/*
+ * search_remove_r_set
+ *
+ * Remove reference to results in our search.
+ * Last one to remove it will trigger a free.
+ */
+static void search_remove_r_set(search_t *sch, results_set_t *rs)
+{
+	sch->r_sets = g_slist_remove(sch->r_sets, rs);
+	search_free_r_set(rs);
+}
+
+search_t *search_gui_new_search
+    (const gchar *query, guint16 speed, flag_t flags)
+{
+    guint32 search_reissue_timeout;
+    
+    gnet_prop_get_guint32(
+        PROP_SEARCH_REISSUE_TIMEOUT,
+        &search_reissue_timeout, 0, 1);
+
+	return search_gui_new_search_full
+        (query, speed, search_reissue_timeout, flags);
+}
+
+/* 
+ * search_new_full:
+ *
+ * Create a new search and start it.
+ */
+search_t *search_gui_new_search_full
+    (const gchar *query, guint16 speed, guint32 reissue_timeout, flag_t flags)
+{
+	search_t *sch;
+	GList *glist;
+    gchar *titles[3];
+    gint row;
+
+    GtkWidget *combo_searches = lookup_widget(main_window, "combo_searches");
+    GtkWidget *clist_search = lookup_widget(main_window, "clist_search");
+    GtkWidget *notebook_search_results = 
+        lookup_widget(main_window, "notebook_search_results");
+    GtkWidget *button_search_close = 
+        lookup_widget(main_window, "button_search_close");
+    GtkWidget *entry_search = lookup_widget(main_window, "entry_search");
+
+	sch = g_new0(search_t, 1);
+
+	sch->query = atom_str_get(query);
+    sch->search_handle = search_new(query, speed, reissue_timeout, flags);
+    sch->passive = flags & SEARCH_PASSIVE;
+	sch->dups =
+		g_hash_table_new(search_hash_func, search_hash_key_compare);
+	if (!sch->dups)
+		g_error("new_search: unable to allocate hash table.\n");
+    
+  	filter_new_for_search(sch);
+
+	/* Create the list item */
+
+	sch->list_item = gtk_list_item_new_with_label(sch->query);
+
+	gtk_widget_show(sch->list_item);
+
+	glist = g_list_prepend(NULL, (gpointer) sch->list_item);
+
+	gtk_list_prepend_items(GTK_LIST(GTK_COMBO(combo_searches)->list),
+						   glist);
+
+    titles[c_sl_name] = sch->query;
+    titles[c_sl_hit] = "0";
+    titles[c_sl_new] = "0";
+    row = gtk_clist_append(GTK_CLIST(clist_search), titles);
+    gtk_clist_set_row_data(GTK_CLIST(clist_search), row, sch);
+
+	/* Create a new CList if needed, or use the default CList */
+
+	if (searches) {
+		/* We have to create a new clist for this search */
+		gui_search_create_clist(&sch->scrolled_window, &sch->clist);
+
+		gtk_object_set_user_data((GtkObject *) sch->scrolled_window,
+								 (gpointer) sch);
+
+		gtk_notebook_append_page(GTK_NOTEBOOK(notebook_search_results),
+								 sch->scrolled_window, NULL);
+	} else {
+		/* There are no searches currently, we can use the default clist */
+
+		if (default_scrolled_window && default_search_clist) {
+			sch->scrolled_window = default_scrolled_window;
+			sch->clist = default_search_clist;
+
+			default_search_clist = default_scrolled_window = NULL;
+		} else
+			g_warning
+				("new_search(): No current search but no default clist !?\n");
+
+		gtk_object_set_user_data((GtkObject *) sch->scrolled_window,
+								 (gpointer) sch);
+	}
+
+	gui_search_update_tab_label(sch);
+	sch->tab_updating = gtk_timeout_add(tab_update_time * 1000,
+        (GtkFunction)gui_search_update_tab_label, sch);
+
+    if (!searches) {
+        GtkWidget * w = gtk_notebook_get_nth_page( 
+            GTK_NOTEBOOK(notebook_search_results), 0);
+    
+		gtk_notebook_set_tab_label_text(
+            GTK_NOTEBOOK(notebook_search_results),
+            w, "(no search)");
+    }
+
+	gtk_signal_connect(GTK_OBJECT(sch->list_item), "select",
+					   GTK_SIGNAL_FUNC(on_search_selected),
+					   (gpointer) sch);
+
+	search_gui_set_current_search(sch);
+
+	gtk_widget_set_sensitive(combo_searches, TRUE);
+	gtk_widget_set_sensitive(button_search_close, TRUE);
+
+    gtk_entry_set_text(GTK_ENTRY(entry_search),"");
+
+	searches = g_list_append(searches, (gpointer) sch);
+
+    search_start(sch->search_handle);
+
+	return sch;
+}
+
+/* Searches results */
+
+gint search_compare(gint sort_col, record_t *r1, record_t *r2)
+{
+    results_set_t *rs1;
+	results_set_t *rs2;
+    gint result = 0;
+
+    if (r1 == r2)
+        result = 0;
+    else if (r1 == NULL)
+        result = -1;
+    else if (r2 == NULL)
+        result = +1;
+    else {
+        rs1 = r1->results_set;
+        rs2 = r2->results_set;
+
+        g_assert(rs1 != NULL);
+        g_assert(rs2 != NULL);
+
+        switch (sort_col) {
+        case c_sr_filename:
+            result = strcmp(r1->name, r2->name);
+            break;
+        case c_sr_size:
+            result = (r1->size == r2->size) ? 0 :
+                (r1->size > r2->size) ? +1 : -1;
+            break;
+        case c_sr_speed:
+            result = (rs1->speed == rs2->speed) ? 0 :
+                (rs1->speed > rs2->speed) ? +1 : -1;
+            break;
+        case c_sr_host:
+            result = (rs1->ip == rs2->ip) ?  
+                (gint) rs1->port - (gint) rs2->port :
+                (rs1->ip > rs2->ip) ? +1 : -1;
+            break;
+        case c_sr_info:
+			result = memcmp(rs1->vendor, rs2->vendor, sizeof(rs1->vendor));
+			if (result)
+				break;
+            if (rs1->status == rs2->status)
+                result = 0;
+            else
+                result = (rs1->status > rs2->status) ? +1 : -1;
+            break;
+        case c_sr_urn:
+            if (r1->sha1 == r2->sha1)
+                result = 0;
+            else if (r1->sha1 == NULL)
+                result = -1;
+            else if (r2->sha1 == NULL)
+                result = +1;
+            else
+                result =  memcmp(r1->sha1, r2->sha1, SHA1_RAW_SIZE);  
+            break;
+        default:
+            g_assert_not_reached();
+        }
+    }
+
+	return result;
+}
+
+/*
+ * extract_vendor_name
+ *
+ * Extract vendor name from the results set's trailer, and return the name.
+ * If we can't understand the name, return NULL.
+ * Otherwise returns the name as a pointer to static data.
+ *
+ * As a side effect, set the ST_KNOWN_VENDOR in the status flags when the
+ * vendor is known.
+ */
+// FIXME: duplicate in search.c!
+static gchar *extract_vendor_name(struct results_set * rs)
+{
+	static gchar temp[5];
+	gchar *vendor = NULL;
+	guint32 t;
+	gint i;
+
+	if (rs->vendor[0] == '\0')
+		return NULL;
+
+	READ_GUINT32_BE(rs->vendor, t);
+	rs->status |= ST_KNOWN_VENDOR;
+
+	switch (t) {
+	case T_BEAR: vendor = "Bear";			break;
+	case T_CULT: vendor = "Cultiv8r";		break;
+	case T_FIRE: vendor = "FireFly";		break;
+	case T_FISH: vendor = "PEERahna";		break;
+	case T_GNEW: vendor = "Gnewtellium";	break;
+	case T_GNOT: vendor = "Gnotella";		break;
+	case T_GNUC: vendor = "Gnucleus";		break;
+	case T_GNUT: vendor = "Gnut";			break;
+	case T_GTKG: vendor = "Gtk-Gnut";		break;
+	case T_HSLG: vendor = "Hagelslag";		break;
+	case T_LIME: vendor = "Lime";			break;
+	case T_MACT: vendor = "Mactella";		break;
+	case T_MNAP: vendor = "MyNapster";		break;
+	case T_MMMM: vendor = "Morpheus-v2";	break;
+	case T_MRPH: vendor = "Morpheus";		break;
+	case T_MUTE: vendor = "Mutella";		break;
+	case T_NAPS: vendor = "NapShare";		break;
+	case T_OCFG: vendor = "OpenCola";		break;
+	case T_OPRA: vendor = "Opera";			break;
+	case T_PHEX: vendor = "Phex";			break;
+	case T_QTEL: vendor = "Qtella";			break;
+	case T_RAZA: vendor = "Shareaza";		break;
+	case T_SNUT: vendor = "SwapNut";		break;
+	case T_SWAP: vendor = "Swapper";		break;
+	case T_SWFT: vendor = "Swift";			break;
+	case T_TOAD: vendor = "ToadNode";		break;
+	case T_XOLO: vendor = "Xolox";			break;
+	case T_XTLA: vendor = "Xtella";			break;
+	case T_ZIGA: vendor = "Ziga";			break;
+	default:
+		/* Unknown type, look whether we have all printable ASCII */
+		rs->status &= ~ST_KNOWN_VENDOR;
+		for (i = 0; i < sizeof(rs->vendor); i++) {
+			guchar c = rs->vendor[i];
+			if (isascii(c) && isprint(c))
+				temp[i] = c;
+			else {
+				temp[0] = '\0';
+				break;
+			}
+		}
+		temp[4] = '\0';
+		vendor = temp[0] ? temp : NULL;
+		break;
+	}
+
+	return vendor;
+}
+
+/*
+ * search_result_is_dup
+ *
+ * Check to see whether we already have a record for this file.
+ * If we do, make sure that the index is still accurate,
+ * otherwise inform the interested parties about the change.
+ *
+ * Returns true if the record is a duplicate.
+ */
+gboolean search_result_is_dup(search_t * sch, struct record * rc)
+{
+	struct record *old_rc;
+	gpointer dummy;
+	gboolean found;
+
+	found = g_hash_table_lookup_extended(sch->dups, rc,
+		(gpointer *) &old_rc, &dummy);
+
+	if (!found)
+		return FALSE;
+
+	/*
+	 * Actually, if the index is the only thing that changed,
+	 * we want to overwrite the old one (and if we've
+	 * got the download queue'd, replace it there too.
+	 *		--RAM, 17/12/2001 from a patch by Vladimir Klebanov
+	 *
+	 * XXX needs more care: handle is_old, and use GUID for patching.
+	 * XXX the client may change its GUID as well, and this must only
+	 * XXX be used in the hash table where we record which downloads are
+	 * XXX queued from whom.
+	 * XXX when the GUID changes for a download in push mode, we have to
+	 * XXX change it.  We have a new route anyway, since we just got a match!
+	 */
+
+	if (rc->index != old_rc->index) {
+		if (gui_debug) g_warning(
+			"Index changed from %u to %u at %s for %s",
+			old_rc->index, rc->index, guid_hex_str(rc->results_set->guid),
+			rc->name);
+		download_index_changed(
+			rc->results_set->ip,		/* This is for optimizing lookups */
+			rc->results_set->port,
+			rc->results_set->guid,		/* This is for formal identification */
+			old_rc->index,
+			rc->index);
+		old_rc->index = rc->index;
+	}
+
+	return TRUE;		/* yes, it's a duplicate */
+}
+
+static void search_gui_add_record
+    (search_t *sch, record_t *rc, GString *vinfo, GdkColor *fg, GdkColor *bg)
+{
+  	GString *info = g_string_sized_new(80);
+  	gchar *titles[6];
+	guint32 row;
+    struct results_set *rs = rc->results_set;
+
+	titles[c_sr_filename] = rc->name;
+	titles[c_sr_size] = short_size(rc->size);
+	g_snprintf(tmpstr, sizeof(tmpstr), "%u", rs->speed);
+	titles[c_sr_speed] = tmpstr;
+	titles[c_sr_host] = ip_port_to_gchar(rs->ip, rs->port);
+    titles[c_sr_urn] = (rc->sha1 != NULL) ? sha1_base32(rc->sha1) : "";
+
+	if (rc->tag) {
+		guint len = strlen(rc->tag);
+
+		/*
+		 * We want to limit the length of the tag shown, but we don't
+		 * want to loose that information.	I imagine to have a popup
+		 * "show file info" one day that will give out all the
+		 * information.
+		 *				--RAM, 09/09/2001
+		 */
+
+		if (len > MAX_TAG_SHOWN) {
+            gchar saved = rc->tag[MAX_TAG_SHOWN];
+			rc->tag[MAX_TAG_SHOWN] = '\0';
+			g_string_append(info, rc->tag);
+			rc->tag[MAX_TAG_SHOWN] = saved;
+		} else
+			g_string_append(info, rc->tag);
+	}
+	if (vinfo->len) {
+		if (info->len)
+			g_string_append(info, "; ");
+		g_string_append(info, vinfo->str);
+	}
+	titles[c_sr_info] = info->str;
+
+    if (!sch->sort) {
+		row = gtk_clist_append(GTK_CLIST(sch->clist), titles);
+	} else {
+		/*
+		 * gtk_clist_set_auto_sort() can't work for row data based sorts!
+		 * Too bad. The problem is, that our compare callback wants to
+         * extract the record from the row data. But since we have not
+         * yet added neither the row nor the row data, this does not
+         * work.
+		 * So we need to find the place to put the result by ourselves.
+		 */
+
+        GList *work;
+		row = 0;
+
+        switch (sch->sort_order) {
+        case SORT_ASC:
+            for (
+                work = GTK_CLIST(sch->clist)->row_list;
+                work != NULL;
+                work = work->next )
+            {
+                record_t *rec = (record_t *)GTK_CLIST_ROW(work)->data;
+
+                if (search_compare(sch->sort_col, rc, rec) < 0)
+                    break;
+				row++;
+			}
+            break;
+        case SORT_DESC:
+            for (
+                work = GTK_CLIST(sch->clist)->row_list;
+                work != NULL;
+                work = work->next )
+            {
+                record_t *rec = (record_t *)GTK_CLIST_ROW(work)->data;
+    
+                if (search_compare(sch->sort_col, rc, rec) > 0)
+                    break;
+				row++;
+			}
+        }
+		gtk_clist_insert(GTK_CLIST(sch->clist), row, titles);
+    }
+
+    if (fg != NULL)
+        gtk_clist_set_foreground(GTK_CLIST(sch->clist), row, fg);
+
+    if (bg != NULL)
+        gtk_clist_set_background(GTK_CLIST(sch->clist), row, bg);
+
+    gtk_clist_set_row_data(GTK_CLIST(sch->clist), row, (gpointer) rc);
+	g_string_free(info, TRUE);
+}
+
+void search_matched(search_t *sch, results_set_t *rs)
+{
+	guint32 old_items = sch->items;
+   	gboolean need_push;			/* Would need a push to get this file? */
+	gboolean skip_records;		/* Shall we skip those records? */
+	GString *vinfo = g_string_sized_new(40);
+	gchar *vendor;
+    GdkColor *mark_color;
+    GdkColor *download_color;
+    GSList *l;
+    gboolean list_frozen = FALSE;
+    gboolean send_pushes;
+    gboolean is_firewalled;
+	gint i;
+
+    g_assert(sch != NULL);
+    g_assert(rs != NULL);
+
+    mark_color = &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+        ->bg[GTK_STATE_INSENSITIVE]);
+
+    download_color =  &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+        ->fg[GTK_STATE_ACTIVE]);
+
+    vendor = extract_vendor_name(rs);
+
+   	if (vendor)
+		g_string_append(vinfo, vendor);
+
+	for (i = 0; i < sizeof(open_flags) / sizeof(open_flags[0]); i++) {
+		if (rs->status & open_flags[i].flag) {
+			if (vinfo->len)
+				g_string_append(vinfo, ", ");
+			g_string_append(vinfo, open_flags[i].status);
+		}
+	}
+
+	if (vendor && !(rs->status & ST_PARSED_TRAILER)) {
+		if (vinfo->len)
+			g_string_append(vinfo, ", ");
+		g_string_append(vinfo, "<unparsed>");
+	}
+
+	/*
+	 * If we're firewalled, or they don't want to send pushes, then don't
+	 * bother displaying results if they need a push request to succeed.
+	 *		--RAM, 10/03/2002
+	 */
+    gnet_prop_get_boolean(PROP_SEND_PUSHES, &send_pushes, 0, 1);
+    gnet_prop_get_boolean(PROP_IS_FIREWALLED, &is_firewalled, 0, 1);
+
+	need_push = (rs->status & ST_FIREWALL) ||
+		!check_valid_host(rs->ip, rs->port);
+	skip_records = (!send_pushes || is_firewalled) && need_push;
+
+	if (gui_debug > 6)
+		printf("search_matched: [%s] got hit with %d record%s (from %s) "
+			"need_push=%d, skipping=%d\n",
+			sch->query, rs->num_recs, rs->num_recs == 1 ? "" : "s",
+			ip_port_to_gchar(rs->ip, rs->port), need_push, skip_records);
+
+  	for (l = rs->records; l && !skip_records; l = l->next) {
+		record_t *rc = (record_t *) l->data;
+        filter_result_t *flt_result;
+        gboolean mark;
+        gboolean downloaded = FALSE;
+
+        if (gui_debug > 7)
+            printf("search_matched: [%s] considering %s (%s)\n",
+				sch->query, rc->name, vinfo->str);
+
+        /*
+	     * If the size is zero bytes,
+		 * or we don't send pushes and it's a private IP,
+		 * or if this is a duplicate search result,
+		 *
+		 * Note that we pass ALL records through search_result_is_dup(), to
+		 * be able to update the index/GUID of our records correctly, when
+		 * we detect a change.
+		 */
+
+       	if (
+			search_result_is_dup(sch, rc)    ||
+			skip_records                     ||
+			rc->size == 0
+		)
+			continue;
+        
+        flt_result = filter_record(sch, rc);
+
+        /*
+         * Now we check for the different filter result properties.
+         */
+
+        /*
+         * Check for FILTER_PROP_DOWNLOAD:
+         */
+        if (flt_result->props[FILTER_PROP_DOWNLOAD].state ==
+            FILTER_PROP_STATE_DO) {
+            download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
+                rs->guid, rc->sha1, rs->stamp, need_push, NULL);
+            downloaded = TRUE;
+        }
+    
+        /*
+         * We start with FILTER_PROP_DISPLAY:
+         */
+        if (!((flt_result->props[FILTER_PROP_DISPLAY].state == 
+                FILTER_PROP_STATE_DONT) &&
+            (flt_result->props[FILTER_PROP_DISPLAY].user_data == 0)) &&
+            (sch->items < search_max_results))
+        {
+            sch->items++;
+            g_hash_table_insert(sch->dups, rc, (void *) 1);
+            rc->refcount++;
+
+            mark = (flt_result->props[FILTER_PROP_DISPLAY].state == 
+                    FILTER_PROP_STATE_DONT) &&
+                (flt_result->props[FILTER_PROP_DISPLAY].user_data == 
+                    (gpointer) 1);
+            
+            if (!list_frozen) {
+                list_frozen = TRUE;
+                gtk_clist_freeze(GTK_CLIST(sch->clist));
+            }
+
+            search_gui_add_record(sch, rc, vinfo, 
+                downloaded ? download_color :  NULL,
+                mark ? mark_color : NULL);
+        }
+
+        filter_free_result(flt_result);
+    }
+
+    if (list_frozen)
+        gtk_clist_thaw(GTK_CLIST(sch->clist));
+
+    /*
+     * A result set may not be added more then once to a search!
+     */
+    // FIXME: expensive assert
+    g_assert(g_slist_find(sch->r_sets, rs) == NULL);
+
+	/* Adds the set to the list */
+	sch->r_sets = g_slist_prepend(sch->r_sets, (gpointer) rs);
+	rs->refcount++;
+
+	if (old_items == 0 && sch == current_search && sch->items > 0) {
+        GtkWidget *button_search_clear =
+            lookup_widget(main_window, "button_search_clear");
+        GtkWidget *popup_search_clear_results = 
+            lookup_widget(popup_search, "popup_search_clear_results");
+
+		gtk_widget_set_sensitive(button_search_clear, TRUE);
+		gtk_widget_set_sensitive(popup_search_clear_results, TRUE);
+	}
+
+	if (sch == current_search) {
+		gui_search_update_items(sch);
+	} else {
+		sch->unseen_items += sch->items - old_items;
+	}
+
+	if (time(NULL) - sch->last_update_time < tab_update_time)
+		gui_search_update_tab_label(sch);
+
+  	g_string_free(vinfo, TRUE);
+}
+
+#ifndef USE_SEARCH_XML
+/*
+ * search_store_old
+ *
+ * Store pending non-passive searches.
+ */
+static void search_store_old(void)
+{
+	GList *l;
+	FILE *out;
+	time_t now = time((time_t *) NULL);
+
+	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", config_dir, search_file);
+	out = fopen(tmpstr, "w");
+
+	if (!out) {
+		g_warning("Unable to create %s to persist serach: %s",
+			tmpstr, g_strerror(errno));
+		return;
+	}
+
+	fputs("# THIS FILE IS AUTOMATICALLY GENERATED -- DO NOT EDIT\n", out);
+	fprintf(out, "#\n# Searches saved on %s#\n\n", ctime(&now));
+
+	for (l = searches; l; l = l->next) {
+		struct search *sch = (struct search *) l->data;
+		if (!sch->passive)
+			fprintf(out, "%s\n", sch->query);
+	}
+
+	if (0 != fclose(out))
+		g_warning("Could not flush %s: %s", tmpstr, g_strerror(errno));
+}
+#endif /* USE_SEARCH_XML */
+
+/*
+ * search_store
+ *
+ * Persist searches to disk.
+ */
+void search_gui_store_searches(void)
+{
+#ifdef USE_SEARCH_XML
+	search_store_xml();
+    
+  	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", config_dir, search_file);
+    if (file_exists(tmpstr)) {
+        gchar filename[1024];
+
+      	g_snprintf(filename, sizeof(filename), "%s.old", tmpstr);
+
+        g_warning(
+            "Found old searches file. The search information has been\n"
+            "stored in the new XML format and the old file is renamed to\n"
+            "%s", filename);
+        if (-1 == rename(tmpstr, filename))
+          	g_warning("could not rename %s as %s: %s\n"
+                "The XML file will not be used unless this problem is resolved",
+                tmpstr, filename, g_strerror(errno));
+    }
+#else
+    search_store_old();
+#endif
+}
+
+/* ----------------------------------------- */
+
+static void download_selection_of_clist(GtkCList * c)
+{
+	struct results_set *rs;
+	struct record *rc;
+	gboolean need_push;
+	GList *l;
+    gint row;
+    gboolean search_remove_downloaded;
+
+    gnet_prop_get_boolean(
+        PROP_SEARCH_REMOVE_DOWNLOADED,
+        &search_remove_downloaded, 0, 1);
+
+    gtk_clist_freeze(c);
+
+	for (l = c->selection; l; 
+         l = c->selection) {
+
+        /* make it visibile that we already selected this for download */
+		gtk_clist_set_foreground
+            (c, (gint) l->data, 
+			 &gtk_widget_get_style(GTK_WIDGET(c))->fg[GTK_STATE_ACTIVE]);
+
+		rc = (struct record *) gtk_clist_get_row_data(c, (gint) l->data);
+        
+        if (!rc) {
+			g_warning("download_selection_of_clist(): row %d has NULL data\n",
+			          (gint) l->data);
+		    continue;
+        }
+
+		rs = rc->results_set;
+		need_push =
+			(rs->status & ST_FIREWALL) || !check_valid_host(rs->ip, rs->port);
+		download_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
+					 rs->guid, rc->sha1, rs->stamp, need_push, NULL);
+
+        /*
+         * I'm not totally sure why we have to determine the row again,
+         * but without this, it does not seem to work.
+         *     --BLUE, 01/05/2002
+         */
+        row = gtk_clist_find_row_from_data(c, rc);
+
+        if (search_remove_downloaded) {
+            gtk_clist_remove(c, row);
+            current_search->items--;
+
+			/*
+			 * Remove one reference to this record.
+			 */
+
+			g_hash_table_remove(current_search->dups, rc);
+			search_unref_record(rc);
+
+        } else
+            gtk_clist_unselect_row(c, row, 0);
+	}
+    
+    gtk_clist_thaw(c);
+
+    gui_search_force_update_tab_label(current_search);
+    gui_search_update_items(current_search);
+}
+
+
+
+void search_gui_download_files(void)
+{
+    GtkWidget *notebook_main;
+    GtkWidget *ctree_menu;
+
+    notebook_main = lookup_widget(main_window, "notebook_main");
+    ctree_menu = lookup_widget(main_window, "ctree_menu");
+
+	/* Download the selected files */
+
+	if (jump_to_downloads) {
+		gtk_notebook_set_page(GTK_NOTEBOOK(notebook_main),
+            nb_main_page_downloads);
+        // FIXME: should convert to ctree here. Expand nodes if necessary.
+		gtk_clist_select_row(GTK_CLIST(ctree_menu),
+            nb_main_page_downloads, 0);
+	}
+
+	if (current_search) {
+		download_selection_of_clist(GTK_CLIST(current_search->clist));
+		gtk_clist_unselect_all(GTK_CLIST(current_search->clist));
+	} else {
+		g_warning("search_download_files(): no possible search!\n");
+	}
+}
+
+
+
+/***
+ *** Callbacks
+ ***/
+
+void search_gui_got_results(GSList *schl, const gnet_results_set_t *r_set)
+{
+    GSList *l;
+    results_set_t *rs;
+
+    /*
+     * Copy the data we got from the backend.
+     */
+    rs = create_results_set(r_set);
+
+    if (gui_debug >= 12)
+        printf("got incoming results...\n");
+
+    for (l = schl; l != NULL; l = g_slist_next(l))
+        search_matched(find_search((gnet_search_t)l->data), rs);
+
+   	/*
+	 * Some of the records might have not been used by searches, and need
+	 * to be freed.  If no more records remain, we request that the
+	 * result set be removed from all the dispatched searches, the last one
+	 * removing it will cause its destruction.
+	 */
+    if (gui_debug >= 15)
+        printf("cleaning phase\n");
+    search_clean_r_set(rs);
+
+    if (gui_debug >= 15)
+        printf("trash phase\n");
+    /*
+     * If the record set does not contain any records after the cleansing,
+     * we have only an empty shell left which we can safely remove from 
+     * all the searches.
+     */
+	if (rs->num_recs == 0) {
+		for (l = schl; l; l = l->next) {
+			search_t *sch = find_search((gnet_search_t) l->data);
+			search_remove_r_set(sch, rs);
+		}
+	}
+
+}
+
+/*
+ * search_gui_search_results_col_widths_changed:
+ *
+ * Callback to update the columns withs in the currently visible search.
+ * This is not in settings_gui because the current search should not be
+ * known outside this file.
+ */
+gboolean search_gui_search_results_col_widths_changed(property_t prop)
+{
+    guint32 *val;
+    GtkCList *clist;
+
+    if ((current_search == NULL) && (default_search_clist == NULL))
+        return FALSE;
+
+    val = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, NULL, 0, 0);
+
+    clist = GTK_CLIST((current_search != NULL) ? 
+        current_search->clist : default_search_clist);
+
+    if (clist != NULL) {
+        gint i;
+    
+        for (i = 0; i < clist->columns; i ++)
+            gtk_clist_set_column_width(clist, i, val[i]);
+    }
+
+    g_free(val);
+    return FALSE;
+}
+
+/*
+ * search_gui_search_results_col_widths_changed:
+ *
+ * Callback to update the columns withs in the currently visible search.
+ * This is not in settings_gui because the current search should not be
+ * known outside this file.
+ */
+gboolean search_gui_search_results_col_visible_changed(property_t prop)
+{
+    guint32 *val;
+    GtkCList *clist;
+
+    if ((current_search == NULL) && (default_search_clist == NULL))
+        return FALSE;
+
+    val = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_VISIBLE, NULL, 0, 0);
+
+    clist = GTK_CLIST((current_search != NULL) ? 
+        current_search->clist : default_search_clist);
+
+    if (clist != NULL) {
+        gint i;
+    
+        for (i = 0; i < clist->columns; i ++)
+            gtk_clist_set_column_visibility(clist, i, val[i]);
+    }
+
+    g_free(val);
+    return FALSE;
+}
+
+
+
+
+/***
+ *** Private functions
+ ***/
+
+/*
+ * find_search:
+ *
+ * Returns a pointer to gui_search_t from gui_searches which has
+ * sh as search_handle. If none is found, return NULL.
+ */
+static search_t *find_search(gnet_search_t sh) 
+{
+    GList *l;
+    
+    for (l = searches; l != NULL; l = g_list_next(l)) {
+        if (((search_t *)l->data)->search_handle == sh) {
+            if (gui_debug >= 15)
+                printf("search [%s] matched handle %x\n", (
+                    (search_t *)l->data)->query, sh);
+
+            return (search_t *)l->data;
+        }
+    }
+
+    return NULL;
+}
+
+
+static record_t *create_record(results_set_t *rs, gnet_record_t *r) 
+{
+    record_t *rc;
+
+    g_assert(r != NULL);
+    g_assert(rs != NULL);
+
+    rc = (record_t *) zalloc(rc_zone);
+
+    rc->results_set = rs;
+    rc->refcount = 0;
+
+    rc->name = atom_str_get(r->name);
+    rc->size = r->size;
+    rc->index = r->index;
+    rc->sha1 = (r->sha1 != NULL) ? atom_sha1_get(r->sha1) : NULL;
+    rc->tag = (r->tag != NULL) ? atom_str_get(r->tag) : NULL;
+
+    return rc;
+}
+
+static results_set_t *create_results_set(const gnet_results_set_t *r_set)
+{
+    results_set_t *rs;
+    GSList *sl;
+    
+    rs = (results_set_t *) zalloc(rs_zone);
+
+    rs->refcount = 0;
+
+    rs->guid = atom_guid_get(r_set->guid);
+    rs->ip = r_set->ip;
+    rs->port = r_set->port;
+    rs->status = r_set->status;
+    rs->speed = r_set->speed;
+    rs->stamp = r_set->stamp;
+    memcpy(rs->vendor, r_set->vendor, sizeof(rs->vendor));
+
+    rs->num_recs = 0;
+    rs->records = NULL;
+    
+    for (sl = r_set->records; sl != NULL; sl = g_slist_next(sl)) {
+        record_t *rc = create_record(rs, (gnet_record_t *) sl->data);
+
+        rs->records = g_slist_prepend(rs->records, rc);
+        rs->num_recs ++;
+    }
+
+    g_assert(rs->num_recs == r_set->num_recs);
+
+    return rs;
+}
+
+/*
+ * search_retrieve_old
+ *
+ * Retrieve search list and restart searches.
+ * The searches are normally retrieved from ~/.gtk-gnutella/searches.
+ */
+static gboolean search_retrieve_old(void)
+{
+	FILE *in;
+	struct stat buf;
+	gint line;				/* File line number */
+    guint32 minimum_speed;
+
+	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", config_dir, search_file);
+	if (-1 == stat(tmpstr, &buf))
+		return FALSE;
+
+	in = fopen(tmpstr, "r");
+
+	if (!in) {
+		g_warning("Unable to open %s to retrieve searches: %s",
+			tmpstr, g_strerror(errno));
+		return FALSE;
+	}
+
+	/*
+	 * Retrieval of each searches.
+	 */
+
+	line = 0;
+
+    gnet_prop_get_guint32(PROP_MINIMUM_SPEED, &minimum_speed, 0, 1);
+
+	while (fgets(tmpstr, sizeof(tmpstr) - 1, in)) {	/* Room for trailing NUL */
+		line++;
+
+		if (tmpstr[0] == '#')
+			continue;				/* Skip comments */
+
+		if (tmpstr[0] == '\n')
+			continue;				/* Allow arbitrary blank lines */
+
+		(void) str_chomp(tmpstr, 0);	/* The search string */
+
+		search_gui_new_search(tmpstr, minimum_speed, 0);
+		tmpstr[0] = 0;
+	}
+
+	fclose(in);
+
+    return TRUE;
+}
+
+
+
+/***
+ *** Public functions
+ ***/
+
 void search_gui_init(void)
 {
     GtkNotebook *notebook_search_results = GTK_NOTEBOOK
         (lookup_widget(main_window, "notebook_search_results"));
     GtkCombo *combo_searches = GTK_COMBO
         (lookup_widget(main_window, "combo_searches"));
+
+	rs_zone = zget(sizeof(results_set_t), 1024);
+	rc_zone = zget(sizeof(record_t), 1024);
 
 	gui_search_create_clist(&default_scrolled_window, &default_search_clist);
     gtk_notebook_remove_page(notebook_search_results, 0);
@@ -75,6 +1490,37 @@ void search_gui_init(void)
             gtk_clist_set_column_visibility
                 (clist, i, (gboolean) search_results_col_visible[i]);
     }
+
+#ifdef USE_SEARCH_XML
+    LIBXML_TEST_VERSION
+	if (search_retrieve_old()) {
+       	g_snprintf(tmpstr, sizeof(tmpstr), "%s/%s", config_dir, search_file);
+        g_warning(
+            "Found old searches file. Loaded it.\n"
+            "On exit the searches will be saved in the new XML format\n"
+            "and the old file will be renamed.");
+    } else {
+        search_retrieve_xml();
+    }
+#else
+    search_retrieve_old();
+#endif /* USE_SEARCH_XML */
+
+    search_add_got_results_listener(search_gui_got_results);
+}
+
+void search_gui_shutdown(void)
+{
+    search_remove_got_results_listener(search_gui_got_results);
+
+	search_gui_store_searches();
+
+    while (searches != NULL)
+        search_gui_close_search((search_t *)searches->data);
+
+	zdestroy(rs_zone);
+	zdestroy(rc_zone);
+	rs_zone = rc_zone = NULL;
 }
 
 /*
@@ -148,19 +1594,33 @@ void search_gui_remove_search(search_t * sch)
         (lookup_widget(main_window, "button_search_download"), sensitive);
 }
 
-void search_gui_view_search(search_t *sch) 
+void search_gui_set_current_search(search_t *sch) 
 {
 	search_t *old_sch = current_search;
     GtkCTreeNode * node;
-    gint row;
+    GtkWidget *spinbutton_minimum_speed;
+    GtkWidget *spinbutton_reissue_timeout;
+    GtkCList *clist_search;
     static gboolean locked = FALSE;
+    gboolean passive;
+    gboolean frozen;
+    guint32 reissue_timeout;
+    guint16 minimum_speed;
 
-	g_return_if_fail(sch);
+	g_assert(sch != NULL);
 
     if (locked)
         return;
 
     locked = TRUE;
+
+	if (old_sch)
+		gui_search_force_update_tab_label(old_sch);
+
+    passive = search_is_passive(sch->search_handle);
+    frozen = search_is_frozen(sch->search_handle);
+    reissue_timeout = search_get_reissue_timeout(sch->search_handle);
+    minimum_speed = search_get_minimum_speed(sch->search_handle);
 
     /*
      * We now propagate the column visibility from the current_search
@@ -180,72 +1640,68 @@ void search_gui_view_search(search_t *sch)
 	current_search = sch;
 	sch->unseen_items = 0;
 
-	if (old_sch)
-		gui_search_force_update_tab_label(old_sch);
-	gui_search_force_update_tab_label(sch);
-
-	gui_search_update_items(sch);
-
-    {
-        GtkWidget *spinbutton_minimum_speed =
-            lookup_widget(main_window, "spinbutton_minimum_speed");
-
-        gtk_spin_button_set_value
-            (GTK_SPIN_BUTTON(spinbutton_minimum_speed), sch->speed);
-        gtk_widget_set_sensitive(spinbutton_minimum_speed, TRUE);
-    }
-
-	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_search_download"), 
-        GTK_CLIST(sch->clist)->selection != NULL);
-
-	gtk_widget_set_sensitive(
-        lookup_widget(main_window, "button_search_clear"), 
-        sch->items != 0);
-	gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_clear_results"), 
-        sch->items != 0);
-	gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_restart"), 
-        !sch->passive);
-	gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_duplicate"), 
-        !sch->passive);
-	gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_stop"), 
-        sch->passive ? !sch->frozen : sch->reissue_timeout);
-	gtk_widget_set_sensitive(
-        lookup_widget(popup_search, "popup_search_resume"), 
-        sch->passive ? sch->frozen : sch->reissue_timeout);
-
-    /*
-     * Reissue timeout
-     */
-    {
-        GtkWidget *sb = lookup_widget
-            (main_window, "spinbutton_search_reissue_timeout");
-
-        if (sch != NULL)
-            gtk_spin_button_set_value(GTK_SPIN_BUTTON(sb), sch->reissue_timeout);
-        
-        gtk_widget_set_sensitive(sb, (sch != NULL) && (!sch->passive));
-    }
-
-    /*
-     * Sidebar searches list.
-     */
-    {
-        GtkCList *clist_search = GTK_CLIST
+    spinbutton_minimum_speed = lookup_widget
+        (main_window, "spinbutton_minimum_speed");
+    spinbutton_reissue_timeout= lookup_widget
+        (main_window, "spinbutton_search_reissue_timeout");
+    clist_search = GTK_CLIST
             (lookup_widget(main_window, "clist_search"));
 
-        row = gtk_clist_find_row_from_data(clist_search, sch);
-        gtk_clist_select_row(clist_search,row,0);
-    }
+    if (sch != NULL) {
+        gui_search_force_update_tab_label(sch);
+        gui_search_update_items(sch);
 
-    /*
-     * Combo "Active searches"
-     */
-  	gtk_list_item_select(GTK_LIST_ITEM(sch->list_item));
+        gtk_clist_select_row(
+            clist_search, 
+            gtk_clist_find_row_from_data(clist_search, sch), 
+            0);
+        gtk_spin_button_set_value
+            (GTK_SPIN_BUTTON(spinbutton_minimum_speed), minimum_speed);
+        gtk_widget_set_sensitive(spinbutton_minimum_speed, TRUE);
+        gtk_spin_button_set_value
+            (GTK_SPIN_BUTTON(spinbutton_reissue_timeout), reissue_timeout);
+        gtk_widget_set_sensitive(spinbutton_reissue_timeout, !passive);
+        gtk_widget_set_sensitive(
+            lookup_widget(main_window, "button_search_download"), 
+            GTK_CLIST(sch->clist)->selection != NULL);
+        gtk_widget_set_sensitive(
+            lookup_widget(main_window, "button_search_clear"), 
+            sch->items != 0);
+        gtk_widget_set_sensitive(
+            lookup_widget(popup_search, "popup_search_clear_results"), 
+            sch->items != 0);
+        gtk_widget_set_sensitive(
+            lookup_widget(popup_search, "popup_search_restart"), !passive);
+        gtk_widget_set_sensitive(
+            lookup_widget(popup_search, "popup_search_duplicate"), !passive);
+        gtk_widget_set_sensitive(
+            lookup_widget(popup_search, "popup_search_stop"), !frozen);
+        gtk_widget_set_sensitive(
+            lookup_widget(popup_search, "popup_search_resume"),frozen);
+
+        /*
+         * Combo "Active searches"
+         */
+        gtk_list_item_select(GTK_LIST_ITEM(sch->list_item));
+    } else {
+        gtk_clist_unselect_all(clist_search);
+        gtk_widget_set_sensitive(spinbutton_minimum_speed, FALSE);
+        gtk_widget_set_sensitive(spinbutton_reissue_timeout, FALSE);
+        gtk_widget_set_sensitive(
+            lookup_widget(main_window, "button_search_download"), FALSE);
+        gtk_widget_set_sensitive(
+            lookup_widget(main_window, "button_search_clear"), FALSE);
+        gtk_widget_set_sensitive(
+            lookup_widget(popup_search, "popup_search_clear_results"), FALSE);
+        gtk_widget_set_sensitive(
+            lookup_widget(popup_search, "popup_search_restart"), FALSE);
+        gtk_widget_set_sensitive(
+            lookup_widget(popup_search, "popup_search_duplicate"), FALSE);
+        gtk_widget_set_sensitive(
+            lookup_widget(popup_search, "popup_search_stop"), FALSE);
+        gtk_widget_set_sensitive(
+            lookup_widget(popup_search, "popup_search_resume"), FALSE);
+    }
 
     /*
      * Search results notebook
@@ -278,58 +1734,7 @@ void search_gui_view_search(search_t *sch)
     locked = FALSE;
 }
 
-/*
- * search_gui_search_results_col_widths_changed:
- *
- * Callback to update the columns withs in the currently visible search.
- * This is not in settings_gui because the current search should not be
- * known outside this file.
- */
-gboolean search_gui_search_results_col_widths_changed(property_t prop)
+search_t *search_gui_get_current_search(void)
 {
-    guint32 *val;
-    GtkCList *clist;
-
-    val = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, NULL, 0, 0);
-
-    clist = GTK_CLIST((current_search != NULL) ? 
-        current_search->clist : default_search_clist);
-
-    if (clist != NULL) {
-        gint i;
-    
-        for (i = 0; i < clist->columns; i ++)
-            gtk_clist_set_column_width(clist, i, val[i]);
-    }
-
-    g_free(val);
-    return FALSE;
-}
-
-/*
- * search_gui_search_results_col_widths_changed:
- *
- * Callback to update the columns withs in the currently visible search.
- * This is not in settings_gui because the current search should not be
- * known outside this file.
- */
-gboolean search_gui_search_results_col_visible_changed(property_t prop)
-{
-    guint32 *val;
-    GtkCList *clist;
-
-    val = gui_prop_get_guint32(PROP_SEARCH_RESULTS_COL_VISIBLE, NULL, 0, 0);
-
-    clist = GTK_CLIST((current_search != NULL) ? 
-        current_search->clist : default_search_clist);
-
-    if (clist != NULL) {
-        gint i;
-    
-        for (i = 0; i < clist->columns; i ++)
-            gtk_clist_set_column_visibility(clist, i, val[i]);
-    }
-
-    g_free(val);
-    return FALSE;
+    return current_search;
 }
