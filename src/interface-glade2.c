@@ -4000,7 +4000,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label492), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label492), 10, 0);
 
-  label493 = gtk_label_new ("Rapha\303«l Manfredi");
+  label493 = gtk_label_new ("RaphaÃ«l Manfredi");
   gtk_widget_set_name (label493, "label493");
   gtk_widget_show (label493);
   gtk_box_pack_start (GTK_BOX (vbox88), label493, FALSE, FALSE, 0);
@@ -4008,7 +4008,7 @@ create_dlg_about (void)
   gtk_misc_set_alignment (GTK_MISC (label493), 0, 0.5);
   gtk_misc_set_padding (GTK_MISC (label493), 10, 0);
 
-  label494 = gtk_label_new ("Rapha\303«l Manfredi");
+  label494 = gtk_label_new ("RaphaÃ«l Manfredi");
   gtk_widget_set_name (label494, "label494");
   gtk_widget_show (label494);
   gtk_box_pack_start (GTK_BOX (vbox88), label494, FALSE, FALSE, 0);
@@ -4060,7 +4060,7 @@ create_dlg_about (void)
   gtk_text_view_set_left_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_view_set_right_margin (GTK_TEXT_VIEW (textview1), 4);
   gtk_text_buffer_set_text (gtk_text_view_get_buffer (GTK_TEXT_VIEW (textview1)),
-	"Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRapha\303«l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>\nko <junkpile@free.fr>", -1);
+	"Yann Grossel <olrick@users.sourceforge.net>\nSteven Wilcoxon <swilcoxon@users.sourceforge.net>\nJason Lingohr <lingman@users.sourceforge.net>\nBrian St Pierre <bstpierre@users.sourceforge.net>\nChuck Homic <homic@users.sourceforge.net>\nIngo Saitz <salz@users.sourceforge.net>\nBen Hochstedler <hochstrb@users.sourceforge.net>\nDaniel Walker <axiom@users.sourceforge.net>\nPaul Cassella <pwc@users.sourceforge.net> \nJared Mauch <jaredmauch@users.sourceforge.net>\nNate E <web1 (at) users dot sourceforge dot net>\nRaphaÃ«l Manfredi <Raphael_Manfredi@pobox.com>\nKenn Brooks Hamm <khamm@andrew.cmu.edu>\nMark Schreiber <mark7@andrew.cmu.edu>\nSam Varshavchik <mrsam@courier-mta.com>\nVladimir Klebanov <unny@rz.uni-karlsruhe.de>\nRoman Shterenzon <roman@xpert.com>\nRobert Bihlmeyer <robbe@orcus.priv.at>\nNoel T.Nunkovich <ntnunk@earthlink.net>\nMichael Tesch <tesch@users.sourceforge.net>\nMarkus 'guruz' Goetz <guruz@guruz.info>\nRichard Eckart <wyldfire@users.sourceforge.net>\nChristophe Tronche <ch.tronche@computer.org>\nAlex Bennee <alex@bennee.com>\nMike Perry <mikepery@fscked.org>\nZygo Blaxell <zblaxell@feedme.hungrycats.org>\nVidar Madsen <vidar@gimp.org>\nChristian Biere <christianbiere@gmx.de>\nko <junkpile@free.fr>", -1);
 
   label302 = gtk_label_new ("Contributors");
   gtk_widget_set_name (label302, "label302");
@@ -4481,6 +4481,11 @@ create_main_window (void)
   GtkWidget *image26;
   GtkWidget *label407;
   GtkWidget *label361;
+  GtkWidget *button_search_filter2;
+  GtkWidget *alignment75;
+  GtkWidget *hbox213;
+  GtkWidget *image121;
+  GtkWidget *label589;
   GtkWidget *checkbutton_search_results_show_settings;
   GtkWidget *alignment26;
   GtkWidget *hbox157;
@@ -5196,7 +5201,7 @@ create_main_window (void)
   label_statusbar_uptime = gtk_label_new ("[uptime]");
   gtk_widget_set_name (label_statusbar_uptime, "label_statusbar_uptime");
   gtk_widget_show (label_statusbar_uptime);
-  gtk_box_pack_start (GTK_BOX (hbox210), label_statusbar_uptime, FALSE, TRUE, 20);
+  gtk_box_pack_start (GTK_BOX (hbox210), label_statusbar_uptime, FALSE, TRUE, 0);
   gtk_label_set_justify (GTK_LABEL (label_statusbar_uptime), GTK_JUSTIFY_LEFT);
   gtk_misc_set_alignment (GTK_MISC (label_statusbar_uptime), 1, 0.5);
   gtk_misc_set_padding (GTK_MISC (label_statusbar_uptime), 4, 0);
@@ -6868,6 +6873,32 @@ create_main_window (void)
   gtk_widget_show (label361);
   gtk_box_pack_start (GTK_BOX (hbox154), label361, TRUE, TRUE, 0);
   gtk_label_set_justify (GTK_LABEL (label361), GTK_JUSTIFY_LEFT);
+
+  button_search_filter2 = gtk_button_new ();
+  gtk_widget_set_name (button_search_filter2, "button_search_filter2");
+  gtk_widget_show (button_search_filter2);
+  gtk_box_pack_start (GTK_BOX (hbox154), button_search_filter2, FALSE, FALSE, 0);
+
+  alignment75 = gtk_alignment_new (0.5, 0.5, 0, 0);
+  gtk_widget_set_name (alignment75, "alignment75");
+  gtk_widget_show (alignment75);
+  gtk_container_add (GTK_CONTAINER (button_search_filter2), alignment75);
+
+  hbox213 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_set_name (hbox213, "hbox213");
+  gtk_widget_show (hbox213);
+  gtk_container_add (GTK_CONTAINER (alignment75), hbox213);
+
+  image121 = create_pixmap (main_window, "filter.xpm");
+  gtk_widget_set_name (image121, "image121");
+  gtk_widget_show (image121);
+  gtk_box_pack_start (GTK_BOX (hbox213), image121, FALSE, FALSE, 0);
+
+  label589 = gtk_label_new_with_mnemonic ("Edit Filters");
+  gtk_widget_set_name (label589, "label589");
+  gtk_widget_show (label589);
+  gtk_box_pack_start (GTK_BOX (hbox213), label589, FALSE, FALSE, 0);
+  gtk_label_set_justify (GTK_LABEL (label589), GTK_JUSTIFY_LEFT);
 
   checkbutton_search_results_show_settings = gtk_toggle_button_new ();
   gtk_widget_set_name (checkbutton_search_results_show_settings, "checkbutton_search_results_show_settings");
@@ -9940,6 +9971,9 @@ create_main_window (void)
   g_signal_connect ((gpointer) button_search_clear, "clicked",
                     G_CALLBACK (on_button_search_clear_clicked),
                     NULL);
+  g_signal_connect ((gpointer) button_search_filter2, "clicked",
+                    G_CALLBACK (on_button_search_filter_clicked),
+                    NULL);
   g_signal_connect ((gpointer) button_search_stats_reset, "clicked",
                     G_CALLBACK (on_button_search_stats_reset_clicked),
                     NULL);
@@ -10350,6 +10384,11 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, image26, "image26");
   GLADE_HOOKUP_OBJECT (main_window, label407, "label407");
   GLADE_HOOKUP_OBJECT (main_window, label361, "label361");
+  GLADE_HOOKUP_OBJECT (main_window, button_search_filter2, "button_search_filter2");
+  GLADE_HOOKUP_OBJECT (main_window, alignment75, "alignment75");
+  GLADE_HOOKUP_OBJECT (main_window, hbox213, "hbox213");
+  GLADE_HOOKUP_OBJECT (main_window, image121, "image121");
+  GLADE_HOOKUP_OBJECT (main_window, label589, "label589");
   GLADE_HOOKUP_OBJECT (main_window, checkbutton_search_results_show_settings, "checkbutton_search_results_show_settings");
   GLADE_HOOKUP_OBJECT (main_window, alignment26, "alignment26");
   GLADE_HOOKUP_OBJECT (main_window, hbox157, "hbox157");
