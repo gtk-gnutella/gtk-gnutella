@@ -580,12 +580,17 @@ static void upload_remove_v(struct upload *u, const gchar *reason, va_list ap)
 	 * `registered_uploads'.
 	 * Moreover, if it's still connecting, then we've not even
 	 * incremented the `running_uploads' counter yet.
+	 * For keep-alive uploads still in the GTA_UL_WAITING state, the upload
+	 * slot is reserved so it must be decremented as well (we know it's a
+	 * follow-up request since u->keep_alive is set).
 	 */
 
 	if (!UPLOAD_IS_COMPLETE(u))
 		registered_uploads--;
 
 	if (!UPLOAD_IS_COMPLETE(u) && !UPLOAD_IS_CONNECTING(u))
+		running_uploads--;
+	else if (u->keep_alive && UPLOAD_IS_CONNECTING(u))
 		running_uploads--;
 
 	/*
@@ -1699,10 +1704,12 @@ static void upload_request(struct upload *u, header_t *header)
 
 	/*
 	 * If we remove the upload in upload_remove(), we'll decrement
-	 * running_uploads.
+	 * running_uploads.  However, for followup-requests, the upload slot
+	 * is already accounted for.
 	 */
 
-	running_uploads++;
+	if (!is_followup)
+		running_uploads++;
 
 	/*
 	 * If `head_only' is true, the request was a HEAD and we're only going
@@ -2246,6 +2253,7 @@ void upload_write(gpointer up, gint source, GdkInputCondition cond)
 			struct upload *cu = upload_clone(u);
 			upload_wait_new_request(cu);
 			registered_uploads++;
+			running_uploads++;			/* Still using the same slot */
 		}
 
 		if (clear_uploads == TRUE)
