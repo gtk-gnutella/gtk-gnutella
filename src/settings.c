@@ -885,11 +885,21 @@ static gboolean enable_ultrapeer_changed(property_t prop)
 static gboolean current_peermode_changed(property_t prop)
 {
     guint32 val;
+    gboolean enable;
+	gboolean changed = FALSE;
 
     gnet_prop_get_guint32_val(prop, &val);
+	gnet_prop_get_boolean_val(PROP_ENABLE_ULTRAPEER, &enable);
+	
+	if (!enable && val != NODE_P_NORMAL) {
+		val = NODE_P_NORMAL;
+		gnet_prop_set_guint32_val(prop, val);
+		changed = TRUE;
+	}
+
 	node_set_current_peermode(val);
 
-    return FALSE;
+    return changed;
 }
 
 
