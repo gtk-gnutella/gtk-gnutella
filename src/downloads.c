@@ -35,7 +35,6 @@
 #include "routing.h"
 #include "gmsg.h"
 #include "bsched.h"
-#include "regex.h"
 #include "huge.h"
 #include "dmesh.h"
 #include "http.h"
@@ -51,6 +50,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <regex.h>
 #include <time.h>			/* For ctime() */
 
 #define DOWNLOAD_RECV_BUFSIZE	114688		/* 112K */
@@ -131,6 +131,17 @@ static gint dl_active = 0;				/* Active downloads */
 static guchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
 /* ----------------------------------------- */
+
+#ifdef USE_GTK2
+G_INLINE_FUNC gchar *g_strdown(gchar *string) {
+	gint i;
+
+	g_assert(NULL != string);
+	for (i = 0; string[i] != '\0'; i++)
+		string[i] = g_ascii_tolower(string[i]); 
+	return string;
+}
+#endif
 
 /*
  * dl_key_hash
@@ -4090,7 +4101,8 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	buf = header_get(header, "Content-Range");		/* Optional */
 	if (buf) {
 		guint32 start, end, total;
-		g_strdown(buf);								/* Normalize case */
+
+		g_strdown(buf);				/* Normalize case */
 		if (
 			sscanf(buf, "bytes %d-%d/%d", &start, &end, &total) ||	/* Good */
 			sscanf(buf, "bytes=%d-%d/%d", &start, &end, &total)		/* Bad! */
