@@ -408,11 +408,6 @@ gint main(gint argc, gchar ** argv)
 	signal(SIGXFSZ, SIG_IGN);
 #endif
 
-	/* Create the main listening socket */
-
-	if (listen_port)
-		s_listen = socket_listen(0, listen_port, GTA_TYPE_CONTROL);
-
     /* Final interface setup (setting of values read from config) */
     
 	gui_update_global();
