@@ -765,7 +765,7 @@ gboolean node_connected(guint32 ip, guint16 port, gboolean incoming)
 
 	GSList *l;
 
-	if (ip == listen_ip())		/* Don't connect to yourself */
+	if (ip == listen_ip() && port == listen_port)	/* yourself */
 		return TRUE;
 
 	for (l = sl_nodes; l; l = l->next) {
