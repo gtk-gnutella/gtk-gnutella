@@ -29,6 +29,7 @@
 
 LSRC = \
 	adns.c \
+	aging.c \
 	atoms.c \
 	base32.c \
 	base64.c \
