@@ -146,7 +146,7 @@ gip_encode_country(const char *s)
 		code = ENCODE(s[0]) * 36;
 		code += ENCODE(s[1]);
 		g_assert(code >= 0 && code <= (36 * 35 + 35));
-		code++; /* Add one because zero would be interpreted as NULL in iprange.c */
+		code++; /* Add 1 because 0 would be interpreted as NULL in iprange.c */
 		code <<= 1;/* The LSB must be zero due to special handling iprange.c */
 
 		d = gip_decode_country(code);
