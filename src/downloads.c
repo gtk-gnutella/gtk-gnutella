@@ -6751,8 +6751,10 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 		}
 	}
 
-	if (d)
+	if (d) {
+		g_assert(d->socket == NULL);
 		return d;
+	}
 
 	/*
 	 * Whilst we are connected to that servent, find a suitable download
@@ -6800,7 +6802,11 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 				continue;
 
 			/*
-			 * Look for an active download for this host, expecting a GIV.
+			 * Look for an active download for this host, expecting a GIV
+			 * and not already gone through download_push_ack() i.e. not
+			 * connected yet (downloads remain in the expecting state until
+			 * they have read the trailing "\n" of the GIV, even though they
+			 * are connected).
 			 */
 
 			for (w = server->list[DL_LIST_RUNNING]; w; w = g_list_next(w)) {
@@ -6808,7 +6814,7 @@ static struct download *select_push_download(guint file_index, gchar *hex_guid)
 
 				g_assert(DOWNLOAD_IS_RUNNING(d));
 
-				if (DOWNLOAD_IS_EXPECTING_GIV(d)) {
+				if (d->socket == NULL && DOWNLOAD_IS_EXPECTING_GIV(d)) {
 					if (dbg > 2)
 						printf("GIV: selected active download '%s' from %s\n",
 							d->file_name, guid_hex_str(rguid));
