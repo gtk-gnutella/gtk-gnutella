@@ -125,7 +125,6 @@ gboolean downloads_gui_all_aborted(struct download *d)
 	gpointer key;
 	gint n, num_children;
 	gboolean all_aborted = FALSE;
-	
 	GtkTreeIter iter;
 	GtkTreeIter *parent;
 	GtkTreeView *tree_view;
@@ -135,35 +134,39 @@ gboolean downloads_gui_all_aborted(struct download *d)
 		(lookup_widget(main_window, "treeview_downloads"));
 	model = gtk_tree_view_get_model(tree_view);
 
-	if (NULL != d->file_info) {
-			
-		key = (gpointer) &d->file_info->fi_handle;
-		parent = find_parent_with_fi_handle(parents, key);
-
-		if (NULL != parent) {
-
-			num_children = gtk_tree_model_iter_n_children(model, parent);
-			all_aborted = TRUE;	
-		
-			for (n = 0; n < num_children; n++) {		
-				if (gtk_tree_model_iter_nth_child(model, &iter, parent, n)) {
-
-					gtk_tree_model_get(model, &iter,
-		      			c_dl_record, &drecord,
-			        	(-1));
-
-					if ((NULL == drecord) || (-1 == GPOINTER_TO_INT(drecord)))
-						continue;
-					
-					if ((GTA_DL_ABORTED != drecord->status) 
-						&& (GTA_DL_ERROR != drecord->status)) {
-						all_aborted = FALSE;
-						break;
-					}
-				}	
-			}					
-		}
+	if (!d->file_info) {
+		return all_aborted;
 	}
+			
+	key = (gpointer) &d->file_info->fi_handle;
+	parent = find_parent_with_fi_handle(parents, key);
+
+	if (!parent) {
+		return all_aborted;
+	}
+
+	num_children = gtk_tree_model_iter_n_children(model, parent);
+	all_aborted = TRUE;	
+		
+	for (n = 0; n < num_children; n++) {		
+		if (gtk_tree_model_iter_nth_child(model, &iter, parent, n)) {
+
+			gtk_tree_model_get(model, &iter,
+   				c_dl_record, &drecord,
+        		(-1));
+
+			if ((NULL == drecord) || (-1 == GPOINTER_TO_INT(drecord)))
+				continue;
+					
+			if ((GTA_DL_ABORTED != drecord->status) 
+				&& (GTA_DL_ERROR != drecord->status)
+			) {
+				all_aborted = FALSE;
+				break;
+			}
+
+		}	
+	}					
 
 	return all_aborted;
 }
@@ -180,7 +183,6 @@ gboolean downloads_gui_update_parent_status(struct download *d,
 {
 	gpointer key;
 	gboolean changed = FALSE;
-	
 	GtkTreeIter *parent;
 	GtkTreeView *tree_view;
 	GtkTreeStore *model;
@@ -189,15 +191,16 @@ gboolean downloads_gui_update_parent_status(struct download *d,
 		(lookup_widget(main_window, "treeview_downloads"));
 	model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
 
-	if (NULL != d->file_info) {
+	if (!d->file_info) {
+		return changed;
+	}
 			
-		key = (gpointer) &d->file_info->fi_handle;
-		parent = find_parent_with_fi_handle(parents, key);
+	key = (gpointer) &d->file_info->fi_handle;
+	parent = find_parent_with_fi_handle(parents, key);
 
-		if (NULL != parent) {
-			changed = TRUE;
-			gtk_tree_store_set(model, parent, c_dl_status, new_status, (-1));
-		}
+	if (NULL != parent) {
+		changed = TRUE;
+		gtk_tree_store_set(model, parent, c_dl_status, new_status, (-1));
 	}
 
 	return changed;
@@ -632,16 +635,13 @@ void download_gui_add(struct download *d)
 	gchar *filename, *host, *size, *server, *status, *range;
 	struct download *drecord = NULL;
 	gpointer key;
-
 	gint active_src = 0, tot_src = 0;
 	gfloat percent_done = 0.0, progress = 0.0;
 	guint n = 0;
-	
 	GtkTreeIter iter;
 	GtkTreeIter *parent;
 	GtkTreeView *tree_view;
 	GtkTreeStore *model;
-	
 	
 	g_return_if_fail(d);
 
@@ -904,18 +904,15 @@ void download_gui_add(struct download *d)
  */
 void download_gui_remove(struct download *d)
 {
+	struct download *drecord = NULL;
 	gpointer key;
-
 	gchar *host, *range;
 	gchar *server, *status;
 	gfloat progress;
-	struct download *drecord = NULL;
-
 	GtkTreeIter *iter;
 	GtkTreeIter *parent;
 	GtkTreeView *tree_view;
-	GtkTreeStore *model;
-
+	GtkTreeStore *store;
 
 	g_return_if_fail(d);
 	
@@ -931,12 +928,12 @@ void download_gui_remove(struct download *d)
 		
 		tree_view = GTK_TREE_VIEW
 			(lookup_widget(main_window, "treeview_downloads_queue"));
-		model =	(GtkTreeStore *) gtk_tree_view_get_model(tree_view);
+		store =	GTK_TREE_STORE(gtk_tree_view_get_model(tree_view));
 
 		/* Find row that matches d */
 		temp_iter_global = NULL;
-		gtk_tree_model_foreach(
-			(GtkTreeModel *)model, downloads_gui_download_queue_eq, d);
+		gtk_tree_model_foreach(GTK_TREE_MODEL(store),
+			downloads_gui_download_queue_eq, d);
 	
 		if (NULL != temp_iter_global) {		
 
@@ -948,38 +945,36 @@ void download_gui_remove(struct download *d)
 				parent =  find_parent_with_fi_handle(parents_queue, key);
 
 				if (NULL != parent) {
-	
 					guint n = (guint) gtk_tree_model_iter_n_children(
-						(GtkTreeModel *) model, parent);
+						GTK_TREE_MODEL(store), parent);
 										
 					/* If there are children, there should be >1 */
-					if ((1 == n) || ( 0 > n))
-					{
+					if (n <= 1) {
 						g_warning("gui_remove_download (queued):" 
 							"node has %d children!", n);
 						return;						
 					}
 
-					if (2 == n)
-					{
+					if (2 == n) {
 						/* Removing this download will leave only one left, 
 						 * we'll have to get rid of the header. */
 				
 						/* Get rid of current download, d */
-						gtk_tree_store_remove(model, iter);
+						gtk_tree_store_remove(store, iter);
 
 						/* Replace header with only remaining child */
 						if (gtk_tree_model_iter_nth_child(
-							(GtkTreeModel *) model, iter, parent, 0)) {
+								GTK_TREE_MODEL(store), iter, parent, 0)
+						) {
 
-							gtk_tree_model_get((GtkTreeModel *)model, iter,
+							gtk_tree_model_get(GTK_TREE_MODEL(store), iter,
 					  			c_queue_host, &host,
 	   	 						c_queue_server, &server,
 	   							c_queue_status, &status,
 	   							c_queue_record, &drecord,
 	        					(-1));
 				
-							gtk_tree_store_set(model, parent,
+							gtk_tree_store_set(store, parent,
 			  					c_queue_host, host,
 		     	 				c_queue_server, server,
 	   		  					c_queue_status, status,
@@ -1003,17 +998,16 @@ void download_gui_remove(struct download *d)
 					}
 
 						
-					if (2 < n){
-						gm_snprintf(tmpstr, sizeof(tmpstr), 
-							"%u hosts", n - 1);
+					if (2 < n) {
+						gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", n - 1);
 
-						gtk_tree_store_set(model, parent,
+						gtk_tree_store_set(store, parent,
 			  				c_dl_host, tmpstr,
 		   					(-1));							
 					}
 			
-				/*  Note: this line IS correct for cases n=0, n=2,and n>2 */
-				gtk_tree_store_remove(model, iter);
+					/* Note: this line IS correct for cases n=0, n>=2 */
+					gtk_tree_store_remove(store, iter);
 					
 				} else 
 					g_warning("download_gui_remove(): "
@@ -1030,12 +1024,12 @@ void download_gui_remove(struct download *d)
 
 		tree_view = GTK_TREE_VIEW
 			(lookup_widget(main_window, "treeview_downloads"));
-		model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
+		store = GTK_TREE_STORE(gtk_tree_view_get_model(tree_view));
 
 		/* Find row that matches d */
 		temp_iter_global = NULL;
-		gtk_tree_model_foreach(
-			(GtkTreeModel *)model, downloads_gui_download_eq, d);
+		gtk_tree_model_foreach(GTK_TREE_MODEL(store),
+			downloads_gui_download_eq, d);
 	
 		if (NULL != temp_iter_global) {		
 			
@@ -1048,35 +1042,34 @@ void download_gui_remove(struct download *d)
 				parent = find_parent_with_fi_handle(parents, key);
 
 				if (NULL != parent) {
-
 					guint n = (guint) gtk_tree_model_iter_n_children(
-						(GtkTreeModel *) model, parent);
+											GTK_TREE_MODEL(store), parent);
 					
 					/* If there are children, there should be >1 */
-					if ((1 == n) || ( 0 > n))
-					{
+					if (n <= 1) {
 						g_warning("gui_remove_download (active):" 
 							"node has %d children!", n);
 						return;						
 					}
 						
-					if (2 == n)
-					{
+					if (2 == n) {
 						/* Removing this download will leave only one left, 
 	 					 * we'll have to get rid of the header. */
 						
 						/* Get rid of current download, d */
-						gtk_tree_store_remove(model, iter);
+						gtk_tree_store_remove(store, iter);
 
 						/* Replace header with only remaining child */
-						if (gtk_tree_model_iter_nth_child(
-							(GtkTreeModel *) model, iter, parent, 0)) {
+						if (
+							gtk_tree_model_iter_nth_child(
+								GTK_TREE_MODEL(store), iter, parent, 0)
+						) {
 
-							gtk_tree_model_get((GtkTreeModel *)model, iter,
+							gtk_tree_model_get(GTK_TREE_MODEL(store), iter,
 						  		c_dl_host, &host,
 		      					c_dl_range, &range,
 		     	 				c_dl_server, &server,
-							c_dl_progress, &progress,
+								c_dl_progress, &progress,
 		      					c_dl_status, &status,
 		      					c_dl_record, &drecord,
 			        			(-1));
@@ -1084,12 +1077,11 @@ void download_gui_remove(struct download *d)
 							gm_snprintf(tmpstr, sizeof(tmpstr), "%.02f%%  %s",
 								progress * 100.0, status);
 
-							gtk_tree_store_set(model, parent,
+							gtk_tree_store_set(store, parent,
 			  					c_dl_host, host,
 	    	 			 		c_dl_range, range,
 	     		 				c_dl_server, server,
-							c_dl_progress, 
-							force_range(progress, 0.0, 1.0),
+								c_dl_progress, force_range(progress, 0.0, 1.0),
 	      						c_dl_status, tmpstr,
 	      						c_dl_record, drecord,
 		        				(-1));
@@ -1098,11 +1090,11 @@ void download_gui_remove(struct download *d)
 							G_FREE_NULL(range);
 							G_FREE_NULL(server);
 							G_FREE_NULL(status);							
-						}
-						else
+						} else {
 							g_warning("download_gui_remove() (Active): "
 								"We've created a parent with only "
-								"one child!!");								
+								"one child!!");
+						}
 					}
 				
 					if (0 == n) {
@@ -1111,26 +1103,27 @@ void download_gui_remove(struct download *d)
 							&(d->file_info->fi_handle));
 					}
 
-					if (2 < n){
-						gm_snprintf(tmpstr, sizeof(tmpstr), 
-                            "%u hosts", n-1);
+					if (2 < n) {
+						gm_snprintf(tmpstr, sizeof(tmpstr), "%u hosts", n - 1);
 
-						gtk_tree_store_set(model, parent,
+						gtk_tree_store_set(store, parent,
 			  				c_dl_host, tmpstr,
 	       					(-1));							
 					}
 
-					/*  Note: this line IS correct for cases n=0, n=2, and n>2*/
-					gtk_tree_store_remove(model, iter);
+					/* Note: this line IS correct for cases n=0, n>=2 */
+					gtk_tree_store_remove(store, iter);
 					
-				} else 
+				} else {
 					g_warning("download_gui_remove(): "
 					"Active download '%s' no parent", d->file_name);
+				}
 			}	
 			
-		} else
+		} else {
 			g_warning("download_gui_remove(): "
 				"Active download '%s' not found in treeview !?", d->file_name);
+		}
 
 		if (NULL != temp_iter_global)
 			w_tree_iter_free(temp_iter_global);
@@ -1168,13 +1161,15 @@ void gui_update_download_column(struct download *d, GtkTreeView *tree_view,
 			
 			iter = temp_iter_global;
 			gtk_tree_store_set(model, iter, column, tmpstr, (-1));
-		}
-		else
+		} else {
 			g_warning("gui_update_download_column: couldn't find"
 					" download updating column %d", column);	
 		}
-		if (NULL != temp_iter_global)
-			w_tree_iter_free(temp_iter_global);
+	}
+
+	if (NULL != temp_iter_global) {
+		w_tree_iter_free(temp_iter_global);
+	}
 }
 
 
@@ -1217,9 +1212,8 @@ void gui_update_download_server(struct download *d)
 void gui_update_download_range(struct download *d)
 {
 	guint32 len;
-	gchar *and_more = "";
 	gint rw;
-
+	const gchar *and_more = "";
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
 
@@ -1282,14 +1276,13 @@ void gui_update_download_host(struct download *d)
  */
 void gui_update_download(struct download *d, gboolean force)
 {
+	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 	const gchar *a = NULL;
 	time_t now = time((time_t *) NULL);
 	struct dl_file_info *fi;
 	gint rw;
-	extern gint sha1_eq(gconstpointer a, gconstpointer b);
 	gpointer key;
 	gfloat progress = 0.0;
-
 	GtkTreeIter *iter;
 	GtkTreeIter *parent;
 	GtkTreeView *tree_view;
@@ -1638,8 +1631,7 @@ void gui_update_download(struct download *d, gboolean force)
 		a = tmpstr;
 		break;
 	default:
-		gm_snprintf(tmpstr, sizeof(tmpstr), "UNKNOWN STATUS %u",
-				   d->status);
+		gm_snprintf(tmpstr, sizeof(tmpstr), "UNKNOWN STATUS %u", d->status);
 		a = tmpstr;
 	}
 
@@ -1667,10 +1659,8 @@ void gui_update_download(struct download *d, gboolean force)
 				break;
 			case GTA_DL_VERIFYING:
 				if (fi->size)
-					progress = (gfloat)fi->cha1_hashed /
-						(gfloat)fi->size;
-				else
-					progress = 0.0;
+				progress = fi->size ?
+					(gfloat) fi->cha1_hashed / (gfloat) fi->size : 0.0;
 				break;
 			case GTA_DL_CONNECTING:	
 			case GTA_DL_VERIFY_WAIT:
@@ -1710,11 +1700,10 @@ void gui_update_download(struct download *d, gboolean force)
 					/* Download is done */
 					if (GTA_DL_DONE == d->status) {
 						
-						gm_snprintf(tmpstr, sizeof(tmpstr),
-							"Complete");
+						gm_snprintf(tmpstr, sizeof(tmpstr), "Complete");
 						gtk_tree_store_set(model, parent,
 		      				c_dl_status, tmpstr,
-						c_dl_progress, 1.0,
+							c_dl_progress, 1.0,
 			        		(-1));			
 					} else {
 						if ((GTA_DL_RECEIVING == d->status) && 
@@ -1791,15 +1780,12 @@ void gui_update_download(struct download *d, gboolean force)
 void gui_update_download_abort_resume(void)
 {
 	struct download *d;
-
 	gboolean do_abort  = FALSE;
     gboolean do_resume = FALSE;
     gboolean do_remove = FALSE;
     gboolean do_queue  = FALSE;
     gboolean abort_sha1 = FALSE;
-
 	GList *l;
-	
 	GtkTreeIter iter;
 	GtkTreeView *tree_view = GTK_TREE_VIEW
 		(lookup_widget(main_window, "treeview_downloads"));
@@ -1928,4 +1914,5 @@ void downloads_gui_collapse_all(GtkTreeView *tree_view)
 	gtk_tree_view_collapse_all(tree_view);
 }
 
-#endif
+#endif /* USE_GTK2 */
+/* vi: set ts=4: */
