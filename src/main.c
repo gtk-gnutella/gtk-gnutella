@@ -66,6 +66,7 @@
 #include "pproxy.h"
 #include "hsep.h"
 #include "dq.h"
+#include "dh.h"
 
 #ifdef USE_REMOTE_CTRL
 #include "shell.h"
@@ -223,6 +224,7 @@ void gtk_gnutella_exit(gint n)
 		sleep(1);
 	}
 
+	dh_close();
 	dq_close();
 	hsep_close();
 	hostiles_close();
@@ -369,6 +371,7 @@ static gboolean main_timer(gpointer p)
 		file_info_timer();          /* Notify about changes */
 		hsep_timer(now);			/* HSEP notify message timer */
 		pproxy_timer(now);			/* Push-proxy requests */
+		dh_timer(now);				/* Monitoring of query hits */
 	}
 	socket_timer(now);				/* Expire inactive sockets */
 	pcache_possibly_expired(now);	/* Expire pong cache */
@@ -575,6 +578,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	hsep_init();
 	clock_init();
 	dq_init();
+	dh_init();
 
 	main_gui_init();
 	
