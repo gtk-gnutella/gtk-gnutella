@@ -339,14 +339,14 @@ static gint ext_huge_parse(guchar **retp, gint len, extvec_t *exv, gint exvcnt)
 	*p++ = ':';
 
 	/*
-	 * Now extract the payload.
+	 * Now extract the payload (must be made of alphanum chars).
 	 */
 
 	payload_start = p;
 
 	while (p < end) {
 		guchar c = *p++;
-		if (c == '\0' || c == HUGE_FS) {
+		if (!isalnum(c)) {
 			p--;
 			break;
 		}
