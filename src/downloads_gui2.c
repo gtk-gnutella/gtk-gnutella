@@ -65,7 +65,7 @@ static GHashTable *parents_queue;	/* table of parent queued dl iterators */
 static inline void add_parent_with_fi_handle(
 	GHashTable *ht, gpointer key, GtkTreeIter *iter)
 {
-	g_hash_table_insert(ht, key, w_tree_iter_copy(iter));
+	g_hash_table_insert(ht, atom_int_get(key), w_tree_iter_copy(iter));
 }
 
 /*
@@ -81,10 +81,14 @@ static inline void remove_parent_with_fi_handle(
 	GHashTable *ht, const gint *fi_handle)
 {
 	gpointer key;
+	gpointer orig_key;
+	gpointer data;
  
-	key = atom_int_get(fi_handle);
-	g_hash_table_remove(ht, key);
-	atom_int_free(key);
+	key = (gpointer) fi_handle;
+	if (g_hash_table_lookup_extended(ht, key, &orig_key, &data)) {
+		g_hash_table_remove(ht, key);
+		atom_int_free(orig_key);
+	}
 }
 
 
@@ -136,7 +140,7 @@ gboolean downloads_gui_all_aborted(struct download *d)
 
 	if (NULL != d->file_info) {
 			
-		key = (gpointer) atom_int_get(&(d->file_info->fi_handle));
+		key = (gpointer) &d->file_info->fi_handle;
 		parent = find_parent_with_fi_handle(parents, key);
 
 		if (NULL != parent) {
@@ -162,7 +166,6 @@ gboolean downloads_gui_all_aborted(struct download *d)
 				}	
 			}					
 		}
-		atom_int_free(key);		
 	}
 
 	return all_aborted;
@@ -191,14 +194,13 @@ gboolean downloads_gui_update_parent_status(struct download *d,
 
 	if (NULL != d->file_info) {
 			
-		key = (gpointer) atom_int_get(&(d->file_info->fi_handle));
+		key = (gpointer) &d->file_info->fi_handle;
 		parent = find_parent_with_fi_handle(parents, key);
 
 		if (NULL != parent) {
 			changed = TRUE;
 			gtk_tree_store_set(model, parent, c_dl_status, new_status, (-1));
 		}
-		atom_int_free(key);		
 	}
 
 	return changed;
@@ -481,10 +483,10 @@ void downloads_gui_init(void)
 	GtkTreeView	*treeview;
 
 	/* Create parents hash tables, with functions to auto-free keys and data */
-	parents = g_hash_table_new_full(NULL, NULL,
+	parents = g_hash_table_new_full(g_int_hash, g_int_equal,
 		do_atom_fi_handle_free, (GDestroyNotify) w_tree_iter_free);
 
-	parents_queue = g_hash_table_new_full(NULL, NULL,
+	parents_queue = g_hash_table_new_full(g_int_hash, g_int_equal,
 		do_atom_fi_handle_free, (GDestroyNotify) w_tree_iter_free);
 	
 	
@@ -647,7 +649,7 @@ void download_gui_add(struct download *d)
 
 		if (NULL != d->file_info) {
 			
-			key = (gpointer) atom_int_get(&(d->file_info->fi_handle));
+			key = (gpointer) &d->file_info->fi_handle;
 			parent = find_parent_with_fi_handle(parents_queue, key);
 
 			if (NULL != parent) {
@@ -713,8 +715,6 @@ void download_gui_add(struct download *d)
 				d_file_name = "\"";
 				d_file_size = "";
 				
-				atom_int_free(key);		
-			
 			} else {
 				/*  There are no other downloads with the same file_info
 				 *  Add download as normal
@@ -749,7 +749,7 @@ void download_gui_add(struct download *d)
 		model = (GtkTreeStore *) gtk_tree_view_get_model(tree_view);
 		
 		if (NULL != d->file_info) {
-			key = atom_int_get(&d->file_info->fi_handle);
+			key = &d->file_info->fi_handle;
 			parent = find_parent_with_fi_handle(parents, key);
 
 			if (NULL != parent) {
@@ -832,8 +832,6 @@ void download_gui_add(struct download *d)
 				d_file_name = "\"";
 				d_file_size = "";
 
-				atom_int_free(key);
-
 			} else {
 				/* There are no other downloads with the same file_info
 				 * Add download as normal
@@ -914,7 +912,7 @@ void download_gui_remove(struct download *d)
 			/*  We need to discover if the download has a parent */
 			if (NULL != d->file_info) {
 		
-				key = atom_int_get(&d->file_info->fi_handle);
+				key = &d->file_info->fi_handle;
 				parent =  find_parent_with_fi_handle(parents_queue, key);
 
 				if (NULL != parent) {
@@ -988,8 +986,6 @@ void download_gui_remove(struct download *d)
 				} else 
 					g_warning("download_gui_remove(): "
 						"Download '%s' has no parent", d->file_name);
-	
-				atom_int_free(key);				
 			} 
 		} else
 			g_warning("download_gui_remove(): "
@@ -1016,7 +1012,7 @@ void download_gui_remove(struct download *d)
 			/*  We need to discover if the download has a parent */
 			if (NULL != d->file_info) {
 		
-				key = atom_int_get(&d->file_info->fi_handle);
+				key = &d->file_info->fi_handle;
 				parent = find_parent_with_fi_handle(parents, key);
 
 				if (NULL != parent) {
@@ -1092,8 +1088,6 @@ void download_gui_remove(struct download *d)
 				} else 
 					g_warning("download_gui_remove(): "
 					"Active download '%s' no parent", d->file_name);
-
-					atom_int_free(key);		
 			}	
 			
 		} else
@@ -1637,7 +1631,7 @@ void gui_update_download(struct download *d, gboolean force)
 		/*  Update header for downloads with multiple hosts */
 		if (NULL != d->file_info) {
 		
-			key = atom_int_get(&d->file_info->fi_handle);
+			key = &d->file_info->fi_handle;
 			parent = find_parent_with_fi_handle(parents, key);
 
 			if (NULL != parent) {
@@ -1694,8 +1688,6 @@ void gui_update_download(struct download *d, gboolean force)
 					}
 				}	
 			}			
-			
-			atom_int_free(key);
 		}	
 	}
 	
