@@ -37,8 +37,12 @@ else
     PKG_CHECK_MODULES(GTK_GNUTELLA, gtk+-2.0 >= 2.0.0 glib-2.0 >= 2.0.0)
     AC_SUBST(GTK_GNUTELLA_CFLAGS)
     AC_DEFINE(USE_GTK2)
-    
+
     frontend="Gtk 2.0 (experimental)"
+
+dnl We don't need any deprecated glib functions 
+	CPPFLAGS="${CPPFLAGS} -DG_DISABLE_DEPRECATED"
+    
 fi
 AM_CONDITIONAL(ENABLE_GTK2, test "x$enable_gtk2" = "xyes")
 
