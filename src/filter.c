@@ -25,10 +25,7 @@
  *----------------------------------------------------------------------
  */
 
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <regex.h>
+#include "common.h"
 
 #include "walloc.h"
 #include "filter.h"

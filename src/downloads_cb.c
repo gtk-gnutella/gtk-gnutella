@@ -23,7 +23,7 @@
  *----------------------------------------------------------------------
  */
 
-#include <regex.h>
+#include "common.h"
 #include "gui.h"
 
 #ifdef USE_GTK1

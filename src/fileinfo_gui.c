@@ -25,7 +25,7 @@
  *----------------------------------------------------------------------
  */
 
-#include <regex.h>
+#include "common.h"
 #include "gui.h"
 #include "filter_gui.h"
 
