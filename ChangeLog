@@ -1,5 +1,15 @@
 # since last version
 
+- (2004.01.16 - Richard)
+ * Replaced a number of g_free with G_FREE_NULL.
+ * [Gtk1] [Gtk2] Moved "close" button for searches to a more convenient 
+   position in the upper right.
+ * Made dmesh_remove state if it really removed something (preparetion
+   for XNalt support).
+ * [Gtk1] Integrated fast-sorting patch from Emile le Vivre.
+ * Moved init code from main_gui to downloads_gui.
+ * Moved hash_list code from glib-missing.[ch] to hashlist.[ch].
+
 - (2004.01.12 - RAM)
  * Display the amount of file descriptors currently used for banning.
  * New property "banned_count".
