@@ -205,6 +205,13 @@ void filter_gui_filter_clear_list(void)
     fl_node_free = gtk_ctree_insert_node(
         GTK_CTREE(ctree_filter_filters), NULL, NULL,
         titles, 0, NULL, NULL, NULL, NULL, FALSE, TRUE);
+
+    gtk_ctree_node_set_selectable
+        (GTK_CTREE(ctree_filter_filters), fl_node_global, FALSE);
+    gtk_ctree_node_set_selectable
+        (GTK_CTREE(ctree_filter_filters), fl_node_bound, FALSE);
+    gtk_ctree_node_set_selectable
+        (GTK_CTREE(ctree_filter_filters), fl_node_free, FALSE);
 }
 
 
