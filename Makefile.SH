@@ -80,20 +80,22 @@ local_clobber::
 	$(RM) install gtk-gnutella.spec
 
 local_install::
-	@for dir in $(PRIVLIB); do \
-	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
-	(set -x; test -d $(INSTALL_PREFIX)$$dir			\
-	|| $(INSTALLDIR) $(INSTALL_PREFIX)$$dir);	\
+	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	for dir in $(PRIVLIB); do	\
+	(set -x; test -d $(INSTALL_PREFIX)$$dir || \
+	$(INSTALLDIR) $(INSTALL_PREFIX)$$dir);	\
 	done
 
 local_deinstall::
-	@for dir in $(PRIVLIB); do \
-	case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	for dir in $(PRIVLIB); do \
 	(set -x; test -d $$dir && $(RM) -r $(INSTALL_PREFIX)$$dir); \
 	done
 
 local_install:: $(EXTRA_FILES)
-	@case '${MFLAGS}' in *[i]*) set +e;; esac; \
+	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	(set -x; test -d $(INSTALL_PREFIX)$(PRIVLIB) || \
+	$(INSTALLDIR) $(INSTALL_PREFIX)$(PRIVLIB)); \
 	for i in $(EXTRA_FILES); do \
 	(set -x; $(INSTALL) -c $(INSTALLFLAGS) $$i $(INSTALL_PREFIX)$(PRIVLIB)); \
 	done

@@ -22,6 +22,7 @@ DIR=`echo $CURRENT/ | sed -e 's/\.\///g'`
 echo "Extracting ${DIR}Makefile (with variable substitutions)"
 
 INSTALL=`echo $install | sed -e 's,\./i,\$(TOP)/i,'`
+INSTALLDIR=`echo $installdir | sed -e 's,\./i,\$(TOP)/i,'`
 DATE=`date`
 
 $spitshell >Makefile <<!GROK!THIS!
@@ -34,6 +35,7 @@ TOP = ..
 CURRENT = $CURRENT
 DIR = $DIR
 INSTALL = $INSTALL
+INSTALLDIR = $INSTALLDIR
 
 ########################################################################
 # Parameters set by Configure -- edit config.sh if changes are needed
@@ -98,7 +100,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.4 2003/08/15 18:01:46 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.5 2003/08/15 22:56:24 rmanfredi Exp $
 
 GUI_GTK2 = \
 	fileinfo_gui2.c \
@@ -414,12 +416,18 @@ gtk-gnutella:  $(OBJ) getdate.o
 	$(CC) -o $@  $(OBJ) getdate.o $(JLDFLAGS) $(LIBS)
 
 local_install:: gtk-gnutella
+	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	(set -x; test -d $(INSTALL_PREFIX)$(BINDIR) || \
+	$(INSTALLDIR) $(INSTALL_PREFIX)$(BINDIR)); \
 	$(INSTALL) -c -s -m 555  gtk-gnutella $(INSTALL_PREFIX)$(BINDIR)
 
 local_deinstall::
 	$(RM) $(INSTALL_PREFIX)$(BINDIR)/gtk-gnutella
 
 local_install.man:: gtk-gnutella.man
+	case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	(set -x; test -d $(INSTALL_PREFIX)$(MANSRC) || \
+	$(INSTALLDIR) $(INSTALL_PREFIX)$(MANSRC)); \
 	$(INSTALL) -c -m 444 gtk-gnutella.man $(INSTALL_PREFIX)$(MANSRC)/gtk-gnutella.$(L)
 
 local_deinstall.man::
