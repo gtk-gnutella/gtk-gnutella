@@ -593,7 +593,7 @@ void gui_update_download(struct download *d, gboolean force)
 	}
 
 	if (d->status != GTA_DL_TIMEOUT_WAIT)
-		d->last_update = time((time_t *) NULL);
+		d->last_gui_update = time((time_t *) NULL);
 
 	if (d->status != GTA_DL_QUEUED) {
 		row =
