@@ -565,9 +565,9 @@ void parq_download_queue_ack(struct gnutella_socket *s)
 	fflush(stdout);
 
  	/* ensured by socket_read() */
-	g_assert(0 == strncmp(queue, "QUEUE ", sizeof("QUEUE ")));
+	g_assert(0 == strncmp(queue, "QUEUE ", sizeof("QUEUE ") - 1));
 
-	id = queue + strlen("QUEUE ");
+	id = queue + sizeof("QUEUE ") - 1;
 	while (isspace((guchar) *id))
 		id++;
 		
