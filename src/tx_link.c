@@ -59,7 +59,7 @@ static void is_writable(gpointer data, gint source, inputevt_cond_t cond)
 	struct gnutella_node *n = tx->node;
 
 	g_assert(tx->flags & TX_SERVICE);		/* Servicing enabled */
-	g_return_if_fail(n);
+	g_assert(n);
 
 	if (cond & GDK_INPUT_EXCEPTION) {
 		node_remove(n, "Write failed (Input Exception)");
