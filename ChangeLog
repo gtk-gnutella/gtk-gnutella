@@ -1,5 +1,20 @@
 # since last version
 
+- (2002.12.28 - Richard)
+ * Added PROP_CURRENT_PEERMODE and PROP_ENABLE_ULTRAPEER to gui
+ * Added PROP_BAN_MAX_FDS and PROP_BAN_RATIO to gui
+ * Added PROP_LIB_DEBUG to gui
+ * Removed PROP_DEFAULT_POLICY: can be done using a filter rule in global
+   post filter. Is hardcoded to DO DISPLAY now.
+ * Added new property type: PROP_TYPE_MULTICHOICE. This is useful for 
+   property-controlled dropdown menus (GtkCombo).
+ * Added automatic bindings for GtkCombo widgets if they are in the
+   property_map in settings_gui.c.
+ * Added gtk_combo_init_choices to gtk-missing.c
+ * Dropdown menu for PROP_SEARCH_STATS_MODE is now fully property controlled.
+ * Dropdown menu for PROP_CURRENT_PEERMODE is now fully property controlled.
+ * Cleant up props.tpl. Uses more scheme code now.
+
 - (2002.12.28 - RAM)
  * Added ban_max_recompute() to recompute max amount of file descriptors.
  * Now sets the "max_banned_fd" property with the configured amount of fds.
