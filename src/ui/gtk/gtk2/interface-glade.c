@@ -5164,7 +5164,6 @@ create_main_window_search_tab (void)
   gtk_widget_show (textview_result_info_xml);
   gtk_container_add (GTK_CONTAINER (viewport462), textview_result_info_xml);
   gtk_text_view_set_editable (GTK_TEXT_VIEW (textview_result_info_xml), FALSE);
-  gtk_text_view_set_accepts_tab (GTK_TEXT_VIEW (textview_result_info_xml), FALSE);
   gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (textview_result_info_xml), GTK_WRAP_WORD);
   gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (textview_result_info_xml), FALSE);
   gtk_text_buffer_set_text (gtk_text_view_get_buffer (GTK_TEXT_VIEW (textview_result_info_xml)), _("\n\n\n"), -1);
