@@ -1697,6 +1697,9 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 	/* 
 	 * Extract User-Agent.
+	 *
+	 * User-Agent: whatever
+	 * Server: whatever (in case no User-Agent)
 	 */
 
 	user_agent = header_get(header, "User-Agent");
@@ -1799,8 +1802,6 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 	/*
 	 * Range: bytes=10453-23456
-	 * User-Agent: whatever
-	 * Server: whatever (in case no User-Agent)
 	 */
 
 	buf = header_get(header, "Range");
@@ -1814,11 +1815,18 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 			return;
 		}
 
+		/*
+		 * We don't properly support multiple ranges yet.
+		 * Just pick the first one, but warn so we know when people start
+		 * requesting multiple ranges at once.
+		 *		--RAM, 27/01/2003
+		 */
+
 		if (g_slist_next(ranges) != NULL) {
-			http_range_free(ranges);
-			upload_error_remove(u, NULL,
-				500, "Multiple Range requests unsupported");
-			return;
+			if (dbg) g_warning("client %s <%s> requested several ranges "
+				"for \"%s\": %s", ip_to_gchar(u->ip),
+				u->user_agent ? u->user_agent : "", reqfile->file_name,
+				http_range_to_gchar(ranges));
 		}
 
 		r = (http_range_t *) ranges->data;
