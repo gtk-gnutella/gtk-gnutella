@@ -32,7 +32,9 @@
 
 struct gnutella_node;
 
-struct upload {
+typedef struct upload {
+    gnet_upload_t upload_handle;
+
 	guint32 status;
 	struct gnutella_socket *socket;
 	gint error_sent;				/* HTTP error code sent back */
@@ -68,42 +70,7 @@ struct upload {
 	gboolean keep_alive;			/* Keep HTTP connection? */
 	gboolean push;
 	gboolean accounted;				/* True when upload was accounted for */
-};
-
-/*
- * Upload states.
- */
-
-#define GTA_UL_PUSH_RECEIVED	1	/* We got a push request */
-#define GTA_UL_COMPLETE			2	/* The file has been sent completely */
-#define GTA_UL_SENDING			3	/* We are sending data */
-#define GTA_UL_HEADERS			4	/* Receiving the HTTP request headers */
-#define GTA_UL_WAITING			5	/* Waiting new HTTP request */
-
-/*
- * State inspection macros.
- */
-
-#define UPLOAD_IS_CONNECTING(u)						\
-	(	(u)->status == GTA_UL_HEADERS				\
-	||	(u)->status == GTA_UL_PUSH_RECEIVED			\
-	||	(u)->status == GTA_UL_WAITING	)
-
-#define UPLOAD_IS_COMPLETE(u)	\
-	((u)->status == GTA_UL_COMPLETE)
-
-#define UPLOAD_IS_SENDING(u)	\
-	((u)->status == GTA_UL_SENDING)
-
-
-/*
- * Until we got all the HTTP headers, the entry does not appear
- * in the upload list on the GUI.
- */
-#define UPLOAD_IS_VISIBLE(u) \
-	((u)->status != GTA_UL_HEADERS)
-
-
+} gnutella_upload_t;
 
 /* 
  * Global Data
@@ -124,7 +91,6 @@ void handle_push_request(struct gnutella_node *);
 void upload_add(struct gnutella_socket *s);
 void upload_push_conf(struct upload *u);
 void upload_write(gpointer up, gint, GdkInputCondition);
-void upload_kill(struct upload *u);
 void upload_init(void);
 void upload_close(void);
 
