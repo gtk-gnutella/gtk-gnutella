@@ -531,7 +531,7 @@ void download_timer(time_t now)
 				 */
 				if (d->status == GTA_DL_ACTIVE_QUEUED)
 					parq_download_retry_active_queued(d);
-				else if (d->status == GTA_DL_CONNECTING)
+				else if (d->status == GTA_DL_CONNECTING && !(is_firewalled || !send_pushes))
 					download_fallback_to_push(d, TRUE, FALSE);
 				else if (d->status == GTA_DL_HEADERS)
 					download_incomplete_header(d);
@@ -6206,9 +6206,10 @@ static void download_request(
 	fi->recvcount++;
 	fi->dirty_status = TRUE;
 
-	dl_establishing--;
+ 	g_assert(dl_establishing > 0);
+ 	if (d->list_idx != DL_LIST_RUNNING)
+ 		download_move_to_list(d, DL_LIST_RUNNING);
 	dl_active++;
-	g_assert(dl_establishing >= 0);
 
 	gnet_prop_set_guint32_val(PROP_DL_RUNNING_COUNT, count_running_downloads());
 	gui_update_download(d, TRUE);
