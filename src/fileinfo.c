@@ -2945,7 +2945,7 @@ static void fi_check_file(struct dl_file_info *fi)
 	path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
 	g_return_if_fail(path);
 
-	if (-1 == stat(path, &buf) && ENOENT == errno) {
+	if (-1 == do_stat(path, &buf) && ENOENT == errno) {
 		g_warning("file %s removed, resetting swarming", path);
 		file_info_reset(fi);
 	}

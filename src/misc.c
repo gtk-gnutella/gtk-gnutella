@@ -1027,6 +1027,39 @@ void random_init(void)
 }
 
 /*
+ * do_stat
+ *
+ * Wrapper for the stat() system call.
+ */
+gint do_stat(const gchar *path, struct stat *buf)
+{
+	gint ret;
+
+	/*
+	 * On my system, since I upgraded to libc6 2.3.2, I have system calls
+	 * that fail with errno = 0.  I assume this is a multi-threading issue,
+	 * since my kernel is SMP and gcc 3.3 requires a libpthread.  Or whatever,
+	 * but it did not occur before with the same kernel and a previous libc6
+	 * along with gcc 2.95.
+	 *
+	 * So... Assume that if stat() returns -1 and errno is 0, then it
+	 * really means ENOENT.
+	 *
+	 *		--RAM, 27/10/2003
+	 */
+
+	ret = stat(path, buf);
+
+	if (-1 == ret && 0 == errno) {
+		g_warning("stat(\"%s\") returned -1 with errno = 0, assuming ENOENT",
+			path);
+		errno = ENOENT;
+	}
+
+	return ret;
+}
+
+/*
  * unique_filemame
  *
  * Determine unique filename for `file' in `path', with optional trailing
@@ -1053,16 +1086,11 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	filename[size - len] = '\0';
 	len = size - len;
 
-	// XXX -- temporary, tracking wrong errno returns --RAM, 26/10/2003
-	if (-1 == stat(filename, &buf) && ENOENT != errno)
-		g_warning("NOTICE stat failed for \"%s\" : errno=%d (%s)",
-			filename, errno, g_strerror(errno));
-
 	/*
 	 * Append file and extension, then try to see whether this file exists.
 	 */
 
-	if (-1 == stat(filename, &buf) && ENOENT == errno)
+	if (-1 == do_stat(filename, &buf) && ENOENT == errno)
 		return filename;
 
 	/*
@@ -1072,7 +1100,7 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 
 	for (i = 0; i < 100; i++) {
 		gm_snprintf(&filename[len], size - len, ".%02d%s", i, ext);
-		if (-1 == stat(filename, &buf) && ENOENT == errno)
+		if (-1 == do_stat(filename, &buf) && ENOENT == errno)
 			return filename;
 	}
 
@@ -1083,7 +1111,7 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	for (i = 0; i < 100; i++) {
 		guint32 rnum = random_value(RAND_MAX);
 		gm_snprintf(&filename[len], size - len, ".%x%s", rnum, ext);
-		if (-1 == stat(filename, &buf) && ENOENT == errno)
+		if (-1 == do_stat(filename, &buf) && ENOENT == errno)
 			return filename;
 	}
 
@@ -1095,7 +1123,7 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	gm_snprintf(&filename[len], size - len, ".%s%s",
 		guid_hex_str(xuid), ext);
 
-	if (-1 == stat(filename, &buf))
+	if (-1 == do_stat(filename, &buf))
 		return filename;
 
 	g_error("no luck with random number generator");	/* Should NOT happen */

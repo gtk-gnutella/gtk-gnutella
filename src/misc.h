@@ -183,4 +183,12 @@ char *strcasestr(const char *haystack, const char *needle);
 gchar *strcasestr(const gchar *haystack, const gchar *needle);
 #endif
 
+/*
+ * Syscall wrappers for errno == 0 bug. --RAM, 27/10/2003
+ */
+
+struct stat;
+
+gint do_stat(const gchar *path, struct stat *buf);
+
 #endif /* _misc_h_ */
