@@ -408,7 +408,7 @@ gboolean pcache_get_recent(hcache_type_t type, guint32 *ip, guint16 *port)
 	struct cached_pong *cp;
 	struct recent *rec;
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 
 	rec = &recent_pongs[type];
 
@@ -477,7 +477,7 @@ static void add_recent_pong(hcache_type_t type, struct cached_pong *cp)
 {
 	struct recent *rec;
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 
 	rec = &recent_pongs[type];
 
@@ -533,7 +533,7 @@ void pcache_clear_recent(hcache_type_t type)
 	GList *l;
 	struct recent *rec;
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 
 	rec = &recent_pongs[type];
 
@@ -1023,7 +1023,7 @@ static struct cached_pong *record_fresh_pong(
 	struct cached_pong *cp;
 	guint8 hop;
 
-	g_assert(type >= 0 && type < HCACHE_MAX);
+	g_assert((gint) type >= 0 && type < HCACHE_MAX);
 
 	cp = (struct cached_pong *) walloc(sizeof(struct cached_pong));
 
