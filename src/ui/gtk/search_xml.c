@@ -258,6 +258,7 @@ parse_target(const gchar *buf, gint *error)
 	}
 
 	target = v;
+
 	/* Not using GUINT_TO_POINTER() is intentional to prevent truncation
 	 * to 32-bit for backwards compability as explained above. */
 	return (gpointer) target;
@@ -308,7 +309,7 @@ target_map_reset(void)
  * @return a static buffer holding the string representation
  */
 static const gchar *
-target_to_string(gpointer target)
+target_to_string(filter_t *target)
 {
 	gpointer value;
 	static gchar buf[128];
@@ -324,6 +325,7 @@ target_to_string(gpointer target)
 	}
 	
     gm_snprintf(buf, sizeof buf, "0x%x", GPOINTER_TO_UINT(value));
+	
 	return gchar_to_xmlChar(buf);
 }
 
@@ -677,7 +679,7 @@ builtin_to_xml(xmlNodePtr parent)
     newxml = xml_new_empty_child(parent, NODE_BUILTIN);
 	for (i = 0; i < G_N_ELEMENTS(builtins); i++) {
     	xml_prop_set(newxml, builtins[i].tag,
-			target_to_string(builtins[i].target));
+			target_to_string(builtins[i].target()));
 	}
 }
 
