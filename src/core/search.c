@@ -1848,13 +1848,12 @@ search_results(gnutella_node_t *n, gint *results)
 	 * call dh_got_results() when oob_proxy_got_results() returns FALSE.
 	 */
 
-	if (
-		forward_it && proxy_oob_queries &&
-		oob_proxy_got_results(n, rs->num_recs)
-	)
-		forward_it = FALSE;
-	else
-		dh_got_results(n->header.muid, rs->num_recs);
+	if (forward_it) {
+		if (proxy_oob_queries && oob_proxy_got_results(n, rs->num_recs))
+			forward_it = FALSE;
+		else
+			dh_got_results(n->header.muid, rs->num_recs);
+	}
 
     /*
      * Look for records that match entries in the download queue.
