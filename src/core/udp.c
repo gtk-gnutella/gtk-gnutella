@@ -58,9 +58,9 @@ udp_is_valid_gnet(struct gnutella_socket *s)
 	struct gnutella_node *n = node_udp_get_ip_port(s->ip, s->port);
 	struct gnutella_header *head;
 	gchar *msg;
-	guint32 size;
+	guint32 size;				/* Payload size, from the Gnutella message */
 
-	if (s->pos < sizeof(struct gnutella_header)) {
+	if (s->pos < GTA_HEADER_SIZE) {
 		msg = "Too short";
 		goto not;
 	}
@@ -68,13 +68,13 @@ udp_is_valid_gnet(struct gnutella_socket *s)
 	head = (struct gnutella_header *) s->buffer;
 	READ_GUINT32_LE(head->size, size);
 
-	n->header = *head;			/* Struct copy */
-	n->size = size;
+	n->header = *head;						/* Struct copy */
+	n->size = s->pos - GTA_HEADER_SIZE;		/* Payload size if Gnutella msg */
 
 	gnet_stats_count_received_header(n);
 	gnet_stats_count_received_payload(n);
 
-	if (size + sizeof(struct gnutella_header) != s->pos) {
+	if (size + GTA_HEADER_SIZE != s->pos) {
 		msg = "Size mismatch";
 		goto not;
 	}
@@ -93,13 +93,18 @@ udp_is_valid_gnet(struct gnutella_socket *s)
 	case GTA_MSG_SEARCH_RESULTS:
 		break;
 	case GTA_MSG_SEARCH:
-		return FALSE;		/* XXX don't handle GUESS queries for now */
+		msg = "Queries not yet processed from UDP";
+		goto drop;			/* XXX don't handle GUESS queries for now */
 	default:
-		msg = "Invalid Gnutella message type";
-		goto not;
+		msg = "Gnutella message not processed from UDP";
+		goto drop;
 	}
 
 	return TRUE;
+
+drop:
+	gnet_stats_count_dropped(n, MSG_DROP_UNEXPECTED);
+	/* FALL THROUGH */
 
 not:
 	if (udp_debug) {
