@@ -1,5 +1,13 @@
 # since last version
 
+- (2002.09.24 - Richard)
+ * Cleant up search_xml.c a little
+ * Fixed another memory leak in search_xml.c
+ * Partially fixed: Uploads and downloads won't abort (#612374)
+   Should work for uploads, "abort by SHA1" and "abort by name". The
+   "abort by host" was optimized by Raphael and I dont see the bug right
+   now.
+
 - (2002.09.24 RAM)
  * Added the EXT_NONE extension to hold separator overhead.
  * Don't warn at exit time on fileinfo entries with refcount=0.
