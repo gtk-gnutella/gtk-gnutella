@@ -60,6 +60,7 @@
 #include "icon.h"
 #include "hostiles.h"
 #include "clock.h"
+#include "eval.h"
 
 #ifdef USE_REMOTE_SHELL
 #include "shell.h"
@@ -167,6 +168,7 @@ void gtk_gnutella_exit(gint n)
 	version_close();
 	ignore_close();
 	bg_close();
+	eval_close();
 	atom_str_free(start_rfc822_date);
 	atoms_close();
 	adns_close();
@@ -408,6 +410,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	log_init();
 	adns_init();
 	atoms_init();
+	eval_init();
 	version_init();
 	random_init();
     gnet_stats_init();

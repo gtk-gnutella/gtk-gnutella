@@ -191,6 +191,7 @@ gtk_gnutella_SOURCES = \
 	icon.c icon.h \
 	hostiles.c hostiles.h \
 	clock.c clock.h \
+	eval.c eval.h \
 	nodes_gui_common.c nodes_gui_common.h \
 	uploads_gui_common.c uploads_gui_common.h
 
