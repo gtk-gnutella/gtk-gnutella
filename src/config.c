@@ -190,6 +190,7 @@ gint filter_default_policy = 1; // default to "display"
 guint16 downloads_divider_pos = 160;
 guint16 main_divider_pos = 128;
 guint16 side_divider_pos = 128;
+guint16 filter_main_divider_pos = 200;
 
 time_t tab_update_time = 5;
 
@@ -211,6 +212,7 @@ guint32 search_stats_col_widths[] = { 200, 80, 80 };
 guint32 ul_stats_col_widths[] = { 200, 80, 80, 80, 80 };
 guint32 search_list_col_widths[] = { 80, 20, 20 };
 guint32 filter_table_col_widths[] = { 10, 240, 80, 40 };
+guint32 filter_filters_col_widths[] = { 80,20,20 };
 
 gboolean jump_to_downloads = TRUE;
 
@@ -277,7 +279,8 @@ typedef enum {
 	k_widths_uploads,
 	k_widths_dl_active, k_widths_dl_queued, k_widths_search_results,
 	k_widths_search_stats, k_widths_ul_stats, k_widths_search_list, 
-    k_widths_filter_table, k_search_results_show_tabs,
+    k_widths_filter_table, k_widths_filter_filters, 
+    k_search_results_show_tabs,
 	k_hops_random_factor, k_send_pushes, k_jump_to_downloads,
 	k_max_connections, k_proxy_connections,
 	k_proxy_protocol, k_proxy_ip, k_proxy_port, k_proxy_auth, k_socks_user,
@@ -320,6 +323,7 @@ typedef enum {
     k_downloads_divider_pos,
     k_main_divider_pos,
     k_side_divider_pos,
+    k_filter_main_divider_pos,
     k_filter_default_policy,
     k_filter_dlg_coords,
 	k_end
@@ -391,6 +395,7 @@ static gchar *keywords[k_end] = {
 	"widths_ul_stats",			/* k_widths_ul_stats */
     "widths_search_list",       /* k_widths_search_list */
     "widths_filter_table",      /* k_widths_filter_table */
+    "widths_filter_filters",    /* k_widths_filter_filters */
 	"show_results_tabs",		/* k_search_results_show_tabs */
 	"hops_random_factor",		/* k_hops_random_factor */
 	"send_pushes",				/* k_send_pushes */
@@ -453,6 +458,7 @@ static gchar *keywords[k_end] = {
     "downloads_divider_pos",
     "main_divider_pos",
     "side_divider_pos",
+    "filter_main_divider_pos",
     "filter_default_policy",
     "filter_dlg_coords"
 };
@@ -715,6 +721,7 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_NUM(downloads_divider_pos,          0,    5000)
         CONFIG_SET_NUM(main_divider_pos,               0,    5000)
         CONFIG_SET_NUM(side_divider_pos,               0,    5000)
+        CONFIG_SET_NUM(filter_main_divider_pos,        0,    5000)
         CONFIG_SET_NUM(hard_ttl_limit,                 5,     254)
         CONFIG_SET_NUM(hops_random_factor,             0,       3)
         CONFIG_SET_NUM(listen_port,                    0,   65535)
@@ -915,6 +922,12 @@ void config_set_param(keyword_t keyword, gchar *value)
 		if ((a = config_parse_array(value, 4)))
 			for (i = 0; i < 4; i++)
 				filter_table_col_widths[i] = a[i];
+		return;
+
+    case k_widths_filter_filters:
+		if ((a = config_parse_array(value, 3)))
+			for (i = 0; i < 3; i++)
+				filter_filters_col_widths[i] = a[i];
 		return;
 
 	case k_forced_local_ip:
@@ -1179,6 +1192,7 @@ static void config_save(void)
         CONFIG_WRITE_UINT(downloads_divider_pos)
         CONFIG_WRITE_UINT(main_divider_pos)
         CONFIG_WRITE_UINT(side_divider_pos)
+        CONFIG_WRITE_UINT(filter_main_divider_pos)
         fprintf(config, "%s = %u,%u,%u,%u,%u\n", keywords[k_widths_nodes],
 			nodes_col_widths[0], nodes_col_widths[1],
 			nodes_col_widths[2], nodes_col_widths[3], nodes_col_widths[4]);
@@ -1216,6 +1230,10 @@ static void config_save(void)
 			keywords[k_widths_filter_table],
 			filter_table_col_widths[0], filter_table_col_widths[1],
             filter_table_col_widths[2], filter_table_col_widths[3]);
+        fprintf(config, "%s = %u,%u,%u\n",
+			keywords[k_widths_filter_filters],
+			filter_filters_col_widths[0], filter_filters_col_widths[1],
+            filter_filters_col_widths[2]);
        	fprintf(config, "%s = %u,%u,%u,%u\n", keywords[k_win_coords], 
             win_x, win_y, win_w, win_h);
         fprintf(config, "%s = %u,%u,%u,%u\n", keywords[k_filter_dlg_coords], 
