@@ -1309,7 +1309,7 @@ static void _sock_set(gint fd, gint option, gint size,
 
 	if (!shrink && old_len >= size) {
 		if (dbg > 5)
-			printf("SOCKET %s buffer on fd #%d NOT shrank to %d bytes (is %d)\n",
+			printf("socket %s buffer on fd #%d NOT shrank to %d bytes (is %d)\n",
 				type, fd, size, old_len);
 		return;
 	}
@@ -1328,7 +1328,7 @@ static void _sock_set(gint fd, gint option, gint size,
 #endif
 
 	if (dbg > 5)
-		printf("SOCKET %s buffer on fd #%d: %d -> %d bytes (now %d) %s\n",
+		printf("socket %s buffer on fd #%d: %d -> %d bytes (now %d) %s\n",
 			type, fd, old_len, size, new_len,
 			(new_len == size) ? "OK" : "FAILED");
 }
