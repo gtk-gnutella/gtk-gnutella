@@ -2,8 +2,14 @@
 
 # v 0.95	2004.11.27	[stable]
 
+- Support for very old Gnutella features has been removed or deprecated
+  to keep the network healthy.  Note that GTKG 0.94 is now considered a
+  deprecated servent in terms of Gnutella features.  Every GTKG user
+  MUST upgrade to 0.95 as soon as possible.
 - GUI updates:
  * [GTK2] Enable drag and drop for magnet links
+ * [GTK1] Search results have less columns, and the hit details are now
+   displayed in a separate pane underneath.
  * Visual progress indicator correctly shows newly downloaded
    fragments, shows fragments currently available for download more
    accurately, and active downloads are marked with arrows.
@@ -12,31 +18,42 @@
    looking for if you get many search results.
  * A detailed view has been added to the search results to show all
    available information for a search result.
+ * The status bar will now give feedback about the contacted host caches.
+ * Gnutella node stats can now show how many bytes were sent/received.
+ * In the node pane, right-clicking now allows to configure which columns
+   should be displayed, just like in the search pane.
+ * More general statistics in the stats pane.  It is possible to see TCP and/or
+   UDP traffic stats separately (for messages only, not flow-control).
 - Bitzi support has been added to retrieve additional information on
   possible downloads. See http://bitzi.com/ for details.
 - The geographic location of hosts can now be shown courtesy of MaxMind.
-- Recently developed features of the Gnutella network are now
-  supported:
+- Recently developed features of the Gnutella network are now supported:
  * High outdegree provides better connectivity between Gnutella hosts.
- * Last-hop QRP 
- * Dynamic querying
+   The maximum TTL in the network is now 4 and ultra nodes must maintain
+   at least a connection with 30 peers.
+ * Last-hop QRP between ultra peers.
+ * Dynamic querying support, allows selective querying of peers instead
+   of simply broadcasting the query.  It is used for leaf queries and
+   for your queries when running as an ultra node.
  * OOB (out of band) query hits lets other servents deliver search
    results directly to you instead of going through the Gnutella network.
-- UDP is now also supported as a transport protocol in addition to
-  TCP. You may need to make changes to your firewall settings to take
-  advantage of this.
-- Support for very old Gnutella features has been removed or
-  deprecated to keep the network healthy.
+ * OOB proxied queries, allowing direct hit delivery at the ultra node level
+   for queries emitted by legacy leaves.
+ * GTKG will now prevent firewalled hosts from running as ultra nodes.
+ * In "auto mode", GTKG will revert to leaf mode when uploads are stalling
+   at an abnormally high rate, indicating bandwidth is saturated.
+- UDP is now also supported as a transport protocol in addition to TCP.
+  You may need to make changes to your firewall settings to take full
+  advantage of this.  The UDP port used is the same as the one used for TCP.
+- Firewall detection has been improved to include UDP firewalling detection.
+- Clock skew computation for hosts not running NTP has been redesigned.
+  Also, GTKG will now automatically detect a locally running NTP.
 - Japanese translation added.
 - French and German translation updated.
 
-
-- (2004-11-21 - Richard)
- * Merge most of hache_remove into hcache_unlink_host and made the first
-   use the latter.
- * [Gtk1] Added settings_gui_init_late() to restore split_pane positions after
-   main window is resized and visible.
- * [Gtk1] Added viewport around result details.
+- (2004-11-27 - RAM)
+ * Don't drop queries that have travelled more than our max TTL if they
+   are requesting OOB hit delivery and we are configured to honour that flag.
 
 - (2004-11-26 - RAM)
  * (fileinfo.c) Fixed static assert in READ_INT32 for Alpha, where time_t
@@ -48,6 +65,13 @@
  * When sending non "alive" pings, include the "SCP" mark to get packed pongs.
  * When replying to pings from Gnutella, give them "IPP" packed addresses if
    they mentionned support for "SCP", even though the request comes via TCP.
+
+- (2004-11-21 - Richard)
+ * Merge most of hache_remove into hcache_unlink_host and made the first
+   use the latter.
+ * [Gtk1] Added settings_gui_init_late() to restore split_pane positions after
+   main window is resized and visible.
+ * [Gtk1] Added viewport around result details.
 
 - (2004-11-20 - RAM)
  * Was only storing the freshest hosts from the cache, not the whole cache.
