@@ -238,3 +238,17 @@ gboolean alive_ack_ping(gpointer obj, guchar *muid)
 	return FALSE;		/* Was a true regular "connectible" pong */
 }
 
+/*
+ * alive_get_roundtrip_ms
+ *
+ * Returns the average/last ping/pong roundtrip time into supplied pointers.
+ * Values are expressed in milliseconds.
+ */
+void alive_get_roundtrip_ms(gpointer obj, guint32 *avg, guint32 *last)
+{
+	struct alive *a = (struct alive *) obj;
+
+	if (avg)	*avg = a->avg_rt;
+	if (last)	*last = a->last_rt;
+}
+
