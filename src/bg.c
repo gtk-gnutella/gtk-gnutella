@@ -1038,10 +1038,7 @@ void bg_close(void)
 	GSList *c;
 	gint count;
 
-	for (c = NULL, l = runq; l; l = l->next)	/* Clone list for iterating */
-		c = g_slist_prepend(c, l->data);
-
-	for (count = 0, l = c; l; l = l->next) {
+	for (count = 0, c = g_slist_copy(runq), l = c; l; l = l->next) {
 		count++;
 		bg_task_terminate(l->data);
 	}
@@ -1051,10 +1048,7 @@ void bg_close(void)
 	if (count)
 		g_warning("terminated %d running task%s", count, count == 1 ? "" : "s");
 
-	for (c = NULL, l = sleepq; l; l = l->next)	/* Clone list for iterating */
-		c = g_slist_prepend(c, l->data);
-
-	for (count = 0, l = c; l; l = l->next) {
+	for (count = 0, c = g_slist_copy(sleepq), l = c; l; l = l->next) {
 		count++;
 		bg_task_terminate(l->data);
 	}
