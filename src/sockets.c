@@ -4,8 +4,6 @@
  * Copyright (c) 2001-2003, Raphael Manfredi
  * Copyright (c) 2000 Daniel Walker (dwalker@cats.ucsc.edu)
  *
- * Socket management.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -24,6 +22,12 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @file
+ *
+ * Socket management.
  */
 
 #include "gnutella.h"
@@ -60,6 +64,7 @@
 #include "adns.h"
 #include "hostiles.h"
 #include "pproxy.h"
+#include "udp.h"
 
 #ifdef USE_REMOTE_CTRL
 #include "shell.h"
@@ -78,6 +83,14 @@ RCSID("$Id$");
 #define SOCK_ADNS_PENDING	0x01	/* Don't free() the socket too early */
 #define SOCK_ADNS_FAILED	0x02	/* Signals error in the ADNS callback */
 #define SOCK_ADNS_BADNAME	0x04	/* Signals bad host name */
+
+/*
+ * UDP address information for datagrams.
+ */
+struct udp_addr {
+	struct sockaddr ud_addr;
+	gint ud_addrlen;
+};
 
 static gboolean ip_computed = FALSE;
 
@@ -98,7 +111,11 @@ static gboolean sol_got = FALSE;
 static gint sol_tcp_cached = -1;
 static gint sol_ip_cached = -1;
 
-static void get_sol(void)
+/**
+ * Compute and cache values for SOL_TCP and SOL_IP.
+ */
+static void
+get_sol(void)
 {
 	struct protoent *pent;
 
@@ -111,41 +128,36 @@ static void get_sol(void)
 	sol_got = TRUE;
 }
 
-static gint sol_tcp(void)
+/**
+ * Returns SOL_TCP.
+ */
+static gint
+sol_tcp(void)
 {
 	if (!sol_got) /* FIXME: This should be done in socket_init() */
 		get_sol();
 	return sol_tcp_cached;
 }
 
-#ifdef USE_IP_TOS
-  
-static gint sol_ip(void)
+/**
+ * Returns SOL_IP.
+ */
+static gint
+sol_ip(void)
 {
 	if (!sol_got) /* FIXME: This should be done in socket_init() */
 		get_sol();
 	return sol_ip_cached;
 }
 
-/*
- * socket_eof
- *
- * Got an EOF condition on the socket.
- */
-void socket_eof(struct gnutella_socket *s)
-{
-	g_assert(s != NULL);
-
-	s->flags |= SOCK_F_EOF;
-}
-
-/*
- * socket_tos
- *
+#ifdef USE_IP_TOS
+  
+/**
  * Set the TOS on the socket.  Routers can use this information to
  * better route the IP datagrams.
  */
-static void socket_tos(struct gnutella_socket *s, gint tos)
+static void
+socket_tos(struct gnutella_socket *s, gint tos)
 {
 	if (!use_ip_tos)
 		return;
@@ -168,45 +180,7 @@ static void socket_tos(struct gnutella_socket *s, gint tos)
 	}
 }
 
-/*
- * socket_tos_normal
- * 
- * Set the Type of Service (TOS) field to "normal."
- */
-void socket_tos_normal(struct gnutella_socket *s)
-{
-	socket_tos(s, 0);
-}
-
-/*
- * socket_tos_lowdelay
- *
- * Set the Type of Service (TOS) field to "lowdelay." This may cause
- * your host and/or any routers along the path to put its packets in
- * a higher-priority queue, and/or to route them along the lowest-
- * latency path without regard for bandwidth.
- */
-void socket_tos_lowdelay(struct gnutella_socket *s)
-{
-	socket_tos(s, IPTOS_LOWDELAY);
-}
-
-/*
- * socket_tos_throughput
- *
- * Set the Type of Service (TOS) field to "throughput." This may cause
- * your host and/or any routers along the path to put its packets in
- * a lower-priority queue, and/or to route them along the highest-
- * bandwidth path without regard for latency.
- */
-void socket_tos_throughput(struct gnutella_socket *s)
-{
-	socket_tos(s, IPTOS_THROUGHPUT);
-}
-
-/*
- * socket_tos_default
- *
+/**
  * Pick an appropriate default TOS for packets on the socket, based
  * on the socket's type.
  */
@@ -227,20 +201,69 @@ void socket_tos_default(struct gnutella_socket *s)
 	}
 }
 #else
-void socket_tos_default(struct gnutella_socket *s)
+static void
+socket_tos(struct gnutella_socket *s, gint tos)
+{
+	/* Empty */
+}
+
+void
+socket_tos_default(struct gnutella_socket *s)
 {
 	/* Empty */
 }
 #endif /* USE_IP_TOS */
 
+/**
+ * Set the Type of Service (TOS) field to "normal."
+ */
+void
+socket_tos_normal(struct gnutella_socket *s)
+{
+	socket_tos(s, 0);
+}
 
-/*
- * socket_timer
- *
+/**
+ * Set the Type of Service (TOS) field to "lowdelay." This may cause
+ * your host and/or any routers along the path to put its packets in
+ * a higher-priority queue, and/or to route them along the lowest-
+ * latency path without regard for bandwidth.
+ */
+void
+socket_tos_lowdelay(struct gnutella_socket *s)
+{
+	socket_tos(s, IPTOS_LOWDELAY);
+}
+
+/**
+ * Set the Type of Service (TOS) field to "throughput." This may cause
+ * your host and/or any routers along the path to put its packets in
+ * a lower-priority queue, and/or to route them along the highest-
+ * bandwidth path without regard for latency.
+ */
+void
+socket_tos_throughput(struct gnutella_socket *s)
+{
+	socket_tos(s, IPTOS_THROUGHPUT);
+}
+
+/**
+ * Got an EOF condition on the socket.
+ */
+void
+socket_eof(struct gnutella_socket *s)
+{
+	g_assert(s != NULL);
+
+	s->flags |= SOCK_F_EOF;
+}
+
+/**
  * Called by main timer.
  * Expires inactive sockets.
  */
-void socket_timer(time_t now)
+void
+socket_timer(time_t now)
 {
 	GSList *l;
 	GSList *to_remove = NULL;
@@ -272,7 +295,11 @@ void socket_timer(time_t now)
 	g_slist_free(to_remove);
 }
 
-void socket_shutdown(void)
+/**
+ * Cleanup data structures on shutdown.
+ */
+void
+socket_shutdown(void)
 {
 	while (sl_incoming)
 		socket_destroy((struct gnutella_socket *) sl_incoming->data, NULL);
@@ -280,15 +307,14 @@ void socket_shutdown(void)
 
 /* ----------------------------------------- */
 
-/*
- * socket_destroy
- *
+/**
  * Destroy a socket.
  *
  * If there is an attached resource, call the resource's termination routine
  * with the supplied reason.
  */
-static void socket_destroy(struct gnutella_socket *s, const gchar *reason)
+static void
+socket_destroy(struct gnutella_socket *s, const gchar *reason)
 {
 	g_assert(s);
 
@@ -339,13 +365,12 @@ static void socket_destroy(struct gnutella_socket *s, const gchar *reason)
 	socket_free(s);
 }
 
-/*
- * socket_free
- *
+/**
  * Dispose of socket, closing connection, removing input callback, and
  * reclaiming attached getline buffer.
  */
-void socket_free(struct gnutella_socket *s)
+void
+socket_free(struct gnutella_socket *s)
 {
 	g_assert(s);
 
@@ -356,6 +381,10 @@ void socket_free(struct gnutella_socket *s)
 	else
 		bws_sock_connect_timeout(s->type);
 
+	if (s->flags & SOCK_F_UDP) {
+		if (s->resource.handle)
+			wfree(s->resource.handle, sizeof(struct udp_addr));
+	}
 	if (s->last_update) {
 		g_assert(sl_incoming);
 		sl_incoming = g_slist_remove(sl_incoming, s);
@@ -384,9 +413,7 @@ void socket_free(struct gnutella_socket *s)
 
 /* ----------------------------------------- */
 
-/* 
- * socket_read:
- *
+/* *
  * Used for incoming connections, for outgoing too??
  * Read bytes on an unknown incoming socket. When the first line
  * has been read it's decided on what type cof connection this is.
@@ -394,7 +421,8 @@ void socket_free(struct gnutella_socket *s)
  * will be called as often as necessary to fetch a full line.
  */
 
-static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
+static void
+socket_read(gpointer data, gint source, inputevt_cond_t cond)
 {
 	gint r;
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
@@ -404,10 +432,6 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	time_t banlimit;
 
 	(void) source;
-
-#if 0
-	s->type = 0;
-#endif
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		socket_destroy(s, "Input exception");
@@ -649,17 +673,17 @@ cleanup:
 	socket_destroy(s, NULL);
 }
 
-/*
- * socket_connected:
+/**
+ * Callback for outgoing connections!
  *
- * Used for outgoing connections!
  * Called when a socket is connected. Checks type of connection and hands
  * control over the connetion over to more specialized handlers. If no
  * handler was found the connection is terminated.
  * This is the place to hook up handlers for new communication types.
  * So far there are CONTROL, UPLOAD, DOWNLOAD and HTTP handlers.
  */
-static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
+static void
+socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 {
 	/* We are connected to somebody */
 
@@ -870,7 +894,11 @@ static void socket_connected(gpointer data, gint source, inputevt_cond_t cond)
 
 }
 
-static void guess_local_ip(int sd)
+/**
+ * Tries to guess the local IP address.
+ */
+static void
+guess_local_ip(int sd)
 {
 	struct sockaddr_in addr;
 	gint len = sizeof(struct sockaddr_in);
@@ -898,12 +926,11 @@ static void guess_local_ip(int sd)
 	}
 }
 
-/*
- * socket_port
- *
+/**
  * Return socket's local port, or -1 on error.
  */
-static int socket_local_port(struct gnutella_socket *s)
+static int
+socket_local_port(struct gnutella_socket *s)
 {
 	struct sockaddr_in addr;
 	gint len = sizeof(struct sockaddr_in);
@@ -914,22 +941,21 @@ static int socket_local_port(struct gnutella_socket *s)
 	return ntohs(addr.sin_port);
 }
 
-/*
- * socket_accept
- *
+/**
  * Someone is connecting to us.
  */
-static void socket_accept(gpointer data, gint source, inputevt_cond_t cond)
+static void
+socket_accept(gpointer data, gint source, inputevt_cond_t cond)
 {
 	struct sockaddr_in addr;
 	gint sd, len = sizeof(struct sockaddr_in);
 	struct gnutella_socket *s = (struct gnutella_socket *) data;
 	struct gnutella_socket *t = NULL;
 
-	(void) source;
+	g_assert(s->flags & SOCK_F_TCP);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		g_warning("Input Exception for listening socket #%d !!!!",
+		g_warning("Input Exception for TCP listening socket #%d !!!!",
 				  s->file_desc);
 		gtk_gnutella_exit(2);
 		return;
@@ -966,7 +992,6 @@ static void socket_accept(gpointer data, gint source, inputevt_cond_t cond)
 	}
 
 accepted:
-	s->flags |= SOCK_F_ESTABLISHED;
 	bws_sock_accepted(SOCK_TYPE_HTTP);	/* Do not charge Gnet b/w for that */
 
 	if (!local_ip)
@@ -985,6 +1010,7 @@ accepted:
 	t->type = s->type;
 	t->local_port = s->local_port;
 	t->getline = getline_make(MAX_LINE_SIZE);
+	t->flags |= SOCK_F_ESTABLISHED;
 
 	switch (s->type) {
 	case SOCK_TYPE_CONTROL:
@@ -1020,18 +1046,72 @@ accepted:
 	inet_got_incoming(t->ip);	/* Signal we got an incoming connection */
 }
 
+/**
+ * Someone is sending us a datagram.
+ */
+static void
+socket_udp_accept(gpointer data, gint source, inputevt_cond_t cond)
+{
+	struct gnutella_socket *s = (struct gnutella_socket *) data;
+	struct udp_addr *addr;
+	struct sockaddr_in *inaddr;
+	gint r;
+
+	g_assert(s->flags & SOCK_F_UDP);
+	g_assert(s->type == SOCK_TYPE_UDP);
+
+	if (cond & INPUT_EVENT_EXCEPTION) {
+		g_warning("Input Exception for UDP listening socket #%d !!!!",
+				  s->file_desc);
+		return;
+	}
+
+	/*
+	 * Receive the datagram in the socket's buffer.
+	 */
+
+	addr = (struct udp_addr *) s->resource.handle;
+	addr->ud_addrlen = sizeof(addr->ud_addr);
+
+	r = recvfrom(s->file_desc, s->buffer, sizeof(s->buffer), 0,
+		&addr->ud_addr, &addr->ud_addrlen);
+
+	if (r == -1) {
+		g_warning("ignoring datagram reception error: %s", g_strerror(errno));
+		return;
+	}
+
+	bws_udp_count_read(r);
+	s->pos = r;
+
+	/*
+	 * Record remote address.
+	 */
+
+	g_assert(addr->ud_addrlen == sizeof(*inaddr));
+
+	inaddr = (struct sockaddr_in *) &addr->ud_addr;
+
+	s->ip = ntohl(inaddr->sin_addr.s_addr);
+	s->port = ntohs(inaddr->sin_port);
+
+	/*
+	 * Signal reception of a datagram to the UDP layer.
+	 */
+
+	udp_received(s);
+}
+
 /*
  * Sockets creation
  */
 
-/*
- * socket_connect_prepare
- *
+/**
  * Called to prepare the creation of the socket connection.
  * Returns NULL in case of failure.
  */
-static struct gnutella_socket *socket_connect_prepare(
-	guint16 port, enum socket_type type)
+static struct gnutella_socket *
+socket_connect_prepare(guint16 port, enum socket_type type)
 {	
 	struct gnutella_socket *s;
 	gint sd, option = 1;
@@ -1063,6 +1143,7 @@ created:
 	s->direction = SOCK_CONN_OUTGOING;
 	s->file_desc = sd;
 	s->port = port;
+	s->flags |= SOCK_F_TCP;
 
 	setsockopt(s->file_desc, SOL_SOCKET, SO_KEEPALIVE, (void *) &option,
 			   sizeof(option));
@@ -1076,14 +1157,12 @@ created:
 	return s;
 }
 
-/*
- * socket_connect_finalize
- *
+/**
  * Called to finalize the creation of the socket connection, which is done
  * in two steps since DNS resolving is asynchronous.
  */
-static struct gnutella_socket *socket_connect_finalize(
-	struct gnutella_socket *s, guint32 ip_addr)
+static struct gnutella_socket *
+socket_connect_finalize(struct gnutella_socket *s, guint32 ip_addr)
 {
 	gint res = 0;
 	struct sockaddr_in addr;
@@ -1174,16 +1253,14 @@ static struct gnutella_socket *socket_connect_finalize(
 	return s;
 }
 
-/*
- * socket_connect
- *
+/**
  * Creates a connected socket with an attached resource of `type'.
  *
  * Connection happens in the background, the connection callback being
  * determined by the resource type.
  */
-struct gnutella_socket *socket_connect(
-	guint32 ip_addr, guint16 port, enum socket_type type)
+struct gnutella_socket *
+socket_connect(guint32 ip_addr, guint16 port, enum socket_type type)
 {
 	/* Create a socket and try to connect it to ip:port */
 
@@ -1195,24 +1272,22 @@ struct gnutella_socket *socket_connect(
 	return socket_connect_finalize(s, ip_addr);
 }
 
-/*
- * socket_bad_hostname
- *
+/**
  * Returns whether bad hostname was reported after a DNS lookup.
  */
-gboolean socket_bad_hostname(struct gnutella_socket *s)
+gboolean
+socket_bad_hostname(struct gnutella_socket *s)
 {
 	g_assert(NULL != s);
 
 	return (s->adns & SOCK_ADNS_BADNAME) ? TRUE : FALSE;
 }
 
-/*
- * socket_connect_by_name_helper
- *
+/**
  * Called when we got a reply from the ADNS process.
  */
-static void socket_connect_by_name_helper(guint32 ip_addr, gpointer user_data)
+static void
+socket_connect_by_name_helper(guint32 ip_addr, gpointer user_data)
 {
 	struct gnutella_socket *s = user_data;
 
@@ -1232,14 +1307,12 @@ static void socket_connect_by_name_helper(guint32 ip_addr, gpointer user_data)
 	s->adns &= ~SOCK_ADNS_PENDING;
 }
 
-/*
- * socket_connect_by_name
- *
+/**
  * Like socket_connect() but the remote address is not known and must be
  * resolved through async DNS calls.
  */
-struct gnutella_socket *socket_connect_by_name(
-	const gchar *host, guint16 port, enum socket_type type)
+struct gnutella_socket *
+socket_connect_by_name(const gchar *host, guint16 port, enum socket_type type)
 {
 	/* Create a socket and try to connect it to host:port */
 
@@ -1264,13 +1337,12 @@ struct gnutella_socket *socket_connect_by_name(
 	return s;
 }
 
-/*
- * socket_listen
- *
- * Creates a non-blocking listening socket with an attached resource of `type'.
+/**
+ * Creates a non-blocking TCP listening socket with an attached
+ * resource of `type'.
  */
-struct gnutella_socket *socket_listen(
-	guint32 ip, guint16 port, enum socket_type type)
+struct gnutella_socket *
+socket_tcp_listen(guint32 ip, guint16 port, enum socket_type type)
 {
 	/* Create a socket, then bind() and listen() it */
 
@@ -1292,6 +1364,7 @@ struct gnutella_socket *socket_listen(
 	s->direction = SOCK_CONN_LISTENING;
 	s->file_desc = sd;
 	s->pos = 0;
+	s->flags |= SOCK_F_TCP;
 
 	setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, (void *) &option,
 			   sizeof(option));
@@ -1344,16 +1417,91 @@ struct gnutella_socket *socket_listen(
 	return s;
 }
 
-/*
- * sock_cork
- *
+/**
+ * Creates a non-blocking listening UDP socket.
+ */
+struct gnutella_socket *
+socket_udp_listen(guint32 ip, guint16 port)
+{
+	/* Create a socket, then bind() it */
+
+	int sd, option = 1;
+	unsigned int l = sizeof(struct sockaddr_in);
+	struct sockaddr_in addr;
+	struct gnutella_socket *s;
+
+	sd = socket(AF_INET, SOCK_DGRAM, 0);
+
+	if (sd == -1) {
+		g_warning("Unable to create a socket (%s)", g_strerror(errno));
+		return NULL;
+	}
+
+	s = (struct gnutella_socket *) walloc0(sizeof(struct gnutella_socket));
+
+	s->type = SOCK_TYPE_UDP;
+	s->direction = SOCK_CONN_LISTENING;
+	s->file_desc = sd;
+	s->pos = 0;
+	s->flags |= SOCK_F_UDP;
+
+	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (void *) &option,
+			   sizeof(option));
+
+	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
+
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = ip ? htonl(ip) : INADDR_ANY;
+	addr.sin_port = htons(port);
+
+	/* bind() the socket */
+
+	if (bind(sd, (struct sockaddr *) &addr, l) == -1) {
+		g_warning("Unable to bind() the socket on port %u (%s)",
+				  port, g_strerror(errno));
+		socket_destroy(s, "Unable to bind socket");
+		return NULL;
+	}
+
+	/*
+	 * Attach the socket information so that we may record the origin
+	 * of the datagrams we receive.
+	 */
+
+	s->resource.handle = walloc(sizeof(struct udp_addr));
+
+	/* Get the port of the socket, if needed */
+
+	if (!port) {
+		option = sizeof(struct sockaddr_in);
+
+		if (getsockname(sd, (struct sockaddr *) &addr, &option) == -1) {
+			g_warning("Unable to get the port of the socket: "
+				"getsockname() failed (%s)", g_strerror(errno));
+			socket_destroy(s, "Can't probe socket for port");
+			return NULL;
+		}
+
+		s->local_port = ntohs(addr.sin_port);
+	} else
+		s->local_port = port;
+
+	s->gdk_tag =
+		inputevt_add(sd, INPUT_EVENT_READ | INPUT_EVENT_EXCEPTION,
+					  socket_udp_accept, s);
+
+	return s;
+}
+
+/**
  * Set/clear TCP_CORK on the socket.
  *
  * When set, TCP will only send out full TCP/IP frames.
  * The exact size depends on your LAN interface, but on Ethernet,
  * it's about 1500 bytes.
  */
-void sock_cork(struct gnutella_socket *s, gboolean on)
+void
+sock_cork(struct gnutella_socket *s, gboolean on)
 {
 #if !defined(TCP_CORK) && defined(TCP_NOPUSH)
 #define TCP_CORK TCP_NOPUSH		/* FreeBSD names it TCP_NOPUSH */
@@ -1381,13 +1529,12 @@ void sock_cork(struct gnutella_socket *s, gboolean on)
 }
 
 /*
- * _sock_set
- *
  * Internal routine for sock_send_buf() and sock_recv_buf().
  * Set send/receive buffer to specified size, and warn if it cannot be done.
  * If `shrink' is false, refuse to shrink the buffer if its size is larger.
  */
-static void _sock_set(gint fd, gint option, gint size,
+static void
+_sock_set(gint fd, gint option, gint size,
 	gchar *type, gboolean shrink)
 {
 	gint old_len = 0;
@@ -1432,34 +1579,31 @@ static void _sock_set(gint fd, gint option, gint size,
 			(new_len == size) ? "OK" : "FAILED");
 }
 
-/*
- * sock_send_buf
- *
+/**
  * Set socket's send buffer to specified size.
  * If `shrink' is false, refuse to shrink the buffer if its size is larger.
  */
-void sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
+void
+sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 {
 	_sock_set(s->file_desc, SO_SNDBUF, size, "send", shrink);
 }
 
-/*
- * sock_recv_buf
- *
+/**
  * Set socket's receive buffer to specified size.
  * If `shrink' is false, refuse to shrink the buffer if its size is larger.
  */
-void sock_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink)
+void
+sock_recv_buf(struct gnutella_socket *s, gint size, gboolean shrink)
 {
 	_sock_set(s->file_desc, SO_RCVBUF, size, "receive", shrink);
 }
 
-/*
- * sock_nodelay
- *
+/**
  * Turn TCP_NODELAY on or off on the socket.
  */
-void sock_nodelay(struct gnutella_socket *s, gboolean on)
+void
+sock_nodelay(struct gnutella_socket *s, gboolean on)
 {
 	gint arg = on ? 1 : 0;
 
@@ -1472,12 +1616,11 @@ void sock_nodelay(struct gnutella_socket *s, gboolean on)
 	}
 }
 
-/*
- * sock_tx_shutdown
- *
+/**
  * Shutdown the TX side of the socket.
  */
-void sock_tx_shutdown(struct gnutella_socket *s)
+void
+sock_tx_shutdown(struct gnutella_socket *s)
 {
 	if (-1 == shutdown(s->file_desc, SHUT_WR))
 		g_warning("unable to shutdown TX on fd#%d: %s",
@@ -1489,7 +1632,8 @@ void sock_tx_shutdown(struct gnutella_socket *s)
  * It was modified to work with gtk_gnutella and non-blocking sockets. --DW
  */
 
-int proxy_connect(int fd, const struct sockaddr *addr, guint len)
+int
+proxy_connect(int fd, const struct sockaddr *addr, guint len)
 {
 	struct sockaddr_in *connaddr;
 	void **kludge;
@@ -1591,7 +1735,8 @@ int send_socks(struct gnutella_socket *s)
 
 }
 
-int recv_socks(struct gnutella_socket *s)
+int
+recv_socks(struct gnutella_socket *s)
 {
 	int rc = 0;
 	struct sockrep thisrep;
@@ -1633,7 +1778,8 @@ int recv_socks(struct gnutella_socket *s)
 
 }
 
-int connect_http(struct gnutella_socket *s)
+int
+connect_http(struct gnutella_socket *s)
 {
 	int rc = 0;
 	gint parsed;
@@ -1761,7 +1907,8 @@ int connect_http(struct gnutella_socket *s)
 6: Done
 */
 
-int connect_socksv5(struct gnutella_socket *s)
+int
+connect_socksv5(struct gnutella_socket *s)
 {
 	int rc = 0;
 	int offset = 0;

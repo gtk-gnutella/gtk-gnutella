@@ -59,6 +59,7 @@ enum socket_type {
     SOCK_TYPE_CONNBACK,
     SOCK_TYPE_PPROXY,
     SOCK_TYPE_DESTROYING,
+	SOCK_TYPE_UDP,
 };
 
 struct gnutella_socket {
@@ -100,6 +101,8 @@ struct gnutella_socket {
 
 #define SOCK_F_ESTABLISHED		0x00000001 /* Connection was established */
 #define SOCK_F_EOF				0x00000002 /* Got an EOF condition */
+#define SOCK_F_UDP				0x40000000 /* Is a UDP socket */
+#define SOCK_F_TCP				0x80000000 /* Is a TCP socket */
 
 /*
  * Access macros
@@ -122,7 +125,8 @@ void socket_free(struct gnutella_socket *);
 struct gnutella_socket *socket_connect(guint32, guint16, enum socket_type);
 struct gnutella_socket *socket_connect_by_name(
 	const gchar *host, guint16, enum socket_type);
-struct gnutella_socket *socket_listen(guint32, guint16, enum socket_type);
+struct gnutella_socket *socket_tcp_listen(guint32, guint16, enum socket_type);
+struct gnutella_socket *socket_udp_listen(guint32, guint16);
 
 void sock_cork(struct gnutella_socket *s, gboolean on);
 void sock_send_buf(struct gnutella_socket *s, gint size, gboolean shrink);
