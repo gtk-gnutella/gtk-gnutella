@@ -1,5 +1,20 @@
 # since last version
 
+- (2003.10.18 - RAM)
+ * [GTK1] Added GUI configuration for server-side PFSP.
+ * Trace amount of bytes in HTTP requests and replies.
+ * Improved limitation of HTTP replies: now based on the error code with
+   explicit sizing of the header and with flag propagation to callbacks, to
+   tell them more about the context of the reply they're generating.
+ * Refactored the gtk_gnutealla_exit() destruction order to avoid assertion
+   failures in GUI code.
+ * Moved some PARQ constants to parq.h.
+ * More carefully control the generation of the PARQ headers depending on
+   the callback flags.
+ * Keep information about the mesh information being sent to uploaders for
+   a longer period, to better accomodate with PARQ's long retry timeouts.
+ * Added more stringent size control on the generated headers in replies.
+
 - (2003.10.13 - RAM)
  * Fixed file_info_available_ranges() to avoid assertion failure at the end.
  * Detect and ignore exact duplicate entries in the hostiles.txt file.
