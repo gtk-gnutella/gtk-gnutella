@@ -2486,8 +2486,10 @@ void upload_kill(gnet_upload_t upload)
 
     g_assert(u != NULL);
 
-    if (!UPLOAD_IS_COMPLETE(u))
+    if (!UPLOAD_IS_COMPLETE(u)) {
+		parq_upload_force_remove(u);
         upload_remove(u, "Explicitly killed");
+	}
 }
 
 /*

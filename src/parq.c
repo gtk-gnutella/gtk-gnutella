@@ -2099,6 +2099,16 @@ void parq_upload_add(gnutella_upload_t *u)
 	 */	
 }
 
+void parq_upload_force_remove(gnutella_upload_t *u)
+{
+	struct parq_ul_queued *parq_ul = parq_upload_find(u);
+		
+	if (parq_ul != NULL) {
+		parq_upload_remove(u);
+		parq_upload_free(parq_ul);
+	}
+}
+
 /*
  * parq_upload_remove
  *
@@ -2197,7 +2207,14 @@ void parq_upload_remove(gnutella_upload_t *u)
 	
 	g_assert(parq_ul->queue->active_uploads >= 0);	
 	
-	parq_upload_free(parq_ul);		
+#if 0
+	parq_upload_free(parq_ul);
+#else
+	/* Disconnected upload is allowed to reconnect immediatly */
+	parq_ul->has_slot = FALSE;
+	parq_ul->retry = now;
+	parq_ul->expire = now + MIN_LIFE_TIME;
+#endif
 }
 
 /*
