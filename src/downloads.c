@@ -2683,8 +2683,7 @@ attempt_retry:
 				d->retries, d->retries == 1 ? "y" : "ies");
 		else
 			download_queue_hold(d, download_retry_refused_delay,
-				"Connection refused %s(%d retr%s)",
-				ignore_push ? "[No Push] " : "",
+				"Connection refused (%d retr%s)",
 				d->retries, d->retries == 1 ? "y" : "ies");
 	} else {
 		/*
