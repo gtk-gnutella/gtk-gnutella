@@ -390,9 +390,9 @@ static gchar *get_header_value(
  */
 void parq_init(void)
 {
-	header_features_add(xfeatures.uploads, 
+	header_features_add(&xfeatures.uploads, 
 		"queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
-	header_features_add(xfeatures.downloads, 
+	header_features_add(&xfeatures.downloads, 
 		"queue", PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR);
 	
 	ul_all_parq_by_ip_and_name = g_hash_table_new(g_str_hash, g_str_equal);

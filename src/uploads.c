@@ -1689,7 +1689,7 @@ static void upload_xfeatures_add(
 	gint rw = 0;
 	gint length = *retval;
 
-	header_features_generate(xfeatures.uploads, buf, length, &rw);
+	header_features_generate(&xfeatures.uploads, buf, length, &rw);
 	
 	*retval = rw;
 }

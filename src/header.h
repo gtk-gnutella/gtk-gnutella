@@ -135,13 +135,13 @@ struct xfeatures_t
 
 void header_get_feature(const gchar *feature_name, const header_t *header,
 	int *feature_version_major, int *feature_version_minor);
-void header_features_add(struct xfeature_t xfeatures,
+void header_features_add(struct xfeature_t *xfeatures,
 	gchar *feature_name, 
 	int feature_version_major,
 	int feature_version_minor);
-void header_features_cleanup(struct xfeature_t xfeatures);
+void header_features_cleanup(struct xfeature_t *xfeatures);
 void header_features_close();
-void header_features_generate(struct xfeature_t xfeatures, 
+void header_features_generate(struct xfeature_t *xfeatures, 
 	gchar *buf, gint len, gint *rw);
 
 #endif	/* _header_h_ */

@@ -733,9 +733,9 @@ gchar *header_fmt_to_gchar(gpointer o)
  */
 void header_features_close()
 {
-	header_features_cleanup(xfeatures.uploads);
-	header_features_cleanup(xfeatures.downloads);
-	header_features_cleanup(xfeatures.connections);
+	header_features_cleanup(&xfeatures.uploads);
+	header_features_cleanup(&xfeatures.downloads);
+	header_features_cleanup(&xfeatures.connections);
 }
 
 /*
@@ -743,10 +743,8 @@ void header_features_close()
  *
  * Add support for feature_name with the specified version to the X-Features
  * header. 
- * Type indicates when this header should be added (upload, download etc...)
- * which may be an or-ed value
  */
-void header_features_add(struct xfeature_t xfeatures,
+void header_features_add(struct xfeature_t *xfeatures,
 	gchar *feature_name, 
 	int feature_version_major,
 	int feature_version_minor)
@@ -757,7 +755,7 @@ void header_features_add(struct xfeature_t xfeatures,
 	feature->major = feature_version_major;
 	feature->minor = feature_version_minor;
 	
-	xfeatures.features = g_list_append(xfeatures.features, feature);
+	xfeatures->features = g_list_append(xfeatures->features, feature);
 }
 
 /*
@@ -765,11 +763,11 @@ void header_features_add(struct xfeature_t xfeatures,
  *
  * Removes all memory used by the header_features_add. 
  */
-void header_features_cleanup(struct xfeature_t xfeatures)
+void header_features_cleanup(struct xfeature_t *xfeatures)
 {
 	GList *cur;
-	for(cur = g_list_first(xfeatures.features);
-		cur != g_list_last(xfeatures.features);
+	for(cur = g_list_first(xfeatures->features);
+		cur != g_list_last(xfeatures->features);
 		cur = g_list_next(cur)) {
 		
 		struct header_x_feature *feature = 
@@ -789,15 +787,15 @@ void header_features_cleanup(struct xfeature_t xfeatures)
  * we should include in the X-Features header.
  * *rw is changed too *rw + bytes written
  */
-void header_features_generate(struct xfeature_t xfeatures,
+void header_features_generate(struct xfeature_t *xfeatures,
 	gchar *buf, gint len, gint *rw)
 {
 	GList *cur;
 	gboolean first = TRUE;
 	
 
-	for(cur = g_list_first(xfeatures.features);
-		cur != g_list_last(xfeatures.features);
+	for(cur = g_list_first(xfeatures->features);
+		cur != g_list_last(xfeatures->features);
 		cur = g_list_next(cur)) {
 		
 		struct header_x_feature *feature = 

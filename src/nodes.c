@@ -1762,7 +1762,7 @@ void send_node_error(
 		(current_peermode == NODE_P_NORMAL && (code == 503 || code == 403)) ?
 			formatted_connection_pongs("X-Try", HCACHE_ANY) : "");
 
-	header_features_generate(xfeatures.connections,
+	header_features_generate(&xfeatures.connections,
 		gnet_response, sizeof(gnet_response), &rw);
 
 	rw += gm_snprintf(&gnet_response[rw], sizeof(gnet_response)-rw,
@@ -3357,7 +3357,7 @@ static void node_process_handshake_header(
 					"X-Query-Routing: 0.1\r\n" : "",
 				tok_version(), start_rfc822_date);
 				
-			header_features_generate(xfeatures.connections,
+			header_features_generate(&xfeatures.connections,
 				gnet_response, sizeof(gnet_response), &rw);
 		}
 		g_assert(rw < sizeof(gnet_response));
@@ -4076,7 +4076,7 @@ void node_init_outgoing(struct gnutella_node *n)
 			current_peermode != NODE_P_NORMAL ? "X-Query-Routing: 0.1\r\n" : ""
 		);
 
-	header_features_generate(xfeatures.connections, buf, sizeof(buf), &len);
+	header_features_generate(&xfeatures.connections, buf, sizeof(buf), &len);
 
 	g_assert(len < sizeof(buf));
 
