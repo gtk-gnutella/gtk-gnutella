@@ -250,6 +250,7 @@ void gui_update_max_hosts_cached();
 void gui_update_hosts_in_catcher();
 void gui_update_stats_frames();
 void gui_update_queue_frozen();
+void gui_update_ul_usage_min_percentage();
 void gui_address_changed();
 void gui_search_remove(search_t *);
 void gui_view_search(search_t *sch);

@@ -447,6 +447,7 @@ void gui_update_all()
     gui_update_upload_connecting_timeout();
     gui_update_upload_connected_timeout();
     gui_update_max_hosts_cached();
+    gui_update_ul_usage_min_percentage();
     gui_update_stats_frames();
     gui_address_changed();
 
@@ -813,6 +814,11 @@ void gui_update_search_reissue_timeout(GtkEntry *
 	gtk_entry_set_text(entry_search_reissue_timeout, gui_tmp);
 }
 #endif
+
+UPDATE_SPINBUTTON(
+    spinbutton_config_ul_usage_min_percentage,
+    ul_usage_min_percentage,
+    NO_FUNC)
 
 UPDATE_SPINBUTTON(
     spinbutton_config_search_min_speed,
