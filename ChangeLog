@@ -4,6 +4,7 @@
  * Fixed odometers (where all showing "in")
  * [Gtk1] Added odometers for leaf traffic
  * [Gtk1] Added 3 new icons to the gui
+ * Fixed connections odometer for the different peermodes
 
 # v 0.92   2003.03.04  [beta2]
 
