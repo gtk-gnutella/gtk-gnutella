@@ -556,13 +556,17 @@ void parse_netmasks(gchar * str)
 
 	free_networks();
 
-	for (i = 0; masks[i]; i++)
-		;
+    if (!masks)
+        return;
+
+	for (i = 0; masks[i]; i++);
 
 	number_local_networks = i;
 
-	if (i == 0)
+	if (i == 0) {
+        g_strfreev(masks);
 		return;
+    }
 
 	local_networks = (struct network_pair *)g_malloc(sizeof(*local_networks)*i);
 
