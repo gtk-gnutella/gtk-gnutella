@@ -184,11 +184,14 @@ void vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 
 	if (fi_context.drawable) {
 		if (valid) {
+			gpointer value;
+
 			found = g_hash_table_lookup_extended(vp_info_hash,
-				GUINT_TO_POINTER(fih), NULL, (gpointer *) &v);
+				GUINT_TO_POINTER(fih), NULL, &value);
 			g_assert(found);
-			g_assert(v);
+			g_assert(value);
 			
+			v = value;
 			v->context = &fi_context;
 
 			g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
@@ -264,13 +267,14 @@ static void vp_gui_fi_added(gnet_fi_t fih)
 
 static void vp_gui_fi_removed(gnet_fi_t fih)
 {
-    gpointer *v;
+    gpointer *v, value;
     gboolean found;
 
     found = g_hash_table_lookup_extended(vp_info_hash,
-		GUINT_TO_POINTER(fih), NULL, (gpointer *) &v);
+		GUINT_TO_POINTER(fih), NULL, &value);
     g_assert(found);
-    g_assert(v);
+    g_assert(value);
+	v = value;
 
     /* 
      * TODO: Also remove the row from the GUI and perhaps reshuffle rows
@@ -300,15 +304,17 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
     gnet_fi_chunks_t *old_chunk;
     gnet_fi_chunks_t * new_chunk;
     gboolean found;
+	gpointer value;
 
     /* 
      * TODO: Assuming that only the chunks will change, may not be
      * true...
      */
     found = g_hash_table_lookup_extended(vp_info_hash,
-		GUINT_TO_POINTER(fih), NULL, (gpointer *) &v);
+		GUINT_TO_POINTER(fih), NULL, &value);
     g_assert(found);
-    g_assert(v);
+    g_assert(value);
+	v = value;
 
     /* 
      * We will use the new list. We don't just copy it because we want
@@ -384,6 +390,7 @@ static void vp_update_ranges(gnet_src_t srcid)
 {
     vp_info_t *v;
 	gboolean found;
+	gpointer value;
 	gnet_fi_t fih;
 	struct download *d;
 
@@ -395,9 +402,10 @@ static void vp_update_ranges(gnet_src_t srcid)
 	 */
 	fih = d->file_info->fi_handle;
     found = g_hash_table_lookup_extended(vp_info_hash,
-		GUINT_TO_POINTER(fih), NULL, (gpointer *) &v);
+		GUINT_TO_POINTER(fih), NULL, &value);
     g_assert(found);
-    g_assert(v);
+    g_assert(value);
+	v = value;
 	
 	/* 
 	 * If this download is not using swarming then we have the whole
