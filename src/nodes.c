@@ -5201,10 +5201,9 @@ gchar *node_ip(const gnutella_node_t *n)
 	   to use both in same printf() line */
 
 	static gchar a[32];
-	const guchar *t = (const guchar *) &n->ip; 
-
-	gm_snprintf(a, sizeof(a), "%u.%u.%u.%u:%u",
-		t[0], t[1], t[2], t[3], n->port);
+	struct in_addr ia;
+	ia.s_addr = htonl(n->ip);
+	gm_snprintf(a, sizeof(a), "%s:%u", inet_ntoa(ia), n->port);
 	return a;
 }
 

@@ -835,7 +835,7 @@ static void guess_local_ip(int sd)
 
 	if (-1 != getsockname(sd, (struct sockaddr *) &addr, &len)) {
 		gboolean can_supersede;
-		ip = addr.sin_addr.s_addr;
+		ip = ntohl(addr.sin_addr.s_addr);
 
 		/*
 		 * If local IP was unknown, keep what we got here, even if it's a
@@ -918,7 +918,7 @@ static void socket_accept(gpointer data, gint source,
 	t = (struct gnutella_socket *) walloc0(sizeof(struct gnutella_socket));
 
 	t->file_desc = sd;
-	t->ip = addr.sin_addr.s_addr;
+	t->ip = ntohl(addr.sin_addr.s_addr);
 	t->port = ntohs(addr.sin_port);
 	t->direction = SOCK_CONN_INCOMING;
 	t->type = s->type;
@@ -1018,7 +1018,7 @@ static struct gnutella_socket *socket_connect_finalize(
 	s->ip = ip_addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = s->ip;
+	addr.sin_addr.s_addr = htonl(s->ip);
 	addr.sin_port = htons(s->port);
 
 	inet_connection_attempted(s->ip);
@@ -1032,7 +1032,7 @@ static struct gnutella_socket *socket_connect_finalize(
 
 		memset(&lcladdr, 0, sizeof(lcladdr));
 		lcladdr.sin_family = AF_INET;
-		lcladdr.sin_addr.s_addr = forced_local_ip;
+		lcladdr.sin_addr.s_addr = htonl(forced_local_ip);
 		lcladdr.sin_port = htons(0);
 
 		/*
@@ -1205,7 +1205,7 @@ struct gnutella_socket *socket_listen(
 	fcntl(sd, F_SETFL, O_NONBLOCK);	/* Set the file descriptor non blocking */
 
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = ip ? ip : INADDR_ANY;
+	addr.sin_addr.s_addr = ip ? htonl(ip) : INADDR_ANY;
 	addr.sin_port = htons(port);
 
 	/* bind() the socket */
@@ -1478,7 +1478,7 @@ int send_socks(struct gnutella_socket *s)
 	thisreq->version = 4;
 	thisreq->command = 1;
 	thisreq->dstport = htons(s->port);
-	thisreq->dstip = s->ip;
+	thisreq->dstip = htonl(s->ip);
 
 	/* Copy the username */
 	strcpy(realreq + sizeof(struct sockreq),
@@ -1794,7 +1794,7 @@ int connect_socksv5(struct gnutella_socket *s)
 		buf[1] = '\x01';		/* Connect request */
 		buf[2] = '\x00';		/* Reserved		*/
 		buf[3] = '\x01';		/* IP version 4	*/
-		*(guint32 *)(buf + 4) = s->ip;
+		*(guint32 *)(buf + 4) = htonl(s->ip);
 		*(guint16 *)(buf + 8) = htons(s->port);
 
 		/* Now send the connection */
