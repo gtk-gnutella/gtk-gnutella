@@ -1,0 +1,197 @@
+Push Proxy
+Document Version : 0.6
+Protocol Version: 0.6
+June 25, 2003
+Jason Thomas (jason@revolutionarystuff.com), 
+Andrew Mickish (mickish@freepeers.com), 
+Susheel M. Daswani (sdaswani@limepeer.com)
+
+1 Introduction
+==============
+1.1 Background
+Gnutella servents transfer files to one another using HTTP.  This scheme
+works so long as the servent hosting the file (the server) is accessible
+by the servent downloading (the downloader) the file.  Increasingly it
+is the case that servers are behind a firewall, and cannot be directly
+reached.
+
+The original Gnutella protocol has a workaround called Push.  With Push,
+the downloader constructs and sends a Gnutella Push packet on the GNET
+containing the down loader’s address and port, as well as the server’s ID.
+If this message travels through the cloud and eventually finds its’ way
+to the server, the server opens a connection back to the downloader,
+sends a special header, then waits for the downloader to begin a HTTP
+conversation on this open connection.
+
+This Push mechanism works… sometimes.  The problem is that the cloud
+is too dynamic.  Intermediate hosts come and go, thus breaking the
+path, and making it so that the Push packet rarely reaches the server.
+This is exacerbated if the downloader must log off the GNET for any period
+of time.  A second problem is that when the Push route is broken, the
+downloader cannot tell if the server went down, or if the route was lost.
+These issues result in frustrated users who see search results they
+cannot download, and an underutilization of large numbers of resources -
+machines that can’t be used as servers.
+
+This Push Proxy proposal outlines a technique to do away with these
+problems, therefore increasing the likelihood that a downloader can
+get content from a firewalled server.  This proposal does not address
+the problem of a firewalled downloader attempting to get content from
+a firewalled server.
+
+1.2 Requirements
+The key words MUST, MUST NOT, REQUIRED, SHALL, SHALL NOT, SHOULD, SHOULD
+NOT, RECOMMENDED, MAY, and OPTIONAL in this document are to be interpreted
+as described in RFC 2119. An implementation is not compliant if it fails
+to satisfy one or more of the MUST or REQUIRED level requirements for
+the protocols it implements. An implementation that satisfies all the
+MUST or REQUIRED level and all the SHOULD level requirements for its
+protocols is said to be "unconditionally compliant"; one that satisfies
+all the MUST level requirements but not all the SHOULD level requirements
+for its protocols is said to be "conditionally compliant".
+
+1.3 Terminology
+To understand this document, we use a standard set of terminology
+throughout.  A Gnutella servent that is sharing files and that cannot
+be directly reached by the bulk of nodes on the GNET (due to firewall
+or other condition) is called the Firewalled Server or FS.  A Gnutella
+servent that wishes to download from the FS and can receive incoming
+connections is called the Downloader or D.  A Gnutella servent that is
+used to proxy download requests is called the Push Proxy Server or PP.
+Any Gnutella servent that has received an incoming GNET connection from
+the FS is called an Ultrapeer or U (classical Gnutella servents can
+become a PP as well).
+
+2 Basic Operation
+=================
+The basic operational steps of the Push Proxy proposal are:
+     1. The FS sends a vendor message to its ultrapeers asking if they will 
+        take the responsibility of a push proxy.
+     2. If it is willing to be a push proxy, the node (PP) responds with an 
+        acknowledgement vendor message.
+     3. When the FS constructs QueryHit packets, it attaches a GGEP extension 
+        containing the endpoints for its push proxy servers.
+     4. When a D receives the QueryHit and wants to download from from the 
+        FS, it contacts the PP with a simple HTTP message, containing 
+        information from a Gnutella PUSH message.
+     5. If the PP still has an active connection to the FS, the PP takes the 
+        information from the HTTP message, constructs a Gnutella Push message, 
+        and sends it 1 hop to the FS.  Under any case, it returns an 
+        informative HTTP status response code to D.
+     6. When FS receives the Push message, it follows the standard Gnutella 
+        rules for responding to a Push message, and contacts D with a GIV.
+     7. PushProxy sources are propagated through a revised DownloadMesh syntax.
+
+
+3 Firewalled Server (FS) asking for a push proxy
+================================================
+The FS sends the new PushProxyRequest message to its ultrapeers asking if they 
+will become a PP.
+ 
+3.1 PushProxyRequest Message
+Selector: LIME/21v2
+Payload: Empty.
+VM GUID: 16 byte ServentId of the FS.
+
+3.1 PushProxyAcknowledgement Message
+Selector: LIME/22v2
+Payload: 6 bytes.  The IP/Port the FS should use for this proxy server.
+The format of the IP/Port is a 4 byte address followed by a 2 byte port.
+The IP address is given because the proxy server may be multi-honed.
+VM GUID: 16 byte ServentId of the FS, the same as sent in the
+corresponding PushProxyRequest message.
+
+4 Advertising ones Proxy Servers
+================================
+The FS must relay the endpoints of their PP servers to potential
+downloaders.  This is done in Gnutella QueryHit messages, during HTTP
+handshake headers during the download transaction, and through the
+Download Mesh.
+
+4.1 In Query Hits
+=================
+When a FS with a PP receives a query that it can answer (it MUST obey the
+minspeed bits, as a firewalled downloader cannot download from a FS), it
+attaches a new GGEP extension to the QueryHit.  The ID of the extension
+is 'PUSH', and the payload is an array of IP/Ports of servers who are the
+FS's proxies.  The format of the IP/Port is a 4 byte address followed by a
+2 byte port.  The number of the entries in this array is PayloadLength/6.
+
+4.2 In HTTP Handshakes
+======================
+During a HTTP session a FS MUST tell its downloader the most
+up-to-date proxy information.  This is communicated via the new HTTP
+Header 'X-PushProxies', whose format is a comma delineated list of
+DottedIPAddress:Port combinations.  A servent that receives this list
+MUST immediately replace its known list of proxy servers for the FS with
+this updated list.
+
+4.3 In Download Mesh
+====================
+The Download Mesh is a technique for conveying alternative
+sources to a downloader.  The format of the original download mesh
+(X-Gnutella-Alternate-Location) cannot accommodate the necessary
+information.  A new format (X-Alt) used to transmit the push proxy mesh
+information.  Support for Download Mesh is optional, and is described
+in the Download Mesh 0.1 document.
+
+5 Contacting a Proxy Server
+===========================
+A downloader sends a HTTP message to the FS via the FS’s PP.
+
+The downloader sends this message to endpoints of the PP discovered in 
+section 4. 
+
+The resource name is:
+
+/gnutella/pushproxy?
+	ServerId=<ServentIdAsGivenInTheQueryHitAsABase32UrlEncodedString>
+
+The D MUST also include the X-Node header in this HTTP request.
+X-Node: <IP>:<PORT>
+
+The IP/PORT in the X-NODE header are those in which the firewalled servent 
+should send a GIV.
+
+Recommended responses to this HTTP Request are:
+
+      202, "Push Proxy: Message Sent", 
+           "Push Proxy: Your message was sent to the requested party."
+
+      410, "Push Proxy: Servent not connected", 
+           "Push Proxy: The servent specified in your request 
+	    is not connected. Do NOT try again!"
+
+      400, "Push Proxy: Bad Request", "Push Proxy: Request was malformed. 
+            Do NOT try again!"
+
+If the D receives either an error HTTP status code (i.e. >= 400) or no
+response at all, it MUST not contact this PP again.
+
+If the PP can give a positive response (status code=202), it SHOULD
+service this request immediately.  If it cannot do so (it cannot spare
+the bandwidth), it MUST also drop the GNET connection to the FS, as
+this indicates it can no longer be the PP.  If it can respond, and the
+PP still maintains an active connection to the FS, the PP constructs a
+Gnutella Push packet (FileIndex=0) and directly sends this to the FS via
+the GNET. Upon receipt of the Push message, the FS follows the typical
+rules of the Gnutella Push packet.
+
+References
+==========
+Raphael Manfredi <Raphael_Manfredi@pobox.com>, "Framework for
+Vendor-specific Messages"
+1/5/2003
+
+Jason Thomas <jason@jasonthomas.com>,
+"Gnutella Generic Extension Protocol (GGEP)"
+2/4/2002
+
+G. Mohr, "Hash/URN Gnutella Extensions (HUGE) v0.94"
+4/30/2002
+
+Susheel M. Daswani, "New Interpretation of the MinSpeed field in Queries"
+4/27/2003
+
+Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels"
+<ftp://ftp.isi.edu/in-notes/rfc2119.txt>, March 1997
