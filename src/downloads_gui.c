@@ -402,7 +402,7 @@ void gui_update_download_abort_resume(void)
 			break;
 		}
 
-        if (d->sha1 != NULL)
+        if (d->file_info->sha1 != NULL)
             abort_sha1 = TRUE;
 
 		switch (d->status) {

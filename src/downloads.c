@@ -965,8 +965,8 @@ gint download_remove_all_with_sha1(const guchar *sha1)
 
 		if (
             (d->status == GTA_DL_REMOVED) ||
-            (d->sha1 == NULL) ||
-            (memcmp(sha1, d->sha1, SHA1_RAW_SIZE) != 0)
+            (d->file_info->sha1 == NULL) ||
+            (memcmp(sha1, d->file_info->sha1, SHA1_RAW_SIZE) != 0)
         )
 			continue;
 
@@ -2156,7 +2156,11 @@ static void download_push(struct download *d, gboolean on_timeout)
 
 	g_assert(d);
 
-	if ((d->flags & DL_F_PUSH_IGN) || has_blank_guid(d))
+	if (
+		(d->flags & DL_F_PUSH_IGN) ||
+		(d->server->attrs & DLS_A_PUSH_IGN) ||
+		has_blank_guid(d)
+	)
 		ignore_push = TRUE;
 
 	if (is_firewalled || !send_pushes || ignore_push) {

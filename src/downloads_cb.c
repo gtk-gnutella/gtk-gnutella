@@ -221,8 +221,8 @@ void on_popup_downloads_abort_sha1_activate
 			continue;
 		}
 
-        if (d->sha1 != NULL)
-            removed += download_remove_all_with_sha1(d->sha1);
+        if (d->file_info->sha1 != NULL)
+            removed += download_remove_all_with_sha1(d->file_info->sha1);
 	}
 
     gtk_clist_thaw(clist_downloads_queue);
@@ -552,8 +552,8 @@ void on_popup_queue_abort_sha1_activate(GtkMenuItem * menuitem,
 			continue;
 		}
 
-        if (d->sha1 != NULL)
-            removed += download_remove_all_with_sha1(d->sha1);
+        if (d->file_info->sha1 != NULL)
+            removed += download_remove_all_with_sha1(d->file_info->sha1);
 	}
 
     gtk_clist_thaw(GTK_CLIST(clist_downloads));
