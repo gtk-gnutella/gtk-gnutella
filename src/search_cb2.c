@@ -916,7 +916,7 @@ void on_popup_search_config_cols_activate(GtkMenuItem * menuitem,
 	if (NULL != search) {
      	GtkWidget * cc;
 
-        cc = gtk_column_chooser_new(GTK_TREE_VIEW(search->tree_view));
+        cc = gtk_column_chooser_new(GTK_WIDGET(search->tree_view));
         gtk_menu_popup(GTK_MENU(cc), NULL, NULL, NULL, NULL, 1, 0);
 
         /* GtkColumnChooser takes care of cleaning up itself */
