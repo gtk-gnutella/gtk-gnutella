@@ -54,6 +54,7 @@
 static GList *last_returned_pong = NULL;	/* Last returned from list */
 static GList *pcache_recent_pongs = NULL;	/* Recent pongs we got */
 
+static time_t portchange_time = 0;			/* When we last changed port */
 
 /***
  *** Messages
@@ -844,7 +845,7 @@ static struct cached_pong *record_fresh_pong(struct gnutella_node *n,
  *
  * Normally, when we're firewalled, we don't answer. However, if we have
  * a non-private IP and are within the first FW_STATUS_GRACE seconds of
- * startup time, act as if we were not: we can only know we're not
+ * port changing time, act as if we were not: we can only know we're not
  * firewalled when we get an incoming connection.
  */
 static gboolean can_answer_ping(void)
@@ -862,7 +863,7 @@ static gboolean can_answer_ping(void)
 	if (is_private_ip(ip))
 		return FALSE;
 
-	if (time(NULL) - start_time < FW_STATUS_GRACE)
+	if (time(NULL) - portchange_time < FW_STATUS_GRACE)
 		return TRUE;
 
 	return FALSE;
@@ -1158,6 +1159,20 @@ void pcache_pong_fake(struct gnutella_node *n, guint32 ip, guint16 port)
 
 	n->gnet_ip = ip;
 	n->gnet_port = port;
+}
+
+/*
+ * pcache_port_changed
+ *
+ * This routine is called when the listening port of the servent is changed.
+ * We reset the timestamp used to measure the "grace period" during which
+ * we can answer with pongs even though we're firewalled.  We also reset
+ * the firewalled status to TRUE.
+ */
+void pcache_port_changed(void)
+{
+	is_firewalled = TRUE;
+	portchange_time = time(NULL);
 }
 
 /* vi: set ts=4: */

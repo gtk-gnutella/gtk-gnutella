@@ -49,5 +49,6 @@ void pcache_pong_received(struct gnutella_node *n);
 void pcache_pong_fake(struct gnutella_node *n, guint32 ip, guint16 port);
 gboolean pcache_get_recent(guint32 *ip, guint16 *port);
 void pcache_clear_recent(void);
+void pcache_port_changed(void);
     
 #endif /* __pcache_h__ */

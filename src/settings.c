@@ -46,6 +46,7 @@
 #include "upload_stats.h"
 #include "filter.h"
 #include "sockets.h"
+#include "pcache.h"
 #include "gnet.h"
 #include "listener.h"
 #include "gnet_property.h"
@@ -420,9 +421,20 @@ static gboolean max_hosts_cached_changed(property_t prop)
 
 static gboolean listen_port_changed(property_t prop)
 {
+	static guint32 old_listen_port = 0;
     guint32 listen_port;
 
     gnet_prop_get_guint32(prop, &listen_port, 0, 1);
+
+	/*
+	 * If port did not change values, do nothing.
+	 */
+
+	if (listen_port == old_listen_port)
+		return FALSE;
+
+	old_listen_port = listen_port;
+	pcache_port_changed();			/* Tell pong cache that our port changed */
 
     /*
      * Close old port.
@@ -442,7 +454,7 @@ static gboolean listen_port_changed(property_t prop)
      * If socket allocation failed, reset the property
      */
     if ((s_listen == NULL) && (listen_port != 0)) {
-        listen_port = 0;
+        old_listen_port = listen_port = 0;
         gnet_prop_set_guint32(prop, &listen_port, 0, 1);
         return TRUE;
     }
@@ -699,7 +711,7 @@ static prop_map_t property_map[] = {
     {
         PROP_LISTEN_PORT, 
         listen_port_changed, 
-        FALSE
+        TRUE
     },
     {
         PROP_BW_HTTP_IN_ENABLED, 
