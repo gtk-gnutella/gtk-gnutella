@@ -45,7 +45,7 @@ enum
  ***/
 
 static void monitor_gui_append_to_monitor(
-    query_type_t type, const gchar *item)
+    query_type_t type, const gchar *item, guint32 ip, guint16 port)
 {
     GtkTreeIter iter;
     gchar tmpstr[100];
