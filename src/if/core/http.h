@@ -49,11 +49,11 @@ typedef enum http_state {
  */
 
 typedef struct http_range {
-	guint32 start;
-	guint32 end;						/* HTTP_OFFSET_MAX if unbounded */
+	filesize_t start;
+	filesize_t end;						/* HTTP_OFFSET_MAX if unbounded */
 } http_range_t;
 
-#define HTTP_OFFSET_MAX	0xffffffff
+#define HTTP_OFFSET_MAX	(~((filesize_t) 0U))
 
 /*
  * Public interface, visible from the bridge.
@@ -65,6 +65,6 @@ const gchar *http_range_to_gchar(const GSList *list);
 GSList *http_range_merge(GSList *list1, GSList *list2);
 
 #endif /* CORE_SOURCES */
-#endif /* _if_core_http_h_ */
 
+#endif /* _if_core_http_h_ */
 /* vi: set ts=4 sw=4 cindent: */

@@ -51,19 +51,19 @@ typedef struct gnet_fi_info {
 } gnet_fi_info_t;
 
 typedef struct gnet_fi_status {
-	guint32  recvcount;
-	guint32  refcount;
-	guint32  lifecount;
-	guint32  size;
-	guint32  done;
-	guint32  recv_last_rate;
-	guint32  aqueued_count;
-	guint32  pqueued_count;
+	guint32  	recvcount;
+	guint32  	refcount;
+	guint32  	lifecount;
+	filesize_t  size;
+	filesize_t  done;
+	guint32  	recv_last_rate;
+	guint32  	aqueued_count;
+	guint32  	pqueued_count;
 } gnet_fi_status_t;
 
 typedef struct gnet_fi_chunks {
-    guint32  from;
-    guint32  to;
+    filesize_t  from;
+    filesize_t  to;
     enum dl_chunk_status status;
     gboolean old;
 } gnet_fi_chunks_t;
@@ -75,7 +75,7 @@ struct dl_file_info {
 	gchar *file_name;		/* Output file name (atom) */
 	gchar *path;			/* Output file path (atom) */
 	GSList *alias;			/* List of file name aliases (atoms) */
-	guint32 size;			/* File size */
+	filesize_t size;		/* File size */
 	gint *size_atom;		/* File size (atom -- points to value in memory) */
 	gchar *sha1;			/* server SHA1 (atom) if known, NULL if not. */
 	gchar *cha1;			/* computed SHA1 (atom) if known, NULL if not. */
@@ -87,7 +87,7 @@ struct dl_file_info {
 	time_t ntime;			/* Last time a new source was added */
 	time_t last_flush;		/* When last flush to disk occurred */
 	time_t last_dmesh;		/* When last dmesh query was used */
-	guint32 done;			/* Total number of bytes completed */
+	filesize_t done;		/* Total number of bytes completed */
 	GSList *chunklist;		/* List of ranges within file */
 	GSList *seenonnetwork;  /* List of ranges available on network */
 	guint32 generation;		/* Generation number, incremented on disk update */
@@ -115,9 +115,9 @@ struct dl_file_info {
 	 */
 
 	guint cha1_elapsed;		/* Time spent to compute the SHA1 */
-	guint32 cha1_hashed;	/* Amount of bytes hashed so far */
+	filesize_t cha1_hashed;	/* Amount of bytes hashed so far */
 	guint copy_elapsed;		/* Time spent to copy the file */
-	guint32 copied;			/* Amount of bytes copied so far */
+	filesize_t copied;		/* Amount of bytes copied so far */
 };
 
 #define FILE_INFO_COMPLETE(x)	((x)->done == (x)->size && (x)->file_size_known)

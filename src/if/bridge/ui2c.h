@@ -76,26 +76,26 @@ void guc_download_thaw_queue(void);
 gint guc_download_queue_is_frozen(void);
 void guc_download_clear_stopped(gboolean complete,
 	gboolean failed, gboolean unavailable, gboolean now);
-void guc_download_auto_new(gchar *file, guint32 size, 
+void guc_download_auto_new(gchar *file, filesize_t size, 
 	guint32 record_index, guint32 ip, guint16 port, gchar *guid, 
 	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
 	gboolean file_size_known, struct dl_file_info *fi, 
 	gnet_host_vec_t *proxies);
-gboolean guc_download_new(gchar *file, guint32 size, 
-			guint32 record_index, guint32 ip, guint16 port, gchar *guid, 
-			gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
-			struct dl_file_info *fi, gnet_host_vec_t *proxies);
+gboolean guc_download_new(gchar *file, filesize_t size, 
+	guint32 record_index, guint32 ip, guint16 port, gchar *guid, 
+	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
+	struct dl_file_info *fi, gnet_host_vec_t *proxies);
 gboolean guc_download_new_unknown_size(gchar *file, 
-			guint32 record_index, guint32 ip, guint16 port, gchar *guid, 
-			gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
-			struct dl_file_info *fi, gnet_host_vec_t *proxies);
+	guint32 record_index, guint32 ip, guint16 port, gchar *guid, 
+	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
+	struct dl_file_info *fi, gnet_host_vec_t *proxies);
 const gchar *guc_download_get_hostname(const struct download *d);
 const gchar *guc_download_get_country(const struct download *d);
 gfloat guc_download_source_progress(struct download *d);
 gfloat guc_download_total_progress(struct download *d);
 gboolean guc_download_something_to_clear(void);
 void guc_download_index_changed(guint32 ip, guint16 port, 
-	gchar *guid, guint32 from, guint32 to);
+	gchar *guid, filesize_t from, filesize_t to);
 struct download *guc_src_get_download(gnet_src_t src_handle);
 void guc_src_add_listener(src_listener_t cb, gnet_src_ev_t ev, 
     frequency_t t, guint32 interval);
@@ -247,3 +247,4 @@ void guc_query_bitzi_by_urn(guchar *urnsha1);
 void guc_gtk_gnutella_exit(gint code);
 
 #endif /* _if_bridge_ui2c_h_ */
+/* vi: set ts=4 sw=4 cindent: */

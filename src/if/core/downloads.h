@@ -148,12 +148,12 @@ struct download {
 	guint32 record_index;	/* Index of the file on the Gnutella server */
 	gchar *file_name;		/* Name of the file on the Gnutella server */
 	gchar *escaped_name;	/* Same as file_name, with control chars escaped */
-	guint32 file_size;		/* Total size of the file, in bytes */
+	filesize_t file_size;	/* Total size of the file, in bytes */
 
-	guint32 size;			/* Total size of the next request, in bytes */
-	guint32 skip;			/* Number of bytes for file we had before start */
-	guint32 pos;			/* Number of bytes of the file we currently have */
-	guint32 range_end;		/* First byte offset AFTER the requested range */
+	filesize_t size;		/* Total size of the next request, in bytes */
+	filesize_t skip;		/* Number of bytes for file we had before start */
+	filesize_t pos;			/* Number of bytes of the file we currently have */
+	filesize_t range_end;	/* First byte offset AFTER the requested range */
 
 	struct gnutella_socket *socket;
 	gint file_desc;			/* FD for writing into downloaded file */
@@ -178,8 +178,8 @@ struct download {
 	guint32 last_dmesh;		/* Time when last download mesh was sent */
 
 	GSList *ranges;			/* PFSP -- known list of ranges, NULL if none */
-	guint32 ranges_size;	/* PFSP -- size of remotely available data */
-	guint32 sinkleft;		/* Amount of data left to sink */
+	filesize_t ranges_size;	/* PFSP -- size of remotely available data */
+	filesize_t sinkleft;	/* Amount of data left to sink */
 
 	guint32 flags;
 
@@ -308,10 +308,10 @@ struct download {
 void download_index_changed(guint32, guint16, gchar *, guint32, guint32);
   
 gboolean download_new(gchar *,
-	guint32, guint32, guint32, guint16, gchar *, gchar *, gchar *, time_t,
+	filesize_t, guint32, guint32, guint16, gchar *, gchar *, gchar *, time_t,
     gboolean, struct dl_file_info *, gnet_host_vec_t *);
 void download_auto_new(gchar *,
- 	guint32, guint32, guint32, guint16, gchar *, gchar *, gchar *, time_t,
+ 	filesize_t, guint32, guint32, guint16, gchar *, gchar *, gchar *, time_t,
     gboolean, gboolean, struct dl_file_info *, gnet_host_vec_t *);
 void download_index_changed(guint32, guint16, gchar *, guint32, guint32);
 

@@ -110,7 +110,7 @@ typedef struct gnet_results_set {
  */
 typedef struct gnet_record {
 	gchar  *name;				/* File name */
-	guint32 size;				/* Size of file, in bytes */
+	filesize_t size;			/* Size of file, in bytes */
 	guint32 index;				/* Index for GET command */
 	gchar  *sha1;				/* SHA1 URN (binary form, atom) */
 	gchar  *tag;				/* Optional tag data string (atom) */

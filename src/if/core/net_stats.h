@@ -187,6 +187,6 @@ void gnet_stats_udp_get(gnet_stats_t *stats);
 void gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *stats);
 
 #endif /* CORE_SOURCES */
-#endif /* _if_core_net_stats_h_ */
 
+#endif /* _if_core_net_stats_h_ */
 /* vi: set ts=4 sw=4 cindent: */

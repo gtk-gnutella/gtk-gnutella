@@ -51,7 +51,7 @@ typedef enum {
 
 typedef struct gnet_upload_status {
 	upload_stage_t status;
-	off_t   pos;		 /* Read position in file we're sending */
+	filesize_t  pos;	 /* Read position in file we're sending */
 	guint32 bps;         /* Current transfer rate */
 	guint32 avg_bps;     /* Average transfer rate */
 	time_t  last_update;
@@ -70,9 +70,9 @@ typedef struct gnet_upload_info {
 
 	guint32 ip;          /* remote IP address */
 
-	guint32 file_size;   /* Size of requested file */
-	guint32 range_start; /* First byte to send, inclusive */
-	guint32 range_end;   /* Last byte to send, inclusive */
+	filesize_t file_size;	/* Size of requested file */
+	filesize_t range_start;	/* First byte to send, inclusive */
+	filesize_t range_end;	/* Last byte to send, inclusive */
 
 	time_t  start_date;
 
@@ -103,7 +103,7 @@ typedef struct gnet_upload_info {
 
 struct ul_stats {
 	gchar  *filename;
-	guint32 size;
+	filesize_t size;
 	guint32 attempts;
 	guint32 complete;
 	guint64 bytes_sent;

@@ -232,6 +232,6 @@ void node_udp_gui_show(void);
 void node_udp_gui_remove(void);
 
 #endif /* CORE_SOURCES */
-#endif /* _if_core_nodes_h */
 
+#endif /* _if_core_nodes_h */
 /* vi: set ts=4 sw=4 cindent: */

@@ -168,7 +168,7 @@ void guc_download_clear_stopped(gboolean complete,
 	download_clear_stopped(complete, failed, unavailable, now);
 }
 
-void guc_download_auto_new(gchar *file, guint32 size, 
+void guc_download_auto_new(gchar *file, filesize_t size, 
 	guint32 record_index, guint32 ip, guint16 port, gchar *guid, 
 	gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
 	gboolean file_size_known, struct dl_file_info *fi, 
@@ -212,7 +212,7 @@ gboolean guc_download_something_to_clear(void)
 	return download_something_to_clear();
 }
 
-gboolean guc_download_new(gchar *file, guint32 size, 
+gboolean guc_download_new(gchar *file, filesize_t size, 
 			guint32 record_index, guint32 ip, guint16 port, gchar *guid, 
 			gchar *hostname, gchar *sha1, time_t stamp, gboolean push,
 			struct dl_file_info *fi, gnet_host_vec_t *proxies)
@@ -222,7 +222,7 @@ gboolean guc_download_new(gchar *file, guint32 size,
 }
 
 void guc_download_index_changed(guint32 ip, guint16 port, 
-	gchar *guid, guint32 from, guint32 to)
+	gchar *guid, filesize_t from, filesize_t to)
 {
 	download_index_changed(ip, port, guid, from, to);
 }

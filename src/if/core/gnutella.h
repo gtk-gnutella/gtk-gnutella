@@ -63,4 +63,4 @@ struct gnutella_header {
 
 #endif /* _if_core_gnutella_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

@@ -56,19 +56,18 @@ struct verifyd {
 	struct download *d;		/* Current download */
 	gint fd;				/* Opened file descriptor, -1 if none */
 	time_t start;			/* Start time, to determine computation rate */
-	off_t size;				/* Size of file */
-	off_t hashed;			/* Amount of data hashed so far */
+	filesize_t size;		/* Size of file */
+	filesize_t hashed;		/* Amount of data hashed so far */
 	SHA1Context context;	/* SHA1 computation context */
 	gchar *buffer;			/* Large buffer, where data is read */
 	gint error;				/* Error code */
 };
 
-/*
- * d_free
- *
+/**
  * Freeing of computation context.
  */
-static void d_free(gpointer ctx)
+static void
+d_free(gpointer ctx)
 {
 	struct verifyd *vd = (struct verifyd *) ctx;
 
@@ -81,22 +80,20 @@ static void d_free(gpointer ctx)
 	wfree(vd, sizeof(*vd));
 }
 
-/*
- * d_notify
- *
+/**
  * Daemon's notification of start/stop.
  */
-static void d_notify(gpointer h, gboolean on)
+static void
+d_notify(gpointer h, gboolean on)
 {
 	gnet_prop_set_boolean_val(PROP_SHA1_VERIFYING, on);
 }
 
-/*
- * d_start
- *
+/**
  * Daemon's notification: starting to work on item.
  */
-static void d_start(gpointer h, gpointer ctx, gpointer item)
+static void
+d_start(gpointer h, gpointer ctx, gpointer item)
 {
 	struct verifyd *vd = (struct verifyd *) ctx;
 	struct download *d = (struct download *) item;
@@ -123,22 +120,21 @@ static void d_start(gpointer h, gpointer ctx, gpointer item)
 
 	vd->d = d;
 	vd->start = time(NULL);
-	vd->size = (off_t) download_filesize(d);
+	vd->size = download_filesize(d);
 	vd->hashed = 0;
 	vd->error = 0;
 	SHA1Reset(&vd->context);
 
 	if (dbg > 1)
-		printf("Verifying SHA1 digest for %s\n", filename);
+		g_message("Verifying SHA1 digest for %s\n", filename);
 	G_FREE_NULL(filename);
 }
 
-/*
- * d_end
- *
+/**
  * Daemon's notification: finished working on item.
  */
-static void d_end(gpointer h, gpointer ctx, gpointer item)
+static void
+d_end(gpointer h, gpointer ctx, gpointer item)
 {
 	struct verifyd *vd = (struct verifyd *) ctx;
 	struct download *d = (struct download *) item;
@@ -168,7 +164,7 @@ static void d_end(gpointer h, gpointer ctx, gpointer item)
 
 	if (dbg > 1)
 		printf("Computed SHA1 digest for %s at %lu bytes/sec [error=%d]\n",
-			download_outname(d), (gulong) vd->size / elapsed, vd->error);
+			download_outname(d), (gulong) (vd->size / elapsed), vd->error);
 
 finish:
 	if (vd->error == 0)
@@ -177,18 +173,17 @@ finish:
 		download_verify_error(d);
 }
 
-/*
- * d_step_compute
- *
+/**
  * Compute SHA1 of current file.
  */
-static bgret_t d_step_compute(gpointer h, gpointer u, gint ticks)
+static bgret_t
+d_step_compute(gpointer h, gpointer u, gint ticks)
 {
 	struct verifyd *vd = (struct verifyd *) u;
-	gint r;
-	gint amount;
+	ssize_t r;
+	size_t amount;
 	gint res;
-	guint32 remain;
+	filesize_t remain;
 	gint used;
 
 	g_assert(vd->magic == VERIFYD_MAGIC);
@@ -212,20 +207,17 @@ static bgret_t d_step_compute(gpointer h, gpointer u, gint ticks)
 
 	amount = ticks << HASH_BLOCK_SHIFT;
 	remain = MIN(remain, HASH_BUF_SIZE);
-	amount = MIN((guint32) amount, remain);
+	amount = MIN(amount, remain);
 
 	g_assert(amount > 0);
 
 	r = read(vd->fd, vd->buffer, amount);
-
-	if (r < 0) {
+	if ((ssize_t) -1 == r) {
 		vd->error = errno;
 		g_warning("error while reading %s for computing SHA1: %s",
 			download_outname(vd->d), g_strerror(errno));
 		return BGR_DONE;
-	}
-
-	if (r == 0) {
+	} else if (r == 0) {
 		g_warning("EOF while reading %s for computing SHA1!",
 			download_outname(vd->d));
 		vd->error = -1;
@@ -255,22 +247,20 @@ static bgret_t d_step_compute(gpointer h, gpointer u, gint ticks)
 	return vd->hashed == vd->size ? BGR_DONE : BGR_MORE;
 }
 
-/*
- * verify_queue
- *
+/**
  * Enqueue completed download file for verification.
  */
-void verify_queue(struct download *d)
+void
+verify_queue(struct download *d)
 {
 	bg_daemon_enqueue(verify_daemon, d);
 }
 
-/*
- * verify_init
- *
+/**
  * Initializes the background verification task.
  */
-void verify_init(void)
+void
+verify_init(void)
 {
 	struct verifyd *vd;
 	bgstep_cb_t step = d_step_compute;
@@ -288,14 +278,13 @@ void verify_init(void)
 		d_notify);
 }
 
-/*
- * verify_close
- *
+/**
  * Called at shutdown time.
  */
-void verify_close(void)
+void
+verify_close(void)
 {
 	bg_task_cancel(verify_daemon);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

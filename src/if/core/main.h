@@ -33,4 +33,4 @@ void gtk_gnutella_exit(gint n);
 #endif /* CORE_SOURCES */
 #endif /* _if_core_main_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
