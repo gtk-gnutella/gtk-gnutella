@@ -289,6 +289,11 @@ gint main(gint argc, gchar ** argv)
 	// FIXME: end
 
     gtk_widget_set_sensitive(popup_nodes_remove, FALSE);
+	gtk_widget_set_sensitive(popup_queue_remove, FALSE);
+	gtk_widget_set_sensitive(popup_queue_remove_named, FALSE);
+	gtk_widget_set_sensitive(popup_queue_remove_host, FALSE);
+	// FIXME: enable when code for popup_queue_search_again is written
+	//gtk_widget_set_sensitive(popup_queue_search_again, FALSE);
     gtk_widget_set_sensitive(popup_downloads_push, 
                              !gtk_toggle_button_get_active(
 								 GTK_TOGGLE_BUTTON(checkbutton_downloads_never_push)));
