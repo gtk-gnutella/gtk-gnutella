@@ -51,8 +51,8 @@ static const struct {
 	const char cc[3];
 	const char *country;
 } iso3166_tab[] = {
-	{ "a1", N_("Anonymizing proxies") },
-	{ "a2", N_("Satellite providers") },
+	{ "a1", N_("Anonymizing proxies") }, /* Not ISO 3166 */
+	{ "a2", N_("Satellite providers") }, /* Not ISO 3166 */
 	{ "af", N_("Afghanistan") },
 	{ "al", N_("Albania, People's Socialist Republic of") },
 	{ "dz", N_("Algeria, People's Democratic Republic of") },
@@ -65,6 +65,7 @@ static const struct {
 	{ "ar", N_("Argentina, Argentine Republic") },
 	{ "am", N_("Armenia") },
 	{ "aw", N_("Aruba") },
+	{ "ap", N_("Asia/Pacific Region") }, /* Not ISO 3166 */
 	{ "au", N_("Australia, Commonwealth of") },
 	{ "at", N_("Austria, Republic of") },
 	{ "az", N_("Azerbaijan, Republic of") },
@@ -121,6 +122,7 @@ static const struct {
 	{ "er", N_("Eritrea") },
 	{ "ee", N_("Estonia") },
 	{ "et", N_("Ethiopia") },
+	{ "eu", N_("Europe") }, /* Not ISO 3166 */
 	{ "fo", N_("Faeroe Islands") },
 	{ "fk", N_("Falkland Islands (Malvinas)") },
 	{ "fj", N_("Fiji, Republic of the Fiji Islands") },
@@ -290,6 +292,7 @@ static const struct {
 	{ "wf", N_("Wallis and Futuna Islands") },
 	{ "eh", N_("Western Sahara") },
 	{ "ye", N_("Yemen") },
+	{ "yu", N_("Yugoslavia") },	/* Not ISO 3166 any longer (historical) */
 	{ "zm", N_("Zambia, Republic of") },
 	{ "zw", N_("Zimbabwe") }
 };
@@ -312,6 +315,9 @@ iso3166_decode_cc(gint code)
     if (code < 0 || (size_t) code >= G_N_ELEMENTS(iso3166_countries))
         return NULL;
 
+    if (NULL == iso3166_countries[code])
+        return NULL;
+	
     i = code / 36;
     g_assert(i < 36);
     s[0] = i + (i < 10 ? '0' : 'a' - 10);
@@ -328,25 +334,25 @@ iso3166_decode_cc(gint code)
 gint
 iso3166_encode_cc(const gchar *cc)
 {
-    gint code;
-
     g_assert(cc != NULL);
+
     if (is_ascii_alnum(cc[0]) && is_ascii_alnum(cc[1]) && '\0' == cc[2]) {
         const gchar *d;
 		guint64 v;
 		int error;
 
 		v = parse_uint64(cc, NULL, 36, &error);
-        g_assert(v <= (36 * 35 + 35));
+        g_assert(v < G_N_ELEMENTS(iso3166_countries));
         g_assert(0 == error);
 
-		code = v;
-        d = iso3166_decode_cc(code);
-        g_assert(0 == strcasecmp(cc, d));
-    } else {
-        code = -1;
+		if (NULL != iso3166_countries[v]) {
+			gint code = v;
+        	d = iso3166_decode_cc(code);
+        	g_assert(0 == strcasecmp(cc, d));
+			return code;
+		}
     }
-    return code;
+    return -1;
 }
 
 
@@ -359,7 +365,8 @@ iso3166_init(void)
 		const gchar *country, *cc;
 		iso3166_entry_t *e;
 		size_t size;
-		gint code;
+		gint code, error;
+		gchar *ep;
 
 		country = _(iso3166_tab[i].country);
 		cc = iso3166_tab[i].cc;
@@ -368,7 +375,9 @@ iso3166_init(void)
 		strncpy(e->cc, cc, sizeof e->cc);
 		memcpy(e->country, country, size);
 
-		code = iso3166_encode_cc(cc);
+		code = parse_uint64(cc, &ep, 36, &error);
+		g_assert(*ep == '\0');
+		g_assert(!error);
 		g_assert(code >= 0 && (size_t) code < G_N_ELEMENTS(iso3166_countries));
 		iso3166_countries[code] = e;
 	}
@@ -395,8 +404,14 @@ iso3166_close(void)
 const gchar *
 iso3166_country_name(gint code)
 {
+	iso3166_entry_t *e;
+	
 	g_assert(code >= -1 && code < (gint) G_N_ELEMENTS(iso3166_countries));
-	return -1 == code ? "??" : iso3166_countries[code]->country;
+	if (-1 == code)
+		return "??";
+	
+	e = iso3166_countries[code];
+	return e ? e->country : "(null)";
 }
 
 /**
@@ -409,8 +424,14 @@ iso3166_country_name(gint code)
 const gchar *
 iso3166_country_cc(gint code)
 {
+	iso3166_entry_t *e;
+	
 	g_assert(code >= -1 && code < (gint) G_N_ELEMENTS(iso3166_countries));
-	return -1 == code ? "??" : iso3166_countries[code]->cc;
+	if (-1 == code)
+		return "??";
+	
+	e = iso3166_countries[code];
+	return e ? e->cc : "(null)";
 }
 
 /* vi: set ts=4 sw=4 cindent: */
