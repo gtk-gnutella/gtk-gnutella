@@ -58,8 +58,6 @@ url_params_t *url_params_parse(gchar *query);
 gchar *url_params_get(url_params_t *up, gchar *name);
 void url_params_free(url_params_t *up);
 gchar *url_normalize(gchar *url, url_policy_t pol);
-gboolean url_strtoaddr_strict(const gchar *s, guint32 *addr,
-	gchar const **endptr);
 
 #endif	/* _url_h_ */
 

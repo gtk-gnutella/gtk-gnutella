@@ -414,62 +414,6 @@ static gboolean url_safe_char(gint c, url_policy_t p)
 }
 
 /*
- * url_strtoaddr_strict
- *
- * A strict string to IP address conversion; the other stuff from misc.[ch]
- * is not sufficient.
- *
- * Returns TRUE if ``s'' pointed to a string representation of an IPv4
- * address, otherwise FALSE.
- * If successful, ``*addr'' will be set to the IPv4 address in network
- * byte order and ``*endptr'' will point to the character after the
- * IPv4 address. ``addr'' and ``endptr'' may be NULL.
- */
-gboolean url_strtoaddr_strict(const gchar *s, guint32 *addr,
-	gchar const **endptr)
-{
-	const gchar *p = s;
-	guchar buf[sizeof *addr];
-	guchar *a = addr ? (guchar *) addr : buf;
-	gboolean is_valid = TRUE;
-	gint i, j, v;
-
-	g_assert(s);
-
-	for (i = 0; i < 4; i++) {
-		v = 0;
-		for (j = 0; j < 3; j++) {
-			if (*p < '0' || *p > '9') {
-				is_valid = j > 0;
-				break;
-			}
-			v *= 10;
-			v += *p++ - '0';
-		}
-		if (!is_valid)
-			break;
-		if (i < 3) {
-			if (*p != '.') {
-				is_valid = FALSE;
-				break; /* failure */
-			}
-			p++;
-		}
-		*a++ = (gchar) v;
-	}
-
-	if (endptr)
-		*endptr = p;
-
-	if (!is_valid) {
-		if (addr)
-			*addr = 0;
-		return FALSE;
-	}
-	return TRUE;
-}
-
-/*
  * url_normalize
  *
  * NB: May modify ``url'' in all cased; pass a copy if necessary!
@@ -509,7 +453,7 @@ gchar *url_normalize(gchar *url, url_policy_t pol)
 		return NULL;
 	}
 
-	if (url_strtoaddr_strict(q, NULL, (const gchar **) &endptr)) {
+	if (gchar_to_ip_strict(q, NULL, (const gchar **) &endptr)) {
 		if (!(pol & URL_POLICY_ALLOW_IP_AS_HOST)) {
 			if (url_dbg)
 				g_warning("URLs without hostnames have been disabled");

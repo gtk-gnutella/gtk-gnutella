@@ -181,6 +181,63 @@ guint32 gchar_to_ip(const gchar *str)
 }
 
 /*
+ * gchar_to_ip_strict
+ *
+ * A strict string to IP address conversion; when other stuff from misc.[ch]
+ * is not sufficient.
+ *
+ * Returns TRUE if ``s'' pointed to a string representation of an IPv4
+ * address, otherwise FALSE.
+ * If successful, ``*addr'' will be set to the IPv4 address in network
+ * byte order and ``*endptr'' will point to the character after the
+ * IPv4 address. ``addr'' and ``endptr'' may be NULL.
+ */
+gboolean gchar_to_ip_strict(const gchar *s, guint32 *addr,
+	gchar const **endptr)
+{
+	const gchar *p = s;
+	guchar buf[sizeof *addr];
+	guchar *a = addr ? (guchar *) addr : buf;
+	gboolean is_valid = TRUE;
+	gint i, j, v;
+
+	g_assert(s);
+
+	for (i = 0; i < 4; i++) {
+		v = 0;
+		for (j = 0; j < 3; j++) {
+			if (*p < '0' || *p > '9') {
+				is_valid = j > 0;
+				break;
+			}
+			v *= 10;
+			v += *p++ - '0';
+		}
+		if (!is_valid)
+			break;
+		if (i < 3) {
+			if (*p != '.') {
+				is_valid = FALSE;
+				break; /* failure */
+			}
+			p++;
+		}
+		*a++ = (gchar) v;
+	}
+
+	if (endptr)
+		*endptr = p;
+
+	if (!is_valid) {
+		if (addr)
+			*addr = 0;
+		return FALSE;
+	}
+	return TRUE;
+}
+
+
+/*
  * gchar_to_ip_port
  *
  * Decompiles ip:port into ip and port.  Leading spaces are ignored.
@@ -1396,52 +1453,38 @@ gchar *hex_escape(const gchar *name, gboolean strict)
  */
 gboolean gchar_to_ip_and_mask(const gchar *str, guint32 *ip, guint32 *netmask)
 {
-	const gchar *mask_str = NULL;
+	const gchar *ep, *s = str;
 	gint error;
-	gulong b;
-	static gchar buf[64];
+	glong v;
+	guint32 a;
 
-	if ((mask_str = strchr(str, '/')) != NULL) {
-		size_t len = mask_str - str;
-
-		if (len >= sizeof(buf))
-			return FALSE;
-		memcpy(buf, str, len);
-		buf[len] = '\0';
-		mask_str++;
-		str = &buf[0];
-	}
-
-	*ip = gchar_to_ip(str);		/* Assume numeric IP */
-	if (*ip == 0)				/* Bad luck */
-		*ip = host_to_ip(str);
-	if (!*ip)
+	if (!gchar_to_ip_strict(s, &a, &ep) || 0 == a)
 		return FALSE;
 
-	if (NULL == mask_str) {
-		*netmask = ~0;
-		return TRUE;
-	}		
-
-	if (strchr(mask_str, '.')) {
-		*netmask = gchar_to_ip(mask_str);
-		if (~0U != *netmask) {
-			if (*netmask != ~((1U << (highest_bit_set(~*netmask) + 1)) - 1))
-				return FALSE;
-		}
-		return 0 != *netmask;
-	}
-
-	b = gm_atoul(mask_str, NULL, &error);
-	if (error || b == 0 || b > 32)
-		return FALSE;
-		
-	if (32 == *netmask) {
+	*ip = ntohl(a);
+	s = ep;
+	if (*s == '\0') {
 		*netmask = ~0;
 		return TRUE;
 	}
 
-	*netmask = ~(~0 >> b);
+	if (*s++ != '/')
+		return FALSE;
+
+	if (!is_ascii_digit(*s))
+		return FALSE;
+
+
+	if (gchar_to_ip_strict(s, &a, &ep)) {
+		*netmask = ntohl(a);
+		return 0 != a;
+	}
+
+	v = gm_atoul(s, (gchar **) &ep, &error);
+	if (error || v < 1 || v > 32 || *ep != '\0')
+		return FALSE;
+
+	*netmask = ~0U << (32 - v);
 	return TRUE;
 }
 
