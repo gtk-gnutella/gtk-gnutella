@@ -623,45 +623,45 @@ static gboolean max_ttl_changed(property_t prop)
     return FALSE;
 }
 
-#if 0
-static gboolean guid_changed(property_t prop)
+static gboolean bw_http_in_changed(property_t prop)
 {
-    guint32 buf[4];
+    guint32 val;
 
-    /*
-     * GUID has 16 byte, so it fits well into a 4-item 32bit vector.
-     * It's a hack, but it saves creating a whole new property type just
-     * for the GUID.
-     *      -- Richard, 10/08/2002
-     */
-    gnet_prop_get_guint32(prop, buf, 0, 4);
-
-    /*
-     * Sync PROP_GUID_STRING with PROP_GUID.
-     */
-    gnet_prop_set_string(PROP_GUID_STRING, guid_hex_str);
-
-    return FALSE;
-}
-
-static gboolean guid_string_changed(property_t prop)
-{
-    gchar *s = gnet_prop_get_string(prop, NULL, 0);
-    guchar buf[16];
-
-    if (strlen(s) == 32)
-        hex_to_guid(s, buf);
-
-    /*
-     * Sync PROP_GUID with PROP_GUID_STRING.
-     */
-    gnet_prop_set_vector(PROP_GUID, (guint32 *)buf);
-
-    g_free(s);
+    gnet_prop_get_guint32(prop, &val, 0, 1);
+    bsched_set_bandwidth(bws.in, val);
     
     return FALSE;
 }
-#endif
+
+static gboolean bw_http_out_changed(property_t prop)
+{
+    guint32 val;
+
+    gnet_prop_get_guint32(prop, &val, 0, 1);
+    bsched_set_bandwidth(bws.out, val);
+    
+    return FALSE;
+}
+
+static gboolean bw_gnet_in_changed(property_t prop)
+{
+    guint32 val;
+
+    gnet_prop_get_guint32(prop, &val, 0, 1);
+    bsched_set_bandwidth(bws.gin, val);
+    
+    return FALSE;
+}
+
+static gboolean bw_gnet_out_changed(property_t prop)
+{
+    guint32 val;
+
+    gnet_prop_get_guint32(prop, &val, 0, 1);
+    bsched_set_bandwidth(bws.gout, val);
+    
+    return FALSE;
+}
 
 /***
  *** Property-to-callback map
@@ -756,22 +756,26 @@ static prop_map_t property_map[] = {
         max_ttl_changed,
         TRUE
     },
-#if 0
     {
-        PROP_GUID,
-        guid_changed,
-        FALSE 
-        /* 
-         * No need to initialize PROP_GUID, since we init PROP_GUID_STRING,
-         * which will then also affect PROP_GUID.
-         */
+        PROP_BW_HTTP_IN,
+        bw_http_in_changed,
+        FALSE
     },
     {
-        PROP_GUID_STRING,
-        guid_string_changed,
-        TRUE
+        PROP_BW_HTTP_OUT,
+        bw_http_out_changed,
+        FALSE
+    },
+    {
+        PROP_BW_GNET_IN,
+        bw_gnet_in_changed,
+        FALSE
+    },
+    {
+        PROP_BW_GNET_OUT,
+        bw_gnet_out_changed,
+        FALSE
     }
-#endif
 };
 
 /***
