@@ -336,10 +336,17 @@ static prop_map_t property_map[] = {
     },
     {
         get_main_window,
-        PROP_GNET_STATS_COL_WIDTHS,
+        PROP_GNET_STATS_PKG_COL_WIDTHS,
         update_clist_col_widths,
         TRUE,
-        "clist_gnet_stats"
+        "clist_gnet_stats_pkg"
+    },
+    {
+        get_main_window,
+        PROP_GNET_STATS_BYTE_COL_WIDTHS,
+        update_clist_col_widths,
+        TRUE,
+        "clist_gnet_stats_byte"
     },
     {
         get_main_window,
