@@ -1,5 +1,21 @@
 # since last version
 
+- (2002.05.15 - Richard)
+  * Fixed bug with spinbuttons: manually entering a value did require
+    to hit enter two times or did not work at all. Had to use
+    connect_after() to connect the signals.
+  * Save width of "Status" column added to queue.
+  * Display notice in the statusbar if the address has changed.
+  * Added gNet traffic display and reworked the View menu and stats
+    display a little
+  * Replaced the hosts_in_catcher entry with a progressbar.
+  * Changed some limits on the new configuration items.
+  * Obsoleted all *bps* config variables and replaced them with
+    *bws* counterparts to reflect the internal changing of names
+    within bsched. Kept code to load the values from the *bps*
+    variables though.
+  * Added configuration of gNet bandwidth control
+
 - (2002.05.14 - Richard)
   * Added lots of config stuff.
 
