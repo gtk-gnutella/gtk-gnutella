@@ -197,7 +197,7 @@ void header_get_feature(const gchar *feature_name, const header_t *header,
 	for (start = buf;;) {
 		gint pc;			/* Previous char */
 
-		buf = strcasestr(buf, feature_name);
+		buf = ascii_strcasestr(buf, feature_name);
 
 		if (buf == NULL)
 			return;

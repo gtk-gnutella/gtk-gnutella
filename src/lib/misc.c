@@ -1345,12 +1345,11 @@ ascii_strlower(gchar *dst, const gchar *src)
 }
 
 
-#ifndef HAS_STRCASESTR
 /**
- * Same as strstr() but case-insensitive.
+ * Same as strstr() but case-insensitive with respect to ASCII characters.
  */
 gchar *
-strcasestr(const gchar *haystack, const gchar *needle)
+ascii_strcasestr(const gchar *haystack, const gchar *needle)
 {
 	guint32 delta[256];
 	size_t nlen = strlen(needle);
@@ -1374,7 +1373,7 @@ strcasestr(const gchar *haystack, const gchar *needle)
 
 	for (n = needle, i = 0; i < nlen; i++) {
 		guchar c = *n++;
-		delta[(guchar) tolower(c)] = nlen - i;
+		delta[ascii_tolower(c)] = nlen - i;
 	}
 
 	/*
@@ -1386,19 +1385,18 @@ strcasestr(const gchar *haystack, const gchar *needle)
 		guchar c;
 
 		for (n = needle, t = tp, i = 0; i < nlen; n++, t++, i++)
-			if (tolower((guchar) *n) != tolower((guchar) *t))
+			if (ascii_tolower((guchar) *n) != ascii_tolower((guchar) *t))
 				break;
 
 		if (i == nlen)						/* Got a match! */
 			return tp;
 
 		c = *(tp + nlen);
-		tp += delta[(guchar) tolower(c)];	/* Continue search there */
+		tp += delta[ascii_tolower(c)];	/* Continue search there */
 	}
 
 	return NULL;		/* Not found */
 }
-#endif	/* HAS_STRCASESTR */
 
 /**
  * Compare two strings up to the specified delimiters.

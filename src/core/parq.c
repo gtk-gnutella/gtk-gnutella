@@ -313,7 +313,7 @@ get_header_value(gchar *const s, gchar const *const attribute, size_t *length)
 		gchar b;
 		gchar es;
 
-		header = strcasestr(header, attribute);
+		header = ascii_strcasestr(header, attribute);
 
 		if (header == NULL)
 			return NULL;

@@ -106,7 +106,7 @@ urn_get_sha1(gchar *buf, gchar *digest)
 	 * the first 32 bytes of the bitprint is the SHA1.
 	 */
 
-	sha1 = strcasestr(buf, "urn:sha1:");		/* Case-insensitive */
+	sha1 = ascii_strcasestr(buf, "urn:sha1:");		/* Case-insensitive */
 
 	if (sha1) {
 		sha1 += 9;		/* Skip "urn:sha1:" */
@@ -114,7 +114,7 @@ urn_get_sha1(gchar *buf, gchar *digest)
 			return TRUE;
 	}
 
-	sha1 = strcasestr(buf, "urn:bitprint:");	/* Case-insensitive */
+	sha1 = ascii_strcasestr(buf, "urn:bitprint:");	/* Case-insensitive */
 
 	if (sha1) {
 		sha1 += 13;		/* Skip "urn:bitprint:" */
@@ -146,7 +146,7 @@ urn_get_sha1_no_prefix(gchar *buf, gchar *digest)
 	 * the first 32 bytes of the bitprint is the SHA1.
 	 */
 
-	sha1 = strcasestr(buf, "sha1:");			/* Case-insensitive */
+	sha1 = ascii_strcasestr(buf, "sha1:");			/* Case-insensitive */
 
 	if (sha1 && sha1 == buf) {
 		sha1 += 5;		/* Skip "sha1:" */
@@ -154,7 +154,7 @@ urn_get_sha1_no_prefix(gchar *buf, gchar *digest)
 			return TRUE;
 	}
 
-	sha1 = strcasestr(buf, "bitprint:");		/* Case-insensitive */
+	sha1 = ascii_strcasestr(buf, "bitprint:");		/* Case-insensitive */
 
 	if (sha1 && sha1 == buf) {
 		sha1 += 9;		/* Skip "bitprint:" */

@@ -339,11 +339,7 @@ guint64 parse_uint64(const gchar *, gchar **, gint, gint *);
 typedef void (*signal_handler_t)(gint signo);
 signal_handler_t set_signal(gint signo, signal_handler_t handler);
 
-#ifdef HAVE_STRCASESTR
-char *strcasestr(const char *haystack, const char *needle);
-#else
-gchar *strcasestr(const gchar *haystack, const gchar *needle);
-#endif
+gchar *ascii_strcasestr(const gchar *haystack, const gchar *needle);
 
 #define NULL_STRING(s) (s != NULL ? s : "(null)")
 
