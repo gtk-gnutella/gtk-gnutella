@@ -82,16 +82,17 @@ void main_gui_run(void)
 {
     guint32 coord[4] = { 0, 0, 0, 0 };
 
-	gui_update_global();
+    gui_update_global();
 
-	gtk_widget_show(main_window);		/* Display the main window */
+    gtk_widget_show(main_window);		/* Display the main window */
 
     gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, 4);
 
-    gdk_window_move_resize(main_window->window, 
-        coord[0], coord[1], coord[2], coord[3]);
+    if ((coord[2] != 0) && (coord[3] != 0))
+        gdk_window_move_resize(main_window->window, 
+	    coord[0], coord[1], coord[2], coord[3]);
 
-	gtk_main();
+    gtk_main();
 }
 
 void main_gui_shutdown(void)

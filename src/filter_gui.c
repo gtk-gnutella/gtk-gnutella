@@ -267,8 +267,9 @@ void filter_gui_show_dialog(void)
 
     gui_prop_get_guint32(PROP_FILTER_DLG_COORDS, coord, 0, 4);
 
-  	gtk_window_set_default_size(GTK_WINDOW(filter_dialog), 
-        coord[2], coord[3]);
+    if ((coord[2] != 0) && (coord[3] != 0))
+        gtk_window_set_default_size(GTK_WINDOW(filter_dialog), 
+	    coord[2], coord[3]);
 
     gtk_paned_set_position(
         GTK_PANED(lookup_widget(filter_dialog, "hpaned_filter_main")),
