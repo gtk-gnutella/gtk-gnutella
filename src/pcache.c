@@ -845,8 +845,9 @@ void pcache_ping_received(struct gnutella_node *n)
 		(n->attrs & (NODE_A_PONG_CACHING|NODE_A_PONG_ALIEN)) ==
 			NODE_A_PONG_CACHING
 	) {
-		g_warning("node %s [%d.%d] claimed ping reduction, "
+		g_warning("node %s (%s) [%d.%d] claimed ping reduction, "
 			"got ping with hops=%d", node_ip(n),
+			n->vendor ? n->vendor : "????",
 			n->proto_major, n->proto_minor, n->header.hops);
 		n->attrs |= NODE_A_PONG_ALIEN;		/* Warn only once */
 	}
