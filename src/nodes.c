@@ -3114,8 +3114,20 @@ static void node_process_handshake_header(
 			if (current_peermode == NODE_P_ULTRA)
 				n->flags |= NODE_F_LEAF;
 		}
-	} else
-		n->attrs |= NODE_A_NO_ULTRA;
+	} else {
+		/*
+		 * BearShare 4.3.x decided to no longer send X-Ultrapeer on connection,
+		 * but rather include the X-Ultrapeer-Needed header.  Hopefully, only
+		 * their UPs will send back such a header.
+		 *		--RAM, 01/11/2003
+		 */
+
+		field = header_get(head, "X-Ultrapeer-Needed");
+		if (field)
+			n->attrs |= NODE_A_CAN_ULTRA | NODE_A_ULTRA;
+		else
+			n->attrs |= NODE_A_NO_ULTRA;
+	}
 
 	/*
 	 * Accept-Encoding -- decompression support on the remote side
@@ -3270,9 +3282,17 @@ static void node_process_handshake_header(
 					mode_changed = TRUE;
 					gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE,
 						NODE_P_LEAF);
-				} else if (dbg > 2 && current_peermode != NODE_P_LEAF)
-					g_warning("denied request from %s <%s> to become a leaf",
+				} else if (current_peermode != NODE_P_LEAF) {
+					gchar *msg = "Not becoming a leaf node";
+
+					if (dbg > 2) g_warning(
+						"denying request from %s <%s> to become a leaf",
 						node_ip(n), node_vendor(n));
+
+					send_node_error(n->socket, 403, msg);
+					node_remove(n, msg);
+					return;
+				}
 			}
 		}
 		if (field && 0 == strcasecmp(field, "true")) {
