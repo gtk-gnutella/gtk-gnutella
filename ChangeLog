@@ -1,5 +1,13 @@
 # since last version
 
+- (2003.01.11 - RAM)
+ * New property "node_rx_flowc_ratio".
+ * Make sure we're not remotely flow-controlled too often.
+ * Replaced magical "7" with the new GTA_NORMAL_TTL constant.
+ * New property "dl_qalive_count".
+ * Downloads now update the "dl_qalive_count" to reflect the amount of
+   sources that still reply to our requests.
+
 - (2003.01.10 - RAM)
  * Was reading '*p' but could peruse 'c' instead (dmesh.c).
  * Generalized the use of walloc/wfree for small structures.
