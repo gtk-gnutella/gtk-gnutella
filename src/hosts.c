@@ -802,7 +802,7 @@ void hosts_read_from_file(gchar * path, gboolean quiet)
 		return;
 	}
 
-	hosts_idle_func = gtk_idle_add(hosts_reading_func, (gpointer) NULL);
+	hosts_idle_func = g_idle_add(hosts_reading_func, (gpointer) NULL);
 
 	gui_statusbar_push(scid_hostsfile, "Reading caught host file...");
 }
