@@ -176,7 +176,6 @@ gint main(gint argc, gchar **argv)
 	signal(SIGTERM, SIG_Handler);
 	signal(SIGINT,  SIG_Handler);
 	signal(SIGPIPE, SIG_IGN);
-	signal(SIGABRT, SIG_IGN);
 
 	/* Create the main listening socket */
 
@@ -239,7 +238,7 @@ gint main(gint argc, gchar **argv)
 
 
         /* Auto-connect to the network. */
-        {
+        if(up_connections) {
             guint32 autoConnectIp = 0;
 
             autoConnectIp = host_to_ip("gnutellahosts.com");
