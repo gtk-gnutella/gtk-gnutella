@@ -1351,6 +1351,14 @@ void download_stop(struct download *d, guint32 new_status,
 	g_assert(d->file_info);
 	g_assert(d->file_info->refcount);
 
+	if (d->status == GTA_DL_RECEIVING) {
+		g_assert(d->file_info->recvcount > 0);
+		g_assert(d->file_info->recvcount <= d->file_info->refcount);
+		g_assert(d->file_info->recvcount <= d->file_info->lifecount);
+
+		d->file_info->recvcount--;
+	}
+
 	switch (new_status) {
 	case GTA_DL_COMPLETED:
 	case GTA_DL_ABORTED:
@@ -3879,6 +3887,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	guint16 port;
 	gint http_major = 0, http_minor = 0;
 	gboolean is_followup = d->keep_alive;
+	struct dl_file_info *fi;
 	gchar short_read[80];
 
 	g_assert(s->getline);				/* Being in the header reading phase */
@@ -4065,6 +4074,8 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 
 	g_assert(ok);
 
+	fi = d->file_info;
+
 	if (got_new_server)
 		gui_update_download_server(d);
 
@@ -4076,7 +4087,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 			download_stop(d, GTA_DL_ERROR, "Null Content-Length");
 			return;
 		} else if (content_size != requested_size) {
-			if (content_size == d->file_info->size) {
+			if (content_size == fi->size) {
 				g_warning("File '%s': server seems to have "
 					"ignored our range request of %u-%u.",
 					d->file_name, d->skip - d->overlap_size, d->range_end - 1);
@@ -4124,9 +4135,9 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 					" (continuing anyway)",
 					d->file_name, d->range_end - 1, end);
 			}
-			if (total != d->file_info->size) {
+			if (total != fi->size) {
 				g_warning("File '%s': file size mismatch: expected %u, got %u",
-					d->file_name, d->file_info->size, total);
+					d->file_name, fi->size, total);
 				download_stop(d, GTA_DL_ERROR, "File size mismatch");
 				return;
 			}
@@ -4161,14 +4172,13 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 
 	g_assert(d->file_desc == -1);
 
-	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", d->file_info->path,
-			d->file_info->file_name);
+	g_snprintf(dl_tmp, sizeof(dl_tmp), "%s/%s", fi->path, fi->file_name);
 
 	if (stat(dl_tmp, &st) != -1) {
 		/* File exists, we'll append the data to it */
-		if (!d->file_info->use_swarming && (st.st_size != d->skip)) {
-			g_warning("File '%s' changed size (now %lu, but was %u)",
-					d->file_info->file_name, (gulong) st.st_size, d->skip);
+		if (!fi->use_swarming && (fi->done != d->skip)) {
+			g_warning("File '%s' changed size (now %u, but was %u)",
+					fi->file_name, fi->done, d->skip);
 			download_queue_delay(d, download_retry_stopped_delay,
 				"Stopped (Output file size changed)");
 			return;
@@ -4176,7 +4186,7 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 
 		d->file_desc = open(dl_tmp, O_WRONLY);
 	} else {
-		if (!d->file_info->use_swarming && d->skip) {
+		if (!fi->use_swarming && d->skip) {
 			download_stop(d, GTA_DL_ERROR, "Cannot resume: file gone");
 			return;
 		}
@@ -4209,6 +4219,11 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	d->start_date = time((time_t *) NULL);
 	d->status = GTA_DL_RECEIVING;
 
+	if (0 == fi->recvcount++) {		/* First source to begin receiving */
+		fi->recv_last_time = d->start_date;
+		fi->recv_last_rate = 0;
+	}
+
 	dl_establishing--;
 	dl_active++;
 	g_assert(dl_establishing >= 0);
@@ -4234,8 +4249,10 @@ static void download_request(struct download *d, header_t *header, gboolean ok)
 	 * if the whole file was already read in the socket buffer.
 	 */
 
-	if (s->pos > 0)
+	if (s->pos > 0) {
+		fi->recv_amount += s->pos;
 		download_write_data(d);
+	}
 }
 
 /*
@@ -4261,10 +4278,16 @@ static void download_read(gpointer data, gint source, GdkInputCondition cond)
 	struct gnutella_socket *s;
 	gint32 r;
 	gint32 to_read, remains;
+	struct dl_file_info *fi;
 
-	g_return_if_fail(d);
+	g_assert(d);
+	g_assert(d->file_info->recvcount > 0);
+
+	fi = d->file_info;
 	s = d->socket;
-	g_return_if_fail(s);
+
+	g_assert(s);
+	g_assert(fi);
 
 	if (cond & GDK_INPUT_EXCEPTION) {
 		download_stop(d, GTA_DL_ERROR, "Failed (Input Exception)");
@@ -4279,15 +4302,15 @@ static void download_read(gpointer data, gint source, GdkInputCondition cond)
 		return;
 	}
 
-	g_assert(d->pos <= d->file_info->size);
+	g_assert(d->pos <= fi->size);
 
-	if (d->pos == d->file_info->size) {
+	if (d->pos == fi->size) {
 		download_stop(d, GTA_DL_ERROR, "Failed (Completed?)");
 		return;
 	}
 
 	remains = sizeof(s->buffer) - s->pos;
-	to_read = d->file_info->size - d->pos;
+	to_read = fi->size - d->pos;
 	if (remains < to_read)
 		to_read = remains;			/* Only read to fill buffer */
 
@@ -4318,6 +4341,7 @@ static void download_read(gpointer data, gint source, GdkInputCondition cond)
 
 	s->pos += r;
 	d->last_update = time((time_t *) 0);
+	fi->recv_amount += r;
 
 	g_assert(s->pos > 0);
 

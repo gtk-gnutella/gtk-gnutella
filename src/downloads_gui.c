@@ -30,6 +30,7 @@
 #include "downloads_cb.h"
 
 #define IO_STALLED		60		/* If nothing exchanged after that many secs */
+#define IO_AVG_RATE		5		/* Compute global recv rate every 5 secs */
 
 static gchar tmpstr[4096];
 
@@ -166,6 +167,19 @@ void gui_update_download(struct download *d, gboolean force)
 			gint bps;
 			guint32 avg_bps;
 
+			/*
+			 * Update the global average reception rate periodically.
+			 */
+
+			g_assert(fi->recvcount > 0);
+
+			if (now - fi->recv_last_time > IO_AVG_RATE) {
+				fi->recv_last_rate =
+					fi->recv_amount / (now - fi->recv_last_time);
+				fi->recv_amount = 0;
+				fi->recv_last_time = now;
+			}
+
 			if (d->size)
                 p = (d->pos - d->skip) * 100.0 / d->size;
             if (download_filesize(d))
@@ -177,30 +191,46 @@ void gui_update_download(struct download *d, gboolean force)
 			if (avg_bps <= 10 && d->last_update != d->start_date)
 				avg_bps = (d->pos - d->skip) / (d->last_update - d->start_date);
 
+			rw = 0;
+
 			if (avg_bps) {
-				gint slen;
+				guint32 remain = 0;
 				guint32 s;
 				gfloat bs;
 
                 if (d->size > (d->pos - d->skip))
-                    s = (d->size - (d->pos - d->skip)) / avg_bps;
-                else
-                    s=0;
+                    remain = d->size - (d->pos - d->skip);
 
+                s = remain / avg_bps;
 				bs = bps / 1024.0;
 
-				slen = g_snprintf(tmpstr, sizeof(tmpstr),
+				rw = g_snprintf(tmpstr, sizeof(tmpstr),
 					"%.02f%% / %.02f%% ", p, pt);
 
 				if (now - d->last_update > IO_STALLED)
-					slen += g_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
+					rw += g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						"(stalled) ");
 				else
-					slen += g_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
+					rw += g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 						"(%.1f k/s) ", bs);
 
-				g_snprintf(&tmpstr[slen], sizeof(tmpstr)-slen,
-					"TR: %s", s ? short_time(s) : "-");
+				rw += g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					"[%d/%d] TR: %s", fi->recvcount, fi->refcount,
+					s ? short_time(s) : "-");
+
+				if (fi->recv_last_rate) {
+					s = (fi->size - fi->done) / fi->recv_last_rate;
+
+					rw += g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+						" / %s", short_time(s));
+
+					if (fi->recvcount > 1) {
+						bs = fi->recv_last_rate / 1024.0;
+
+						rw += g_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+							" (%.1f k/s)", bs);
+					}
+				}
 			} else
 				g_snprintf(tmpstr, sizeof(tmpstr), "%.02f%%%s", p,
 					(now - d->last_update > IO_STALLED) ? " (stalled)" : "");

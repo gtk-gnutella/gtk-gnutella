@@ -58,11 +58,17 @@ struct dl_file_info {
 	guint32 done;			/* Total number of bytes completed */
 	GSList *chunklist;		/* List of ranges within file */
 	guint32 generation;		/* Generation number, incremented on disk update */
-	time_t cha1_elapsed;	/* Time spent to compute the SHA1 */
-	guint32 cha1_hashed;	/* Amount of bytes hashed so far */
 	gboolean use_swarming;	/* Use swarming? */
 	gboolean dirty;			/* Does it need saving? */
 	gboolean hashed;		/* In hash tables? */
+
+	time_t cha1_elapsed;	/* Time spent to compute the SHA1 */
+	guint32 cha1_hashed;	/* Amount of bytes hashed so far */
+
+	gint32 recvcount;		/* Amount of "receiving" downloads referencing us */
+	guint32 recv_last_rate;	/* Last amount of bytes/sec received */
+	guint32 recv_amount;	/* Amount of bytes received this period */
+	time_t recv_last_time;	/* When did we last compute recv_last_rate? */
 };
 
 /*
