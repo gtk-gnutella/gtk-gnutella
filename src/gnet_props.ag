@@ -232,7 +232,11 @@ prop = {
 
 prop = {
     name = "listen_port";
-    desc = "Local port gtk-gnutella is listening on";
+    desc = "Local port gtk-gnutella is listening on. Your ISP may "
+			"block or choke traffic on port 6346 so it would be a "
+			"good idea to change it to something in the range of "
+			"1024-65535.  Don't forget to update your firewall port "
+			"forwarding / opening, as necessary.";
     type = guint32;
     data = {
         default = 6346;

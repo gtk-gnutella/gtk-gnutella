@@ -752,7 +752,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[19].name = "listen_port";
-    gnet_property->props[19].desc = _("Local port gtk-gnutella is listening on");
+    gnet_property->props[19].desc = _("Local port gtk-gnutella is listening on. Your ISP may block or choke traffic on port 6346 so it would be a good idea to change it to something in the range of 1024-65535.  Don't forget to update your firewall port forwarding / opening, as necessary.");
     gnet_property->props[19].ev_changed = event_new("listen_port_changed");
     gnet_property->props[19].save = TRUE;
     gnet_property->props[19].vector_size = 1;
