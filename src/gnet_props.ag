@@ -2601,7 +2601,7 @@ prop = {
 	type = boolean;
 	save = TRUE;
 	data = {
-		default = TRUE;
+		default = FALSE;
 	};
 };
 
