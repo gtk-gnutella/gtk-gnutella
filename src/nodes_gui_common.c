@@ -171,7 +171,8 @@ const gchar *nodes_gui_common_status_str(
 
 				if (show_gnet_info_shared_size && n->gnet_info_known) {
 					slen += gm_snprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-						"%s", compact_kb_size(n->gnet_kbytes_count));
+						"%s", compact_kb_size(
+							n->gnet_files_count ? n->gnet_kbytes_count : 0));
 					is_first = FALSE;
 				}
 				if (show_gnet_info_shared_files && n->gnet_info_known)
