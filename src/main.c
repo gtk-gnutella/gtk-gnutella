@@ -44,6 +44,7 @@
 #include "version.h"
 #include "nodes.h"
 #include "whitelist.h"
+#include "ignore.h"
 
 #include "main_gui.h"
 #include "settings.h"
@@ -137,6 +138,7 @@ void gtk_gnutella_exit(gint n)
 	matching_close();
 	pmsg_close();
 	version_close();
+	ignore_close();
 	atom_str_free(start_rfc822_date);
 	atoms_close();
 	wdestroy();
@@ -197,6 +199,8 @@ static void slow_main_timer(time_t now)
 	default:
 		g_assert(0);
 	}
+
+	ignore_timer(now);
 
 	if (++i > 3)
 		i = 0;
@@ -313,6 +317,7 @@ gint main(gint argc, gchar ** argv)
 	callout_queue = cq_make(0);
 	init_constants();
 	settings_init();
+	ignore_init();
 	file_info_init();
     gui_init();
 	matching_init();
