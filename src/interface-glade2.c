@@ -3638,14 +3638,8 @@ create_main_window_config_net_tab (void)
   g_signal_connect ((gpointer) entry_config_force_ip, "focus_out_event",
                     G_CALLBACK (on_entry_config_force_ip_focus_out_event),
                     NULL);
-  g_signal_connect ((gpointer) entry_server_hostname, "changed",
-                    G_CALLBACK (on_entry_config_force_ip_changed),
-                    NULL);
   g_signal_connect ((gpointer) entry_server_hostname, "activate",
-                    G_CALLBACK (on_entry_config_force_ip_activate),
-                    NULL);
-  g_signal_connect ((gpointer) entry_server_hostname, "focus_out_event",
-                    G_CALLBACK (on_entry_config_force_ip_focus_out_event),
+                    G_CALLBACK (on_entry_server_hostname_activate),
                     NULL);
   g_signal_connect ((gpointer) entry_config_proxy_ip, "activate",
                     G_CALLBACK (on_entry_config_proxy_ip_activate),
@@ -9943,7 +9937,7 @@ create_main_window_downloads_tab (void)
   gtk_box_pack_start (GTK_BOX (hbox234), label_dl_aqueued_count, FALSE, FALSE, 0);
   gtk_label_set_justify (GTK_LABEL (label_dl_aqueued_count), GTK_JUSTIFY_RIGHT);
 
-  label712 = gtk_label_new (_(")"));
+  label712 = gtk_label_new (_(")  "));
   gtk_widget_set_name (label712, "label712");
   gtk_widget_show (label712);
   gtk_box_pack_start (GTK_BOX (hbox234), label712, FALSE, FALSE, 0);
@@ -10276,7 +10270,7 @@ create_main_window_downloads_tab (void)
   gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (treeview_fi_aliases), FALSE);
   gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (treeview_fi_aliases), TRUE);
 
-  label838 = gtk_label_new (_("Altenate filenames"));
+  label838 = gtk_label_new (_("Alternate filenames"));
   gtk_widget_set_name (label838, "label838");
   gtk_widget_show (label838);
   gtk_frame_set_label_widget (GTK_FRAME (frame108), label838);

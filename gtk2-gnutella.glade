@@ -4475,9 +4475,7 @@ Grace time remaining:</property>
 			      <property name="has_frame">True</property>
 			      <property name="invisible_char" translatable="yes">*</property>
 			      <property name="activates_default">False</property>
-			      <signal name="changed" handler="on_entry_config_force_ip_changed"/>
-			      <signal name="activate" handler="on_entry_config_force_ip_activate"/>
-			      <signal name="focus_out_event" handler="on_entry_config_force_ip_focus_out_event"/>
+			      <signal name="activate" handler="on_entry_server_hostname_activate" last_modification_time="Tue, 29 Jun 2004 15:32:06 GMT"/>
 			    </widget>
 			    <packing>
 			      <property name="left_attach">1</property>
@@ -17759,7 +17757,7 @@ before kicking</property>
 				      <child>
 					<widget class="GtkLabel" id="label712">
 					  <property name="visible">True</property>
-					  <property name="label" translatable="yes">)</property>
+					  <property name="label" translatable="yes">)  </property>
 					  <property name="use_underline">False</property>
 					  <property name="use_markup">False</property>
 					  <property name="justify">GTK_JUSTIFY_RIGHT</property>
@@ -18650,7 +18648,7 @@ before kicking</property>
 			      <child>
 				<widget class="GtkLabel" id="label838">
 				  <property name="visible">True</property>
-				  <property name="label" translatable="yes">Altenate filenames</property>
+				  <property name="label" translatable="yes">Alternate filenames</property>
 				  <property name="use_underline">False</property>
 				  <property name="use_markup">False</property>
 				  <property name="justify">GTK_JUSTIFY_LEFT</property>
