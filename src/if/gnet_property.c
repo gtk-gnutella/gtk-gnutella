@@ -88,16 +88,16 @@ guint32  search_max_items     = 50;
 guint32  search_max_items_def = 50;
 guint32  ul_usage_min_percentage     = 70;
 guint32  ul_usage_min_percentage_def = 70;
-guint32  download_connecting_timeout     = 30;
-guint32  download_connecting_timeout_def = 30;
+guint32  download_connecting_timeout     = 60;
+guint32  download_connecting_timeout_def = 60;
 guint32  download_push_sent_timeout     = 60;
 guint32  download_push_sent_timeout_def = 60;
 guint32  download_connected_timeout     = 60;
 guint32  download_connected_timeout_def = 60;
 guint32  download_retry_timeout_min     = 20;
 guint32  download_retry_timeout_min_def = 20;
-guint32  download_retry_timeout_max     = 120;
-guint32  download_retry_timeout_max_def = 120;
+guint32  download_retry_timeout_max     = 300;
+guint32  download_retry_timeout_max_def = 300;
 guint32  download_max_retries     = 50;
 guint32  download_max_retries_def = 50;
 guint32  download_retry_timeout_delay     = 1200;
@@ -751,7 +751,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[10].data.guint32.def   = &max_downloads_def;
     gnet_property->props[10].data.guint32.value = &max_downloads;
     gnet_property->props[10].data.guint32.choices = NULL;
-    gnet_property->props[10].data.guint32.max   = 999;
+    gnet_property->props[10].data.guint32.max   = 5000;
     gnet_property->props[10].data.guint32.min   = 0;
 
 
