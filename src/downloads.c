@@ -3105,6 +3105,9 @@ static struct download *download_clone(struct download *d)
 	if (d->queue_status != NULL)
 		parq_dl_reparent_id(d, cd);
 
+	if (d->cproxy != NULL)
+		cproxy_reparent(d, cd);
+	
 	g_assert(d->queue_status == NULL);	/* Cleared by parq_dl_reparent_id() */
 
 	/*
@@ -3459,7 +3462,7 @@ void download_requeue(struct download *d)
 /*
  * use_push_proxy
  *
- * Try to setup the downlaod to use the push proxies available on the server.
+ * Try to setup the download to use the push proxies available on the server.
  * Returns TRUE is we can use a push proxy.
  */
 static gboolean use_push_proxy(struct download *d)

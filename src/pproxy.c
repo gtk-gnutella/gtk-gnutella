@@ -979,3 +979,22 @@ struct cproxy *cproxy_create(struct download *d,
 	return cp;
 }
 
+/*
+ * cproxy_reparent
+ *
+ * Updates the proxy structures to point to the right download when a download
+ * was cloned.
+ */
+void cproxy_reparent(struct download *d, struct download *cd)
+{
+	g_assert(d->cproxy != NULL);
+	g_assert(cd->cproxy != NULL);
+	
+	cd->cproxy->d = cd;
+	
+	d->cproxy = NULL;
+	
+	g_assert(d->cproxy == NULL);
+	g_assert(cd->cproxy != NULL);
+	g_assert(cd == cd->cproxy->d);
+}
