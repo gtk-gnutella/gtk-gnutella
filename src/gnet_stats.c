@@ -68,11 +68,11 @@ void gnet_stats_count_received_header(gnutella_node_t *n)
     gnet_stats.byte.received[MSG_TOTAL] += sizeof(n->header);
     gnet_stats.byte.received[t] += sizeof(n->header);
 
-	i = MIN(n->header.ttl, STATS_RECV_COLUMNS);
+	i = MIN(n->header.ttl, STATS_RECV_COLUMNS-1);
     gnet_stats.pkg.received_ttl[i][MSG_TOTAL]++;
     gnet_stats.pkg.received_ttl[i][t]++;
 
-	i = MIN(n->header.hops, STATS_RECV_COLUMNS);
+	i = MIN(n->header.hops, STATS_RECV_COLUMNS-1);
     gnet_stats.pkg.received_hops[i][MSG_TOTAL]++;
     gnet_stats.pkg.received_hops[i][t]++;
 }
@@ -91,11 +91,11 @@ void gnet_stats_count_received_payload(gnutella_node_t *n)
     gnet_stats.byte.received[MSG_TOTAL] += size;
     gnet_stats.byte.received[t] += size;
 
-	i = MIN(n->header.ttl, STATS_RECV_COLUMNS);
+	i = MIN(n->header.ttl, STATS_RECV_COLUMNS-1);
     gnet_stats.byte.received_ttl[i][MSG_TOTAL] += size;
     gnet_stats.byte.received_ttl[i][t] += size;
 
-	i = MIN(n->header.hops, STATS_RECV_COLUMNS);
+	i = MIN(n->header.hops, STATS_RECV_COLUMNS-1);
     gnet_stats.byte.received_hops[i][MSG_TOTAL] += size;
     gnet_stats.byte.received_hops[i][t] += size;
 }
@@ -178,13 +178,13 @@ void gnet_stats_count_flowc(gpointer head)
 
 	t = stats_lut[h->function];
 
-	i = MIN(h->hops, STATS_FLOWC_COLUMNS);
+	i = MIN(h->hops, STATS_FLOWC_COLUMNS-1);
 	gnet_stats.pkg.flowc_hops[i][t]++;
 	gnet_stats.pkg.flowc_hops[i][MSG_TOTAL]++;
 	gnet_stats.byte.flowc_hops[i][t] += size;
 	gnet_stats.byte.flowc_hops[i][MSG_TOTAL] += size;
 
-	i = MIN(h->ttl, STATS_FLOWC_COLUMNS);
+	i = MIN(h->ttl, STATS_FLOWC_COLUMNS-1);
 
 	g_assert(i != 0);			/* Cannot send a message with TTL=0 */
 
