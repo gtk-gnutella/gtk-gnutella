@@ -19,6 +19,7 @@
 #       ALL /usr/bin/perl $CVSROOT/CVSROOT/ciabot.pl %s $USER
 #
 
+
 use strict;
 use vars qw ($project $from_email $dest_email $max_lines $sync_delay
 		$commit_template $branch_template $trimmed_template);
