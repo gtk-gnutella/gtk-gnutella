@@ -47,8 +47,6 @@
  * Add progress data also to fileinfo table, so that the info is shown for 
  * all current files.
  * 
- * Move the ranges code to fileinfo so that it can be used there as well.
- *
  * Do not redraw the bar too often, only on event for actual file and
  * perhaps max once a second.
  */
@@ -85,6 +83,7 @@ typedef struct vp_info {
     gchar *file_name;
     guint32 file_size;
     GSList *chunks_list;
+	GSList *chunks_initial;
 	GSList *ranges_list;
     vp_context_t *context;
 } vp_info_t;
@@ -215,6 +214,7 @@ vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 
 			if (v->file_size > 0) {
 				g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
+				g_slist_foreach(v->chunks_initial, &vp_draw_chunk, v);
 				g_slist_foreach(v->ranges_list, &vp_draw_range, v);
 			} else {
 				gdk_gc_set_foreground(fi_context.gc, &nosize);
@@ -265,10 +265,11 @@ on_drawingarea_fi_progress_expose_event(
 }
 
 
-/*
- * A new fileinfo is available. We need to create a cv structure for
- * it, give it a place on the screen, and create the initial graphical
- * representation.
+/**
+ * A new fileinfo is available. We need to create a structure for it
+ * and store all relevant information.
+ *
+ * @param fih The fileinfo handle of the entry being added.
  */
 static void 
 vp_gui_fi_added(gnet_fi_t fih)
@@ -276,6 +277,8 @@ vp_gui_fi_added(gnet_fi_t fih)
     gnet_fi_info_t *fi = NULL;
     vp_info_t *new_vp_info = NULL;
     gnet_fi_status_t s;
+	GSList *l;
+	gnet_fi_chunks_t *chunk;
 
     fi = guc_fi_get_info(fih);
     guc_fi_get_status(fih, &s);
@@ -287,6 +290,25 @@ vp_gui_fi_added(gnet_fi_t fih)
     new_vp_info->chunks_list = guc_fi_get_chunks(fih);
 	new_vp_info->ranges_list = guc_fi_get_ranges(fih);
 
+	/*
+	 * We also copy the chunks info in the chunks_initial list. This list is
+	 * the list of chunks we already had at start. By removing the empty
+	 * chunks from the list we can use it to draw the old chunks over
+	 * the new chunks, thus giving the impression that the old chunks remain
+	 * intact and the new chunks are added.
+	 * FIXME: This most likely needs to be changed, it is probably not
+	 * efficient enough and may cause flashing in the display.
+	 */
+	new_vp_info->chunks_initial = guc_fi_get_chunks(fih);
+	for (l = new_vp_info->chunks_initial; l; ){
+		chunk = (gnet_fi_chunks_t *)l->data;
+		l = g_slist_next(l);
+		if (DL_CHUNK_EMPTY == chunk->status) {
+			new_vp_info->chunks_initial = g_slist_remove(new_vp_info->chunks_initial, chunk);
+			wfree(chunk, sizeof(gnet_fi_chunks_t));
+		}
+	}
+	
     g_hash_table_insert(vp_info_hash, GUINT_TO_POINTER(fih), new_vp_info);
     
     guc_fi_free_info(fi);
@@ -313,6 +335,8 @@ vp_gui_fi_removed(gnet_fi_t fih)
     g_hash_table_remove(vp_info_hash, GUINT_TO_POINTER(fih));
 
     guc_fi_free_chunks(v->chunks_list);
+	guc_fi_free_chunks(v->chunks_initial);
+	guc_fi_free_ranges(v->ranges_list);
 	G_FREE_NULL(v->file_name);
 
     wfree(v, sizeof(vp_info_t));
@@ -407,6 +431,8 @@ vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
 	(void) key;
 	(void) user_data;
     guc_fi_free_chunks(((vp_info_t *) value)->chunks_list);
+	guc_fi_free_chunks(((vp_info_t *) value)->chunks_initial);
+	guc_fi_free_ranges(((vp_info_t *) value)->ranges_list);
 	G_FREE_NULL(((vp_info_t *) value)->file_name);
     wfree(value, sizeof(vp_info_t));
 }
