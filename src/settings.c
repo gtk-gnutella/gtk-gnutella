@@ -114,7 +114,7 @@ static void ensure_unicity(const gchar *file)
 	glong  pid_value = 0; 
 	gchar buf[16];
 
-	fd = file_fopen(file, "r");
+	fd = file_fopen_missing(file, "r");
 	if (fd == NULL)
 		return;				/* Assume it's missing if can't be opened */
 
