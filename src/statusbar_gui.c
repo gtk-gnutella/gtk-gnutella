@@ -41,13 +41,13 @@ typedef struct statusbar_timeout {
 /*
  * statusbar context ids 
  */
-guint scid_bottom              = -1;
-guint scid_hostsfile           = -1;
-guint scid_search_autoselected = -1;
-guint scid_queue_freezed       = -1;
-guint scid_info                = -1;
-guint scid_ip_changed          = -1;
-guint scid_warn                = -1;
+guint scid_bottom              = (guint) -1;
+guint scid_hostsfile           = (guint) -1;
+guint scid_search_autoselected = (guint) -1;
+guint scid_queue_freezed       = (guint) -1;
+guint scid_info                = (guint) -1;
+guint scid_ip_changed          = (guint) -1;
+guint scid_warn                = (guint) -1;
 
 /* 
  * List with timeout entries for statusbar messages 
