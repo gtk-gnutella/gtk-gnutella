@@ -307,27 +307,87 @@ void download_remove_file(struct download *d)
 }
 
 /*
- * queue_remove_all_named
+ * queue_remove_identical
  *
- * Remove all queued downloads bearing given name. --RAM, 26/09/2001
- * Rewritten to also handle timeout-waiting entries. --RAM, 20/01/2002
- * Updated to remove only entries less than specified size. --RAM, 13/03/2002
+ * Remove all queued downloads bearing given name or which have common SHA1.
+ * During traversal, we also collect SHA1 of identically named files and will
+ * also remove them.
+ *
+ * Only entries smaller or equal than `size' are removed.
+ *
+ * NB: we don't remove second-order aliases.  For instance, download "a" which
+ * has a SHA1 of XA1 is removed.  There is also another "a" in the queue whose
+ * SHA1 is XA2.  Then we'll remove all XA1 and XA2, but if we find a "b"
+ * whose SHA1 is also XA2, we won't remove all "b".
  */
-static void queue_remove_all_named(const gchar *name, guint32 size)
+static void queue_remove_identical(
+	const gchar *name, guchar *sha1, guint32 size)
 {
 	GSList *to_remove = NULL;
 	GSList *l;
 	gint bigger = 0;
+	extern guint sha1_hash(gconstpointer key);
+	extern gint sha1_eq(gconstpointer a, gconstpointer b);
+	GHashTable *seen_sha1 = g_hash_table_new(sha1_hash, sha1_eq);
 
-	g_return_if_fail(name);
-	
+	g_assert(name);
+
+	if (dbg > 3)
+		printf("queue_remove_identical: for \"%s\" (%s) <= %d bytes\n",
+			name, sha1 ? sha1_base32(sha1) : "", size);
+
+	/*
+	 * If SHA1 given, record it.
+	 *
+	 * Note that we don't need to clone the `sha1' atom since we'll dispose
+	 * of the `seen_sha1' table before actually removing the downloads.
+	 */
+
+	if (sha1)
+		g_hash_table_insert(seen_sha1, sha1, (gpointer) 1);
+
+	/*
+	 * First pass, by name: collect SHA1, mark identical downloads.
+	 */
+
 	for (l = sl_downloads; l; l = l->next) {
 		struct download *d = (struct download *) l->data;
+
+		d->flags &= ~DL_F_MARK;			/* Clear traversal mark */
 
 		switch (d->status) {
 		case GTA_DL_QUEUED:
 		case GTA_DL_TIMEOUT_WAIT:
 			if (0 == strcmp(name, d->file_name)) {
+				d->flags |= DL_F_MARK;
+				if (d->size <= size)
+					to_remove = g_slist_prepend(to_remove, d);
+				else
+					bigger++;
+				if (d->sha1 && !g_hash_table_lookup(seen_sha1, d->sha1))
+					g_hash_table_insert(seen_sha1, d->sha1, (gpointer) 1);
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	/*
+	 * Second pass, by collected SHA1.
+	 * We only scan items not marked by first pass.
+	 */
+
+	for (l = sl_downloads; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
+
+		if (d->flags & DL_F_MARK)		/* Already processed above */
+			continue;
+
+		switch (d->status) {
+		case GTA_DL_QUEUED:
+		case GTA_DL_TIMEOUT_WAIT:
+			if (d->sha1 && g_hash_table_lookup(seen_sha1, d->sha1)) {
 				if (d->size <= size)
 					to_remove = g_slist_prepend(to_remove, d);
 				else
@@ -339,8 +399,17 @@ static void queue_remove_all_named(const gchar *name, guint32 size)
 		}
 	}
 
-	for (l = to_remove; l; l = l->next)
-		download_free((struct download *) l->data);
+	g_hash_table_destroy(seen_sha1);	/* No allocated key/value */
+
+	for (l = to_remove; l; l = l->next) {
+		struct download *d = (struct download *) l->data;
+
+		if (dbg > 3)
+			printf("queue_remove_identical: removing \"%s\" (%s) %d bytes\n",
+				d->file_name, d->sha1 ? sha1_base32(d->sha1) : "", d->size);
+
+		download_free(d);
+	}
 
 	g_slist_free(to_remove);
 
@@ -791,7 +860,7 @@ void download_stop(struct download *d, guint32 new_status,
 		gui_update_download(d, TRUE);
 
 	if (new_status == GTA_DL_COMPLETED)
-		queue_remove_all_named(d->file_name, d->size);
+		queue_remove_identical(d->file_name, d->sha1, d->size);
 
 	if (store_queue)
 		download_store();			/* Refresh copy */
@@ -804,7 +873,6 @@ void download_stop(struct download *d, guint32 new_status,
 		gui_update_download_clear();
 	}
 
-	//download_pickup_queued();	/* Can recurse to here via download_stop() */
 	count_running_downloads();
 }
 

@@ -95,6 +95,7 @@ struct download {
  */
 
 #define DL_F_URIRES_N2R		0x00000001	/* Tried to GET "/uri-res/N2R?" */
+#define DL_F_MARK			0x80000000	/* Marked in traversal */
 
 /*
  * Attributes.
