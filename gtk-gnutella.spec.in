@@ -1,0 +1,55 @@
+Summary: A GUI based Gnutella Client
+Name: gtk-gnutella
+Version: @VERSION@
+Release: 1
+URL: http://sourceforge.net/projects/gtk-gnutella/
+Source0: %{name}-%{version}.tar.gz
+License: GPL
+Group: Applications/Internet
+BuildRoot: %{_tmppath}/%{name}-root
+BuildPreReq: gtk+-devel glib-devel
+
+%description
+Gtk-Gnutella is a GUI based Gnutella Client. It's based upon the original
+look of Gnutella v0.5.
+
+It's a fully featured Gnutella Client designed to share any type of file
+the user wishes to share.
+
+%prep
+%setup -q
+%configure
+
+%build
+%{__make}
+
+%install
+rm -rf $RPM_BUILD_ROOT
+%{__make} install DESTDIR=$RPM_BUILD_ROOT
+
+mkdir -p $RPM_BUILD_ROOT/etc/X11/applnk/Applications
+
+cat >$RPM_BUILD_ROOT/etc/X11/applnk/Applications/gtk-gnutella.desktop <<EOF
+[Desktop Entry]
+Name=Gtk-Gnutella
+Comment=A GUI based Gnutella Client
+Exec=%{_bindir}/gtk-gnutella
+Terminal=0
+Type=Application
+Icon=gnome-modem.png
+EOF
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root)
+%{_bindir}/*
+/etc/X11/applnk/Applications/gtk-gnutella.desktop
+
+%doc README TODO NEWS INSTALL AUTHORS ChangeLog COPYING
+
+%changelog
+* Tue Dec 11 2001 Sam Varshavchik <mrsam@courier-mta.com>
+- Initial build.
+
+

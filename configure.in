@@ -67,5 +67,6 @@ AC_CHECK_FUNCS(herror inet_aton)
 AC_OUTPUT([
 Makefile
 src/Makefile
+gtk-gnutella.spec
 ])
 

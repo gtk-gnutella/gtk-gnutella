@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = src
+EXTRA_DIST = gtk-gnutella.spec
 
 install-data-local:
 	@$(NORMAL_INSTALL)
