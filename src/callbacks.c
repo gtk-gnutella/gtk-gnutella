@@ -408,7 +408,10 @@ gboolean on_clist_uploads_button_press_event(GtkWidget * widget,
 
 void on_popup_uploads_title_activate (GtkMenuItem *menuitem, gpointer user_data) 
 {
+	// FIXME
 }
+
+
 
 /***
  *** Upload Stats pane
@@ -891,6 +894,14 @@ void on_clist_downloads_queue_select_row(GtkCList * clist, gint row,
 {
 	gtk_widget_set_sensitive(button_downloads_queue_remove, TRUE);
 	gtk_widget_set_sensitive(popup_queue_remove, TRUE);
+	gtk_widget_set_sensitive(popup_queue_remove_named, TRUE);
+	gtk_widget_set_sensitive(popup_queue_remove_host, TRUE);
+	// FIXME: enable when code for popup_queue_search_again is written
+	// gtk_widget_set_sensitive(popup_queue_search_again, TRUE);
+
+	// FIXME: fix when count_running_downloads() is public
+	//gtk_widget_set_sensitive(popup_queue_start_now, 
+	//						   (count_running_downloads() < max_downloads));
 }
 
 void on_clist_downloads_queue_unselect_row(GtkCList * clist, gint row,
@@ -901,6 +912,15 @@ void on_clist_downloads_queue_unselect_row(GtkCList * clist, gint row,
 	
 	gtk_widget_set_sensitive(button_downloads_queue_remove, sensitive);
 	gtk_widget_set_sensitive(popup_queue_remove, sensitive);
+	gtk_widget_set_sensitive(popup_queue_remove_named, sensitive);
+	gtk_widget_set_sensitive(popup_queue_remove_host, sensitive);
+	// FIXME: enable when code for popup_queue_search_again is written
+	//gtk_widget_set_sensitive(popup_queue_search_again, sensitive);
+	
+	// FIXME: fix when count_running_downloads() is public
+	//gtk_widget_set_sensitive(popup_queue_start_now, 
+	//                         sensitive &&  
+	//						   (count_running_downloads() < max_downloads));
 }
 
 void on_button_downloads_queue_remove_clicked(GtkButton * button,
