@@ -1,5 +1,19 @@
 # since last version
 
+- (2002.05.01 - RAM)
+  * Integrated the search queue patch: searches are now sent once every
+	10 seconds on a per-connection basis [From Alex Bennee].
+  * Was improperly counting duplicates as "bad" messages.
+  * Now displays both dup/bad message counts in the Info column for nodes.
+  * Searches now made persistent [From Michael Tesch].
+  * Got rid of the local-config-file overwriting.  All configuration files
+	are now exclusively saved in the config dir, never locally (unless you
+	run from that config dir!).
+  * Fixed bug #538946: was incorrectly moving complete files out of the
+	done directory.  Also, "Nothing more to get" error is now reported if
+	one tries to downloads a smaller file (it was not flagged as an error,
+	so the "Completed" message was shown instead of the error text).
+
 - (2002.05.01 - Richard)
   * fixed sensitivity of "copy url" in downloads popup
   * make search history work (though not persistent)
@@ -33,6 +47,7 @@
   * Added debug logging of bad packets, to help diagnose why we receive
 	bad packets from gtk-gnutella.
   * Made nodes.c compile on the Alpha, where varargs objects are different.
+    (fixes bug #537460)
 
 - (2002.04.25 - Richard)
   * moved more code from main.c to gui_init() in gui.c.
