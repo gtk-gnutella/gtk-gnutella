@@ -1187,7 +1187,7 @@ static void handle_time_sync_reply(struct gnutella_node *n,
 	 * Decompile send time.
 	 */
 
-	STATIC_ASSERT(sizeof(sent) == 2 * sizeof(guint32));
+	STATIC_ASSERT(sizeof(sent) >= 2 * sizeof(guint32));
 
 	muid = n->header.muid;
 	READ_GUINT32_BE(muid, sent.tv_sec);
@@ -1228,7 +1228,7 @@ vmsg_time_sync_req_stamp(pmsg_t *mb, struct mqueue *unused_q)
 
 	(void) unused_q;
 	g_assert(pmsg_is_writable(mb));
-	STATIC_ASSERT(sizeof(now) == 2 * sizeof(guint32));
+	STATIC_ASSERT(sizeof(now) >= 2 * sizeof(guint32));
 
 	/*
 	 * Read the old timestamp.
@@ -1322,7 +1322,7 @@ vmsg_time_sync_reply_stamp(pmsg_t *mb, struct mqueue *unused_q)
 
 	(void) unused_q;
 	g_assert(pmsg_is_writable(mb));
-	STATIC_ASSERT(sizeof(now) == 2 * sizeof(guint32));
+	STATIC_ASSERT(sizeof(now) >= 2 * sizeof(guint32));
 
 	muid += 8;
 
