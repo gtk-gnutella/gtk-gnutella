@@ -22,6 +22,14 @@ Ladies and gentleman, here's the
 
         export EXINIT="set ai ts=4 sw=4 sm nu shell=/usr/bin/ksh noflash"
 
+1.5  Auto-setting tabstops in the file
+
+        In Vi and compatibles (in first or last 5 lines of a file):
+	    /* vi: set ts=4 sw=4 cindent: */
+
+	In emacs (in first 4 lines of a file):
+	    /* -*- mode: cc-mode; tab-width:4; -*- */
+	
 2. COMMENTS ************************************************************
 
 2.1  Every file must start with a comment block like this:
