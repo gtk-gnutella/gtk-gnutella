@@ -122,7 +122,9 @@ RCSID("$Id$");
 #define NODE_AVG_LEAF_MEM		262144	/* Average memory used by leaf */
 #define NODE_CASUAL_FD			10		/* # of fds we might use casually */
 #define NODE_UPLOAD_QUEUE_FD	5		/* # of fds/upload slot we can queue */
+
 #define NODE_AUTO_SWITCH_MIN	1800	/* Don't switch too often UP <-> leaf */
+#define NODE_AUTO_SWITCH_MAX	61200	/* Max between switches (17 hours) */
 
 #define NODE_TSYNC_WAIT_MS		5000	/* Wait time after connecting (5s) */
 #define NODE_TSYNC_PERIOD_MS	300000	/* Synchronize every 5 minutes */
@@ -682,6 +684,8 @@ node_slow_timer(time_t now)
 	 *
 	 * We double the time we'll spend as a leaf node before switching
 	 * again to UP mode to avoid endless switches between UP and leaf.
+	 * We limit that doubling to NODE_AUTO_SWITCH_MAX, to ensure that if
+	 * we can become one, then we should do so on a regular basis.
 	 */
 
 	if (
@@ -690,8 +694,10 @@ node_slow_timer(time_t now)
 		delta_time(now, last_switch) > NODE_AUTO_SWITCH_MIN &&
 		!can_become_ultra(now)
 	) {
-		g_warning("being demoted from Ultrapeer status");
 		leaf_to_up_switch *= 2;
+		leaf_to_up_switch = MIN(leaf_to_up_switch, NODE_AUTO_SWITCH_MAX);
+		g_warning("being demoted from Ultrapeer status (for %u secs)",
+			leaf_to_up_switch);
 		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
 		gnet_prop_set_guint32_val(PROP_NODE_LAST_ULTRA_LEAF_SWITCH, now);
 		return;
