@@ -536,6 +536,7 @@ static gnet_results_set_t *get_results_set
 				rs->status |= ST_PARSED_TRAILER;
 			}
 			break;
+		case T_ACQX:
 		case T_LIME:
 		case T_SWAP:
 		case T_RAZA:
