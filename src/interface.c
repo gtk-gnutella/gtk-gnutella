@@ -1895,7 +1895,7 @@ create_main_window (void)
   gtk_box_pack_start (GTK_BOX (hbox_speed_kpbs), entry_config_speed, FALSE, TRUE, 0);
   gtk_widget_set_usize (entry_config_speed, 48, -2);
 
-  label36 = gtk_label_new ("Kbps");
+  label36 = gtk_label_new ("kbits/s");
   gtk_widget_ref (label36);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label36", label36,
                             (GtkDestroyNotify) gtk_widget_unref);
