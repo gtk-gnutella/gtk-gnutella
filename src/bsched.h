@@ -47,6 +47,7 @@ typedef struct bsched {
 	gint bw_per_second;					/* Configure bandwidth in bytes/sec */
 	gint bw_max;						/* Max bandwidth per period */
 	gint bw_actual;						/* Bandwidth used so far in period */
+	gint bw_last_period;				/* Bandwidth used last period */
 	gint bw_slot;						/* Basic per-source bandwidth lot */
 	gint bw_ema;						/* EMA of bandwidth really used */
 	gint bw_delta;						/* Running diff of actual vs. theoric */
@@ -68,8 +69,12 @@ typedef struct bsched {
 #define BS_F_WRITE			0x00000004	/* Writing sources */
 #define BS_F_NOBW			0x00000008	/* No more bandwidth */
 #define BS_F_FROZEN_SLOT	0x00000010	/* Value of `bw_slot' is frozen */
+#define BS_F_CHANGED_BW		0x00000020	/* Bandwidth limit changed */
 
 #define BS_BW_MAX			(2*1024*1024)
+
+#define bsched_bps(b)		((b)->bw_last_period * 1000 / (b)->period)
+#define bsched_avg_bps(b)	((b)->bw_ema * 1000 / (b)->period)
 
 /*
  * Source under bandwidth control.
@@ -120,6 +125,7 @@ void bsched_enable_all(void);
 bio_source_t *bsched_source_add(bsched_t *bs, int fd, guint32 flags,
 	GdkInputFunction callback, gpointer arg);
 void bsched_source_remove(bio_source_t *bio);
+void bsched_set_bandwidth(bsched_t *bs, gint bandwidth);
 gint bio_write(bio_source_t *bio, gpointer data, gint len);
 gint bio_sendfile(bio_source_t *bio, gint in_fd, off_t *offset, gint len);
 gint bio_read(bio_source_t *bio, gpointer data, gint len);

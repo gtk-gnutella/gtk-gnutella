@@ -260,7 +260,7 @@ static void bsched_begin_timeslice(bsched_t *bs)
 		bio->bw_actual = 0;
 	}
 
-	bs->flags &= ~(BS_F_NOBW|BS_F_FROZEN_SLOT);
+	bs->flags &= ~(BS_F_NOBW|BS_F_FROZEN_SLOT|BS_F_CHANGED_BW);
 
 	/*
 	 * If the slot is less than the minimum we can reach by dynamically
@@ -361,6 +361,31 @@ void bsched_source_remove(bio_source_t *bio)
 
 	g_free(bio);
 }
+
+/*
+ * bsched_set_bandwidth
+ *
+ * On-the-fly changing of the allowed bandwidth.
+ */
+void bsched_set_bandwidth(bsched_t *bs, gint bandwidth)
+{
+	g_assert(bs);
+	g_assert(bandwidth >= 0);
+	g_assert(bandwidth < BS_BW_MAX);	/* Signed, and multiplied by 1000 */
+
+	bs->bw_per_second = bandwidth;
+	bs->bw_max = bandwidth * bs->period / 1000;
+
+	/*
+	 * When all bandwidth has been used, disable all sources.
+	 */
+
+	if (bs->bw_actual >= bs->bw_max)
+		bsched_no_more_bandwidth(bs);
+
+	bs->flags |= BS_F_CHANGED_BW;
+}
+
 
 /*
  * bw_available
@@ -716,16 +741,20 @@ static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
 
 	/*
 	 * We correct the bandwidth for the next slot.
+	 *
 	 * However, we don't use the current overuse indication in that case,
 	 * but the maximum between the EMA of the bandwidth overused and the
 	 * current overuse, to absorb random burst effects and yet account
 	 * for constant average overuse.
+	 *
+	 * If a correction is due but the bandwidth settings changed in the
+	 * period, forget it: allow a full period at the nominal new settings.
 	 */
 
 	correction = bs->bw_ema - theoric;		/* This is the overused "EMA" */
 	correction = MAX(correction, overused);
 
-	if (correction > 0) {
+	if (correction > 0 && !(bs->flags & BS_F_CHANGED_BW)) {
 		bs->bw_max -= correction;
 		if (bs->bw_max < 0)
 			bs->bw_max = 0;
@@ -753,6 +782,7 @@ static void bsched_heartbeat(bsched_t *bs, struct timeval *tv)
 
 new_timeslice:
 
+	bs->bw_last_period = bs->bw_actual;
 	bs->bw_actual = 0;
 	bsched_begin_timeslice(bs);
 }
