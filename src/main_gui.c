@@ -601,6 +601,7 @@ void main_gui_shutdown(void)
     fi_gui_shutdown();
     nodes_gui_shutdown();
     uploads_gui_shutdown();
+    upload_stats_gui_shutdown();
 	gnet_stats_gui_shutdown();
     hcache_gui_shutdown();
 }
