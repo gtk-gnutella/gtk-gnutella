@@ -28,10 +28,10 @@
 
 #include "common.h"
 
-enum frequency_type {
+typedef enum frequency_type {
     FREQ_SECS,
     FREQ_UPDATES
-};
+} frequency_t;
 
 struct subscriber {
     GCallback           cb;
@@ -40,11 +40,11 @@ struct subscriber {
     time_t              last_call;
 };
 
-struct event {
+typedef struct event {
     const gchar *name;
     guint32      triggered_count;
     GSList      *subscribers;
-};
+} event_t;
 
 inline struct event *event_new(const gchar *name);
 
@@ -55,7 +55,7 @@ inline struct event *event_new(const gchar *name);
 void real_event_destroy(struct event *evt);
 
 void event_add_subscriber(
-    struct event *evt, GCallback cb, enum frequency_type t, guint32 interval);
+    struct event *evt, GCallback cb, frequency_t t, guint32 interval);
 
 void event_remove_subscriber(struct event *evt, GCallback cb);
 
