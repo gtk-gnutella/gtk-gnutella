@@ -26,7 +26,6 @@ void on_clist_nodes_resize_column (GtkCList *clist, gint column, gint width, gpo
 void on_clist_nodes_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_clist_nodes_unselect_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
 void on_ctree_menu_tree_select_row (GtkCTree *clist, GList *node, gint column, gpointer user_data);
-void on_download_start_now_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_entry_host_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_host_changed (GtkEditable *editable, gpointer user_data);
 void on_entry_max_connections_activate (GtkEditable *editable, gpointer user_data);
@@ -160,14 +159,6 @@ void on_radio_config_socksv5_toggled (GtkToggleButton *togglebutton, gpointer us
 
 
 /***
- *** popup-hosts
- ***/
-void on_popup_hosts_export_activate (GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_hosts_import_activate (GtkMenuItem *menuitem, gpointer user_data);
-
-
-
-/***
  *** popup-monitor
  ***/
 void on_popup_monitor_add_search_activate (GtkMenuItem *menuitem, gpointer user_data);
@@ -185,7 +176,7 @@ void on_popup_uploads_title_activate (GtkMenuItem *menuitem, gpointer user_data)
 /***
  *** popup-nodes
  ***/
-void     on_popup_nodes_remove_activate (GtkMenuItem *menuitem, gpointer user_data); 
+void on_popup_nodes_remove_activate (GtkMenuItem *menuitem, gpointer user_data); 
 
 
 
@@ -209,9 +200,22 @@ void on_popup_search_toggle_tabs_activate (GtkMenuItem *menuitem, gpointer user_
  ***/
 void on_popup_downloads_kill_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_downloads_push_activate (GtkMenuItem *menuitem, gpointer user_data);
-void on_popup_downloads_queue_activate (GtkMenuItem *menuitem, gpointer user_data); 
+void on_popup_downloads_abort_named_activate (GtkMenuItem *menuitem, gpointer user_data); 
+void on_popup_downloads_abort_host_activate (GtkMenuItem *menuitem, gpointer user_data); 
+void on_popup_downloads_remove_file_activate (GtkMenuItem *menuitem, gpointer user_data); 
+void on_popup_downloads_search_again_activate (GtkMenuItem *menuitem, gpointer user_data); 
+void on_popup_downloads_queue_activate (GtkMenuItem *menuitem, gpointer user_data);
 
 
+
+/***
+ *** popup-queue
+ ***/
+void on_popup_queue_start_now_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_queue_freeze_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_queue_search_again_activate (GtkMenuItem *menuitem, gpointer user_data);
+void on_popup_queue_remove_host_activate(GtkMenuItem * menuitem, gpointer user_data); 
+void on_popup_queue_remove_named_activate(GtkMenuItem * menuitem, gpointer user_data);
 
 /***
  *** upload stats
