@@ -6,7 +6,7 @@ Where: Query Hit
 Status: Draft 
 Date: 2004-11-04
 Format: Variable-Length Integer 
-COBS-Encoding: If neccessary 
+COBS-Encoding: No
 Deflate: No
 
 1. OVERVIEW
@@ -24,65 +24,70 @@ necessary. To prevent problems with older clients, using the extension should
 be considered if the filesize exceeds 2^31-1 bytes. If the LF extension is
 used, the legacy filesize should be set to ~0 i.e., all bits set. This may be
 used to detect clients that are not aware of this extension and assume a
-different filesize. In order to take advantage of the LF extension, all related
-routines (e.g., HTTP parsers) must be able to parse and emit at least 64-bit
-values and detect too large values that cannot be handled by them.
+different filesize. In order to take advantage of this, all related routines
+(e.g., HTTP parsers) must be able to parse and emit at least 64-bit values and
+detect too large values that cannot be handled by them.
 
 3. SPECIFICATION
 
 There is no need to indicate support for this feature at any stage. This
 extension is defined as follows:
 
-Due to the location of the LF extension, there must be no NUL bytes in the the
-GGEP data. Therefore, the payload must be COBS encoded if it contains any NUL
-bytes. The ordering of the bytes is little-endian. To save space, the value is
-encoded as a Variable-Length Integer. The byte length is equal to the GGEP
-payload size. Trailing zeros must be discarded. If the last byte is a NUL
-character, the encoding is invalid. Thus, zero is not a valid filesize in the
-context of the GGEP LF extension.
+Due to the location of the LF extension, there must be no NUL bytes in the
+the GGEP data. Therefore, each byte of the data contains only 7 data bits,
+the MSB is always set to 1. The ordering of the bytes is big-endian.
 
-4. EXAMPLE CODE
+4. CODE
 
-This example implementation in C uses 64-bit integers, allowing filesizes up to
-(2 ^ 64) - 1 bytes. The maximum length of the GGEP payload data is therefore 8
-bytes. The decoder is strict i.e., trailing zeros are disallowed. A filesize of
-zero bytes, is considered invalid. On failure, both functions return 0.
+This example implementation in C use 64-bit integers, allowing filesizes up to
+(2 ^ 63) - 1 bytes. The maximum length for the GGEP data is therefore 9 bytes.
+On failure, -1 is returned.
 
-uint64_t
-decode_lf(uint8_t *data, int length)
+int64_t
+decode_lf(uint8_t *data, size_t length)
 {
-  uint64_t filesize, b;
-  int i, j;
+  size_t i;
+  uint64_t filesize;
 
-  if (length < 1 || length > 8)
-    return 0;
+  if (length < 1 || length > 9)
+    return -1;
 
-  j = i = filesize = 0;
-  do {
-    b = data[i];
-    filesize |= b << j;
-    j += 8;
-  } while (++i < length);
-
-  if (0 == b)
-    return 0;
+  filesize = 0;
+  for (i = 0; i < length; i++) {
+    uint8_t b = data[i];
+    
+    if (!(b & 0x80))
+      return -1;
+    
+    filesize = (filesize << 7) | (b & 0x7f);
+  }
 
   return filesize;
 }
 
 int
-encode_lf(uint64_t filesize, uint8_t *data)
+encode_lf(int64_t filesize, uint8_t *data)
 {
-  uint8_t *p = data;
+  uint64_t s;
+  int i, length;
+  uint8_t b[9];
 
-  if (0 == filesize)
-    return 0;
+  if (filesize < 0)
+    return -1;
 
+  s = filesize;
+  i = 0;
   do {
-    *p++ = filesize;
-  } while (0 != (filesize >>= 8));
-
-  return p - data;
+    b[i++] = s;
+    s >>= 7;
+  } while (0 != s);
+  
+  length = i;
+  
+  while (i-- > 0)
+    *data++ = b[i] | 0x80;
+      
+  return length;
 }
 
 

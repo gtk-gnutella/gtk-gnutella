@@ -1,0 +1,44 @@
+                   Support for large files (64-bit filesystems)
+                            Version 0.1
+
+                          Christian Biere
+                    <christianbiere@gmx.de>
+                        October 23th, 2004
+
+
+1. OVERVIEW
+
+Due to the wide use of broadband internet connections and increasing amount of
+huge content, the transfer of files larger than 4 GiB is no longer utopic. The
+standard Gnutella protocol is limited to 32-bit integers to express filesizes.
+This limit can easily be removed by a GGEP extension. 64-bit wide integers
+should be sufficient for decades to come and all serious operating systems
+support 64-bit filesystems.
+
+2. USAGE
+
+In general, the value of the FS64 extension overrides the value in the legacy
+filesize field of the query hit. The extension should only be used if
+necessary. To prevent problems with older clients, using the extension should
+be considered if the filesize exceeds 2^31-1 bytes. If the FS64 extension is
+used, the legacy filesize should be set to ~0 i.e., all bits set. This may be
+used to detect clients that are not aware of this extension and assume a
+different filesize. In order to take advantage of this, all related routines
+(e.g., HTTP parsers) must be able to parse and emit 64-bit values.
+
+3. SPECIFICATION
+
+There is no need to indicate support for this feature at any stage. This
+extension is defined as follows:
+
+    Name: FS64
+    Where: Query Hit (Extension Block)
+    Status: Draft
+    Date: 2004-10-23
+    Format: unsigned 64-bit integer (little-endian)
+    COBS-Encoding: Yes
+    Deflate: Never
+
+The "FS64" extension carries the 8 octets (after COBS decoding) of the 64-bit
+integer which indicates the filesize of the file associated query hit.
+
