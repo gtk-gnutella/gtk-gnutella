@@ -431,6 +431,7 @@ gint header_append(header_t *o, guchar *text, gint len)
 
 	} else {
 		guchar *b;
+		gboolean seen_space = FALSE;
 
 		/*
 		 * It's a new header line.
@@ -441,7 +442,7 @@ gint header_append(header_t *o, guchar *text, gint len)
 		/*
 		 * Parse header field.  Must be composed of ascii chars only.
 		 * (no control characters, no space, no ISO Latin or other extension).
-		 * The field name ends with ':'.
+		 * The field name ends with ':', after possible white spaces.
 		 */
 
 		for (b = buf, c = *p; c; c = *(++p)) {
@@ -449,9 +450,13 @@ gint header_append(header_t *o, guchar *text, gint len)
 				*b++ = '\0';			/* Reached end of field */
 				break;					/* Done, buf[] holds field name */
 			}
+			if (isspace(c)) {
+				seen_space = TRUE;		/* Only trailing spaces allowed */
+				continue;
+			}
 			if (
-				(isspace(c) || iscntrl(c) || !isascii(c) || ispunct(c)) &&
-				c != '-'
+				seen_space ||
+				((iscntrl(c) || !isascii(c) || ispunct(c)) && c != '-')
 			) {
 				o->flags |= HEAD_F_SKIP;
 				return HEAD_BAD_CHARS;
