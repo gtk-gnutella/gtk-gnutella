@@ -768,7 +768,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 					dump_hex(stderr, "Query Hit Tag", tag, taglen);
 				}
-			} else if (search_debug > 15) {
+			} else if (search_debug > 2) {
 				g_message("%s hit record #%d/%d has %d extensions:",
 					gmsg_infostr(&n->header), nr, rs->num_recs, exvcnt);
 				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
@@ -967,11 +967,6 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 				exvcnt = ext_parse(priv, privlen, exv, MAX_EXTVEC);
 			}
 
-			if (exvcnt && search_debug > 2) {
-				printf("Query hit with trailer GGEP extensions:\n");
-				ext_dump(stdout, exv, exvcnt, "> ", "\n", TRUE);
-			}
-
 			for (i = 0; i < exvcnt; i++) {
 				extvec_t *e = &exv[i];
 				ggept_status_t ret;
@@ -1068,10 +1063,10 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 				g_warning("%s from %s claimed GGEP extensions in trailer, "
 					"seen none",
 					gmsg_infostr(&n->header), vendor ? vendor : "????");
-			} else if (search_debug > 15) {
-				printf("%s from %s has %d trailer extensions:\n",
+			} else if (search_debug > 2) {
+				g_message("%s from %s has %d trailer extensions:",
 					gmsg_infostr(&n->header), vendor ? vendor : "????", exvcnt);
-				ext_dump(stdout, exv, exvcnt, "> ", "\n", TRUE);
+				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 			}
 
 			if (exvcnt)
