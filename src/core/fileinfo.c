@@ -312,6 +312,7 @@ static struct dl_file_info *file_info_retrieve_binary(
 	const gchar *file, const gchar *path);
 static void fi_free(struct dl_file_info *fi);
 static void file_info_hash_remove(struct dl_file_info *fi);
+static void fi_update_seenonnetwork(gnet_src_t srcid);
 
 static idtable_t *fi_handle_map = NULL;
 
@@ -397,6 +398,20 @@ file_info_init(void)
 									  event_new("fi_status_changed_transient");
     fi_events[EV_FI_SRC_ADDED]      = event_new("fi_src_added");
     fi_events[EV_FI_SRC_REMOVED]    = event_new("fi_src_removed");
+}
+
+/**
+ * Finish initialization of fileinfo handling. This post initialization is
+ * needed to avoid circular dependencies during the init phase. The listener
+ * we set up here is set up in download_init, but that must be called after
+ * file_info_init.
+ */
+void
+file_info_init_post(void)
+{
+	/* subscribe to src events on available range updates */
+	src_add_listener(fi_update_seenonnetwork, EV_SRC_RANGES_CHANGED, 
+		FREQ_SECS, 0);
 }
 
 static inline void
@@ -627,6 +642,8 @@ fi_free(struct dl_file_info *fi)
 			atom_str_free(l->data);
 		g_slist_free(fi->alias);
 	}
+	if (fi->seenonnetwork)
+		fi_free_ranges(fi->seenonnetwork);
 	wfree(fi, sizeof(*fi));
 }
 
@@ -1132,6 +1149,7 @@ file_info_retrieve_binary(const gchar *file, const gchar *path)
 	fi->generation = trailer.generation;
 	fi->file_size_known = fi->use_swarming = 1;		/* Must assume swarming */
 	fi->refcount = 0;
+	fi->seenonnetwork = NULL;
 
 	/*
 	 * Read leading binary fields.
@@ -1513,6 +1531,18 @@ file_info_free_outname_kv(gpointer key, gpointer val, gpointer x)
 
 	fi_free(fi);
 }
+
+/**
+ * Pre-close some file_info information. 
+ * This should be separate from file_info_close so that we can avoid circular
+ * dependencies with other close routines, in this case with download_close.
+ */
+void
+file_info_close_pre(void)
+{
+	src_remove_listener(fi_update_seenonnetwork, EV_SRC_RANGES_CHANGED);
+}
+
 
 /**
  * Close and free all file_info structs in the list.
@@ -2150,6 +2180,7 @@ file_info_retrieve(void)
 		if (!fi) {
 			fi = walloc0(sizeof(struct dl_file_info));
 			fi->refcount = 0;
+			fi->seenonnetwork = NULL;
 			fi->file_size_known = TRUE;		/* Unless stated otherwise below */
 			aliases = NULL;
 		}
@@ -2313,6 +2344,7 @@ file_info_create(
 	fi->done = 0;
 	fi->use_swarming = use_swarming && file_size_known;
 	fi->ctime = time(NULL);
+	fi->seenonnetwork = NULL;
 
 	pathname = make_pathname(fi->path, fi->file_name);
 	if (NULL != pathname && stat(pathname, &st) != -1) {
@@ -3647,6 +3679,60 @@ fi_free_chunks(GSList *chunks)
 }
 
 
+/**
+ * Get a list of available ranges for this fileinfo handle.
+ * The list is fully allocated and the receiver is responsible for
+ * up the memory, for example using fi_free_ranges().
+ */
+GSList *
+fi_get_ranges(gnet_fi_t fih)
+{
+    struct dl_file_info *fi = file_info_find_by_handle(fih); 
+    http_range_t *range = NULL;
+    GSList *l = NULL;
+    GSList *ranges = NULL;
+    GSList *tail = NULL;
+    
+    g_assert( fi );
+
+    for (l = fi->seenonnetwork; l != NULL; l = g_slist_next(l)) {
+        http_range_t *r = l->data;
+        range = (http_range_t *) walloc(sizeof(http_range_t));
+        range->start = r->start;
+        range->end   = r->end;
+
+		/*
+	 	 * g_slist_prepend would be faster, but it changes the order
+	 	 * of the chunks and breaks the assumption that chunks are in
+	 	 * increasing order. Thus it would require a sorting or
+	 	 * walking backwards of the tree, thus negating the
+	 	 * performance gain. We still get the performance gain here by
+	 	 * using our own tail to append.
+	 	 */
+		if (tail) {
+	    	tail = g_slist_append(tail, range);
+		} else {
+	    	ranges = g_slist_append(ranges, range); 
+	    	tail = ranges;
+		}
+	}
+
+    return ranges;
+}
+
+void
+fi_free_ranges(GSList *ranges)
+{
+	GSList *sl;
+	
+	for (sl = ranges; NULL != sl; sl = g_slist_next(sl)) {
+		wfree(sl->data, sizeof(http_range_t));
+	}
+	
+	g_slist_free(ranges);
+}
+
+
 
 /**
  * Return NULL terminated array of gchar * pointing to the aliases.
@@ -4015,4 +4101,92 @@ file_info_restrict_range(struct dl_file_info *fi, guint32 start, guint32 *end)
 	return FALSE;	/* Sorry, cannot satisfy this request */
 }
 
-/* vi: set ts=4: */
+
+
+/**
+ * Create a ranges list with one item covering the whole file.
+ * This may be better placed in http.c, but since it is only
+ * used here as a utility function for fi_update_seenonnetwork
+ * it is now placed here.
+ *
+ * @param[in] size  File size to be used in range creation
+ */
+static GSList *
+fi_range_for_complete_file(guint32 size)
+{
+	http_range_t *range;
+
+	range = walloc(sizeof(*range));
+	range->start = 0;
+	range->end = size - 1;
+
+    return g_slist_append(NULL, range);
+}
+
+/**
+ * Callback for updates to ranges available on the network.
+ * 
+ * This function gets triggered by an event when new ranges
+ * information has become available for a download source.
+ * We collect the set of currently available ranges in 
+ * file_info->seenonnetwork. Currently we only fold in new ranges
+ * from a download source, but we should also remove sets of ranges when
+ * a download source is no longer available.
+ *
+ * FIXME: also remove ranges when a download source is no longer available.
+ *
+ * @param[in] srcid  The abstract id of the source that had its ranges updated.
+ */
+static void 
+fi_update_seenonnetwork(gnet_src_t srcid)
+{
+	struct download *d;
+	GSList *old_list;    /** The previous list of ranges, no longer needed */
+	GSList *l;           /** Temporary pointer to help remove old_list */
+
+	d = src_get_download(srcid);
+	g_assert(d);
+
+	old_list = d->file_info->seenonnetwork;
+	
+	/* 
+	 * If this download is not using swarming then we have the whole
+	 * file. The same is true when d->ranges == NULL.
+	 */
+
+	if (!d->file_info->use_swarming || d->ranges == NULL) {
+		/* Indicate that the whole file is available */
+		d->file_info->seenonnetwork = 
+			fi_range_for_complete_file(d->file_info->size);
+	} else {
+		/* Merge in the new ranges */
+		d->file_info->seenonnetwork 
+			= http_range_merge(d->file_info->seenonnetwork, d->ranges);
+	}
+	
+	/* 
+	 * Remove the old list and free its range elements 
+	 */
+	for (l = old_list; l; l = g_slist_next(l)) {
+		wfree(l->data, sizeof(http_range_t));
+	}
+	g_slist_free(old_list);
+	
+	/*
+	 * Trigger a transient change effect. Transient because we don't store
+	 * this info to disk.
+	 */
+	event_trigger(
+        fi_events[EV_FI_STATUS_CHANGED_TRANSIENT], 
+        T_NORMAL(fi_listener_t, d->file_info->fi_handle));   
+}
+
+
+
+
+/* 
+ * Local Variables:
+ * tab-width:4
+ * End:
+ * vi: set ts=4:
+ */

@@ -193,6 +193,8 @@ void gtk_gnutella_exit(gint n)
 	DO(shell_close);
 #endif
 
+	file_info_close_pre();
+
 	DO(node_bye_all);
 	DO(upload_close);	/* Done before upload_stats_close() for stats update */
 	DO(upload_stats_close);
@@ -578,6 +580,7 @@ gint main(gint argc, gchar **argv, gchar **env)
 	clock_init();
 	dq_init();
 	dh_init();
+	file_info_init_post();
 
 	main_gui_init();
 	

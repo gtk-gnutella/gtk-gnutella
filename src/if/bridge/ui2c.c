@@ -303,6 +303,15 @@ void guc_fi_free_chunks(GSList *chunks)
 	fi_free_chunks(chunks);
 }
 
+GSList *guc_fi_get_ranges(gnet_fi_t fih)
+{
+	return fi_get_ranges(fih);
+}
+
+void guc_fi_free_ranges(GSList *ranges)
+{
+	fi_free_ranges(ranges);
+}
 
 /*	gnet stats interface functions (UI -> Core)*/
 void guc_gnet_stats_get(gnet_stats_t *stats)
@@ -673,4 +682,3 @@ void guc_gtk_gnutella_exit(gint code)
 {
 	gtk_gnutella_exit(code);
 }
-

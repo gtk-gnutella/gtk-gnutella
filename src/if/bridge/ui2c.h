@@ -115,6 +115,8 @@ void guc_fi_add_listener(fi_listener_t cb, gnet_fi_ev_t ev,
 void guc_fi_remove_listener(fi_listener_t cb, gnet_fi_ev_t ev);
 GSList *guc_fi_get_chunks(gnet_fi_t fih);
 void guc_fi_free_chunks(GSList *chunks);
+GSList *guc_fi_get_ranges(gnet_fi_t fih);
+void guc_fi_free_ranges(GSList *ranges);
 void guc_fi_add_listener(fi_listener_t cb, gnet_fi_ev_t ev,
     frequency_t t, guint32 interval);
 void guc_fi_remove_listener(fi_listener_t cb, gnet_fi_ev_t ev);

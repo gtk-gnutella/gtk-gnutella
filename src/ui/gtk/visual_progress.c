@@ -86,7 +86,7 @@ typedef struct vp_info {
     gchar *file_name;
     guint32 file_size;
     GSList *chunks_list;
-	GSList *ranges;
+	GSList *ranges_list;
     vp_context_t *context;
 } vp_info_t;
 
@@ -216,7 +216,7 @@ vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 
 			if (v->file_size > 0) {
 				g_slist_foreach(v->chunks_list, &vp_draw_chunk, v);
-				g_slist_foreach(v->ranges, &vp_draw_range, v);
+				g_slist_foreach(v->ranges_list, &vp_draw_range, v);
 			} else {
 				gdk_gc_set_foreground(fi_context.gc, &nosize);
 				gdk_draw_rectangle(fi_context.drawable, fi_context.gc, TRUE,
@@ -291,6 +291,7 @@ vp_gui_fi_added(gnet_fi_t fih)
     new_vp_info->file_name = g_strdup(fi->file_name);
     new_vp_info->file_size = s.size;
     new_vp_info->chunks_list = guc_fi_get_chunks(fih);
+	new_vp_info->ranges_list = guc_fi_get_ranges(fih);
 
     g_hash_table_insert(vp_info_hash, GUINT_TO_POINTER(fih), new_vp_info);
     
@@ -314,10 +315,6 @@ vp_gui_fi_removed(gnet_fi_t fih)
     g_assert(found);
     g_assert(value);
 	v = value;
-
-    /* 
-     * TODO: Also remove the row from the GUI and perhaps reshuffle rows
-     */
 
     g_hash_table_remove(vp_info_hash, GUINT_TO_POINTER(fih));
 
@@ -346,10 +343,6 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
     gboolean found;
 	gpointer value;
 
-    /* 
-     * TODO: Assuming that only the chunks will change, may not be
-     * true...
-     */
     found = g_hash_table_lookup_extended(vp_info_hash,
 		GUINT_TO_POINTER(fih), NULL, &value);
     g_assert(found);
@@ -357,6 +350,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	v = value;
 
     /* 
+	 * Copy the chunks.
      * We will use the new list. We don't just copy it because we want
      * to mark new chunks in the new list as new. So we walk both
      * trees in parallel to make this check.
@@ -400,84 +394,15 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
 	 */
     guc_fi_free_chunks(v->chunks_list);
     v->chunks_list = keep_new;
-}
-
-/**
- * Create a ranges list with one item covering the whole file.
- *
- * @param[in] size  File size to be used in range creation
- */
-static GSList *
-range_for_complete_file(guint32 size)
-{
-	http_range_t *range;
-
-	range = walloc(sizeof(*range));
-	range->start = 0;
-	range->end = size - 1;
-
-    return g_slist_append(NULL, range);
-}
-
-/**
- * Callback for updates to ranges available on the network.
- * 
- * This function gets triggered by an event when new ranges
- * information has become available for a download source.
- * @param[in] srcid  The abstract id of the source that had its ranges updated.
- */
-static void 
-vp_update_ranges(gnet_src_t srcid)
-{
-    vp_info_t *v;
-	gboolean found;
-	gpointer value;
-	gnet_fi_t fih;
-	struct download *d;
-	GSList *old_list;    /** The previous list of ranges, no longer needed */
-	GSList *l;           /** Temporary pointer to help remove old_list */
-
-	d = guc_src_get_download(srcid);
-	g_assert(d);
-
-	/* 
-	 * Get our own struct associated with this download.
-	 */
-	fih = d->file_info->fi_handle;
-    found = g_hash_table_lookup_extended(vp_info_hash,
-		GUINT_TO_POINTER(fih), NULL, &value);
-    g_assert(found);
-    g_assert(value);
-	v = value;
-	old_list = v->ranges;
 	
-	/* 
-	 * If this download is not using swarming then we have the whole
-	 * file. The same is true when d->ranges == NULL.
+	/*
+	 * Copy the ranges. These can simply be copied as we do not need to 
+	 * apply our own logic to them.
 	 */
-
-	if (!d->file_info->use_swarming || d->ranges == NULL) {
-		/* Indicate that the whole file is available */
-		v->ranges = range_for_complete_file(d->file_info->size);
-	} else {
-		/* Merge in the new ranges */
-		if (gui_debug) {
-			g_message("Ranges before: %s", 
-				guc_http_range_to_gchar(v->ranges));
-			g_message("Ranges new   : %s", 
-				guc_http_range_to_gchar(d->ranges));
-		}
-		v->ranges = guc_http_range_merge(v->ranges, d->ranges);
-		if (gui_debug)
-			g_message("Ranges after : %s", 
-				guc_http_range_to_gchar(v->ranges));
-	}
-	/* Remove the old list and free its range elements */
-	for (l = old_list; l; l = g_slist_next(l)) {
-		wfree(l->data, sizeof(http_range_t));
-	}
-	g_slist_free(old_list);
+	guc_fi_free_ranges(v->ranges_list);
+	v->ranges_list = guc_fi_get_ranges(fih);
 }
+
 
 /**
  * Free the vp_info_t structs in the vp_info_hash
@@ -513,10 +438,7 @@ vp_gui_init(void)
     guc_fi_add_listener(vp_gui_fi_status_changed, 
 		EV_FI_STATUS_CHANGED_TRANSIENT, FREQ_SECS, 0);
 
-	guc_src_add_listener(vp_update_ranges, 
-		EV_SRC_RANGES_CHANGED, FREQ_SECS, 0);
-
-    cmap = gdk_colormap_get_system();
+	cmap = gdk_colormap_get_system();
     g_assert(cmap);
     gdk_color_parse("green4", &done_old);
     gdk_colormap_alloc_color(cmap, &done_old, FALSE, TRUE);
@@ -549,9 +471,6 @@ vp_gui_shutdown(void)
     guc_fi_remove_listener(vp_gui_fi_added, EV_FI_ADDED);
     guc_fi_remove_listener(vp_gui_fi_status_changed, 
 		EV_FI_STATUS_CHANGED);
-
-	guc_src_remove_listener(vp_update_ranges, 
-		EV_SRC_RANGES_CHANGED);
 
     g_hash_table_foreach(vp_info_hash, vp_free_key_value, NULL);
     g_hash_table_destroy(vp_info_hash);

@@ -89,6 +89,7 @@ struct dl_file_info {
 	time_t last_dmesh;		/* When last dmesh query was used */
 	guint32 done;			/* Total number of bytes completed */
 	GSList *chunklist;		/* List of ranges within file */
+	GSList *seenonnetwork;  /* List of ranges available on network */
 	guint32 generation;		/* Generation number, incremented on disk update */
 	struct shared_file *sf;	/* When PFSP-server is enabled, share this file */
 	gboolean file_size_known; /* File size known? */
@@ -149,6 +150,8 @@ void fi_free_info(gnet_fi_info_t *);
 void fi_get_status(gnet_fi_t, gnet_fi_status_t *);
 GSList *fi_get_chunks(gnet_fi_t);
 void fi_free_chunks(GSList *chunks);
+GSList *fi_get_ranges(gnet_fi_t);
+void fi_free_ranges(GSList *ranges);
 gchar **fi_get_aliases(gnet_fi_t fih);
 
 void fi_purge_by_handle_list(GSList *list);

@@ -666,10 +666,7 @@ void main_gui_shutdown(void)
     search_gui_shutdown(); /* must be done before filter_shutdown! */
  	downloads_gui_shutdown();
 	filter_shutdown();
-#if 0
-	/* XXX -- causes core dumps, removed for now --RAM, 2004-08-27 */
 	vp_gui_shutdown();
-#endif
     fi_gui_shutdown();
     nodes_gui_shutdown();
     uploads_gui_shutdown();
