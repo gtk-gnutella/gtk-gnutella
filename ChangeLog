@@ -13,7 +13,9 @@
  * Added parsing of the HNAME extension in query hits.
  * Added socket_bad_hostname().
  * Return the X-Hostname to uploaders if possible.
+ * Display hostname when known for downloads.
  * [GTK1] Added configuration of the server's hostname.
+ * [GTK1] Display hostname when known in searches.
 
 - (2003.10.25 - Jeroen)
  * Don't allow removing a download for which a background task is active. EG,
