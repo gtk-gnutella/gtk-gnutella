@@ -1,5 +1,22 @@
 # since last version
 
+- (2004-10-03 - RAM)
+ * Added pre-send checking hook to the PDU message descriptor.
+ * Added the tx_flush() operation to force buffer flushing, if any.
+ * The "Time Sync" messages now use the pre-sending checking hook to write
+   an accurate clock timestamp.
+ * Message queue now rely on the pmsg_check() pre-send hook to determine
+   whether a message can be sent or not.
+ * When writing a control message, make sure TX buffers are flushed, if needed.
+ * Alive pings now use the pre-send checking hook to ensure that only the
+   pings recorded last are sent on a given connection.
+ * Fixed memory leak in alive ping management.
+ * Switch to TCP if they don't answer our "Time Sync" requests via UDP.
+ * Added auto-detection of NTP running on local host.
+ * Tooltip for "Host runs NTP" now mentions GTKG will auto-detect NTP.
+ * Correct remote clock seen in the Date HTTP header by the amount of time
+   necessary for the headers to travel back (estimated from HTTP roundtrip).
+
 - (2004-09-29 - RAM)
  * Added "Time Sync" vendor messages.
  * Accept clock synchronization from same IP if the precision is better.
