@@ -16,12 +16,23 @@ struct gnutella_node *fake_node;		/* Our fake node */
 
 struct message {
 	guchar muid[16];			/* Message UID */
-	GSList *nodes;	            /* route_data from where the message came */
+	GSList *routes;	            /* route_data from where the message came */
 	guint8 function;			/* Type of the message */
 };
 
+/*
+ * We don't store a list of nodes in the message structure, but a list of
+ * route_data: the reason is that nodes can go away, but we don't want to
+ * traverse the whole routing table to reclaim all the places where they
+ * were referenced.
+ *
+ * The route_data structure points to a node and keeps track of the amount of
+ * messages that it is used to track.  When a node disappears, the `node' field
+ * in the associated route_data structure is set to NULL.  Dangling references
+ * are removed only when needed.
+ */
 struct route_data {
-	struct gnutella_node * node;
+	struct gnutella_node *node;
 	gint32 saved_messages; 		/* # msg from this host in routing table */
 };
 
@@ -41,10 +52,13 @@ gchar *debug_msg[256];
  */
 #define QUERY_HIT_ROUTE_SAVE	0	/* Function used to store QHit GUIDs */
 
-GHashTable *messages_hashed; /* we hash the last MAX_STORED_MESSAGES */
-/* storage for messages_hashed */
+/*
+ * Routing table data structures.
+ */
+
 struct message message_array[MAX_STORED_MESSAGES];
-guint next_message_index; /* index of the next space to use in message_array */
+GHashTable *messages_hashed; 	/* we hash the last MAX_STORED_MESSAGES */
+guint next_message_index;		/* next slot to use in message_array */
 
 static gboolean find_message(guchar *muid, guint8 function, struct message **m);
 
@@ -65,7 +79,7 @@ void routing_log(gchar * fmt, ...)
 		printf("%s", t);
 }
 
-static void decrement_message_counters(GSList *head);
+static void free_route_list(struct message *m);
 
 /* just used to ensure type safety when accessing the routing_data field */
 static struct route_data * get_routing_data(struct gnutella_node *n)
@@ -81,51 +95,52 @@ void init_routing_data(struct gnutella_node *node)
 
 	g_assert(node->routing_data == NULL);
 	
-	/* wow, this node hasn't sent any messages before.
-	   Allocate and link some routing data to it */
-	route = (struct route_data *)g_malloc(sizeof(struct route_data));
+	/*
+	 * Wow, this node hasn't sent any messages before.
+	 * Allocate and link some routing data to it
+	 */
+
+	route = (struct route_data *) g_malloc(sizeof(struct route_data));
+
 	route->node = node;
 	route->saved_messages = 0;
 	node->routing_data = route;
 }
 
-gboolean node_sent_message(struct gnutella_node *n, struct message *m)
+static gboolean node_sent_message(struct gnutella_node *n, struct message *m)
 {
-	GSList *l = m->nodes;
+	GSList *l;
 	struct route_data * route;
 
-	
 	if (n == fake_node)
 		route = &fake_route;
 	else
 		route = get_routing_data(n);
 	
-	/* if we've never routed a message from this person before, it can't be
-	   a duplicate */
+	/*
+	 * If we've never routed a message from this person before,
+	 * it can't be a duplicate.
+	 */
+
 	if (route == NULL)
 		return FALSE;
 	
-	while (l) {
-		if (((struct route_data*)l->data) == route)
+	for (l = m->routes; l; l = l->next) {
+		if (route == ((struct route_data *) l->data))
 			return TRUE;
-		l = l->next;
 	}
+
 	return FALSE;
 }
 
 /* compares two message structures */
 gint message_compare_func(gconstpointer a, gconstpointer b)
 {
-	if (memcmp(((struct message *)a)->muid,
-		   ((struct message *)b)->muid, 16) == 0)
-	{
-		if (((struct message *)a)->function
-			== ((struct message *)b)->function)
-		{
-			return TRUE;
-		}
-	}
-	return FALSE;
+	return
+		0 == memcmp(((struct message *) a)->muid,
+			((struct message *) b)->muid, 16)
+		&& ((struct message *) a)->function ==
+			((struct message *) b)->function;
 }
 
 /* hashes message structures for storage in a hash table */
@@ -134,18 +149,17 @@ guint message_hash_func(gconstpointer key)
 	int count;
 	guint hash = 0;
 	
-	for (count = 0; count <= 12; count += 4)
-	{
-		guint hashadd;
-		hashadd = ((struct message *)key)->muid[count] |
-			(((struct message *)key)->muid[count + 1] << 8) |
-			(((struct message *)key)->muid[count + 2] << 16) |
-			(((struct message *)key)->muid[count + 3] << 24);
+	for (count = 0; count <= 12; count += 4) {
+		guint hashadd =
+			( (struct message *) key)->muid[count]            |
+			(((struct message *) key)->muid[count + 1] << 8)  |
+			(((struct message *) key)->muid[count + 2] << 16) |
+			(((struct message *) key)->muid[count + 3] << 24);
 
 		hash ^= hashadd;
 	}
 
-	hash ^= (guint)((struct message *)key)->function;
+	hash ^= (guint) ((struct message *) key)->function;
 
 	return hash;
 }
@@ -198,30 +212,15 @@ void routing_init(void)
 	debug_msg[GTA_MSG_SEARCH_RESULTS] = "Q-Hit";
 	debug_msg[GTA_MSG_PUSH_REQUEST]   = "Push ";
 
-	/* should be around for life of program, so should *never*
-	   need to be deallocated */
+	/*
+	 * Should be around for life of program, so should *never*
+	 * need to be deallocated
+	 */
+
 	messages_hashed = g_hash_table_new(message_hash_func, message_compare_func);
 	next_message_index = 0;
-	/* clear message_array (needed since routing_node_remove() may
-	   look through uninitalized messages at any point ) */
-	memset(message_array, 0, sizeof(struct message) * MAX_STORED_MESSAGES);
-}
 
-/* frees the routing data associated with a message */
-static void free_routing_data(gpointer key, gpointer value, gpointer udata)
-{
-	decrement_message_counters(((struct message *)value)->nodes);
-	g_slist_free(((struct message *)value)->nodes);
-	((struct message *)value)->nodes = NULL;
-}
-
-void routing_close(void)
-{
-	g_assert(messages_hashed);
-	
-	g_hash_table_foreach(messages_hashed, free_routing_data, NULL);
-	g_hash_table_destroy(messages_hashed);
-	messages_hashed = NULL;
+	memset(message_array, 0, sizeof(message_array));
 }
 
 /*
@@ -268,54 +267,75 @@ void message_set_muid(struct gnutella_header *header, gboolean modern)
 	generate_new_muid(header->muid, modern);
 }
 
-static void remove_one_message_reference(GSList * cur)
+/*
+ * remove_one_message_reference
+ *
+ * The route references one less message.
+ *
+ * If the amount of messages referenced reaches 0 and the associated node
+ * was removed, free the route structure.
+ */
+static void remove_one_message_reference(struct route_data *rd)
 {
-	struct route_data *rd = (struct route_data *) cur->data;
-
 	g_assert(rd);
 
 	if (rd->node != fake_node) {
+		g_assert(rd != &fake_route);
 		g_assert(rd->saved_messages > 0);
+
 		rd->saved_messages--;
-		/* if we have no more messages from this node, and our
-		   node has already died, wipe its routing data */
-		if (rd->node == NULL && rd->saved_messages == 0) {
+
+		/*
+		 * If we have no more messages from this node, and our
+		 *  node has already died, wipe its routing data
+		 */
+
+		if (rd->node == NULL && rd->saved_messages == 0)
 			g_free(rd);
-			cur->data = NULL;	/* Mark as freed, don't try again --RAM */
-		}
 	} else
 		g_assert(rd == &fake_route);
 }
 
-/* reduces the messages in routing table count for all nodes in list */
-
-static void decrement_message_counters(GSList *head)
+/*
+ * free_route_list
+ *
+ * Dispose of route list in message.
+ */
+static void free_route_list(struct message *m)
 {
-	GSList * cur;
+	GSList *l;
+
+	g_assert(m);
 	
-	for (cur = head; cur != NULL; cur = cur->next)
-	{
-		remove_one_message_reference(cur);
-	}
+	for (l = m->routes; l; l = l->next)
+		remove_one_message_reference((struct route_data *) l->data);
+
+	g_slist_free(m->routes);
+	m->routes = NULL;
 }
 
 /* Erase a node from the routing tables */
 
 void routing_node_remove(struct gnutella_node *node)
 {
-	struct route_data * route;
-	route = get_routing_data(node);
+	struct route_data *route = get_routing_data(node);
 
 	g_assert(route);
 	g_assert(route->node == node);
+
 	route->node->routing_data = NULL;
 
-	/* make sure that any future references to this routing
-	   data know that we are not connected to a node */
+	/*
+	 * Make sure that any future references to this routing
+	 * data know that we are not connected to a node.
+	 */
+
 	route->node = NULL;
 	
-	/* if no messages remain, we have no reason to keep the
-	   route_data around any more */
+	/*
+	 * If no messages remain, we have no reason to keep the
+	 * route_data around any more.
+	 */
 
 	if (route->saved_messages == 0)
 		g_free(route);
@@ -334,36 +354,41 @@ void message_add(guchar * muid, guint8 function,
 	if (last_rotation == 0)
 		last_rotation = time((time_t) NULL);
 
-	if (!node)
-	{
+	if (!node) {
 		struct message *m;
 
 		if (find_message(muid, function, &m)) {
-			g_assert(m->nodes);		/* We're still there! */
-			routing_log("ROUTE %-21s %s %s %3d [already sent]\n", "OURSELVES",
+
+			/*
+			 * It is possible that we insert the message in the routing table,
+			 * then it gets "garbage collected" through a cycling, and then
+			 * we receive our own message back from the network, at which
+			 * time it is re-inserted into the table.  Therefore, despite our
+			 * re-issuing of our own (search) message, there might not
+			 * actually be any entry for us.
+			 *		--RAM, 21/02/2002
+			 */
+
+			if (node_sent_message(fake_node, m)) {
+				routing_log("ROUTE %-21s %s %s %3d [already sent]\n",
+					"OURSELVES", debug_msg[function],
+					guid_hex_str(muid), my_ttl);
+				return;
+			}
+
+			routing_log("ROUTE %-21s %s %s %3d [forgot we sent it]\n",
+					"OURSELVES", debug_msg[function],
+					guid_hex_str(muid), my_ttl);
+		} else
+			routing_log("ROUTE %-21s %s %s %3d\n", "OURSELVES",
 				debug_msg[function], guid_hex_str(muid), my_ttl);
-			return;
-		}
 
 		route = &fake_route;
-		node = fake_node;	/* We are the sender of the message */
-		
-		routing_log("ROUTE %-21s %s %s %3d\n", "OURSELVES",
-			debug_msg[function], guid_hex_str(muid), my_ttl);
-	}
-	else
-	{
+		node = fake_node;		/* We are the sender of the message */
+	} else {
 		if (node->routing_data == NULL)
 			init_routing_data(node);
 		route = get_routing_data(node);
-	}
-
-	if (dbg && cycled && next_message_index == 0) {
-		time_t now = time((time_t) NULL);
-		int elapsed = now - last_rotation;
-
-		printf("Cycling through route table after %d seconds\n", elapsed);
-		last_rotation = now;
 	}
 
 	entry = &message_array[next_message_index];
@@ -376,48 +401,57 @@ void message_add(guchar * muid, guint8 function,
 	if (cycled) {
 		g_hash_table_remove(messages_hashed, entry);
 
-		if (entry->nodes != NULL) {
-			decrement_message_counters(entry->nodes);
-			g_slist_free(entry->nodes);
-			entry->nodes = NULL;
+		if (entry->routes != NULL)
+			free_route_list(entry);
+
+		if (dbg && next_message_index == 0) {
+			time_t now = time((time_t) NULL);
+			int elapsed = now - last_rotation;
+
+			printf("Cycling through route table after %d seconds\n", elapsed);
+			last_rotation = now;
 		}
 	}
 
+	g_assert(entry->routes == NULL);
+
 	/* fill in that storage space */
 	memcpy(entry->muid, muid, 16);
-	entry->nodes = g_slist_append(entry->nodes, route);
+	route->saved_messages++;
+	entry->routes = g_slist_append(entry->routes, route);
 	entry->function = function;
 
 	/* insert the new message into the hash table */
 	g_hash_table_insert(messages_hashed, entry, entry);
 
-	route->saved_messages++;
-	
 	if (++next_message_index >= MAX_STORED_MESSAGES) {
 		next_message_index = 0;
 		cycled = TRUE;
 	}
 }
 
-/* remove references to routing data that is no longer associated with
-   a node */
-static GSList * purge_dangling_references(GSList *head)
+/*
+ * purge_dangling_references
+ *
+ * Remove references to routing data that is no longer associated with
+ * a node, within the route list of the message.
+ */
+static void purge_dangling_references(struct message *m)
 {
-	GSList * cur = head;
-	while (cur)
-	{
-		if (((struct route_data *)cur->data)->node == NULL)
-		{
-			GSList * next = cur->next;
-			head = g_slist_remove_link(head, cur);
-			remove_one_message_reference(cur);
-			g_slist_free_1(cur);
-			cur = next;
-		}
-		else
-			cur = cur->next;
+	GSList *l;
+
+	for (l = m->routes; l; /* empty */) {
+		struct route_data *rd = (struct route_data *) l->data;
+
+		if (rd->node == NULL) {
+			GSList *next = l->next;
+			m->routes = g_slist_remove_link(m->routes, l);
+			remove_one_message_reference(rd);
+			g_slist_free_1(l);
+			l = next;
+		} else
+			l = l->next;
 	}
-	return head;
 }
 
 /*
@@ -428,7 +462,7 @@ static GSList * purge_dangling_references(GSList *head)
  * If we find the message, returns true, otherwise false.
  *
  * If none of the nodes that sent us the message are still present, then
- * m->nodes will be NULL.
+ * m->routes will be NULL.
  */
 static gboolean find_message(guchar *muid, guint8 function, struct message **m)
 {
@@ -449,7 +483,7 @@ static gboolean find_message(guchar *muid, guint8 function, struct message **m)
 		return FALSE;		/* We don't remember about this message */
 	} else {
 		/* wipe out dead references to old nodes */
-		found_message->nodes = purge_dangling_references(found_message->nodes);
+		purge_dangling_references(found_message);
 
 		*m = found_message;
 		return TRUE;		/* Message was seen */
@@ -617,7 +651,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 				 */
 
 				message_add(guid, QUERY_HIT_ROUTE_SAVE, sender);
-			} else if (m->nodes == NULL || !node_sent_message(sender, m)) {
+			} else if (m->routes == NULL || !node_sent_message(sender, m)) {
 				struct route_data *route;
 
 				/*
@@ -627,7 +661,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 				 */
 
 				route = get_routing_data(sender);
-				m->nodes = g_slist_append(m->nodes, route);
+				m->routes = g_slist_append(m->routes, route);
 				route->saved_messages++;
 			}
 		}
@@ -648,13 +682,12 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 		g_assert(m);		/* Or find_message() would have returned FALSE */
 
 		/*
-		 * If `m->nodes' is NULL, we have seen the request, but unfortunately
+		 * If `m->routes' is NULL, we have seen the request, but unfortunately
 		 * none of the nodes that sent us the request is connected any more.
 		 */
 
-		if (m->nodes == NULL) {
-			routing_log("[%c] route to target lost\n",
-				handle_it ? 'H' : ' ');
+		if (m->routes == NULL) {
+			routing_log("[%c] route to target lost\n", handle_it ? 'H' : ' ');
 
 			routing_errors++;
 			sender->rx_dropped++;
@@ -714,7 +747,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 
 		sender->header.hops++;
 
-		found = ((struct route_data *) m->nodes->data)->node;
+		found = ((struct route_data *) m->routes->data)->node;
 
 		routing_log("-> sendto_one(%s)\n", node_ip(found));
 
@@ -735,7 +768,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			dropped_messages++;
 			sender->rx_dropped++;
 
-			if (m->nodes && node_sent_message(sender, m)) {
+			if (m->routes && node_sent_message(sender, m)) {
 				/* The same node has sent us a message twice ! */
 				routing_log("[ ] dup message (from the same node!)\n");
 
@@ -768,7 +801,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			} else {
 				struct route_data * route;
 
-				if (m->nodes == NULL)
+				if (m->routes == NULL)
 					routing_log("[ ] dup message, original route lost\n");
 				else
 					routing_log("[ ] dup message\n");
@@ -778,7 +811,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 				 * original sender. */
 
 				route = get_routing_data(sender);
-				m->nodes = g_slist_append(m->nodes, route);
+				m->routes = g_slist_append(m->routes, route);
 				route->saved_messages++;
 			}
 
@@ -801,14 +834,14 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 
 			if (
 				!find_message(sender->data, QUERY_HIT_ROUTE_SAVE, &m) ||
-				m->nodes == NULL
+				m->routes == NULL
 			) {
 				if (0 == memcmp(guid, sender->data, 16)) {
 					routing_log("[H] we are the target\n");
 					return TRUE;
 				}
 
-				if (m && m->nodes == NULL)
+				if (m && m->routes == NULL)
 					routing_log("[ ] route to target GUID %s gone\n",
 						guid_hex_str(sender->data));
 				else
@@ -823,7 +856,7 @@ gboolean route_message(struct gnutella_node **node, struct route_dest *dest)
 			}
 
 			forward_message(node,
-				((struct route_data *) m->nodes->data)->node, dest);
+				((struct route_data *) m->routes->data)->node, dest);
 
 			return FALSE;		/* We are not the target, don't handle it */
 		} else {
@@ -886,10 +919,28 @@ struct gnutella_node *route_towards_guid(guchar *guid)
 {
 	struct message *m;
 
-	if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) || m->nodes == NULL)
+	if (!find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) || m->routes == NULL)
 		return NULL;
 
-	return ((struct route_data *) m->nodes->data)->node;
+	return ((struct route_data *) m->routes->data)->node;
+}
+
+/* frees the routing data associated with a message */
+static void free_routing_data(gpointer key, gpointer value, gpointer udata)
+{
+	struct message *m = (struct message *) value;
+
+	free_route_list(m);
+}
+
+void routing_close(void)
+{
+	g_assert(messages_hashed);
+	
+	g_hash_table_foreach(messages_hashed, free_routing_data, NULL);
+	g_hash_table_destroy(messages_hashed);
+	messages_hashed = NULL;
 }
 
 /* vi: set ts=4: */
+
