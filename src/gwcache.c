@@ -105,9 +105,9 @@ static gint current_reused = 0;				/* Amount of times we reused it */
 
 #define CLIENT_INFO "client=GTKG&version=" GTA_VERSION_NUMBER
 
-static const gchar *gwc_file = "gwcache";
-static const gchar *gwc_bootfile = "gwcache.boot";
-static const gchar *gwc_what = "web cache URLs";
+static const gchar gwc_file[] = "gwcache";
+static const gchar gwc_bootfile[] = "gwcache.boot";
+static const gchar gwc_what[] = "web cache URLs";
 
 static gpointer hourly_update_ev = NULL;
 static gpointer periodic_refresh_ev = NULL;
@@ -122,7 +122,7 @@ static void gwc_seed_cache(gchar *cache_url);
  * The following URLs are there for bootstrapping purposes only.
  */
 
-static gchar *boot_url[] = {
+static const gchar * const boot_url[] = {
 	"http://gwebcache.bearshare.net/gcache.php",
 	"http://www.rodage.net/gnetcache/gcache.php",
 	"http://gcache.shacknet.nu:8088/gwc",
@@ -314,7 +314,7 @@ static void gwc_retrieve(void)
 
 	line = 0;
 
-	while (fgets(tmp, sizeof(tmp) - 1, in)) {	/* Room for trailing NUL */
+	while (fgets(tmp, sizeof(tmp), in)) {
 		line++;
 
 		if (tmp[0] == '#')		/* Skip comments */
@@ -1182,4 +1182,4 @@ static void gwc_update_ip_url(void)
 	gwc_update_this(current_url);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
