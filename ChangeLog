@@ -1,5 +1,10 @@
 # since last version
 
+- (2003.01.01 - cbiere)
+ * Fixed identifiers with leading underscores
+ * Removed usage of __FUNCTION__ as it's a gcc-only feature
+ * [Gtk2] Hide label with RCSID
+
 - (2002.12.31 - RAM)
  * Added static RCS Id to all the C files.
  * Now accepts and forwards big pings/pongs/pushes to nodes that will
