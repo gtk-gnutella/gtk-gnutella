@@ -82,7 +82,7 @@ url_escape_mask(const gchar *url, guint8 mask)
 			need_escape++;
 
 	if (need_escape == 0)
-		return (gchar *) url; /* Override const */
+		return deconstify_gchar(url);
 
 	new = g_malloc(p - url + (need_escape << 1));
 

@@ -117,7 +117,7 @@ gip_load(FILE *f)
 	gchar line[1024];
 	gchar *p;
 	gint linenum = 0;
-	gchar *end;
+	const gchar *end;
 	gint c, code;
 	struct range_context ctx;
 
@@ -179,7 +179,7 @@ gip_load(FILE *f)
 			end++;
 		}
 
-		if (!gchar_to_ip_strict(end, &ctx.ip2, (gchar const **) &end)) {
+		if (!gchar_to_ip_strict(end, &ctx.ip2, &end)) {
 			g_warning("%s, line %d: invalid second IP in \"%s\"",
 				gip_file, linenum, line);
 			continue;

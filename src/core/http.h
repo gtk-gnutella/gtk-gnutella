@@ -235,7 +235,7 @@ gboolean http_range_contains(GSList *ranges, filesize_t from, filesize_t to);
 
 const gchar *http_url_strerror(http_url_error_t errnum);
 gboolean http_url_parse(
-	gchar *url, guint16 *port, gchar **host, gchar **path);
+	const gchar *url, guint16 *port, gchar **host, gchar **path);
 
 gpointer http_async_get(
 	gchar *url,

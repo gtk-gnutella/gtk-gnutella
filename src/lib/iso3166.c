@@ -362,11 +362,10 @@ iso3166_init(void)
 	size_t i;
 
 	for (i = 0; i < G_N_ELEMENTS(iso3166_tab); i++) {
-		const gchar *country, *cc;
+		const gchar *country, *cc, *endptr;
 		iso3166_entry_t *e;
 		size_t size;
 		gint code, error;
-		gchar *ep;
 
 		country = _(iso3166_tab[i].country);
 		cc = iso3166_tab[i].cc;
@@ -375,8 +374,8 @@ iso3166_init(void)
 		strncpy(e->cc, cc, sizeof e->cc);
 		memcpy(e->country, country, size);
 
-		code = parse_uint64(cc, &ep, 36, &error);
-		g_assert(*ep == '\0');
+		code = parse_uint64(cc, &endptr, 36, &error);
+		g_assert(*endptr == '\0');
 		g_assert(!error);
 		g_assert(code >= 0 && (size_t) code < G_N_ELEMENTS(iso3166_countries));
 		iso3166_countries[code] = e;

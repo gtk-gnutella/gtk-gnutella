@@ -114,12 +114,12 @@ upload_stats_load_history(const gchar *ul_history_file_name)
 		for (i = 0; i < 5; i++) {
 			guint64 v;
 			gint error;
-			gchar *ep;
+			const gchar *endptr;
 
 			name_end = skip_ascii_spaces(name_end);
-			v = parse_uint64(name_end, &ep, 10, &error);
-			name_end = ep;
-			if (error || !is_ascii_space(*ep))
+			v = parse_uint64(name_end, &endptr, 10, &error);
+			name_end = deconstify_gchar(endptr);
+			if (error || !is_ascii_space(*endptr))
 				goto corrupted;
 
 			switch (i) {

@@ -1013,7 +1013,7 @@ downloads_with_name_inc(const gchar *name)
 	guint val;
 
 	val = GPOINTER_TO_UINT(g_hash_table_lookup(dl_count_by_name, name));
-	g_hash_table_insert(dl_count_by_name, (gchar *) name,
+	g_hash_table_insert(dl_count_by_name, deconstify_gchar(name),
 		GUINT_TO_POINTER(val + 1));
 }
 
@@ -7217,7 +7217,7 @@ download_retrieve(void)
 	file_path_t fp;
 	gboolean allow_comments = TRUE;
 	gchar *parq_id = NULL;
-	gchar *ep;
+	const gchar *endptr;
 	struct download *d;
 
 	file_path_set(&fp, settings_config_dir(), download_file);
@@ -7297,8 +7297,8 @@ download_retrieve(void)
 			g_assert(d_name);
 			d_hostname[0] = '\0';
 
-			size64 = parse_uint64(dl_tmp, &ep, 10, &error);
-			if (error || *ep != ',' ) {
+			size64 = parse_uint64(dl_tmp, &endptr, 10, &error);
+			if (error || *endptr != ',' ) {
 				g_message("download_retrieve(): "
 					"cannot parse line #%d: %s", line, dl_tmp);
 				goto out;
@@ -7312,29 +7312,29 @@ download_retrieve(void)
 			}
 
 			/* skip "<filesize>," for sscanf() */
-			g_assert(ep != dl_tmp);
-			g_assert(*ep == ',');
-			ep++;
+			g_assert(endptr != dl_tmp);
+			g_assert(*endptr == ',');
+			endptr++;
 
 			if (
-				sscanf(ep, "%u, %22s %255s",
+				sscanf(endptr, "%u, %22s %255s",
 					&d_index, d_ipport, d_hostname) == 3
 			) {
 				memset(d_hexguid, '0', 32);		/* GUID missing -> blank */
 				d_hexguid[32] = '\0';
 			}
-			else if (sscanf(ep, "%u, %22s", &d_index, d_ipport) == 2) {
+			else if (sscanf(endptr, "%u, %22s", &d_index, d_ipport) == 2) {
 				memset(d_hexguid, '0', 32);		/* GUID missing -> blank */
 				d_hexguid[32] = '\0';
 			}
 			else if (
-				sscanf(ep, "%u:%32c, %22s %255s",
+				sscanf(endptr, "%u:%32c, %22s %255s",
 					&d_index, d_hexguid, d_ipport, d_hostname) == 4
 			) {
 				/* empty */
 			}
 			else if (
-				sscanf(ep, "%u:%32c, %22s",
+				sscanf(endptr, "%u:%32c, %22s",
 					&d_index, d_hexguid, d_ipport) < 3
 			) {
 				(void) str_chomp(dl_tmp, 0);

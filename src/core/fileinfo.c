@@ -2244,7 +2244,8 @@ file_info_retrieve(void)
 		size_t len;
 		gint error;
 		gboolean truncated = FALSE, damaged;
-		gchar *value, *ep;
+		const gchar *ep;
+		gchar *value;
 		guint64 v;
 
 		if (*line == '#') continue;
@@ -2771,7 +2772,7 @@ file_info_new_outname(const gchar *name, const gchar *dir)
 
 ok:
 	if (escaped != name && escaped != empty) {
-		g_free((gchar *) escaped); /* Override const */
+		g_free(deconstify_gchar(escaped));
 		escaped = NULL; /* Don't use G_FREE_NULL b/c of lvalue cast */
 	}
 

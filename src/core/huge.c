@@ -249,7 +249,7 @@ parse_and_append_cache_entry(char *line)
 	const char *sha1_digest_ascii;
 	const char *file_name;
 	char *file_name_end;
-	char *p, *end; /* pointers to scan the line */
+	const char *p, *end; /* pointers to scan the line */
 	gint c, error;
 	filesize_t size;
 	time_t mtime;

@@ -214,7 +214,7 @@ namesize_parse(FILE *f, const gchar *file)
 {
 	gint line = 0, error;
 	filesize_t size;
-	gchar *p, *q;
+	const gchar *p, *q;
 	namesize_t *ns;
 	namesize_t nsk;
 
@@ -247,7 +247,7 @@ namesize_parse(FILE *f, const gchar *file)
 		else
 			q++;
 
-		nsk.name = q;
+		nsk.name = deconstify_gchar(q);
 		nsk.size = size;
 
 		if (g_hash_table_lookup(by_namesize, &nsk))
@@ -302,7 +302,7 @@ ignore_is_requested(const gchar *file, filesize_t size, gchar *sha1)
 			return IGNORE_LIBRARY;
 	}
 
-	ns.name = (gchar *) file; /* override const */
+	ns.name = deconstify_gchar(file);
 	ns.size = size;
 
 	if (g_hash_table_lookup(by_namesize, &ns))
@@ -345,7 +345,7 @@ ignore_add_filesize(const gchar *file, filesize_t size)
 {
 	namesize_t nsk;
 
-	nsk.name = (gchar *) file; /* Override const */
+	nsk.name = deconstify_gchar(file);
 	nsk.size = size;
 
 	if (!g_hash_table_lookup(by_namesize, &nsk)) {

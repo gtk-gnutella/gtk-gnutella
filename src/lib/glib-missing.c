@@ -400,7 +400,7 @@ gm_sanitize_filename(const gchar *filename,
 		}
 	}
 
-	return q ? q : (gchar *) s; /* Override const */
+	return q ? q : deconstify_gchar(s);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

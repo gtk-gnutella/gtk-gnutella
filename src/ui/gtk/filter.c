@@ -1551,11 +1551,11 @@ filter_update_size(GtkEntry *entry)
 	gchar buf[32];
 	guint64 size = 0;
 	gint error = 0;
-    gchar *ep, *p;
+    const gchar *endptr, *p;
 	
 	p = skip_ascii_blanks(text);
-	size = parse_uint64(p, &ep, 10, &error);
-	p = skip_ascii_blanks(ep);
+	size = parse_uint64(p, &endptr, 10, &error);
+	p = skip_ascii_blanks(endptr);
 
 	if (!error && *p != '\0') {
 		static const char *suffixes[] = {

@@ -1622,7 +1622,7 @@ get_file_to_upload_from_index(
 				301, "Moved Permanently");
 
 			if (escaped != sfn->file_name) {
-				g_free((gchar *) escaped); /* Override const */
+				g_free(deconstify_gchar(escaped));
 				escaped = NULL;	/* Don't use G_FREE_NULL b/c of lvalue cast */
 			}
 			return NULL;

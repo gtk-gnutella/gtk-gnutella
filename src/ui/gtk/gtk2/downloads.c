@@ -701,8 +701,7 @@ download_gui_add(download_t *d)
 		if (!parent) {
 			host_count = 1;
 			d_file_name = guc_file_info_readable_filename(d->file_info);
-			d_file_name = lazy_locale_to_utf8(
-					(gchar *) d_file_name, 0); /* Override const */
+			d_file_name = lazy_locale_to_utf8(deconstify_gchar(d_file_name), 0);
 
 			if (d->file_info->file_size_known)
 				d_file_size = short_size(d->file_info->size);
@@ -803,8 +802,7 @@ download_gui_add(download_t *d)
 		if (!parent) {
 			host_count = 1;
 			d_file_name = guc_file_info_readable_filename(d->file_info);
-			d_file_name = lazy_locale_to_utf8(
-					(gchar *) d_file_name, 0); /* Override const */
+			d_file_name = lazy_locale_to_utf8(deconstify_gchar(d_file_name), 0);
 
 			if (d->file_info->file_size_known)
 				d_file_size = short_size(d->file_info->size);

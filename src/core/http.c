@@ -270,7 +270,7 @@ http_hostname_add(gchar *buf, gint *retval, gpointer unused_arg, guint32 flags)
 static gint
 code_message_parse(const gchar *line, const gchar **msg)
 {
-	gchar *ep;
+	const gchar *endptr;
 	guint64 v;
 	gint error;
 
@@ -278,12 +278,12 @@ code_message_parse(const gchar *line, const gchar **msg)
 	 * We expect exactly 3 status digits.
 	 */
 
-	v = parse_uint64(line, &ep, 10, &error);
-	if (error || v > 999 || (*ep != '\0' && !is_ascii_space(*ep)))
+	v = parse_uint64(line, &endptr, 10, &error);
+	if (error || v > 999 || (*endptr != '\0' && !is_ascii_space(*endptr)))
 		return -1;
 
 	if (msg)
-		*msg = skip_ascii_spaces(ep);
+		*msg = skip_ascii_spaces(endptr);
 
 	return v;
 }
@@ -529,14 +529,13 @@ http_url_strerror(http_url_error_t errnum)
  *
  */
 gboolean
-http_url_parse(
-	gchar *url, guint16 *port, gchar **host, gchar **path)
+http_url_parse(const gchar *url, guint16 *port, gchar **host, gchar **path)
 {
 	static const gchar prefix[] = "http://";
 	static gchar hostname[MAX_HOSTLEN + 1];
-	gchar *host_start;
-	gchar *port_start;
-	gchar *p;
+	const gchar *host_start;
+	const gchar *port_start;
+	const gchar *p;
 	gchar c;
 	gboolean seen_upw = FALSE;
 	gchar s;
@@ -570,7 +569,7 @@ http_url_parse(
 
 	host_start = url;		/* Assume there's no <user>:<password> */
 	port_start = NULL;		/* Port not seen yet */
-	p = url + 1;
+	p = &url[1];
 
 	while ((c = *p++)) {
 		if (c == '@') {
@@ -596,7 +595,7 @@ http_url_parse(
 		return FALSE;
 	}
 
-	*path = p;					/* Start of path, at the "/" */
+	*path = deconstify_gchar(p);	/* Start of path, at the "/" */
 
 	/*
 	 * Validate the port.
@@ -701,7 +700,7 @@ http_content_range_parse(const gchar *buf,
 		filesize_t *start, filesize_t *end, filesize_t *total)
 {
 	static const gchar unit[] = "bytes";
-	const gchar *s = buf, *ep;
+	const gchar *s = buf, *endptr;
 	gint error;
 
 	/*
@@ -725,17 +724,17 @@ http_content_range_parse(const gchar *buf,
 
 	s++;
 	s = skip_ascii_spaces(s);
-	*start = parse_uint64(s, (gchar **) &ep, 10, &error);
-	if (error || *ep++ != '-')
+	*start = parse_uint64(s, &endptr, 10, &error);
+	if (error || *endptr++ != '-')
 		return -1;
 
-	s = skip_ascii_spaces(ep);
-	*end = parse_uint64(s, (gchar **) &ep, 10, &error);
-	if (error || *ep++ != '/')
+	s = skip_ascii_spaces(endptr);
+	*end = parse_uint64(s, &endptr, 10, &error);
+	if (error || *endptr++ != '/')
 		return -1;
 
-	s = skip_ascii_spaces(ep);
-	*total = parse_uint64(s, (gchar **) &ep, 10, &error);
+	s = skip_ascii_spaces(endptr);
+	*total = parse_uint64(s, &endptr, 10, &error);
 
 	if (start > end)
 		return -1;
@@ -1000,7 +999,7 @@ http_range_parse(
 
 		if (is_ascii_digit(c)) {
 			gint error;
-			gchar *dend;
+			const gchar *dend;
 			guint64 val = parse_uint64(str - 1, &dend, 10, &error);
 
 			/* Started with digit! */

@@ -397,13 +397,13 @@ nodes_gui_common_connect_by_name(const gchar *addr)
 
 	p = strchr(e, ':');
 	if (p) {
-		gchar *ep;
+		const gchar *endptr;
 		guint64 v;
 		gint error;
 
 		*p++ = '\0';
-		v = parse_uint64(p, &ep, 10, &error);
-		port = (v > 0 && v < 65536 && *ep == '\0') ? v : 0;
+		v = parse_uint64(p, &endptr, 10, &error);
+		port = (v > 0 && v < 65536 && *endptr == '\0') ? v : 0;
 	}
 
 	if (port < 1 || port > 65535) {

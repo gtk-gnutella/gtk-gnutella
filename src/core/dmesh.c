@@ -389,7 +389,7 @@ dmesh_url_strerror(dmesh_url_error_t errnum)
  * The variable `dmesh_url_errno' is set accordingly.
  */
 gboolean
-dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info)
+dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info)
 {
 	guint32 ip;
 	guint16 port;
@@ -2412,7 +2412,7 @@ dmesh_ban_retrieve(void)
 	gchar tmp[1024];
 	gint line = 0;
 	time_t stamp;
-	gchar *p;
+	const gchar *p;
 	gint error;
 	dmesh_urlinfo_t info;
 	file_path_t fp;

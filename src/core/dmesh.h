@@ -74,7 +74,7 @@ void dmesh_init(void);
 void dmesh_close(void);
 
 const gchar *dmesh_url_strerror(dmesh_url_error_t errnum);
-gboolean dmesh_url_parse(gchar *url, dmesh_urlinfo_t *info);
+gboolean dmesh_url_parse(const gchar *url, dmesh_urlinfo_t *info);
 
 gboolean dmesh_add(
 	gchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name,

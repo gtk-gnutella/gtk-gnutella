@@ -1124,7 +1124,7 @@ share_scan(void)
 		 */
 
 		val = (val != 0) ? FILENAME_CLASH : sf->file_index;
-		g_hash_table_insert(file_basenames, (gchar *) sf->file_name,
+		g_hash_table_insert(file_basenames, deconstify_gchar(sf->file_name),
 			GUINT_TO_POINTER(val));
 
 		if (0 == (i & 0x7ff))

@@ -4285,7 +4285,7 @@ gchar *locale_to_utf8(const gchar *str, size_t len)
 	if (0 == len)
 		len = strlen(str);
 	if (utf8_is_valid_string(str, len))
-		return (gchar *) str; /* Override const */
+		return deconstify_gchar(str);
 	else
 		return g_iconv_complete(cd_locale_to_utf8,
 				str, len, outbuf, sizeof(outbuf) - 7);
@@ -4313,7 +4313,7 @@ locale_to_utf8_full(const gchar *str)
 	len = strlen(str);
    	utf8_len = len * 6 + 1;
 	if (utf8_is_valid_string(str, len))
-		return (gchar *) str; /* override const */
+		return deconstify_gchar(str);
 	
 	g_assert((utf8_len - 1) / 6 == len);
 	s = g_malloc(utf8_len);
@@ -4368,7 +4368,7 @@ locale_to_utf8_nfd(const gchar *str, size_t len)
 	g_assert(len == utf8_size - 1);
 
 	if (s != str && s != sbuf) {
-		g_free((gchar *) s); /* Override const */
+		g_free(deconstify_gchar(s));
 		s = NULL;
 	}
 
@@ -4435,7 +4435,7 @@ lazy_locale_to_utf8(const gchar *str, size_t len)
 
 	/* Let's assume that most of the supplied strings are pure ASCII. */
 	if (is_ascii_string(str))
-		return (gchar *) str; /* Override const */
+		return deconstify_gchar(str);
 
 	s = locale_to_utf8(str, len);
 	if (!s)
@@ -4459,7 +4459,7 @@ lazy_locale_to_utf8(const gchar *str, size_t len)
 	}
 #endif	/* USE_GLIB2 */
 
-	return (gchar *) s; /* Override const */
+	return deconstify_gchar(s);
 }
 
 static void
