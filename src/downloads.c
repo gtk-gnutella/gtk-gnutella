@@ -371,8 +371,16 @@ void download_timer(time_t now)
 				else {
 					if (d->retries++ < download_max_retries)
 						download_retry(d);
-					else
+					else {
+						/*
+						 * Host is down, probably.  Abort all other downloads
+						 * queued for that host as well.
+						 */
+
 						download_stop(d, GTA_DL_ERROR, "Timeout");
+						download_remove_all_from_peer(
+							download_guid(d), download_ip(d), download_port(d));
+					}
 				}
 			} else if (now != d->last_gui_update)
 				gui_update_download(d, TRUE);
@@ -957,16 +965,12 @@ gint download_remove_all_from_peer(gchar *guid, guint32 ip, guint16 port)
 	}
 
 	/*
-	 * Abort all requested downloads, and mark their fileinfo as "discard"
-	 * so that we reclaim it when the last reference is gone: if we came
-	 * here, it means they are no longer interested in that file, so it's
-	 * no use to keep it around for "alternate" source location matching.
-	 *		--RAM, 05/11/2002
+	 * Abort all requested downloads.
+	 * Do NOT mark the fileinfo as "discard".
 	 */
 
 	for (sl = to_remove; sl != NULL; sl = g_slist_next(sl)) {
 		struct download *d = (struct download *) sl->data;
-		file_info_set_discard(d->file_info, TRUE);
 		download_abort(d);
 	}
 
@@ -2334,9 +2338,18 @@ attempt_retry:
 				"Connection refused %s(%d retr%s)",
 				ignore_push ? "[No Push] " : "",
 				d->retries, d->retries == 1 ? "y" : "ies");
-	} else
+	} else {
+		/*
+		 * Looks like this host is down.  Abort the download, and remove all
+		 * the ones queued for the same host.
+		 */
+
 		download_stop(d, GTA_DL_ERROR, "Timeout (%d retr%s)",
 				d->retries, d->retries == 1 ? "y" : "ies");
+
+		download_remove_all_from_peer(
+			download_guid(d), download_ip(d), download_port(d));
+	}
 
 	/*
 	 * Remove this source from mesh, since we don't seem to be able to
