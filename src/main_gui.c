@@ -48,6 +48,10 @@
 #include "oldconfig.h"
 #include "callbacks.h" // FIXME: remove this dependency (compare_ul_norm)
 
+#ifndef USE_GTK2
+#include "fileinfo_gui.h"
+#endif
+
 #include <pwd.h>
 
 RCSID("$Id$");
@@ -518,8 +522,10 @@ void main_gui_init(void)
             GTK_TOGGLE_BUTTON
                 (lookup_widget(main_window, 
                                "checkbutton_downloads_never_push"))));
-
     nodes_gui_init();
+#ifndef USE_GTK2
+    fi_gui_init();
+#endif
     settings_gui_init();
     gui_init_menu();
     gnet_stats_gui_init();
@@ -583,6 +589,9 @@ void main_gui_shutdown(void)
     monitor_gui_shutdown();
     search_gui_shutdown(); /* must be done before filter_shutdown! */
 	filter_shutdown();
+#ifndef USE_GTK2
+    fi_gui_shutdown();
+#endif
     nodes_gui_shutdown();
     uploads_gui_shutdown();
     settings_gui_shutdown();
