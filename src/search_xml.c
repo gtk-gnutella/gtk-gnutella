@@ -53,10 +53,6 @@ extern void dump_ruleset(GList *ruleset);
 extern void dump_filter(filter_t *filter);
 
 extern GList *filters;
-extern filter_t *filter_global_pre;
-extern filter_t *filter_global_post;
-extern filter_t *filter_show;
-extern filter_t *filter_drop;
 
 /*
  * Private function prototypes
@@ -90,31 +86,33 @@ static const gchar NODE_RULE_JUMP[]   = "JumpRule";
 static const gchar NODE_RULE_SHA1[]   = "SHA1Rule";
 static const gchar NODE_RULE_FLAG[]   = "FlagRule";
 
-static const gchar PROP_BUILTIN_SHOW_UID[]   = "ShowUID";
-static const gchar PROP_BUILTIN_DROP_UID[]   = "DropUID";
-static const gchar PROP_FILTER_NAME[]        = "Name";
-static const gchar PROP_FILTER_GLOBAL[]      = "Global";
-static const gchar PROP_FILTER_UID[]         = "UID";
-static const gchar PROP_FILTER_ACTIVE[]      = "Active";
-static const gchar PROP_SEARCH_QUERY[]       = "Query";
-static const gchar PROP_SEARCH_SPEED[]       = "Speed";
-static const gchar PROP_SEARCH_PASSIVE[]     = "Passive";
-static const gchar PROP_RULE_TEXT_CASE[]     = "Case";
-static const gchar PROP_RULE_TEXT_MATCH[]    = "Match";
-static const gchar PROP_RULE_TEXT_TYPE[]     = "Type";
-static const gchar PROP_RULE_IP_ADDR[]       = "Address";
-static const gchar PROP_RULE_IP_MASK[]       = "Netmask";
-static const gchar PROP_RULE_SIZE_LOWER[]    = "Lower";
-static const gchar PROP_RULE_SIZE_UPPER[]    = "Upper";
-static const gchar PROP_RULE_SHA1_HASH[]     = "Hash";
-static const gchar PROP_RULE_SHA1_FILENAME[] = "OriginalFilename";
-static const gchar PROP_RULE_NEGATE[]        = "Negate";
-static const gchar PROP_RULE_ACTIVE[]        = "Active";
-static const gchar PROP_RULE_SOFT[]          = "Soft";
-static const gchar PROP_RULE_TARGET[]        = "Target";
-static const gchar PROP_RULE_FLAG_BUSY[]     = "Busy";
-static const gchar PROP_RULE_FLAG_PUSH[]     = "Push";
-static const gchar PROP_RULE_FLAG_STABLE[]   = "Stable";
+static const gchar PROP_BUILTIN_SHOW_UID[]       = "ShowUID";
+static const gchar PROP_BUILTIN_DROP_UID[]       = "DropUID";
+static const gchar PROP_BUILTIN_DOWNLOAD_UID[]   = "DownloadUID";
+static const gchar PROP_BUILTIN_NODOWNLOAD_UID[] = "NoDownloadUID";
+static const gchar PROP_FILTER_NAME[]            = "Name";
+static const gchar PROP_FILTER_GLOBAL[]          = "Global";
+static const gchar PROP_FILTER_UID[]             = "UID";
+static const gchar PROP_FILTER_ACTIVE[]          = "Active";
+static const gchar PROP_SEARCH_QUERY[]           = "Query";
+static const gchar PROP_SEARCH_SPEED[]           = "Speed";
+static const gchar PROP_SEARCH_PASSIVE[]         = "Passive";
+static const gchar PROP_RULE_TEXT_CASE[]         = "Case";
+static const gchar PROP_RULE_TEXT_MATCH[]        = "Match";
+static const gchar PROP_RULE_TEXT_TYPE[]         = "Type";
+static const gchar PROP_RULE_IP_ADDR[]           = "Address";
+static const gchar PROP_RULE_IP_MASK[]           = "Netmask";
+static const gchar PROP_RULE_SIZE_LOWER[]        = "Lower";
+static const gchar PROP_RULE_SIZE_UPPER[]        = "Upper";
+static const gchar PROP_RULE_SHA1_HASH[]         = "Hash";
+static const gchar PROP_RULE_SHA1_FILENAME[]     = "OriginalFilename";
+static const gchar PROP_RULE_NEGATE[]            = "Negate";
+static const gchar PROP_RULE_ACTIVE[]            = "Active";
+static const gchar PROP_RULE_SOFT[]              = "Soft";
+static const gchar PROP_RULE_TARGET[]            = "Target";
+static const gchar PROP_RULE_FLAG_BUSY[]         = "Busy";
+static const gchar PROP_RULE_FLAG_PUSH[]         = "Push";
+static const gchar PROP_RULE_FLAG_STABLE[]       = "Stable";
 
 
 
@@ -280,7 +278,7 @@ gboolean search_retrieve_xml(void)
             dump_filter(filter);
         }
         
-        if ((filter != filter_drop) && (filter != filter_show)) {
+        if (!filter_is_builtin(filter)) {
             for (r = filter->ruleset; r != NULL; r = r->next) {
                 rule_t *rule = (rule_t *)r->data;
                 gpointer new_target;
@@ -350,15 +348,20 @@ static void builtin_to_xml(xmlNodePtr parent)
     xmlNodePtr newxml;
     
     g_assert(parent != NULL);
-    g_assert(filter_show != filter_drop);
 
     newxml = xmlNewChild(parent,NULL,NODE_BUILTIN, NULL);
     
-  	g_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_show);
+  	g_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_show_target());
     xmlSetProp(newxml,PROP_BUILTIN_SHOW_UID, x_tmp);
 
-  	g_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_drop);
+  	g_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_drop_target());
     xmlSetProp(newxml,PROP_BUILTIN_DROP_UID, x_tmp);
+
+  	g_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_download_target());
+    xmlSetProp(newxml,PROP_BUILTIN_DOWNLOAD_UID, x_tmp);
+
+    g_snprintf(x_tmp, sizeof(x_tmp), "%p", filter_get_nodownload_target());
+    xmlSetProp(newxml,PROP_BUILTIN_NODOWNLOAD_UID, x_tmp);
 }
 
 static void search_to_xml(xmlNodePtr parent, search_t *s)
@@ -403,7 +406,7 @@ static void filter_to_xml(xmlNodePtr parent, filter_t *f)
     /*
      * Don't store the builtin targets or bound rulesets
      */
-    if ((f == filter_show) || (f == filter_drop) || f->search != NULL) {
+    if (filter_is_builtin(f) || filter_is_bound(f)) {
         if (dbg >= 7)
             printf("not saving bound/builtin: %s\n", f->name);
         return;
@@ -429,12 +432,12 @@ static void filter_to_xml(xmlNodePtr parent, filter_t *f)
   	g_snprintf(x_tmp, sizeof(x_tmp), "%p", f);
     xmlSetProp(newxml, PROP_FILTER_UID, x_tmp);
 
-    if (filter_global_pre == f) {
+    if (filter_get_global_pre() == f) {
     	g_snprintf(x_tmp, sizeof(x_tmp), "%u", GLOBAL_PRE);
         xmlSetProp(newxml, PROP_FILTER_GLOBAL, x_tmp); 
     }
 
-    if (filter_global_post == f) {
+    if (filter_get_global_post() == f) {
     	g_snprintf(x_tmp, sizeof(x_tmp), "%u", GLOBAL_POST);
         xmlSetProp(newxml, PROP_FILTER_GLOBAL, x_tmp); 
     }
@@ -568,8 +571,9 @@ static void xml_to_builtin(xmlNodePtr xmlnode, gpointer user_data)
     g_assert(xmlnode != NULL);
     g_assert(xmlnode->name != NULL);
     g_assert(g_strcasecmp(xmlnode->name, NODE_BUILTIN) == 0);
-    g_assert(filter_show != NULL);
-    g_assert(filter_drop != NULL);
+    g_assert(filter_get_show_target() != NULL);
+    g_assert(filter_get_drop_target() != NULL);
+    g_assert(filter_get_download_target() != NULL);
 
     buf = xmlGetProp(xmlnode, PROP_BUILTIN_SHOW_UID);
     g_assert(buf != NULL);
@@ -578,7 +582,7 @@ static void xml_to_builtin(xmlNodePtr xmlnode, gpointer user_data)
     if (errno != 0)
         g_error( "xml_to_builtin: %s", g_strerror(errno));
     g_free(buf);
-    g_hash_table_insert(id_map, target, filter_show);
+    g_hash_table_insert(id_map, target, filter_get_show_target());
 
     buf = xmlGetProp(xmlnode, PROP_BUILTIN_DROP_UID);
     g_assert(buf != NULL);
@@ -587,7 +591,31 @@ static void xml_to_builtin(xmlNodePtr xmlnode, gpointer user_data)
     if (errno != 0)
         g_error( "xml_to_builtin: %s", g_strerror(errno));
     g_free(buf);
-    g_hash_table_insert(id_map, target, filter_drop);
+    g_hash_table_insert(id_map, target, filter_get_drop_target());
+
+    buf = xmlGetProp(xmlnode, PROP_BUILTIN_DOWNLOAD_UID);
+    if (buf != NULL) {
+        errno = 0;
+        target = (gpointer) strtoul(buf, 0, 16);
+        if (errno != 0)
+            g_error( "xml_to_builtin: %s", g_strerror(errno));
+        g_free(buf);
+        g_hash_table_insert(id_map, target, filter_get_download_target());
+    } else {
+        g_warning("xml_to_builtin: no \"download\" target");
+    }
+    
+    buf = xmlGetProp(xmlnode, PROP_BUILTIN_NODOWNLOAD_UID);
+    if (buf != NULL) {
+        errno = 0;
+        target = (gpointer) strtoul(buf, 0, 16);
+        if (errno != 0)
+            g_error( "xml_to_builtin: %s", g_strerror(errno));
+        g_free(buf);
+        g_hash_table_insert(id_map, target, filter_get_nodownload_target());
+    } else {
+        g_warning("xml_to_builtin: no \"don't download\" target");
+    }
 }
 
 static void xml_to_search(xmlNodePtr xmlnode, gpointer user_data)
@@ -668,10 +696,10 @@ static void xml_to_filter(xmlNodePtr xmlnode, gpointer user_data)
             g_error( "xml_to_filter: %s", g_strerror(errno));
         switch(t) {
         case GLOBAL_PRE:
-            filter = filter_global_pre;
+            filter = filter_get_global_pre();
             break;
         case GLOBAL_POST:
-            filter = filter_global_post;
+            filter = filter_get_global_post();
             break;
         default:
             filter = NULL;
