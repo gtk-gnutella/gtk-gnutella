@@ -94,10 +94,7 @@ static struct ul_stats *upload_stats_gui_find(
 	while (valid) {
 		struct ul_stats *us = NULL;
 
-		gtk_tree_model_get(GTK_TREE_MODEL(model), iter,
-			c_us_stat, &us,
-			-1);
-
+		gtk_tree_model_get(GTK_TREE_MODEL(model), iter, c_us_stat, &us, -1);
 		if (us->size == size && g_str_equal(us->filename, name))
 			return us;
 		valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(model), iter);
@@ -113,16 +110,26 @@ void upload_stats_gui_add(struct ul_stats *stat)
 	GtkTreeIter iter;
 	gchar size_tmp[16];
 	gchar norm_tmp[16];
+    GError *error = NULL;
+	gchar *filename;
 
+	g_assert(NULL != stat);
 	g_snprintf(size_tmp, sizeof(size_tmp), "%s", short_size(stat->size));
 	g_snprintf(norm_tmp, sizeof(norm_tmp), "%.3f", stat->norm);
 
 	upload_stats_gui_init();
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(upload_stats_treeview));
-
+    filename = g_locale_to_utf8(stat->filename, -1, NULL, NULL, &error);
+    if (NULL != error) {
+        g_warning("g_locale_to_utf8 failed in upload_stats_gui_add: %s",
+            error->message);
+        g_clear_error(&error);
+        filename = g_strdup("<Filename cannot be viewed>");
+    }
+	g_assert(NULL != filename);
 	gtk_list_store_append(store, &iter);
 	gtk_list_store_set(store, &iter,
-		c_us_filename, stat->filename,
+		c_us_filename, filename,
 		c_us_size, size_tmp,
 		c_us_attempts, GUINT_TO_POINTER(stat->attempts),
 		c_us_complete, GUINT_TO_POINTER(stat->complete),
