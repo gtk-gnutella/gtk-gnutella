@@ -358,11 +358,21 @@ gint gmsg_cmp(gpointer pdu1, gpointer pdu2)
 	 * it is.
 	 * For replies: the more hops a message has travelled, the more prioritary
 	 * it is (to maximize network's usefulness, or it would have just been a
-	 * waste of bandwidth).
+	 * waste of bandwidth).  If identical hops, favor the one that is closer
+	 * to its destination (lowest TTL).
 	 */
 
-	if (h1->hops == h2->hops)
-		return 0;
+	if (h1->hops == h2->hops) {
+		switch (h1->function) {
+		case GTA_MSG_PUSH_REQUEST:
+		case GTA_MSG_SEARCH_RESULTS:
+			if (h1->ttl == h2->ttl)
+				return 0;
+			return h1->ttl > h2->ttl ? -1 : +1;
+		default:
+			return 0;
+		}
+	}
 
 	switch (h1->function) {
 	case GTA_MSG_INIT:
