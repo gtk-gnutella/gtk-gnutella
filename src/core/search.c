@@ -933,6 +933,11 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 			if (privlen > 0)
 				exvcnt = ext_parse(priv, privlen, exv, MAX_EXTVEC);
 
+			if (exvcnt && search_debug > 2) {
+				printf("Query hit with trailer GGEP extensions:\n");
+				ext_dump(stdout, exv, exvcnt, "> ", "\n", TRUE);
+			}
+
 			for (i = 0; i < exvcnt; i++) {
 				extvec_t *e = &exv[i];
 				ggept_status_t ret;
@@ -997,6 +1002,13 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 						ret = ggept_hname_extract(e, hostname, sizeof(hostname));
 						if (ret == GGEP_OK)
 							rs->hostname = atom_str_get(hostname);
+						else {
+							if (search_debug) {
+								g_warning("%s bad GGEP \"HNAME\" (dumping)",
+									gmsg_infostr(&n->header));
+								ext_dump(stderr, e, 1, "....", "\n", TRUE);
+							}
+						}
 					}
 					break;
 				default:
