@@ -2265,7 +2265,9 @@ void gnet_prop_shutdown(void) {
     }
 
     g_free(gnet_property->props);
+	gnet_property->props = NULL;
     g_free(gnet_property);
+	gnet_property = NULL;
 }
 
 prop_def_t *gnet_prop_get_def(property_t p)
