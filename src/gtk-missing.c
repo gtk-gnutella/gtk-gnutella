@@ -148,8 +148,7 @@ gpointer option_menu_get_selected_data(GtkWidget *m)
     menu = gtk_menu_get_active
         (GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(m))));
 
-    return (menu != NULL) ? 
-        gtk_object_get_user_data(GTK_OBJECT(menu)) : NULL;
+    return (menu != NULL) ? gtk_object_get_user_data(GTK_OBJECT(menu)) : NULL;
 }
 
 
@@ -194,7 +193,7 @@ void gtk_entry_printf(GtkEntry *entry, const gchar *format, ...)
     if (format != NULL)
         gm_vsnprintf(buf, sizeof(buf), format, args);
     else
-        buf[0] = 0;
+        buf[0] = '\0';
 
     gtk_entry_set_text(entry, buf);
 
@@ -218,7 +217,7 @@ void gtk_label_printf(GtkLabel *label, const gchar *format, ...)
     if (format != NULL)
         gm_vsnprintf(buf, sizeof(buf), format, args);
     else
-        buf[0] = 0;
+        buf[0] = '\0';
 
     gtk_label_set_text(label, buf);
 
@@ -293,8 +292,7 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
             to_unselect = g_slist_prepend(to_unselect, GINT_TO_POINTER(row));
         } else {
             if (gui_debug >= 3) {
-                const gchar *name = 
-                    gtk_widget_get_name(GTK_WIDGET(clist));
+                const gchar *name = gtk_widget_get_name(GTK_WIDGET(clist));
                 printf("%s contains NULL data in row %d\n",
                     (name != NULL) ? name : "<UNKNOWN>", row);
             }
@@ -321,7 +319,8 @@ GSList *clist_collect_data(GtkCList *clist, gboolean allow_null,
  * Returns a pointer to a newly allocated GtkTreeIter. Must be freed
  * with w_tree_iter_free().  
  */
-GtkTreeIter *w_tree_iter_new(void) {
+GtkTreeIter *w_tree_iter_new(void)
+{
 	return walloc(sizeof(GtkTreeIter));
 }
 
@@ -483,7 +482,6 @@ guint32 gtk_editable_get_value_as_uint(GtkEditable *editable)
 void gtk_combo_init_choices(
     GtkCombo *combo, GtkSignalFunc func, prop_def_t *def, gpointer user_data)
 {
-
     guint n;
     guint32 original;
 
@@ -617,15 +615,14 @@ static void gtk_ctree_fast_link(GtkCTree *ctree, GtkCTreeNode *node,
 	GList *list;
 	GList *work;
 	gboolean visible = FALSE;
-	gint rows = 0;
+	gint rows = 1;
 
 	g_assert(NULL == GTK_CTREE_ROW(node)->parent); /* Not a child node */
 	
 	clist = GTK_CLIST (ctree);
 
 	/* Counts node and children */
-	for (rows = 1, list_end = (GList *)node; list_end->next;
-		list_end = list_end->next)
+	for (list_end = (GList *)node; list_end->next; list_end = list_end->next)
     	rows++;
 	
 	GTK_CTREE_ROW(node)->parent = NULL;
@@ -689,8 +686,10 @@ static void gtk_ctree_fast_link(GtkCTree *ctree, GtkCTreeNode *node,
 		}
 	}
 
-	if (clist->row_list_end == NULL || 
-		clist->row_list_end->next == (GList *)node) {
+	if (
+		clist->row_list_end == NULL ||
+		clist->row_list_end->next == (GList *) node
+	) {
 		clist->row_list_end = list_end;
     }
 }
@@ -716,9 +715,8 @@ void gtk_ctree_fast_move (GtkCTree *ctree, GtkCTreeNode *node,
 	visible = gtk_ctree_is_viewable (ctree, node);
 
 	/* return if it's already the right place */
-	if ((new_sibling == GTK_CTREE_ROW(node)->sibling)
-		|| (new_sibling == node)) {
-			return;
+	if (new_sibling == GTK_CTREE_ROW(node)->sibling || new_sibling == node) {
+		return;
 	}
 	
 	work = NULL;
@@ -728,14 +726,15 @@ void gtk_ctree_fast_move (GtkCTree *ctree, GtkCTreeNode *node,
 	gtk_ctree_fast_unlink(ctree, node);
 	gtk_ctree_fast_link(ctree, node, new_sibling);
 	
-	if (work) {
-		while (work && !gtk_ctree_is_viewable(ctree, work))
-			work = GTK_CTREE_ROW(work)->parent;
-
-		clist->focus_row = g_list_position(clist->row_list, (GList *)work);
-		clist->undo_anchor = clist->focus_row;
+	if (!work) {
+		return;
 	}
+	
+	while (work && !gtk_ctree_is_viewable(ctree, work))
+		work = GTK_CTREE_ROW(work)->parent;
 
+	clist->focus_row = g_list_position(clist->row_list, (GList *)work);
+	clist->undo_anchor = clist->focus_row;
 }
 
 /*
@@ -752,7 +751,7 @@ inline gint gtk_ctree_count_node_children(GtkCTree *ctree, GtkCTreeNode *parent)
 	current_row = GTK_CTREE_ROW(parent);
 	current_node = current_row->children;
 	
-	for(;NULL != current_node; current_node = current_row->sibling){
+	for(; NULL != current_node; current_node = current_row->sibling) {
 		current_row = GTK_CTREE_ROW(current_node);
 		num_children++;
 	}	
@@ -761,3 +760,5 @@ inline gint gtk_ctree_count_node_children(GtkCTree *ctree, GtkCTreeNode *parent)
 }
 
 #endif /* USE_GTK1 */
+
+/* vi: set ts=4: */
