@@ -425,6 +425,39 @@ gchar *date_to_iso_gchar(time_t date)
 	return buf;
 }
 
+
+/*
+ * tm_diff
+ *
+ * Compute the difference in seconds between two tm structs (a - b).
+ * Comes from glibc-2.2.5.
+ */
+static gint tm_diff(const struct tm *a, const struct tm * b)
+{
+	/*
+	 * Compute intervening leap days correctly even if year is negative.
+	 * Take care to avoid int overflow in leap day calculations,
+	 * but it's OK to assume that A and B are close to each other.
+	 */
+
+#define TM_YEAR_BASE 1900
+
+	gint a4 = (a->tm_year >> 2) + (TM_YEAR_BASE >> 2) - ! (a->tm_year & 3);
+	gint b4 = (b->tm_year >> 2) + (TM_YEAR_BASE >> 2) - ! (b->tm_year & 3);
+	gint a100 = a4 / 25 - (a4 % 25 < 0);
+	gint b100 = b4 / 25 - (b4 % 25 < 0);
+	gint a400 = a100 >> 2;
+	gint b400 = b100 >> 2;
+	gint intervening_leap_days = (a4 - b4) - (a100 - b100) + (a400 - b400);
+	gint years = a->tm_year - b->tm_year;
+	gint days = (365 * years + intervening_leap_days
+		+ (a->tm_yday - b->tm_yday));
+
+	return (60 * (60 * (24 * days + (a->tm_hour - b->tm_hour))
+		+ (a->tm_min - b->tm_min))
+		+ (a->tm_sec - b->tm_sec));
+}
+
 static gchar* days[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
 static gchar* months[] = {
@@ -435,21 +468,23 @@ static gchar* months[] = {
 /*
  * date_to_rfc822_gchar
  *
- * Convert time to RFC-822 style date.
- * Returns pointer to static data.
+ * Convert time to RFC-822 style date, into supplied string buffer.
  */
-gchar *date_to_rfc822_gchar(time_t date)
+static void date_to_rfc822(time_t date, gchar *buf, gint len)
 {
-	static gchar buf[80];
-	static gchar btz[10];
 	struct tm *tm;
+	struct tm gmt_tm;
+	gint gmt_off;
+	gchar sign;
 
+	tm = gmtime(&date);
+	gmt_tm = *tm;					/* struct copy */
 	tm = localtime(&date);
 
 	/*
 	 * We used to do:
 	 *
-	 *    strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S %z", tm);
+	 *    strftime(buf, len, "%a, %d %b %Y %H:%M:%S %z", tm);
 	 *
 	 * but doing both:
 	 *
@@ -458,16 +493,38 @@ gchar *date_to_rfc822_gchar(time_t date)
 	 *
 	 * did not seem to force that routine to emit English.  Let's do it
 	 * ourselves.
+	 *
+	 * We also used to reply on strftime()'s "%z" to compute the GMT offset,
+	 * but this is GNU-specific.
 	 */
 
-	strftime(btz, sizeof(btz), "%z", tm);
+	gmt_off = tm_diff(tm, &gmt_tm) / 60;	/* in minutes */
 
-	g_snprintf(buf, sizeof(buf), "%s, %02d %s %04d %02d:%02d:%02d %s",
+	if (gmt_off < 0) {
+		sign = '-';
+		gmt_off = -gmt_off;
+	} else
+		sign = '+';
+
+	g_snprintf(buf, len, "%s, %02d %s %04d %02d:%02d:%02d %c%04d",
 		days[tm->tm_wday], tm->tm_mday, months[tm->tm_mon], tm->tm_year + 1900,
-		tm->tm_hour, tm->tm_min, tm->tm_sec, btz);
+		tm->tm_hour, tm->tm_min, tm->tm_sec,
+		sign, gmt_off / 60 * 100 + gmt_off % 60);
 
-	buf[sizeof(buf)-1] = '\0';		/* Be really sure */
+	buf[len - 1] = '\0';		/* Be really sure */
+}
 
+/*
+ * date_to_rfc822_gchar
+ *
+ * Convert time to RFC-822 style date.
+ * Returns pointer to static data.
+ */
+gchar *date_to_rfc822_gchar(time_t date)
+{
+	static gchar buf[80];
+
+	date_to_rfc822(date, buf, sizeof(buf));
 	return buf;
 }
 
@@ -480,19 +537,8 @@ gchar *date_to_rfc822_gchar(time_t date)
 gchar *date_to_rfc822_gchar2(time_t date)
 {
 	static gchar buf[80];
-	static gchar btz[10];
-	struct tm *tm;
 
-	tm = localtime(&date);
-
-	strftime(btz, sizeof(btz), "%z", tm);
-
-	g_snprintf(buf, sizeof(buf), "%s, %02d %s %04d %02d:%02d:%02d %s",
-		days[tm->tm_wday], tm->tm_mday, months[tm->tm_mon], tm->tm_year + 1900,
-		tm->tm_hour, tm->tm_min, tm->tm_sec, btz);
-
-	buf[sizeof(buf)-1] = '\0';		/* Be really sure */
-
+	date_to_rfc822(date, buf, sizeof(buf));
 	return buf;
 }
 
