@@ -93,7 +93,7 @@ static GHashTable *fi_by_namesize = NULL;
 static GHashTable *fi_by_size = NULL;
 static GHashTable *fi_by_outname = NULL;
 
-static gchar *file_info_file = "fileinfo";
+static const gchar *file_info_file = "fileinfo";
 static gboolean fileinfo_dirty = FALSE;
 static gboolean can_swarm = FALSE;		/* Set by file_info_retrieve() */
 
@@ -1708,7 +1708,6 @@ void file_info_retrieve(void)
 			return;
 
 		g_warning("retrieving file info from \"%s\"%s", filename, instead);
-		g_assert_not_reached();
 	}
 
 	line[sizeof(line)-1] = '\0';
@@ -1731,8 +1730,7 @@ void file_info_retrieve(void)
 
 		len = strlen(line);
 		if (len == sizeof(line) - 1)
-			truncated = '\n' != line[len - 1];
-		line[sizeof(line)-1] = '\0';
+			truncated = '\n' != line[sizeof(line) - 2];
 
 		if (last_was_truncated) {
 			last_was_truncated = truncated;
