@@ -5910,7 +5910,7 @@ static void download_retrieve(void)
 		 */
 
 		if (parq_id != NULL) {
-			parq_dl_create(d);
+			d->queue_status = parq_dl_create(d);
 			parq_dl_add_id(d, parq_id);
 			g_free(parq_id);
 			parq_id = NULL;
