@@ -603,8 +603,10 @@ gboolean gmsg_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
 
 	len = n->size - regsize;				/* Extension length */
 
-	if (len > maxsize)
+	if (len > maxsize) {
+		g_warning("%s has %d extra bytes !", gmsg_infostr(&n->header), len);
 		return FALSE;
+	}
 
 	start = n->data + regsize;
 	exvcnt = ext_parse(start, len, exv, MAX_EXTVEC);
@@ -631,6 +633,11 @@ gboolean gmsg_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
 				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 			return FALSE;
 		}
+	}
+
+	if (dbg > 3) {
+		printf("%s has GGEP extensions:\n", gmsg_infostr(&n->header));
+		ext_dump(stdout, exv, exvcnt, "> ", "\n", TRUE);
 	}
 
 	return TRUE;
