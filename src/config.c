@@ -690,6 +690,7 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_BOOL(queue_regex_case)
         CONFIG_SET_BOOL(search_remove_downloaded)
         CONFIG_SET_BOOL(search_results_show_tabs)
+        CONFIG_SET_BOOL(search_stats_enabled)
         CONFIG_SET_BOOL(statusbar_visible)
         CONFIG_SET_BOOL(toolbar_visible)
         CONFIG_SET_BOOL(use_netmasks)
@@ -703,12 +704,17 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_NUM(download_push_sent_timeout,     1,  100000)
         CONFIG_SET_NUM(download_retry_timeout_max,    15,  100000)
         CONFIG_SET_NUM(download_retry_timeout_min,    15,  100000)
+        CONFIG_SET_NUM(downloads_divider_pos,          0,    5000)
         CONFIG_SET_NUM(hard_ttl_limit,                 5,     254)
+        CONFIG_SET_NUM(hops_random_factor,             0,       3)
         CONFIG_SET_NUM(listen_port,                    0,   65535)
+        CONFIG_SET_NUM(max_connections,                0,     511)
         CONFIG_SET_NUM(max_downloads,                  1,     511)
         CONFIG_SET_NUM(max_host_downloads,             1,     511)
+        CONFIG_SET_NUM(max_hosts_cached,             100,  100000)
         CONFIG_SET_NUM(max_ttl,                        1,     254)
         CONFIG_SET_NUM(max_uploads,                    0,     511)
+        CONFIG_SET_NUM(max_uploads_ip,                 0,     511)
         CONFIG_SET_NUM(minimum_speed,                  0,    2000)
         CONFIG_SET_NUM(monitor_max_items,              1,     511)
         CONFIG_SET_NUM(my_ttl,                         1,     254)
@@ -716,14 +722,23 @@ void config_set_param(keyword_t keyword, gchar *value)
         CONFIG_SET_NUM(node_connecting_timeout,        1,  100000)
         CONFIG_SET_NUM(node_sendqueue_size,         4096, 1048576)
         CONFIG_SET_NUM(node_tx_flowc_timeout,          1,  100000)
+        CONFIG_SET_NUM(other_messages_kick_size,     513, 1048575)
+        CONFIG_SET_NUM(proxy_port,                     0,   65535)
+        CONFIG_SET_NUM(search_answers_forward_size,  513, 1048575)
+        CONFIG_SET_NUM(search_answers_kick_size,     513, 1048575)
         CONFIG_SET_NUM(search_max_items,              -1,     255)
         CONFIG_SET_NUM(search_max_results,             1,    1000)
+        CONFIG_SET_NUM(search_queries_forward_size,   65,   65534)
+        CONFIG_SET_NUM(search_queries_kick_size,     513,   65534)
+        CONFIG_SET_NUM(search_stats_delcoef,           0,     100)
+        CONFIG_SET_NUM(search_stats_update_interval,   0,   50000)
         CONFIG_SET_NUM(up_connections,                 1,     511)
+        CONFIG_SET_STR(proxy_ip)
         CONFIG_SET_STR(socks_pass)
         CONFIG_SET_STR(socks_user)
         CONFIG_SET_STR_COMPAT(socks_pass, socksv5_pass)
         CONFIG_SET_STR_COMPAT(socks_user, socksv5_user)
-        CONFIG_SET_NUM(downloads_divider_pos,          0,    5000)
+
 
 	case k_local_ip:
 		local_ip = gchar_to_ip(value);
@@ -750,8 +765,6 @@ void config_set_param(keyword_t keyword, gchar *value)
 	case k_shared_dirs:
 		shared_dirs_parse(value);
 		return;
-
-    
 
 	case k_download_retry_timeout_delay:
 		if (i >= 0) download_retry_timeout_delay = i;
@@ -804,13 +817,7 @@ void config_set_param(keyword_t keyword, gchar *value)
 		/* Limited to 2 MB/s since we multiply by 1000 in an unsigned 32-bit */
 		if (i >= 0 && i < BS_BW_MAX) bandwidth.ginput = i;
 		return;
-
-    CONFIG_SET_NUM(search_queries_forward_size,65,65534)
-    CONFIG_SET_NUM(search_queries_kick_size,513,65534)
-    CONFIG_SET_NUM(search_answers_forward_size,513, 1048575)
-    CONFIG_SET_NUM(search_answers_kick_size,513, 1048575)
-    CONFIG_SET_NUM(other_messages_kick_size,513, 1048575)
-
+   
 	case k_win_x:
 		win_x = i;
 		return;
@@ -881,8 +888,6 @@ void config_set_param(keyword_t keyword, gchar *value)
 		forced_local_ip = gchar_to_ip(value);
 		return;
 
-    CONFIG_SET_NUM(hops_random_factor,0,3)
-
 	case k_send_pushes:
 		send_pushes = i ? 1 : 0;
 		return;
@@ -899,10 +904,6 @@ void config_set_param(keyword_t keyword, gchar *value)
 		proxy_protocol = i;
 		return;
 
-    CONFIG_SET_STR(proxy_ip)
-    CONFIG_SET_NUM(proxy_port,0,65535)
-    CONFIG_SET_NUM(max_connections,0,511)
-
 	case k_search_reissue_timeout:
 		search_reissue_timeout = i;
 		return;
@@ -918,8 +919,6 @@ void config_set_param(keyword_t keyword, gchar *value)
 	case k_enable_err_log:
 		enable_err_log = i;
 		return;
-
-    CONFIG_SET_NUM(max_uploads_ip,0,511)
 
 	case k_search_strict_and:
 		search_strict_and = i;
@@ -947,8 +946,6 @@ void config_set_param(keyword_t keyword, gchar *value)
 		if (min_dup_ratio > 100.0) min_dup_ratio = 100.0;
 		return;
 
-    CONFIG_SET_NUM(max_hosts_cached,100,100000)
-
 	case k_use_auto_download:
 		use_autodownload = i ? TRUE : FALSE;
 		return;
@@ -957,10 +954,6 @@ void config_set_param(keyword_t keyword, gchar *value)
 		auto_download_file = g_strdup(value);
 		return;
 
-    CONFIG_SET_BOOL(search_stats_enabled)
-    CONFIG_SET_NUM(search_stats_delcoef,0,100)
-    CONFIG_SET_NUM(search_stats_update_interval,0,50000)
-    
  	case k_local_netmasks:
  		local_netmasks_string = g_strdup(value);
  		parse_netmasks(value);
@@ -1308,25 +1301,6 @@ static void config_save(void)
 	fprintf(config, "# Whether auto downloading should be enabled.\n"
 			"%s = %u\n\n", keywords[k_use_auto_download],
 			use_autodownload);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 	fprintf(config, "# Name of file with auto-download strings "
 		"(relative is taken from launch dir)\n%s = \"%s\"\n\n",
