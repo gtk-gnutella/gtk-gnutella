@@ -1,5 +1,22 @@
 # since last version
 
+- (2003.07.05 - RAM)
+ * Parse all query hits for inclusion into the download mesh.
+ * Don't activate the "no keepalive" flag on downloads if we detect that
+   the server is performing some kind of "rotation" in the queue by closing
+   our connection after having shrunk our request.
+ * Prefix user-agent strings with a '*' when server appears to be banning us.
+ * Only use an IP for clock skew computation once per 24 hours.
+ * Apply queue regexp search to both download's filename and output filename
+   [Patch #754923 from Stephane Corbe].
+ * [GTK1] Print message in statusbar showing how many downloads were created
+   from the many items selected.
+ * Don't use GNU-isms for variadic macros, prefer the ANSI way
+   [Patch #755639 from int_80h].
+ * Avoid duplicate free in _search_send_packet() when empty word vector
+   (fixes #706014).
+ * Don't send queries unless there is a route for the possible replies.
+
 - (2003.07.04 - RAM)
  * Added anti-403 "Network Disabled" code.
  * Don't insert alt-locs pointing to hostile IPs in the mesh.
