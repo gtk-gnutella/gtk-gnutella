@@ -1,5 +1,16 @@
 # since last version
 
+- (2003.11.01 - RAM)
+ * Account for BearShare 4.3.x no longer sending the X-Ultrapeer to signal
+   Ultrapeer status but relies on X-Ultrapeer-Needed instead.
+ * Cleanly deny the connection to Ultrapeers requesting us to become a leaf
+   when we cannot be demoted.
+ * Do not send "alive" pings if we've been receiving data from the remote
+   node recently.
+ * Take into account the last ping round-trip time for spacing out our pings.
+ * Fixed getting of GUI colors in search: is done differently for GTK1/GTK2.
+ * Remove bad URLs from the Gnutella web cache as soon as we encounter them.
+
 - (2003.11.01 - Jeroen)
  * Now sends the X-Nalt header with sources that should not be tried.
    GTKG won't parse and use it though.
