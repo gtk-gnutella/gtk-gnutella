@@ -22,18 +22,18 @@ void send_push_request(gchar *, guint32, guint16);
 #define IS_DOWNLOAD_QUEUED(d)  ((d)->status == GTA_DL_QUEUED)
 
 #define IS_DOWNLOAD_STOPPED(d) \
-				(  (d)->status == GTA_DL_ABORTED \
-				|| (d)->status == GTA_DL_ERROR \
-				|| (d)->status == GTA_DL_COMPLETED	)
+	(  (d)->status == GTA_DL_ABORTED \
+	|| (d)->status == GTA_DL_ERROR \
+	|| (d)->status == GTA_DL_COMPLETED	)
 
 #define IS_DOWNLOAD_RUNNING(d) \
-				(  (d)->status == GTA_DL_CONNECTING \
-				|| (d)->status == GTA_DL_PUSH_SENT \
-				|| (d)->status == GTA_DL_FALLBACK \
-				|| (d)->status == GTA_DL_REQ_SENT \
-				|| (d)->status == GTA_DL_HEADERS \
-				|| (d)->status == GTA_DL_RECEIVING \
-		   || (d)->status == GTA_DL_TIMEOUT_WAIT  )
+	(  (d)->status == GTA_DL_CONNECTING \
+	|| (d)->status == GTA_DL_PUSH_SENT \
+	|| (d)->status == GTA_DL_FALLBACK \
+	|| (d)->status == GTA_DL_REQ_SENT \
+	|| (d)->status == GTA_DL_HEADERS \
+	|| (d)->status == GTA_DL_RECEIVING \
+    || (d)->status == GTA_DL_TIMEOUT_WAIT  )
 
 #define IS_DOWNLOAD_IN_PUSH_MODE(d) (d->push)
 #define IS_DOWNLOAD_VISIBLE(d)		(d->visible)
