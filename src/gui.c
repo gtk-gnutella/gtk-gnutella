@@ -252,6 +252,7 @@ void gui_update_all()
     gui_update_search_remove_downloaded();
     gui_update_download_delete_aborted();
     gui_update_search_pick_all();
+    gui_update_is_firewalled();
 
     if (win_w && win_h) {
 		gtk_widget_set_uposition(main_window, win_x, win_y);
@@ -645,10 +646,13 @@ UPDATE_CHECKBUTTON(
 
 void gui_update_is_firewalled()
 {
-    if (is_firewalled)
+    if (is_firewalled) {
         gtk_widget_show(GTK_WIDGET(pixmap_firewall));
-    else
+        gtk_widget_hide(GTK_WIDGET(pixmap_no_firewall));
+    } else {
         gtk_widget_hide(GTK_WIDGET(pixmap_firewall));
+        gtk_widget_show(GTK_WIDGET(pixmap_no_firewall));
+    }
 }
 
 
