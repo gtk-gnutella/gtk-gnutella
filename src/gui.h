@@ -66,8 +66,6 @@ enum {
 	c_ul_num
 };
 
-
-
 /*
  * Upload stats columns
  */
@@ -83,12 +81,23 @@ enum {
 	c_us_num
 };
 
-
-
-
 /*
  * Downloads table columns
  */
+
+#ifdef USE_GTK1
+enum {
+    c_dl_filename = 0,
+    c_dl_host,
+    c_dl_size,
+    c_dl_range,
+    c_dl_server,
+    c_dl_status,
+	c_dl_num
+};
+#endif
+
+#ifdef USE_GTK2
 enum {
     c_dl_filename = 0,
     c_dl_size,
@@ -103,25 +112,36 @@ enum {
 #endif
 	c_dl_num
 };
+#endif
 
 /*
  * Queue table columns
  */
+
+#ifdef USE_GTK1
+enum {
+    c_queue_filename = 0,
+    c_queue_host,
+    c_queue_size,
+    c_queue_server,
+    c_queue_status,
+	c_queue_num
+};
+#endif
+
+#ifdef USE_GTK2
 enum {
     c_queue_filename = 0,
     c_queue_size,
     c_queue_host,
     c_queue_server,
     c_queue_status,
-#ifdef USE_GTK2
 	c_queue_fg, /* invisible, holds the foreground color for the row */
 	c_queue_bg, /* invisible, holds the background color for the row */
 	c_queue_record, /* invisible, pointer to the record_t of this entry */
-#endif
 	c_queue_num
 };
-
-
+#endif
 
 /*
  * Searches table columns
@@ -144,8 +164,6 @@ enum {
 #endif
 	c_sr_num
 };
-
-
 
 /*
  * Gnet stats table columns
