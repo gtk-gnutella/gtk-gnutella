@@ -535,6 +535,8 @@ gboolean http_url_parse(
 		}
 	}
 
+	hostname[0] = '\0';
+
 	if (!numeric_host) {
 		gchar *q = hostname;
 		gchar *end = hostname + sizeof(hostname);
