@@ -903,51 +903,6 @@ static gboolean update_toggle_remove_on_mismatch(property_t prop)
     return ret;
 }
 
-#ifdef USE_GTK1
-static gboolean update_node_column_visibility(property_t prop, gint col)
-{
-	GtkCList *clist = GTK_CLIST(lookup_widget(main_window, "clist_nodes"));
-	gboolean ret;
-	gboolean value;
-
-	ret = update_togglebutton(prop);
-	gui_prop_get_boolean_val(prop, &value);
-
-	gtk_clist_set_column_visibility(clist, col, value);
-
-	return ret;
-}
-#endif /* USE_GTK1 */
-
-#ifdef USE_GTK2
-static gboolean update_node_column_visibility(property_t prop, gint col)
-{
-    GtkTreeView *treeview = GTK_TREE_VIEW(lookup_widget(
-        main_window, "treeview_nodes"));
-    GtkTreeViewColumn *column;
-    gboolean ret;
-    gboolean value;
-
-    ret = update_togglebutton(prop);
-    gui_prop_get_boolean_val(prop, &value);
-
-    column = gtk_tree_view_get_column(treeview, col);
-    gtk_tree_view_column_set_visible(column, value);
-
-    return ret;
-}
-#endif /* USE_GTK2 */
-
-static gboolean update_toggle_node_show_uptime(property_t prop)
-{
-	return update_node_column_visibility(prop, c_gnet_uptime);
-}
-
-static gboolean update_toggle_node_show_handshake(property_t prop)
-{
-	return update_node_column_visibility(prop, c_gnet_version);
-}
-
 static gboolean update_toggle_node_show_detailed_info(property_t prop)
 {
 	GtkWidget *frame =
@@ -3895,22 +3850,6 @@ static prop_map_t property_map[] = {
         update_spinbutton,
         TRUE,
         "spinbutton_other_messages_kick_size",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_prefs_dialog,
-        PROP_NODE_SHOW_UPTIME,
-        update_toggle_node_show_uptime,
-        TRUE,
-        "checkbutton_node_show_uptime",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        get_prefs_dialog,
-        PROP_NODE_SHOW_HANDSHAKE_VERSION,
-        update_toggle_node_show_handshake,
-        TRUE,
-        "checkbutton_node_show_handshake_version",
         FREQ_UPDATES, 0
     ),
     PROP_ENTRY(
