@@ -254,7 +254,7 @@ static const struct {
 	{ "so", N_("Somalia, Somali Republic") },
 	{ "za", N_("South Africa, Republic of") },
 	{ "gs", N_("South Georgia and the South Sandwich Islands") },
-	{ "es", N_("Spain, Spanish State") },
+	{ "es", N_("Spain, Kingdom of") },
 	{ "lk", N_("Sri Lanka, Democratic Socialist Republic of") },
 	{ "sd", N_("Sudan, Democratic Republic of the") },
 	{ "sr", N_("Suriname, Republic of") },
