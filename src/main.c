@@ -169,7 +169,7 @@ gint main(gint argc, gchar ** argv)
 	config_init();
 	host_init();
 	gmsg_init();
-	bsched_init();
+    bsched_init();
 	network_init();
 	routing_init();
 	filters_init();			/* Must come before search_init() for retrieval */
@@ -177,6 +177,8 @@ gint main(gint argc, gchar ** argv)
 	share_init();
 	download_init();
 	autodownload_init();
+
+   	gui_update_all();
 
 	/* Some signal handlers */
 
