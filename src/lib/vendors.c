@@ -112,8 +112,6 @@ struct vendor {
 	/* Above line intentionally left blank (for "!}sort" on vi) */
 };
 
-#define END(v)		(v - 1 + sizeof(v) / sizeof(v[0]))
-
 /**
  * Find vendor name, given vendor code.
  * Returns vendor string if found, NULL otherwise.
@@ -121,25 +119,19 @@ struct vendor {
 static gchar *
 find_vendor(guchar raw[4])
 {
-	struct vendor *low = vendor_map;
-	struct vendor *high = END(vendor_map);
 	guint32 code;
 
     READ_GUINT32_BE(raw, code);
 
-	while (low <= high) {
-		struct vendor *mid = low + (high - low) / 2;
-		gint c = VENDOR_CODE_CMP(mid->code,  code);
+#define GET_KEY(i) (vendor_map[(i)].code)
+#define FOUND(i) do { return vendor_map[(i)].name; } while (0)
 
-		if (c == 0)
-			return mid->name;
-		else if (c < 0)
-			low = mid + 1;
-		else
-			high = mid - 1;
-	}
-
-	return NULL;		/* Not found */
+	BINARY_SEARCH(guint32, code, G_N_ELEMENTS(vendor_map), VENDOR_CODE_CMP,
+		GET_KEY, FOUND);
+	
+#undef FOUND 
+#undef GET_KEY
+	return NULL; /* not found */
 }
 
 /**
