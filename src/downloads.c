@@ -3068,17 +3068,24 @@ void download_remove(struct download *d)
 	if (d->push)
 		download_push_remove(d);
 
-	if (d->sha1)
+	if (d->sha1) {
 		atom_sha1_free(d->sha1);
+		d->sha1 = NULL;
+	}
 
-	if (d->ranges)
+	if (d->ranges) {
 		http_range_free(d->ranges);
+		d->ranges = NULL;
+	}
 
 	download_remove_from_server(d, FALSE);
 	d->status = GTA_DL_REMOVED;
 
 	atom_str_free(d->file_name);
+	d->file_name = NULL;
+
     file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
+	d->file_info = NULL;
 
     idtable_free_id(src_handle_map, d->src_handle);
 
@@ -6365,6 +6372,9 @@ static void download_resume_bg_tasks(void)
 		struct download *d = (struct download *) l->data;
 		struct dl_file_info *fi = d->file_info;
 
+		if (d->status == GTA_DL_REMOVED)	/* Pending free, ignore it! */
+			continue;
+
 		if (fi->flags & FI_F_MARK)		/* Already processed */
 			continue;
 
@@ -6440,6 +6450,9 @@ static void download_resume_bg_tasks(void)
 	for (l = sl_downloads; l; l = g_slist_next(l)) {
 		struct download *d = (struct download *) l->data;
 		struct dl_file_info *fi = d->file_info;
+
+		if (d->status == GTA_DL_REMOVED)	/* Pending free, ignore it! */
+			continue;
 
 		fi->flags &= ~FI_F_MARK;
 	}
