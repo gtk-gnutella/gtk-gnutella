@@ -75,6 +75,7 @@ void gui_update_max_downloads(void);
 void gui_update_max_host_downloads(void);
 void gui_update_max_ttl(void);
 void gui_update_max_uploads(void);
+void gui_update_max_host_uploads(void);
 void gui_update_minimum_speed(guint32);
 void gui_update_monitor_max_items(void);
 void gui_update_move_file_path(void);
