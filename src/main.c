@@ -45,6 +45,7 @@
 #include "nodes.h"
 #include "whitelist.h"
 #include "ignore.h"
+#include "guid.h"
 
 #include "main_gui.h"
 #include "settings.h"
@@ -317,6 +318,7 @@ gint main(gint argc, gchar ** argv)
 	callout_queue = cq_make(0);
 	init_constants();
 	settings_init();
+	guid_init();
 	ignore_init();
 	file_info_init();
     gui_init();

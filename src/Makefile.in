@@ -120,7 +120,7 @@ XML_STORE_FILES = search_xml.c search_xml.h
 @ENABLE_XML_STORE_FALSE@XML_STORE = 
 
 # interface.h must come before any .c files that include it so that it is built.
-gtk_gnutella_SOURCES =  	$(XML_STORE) 	$(GLADE_UI) 	$(ADDITIONAL_DROPIN) 	gnutella.h 	gnet.h common.h 	misc.c misc.h 	prop.c prop.h 	gnet_property.c gnet_property.h gnet_property_priv.h 	settings.c settings.h oldconfig.c oldconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	pcache.c pcache.h 	routing.c routing.h 	search.c search.h search_gui.h 	search_stats.c search_stats.h search_stats_gui.h 	downloads.c downloads.h downloads_gui.h 	fileinfo.c fileinfo.h 	fuzzy.c fuzzy.h 	whitelist.c whitelist.h 	share.c share.h 	uploads.c uploads.h uploads_gui.h 	upload_stats.c upload_stats.h upload_stats_gui.h 	main.c 	gui.c gui.h 	matching.c matching.h 	callbacks.c callbacks.h 	getline.c getline.h 	header.c header.h 	url.c url.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	cq.c cq.h 	mq.c mq.h 	sq.c sq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h 	tx_deflate.c tx_deflate.h 	rxbuf.c rxbuf.h 	rx.c rx.h 	rx_link.c rx_link.h 	rx_inflate.c rx_inflate.h 	zlib_util.c zlib_util.h 	gtk-missing.c gtk-missing.h 	sha1.c sha1.h huge.c huge.h 	base32.c base32.h 	utf8.c utf8.h 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h 	ban.c ban.h 	inet.c inet.h 	qrp.c qrp.h 	getdate.y getdate.h 	atoms.c atoms.h 	extensions.c extensions.h ggep.h 	dmesh.c dmesh.h 	http.c http.h 	version.c version.h 	alive.c alive.h 	zalloc.c zalloc.h 	walloc.c walloc.h 	vendors.c vendors.h 	idtable.c idtable.h 	ignore.c ignore.h
+gtk_gnutella_SOURCES =  	$(XML_STORE) 	$(GLADE_UI) 	$(ADDITIONAL_DROPIN) 	gnutella.h 	gnet.h common.h 	misc.c misc.h 	prop.c prop.h 	gnet_property.c gnet_property.h gnet_property_priv.h 	settings.c settings.h oldconfig.c oldconfig.h 	sockets.c sockets.h 	nodes.c nodes.h 	hosts.c hosts.h 	pcache.c pcache.h 	routing.c routing.h 	search.c search.h search_gui.h 	search_stats.c search_stats.h search_stats_gui.h 	downloads.c downloads.h downloads_gui.h 	fileinfo.c fileinfo.h 	fuzzy.c fuzzy.h 	whitelist.c whitelist.h 	share.c share.h 	uploads.c uploads.h uploads_gui.h 	upload_stats.c upload_stats.h upload_stats_gui.h 	main.c 	gui.c gui.h 	matching.c matching.h 	callbacks.c callbacks.h 	getline.c getline.h 	header.c header.h 	url.c url.h 	pmsg.c pmsg.h 	gmsg.c gmsg.h 	cq.c cq.h 	mq.c mq.h 	sq.c sq.h 	bsched.c bsched.h 	tx.c tx.h 	tx_link.c tx_link.h 	tx_deflate.c tx_deflate.h 	rxbuf.c rxbuf.h 	rx.c rx.h 	rx_link.c rx_link.h 	rx_inflate.c rx_inflate.h 	zlib_util.c zlib_util.h 	gtk-missing.c gtk-missing.h 	sha1.c sha1.h huge.c huge.h 	base32.c base32.h 	utf8.c utf8.h 	filter.c filter.h filter_cb.c filter_cb.h filter_gui.c filter_gui.h 	ban.c ban.h 	inet.c inet.h 	qrp.c qrp.h 	getdate.y getdate.h 	atoms.c atoms.h 	extensions.c extensions.h ggep.h 	dmesh.c dmesh.h 	http.c http.h 	version.c version.h 	alive.c alive.h 	zalloc.c zalloc.h 	walloc.c walloc.h 	vendors.c vendors.h 	idtable.c idtable.h 	ignore.c ignore.h 	guid.c guid.h
 
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
@@ -170,7 +170,7 @@ LIBS = @LIBS@
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@atoms.o extensions.o dmesh.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@http.o version.o alive.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@zalloc.o walloc.o vendors.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@idtable.o ignore.o
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_FALSE@idtable.o ignore.o guid.o
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@interface-glade2.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@support-glade2.o share_gui2.o \
@@ -196,7 +196,7 @@ LIBS = @LIBS@
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@extensions.o dmesh.o http.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@version.o alive.o zalloc.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@walloc.o vendors.o idtable.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@ignore.o
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_FALSE@ignore.o guid.o
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@search_xml.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@interface-glade2.o \
@@ -223,7 +223,7 @@ LIBS = @LIBS@
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@extensions.o dmesh.o http.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@version.o alive.o zalloc.o \
 @ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@walloc.o vendors.o idtable.o \
-@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@ignore.o
+@ENABLE_GTK2_TRUE@@ENABLE_XML_STORE_TRUE@ignore.o guid.o
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@gtk_gnutella_OBJECTS =  \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@search_xml.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@interface-glade1.o \
@@ -257,7 +257,7 @@ LIBS = @LIBS@
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@atoms.o extensions.o dmesh.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@http.o version.o alive.o \
 @ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@zalloc.o walloc.o vendors.o \
-@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@idtable.o ignore.o
+@ENABLE_GTK2_FALSE@@ENABLE_XML_STORE_TRUE@idtable.o ignore.o guid.o
 @ENABLE_GTK2_FALSE@gtk_gnutella_DEPENDENCIES = 
 @ENABLE_GTK2_TRUE@gtk_gnutella_DEPENDENCIES = 
 gtk_gnutella_LDFLAGS = 
@@ -265,7 +265,7 @@ CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
-DIST_COMMON =  Makefile.am Makefile.in getdate.c
+DIST_COMMON =  Makefile.am Makefile.in TODO getdate.c
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
@@ -278,22 +278,22 @@ DEP_FILES =  .deps/alive.P .deps/atoms.P .deps/ban.P .deps/base32.P \
 .deps/fileinfo.P .deps/filter.P .deps/filter_cb.P .deps/filter_gui.P \
 .deps/fuzzy.P .deps/getdate.P .deps/getline.P .deps/gmsg.P \
 .deps/gnet_property.P .deps/gtk-missing.P .deps/gtkcolumnchooser.P \
-.deps/gui.P .deps/gui_property.P .deps/header.P .deps/hosts.P \
-.deps/http.P .deps/huge.P .deps/idtable.P .deps/ignore.P .deps/inet.P \
-.deps/interface-glade1.P .deps/interface-glade2.P .deps/main.P \
-.deps/main_cb.P .deps/main_gui.P .deps/matching.P .deps/misc.P \
-.deps/monitor_cb.P .deps/monitor_gui.P .deps/mq.P .deps/nodes.P \
-.deps/nodes_cb.P .deps/nodes_gui.P .deps/oldconfig.P .deps/pcache.P \
-.deps/pmsg.P .deps/prop.P .deps/qrp.P .deps/routing.P .deps/rx.P \
-.deps/rx_inflate.P .deps/rx_link.P .deps/rxbuf.P .deps/search.P \
-.deps/search_cb.P .deps/search_gui.P .deps/search_stats.P \
-.deps/search_xml.P .deps/settings.P .deps/settings_cb.P \
-.deps/settings_gui.P .deps/sha1.P .deps/share.P .deps/share_gui2.P \
-.deps/sockets.P .deps/sq.P .deps/statusbar_gui.P .deps/support-glade1.P \
-.deps/support-glade2.P .deps/tx.P .deps/tx_deflate.P .deps/tx_link.P \
-.deps/upload_stats.P .deps/uploads.P .deps/url.P .deps/utf8.P \
-.deps/vendors.P .deps/version.P .deps/walloc.P .deps/whitelist.P \
-.deps/zalloc.P .deps/zlib_util.P
+.deps/gui.P .deps/gui_property.P .deps/guid.P .deps/header.P \
+.deps/hosts.P .deps/http.P .deps/huge.P .deps/idtable.P .deps/ignore.P \
+.deps/inet.P .deps/interface-glade1.P .deps/interface-glade2.P \
+.deps/main.P .deps/main_cb.P .deps/main_gui.P .deps/matching.P \
+.deps/misc.P .deps/monitor_cb.P .deps/monitor_gui.P .deps/mq.P \
+.deps/nodes.P .deps/nodes_cb.P .deps/nodes_gui.P .deps/oldconfig.P \
+.deps/pcache.P .deps/pmsg.P .deps/prop.P .deps/qrp.P .deps/routing.P \
+.deps/rx.P .deps/rx_inflate.P .deps/rx_link.P .deps/rxbuf.P \
+.deps/search.P .deps/search_cb.P .deps/search_gui.P \
+.deps/search_stats.P .deps/search_xml.P .deps/settings.P \
+.deps/settings_cb.P .deps/settings_gui.P .deps/sha1.P .deps/share.P \
+.deps/share_gui2.P .deps/sockets.P .deps/sq.P .deps/statusbar_gui.P \
+.deps/support-glade1.P .deps/support-glade2.P .deps/tx.P \
+.deps/tx_deflate.P .deps/tx_link.P .deps/upload_stats.P .deps/uploads.P \
+.deps/url.P .deps/utf8.P .deps/vendors.P .deps/version.P .deps/walloc.P \
+.deps/whitelist.P .deps/zalloc.P .deps/zlib_util.P
 SOURCES = $(gtk_gnutella_SOURCES)
 OBJECTS = $(gtk_gnutella_OBJECTS)
 

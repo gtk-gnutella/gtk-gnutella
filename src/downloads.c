@@ -2738,7 +2738,7 @@ static gboolean send_push_request(gchar *guid, guint32 file_id, guint16 port)
 	if (!NODE_IS_WRITABLE(n))
 		return FALSE;
 
-	message_set_muid(&(m.header), FALSE);
+	message_set_muid(&(m.header), GTA_MSG_PUSH_REQUEST);
 
 	m.header.function = GTA_MSG_PUSH_REQUEST;
 	m.header.ttl = my_ttl;

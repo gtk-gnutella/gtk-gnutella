@@ -136,7 +136,8 @@ gtk_gnutella_SOURCES = \
 	walloc.c walloc.h \
 	vendors.c vendors.h \
 	idtable.c idtable.h \
-	ignore.c ignore.h
+	ignore.c ignore.h \
+	guid.c guid.h
 
 GLADE_WARNING1 = "Warning: gtk-gnutella.glade is newer than glade-built files and"
 GLADE_WARNING2 = "  \"glade --write-source\" failed.  To ignore any changes to"

@@ -47,10 +47,11 @@ struct route_dest {
  * Global Functions
  */
 
+struct gnutella_header;
+
 void routing_init(void);
 void routing_close(void);
-void generate_new_muid(guchar *muid, gboolean modern);
-void message_set_muid(struct gnutella_header *header, gboolean modern);
+void message_set_muid(struct gnutella_header *header, guint8 function);
 gboolean route_message(struct gnutella_node **, struct route_dest *);
 void routing_node_remove(struct gnutella_node *);
 void sendto_one(struct gnutella_node *, guchar *, guchar *, guint32);

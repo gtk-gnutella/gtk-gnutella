@@ -32,16 +32,9 @@
 #include "hosts.h"
 #include "gmsg.h"
 #include "nodes.h"
+#include "guid.h"
 
 #include <stdarg.h>
-#include <assert.h>
-
-/*
- * Flags for GUID[15] tagging.
- */
-
-#define GUID_PONG_CACHING	0x01
-#define GUID_PERSISTENT		0x02
 
 struct gnutella_node *fake_node;		/* Our fake node */
 
@@ -208,26 +201,6 @@ guint message_hash_func(gconstpointer key)
 	return hash;
 }
 
-/*
- * patch_muid_for_modern_node
- *
- * Make sure the MUID we use in initial handshaking pings are marked
- * specially to indicate we're modern nodes.
- */
-static void patch_muid_for_modern_node(guchar *muid)
-{
-	/*
-	 * We're a "modern" client, meaning we're not Gnutella 0.56.
-	 * Therefore we must set our ninth byte, muid[8] to 0xff, and
-	 * put the protocol version number in muid[15].	For 0.4, this
-	 * means 0.
-	 *				--RAM, 15/09/2001
-	 */
-
-	muid[8] = 0xff;
-	muid[15] = GUID_PONG_CACHING | GUID_PERSISTENT;
-}
-
 /* Init function */
 void routing_init(void)
 {
@@ -278,21 +251,12 @@ void routing_init(void)
 		}
 	}
 
+	if (!guid_is_gtkg(guid_buf, NULL, NULL, NULL))
+		need_guid = TRUE;
+
 retry:
-	if (need_guid) {
-		for (i = 0; i < 15; i++)
-			guid_buf[i] = random_value(0xff);
-	}
-
-	/*
-	 * We *always* patch the GUID, even a persistent one.  This means the
-	 * last byte can change when new features are supported.  Since it's not
-	 * something that happens on a regular basis, we'll achieve a fairly
-	 * long-lived GUID anyway.
-	 *		--RAM, 08/03/2002
-	 */
-
-	patch_muid_for_modern_node(guid_buf);
+	if (need_guid)
+		guid_ping_muid(guid_buf);		/* We want a "modern" GUID */
 
 	/*
 	 * If by extraordinary, we have generated a banned GUID, retry.
@@ -331,37 +295,23 @@ retry:
 }
 
 /*
- * generate_new_muid
- *
- * Generate a new random message ID.  We will never send the same MUID twice
- * due to the use of a counter.
- *
- * If `modern' is true, then patch it to indicate we're a "modern node".
- * If `modern' is false, it probably does not matter.
- */
-void generate_new_muid(guchar *muid, gboolean modern)
-{
-	gint i;
-
-	for (i = 0; i < 16; i += 2)
-		(*((guint16 *) (muid + i))) = (guint16) random_value(0xffff);
-
-	if (modern)
-		patch_muid_for_modern_node(muid);
-	else {
-		if (muid[8] == 0xff)	/* To not confuse it with special GUID... */
-			muid[8] = 0x00;		/* the 9th byte cannot be 0xff */
-	}
-}
-
-/*
  * message_set_muid
  *
  * Generate a new muid and put it in a message header.
  */
-void message_set_muid(struct gnutella_header *header, gboolean modern)
+void message_set_muid(struct gnutella_header *header, guint8 function)
 {
-	generate_new_muid(header->muid, modern);
+	switch (function) {
+	case GTA_MSG_PUSH_REQUEST:
+	case GTA_MSG_BYE:
+		guid_random_muid(header->muid);
+		break;
+	case GTA_MSG_INIT:
+		guid_ping_muid(header->muid);
+		break;
+	default:
+		g_error("unexpected message type %d", function);
+	}
 }
 
 /*

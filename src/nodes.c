@@ -827,7 +827,7 @@ static void node_bye_v(
 
 	WRITE_GUINT16_LE(code, payload->code);
 
-	message_set_muid(&head, FALSE);
+	message_set_muid(&head, GTA_MSG_BYE);
 	head.function = GTA_MSG_BYE;
 	head.ttl = 1;
 	head.hops = 0;

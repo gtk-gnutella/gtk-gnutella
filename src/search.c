@@ -31,6 +31,7 @@
 #include "nodes.h"
 #include "routing.h"
 #include "downloads.h"
+#include "guid.h"
 
 #include <ctype.h>
 
@@ -894,12 +895,8 @@ static void search_reset_sent_nodes(search_ctrl_t *sch)
  *
  * Create a new muid and add it to the search's list of muids.
  */
-static void search_add_new_muid(search_ctrl_t *sch)
+static void search_add_new_muid(search_ctrl_t *sch, guchar *muid)
 {
-	guchar *muid = (guchar *) g_malloc(16);
-
-	generate_new_muid(muid, TRUE);
-
 	if (sch->muids)				/* If this isn't the first muid */
 		search_reset_sent_nodes(sch);
 	sch->muids = g_slist_prepend(sch->muids, (gpointer) muid);
@@ -1153,6 +1150,7 @@ void search_close(gnet_search_t sh)
 void search_reissue(gnet_search_t sh)
 {
     search_ctrl_t *sch = search_find_by_handle(sh);
+	guchar *muid;
 
     if (sch->frozen) {
         g_warning("trying to reissue a frozen search, aborted");
@@ -1162,7 +1160,10 @@ void search_reissue(gnet_search_t sh)
 	if (dbg)
 		printf("reissuing search %s.\n", sch->query);
 
-	search_add_new_muid(sch);
+	muid = (guchar *) g_malloc(16);
+	guid_query_muid(muid, FALSE);
+
+	search_add_new_muid(sch, muid);
 	search_send_packet(sch);
 	update_one_reissue_timeout(sch);
 }
@@ -1251,7 +1252,11 @@ gnet_search_t search_new(
 		sch->passive = TRUE;
 		search_passive++;
 	} else {
-        search_add_new_muid(sch);
+		guchar *muid = (guchar *) g_malloc(16);
+
+		guid_query_muid(muid, TRUE);
+        search_add_new_muid(sch, muid);
+
 		sch->sent_nodes =
 			g_hash_table_new(sent_node_hash_func, sent_node_compare);
 

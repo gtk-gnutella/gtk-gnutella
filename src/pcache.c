@@ -63,7 +63,7 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
 {
 	struct gnutella_msg_init m;
 
-	message_set_muid(&m.header, TRUE);
+	message_set_muid(&m.header, GTA_MSG_INIT);
 
 	m.header.function = GTA_MSG_INIT;
 	m.header.ttl = ttl;
@@ -114,7 +114,7 @@ void send_alive_ping(struct gnutella_node *n, guchar *muid)
 	g_assert(NODE_IS_WRITABLE(n));
 	g_assert(muid);
 
-	message_set_muid(&m.header, TRUE);
+	message_set_muid(&m.header, GTA_MSG_INIT);
 	memcpy(muid, &m.header, 16);
 
 	m.header.function = GTA_MSG_INIT;
