@@ -84,9 +84,11 @@ void dmesh_remove(
 
 gboolean dmesh_collect_sha1(gchar *value, gchar *digest);
 void dmesh_collect_locations(gchar *sha1, gchar *value, gboolean defer);
+void dmesh_collect_compact_locations(gchar *sha1, gchar *value);
 
 gint dmesh_alternate_location(
-	const gchar *sha1, gchar * buf, gint size, guint32 ip, guint32 last_sent);
+	const gchar *sha1, gchar * buf, gint size, guint32 ip, guint32 last_sent,
+	const gchar *vendor);
 
 void dmesh_multiple_downloads(
     gchar *sha1, guint32 size, struct dl_file_info *fi);

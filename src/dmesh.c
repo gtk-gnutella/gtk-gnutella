@@ -564,7 +564,8 @@ static void dmesh_dispose(const gchar *sha1)
  * dmesh_fill_info
  *
  * Fill URL info from externally supplied sha1, ip, port, idx and name.
- * When `idx' is 0, then `name' is ignored, and we use the stringified SHA1.
+ * When `idx' is URN_INDEX, then `name' is ignored, and we use the
+ * stringified SHA1.
  */
 static void dmesh_fill_info(dmesh_urlinfo_t *info,
 	const gchar *sha1, guint32 ip, guint16 port, guint idx, gchar *name)
@@ -855,6 +856,39 @@ static gchar *dmesh_urlinfo_to_gchar(const dmesh_urlinfo_t *info)
 }
 
 /*
+ * dmesh_entry_compact
+ *
+ * Format mesh_entry in the provided buffer, as a compact ip:port address.
+ * The port is even ommitted if it is the standard Gnutella one.
+ *
+ * Returns length of formatted entry, -1 if the address would be larger than
+ * the buffer, or if no compact form can be derived for this entry (not an
+ * URN_INDEX kind).
+ */
+static gint dmesh_entry_compact(
+	const struct dmesh_entry *dme, gchar *buf, gint len)
+{
+	gint rw;
+	gint maxslen = len - 1;				/* Account for trailing NUL */
+	const dmesh_urlinfo_t *info = &dme->url;
+	gchar *str;
+
+	if (info->idx != URN_INDEX)
+		return -1;
+
+	str = (info->port == GTA_PORT) ?
+		ip_to_gchar(info->ip) :
+		ip_port_to_gchar(info->ip, info->port);
+
+	if (((rw = strlen(str))) >= maxslen)
+		return -1;
+
+	strncpy(buf, str, len);
+
+	return rw;
+}
+
+/*
  * dmesh_entry_url_stamp
  *
  * Format dmesh_entry in the provided buffer, as an URL with an appended
@@ -933,10 +967,13 @@ static const gchar *dmesh_entry_to_gchar(const struct dmesh_entry *dme)
  * If there has been no change to the mesh since then, we'll return an empty
  * string.  Otherwise we return entries inserted after `last_sent'.
  *
+ * The `vendor' is given to determine whether it is known to support the
+ * more compact X-Alt form, in which case we emit that instead.
+ *
  * Returns amount of generated data.
  */
 gint dmesh_alternate_location(const gchar *sha1,
-	gchar *buf, gint size, guint32 ip, guint32 last_sent)
+	gchar *buf, gint size, guint32 ip, guint32 last_sent, const gchar *vendor)
 {
 	gchar url[1024];
 	struct dmesh *dm;
@@ -948,16 +985,23 @@ gint dmesh_alternate_location(const gchar *sha1,
 	gint i;
 	gint min_url_len;
 	gint maxslen = size - 1;		/* Account for trailing NUL */
+	gboolean use_compact = FALSE;
+	gint linelen;
 
 	g_assert(sha1);
 	g_assert(buf);
 	g_assert(size >= 0);
+
+	if (vendor != NULL && huge_has_xalt_support(vendor))
+		use_compact = TRUE;
 	
 	/*
 	 * Start filling the buffer.
 	 */
 
-	len = gm_snprintf(buf, size, "X-Gnutella-Alternate-Location:\r\n");
+	linelen = len = gm_snprintf(buf, size,
+		use_compact ? "X-Alt: " : "X-Gnutella-Alternate-Location:\r\n");
+
 	if (len >= maxslen)
 		return 0;
 
@@ -1007,6 +1051,9 @@ gint dmesh_alternate_location(const gchar *sha1,
 		if (dme->url.ip == ip)
 			continue;
 
+		if (use_compact && dme->url.idx != URN_INDEX)
+			continue;
+
 		g_assert(i < MAX_ENTRIES);
 
 		selected[i++] = dme;
@@ -1023,7 +1070,9 @@ gint dmesh_alternate_location(const gchar *sha1,
 	 * Second pass.
 	 */
 
-	min_url_len = sizeof("\thttp://1.2.3.4/get/1/x 2002-06-09T14:54:42Z\r\n");
+	min_url_len = use_compact ?
+		sizeof("1.2.3.4, ") :
+		sizeof("\thttp://1.2.3.4/get/1/x 2002-06-09T14:54:42Z\r\n");
 
 	for (i = 0; i < nselected && (size - len) > min_url_len; i++) {
 		struct dmesh_entry *dme;
@@ -1054,12 +1103,23 @@ gint dmesh_alternate_location(const gchar *sha1,
 
 		g_assert(dme->inserted > last_sent);
 
-		url_len = dmesh_entry_url_stamp(dme, url, sizeof(url));
+		url_len = use_compact ?
+			dmesh_entry_compact(dme, url, sizeof(url)) :
+			dmesh_entry_url_stamp(dme, url, sizeof(url));
 
 		if (url_len < 0)				/* Too big for the buffer */
 			continue;
 
-		if (nurl) {
+		if (use_compact) {
+			/*
+			 * We'll emit the address, prepended by ", " if we already emitted
+			 * something.  However, if the address cannot fit on the line,
+			 * we'll emit ",\r\n\t" instead.  Assume we need 4 (worst case).
+			 * At the end, we'll always need "\r\n" plus the trailing NUL.
+			 */
+			if (url_len + (nurl ? 4 : 0) + 3 >= size - len)
+				continue;
+		} else if (nurl) {
 			/*
 			 * We need to finish the existing URL with ",\r\n", then we
 			 * need our own URL, i.e. a minimum of "\t" and "\r\n" to close
@@ -1079,7 +1139,26 @@ gint dmesh_alternate_location(const gchar *sha1,
 		}
 
 		g_assert((url_len + 1 + len) < size);
-		len += gm_snprintf(&buf[len], size - len, "\t%s", url);
+
+		if (use_compact) {
+			if (linelen + url_len > 72) {
+				g_assert(nurl > 0);
+				len += gm_snprintf(&buf[len], size - len, ",\r\n\t%s", url);
+				linelen = 1 + strlen(url);		/* Accounts leading "\t" */
+			} else {
+				gint rw;
+				if (nurl) {
+					rw = gm_snprintf(&buf[len], size - len, ", ");
+					len += rw;
+					linelen += rw;
+				}
+				rw = gm_snprintf(&buf[len], size - len, "%s", url);
+				len += rw;
+				linelen += rw;
+			}
+		} else
+			len += gm_snprintf(&buf[len], size - len, "\t%s", url);
+
 		g_assert(len + 2 < size);
 
 		nurl++;
@@ -1424,6 +1503,84 @@ gboolean dmesh_collect_sha1(gchar *value, gchar *digest)
 	}
 
 	return FALSE;
+}
+
+/*
+ * dmesh_collect_compact_locations
+ *
+ * Parse the value of the "X-Alt" header to extract alternate sources
+ * for a given SHA1 key given in the new compact form.
+ */
+void dmesh_collect_compact_locations(gchar *sha1, gchar *value)
+{
+	time_t now = time(NULL);
+	guchar c;
+	gchar *p = value;
+
+	for (;;) {
+		gboolean has_port = FALSE;
+		gboolean got_full = FALSE;
+		gchar *start = p;
+
+		for (;;) {
+			c = *p;
+			switch (c) {
+			case ':':
+				has_port = TRUE;	/* Remember there is a port */
+				break;
+			case ',':
+			case '\0':
+				got_full = TRUE;	/* Reached end of header or separator */
+				break;
+			default:
+				break;
+			}
+
+			/*
+			 * If we got the full address, parse it.
+			 */
+
+			if (got_full) {
+				guint32 ip;
+				guint16 port = GTA_PORT;	/* Could be missing in address */
+				gboolean ok;
+
+				*p = '\0';
+				if (has_port)
+					ok = gchar_to_ip_port(start, &ip, &port);
+				else {
+					ip = gchar_to_ip(start);
+					ok = ip != 0;
+				}
+
+				if (ok) {
+					dmesh_urlinfo_t info;
+
+					dmesh_fill_info(&info, sha1, ip, port, URN_INDEX, NULL);
+					ok = dmesh_raw_add(sha1, &info, now);
+
+					if (dbg > 4)
+						printf("MESH %s: %s compact \"%s\", stamp=%u\n",
+							sha1_base32(sha1),
+							ok ? "added" : "rejected",
+							dmesh_urlinfo_to_gchar(&info), (guint32) now);
+				} else if (dbg)
+					g_warning("ignoring invalid compact alt-loc \"%s\"", start);
+					
+				*p = c;
+				p++;
+
+				break;
+			}
+
+			p++;
+		}
+
+		if (c == '\0')
+			return;
+	}
+
+	/* NOTREACHED */
 }
 
 /*
