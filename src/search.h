@@ -53,8 +53,6 @@ struct results_set {
 	GSList *records;
 };
 
-
-
 /*
  * An individual hit.  It referes to a file entry on the remote servent,
  * as identified by the parent results_set structure that contains this hit.
@@ -70,10 +68,9 @@ typedef struct record {
 	gchar *name;				/* File name */
 	guint32 size;				/* Size of file, in bytes */
 	guint32 index;				/* Index for GET command */
-	gchar *tag;					/* Optional tag data, NUL terminated */
+	gchar *sha1;				/* SHA1 URN (binary form, atom) */
+	gchar *tag;					/* Optional tag data string (atom) */
 } record_t;
-
-
 
 /*
  * Result sets `status' flags.

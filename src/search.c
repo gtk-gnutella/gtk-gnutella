@@ -44,6 +44,8 @@
 #include "gmsg.h"
 #include "filter.h"
 #include "atoms.h"
+#include "extensions.h"
+#include "base32.h"
 
 #ifdef USE_SEARCH_XML
 # include "search_xml.h"
@@ -175,6 +177,8 @@ static void search_free_record(struct record *rc)
 	atom_str_free(rc->name);
 	if (rc->tag)
 		atom_str_free(rc->tag);
+	if (rc->sha1)
+		atom_sha1_free(rc->sha1);
 	g_free(rc);
 }
 
@@ -905,7 +909,8 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 
 		while (s < e && *s)
 			s++;				/* move s up to the next double NUL */
-		if (s >= e)
+
+		if (s >= (e-1))			/* There cannot be two NULs: end of packet! */
 			goto bad_packet;
 
 		/*
@@ -913,23 +918,19 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 		 *
 		 * Between the two NULs at the end of each record, servents may put
 		 * some extra information about the file (a tag), but this information
-		 * may not contain any NUL.	If it does, it needs encoding (e.g.
-		 * base64), but if it's ASCII, then it's ok to put it as-is.
+		 * may not contain any NUL.
 		 */
 
-		if (s[1]) {
-			guint tagbin = 0;
+		taglen = 0;
 
+		if (s[1]) {
 			/* Not a NUL, so we're *probably* within the tag info */
 
 			s++;				/* Skip first NUL */
 			tag = s;
-			taglen = 0;
 
 			/*
-			 * Inspect the tag, and if we see too many binary (non-ASCII),
-			 * then forget about it, it's coded garbage.
-			 *				--RAM, 10/09/2001
+			 * Inspect the tag, looking for next NUL.
 			 */
 
 			while (s < e) {		/* On the way to second NUL */
@@ -938,29 +939,95 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 					break;		/* Reached second nul */
 				s++;
 				taglen++;
-				if (!isalpha(c))
-					tagbin++;
 			}
 
 			if (s >= e)
 				goto bad_packet;
 
-			if (3 * tagbin >= taglen)	/* More than 1/3 of binary */
-				tag = NULL;		/* Discard tag */
-
 			s++;				/* Now points to next record */
 		} else
 			s += 2;				/* Skip double NUL */
 
-		/* Okay, one more record */
+		/*
+		 * Okay, one more record
+		 */
 
 		nr++;
-
 		rc = (struct record *) g_malloc0(sizeof(struct record));
+
 		rc->index = index;
 		rc->size = size;
 		rc->name = atom_str_get(fname);
-		rc->tag = tag ? atom_str_get(tag) : NULL;
+
+		/*
+		 * If we have a tag, parse it for extensions.
+		 */
+
+		if (tag) {
+			extvec_t exv[MAX_EXTVEC];
+			gint exvcnt;
+			gint i;
+
+			g_assert(taglen > 0);
+
+			exvcnt = ext_parse(tag, taglen, exv, MAX_EXTVEC);
+
+			if (exvcnt == MAX_EXTVEC)
+				g_warning("Query hit record has %d extensions!", exvcnt);
+
+
+			/*
+			 * Look for a valid SHA1 or a tag string we can display.
+			 */
+
+			for (i = 0; i < exvcnt; i++) {
+				extvec_t *e = &exv[i];
+				gchar sha1_digest[SHA1_RAW_SIZE];
+
+				switch (e->ext_token) {
+				case EXT_T_URN_SHA1:
+					if (e->ext_paylen != SHA1_BASE32_SIZE) {
+						if (dbg) g_warning(
+						"qhit (hops=%d, ttl=%d) %d byte%s: bad SHA1: (len=%d)",
+							n->header.hops, n->header.ttl, n->size,
+							n->size == 1 ? "" : "s", e->ext_paylen);
+						break;
+					}
+
+					if (
+						!base32_decode_into(e->ext_payload, SHA1_BASE32_SIZE,
+							sha1_digest, sizeof(sha1_digest))
+					) {
+						if (dbg) g_warning(
+						"qhit (hops=%d, ttl=%d) %d byte%s: bad SHA1: %32s",
+							n->header.hops, n->header.ttl, n->size,
+							n->size == 1 ? "" : "s", e->ext_payload);
+						break;
+					}
+
+					rc->sha1 = atom_sha1_get(sha1_digest);
+					break;
+				case EXT_T_UNKNOWN:
+					if (ext_is_printable(e)) {
+						if (rc->tag && dbg) g_warning(
+							"qhit (hops=%d, ttl=%d) %d byte%s: multiple tags",
+							n->header.hops, n->header.ttl, n->size,
+							n->size == 1 ? "" : "s");
+
+						if (rc->tag == NULL) {
+							guchar *p = e->ext_payload + e->ext_paylen;
+							guchar c = *p;
+							*p = '\0';
+							rc->tag = atom_str_get(e->ext_payload);
+							*p = c;
+						}
+					}
+					break;
+				default:
+					break;
+				}
+			}
+		}
 
 		rc->results_set = rs;
 		rs->records = g_slist_prepend(rs->records, (gpointer) rc);
@@ -1054,9 +1121,9 @@ static struct results_set *get_results_set(struct gnutella_node *n)
 	 */
 
   bad_packet:
-	g_warning
-		("Bad Query Hit packet from %s, ignored (%u/%u records parsed)\n",
-		 node_ip(n), nr, rs->num_recs);
+	if (dbg) g_warning(
+		"Bad Query Hit (hops=%d, ttl=%d) from %s (%u/%u records parsed)\n",
+		 n->header.hops, n->header.ttl, node_ip(n), nr, rs->num_recs);
 	search_free_r_set(rs);
 	return NULL;				/* Forget set, comes from a bad node */
 }
@@ -1211,15 +1278,16 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
 
 		if (rc->tag) {
 			guint len = strlen(rc->tag);
-			if (len > MAX_TAG_SHOWN) {
-				/*
-				 * We want to limit the length of the tag shown, but we don't
-				 * want to loose that information.	I imagine to have a popup
-				 * "show file info" one day that will give out all the
-				 * information.
-				 *				--RAM, 09/09/2001
-				 */
 
+			/*
+			 * We want to limit the length of the tag shown, but we don't
+			 * want to loose that information.	I imagine to have a popup
+			 * "show file info" one day that will give out all the
+			 * information.
+			 *				--RAM, 09/09/2001
+			 */
+
+			if (len > MAX_TAG_SHOWN) {
 				gchar saved = rc->tag[MAX_TAG_SHOWN];
 				rc->tag[MAX_TAG_SHOWN] = '\0';
 				g_string_append(info, rc->tag);
