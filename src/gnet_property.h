@@ -199,7 +199,8 @@ typedef enum {
     PROP_RESERVE_GTKG_NODES,    
     PROP_UNIQUE_NODES,    
     PROP_DOWNLOAD_RX_SIZE,    
-    PROP_NODE_RX_SIZE,
+    PROP_NODE_RX_SIZE,    
+    PROP_DL_HTTP_LATENCY,
     GNET_PROPERTY_END
 } gnet_property_t;
 

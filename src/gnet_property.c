@@ -394,6 +394,8 @@ guint32  download_rx_size     = 8;
 guint32  download_rx_size_def = 8;
 guint32  node_rx_size     = 4;
 guint32  node_rx_size_def = 4;
+guint32  dl_http_latency     = 0;
+guint32  dl_http_latency_def = 0;
 
 static prop_set_t *gnet_property = NULL;
 
@@ -3564,6 +3566,26 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[164].data.guint32.choices = NULL;
     gnet_property->props[164].data.guint32.max   = 128;
     gnet_property->props[164].data.guint32.min   = 2;
+
+
+    /*
+     * PROP_DL_HTTP_LATENCY:
+     *
+     * General data:
+     */
+    gnet_property->props[165].name = "dl_http_latency";
+    gnet_property->props[165].desc = _("Average recent latency between the sending of the HTTP request and the reception of the reply from the remote server, in msecs.");
+    gnet_property->props[165].ev_changed = event_new("dl_http_latency_changed");
+    gnet_property->props[165].save = FALSE;
+    gnet_property->props[165].vector_size = 1;
+
+    /* Type specific data: */
+    gnet_property->props[165].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[165].data.guint32.def   = &dl_http_latency_def;
+    gnet_property->props[165].data.guint32.value = &dl_http_latency;
+    gnet_property->props[165].data.guint32.choices = NULL;
+    gnet_property->props[165].data.guint32.max   = 0xFFFFFFFF;
+    gnet_property->props[165].data.guint32.min   = 0x00000000;
 
     gnet_property->byName = g_hash_table_new(g_str_hash, g_str_equal);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

@@ -195,6 +195,7 @@ extern guint32  reserve_gtkg_nodes;
 extern guint32  unique_nodes;
 extern guint32  download_rx_size;
 extern guint32  node_rx_size;
+extern guint32  dl_http_latency;
 
 
 prop_set_t *gnet_prop_init(void);

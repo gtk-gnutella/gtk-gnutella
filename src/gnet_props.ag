@@ -1990,3 +1990,14 @@ prop = {
 	};
 };
 
+prop = {
+	name = "dl_http_latency";
+	desc = "Average recent latency between the sending of the HTTP request "
+		"and the reception of the reply from the remote server, in msecs.";
+	type = guint32;
+	save = FALSE;
+	data = {
+		default = 0;
+	};
+};
+
