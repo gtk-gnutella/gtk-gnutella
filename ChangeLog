@@ -11,6 +11,8 @@
  * [GTK1] [GTK2] Will now show a warning if uploads are stalling abnormally,
    and a firewall with a green hole if we can perform UDP hole punching.
  * Count UDP hits bearing a different IP address from where they're sent from.
+ * Don't count the IP as alien if the hit's address is that of a private
+   network, in case the servent is firewalled.
  * Have shell announce the program's version.
  * [GTK1] Frame where icons are displayed will now properly shrink when an
    icon is hidden.
@@ -18,6 +20,7 @@
  * Setting of OOB queries is now an "expert" frame.
  * Don't send PUSHes too often.  Just because we don't get a reply immediately
    does not mean the PUSH is not travelling its way.
+ * Show IP address of UDP-delivered hits.
 
 - (2004-09-21 - RAM)
  * Added dh_would_route() for the OOB-proxying layer to be able to determine
