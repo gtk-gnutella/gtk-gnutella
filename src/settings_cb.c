@@ -29,6 +29,7 @@
 #include "settings_cb.h"
 #include "gnet.h"
 #include "settings_gui.h"
+#include "search_gui.h"
 #include "gtk-missing.h"
 
 /* 
@@ -51,25 +52,29 @@
 void on_spinbutton_search_reissue_timeout_changed
     (GtkEditable *editable, gpointer user_data)
 {
-    extern search_t *current_search; 
-    // FIXME: current_search should be in the gui and call should use
-    // search handle of current search instead of pointer!
+    search_t *current_search;
 
-    search_update_reissue_timeout(current_search,
+    current_search = search_gui_get_current_search();
+
+    if (!current_search)
+        return;
+
+    search_set_reissue_timeout(current_search->search_handle,
         gtk_spin_button_get_value(GTK_SPIN_BUTTON(editable)));
 }
 
 void on_spinbutton_minimum_speed_changed
     (GtkEditable *editable, gpointer user_data)
 {
-    extern search_t *current_search; 
-    // FIXME: current_search should be in the gui and call should use
-    // search handle of current search instead of pointer!
+    search_t *current_search;
 
-    if (current_search != NULL)
-        current_search->speed = gtk_spin_button_get_value
-            (GTK_SPIN_BUTTON(editable));
-    
+    current_search = search_gui_get_current_search();
+
+    if (!current_search)
+        return;
+
+    search_set_minimum_speed(current_search->search_handle,
+        gtk_spin_button_get_value(GTK_SPIN_BUTTON(editable)));
 }
 
 void on_entry_config_proxy_ip_activate
