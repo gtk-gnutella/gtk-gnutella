@@ -1373,9 +1373,7 @@ static results_set_t *create_results_set(const gnet_results_set_t *r_set)
     rs->speed = r_set->speed;
     rs->stamp = r_set->stamp;
     memcpy(rs->vendor, r_set->vendor, sizeof(rs->vendor));
-
-	if (r_set->version)
-		rs->version = atom_str_get(r_set->version);
+	rs->version = r_set->version ? atom_str_get(r_set->version) : NULL;
 
     rs->num_recs = 0;
     rs->records = NULL;
