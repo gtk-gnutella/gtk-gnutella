@@ -13,6 +13,9 @@
 #include <time.h>
 #include <sys/time.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+
 #include "../config.h"
 
 /* Macros ----------------------------------------------------------------------------------------- */
@@ -44,6 +47,7 @@
 #define GTA_CONNECTION_INCOMING	1
 #define GTA_CONNECTION_OUTGOING	2
 #define GTA_CONNECTION_LISTENING	3
+#define GTA_CONNECTION_PROXY_OUTGOING  4
 
 #define GTA_TYPE_UNKNOWN			0
 #define GTA_TYPE_CONTROL			1
@@ -73,6 +77,7 @@
 #define GTA_UL_PUSH_RECIEVED	3			/* We got a push request */
 #define GTA_UL_COMPLETE		4			/* The file has been sent completely */
 #define GTA_UL_SENDING          5                       /* We are sending data for */
+
 /* Structures ------------------------------------------------------------------------------------- */
 
 /* Messages structures */
@@ -222,6 +227,7 @@ struct gnutella_node
 	guint32 sq_pos;			/* write position in the sendq */
 	GSList *end_of_packets;     /* list of ends of packets, so that sent may be kept up to date. */
   								/* The data "pointer" is actually a guint32. */
+	guint32 end_of_last_packet; /* how many bytes need to be written to reach the end of the last enqueued end of packet */
 };
 
 struct gnutella_host
@@ -265,6 +271,7 @@ struct download
 	time_t last_update;
 	guint32 retries;
 	guint32 timeout_delay;
+	guint  restart_timer_id;
 
 	const gchar *remove_msg;
 
@@ -304,11 +311,48 @@ struct upload
 
 };
 
+/* XXX could be clever and share the file_directory's ... */
 struct shared_file {
   gchar *file_name;
+  gchar *file_name_lowercase;
+  gchar *file_directory; /* The full path of the directory the file's in */
+  gchar *file_directory_path; /* lowercase of the path from the share_dir entry to the file */
   guint32 file_index;                /* the files index withing out local DB */
-  gchar *file_directory;
   guint32 file_size;               /* File size in Bytes */
+};
+
+/* Structure for search results */
+struct search
+{
+	GtkWidget *clist;						/* GtkCList for this search */
+	GtkWidget *scrolled_window;		/* GtkScrolledWindow containing the GtkCList */
+	GtkWidget *list_item;				/* The GtkListItem in the combo for this search */
+	gchar 	*query;						/* The search query */
+	guint16	speed;						/* Minimum speed for the results of this query */
+	time_t	time;							/* Time when this search was started */
+	GSList  *muids;						/* Message UID's of this search */
+	GSList	*r_sets;						/* The results sets of this search */
+	guint32	items;						/* Total number of items for this search */
+
+	gint sort_col;							/* Column to sort */
+	gint sort_order;						/* Ascending or descending */
+	gboolean sort;							/* Do sorting or not */
+
+	gpointer filter_page;				/* Page of filters in the filters notebook */
+
+	time_t last_update_time;             /* the last time the notebook tab was updated. */
+	guint32 last_update_items;           /* Number of items included in last update */
+	gint tab_updating;                   /* token identifying timeout function to be canceled. */
+	guint32 unseen_items;                /* How many items haven't been seen yet. */
+
+	gboolean passive;                    /* Is this a passive search?  Maybe this would be better done with a magic muid. */
+	GHashTable *dups; /* keep a record of dups. */
+	GHashTable *sent_nodes; /* keep a record of nodes we've sent this search w/ this muid to. */
+
+	GHook  *new_node_hook;
+	guint   reissue_timeout_id;
+	/* XXX Other fields for the filtering will be added here */
+
 };
 
 /* Variables -------------------------------------------------------------------------------------- */
@@ -328,6 +372,7 @@ extern guint8  max_ttl;
 extern guint16 listen_port;
 extern guint32 minimum_speed;
 extern guint32 up_connections;
+extern guint32 max_connections;
 extern guint32 max_downloads;
 extern guint32 max_host_downloads;
 extern guint32 max_uploads;
@@ -362,8 +407,20 @@ extern gchar *move_file_path;
 extern gchar *scan_extensions;
 extern gchar *shared_dirs_paths;
 extern gchar *completed_file_path;
+extern gchar *global_spam_filter_file;
+extern gchar *global_IP_filter_file;
+
 
 extern gboolean jump_to_downloads;
+
+extern gboolean proxy_connections;
+extern gint socks_protocol;
+extern gchar *proxy_ip;
+extern gint proxy_port;
+
+extern gchar *socksv5_user;
+extern gchar *socksv5_pass;
+
 
 /* sockets.c */
 
@@ -391,6 +448,7 @@ extern gint hosts_idle_func;
 extern GtkWidget *dialog_filters;
 extern gboolean search_results_show_tabs;
 extern guint32 search_passive;
+extern guint32 search_reissue_timeout;
 
 /* downloads.c */
 
@@ -452,6 +510,7 @@ void config_save();
 void gui_set_status(gchar *);
 void gui_update_minimum_speed(guint32);
 void gui_update_up_connections(void);
+void gui_update_max_connections(void);
 void gui_update_config_port(void);
 void gui_update_config_force_ip(void);
 void gui_update_global(void);
@@ -474,18 +533,28 @@ void gui_update_max_uploads(void);
 void gui_update_files_scanned(void);
 void gui_update_connection_speed(void);
 void gui_update_search_max_items(void);
+void gui_update_search_reissue_timeout();
 void gui_update_scan_extensions(void);
 void gui_update_shared_dirs(void);
 void gui_update_download_clear(void);
 void gui_update_download_abort_resume(void);
 void gui_update_upload(struct upload *);
 void gui_update_upload_kill(void);
+void gui_update_socks_host();
+void gui_update_socks_port();
+void gui_update_socks_user();
+void gui_update_socks_pass();
 
 /* sockets.c */
 
 void socket_destroy(struct gnutella_socket *);
 struct gnutella_socket *socket_connect(guint32, guint16, gint);
 struct gnutella_socket *socket_listen(guint32, guint16, gint);
+void socket_read(gpointer, gint, GdkInputCondition);
+int connect_socksv5(struct gnutella_socket*);
+int proxy_connect (int, const struct sockaddr *, size_t socklen_t);
+int recv_socks(struct gnutella_socket*);
+int send_socks(struct gnutella_socket*);
 
 /* nodes.c */
 
@@ -517,6 +586,7 @@ void hosts_write_to_file(gchar *);
 /* routing.c */
 
 void routing_init(void);
+void generate_new_muid(guchar *muid);
 void message_set_muid(struct gnutella_header *);
 gboolean route_message(struct gnutella_node **);
 void routing_node_remove(struct gnutella_node *);
@@ -568,7 +638,7 @@ gint get_file_size(gint);
 
 void search_init(void);
 struct search *new_search(guint16, gchar *);
-struct search *_new_search(guint16, gchar *, gboolean);
+struct search *_new_search(guint16, gchar *, guint flags);
 void search_results(struct gnutella_node *n);
 void search_download_files(void);
 void search_close_current(void);
@@ -576,8 +646,8 @@ gint search_results_compare_size(GtkCList *, gconstpointer, gconstpointer);
 gint search_results_compare_speed(GtkCList *, gconstpointer, gconstpointer);
 gint search_results_compare_ip(GtkCList *, gconstpointer, gconstpointer);
 void search_clear_clicked(void);
+void search_update_reissue_timeout(guint32);
 
 #endif	/* __gnutella_h__ */
 
 /* vi: set ts=3: */
-
