@@ -1420,7 +1420,7 @@ create_main_window (void)
   gtk_widget_show (hbox179);
   gtk_box_pack_start (GTK_BOX (vbox113), hbox179, TRUE, TRUE, 0);
 
-  label204 = gtk_label_new (_("Search for"));
+  label204 = gtk_label_new (_("Search:"));
   gtk_widget_set_name (label204, "label204");
   gtk_widget_ref (label204);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label204", label204,

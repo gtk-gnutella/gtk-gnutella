@@ -466,7 +466,7 @@
 	      <widget>
 		<class>GtkLabel</class>
 		<name>label204</name>
-		<label>Search for</label>
+		<label>Search:</label>
 		<justify>GTK_JUSTIFY_CENTER</justify>
 		<wrap>False</wrap>
 		<xalign>0.5</xalign>
