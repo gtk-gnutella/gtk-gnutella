@@ -71,7 +71,11 @@ RCSID("$Id$");
 GHashTable *dl_all_parq_by_id = NULL;
 
 guint parq_max_upload_size = MAX_UPLOAD_QSIZE;
-guint parq_upload_active_size = 20; /* Number of active upload slots per queue*/
+guint parq_upload_active_size = 20;	/* Max number of active upload slots per
+									 * queue. This limit will only be reached
+									 * when all requests are QUEUE, push or
+									 * the number of upload slots is also large
+									 */
 guint parq_upload_ban_window = 600;
 static const gchar *file_parq_file = "parq";
 
@@ -2475,21 +2479,36 @@ gboolean parq_upload_request(gnutella_upload_t *u, gpointer handle,
 	if (parq_upload_continue(parq_ul, max_uploads - used_slots))
 		return TRUE;
 	else {
-		if (parq_ul->relative_position <= parq_upload_active_size) {
-			if (parq_ul->minor > 0 || parq_ul->major > 0) {
-				if (!parq_ul->active_queued) {
-					if (parq_ul->by_ip->active_queued == 0) {
-						u->status = GTA_UL_QUEUED;
-					
-						parq_ul->active_queued = TRUE;
-						parq_ul->by_ip->active_queued++;
-					}			
-				} else
-					u->status = GTA_UL_QUEUED;
-
-				g_assert(parq_ul->by_ip->active_queued == 1);
+		/* Don't allow more than 1 active queued upload per ip */
+		if (parq_ul->by_ip->active_queued == 0 ||
+			parq_ul->by_ip->active_queued && parq_ul->active_queued) {
+				
+			/* Active queue requests which are either a push request and at a 
+			 * reasonable position. Or if the request is at a position which 
+			 * might actually get an upload slot soon
+			 */
+			if (
+				(u->push && 
+				  parq_ul->relative_position <= parq_upload_active_size) ||
+				  parq_ul->relative_position <= max_uploads + 2
+			) {
+				if (parq_ul->minor > 0 || parq_ul->major > 0) {
+					if (!parq_ul->active_queued) {
+						if (parq_ul->by_ip->active_queued == 0) {
+							u->status = GTA_UL_QUEUED;
+						
+							parq_ul->active_queued = TRUE;
+							parq_ul->by_ip->active_queued++;
+						}			
+					} else {
+							u->status = GTA_UL_QUEUED;
+					}
+				}
 			}
 		}
+		
+		g_assert(parq_ul->by_ip->active_queued <= 1);
+		
 		u->parq_status = TRUE;		/* XXX would violate encapsulation */
 		return FALSE;
 	}
