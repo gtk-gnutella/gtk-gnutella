@@ -97,7 +97,6 @@ search_t *current_search = NULL;	/*	The search currently displayed */
 gboolean search_results_show_tabs = TRUE;	/* Display the notebook tabs? */
 guint32 search_max_results = 5000;		/* Max items allowed in GUI results */
 guint32 search_passive = 0;				/* Amount of passive searches */
-gboolean filter_testing = FALSE;
 
 static gchar *search_file = "searches";	/* File where searches are saved */
 
@@ -1120,6 +1119,7 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
 	gchar *vendor;
 	gboolean need_push;			/* Would need a push to get this file? */
 	gboolean skip_records;		/* Shall we skip those records? */
+    GdkColor *color;
 	extern gboolean is_firewalled;
 
 	vendor = extract_vendor_name(rs);
@@ -1153,6 +1153,9 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
 		!check_valid_host(rs->ip, rs->port);
 	skip_records = (!send_pushes || is_firewalled) && need_push;
 
+    color = &(gtk_widget_get_style(GTK_WIDGET(sch->clist))
+                ->bg[GTK_STATE_INSENSITIVE]);
+
 	for (l = rs->records; l; l = next) {
 		struct record *rc = (struct record *) l->data;
         gint filter_result;
@@ -1183,7 +1186,7 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
 			continue;
 
         filter_result = filter_record(sch, rc);
-        if (!filter_result && !filter_testing)
+        if (!filter_result)
             continue;
 
         sch->items++;
@@ -1258,10 +1261,8 @@ static void search_gui_update(search_t *sch, struct results_set *rs)
 
 		}
 
-        if (!filter_result && filter_testing)
-            gtk_clist_set_foreground(GTK_CLIST(sch->clist), row,
-                &gtk_widget_get_style(GTK_WIDGET(sch->clist))
-                ->bg[GTK_STATE_INSENSITIVE]);
+        if (filter_result == 2)
+            gtk_clist_set_foreground(GTK_CLIST(sch->clist), row, color);
 		gtk_clist_set_row_data(GTK_CLIST(sch->clist), row, (gpointer) rc);
 		g_string_truncate(info, 0);
 	}
