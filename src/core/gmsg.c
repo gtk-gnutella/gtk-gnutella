@@ -41,6 +41,7 @@ RCSID("$Id$");
 #include "routing.h"
 #include "extensions.h"
 #include "vmsg.h"
+#include "search.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -898,6 +899,43 @@ gmsg_check_ggep(struct gnutella_node *n, gint maxsize, gint regsize)
 	}
 
 	return TRUE;
+}
+
+/**
+ * Check whether query message starting at `msg' is flagged
+ * for OOB hit delivery.
+ */
+gboolean
+gmsg_is_oob_query(gpointer msg)
+{
+	struct gnutella_header *h = (struct gnutella_header *) msg;
+	gpointer data = msg + GTA_HEADER_SIZE;
+	guint16 req_speed;
+
+	g_assert(h->function == GTA_MSG_SEARCH);
+
+	READ_GUINT16_LE(data, req_speed);
+
+	return (req_speed & (QUERY_SPEED_MARK | QUERY_SPEED_OOB_REPLY)) ==
+		(QUERY_SPEED_MARK | QUERY_SPEED_OOB_REPLY);
+}
+
+/**
+ * Check whether query message split between header and data is flagged
+ * for OOB hit delivery.
+ */
+gboolean
+gmsg_split_is_oob_query(gpointer head, gpointer data)
+{
+	struct gnutella_header *h = (struct gnutella_header *) head;
+	guint16 req_speed;
+
+	g_assert(h->function == GTA_MSG_SEARCH);
+
+	READ_GUINT16_LE(data, req_speed);
+
+	return (req_speed & (QUERY_SPEED_MARK | QUERY_SPEED_OOB_REPLY)) ==
+		(QUERY_SPEED_MARK | QUERY_SPEED_OOB_REPLY);
 }
 
 /* vi: set ts=4: */

@@ -65,6 +65,8 @@ void gmsg_split_sendto_all_but_one(const GSList *l, struct gnutella_node *n,
 void gmsg_sendto_route(struct gnutella_node *n, struct route_dest *rt);
 
 gboolean gmsg_can_drop(gpointer pdu, gint size);
+gboolean gmsg_is_oob_query(gpointer msg);
+gboolean gmsg_split_is_oob_query(gpointer head, gpointer data);
 gint gmsg_cmp(gpointer pdu1, gpointer pdu2);
 gchar *gmsg_infostr(gpointer head);
 gchar *gmsg_infostr_full(gpointer message);
