@@ -67,15 +67,9 @@ void gtk_gnutella_exit(gint n)
 	gtk_exit(n);
 }
 
-static void SIG_Handler(int n)
+static void sig_terminate(int n)
 {
 	gtk_gnutella_exit(1);
-}
-
-static void SIG_Ignore(int n)
-{
-	signal(SIGPIPE, SIG_Ignore);		/* SIG_IGN -- running under debugger */
-	return;
 }
 
 static void init_constants(void)
@@ -187,9 +181,13 @@ gint main(gint argc, gchar ** argv)
 
 	/* Some signal handlers */
 
-	signal(SIGTERM, SIG_Handler);
-	signal(SIGINT, SIG_Handler);
-	signal(SIGPIPE, SIG_Ignore);		/* SIG_IGN -- running under debugger */
+	signal(SIGTERM, sig_terminate);
+	signal(SIGINT, sig_terminate);
+	signal(SIGPIPE, SIG_IGN);
+
+#ifdef SIGXFSZ
+	signal(SIGXFSZ, SIG_IGN);
+#endif
 
 	/* Create the main listening socket */
 
