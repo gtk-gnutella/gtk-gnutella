@@ -1,5 +1,12 @@
 # since last version
 
+- (2002.06.22 - RAM)
+  * Bandwidth limit is now up to BS_BW_MAX, included.
+  * Now attempts to free memory as soon as a search record is removed from
+	the GUI, and not when the search is closed.
+  * Would be omitting to send a SHA1 starting with a leading NUL byte.
+  * Forgot to clear the node's search queue at final cleanup.
+
 - (2002.06.21 - Richard)
   * BUG: access rule members after freeing the rule in 
     filter_replace_rule_in_session
