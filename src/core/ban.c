@@ -640,6 +640,22 @@ ban_vendor(const gchar *vendor)
 		)
 			return harmful;
 
+		/*
+		 * Ban older 0.93 and 0.94 in 2005, i.e. well before their
+		 * planned expiration time since they are harmful in the
+		 * high outdegree network.
+		 *		--RAM, 2004-11-27
+		 *
+		 * XXX remove this test when 0.94 expires (2005-07-10)
+		 */
+
+		if (
+			(0 == strncmp(vendor + GTKG_LEN, "0.93", 4) ||
+			 0 == strncmp(vendor + GTKG_LEN, "0.94", 4))
+		 	&& time(NULL) > 1104534000		/* Sat Jan  1 00:00:00 2005 */
+		)
+			return harmful;
+
 		if (version_is_too_old(vendor))
 			return too_old;
 
