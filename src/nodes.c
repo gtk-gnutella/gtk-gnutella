@@ -160,9 +160,9 @@ enum node_bad {
 	NODE_BAD_NO_VENDOR,		/* Node has no vendor string */
 };
 
-static gint32 connected_node_cnt = 0;
-static gint32 compressed_node_cnt = 0;
-static gint32 compressed_leaf_cnt = 0;
+static guint connected_node_cnt = 0;
+static guint compressed_node_cnt = 0;
+static guint compressed_leaf_cnt = 0;
 static gint pending_byes = 0;			/* Used when shutdowning servent */
 static gboolean in_shutdown = FALSE;
 
@@ -558,7 +558,7 @@ void node_slow_timer(time_t now)
 	if (
 		configured_peermode == NODE_P_AUTO &&
 		current_peermode == NODE_P_LEAF &&
-		now - last_switch > NODE_AUTO_SWITCH_MIN &&
+		delta_time(now, last_switch) > NODE_AUTO_SWITCH_MIN &&
 		can_become_ultra(now)
 	) {
 		g_warning("being promoted to Ultrapeer status");
@@ -575,7 +575,7 @@ void node_slow_timer(time_t now)
 	if (
 		configured_peermode == NODE_P_AUTO &&
 		current_peermode == NODE_P_ULTRA &&
-		now - last_switch > NODE_AUTO_SWITCH_MIN &&
+		delta_time(now, last_switch) > NODE_AUTO_SWITCH_MIN &&
 		!can_become_ultra(now)
 	) {
 		g_warning("being demoted from Ultrapeer status");
@@ -699,7 +699,7 @@ void node_timer(time_t now)
 					node_bye_if_writable(n, 405, "Activity timeout");
 				} else if (
 					NODE_IN_TX_FLOW_CONTROL(n) &&
-					now - n->tx_flowc_date > node_tx_flowc_timeout
+					delta_time(now, n->tx_flowc_date) > node_tx_flowc_timeout
 				) {
                     hcache_add(HCACHE_UNSTABLE, n->ip, 0, 
                         "flow-controlled too long");
@@ -739,7 +739,10 @@ void node_timer(time_t now)
 			 *		--RAM, 01/11/2003
 			 */
 
-			if (NODE_IS_ESTABLISHED(n) && now - n->last_rx > n->alive_period) {
+			if (
+				NODE_IS_ESTABLISHED(n) &&
+				delta_time(now, n->last_rx) > n->alive_period
+			) {
 				guint32 last;
 				guint32 avg;
 				guint32 period;
@@ -815,7 +818,7 @@ void node_timer(time_t now)
 					fc_ratio = (gdouble) total / (2.0 * NODE_RX_FC_HALF_PERIOD);
 					fc_ratio *= 100.0;
 
-					if ((gint) fc_ratio > max_ratio) {
+					if ((guint32) fc_ratio > max_ratio) {
 						node_bye(n, 405,
 							"Remotely flow-controlled too often "
 							"(%.2f%% > %d%% of time)", fc_ratio, max_ratio);
@@ -838,7 +841,7 @@ void node_timer(time_t now)
 
 		if (
 			n->qrelayed != NULL &&
-			now - n->qrelayed_created >= node_queries_half_life
+			delta_time(now, n->qrelayed_created) >= node_queries_half_life
 		) {
 			GHashTable *new;
 
@@ -901,12 +904,12 @@ void node_set_socket_rx_size(gint rx_size)
  * Nodes
  */
 
-gint32 connected_nodes(void)
+guint connected_nodes(void)
 {
 	return connected_node_cnt;
 }
 
-gint32 node_count(void)
+guint node_count(void)
 {
 	return connected_node_count - shutdown_nodes - node_leaf_count;
 }
@@ -1158,13 +1161,13 @@ static void node_remove_v(
 
 	if (n->status == GTA_NODE_CONNECTED) {		/* Already did if shutdown */
 		connected_node_cnt--;
-		g_assert(connected_node_cnt >= 0);
+		g_assert(connected_node_cnt <= INT_MAX);
         if (n->attrs & NODE_A_RX_INFLATE) {
 			if (n->flags & NODE_F_LEAF)
 				compressed_leaf_cnt--;
             compressed_node_cnt--;
-            g_assert(compressed_node_cnt >= 0);
-			g_assert(compressed_leaf_cnt >= 0);
+            g_assert(compressed_node_cnt <= INT_MAX);
+			g_assert(compressed_leaf_cnt <= INT_MAX);
         }
 		node_type_count_dec(n);
 	}
@@ -1386,14 +1389,14 @@ void node_mark_bad_vendor(struct gnutella_node *n)
 
 	/* Don't mark a node with whom we could stay a long time as being bad */
 	if (
-		now - n->connect_date >
+		delta_time(now, n->connect_date) >
 			node_error_cleanup_timer / node_error_threshold
 	) {
 		if (dbg > 1)
 			printf("[nodes up] "
 				  "%s not marking as bad. Connected for: %d (min: %d)\r\n",
 				ip_to_gchar(n->ip),
-				(gint) (now - n->connect_date), 
+				(gint) delta_time(now, n->connect_date), 
 				(gint) (node_error_cleanup_timer / node_error_threshold));
 		return;
 	}
@@ -1704,13 +1707,13 @@ static void node_shutdown_mode(struct gnutella_node *n, guint32 delay)
 
 	if (n->status == GTA_NODE_CONNECTED) {	/* Free Gnet slot */
 		connected_node_cnt--;
-		g_assert(connected_node_cnt >= 0);
+		g_assert(connected_node_cnt <= INT_MAX);
         if (n->attrs & NODE_A_RX_INFLATE) {
 			if (n->flags & NODE_F_LEAF)
 				compressed_leaf_cnt--;
             compressed_node_cnt--;
-            g_assert(compressed_node_cnt >= 0);
-			g_assert(compressed_leaf_cnt >= 0);
+            g_assert(compressed_node_cnt <= INT_MAX);
+			g_assert(compressed_leaf_cnt <= INT_MAX);
         }
 		node_type_count_dec(n);
  	}
@@ -1778,7 +1781,7 @@ static void node_bye_v(
 	struct gnutella_header head;
 	gchar reason_fmt[1024];
 	struct gnutella_bye *payload = (struct gnutella_bye *) reason_fmt;
-	gint len;
+	size_t len;
 	gint sendbuf_len;
 	gchar *reason_base = &reason_fmt[2];	/* Leading 2 bytes for code */
 
@@ -2150,8 +2153,8 @@ void send_node_error(
 {
 	gchar gnet_response[2048];
 	gchar msg_tmp[256];
-	gint rw;
-	gint sent;
+	size_t rw;
+	ssize_t sent;
 	va_list args;
 
 	va_start(args, msg);
@@ -2192,10 +2195,11 @@ void send_node_error(
 
 	g_assert(rw < sizeof(gnet_response));
 
-	if (-1 == (sent = bws_write(bws.gout, s->file_desc, gnet_response, rw))) {
+	sent = bws_write(bws.gout, s->file_desc, gnet_response, rw);
+	if ((ssize_t) -1 == sent) {
 		if (dbg) g_warning("Unable to send back error %d (%s) to node %s: %s",
 			code, msg_tmp, ip_to_gchar(s->ip), g_strerror(errno));
-	} else if (sent < rw) {
+	} else if ((size_t) sent < rw) {
 		if (dbg) g_warning("Only sent %d out of %d bytes of error %d (%s) "
 			"to node %s: %s",
 			sent, rw, code, msg_tmp, ip_to_gchar(s->ip), g_strerror(errno));
@@ -2526,11 +2530,11 @@ static void node_got_bye(struct gnutella_node *n)
 	guint16 code;
 	gchar *message = n->data + 2; 
 	guchar c;
-	gint cnt;
+	guint cnt;
 	gchar *p;
 	gboolean warned = FALSE;
 	gboolean is_plain_message = TRUE;
-	gint message_len = n->size - 2;
+	guint message_len = n->size - 2;
 
 	READ_GUINT16_LE(n->data, code);
 
@@ -2697,7 +2701,7 @@ static gint extract_field_pongs(gchar *field, host_type_t type)
 	const gchar *tok;
 	gint pong = 0;
 
-    g_assert((type >= 0) && (type < HOST_MAX));
+    g_assert((guint) type < HOST_MAX);
 
 	for (tok = strtok(field, ",;"); tok; tok = strtok(NULL, ",;")) {
 		guint16 port;
@@ -2986,7 +2990,7 @@ static gboolean node_can_accept_connection(
 				return FALSE;
 			}
 		} else if (n->attrs & NODE_A_ULTRA) {
-			gint ultra_max;
+			guint ultra_max;
 
 			/*
 			 * Try to preference compressed ultrapeer connections too
@@ -3003,9 +3007,9 @@ static gboolean node_can_accept_connection(
 				node_remove(n, "Connection not compressed");
 				return FALSE;
 			}
-			
-			ultra_max = max_connections - normal_connections;
-			ultra_max = MAX(ultra_max, 0);
+		
+			ultra_max = max_connections > normal_connections 
+				? max_connections - normal_connections : 0;
 
 			if (
 				handshaking &&
@@ -3029,7 +3033,7 @@ static gboolean node_can_accept_connection(
 		 */
 
 		if (handshaking) {
-			gint connected = node_normal_count + node_ultra_count;
+			guint connected = node_normal_count + node_ultra_count;
 
             if (
 				prefer_compressed_gnet &&
@@ -3037,7 +3041,7 @@ static gboolean node_can_accept_connection(
 				(
 					((n->flags & NODE_F_INCOMING) && 
 					connected >= up_connections &&
-					connected - compressed_node_cnt > 0)
+					connected > compressed_node_cnt)
 					||
 					(n->flags & NODE_F_LEAF)
 				)
@@ -3070,7 +3074,7 @@ static gboolean node_can_accept_connection(
 		break;
 	case NODE_P_NORMAL:
 		if (handshaking) {
-			gint connected = node_normal_count + node_ultra_count;
+			guint connected = node_normal_count + node_ultra_count;
 			if (
 				(n->attrs & (NODE_A_CAN_ULTRA|NODE_A_ULTRA)) == NODE_A_CAN_ULTRA
 			) {
@@ -3089,7 +3093,7 @@ static gboolean node_can_accept_connection(
 				(n->flags & NODE_F_INCOMING) && 
 				!(n->attrs & NODE_A_CAN_INFLATE) &&
 				connected >= up_connections &&
-				connected - compressed_node_cnt > 0
+				connected > compressed_node_cnt
 			) {
 				send_node_error(n->socket, 403,
 					"Gnet connection not compressed");
@@ -3420,7 +3424,7 @@ static void node_process_handshake_header(
 	struct gnutella_node *n, header_t *head)
 {
 	gchar gnet_response[10240];		/* Large in case Crawler info sent back */
-	gint rw;
+	size_t rw;
 	gint sent;
 	const gchar *field;
 	gboolean incoming = (n->flags & NODE_F_INCOMING);
@@ -3813,7 +3817,7 @@ static void node_process_handshake_header(
 					current_peermode == NODE_P_ULTRA &&
 					configured_peermode != NODE_P_ULTRA &&
 					node_leaf_count == 0 &&
-					n->up_date != 0 && n->up_date < start_stamp
+					n->up_date != 0 && delta_time(n->up_date, start_stamp) < 0
 				) {
 					g_warning("accepting request from %s <%s> to become a leaf",
 						node_ip(n), node_vendor(n));
@@ -3870,14 +3874,14 @@ static void node_process_handshake_header(
 
 		g_assert(rw < sizeof(gnet_response));
 	} else {
-		gint ultra_max;
+		guint ultra_max;
 
 		/*
 		 * Welcome the incoming node.
 		 */
 
-		ultra_max = max_connections - normal_connections;
-		ultra_max = MAX(ultra_max, 0);
+		ultra_max = max_connections > normal_connections
+			? max_connections - normal_connections : 0;
 
 		if (n->flags & NODE_F_CRAWLER)
 			rw = gm_snprintf(gnet_response, sizeof(gnet_response),
@@ -3920,7 +3924,8 @@ static void node_process_handshake_header(
 			header_features_generate(&xfeatures.connections,
 				gnet_response, sizeof(gnet_response), &rw);
 
-			rw += gm_snprintf(&gnet_response[rw], sizeof(gnet_response) - rw, "\r\n");
+			rw += gm_snprintf(&gnet_response[rw],
+					sizeof(gnet_response) - rw, "\r\n");
 		}
 		g_assert(rw < sizeof(gnet_response));
 	}
@@ -3932,14 +3937,14 @@ static void node_process_handshake_header(
 	 */
 
 	sent = bws_write(bws.gout, n->socket->file_desc, gnet_response, rw);
-	if (sent == -1) {
+	if ((ssize_t) -1 == sent) {
 		int errcode = errno;
 		if (dbg) g_warning("Unable to send back %s to node %s: %s",
 			what, ip_to_gchar(n->ip), g_strerror(errcode));
 		node_remove(n, "Failed (Cannot send %s: %s)",
 			what, g_strerror(errcode));
 		return;
-	} else if (sent < rw) {
+	} else if ((size_t) sent < rw) {
 		if (dbg) g_warning(
 			"Could only send %d out of %d bytes of %s to node %s",
 			sent, rw, what, ip_to_gchar(n->ip));
@@ -4277,7 +4282,7 @@ static void node_parse(struct gnutella_node *node)
 	static struct gnutella_node *n;
 	gboolean drop = FALSE;
 	gboolean has_ggep = FALSE;
-	gint regular_size = -1;			/* -1 signals: regular size */
+	size_t regular_size = (size_t) -1;		/* -1 signals: regular size */
 	struct route_dest dest;
 	query_hashvec_t *qhv = NULL;
 
@@ -4433,7 +4438,7 @@ static void node_parse(struct gnutella_node *node)
 	 * clearly a bad message.
 	 */
 
-	if (regular_size != -1) {
+	if (regular_size != (size_t) -1) {
 		g_assert(n->size != regular_size);
 
 		has_ggep = FALSE;
@@ -4573,7 +4578,7 @@ static void node_parse(struct gnutella_node *node)
 			 * Propagate message, if needed
 			 */
 
-			g_assert(regular_size == -1 || has_ggep);
+			g_assert(regular_size == (size_t) -1 || has_ggep);
 
 			if (has_ggep)
 				gmsg_sendto_route_ggep(n, &dest, regular_size);
@@ -4612,8 +4617,8 @@ void node_init_outgoing(struct gnutella_node *n)
 {
 	struct gnutella_socket *s = n->socket;
 	gchar buf[MAX_LINE_SIZE];
-	gint len;
-	gint sent;
+	size_t len;
+	ssize_t sent;
 
 	g_assert(s->gdk_tag == 0);
 
@@ -4653,10 +4658,11 @@ void node_init_outgoing(struct gnutella_node *n)
 	 * initial HELLO.
 	 */
 
-	if (-1 == (sent = bws_write(bws.gout, n->socket->file_desc, buf, len))) {
+	sent = bws_write(bws.gout, n->socket->file_desc, buf, len);
+	if ((ssize_t) -1 == sent) {
 		node_remove(n, "Write error during HELLO: %s", g_strerror(errno));
 		return;
-	} else if (sent < len) {
+	} else if ((size_t) sent < len) {
 		node_remove(n, "Partial write during HELLO");
 		return;
 	} else {

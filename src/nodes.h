@@ -151,7 +151,7 @@ typedef struct gnutella_node {
 	 *		--RAM, 02/02/2002
 	 */
 
-	gint32 id;					/* Unique internal ID */
+	guint32 id;					/* Unique internal ID */
 	guint ping_throttle;		/* Period for accepting new pings (secs) */
 	time_t ping_accept;			/* Time after which we accept new pings */
 	time_t next_ping;			/* When to send a ping, for "OLD" clients */
@@ -427,8 +427,8 @@ extern struct gnutella_node *node_added;
 void node_init(void);
 void node_slow_timer(time_t now);
 void node_timer(time_t now);
-gint32 connected_nodes(void);
-gint32 node_count(void);
+guint connected_nodes(void);
+guint node_count(void);
 gint node_keep_missing(void);
 gint node_missing(void);
 guint node_outdegree(void);
