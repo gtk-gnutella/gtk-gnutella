@@ -42,7 +42,7 @@ http://mitglied.lycos.de/h2flow/gwc/gcache.php
 http://nocilla.boimorto.com/cgi-bin/gnocilla.pl
 http://p2pdotcn.gotdns.org/pcache/pcache.php
 http://pwc.fspn.cryptnet.net/cpwc.cgi
-http://raphael.manfredi.free.fr/gwc/gcache.php
+http://gcache.shacknet.nu:8088/gwc
 http://r3dk0w.dyndns.org/gwebcache/gcache.php
 http://tv2knet.basm.be/gcache.php
 http://ui.upce.cz/~mirek/perlgcache.cgi
