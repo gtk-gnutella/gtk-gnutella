@@ -62,7 +62,7 @@ static shadow_t *shadow_new(filter_t *s);
 static shadow_t *shadow_find(filter_t *s);
 static int filter_apply(filter_t *, record_t *, filter_result_t *);
 static void filter_remove_rule(filter_t *f, rule_t *r);
-static void filter_free(filter_t *f);
+static void filter_free(filter_t *filter);
 
 /*
  * Public variables
@@ -347,13 +347,6 @@ static void shadow_commit(shadow_t *shadow)
 void filter_open_dialog() {
     GList *l;
 
-    if (filter_dialog == NULL) {
-        filter_dialog = create_dlg_filters();
-        g_assert(filter_dialog != NULL);
-   
-        filter_gui_init();
-    }
-    
     /*
      * If we have not started a editing session yet, we do that now.
      */
@@ -362,6 +355,12 @@ void filter_open_dialog() {
         session_started = TRUE;
         filters_current = g_list_copy(filters);
     }
+
+    if (filter_dialog == NULL) {
+        filter_dialog = create_dlg_filters();
+        g_assert(filter_dialog != NULL);
+   
+        filter_gui_init();
 
     /*
      * We initialize the root nodes here.
@@ -372,20 +371,18 @@ void filter_open_dialog() {
         shadow_t *shadow;
         GList *ruleset;
         gboolean enabled;
-    
-        if (filter_is_builtin(filter))
-            continue;
-                        
+        
         shadow = shadow_find(filter);
         ruleset = (shadow != NULL) ? shadow->current : filter->ruleset;
         enabled = (shadow != NULL) ? 
             filter_is_active(shadow) : 
             filter_is_active(filter);
-                    
+                        
         filter_gui_filter_add(filter, ruleset);
         filter_gui_filter_set_enabled(filter, enabled);
     }
-
+    }
+    
     if (current_search != NULL) {
         filter_set(current_search->filter);
     } else {
@@ -1160,12 +1157,13 @@ filter_t *filter_new(gchar *name)
  * filter_add_to_session:
  *
  * Add a filter to the current editing session. Never try to add
- * a filter twice.
+ * a filter twice. Returns a error code on failure and 0 on success.
  */
 void filter_add_to_session(filter_t *f)
 {
     g_assert(g_list_find(filters_current, f) == NULL);
-
+    g_assert(f != NULL);
+   
     /*
      * If we have not started a editing session yet, we do that now.
      */
@@ -1895,6 +1893,7 @@ void filter_adapt_order(void)
     (res)->props_set ++;                                          \
     (r)->match_count ++;                                          \
     (prop_count) ++;                                              \
+    (r)->target->match_count ++;                                  \
                                                                   \
     if(dbg >= 6)                                                  \
         printf("matched rule: %s\n", filter_rule_to_gchar((r)));  \
@@ -2447,6 +2446,28 @@ gboolean filter_is_valid_in_session(filter_t *f)
 
     list = session_started ? filters_current : filters;
     return g_list_find(list, f) != NULL;
+}
+
+/*
+ * filter_find_by_name_in_session:
+ *
+ * Returns the filter with the given name in the session if it 
+ * exists, otherwise returns NULL. If no session is started, it
+ * looks in the normal filter list.
+ */
+filter_t *filter_find_by_name_in_session(gchar *name)
+{
+    GList *l;
+
+    l = session_started ? filters_current : filters;
+
+    for (;l != NULL; l = l->next) {
+        filter_t *filter = (filter_t *) l->data;
+
+        if (strcmp(filter->name, name) == 0)
+            return filter;
+    }
+    return NULL;
 }
 
 inline gboolean filter_is_global(filter_t *f)

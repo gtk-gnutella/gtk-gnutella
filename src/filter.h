@@ -94,6 +94,10 @@ typedef struct filter {
 #define filter_is_shadowed(f) ((f != NULL) && (f->flags & FILTER_FLAG_SHADOW))
 
 
+/*
+ * Some error codes (0 means 'no error')
+ */
+#define FILTER_EXISTS 1
 
 /*
  * MAX_FILTER_PROP is used to know how many FILTER_PROPS there are.
@@ -242,6 +246,7 @@ void filter_timer(void);
 void filter_update_targets(void);
 void filter_free_result(filter_result_t *);
 void filter_free_rule(rule_t *rule);
+filter_t *filter_find_by_name_in_session(gchar *name);
 gboolean filter_is_valid_in_session(filter_t *f);
 inline filter_t *filter_get_drop_target(void);
 inline filter_t *filter_get_show_target(void);
