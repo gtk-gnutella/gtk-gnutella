@@ -104,7 +104,7 @@ static gboolean sqh_exists(squeue_t *sq, gnet_search_t sh)
 {
 	g_assert(sq != NULL);
 
-	return NULL != g_hash_table_lookup(sq->handles, (gpointer) &sh);
+	return NULL != g_hash_table_lookup(sq->handles, GUINT_TO_POINTER(sh));
 }
 
 /*
@@ -117,7 +117,7 @@ static void sqh_put(squeue_t *sq, gnet_search_t sh)
 	g_assert(sq != NULL);
 	g_assert(!sqh_exists(sq, sh));
 
-	g_hash_table_insert(sq->handles, atom_int_get(&sh), GINT_TO_POINTER(1));
+	g_hash_table_insert(sq->handles, GUINT_TO_POINTER(sh), GINT_TO_POINTER(1));
 }
 
 /*
@@ -133,24 +133,13 @@ static void sqh_remove(squeue_t *sq, gnet_search_t sh)
 
 	g_assert(sq != NULL);
 
-	found = g_hash_table_lookup_extended(sq->handles, &sh, &key, &value);
+	found = g_hash_table_lookup_extended(sq->handles,
+				GUINT_TO_POINTER(sh), &key, &value);
 
 	g_assert(found);
-	g_assert(*(gnet_search_t *) key == sh);
+	g_assert((gnet_search_t) key == sh);
 
-	g_hash_table_remove(sq->handles, &sh);
-	atom_int_free(key);
-}
-
-/*
- * sqh_free_kv
- *
- * Iterator callback for removing all entries from hash table.
- */
-static gboolean sqh_free_kv(gpointer key, gpointer value, gpointer user)
-{
-	atom_int_free(key);
-	return TRUE;
+	g_hash_table_remove(sq->handles, GUINT_TO_POINTER(sh));
 }
 
 /***
@@ -184,7 +173,7 @@ squeue_t *sq_make(struct gnutella_node *node)
 	sq->n_sent 		= 0;
 	sq->n_dropped 	= 0;
 	sq->node        = node;
-	sq->handles     = g_hash_table_new(g_int_hash, g_int_equal);
+	sq->handles     = g_hash_table_new(NULL, NULL);
 
 	return sq;
 }
@@ -212,7 +201,6 @@ void sq_clear(squeue_t *sq)
 	}
 
 	g_list_free(sq->searches);
-	g_hash_table_foreach_remove(sq->handles, sqh_free_kv, NULL);
 
 	sq->searches = NULL;
 	sq->count = 0;

@@ -173,7 +173,6 @@ static void vp_draw_range (gpointer data, gpointer user_data)
 void vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 {
     vp_info_t *v;
-    gpointer atom;
 	gboolean found;
 
     /*
@@ -185,7 +184,7 @@ void vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
 	if (fi_context.drawable) {
 		if (valid) {
 			found = g_hash_table_lookup_extended(vp_info_hash,
-				&fih, &atom, (gpointer *)&v);
+				GUINT_TO_POINTER(fih), NULL, (gpointer *) &v);
 			g_assert(found);
 			g_assert(v);
 			
@@ -257,7 +256,7 @@ static void vp_gui_fi_added(gnet_fi_t fih)
     new_vp_info->file_size = s.size;
     new_vp_info->chunks_list = fi_get_chunks(fih);
 
-    g_hash_table_insert(vp_info_hash, atom_int_get(&fih), new_vp_info);
+    g_hash_table_insert(vp_info_hash, GUINT_TO_POINTER(fih), new_vp_info);
     
     fi_free_info(fi);
 }
@@ -265,11 +264,10 @@ static void vp_gui_fi_added(gnet_fi_t fih)
 static void vp_gui_fi_removed(gnet_fi_t fih)
 {
     gpointer *v;
-    gpointer atom;
     gboolean found;
 
     found = g_hash_table_lookup_extended(vp_info_hash,
-		&fih, &atom, (gpointer *)&v);
+		GUINT_TO_POINTER(fih), NULL, (gpointer *) &v);
     g_assert(found);
     g_assert(v);
 
@@ -277,8 +275,7 @@ static void vp_gui_fi_removed(gnet_fi_t fih)
      * TODO: Also remove the row from the GUI and perhaps reshuffle rows
      */
 
-    g_hash_table_remove(vp_info_hash, &fih);
-    atom_int_free(atom);
+    g_hash_table_remove(vp_info_hash, GUINT_TO_POINTER(fih));
     fi_free_chunks(((vp_info_t *) v)->chunks_list);
     
     wfree(v, sizeof(vp_info_t));
@@ -296,7 +293,6 @@ static void vp_gui_fi_removed(gnet_fi_t fih)
 static void vp_gui_fi_status_changed(gnet_fi_t fih)
 {
     vp_info_t *v;
-    gpointer atom;
     GSList *old;
     GSList *new;
     GSList *keep_new;
@@ -309,7 +305,7 @@ static void vp_gui_fi_status_changed(gnet_fi_t fih)
      * true...
      */
     found = g_hash_table_lookup_extended(vp_info_hash,
-		&fih, &atom, (gpointer *)&v);
+		GUINT_TO_POINTER(fih), NULL, (gpointer *) &v);
     g_assert(found);
     g_assert(v);
 
@@ -386,7 +382,6 @@ static GSList *range_for_complete_file(guint32 size)
 static void vp_update_ranges(gnet_src_t srcid)
 {
     vp_info_t *v;
-    gpointer atom;
 	gboolean found;
 	gnet_fi_t fih;
 	struct download *d;
@@ -399,7 +394,7 @@ static void vp_update_ranges(gnet_src_t srcid)
 	 */
 	fih = d->file_info->fi_handle;
     found = g_hash_table_lookup_extended(vp_info_hash,
-		&fih, &atom, (gpointer *)&v);
+		GUINT_TO_POINTER(fih), NULL, (gpointer *) &v);
     g_assert(found);
     g_assert(v);
 	
@@ -424,7 +419,6 @@ static void vp_update_ranges(gnet_src_t srcid)
 
 void vp_free_key_value (gpointer key, gpointer value, gpointer user_data)
 {
-    atom_int_free(key);
     wfree(value, sizeof(vp_info_t));
 }
 
@@ -437,7 +431,7 @@ void vp_gui_init(void)
 {
     GdkColormap *cmap;
 
-    vp_info_hash = g_hash_table_new(g_int_hash, g_int_equal);
+    vp_info_hash = g_hash_table_new(NULL, NULL);
 
     fi_add_listener(vp_gui_fi_added, EV_FI_ADDED, FREQ_SECS, 0);
     fi_add_listener(vp_gui_fi_removed, EV_FI_REMOVED, FREQ_SECS, 0);
