@@ -7748,7 +7748,7 @@ Grace time remaining:</property>
 	      </child>
 
 	      <child>
-		<widget class="GtkFrame" id="frame89">
+		<widget class="GtkFrame" id="frame_expert_rx_buffers">
 		  <property name="visible">True</property>
 		  <property name="label_xalign">0</property>
 		  <property name="label_yalign">0.5</property>

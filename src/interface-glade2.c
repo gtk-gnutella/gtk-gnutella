@@ -4360,7 +4360,7 @@ create_main_window_config_bwc_tab (void)
   GtkWidget *checkbutton_config_bw_ul_usage_enabled;
   GtkWidget *label156;
   GtkWidget *label291;
-  GtkWidget *frame89;
+  GtkWidget *frame_expert_rx_buffers;
   GtkWidget *table77;
   GtkWidget *label_kbytes_1;
   GtkWidget *label_kbytes;
@@ -4777,15 +4777,15 @@ create_main_window_config_bwc_tab (void)
   gtk_frame_set_label_widget (GTK_FRAME (frame12), label291);
   gtk_label_set_justify (GTK_LABEL (label291), GTK_JUSTIFY_LEFT);
 
-  frame89 = gtk_frame_new (NULL);
-  gtk_widget_set_name (frame89, "frame89");
-  gtk_widget_show (frame89);
-  gtk_box_pack_start (GTK_BOX (vbox29), frame89, FALSE, TRUE, 2);
+  frame_expert_rx_buffers = gtk_frame_new (NULL);
+  gtk_widget_set_name (frame_expert_rx_buffers, "frame_expert_rx_buffers");
+  gtk_widget_show (frame_expert_rx_buffers);
+  gtk_box_pack_start (GTK_BOX (vbox29), frame_expert_rx_buffers, FALSE, TRUE, 2);
 
   table77 = gtk_table_new (2, 3, FALSE);
   gtk_widget_set_name (table77, "table77");
   gtk_widget_show (table77);
-  gtk_container_add (GTK_CONTAINER (frame89), table77);
+  gtk_container_add (GTK_CONTAINER (frame_expert_rx_buffers), table77);
   gtk_container_set_border_width (GTK_CONTAINER (table77), 2);
   gtk_table_set_row_spacings (GTK_TABLE (table77), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table77), 4);
@@ -4847,7 +4847,7 @@ create_main_window_config_bwc_tab (void)
   label736 = gtk_label_new (_("Socket receive buffer size"));
   gtk_widget_set_name (label736, "label736");
   gtk_widget_show (label736);
-  gtk_frame_set_label_widget (GTK_FRAME (frame89), label736);
+  gtk_frame_set_label_widget (GTK_FRAME (frame_expert_rx_buffers), label736);
   gtk_label_set_justify (GTK_LABEL (label736), GTK_JUSTIFY_LEFT);
 
   gtk_label_set_mnemonic_widget (GTK_LABEL (label156), spinbutton_config_speed);
@@ -4912,7 +4912,7 @@ create_main_window_config_bwc_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, checkbutton_config_bw_ul_usage_enabled, "checkbutton_config_bw_ul_usage_enabled");
   GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, label156, "label156");
   GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, label291, "label291");
-  GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, frame89, "frame89");
+  GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, frame_expert_rx_buffers, "frame_expert_rx_buffers");
   GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, table77, "table77");
   GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, label_kbytes_1, "label_kbytes_1");
   GLADE_HOOKUP_OBJECT (main_window_config_bwc_tab, label_kbytes, "label_kbytes");
