@@ -56,6 +56,9 @@ RCSID("$Id$");
 #include "sq.h"
 #include "settings.h"		/* For listen_ip() */
 #include "oob_proxy.h"
+#include "hosts.h"
+#include "bogons.h"
+#include "geo_ip.h"
 
 #include "if/gnet_property_priv.h"
 #include "if/gui_property.h"
@@ -383,6 +386,9 @@ search_free_r_set(gnet_results_set_t *rs)
 	if (rs->hostname)
 		atom_str_free(rs->hostname);
 
+	if (rs->country)
+		atom_str_free(rs->country);
+
 	g_slist_free(rs->records);
 	zfree(rs_zone, rs);
 }
@@ -441,6 +447,7 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
     rs->status    = 0;
 	rs->proxies   = NULL;
 	rs->hostname  = NULL;
+	rs->country   = NULL;
 
 	r = (struct gnutella_search_results *) n->data;
 
@@ -474,6 +481,18 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
         }
 		gnet_stats_count_dropped(n, MSG_DROP_HOSTILE_IP);
 		goto bad_packet;
+	}
+
+	/* Check for valid IP addresses (unroutable => turn push on) */
+
+	if (is_private_ip(rs->ip))
+		rs->status |= ST_FIREWALL;
+	else if (rs->port == 0 || bogons_check(rs->ip)) {
+        if (dbg || search_debug) {
+            g_warning("query hit advertising bogus IP %s",
+				ip_port_to_gchar(rs->ip, rs->port));
+        }
+		rs->status |= ST_BOGUS | ST_FIREWALL;
 	}
 
 	/* Drop if no results in Query Hit */
@@ -1038,8 +1057,19 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 			rs->status &= ~ST_FIREWALL;		/* Clear "Push" indication */
 	}
 
-	if (!validate_only)
+	if (!validate_only) {
+		guint32 cip;
+
 		g_string_free(info, TRUE);
+
+		/*
+		 * Prefer an UDP source IP for the country computation.
+		 */
+
+		cip = (rs->status & ST_UDP) ? rs->udp_ip : rs->ip;
+		rs->country = atom_str_get(gip_country(cip));
+	}
+
 	return rs;
 
 	/*
