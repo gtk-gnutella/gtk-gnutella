@@ -82,9 +82,10 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.2 2004/08/28 06:36:27 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.3 2004/10/04 11:00:06 rmanfredi Exp $
 
 LSRC = \
+	bitzi.c \
 	downloads_common.c \
 	drop.c \
 	filter.c \
@@ -110,6 +111,7 @@ LSRC = \
 	visual_progress.c
 
 LOBJ = \
+	bitzi.o \
 	downloads_common.o \
 	drop.o \
 	filter.o \
