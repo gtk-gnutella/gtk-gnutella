@@ -50,6 +50,7 @@ Ladies and gentleman, here's the
          *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
          *----------------------------------------------------------------------
          */
+
         /**
          * @file
          *
@@ -70,13 +71,14 @@ Ladies and gentleman, here's the
 
         /**
          * Purpose in life.
-	 *
-	 * @param param1 blah blah
-	 * @param param2 blah blah
+         *
+         * @param param1 blah blah
+	     * @param param2 blah blah
          *
          * @returns blah blah.
          */
-        void function_name(...args...)
+        static struct type *
+		function_name(...args...)
 
     When the API documentation is generated with Doxygen, the first
     sentence (up to the first ".") is treated as the short description
@@ -86,6 +88,10 @@ Ladies and gentleman, here's the
     tags are documented in the manual of the Doxygen software package
     (see http://www.doxygen.org). The format is largely compatible to Javadoc.
     Do not try to use HTML.
+
+	Since the function name does not appear in the leading comment, it
+	is important to make it standout by moving it at the very beginning
+	of the line, as shown in the example above.
 
 2.3  Block comments must be formatted as:
 
@@ -218,7 +224,8 @@ Ladies and gentleman, here's the
      in the argument list on the same line as the function name, or it
      will break the vi 'tags':
 
-        static void function(
+        static void
+		function(
             unsigned char *argument1, int arg2)
         {
             /* Body */
@@ -257,7 +264,8 @@ Ladies and gentleman, here's the
             then_that();
         }
 
-        void function(void)
+        void
+		function(void)
         {
             ...
         }
