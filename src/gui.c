@@ -24,7 +24,8 @@ gchar gui_tmp[4096];
 GtkWidget *default_search_clist = NULL;
 GtkWidget *default_scrolled_window = NULL;
 
-guint statusbar_context_id = -1;
+/* statusbar context ids */
+guint scid_bottom = -1;
 
 void gui_nodes_remove_selected(void)
 {
@@ -55,18 +56,17 @@ void gui_nodes_remove_selected(void)
 
 void gui_set_status(gchar * msg)
 {
-  if( statusbar_context_id == -1 ) {
-    statusbar_context_id = gtk_statusbar_get_context_id( GTK_STATUSBAR(statusbar), "sb" );
-  }
+	if( scid_bottom == -1 )
+		scid_bottom = gtk_statusbar_get_context_id( GTK_STATUSBAR(statusbar), "sb" );
 
-  gtk_statusbar_pop( GTK_STATUSBAR(statusbar), statusbar_context_id );
+	gtk_statusbar_pop( GTK_STATUSBAR(statusbar), scid_bottom );
 
-  if( msg ) {
-    gtk_statusbar_push( GTK_STATUSBAR(statusbar), statusbar_context_id, msg );
-  } else {
-    g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", GTA_WEBSITE);
-    gtk_statusbar_push( GTK_STATUSBAR(statusbar), statusbar_context_id, gui_tmp );
-  }
+    if( msg ) {
+		gtk_statusbar_push( GTK_STATUSBAR(statusbar), scid_bottom, msg );
+    } else {
+		g_snprintf(gui_tmp, sizeof(gui_tmp), "%s", GTA_WEBSITE);
+		gtk_statusbar_push( GTK_STATUSBAR(statusbar), scid_bottom, gui_tmp );
+	}
 }
 
 void gui_update_config_force_ip(void)
