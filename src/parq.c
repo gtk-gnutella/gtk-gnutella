@@ -2904,8 +2904,8 @@ void parq_upload_add_header(
 			else
 				rw = gm_snprintf(buf, length,
 					"X-Queue: %d.%d\r\n"
-					"X-Queued: position=%d; ID=%s; length=%d; "
-					"ETA=%d; lifetime=%d\r\n"
+					"X-Queued: position=%d; ID=%s; length=%d;\r\n"
+					"\tETA=%d; lifetime=%d\r\n"
 					"Retry-After: %d\r\n",
 					PARQ_VERSION_MAJOR, PARQ_VERSION_MINOR,
 					parq_ul->relative_position,
