@@ -8274,6 +8274,9 @@ create_main_window_downloads_tab (void)
   g_signal_connect ((gpointer) entry_queue_regex, "activate",
                     G_CALLBACK (on_entry_queue_regex_activate),
                     NULL);
+  g_signal_connect ((gpointer) button_fi_purge, "clicked",
+                    G_CALLBACK (on_button_fi_purge_clicked),
+                    NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_downloads_tab, main_window_downloads_tab, "main_window_downloads_tab");
