@@ -191,8 +191,10 @@ void gui_update_download(struct download *d, gboolean force)
 		break;
 
 	case GTA_DL_TIMEOUT_WAIT:
-		g_snprintf(tmpstr, sizeof(tmpstr), "Retry in %lds",
-				   d->timeout_delay - (now - d->last_update));
+		{
+			gint when = d->timeout_delay - (now - d->last_update);
+			g_snprintf(tmpstr, sizeof(tmpstr), "Retry in %ds", MAX(0, when));
+		}
 		a = tmpstr;
 		break;
 	default:
