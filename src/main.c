@@ -47,6 +47,7 @@
 #include "ignore.h"
 #include "guid.h"
 #include "gnet_stats.h"
+#include "http.h"
 
 #include "main_gui.h"
 #include "settings.h"
@@ -202,6 +203,7 @@ static gboolean main_timer(gpointer p)
 	bsched_timer();					/* Scheduling update */
 	host_timer();					/* Host connection */
 	node_timer(now);				/* Node timeouts */
+	http_timer(now);				/* HTTP request timeouts */
 	if (!exiting) {
 		download_timer(now);  	    /* Download timeouts */
 		upload_timer(now);			/* Upload timeouts */
