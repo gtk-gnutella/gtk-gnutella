@@ -56,6 +56,7 @@
 
 struct gnutella_msg_init {
 	struct gnutella_header header;
+	gchar ggep[ZERO_LENGTH];
 } __attribute__((__packed__));
 
 struct gnutella_init_response {
@@ -68,6 +69,7 @@ struct gnutella_init_response {
 struct gnutella_msg_init_response {
 	struct gnutella_header header;
 	struct gnutella_init_response response;
+	gchar ggep[ZERO_LENGTH];
 } __attribute__((__packed__));
 
 struct gnutella_search {
@@ -100,6 +102,7 @@ struct gnutella_push_request {
 struct gnutella_msg_push_request {
 	struct gnutella_header header;
 	struct gnutella_push_request request;
+	gchar ggep[ZERO_LENGTH];
 } __attribute__((__packed__));
 
 struct gnutella_bye {
