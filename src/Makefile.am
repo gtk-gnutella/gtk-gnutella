@@ -13,7 +13,6 @@ gtk_gnutella_SOURCES = \
 	gnutella.h \
 	misc.c misc.h \
 	config.c appconfig.h \
-	md5.c \
 	sockets.c sockets.h \
 	nodes.c nodes.h \
 	hosts.c hosts.h \
