@@ -207,7 +207,7 @@ void gui_update_stats_frames(void)
     }
 
     if ((progressbar_bws_glin_visible || progressbar_bws_glout_visible) &&
-        (peermode == 2) || !autohide_bws_gleaf) {
+        (peermode == 2 || !autohide_bws_gleaf)) {
         gtk_widget_show(frame_bws_glinout);
     } else {
         gtk_widget_hide(frame_bws_glinout);
