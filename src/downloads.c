@@ -2795,7 +2795,8 @@ static struct download *create_download(
 	 */
 
 	if (proxies != NULL && stamp > server->proxies_stamp) {
-		free_proxies(server);
+		if (server->proxies)
+			free_proxies(server);
 		server->proxies = hostvec_to_slist(proxies);
 		server->proxies_stamp = stamp;
 	}
