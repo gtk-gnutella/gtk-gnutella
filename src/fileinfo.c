@@ -58,7 +58,6 @@
 #include <time.h>			/* For ctime() */
 #include <arpa/inet.h>		/* For ntohl() and friends... */
 #include <dirent.h>
-#include <ctype.h>			/* For iscntrl() */
 
 #include "override.h"		/* Must be the last header included */
 
@@ -918,9 +917,7 @@ static gboolean looks_like_urn(const gchar *filename)
 
 	while ((c = *(guchar *) p++)) {
 		idx++;
-		if (isspace(c) || c == '_')
-			break;
-		if (!isalnum(c))
+		if (!is_ascii_alnum(c))
 			break;
 		if (idx >= SHA1_BASE32_SIZE)
 			return TRUE;
@@ -938,7 +935,7 @@ static gboolean looks_like_urn(const gchar *filename)
  * Returns a pointer to the information in the fileinfo, but this must be
  * duplicated should it be perused later.
  */
-gchar *file_info_readable_filename(struct dl_file_info *fi)
+const gchar *file_info_readable_filename(struct dl_file_info *fi)
 {
 	GSList *l;
 
@@ -983,7 +980,7 @@ shared_file_t *file_info_shared_sha1(const gchar *sha1)
 	if (fi->sf == NULL) {
 		shared_file_t *sf = walloc0(sizeof(*sf));
 		char *path = g_strdup_printf("%s/%s", fi->path, fi->file_name);
-		char *filename;
+		const char *filename;
 
 		if (NULL == path) {
 			wfree(sf, sizeof(*sf));
@@ -2120,8 +2117,8 @@ void file_info_retrieve(void)
  * be done, a copy of the original argument is made first.	Otherwise,
  * no change nor allocation occur.
  *
- * All the control characters are also replaced with '_'.  Any leading '.'
- * in the filename is also replaced with '_'.
+ * Any ASCII control characters and leading '.' in the filename are also
+ * replaced with '_'.
  *
  * Returns the pointer to the escaped filename, or the original argument if
  * no escaping needed to be performed.
@@ -2134,7 +2131,7 @@ static gchar *escape_filename(gchar *file)
 
 	s = file;
 	while ((c = *(guchar *) s)) {
-		if (c == '/' || iscntrl(c) || (c == '.' && s == file)) {
+		if (c == '/' || is_ascii_cntrl(c) || (c == '.' && s == file)) {
 			if (escaped == NULL) {
 				escaped = g_strdup(file);
 				s = escaped + (s - file);	/* s now refers to escaped string */
