@@ -246,6 +246,8 @@ src/core/namesize.c
 src/core/namesize.h 
 src/core/nodes.c 
 src/core/nodes.h 
+src/core/oob.c
+src/core/oob.h
 src/core/parq.c 
 src/core/parq.h 
 src/core/pcache.c 
@@ -385,6 +387,8 @@ src/lib/eval.c
 src/lib/eval.h 
 src/lib/event.c 
 src/lib/event.h 
+src/lib/fifo.c
+src/lib/fifo.h
 src/lib/file.c 
 src/lib/file.h 
 src/lib/fuzzy.c 
