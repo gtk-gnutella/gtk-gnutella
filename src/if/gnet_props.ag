@@ -569,7 +569,7 @@ prop = {
 prop = {
     name = "node_sendqueue_size";
     desc = "Maximum size of the sendqueue for the nodes (in bytes). "
-           "Must be at least 150% of the maximum message size";
+           "Must be at least 150 percent of the maximum message size";
     type = guint32;
     data = {
         default = 98304;

@@ -1466,7 +1466,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[46].name = "node_sendqueue_size";
-    gnet_property->props[46].desc = _("Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150% of the maximum message size");
+    gnet_property->props[46].desc = _("Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150 percent of the maximum message size");
     gnet_property->props[46].ev_changed = event_new("node_sendqueue_size_changed");
     gnet_property->props[46].save = TRUE;
     gnet_property->props[46].vector_size = 1;
