@@ -25,12 +25,8 @@
  *----------------------------------------------------------------------
  */
 
-#include "gnutella.h"		/* For <string.h> + dbg */
-
-#include <sys/types.h>		/* FreeBSD requires this before <sys/uio.h> */
-#include <sys/uio.h>		/* For struct iovec */
-
-#include <zlib.h>
+#include "common.h"
+#include "gnutella.h"
 
 #include "ggep.h"
 #include "ggep_type.h"

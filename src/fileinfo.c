@@ -30,6 +30,7 @@
  * downloaded.
  */
 
+#include "common.h"
 #include "gnutella.h"
 
 #include "fileinfo.h"
@@ -51,15 +52,6 @@
 #include "settings.h"
 #include "nodes.h"
 #include "http.h"			/* For http_range_t */
-
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <regex.h>
-#include <time.h>			/* For ctime() */
-#include <arpa/inet.h>		/* For ntohl() and friends... */
-#include <dirent.h>
 
 #include "override.h"		/* Must be the last header included */
 

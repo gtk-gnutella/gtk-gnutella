@@ -27,10 +27,8 @@
  *----------------------------------------------------------------------
  */
 
+#include "common.h"
 #include "gnutella.h"
-#include <sys/types.h>
-#include <sys/uio.h>	/* struct iovec */
-#include <zlib.h>
 
 #include "sockets.h"
 #include "nodes.h"

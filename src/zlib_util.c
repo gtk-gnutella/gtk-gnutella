@@ -23,9 +23,6 @@
  *----------------------------------------------------------------------
  */
 
-#include <zlib.h>
-#include <glib.h>
-
 #include "common.h"
 #include "zlib_util.h"
 #include "misc.h"		/* For RCSID */
@@ -250,3 +247,4 @@ gpointer zlib_uncompress(gpointer data, gint len, gint uncompressed_len)
 	return NULL;
 }
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -25,12 +25,8 @@
  *----------------------------------------------------------------------
  */
 
+#include "common.h"
 #include "gnutella.h"		/* For <string.h> + dbg */
-
-#include <sys/types.h>		/* FreeBSD requires this before <sys/uio.h> */
-#include <sys/uio.h>		/* For struct iovec */
-
-#include <zlib.h>
 
 #include "ggep.h"
 #include "extensions.h"
@@ -546,3 +542,4 @@ void ggep_ext_mark_last(guchar *start)
 	*start |= GGEP_F_LAST;
 }
 
+/* vi: set ts=4 sw=4 cindent: */
