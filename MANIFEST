@@ -7,13 +7,9 @@ ChangeLog
 Configure                    Portability tool
 Jmakefile
 Makefile.SH
-U/modified/Csym.U
 U/modified/End.U
 U/modified/Loc.U
 U/modified/Myinit.U
-U/modified/ccflags.U
-U/modified/libc.U
-U/modified/libs.U
 U/modified/prototype.U
 U/new/d_bindtxtcode.U
 U/new/d_deflate.U
@@ -218,6 +214,8 @@ src/gnet_stats.h
 src/gnet_stats_gui.c
 src/gnet_stats_gui.h
 src/gnet_stats_gui2.c
+src/gnet_stats_gui_common.c
+src/gnet_stats_gui_common.h
 src/gnutella.h
 src/gtk-gnutella.man
 src/gtk-missing.c
