@@ -616,7 +616,7 @@ prop_set_t *gnet_prop_init(void) {
      * General data:
      */
     gnet_property->props[6].name = "max_connections";
-    gnet_property->props[6].desc = _("Don't allow more than this number of connections to other servents.  As a rule of thumb you should reserve 512 b/s bandwidth per connection. Never use up all your bandwidth, leave a little space for TCP/IP overhead. It's not advisable that you set this to a value larger than 20.");
+    gnet_property->props[6].desc = _("Don't allow more than this number of connections to other servents.  As a rule of thumb you should reserve 512 b/s bandwidth per connection. Never use up all your bandwidth, leave a little space for TCP/IP overhead. It's not advisable that you set this to a value larger than 40.");
     gnet_property->props[6].ev_changed = event_new("max_connections_changed");
     gnet_property->props[6].save = TRUE;
     gnet_property->props[6].vector_size = 1;
