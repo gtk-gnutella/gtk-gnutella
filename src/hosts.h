@@ -29,8 +29,6 @@ void host_add(guint32, guint16, gboolean);
 void host_add_semi_pong(guint32 ip, guint16 port);
 gint host_fill_caught_array(struct gnutella_host *hosts, gint hcount);
 void host_get_caught(guint32 *ip, guint16 *port);
-void ping_stats_add(struct gnutella_node *);
-void ping_stats_update(void);
 gboolean check_valid_host(guint32, guint16);
 void hosts_read_from_file(gchar *, gboolean);
 void hosts_write_to_file(gchar *);

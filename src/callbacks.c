@@ -44,7 +44,7 @@ void on_clist_menu_select_row(GtkCList * clist, gint row, gint column,
 
 void on_button_stats_update_clicked(GtkButton * button, gpointer user_data)
 {
-	ping_stats_update();
+	// XXX dead code
 }
 
 void on_button_quit_clicked(GtkButton * button, gpointer user_data)

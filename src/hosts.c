@@ -24,9 +24,6 @@ static GList *sl_valid_hosts = NULL;		/* Validated hosts */
 static GHashTable *ht_known_hosts = NULL;	/* All known hosts */
 static GList *pcache_recent_pongs = NULL;	/* Recent pongs we got */
 
-GSList *ping_reqs = NULL;
-guint32 n_ping_reqs = 0;
-struct ping_req *pr_ref = (struct ping_req *) NULL;
 guint32 hosts_in_catcher = 0;
 gboolean host_low_on_pongs = FALSE;			/* True when less than 12% full */
 
@@ -38,7 +35,6 @@ gint hosts_idle_func = 0;
 #define HOST_READ_CNT		20	/* Amount of hosts to read each idle tick */
 #define HOST_CATCHER_DELAY	10	/* Delay between connections to same host */
 
-static void ping_reqs_clear(void);
 static gboolean get_recent_pong(guint32 *ip, guint16 *port);
 
 /***
@@ -627,111 +623,6 @@ out:
 }
 
 /***
- *** gnutellaNet stats
- ***/
-
-/* Registers a new ping request */
-
-void register_ping_req(guchar * muid)
-{
-	struct ping_req *p;
-
-	if (n_ping_reqs >= MAX_PING_REQS) {
-		GSList *l = g_slist_last(ping_reqs);
-		p = (struct ping_req *) l->data;
-		ping_reqs = g_slist_remove_link(ping_reqs, l);
-		g_slist_free_1(l);
-	} else {
-		p = (struct ping_req *) g_malloc(sizeof(struct ping_req));
-		n_ping_reqs++;
-	}
-
-	memcpy(p->muid, muid, 16);
-	gettimeofday(&(p->tv), (struct timezone *) NULL);
-	p->delay = p->hosts = p->files = p->kbytes = 0;
-
-	ping_reqs = g_slist_prepend(ping_reqs, p);
-}
-
-/* Adds a reply to the stats */
-
-void ping_stats_add(struct gnutella_node *n)
-{
-	GSList *l;
-	struct gnutella_init_response *r;
-	struct ping_req *p;
-	struct timeval tv;
-	guint32 v;
-
-	/* First look for a matching req in the ping reqs list */
-
-	for (l = ping_reqs; l; l = l->next)
-		if (!memcmp
-			(((struct ping_req *) l->data)->muid, n->header.muid, 16))
-			break;
-
-	if (!l)
-		return;					/* Found no request for this reply */
-
-	r = (struct gnutella_init_response *) n->data;
-	p = (struct ping_req *) l->data;
-
-	p->hosts++;
-
-	/*
-	 * Both bits 31 and 30 must be clear, or either we have an improper
-	 * little-endian encoding, or it's an obvious "fake" count.
-	 *				--RAM, 14/09/2001
-	 *
-	 * We only account the kbytes value if the file count was correct.
-	 *				--RAM, 15/09/2001
-	 */
-
-	READ_GUINT32_LE(r->files_count, v);
-	if (0 == (v & 0xc0000000)) {
-		p->files += v;
-		READ_GUINT32_LE(r->kbytes_count, v);
-		if (0 == (v & 0xc0000000))
-			p->kbytes += v;
-	}
-
-	gettimeofday(&tv, (struct timezone *) NULL);
-
-	p->delay +=
-		(tv.tv_sec - p->tv.tv_sec) * 1000 + (tv.tv_usec / 1000 -
-											 p->tv.tv_usec / 1000);
-
-	if (!pr_ref || (p->hosts > pr_ref->hosts))
-		pr_ref = p;
-}
-
-/* Update the stats */
-
-static void ping_reqs_clear(void)
-{
-	GSList *l;
-
-	for (l = ping_reqs; l; l = l->next)
-		g_free(l->data);
-	g_slist_free(ping_reqs);
-
-	ping_reqs = NULL;
-	n_ping_reqs = 0;
-}
-
-void ping_stats_update(void)
-{
-	ping_reqs_clear();
-	pr_ref = NULL;
-
-	gui_update_stats();
-
-	// No longer sends ping with the ping/pong reduction scheme
-	//		--RAM, 02/01/2002
-	// send_init(NULL);
-}
-
-/***
  *** Messages
  ***/
 
@@ -775,8 +666,6 @@ static void send_ping(struct gnutella_node *n, guint8 ttl)
 		gmsg_sendto_all(sl_nodes, (guchar *) &m,
 			sizeof(struct gnutella_msg_init));
 	}
-
-	register_ping_req(m.header.muid);
 }
 
 /*
@@ -1638,8 +1527,6 @@ void pcache_pong_received(struct gnutella_node *n)
 	READ_GUINT32_LE(n->data + 6, files_count);
 	READ_GUINT32_LE(n->data + 10, kbytes_count);
 
-	ping_stats_add(n);		/* XXX keep this, stats are now meaningless? */
-
 	/*
 	 * Handle replies from our neighbours specially
 	 */
@@ -1762,7 +1649,6 @@ void host_close(void)
 	host_clear_cache();
 	g_hash_table_destroy(ht_known_hosts);
 	g_hash_table_destroy(ht_recent_pongs);
-	ping_reqs_clear();
 }
 
 /* vi: set ts=4: */

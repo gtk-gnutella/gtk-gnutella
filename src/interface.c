@@ -430,7 +430,6 @@ create_main_window (void)
   gtk_widget_ref (vbox_stats);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "vbox_stats", vbox_stats,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (vbox_stats);
   gtk_box_pack_start (GTK_BOX (vbox_left), vbox_stats, FALSE, FALSE, 0);
 
   hbox7 = gtk_hbox_new (FALSE, 0);
@@ -470,7 +469,6 @@ create_main_window (void)
   gtk_widget_ref (button_stats_update);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "button_stats_update", button_stats_update,
                             (GtkDestroyNotify) gtk_widget_unref);
-  gtk_widget_show (button_stats_update);
   gtk_box_pack_start (GTK_BOX (vbox_left), button_stats_update, FALSE, FALSE, 0);
 
   hseparator1 = gtk_hseparator_new ();

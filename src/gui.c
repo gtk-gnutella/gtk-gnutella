@@ -270,44 +270,6 @@ void gui_update_shared_dirs(void)
 
 }
 
-void gui_update_stats(void)
-{
-	guint32 hosts, files, ping;
-	guint64 kbytes;
-	static gchar b[256];
-
-	if (pr_ref) {
-		hosts = pr_ref->hosts;
-		if (!hosts)
-			return;				/* Structure re-used --RAM, 21/01/2002 */
-		files = pr_ref->files;
-		kbytes = pr_ref->kbytes;
-		ping = pr_ref->delay / pr_ref->hosts;
-	} else
-		hosts = files = kbytes = ping = 0;
-
-	if (files_scanned > 0) {
-		files += files_scanned;
-		kbytes += kbytes_scanned;
-	}
-
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u hosts", hosts);
-	gtk_clist_set_text(GTK_CLIST(clist_stats), 0, 0, gui_tmp);
-
-	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u files", files);
-	gtk_clist_set_text(GTK_CLIST(clist_stats), 1, 0, gui_tmp);
-
-	g_snprintf(b, sizeof(b), "%s", short_kb_size(kbytes));
-	gtk_clist_set_text(GTK_CLIST(clist_stats), 2, 0, b);
-
-	if (ping < 1000)
-		g_snprintf(gui_tmp, sizeof(gui_tmp), "%u ms avg ping", ping);
-	else
-		g_snprintf(gui_tmp, sizeof(gui_tmp), "%.1f s avg ping",
-				   ping / 1000.0);
-	gtk_clist_set_text(GTK_CLIST(clist_stats), 3, 0, gui_tmp);
-}
-
 void gui_update_global(void)
 {
 	g_snprintf(gui_tmp, sizeof(gui_tmp), "%u", global_messages);

@@ -118,7 +118,6 @@ static gboolean main_timer(gpointer p)
 	 */
 
 	gui_update_global();
-	gui_update_stats();
 
 	/* Update for things that change slowly */
 	if (main_slow_update++ > SLOW_UPDATE_PERIOD) {
@@ -236,8 +235,6 @@ gint main(gint argc, gchar ** argv)
 	gtk_widget_set_usize(sw_stats, optimal_width,
 						 (clist_stats->style->font->ascent +
 						  clist_stats->style->font->descent + 4) * 4);
-
-	gui_update_stats();
 
 	gui_update_c_gnutellanet();
 	gui_update_c_uploads();
