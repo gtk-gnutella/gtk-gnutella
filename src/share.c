@@ -1580,11 +1580,18 @@ struct shared_file *shared_file_by_sha1(const gchar *sha1_digest)
 
 	f = g_tree_lookup(sha1_to_share, (gpointer) sha1_digest);
 
-	if (!f)
-		return NULL;
+	if (!f || !sha1_hash_available(f)) {
+		/*
+		 * If we're rebuilding the library, we might not have parsed the
+		 * file yet, so it's possible we have this URN but we don't know
+		 * it yet.	--RAM, 12/10/2002.
+		 */
 
-	if (!sha1_hash_available(f))
+		if (file_table == NULL)			/* Rebuilding the library! */
+			return SHARE_REBUILDING;
+
 		return NULL;
+	}
 
 	return f;
 }

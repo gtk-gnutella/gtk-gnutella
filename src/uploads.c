@@ -1259,32 +1259,51 @@ static const char n2r_query[] = "/uri-res/N2R?";
  * Return the shared_file if we have it, NULL otherwise
  */
 static struct shared_file *get_file_to_upload_from_urn(
-	const gchar *uri,
-	header_t *header)
+	gnutella_upload_t *u,
+	header_t *header,
+	const gchar *uri)
 {
 	gchar hash[SHA1_BASE32_SIZE + 1];
 	gchar digest[SHA1_RAW_SIZE];
 	const gchar *urn = uri + N2R_QUERY_LENGTH;
+	struct shared_file *sf;
 
 	/*
 	 * We currently only support SHA1 URNs.
 	 *		--RAM, 10/06/2002
 	 */
 
-	if (0 != strncasecmp(urn, "urn:sha1:", 9))
+	if (0 != strncasecmp(urn, "urn:sha1:", 9)) {
+		upload_error_not_found(u, uri);			/* Unknown URN => not found */
 		return NULL;
+	}
 
 	if (1 != sscanf(urn + 9, "%32s", hash))
-		return NULL;
+		goto malformed;
 
 	hash[SHA1_BASE32_SIZE] = '\0';
 
 	if (!huge_http_sha1_extract32(hash, digest))
-		return NULL;
+		goto malformed;
 
 	huge_collect_locations(digest, header);
 
-	return shared_file_by_sha1(digest);
+	sf = shared_file_by_sha1(digest);
+
+	if (sf == SHARE_REBUILDING) {
+		/* Retry-able by user, hence 503 */
+		upload_error_remove(u, NULL, 503, "Library being rebuilt");
+		return NULL;
+	}
+
+	if (sf == NULL)
+		upload_error_not_found(u, uri);
+
+	return sf;
+
+malformed:
+	upload_error_remove(u, NULL, 400, "Malformed URN in /uri-res request");
+	return NULL;
 }
 
 /*
@@ -1292,7 +1311,9 @@ static struct shared_file *get_file_to_upload_from_urn(
  * 
  * A dispatcher function to call either get_file_to_upload_from_index or
  * get_file_to_upload_from_sha1 depending on the syntax of the request.
+ *
  * Return the shared_file if we got it, or NULL otherwise.
+ * When NULL is returned, we have sent the error back to the client.
  */
 static struct shared_file *get_file_to_upload(
 	gnutella_upload_t *u, header_t *header, gchar *request)
@@ -1318,7 +1339,7 @@ static struct shared_file *get_file_to_upload(
 	if (2 == sscanf(uri, "/get/%u%c", &index, &s) && s == '/')
 		return get_file_to_upload_from_index(u, header, uri, index);
 	else if (0 == strncmp(uri, n2r_query, N2R_QUERY_LENGTH))
-		return get_file_to_upload_from_urn(uri, header);
+		return get_file_to_upload_from_urn(u, header, uri);
 
 	upload_error_not_found(u, request);
 	return NULL;
@@ -2137,6 +2158,7 @@ gnet_upload_info_t *upload_get_info(gnet_upload_t uh)
     info->start_date    = u->start_date;
     info->user_agent    = u->user_agent ? g_strdup(u->user_agent) : NULL;
     info->upload_handle = u->upload_handle;
+	info->push          = u->push;
 
     return info;
 }
