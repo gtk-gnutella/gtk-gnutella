@@ -101,9 +101,9 @@ static struct vmsg vmsg_map[] = {
 	{ T_0000, 0x000a, 0x0000, handle_features_supported, "Features Supported" },
 	{ T_BEAR, 0x0004, 0x0001, handle_hops_flow, "Hops Flow" },
 	{ T_BEAR, 0x0007, 0x0001, handle_tcp_connect_back, "TCP Connect Back" },
-	{ T_GTKG, 0x0007, 0x0001, handle_udp_connect_back, "UDP Connect Back" },
 	{ T_BEAR, 0x000b, 0x0001, handle_qstat_req, "Query Status Request" },
 	{ T_BEAR, 0x000c, 0x0001, handle_qstat_answer, "Query Status Response" },
+	{ T_GTKG, 0x0007, 0x0001, handle_udp_connect_back, "UDP Connect Back" },
 	{ T_LIME, 0x0015, 0x0002, handle_proxy_req, "Push Proxy Request" },
 	{ T_LIME, 0x0016, 0x0002, handle_proxy_ack, "Push Proxy Acknowledgment" },
 
@@ -778,7 +778,7 @@ handle_qstat_req(struct gnutella_node *n,
 		kept = 0xffff;		/* Magic value telling them to stop the search */
 	}
 
-	vmsg_send_qstat_answer(n, n->header.muid, (guint16) kept);
+	vmsg_send_qstat_answer(n, n->header.muid, (guint16) MIN(kept, 0xfffe));
 }
 
 /**
@@ -848,7 +848,7 @@ vmsg_send_qstat_answer(struct gnutella_node *n, gchar *muid, guint16 hits)
 		printf("VMSG sending %s with hits=%d to %s <%s>\n",
 			gmsg_infostr_full(m), hits, node_ip(n), node_vendor(n));
 
-	gmsg_sendto_one(n, (gchar *) m, msgsize);
+	gmsg_ctrl_sendto_one(n, (gchar *) m, msgsize);	/* Send it ASAP */
 }
 
 /* vi: set ts=4: */
