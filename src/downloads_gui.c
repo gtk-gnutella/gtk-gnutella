@@ -362,8 +362,18 @@ void gui_update_download_server(struct download *d)
 	g_assert(d->server);
 	g_assert(download_vendor(d));
 
+	/*
+	 * Prefix vendor name with a '*' if they are considered as potentially
+	 * banning us and we activated anti-banning features.
+	 *		--RAM, 05/07/2003
+	 */
+
+	(void) gm_snprintf(tmpstr, sizeof(tmpstr), "%s%s",
+		(d->server->attrs & DLS_A_BANNING) ? "*" : "",
+		download_vendor(d));
+
 	row = gtk_clist_find_row_from_data(clist_downloads,	(gpointer) d);
-	gtk_clist_set_text(clist_downloads, row, c_dl_server, download_vendor(d));
+	gtk_clist_set_text(clist_downloads, row, c_dl_server, tmpstr);
 }
 
 void gui_update_download_range(struct download *d)
