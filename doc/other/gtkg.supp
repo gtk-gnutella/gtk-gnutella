@@ -1,3 +1,9 @@
+# Suppression file which can be used by valgrind to hide often returning
+# error message but which are caused by gtk-gnutella
+# Recommended method to launch gtk-gnutella with valgrind is:
+# valgrind --tool=memcheck --logfile=valgrind --num-callers=20
+#  --suppressions=./doc/other/gtkg.supp -v --leak-check=yes ./src/gtk-gnutella
+
 {
    DL Relocate object
    Memcheck:Cond
@@ -15,6 +21,16 @@
    fun:_dl_catch_error
    fun:_dl_open
 }
+
+{
+   _dl_close in /lib/libc-2.3.3.so
+   Memcheck:Addr1
+   fun:_dl_close
+   obj:/lib/libc-2.3.3.so
+   fun:_dl_catch_error
+   obj:/lib/libc-2.3.3.so
+}
+
 
 {
    X11 flush

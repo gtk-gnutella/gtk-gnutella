@@ -3335,6 +3335,16 @@ static void node_process_handshake_ack(struct gnutella_node *n, header_t *head)
 
 		rx_recv(rx_bottom(n->rx), mb);
 
+		/* During rx_recv the node could be marked for removal again. In which
+		 * case the socket is freed, so lets exit now. 
+		 *		-- JA 14/04/04
+		 */
+		if (NODE_IS_REMOVING(n))
+			return;
+		
+		g_assert(n->socket == s);
+		g_assert(s != NULL);
+		
 		/* 
 		 * We know that the message is synchronously delivered.  At this
 		 * point, all the data have been consumed, and the socket buffer

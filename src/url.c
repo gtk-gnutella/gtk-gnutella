@@ -223,6 +223,7 @@ gchar *url_unescape(gchar *url, gboolean inplace)
 	gchar *p;
 	gchar *q;
 	gint need_unescape = 0;
+	guint unescaped_memory = 0;
 	guchar c;
 	gchar *new;
 
@@ -241,9 +242,11 @@ gchar *url_unescape(gchar *url, gboolean inplace)
 
 	if (inplace)
 		new = url;
-	else
-		new = g_malloc(p - url - (need_unescape << 1) + 1);
-
+	else {
+		unescaped_memory = p - url - (need_unescape << 1) + 1;
+		new = g_malloc(unescaped_memory);
+	}
+	
 	for (p = url, q = new, c = *p++; c; c = *p++) {
 		if (c != ESCAPE_CHAR)
 			*q++ = c;
@@ -254,11 +257,16 @@ gchar *url_unescape(gchar *url, gboolean inplace)
 					v += hex2dec(c) & 0x0f;
 				else
 					break;		/* String ending in the middle of escape */
+
+				g_assert(inplace || new + unescaped_memory >= q);
 				*q++ = v;
 			} else
 				break;
 		}
 	}
+
+	g_assert(inplace || new + unescaped_memory >= q);
+
 	*q = '\0';
 
 	g_assert(!inplace || new == url);
