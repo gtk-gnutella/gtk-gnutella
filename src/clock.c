@@ -45,6 +45,9 @@ void clock_update(time_t update, gint precision)
 	gint epsilon;
 	gint32 delta_skew;
 	gint32 delta;
+    guint32 clock_skew;
+
+    gnet_prop_get_guint32(PROP_CLOCK_SKEW, &clock_skew, 0, 1);
 
 	/*
 	 * Compute how far we land from the absolute time given our present skew.
@@ -74,6 +77,7 @@ void clock_update(time_t update, gint precision)
 
 	delta_skew = delta / 32 - (gint32) clock_skew / 32;
 	clock_skew = (guint32) ((gint32) clock_skew + delta_skew);
+    gnet_prop_set_guint32(PROP_CLOCK_SKEW, &clock_skew, 0, 1);
 
 	if (dbg)
 		printf("CLOCK skew=%d, precision=%d, epsilon=%d\n",
