@@ -3515,6 +3515,12 @@ qrp_close(void)
 	if (routing_patch)
 		qrt_patch_unref(routing_patch);
 
+	if (local_table)
+		qrt_unref(local_table);
+
+	if (merged_table)
+		qrt_unref(merged_table);
+
 	if (buffer.arena)
 		G_FREE_NULL(buffer.arena);
 }
@@ -3818,8 +3824,8 @@ qrt_build_query_target(
 	/*
 	 * We need to special case processing of queries with TTL=1 so that they
 	 * get set to ultra peers that support last-hop QRP only if they can
-	 * provide a reply.  Ultrapeers that don't support last-hop QRP get the
-	 * query via the regular broadcast mechanism.
+	 * provide a reply.  Ultrapeers that don't support last-hop QRP will
+	 * always get the query.
 	 */
 
 	process_ultra = (ttl == 1);
@@ -3838,11 +3844,8 @@ qrt_build_query_target(
 		if (!NODE_IS_WRITABLE(dn))
 			continue;
 
-		if (process_ultra) {
-			if (!NODE_UP_QRP(dn) && !NODE_IS_LEAF(dn))
-				continue;
-		} else if (!NODE_IS_LEAF(dn))
-				continue;
+		if (!NODE_IS_LEAF(dn) && !process_ultra)
+			continue;
 
 		if (hops >= dn->hops_flow)		/* Hops-flow prevents sending */
 			continue;
@@ -3853,6 +3856,9 @@ qrt_build_query_target(
 		 */
 
 		node_inc_qrp_query(dn);
+
+		if (!NODE_IS_LEAF(dn) && !NODE_UP_QRP(dn))
+			goto can_send;				/* Broadcast to that node */
 
 		if (!qrp_can_route(qhvec, rt))
 			continue;
@@ -3926,10 +3932,24 @@ qrt_route_query(struct gnutella_node *n, query_hashvec_t *qhvec)
 
 	nodes = qrt_build_query_target(qhvec, n->header.hops, n->header.ttl, n);
 
-	if (dbg > 4)
-		printf("QRP %s (%d word/hash) forwarded to %d/%d leaves\n",
-			gmsg_infostr(&n->header), qhvec->count, g_slist_length(nodes),
-			node_leaf_count);
+	if (dbg > 4) {
+		GSList *sl;
+		gint leaves = 0;
+		gint ultras = 0;
+
+		for (sl = nodes; sl; sl = g_slist_next(sl)) {
+			struct gnutella_node *dn = (struct gnutella_node *) sl->data;
+
+			if (NODE_IS_LEAF(dn))
+				leaves++;
+			else
+				ultras++;
+		}
+
+		printf("QRP %s (%d word/hash) forwarded to %d/%d leaves, %d ultra%s\n",
+			gmsg_infostr(&n->header), qhvec->count, leaves, node_leaf_count,
+			ultras, ultras == 1 ? "" : "s");
+	}
 
 	gmsg_split_sendto_all(nodes, (guchar *) &n->header, n->data,
 		n->size + sizeof(struct gnutella_header));
