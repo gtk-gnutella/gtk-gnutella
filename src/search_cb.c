@@ -53,6 +53,35 @@ static gint search_results_compare_func
     return search_gui_compare_records(clist->sort_column, s1, s2);
 }
 
+static gint rec_name_eq(gconstpointer ptr1, gconstpointer ptr2)
+{
+    gint result;
+
+    result = g_str_equal(
+        ((record_t *)ptr1)->name, 
+        ((record_t *)ptr2)->name) ? 0 : 1;
+
+    printf("[%s] == [%s] -> %d\n",
+        ((record_t *)ptr1)->name, ((record_t *)ptr2)->name, result);
+
+    return result;
+}
+
+static gint rec_sha1_eq(gconstpointer ptr1, gconstpointer ptr2)
+{
+
+    guchar *s1 = ((record_t *)ptr1)->sha1; 
+    guchar *s2 = ((record_t *)ptr2)->sha1; 
+
+    if (s1 == s2)
+        return 0;
+
+    if (s1 == NULL || s2 == NULL)
+        return 1;
+
+    return memcmp(s1, s2, SHA1_RAW_SIZE);
+}
+
 
 /***
  *** Glade callbacks
@@ -393,14 +422,14 @@ gboolean on_clist_search_results_button_press_event
 	return FALSE;
 }
 
-void on_button_search_filter_clicked(GtkButton * button,
-									 gpointer user_data)
+void on_button_search_filter_clicked(
+    GtkButton *button, gpointer user_data)
 {
 	filter_open_dialog();
 }
 
-void on_clist_search_results_click_column(GtkCList * clist, gint column,
-										  gpointer user_data)
+void on_clist_search_results_click_column(
+    GtkCList *clist, gint column, gpointer user_data)
 {
     GtkWidget * cw = NULL;
     search_t *current_search;
@@ -483,8 +512,8 @@ void on_clist_search_results_click_column(GtkCList * clist, gint column,
  * This function is called when the user selectes a row in the
  * search results pane. Autoselection takes place here.
  */
-void on_clist_search_results_select_row
-    (GtkCList * clist, gint row, gint col, GdkEvent * event, gpointer data)
+void on_clist_search_results_select_row(
+    GtkCList * clist, gint row, gint col, GdkEvent * event, gpointer data)
 {
     gboolean search_autoselect;
     gboolean search_autoselect_ident;
@@ -621,8 +650,8 @@ void on_clist_search_results_select_row
         NULL);
 }
 
-void on_clist_search_results_unselect_row
-    (GtkCList * clist, gint row, gint col, GdkEvent * event, gpointer data)
+void on_clist_search_results_unselect_row(
+    GtkCList * clist, gint row, gint col, GdkEvent * event, gpointer data)
 {
 	gboolean sensitive;
     search_t *current_search;
@@ -650,8 +679,8 @@ void on_clist_search_results_unselect_row
         sensitive);   
 }
 
-void on_clist_search_results_resize_column
-    (GtkCList * clist, gint column, gint width, gpointer user_data)
+void on_clist_search_results_resize_column(
+    GtkCList * clist, gint column, gint width, gpointer user_data)
 {
     guint32 buf = width;
 
@@ -659,8 +688,8 @@ void on_clist_search_results_resize_column
     gui_prop_set_guint32(PROP_SEARCH_RESULTS_COL_WIDTHS, &buf, column, 1);
 }
 
-void on_button_search_passive_clicked(GtkButton * button,
-									  gpointer user_data)
+void on_button_search_passive_clicked(
+    GtkButton *button, gpointer user_data)
 {
     filter_t *default_filter;
 	search_t *search;
@@ -704,12 +733,10 @@ void on_button_search_passive_clicked(GtkButton * button,
  *** Search results popup
  ***/
 
-void on_popup_search_drop_name_activate
-    (GtkMenuItem *menuitem, gpointer user_data)
+void on_popup_search_drop_name_activate(
+    GtkMenuItem *menuitem, gpointer user_data)
 {
-    GList *l = NULL;
-	record_t *rec;
-    rule_t *rule;
+    GSList *sl = NULL;
     search_t *current_search;
 
     current_search = search_gui_get_current_search();
@@ -718,40 +745,28 @@ void on_popup_search_drop_name_activate
 
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
-	for (l = GTK_CLIST(current_search->clist)->selection; l; 
-         l = GTK_CLIST(current_search->clist)->selection ) {		
-        gint row;
+    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+        FALSE, rec_name_eq);
 
-        row = (gint) l->data;
+    while (sl != NULL) {
+        record_t *rec = (record_t *) sl->data; 
+        rule_t *rule;
 
-		rec = (record_t *) 
-			gtk_clist_get_row_data(GTK_CLIST(current_search->clist), row);
-        
-        if (!rec) {
-			g_warning(
-                "on_popup_search_drop_name_activate(): "
-                "row %d has NULL data\n", row);
-		    continue;
-        }
-
-        rule = filter_new_text_rule(
-            rec->name, RULE_TEXT_EXACT, TRUE, 
+        rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE, 
             filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
         filter_append_rule(current_search->filter, rule);
-
-        gtk_clist_unselect_row(GTK_CLIST(current_search->clist), row, 0);
+    
+        sl = g_slist_remove(sl, sl);
     } 
 
     gtk_clist_thaw(GTK_CLIST(current_search->clist));
 }
 
-void on_popup_search_drop_sha1_activate
-    (GtkMenuItem *menuitem, gpointer user_data)
+void on_popup_search_drop_sha1_activate(
+    GtkMenuItem *menuitem, gpointer user_data)
 {
-    GList *l = NULL;
-	record_t *rec;
-    rule_t *rule;
+    GSList *sl = NULL;
     search_t *current_search;
 
     current_search = search_gui_get_current_search();
@@ -760,30 +775,20 @@ void on_popup_search_drop_sha1_activate
 
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
-	for (l = GTK_CLIST(current_search->clist)->selection; l; 
-         l = GTK_CLIST(current_search->clist)->selection ) {		
-        gint row;
+    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+        FALSE, rec_sha1_eq);
 
-        row = (gint) l->data;
+    while (sl != NULL) {
+        record_t *rec = (record_t *) sl->data; 
+        rule_t *rule;
 
-		rec = (record_t *) 
-			gtk_clist_get_row_data(GTK_CLIST(current_search->clist), row);
-        
-        if (!rec) {
-			g_warning(
-                "on_popup_search_drop_sha1_activate(): "
-                "row %d has NULL data\n", row);
-		    continue;
-        }
-
-        rule = filter_new_sha1_rule(
-            rec->sha1, rec->name,
+        rule = filter_new_sha1_rule(rec->sha1, rec->name,
             filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
         filter_append_rule(current_search->filter, rule);
-    
-        gtk_clist_unselect_row(GTK_CLIST(current_search->clist), row, 0);
-	} 
+
+        sl = g_slist_remove(sl, sl);
+    } 
 
     gtk_clist_thaw(GTK_CLIST(current_search->clist));
 }
@@ -791,9 +796,7 @@ void on_popup_search_drop_sha1_activate
 void on_popup_search_drop_name_global_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {
-    GList *l = NULL;
-	record_t *rec;
-    rule_t *rule;
+    GSList *sl = NULL;
     search_t *current_search;
 
     current_search = search_gui_get_current_search();
@@ -802,30 +805,20 @@ void on_popup_search_drop_name_global_activate
 
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
-	for (l = GTK_CLIST(current_search->clist)->selection; l; 
-         l = GTK_CLIST(current_search->clist)->selection ) {		
-        gint row;
+    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+        FALSE, rec_name_eq);
 
-        row = (gint) l->data;
+     while (sl != NULL) {		
+        record_t *rec = (record_t *) sl->data; 
+        rule_t *rule;
 
-		rec = (record_t *) 
-			gtk_clist_get_row_data(GTK_CLIST(current_search->clist), row);
-        
-        if (!rec) {
-			g_warning(
-                "on_popup_search_drop_name_global_activate(): "
-                "row %d has NULL data\n", row);
-		    continue;
-        }
-
-        rule = filter_new_text_rule(
-            rec->name, RULE_TEXT_EXACT, TRUE, 
+        rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE, 
             filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
         filter_append_rule(filter_get_global_pre(), rule);
 
-        gtk_clist_unselect_row(GTK_CLIST(current_search->clist), row, 0);
-	} 
+        sl = g_slist_remove(sl, sl);
+    } 
 
     gtk_clist_thaw(GTK_CLIST(current_search->clist));
 }
@@ -833,9 +826,7 @@ void on_popup_search_drop_name_global_activate
 void on_popup_search_drop_sha1_global_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {
-    GList *l = NULL;
-	record_t *rec;
-    rule_t *rule;
+    GSList *sl = NULL;
     search_t *current_search;
 
     current_search = search_gui_get_current_search();
@@ -844,30 +835,20 @@ void on_popup_search_drop_sha1_global_activate
 
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
-	for (l = GTK_CLIST(current_search->clist)->selection; l; 
-         l = GTK_CLIST(current_search->clist)->selection ) {		
-        gint row;
+    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+        FALSE, rec_sha1_eq);
 
-        row = (gint) l->data;
+     while (sl != NULL) {		
+        record_t *rec = (record_t *) sl->data; 
+        rule_t *rule;
 
-		rec = (record_t *) 
-			gtk_clist_get_row_data(GTK_CLIST(current_search->clist), row);
-        
-        if (!rec) {
-			g_warning(
-                "on_popup_search_drop_sha1_global_activate(): "
-                "row %d has NULL data\n", row);
-		    continue;
-        }
-
-        rule = filter_new_sha1_rule(
-            rec->sha1, rec->name,
+        rule = filter_new_sha1_rule(rec->sha1, rec->name,
             filter_get_drop_target(), RULE_FLAG_ACTIVE);
 
         filter_append_rule(filter_get_global_pre(), rule);
-    
-        gtk_clist_unselect_row(GTK_CLIST(current_search->clist), row, 0);
-	} 
+
+        sl = g_slist_remove(sl, sl);
+    } 
 
     gtk_clist_thaw(GTK_CLIST(current_search->clist));
 }
@@ -875,9 +856,7 @@ void on_popup_search_drop_sha1_global_activate
 void on_popup_search_autodownload_name_activate
     (GtkMenuItem *menuitem, gpointer user_data)
 {
-    GList *l = NULL;
-	record_t *rec;
-    rule_t *rule;
+    GSList *sl = NULL;
     search_t *current_search;
 
     current_search = search_gui_get_current_search();
@@ -886,41 +865,29 @@ void on_popup_search_autodownload_name_activate
 
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
-	for (l = GTK_CLIST(current_search->clist)->selection; l; 
-         l = GTK_CLIST(current_search->clist)->selection ) {		
-        gint row;
+    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+        FALSE, rec_name_eq);
 
-        row = (gint) l->data;
+    while (sl != NULL) {
+        record_t *rec = (record_t *) sl->data; 
+        rule_t *rule;
 
-		rec = (record_t *) 
-			gtk_clist_get_row_data(GTK_CLIST(current_search->clist), row);
-        
-        if (!rec) {
-			g_warning(
-                "on_popup_search_autodownload_name_activate(): "
-                "row %d has NULL data\n", row);
-		    continue;
-        }
-
-        rule = filter_new_text_rule(
-            rec->name, RULE_TEXT_EXACT, TRUE, 
+        rule = filter_new_text_rule(rec->name, RULE_TEXT_EXACT, TRUE, 
             filter_get_download_target(), RULE_FLAG_ACTIVE);
 
         filter_append_rule(current_search->filter, rule);
-
-        gtk_clist_unselect_row(GTK_CLIST(current_search->clist), row, 0);
-	} 
+    
+        sl = g_slist_remove(sl, sl);
+    } 
 
     gtk_clist_thaw(GTK_CLIST(current_search->clist));
 }
 
 
-void on_popup_search_autodownload_sha1_activate
-    (GtkMenuItem *menuitem, gpointer user_data)
+void on_popup_search_autodownload_sha1_activate(
+    GtkMenuItem *menuitem, gpointer user_data)
 {
-    GList *l = NULL;
-	record_t *rec;
-    rule_t *rule;
+    GSList *sl = NULL;
     search_t *current_search;
 
     current_search = search_gui_get_current_search();
@@ -929,33 +896,20 @@ void on_popup_search_autodownload_sha1_activate
 
     gtk_clist_freeze(GTK_CLIST(current_search->clist));
 
-	for (l = GTK_CLIST(current_search->clist)->selection; l; 
-         l = GTK_CLIST(current_search->clist)->selection ) {		
-        gint row;
+    sl = clist_collect_data(GTK_CLIST(current_search->clist), 
+        FALSE, rec_sha1_eq);
 
-        row = (gint) l->data;
+    while (sl != NULL) {
+        record_t *rec = (record_t *) sl->data; 
+        rule_t *rule;
 
-		rec = (record_t *) 
-			gtk_clist_get_row_data(GTK_CLIST(current_search->clist), row);
-        
-        if (!rec) {
-			g_warning(
-                "on_popup_search_autodownload_sha1_activate(): "
-                "row %d has NULL data\n", row);
-		    continue;
-        }
-
-		if (rec->sha1 == NULL)		/* This selected record has no SHA1 */
-			continue;
-
-        rule = filter_new_sha1_rule(
-            rec->sha1, rec->name,
+        rule = filter_new_sha1_rule(rec->sha1, rec->name,
             filter_get_download_target(), RULE_FLAG_ACTIVE);
 
         filter_append_rule(current_search->filter, rule);
-    
-        gtk_clist_unselect_row(GTK_CLIST(current_search->clist), row, 0);
-	} 
+
+        sl = g_slist_remove(sl, sl);
+    } 
 
     gtk_clist_thaw(GTK_CLIST(current_search->clist));
 }
@@ -1018,10 +972,6 @@ void on_popup_search_resume_activate(GtkMenuItem * menuitem,
 
     current_search = search_gui_get_current_search();
 	if (current_search) {
-		gtk_widget_set_sensitive
-            (lookup_widget(popup_search, "popup_search_stop"), TRUE);
-		gtk_widget_set_sensitive
-            (lookup_widget(popup_search, "popup_search_resume"), FALSE);
 		search_start(current_search->search_handle);
 
         gtk_clist_set_foreground(
@@ -1043,10 +993,6 @@ void on_popup_search_stop_activate
         GtkCList * clist_search = GTK_CLIST
             (lookup_widget(main_window, "clist_search"));
 
-		gtk_widget_set_sensitive
-            (lookup_widget(popup_search, "popup_search_stop"), FALSE);
-		gtk_widget_set_sensitive
-            (lookup_widget(popup_search, "popup_search_resume"), TRUE);
 		search_stop(current_search->search_handle);
         gtk_clist_set_foreground(
             clist_search,
