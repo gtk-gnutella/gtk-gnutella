@@ -27,18 +27,6 @@
 #include "common.h"
 
 /***
- *** Gnet host cache
- ***/
-
-typedef enum {
-	HCACHE_ANY = 0,				/* Any node */
-	HCACHE_ULTRA,				/* Ultra nodes */
-	HCACHE_MAX,
-} hcache_type_t;
-
-void hcache_clear(hcache_type_t type);
-
-/***
  *** Gnet nodes
  ***/
 
