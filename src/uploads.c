@@ -802,7 +802,7 @@ static void upload_request(struct upload *u, header_t *header)
 
 		if (requested_file == SHARE_REBUILDING) {
 			gchar *error = "Library being rebuilt";
-			send_upload_error(u, 408, error);		/* Is retry-able by user */
+			send_upload_error(u, 503, error);		/* Is retry-able by user */
 			upload_remove(u, error);
 			return;
 		}
