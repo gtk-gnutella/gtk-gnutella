@@ -39,6 +39,7 @@
 #include "dmesh.h"
 #include "huge.h"
 #include "http.h"
+#include "hostiles.h"
 
 #include "settings.h"
 
@@ -648,13 +649,16 @@ static gboolean dmesh_raw_add(guchar *sha1,
 		return FALSE;
 
 	/*
-	 * Reject if this is for our host, or if the host is a private IP.
+	 * Reject if this is for our host, or if the host is a private/hostile IP.
 	 */
 
 	if (ip == listen_ip() && port == listen_port)
 		return FALSE;
 
 	if (is_private_ip(ip))
+		return FALSE;
+
+	if (hostiles_check(ip))
 		return FALSE;
 
 	/*
