@@ -34,9 +34,11 @@
  * Public interface.
  */
 
-gchar *base32_encode(const gchar *buf, gint len, gint *retpad);
+gchar *base32_encode(const gchar *buf, gint len, gint *retpad, gboolean padding);
 void base32_encode_into(const gchar *buf, gint len,
 	gchar *encbuf, gint enclen);
+void base32_encode_str_into(const gchar *buf, gint len,
+	gchar *encbuf, gint enclen, gboolean padding);
 
 gchar *base32_decode(const gchar *buf, gint len, gint *outbuf);
 gint base32_decode_into(const gchar *buf, gint len,
