@@ -45,6 +45,8 @@
 
 #if defined(TRACK_MALLOC) && !defined(MALLOC_SOURCE)
 
+#include "hashlist.h"
+
 #undef strdup			/* Defined in <bits/string2.h> */
 
 #define malloc(s)		malloc_track((s), __FILE__, __LINE__)
