@@ -3461,7 +3461,7 @@ static gboolean uploads_count_changed(property_t prop)
     gnet_prop_get_guint32_val(PROP_UL_REGISTERED, &registered);
     gnet_prop_get_guint32_val(PROP_UL_RUNNING, &running);
 	gm_snprintf(set_tmp, sizeof(set_tmp), "%u/%u upload%s",
-		running, registered, (1 == running == registered) ? "" : "s");
+		running, registered, (1 == running && 1 == registered) ? "" : "s");
 
 	min = MIN(running, registered);
     frac = min != 0 ? (gfloat) min / registered : 0;
@@ -3483,10 +3483,10 @@ static gboolean downloads_count_changed(property_t prop)
     gnet_prop_get_guint32_val(PROP_DL_ACTIVE_COUNT, &active);
     gnet_prop_get_guint32_val(PROP_DL_RUNNING_COUNT, &running);
     gm_snprintf(set_tmp, sizeof(set_tmp), "%u/%u download%s",
-        active, running, (1 == running == active) ? "" : "s");
+        active, running, (1 == running && 1 == active) ? "" : "s");
 
     min = MIN(active, running);
-    frac = min != 0 ? (gfloat) active / running : 0;
+    frac = min != 0 ? (gfloat) min / running : 0;
 
     gtk_progress_bar_set_text(pg, set_tmp);
     gtk_progress_bar_set_fraction(pg, frac);
