@@ -51,7 +51,6 @@ static void monitor_gui_append_to_monitor(
     GtkTreeIter iter;
     gchar tmpstr[100];
 	gchar *str;
-	GError *error = NULL;
 
 	if (monitor_items < monitor_max_items)
         monitor_items++;
