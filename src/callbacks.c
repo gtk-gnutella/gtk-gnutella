@@ -1374,25 +1374,21 @@ void on_entry_queue_regex_activate(GtkEditable *editable,
     gint m = 0;
     guint msgid = -1;
     gint  err;
-	regex_t *re;
     gchar * regex;
 	struct download *d;
+	regex_t re;
 
     regex = gtk_entry_get_text(GTK_ENTRY(entry_queue_regex));
 
 	g_return_if_fail(regex);
 	
-    re = g_new(regex_t, 1);
-
-    g_return_if_fail(re);
-
-    err = regcomp(re, 
+    err = regcomp(&re, 
                   regex,
                   REG_EXTENDED|REG_NOSUB|(queue_regex_case ? 0 : REG_ICASE));
 
    	if (err) {
         char buf[1000];
-		regerror(err, re, buf, 1000);
+		regerror(err, &re, buf, 1000);
         g_error("on_entry_queue_regex_activate: regex error %s",buf);
         msgid = gui_statusbar_push(scid_warn, buf);
         gui_statusbar_add_timeout(scid_warn, msgid, 15);
@@ -1410,7 +1406,7 @@ void on_entry_queue_regex_activate(GtkEditable *editable,
                 continue;
             }
 
-            if ((n = regexec(re, d->file_name,0, NULL, 0)) == 0) {
+            if ((n = regexec(&re, d->file_name,0, NULL, 0)) == 0) {
                 gtk_clist_select_row(GTK_CLIST(clist_downloads_queue), i, 0);
                 m ++;
             }
@@ -1424,6 +1420,8 @@ void on_entry_queue_regex_activate(GtkEditable *editable,
                    m, GTK_CLIST(clist_downloads_queue)->rows, regex);
         msgid = gui_statusbar_push(scid_info, c_tmp);
         gui_statusbar_add_timeout(scid_info, msgid, 15);
+
+		regfree(&re);
     }
 
     gtk_entry_set_text(GTK_ENTRY(entry_queue_regex), "");
