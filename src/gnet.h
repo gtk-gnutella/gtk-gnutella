@@ -264,6 +264,13 @@ typedef struct gnet_host_vec {
 #define ST_FIREWALL				0x0001		/* Is behind a firewall */
 
 /*
+ * Processing of ignored files.
+ */
+#define SEARCH_IGN_DISPLAY_AS_IS	0		/* Display normally */
+#define SEARCH_IGN_DISPLAY_MARKED	1		/* Display marked (lighter color) */
+#define SEARCH_IGN_NO_DISPLAY		2		/* Don't display */
+
+/*
  * A results_set structure factorizes the common information from a Query Hit
  * packet, and then has a list of individual records, one for each hit.
  *
@@ -292,6 +299,7 @@ typedef struct gnet_results_set {
  */
 #define SR_DOWNLOADED	0x0001
 #define SR_IGNORED		0x0002
+#define SR_DONT_SHOW	0x0004
 
 /*
  * An individual hit.  It referes to a file entry on the remote servent,

@@ -1486,14 +1486,18 @@ gboolean search_results(gnutella_node_t *n)
      * Look for records that should be ignored.
      */
 
-    if (mark_ignored) {
+    if (search_handle_ignored_files != SEARCH_IGN_DISPLAY_AS_IS) {
         for (sl = rs->records; sl != NULL; sl = g_slist_next(sl)) {
             gnet_record_t *rc = (gnet_record_t *) sl->data;
             enum ignore_val ival;
 
             ival = ignore_is_requested(rc->name, rc->size, rc->sha1);
-            if (ival != IGNORE_FALSE)
-                set_flags(rc->flags, SR_IGNORED);
+            if (ival != IGNORE_FALSE) {
+				if (search_handle_ignored_files == SEARCH_IGN_NO_DISPLAY)
+					set_flags(rc->flags, SR_DONT_SHOW);
+				else
+					set_flags(rc->flags, SR_IGNORED);
+			}
 		}
 	}
 

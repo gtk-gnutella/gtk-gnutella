@@ -458,6 +458,7 @@ results_set_t *search_gui_create_results_set(const gnet_results_set_t *r_set)
 {
     results_set_t *rs;
     GSList *sl;
+	gint ignored = 0;
     
     rs = (results_set_t *) zalloc(rs_zone);
 
@@ -477,13 +478,18 @@ results_set_t *search_gui_create_results_set(const gnet_results_set_t *r_set)
 	rs->proxies = NULL;
     
     for (sl = r_set->records; sl != NULL; sl = g_slist_next(sl)) {
-        record_t *rc = search_gui_create_record(rs, (gnet_record_t *) sl->data);
+        record_t *rc;
+		gnet_record_t *grc = (gnet_record_t *) sl->data;
 
-        rs->records = g_slist_prepend(rs->records, rc);
-        rs->num_recs ++;
+		if (!(grc->flags & SR_DONT_SHOW)) {
+			rc = search_gui_create_record(rs, grc);
+			rs->records = g_slist_prepend(rs->records, rc);
+			rs->num_recs ++;
+		} else
+			ignored++;
     }
 
-    g_assert(rs->num_recs == r_set->num_recs);
+    g_assert(rs->num_recs + ignored == r_set->num_recs);
 
     return rs;
 }
