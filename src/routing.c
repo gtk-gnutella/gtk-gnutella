@@ -670,7 +670,7 @@ void sendto_one(struct gnutella_node *n, guchar * msg, guchar * data,
 	g_return_if_fail(size > 0);
 
 
-	if (n->status != GTA_NODE_CONNECTED)
+	if (!NODE_IS_CONNECTED(n))
 		return;
 
 	if (!data || size == sizeof(struct gnutella_header)) {
