@@ -176,7 +176,7 @@ static gboolean add_host_to_cache(
 	if (hcache_add(htype, ip, port, type))
 		return TRUE;
 
-	return TRUE;
+	return FALSE;
 }
 
 /*
