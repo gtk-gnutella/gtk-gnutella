@@ -43,6 +43,7 @@ RCSID("$Id$");
 #include "gnutella.h"
 #include "mq_udp.h"
 #include "routing.h"
+#include "pcache.h"
 
 #include "if/gnet_property_priv.h"
 
@@ -158,20 +159,15 @@ void udp_send_reply(gnutella_node_t *n, gpointer buf, gint len)
 void
 udp_connect_back(guint32 ip, guint16 port, const gchar *muid)
 {
-	struct gnutella_msg_init m;
+	struct gnutella_msg_init *m;
 	struct gnutella_node *n = node_udp_get_ip_port(ip, port);
 
 	if (!enable_udp)
 		return;
 
-	memcpy(m.header.muid, muid, 16);
-	m.header.function = GTA_MSG_INIT;
-	m.header.ttl = 1;
-	m.header.hops = 0;
+	m = build_ping_msg(muid, 1);
 
-	WRITE_GUINT32_LE(0, m.header.size);
-
-	mq_udp_node_putq(n->outq, gmsg_to_pmsg(&m, sizeof(m)), n);
+	mq_udp_node_putq(n->outq, gmsg_to_pmsg(m, sizeof(*m)), n);
 
 	if (udp_debug > 19)
 		printf("UDP queued connect-back PING %s to %s\n",
@@ -184,21 +180,15 @@ udp_connect_back(guint32 ip, guint16 port, const gchar *muid)
 void
 udp_send_ping(guint32 ip, guint16 port)
 {
-	struct gnutella_msg_init m;
+	struct gnutella_msg_init *m;
 	struct gnutella_node *n = node_udp_get_ip_port(ip, port);
 
 	if (!enable_udp)
 		return;
 
-	message_set_muid(&m.header, GTA_MSG_INIT);
+	m = build_ping_msg(NULL, 1);
 
-	m.header.function = GTA_MSG_INIT;
-	m.header.ttl = 1;
-	m.header.hops = 0;
-
-	WRITE_GUINT32_LE(0, m.header.size);
-
-	mq_udp_node_putq(n->outq, gmsg_to_pmsg(&m, sizeof(m)), n);
+	mq_udp_node_putq(n->outq, gmsg_to_pmsg(m, sizeof(*m)), n);
 }
 
 /* vi: set ts=4: */
