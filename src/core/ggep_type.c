@@ -241,6 +241,9 @@ ggept_hname_extract(extvec_t *exv, gchar *buf, gint len)
 	return GGEP_OK;
 }
 
+/**
+ * Extract filesize length into `filesize' from GGEP "LF" extension.
+ */
 ggept_status_t
 ggept_lf_extract(extvec_t *exv, guint64 *filesize)
 {
@@ -271,6 +274,10 @@ ggept_lf_extract(extvec_t *exv, guint64 *filesize)
 	return GGEP_OK;
 }
 
+/**
+ * Encode `filesize' for the GGEP "LF" extension into `data'.
+ * @return the amount of chars written.
+ */
 gint
 ggep_lf_encode(guint64 filesize, guint8 *data)
 {
