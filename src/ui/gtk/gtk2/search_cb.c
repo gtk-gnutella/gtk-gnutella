@@ -516,7 +516,7 @@ on_tree_view_search_results_select_row(GtkTreeView *view, gpointer unused_udata)
 		gm_snprintf(text, sizeof text,
 			"Peer: %s\n"
 			"Country: %s (%s)\n"
-			"Vendor: %-64.64s\n"
+			"Vendor: %.64s\n"
 			"SHA1: %s\n"
 			"GUID: %s\n"
 			"Size: %s\n"
