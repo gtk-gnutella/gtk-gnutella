@@ -151,7 +151,7 @@ typedef struct gnutella_node {
 #define NODE_F_ALIEN_IP		0x00000020	/* Pong-IP does not match TCP/IP addr */
 #define NODE_F_WRITABLE		0x00000040	/* Node is writable */
 #define NODE_F_READABLE		0x00000080	/* Node is readable, process queries */
-#define NODE_F_BYE_SENT		0x00000100	/* Bye message was sent */
+#define NODE_F_BYE_SENT		0x00000100	/* Bye message was queued */
 #define NODE_F_NODELAY		0x00000200	/* TCP_NODELAY was activated */
 #define NODE_F_NOREAD		0x00000400	/* Prevent further reading from node */
 #define NODE_F_EOF_WAIT		0x00000800	/* During final shutdown, waiting EOF */
