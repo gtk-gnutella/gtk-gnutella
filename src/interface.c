@@ -6290,7 +6290,7 @@ create_dlg_filters (void)
   gtk_table_set_row_spacings (GTK_TABLE (table24), 2);
   gtk_table_set_col_spacings (GTK_TABLE (table24), 4);
 
-  label192 = gtk_label_new ("minumum size");
+  label192 = gtk_label_new ("minimum size");
   gtk_widget_ref (label192);
   gtk_object_set_data_full (GTK_OBJECT (dlg_filters), "label192", label192,
                             (GtkDestroyNotify) gtk_widget_unref);

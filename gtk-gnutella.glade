@@ -9895,7 +9895,7 @@ for all filters</label>
 		      <widget>
 			<class>GtkLabel</class>
 			<name>label192</name>
-			<label>minumum size</label>
+			<label>minimum size</label>
 			<justify>GTK_JUSTIFY_CENTER</justify>
 			<wrap>False</wrap>
 			<xalign>0</xalign>
