@@ -577,24 +577,12 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 			gnet_host_t *hvec = NULL;		/* For GGEP "ALT" */
 			gint hvcnt = 0;
 			gboolean has_hash = FALSE;
+			gboolean has_unknown = FALSE;
 
 			g_assert(taglen > 0);
 
 			ext_prepare(exv, MAX_EXTVEC);
 			exvcnt = ext_parse(tag, taglen, exv, MAX_EXTVEC);
-
-			if (exvcnt == MAX_EXTVEC) {
-				g_warning("%s hit record #%d/%d has %d extensions!",
-					gmsg_infostr(&n->header), nr, rs->num_recs, exvcnt);
-				if (search_debug)
-					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
-				if (search_debug > 1)
-					dump_hex(stderr, "Query Hit Tag", tag, taglen);
-			} else if (search_debug > 15) {
-				printf("%s hit record #%d/%d has %d extensions:\n",
-					gmsg_infostr(&n->header), nr, rs->num_recs, exvcnt);
-				ext_dump(stdout, exv, exvcnt, "> ", "\n", TRUE);
-			}
 
 			/*
 			 * Look for a valid SHA1 or a tag string we can display.
@@ -717,9 +705,9 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 						guint64 fs;
 					
 					   	ret = ggept_lf_extract(e, &fs);
-						if (ret == GGEP_OK) {
+						if (ret == GGEP_OK)
 							rc->size = fs;
-						} else {
+						else {
 							g_warning("%s bad GGEP \"LF\" (dumping)",
 								gmsg_infostr(&n->header));
 							ext_dump(stderr, e, 1, "....", "\n", TRUE);
@@ -730,6 +718,8 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 					unknown = FALSE;		/* Disables ext_has_ascii_word() */
 					/* FALLTHROUGH */
 				case EXT_T_UNKNOWN:
+					if (unknown)
+						has_unknown = TRUE;
 					if (
 						!validate_only &&
 						ext_paylen(e) &&
@@ -755,6 +745,26 @@ get_results_set(gnutella_node_t *n, gboolean validate_only)
 				default:
 					break;
 				}
+			}
+
+			if (has_unknown) {
+				g_warning("%s hit record #%d/%d has unknown extensions!",
+					gmsg_infostr(&n->header), nr, rs->num_recs);
+				if (search_debug) {
+					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
+					dump_hex(stderr, "Query Hit Tag", tag, taglen);
+				}
+			} else if (exvcnt == MAX_EXTVEC) {
+				g_warning("%s hit record #%d/%d has %d extensions!",
+					gmsg_infostr(&n->header), nr, rs->num_recs, exvcnt);
+				if (search_debug) {
+					ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
+					dump_hex(stderr, "Query Hit Tag", tag, taglen);
+				}
+			} else if (search_debug > 15) {
+				g_message("%s hit record #%d/%d has %d extensions:",
+					gmsg_infostr(&n->header), nr, rs->num_recs, exvcnt);
+				ext_dump(stderr, exv, exvcnt, "> ", "\n", TRUE);
 			}
 
 			if (exvcnt)
