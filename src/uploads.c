@@ -2193,7 +2193,9 @@ static void upload_write(gpointer up, gint source, inputevt_cond_t cond)
 	gint written;
 	guint32 amount;
 	guint32 available;
+#ifdef HAVE_SENDFILE
 	off_t pos;				/* For sendfile() sanity checks */
+#endif	/* !HAVE_SENDFILE */
 
 	if (!(cond & GDK_INPUT_WRITE)) {
 		/* If we can't write then we don't want it, kill the socket */
