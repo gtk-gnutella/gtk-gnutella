@@ -1,5 +1,22 @@
 # since last version
 
+
+
+
+- made reissue timeout spinbutton on search-pane wider. (Richard)
+- made config pane a tabbed pane. (Richard)
+- added bandwidth control to config pane. (Richard)
+- added support for temporary statusbar messages (Richard)
+- reorganized configuration pane (made a tabbed pane) (Richard)
+- added gui controls for changing bandwidth allocation in the config
+  pane. (Richard)
+- added indicators for current bandwidth allocation to left panel.
+  (Richard)
+- now really use statusbar contexts and the GtkStatusbar stack features.
+  (Richard)
+- Moved freeze toggle-button out of the context menu and display a
+  message in the statusbar to warn the user that the queue is freezed.
+  (Richard)
 - added several new popup menu items to popup-download and popup-queue,
   but disabled them for now since they are not backed up by code yet.
   (Richard)
