@@ -132,9 +132,8 @@ void file_info_remove_source(
     struct dl_file_info *fi, struct download *dl, gboolean discard);
 void file_info_timer(void);
 
-void file_info_check_results_set(gnet_results_set_t *rs);
-void file_info_check_alt_locs(gnet_record_t *rc, struct dl_file_info *fi,
-	time_t stamp);
+struct dl_file_info *file_info_has_identical(
+	gchar *file, guint32 size, gchar *sha1);
 
 #endif /* _fileinfo_h_ */
 

@@ -40,6 +40,7 @@
 #include "hostiles.h"
 #include "dmesh.h"
 #include "fileinfo.h"
+#include "guid.h"
 
 #include <ctype.h>
 
@@ -103,6 +104,8 @@ static query_hashvec_t *query_hashvec = NULL;
     idtable_free_id(search_handle_map, n);
 
 guint32   search_passive  = 0;		/* Amount of passive searches */
+
+static void search_check_results_set(gnet_results_set_t *rs);
 
 /***
  *** Callbacks (private and public)
@@ -1350,7 +1353,7 @@ gboolean search_results(gnutella_node_t *n)
 	 */
 
     if (auto_download_identical)
-		file_info_check_results_set(rs);
+		search_check_results_set(rs);
 
 	/*
 	 * Look for records whose SHA1 matches files we own and add
@@ -1419,6 +1422,81 @@ gboolean search_query_allowed(gnet_search_t sh)
 
 	sch->query_emitted++;
 	return TRUE;
+}
+
+/*
+ * search_check_alt_locs
+ *
+ * Check for alternate locations in the result set, and enqueue the downloads
+ * if there are any.  Then free the alternate location from the record.
+ */
+static void search_check_alt_locs(
+	gnet_results_set_t *rs, gnet_record_t *rc, struct dl_file_info *fi)
+{
+	gint i;
+	gnet_alt_locs_t *alt = rc->alt_locs;
+	gint ignored = 0;
+
+	g_assert(alt != NULL);
+
+	for (i = alt->hvcnt - 1; i >= 0; i--) {
+		struct gnutella_host *h = &alt->hvec[i];
+
+		if (!host_is_valid(h->ip, h->port)) {
+			ignored++;
+			continue;
+		}
+
+		download_auto_new(rc->name, rc->size, URN_INDEX, h->ip,
+			h->port, blank_guid, rc->sha1, rs->stamp, FALSE, fi);
+	}
+
+	search_free_alt_locs(rc);
+
+	if (ignored) {
+    	gchar *vendor = lookup_vendor_name(rs->vendor);
+		g_warning("ignored %d invalid alt-loc%s in hits from %s (%s)",
+			ignored, ignored == 1 ? "" : "s",
+			ip_port_to_gchar(rs->ip, rs->port), vendor ? vendor : "????");
+	}
+}
+
+/*
+ * search_check_results_set
+ *
+ * Check a results_set for matching entries in the download queue,
+ * and generate new entries if we find a match.
+ */
+static void search_check_results_set(gnet_results_set_t *rs)
+{
+	GSList *l;
+	struct dl_file_info *fi;
+
+	for (l = rs->records; l; l = l->next) {
+		gnet_record_t *rc = (gnet_record_t *) l->data;
+
+		fi = file_info_has_identical(rc->name, rc->size, rc->sha1);
+
+		if (fi) {
+			gboolean need_push = (rs->status & ST_FIREWALL) ||
+				!host_is_valid(rs->ip, rs->port);
+			download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
+					rs->guid, rc->sha1, rs->stamp, need_push, fi);
+            set_flags(rc->flags, SR_DOWNLOADED);
+
+			/*
+			 * If there are alternate sources for this download in the query
+			 * hit, enqueue the downloads as well, then remove the sources
+			 * from the record.
+			 *		--RAM, 15/07/2003.
+			 */
+
+			if (rc->alt_locs != NULL)
+				search_check_alt_locs(rs, rc, fi);
+
+			g_assert(rc->alt_locs == NULL);
+		}
+	}
 }
 
 /***

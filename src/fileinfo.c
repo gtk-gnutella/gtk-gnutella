@@ -40,6 +40,8 @@
 #include "bsched.h"
 #include "huge.h"
 #include "dmesh.h"
+#include "search.h"
+#include "guid.h"
 
 #include "settings.h"
 #include "nodes.h"
@@ -57,8 +59,6 @@ RCSID("$Id$");
 
 #define FI_MIN_CHUNK_SPLIT	512		/* Smallest chunk we can split */
 #define FI_MAX_FIELD_LEN	1024	/* Max field length we accept to save */
-
-static gchar blank_guid[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
 /* made visible for us by atoms.c */
 extern guint sha1_hash(gconstpointer key);
@@ -2281,12 +2281,22 @@ struct dl_file_info *file_info_get(
  * identical to the given properties in the download queue already,
  * and NULL otherwise.
  */
-static struct dl_file_info *file_info_has_identical(
-	gchar *file, guint32 size, gchar *sha1, GSList *sizelist)
+struct dl_file_info *file_info_has_identical(
+	gchar *file, guint32 size, gchar *sha1)
 {
 	GSList *p;
+	GSList *sizelist;
 	struct dl_file_info *fi;
 	namesize_t nsk;
+
+	/*
+	 * Compute list of entries whose size matches.  If none, it is a
+	 * certainety we won't have any identical entry!
+	 */
+
+	sizelist = g_hash_table_lookup(fi_by_size, &size);
+	if (sizelist == NULL)
+		return NULL;
 
 	if (strict_sha1_matching) {
 		if (!sha1)
@@ -2337,76 +2347,6 @@ static struct dl_file_info *file_info_has_identical(
 	}
 
 	return NULL;
-}
-
-/*
- * file_info_check_alt_locs
- *
- * Check for alternate locations in the result set, and enqueue the downloads
- * if there are any.  Then free the alternate location from the record.
- */
-void file_info_check_alt_locs(gnet_record_t *rc, struct dl_file_info *fi,
-	time_t stamp)
-{
-	gint i;
-	gnet_alt_locs_t *alt = rc->alt_locs;
-
-	g_assert(alt != NULL);
-
-	for (i = alt->hvcnt - 1; i >= 0; i--) {
-		struct gnutella_host *h = &alt->hvec[i];
-
-		if (!host_is_valid(h->ip, h->port))
-			continue;
-
-		download_auto_new(rc->name, rc->size, URN_INDEX, h->ip,
-			h->port, blank_guid, rc->sha1, stamp, FALSE, fi);
-	}
-
-	search_free_alt_locs(rc);
-}
-
-/*
- * file_info_check_results_set
- *
- * Check a results_set for matching entries in the download queue,
- * and generate new entries if we find a match.
- */
-void file_info_check_results_set(gnet_results_set_t *rs)
-{
-	GSList *l;
-	GSList *list;
-	struct dl_file_info *fi;
-
-	for (l = rs->records; l; l = l->next) {
-		gnet_record_t *rc = (gnet_record_t *) l->data;
-
-		list = g_hash_table_lookup(fi_by_size, &rc->size);
-		if (list == NULL)
-			continue;
-
-		fi = file_info_has_identical(rc->name, rc->size, rc->sha1, list);
-
-		if (fi) {
-			gboolean need_push = (rs->status & ST_FIREWALL) ||
-				!host_is_valid(rs->ip, rs->port);
-			download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
-					rs->guid, rc->sha1, rs->stamp, need_push, fi);
-            set_flags(rc->flags, SR_DOWNLOADED);
-
-			/*
-			 * If there are alternate sources for this download in the query
-			 * hit, enqueue the downloads as well, then remove the sources
-			 * from the record.
-			 *		--RAM, 15/07/2003.
-			 */
-
-			if (rc->alt_locs != NULL)
-				file_info_check_alt_locs(rc, fi, rs->stamp);
-
-			g_assert(rc->alt_locs == NULL);
-		}
-	}
 }
 
 /*
