@@ -169,7 +169,7 @@ gpointer hash_list_last(const hash_list_t *hl)
 	g_assert(hl->refcount > 0);
 	hash_list_regression(hl);
 
-	return NULL != hl ? hl->last : NULL;
+	return NULL != hl->last ? hl->last->data : NULL;
 } 
 
 gpointer hash_list_first(const hash_list_t *hl)
