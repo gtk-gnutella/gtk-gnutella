@@ -374,7 +374,7 @@ gpointer zlib_uncompress(gpointer data, gint len, gint uncompressed_len)
  * Check whether first bytes of data make up a valid zlib marker.
  */
 gboolean
-zlib_valid_header(gpointer data, gint len)
+zlib_is_valid_header(gpointer data, gint len)
 {
 	guchar *p = data;
 	guint16 check;
@@ -402,7 +402,17 @@ zlib_valid_header(gpointer data, gint len)
 	 * The FCHECK value must be such that CMF and FLG, when viewed as a
 	 * 16-bit unsigned integer, stored in MSB order (CMF*256 + FLG), is
 	 * a multiple of 31.
+	 *
+	 * Valid values for CM are 8 (deflate) and 15 (reserved).
 	 */
+
+	switch (p[0] & 0xf) {
+	case 8:
+	case 15:
+		break;
+	default:
+		return FALSE;
+	}
 
 	check = (p[0] << 8) | p[1];
 
