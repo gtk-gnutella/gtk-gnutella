@@ -60,7 +60,7 @@ static GtkTreeView *treeview_downloads_queue;
 
 #if 0
 #define REGRESSION(x) { x }
-#define TREE_ITER_NEW() g_malloc(sizeof (GtkTreeIter))
+#define TREE_ITER_NEW() g_malloc0(sizeof (GtkTreeIter))
 #define TREE_ITER_FREE(x) g_free(x)
 #else
 #define REGRESSION(x)
@@ -771,7 +771,6 @@ download_gui_add(download_t *d)
 				G_FREE_NULL(status);
 
 				g_hash_table_replace(ht_dl_iters, drecord, iter);
-				REGRESSION(g_assert(find_download(drecord) == iter);)
 				REGRESSION(
 					g_assert(find_download(drecord) == iter);
 					g_assert(find_parent_with_fi_handle(ht,
