@@ -1259,7 +1259,7 @@ static struct shared_file *get_file_to_upload_from_index(
 	 */
 
 	if ((buf = header_get(header, "X-Gnutella-Content-Urn")))
-		sent_sha1 = huge_extract_sha1(buf, digest);
+		sent_sha1 = dmesh_collect_sha1(buf, digest);
 
 	/*
 	 * If they sent a SHA1, look whether we got a matching file.
