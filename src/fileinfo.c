@@ -53,6 +53,7 @@
 #include <dirent.h>
 
 #define FI_MIN_CHUNK_SPLIT	512		/* Smallest chunk we can split */
+#define FI_MAX_FIELD_LEN	1024	/* Max field length we accept to save */
 
 /* made visible for us by atoms.c */
 extern guint sha1_hash(gconstpointer key);
@@ -373,8 +374,11 @@ static void file_info_fd_store_binary(
 	if (fi->cha1)
 		FIELD_ADD(FILE_INFO_FIELD_CHA1, SHA1_RAW_SIZE, fi->cha1);
 
-	for (a = fi->alias; a; a = a->next)
-		FIELD_ADD(FILE_INFO_FIELD_ALIAS, strlen(a->data)+1, a->data);
+	for (a = fi->alias; a; a = a->next) {
+		gint len = strlen(a->data) + 1;
+		if (len < FI_MAX_FIELD_LEN + 1)
+			FIELD_ADD(FILE_INFO_FIELD_ALIAS, len, a->data);
+	}
 
 	for (fclist = fi->chunklist; fclist; fclist = g_slist_next(fclist)) {
 		guint32 tmpchunk[3];
@@ -868,7 +872,7 @@ static struct dl_file_info *file_info_retrieve_binary(gchar *file, gchar *path)
 	struct dl_file_info *fi = NULL;
 	struct dl_file_chunk *fc;
 	enum dl_file_info_field field;
-	gchar tmp[1024];
+	gchar tmp[FI_MAX_FIELD_LEN];
 	gchar *reason;
 	gint fd;
 	guint32 version;
@@ -1581,6 +1585,7 @@ void file_info_retrieve(void)
 	struct stat buf;
 	gboolean empty = TRUE;
 	GSList *aliases = NULL;
+	gboolean last_was_truncated = FALSE;
 
 	/*
 	 * We have a complex interaction here: each time a new entry within the
@@ -1625,10 +1630,47 @@ void file_info_retrieve(void)
 	}
 
 	while (fgets(line, sizeof(line), f)) {
+		gint len;
+		gboolean had_trailing_nl = FALSE;
+		gboolean truncated = FALSE;
+
 		if (*line == '#') continue;
 
-		while (*line && line[strlen(line)-1] <= ' ')
-			line[strlen(line)-1] = '\0';
+		/*
+		 * The following semi-complex logic attempts to determine whether
+		 * we filled the whole line buffer without reaching the end of the
+		 * physical line.
+		 *
+		 * When truncation occurs, we skip every following "line" we'd get
+		 * up to the point where we no longer need to truncate, at which time
+		 * we'll be re-synchronized on the real end of the line.
+		 */
+
+		if (line[sizeof(line)-1] == '\n')
+			had_trailing_nl = TRUE;
+
+		line[sizeof(line)-1] = '\0';
+
+		len = strlen(line);
+		if (len == sizeof(line) - 1)
+			truncated = !had_trailing_nl;
+
+		if (last_was_truncated) {
+			last_was_truncated = truncated;
+			g_warning("ignoring fileinfo line after truncation: '%s'", line);
+			continue;
+		} else if (truncated) {
+			last_was_truncated = TRUE;
+			g_warning("ignoring too long fileinfo line: '%s'", line);
+			continue;
+		}
+
+		/*
+		 * Remove trailing "\n" from line, then parse it.
+		 * Reaching an empty line means the end of the fileinfo description.
+		 */
+
+		str_chomp(line, len);
 
 		if ((*line == '\0') && fi && fi->file_name) {
 			GSList *l;
@@ -1763,7 +1805,8 @@ void file_info_retrieve(void)
 				fc->status = status;
 				fi->chunklist = g_slist_append(fi->chunklist, fc);
 			}
-		}
+		} else if (*line)
+			g_warning("ignoring fileinfo line: %s", line);
 	}
 
 	if (fi) {
@@ -2186,7 +2229,7 @@ void file_info_check_results_set(gnet_results_set_t *rs)
 
 		if (fi) {
 			gboolean need_push = (rs->status & ST_FIREWALL) ||
-				!check_valid_host(rs->ip, rs->port);
+				!host_is_valid(rs->ip, rs->port);
 			download_auto_new(rc->name, rc->size, rc->index, rs->ip, rs->port,
 					rs->guid, rc->sha1, rs->stamp, need_push, fi);
             set_flags(rc->flags, SR_DOWNLOADED);
