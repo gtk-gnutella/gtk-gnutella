@@ -198,8 +198,8 @@ void mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
  *
  * Return TRUE if we already queried the given node for the given search.
  */
-static gboolean search_already_sent_to_node
-    (search_ctrl_t *sch, gnutella_node_t *n)
+static gboolean search_already_sent_to_node(
+	search_ctrl_t *sch, gnutella_node_t *n)
 {
 	struct sent_node_data sd;
 	sd.ip = n->ip;
