@@ -79,7 +79,9 @@ void sq_clear(squeue_t *sq)
 		 pmsg_free((pmsg_t *) l->data);
 
 	g_list_free(sq->searches);
+
 	sq->searches = NULL;
+	sq->count = 0;
 }
 
 /*
@@ -152,7 +154,9 @@ void sq_process(squeue_t *sq, time_t now)
 	 * Queue is managed as a LIFO: we extract the first message, i.e. the last
 	 * one enqueued, and pass it along to the node's message queue.
 	 */
-		
+
+	g_assert(sq->searches);
+
 	item = g_list_first(sq->searches);
 	mb = (pmsg_t *) item->data;
 
