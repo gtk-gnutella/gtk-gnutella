@@ -75,13 +75,6 @@ static void search_stats_tally(const word_vec_t * vec);
  *** Callbacks
  ***/
 
-static void on_search_stats_type_selected(GtkItem *i, gpointer data)
-{
-    guint32 val = GPOINTER_TO_UINT(gtk_object_get_user_data(GTK_OBJECT(i)));
-
-    gui_prop_set_guint32(PROP_SEARCH_STATS_MODE, &val, 0, 1);
-}
-
 static void search_stats_notify_word(
     query_type_t type, const gchar *search, guint32 ip, guint16 port)
 {
@@ -311,7 +304,6 @@ void search_stats_gui_init(void)
     GtkCombo *combo_types;
     GtkWidget *clist_search_stats = 
         lookup_widget(main_window, "clist_search_stats");
-    prop_def_t *search_stats_mode_def;
 
     combo_types = GTK_COMBO(
         lookup_widget(main_window, "combo_search_stats_type"));
