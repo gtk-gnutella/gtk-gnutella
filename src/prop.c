@@ -728,7 +728,7 @@ gchar *prop_get_string(prop_set_t *ps, property_t prop, gchar *t, guint32 size)
         /*
          * Create new string.
          */
-        target = (s != NULL) ? g_strdup(s) : NULL;
+        target = g_strdup(s);
     } else {
         /*
          * Use given string buffer.
@@ -882,8 +882,8 @@ void prop_save_to_file
     if (!is_directory(dir))
         return;
 
-    gm_snprintf(prop_tmp, sizeof(prop_tmp), "%s/%s", dir, _filename);
-    filename = g_strdup(prop_tmp);
+	filename = g_strdup_printf("%s/%s", dir, _filename);
+	g_return_if_fail(NULL != filename);
 
     if (-1 == stat(filename, &buf))
 		g_warning("could not stat \"%s\": %s", filename, g_strerror(errno));
@@ -1089,6 +1089,7 @@ void prop_load_from_file(
 {
 	FILE *config;
 	gchar *s, *k, *v;
+	gchar *path;
 	property_t i;
 	guint32 n = 0;
 	struct stat buf;
@@ -1102,17 +1103,22 @@ void prop_load_from_file(
     if (!is_directory(dir))
         return;
 
-    gm_snprintf(prop_tmp, sizeof(prop_tmp), "%s/%s", dir, filename);
+    path = g_strdup_printf("%s/%s", dir, filename);
+	g_return_if_fail(NULL != path);
 
-	config = fopen(prop_tmp, "r");
-	if (!config)
+	config = fopen(path, "r");
+	if (!config) {
+		G_FREE_NULL(path);
 		return;
+	}
 
 	if (-1 == fstat(fileno(config), &buf))
 		g_warning("could open but not fstat \"%s\" (fd #%d): %s",
-			prop_tmp, fileno(config), g_strerror(errno));
+			path, fileno(config), g_strerror(errno));
     else
 		ps->mtime = buf.st_mtime;
+
+	G_FREE_NULL(path);
 
 	while (fgets(prop_tmp, sizeof(prop_tmp), config)) {
 		n++;
