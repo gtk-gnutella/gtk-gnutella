@@ -762,8 +762,8 @@ static gboolean file_info_has_filename(struct dl_file_info *fi, gchar *file)
 
 	if (use_fuzzy_matching) {
 		for (a = fi->alias; a; a = a->next) {
-			gint score = 100 * fuzzy_compare(a->data, file);
-			if (score >= fuzzy_threshold) {
+			gulong score = 100 * fuzzy_compare(a->data, file);
+			if (score >= (fuzzy_threshold << FUZZY_SHIFT)) {
 				g_warning("fuzzy: \"%s\"  ==  \"%s\" (score %f)",
 					(gchar *) a->data, file, score / 100.0);
 				fi_alias(fi, file, TRUE);

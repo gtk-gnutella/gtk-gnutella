@@ -36,7 +36,6 @@ RCSID("$Id$");
 
 /* Privat variables */
 
-static gboolean search_callbacks_shutting_down = FALSE;
 static gchar tmpstr[4096];
 
 /***
@@ -380,7 +379,7 @@ void on_tree_view_search_results_click_column(
 static guint32 autoselect_files_fuzzy_threshold;
 static gboolean autoselect_files_lock;
 
-static void autoselect_files(
+static void autoselect_files_helper(
     GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter, gpointer data) 
 {
 	record_t *rc;
@@ -443,7 +442,7 @@ static void autoselect_files(
                         (rc->sha1 == NULL) &&
                         (rc2->size == rc->size) && (
                             (!search_autoselect_fuzzy && !strcmp(rc2->name, rc->name)) ||
-                            (search_autoselect_fuzzy && (fuzzy_compare(rc2->name, rc->name) * 100 >= fuzzy_threshold))
+                            (search_autoselect_fuzzy && (fuzzy_compare(rc2->name, rc->name) * 100 >= (fuzzy_threshold << FUZZY_SHIFT)))
                         )
                     )) {
                         gtk_tree_selection_select_iter(tree_selection, &model_iter);
@@ -471,12 +470,8 @@ static void autoselect_files(
     }
 }
 
-static gboolean autoselection_running = FALSE;
-static guint autoselection_eventid = 0;
-
-static gboolean autoselect_files_after_delay(gpointer data)
+static void autoselect_files(GtkTreeView *tree_view)
 {
-	GtkTreeView *tree_view;
     gboolean search_autoselect;
     gboolean search_autoselect_ident;
     gboolean search_autoselect_fuzzy;
@@ -494,7 +489,6 @@ static gboolean autoselect_files_after_delay(gpointer data)
         PROP_SEARCH_AUTOSELECT_FUZZY,
         &search_autoselect_fuzzy, 0, 1);
 
- 	tree_view = GTK_TREE_VIEW(data);
  	selection = gtk_tree_view_get_selection(tree_view);
 
     /*
@@ -519,16 +513,13 @@ static gboolean autoselect_files_after_delay(gpointer data)
 	if (search_autoselect)
 		gtk_tree_selection_selected_foreach(
 			selection,
-			autoselect_files,
+			autoselect_files_helper,
 			selection);
 
     g_signal_handlers_unblock_by_func(
         G_OBJECT(tree_view),
         G_CALLBACK(on_tree_view_search_results_select_row),
         NULL);
-
-	autoselection_running = FALSE;
-	return FALSE;
 }
 
 /**
@@ -540,10 +531,12 @@ static gboolean autoselect_files_after_delay(gpointer data)
 void on_tree_view_search_results_select_row(
     GtkTreeView *tree_view, gpointer user_data)
 {
+	static gboolean autoselection_running = FALSE;
+
 	if (!autoselection_running) {
 		autoselection_running = TRUE;
-		autoselection_eventid =
-			gtk_timeout_add(100, autoselect_files_after_delay, tree_view);
+		autoselect_files(tree_view);
+		autoselection_running = FALSE;
 	}
 }
 
@@ -867,9 +860,5 @@ void search_callbacks_shutdown(void)
 	/*
  	 *	Remove delayed callbacks
  	 */
-	search_callbacks_shutting_down = TRUE;
-
-	if (autoselection_running)
-		gtk_timeout_remove(autoselection_eventid);
 }
 

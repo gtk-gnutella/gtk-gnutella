@@ -75,8 +75,10 @@ struct dmesh_entry {
 #define MAX_ENTRIES		64			/* Max amount of entries kept in list */
 #define MAX_STAMP		0xffffffff	/* Unsigned int, 32 bits */
 
-#define FUZZY_DROP		0.6			/* If not at least 60% alike, dump! */
-#define FUZZY_MATCH		0.8			/* If more than 80% alike, equal! */
+/* If not at least 60% alike, dump! */
+#define FUZZY_DROP		((60 / 100) << FUZZY_SHIFT)
+/* If more than 80% alike, equal! */
+#define FUZZY_MATCH		((80 / 100) << FUZZY_SHIFT)
 
 static gchar *dmesh_file = "dmesh";
 
@@ -1209,7 +1211,7 @@ static void dmesh_check_deferred_against_existing(
 {
     GSList *ex, *def;
 	GSList *adding = NULL;
-    float score;
+    gulong score;
     gint matches;
     gint threshold = g_slist_length(existing_urls);
 	time_t now = time(NULL);
@@ -1286,7 +1288,7 @@ static void dmesh_check_deferred_against_themselves(
 	guchar *sha1, GSList *deferred_urls)
 {
     GSList *l = deferred_urls;
-    float score;
+    gulong score;
     dmesh_deferred_url_t *first;
 	dmesh_deferred_url_t *current;
 
@@ -1308,7 +1310,7 @@ static void dmesh_check_deferred_against_themselves(
 			if (dbg > 4)
 				printf("dmesh_check_deferred_against_themselves failed with:\n"
 					"%s\n\t"
-					"(only scoring %f against:\n\t"
+					"(only scoring %lu against:\n\t"
 					"%s\n",
 				current->dmesh_url->name, score, first->dmesh_url->name);
 			return;

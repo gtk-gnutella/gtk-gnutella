@@ -541,7 +541,7 @@ void on_clist_search_results_select_row(
                         (rc->sha1 == NULL) && 
                         (rc2->size == rc->size) && (
                             (!search_autoselect_fuzzy && !strcmp(rc2->name, rc->name)) ||
-                            (search_autoselect_fuzzy && (fuzzy_compare(rc2->name, rc->name) * 100 >= fuzzy_threshold))
+                            (search_autoselect_fuzzy && (fuzzy_compare(rc2->name, rc->name) * 100 >= (fuzzy_threshold << FUZZY_SHIFT)))
                         )
                     )) {
                         gtk_clist_select_row(clist, i, 0);
