@@ -29,7 +29,7 @@
 
 /* A file extension we have to share */
 struct extension {
-	gchar *str;			/* Extension string (e.g. "divx") */
+	gchar *str;			/* Extension string (e.g. "html") */
 	gint len;			/* Extension length (e.g. 4) */
 };
 
@@ -86,7 +86,6 @@ gint get_file_size(gint);
 
 void set_sha1(struct shared_file *, const gchar *sha1_digest);
 struct shared_file *shared_file_by_sha1(const gchar *sha1_digest);
-struct shared_file *shared_file_by_sha1_base32(const gchar *sha1_digest);
 gboolean sha1_hash_available(const struct shared_file *);
 
 #endif /* __share_h__ */

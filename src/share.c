@@ -1198,6 +1198,8 @@ struct shared_file *shared_file_by_sha1(const gchar *sha1_digest)
 	return f;
 }
 
+#if 0
+// XXX no longer used
 /* 
  * shared_file_by_sha1_base32
  * 
@@ -1218,6 +1220,7 @@ struct shared_file *shared_file_by_sha1_base32(const gchar *sha1_digest)
 
 	return shared_file_by_sha1(digest);
 }
+#endif
 
 /* 
  * Emacs stuff:
