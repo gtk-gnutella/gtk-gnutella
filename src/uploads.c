@@ -268,6 +268,49 @@ gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push)
 }
 
 /*
+ * upload_send_giv
+ *
+ * Send a GIV string to the specified IP:port.
+ *
+ * `ip' and `port' is where we need to connect.
+ * `hops' and `ttl' are the values from the PUSH message we received, just
+ * for logging in case we cannot connect.
+ * `file_index' and `file_name' are the values we determined from PUSH.
+ * `banning' must be TRUE when we determined connections to the IP were
+ * currently prohibited.
+ */
+void upload_send_giv(guint32 ip, guint16 port, guint8 hops, guint8 ttl,
+	guint32 file_index, gchar *file_name, gboolean banning)
+{
+	gnutella_upload_t *u;
+	struct gnutella_socket *s;
+
+	s = socket_connect(ip, port, SOCK_TYPE_UPLOAD);
+	if (!s) {
+		g_warning("PUSH request (hops=%d, ttl=%d) dropped: can't connect to %s",
+			hops, ttl, ip_port_to_gchar(ip, port));
+		return;
+	}
+
+	u = upload_create(s, TRUE);
+	u->index = file_index;
+	u->name = atom_str_get(file_name);
+
+	if (banning) {
+		gchar *msg = ban_message(ip);
+		if (msg != NULL)
+			upload_remove(u, "Banned: %s", msg);
+		else
+			upload_remove(u, "Banned for %s", short_time(ban_delay(ip)));
+		return;
+	}
+
+	upload_fire_upload_info_changed(u);
+
+	/* Now waiting for the connection CONF -- will call upload_connect_conf() */
+}
+
+/*
  * handle_push_request
  *
  * Called when we receive a Push request on Gnet.
@@ -277,14 +320,13 @@ gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push)
  */
 void handle_push_request(struct gnutella_node *n)
 {
-	gnutella_upload_t *u;
-	struct gnutella_socket *s;
 	struct shared_file *req_file;
 	guint32 file_index;
 	guint32 ip;
 	guint16 port;
 	gchar *info;
 	gboolean show_banning = FALSE;
+	gchar *file_name = "<invalid file index>";
 
 	if (0 != memcmp(n->data, guid, 16))		/* Servent ID matches our GUID? */
 		return;								/* No: not for us */
@@ -301,6 +343,11 @@ void handle_push_request(struct gnutella_node *n)
 
 	/*
 	 * Quick sanity check on file index.
+	 *
+	 * Note that even if the file index is wrong, we still open the
+	 * connection.  After all, the PUSH message was bearing our GUID.
+	 * We'll let the remote end figure out what to do.
+	 *		--RAM. 18/07/2003
 	 */
 
 	req_file = shared_file(file_index);
@@ -308,14 +355,11 @@ void handle_push_request(struct gnutella_node *n)
 	if (req_file == SHARE_REBUILDING) {
 		g_warning("PUSH request (hops=%d, ttl=%d) whilst rebuilding library",
 			n->header.hops, n->header.ttl);
-		return;		/* Sorry, race not supported for now -- RAM, 12/03/2002 */
-	}
-
-	if (req_file == NULL) {
+	} else if (req_file == NULL) {
 		g_warning("PUSH request (hops=%d, ttl=%d) for invalid file index %u",
 			n->header.hops, n->header.ttl, file_index);
-		return;
-	}
+	} else
+		file_name = req_file->file_name;
 
 	/*
 	 * XXX might be run inside corporations (private IPs), must be smarter.
@@ -349,7 +393,7 @@ void handle_push_request(struct gnutella_node *n)
 	case BAN_FORCE:				/* Refused, no ack */
 		if (dbg) g_warning("PUSH flood (hops=%d, ttl=%d) to %s [ban %s]: %s\n",
 			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port),
-			short_time(ban_delay(ip)), req_file->file_name);
+			short_time(ban_delay(ip)), file_name);
 		if (!show_banning)
 			return;
 		break;
@@ -364,31 +408,10 @@ void handle_push_request(struct gnutella_node *n)
 	if (dbg > 4)
 		printf("PUSH (hops=%d, ttl=%d) to %s: %s\n",
 			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port),
-			req_file->file_name);
+			file_name);
 
-	s = socket_connect(ip, port, SOCK_TYPE_UPLOAD);
-	if (!s) {
-		g_warning("PUSH request (hops=%d, ttl=%d) dropped: can't connect to %s",
-			n->header.hops, n->header.ttl, ip_port_to_gchar(ip, port));
-		return;
-	}
-
-	u = upload_create(s, TRUE);
-	u->index = file_index;
-	u->name = atom_str_get(req_file->file_name);
-
-	if (show_banning) {
-		gchar *msg = ban_message(ip);
-		if (msg != NULL)
-			upload_remove(u, "Banned: %s", msg);
-		else
-			upload_remove(u, "Banned for %s", short_time(ban_delay(ip)));
-		return;
-	}
-
-	upload_fire_upload_info_changed(u);
-
-	/* Now waiting for the connection CONF -- will call upload_connect_conf() */
+	upload_send_giv(ip, port, n->header.hops, n->header.ttl,
+		file_index, file_name, show_banning);
 }
 
 void upload_real_remove(void)
@@ -560,11 +583,18 @@ static void send_upload_error_v(
 	/*
 	 * If this is a pushed upload, and we are not firewalled, then tell
 	 * them they can reach us directly by outputting an X-Host line.
+	 *
+	 * If we are firewalled, let them know about our push proxies, if we
+	 * have ones.
 	 */
 
 	if (u->push && !is_firewalled) {
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
 		hev[hevcnt].he_cb = upload_http_xhost_add;
+		hev[hevcnt++].he_arg = NULL;
+	} else if (is_firewalled) {
+		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+		hev[hevcnt].he_cb = node_http_proxies_add;
 		hev[hevcnt++].he_arg = NULL;
 	}
 
@@ -1526,6 +1556,8 @@ static struct shared_file *get_file_to_upload(
 	 */
 
 	uri = request + ((request[0] == 'G') ? sizeof("GET") : sizeof("HEAD"));
+	while (*uri == ' ' || *uri == '\t')
+		uri++;
 
     if (u->name == NULL)
         u->name = atom_str_get(uri);
@@ -1705,9 +1737,6 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	struct gnutella_socket *s = u->socket;
 	struct shared_file *reqfile = NULL;
     guint idx = 0, skip = 0, end = 0;
-#if 0
-	guint upcount = 0;
-#endif
 	gchar *fpath = NULL;
 	gchar *user_agent = 0;
 	gchar *buf;
@@ -1941,11 +1970,22 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	/*
 	 * If this is a pushed upload, and we are not firewalled, then tell
 	 * them they can reach us directly by outputting an X-Host line.
+	 *
+	 * Otherwise, if we are firewalled, tell them about possible push
+	 * proxies we could have.
 	 */
 
 	if (u->push && !is_firewalled) {
+		/* Only send X-Host the first time we reply */
+		if (!is_followup) {
+			hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
+			hev[hevcnt].he_cb = upload_http_xhost_add;
+			hev[hevcnt++].he_arg = NULL;
+		}
+	} else if (is_firewalled) {
+		/* Send X-Push-Proxies each time: might have changed! */
 		hev[hevcnt].he_type = HTTP_EXTRA_CALLBACK;
-		hev[hevcnt].he_cb = upload_http_xhost_add;
+		hev[hevcnt].he_cb = node_http_proxies_add;
 		hev[hevcnt++].he_arg = NULL;
 	}
 
@@ -2056,19 +2096,6 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 					"Already downloading that file");
 				return;
 			}
-#if 0
-			/* 
-			 * This part will be handled by PARQ from now on. This way it is
-			 * assured PARQ can generate correct headers. Including the 
-			 * Retry-After header.
-			 */
-			if (up->socket->ip == s->ip && ++upcount >= max_uploads_ip) {
-				upload_error_remove(u, reqfile,
-					503, "Only %u download%s per IP address",
-					max_uploads_ip, max_uploads_ip == 1 ? "" : "s");
-				return;
-			}
-#endif
 		}
 	}
 		
