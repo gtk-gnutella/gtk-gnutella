@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 0.92c\n"
 "POT-Creation-Date: 2003-06-07 21:33+0200\n"
-"PO-Revision-Date: 2003-06-22 17:12--100\n"
+"PO-Revision-Date: 2003-11-02 19:31+0100\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: nl <jeroen@asselman.com>\n"
 "MIME-Version: 1.0\n"
@@ -263,8 +263,8 @@ msgstr "Tijd in seconden wanneer een Gnet connectie wordt verbroken als er geen 
 msgid "Number of seconds before a Gnet connection times out if no data is transmitted"
 msgstr "Tijd in seconden voordat een Gnet connectie wordt verbroken als er geen data is verstuurd"
 
-#: gnet_property.c:1255
 # xgettext:no-c-format
+#: gnet_property.c:1255
 msgid "Maximum size of the sendqueue for the nodes (in bytes). Must be at least 150% of the maximum message size"
 msgstr "Maximum grootte van de te zenden wachtrij voor nodes (in bytes). Moet tenminste 150% van de maximale bericht grootte zijn"
 
@@ -673,7 +673,7 @@ msgstr ""
 
 #: gnet_property.c:3157
 msgid "When partial file sharing (PFSP) is enabled, gtk-gnutella will strive to download chunks in a random order, to maximize the spreading of the file in the network.  However, this makes auditing (file type, pre-viewing, etc...) of the file impossible. This field sets the size in bytes of the first chunk of data that should be continuously downloaded at the beginning of the file.  Don't set it too large."
-msgstr ""
+msgstr "Zodra 'Partial File Sharing' (PFSP) is ingeschakeld zal gtk-gnutella proberen om in willekeurige volgorde fragmenten te downloaden zodat een bestand zoveel mogelijk over het netwerk verspreid. Dit maakt het beoordelen van een bestand (bestandstype, pre-view, etc...) echter onmogelijk. Stel hier de grootte in van het eerste fragment van het begin van het bestand dat als in geheel gedownload moet worden. Stel dit niet te groot in."
 
 #: gnet_property.c:3177
 msgid "Whether to apply a fuzzy filter on download mesh entries.  Thepurpose of this filtering is to remove entries whose names are too different to be sensibly part of the same mesh. When activated, your mesh will probably be more consistent at the cost of extra CPU time, and at the cost of losing some valid entries in the process."
@@ -719,7 +719,7 @@ msgstr "Zoek monitor geactiveerd"
 
 #: gui_property.c:241
 msgid "Maximum number of queries visible in search monitor"
-msgstr ""
+msgstr "Maximum aantal zoek opdrachten die zichtbaar zullen zijn in de zoek monitor."
 
 #: gui_property.c:261
 msgid "Match queue selection by regexp case sensitive"
@@ -727,7 +727,7 @@ msgstr ""
 
 #: gui_property.c:278
 msgid "Autoselect similar files in searches"
-msgstr ""
+msgstr "Selecteer automatisch gelijke bestanden in zoekopdrachten"
 
 #: gui_property.c:295
 msgid "Widths of the columns in the nodes table"
@@ -917,11 +917,11 @@ msgstr ""
 
 #: gui_property.c:1195
 msgid "Display search settings"
-msgstr ""
+msgstr "Zoek instellingen weergeven"
 
 #: gui_property.c:1212
 msgid "Display download settings"
-msgstr ""
+msgstr "Download instellingen weergeven"
 
 #: gui_property.c:1229
 msgid "Use fuzzy name match for autoselection"
@@ -1200,24 +1200,36 @@ msgid "Target"
 msgstr "Doel"
 
 #: interface-glade2.c:965
-msgid "Remove all rules\n"
+msgid ""
+"Remove all rules\n"
 "from this filter"
 msgstr ""
+"Verwijder alle regels\n"
+"van dit filter"
 
 #: interface-glade2.c:970
-msgid "Reset all rule stats\n"
+msgid ""
+"Reset all rule stats\n"
 "in this filter"
 msgstr ""
+"Reset alle regel statistieken\n"
+"van dit filter"
 
 #: interface-glade2.c:975
-msgid "Reset filter stats\n"
+msgid ""
+"Reset filter stats\n"
 "for this filter"
 msgstr ""
+"Reset filter statistieken\n"
+"van dit filter"
 
 #: interface-glade2.c:980
-msgid "Reset filter stats\n"
+msgid ""
+"Reset filter stats\n"
 "for all filters"
 msgstr ""
+"Reset filter statistieken\n"
+"van alle filters"
 
 #: interface-glade2.c:1044
 msgid "Revert"
@@ -1615,7 +1627,7 @@ msgstr ""
 
 #: interface-glade2.c:3106
 msgid "Banning"
-msgstr ""
+msgstr "Bannen"
 
 #: interface-glade2.c:3138
 msgid "Host runs NTP"
@@ -1627,7 +1639,7 @@ msgstr ""
 
 #: interface-glade2.c:3154
 msgid "       "
-msgstr ""
+msgstr "       "
 
 #: interface-glade2.c:3163
 #: interface-glade2.c:5644
@@ -1803,7 +1815,7 @@ msgstr "Geef voorkeur aan gecomprimeerde verbindingen"
 
 #: interface-glade2.c:4141
 msgid "Use IP Type of Service (TOS)"
-msgstr ""
+msgstr "Gebruik 'IP Type Of Service' (TOS)"
 
 #: interface-glade2.c:4148
 #: interface-glade2.c:9315
@@ -1822,20 +1834,20 @@ msgstr "K/s"
 #: interface-glade2.c:4207
 #: interface-glade2.c:4384
 msgid "Limit bandwidth for _incoming traffic to"
-msgstr ""
+msgstr "Limiteer de _inkomende bandbreedte op"
 
 #: interface-glade2.c:4214
 #: interface-glade2.c:4391
 msgid "Limit bandwidth for _outgoing traffic to"
-msgstr ""
+msgstr "Limiteer de uitgaande bandbreedte op"
 
 #: interface-glade2.c:4269
 msgid "Limit incoming bandwidth from leaves to"
-msgstr ""
+msgstr "Limiteer de inkomende bandbreedte van 'leaves' op"
 
 #: interface-glade2.c:4276
 msgid "Limit outgoing bandwidth to leaves to"
-msgstr ""
+msgstr "Limiteer de uitgaande bandbreedte van 'leaves' op"
 
 #: interface-glade2.c:4283
 msgid "Ultrapeer mode"
@@ -1853,7 +1865,7 @@ msgstr ""
 
 #: interface-glade2.c:4365
 msgid "What other people see as your connection speed."
-msgstr ""
+msgstr "Wat anderen zullen zien als jouw verbindings snelheid"
 
 #: interface-glade2.c:4376
 msgid "kbits/s to peers"
@@ -1899,7 +1911,7 @@ msgstr ""
 
 #: interface-glade2.c:4778
 msgid "Maximum number of _retries"
-msgstr ""
+msgstr "Maximum aantal keren opnieuw proberen"
 
 #: interface-glade2.c:4787
 #: interface-glade2.c:10393
@@ -1917,7 +1929,7 @@ msgstr ""
 
 #: interface-glade2.c:4814
 msgid "Resume and retry"
-msgstr ""
+msgstr "Doorgaan en opnieuw proberen"
 
 #: interface-glade2.c:4832
 msgid "Optimistic first _chunk"
@@ -2718,7 +2730,7 @@ msgstr ""
 
 #: interface-glade2.c:9453
 msgid "Show reasons for"
-msgstr ""
+msgstr "Geef de redenen weer voor"
 
 #: interface-glade2.c:9491
 msgid "Drop reasons"
@@ -2961,7 +2973,8 @@ msgid "Condition: If current filter result properties match"
 msgstr ""
 
 #: interface-glade2.c:12399
-msgid "Configuration of IP address, Port,\n"
+msgid ""
+"Configuration of IP address, Port,\n"
 "Proxy settings etc. "
 msgstr ""
 
@@ -3099,7 +3112,8 @@ msgstr ""
 
 #: search_gui.c:1161
 #, c-format
-msgid "could not rename %s as %s: %s\n"
+msgid ""
+"could not rename %s as %s: %s\n"
 "The XML file will not be used unless this problem is resolved."
 msgstr ""
 
