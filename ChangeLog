@@ -1,5 +1,22 @@
 # since last version
 
+- (2003.02.27 - Richard)
+ * event.[ch]: Added as a replacement for listener.h. For now it's used only
+   in the property system. The bonus over listener.h: control of callback 
+   frequency on a per-listener base.
+ * Added seperate property to control debug level of the property system.
+ * props.tpl: Upgraded to use event.[ch], regenerated property sources.
+ * prop.[ch]: 
+   - Upgraded to use event.[ch]
+   - Added prop_get_by_name(): look up a property by name.
+   - Added prop_to_string(): converting a property to string reprsenentation, 
+     doesn't work for all property types yet.
+ * settings_gui.c: Upgraded property_map to make use of the new frequency
+   control feature of prop.[ch]
+ * shell.c: 
+   - No longer show auth cookie in debug output
+   - New command: "PRINT [property]" to display current value of a property
+
 - (2003.02.25 - RAM)
  * Added CRC32 code.
  * Fixed the base32/base64 code to correctly process padding, and return the
