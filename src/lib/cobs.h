@@ -56,6 +56,8 @@ gchar *cobs_decode(gchar *buf, gint len, gint *retlen, gboolean inplace);
 gboolean cobs_decode_into(
 	gchar *buf, gint len, gchar *out, gint outlen, gint *retlen);
 
+gboolean cobs_is_valid(gchar *buf, gint len);
+
 void cobs_stream_init(cobs_stream_t *cs, gpointer data, gint len);
 gint cobs_stream_close(cobs_stream_t *cs, gboolean *saw_nul);
 gboolean cobs_stream_write(cobs_stream_t *cs, gpointer data, gint len);

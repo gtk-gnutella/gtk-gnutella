@@ -175,6 +175,9 @@ cobs_decode_into(gchar *buf, gint len, gchar *out, gint outlen, gint *retlen)
 		for (i = 1; i < code && p < end && o < oend; i++)
 			*o++ = *p++;
 
+		if (i < code)
+			return FALSE;			/* Reached end of some buffer */
+
 		if (code < 0xFF) {
 			if (o < oend)
 				*o++ = '\0';
@@ -195,6 +198,36 @@ cobs_decode_into(gchar *buf, gint len, gchar *out, gint outlen, gint *retlen)
 		*retlen = o - out;
 
 	g_assert(*retlen <= outlen);
+
+	return TRUE;					/* Valid COBS encoding */
+}
+
+/**
+ * Check whether supplied buffer forms a valid COBS encoding.
+ */
+gboolean
+cobs_is_valid(gchar *buf, gint len)
+{
+	const gchar *end = buf + len;		/* First byte off buffer */
+	gchar *p;
+
+	g_assert(len > 0);
+
+	for (p = buf; p < end; /* empty */) {
+		gint i;
+		gint code;
+
+		code = (guchar) *p++;
+
+		if (code == 0)
+			return FALSE;			/* There cannot by any NUL */
+
+		for (i = 1; i < code && p < end; i++)
+			p++;
+
+		if (i < code)
+			return FALSE;			/* Reached end of buffer too soon */
+	}
 
 	return TRUE;					/* Valid COBS encoding */
 }
