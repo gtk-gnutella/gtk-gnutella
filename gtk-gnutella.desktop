@@ -10,4 +10,6 @@ Terminal=false
 Type=Application
 Categories=GTK;Application;Network;
 Icon=gtk-gnutella.png
-
+Name[fr]=Gtk-Gnutella
+GenericName[fr]=Client P2P
+Comment[fr]=Un servent Gnutella graphique
