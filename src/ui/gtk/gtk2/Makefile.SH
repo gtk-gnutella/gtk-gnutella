@@ -83,7 +83,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.1 2004/08/25 05:40:40 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.2 2004/08/28 06:36:27 rmanfredi Exp $
 
 # Those files lie in the ../gtk-shared directory
 REMOTE_GLADE_C = callbacks.c
@@ -150,7 +150,7 @@ TOP_GUI = ../..
 
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I$(TOP_SRC) -I$(TOP_GUI) \
-	$(GTK_CFLAGS) $(XML2_CFLAGS) -DGUI_SOURCES
+	$(GTK_CFLAGS) $(XML2_CFLAGS) -DGUI_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
 GLADEFILE = gtk-gnutella.glade

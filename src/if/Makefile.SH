@@ -74,7 +74,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.2 2004/08/27 15:32:07 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.3 2004/08/28 06:36:27 rmanfredi Exp $
 
 depend::
 	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
@@ -86,7 +86,7 @@ depend::
 
 SOURCES = gnet_property.c gui_property.c
 
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS)
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
 all:: properties

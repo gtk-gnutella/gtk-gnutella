@@ -78,7 +78,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.1 2004/08/25 05:40:38 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.2 2004/08/28 06:36:27 rmanfredi Exp $
 
 SRC = \
 	alive.c \
@@ -207,7 +207,8 @@ OBJ = \
 	whitelist.o 
 
 # Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(XML2_CFLAGS) -DCORE_SOURCES
+CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) $(XML2_CFLAGS) \
+	-DCORE_SOURCES -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 
 IF = ../if

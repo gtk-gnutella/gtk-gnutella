@@ -87,7 +87,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.29 2004/08/25 05:57:14 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.30 2004/08/28 06:36:27 rmanfredi Exp $
 
 all::
 
@@ -108,7 +108,7 @@ EXTRA = \
 	if/gnet_property.o \
 	if/gui_property.o
 
-CFLAGS = -I.. -I. $(GTK_CFLAGS) $(XLM2_CFLAGS)
+CFLAGS = -I.. -I. $(GTK_CFLAGS) $(XLM2_CFLAGS) -DCURDIR=$(CURRENT)
 DPFLAGS = $(CFLAGS)
 LDFLAGS = \
 	-Lcore -lcore \

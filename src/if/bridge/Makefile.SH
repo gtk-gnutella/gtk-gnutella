@@ -73,7 +73,7 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile,v 1.2 2004/08/27 15:34:50 rmanfredi Exp $
+# $X-Id: Jmakefile,v 1.3 2004/08/28 06:36:27 rmanfredi Exp $
 
 SRC = c2ui.c ui2c.c
 OBJ = \
@@ -81,8 +81,8 @@ OBJ = \
 	ui2c.o 
 
 # Those extra flags are expected to be user-defined
-CFLAGS = -I$(TOP) -I../.. $(GLIB_CFLAGS)
-DPFLAGS = -I$(TOP) -I../.. $(GLIB_CFLAGS)
+CFLAGS = -I$(TOP) -I../.. $(GLIB_CFLAGS) -DCURDIR=$(CURRENT)
+DPFLAGS = $(CFLAGS)
 
 depend:: ../../../mkdep
 
