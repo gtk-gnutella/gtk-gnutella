@@ -308,16 +308,20 @@ static int ul_find_row_by_upload(
 	 */
 	for (i = 0; i < ul_rows; i++) {
 		gchar *filename;
+		struct ul_stats *us;
 
-		*s = gtk_clist_get_row_data(GTK_CLIST(clist_ul_stats), i);
-		if ((*s)->size != u->file_size)
+		us = gtk_clist_get_row_data(GTK_CLIST(clist_ul_stats), i);
+
+		if (us->size != u->file_size)
 			continue;
 
 		gtk_clist_get_text(GTK_CLIST(clist_ul_stats), i,
 			UL_STATS_FILE_IDX, &filename);
 
-		if (g_str_equal(filename, u->name))
+		if (g_str_equal(filename, u->name)) {
+			*s = us;
 			return i;
+		}
 	}
 	return -1;
 }
@@ -399,5 +403,7 @@ void ul_stats_prune_nonexistant()
 void ul_stats_clear_all()
 {
 	gtk_clist_clear(GTK_CLIST(clist_ul_stats));
+	ul_rows = 0;
+	dirty = TRUE;
 }
 
