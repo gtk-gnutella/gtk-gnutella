@@ -103,7 +103,6 @@ enum {
     c_sr_info,
 #ifdef USE_GTK2
 	c_sr_record, /* invisible, pointer to the record_t of this entry */
-	c_sr_sortkey, /* invisible, key for sorting by filename */
 #endif
 	c_sr_num
 };

@@ -465,6 +465,7 @@ gboolean search_gui_new_search_full(
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 	gchar query[512];
+	gchar *name;
 
     GtkWidget *combo_searches = lookup_widget(main_window, "combo_searches");
     GtkWidget *tree_view_search = lookup_widget(main_window, "tree_view_search");
@@ -558,13 +559,16 @@ gboolean search_gui_new_search_full(
 						   glist);
 
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(tree_view_search));
+	name = g_locale_to_utf8(sch->query, -1, NULL, NULL, NULL);
 	gtk_list_store_append (GTK_LIST_STORE (model), &iter);
 	gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-		c_sl_name, g_filename_to_utf8(sch->query, -1, NULL, NULL, NULL),
+		c_sl_name, name,
 		c_sl_hit, GINT_TO_POINTER(0),
 		c_sl_new, GINT_TO_POINTER(0), 
 		c_sl_sch, sch,
 		-1);
+
+	G_FREE_NULL(name);
 
 	/* Create a new CList if needed, or use the default CList */
 
@@ -755,9 +759,11 @@ static void search_gui_add_record(
 	GError	*error = NULL;
 
 	titles[c_sr_filename] = 
-		g_filename_to_utf8(rc->name, -1, NULL, NULL, &error);
+		g_locale_to_utf8(rc->name, -1, NULL, NULL, &error);
 	if (NULL != error) {
-		g_warning("%s", error->message);
+		g_warning("g_locale_to_utf8 failed in %s: %s", __FUNCTION__,
+			error->message);
+		g_clear_error(&error);
 		titles[c_sr_filename] = g_strdup("<Filename cannot be viewed>");
 	}
 	titles[c_sr_size] = short_size(rc->size);
@@ -790,13 +796,8 @@ static void search_gui_add_record(
 		g_string_append(info, vinfo->str);
 	}
 	titles[c_sr_info] = info->str;
-	titles[c_sr_sortkey] = g_utf8_collate_key(
-							titles[c_sr_filename],
-							(gssize)-1); /* must be free'd */
 
 	gtk_list_store_append(GTK_LIST_STORE (model), &iter);
-/*	g_message("%s: sortkey=\"%s\"", "gtk_list_store_set", 
-		titles[c_sr_sortkey]);*/
 	gtk_list_store_set(GTK_LIST_STORE (model), &iter,
 		      c_sr_filename, titles[c_sr_filename],
 		      c_sr_size, titles[c_sr_size],
@@ -805,11 +806,9 @@ static void search_gui_add_record(
 		      c_sr_urn, titles[c_sr_urn],
 		      c_sr_info, titles[c_sr_info],
 		      c_sr_record, rc,
-		      c_sr_sortkey, titles[c_sr_sortkey],
 		      -1);
 
 	G_FREE_NULL(titles[c_sr_filename]);
-	G_FREE_NULL(titles[c_sr_sortkey]);
 
 
 /*    if (!sch->sort) {
@@ -1754,7 +1753,7 @@ void search_gui_set_current_search(search_t *sch)
 	g_assert(sch != NULL);
 
     if (locked)
-        return;
+		return;
 
     locked = TRUE;
 
@@ -1895,8 +1894,7 @@ GtkTreeModel *create_model (void)
 	G_TYPE_STRING,	/* Host */
 	G_TYPE_STRING,	/* urn:sha1 */
 	G_TYPE_STRING,	/* Info */
-	G_TYPE_POINTER,	/* (record_t *) */
-	G_TYPE_STRING);	/* sort key */
+	G_TYPE_POINTER);	/* (record_t *) */
 
   return GTK_TREE_MODEL(store);
 }
