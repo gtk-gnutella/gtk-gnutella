@@ -808,9 +808,10 @@ void gui_update_node_display(struct gnutella_node *n, time_t now)
 	case GTA_NODE_CONNECTED:
 		if (n->sent || n->received) {
 			g_snprintf(gui_tmp, sizeof(gui_tmp),
-				"TX=%d RX=%d Query(TX=%d, Q=%d) Drop(TX=%d, RX=%d) "
+				"%s=%d %s=%d Query(TX=%d, Q=%d) Drop(TX=%d, RX=%d) "
 				"Dup=%d Bad=%d Q=%d,%d%% %s",
-				n->sent, n->received,
+				NODE_TX_COMPRESSED(n) ? "TXc" : "TX", n->sent,
+				NODE_RX_COMPRESSED(n) ? "RXc" : "RX", n->received,
 				NODE_SQUEUE_SENT(n), NODE_SQUEUE_COUNT(n),
 				n->tx_dropped, n->rx_dropped, n->n_dups, n->n_bad,
 				NODE_MQUEUE_COUNT(n), NODE_MQUEUE_PERCENT_USED(n),
