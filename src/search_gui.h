@@ -88,6 +88,7 @@ typedef struct search {
 
 #ifdef USE_GTK2
 	GtkWidget  *tree_view;			   /* GtkCList for this search */
+	GHashTable *parents;	/* table of mount iterators for any seen SHA1 */
 #else
 	GtkWidget  *clist;			   /* GtkCList for this search */
 #endif
@@ -110,7 +111,7 @@ typedef struct search {
 	GHashTable *dups;			   /* keep a record of dups. */
 	guint32     items;			   /* Total number of items for this search */
 
-    filter_t   *filter;            /* the filter ruleset bound to this search */
+    filter_t   *filter;				/* filter ruleset bound to this search */
 } search_t;
 
 
@@ -166,10 +167,11 @@ void gui_search_clear_results(void);
 void gui_search_history_add(gchar *s);
 #ifdef USE_GTK2
 void gui_search_create_tree_view(GtkWidget ** sw, GtkWidget ** tree_view);
+void gui_search_force_update_tab_label(struct search *, time_t now);
 #else
 void gui_search_create_clist(GtkWidget ** sw, GtkWidget ** clist);
-#endif
 void gui_search_force_update_tab_label(struct search *);
+#endif
 void gui_search_update_items(struct search *);
 
 
