@@ -32,7 +32,7 @@ RCSID("$Id$");
 #include "walloc.h"
 #include "override.h"		/* Must be the last header included */
 
-// XXX -- needs to initialze the debug level of the lib functions -- RAM
+/* XXX -- needs to initialze the debug level of the lib functions -- RAM */
 static gboolean url_debug = FALSE;
 
 #define ESCAPE_CHAR		'%'
