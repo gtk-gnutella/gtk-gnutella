@@ -229,7 +229,11 @@ void socket_timer(time_t now)
 	for (l = sl_incoming; l; l = g_slist_next(l)) {
 		struct gnutella_socket *s = (struct gnutella_socket *) l->data;
 		g_assert(s->last_update);
-		if (now - s->last_update > incoming_connecting_timeout) {
+		/*
+		 * Last_update can be in the feature due to parq. This is needed
+		 * to avoid dropping the connection
+		 */
+		if (now - s->last_update > (gint32) incoming_connecting_timeout) {
 			if (dbg) {
 				g_warning("connection from %s timed out (%d bytes read)",
 						  ip_to_gchar(s->ip), s->pos);
@@ -305,6 +309,7 @@ static void socket_destroy(struct gnutella_socket *s, gchar *reason)
 void socket_free(struct gnutella_socket *s)
 {
 	g_assert(s);
+
 	if (s->last_update) {
 		g_assert(sl_incoming);
 		sl_incoming = g_slist_remove(sl_incoming, s);
@@ -359,7 +364,7 @@ static void socket_read(gpointer data, gint source, inputevt_cond_t cond)
 	}
 
 	g_assert(s->pos == 0);		/* We read a line, then leave this callback */
-
+	
 	count = sizeof(s->buffer) - s->pos - 1;		/* -1 to allow trailing NUL */
 	if (count <= 0) {
 		g_warning("socket_read(): incoming buffer full, disconnecting from %s",
@@ -1029,7 +1034,7 @@ struct gnutella_socket *socket_connect(
 	/* Create a socket and try to connect it to ip:port */
 
 	struct gnutella_socket *s;
-
+	
 	s = socket_connect_prepare(port, type);
 	g_return_val_if_fail(NULL != s, NULL);
 	return socket_connect_finalize(s, ip_addr);
