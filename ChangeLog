@@ -1,5 +1,24 @@
 # since last version
 
+- (2003.10.12 - RAM)
+ * Added file_info_readable_filename() to get a meaningful name for uploads
+   related to partial files, and not an URN if possible.
+ * Now remember explicitly when list_clone_shift() was called and cloned,
+   to avoid problems with the list changing underneath.
+ * Removed assertions when re-reading fileinfo trailer: they could be harmful
+   when the trailer is inconsistent / corrupted.
+ * In the upload pane, prefix the Range column with a '*' when dealing with
+   a partial file.
+ * Remember the time when we rewrite the properties to disk, to avoid spurious
+   warning about the file having changed whilst we were running.
+ * Fixed `running_uploads' counting when waiting for follow-up request after
+   an "unavailable range" error: decrement it before waiting, since we don't
+   even know whether there will be a follow-up at all!
+ * When unlinking or resetting a fileinfo, kill all uploads targeted to it.
+ * When outgoing bandwidth is saturated, limit the size of the HTTP replies
+   we make, or the size of our HTTP requests.  This includes emitting shorter
+   version strings, less alternate locations, etc...
+
 - (2003.10.11 - RAM)
  [This batch of changes implements server-side PFSP]
  * Add ourselves to the sent alternate locations when server-side PFSP is on
