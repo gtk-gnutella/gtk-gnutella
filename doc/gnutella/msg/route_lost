@@ -1,0 +1,75 @@
+                The "Route Lost" Vendor-specific Message
+                              Version 1
+
+                          Raphael Manfredi
+                    <Raphael_Manfredi@pobox.com>
+                          August 17th, 2004
+                
+
+INTRODUCTION
+
+Please read the Vendor-Messages specifications if you have not done so
+already.
+
+
+SPECIFICATIONS
+
+    Name: "Route Lost"
+    Vendor: GTKG
+    ID: 2
+    Version: 1
+    TTL: 1
+    Payload: none
+
+
+DESCRIPTION
+
+* Sending and Receiving
+
+This message carries no payload.  It is sent by a servent which receives
+a query hit that cannot be routed back because the node which sent the
+query disappeared and there are no alternate routes known.  The GUID of
+the message is the one of the query hit that could not be routed.
+
+Upon reception of a GTKG/2v1 "Route Lost" message from node N by node S,
+node S should remove N from its list of routes for query hits bearing
+the GUID of the GTKG/2v1 message.  If it has an alternate route, it
+should follow it instead.  Otherwise, it should stop accepting query
+hits bearing that GUID.  In any case, it should no longer forward them
+to the node which sent the GTKG/2v1 message.
+
+Support for GTKG/2v1 should be advertised in the initial null/0v0 message.
+The GTKG/2v1 message should be sent only to nodes who mentionned support
+for it.
+
+* Return of the Query Hit
+
+In the following description, node S received the query hit from some
+node and forwarded it to N.  Node N lost the route for that hit and
+sent a GTKG/2v1 message back to node S.
+
+Optionally, at the sender's discretion, the query hit that was refused and
+triggered the sending of GTKG/2v1 can be returned to node S by node N.
+If after the removal of the route S->N due to the reception of the
+GTKG/2v1 message, node S has no longer any route for that query hit,
+it MUST NOT send back a GTKG/2v1 to node N.  Most likely, node N has no
+route N->S, it just returned the hit for possible re-routing by node S.
+
+Node N can choose to NOT return that hit, though, and just drop it.
+A strategy for deciding could be: if node N saw only a few hits for
+the query before loosing its route, it could be good to return it.
+If node N saw and forwarded many hits already, it may drop it.
+
+If node N returns the hit to node S, it MUST be guaranteed that the
+query hit will come BEFORE any other GTKG/2v1 message for another GUID.
+So the recipient S can just remember the last GUID seen for a GTKG/2v1
+and not send back a GTKG/2v1 for the first query hit matching that GUID
+and received from node N.
+
+When the hit is returned, the TTL is NOT decreased but rather *increased*
+artificially by one, whilst the hop count is increased normally.
+That is, if node N received from node S a query hit with TTL=1 and
+hops=4, it will return it as TTL=2 and hops=5.  In effect, this negates
+the round-trip S->N->S as far as the life of the hit goes, but accounts
+for that round-trip in the hop count.
+

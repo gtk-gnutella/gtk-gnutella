@@ -1,0 +1,624 @@
+[Converted from HTML via "html2text -width 79 -style pretty -nobs"]
+
+Direct Internet Message Encapsulation
+
+
+May 23 2001
+
+
+
+Authors
+
+Henrik_Frystyk_Nielsen, Henry_Sanders, Erik_Christensen, Microsoft
+
+
+Copyright Notice
+
+(c) 2001 Microsoft Corporation. All rights reserved.
+The presentation, distribution or other dissemination of the information
+contained herein by Microsoft is not a license, either expressly or impliedly,
+to any intellectual property owned or controlled by Microsoft.
+This document and the information contained herein is provided on an "AS IS"
+basis and to the maximum extent permitted by applicable law, Microsoft provides
+the document AS IS AND WITH ALL FAULTS, and hereby disclaims all other
+warranties and conditions, either express, implied or statutory, including, but
+not limited to, any (if any) implied warranties, duties or conditions of
+merchantability, of fitness for a particular purpose, of accuracy or
+completeness of responses, of results, of workmanlike effort, of lack of
+viruses, and of lack of negligence, all with regard to the document. ALSO,
+THERE IS NO WARRANTY OR CONDITION OF TITLE, QUIET ENJOYMENT, QUIET POSSESSION,
+CORRESPONDENCE TO DESCRIPTION OR NON-INFRINGEMENT WITH REGARD TO THE DOCUMENT.
+IN NO EVENT WILL MICROSOFT BE LIABLE TO ANY OTHER PARTY FOR THE COST OF
+PROCURING SUBSTITUTE GOODS OR SERVICES, LOST PROFITS, LOSS OF USE, LOSS OF
+DATA, OR ANY INCIDENTAL, CONSEQUENTIAL, DIRECT, INDIRECT, OR SPECIAL DAMAGES
+WHETHER UNDER CONTRACT, TORT, WARRANTY, OR OTHERWISE, ARISING IN ANY WAY OUT OF
+THIS OR ANY OTHER AGREEMENT RELATING TO THIS DOCUMENT, WHETHER OR NOT SUCH
+PARTY HAD ADVANCE NOTICE OF THE POSSIBILITY OF SUCH DAMAGES.
+
+
+Status
+
+DIME and related specifications are provided as-is and for review and
+evaluation only. Microsoft hopes to solicit your contributions and suggestions
+in the near future. Microsoft Corporation makes no warrantees or
+representations regarding the specifications in any manner whatsoever.
+
+
+Abstract
+
+This document defines the media type "application/dime". Direct Internet
+Message Encapsulation (DIME) is a lightweight, binary encapsulation format that
+can be used to encapsulate multiple application defined entities or payloads of
+arbitrary type and size into a single message construct. The only parameters
+described by DIME is the payload type, the length, and an optional payload
+identifier. The type is identified by either a URI or a registered media type
+and the length by an integer indicating the number of octets of the payload.
+The optional payload identifier is in the form of a URI enabling cross-
+referencing between payloads. The format is strictly an encapsulation format
+and provides no concepts of a connection or logical circuit and does not
+address head-of-line problems. It is designed to make as few assumptions about
+the underlying or encapsulating protocol as possible.
+
+
+Table of Contents
+
+
+
+  4.1.1 Message
+
+  4.1.2 Record
+
+  4.1.3 Chunked_Records
+
+4.2 DIME_Payload_Description
+
+
+  4.2.1 Payload_Length
+
+  4.2.2 Payload_Type
+
+  4.2.3 Payload_Identification
+
+5. The_DIME_Specifications
+
+
+  5.1 DATA_Transmission_Order
+
+  5.2 Record_Layout
+
+
+        5.2.1 MB_(Message_Begin)
+
+        5.2.2 ME_(Message_End)
+
+        5.2.3 CF_(Chunked_Flag)
+
+        5.2.4 TNF_(Type_Name_Format)
+
+        5.2.5 TYPE_LENGTH
+
+        5.2.6 TYPE
+
+        5.2.7 ID_LENGTH
+
+        5.2.8 ID
+
+        5.2.9 DATA_LENGTH
+
+        5.2.10 DATA
+
+
+6. Security_Considerations
+7. Acknowledgements
+8. References
+
+
+1. Introduction
+
+SOAP provides a flexible and extensible envelope for exchanging structured
+information between SOAP peers. However, because SOAP is XML-based there are
+certain inherent limitations in dealing with three particular issues:
+
+  1. Not all data is suited for being embedded within a SOAP message. Such data
+     can for example be binary data in the form of image files etc. The
+     overhead of encoding binary data in a form acceptable to XML is often
+     significant both in terms of bytes added as a result of the encoding as
+     well as processor overhead performing the encoding/decoding.
+  2. Encapsulation of other XML documents as well as XML fragments and
+     encrypted XML might be cumbersome to embed within a SOAP
+     messageespecially if the XML parts do not use the same character
+     encoding.
+  3. Although SOAP messages inherently are self-delimiting, the message
+     delimiter can only be detected by parsing the complete message which can
+     imply a significant overhead in data processing.
+
+Although the SOAP Attachment [8] specification attempts to address these
+problems, MIME multipart is often not adequate as it itself adds significant
+parsing overhead in order to determine the various sub-parts of the MIME
+message.
+In contrast, DIME provides a simple, message encapsulation format that provides
+three basic services that significantly can decrease the parsing overhead as
+well as the buffering requirements in both the generator and the parser:
+
+
+  The payload length
+      The complete length of a record is unambiguously indicated within the
+      first 8 octets of the record
+
+  The payload type
+      By providing a mechanism for indicating the type of a record, it is
+      possible to dispatch records to the appropriate user application based on
+      the type of the record.
+
+  The payload identifier
+      A payload carried within DIME can be identified by a globally unique
+      identifier in the form of a URI [4]. This makes it possible to refer to a
+      particular payload based on its URI.
+
+
+1.1 Design Goals
+
+Because of the large number of often controversial message encapsulation
+formats, record marking protocols and in particular layered multiplexing
+protocols that have been brought up in the past and of which several are under
+consideration elsewhere, we would like to be as explicit about the goals and in
+particular the non-goals of DIME as possible. It is the explicit hope that
+these design goals and in particular the non-goals will be considered when
+evaluating the format defined as part of this specification.
+The design goal of DIME is to provide a simple encapsulation format that
+
+  1. Supports encapsulating arbitrary payloads including encrypted data, XML
+     documents, XML fragments, image data like GIF and JPEG files, etc.
+  2. Supports aggregation of multiple records that are logically associated in
+     some manner into a single message. A message can for example contain a
+     document and a set of attachments related to that document.
+  3. Supports encapsulating payloads of initial unknown size. This can for
+     example be used to transfer a dynamically generated data stream as a
+     series of chunks.
+  4. Provides identification of the payload based on its type
+  5. Enables identification of the payload based on a globally unique ID
+
+The following list explicitly states the non-goals of DIME in order to firmly
+state what is outside the scope of DIME:
+
+  1. DIME must not make any assumptions about the type of messages that are
+     carried within DIME records or the message exchange patterns of such
+     messages.
+  2. DIME must not in any way introduce the notion of a connection or logical
+     circuit (virtual or otherwise)
+  3. DIME must not attempt to deal with head-of-line blocking problems that
+     might occur when using stream-oriented protocols like TCP
+
+Although DIME is a self-contained encapsulation format, it is not a protocol
+nor an attempt of providing transport level services in general.
+
+
+2. Notational Conventions
+
+The keywords "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
+"SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be
+interpreted as described in RFC 2119 [3].
+
+
+3. The DIME Encapsulation Model
+
+A DIME message is a general encapsulation format that contains one or more DIME
+records. Each record can contain an application payload of arbitrary type and
+size. DIME provides three parameters for each payload: the length, the type,
+and an optional identifier.
+The DIME type identifier indicates the type of the payload. The format of the
+type identifier is either a globally unique URI allowing for an infinite value
+space without central administration or a media type registered by the Internet
+Assigned Number Authority (IANA [10]). The latter allows DIME to take advantage
+of the already very large and successful media type value space maintained by
+IANA.
+The optional payload identifier is intended to be globally unique in order to
+enable applications to refer to specific payloads independent of the payload
+type. The payload identifier is always a URI.
+
+3.1 Intended Usage
+
+The intended usage for DIME is as follows: A user application wants to
+encapsulate one or more related documents or payloads into a single DIME
+message. This can for example be a SOAP message along with a set of
+attachments. Each payload is assigned a DIME record that describes the type and
+length of the payload along with an optional identifier. The set of records are
+put together to form a DIME message.
+DIME can be used in combination with most protocols that support exchange of
+binary data as long as the DIME message can be exchanged in its entirety and in
+order.
+DIME records can encapsulate any message type. For example, it is possible to
+carry MIME messages in DIME records by using the type indicator of "message/
+rfc822". DIME messages can be encapsulated in DIME records by using the media
+type "application/dime".
+It is important to note that although MIME entities are supported, there are no
+assumptions in DIME that the record payload is MIME; DIME makes no assumption
+of the type of the payloads carried in a DIME message.
+DIME is not a protocol and provides no support for error handling. It is up to
+the user application to determine what the semantics of malformed DIME records
+are and how they are handled. It is also up to the user applications to provide
+any additional QoS that they may need.
+
+3.2 DIME Terminology
+
+
+
+  DIME message
+      The overall unit of encapsulation. A message contains one or more DIME
+      records (see section 4.1.1).
+
+  DIME record
+      A DIME record can contain a payload that is described by a type, a
+      length, and an optional identifier (see section 4.1.2).
+
+  DIME chunked record
+      Chunked records can be used to partition a payload into smaller pieces
+      allowing for dynamically generated data of initial unknown size to be
+      encapsulated without knowing the complete length up front (see section
+      4.1.3)
+
+  DIME payload
+      The user application defined data carried within a record
+
+  DIME payload length
+      An integer that indicates the length of the payload in octets (see
+      section 4.2.1)
+
+  DIME payload type
+      A globally unique identifier that indicates the type of payload (see
+      section 4.2.2)
+
+  DIME payload identifier
+      A globally unique identifier that identifies a specific payload (see
+      section 4.2.3)
+
+  DIME user application
+      The logical higher-layer application that uses DIME for encapsulating
+      messages
+
+  DIME generator
+      A software entity or module that encapsulates payloads within DIME
+      messages.
+
+  DIME parser
+      An software entity or module that parses DIME messages and hands the
+      payload to a DIME user application
+
+
+
+4. The DIME Mechanisms
+
+This section describes the mechanisms used in DIME whereas section_5 defines
+the specific syntax for these mechanisms.
+
+4.1 DIME Encapsulation Constructs
+
+
+4.1.1 Message
+
+A DIME message is composed by one or more DIME records. Each record in a
+message can contain a payload of any type and size and can be chunked (see
+section 4.1.3). The media type for a DIME message is "application/dime".
+DIME messages can be used to encapsulate a set of records that are logically
+associated in some manner, for example that they should be processed in the
+aggregate. The exact relationship and any impact on processing models etc. is
+defined by the user application or is a function of the record types.
+The first record in a message is marked with the MB (Message Begin) flag set
+and the last record in the message is marked with the ME (Message End) flag
+set. The minimum message length is one record which is achieved by setting both
+the MB and the ME flag in the same record. There is no maximum number of
+records for a DIME message.
+DIME messages MUST NOT overlap. That is, the MB and the ME flags MUST NOT be
+used to nest DIME messages. DIME messages can be nested by carrying a full DIME
+message within a DIME record with the type "application/dime".
+Figure 1: Example of a DIME message with a set of records. The message moves in
+the direction from right to left with the logical record indexes t > s > r > 1.
+The MB (Message Begin) flag is set in the first record and the ME (Message End)
+flag is set in the last record.
+
+  <--------------------- DIME message ---------------------->
+  +---------+     +---------+     +---------+     +---------+
+  | R1 MB=1 | ... | Rr      | ... | Rs      | ... | Rt ME=1 |
+  +---------+     +---------+     +---------+     +---------+
+
+An important restriction is that there is no sequencing of individual records
+in a message. DIME messages therefore MUST be used on top of an in-order
+stream-oriented transport service such as TCP or if they fit entirely within
+the MTU of a non-stream-oriented transport.
+
+4.1.2 Record
+
+A record is the unit for carrying a payload within a DIME message. Each record
+is described by a set of parameters (see section 4.2).
+
+4.1.3 Chunked Records
+
+Chunked records allow dynamically produced data of the same type to be
+encapsulated along with the information necessary for the parser to verify that
+it has parsed the full message. Chunked records is not a mechanism for
+introducing multiplexing into DIME. It is a mechanism for allowing dynamically
+generated data to be encapsulated as a series of records hence minimizing the
+need for outbound buffering on the generating side. This is similar to the
+message chunking mechanism defined in HTTP/1.1 [6].
+A chunked record series contains an initial chunk followed by zero or more
+middle chunks followed by a terminating chunk. The encoding rules are as
+follows:
+
+  1. The initial chunk is indicated by having the CF flag set. The type of the
+     payload MUST be indicated in the TYPE field regardless of whether there is
+     a non-zero payload or not.
+  2. Each middle chunk is marked with the CF flag set, a zero-length TYPE
+     field, and a zero-length ID field indicating that more data of the same
+     type and with the same identifier is following. The TNF field MUST be set
+     to 0x00 (see section 5.2.4).
+  3. The terminating chunk is indicated by having the CF flag cleared, a zero-
+     length TYPE field, and a zero-length ID field. The TNF field MUST be set
+     to 0x00 (see section 5.2.4).
+
+A chunk series MUST NOT span multiple DIME messages. That is, a chunk series
+MUST be entirely encapsulated within a single DIME message.
+
+4.2 DIME Payload Description
+
+Each record contains information about the payload carried within the record.
+This section introduces the mechanisms by which the payload is described.
+
+4.2.1 Payload Length
+
+Regardless of what the relationship of a record is to other records, the
+payload length always indicates the length of the payload encapsulated in THIS
+record. The length of the payload is indicated in number of octets in the
+DATA_LENGTH field.
+
+4.2.2 Payload Type
+
+The payload type indicates the kind of data being carried in the payload. DIME
+makes no guarantee that or how a message will be processed or otherwise
+manipulated based on the value of the TYPE field. Rather the field is an
+identification mechanism for the payload which for example can be used to pick
+the appropriate user application that is to receive the payload.
+User applications can use the mechanism to determine the contents of a record
+and based on the context determine how to process the message. Typically the
+processing context will be defined through the use of dynamically negotiated
+services, well-known transport service ports (TCP, UDP, etc), or out of band
+communication.
+The value of the TYPE field is either an absolute URI or a media type
+construct. The format is indicated using the TNF (Type Name Format) field.
+A set of registered media types is maintained by the Internet Assigned Number
+Authority (IANA [10]). The media type registration process is outlined in RFC
+2048 [12]. Use of non-registered media types is discouraged.
+Similarly a set of registered URI schemes is maintained by IANA [10]. The URI
+scheme registration process is described in RFC 2717 [13]. It is recommended
+that only well-known URI schemes registered by IANA [10] be used.
+URIs can be used for message types that are not expected to be registered as
+media types or that do not map well onto the media type mechanism. Examples of
+such message types are SOAP based protocols such as SOAP-RP. Records that carry
+a payload with an XML based message type MAY use the XML namespace identifier
+of the root element as the TYPE field value:
+
+  http://schemas.xmlsoap.org/rp/
+
+Records that carry a payload with an existing, registered media type SHOULD
+carry a TYPE field value of that media type. For example, the media type
+
+  message/rfc822
+
+indicates that the payload is a MIME message as defined by RFC 2046 [11]. The
+registered media type
+
+  message/http
+
+indicates that the payload is an HTTP message as defined by RFC 2616 [6]. Note
+that this means that the payload is of type "message/http" and NOT a MIME
+message which contains an entity of type "message/http". A value of
+
+  application/xml; charset="utf-16"
+
+indicates that the payload is an XML document as defined by RFC 3023 [12].
+Again, this means that the payload is of type "application/xml" and NOT a MIME
+message which contains an entity of type "application/xml".
+
+4.2.3 Payload Identification
+
+The optional payload identifier allows user applications to uniquely identify a
+DIME payload. The reason for providing a payload with a globally unique
+identifier is so that it is possible to refer to that payload, for example from
+within SOAP messages and other documents that support hypertext links. DIME
+does not mandate any particular linking mechanism but leaves this to the user
+application to define this in the language that it prefers.
+It is important that payload ids are maintained so that references to those
+payloads are not broken. If records are repackaged, for example by an
+intermediate application, then that application SHOULD ensure that the payload
+ids are preserved.
+
+
+5. The DIME Specifications
+
+
+5.1 DATA Transmission Order
+
+The order of transmission of the DIME record described in this document is
+resolved to the octet level. For diagrams showing a group of octets, the order
+of transmission of those octets is left to right, top to bottom as they are
+read in English. For example, in the diagram in Figure_2, the octets are
+transmitted in the order they are numbered.
+Figure 2: DIME Octet Ordering
+
+                                  1  1  1  1  1  1
+    0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |        Octet 1        |        Octet 2        |
+  |        Octet 3        |        Octet 4        |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |        Octet 5        |        Octet 6        |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+
+Whenever an octet represents a numeric quantity, the leftmost bit in the
+diagram is the high order or most significant bit. That is, the bit labeled 0
+is the most significant bit.
+For each multi-octet field representing a numeric quantity defined by DIME, the
+leftmost bit of the whole field is the most significant bit. Such quantities
+are transmitted in a big-endian manner with the most significant octet
+transmitted first.
+
+5.2 Record Layout
+
+DIME records are variable length records with a common format illustrated in
+Figure_3. In the following sections, the individual record fields are described
+in more detail.
+Figure 3: DIME Record Layout. The use of "/" indicates a field length which is
+a multiple of  4 octets.
+
+                                  1  1  1  1  1  1
+    0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |MB|ME|CF| TNF |            ID_LENGTH           |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                  TYPE_LENGTH                  |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                  DATA_LENGTH                  |
+  |                                               |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                 TYPE + PADDING                /
+  /                                               |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                  ID + PADDING                 /
+  /                                               |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+  |                                               /
+  /                 DATA + PADDING                /
+  /                                               |
+  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+
+
+5.2.1 MB (Message Begin)
+
+The MB flag is a one-bit signal that indicates the start of a DIME message (see
+section 4.1.1).
+
+5.2.2 ME (Message End)
+
+The ME flag is a one-bit signal that indicates the end of a DIME message (see
+section 4.1.1).
+
+5.2.3 CF (Chunked Flag)
+
+If the CF flag is set then this record is a chunked record (see section 4.1.3)
+
+5.2.4 TNF (Type Name Format)
+
+The TNF field value indicates whether the value of the TYPE field is an
+absolute URI or a media type construct (see section 4.2.2). The TNF field
+values are defined as follows:
+       Table 1: DIME TNF field values
+Type Name Format                        Value
+none                                    0x00
+media-type as defined in RFC 2616 [6]   0x01
+absoluteURI  as defined in RFC 2396 [4] 0x02
+reserved                                0x03
+
+The reserved TNF field values are reserved for future use and MUST NOT be used.
+The value 0x00 MUST be used in all but the first chunk in a chunked record
+series (see section 4.1.3). It SHOULD NOT be used in any other record.
+
+5.2.5 TYPE_LENGTH
+
+An unsigned 16 bit integer that specifies the length in octets of the TYPE
+field (see section 4.2.1).
+
+5.2.6 TYPE
+
+The value of the TYPE field is an identifier of type indicate by the TNF field.
+It can either be a a globally unique identifier in the form of an absoluteURI
+[4] or a media-type [6] that describes the type of the payload (see section
+4.2.2). With the exception of chunked records (see section 4.1.3), all records
+MUST have a non-zero TYPE field. There is no default value for the TYPE field.
+The length of the TYPE field MUST be a multiple of 4 octets. If the length of
+the payload type value is not a multiple of 4 octets, the generator MUST pad
+the value with all zero octets and this padding is not included in the TYPE
+length field. The generator should never pad with more than 3 octets. The
+parser MUST ignore the padding octets.
+We STRONGLY RECOMMEND that the identifier be globally unique and maintained
+with stable and well-defined semantics over time.
+
+5.2.7 ID_LENGTH
+
+An unsigned 11 bit integer that specifies the length in octets of the ID field
+(see section 4.2.3).
+
+5.2.8 ID
+
+The value of the ID field is a unique identifier in the form of a URI [4] that
+refers to THIS payload and this payload only (see section 4.2.3). With the
+exception of chunked records, all records MAY have a non-zero ID field.
+The uniqueness of the message identifier is guaranteed by the generator. We
+STRONGLY RECOMMEND that the identifier is as unique over space and time as
+possible. It is RECOMMENDED that identity values are either Universally Unique
+Identifiers (UUIDs), as illustrated in the example above or generated from
+message content using cryptographic hash algorithms such as MD5.
+The length of the ID field MUST be a multiple of 4 octets. If the length of the
+payload id value is not a multiple of 4 octets, the generator MUST pad the
+value with all zero octets and this padding is not included in the ID length
+field. The generator should never pad with more than 3 octets. The parser MUST
+ignore the padding octets.
+
+5.2.9 DATA_LENGTH
+
+The DATA_LENGTH field is an unsigned 32 bit integer that specifies the length
+in octets of the DATA field excluding any padding used to achieve a 4 octet
+alignment of the DATA field (see section 4.2.1).
+
+5.2.10 DATA
+
+The DATA field carries the payload intended for the DIME user application. Any
+internal structure of the data carried within the DATA field is opaque to DIME.
+The length of the DATA field MUST be a multiple of 4 octets. If the length of
+the payload is not a multiple of 4 octets, the generator MUST pad the value
+with all zero octets and this padding is not included in the DATA length field.
+The generator should never pad with more than 3 octets. The parser MUST ignore
+the padding octets.
+
+
+6. Security Considerations
+
+Implementers should pay special attention to the security implications of any
+record types that can cause the remote execution of any actions in the
+recipient's environment. Before accepting records of any type an application
+should be aware of the particular security implications associated with that
+type.
+
+
+7. Acknowledgements
+
+@@@TBD@@@
+
+
+8. References
+
+[1] J. B. Postel, "Simple Mail Transfer Protocol", RFC_821,  ISI, August 1982
+[2] S. Bradner, "The Internet Standards Process -- Revision 3", RFC2026,
+Harvard University, October 1996
+[3] S. Bradner, "Key words for use in RFCs to Indicate Requirement Levels", RFC
+2119, Harvard University, March 1997
+[4] T. Berners-Lee, R. Fielding, L. Masinter, "Uniform Resource Identifiers
+(URI): Generic Syntax", RFC_2396, MIT/LCS, U.C. Irvine, Xerox Corporation,
+August 1998.
+[5] M. Handley, H. Schulzrinne, E. Schooler, J. Rosenberg, "SIP: Session
+Initiation Protocol", RFC2543, ACIRI, Columbia U., Cal Tech, Bell Labs, March
+1999
+[6] R. Fielding, J. Gettys, J. C. Mogul, H. F. Nielsen, T. Berners-Lee,
+"Hypertext Transfer Protocol -- HTTP/1.1", RFC_2616, U.C. Irvine, DEC W3C/MIT,
+DEC, W3C/MIT, W3C/MIT, January 1997
+[7] W3C Note "Simple_Object_Access_Protocol_(SOAP)_1.1", May 2000
+[8] W3C Note "SOAP_Messages_with_Attachments", December 2000
+[9] H. F. Nielsen, S. Thatte, "SOAP Routing Protocol", Mar 2001
+[10] Reynolds, J. and J. Postel, "Assigned Numbers", STD 2, RFC_1700, October
+1994.
+[11] N. Freed, N. Borenstein, "Multipurpose Internet Mail Extensions (MIME)
+Part Two: Media Types" RFC_2046,  Innosoft First Virtual, November 1996
+[12] N. Freed, J. Klensin, J. Postel, "Multipurpose Internet Mail Extensions
+(MIME) Part Four: Registration Procedures", RFC_2048, Innosoft, MCI, ISI,
+November 1996
+[13] R. Petke, I. King, "Registration Procedures for URL Scheme Names", BCP:
+35, RFC_2717, UUNET Technologies, Microsoft Corporation, November 1999
+ 
