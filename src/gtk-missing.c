@@ -135,9 +135,13 @@ GtkWidget *menu_new_item_with_data(GtkMenu * m, gchar * l, gpointer d )
  */
 gpointer option_menu_get_selected_data(GtkWidget *m)
 {
+    GtkWidget *menu;
+
     g_assert(GTK_IS_OPTION_MENU(m));
 
-    return gtk_object_get_user_data                                    
-        ((GtkObject *)gtk_menu_get_active(                            
-            GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(m)))));
+    menu = gtk_menu_get_active
+        (GTK_MENU(gtk_option_menu_get_menu(GTK_OPTION_MENU(m))));
+
+    return (menu != NULL) ? 
+        gtk_object_get_user_data(GTK_OBJECT(menu)) : NULL;
 }
