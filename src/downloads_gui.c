@@ -599,7 +599,10 @@ void download_gui_add(struct download *d)
 	 *		--RAM, 22/10/2002
 	 */
 
-	gm_snprintf(vendor, sizeof(vendor), "%s", download_vendor_str(d));
+	gm_snprintf(vendor, sizeof(vendor), "%s%s",
+		(d->server->attrs & DLS_A_BANNING) ? "*" : "",
+		download_vendor_str(d));
+
 	if (DOWNLOAD_IS_QUEUED(d)) {		/* This is a queued download */
 		GtkCList* clist_downloads_queue;
 
