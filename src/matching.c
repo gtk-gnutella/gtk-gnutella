@@ -367,7 +367,7 @@ static void bin_compact(struct st_bin *bin)
 	bin->nslots = bin->nvals;
 }
 
-/* apply a char map to a string -- returns length of sting */
+/* apply a char map to a string -- returns length of string */
 static guint map_string(char_map_t map, guchar *string)
 {
 	guchar *ptr = string;
