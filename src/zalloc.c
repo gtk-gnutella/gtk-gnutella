@@ -54,7 +54,6 @@ struct subzone {
 };
 
 static void zn_cram(zone_t *, gchar *, gint);
-static gchar **zn_extend(zone_t *);
 static struct zone *zn_create(zone_t *, gint, gint);
 
 /*
@@ -62,6 +61,9 @@ static struct zone *zn_create(zone_t *, gint, gint);
  */
 
 #ifndef USE_DMALLOC
+
+static gchar **zn_extend(zone_t *);
+
 /*
  * zalloc
  *
@@ -369,6 +371,7 @@ static void zn_cram(zone_t *zone, gchar *arena, gint size)
 		*(gchar **) arena = (next < end) ? next : (gchar *) 0;
 }
 
+#ifndef USE_DMALLOC
 /*
  * zn_extend
  *
@@ -391,4 +394,5 @@ static gchar **zn_extend(zone_t *zone)
 
 	return zone->zn_free;
 }
+#endif	/* !USE_DMALLOC */
 
