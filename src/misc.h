@@ -60,6 +60,11 @@
  * Needs to be defined if we are not using Glib 2
  */
 #ifndef USE_GTK2
+
+#ifndef HAVE_STRLCPY
+size_t strlcpy(gchar *dst, const gchar *src, size_t dst_size)
+#endif
+
 #define g_ascii_strcasecmp g_strcasecmp
 #define g_ascii_strncasecmp g_strncasecmp
 #define g_string_printf g_string_sprintf
