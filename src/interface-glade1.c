@@ -5168,6 +5168,7 @@ create_main_window (void)
   gtk_table_attach (GTK_TABLE (table51), spinbutton_dl_minchunksize, 3, 4, 0, 1,
                     (GtkAttachOptions) (GTK_FILL),
                     (GtkAttachOptions) (0), 0, 0);
+  gtk_widget_set_usize (spinbutton_dl_minchunksize, 128, -2);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_dl_minchunksize), TRUE);
 
   spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);

@@ -8206,6 +8206,7 @@ settings</label>
 			<widget>
 			  <class>GtkSpinButton</class>
 			  <name>spinbutton_dl_minchunksize</name>
+			  <width>128</width>
 			  <can_focus>True</can_focus>
 			  <climb_rate>1</climb_rate>
 			  <digits>0</digits>
