@@ -429,23 +429,6 @@ typedef struct gnutella_node {
  */
 #define node_query_hops_ok(n, h)	((h) < (n)->hops_flow)
 
-/* Don't include "routing.h" just for that routine */
-extern gboolean route_exists_for_reply(gchar *muid, guint8 function);
-
-/*
- * Can we send message of type `t', bearing hop count `h' and MUID `m'?
- *
- * For queries, we look at the hops-flow, and whether there is a route for
- * the query hit: no need to forward the request if the reply will be dropped.
- * We let OOB queries go through though, since they will probably get replied
- * to out-of-band.
- * (we always forward queries with hops=0, of course, since they are ours!).
- */
-#define node_can_send(n, t, h, m) \
-	((t) != GTA_MSG_SEARCH || \
-		(node_query_hops_ok(n, h) && \
-			((h) == 0 || gmsg_is_oob_query(m) || route_exists_for_reply(m, t))))
-
 /*
  * node_flowc_swift_grace
  * node_flowc_swift_period
@@ -509,6 +492,7 @@ void node_sent_ttl0(struct gnutella_node *n);
 void node_disableq(struct gnutella_node *n);
 void node_enableq(struct gnutella_node *n);
 void node_flushq(struct gnutella_node *n);
+void node_unflushq(struct gnutella_node *n);
 void node_tx_service(struct gnutella_node *n, gboolean on);
 void node_tx_enter_flowc(struct gnutella_node *n);
 void node_tx_leave_flowc(struct gnutella_node *n);
