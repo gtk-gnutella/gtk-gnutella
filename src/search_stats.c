@@ -63,23 +63,23 @@ void enable_search_stats()
 		stat_hash = g_hash_table_new(g_str_hash, g_str_equal);
 
 		/* set up the clist to be sorted properly */
-		gtk_clist_set_auto_sort(GTK_CLIST(clist_search_stats), TRUE);
 		gtk_clist_set_sort_column(GTK_CLIST(clist_search_stats), 2);
 		gtk_clist_set_sort_type(GTK_CLIST(clist_search_stats),
 			GTK_SORT_DESCENDING);
-		/*	gtk_clist_set_compare_func(clist_search_stats, ); */
 	}
-
-	/* XXX: if someone clicks the 'Enable Search Stats' on and off a bunch
-	 * this will end up scheduling a bunch of update_search_stats_display()s
-	 * stupid glib doesn't allow de-scheduling or checking of timers. */
 
 	g_timeout_add(100 * search_stats_update_interval,
 		update_search_stats_display, NULL);
 }
 
 
-/* helper func for stats_display */
+/*
+ * helper func for stats_display -
+ *  does two things:
+ *  1. clears out aged / infrequent search terms
+ *  2. sticks the rest of the search terms in clist_search_stats
+ *
+ */
 static gboolean
 stats_hash_to_clist(gpointer key, gpointer value, gpointer userdata)
 {
@@ -96,7 +96,10 @@ stats_hash_to_clist(gpointer key, gpointer value, gpointer userdata)
 	val->total_cnt += val->period_cnt;
 
 	/* try to keep the number of infrequent terms down */
-	if (((float) val->total_cnt / (float) (val->periods + 2)) * 100 < search_stats_delcoef) {
+	if (
+		((float) val->total_cnt / (val->periods + 2.0)) * 100 <
+			search_stats_delcoef
+	) {
 		g_free(key);
 		g_free(val);
 		return TRUE;
@@ -129,7 +132,9 @@ static int update_search_stats_display(gpointer data)
 	static guint32 last_update_interval;
 	char tmpstr[32];
 
-	/* if search_stats were disabled during this interval */
+	/* if search_stats were disabled during this interval, 
+	 * enable the enable button, it was disabled when search stats
+	 * were turned off. */
 	if (!search_stats_enabled) {
 		gtk_widget_set_sensitive(checkbutton_enable_search_stats, TRUE);
 		return FALSE;
@@ -139,9 +144,9 @@ static int update_search_stats_display(gpointer data)
 	gtk_clist_freeze(GTK_CLIST(clist_search_stats));
 
 	gtk_clist_clear(GTK_CLIST(clist_search_stats));
-
 	/* insert the hash table contents into the sorted clist */
 	g_hash_table_foreach_remove(stat_hash, stats_hash_to_clist, NULL);
+	gtk_clist_sort(GTK_CLIST(clist_search_stats));
 
 	gtk_clist_thaw(GTK_CLIST(clist_search_stats));
 
