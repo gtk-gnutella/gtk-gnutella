@@ -93,8 +93,6 @@
 #endif /* !G_GUINT64_FORMAT */
 #endif /* !PRIu64 */
 
-
-
 #include <stdarg.h>
 #include <regex.h>
 
@@ -169,7 +167,7 @@ do {				\
 #define GTA_PATCHLEVEL 0
 #define GTA_REVISION "unstable"
 #define GTA_REVCHAR "u"
-#define GTA_RELEASE "2004-06-15"	/* ISO format YYYY-MM-DD */
+#define GTA_RELEASE "2004-06-21"	/* ISO format YYYY-MM-DD */
 #define GTA_WEBSITE "http://gtk-gnutella.sourceforge.net/"
 
 #if defined(USE_GTK1)
