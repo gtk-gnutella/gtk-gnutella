@@ -34,6 +34,8 @@
  ***/
 #include "gui_property.h"
 
+extern gchar *gui_config_dir;
+
 prop_def_t *gui_prop_get_def(gui_property_t);
 
 void gui_prop_add_prop_changed_listener
