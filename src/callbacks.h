@@ -69,7 +69,6 @@ void on_button_host_catcher_clear_clicked (GtkButton *button, gpointer user_data
  ***/
 void on_button_uploads_kill_clicked (GtkButton *button, gpointer user_data);
 void on_button_uploads_remove_clicked (GtkButton *button, gpointer user_data); 
-void on_checkbutton_uploads_auto_clear_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_clist_uploads_click_column (GtkCList *clist, gint column, gpointer user_data); 
 void on_clist_uploads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_clist_uploads_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data); 
@@ -86,8 +85,6 @@ gboolean on_clist_downloads_button_press_event (GtkWidget *widget, GdkEventButto
 gboolean on_clist_downloads_queue_button_press_event (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
 void on_button_downloads_abort_clicked (GtkButton *button, gpointer user_data); 
 void on_button_downloads_clear_completed_clicked (GtkButton *button, gpointer user_data);
-void on_checkbutton_downloads_auto_clear_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_downloads_delete_aborted_toggled (GtkToggleButton *togglebutton, gpointer user_data);
 void on_clist_downloads_click_column (GtkCList *clist, gint column, gpointer user_data); 
 void on_clist_downloads_resize_column (GtkCList *clist, gint column, gint width, gpointer user_data);
 void on_clist_downloads_select_row (GtkCList *clist, gint row, gint column, GdkEvent *event, gpointer user_data);
@@ -144,14 +141,6 @@ void on_button_config_add_dir_clicked (GtkButton *button, gpointer user_data);
 void on_button_config_move_path_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_rescan_dir_clicked (GtkButton *button, gpointer user_data); 
 void on_button_config_save_path_clicked (GtkButton *button, gpointer user_data);
-void on_checkbutton_config_bws_in_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_config_bws_out_toggled(GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_config_bws_gin_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_config_bws_gout_toggled(GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_config_force_ip_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_config_proxy_auth_toggled(GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_config_proxy_connections_toggled (GtkToggleButton *togglebutton, gpointer user_data);
-void on_checkbutton_use_netmasks_toggled(GtkToggleButton * togglebutton, gpointer user_data);
 void on_entry_config_extensions_activate (GtkEditable *editable, gpointer user_data); 
 void on_entry_config_extensions_changed (GtkEditable *editable, gpointer user_data);
 void on_entry_config_force_ip_activate (GtkEditable *editable, gpointer user_data); 
@@ -252,7 +241,6 @@ void on_clist_ul_stats_resize_column(GtkCList * clist, gint column, gint width, 
  *** search stats
  ***/
 void     on_button_search_stats_reset_clicked(GtkButton * button, gpointer user_data);
-void     on_checkbutton_search_stats_enable_toggled(GtkToggleButton * togglebutton, gpointer user_data);
 void     on_clist_search_stats_resize_column(GtkCList * clist, gint column, gint width, gpointer user_data);
 
 
@@ -278,18 +266,3 @@ void on_button_about_close_clicked(GtkButton *button, gpointer user_data);
 gboolean on_dlg_about_delete_event(GtkWidget *widget, GdkEvent *event, gpointer user_data);
 
 #endif	/* __callbacks_h__ */
-
-void
-on_spinbutton_search_stats_defcoef_changed
-                                        (GtkEditable     *editable,
-                                        gpointer         user_data);
-
-void
-on_spinbutton_config_min_dup_msg_changed
-                                        (GtkEditable     *editable,
-                                        gpointer         user_data);
-
-void
-on_spinbutton_config_min_dup_ratio_changed
-                                        (GtkEditable     *editable,
-                                        gpointer         user_data);

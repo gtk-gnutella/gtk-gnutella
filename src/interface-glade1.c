@@ -477,6 +477,23 @@ create_main_window (void)
   GtkWidget *spinbutton_config_download_push_sent_timeout;
   GtkObject *spinbutton_config_download_connected_timeout_adj;
   GtkWidget *spinbutton_config_download_connected_timeout;
+  GtkWidget *frame48;
+  GtkWidget *table31;
+  GtkWidget *checkbutton_config_use_swarming;
+  GtkWidget *checkbutton_config_aggressive_swarming;
+  GtkWidget *label283;
+  GtkWidget *label284;
+  GtkWidget *label285;
+  GtkWidget *checkbutton_config_use_alternate_sources;
+  GtkWidget *checkbutton_config_strict_sha1_matching;
+  GtkWidget *checkbutton_config_use_fuzzy_matching;
+  GtkWidget *label286;
+  GtkObject *spinbutton_config_fuzzy_threshold_adj;
+  GtkWidget *spinbutton_config_fuzzy_threshold;
+  GtkObject *spinbutton_dl_minchunksize_adj;
+  GtkWidget *spinbutton_dl_minchunksize;
+  GtkObject *spinbutton_dl_maxchunksize_adj;
+  GtkWidget *spinbutton_dl_maxchunksize;
   GtkWidget *label161;
   GtkWidget *vbox40;
   GtkWidget *frame_path_to_files;
@@ -2400,7 +2417,7 @@ create_main_window (void)
   gtk_widget_show (checkbutton_search_jump_to_downloads);
   gtk_box_pack_start (GTK_BOX (hbox80), checkbutton_search_jump_to_downloads, FALSE, FALSE, 0);
 
-  checkbutton_search_remove_downloaded = gtk_check_button_new_with_label ("Remove downloaded items from list");
+  checkbutton_search_remove_downloaded = gtk_check_button_new_with_label ("Remove files manually selected for download");
   gtk_widget_ref (checkbutton_search_remove_downloaded);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_search_remove_downloaded", checkbutton_search_remove_downloaded,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -4015,6 +4032,139 @@ create_main_window (void)
   gtk_tooltips_set_tip (tooltips, spinbutton_config_download_connected_timeout, "Number of seconds before timeout for a connected download", NULL);
   gtk_spin_button_set_numeric (GTK_SPIN_BUTTON (spinbutton_config_download_connected_timeout), TRUE);
 
+  frame48 = gtk_frame_new (NULL);
+  gtk_widget_ref (frame48);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "frame48", frame48,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (frame48);
+  gtk_box_pack_start (GTK_BOX (vbox38), frame48, FALSE, TRUE, 0);
+
+  table31 = gtk_table_new (7, 3, FALSE);
+  gtk_widget_ref (table31);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "table31", table31,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (table31);
+  gtk_container_add (GTK_CONTAINER (frame48), table31);
+  gtk_container_set_border_width (GTK_CONTAINER (table31), 2);
+  gtk_table_set_row_spacings (GTK_TABLE (table31), 2);
+  gtk_table_set_col_spacings (GTK_TABLE (table31), 4);
+
+  checkbutton_config_use_swarming = gtk_check_button_new_with_label ("Enable swarming");
+  gtk_widget_ref (checkbutton_config_use_swarming);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_use_swarming", checkbutton_config_use_swarming,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_use_swarming);
+  gtk_table_attach (GTK_TABLE (table31), checkbutton_config_use_swarming, 0, 1, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_aggressive_swarming = gtk_check_button_new_with_label ("Agressive mode");
+  gtk_widget_ref (checkbutton_config_aggressive_swarming);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_aggressive_swarming", checkbutton_config_aggressive_swarming,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_aggressive_swarming);
+  gtk_table_attach (GTK_TABLE (table31), checkbutton_config_aggressive_swarming, 1, 2, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label283 = gtk_label_new ("Minimum chunk size");
+  gtk_widget_ref (label283);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label283", label283,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label283);
+  gtk_table_attach (GTK_TABLE (table31), label283, 0, 1, 1, 2,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label283), 0, 0.5);
+
+  label284 = gtk_label_new ("Maximum chunk size");
+  gtk_widget_ref (label284);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label284", label284,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label284);
+  gtk_table_attach (GTK_TABLE (table31), label284, 0, 1, 2, 3,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label284), 0, 0.5);
+
+  label285 = gtk_label_new ("Fuzzy threshold");
+  gtk_widget_ref (label285);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label285", label285,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label285);
+  gtk_table_attach (GTK_TABLE (table31), label285, 0, 1, 6, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_misc_set_alignment (GTK_MISC (label285), 0, 0.5);
+
+  checkbutton_config_use_alternate_sources = gtk_check_button_new_with_label ("Watch searches for alternate sources");
+  gtk_widget_ref (checkbutton_config_use_alternate_sources);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_use_alternate_sources", checkbutton_config_use_alternate_sources,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_use_alternate_sources);
+  gtk_table_attach (GTK_TABLE (table31), checkbutton_config_use_alternate_sources, 0, 2, 3, 4,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_strict_sha1_matching = gtk_check_button_new_with_label ("Strict SHA1 matching");
+  gtk_widget_ref (checkbutton_config_strict_sha1_matching);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_strict_sha1_matching", checkbutton_config_strict_sha1_matching,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_strict_sha1_matching);
+  gtk_table_attach (GTK_TABLE (table31), checkbutton_config_strict_sha1_matching, 0, 2, 4, 5,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  checkbutton_config_use_fuzzy_matching = gtk_check_button_new_with_label ("Use fuzzy matching");
+  gtk_widget_ref (checkbutton_config_use_fuzzy_matching);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "checkbutton_config_use_fuzzy_matching", checkbutton_config_use_fuzzy_matching,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (checkbutton_config_use_fuzzy_matching);
+  gtk_table_attach (GTK_TABLE (table31), checkbutton_config_use_fuzzy_matching, 0, 2, 5, 6,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  label286 = gtk_label_new ("These settings have no effect yet. Preparation for the swarming patch.");
+  gtk_widget_ref (label286);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "label286", label286,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (label286);
+  gtk_table_attach (GTK_TABLE (table31), label286, 2, 3, 0, 7,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_label_set_line_wrap (GTK_LABEL (label286), TRUE);
+  gtk_misc_set_alignment (GTK_MISC (label286), 0, 0.5);
+
+  spinbutton_config_fuzzy_threshold_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_config_fuzzy_threshold = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_config_fuzzy_threshold_adj), 1, 0);
+  gtk_widget_ref (spinbutton_config_fuzzy_threshold);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_config_fuzzy_threshold", spinbutton_config_fuzzy_threshold,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_config_fuzzy_threshold);
+  gtk_table_attach (GTK_TABLE (table31), spinbutton_config_fuzzy_threshold, 1, 2, 6, 7,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_dl_minchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_dl_minchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_minchunksize_adj), 1, 0);
+  gtk_widget_ref (spinbutton_dl_minchunksize);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_dl_minchunksize", spinbutton_dl_minchunksize,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_dl_minchunksize);
+  gtk_table_attach (GTK_TABLE (table31), spinbutton_dl_minchunksize, 1, 2, 1, 2,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
+  spinbutton_dl_maxchunksize_adj = gtk_adjustment_new (1, 0, 100, 1, 10, 10);
+  spinbutton_dl_maxchunksize = gtk_spin_button_new (GTK_ADJUSTMENT (spinbutton_dl_maxchunksize_adj), 1, 0);
+  gtk_widget_ref (spinbutton_dl_maxchunksize);
+  gtk_object_set_data_full (GTK_OBJECT (main_window), "spinbutton_dl_maxchunksize", spinbutton_dl_maxchunksize,
+                            (GtkDestroyNotify) gtk_widget_unref);
+  gtk_widget_show (spinbutton_dl_maxchunksize);
+  gtk_table_attach (GTK_TABLE (table31), spinbutton_dl_maxchunksize, 1, 2, 2, 3,
+                    (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+
   label161 = gtk_label_new ("Download\nsettings");
   gtk_widget_ref (label161);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "label161", label161,
@@ -4202,7 +4352,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox2);
   gtk_box_pack_start (GTK_BOX (hbox89), eventbox2, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox2, "gtk-gnutella thinks you're firewalled", NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox2, "Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results.", NULL);
 
   image_firewall = create_pixmap (main_window, "firewall.xpm");
   gtk_widget_ref (image_firewall);
@@ -4218,7 +4368,7 @@ create_main_window (void)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_widget_show (eventbox3);
   gtk_box_pack_start (GTK_BOX (hbox89), eventbox3, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox3, "gtk-gnutella found no firewall", NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox3, "People can connect to you. Push should work.", NULL);
 
   image_no_firewall = create_pixmap (main_window, "no_firewall.xpm");
   gtk_widget_ref (image_no_firewall);
@@ -4339,9 +4489,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (button_uploads_clear_completed), "clicked",
                       GTK_SIGNAL_FUNC (on_button_uploads_clear_completed_clicked),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_uploads_auto_clear), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_uploads_auto_clear_toggled),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (clist_ul_stats), "click_column",
                       GTK_SIGNAL_FUNC (on_clist_ul_stats_click_column),
                       NULL);
@@ -4375,15 +4522,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (button_downloads_clear_completed), "clicked",
                       GTK_SIGNAL_FUNC (on_button_downloads_clear_completed_clicked),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_downloads_auto_clear), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_downloads_auto_clear_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_downloads_never_push), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_downloads_never_push_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_download_delete_aborted), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_downloads_delete_aborted_toggled),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (clist_downloads_queue), "select_row",
                       GTK_SIGNAL_FUNC (on_clist_downloads_queue_select_row),
                       NULL);
@@ -4407,9 +4545,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_queue_regex), "activate",
                       GTK_SIGNAL_FUNC (on_entry_queue_regex_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_queue_regex_case), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_queue_regex_case_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_search), "changed",
                       GTK_SIGNAL_FUNC (on_entry_search_changed),
@@ -4435,12 +4570,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (spinbutton_minimum_speed), "changed",
                       GTK_SIGNAL_FUNC (on_spinbutton_minimum_speed_changed),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_search_pick_all), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_search_pick_all_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_search_autoselect_ident), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_search_autoselect_ident_toggled),
-                      NULL);
   gtk_signal_connect_after (GTK_OBJECT (spinbutton_search_reissue_timeout), "changed",
                             GTK_SIGNAL_FUNC (on_spinbutton_search_reissue_timeout_changed),
                             NULL);
@@ -4450,29 +4579,14 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (button_search_clear), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_clear_clicked),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_search_jump_to_downloads), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_search_jump_to_downloads_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_search_remove_downloaded), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_search_remove_downloaded_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_monitor_enable), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_monitor_enable_toggled),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (clist_monitor), "button_press_event",
                       GTK_SIGNAL_FUNC (on_clist_monitor_button_press_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_search_stats_enable), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_search_stats_enable_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (clist_search_stats), "resize_column",
                       GTK_SIGNAL_FUNC (on_clist_search_stats_resize_column),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_search_stats_reset), "clicked",
                       GTK_SIGNAL_FUNC (on_button_search_stats_reset_clicked),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_config_force_ip), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_config_force_ip_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_force_ip), "changed",
                       GTK_SIGNAL_FUNC (on_entry_config_force_ip_changed),
@@ -4482,9 +4596,6 @@ create_main_window (void)
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_force_ip), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_config_force_ip_focus_out_event),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_config_proxy_connections), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_config_proxy_connections_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (radio_config_http), "toggled",
                       GTK_SIGNAL_FUNC (on_radio_config_http_toggled),
@@ -4501,9 +4612,6 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (entry_config_proxy_ip), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_config_proxy_ip_focus_out_event),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_config_proxy_auth), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_config_proxy_auth_toggled),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_socks_username), "activate",
                       GTK_SIGNAL_FUNC (on_entry_config_socks_username_activate),
                       NULL);
@@ -4516,29 +4624,11 @@ create_main_window (void)
   gtk_signal_connect (GTK_OBJECT (entry_config_socks_password), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_config_socks_password_focus_out_event),
                       NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_config_use_netmasks), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_use_netmasks_toggled),
-                      NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_netmasks), "focus_out_event",
                       GTK_SIGNAL_FUNC (on_entry_config_netmask_focus_out_event),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (entry_config_netmasks), "activate",
                       GTK_SIGNAL_FUNC (on_entry_config_netmask_activate),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_config_bws_gin), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_config_bws_gin_toggled),
-                      NULL);
-  gtk_signal_connect_after (GTK_OBJECT (checkbutton_config_bws_gout), "toggled",
-                            GTK_SIGNAL_FUNC (on_checkbutton_config_bws_gout_toggled),
-                            NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_config_bws_in), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_config_bws_in_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_config_bws_out), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_config_bws_out_toggled),
-                      NULL);
-  gtk_signal_connect (GTK_OBJECT (checkbutton_config_bw_ul_usage_enabled), "toggled",
-                      GTK_SIGNAL_FUNC (on_checkbutton_config_bw_ul_usage_enabled_toggled),
                       NULL);
   gtk_signal_connect (GTK_OBJECT (button_config_save_path), "clicked",
                       GTK_SIGNAL_FUNC (on_button_config_save_path_clicked),

@@ -43,12 +43,6 @@
         return TRUE;                                                    \
     }
 
-#define togglebutton_changed(pref,p, tb) do {                           \
-        gboolean val = gtk_toggle_button_get_active                     \
-            (GTK_TOGGLE_BUTTON(tb));                                    \
-        pref##_prop_set_boolean(p, &val, 0, 1);                         \
-    } while (0)
-
 #define checkmenu_changed(pref,p, cb) do {                              \
         gboolean val = GTK_CHECK_MENU_ITEM(cb)->active;                 \
         pref##_prop_set_boolean(p, &val, 0, 1);                         \
@@ -111,126 +105,6 @@ void on_entry_config_socks_password_activate
     g_free(e);
 }
 FOCUS_TO_ACTIVATE(entry_config_socks_password)
-
-void on_checkbutton_config_bw_ul_usage_enabled_toggled
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    togglebutton_changed(gnet, PROP_BW_UL_USAGE_ENABLED, tb);
-}
-
-void on_checkbutton_search_pick_all_toggled
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    togglebutton_changed(gui, PROP_SEARCH_PICK_ALL, tb);
-}
-
-void on_checkbutton_queue_regex_case_toggled
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    togglebutton_changed(gui, PROP_QUEUE_REGEX_CASE, tb);
-}
-
-void on_checkbutton_monitor_enable_toggled
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    togglebutton_changed(gui, PROP_MONITOR_ENABLED, tb);
-}
-
-
-void on_checkbutton_config_proxy_connections_toggled
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    togglebutton_changed(gnet, PROP_PROXY_CONNECTIONS, tb);
-}
-
-void on_checkbutton_config_proxy_auth_toggled
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    togglebutton_changed(gnet, PROP_PROXY_AUTH, tb);
-}
-
-void on_checkbutton_search_autoselect_ident_toggled
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    togglebutton_changed(gui, PROP_SEARCH_AUTOSELECT_IDENT, tb);
-}
-
-void on_checkbutton_search_remove_downloaded_toggled
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    togglebutton_changed(gnet, PROP_SEARCH_REMOVE_DOWNLOADED, tb);
-}
-
-void on_checkbutton_search_jump_to_downloads_toggled
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    togglebutton_changed(gui, PROP_JUMP_TO_DOWNLOADS, tb);
-}
-
-void on_checkbutton_downloads_never_push_toggled
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    gboolean b = !gtk_toggle_button_get_active(tb);
-
-    gnet_prop_set_boolean(PROP_SEND_PUSHES, &b, 0, 1);
-}
-
-
-void on_checkbutton_config_bws_in_toggled
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    gboolean b = gtk_toggle_button_get_active(tb);
-    GtkWidget *w = lookup_widget
-        (main_window, "spinbutton_config_bws_in");
-
-    gnet_prop_set_boolean(PROP_BW_HTTP_IN_ENABLED, &b, 0, 1);
-
-    gtk_widget_set_sensitive(w, b);
-}
-
-void on_checkbutton_config_bws_out_toggled
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    gboolean b = gtk_toggle_button_get_active(tb);
-    gboolean val;
-    GtkWidget *w = lookup_widget
-        (main_window, "spinbutton_config_bws_out");
-    GtkWidget *c = lookup_widget
-        (main_window, "checkbutton_config_bw_ul_usage_enabled");
-    GtkWidget *s = lookup_widget
-        (main_window, "spinbutton_config_ul_usage_min_percentage");
-
-    gnet_prop_get_boolean(PROP_BW_UL_USAGE_ENABLED, &val, 0, 1);
-    gnet_prop_set_boolean(PROP_BW_HTTP_OUT_ENABLED, &b, 0, 1);
-
-    gtk_widget_set_sensitive(w, b);
-    gtk_widget_set_sensitive(c, b);
-    gtk_widget_set_sensitive(s, b && val);
-}
-
-void on_checkbutton_config_bws_gin_toggled
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    gboolean b = gtk_toggle_button_get_active(tb);
-    GtkWidget *w = lookup_widget
-        (main_window, "spinbutton_config_bws_gin");
-
-    gnet_prop_set_boolean(PROP_BW_GNET_IN_ENABLED, &b, 0, 1);
-
-    gtk_widget_set_sensitive(w, b);
-}
-
-void on_checkbutton_config_bws_gout_toggled
-    (GtkToggleButton *tb, gpointer user_data)
-{
-    gboolean b = gtk_toggle_button_get_active(tb);
-    GtkWidget *w = lookup_widget
-        (main_window, "spinbutton_config_bws_gout");
-
-    gnet_prop_set_boolean(PROP_BW_GNET_OUT_ENABLED, &b, 0, 1);
-
-    gtk_widget_set_sensitive(w, b);
-}
 
 void on_menu_toolbar_visible_activate
     (GtkMenuItem *menuitem, gpointer user_data)

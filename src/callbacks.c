@@ -361,12 +361,6 @@ void on_button_uploads_clear_completed_clicked
         (lookup_widget(main_window, "button_uploads_clear_completed"), 0);
 }
 
-void on_checkbutton_uploads_auto_clear_toggled
-    (GtkToggleButton *togglebutton, gpointer user_data)
-{
-	clear_uploads = gtk_toggle_button_get_active(togglebutton);
-}
-
 /* uploads popup menu */
 
 gboolean on_clist_uploads_button_press_event
@@ -1132,24 +1126,6 @@ void on_button_downloads_clear_completed_clicked(GtkButton * button,
 	download_clear_stopped(TRUE, TRUE);
 }
 
-void on_checkbutton_downloads_auto_clear_toggled
-    (GtkToggleButton * togglebutton, gpointer user_data)
-{
-	clear_downloads = gtk_toggle_button_get_active(togglebutton);
-	if (clear_downloads)
-		download_clear_stopped(FALSE, TRUE);
-}
-    
-void on_checkbutton_downloads_delete_aborted_toggled
-    (GtkToggleButton * togglebutton, gpointer user_data)
-{
-	download_delete_aborted = gtk_toggle_button_get_active(togglebutton);
-
-    // FIXME: should probably remove all files associated with
-    // aborted downloads which are still displayed in the list.
-    //      --BLUE, 24/04/2002
-}
-
 /*** 
  *** Queued downloads
  ***/
@@ -1511,16 +1487,6 @@ void on_popup_monitor_add_search_activate (GtkMenuItem *menuitem,
 /***
  *** Search Stats
  ***/ 
-void on_checkbutton_search_stats_enable_toggled(GtkToggleButton * togglebutton,
-                                                gpointer user_data)
-{
-	search_stats_enabled = gtk_toggle_button_get_active(togglebutton);
-
-	if (search_stats_enabled)
-		search_stats_enable();
-	else
-		search_stats_disable();
-}
 
 void on_button_search_stats_reset_clicked(GtkButton *button, gpointer data)
 {
@@ -1744,13 +1710,6 @@ void on_entry_config_netmask_activate(GtkEditable *editable, gpointer data)
 }
 FOCUS_TO_ACTIVATE(entry_config_netmask)
 
-void on_checkbutton_use_netmasks_toggled
-    (GtkToggleButton *togglebutton, gpointer user_data)
-{
-	use_netmasks = gtk_toggle_button_get_active(togglebutton);
-}
-
-
 void on_entry_config_extensions_activate(GtkEditable *editable, gpointer data)
 {
     gchar *ext;
@@ -1763,13 +1722,6 @@ void on_entry_config_extensions_activate(GtkEditable *editable, gpointer data)
     g_free(ext);
 }
 FOCUS_TO_ACTIVATE(entry_config_extensions)
-
-void on_checkbutton_config_force_ip_toggled(GtkToggleButton * togglebutton,
-											gpointer user_data)
-{
-	force_local_ip = gtk_toggle_button_get_active(togglebutton);
-	gui_update_config_force_ip(TRUE);
-}
 
 void on_entry_config_force_ip_changed(GtkEditable * editable,
 									  gpointer user_data)
@@ -1795,14 +1747,7 @@ void on_entry_config_force_ip_activate(GtkEditable * editable,
         0, -1);
 	g_strstrip(e);
 	ip = gchar_to_ip(e);
-	if (ip != forced_local_ip)
-		forced_local_ip = ip;
-     /*
-     * We call this here to update the widget if e.g.
-     * we failed to get the socket properly and set to 0
-     *      --BLUE, 15/05/2002
-     */
-	gui_update_config_force_ip(TRUE);
+	gnet_prop_set_guint32(PROP_FORCED_LOCAL_IP, &ip, 0, 1);
 	g_free(e);
 }
 FOCUS_TO_ACTIVATE(entry_config_force_ip)

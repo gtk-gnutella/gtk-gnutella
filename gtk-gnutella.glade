@@ -2074,11 +2074,6 @@
 		<class>GtkCheckButton</class>
 		<name>checkbutton_uploads_auto_clear</name>
 		<can_focus>True</can_focus>
-		<signal>
-		  <name>toggled</name>
-		  <handler>on_checkbutton_uploads_auto_clear_toggled</handler>
-		  <last_modification_time>Fri, 29 Mar 2002 18:48:04 GMT</last_modification_time>
-		</signal>
 		<label>Auto clear completed uploads</label>
 		<active>False</active>
 		<draw_indicator>True</draw_indicator>
@@ -2610,11 +2605,6 @@
 		      <class>GtkCheckButton</class>
 		      <name>checkbutton_downloads_auto_clear</name>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>toggled</name>
-			<handler>on_checkbutton_downloads_auto_clear_toggled</handler>
-			<last_modification_time>Fri, 29 Mar 2002 18:53:38 GMT</last_modification_time>
-		      </signal>
 		      <label>Auto clear completed downloads</label>
 		      <active>False</active>
 		      <draw_indicator>True</draw_indicator>
@@ -2629,11 +2619,6 @@
 		      <class>GtkCheckButton</class>
 		      <name>checkbutton_downloads_never_push</name>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>toggled</name>
-			<handler>on_checkbutton_downloads_never_push_toggled</handler>
-			<last_modification_time>Fri, 29 Mar 2002 21:03:45 GMT</last_modification_time>
-		      </signal>
 		      <label>Never send a push request</label>
 		      <active>False</active>
 		      <draw_indicator>True</draw_indicator>
@@ -2648,11 +2633,6 @@
 		      <class>GtkCheckButton</class>
 		      <name>checkbutton_download_delete_aborted</name>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>toggled</name>
-			<handler>on_checkbutton_downloads_delete_aborted_toggled</handler>
-			<last_modification_time>Wed, 24 Apr 2002 13:51:52 GMT</last_modification_time>
-		      </signal>
 		      <label>Delete file on abort</label>
 		      <active>False</active>
 		      <draw_indicator>True</draw_indicator>
@@ -2912,11 +2892,6 @@
 			  <class>GtkCheckButton</class>
 			  <name>checkbutton_queue_regex_case</name>
 			  <can_focus>True</can_focus>
-			  <signal>
-			    <name>toggled</name>
-			    <handler>on_checkbutton_queue_regex_case_toggled</handler>
-			    <last_modification_time>Mon, 06 May 2002 22:18:44 GMT</last_modification_time>
-			  </signal>
 			  <label>case sensitive</label>
 			  <active>False</active>
 			  <draw_indicator>True</draw_indicator>
@@ -3379,11 +3354,6 @@
 		<name>checkbutton_search_pick_all</name>
 		<tooltip>Automatically select all other results with the same name or urn:sha1.</tooltip>
 		<can_focus>True</can_focus>
-		<signal>
-		  <name>toggled</name>
-		  <handler>on_checkbutton_search_pick_all_toggled</handler>
-		  <last_modification_time>Sat, 11 May 2002 13:15:02 GMT</last_modification_time>
-		</signal>
 		<label>Enable autoselect</label>
 		<active>False</active>
 		<draw_indicator>True</draw_indicator>
@@ -3399,11 +3369,6 @@
 		<name>checkbutton_search_autoselect_ident</name>
 		<tooltip>If on autoselection only takes place if filesize matches exactly, if off filesize must be equals or greater.</tooltip>
 		<can_focus>True</can_focus>
-		<signal>
-		  <name>toggled</name>
-		  <handler>on_checkbutton_search_autoselect_ident_toggled</handler>
-		  <last_modification_time>Sun, 16 Jun 2002 21:31:59 GMT</last_modification_time>
-		</signal>
 		<label>Autoselect identical</label>
 		<active>False</active>
 		<draw_indicator>True</draw_indicator>
@@ -3554,11 +3519,6 @@
 		<class>GtkCheckButton</class>
 		<name>checkbutton_search_jump_to_downloads</name>
 		<can_focus>True</can_focus>
-		<signal>
-		  <name>toggled</name>
-		  <handler>on_checkbutton_search_jump_to_downloads_toggled</handler>
-		  <last_modification_time>Fri, 29 Mar 2002 19:07:46 GMT</last_modification_time>
-		</signal>
 		<label>Jump to downloads</label>
 		<active>False</active>
 		<draw_indicator>True</draw_indicator>
@@ -3573,12 +3533,7 @@
 		<class>GtkCheckButton</class>
 		<name>checkbutton_search_remove_downloaded</name>
 		<can_focus>True</can_focus>
-		<signal>
-		  <name>toggled</name>
-		  <handler>on_checkbutton_search_remove_downloaded_toggled</handler>
-		  <last_modification_time>Tue, 30 Apr 2002 23:38:34 GMT</last_modification_time>
-		</signal>
-		<label>Remove downloaded items from list</label>
+		<label>Remove files manually selected for download</label>
 		<active>False</active>
 		<draw_indicator>True</draw_indicator>
 		<child>
@@ -3625,11 +3580,6 @@
 		<class>GtkCheckButton</class>
 		<name>checkbutton_monitor_enable</name>
 		<can_focus>True</can_focus>
-		<signal>
-		  <name>toggled</name>
-		  <handler>on_checkbutton_monitor_enable_toggled</handler>
-		  <last_modification_time>Fri, 29 Mar 2002 21:28:39 GMT</last_modification_time>
-		</signal>
 		<label>Search monitor enabled</label>
 		<active>False</active>
 		<draw_indicator>True</draw_indicator>
@@ -3793,11 +3743,6 @@
 		<class>GtkCheckButton</class>
 		<name>checkbutton_search_stats_enable</name>
 		<can_focus>True</can_focus>
-		<signal>
-		  <name>toggled</name>
-		  <handler>on_checkbutton_search_stats_enable_toggled</handler>
-		  <last_modification_time>Fri, 29 Mar 2002 18:05:52 GMT</last_modification_time>
-		</signal>
 		<label>Enable search stats</label>
 		<active>False</active>
 		<draw_indicator>True</draw_indicator>
@@ -4143,11 +4088,6 @@
 		      <class>GtkCheckButton</class>
 		      <name>checkbutton_config_force_ip</name>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>toggled</name>
-			<handler>on_checkbutton_config_force_ip_toggled</handler>
-			<last_modification_time>Sun, 26 Mar 2000 17:43:14 GMT</last_modification_time>
-		      </signal>
 		      <label>Force local IP to</label>
 		      <active>False</active>
 		      <draw_indicator>True</draw_indicator>
@@ -4328,11 +4268,6 @@
 		      <class>GtkCheckButton</class>
 		      <name>checkbutton_config_proxy_connections</name>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>toggled</name>
-			<handler>on_checkbutton_config_proxy_connections_toggled</handler>
-			<last_modification_time>Fri, 29 Mar 2002 18:22:42 GMT</last_modification_time>
-		      </signal>
 		      <label>Use proxy to connect to the internet</label>
 		      <active>False</active>
 		      <draw_indicator>True</draw_indicator>
@@ -4543,11 +4478,6 @@
 		      <class>GtkCheckButton</class>
 		      <name>checkbutton_config_proxy_auth</name>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>toggled</name>
-			<handler>on_checkbutton_config_proxy_auth_toggled</handler>
-			<last_modification_time>Sun, 21 Apr 2002 17:32:02 GMT</last_modification_time>
-		      </signal>
 		      <label>Use username and password to authenticate to proxy</label>
 		      <active>False</active>
 		      <draw_indicator>True</draw_indicator>
@@ -4694,11 +4624,6 @@
 		      <name>checkbutton_config_use_netmasks</name>
 		      <tooltip>This option can give peformance boosts to those on a large network with many peers by trying to locate files on the local networks first.</tooltip>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>toggled</name>
-			<handler>on_checkbutton_use_netmasks_toggled</handler>
-			<last_modification_time>Thu, 11 Apr 2002 05:10:39 GMT</last_modification_time>
-		      </signal>
 		      <label>Try to connect to local networks first</label>
 		      <active>False</active>
 		      <draw_indicator>True</draw_indicator>
@@ -4815,11 +4740,6 @@ settings</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_config_bws_gin</name>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>toggled</name>
-		      <handler>on_checkbutton_config_bws_gin_toggled</handler>
-		      <last_modification_time>Wed, 15 May 2002 10:18:15 GMT</last_modification_time>
-		    </signal>
 		    <label>Limit bandwidth for incoming traffic to</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
@@ -4843,12 +4763,6 @@ settings</label>
 		    <class>GtkCheckButton</class>
 		    <name>checkbutton_config_bws_gout</name>
 		    <can_focus>True</can_focus>
-		    <signal>
-		      <name>toggled</name>
-		      <handler>on_checkbutton_config_bws_gout_toggled</handler>
-		      <after>True</after>
-		      <last_modification_time>Wed, 15 May 2002 10:18:10 GMT</last_modification_time>
-		    </signal>
 		    <label>Limit bandwidth for outgoing traffic to</label>
 		    <active>False</active>
 		    <draw_indicator>True</draw_indicator>
@@ -5144,11 +5058,6 @@ settings</label>
 		      <class>GtkCheckButton</class>
 		      <name>checkbutton_config_bws_in</name>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>toggled</name>
-			<handler>on_checkbutton_config_bws_in_toggled</handler>
-			<last_modification_time>Wed, 15 May 2002 10:39:31 GMT</last_modification_time>
-		      </signal>
 		      <label>Limit bandwidth for incoming traffic to</label>
 		      <active>False</active>
 		      <draw_indicator>True</draw_indicator>
@@ -5172,11 +5081,6 @@ settings</label>
 		      <class>GtkCheckButton</class>
 		      <name>checkbutton_config_bws_out</name>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>toggled</name>
-			<handler>on_checkbutton_config_bws_out_toggled</handler>
-			<last_modification_time>Wed, 15 May 2002 10:39:23 GMT</last_modification_time>
-		      </signal>
 		      <label>Limit bandwidth for outgoing traffic to</label>
 		      <active>False</active>
 		      <draw_indicator>True</draw_indicator>
@@ -5201,11 +5105,6 @@ settings</label>
 		      <name>checkbutton_config_bw_ul_usage_enabled</name>
 		      <tooltip>Until xx% of outgoing HTTP bandwidth is in use, open additional upload slots on request.</tooltip>
 		      <can_focus>True</can_focus>
-		      <signal>
-			<name>toggled</name>
-			<handler>on_checkbutton_config_bw_ul_usage_enabled_toggled</handler>
-			<last_modification_time>Fri, 31 May 2002 14:45:02 GMT</last_modification_time>
-		      </signal>
 		      <label>Enable dynamic upload slots allocation</label>
 		      <active>False</active>
 		      <draw_indicator>True</draw_indicator>
@@ -7255,6 +7154,344 @@ options</label>
 		  </widget>
 		</widget>
 	      </widget>
+
+	      <widget>
+		<class>GtkFrame</class>
+		<name>frame48</name>
+		<label_xalign>0</label_xalign>
+		<shadow_type>GTK_SHADOW_ETCHED_IN</shadow_type>
+		<child>
+		  <padding>0</padding>
+		  <expand>False</expand>
+		  <fill>True</fill>
+		</child>
+
+		<widget>
+		  <class>GtkTable</class>
+		  <name>table31</name>
+		  <border_width>2</border_width>
+		  <rows>7</rows>
+		  <columns>3</columns>
+		  <homogeneous>False</homogeneous>
+		  <row_spacing>2</row_spacing>
+		  <column_spacing>4</column_spacing>
+
+		  <widget>
+		    <class>GtkCheckButton</class>
+		    <name>checkbutton_config_use_swarming</name>
+		    <can_focus>True</can_focus>
+		    <label>Enable swarming</label>
+		    <active>False</active>
+		    <draw_indicator>True</draw_indicator>
+		    <child>
+		      <left_attach>0</left_attach>
+		      <right_attach>1</right_attach>
+		      <top_attach>0</top_attach>
+		      <bottom_attach>1</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkCheckButton</class>
+		    <name>checkbutton_config_aggressive_swarming</name>
+		    <can_focus>True</can_focus>
+		    <label>Agressive mode</label>
+		    <active>False</active>
+		    <draw_indicator>True</draw_indicator>
+		    <child>
+		      <left_attach>1</left_attach>
+		      <right_attach>2</right_attach>
+		      <top_attach>0</top_attach>
+		      <bottom_attach>1</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label283</name>
+		    <label>Minimum chunk size</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <left_attach>0</left_attach>
+		      <right_attach>1</right_attach>
+		      <top_attach>1</top_attach>
+		      <bottom_attach>2</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label284</name>
+		    <label>Maximum chunk size</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <left_attach>0</left_attach>
+		      <right_attach>1</right_attach>
+		      <top_attach>2</top_attach>
+		      <bottom_attach>3</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label285</name>
+		    <label>Fuzzy threshold</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>False</wrap>
+		    <xalign>0</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <left_attach>0</left_attach>
+		      <right_attach>1</right_attach>
+		      <top_attach>6</top_attach>
+		      <bottom_attach>7</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkCheckButton</class>
+		    <name>checkbutton_config_use_alternate_sources</name>
+		    <can_focus>True</can_focus>
+		    <label>Watch searches for alternate sources</label>
+		    <active>False</active>
+		    <draw_indicator>True</draw_indicator>
+		    <child>
+		      <left_attach>0</left_attach>
+		      <right_attach>2</right_attach>
+		      <top_attach>3</top_attach>
+		      <bottom_attach>4</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkCheckButton</class>
+		    <name>checkbutton_config_strict_sha1_matching</name>
+		    <can_focus>True</can_focus>
+		    <label>Strict SHA1 matching</label>
+		    <active>False</active>
+		    <draw_indicator>True</draw_indicator>
+		    <child>
+		      <left_attach>0</left_attach>
+		      <right_attach>2</right_attach>
+		      <top_attach>4</top_attach>
+		      <bottom_attach>5</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkCheckButton</class>
+		    <name>checkbutton_config_use_fuzzy_matching</name>
+		    <can_focus>True</can_focus>
+		    <label>Use fuzzy matching</label>
+		    <active>False</active>
+		    <draw_indicator>True</draw_indicator>
+		    <child>
+		      <left_attach>0</left_attach>
+		      <right_attach>2</right_attach>
+		      <top_attach>5</top_attach>
+		      <bottom_attach>6</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkLabel</class>
+		    <name>label286</name>
+		    <label>These settings have no effect yet. Preparation for the swarming patch.</label>
+		    <justify>GTK_JUSTIFY_CENTER</justify>
+		    <wrap>True</wrap>
+		    <xalign>0</xalign>
+		    <yalign>0.5</yalign>
+		    <xpad>0</xpad>
+		    <ypad>0</ypad>
+		    <child>
+		      <left_attach>2</left_attach>
+		      <right_attach>3</right_attach>
+		      <top_attach>0</top_attach>
+		      <bottom_attach>7</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>False</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkSpinButton</class>
+		    <name>spinbutton_config_fuzzy_threshold</name>
+		    <can_focus>True</can_focus>
+		    <climb_rate>1</climb_rate>
+		    <digits>0</digits>
+		    <numeric>False</numeric>
+		    <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		    <snap>False</snap>
+		    <wrap>False</wrap>
+		    <value>1</value>
+		    <lower>0</lower>
+		    <upper>100</upper>
+		    <step>1</step>
+		    <page>10</page>
+		    <page_size>10</page_size>
+		    <child>
+		      <left_attach>1</left_attach>
+		      <right_attach>2</right_attach>
+		      <top_attach>6</top_attach>
+		      <bottom_attach>7</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>True</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkSpinButton</class>
+		    <name>spinbutton_dl_minchunksize</name>
+		    <can_focus>True</can_focus>
+		    <climb_rate>1</climb_rate>
+		    <digits>0</digits>
+		    <numeric>False</numeric>
+		    <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		    <snap>False</snap>
+		    <wrap>False</wrap>
+		    <value>1</value>
+		    <lower>0</lower>
+		    <upper>100</upper>
+		    <step>1</step>
+		    <page>10</page>
+		    <page_size>10</page_size>
+		    <child>
+		      <left_attach>1</left_attach>
+		      <right_attach>2</right_attach>
+		      <top_attach>1</top_attach>
+		      <bottom_attach>2</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>True</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+
+		  <widget>
+		    <class>GtkSpinButton</class>
+		    <name>spinbutton_dl_maxchunksize</name>
+		    <can_focus>True</can_focus>
+		    <climb_rate>1</climb_rate>
+		    <digits>0</digits>
+		    <numeric>False</numeric>
+		    <update_policy>GTK_UPDATE_ALWAYS</update_policy>
+		    <snap>False</snap>
+		    <wrap>False</wrap>
+		    <value>1</value>
+		    <lower>0</lower>
+		    <upper>100</upper>
+		    <step>1</step>
+		    <page>10</page>
+		    <page_size>10</page_size>
+		    <child>
+		      <left_attach>1</left_attach>
+		      <right_attach>2</right_attach>
+		      <top_attach>2</top_attach>
+		      <bottom_attach>3</bottom_attach>
+		      <xpad>0</xpad>
+		      <ypad>0</ypad>
+		      <xexpand>True</xexpand>
+		      <yexpand>False</yexpand>
+		      <xshrink>False</xshrink>
+		      <yshrink>False</yshrink>
+		      <xfill>True</xfill>
+		      <yfill>False</yfill>
+		    </child>
+		  </widget>
+		</widget>
+	      </widget>
 	    </widget>
 
 	    <widget>
@@ -7650,7 +7887,7 @@ settings</label>
 	<widget>
 	  <class>GtkEventBox</class>
 	  <name>eventbox2</name>
-	  <tooltip>gtk-gnutella thinks you're firewalled</tooltip>
+	  <tooltip>Gtk-gnutella thinks you're firewalled. Nobody has connected to you so far. You will not see any push results which may prevent you from seeing a large amount of results.</tooltip>
 	  <child>
 	    <padding>0</padding>
 	    <expand>True</expand>
@@ -7672,7 +7909,7 @@ settings</label>
 	<widget>
 	  <class>GtkEventBox</class>
 	  <name>eventbox3</name>
-	  <tooltip>gtk-gnutella found no firewall</tooltip>
+	  <tooltip>People can connect to you. Push should work.</tooltip>
 	  <child>
 	    <padding>0</padding>
 	    <expand>True</expand>
