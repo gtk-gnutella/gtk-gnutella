@@ -7431,9 +7431,7 @@ download_retrieve(void)
 		d_name = NULL;
 		recline = 0;				/* Mark the end */
 		has_sha1 = FALSE;
-		if (parq_id != NULL) {
-			G_FREE_NULL(parq_id);
-		}
+		G_FREE_NULL(parq_id);
 	}
 
 out:
@@ -7574,10 +7572,8 @@ renamed:
 
 cleanup:
 
-	if (NULL != src)
-		G_FREE_NULL(src);
-	if (NULL != dest)
-		G_FREE_NULL(dest);
+	G_FREE_NULL(src);
+	G_FREE_NULL(dest);
 	return;
 }
 
