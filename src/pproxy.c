@@ -64,6 +64,11 @@ static GSList *pproxies = NULL;	/* Currently active push-proxy requests */
 
 extern gint guid_eq(gconstpointer a, gconstpointer b);
 
+static void send_pproxy_error(struct pproxy *pp, int code,
+	const gchar *msg, ...) G_GNUC_PRINTF(3, 4);
+static void pproxy_error_remove(struct pproxy *pp, int code,
+	const gchar *msg, ...) G_GNUC_PRINTF(3, 4);
+
 /*
  * pproxy_free_resources
  *
@@ -139,7 +144,7 @@ static void send_pproxy_error_v(
 	}
 
 	http_send_status(pp->socket, code, FALSE,
-			hevcnt ? hev : NULL, hevcnt, reason);
+			hevcnt ? hev : NULL, hevcnt, "%s", reason);
 
 	pp->error_sent = code;
 }
@@ -197,7 +202,7 @@ static void pproxy_remove_v(
 	if (!pp->error_sent) {
 		if (reason == NULL)
 			logreason = "Bad Request";
-		send_pproxy_error(pp, 400, logreason);
+		send_pproxy_error(pp, 400, "%s", logreason);
 	}
 
 	pproxy_free_resources(pp);
@@ -669,7 +674,7 @@ static void err_line_too_long(gpointer obj)
 
 static void err_header_error_tell(gpointer obj, gint error)
 {
-	send_pproxy_error(PPROXY(obj), 413, header_strerror(error));
+	send_pproxy_error(PPROXY(obj), 413, "%s", header_strerror(error));
 }
 
 static void err_header_error(gpointer obj, gint error)
@@ -1131,4 +1136,5 @@ void cproxy_reparent(struct download *d, struct download *cd)
 	g_assert(cd == cd->cproxy->d);
 }
 
+/* vi: set ts=4: */
 /* vi: set ts=4: */

@@ -288,11 +288,13 @@ void download_info_change_all(
 	struct dl_file_info *old_fi, struct dl_file_info *new_fi);
 void download_orphan_new(
 	gchar *file, guint32 size, gchar *sha1, struct dl_file_info *fi);
-void download_queue(struct download *d, const gchar *fmt, ...);
+void download_queue(struct download *d,
+	const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
 void download_freeze_queue(void);
 void download_thaw_queue(void);
 gint download_queue_is_frozen(void);
-void download_stop(struct download *, guint32, const gchar *, ...);
+void download_stop(struct download *, guint32,
+	const gchar *, ...) G_GNUC_PRINTF(3, 4);
 gboolean download_remove(struct download *);
 void download_push_ack(struct gnutella_socket *);
 void download_fallback_to_push(struct download *, gboolean, gboolean);
@@ -340,4 +342,5 @@ void download_proxy_newstate(struct download *d);
 void download_proxy_sent(struct download *d);
 void download_proxy_failed(struct download *d);
 
+/* vi: set ts=4: */
 #endif /* _downloads_h_ */

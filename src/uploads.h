@@ -116,7 +116,7 @@ extern guint32 count_uploads;
 
 gboolean upload_is_enabled(void);
 void upload_timer(time_t now);
-void upload_remove(struct upload *, const gchar *, ...);
+void upload_remove(struct upload *, const gchar *, ...) G_GNUC_PRINTF(2, 3);
 void handle_push_request(struct gnutella_node *);
 void upload_add(struct gnutella_socket *s);
 void upload_connect_conf(struct upload *u);
@@ -130,4 +130,5 @@ gnutella_upload_t *upload_create(struct gnutella_socket *s, gboolean push);
 void upload_fire_upload_info_changed(gnutella_upload_t *n);
 void expect_http_header(gnutella_upload_t *u, upload_stage_t new_status);
 
+/* vi: set ts=4: */
 #endif /* _uploads_h_ */

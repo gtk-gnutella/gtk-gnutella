@@ -68,20 +68,20 @@ void gtk_ctree_fast_move (GtkCTree *ctree, GtkCTreeNode *node,
 inline gint gtk_ctree_count_node_children(
     GtkCTree *ctree, GtkCTreeNode *parent);
 #define GTK_CTREE_NODE_SIBLING(n) \
-    ((n) ? (GTK_CTREE_ROW(n)->sibling) : (NULL))
+    ((n) ? (GTK_CTREE_ROW(n)->sibling) : NULL)
 #define GTK_CTREE_NODE_PARENT(n) \
-    ((n) ? (GTK_CTREE_ROW(n)->parent) : (NULL))
+    ((n) ? (GTK_CTREE_ROW(n)->parent) : NULL)
 #endif /* USE_GTK1 */
 
 /*
  * GtkLabel
  */
-void gtk_label_printf(GtkLabel *label, const gchar * format, ...);
+void gtk_label_printf(GtkLabel *, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
 
 /*
  * GtkEntry
  */
-void gtk_entry_printf(GtkEntry *entry, const gchar * format, ...);
+void gtk_entry_printf(GtkEntry *, const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
 
 /*
  * GtkEditable

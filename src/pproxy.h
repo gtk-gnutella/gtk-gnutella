@@ -55,7 +55,8 @@ struct pproxy {
 #define pproxy_vendor_str(p)	((p)->user_agent ? (p)->user_agent : "")
 
 void pproxy_add(struct gnutella_socket *s);
-void pproxy_remove(struct pproxy *pp, const gchar *reason, ...);
+void pproxy_remove(struct pproxy *pp,
+	const gchar *reason, ...) G_GNUC_PRINTF(2, 3);
 void pproxy_timer(time_t now);
 void pproxy_close(void);
 

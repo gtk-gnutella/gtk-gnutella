@@ -113,10 +113,10 @@ static GHashTable *mesh_info = NULL;
 
 static void upload_request(gnutella_upload_t *u, header_t *header);
 static void upload_error_remove(gnutella_upload_t *u, struct shared_file *sf,
-	int code, const gchar *msg, ...);
+	int code, const gchar *msg, ...) G_GNUC_PRINTF(4, 5);
 static void upload_error_remove_ext(gnutella_upload_t *u,
 	struct shared_file *sf, const gchar *extended, int code,
-	const gchar *msg, ...);
+	const gchar *msg, ...) G_GNUC_PRINTF(5, 6);
 static void upload_http_sha1_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 static void upload_http_xhost_add(
@@ -124,6 +124,8 @@ static void upload_http_xhost_add(
 static void upload_xfeatures_add(
 	gchar *buf, gint *retval, gpointer arg, guint32 flags);
 static void upload_write(gpointer up, gint source, inputevt_cond_t cond);
+static void send_upload_error(gnutella_upload_t *u, struct shared_file *sf,
+	int code, const gchar *msg, ...) G_GNUC_PRINTF(4, 5);
 
 /***
  *** Callbacks
@@ -737,10 +739,10 @@ static void send_upload_error_v(
 	 */
 	if (u->status == GTA_UL_QUEUED)
 		http_send_status(u->socket, code, TRUE,
-			hevcnt ? hev : NULL, hevcnt, reason);
+			hevcnt ? hev : NULL, hevcnt, "%s", reason);
 	else
 		http_send_status(u->socket, code, FALSE,
-			hevcnt ? hev : NULL, hevcnt, reason);
+			hevcnt ? hev : NULL, hevcnt, "%s", reason);
 
 	u->error_sent = code;
 }
@@ -826,7 +828,7 @@ static void upload_remove_v(
 	) {
 		if (reason == NULL)
 			logreason = "Bad Request";
-		send_upload_error(u, NULL, 400, logreason);
+		send_upload_error(u, NULL, 400, "%s", logreason);
 	}
 
 	/*
@@ -981,7 +983,7 @@ void upload_stop_all(struct dl_file_info *fi, const gchar *reason)
 
 	for (l = to_stop; l; l = g_slist_next(l)) {
 		gnutella_upload_t *up = (gnutella_upload_t *) (l->data);
-		upload_remove(up, reason);
+		upload_remove(up, "%s", reason);
 	}
 
 	g_slist_free(to_stop);
@@ -1000,7 +1002,7 @@ static void err_line_too_long(gpointer obj)
 
 static void err_header_error_tell(gpointer obj, gint error)
 {
-	send_upload_error(UPLOAD(obj), NULL, 413, header_strerror(error));
+	send_upload_error(UPLOAD(obj), NULL, 413, "%s", header_strerror(error));
 }
 
 static void err_header_error(gpointer obj, gint error)
@@ -2163,7 +2165,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 		if (msg != NULL) {
 			ban_record(u->ip, msg);
-			upload_error_remove(u, NULL, 403, msg);
+			upload_error_remove(u, NULL, 403, "%s", msg);
 			return;
 		}
 	}
@@ -2326,7 +2328,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	if (skip >= u->file_size || end >= u->file_size) {
-		const gchar *msg = "Requested range not satisfiable";
+		static const gchar msg[] = "Requested range not satisfiable";
 
 		cb_arg.u = u;
 		cb_arg.sf = reqfile;
@@ -2425,7 +2427,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 	 */
 
 	if (range_unavailable) {
-		const gchar *msg = "Requested range not available yet";
+		static const gchar msg[] = "Requested range not available yet";
 
 		g_assert(sha1_hash_available(reqfile));
 		g_assert(pfsp_server);
@@ -2823,7 +2825,7 @@ static void upload_request(gnutella_upload_t *u, header_t *header)
 
 	if (
 		!http_send_status(u->socket, http_code, u->keep_alive,
-			hev, hevcnt, http_msg)
+			hev, hevcnt, "%s", http_msg)
 	) {
 		upload_remove(u, "Cannot send whole HTTP status");
 		return;
@@ -3149,5 +3151,7 @@ void upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 	if (si->avg_bps == 0)
         si->avg_bps++;
 }
+
+/* vi: set ts=4: */
 
 /* vi: set ts=4: */

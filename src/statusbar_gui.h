@@ -62,9 +62,10 @@ void statusbar_gui_shutdown(void);
 
 void statusbar_gui_clear_timeouts(time_t now);
 
-void statusbar_gui_set_default(const gchar *, ...);
+void statusbar_gui_set_default(const gchar *, ...) G_GNUC_PRINTF(1, 2);
 statusbar_msgid_t statusbar_gui_push
-    (sb_types_t, guint, guint, const gchar *, ...);
+    (sb_types_t, guint, guint, const gchar *, ...) G_GNUC_PRINTF(4, 5);
 void statusbar_gui_remove(statusbar_msgid_t);
 
+/* vi: set ts=4: */
 #endif /* _statusbar_gui_h_ */

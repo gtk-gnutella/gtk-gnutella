@@ -114,23 +114,10 @@ GHashTable *ht_proxyfied = NULL;
 
 extern gint guid_eq(gconstpointer a, gconstpointer b);
 
-/*
- * Log function
- */
-
-static inline void routing_log_v(gchar * fmt, ...)
-{
-	va_list va;
-
-	va_start(va, fmt);
-	vprintf(fmt, va);
-	va_end(va);
-}
-
 #define routing_log(...) \
 	do { \
 		if (dbg >= 8) \
-			routing_log_v(__VA_ARGS__); \
+			g_log(G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, __VA_ARGS__); \
 	} while (0)
 
 
