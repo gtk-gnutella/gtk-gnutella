@@ -375,6 +375,7 @@ vp_gui_fi_removed(gnet_fi_t fih)
     fi_context.fih_valid = FALSE;
 }
 
+#ifdef VP_DEBUG
 /**
  * For debugging: print chunk.
  */
@@ -388,6 +389,7 @@ vp_print_chunk(gnet_fi_chunks_t *c, gboolean show_old)
 		printf("%10d - %10d %d\n",
 			c->from, c->to, c->status);
 }
+#endif /* VP_DEBUG */
 
 /**
  * Allocate a new chunk based on the parameters.
@@ -436,6 +438,7 @@ vp_assert_chunks_list(GSList *list)
 	}
 }
 
+#ifdef VP_DEBUG
 /*
  * For debugging: print chunk list.
  */
@@ -453,6 +456,7 @@ vp_print_chunk_list(GSList *list, gchar *title)
 
 	printf("End of list \"%s\".\n", title);
 }
+#endif /* VP_DEBUG */
 
 /** 
  * Fileinfo has been changed for a file. Update the information and 
