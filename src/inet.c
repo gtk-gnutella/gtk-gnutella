@@ -3,8 +3,6 @@
  *
  * Copyright (c) 2001-2003, Raphael Manfredi
  *
- * Internet status.
- *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
  *
@@ -23,6 +21,12 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @file
+ *
+ * Internet status.
  */
 
 #include "gnutella.h"
@@ -87,13 +91,12 @@ static gpointer outgoing_ev = NULL;		/* Callout queue timer */
 
 static void inet_set_is_connected(gboolean val);
 
-/*
- * is_local_ip
- *
+/**
  * Returns whether ip is that of the local machine of in the same local
  * network area.
  */
-static gboolean is_local_ip(guint32 ip)
+static gboolean
+is_local_ip(guint32 ip)
 {
 	static guint32 our_ip = 0;
 
@@ -114,12 +117,11 @@ static gboolean is_local_ip(guint32 ip)
  *** Firewall status management routines.
  ***/
 
-/*
- * inet_firewalled
- *
- * Called when we enter the firewalled status.
+/**
+ * Called when we enter the firewalled status (TCP).
  */
-void inet_firewalled(void)
+void
+inet_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_FIREWALLED, TRUE);
 	fw_time = time(NULL);
@@ -132,13 +134,21 @@ void inet_firewalled(void)
 	node_became_firewalled();
 }
 
-/*
- * got_no_connection
- *
+/**
+ * Called when we enter the firewalled status (UDP).
+ */
+void
+inet_udp_firewalled(void)
+{
+	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, TRUE);
+}
+
+/**
  * This is a callback invoked when no incoming connection has been received
  * for some amount of time.  We conclude we became firewalled.
  */
-static void got_no_connection(cqueue_t *cq, gpointer obj)
+static void
+got_no_connection(cqueue_t *cq, gpointer obj)
 {
 	if (dbg)
 		printf("FW: got no connection to port %u for %d secs\n",
@@ -148,25 +158,35 @@ static void got_no_connection(cqueue_t *cq, gpointer obj)
 	inet_firewalled();
 }
 
-/*
- * inet_not_firewalled
- *
- * Called when we have determined we are definitely not firewalled.
+/**
+ * Called when we have determined we are definitely not TCP-firewalled.
  */
-static void inet_not_firewalled(void)
+static void
+inet_not_firewalled(void)
 {
 	gnet_prop_set_boolean_val(PROP_IS_FIREWALLED, FALSE);
 
 	if (dbg)
-		printf("FW: we're not firewalled for port %u\n", listen_port);
+		printf("FW: we're not TCP-firewalled for port %u\n", listen_port);
 }
 
-/*
- * inet_got_incoming
- *
+/**
+ * Called when we have determined we are definitely not UDP-firewalled.
+ */
+static void
+inet_udp_not_firewalled(void)
+{
+	gnet_prop_set_boolean_val(PROP_IS_UDP_FIREWALLED, FALSE);
+
+	if (dbg)
+		printf("FW: we're not UDP-firewalled for port %u\n", listen_port);
+}
+
+/**
  * Called when we got an incoming connection from another computer at `ip'.
  */
-void inet_got_incoming(guint32 ip)
+void
+inet_got_incoming(guint32 ip)
 {
 	gboolean is_local = is_local_ip(ip);
 
@@ -191,13 +211,13 @@ void inet_got_incoming(guint32 ip)
 		cq_resched(callout_queue, incoming_ev, FW_INCOMING_WINDOW * 1000);
 		return;
 	}
-		
+
 	/*
 	 * Make sure we're not connecting locally.
 	 * If we're not, then we're not firewalled.
 	 */
 
-	if (!is_local_ip(ip))
+	if (!is_local)
 		inet_not_firewalled();
 
 	incoming_ev = cq_insert(
@@ -205,16 +225,49 @@ void inet_got_incoming(guint32 ip)
 		got_no_connection, NULL);
 }
 
-/*
- * inet_can_answer_ping
- *
+/**
+ * Called when we got an incoming datagram from another computer at `ip'.
+ */
+void
+inet_udp_got_incoming(guint32 ip)
+{
+	gboolean is_local = is_local_ip(ip);
+
+	if (!is_inet_connected && !is_local) {
+		outgoing_connected++;				/* In case we have a timer set */
+		inet_set_is_connected(TRUE);
+	}
+}
+
+/**
+ * Called when we got an incoming unsollicited datagram from another
+ * computer at `ip', i.e. the datagram was sent directly to our listening
+ * socket port, and not to a masqueraded port on the firewall opened because
+ * we previously sent out an UDP datagram to a host and got its reply.
+ */
+void
+inet_udp_got_unsollicited_incoming(guint32 ip)
+{
+	inet_udp_got_incoming(ip);
+
+	/*
+	 * Make sure we're not connecting locally.
+	 * If we're not, then we're not firewalled.
+	 */
+
+	if (!is_local_ip(ip))
+		inet_udp_not_firewalled();
+}
+
+/**
  * Check whether we can answer a ping with a pong.
  *
  * Normally, when we're firewalled, we don't answer. However, if we have
  * a non-private IP and are within a "grace period", act as if we were not:
  * we can only know we're not firewalled when we get an incoming connection.
  */
-gboolean inet_can_answer_ping(void)
+gboolean
+inet_can_answer_ping(void)
 {
 	guint32 ip;
 	time_t elapsed;
@@ -255,7 +308,11 @@ gboolean inet_can_answer_ping(void)
  *** External connection status management routines.
  ***/
 
-static void inet_set_is_connected(gboolean val)
+/**
+ * Sets our internet connection status.
+ */
+static void
+inet_set_is_connected(gboolean val)
 {
 	gnet_prop_set_boolean_val(PROP_IS_INET_CONNECTED, val);
 
@@ -264,13 +321,12 @@ static void inet_set_is_connected(gboolean val)
 			val ? "" : "no longer ");
 }
 
-/*
- * check_outgoing_connection
- *
+/**
  * This callback is periodically called when there has been outgoing
  * connections attempted.
  */
-static void check_outgoing_connection(cqueue_t *cq, gpointer obj)
+static void
+check_outgoing_connection(cqueue_t *cq, gpointer obj)
 {
 	guint32 last_received;
 
@@ -296,12 +352,11 @@ static void check_outgoing_connection(cqueue_t *cq, gpointer obj)
 	outgoing_connected = 0;
 }
 
-/*
- * inet_connection_attempted
- *
+/**
  * Called each time we attempt a connection.
  */
-void inet_connection_attempted(guint32 ip)
+void
+inet_connection_attempted(guint32 ip)
 {
 	/*
 	 * Count the attempt if it's not a local connection.
@@ -322,12 +377,11 @@ void inet_connection_attempted(guint32 ip)
 	}
 }
 
-/*
- * inet_connection_succeeded
- *
+/**
  * Called each time a connection attempt succeeds.
  */
-void inet_connection_succeeded(guint32 ip)
+void
+inet_connection_succeeded(guint32 ip)
 {
 	/*
 	 * Count the attempt if it's not a local connection.
@@ -342,12 +396,11 @@ void inet_connection_succeeded(guint32 ip)
 		inet_set_is_connected(TRUE);
 }
 
-/*
- * inet_init
- *
+/**
  * Initialization code.
  */
-void inet_init(void)
+void
+inet_init(void)
 {
 	/*
 	 * If we persisted "is_firewalled" to FALSE, arm the no-connection timer.
