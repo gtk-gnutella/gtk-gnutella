@@ -1261,26 +1261,95 @@ search_gui_restart_search(search_t *sch)
 	guc_search_reissue(sch->search_handle);
 }
 
+struct query {
+	gchar *text;
+	gchar *neg;
+};
+
+/**
+ *
+ */
+static void
+search_gui_parse_text_query(const gchar *s, struct query *query)
+{
+	static const struct query zero_query;
+	const gchar *p, *q;
+	GString *gs_pos, *gs_neg;
+
+	g_assert(s);
+	g_assert(query);
+
+	*query = zero_query;
+	
+	gs_pos = g_string_new("");
+	gs_neg = g_string_new("");
+	
+	for (p = s; *p != '\0'; p = q) {
+		gboolean neg;
+		gint n;
+
+		q = strchr(p, ' ');
+		if (!q)
+			q = strchr(p, '\0');
+
+		/* Treat word after '-' (if preceded by a blank) as negative pattern */
+		neg = *p == '-' && (p != s && ' ' == *(p - 1));
+		if (neg)
+			p++;
+		n = q - p + (*q != '\0' ? 1 : 0);
+		g_string_append_len(neg ? gs_neg : gs_pos, p, n);
+		g_message("%s: \"%.*s\"", neg ? "neg" : "pos", n, p);
+		p = *q != '\0' ? ++q : q;
+	}
+
+	query->text = gs_pos->str;
+	g_string_free(gs_pos, FALSE);
+
+	if (gs_neg->len > 0) {
+		query->neg = gs_neg->len > 0 ? gs_neg->str : NULL;
+		g_string_free(gs_neg, FALSE);
+	} else {
+		g_string_free(gs_neg, TRUE);
+	}
+}
+
+static void
+free_query(struct query *q)
+{
+	static const struct query zero_query;
+
+	g_assert(q);
+
+	G_FREE_NULL(q->text);
+	G_FREE_NULL(q->neg);
+	*q = zero_query;
+}
+
 /**
  * Parses a query string as entered by the user.
  *
  * @param	querystr must point to the query string.
+ * @param	rule
  * @param	*error will point to an descriptive error message on failure.
  * @return	NULL if the query was not valid. Otherwise, the decoded query
  *			is returned.
  */
 const gchar *
-search_gui_parse_query(const gchar *querystr, const gchar **error)
+search_gui_parse_query(const gchar *querystr, rule_t **rule,
+	const gchar **error)
 {
 	static const gchar magnet[] = "magnet:";
 	static const gchar urnsha1[] = "urn:sha1:";
 	static gchar query[512];
 	size_t len;
+	struct query qs;
 
 	g_assert(querystr != NULL);
 	g_assert(error != NULL);
 
 	*error = NULL;
+	if (rule)
+		*rule = NULL;
 
 	/*
 	 * If the text is a magnet link we extract the SHA1 urn
@@ -1345,6 +1414,18 @@ search_gui_parse_query(const gchar *querystr, const gchar **error)
 		return NULL;
 	}
 
+	search_gui_parse_text_query(query, &qs);
+	g_strlcpy(query, qs.text, sizeof query);
+	if (qs.neg && NULL != rule) {
+		filter_t *target;
+
+		target = filter_get_drop_target();
+		g_assert(target != NULL);
+		*rule = filter_new_text_rule(qs.neg, RULE_TEXT_WORDS, FALSE,
+					target, RULE_FLAG_ACTIVE);
+	}
+	free_query(&qs);
+	
 	return query;
 }
 
