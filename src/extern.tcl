@@ -178,6 +178,7 @@ set w_main_list {
     progressbar_connections 
     entry_nodes_guid
     entry_nodes_ip
+    pixmap_firewall
 }
 
 # interface.h ----------------------------------------------------------------------------------------
