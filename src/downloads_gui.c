@@ -602,7 +602,7 @@ void download_gui_add(struct download *d)
     titles[c_queue_server] = vendor;
 	titles[c_queue_status] = "";
 	titles[c_queue_size] = short_size(d->file_info->size);
-	titles[c_queue_host] = download_gui_get_hostname(d);
+	titles[c_queue_host] = download_get_hostname(d);
 
 
 	if (DOWNLOAD_IS_QUEUED(d)) {
@@ -726,7 +726,7 @@ void download_gui_add(struct download *d)
 		titles[c_dl_status] = "";
 		titles[c_dl_size] = short_size(d->file_info->size);
 		titles[c_dl_range] = "";
-        titles[c_dl_host] = download_gui_get_hostname(d);
+        titles[c_dl_host] = download_get_hostname(d);
 		
 		if (NULL != d->file_info) {
 			key = (gpointer) &d->file_info->fi_handle;
@@ -915,7 +915,6 @@ void gui_update_download_range(struct download *d)
 
 void gui_update_download_host(struct download *d)
 {
-	gchar *text;
 	GtkCTreeNode *node;
 
 	if (DL_GUI_IS_HEADER == d)
@@ -924,11 +923,10 @@ void gui_update_download_host(struct download *d)
 	g_assert(d);
 	g_assert(d->status != GTA_DL_QUEUED);
 
-    text = download_gui_get_hostname(d);
-
 	node = gtk_ctree_find_by_row_data(ctree_downloads, NULL, (gpointer) d);
 	if (NULL != node)
-		gtk_ctree_node_set_text(ctree_downloads, node, c_dl_host, text);
+		gtk_ctree_node_set_text(ctree_downloads, node,
+			c_dl_host, download_get_hostname(d));
 }
 
 void gui_update_download(struct download *d, gboolean force)
@@ -1012,7 +1010,7 @@ void gui_update_download(struct download *d, gboolean force)
 	switch (d->status) {
 	case GTA_DL_ACTIVE_QUEUED:	/* JA, 31 jan 2003 Active queueing */
 		{
-			time_t elapsed = now - d->last_update;
+			gint elapsed = delta_time(now, d->last_update);
 
 			rw = gm_snprintf(tmpstr, sizeof(tmpstr), "Queued");
 
@@ -1108,7 +1106,6 @@ void gui_update_download(struct download *d, gboolean force)
 						)
 						downloads_gui_update_parent_status
 							(d, now, "Push sent");
-		break;
 					break;
 				case GTA_DL_FALLBACK:
 					a = "Falling back to push";
@@ -1197,7 +1194,7 @@ void gui_update_download(struct download *d, gboolean force)
 				sha1_ok ?			"OK" :
 									"FAILED");
 			if (fi->cha1 && fi->cha1_hashed) {
-				time_t elapsed = fi->cha1_elapsed;
+				guint elapsed = fi->cha1_elapsed;
 				rw += gm_snprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
 					" (%.1f k/s) %s",
 					(gfloat) (fi->cha1_hashed >> 10) / (elapsed ? elapsed : 1),
