@@ -388,10 +388,35 @@ static void log_init(void)
 		&log_handler, NULL);
 }
 
+static void locale_init(void)
+{
+#ifdef ENABLE_NLS
+    const char *codeset;
+
+	setlocale(LC_ALL, "");
+
+#ifdef USE_GTK2
+	codeset = "UTF-8";
+#else
+	codeset = nl_langinfo(CODESET);
+	if (codeset == NULL) 
+		codeset = "ISO-8859-1";		/* Default locale codeset */
+#endif /* USE_GTK2 */
+
+	bindtextdomain(PACKAGE, LOCALEDIR);
+
+/* FIXME: bind_textdomain_codeset() is only necessary for GNU gettext.
+#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
+*/
+	bind_textdomain_codeset(PACKAGE, codeset);
+/* #endif */
+
+	textdomain(PACKAGE);
+#endif
+}
+
 gint main(gint argc, gchar **argv, gchar **env)
 {
-    char* tmp;
-    char* codeset;
 	gint i;
 
 	if (0 == getuid() || 0 == geteuid()) {
@@ -402,29 +427,13 @@ gint main(gint argc, gchar **argv, gchar **env)
 	for (i = 3; i < 256; i++)
 		close(i);				/* Just in case */
 
-#ifdef ENABLE_NLS
-	tmp = getenv("LC_ALL");
-	if (!tmp) tmp = getenv("LC_CTYPE");
-	if (!tmp) tmp = getenv("LANG");
-
-	if (tmp)
-		setlocale(LC_ALL, tmp);
-
-	codeset = nl_langinfo(CODESET);
-	if (codeset == NULL) 
-		codeset = "ISO-8859-1";		/* Default locale codeset */
-
-	bindtextdomain(PACKAGE, LOCALEDIR);
-	bind_textdomain_codeset(PACKAGE, codeset);
-	textdomain(PACKAGE);
-#endif
-
 	signal(SIGINT, sig_ignore);		/* ignore SIGINT in adns (e.g. for gdb) */
 	signal(SIGPIPE, sig_ignore);	/* Not SIG_IGN, see comment */
 
 	gm_savemain(argc, argv, env);	/* For gm_setproctitle() */
 
 	/* Our inits */
+	locale_init();
 	log_init();
 	adns_init();
 	atoms_init();
