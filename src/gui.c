@@ -261,8 +261,8 @@ gint gui_record_name_eq(gconstpointer rec1, gconstpointer rec2)
  */
 gint gui_record_sha1_eq(gconstpointer rec1, gconstpointer rec2)
 {
-    const guchar *s1 = ((const record_t *) rec1)->sha1;
-    const guchar *s2 = ((const record_t *) rec2)->sha1;
+    const gchar *s1 = ((const record_t *) rec1)->sha1;
+    const gchar *s2 = ((const record_t *) rec2)->sha1;
 
     if (s1 == s2)
         return 0;
