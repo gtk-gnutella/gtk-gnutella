@@ -586,9 +586,9 @@ gint main(gint argc, gchar **argv, gchar **env)
 	file_info_init_post();
 
 	main_gui_init();
+	node_post_init();
 	
 	drop_init();
-
 	download_restore_state();
 
 	/* Some signal handlers */
