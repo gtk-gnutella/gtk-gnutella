@@ -25,7 +25,6 @@
  *----------------------------------------------------------------------
  */
 
-#include "common.h"
 
 #include <sys/stat.h>
 
@@ -36,6 +35,8 @@
 #include <string.h>			/* For strlen() */
 #include <ctype.h>			/* For isalnum() and isspace() */
 #include <sys/times.h>		/* For times() */
+
+#include "common.h"
 
 RCSID("$Id$");
 
@@ -305,6 +306,16 @@ gboolean is_directory(const gchar *path)
 	return S_ISDIR(st.st_mode);
 }
 
+/* Check whether path points to a regular file */
+gboolean is_regular(const gchar *path)
+{
+	struct stat st;
+	if (stat(path, &st) == -1) {
+		return FALSE;
+	}
+	return S_ISREG(st.st_mode);
+}
+
 /* Returns a number of bytes in a more readable form */
 
 gchar *short_size(guint32 size)
@@ -403,13 +414,11 @@ gchar *short_uptime(guint32 s)
 gchar *guid_hex_str(const guchar *guid)
 {
 	static gchar buf[33];
-	const guchar *src = guid;
-	guchar *dst = buf;
 	gulong i;
 
-	for (i = 0; i < 16; i++, src++) {
-		*dst++ = hex_alphabet_lower[*src >> 4];
-		*dst++ = hex_alphabet_lower[*src & 0x0f];
+	for (i = 0; i < 32; guid++) {
+		buf[i++] = hex_alphabet_lower[*guid >> 4];
+		buf[i++] = hex_alphabet_lower[*guid & 0x0f];
 	}
 
 	buf[32] = '\0';
@@ -421,7 +430,7 @@ gchar *guid_hex_str(const guchar *guid)
  *
  * Convert an hexadecimal char (0-9, A-F, a-f) into decimal.
  */
-gint hex2dec(gchar c)
+inline guint hex2dec(guchar c)
 {
 	return c >= '0' && c <= '9' ? c - '0'
 		 : c >= 'a' && c <= 'f' ? c - 'a' + 10
@@ -435,10 +444,11 @@ gint hex2dec(gchar c)
  */
 void hex_to_guid(const gchar *hexguid, guchar *guid)
 {
-	gint i;
+	gulong i;
 
 	for (i = 0; i < 16; i++)
-		guid[i] = (hex2dec(hexguid[i*2]) << 4) + hex2dec(hexguid[i*2+1]);
+		guid[i] = (hex2dec(hexguid[i << 1]) << 4)
+				+ hex2dec(hexguid[(i << 1) + 1]);
 }
 
 /*
@@ -682,15 +692,11 @@ guint32 random_value(guint32 max)
 
 /* Display header line for hex dumps */
 
-static void dump_hex_header(FILE *out)
+inline static void dump_hex_header(FILE *out)
 {
-	int i;
-	const char *cols = "0123456789abcdef";
-
-	fputs("Offset ", out);
-	for (i = 0; i < 16; i++)
-		fprintf(out, " %c ", cols[i]);
-	fprintf(out, " %s\n", cols);
+	fprintf(out, "%s%s\n",
+		"Offset  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f  ",
+		hex_alphabet_lower);
 }
 
 /* 
@@ -932,30 +938,32 @@ void random_init(void)
  * Determine unique filename for `file' in `path', with optional trailing
  * extension `ext'.  If no `ext' is wanted, one must supply an empty string.
  *
- * Returns the chosen unique complete filename as a pointer to static data.
+ * Returns the chosen unique complete filename as a pointer which must be
+ * freed.
  */
 gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 {
-	static gchar filename[2048];
-	gint rw;
+	gchar *filename;
+	size_t size;
+	size_t len;
 	struct stat buf;
 	gint i;
 	guchar xuid[16];
+	const gchar *extra_bytes = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+	/* Use extra_bytes so we can easily append a few chars later */
+	filename = g_strdup_printf("%s/%s%s%s",
+		path, file, ext, extra_bytes);
+	size = strlen(filename);
+	len = strlen(extra_bytes);
+	filename[size - len] = '\0';
+	len = size - len;;
 
 	/*
-	 * This is the basename.
+	 * Append file and extension, then try to see whether this file exists.
 	 */
 
-	rw = gm_snprintf(filename, sizeof(filename), "%s%s%s",
-		path, path[strlen(path) - 1] == '/' ? "" : "/", file);
-
-	/*
-	 * Append the extension, then try to see whether this file exists.
-	 */
-
-	gm_snprintf(&filename[rw], sizeof(filename)-rw, "%s", ext);
-
-	if (-1 == stat(filename, &buf))
+	if (-1 == stat(filename, &buf) && ENOENT == errno)
 		return filename;
 
 	/*
@@ -964,8 +972,8 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	 */
 
 	for (i = 0; i < 100; i++) {
-		gm_snprintf(&filename[rw], sizeof(filename)-rw, ".%02d%s", i, ext);
-		if (-1 == stat(filename, &buf))
+		gm_snprintf(&filename[len], size - len, ".%02d%s", i, ext);
+		if (-1 == stat(filename, &buf) && ENOENT == errno)
 			return filename;
 	}
 
@@ -975,8 +983,8 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 
 	for (i = 0; i < 100; i++) {
 		guint32 rnum = random_value(RAND_MAX);
-		gm_snprintf(&filename[rw], sizeof(filename)-rw, ".%x%s", rnum, ext);
-		if (-1 == stat(filename, &buf))
+		gm_snprintf(&filename[len], size - len, ".%x%s", rnum, ext);
+		if (-1 == stat(filename, &buf) && ENOENT == errno)
 			return filename;
 	}
 
@@ -985,7 +993,7 @@ gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext)
 	 */
 
 	guid_random_fill(xuid);
-	gm_snprintf(&filename[rw], sizeof(filename)-rw, ".%s%s",
+	gm_snprintf(&filename[len], size - len, ".%s%s",
 		guid_hex_str(xuid), ext);
 
 	if (-1 == stat(filename, &buf))
@@ -1043,4 +1051,3 @@ guchar *hex_escape(const guchar *name, gboolean strict)
 
 	return new;
 }
-

@@ -135,6 +135,7 @@ guchar *base32_sha1(const gchar *base32);
 gboolean is_string_ip(const gchar *);
 gboolean is_private_ip(guint32 ip);
 gboolean is_directory(const gchar *);
+gboolean is_regular(const gchar *);
 gboolean file_exists(const gchar *);
 gboolean is_pow2(guint32 value);
 guint32 next_pow2(guint32 n);
@@ -150,11 +151,11 @@ guint32 random_value(guint32 max);
  */
 gint str_chomp(gchar *str, gint len);
 gchar *guid_hex_str(const guchar *guid);
-gint hex2dec(gchar c);
+inline guint hex2dec(guchar c);
 void hex_to_guid(const gchar *hexguid, guchar *guid);
 void dump_hex(FILE *, const gchar *, const gchar *, gint);
 void strlower(gchar *, const gchar *);
-gchar *unique_filename(const gchar *path, const gchar *file, const gchar *ext);
+char *unique_filename(const gchar *path, const gchar *file, const gchar *ext);
 guchar *hex_escape(const guchar *name, gboolean strict);
 gint highest_bit_set(guint32 n);
 
