@@ -409,6 +409,9 @@ gint host_cache_size(void)
  */
 void host_add(guint32 ip, guint16 port, gboolean connect)
 {
+	if (ip == listen_ip() && port == listen_port)
+		return;
+
 	if (!add_host_to_cache(ip, port, "pong"))
 		return;
 

@@ -988,6 +988,14 @@ void pcache_pong_received(struct gnutella_node *n)
 		return;
 
 	/*
+	 * If pong points to us, maybe we explicitly connected to ourselves
+	 * (tests) or someone is trying to fool us.
+	 */
+
+	if (ip == listen_ip() && port == listen_port)
+		return;
+
+	/*
 	 * Add pong to our reserve, and possibly try to connect.
 	 */
 
