@@ -57,6 +57,7 @@
 #include "rx_inflate.h"
 #include "pmsg.h"
 #include "pcache.h"
+#include "bsched.h"
 
 #define CONNECT_PONGS_COUNT		10		/* Amoung of pongs to send */
 #define BYE_MAX_SIZE			4096	/* Maximum size for the Bye message */
@@ -66,7 +67,6 @@
 #define NODE_ERRMSG_TIMEOUT		5	/* Time to leave erorr messages displayed */
 #define SHUTDOWN_GRACE_DELAY	120	/* Grace period for shutdowning nodes */
 #define BYE_GRACE_DELAY			20	/* Bye sent, give time to propagate */
-#define CALLOUT_PERIOD			100	/* milliseconds */
 
 GSList *sl_nodes = (GSList *) NULL;
 
@@ -85,7 +85,6 @@ guint32 gnutella_hello_length = 0;
 
 static const gchar *gnutella_welcome = "GNUTELLA OK\n\n";
 static guint32 gnutella_welcome_length = 0;
-static cqueue_t *callout_queue;
 
 GHookList node_added_hook_list;
 /*
@@ -182,51 +181,12 @@ void node_timer(time_t now)
 }
 
 /*
- * node_callout_timer
- *
- * Called every CALLOUT_PERIOD to heartbeat the callout queue.
- */
-static gboolean node_callout_timer(gpointer p)
-{
-	static struct timeval last_period = { 0L, 0L };
-	struct timezone tz;
-	struct timeval tv;
-	gint delay;
-
-	(void) gettimeofday(&tv, &tz);
-
-	/*
-	 * How much elapsed since last call?
-	 */
-
-	delay = (gint) ((tv.tv_sec - last_period.tv_sec) * 1000 +
-		(tv.tv_usec - last_period.tv_usec) / 1000);
-
-	last_period = tv;		/* struct copy */
-
-	/*
-	 * If too much variation, or too little, maybe the clock was adjusted.
-	 * Assume a single period then.
-	 */
-
-	if (delay < CALLOUT_PERIOD/2 || delay > 3*CALLOUT_PERIOD)
-		delay = CALLOUT_PERIOD;
-
-	cq_clock(callout_queue, delay);
-
-	return TRUE;
-}
-
-/*
  * Network init
  */
 
 void network_init(void)
 {
 	rxbuf_init();
-	callout_queue = cq_make(0);
-
-	gtk_timeout_add(CALLOUT_PERIOD, (GtkFunction) node_callout_timer, NULL);
 
 	gnutella_welcome_length = strlen(gnutella_welcome);
 	gnutella_hello_length = strlen(gnutella_hello);
@@ -768,8 +728,8 @@ static gboolean send_welcome(
 	g_assert(n->socket == s);
 
 	if (
-		-1 == (sent = write(s->file_desc, gnutella_welcome,
-			gnutella_welcome_length))
+		-1 == (sent = bws_write(bws.gout, s->file_desc,
+			(gpointer) gnutella_welcome, gnutella_welcome_length))
 	) {
 		node_remove(n, "Write of 0.4 HELLO acknowledge failed: %s",
 			g_strerror(errno));
@@ -816,7 +776,7 @@ static void send_connection_pongs(struct gnutella_node *n, guchar *muid)
 			 * Send pong, aborting on error or partial write.
 			 */
 
-			sent = write(s->file_desc, pong, sizeof(*pong));
+			sent = bws_write(bws.gout, s->file_desc, pong, sizeof(*pong));
 			if (sent != sizeof(*pong))
 				break;
 
@@ -901,10 +861,10 @@ static gchar *formatted_connection_pongs(gchar *field)
 /*
  * send_node_error
  *
- * Send error message to node.
+ * Send error message to remote end, a node presumably.
+ * NB: We don't need a node to call this routine, only a socket.
  */
-static void send_node_error(struct gnutella_socket *s,
-	int code, guchar *msg, ...)
+void send_node_error(struct gnutella_socket *s, int code, guchar *msg, ...)
 {
 	gchar gnet_response[2048];
 	gchar msg_tmp[256];
@@ -931,7 +891,7 @@ static void send_node_error(struct gnutella_socket *s,
 		code, msg_tmp, version_string, ip_to_gchar(s->ip), start_rfc822_date,
 		code == 503 ? formatted_connection_pongs("X-Try") : "");
 
-	if (-1 == (sent = write(s->file_desc, gnet_response, rw)))
+	if (-1 == (sent = bws_write(bws.gout, s->file_desc, gnet_response, rw)))
 		g_warning("Unable to send back error %d (%s) to node %s: %s",
 			code, msg_tmp, ip_to_gchar(s->ip), g_strerror(errno));
 	else if (sent < rw)
@@ -1000,6 +960,7 @@ static void node_is_now_connected(struct gnutella_node *n)
 		if (n->attrs & NODE_A_TX_DEFLATE) {
 			struct tx_deflate_args args;
 			txdrv_t *ctx;
+			extern cqueue_t *callout_queue;
 
 			if (dbg > 4)
 				printf("Sending compressed data to node %s\n", node_ip(n));
@@ -1652,7 +1613,8 @@ static void node_process_handshake_header(struct io_header *ih)
 	 * Simply log it and close the connection.
 	 */
 
-	if (-1 == (sent = write(n->socket->file_desc, gnet_response, rw))) {
+	sent = bws_write(bws.gout, n->socket->file_desc, gnet_response, rw);
+	if (sent == -1) {
 		int errcode = errno;
 		g_warning("Unable to send back %s to node %s: %s",
 			what, ip_to_gchar(n->ip), g_strerror(errcode));
@@ -1886,7 +1848,7 @@ static void node_header_read(
 		goto final_cleanup;
 	}
 
-	r = read(s->file_desc, s->buffer + s->pos, count);
+	r = bws_read(bws.gin, s->file_desc, s->buffer + s->pos, count);
 	if (r == 0) {
 		node_remove(n, "Failed (EOF)");
 		goto final_cleanup;
@@ -2359,7 +2321,7 @@ void node_init_outgoing(struct gnutella_node *n)
 	 * initial HELLO.
 	 */
 
-	if (-1 == (sent = write(n->socket->file_desc, buf, len))) {
+	if (-1 == (sent = bws_write(bws.gout, n->socket->file_desc, buf, len))) {
 		node_remove(n, "Write error during HELLO: %s", g_strerror(errno));
 		return;
 	} else if (sent < len) {
@@ -2673,7 +2635,7 @@ static void node_read_connecting(
 		return;
 	}
 
-	r = read(s->file_desc, s->buffer + s->pos,
+	r = bws_read(bws.gin, s->file_desc, s->buffer + s->pos,
 		gnutella_welcome_length - s->pos);
 
 	if (!r) {
@@ -2691,6 +2653,8 @@ static void node_read_connecting(
 	if (s->pos < gnutella_welcome_length)
 		return;					/* We haven't read enough bytes yet */
 
+#define TRACE_LIMIT		256
+
 	if (strcmp(s->buffer, gnutella_welcome)) {
 		/*
 		 * The node does not seem to be a valid gnutella server !?
@@ -2699,15 +2663,20 @@ static void node_read_connecting(
 		 * the length of the expected welcome.
 		 */
 
-		r = read(s->file_desc, s->buffer + s->pos, sizeof(s->buffer) - s->pos);
-		if (r > 0)
-			s->pos += r;
+		if (s->pos < TRACE_LIMIT) {
+			gint more = TRACE_LIMIT - s->pos;
+			r = bws_read(bws.gin, s->file_desc, s->buffer + s->pos, more);
+			if (r > 0)
+				s->pos += r;
+		}
 
 		g_warning("node %s replied to our 0.4 HELLO strangely", node_ip(n));
-		dump_hex(stderr, "HELLO Reply", s->buffer, MIN(s->pos, 256));
+		dump_hex(stderr, "HELLO Reply", s->buffer, MIN(s->pos, TRACE_LIMIT));
 		node_remove(n, "Failed (Not a Gnutella server?)");
 		return;
 	}
+
+#undef TRACE_LIMIT
 
 	/*
 	 * Okay, we are now really connected to a Gnutella node at the 0.4 level.
@@ -2820,6 +2789,16 @@ gboolean node_remove_non_nearby(void)
 
 }
 
+/*
+ * node_qrt_changed
+ *
+ * Invoked when our Query Routing Table changed.
+ */
+void node_qrt_changed(void)
+{
+	// XXX
+	g_warning("node_qrt_changed called!");
+}
 
 void node_close(void)
 {
@@ -2842,7 +2821,6 @@ void node_close(void)
 	g_slist_free(sl_nodes);
 
 	rxbuf_close();
-	cq_free(callout_queue);
 }
 
 /* vi: set ts=4: */
