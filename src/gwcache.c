@@ -590,7 +590,7 @@ static void parse_dispatch_lines(
 			gchar *url = http_async_info(handle, &req, NULL, NULL, NULL);
 			g_warning("got %d+ lines from \"%s %s\", stopping",
 				ctx->lines, req, url);
-			http_async_cancel(handle);
+			http_async_close(handle);
 			return;
 		}
 
