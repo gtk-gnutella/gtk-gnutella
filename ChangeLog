@@ -1,5 +1,11 @@
 # since last version
 
+- (2002.08.01 Richard)
+ * Search panel redesign
+ * Minor cosmetic fixes
+ * Adjust idtable to RAM's suggestions
+ * Make search reissue timeout setting in GUI behave propertly again
+
 - (2002.08.31 RAM)
  * Changed the way GUID are generated for messages and servents.
 
