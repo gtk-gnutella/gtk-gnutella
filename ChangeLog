@@ -1,5 +1,17 @@
 # since last version
 
+- (2003.01.12 - RAM)
+ * Quote mesh URLs that contain the ',' character so other servents are
+   not confused (GTKG does not need this).
+ * Fixed skipping of trailing quote in URL parsing [From Alex Bennee].
+ * New properties "normal_connections", "node_leaf_count", "node_normal_count"
+   and "node_ultra_count".
+ * The leaf node mode is no longer experimental, but Ultrapeer mode is.
+ * Added Ultrapeer negotiation management (inter-ultra nodes and ultra / leaf).
+ * Is now lenient about TTL=0 messages sent from ultrapeer to leaf.
+ * Will ban ancient versions after 1 year only, instead of 1.5 years.
+ * First take at QRP reception message management (partially done).
+
 - (2003.01.11 - cbiere)
  * Fixed wrong date for ChangeLog
  * Tried to pop non-existent message from statusbar

@@ -1,7 +1,7 @@
                          gtk-gnutella
 
                Copyright (c) 2000-2001, Yann Grossel
-             Copyright (c) 2001-2002, Raphael Manfredi
+             Copyright (c) 2001-2003, Raphael Manfredi
 
 ------------------------------------------------------------------------
     This program is free software; you can redistribute it and/or modify
@@ -21,7 +21,7 @@
 ------------------------------------------------------------------------
 
 [This software is now maintained by Raphael_Manfredi@pobox.com]
-[This README is out of date and need to be reworked before the 1.0 release]
+[This README is out of date and needs to be reworked before the 1.0 release]
 [If you have problems, your best bet is to subscribe to the gtk-gnutella-users
  list on www.sf.net, and more precisely here:
 
