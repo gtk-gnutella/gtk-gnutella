@@ -4811,43 +4811,6 @@ set d_isascii
 eval $setvar
 $rm -f isascii*
 
-: see if signals are kept
-val="$undef";
-echo " "
-echo "Checking to see if signal handlers stick around..." >&4
-$cat >try.c <<'EOCP'
-foo() {}
-
-int main()
-{
-	signal(2, foo);
-	kill(getpid(), 2);
-	kill(getpid(), 2);
-	printf("abc\n");
-}
-EOCP
-set try
-if eval $compile; then
-	echo `sh -c $run ./try >try.out 2>/dev/null` >/dev/null
-	if $contains abc try.out >/dev/null 2>&1; then
-		echo "Yes, they do."
-		val="$define";
-	else
-		echo "No, they don't."
-	fi
-else
-	$echo $n "(I can't seem to compile the test program. Assuming $c"
-	if ./bsd; then
-		echo "they do.)"
-		val="$define"
-	else
-		echo "they don't.)"
-	fi
-fi
-set d_keepsig
-eval $setvar
-$rm -f try*
-
 : how can we find information about libxml2?
 echo " "
 echo "Checking how we can gather information about libxml2..." >&4
@@ -5228,7 +5191,7 @@ int main(void)
 }
 EOC
 
-if $cc $ccflags $ldflags $glibcflags $glibldflags -o try try.c >/dev/null 2>&1;
+if $cc $ccflags $glibcflags -o try try.c $ldflags $glibldflags >/dev/null 2>&1;
 then
 	echo " "
 	echo "We'll be using glib version $version." >&4
