@@ -1,5 +1,14 @@
 # since last version
 
+- (2002.06.29 - RAM)
+  * More Solaris fixes [Uros Bizjak, patch #575037].
+  * Added hardwired list of servent GUIDs to ban for push routes.
+  * Now banning GUID "20d262ff0e6fd6119734004005a207b1" for push routing.
+    (this GUID seems to be bundled as a constant in Morpheus)
+  * Rationalize right-click menu handling in all panes [From Richard].
+  * Fixed crashes with the filter popup window when search was closed
+    before the filter popup [From Richard].
+
 - (2002.06.28 - RAM)
   * Portability fix in socks v5 code [From Bruce Momjian, patch #574919].
   * Portability fixes for FreeBSD [From Aron, patch #574111].
