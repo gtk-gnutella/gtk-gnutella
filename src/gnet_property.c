@@ -318,7 +318,7 @@ prop_set_t *gnet_prop_init(void) {
     gnet_property->props[3].data.guint32.def   = &up_connections_def;
     gnet_property->props[3].data.guint32.value = &up_connections;
     gnet_property->props[3].data.guint32.max   = 100;
-    gnet_property->props[3].data.guint32.min   = 1;
+    gnet_property->props[3].data.guint32.min   = 0;
 
 
     /*

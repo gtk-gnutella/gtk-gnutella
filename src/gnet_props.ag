@@ -53,7 +53,7 @@ prop = {
     type = guint32;
     data = {
         default = 3;
-        min     = 1;
+        min     = 0;
         max     = 100;
     };
 };
