@@ -75,7 +75,7 @@ void routing_init(void)
 
 	srand(time((time_t *) NULL));
 
-	for (i = 0; i < 16; i++) guid[i]  = rand() % 256;
+	for (i = 0; i < 15; i++) guid[i]  = rand() & 0xff;
 
 	for (i = 0; i < 256; i++) { messages[i] = NULL; n_messages[i] = 0; }
 
@@ -85,6 +85,17 @@ void routing_init(void)
 	debug_msg[GTA_MSG_INIT_RESPONSE]       = "Ping Reply  ";
 	debug_msg[GTA_MSG_SEARCH]              = "Search Req. ";
 	debug_msg[GTA_MSG_SEARCH_RESULTS]      = "Search Reply";
+
+	/*
+	 * We're a "modern" client, meaning we're not Gnutella 0.56.
+	 * Therefore we must set our ninth byte, guid[8] to 0xff, and
+	 * put the protocol version number in guid[15].  For 0.4, this
+	 * means 0.
+	 *		--RAM, 15/09/2001
+	 */
+
+	guid[8] = 0xff;
+	guid[15] = 0;
 }
 
 
