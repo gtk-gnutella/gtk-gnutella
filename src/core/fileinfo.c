@@ -3154,6 +3154,7 @@ file_info_update(struct download *d, filesize_t from, filesize_t to,
 
 	g_assert(fi->refcount > 0);
 	g_assert(fi->lifecount > 0);
+	g_assert(from < to);
 	g_assert(file_info_check_chunklist(fi));
 
 	fi->stamp = time((time_t *)NULL);
@@ -3203,6 +3204,7 @@ again:
 			fc->status = status;
 			fc->download = newval;
 			found = TRUE;
+			g_assert(file_info_check_chunklist(fi));
 			break;
 
 		} else if ((fc->from == from) && (fc->to < to)) {
@@ -3217,6 +3219,7 @@ again:
 			fc->status = status;
 			fc->download = newval;
 			from = fc->to;
+			g_assert(file_info_check_chunklist(fi));
 			continue;
 
 		} else if ((fc->from == from) && (fc->to > to)) {
@@ -3235,6 +3238,7 @@ again:
 				g_assert(prevfc->to == fc->from);
 				prevfc->to = to;
 				fc->from = to;
+				g_assert(file_info_check_chunklist(fi));
 			} else {
 				nfc = walloc(sizeof(struct dl_file_chunk));
 				nfc->from = to;
@@ -3245,7 +3249,8 @@ again:
 				fc->to = to;
 				fc->status = status;
 				fc->download = newval;
-				g_slist_insert(fi->chunklist, nfc, n+1);
+				gm_slist_insert_after(fi->chunklist, fclist, nfc);
+				g_assert(file_info_check_chunklist(fi));
 			}
 
 			found = TRUE;
@@ -3253,18 +3258,15 @@ again:
 
 		} else if ((fc->from < from) && (fc->to >= to)) {
 
+			/*
+			 * New chunk [from, to] lies within ]fc->from, fc->to].
+			 */
+
 			if (fc->status == DL_CHUNK_DONE)
 				need_merging = TRUE;
 
 			if (status == DL_CHUNK_DONE)
 				fi->done += to - from;
-
-			nfc = walloc(sizeof(struct dl_file_chunk));
-			nfc->from = from;
-			nfc->to = to;
-			nfc->status = status;
-			nfc->download = newval;
-			g_slist_insert(fi->chunklist, nfc, n+1);
 
 			if (fc->to > to) {
 				nfc = walloc(sizeof(struct dl_file_chunk));
@@ -3272,12 +3274,20 @@ again:
 				nfc->to = fc->to;
 				nfc->status = fc->status;
 				nfc->download = fc->download;
-				g_slist_insert(fi->chunklist, nfc, n+2);
+				gm_slist_insert_after(fi->chunklist, fclist, nfc);
 			}
+
+			nfc = walloc(sizeof(struct dl_file_chunk));
+			nfc->from = from;
+			nfc->to = to;
+			nfc->status = status;
+			nfc->download = newval;
+			gm_slist_insert_after(fi->chunklist, fclist, nfc);
 
 			fc->to = from;
 
 			found = TRUE;
+			g_assert(file_info_check_chunklist(fi));
 			break;
 
 		} else if ((fc->from < from) && (fc->to < to)) {
@@ -3295,13 +3305,13 @@ again:
 			nfc->to = fc->to;
 			nfc->status = status;
 			nfc->download = newval;
-			g_slist_insert(fi->chunklist, nfc, n+1);
+			gm_slist_insert_after(fi->chunklist, fclist, nfc);
 
 			tmp = fc->to;
 			fc->to = from;
 			from = tmp;
+			g_assert(file_info_check_chunklist(fi));
 			goto again;
-
 		}
 	}
 
