@@ -131,19 +131,11 @@ void search_remove_got_results_listener(search_got_results_listener_t l)
 static void search_fire_got_results(
 	GSList *sch_matched, const gnet_results_set_t *rs)
 {
-    GSList *l;
+    GSList *sl;
     g_assert(rs != NULL);
 
-    for (
-        l = search_got_results_listeners; 
-        l != NULL; 
-        l = g_slist_next(l)
-    ) {
-        search_got_results_listener_t fn = 
-            (search_got_results_listener_t) l->data;
-
-        (*fn)(sch_matched, rs);
-    }
+    for (sl = search_got_results_listeners; sl != NULL; sl = g_slist_next(sl))
+        (*(search_got_results_listener_t) sl->data)(sch_matched, rs);
 }
 
 /***
@@ -155,10 +147,10 @@ static guint sent_node_hash_func(gconstpointer key)
 	const struct sent_node_data *sd = (const struct sent_node_data *) key;
 
 	/* ensure that we've got sizeof(gint) bytes of deterministic data */
-	gint ip = sd->ip;
-	gint port = sd->port;
+	guint32 ip = sd->ip;
+	guint32 port = sd->port;
 
-	return g_int_hash(&ip) ^ g_int_hash(&port);
+	return ip ^ port;
 }
 
 static gint sent_node_compare(gconstpointer a, gconstpointer b)
@@ -188,7 +180,7 @@ static void mark_search_sent_to_node(
 	struct sent_node_data *sd = walloc(sizeof(*sd));
 	sd->ip = n->ip;
 	sd->port = n->port;
-	g_hash_table_insert(sch->sent_nodes, sd, (void *) 1);
+	g_hash_table_insert(sch->sent_nodes, sd, GUINT_TO_POINTER(1));
 }
 
 static void mark_search_sent_to_connected_nodes(search_ctrl_t *sch)
@@ -216,7 +208,7 @@ static gboolean search_already_sent_to_node(
 	struct sent_node_data sd;
 	sd.ip = n->ip;
 	sd.port = n->port;
-	return GPOINTER_TO_INT(g_hash_table_lookup(sch->sent_nodes, &sd));
+	return NULL != g_hash_table_lookup(sch->sent_nodes, &sd);
 }
 
 /*
@@ -1280,8 +1272,7 @@ static void node_added_callback(gpointer data)
 static void search_reset_sent_nodes(search_ctrl_t *sch)
 {
 	search_free_sent_nodes(sch);
-	sch->sent_nodes =
-		g_hash_table_new(sent_node_hash_func, sent_node_compare);
+	sch->sent_nodes = g_hash_table_new(sent_node_hash_func, sent_node_compare);
 }
 
 /*
