@@ -121,6 +121,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_isascii HAS_ISASCII		/**/
 
+/* SIGNALS_KEPT:
+ *	This symbol is defined if signal handlers needn't be reinstated after
+ *	receipt of a signal.
+ */
+#$d_keepsig SIGNALS_KEPT	/**/
+
 /* HAS_MEMCPY:
  *	This symbol, if defined, indicates that the memcpy routine is available
  *	to copy blocks of memory.
@@ -162,6 +168,11 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	This variable contains the name of the package being built.
  */
 #define PACKAGE "$package"
+
+/* PACKAGE_SOURCE_DIR:
+ * Holds the directory name holding the package source.
+ */
+#define PACKAGE_SOURCE_DIR "$pkgsrc"
 
 /* PRIVLIB_EXP:
  *	This symbol contains the ~name expanded version of PRIVLIB, to be used
@@ -334,11 +345,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	PACKAGE_SOURCE_DIR or any other means.
  */
 #$d_official OFFICIAL_BUILD	/**/
-
-/* PACKAGE_SOURCE_DIR:
- * Holds the directory name holding the package source.
- */
-#define PACKAGE_SOURCE_DIR "$pkgsrc"
 
 /* USE_GTK1:
  * This symbol is defined when compiling for the GTK1 toolkit.
