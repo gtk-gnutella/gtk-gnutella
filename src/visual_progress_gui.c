@@ -45,6 +45,9 @@
  * perhaps max once a second.
  */
 
+#include "common.h"
+#include "gnutella.h"
+
 #include "gui.h"
 #include "http.h"
 #include "downloads.h"
