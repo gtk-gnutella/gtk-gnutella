@@ -80,78 +80,8 @@ static void end_mass_update(void)
 }
 
 /***
- *** Host timer.
+ *** Host periodic timer.
  ***/
-
-/*
- * auto_connect
- *
- * Round-robin selection of a host catcher, and addition to the list of
- * nodes, if not already connected to it.
- */
-static void auto_connect(void)
-{
-	static gchar *host_catcher[] = {
-		"connect1.gnutellanet.com",
-		"connect2.gnutellanet.com",
-		"public.bearshare.net",
-		"connect3.gnutellanet.com",
-		"gnet2.ath.cx",
-		"connect1.bearshare.net",
-	};
-	static struct host_catcher {
-		time_t tried;
-		guint32 ip;
-	} *host_tried = NULL;
-	static guint host_idx = 0;
-	guint32 ip = 0;
-	guint16 port = 6346;
-	gint host_count = sizeof(host_catcher) / sizeof(host_catcher[0]);
-	gint i;
-	time_t now = time((time_t *) NULL);
-	extern gboolean node_connected(guint32, guint16, gboolean);
-
-	/*
-	 * Try to fill hosts from web host cache, asynchronously.
-	 */
-
-	gwc_get_hosts();
-
-	/*
-	 * To avoid hammering the host caches, we don't allow connections to
-	 * each of them that are not at least HOST_CATCHER_DELAY seconds apart.
-	 * The `host_tried' array keeps track of our last attempts.
-	 *		--RAM, 30/12/2001
-	 *
-	 * To avoid continuous (blocking) DNS lookups when we are low on hosts,
-	 * cache the IP of each host catcher.  We assume those are fairly stable
-	 * hosts and that their IP will never change during the course of our
-	 * running time.
-	 *		--RAM, 14/01/2002
-	 */
-
-	if (host_tried == NULL)
-		host_tried = g_malloc0(sizeof(struct host_catcher) * host_count);
-
-	for (i = 0; i < host_count; i++, host_idx++) {
-		if (host_idx >= host_count)
-			host_idx = 0;
-
-		ip = host_tried[host_idx].ip;
-		if (ip == 0)
-			ip = host_tried[host_idx].ip = host_to_ip(host_catcher[host_idx]);
-
-		if (
-			ip != 0 &&
-			!node_connected(ip, port, FALSE) &&
-			(now - host_tried[host_idx].tried) >= HOST_CATCHER_DELAY
-		) {
-			node_add(ip, port);
-			host_tried[host_idx].tried = now;
-			return;
-		}
-	}
-}
 
 /*
  * host_timer
@@ -182,9 +112,8 @@ void host_timer(void)
 			nodes_missing = 0;			/* Don't connect this run */
 	}
 
-    if (count < max_connections) {
-        nodes_missing -= whitelist_connect();
-    }
+	if (count < max_connections)
+		nodes_missing -= whitelist_connect();
     
 	/*
 	 * If we are under the number of connections wanted, we add hosts
@@ -199,7 +128,7 @@ void host_timer(void)
 					node_add(ip, port);
 				}
 			} else
-				auto_connect();
+				gwc_get_hosts(); 		/* Fill hosts from web host cache */
 		}
 	}
 	else if (use_netmasks) {
@@ -613,7 +542,7 @@ void free_networks()
 }
 
 /* 
- * parse_netmaks
+ * parse_netmasks
  *
  * Break the netmaks string and convert them into network_pair elements in 
  * the local_networks array. IP's are in network order.
@@ -630,8 +559,12 @@ void parse_netmasks(gchar * str)
 	for (i = 0; masks[i]; i++)
 		;
 
-	local_networks = (struct network_pair *)g_malloc(sizeof(*local_networks)*i);
 	number_local_networks = i;
+
+	if (i == 0)
+		return;
+
+	local_networks = (struct network_pair *)g_malloc(sizeof(*local_networks)*i);
 
 	for (i = 0; masks[i]; i++) {
 		/* Network is of the form ip/mask or ip/bits */
