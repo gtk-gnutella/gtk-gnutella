@@ -564,6 +564,37 @@ void gnet_get_bw_stats(gnet_bw_source type, gnet_bw_stats_t *s)
  ***/
 
 /*
+ * get_average_ip_lifetime
+ *
+ * Compute the EMA of the IP address lifetime up to now, but do not
+ * update the property.
+ */
+time_t get_average_ip_lifetime(time_t now)
+{
+	guint32 current_ip_stamp;
+	guint32 average_ip_uptime;
+	time_t lifetime = 0;
+
+	gnet_prop_get_guint32_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
+	gnet_prop_get_guint32_val(PROP_AVERAGE_IP_UPTIME, &average_ip_uptime);
+
+	if (current_ip_stamp) {
+		lifetime = now - current_ip_stamp;
+		if (lifetime < 0)
+			lifetime = 0;
+	}
+
+	/*
+	 * The average lifetime is computed as an EMA on 3 terms.
+	 * The smoothing factor sm=2/(3+1) is therefore 0.5.
+	 */
+
+	average_ip_uptime += (lifetime >> 1) - (average_ip_uptime >> 1);
+
+	return average_ip_uptime;
+}
+
+/*
  * update_address_lifetime
  *
  * Called whenever the IP address we advertise changed.
@@ -604,34 +635,22 @@ static void update_address_lifetime(void)
 	old_ip = current_ip;
 
 	gnet_prop_get_guint32_val(PROP_CURRENT_IP_STAMP, &current_ip_stamp);
-	gnet_prop_get_guint32_val(PROP_AVERAGE_IP_UPTIME, &average_ip_uptime);
 
-	if (current_ip_stamp) {
-		time_t lifetime = now - current_ip_stamp;
-		if (lifetime < 0)
-			lifetime = 0;
-
-		/*
-		 * The average lifetime is computed as an EMA on 3 terms.
-		 * The smoothing factor sm=2/(3+1) is therefore 0.5.
-		 */
-
-		average_ip_uptime += (lifetime >> 1) - (average_ip_uptime >> 1);
-		gnet_prop_set_guint32_val(PROP_AVERAGE_IP_UPTIME, average_ip_uptime);
-	}
+	if (current_ip_stamp)
+		gnet_prop_set_guint32_val(PROP_AVERAGE_IP_UPTIME,
+			get_average_ip_lifetime(now));
 
 	gnet_prop_set_guint32_val(PROP_CURRENT_IP_STAMP, (guint32) now);
 }
 
 /*
- * update_servent_uptime
+ * get_average_servent_uptime
  *
- * Called at shutdown time to update the average_uptime property before
- * saving the properties to disk.
+ * Compute the EMA of the averate servent uptime, up to now, but do not
+ * update the property.
  */
-static void update_servent_uptime(void)
+time_t get_average_servent_uptime(time_t now)
 {
-	time_t now = time(NULL);
 	time_t uptime;
 	guint32 start_stamp;
 	guint32 avg_servent_uptime;
@@ -649,7 +668,22 @@ static void update_servent_uptime(void)
 	 */
 
 	avg_servent_uptime += (uptime >> 2) - (avg_servent_uptime >> 2);
-	gnet_prop_set_guint32_val(PROP_AVERAGE_SERVENT_UPTIME, avg_servent_uptime);
+
+	return avg_servent_uptime;
+}
+
+/*
+ * update_servent_uptime
+ *
+ * Called at shutdown time to update the average_uptime property before
+ * saving the properties to disk.
+ */
+static void update_servent_uptime(void)
+{
+	time_t now = time(NULL);
+
+	gnet_prop_set_guint32_val(PROP_AVERAGE_SERVENT_UPTIME,
+		get_average_servent_uptime(now));
 }
 
 /***

@@ -53,4 +53,7 @@ const gchar *settings_config_dir(void);
 const gchar *settings_home_dir(void);
 void settings_close(void);
 
+time_t get_average_servent_uptime(time_t now);
+time_t get_average_ip_lifetime(time_t now);
+
 #endif /* _settings_h_ */
