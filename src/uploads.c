@@ -1424,9 +1424,7 @@ static struct shared_file *get_file_to_upload_from_index(
 	}
 
 	buf = strchr(buf, '/');
-	p = buf++;
-
-	if (!p) {
+	if (!buf) {
 		g_warning("Invalid encoded Gnutella HTTP URI: %s", uri);
 		upload_error_remove(u, NULL, 400,
 			"Invalid encoded Gnutella HTTP request");
