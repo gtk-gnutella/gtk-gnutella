@@ -272,6 +272,7 @@ struct gnutella_host *host_get_caught(void)
 
 	h = (struct gnutella_host *) link->data;
 	sl_catched_hosts = g_list_remove_link(sl_catched_hosts, link);
+	g_list_free_1(link);
 	host_ht_remove(h);
 
 	/*
