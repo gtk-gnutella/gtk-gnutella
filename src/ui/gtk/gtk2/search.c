@@ -1,4 +1,4 @@
-/*
+/* -*- mode: cc-mode; tab-width:4; -*-
  * $Id$
  *
  * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
@@ -100,7 +100,7 @@ remove_parent_with_sha1(GHashTable *ht, const gchar *sha1)
 	atom_sha1_free(key);
 }
 
-static inline GtkTreeIter *
+GtkTreeIter *
 find_parent_with_sha1(GHashTable *ht, gpointer key)
 {
 	GtkTreeIter *iter = NULL;
@@ -1410,10 +1410,14 @@ gui_search_force_update_tab_label(search_t *sch, time_t now)
 gboolean
 gui_search_update_tab_label(struct search *sch)
 {
-	static time_t now = 0;
-	if (sch->items != sch->last_update_items &&
-		((now = time(NULL)) - sch->last_update_time >= TAB_UPDATE_TIME))
+	static time_t now;
+
+	if (sch->items != sch->last_update_items) {
+		now = time(NULL);
+		
+		if (delta_time(now, sch->last_update_time) >= TAB_UPDATE_TIME)
 			gui_search_force_update_tab_label(sch, now);
+	}
 
 	return TRUE;
 }

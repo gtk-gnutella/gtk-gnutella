@@ -1,4 +1,4 @@
-/*
+/* -*- mode: cc-mode; tab-width:4; -*-
  * $Id$
  *
  * Copyright (c) 2001-2003, Richard Eckart
@@ -136,10 +136,11 @@ void gui_search_history_add(gchar *s);
 #ifdef USE_GTK2
 void gui_search_create_tree_view(GtkWidget **sw, GtkWidget **tree_view);
 void gui_search_force_update_tab_label(struct search *, time_t now);
+GtkTreeIter * find_parent_with_sha1(GHashTable *ht, gpointer key);
 #else
-GtkCTreeNode *find_parent_with_sha1(GHashTable *ht, gpointer key);
 void gui_search_create_ctree(GtkWidget **sw, GtkCTree **ctree);
 void gui_search_force_update_tab_label(struct search *);
+GtkCTreeNode *find_parent_with_sha1(GHashTable *ht, gpointer key);
 #endif
 
 void search_gui_expand_all(void);

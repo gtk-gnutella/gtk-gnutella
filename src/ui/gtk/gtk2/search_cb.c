@@ -1,4 +1,4 @@
-/*
+/* -*- mode: cc-mode; tab-width:4; -*-
  * $Id$
  *
  * Copyright (c) 2001-2003, Raphael Manfredi, Richard Eckart
@@ -751,7 +751,7 @@ on_popup_search_metadata_activate(GtkMenuItem *menuitem, gpointer user_data)
 #ifdef HAS_LIBXML2
 	search_t *search;
 	GtkTreeSelection *selection;
-	GSList *sl,*l;
+	GSList *sl, *sl_records;
 
 	g_message("on_search_meta_data_active: called");
 
@@ -761,20 +761,28 @@ on_popup_search_metadata_activate(GtkMenuItem *menuitem, gpointer user_data)
 	g_assert(search != NULL);
 
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(search->tree_view));
-
-	sl = tree_selection_collect_data(selection, gui_record_sha1_eq);
+	sl_records = tree_selection_collect_data(selection, gui_record_sha1_eq);
 
 	/* Queue up our requests */
-	g_message("on_search_meta_data: %d items",
-		g_slist_position(sl, g_slist_last(sl)) + 1);
+	g_message("on_search_meta_data: %d items", g_slist_length(sl_records));
 
-       for (l=sl; l; l=l->next)
-        {
-            record_t    *rec=l->data;
+	for (sl = sl_records; sl; sl = g_slist_next(sl)) {
+		GtkTreeIter *parent;
+		record_t    *rec;
+
+		rec = sl->data;
 	    guc_query_bitzi_by_urn(rec->sha1);
-        }
 
-	g_slist_free(sl);
+		/* set the feedback */
+		parent = find_parent_with_sha1(search->parents, rec->sha1);
+		g_assert(parent != NULL);
+		gtk_tree_store_set(GTK_TREE_STORE(search->model), parent,
+			c_sr_meta, _("Query queued..."),
+			(-1));
+
+    }
+
+	g_slist_free(sl_records);
 
 #endif	/* HAS_LIBXML2 */
 }
